@@ -6,7 +6,6 @@
     <packaging>pom</packaging>
     <modules>
         <module>dedekind-ontology</module>
-        <module>dedekind-core</module>
     </modules>
 
     <parent>
