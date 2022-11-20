@@ -13,6 +13,8 @@ sealed
 interface Peano<P extends Peano<P>>
 extends Natural<Peano<?>>
 {
+	long longVal();
+	
 	default Peano<?> plus(Zero that) {
 		return this;
 	}
@@ -23,6 +25,11 @@ extends Natural<Peano<?>>
 		@Override
 		public Peano<?> plus(Peano<?> that) {
 			return that;
+		}
+
+		@Override
+		public long longVal() {
+			return 0;
 		}
 	}
 
@@ -42,6 +49,11 @@ extends Natural<Peano<?>>
 			}
 
 			return succ(this).plus(((Succ<?>)that).pred);
+		}
+
+		@Override
+		public long longVal() {
+			return 1 + pred.longVal();
 		}
 	}
 
