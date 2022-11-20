@@ -7,20 +7,22 @@ package com.github.vincentk.dedekind.algebra;
  * <a href="https://en.wikipedia.org/wiki/Field_(mathematics)#Examples">examples on wikipedia</>
  * are provided below.
  */
-public interface Field extends Ring {
-
-    /**
-     * Rational numbers:
-     */
-    final class RATIONALS implements Field {}
-
-    /**
-     * Real numbers:
-     */
-    final class REALS implements Field {}
+public interface Field<F extends Field<F>> extends Ring<F> {
 
     /**
      * Complex numbers:
      */
-    final class COMPLEX implements Field {}
+    interface Complex<C extends Complex<C>> extends Field<C> {}
+
+    /**
+     * Real numbers:
+     */
+    interface Reals<R extends Reals<R>> extends Complex<R> {}
+    
+    /**
+     * Rational numbers:
+     */
+    interface Rationals<Q extends Rationals<Q>> extends Reals<Q> {}
+
+
 }

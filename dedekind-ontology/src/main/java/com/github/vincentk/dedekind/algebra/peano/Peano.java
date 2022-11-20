@@ -1,44 +1,59 @@
 package com.github.vincentk.dedekind.algebra.peano;
 
-import com.github.vincentk.dedekind.algebra.Ring.Naturals;
+import com.github.vincentk.dedekind.algebra.Ring.Natural;
 
+/**
+ * Implementation of Peano Numbers.
+ * 
+ * https://en.wikipedia.org/wiki/Peano_axioms
+ * 
+ * @param <P>
+ */
 sealed 
-interface Peano<N, P extends Peano<N, P>>
-extends Naturals
+interface Peano<P extends Peano<P>>
+extends Natural<Peano<?>>
 {
-	final class Zero implements Peano<Naturals, Zero> {
+	default Peano<?> plus(Zero that) {
+		return this;
+	}
+
+	final class Zero implements Peano<Zero> {
 		private Zero() {}
-		
+
 		@Override
-		public long asLong() {
-			return 0;
+		public Peano<?> plus(Peano<?> that) {
+			return that;
 		}
 	}
 
-	final class Succ<N, P extends Peano<N, P>> implements Peano<N, Succ<N, P>> {
-		
-		private final long val;
-		
+	final class Succ<P extends Peano<P>> implements Peano<Succ<P>> {
+
+		private final P pred;
+
 		private Succ(P pred) {
-			val = pred.asLong() + 1;
+			this.pred = pred;
 		}
 
 		@Override
-		public long asLong() {
-			return val;
+		public Peano<?> plus(Peano<?> that) {
+
+			if (that instanceof Zero) {
+				return this;
+			}
+
+			return succ(this).plus(((Succ<?>)that).pred);
 		}
-		
-		public static
-		<N, P extends Peano<N, P>>
-		Succ<N, P> succ(P pred) {
-			return new Succ<N, P>(pred);
-		}
-		
 	}
-	
+
+	private static
+	<P extends Peano<P>>
+	Succ<P> succ(P pred) {
+		return new Succ<>(pred);
+	}
+
 	// Proof by type-check:
 	public static final Zero ZERO = new Zero();
-	public static final Succ<Naturals, Zero> ONE = Succ.succ(Zero.ZERO);
-	public static final Succ<Naturals, Succ<Naturals, Zero>> TWO = Succ.succ(ONE);
-	public static final Succ<Naturals, Succ<Naturals, Succ<Naturals, Zero>>> THREE = Succ.succ(TWO);
+	public static final Succ<Zero> ONE = succ(Zero.ZERO);	
+	public static final Succ<Succ<Zero>> TWO = succ(ONE);
+	public static final Succ<Succ<Succ<Zero>>> THREE = succ(TWO);
 }
