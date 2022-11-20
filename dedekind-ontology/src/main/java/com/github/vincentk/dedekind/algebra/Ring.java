@@ -2,7 +2,7 @@ package com.github.vincentk.dedekind.algebra;
 
 import com.github.vincentk.dedekind.sets.Rings;
 
-public interface Ring<R extends Ring<R>> extends Rings, MonoidP<R> {
+public interface Ring<R extends Ring<R>> extends Rings, MonoidP<R>, MonoidM<R> {
 
 	/**
 	 * The integers under multiplication form a
