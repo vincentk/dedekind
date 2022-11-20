@@ -20,7 +20,7 @@ public interface Matrix<F, D, C, M extends Matrix<F, D, C, M>> extends Vector<F,
     M scalarMult(F scalar);
 
     @Override
-    M vAdd(M vector);
+    M plus(M vector);
 
     /**(
      * @param <M2> type of matrix returned.
