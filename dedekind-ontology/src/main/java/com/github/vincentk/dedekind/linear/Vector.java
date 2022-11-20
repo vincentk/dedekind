@@ -2,6 +2,7 @@ package com.github.vincentk.dedekind.linear;
 
 import com.github.vincentk.dedekind.algebra.Field;
 import com.github.vincentk.dedekind.algebra.MonoidP;
+import com.github.vincentk.dedekind.algebra.Ring;
 
 /**
  * A vector space in the spirit of the 
@@ -9,8 +10,12 @@ import com.github.vincentk.dedekind.algebra.MonoidP;
  * @param <F> optional type tag indicating e.g. a {@link Field}.
  * @param <V> the usual recursive self-type so that subtypes can refer to themselves.
  */
-public interface Vector<F, V extends Vector<F, V>>
-extends MonoidP<V>
+public interface Vector<F extends Ring<F>, V extends Vector<F, V>>
+extends
+// Vector addition:
+MonoidP<V>,
+// Scalar multiplication:
+Module<F, V>
 {
 
     /**
@@ -19,7 +24,8 @@ extends MonoidP<V>
      * @param scalar a scalar from the underlying field.
      * @return the scaled vector.
      */
-    V scalarMult(F scalar);
+	@Override
+    V mult(F scalar);
 
     /**
      * Vector addition.
