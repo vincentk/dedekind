@@ -1,5 +1,7 @@
 package com.github.vincentk.dedekind.linear;
 
+import com.github.vincentk.dedekind.algebra.Ring;
+
 /**
  * <p>
  * Note that in a certain sense, matrixes define 
@@ -14,13 +16,13 @@ package com.github.vincentk.dedekind.linear;
  * @param <D> the codomain, often a {@link Vector}.
  * @param <C> the domain, often a {@link Vector}.
  */
-public interface Matrix<F, D, C, M extends Matrix<F, D, C, M>> extends Vector<F, M> {
+public interface Matrix<F extends Ring<F>, D, C, M extends Matrix<F, D, C, M>> extends Vector<F, M> {
 
     @Override
-    M scalarMult(F scalar);
+    M mult(F scalar);
 
     @Override
-    M vAdd(M vector);
+    M plus(M vector);
 
     /**(
      * @param <M2> type of matrix returned.
