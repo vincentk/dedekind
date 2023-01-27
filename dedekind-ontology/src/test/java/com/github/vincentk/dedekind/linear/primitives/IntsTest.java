@@ -1,10 +1,10 @@
 package com.github.vincentk.dedekind.linear.primitives;
 
-import static com.github.vincentk.dedekind.linear.primitives.Ints.ONE;
-import static com.github.vincentk.dedekind.linear.primitives.Ints.THREE;
-import static com.github.vincentk.dedekind.linear.primitives.Ints.TWO;
-import static com.github.vincentk.dedekind.linear.primitives.Ints.ZERO;
-import static com.github.vincentk.dedekind.linear.primitives.Ints.of;
+import static com.github.vincentk.dedekind.linear.primitives.Zs.ONE;
+import static com.github.vincentk.dedekind.linear.primitives.Zs.THREE;
+import static com.github.vincentk.dedekind.linear.primitives.Zs.TWO;
+import static com.github.vincentk.dedekind.linear.primitives.Zs.ZERO;
+import static com.github.vincentk.dedekind.linear.primitives.Zs.of;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.junit.jupiter.api.Test;

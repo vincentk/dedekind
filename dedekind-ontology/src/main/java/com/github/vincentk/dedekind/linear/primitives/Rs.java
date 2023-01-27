@@ -67,9 +67,4 @@ public final class Rs implements Field.Reals<Rs>, Equality<Rs> {
 	public String toString() {
 		return String.valueOf(val);
 	}
-
-	@Override
-	public Rs conjugate() {
-		return this;
-	}
 }

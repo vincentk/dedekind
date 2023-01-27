@@ -21,5 +21,9 @@ public interface MonoidP<M extends MonoidP<M>> extends Monoids {
 		default G neg() {
 			return negate();
 		}
+		
+		default G minus(G that) {
+			return this.plus(that.negate());
+		}
 	}
 }

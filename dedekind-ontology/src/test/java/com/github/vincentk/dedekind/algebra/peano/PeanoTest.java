@@ -29,7 +29,7 @@ public class PeanoTest {
 	private static void plus(
 			long expected, Peano<?> a, Peano<?> b) {
 		
-		sym(expected, a, b, (x, y) -> x.plus(y));
+		isSymmetric(expected, a, b, (x, y) -> x.plus(y));
 	}
 
 	@Test
@@ -48,11 +48,13 @@ public class PeanoTest {
 	private static void times(
 			long expected, Peano<?> a, Peano<?> b) {
 		
-		sym(expected, a, b, (x, y) -> x.times(y));
+		isSymmetric(expected, a, b, (x, y) -> x.times(y));
 	}
 	
-	private static void sym(
-			long expected, Peano<?> a, Peano<?> b,
+	private static void isSymmetric(
+			long expected,
+			Peano<?> a,
+			Peano<?> b,
 			BinaryOperator<Peano<?>> op) {
 		
 		equals(expected, op.apply(a, b));
