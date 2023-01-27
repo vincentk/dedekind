@@ -2,13 +2,21 @@ package com.github.vincentk.dedekind.linear.primitives;
 
 import com.github.vincentk.dedekind.algebra.Equality;
 import com.github.vincentk.dedekind.algebra.Ring;
+import com.github.vincentk.dedekind.sets.Rings.Integers;
 
-public final class Zs implements Ring<Zs>, Equality<Zs> {
+/**
+ * An implementation of integer numbers.
+ */
+public final class Zs implements Integers, Ring<Zs>, Equality<Zs> {
 
 	private final int val;
 
 	private Zs(int val) {
 		this.val = val;
+	}
+	
+	public int intValue() {
+		return val;
 	}
 
 	@Override
