@@ -10,4 +10,16 @@ public interface MonoidP<M extends MonoidP<M>> extends Monoids {
 	default M p(M that) {
 		return plus(that);
 	}
+	
+	public interface GroupP<G extends GroupP<G>> extends MonoidP<G> {
+		
+		/**
+		 * @return - this
+		 */
+		G negate();
+		
+		default G neg() {
+			return negate();
+		}
+	}
 }
