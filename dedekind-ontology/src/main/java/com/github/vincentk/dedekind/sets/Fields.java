@@ -12,15 +12,15 @@ public interface Fields extends Rings {
     /**
      * The complex numbers form a field.
      */
-    interface COMPLEX extends Fields {}
+    interface Complex extends Fields {}
 
     /**
      * The real numbers are a subset of the complex numbers.
      */
-    interface REALS extends COMPLEX {}
+    interface Reals extends Complex {}
     
     /**
      * The rational numbers are a subset of the real numbers.
      */
-    interface RATIONALS extends REALS {}
+    interface Rationals extends Reals {}
 }

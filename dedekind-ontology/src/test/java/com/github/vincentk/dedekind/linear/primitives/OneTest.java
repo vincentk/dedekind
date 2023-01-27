@@ -1,16 +1,14 @@
 package com.github.vincentk.dedekind.linear.primitives;
 
-import static com.github.vincentk.dedekind.linear.primitives.Ints.ONE;
-import static com.github.vincentk.dedekind.linear.primitives.Ints.THREE;
-import static com.github.vincentk.dedekind.linear.primitives.Ints.TWO;
-import static com.github.vincentk.dedekind.linear.primitives.Ints.ZERO;
-import static com.github.vincentk.dedekind.linear.primitives.Ints.of;
 import static com.github.vincentk.dedekind.linear.primitives.One.one;
+import static com.github.vincentk.dedekind.linear.primitives.Zs.ONE;
+import static com.github.vincentk.dedekind.linear.primitives.Zs.THREE;
+import static com.github.vincentk.dedekind.linear.primitives.Zs.TWO;
+import static com.github.vincentk.dedekind.linear.primitives.Zs.ZERO;
+import static com.github.vincentk.dedekind.linear.primitives.Zs.of;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.junit.jupiter.api.Test;
-
-import com.github.vincentk.dedekind.linear.primitives.Ints.Z;
 
 public class OneTest {
 
@@ -25,7 +23,7 @@ public class OneTest {
 		checkPlus(of(6), THREE, THREE);
 	}
 	
-	private static void checkPlus(Z expected, Z a, Z b) {
+	private static void checkPlus(Zs expected, Zs a, Zs b) {
 		assertEquals(one(expected), one(a).plus(one(b)));
 	}
 	
@@ -39,7 +37,7 @@ public class OneTest {
 		checkTimes(of(9), THREE, THREE);
 	}
 	
-	private static void checkTimes(Z expected, Z a, Z b) {
+	private static void checkTimes(Zs expected, Zs a, Zs b) {
 		assertEquals(one(expected), one(a).mult(b));
 	}
 }

@@ -1,5 +1,7 @@
 package com.github.vincentk.dedekind.algebra;
 
+import com.github.vincentk.dedekind.sets.Fields;
+
 /**
  * Marker type denoting a <a href="https://en.wikipedia.org/wiki/Field_(mathematics)">field</>.
  *
@@ -8,15 +10,6 @@ package com.github.vincentk.dedekind.algebra;
  * are provided below.
  */
 public interface Field<F extends Field<F>> extends Ring<F> {
-	
-	/**
-	 * @return - this
-	 */
-	F negate();
-	
-	default F neg() {
-		return negate();
-	}
 	
 	/**
 	 * Subtraction (inverse of addition).
@@ -69,12 +62,12 @@ public interface Field<F extends Field<F>> extends Ring<F> {
     /**
      * Real numbers:
      */
-    interface Reals<R extends Reals<R>> extends Complex<R> {}
+    interface Reals<R extends Reals<R>> extends Field<R>, Fields.Reals {}
     
     /**
      * Rational numbers:
      */
-    interface Rationals<Q extends Rationals<Q>> extends Reals<Q> {}
+    interface Rationals<Q extends Rationals<Q>> extends Field<Q>, Fields.Rationals {}
 
 
 }
