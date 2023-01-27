@@ -1,6 +1,6 @@
 package com.github.vincentk.dedekind.algebra.peano;
 
-import com.github.vincentk.dedekind.algebra.Ring.Natural;
+import com.github.vincentk.dedekind.algebra.SemiRing.Natural;
 
 /**
  * Implementation of Peano Numbers / Axioms.
@@ -15,11 +15,12 @@ extends Natural<Peano<?>>
 {
 	long longVal();
 
-	default Peano<?> plus(Zero that) {
+	default Peano<P> plus(Zero that) {
 		return this;
 	}
 
 	final class Zero implements Peano<Zero> {
+
 		private Zero() {}
 
 		@Override
@@ -61,16 +62,16 @@ extends Natural<Peano<?>>
 
 		@Override
 		public Peano<?> times(Peano<?> that) {
-			
+
 			// a * 0 = 0
 			if (that instanceof Zero) {
 				return that;
 			}
-			
+
 			// a * S(b) = a + (a * b)
 			return this.plus(this.times(pred(that)));
 		}
-		
+
 		private static Peano<?> pred(Peano<?> succ) {
 			return ((Succ<?>)succ).pred;
 		}

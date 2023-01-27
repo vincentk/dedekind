@@ -9,7 +9,7 @@ public final class Ints {
 
 		private final int val;
 
-		Z(int val) {
+		private Z(int val) {
 			this.val = val;
 		}
 
@@ -39,6 +39,11 @@ public final class Ints {
 		@Override
 		public String toString() {
 			return String.valueOf(val);
+		}
+
+		@Override
+		public Z negate() {
+			return of(-val);
 		}
 	}
 	
