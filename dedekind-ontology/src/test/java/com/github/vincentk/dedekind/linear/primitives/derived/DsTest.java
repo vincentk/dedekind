@@ -32,7 +32,7 @@ public class DsTest {
 
         assertThat(one.p(Ds.of(3))).isEqualTo(Ds.of(4, eps));
 
-        assertThat(one.x(Ds.of(5))).isEqualTo(Ds.of(1, 5 * eps));
+        assertThat(one.x(Ds.of(5))).isEqualTo(Ds.of(5, 5 * eps));
 
         assertThat(one.p(one)).isEqualTo(Ds.of(2, 2 * eps));
     }
