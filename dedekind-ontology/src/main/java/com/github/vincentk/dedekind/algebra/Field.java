@@ -56,6 +56,11 @@ public interface Field<F extends Field<F>> extends Ring<F> {
             return conjugate();
         }
     }
+    
+    /**
+     * Dual numbers:
+     */
+    interface Duals<R extends Duals<R>> extends Field<R> {}
 
     /**
      * Real numbers:
