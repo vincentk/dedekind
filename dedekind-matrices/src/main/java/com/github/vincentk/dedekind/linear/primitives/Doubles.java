@@ -1,9 +1,12 @@
 package com.github.vincentk.dedekind.linear.primitives;
 
 import java.util.Arrays;
+import java.util.stream.DoubleStream;
+import java.util.stream.Stream;
 
 import com.github.vincentk.dedekind.algebra.Equality;
-import com.github.vincentk.dedekind.linear.Vector;
+import com.github.vincentk.dedekind.algebra.peano.Peano;
+import com.github.vincentk.dedekind.linear.finite.FiniteVector;
 
 /**
  * Vector with just one element.
@@ -12,7 +15,7 @@ import com.github.vincentk.dedekind.linear.Vector;
  */
 final class Doubles
 implements
-Vector<Rs, Doubles>,
+FiniteVector<Rs, Peano.Succ<?>, Doubles>,
 Equality<Doubles>
 {
     private final double[] val;
@@ -20,6 +23,8 @@ Equality<Doubles>
     private Doubles(double[] val) {
 
         assert null != val;
+        
+        assert val.length > 0;
 
         this.val = val;
     }
@@ -79,5 +84,15 @@ Equality<Doubles>
     Doubles
     doubles(double[] val) {
         return new Doubles(val);
+    }
+
+    @Override
+    public long cardinality() {
+        return val.length;
+    }
+
+    @Override
+    public Stream<Rs> enumerate() {
+        return DoubleStream.of(val).mapToObj(Rs::of);
     }
 }

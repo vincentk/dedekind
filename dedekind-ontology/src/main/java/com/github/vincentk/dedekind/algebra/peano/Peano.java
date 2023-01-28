@@ -11,10 +11,8 @@ import com.github.vincentk.dedekind.algebra.SemiRing.Natural;
  */
 public sealed 
 interface Peano<P extends Peano<P>>
-extends Natural<Peano<?>>
+extends Natural<Peano<?>>, Cardinality
 {
-    long longVal();
-
     default Peano<P> plus(Zero that) {
         return this;
     }
@@ -34,7 +32,7 @@ extends Natural<Peano<?>>
         }
 
         @Override
-        public long longVal() {
+        public long cardinality() {
             return 0;
         }
     }
@@ -76,8 +74,8 @@ extends Natural<Peano<?>>
         }
 
         @Override
-        public long longVal() {
-            return 1 + pred.longVal();
+        public long cardinality() {
+            return 1 + pred.cardinality();
         }
 
     }
