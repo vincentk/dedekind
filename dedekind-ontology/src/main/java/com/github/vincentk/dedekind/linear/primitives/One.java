@@ -62,4 +62,9 @@ Equality<One<R>>
     public Stream<R> enumerate() {
         return Stream.of(val);
     }
+
+    @Override
+    public long cardinality() {
+        return 1;
+    }
 }

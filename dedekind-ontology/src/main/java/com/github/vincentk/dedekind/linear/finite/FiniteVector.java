@@ -16,6 +16,7 @@ V extends FiniteVector<F, C, V>
 >
 extends
 Vector<F, V>,
+Cardinality,
 CountableSet<F, Stream<F>>
 {
 }

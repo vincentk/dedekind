@@ -23,6 +23,9 @@ FiniteColumnVector<F, C, D, TransposedRowVector<F, C, D>>
     private final D val;
 
     public TransposedRowVector(D val) {
+        
+        assert val.cardinality() > 0;
+        
         this.val = val;
     }
 
@@ -57,5 +60,10 @@ FiniteColumnVector<F, C, D, TransposedRowVector<F, C, D>>
     @Override
     public TransposedRowVector<F, C, D> plus(TransposedRowVector<F, C, D> vector) {
         return new TransposedRowVector<>(val.plus(vector.val));
+    }
+
+    @Override
+    public long cardinality() {
+        return val.cardinality();
     }
 }
