@@ -16,7 +16,19 @@ import com.github.vincentk.dedekind.algebra.Ring;
  * @param <D> the codomain, often a {@link Vector}.
  * @param <C> the domain, often a {@link Vector}.
  */
-public interface Matrix<F extends Ring<F>, D, C, M extends Matrix<F, D, C, M>> extends Vector<F, M> {
+public interface Matrix<
+// Ring:
+F extends Ring<F>,
+// Domain of linear map:
+D extends Vector<F, D>,
+// Codomain of linear map:
+C extends Vector<F, C>,
+// Self-reference:
+M extends Matrix<F, D, C, M>>
+extends 
+LinearMap<D, F, C, F>,
+Vector<F, M>
+{
 
     @Override
     M mult(F scalar);
@@ -39,7 +51,9 @@ public interface Matrix<F extends Ring<F>, D, C, M extends Matrix<F, D, C, M>> e
      * @param vector a vector in the domain D.
      * @return a column vector in the co-domain C.
      */
-    C vectorMult(D vector);
+    default C vectorMult(D vector) {
+    	return apply(vector);
+    }
 
     /**
      * <a href="https://en.wikipedia.org/wiki/Matrix_multiplication">Matrix multiplication.</>
@@ -51,7 +65,7 @@ public interface Matrix<F extends Ring<F>, D, C, M extends Matrix<F, D, C, M>> e
      * @param <M3>
      * @return
      */
-    <D2, M2 extends Matrix<F, C, D2, M2>, M3 extends Matrix<F, D2, D, M3>>
+    <D2 extends Vector<F, D2>, M2 extends Matrix<F, C, D2, M2>, M3 extends Matrix<F, D2, D, M3>>
     M3
     mult(M2 matrix);
 }

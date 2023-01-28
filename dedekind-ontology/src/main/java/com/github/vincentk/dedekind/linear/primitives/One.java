@@ -2,6 +2,8 @@ package com.github.vincentk.dedekind.linear.primitives;
 
 import com.github.vincentk.dedekind.algebra.Equality;
 import com.github.vincentk.dedekind.algebra.Ring;
+import com.github.vincentk.dedekind.algebra.peano.Peano;
+import com.github.vincentk.dedekind.linear.Cardinality;
 import com.github.vincentk.dedekind.linear.Vector;
 
 /**
@@ -9,8 +11,9 @@ import com.github.vincentk.dedekind.linear.Vector;
  * 
  * @param <R> type of ring defining the element type.
  */
-final class One<R extends Ring<R> & Equality<R>>
+public final class One<R extends Ring<R> & Equality<R>>
 implements
+Cardinality<Peano.Succ<Peano.Zero>>,
 Vector<R, One<R>>,
 Equality<One<R>>
 {

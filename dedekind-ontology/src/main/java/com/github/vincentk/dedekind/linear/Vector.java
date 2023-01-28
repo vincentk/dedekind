@@ -5,8 +5,12 @@ import com.github.vincentk.dedekind.algebra.MonoidP;
 import com.github.vincentk.dedekind.algebra.Ring;
 
 /**
- * A vector space in the spirit of the 
- * <a href="https://en.wikipedia.org/wiki/Vector_space#Definition">definition found on wikipedia</a>.
+ * An element of a vector space satisfying the
+ * <a href="https://en.wikipedia.org/wiki/Vector_space#Definition_and_basic_properties">vector axioms</a>.
+ * 
+ * Notably, this does not include e.g. the definition of an inner product.
+ * For this, we refer to sub-types.
+ * 
  * @param <F> optional type tag indicating e.g. a {@link Field}.
  * @param <V> the usual recursive self-type so that subtypes can refer to themselves.
  */
