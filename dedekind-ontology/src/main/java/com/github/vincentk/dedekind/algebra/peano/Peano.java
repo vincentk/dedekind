@@ -32,7 +32,7 @@ extends Natural<Peano<?>>, Cardinality
         }
 
         @Override
-        public long longVal() {
+        public long cardinality() {
             return 0;
         }
     }
@@ -74,8 +74,8 @@ extends Natural<Peano<?>>, Cardinality
         }
 
         @Override
-        public long longVal() {
-            return 1 + pred.longVal();
+        public long cardinality() {
+            return 1 + pred.cardinality();
         }
 
     }

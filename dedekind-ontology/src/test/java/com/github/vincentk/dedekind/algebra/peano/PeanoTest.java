@@ -63,6 +63,6 @@ public class PeanoTest {
 	
 	
 	private static void equals(long expected, Peano<?> found) {
-		assertEquals(expected, found.longVal());
+		assertEquals(expected, found.cardinality());
 	}
 }
