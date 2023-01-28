@@ -13,6 +13,6 @@ package com.github.vincentk.dedekind.linear;
  * @param <C>
  */
 public interface Dual<C> {
-	
-	C transpose();
+
+    C transpose();
 }

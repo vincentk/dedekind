@@ -8,23 +8,23 @@ import com.github.vincentk.dedekind.sets.Monoids;
  * @param <M>
  */
 public interface MonoidM<M extends MonoidM<M>> extends Monoids {
-	
-	M times(M that);
-	
-	// Poor man's operator overloading:
-	default M x(M that) {
-		return times(that);
-	}
-	
-	public interface GroupM<G extends GroupM<G>> extends MonoidM<G> {
-		
-		/**
-		 * @return - this
-		 */
-		G negate();
-		
-		default G neg() {
-			return negate();
-		}
-	}
+
+    M times(M that);
+
+    // Poor man's operator overloading:
+    default M x(M that) {
+        return times(that);
+    }
+
+    public interface GroupM<G extends GroupM<G>> extends MonoidM<G> {
+
+        /**
+         * @return - this
+         */
+        G negate();
+
+        default G neg() {
+            return negate();
+        }
+    }
 }

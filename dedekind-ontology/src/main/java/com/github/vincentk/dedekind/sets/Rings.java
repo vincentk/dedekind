@@ -7,14 +7,14 @@ import com.github.vincentk.dedekind.sets.Fields.Rationals;
  */
 public interface Rings extends Monoids {
 
-	/**
-	 * The integers under multiplication form a
-	 * <a href="https://en.wikipedia.org/wiki/Commutative_ring">Commutative Ring</a>.
-	 */
-	interface Integers extends Rings, Rationals {}
+    /**
+     * The integers under multiplication form a
+     * <a href="https://en.wikipedia.org/wiki/Commutative_ring">Commutative Ring</a>.
+     */
+    interface Integers extends Rings, Rationals {}
 
-	/**
-	 * Naturals are a sub-set of the integers.
-	 */
-	interface Naturals extends Integers {}
+    /**
+     * Naturals are a sub-set of the integers.
+     */
+    interface Naturals extends Integers {}
 }

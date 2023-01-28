@@ -14,5 +14,5 @@ Rings,
 MonoidP<R>,
 MonoidM<R>
 {
-	interface Natural<N extends Natural<N>> extends SemiRing<N>, Naturals {}
+    interface Natural<N extends Natural<N>> extends SemiRing<N>, Naturals {}
 }
