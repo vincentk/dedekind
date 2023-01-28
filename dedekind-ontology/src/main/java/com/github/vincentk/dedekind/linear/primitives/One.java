@@ -9,12 +9,12 @@ import com.github.vincentk.dedekind.linear.Vector;
  * 
  * @param <R> type of ring defining the element type.
  */
-final class One<R extends Ring<R> & Equality<R>>
+public final class One<R extends Ring<R> & Equality<R>>
 implements
 Vector<R, One<R>>,
 Equality<One<R>>
 {
-	private final R val;
+	protected final R val;
 	
 	private One(R val) {
 		this.val = val;
@@ -53,5 +53,5 @@ Equality<One<R>>
 	One<R>
 	one(R val) {
 		return new One<>(val);
-	}
+	}	
 }

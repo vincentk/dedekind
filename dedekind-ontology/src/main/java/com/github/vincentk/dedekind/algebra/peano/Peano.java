@@ -9,7 +9,7 @@ import com.github.vincentk.dedekind.algebra.SemiRing.Natural;
  * 
  * @param <P>
  */
-sealed 
+public sealed 
 interface Peano<P extends Peano<P>>
 extends Natural<Peano<?>>
 {

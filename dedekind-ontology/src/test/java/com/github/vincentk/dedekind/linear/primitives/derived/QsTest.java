@@ -36,6 +36,18 @@ public class QsTest {
 
 		assertThat(q(1, 2).plus(q(1, 3))).isEqualTo(q(5, 6));
 	}
+	
+	@Test
+	public void testMultiplication() {
+
+		assertThat(ZERO.x(ZERO)).isEqualTo(q(0, 1));
+
+		assertThat(ZERO.x(UNIT)).isEqualTo(q(0, 1));
+
+		assertThat(UNIT.x(UNIT)).isEqualTo(q(1, 1));
+
+		assertThat(q(1, 2).x(q(1, 3))).isEqualTo(q(1, 6));
+	}
 
 	private static Qs q(int en, int de) {
 		return of(en, de);

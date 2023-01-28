@@ -19,6 +19,10 @@ public final class Rs implements Field.Reals<Rs>, Equality<Rs> {
 	public static Rs of(double val) {
 		return new Rs(val);
 	}
+	
+	public double doubleVal() {
+		return val;
+	}
 
 	@Override
 	public Rs plus(Rs that) {

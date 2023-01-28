@@ -5,10 +5,15 @@ import java.util.function.Function;
 /**
  * @see https://en.wikipedia.org/wiki/Linear_map
  * 
- * @param <V> domain
- * @param <W> range, co-domain
+ * @param <V> domain (a vector space)
+ * @param <W> range, co-domain (also a vector space)
  */
-public interface LinearMap<V, W>
+public interface LinearMap<
+// Domain:
+V,
+// Range:
+W
+>
 extends Function<V, W>
 {
 	@Override

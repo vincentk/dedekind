@@ -13,16 +13,29 @@ import com.github.vincentk.dedekind.algebra.Ring;
  * Optional type tags, deliberately left unconstrained:
  * </p>
  * @param <F> the field, often a {@link Field}.
- * @param <D> the codomain, often a {@link Vector}.
- * @param <C> the domain, often a {@link Vector}.
+ * @param <D> the codomain.
+ * @param <C> the domain.
  */
-public interface Matrix<F extends Ring<F>, D, C, M extends Matrix<F, D, C, M>> extends Vector<F, M> {
+public interface Matrix<
+// Ring:
+F extends Ring<F>,
+// Domain of linear map:
+D extends ColumnVector<F, ?, D>,
+// Codomain of linear map:
+C extends ColumnVector<F, ?, C>,
+// Self-reference:
+M extends Matrix<F, D, C, M>>
+extends 
+LinearMap<D, C>,
+Vector<F, M>,
+Dual<Matrix<F, C, D, ?>>
+{
 
     @Override
     M mult(F scalar);
 
     @Override
-    M plus(M vector);
+    M plus(M matrix);
 
     /**(
      * @param <M2> type of matrix returned.
@@ -30,8 +43,7 @@ public interface Matrix<F extends Ring<F>, D, C, M extends Matrix<F, D, C, M>> e
      *
      * @see https://en.wikipedia.org/wiki/Matrix_(mathematics)#Addition,_scalar_multiplication_and_transposition
      */
-    <M2 extends Matrix<F, C, D, M2>>
-    M2 transpose();
+    Matrix<F, C, D, ?> transpose();
 
     /**
      * Multiplication with a column vector in the domain D.
@@ -39,7 +51,9 @@ public interface Matrix<F extends Ring<F>, D, C, M extends Matrix<F, D, C, M>> e
      * @param vector a vector in the domain D.
      * @return a column vector in the co-domain C.
      */
-    C vectorMult(D vector);
+    default C vectorMult(D vector) {
+    	return apply(vector);
+    }
 
     /**
      * <a href="https://en.wikipedia.org/wiki/Matrix_multiplication">Matrix multiplication.</>
@@ -51,7 +65,7 @@ public interface Matrix<F extends Ring<F>, D, C, M extends Matrix<F, D, C, M>> e
      * @param <M3>
      * @return
      */
-    <D2, M2 extends Matrix<F, C, D2, M2>, M3 extends Matrix<F, D2, D, M3>>
+    <D2 extends ColumnVector<F, ?, D2>, M2 extends Matrix<F, C, D2, M2>, M3 extends Matrix<F, D2, D, M3>>
     M3
     mult(M2 matrix);
 }
