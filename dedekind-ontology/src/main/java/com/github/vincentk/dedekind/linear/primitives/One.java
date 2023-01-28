@@ -1,8 +1,11 @@
 package com.github.vincentk.dedekind.linear.primitives;
 
+import java.util.stream.Stream;
+
 import com.github.vincentk.dedekind.algebra.Equality;
 import com.github.vincentk.dedekind.algebra.Ring;
-import com.github.vincentk.dedekind.linear.Vector;
+import com.github.vincentk.dedekind.algebra.peano.Peano;
+import com.github.vincentk.dedekind.linear.finite.FiniteVector;
 
 /**
  * Vector with just one element.
@@ -11,7 +14,7 @@ import com.github.vincentk.dedekind.linear.Vector;
  */
 public final class One<R extends Ring<R> & Equality<R>>
 implements
-Vector<R, One<R>>,
+FiniteVector<R, Peano.Succ<Peano.Zero>, One<R>>,
 Equality<One<R>>
 {
     protected final R val;
@@ -53,5 +56,10 @@ Equality<One<R>>
     One<R>
     one(R val) {
         return new One<>(val);
+    }
+
+    @Override
+    public Stream<R> enumerate() {
+        return Stream.of(val);
     }
 }

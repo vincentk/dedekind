@@ -12,15 +12,24 @@
     <artifactId>dedekind-matrices</artifactId>
 
 	<dependencies>
-		<dependency>
-    		<groupId>org.springframework.boot</groupId>
-    		<artifactId>spring-boot-starter-test</artifactId>
-    		<scope>test</scope>
-		</dependency>
+	
 		<dependency>
 			<groupId>com.github.vincentk</groupId>
 			<artifactId>dedekind-ontology</artifactId>
 			<version>1.0-SNAPSHOT</version>
 		</dependency>
+	
+		<dependency>
+  			<groupId>org.jooq</groupId>
+  			<artifactId>jool</artifactId>
+  			<version>0.9.14</version>
+		</dependency>
+		
+		<dependency>
+    		<groupId>org.springframework.boot</groupId>
+    		<artifactId>spring-boot-starter-test</artifactId>
+    		<scope>test</scope>
+		</dependency>
+
 	</dependencies>
 </project>

@@ -8,15 +8,15 @@ import com.github.vincentk.dedekind.algebra.Field;
 import com.github.vincentk.dedekind.sets.Fields;
 
 public class RsTest {
-	
-	@Test
-	public void tsTest() {
-		
-		// Type check to trigger compilation error:
-		Fields.Reals tc1 = Rs.ONE;
-		
-		Field.Reals<Rs> tc2 = Rs.ONE;
-		
-		assertThat(tc2.div(Rs.ONE)).isEqualTo(tc1);
-	}
+
+    @Test
+    public void tsTest() {
+
+        // Type check to trigger compilation error:
+        Fields.Reals tc1 = Rs.ONE;
+
+        Field.Reals<Rs> tc2 = Rs.ONE;
+
+        assertThat(tc2.div(Rs.ONE)).isEqualTo(tc1);
+    }
 }
