@@ -26,7 +26,7 @@ C extends Vector<F, C>,
 // Self-reference:
 M extends Matrix<F, D, C, M>>
 extends 
-LinearMap<D, F, C, F>,
+LinearMap<D, C>,
 Vector<F, M>
 {
 

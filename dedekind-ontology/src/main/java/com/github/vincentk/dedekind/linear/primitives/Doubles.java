@@ -3,7 +3,7 @@ package com.github.vincentk.dedekind.linear.primitives;
 import java.util.Arrays;
 
 import com.github.vincentk.dedekind.algebra.Equality;
-import com.github.vincentk.dedekind.linear.ColumnVector;
+import com.github.vincentk.dedekind.linear.Vector;
 
 /**
  * Vector with just one element.
@@ -12,7 +12,7 @@ import com.github.vincentk.dedekind.linear.ColumnVector;
  */
 final class Doubles
 implements
-ColumnVector<Rs, Doubles>,
+Vector<Rs, Doubles>,
 Equality<Doubles>
 {
 	private final double[] val;

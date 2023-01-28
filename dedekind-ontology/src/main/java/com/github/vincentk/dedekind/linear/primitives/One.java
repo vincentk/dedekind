@@ -4,7 +4,7 @@ import com.github.vincentk.dedekind.algebra.Equality;
 import com.github.vincentk.dedekind.algebra.Ring;
 import com.github.vincentk.dedekind.algebra.peano.Peano;
 import com.github.vincentk.dedekind.linear.Cardinality;
-import com.github.vincentk.dedekind.linear.Vector;
+import com.github.vincentk.dedekind.linear.RowVector;
 
 /**
  * Vector with just one element.
@@ -14,13 +14,18 @@ import com.github.vincentk.dedekind.linear.Vector;
 public final class One<R extends Ring<R> & Equality<R>>
 implements
 Cardinality<Peano.Succ<Peano.Zero>>,
-Vector<R, One<R>>,
+RowVector<R, One<R>, One<R>>,
 Equality<One<R>>
 {
 	private final R val;
 	
 	private One(R val) {
 		this.val = val;
+	}
+	
+	@Override
+	public R apply(One<R> domain) {
+		return val.times(domain.val);
 	}
 
 	@Override

@@ -14,7 +14,12 @@ import com.github.vincentk.dedekind.algebra.Ring;
  * @param <F> optional type tag indicating e.g. a {@link Field}.
  * @param <V> the usual recursive self-type so that subtypes can refer to themselves.
  */
-public interface Vector<F extends Ring<F>, V extends Vector<F, V>>
+public interface Vector<
+// Field:
+F extends Ring<F>,
+// Self-reference:
+V extends Vector<F, V>
+>
 extends
 // Vector addition:
 MonoidP<V>,
@@ -43,4 +48,6 @@ Module<F, V>
      */
     @Override
     V plus(V vector);
+    
+    // Matrix<F, ?, ?, ?> asMatrix();
 }
