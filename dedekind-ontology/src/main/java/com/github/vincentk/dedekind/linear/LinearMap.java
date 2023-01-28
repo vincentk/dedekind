@@ -16,6 +16,6 @@ W
 >
 extends Function<V, W>
 {
-	@Override
-	W apply(V v);
+    @Override
+    W apply(V v);
 }

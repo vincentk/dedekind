@@ -1,5 +1,5 @@
 /**
- * An attempt to spell out type relationships between algeabraic structures
+ * An attempt to spell out type relationships between algebraic structures
  * in set theoretical terms.
  * 
  * As a subtype (in java) corresponds to a sub-set (in set theory), we can

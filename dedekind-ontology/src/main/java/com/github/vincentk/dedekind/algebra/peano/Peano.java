@@ -13,85 +13,84 @@ public sealed
 interface Peano<P extends Peano<P>>
 extends Natural<Peano<?>>
 {
-	long longVal();
+    long longVal();
 
-	default Peano<P> plus(Zero that) {
-		return this;
-	}
+    default Peano<P> plus(Zero that) {
+        return this;
+    }
 
-	final class Zero implements Peano<Zero> {
+    final class Zero implements Peano<Zero> {
 
-		private Zero() {}
+        private Zero() {}
 
-		@Override
-		public Peano<?> plus(Peano<?> that) {
-			return that;
-		}
+        @Override
+        public Peano<?> plus(Peano<?> that) {
+            return that;
+        }
 
-		@Override
-		public Peano<?> times(Peano<?> that) {
-			return this;
-		}
+        @Override
+        public Peano<?> times(Peano<?> that) {
+            return this;
+        }
 
-		@Override
-		public long longVal() {
-			return 0;
-		}
+        @Override
+        public long longVal() {
+            return 0;
+        }
+    }
 
-	}
+    final class Succ<P extends Peano<P>> implements Peano<Succ<P>> {
 
-	final class Succ<P extends Peano<P>> implements Peano<Succ<P>> {
+        private final P pred;
 
-		private final P pred;
+        private Succ(P pred) {
+            this.pred = pred;
+        }
 
-		private Succ(P pred) {
-			this.pred = pred;
-		}
+        @Override
+        public Peano<?> plus(Peano<?> that) {
 
-		@Override
-		public Peano<?> plus(Peano<?> that) {
+            // a + 0 = a
+            if (that instanceof Zero) {
+                return this;
+            }
 
-			// a + 0 = a
-			if (that instanceof Zero) {
-				return this;
-			}
+            // a + S(b) = S(a + b) = S(a) + b
+            return succ(this).plus(pred(that));
+        }
 
-			// a + S(b) = S(a + b) = S(a) + b
-			return succ(this).plus(pred(that));
-		}
+        @Override
+        public Peano<?> times(Peano<?> that) {
 
-		@Override
-		public Peano<?> times(Peano<?> that) {
+            // a * 0 = 0
+            if (that instanceof Zero) {
+                return that;
+            }
 
-			// a * 0 = 0
-			if (that instanceof Zero) {
-				return that;
-			}
+            // a * S(b) = a + (a * b)
+            return this.plus(this.times(pred(that)));
+        }
 
-			// a * S(b) = a + (a * b)
-			return this.plus(this.times(pred(that)));
-		}
+        private static Peano<?> pred(Peano<?> succ) {
+            return ((Succ<?>)succ).pred;
+        }
 
-		private static Peano<?> pred(Peano<?> succ) {
-			return ((Succ<?>)succ).pred;
-		}
+        @Override
+        public long longVal() {
+            return 1 + pred.longVal();
+        }
 
-		@Override
-		public long longVal() {
-			return 1 + pred.longVal();
-		}
+    }
 
-	}
+    private static
+    <P extends Peano<P>>
+    Succ<P> succ(P pred) {
+        return new Succ<>(pred);
+    }
 
-	private static
-	<P extends Peano<P>>
-	Succ<P> succ(P pred) {
-		return new Succ<>(pred);
-	}
-
-	// Proof by type-check:
-	public static final Zero ZERO = new Zero();
-	public static final Succ<Zero> ONE = succ(ZERO);	
-	public static final Succ<Succ<Zero>> TWO = succ(ONE);
-	public static final Succ<Succ<Succ<Zero>>> THREE = succ(TWO);
+    // Proof by type-check:
+    public static final Zero ZERO = new Zero();
+    public static final Succ<Zero> ONE = succ(ZERO);
+    public static final Succ<Succ<Zero>> TWO = succ(ONE);
+    public static final Succ<Succ<Succ<Zero>>> THREE = succ(TWO);
 }

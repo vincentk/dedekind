@@ -15,69 +15,69 @@ implements
 Vector<Rs, Doubles>,
 Equality<Doubles>
 {
-	private final double[] val;
+    private final double[] val;
 
-	private Doubles(double[] val) {
-		
-		assert null != val;
-		
-		this.val = val;
-	}
+    private Doubles(double[] val) {
 
-	@Override
-	public Doubles mult(Rs scalar) {
+        assert null != val;
 
-		final var na = Arrays.copyOf(val, val.length);
+        this.val = val;
+    }
 
-		final double sv = scalar.doubleVal();
+    @Override
+    public Doubles mult(Rs scalar) {
 
-		for (int ii = 0; ii < val.length; ii++) {
-			na[ii] *= sv;
-		}
+        final var na = Arrays.copyOf(val, val.length);
 
-		return new Doubles(na);
-	}
+        final double sv = scalar.doubleVal();
 
-	@Override
-	public Doubles plus(Doubles vector) {
+        for (int ii = 0; ii < val.length; ii++) {
+            na[ii] *= sv;
+        }
 
-		assert val.length == vector.val.length;
+        return new Doubles(na);
+    }
 
-		final var na = Arrays.copyOf(val, val.length);
+    @Override
+    public Doubles plus(Doubles vector) {
 
-		final var va = vector.val;
-		for (int ii = 0; ii < val.length; ii++) {
-			na[ii] += va[ii];
-		}
+        assert val.length == vector.val.length;
 
-		return new Doubles(na);
-	}
+        final var na = Arrays.copyOf(val, val.length);
 
-	@Override
-	public boolean equals(Doubles that) {
-		return Arrays.equals(this.val, that.val);
-	}
+        final var va = vector.val;
+        for (int ii = 0; ii < val.length; ii++) {
+            na[ii] += va[ii];
+        }
 
-	@Override
-	public boolean equals(Object other) {
-		if (other instanceof Doubles) {
-			final Doubles that = (Doubles) other;
-			if (this.val.getClass().isAssignableFrom(that.val.getClass())) {
-				return equals((Doubles) other);
-			}
-		}
+        return new Doubles(na);
+    }
 
-		return false;
-	}
-	
-	@Override
-	public String toString() {
-		return Arrays.toString(val);
-	}
+    @Override
+    public boolean equals(Doubles that) {
+        return Arrays.equals(this.val, that.val);
+    }
 
-	public static
-	Doubles
-	doubles(double[] val) {
-		return new Doubles(val);
-	}
+    @Override
+    public boolean equals(Object other) {
+        if (other instanceof Doubles) {
+            final Doubles that = (Doubles) other;
+            if (this.val.getClass().isAssignableFrom(that.val.getClass())) {
+                return equals((Doubles) other);
+            }
+        }
+
+        return false;
+    }
+
+    @Override
+    public String toString() {
+        return Arrays.toString(val);
+    }
+
+    public static
+    Doubles
+    doubles(double[] val) {
+        return new Doubles(val);
+    }
 }

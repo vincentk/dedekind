@@ -1,16 +1,17 @@
 package com.github.vincentk.dedekind.linear;
 
-import com.github.vincentk.dedekind.algebra.Field;
 import com.github.vincentk.dedekind.algebra.MonoidP;
 import com.github.vincentk.dedekind.algebra.Ring;
+import com.github.vincentk.dedekind.algebra.Module;
 
 /**
- * An element of a vector space satisfying the
- * <a href="https://en.wikipedia.org/wiki/Vector_space#Definition_and_basic_properties">vector axioms</a>.
- * 
+ * An element of a vector space satisfying the vector axioms.
+ *
  * Notably, this does not include e.g. the definition of an inner product.
  * For this, we refer to sub-types.
  * 
+ * @see https://en.wikipedia.org/wiki/Vector_space#Definition_and_basic_properties
+ *
  * @param <F> optional type tag indicating e.g. a {@link Field}.
  * @param <V> the usual recursive self-type so that subtypes can refer to themselves.
  */
@@ -24,8 +25,7 @@ extends
 // Vector addition:
 MonoidP<V>,
 // Scalar multiplication:
-Module<F, V>
-{
+Module<F, V> {
 
     /**
      * Scalar multiplication.
@@ -33,7 +33,7 @@ Module<F, V>
      * @param scalar a scalar from the underlying field.
      * @return the scaled vector.
      */
-	@Override
+    @Override
     V mult(F scalar);
 
     /**
@@ -48,6 +48,6 @@ Module<F, V>
      */
     @Override
     V plus(V vector);
-    
+
     // Matrix<F, ?, ?, ?> asMatrix();
 }

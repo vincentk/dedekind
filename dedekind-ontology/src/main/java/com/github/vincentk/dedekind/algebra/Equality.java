@@ -7,5 +7,5 @@ package com.github.vincentk.dedekind.algebra;
  */
 public interface Equality<E extends Equality<E>> {
 
-	boolean equals(E that);
+    boolean equals(E that);
 }

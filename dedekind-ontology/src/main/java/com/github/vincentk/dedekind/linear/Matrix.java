@@ -52,7 +52,7 @@ Dual<Matrix<F, C, D, ?>>
      * @return a column vector in the co-domain C.
      */
     default C vectorMult(D vector) {
-    	return apply(vector);
+        return apply(vector);
     }
 
     /**
