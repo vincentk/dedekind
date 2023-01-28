@@ -13,7 +13,7 @@ public interface RowVector<
 // Field elements:
 F extends Ring<F>,
 // Domain:
-D extends Vector<F, D>,
+D extends ColumnVector<F, ?, D>,
 // Recursive self-type:
 S extends RowVector<F, D, S>
 >
@@ -21,9 +21,8 @@ extends
 // Is an element of a vector space:
 Vector<F, S>,
 // Is a linear map from column vectors to the underlying field:
-LinearMap<D, F>
+LinearMap<D, F>,
+//The transpose is a row vector:
+Dual<D>
 {
-	// Re-stating to force a type-check:
-	@Override
-	F apply(D domain);
 }

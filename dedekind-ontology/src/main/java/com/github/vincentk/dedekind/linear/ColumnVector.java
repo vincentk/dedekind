@@ -21,9 +21,8 @@ extends
 // Is an element of a vector space:
 Vector<F, ColumnVector<F, D, S>>,
 // Is a linear map from column vectors to the underlying field:
-LinearMap<D, F>
+LinearMap<D, F>,
+// The transpose is a row vector:
+Dual<D>
 {
-	// Re-stating to force a type-check:
-	@Override
-	F apply(D domain);
 }
