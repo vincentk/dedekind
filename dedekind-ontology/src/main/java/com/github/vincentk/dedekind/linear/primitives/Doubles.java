@@ -47,7 +47,7 @@ Equality<Doubles>
 
 		final var va = vector.val;
 		for (int ii = 0; ii < val.length; ii++) {
-			na[ii] *= va[ii];
+			na[ii] += va[ii];
 		}
 
 		return new Doubles(na);
@@ -68,6 +68,11 @@ Equality<Doubles>
 		}
 
 		return false;
+	}
+	
+	@Override
+	public String toString() {
+		return Arrays.toString(val);
 	}
 
 	public static
