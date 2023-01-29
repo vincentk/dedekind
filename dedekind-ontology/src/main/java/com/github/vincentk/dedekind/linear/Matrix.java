@@ -35,7 +35,9 @@ LinearMap<D, C>,
 Dual<Matrix<F, R2, D, R1, C, ?>>
 {
     @Override
-    Matrix<F, R1, C, R2, D, ?> plus(Matrix<F, R1, C, R2, D, ?> that);
+    default Matrix<F, R1, C, R2, D, ?> plus(Matrix<F, R1, C, R2, D, ?> that) {
+        return new MatrixAddition<>(that, that);
+    }
 
     @Override
     C apply(D vector);
@@ -55,12 +57,14 @@ Dual<Matrix<F, R2, D, R1, C, ?>>
      * @param other
      * @return the {@link Matrix} corresponding to the composed map.
      */
-    <
+    default <
     // Domain of the argument becomes the range of the result:
     R3 extends RowVector<F, E, R3>,
     E extends ColumnVector<F, R3, E>
     >
-    Matrix<F, R1, C, R3, E, ?> compose(Matrix<F, R2, D, R3, E, ?> other);
+    Matrix<F, R1, C, R3, E, ?> compose(Matrix<F, R2, D, R3, E, ?> other) {
+        return new ComposedMatrix<>(other, this);
+    };
 
     /**
      * A square matrix domain and range are essentially the same.

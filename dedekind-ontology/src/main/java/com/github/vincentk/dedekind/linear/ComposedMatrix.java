@@ -36,7 +36,7 @@ implements Matrix<F, R1, C, R2, D, ComposedMatrix<F, R1, C, R2, D, R3, E>>
 {
     private final Matrix<F, R3, E, R2, D, ?> m1;
     private final Matrix<F, R1, C, R3, E, ?> m2;
-    
+
     ComposedMatrix(
             Matrix<F, R3, E, R2, D, ?> m1,
             Matrix<F, R1, C, R3, E, ?> m2
@@ -44,11 +44,11 @@ implements Matrix<F, R1, C, R2, D, ComposedMatrix<F, R1, C, R2, D, R3, E>>
         this.m1 = m1;
         this.m2 = m2;
     }
-    
+
     public Matrix<F, R3, E, R2, D, ?> fst() {
         return m1;
     }
-    
+
     public Matrix<F, R1, C, R3, E, ?> snd() {
         return m2;
     }
@@ -60,10 +60,10 @@ implements Matrix<F, R1, C, R2, D, ComposedMatrix<F, R1, C, R2, D, R3, E>>
 
     @Override
     public C apply(D vector) {
-        
+
         final var v1 = m1.apply(vector);
         final var v2 = m2.apply(v1);
-        
+
         return v2;
     }
 
@@ -72,7 +72,7 @@ implements Matrix<F, R1, C, R2, D, ComposedMatrix<F, R1, C, R2, D, R3, E>>
         // (A B)' = B' A'
         final Matrix<F, R2, D, R3, E, ?> m1t = m1.transpose();
         final Matrix<F, R3, E, R1, C, ?> m2t = m2.transpose();
-        
+
         return new ComposedMatrix<>(m2t, m1t);
     }
 
