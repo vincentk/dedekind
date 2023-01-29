@@ -15,7 +15,7 @@ F extends Ring<F>,
 // Cardinality:
 C extends Cardinality,
 // Domain:
-D extends FiniteRowVector<F, C, ?, D>
+D extends FiniteRowVector<F, C, TransposedRowVector<F, C, D>, D>
 >
 implements
 FiniteColumnVector<F, C, D, TransposedRowVector<F, C, D>>

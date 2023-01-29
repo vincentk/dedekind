@@ -13,7 +13,7 @@ public interface ColumnVector<
 // Field elements:
 F extends Ring<F>,
 // Domain:
-D extends RowVector<F, ?, D>,
+D extends RowVector<F, S, D>,
 // Recursive self-type:
 S extends ColumnVector<F, D, S>
 >

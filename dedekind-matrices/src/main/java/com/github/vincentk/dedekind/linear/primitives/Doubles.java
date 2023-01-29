@@ -1,36 +1,38 @@
 package com.github.vincentk.dedekind.linear.primitives;
 
 import java.util.Arrays;
+import java.util.Optional;
 import java.util.stream.DoubleStream;
 import java.util.stream.Stream;
 
 import com.github.vincentk.dedekind.algebra.Equality;
+import com.github.vincentk.dedekind.algebra.peano.Cardinality;
 import com.github.vincentk.dedekind.algebra.peano.Peano;
 import com.github.vincentk.dedekind.linear.finite.FiniteVector;
 
 /**
- * Vector with just one element.
+ * Vector backed by an array of doubles.
  * 
  * @param <R> type of ring defining the element type.
  */
-final class Doubles
+final class Doubles<C extends Cardinality>
 implements
-FiniteVector<Rs, Peano.Succ<?>, Doubles>,
-Equality<Doubles>
+FiniteVector<Rs, Peano.Succ<?>, Doubles<C>>,
+Equality<Doubles<C>>
 {
     private final double[] val;
 
     private Doubles(double[] val) {
 
         assert null != val;
-        
+
         assert val.length > 0;
 
         this.val = val;
     }
 
     @Override
-    public Doubles mult(Rs scalar) {
+    public Doubles<C> mult(Rs scalar) {
 
         final var na = Arrays.copyOf(val, val.length);
 
@@ -40,11 +42,11 @@ Equality<Doubles>
             na[ii] *= sv;
         }
 
-        return new Doubles(na);
+        return new Doubles<>(na);
     }
 
     @Override
-    public Doubles plus(Doubles vector) {
+    public Doubles<C> plus(Doubles<C> vector) {
 
         assert val.length == vector.val.length;
 
@@ -55,20 +57,21 @@ Equality<Doubles>
             na[ii] += va[ii];
         }
 
-        return new Doubles(na);
+        return new Doubles<>(na);
     }
 
     @Override
-    public boolean equals(Doubles that) {
+    public boolean equals(Doubles<C> that) {
         return Arrays.equals(this.val, that.val);
     }
 
     @Override
     public boolean equals(Object other) {
         if (other instanceof Doubles) {
-            final Doubles that = (Doubles) other;
-            if (this.val.getClass().isAssignableFrom(that.val.getClass())) {
-                return equals((Doubles) other);
+            @SuppressWarnings("unchecked")
+            final Doubles<C> that = (Doubles<C>) other;
+            if (cardinality() == that.cardinality()) {
+                return equals(that);
             }
         }
 
@@ -81,9 +84,12 @@ Equality<Doubles>
     }
 
     public static
-    Doubles
+    Optional<Doubles<Peano.Succ<?>>>
     doubles(double[] val) {
-        return new Doubles(val);
+
+        return Optional.ofNullable(val)
+                .filter(v -> v.length > 0)
+                .map(v -> new Doubles<>(v));
     }
 
     @Override

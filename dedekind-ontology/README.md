@@ -1,12 +1,13 @@
 # dedekind-ontology
 
-A collection of type declarations attempting to
+A collection of type declarations attempting to provide
 
-1. Embed concepts from abstract algebra in the java type system.
-2. Relate the resulting java types to java primitive values.
+1. A "purely functional" embedding of concepts from abstract algebra (`Field`, `Module`, `Monoid`, `Ring`) in the java type system (`interface`).
+2. An identification of the resulting java types to java primitive values (`byte`, `double`, `int`).
+3. Extension of the above to provide sample implementations for e.g. complex numbers, dual numbers, rational numbers.
 
 
-The goal is to add some type-checking support to statements such as:
+A goal being to provide some support for type-checked statements such as:
 
 
 * Type checks for common subset operations such as N &sub; Z &sub; Q &sub; R &sub; C.
