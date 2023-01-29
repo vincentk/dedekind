@@ -3,7 +3,7 @@ package com.github.vincentk.dedekind.linear;
 import com.github.vincentk.dedekind.algebra.Ring;
 
 /**
- * A "row vector" a.k.a. covector a.k. linear functional
+ * A "column vector".
  * 
  * @param <F> field
  * @param <D>

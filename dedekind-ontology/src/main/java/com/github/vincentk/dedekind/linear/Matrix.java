@@ -1,76 +1,45 @@
 package com.github.vincentk.dedekind.linear;
 
+import com.github.vincentk.dedekind.algebra.MonoidP;
 import com.github.vincentk.dedekind.algebra.Ring;
 
 /**
- * Very roughly speaking, definition of a matrix as a vector of vectors.
+ * @see https://en.wikipedia.org/wiki/Matrix_(mathematics)
  */
 public interface Matrix<
 // Ring:
 F extends Ring<F>,
+
+// Implementation detail:
+R1 extends RowVector<F, C, R1>,
+// Range of the linear map:
+C extends ColumnVector<F, R1, C>,
+
+//Implementation detail:
+R2 extends RowVector<F, D, R2>,
 // Domain of linear map:
-D extends Vector<F, D>,
+D extends ColumnVector<F, R2, D>,
+
 // Self-reference:
-M extends Matrix<F, D, M>>
+M extends Matrix<F, R1, C, R2, D, M>>
 extends
-Vector<F, M>
+// Addition is supported for matrices of the same type:
+MonoidP<M>,
+// Any matrix is a linear map from a vector in the domain to the co-domain:
+LinearMap<D, C>
 {
-
-    /**
-     * A column-major matrix.
-     * 
-     * @see https://en.wikipedia.org/wiki/Row-_and_column-major_order
-     * 
-     * @param <F>
-     * @param <T>
-     * @param <D>
-     * @param <R>
-     * @param <S>
-     */
-    public static interface ColumnMajor<
-    // Ring:
-    F extends Ring<F>,
-    // Type of transposed row implementation:
-    T extends ColumnVector<F, D, T>,
-    // Domain of linear map:
-    D extends RowVector<F, T, D>,
-    // Type of dual matrix:
-    R extends RowMajor<F, T, D, S, R>,
-    // Self-reference:
-    S extends ColumnMajor<F, T, D, R, S>>
-    extends
-    Matrix<F, D, S>,
-    RowVector<F, R, S>
-    {
-
-    }
+    @Override
+    M plus(M that);
+    
+    @Override
+    C apply(D vector);
+    
     
     /**
-     * A row-major matrix.
-     * 
-     * @see https://en.wikipedia.org/wiki/Row-_and_column-major_order
-     * 
-     * @param <F>
-     * @param <T>
-     * @param <D>
-     * @param <R>
-     * @param <S>
+     * A square matrix.
      */
-    public static interface RowMajor<
-    // Ring:
-    F extends Ring<F>,
-    // Type of transposed row implementation:
-    T extends ColumnVector<F, D, T>,
-    // Domain of linear map:
-    D extends RowVector<F, T, D>,
-    // Type of dual matrix:
-    C extends ColumnMajor<F, T, D, S, C>,
-    // Self-reference:
-    S extends RowMajor<F, T, D, C, S>>
-    extends
-    Matrix<F, D, S>,
-    ColumnVector<F, C, S>
+    public interface Square
     {
-
+        
     }
 }
