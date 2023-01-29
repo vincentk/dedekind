@@ -1,22 +1,20 @@
 package com.github.vincentk.dedekind.linear;
 
+import static org.mockito.Mockito.mock;
+
 import org.junit.jupiter.api.Test;
 
-import com.github.vincentk.dedekind.linear.Matrix.RowMajor;
 import com.github.vincentk.dedekind.linear.primitives.Rs;
 
-import static  org.mockito.Mockito.*;
-
 public class MatrixTest {
-    
-    private static final Rs ZERO = Rs.ZERO;
 
     @Test
     public void testMock() {
 
         @SuppressWarnings("unchecked")
-        final RowMajor<Rs, ?, ?, ?, ?> subject = mock(RowMajor.class);
+        final Matrix<Rs, ?, ?, ?, ?, ?> subject = mock(Matrix.class);
         
-        final Rs actual = subject.apply((RowVector<?, ?, ?>) null);
+        @SuppressWarnings("unused")
+        final ColumnVector<Rs, ?, ?> actual = subject.apply(null);
     }
 }
