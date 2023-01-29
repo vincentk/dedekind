@@ -10,7 +10,7 @@ F extends Ring<F>,
 // Cardinality:
 C extends Cardinality,
 // Domain:
-D extends FiniteRowVector<F, C, ?, D>,
+D extends FiniteRowVector<F, C, S, D>,
 // Recursive self-type:
 S extends FiniteColumnVector<F, C, D, S>
 >

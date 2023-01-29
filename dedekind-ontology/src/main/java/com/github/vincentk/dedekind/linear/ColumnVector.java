@@ -3,7 +3,7 @@ package com.github.vincentk.dedekind.linear;
 import com.github.vincentk.dedekind.algebra.Ring;
 
 /**
- * A "row vector" a.k.a. covector a.k. linear functional
+ * A "column vector".
  * 
  * @param <F> field
  * @param <D>
@@ -13,7 +13,7 @@ public interface ColumnVector<
 // Field elements:
 F extends Ring<F>,
 // Domain:
-D extends RowVector<F, ?, D>,
+D extends RowVector<F, S, D>,
 // Recursive self-type:
 S extends ColumnVector<F, D, S>
 >

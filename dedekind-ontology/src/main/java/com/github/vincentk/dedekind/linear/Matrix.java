@@ -1,71 +1,94 @@
 package com.github.vincentk.dedekind.linear;
 
+import java.util.function.Function;
+
+import com.github.vincentk.dedekind.algebra.MonoidM;
+import com.github.vincentk.dedekind.algebra.MonoidP;
 import com.github.vincentk.dedekind.algebra.Ring;
 
 /**
- * <p>
- * Note that in a certain sense, matrixes define 
- * <a href="https://en.wikipedia.org/wiki/Vector_space#Definition">vector spaces</a>.
- * In particular they satisfy the axioms of scalar multiplication and vector addition (matrix addition in this case), which
- * we choose to make this explicit by extending {@link Vector}.
- * </p>
- * <p>
- * Optional type tags, deliberately left unconstrained:
- * </p>
- * @param <F> the field, often a {@link Field}.
- * @param <D> the codomain.
- * @param <C> the domain.
+ * @see https://en.wikipedia.org/wiki/Matrix_(mathematics)
  */
 public interface Matrix<
 // Ring:
 F extends Ring<F>,
+
+// Implementation detail:
+R1 extends RowVector<F, C, R1>,
+// Range of the linear map:
+C extends ColumnVector<F, R1, C>,
+
+// Implementation detail:
+R2 extends RowVector<F, D, R2>,
 // Domain of linear map:
-D extends ColumnVector<F, ?, D>,
-// Codomain of linear map:
-C extends ColumnVector<F, ?, C>,
+D extends ColumnVector<F, R2, D>,
+
 // Self-reference:
-M extends Matrix<F, D, C, M>>
-extends 
+M extends Matrix<F, R1, C, R2, D, M>
+>
+extends
+// Addition is supported for matrices of the same type:
+MonoidP<Matrix<F, R1, C, R2, D, ?>>,
+// Any matrix is a linear map from a vector in the domain to the co-domain:
 LinearMap<D, C>,
-Vector<F, M>,
-Dual<Matrix<F, C, D, ?>>
+// A transpose is defined:
+Dual<Matrix<F, R2, D, R1, C, ?>>
 {
-
     @Override
-    M mult(F scalar);
-
-    @Override
-    M plus(M matrix);
-
-    /**(
-     * @param <M2> type of matrix returned.
-     * @return the transposed matrix.
-     *
-     * @see https://en.wikipedia.org/wiki/Matrix_(mathematics)#Addition,_scalar_multiplication_and_transposition
-     */
-    Matrix<F, C, D, ?> transpose();
-
-    /**
-     * Multiplication with a column vector in the domain D.
-     *
-     * @param vector a vector in the domain D.
-     * @return a column vector in the co-domain C.
-     */
-    default C vectorMult(D vector) {
-        return apply(vector);
+    default Matrix<F, R1, C, R2, D, ?> plus(Matrix<F, R1, C, R2, D, ?> that) {
+        return new MatrixAddition<>(that, that);
     }
 
+    @Override
+    C apply(D vector);
+    
+    @Override
+    Matrix<F, R2, D, R1, C, ?> transpose();
+
     /**
-     * <a href="https://en.wikipedia.org/wiki/Matrix_multiplication">Matrix multiplication.</>
-     * E.g. multiplying a 2x3 matrix with a 3x1 matrix gives a 2x1 matrix.
-     *
-     * @param matrix
-     * @param <D2>
-     * @param <M2>
-     * @param <M3>
-     * @return
+     * Matrix multiplication is the composition of two matrices.
+     * 
+     * This is a specialization of {@link Function#compose(Function)}.
+     * 
+     * The range of the argument must match the domain of this matrix.
+     * The domain of the argument becomes the domain of the composition.
+     * The range of this matrix becomes the range of the composition.
+     * 
+     * @param other
+     * @return the {@link Matrix} corresponding to the composed map.
      */
-    <D2 extends ColumnVector<F, ?, D2>, M2 extends Matrix<F, C, D2, M2>, M3 extends Matrix<F, D2, D, M3>>
-    M3
-    mult(M2 matrix);
+    default <
+    // Domain of the argument becomes the range of the result:
+    R3 extends RowVector<F, E, R3>,
+    E extends ColumnVector<F, R3, E>
+    >
+    Matrix<F, R1, C, R3, E, ?> compose(Matrix<F, R2, D, R3, E, ?> other) {
+        return new ComposedMatrix<>(other, this);
+    };
+
+    /**
+     * A square matrix domain and range are essentially the same.
+     */
+    public interface Square<
+    // Ring:
+    F extends Ring<F>,
+
+    //Implementation detail:
+    R2 extends RowVector<F, D, R2>,
+    // Domain of linear map:
+    D extends ColumnVector<F, R2, D>,
+
+    // Self-reference:
+    M extends Square<F, R2, D, M>
+    >
+    extends
+    // A square matrix is a matrix where domain and range are the same:
+    Matrix<F, R2, D, R2, D, M>,
+    // Multiplication of two square matrices produces a new square matrix of the same dimension:
+    MonoidM<M>
+    {
+        // Transposing a square matrix gives another square matrix:
+        @Override
+        Square<F, R2, D, ?> transpose();
+    }
 }
