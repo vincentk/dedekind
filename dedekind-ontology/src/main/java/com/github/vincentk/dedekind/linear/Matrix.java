@@ -28,14 +28,14 @@ M extends Matrix<F, R1, C, R2, D, M>
 >
 extends
 // Addition is supported for matrices of the same type:
-MonoidP<M>,
+MonoidP<Matrix<F, R1, C, R2, D, ?>>,
 // Any matrix is a linear map from a vector in the domain to the co-domain:
 LinearMap<D, C>,
 // A transpose is defined:
 Dual<Matrix<F, R2, D, R1, C, ?>>
 {
     @Override
-    M plus(M that);
+    Matrix<F, R1, C, R2, D, ?> plus(Matrix<F, R1, C, R2, D, ?> that);
 
     @Override
     C apply(D vector);
@@ -52,11 +52,8 @@ Dual<Matrix<F, R2, D, R1, C, ?>>
      * The domain of the argument becomes the domain of the composition.
      * The range of this matrix becomes the range of the composition.
      * 
-     * The result is another matrix where the domain matches the range of this
-     * matrix and the range matches the domain of the input matrix.
-     * 
      * @param other
-     * @return
+     * @return the {@link Matrix} corresponding to the composed map.
      */
     <
     // Domain of the argument becomes the range of the result:
