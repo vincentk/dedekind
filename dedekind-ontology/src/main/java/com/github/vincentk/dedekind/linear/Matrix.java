@@ -1,5 +1,7 @@
 package com.github.vincentk.dedekind.linear;
 
+import java.util.function.Function;
+
 import com.github.vincentk.dedekind.algebra.MonoidM;
 import com.github.vincentk.dedekind.algebra.MonoidP;
 import com.github.vincentk.dedekind.algebra.Ring;
@@ -16,7 +18,7 @@ R1 extends RowVector<F, C, R1>,
 // Range of the linear map:
 C extends ColumnVector<F, R1, C>,
 
-//Implementation detail:
+// Implementation detail:
 R2 extends RowVector<F, D, R2>,
 // Domain of linear map:
 D extends ColumnVector<F, R2, D>,
@@ -42,16 +44,26 @@ Dual<Matrix<F, R2, D, R1, C, ?>>
     Matrix<F, R2, D, R1, C, ?> transpose();
 
     /**
-     * Matrix multiplication is defined if the range of the argument matches
-     * the domain of this matrix.
+     * Matrix multiplication is the composition of two matrices.
+     * 
+     * This is a specialization of {@link Function#compose(Function)}.
+     * 
+     * The range of the argument must match the domain of this matrix.
+     * The domain of the argument becomes the domain of the composition.
+     * The range of this matrix becomes the range of the composition.
      * 
      * The result is another matrix where the domain matches the range of this
-     * matrix.
+     * matrix and the range matches the domain of the input matrix.
      * 
      * @param other
      * @return
      */
-    Matrix<F, ?, ?, R1, C, ?> matmult(Matrix<F, R2, D, ?, ?, ?> other);
+    <
+    // Domain of the argument becomes the range of the result:
+    R3 extends RowVector<F, E, R3>,
+    E extends ColumnVector<F, R3, E>
+    >
+    Matrix<F, R1, C, R3, E, ?> compose(Matrix<F, R2, D, R3, E, ?> other);
 
     /**
      * A square matrix domain and range are essentially the same.
