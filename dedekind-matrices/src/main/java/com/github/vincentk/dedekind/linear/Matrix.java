@@ -2,12 +2,12 @@ package com.github.vincentk.dedekind.linear;
 
 import java.util.function.Function;
 
+import com.github.vincentk.dedekind.algebra.Module;
 import com.github.vincentk.dedekind.algebra.MonoidM;
 import com.github.vincentk.dedekind.algebra.MonoidP;
-import com.github.vincentk.dedekind.algebra.Module;
 import com.github.vincentk.dedekind.algebra.Ring;
-import com.github.vincentk.dedekind.linear.lazy.MatrixMultiplication;
 import com.github.vincentk.dedekind.linear.lazy.MatrixAddition;
+import com.github.vincentk.dedekind.linear.lazy.MatrixMultiplication;
 
 /**
  * @see https://en.wikipedia.org/wiki/Matrix_(mathematics)
@@ -86,17 +86,26 @@ Dual<Matrix<F, R2, D, R1, C, ?>>
     // Domain of linear map:
     D extends ColumnVector<F, R2, D>,
 
+    // Type short-hand for change of basis (see below).
+    S extends Square<F, R2, D, S, ?>,
+    
     // Self-reference:
-    M extends Square<F, R2, D, M>
+    M extends Square<F, R2, D, S, M>
     >
     extends
     // A square matrix is a matrix where domain and range are the same:
     Matrix<F, R2, D, R2, D, M>,
     // Multiplication of two square matrices produces a new square matrix of the same dimension:
-    MonoidM<M>
+    MonoidM<S>
     {
         // Transposing a square matrix gives another square matrix:
         @Override
-        Square<F, R2, D, ?> transpose();
+        Square<F, R2, D, ?, ?> transpose();
+        
+        // Matrix multiplication with a square matrix.
+        // Essentially a change of basis.
+        // Can presumably be refined.
+        @Override
+        S times(S that);
     }
 }

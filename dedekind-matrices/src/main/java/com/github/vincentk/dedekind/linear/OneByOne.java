@@ -10,16 +10,19 @@ import com.github.vincentk.dedekind.linear.finite.One;
  * TODO: overly restrictive API for now.
  * I.e. multiplication with a column vector should generally be possible.
  * 
- * Presently used for testing only, hence package private.
+ * Presently used for testing only.
  *
  * @param <F>
  */
-final class OneByOne<F extends Ring<F> & Equality<F>>
-implements Matrix.Square<F, One<F>, One<F>, OneByOne<F>> {
+public final class OneByOne<F extends Ring<F> & Equality<F>>
+implements
+Matrix.Square<F, One<F>, One<F>, OneByOne<F>, OneByOne<F>>,
+Equality<OneByOne<F>>
+{
 
     private final One<F> val;
     
-    OneByOne(One<F> val) {
+    public OneByOne(One<F> val) {
         this.val = val;
     }
 
@@ -32,14 +35,7 @@ implements Matrix.Square<F, One<F>, One<F>, OneByOne<F>> {
     // Matrix multiplication with a column vector:
     @Override
     public One<F> apply(One<F> vector) {
-        return One.one(val.dot(vector));
-    }
-    
-
-    // Matrix multiplication with a square matrix (too limited, presently):
-    @Override
-    public OneByOne<F> times(OneByOne<F> that) {
-        return new OneByOne<>(apply(that.val));
+        return One.of(val.dot(vector));
     }
 
     @Override
@@ -47,4 +43,13 @@ implements Matrix.Square<F, One<F>, One<F>, OneByOne<F>> {
         return this;
     }
 
+    @Override
+    public OneByOne<F> times(OneByOne<F> that) {
+        return new OneByOne<>(apply(that.val));
+    }
+
+    @Override
+    public boolean equals(OneByOne<F> that) {
+        return val.equals(that.val);
+    }
 }
