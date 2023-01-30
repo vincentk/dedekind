@@ -65,7 +65,7 @@ implements Matrix<F, R1, C, R2, D, MatrixAddition<F, R1, C, R2, D>>
     }
 
     @Override
-    public Matrix<F, R2, D, R1, C, ?> transpose() {
+    public MatrixAddition<F, R2, D, R1, C> transpose() {
         // (A + B)' = A' + B'
         return new MatrixAddition<>(m1.transpose(), m2.transpose());
     }
@@ -79,7 +79,7 @@ implements Matrix<F, R1, C, R2, D, MatrixAddition<F, R1, C, R2, D>>
     }
     
     @Override
-    public Matrix<F, R1, C, R2, D, ?> mult(F scalar) {
+    public MatrixAddition<F, R1, C, R2, D> mult(F scalar) {
         // Distributive law:
         // (A + B) * a = (A * a + B * a)
         return new MatrixAddition<>(m1.mult(scalar), m2.mult(scalar));
