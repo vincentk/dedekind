@@ -1,6 +1,9 @@
-package com.github.vincentk.dedekind.linear;
+package com.github.vincentk.dedekind.linear.lazy;
 
 import com.github.vincentk.dedekind.algebra.Ring;
+import com.github.vincentk.dedekind.linear.ColumnVector;
+import com.github.vincentk.dedekind.linear.Matrix;
+import com.github.vincentk.dedekind.linear.RowVector;
 
 /**
  * A lazy / symbolic implementation of matrix multiplication.
@@ -13,7 +16,7 @@ import com.github.vincentk.dedekind.algebra.Ring;
  * @param <R3>
  * @param <E>
  */
-public final class ComposedMatrix<
+public final class MatrixMultiplication<
 //Ring:
 F extends Ring<F>,
 
@@ -32,12 +35,12 @@ R3 extends RowVector<F, E, R3>,
 //Domain of linear map:
 E extends ColumnVector<F, R3, E>
 >
-implements Matrix<F, R1, C, R2, D, ComposedMatrix<F, R1, C, R2, D, R3, E>>
+implements Matrix<F, R1, C, R2, D, MatrixMultiplication<F, R1, C, R2, D, R3, E>>
 {
     private final Matrix<F, R3, E, R2, D, ?> m1;
     private final Matrix<F, R1, C, R3, E, ?> m2;
 
-    ComposedMatrix(
+    public MatrixMultiplication(
             Matrix<F, R3, E, R2, D, ?> m1,
             Matrix<F, R1, C, R3, E, ?> m2
             ) {
@@ -68,12 +71,12 @@ implements Matrix<F, R1, C, R2, D, ComposedMatrix<F, R1, C, R2, D, R3, E>>
     }
 
     @Override
-    public Matrix<F, R2, D, R1, C, ?> transpose() {
+    public MatrixMultiplication<F, R2, D, R1, C, R3, E> transpose() {
         // (A B)' = B' A'
         final Matrix<F, R2, D, R3, E, ?> m1t = m1.transpose();
         final Matrix<F, R3, E, R1, C, ?> m2t = m2.transpose();
 
-        return new ComposedMatrix<>(m2t, m1t);
+        return new MatrixMultiplication<>(m2t, m1t);
     }
 
     @Override
@@ -81,6 +84,14 @@ implements Matrix<F, R1, C, R2, D, ComposedMatrix<F, R1, C, R2, D, R3, E>>
     <R4 extends RowVector<F, E2, R4>, E2 extends ColumnVector<F, R4, E2>>
     Matrix<F, R1, C, R4, E2, ?>
     compose(Matrix<F, R2, D, R4, E2, ?> other) {
-        return new ComposedMatrix<>(other, this);
+        return new MatrixMultiplication<>(other, this);
+    }
+
+    @Override
+    public MatrixMultiplication<F, R1, C, R2, D, R3, E> mult(F scalar) {
+        // Associative law. Multiplication with a scalar commutes.
+        // We can choose any of
+        // (A x B) a  = (A * a) x B = A x (b * a)
+        return new MatrixMultiplication<>(m1.mult(scalar), m2);
     }
 }

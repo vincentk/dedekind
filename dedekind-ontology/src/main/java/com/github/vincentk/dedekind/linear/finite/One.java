@@ -1,20 +1,22 @@
-package com.github.vincentk.dedekind.linear.primitives;
+package com.github.vincentk.dedekind.linear.finite;
 
 import java.util.stream.Stream;
 
 import com.github.vincentk.dedekind.algebra.Equality;
 import com.github.vincentk.dedekind.algebra.Ring;
 import com.github.vincentk.dedekind.algebra.peano.Peano;
-import com.github.vincentk.dedekind.linear.finite.FiniteVector;
 
 /**
  * Vector with just one element.
+ * 
+ * It is the only vector which can serve as both a row and a column vector.
  * 
  * @param <R> type of ring defining the element type.
  */
 public final class One<R extends Ring<R> & Equality<R>>
 implements
-FiniteVector<R, Peano.Succ<Peano.Zero>, One<R>>,
+FiniteColumnVector<R, Peano.Succ<Peano.Zero>, One<R>, One<R>>,
+FiniteRowVector<R, Peano.Succ<Peano.Zero>, One<R>, One<R>>,
 Equality<One<R>>
 {
     protected final R val;
@@ -66,5 +68,20 @@ Equality<One<R>>
     @Override
     public long cardinality() {
         return 1;
+    }
+
+    @Override
+    public R apply(One<R> v) {
+        return val.times(v.val);
+    }
+
+    @Override
+    public One<R> transpose() {
+        return this;
+    }
+
+    @Override
+    public R dot(One<R> column) {
+        return val.times(column.val);
     }
 }
