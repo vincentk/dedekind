@@ -20,8 +20,6 @@ S extends ColumnVector<F, D, S>
 extends
 // Is an element of a vector space:
 Vector<F, S>,
-// Is a linear map from column vectors to the underlying field:
-//LinearMap<F, D, F>,
 // The transpose is a row vector:
 Dual<D>
 {
