@@ -52,11 +52,16 @@ Equality<One<R>>
 
         return false;
     }
+    
+    @Override
+    public String toString() {
+        return "(" + val + ")";
+    }
 
     public static
     <R extends Ring<R> & Equality<R>>
     One<R>
-    one(R val) {
+    of(R val) {
         return new One<>(val);
     }
 

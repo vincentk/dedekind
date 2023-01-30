@@ -1,6 +1,6 @@
 package com.github.vincentk.dedekind.linear.finite;
 
-import static com.github.vincentk.dedekind.linear.finite.One.one;
+import static com.github.vincentk.dedekind.linear.finite.One.of;
 import static com.github.vincentk.dedekind.linear.primitives.Zs.ONE;
 import static com.github.vincentk.dedekind.linear.primitives.Zs.THREE;
 import static com.github.vincentk.dedekind.linear.primitives.Zs.TWO;
@@ -26,7 +26,7 @@ public class OneTest {
 	}
 	
 	private static void checkPlus(Zs expected, Zs a, Zs b) {
-		assertEquals(one(expected), one(a).plus(one(b)));
+		assertEquals(of(expected), of(a).plus(of(b)));
 	}
 	
 	@Test
@@ -40,6 +40,6 @@ public class OneTest {
 	}
 	
 	private static void checkTimes(Zs expected, Zs a, Zs b) {
-		assertEquals(one(expected), one(a).mult(b));
+		assertEquals(of(expected), of(a).mult(b));
 	}
 }
