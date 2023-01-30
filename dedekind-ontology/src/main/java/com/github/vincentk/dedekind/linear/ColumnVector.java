@@ -21,7 +21,7 @@ extends
 // Is an element of a vector space:
 Vector<F, S>,
 // Is a linear map from column vectors to the underlying field:
-LinearMap<D, F>,
+//LinearMap<F, D, F>,
 // The transpose is a row vector:
 Dual<D>
 {

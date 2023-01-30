@@ -2,12 +2,12 @@ package com.github.vincentk.dedekind.linear.lazy;
 
 import java.util.stream.Stream;
 
-import org.jooq.lambda.Seq;
-
 import com.github.vincentk.dedekind.algebra.Ring;
 import com.github.vincentk.dedekind.algebra.peano.Cardinality;
+import com.github.vincentk.dedekind.linear.LinearMap;
 import com.github.vincentk.dedekind.linear.finite.FiniteColumnVector;
 import com.github.vincentk.dedekind.linear.finite.FiniteRowVector;
+import com.github.vincentk.dedekind.linear.finite.OuterProduct;
 
 public final class TransposedRowVector<
 // Field elements:
@@ -27,19 +27,6 @@ FiniteColumnVector<F, C, D, TransposedRowVector<F, C, D>>
         assert val.cardinality() > 0;
         
         this.val = val;
-    }
-
-    @Override
-    public F apply(D v) {
-        
-        final var s1 = enumerate();
-        final var s2 = v.enumerate();
-        
-        return Seq.seq(s1)
-                .zip(s2, (x, y) -> x.times(y))
-                .reduce((x, y) -> x.plus(y))
-                // N.b. will throw an exception if at least one of the vectors has zero length.
-                .orElseThrow();
     }
 
     @Override
@@ -65,5 +52,16 @@ FiniteColumnVector<F, C, D, TransposedRowVector<F, C, D>>
     @Override
     public long cardinality() {
         return val.cardinality();
+    }
+
+    @Override
+    public <
+    C2 extends Cardinality,
+    CO extends FiniteColumnVector<F, C2, RO, CO>,
+    RO extends FiniteRowVector<F, C2, CO, RO>
+    >
+    LinearMap<F, CO, TransposedRowVector<F, C, D>>
+    outer(RO row) {
+        return new OuterProduct<>(this, row);
     }
 }

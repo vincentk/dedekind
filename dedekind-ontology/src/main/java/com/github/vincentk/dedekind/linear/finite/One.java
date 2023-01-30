@@ -4,7 +4,9 @@ import java.util.stream.Stream;
 
 import com.github.vincentk.dedekind.algebra.Equality;
 import com.github.vincentk.dedekind.algebra.Ring;
+import com.github.vincentk.dedekind.algebra.peano.Cardinality;
 import com.github.vincentk.dedekind.algebra.peano.Peano;
+import com.github.vincentk.dedekind.linear.LinearMap;
 
 /**
  * Vector with just one element.
@@ -76,11 +78,6 @@ Equality<One<R>>
     }
 
     @Override
-    public R apply(One<R> v) {
-        return val.times(v.val);
-    }
-
-    @Override
     public One<R> transpose() {
         return this;
     }
@@ -88,5 +85,17 @@ Equality<One<R>>
     @Override
     public R dot(One<R> column) {
         return val.times(column.val);
+    }
+
+    @Override
+    public <
+    C2 extends Cardinality,
+    CO extends FiniteColumnVector<R, C2, RO, CO>,
+    RO extends FiniteRowVector<R, C2, CO, RO>
+    >
+    LinearMap<R, CO, One<R>>
+    outer(RO row) {
+        
+        return new OuterProduct<>(this, row);
     }
 }
