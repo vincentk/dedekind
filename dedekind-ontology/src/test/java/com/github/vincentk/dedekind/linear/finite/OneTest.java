@@ -1,6 +1,6 @@
-package com.github.vincentk.dedekind.linear.primitives;
+package com.github.vincentk.dedekind.linear.finite;
 
-import static com.github.vincentk.dedekind.linear.primitives.One.one;
+import static com.github.vincentk.dedekind.linear.finite.One.one;
 import static com.github.vincentk.dedekind.linear.primitives.Zs.ONE;
 import static com.github.vincentk.dedekind.linear.primitives.Zs.THREE;
 import static com.github.vincentk.dedekind.linear.primitives.Zs.TWO;
@@ -9,6 +9,8 @@ import static com.github.vincentk.dedekind.linear.primitives.Zs.of;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.junit.jupiter.api.Test;
+
+import com.github.vincentk.dedekind.linear.primitives.Zs;
 
 public class OneTest {
 

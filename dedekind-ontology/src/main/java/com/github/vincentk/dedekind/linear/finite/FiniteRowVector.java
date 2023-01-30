@@ -18,5 +18,13 @@ extends
 FiniteVector<F, C, S>,
 RowVector<F, D, S>
 {
-
+    /**
+     * Scalar product.
+     * 
+     * Row vector x column vector -> scalar.
+     * 
+     * @param column
+     * @return
+     */
+    F dot(D column);
 }
