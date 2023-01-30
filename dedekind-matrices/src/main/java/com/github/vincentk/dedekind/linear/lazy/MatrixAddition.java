@@ -77,4 +77,11 @@ implements Matrix<F, R1, C, R2, D, MatrixAddition<F, R1, C, R2, D>>
             Matrix<F, R2, D, R4, E2, ?> other) {
         return new MatrixMultiplication<>(other, this);
     }
+    
+    @Override
+    public Matrix<F, R1, C, R2, D, ?> mult(F scalar) {
+        // Distributive law:
+        // (A + B) * a = (A * a + B * a)
+        return new MatrixAddition<>(m1.mult(scalar), m2.mult(scalar));
+    }
 }

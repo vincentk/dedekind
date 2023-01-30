@@ -4,6 +4,7 @@ import java.util.function.Function;
 
 import com.github.vincentk.dedekind.algebra.MonoidM;
 import com.github.vincentk.dedekind.algebra.MonoidP;
+import com.github.vincentk.dedekind.algebra.Module;
 import com.github.vincentk.dedekind.algebra.Ring;
 import com.github.vincentk.dedekind.linear.lazy.MatrixMultiplication;
 import com.github.vincentk.dedekind.linear.lazy.MatrixAddition;
@@ -31,6 +32,8 @@ M extends Matrix<F, R1, C, R2, D, M>
 extends
 // Addition is supported for matrices of the same type:
 MonoidP<Matrix<F, R1, C, R2, D, ?>>,
+// 
+Module<F, Matrix<F, R1, C, R2, D, ?>>,
 // Any matrix is a linear map from a vector in the domain to the co-domain:
 LinearMap<D, C>,
 // A transpose is defined:
@@ -43,6 +46,9 @@ Dual<Matrix<F, R2, D, R1, C, ?>>
 
     @Override
     C apply(D vector);
+    
+    @Override
+    Matrix<F, R1, C, R2, D, ?> mult(F scalar);
     
     @Override
     Matrix<F, R2, D, R1, C, ?> transpose();
