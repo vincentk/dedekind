@@ -4,6 +4,19 @@ import com.github.vincentk.dedekind.algebra.Ring;
 import com.github.vincentk.dedekind.algebra.peano.Cardinality;
 import com.github.vincentk.dedekind.linear.LinearMap;
 
+/**
+ * Outer product / tensor product implementation.
+ * 
+ * @see https://en.wikipedia.org/wiki/Outer_product
+ *
+ * @param <R>
+ * @param <C>
+ * @param <C1>
+ * @param <R1>
+ * @param <C2>
+ * @param <CO>
+ * @param <RO>
+ */
 public final class OuterProduct<
 R extends Ring<R>,
 
