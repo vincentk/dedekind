@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import com.github.vincentk.dedekind.linear.finite.One;
 import static com.github.vincentk.dedekind.linear.finite.One.of;
 import com.github.vincentk.dedekind.linear.lazy.MatrixAddition;
+import com.github.vincentk.dedekind.linear.lazy.MatrixMultiplication;
 import com.github.vincentk.dedekind.linear.primitives.Zs;
 
 public class OneByOneTest {
@@ -47,6 +48,7 @@ public class OneByOneTest {
         
         // (2 * X) ^ 2 = {{4}}
         final var X4 = X2.compose(X2);
+        assertThat(X4).isInstanceOf(MatrixMultiplication.class);
         
         // (2 * X) ^ 2 * {1} = {2}
         final var x4 = X4.apply(x);
