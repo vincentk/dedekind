@@ -5,7 +5,7 @@ import java.util.function.Function;
 import com.github.vincentk.dedekind.algebra.MonoidM;
 import com.github.vincentk.dedekind.algebra.MonoidP;
 import com.github.vincentk.dedekind.algebra.Ring;
-import com.github.vincentk.dedekind.linear.lazy.ComposedMatrix;
+import com.github.vincentk.dedekind.linear.lazy.MatrixMultiplication;
 import com.github.vincentk.dedekind.linear.lazy.MatrixAddition;
 
 /**
@@ -65,7 +65,7 @@ Dual<Matrix<F, R2, D, R1, C, ?>>
     E extends ColumnVector<F, R3, E>
     >
     Matrix<F, R1, C, R3, E, ?> compose(Matrix<F, R2, D, R3, E, ?> other) {
-        return new ComposedMatrix<>(other, this);
+        return new MatrixMultiplication<>(other, this);
     };
 
     /**

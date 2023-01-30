@@ -75,6 +75,6 @@ implements Matrix<F, R1, C, R2, D, MatrixAddition<F, R1, C, R2, D>>
     <R4 extends RowVector<F, E2, R4>, E2 extends ColumnVector<F, R4, E2>>
     Matrix<F, R1, C, R4, E2, ?> compose(
             Matrix<F, R2, D, R4, E2, ?> other) {
-        return new ComposedMatrix<>(other, this);
+        return new MatrixMultiplication<>(other, this);
     }
 }
