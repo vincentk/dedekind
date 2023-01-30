@@ -35,7 +35,7 @@ MonoidP<Matrix<F, R1, C, R2, D, ?>>,
 // Scalar multiplication (from the right).
 Module<F, Matrix<F, R1, C, R2, D, ?>>,
 // Any matrix is a linear map from a vector in the domain to the co-domain:
-LinearMap<D, C>,
+LinearMap<F, D, C>,
 // A transpose is defined:
 Dual<Matrix<F, R2, D, R1, C, ?>>
 {

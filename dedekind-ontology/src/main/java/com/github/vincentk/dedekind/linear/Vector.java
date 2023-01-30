@@ -48,6 +48,4 @@ Module<F, V> {
      */
     @Override
     V plus(V vector);
-
-    // Matrix<F, ?, ?, ?> asMatrix();
 }
