@@ -1,6 +1,9 @@
-package com.github.vincentk.dedekind.linear;
+package com.github.vincentk.dedekind.linear.lazy;
 
 import com.github.vincentk.dedekind.algebra.Ring;
+import com.github.vincentk.dedekind.linear.ColumnVector;
+import com.github.vincentk.dedekind.linear.Matrix;
+import com.github.vincentk.dedekind.linear.RowVector;
 
 /**
  * A lazy / symbolic implementation of matrix multiplication.
@@ -37,7 +40,7 @@ implements Matrix<F, R1, C, R2, D, ComposedMatrix<F, R1, C, R2, D, R3, E>>
     private final Matrix<F, R3, E, R2, D, ?> m1;
     private final Matrix<F, R1, C, R3, E, ?> m2;
 
-    ComposedMatrix(
+    public ComposedMatrix(
             Matrix<F, R3, E, R2, D, ?> m1,
             Matrix<F, R1, C, R3, E, ?> m2
             ) {

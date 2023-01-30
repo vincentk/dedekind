@@ -1,6 +1,9 @@
-package com.github.vincentk.dedekind.linear;
+package com.github.vincentk.dedekind.linear.lazy;
 
 import com.github.vincentk.dedekind.algebra.Ring;
+import com.github.vincentk.dedekind.linear.ColumnVector;
+import com.github.vincentk.dedekind.linear.Matrix;
+import com.github.vincentk.dedekind.linear.RowVector;
 
 /**
  * A lazy / symbolic implementation of matrix addition.
@@ -31,7 +34,7 @@ implements Matrix<F, R1, C, R2, D, MatrixAddition<F, R1, C, R2, D>>
 {
     private final Matrix<F, R1, C, R2, D, ?> m1, m2;
     
-    MatrixAddition(
+    public MatrixAddition(
             Matrix<F, R1, C, R2, D, ?> m1,
             Matrix<F, R1, C, R2, D, ?> m2
             ) {

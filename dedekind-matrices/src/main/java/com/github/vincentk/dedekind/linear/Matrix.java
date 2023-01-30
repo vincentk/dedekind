@@ -5,6 +5,8 @@ import java.util.function.Function;
 import com.github.vincentk.dedekind.algebra.MonoidM;
 import com.github.vincentk.dedekind.algebra.MonoidP;
 import com.github.vincentk.dedekind.algebra.Ring;
+import com.github.vincentk.dedekind.linear.lazy.ComposedMatrix;
+import com.github.vincentk.dedekind.linear.lazy.MatrixAddition;
 
 /**
  * @see https://en.wikipedia.org/wiki/Matrix_(mathematics)
