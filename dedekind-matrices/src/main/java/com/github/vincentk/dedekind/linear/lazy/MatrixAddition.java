@@ -1,9 +1,9 @@
 package com.github.vincentk.dedekind.linear.lazy;
 
 import com.github.vincentk.dedekind.algebra.Ring;
-import com.github.vincentk.dedekind.linear.ColumnVector;
+import com.github.vincentk.dedekind.linear.InnerProductSpace.Bra;
+import com.github.vincentk.dedekind.linear.InnerProductSpace.Ket;
 import com.github.vincentk.dedekind.linear.Matrix;
-import com.github.vincentk.dedekind.linear.RowVector;
 
 /**
  * A lazy / symbolic implementation of matrix addition.
@@ -21,14 +21,14 @@ public final class MatrixAddition<
 F extends Ring<F>,
 
 //Implementation detail:
-R1 extends RowVector<F, C, R1>,
+R1 extends Bra<F, C, R1>,
 //Range of the linear map:
-C extends ColumnVector<F, R1, C>,
+C extends Ket<F, R1, C>,
 
 //Implementation detail:
-R2 extends RowVector<F, D, R2>,
+R2 extends Bra<F, D, R2>,
 //Domain of linear map:
-D extends ColumnVector<F, R2, D>
+D extends Ket<F, R2, D>
 >
 implements Matrix<F, R1, C, R2, D, MatrixAddition<F, R1, C, R2, D>>
 {
@@ -72,7 +72,7 @@ implements Matrix<F, R1, C, R2, D, MatrixAddition<F, R1, C, R2, D>>
 
     @Override
     public
-    <R4 extends RowVector<F, E2, R4>, E2 extends ColumnVector<F, R4, E2>>
+    <R4 extends Bra<F, E2, R4>, E2 extends Ket<F, R4, E2>>
     Matrix<F, R1, C, R4, E2, ?> compose(
             Matrix<F, R2, D, R4, E2, ?> other) {
         return new MatrixMultiplication<>(other, this);

@@ -1,8 +1,9 @@
 package com.github.vincentk.dedekind.linear.finite;
 
 import com.github.vincentk.dedekind.algebra.Ring;
-import com.github.vincentk.dedekind.algebra.peano.Cardinality;
 import com.github.vincentk.dedekind.linear.LinearMap;
+import com.github.vincentk.dedekind.linear.OuterProductSpace.Bra;
+import com.github.vincentk.dedekind.linear.OuterProductSpace.Ket;
 
 /**
  * Outer product / tensor product implementation.
@@ -10,46 +11,42 @@ import com.github.vincentk.dedekind.linear.LinearMap;
  * @see https://en.wikipedia.org/wiki/Outer_product
  *
  * @param <R>
- * @param <C>
- * @param <C1>
- * @param <R1>
- * @param <C2>
- * @param <CO>
- * @param <RO>
+ * @param <K1>
+ * @param <B1>
+ * @param <K2>
+ * @param <B2>
  */
 public final class OuterProduct<
 R extends Ring<R>,
 
-C extends Cardinality,
-C1 extends FiniteColumnVector<R, C, R1, C1>,
-R1 extends FiniteRowVector<R, C, C1, R1>,
+K1 extends Ket<R, B1, K1>,
+B1 extends Bra<R, K1, B1>,
 
-C2 extends Cardinality,
-CO extends FiniteColumnVector<R, C2, RO, CO>,
-RO extends FiniteRowVector<R, C2, CO, RO>
+K2 extends Ket<R, B2, K2>,
+B2 extends Bra<R, K2, B2>
 >
 implements
-LinearMap<R, CO, C1>{
+LinearMap<R, K2, K1>{
     
-    private final C1 column;
-    private final RO row;
+    private final K1 ket;
+    private final B2 bra;
     
-    public OuterProduct(C1 column, RO row) {
-        this.column = column;
-        this.row = row;
+    public OuterProduct(K1 ket, B2 bra) {
+        this.ket = ket;
+        this.bra = bra;
     }
 
     /**
      * (x y') z = x * (y' z) = x * a = ax .
      */
     @Override
-    public C1 apply(CO vec) {
+    public K1 apply(K2 vec) {
         
         // Associative law:
-        final R sc = row.dot(vec);
+        final R sc = bra.dot(vec);
         
         // Scalar multiplication commutes:
-        final C1 col = column.mult(sc);
+        final K1 col = ket.mult(sc);
         
         return col;
     }

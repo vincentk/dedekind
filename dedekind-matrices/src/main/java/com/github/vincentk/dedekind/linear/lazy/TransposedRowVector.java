@@ -5,6 +5,8 @@ import java.util.stream.Stream;
 import com.github.vincentk.dedekind.algebra.Ring;
 import com.github.vincentk.dedekind.algebra.peano.Cardinality;
 import com.github.vincentk.dedekind.linear.LinearMap;
+import com.github.vincentk.dedekind.linear.OuterProductSpace.Bra;
+import com.github.vincentk.dedekind.linear.OuterProductSpace.Ket;
 import com.github.vincentk.dedekind.linear.finite.FiniteColumnVector;
 import com.github.vincentk.dedekind.linear.finite.FiniteRowVector;
 import com.github.vincentk.dedekind.linear.finite.OuterProduct;
@@ -23,9 +25,9 @@ FiniteColumnVector<F, C, D, TransposedRowVector<F, C, D>>
     private final D val;
 
     public TransposedRowVector(D val) {
-        
+
         assert val.cardinality() > 0;
-        
+
         this.val = val;
     }
 
@@ -56,12 +58,10 @@ FiniteColumnVector<F, C, D, TransposedRowVector<F, C, D>>
 
     @Override
     public <
-    C2 extends Cardinality,
-    CO extends FiniteColumnVector<F, C2, RO, CO>,
-    RO extends FiniteRowVector<F, C2, CO, RO>
-    >
-    LinearMap<F, CO, TransposedRowVector<F, C, D>>
-    outer(RO row) {
-        return new OuterProduct<>(this, row);
+    K1 extends Ket<F, B1, K1>,
+    B1 extends Bra<F, K1, B1>>
+    LinearMap<F, K1, TransposedRowVector<F, C, D>>
+    outer(B1 bra) {
+        return new OuterProduct<>(this, bra);
     }
 }
