@@ -6,6 +6,8 @@ import com.github.vincentk.dedekind.algebra.Module;
 import com.github.vincentk.dedekind.algebra.MonoidM;
 import com.github.vincentk.dedekind.algebra.MonoidP;
 import com.github.vincentk.dedekind.algebra.Ring;
+import com.github.vincentk.dedekind.linear.InnerProductSpace.Bra;
+import com.github.vincentk.dedekind.linear.InnerProductSpace.Ket;
 import com.github.vincentk.dedekind.linear.lazy.MatrixAddition;
 import com.github.vincentk.dedekind.linear.lazy.MatrixMultiplication;
 
@@ -17,14 +19,14 @@ public interface Matrix<
 F extends Ring<F>,
 
 // Implementation detail:
-R1 extends RowVector<F, C, R1>,
+R1 extends Bra<F, C, R1>,
 // Range of the linear map:
-C extends ColumnVector<F, R1, C>,
+C extends Ket<F, R1, C>,
 
 // Implementation detail:
-R2 extends RowVector<F, D, R2>,
+R2 extends Bra<F, D, R2>,
 // Domain of linear map:
-D extends ColumnVector<F, R2, D>,
+D extends Ket<F, R2, D>,
 
 // Self-reference:
 M extends Matrix<F, R1, C, R2, D, M>
@@ -67,8 +69,8 @@ Dual<Matrix<F, R2, D, R1, C, ?>>
      */
     default <
     // Domain of the argument becomes the range of the result:
-    R3 extends RowVector<F, E, R3>,
-    E extends ColumnVector<F, R3, E>
+    R3 extends Bra<F, E, R3>,
+    E extends Ket<F, R3, E>
     >
     Matrix<F, R1, C, R3, E, ?> compose(Matrix<F, R2, D, R3, E, ?> other) {
         return new MatrixMultiplication<>(other, this);
@@ -82,9 +84,9 @@ Dual<Matrix<F, R2, D, R1, C, ?>>
     F extends Ring<F>,
 
     //Implementation detail:
-    R2 extends RowVector<F, D, R2>,
+    R2 extends Bra<F, D, R2>,
     // Domain of linear map:
-    D extends ColumnVector<F, R2, D>,
+    D extends Ket<F, R2, D>,
 
     // Type short-hand for change of basis (see below).
     S extends Square<F, R2, D, S, ?>,

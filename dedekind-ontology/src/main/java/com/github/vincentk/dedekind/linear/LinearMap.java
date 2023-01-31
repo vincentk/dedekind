@@ -3,6 +3,7 @@ package com.github.vincentk.dedekind.linear;
 import java.util.function.Function;
 
 import com.github.vincentk.dedekind.algebra.Ring;
+import com.github.vincentk.dedekind.linear.InnerProductSpace.Ket;
 
 /**
  * @see https://en.wikipedia.org/wiki/Linear_map
@@ -15,9 +16,9 @@ public interface LinearMap<
 // Field:
 F extends Ring<F>,
 // Domain:
-V extends ColumnVector<F, ?, ?>,
+V extends Ket<F, ?, ?>,
 // Range:
-W extends ColumnVector<F, ?, ?>
+W extends Ket<F, ?, ?>
 >
 extends Function<V, W>
 {

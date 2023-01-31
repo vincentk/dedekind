@@ -4,6 +4,7 @@ import static org.mockito.Mockito.mock;
 
 import org.junit.jupiter.api.Test;
 
+import com.github.vincentk.dedekind.linear.InnerProductSpace.Ket;
 import com.github.vincentk.dedekind.linear.primitives.Rs;
 
 public class MatrixTest {
@@ -15,6 +16,6 @@ public class MatrixTest {
         final Matrix<Rs, ?, ?, ?, ?, ?> subject = mock(Matrix.class);
         
         @SuppressWarnings("unused")
-        final ColumnVector<Rs, ?, ?> actual = subject.apply(null);
+        final Ket<Rs, ?, ?> actual = subject.apply(null);
     }
 }
