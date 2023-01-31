@@ -4,9 +4,10 @@ import java.util.stream.Stream;
 
 import com.github.vincentk.dedekind.algebra.Equality;
 import com.github.vincentk.dedekind.algebra.Ring;
-import com.github.vincentk.dedekind.algebra.peano.Cardinality;
 import com.github.vincentk.dedekind.algebra.peano.Peano;
 import com.github.vincentk.dedekind.linear.LinearMap;
+import com.github.vincentk.dedekind.linear.OuterProductSpace.Bra;
+import com.github.vincentk.dedekind.linear.OuterProductSpace.Ket;
 
 /**
  * Vector with just one element.
@@ -89,13 +90,10 @@ Equality<One<R>>
 
     @Override
     public <
-    C2 extends Cardinality,
-    CO extends FiniteColumnVector<R, C2, RO, CO>,
-    RO extends FiniteRowVector<R, C2, CO, RO>
+    K1 extends Ket<R, B1, K1>,
+    B1 extends Bra<R, K1, B1>
     >
-    LinearMap<R, CO, One<R>>
-    outer(RO row) {
-        
-        return new OuterProduct<>(this, row);
+    LinearMap<R, K1, One<R>> outer(B1 bra) {
+        return new OuterProduct<>(this, bra);
     }
 }

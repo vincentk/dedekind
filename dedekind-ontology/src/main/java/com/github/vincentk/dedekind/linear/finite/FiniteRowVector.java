@@ -2,7 +2,7 @@ package com.github.vincentk.dedekind.linear.finite;
 
 import com.github.vincentk.dedekind.algebra.Ring;
 import com.github.vincentk.dedekind.algebra.peano.Cardinality;
-import com.github.vincentk.dedekind.linear.InnerProductSpace.Bra;
+import com.github.vincentk.dedekind.linear.OuterProductSpace.Bra;
 
 public interface FiniteRowVector<
 // Field elements:
@@ -18,13 +18,4 @@ extends
 FiniteVector<F, C, S>,
 Bra<F, D, S>
 {
-    /**
-     * Scalar product.
-     * 
-     * Row vector x column vector -> scalar.
-     * 
-     * @param column
-     * @return
-     */
-    F dot(D column);
 }
