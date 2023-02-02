@@ -9,10 +9,9 @@ package com.github.vincentk.dedekind.algebra;
  * 
  * @see https://en.wikipedia.org/wiki/Monoid
  * 
- * @param <E> element type
  * @param <T> the implementation type
  */
-public interface Monoid<E, T extends Monoid<E, T>> extends Magma<E, T> {
+public interface Monoid<T extends Monoid<T>> extends Magma<T> {
 
     /**
      * @param val
@@ -25,7 +24,7 @@ public interface Monoid<E, T extends Monoid<E, T>> extends Magma<E, T> {
      * 
      * @param <T> the implementing type.
      */
-    interface P<E, T extends P<E, T>> extends Monoid<E, T>, Magma.P<E, T> {
+    interface P<T extends P<T>> extends Monoid<T>, Magma.P<T> {
     }
     
     /**
@@ -33,6 +32,6 @@ public interface Monoid<E, T extends Monoid<E, T>> extends Magma<E, T> {
      * 
      * @param <T> the implementing type.
      */
-    interface M<E, T extends M<E, T>> extends Monoid<E, T>, Magma.M<E, T>{
+    interface M<T extends M<T>> extends Monoid<T>, Magma.M<T>{
     }
 }

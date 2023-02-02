@@ -4,26 +4,23 @@ package com.github.vincentk.dedekind.sets;
  * 
  * A set. Membership is defined by delegating to the instanceof operation.
  * 
- * @param <E> element type
  * @param <T> implementation type.
  */
-public interface Set<E, T extends Set<E, T>> {
+public interface Set<T extends Set<T>> {
 
     /**
      * A countable set. Its elements can be enumerated.
      * 
-     * @param <E> element type
      * @param <C> cardinality
-     * @param <S> enumeration (e.g. a Supplier<E>, a Stream<E>, or an Iterable<E>).
+     * @param <S> enumeration (e.g. a Supplier<T>, a Stream<T>, or an Iterable<T>).
      * @param <T> implementation type
      */
     interface Countable<
-    E,
     C extends Cardinality.Countable,
     S,
-    T extends Countable<E, C, S, T>
+    T extends Countable<C, S, T>
     >
-    extends Set<E, T>{
+    extends Set<T>{
 
         S enumerate();
     }
@@ -31,16 +28,14 @@ public interface Set<E, T extends Set<E, T>> {
     /**
      * Finite sets have finite cardinality.
      * 
-     * @param <E> element type
-     * @param <S> enumeration (e.g. a Supplier<E>, a Stream<E>, or an Iterable<E>).
+     * @param <S> enumeration (e.g. a Supplier<T>, a Stream<T>, or an Iterable<T>).
      * @param <T> implementation type
      */
     interface Finite<
-    E,
     S,
-    T extends Finite<E, S, T>
+    T extends Finite<S, T>
     >
-    extends Countable<E, Cardinality.Finite, S, T>, Cardinality.Finite {
+    extends Countable<Cardinality.Finite, S, T>, Cardinality.Finite {
 
     }
 }

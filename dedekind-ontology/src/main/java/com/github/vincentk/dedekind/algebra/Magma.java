@@ -10,18 +10,16 @@ import com.github.vincentk.dedekind.sets.Set;
  * 
  * https://en.wikipedia.org/wiki/Magma_(algebra)
  * 
- * @param <E> element type
  * @param <T> implementation type
  */
-public interface Magma<E, T extends Magma<E, T>> extends Set<E, T> {
+public interface Magma<T extends Magma<T>> extends Set<T> {
 
     /**
      * Magma under addition (M, +).
      * 
-     * @param <E> element type
      * @param <T> the implementing type.
      */
-    interface P<E, T extends P<E, T>> extends Magma<E, T> {
+    interface P<T extends P<T>> extends Magma<T> {
 
         T plus(T that);
 
@@ -34,10 +32,9 @@ public interface Magma<E, T extends Magma<E, T>> extends Set<E, T> {
     /**
      * Magma under multiplication (M, *).
      * 
-     * @param <E> element type
      * @param <T> the implementing type.
      */
-    interface M<E, T extends M<E, T>> extends Magma<E, T> {
+    interface M<T extends M<T>> extends Magma<T> {
 
         T times(T that);
 
