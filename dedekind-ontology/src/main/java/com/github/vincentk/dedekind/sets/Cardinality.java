@@ -1,4 +1,4 @@
-package com.github.vincentk.dedekind.algebra.peano;
+package com.github.vincentk.dedekind.sets;
 
 /**
  * As in: cardinality of a (finite) set.

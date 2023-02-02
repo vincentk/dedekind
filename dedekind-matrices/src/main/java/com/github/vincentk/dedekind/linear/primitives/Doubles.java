@@ -6,9 +6,9 @@ import java.util.stream.DoubleStream;
 import java.util.stream.Stream;
 
 import com.github.vincentk.dedekind.algebra.Equality;
-import com.github.vincentk.dedekind.algebra.peano.Cardinality;
 import com.github.vincentk.dedekind.algebra.peano.Peano;
 import com.github.vincentk.dedekind.linear.finite.FiniteVector;
+import com.github.vincentk.dedekind.sets.Cardinality;
 
 /**
  * Vector backed by an array of doubles.

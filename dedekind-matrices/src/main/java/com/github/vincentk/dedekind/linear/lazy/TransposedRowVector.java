@@ -3,13 +3,13 @@ package com.github.vincentk.dedekind.linear.lazy;
 import java.util.stream.Stream;
 
 import com.github.vincentk.dedekind.algebra.Ring;
-import com.github.vincentk.dedekind.algebra.peano.Cardinality;
 import com.github.vincentk.dedekind.linear.LinearMap;
 import com.github.vincentk.dedekind.linear.OuterProductSpace.Bra;
 import com.github.vincentk.dedekind.linear.OuterProductSpace.Ket;
 import com.github.vincentk.dedekind.linear.finite.FiniteColumnVector;
 import com.github.vincentk.dedekind.linear.finite.FiniteRowVector;
 import com.github.vincentk.dedekind.linear.finite.OuterProduct;
+import com.github.vincentk.dedekind.sets.Cardinality;
 
 public final class TransposedRowVector<
 // Field elements:
