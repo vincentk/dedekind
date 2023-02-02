@@ -12,7 +12,9 @@ import com.github.vincentk.dedekind.sets.Cardinality;
  */
 public sealed 
 interface Peano<P extends Peano<P>>
-extends Natural<Peano<?>>, Cardinality
+extends
+Natural<Peano<?>>,
+Cardinality.Finite
 {
     default Peano<P> plus(Zero that) {
         return this;
