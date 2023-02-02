@@ -5,7 +5,7 @@ import java.util.stream.Stream;
 import com.github.vincentk.dedekind.algebra.Ring;
 import com.github.vincentk.dedekind.linear.Vector;
 import com.github.vincentk.dedekind.sets.Cardinality;
-import com.github.vincentk.dedekind.sets.CountableSet.FiniteSet;
+import com.github.vincentk.dedekind.sets.Set;
 
 public interface FiniteVector<
 // Field:
@@ -17,6 +17,6 @@ V extends FiniteVector<F, C, V>
 extends
 Vector<F, V>,
 Cardinality.Finite,
-FiniteSet<F, Stream<F>>
+Set.Finite<F, Stream<F>>
 {
 }

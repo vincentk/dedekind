@@ -14,7 +14,6 @@ import com.github.vincentk.dedekind.sets.Cardinality;
 public final class TransposedRowVector<
 // Field elements:
 F extends Ring<F>,
-// Cardinality:
 C extends Cardinality,
 // Domain:
 D extends FiniteRowVector<F, C, TransposedRowVector<F, C, D>, D>
