@@ -7,10 +7,7 @@ import com.github.vincentk.dedekind.sets.Monoids;
  * 
  * @param <M>
  */
-public interface MonoidM<M extends MonoidM<M>> extends Multiplication<M, M>, Monoids {
-
-    @Override
-    M times(M that);
+public interface MonoidM<M extends MonoidM<M>> extends Monoids, Monoid.M<M> {
 
     public interface GroupM<G extends GroupM<G>> extends MonoidM<G> {
 

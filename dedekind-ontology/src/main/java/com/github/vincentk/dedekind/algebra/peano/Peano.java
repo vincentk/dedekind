@@ -38,6 +38,13 @@ Cardinality.Finite
         public long cardinality() {
             return 0;
         }
+
+        /*
+        @Override
+        public boolean isUnitMult() {
+            return false;
+        }
+        */
     }
 
     final class Succ<P extends Peano<P>> implements Peano<Succ<P>> {
