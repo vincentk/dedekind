@@ -17,6 +17,6 @@ V extends FiniteVector<F, C, V>
 extends
 Vector<F, V>,
 Cardinality.Finite,
-Set.Finite<F, Stream<F>>
+Set.Finite<F, Stream<F>, V>
 {
 }
