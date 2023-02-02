@@ -1,8 +1,8 @@
 package com.github.vincentk.dedekind.linear;
 
-import com.github.vincentk.dedekind.algebra.MonoidP;
 import com.github.vincentk.dedekind.algebra.Ring;
 import com.github.vincentk.dedekind.algebra.Module;
+import com.github.vincentk.dedekind.algebra.Monoid;
 
 /**
  * An element of a vector space satisfying the vector axioms.
@@ -23,7 +23,7 @@ V extends Vector<F, V>
 >
 extends
 // Vector addition:
-MonoidP<V>,
+Monoid.P<V>,
 // Scalar multiplication:
 Module<F, V> {
 

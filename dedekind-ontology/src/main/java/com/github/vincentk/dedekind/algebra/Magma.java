@@ -19,14 +19,7 @@ public interface Magma<T extends Magma<T>> extends Set<T> {
      * 
      * @param <T> the implementing type.
      */
-    interface P<T extends P<T>> extends Magma<T> {
-
-        T plus(T that);
-
-        // Poor man's operator overloading:
-        default T p(T that) {
-            return plus(that);
-        }
+    interface P<T extends P<T>> extends Magma<T>, Addition<T, T> {
     }
     
     /**
@@ -34,13 +27,6 @@ public interface Magma<T extends Magma<T>> extends Set<T> {
      * 
      * @param <T> the implementing type.
      */
-    interface M<T extends M<T>> extends Magma<T> {
-
-        T times(T that);
-
-        // Poor man's operator overloading:
-        default T x(T that) {
-            return times(that);
-        }
+    interface M<T extends M<T>> extends Magma<T>, Multiplication<T, T> {
     }
 }
