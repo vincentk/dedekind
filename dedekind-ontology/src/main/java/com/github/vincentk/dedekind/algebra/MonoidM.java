@@ -6,6 +6,8 @@ import com.github.vincentk.dedekind.sets.Monoids;
  * Monoid with respect to "multiplication".
  * 
  * @param <M>
+ * 
+ * @see https://en.wikipedia.org/wiki/Group_(mathematics)
  */
 public interface MonoidM<M extends MonoidM<M>> extends Monoids, Monoid.M<M> {
 
