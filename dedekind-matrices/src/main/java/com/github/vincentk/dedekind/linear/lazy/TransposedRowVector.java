@@ -1,7 +1,5 @@
 package com.github.vincentk.dedekind.linear.lazy;
 
-import java.util.stream.Stream;
-
 import com.github.vincentk.dedekind.algebra.Ring;
 import com.github.vincentk.dedekind.linear.LinearMap;
 import com.github.vincentk.dedekind.linear.OuterProductSpace.Bra;
@@ -33,11 +31,6 @@ FiniteColumnVector<F, C, D, TransposedRowVector<F, C, D>>
     @Override
     public D transpose() {
         return val;
-    }
-
-    @Override
-    public Stream<F> enumerate() {
-        return val.enumerate();
     }
 
     @Override

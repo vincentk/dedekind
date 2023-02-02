@@ -2,8 +2,6 @@ package com.github.vincentk.dedekind.linear.primitives;
 
 import java.util.Arrays;
 import java.util.Optional;
-import java.util.stream.DoubleStream;
-import java.util.stream.Stream;
 
 import com.github.vincentk.dedekind.algebra.Equality;
 import com.github.vincentk.dedekind.algebra.peano.Peano;
@@ -95,10 +93,5 @@ Equality<Doubles<C>>
     @Override
     public long cardinality() {
         return val.length;
-    }
-
-    @Override
-    public Stream<Rs> enumerate() {
-        return DoubleStream.of(val).mapToObj(Rs::of);
     }
 }

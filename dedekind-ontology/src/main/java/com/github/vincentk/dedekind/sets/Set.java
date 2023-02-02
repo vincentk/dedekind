@@ -1,5 +1,9 @@
 package com.github.vincentk.dedekind.sets;
 
+import java.util.Optional;
+
+import com.github.vincentk.dedekind.algebra.Equality;
+
 /**
  * 
  * A set. Membership is defined by delegating to the instanceof operation.
@@ -12,44 +16,36 @@ public interface Set<T extends Set<T>> {
      * A countable set. Its elements can be enumerated.
      * 
      * @param <C> cardinality
-     * @param <S> enumeration (e.g. a Supplier<T>, a Stream<T>, or an Iterable<T>).
      * @param <T> implementation type
      */
     interface Countable<
     C extends Cardinality.Countable,
-    S,
-    T extends Countable<C, S, T>
+    T extends Countable<C, T>
     >
     extends Set<T>{
 
-        S enumerate();
+        Optional<T> next();
     }
 
     /**
      * Finite sets have finite cardinality.
+     * They are always countable (we grant the axiom of choice).
      * 
-     * @param <S> enumeration (e.g. a Supplier<T>, a Stream<T>, or an Iterable<T>).
      * @param <T> implementation type
      */
-    interface Finite<
-    S,
-    T extends Finite<S, T>
-    >
-    extends Countable<Cardinality.Finite, S, T>, Cardinality.Finite {
-
+    interface Finite<T extends Finite<T>>
+    extends Countable<Cardinality.Finite, T>, Cardinality.Finite {
     }
 
     /**
      * Partially ordered set.
      * 
      * @param <C> cardinality
-     * @param <S> enumeration (e.g. a Supplier<T>, a Stream<T>, or an Iterable<T>).
      * @param <T> implementation type
      */
     interface Po<
     C extends Cardinality.Countable,
-    S,
-    T extends Countable<C, S, T>
+    T extends Po<C, T>
     >
     extends Set<T>, Comparable<T> {
     }

@@ -1,7 +1,5 @@
 package com.github.vincentk.dedekind.linear.finite;
 
-import java.util.stream.Stream;
-
 import com.github.vincentk.dedekind.algebra.Equality;
 import com.github.vincentk.dedekind.algebra.Ring;
 import com.github.vincentk.dedekind.algebra.peano.Peano;
@@ -66,11 +64,6 @@ Equality<One<R>>
     One<R>
     of(R val) {
         return new One<>(val);
-    }
-
-    @Override
-    public Stream<R> enumerate() {
-        return Stream.of(val);
     }
 
     @Override
