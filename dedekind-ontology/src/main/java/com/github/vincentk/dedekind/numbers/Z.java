@@ -52,4 +52,6 @@ public interface Z extends Ring<Z>, Number<Z>, Set.Po<Cardinality.Countable, Z>,
     static Z of(int n) {
         return new Impl(n);
     }
+    
+    public static final Z ZERO = of(0), ONE = of(1), TWO = of(2), THREE = of(3);
 }
