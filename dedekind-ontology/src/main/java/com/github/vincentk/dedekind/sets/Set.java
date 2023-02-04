@@ -2,8 +2,6 @@ package com.github.vincentk.dedekind.sets;
 
 import java.util.Optional;
 
-import com.github.vincentk.dedekind.algebra.Equality;
-
 /**
  * 
  * A set. Membership is defined by delegating to the instanceof operation.

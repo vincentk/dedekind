@@ -4,11 +4,14 @@
 package com.github.vincentk.dedekind.numbers;
 
 import com.github.vincentk.dedekind.algebra.Ring;
+import com.github.vincentk.dedekind.sets.Cardinality;
+import com.github.vincentk.dedekind.sets.Rings.Integers;
+import com.github.vincentk.dedekind.sets.Set;
 
 /**
  * The integer numbers.
  */
-public interface Z extends Ring<Z> {
+public interface Z extends Ring<Z>, Number<Z>, Set.Po<Cardinality.Countable, Z>, Integers {
     
     public int intValue();
 
@@ -38,6 +41,11 @@ public interface Z extends Ring<Z> {
         @Override
         public Z negate() {
             return of(-n);
+        }
+
+        @Override
+        public int compareTo(Z o) {
+            return Integer.compare(n, o.intValue());
         }
     }
     

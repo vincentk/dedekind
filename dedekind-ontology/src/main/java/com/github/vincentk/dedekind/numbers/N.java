@@ -3,12 +3,14 @@
  */
 package com.github.vincentk.dedekind.numbers;
 
-import com.github.vincentk.dedekind.algebra.SemiRing;
+import com.github.vincentk.dedekind.sets.Cardinality;
+import com.github.vincentk.dedekind.sets.SemiRings.Naturals;
+import com.github.vincentk.dedekind.sets.Set;
 
 /**
  * The natural numbers.
  */
-public interface N extends SemiRing<N> {
+public interface N extends Number<N>, Set.Po<Cardinality.Countable, N>, Naturals {
     
     public int intValue();
 
@@ -21,12 +23,12 @@ public interface N extends SemiRing<N> {
         }
         
         @Override
-        public N plus(N that) {
+        public Impl plus(N that) {
             return of(n + that.intValue());
         }
 
         @Override
-        public N times(N that) {
+        public Impl times(N that) {
             return of(n * that.intValue());
         }
 
@@ -34,9 +36,14 @@ public interface N extends SemiRing<N> {
         public int intValue() {
             return n;
         }
+
+        @Override
+        public int compareTo(N o) {
+            return Integer.compare(n, o.intValue());
+        }
     }
     
-    static N of(int n) {
+    static Impl of(int n) {
         return new Impl(n);
     }
 }
