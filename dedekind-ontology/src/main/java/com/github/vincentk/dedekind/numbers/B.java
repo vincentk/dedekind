@@ -66,6 +66,11 @@ public interface B extends Number<B>, Set.Po<Cardinality.Finite, B>, Booleans {
         public int compareTo(B o) {
             return Boolean.compare(n, o.booleanValue());
         }
+
+        @Override
+        public boolean equals(B that) {
+            return n == that.booleanValue();
+        }
     }
     
     static Impl of(boolean n) {

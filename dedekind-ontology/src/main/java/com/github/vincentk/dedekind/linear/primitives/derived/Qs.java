@@ -2,7 +2,7 @@ package com.github.vincentk.dedekind.linear.primitives.derived;
 
 import com.github.vincentk.dedekind.algebra.Equality;
 import com.github.vincentk.dedekind.algebra.Field;
-import com.github.vincentk.dedekind.linear.primitives.Zs;
+import com.github.vincentk.dedekind.numbers.Z;
 
 /**
  * An implementation of rational numbers.
@@ -11,20 +11,20 @@ public final class Qs implements Field.Rationals<Qs>, Equality<Qs>{
 
     public static final Qs ZERO = of(0, 1), UNIT = of(1, 1);
 
-    private final Zs en, de;
+    private final Z en, de;
 
-    private Qs(Zs en, Zs de) {
+    private Qs(Z en, Z de) {
         this.en = en;
 
-        assert !de.equals(Zs.ZERO);
+        assert !de.equals(Z.ZERO);
         this.de = de;
     }
 
     public static Qs of(int en, int de) {
-        return of(Zs.of(en), Zs.of(de));
+        return of(Z.of(en), Z.of(de));
     }
 
-    public static Qs of(Zs en, Zs de) {
+    public static Qs of(Z en, Z de) {
         return new Qs(en, de).simplify();
     }
 

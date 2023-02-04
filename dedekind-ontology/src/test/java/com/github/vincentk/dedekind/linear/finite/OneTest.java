@@ -1,7 +1,10 @@
 package com.github.vincentk.dedekind.linear.finite;
 
-import static com.github.vincentk.dedekind.linear.finite.One.of;
-import static com.github.vincentk.dedekind.numbers.Z.*;
+import static com.github.vincentk.dedekind.numbers.Z.ONE;
+import static com.github.vincentk.dedekind.numbers.Z.THREE;
+import static com.github.vincentk.dedekind.numbers.Z.TWO;
+import static com.github.vincentk.dedekind.numbers.Z.ZERO;
+import static com.github.vincentk.dedekind.numbers.Z.of;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -24,7 +27,7 @@ public class OneTest {
     }
 
     private static void checkPlus(Z expected, Z a, Z b) {
-        assertEquals(of(expected), of(a).plus(of(b)));
+        assertEquals(One.of(expected), One.of(a).plus(One.of(b)));
     }
 
     @Test
@@ -40,19 +43,19 @@ public class OneTest {
     @Test
     public void outerProductTest() {
 
-        final var zero = of(ZERO);
+        final var zero = One.of(ZERO);
 
         assertThat(zero.outer(zero)).isInstanceOf(LinearMap.class);
 
         assertThat(zero.outer(zero).apply(zero)).isEqualTo(zero);
 
-        final var one = of(ONE);
+        final var one = One.of(ONE);
         
         assertThat(zero.outer(one).apply(zero)).isEqualTo(zero);
 
         assertThat(one.outer(one).apply(one)).isEqualTo(one);
         
-        final var two = of(TWO);
+        final var two = One.of(TWO);
         
         assertThat(two.outer(one).apply(one)).isEqualTo(two);
 
@@ -63,7 +66,7 @@ public class OneTest {
         assertThat(two.outer(two).apply(two)).isEqualTo(four.plus(four));
     }
 
-    private static void checkTimes(Zs expected, Zs a, Zs b) {
-        assertEquals(of(expected), of(a).mult(b));
+    private static void checkTimes(Z expected, Z a, Z b) {
+        assertEquals(One.of(expected), One.of(a).mult(b));
     }
 }

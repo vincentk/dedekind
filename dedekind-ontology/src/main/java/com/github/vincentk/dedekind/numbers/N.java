@@ -41,6 +41,11 @@ public interface N extends Number<N>, Set.Po<Cardinality.Countable, N>, Naturals
         public int compareTo(N o) {
             return Integer.compare(n, o.intValue());
         }
+
+        @Override
+        public boolean equals(N that) {
+            return n == that.intValue();
+        }
     }
     
     static Impl of(int n) {
