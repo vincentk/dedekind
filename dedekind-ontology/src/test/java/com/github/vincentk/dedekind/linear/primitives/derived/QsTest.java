@@ -1,11 +1,11 @@
 package com.github.vincentk.dedekind.linear.primitives.derived;
 
-import static com.github.vincentk.dedekind.linear.primitives.derived.Qs.UNIT;
-import static com.github.vincentk.dedekind.linear.primitives.derived.Qs.ZERO;
-import static com.github.vincentk.dedekind.linear.primitives.derived.Qs.of;
+import static com.github.vincentk.dedekind.numbers.Q.*;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
+
+import com.github.vincentk.dedekind.numbers.Q;
 
 public class QsTest {
 
@@ -49,7 +49,7 @@ public class QsTest {
 		assertThat(q(1, 2).x(q(1, 3))).isEqualTo(q(1, 6));
 	}
 
-	private static Qs q(int en, int de) {
+	private static Q q(int en, int de) {
 		return of(en, de);
 	}
 }
