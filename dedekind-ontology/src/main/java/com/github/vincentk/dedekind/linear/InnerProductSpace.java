@@ -1,6 +1,6 @@
 package com.github.vincentk.dedekind.linear;
 
-import com.github.vincentk.dedekind.algebra.Ring;
+import com.github.vincentk.dedekind.algebra.SemiRing;
 
 /**
  * @see https://en.wikipedia.org/wiki/Inner_product_space
@@ -16,7 +16,7 @@ public interface InnerProductSpace {
      * @param <C>
      */
     public interface Bra<
-    F extends Ring<F>,
+    F extends SemiRing<F>,
     K extends Ket<F, S, K>,
     S extends Bra<F, K, S>
     >
@@ -45,7 +45,7 @@ public interface InnerProductSpace {
      * @see https://en.wikipedia.org/wiki/Linear_form
      */
     public interface Ket<
-    F extends Ring<F>,
+    F extends SemiRing<F>,
     B extends Bra<F, S, B>,
     S extends Ket<F, B, S>
     >

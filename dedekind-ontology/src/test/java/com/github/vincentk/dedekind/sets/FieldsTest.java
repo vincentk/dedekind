@@ -6,7 +6,7 @@ import com.github.vincentk.dedekind.sets.Fields.Complex;
 import com.github.vincentk.dedekind.sets.Fields.Rationals;
 import com.github.vincentk.dedekind.sets.Fields.Reals;
 import com.github.vincentk.dedekind.sets.Rings.Integers;
-import com.github.vincentk.dedekind.sets.Rings.Naturals;
+import com.github.vincentk.dedekind.sets.SemiRings.Naturals;
 
 public class FieldsTest {
 	

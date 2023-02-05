@@ -1,6 +1,7 @@
 package com.github.vincentk.dedekind.algebra.peano;
 
 import com.github.vincentk.dedekind.algebra.SemiRing.Natural;
+import com.github.vincentk.dedekind.sets.Cardinality;
 
 /**
  * Implementation of Peano Numbers / Axioms.
@@ -10,10 +11,12 @@ import com.github.vincentk.dedekind.algebra.SemiRing.Natural;
  * @param <P>
  */
 public sealed 
-interface Peano<P extends Peano<P>>
-extends Natural<Peano<?>>, Cardinality
+interface Peano<N extends Peano<N>>
+extends
+Natural<Peano<?>>,
+Cardinality.Finite
 {
-    default Peano<P> plus(Zero that) {
+    default Peano<N> plus(Zero that) {
         return this;
     }
 
@@ -37,11 +40,11 @@ extends Natural<Peano<?>>, Cardinality
         }
     }
 
-    final class Succ<P extends Peano<P>> implements Peano<Succ<P>> {
+    final class Succ<N extends Peano<N>> implements Peano<Succ<N>> {
 
-        private final P pred;
+        private final N pred;
 
-        private Succ(P pred) {
+        private Succ(N pred) {
             this.pred = pred;
         }
 

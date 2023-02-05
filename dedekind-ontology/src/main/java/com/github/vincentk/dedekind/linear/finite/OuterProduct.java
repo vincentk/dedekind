@@ -1,6 +1,6 @@
 package com.github.vincentk.dedekind.linear.finite;
 
-import com.github.vincentk.dedekind.algebra.Ring;
+import com.github.vincentk.dedekind.algebra.SemiRing;
 import com.github.vincentk.dedekind.linear.LinearMap;
 import com.github.vincentk.dedekind.linear.OuterProductSpace.Bra;
 import com.github.vincentk.dedekind.linear.OuterProductSpace.Ket;
@@ -17,7 +17,7 @@ import com.github.vincentk.dedekind.linear.OuterProductSpace.Ket;
  * @param <B2>
  */
 public final class OuterProduct<
-R extends Ring<R>,
+R extends SemiRing<R>,
 
 K1 extends Ket<R, B1, K1>,
 B1 extends Bra<R, K1, B1>,

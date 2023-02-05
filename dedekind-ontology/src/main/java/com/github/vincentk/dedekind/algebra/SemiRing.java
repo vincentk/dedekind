@@ -11,8 +11,8 @@ import com.github.vincentk.dedekind.sets.Rings;
 public interface SemiRing<R extends SemiRing<R>>
 extends
 Rings,
-MonoidP<R>,
-MonoidM<R>
+Monoid.P<R>,
+Monoid.M<R>
 {
     interface Natural<N extends Natural<N>> extends SemiRing<N>, Naturals {}
 }

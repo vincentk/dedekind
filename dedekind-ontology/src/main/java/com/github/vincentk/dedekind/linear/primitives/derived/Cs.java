@@ -2,7 +2,7 @@ package com.github.vincentk.dedekind.linear.primitives.derived;
 
 import com.github.vincentk.dedekind.algebra.Equality;
 import com.github.vincentk.dedekind.algebra.Field;
-import com.github.vincentk.dedekind.linear.primitives.Rs;
+import com.github.vincentk.dedekind.numbers.R;
 
 /**
  * The set of complex numbers.
@@ -11,18 +11,18 @@ public final class Cs implements Field.Complex<Cs>, Equality<Cs>{
 
     public static final Cs ZERO = of(0, 0), R1 = of(1, 0), I1 = of(0, 1), UNIT = of(1, 1);
 
-    private final Rs re, im;
+    private final R re, im;
 
-    private Cs(Rs re, Rs im) {
+    private Cs(R re, R im) {
         this.re = re;
         this.im = im;
     }
 
     public static Cs of(double re, double im) {
-        return of(Rs.of(re), Rs.of(im));
+        return of(R.of(re), R.of(im));
     }
 
-    public static Cs of(Rs re, Rs im) {
+    public static Cs of(R re, R im) {
         return new Cs(re, im);
     }
 
@@ -41,7 +41,7 @@ public final class Cs implements Field.Complex<Cs>, Equality<Cs>{
     public Cs inverse() {
 
         final var xs = conj(); 
-        final Rs r2 = re.x(re);
+        final R r2 = re.x(re);
 
         return of(xs.re.div(r2), xs.im.div(r2));
     }

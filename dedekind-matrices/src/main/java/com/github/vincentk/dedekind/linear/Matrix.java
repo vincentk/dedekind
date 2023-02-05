@@ -3,8 +3,7 @@ package com.github.vincentk.dedekind.linear;
 import java.util.function.Function;
 
 import com.github.vincentk.dedekind.algebra.Module;
-import com.github.vincentk.dedekind.algebra.MonoidM;
-import com.github.vincentk.dedekind.algebra.MonoidP;
+import com.github.vincentk.dedekind.algebra.Monoid;
 import com.github.vincentk.dedekind.algebra.Ring;
 import com.github.vincentk.dedekind.linear.InnerProductSpace.Bra;
 import com.github.vincentk.dedekind.linear.InnerProductSpace.Ket;
@@ -32,8 +31,8 @@ D extends Ket<F, R2, D>,
 M extends Matrix<F, R1, C, R2, D, M>
 >
 extends
-// Addition is supported for matrices of the same type:
-MonoidP<Matrix<F, R1, C, R2, D, ?>>,
+// Addition is supported for matrices with the same domain and range:
+Monoid.P<Matrix<F, R1, C, R2, D, ?>>,
 // Scalar multiplication (from the right).
 Module<F, Matrix<F, R1, C, R2, D, ?>>,
 // Any matrix is a linear map from a vector in the domain to the co-domain:
@@ -96,9 +95,9 @@ Dual<Matrix<F, R2, D, R1, C, ?>>
     >
     extends
     // A square matrix is a matrix where domain and range are the same:
-    Matrix<F, R2, D, R2, D, M>,
+    Matrix<F, R2, D, R2, D, M>
     // Multiplication of two square matrices produces a new square matrix of the same dimension:
-    MonoidM<S>
+    // Monoid.M<S>
     {
         // Transposing a square matrix gives another square matrix:
         @Override
@@ -107,7 +106,7 @@ Dual<Matrix<F, R2, D, R1, C, ?>>
         // Matrix multiplication with a square matrix.
         // Essentially a change of basis.
         // Can presumably be refined.
-        @Override
-        S times(S that);
+        // @Override
+        // S times(S that);
     }
 }

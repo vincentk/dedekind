@@ -1,8 +1,8 @@
 package com.github.vincentk.dedekind.linear;
 
-import com.github.vincentk.dedekind.algebra.MonoidP;
-import com.github.vincentk.dedekind.algebra.Ring;
 import com.github.vincentk.dedekind.algebra.Module;
+import com.github.vincentk.dedekind.algebra.Monoid;
+import com.github.vincentk.dedekind.algebra.SemiRing;
 
 /**
  * An element of a vector space satisfying the vector axioms.
@@ -12,18 +12,18 @@ import com.github.vincentk.dedekind.algebra.Module;
  * 
  * @see https://en.wikipedia.org/wiki/Vector_space#Definition_and_basic_properties
  *
- * @param <F> optional type tag indicating e.g. a {@link Field}.
+ * @param <F> usually a {@link Field}.
  * @param <V> the usual recursive self-type so that subtypes can refer to themselves.
  */
 public interface Vector<
 // Field:
-F extends Ring<F>,
+F extends SemiRing<F>,
 // Self-reference:
 V extends Vector<F, V>
 >
 extends
 // Vector addition:
-MonoidP<V>,
+Monoid.P<V>,
 // Scalar multiplication:
 Module<F, V> {
 

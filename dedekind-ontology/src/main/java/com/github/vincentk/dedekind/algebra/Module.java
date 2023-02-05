@@ -11,7 +11,7 @@ package com.github.vincentk.dedekind.algebra;
  * @param <R> the scalar ring
  * @param <M> self-type
  */
-public interface Module<R extends Ring<R>, M extends Module<R, M>> {
+public interface Module<R extends SemiRing<R>, M extends Module<R, M>> {
 
     /**
      * Scalar multiplication.
