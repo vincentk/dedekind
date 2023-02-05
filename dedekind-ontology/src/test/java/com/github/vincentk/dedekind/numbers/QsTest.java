@@ -61,6 +61,14 @@ public class QsTest {
 	    assertThat(q(1, -2).compareTo(ZERO)).isEqualTo(-1);
 	    assertThat(q(1, -2).compareTo(q(2, -4))).isEqualTo(0);
 	}
+	
+	@Test
+	public void testMetric() {
+	    assertThat(ZERO.distance(ZERO)).isEqualTo(ZERO);
+	    assertThat(ZERO.distance(UNIT)).isEqualTo(UNIT);
+	    assertThat(UNIT.distance(ZERO)).isEqualTo(UNIT);
+	    assertThat(UNIT.neg().distance(ZERO)).isEqualTo(UNIT);
+	}
 
 	private static Q q(int en, int de) {
 		return of(en, de);

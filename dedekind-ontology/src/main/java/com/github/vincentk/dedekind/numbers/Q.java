@@ -3,15 +3,13 @@ package com.github.vincentk.dedekind.numbers;
 import com.github.vincentk.dedekind.algebra.Equality;
 import com.github.vincentk.dedekind.algebra.Field;
 import com.github.vincentk.dedekind.sets.Cardinality;
-import com.github.vincentk.dedekind.sets.Set;
 
 /**
  * An implementation of rational numbers.
  */
 public interface Q extends
-Number<Q>,
+NumberLine<Cardinality.Countable, Q>,
 Field.Rationals<Q>,
-Set.Po<Cardinality.Countable, Q>,
 Equality<Q> {
 
     public static final Q ZERO = of(0, 1), UNIT = of(1, 1);
@@ -137,7 +135,7 @@ Equality<Q> {
 
         @Override
         public Q minus(Q that) {
-            return of(en.minus(that.en()), this.de.minus(that.de()));
+            return plus(that.negate());
         }
 
         @Override
