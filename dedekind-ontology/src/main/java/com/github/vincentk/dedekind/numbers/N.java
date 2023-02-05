@@ -3,14 +3,20 @@
  */
 package com.github.vincentk.dedekind.numbers;
 
+import com.github.vincentk.dedekind.algebra.SemiRing;
 import com.github.vincentk.dedekind.sets.Cardinality;
-import com.github.vincentk.dedekind.sets.SemiRings.Naturals;
 import com.github.vincentk.dedekind.sets.Set;
 
 /**
  * The natural numbers.
  */
-public interface N extends Number<N>, Set.Po<Cardinality.Countable, N>, Naturals {
+public interface N
+extends
+Number<N>,
+Set.TotalOrder<Cardinality.Countable, N>,
+SemiRing.Natural<N>,
+MetricSpace<N, N>
+{
     
     public int intValue();
 
@@ -45,6 +51,11 @@ public interface N extends Number<N>, Set.Po<Cardinality.Countable, N>, Naturals
         @Override
         public boolean equals(N that) {
             return n == that.intValue();
+        }
+
+        @Override
+        public N distance(N other) {
+            return of(Math.abs(n - other.intValue()));
         }
     }
     

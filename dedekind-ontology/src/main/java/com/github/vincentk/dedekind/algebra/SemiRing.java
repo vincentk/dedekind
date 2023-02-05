@@ -3,7 +3,6 @@ package com.github.vincentk.dedekind.algebra;
 import com.github.vincentk.dedekind.sets.Rings;
 
 /**
- * 
  * A semiring: basically a ring but without the additive inverse.
  * 
  * https://en.wikipedia.org/wiki/Semiring

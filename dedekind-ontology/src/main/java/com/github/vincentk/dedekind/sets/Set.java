@@ -36,14 +36,16 @@ public interface Set<T extends Set<T>> {
     }
 
     /**
-     * Partially ordered set.
+     * Set with a total order.
      * 
      * @param <C> cardinality
      * @param <T> implementation type
+     * 
+     * @see https://en.wikipedia.org/wiki/Partially_ordered_set#Derived_notions
      */
-    interface Po<
-    C extends Cardinality.Countable,
-    T extends Po<C, T>
+    interface TotalOrder<
+    C extends Cardinality,
+    T extends TotalOrder<C, T>
     >
     extends Set<T>, Comparable<T> {
     }

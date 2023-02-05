@@ -7,4 +7,6 @@ import com.github.vincentk.dedekind.sets.Rings;
  * @param <R>
  */
 public interface Ring<R extends Ring<R>> extends Rings, SemiRing<R>, Group.P<R> {
+    
+    interface Integer<N extends Integer<N>> extends Ring<N>, Integers {}
 }

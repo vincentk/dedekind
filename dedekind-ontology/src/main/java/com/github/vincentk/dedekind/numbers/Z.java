@@ -3,15 +3,15 @@
  */
 package com.github.vincentk.dedekind.numbers;
 
+import static java.lang.Integer.compare;
+
 import com.github.vincentk.dedekind.algebra.Ring;
 import com.github.vincentk.dedekind.sets.Cardinality;
-import com.github.vincentk.dedekind.sets.Rings.Integers;
-import com.github.vincentk.dedekind.sets.Set;
 
 /**
  * The integer numbers.
  */
-public interface Z extends Ring<Z>, Number<Z>, Set.Po<Cardinality.Countable, Z>, Integers {
+public interface Z extends NumberLine<Cardinality.Countable, Z>, Ring.Integer<Z> {
 
     public int intValue();
 
@@ -45,7 +45,7 @@ public interface Z extends Ring<Z>, Number<Z>, Set.Po<Cardinality.Countable, Z>,
 
         @Override
         public int compareTo(Z o) {
-            return Integer.compare(n, o.intValue());
+            return compare(n, o.intValue());
         }
 
         @Override

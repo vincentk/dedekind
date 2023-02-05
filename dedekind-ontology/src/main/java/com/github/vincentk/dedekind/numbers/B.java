@@ -10,7 +10,7 @@ import com.github.vincentk.dedekind.sets.Set;
 /**
  * Boolean values. Roughly speaking 0 <=> false, 1 <=> true.
  */
-public interface B extends Number<B>, Set.Po<Cardinality.Finite, B>, Booleans {
+public interface B extends Number<B>, Set.TotalOrder<Cardinality.Finite, B>, Booleans {
 
     public boolean booleanValue();
     

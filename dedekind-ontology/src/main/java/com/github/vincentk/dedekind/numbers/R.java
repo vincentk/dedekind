@@ -1,11 +1,12 @@
 package com.github.vincentk.dedekind.numbers;
 
 import com.github.vincentk.dedekind.algebra.Field;
+import com.github.vincentk.dedekind.sets.Cardinality;
 
 /**
  * The set of real numbers.
  */
-public interface R extends Number<R>, Field.Reals<R> {
+public interface R extends NumberLine<Cardinality.Uncountable, R>, Field.Reals<R> {
 
     public static final R ZERO = of(0), ONE = of(1), TWO = of(2), THREE = of(3);
 
@@ -74,6 +75,11 @@ public interface R extends Number<R>, Field.Reals<R> {
         @Override
         public String toString() {
             return String.valueOf(val);
+        }
+
+        @Override
+        public int compareTo(R o) {
+            return Double.compare(val, o.doubleVal());
         }
     }
 }
