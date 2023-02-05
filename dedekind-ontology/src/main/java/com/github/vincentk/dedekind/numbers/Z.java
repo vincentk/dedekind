@@ -66,6 +66,11 @@ public interface Z extends NumberLine<Cardinality.Countable, Z>, Ring.Integer<Z>
         public String toString() {
             return "Z@" + intValue();
         }
+
+        @Override
+        public Z abs() {
+            return n >= 0 ? this : this.neg();
+        }
     }
 
     static Z of(int n) {

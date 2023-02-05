@@ -56,8 +56,7 @@ public class QsTest {
 	    assertThat(ZERO.compareTo(UNIT)).isEqualTo(-1);
 	    assertThat(UNIT.compareTo(ZERO)).isEqualTo(1);
 	    
-	    assertThat(q(1, -2).de().intValue()).isEqualTo(-2);
-	    assertThat(q(1, -2).positiveDenominator().de().intValue()).isEqualTo(2);
+	    assertThat(q(1, -2).de().intValue()).isEqualTo(2);
 	    assertThat(q(1, -2).compareTo(ZERO)).isEqualTo(-1);
 	    assertThat(q(1, -2).compareTo(q(2, -4))).isEqualTo(0);
 	}

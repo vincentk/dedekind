@@ -21,4 +21,14 @@ public interface MetricSpace<M extends MetricSpace<M, T>, T extends Fields.Reals
      * @return the distance from this element to the argument.
      */
     T distance(M other);
+    
+    /**
+     * Typically defined for real and complex numbers
+     * (of which the naturals, ... are a subset).
+     * 
+     * @return {@link #distance(MetricSpace)} to the origin.
+     * 
+     * @see https://en.wikipedia.org/wiki/Absolute_value#Definition_and_properties
+     */
+    T abs();
 }

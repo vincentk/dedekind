@@ -81,5 +81,10 @@ public interface R extends NumberLine<Cardinality.Uncountable, R>, Field.Reals<R
         public int compareTo(R o) {
             return Double.compare(val, o.doubleVal());
         }
+        
+        @Override
+        public R abs() {
+            return val >= 0 ? this : this.neg();
+        }
     }
 }

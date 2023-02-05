@@ -57,6 +57,11 @@ MetricSpace<N, N>
         public N distance(N other) {
             return of(Math.abs(n - other.intValue()));
         }
+
+        @Override
+        public N abs() {
+            return this;
+        }
     }
     
     static Impl of(int n) {

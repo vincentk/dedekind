@@ -1,8 +1,10 @@
-package com.github.vincentk.dedekind.linear.primitives.derived;
+package com.github.vincentk.dedekind.numbers;
 
-import static com.github.vincentk.dedekind.linear.primitives.derived.Cs.ZERO;
-
-import static com.github.vincentk.dedekind.linear.primitives.derived.Cs.*;
+import static com.github.vincentk.dedekind.numbers.C.I1;
+import static com.github.vincentk.dedekind.numbers.C.R1;
+import static com.github.vincentk.dedekind.numbers.C.UNIT;
+import static com.github.vincentk.dedekind.numbers.C.ZERO;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.junit.jupiter.api.Test;
@@ -53,5 +55,10 @@ public class CsTest {
 		assertEquals(I1, R1.x(R1).x(I1));
 		
 		assertEquals(R1.neg().p(I1.neg()), UNIT.x(I1).x(I1));
+	}
+	
+	@Test
+	public void testAbsolute() {
+	    assertThat(R1.abs()).isEqualTo(ZERO);
 	}
 }
