@@ -1,74 +1,79 @@
-package com.github.vincentk.dedekind.linear.primitives;
+package com.github.vincentk.dedekind.numbers;
 
-import com.github.vincentk.dedekind.algebra.Equality;
 import com.github.vincentk.dedekind.algebra.Field;
 
 /**
  * The set of real numbers.
  */
-public final class Rs implements Field.Reals<Rs>, Equality<Rs> {
+public interface R extends Number<R>, Field.Reals<R> {
 
-    public static final Rs ZERO = of(0), ONE = of(1), TWO = of(2), THREE = of(3);
+    public static final R ZERO = of(0), ONE = of(1), TWO = of(2), THREE = of(3);
 
-    private final double val;
-
-    private Rs(double val) {
-        this.val = val;
+    public static R of(double val) {
+        return new Impl(val);
     }
 
-    public static Rs of(double val) {
-        return new Rs(val);
-    }
+    double doubleVal();
 
-    public double doubleVal() {
-        return val;
-    }
+    final class Impl implements R {
 
-    @Override
-    public Rs plus(Rs that) {
-        return of(this.val + that.val);
-    }
+        private final double val;
 
-    @Override
-    public Rs minus(Rs that) {
-        return of(this.val - that.val);
-    }
-
-    @Override
-    public Rs times(Rs that) {
-        return of(this.val * that.val);
-    }
-
-    @Override
-    public Rs divide(Rs that) {
-        return of(this.val / that.val);
-    }
-
-    @Override
-    public Rs negate() {
-        return of(-val);
-    }
-
-    @Override
-    public Rs inverse() {
-        return of(1.0 / val);
-    }
-
-    @Override
-    public boolean equals(Rs that) {
-        return this.val == that.val;
-    }
-
-    @Override
-    public boolean equals(Object that) {
-        if (that instanceof Rs) {
-            return equals((Rs) that);
+        private Impl(double val) {
+            this.val = val;
         }
-        return false;
-    }
 
-    @Override
-    public String toString() {
-        return String.valueOf(val);
+        @Override
+        public double doubleVal() {
+            return val;
+        }
+
+        @Override
+        public R plus(R that) {
+            return of(this.val + that.doubleVal());
+        }
+
+        @Override
+        public R minus(R that) {
+            return of(this.val - that.doubleVal());
+        }
+
+        @Override
+        public R times(R that) {
+            return of(this.val * that.doubleVal());
+        }
+
+        @Override
+        public R divide(R that) {
+            return of(this.val / that.doubleVal());
+        }
+
+        @Override
+        public R negate() {
+            return of(-val);
+        }
+
+        @Override
+        public R inverse() {
+            return of(1.0 / val);
+        }
+
+        @Override
+        public boolean equals(R that) {
+            return this.val == that.doubleVal();
+        }
+
+        @Override
+        public boolean equals(Object that) {
+            if (that instanceof R) {
+                return equals((R) that);
+            }
+            return false;
+        }
+
+        @Override
+        public String toString() {
+            return String.valueOf(val);
+        }
     }
 }

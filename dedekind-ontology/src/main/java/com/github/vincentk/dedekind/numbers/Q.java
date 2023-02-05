@@ -2,11 +2,17 @@ package com.github.vincentk.dedekind.numbers;
 
 import com.github.vincentk.dedekind.algebra.Equality;
 import com.github.vincentk.dedekind.algebra.Field;
+import com.github.vincentk.dedekind.sets.Cardinality;
+import com.github.vincentk.dedekind.sets.Set;
 
 /**
  * An implementation of rational numbers.
  */
-public interface Q extends Number<Q>, Field.Rationals<Q>, Equality<Q>{
+public interface Q extends
+Number<Q>,
+Field.Rationals<Q>,
+Set.Po<Cardinality.Countable, Q>,
+Equality<Q> {
 
     public static final Q ZERO = of(0, 1), UNIT = of(1, 1);
 
@@ -20,6 +26,22 @@ public interface Q extends Number<Q>, Field.Rationals<Q>, Equality<Q>{
     
     public Z en();
     public Z de();
+    
+    /**
+     * It is possible to ensure that the denominator is always positive:
+     * 
+     * e.g. given a / b
+     * 
+     * if b < 0 then => - a / - b
+     * 
+     * @return the same value but 
+     */
+    default public Q positiveDenominator() {
+        if(de().intValue() >= 0) {
+            return this;
+        }
+        return of(en().neg(), de().neg());
+    }
     
     final class Impl implements Q {
         
@@ -46,7 +68,7 @@ public interface Q extends Number<Q>, Field.Rationals<Q>, Equality<Q>{
 
             final int eni = en.intValue();
 
-            if (eni == 1) {
+            if (Math.abs(eni) == 1) {
                 return this;
             }
 
@@ -84,7 +106,7 @@ public interface Q extends Number<Q>, Field.Rationals<Q>, Equality<Q>{
             // else:
             final int mod2 = dei % eni;
             if (mod2 == 0) {
-                // Denominator is integer multiple of enumerator.
+                // Denominator is integer multiple of enumerator.                
                 return of(1, dei / eni);
             }
 
@@ -145,6 +167,20 @@ public interface Q extends Number<Q>, Field.Rationals<Q>, Equality<Q>{
             return "(" + en + "," + de + ")";
         }
 
+        @Override
+        public int compareTo(Q o) {
+            
+            final var q1 = this.positiveDenominator();
+            final var q2 = o.positiveDenominator();
+            
+            // Enumerators given same denominator (d1 * d2):
+            final var e1 = q1.en().times(q2.de());
+            final var e2 = q2.en().times(q1.de());
+            
+            return e1.compareTo(e2);
+        }
+        
         private static final int[] COMMON_PRIMES = new int[] {2, 3, 5, 7, 11, 13 };
+
     }
 }

@@ -61,6 +61,11 @@ public interface Z extends Ring<Z>, Number<Z>, Set.Po<Cardinality.Countable, Z>,
             }
             return false;
         }
+        
+        @Override
+        public String toString() {
+            return "Z@" + intValue();
+        }
     }
 
     static Z of(int n) {

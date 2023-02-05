@@ -2,7 +2,7 @@ package com.github.vincentk.dedekind.linear.primitives.derived;
 
 import com.github.vincentk.dedekind.algebra.Equality;
 import com.github.vincentk.dedekind.algebra.Field;
-import com.github.vincentk.dedekind.linear.primitives.Rs;
+import com.github.vincentk.dedekind.numbers.R;
 
 /**
  * The set of dual numbers.
@@ -13,9 +13,9 @@ public final class Ds implements Field.Duals<Ds>, Equality<Ds>{
 
     public static final Ds ZERO = of(0, 0), R1 = of(1, 0), I1 = of(0, 1), UNIT = of(1, 1);
 
-    private final Rs re, ep;
+    private final R re, ep;
 
-    private Ds(Rs re, Rs im) {
+    private Ds(R re, R im) {
         this.re = re;
         this.ep = im;
     }
@@ -25,10 +25,10 @@ public final class Ds implements Field.Duals<Ds>, Equality<Ds>{
     }
     
     public static Ds of(double re, double im) {
-        return of(Rs.of(re), Rs.of(im));
+        return of(R.of(re), R.of(im));
     }
 
-    public static Ds of(Rs re, Rs im) {
+    public static Ds of(R re, R im) {
         return new Ds(re, im);
     }
 
@@ -46,10 +46,10 @@ public final class Ds implements Field.Duals<Ds>, Equality<Ds>{
     @Override
     public Ds inverse() {
 
-        final Rs ci = re.inverse();
+        final R ci = re.inverse();
         
-        final Rs c2i = ci.times(ci);
-        final Rs ei = ep.neg().times(c2i);
+        final R c2i = ci.times(ci);
+        final R ei = ep.neg().times(c2i);
 
         return of(ci, ei);
     }

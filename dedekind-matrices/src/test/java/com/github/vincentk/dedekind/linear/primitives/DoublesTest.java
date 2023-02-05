@@ -8,6 +8,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Test;
 
 import com.github.vincentk.dedekind.algebra.peano.Peano;
+import com.github.vincentk.dedekind.numbers.R;
 
 public class DoublesTest {
 
@@ -29,7 +30,7 @@ public class DoublesTest {
         final Doubles<Peano.Succ<?>> subject = doubles(new double[] {1, 2}).get();
 
         // Monoid identity operations:
-        assertThat(subject.mult(Rs.ONE)).isEqualTo(subject);
+        assertThat(subject.mult(R.ONE)).isEqualTo(subject);
 
         final var zeros = doubles(new double[] {0, 0}).get();
 

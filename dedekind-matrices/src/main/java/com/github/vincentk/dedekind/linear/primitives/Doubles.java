@@ -6,6 +6,7 @@ import java.util.Optional;
 import com.github.vincentk.dedekind.algebra.Equality;
 import com.github.vincentk.dedekind.algebra.peano.Peano;
 import com.github.vincentk.dedekind.linear.finite.FiniteVector;
+import com.github.vincentk.dedekind.numbers.R;
 import com.github.vincentk.dedekind.sets.Cardinality;
 
 /**
@@ -15,7 +16,7 @@ import com.github.vincentk.dedekind.sets.Cardinality;
  */
 final class Doubles<C extends Cardinality>
 implements
-FiniteVector<Rs, Peano.Succ<?>, Doubles<C>>,
+FiniteVector<R, Peano.Succ<?>, Doubles<C>>,
 Equality<Doubles<C>>
 {
     private final double[] val;
@@ -30,7 +31,7 @@ Equality<Doubles<C>>
     }
 
     @Override
-    public Doubles<C> mult(Rs scalar) {
+    public Doubles<C> mult(R scalar) {
 
         final var na = Arrays.copyOf(val, val.length);
 
