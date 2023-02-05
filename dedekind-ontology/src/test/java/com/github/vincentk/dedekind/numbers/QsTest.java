@@ -1,11 +1,11 @@
-package com.github.vincentk.dedekind.linear.primitives.derived;
+package com.github.vincentk.dedekind.numbers;
 
-import static com.github.vincentk.dedekind.numbers.Q.*;
+import static com.github.vincentk.dedekind.numbers.Q.UNIT;
+import static com.github.vincentk.dedekind.numbers.Q.ZERO;
+import static com.github.vincentk.dedekind.numbers.Q.of;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
-
-import com.github.vincentk.dedekind.numbers.Q;
 
 public class QsTest {
 
@@ -47,6 +47,19 @@ public class QsTest {
 		assertThat(UNIT.x(UNIT)).isEqualTo(q(1, 1));
 
 		assertThat(q(1, 2).x(q(1, 3))).isEqualTo(q(1, 6));
+	}
+	
+	@Test
+	public void testCompare() {
+	    assertThat(ZERO.compareTo(ZERO)).isEqualTo(0);
+	    assertThat(UNIT.compareTo(UNIT)).isEqualTo(0);
+	    assertThat(ZERO.compareTo(UNIT)).isEqualTo(-1);
+	    assertThat(UNIT.compareTo(ZERO)).isEqualTo(1);
+	    
+	    assertThat(q(1, -2).de().intValue()).isEqualTo(-2);
+	    assertThat(q(1, -2).positiveDenominator().de().intValue()).isEqualTo(2);
+	    assertThat(q(1, -2).compareTo(ZERO)).isEqualTo(-1);
+	    assertThat(q(1, -2).compareTo(q(2, -4))).isEqualTo(0);
 	}
 
 	private static Q q(int en, int de) {
