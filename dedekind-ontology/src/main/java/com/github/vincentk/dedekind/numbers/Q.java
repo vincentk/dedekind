@@ -43,7 +43,7 @@ Equality<Q> {
 
             assert !de.equals(Z.ZERO);
             
-            if (de().intValue() >= 0) {
+            if (de.intValue() >= 0) {
                 this.en = en;
                 this.de = de;                
             } else {

@@ -104,7 +104,7 @@ public interface C extends Number<C>, Field.Complex<C>, MetricSpace<C, R> {
 
         @Override
         public R abs() {
-            return times(conj()).re();
+            return times(conj()).re().sqrt();
         }
     }
 }

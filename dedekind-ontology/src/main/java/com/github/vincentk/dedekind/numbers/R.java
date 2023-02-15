@@ -16,6 +16,8 @@ public interface R extends NumberLine<Cardinality.Uncountable, R>, Field.Reals<R
 
     double doubleVal();
 
+    R sqrt();
+
     final class Impl implements R {
 
         private final double val;
@@ -61,7 +63,17 @@ public interface R extends NumberLine<Cardinality.Uncountable, R>, Field.Reals<R
 
         @Override
         public boolean equals(R that) {
-            return this.val == that.doubleVal();
+            
+            if (val == that.doubleVal()) {
+                // Exact numeric equality:
+                return true;
+            }
+            
+            final double ad = Math.abs(val - that.doubleVal());
+            final double av = (val + that.doubleVal()) / 2;
+            
+            final double err = ad / av;
+            return err < 10E-10;
         }
 
         @Override
@@ -81,10 +93,15 @@ public interface R extends NumberLine<Cardinality.Uncountable, R>, Field.Reals<R
         public int compareTo(R o) {
             return Double.compare(val, o.doubleVal());
         }
-        
+
         @Override
         public R abs() {
             return val >= 0 ? this : this.neg();
+        }
+
+        @Override
+        public R sqrt() {
+            return of(Math.sqrt(val));
         }
     }
 }
