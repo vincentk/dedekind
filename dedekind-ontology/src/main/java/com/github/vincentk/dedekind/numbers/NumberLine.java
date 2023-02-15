@@ -13,25 +13,19 @@ import com.github.vincentk.dedekind.sets.Set.TotalOrder;
  * A specialization of the {@link MetricSpace} to sets of {@link Number} with a total order.
  * The terminology could be more precise.
  * 
- * @param <C>
+ * @param <C1>
  * @param <T>
  * 
  * @see https://en.wikipedia.org/wiki/Number_line
  */
 interface NumberLine<
-C extends Cardinality,
-T extends SemiRing<T> & NumberLine<C, T>>
-extends Fields.Reals, Ring<T>, Number<T>, TotalOrder<C, T>, MetricSpace<T, T> {
+C1 extends Cardinality,
+T extends SemiRing<T> & NumberLine<C1, T>>
+extends Fields.Reals, Ring<T>, Number<T>, TotalOrder<C1, T>, MetricSpace<T, T> {
 
     @Override
     default T distance(T other) {
 
-        final T diff = minus(other);
-
-        final int cmp = compareTo(other);
-
-        if (cmp >= 0) return diff;
-
-        return diff.neg();
+        return minus(other).abs();
     }
 }

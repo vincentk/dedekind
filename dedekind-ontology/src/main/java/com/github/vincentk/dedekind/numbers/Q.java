@@ -21,35 +21,36 @@ Equality<Q> {
     public static Q of(Z en, Z de) {
         return new Impl(en, de).simplify();
     }
-    
+
     public Z en();
     public Z de();
-    
-    /**
-     * It is possible to ensure that the denominator is always positive:
-     * 
-     * e.g. given a / b
-     * 
-     * if b < 0 then => - a / - b
-     * 
-     * @return the same value but 
-     */
-    default public Q positiveDenominator() {
-        if(de().intValue() >= 0) {
-            return this;
-        }
-        return of(en().neg(), de().neg());
-    }
-    
+
     final class Impl implements Q {
-        
+
         private final Z en, de;
 
+        /**
+         * It is possible to ensure that the denominator is always positive:
+         * 
+         * e.g. given a / b
+         * 
+         * if b < 0 then => - a / - b
+         * 
+         * @param en
+         * @param de
+         */
         private Impl(Z en, Z de) {
-            this.en = en;
 
             assert !de.equals(Z.ZERO);
-            this.de = de;
+            
+            if (de.intValue() >= 0) {
+                this.en = en;
+                this.de = de;                
+            } else {
+                this.en = en.neg();
+                this.de = de.neg();
+            }
+
         }
 
         @Override
@@ -167,18 +168,24 @@ Equality<Q> {
 
         @Override
         public int compareTo(Q o) {
-            
-            final var q1 = this.positiveDenominator();
-            final var q2 = o.positiveDenominator();
-            
+
             // Enumerators given same denominator (d1 * d2):
-            final var e1 = q1.en().times(q2.de());
-            final var e2 = q2.en().times(q1.de());
-            
+            final var e1 = en().times(o.de());
+            final var e2 = o.en().times(this.de());
+
             return e1.compareTo(e2);
         }
-        
+
         private static final int[] COMMON_PRIMES = new int[] {2, 3, 5, 7, 11, 13 };
+
+        @Override
+        public Q abs() {
+            
+            // Should be guaranteed by constructor:
+            assert de.compareTo(Z.ZERO) > 0;
+            
+            return en.compareTo(Z.ZERO) >= 0 ? this : this.neg();
+        }
 
     }
 }

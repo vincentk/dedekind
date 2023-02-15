@@ -1,11 +1,20 @@
-package com.github.vincentk.dedekind.linear.primitives.derived;
+package com.github.vincentk.dedekind.numbers;
 
-import static com.github.vincentk.dedekind.linear.primitives.derived.Cs.ZERO;
-
-import static com.github.vincentk.dedekind.linear.primitives.derived.Cs.*;
+import static com.github.vincentk.dedekind.numbers.C.I1;
+import static com.github.vincentk.dedekind.numbers.C.R1;
+import static com.github.vincentk.dedekind.numbers.C.UNIT;
+import static com.github.vincentk.dedekind.numbers.C.ZERO;
+import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
+import java.util.stream.Stream;
+
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import static org.junit.jupiter.params.provider.Arguments.*;
+
+import org.junit.jupiter.params.provider.Arguments;
+import org.junit.jupiter.params.provider.MethodSource;
 
 public class CsTest {
 
@@ -54,4 +63,25 @@ public class CsTest {
 		
 		assertEquals(R1.neg().p(I1.neg()), UNIT.x(I1).x(I1));
 	}
+	
+	/**
+	 * N.b. : |C| -> R
+	 */
+	@ParameterizedTest
+	@MethodSource
+	public void testAbsolute(C complex, R expected, String name) {
+	    assertThat(complex.abs2()).isEqualTo(expected);
+	}
+	
+	private static Stream<Arguments> testAbsolute() {
+	    return Stream.of(
+	            of(ZERO, R.ZERO, "zero"),
+	            of(R1, R.ONE, "real unit"),
+	            of(I1, R.ONE, "imaginary unit"),
+	            of(UNIT, R.TWO, "(1, 1)"),
+	            of(UNIT.neg(), R.TWO, "(-1, -1)"),
+	            of(UNIT.times(I1), R.TWO, "(1, -1)")
+	            );
+	}
+	
 }
