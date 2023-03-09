@@ -2,6 +2,9 @@
 
 Exercises in strongly typed linear algebra on the JVM.
 
+![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/vincentk/dedekind/maven.yml?branch=main&style=flat-square)
+[![license](https://img.shields.io/github/license/vincentk/dedekind.svg?style=flat-square)](LICENSE)
+
 Roughly speaking an attempt to reproduce some results of http://conal.net/papers/essence-of-ad/ .
 
 
