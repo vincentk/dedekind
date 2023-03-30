@@ -13,31 +13,31 @@ public class BeTest {
 
     @ParameterizedTest
     @MethodSource
-    public void testAddition(B b1, B b2, B expected, String name) {
-        assertThat(b1.plus(b2)).isEqualTo(expected);
+    public void testAddition(B b1, B b2) {
+        assertThat(b1.plus(b2)).isEqualTo(b1.or(b2));
     }
 
     private static Stream<Arguments> testAddition() {
         return Stream.of(
-                of(B.of(true), B.of(true), B.of(true), "1 || 1 == 1"),
-                of(B.of(false), B.of(false), B.of(false), "0 || 0 == 0"),
-                of(B.of(true), B.of(false), B.of(true), "1 || 0 == 1"),
-                of(B.of(false), B.of(true), B.of(true), "0 || 1 == 1")
+                of(B.of(true), B.of(true)),
+                of(B.of(false), B.of(false)),
+                of(B.of(true), B.of(false)),
+                of(B.of(false), B.of(true))
                 );
     }
     
     @ParameterizedTest
     @MethodSource
-    public void testMultiplication(B b1, B b2, B expected, String name) {
-        assertThat(b1.times(b2)).isEqualTo(expected);
+    public void testMultiplication(B b1, B b2) {
+        assertThat(b1.times(b2)).isEqualTo(b1.and(b2));
     }
 
     private static Stream<Arguments> testMultiplication() {
         return Stream.of(
-                of(B.of(true), B.of(true), B.of(true), "1 && 1 == 1"),
-                of(B.of(false), B.of(false), B.of(false), "0 && 0 == 0"),
-                of(B.of(true), B.of(false), B.of(false), "1 && 0 == 0"),
-                of(B.of(false), B.of(true), B.of(false), "0 && 1 == 0")
+                of(B.of(true), B.of(true)),
+                of(B.of(false), B.of(false)),
+                of(B.of(true), B.of(false)),
+                of(B.of(false), B.of(true))
                 );
     }
 }

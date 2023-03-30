@@ -18,38 +18,43 @@ SemiRing.Natural<N>,
 MetricSpace<N, N>
 {
 
-    public int intValue();
+    public int integer();
 
-    record Ne (int intValue) implements N {
+    @Override
+    default Ne plus(N that) {
+        return of(integer() + that.integer());
+    }
 
-        @Override
-        public Ne plus(N that) {
-            return of(intValue + that.intValue());
-        }
+    @Override
+    default Ne times(N that) {
+        return of(integer() * that.integer());
+    }
 
-        @Override
-        public Ne times(N that) {
-            return of(intValue * that.intValue());
+    @Override
+    default boolean equals(N that) {
+        return integer() == that.integer();
+    }
+
+    @Override
+    default N abs() {
+        return this;
+    }
+
+    @Override
+    default Ne distance(N other) {
+        return of(Math.abs(integer() - other.integer()));
+    }
+
+    record Ne (int integer) implements N {
+
+        public Ne(int integer) {
+            assert integer >= 0;
+            this.integer = integer;
         }
 
         @Override
         public int compareTo(N o) {
-            return Integer.compare(intValue, o.intValue());
-        }
-
-        @Override
-        public boolean equals(N that) {
-            return intValue == that.intValue();
-        }
-
-        @Override
-        public N distance(N other) {
-            return of(Math.abs(intValue - other.intValue()));
-        }
-
-        @Override
-        public N abs() {
-            return this;
+            return Integer.compare(integer, o.integer());
         }
     }
 

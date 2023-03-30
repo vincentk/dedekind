@@ -25,6 +25,39 @@ Equality<Q> {
     public Z en();
     public Z de();
 
+    @Override
+    default Q negate() {
+        return of(en().neg(), de());
+    }
+
+    @Override
+    default Q inverse() {
+        return of(de(), en());
+    }
+    
+    @Override
+    default Q plus(Q that) {
+
+        final var en1 = en().x(that.de()).p(that.en().x(de()));
+        final var de1 = de().x(that.de());
+
+        return of(en1, de1);
+    }
+
+    @Override
+    default Q minus(Q that) {
+        return plus(that.negate());
+    }
+
+    @Override
+    default Q times(Q that) {
+
+        final var en = en().times(that.en());
+        final var de = de().times(that.de());
+
+        return of(en, de);
+    }
+
     record Impl (Z en, Z de) implements Q {
 
 
@@ -41,7 +74,7 @@ Equality<Q> {
         public Impl(Z en, Z de) {
 
             assert !de.equals(Z.ZERO);
-            
+
             if (de.intValue() >= 0) {
                 this.en = en;
                 this.de = de;                
@@ -50,16 +83,6 @@ Equality<Q> {
                 this.de = de.neg();
             }
 
-        }
-
-        @Override
-        public Z en() {
-            return en;
-        }
-
-        @Override
-        public Z de() {
-            return de;
         }
 
         public Q simplify() {
@@ -114,40 +137,6 @@ Equality<Q> {
         }
 
         @Override
-        public Q plus(Q that) {
-
-            final var en1 = en.x(that.de()).p(that.en().times(de));
-            final var de1 = de.times(that.de());
-
-            return of(en1, de1);
-        }
-
-
-        @Override
-        public Q negate() {
-            return of(en.neg(), de);
-        }
-
-        @Override
-        public Q inverse() {
-            return of(de, en);
-        }
-
-        @Override
-        public Q minus(Q that) {
-            return plus(that.negate());
-        }
-
-        @Override
-        public Q times(Q that) {
-
-            final var en = this.en.times(that.en());
-            final var de = this.de.times(that.de());
-
-            return of(en, de);
-        }
-
-        @Override
         public boolean equals(Q that) {
             return this.en.equals(that.en()) && this.de.equals(that.de());
         }
@@ -174,10 +163,10 @@ Equality<Q> {
 
         @Override
         public Q abs() {
-            
+
             // Should be guaranteed by constructor:
             assert de.compareTo(Z.ZERO) > 0;
-            
+
             return en.compareTo(Z.ZERO) >= 0 ? this : this.neg();
         }
 
