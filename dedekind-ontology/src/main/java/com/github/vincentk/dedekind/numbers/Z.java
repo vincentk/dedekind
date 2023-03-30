@@ -15,61 +15,36 @@ public interface Z extends NumberLine<Cardinality.Countable, Z>, Ring.Integer<Z>
 
     public int intValue();
 
-    static final class Impl implements Z {
-
-        private final int n;
-
-        private Impl(int n) {
-            this.n = n;
-        }
-
-        @Override
-        public int intValue() {
-            return n;
-        }
+    record Impl (int intValue) implements Z {
 
         @Override
         public Z plus(Z that) {
-            return of(n + that.intValue());
+            return of(intValue + that.intValue());
         }
 
         @Override
         public Z times(Z that) {
-            return of(n * that.intValue());
+            return of(intValue * that.intValue());
         }
 
         @Override
         public Z negate() {
-            return of(-n);
+            return of(-intValue);
         }
 
         @Override
         public int compareTo(Z o) {
-            return compare(n, o.intValue());
+            return compare(intValue, o.intValue());
         }
 
         @Override
         public boolean equals(Z that) {
-            return n == that.intValue();
-        }
-        
-        @Override
-        public boolean equals(Object that) {
-            
-            if (that instanceof Z) {
-                return equals((Z) that);
-            }
-            return false;
-        }
-        
-        @Override
-        public String toString() {
-            return "Z@" + intValue();
+            return intValue == that.intValue();
         }
 
         @Override
         public Z abs() {
-            return n >= 0 ? this : this.neg();
+            return intValue >= 0 ? this : this.neg();
         }
     }
 

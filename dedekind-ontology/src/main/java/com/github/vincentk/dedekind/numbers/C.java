@@ -17,24 +17,10 @@ public interface C extends Number<C>, Field.Complex<C>, MetricSpace<C, R> {
     }
 
     public static C of(R re, R im) {
-        return new Impl(re, im);
+        return new Ce(re, im);
     }
 
-    final class Impl implements C {
-        private final R re, im;
-
-        private Impl(R re, R im) {
-            this.re = re;
-            this.im = im;
-        }
-
-        public R re() {
-            return re;
-        }
-
-        public R im() {
-            return im;
-        }
+    record Ce (R re, R im) implements C {
 
         @Override
         public C plus(C that) {
@@ -87,19 +73,6 @@ public interface C extends Number<C>, Field.Complex<C>, MetricSpace<C, R> {
         @Override
         public boolean equals(C that) {
             return this.re.equals(that.re()) && this.im.equals(that.im());
-        }
-
-        @Override
-        public boolean equals(Object that) {
-            if (that instanceof C) {
-                return equals((C) that);
-            }
-            return false;
-        }
-
-        @Override
-        public String toString() {
-            return "(" + re + "," + im + ")";
         }
 
         @Override

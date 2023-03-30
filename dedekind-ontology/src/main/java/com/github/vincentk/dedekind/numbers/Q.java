@@ -25,9 +25,8 @@ Equality<Q> {
     public Z en();
     public Z de();
 
-    final class Impl implements Q {
+    record Impl (Z en, Z de) implements Q {
 
-        private final Z en, de;
 
         /**
          * It is possible to ensure that the denominator is always positive:
@@ -39,7 +38,7 @@ Equality<Q> {
          * @param en
          * @param de
          */
-        private Impl(Z en, Z de) {
+        public Impl(Z en, Z de) {
 
             assert !de.equals(Z.ZERO);
             
@@ -159,11 +158,6 @@ Equality<Q> {
                 return equals((Q) that);
             }
             return false;
-        }
-
-        @Override
-        public String toString() {
-            return "(" + en + "," + de + ")";
         }
 
         @Override
