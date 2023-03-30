@@ -29,3 +29,16 @@ jobs:
         cache: maven
     - name: Build with Maven
       run: mvn -B package --file pom.xml
+
+    # https://github.com/marketplace/actions/jacoco-report
+    - name: Add coverage to PR
+      id: jacoco
+      uses: madrapps/jacoco-report@v1.3
+      with:
+        # Issue with aggregate reports.
+        # Using arbitrary module reports for now.
+        # https://github.com/jacoco/jacoco/issues/974
+        paths: ${{ github.workspace }}/dedekind-ontology/target/site/jacoco/jacoco.xml
+        token: ${{ secrets.GITHUB_TOKEN }}
+        min-coverage-overall: 40
+        min-coverage-changed-files: 60
