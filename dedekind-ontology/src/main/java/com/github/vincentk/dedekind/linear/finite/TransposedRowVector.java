@@ -1,18 +1,15 @@
-package com.github.vincentk.dedekind.linear.lazy;
+package com.github.vincentk.dedekind.linear.finite;
 
-import com.github.vincentk.dedekind.algebra.Ring;
+import com.github.vincentk.dedekind.algebra.SemiRing;
 import com.github.vincentk.dedekind.linear.LinearMap;
 import com.github.vincentk.dedekind.linear.OuterProductSpace.Bra;
 import com.github.vincentk.dedekind.linear.OuterProductSpace.Ket;
-import com.github.vincentk.dedekind.linear.finite.FiniteColumnVector;
-import com.github.vincentk.dedekind.linear.finite.FiniteRowVector;
-import com.github.vincentk.dedekind.linear.finite.OuterProduct;
 import com.github.vincentk.dedekind.sets.Cardinality;
 
 public final class TransposedRowVector<
 // Field elements:
-F extends Ring<F>,
-C extends Cardinality,
+F extends SemiRing<F>,
+C extends Cardinality.Finite,
 // Domain:
 D extends FiniteRowVector<F, C, TransposedRowVector<F, C, D>, D>
 >
