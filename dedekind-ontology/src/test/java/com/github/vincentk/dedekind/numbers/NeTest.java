@@ -40,4 +40,20 @@ public class NeTest {
                 of(N.of(0), N.of(1), N.of(0), "0 * 1 == 0")
                 );
     }
+    
+    @ParameterizedTest
+    @MethodSource
+    public void testDistance(N b1, N b2, N expected) {
+        assertThat(b1.distance(b2)).isEqualTo(expected);
+        assertThat(b2.distance(b1)).isEqualTo(expected);
+    }
+
+    private static Stream<Arguments> testDistance() {
+        return Stream.of(
+                of(N.of(1), N.of(1), N.of(0)),
+                of(N.of(0), N.of(0), N.of(0)),
+                of(N.of(1), N.of(0), N.of(1)),
+                of(N.of(0), N.of(1), N.of(1))
+                );
+    }
 }

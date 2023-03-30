@@ -12,8 +12,20 @@ import com.github.vincentk.dedekind.sets.Set;
  */
 public interface B extends Number<B>, Set.TotalOrder<Cardinality.Finite, B>, Booleans {
 
-    public boolean booleanValue();
-    
+    public boolean bool();
+
+    /**
+     * a && b ~ a * b
+     * 
+     * a && 1 = a => 1 is the monoid unit (~ multiplication).
+     * 
+     * @param that
+     * @return boolean product (and)
+     */
+    default B and(B that) {
+        return x(that);
+    }
+
     /**
      * a || b ~ a + b
      * 
@@ -22,47 +34,34 @@ public interface B extends Number<B>, Set.TotalOrder<Cardinality.Finite, B>, Boo
      * @param that
      * @return boolean sum (or)
      */
-    default B and(B that) {
-        return this.p(that);
-    }
-    
-    /**
-     * 
-     * a && b ~ a * b
-     * 
-     * a && 1 = a => 1 is the monoid unit (~ multiplication).
-     * 
-     * @param that
-     * @return boolean product (and)
-     */
     default B or(B that) {
-        return this.x(that);
+        return p(that);
     }
 
-    record Be (boolean booleanValue) implements B {
-        
-        @Override
-        public Be plus(B that) {
-            return of(booleanValue || that.booleanValue());
-        }
+    @Override
+    default Be plus(B that) {
+        return of(bool() || that.bool());
+    }
 
-        @Override
-        public Be times(B that) {
-            return of(booleanValue && that.booleanValue());
-        }
+    @Override
+    default Be times(B that) {
+        return of(bool() && that.bool());
+    }
 
-        @Override
-        public int compareTo(B o) {
-            return Boolean.compare(booleanValue, o.booleanValue());
-        }
+    @Override
+    default int compareTo(B o) {
+        return Boolean.compare(bool(), o.bool());
+    }
+
+    static Be of(boolean n) {
+        return new Be(n);
+    }
+
+    record Be (boolean bool) implements B {
 
         @Override
         public boolean equals(B that) {
-            return booleanValue == that.booleanValue();
+            return bool() == that.bool();
         }
-    }
-    
-    static Be of(boolean n) {
-        return new Be(n);
     }
 }
