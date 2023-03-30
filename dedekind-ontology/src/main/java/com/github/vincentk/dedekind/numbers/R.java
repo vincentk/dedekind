@@ -11,66 +11,55 @@ public interface R extends NumberLine<Cardinality.Uncountable, R>, Field.Reals<R
     public static final R ZERO = of(0), ONE = of(1), TWO = of(2), THREE = of(3);
 
     public static R of(double val) {
-        return new Impl(val);
+        return new Re(val);
     }
 
     double doubleVal();
 
     R sqrt();
 
-    final class Impl implements R {
-
-        private final double val;
-
-        private Impl(double val) {
-            this.val = val;
-        }
-
-        @Override
-        public double doubleVal() {
-            return val;
-        }
+    record Re (double doubleVal) implements R {
 
         @Override
         public R plus(R that) {
-            return of(this.val + that.doubleVal());
+            return of(this.doubleVal + that.doubleVal());
         }
 
         @Override
         public R minus(R that) {
-            return of(this.val - that.doubleVal());
+            return of(this.doubleVal - that.doubleVal());
         }
 
         @Override
         public R times(R that) {
-            return of(this.val * that.doubleVal());
+            return of(this.doubleVal * that.doubleVal());
         }
 
         @Override
         public R divide(R that) {
-            return of(this.val / that.doubleVal());
+            return of(this.doubleVal / that.doubleVal());
         }
 
         @Override
         public R negate() {
-            return of(-val);
+            return of(-doubleVal);
         }
 
         @Override
         public R inverse() {
-            return of(1.0 / val);
+            return of(1.0 / doubleVal);
         }
 
         @Override
         public boolean equals(R that) {
             
-            if (val == that.doubleVal()) {
+            if (doubleVal == that.doubleVal()) {
                 // Exact numeric equality:
                 return true;
             }
             
-            final double ad = Math.abs(val - that.doubleVal());
-            final double av = (val + that.doubleVal()) / 2;
+            final double ad = Math.abs(doubleVal - that.doubleVal());
+            final double av = (doubleVal + that.doubleVal()) / 2;
             
             final double err = ad / av;
             return err < 10E-10;
@@ -85,23 +74,18 @@ public interface R extends NumberLine<Cardinality.Uncountable, R>, Field.Reals<R
         }
 
         @Override
-        public String toString() {
-            return String.valueOf(val);
-        }
-
-        @Override
         public int compareTo(R o) {
-            return Double.compare(val, o.doubleVal());
+            return Double.compare(doubleVal, o.doubleVal());
         }
 
         @Override
         public R abs() {
-            return val >= 0 ? this : this.neg();
+            return doubleVal >= 0 ? this : this.neg();
         }
 
         @Override
         public R sqrt() {
-            return of(Math.sqrt(val));
+            return of(Math.sqrt(doubleVal));
         }
     }
 }
