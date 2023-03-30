@@ -25,4 +25,19 @@ public class BeTest {
                 of(B.of(false), B.of(true), B.of(true), "0 || 1 == 1")
                 );
     }
+    
+    @ParameterizedTest
+    @MethodSource
+    public void testMultiplication(B b1, B b2, B expected, String name) {
+        assertThat(b1.times(b2)).isEqualTo(expected);
+    }
+
+    private static Stream<Arguments> testMultiplication() {
+        return Stream.of(
+                of(B.of(true), B.of(true), B.of(true), "1 && 1 == 1"),
+                of(B.of(false), B.of(false), B.of(false), "0 && 0 == 0"),
+                of(B.of(true), B.of(false), B.of(false), "1 && 0 == 0"),
+                of(B.of(false), B.of(true), B.of(false), "0 && 1 == 0")
+                );
+    }
 }
