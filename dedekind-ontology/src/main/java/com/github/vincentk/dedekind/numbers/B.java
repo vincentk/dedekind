@@ -39,41 +39,30 @@ public interface B extends Number<B>, Set.TotalOrder<Cardinality.Finite, B>, Boo
         return this.x(that);
     }
 
-    static final class Impl implements B {
-        
-        private final boolean n;
-        
-        private Impl(boolean n) {
-            this.n = n;
-        }
+    record Be (boolean booleanValue) implements B {
         
         @Override
-        public Impl plus(B that) {
-            return of(n || that.booleanValue());
+        public Be plus(B that) {
+            return of(booleanValue || that.booleanValue());
         }
 
         @Override
-        public Impl times(B that) {
-            return of(n && that.booleanValue());
-        }
-
-        @Override
-        public boolean booleanValue() {
-            return n;
+        public Be times(B that) {
+            return of(booleanValue && that.booleanValue());
         }
 
         @Override
         public int compareTo(B o) {
-            return Boolean.compare(n, o.booleanValue());
+            return Boolean.compare(booleanValue, o.booleanValue());
         }
 
         @Override
         public boolean equals(B that) {
-            return n == that.booleanValue();
+            return booleanValue == that.booleanValue();
         }
     }
     
-    static Impl of(boolean n) {
-        return new Impl(n);
+    static Be of(boolean n) {
+        return new Be(n);
     }
 }

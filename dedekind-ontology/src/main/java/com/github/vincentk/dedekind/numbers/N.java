@@ -17,45 +17,34 @@ Set.TotalOrder<Cardinality.Countable, N>,
 SemiRing.Natural<N>,
 MetricSpace<N, N>
 {
-    
+
     public int intValue();
 
-    static final class Impl implements N {
-        
-        private final int n;
-        
-        private Impl(int n) {
-            this.n = n;
-        }
-        
+    record Ne (int intValue) implements N {
+
         @Override
-        public Impl plus(N that) {
-            return of(n + that.intValue());
+        public Ne plus(N that) {
+            return of(intValue + that.intValue());
         }
 
         @Override
-        public Impl times(N that) {
-            return of(n * that.intValue());
-        }
-
-        @Override
-        public int intValue() {
-            return n;
+        public Ne times(N that) {
+            return of(intValue * that.intValue());
         }
 
         @Override
         public int compareTo(N o) {
-            return Integer.compare(n, o.intValue());
+            return Integer.compare(intValue, o.intValue());
         }
 
         @Override
         public boolean equals(N that) {
-            return n == that.intValue();
+            return intValue == that.intValue();
         }
 
         @Override
         public N distance(N other) {
-            return of(Math.abs(n - other.intValue()));
+            return of(Math.abs(intValue - other.intValue()));
         }
 
         @Override
@@ -63,8 +52,8 @@ MetricSpace<N, N>
             return this;
         }
     }
-    
-    static Impl of(int n) {
-        return new Impl(n);
+
+    static Ne of(int n) {
+        return new Ne(n);
     }
 }
