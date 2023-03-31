@@ -56,13 +56,13 @@ Equality<One<R>>
     
     @Override
     public String toString() {
-        return "(" + val + ")";
+        return "One(" + val + ")";
     }
 
     public static
     <R extends SemiRing<R> & Equality<R>>
     One<R>
-    of(R val) {
+    one(R val) {
         return new One<>(val);
     }
 

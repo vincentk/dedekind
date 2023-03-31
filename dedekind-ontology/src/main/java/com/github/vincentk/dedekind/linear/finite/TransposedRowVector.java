@@ -1,9 +1,11 @@
 package com.github.vincentk.dedekind.linear.finite;
 
 import com.github.vincentk.dedekind.algebra.SemiRing;
+import com.github.vincentk.dedekind.linear.ColumnVector;
 import com.github.vincentk.dedekind.linear.LinearMap;
 import com.github.vincentk.dedekind.linear.OuterProductSpace.Bra;
 import com.github.vincentk.dedekind.linear.OuterProductSpace.Ket;
+import com.github.vincentk.dedekind.linear.RowVector;
 import com.github.vincentk.dedekind.sets.Cardinality;
 
 public final class TransposedRowVector<
@@ -11,18 +13,25 @@ public final class TransposedRowVector<
 F extends SemiRing<F>,
 C extends Cardinality.Finite,
 // Domain:
-D extends FiniteRowVector<F, C, ?, D>
+D extends RowVector<F, C, ? extends ColumnVector<F, C, ?, ?>, D>
 >
 implements
-FiniteColumnVector<F, C, D, TransposedRowVector<F, C, D>>
+ColumnVector<F, C, D, TransposedRowVector<F, C, D>>
 {
     private final D val;
 
-    public TransposedRowVector(D val) {
-
-        assert val.cardinality() > 0;
-
+    private TransposedRowVector(D val) {
         this.val = val;
+    }
+    
+    public static <
+    F extends SemiRing<F>,
+    C extends Cardinality.Finite,
+    D extends RowVector<F, C, ? extends ColumnVector<F, C, ?, ?>, D>
+    >
+    TransposedRowVector<F, C, D>
+    transposed(D bra) {
+        return new TransposedRowVector<>(bra);
     }
 
     @Override
@@ -38,11 +47,6 @@ FiniteColumnVector<F, C, D, TransposedRowVector<F, C, D>>
     @Override
     public TransposedRowVector<F, C, D> plus(TransposedRowVector<F, C, D> vector) {
         return new TransposedRowVector<>(val.plus(vector.val));
-    }
-
-    @Override
-    public long cardinality() {
-        return val.cardinality();
     }
 
     @Override

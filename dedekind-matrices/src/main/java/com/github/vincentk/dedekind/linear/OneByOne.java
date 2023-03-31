@@ -37,7 +37,7 @@ Equality<OneByOne<F>>
     // Matrix multiplication with a column vector:
     @Override
     public One<F> apply(One<F> vector) {
-        return One.of(val.dot(vector));
+        return One.one(val.dot(vector));
     }
 
     @Override

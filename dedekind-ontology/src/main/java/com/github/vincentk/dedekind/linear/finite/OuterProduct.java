@@ -20,7 +20,7 @@ public final class OuterProduct<
 R extends SemiRing<R>,
 
 K1 extends Ket<R, B1, K1>,
-B1 extends Bra<R, ?, B1>,
+B1 extends Bra<R, ? extends Ket<R, ?, ?>, B1>,
 
 K2 extends Ket<R, B2, K2>,
 B2 extends Bra<R, K2, B2>

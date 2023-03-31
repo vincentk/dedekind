@@ -10,7 +10,7 @@ F extends SemiRing<F>,
 // Cardinality:
 C extends Cardinality,
 // Domain:
-D extends RowVector<F, C, ?, D>,
+D extends RowVector<F, C, ? extends ColumnVector<F, C, ?, ?>, D>,
 // Recursive self-type:
 S extends ColumnVector<F, C, D, S>
 >

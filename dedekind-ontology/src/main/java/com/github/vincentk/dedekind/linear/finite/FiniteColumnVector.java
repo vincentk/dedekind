@@ -10,7 +10,7 @@ F extends SemiRing<F>,
 // Cardinality:
 C extends Cardinality.Finite,
 // Domain:
-D extends FiniteRowVector<F, C, ?, D>,
+D extends FiniteRowVector<F, C, ? extends FiniteColumnVector<F, C, ?, ?>, D>,
 // Recursive self-type:
 S extends FiniteColumnVector<F, C, D, S>
 >

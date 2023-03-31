@@ -19,10 +19,10 @@ public class NeTest {
 
     private static Stream<Arguments> testAddition() {
         return Stream.of(
-                of(N.of(0), N.of(1), N.of(1), "1 + 1 == 1"),
-                of(N.of(0), N.of(0), N.of(0), "0 + 0 == 0"),
-                of(N.of(1), N.of(0), N.of(1), "1 + 0 == 1"),
-                of(N.of(0), N.of(1), N.of(1), "0 + 1 == 1")
+                of(N.nat(0), N.nat(1), N.nat(1), "1 + 1 == 1"),
+                of(N.nat(0), N.nat(0), N.nat(0), "0 + 0 == 0"),
+                of(N.nat(1), N.nat(0), N.nat(1), "1 + 0 == 1"),
+                of(N.nat(0), N.nat(1), N.nat(1), "0 + 1 == 1")
                 );
     }
     
@@ -34,10 +34,10 @@ public class NeTest {
 
     private static Stream<Arguments> testMultiplication() {
         return Stream.of(
-                of(N.of(1), N.of(1), N.of(1), "1 * 1 == 1"),
-                of(N.of(0), N.of(0), N.of(0), "0 * 0 == 0"),
-                of(N.of(1), N.of(0), N.of(0), "1 * 0 == 0"),
-                of(N.of(0), N.of(1), N.of(0), "0 * 1 == 0")
+                of(N.nat(1), N.nat(1), N.nat(1), "1 * 1 == 1"),
+                of(N.nat(0), N.nat(0), N.nat(0), "0 * 0 == 0"),
+                of(N.nat(1), N.nat(0), N.nat(0), "1 * 0 == 0"),
+                of(N.nat(0), N.nat(1), N.nat(0), "0 * 1 == 0")
                 );
     }
     
@@ -50,10 +50,10 @@ public class NeTest {
 
     private static Stream<Arguments> testDistance() {
         return Stream.of(
-                of(N.of(1), N.of(1), N.of(0)),
-                of(N.of(0), N.of(0), N.of(0)),
-                of(N.of(1), N.of(0), N.of(1)),
-                of(N.of(0), N.of(1), N.of(1))
+                of(N.nat(1), N.nat(1), N.nat(0)),
+                of(N.nat(0), N.nat(0), N.nat(0)),
+                of(N.nat(1), N.nat(0), N.nat(1)),
+                of(N.nat(0), N.nat(1), N.nat(1))
                 );
     }
 }
