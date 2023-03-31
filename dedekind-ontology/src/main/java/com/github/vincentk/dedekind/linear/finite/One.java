@@ -14,18 +14,12 @@ import com.github.vincentk.dedekind.linear.OuterProductSpace.Ket;
  * 
  * @param <R> type of ring defining the element type.
  */
-public final class One<R extends SemiRing<R> & Equality<R>>
+public record One<R extends SemiRing<R> & Equality<R>> (R val)
 implements
 FiniteColumnVector<R, Peano.Succ<Peano.Zero>, One<R>, One<R>>,
 FiniteRowVector<R, Peano.Succ<Peano.Zero>, One<R>, One<R>>,
 Equality<One<R>>
 {
-    protected final R val;
-
-    private One(R val) {
-        this.val = val;
-    }
-
     @Override
     public One<R> mult(R scalar) {
         return new One<>(val.times(scalar));
@@ -39,24 +33,6 @@ Equality<One<R>>
     @Override
     public boolean equals(One<R> that) {
         return this.val.equals(that.val);
-    }
-
-    @SuppressWarnings("unchecked")
-    @Override
-    public boolean equals(Object other) {
-        if (other instanceof One<?>) {
-            final One<?> that = (One<?>) other;
-            if (this.val.getClass().isAssignableFrom(that.val.getClass())) {
-                return equals((One<R>) other);
-            }
-        }
-
-        return false;
-    }
-    
-    @Override
-    public String toString() {
-        return "One(" + val + ")";
     }
 
     public static

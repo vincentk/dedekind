@@ -1,6 +1,6 @@
 package com.github.vincentk.dedekind.linear.lazy;
 
-import com.github.vincentk.dedekind.algebra.Ring;
+import com.github.vincentk.dedekind.algebra.SemiRing;
 import com.github.vincentk.dedekind.linear.InnerProductSpace.Bra;
 import com.github.vincentk.dedekind.linear.InnerProductSpace.Ket;
 import com.github.vincentk.dedekind.linear.matrix.Matrix;
@@ -18,7 +18,7 @@ import com.github.vincentk.dedekind.linear.matrix.Matrix;
  */
 public final class MatrixMultiplication<
 //Ring:
-F extends Ring<F>,
+F extends SemiRing<F>,
 
 //Implementation detail:
 R1 extends Bra<F, C, R1>,

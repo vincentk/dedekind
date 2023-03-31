@@ -4,7 +4,7 @@ import java.util.function.Function;
 
 import com.github.vincentk.dedekind.algebra.Module;
 import com.github.vincentk.dedekind.algebra.Monoid;
-import com.github.vincentk.dedekind.algebra.Ring;
+import com.github.vincentk.dedekind.algebra.SemiRing;
 import com.github.vincentk.dedekind.linear.Dual;
 import com.github.vincentk.dedekind.linear.InnerProductSpace.Bra;
 import com.github.vincentk.dedekind.linear.InnerProductSpace.Ket;
@@ -17,7 +17,7 @@ import com.github.vincentk.dedekind.linear.lazy.MatrixMultiplication;
  */
 public interface Matrix<
 // Ring:
-F extends Ring<F>,
+F extends SemiRing<F>,
 
 // Implementation detail:
 R1 extends Bra<F, C, R1>,
@@ -75,40 +75,5 @@ Dual<Matrix<F, R2, D, R1, C, ?>>
     >
     Matrix<F, R1, C, R3, E, ?> compose(Matrix<F, R2, D, R3, E, ?> other) {
         return new MatrixMultiplication<>(other, this);
-    };
-
-    /**
-     * A square matrix domain and range are essentially the same.
-     */
-    public interface Square<
-    // Ring:
-    F extends Ring<F>,
-
-    //Implementation detail:
-    R2 extends Bra<F, D, R2>,
-    // Domain of linear map:
-    D extends Ket<F, R2, D>,
-
-    // Type short-hand for change of basis (see below).
-    S extends Square<F, R2, D, S, ?>,
-    
-    // Self-reference:
-    M extends Square<F, R2, D, S, M>
-    >
-    extends
-    // A square matrix is a matrix where domain and range are the same:
-    Matrix<F, R2, D, R2, D, M>
-    // Multiplication of two square matrices produces a new square matrix of the same dimension:
-    // Monoid.M<S>
-    {
-        // Transposing a square matrix gives another square matrix:
-        @Override
-        Square<F, R2, D, ?, ?> transpose();
-        
-        // Matrix multiplication with a square matrix.
-        // Essentially a change of basis.
-        // Can presumably be refined.
-        // @Override
-        // S times(S that);
     }
 }
