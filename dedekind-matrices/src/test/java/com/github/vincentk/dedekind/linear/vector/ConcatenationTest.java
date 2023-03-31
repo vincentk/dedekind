@@ -22,6 +22,8 @@ import com.github.vincentk.dedekind.numbers.B;
 import com.github.vincentk.dedekind.numbers.N;
 import com.github.vincentk.dedekind.sets.Cardinality;
 
+import static com.github.vincentk.dedekind.linear.vector.arrays.Booleans.booleans;
+
 public class ConcatenationTest {
 
     @ParameterizedTest
@@ -62,8 +64,9 @@ public class ConcatenationTest {
 
     private static Stream<Arguments> testConcat2() {
         return Stream.of(
-                of(one(B.of(false)), Booleans.booleans(new boolean[] {})),
-                of(one(B.of(false)), Booleans.booleans(new boolean[] {false}))
+                of(one(B.of(false)), booleans()),
+                of(one(B.of(false)), booleans(false)),
+                of(one(B.of(false)), booleans(false, true))
                 );
     }
 }

@@ -29,7 +29,7 @@ Booleans<C>>,
 RandomAccess<B>,
 AoC<B, Stream<B>>
 {
-    public static Booleans<Cardinality.Finite> booleans(boolean[] vals) {
+    public static Booleans<Cardinality.Finite> booleans(boolean... vals) {
         return new Booleans<>(vals);
     }
     
