@@ -58,7 +58,7 @@ public class TransposedVectorTest {
 
         // <3|2><1|
         final Bra<N, ?, ?> found = ket.transpose();
-        
+
         // <4|
         final Bra<N, ?, ?> exp = one(expected);
 

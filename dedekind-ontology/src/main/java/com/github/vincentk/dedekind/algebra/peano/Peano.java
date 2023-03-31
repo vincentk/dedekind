@@ -20,7 +20,7 @@ Cardinality.Finite
         return this;
     }
 
-    final class Zero implements Peano<Zero> {
+    final class Zero implements Peano<Zero>, Cardinality.Empty {
 
         private Zero() {}
 
@@ -32,11 +32,6 @@ Cardinality.Finite
         @Override
         public Peano<?> times(Peano<?> that) {
             return this;
-        }
-
-        @Override
-        public long cardinality() {
-            return 0;
         }
     }
 

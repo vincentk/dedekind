@@ -15,7 +15,7 @@ public record Ds (R re, R ep) implements Field.Duals<Ds>, Equality<Ds>{
     public static Ds of(double re) {
         return of(re, 0);
     }
-    
+
     public static Ds of(double re, double im) {
         return of(R.of(re), R.of(im));
     }
@@ -39,7 +39,7 @@ public record Ds (R re, R ep) implements Field.Duals<Ds>, Equality<Ds>{
     public Ds inverse() {
 
         final R ci = re.inverse();
-        
+
         final R c2i = ci.times(ci);
         final R ei = ep.neg().times(c2i);
 
@@ -53,7 +53,7 @@ public record Ds (R re, R ep) implements Field.Duals<Ds>, Equality<Ds>{
 
     @Override
     public Ds times(Ds that) {
-        
+
         final var ri = re.x(that.ep);
         final var ir = ep.x(that.re);
 

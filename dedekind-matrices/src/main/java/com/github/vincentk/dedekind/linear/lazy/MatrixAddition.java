@@ -33,7 +33,7 @@ D extends Ket<F, R2, D>
 implements Matrix<F, R1, C, R2, D, MatrixAddition<F, R1, C, R2, D>>
 {
     private final Matrix<F, R1, C, R2, D, ?> m1, m2;
-    
+
     public MatrixAddition(
             Matrix<F, R1, C, R2, D, ?> m1,
             Matrix<F, R1, C, R2, D, ?> m2
@@ -41,11 +41,11 @@ implements Matrix<F, R1, C, R2, D, MatrixAddition<F, R1, C, R2, D>>
         this.m1 = m1;
         this.m2 = m2;
     }
-    
+
     public Matrix<F, R1, C, R2, D, ?> fst() {
         return m1;
     }
-    
+
     public Matrix<F, R1, C, R2, D, ?> snd() {
         return m2;
     }
@@ -57,10 +57,10 @@ implements Matrix<F, R1, C, R2, D, MatrixAddition<F, R1, C, R2, D>>
 
     @Override
     public C apply(D vector) {
-        
+
         final var v1 = m1.apply(vector);
         final var v2 = m2.apply(vector);
-        
+
         return v1.plus(v2);
     }
 
@@ -77,7 +77,7 @@ implements Matrix<F, R1, C, R2, D, MatrixAddition<F, R1, C, R2, D>>
             Matrix<F, R2, D, R4, E2, ?> other) {
         return new MatrixMultiplication<>(other, this);
     }
-    
+
     @Override
     public MatrixAddition<F, R1, C, R2, D> mult(F scalar) {
         // Distributive law:

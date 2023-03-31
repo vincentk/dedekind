@@ -12,7 +12,7 @@ public interface Cardinality {
      */
     interface Uncountable extends Cardinality {
     }
-    
+
     /**
      * A countable set. Its elements can be enumerated.
      * 
@@ -28,5 +28,12 @@ public interface Cardinality {
     interface Finite extends Countable {
 
         long cardinality();        
+    }
+
+    interface Empty extends Finite {
+
+        default long cardinality() {
+            return 0;
+        }
     }
 }
