@@ -11,7 +11,7 @@ import com.github.vincentk.dedekind.sets.Cardinality;
 public final class TransposedRowVector<
 // Field elements:
 F extends SemiRing<F>,
-C extends Cardinality.Finite,
+C extends Cardinality,
 // Domain:
 D extends RowVector<F, C, ? extends ColumnVector<F, C, ?, ?>, D>
 >
@@ -23,10 +23,10 @@ ColumnVector<F, C, D, TransposedRowVector<F, C, D>>
     private TransposedRowVector(D val) {
         this.val = val;
     }
-    
+
     public static <
     F extends SemiRing<F>,
-    C extends Cardinality.Finite,
+    C extends Cardinality,
     D extends RowVector<F, C, ? extends ColumnVector<F, C, ?, ?>, D>
     >
     TransposedRowVector<F, C, D>
