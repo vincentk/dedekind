@@ -4,8 +4,6 @@
 package com.github.vincentk.dedekind.linear.vector;
 
 import com.github.vincentk.dedekind.algebra.SemiRing;
-import com.github.vincentk.dedekind.linear.ColumnVector;
-import com.github.vincentk.dedekind.linear.RowVector;
 import com.github.vincentk.dedekind.linear.finite.FiniteColumnVector;
 import com.github.vincentk.dedekind.linear.finite.FiniteRowVector;
 import com.github.vincentk.dedekind.linear.finite.TransposedRowVector;
@@ -19,21 +17,22 @@ import com.github.vincentk.dedekind.sets.Cardinality;
  * E.g. [a] + [b] = [a, b]
  * 
  * FIXME: presently overly restrictive PoC.
+ * TODO: generalize to vectors with infinite cardinality.
  */
 public record Concatenation<
 F extends SemiRing<F>,
-C extends Cardinality,
+C extends Cardinality.Finite,
 
 F1 extends Cardinality.Finite,
 C1 extends FiniteColumnVector<F, F1, R1, C1>,
 R1 extends FiniteRowVector<F, F1, C1, R1>,
 
-F2 extends Cardinality,
-C2 extends ColumnVector<F, F2, R2, C2>,
-R2 extends RowVector<F, F2, C2, R2>
+F2 extends Cardinality.Finite,
+C2 extends FiniteColumnVector<F, F2, R2, C2>,
+R2 extends FiniteRowVector<F, F2, C2, R2>
 >
 (R1 fst, R2 snd)
-implements RowVector<
+implements FiniteRowVector<
 F, C,
 TransposedRowVector<F, C, Concatenation<F, C, F1, C1, R1, F2, C2, R2>>,
 Concatenation<F, C, F1, C1, R1, F2, C2, R2>>
@@ -90,5 +89,10 @@ Concatenation<F, C, F1, C1, R1, F2, C2, R2>>
         final F f2 = snd().dot(k2);
         
         return f1.plus(f2);
+    }
+
+    @Override
+    public long cardinality() {
+        return fst().cardinality() + snd().cardinality();
     }
 }
