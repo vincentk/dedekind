@@ -5,7 +5,15 @@ Exercises in strongly typed linear algebra on the JVM.
 ![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/vincentk/dedekind/maven.yml?branch=main&style=flat-square)
 [![license](https://img.shields.io/github/license/vincentk/dedekind.svg?style=flat-square)](LICENSE)
 
-Roughly speaking an attempt to reproduce some results of http://conal.net/papers/essence-of-ad/ .
+Roughly speaking an attempt to reproduce some results of [The simple essence of automatic differentiation](https://arxiv.org/abs/1804.00746#) in a more constrained type system (i.e. modern core java as opposed to haskell).
+
+This is a multi-module maven project with the following layout:
+
+* [dedekind-ontology](https://github.com/vincentk/dedekind/tree/main/dedekind-ontology) an attempt to express from abstract algebra in the java type system as directly as possible.
+
+* [dedekind-matrices](https://github.com/vincentk/dedekind/tree/main/dedekind-matrices) building on the former, provide some basic implementations of vectors, matrices and operations thereupon.
+
+For build instructions, please refer to the [build pipeline](https://github.com/vincentk/dedekind/blob/main/.github/workflows/maven.yml).
 
 
 ### Implementation notes:
