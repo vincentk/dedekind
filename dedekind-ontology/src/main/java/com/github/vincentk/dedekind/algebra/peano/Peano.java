@@ -35,7 +35,7 @@ Cardinality.Finite
         }
     }
 
-    final class Succ<N extends Peano<N>> implements Peano<Succ<N>> {
+    final class Succ<N extends Peano<N>> implements Peano<Succ<N>>, Cardinality.Finite {
 
         private final N pred;
 

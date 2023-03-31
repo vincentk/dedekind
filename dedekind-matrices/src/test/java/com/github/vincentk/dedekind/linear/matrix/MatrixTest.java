@@ -1,4 +1,4 @@
-package com.github.vincentk.dedekind.linear;
+package com.github.vincentk.dedekind.linear.matrix;
 
 import static org.mockito.Mockito.mock;
 

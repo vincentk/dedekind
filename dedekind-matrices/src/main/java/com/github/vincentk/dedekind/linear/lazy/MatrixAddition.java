@@ -1,9 +1,9 @@
 package com.github.vincentk.dedekind.linear.lazy;
 
-import com.github.vincentk.dedekind.algebra.Ring;
+import com.github.vincentk.dedekind.algebra.SemiRing;
 import com.github.vincentk.dedekind.linear.InnerProductSpace.Bra;
 import com.github.vincentk.dedekind.linear.InnerProductSpace.Ket;
-import com.github.vincentk.dedekind.linear.Matrix;
+import com.github.vincentk.dedekind.linear.matrix.Matrix;
 
 /**
  * A lazy / symbolic implementation of matrix addition.
@@ -16,9 +16,9 @@ import com.github.vincentk.dedekind.linear.Matrix;
  * @param <R3>
  * @param <E>
  */
-public final class MatrixAddition<
+public record MatrixAddition<
 //Ring:
-F extends Ring<F>,
+F extends SemiRing<F>,
 
 //Implementation detail:
 R1 extends Bra<F, C, R1>,
@@ -30,18 +30,12 @@ R2 extends Bra<F, D, R2>,
 //Domain of linear map:
 D extends Ket<F, R2, D>
 >
+(
+        Matrix<F, R1, C, R2, D, ?> m1,
+        Matrix<F, R1, C, R2, D, ?> m2
+)
 implements Matrix<F, R1, C, R2, D, MatrixAddition<F, R1, C, R2, D>>
 {
-    private final Matrix<F, R1, C, R2, D, ?> m1, m2;
-
-    public MatrixAddition(
-            Matrix<F, R1, C, R2, D, ?> m1,
-            Matrix<F, R1, C, R2, D, ?> m2
-            ) {
-        this.m1 = m1;
-        this.m2 = m2;
-    }
-
     public Matrix<F, R1, C, R2, D, ?> fst() {
         return m1;
     }

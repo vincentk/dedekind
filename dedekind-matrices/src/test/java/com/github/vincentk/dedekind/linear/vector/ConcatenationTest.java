@@ -24,6 +24,8 @@ import com.github.vincentk.dedekind.sets.Cardinality;
 
 import static com.github.vincentk.dedekind.linear.vector.arrays.Booleans.booleans;
 
+import static com.github.vincentk.dedekind.linear.vector.Concatenation.finite;
+
 public class ConcatenationTest {
 
     @ParameterizedTest
@@ -32,14 +34,14 @@ public class ConcatenationTest {
 
         final One<N> v1 = one(b1);
 
-        final var tst = Concatenation.finite(v1, v1);
-        
+        final var tst = finite(v1, v1);
+
         final RowVector<N, ?, ?, ?> sum = tst.plus(tst);
 
         assertThat(sum).isNotNull();
-        
+
         final N dt = tst.dot(tst.transpose());
-        
+
         // [n, n]^2 = 2 * n^2
         final N twoN2 = nat(2).times(b1.abs2());
         assertThat(dt).isEqualTo(twoN2);
@@ -52,21 +54,29 @@ public class ConcatenationTest {
                 of(nat(123))
                 );
     }
-    
+
     @ParameterizedTest
     @MethodSource
     public void testConcat2(One<B> b1, Booleans<Cardinality.Finite> b2) {
 
-        final var tst = Concatenation.finite(b1, b2);
-        
+        final var tst = finite(b1, b2);
+
         assertEquals(tst.cardinality(), b1.cardinality() + b2.cardinality());
+
+        // Can concatenate recursively:
+        final var tst2 = finite(tst, tst);
+
+        assertEquals(tst2.cardinality(), 2 * tst.cardinality());
+        
+        // Can de-structure:
+        assertThat(tst2.snd().fst()).isInstanceOf(One.class);
     }
 
     private static Stream<Arguments> testConcat2() {
         return Stream.of(
-                of(one(B.of(false)), booleans()),
-                of(one(B.of(false)), booleans(false)),
-                of(one(B.of(false)), booleans(false, true))
+                of(one(B.bool(false)), booleans()),
+                of(one(B.bool(false)), booleans(false)),
+                of(one(B.bool(false)), booleans(false, true))
                 );
     }
 }

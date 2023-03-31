@@ -40,12 +40,12 @@ public interface B extends Number<B>, Set.TotalOrder<Cardinality.Finite, B>, Boo
 
     @Override
     default Be plus(B that) {
-        return of(bool() || that.bool());
+        return bool(bool() || that.bool());
     }
 
     @Override
     default Be times(B that) {
-        return of(bool() && that.bool());
+        return bool(bool() && that.bool());
     }
 
     @Override
@@ -53,7 +53,7 @@ public interface B extends Number<B>, Set.TotalOrder<Cardinality.Finite, B>, Boo
         return Boolean.compare(bool(), o.bool());
     }
 
-    static Be of(boolean n) {
+    static Be bool(boolean n) {
         return new Be(n);
     }
 

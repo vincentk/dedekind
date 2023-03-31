@@ -1,4 +1,4 @@
-package com.github.vincentk.dedekind.linear;
+package com.github.vincentk.dedekind.linear.matrix;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
@@ -14,47 +14,61 @@ public class OneByOneTest {
 
     @Test
     public void testAddition() {
-        
+
         // x = {1}
         final One<Z> x = one(Z.ONE);
-        
+
         // X = {x} = {{1}}
         final OneByOne<Z> X = new OneByOne<>(x);
-        
+
         // X + X = X * 2
         final var X2 = X.plus(X);
         assertThat(X2).isInstanceOf(MatrixAddition.class);
-        
+
         // 2 * X * {1} = {2}
         final var x2 = X2.apply(x);
         assertThat(x2).isEqualTo(one(Z.TWO));
-        
+
         // {2} * {1} = 2
         assertThat(x2.dot(x)).isEqualTo(Z.TWO);
     }
-    
+
     @Test
     public void testMultiplication() {
-        
+
         // x = {1}
         final One<Z> x = one(Z.ONE);
-        
+
         // X = {x} = {{1}}
         final OneByOne<Z> X = new OneByOne<>(x);
-        
+
         // X + X = X * 2
         final var X2 = X.plus(X);
         assertThat(X2).isInstanceOf(MatrixAddition.class);
-        
+
         // (2 * X) ^ 2 = {{4}}
         final var X4 = X2.compose(X2);
         assertThat(X4).isInstanceOf(MatrixMultiplication.class);
-        
+
         // (2 * X) ^ 2 * {1} = {2}
         final var x4 = X4.apply(x);
         assertThat(x4).isEqualTo(one(Z.of(4)));
-        
+
         // {2} * {1} = 2
         assertThat(x4.dot(x)).isEqualTo(Z.of(4));
+    }
+
+    @Test
+    public void testComposition() {
+        // x = {2}
+        final One<Z> x = one(Z.TWO);
+
+        // X = {x} = {{2}}
+        final OneByOne<Z> X = new OneByOne<>(x);
+
+        // {{2}} {{2}} {3} = {{ 4 }} {3} = {12}
+        final One<Z> result = X.compose(X).apply(one(Z.of(3)));
+
+        assertThat(result).isEqualTo(one(Z.of(12)));
     }
 }

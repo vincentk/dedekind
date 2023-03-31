@@ -19,10 +19,10 @@ public class BeTest {
 
     private static Stream<Arguments> testAddition() {
         return Stream.of(
-                of(B.of(true), B.of(true)),
-                of(B.of(false), B.of(false)),
-                of(B.of(true), B.of(false)),
-                of(B.of(false), B.of(true))
+                of(B.bool(true), B.bool(true)),
+                of(B.bool(false), B.bool(false)),
+                of(B.bool(true), B.bool(false)),
+                of(B.bool(false), B.bool(true))
                 );
     }
     
@@ -34,10 +34,10 @@ public class BeTest {
 
     private static Stream<Arguments> testMultiplication() {
         return Stream.of(
-                of(B.of(true), B.of(true)),
-                of(B.of(false), B.of(false)),
-                of(B.of(true), B.of(false)),
-                of(B.of(false), B.of(true))
+                of(B.bool(true), B.bool(true)),
+                of(B.bool(false), B.bool(false)),
+                of(B.bool(true), B.bool(false)),
+                of(B.bool(false), B.bool(true))
                 );
     }
 }

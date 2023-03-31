@@ -1,8 +1,8 @@
-package com.github.vincentk.dedekind.linear;
+package com.github.vincentk.dedekind.linear.matrix;
 
 import com.github.vincentk.dedekind.algebra.Equality;
 import com.github.vincentk.dedekind.algebra.Multiplication;
-import com.github.vincentk.dedekind.algebra.Ring;
+import com.github.vincentk.dedekind.algebra.SemiRing;
 import com.github.vincentk.dedekind.linear.finite.One;
 
 /**
@@ -15,9 +15,9 @@ import com.github.vincentk.dedekind.linear.finite.One;
  *
  * @param <F>
  */
-public final class OneByOne<F extends Ring<F> & Equality<F>>
+public final class OneByOne<F extends SemiRing<F> & Equality<F>>
 implements
-Matrix.Square<F, One<F>, One<F>, OneByOne<F>, OneByOne<F>>,
+Square<F, One<F>, One<F>, OneByOne<F>, OneByOne<F>>,
 Multiplication<OneByOne<F>, OneByOne<F>>,
 Equality<OneByOne<F>>
 {
