@@ -29,6 +29,10 @@ Booleans<C>>,
 RandomAccess<B>,
 AoC<B, Stream<B>>
 {
+    public static Booleans<Cardinality.Finite> booleans(boolean[] vals) {
+        return new Booleans<>(vals);
+    }
+    
     @Override
     public Booleans<C> mult(B scalar) {
 
