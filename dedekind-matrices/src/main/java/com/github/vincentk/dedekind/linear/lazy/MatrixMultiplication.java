@@ -16,7 +16,7 @@ import com.github.vincentk.dedekind.linear.matrix.Matrix;
  * @param <R3>
  * @param <E>
  */
-public final class MatrixMultiplication<
+public record MatrixMultiplication<
 //Ring:
 F extends SemiRing<F>,
 
@@ -35,19 +35,12 @@ R3 extends Bra<F, E, R3>,
 //Domain of linear map:
 E extends Ket<F, R3, E>
 >
+(
+        Matrix<F, R3, E, R2, D, ?> m1,
+        Matrix<F, R1, C, R3, E, ?> m2
+)
 implements Matrix<F, R1, C, R2, D, MatrixMultiplication<F, R1, C, R2, D, R3, E>>
 {
-    private final Matrix<F, R3, E, R2, D, ?> m1;
-    private final Matrix<F, R1, C, R3, E, ?> m2;
-
-    public MatrixMultiplication(
-            Matrix<F, R3, E, R2, D, ?> m1,
-            Matrix<F, R1, C, R3, E, ?> m2
-            ) {
-        this.m1 = m1;
-        this.m2 = m2;
-    }
-
     public Matrix<F, R3, E, R2, D, ?> fst() {
         return m1;
     }

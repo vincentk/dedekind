@@ -8,6 +8,7 @@ import java.util.function.IntFunction;
 import java.util.stream.IntStream;
 import java.util.stream.Stream;
 
+import com.github.vincentk.dedekind.algebra.Equality;
 import com.github.vincentk.dedekind.linear.finite.FiniteRowVector;
 import com.github.vincentk.dedekind.linear.finite.TransposedRowVector;
 import com.github.vincentk.dedekind.linear.vector.AoC;
@@ -27,7 +28,8 @@ C,
 TransposedRowVector<B, C, Booleans<C>>,
 Booleans<C>>,
 RandomAccess<B>,
-AoC<B, Stream<B>>
+AoC<B, Stream<B>>,
+Equality<Booleans<C>>
 {
     public static Booleans<Cardinality.Finite> booleans(boolean... vals) {
         return new Booleans<>(vals);
@@ -76,14 +78,14 @@ AoC<B, Stream<B>>
 
         final B result = IntStream
                 .range(0, values.length)
-                .mapToObj(map).reduce(B.of(false), B::plus);
+                .mapToObj(map).reduce(B.bool(false), B::plus);
 
         return result;
     }
 
     @Override
     public B get(int i) {
-        return B.of(values[i]);
+        return B.bool(values[i]);
     }
 
     @Override
@@ -91,5 +93,24 @@ AoC<B, Stream<B>>
         return IntStream
                 .range(0, values.length)
                 .mapToObj(idx -> get(idx));
+    }
+    
+    @Override
+    public String toString() {
+        return "Booleans[values=" + Arrays.toString(values) + "]";
+    }
+
+    @Override
+    public boolean equals(Booleans<C> that) {
+        return Arrays.equals(values, that.values);
+    }
+    
+    @SuppressWarnings("unchecked")
+    @Override
+    public boolean equals(Object other) {
+        
+        if (!(other instanceof Booleans)) return false;
+        
+        return equals((Booleans<C>)other);
     }
 }

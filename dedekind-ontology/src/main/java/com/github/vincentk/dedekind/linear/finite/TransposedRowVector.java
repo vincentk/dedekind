@@ -13,22 +13,17 @@ import com.github.vincentk.dedekind.sets.Cardinality;
  * @param <C> vector length.
  * @param <D> type of domain / dual vector.
  */
-public final class TransposedRowVector<
+public record TransposedRowVector<
 // Field elements:
 F extends SemiRing<F>,
 C extends Cardinality.Finite,
 // Domain:
 D extends FiniteRowVector<F, C, ? extends FiniteColumnVector<F, C, ?, ?>, D>
 >
+(D val)
 implements
 FiniteColumnVector<F, C, D, TransposedRowVector<F, C, D>>
 {   
-    private final D val;
-
-    private TransposedRowVector(D val) {
-        this.val = val;
-    }
-
     public static <
     F extends SemiRing<F>,
     C extends Cardinality.Finite,

@@ -28,9 +28,9 @@ public class BooleansTest {
         
         assertThat(sut.dot(sut.transpose())).isNotNull();
         
-        final Booleans<Cardinality.Finite> zeros = sut.mult(B.of(false));
+        final Booleans<Cardinality.Finite> zeros = sut.mult(B.bool(false));
         
-        assertThat(zeros.dot(zeros.transpose())).isEqualTo(B.of(false));
+        assertThat(zeros.dot(zeros.transpose())).isEqualTo(B.bool(false));
         
         assertThat(sut.plus(sut)).isNotNull();
     }

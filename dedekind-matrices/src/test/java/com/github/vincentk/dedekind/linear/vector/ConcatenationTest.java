@@ -74,9 +74,9 @@ public class ConcatenationTest {
 
     private static Stream<Arguments> testConcat2() {
         return Stream.of(
-                of(one(B.of(false)), booleans()),
-                of(one(B.of(false)), booleans(false)),
-                of(one(B.of(false)), booleans(false, true))
+                of(one(B.bool(false)), booleans()),
+                of(one(B.bool(false)), booleans(false)),
+                of(one(B.bool(false)), booleans(false, true))
                 );
     }
 }
