@@ -1,12 +1,14 @@
-package com.github.vincentk.dedekind.linear;
+package com.github.vincentk.dedekind.linear.matrix;
 
 import java.util.function.Function;
 
 import com.github.vincentk.dedekind.algebra.Module;
 import com.github.vincentk.dedekind.algebra.Monoid;
 import com.github.vincentk.dedekind.algebra.Ring;
+import com.github.vincentk.dedekind.linear.Dual;
 import com.github.vincentk.dedekind.linear.InnerProductSpace.Bra;
 import com.github.vincentk.dedekind.linear.InnerProductSpace.Ket;
+import com.github.vincentk.dedekind.linear.LinearMap;
 import com.github.vincentk.dedekind.linear.lazy.MatrixAddition;
 import com.github.vincentk.dedekind.linear.lazy.MatrixMultiplication;
 

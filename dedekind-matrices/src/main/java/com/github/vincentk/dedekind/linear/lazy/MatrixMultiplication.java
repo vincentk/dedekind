@@ -3,7 +3,7 @@ package com.github.vincentk.dedekind.linear.lazy;
 import com.github.vincentk.dedekind.algebra.Ring;
 import com.github.vincentk.dedekind.linear.InnerProductSpace.Bra;
 import com.github.vincentk.dedekind.linear.InnerProductSpace.Ket;
-import com.github.vincentk.dedekind.linear.Matrix;
+import com.github.vincentk.dedekind.linear.matrix.Matrix;
 
 /**
  * A lazy / symbolic implementation of matrix multiplication.

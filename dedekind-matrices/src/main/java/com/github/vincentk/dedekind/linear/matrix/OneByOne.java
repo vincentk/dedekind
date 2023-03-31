@@ -1,4 +1,4 @@
-package com.github.vincentk.dedekind.linear;
+package com.github.vincentk.dedekind.linear.matrix;
 
 import com.github.vincentk.dedekind.algebra.Equality;
 import com.github.vincentk.dedekind.algebra.Multiplication;
