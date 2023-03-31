@@ -17,12 +17,12 @@ public interface InnerProductSpace {
      */
     public interface Bra<
     F extends SemiRing<F>,
-    K extends Ket<F, S, K>,
+    K extends Ket<F, ? extends Vector<F, ?, ?>, K>,
     S extends Bra<F, K, S>
     >
     extends
     // Is an element of a vector space:
-    Vector<F, S>,
+    Vector<F, K, S>,
     // The transpose is a row vector:
     Dual<K>
     {
@@ -46,12 +46,12 @@ public interface InnerProductSpace {
      */
     public interface Ket<
     F extends SemiRing<F>,
-    B extends Bra<F, S, B>,
+    B extends Bra<F, ? extends Vector<F, ?, ?>, B>,
     S extends Ket<F, B, S>
     >
     extends
     // Is an element of a vector space:
-    Vector<F, S>,
+    Vector<F, B, S>,
     //The transpose is a column vector:
     Dual<B>
     {

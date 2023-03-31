@@ -11,7 +11,7 @@ public final class TransposedRowVector<
 F extends SemiRing<F>,
 C extends Cardinality.Finite,
 // Domain:
-D extends FiniteRowVector<F, C, TransposedRowVector<F, C, D>, D>
+D extends FiniteRowVector<F, C, ?, D>
 >
 implements
 FiniteColumnVector<F, C, D, TransposedRowVector<F, C, D>>

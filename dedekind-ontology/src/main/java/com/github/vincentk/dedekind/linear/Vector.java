@@ -18,14 +18,19 @@ import com.github.vincentk.dedekind.algebra.SemiRing;
 public interface Vector<
 // Field:
 F extends SemiRing<F>,
+// The dual:
+D extends Vector<F, ?, ?>,
 // Self-reference:
-V extends Vector<F, V>
+V extends Vector<F, D, V>
 >
 extends
 // Vector addition:
 Monoid.P<V>,
 // Scalar multiplication:
-Module<F, V> {
+Module<F, V>,
+// Transpose operation:
+Dual<D>
+{
 
     /**
      * Scalar multiplication.
@@ -48,4 +53,7 @@ Module<F, V> {
      */
     @Override
     V plus(V vector);
+    
+    @Override
+    D transpose();
 }
