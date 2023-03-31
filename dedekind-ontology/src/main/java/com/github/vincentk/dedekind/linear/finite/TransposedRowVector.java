@@ -1,7 +1,6 @@
 package com.github.vincentk.dedekind.linear.finite;
 
 import com.github.vincentk.dedekind.algebra.SemiRing;
-import com.github.vincentk.dedekind.linear.ColumnVector;
 import com.github.vincentk.dedekind.linear.LinearMap;
 import com.github.vincentk.dedekind.linear.OuterProductSpace.Bra;
 import com.github.vincentk.dedekind.linear.OuterProductSpace.Ket;
@@ -19,7 +18,7 @@ public final class TransposedRowVector<
 F extends SemiRing<F>,
 C extends Cardinality.Finite,
 // Domain:
-D extends FiniteRowVector<F, C, ? extends ColumnVector<F, C, ?, ?>, D>
+D extends FiniteRowVector<F, C, ? extends FiniteColumnVector<F, C, ?, ?>, D>
 >
 implements
 FiniteColumnVector<F, C, D, TransposedRowVector<F, C, D>>
@@ -33,7 +32,7 @@ FiniteColumnVector<F, C, D, TransposedRowVector<F, C, D>>
     public static <
     F extends SemiRing<F>,
     C extends Cardinality.Finite,
-    D extends FiniteRowVector<F, C, ? extends ColumnVector<F, C, ?, ?>, D>
+    D extends FiniteRowVector<F, C, ? extends FiniteColumnVector<F, C, ?, ?>, D>
     >
     TransposedRowVector<F, C, D>
     transposed(D bra) {
