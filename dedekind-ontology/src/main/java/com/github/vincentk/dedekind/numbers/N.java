@@ -22,12 +22,12 @@ MetricSpace<N, N>
 
     @Override
     default Ne plus(N that) {
-        return of(integer() + that.integer());
+        return nat(integer() + that.integer());
     }
 
     @Override
     default Ne times(N that) {
-        return of(integer() * that.integer());
+        return nat(integer() * that.integer());
     }
 
     @Override
@@ -42,7 +42,7 @@ MetricSpace<N, N>
 
     @Override
     default Ne distance(N other) {
-        return of(Math.abs(integer() - other.integer()));
+        return nat(Math.abs(integer() - other.integer()));
     }
 
     record Ne (int integer) implements N {
@@ -58,7 +58,7 @@ MetricSpace<N, N>
         }
     }
 
-    static Ne of(int n) {
+    static Ne nat(int n) {
         return new Ne(n);
     }
 }

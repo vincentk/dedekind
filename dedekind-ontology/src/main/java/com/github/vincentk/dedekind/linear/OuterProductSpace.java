@@ -21,7 +21,7 @@ public interface OuterProductSpace extends InnerProductSpace {
      */
     public interface Bra<
     F extends SemiRing<F>,
-    K extends Ket<F, S, K>,
+    K extends Ket<F, ? extends Vector<F, ?, ?>, K>,
     S extends Bra<F, K, S>
     >
     extends
@@ -47,7 +47,7 @@ public interface OuterProductSpace extends InnerProductSpace {
      */
     interface Ket<
     R extends SemiRing<R>,
-    B extends Bra<R, K, B>,
+    B extends Bra<R, ? extends Vector<R, ?, ?>, B>,
     K extends Ket<R, B, K>
     >
     extends

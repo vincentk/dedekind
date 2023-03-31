@@ -1,7 +1,6 @@
 package com.github.vincentk.dedekind.linear.finite;
 
 import com.github.vincentk.dedekind.algebra.Equality;
-import com.github.vincentk.dedekind.algebra.Ring;
 import com.github.vincentk.dedekind.algebra.SemiRing;
 import com.github.vincentk.dedekind.algebra.peano.Peano;
 import com.github.vincentk.dedekind.linear.LinearMap;
@@ -57,13 +56,13 @@ Equality<One<R>>
     
     @Override
     public String toString() {
-        return "(" + val + ")";
+        return "One(" + val + ")";
     }
 
     public static
-    <R extends Ring<R> & Equality<R>>
+    <R extends SemiRing<R> & Equality<R>>
     One<R>
-    of(R val) {
+    one(R val) {
         return new One<>(val);
     }
 

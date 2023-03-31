@@ -1,4 +1,4 @@
-package com.github.vincentk.dedekind.linear.primitives.derived;
+package com.github.vincentk.dedekind.numbers;
 
 import static org.assertj.core.api.Assertions.assertThat;
 

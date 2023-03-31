@@ -5,7 +5,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 import org.junit.jupiter.api.Test;
 
 import com.github.vincentk.dedekind.linear.finite.One;
-import static com.github.vincentk.dedekind.linear.finite.One.of;
+import static com.github.vincentk.dedekind.linear.finite.One.one;
 import com.github.vincentk.dedekind.linear.lazy.MatrixAddition;
 import com.github.vincentk.dedekind.linear.lazy.MatrixMultiplication;
 import com.github.vincentk.dedekind.numbers.Z;
@@ -16,7 +16,7 @@ public class OneByOneTest {
     public void testAddition() {
         
         // x = {1}
-        final One<Z> x = of(Z.ONE);
+        final One<Z> x = one(Z.ONE);
         
         // X = {x} = {{1}}
         final OneByOne<Z> X = new OneByOne<>(x);
@@ -27,7 +27,7 @@ public class OneByOneTest {
         
         // 2 * X * {1} = {2}
         final var x2 = X2.apply(x);
-        assertThat(x2).isEqualTo(of(Z.TWO));
+        assertThat(x2).isEqualTo(one(Z.TWO));
         
         // {2} * {1} = 2
         assertThat(x2.dot(x)).isEqualTo(Z.TWO);
@@ -37,7 +37,7 @@ public class OneByOneTest {
     public void testMultiplication() {
         
         // x = {1}
-        final One<Z> x = of(Z.ONE);
+        final One<Z> x = one(Z.ONE);
         
         // X = {x} = {{1}}
         final OneByOne<Z> X = new OneByOne<>(x);
@@ -52,7 +52,7 @@ public class OneByOneTest {
         
         // (2 * X) ^ 2 * {1} = {2}
         final var x4 = X4.apply(x);
-        assertThat(x4).isEqualTo(of(Z.of(4)));
+        assertThat(x4).isEqualTo(one(Z.of(4)));
         
         // {2} * {1} = 2
         assertThat(x4.dot(x)).isEqualTo(Z.of(4));

@@ -27,7 +27,7 @@ public class OneTest {
     }
 
     private static void checkPlus(Z expected, Z a, Z b) {
-        assertEquals(One.of(expected), One.of(a).plus(One.of(b)));
+        assertEquals(One.one(expected), One.one(a).plus(One.one(b)));
     }
 
     @Test
@@ -43,19 +43,19 @@ public class OneTest {
     @Test
     public void outerProductTest() {
 
-        final var zero = One.of(ZERO);
+        final var zero = One.one(ZERO);
 
         assertThat(zero.outer(zero)).isInstanceOf(LinearMap.class);
 
         assertThat(zero.outer(zero).apply(zero)).isEqualTo(zero);
 
-        final var one = One.of(ONE);
+        final var one = One.one(ONE);
         
         assertThat(zero.outer(one).apply(zero)).isEqualTo(zero);
 
         assertThat(one.outer(one).apply(one)).isEqualTo(one);
         
-        final var two = One.of(TWO);
+        final var two = One.one(TWO);
         
         assertThat(two.outer(one).apply(one)).isEqualTo(two);
 
@@ -67,6 +67,6 @@ public class OneTest {
     }
 
     private static void checkTimes(Z expected, Z a, Z b) {
-        assertEquals(One.of(expected), One.of(a).mult(b));
+        assertEquals(One.one(expected), One.one(a).mult(b));
     }
 }

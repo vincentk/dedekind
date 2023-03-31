@@ -20,7 +20,7 @@ public final class OuterProduct<
 R extends SemiRing<R>,
 
 K1 extends Ket<R, B1, K1>,
-B1 extends Bra<R, K1, B1>,
+B1 extends Bra<R, ? extends Ket<R, ?, ?>, B1>,
 
 K2 extends Ket<R, B2, K2>,
 B2 extends Bra<R, K2, B2>
@@ -40,10 +40,10 @@ LinearMap<R, K2, K1>{
      * (x y') z = x * (y' z) = x * a = ax .
      */
     @Override
-    public K1 apply(K2 vec) {
+    public K1 apply(K2 ket2) {
         
-        // Associative law:
-        final R sc = bra.dot(vec);
+        // Associative law, giving rise to a scalar:
+        final R sc = bra.dot(ket2);
         
         // Scalar multiplication commutes:
         final K1 col = ket.mult(sc);

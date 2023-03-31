@@ -3,7 +3,9 @@ package com.github.vincentk.dedekind.linear;
 /**
  * A notion of a "transpose" / dual.
  * 
- * Presumably, this can be made more precise.
+ * See e.g. 
+ * https://en.wikipedia.org/wiki/Transpose
+ * https://en.wikipedia.org/wiki/Dual_system#Transposes
  * 
  * E.g.:
  * Column <-> row vector
