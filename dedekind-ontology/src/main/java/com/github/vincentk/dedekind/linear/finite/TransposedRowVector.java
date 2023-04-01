@@ -2,9 +2,10 @@ package com.github.vincentk.dedekind.linear.finite;
 
 import com.github.vincentk.dedekind.algebra.SemiRing;
 import com.github.vincentk.dedekind.linear.LinearMap;
-import com.github.vincentk.dedekind.linear.OuterProductSpace.Bra;
-import com.github.vincentk.dedekind.linear.OuterProductSpace.Ket;
+import com.github.vincentk.dedekind.bilinear.OuterProductSpace.Bra;
+import com.github.vincentk.dedekind.bilinear.OuterProductSpace.Ket;
 import com.github.vincentk.dedekind.sets.Cardinality;
+import com.github.vincentk.dedekind.bilinear.OuterProduct;
 
 /**
  * TODO: generalize to vectors with infinite cardinality.

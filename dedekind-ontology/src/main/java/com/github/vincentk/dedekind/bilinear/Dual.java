@@ -1,4 +1,4 @@
-package com.github.vincentk.dedekind.linear;
+package com.github.vincentk.dedekind.bilinear;
 
 /**
  * A notion of a "transpose" / dual.
@@ -14,6 +14,7 @@ package com.github.vincentk.dedekind.linear;
  * 
  * @param <C>
  */
+@FunctionalInterface
 public interface Dual<C> {
 
     C transpose();

@@ -53,8 +53,12 @@ public interface B extends Number<B>, Set.TotalOrder<Cardinality.Finite, B>, Boo
         return Boolean.compare(bool(), o.bool());
     }
 
+    default N nat() {
+        return bool() ? N.ONE : N.ZERO;
+    }
+
     static Be bool(boolean n) {
-        return new Be(n);
+        return n ? TRUE : FALSE;
     }
 
     record Be (boolean bool) implements B {
@@ -64,4 +68,6 @@ public interface B extends Number<B>, Set.TotalOrder<Cardinality.Finite, B>, Boo
             return bool() == that.bool();
         }
     }
+
+    public static final Be TRUE = new Be(true), FALSE = new Be(false);
 }

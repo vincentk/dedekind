@@ -3,7 +3,7 @@ package com.github.vincentk.dedekind.linear;
 import java.util.function.Function;
 
 import com.github.vincentk.dedekind.algebra.SemiRing;
-import com.github.vincentk.dedekind.linear.InnerProductSpace.Ket;
+import com.github.vincentk.dedekind.bilinear.InnerProductSpace.Ket;
 
 /**
  * @see https://en.wikipedia.org/wiki/Linear_map

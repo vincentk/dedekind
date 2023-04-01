@@ -5,8 +5,8 @@ package com.github.vincentk.dedekind.linear.matrix;
 
 import com.github.vincentk.dedekind.algebra.Equality;
 import com.github.vincentk.dedekind.algebra.SemiRing;
-import com.github.vincentk.dedekind.linear.InnerProductSpace.Bra;
-import com.github.vincentk.dedekind.linear.InnerProductSpace.Ket;
+import com.github.vincentk.dedekind.bilinear.InnerProductSpace.Bra;
+import com.github.vincentk.dedekind.bilinear.InnerProductSpace.Ket;
 import com.github.vincentk.dedekind.linear.finite.FiniteRowVector;
 import com.github.vincentk.dedekind.linear.finite.One;
 import com.github.vincentk.dedekind.linear.finite.TransposedRowVector;

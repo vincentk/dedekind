@@ -1,7 +1,7 @@
 package com.github.vincentk.dedekind.linear;
 
 import com.github.vincentk.dedekind.algebra.SemiRing;
-import com.github.vincentk.dedekind.linear.OuterProductSpace.Bra;
+import com.github.vincentk.dedekind.bilinear.OuterProductSpace.Bra;
 import com.github.vincentk.dedekind.sets.Cardinality;
 
 public interface RowVector<
