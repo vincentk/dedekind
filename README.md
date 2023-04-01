@@ -25,15 +25,8 @@ For build instructions, please refer to the [build pipeline](https://github.com/
 
 * Some limited support for lazy evaluation and "infinite" as well as sparse vectors and matrices. In particular, specific operations such as a transpose or outer (tensor) product may offer "infinite" speedup vis-a-vis common libraries as they may execute in $\mathcal{O}(0)$ as opposed to e.g. $\mathcal{O}(N)$.
 
-* Similarly (again due to lazy evaluation), some symbolic manipulation is supported, e.g. 
-```math
-(A * B)^t = B^t * A^t$
-```
-or
-```math
-(A + B) * C = A * C + B * C
-```
-can be evaluated symbolically in $\mathcal{O}(0)$.
+* Similarly (again due to lazy evaluation), some symbolic manipulation is supported, e.g. $(A * B)^t = B^t * A^t$ or
+$(A + B) * C = A * C + B * C$ can be evaluated symbolically in $\mathcal{O}(0)$.
 
 * Some support exists for typical operations such as concatenation and slicing.
 
