@@ -64,7 +64,7 @@ Cardinality.Finite
             }
 
             // a * S(b) = a + (a * b)
-            return this.plus(this.times(pred(that)));
+            return plus(times(pred(that)));
         }
 
         private static Peano<?> pred(Peano<?> succ) {

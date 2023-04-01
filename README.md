@@ -9,11 +9,30 @@ Roughly speaking an attempt to reproduce some results of [The simple essence of 
 
 This is a multi-module maven project with the following layout:
 
-* [dedekind-ontology](https://github.com/vincentk/dedekind/tree/main/dedekind-ontology) an attempt to express from abstract algebra in the java type system as directly as possible.
+* [dedekind-ontology](https://github.com/vincentk/dedekind/tree/main/dedekind-ontology) an attempt to express concepts from abstract algebra in the java type system as directly as possible.
 
 * [dedekind-matrices](https://github.com/vincentk/dedekind/tree/main/dedekind-matrices) building on the former, provide some basic implementations of vectors, matrices and operations thereupon.
 
 For build instructions, please refer to the [build pipeline](https://github.com/vincentk/dedekind/blob/main/.github/workflows/maven.yml).
+
+## Preliminary Results
+
+* Some limited support for less common operations such as boolean-valued or integer-valued vectors and matrices (modules over a ring as opposed to vector spaces over a field) in addition to the more commonly supported real-valued and complex-valued operations.
+
+* Some limited support for forward-mode automatic differentiation (via dual numbers).
+
+* Some limited support for type-checked bracket-type notation, e.g. inner $\braket{0|0}$ or outer $\ket{x}\bra{y}$ product spaces.
+
+* Some limited support for lazy evaluation and "infinite" as well as sparse vectors and matrices. In particular, specific operations such as a transpose or outer (tensor) product may offer "infinite" speedup vis-a-vis common libraries as they may execute in $\mathcal{O}(0)$ as opposed to e.g. $\mathcal{O}(N)$.
+
+* Similarly (again due to lazy evaluation), some symbolic manipulation is supported, e.g. $(A * B)^t = B^t * A^t$ or
+$(A + B) * C = A * C + B * C$ can be evaluated symbolically and composed in $\mathcal{O}(0)$.
+
+* Some support exists for typical operations such as concatenation and slicing.
+
+## Known Limitations
+
+Many, for the time being.
 
 
 ### Implementation notes:

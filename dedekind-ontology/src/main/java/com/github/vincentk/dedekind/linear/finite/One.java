@@ -2,7 +2,8 @@ package com.github.vincentk.dedekind.linear.finite;
 
 import com.github.vincentk.dedekind.algebra.Equality;
 import com.github.vincentk.dedekind.algebra.SemiRing;
-import com.github.vincentk.dedekind.algebra.peano.Peano;
+import com.github.vincentk.dedekind.algebra.peano.Peano.Succ;
+import com.github.vincentk.dedekind.algebra.peano.Peano.Zero;
 import com.github.vincentk.dedekind.linear.LinearMap;
 import com.github.vincentk.dedekind.linear.OuterProductSpace.Bra;
 import com.github.vincentk.dedekind.linear.OuterProductSpace.Ket;
@@ -16,8 +17,8 @@ import com.github.vincentk.dedekind.linear.OuterProductSpace.Ket;
  */
 public record One<R extends SemiRing<R> & Equality<R>> (R val)
 implements
-FiniteColumnVector<R, Peano.Succ<Peano.Zero>, One<R>, One<R>>,
-FiniteRowVector<R, Peano.Succ<Peano.Zero>, One<R>, One<R>>,
+FiniteColumnVector<R, Succ<Zero>, One<R>, One<R>>,
+FiniteRowVector<R, Succ<Zero>, One<R>, One<R>>,
 Equality<One<R>>
 {
     @Override
