@@ -3,6 +3,8 @@
  */
 package com.github.vincentk.dedekind.sets;
 
+import java.util.Optional;
+
 /**
  * The Axiom of Choice so to speak.
  * 
@@ -11,6 +13,12 @@ package com.github.vincentk.dedekind.sets;
  * @see https://en.wikipedia.org/wiki/Axiom_of_choice
  */
 @FunctionalInterface
-public interface AoC<E> {
+public interface AoC<T, E extends AoC.Enumeration<T>> {
     E enumeration();
+
+    @FunctionalInterface
+    public interface Enumeration<T> {
+
+        Optional<T> next();
+    }
 }
