@@ -42,11 +42,6 @@ E extends Ket<F, R3, E>
 implements Matrix<F, R1, C, R2, D, MatrixMultiplication<F, R1, C, R2, D, R3, E>>
 {
     @Override
-    public MatrixAddition<F, R1, C, R2, D> plus(Matrix<F, R1, C, R2, D, ?> that) {
-        return new MatrixAddition<F, R1, C, R2, D>(this, that);
-    }
-
-    @Override
     public C apply(D vector) {
 
         final var v1 = m1.apply(vector);
@@ -62,14 +57,6 @@ implements Matrix<F, R1, C, R2, D, MatrixMultiplication<F, R1, C, R2, D, R3, E>>
         final Matrix<F, R3, E, R1, C, ?> m2t = m2.transpose();
 
         return new MatrixMultiplication<>(m2t, m1t);
-    }
-
-    @Override
-    public
-    <R4 extends Bra<F, E2, R4>, E2 extends Ket<F, R4, E2>>
-    Matrix<F, R1, C, R4, E2, ?>
-    compose(Matrix<F, R2, D, R4, E2, ?> other) {
-        return new MatrixMultiplication<>(other, this);
     }
 
     @Override

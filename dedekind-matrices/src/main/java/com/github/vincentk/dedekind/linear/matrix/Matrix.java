@@ -44,7 +44,7 @@ Dual<Matrix<F, R2, D, R1, C, ?>>
 {
     @Override
     default Matrix<F, R1, C, R2, D, ?> plus(Matrix<F, R1, C, R2, D, ?> that) {
-        return new MatrixAddition<>(that, that);
+        return new MatrixAddition<>(this, that);
     }
 
     @Override
