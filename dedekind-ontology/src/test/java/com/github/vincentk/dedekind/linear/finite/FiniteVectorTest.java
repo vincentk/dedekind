@@ -10,6 +10,6 @@ public class FiniteVectorTest {
     public void testStreaming() {
 
         @SuppressWarnings("unused")
-        final FiniteVector<?, ?, ?, ?> subject = mock(FiniteVector.class);
+        final FiniteVector<?, ?, ?> subject = mock(FiniteVector.class);
     }
 }

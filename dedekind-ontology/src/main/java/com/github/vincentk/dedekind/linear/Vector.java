@@ -18,10 +18,8 @@ import com.github.vincentk.dedekind.algebra.SemiRing;
 public interface Vector<
 // Field:
 F extends SemiRing<F>,
-// The dual:
-D extends Vector<F, ?, ?>,
 // Self-reference:
-V extends Vector<F, D, V>
+V extends Vector<F, V>
 >
 extends
 // Vector addition:
@@ -33,7 +31,7 @@ Module<F, V>
     /**
      * Scalar multiplication.
      *
-     * @param scalar a scalar from the underlying field.
+     * @param scalar from the underlying field.
      * @return the scaled vector.
      */
     @Override
@@ -46,7 +44,7 @@ Module<F, V>
      * v + v = 2 v .
      * v + 0 = v .
      *
-     * @param vector a vector from the same vector space.
+     * @param vector from the same vector space.
      * @return a new vector in the same vector space.
      */
     @Override

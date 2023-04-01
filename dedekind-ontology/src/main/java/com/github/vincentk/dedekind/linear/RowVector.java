@@ -15,7 +15,7 @@ D extends ColumnVector<F, C, S, D>,
 S extends RowVector<F, C, D, S>
 >
 extends
-Vector<F, D, S>,
+Vector<F, S>,
 Bra<F, D, S>
 {
 }

@@ -15,7 +15,7 @@ D extends FiniteRowVector<F, C, S, D>,
 S extends FiniteColumnVector<F, C, D, S>
 >
 extends
-FiniteVector<F, C, D, S>,
+FiniteVector<F, C, S>,
 ColumnVector<F, C, D, S>
 {
 }
