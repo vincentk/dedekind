@@ -20,7 +20,7 @@ import static com.github.vincentk.dedekind.linear.finite.TransposedRowVector.tra
 public sealed interface OfVector
 <
 //Ring:
-F extends SemiRing<F>  & Equality<F>,
+F extends SemiRing<F> & Equality<F>,
 
 //Implementation detail:
 R1 extends Bra<F, C, R1>,
