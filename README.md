@@ -31,7 +31,7 @@ or
 ```math
 (A + B) * C = A * C + B * C
 ```
-can be evaluated symbolically (in $\mathcal{O}(0)$).
+can be evaluated symbolically in $\mathcal{O}(0)$.
 
 * Some support exists for typical operations such as concatenation and slicing.
 
