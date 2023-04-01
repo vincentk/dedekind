@@ -41,14 +41,6 @@ E extends Ket<F, R3, E>
 )
 implements Matrix<F, R1, C, R2, D, MatrixMultiplication<F, R1, C, R2, D, R3, E>>
 {
-    public Matrix<F, R3, E, R2, D, ?> fst() {
-        return m1;
-    }
-
-    public Matrix<F, R1, C, R3, E, ?> snd() {
-        return m2;
-    }
-
     @Override
     public MatrixAddition<F, R1, C, R2, D> plus(Matrix<F, R1, C, R2, D, ?> that) {
         return new MatrixAddition<F, R1, C, R2, D>(this, that);
