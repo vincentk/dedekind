@@ -58,7 +58,7 @@ Equality<Booleans<C>>
 
     @Override
     public TransposedRowVector<B, C, Booleans<C>> transpose() {
-        return TransposedRowVector.transposed(this);
+        return new TransposedRowVector<>(this);
     }
 
     @Override

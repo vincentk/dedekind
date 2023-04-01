@@ -3,7 +3,6 @@ package com.github.vincentk.dedekind.linear;
 import com.github.vincentk.dedekind.algebra.Module;
 import com.github.vincentk.dedekind.algebra.Monoid;
 import com.github.vincentk.dedekind.algebra.SemiRing;
-import com.github.vincentk.dedekind.bilinear.Dual;
 
 /**
  * An element of a vector space satisfying the vector axioms.
@@ -28,9 +27,7 @@ extends
 // Vector addition:
 Monoid.P<V>,
 // Scalar multiplication:
-Module<F, V>,
-// Transpose operation:
-Dual<D>
+Module<F, V>
 {
 
     /**
@@ -54,7 +51,4 @@ Dual<D>
      */
     @Override
     V plus(V vector);
-    
-    @Override
-    D transpose();
 }

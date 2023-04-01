@@ -1,11 +1,8 @@
 package com.github.vincentk.dedekind.linear.finite;
 
 import com.github.vincentk.dedekind.algebra.SemiRing;
-import com.github.vincentk.dedekind.linear.LinearMap;
-import com.github.vincentk.dedekind.bilinear.OuterProductSpace.Bra;
-import com.github.vincentk.dedekind.bilinear.OuterProductSpace.Ket;
-import com.github.vincentk.dedekind.sets.Cardinality;
 import com.github.vincentk.dedekind.bilinear.OuterProduct;
+import com.github.vincentk.dedekind.sets.Cardinality;
 
 /**
  * TODO: generalize to vectors with infinite cardinality.
@@ -19,22 +16,12 @@ public record TransposedRowVector<
 F extends SemiRing<F>,
 C extends Cardinality.Finite,
 // Domain:
-D extends FiniteRowVector<F, C, ? extends FiniteColumnVector<F, C, ?, ?>, D>
+D extends FiniteRowVector<F, C, TransposedRowVector<F, C, D>, D>
 >
 (D val)
 implements
 FiniteColumnVector<F, C, D, TransposedRowVector<F, C, D>>
-{   
-    public static <
-    F extends SemiRing<F>,
-    C extends Cardinality.Finite,
-    D extends FiniteRowVector<F, C, ? extends FiniteColumnVector<F, C, ?, ?>, D>
-    >
-    TransposedRowVector<F, C, D>
-    transposed(D bra) {
-        return new TransposedRowVector<>(bra);
-    }
-
+{
     @Override
     public D transpose() {
         return val;
@@ -51,16 +38,17 @@ FiniteColumnVector<F, C, D, TransposedRowVector<F, C, D>>
     }
 
     @Override
-    public <
-    K1 extends Ket<F, B1, K1>,
-    B1 extends Bra<F, K1, B1>>
-    LinearMap<F, K1, TransposedRowVector<F, C, D>>
-    outer(B1 bra) {
-        return new OuterProduct<>(this, bra);
+    public long cardinality() {
+        return val.cardinality();
     }
 
     @Override
-    public long cardinality() {
-        return val.cardinality();
+    public <
+    K1 extends Ket<F, B1, K1>,
+    B1 extends Bra<F, K1, B1>
+    >
+    OuterProduct<F, TransposedRowVector<F, C, D>, D, K1, B1>
+    outer(B1 bra) {
+        return new OuterProduct<F, TransposedRowVector<F, C, D>, D, K1, B1>(this, bra);
     }
 }
