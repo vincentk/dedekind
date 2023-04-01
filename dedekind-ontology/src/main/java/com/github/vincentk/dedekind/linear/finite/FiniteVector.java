@@ -8,13 +8,11 @@ public interface FiniteVector<
 // Field:
 F extends SemiRing<F>,
 C extends Cardinality,
-//The dual:
-D extends FiniteVector<F, C, ? extends FiniteVector<F, C, ?, ?>, ?>,
 // Self-reference:
-V extends FiniteVector<F, C, D, V>
+V extends FiniteVector<F, C, V>
 >
 extends
-Vector<F, D, V>,
+Vector<F, V>,
 Cardinality.Finite
 {
 }

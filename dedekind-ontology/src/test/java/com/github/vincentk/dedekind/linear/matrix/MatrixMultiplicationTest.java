@@ -1,15 +1,13 @@
 /**
  * 
  */
-package com.github.vincentk.dedekind.linear.lazy;
+package com.github.vincentk.dedekind.linear.matrix;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
 
 import com.github.vincentk.dedekind.linear.finite.One;
-import com.github.vincentk.dedekind.linear.matrix.Matrix;
-import com.github.vincentk.dedekind.linear.matrix.OneByOne;
 import com.github.vincentk.dedekind.numbers.B;
 
 public class MatrixMultiplicationTest {

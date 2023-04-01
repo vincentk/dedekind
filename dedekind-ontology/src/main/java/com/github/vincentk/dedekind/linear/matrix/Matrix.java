@@ -9,8 +9,6 @@ import com.github.vincentk.dedekind.bilinear.Dual;
 import com.github.vincentk.dedekind.bilinear.Bracket.Bra;
 import com.github.vincentk.dedekind.bilinear.Bracket.Ket;
 import com.github.vincentk.dedekind.linear.LinearMap;
-import com.github.vincentk.dedekind.linear.lazy.MatrixAddition;
-import com.github.vincentk.dedekind.linear.lazy.MatrixMultiplication;
 
 /**
  * @see https://en.wikipedia.org/wiki/Matrix_(mathematics)

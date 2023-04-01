@@ -1,7 +1,8 @@
-package com.github.vincentk.dedekind.linear.finite;
+package com.github.vincentk.dedekind.bilinear.finite;
 
 import com.github.vincentk.dedekind.algebra.SemiRing;
-import com.github.vincentk.dedekind.linear.RowVector;
+import com.github.vincentk.dedekind.bilinear.RowVector;
+import com.github.vincentk.dedekind.linear.finite.FiniteVector;
 import com.github.vincentk.dedekind.sets.Cardinality;
 
 public interface FiniteRowVector<
@@ -15,7 +16,7 @@ D extends FiniteColumnVector<F, C, S, D>,
 S extends FiniteRowVector<F, C, D, S>
 >
 extends
-FiniteVector<F, C, D, S>,
+FiniteVector<F, C, S>,
 RowVector<F, C, D, S>
 {
 }

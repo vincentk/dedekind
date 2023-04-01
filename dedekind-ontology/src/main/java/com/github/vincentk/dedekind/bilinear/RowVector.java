@@ -1,4 +1,4 @@
-package com.github.vincentk.dedekind.linear;
+package com.github.vincentk.dedekind.bilinear;
 
 import com.github.vincentk.dedekind.algebra.SemiRing;
 import com.github.vincentk.dedekind.bilinear.Bracket.Bra;
@@ -15,7 +15,7 @@ D extends ColumnVector<F, C, S, D>,
 S extends RowVector<F, C, D, S>
 >
 extends
-Vector<F, D, S>,
+Covector<F, D, S>,
 Bra<F, D, S>
 {
 }

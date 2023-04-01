@@ -4,9 +4,9 @@
 package com.github.vincentk.dedekind.linear.vector;
 
 import com.github.vincentk.dedekind.algebra.SemiRing;
-import com.github.vincentk.dedekind.linear.finite.FiniteColumnVector;
-import com.github.vincentk.dedekind.linear.finite.FiniteRowVector;
-import com.github.vincentk.dedekind.linear.finite.TransposedRowVector;
+import com.github.vincentk.dedekind.bilinear.finite.FiniteColumnVector;
+import com.github.vincentk.dedekind.bilinear.finite.FiniteRowVector;
+import com.github.vincentk.dedekind.bilinear.finite.TransposedRowVector;
 import com.github.vincentk.dedekind.sets.Cardinality;
 
 /**

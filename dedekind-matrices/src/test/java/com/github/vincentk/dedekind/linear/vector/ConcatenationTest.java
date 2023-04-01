@@ -17,7 +17,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import com.github.vincentk.dedekind.linear.finite.One;
 import com.github.vincentk.dedekind.linear.vector.arrays.Booleans;
-import com.github.vincentk.dedekind.linear.RowVector;
+import com.github.vincentk.dedekind.bilinear.RowVector;
 import com.github.vincentk.dedekind.numbers.B;
 import com.github.vincentk.dedekind.numbers.N;
 import com.github.vincentk.dedekind.sets.Cardinality;
