@@ -3,6 +3,7 @@ package com.github.vincentk.dedekind.linear;
 import com.github.vincentk.dedekind.algebra.Module;
 import com.github.vincentk.dedekind.algebra.Monoid;
 import com.github.vincentk.dedekind.algebra.SemiRing;
+import com.github.vincentk.dedekind.bilinear.Dual;
 
 /**
  * An element of a vector space satisfying the vector axioms.

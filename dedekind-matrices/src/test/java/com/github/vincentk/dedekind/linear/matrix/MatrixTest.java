@@ -4,7 +4,7 @@ import static org.mockito.Mockito.mock;
 
 import org.junit.jupiter.api.Test;
 
-import com.github.vincentk.dedekind.linear.InnerProductSpace.Ket;
+import com.github.vincentk.dedekind.bilinear.InnerProductSpace.Ket;
 import com.github.vincentk.dedekind.numbers.R;
 
 public class MatrixTest {

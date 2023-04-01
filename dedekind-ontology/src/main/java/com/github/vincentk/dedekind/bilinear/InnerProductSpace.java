@@ -1,17 +1,14 @@
-package com.github.vincentk.dedekind.linear;
+package com.github.vincentk.dedekind.bilinear;
 
 import com.github.vincentk.dedekind.algebra.SemiRing;
+import com.github.vincentk.dedekind.linear.Vector;
 
 /**
- * An inner product space that also defines an outer product |x><y|
- * in addition to the inner product <x|y> .
- * 
- * @see https://en.wikipedia.org/wiki/Outer_product
  * @see https://en.wikipedia.org/wiki/Inner_product_space
  * @see https://en.wikipedia.org/wiki/Bra%E2%80%93ket_notation
  */
-public interface OuterProductSpace extends InnerProductSpace {
-
+public interface InnerProductSpace {
+    
     /**
      * A "row vector" ~ covector ~ linear functional ~ bra ~ <x|
      * 
@@ -25,7 +22,10 @@ public interface OuterProductSpace extends InnerProductSpace {
     S extends Bra<F, K, S>
     >
     extends
-    InnerProductSpace.Bra<F, K, S>
+    // Is an element of a vector space:
+    Vector<F, K, S>,
+    // The transpose is a row vector:
+    Dual<K>
     {
         /**
          * Inner product declaration.
@@ -35,36 +35,26 @@ public interface OuterProductSpace extends InnerProductSpace {
          */
         F dot(K ket);
     }
-
+    
     /**
      * A "column vector" ~ ket ~ |x> .
      * 
-     * @param <R> field
+     * @param <F> field
      * @param <B>
      * @param <C>
      * 
      * @see https://en.wikipedia.org/wiki/Linear_form
      */
-    interface Ket<
-    R extends SemiRing<R>,
-    B extends Bra<R, ? extends Vector<R, ?, ?>, B>,
-    K extends Ket<R, B, K>
+    public interface Ket<
+    F extends SemiRing<F>,
+    B extends Bra<F, ? extends Vector<F, ?, ?>, B>,
+    S extends Ket<F, B, S>
     >
     extends
-    InnerProductSpace.Ket<R, B, K>
+    // Is an element of a vector space:
+    Vector<F, B, S>,
+    //The transpose is a column vector:
+    Dual<B>
     {
-        /**
-         * Outer product a.k.a. tensor product.
-         * 
-         * Column vector x row vector -> matrix.
-         * 
-         * @param column
-         * @return
-         */
-        <
-        K1 extends Ket<R, B1, K1>,
-        B1 extends Bra<R, K1, B1>
-        >
-        LinearMap<R, K1, K> outer(B1 bra);
     }
 }

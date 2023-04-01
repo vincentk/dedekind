@@ -59,6 +59,16 @@ MetricSpace<N, N>
     }
 
     static Ne nat(int n) {
-        return new Ne(n);
+        
+        assert n >= 0;
+        
+        switch(n) {
+        case 0: return ZERO;
+        case 1: return ONE;
+        case 2: return TWO;
+        default: return new Ne(n);
+        }
     }
+    
+    public static final Ne ZERO = new Ne(0), ONE = new Ne(1), TWO = new Ne(2);
 }

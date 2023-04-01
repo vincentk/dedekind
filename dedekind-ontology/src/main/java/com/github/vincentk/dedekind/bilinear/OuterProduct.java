@@ -1,9 +1,9 @@
-package com.github.vincentk.dedekind.linear.finite;
+package com.github.vincentk.dedekind.bilinear;
 
 import com.github.vincentk.dedekind.algebra.SemiRing;
+import com.github.vincentk.dedekind.bilinear.OuterProductSpace.Bra;
+import com.github.vincentk.dedekind.bilinear.OuterProductSpace.Ket;
 import com.github.vincentk.dedekind.linear.LinearMap;
-import com.github.vincentk.dedekind.linear.OuterProductSpace.Bra;
-import com.github.vincentk.dedekind.linear.OuterProductSpace.Ket;
 
 /**
  * Outer product / tensor product implementation.
