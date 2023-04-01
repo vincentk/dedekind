@@ -21,6 +21,8 @@ For build instructions, please refer to the [build pipeline](https://github.com/
 
 * Some limited support for forward-mode automatic differentiation (via dual numbers).
 
+* Some limited support for type-checked bracket-type notation, e.g. inner $\braket{0|0}$ or outer $\ket{x}\bra{y}$ product spaces.
+
 * Some limited support for lazy evaluation and "infinite" as well as sparse vectors and matrices. In particular, specific operations such as a transpose or outer (tensor) product may offer "infinite" speedup vis-a-vis common libraries as they may execute in $\mathcal{O}(0)$ as opposed to e.g. $\mathcal{O}(N)$.
 
 * Similarly (again due to lazy evaluation), some symbolic manipulation is supported, e.g. 
