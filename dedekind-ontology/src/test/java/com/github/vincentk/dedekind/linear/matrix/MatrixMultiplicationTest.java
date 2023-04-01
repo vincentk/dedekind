@@ -1,7 +1,7 @@
 /**
  * 
  */
-package com.github.vincentk.dedekind.linear.lazy;
+package com.github.vincentk.dedekind.linear.matrix;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
