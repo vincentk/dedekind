@@ -3,7 +3,7 @@ package com.github.vincentk.dedekind.linear;
 import java.util.function.Function;
 
 import com.github.vincentk.dedekind.algebra.SemiRing;
-import com.github.vincentk.dedekind.bilinear.InnerProductSpace.Ket;
+import com.github.vincentk.dedekind.bilinear.Bracket.Ket;
 
 /**
  * @see https://en.wikipedia.org/wiki/Linear_map
@@ -17,9 +17,9 @@ public interface LinearMap<
 // Field:
 F extends SemiRing<F>,
 // Domain:
-V extends Ket<F, ?, ?>,
+V extends Ket<F, ?, V>,
 // Range:
-W extends Ket<F, ?, ?>
+W extends Ket<F, ?, W>
 >
 extends Function<V, W>
 {

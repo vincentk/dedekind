@@ -72,7 +72,7 @@ Concatenation<F, C, F1, C1, R1, F2, C2, R2>>
 
     @Override
     public TransposedRowVector<F, C, Concatenation<F, C, F1, C1, R1, F2, C2, R2>> transpose() {
-        return TransposedRowVector.transposed(this);
+        return new TransposedRowVector<>(this);
     }
 
     @Override

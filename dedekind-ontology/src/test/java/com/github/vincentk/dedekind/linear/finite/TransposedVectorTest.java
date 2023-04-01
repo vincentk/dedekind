@@ -4,7 +4,6 @@
 package com.github.vincentk.dedekind.linear.finite;
 
 import static com.github.vincentk.dedekind.linear.finite.One.one;
-import static com.github.vincentk.dedekind.linear.finite.TransposedRowVector.transposed;
 import static com.github.vincentk.dedekind.numbers.N.nat;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.of;
@@ -15,8 +14,8 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import com.github.vincentk.dedekind.bilinear.OuterProductSpace.Bra;
-import com.github.vincentk.dedekind.bilinear.OuterProductSpace.Ket;
+import com.github.vincentk.dedekind.bilinear.Bracket.Bra;
+import com.github.vincentk.dedekind.bilinear.Bracket.Ket;
 import com.github.vincentk.dedekind.numbers.N;
 
 
@@ -28,7 +27,7 @@ public class TransposedVectorTest {
 
         final var v1 = one(b1);
 
-        final Ket<N, ?, ?> v1t = transposed(v1);
+        final Ket<N, ?, ?> v1t = v1.transpose();
 
         final Bra<N, ?, ?> v1tt = v1t.transpose();
 
@@ -48,7 +47,7 @@ public class TransposedVectorTest {
     public void testOuterProduct(N b1, N b2, N b3, N expected) {
 
         // |1>
-        final Ket<N, ?, ?> v1 = transposed(one(b1));
+        final Ket<N, ?, ?> v1 = one(b1).transpose();
 
         // |1> <2|
         final var tensor = v1.outer(one(b2));

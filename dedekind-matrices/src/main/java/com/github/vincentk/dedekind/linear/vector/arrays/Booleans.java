@@ -8,9 +8,9 @@ import java.util.function.IntFunction;
 import java.util.stream.IntStream;
 
 import com.github.vincentk.dedekind.algebra.Equality;
+import com.github.vincentk.dedekind.arrays.RandomAccess;
 import com.github.vincentk.dedekind.linear.finite.FiniteRowVector;
 import com.github.vincentk.dedekind.linear.finite.TransposedRowVector;
-import com.github.vincentk.dedekind.linear.vector.RandomAccess;
 import com.github.vincentk.dedekind.numbers.B;
 import com.github.vincentk.dedekind.sets.Cardinality;
 
@@ -58,7 +58,7 @@ Equality<Booleans<C>>
 
     @Override
     public TransposedRowVector<B, C, Booleans<C>> transpose() {
-        return TransposedRowVector.transposed(this);
+        return new TransposedRowVector<>(this);
     }
 
     @Override

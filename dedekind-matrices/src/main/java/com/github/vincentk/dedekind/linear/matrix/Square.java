@@ -4,8 +4,8 @@
 package com.github.vincentk.dedekind.linear.matrix;
 
 import com.github.vincentk.dedekind.algebra.SemiRing;
-import com.github.vincentk.dedekind.bilinear.InnerProductSpace.Bra;
-import com.github.vincentk.dedekind.bilinear.InnerProductSpace.Ket;
+import com.github.vincentk.dedekind.bilinear.Bracket.Bra;
+import com.github.vincentk.dedekind.bilinear.Bracket.Ket;
 
 /**
  * A square matrix domain and range are essentially the same.

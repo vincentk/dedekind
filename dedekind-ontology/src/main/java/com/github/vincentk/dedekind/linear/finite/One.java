@@ -4,9 +4,6 @@ import com.github.vincentk.dedekind.algebra.Equality;
 import com.github.vincentk.dedekind.algebra.SemiRing;
 import com.github.vincentk.dedekind.algebra.peano.Peano.Succ;
 import com.github.vincentk.dedekind.algebra.peano.Peano.Zero;
-import com.github.vincentk.dedekind.bilinear.OuterProductSpace.Bra;
-import com.github.vincentk.dedekind.bilinear.OuterProductSpace.Ket;
-import com.github.vincentk.dedekind.linear.LinearMap;
 import com.github.vincentk.dedekind.bilinear.OuterProduct;
 
 /**
@@ -64,7 +61,7 @@ Equality<One<R>>
     K1 extends Ket<R, B1, K1>,
     B1 extends Bra<R, K1, B1>
     >
-    LinearMap<R, K1, One<R>> outer(B1 bra) {
-        return new OuterProduct<>(this, bra);
+    OuterProduct<R, One<R>, One<R>, K1, B1> outer(B1 bra) {
+        return new OuterProduct<R, One<R>, One<R>, K1, B1>(this, bra);
     }
 }

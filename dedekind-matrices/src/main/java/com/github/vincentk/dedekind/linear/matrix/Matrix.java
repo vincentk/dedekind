@@ -6,8 +6,8 @@ import com.github.vincentk.dedekind.algebra.Module;
 import com.github.vincentk.dedekind.algebra.Monoid;
 import com.github.vincentk.dedekind.algebra.SemiRing;
 import com.github.vincentk.dedekind.bilinear.Dual;
-import com.github.vincentk.dedekind.bilinear.InnerProductSpace.Bra;
-import com.github.vincentk.dedekind.bilinear.InnerProductSpace.Ket;
+import com.github.vincentk.dedekind.bilinear.Bracket.Bra;
+import com.github.vincentk.dedekind.bilinear.Bracket.Ket;
 import com.github.vincentk.dedekind.linear.LinearMap;
 import com.github.vincentk.dedekind.linear.lazy.MatrixAddition;
 import com.github.vincentk.dedekind.linear.lazy.MatrixMultiplication;
@@ -44,7 +44,7 @@ Dual<Matrix<F, R2, D, R1, C, ?>>
 {
     @Override
     default Matrix<F, R1, C, R2, D, ?> plus(Matrix<F, R1, C, R2, D, ?> that) {
-        return new MatrixAddition<>(that, that);
+        return new MatrixAddition<>(this, that);
     }
 
     @Override

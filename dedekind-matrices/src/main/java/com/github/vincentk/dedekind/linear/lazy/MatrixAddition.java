@@ -1,8 +1,8 @@
 package com.github.vincentk.dedekind.linear.lazy;
 
 import com.github.vincentk.dedekind.algebra.SemiRing;
-import com.github.vincentk.dedekind.bilinear.InnerProductSpace.Bra;
-import com.github.vincentk.dedekind.bilinear.InnerProductSpace.Ket;
+import com.github.vincentk.dedekind.bilinear.Bracket.Bra;
+import com.github.vincentk.dedekind.bilinear.Bracket.Ket;
 import com.github.vincentk.dedekind.linear.matrix.Matrix;
 
 /**
@@ -36,19 +36,6 @@ D extends Ket<F, R2, D>
 )
 implements Matrix<F, R1, C, R2, D, MatrixAddition<F, R1, C, R2, D>>
 {
-    public Matrix<F, R1, C, R2, D, ?> fst() {
-        return m1;
-    }
-
-    public Matrix<F, R1, C, R2, D, ?> snd() {
-        return m2;
-    }
-
-    @Override
-    public MatrixAddition<F, R1, C, R2, D> plus(Matrix<F, R1, C, R2, D, ?> that) {
-        return new MatrixAddition<>(this, that);
-    }
-
     @Override
     public C apply(D vector) {
 
@@ -62,14 +49,6 @@ implements Matrix<F, R1, C, R2, D, MatrixAddition<F, R1, C, R2, D>>
     public MatrixAddition<F, R2, D, R1, C> transpose() {
         // (A + B)' = A' + B'
         return new MatrixAddition<>(m1.transpose(), m2.transpose());
-    }
-
-    @Override
-    public
-    <R4 extends Bra<F, E2, R4>, E2 extends Ket<F, R4, E2>>
-    Matrix<F, R1, C, R4, E2, ?> compose(
-            Matrix<F, R2, D, R4, E2, ?> other) {
-        return new MatrixMultiplication<>(other, this);
     }
 
     @Override
