@@ -1,7 +1,8 @@
-package com.github.vincentk.dedekind.linear.finite;
+package com.github.vincentk.dedekind.bilinear.finite;
 
 import com.github.vincentk.dedekind.algebra.SemiRing;
-import com.github.vincentk.dedekind.linear.RowVector;
+import com.github.vincentk.dedekind.bilinear.RowVector;
+import com.github.vincentk.dedekind.linear.finite.FiniteVector;
 import com.github.vincentk.dedekind.sets.Cardinality;
 
 public interface FiniteRowVector<

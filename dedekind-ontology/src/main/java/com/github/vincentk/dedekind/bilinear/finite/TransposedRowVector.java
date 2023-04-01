@@ -1,4 +1,4 @@
-package com.github.vincentk.dedekind.linear.finite;
+package com.github.vincentk.dedekind.bilinear.finite;
 
 import com.github.vincentk.dedekind.algebra.SemiRing;
 import com.github.vincentk.dedekind.bilinear.OuterProduct;

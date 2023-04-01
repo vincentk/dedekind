@@ -5,6 +5,8 @@ import com.github.vincentk.dedekind.algebra.SemiRing;
 import com.github.vincentk.dedekind.algebra.peano.Peano.Succ;
 import com.github.vincentk.dedekind.algebra.peano.Peano.Zero;
 import com.github.vincentk.dedekind.bilinear.OuterProduct;
+import com.github.vincentk.dedekind.bilinear.finite.FiniteColumnVector;
+import com.github.vincentk.dedekind.bilinear.finite.FiniteRowVector;
 
 /**
  * Vector with just one element.

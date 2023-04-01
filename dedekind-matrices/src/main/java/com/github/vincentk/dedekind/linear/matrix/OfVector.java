@@ -7,9 +7,9 @@ import com.github.vincentk.dedekind.algebra.Equality;
 import com.github.vincentk.dedekind.algebra.SemiRing;
 import com.github.vincentk.dedekind.bilinear.Bracket.Bra;
 import com.github.vincentk.dedekind.bilinear.Bracket.Ket;
-import com.github.vincentk.dedekind.linear.finite.FiniteRowVector;
+import com.github.vincentk.dedekind.bilinear.finite.FiniteRowVector;
+import com.github.vincentk.dedekind.bilinear.finite.TransposedRowVector;
 import com.github.vincentk.dedekind.linear.finite.One;
-import com.github.vincentk.dedekind.linear.finite.TransposedRowVector;
 import com.github.vincentk.dedekind.sets.Cardinality;
 
 /**

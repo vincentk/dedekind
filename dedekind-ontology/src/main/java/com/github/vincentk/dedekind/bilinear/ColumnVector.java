@@ -1,7 +1,8 @@
-package com.github.vincentk.dedekind.linear;
+package com.github.vincentk.dedekind.bilinear;
 
 import com.github.vincentk.dedekind.algebra.SemiRing;
 import com.github.vincentk.dedekind.bilinear.Bracket.Ket;
+import com.github.vincentk.dedekind.linear.Vector;
 import com.github.vincentk.dedekind.sets.Cardinality;
 
 public interface ColumnVector<
