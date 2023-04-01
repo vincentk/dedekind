@@ -1,13 +1,11 @@
 package com.github.vincentk.dedekind.linear.matrix;
 
+import static com.github.vincentk.dedekind.linear.finite.One.one;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
 
 import com.github.vincentk.dedekind.linear.finite.One;
-import static com.github.vincentk.dedekind.linear.finite.One.one;
-import com.github.vincentk.dedekind.linear.lazy.MatrixAddition;
-import com.github.vincentk.dedekind.linear.lazy.MatrixMultiplication;
 import com.github.vincentk.dedekind.numbers.Z;
 
 public class OneByOneTest {

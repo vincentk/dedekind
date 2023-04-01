@@ -1,9 +1,8 @@
-package com.github.vincentk.dedekind.linear.lazy;
+package com.github.vincentk.dedekind.linear.matrix;
 
 import com.github.vincentk.dedekind.algebra.SemiRing;
 import com.github.vincentk.dedekind.bilinear.Bracket.Bra;
 import com.github.vincentk.dedekind.bilinear.Bracket.Ket;
-import com.github.vincentk.dedekind.linear.matrix.Matrix;
 
 /**
  * A lazy / symbolic implementation of matrix addition.
