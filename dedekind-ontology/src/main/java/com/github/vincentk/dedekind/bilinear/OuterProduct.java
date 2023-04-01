@@ -16,7 +16,7 @@ import com.github.vincentk.dedekind.linear.LinearMap;
  * @param <K2>
  * @param <B2>
  */
-public final class OuterProduct<
+public record OuterProduct<
 R extends SemiRing<R>,
 
 K1 extends Ket<R, B1, K1>,
@@ -25,16 +25,9 @@ B1 extends Bra<R, K1, B1>,
 K2 extends Ket<R, B2, K2>,
 B2 extends Bra<R, K2, B2>
 >
+(K1 ket, B2 bra)
 implements
-LinearMap<R, K2, K1>{
-    
-    private final K1 ket;
-    private final B2 bra;
-    
-    public OuterProduct(K1 ket, B2 bra) {
-        this.ket = ket;
-        this.bra = bra;
-    }
+LinearMap<R, K2, K1> {
 
     /**
      * (x y') z = x * (y' z) = x * a = ax .

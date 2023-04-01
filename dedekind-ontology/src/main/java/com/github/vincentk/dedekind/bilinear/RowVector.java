@@ -2,7 +2,6 @@ package com.github.vincentk.dedekind.bilinear;
 
 import com.github.vincentk.dedekind.algebra.SemiRing;
 import com.github.vincentk.dedekind.bilinear.Bracket.Bra;
-import com.github.vincentk.dedekind.linear.Vector;
 import com.github.vincentk.dedekind.sets.Cardinality;
 
 public interface RowVector<
@@ -16,7 +15,7 @@ D extends ColumnVector<F, C, S, D>,
 S extends RowVector<F, C, D, S>
 >
 extends
-Vector<F, S>,
+Covector<F, D, S>,
 Bra<F, D, S>
 {
 }
