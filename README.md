@@ -32,14 +32,14 @@ interface A<M extends A<M>> {
 ```
 
 * Sample implementations of scalar [number](https://github.com/vincentk/dedekind/tree/main/dedekind-ontology/src/main/java/com/github/vincentk/dedekind/numbers) systems for common types such as primitive types. \
-`SemiRing`: `boolean` $\rightarrow \mathbb{B}$, `int` $\rightarrow \mathbb{N}$, \
-`Ring`: `int` $\rightarrow \mathbb{Z}$, \
+`SemiRing`: `int` $\rightarrow \mathbb{N}$, \
+`Ring`: `boolean` $\rightarrow \mathbb{B}$, `int` $\rightarrow \mathbb{Z}$, \
 `Field`: `(int, int)` $\rightarrow \mathbb{Q}$, `double` $\rightarrow \mathbb{R}$, `(double, double)` $\rightarrow \mathbb{C}$ \
 as well as some more advanced types such as [dual numbers](https://en.wikipedia.org/wiki/Dual_number).
 
 * Some limited support for forward-mode automatic differentiation (via dual numbers).
 
-* Vectorized operations in finite dimensions (tuples, e.g. $\mathcal C^n$) and infinite dimension (functions, e.g. $\mathcal C \rightarrow \mathcal C$) of either continuous ($\mathcal R^n$, $\mathcal C^n$, ..., `Vector<F extends Field<F>>`) or discrete ($\mathcal B^n$, $\mathcal N^n$, ..., `Module<R extends SemiRing<R>>`).
+* Vectorized operations in finite dimensions (tuples, e.g. $\mathcal C^n$) and infinite dimension (functions, e.g. $\mathcal C \rightarrow \mathcal C$) of either continuous values ($\mathcal R^n$, $\mathcal C^n$, ..., `Vector<F extends Field<F>>`) or discrete values ($\mathcal B^n$, $\mathcal N^n$, ..., `Module<R extends Ring<R>>`).
 
 * Some limited support for type-checked bracket-type notation, e.g. inner $\braket{0|0}$ or outer $\ket{x}\bra{y}$ product spaces.
 

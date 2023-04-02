@@ -3,6 +3,7 @@
  */
 package com.github.vincentk.dedekind.numbers;
 
+import com.github.vincentk.dedekind.algebra.Ring;
 import com.github.vincentk.dedekind.sets.Cardinality;
 import com.github.vincentk.dedekind.sets.SemiRings.Booleans;
 import com.github.vincentk.dedekind.sets.Set;
@@ -10,7 +11,7 @@ import com.github.vincentk.dedekind.sets.Set;
 /**
  * Boolean values. Roughly speaking 0 <=> false, 1 <=> true.
  */
-public interface B extends Number<B>, Set.TotalOrder<Cardinality.Finite, B>, Booleans {
+public interface B extends Number<B>, Ring<B>, Set.TotalOrder<Cardinality.Finite, B>, Booleans {
 
     public boolean bool();
 
@@ -41,6 +42,11 @@ public interface B extends Number<B>, Set.TotalOrder<Cardinality.Finite, B>, Boo
     @Override
     default Be plus(B that) {
         return bool(bool() || that.bool());
+    }
+
+    @Override
+    default Be negate() {
+        return bool(!bool());
     }
 
     @Override

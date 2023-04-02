@@ -95,4 +95,9 @@ Concatenation<F, C, F1, C1, R1, F2, C2, R2>>
     public long cardinality() {
         return fst().cardinality() + snd().cardinality();
     }
+
+    @Override
+    public Concatenation<F, C, F1, C1, R1, F2, C2, R2> negate() {
+        return new Concatenation<>(fst.negate(), snd.negate());
+    }
 }

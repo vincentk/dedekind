@@ -4,7 +4,7 @@
 package com.github.vincentk.dedekind.linear.matrix;
 
 import com.github.vincentk.dedekind.algebra.Equality;
-import com.github.vincentk.dedekind.algebra.SemiRing;
+import com.github.vincentk.dedekind.algebra.Ring;
 import com.github.vincentk.dedekind.bilinear.Bracket.Bra;
 import com.github.vincentk.dedekind.bilinear.Bracket.Ket;
 import com.github.vincentk.dedekind.bilinear.finite.FiniteRowVector;
@@ -18,7 +18,7 @@ import com.github.vincentk.dedekind.sets.Cardinality;
 public sealed interface OfVector
 <
 //Ring:
-F extends SemiRing<F> & Equality<F>,
+F extends Ring<F> & Equality<F>,
 
 //Implementation detail:
 R1 extends Bra<F, C, R1>,
@@ -35,7 +35,7 @@ extends Matrix<F, R1, C, R2, D, OfVector<F, R1, C, R2, D>> {
     public record
     Row
     <
-    F extends SemiRing<F>  & Equality<F>,
+    F extends Ring<F>  & Equality<F>,
     R extends FiniteRowVector<F, Cardinality.Finite, TransposedRowVector<F, Cardinality.Finite, R>, R>
     >
     (R row)
@@ -54,13 +54,18 @@ extends Matrix<F, R1, C, R2, D, OfVector<F, R1, C, R2, D>> {
         @Override
         public Column<F, R> transpose() {
             return new Column<>(new TransposedRowVector<>(row));
-        }        
+        }
+
+        @Override
+        public Row<F, R> negate() {
+            return new Row<>(row.negate());
+        }
     }
-    
+
     public record
     Column
     <
-    F extends SemiRing<F>  & Equality<F>,
+    F extends Ring<F>  & Equality<F>,
     R extends FiniteRowVector<F, Cardinality.Finite, TransposedRowVector<F, Cardinality.Finite, R>, R>
     >
     (TransposedRowVector<F, Cardinality.Finite, R> column)
@@ -79,6 +84,11 @@ extends Matrix<F, R1, C, R2, D, OfVector<F, R1, C, R2, D>> {
         @Override
         public Row<F, R> transpose() {
             return new Row<>(column.transpose());
+        }
+
+        @Override
+        public Column<F, R> negate() {
+            return new Column<>(column.negate());
         }      
     }
 }

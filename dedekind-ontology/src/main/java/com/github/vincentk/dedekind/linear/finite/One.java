@@ -1,7 +1,7 @@
 package com.github.vincentk.dedekind.linear.finite;
 
 import com.github.vincentk.dedekind.algebra.Equality;
-import com.github.vincentk.dedekind.algebra.SemiRing;
+import com.github.vincentk.dedekind.algebra.Ring;
 import com.github.vincentk.dedekind.algebra.peano.Peano.Succ;
 import com.github.vincentk.dedekind.algebra.peano.Peano.Zero;
 import com.github.vincentk.dedekind.bilinear.OuterProduct;
@@ -15,7 +15,7 @@ import com.github.vincentk.dedekind.bilinear.finite.FiniteRowVector;
  * 
  * @param <R> type of ring defining the element type.
  */
-public record One<R extends SemiRing<R> & Equality<R>> (R val)
+public record One<R extends Ring<R> & Equality<R>> (R val)
 implements
 FiniteColumnVector<R, Succ<Zero>, One<R>, One<R>>,
 FiniteRowVector<R, Succ<Zero>, One<R>, One<R>>,
@@ -37,7 +37,7 @@ Equality<One<R>>
     }
 
     public static
-    <R extends SemiRing<R> & Equality<R>>
+    <R extends Ring<R> & Equality<R>>
     One<R>
     one(R val) {
         return new One<>(val);
@@ -65,5 +65,10 @@ Equality<One<R>>
     >
     OuterProduct<R, One<R>, One<R>, K1, B1> outer(B1 bra) {
         return new OuterProduct<R, One<R>, One<R>, K1, B1>(this, bra);
+    }
+
+    @Override
+    public One<R> negate() {
+        return one(val.negate());
     }
 }

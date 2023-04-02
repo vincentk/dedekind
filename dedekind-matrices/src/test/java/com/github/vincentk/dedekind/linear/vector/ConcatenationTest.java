@@ -20,6 +20,7 @@ import com.github.vincentk.dedekind.linear.vector.arrays.Booleans;
 import com.github.vincentk.dedekind.bilinear.RowVector;
 import com.github.vincentk.dedekind.numbers.B;
 import com.github.vincentk.dedekind.numbers.N;
+import com.github.vincentk.dedekind.numbers.Z;
 import com.github.vincentk.dedekind.sets.Cardinality;
 
 import static com.github.vincentk.dedekind.linear.vector.arrays.Booleans.booleans;
@@ -32,18 +33,18 @@ public class ConcatenationTest {
     @MethodSource
     public void testConcat1(N b1) {
 
-        final One<N> v1 = one(b1);
+        final One<Z> v1 = one(b1.asInt());
 
         final var tst = finite(v1, v1);
 
-        final RowVector<N, ?, ?, ?> sum = tst.plus(tst);
+        final RowVector<Z, ?, ?, ?> sum = tst.plus(tst);
 
         assertThat(sum).isNotNull();
 
-        final N dt = tst.dot(tst.transpose());
+        final Z dt = tst.dot(tst.transpose());
 
         // [n, n]^2 = 2 * n^2
-        final N twoN2 = nat(2).times(b1.abs2());
+        final Z twoN2 = nat(2).asInt().times(b1.asInt().abs2());
         assertThat(dt).isEqualTo(twoN2);
     }
 

@@ -44,6 +44,10 @@ MetricSpace<N, N>
     default Ne distance(N other) {
         return nat(Math.abs(integer() - other.integer()));
     }
+    
+    default Z asInt() {
+        return Z.of(integer());
+    }
 
     record Ne (int integer) implements N {
 

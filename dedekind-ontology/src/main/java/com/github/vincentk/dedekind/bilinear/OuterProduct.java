@@ -60,4 +60,9 @@ Matrix<R, B1, K1, B2, K2, OuterProduct<R, K1, B1, K2, B2>>
     public OuterProduct<R, K2, B2, K1, B1> transpose() {
         return new OuterProduct<>(bra.transpose(), ket.transpose());
     }
+
+    @Override
+    public OuterProduct<R, K1, B1, K2, B2> negate() {
+        return new OuterProduct<>(ket.negate(), bra.negate());
+    }
 }
