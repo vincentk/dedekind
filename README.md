@@ -23,7 +23,7 @@ For build instructions, please refer to the [build pipeline](https://github.com/
 `SemiRing`: `boolean` $\rightarrow \mathbb{B}$, `int` $\rightarrow \mathbb{N}$,
 `Ring`: `int` $\rightarrow \mathbb{Z}$,
 `Field`: `(int, int)` $\rightarrow \mathbb{Q}$, `double` $\rightarrow \mathbb{R}$, `(double, double)` $\rightarrow \mathbb{C}$
-as well as some more advanced types such as (dual numbers)[https://en.wikipedia.org/wiki/Dual_number].
+as well as some more advanced types such as [dual numbers](https://en.wikipedia.org/wiki/Dual_number).
 
 * Some limited support for forward-mode automatic differentiation (via dual numbers).
 
