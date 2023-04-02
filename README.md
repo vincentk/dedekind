@@ -18,7 +18,7 @@ For build instructions, please refer to the [build pipeline](https://github.com/
 ## Preliminary Results
 
 * A fairly direct implementation of concepts from [set theory](https://github.com/vincentk/dedekind/blob/main/dedekind-ontology/src/main/java/com/github/vincentk/dedekind/sets/) (`Set`, `Cardinality`, ...) and [abstract algebra](https://github.com/vincentk/dedekind/tree/main/dedekind-ontology/src/main/java/com/github/vincentk/dedekind/algebra) (`Monoid`, `Module`, `Group`, `Field`, `Ring`, ...) as core java `interface` types. \
-Where possible and desirable, [higher-kinded types](https://www.baeldung.com/scala/higher-kinded-types) are emulated through recursive generics and `default` methods, e.g.
+To facilitate later specialization in `interface` implementations, [higher-kinded types](https://www.baeldung.com/scala/higher-kinded-types) are emulated through recursive generics and `default` methods, e.g. about the following pattern:
 ```java
 interface A<M extends A<M>> {
    default M plus(M that) {
