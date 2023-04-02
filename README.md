@@ -39,7 +39,7 @@ as well as some more advanced types such as [dual numbers](https://en.wikipedia.
 
 * Some limited support for forward-mode automatic differentiation (via dual numbers).
 
-* Vectorized operations in finite dimensions (tuples) and infinite dimensiona (functions) of either continuous ($\mathcal R^n$, $\mathcal C^n$, ..., `Vector<F extends Field>`) or discrete ($\mathcal B^n$, $\mathcal N^n$, ..., `Module<SemiRing>`).
+* Vectorized operations in finite dimensions (tuples, e.g. $\mathcal C^\n$) and infinite dimension (functions) of either continuous ($\mathcal R^n$, $\mathcal C^n$, ..., `Vector<F extends Field<F>>`) or discrete ($\mathcal B^n$, $\mathcal N^n$, ..., `Module<R extends SemiRing<R>>`).
 
 * Some limited support for type-checked bracket-type notation, e.g. inner $\braket{0|0}$ or outer $\ket{x}\bra{y}$ product spaces.
 
