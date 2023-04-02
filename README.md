@@ -18,16 +18,16 @@ For build instructions, please refer to the [build pipeline](https://github.com/
 ## Preliminary Results
 
 * A fairly direct implementation of concepts from [set theory](https://github.com/vincentk/dedekind/blob/main/dedekind-ontology/src/main/java/com/github/vincentk/dedekind/sets/) (`Set`, `Cardinality`, ...) and [abstract algebra](https://github.com/vincentk/dedekind/tree/main/dedekind-ontology/src/main/java/com/github/vincentk/dedekind/algebra) (`Monoid`, `Module`, `Group`, `Field`, `Ring`, ...) as core java `interface` types. \
-To facilitate later specialization in `interface` implementations, [higher-kinded types](https://www.baeldung.com/scala/higher-kinded-types) are emulated through recursive generics and `default` methods, e.g. about the following pattern:
+To facilitate later specialization of `interface` implementations, [higher-kinded types](https://www.baeldung.com/scala/higher-kinded-types) are emulated through recursive generics and `default` methods, e.g. about the following pattern:
 ```java
 interface A<M extends A<M>> {
    default M plus(M that) {
-     return this.plus(that);
+     return this + that;
    }
 }
 ```
 
-* Sample implementations of the [number](https://github.com/vincentk/dedekind/tree/main/dedekind-ontology/src/main/java/com/github/vincentk/dedekind/numbers) systems for common types such as primitive types. \
+* Sample implementations of scalar [number](https://github.com/vincentk/dedekind/tree/main/dedekind-ontology/src/main/java/com/github/vincentk/dedekind/numbers) systems for common types such as primitive types. \
 `SemiRing`: `boolean` $\rightarrow \mathbb{B}$, `int` $\rightarrow \mathbb{N}$, \
 `Ring`: `int` $\rightarrow \mathbb{Z}$, \
 `Field`: `(int, int)` $\rightarrow \mathbb{Q}$, `double` $\rightarrow \mathbb{R}$, `(double, double)` $\rightarrow \mathbb{C}$ \
