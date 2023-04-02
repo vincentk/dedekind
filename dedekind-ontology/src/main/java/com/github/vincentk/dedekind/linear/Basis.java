@@ -21,27 +21,39 @@ public interface Basis<
 //Field:
 F extends SemiRing<F>,
 C extends Cardinality,
-E extends AoC.Enumeration<F>,
-S extends Basis<F, C, E, S>
+S extends Basis<F, C, S>
 >
 extends
-Vector<F, S>,
-// It is common at this point to introduce the notion of iteration over the vector components:
-AoC<F, E>
+Vector<F, S>
 {
+
     /**
-     * Finite bases allow random access of the vector components.
+     * Ordered bases allow sequential access of the vector components.
      */
-    public interface Finite<
+    public interface Ordered<
     F extends SemiRing<F>,
     C extends Cardinality,
     E extends AoC.Enumeration<F>,
-    S extends Finite<F, C, E, S>
+    S extends Ordered<F, C, E, S>
     >
     extends
-    Basis<F, C, E, S>,
-    RandomAccess<F>
+    Basis<F, C, S>,
+    AoC<F, E>
     {
 
+        /**
+         * Finite ordered bases allow random access of the vector components.
+         */
+        public interface Finite<
+        F extends SemiRing<F>,
+        C extends Cardinality,
+        E extends AoC.Enumeration<F>,
+        S extends Finite<F, C, E, S>
+        >
+        extends
+        Ordered<F, C, E, S>,
+        RandomAccess<F>
+        {
+        }
     }
 }
