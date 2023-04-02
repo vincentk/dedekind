@@ -32,7 +32,7 @@ Vector<F, S>
      */
     public interface Ordered<
     F extends SemiRing<F>,
-    C extends Cardinality,
+    C extends Cardinality.Countable,
     E extends AoC.Enumeration<F>,
     S extends Ordered<F, C, E, S>
     >
@@ -46,7 +46,7 @@ Vector<F, S>
          */
         public interface Finite<
         F extends SemiRing<F>,
-        C extends Cardinality,
+        C extends Cardinality.Finite,
         E extends AoC.Enumeration<F>,
         S extends Finite<F, C, E, S>
         >

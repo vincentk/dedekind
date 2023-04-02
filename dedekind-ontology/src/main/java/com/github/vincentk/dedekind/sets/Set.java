@@ -1,7 +1,5 @@
 package com.github.vincentk.dedekind.sets;
 
-import java.util.Optional;
-
 /**
  * 
  * A set. Membership is defined by delegating to the instanceof operation.
@@ -20,9 +18,7 @@ public interface Set<T extends Set<T>> {
     C extends Cardinality.Countable,
     T extends Countable<C, T>
     >
-    extends Set<T>{
-
-        Optional<T> next();
+    extends Set<T>, AoC.Enumeration<T>{
     }
 
     /**
