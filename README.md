@@ -49,10 +49,15 @@ as well as some more advanced types such as [dual numbers](https://en.wikipedia.
 $(A + B) * C = A * C + B * C$ can be evaluated symbolically and composed in $\mathcal{O}(0)$.
 
 * Some support exists for typical operations such as concatenation and slicing, as they can be implemented efficiently via matrix addition and multiplication. \
-Intuition behind the approach for concatenation:
+Intuition behind the approach for slicing:
+```math
+\begin{bmatrix}a\end{bmatrix} = \begin{bmatrix}1 & 0\\0 & 0\end{bmatrix} \begin{bmatrix}a\\x\end{bmatrix}
+```
+And for concatenation:
 ```math
 \begin{bmatrix}a\\b\end{bmatrix} = \begin{bmatrix}1 & 0\\0 & 0\end{bmatrix} \begin{bmatrix}a\\x\end{bmatrix} + \begin{bmatrix}0 & 0\\0 & 1\end{bmatrix} \begin{bmatrix}y\\b\end{bmatrix}
 ```
+
 
 
 ### Implementation notes:
