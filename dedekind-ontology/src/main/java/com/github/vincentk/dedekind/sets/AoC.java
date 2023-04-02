@@ -11,6 +11,7 @@ import java.util.Optional;
  * I.e. we can enumerate the elements.
  * 
  * @see https://en.wikipedia.org/wiki/Axiom_of_choice
+ * @see https://en.wikipedia.org/wiki/Sequence
  */
 @FunctionalInterface
 public interface AoC<T, E extends AoC.Enumeration<T>> {
