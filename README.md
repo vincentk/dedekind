@@ -48,7 +48,14 @@ as well as some more advanced types such as [dual numbers](https://en.wikipedia.
 * Similarly (again due to lazy evaluation), some symbolic manipulation is supported, e.g. $(A * B)^t = B^t * A^t$ or
 $(A + B) * C = A * C + B * C$ can be evaluated symbolically and composed in $\mathcal{O}(0)$.
 
-* Some support exists for typical operations such as concatenation and slicing.
+* Some support exists for typical operations such as concatenation and slicing, as they can be implemented efficiently via matrix addition and multiplication, the intuition being as follows:
+```math
+\begin{eqnarray} 
+\begin{bmatrix}a\end{bmatrix}    &=& \begin{bmatrix}1 & 0\end{bmatrix} \begin{bmatrix}a\\x\end{bmatrix}\\
+\begin{bmatrix}a & b\end{bmatrix}&=& \begin{bmatrix}a\end{bmatrix} \begin{bmatrix}1 & 0\end{bmatrix} + \begin{bmatrix}b\end{bmatrix} \begin{bmatrix}0 & 1\end{bmatrix}
+\end{eqnarray}
+```
+
 
 
 ### Implementation notes:

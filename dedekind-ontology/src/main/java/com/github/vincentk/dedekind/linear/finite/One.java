@@ -64,7 +64,7 @@ Equality<One<R>>
     B1 extends Bra<R, K1, B1>
     >
     OuterProduct<R, One<R>, One<R>, K1, B1> outer(B1 bra) {
-        return new OuterProduct<R, One<R>, One<R>, K1, B1>(this, bra);
+        return new OuterProduct<>(this, bra);
     }
 
     @Override
