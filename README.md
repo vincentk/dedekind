@@ -55,7 +55,7 @@ Intuition behind the approach for slicing:
 ```
 And for concatenation:
 ```math
-\begin{bmatrix}a\\b\end{bmatrix} = \begin{bmatrix}1 & 0\\0 & 0\end{bmatrix} \begin{bmatrix}a\\x\end{bmatrix} + \begin{bmatrix}0 & 0\\0 & 1\end{bmatrix} \begin{bmatrix}y\\b\end{bmatrix}
+\begin{bmatrix}a\\b\end{bmatrix} = \begin{bmatrix}a\end{bmatrix} \begin{bmatrix}1 & 0\end{bmatrix} + \begin{bmatrix}b\end{bmatrix} \begin{bmatrix}0 & 1\end{bmatrix}
 ```
 
 
