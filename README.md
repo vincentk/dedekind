@@ -37,8 +37,6 @@ interface A<M extends A<M>> {
 `Field`: `(int, int)` $\rightarrow \mathbb{Q}$, `double` $\rightarrow \mathbb{R}$, `(double, double)` $\rightarrow \mathbb{C}$ \
 as well as some more advanced types such as [dual numbers](https://en.wikipedia.org/wiki/Dual_number).
 
-* Some limited support for forward-mode automatic differentiation (via dual numbers).
-
 * Vectorized operations in finite dimensions (tuples, e.g. $\mathbb C^n$) and infinite dimension (functions, e.g. $\mathbb C \rightarrow \mathbb C$) of
   * continuous values ($\mathbb R^n$, $\mathbb C^n$, ..., `Vector<F extends Field<F>>`) or
   * discrete values ($\mathbb B^n$, $\mathbb Z^n$, ..., `Module<R extends Ring<R>>`).
