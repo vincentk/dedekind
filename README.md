@@ -19,7 +19,7 @@ For build instructions, please refer to the [build pipeline](https://github.com/
 
 * A fairly direct implementation of concepts from [set theory](https://github.com/vincentk/dedekind/blob/main/dedekind-ontology/src/main/java/com/github/vincentk/dedekind/sets/) (set, cardinality, ...) and [abstract algebra](https://github.com/vincentk/dedekind/tree/main/dedekind-ontology/src/main/java/com/github/vincentk/dedekind/algebra) (monoid, module, group, field, ring, ...) as core java `interface` types. Type-safe specialization of the resulting embedded DSL is facilitated through the use of recursive generics.
 
-* Sample implementations of the [number](https://github.com/vincentk/dedekind/tree/main/dedekind-ontology/src/main/java/com/github/vincentk/dedekind/numbers) systems for common types such as primitive types.
+* Sample implementations of the [number](https://github.com/vincentk/dedekind/tree/main/dedekind-ontology/src/main/java/com/github/vincentk/dedekind/numbers) systems for common types such as primitive types. \
 `SemiRing`: `boolean` $\rightarrow \mathbb{B}$, `int` $\rightarrow \mathbb{N}$, \
 `Ring`: `int` $\rightarrow \mathbb{Z}$, \
 `Field`: `(int, int)` $\rightarrow \mathbb{Q}$, `double` $\rightarrow \mathbb{R}$, `(double, double)` $\rightarrow \mathbb{C}$ \
