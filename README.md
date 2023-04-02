@@ -17,6 +17,11 @@ For build instructions, please refer to the [build pipeline](https://github.com/
 
 ## Preliminary Results
 
+* A fairly direct implementation of concepts from [set theory](https://github.com/vincentk/dedekind/blob/main/dedekind-ontology/src/main/java/com/github/vincentk/dedekind/sets/) (set, cardinality, ...) and [abstract algebra](https://github.com/vincentk/dedekind/tree/main/dedekind-ontology/src/main/java/com/github/vincentk/dedekind/algebra) (monoid, module, group, field, ring, ...) as core java `interface` types. Type-safe specialization of the resulting embedded DSL is facilitated through the use of recursive generics.
+
+* Sample implementations of the above interfaces for common types such as primitive types.
+`SemiRing`: `boolean` $\rightarrow \mathbb{B}$, `int` $\rightarrow \mathbb{N}$, `Ring`: `int` $\rightarrow \mathbb{Z}$ 
+
 * Some limited support for less common operations such as boolean-valued or integer-valued vectors and matrices (modules over a ring as opposed to vector spaces over a field) in addition to the more commonly supported real-valued and complex-valued operations.
 
 * Some limited support for forward-mode automatic differentiation (via dual numbers).
