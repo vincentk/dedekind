@@ -5,7 +5,7 @@ Exercises in strongly typed linear algebra on the JVM.
 ![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/vincentk/dedekind/maven.yml?branch=main&style=flat-square)
 [![license](https://img.shields.io/github/license/vincentk/dedekind.svg?style=flat-square)](LICENSE)
 
-Roughly speaking an attempt to reproduce some results of [The simple essence of automatic differentiation](https://arxiv.org/abs/1804.00746#) in a more constrained type system (i.e. modern core java as opposed to haskell).
+Roughly speaking an attempt to reproduce some results of [The simple essence of automatic differentiation](https://arxiv.org/abs/1804.00746#) in a modern core java (as opposed to haskell).
 
 This is a multi-module maven project with the following layout:
 
@@ -17,7 +17,15 @@ For build instructions, please refer to the [build pipeline](https://github.com/
 
 ## Preliminary Results
 
-* A fairly direct implementation of concepts from [set theory](https://github.com/vincentk/dedekind/blob/main/dedekind-ontology/src/main/java/com/github/vincentk/dedekind/sets/) (`Set`, `Cardinality`, ...) and [abstract algebra](https://github.com/vincentk/dedekind/tree/main/dedekind-ontology/src/main/java/com/github/vincentk/dedekind/algebra) (`Monoid`, `Module`, `Group`, `Field`, `Ring`, ...) as core java `interface` types. Type-safe specialization of the resulting embedded DSL is facilitated through the use of recursive generics.
+* A fairly direct implementation of concepts from [set theory](https://github.com/vincentk/dedekind/blob/main/dedekind-ontology/src/main/java/com/github/vincentk/dedekind/sets/) (`Set`, `Cardinality`, ...) and [abstract algebra](https://github.com/vincentk/dedekind/tree/main/dedekind-ontology/src/main/java/com/github/vincentk/dedekind/algebra) (`Monoid`, `Module`, `Group`, `Field`, `Ring`, ...) as core java `interface` types. \
+Where possible and desirable, [higher-kinded types](https://www.baeldung.com/scala/higher-kinded-types) are emulated through recursive generics and `default` methods, e.g.
+```java
+interface A<M extends A<M>> {
+   default M plus(M that) {
+     return this.plus(that);
+   }
+}
+```
 
 * Sample implementations of the [number](https://github.com/vincentk/dedekind/tree/main/dedekind-ontology/src/main/java/com/github/vincentk/dedekind/numbers) systems for common types such as primitive types. \
 `SemiRing`: `boolean` $\rightarrow \mathbb{B}$, `int` $\rightarrow \mathbb{N}$, \
@@ -45,6 +53,4 @@ Many, for the time being.
 
 Notable challenges with the java type system which need to be overcome as compared to e.g. haskell or scala:
 
-* Lack of [higher-kinded types](https://www.baeldung.com/scala/higher-kinded-types) (roughly speaking, reverse generics). I.e. it's possible to say `Class<A>`, but not `A<Class>` with `A` a parameter to be supplied at a later stage. As a workaround, these can sometimes be simulated by way of passing the type as a recursive generic parameter, giving rise to patters such as `interface F<A extends F<A>>`, with the concrete type being resolved at
-a later stage about as follows: `class C implements F<C>`.
 * Type erasure vs. polymorphism preventing an interface to be implemented multiple times with different arguments. I.e. while the default implementation for polymorphism in java is dynamic dispatch, a generic interface (`Foo<A>`)  declaring a method `foo(A)` can not be implemented twice with different parameters `Foo<X>` and `Foo<Y>`.
