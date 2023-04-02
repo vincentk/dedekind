@@ -3,6 +3,7 @@ package com.github.vincentk.dedekind.linear;
 import com.github.vincentk.dedekind.algebra.Module;
 import com.github.vincentk.dedekind.algebra.Monoid;
 import com.github.vincentk.dedekind.algebra.SemiRing;
+import com.github.vincentk.dedekind.sets.Cardinality;
 
 /**
  * An element of a vector space satisfying the vector axioms.
@@ -11,6 +12,7 @@ import com.github.vincentk.dedekind.algebra.SemiRing;
  * For this, we refer to sub-types.
  * 
  * @see https://en.wikipedia.org/wiki/Vector_space#Definition_and_basic_properties
+ * @see https://en.wikipedia.org/wiki/Dimension_(vector_space)
  *
  * @param <F> usually a {@link Field}.
  * @param <V> the usual recursive self-type so that subtypes can refer to themselves.
@@ -18,8 +20,10 @@ import com.github.vincentk.dedekind.algebra.SemiRing;
 public interface Vector<
 // Field:
 F extends SemiRing<F>,
+// Dimension of the vector space:
+C extends Cardinality,
 // Self-reference:
-V extends Vector<F, V>
+V extends Vector<F, C, V>
 >
 extends
 // Vector addition:

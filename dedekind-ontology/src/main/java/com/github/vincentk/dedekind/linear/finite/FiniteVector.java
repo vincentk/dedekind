@@ -7,12 +7,12 @@ import com.github.vincentk.dedekind.sets.Cardinality;
 public interface FiniteVector<
 // Field:
 F extends SemiRing<F>,
-C extends Cardinality,
+C extends Cardinality.Finite,
 // Self-reference:
 V extends FiniteVector<F, C, V>
 >
 extends
-Vector<F, V>,
+Vector<F, C, V>,
 Cardinality.Finite
 {
 }

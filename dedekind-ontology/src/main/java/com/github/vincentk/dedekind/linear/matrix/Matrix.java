@@ -2,12 +2,11 @@ package com.github.vincentk.dedekind.linear.matrix;
 
 import java.util.function.Function;
 
-import com.github.vincentk.dedekind.algebra.Module;
 import com.github.vincentk.dedekind.algebra.Monoid;
 import com.github.vincentk.dedekind.algebra.SemiRing;
-import com.github.vincentk.dedekind.bilinear.Dual;
 import com.github.vincentk.dedekind.bilinear.Bracket.Bra;
 import com.github.vincentk.dedekind.bilinear.Bracket.Ket;
+import com.github.vincentk.dedekind.bilinear.Dual;
 import com.github.vincentk.dedekind.linear.LinearMap;
 
 /**
@@ -33,10 +32,8 @@ M extends Matrix<F, R1, C, R2, D, M>
 extends
 // Addition is supported for matrices with the same domain and range:
 Monoid.P<Matrix<F, R1, C, R2, D, ?>>,
-// Scalar multiplication (from the right).
-Module<F, Matrix<F, R1, C, R2, D, ?>>,
 // Any matrix is a linear map from a vector in the domain to the co-domain:
-LinearMap<F, D, C>,
+LinearMap<F, D, C, Matrix<F, R1, C, R2, D, ?>>,
 // A transpose is defined:
 Dual<Matrix<F, R2, D, R1, C, ?>>
 {
@@ -44,12 +41,6 @@ Dual<Matrix<F, R2, D, R1, C, ?>>
     default Matrix<F, R1, C, R2, D, ?> plus(Matrix<F, R1, C, R2, D, ?> that) {
         return new MatrixAddition<>(this, that);
     }
-
-    @Override
-    C apply(D vector);
-    
-    @Override
-    Matrix<F, R1, C, R2, D, ?> mult(F scalar);
     
     @Override
     Matrix<F, R2, D, R1, C, ?> transpose();
