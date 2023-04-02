@@ -51,7 +51,7 @@ $(A + B) * C = A * C + B * C$ can be evaluated symbolically and composed in $\ma
 * Some support exists for typical operations such as concatenation and slicing, as they can be implemented efficiently via matrix addition and multiplication. \
 Intuition behind the approach for concatenation:
 ```math
-\begin{bmatrix}a\\b\end{bmatrix} = \begin{bmatrix}1 & 0\\0 & 0\end{bmatrix} (a x) + \begin{bmatrix}0 & 0\\0 & 1\end{bmatrix} (y y)
+\begin{bmatrix}a\\b\end{bmatrix} = \begin{bmatrix}1 & 0\\0 & 0\end{bmatrix} \begin{bmatrix}a\\b\end{bmatrix} + \begin{bmatrix}0 & 0\\0 & 1\end{bmatrix} \begin{bmatrix}y\\b\end{bmatrix}
 ```
 
 
