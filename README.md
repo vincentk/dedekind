@@ -15,6 +15,10 @@ This is a multi-module maven project with the following layout:
 
 For build instructions, please refer to the [build pipeline](https://github.com/vincentk/dedekind/blob/main/.github/workflows/maven.yml).
 
+## Known Limitations
+
+Many, for the time being.
+
 ## Preliminary Results
 
 * A fairly direct implementation of concepts from [set theory](https://github.com/vincentk/dedekind/blob/main/dedekind-ontology/src/main/java/com/github/vincentk/dedekind/sets/) (`Set`, `Cardinality`, ...) and [abstract algebra](https://github.com/vincentk/dedekind/tree/main/dedekind-ontology/src/main/java/com/github/vincentk/dedekind/algebra) (`Monoid`, `Module`, `Group`, `Field`, `Ring`, ...) as core java `interface` types. \
@@ -35,6 +39,8 @@ as well as some more advanced types such as [dual numbers](https://en.wikipedia.
 
 * Some limited support for forward-mode automatic differentiation (via dual numbers).
 
+* Vectorized operations in finite dimensions (tuples) and infinite dimensiona (functions) of either continuous ($\mathcal R^n$, $\mathcal C^n$, ..., `Vector<F extends Field>`) or discrete ($\mathcal B^n$, $\mathcal N^n$, ..., `Module<SemiRing>`).
+
 * Some limited support for type-checked bracket-type notation, e.g. inner $\braket{0|0}$ or outer $\ket{x}\bra{y}$ product spaces.
 
 * Some limited support for lazy evaluation and "infinite" as well as sparse vectors and matrices. In particular, specific operations such as a transpose or outer (tensor) product may offer "infinite" speedup vis-a-vis common libraries as they may execute in $\mathcal{O}(0)$ as opposed to e.g. $\mathcal{O}(N)$.
@@ -43,10 +49,6 @@ as well as some more advanced types such as [dual numbers](https://en.wikipedia.
 $(A + B) * C = A * C + B * C$ can be evaluated symbolically and composed in $\mathcal{O}(0)$.
 
 * Some support exists for typical operations such as concatenation and slicing.
-
-## Known Limitations
-
-Many, for the time being.
 
 
 ### Implementation notes:
