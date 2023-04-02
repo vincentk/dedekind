@@ -6,7 +6,6 @@ package com.github.vincentk.dedekind.bilinear;
 import com.github.vincentk.dedekind.algebra.Module;
 import com.github.vincentk.dedekind.algebra.Monoid;
 import com.github.vincentk.dedekind.algebra.SemiRing;
-import com.github.vincentk.dedekind.linear.LinearMap;
 
 /**
  * @see https://en.wikipedia.org/wiki/Bra%E2%80%93ket_notation
@@ -81,6 +80,7 @@ Module<F, S>
         K1 extends Ket<F, B1, K1>,
         B1 extends Bra<F, K1, B1>
         >
-        LinearMap<F, K1, S> outer(B1 bra);
+        OuterProduct<F, S, B, K1, B1>
+        outer(B1 bra);
     }
 }
