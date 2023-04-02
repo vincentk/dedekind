@@ -1,5 +1,6 @@
 package com.github.vincentk.dedekind.algebra;
 
+
 /**
  * Definition of scalar multiplication over a {@link Ring}.
  *
@@ -11,7 +12,9 @@ package com.github.vincentk.dedekind.algebra;
  * @param <R> the scalar ring
  * @param <M> self-type
  */
-public interface Module<R extends SemiRing<R>, M extends Module<R, M>> {
+public interface Module<R extends SemiRing<R>, N extends Module<R, N>>
+extends Group.P<N>
+{
 
     /**
      * Scalar multiplication.
@@ -22,5 +25,13 @@ public interface Module<R extends SemiRing<R>, M extends Module<R, M>> {
      * @param scalar
      * @return the scaled module element / vector.
      */
-    M mult(R scalar);
+    N mult(R scalar);
+
+    /**
+     * Module addition.
+     *
+     * @param module from the same vector space.
+     * @return a new vector in the same vector space.
+     */
+    N plus(N module);
 }

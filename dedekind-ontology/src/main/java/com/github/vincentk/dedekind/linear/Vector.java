@@ -1,7 +1,7 @@
 package com.github.vincentk.dedekind.linear;
 
+import com.github.vincentk.dedekind.algebra.Field;
 import com.github.vincentk.dedekind.algebra.Module;
-import com.github.vincentk.dedekind.algebra.Monoid;
 import com.github.vincentk.dedekind.algebra.SemiRing;
 import com.github.vincentk.dedekind.sets.Cardinality;
 
@@ -26,31 +26,6 @@ C extends Cardinality,
 V extends Vector<F, C, V>
 >
 extends
-// Vector addition:
-Monoid.P<V>,
-// Scalar multiplication:
 Module<F, V>
 {
-
-    /**
-     * Scalar multiplication.
-     *
-     * @param scalar from the underlying field.
-     * @return the scaled vector.
-     */
-    @Override
-    V mult(F scalar);
-
-    /**
-     * Vector addition.
-     * 
-     * Monoid laws for {@link MonoidP}
-     * v + v = 2 v .
-     * v + 0 = v .
-     *
-     * @param vector from the same vector space.
-     * @return a new vector in the same vector space.
-     */
-    @Override
-    V plus(V vector);
 }

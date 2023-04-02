@@ -1,7 +1,7 @@
 package com.github.vincentk.dedekind.linear.matrix;
 
 import com.github.vincentk.dedekind.algebra.Equality;
-import com.github.vincentk.dedekind.algebra.SemiRing;
+import com.github.vincentk.dedekind.algebra.Ring;
 import com.github.vincentk.dedekind.linear.finite.One;
 
 /**
@@ -14,7 +14,7 @@ import com.github.vincentk.dedekind.linear.finite.One;
  *
  * @param <F>
  */
-public record OneByOne<F extends SemiRing<F> & Equality<F>>
+public record OneByOne<F extends Ring<F> & Equality<F>>
 (One<F> val)
 implements
 Square<F, One<F>, One<F>, OneByOne<F>, OneByOne<F>>
@@ -35,5 +35,10 @@ Square<F, One<F>, One<F>, OneByOne<F>, OneByOne<F>>
     @Override
     public OneByOne<F> transpose() {
         return this;
+    }
+
+    @Override
+    public OneByOne<F> negate() {
+        return new OneByOne<>(val.negate());
     }
 }

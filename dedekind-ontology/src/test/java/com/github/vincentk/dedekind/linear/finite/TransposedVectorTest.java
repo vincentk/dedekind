@@ -17,6 +17,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 import com.github.vincentk.dedekind.bilinear.Bracket.Bra;
 import com.github.vincentk.dedekind.bilinear.Bracket.Ket;
 import com.github.vincentk.dedekind.numbers.N;
+import com.github.vincentk.dedekind.numbers.Z;
 
 
 public class TransposedVectorTest {
@@ -25,11 +26,11 @@ public class TransposedVectorTest {
     @MethodSource
     public void testTranspose(N b1) {
 
-        final var v1 = one(b1);
+        final var v1 = one(b1.asInt());
 
-        final Ket<N, ?, ?> v1t = v1.transpose();
+        final Ket<Z, ?, ?> v1t = v1.transpose();
 
-        final Bra<N, ?, ?> v1tt = v1t.transpose();
+        final Bra<Z, ?, ?> v1tt = v1t.transpose();
 
         assertThat(v1tt).isEqualTo(v1);
     }
@@ -47,19 +48,19 @@ public class TransposedVectorTest {
     public void testOuterProduct(N b1, N b2, N b3, N expected) {
 
         // |1>
-        final Ket<N, ?, ?> v1 = one(b1).transpose();
+        final Ket<Z, ?, ?> v1 = one(b1.asInt()).transpose();
 
         // |1> <2|
-        final var tensor = v1.outer(one(b2));
+        final var tensor = v1.outer(one(b2.asInt()));
 
         // |1><2|3>
-        final Ket<N, ?, ?> ket = tensor.apply(one(b3));
+        final Ket<Z, ?, ?> ket = tensor.apply(one(b3.asInt()));
 
         // <3|2><1|
-        final Bra<N, ?, ?> found = ket.transpose();
+        final Bra<Z, ?, ?> found = ket.transpose();
 
         // <4|
-        final Bra<N, ?, ?> exp = one(expected);
+        final Bra<Z, ?, ?> exp = one(expected.asInt());
 
         // <3|2><1| == <4|
         assertThat(found).isEqualTo(exp);

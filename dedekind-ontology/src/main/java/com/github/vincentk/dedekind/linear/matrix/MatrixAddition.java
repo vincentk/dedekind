@@ -56,4 +56,9 @@ implements Matrix<F, R1, C, R2, D, MatrixAddition<F, R1, C, R2, D>>
         // (A + B) * a = (A * a + B * a)
         return new MatrixAddition<>(m1.mult(scalar), m2.mult(scalar));
     }
+
+    @Override
+    public MatrixAddition<F, R1, C, R2, D> negate() {
+        return new MatrixAddition<>(m1.negate(), m2.negate());
+    }
 }
