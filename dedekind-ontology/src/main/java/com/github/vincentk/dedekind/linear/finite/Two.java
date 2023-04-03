@@ -14,40 +14,48 @@ import com.github.vincentk.dedekind.algebra.unary.Ring;
  * 
  * @param <R> type of ring defining the element type.
  */
-public record One<R extends Ring<R>> (R val)
+public record Two<R extends Ring<R>>
+(R x1, R x2)
 implements
-Module<R, Succ<Zero>, One<R>>,
-Bra<R, Transposed<R, One<R>>, One<R>>
+Module<R, Succ<Succ<Zero>>, Two<R>>,
+Bra<R, Transposed<R, Two<R>>, Two<R>>
 {
     public static
     <R extends Ring<R>>
-    One<R>
-    one(R val) {
-        return new One<>(val);
+    Two<R>
+    two(R fst, R snd) {
+        return new Two<>(fst, snd);
     }
 
     @Override
-    public One<R> mult(R scalar) {
-        return new One<>(val.times(scalar));
+    public Two<R> mult(R a) {
+        return new Two<>(x1.x(a), x2.x(a));
     }
 
     @Override
-    public One<R> plus(One<R> vector) {
-        return new One<>(val.plus(vector.val));
+    public Two<R> plus(Two<R> that) {
+        return new Two<>(x1.p(that.x1), x2.p(that.x2));
     }
 
     @Override
-    public Transposed<R, One<R>> transpose() {
+    public Transposed<R, Two<R>> transpose() {
         return new Transposed<>(this);
     }
 
     @Override
-    public R dot(Transposed<R, One<R>> col) {
-        return val.times(col.transpose().val());
+    public R dot(Transposed<R, Two<R>> col) {
+
+        final Two<R> ct = col.transpose();
+
+        final var y1 = x1.times(ct.x1());
+
+        final var y2 = x2.times(ct.x2());
+
+        return y1.p(y2);
     }
 
     @Override
-    public One<R> negate() {
-        return one(val.negate());
+    public Two<R> negate() {
+        return two(x1.neg(), x2.neg());
     }
 }
