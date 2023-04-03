@@ -65,9 +65,4 @@ implements Matrix<F, R1, C, R2, D, MatrixMultiplication<F, R1, C, R2, D, R3, E>>
         // (A x B) a  = (A * a) x B = A x (b * a)
         return new MatrixMultiplication<>(m1.mult(scalar), m2);
     }
-
-    @Override
-    public MatrixMultiplication<F, R1, C, R2, D, R3, E> negate() {
-        return new MatrixMultiplication<>(m1.negate(), m2);
-    }
 }

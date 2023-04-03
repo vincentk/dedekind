@@ -66,9 +66,4 @@ Equality<One<R>>
     OuterProduct<R, One<R>, One<R>, K1, B1> outer(B1 bra) {
         return new OuterProduct<>(this, bra);
     }
-
-    @Override
-    public One<R> negate() {
-        return one(val.negate());
-    }
 }

@@ -1,7 +1,7 @@
 package com.github.vincentk.dedekind.linear;
 
 import com.github.vincentk.dedekind.algebra.Field;
-import com.github.vincentk.dedekind.algebra.Module;
+import com.github.vincentk.dedekind.algebra.binary.SemiModule;
 import com.github.vincentk.dedekind.algebra.SemiRing;
 import com.github.vincentk.dedekind.sets.Cardinality;
 
@@ -26,6 +26,6 @@ C extends Cardinality,
 V extends Vector<F, C, V>
 >
 extends
-Module<F, V>
+SemiModule<F, V>
 {
 }

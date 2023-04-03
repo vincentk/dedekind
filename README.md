@@ -5,7 +5,14 @@ Exercises in strongly typed linear algebra on the JVM.
 ![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/vincentk/dedekind/maven.yml?branch=main&style=flat-square)
 [![license](https://img.shields.io/github/license/vincentk/dedekind.svg?style=flat-square)](LICENSE)
 
-Roughly speaking an attempt to reproduce some results of [The simple essence of automatic differentiation](https://arxiv.org/abs/1804.00746#) in a modern core java (as opposed to haskell).
+Roughly speaking an attempt to reproduce some results of [The simple essence of automatic differentiation](https://arxiv.org/abs/1804.00746#) in a modern core java. To facilitate later specialization of `interface` implementations, [higher-kinded types](https://www.baeldung.com/scala/higher-kinded-types) are emulated through recursive generics and `default` methods, following about the following pattern:
+```java
+interface A<M extends A<M>> {
+   default M plus(M that) {
+     return this.binaryOp(that);
+   }
+}
+```
 
 This is a multi-module maven project with the following layout:
 
@@ -20,26 +27,6 @@ For build instructions, please refer to the [build pipeline](https://github.com/
 Many, for the time being.
 
 ## Preliminary Results
-
-* A fairly direct implementation of concepts from [set theory](https://github.com/vincentk/dedekind/blob/main/dedekind-ontology/src/main/java/com/github/vincentk/dedekind/sets/) (`Set`, `Cardinality`, ...) and [abstract algebra](https://github.com/vincentk/dedekind/tree/main/dedekind-ontology/src/main/java/com/github/vincentk/dedekind/algebra) (`Monoid`, `Module`, `Group`, `Field`, `Ring`, ...) as core java `interface` types. \
-To facilitate later specialization of `interface` implementations, [higher-kinded types](https://www.baeldung.com/scala/higher-kinded-types) are emulated through recursive generics and `default` methods, e.g. about the following pattern:
-```java
-interface A<M extends A<M>> {
-   default M plus(M that) {
-     return this + that;
-   }
-}
-```
-
-* Sample implementations of scalar [number](https://github.com/vincentk/dedekind/tree/main/dedekind-ontology/src/main/java/com/github/vincentk/dedekind/numbers) systems for common types such as primitive types. \
-`SemiRing`: `int` $\rightarrow \mathbb{N}$, \
-`Ring`: `boolean` $\rightarrow \mathbb{B}$, `int` $\rightarrow \mathbb{Z}$, \
-`Field`: `(int, int)` $\rightarrow \mathbb{Q}$, `double` $\rightarrow \mathbb{R}$, `(double, double)` $\rightarrow \mathbb{C}$ \
-as well as some more advanced types such as [dual numbers](https://en.wikipedia.org/wiki/Dual_number).
-
-* Vectorized operations in finite dimensions (tuples, e.g. $\mathbb C^n$) and infinite dimension (functions, e.g. $\mathbb C \rightarrow \mathbb C$) of
-  * continuous values ($\mathbb R^n$, $\mathbb C^n$, ..., `Vector<F extends Field<F>>`) or
-  * discrete values ($\mathbb B^n$, $\mathbb Z^n$, ..., `Module<R extends Ring<R>>`).
 
 * Some limited support for type-checked bracket-type notation, e.g. inner $\braket{0|0}$ or outer $\ket{x}\bra{y}$ product spaces.
 

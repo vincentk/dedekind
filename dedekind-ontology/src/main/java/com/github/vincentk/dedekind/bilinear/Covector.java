@@ -8,7 +8,6 @@ import com.github.vincentk.dedekind.linear.Vector;
 import com.github.vincentk.dedekind.sets.Cardinality;
 
 public interface Covector<
-//Field:
 F extends SemiRing<F>,
 C extends Cardinality,
 //The dual:

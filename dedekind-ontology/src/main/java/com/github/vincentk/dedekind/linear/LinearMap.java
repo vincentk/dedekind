@@ -2,9 +2,8 @@ package com.github.vincentk.dedekind.linear;
 
 import java.util.function.Function;
 
-import com.github.vincentk.dedekind.algebra.Module;
-import com.github.vincentk.dedekind.algebra.Monoid;
 import com.github.vincentk.dedekind.algebra.SemiRing;
+import com.github.vincentk.dedekind.algebra.binary.SemiModule;
 import com.github.vincentk.dedekind.bilinear.Bracket.Ket;
 
 /**
@@ -25,10 +24,7 @@ S extends LinearMap<F, V, W, S>
 >
 extends
 Function<V, W>,
-//Scalar multiplication (from the right).
-Module<F, S>,
-//Addition is supported for linear maps with the same domain and range:
-Monoid.P<S>
+SemiModule<F, S>
 {
     @Override
     W apply(V v);
