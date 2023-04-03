@@ -103,16 +103,4 @@ Equality<Booleans<C>>
 
         return equals((Booleans<C>)other);
     }
-
-    @Override
-    public Booleans<C> negate() {
-
-        final boolean[] b1 = Arrays.copyOf(values, values.length);
-
-        for (int ii = 0; ii < values.length; ii++) {
-            b1[ii] = !b1[ii];
-        }
-
-        return new Booleans<C>(b1);
-    }
 }

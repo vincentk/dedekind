@@ -55,11 +55,6 @@ extends Matrix<F, R1, C, R2, D, OfVector<F, R1, C, R2, D>> {
         public Column<F, R> transpose() {
             return new Column<>(new TransposedRowVector<>(row));
         }
-
-        @Override
-        public Row<F, R> negate() {
-            return new Row<>(row.negate());
-        }
     }
 
     public record
@@ -84,11 +79,6 @@ extends Matrix<F, R1, C, R2, D, OfVector<F, R1, C, R2, D>> {
         @Override
         public Row<F, R> transpose() {
             return new Row<>(column.transpose());
-        }
-
-        @Override
-        public Column<F, R> negate() {
-            return new Column<>(column.negate());
-        }      
+        }    
     }
 }

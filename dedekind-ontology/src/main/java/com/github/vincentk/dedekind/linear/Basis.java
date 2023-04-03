@@ -3,6 +3,7 @@
  */
 package com.github.vincentk.dedekind.linear;
 
+import com.github.vincentk.dedekind.algebra.Field;
 import com.github.vincentk.dedekind.algebra.SemiRing;
 import com.github.vincentk.dedekind.arrays.RandomAccess;
 import com.github.vincentk.dedekind.sets.AoC;
@@ -18,7 +19,6 @@ import com.github.vincentk.dedekind.sets.Cardinality;
  * @see https://en.wikipedia.org/wiki/Basis_(linear_algebra)
  */
 public interface Basis<
-//Field:
 F extends SemiRing<F>,
 C extends Cardinality,
 S extends Basis<F, C, S>
@@ -31,7 +31,7 @@ Vector<F, C, S>
      * Ordered bases allow sequential access of the vector components.
      */
     public interface Ordered<
-    F extends SemiRing<F>,
+    F extends Field<F>,
     C extends Cardinality.Countable,
     E extends AoC.Enumeration<F>,
     S extends Ordered<F, C, E, S>
@@ -45,7 +45,7 @@ Vector<F, C, S>
          * Finite ordered bases allow random access of the vector components.
          */
         public interface Finite<
-        F extends SemiRing<F>,
+        F extends Field<F>,
         C extends Cardinality.Finite,
         E extends AoC.Enumeration<F>,
         S extends Finite<F, C, E, S>

@@ -36,9 +36,4 @@ Square<F, One<F>, One<F>, OneByOne<F>, OneByOne<F>>
     public OneByOne<F> transpose() {
         return this;
     }
-
-    @Override
-    public OneByOne<F> negate() {
-        return new OneByOne<>(val.negate());
-    }
 }

@@ -51,9 +51,4 @@ FiniteColumnVector<F, C, D, TransposedRowVector<F, C, D>>
     outer(B1 bra) {
         return new OuterProduct<F, TransposedRowVector<F, C, D>, D, K1, B1>(this, bra);
     }
-
-    @Override
-    public TransposedRowVector<F, C, D> negate() {
-        return new TransposedRowVector<>(val.negate());
-    }
 }

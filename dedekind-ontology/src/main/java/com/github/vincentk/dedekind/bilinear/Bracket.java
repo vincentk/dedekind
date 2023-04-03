@@ -3,9 +3,9 @@
  */
 package com.github.vincentk.dedekind.bilinear;
 
-import com.github.vincentk.dedekind.algebra.Module;
 import com.github.vincentk.dedekind.algebra.Monoid;
 import com.github.vincentk.dedekind.algebra.SemiRing;
+import com.github.vincentk.dedekind.algebra.binary.SemiModule;
 
 /**
  * @see https://en.wikipedia.org/wiki/Bra%E2%80%93ket_notation
@@ -24,7 +24,7 @@ extends
 Dual<D>,
 // |x> + |x> = 2 |x> etc.:
 Monoid.P<S>,
-Module<F, S>
+SemiModule<F, S>
 {
     /**
      * A "row vector" ~ covector ~ linear functional ~ bra ~ <x|
