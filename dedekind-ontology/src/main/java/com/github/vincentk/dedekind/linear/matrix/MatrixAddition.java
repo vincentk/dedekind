@@ -1,6 +1,5 @@
 package com.github.vincentk.dedekind.linear.matrix;
 
-import com.github.vincentk.dedekind.algebra.binary.Bracket.Bra;
 import com.github.vincentk.dedekind.algebra.binary.Bracket.Ket;
 import com.github.vincentk.dedekind.algebra.unary.SemiRing;
 
@@ -20,20 +19,20 @@ public record MatrixAddition<
 F extends SemiRing<F>,
 
 //Implementation detail:
-R1 extends Bra<F, C, R1>,
+//R1 extends Bra<F, C, R1>,
 //Range of the linear map:
-C extends Ket<F, R1, C>,
+C extends Ket<F, ?, C>,
 
 //Implementation detail:
-R2 extends Bra<F, D, R2>,
+//R2 extends Bra<F, D, R2>,
 //Domain of linear map:
-D extends Ket<F, R2, D>
+D extends Ket<F, ?, D>
 >
 (
-        Matrix<F, R1, C, R2, D, ?> m1,
-        Matrix<F, R1, C, R2, D, ?> m2
+        Matrix<F, C, D, ?> m1,
+        Matrix<F, C, D, ?> m2
 )
-implements Matrix<F, R1, C, R2, D, MatrixAddition<F, R1, C, R2, D>>
+implements Matrix<F, C, D, MatrixAddition<F, C, D>>
 {
     @Override
     public C apply(D vector) {
@@ -45,13 +44,13 @@ implements Matrix<F, R1, C, R2, D, MatrixAddition<F, R1, C, R2, D>>
     }
 
     @Override
-    public MatrixAddition<F, R2, D, R1, C> transpose() {
+    public MatrixAddition<F, D, C> transpose() {
         // (A + B)' = A' + B'
         return new MatrixAddition<>(m1.transpose(), m2.transpose());
     }
 
     @Override
-    public MatrixAddition<F, R1, C, R2, D> mult(F scalar) {
+    public MatrixAddition<F, C, D> mult(F scalar) {
         // Distributive law:
         // (A + B) * a = (A * a + B * a)
         return new MatrixAddition<>(m1.mult(scalar), m2.mult(scalar));

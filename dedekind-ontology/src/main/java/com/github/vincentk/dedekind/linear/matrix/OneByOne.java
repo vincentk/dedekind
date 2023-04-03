@@ -1,6 +1,7 @@
 package com.github.vincentk.dedekind.linear.matrix;
 
 import com.github.vincentk.dedekind.algebra.Equality;
+import com.github.vincentk.dedekind.algebra.binary.Transposed;
 import com.github.vincentk.dedekind.algebra.unary.Ring;
 import com.github.vincentk.dedekind.linear.finite.One;
 
@@ -17,7 +18,7 @@ import com.github.vincentk.dedekind.linear.finite.One;
 public record OneByOne<F extends Ring<F> & Equality<F>>
 (One<F> val)
 implements
-Square<F, One<F>, One<F>, OneByOne<F>, OneByOne<F>>
+Square<F, Transposed<F, One<F>>, OneByOne<F>, OneByOne<F>>
 {
 
     // Scalar multiplication:
@@ -28,8 +29,8 @@ Square<F, One<F>, One<F>, OneByOne<F>, OneByOne<F>>
 
     // Matrix multiplication with a column vector:
     @Override
-    public One<F> apply(One<F> vector) {
-        return One.one(val.dot(vector));
+    public Transposed<F, One<F>> apply(Transposed<F, One<F>> vector) {
+        return One.one(val.dot(vector)).transpose();
     }
 
     @Override

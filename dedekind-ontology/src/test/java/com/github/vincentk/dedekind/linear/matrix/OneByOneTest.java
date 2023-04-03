@@ -24,11 +24,11 @@ public class OneByOneTest {
         assertThat(X2).isInstanceOf(MatrixAddition.class);
 
         // 2 * X * {1} = {2}
-        final var x2 = X2.apply(x);
+        final var x2 = X2.apply(x.transpose()).transpose();
         assertThat(x2).isEqualTo(one(Z.TWO));
 
         // {2} * {1} = 2
-        assertThat(x2.dot(x)).isEqualTo(Z.TWO);
+        assertThat(x2.dot(x.transpose())).isEqualTo(Z.TWO);
     }
 
     @Test
@@ -49,11 +49,11 @@ public class OneByOneTest {
         assertThat(X4).isInstanceOf(MatrixMultiplication.class);
 
         // (2 * X) ^ 2 * {1} = {2}
-        final var x4 = X4.apply(x);
+        final var x4 = X4.apply(x.transpose()).transpose();
         assertThat(x4).isEqualTo(one(Z.integer(4)));
 
         // {2} * {1} = 2
-        assertThat(x4.dot(x)).isEqualTo(Z.integer(4));
+        assertThat(x4.dot(x.transpose())).isEqualTo(Z.integer(4));
     }
 
     @Test
@@ -65,7 +65,7 @@ public class OneByOneTest {
         final OneByOne<Z> X = new OneByOne<>(x);
 
         // {{2}} {{2}} {3} = {{ 4 }} {3} = {12}
-        final One<Z> result = X.compose(X).apply(one(Z.integer(3)));
+        final var result = X.compose(X).apply(one(Z.integer(3)).transpose()).transpose();
 
         assertThat(result).isEqualTo(one(Z.integer(12)));
     }

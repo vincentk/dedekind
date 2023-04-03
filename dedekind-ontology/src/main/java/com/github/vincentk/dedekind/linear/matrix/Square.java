@@ -3,7 +3,6 @@
  */
 package com.github.vincentk.dedekind.linear.matrix;
 
-import com.github.vincentk.dedekind.algebra.binary.Bracket.Bra;
 import com.github.vincentk.dedekind.algebra.binary.Bracket.Ket;
 import com.github.vincentk.dedekind.algebra.unary.SemiRing;
 
@@ -14,26 +13,24 @@ public interface Square<
 // Ring:
 F extends SemiRing<F>,
 
-//Implementation detail:
-R2 extends Bra<F, D, R2>,
 // Domain of linear map:
-D extends Ket<F, R2, D>,
+D extends Ket<F, ?, D>,
 
 // Type short-hand for change of basis (see below).
-S extends Square<F, R2, D, S, ?>,
+S extends Square<F, D, S, ?>,
 
 // Self-reference:
-M extends Square<F, R2, D, S, M>
+M extends Square<F, D, S, M>
 >
 extends
 // A square matrix is a matrix where domain and range are the same:
-Matrix<F, R2, D, R2, D, M>
+Matrix<F, D, D, M>
 // Multiplication of two square matrices produces a new square matrix of the same dimension:
 // Monoid.M<S>
 {
     // Transposing a square matrix gives another square matrix:
     @Override
-    Square<F, R2, D, ?, ?> transpose();
+    Square<F, D, ?, ?> transpose();
     
     // Matrix multiplication with a square matrix.
     // Essentially a change of basis.

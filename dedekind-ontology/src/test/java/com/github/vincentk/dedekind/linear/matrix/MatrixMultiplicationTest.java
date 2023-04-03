@@ -19,7 +19,7 @@ public class MatrixMultiplicationTest {
         
         final var sut = m1.compose(m2);
         
-        final Matrix<B, One<B>, One<B>, One<B>, One<B>, ?> res = sut.transpose();
+        final Matrix<B, ?, ?, ?> res = sut.transpose();
         
         assertThat(res).isNotNull();
     }

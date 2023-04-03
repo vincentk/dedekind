@@ -41,29 +41,33 @@ public class OneTest {
     }
 
     @Test
-    public void outerProductTest() {
+    public void testOuterProduct() {
 
         final var zero = One.one(ZERO);
 
-        assertThat(zero.outer(zero)).isInstanceOf(LinearMap.class);
+        final var zerot = zero.transpose();
 
-        assertThat(zero.outer(zero).apply(zero)).isEqualTo(zero);
+        assertThat(zerot.outer(zero)).isInstanceOf(LinearMap.class);
+
+        assertThat(zerot.outer(zero).apply(zerot).transpose()).isEqualTo(zero);
 
         final var one = One.one(ONE);
+        final var onet = one.transpose();
         
-        assertThat(zero.outer(one).apply(zero)).isEqualTo(zero);
+        assertThat(zerot.outer(one).apply(zerot).transpose()).isEqualTo(zero);
 
-        assertThat(one.outer(one).apply(one)).isEqualTo(one);
-        
+        assertThat(onet.outer(one).apply(onet).transpose()).isEqualTo(one);
+
         final var two = One.one(TWO);
-        
-        assertThat(two.outer(one).apply(one)).isEqualTo(two);
+        final var twot = two.transpose();
+
+        assertThat(twot.outer(one).apply(onet).transpose()).isEqualTo(two);
 
         final var four = two.plus(two);
-        
-        assertThat(two.outer(two).apply(one)).isEqualTo(four);
-        
-        assertThat(two.outer(two).apply(two)).isEqualTo(four.plus(four));
+
+        assertThat(twot.outer(two).apply(onet).transpose()).isEqualTo(four);
+
+        assertThat(twot.outer(two).apply(twot).transpose()).isEqualTo(four.plus(four));
     }
 
     private static void checkTimes(Z expected, Z a, Z b) {

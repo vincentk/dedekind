@@ -14,17 +14,17 @@ public class OuterProductTest {
 
     private final One<B> t1 = One.one(B.TRUE), f1 = One.one(B.FALSE);
 
-    private final OuterProduct<B, One<B>, One<B>, One<B>, One<B>> subject = t1.transpose().outer(f1);    
+    private final OuterProduct<B, ?, ?, ?, ?> subject = t1.transpose().outer(f1);    
 
     @Test
     public void testTranspose() {
 
-        assertThat(subject.transpose().bra()).isEqualTo(t1.transpose());
+        assertThat(subject.transpose().bra()).isEqualTo(t1);
     }
 
     @Test
     public void testMultiplication() {
 
-        assertThat(subject.mult(B.FALSE).ket()).isEqualTo(f1);
+        assertThat(subject.mult(B.FALSE).ket()).isEqualTo(f1.transpose());
     }
 }

@@ -31,7 +31,7 @@ public class ConcatenationTest {
 
         final One<Z> v1 = one(b1.asInt());
 
-        final var tst = new Concatenation<Z, One<Z>, One<Z>, One<Z>, One<Z>>(v1, v1);
+        final var tst = new Concatenation<>(v1, v1);
 
         final Bra<Z, ?, ?> sum = tst.plus(tst);
 

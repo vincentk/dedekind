@@ -16,7 +16,9 @@ public interface Module<
 R extends Ring<R>,
 C extends Cardinality,
 N extends Module<R, C, N>>
-extends SemiModule<R, N>, Group.P<N>
+extends
+SemiModule<R, N>,
+Group.P<N>
 {
     @Override
     N mult(R scalar);

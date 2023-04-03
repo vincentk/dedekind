@@ -2,12 +2,11 @@ package com.github.vincentk.dedekind.linear.finite;
 
 import com.github.vincentk.dedekind.algebra.Equality;
 import com.github.vincentk.dedekind.algebra.binary.Bracket.Bra;
-import com.github.vincentk.dedekind.algebra.binary.Bracket.Ket;
 import com.github.vincentk.dedekind.algebra.binary.Module;
+import com.github.vincentk.dedekind.algebra.binary.Transposed;
 import com.github.vincentk.dedekind.algebra.peano.Peano.Succ;
 import com.github.vincentk.dedekind.algebra.peano.Peano.Zero;
 import com.github.vincentk.dedekind.algebra.unary.Ring;
-import com.github.vincentk.dedekind.bilinear.OuterProduct;
 
 /**
  * Vector with just one element.
@@ -19,8 +18,8 @@ import com.github.vincentk.dedekind.bilinear.OuterProduct;
 public record One<R extends Ring<R> & Equality<R>> (R val)
 implements
 Module<R, Succ<Zero>, One<R>>,
-Bra<R, One<R>, One<R>>,
-Ket<R, One<R>, One<R>>,
+Bra<R, Transposed<R, One<R>>, One<R>>,
+//Ket<R, One<R>, One<R>>,
 Equality<One<R>>
 {
     @Override
@@ -46,22 +45,13 @@ Equality<One<R>>
     }
 
     @Override
-    public One<R> transpose() {
-        return this;
+    public Transposed<R, One<R>> transpose() {
+        return new Transposed<>(this);
     }
 
     @Override
-    public R dot(One<R> column) {
-        return val.times(column.val);
-    }
-
-    @Override
-    public <
-    K1 extends Ket<R, B1, K1>,
-    B1 extends Bra<R, K1, B1>
-    >
-    OuterProduct<R, One<R>, One<R>, K1, B1> outer(B1 bra) {
-        return new OuterProduct<>(this, bra);
+    public R dot(Transposed<R, One<R>> column) {
+        return val.times(column.transpose().val());
     }
 
     @Override
