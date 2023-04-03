@@ -9,8 +9,8 @@ The hope is to imitate terminology as one would find it in e.g.
 # Preliminary Results
 
 * A fairly direct implementation of concepts from [set theory](https://github.com/vincentk/dedekind/blob/main/dedekind-ontology/src/main/java/com/github/vincentk/dedekind/sets/) (`Set`, `Cardinality`, ...) and [abstract algebra](https://github.com/vincentk/dedekind/tree/main/dedekind-ontology/src/main/java/com/github/vincentk/dedekind/algebra) as core java `interface` types.
-  1. Operations on one set ('scalars'): (`Monoid`, `Group`, `Ring`, `Field`, ...)
-  2. Operations on two sets ('vectors'): (`Module`, `Vector`, `ProductSpace`, ...)
+  1. Operations on one set ('scalars'): (`Monoid<T>`, `Group<T>`, `Ring<T>`, `Field<T>`, ...) with one generic parameter.
+  2. Operations on two sets ('vectors'): (`Module<M, T>`, `Vector<M, T>`, `ProductSpace<M, T>`, ...) with two or more generic parameters.
 
 * Sample implementations of scalar [number](https://github.com/vincentk/dedekind/tree/main/dedekind-ontology/src/main/java/com/github/vincentk/dedekind/numbers) systems for common types such as primitive types. \
 `SemiRing`: `int` $\rightarrow \mathbb{N}$, \
@@ -20,8 +20,9 @@ as well as some more advanced types such as [dual numbers](https://en.wikipedia.
 
 
 * Symbolic (lazy) operations in 
-  1. finite dimensions (tuples, e.g. $\mathbb C^n$) 
-  2. infinite dimension (functions, e.g. $\mathbb C \rightarrow \mathbb C$) \
+  1. finite dimensions (ordered tuples), optionally with mixed types e.g. $\mathbb R^2$, $(\mathbb N \times \mathbb R)$, $\mathbb C^n$,
+  2. countably finite dimensions (ordered streams), with homogeneous types e.g. $\mathbb R^\infty$,
+  2. uncountably infinite dimension (functions, e.g. $\mathbb C \rightarrow \mathbb C$) \
   of
   * continuous values ($\mathbb R^n$, $\mathbb C^n$, ..., `Vector<F extends Field<F>>`) or
   * discrete values ($\mathbb B^n$, $\mathbb Z^n$, ..., `Module<R extends Ring<R>>`).
@@ -29,15 +30,7 @@ as well as some more advanced types such as [dual numbers](https://en.wikipedia.
 
 ## Implementation Notes:
 
-A collection of type declarations attempting to provide
-
-1. A "purely functional" embedding of concepts from abstract algebra (`Field`, `Module`, `Monoid`, `Ring`) in the java type system (`interface`).
-2. An identification of the resulting java types to java primitive values (`byte`, `double`, `int`).
-3. Extension of the above to provide sample implementations for e.g. complex numbers, dual numbers, rational numbers.
-
-
 A goal being to provide some support for type-checked statements such as:
-
 
 * Type checks for common subset operations such as N &sub; Z &sub; Q &sub; R &sub; C.
 [Test case](src/test/java/com/github/vincentk/dedekind/sets/FieldsTest.java)
