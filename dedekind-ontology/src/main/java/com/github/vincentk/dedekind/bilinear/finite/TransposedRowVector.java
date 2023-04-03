@@ -1,6 +1,9 @@
 package com.github.vincentk.dedekind.bilinear.finite;
 
 import com.github.vincentk.dedekind.algebra.SemiRing;
+import com.github.vincentk.dedekind.algebra.binary.Vector;
+import com.github.vincentk.dedekind.bilinear.Bracket.Bra;
+import com.github.vincentk.dedekind.bilinear.Bracket.Ket;
 import com.github.vincentk.dedekind.bilinear.OuterProduct;
 import com.github.vincentk.dedekind.sets.Cardinality;
 
@@ -16,11 +19,12 @@ public record TransposedRowVector<
 F extends SemiRing<F>,
 C extends Cardinality.Finite,
 // Domain:
-D extends FiniteRowVector<F, C, TransposedRowVector<F, C, D>, D>
+D extends Vector<F, C, D> & Bra<F, TransposedRowVector<F, C, D>, D>
 >
 (D val)
 implements
-FiniteColumnVector<F, C, D, TransposedRowVector<F, C, D>>
+Vector<F, C, TransposedRowVector<F, C, D>>,
+Ket<F, D, TransposedRowVector<F, C, D>>
 {
     @Override
     public D transpose() {
@@ -35,11 +39,6 @@ FiniteColumnVector<F, C, D, TransposedRowVector<F, C, D>>
     @Override
     public TransposedRowVector<F, C, D> plus(TransposedRowVector<F, C, D> vector) {
         return new TransposedRowVector<>(val.plus(vector.val));
-    }
-
-    @Override
-    public long cardinality() {
-        return val.cardinality();
     }
 
     @Override

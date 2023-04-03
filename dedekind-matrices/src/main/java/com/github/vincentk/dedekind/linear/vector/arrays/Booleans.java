@@ -8,8 +8,9 @@ import java.util.function.IntFunction;
 import java.util.stream.IntStream;
 
 import com.github.vincentk.dedekind.algebra.Equality;
+import com.github.vincentk.dedekind.algebra.binary.Vector;
 import com.github.vincentk.dedekind.arrays.RandomAccess;
-import com.github.vincentk.dedekind.bilinear.finite.FiniteRowVector;
+import com.github.vincentk.dedekind.bilinear.Bracket.Bra;
 import com.github.vincentk.dedekind.bilinear.finite.TransposedRowVector;
 import com.github.vincentk.dedekind.numbers.B;
 import com.github.vincentk.dedekind.sets.Cardinality;
@@ -20,11 +21,8 @@ C extends Cardinality.Finite
 >
 (boolean[] values)
 implements
-FiniteRowVector<
-B,
-C,
-TransposedRowVector<B, C, Booleans<C>>,
-Booleans<C>>,
+Vector<B, C, Booleans<C>>,
+Bra<B, TransposedRowVector<B, C, Booleans<C>>, Booleans<C>>,
 RandomAccess<B>,
 Equality<Booleans<C>>
 {
@@ -59,11 +57,6 @@ Equality<Booleans<C>>
     @Override
     public TransposedRowVector<B, C, Booleans<C>> transpose() {
         return new TransposedRowVector<>(this);
-    }
-
-    @Override
-    public long cardinality() {
-        return values.length;
     }
 
     @Override

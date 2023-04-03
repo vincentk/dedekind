@@ -2,11 +2,12 @@ package com.github.vincentk.dedekind.linear.finite;
 
 import com.github.vincentk.dedekind.algebra.Equality;
 import com.github.vincentk.dedekind.algebra.Ring;
+import com.github.vincentk.dedekind.algebra.binary.Vector;
 import com.github.vincentk.dedekind.algebra.peano.Peano.Succ;
 import com.github.vincentk.dedekind.algebra.peano.Peano.Zero;
+import com.github.vincentk.dedekind.bilinear.Bracket.Bra;
+import com.github.vincentk.dedekind.bilinear.Bracket.Ket;
 import com.github.vincentk.dedekind.bilinear.OuterProduct;
-import com.github.vincentk.dedekind.bilinear.finite.FiniteColumnVector;
-import com.github.vincentk.dedekind.bilinear.finite.FiniteRowVector;
 
 /**
  * Vector with just one element.
@@ -17,8 +18,9 @@ import com.github.vincentk.dedekind.bilinear.finite.FiniteRowVector;
  */
 public record One<R extends Ring<R> & Equality<R>> (R val)
 implements
-FiniteColumnVector<R, Succ<Zero>, One<R>, One<R>>,
-FiniteRowVector<R, Succ<Zero>, One<R>, One<R>>,
+Vector<R, Succ<Zero>, One<R>>,
+Bra<R, One<R>, One<R>>,
+Ket<R, One<R>, One<R>>,
 Equality<One<R>>
 {
     @Override
@@ -41,11 +43,6 @@ Equality<One<R>>
     One<R>
     one(R val) {
         return new One<>(val);
-    }
-
-    @Override
-    public long cardinality() {
-        return 1;
     }
 
     @Override
