@@ -13,6 +13,7 @@ The hope is to imitate terminology as one would find it in e.g.
   2. Operations on two sets ('vectors'): (`Module<M, T>`, `Vector<M, T>`, `ProductSpace<M, T>`, ...) with at least two generic parameters.
 
 * Sample implementations of scalar [number](https://github.com/vincentk/dedekind/tree/main/dedekind-ontology/src/main/java/com/github/vincentk/dedekind/numbers) systems for common types such as primitive types. \
+`Monoid`: `String`, tuples with pairwise addition, ...
 `SemiRing`: `int` $\rightarrow \mathbb{N}$, \
 `Ring`: `boolean` $\rightarrow \mathbb{B}$, `int` $\rightarrow \mathbb{Z}$, \
 `Field`: `(int, int)` $\rightarrow \mathbb{Q}$, `double` $\rightarrow \mathbb{R}$, `(double, double)` $\rightarrow \mathbb{C}$ \
@@ -20,7 +21,7 @@ as well as some more advanced types such as [dual numbers](https://en.wikipedia.
 
 
 * Symbolic (lazy) operations in 
-  1. finite dimensions (ordered tuples) $\mathbb R^2$, $\mathbb C^n$, optionally with mixed types e.g. $(\mathbb B^2, \mathbb N)$, $(\mathbb N, \mathbb R^3)$,
+  1. finite dimensions (ordered tuples) $\mathbb R^2$, $\mathbb C^n$,
   2. countably finite dimensions (ordered streams), with homogeneous types e.g. $\mathbb R^\infty$,
   2. uncountably infinite dimension (functions, e.g. $\mathbb C \rightarrow \mathbb C$) \
   of
