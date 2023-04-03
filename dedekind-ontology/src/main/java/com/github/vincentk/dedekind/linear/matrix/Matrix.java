@@ -15,13 +15,9 @@ public interface Matrix<
 // Ring:
 F extends SemiRing<F>,
 
-// Implementation detail:
-//B1 extends Bra<F, K1, B1>,
 // Range of the linear map:
 K1 extends Ket<F, ?, K1>,
 
-// Implementation detail:
-//B2 extends Bra<F, K2, B2>,
 // Domain of linear map:
 K2 extends Ket<F, ?, K2>,
 

@@ -7,30 +7,14 @@ import com.github.vincentk.dedekind.algebra.unary.SemiRing;
  * A lazy / symbolic implementation of matrix multiplication.
  * 
  * @param <F>
- * @param <R1>
  * @param <C>
- * @param <R2>
  * @param <D>
- * @param <R3>
  * @param <E>
  */
 public record MatrixMultiplication<
-//Ring:
 F extends SemiRing<F>,
-
-//Implementation detail:
-//R1 extends Bra<F, C, R1>,
-//Range of the linear map:
 C extends Ket<F, ?, C>,
-
-//Implementation detail:
-//R2 extends Bra<F, D, R2>,
-//Domain of linear map:
 D extends Ket<F, ?, D>,
-
-//Implementation detail:
-//R3 extends Bra<F, E, R3>,
-//Domain of linear map:
 E extends Ket<F, ?, E>
 >
 (
