@@ -1,6 +1,7 @@
 package com.github.vincentk.dedekind.bilinear;
 
 import com.github.vincentk.dedekind.algebra.SemiRing;
+import com.github.vincentk.dedekind.algebra.binary.Vector;
 import com.github.vincentk.dedekind.bilinear.Bracket.Bra;
 import com.github.vincentk.dedekind.sets.Cardinality;
 
@@ -15,7 +16,7 @@ D extends ColumnVector<F, C, S, D>,
 S extends RowVector<F, C, D, S>
 >
 extends
-Covector<F, C, D, S>,
+Vector<F, C, S>,
 Bra<F, D, S>
 {
 }
