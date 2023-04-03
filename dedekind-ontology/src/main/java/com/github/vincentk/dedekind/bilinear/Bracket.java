@@ -4,6 +4,7 @@
 package com.github.vincentk.dedekind.bilinear;
 
 import com.github.vincentk.dedekind.algebra.SemiRing;
+import com.github.vincentk.dedekind.algebra.binary.Dual;
 import com.github.vincentk.dedekind.algebra.binary.SemiModule;
 
 /**

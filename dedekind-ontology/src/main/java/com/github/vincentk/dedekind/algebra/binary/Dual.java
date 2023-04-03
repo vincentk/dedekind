@@ -1,4 +1,4 @@
-package com.github.vincentk.dedekind.bilinear;
+package com.github.vincentk.dedekind.algebra.binary;
 
 /**
  * A notion of a "transpose" / dual.
