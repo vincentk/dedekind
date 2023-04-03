@@ -1,5 +1,34 @@
 # dedekind-ontology
 
+An attempt to express concepts from abstract algebra in the java type system as directly as possible.
+The hope is to imitate terminology as one would find it in e.g.
+1. U. Stammbach: [Lineare Algebra](https://people.math.ethz.ch/~stammb/linalg.html)
+2. M. Spivak: Calculus On Manifolds
+
+
+# Preliminary Results
+
+* A fairly direct implementation of concepts from [set theory](https://github.com/vincentk/dedekind/blob/main/dedekind-ontology/src/main/java/com/github/vincentk/dedekind/sets/) (`Set`, `Cardinality`, ...) and [abstract algebra](https://github.com/vincentk/dedekind/tree/main/dedekind-ontology/src/main/java/com/github/vincentk/dedekind/algebra) as core java `interface` types.
+  1. Operations on one set ('scalars'): (`Monoid`, `Group`, `Ring`, `Field`, ...)
+  2. Operations on two sets ('vectors'): (`Module`, `Vector`, `ProductSpace`, ...)
+
+* Sample implementations of scalar [number](https://github.com/vincentk/dedekind/tree/main/dedekind-ontology/src/main/java/com/github/vincentk/dedekind/numbers) systems for common types such as primitive types. \
+`SemiRing`: `int` $\rightarrow \mathbb{N}$, \
+`Ring`: `boolean` $\rightarrow \mathbb{B}$, `int` $\rightarrow \mathbb{Z}$, \
+`Field`: `(int, int)` $\rightarrow \mathbb{Q}$, `double` $\rightarrow \mathbb{R}$, `(double, double)` $\rightarrow \mathbb{C}$ \
+as well as some more advanced types such as [dual numbers](https://en.wikipedia.org/wiki/Dual_number).
+
+
+* Symbolic (lazy) operations in 
+  a. finite dimensions (tuples, e.g. $\mathbb C^n$) and 
+  b. infinite dimension (functions, e.g. $\mathbb C \rightarrow \mathbb C$)
+  of
+  * continuous values ($\mathbb R^n$, $\mathbb C^n$, ..., `Vector<F extends Field<F>>`) or
+  * discrete values ($\mathbb B^n$, $\mathbb Z^n$, ..., `Module<R extends Ring<R>>`).
+
+
+## Implementation Notes:
+
 A collection of type declarations attempting to provide
 
 1. A "purely functional" embedding of concepts from abstract algebra (`Field`, `Module`, `Monoid`, `Ring`) in the java type system (`interface`).
