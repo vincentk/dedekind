@@ -1,9 +1,9 @@
 package com.github.vincentk.dedekind.bilinear.finite;
 
 import com.github.vincentk.dedekind.algebra.SemiRing;
+import com.github.vincentk.dedekind.algebra.binary.Bracket.Bra;
+import com.github.vincentk.dedekind.algebra.binary.Bracket.Ket;
 import com.github.vincentk.dedekind.algebra.binary.Vector;
-import com.github.vincentk.dedekind.bilinear.Bracket.Bra;
-import com.github.vincentk.dedekind.bilinear.Bracket.Ket;
 import com.github.vincentk.dedekind.bilinear.OuterProduct;
 import com.github.vincentk.dedekind.sets.Cardinality;
 

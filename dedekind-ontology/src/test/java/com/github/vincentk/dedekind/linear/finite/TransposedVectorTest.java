@@ -14,8 +14,8 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import com.github.vincentk.dedekind.bilinear.Bracket.Bra;
-import com.github.vincentk.dedekind.bilinear.Bracket.Ket;
+import com.github.vincentk.dedekind.algebra.binary.Bracket.Bra;
+import com.github.vincentk.dedekind.algebra.binary.Bracket.Ket;
 import com.github.vincentk.dedekind.numbers.N;
 import com.github.vincentk.dedekind.numbers.Z;
 
