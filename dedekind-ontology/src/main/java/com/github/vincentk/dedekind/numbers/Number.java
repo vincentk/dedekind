@@ -4,7 +4,7 @@
 package com.github.vincentk.dedekind.numbers;
 
 import com.github.vincentk.dedekind.algebra.Equality;
-import com.github.vincentk.dedekind.algebra.SemiRing;
+import com.github.vincentk.dedekind.algebra.unary.SemiRing;
 import com.github.vincentk.dedekind.sets.Set;
 
 /**

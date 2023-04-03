@@ -2,7 +2,7 @@ package com.github.vincentk.dedekind.numbers;
 
 import static com.github.vincentk.dedekind.numbers.Q.UNIT;
 import static com.github.vincentk.dedekind.numbers.Q.ZERO;
-import static com.github.vincentk.dedekind.numbers.Q.of;
+import static com.github.vincentk.dedekind.numbers.Q.rational;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
@@ -70,6 +70,6 @@ public class QsTest {
 	}
 
 	private static Q q(int en, int de) {
-		return of(en, de);
+		return rational(en, de);
 	}
 }

@@ -3,7 +3,7 @@
  */
 package com.github.vincentk.dedekind.numbers;
 
-import com.github.vincentk.dedekind.algebra.Monoid;
+import com.github.vincentk.dedekind.algebra.unary.Monoid;
 import com.github.vincentk.dedekind.sets.Fields;
 import com.github.vincentk.dedekind.sets.Set;
 

@@ -1,6 +1,6 @@
 package com.github.vincentk.dedekind.numbers;
 
-import com.github.vincentk.dedekind.algebra.Field;
+import com.github.vincentk.dedekind.algebra.unary.Field;
 import com.github.vincentk.dedekind.sets.Cardinality;
 
 /**
@@ -8,9 +8,9 @@ import com.github.vincentk.dedekind.sets.Cardinality;
  */
 public interface R extends NumberLine<Cardinality.Uncountable, R>, Field.Reals<R> {
 
-    public static final R ZERO = of(0), ONE = of(1), TWO = of(2), THREE = of(3);
+    public static final R ZERO = real(0), ONE = real(1), TWO = real(2), THREE = real(3);
 
-    public static R of(double val) {
+    public static R real(double val) {
         return new Re(val);
     }
 
@@ -22,32 +22,32 @@ public interface R extends NumberLine<Cardinality.Uncountable, R>, Field.Reals<R
 
         @Override
         public R plus(R that) {
-            return of(this.doubleVal + that.doubleVal());
+            return real(this.doubleVal + that.doubleVal());
         }
 
         @Override
         public R minus(R that) {
-            return of(this.doubleVal - that.doubleVal());
+            return real(this.doubleVal - that.doubleVal());
         }
 
         @Override
         public R times(R that) {
-            return of(this.doubleVal * that.doubleVal());
+            return real(this.doubleVal * that.doubleVal());
         }
 
         @Override
         public R divide(R that) {
-            return of(this.doubleVal / that.doubleVal());
+            return real(this.doubleVal / that.doubleVal());
         }
 
         @Override
         public R negate() {
-            return of(-doubleVal);
+            return real(-doubleVal);
         }
 
         @Override
         public R inverse() {
-            return of(1.0 / doubleVal);
+            return real(1.0 / doubleVal);
         }
 
         @Override
@@ -85,7 +85,7 @@ public interface R extends NumberLine<Cardinality.Uncountable, R>, Field.Reals<R
 
         @Override
         public R sqrt() {
-            return of(Math.sqrt(doubleVal));
+            return real(Math.sqrt(doubleVal));
         }
     }
 }

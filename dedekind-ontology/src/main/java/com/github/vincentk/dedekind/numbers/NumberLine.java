@@ -3,8 +3,8 @@
  */
 package com.github.vincentk.dedekind.numbers;
 
-import com.github.vincentk.dedekind.algebra.Ring;
-import com.github.vincentk.dedekind.algebra.SemiRing;
+import com.github.vincentk.dedekind.algebra.unary.Ring;
+import com.github.vincentk.dedekind.algebra.unary.SemiRing;
 import com.github.vincentk.dedekind.sets.Cardinality;
 import com.github.vincentk.dedekind.sets.Fields;
 import com.github.vincentk.dedekind.sets.Set.TotalOrder;

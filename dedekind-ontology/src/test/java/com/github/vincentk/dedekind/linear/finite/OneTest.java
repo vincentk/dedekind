@@ -4,7 +4,7 @@ import static com.github.vincentk.dedekind.numbers.Z.ONE;
 import static com.github.vincentk.dedekind.numbers.Z.THREE;
 import static com.github.vincentk.dedekind.numbers.Z.TWO;
 import static com.github.vincentk.dedekind.numbers.Z.ZERO;
-import static com.github.vincentk.dedekind.numbers.Z.of;
+import static com.github.vincentk.dedekind.numbers.Z.integer;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -23,7 +23,7 @@ public class OneTest {
         checkPlus(ONE, ZERO, ONE);
         checkPlus(TWO, ONE, ONE);
         checkPlus(THREE, ONE, TWO);
-        checkPlus(of(6), THREE, THREE);
+        checkPlus(integer(6), THREE, THREE);
     }
 
     private static void checkPlus(Z expected, Z a, Z b) {
@@ -37,7 +37,7 @@ public class OneTest {
         checkTimes(ZERO, ZERO, ONE);
         checkTimes(ONE, ONE, ONE);
         checkTimes(TWO, ONE, TWO);
-        checkTimes(of(9), THREE, THREE);
+        checkTimes(integer(9), THREE, THREE);
     }
 
     @Test

@@ -50,10 +50,10 @@ public class OneByOneTest {
 
         // (2 * X) ^ 2 * {1} = {2}
         final var x4 = X4.apply(x);
-        assertThat(x4).isEqualTo(one(Z.of(4)));
+        assertThat(x4).isEqualTo(one(Z.integer(4)));
 
         // {2} * {1} = 2
-        assertThat(x4.dot(x)).isEqualTo(Z.of(4));
+        assertThat(x4.dot(x)).isEqualTo(Z.integer(4));
     }
 
     @Test
@@ -65,8 +65,8 @@ public class OneByOneTest {
         final OneByOne<Z> X = new OneByOne<>(x);
 
         // {{2}} {{2}} {3} = {{ 4 }} {3} = {12}
-        final One<Z> result = X.compose(X).apply(one(Z.of(3)));
+        final One<Z> result = X.compose(X).apply(one(Z.integer(3)));
 
-        assertThat(result).isEqualTo(one(Z.of(12)));
+        assertThat(result).isEqualTo(one(Z.integer(12)));
     }
 }

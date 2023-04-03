@@ -1,8 +1,8 @@
 package com.github.vincentk.dedekind.algebra.binary;
 
-import com.github.vincentk.dedekind.algebra.Monoid;
-import com.github.vincentk.dedekind.algebra.Ring;
-import com.github.vincentk.dedekind.algebra.SemiRing;
+import com.github.vincentk.dedekind.algebra.unary.Monoid;
+import com.github.vincentk.dedekind.algebra.unary.Ring;
+import com.github.vincentk.dedekind.algebra.unary.SemiRing;
 
 /**
  * Definition of scalar multiplication over a {@link Ring}.

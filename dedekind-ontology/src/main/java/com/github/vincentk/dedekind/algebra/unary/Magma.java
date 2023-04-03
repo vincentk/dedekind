@@ -1,5 +1,7 @@
-package com.github.vincentk.dedekind.algebra;
+package com.github.vincentk.dedekind.algebra.unary;
 
+import com.github.vincentk.dedekind.algebra.Addition;
+import com.github.vincentk.dedekind.algebra.Multiplication;
 import com.github.vincentk.dedekind.sets.Set;
 
 /**

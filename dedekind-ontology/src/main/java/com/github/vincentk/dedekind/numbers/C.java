@@ -1,6 +1,6 @@
 package com.github.vincentk.dedekind.numbers;
 
-import com.github.vincentk.dedekind.algebra.Field;
+import com.github.vincentk.dedekind.algebra.unary.Field;
 
 /**
  * The set of complex numbers.
@@ -10,10 +10,10 @@ public interface C extends Number<C>, Field.Complex<C>, MetricSpace<C, R> {
     public R re();
     public R im();
 
-    public static final C ZERO = of(0, 0), R1 = of(1, 0), I1 = of(0, 1), UNIT = of(1, 1);
+    public static final C ZERO = complex(0, 0), R1 = complex(1, 0), I1 = complex(0, 1), UNIT = complex(1, 1);
 
-    public static C of(double re, double im) {
-        return of(R.of(re), R.of(im));
+    public static C complex(double re, double im) {
+        return of(R.real(re), R.real(im));
     }
 
     public static C of(R re, R im) {

@@ -3,7 +3,7 @@
  */
 package com.github.vincentk.dedekind.numbers;
 
-import com.github.vincentk.dedekind.algebra.SemiRing;
+import com.github.vincentk.dedekind.algebra.unary.SemiRing;
 import com.github.vincentk.dedekind.sets.Cardinality;
 import com.github.vincentk.dedekind.sets.Set;
 
@@ -46,7 +46,7 @@ MetricSpace<N, N>
     }
     
     default Z asInt() {
-        return Z.of(integer());
+        return Z.integer(integer());
     }
 
     record Ne (int integer) implements N {
