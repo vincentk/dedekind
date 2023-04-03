@@ -6,9 +6,8 @@ package com.github.vincentk.dedekind.linear.vector;
 import com.github.vincentk.dedekind.algebra.SemiRing;
 import com.github.vincentk.dedekind.algebra.binary.Bracket.Bra;
 import com.github.vincentk.dedekind.algebra.binary.Bracket.Ket;
-import com.github.vincentk.dedekind.algebra.binary.Vector;
-import com.github.vincentk.dedekind.bilinear.finite.TransposedRowVector;
-import com.github.vincentk.dedekind.sets.Cardinality;
+import com.github.vincentk.dedekind.algebra.binary.SemiModule;
+import com.github.vincentk.dedekind.algebra.binary.Transposed;
 
 /**
  * Vector concatenation arises frequently in practical applications.
@@ -22,20 +21,17 @@ import com.github.vincentk.dedekind.sets.Cardinality;
  */
 public record Concatenation<
 F extends SemiRing<F>,
-C extends Cardinality.Finite,
 
-F1 extends Cardinality.Finite,
 C1 extends Ket<F, R1, C1>,
-R1 extends Vector<F, F1, R1> & Bra<F, C1, R1>,
+R1 extends SemiModule<F, R1> & Bra<F, C1, R1>, //FIXME & Cardinality.Finite,
 
-F2 extends Cardinality.Finite,
 C2 extends Ket<F, R2, C2>,
-R2 extends Vector<F, F2, R2> &  Bra<F, C2, R2>
+R2 extends SemiModule<F, R2> &  Bra<F, C2, R2>
 >
 (R1 fst, R2 snd)
 implements
-Vector<F, C, Concatenation<F, C, F1, C1, R1, F2, C2, R2>>,
-Bra<F, TransposedRowVector<F, C, Concatenation<F, C, F1, C1, R1, F2, C2, R2>>, Concatenation<F, C, F1, C1, R1, F2, C2, R2>>
+SemiModule<F, Concatenation<F, C1, R1, C2, R2>>,
+Bra<F, Transposed<F, Concatenation<F, C1, R1, C2, R2>>, Concatenation<F, C1, R1, C2, R2>>
 {
     // Apparently required to spell this out, else type inference might fail:
     public Concatenation(R1 fst, R2 snd) {
@@ -44,24 +40,24 @@ Bra<F, TransposedRowVector<F, C, Concatenation<F, C, F1, C1, R1, F2, C2, R2>>, C
     }
 
     @Override
-    public Concatenation<F, C, F1, C1, R1, F2, C2, R2> mult(F scalar) {
+    public Concatenation<F, C1, R1, C2, R2> mult(F scalar) {
         return new Concatenation<>(fst.mult(scalar), snd.mult(scalar));
     }
 
     @Override
-    public Concatenation<F, C, F1, C1, R1, F2, C2, R2> plus(Concatenation<F, C, F1, C1, R1, F2, C2, R2> vector) {
+    public Concatenation<F, C1, R1, C2, R2> plus(Concatenation<F, C1, R1, C2, R2> vector) {
         return new Concatenation<>(fst.plus(vector.fst), snd.plus(vector.snd));
     }
 
     @Override
-    public TransposedRowVector<F, C, Concatenation<F, C, F1, C1, R1, F2, C2, R2>> transpose() {
-        return new TransposedRowVector<>(this);
+    public Transposed<F, Concatenation<F, C1, R1, C2, R2>> transpose() {
+        return new Transposed<>(this);
     }
 
     @Override
-    public F dot(TransposedRowVector<F, C, Concatenation<F, C, F1, C1, R1, F2, C2, R2>> ket) {
+    public F dot(Transposed<F, Concatenation<F, C1, R1, C2, R2>> ket) {
 
-        final Concatenation<F, C, F1, C1, R1, F2, C2, R2> bra = ket.transpose();
+        final Concatenation<F, C1, R1, C2, R2> bra = ket.transpose();
 
         final C1 k1 = bra.fst().transpose();
 
