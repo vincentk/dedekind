@@ -3,7 +3,6 @@
  */
 package com.github.vincentk.dedekind.bilinear;
 
-import com.github.vincentk.dedekind.algebra.Monoid;
 import com.github.vincentk.dedekind.algebra.SemiRing;
 import com.github.vincentk.dedekind.algebra.binary.SemiModule;
 
@@ -23,7 +22,6 @@ extends
 // |x>' = <x| etc.:
 Dual<D>,
 // |x> + |x> = 2 |x> etc.:
-Monoid.P<S>,
 SemiModule<F, S>
 {
     /**

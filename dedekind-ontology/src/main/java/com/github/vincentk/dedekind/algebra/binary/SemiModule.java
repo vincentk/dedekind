@@ -7,13 +7,13 @@ import com.github.vincentk.dedekind.algebra.SemiRing;
 /**
  * Definition of scalar multiplication over a {@link Ring}.
  *
- * Strictly speaking, this is the definition of a "right module"
+ * Strictly speaking, this is the definition of a "right semi-module"
  * defining multiplication by a scalar from the right.
  *
  * @see https://en.wikipedia.org/wiki/Module_(mathematics)
  *
  * @param <R> the scalar ring
- * @param <M> self-type
+ * @param <N> self-type
  */
 public interface SemiModule<R extends SemiRing<R>, N extends SemiModule<R, N>>
 extends Monoid.P<N>
