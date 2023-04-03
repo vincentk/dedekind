@@ -9,8 +9,8 @@ The hope is to imitate terminology as one would find it in e.g.
 # Preliminary Results
 
 * A fairly direct implementation of concepts from [set theory](https://github.com/vincentk/dedekind/blob/main/dedekind-ontology/src/main/java/com/github/vincentk/dedekind/sets/) (`Set`, `Cardinality`, ...) and [abstract algebra](https://github.com/vincentk/dedekind/tree/main/dedekind-ontology/src/main/java/com/github/vincentk/dedekind/algebra) as core java `interface` types.
-  1. Operations on one set ('scalars'): (`Monoid<T>`, `Group<T>`, `Ring<T>`, `Field<T>`, ...) with one generic parameter.
-  2. Operations on two sets ('vectors'): (`Module<M, T>`, `Vector<M, T>`, `ProductSpace<M, T>`, ...) with two or more generic parameters.
+  1. Operations on one set ('scalars'): (`Monoid<T>`, `Group<T>`, `Ring<T>`, `Field<T>`, ...) with at least one generic parameter.
+  2. Operations on two sets ('vectors'): (`Module<M, T>`, `Vector<M, T>`, `ProductSpace<M, T>`, ...) with at least two generic parameters.
 
 * Sample implementations of scalar [number](https://github.com/vincentk/dedekind/tree/main/dedekind-ontology/src/main/java/com/github/vincentk/dedekind/numbers) systems for common types such as primitive types. \
 `SemiRing`: `int` $\rightarrow \mathbb{N}$, \
