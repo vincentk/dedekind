@@ -4,6 +4,7 @@
 package com.github.vincentk.dedekind.linear;
 
 import com.github.vincentk.dedekind.algebra.Field;
+import com.github.vincentk.dedekind.algebra.binary.Vector;
 import com.github.vincentk.dedekind.sets.Cardinality;
 
 /**

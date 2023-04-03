@@ -2,11 +2,10 @@ package com.github.vincentk.dedekind.linear.matrix;
 
 import java.util.function.Function;
 
-import com.github.vincentk.dedekind.algebra.Monoid;
 import com.github.vincentk.dedekind.algebra.SemiRing;
-import com.github.vincentk.dedekind.bilinear.Bracket.Bra;
-import com.github.vincentk.dedekind.bilinear.Bracket.Ket;
-import com.github.vincentk.dedekind.bilinear.Dual;
+import com.github.vincentk.dedekind.algebra.binary.Bracket.Bra;
+import com.github.vincentk.dedekind.algebra.binary.Bracket.Ket;
+import com.github.vincentk.dedekind.algebra.binary.Dual;
 import com.github.vincentk.dedekind.linear.LinearMap;
 
 /**
@@ -17,33 +16,31 @@ public interface Matrix<
 F extends SemiRing<F>,
 
 // Implementation detail:
-R1 extends Bra<F, C, R1>,
+B1 extends Bra<F, K1, B1>,
 // Range of the linear map:
-C extends Ket<F, R1, C>,
+K1 extends Ket<F, B1, K1>,
 
 // Implementation detail:
-R2 extends Bra<F, D, R2>,
+B2 extends Bra<F, K2, B2>,
 // Domain of linear map:
-D extends Ket<F, R2, D>,
+K2 extends Ket<F, B2, K2>,
 
 // Self-reference:
-M extends Matrix<F, R1, C, R2, D, M>
+M extends Matrix<F, B1, K1, B2, K2, M>
 >
 extends
-// Addition is supported for matrices with the same domain and range:
-Monoid.P<Matrix<F, R1, C, R2, D, ?>>,
 // Any matrix is a linear map from a vector in the domain to the co-domain:
-LinearMap<F, D, C, Matrix<F, R1, C, R2, D, ?>>,
+LinearMap<F, K2, K1, Matrix<F, B1, K1, B2, K2, ?>>,
 // A transpose is defined:
-Dual<Matrix<F, R2, D, R1, C, ?>>
+Dual<Matrix<F, B2, K2, B1, K1, ?>, M>
 {
     @Override
-    default Matrix<F, R1, C, R2, D, ?> plus(Matrix<F, R1, C, R2, D, ?> that) {
+    default Matrix<F, B1, K1, B2, K2, ?> plus(Matrix<F, B1, K1, B2, K2, ?> that) {
         return new MatrixAddition<>(this, that);
     }
     
     @Override
-    Matrix<F, R2, D, R1, C, ?> transpose();
+    Matrix<F, B2, K2, B1, K1, ?> transpose();
 
     /**
      * Matrix multiplication is the composition of two matrices.
@@ -62,7 +59,7 @@ Dual<Matrix<F, R2, D, R1, C, ?>>
     R3 extends Bra<F, E, R3>,
     E extends Ket<F, R3, E>
     >
-    Matrix<F, R1, C, R3, E, ?> compose(Matrix<F, R2, D, R3, E, ?> other) {
+    Matrix<F, B1, K1, R3, E, ?> compose(Matrix<F, B2, K2, R3, E, ?> other) {
         return new MatrixMultiplication<>(other, this);
     }
 }

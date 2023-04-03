@@ -8,9 +8,10 @@ import java.util.function.IntFunction;
 import java.util.stream.IntStream;
 
 import com.github.vincentk.dedekind.algebra.Equality;
+import com.github.vincentk.dedekind.algebra.binary.Bracket.Bra;
+import com.github.vincentk.dedekind.algebra.binary.SemiModule;
+import com.github.vincentk.dedekind.algebra.binary.Transposed;
 import com.github.vincentk.dedekind.arrays.RandomAccess;
-import com.github.vincentk.dedekind.bilinear.finite.FiniteRowVector;
-import com.github.vincentk.dedekind.bilinear.finite.TransposedRowVector;
 import com.github.vincentk.dedekind.numbers.B;
 import com.github.vincentk.dedekind.sets.Cardinality;
 
@@ -20,11 +21,8 @@ C extends Cardinality.Finite
 >
 (boolean[] values)
 implements
-FiniteRowVector<
-B,
-C,
-TransposedRowVector<B, C, Booleans<C>>,
-Booleans<C>>,
+SemiModule<B, Booleans<C>>,
+Bra<B, Transposed<B, Booleans<C>>, Booleans<C>>,
 RandomAccess<B>,
 Equality<Booleans<C>>
 {
@@ -57,17 +55,12 @@ Equality<Booleans<C>>
     }
 
     @Override
-    public TransposedRowVector<B, C, Booleans<C>> transpose() {
-        return new TransposedRowVector<>(this);
+    public Transposed<B, Booleans<C>> transpose() {
+        return new Transposed<>(this);
     }
 
     @Override
-    public long cardinality() {
-        return values.length;
-    }
-
-    @Override
-    public B dot(TransposedRowVector<B, C, Booleans<C>> ket) {
+    public B dot(Transposed<B, Booleans<C>> ket) {
 
         final var that = ket.transpose();
 

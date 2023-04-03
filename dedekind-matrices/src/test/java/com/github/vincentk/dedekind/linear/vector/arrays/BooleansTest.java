@@ -4,7 +4,6 @@
 package com.github.vincentk.dedekind.linear.vector.arrays;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.params.provider.Arguments.of;
 
 import java.util.stream.Stream;
@@ -23,8 +22,6 @@ public class BooleansTest {
     public void testSelf(boolean[] b1) {
         
         final Booleans<Cardinality.Finite> sut = new Booleans<>(b1);
-        
-        assertEquals(sut.cardinality(), b1.length);
         
         assertThat(sut.dot(sut.transpose())).isNotNull();
         

@@ -1,10 +1,10 @@
 /**
  * 
  */
-package com.github.vincentk.dedekind.bilinear;
+package com.github.vincentk.dedekind.algebra.binary;
 
 import com.github.vincentk.dedekind.algebra.SemiRing;
-import com.github.vincentk.dedekind.algebra.binary.SemiModule;
+import com.github.vincentk.dedekind.bilinear.OuterProduct;
 
 /**
  * @see https://en.wikipedia.org/wiki/Bra%E2%80%93ket_notation
@@ -15,12 +15,12 @@ import com.github.vincentk.dedekind.algebra.binary.SemiModule;
  */
 public interface Bracket<
 F extends SemiRing<F>,
-D extends Dual<S>,
+D extends Dual<S, D>,
 S extends Bracket<F, D, S>
 >
 extends
 // |x>' = <x| etc.:
-Dual<D>,
+Dual<D, S>,
 // |x> + |x> = 2 |x> etc.:
 SemiModule<F, S>
 {

@@ -3,8 +3,8 @@ package com.github.vincentk.dedekind.linear;
 import java.util.function.Function;
 
 import com.github.vincentk.dedekind.algebra.SemiRing;
+import com.github.vincentk.dedekind.algebra.binary.Bracket.Ket;
 import com.github.vincentk.dedekind.algebra.binary.SemiModule;
-import com.github.vincentk.dedekind.bilinear.Bracket.Ket;
 
 /**
  * @see https://en.wikipedia.org/wiki/Linear_map
