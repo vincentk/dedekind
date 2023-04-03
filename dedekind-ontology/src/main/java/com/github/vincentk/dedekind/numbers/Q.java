@@ -1,7 +1,7 @@
 package com.github.vincentk.dedekind.numbers;
 
 import com.github.vincentk.dedekind.algebra.Equality;
-import com.github.vincentk.dedekind.algebra.Field;
+import com.github.vincentk.dedekind.algebra.unary.Field;
 import com.github.vincentk.dedekind.sets.Cardinality;
 
 /**
@@ -12,13 +12,13 @@ NumberLine<Cardinality.Countable, Q>,
 Field.Rationals<Q>,
 Equality<Q> {
 
-    public static final Q ZERO = of(0, 1), UNIT = of(1, 1);
+    public static final Q ZERO = rational(0, 1), UNIT = rational(1, 1);
 
-    public static Q of(int en, int de) {
-        return of(Z.of(en), Z.of(de));
+    public static Q rational(int en, int de) {
+        return rational(Z.integer(en), Z.integer(de));
     }
 
-    public static Q of(Z en, Z de) {
+    public static Q rational(Z en, Z de) {
         return new Impl(en, de).simplify();
     }
 
@@ -27,12 +27,12 @@ Equality<Q> {
 
     @Override
     default Q negate() {
-        return of(en().neg(), de());
+        return rational(en().neg(), de());
     }
 
     @Override
     default Q inverse() {
-        return of(de(), en());
+        return rational(de(), en());
     }
     
     @Override
@@ -41,7 +41,7 @@ Equality<Q> {
         final var en1 = en().x(that.de()).p(that.en().x(de()));
         final var de1 = de().x(that.de());
 
-        return of(en1, de1);
+        return rational(en1, de1);
     }
 
     @Override
@@ -55,7 +55,7 @@ Equality<Q> {
         final var en = en().times(that.en());
         final var de = de().times(that.de());
 
-        return of(en, de);
+        return rational(en, de);
     }
 
     record Impl (Z en, Z de) implements Q {
@@ -101,7 +101,7 @@ Equality<Q> {
 
             if (eni == 0) {
                 // 0 / x = 0 = 0 / 1
-                return of(0, 1);
+                return rational(0, 1);
             }
 
             // Factor some common primes:
@@ -110,7 +110,7 @@ Equality<Q> {
                 // If both denominator and the enumerator are divisible
                 // by the same prime number, divide both by that number and recurse:
                 if (eni % pi  == 0 && dei % pi == 0) {
-                    return of(eni / pi, dei / pi);
+                    return rational(eni / pi, dei / pi);
                 }
             }
 
@@ -121,14 +121,14 @@ Equality<Q> {
             if (mod1 == 0) {
                 // Enumerator is integer multiple of denominator.
                 // The result is an integer number:
-                return of(eni / dei, 1);
+                return rational(eni / dei, 1);
             }
 
             // else:
             final int mod2 = dei % eni;
             if (mod2 == 0) {
                 // Denominator is integer multiple of enumerator.                
-                return of(1, dei / eni);
+                return rational(1, dei / eni);
             }
 
             // To be more sophisticated, factorization might

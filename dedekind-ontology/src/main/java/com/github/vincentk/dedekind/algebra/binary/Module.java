@@ -1,7 +1,7 @@
 package com.github.vincentk.dedekind.algebra.binary;
 
-import com.github.vincentk.dedekind.algebra.Group;
-import com.github.vincentk.dedekind.algebra.Ring;
+import com.github.vincentk.dedekind.algebra.unary.Group;
+import com.github.vincentk.dedekind.algebra.unary.Ring;
 import com.github.vincentk.dedekind.sets.Cardinality;
 
 /**
@@ -16,7 +16,9 @@ public interface Module<
 R extends Ring<R>,
 C extends Cardinality,
 N extends Module<R, C, N>>
-extends SemiModule<R, N>, Group.P<N>
+extends
+SemiModule<R, N>,
+Group.P<N>
 {
     @Override
     N mult(R scalar);

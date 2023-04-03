@@ -1,6 +1,6 @@
 package com.github.vincentk.dedekind.algebra.binary;
 
-import com.github.vincentk.dedekind.algebra.Field;
+import com.github.vincentk.dedekind.algebra.unary.Field;
 import com.github.vincentk.dedekind.sets.Cardinality;
 
 /**

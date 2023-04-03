@@ -1,7 +1,7 @@
 /**
  * 
  */
-package com.github.vincentk.dedekind.linear.finite;
+package com.github.vincentk.dedekind.algebra.binary;
 
 import static com.github.vincentk.dedekind.linear.finite.One.one;
 import static com.github.vincentk.dedekind.numbers.N.nat;
@@ -20,7 +20,7 @@ import com.github.vincentk.dedekind.numbers.N;
 import com.github.vincentk.dedekind.numbers.Z;
 
 
-public class TransposedVectorTest {
+public class TransposedTest {
 
     @ParameterizedTest
     @MethodSource
@@ -28,7 +28,7 @@ public class TransposedVectorTest {
 
         final var v1 = one(b1.asInt());
 
-        final Ket<Z, ?, ?> v1t = v1.transpose();
+        final Ket<Z, ?, ?> v1t = new Transposed<>(v1);
 
         final Bra<Z, ?, ?> v1tt = v1t.transpose();
 
@@ -54,7 +54,7 @@ public class TransposedVectorTest {
         final var tensor = v1.outer(one(b2.asInt()));
 
         // |1><2|3>
-        final Ket<Z, ?, ?> ket = tensor.apply(one(b3.asInt()));
+        final Ket<Z, ?, ?> ket = tensor.apply(one(b3.asInt()).transpose());
 
         // <3|2><1|
         final Bra<Z, ?, ?> found = ket.transpose();

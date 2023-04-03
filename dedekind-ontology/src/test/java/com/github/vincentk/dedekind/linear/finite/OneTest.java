@@ -4,7 +4,7 @@ import static com.github.vincentk.dedekind.numbers.Z.ONE;
 import static com.github.vincentk.dedekind.numbers.Z.THREE;
 import static com.github.vincentk.dedekind.numbers.Z.TWO;
 import static com.github.vincentk.dedekind.numbers.Z.ZERO;
-import static com.github.vincentk.dedekind.numbers.Z.of;
+import static com.github.vincentk.dedekind.numbers.Z.integer;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -23,7 +23,7 @@ public class OneTest {
         checkPlus(ONE, ZERO, ONE);
         checkPlus(TWO, ONE, ONE);
         checkPlus(THREE, ONE, TWO);
-        checkPlus(of(6), THREE, THREE);
+        checkPlus(integer(6), THREE, THREE);
     }
 
     private static void checkPlus(Z expected, Z a, Z b) {
@@ -37,33 +37,37 @@ public class OneTest {
         checkTimes(ZERO, ZERO, ONE);
         checkTimes(ONE, ONE, ONE);
         checkTimes(TWO, ONE, TWO);
-        checkTimes(of(9), THREE, THREE);
+        checkTimes(integer(9), THREE, THREE);
     }
 
     @Test
-    public void outerProductTest() {
+    public void testOuterProduct() {
 
         final var zero = One.one(ZERO);
 
-        assertThat(zero.outer(zero)).isInstanceOf(LinearMap.class);
+        final var zerot = zero.transpose();
 
-        assertThat(zero.outer(zero).apply(zero)).isEqualTo(zero);
+        assertThat(zerot.outer(zero)).isInstanceOf(LinearMap.class);
+
+        assertThat(zerot.outer(zero).apply(zerot).transpose()).isEqualTo(zero);
 
         final var one = One.one(ONE);
+        final var onet = one.transpose();
         
-        assertThat(zero.outer(one).apply(zero)).isEqualTo(zero);
+        assertThat(zerot.outer(one).apply(zerot).transpose()).isEqualTo(zero);
 
-        assertThat(one.outer(one).apply(one)).isEqualTo(one);
-        
+        assertThat(onet.outer(one).apply(onet).transpose()).isEqualTo(one);
+
         final var two = One.one(TWO);
-        
-        assertThat(two.outer(one).apply(one)).isEqualTo(two);
+        final var twot = two.transpose();
+
+        assertThat(twot.outer(one).apply(onet).transpose()).isEqualTo(two);
 
         final var four = two.plus(two);
-        
-        assertThat(two.outer(two).apply(one)).isEqualTo(four);
-        
-        assertThat(two.outer(two).apply(two)).isEqualTo(four.plus(four));
+
+        assertThat(twot.outer(two).apply(onet).transpose()).isEqualTo(four);
+
+        assertThat(twot.outer(two).apply(twot).transpose()).isEqualTo(four.plus(four));
     }
 
     private static void checkTimes(Z expected, Z a, Z b) {

@@ -1,20 +1,14 @@
 package com.github.vincentk.dedekind.bilinear;
 
-import com.github.vincentk.dedekind.algebra.SemiRing;
 import com.github.vincentk.dedekind.algebra.binary.Bracket.Bra;
 import com.github.vincentk.dedekind.algebra.binary.Bracket.Ket;
+import com.github.vincentk.dedekind.algebra.unary.SemiRing;
 import com.github.vincentk.dedekind.linear.matrix.Matrix;
 
 /**
  * Outer product / tensor product implementation.
  * 
  * @see https://en.wikipedia.org/wiki/Outer_product
- *
- * @param <R>
- * @param <K1>
- * @param <B1>
- * @param <K2>
- * @param <B2>
  */
 public record OuterProduct<
 R extends SemiRing<R>,
@@ -27,7 +21,7 @@ B2 extends Bra<R, K2, B2>
 >
 (K1 ket, B2 bra)
 implements
-Matrix<R, B1, K1, B2, K2, OuterProduct<R, K1, B1, K2, B2>>
+Matrix<R, K1, K2, OuterProduct<R, K1, B1, K2, B2>>
 {
 
     /**

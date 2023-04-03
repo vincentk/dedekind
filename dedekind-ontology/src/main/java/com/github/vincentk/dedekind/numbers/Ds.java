@@ -1,7 +1,7 @@
 package com.github.vincentk.dedekind.numbers;
 
 import com.github.vincentk.dedekind.algebra.Equality;
-import com.github.vincentk.dedekind.algebra.Field;
+import com.github.vincentk.dedekind.algebra.unary.Field;
 
 /**
  * The set of dual numbers.
@@ -17,7 +17,7 @@ public record Ds (R re, R ep) implements Field.Duals<Ds>, Equality<Ds>{
     }
 
     public static Ds of(double re, double im) {
-        return of(R.of(re), R.of(im));
+        return of(R.real(re), R.real(im));
     }
 
     public static Ds of(R re, R im) {

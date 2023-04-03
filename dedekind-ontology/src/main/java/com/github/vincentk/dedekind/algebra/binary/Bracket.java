@@ -3,7 +3,7 @@
  */
 package com.github.vincentk.dedekind.algebra.binary;
 
-import com.github.vincentk.dedekind.algebra.SemiRing;
+import com.github.vincentk.dedekind.algebra.unary.SemiRing;
 import com.github.vincentk.dedekind.bilinear.OuterProduct;
 
 /**
