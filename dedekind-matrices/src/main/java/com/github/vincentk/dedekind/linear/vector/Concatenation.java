@@ -3,11 +3,11 @@
  */
 package com.github.vincentk.dedekind.linear.vector;
 
-import com.github.vincentk.dedekind.algebra.SemiRing;
 import com.github.vincentk.dedekind.algebra.binary.Bracket.Bra;
 import com.github.vincentk.dedekind.algebra.binary.Bracket.Ket;
 import com.github.vincentk.dedekind.algebra.binary.SemiModule;
 import com.github.vincentk.dedekind.algebra.binary.Transposed;
+import com.github.vincentk.dedekind.algebra.unary.SemiRing;
 
 /**
  * Vector concatenation arises frequently in practical applications.

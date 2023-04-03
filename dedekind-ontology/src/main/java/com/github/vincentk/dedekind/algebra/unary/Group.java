@@ -1,4 +1,4 @@
-package com.github.vincentk.dedekind.algebra;
+package com.github.vincentk.dedekind.algebra.unary;
 
 import java.util.Optional;
 

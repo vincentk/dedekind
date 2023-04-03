@@ -4,7 +4,7 @@ import static com.github.vincentk.dedekind.numbers.Z.ONE;
 import static com.github.vincentk.dedekind.numbers.Z.THREE;
 import static com.github.vincentk.dedekind.numbers.Z.TWO;
 import static com.github.vincentk.dedekind.numbers.Z.ZERO;
-import static com.github.vincentk.dedekind.numbers.Z.of;
+import static com.github.vincentk.dedekind.numbers.Z.integer;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.junit.jupiter.api.Test;
@@ -18,7 +18,7 @@ public class IntsTest {
 		assertEquals(ONE, ZERO.plus(ONE));
 		assertEquals(TWO, ONE.plus(ONE));
 		assertEquals(THREE, ONE.plus(TWO));
-		assertEquals(of(6), THREE.plus(THREE));
+		assertEquals(integer(6), THREE.plus(THREE));
 	}
 	
 	@Test
@@ -28,6 +28,6 @@ public class IntsTest {
 		assertEquals(ZERO, ZERO.times(ONE));
 		assertEquals(ONE, ONE.times(ONE));
 		assertEquals(TWO, ONE.times(TWO));
-		assertEquals(of(9), THREE.times(THREE));
+		assertEquals(integer(9), THREE.times(THREE));
 	}
 }

@@ -1,7 +1,7 @@
 package com.github.vincentk.dedekind.linear.matrix;
 
 import com.github.vincentk.dedekind.algebra.Equality;
-import com.github.vincentk.dedekind.algebra.Ring;
+import com.github.vincentk.dedekind.algebra.unary.Ring;
 import com.github.vincentk.dedekind.linear.finite.One;
 
 /**

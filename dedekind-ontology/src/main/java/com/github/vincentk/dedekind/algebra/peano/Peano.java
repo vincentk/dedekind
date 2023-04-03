@@ -1,6 +1,6 @@
 package com.github.vincentk.dedekind.algebra.peano;
 
-import com.github.vincentk.dedekind.algebra.SemiRing.Natural;
+import com.github.vincentk.dedekind.algebra.unary.SemiRing.Natural;
 import com.github.vincentk.dedekind.sets.Cardinality;
 
 /**
