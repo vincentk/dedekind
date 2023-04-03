@@ -1,7 +1,7 @@
 package com.github.vincentk.dedekind.algebra.binary;
 
 import com.github.vincentk.dedekind.algebra.Field;
-import com.github.vincentk.dedekind.algebra.SemiRing;
+import com.github.vincentk.dedekind.algebra.Ring;
 import com.github.vincentk.dedekind.sets.Cardinality;
 
 /**
@@ -18,13 +18,13 @@ import com.github.vincentk.dedekind.sets.Cardinality;
  */
 public interface Vector<
 // Field:
-F extends SemiRing<F>,
+F extends Ring<F>,
 // Dimension of the vector space:
 C extends Cardinality,
 // Self-reference:
 V extends Vector<F, C, V>
 >
 extends
-SemiModule<F, V>
+Module<F, C, V>
 {
 }

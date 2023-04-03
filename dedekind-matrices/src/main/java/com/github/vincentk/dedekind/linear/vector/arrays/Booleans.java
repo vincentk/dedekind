@@ -9,8 +9,8 @@ import java.util.stream.IntStream;
 
 import com.github.vincentk.dedekind.algebra.Equality;
 import com.github.vincentk.dedekind.algebra.binary.Bracket.Bra;
+import com.github.vincentk.dedekind.algebra.binary.SemiModule;
 import com.github.vincentk.dedekind.algebra.binary.Transposed;
-import com.github.vincentk.dedekind.algebra.binary.Vector;
 import com.github.vincentk.dedekind.arrays.RandomAccess;
 import com.github.vincentk.dedekind.numbers.B;
 import com.github.vincentk.dedekind.sets.Cardinality;
@@ -21,7 +21,7 @@ C extends Cardinality.Finite
 >
 (boolean[] values)
 implements
-Vector<B, C, Booleans<C>>,
+SemiModule<B, Booleans<C>>,
 Bra<B, Transposed<B, Booleans<C>>, Booleans<C>>,
 RandomAccess<B>,
 Equality<Booleans<C>>
