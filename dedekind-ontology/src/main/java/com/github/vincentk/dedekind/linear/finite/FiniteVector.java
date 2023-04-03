@@ -1,7 +1,7 @@
 package com.github.vincentk.dedekind.linear.finite;
 
 import com.github.vincentk.dedekind.algebra.SemiRing;
-import com.github.vincentk.dedekind.linear.Vector;
+import com.github.vincentk.dedekind.algebra.binary.Vector;
 import com.github.vincentk.dedekind.sets.Cardinality;
 
 public interface FiniteVector<

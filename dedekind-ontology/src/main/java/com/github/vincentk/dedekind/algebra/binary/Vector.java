@@ -1,7 +1,6 @@
-package com.github.vincentk.dedekind.linear;
+package com.github.vincentk.dedekind.algebra.binary;
 
 import com.github.vincentk.dedekind.algebra.Field;
-import com.github.vincentk.dedekind.algebra.binary.SemiModule;
 import com.github.vincentk.dedekind.algebra.SemiRing;
 import com.github.vincentk.dedekind.sets.Cardinality;
 
