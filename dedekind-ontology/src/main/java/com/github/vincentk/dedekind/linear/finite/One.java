@@ -4,7 +4,7 @@ import com.github.vincentk.dedekind.algebra.Equality;
 import com.github.vincentk.dedekind.algebra.Ring;
 import com.github.vincentk.dedekind.algebra.binary.Bracket.Bra;
 import com.github.vincentk.dedekind.algebra.binary.Bracket.Ket;
-import com.github.vincentk.dedekind.algebra.binary.Vector;
+import com.github.vincentk.dedekind.algebra.binary.Module;
 import com.github.vincentk.dedekind.algebra.peano.Peano.Succ;
 import com.github.vincentk.dedekind.algebra.peano.Peano.Zero;
 import com.github.vincentk.dedekind.bilinear.OuterProduct;
@@ -18,7 +18,7 @@ import com.github.vincentk.dedekind.bilinear.OuterProduct;
  */
 public record One<R extends Ring<R> & Equality<R>> (R val)
 implements
-Vector<R, Succ<Zero>, One<R>>,
+Module<R, Succ<Zero>, One<R>>,
 Bra<R, One<R>, One<R>>,
 Ket<R, One<R>, One<R>>,
 Equality<One<R>>

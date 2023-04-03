@@ -1,7 +1,6 @@
 package com.github.vincentk.dedekind.algebra.binary;
 
 import com.github.vincentk.dedekind.algebra.Field;
-import com.github.vincentk.dedekind.algebra.Ring;
 import com.github.vincentk.dedekind.sets.Cardinality;
 
 /**
@@ -17,8 +16,7 @@ import com.github.vincentk.dedekind.sets.Cardinality;
  * @param <V> the usual recursive self-type so that subtypes can refer to themselves.
  */
 public interface Vector<
-// Field:
-F extends Ring<F>,
+F extends Field<F>,
 // Dimension of the vector space:
 C extends Cardinality,
 // Self-reference:

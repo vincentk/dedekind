@@ -4,7 +4,6 @@
 package com.github.vincentk.dedekind.linear;
 
 import com.github.vincentk.dedekind.algebra.Field;
-import com.github.vincentk.dedekind.algebra.Ring;
 import com.github.vincentk.dedekind.algebra.binary.Vector;
 import com.github.vincentk.dedekind.arrays.RandomAccess;
 import com.github.vincentk.dedekind.sets.AoC;
@@ -20,7 +19,7 @@ import com.github.vincentk.dedekind.sets.Cardinality;
  * @see https://en.wikipedia.org/wiki/Basis_(linear_algebra)
  */
 public interface Basis<
-F extends Ring<F>,
+F extends Field<F>,
 C extends Cardinality,
 S extends Basis<F, C, S>
 >
