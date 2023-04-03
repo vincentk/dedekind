@@ -20,7 +20,7 @@ as well as some more advanced types such as [dual numbers](https://en.wikipedia.
 
 
 * Symbolic (lazy) operations in 
-  1. finite dimensions (ordered tuples), optionally with mixed types e.g. $\mathbb R^2$, $(\mathbb N \times \mathbb R)$, $\mathbb C^n$,
+  1. finite dimensions (ordered tuples) $\mathbb R^2$, $\mathbb C^n$, optionally with mixed types e.g. $(\mathbb B^2, \mathbb N)$, $(\mathbb N, \mathbb R^3)$,
   2. countably finite dimensions (ordered streams), with homogeneous types e.g. $\mathbb R^\infty$,
   2. uncountably infinite dimension (functions, e.g. $\mathbb C \rightarrow \mathbb C$) \
   of
