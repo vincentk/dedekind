@@ -1,7 +1,7 @@
 package com.github.vincentk.dedekind.bilinear.finite;
 
 import com.github.vincentk.dedekind.algebra.SemiRing;
-import com.github.vincentk.dedekind.bilinear.RowVector;
+import com.github.vincentk.dedekind.bilinear.Bracket.Bra;
 import com.github.vincentk.dedekind.linear.finite.FiniteVector;
 import com.github.vincentk.dedekind.sets.Cardinality;
 
@@ -17,6 +17,6 @@ S extends FiniteRowVector<F, C, D, S>
 >
 extends
 FiniteVector<F, C, S>,
-RowVector<F, C, D, S>
+Bra<F, D, S>
 {
 }

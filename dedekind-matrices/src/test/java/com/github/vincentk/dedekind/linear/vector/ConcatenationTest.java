@@ -4,6 +4,8 @@
 package com.github.vincentk.dedekind.linear.vector;
 
 import static com.github.vincentk.dedekind.linear.finite.One.one;
+import static com.github.vincentk.dedekind.linear.vector.Concatenation.finite;
+import static com.github.vincentk.dedekind.linear.vector.arrays.Booleans.booleans;
 import static com.github.vincentk.dedekind.numbers.N.nat;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -15,17 +17,13 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import com.github.vincentk.dedekind.bilinear.Bracket.Bra;
 import com.github.vincentk.dedekind.linear.finite.One;
 import com.github.vincentk.dedekind.linear.vector.arrays.Booleans;
-import com.github.vincentk.dedekind.bilinear.RowVector;
 import com.github.vincentk.dedekind.numbers.B;
 import com.github.vincentk.dedekind.numbers.N;
 import com.github.vincentk.dedekind.numbers.Z;
 import com.github.vincentk.dedekind.sets.Cardinality;
-
-import static com.github.vincentk.dedekind.linear.vector.arrays.Booleans.booleans;
-
-import static com.github.vincentk.dedekind.linear.vector.Concatenation.finite;
 
 public class ConcatenationTest {
 
@@ -37,7 +35,7 @@ public class ConcatenationTest {
 
         final var tst = finite(v1, v1);
 
-        final RowVector<Z, ?, ?, ?> sum = tst.plus(tst);
+        final Bra<Z, ?, ?> sum = tst.plus(tst);
 
         assertThat(sum).isNotNull();
 
