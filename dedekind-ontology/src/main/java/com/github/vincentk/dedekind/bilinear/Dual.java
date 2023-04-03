@@ -19,7 +19,7 @@ package com.github.vincentk.dedekind.bilinear;
  * @param <C> the dual type
  */
 @FunctionalInterface
-public interface Dual<C> {
+public interface Dual<C, D extends Dual<C, D>> {
 
     /**
      * @return the transposed object.

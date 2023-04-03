@@ -8,8 +8,6 @@ import com.github.vincentk.dedekind.bilinear.OuterProduct;
 import com.github.vincentk.dedekind.sets.Cardinality;
 
 /**
- * TODO: generalize to vectors with infinite cardinality.
- * 
  * @param <F> the underlying field.
  * @param <C> vector length.
  * @param <D> type of domain / dual vector.

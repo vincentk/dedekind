@@ -32,7 +32,7 @@ extends
 // Any matrix is a linear map from a vector in the domain to the co-domain:
 LinearMap<F, K2, K1, Matrix<F, B1, K1, B2, K2, ?>>,
 // A transpose is defined:
-Dual<Matrix<F, B2, K2, B1, K1, ?>>
+Dual<Matrix<F, B2, K2, B1, K1, ?>, M>
 {
     @Override
     default Matrix<F, B1, K1, B2, K2, ?> plus(Matrix<F, B1, K1, B2, K2, ?> that) {
