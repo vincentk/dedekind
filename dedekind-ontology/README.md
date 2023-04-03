@@ -20,8 +20,8 @@ as well as some more advanced types such as [dual numbers](https://en.wikipedia.
 
 
 * Symbolic (lazy) operations in 
-  1. finite dimensions (tuples, e.g. $\mathbb C^n$) and 
-  2. infinite dimension (functions, e.g. $\mathbb C \rightarrow \mathbb C$)
+  1. finite dimensions (tuples, e.g. $\mathbb C^n$) 
+  2. infinite dimension (functions, e.g. $\mathbb C \rightarrow \mathbb C$) \
   of
   * continuous values ($\mathbb R^n$, $\mathbb C^n$, ..., `Vector<F extends Field<F>>`) or
   * discrete values ($\mathbb B^n$, $\mathbb Z^n$, ..., `Module<R extends Ring<R>>`).
