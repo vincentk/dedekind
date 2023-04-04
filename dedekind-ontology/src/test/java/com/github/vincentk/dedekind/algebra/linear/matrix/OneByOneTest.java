@@ -1,4 +1,4 @@
-package com.github.vincentk.dedekind.linear.matrix;
+package com.github.vincentk.dedekind.algebra.linear.matrix;
 
 import static com.github.vincentk.dedekind.linear.finite.One.one;
 import static org.assertj.core.api.Assertions.assertThat;

@@ -1,7 +1,7 @@
 /**
  * 
  */
-package com.github.vincentk.dedekind.linear.matrix;
+package com.github.vincentk.dedekind.algebra.linear.matrix;
 
 import com.github.vincentk.dedekind.algebra.binary.Bracket.Ket;
 import com.github.vincentk.dedekind.algebra.unary.SemiRing;
