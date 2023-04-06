@@ -4,6 +4,7 @@ import java.util.function.Function;
 
 import com.github.vincentk.dedekind.algebra.binary.Bracket.Ket;
 import com.github.vincentk.dedekind.algebra.binary.SemiModule;
+import com.github.vincentk.dedekind.algebra.linear.matrix.MatrixAddition;
 import com.github.vincentk.dedekind.algebra.unary.SemiRing;
 
 /**
@@ -19,19 +20,20 @@ F extends SemiRing<F>,
 // Domain:
 V extends Ket<F, ?, V>,
 // Range:
-W extends Ket<F, ?, W>,
-S extends LinearMap<F, V, W, S>
+W extends Ket<F, ?, W>
 >
 extends
 Function<V, W>,
-SemiModule<F, S>
+SemiModule<F, LinearMap<F, V, W>>
 {
     @Override
     W apply(V v);
     
     @Override
-    S mult(F scalar);
+    LinearMap<F, V, W> mult(F scalar);
     
     @Override
-    S plus(S that);
+    default LinearMap<F, V, W> plus(LinearMap<F, V, W> that) {
+        return new MatrixAddition<>(this, that);
+    }
 }

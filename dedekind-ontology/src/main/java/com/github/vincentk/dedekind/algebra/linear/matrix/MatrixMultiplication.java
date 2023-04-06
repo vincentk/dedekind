@@ -2,15 +2,8 @@ package com.github.vincentk.dedekind.algebra.linear.matrix;
 
 import com.github.vincentk.dedekind.algebra.binary.Bracket.Ket;
 import com.github.vincentk.dedekind.algebra.unary.SemiRing;
+import com.github.vincentk.dedekind.linear.LinearMap;
 
-/**
- * A lazy / symbolic implementation of matrix multiplication.
- * 
- * @param <F>
- * @param <C>
- * @param <D>
- * @param <E>
- */
 public record MatrixMultiplication<
 F extends SemiRing<F>,
 C extends Ket<F, ?, C>,
@@ -18,27 +11,14 @@ D extends Ket<F, ?, D>,
 E extends Ket<F, ?, E>
 >
 (
-        Matrix<F, E, D, ?> m1,
-        Matrix<F, C, E, ?> m2
-)
-implements Matrix<F, C, D, MatrixMultiplication<F, C, D, E>>
+        LinearMap<F, C, E> m1,
+        LinearMap<F, E, D> m2
+        )
+implements LinearMap<F, C, D>
 {
     @Override
-    public C apply(D vector) {
-
-        final var v1 = m1.apply(vector);
-        final var v2 = m2.apply(v1);
-
-        return v2;
-    }
-
-    @Override
-    public MatrixMultiplication<F, D, C, E> transpose() {
-        // (A B)' = B' A'
-        final Matrix<F, D, E, ?> m1t = m1.transpose();
-        final Matrix<F, E, C, ?> m2t = m2.transpose();
-
-        return new MatrixMultiplication<>(m2t, m1t);
+    public D apply(C vector) {
+        return m1.andThen(m2).apply(vector);
     }
 
     @Override

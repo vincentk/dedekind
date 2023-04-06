@@ -2,6 +2,7 @@ package com.github.vincentk.dedekind.algebra.linear.matrix;
 
 import com.github.vincentk.dedekind.algebra.binary.Bracket.Ket;
 import com.github.vincentk.dedekind.algebra.unary.SemiRing;
+import com.github.vincentk.dedekind.linear.LinearMap;
 
 /**
  * A lazy / symbolic implementation of matrix addition.
@@ -11,20 +12,15 @@ import com.github.vincentk.dedekind.algebra.unary.SemiRing;
  * @param <D>
  */
 public record MatrixAddition<
-//Ring:
 F extends SemiRing<F>,
-
-//Range of the linear map:
 C extends Ket<F, ?, C>,
-
-//Domain of linear map:
 D extends Ket<F, ?, D>
 >
 (
-        Matrix<F, C, D, ?> m1,
-        Matrix<F, C, D, ?> m2
+        LinearMap<F, D, C> m1,
+        LinearMap<F, D, C> m2
 )
-implements Matrix<F, C, D, MatrixAddition<F, C, D>>
+implements LinearMap<F, D, C>
 {
     @Override
     public C apply(D vector) {
@@ -33,12 +29,6 @@ implements Matrix<F, C, D, MatrixAddition<F, C, D>>
         final var v2 = m2.apply(vector);
 
         return v1.plus(v2);
-    }
-
-    @Override
-    public MatrixAddition<F, D, C> transpose() {
-        // (A + B)' = A' + B'
-        return new MatrixAddition<>(m1.transpose(), m2.transpose());
     }
 
     @Override

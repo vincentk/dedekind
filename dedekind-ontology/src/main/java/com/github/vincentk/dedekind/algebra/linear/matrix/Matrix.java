@@ -26,15 +26,15 @@ M extends Matrix<F, K1, K2, M>
 >
 extends
 // Any matrix is a linear map from a vector in the domain to the co-domain:
-LinearMap<F, K2, K1, Matrix<F, K1, K2, ?>>,
+LinearMap<F, K2, K1>,
 // A transpose is defined:
 Dual<Matrix<F, K2, K1, ?>, M>
 {
     @Override
-    default Matrix<F, K1, K2, ?> plus(Matrix<F, K1, K2, ?> that) {
+    default LinearMap<F, K2, K1> plus(LinearMap<F, K2, K1> that) {
         return new MatrixAddition<>(this, that);
     }
-    
+
     @Override
     Matrix<F, K2, K1, ?> transpose();
 
@@ -56,6 +56,6 @@ Dual<Matrix<F, K2, K1, ?>, M>
     E extends Ket<F, R3, E>
     >
     Matrix<F, K1, E, ?> compose(Matrix<F, K2, E, ?> other) {
-        return new MatrixMultiplication<>(other, this);
+        return null; //new MatrixMultiplication<>(other, this);
     }
 }
