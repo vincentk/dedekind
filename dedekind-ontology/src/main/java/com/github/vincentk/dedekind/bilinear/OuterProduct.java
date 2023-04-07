@@ -2,7 +2,8 @@ package com.github.vincentk.dedekind.bilinear;
 
 import com.github.vincentk.dedekind.algebra.binary.Bracket.Bra;
 import com.github.vincentk.dedekind.algebra.binary.Bracket.Ket;
-import com.github.vincentk.dedekind.algebra.linear.matrix.Matrix;
+import com.github.vincentk.dedekind.algebra.binary.Dual;
+import com.github.vincentk.dedekind.algebra.binary.linear.Map;
 import com.github.vincentk.dedekind.algebra.unary.SemiRing;
 
 /**
@@ -21,7 +22,8 @@ B2 extends Bra<R, K2, B2>
 >
 (K1 ket, B2 bra)
 implements
-Matrix<R, K1, K2, OuterProduct<R, K1, B1, K2, B2>>
+Map<R, K2, K1>,
+Dual<OuterProduct<R, K2, B2, K1, B1>, OuterProduct<R, K1, B1, K2, B2>>
 {
 
     /**

@@ -27,7 +27,7 @@ W extends SemiModule<F, W>
 extends
 Function<V, W>,
 SemiModule<F, Map<F, V, W>>
-{
+{   
     /**
      * Specialization of {@link Function#compose(Function)}.
      * 

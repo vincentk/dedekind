@@ -1,42 +1,42 @@
-package com.github.vincentk.dedekind.algebra.linear.matrix;
+package com.github.vincentk.dedekind.algebra.binary.linear;
 
 import java.util.function.Function;
 
-import com.github.vincentk.dedekind.algebra.binary.Bracket.Bra;
-import com.github.vincentk.dedekind.algebra.binary.Bracket.Ket;
 import com.github.vincentk.dedekind.algebra.binary.Dual;
-import com.github.vincentk.dedekind.algebra.unary.SemiRing;
-import com.github.vincentk.dedekind.linear.LinearMap;
+import com.github.vincentk.dedekind.algebra.unary.Ring;
+import com.github.vincentk.dedekind.sets.AoC;
+import com.github.vincentk.dedekind.sets.AoC.Enumeration;
+import com.github.vincentk.dedekind.sets.Cardinality;
 
 /**
  * @see https://en.wikipedia.org/wiki/Matrix_(mathematics)
  */
 public interface Matrix<
-// Ring:
-F extends SemiRing<F>,
+F extends Ring<F>,
 
-// Range of the linear map:
-K1 extends Ket<F, ?, K1>,
+C1 extends Cardinality.Countable,
+K1 extends Array<F, C1, K1>,
 
-// Domain of linear map:
-K2 extends Ket<F, ?, K2>,
-
+C2 extends Cardinality.Countable,
+K2 extends Array<F, C2, K2>,
 // Self-reference:
-M extends Matrix<F, K1, K2, M>
+M extends Matrix<F, C1, K1, C2, K2, M>
 >
 extends
 // Any matrix is a linear map from a vector in the domain to the co-domain:
-LinearMap<F, K2, K1>,
+Map<F, K2, K1>,
+// Rows can be enumerated:
+AoC<K1, Enumeration<K1>>,
 // A transpose is defined:
-Dual<Matrix<F, K2, K1, ?>, M>
+Dual<Matrix<F, C2, K2, C1, K1, ?>, Matrix<F, C1, K1, C2, K2, ?>>
 {
     @Override
-    default LinearMap<F, K2, K1> plus(LinearMap<F, K2, K1> that) {
-        return new MatrixAddition<>(this, that);
+    default K1 apply(K2 v) {
+        return null;
     }
 
     @Override
-    Matrix<F, K2, K1, ?> transpose();
+    Matrix<F, C2, K2, C1, K1, ?> transpose();
 
     /**
      * Matrix multiplication is the composition of two matrices.
@@ -52,10 +52,10 @@ Dual<Matrix<F, K2, K1, ?>, M>
      */
     default <
     // Domain of the argument becomes the range of the result:
-    R3 extends Bra<F, E, R3>,
-    E extends Ket<F, R3, E>
+    C3 extends Cardinality.Countable,
+    K3 extends Array<F, C3, K3>
     >
-    Matrix<F, K1, E, ?> compose(Matrix<F, K2, E, ?> other) {
+    Matrix<F, C1, K1, C3, K3, ?> compose(Matrix<F, C2, K2, C3, K3, ?> other) {
         return null; //new MatrixMultiplication<>(other, this);
     }
 }

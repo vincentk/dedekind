@@ -28,7 +28,7 @@ public class TransposedTest {
 
         final var v1 = one(b1.asInt());
 
-        final Ket<Z, ?, ?> v1t = new Transposed<>(v1);
+        final Ket<Z, ?, ?> v1t = null; //new Transposed<>(v1);
 
         final Bra<Z, ?, ?> v1tt = v1t.transpose();
 

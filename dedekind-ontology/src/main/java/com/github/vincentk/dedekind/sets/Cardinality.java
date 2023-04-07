@@ -31,7 +31,6 @@ public interface Cardinality {
     }
 
     interface Empty extends Finite {
-
         @Override
         default long cardinality() {
             return 0;
