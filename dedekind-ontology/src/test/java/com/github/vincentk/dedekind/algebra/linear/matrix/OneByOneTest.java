@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 
 import com.github.vincentk.dedekind.linear.finite.One;
 import com.github.vincentk.dedekind.numbers.Z;
+import com.github.vincentk.dedekind.algebra.binary.linear.Matrix;
 
 public class OneByOneTest {
 
@@ -21,7 +22,7 @@ public class OneByOneTest {
 
         // X + X = X * 2
         final var X2 = X.plus(X);
-        assertThat(X2).isInstanceOf(MatrixAddition.class);
+        assertThat(X2).isInstanceOf(Matrix.class);
 
         // 2 * X * {1} = {2}
         final var x2 = X2.apply(x.transpose()).transpose();
@@ -42,11 +43,11 @@ public class OneByOneTest {
 
         // X + X = X * 2
         final var X2 = X.plus(X);
-        assertThat(X2).isInstanceOf(MatrixAddition.class);
+        assertThat(X2).isInstanceOf(Matrix.class);
 
         // (2 * X) ^ 2 = {{4}}
         final var X4 = X2.compose(X2);
-        assertThat(X4).isInstanceOf(MatrixMultiplication.class);
+        assertThat(X4).isInstanceOf(Matrix.class);
 
         // (2 * X) ^ 2 * {1} = {2}
         final var x4 = X4.apply(x.transpose()).transpose();

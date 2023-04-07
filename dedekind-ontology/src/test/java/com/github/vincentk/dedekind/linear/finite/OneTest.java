@@ -10,7 +10,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.junit.jupiter.api.Test;
 
-import com.github.vincentk.dedekind.linear.LinearMap;
+import com.github.vincentk.dedekind.algebra.binary.linear.Matrix;
 import com.github.vincentk.dedekind.numbers.Z;
 
 public class OneTest {
@@ -47,7 +47,7 @@ public class OneTest {
 
         final var zerot = zero.transpose();
 
-        assertThat(zerot.outer(zero)).isInstanceOf(LinearMap.class);
+        assertThat(zerot.outer(zero)).isInstanceOf(Matrix.class);
 
         assertThat(zerot.outer(zero).apply(zerot).transpose()).isEqualTo(zero);
 
