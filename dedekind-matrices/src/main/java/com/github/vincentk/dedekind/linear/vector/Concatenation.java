@@ -3,11 +3,9 @@
  */
 package com.github.vincentk.dedekind.linear.vector;
 
-import com.github.vincentk.dedekind.algebra.binary.Bracket.Bra;
-import com.github.vincentk.dedekind.algebra.binary.Bracket.Ket;
-import com.github.vincentk.dedekind.algebra.binary.SemiModule;
-import com.github.vincentk.dedekind.algebra.binary.Transposed;
-import com.github.vincentk.dedekind.algebra.unary.SemiRing;
+import com.github.vincentk.dedekind.algebra.binary.Module;
+import com.github.vincentk.dedekind.algebra.unary.Ring;
+import com.github.vincentk.dedekind.sets.Cardinality;
 
 /**
  * Vector concatenation arises frequently in practical applications.
@@ -19,59 +17,62 @@ import com.github.vincentk.dedekind.algebra.unary.SemiRing;
  * FIXME: presently overly restrictive PoC.
  * TODO: generalize to vectors with infinite cardinality.
  */
-public record Concatenation<
-F extends SemiRing<F>,
+public interface Concatenation<
+F extends Ring<F>,
 
-C1 extends Ket<F, R1, C1>,
-R1 extends SemiModule<F, R1> & Bra<F, C1, R1>, //FIXME & Cardinality.Finite,
+C1 extends Cardinality.Finite,
+K1 extends Module<F, C1, K1>,
 
-C2 extends Ket<F, R2, C2>,
-R2 extends SemiModule<F, R2> &  Bra<F, C2, R2>
+
+C2 extends Cardinality,
+B2 extends Module<F, C2, B2>,
+
+S extends Concatenation<F, C1, K1, C2, B2, S>
 >
-(R1 fst, R2 snd)
-implements
-SemiModule<F, Concatenation<F, C1, R1, C2, R2>>,
-Bra<F, Transposed<F, Concatenation<F, C1, R1, C2, R2>>, Concatenation<F, C1, R1, C2, R2>>
+extends
+Module<F, C1, S>
 {
-    // Apparently required to spell this out, else type inference might fail:
-    public Concatenation(R1 fst, R2 snd) {
-        this.fst = fst;
-        this.snd = snd;
+    K1 fst();
+    B2 snd();
+    
+    S clone(K1 fst, B2 snd);
+
+    @Override
+    default S mult(F scalar) {
+        return clone(fst().mult(scalar), snd().mult(scalar));
     }
 
     @Override
-    public Concatenation<F, C1, R1, C2, R2> zero() {
-        return new Concatenation<>(fst.zero(), snd.zero());
+    default S plus(S vector) {
+        return clone(fst().plus(vector.fst()), snd().plus(vector.snd()));
+    }
+    
+
+    @Override
+    default S zero() {
+        return clone(fst().zero(), snd().zero());
     }
 
     @Override
-    public Concatenation<F, C1, R1, C2, R2> mult(F scalar) {
-        return new Concatenation<>(fst.mult(scalar), snd.mult(scalar));
+    default S negate() {
+        return clone(fst().negate(), snd().negate());
     }
 
-    @Override
-    public Concatenation<F, C1, R1, C2, R2> plus(Concatenation<F, C1, R1, C2, R2> vector) {
-        return new Concatenation<>(fst.plus(vector.fst), snd.plus(vector.snd));
-    }
+    public record Impl<
+    F extends Ring<F>,
 
-    @Override
-    public Transposed<F, Concatenation<F, C1, R1, C2, R2>> transpose() {
-        return new Transposed<>(this);
-    }
+    C1 extends Cardinality.Finite,
+    K1 extends Module<F, C1, K1>,
 
-    @Override
-    public F dot(Transposed<F, Concatenation<F, C1, R1, C2, R2>> ket) {
 
-        final Concatenation<F, C1, R1, C2, R2> bra = ket.transpose();
+    C2 extends Cardinality,
+    B2 extends Module<F, C2, B2>
+    >(K1 fst, B2 snd)
+    implements Concatenation<F, C1, K1, C2, B2, Impl<F, C1, K1, C2, B2>>{
 
-        final C1 k1 = bra.fst().transpose();
-
-        final F f1 = fst().dot(k1);
-
-        final C2 k2 = bra.snd().transpose();
-
-        final F f2 = snd().dot(k2);
-
-        return f1.plus(f2);
+        @Override
+        public Impl<F, C1, K1, C2, B2> clone(K1 fst, B2 snd) {
+            return new Impl<>(fst, snd);
+        }
     }
 }

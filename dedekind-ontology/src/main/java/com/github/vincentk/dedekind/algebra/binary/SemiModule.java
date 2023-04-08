@@ -3,6 +3,7 @@ package com.github.vincentk.dedekind.algebra.binary;
 import com.github.vincentk.dedekind.algebra.unary.Monoid;
 import com.github.vincentk.dedekind.algebra.unary.Ring;
 import com.github.vincentk.dedekind.algebra.unary.SemiRing;
+import com.github.vincentk.dedekind.sets.Cardinality;
 
 /**
  * Definition of scalar multiplication over a {@link Ring}.
@@ -11,11 +12,11 @@ import com.github.vincentk.dedekind.algebra.unary.SemiRing;
  * defining multiplication by a scalar from the right.
  *
  * @see https://en.wikipedia.org/wiki/Module_(mathematics)
- *
- * @param <R> the scalar ring
- * @param <N> self-type
  */
-public interface SemiModule<R extends SemiRing<R>, N extends SemiModule<R, N>>
+public interface SemiModule<
+R extends SemiRing<R>,
+C extends Cardinality,
+N extends SemiModule<R, C, N>>
 extends Monoid.P<N>
 {
 
