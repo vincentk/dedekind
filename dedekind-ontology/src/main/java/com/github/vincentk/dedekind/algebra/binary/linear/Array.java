@@ -15,7 +15,38 @@ C extends Cardinality.Countable,
 S extends Array<F, O, C, S>
 >
 extends
-SemiModule<F, C, S>,
 SemiRing<S>,
 AoC<F, AoC.Enumeration<F>>
-{}
+{
+    interface Vector<
+    F extends SemiRing<F>,
+    O extends MajorOrder,
+    C extends Cardinality.Countable,
+    S extends Vector<F, O, C, S>
+    >
+    extends
+    Array<F, O, C, S>,
+    SemiModule<F, C, S>
+    {
+        
+        interface Row<
+        F extends SemiRing<F>,
+        C extends Cardinality.Countable,
+        S extends Row<F, C, S>
+        >
+        extends
+        Vector<F, MajorOrder.Row, C, S>,
+        InnerProduct<F, C, Column<F, C, ?>, S>
+        {
+            @Override
+            F dot(Column<F, C, ?> that);
+        }
+        
+        interface Column<
+        F extends SemiRing<F>,
+        C extends Cardinality.Countable,
+        S extends Column<F, C, S>
+        >
+        extends Vector<F, MajorOrder.Column, C, S>{}
+    }
+}

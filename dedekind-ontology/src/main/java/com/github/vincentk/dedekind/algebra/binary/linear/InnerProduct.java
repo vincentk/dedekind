@@ -7,10 +7,11 @@ import com.github.vincentk.dedekind.sets.Cardinality;
 public interface InnerProduct<
 R extends SemiRing<R>,
 C extends Cardinality,
-S extends InnerProduct<R, C, S>
+D,
+S extends InnerProduct<R, C, D, S>
 >
 extends
 SemiModule<R, C, S> {
 
-    R dot(S that);
+    R dot(D that);
 }
