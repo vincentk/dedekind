@@ -25,10 +25,14 @@ public record Ds (R re, R ep) implements Field.Duals<Ds>, Equality<Ds>{
     }
 
     @Override
+    public Ds zero() {
+        return ZERO;
+    }
+
+    @Override
     public Ds plus(Ds that) {
         return of(re.p(that.re), ep.p(that.ep));
     }
-
 
     @Override
     public Ds negate() {

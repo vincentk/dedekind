@@ -26,8 +26,15 @@ Bra<B, Transposed<B, Booleans<C>>, Booleans<C>>,
 RandomAccess<B>,
 Equality<Booleans<C>>
 {
-    public static Booleans<Cardinality.Finite> booleans(boolean... vals) {
+    public static <C extends Cardinality.Finite>
+    Booleans<C>
+    booleans(boolean... vals) {
         return new Booleans<>(vals);
+    }
+
+    @Override
+    public Booleans<C> zero() {
+        return booleans(new boolean[values().length]);
     }
 
     @Override

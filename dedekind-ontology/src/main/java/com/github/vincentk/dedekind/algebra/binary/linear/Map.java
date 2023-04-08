@@ -28,6 +28,10 @@ extends
 Function<V, W>,
 SemiModule<F, Map<F, V, W>>
 {   
+    default Map<F, V, W> zero() {
+        return null; //identity();
+    }
+    
     /**
      * Specialization of {@link Function#compose(Function)}.
      * 

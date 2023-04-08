@@ -40,6 +40,11 @@ Bra<F, Transposed<F, Concatenation<F, C1, R1, C2, R2>>, Concatenation<F, C1, R1,
     }
 
     @Override
+    public Concatenation<F, C1, R1, C2, R2> zero() {
+        return new Concatenation<>(fst.zero(), snd.zero());
+    }
+
+    @Override
     public Concatenation<F, C1, R1, C2, R2> mult(F scalar) {
         return new Concatenation<>(fst.mult(scalar), snd.mult(scalar));
     }

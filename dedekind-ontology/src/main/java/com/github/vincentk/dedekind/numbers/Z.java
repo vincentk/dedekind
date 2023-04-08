@@ -15,6 +15,11 @@ public interface Z extends NumberLine<Cardinality.Countable, Z>, Ring.Integer<Z>
 
     public int intValue();
 
+    @Override
+    default Z zero() {
+        return ZERO;
+    }
+
     record Impl (int intValue) implements Z {
 
         @Override

@@ -59,6 +59,11 @@ public interface B extends Number<B>, Ring<B>, Set.TotalOrder<Cardinality.Finite
         return Boolean.compare(bool(), o.bool());
     }
 
+    @Override
+    default B zero() {
+        return FALSE;
+    }
+
     default N nat() {
         return bool() ? N.ONE : N.ZERO;
     }

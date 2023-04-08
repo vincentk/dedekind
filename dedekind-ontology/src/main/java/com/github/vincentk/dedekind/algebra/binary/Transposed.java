@@ -26,6 +26,11 @@ Ket<F, D, Transposed<F, D>>
     }
 
     @Override
+    public Transposed<F, D> zero() {
+        return new Transposed<>(val.zero());
+    }
+
+    @Override
     public Transposed<F, D> mult(F scalar) {
         return new Transposed<>(val.mult(scalar));
     }

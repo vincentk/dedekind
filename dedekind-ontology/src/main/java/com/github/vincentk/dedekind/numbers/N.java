@@ -44,7 +44,12 @@ MetricSpace<N, N>
     default Ne distance(N other) {
         return nat(Math.abs(integer() - other.integer()));
     }
-    
+
+    @Override
+    default N zero() {
+        return ZERO;
+    }
+
     default Z asInt() {
         return Z.integer(integer());
     }
@@ -63,9 +68,9 @@ MetricSpace<N, N>
     }
 
     static Ne nat(int n) {
-        
+
         assert n >= 0;
-        
+
         switch(n) {
         case 0: return ZERO;
         case 1: return ONE;
@@ -73,6 +78,6 @@ MetricSpace<N, N>
         default: return new Ne(n);
         }
     }
-    
+
     public static final Ne ZERO = new Ne(0), ONE = new Ne(1), TWO = new Ne(2);
 }

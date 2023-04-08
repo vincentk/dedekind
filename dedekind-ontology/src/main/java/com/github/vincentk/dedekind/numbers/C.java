@@ -10,6 +10,11 @@ public interface C extends Number<C>, Field.Complex<C>, MetricSpace<C, R> {
     public R re();
     public R im();
 
+    @Override
+    default C zero() {
+        return ZERO;
+    }
+
     public static final C ZERO = complex(0, 0), R1 = complex(1, 0), I1 = complex(0, 1), UNIT = complex(1, 1);
 
     public static C complex(double re, double im) {
@@ -69,7 +74,7 @@ public interface C extends Number<C>, Field.Complex<C>, MetricSpace<C, R> {
         public R distance(C other) {
             return minus(other).abs();
         }
-        
+
         @Override
         public boolean equals(C that) {
             return this.re.equals(that.re()) && this.im.equals(that.im());

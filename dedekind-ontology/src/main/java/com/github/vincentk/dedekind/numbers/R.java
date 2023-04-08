@@ -18,6 +18,11 @@ public interface R extends NumberLine<Cardinality.Uncountable, R>, Field.Reals<R
 
     R sqrt();
 
+    @Override
+    default R zero() {
+        return ZERO;
+    }
+
     record Re (double doubleVal) implements R {
 
         @Override
@@ -52,15 +57,15 @@ public interface R extends NumberLine<Cardinality.Uncountable, R>, Field.Reals<R
 
         @Override
         public boolean equals(R that) {
-            
+
             if (doubleVal == that.doubleVal()) {
                 // Exact numeric equality:
                 return true;
             }
-            
+
             final double ad = Math.abs(doubleVal - that.doubleVal());
             final double av = (doubleVal + that.doubleVal()) / 2;
-            
+
             final double err = ad / av;
             return err < 10E-10;
         }

@@ -1,5 +1,6 @@
 package com.github.vincentk.dedekind.algebra.binary.linear;
 
+import java.util.Optional;
 import java.util.function.Function;
 
 import com.github.vincentk.dedekind.algebra.binary.Dual;
@@ -24,15 +25,20 @@ M extends Matrix<F, C1, K1, C2, K2, M>
 >
 extends
 // Any matrix is a linear map from a vector in the domain to the co-domain:
-Map<F, K2, K1>,
+Map<F, K1, K2>,
 // Rows can be enumerated:
 AoC<K1, Enumeration<K1>>,
 // A transpose is defined:
 Dual<Matrix<F, C2, K2, C1, K1, ?>, Matrix<F, C1, K1, C2, K2, ?>>
 {
     @Override
-    default K1 apply(K2 v) {
-        return null;
+    default K2 apply(K1 v) {
+        
+        final Enumeration<K1> rows = enumeration();
+        
+        final Enumeration<Optional<?>> dot = rows.map(row -> row.dot(v));
+        
+        return v.fromEnumeration(dot);
     }
 
     @Override

@@ -4,12 +4,14 @@
 package com.github.vincentk.dedekind.algebra.binary.linear;
 
 import java.util.Optional;
+import java.util.function.BinaryOperator;
 
 import com.github.vincentk.dedekind.algebra.binary.Dual;
 import com.github.vincentk.dedekind.algebra.binary.Module;
 import com.github.vincentk.dedekind.algebra.unary.Ring;
 import com.github.vincentk.dedekind.sets.AoC;
 import com.github.vincentk.dedekind.sets.AoC.Enumeration;
+import com.github.vincentk.dedekind.sets.AoC.Enumeration.Pair;
 import com.github.vincentk.dedekind.sets.Cardinality;
 
 public interface Array<
@@ -20,41 +22,49 @@ S extends Array<F, C, S>
 extends
 Module<F, C, S>,
 AoC<F, Enumeration<F>>,
-Dual<S, S>
+Dual<S, S>,
+InnerProduct<F, S>
 {
     Optional<S> fromEnumeration(Enumeration<F> seq);
-    
+
     @Override
     default S mult(F scalar) {
-        
-        final Enumeration<F> scaled = () -> enumeration().next().map(x -> x.times(scalar));
-        
-        return fromEnumeration(scaled).get();
+        return fromEnumeration(enumeration().map(x -> x.times(scalar))).get();
     }
 
     @Override
     default S plus(S that) {
-        
-        final Enumeration<F> e1 = enumeration(), other = that.enumeration();
-        
-        final Enumeration<F> sum = () -> e1.next().flatMap(x -> other.next().map(y -> y.plus(x)));
-        
-        return fromEnumeration(sum).get();
+
+        final Enumeration<F> ps = enumeration().zip(that.enumeration()).map(p -> p.a().plus(p.b()));
+
+        return fromEnumeration(ps).get();
     }
 
     @Override
     default S negate() {
-        
-        final Enumeration<F> negated = () -> enumeration().next().map(Ring::negate);
-        
-        return fromEnumeration(negated).get();
+        return fromEnumeration(enumeration().map(Ring::negate)).get();
     }
-    
+
     @Override
     default S transpose() {
         return fromEnumeration(enumeration()).get();
     }
-    
+
+    @Override
+    default F dot(S that) {
+
+        final Enumeration<Pair<F, F>> ps = enumeration().zip(that.enumeration());
+
+        final Enumeration<F> ps1 = ps.map(p -> p.a().times(p.b()));
+
+        return ps1.fold((x, y) -> x.times(y));
+    }
+
+    @Override
+    default S zero() {
+        return fromEnumeration(enumeration().map(x -> x.zero())).get();
+    }
+
     interface Finite
     <
     F extends Ring<F>,
@@ -62,7 +72,7 @@ Dual<S, S>
     >
     extends Array<F, C, Finite<F, C>>
     {}
-    
+
     record OneOff<
     F extends Ring<F>,
     C extends Cardinality.Countable

@@ -21,6 +21,11 @@ public interface Monoid<T extends Monoid<T>> extends Magma<T> {
     interface P<T extends P<T>> extends Monoid<T>, Magma.P<T> {
 
         /**
+         * @return monoidal unit for addition.
+         */
+        T zero();
+        
+        /**
          * E.g. for numbers, 0 is the unit element for addition, as
          * x + 0 = x for all x.
          * 

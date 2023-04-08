@@ -5,7 +5,8 @@ import java.util.Optional;
 import com.github.vincentk.dedekind.algebra.binary.Bracket.Bra;
 import com.github.vincentk.dedekind.algebra.binary.Bracket.Ket;
 import com.github.vincentk.dedekind.algebra.binary.linear.Array;
-import com.github.vincentk.dedekind.algebra.peano.Peano.*;
+import com.github.vincentk.dedekind.algebra.peano.Peano.Succ;
+import com.github.vincentk.dedekind.algebra.peano.Peano.Zero;
 import com.github.vincentk.dedekind.algebra.unary.Ring;
 import com.github.vincentk.dedekind.bilinear.OuterProduct;
 import com.github.vincentk.dedekind.sets.Cardinality;
@@ -35,6 +36,11 @@ Cardinality.Finite
     @Override
     public Optional<One<R>> fromEnumeration(Enumeration<R> seq) {
         return seq.next().map(One::one);
+    }
+
+    @Override
+    public One<R> zero() {
+        return one(val.zero());
     }
 
     @Override
