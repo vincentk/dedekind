@@ -18,10 +18,20 @@ public class ArrayTest {
 
     @Test
     public void testZeroes() {
-        final Col<N, Countable, ?> zeroes = zeroes(N.ZERO);
+        final Col<N, Countable, ?> z0 = zeroes(N.ZERO);
         
-        assertThat(zeroes.get(527)).isEqualTo(Optional.of(N.ZERO));
-        
-        assertThat(zeroes.range(0, 0)).isEmpty();
+        assertThat(z0).as("Array construction.").isNotNull();
+
+        assertThat(z0.get(527)).as("Check array indexing of infinite array.").isEqualTo(Optional.of(N.ZERO));
+
+        assertThat(z0.limit(0)).as("Limit with negative-semidefinite value.").isEmpty();
+
+        assertThat(z0.limit(1)).as("Limit with positive value.").isPresent();
+
+        assertThat(z0.range(-1, 0)).as("Empty range.").isEmpty();
+
+        assertThat(z0.range(1, 1)).as("Empty range (max >= min).").isEmpty();
+
+        assertThat(z0.range(1, 2)).as("Non-empty range.").isPresent();
     }
 }

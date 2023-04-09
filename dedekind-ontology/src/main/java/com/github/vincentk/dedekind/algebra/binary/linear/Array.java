@@ -23,12 +23,30 @@ extends
 Monoid.P<S>,
 AoC<F, AoC.Enumeration<F>>
 {
+    /**
+     * @param min
+     * @return equivalent to [min, ...)
+     */
     Optional<? extends Array<F, O, C, ?>> skip(long min);
     
-    Array<F, O, Cardinality.Finite, ?> limit(long max);
+    /**
+     * @param max
+     * @return equivalent to [0, max)
+     */
+    Optional<? extends Array<F, O, Cardinality.Finite, ?>> limit(long max);
     
+    /**
+     * @param min
+     * @param max
+     * @return [min, max)
+     */
     default Optional<? extends Array<F, O, Cardinality.Finite, ?>> range(long min, long max) {
-        return limit(max).skip(min);
+        
+        if (min >= max) {
+            return Optional.empty();
+        }
+        
+        return limit(max).flatMap(lmt -> lmt.skip(min));
     }
     
     public abstract class OfSet<
@@ -135,8 +153,8 @@ AoC<F, AoC.Enumeration<F>>
                 }
 
                 @Override
-                public N<F, Cardinality.Finite> limit(long max) {
-                    return new N<>(enumeration().limit(max));
+                public Optional<N<F, Cardinality.Finite>> limit(long max) {
+                    return enumeration().limit(max).map(x -> new N<>(x));
                 }
             }
         }
@@ -163,11 +181,10 @@ AoC<F, AoC.Enumeration<F>>
                 protected Cm<F, C> clone(Enumeration<F> values) {
                     return new Cm<>(values);
                 }
-                
 
                 @Override
-                public Cm<F, Cardinality.Finite> limit(long max) {
-                    return new Cm<>(enumeration().limit(max));
+                public Optional<Cm<F, Cardinality.Finite>> limit(long max) {
+                    return enumeration().limit(max).map(x -> new Cm<>(x));
                 }
             }
         }

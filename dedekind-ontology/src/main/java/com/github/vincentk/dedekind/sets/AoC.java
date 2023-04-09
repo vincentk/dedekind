@@ -40,21 +40,25 @@ public interface AoC<T, E extends AoC.Enumeration<T>> {
             return this;
         }
 
-        default Enumeration<T> limit(long max) {
+        default Optional<Enumeration<T>> limit(long max) {
 
+            if (max <= 0) return Optional.empty();
+            
             final Enumeration<T> capture = this;
 
-            return new Enumeration<T>() {
-                private long counter = max;
+            final var ret = new Enumeration<T>() {
+                private long rem = max;
 
                 @Override public Optional<T> next() {
-                    if (counter == 0) return Optional.empty();
+                    if (rem == 0) return Optional.empty();
                     else {
-                        counter--;
+                        rem--;
                         return capture.next();
                     }
                 }
             };
+            
+            return Optional.of(ret);
         }
 
         default <S> Enumeration<S> map(Function<? super T, S> f) {
