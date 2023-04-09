@@ -29,13 +29,13 @@ C2 extends Countable,
 K2 extends Vector<F, Cols, C2, K2>,
 
 V extends Array<F, O, C1, V>,
-M extends Matrix<F, O, C1, K1, C2, K2, V, M>
+S extends LinearMap<F, C1, K1, C2, K2, S>
 >
 extends
 // a linear map between column arrays:
-LinearMap<F, C1, K1, C2, K2, M>,
+LinearMap<F, C1, K1, C2, K2, S>,
 // arranged as arrays of arrays (in either row-major or column major order):
-Array<V, O, C2, M>
+Array<V, O, C2, S>
 {
     @Override
     K2 apply(K1 ket);
@@ -51,21 +51,18 @@ Array<V, O, C2, M>
 
     interface RowFirst<
     F extends SemiRing<F>,
-
     C1 extends Cardinality.Countable,
     K1 extends Col<F, C1, K1>,
-
     C2 extends Cardinality.Countable,
-
-    M extends Matrix<F, Rows, C1, K1, C2, Col.Cm<F, C2>, N<F, C1>, M>
+    S extends LinearMap<F, C1, K1, C2, Col.Cm<F, C2>, S>
     >
-    extends Matrix<F, Rows, C1, K1, C2, Col.Cm<F, C2>, N<F, C1>, M>
+    extends Matrix<F, Rows, C1, K1, C2, Col.Cm<F, C2>, N<F, C1>, S>
     {
         @Override
         default Col.Cm<F, C2> apply(K1 ket) {
-            
+
             final AoC<F, ?> dots = map(bra -> bra.dot(ket));
-            
+
             return new Col.Cm<>(dots.enumeration());
         }
     }

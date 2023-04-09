@@ -15,7 +15,7 @@ interface Array<
 F extends Monoid.P<F>,
 O extends MajorOrder,
 C extends Cardinality.Countable,
-S extends Array<F, O, C, S>
+S extends Monoid.P<S>
 >
 extends
 Monoid.P<S>,
@@ -60,7 +60,7 @@ AoC<F, AoC.Enumeration<F>>
     F extends SemiRing<F>,
     O extends MajorOrder,
     C extends Cardinality.Countable,
-    S extends Vector<F, O, C, S>
+    S extends SemiModule<F, C, S>
     >
     extends
     Array<F, O, C, S>,
