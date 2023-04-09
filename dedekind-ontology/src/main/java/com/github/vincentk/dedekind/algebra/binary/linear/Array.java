@@ -3,6 +3,8 @@
  */
 package com.github.vincentk.dedekind.algebra.binary.linear;
 
+import java.util.Optional;
+
 import com.github.vincentk.dedekind.algebra.binary.SemiModule;
 import com.github.vincentk.dedekind.algebra.binary.linear.MajorOrder.Cols;
 import com.github.vincentk.dedekind.algebra.binary.linear.MajorOrder.Rows;
@@ -21,8 +23,16 @@ extends
 Monoid.P<S>,
 AoC<F, AoC.Enumeration<F>>
 {
+    Optional<? extends Array<F, O, C, ?>> skip(long min);
+    
+    Array<F, O, Cardinality.Finite, ?> limit(long max);
+    
+    default Optional<? extends Array<F, O, Cardinality.Finite, ?>> range(long min, long max) {
+        return limit(max).skip(min);
+    }
+    
     public abstract class OfSet<
-    F extends SemiRing<F>,
+    F extends Monoid.P<F>,
     O extends MajorOrder,
     C extends Cardinality.Countable,
     V extends Array<F, O, C, V>
@@ -53,6 +63,11 @@ AoC<F, AoC.Enumeration<F>>
         @Override
         public final Enumeration<F> enumeration() {
             return values;
+        }
+        
+        @Override
+        public Optional<V> skip(long min) {
+            return Optional.of(clone(enumeration().skip(min)));
         }
     }
 
@@ -118,6 +133,11 @@ AoC<F, AoC.Enumeration<F>>
                 protected N<F, C> clone(Enumeration<F> values) {
                     return new N<>(values);
                 }
+
+                @Override
+                public N<F, Cardinality.Finite> limit(long max) {
+                    return new N<>(enumeration().limit(max));
+                }
             }
         }
 
@@ -143,7 +163,21 @@ AoC<F, AoC.Enumeration<F>>
                 protected Cm<F, C> clone(Enumeration<F> values) {
                     return new Cm<>(values);
                 }
+                
+
+                @Override
+                public Cm<F, Cardinality.Finite> limit(long max) {
+                    return new Cm<>(enumeration().limit(max));
+                }
             }
         }
+    }
+    
+    static <F extends SemiRing<F>>
+    Vector.Col<F, Cardinality.Countable, ?> zeroes(F f0) {
+        
+        final var z0 = Optional.of(f0.zero());
+        
+        return new Vector.Col.Cm<>(() -> z0);
     }
 }

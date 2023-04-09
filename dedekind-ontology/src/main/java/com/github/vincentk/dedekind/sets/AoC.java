@@ -40,6 +40,23 @@ public interface AoC<T, E extends AoC.Enumeration<T>> {
             return this;
         }
 
+        default Enumeration<T> limit(long max) {
+
+            final Enumeration<T> capture = this;
+
+            return new Enumeration<T>() {
+                private long counter = max;
+
+                @Override public Optional<T> next() {
+                    if (counter == 0) return Optional.empty();
+                    else {
+                        counter--;
+                        return capture.next();
+                    }
+                }
+            };
+        }
+
         default <S> Enumeration<S> map(Function<? super T, S> f) {
             return () -> next().map(f);
         }
@@ -61,6 +78,13 @@ public interface AoC<T, E extends AoC.Enumeration<T>> {
 
         default Optional<T> fold(BinaryOperator<T> op) {
             return next().map(fst -> fold(fst, op));
+        }
+
+        static <T>  Enumeration<T> repeat(T val) {
+
+            final var nxt = Optional.of(val);
+
+            return () -> nxt;
         }
     }
 }
