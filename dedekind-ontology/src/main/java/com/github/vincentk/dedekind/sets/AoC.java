@@ -19,6 +19,15 @@ import java.util.function.Function;
 public interface AoC<T, E extends AoC.Enumeration<T>> {
     E enumeration();
 
+    default Optional<T> get(long i) {
+        return enumeration().skip(i).next();
+    }
+
+    default <S>
+    AoC<S, Enumeration<S>> map(Function<? super T, S> f) {
+        return () -> enumeration().map(f);
+    }
+
     @FunctionalInterface
     public interface Enumeration<T> {
 
@@ -31,7 +40,7 @@ public interface AoC<T, E extends AoC.Enumeration<T>> {
             return this;
         }
 
-        default <S> Enumeration<S> map(Function<T, S> f) {
+        default <S> Enumeration<S> map(Function<? super T, S> f) {
             return () -> next().map(f);
         }
 
@@ -49,7 +58,7 @@ public interface AoC<T, E extends AoC.Enumeration<T>> {
                     // base case:
                     .orElse(t0);
         }
-        
+
         default Optional<T> fold(BinaryOperator<T> op) {
             return next().map(fst -> fold(fst, op));
         }

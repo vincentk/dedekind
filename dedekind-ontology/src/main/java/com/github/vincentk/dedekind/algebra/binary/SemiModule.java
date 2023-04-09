@@ -11,7 +11,7 @@ import com.github.vincentk.dedekind.sets.Cardinality;
  * Strictly speaking, this is the definition of a "right semi-module"
  * defining multiplication by a scalar from the right.
  *
- * @see https://en.wikipedia.org/wiki/Module_(mathematics)
+ * @see https://en.wikipedia.org/wiki/Semimodule
  */
 public interface SemiModule<
 R extends SemiRing<R>,

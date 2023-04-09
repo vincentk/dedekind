@@ -74,14 +74,14 @@ SemiModule<F, C2, M>
         default Default<F, C1, V, C2, W> mult(F scalar) {
             return (V v) -> {
                 final V vs = v.mult(scalar);
-                return this.apply(vs);
+                return apply(vs);
             };
         }
 
         @Override
         default Default<F,C1, V, C2, W> plus(Default<F, C1, V, C2, W> that) {
             return (V v) -> {
-                final W w1 =  this.apply(v), w2 = that.apply(v);
+                final W w1 =  apply(v), w2 = that.apply(v);
                 return w1.plus(w2);
             };
         }

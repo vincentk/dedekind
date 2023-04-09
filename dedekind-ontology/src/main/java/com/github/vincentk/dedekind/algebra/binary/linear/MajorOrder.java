@@ -8,9 +8,9 @@ package com.github.vincentk.dedekind.algebra.binary.linear;
  * 
  * @see https://en.wikipedia.org/wiki/Row-_and_column-major_order
  */
-public sealed interface MajorOrder permits MajorOrder.Row, MajorOrder.Column{
+public sealed interface MajorOrder permits MajorOrder.Rows, MajorOrder.Cols {
     
-    final class Row implements MajorOrder {}
+    final class Rows implements MajorOrder {}
     
-    final class Column implements MajorOrder {}
+    final class Cols implements MajorOrder {}
 }
