@@ -6,8 +6,11 @@ package com.github.vincentk.dedekind.algebra.binary.linear;
 import java.util.Optional;
 
 import com.github.vincentk.dedekind.algebra.binary.SemiModule;
+import com.github.vincentk.dedekind.algebra.binary.linear.Array.Vector.Col.Cm;
 import com.github.vincentk.dedekind.algebra.binary.linear.MajorOrder.Cols;
 import com.github.vincentk.dedekind.algebra.binary.linear.MajorOrder.Rows;
+import com.github.vincentk.dedekind.algebra.peano.Peano.Succ;
+import com.github.vincentk.dedekind.algebra.peano.Peano.Zero;
 import com.github.vincentk.dedekind.algebra.unary.Monoid;
 import com.github.vincentk.dedekind.algebra.unary.SemiRing;
 import com.github.vincentk.dedekind.sets.AoC;
@@ -49,14 +52,23 @@ AoC<F, AoC.Enumeration<F>>
         return limit(max).flatMap(lmt -> lmt.skip(min));
     }
     
+    /**
+     * Semi-ring over semi-rings through pairwise addition and multiplication of elements.
+     * 
+     * @param <F>
+     * @param <O>
+     * @param <C>
+     * @param <V>
+     */
     public abstract class OfSet<
-    F extends Monoid.P<F>,
+    F extends SemiRing<F>,
     O extends MajorOrder,
     C extends Cardinality.Countable,
-    V extends Array<F, O, C, V>
+    V extends Array<F, O, C, V> & SemiRing<V>
     >
     implements
-    Array<F, O, C, V>
+    Array<F, O, C, V>,
+    SemiRing<V>
     {
         private final Enumeration<F> values;
 
@@ -77,6 +89,13 @@ AoC<F, AoC.Enumeration<F>>
             final var sums = pairs.map(p -> p.a().plus(p.b()));
             return clone(sums);
         }
+        
+        @Override
+        public final V times(V that) {
+            final var pairs = enumeration().zip(that.enumeration());
+            final var sums = pairs.map(p -> p.a().times(p.b()));
+            return clone(sums);
+        }
 
         @Override
         public final Enumeration<F> enumeration() {
@@ -93,10 +112,16 @@ AoC<F, AoC.Enumeration<F>>
     F extends SemiRing<F>,
     O extends MajorOrder,
     C extends Cardinality.Countable,
-    S extends SemiModule<F, C, S>
+    S extends SemiModule<F, C, S> & SemiRing<S>
     >
     extends
     Array<F, O, C, S>,
+    // In order to support vectors of vectors, the type
+    // system really wants this to be a semi-ring
+    // (i.e. support a notion of pairwise multiplication).
+    // This can be satisfied via e.g. pairwise multiplication
+    // of elements:
+    SemiRing<S>,
     SemiModule<F, C, S>
     {
 
@@ -136,12 +161,14 @@ AoC<F, AoC.Enumeration<F>>
                 return sum.get();
             }
 
-            public final class N<
+            public class N<
             F extends SemiRing<F>,
             C extends Cardinality.Countable
             >
             extends Vector.K<F, Rows, C, N<F, C>>
-            implements Row<F, C, N<F, C>>
+            implements
+            Row<F, C, N<F, C>>,
+            LinearMap<F, C, Cm<F,C>, Succ<Zero>, Cm<F,Succ<Zero>>, N<F, C>>
             {
                 public N(Enumeration<F> values) {
                     super(values);
@@ -156,6 +183,15 @@ AoC<F, AoC.Enumeration<F>>
                 public Optional<N<F, Cardinality.Finite>> limit(long max) {
                     return enumeration().limit(max).map(x -> new N<>(x));
                 }
+
+                @Override
+                public Cm<F, Succ<Zero>> apply(Cm<F, C> that) {
+                    final F scalar = this.dot(that);
+                    
+                    final Enumeration<F> once = Enumeration.repeat(scalar).limit(1).get();
+                    
+                    return new Cm<>(once);
+                }
             }
         }
 
@@ -166,12 +202,14 @@ AoC<F, AoC.Enumeration<F>>
         >
         extends Vector<F, Cols, C, S> {
 
-            public final class Cm<
+            public class Cm<
             F extends SemiRing<F>,
             C extends Cardinality.Countable
             >
             extends K<F, Cols, C, Cm<F, C>>
-            implements Col<F, C, Cm<F, C>>
+            implements
+            Col<F, C, Cm<F, C>>,
+            SemiModule<F, C, Cm<F, C>>
             {
                 public Cm(Enumeration<F> values) {
                     super(values);

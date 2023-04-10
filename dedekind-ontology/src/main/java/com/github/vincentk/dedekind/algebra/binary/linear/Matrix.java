@@ -40,6 +40,14 @@ Array<V, O, C2, S>
     @Override
     K2 apply(K1 ket);
 
+    Matrix<F, Rows, C1, K1, C2, Col.Cm<F, C2>, ?, ?> rows();
+
+    <
+    C3 extends Cardinality.Countable,
+    K3 extends Vector<F, Cols, C3, K3>
+    >
+    Matrix<F, ?, C3, K3, C2, K2, ?, ?> compose(Matrix<F, ?, C3, K3, C2, K2, ?, ?> other);
+
     /**
      * @param i
      * @param j

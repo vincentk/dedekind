@@ -32,7 +32,7 @@ M extends LinearMap<F, C1, V, C2, W, M>
 >
 extends
 Function<V, W>,
-SemiModule<F, C2, M>
+SemiModule<F, C1, M>
 {
     @FunctionalInterface
     public interface Default<
