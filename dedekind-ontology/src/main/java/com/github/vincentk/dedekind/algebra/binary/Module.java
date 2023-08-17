@@ -17,12 +17,7 @@ R extends Ring<R>,
 C extends Cardinality,
 N extends Module<R, C, N>>
 extends
-SemiModule<R, N>,
+SemiModule<R, C, N>,
 Group.P<N>
 {
-    @Override
-    N mult(R scalar);
-
-    @Override
-    N plus(N module);
 }

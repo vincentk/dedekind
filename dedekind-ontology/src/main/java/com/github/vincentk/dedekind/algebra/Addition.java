@@ -8,6 +8,4 @@ public interface Addition<D, R> {
     default R p(D that) {
         return plus(that);
     }
-    
-    
 }

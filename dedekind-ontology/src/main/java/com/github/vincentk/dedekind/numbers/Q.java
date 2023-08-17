@@ -26,6 +26,11 @@ Equality<Q> {
     public Z de();
 
     @Override
+    default Q zero() {
+        return ZERO;
+    }
+
+    @Override
     default Q negate() {
         return rational(en().neg(), de());
     }
@@ -34,7 +39,7 @@ Equality<Q> {
     default Q inverse() {
         return rational(de(), en());
     }
-    
+
     @Override
     default Q plus(Q that) {
 

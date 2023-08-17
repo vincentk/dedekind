@@ -19,6 +19,11 @@ Cardinality.Finite
     default Peano<N> plus(Zero that) {
         return this;
     }
+    
+    @Override
+    default Zero zero() {
+        return ZERO;
+    }
 
     final class Zero implements Peano<Zero>, Cardinality.Empty {
 
