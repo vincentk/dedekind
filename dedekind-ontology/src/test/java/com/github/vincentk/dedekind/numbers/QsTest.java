@@ -50,6 +50,18 @@ public class QsTest {
 	}
 	
 	@Test
+	public void testInverse() {
+		assertThat(UNIT.inverse()).isEqualTo(UNIT);
+	}
+	
+	@Test
+	public void testSimplify() {
+		assertThat(q(0, 300)).isEqualTo(ZERO);
+		assertThat(q(300, 300)).isEqualTo(UNIT);
+		assertThat(q(2, 4)).isEqualTo(q(1, 2));
+	}
+	
+	@Test
 	public void testCompare() {
 	    assertThat(ZERO.compareTo(ZERO)).isEqualTo(0);
 	    assertThat(UNIT.compareTo(UNIT)).isEqualTo(0);
