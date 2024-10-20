@@ -2,9 +2,14 @@ package com.github.vincentk.dedekind.sets;
 
 /**
  * 
- * A set. Membership is defined by delegating to the instanceof operation.
+ * A set.
+ * 
+ * Membership is defined by delegating to the instanceof operation
+ * of implementing classes.
  * 
  * @param <T> implementation type.
+ * 
+ * @see https://en.wikipedia.org/wiki/Set_(mathematics)
  */
 public interface Set<T extends Set<T>> {
 
@@ -18,7 +23,7 @@ public interface Set<T extends Set<T>> {
     C extends Cardinality.Countable,
     T extends Countable<C, T>
     >
-    extends Set<T>, AoC.Enumeration<T>{
+    extends Set<T>, Sequence.Enumeration<T> {
     }
 
     /**

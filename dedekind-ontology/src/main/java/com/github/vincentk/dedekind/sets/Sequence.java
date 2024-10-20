@@ -14,12 +14,16 @@ import java.util.Optional;
  * @see https://en.wikipedia.org/wiki/Sequence
  */
 @FunctionalInterface
-public interface AoC<T, E extends AoC.Enumeration<T>> {
+public interface Sequence<
+T,
+C extends Cardinality,
+E extends Sequence.Enumeration<T>
+> {
     E enumeration();
 
     @FunctionalInterface
     public interface Enumeration<T> {
 
-        Optional<T> next();
+	Optional<T> next();
     }
 }

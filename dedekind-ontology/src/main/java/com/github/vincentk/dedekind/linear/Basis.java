@@ -6,7 +6,7 @@ package com.github.vincentk.dedekind.linear;
 import com.github.vincentk.dedekind.algebra.binary.Vector;
 import com.github.vincentk.dedekind.algebra.unary.Field;
 import com.github.vincentk.dedekind.arrays.RandomAccess;
-import com.github.vincentk.dedekind.sets.AoC;
+import com.github.vincentk.dedekind.sets.Sequence;
 import com.github.vincentk.dedekind.sets.Cardinality;
 
 /**
@@ -33,12 +33,12 @@ Vector<F, C, S>
     public interface Ordered<
     F extends Field<F>,
     C extends Cardinality.Countable,
-    E extends AoC.Enumeration<F>,
+    E extends Sequence.Enumeration<F>,
     S extends Ordered<F, C, E, S>
     >
     extends
     Basis<F, C, S>,
-    AoC<F, E>
+    Sequence<F, C, E>
     {
 
         /**
@@ -47,7 +47,7 @@ Vector<F, C, S>
         public interface Finite<
         F extends Field<F>,
         C extends Cardinality.Finite,
-        E extends AoC.Enumeration<F>,
+        E extends Sequence.Enumeration<F>,
         S extends Finite<F, C, E, S>
         >
         extends
