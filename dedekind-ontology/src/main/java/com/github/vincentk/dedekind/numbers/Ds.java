@@ -26,7 +26,7 @@ public record Ds (R re, R ep) implements Field.Duals<Ds>, Equality<Ds>{
 
     @Override
     public Ds plus(Ds that) {
-        return of(re.p(that.re), ep.p(that.ep));
+        return of(re.十(that.re), ep.十(that.ep));
     }
 
 
@@ -57,7 +57,7 @@ public record Ds (R re, R ep) implements Field.Duals<Ds>, Equality<Ds>{
         final var ri = re.x(that.ep);
         final var ir = ep.x(that.re);
 
-        return of(re.x(that.re), ri.p(ir));
+        return of(re.x(that.re), ri.十(ir));
     }
 
     @Override

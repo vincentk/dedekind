@@ -20,18 +20,18 @@ public class CsTest {
 
 	@Test
 	public void testAddition() {
-		assertEquals(ZERO, ZERO.p(ZERO));
-		assertEquals(R1, R1.p(ZERO));
-		assertEquals(R1, ZERO.p(R1));
-		assertEquals(UNIT, R1.p(I1));
+		assertEquals(ZERO, ZERO.十(ZERO));
+		assertEquals(R1, R1.十(ZERO));
+		assertEquals(R1, ZERO.十(R1));
+		assertEquals(UNIT, R1.十(I1));
 	}
 	
 	@Test
 	public void testSubtraction() {
-		assertEquals(ZERO, ZERO.minus(ZERO));
-		assertEquals(R1, R1.minus(ZERO));
-		assertEquals(R1.neg(), ZERO.minus(R1));
-		assertEquals(UNIT.conj(), R1.minus(I1));
+		assertEquals(ZERO, ZERO.一(ZERO));
+		assertEquals(R1, R1.一(ZERO));
+		assertEquals(R1.neg(), ZERO.一(R1));
+		assertEquals(UNIT.conj(), R1.一(I1));
 	}
 	
 	@Test
@@ -39,7 +39,7 @@ public class CsTest {
 		assertEquals(R1, R1.conj());
 		assertEquals(I1.neg(), I1.conj());
 
-		assertEquals(R1.p(I1.neg()), UNIT.conj());
+		assertEquals(R1.十(I1.neg()), UNIT.conj());
 	}
 	
 	@Test
@@ -61,7 +61,7 @@ public class CsTest {
 		assertEquals(I1, R1.x(I1).x(R1));
 		assertEquals(I1, R1.x(R1).x(I1));
 		
-		assertEquals(R1.neg().p(I1.neg()), UNIT.x(I1).x(I1));
+		assertEquals(R1.neg().十(I1.neg()), UNIT.x(I1).x(I1));
 	}
 	
 	/**

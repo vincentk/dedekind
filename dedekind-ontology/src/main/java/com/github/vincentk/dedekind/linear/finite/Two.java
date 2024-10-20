@@ -34,7 +34,7 @@ Bra<R, Transposed<R, Two<R>>, Two<R>>
 
     @Override
     public Two<R> plus(Two<R> that) {
-        return new Two<>(x1.p(that.x1), x2.p(that.x2));
+        return new Two<>(x1.十(that.x1), x2.十(that.x2));
     }
 
     @Override
@@ -51,7 +51,7 @@ Bra<R, Transposed<R, Two<R>>, Two<R>>
 
         final var y2 = x2.times(ct.x2());
 
-        return y1.p(y2);
+        return y1.十(y2);
     }
 
     @Override

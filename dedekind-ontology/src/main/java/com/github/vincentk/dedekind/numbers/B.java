@@ -36,7 +36,7 @@ public interface B extends Number<B>, Ring<B>, Set.TotalOrder<Cardinality.Finite
      * @return boolean sum (or)
      */
     default B or(B that) {
-        return p(that);
+        return plus(that);
     }
 
     @Override

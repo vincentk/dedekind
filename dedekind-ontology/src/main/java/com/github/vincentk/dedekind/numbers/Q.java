@@ -38,7 +38,7 @@ Equality<Q> {
     @Override
     default Q plus(Q that) {
 
-        final var en1 = en().x(that.de()).p(that.en().x(de()));
+        final var en1 = en().x(that.de()).十(that.en().x(de()));
         final var de1 = de().x(that.de());
 
         return rational(en1, de1);

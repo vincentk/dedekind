@@ -18,6 +18,10 @@ public interface Field<F extends Field<F>> extends Ring<F> {
     default F minus(F that) {
         return plus(that.negate());
     }
+    
+    default F 一(F that) {
+	return minus(that);
+    }
 
     /**
      * @return 1 / this

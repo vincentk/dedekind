@@ -18,9 +18,9 @@ public class DsTest {
         assertThat(zero.x(one)).isEqualTo(zero);
 
         assertThat(one.times(one)).isEqualTo(one);
-        assertThat(one.p(zero)).isEqualTo(one);
-        assertThat(zero.p(one)).isEqualTo(one);
-        assertThat(one.p(one)).isEqualTo(two);
+        assertThat(one.十(zero)).isEqualTo(one);
+        assertThat(zero.十(one)).isEqualTo(one);
+        assertThat(one.十(one)).isEqualTo(two);
     }
 
     @Test
@@ -30,10 +30,10 @@ public class DsTest {
 
         final var one = Ds.of(1, eps);
 
-        assertThat(one.p(Ds.of(3))).isEqualTo(Ds.of(4, eps));
+        assertThat(one.十(Ds.of(3))).isEqualTo(Ds.of(4, eps));
 
         assertThat(one.x(Ds.of(5))).isEqualTo(Ds.of(5, 5 * eps));
 
-        assertThat(one.p(one)).isEqualTo(Ds.of(2, 2 * eps));
+        assertThat(one.十(one)).isEqualTo(Ds.of(2, 2 * eps));
     }
 }

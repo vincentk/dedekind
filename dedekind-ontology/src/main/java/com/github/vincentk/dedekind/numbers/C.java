@@ -24,7 +24,7 @@ public interface C extends Number<C>, Field.Complex<C>, MetricSpace<C, R> {
 
         @Override
         public C plus(C that) {
-            return of(re.p(that.re()), im.p(that.im()));
+            return of(re.十(that.re()), im.十(that.im()));
         }
 
 
@@ -56,7 +56,7 @@ public interface C extends Number<C>, Field.Complex<C>, MetricSpace<C, R> {
             final var ri = re.x(that.im());
             final var ir = im.x(that.re());
 
-            return of(r2.minus(i2), ri.p(ir));
+            return of(r2.minus(i2), ri.十(ir));
         }
 
         @Override

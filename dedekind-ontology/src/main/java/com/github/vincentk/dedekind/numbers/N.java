@@ -14,6 +14,7 @@ public interface N
 extends
 Number<N>,
 Set.TotalOrder<Cardinality.Countable, N>,
+Set.Countable<Cardinality.Countable, N>,
 SemiRing.Natural<N>,
 MetricSpace<N, N>
 {
