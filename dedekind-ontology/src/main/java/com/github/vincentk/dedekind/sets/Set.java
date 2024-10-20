@@ -23,7 +23,7 @@ public interface Set<T extends Set<T>> {
     C extends Cardinality.Countable,
     T extends Countable<C, T>
     >
-    extends Set<T>, Sequence.Enumeration<T> {
+    extends Set<T> {
     }
 
     /**
