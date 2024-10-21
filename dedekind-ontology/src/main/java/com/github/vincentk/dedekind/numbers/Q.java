@@ -55,11 +55,6 @@ Equality<Q> {
     }
 
     @Override
-    default Q minus(Q that) {
-	return plus(that.negate());
-    }
-
-    @Override
     default Q times(Q that) {
 
 	final var en = en().times(that.en());

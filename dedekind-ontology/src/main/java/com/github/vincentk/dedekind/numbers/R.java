@@ -26,11 +26,6 @@ public interface R extends NumberLine<Cardinality.Uncountable, R>, Field.Reals<R
         }
 
         @Override
-        public R minus(R that) {
-            return real(this.doubleVal - that.doubleVal());
-        }
-
-        @Override
         public R times(R that) {
             return real(this.doubleVal * that.doubleVal());
         }

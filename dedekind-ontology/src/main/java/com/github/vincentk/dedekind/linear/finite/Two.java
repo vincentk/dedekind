@@ -2,10 +2,10 @@ package com.github.vincentk.dedekind.linear.finite;
 
 import com.github.vincentk.dedekind.algebra.peano.Peano.Succ;
 import com.github.vincentk.dedekind.algebra.peano.Peano.Zero;
-import com.github.vincentk.dedekind.families.Pair;
-import com.github.vincentk.dedekind.relation.binary.Module;
-import com.github.vincentk.dedekind.relation.binary.Transposed;
 import com.github.vincentk.dedekind.relation.binary.Bracket.Bra;
+import com.github.vincentk.dedekind.relation.binary.Module;
+import com.github.vincentk.dedekind.relation.binary.Pair;
+import com.github.vincentk.dedekind.relation.binary.Transposed;
 import com.github.vincentk.dedekind.relation.binary.homogeneous.Ring;
 
 /**

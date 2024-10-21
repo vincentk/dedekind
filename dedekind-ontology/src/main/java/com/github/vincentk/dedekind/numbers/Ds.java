@@ -47,11 +47,6 @@ public record Ds (R re, R ep) implements Field.Duals<Ds>, Equality<Ds>{
     }
 
     @Override
-    public Ds minus(Ds that) {
-        return of(re.minus(that.re), this.ep.minus(that.ep));
-    }
-
-    @Override
     public Ds times(Ds that) {
 
         final var ri = re.x(that.ep);

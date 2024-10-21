@@ -43,11 +43,6 @@ public interface C extends Number<C>, Field.Complex<C>, MetricSpace<C, R> {
         }
 
         @Override
-        public C minus(C that) {
-            return of(re.minus(that.re()), this.im.minus(that.im()));
-        }
-
-        @Override
         public C times(C that) {
 
             final var r2 = re.x(that.re());

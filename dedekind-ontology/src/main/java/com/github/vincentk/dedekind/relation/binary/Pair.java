@@ -1,4 +1,4 @@
-package com.github.vincentk.dedekind.families;
+package com.github.vincentk.dedekind.relation.binary;
 
 /**
  * @see https://en.wikipedia.org/wiki/Ordered_pair

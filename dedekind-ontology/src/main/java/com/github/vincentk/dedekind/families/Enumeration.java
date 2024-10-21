@@ -2,6 +2,8 @@ package com.github.vincentk.dedekind.families;
 
 import java.util.Optional;
 
+import com.github.vincentk.dedekind.relation.binary.Pair;
+
 @FunctionalInterface
 public interface Enumeration<T, E extends Enumeration<T, E>>
 {

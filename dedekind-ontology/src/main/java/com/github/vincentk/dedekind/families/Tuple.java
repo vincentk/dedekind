@@ -6,6 +6,7 @@ import java.util.stream.Collectors;
 import com.github.vincentk.dedekind.numbers.B;
 import com.github.vincentk.dedekind.numbers.N;
 import com.github.vincentk.dedekind.numbers.Number;
+import com.github.vincentk.dedekind.relation.binary.Pair;
 import com.github.vincentk.dedekind.relation.binary.SemiModule;
 import com.github.vincentk.dedekind.relation.binary.homogeneous.SemiRing;
 import com.github.vincentk.dedekind.sets.Cardinality;
