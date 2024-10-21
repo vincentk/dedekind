@@ -7,7 +7,6 @@ import java.util.Arrays;
 import java.util.function.IntFunction;
 import java.util.stream.IntStream;
 
-import com.github.vincentk.dedekind.algebra.arithmetic.Equality;
 import com.github.vincentk.dedekind.algebra.numbers.B;
 import com.github.vincentk.dedekind.arrays.RandomAccess;
 import com.github.vincentk.dedekind.relation.binary.SemiModule;
@@ -23,8 +22,7 @@ C extends Cardinality.Finite
 implements
 SemiModule<B, Booleans<C>>,
 Bra<B, Transposed<B, Booleans<C>>, Booleans<C>>,
-RandomAccess<B>,
-Equality<Booleans<C>>
+RandomAccess<B>
 {
     public static Booleans<Cardinality.Finite> booleans(boolean... vals) {
         return new Booleans<>(vals);
@@ -84,7 +82,7 @@ Equality<Booleans<C>>
     }
 
     @Override
-    public boolean equals(Booleans<C> that) {
+    public boolean eq(Booleans<C> that) {
         return Arrays.equals(values, that.values);
     }
 
@@ -94,6 +92,6 @@ Equality<Booleans<C>>
 
         if (!(other instanceof Booleans)) return false;
 
-        return equals((Booleans<C>)other);
+        return eq((Booleans<C>)other);
     }
 }

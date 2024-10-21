@@ -48,4 +48,9 @@ implements Matrix<F, C, D, MatrixMultiplication<F, C, D, E>>
         // (A x B) a  = (A * a) x B = A x (b * a)
         return new MatrixMultiplication<>(m1.mult(scalar), m2);
     }
+
+    @Override
+    public boolean eq(Matrix<F, C, D, ?> that) {
+	return this == that;
+    }
 }

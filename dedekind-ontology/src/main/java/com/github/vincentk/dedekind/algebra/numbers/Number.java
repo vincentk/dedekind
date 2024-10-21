@@ -3,7 +3,6 @@
  */
 package com.github.vincentk.dedekind.algebra.numbers;
 
-import com.github.vincentk.dedekind.algebra.arithmetic.Equality;
 import com.github.vincentk.dedekind.relation.binary.homogeneous.SemiRing;
 import com.github.vincentk.dedekind.sets.Set;
 
@@ -15,5 +14,5 @@ import com.github.vincentk.dedekind.sets.Set;
  */
 public interface Number<T extends Number<T>>
 extends
-SemiRing<T>, Set<T>, Equality<T> {
+SemiRing<T>, Set<T> {
 }

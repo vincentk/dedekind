@@ -38,7 +38,7 @@ public interface Z extends NumberLine<Cardinality.Countable, Z>, Ring.Integer<Z>
         }
 
         @Override
-        public boolean equals(Z that) {
+        public boolean eq(Z that) {
             return intValue == that.intValue();
         }
 

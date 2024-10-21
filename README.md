@@ -5,7 +5,13 @@ Exercises in strongly typed linear algebra on the JVM.
 ![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/vincentk/dedekind/maven.yml?branch=main&style=flat-square)
 [![license](https://img.shields.io/github/license/vincentk/dedekind.svg?style=flat-square)](LICENSE)
 
-Roughly speaking an attempt to reproduce some results of [The simple essence of automatic differentiation](https://arxiv.org/abs/1804.00746#) in a modern core java. To facilitate later specialization of `interface` implementations, [higher-kinded types](https://www.baeldung.com/scala/higher-kinded-types) are emulated through recursive generics and `default` methods, following about the following pattern:
+An attempt to model and reproduce some results from 
+* [The simple essence of automatic differentiation](https://arxiv.org/abs/1804.00746#) 
+* [Lineare Algebra](https://people.math.ethz.ch/~stammb/linalg.html)
+
+in a modern core java.
+
+To facilitate later specialization of `interface` implementations, [higher-kinded types](https://www.baeldung.com/scala/higher-kinded-types) are emulated through recursive generics and `default` methods, following about the following pattern:
 ```java
 interface A<M extends A<M>> {
    default M plus(M that) {

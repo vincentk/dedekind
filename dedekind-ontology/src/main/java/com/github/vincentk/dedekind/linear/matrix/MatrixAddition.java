@@ -47,4 +47,9 @@ implements Matrix<F, C, D, MatrixAddition<F, C, D>>
         // (A + B) * a = (A * a + B * a)
         return new MatrixAddition<>(m1.mult(scalar), m2.mult(scalar));
     }
+
+    @Override
+    public boolean eq(Matrix<F, C, D, ?> that) {
+	return this == that;
+    }
 }

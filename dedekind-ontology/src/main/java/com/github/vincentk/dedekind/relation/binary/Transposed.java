@@ -44,4 +44,9 @@ Ket<F, D, Transposed<F, D>>
     outer(B1 bra) {
         return new OuterProduct<F, Transposed<F, D>, D, K1, B1>(this, bra);
     }
+
+    @Override
+    public boolean eq(Transposed<F, D> that) {
+	return this == that;
+    }
 }

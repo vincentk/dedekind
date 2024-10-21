@@ -1,6 +1,6 @@
 package com.github.vincentk.dedekind.algebra.numbers;
 
-import com.github.vincentk.dedekind.algebra.arithmetic.Equality;
+import com.github.vincentk.dedekind.relation.binary.homogeneous.Equality;
 import com.github.vincentk.dedekind.relation.binary.homogeneous.Field;
 import com.github.vincentk.dedekind.sets.Cardinality;
 
@@ -87,7 +87,7 @@ Equality<Q> {
 	 */
 	public Impl(Z en, Z de) {
 
-	    assert !de.equals(Z.ZERO);
+	    assert !de.eq(Z.ZERO);
 
 	    if (de.intValue() >= 0) {
 		this.en = en;
@@ -151,14 +151,14 @@ Equality<Q> {
 	}
 
 	@Override
-	public boolean equals(Q that) {
-	    return this.en.equals(that.en()) && this.de.equals(that.de());
+	public boolean eq(Q that) {
+	    return this.en.eq(that.en()) && this.de.eq(that.de());
 	}
 
 	@Override
 	public boolean equals(Object that) {
 	    if (that instanceof Q) {
-		return equals((Q) that);
+		return eq((Q) that);
 	    }
 	    return false;
 	}
