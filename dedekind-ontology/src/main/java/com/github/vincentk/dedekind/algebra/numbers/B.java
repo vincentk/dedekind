@@ -76,12 +76,6 @@ Booleans {
     }
 
     record Be (boolean bool) implements B {
-
-	@Override
-	public boolean eq(B that) {
-	    return bool() == that.bool();
-	}
-
     }
 
     public static final Be TRUE = new Be(true), FALSE = new Be(false);
