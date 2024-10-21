@@ -60,17 +60,17 @@ extends Equality<T>
     C extends Cardinality,
     T extends Directed<C, T>
     >
-    extends Set<T>, PreOrder<T> {
-	
-	/**
-	 * @param that
-	 * @return an upper bound value F such that this <= F and that <= F
-	 * 
-	 * @see https://en.wikipedia.org/wiki/Preorder
-	 */
-	T upperBound(T that);
+    extends Set<T>, PreOrder.Directed<T> {
     }
     
+    /**
+     * Partially ordered set.
+     * 
+     * @param <C>
+     * @param <T>
+     * 
+     * @see https://en.wikipedia.org/wiki/Partially_ordered_set
+     */
     interface PoSet<
     C extends Cardinality,
     T extends PoSet<C, T>
