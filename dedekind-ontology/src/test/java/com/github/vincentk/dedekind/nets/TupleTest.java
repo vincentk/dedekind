@@ -1,4 +1,4 @@
-package com.github.vincentk.dedekind.sets;
+package com.github.vincentk.dedekind.nets;
 
 import org.junit.jupiter.api.Test;
 

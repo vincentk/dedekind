@@ -1,9 +1,9 @@
 package com.github.vincentk.dedekind.linear.matrix;
 
 import com.github.vincentk.dedekind.algebra.Equality;
-import com.github.vincentk.dedekind.algebra.binary.Transposed;
-import com.github.vincentk.dedekind.algebra.unary.Ring;
 import com.github.vincentk.dedekind.linear.finite.One;
+import com.github.vincentk.dedekind.relation.binary.Transposed;
+import com.github.vincentk.dedekind.relation.binary.homogeneous.Ring;
 
 /**
  * 1 x 1 matrix.

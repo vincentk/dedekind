@@ -3,11 +3,11 @@
  */
 package com.github.vincentk.dedekind.numbers;
 
-import com.github.vincentk.dedekind.algebra.unary.Ring;
-import com.github.vincentk.dedekind.algebra.unary.SemiRing;
+import com.github.vincentk.dedekind.relation.binary.homogeneous.Ring;
+import com.github.vincentk.dedekind.relation.binary.homogeneous.SemiRing;
 import com.github.vincentk.dedekind.sets.Cardinality;
 import com.github.vincentk.dedekind.sets.Fields;
-import com.github.vincentk.dedekind.sets.Set.TotalOrder;
+import com.github.vincentk.dedekind.sets.Set.TotallyOrdered;
 
 /**
  * A specialization of the {@link MetricSpace} to sets of {@link Number} with a total order.
@@ -21,7 +21,7 @@ import com.github.vincentk.dedekind.sets.Set.TotalOrder;
 interface NumberLine<
 C1 extends Cardinality,
 T extends SemiRing<T> & NumberLine<C1, T>>
-extends Fields.Reals, Ring<T>, Number<T>, TotalOrder<C1, T>, MetricSpace<T, T> {
+extends Fields.Reals, Ring<T>, Number<T>, TotallyOrdered<C1, T>, MetricSpace<T, T> {
 
     @Override
     default T distance(T other) {

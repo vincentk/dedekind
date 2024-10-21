@@ -1,4 +1,4 @@
-package com.github.vincentk.dedekind.algebra.unary;
+package com.github.vincentk.dedekind.relation.binary.homogeneous;
 
 import java.util.Optional;
 

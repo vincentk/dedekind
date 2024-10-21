@@ -3,9 +3,9 @@
  */
 package com.github.vincentk.dedekind.numbers;
 
-import static java.lang.Integer.compare;
+import static java.lang.Long.compare;
 
-import com.github.vincentk.dedekind.algebra.unary.Ring;
+import com.github.vincentk.dedekind.relation.binary.homogeneous.Ring;
 import com.github.vincentk.dedekind.sets.Cardinality;
 
 /**
@@ -13,9 +13,9 @@ import com.github.vincentk.dedekind.sets.Cardinality;
  */
 public interface Z extends NumberLine<Cardinality.Countable, Z>, Ring.Integer<Z> {
 
-    public int intValue();
+    public long intValue();
 
-    record Impl (int intValue) implements Z {
+    record Impl (long intValue) implements Z {
 
         @Override
         public Z plus(Z that) {
@@ -48,7 +48,7 @@ public interface Z extends NumberLine<Cardinality.Countable, Z>, Ring.Integer<Z>
         }
     }
 
-    static Z integer(int n) {
+    static Z integer(long n) {
         return new Impl(n);
     }
 

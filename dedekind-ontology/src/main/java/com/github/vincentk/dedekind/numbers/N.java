@@ -3,7 +3,7 @@
  */
 package com.github.vincentk.dedekind.numbers;
 
-import com.github.vincentk.dedekind.algebra.unary.SemiRing;
+import com.github.vincentk.dedekind.relation.binary.homogeneous.SemiRing;
 import com.github.vincentk.dedekind.sets.Cardinality;
 import com.github.vincentk.dedekind.sets.Set;
 
@@ -13,66 +13,76 @@ import com.github.vincentk.dedekind.sets.Set;
 public interface N
 extends
 Number<N>,
-Set.TotalOrder<Cardinality.Countable, N>,
+Set.TotallyOrdered<Cardinality.Finite, N>,
+Set.Finite<N>,
 SemiRing.Natural<N>,
 MetricSpace<N, N>
 {
 
-    public int integer();
+    public long integer();
 
     @Override
+    default long cardinality() {
+	return Long.MAX_VALUE;
+    }
+    
+    @Override
     default Ne plus(N that) {
-        return nat(integer() + that.integer());
+	return nat(integer() + that.integer());
     }
 
     @Override
     default Ne times(N that) {
-        return nat(integer() * that.integer());
+	return nat(integer() * that.integer());
     }
 
     @Override
     default boolean equals(N that) {
-        return integer() == that.integer();
+	return integer() == that.integer();
     }
 
     @Override
     default N abs() {
-        return this;
+	return this;
     }
 
     @Override
     default Ne distance(N other) {
-        return nat(Math.abs(integer() - other.integer()));
+	return nat(Math.abs(integer() - other.integer()));
     }
-    
+
     default Z asInt() {
-        return Z.integer(integer());
+	return Z.integer(integer());
     }
 
-    record Ne (int integer) implements N {
+    record Ne (long integer) implements N {
 
-        public Ne(int integer) {
-            assert integer >= 0;
-            this.integer = integer;
-        }
+	public Ne(long integer) {
+	    assert integer >= 0;
+	    this.integer = integer;
+	}
 
-        @Override
-        public int compareTo(N o) {
-            return Integer.compare(integer, o.integer());
-        }
+	@Override
+	public int compareTo(N o) {
+	    return Long.compare(integer, o.integer());
+	}
     }
 
-    static Ne nat(int n) {
-        
-        assert n >= 0;
-        
-        switch(n) {
-        case 0: return ZERO;
-        case 1: return ONE;
-        case 2: return TWO;
-        default: return new Ne(n);
-        }
+    static Ne nat(long n) {
+
+	assert n >= 0;
+
+	if (n <= 2) {
+	    final int ni = (int) n;
+	    switch(ni) {
+	    case 0: return ZERO;
+	    case 1: return ONE;
+	    case 2: return TWO;
+	    }
+	}
+
+	return new Ne(n);
     }
-    
+
     public static final Ne ZERO = new Ne(0), ONE = new Ne(1), TWO = new Ne(2);
 }

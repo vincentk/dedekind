@@ -1,7 +1,7 @@
 package com.github.vincentk.dedekind.numbers;
 
 import com.github.vincentk.dedekind.algebra.Equality;
-import com.github.vincentk.dedekind.algebra.unary.Field;
+import com.github.vincentk.dedekind.relation.binary.homogeneous.Field;
 
 /**
  * The set of dual numbers.
@@ -26,7 +26,7 @@ public record Ds (R re, R ep) implements Field.Duals<Ds>, Equality<Ds>{
 
     @Override
     public Ds plus(Ds that) {
-        return of(re.p(that.re), ep.p(that.ep));
+        return of(re.十(that.re), ep.十(that.ep));
     }
 
 
@@ -47,17 +47,12 @@ public record Ds (R re, R ep) implements Field.Duals<Ds>, Equality<Ds>{
     }
 
     @Override
-    public Ds minus(Ds that) {
-        return of(re.minus(that.re), this.ep.minus(that.ep));
-    }
-
-    @Override
     public Ds times(Ds that) {
 
         final var ri = re.x(that.ep);
         final var ir = ep.x(that.re);
 
-        return of(re.x(that.re), ri.p(ir));
+        return of(re.x(that.re), ri.十(ir));
     }
 
     @Override

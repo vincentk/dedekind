@@ -4,8 +4,8 @@ import static org.mockito.Mockito.mock;
 
 import org.junit.jupiter.api.Test;
 
-import com.github.vincentk.dedekind.algebra.binary.Bracket.Ket;
 import com.github.vincentk.dedekind.numbers.R;
+import com.github.vincentk.dedekind.relation.binary.Bracket.Ket;
 
 public class MatrixTest {
 

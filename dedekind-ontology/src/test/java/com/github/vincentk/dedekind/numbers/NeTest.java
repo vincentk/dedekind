@@ -14,7 +14,7 @@ public class NeTest {
     @ParameterizedTest
     @MethodSource
     public void testAddition(N b1, N b2, N expected, String name) {
-        assertThat(b1.p(b2)).isEqualTo(expected);
+        assertThat(b1.十(b2)).isEqualTo(expected);
     }
 
     private static Stream<Arguments> testAddition() {

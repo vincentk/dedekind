@@ -1,6 +1,6 @@
 package com.github.vincentk.dedekind.numbers;
 
-import com.github.vincentk.dedekind.algebra.unary.Field;
+import com.github.vincentk.dedekind.relation.binary.homogeneous.Field;
 import com.github.vincentk.dedekind.sets.Cardinality;
 
 /**
@@ -23,11 +23,6 @@ public interface R extends NumberLine<Cardinality.Uncountable, R>, Field.Reals<R
         @Override
         public R plus(R that) {
             return real(this.doubleVal + that.doubleVal());
-        }
-
-        @Override
-        public R minus(R that) {
-            return real(this.doubleVal - that.doubleVal());
         }
 
         @Override

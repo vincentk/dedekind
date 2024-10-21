@@ -1,4 +1,4 @@
-package com.github.vincentk.dedekind.algebra.unary;
+package com.github.vincentk.dedekind.relation.binary.homogeneous;
 
 import com.github.vincentk.dedekind.sets.Fields;
 
@@ -17,6 +17,10 @@ public interface Field<F extends Field<F>> extends Ring<F> {
      */
     default F minus(F that) {
         return plus(that.negate());
+    }
+    
+    default F 一(F that) {
+	return minus(that);
     }
 
     /**

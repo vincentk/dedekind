@@ -8,11 +8,11 @@ import java.util.function.IntFunction;
 import java.util.stream.IntStream;
 
 import com.github.vincentk.dedekind.algebra.Equality;
-import com.github.vincentk.dedekind.algebra.binary.Bracket.Bra;
-import com.github.vincentk.dedekind.algebra.binary.SemiModule;
-import com.github.vincentk.dedekind.algebra.binary.Transposed;
 import com.github.vincentk.dedekind.arrays.RandomAccess;
 import com.github.vincentk.dedekind.numbers.B;
+import com.github.vincentk.dedekind.relation.binary.SemiModule;
+import com.github.vincentk.dedekind.relation.binary.Transposed;
+import com.github.vincentk.dedekind.relation.binary.Bracket.Bra;
 import com.github.vincentk.dedekind.sets.Cardinality;
 
 public record Booleans
