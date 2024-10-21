@@ -38,7 +38,7 @@ jobs:
     # https://github.com/marketplace/actions/jacoco-report
     - name: Add coverage to PR
       id: jacoco
-      uses: madrapps/jacoco-report@v1.3
+      uses: madrapps/jacoco-report@v1.7.1
       with:
         # Issue with aggregate reports.
         # Using arbitrary module reports for now.
