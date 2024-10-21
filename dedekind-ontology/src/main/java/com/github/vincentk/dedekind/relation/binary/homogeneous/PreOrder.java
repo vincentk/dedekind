@@ -24,4 +24,24 @@ public interface PreOrder<T> {
 	 */
 	T upperBound(T that);
     }
+    
+    /**
+     * A pre-order which is guaranteed by the implementor to be anti-symmetric.
+     * 
+     * I.e. a <= b && b <= a => a == b
+     * 
+     * @param <T>
+     * 
+     * @see https://en.wikipedia.org/wiki/Partially_ordered_set#Partial_orders
+     */
+    public interface AntiSymmetric<T extends AntiSymmetric<T>>
+    extends
+    PreOrder<T>, Equality<T>
+    {
+	@SuppressWarnings("unchecked")
+	@Override
+	default boolean eq(T that) {
+	    return this.leq(that) && that.leq((T) this);
+	}
+    }
 }
