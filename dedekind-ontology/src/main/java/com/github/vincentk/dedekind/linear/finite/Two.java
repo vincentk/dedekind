@@ -1,22 +1,22 @@
 package com.github.vincentk.dedekind.linear.finite;
 
-import com.github.vincentk.dedekind.algebra.binary.Bracket.Bra;
-import com.github.vincentk.dedekind.algebra.binary.Module;
-import com.github.vincentk.dedekind.algebra.binary.Transposed;
 import com.github.vincentk.dedekind.algebra.peano.Peano.Succ;
 import com.github.vincentk.dedekind.algebra.peano.Peano.Zero;
-import com.github.vincentk.dedekind.algebra.unary.Ring;
+import com.github.vincentk.dedekind.families.Pair;
+import com.github.vincentk.dedekind.relation.binary.Module;
+import com.github.vincentk.dedekind.relation.binary.Transposed;
+import com.github.vincentk.dedekind.relation.binary.Bracket.Bra;
+import com.github.vincentk.dedekind.relation.binary.homogeneous.Ring;
 
 /**
- * Vector with just one element.
- * 
- * It is the only vector which can serve as both a row and a column vector.
+ * Vector with exactly two elements.
  * 
  * @param <R> type of ring defining the element type.
  */
 public record Two<R extends Ring<R>>
-(R x1, R x2)
+(R fst, R snd)
 implements
+Pair<R, R>,
 Module<R, Succ<Succ<Zero>>, Two<R>>,
 Bra<R, Transposed<R, Two<R>>, Two<R>>
 {
@@ -29,12 +29,12 @@ Bra<R, Transposed<R, Two<R>>, Two<R>>
 
     @Override
     public Two<R> mult(R a) {
-        return new Two<>(x1.x(a), x2.x(a));
+        return new Two<>(fst.x(a), snd.x(a));
     }
 
     @Override
     public Two<R> plus(Two<R> that) {
-        return new Two<>(x1.十(that.x1), x2.十(that.x2));
+        return new Two<>(fst.十(that.fst), snd.十(that.snd));
     }
 
     @Override
@@ -47,15 +47,15 @@ Bra<R, Transposed<R, Two<R>>, Two<R>>
 
         final Two<R> ct = col.transpose();
 
-        final var y1 = x1.times(ct.x1());
+        final var y1 = fst.times(ct.fst());
 
-        final var y2 = x2.times(ct.x2());
+        final var y2 = snd.times(ct.snd());
 
         return y1.十(y2);
     }
 
     @Override
     public Two<R> negate() {
-        return two(x1.neg(), x2.neg());
+        return two(fst.neg(), snd.neg());
     }
 }

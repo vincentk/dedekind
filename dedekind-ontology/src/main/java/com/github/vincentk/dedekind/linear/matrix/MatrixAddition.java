@@ -1,7 +1,7 @@
 package com.github.vincentk.dedekind.linear.matrix;
 
-import com.github.vincentk.dedekind.algebra.binary.Bracket.Ket;
-import com.github.vincentk.dedekind.algebra.unary.SemiRing;
+import com.github.vincentk.dedekind.relation.binary.Bracket.Ket;
+import com.github.vincentk.dedekind.relation.binary.homogeneous.SemiRing;
 
 /**
  * A lazy / symbolic implementation of matrix addition.

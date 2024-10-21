@@ -4,7 +4,7 @@
 package com.github.vincentk.dedekind.numbers;
 
 import com.github.vincentk.dedekind.algebra.Equality;
-import com.github.vincentk.dedekind.algebra.unary.SemiRing;
+import com.github.vincentk.dedekind.relation.binary.homogeneous.SemiRing;
 import com.github.vincentk.dedekind.sets.Set;
 
 /**
@@ -13,7 +13,7 @@ import com.github.vincentk.dedekind.sets.Set;
  * 
  * @param <T> self-reference
  */
-interface Number<T extends Number<T>>
+public interface Number<T extends Number<T>>
 extends
 SemiRing<T>, Set<T>, Equality<T> {
 }

@@ -4,7 +4,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
 
-import com.github.vincentk.dedekind.nets.Sequence.Fibonacci;
+import com.github.vincentk.dedekind.families.Sequence;
+import com.github.vincentk.dedekind.families.Sequence.Fibonacci;
 import com.github.vincentk.dedekind.numbers.N;
 
 public class FibonacciTest {
@@ -17,9 +18,9 @@ public class FibonacciTest {
      */
     @Test
     public void testFibs() {
-	assertThat(fib.apply(N.ZERO)).isEqualTo(N.ZERO);
-	assertThat(fib.apply(N.ONE)).isEqualTo(N.ONE);
-	assertThat(fib.apply(N.TWO)).isEqualTo(N.ONE);
-	assertThat(fib.apply(N.nat(7))).isEqualTo(N.nat(13));
+	assertThat(fib.at(N.ZERO)).isEqualTo(N.ZERO);
+	assertThat(fib.at(N.ONE)).isEqualTo(N.ONE);
+	assertThat(fib.at(N.TWO)).isEqualTo(N.ONE);
+	assertThat(fib.at(N.nat(7))).isEqualTo(N.nat(13));
     }
 }

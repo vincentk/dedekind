@@ -1,10 +1,10 @@
 /**
  * 
  */
-package com.github.vincentk.dedekind.algebra.binary;
+package com.github.vincentk.dedekind.relation.binary;
 
-import com.github.vincentk.dedekind.algebra.unary.SemiRing;
 import com.github.vincentk.dedekind.bilinear.OuterProduct;
+import com.github.vincentk.dedekind.relation.binary.homogeneous.SemiRing;
 
 /**
  * @see https://en.wikipedia.org/wiki/Bra%E2%80%93ket_notation

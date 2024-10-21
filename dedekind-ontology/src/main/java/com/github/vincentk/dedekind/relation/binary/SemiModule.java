@@ -1,16 +1,15 @@
-package com.github.vincentk.dedekind.algebra.binary;
+package com.github.vincentk.dedekind.relation.binary;
 
-import com.github.vincentk.dedekind.algebra.unary.Monoid;
-import com.github.vincentk.dedekind.algebra.unary.Ring;
-import com.github.vincentk.dedekind.algebra.unary.SemiRing;
+import com.github.vincentk.dedekind.relation.binary.homogeneous.Monoid;
+import com.github.vincentk.dedekind.relation.binary.homogeneous.SemiRing;
 
 /**
- * Definition of scalar multiplication over a {@link Ring}.
+ * Definition of scalar multiplication over a {@link SemiRing}.
  *
  * Strictly speaking, this is the definition of a "right semi-module"
  * defining multiplication by a scalar from the right.
  *
- * @see https://en.wikipedia.org/wiki/Module_(mathematics)
+ * @see https://en.wikipedia.org/wiki/Semimodule
  *
  * @param <R> the scalar ring
  * @param <N> self-type

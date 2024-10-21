@@ -1,7 +1,7 @@
-package com.github.vincentk.dedekind.algebra.binary;
+package com.github.vincentk.dedekind.relation.binary;
 
-import com.github.vincentk.dedekind.algebra.unary.Group;
-import com.github.vincentk.dedekind.algebra.unary.Ring;
+import com.github.vincentk.dedekind.relation.binary.homogeneous.Group;
+import com.github.vincentk.dedekind.relation.binary.homogeneous.Ring;
 import com.github.vincentk.dedekind.sets.Cardinality;
 
 /**

@@ -1,7 +1,7 @@
 package com.github.vincentk.dedekind.numbers;
 
 import com.github.vincentk.dedekind.algebra.Equality;
-import com.github.vincentk.dedekind.algebra.unary.Field;
+import com.github.vincentk.dedekind.relation.binary.homogeneous.Field;
 
 /**
  * The set of dual numbers.

@@ -1,5 +1,8 @@
 package com.github.vincentk.dedekind.sets;
 
+import com.github.vincentk.dedekind.relation.binary.homogeneous.PreOrder;
+import com.github.vincentk.dedekind.relation.binary.homogeneous.TotalOrder;
+
 /**
  * 
  * A set.
@@ -35,6 +38,29 @@ public interface Set<T extends Set<T>> {
     interface Finite<T extends Finite<T>>
     extends Countable<Cardinality.Finite, T>, Cardinality.Finite {
     }
+    
+    /**
+     * Set with a preorder and an upper bound &isin; set.
+     * 
+     * @param <C> cardinality
+     * @param <T> implementation type
+     * 
+     * @see https://en.wikipedia.org/wiki/Directed_set
+     */
+    interface Directed<
+    C extends Cardinality,
+    T extends Directed<C, T>
+    >
+    extends Set<T>, PreOrder<T> {
+	
+	/**
+	 * @param that
+	 * @return an upper bound value F such that this <= F and that <= F
+	 * 
+	 * @see https://en.wikipedia.org/wiki/Preorder
+	 */
+	T upperBound(T that);
+    }
 
     /**
      * Set with a total order.
@@ -44,10 +70,21 @@ public interface Set<T extends Set<T>> {
      * 
      * @see https://en.wikipedia.org/wiki/Partially_ordered_set#Derived_notions
      */
-    interface TotalOrder<
+    interface TotallyOrdered<
     C extends Cardinality,
-    T extends TotalOrder<C, T>
+    T extends TotallyOrdered<C, T>
     >
-    extends Set<T>, Comparable<T> {
+    extends Directed<C, T>, TotalOrder<T> {
+	
+	@Override
+	default boolean leq(T that) {
+	    return this.compareTo(that) <= 0;
+	}
+	
+	@SuppressWarnings("unchecked")
+	@Override
+	default T upperBound(T that) {
+	    return this.compareTo(that) <= 0 ? (T) this : that;
+	}
     }
 }

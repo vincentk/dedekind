@@ -1,9 +1,7 @@
 /**
  * 
  */
-package com.github.vincentk.dedekind.nets;
-
-import java.util.function.Function;
+package com.github.vincentk.dedekind.families;
 
 import com.github.vincentk.dedekind.sets.Cardinality;
 import com.github.vincentk.dedekind.sets.Set;
@@ -15,9 +13,8 @@ import com.github.vincentk.dedekind.sets.Set;
 public interface Net<
 T,
 C extends Cardinality.Countable,
-D extends Set.Countable<C, D>
+D extends Set.Directed<C, D>
 >
-extends
-Function<D, T>
 {
+    T at(D d);
 }
