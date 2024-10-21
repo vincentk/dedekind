@@ -1,11 +1,13 @@
 package com.github.vincentk.dedekind.numbers;
 
-import static com.github.vincentk.dedekind.numbers.Q.UNIT;
-import static com.github.vincentk.dedekind.numbers.Q.ZERO;
-import static com.github.vincentk.dedekind.numbers.Q.rational;
+import static com.github.vincentk.dedekind.algebra.numbers.Q.UNIT;
+import static com.github.vincentk.dedekind.algebra.numbers.Q.ZERO;
+import static com.github.vincentk.dedekind.algebra.numbers.Q.rational;
 import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
+
+import com.github.vincentk.dedekind.algebra.numbers.Q;
 
 public class QsTest {
 

@@ -9,6 +9,8 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import com.github.vincentk.dedekind.algebra.numbers.N;
+
 public class NeTest {
 
     @ParameterizedTest

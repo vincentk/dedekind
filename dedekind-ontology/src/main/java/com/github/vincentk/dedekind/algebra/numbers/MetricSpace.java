@@ -1,7 +1,7 @@
 /**
  * 
  */
-package com.github.vincentk.dedekind.numbers;
+package com.github.vincentk.dedekind.algebra.numbers;
 
 import com.github.vincentk.dedekind.relation.binary.homogeneous.Monoid;
 import com.github.vincentk.dedekind.algebra.sets.Fields;

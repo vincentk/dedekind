@@ -1,7 +1,7 @@
 /**
  * 
  */
-package com.github.vincentk.dedekind.numbers;
+package com.github.vincentk.dedekind.algebra.numbers;
 
 import static java.lang.Long.compare;
 

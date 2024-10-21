@@ -5,8 +5,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
 
+import com.github.vincentk.dedekind.algebra.numbers.Z;
 import com.github.vincentk.dedekind.linear.finite.One;
-import com.github.vincentk.dedekind.numbers.Z;
 
 public class OneByOneTest {
 

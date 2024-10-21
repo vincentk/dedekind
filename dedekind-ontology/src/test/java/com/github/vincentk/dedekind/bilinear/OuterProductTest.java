@@ -7,8 +7,8 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
 
+import com.github.vincentk.dedekind.algebra.numbers.B;
 import com.github.vincentk.dedekind.linear.finite.One;
-import com.github.vincentk.dedekind.numbers.B;
 
 public class OuterProductTest {
 
