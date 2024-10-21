@@ -1,7 +1,7 @@
 package com.github.vincentk.dedekind.relation.binary.homogeneous;
 
-import com.github.vincentk.dedekind.algebra.Addition;
-import com.github.vincentk.dedekind.algebra.Multiplication;
+import com.github.vincentk.dedekind.algebra.arithmetic.Addition;
+import com.github.vincentk.dedekind.algebra.arithmetic.Multiplication;
 import com.github.vincentk.dedekind.sets.Set;
 
 /**

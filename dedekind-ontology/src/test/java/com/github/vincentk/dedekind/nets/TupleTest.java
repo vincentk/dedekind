@@ -2,11 +2,11 @@ package com.github.vincentk.dedekind.nets;
 
 import org.junit.jupiter.api.Test;
 
-import com.github.vincentk.dedekind.sets.Fields.Complex;
-import com.github.vincentk.dedekind.sets.Fields.Rationals;
-import com.github.vincentk.dedekind.sets.Fields.Reals;
-import com.github.vincentk.dedekind.sets.Rings.Integers;
-import com.github.vincentk.dedekind.sets.SemiRings.Naturals;
+import com.github.vincentk.dedekind.algebra.sets.Fields.Complex;
+import com.github.vincentk.dedekind.algebra.sets.Fields.Rationals;
+import com.github.vincentk.dedekind.algebra.sets.Fields.Reals;
+import com.github.vincentk.dedekind.algebra.sets.Rings.Integers;
+import com.github.vincentk.dedekind.algebra.sets.SemiRings.Naturals;
 
 public class TupleTest {
 

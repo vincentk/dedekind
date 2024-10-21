@@ -10,7 +10,7 @@ import com.github.vincentk.dedekind.relation.binary.Pair;
 import com.github.vincentk.dedekind.relation.binary.SemiModule;
 import com.github.vincentk.dedekind.relation.binary.homogeneous.SemiRing;
 import com.github.vincentk.dedekind.sets.Cardinality;
-import com.github.vincentk.dedekind.sets.SemiRings;
+import com.github.vincentk.dedekind.algebra.sets.SemiRings;
 import com.github.vincentk.dedekind.sets.Set;
 
 /**

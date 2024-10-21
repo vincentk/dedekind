@@ -5,7 +5,7 @@ package com.github.vincentk.dedekind.numbers;
 
 import com.github.vincentk.dedekind.relation.binary.homogeneous.Ring;
 import com.github.vincentk.dedekind.sets.Cardinality;
-import com.github.vincentk.dedekind.sets.SemiRings.Booleans;
+import com.github.vincentk.dedekind.algebra.sets.SemiRings.Booleans;
 import com.github.vincentk.dedekind.sets.Set;
 
 /**

@@ -3,7 +3,7 @@
  */
 package com.github.vincentk.dedekind.numbers;
 
-import com.github.vincentk.dedekind.algebra.Equality;
+import com.github.vincentk.dedekind.algebra.arithmetic.Equality;
 import com.github.vincentk.dedekind.relation.binary.homogeneous.SemiRing;
 import com.github.vincentk.dedekind.sets.Set;
 

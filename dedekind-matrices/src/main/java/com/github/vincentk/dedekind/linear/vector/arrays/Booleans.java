@@ -7,7 +7,7 @@ import java.util.Arrays;
 import java.util.function.IntFunction;
 import java.util.stream.IntStream;
 
-import com.github.vincentk.dedekind.algebra.Equality;
+import com.github.vincentk.dedekind.algebra.arithmetic.Equality;
 import com.github.vincentk.dedekind.arrays.RandomAccess;
 import com.github.vincentk.dedekind.numbers.B;
 import com.github.vincentk.dedekind.relation.binary.SemiModule;

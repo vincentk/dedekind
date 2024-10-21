@@ -5,7 +5,7 @@ package com.github.vincentk.dedekind.families;
 
 import com.github.vincentk.dedekind.numbers.N;
 import com.github.vincentk.dedekind.sets.Cardinality;
-import com.github.vincentk.dedekind.sets.SemiRings;
+import com.github.vincentk.dedekind.algebra.sets.SemiRings;
 import com.github.vincentk.dedekind.sets.Set;
 
 /**

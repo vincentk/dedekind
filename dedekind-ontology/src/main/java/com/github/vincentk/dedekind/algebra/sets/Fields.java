@@ -1,4 +1,4 @@
-package com.github.vincentk.dedekind.sets;
+package com.github.vincentk.dedekind.algebra.sets;
 
 /**
  * Marker type denoting a <a href="https://en.wikipedia.org/wiki/Field_(mathematics)">field</>.
