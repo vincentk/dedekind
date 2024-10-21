@@ -8,6 +8,7 @@ Exercises in strongly typed linear algebra on the JVM.
 An attempt to model and reproduce some results from 
 * [The simple essence of automatic differentiation](https://arxiv.org/abs/1804.00746#) 
 * [Lineare Algebra](https://people.math.ethz.ch/~stammb/linalg.html)
+
 in a modern core java.
 
 To facilitate later specialization of `interface` implementations, [higher-kinded types](https://www.baeldung.com/scala/higher-kinded-types) are emulated through recursive generics and `default` methods, following about the following pattern:
