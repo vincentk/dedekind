@@ -33,6 +33,11 @@ Cardinality.Finite
         public Peano<?> times(Peano<?> that) {
             return this;
         }
+
+	@Override
+	public boolean eq(Peano<?> that) {
+	    return that == this;
+	}
     }
 
     final class Succ<N extends Peano<N>> implements Peano<Succ<N>>, Cardinality.Finite {
@@ -75,6 +80,11 @@ Cardinality.Finite
         public long cardinality() {
             return 1 + pred.cardinality();
         }
+
+	@Override
+	public boolean eq(Peano<?> that) {
+	    return that != null && that.cardinality() == this.cardinality();
+	}
 
     }
 

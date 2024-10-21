@@ -1,5 +1,6 @@
 package com.github.vincentk.dedekind.sets;
 
+import com.github.vincentk.dedekind.relation.binary.homogeneous.Equality;
 import com.github.vincentk.dedekind.relation.binary.homogeneous.PreOrder;
 import com.github.vincentk.dedekind.relation.binary.homogeneous.TotalOrder;
 
@@ -14,7 +15,9 @@ import com.github.vincentk.dedekind.relation.binary.homogeneous.TotalOrder;
  * 
  * @see https://en.wikipedia.org/wiki/Set_(mathematics)
  */
-public interface Set<T extends Set<T>> {
+public interface Set<T extends Set<T>>
+extends Equality<T>
+{
 
     /**
      * A countable set. Its elements can be enumerated.

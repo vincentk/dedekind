@@ -78,7 +78,7 @@ Booleans {
     record Be (boolean bool) implements B {
 
 	@Override
-	public boolean equals(B that) {
+	public boolean eq(B that) {
 	    return bool() == that.bool();
 	}
 

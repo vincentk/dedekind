@@ -1,6 +1,5 @@
 package com.github.vincentk.dedekind.linear.matrix;
 
-import com.github.vincentk.dedekind.algebra.arithmetic.Equality;
 import com.github.vincentk.dedekind.linear.finite.One;
 import com.github.vincentk.dedekind.relation.binary.Transposed;
 import com.github.vincentk.dedekind.relation.binary.homogeneous.Ring;
@@ -15,7 +14,7 @@ import com.github.vincentk.dedekind.relation.binary.homogeneous.Ring;
  *
  * @param <F>
  */
-public record OneByOne<F extends Ring<F> & Equality<F>>
+public record OneByOne<F extends Ring<F>>
 (One<F> val)
 implements
 Square<F, Transposed<F, One<F>>, OneByOne<F>, OneByOne<F>>
@@ -36,5 +35,10 @@ Square<F, Transposed<F, One<F>>, OneByOne<F>, OneByOne<F>>
     @Override
     public OneByOne<F> transpose() {
         return this;
+    }
+
+    @Override
+    public boolean eq(Matrix<F, Transposed<F, One<F>>, Transposed<F, One<F>>, ?> that) {
+	return this == that;
     }
 }

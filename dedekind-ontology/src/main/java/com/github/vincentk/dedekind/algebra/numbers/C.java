@@ -66,8 +66,8 @@ public interface C extends Number<C>, Field.Complex<C>, MetricSpace<C, R> {
         }
         
         @Override
-        public boolean equals(C that) {
-            return this.re.equals(that.re()) && this.im.equals(that.im());
+        public boolean eq(C that) {
+            return this.re.eq(that.re()) && this.im.eq(that.im());
         }
 
         @Override

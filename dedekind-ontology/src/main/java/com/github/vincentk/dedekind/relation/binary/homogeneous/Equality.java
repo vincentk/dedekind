@@ -1,4 +1,4 @@
-package com.github.vincentk.dedekind.algebra.arithmetic;
+package com.github.vincentk.dedekind.relation.binary.homogeneous;
 
 /**
  * Type-safe equality operation.
@@ -7,5 +7,9 @@ package com.github.vincentk.dedekind.algebra.arithmetic;
  */
 public interface Equality<E extends Equality<E>> {
 
-    boolean equals(E that);
+    /**
+     * @param that
+     * @return true exactly if this and that are equal.
+     */
+    boolean eq(E that);
 }

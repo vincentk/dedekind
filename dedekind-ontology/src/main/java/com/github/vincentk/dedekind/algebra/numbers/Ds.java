@@ -1,6 +1,5 @@
 package com.github.vincentk.dedekind.algebra.numbers;
 
-import com.github.vincentk.dedekind.algebra.arithmetic.Equality;
 import com.github.vincentk.dedekind.relation.binary.homogeneous.Field;
 
 /**
@@ -8,7 +7,7 @@ import com.github.vincentk.dedekind.relation.binary.homogeneous.Field;
  * 
  * @see https://en.wikipedia.org/wiki/Dual_number
  */
-public record Ds (R re, R ep) implements Field.Duals<Ds>, Equality<Ds>{
+public record Ds (R re, R ep) implements Field.Duals<Ds> {
 
     public static final Ds ZERO = of(0, 0), R1 = of(1, 0), I1 = of(0, 1), UNIT = of(1, 1);
 
@@ -55,8 +54,7 @@ public record Ds (R re, R ep) implements Field.Duals<Ds>, Equality<Ds>{
         return of(re.x(that.re), ri.十(ir));
     }
 
-    @Override
-    public boolean equals(Ds that) {
-        return this.re.equals(that.re) && this.ep.equals(that.ep);
+    public boolean eq(Ds that) {
+        return this.re.eq(that.re) && this.ep.eq(that.ep);
     }
 }

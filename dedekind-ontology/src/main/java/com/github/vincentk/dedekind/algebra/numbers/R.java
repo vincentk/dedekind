@@ -46,7 +46,7 @@ public interface R extends NumberLine<Cardinality.Uncountable, R>, Field.Reals<R
         }
 
         @Override
-        public boolean equals(R that) {
+        public boolean eq(R that) {
             
             if (doubleVal == that.doubleVal()) {
                 // Exact numeric equality:
@@ -63,7 +63,7 @@ public interface R extends NumberLine<Cardinality.Uncountable, R>, Field.Reals<R
         @Override
         public boolean equals(Object that) {
             if (that instanceof R) {
-                return equals((R) that);
+                return eq((R) that);
             }
             return false;
         }

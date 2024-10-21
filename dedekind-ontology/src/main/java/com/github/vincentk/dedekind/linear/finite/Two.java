@@ -58,4 +58,9 @@ Bra<R, Transposed<R, Two<R>>, Two<R>>
     public Two<R> negate() {
         return two(fst.neg(), snd.neg());
     }
+
+    @Override
+    public boolean eq(Two<R> that) {
+	return equals(that);
+    }
 }

@@ -5,7 +5,7 @@ import com.github.vincentk.dedekind.algebra.sets.Rings;
 /**
  * A semiring: basically a ring but without the additive inverse.
  * 
- * https://en.wikipedia.org/wiki/Semiring
+ * @see https://en.wikipedia.org/wiki/Semiring
  */
 public interface SemiRing<R extends SemiRing<R>>
 extends

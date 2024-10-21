@@ -49,7 +49,7 @@ SemiModule<T, I>
 
 	    @Override
 	    public T at(B d) {
-		return d.equals(B.TRUE) ? fst : snd;
+		return d.eq(B.TRUE) ? fst : snd;
 	    }
 
 	    @Override
@@ -64,6 +64,11 @@ SemiModule<T, I>
 		return new Two<>(
 			fst.times(module.fst()),
 			snd.times(module.snd()));
+	    }
+
+	    @Override
+	    public boolean eq(Tuple2<T, B> that) {
+		return equals(that);
 	    }
 	}
     }
@@ -98,6 +103,11 @@ SemiModule<T, I>
 	@Override
 	public int length() {
 	    return values.size();
+	}
+
+	@Override
+	public boolean eq(TupleN<T, D> that) {
+	    return equals(that);
 	}
 
     }

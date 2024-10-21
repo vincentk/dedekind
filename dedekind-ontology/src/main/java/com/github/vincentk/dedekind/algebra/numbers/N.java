@@ -37,7 +37,7 @@ MetricSpace<N, N>
     }
 
     @Override
-    default boolean equals(N that) {
+    default boolean eq(N that) {
 	return integer() == that.integer();
     }
 
