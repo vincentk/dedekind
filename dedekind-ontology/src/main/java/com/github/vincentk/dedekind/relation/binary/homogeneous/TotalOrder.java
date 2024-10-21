@@ -14,6 +14,6 @@ PartialOrder.Strict<T>, Comparable<T>, Directed<T> {
     @SuppressWarnings("unchecked")
     @Override
     default T upperBound(T that) {
-	return leq(that) ? (T) this : that;
+	return leq(that) ? that : (T) this;
     }
 }
