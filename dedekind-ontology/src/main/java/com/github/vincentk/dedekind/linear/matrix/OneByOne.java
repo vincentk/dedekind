@@ -1,6 +1,6 @@
 package com.github.vincentk.dedekind.linear.matrix;
 
-import com.github.vincentk.dedekind.algebra.Equality;
+import com.github.vincentk.dedekind.algebra.arithmetic.Equality;
 import com.github.vincentk.dedekind.linear.finite.One;
 import com.github.vincentk.dedekind.relation.binary.Transposed;
 import com.github.vincentk.dedekind.relation.binary.homogeneous.Ring;

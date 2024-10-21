@@ -1,6 +1,6 @@
-package com.github.vincentk.dedekind.sets;
+package com.github.vincentk.dedekind.algebra.sets;
 
-import com.github.vincentk.dedekind.sets.Fields.Rationals;
+import com.github.vincentk.dedekind.algebra.sets.Fields.Rationals;
 
 /**
  * Marker type denoting a <a href="https://en.wikipedia.org/wiki/Ring_(mathematics)">ring</a>.

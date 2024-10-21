@@ -1,6 +1,6 @@
 package com.github.vincentk.dedekind.relation.binary.homogeneous;
 
-import com.github.vincentk.dedekind.sets.Fields;
+import com.github.vincentk.dedekind.algebra.sets.Fields;
 
 /**
  * Marker type denoting a field plus sample type tags for example fields.

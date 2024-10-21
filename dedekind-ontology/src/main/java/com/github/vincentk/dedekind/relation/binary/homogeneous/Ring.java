@@ -1,6 +1,6 @@
 package com.github.vincentk.dedekind.relation.binary.homogeneous;
 
-import com.github.vincentk.dedekind.sets.Rings;
+import com.github.vincentk.dedekind.algebra.sets.Rings;
 
 /**
  * @see https://en.wikipedia.org/wiki/Ring_(mathematics)

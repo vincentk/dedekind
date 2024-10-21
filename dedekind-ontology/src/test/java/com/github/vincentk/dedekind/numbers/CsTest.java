@@ -1,9 +1,9 @@
 package com.github.vincentk.dedekind.numbers;
 
-import static com.github.vincentk.dedekind.numbers.C.I1;
-import static com.github.vincentk.dedekind.numbers.C.R1;
-import static com.github.vincentk.dedekind.numbers.C.UNIT;
-import static com.github.vincentk.dedekind.numbers.C.ZERO;
+import static com.github.vincentk.dedekind.algebra.numbers.C.I1;
+import static com.github.vincentk.dedekind.algebra.numbers.C.R1;
+import static com.github.vincentk.dedekind.algebra.numbers.C.UNIT;
+import static com.github.vincentk.dedekind.algebra.numbers.C.ZERO;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
@@ -15,6 +15,9 @@ import static org.junit.jupiter.params.provider.Arguments.*;
 
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
+
+import com.github.vincentk.dedekind.algebra.numbers.C;
+import com.github.vincentk.dedekind.algebra.numbers.R;
 
 public class CsTest {
 

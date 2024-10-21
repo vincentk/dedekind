@@ -4,9 +4,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
 
+import com.github.vincentk.dedekind.algebra.numbers.N;
 import com.github.vincentk.dedekind.families.Sequence;
 import com.github.vincentk.dedekind.families.Sequence.Fibonacci;
-import com.github.vincentk.dedekind.numbers.N;
 
 public class FibonacciTest {
 

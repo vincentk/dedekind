@@ -4,9 +4,9 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
 
-import com.github.vincentk.dedekind.numbers.R;
 import com.github.vincentk.dedekind.relation.binary.homogeneous.Field;
-import com.github.vincentk.dedekind.sets.Fields;
+import com.github.vincentk.dedekind.algebra.numbers.R;
+import com.github.vincentk.dedekind.algebra.sets.Fields;
 
 public class RsTest {
 

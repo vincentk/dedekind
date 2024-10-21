@@ -3,4 +3,4 @@
  * 
  * @see https://en.wikipedia.org/wiki/Abstract_algebra
  */
-package com.github.vincentk.dedekind.algebra;
+package com.github.vincentk.dedekind.algebra.arithmetic;

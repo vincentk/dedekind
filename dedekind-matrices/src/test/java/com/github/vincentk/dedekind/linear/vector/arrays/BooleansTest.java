@@ -12,7 +12,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
-import com.github.vincentk.dedekind.numbers.B;
+import com.github.vincentk.dedekind.algebra.numbers.B;
 import com.github.vincentk.dedekind.sets.Cardinality;
 
 public class BooleansTest {

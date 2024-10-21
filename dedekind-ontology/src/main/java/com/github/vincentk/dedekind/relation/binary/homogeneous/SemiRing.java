@@ -1,6 +1,6 @@
 package com.github.vincentk.dedekind.relation.binary.homogeneous;
 
-import com.github.vincentk.dedekind.sets.Rings;
+import com.github.vincentk.dedekind.algebra.sets.Rings;
 
 /**
  * A semiring: basically a ring but without the additive inverse.

@@ -8,7 +8,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
 
-import com.github.vincentk.dedekind.numbers.B;
+import com.github.vincentk.dedekind.algebra.numbers.B;
 
 public class TwoTest {
 

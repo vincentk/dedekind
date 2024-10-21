@@ -1,4 +1,4 @@
-package com.github.vincentk.dedekind.algebra;
+package com.github.vincentk.dedekind.algebra.arithmetic;
 
 /**
  * Type-safe equality operation.

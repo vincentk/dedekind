@@ -1,4 +1,4 @@
-package com.github.vincentk.dedekind.sets;
+package com.github.vincentk.dedekind.algebra.sets;
 
 /**
  * https://en.wikipedia.org/wiki/Monoid
