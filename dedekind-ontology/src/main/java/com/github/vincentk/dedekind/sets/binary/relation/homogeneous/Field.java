@@ -1,4 +1,4 @@
-package com.github.vincentk.dedekind.sets.relation.binary.homogeneous;
+package com.github.vincentk.dedekind.sets.binary.relation.homogeneous;
 
 import com.github.vincentk.dedekind.algebra.sets.Fields;
 

@@ -1,9 +1,9 @@
-package com.github.vincentk.dedekind.relation.binary.homogeneous;
+package com.github.vincentk.dedekind.binary.relation.homogeneous;
 
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
-import com.github.vincentk.dedekind.sets.relation.binary.homogeneous.PreOrder.AntiSymmetric;
+import com.github.vincentk.dedekind.sets.binary.relation.homogeneous.PreOrder.AntiSymmetric;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;

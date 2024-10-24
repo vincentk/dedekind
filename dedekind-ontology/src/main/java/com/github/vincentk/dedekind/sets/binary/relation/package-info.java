@@ -6,4 +6,4 @@
  * 
  * @see https://en.wikipedia.org/wiki/Binary_relation
  */
-package com.github.vincentk.dedekind.sets.relation.binary;
+package com.github.vincentk.dedekind.sets.binary.relation;

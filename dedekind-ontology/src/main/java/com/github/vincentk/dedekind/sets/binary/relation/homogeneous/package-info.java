@@ -5,4 +5,4 @@
  * 
  * @see https://en.wikipedia.org/wiki/Homogeneous_relation
  */
-package com.github.vincentk.dedekind.sets.relation.binary.homogeneous;
+package com.github.vincentk.dedekind.sets.binary.relation.homogeneous;

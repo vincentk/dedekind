@@ -1,4 +1,4 @@
-package com.github.vincentk.dedekind.relation.binary.homogeneous;
+package com.github.vincentk.dedekind.binary.relation.homogeneous;
 
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.api.Assertions.assertTrue;

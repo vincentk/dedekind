@@ -1,9 +1,9 @@
-package com.github.vincentk.dedekind.sets.relation.binary;
+package com.github.vincentk.dedekind.sets.binary.relation;
 
 import com.github.vincentk.dedekind.bilinear.OuterProduct;
-import com.github.vincentk.dedekind.sets.relation.binary.Bracket.Bra;
-import com.github.vincentk.dedekind.sets.relation.binary.Bracket.Ket;
-import com.github.vincentk.dedekind.sets.relation.binary.homogeneous.SemiRing;
+import com.github.vincentk.dedekind.sets.binary.relation.Bracket.Bra;
+import com.github.vincentk.dedekind.sets.binary.relation.Bracket.Ket;
+import com.github.vincentk.dedekind.sets.binary.relation.homogeneous.SemiRing;
 
 /**
  * @param <F> the underlying field.

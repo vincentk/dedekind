@@ -3,10 +3,10 @@ package com.github.vincentk.dedekind.linear.matrix;
 import java.util.function.Function;
 
 import com.github.vincentk.dedekind.linear.LinearMap;
-import com.github.vincentk.dedekind.sets.relation.binary.Dual;
-import com.github.vincentk.dedekind.sets.relation.binary.Bracket.Bra;
-import com.github.vincentk.dedekind.sets.relation.binary.Bracket.Ket;
-import com.github.vincentk.dedekind.sets.relation.binary.homogeneous.SemiRing;
+import com.github.vincentk.dedekind.sets.binary.relation.Dual;
+import com.github.vincentk.dedekind.sets.binary.relation.Bracket.Bra;
+import com.github.vincentk.dedekind.sets.binary.relation.Bracket.Ket;
+import com.github.vincentk.dedekind.sets.binary.relation.homogeneous.SemiRing;
 
 /**
  * @see https://en.wikipedia.org/wiki/Matrix_(mathematics)

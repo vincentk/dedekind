@@ -1,6 +1,6 @@
 package com.github.vincentk.dedekind.sets;
 
-import com.github.vincentk.dedekind.sets.relation.binary.homogeneous.Equality;
+import com.github.vincentk.dedekind.sets.binary.relation.homogeneous.Equality;
 
 /**
  * 

@@ -9,10 +9,10 @@ import com.github.vincentk.dedekind.algebra.numbers.N;
 import com.github.vincentk.dedekind.algebra.numbers.Number;
 import com.github.vincentk.dedekind.algebra.sets.SemiRings;
 import com.github.vincentk.dedekind.sets.Set;
+import com.github.vincentk.dedekind.sets.binary.relation.Pair;
+import com.github.vincentk.dedekind.sets.binary.relation.SemiModule;
+import com.github.vincentk.dedekind.sets.binary.relation.homogeneous.SemiRing;
 import com.github.vincentk.dedekind.sets.ordered.Directed;
-import com.github.vincentk.dedekind.sets.relation.binary.Pair;
-import com.github.vincentk.dedekind.sets.relation.binary.SemiModule;
-import com.github.vincentk.dedekind.sets.relation.binary.homogeneous.SemiRing;
 
 /**
  * Tuple ~ a finite sequence of number-like things.
