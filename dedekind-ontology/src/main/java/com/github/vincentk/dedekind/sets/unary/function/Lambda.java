@@ -14,13 +14,13 @@ import com.github.vincentk.dedekind.sets.binary.relation.Relation;
  * @param <L>
  */
 @FunctionalInterface
-public interface Λ<
+public interface Lambda<
 // Domain
 A extends Set<A>,
 // Range
 B extends Set<B>,
 // Implementation
-L extends Λ<A, B, L>
+L extends Lambda<A, B, L>
 >
 {
     B ap(A a);
