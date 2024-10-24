@@ -1,5 +1,6 @@
-package com.github.vincentk.dedekind.algebra.arithmetic;
+package com.github.vincentk.dedekind.sets.unary.function.operation.arithmetic;
 
+@FunctionalInterface
 public interface Addition<D, R> {
 
     /**

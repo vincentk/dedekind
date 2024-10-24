@@ -1,8 +1,8 @@
 package com.github.vincentk.dedekind.sets.binary.relation.homogeneous;
 
-import com.github.vincentk.dedekind.algebra.arithmetic.Addition;
-import com.github.vincentk.dedekind.algebra.arithmetic.Multiplication;
 import com.github.vincentk.dedekind.sets.Set;
+import com.github.vincentk.dedekind.sets.unary.function.operation.arithmetic.Addition;
+import com.github.vincentk.dedekind.sets.unary.function.operation.arithmetic.Multiplication;
 
 /**
  * A set A with a binary operation (A, A) -> A.
