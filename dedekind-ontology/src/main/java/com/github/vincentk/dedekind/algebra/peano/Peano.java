@@ -1,7 +1,7 @@
 package com.github.vincentk.dedekind.algebra.peano;
 
-import com.github.vincentk.dedekind.relation.binary.homogeneous.SemiRing.Natural;
 import com.github.vincentk.dedekind.sets.Cardinality;
+import com.github.vincentk.dedekind.sets.relation.binary.homogeneous.SemiRing.Natural;
 
 /**
  * Implementation of Peano Numbers / Axioms.

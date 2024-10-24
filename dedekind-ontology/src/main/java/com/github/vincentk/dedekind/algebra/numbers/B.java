@@ -3,10 +3,11 @@
  */
 package com.github.vincentk.dedekind.algebra.numbers;
 
-import com.github.vincentk.dedekind.relation.binary.homogeneous.Ring;
 import com.github.vincentk.dedekind.sets.Cardinality;
 import com.github.vincentk.dedekind.algebra.sets.SemiRings.Booleans;
 import com.github.vincentk.dedekind.sets.Set;
+import com.github.vincentk.dedekind.sets.ordered.TotallyOrdered;
+import com.github.vincentk.dedekind.sets.relation.binary.homogeneous.Ring;
 
 /**
  * Boolean values. Roughly speaking 0 <=> false, 1 <=> true.
@@ -14,7 +15,7 @@ import com.github.vincentk.dedekind.sets.Set;
 public interface B extends
 Number<B>, Ring<B>,
 Set.Finite<B>,
-Set.TotallyOrdered<Cardinality.Finite, B>,
+TotallyOrdered<Cardinality.Finite, B>,
 Booleans {
 
     public boolean bool();

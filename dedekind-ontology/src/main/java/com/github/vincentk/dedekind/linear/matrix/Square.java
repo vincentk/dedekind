@@ -3,8 +3,8 @@
  */
 package com.github.vincentk.dedekind.linear.matrix;
 
-import com.github.vincentk.dedekind.relation.binary.Bracket.Ket;
-import com.github.vincentk.dedekind.relation.binary.homogeneous.SemiRing;
+import com.github.vincentk.dedekind.sets.relation.binary.Bracket.Ket;
+import com.github.vincentk.dedekind.sets.relation.binary.homogeneous.SemiRing;
 
 /**
  * A square matrix domain and range are essentially the same.

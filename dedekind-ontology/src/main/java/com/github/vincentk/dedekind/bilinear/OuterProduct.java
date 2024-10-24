@@ -1,9 +1,9 @@
 package com.github.vincentk.dedekind.bilinear;
 
 import com.github.vincentk.dedekind.linear.matrix.Matrix;
-import com.github.vincentk.dedekind.relation.binary.Bracket.Bra;
-import com.github.vincentk.dedekind.relation.binary.Bracket.Ket;
-import com.github.vincentk.dedekind.relation.binary.homogeneous.SemiRing;
+import com.github.vincentk.dedekind.sets.relation.binary.Bracket.Bra;
+import com.github.vincentk.dedekind.sets.relation.binary.Bracket.Ket;
+import com.github.vincentk.dedekind.sets.relation.binary.homogeneous.SemiRing;
 
 /**
  * Outer product / tensor product implementation.

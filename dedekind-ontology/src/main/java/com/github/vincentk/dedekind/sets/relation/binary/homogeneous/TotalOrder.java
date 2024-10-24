@@ -1,6 +1,6 @@
-package com.github.vincentk.dedekind.relation.binary.homogeneous;
+package com.github.vincentk.dedekind.sets.relation.binary.homogeneous;
 
-import com.github.vincentk.dedekind.relation.binary.homogeneous.PreOrder.Directed;
+import com.github.vincentk.dedekind.sets.relation.binary.homogeneous.PreOrder.Directed;
 
 public interface TotalOrder<T extends TotalOrder<T>>
 extends

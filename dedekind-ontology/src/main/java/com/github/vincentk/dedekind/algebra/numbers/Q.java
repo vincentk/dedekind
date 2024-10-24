@@ -1,8 +1,8 @@
 package com.github.vincentk.dedekind.algebra.numbers;
 
-import com.github.vincentk.dedekind.relation.binary.homogeneous.Equality;
-import com.github.vincentk.dedekind.relation.binary.homogeneous.Field;
 import com.github.vincentk.dedekind.sets.Cardinality;
+import com.github.vincentk.dedekind.sets.relation.binary.homogeneous.Equality;
+import com.github.vincentk.dedekind.sets.relation.binary.homogeneous.Field;
 
 /**
  * An implementation of rational numbers.

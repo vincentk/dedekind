@@ -3,9 +3,9 @@
  */
 package com.github.vincentk.dedekind.linear;
 
-import com.github.vincentk.dedekind.relation.binary.Vector;
-import com.github.vincentk.dedekind.relation.binary.homogeneous.Field;
 import com.github.vincentk.dedekind.sets.Cardinality;
+import com.github.vincentk.dedekind.sets.relation.binary.Vector;
+import com.github.vincentk.dedekind.sets.relation.binary.homogeneous.Field;
 
 /**
  * An appropriate way to model the notion of a basis would appear to
