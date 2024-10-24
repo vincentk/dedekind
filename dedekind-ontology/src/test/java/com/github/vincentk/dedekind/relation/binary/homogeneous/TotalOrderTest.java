@@ -16,4 +16,20 @@ public class TotalOrderTest {
 	
 	assertThat(B.FALSE.upperBound(B.TRUE)).isEqualTo(B.TRUE);
     }
+    
+    @Test
+    public void testSemiLatticeJoin() {
+	assertThat(B.FALSE.join(B.FALSE)).isEqualTo(B.FALSE);
+	assertThat(B.FALSE.join(B.TRUE)).isEqualTo(B.TRUE);
+	assertThat(B.TRUE.join(B.FALSE)).isEqualTo(B.TRUE);
+	assertThat(B.TRUE.join(B.TRUE)).isEqualTo(B.TRUE);
+    }
+    
+    @Test
+    public void testSemiLatticeMeet() {
+	assertThat(B.FALSE.meet(B.FALSE)).isEqualTo(B.FALSE);
+	assertThat(B.FALSE.meet(B.TRUE)).isEqualTo(B.FALSE);
+	assertThat(B.TRUE.meet(B.FALSE)).isEqualTo(B.FALSE);
+	assertThat(B.TRUE.meet(B.TRUE)).isEqualTo(B.TRUE);
+    }
 }

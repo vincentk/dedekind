@@ -16,9 +16,9 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import com.github.vincentk.dedekind.algebra.numbers.N;
 import com.github.vincentk.dedekind.algebra.numbers.Z;
-import com.github.vincentk.dedekind.relation.binary.Transposed;
-import com.github.vincentk.dedekind.relation.binary.Bracket.Bra;
-import com.github.vincentk.dedekind.relation.binary.Bracket.Ket;
+import com.github.vincentk.dedekind.sets.relation.binary.Transposed;
+import com.github.vincentk.dedekind.sets.relation.binary.Bracket.Bra;
+import com.github.vincentk.dedekind.sets.relation.binary.Bracket.Ket;
 
 
 public class TransposedTest {

@@ -3,9 +3,9 @@
  */
 package com.github.vincentk.dedekind.algebra.numbers;
 
-import com.github.vincentk.dedekind.relation.binary.homogeneous.Monoid;
 import com.github.vincentk.dedekind.algebra.sets.Fields;
 import com.github.vincentk.dedekind.sets.Set;
+import com.github.vincentk.dedekind.sets.relation.binary.homogeneous.Monoid;
 
 /**
  * @see https://en.wikipedia.org/wiki/Metric_space

@@ -4,7 +4,7 @@
 package com.github.vincentk.dedekind.families;
 
 import com.github.vincentk.dedekind.sets.Cardinality;
-import com.github.vincentk.dedekind.sets.Set;
+import com.github.vincentk.dedekind.sets.ordered.Directed;
 
 /**
  * @see https://en.wikipedia.org/wiki/Net_(mathematics)
@@ -13,7 +13,7 @@ import com.github.vincentk.dedekind.sets.Set;
 public interface Net<
 T,
 C extends Cardinality.Countable,
-D extends Set.Directed<C, D>
+D extends Directed<C, D>
 >
 {
     T at(D d);

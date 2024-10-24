@@ -3,10 +3,10 @@ package com.github.vincentk.dedekind.relation.binary.homogeneous;
 import org.junit.jupiter.api.Test;
 import org.mockito.Mockito;
 
+import com.github.vincentk.dedekind.sets.relation.binary.homogeneous.PreOrder.AntiSymmetric;
+
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.mockito.Mockito.*;
-
-import com.github.vincentk.dedekind.relation.binary.homogeneous.PreOrder.AntiSymmetric;
 
 public class PreOrderTest {
 

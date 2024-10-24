@@ -1,9 +1,6 @@
 package com.github.vincentk.dedekind.sets;
 
-import com.github.vincentk.dedekind.relation.binary.homogeneous.Equality;
-import com.github.vincentk.dedekind.relation.binary.homogeneous.PartialOrder;
-import com.github.vincentk.dedekind.relation.binary.homogeneous.PreOrder;
-import com.github.vincentk.dedekind.relation.binary.homogeneous.TotalOrder;
+import com.github.vincentk.dedekind.sets.relation.binary.homogeneous.Equality;
 
 /**
  * 
@@ -46,59 +43,5 @@ extends Equality<T>
      */
     interface Finite<T extends Finite<T>>
     extends Countable<Cardinality.Finite, T>, Cardinality.Finite {
-    }
-    
-    /**
-     * Set with a preorder and an upper bound &isin; set.
-     * 
-     * @param <C> cardinality
-     * @param <T> implementation type
-     * 
-     * @see https://en.wikipedia.org/wiki/Directed_set
-     */
-    interface Directed<
-    C extends Cardinality,
-    T extends Directed<C, T>
-    >
-    extends Set<T>, PreOrder.Directed<T> {
-    }
-    
-    /**
-     * Partially ordered set.
-     * 
-     * @param <C>
-     * @param <T>
-     * 
-     * @see https://en.wikipedia.org/wiki/Partially_ordered_set
-     */
-    interface PoSet<
-    C extends Cardinality,
-    T extends PoSet<C, T>
-    >
-    extends Set<T>, PartialOrder.Strict<T> {
-	@Override
-	default boolean eq(T that) {
-	    return Set.super.eq(that);
-	}
-    }
-
-    /**
-     * Set with a total order.
-     * 
-     * @param <C> cardinality
-     * @param <T> implementation type
-     * 
-     * @see https://en.wikipedia.org/wiki/Partially_ordered_set#Derived_notions
-     */
-    interface TotallyOrdered<
-    C extends Cardinality,
-    T extends TotallyOrdered<C, T>
-    >
-    extends Directed<C, T>, PoSet<C, T>, TotalOrder<T> {
-	
-	@Override
-	default boolean leq(T that) {
-	    return this.compareTo(that) <= 0;
-	}
     }
 }

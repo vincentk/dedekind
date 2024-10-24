@@ -7,6 +7,7 @@ import com.github.vincentk.dedekind.sets.Cardinality;
 import com.github.vincentk.dedekind.algebra.numbers.N;
 import com.github.vincentk.dedekind.algebra.sets.SemiRings;
 import com.github.vincentk.dedekind.sets.Set;
+import com.github.vincentk.dedekind.sets.ordered.Directed;
 
 /**
  * @see https://en.wikipedia.org/wiki/Sequence
@@ -15,7 +16,7 @@ import com.github.vincentk.dedekind.sets.Set;
 public interface Sequence<
 T,
 C extends Cardinality.Countable,
-D extends Set.Countable<C, D> & Set.Directed<C, D> & SemiRings.Naturals
+D extends Set.Countable<C, D> & Directed<C, D> & SemiRings.Naturals
 >
 extends Net<T, C, D>
 {
