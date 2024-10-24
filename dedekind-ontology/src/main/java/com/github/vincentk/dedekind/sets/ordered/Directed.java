@@ -2,7 +2,7 @@ package com.github.vincentk.dedekind.sets.ordered;
 
 import com.github.vincentk.dedekind.sets.Cardinality;
 import com.github.vincentk.dedekind.sets.Set;
-import com.github.vincentk.dedekind.sets.relation.binary.homogeneous.PreOrder;
+import com.github.vincentk.dedekind.sets.binary.relation.homogeneous.PreOrder;
 
 /**
  * Set with a preorder and an upper bound &isin; set.

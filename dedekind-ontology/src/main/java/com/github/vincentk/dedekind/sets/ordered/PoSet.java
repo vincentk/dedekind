@@ -2,7 +2,7 @@ package com.github.vincentk.dedekind.sets.ordered;
 
 import com.github.vincentk.dedekind.sets.Cardinality;
 import com.github.vincentk.dedekind.sets.Set;
-import com.github.vincentk.dedekind.sets.relation.binary.homogeneous.PartialOrder;
+import com.github.vincentk.dedekind.sets.binary.relation.homogeneous.PartialOrder;
 
 /**
  * Partially ordered set.

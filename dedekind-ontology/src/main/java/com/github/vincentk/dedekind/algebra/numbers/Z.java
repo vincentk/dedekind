@@ -6,7 +6,7 @@ package com.github.vincentk.dedekind.algebra.numbers;
 import static java.lang.Long.compare;
 
 import com.github.vincentk.dedekind.sets.Cardinality;
-import com.github.vincentk.dedekind.sets.relation.binary.homogeneous.Ring;
+import com.github.vincentk.dedekind.sets.binary.relation.homogeneous.Ring;
 
 /**
  * The integer numbers.

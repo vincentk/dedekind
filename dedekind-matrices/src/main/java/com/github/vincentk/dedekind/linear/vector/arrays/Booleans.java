@@ -10,9 +10,9 @@ import java.util.stream.IntStream;
 import com.github.vincentk.dedekind.algebra.numbers.B;
 import com.github.vincentk.dedekind.arrays.RandomAccess;
 import com.github.vincentk.dedekind.sets.Cardinality;
-import com.github.vincentk.dedekind.sets.relation.binary.SemiModule;
-import com.github.vincentk.dedekind.sets.relation.binary.Transposed;
-import com.github.vincentk.dedekind.sets.relation.binary.Bracket.Bra;
+import com.github.vincentk.dedekind.sets.binary.relation.SemiModule;
+import com.github.vincentk.dedekind.sets.binary.relation.Transposed;
+import com.github.vincentk.dedekind.sets.binary.relation.Bracket.Bra;
 
 public record Booleans
 <
