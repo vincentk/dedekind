@@ -14,7 +14,7 @@ import com.github.vincentk.dedekind.sets.Set;
  * <li>The integers are the closure of the rationals under subtraction.</li>
  * </ol>
  * It appears to be impossible to state this generically (and without a major refactor)
- * in java, as it would require that an interface (in this case {@link Set} is implemented
+ * in java, as it would require that an interface (in this case {@link Set}) is implemented
  * with two different generic parameters.
  * </p><p>
  * Still, at this point, some specialization can be performed and filling the specifics can
