@@ -38,7 +38,7 @@ SemiModule<T, I>
     >
     extends
     Tuple<T, D, Tuple2<T, D>>,
-    Pair<T, T>
+    Pair<T, T, Tuple2<T, D>>
     {
 	default int length() {
 	    return 2;

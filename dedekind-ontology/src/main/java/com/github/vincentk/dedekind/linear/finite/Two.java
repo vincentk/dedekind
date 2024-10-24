@@ -16,7 +16,7 @@ import com.github.vincentk.dedekind.sets.binary.relation.homogeneous.Ring;
 public record Two<R extends Ring<R>>
 (R fst, R snd)
 implements
-Pair<R, R>,
+Pair<R, R, Two<R>>,
 Module<R, Succ<Succ<Zero>>, Two<R>>,
 Bra<R, Transposed<R, Two<R>>, Two<R>>
 {
