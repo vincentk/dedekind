@@ -7,6 +7,7 @@ package com.github.vincentk.dedekind.algebra.structures;
  * 
  * b) the operation is associative, e.g. (a + b) + c = a + (b + c).
  * 
+ * @see https://en.wikipedia.org/wiki/Identity_element
  * @see https://en.wikipedia.org/wiki/Monoid
  * 
  * @param <T> the implementation type
@@ -28,6 +29,10 @@ public interface Monoid<T extends Monoid<T>> extends Magma<T> {
 	 */
 	@SuppressWarnings("unchecked")
 	default boolean isIdentityP() {
+	    // x + x = x
+	    // =>
+	    // x = 0
+	    // i.e.
 	    // 0 + 0 = 0
 	    return eq(plus((T) this));
 	}
@@ -49,6 +54,12 @@ public interface Monoid<T extends Monoid<T>> extends Magma<T> {
 	 */
 	@SuppressWarnings("unchecked")
 	default boolean isIdentityM() {
+	    // x * x = x
+	    // =>
+	    // x = 0
+	    // or
+	    // x = 1
+	    // i.e.
 	    // 1 * 1 = 1
 	    return eq(times((T) this));
 	}

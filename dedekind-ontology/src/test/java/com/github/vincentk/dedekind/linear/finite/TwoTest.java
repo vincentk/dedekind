@@ -8,7 +8,7 @@ import static org.assertj.core.api.Assertions.assertThat;
 
 import org.junit.jupiter.api.Test;
 
-import com.github.vincentk.dedekind.algebra.numbers.B;
+import com.github.vincentk.dedekind.algebra.numbers.Z;
 
 public class TwoTest {
 
@@ -16,23 +16,23 @@ public class TwoTest {
     public void twoTest() {
 
         // {0 1}
-        final var t1 = two(B.FALSE, B.TRUE);
+        final var t1 = two(Z.ZERO, Z.ONE);
         
         // {1 0}
-        final var t2 = two(B.TRUE, B.FALSE);
+        final var t2 = two(Z.ONE, Z.ZERO);
         
         // {0 1}' {1 0} = {{1 0} {0 0}}
         final var m1 = t1.transpose().outer(t2);
         
         // 1 {{1 0} {0 0}} = {{1 0} {0 0}}
-        final var m2 = m1.mult(B.TRUE);
+        final var m2 = m1.mult(Z.ONE);
         
         // {{1 0} {0 0}} {1 1}' = {1 0}'
-        final var t3 = m2.apply(two(B.TRUE, B.TRUE).transpose()).transpose();
+        final var t3 = m2.apply(two(Z.ONE, Z.ONE).transpose()).transpose();
         
         // {1 0} {1 1}' = {1}
-        final var t4 = t3.dot(two(B.TRUE, B.TRUE).transpose());
+        final var t4 = t3.dot(two(Z.ONE, Z.ONE).transpose());
 
-        assertThat(t4).isEqualTo(B.TRUE);
+        assertThat(t4).isEqualTo(Z.ONE);
     }
 }

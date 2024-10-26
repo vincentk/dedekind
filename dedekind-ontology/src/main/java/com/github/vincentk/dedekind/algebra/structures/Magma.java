@@ -15,7 +15,10 @@ import com.github.vincentk.dedekind.sets.unary.function.operation.arithmetic.Mul
  * 
  * @param <T> implementation type
  */
-public interface Magma<T extends Magma<T>> extends Set<T> {
+public interface Magma<T extends Magma<T>>
+extends
+Set<T>
+{
 
     /**
      * Magma under addition (M, +).
