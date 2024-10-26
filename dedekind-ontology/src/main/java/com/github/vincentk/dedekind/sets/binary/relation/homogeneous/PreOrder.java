@@ -36,7 +36,7 @@ public interface PreOrder<T> {
      */
     public interface AntiSymmetric<T extends AntiSymmetric<T>>
     extends
-    PreOrder<T>, Equality<T>
+    PreOrder<T>, Identity<T>
     {
 	@SuppressWarnings("unchecked")
 	@Override

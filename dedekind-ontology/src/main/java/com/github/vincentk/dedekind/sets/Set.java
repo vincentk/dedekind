@@ -1,6 +1,6 @@
 package com.github.vincentk.dedekind.sets;
 
-import com.github.vincentk.dedekind.sets.binary.relation.homogeneous.Equality;
+import com.github.vincentk.dedekind.sets.binary.relation.homogeneous.Identity;
 
 /**
  * 
@@ -14,7 +14,7 @@ import com.github.vincentk.dedekind.sets.binary.relation.homogeneous.Equality;
  * @see https://en.wikipedia.org/wiki/Set_(mathematics)
  */
 public interface Set<T extends Set<T>>
-extends Equality<T>
+extends Identity<T>
 {
     @SuppressWarnings("unchecked")
     @Override
