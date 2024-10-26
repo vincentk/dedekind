@@ -28,14 +28,14 @@ import com.github.vincentk.dedekind.sets.Set;
  */
 public interface Closure<
 // Superset:
-A extends Set<A> & Operation<A, ?>,
+A extends Set<B> & Operation<? super B, ?>,
 // Subset:
 B extends A,
 // Implementing class:
-C extends Set<C> & Closure<A, B, C>
+C extends Set<C> & Closure<B, B, C>
 >
-extends Set<C>, Operation<A, C>
+extends Set<C>, Operation<B, C>
 {
     @Override
-    B ap(A a);
+    B ap(B a);
 }
