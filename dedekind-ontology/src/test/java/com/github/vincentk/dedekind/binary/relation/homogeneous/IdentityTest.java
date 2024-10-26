@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test;
 import com.github.vincentk.dedekind.algebra.numbers.B;
 import com.github.vincentk.dedekind.sets.binary.relation.Pair;
 
-public class EqualityTest {
+public class IdentityTest {
 
     @Test
     public void testDefaultEquality() {

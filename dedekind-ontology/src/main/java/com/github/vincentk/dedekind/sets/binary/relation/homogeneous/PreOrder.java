@@ -36,12 +36,12 @@ public interface PreOrder<T> {
      */
     public interface AntiSymmetric<T extends AntiSymmetric<T>>
     extends
-    PreOrder<T>, Equality<T>
+    PreOrder<T>, Identity<T>
     {
 	@SuppressWarnings("unchecked")
 	@Override
 	default boolean eq(T that) {
-	    return this.leq(that) && that.leq((T) this);
+	    return leq(that) && that.leq((T) this);
 	}
     }
 }

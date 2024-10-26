@@ -1,7 +1,4 @@
-/**
- * 
- */
-package com.github.vincentk.dedekind.algebra.binary;
+package com.github.vincentk.dedekind.algebra.structures;
 
 import static com.github.vincentk.dedekind.algebra.numbers.N.nat;
 import static com.github.vincentk.dedekind.linear.finite.One.oneOf;
@@ -16,9 +13,8 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import com.github.vincentk.dedekind.algebra.numbers.N;
 import com.github.vincentk.dedekind.algebra.numbers.Z;
-import com.github.vincentk.dedekind.sets.binary.relation.Bracket.Bra;
-import com.github.vincentk.dedekind.sets.binary.relation.Bracket.Ket;
-import com.github.vincentk.dedekind.sets.binary.relation.Transposed;
+import com.github.vincentk.dedekind.algebra.structures.Bracket.Bra;
+import com.github.vincentk.dedekind.algebra.structures.Bracket.Ket;
 
 
 public class TransposedTest {

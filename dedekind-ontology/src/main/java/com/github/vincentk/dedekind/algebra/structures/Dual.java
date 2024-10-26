@@ -1,4 +1,4 @@
-package com.github.vincentk.dedekind.sets.binary.relation;
+package com.github.vincentk.dedekind.algebra.structures;
 
 /**
  * A notion of a "transpose" / dual.
@@ -7,14 +7,12 @@ package com.github.vincentk.dedekind.sets.binary.relation;
  * 
  * (x')' = x
  * 
- * See e.g. 
- * https://en.wikipedia.org/wiki/Transpose
- * https://en.wikipedia.org/wiki/Dual_system#Transposes
+ * @see https://en.wikipedia.org/wiki/Transpose
+ * @see https://en.wikipedia.org/wiki/Dual_system#Transposes
  * 
  * E.g.:
  * Column <-> row vector
  * matrix transpose
- * monad <-> comonad
  * 
  * @param <C> the dual type
  */

@@ -1,6 +1,3 @@
-/**
- * 
- */
 package com.github.vincentk.dedekind.linear.vector.arrays;
 
 import java.util.Arrays;
@@ -8,11 +5,11 @@ import java.util.function.IntFunction;
 import java.util.stream.IntStream;
 
 import com.github.vincentk.dedekind.algebra.numbers.B;
+import com.github.vincentk.dedekind.algebra.structures.Bracket.Bra;
 import com.github.vincentk.dedekind.algebra.structures.SemiModule;
+import com.github.vincentk.dedekind.algebra.structures.Transposed;
 import com.github.vincentk.dedekind.arrays.RandomAccess;
 import com.github.vincentk.dedekind.sets.Cardinality;
-import com.github.vincentk.dedekind.sets.binary.relation.Transposed;
-import com.github.vincentk.dedekind.sets.binary.relation.Bracket.Bra;
 
 public record Booleans
 <

@@ -2,7 +2,7 @@ package com.github.vincentk.dedekind.algebra.numbers;
 
 import com.github.vincentk.dedekind.algebra.structures.Field;
 import com.github.vincentk.dedekind.sets.Cardinality;
-import com.github.vincentk.dedekind.sets.binary.relation.homogeneous.Equality;
+import com.github.vincentk.dedekind.sets.binary.relation.homogeneous.Identity;
 
 /**
  * An implementation of rational numbers.
@@ -10,7 +10,7 @@ import com.github.vincentk.dedekind.sets.binary.relation.homogeneous.Equality;
 public interface Q extends
 NumberLine<Cardinality.Countable, Q>,
 Field.Rationals<Q>,
-Equality<Q> {
+Identity<Q> {
 
     public static final Q ZERO = rational(0, 1), UNIT = rational(1, 1);
 
