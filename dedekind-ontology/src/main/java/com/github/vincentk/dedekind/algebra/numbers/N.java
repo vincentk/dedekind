@@ -7,6 +7,7 @@ import com.github.vincentk.dedekind.algebra.structures.MetricSpace;
 import com.github.vincentk.dedekind.algebra.structures.SemiRing;
 import com.github.vincentk.dedekind.sets.Cardinality;
 import com.github.vincentk.dedekind.sets.Set;
+import com.github.vincentk.dedekind.sets.ordered.Interval;
 import com.github.vincentk.dedekind.sets.ordered.TotallyOrdered;
 
 /**
@@ -17,7 +18,8 @@ extends
 TotallyOrdered<Cardinality.Finite, N>,
 Set.Finite<N>,
 SemiRing.Natural<N>,
-MetricSpace<N, N>
+MetricSpace<N, N>,
+Interval.HalfOpen.Right<N, N, Cardinality.Finite, N>
 {
 
     public long integer();
@@ -26,7 +28,7 @@ MetricSpace<N, N>
     default long cardinality() {
 	return Long.MAX_VALUE;
     }
-    
+
     @Override
     default Ne plus(N that) {
 	return nat(integer() + that.integer());
@@ -50,6 +52,11 @@ MetricSpace<N, N>
     @Override
     default Ne distance(N other) {
 	return nat(Math.abs(integer() - other.integer()));
+    }
+
+    @Override
+    default N lowerBound() {
+	return ZERO;
     }
 
     default Z asInt() {
