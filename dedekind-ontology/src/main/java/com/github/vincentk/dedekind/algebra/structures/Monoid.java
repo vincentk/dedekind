@@ -25,6 +25,13 @@ public interface Monoid<T extends Monoid<T>> extends Magma<T> {
 	 * E.g. for numbers, 0 is the identity element for addition, as
 	 * x + 0 = x for all x.
 	 * 
+	 * Note, this default implementation will not work for
+	 * boolean algebra (with + being ||), 
+	 * as x || x = x for all boolean values.
+	 * I.e.
+	 * true  || true  = true
+	 * false || false = false
+	 * 
 	 * @return true exactly if this is the identity element for addition.
 	 */
 	@SuppressWarnings("unchecked")
