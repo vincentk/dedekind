@@ -22,6 +22,10 @@ B extends Set<B>,
 // Implementation
 L extends Lambda<A, B, L>
 >
+/*
+extends
+Relation<A, B, L>
+*/
 {
     B ap(A a);
 
@@ -36,7 +40,9 @@ L extends Lambda<A, B, L>
      * @param a
      * @return the corresponding relation.
      */
-    default Relation<A, B, ?> asRelation(A a) {
+    default Relation<A, B, ?> asRelation() {
+	@SuppressWarnings("unchecked")
+	final var a = (A) this;
 	return new Pair.Impl<>(a, ap(a));
     }
 }
