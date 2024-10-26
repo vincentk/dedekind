@@ -1,12 +1,10 @@
 package com.github.vincentk.dedekind.families;
 
 import java.util.List;
-import java.util.stream.Collectors;
 
 import com.github.vincentk.dedekind.algebra.numbers.B;
 import com.github.vincentk.dedekind.algebra.numbers.N;
 import com.github.vincentk.dedekind.algebra.sets.SemiRings;
-import com.github.vincentk.dedekind.algebra.structures.SemiModule;
 import com.github.vincentk.dedekind.algebra.structures.SemiRing;
 import com.github.vincentk.dedekind.sets.Cardinality;
 import com.github.vincentk.dedekind.sets.Set;
@@ -26,14 +24,13 @@ D extends Set.Finite<D> & Directed<Cardinality.Finite, D> & SemiRings.Naturals,
 I extends Tuple<T, D, I>
 >
 extends
-Sequence<T, Cardinality.Finite, D>,
-SemiModule<T, I>
+Sequence<T, Cardinality.Finite, D>
 {
     int length();
 
     public interface Tuple2<
     T extends SemiRing<T>,
-    D extends Set.Finite<D>  & Directed<Cardinality.Finite, D> & SemiRings.Booleans
+    D extends Set.Finite<D> & Directed<Cardinality.Finite, D> & SemiRings.Booleans
     >
     extends
     Tuple<T, D, Tuple2<T, D>>,
@@ -51,20 +48,6 @@ SemiModule<T, I>
 	    public T at(B d) {
 		return d.eq(B.TRUE) ? fst : snd;
 	    }
-
-	    @Override
-	    public Tuple2<T, B> mult(T scalar) {
-		return new Two<>(
-			fst.times(scalar),
-			snd.times(scalar));
-	    }
-
-	    @Override
-	    public Tuple2<T, B> plus(Tuple2<T, B> module) {
-		return new Two<>(
-			fst.times(module.fst()),
-			snd.times(module.snd()));
-	    }
 	}
     }
     
@@ -80,18 +63,6 @@ SemiModule<T, I>
 	@Override
 	public T at(N d) {
 	    return values.get((int)d.integer());
-	}
-
-	@Override
-	public TupleN<T, D> mult(T scalar) {
-	    final var l2 = values.stream().map(x -> x.times(scalar)).collect(Collectors.toList());
-	    return new TupleN<>(l2);
-	}
-
-	@Override
-	public TupleN<T, D> plus(TupleN<T, D> module) {
-	    // TODO Auto-generated method stub
-	    return null;
 	}
 
 	@Override
