@@ -1,8 +1,8 @@
 package com.github.vincentk.dedekind.linear.matrix;
 
 import com.github.vincentk.dedekind.algebra.structures.Ring;
+import com.github.vincentk.dedekind.algebra.structures.Transposed;
 import com.github.vincentk.dedekind.linear.finite.One;
-import com.github.vincentk.dedekind.sets.binary.relation.Transposed;
 
 /**
  * 1 x 1 matrix.

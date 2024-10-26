@@ -5,7 +5,7 @@ import com.github.vincentk.dedekind.algebra.peano.Peano.Zero;
 import com.github.vincentk.dedekind.algebra.structures.Bracket.Bra;
 import com.github.vincentk.dedekind.algebra.structures.Module;
 import com.github.vincentk.dedekind.algebra.structures.Ring;
-import com.github.vincentk.dedekind.sets.binary.relation.Transposed;
+import com.github.vincentk.dedekind.algebra.structures.Transposed;
 
 /**
  * Vector with just one element.
