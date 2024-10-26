@@ -23,9 +23,8 @@ PreOrder.AntiSymmetric<T> {
 	 * @param that
 	 * @return true exactly if this < that
 	 */
-	@SuppressWarnings("unchecked")
 	default boolean lt(T that) {
-	    return leq(that) && !that.leq((T) this);
+	    return leq(that) && !eq(that);
 	}
     }
 }

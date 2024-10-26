@@ -41,7 +41,7 @@ public interface PreOrder<T> {
 	@SuppressWarnings("unchecked")
 	@Override
 	default boolean eq(T that) {
-	    return this.leq(that) && that.leq((T) this);
+	    return leq(that) && that.leq((T) this);
 	}
     }
 }
