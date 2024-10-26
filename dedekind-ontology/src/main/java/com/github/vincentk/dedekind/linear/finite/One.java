@@ -50,9 +50,4 @@ Bra<R, Transposed<R, One<R>>, One<R>>
     public One<R> negate() {
         return oneOf(val.negate());
     }
-
-    @Override
-    public boolean eq(One<R> that) {
-	return equals(that);
-    }
 }

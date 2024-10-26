@@ -11,5 +11,7 @@ public interface Equality<E extends Equality<E>> {
      * @param that
      * @return true exactly if this and that are equal.
      */
-    boolean eq(E that);
+    default boolean eq(E that) {
+	return equals(that);
+    }
 }

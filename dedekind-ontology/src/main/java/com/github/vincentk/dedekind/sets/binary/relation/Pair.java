@@ -23,11 +23,6 @@ extends Relation<A, B, P>
 	return snd();
     }
 
-    @Override
-    default boolean eq(P that) {
-	return fst().eq(that.fst()) && snd().eq(that.snd());
-    }
-
     public record Impl<
     A extends Set<A>,
     // Range:

@@ -65,11 +65,6 @@ SemiModule<T, I>
 			fst.times(module.fst()),
 			snd.times(module.snd()));
 	    }
-
-	    @Override
-	    public boolean eq(Tuple2<T, B> that) {
-		return equals(that);
-	    }
 	}
     }
     
@@ -99,16 +94,9 @@ SemiModule<T, I>
 	    return null;
 	}
 
-
 	@Override
 	public int length() {
 	    return values.size();
 	}
-
-	@Override
-	public boolean eq(TupleN<T, D> that) {
-	    return equals(that);
-	}
-
     }
 }
