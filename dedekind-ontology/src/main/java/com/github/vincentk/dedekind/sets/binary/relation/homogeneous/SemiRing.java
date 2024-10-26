@@ -13,5 +13,10 @@ Rings,
 Monoid.P<R>,
 Monoid.M<R>
 {
+    /**
+     * The natural numbers are a well-known semi-ring.
+     * They are the closure of the integers under addition and multiplication.
+     * @param <N>
+     */
     interface Natural<N extends Natural<N>> extends SemiRing<N>, Naturals {}
 }
