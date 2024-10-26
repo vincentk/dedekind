@@ -1,6 +1,6 @@
 package com.github.vincentk.dedekind.algebra.numbers;
 
-import com.github.vincentk.dedekind.sets.relation.binary.homogeneous.Field;
+import com.github.vincentk.dedekind.algebra.structures.Field;
 
 /**
  * The set of dual numbers.

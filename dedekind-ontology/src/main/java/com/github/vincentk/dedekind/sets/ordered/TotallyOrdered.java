@@ -1,7 +1,7 @@
 package com.github.vincentk.dedekind.sets.ordered;
 
 import com.github.vincentk.dedekind.sets.Cardinality;
-import com.github.vincentk.dedekind.sets.relation.binary.homogeneous.TotalOrder;
+import com.github.vincentk.dedekind.sets.binary.relation.homogeneous.TotalOrder;
 
 /**
  * Set with a total order.

@@ -2,10 +2,10 @@ package com.github.vincentk.dedekind.linear.finite;
 
 import com.github.vincentk.dedekind.algebra.peano.Peano.Succ;
 import com.github.vincentk.dedekind.algebra.peano.Peano.Zero;
-import com.github.vincentk.dedekind.sets.relation.binary.Module;
-import com.github.vincentk.dedekind.sets.relation.binary.Transposed;
-import com.github.vincentk.dedekind.sets.relation.binary.Bracket.Bra;
-import com.github.vincentk.dedekind.sets.relation.binary.homogeneous.Ring;
+import com.github.vincentk.dedekind.algebra.structures.Module;
+import com.github.vincentk.dedekind.algebra.structures.Ring;
+import com.github.vincentk.dedekind.sets.binary.relation.Bracket.Bra;
+import com.github.vincentk.dedekind.sets.binary.relation.Transposed;
 
 /**
  * Vector with just one element.
@@ -22,7 +22,7 @@ Bra<R, Transposed<R, One<R>>, One<R>>
     public static
     <R extends Ring<R>>
     One<R>
-    one(R val) {
+    oneOf(R val) {
         return new One<>(val);
     }
 
@@ -48,11 +48,6 @@ Bra<R, Transposed<R, One<R>>, One<R>>
 
     @Override
     public One<R> negate() {
-        return one(val.negate());
-    }
-
-    @Override
-    public boolean eq(One<R> that) {
-	return equals(that);
+        return oneOf(val.negate());
     }
 }

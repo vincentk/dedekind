@@ -1,13 +1,12 @@
-/**
- * 
- */
 package com.github.vincentk.dedekind.algebra.numbers;
 
+
+import com.github.vincentk.dedekind.algebra.sets.Fields;
+import com.github.vincentk.dedekind.algebra.structures.MetricSpace;
+import com.github.vincentk.dedekind.algebra.structures.Ring;
+import com.github.vincentk.dedekind.algebra.structures.SemiRing;
 import com.github.vincentk.dedekind.sets.Cardinality;
 import com.github.vincentk.dedekind.sets.ordered.TotallyOrdered;
-import com.github.vincentk.dedekind.algebra.sets.Fields;
-import com.github.vincentk.dedekind.sets.relation.binary.homogeneous.Ring;
-import com.github.vincentk.dedekind.sets.relation.binary.homogeneous.SemiRing;
 
 /**
  * A specialization of the {@link MetricSpace} to sets of {@link Number} with a total order.
@@ -21,7 +20,7 @@ import com.github.vincentk.dedekind.sets.relation.binary.homogeneous.SemiRing;
 interface NumberLine<
 C1 extends Cardinality,
 T extends SemiRing<T> & NumberLine<C1, T>>
-extends Fields.Reals, Ring<T>, Number<T>, TotallyOrdered<C1, T>, MetricSpace<T, T> {
+extends Fields.Reals, Ring<T>, TotallyOrdered<C1, T>, MetricSpace<T, T> {
 
     @Override
     default T distance(T other) {

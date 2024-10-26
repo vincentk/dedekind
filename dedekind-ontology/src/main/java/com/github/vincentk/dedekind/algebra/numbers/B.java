@@ -3,25 +3,36 @@
  */
 package com.github.vincentk.dedekind.algebra.numbers;
 
-import com.github.vincentk.dedekind.sets.Cardinality;
 import com.github.vincentk.dedekind.algebra.sets.SemiRings.Booleans;
+import com.github.vincentk.dedekind.algebra.structures.Group;
+import com.github.vincentk.dedekind.algebra.structures.SemiRing;
+import com.github.vincentk.dedekind.sets.Cardinality;
 import com.github.vincentk.dedekind.sets.Set;
 import com.github.vincentk.dedekind.sets.ordered.TotallyOrdered;
-import com.github.vincentk.dedekind.sets.relation.binary.homogeneous.Ring;
 
 /**
  * Boolean values. Roughly speaking 0 <=> false, 1 <=> true.
+ * 
+ * @see https://en.wikipedia.org/wiki/Two-element_Boolean_algebra
  */
-public interface B extends
-Number<B>, Ring<B>,
+public interface B
+extends
+SemiRing<B>,
+Group.M0<B>,
 Set.Finite<B>,
 TotallyOrdered<Cardinality.Finite, B>,
-Booleans {
+Booleans
+{
 
     public boolean bool();
 
     default long cardinality() {
 	return 2;
+    }
+
+    @Override
+    default boolean isIdentityP() {
+	return !bool();
     }
 
     /**
@@ -54,7 +65,7 @@ Booleans {
     }
 
     @Override
-    default Be negate() {
+    default Be inverse0() {
 	return bool(!bool());
     }
 

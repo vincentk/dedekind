@@ -5,8 +5,8 @@ package com.github.vincentk.dedekind.algebra.numbers;
 
 import static java.lang.Long.compare;
 
+import com.github.vincentk.dedekind.algebra.structures.Ring;
 import com.github.vincentk.dedekind.sets.Cardinality;
-import com.github.vincentk.dedekind.sets.relation.binary.homogeneous.Ring;
 
 /**
  * The integer numbers.

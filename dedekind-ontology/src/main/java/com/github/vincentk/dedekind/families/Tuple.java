@@ -3,16 +3,15 @@ package com.github.vincentk.dedekind.families;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import com.github.vincentk.dedekind.sets.Cardinality;
 import com.github.vincentk.dedekind.algebra.numbers.B;
 import com.github.vincentk.dedekind.algebra.numbers.N;
-import com.github.vincentk.dedekind.algebra.numbers.Number;
 import com.github.vincentk.dedekind.algebra.sets.SemiRings;
+import com.github.vincentk.dedekind.algebra.structures.SemiModule;
+import com.github.vincentk.dedekind.algebra.structures.SemiRing;
+import com.github.vincentk.dedekind.sets.Cardinality;
 import com.github.vincentk.dedekind.sets.Set;
+import com.github.vincentk.dedekind.sets.binary.relation.Pair;
 import com.github.vincentk.dedekind.sets.ordered.Directed;
-import com.github.vincentk.dedekind.sets.relation.binary.Pair;
-import com.github.vincentk.dedekind.sets.relation.binary.SemiModule;
-import com.github.vincentk.dedekind.sets.relation.binary.homogeneous.SemiRing;
 
 /**
  * Tuple ~ a finite sequence of number-like things.
@@ -22,7 +21,7 @@ import com.github.vincentk.dedekind.sets.relation.binary.homogeneous.SemiRing;
  * https://en.wikipedia.org/wiki/Tuple
  */
 public interface Tuple<
-T extends Number<T>,
+T extends SemiRing<T>,
 D extends Set.Finite<D> & Directed<Cardinality.Finite, D> & SemiRings.Naturals,
 I extends Tuple<T, D, I>
 >
@@ -33,18 +32,18 @@ SemiModule<T, I>
     int length();
 
     public interface Tuple2<
-    T extends Number<T>,
+    T extends SemiRing<T>,
     D extends Set.Finite<D>  & Directed<Cardinality.Finite, D> & SemiRings.Booleans
     >
     extends
     Tuple<T, D, Tuple2<T, D>>,
-    Pair<T, T>
+    Pair<T, T, Tuple2<T, D>>
     {
 	default int length() {
 	    return 2;
 	}
 
-	public record Two<T extends Number<T>>
+	public record Two<T extends SemiRing<T>>
 	(T fst, T snd)
 	implements Tuple2<T, B> {
 
@@ -66,16 +65,11 @@ SemiModule<T, I>
 			fst.times(module.fst()),
 			snd.times(module.snd()));
 	    }
-
-	    @Override
-	    public boolean eq(Tuple2<T, B> that) {
-		return equals(that);
-	    }
 	}
     }
     
     public record TupleN<
-    T extends Number<T>,
+    T extends SemiRing<T>,
     D extends N
     >
     (List<T> values)
@@ -100,16 +94,9 @@ SemiModule<T, I>
 	    return null;
 	}
 
-
 	@Override
 	public int length() {
 	    return values.size();
 	}
-
-	@Override
-	public boolean eq(TupleN<T, D> that) {
-	    return equals(that);
-	}
-
     }
 }

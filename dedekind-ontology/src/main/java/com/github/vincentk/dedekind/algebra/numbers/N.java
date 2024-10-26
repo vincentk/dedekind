@@ -3,17 +3,17 @@
  */
 package com.github.vincentk.dedekind.algebra.numbers;
 
+import com.github.vincentk.dedekind.algebra.structures.MetricSpace;
+import com.github.vincentk.dedekind.algebra.structures.SemiRing;
 import com.github.vincentk.dedekind.sets.Cardinality;
 import com.github.vincentk.dedekind.sets.Set;
 import com.github.vincentk.dedekind.sets.ordered.TotallyOrdered;
-import com.github.vincentk.dedekind.sets.relation.binary.homogeneous.SemiRing;
 
 /**
  * The natural numbers.
  */
 public interface N
 extends
-Number<N>,
 TotallyOrdered<Cardinality.Finite, N>,
 Set.Finite<N>,
 SemiRing.Natural<N>,

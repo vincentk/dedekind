@@ -6,7 +6,7 @@ import org.junit.jupiter.api.Test;
 
 import com.github.vincentk.dedekind.algebra.numbers.R;
 import com.github.vincentk.dedekind.algebra.sets.Fields;
-import com.github.vincentk.dedekind.sets.relation.binary.homogeneous.Field;
+import com.github.vincentk.dedekind.algebra.structures.Field;
 
 public class RsTest {
 

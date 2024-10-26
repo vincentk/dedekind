@@ -1,11 +1,12 @@
 package com.github.vincentk.dedekind.algebra.numbers;
 
-import com.github.vincentk.dedekind.sets.relation.binary.homogeneous.Field;
+import com.github.vincentk.dedekind.algebra.structures.Field;
+import com.github.vincentk.dedekind.algebra.structures.MetricSpace;
 
 /**
  * The set of complex numbers.
  */
-public interface C extends Number<C>, Field.Complex<C>, MetricSpace<C, R> {
+public interface C extends Field.Complex<C>, MetricSpace<C, R> {
 
     public R re();
     public R im();
