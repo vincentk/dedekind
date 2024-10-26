@@ -1,7 +1,7 @@
 package com.github.vincentk.dedekind.algebra.numbers;
 
+import com.github.vincentk.dedekind.algebra.structures.Field;
 import com.github.vincentk.dedekind.sets.Cardinality;
-import com.github.vincentk.dedekind.sets.binary.relation.homogeneous.Field;
 
 /**
  * The set of real numbers.

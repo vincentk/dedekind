@@ -1,9 +1,10 @@
 package com.github.vincentk.dedekind.sets.binary.relation;
 
+import com.github.vincentk.dedekind.algebra.structures.SemiModule;
+import com.github.vincentk.dedekind.algebra.structures.SemiRing;
 import com.github.vincentk.dedekind.bilinear.OuterProduct;
 import com.github.vincentk.dedekind.sets.binary.relation.Bracket.Bra;
 import com.github.vincentk.dedekind.sets.binary.relation.Bracket.Ket;
-import com.github.vincentk.dedekind.sets.binary.relation.homogeneous.SemiRing;
 
 /**
  * @param <F> the underlying field.

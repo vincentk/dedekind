@@ -1,13 +1,12 @@
-/**
- * 
- */
 package com.github.vincentk.dedekind.algebra.numbers;
 
-import com.github.vincentk.dedekind.sets.Cardinality;
-import com.github.vincentk.dedekind.sets.binary.relation.homogeneous.Ring;
-import com.github.vincentk.dedekind.sets.binary.relation.homogeneous.SemiRing;
-import com.github.vincentk.dedekind.sets.ordered.TotallyOrdered;
+
 import com.github.vincentk.dedekind.algebra.sets.Fields;
+import com.github.vincentk.dedekind.algebra.structures.MetricSpace;
+import com.github.vincentk.dedekind.algebra.structures.Ring;
+import com.github.vincentk.dedekind.algebra.structures.SemiRing;
+import com.github.vincentk.dedekind.sets.Cardinality;
+import com.github.vincentk.dedekind.sets.ordered.TotallyOrdered;
 
 /**
  * A specialization of the {@link MetricSpace} to sets of {@link Number} with a total order.

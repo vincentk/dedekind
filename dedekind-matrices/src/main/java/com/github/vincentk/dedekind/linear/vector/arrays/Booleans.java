@@ -8,9 +8,9 @@ import java.util.function.IntFunction;
 import java.util.stream.IntStream;
 
 import com.github.vincentk.dedekind.algebra.numbers.B;
+import com.github.vincentk.dedekind.algebra.structures.SemiModule;
 import com.github.vincentk.dedekind.arrays.RandomAccess;
 import com.github.vincentk.dedekind.sets.Cardinality;
-import com.github.vincentk.dedekind.sets.binary.relation.SemiModule;
 import com.github.vincentk.dedekind.sets.binary.relation.Transposed;
 import com.github.vincentk.dedekind.sets.binary.relation.Bracket.Bra;
 

@@ -1,7 +1,6 @@
-package com.github.vincentk.dedekind.sets.binary.relation;
+package com.github.vincentk.dedekind.algebra.structures;
 
 import com.github.vincentk.dedekind.sets.Cardinality;
-import com.github.vincentk.dedekind.sets.binary.relation.homogeneous.Field;
 
 /**
  * An element of a vector space satisfying the vector axioms.

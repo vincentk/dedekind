@@ -1,4 +1,4 @@
-package com.github.vincentk.dedekind.sets.binary.relation.homogeneous;
+package com.github.vincentk.dedekind.algebra.structures;
 
 /**
  * A {@link Magma} with the following properties:

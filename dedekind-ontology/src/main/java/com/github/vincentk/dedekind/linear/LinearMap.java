@@ -2,9 +2,9 @@ package com.github.vincentk.dedekind.linear;
 
 import java.util.function.Function;
 
-import com.github.vincentk.dedekind.sets.binary.relation.SemiModule;
+import com.github.vincentk.dedekind.algebra.structures.SemiModule;
+import com.github.vincentk.dedekind.algebra.structures.SemiRing;
 import com.github.vincentk.dedekind.sets.binary.relation.Bracket.Ket;
-import com.github.vincentk.dedekind.sets.binary.relation.homogeneous.SemiRing;
 
 /**
  * @see https://en.wikipedia.org/wiki/Linear_map

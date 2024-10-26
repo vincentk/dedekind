@@ -1,6 +1,7 @@
 package com.github.vincentk.dedekind.algebra.numbers;
 
-import com.github.vincentk.dedekind.sets.binary.relation.homogeneous.Field;
+import com.github.vincentk.dedekind.algebra.structures.Field;
+import com.github.vincentk.dedekind.algebra.structures.MetricSpace;
 
 /**
  * The set of complex numbers.

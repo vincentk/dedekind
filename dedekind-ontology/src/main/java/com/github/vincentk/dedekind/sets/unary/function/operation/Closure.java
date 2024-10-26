@@ -36,6 +36,9 @@ C extends Set<C> & Closure<B, B, C>
 >
 extends Set<C>, Operation<B, C>
 {
+    // Enable to force a type check:
+    /*
     @Override
     B ap(B a);
+    */
 }

@@ -1,7 +1,7 @@
 package com.github.vincentk.dedekind.linear.matrix;
 
+import com.github.vincentk.dedekind.algebra.structures.SemiRing;
 import com.github.vincentk.dedekind.sets.binary.relation.Bracket.Ket;
-import com.github.vincentk.dedekind.sets.binary.relation.homogeneous.SemiRing;
 
 /**
  * A lazy / symbolic implementation of matrix multiplication.

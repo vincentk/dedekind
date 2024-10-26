@@ -3,8 +3,9 @@
  */
 package com.github.vincentk.dedekind.sets.binary.relation;
 
+import com.github.vincentk.dedekind.algebra.structures.SemiModule;
+import com.github.vincentk.dedekind.algebra.structures.SemiRing;
 import com.github.vincentk.dedekind.bilinear.OuterProduct;
-import com.github.vincentk.dedekind.sets.binary.relation.homogeneous.SemiRing;
 
 /**
  * @see https://en.wikipedia.org/wiki/Bra%E2%80%93ket_notation

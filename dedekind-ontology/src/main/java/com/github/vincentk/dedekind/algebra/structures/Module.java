@@ -1,8 +1,6 @@
-package com.github.vincentk.dedekind.sets.binary.relation;
+package com.github.vincentk.dedekind.algebra.structures;
 
 import com.github.vincentk.dedekind.sets.Cardinality;
-import com.github.vincentk.dedekind.sets.binary.relation.homogeneous.Group;
-import com.github.vincentk.dedekind.sets.binary.relation.homogeneous.Ring;
 
 /**
  * Definition of scalar multiplication over a {@link Ring}.

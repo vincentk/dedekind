@@ -1,7 +1,4 @@
-package com.github.vincentk.dedekind.sets.binary.relation;
-
-import com.github.vincentk.dedekind.sets.binary.relation.homogeneous.Monoid;
-import com.github.vincentk.dedekind.sets.binary.relation.homogeneous.SemiRing;
+package com.github.vincentk.dedekind.algebra.structures;
 
 /**
  * Definition of scalar multiplication over a {@link SemiRing}.

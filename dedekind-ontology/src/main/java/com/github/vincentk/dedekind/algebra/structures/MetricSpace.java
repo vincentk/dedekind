@@ -1,11 +1,8 @@
-/**
- * 
- */
-package com.github.vincentk.dedekind.algebra.numbers;
+package com.github.vincentk.dedekind.algebra.structures;
+
 
 import com.github.vincentk.dedekind.algebra.sets.Fields;
 import com.github.vincentk.dedekind.sets.Set;
-import com.github.vincentk.dedekind.sets.binary.relation.homogeneous.Monoid;
 
 /**
  * @see https://en.wikipedia.org/wiki/Metric_space

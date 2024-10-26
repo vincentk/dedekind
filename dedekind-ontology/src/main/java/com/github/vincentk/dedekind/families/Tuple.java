@@ -3,15 +3,15 @@ package com.github.vincentk.dedekind.families;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import com.github.vincentk.dedekind.sets.Cardinality;
 import com.github.vincentk.dedekind.algebra.numbers.B;
 import com.github.vincentk.dedekind.algebra.numbers.N;
 import com.github.vincentk.dedekind.algebra.numbers.Number;
 import com.github.vincentk.dedekind.algebra.sets.SemiRings;
+import com.github.vincentk.dedekind.algebra.structures.SemiModule;
+import com.github.vincentk.dedekind.algebra.structures.SemiRing;
+import com.github.vincentk.dedekind.sets.Cardinality;
 import com.github.vincentk.dedekind.sets.Set;
 import com.github.vincentk.dedekind.sets.binary.relation.Pair;
-import com.github.vincentk.dedekind.sets.binary.relation.SemiModule;
-import com.github.vincentk.dedekind.sets.binary.relation.homogeneous.SemiRing;
 import com.github.vincentk.dedekind.sets.ordered.Directed;
 
 /**
