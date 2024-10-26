@@ -16,8 +16,8 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import com.github.vincentk.dedekind.algebra.numbers.N;
 import com.github.vincentk.dedekind.algebra.numbers.Z;
-import com.github.vincentk.dedekind.sets.binary.relation.Bracket.Bra;
-import com.github.vincentk.dedekind.sets.binary.relation.Bracket.Ket;
+import com.github.vincentk.dedekind.algebra.structures.Bracket.Bra;
+import com.github.vincentk.dedekind.algebra.structures.Bracket.Ket;
 import com.github.vincentk.dedekind.sets.binary.relation.Transposed;
 
 

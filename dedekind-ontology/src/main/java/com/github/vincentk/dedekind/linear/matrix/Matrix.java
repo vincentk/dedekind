@@ -2,11 +2,11 @@ package com.github.vincentk.dedekind.linear.matrix;
 
 import java.util.function.Function;
 
+import com.github.vincentk.dedekind.algebra.structures.Bracket.Bra;
+import com.github.vincentk.dedekind.algebra.structures.Bracket.Ket;
 import com.github.vincentk.dedekind.algebra.structures.Dual;
 import com.github.vincentk.dedekind.algebra.structures.SemiRing;
 import com.github.vincentk.dedekind.linear.LinearMap;
-import com.github.vincentk.dedekind.sets.binary.relation.Bracket.Bra;
-import com.github.vincentk.dedekind.sets.binary.relation.Bracket.Ket;
 
 /**
  * @see https://en.wikipedia.org/wiki/Matrix_(mathematics)
