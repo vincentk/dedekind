@@ -19,7 +19,7 @@ extends Lattice<C, T>, TotalOrder<T> {
 
     @Override
     default boolean leq(T that) {
-	return this.compareTo(that) <= 0;
+	return compareTo(that) <= 0;
     }
     
     @SuppressWarnings("unchecked")
