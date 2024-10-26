@@ -8,5 +8,5 @@ import com.github.vincentk.dedekind.algebra.sets.Rings;
  */
 public interface Ring<R extends Ring<R>> extends Rings, SemiRing<R>, Group.P<R> {
     
-    interface Integer<N extends Integer<N>> extends Ring<N>, Integers {}
+    interface Integer<Z extends Integer<Z>> extends Ring<Z>, Integers {}
 }

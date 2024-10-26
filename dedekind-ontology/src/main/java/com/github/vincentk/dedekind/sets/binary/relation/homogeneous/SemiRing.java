@@ -1,6 +1,8 @@
 package com.github.vincentk.dedekind.sets.binary.relation.homogeneous;
 
 import com.github.vincentk.dedekind.algebra.sets.Rings;
+import com.github.vincentk.dedekind.sets.Set;
+import com.github.vincentk.dedekind.sets.unary.function.operation.Closure;
 
 /**
  * A semiring: basically a ring but without the additive inverse.
@@ -18,5 +20,10 @@ Monoid.M<R>
      * They are the closure of the integers under addition and multiplication.
      * @param <N>
      */
-    interface Natural<N extends Natural<N>> extends SemiRing<N>, Naturals {}
+    interface Natural<N extends Natural<N>>
+    extends
+    Set<N>,
+    SemiRing<N>, Naturals,
+    Closure<N, N, N>
+    {}
 }
