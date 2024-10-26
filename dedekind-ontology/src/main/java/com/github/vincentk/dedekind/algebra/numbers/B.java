@@ -30,6 +30,11 @@ Booleans
 	return 2;
     }
 
+    @Override
+    default boolean isIdentityP() {
+	return !bool();
+    }
+
     /**
      * a && b ~ a * b
      * 

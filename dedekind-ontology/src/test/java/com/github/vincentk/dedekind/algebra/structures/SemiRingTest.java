@@ -8,7 +8,7 @@ import org.junit.jupiter.api.Test;
 import com.github.vincentk.dedekind.algebra.numbers.B;
 import com.github.vincentk.dedekind.algebra.numbers.N;
 
-public class MonoidTest {
+public class SemiRingTest {
 
     @Test
     public void testIdentitytP() {

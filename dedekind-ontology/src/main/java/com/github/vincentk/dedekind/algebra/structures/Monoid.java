@@ -52,16 +52,7 @@ public interface Monoid<T extends Monoid<T>> extends Magma<T> {
 	 * @param val
 	 * @return true exactly if this is the unit element for multiplication.
 	 */
-	@SuppressWarnings("unchecked")
-	default boolean isIdentityM() {
-	    // x * x = x
-	    // =>
-	    // x = 0
-	    // or
-	    // x = 1
-	    // i.e.
-	    // 1 * 1 = 1
-	    return eq(times((T) this));
-	}
+
+	boolean isIdentityM();
     }
 }
