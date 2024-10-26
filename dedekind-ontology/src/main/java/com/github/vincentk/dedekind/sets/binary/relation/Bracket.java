@@ -3,6 +3,7 @@
  */
 package com.github.vincentk.dedekind.sets.binary.relation;
 
+import com.github.vincentk.dedekind.algebra.structures.Dual;
 import com.github.vincentk.dedekind.algebra.structures.SemiModule;
 import com.github.vincentk.dedekind.algebra.structures.SemiRing;
 import com.github.vincentk.dedekind.bilinear.OuterProduct;
