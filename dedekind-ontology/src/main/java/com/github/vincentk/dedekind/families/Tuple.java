@@ -5,7 +5,6 @@ import java.util.stream.Collectors;
 
 import com.github.vincentk.dedekind.algebra.numbers.B;
 import com.github.vincentk.dedekind.algebra.numbers.N;
-import com.github.vincentk.dedekind.algebra.numbers.Number;
 import com.github.vincentk.dedekind.algebra.sets.SemiRings;
 import com.github.vincentk.dedekind.algebra.structures.SemiModule;
 import com.github.vincentk.dedekind.algebra.structures.SemiRing;
@@ -22,7 +21,7 @@ import com.github.vincentk.dedekind.sets.ordered.Directed;
  * https://en.wikipedia.org/wiki/Tuple
  */
 public interface Tuple<
-T extends Number<T>,
+T extends SemiRing<T>,
 D extends Set.Finite<D> & Directed<Cardinality.Finite, D> & SemiRings.Naturals,
 I extends Tuple<T, D, I>
 >
@@ -33,7 +32,7 @@ SemiModule<T, I>
     int length();
 
     public interface Tuple2<
-    T extends Number<T>,
+    T extends SemiRing<T>,
     D extends Set.Finite<D>  & Directed<Cardinality.Finite, D> & SemiRings.Booleans
     >
     extends
@@ -44,7 +43,7 @@ SemiModule<T, I>
 	    return 2;
 	}
 
-	public record Two<T extends Number<T>>
+	public record Two<T extends SemiRing<T>>
 	(T fst, T snd)
 	implements Tuple2<T, B> {
 
@@ -75,7 +74,7 @@ SemiModule<T, I>
     }
     
     public record TupleN<
-    T extends Number<T>,
+    T extends SemiRing<T>,
     D extends N
     >
     (List<T> values)

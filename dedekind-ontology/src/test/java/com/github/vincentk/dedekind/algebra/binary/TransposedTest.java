@@ -4,7 +4,7 @@
 package com.github.vincentk.dedekind.algebra.binary;
 
 import static com.github.vincentk.dedekind.algebra.numbers.N.nat;
-import static com.github.vincentk.dedekind.linear.finite.One.one;
+import static com.github.vincentk.dedekind.linear.finite.One.oneOf;
 import static org.assertj.core.api.Assertions.assertThat;
 import static org.junit.jupiter.params.provider.Arguments.of;
 
@@ -27,7 +27,7 @@ public class TransposedTest {
     @MethodSource
     public void testTranspose(N b1) {
 
-        final var v1 = one(b1.asInt());
+        final var v1 = oneOf(b1.asInt());
 
         final Ket<Z, ?, ?> v1t = new Transposed<>(v1);
 
@@ -49,19 +49,19 @@ public class TransposedTest {
     public void testOuterProduct(N b1, N b2, N b3, N expected) {
 
         // |1>
-        final Ket<Z, ?, ?> v1 = one(b1.asInt()).transpose();
+        final Ket<Z, ?, ?> v1 = oneOf(b1.asInt()).transpose();
 
         // |1> <2|
-        final var tensor = v1.outer(one(b2.asInt()));
+        final var tensor = v1.outer(oneOf(b2.asInt()));
 
         // |1><2|3>
-        final Ket<Z, ?, ?> ket = tensor.apply(one(b3.asInt()).transpose());
+        final Ket<Z, ?, ?> ket = tensor.apply(oneOf(b3.asInt()).transpose());
 
         // <3|2><1|
         final Bra<Z, ?, ?> found = ket.transpose();
 
         // <4|
-        final Bra<Z, ?, ?> exp = one(expected.asInt());
+        final Bra<Z, ?, ?> exp = oneOf(expected.asInt());
 
         // <3|2><1| == <4|
         assertThat(found).isEqualTo(exp);

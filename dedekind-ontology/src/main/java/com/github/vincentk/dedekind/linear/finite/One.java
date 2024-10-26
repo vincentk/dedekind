@@ -22,7 +22,7 @@ Bra<R, Transposed<R, One<R>>, One<R>>
     public static
     <R extends Ring<R>>
     One<R>
-    one(R val) {
+    oneOf(R val) {
         return new One<>(val);
     }
 
@@ -48,7 +48,7 @@ Bra<R, Transposed<R, One<R>>, One<R>>
 
     @Override
     public One<R> negate() {
-        return one(val.negate());
+        return oneOf(val.negate());
     }
 
     @Override

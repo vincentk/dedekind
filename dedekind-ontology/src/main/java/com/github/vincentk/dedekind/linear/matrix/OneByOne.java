@@ -29,7 +29,7 @@ Square<F, Transposed<F, One<F>>, OneByOne<F>, OneByOne<F>>
     // Matrix multiplication with a column vector:
     @Override
     public Transposed<F, One<F>> apply(Transposed<F, One<F>> vector) {
-        return One.one(val.dot(vector)).transpose();
+        return One.oneOf(val.dot(vector)).transpose();
     }
 
     @Override

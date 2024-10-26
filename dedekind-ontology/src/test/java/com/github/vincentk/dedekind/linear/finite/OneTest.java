@@ -27,7 +27,7 @@ public class OneTest {
     }
 
     private static void checkPlus(Z expected, Z a, Z b) {
-        assertEquals(One.one(expected), One.one(a).plus(One.one(b)));
+        assertEquals(One.oneOf(expected), One.oneOf(a).plus(One.oneOf(b)));
     }
 
     @Test
@@ -43,7 +43,7 @@ public class OneTest {
     @Test
     public void testOuterProduct() {
 
-        final var zero = One.one(ZERO);
+        final var zero = One.oneOf(ZERO);
 
         final var zerot = zero.transpose();
 
@@ -51,14 +51,14 @@ public class OneTest {
 
         assertThat(zerot.outer(zero).apply(zerot).transpose()).isEqualTo(zero);
 
-        final var one = One.one(ONE);
+        final var one = One.oneOf(ONE);
         final var onet = one.transpose();
         
         assertThat(zerot.outer(one).apply(zerot).transpose()).isEqualTo(zero);
 
         assertThat(onet.outer(one).apply(onet).transpose()).isEqualTo(one);
 
-        final var two = One.one(TWO);
+        final var two = One.oneOf(TWO);
         final var twot = two.transpose();
 
         assertThat(twot.outer(one).apply(onet).transpose()).isEqualTo(two);
@@ -71,6 +71,6 @@ public class OneTest {
     }
 
     private static void checkTimes(Z expected, Z a, Z b) {
-        assertEquals(One.one(expected), One.one(a).mult(b));
+        assertEquals(One.oneOf(expected), One.oneOf(a).mult(b));
     }
 }

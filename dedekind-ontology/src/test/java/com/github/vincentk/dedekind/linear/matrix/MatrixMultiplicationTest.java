@@ -14,8 +14,8 @@ public class MatrixMultiplicationTest {
     
     @Test
     public void testMatrixMultiplication() {
-        final var m1 = new OneByOne<>(One.one(Z.ONE));
-        final var m2 = new OneByOne<>(One.one(Z.ZERO));
+        final var m1 = new OneByOne<>(One.oneOf(Z.ONE));
+        final var m2 = new OneByOne<>(One.oneOf(Z.ZERO));
         
         final var sut = m1.compose(m2);
         

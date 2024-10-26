@@ -14,7 +14,6 @@ import com.github.vincentk.dedekind.sets.ordered.TotallyOrdered;
  */
 public interface N
 extends
-Number<N>,
 TotallyOrdered<Cardinality.Finite, N>,
 Set.Finite<N>,
 SemiRing.Natural<N>,

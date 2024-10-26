@@ -20,7 +20,7 @@ import com.github.vincentk.dedekind.sets.ordered.TotallyOrdered;
 interface NumberLine<
 C1 extends Cardinality,
 T extends SemiRing<T> & NumberLine<C1, T>>
-extends Fields.Reals, Ring<T>, Number<T>, TotallyOrdered<C1, T>, MetricSpace<T, T> {
+extends Fields.Reals, Ring<T>, TotallyOrdered<C1, T>, MetricSpace<T, T> {
 
     @Override
     default T distance(T other) {

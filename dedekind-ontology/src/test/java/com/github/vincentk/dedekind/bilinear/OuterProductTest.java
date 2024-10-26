@@ -12,7 +12,7 @@ import com.github.vincentk.dedekind.linear.finite.One;
 
 public class OuterProductTest {
 
-    private final One<Z> t1 = One.one(Z.ZERO), f1 = One.one(Z.ONE);
+    private final One<Z> t1 = One.oneOf(Z.ZERO), f1 = One.oneOf(Z.ONE);
 
     private final OuterProduct<Z, ?, ?, ?, ?> subject = t1.transpose().outer(f1);    
 
