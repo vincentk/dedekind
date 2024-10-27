@@ -4,10 +4,10 @@
 package com.github.vincentk.dedekind.families;
 
 import com.github.vincentk.dedekind.sets.Cardinality;
+import com.github.vincentk.dedekind.sets.Countable;
 import com.github.vincentk.dedekind.algebra.numbers.N;
 import com.github.vincentk.dedekind.algebra.sets.Rings;
 import com.github.vincentk.dedekind.algebra.sets.SemiRings;
-import com.github.vincentk.dedekind.sets.Set;
 import com.github.vincentk.dedekind.sets.ordered.Directed;
 import com.github.vincentk.dedekind.sets.ordered.Interval;
 
@@ -18,7 +18,7 @@ import com.github.vincentk.dedekind.sets.ordered.Interval;
 public interface Sequence<
 T extends Interval<? extends Rings.Integers, ?, ?, ?>,
 C extends Cardinality.Countable,
-D extends Set.Countable<C, D> & Directed<C, D> & SemiRings.Naturals
+D extends Countable<C, D> & Directed<C, D> & SemiRings.Naturals
 >
 extends Net<T, C, D>
 {

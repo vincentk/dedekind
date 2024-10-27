@@ -7,7 +7,7 @@ import com.github.vincentk.dedekind.algebra.sets.SemiRings.Booleans;
 import com.github.vincentk.dedekind.algebra.structures.Group;
 import com.github.vincentk.dedekind.algebra.structures.SemiRing;
 import com.github.vincentk.dedekind.sets.Cardinality;
-import com.github.vincentk.dedekind.sets.Set;
+import com.github.vincentk.dedekind.sets.Finite;
 import com.github.vincentk.dedekind.sets.ordered.TotallyOrdered;
 
 /**
@@ -19,7 +19,7 @@ public interface B
 extends
 SemiRing<B>,
 Group.M0<B>,
-Set.Finite<B>,
+Finite<B>,
 TotallyOrdered<Cardinality.Finite, B>,
 Booleans
 {
