@@ -16,9 +16,24 @@ import com.github.vincentk.dedekind.sets.binary.relation.homogeneous.Identity;
 public interface Set<T extends Set<T>>
 extends Identity<T>
 {
+    @Deprecated
     @SuppressWarnings("unchecked")
     @Override
     default boolean eq(T that) {
 	return ((T) this).equals(that);
     }
+
+    /**
+     * An element of a set.
+     */
+    interface Element<E extends Element<E>>
+    extends Identity<E>
+    {
+	@SuppressWarnings("unchecked")
+	@Override
+	default boolean eq(E that) {
+	    return ((E) this).equals(that);
+	}
+    }
+
 }
