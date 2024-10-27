@@ -16,6 +16,7 @@ import com.github.vincentk.dedekind.sets.binary.relation.homogeneous.Identity;
 public interface Set<T extends Set<T>>
 extends Identity<T>
 {
+    @Deprecated
     @SuppressWarnings("unchecked")
     @Override
     default boolean eq(T that) {
@@ -23,25 +24,16 @@ extends Identity<T>
     }
 
     /**
-     * A countable set. Its elements can be enumerated.
-     * 
-     * @param <C> cardinality
-     * @param <T> implementation type
+     * An element of a set.
      */
-    interface Countable<
-    C extends Cardinality.Countable,
-    T extends Countable<C, T>
-    >
-    extends Set<T> {
+    interface Element<E extends Element<E>>
+    extends Identity<E>
+    {
+	@SuppressWarnings("unchecked")
+	@Override
+	default boolean eq(E that) {
+	    return ((E) this).equals(that);
+	}
     }
 
-    /**
-     * Finite sets have finite cardinality.
-     * They are always countable (we grant the axiom of choice).
-     * 
-     * @param <T> implementation type
-     */
-    interface Finite<T extends Finite<T>>
-    extends Countable<Cardinality.Finite, T>, Cardinality.Finite {
-    }
 }

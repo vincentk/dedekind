@@ -6,7 +6,7 @@ package com.github.vincentk.dedekind.algebra.numbers;
 import com.github.vincentk.dedekind.algebra.structures.MetricSpace;
 import com.github.vincentk.dedekind.algebra.structures.SemiRing;
 import com.github.vincentk.dedekind.sets.Cardinality;
-import com.github.vincentk.dedekind.sets.Set;
+import com.github.vincentk.dedekind.sets.Finite;
 import com.github.vincentk.dedekind.sets.ordered.Interval;
 import com.github.vincentk.dedekind.sets.ordered.TotallyOrdered;
 
@@ -16,7 +16,7 @@ import com.github.vincentk.dedekind.sets.ordered.TotallyOrdered;
 public interface N
 extends
 TotallyOrdered<Cardinality.Finite, N>,
-Set.Finite<N>,
+Finite<N>,
 SemiRing.Natural<N>,
 MetricSpace<N, N>,
 Interval.HalfOpen.Right<N, N, Cardinality.Finite, N>

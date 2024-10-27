@@ -4,7 +4,7 @@ import com.github.vincentk.dedekind.algebra.sets.Rings;
 import com.github.vincentk.dedekind.algebra.sets.SemiRings;
 import com.github.vincentk.dedekind.algebra.structures.SemiRing;
 import com.github.vincentk.dedekind.sets.Cardinality;
-import com.github.vincentk.dedekind.sets.Set;
+import com.github.vincentk.dedekind.sets.Finite;
 import com.github.vincentk.dedekind.sets.ordered.Directed;
 import com.github.vincentk.dedekind.sets.ordered.Interval;
 
@@ -17,7 +17,7 @@ import com.github.vincentk.dedekind.sets.ordered.Interval;
  */
 public interface Tuple<
 T extends Interval<? extends Rings.Integers, ?, ?, ?>,
-D extends Set.Finite<D> & Directed<Cardinality.Finite, D> & SemiRings.Naturals,
+D extends Finite<D> & Directed<Cardinality.Finite, D> & SemiRings.Naturals,
 I extends Tuple<T, D, I>
 >
 extends
