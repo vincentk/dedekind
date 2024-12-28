@@ -10,12 +10,13 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import com.github.vincentk.dedekind.algebra.numbers.B;
+import com.github.vincentk.dedekind.algebra.numbers.B.Bool;
 
 public class BeTest {
 
     @ParameterizedTest
     @MethodSource
-    public void testAddition(B b1, B b2) {
+    public void testAddition(Bool b1, Bool b2) {
         assertThat(b1.plus(b2)).isEqualTo(b1.or(b2));
     }
 
@@ -30,7 +31,7 @@ public class BeTest {
     
     @ParameterizedTest
     @MethodSource
-    public void testMultiplication(B b1, B b2) {
+    public void testMultiplication(Bool b1, Bool b2) {
         assertThat(b1.times(b2)).isEqualTo(b1.and(b2));
     }
 

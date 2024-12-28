@@ -12,37 +12,55 @@ import com.github.vincentk.dedekind.sets.Cardinality;
  * @see https://en.wikipedia.org/wiki/Join_and_meet
  */
 public interface SemiLattice<
+E extends SemiLattice.Sle<E>,
 C extends Cardinality,
-T extends SemiLattice<C, T>
+T extends SemiLattice<E, C, T>
 >
 extends
-PoSet<C, T> 
+PoSet<E, C, T> 
 {
-    interface Join<
-    C extends Cardinality,
-    T extends SemiLattice<C, T>
-    >
+    interface Sle<E extends Pe<E>>
     extends
-    SemiLattice<C, T>
-    {
-	/**
-	 * @param that
-	 * @return the lowest upper bound of this and that.
-	 */
-	T join(T that);
+    PoSet.Pe<E>
+    {	
+
     }
-    
-    interface Meet<
+
+    interface Join<
+    E extends Join.Je<E>,
     C extends Cardinality,
-    T extends SemiLattice<C, T>
+    T extends Join<E, C, T>
     >
-    extends
-    SemiLattice<C, T>
+    extends SemiLattice<E, C, T>
     {
-	/**
-	 * @param that
-	 * @return the greatest lower bound of this and that.
-	 */
-	T meet(T that);
+	interface Je<E extends Je<E>>
+	extends
+	Sle<E>
+	{
+	    /**
+	     * @param that
+	     * @return the lowest upper bound of this and that.
+	     */
+	    E join(E that);
+	}
+    }
+
+    interface Meet<
+    E extends Meet.Me<E>,
+    C extends Cardinality,
+    T extends Meet<E, C, T>
+    >
+    extends SemiLattice<E, C, T> {
+
+	interface Me<E extends Me<E>>
+	extends
+	Sle<E>
+	{
+	    /**
+	     * @param that
+	     * @return the greatest lower bound of this and that.
+	     */
+	    E meet(E that);
+	}
     }
 }

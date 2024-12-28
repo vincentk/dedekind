@@ -28,13 +28,15 @@ import com.github.vincentk.dedekind.sets.Set;
  */
 public interface Closure<
 // Superset:
-A extends Set<B> & Operation<? super B, ?>,
+E extends Set.Element<E> & Operation<E, ?>,
+A extends Set<E, ?>,
 // Subset:
-B extends A,
+F extends Set.Element<F> & Operation<F, ?>,
+B extends Set<F, ?>,
 // Implementing class:
-C extends Set<C> & Closure<B, B, C>
+C extends Set<E, C> & Closure<E, A, F, B, C>
 >
-extends Set<C>, Operation<B, C>
+extends Set<E, C>, Operation<F, C>
 {
     // Enable to force a type check:
     /*

@@ -72,7 +72,7 @@ public class CsTest {
 	 */
 	@ParameterizedTest
 	@MethodSource
-	public void testAbsolute(C complex, R expected, String name) {
+	public void testAbsolute(C.Ce complex, R expected, String name) {
 	    assertThat(complex.abs2()).isEqualTo(expected);
 	}
 	

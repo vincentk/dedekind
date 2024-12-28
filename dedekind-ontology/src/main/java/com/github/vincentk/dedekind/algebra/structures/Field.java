@@ -1,80 +1,84 @@
 package com.github.vincentk.dedekind.algebra.structures;
 
+import java.util.Optional;
+
 import com.github.vincentk.dedekind.algebra.sets.Fields;
 
 /**
- * Marker type denoting a field plus sample type tags for example fields.
- *
  * @see https://en.wikipedia.org/wiki/Field_(mathematics)#Examples
  */
-public interface Field<F extends Field<F>> extends Ring<F> {
-
-    /**
-     * Subtraction (inverse of addition).
-     * 
-     * @param that
-     * @return this - that
-     */
-    default F minus(F that) {
-        return plus(that.negate());
+public interface Field<
+E extends Field.Fe<E>,
+F extends Field<E, F>>
+extends
+Ring<E, F>, Group.M<E, F>
+{
+    interface Fe<R extends Fe<R>>
+    extends
+    Ring.Re<R>,
+    Group.M.Me<R>
+    {
+	@Override
+	default Optional<R> inverse() {
+	    return Group.M.Me.super.inverse();
+	}
     }
-    
-    default F 一(F that) {
-	return minus(that);
-    }
-
-    /**
-     * @return 1 / this
-     */
-    F inverse();
-
-    default F inv() {
-        return inverse();
-    }
-
-    /**
-     * Division (inverse of addition).
-     * 
-     * @param that
-     * @return this / that
-     */
-    default F divide(F that) {
-        return times(that.inverse());
-    }
-
-    default F div(F that) {
-        return divide(that);
-    }
-
     /**
      * Complex numbers:
      */
-    interface Complex<C extends Complex<C>> extends Field<C> {
+    interface Complex<
+    E extends Complex.Ce<E>,
+    C extends Complex<E, C>
+    >
+    extends
+    Field<E, C>
+    {
+	interface Ce<E extends Ce<E>>
+	extends Fe<E>
+	{
+	    /**
+	     * @return the complex conjugate
+	     */
+	    E conjugate();
 
-        /**
-         * @return the complex conjugate
-         */
-        C conjugate();
-
-        default C conj() {
-            return conjugate();
-        }
+	    default E conj() {
+		return conjugate();
+	    }
+	}
     }
-    
+
     /**
      * Dual numbers:
      */
-    interface Duals<R extends Duals<R>> extends Field<R> {}
+    interface Duals<
+    E extends Field.Fe<E>,
+    R extends Duals<E, R>
+    >
+    extends
+    Field<E, R> {}
 
     /**
      * Real numbers:
      */
-    interface Reals<R extends Reals<R>> extends Field<R>, Fields.Reals {}
+    interface Reals<
+    E extends Field.Fe<E>,
+    R extends Reals<E, R>
+    >
+    extends
+    Field<E, R>, Fields.Reals
+    {}
 
     /**
      * Rational numbers:
      */
-    interface Rationals<Q extends Rationals<Q>> extends Field<Q>, Fields.Rationals {}
+    interface Rationals<
+    E extends Field.Fe<E>,
+    Q extends Rationals<E, Q>
+    >
+    extends
+    Field<E, Q>,
+    Fields.Rationals
+    {}
 
 
 }

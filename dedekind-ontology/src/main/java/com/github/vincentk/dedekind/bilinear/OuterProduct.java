@@ -11,7 +11,7 @@ import com.github.vincentk.dedekind.linear.matrix.Matrix;
  * @see https://en.wikipedia.org/wiki/Outer_product
  */
 public record OuterProduct<
-R extends SemiRing<R>,
+R extends SemiRing.SmrE<R>,
 
 K1 extends Ket<R, B1, K1>,
 B1 extends Bra<R, K1, B1>,

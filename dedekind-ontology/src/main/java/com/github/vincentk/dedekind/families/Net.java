@@ -3,6 +3,7 @@
  */
 package com.github.vincentk.dedekind.families;
 
+import com.github.vincentk.dedekind.geometry.MetricSpace;
 import com.github.vincentk.dedekind.sets.Cardinality;
 import com.github.vincentk.dedekind.sets.ordered.Directed;
 
@@ -11,10 +12,10 @@ import com.github.vincentk.dedekind.sets.ordered.Directed;
  */
 @FunctionalInterface
 public interface Net<
-T,
-C extends Cardinality.Countable,
-D extends Directed<C, D>
+T extends MetricSpace.Me<?, T>,
+C extends Cardinality,
+D extends Directed.De<D>
 >
+extends Family<T, C, D>
 {
-    T at(D d);
 }

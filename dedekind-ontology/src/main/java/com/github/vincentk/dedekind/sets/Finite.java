@@ -6,6 +6,13 @@ package com.github.vincentk.dedekind.sets;
  * 
  * @param <T> implementation type
  */
-public interface Finite<T extends Finite<T>>
-extends Countable<Cardinality.Finite, T>, Cardinality.Finite {
+public interface Finite<
+E extends Set.Element<? extends E>,
+C extends Cardinality.Finite,
+T extends Finite<E, C, T>
+>
+extends
+Countable<E, C, T>,
+Cardinality.Finite
+{
 }

@@ -1,4 +1,4 @@
-package com.github.vincentk.dedekind.arrays;
+package com.github.vincentk.dedekind.families;
 
 /**
  * @see https://en.wikipedia.org/wiki/Indexed_family

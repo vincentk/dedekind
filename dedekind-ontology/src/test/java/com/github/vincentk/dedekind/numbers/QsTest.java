@@ -83,7 +83,7 @@ public class QsTest {
 	    assertThat(UNIT.neg().distance(ZERO)).isEqualTo(UNIT);
 	}
 
-	private static Q q(int en, int de) {
+	private static Q.Rat q(int en, int de) {
 		return rational(en, de);
 	}
 }

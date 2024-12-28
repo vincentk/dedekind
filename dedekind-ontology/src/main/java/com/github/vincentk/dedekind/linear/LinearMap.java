@@ -15,7 +15,7 @@ import com.github.vincentk.dedekind.algebra.structures.SemiRing;
  */
 public interface LinearMap<
 // Field:
-F extends SemiRing<F>,
+F extends SemiRing.SmrE<F>,
 // Domain:
 V extends Ket<F, ?, V>,
 // Range:
@@ -24,7 +24,7 @@ S extends LinearMap<F, V, W, S>
 >
 extends
 Function<V, W>,
-SemiModule<F, S>
+SemiModule.SmE<F, S>
 {
     @Override
     W apply(V v);

@@ -7,8 +7,9 @@ package com.github.vincentk.dedekind.sets;
  * @param <T> implementation type
  */
 public interface Countable<
+E extends Set.Element<? extends E>,
 C extends Cardinality.Countable,
-T extends Countable<C, T>
+T extends Countable<E, C, T>
 >
-extends Set<T> {
+extends Set<E, T> {
 }

@@ -3,54 +3,64 @@
  */
 package com.github.vincentk.dedekind.algebra.numbers;
 
-import static java.lang.Long.compare;
-
 import com.github.vincentk.dedekind.algebra.structures.Ring;
+import com.github.vincentk.dedekind.geometry.MetricSpace;
 import com.github.vincentk.dedekind.sets.Cardinality;
+import com.github.vincentk.dedekind.sets.ordered.TotallyOrdered;
 
 /**
  * The integer numbers.
  */
-public interface Z extends NumberLine<Cardinality.Countable, Z>, Ring.Integer<Z> {
+public interface Z extends
+NumberLine<Z.Int, Cardinality.Countable, Z>, Ring.Integer<Z.Int, Z> {
 
-    public long intValue();
+    interface Int
+    extends
+    Ring.Re<Int>,
+    TotallyOrdered.Oe<Int>,
+    MetricSpace.MeG<Int, Int>
+    {
+	public long intValue();	
 
-    record Impl (long intValue) implements Z {
+	@Override
+	default Int plus(Int that) {
+	    return integer(intValue() + that.intValue());
+	}
 
-        @Override
-        public Z plus(Z that) {
-            return integer(intValue + that.intValue());
-        }
+	@Override
+	default Int times(Int that) {
+	    return integer(intValue() * that.intValue());
+	}
 
-        @Override
-        public Z times(Z that) {
-            return integer(intValue * that.intValue());
-        }
+	@Override
+	default Int negate() {
+	    return integer(-intValue());
+	}
 
-        @Override
-        public Z negate() {
-            return integer(-intValue);
-        }
+	@Override
+	default int compareTo(Int o) {
+	    return Long.compare(intValue(), o.intValue());
+	}
 
-        @Override
-        public int compareTo(Z o) {
-            return compare(intValue, o.intValue());
-        }
+	@Override
+	default boolean eq(Int that) {
+	    return intValue() == that.intValue();
+	}
 
-        @Override
-        public boolean eq(Z that) {
-            return intValue == that.intValue();
-        }
-
-        @Override
-        public Z abs() {
-            return intValue >= 0 ? this : this.neg();
-        }
+	@Override
+	default Int abs() {
+	    return intValue() >= 0 ? this : this.neg();
+	}
     }
 
-    static Z integer(long n) {
-        return new Impl(n);
+
+    record Impl (long intValue) implements Int {
+
     }
 
-    public static final Z ZERO = integer(0), ONE = integer(1), TWO = integer(2), THREE = integer(3);
+    static Int integer(long n) {
+	return new Impl(n);
+    }
+
+    public static final Int ZERO = integer(0), ONE = integer(1), TWO = integer(2), THREE = integer(3);
 }

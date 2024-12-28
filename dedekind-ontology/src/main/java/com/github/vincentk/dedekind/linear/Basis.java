@@ -17,11 +17,12 @@ import com.github.vincentk.dedekind.sets.Cardinality;
  * @see https://en.wikipedia.org/wiki/Basis_(linear_algebra)
  */
 public interface Basis<
-F extends Field<F>,
+E extends Field.Fe<E>,
+F extends Vector.Ve<E, F>,
 C extends Cardinality,
-S extends Basis<F, C, S>
+S extends Basis<E, F, C, S>
 >
 extends
-Vector<F, C, S>
+Vector<E, F, S>
 {
 }

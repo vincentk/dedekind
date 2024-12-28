@@ -16,9 +16,9 @@ import com.github.vincentk.dedekind.sets.binary.relation.Relation;
 @FunctionalInterface
 public interface Lambda<
 // Domain
-A extends Set<A>,
+A extends Set.Element<A>,
 // Range
-B extends Set<B>,
+B extends Set.Element<B>,
 // Implementation
 L extends Lambda<A, B, L>
 >

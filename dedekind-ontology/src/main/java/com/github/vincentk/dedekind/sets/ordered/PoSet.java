@@ -13,12 +13,19 @@ import com.github.vincentk.dedekind.sets.binary.relation.homogeneous.PartialOrde
  * @see https://en.wikipedia.org/wiki/Partially_ordered_set
  */
 public interface PoSet<
+E extends PoSet.Pe<E>,
 C extends Cardinality,
-T extends PoSet<C, T>
+T extends PoSet<E, C, T>
 >
-extends Set<T>, PartialOrder.Strict<T> {
-    @Override
-    default boolean eq(T that) {
-        return Set.super.eq(that);
+extends Set<E, T>
+{
+    interface Pe<E extends Pe<E>>
+    extends
+    Set.Element<E>, PartialOrder.Strict<E>
+    {
+	@Override
+	default boolean eq(E that) {
+	    return Set.Element.super.eq(that);
+	}	
     }
 }

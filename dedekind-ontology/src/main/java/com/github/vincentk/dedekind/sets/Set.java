@@ -13,8 +13,11 @@ import com.github.vincentk.dedekind.sets.binary.relation.homogeneous.Identity;
  * 
  * @see https://en.wikipedia.org/wiki/Set_(mathematics)
  */
-public interface Set<T extends Set<T>>
-extends Identity<T>
+public interface Set<
+E extends Set.Element<? extends E>,
+T extends Set<E, T>>
+extends
+Identity<T>
 {
     @Deprecated
     @SuppressWarnings("unchecked")

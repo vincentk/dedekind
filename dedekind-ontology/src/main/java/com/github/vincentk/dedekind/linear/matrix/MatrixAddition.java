@@ -12,7 +12,7 @@ import com.github.vincentk.dedekind.algebra.structures.SemiRing;
  */
 public record MatrixAddition<
 //Ring:
-F extends SemiRing<F>,
+F extends SemiRing.SmrE<F>,
 
 //Range of the linear map:
 C extends Ket<F, ?, C>,

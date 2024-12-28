@@ -11,7 +11,7 @@ import com.github.vincentk.dedekind.algebra.structures.SemiRing;
  */
 public interface Square<
 // Ring:
-F extends SemiRing<F>,
+F extends SemiRing.SmrE<F>,
 
 // Domain of linear map:
 D extends Ket<F, ?, D>,

@@ -13,10 +13,9 @@ import com.github.vincentk.dedekind.sets.unary.function.Lambda;
  */
 public interface Operation<
 //Domain
-A extends Set<A>,
+A extends Set.Element<A>,
 //Implementation
 L extends Operation<A, L>>
 extends Lambda<A, A, L>
 {
-
 }

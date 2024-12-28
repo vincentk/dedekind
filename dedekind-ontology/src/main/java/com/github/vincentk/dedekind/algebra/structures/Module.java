@@ -1,7 +1,5 @@
 package com.github.vincentk.dedekind.algebra.structures;
 
-import com.github.vincentk.dedekind.sets.Cardinality;
-
 /**
  * Definition of scalar multiplication over a {@link Ring}.
  *
@@ -11,16 +9,15 @@ import com.github.vincentk.dedekind.sets.Cardinality;
  * @see https://en.wikipedia.org/wiki/Module_(mathematics)
  */
 public interface Module<
-R extends Ring<R>,
-C extends Cardinality,
-N extends Module<R, C, N>>
+R extends Ring.Re<R>,
+E extends Module.Me<R, E>,
+N extends Module<R, E, N>>
 extends
-SemiModule<R, N>,
-Group.P<N>
+SemiModule<R, E, N>,
+Group.P<E, N>
 {
-    @Override
-    N mult(R scalar);
-
-    @Override
-    N plus(N module);
+    interface Me<R extends Ring.SmrE<R>, E extends Me<R, E>>
+    extends SemiModule.SmE<R, E>, Group.P.Pe<E>
+    {	
+    }
 }

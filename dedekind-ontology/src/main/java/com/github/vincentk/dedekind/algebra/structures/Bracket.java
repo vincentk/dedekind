@@ -10,15 +10,15 @@ import com.github.vincentk.dedekind.bilinear.OuterProduct;
  * @param <S> self
  */
 public interface Bracket<
-F extends SemiRing<F>,
+E extends SemiRing.SmrE<E>,
 D extends Dual<S, D>,
-S extends Bracket<F, D, S>
+S extends Bracket<E, D, S>
 >
 extends
 // |x>' = <x| etc.:
 Dual<D, S>,
 // |x> + |x> = 2 |x> etc.:
-SemiModule<F, S>
+SemiModule.SmE<E, S>
 {
     /**
      * A "row vector" ~ covector ~ linear functional ~ bra ~ <x|
@@ -31,12 +31,12 @@ SemiModule<F, S>
      * @param <S> self
      */
     public interface Bra<
-    F extends SemiRing<F>,
-    K extends Ket<F, S, K>,
-    S extends Bra<F, K, S>
+    E extends SemiRing.SmrE<E>,
+    K extends Ket<E, S, K>,
+    S extends Bra<E, K, S>
     >
     extends
-    Bracket<F, K, S> {
+    Bracket<E, K, S> {
 
         /**
          * Inner product declaration.
@@ -44,7 +44,7 @@ SemiModule<F, S>
          * @param |y>
          * @return <x|y>
          */
-        F dot(K ket);
+        E dot(K ket);
     }
 
     /**
@@ -55,12 +55,12 @@ SemiModule<F, S>
      * @param <S> self
      */
     public interface Ket<
-    F extends SemiRing<F>,
-    B extends Bra<F, S, B>,
-    S extends Ket<F, B, S>
+    E extends SemiRing.SmrE<E>,
+    B extends Bra<E, S, B>,
+    S extends Ket<E, B, S>
     >
     extends
-    Bracket<F, B, S> {
+    Bracket<E, B, S> {
 
         /**
          * Outer product a.k.a. tensor product.
@@ -71,10 +71,10 @@ SemiModule<F, S>
          * @return |y><x|
          */
         <
-        K1 extends Ket<F, B1, K1>,
-        B1 extends Bra<F, K1, B1>
+        K1 extends Ket<E, B1, K1>,
+        B1 extends Bra<E, K1, B1>
         >
-        OuterProduct<F, S, B, K1, B1>
+        OuterProduct<E, S, B, K1, B1>
         outer(B1 bra);
     }
 }

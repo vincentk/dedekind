@@ -5,13 +5,13 @@ import com.github.vincentk.dedekind.sets.Set;
 @FunctionalInterface
 public interface Relation<
 // Domain:
-A extends Set<A>,
+A extends Set.Element<A>,
 // Range:
-B extends Set<B>,
+B extends Set.Element<B>,
 // Implementation type:
 P extends Relation<A, B, P>>
 // Namely, it is a subset of the Cartesian product A x B.
-extends Set<P>
+//extends Set<P>
 {
     public B χ();
 

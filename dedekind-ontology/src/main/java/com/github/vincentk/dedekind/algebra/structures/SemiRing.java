@@ -2,7 +2,6 @@ package com.github.vincentk.dedekind.algebra.structures;
 
 
 import com.github.vincentk.dedekind.algebra.sets.Rings;
-import com.github.vincentk.dedekind.sets.Set;
 import com.github.vincentk.dedekind.sets.unary.function.operation.Closure;
 
 /**
@@ -10,24 +9,42 @@ import com.github.vincentk.dedekind.sets.unary.function.operation.Closure;
  * 
  * @see https://en.wikipedia.org/wiki/Semiring
  */
-public interface SemiRing<R extends SemiRing<R>>
+public interface SemiRing<
+S extends SemiRing.SmrE<S>,
+R extends SemiRing<S, R>
+>
 extends
 Rings,
-Monoid.P<R>,
-Monoid.M<R>
+Monoid.P<S, R>,
+Monoid.M<S, R>
 {
+    interface SmrE<E extends SmrE<E>>
+    extends
+    Monoid.P.Pe<E>,
+    Monoid.M.Te<E>
+    {
+	@Override
+	default E ap(E that) {
+	    return Pe.super.ap(that);
+	}
 
-    @Override
-    @SuppressWarnings("unchecked")
-    default boolean isIdentityM() {
-	// x * x = x
-	// =>
-	// x = 0
-	// or
-	// x = 1
-	// i.e.
-	// 1 * 1 = 1
-	return !isIdentityP() && eq(times((R) this));
+	@Override
+	default boolean isIdentity() {
+	    return Pe.super.isIdentity();
+	}
+
+	@Override
+	@SuppressWarnings("unchecked")
+	default boolean isIdentityM() {
+	    // x * x = x
+	    // =>
+	    // x = 0
+	    // or
+	    // x = 1
+	    // i.e.
+	    // 1 * 1 = 1
+	    return !isIdentityP() && eq(times((E) this));
+	}	
     }
 
     /**
@@ -35,10 +52,11 @@ Monoid.M<R>
      * They are the closure of the integers under addition and multiplication.
      * @param <N>
      */
-    interface Natural<N extends Natural<N>>
+    interface Natural<
+    E extends SmrE<E>,
+    T extends Natural<E, T>>
     extends
-    Set<N>,
-    SemiRing<N>, Naturals,
-    Closure<N, N, N>
+    SemiRing<E, T>, Naturals,
+    Closure<E, T, E, T, T>
     {}
 }
