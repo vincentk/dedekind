@@ -91,5 +91,10 @@ MetricSpace<R.R64, C.C64, C>
 
     record Ce (R64 re, R64 im) implements C64 {
 
+	@Override
+	public boolean equals(Object that) {
+	    if (!(that instanceof C64)) return false;
+	    return this.eq((C64) that);
+	}
     }
 }

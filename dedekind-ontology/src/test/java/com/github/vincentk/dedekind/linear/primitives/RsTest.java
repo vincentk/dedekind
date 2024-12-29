@@ -2,6 +2,8 @@ package com.github.vincentk.dedekind.linear.primitives;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.Optional;
+
 import org.junit.jupiter.api.Test;
 
 import com.github.vincentk.dedekind.algebra.numbers.R;
@@ -17,6 +19,6 @@ public class RsTest {
 
         R64 tc2 = R.ONE;
 
-        assertThat(tc2.divide(R.ONE)).isEqualTo(tc1);
+        assertThat(tc2.divide(R.ONE)).isEqualTo(Optional.of(tc1));
     }
 }
