@@ -39,8 +39,5 @@ C extends Set<E, C> & Closure<E, A, F, B, C>
 extends Set<E, C>, BinaryOperation<F, C>
 {
     // Enable to force a type check:
-    /*
-    @Override
     B ap(B a);
-    */
 }

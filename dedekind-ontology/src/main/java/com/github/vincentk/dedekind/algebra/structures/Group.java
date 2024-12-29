@@ -2,6 +2,8 @@ package com.github.vincentk.dedekind.algebra.structures;
 
 import java.util.Optional;
 
+import com.github.vincentk.dedekind.sets.unary.function.Negation;
+
 /**
  * A {@link Monoid} with the following additional properties:
  * 
@@ -51,22 +53,17 @@ Monoid<E, T> {
 	 * @param <E>
 	 */
 	interface Pe<E extends Pe<E>>
-	extends Group.Ge<E>, Monoid.P.Pe<E>
+	extends
+	Group.Ge<E>,
+	Monoid.P.Pe<E>,
+	Negation<E>
 	{
 	    /**
 	     * @return the additive inverse.
 	     */
+	    @Override
 	    default Optional<E> inverse() {
 		return Optional.of(negate());
-	    }
-
-	    /**
-	     * @return - this
-	     */
-	    E negate();
-
-	    default E neg() {
-		return negate();
 	    }
 
 	    default E minus(E that) {
@@ -96,8 +93,11 @@ Monoid<E, T> {
 	 * @param <E>
 	 */
 	interface Me<E extends Me<E>>
-	extends Group.Ge<E>, Monoid.M.Te<E>
+	extends
+	Group.Ge<E>,
+	Monoid.M.Te<E>
 	{
+	    @Override
 	    default Optional<E> inverse() {
 		return Optional.empty();
 	    }
@@ -110,7 +110,6 @@ Monoid<E, T> {
 		return that.inv().map(this::times);
 	    }
 	}
-
 
 	/**
 	 * Group under multiplication (M, *, /).
