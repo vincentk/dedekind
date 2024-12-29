@@ -2,7 +2,7 @@ package com.github.vincentk.dedekind.algebra.structures;
 
 
 import com.github.vincentk.dedekind.algebra.sets.Rings;
-import com.github.vincentk.dedekind.sets.unary.function.operation.Closure;
+import com.github.vincentk.dedekind.sets.binary.function.operation.Closure;
 
 /**
  * A semiring: basically a ring but without the additive inverse.

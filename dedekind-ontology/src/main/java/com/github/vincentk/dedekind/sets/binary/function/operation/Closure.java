@@ -1,4 +1,4 @@
-package com.github.vincentk.dedekind.sets.unary.function.operation;
+package com.github.vincentk.dedekind.sets.binary.function.operation;
 
 import com.github.vincentk.dedekind.sets.Set;
 
@@ -28,15 +28,15 @@ import com.github.vincentk.dedekind.sets.Set;
  */
 public interface Closure<
 // Superset:
-E extends Set.Element<E> & Operation<E, ?>,
+E extends Set.Element<E> & BinaryOperation<E, ?>,
 A extends Set<E, ?>,
 // Subset:
-F extends Set.Element<F> & Operation<F, ?>,
+F extends Set.Element<F> & BinaryOperation<F, ?>,
 B extends Set<F, ?>,
 // Implementing class:
 C extends Set<E, C> & Closure<E, A, F, B, C>
 >
-extends Set<E, C>, Operation<F, C>
+extends Set<E, C>, BinaryOperation<F, C>
 {
     // Enable to force a type check:
     /*

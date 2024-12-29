@@ -1,4 +1,4 @@
-package com.github.vincentk.dedekind.sets.unary.function.operation;
+package com.github.vincentk.dedekind.sets.binary.function.operation;
 
 import com.github.vincentk.dedekind.sets.Set;
 import com.github.vincentk.dedekind.sets.unary.function.Lambda;
@@ -11,11 +11,11 @@ import com.github.vincentk.dedekind.sets.unary.function.Lambda;
  * 
  * @see https://en.wikipedia.org/wiki/Operation_(mathematics)
  */
-public interface Operation<
+public interface BinaryOperation<
 //Domain
 A extends Set.Element<A>,
 //Implementation
-L extends Operation<A, L>>
+L extends BinaryOperation<A, L>>
 extends Lambda<A, A, L>
 {
 }

@@ -31,6 +31,12 @@ TopologicalSpace<E, M>
 	T distance(E other);
     }
     
+    /**
+     * Default definition of distance for elements of G+ (sets with additive inverses).
+     * 
+     * @param <T>
+     * @param <E>
+     */
     interface MeG<
     T extends Magma.M.Me<T>,
     E extends MeG<T, E>

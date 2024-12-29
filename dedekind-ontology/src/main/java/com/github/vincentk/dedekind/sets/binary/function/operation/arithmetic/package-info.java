@@ -3,4 +3,4 @@
  * 
  * @see https://en.wikipedia.org/wiki/Abstract_algebra
  */
-package com.github.vincentk.dedekind.sets.unary.function.operation.arithmetic;
+package com.github.vincentk.dedekind.sets.binary.function.operation.arithmetic;

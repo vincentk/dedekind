@@ -8,9 +8,9 @@ import com.github.vincentk.dedekind.sets.binary.function.operation.Closure;
  * @see https://en.wikipedia.org/wiki/Ring_(mathematics)
  * @param <R>
  */
-public interface Ring<
-E extends Ring.Re<E>,
-R extends Ring<E, R>>
+public interface Ringoid<
+E extends Ringoid.Re<E>,
+R extends Ringoid<E, R>>
 extends
 Rings,
 SemiRing<E, R>,
@@ -46,7 +46,7 @@ Group.P<E, R>
     E extends Re<E>,
     Z extends Integer<E, Z>
     >
-    extends Ring<E, Z>, Integers,
+    extends Ringoid<E, Z>, Integers,
     Closure<E, Z, E, Z, Z>
     {}
 }
