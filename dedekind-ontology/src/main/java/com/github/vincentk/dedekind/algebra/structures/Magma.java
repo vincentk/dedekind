@@ -11,7 +11,7 @@ import com.github.vincentk.dedekind.sets.binary.function.operation.BinaryOperati
  * Notably, java prohibits implementing interfaces twice with different generic parameters.
  * As a result, we need to distinguish statically between e.g. (M, +) and (M, *).
  * 
- * https://en.wikipedia.org/wiki/Magma_(algebra)
+ * @see https://en.wikipedia.org/wiki/Magma_(algebra)
  * 
  * @param <T> implementation type
  */

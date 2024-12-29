@@ -16,7 +16,7 @@ public interface Monoid<
 E extends Monoid.Me<E>,
 T extends Monoid<E, T>
 >
-extends Magma<E, T>
+extends SemiGroup<E, T>
 {
     /**
      * Set elements of a monoid.
@@ -24,7 +24,7 @@ extends Magma<E, T>
      * @param <E>
      */
     interface Me<E extends Me<E>>
-    extends Magma.Oe<E>
+    extends SemiGroup.Oe<E>
     {
 	boolean isIdentity();
     }
