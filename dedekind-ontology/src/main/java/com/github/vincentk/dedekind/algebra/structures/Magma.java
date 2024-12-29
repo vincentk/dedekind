@@ -1,9 +1,9 @@
 package com.github.vincentk.dedekind.algebra.structures;
 
 import com.github.vincentk.dedekind.sets.Set;
+import com.github.vincentk.dedekind.sets.binary.function.arithmetic.Addition;
+import com.github.vincentk.dedekind.sets.binary.function.arithmetic.Multiplication;
 import com.github.vincentk.dedekind.sets.binary.function.operation.BinaryOperation;
-import com.github.vincentk.dedekind.sets.binary.function.operation.arithmetic.Addition;
-import com.github.vincentk.dedekind.sets.binary.function.operation.arithmetic.Multiplication;
 
 /**
  * A set A with a binary operation (A, A) -> A.

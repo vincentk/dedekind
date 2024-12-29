@@ -1,4 +1,4 @@
-package com.github.vincentk.dedekind.sets.binary.function.operation.arithmetic;
+package com.github.vincentk.dedekind.sets.binary.function.arithmetic;
 
 @FunctionalInterface
 public interface Multiplication<D, R> {
