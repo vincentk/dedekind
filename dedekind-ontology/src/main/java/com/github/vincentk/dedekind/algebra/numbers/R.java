@@ -82,5 +82,10 @@ Field.Reals<R.R64, R>
 
     record Re (double doubleVal) implements R64 {
 
+	@Override
+	public boolean equals(Object that) {
+	    if (!(that instanceof R64)) return false;
+	    return eq((R64) that);
+	}
     }
 }
