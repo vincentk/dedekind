@@ -1,7 +1,5 @@
 package com.github.vincentk.dedekind.sets;
 
-import java.util.function.Predicate;
-
 import com.github.vincentk.dedekind.sets.binary.relation.homogeneous.Identity;
 
 /**
@@ -49,7 +47,7 @@ Identity<T>
      * @param that
      * @return {x &isin; this | Φ(x)}
      */
-    Set<E, ?> where(Predicate<E> Φ);
+    //Set<E, ?> where(Predicate<E> Φ);
     
     /**
      * @param that

@@ -21,5 +21,20 @@ T extends NumberLine<E, C1, T>
 extends
 SemiRing<E, T>,
 TotallyOrdered<E, C1, T>,
-MetricSpace<E, E, T> {
+MetricSpace<E, E, T>
+{
+    
+    /**
+     * An number &isin; {@link NumberLine}.
+     * 
+     * @param <N>
+     */
+    interface Number<N extends Number<N>>
+    extends
+    MetricSpace.Me<N, N>,
+    TotallyOrdered.Oe<N>,
+    SemiRing.SmrE<N>
+    {
+	
+    }
 }

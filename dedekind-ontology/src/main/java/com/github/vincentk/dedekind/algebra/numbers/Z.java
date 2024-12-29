@@ -7,17 +7,20 @@ import com.github.vincentk.dedekind.algebra.structures.Ring;
 import com.github.vincentk.dedekind.geometry.MetricSpace;
 import com.github.vincentk.dedekind.geometry.NumberLine;
 import com.github.vincentk.dedekind.sets.Cardinality;
-import com.github.vincentk.dedekind.sets.ordered.TotallyOrdered;
+import com.github.vincentk.dedekind.sets.Set;
+import com.github.vincentk.dedekind.sets.ordered.Interval;
 
 /**
  * The integer numbers.
  */
 public interface Z<
-E extends Z.Integer<E>
+// Element type:
+E extends Z.Integer<E>,
+// Implementation type:
+T extends Z<E, T>
 >
 extends
-NumberLine<E, Cardinality.Countable, Z<E>>,
-Ring.Integer<E, Z<E>>
+NumberLine<E, Cardinality.Countable, T>
 {
     /**
      * Elements &isin; {@link Z}.
@@ -28,17 +31,22 @@ Ring.Integer<E, Z<E>>
     extends
     // addition, multiplication:
     Ring.Re<E>,
-    // total order:
-    TotallyOrdered.Oe<E>,
-    // distance is defined:
+    NumberLine.Number<E>,
+    // distances etc. are defined:
     MetricSpace.MeG<E, E>
     {	
     }
 
-    interface Z64 extends Z<Z64.Int64> {
-	//}
-
-	interface Int64
+    /**
+     * The subset of integers that can be
+     * represented in 64-bits (i.e. as java long values).
+     */
+    interface Z64
+    extends
+    Z<Z64.Int64, Z64>,
+    Interval.Closed<Z64.Int64, Z64, Z64, Cardinality.Countable, Z64>
+    {
+	public interface Int64
 	extends Integer<Int64>
 	{
 	    public long intValue();	
@@ -72,12 +80,10 @@ Ring.Integer<E, Z<E>>
 	    default Int64 abs() {
 		return intValue() >= 0 ? this : this.neg();
 	    }
-
-
 	}
 
-	record Impl (long intValue) implements Int64 {
-
+	record Impl (long intValue) implements Int64
+	{
 	}
 
 	static Int64 integer(long n) {
@@ -88,8 +94,44 @@ Ring.Integer<E, Z<E>>
 	ZERO = integer(0),
 	ONE = integer(1),
 	TWO = integer(2),
-	THREE = integer(3);
+	THREE = integer(3),
+
+	MIN = integer(Long.MIN_VALUE),
+	MAX = integer(Long.MAX_VALUE);
+
+	@Override
+	default boolean isEmpty() {
+	    return false;
+	}
+
+	@Override
+	default Set<Int64, ?> intersection(Set<Int64, ?> that) {
+	    return that;
+	}
+
+	@Override
+	default Z64 union(Set<Int64, ?> that) {
+	    return this;
+	}
+
+	@Override
+	default boolean sub(Set<Int64, ?> that) {
+	    return this == that;
+	}
+
+	@Override
+	default boolean sup(Set<Int64, ?> that) {
+	    return true;
+	}
+
+	@Override
+	default Int64 upperBound() {
+	    return MAX;
+	}
+
+	@Override
+	default Int64 lowerBound() {
+	    return MIN;
+	}
     }
-
-
 }
