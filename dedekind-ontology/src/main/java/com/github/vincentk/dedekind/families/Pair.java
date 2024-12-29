@@ -23,6 +23,13 @@ Set.Element<P>
     default boolean eq(P that) {
 	return fst().eq(that.fst()) && snd().eq(that.snd());
     }
+    
+    interface Homogeneous<
+    E extends Set.Element<E>,
+    H extends Homogeneous<E, H>
+    >
+    extends Pair<E, E, H>
+    {}
 
     public record Impl<
     A extends Set.Element<A>,

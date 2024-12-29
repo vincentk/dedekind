@@ -5,6 +5,7 @@ import java.util.Optional;
 import com.github.vincentk.dedekind.algebra.numbers.R.R64;
 import com.github.vincentk.dedekind.algebra.structures.Field;
 import com.github.vincentk.dedekind.algebra.structures.Vector;
+import com.github.vincentk.dedekind.families.Pair;
 import com.github.vincentk.dedekind.geometry.MetricSpace;
 
 /**
@@ -34,10 +35,21 @@ MetricSpace<R.R64, C.C64, C>
     extends
     Field.Complex.Ce<C64>,
     MetricSpace.MeG<R64, C64>,
-    Vector.Ve<R64, C64>
+    Vector.Ve<R64, C64>,
+    Pair.Homogeneous<R64, C64>
     {
 	public R64 re();
 	public R64 im();
+
+	@Override
+	default R64 fst() {
+	    return re();
+	}
+
+	@Override
+	default R64 snd() {
+	    return im();
+	}
 
 	@Override
 	default C64 plus(C64 that) {
@@ -76,11 +88,6 @@ MetricSpace<R.R64, C.C64, C>
 	@Override
 	default C64 conjugate() {
 	    return of(re(), im().neg());
-	}
-
-	@Override
-	default boolean eq(C64 that) {
-	    return re().eq(that.re()) && im().eq(that.im());
 	}
 
 	@Override
