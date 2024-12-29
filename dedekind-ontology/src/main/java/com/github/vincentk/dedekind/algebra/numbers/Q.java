@@ -1,7 +1,11 @@
 package com.github.vincentk.dedekind.algebra.numbers;
 
+import static com.github.vincentk.dedekind.algebra.numbers.Z.Z64.integer;
+
 import java.util.Optional;
 
+import com.github.vincentk.dedekind.algebra.numbers.Z.Z64;
+import com.github.vincentk.dedekind.algebra.numbers.Z.Z64.Int64;
 import com.github.vincentk.dedekind.algebra.structures.Field;
 import com.github.vincentk.dedekind.geometry.MetricSpace;
 import com.github.vincentk.dedekind.geometry.NumberLine;
@@ -20,10 +24,10 @@ Field.Rationals<Q.Rat, Q>
     public static final Q.Rat ZERO = rational(0, 1), UNIT = rational(1, 1);
 
     public static Rat rational(long en, long de) {
-	return rational(Z.integer(en), Z.integer(de));
+	return rational(integer(en), integer(de));
     }
 
-    public static Rat rational(Z.Int en, Z.Int de) {
+    public static Rat rational(Int64 en, Int64 de) {
 	return new Impl(en, de).simplify();
     }
 
@@ -33,8 +37,8 @@ Field.Rationals<Q.Rat, Q>
     TotallyOrdered.Oe<Rat>,
     MetricSpace.MeG<Rat, Rat>
     {
-	public Z.Int en();
-	public Z.Int de();
+	public Int64 en();
+	public Int64 de();
 
 	@Override
 	default Rat negate() {
@@ -79,13 +83,13 @@ Field.Rationals<Q.Rat, Q>
 	default Rat abs() {
 
 	    // Should be guaranteed by constructor:
-	    assert de().compareTo(Z.ZERO) > 0;
+	    assert de().compareTo(Z64.ZERO) > 0;
 
-	    return en().compareTo(Z.ZERO) >= 0 ? this : this.neg();
+	    return en().compareTo(Z64.ZERO) >= 0 ? this : this.neg();
 	}
     }
 
-    record Impl (Z.Int en, Z.Int de) implements Rat {
+    record Impl (Int64 en, Int64 de) implements Rat {
 
 
 	/**
@@ -98,9 +102,9 @@ Field.Rationals<Q.Rat, Q>
 	 * @param en
 	 * @param de
 	 */
-	public Impl(Z.Int en, Z.Int de) {
+	public Impl(Int64 en, Int64 de) {
 
-	    assert !de.eq(Z.ZERO);
+	    assert !de.eq(Z64.ZERO);
 
 	    if (de.intValue() >= 0) {
 		this.en = en;

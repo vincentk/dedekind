@@ -12,58 +12,84 @@ import com.github.vincentk.dedekind.sets.ordered.TotallyOrdered;
 /**
  * The integer numbers.
  */
-public interface Z extends
-NumberLine<Z.Int, Cardinality.Countable, Z>,
-Ring.Integer<Z.Int, Z>
+public interface Z<
+E extends Z.Integer<E>
+>
+extends
+NumberLine<E, Cardinality.Countable, Z<E>>,
+Ring.Integer<E, Z<E>>
 {
-
-    interface Int
+    /**
+     * Elements &isin; {@link Z}.
+     * 
+     * @param <E>
+     */
+    interface Integer<E extends Integer<E>>
     extends
-    Ring.Re<Int>,
-    TotallyOrdered.Oe<Int>,
-    MetricSpace.MeG<Int, Int>
-    {
-	public long intValue();	
+    // addition, multiplication:
+    Ring.Re<E>,
+    // total order:
+    TotallyOrdered.Oe<E>,
+    // distance is defined:
+    MetricSpace.MeG<E, E>
+    {	
+    }
 
-	@Override
-	default Int plus(Int that) {
-	    return integer(intValue() + that.intValue());
+    interface Z64 extends Z<Z64.Int64> {
+	//}
+
+	interface Int64
+	extends Integer<Int64>
+	{
+	    public long intValue();	
+
+	    @Override
+	    default Int64 plus(Int64 that) {
+		return integer(intValue() + that.intValue());
+	    }
+
+	    @Override
+	    default Int64 times(Int64 that) {
+		return integer(intValue() * that.intValue());
+	    }
+
+	    @Override
+	    default Int64 negate() {
+		return integer(-intValue());
+	    }
+
+	    @Override
+	    default int compareTo(Int64 o) {
+		return Long.compare(intValue(), o.intValue());
+	    }
+
+	    @Override
+	    default boolean eq(Int64 that) {
+		return intValue() == that.intValue();
+	    }
+
+	    @Override
+	    default Int64 abs() {
+		return intValue() >= 0 ? this : this.neg();
+	    }
+
+
 	}
 
-	@Override
-	default Int times(Int that) {
-	    return integer(intValue() * that.intValue());
+	record Impl (long intValue) implements Int64 {
+
 	}
 
-	@Override
-	default Int negate() {
-	    return integer(-intValue());
+	static Int64 integer(long n) {
+	    return new Impl(n);
 	}
 
-	@Override
-	default int compareTo(Int o) {
-	    return Long.compare(intValue(), o.intValue());
-	}
-
-	@Override
-	default boolean eq(Int that) {
-	    return intValue() == that.intValue();
-	}
-
-	@Override
-	default Int abs() {
-	    return intValue() >= 0 ? this : this.neg();
-	}
+	public static final Int64
+	ZERO = integer(0),
+	ONE = integer(1),
+	TWO = integer(2),
+	THREE = integer(3);
     }
 
 
-    record Impl (long intValue) implements Int {
-
-    }
-
-    static Int integer(long n) {
-	return new Impl(n);
-    }
-
-    public static final Int ZERO = integer(0), ONE = integer(1), TWO = integer(2), THREE = integer(3);
 }

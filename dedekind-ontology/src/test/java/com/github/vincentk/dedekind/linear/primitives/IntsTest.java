@@ -1,10 +1,10 @@
 package com.github.vincentk.dedekind.linear.primitives;
 
-import static com.github.vincentk.dedekind.algebra.numbers.Z.ONE;
-import static com.github.vincentk.dedekind.algebra.numbers.Z.THREE;
-import static com.github.vincentk.dedekind.algebra.numbers.Z.TWO;
-import static com.github.vincentk.dedekind.algebra.numbers.Z.ZERO;
-import static com.github.vincentk.dedekind.algebra.numbers.Z.integer;
+import static com.github.vincentk.dedekind.algebra.numbers.Z.Z64.ONE;
+import static com.github.vincentk.dedekind.algebra.numbers.Z.Z64.THREE;
+import static com.github.vincentk.dedekind.algebra.numbers.Z.Z64.TWO;
+import static com.github.vincentk.dedekind.algebra.numbers.Z.Z64.ZERO;
+import static com.github.vincentk.dedekind.algebra.numbers.Z.Z64.integer;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import org.junit.jupiter.api.Test;

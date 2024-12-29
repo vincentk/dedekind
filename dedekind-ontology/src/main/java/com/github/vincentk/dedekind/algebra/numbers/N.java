@@ -3,6 +3,8 @@
  */
 package com.github.vincentk.dedekind.algebra.numbers;
 
+import com.github.vincentk.dedekind.algebra.numbers.Z.Z64;
+import com.github.vincentk.dedekind.algebra.numbers.Z.Z64.Int64;
 import com.github.vincentk.dedekind.algebra.sets.SemiRings;
 import com.github.vincentk.dedekind.algebra.structures.SemiRing;
 import com.github.vincentk.dedekind.geometry.MetricSpace;
@@ -66,8 +68,8 @@ Interval.HalfOpen.Right<N.Nat, N, N, Cardinality.Finite, N>
 	    return nat(Math.abs(integer() - other.integer()));
 	}
 
-	default Z.Int asInt() {
-	    return Z.integer(integer());
+	default Int64 asInt() {
+	    return Z64.integer(integer());
 	}
     }
 
