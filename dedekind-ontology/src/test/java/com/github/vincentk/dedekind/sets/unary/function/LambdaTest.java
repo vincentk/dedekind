@@ -25,7 +25,7 @@ public class LambdaTest {
 
     @Test
     public void testAsRelation() {
-	assertThat(ONE.asRelation().χ()).isEqualTo(TWO);
-	assertThat(TWO.asRelation().χ()).isEqualTo(FOUR);
+	assertThat(ONE.ap(ONE)).isEqualTo(TWO);
+	assertThat(TWO.ap(TWO)).isEqualTo(FOUR);
     }
 }

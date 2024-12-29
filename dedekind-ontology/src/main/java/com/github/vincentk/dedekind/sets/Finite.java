@@ -7,7 +7,7 @@ package com.github.vincentk.dedekind.sets;
  * @param <T> implementation type
  */
 public interface Finite<
-E extends Set.Element<? extends E>,
+E extends Set.Element<E>,
 C extends Cardinality.Finite,
 T extends Finite<E, C, T>
 >

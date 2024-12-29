@@ -7,7 +7,7 @@ package com.github.vincentk.dedekind.sets;
  * @param <T> implementation type
  */
 public interface Countable<
-E extends Set.Element<? extends E>,
+E extends Set.Element<E>,
 C extends Cardinality.Countable,
 T extends Countable<E, C, T>
 >
