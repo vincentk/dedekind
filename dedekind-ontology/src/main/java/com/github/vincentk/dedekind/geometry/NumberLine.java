@@ -1,8 +1,7 @@
-package com.github.vincentk.dedekind.algebra.numbers;
+package com.github.vincentk.dedekind.geometry;
 
 
 import com.github.vincentk.dedekind.algebra.structures.SemiRing;
-import com.github.vincentk.dedekind.geometry.MetricSpace;
 import com.github.vincentk.dedekind.sets.Cardinality;
 import com.github.vincentk.dedekind.sets.ordered.TotallyOrdered;
 
@@ -14,7 +13,7 @@ import com.github.vincentk.dedekind.sets.ordered.TotallyOrdered;
  * 
  * @see https://en.wikipedia.org/wiki/Number_line
  */
-interface NumberLine<
+public interface NumberLine<
 E extends MetricSpace.Me<E, E> & TotallyOrdered.Oe<E> & SemiRing.SmrE<E>,
 C1 extends Cardinality,
 T extends NumberLine<E, C1, T>

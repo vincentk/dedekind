@@ -7,6 +7,7 @@ import com.github.vincentk.dedekind.algebra.numbers.N.Nat;
 import com.github.vincentk.dedekind.algebra.sets.SemiRings.Booleans;
 import com.github.vincentk.dedekind.algebra.structures.SemiRing;
 import com.github.vincentk.dedekind.geometry.MetricSpace;
+import com.github.vincentk.dedekind.geometry.NumberLine;
 import com.github.vincentk.dedekind.sets.Cardinality;
 import com.github.vincentk.dedekind.sets.Finite;
 import com.github.vincentk.dedekind.sets.ordered.TotallyOrdered;

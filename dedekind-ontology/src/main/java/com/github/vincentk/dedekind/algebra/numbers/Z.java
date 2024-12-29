@@ -5,6 +5,7 @@ package com.github.vincentk.dedekind.algebra.numbers;
 
 import com.github.vincentk.dedekind.algebra.structures.Ring;
 import com.github.vincentk.dedekind.geometry.MetricSpace;
+import com.github.vincentk.dedekind.geometry.NumberLine;
 import com.github.vincentk.dedekind.sets.Cardinality;
 import com.github.vincentk.dedekind.sets.ordered.TotallyOrdered;
 
@@ -12,7 +13,9 @@ import com.github.vincentk.dedekind.sets.ordered.TotallyOrdered;
  * The integer numbers.
  */
 public interface Z extends
-NumberLine<Z.Int, Cardinality.Countable, Z>, Ring.Integer<Z.Int, Z> {
+NumberLine<Z.Int, Cardinality.Countable, Z>,
+Ring.Integer<Z.Int, Z>
+{
 
     interface Int
     extends
