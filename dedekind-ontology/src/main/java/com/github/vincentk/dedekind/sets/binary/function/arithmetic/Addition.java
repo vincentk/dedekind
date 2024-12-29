@@ -1,4 +1,4 @@
-package com.github.vincentk.dedekind.sets.unary.function.operation.arithmetic;
+package com.github.vincentk.dedekind.sets.binary.function.arithmetic;
 
 @FunctionalInterface
 public interface Addition<D, R> {

@@ -4,6 +4,7 @@ import java.util.Optional;
 
 import com.github.vincentk.dedekind.algebra.structures.Field;
 import com.github.vincentk.dedekind.geometry.MetricSpace;
+import com.github.vincentk.dedekind.geometry.NumberLine;
 import com.github.vincentk.dedekind.sets.Cardinality;
 import com.github.vincentk.dedekind.sets.ordered.TotallyOrdered;
 

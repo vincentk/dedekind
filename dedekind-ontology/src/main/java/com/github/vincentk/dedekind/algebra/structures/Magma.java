@@ -1,9 +1,9 @@
 package com.github.vincentk.dedekind.algebra.structures;
 
 import com.github.vincentk.dedekind.sets.Set;
-import com.github.vincentk.dedekind.sets.unary.function.operation.Operation;
-import com.github.vincentk.dedekind.sets.unary.function.operation.arithmetic.Addition;
-import com.github.vincentk.dedekind.sets.unary.function.operation.arithmetic.Multiplication;
+import com.github.vincentk.dedekind.sets.binary.function.arithmetic.Addition;
+import com.github.vincentk.dedekind.sets.binary.function.arithmetic.Multiplication;
+import com.github.vincentk.dedekind.sets.binary.function.operation.BinaryOperation;
 
 /**
  * A set A with a binary operation (A, A) -> A.
@@ -11,7 +11,7 @@ import com.github.vincentk.dedekind.sets.unary.function.operation.arithmetic.Mul
  * Notably, java prohibits implementing interfaces twice with different generic parameters.
  * As a result, we need to distinguish statically between e.g. (M, +) and (M, *).
  * 
- * https://en.wikipedia.org/wiki/Magma_(algebra)
+ * @see https://en.wikipedia.org/wiki/Magma_(algebra)
  * 
  * @param <T> implementation type
  */
@@ -22,7 +22,9 @@ extends
 Set<E, T>
 {
     interface Oe<E extends Oe<E>>
-    extends Set.Element<E>, Operation<E, E>
+    extends
+    Set.Element<E>,
+    BinaryOperation<E, E>
     {
     }
 

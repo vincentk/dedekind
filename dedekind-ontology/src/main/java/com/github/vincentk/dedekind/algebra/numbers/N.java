@@ -3,9 +3,12 @@
  */
 package com.github.vincentk.dedekind.algebra.numbers;
 
+import com.github.vincentk.dedekind.algebra.numbers.Z.Z64;
+import com.github.vincentk.dedekind.algebra.numbers.Z.Z64.Int64;
 import com.github.vincentk.dedekind.algebra.sets.SemiRings;
 import com.github.vincentk.dedekind.algebra.structures.SemiRing;
 import com.github.vincentk.dedekind.geometry.MetricSpace;
+import com.github.vincentk.dedekind.geometry.NumberLine;
 import com.github.vincentk.dedekind.sets.Cardinality;
 import com.github.vincentk.dedekind.sets.Finite;
 import com.github.vincentk.dedekind.sets.ordered.Interval;
@@ -14,13 +17,32 @@ import com.github.vincentk.dedekind.sets.ordered.TotallyOrdered;
 /**
  * The natural numbers.
  */
-public interface N
+public interface N<
+//Element type:
+E extends N.Natural<E>,
+//Implementation type:
+T extends N<E, T>
+>
 extends
 SemiRings.Naturals,
-Finite<N.Nat, Cardinality.Finite, N>,
-NumberLine<N.Nat, Cardinality.Finite, N>,
-Interval.HalfOpen.Right<N.Nat, N, N, Cardinality.Finite, N>
+Finite<N.Nat, Cardinality.Finite, T>,
+NumberLine<N.Nat, Cardinality.Finite, T>,
+Interval.HalfOpen.Right<N.Nat, T, T, Cardinality.Finite, T>
 {
+    /**
+     * Elements &isin; {@link Z}.
+     * 
+     * @param <E>
+     */
+    interface Natural<E extends Natural<E>>
+    extends
+    // addition, multiplication:
+    SemiRing.SmrE<E>,
+    NumberLine.Number<E>,
+    // distances etc. are defined:
+    MetricSpace.MeG<E, E>
+    {	
+    }
 
     @Override
     default long cardinality() {
@@ -65,8 +87,8 @@ Interval.HalfOpen.Right<N.Nat, N, N, Cardinality.Finite, N>
 	    return nat(Math.abs(integer() - other.integer()));
 	}
 
-	default Z.Int asInt() {
-	    return Z.integer(integer());
+	default Int64 asInt() {
+	    return Z64.integer(integer());
 	}
     }
 
