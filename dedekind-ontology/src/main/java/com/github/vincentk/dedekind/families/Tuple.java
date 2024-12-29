@@ -14,18 +14,19 @@ import com.github.vincentk.dedekind.sets.ordered.TotallyOrdered;
  * @see https://en.wikipedia.org/wiki/Tuple
  */
 public interface Tuple<
-T extends Magma.Oe<T>,
+M extends Magma.Oe<M>,
 C extends Cardinality.Finite,
 
 // Declaration of domain elements and the domain:
 E extends SemiRings.Naturals & TotallyOrdered.Oe<E>,
-D extends Interval.Bounded<E, D, D, C, D>,
+D extends TotallyOrdered<E, C, D>,
+I extends Interval.Bounded<E, D, D, C, I>,
 
 // Self-reference to the implementation type:
-I extends Tuple<T, C, E, D, I>
+T extends Tuple<M, C, E, D, I, T>
 >
 extends
-Sequence<T, C, E, D>
+Sequence<E, C, E, D, I>
 {
     int length();
 }

@@ -13,12 +13,13 @@ import com.github.vincentk.dedekind.sets.ordered.TotallyOrdered;
  */
 @FunctionalInterface
 public interface Sequence<
-E extends Set.Element<E>,
+R extends Set.Element<R>,
 C extends Cardinality.Countable,
 
-D extends TotallyOrdered.Oe<D>,
-I extends Interval<D, ?, ?, C, I>
+E extends TotallyOrdered.Oe<E>,
+D extends TotallyOrdered<E, C, D>,
+I extends Interval<E, D, D, C, I>
 >
-extends Family<E, C, D, I>
+extends Family<R, C, E, I>
 {
 }
