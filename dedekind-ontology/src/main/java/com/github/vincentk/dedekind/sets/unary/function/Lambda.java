@@ -3,8 +3,6 @@ package com.github.vincentk.dedekind.sets.unary.function;
 import java.util.function.Function;
 
 import com.github.vincentk.dedekind.sets.Set;
-import com.github.vincentk.dedekind.sets.binary.relation.Pair;
-import com.github.vincentk.dedekind.sets.binary.relation.Relation;
 
 /**
  * Unary functions.
@@ -31,18 +29,5 @@ Relation<A, B, L>
 
     default Function<A, B> asFunction() {
 	return a -> ap(a);
-    }
-
-    /**
-     * Unary functions correspond to binary relations up
-     * to strictness of evaluation order.
-     * 
-     * @param a
-     * @return the corresponding relation.
-     */
-    default Relation<A, B, ?> asRelation() {
-	@SuppressWarnings("unchecked")
-	final var a = (A) this;
-	return new Pair.Impl<>(a, ap(a));
     }
 }

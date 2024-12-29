@@ -1,4 +1,4 @@
-package com.github.vincentk.dedekind.sets.binary.relation;
+package com.github.vincentk.dedekind.families;
 
 import com.github.vincentk.dedekind.sets.Set;
 
@@ -13,15 +13,23 @@ A extends Set.Element<A>,
 B extends Set.Element<B>,
 // Implementation type:
 P extends Pair<A, B, P>>
-extends Relation<A, B, P>
+extends
+Set.Element<P>
 {
     A fst();
     B snd();
 
     @Override
-    default B χ() {
-	return snd();
+    default boolean eq(P that) {
+	return fst().eq(that.fst()) && snd().eq(that.snd());
     }
+    
+    interface Homogeneous<
+    E extends Set.Element<E>,
+    H extends Homogeneous<E, H>
+    >
+    extends Pair<E, E, H>
+    {}
 
     public record Impl<
     A extends Set.Element<A>,
