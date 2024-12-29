@@ -14,8 +14,11 @@ import com.github.vincentk.dedekind.sets.ordered.Directed;
 public interface Net<
 T extends MetricSpace.Me<?, T>,
 C extends Cardinality,
-D extends Directed.De<D>
+
+// Domain of the net and its elements:
+E extends Directed.De<E>,
+S extends Directed<E, C, S>
 >
-extends Family<T, C, D>
+extends Family<T, C, E, S>
 {
 }

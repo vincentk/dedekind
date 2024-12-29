@@ -3,8 +3,9 @@
  */
 package com.github.vincentk.dedekind.families;
 
-import com.github.vincentk.dedekind.algebra.structures.Monoid;
 import com.github.vincentk.dedekind.sets.Cardinality;
+import com.github.vincentk.dedekind.sets.Set;
+import com.github.vincentk.dedekind.sets.ordered.Interval;
 import com.github.vincentk.dedekind.sets.ordered.TotallyOrdered;
 
 /**
@@ -12,10 +13,13 @@ import com.github.vincentk.dedekind.sets.ordered.TotallyOrdered;
  */
 @FunctionalInterface
 public interface Sequence<
-T extends Monoid.P.Pe<T>,
+R extends Set.Element<R>,
 C extends Cardinality.Countable,
-D extends TotallyOrdered.Oe<D>
+
+E extends TotallyOrdered.Oe<E>,
+D extends TotallyOrdered<E, C, D>,
+I extends Interval<E, D, D, C, I>
 >
-extends Family<T, C, D>
+extends Family<R, C, E, I>
 {
 }
