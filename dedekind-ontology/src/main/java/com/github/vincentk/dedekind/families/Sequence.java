@@ -3,8 +3,8 @@
  */
 package com.github.vincentk.dedekind.families;
 
-import com.github.vincentk.dedekind.algebra.structures.Magma;
 import com.github.vincentk.dedekind.sets.Cardinality;
+import com.github.vincentk.dedekind.sets.Set;
 import com.github.vincentk.dedekind.sets.ordered.Interval;
 import com.github.vincentk.dedekind.sets.ordered.TotallyOrdered;
 
@@ -13,12 +13,12 @@ import com.github.vincentk.dedekind.sets.ordered.TotallyOrdered;
  */
 @FunctionalInterface
 public interface Sequence<
-T extends Magma.Oe<T>,
+E extends Set.Element<E>,
 C extends Cardinality.Countable,
 
 D extends TotallyOrdered.Oe<D>,
-I extends Interval<D, ?, ?, ?, I>
+I extends Interval<D, ?, ?, C, I>
 >
-extends Family<T, C, D, I>
+extends Family<E, C, D, I>
 {
 }

@@ -21,7 +21,7 @@ C extends Cardinality.Finite,
 E extends SemiRings.Naturals & TotallyOrdered.Oe<E>,
 D extends Interval.Bounded<E, D, D, C, D>,
 
-// Self-reference to implementing type:
+// Self-reference to the implementation type:
 I extends Tuple<T, C, E, D, I>
 >
 extends

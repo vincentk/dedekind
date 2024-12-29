@@ -7,7 +7,7 @@ import com.github.vincentk.dedekind.sets.Cardinality;
  */
 public interface Interval<
 E extends PoSet.Pe<E>,
-A extends PoSet<E, C, ?>,
+A extends PoSet<E, C, A>,
 B extends A,
 C extends Cardinality,
 T extends Interval<E, A, B, C, T>
@@ -24,7 +24,7 @@ extends PoSet<E, C, T>
      */
     interface HalfBounded<
     E extends PoSet.Pe<E>,
-    A extends PoSet<E, C, ?>,
+    A extends PoSet<E, C, A>,
     B extends A,
     C extends Cardinality,
     T extends HalfBounded<E, A, B, C, T>
@@ -33,7 +33,7 @@ extends PoSet<E, C, T>
 
 	interface Left<
 	E extends PoSet.Pe<E>,
-	A extends PoSet<E, C, ?>,
+	A extends PoSet<E, C, A>,
 	B extends A,
 	C extends Cardinality,
 	T extends Left<E, A, B, C, T>
@@ -50,7 +50,7 @@ extends PoSet<E, C, T>
 
 	interface Right<
 	E extends PoSet.Pe<E>,
-	A extends PoSet<E, C, ?>,
+	A extends PoSet<E, C, A>,
 	B extends A,
 	C extends Cardinality,
 	T extends Right<E, A, B, C, T>
@@ -95,7 +95,7 @@ extends PoSet<E, C, T>
      */
     interface HalfOpen<
     E extends PoSet.Pe<E>,
-    A extends PoSet<E, C, ?>,
+    A extends PoSet<E, C, A>,
     B extends A,
     C extends Cardinality,
     T extends HalfOpen<E, A, B, C, T>
@@ -104,7 +104,7 @@ extends PoSet<E, C, T>
 
 	interface Right<
 	E extends PoSet.Pe<E>,
-	A extends PoSet<E, C, ?>,
+	A extends PoSet<E, C, A>,
 	B extends A,
 	C extends Cardinality,
 	T extends Right<E, A, B, C, T>
@@ -124,7 +124,7 @@ extends PoSet<E, C, T>
 
 	interface Left<
 	E extends PoSet.Pe<E>,
-	A extends PoSet<E, C, ?>,
+	A extends PoSet<E, C, A>,
 	B extends A,
 	C extends Cardinality,
 	T extends Left<E, A, B, C, T>

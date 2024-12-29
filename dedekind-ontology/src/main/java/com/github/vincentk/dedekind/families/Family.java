@@ -8,11 +8,13 @@ import com.github.vincentk.dedekind.sets.Set;
  */
 @FunctionalInterface
 public interface Family<
-T,
+// Range:
+R extends Set.Element<R>,
 C extends Cardinality,
-D extends Set.Element<D>,
-I extends Set<D, I>
+// Domain and its elements:
+E extends Set.Element<E>,
+D extends Set<E, D>
 >
 {
-    T at(D d);
+    R at(E e);
 }

@@ -15,8 +15,9 @@ public interface Net<
 T extends MetricSpace.Me<?, T>,
 C extends Cardinality,
 
+// Domain of the net and its elements:
 E extends Directed.De<E>,
-S extends Directed<E, ?, S>
+S extends Directed<E, C, S>
 >
 extends Family<T, C, E, S>
 {
