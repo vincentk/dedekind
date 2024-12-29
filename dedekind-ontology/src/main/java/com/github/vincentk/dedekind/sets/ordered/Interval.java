@@ -75,7 +75,7 @@ extends PoSet<E, C, T>
      */
     interface Bounded<
     E extends PoSet.Pe<E>,
-    A extends PoSet<E, C, ?>,
+    A extends PoSet<E, C, A>,
     B extends A,
     C extends Cardinality,
     T extends Bounded<E, A, B, C, T>
@@ -153,7 +153,7 @@ extends PoSet<E, C, T>
      */
     interface Closed<
     E extends PoSet.Pe<E>,
-    A extends PoSet<E, C, ?>,
+    A extends PoSet<E, C, A>,
     B extends A,
     C extends Cardinality,
     T extends Closed<E, A, B, C, T>
