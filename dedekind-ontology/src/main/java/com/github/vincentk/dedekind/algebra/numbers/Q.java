@@ -1,78 +1,90 @@
 package com.github.vincentk.dedekind.algebra.numbers;
 
+import java.util.Optional;
+
 import com.github.vincentk.dedekind.algebra.structures.Field;
+import com.github.vincentk.dedekind.geometry.MetricSpace;
 import com.github.vincentk.dedekind.sets.Cardinality;
-import com.github.vincentk.dedekind.sets.binary.relation.homogeneous.Identity;
+import com.github.vincentk.dedekind.sets.Countable;
+import com.github.vincentk.dedekind.sets.ordered.TotallyOrdered;
 
 /**
  * An implementation of rational numbers.
  */
 public interface Q extends
-NumberLine<Cardinality.Countable, Q>,
-Field.Rationals<Q>,
-Identity<Q> {
+Countable<Q.Rat, Cardinality.Countable, Q>,
+NumberLine<Q.Rat, Cardinality.Countable, Q>,
+Field.Rationals<Q.Rat, Q>
+{
+    public static final Q.Rat ZERO = rational(0, 1), UNIT = rational(1, 1);
 
-    public static final Q ZERO = rational(0, 1), UNIT = rational(1, 1);
-
-    public static Q rational(long en, long de) {
+    public static Rat rational(long en, long de) {
 	return rational(Z.integer(en), Z.integer(de));
     }
 
-    public static Q rational(Z en, Z de) {
+    public static Rat rational(Z.Int en, Z.Int de) {
 	return new Impl(en, de).simplify();
     }
 
-    public Z en();
-    public Z de();
+    interface Rat
+    extends
+    Field.Fe<Rat>,
+    TotallyOrdered.Oe<Rat>,
+    MetricSpace.MeG<Rat, Rat>
+    {
+	public Z.Int en();
+	public Z.Int de();
 
-    @Override
-    default Q negate() {
-	return rational(en().neg(), de());
+	@Override
+	default Rat negate() {
+	    return rational(en().neg(), de());
+	}
+
+	@Override
+	default Optional<Rat> inverse() {
+	    if (de().isIdentityP()) return Optional.empty();
+	    else return Optional.of(rational(de(), en()));
+	}
+
+	@Override
+	default int compareTo(Rat o) {
+
+	    // Enumerators given same denominator (d1 * d2):
+	    final var e1 = en().times(o.de());
+	    final var e2 = o.en().times(this.de());
+
+	    return e1.compareTo(e2);
+	}
+
+	@Override
+	default Rat plus(Rat that) {
+
+	    final var en1 = en().x(that.de()).十(that.en().x(de()));
+	    final var de1 = de().x(that.de());
+
+	    return rational(en1, de1);
+	}
+
+	@Override
+	default Rat times(Rat that) {
+
+	    final var en = en().times(that.en());
+	    final var de = de().times(that.de());
+
+	    return rational(en, de);
+	}
+
+	@Override
+	default Rat abs() {
+
+	    // Should be guaranteed by constructor:
+	    assert de().compareTo(Z.ZERO) > 0;
+
+	    return en().compareTo(Z.ZERO) >= 0 ? this : this.neg();
+	}
     }
 
-    @Override
-    default Q inverse() {
-	return rational(de(), en());
-    }
-
-    @Override
-    default int compareTo(Q o) {
-
-	// Enumerators given same denominator (d1 * d2):
-	final var e1 = en().times(o.de());
-	final var e2 = o.en().times(this.de());
-
-	return e1.compareTo(e2);
-    }
-
-    @Override
-    default Q plus(Q that) {
-
-	final var en1 = en().x(that.de()).十(that.en().x(de()));
-	final var de1 = de().x(that.de());
-
-	return rational(en1, de1);
-    }
-
-    @Override
-    default Q times(Q that) {
-
-	final var en = en().times(that.en());
-	final var de = de().times(that.de());
-
-	return rational(en, de);
-    }
-
-    @Override
-    default Q abs() {
-
-	// Should be guaranteed by constructor:
-	assert de().compareTo(Z.ZERO) > 0;
-
-	return en().compareTo(Z.ZERO) >= 0 ? this : this.neg();
-    }
-
-    record Impl (Z en, Z de) implements Q {
+    record Impl (Z.Int en, Z.Int de) implements Rat {
 
 
 	/**
@@ -85,7 +97,7 @@ Identity<Q> {
 	 * @param en
 	 * @param de
 	 */
-	public Impl(Z en, Z de) {
+	public Impl(Z.Int en, Z.Int de) {
 
 	    assert !de.eq(Z.ZERO);
 
@@ -99,7 +111,7 @@ Identity<Q> {
 
 	}
 
-	public Q simplify() {
+	public Rat simplify() {
 
 	    final long eni = en.intValue();
 
@@ -148,19 +160,6 @@ Identity<Q> {
 	    // To be more sophisticated, factorization might
 	    // be needed, which we will not do here:
 	    return this;
-	}
-
-	@Override
-	public boolean eq(Q that) {
-	    return this.en.eq(that.en()) && this.de.eq(that.de());
-	}
-
-	@Override
-	public boolean equals(Object that) {
-	    if (that instanceof Q) {
-		return eq((Q) that);
-	    }
-	    return false;
 	}
 
 	private static final int[] COMMON_PRIMES = new int[] {2, 3, 5, 7, 11, 13 };

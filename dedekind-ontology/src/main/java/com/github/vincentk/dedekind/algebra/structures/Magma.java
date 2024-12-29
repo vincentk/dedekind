@@ -15,21 +15,42 @@ import com.github.vincentk.dedekind.sets.unary.function.operation.arithmetic.Mul
  * 
  * @param <T> implementation type
  */
-public interface Magma<T extends Magma<T>>
+public interface Magma<
+E extends Magma.Oe<E>,
+T extends Magma<E, T>>
 extends
-Set<T>
+Set<E, T>
 {
+    interface Oe<E extends Oe<E>>
+    extends Set.Element<E>, Operation<E, E>
+    {
+    }
 
     /**
      * Magma under addition (M, +).
      * 
      * @param <T> the implementing type.
      */
-    interface P<T extends P<T>> extends Magma<T>, Addition<T, T>, Operation<T, T> {
-
-	@Override
-	default T ap(T that) {
-	    return plus(that);
+    interface P<
+    E extends P.Pe<E>,
+    T extends P<E, T>
+    >
+    extends
+    Magma<E, T>
+    {
+	/**
+	 * Elements of the magma.
+	 * 
+	 * @param <E>
+	 */
+	interface Pe<E extends Pe<E>>
+	extends
+	Oe<E>, Addition<E, E>
+	{
+	    @Override
+	    default E ap(E that) {
+		return plus(that);
+	    }	    
 	}
     }
 
@@ -38,15 +59,26 @@ Set<T>
      * 
      * @param <T> the implementing type.
      */
-    interface M<T extends M<T>> extends Magma<T>, Multiplication<T, T>, Operation<T, T> {
-
-	// Would lead to compilation errors due to duplicate default methods with
-	// different type parameters:
+    interface M<
+    E extends M.Me<E>,
+    T extends M<E, T>
+    >
+    extends
+    Magma<E, T>
+    {
 	/**
-	@Override
-	default T ap(T that) {
-	    return times(that);
+	 * Elements of the magma.
+	 * 
+	 * @param <E>
+	 */
+	interface Me<E extends Me<E>>
+	extends
+	Oe<E>, Multiplication<E, E>
+	{
+	    @Override
+	    default E ap(E that) {
+		return times(that);
+	    }	    
 	}
-	 **/
     }
 }

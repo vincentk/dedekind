@@ -2,11 +2,12 @@ package com.github.vincentk.dedekind.linear.primitives;
 
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.Optional;
+
 import org.junit.jupiter.api.Test;
 
 import com.github.vincentk.dedekind.algebra.numbers.R;
-import com.github.vincentk.dedekind.algebra.sets.Fields;
-import com.github.vincentk.dedekind.algebra.structures.Field;
+import com.github.vincentk.dedekind.algebra.numbers.R.R64;
 
 public class RsTest {
 
@@ -14,10 +15,10 @@ public class RsTest {
     public void tsTest() {
 
         // Type check to trigger compilation error:
-        Fields.Reals tc1 = R.ONE;
+        R64 tc1 = R.ONE;
 
-        Field.Reals<R> tc2 = R.ONE;
+        R64 tc2 = R.ONE;
 
-        assertThat(tc2.div(R.ONE)).isEqualTo(tc1);
+        assertThat(tc2.divide(R.ONE)).isEqualTo(Optional.of(tc1));
     }
 }

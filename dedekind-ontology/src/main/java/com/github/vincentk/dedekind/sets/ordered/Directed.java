@@ -13,8 +13,16 @@ import com.github.vincentk.dedekind.sets.binary.relation.homogeneous.PreOrder;
  * @see https://en.wikipedia.org/wiki/Directed_set
  */
 public interface Directed<
+E extends Directed.De<E>,
 C extends Cardinality,
-T extends Directed<C, T>
+T extends Directed<E, C, T>
 >
-extends Set<T>, PreOrder.Directed<T> {
+extends Set<E, T> {
+    
+    interface De<E extends De<E>>
+    extends
+    Set.Element<E>, PreOrder.Directed<E>
+    {
+	
+    }
 }

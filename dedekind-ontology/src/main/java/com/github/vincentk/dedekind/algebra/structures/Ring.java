@@ -2,12 +2,51 @@ package com.github.vincentk.dedekind.algebra.structures;
 
 
 import com.github.vincentk.dedekind.algebra.sets.Rings;
+import com.github.vincentk.dedekind.sets.unary.function.operation.Closure;
 
 /**
  * @see https://en.wikipedia.org/wiki/Ring_(mathematics)
  * @param <R>
  */
-public interface Ring<R extends Ring<R>> extends Rings, SemiRing<R>, Group.P<R> {
+public interface Ring<
+E extends Ring.Re<E>,
+R extends Ring<E, R>>
+extends
+Rings,
+SemiRing<E, R>,
+Group.P<E, R>
+{
+    interface Re<R extends Re<R>>
+    extends
+    SemiRing.SmrE<R>,
+    Group.P.Pe<R>
+    {
+	/**
+	 * Subtraction (inverse of addition).
+	 * 
+	 * @param that
+	 * @return this - that
+	 */
+	default R minus(R that) {
+	    return plus(that.negate());
+	}
+
+	default R 一(R that) {
+	    return minus(that);
+	}
+    }
+
     
-    interface Integer<Z extends Integer<Z>> extends Ring<Z>, Integers {}
+    /**
+     * The integers numbers are a well-known ring.
+     * They are the closure of the rational numbers under addition and multiplication.
+     * @param <N>
+     */
+    interface Integer<
+    E extends Re<E>,
+    Z extends Integer<E, Z>
+    >
+    extends Ring<E, Z>, Integers,
+    Closure<E, Z, E, Z, Z>
+    {}
 }

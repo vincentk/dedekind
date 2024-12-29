@@ -1,7 +1,5 @@
 package com.github.vincentk.dedekind.algebra.structures;
 
-import com.github.vincentk.dedekind.sets.Cardinality;
-
 /**
  * An element of a vector space satisfying the vector axioms.
  *
@@ -12,16 +10,18 @@ import com.github.vincentk.dedekind.sets.Cardinality;
  * @see https://en.wikipedia.org/wiki/Dimension_(vector_space)
  *
  * @param <F> usually a {@link Field}.
- * @param <V> the usual recursive self-type so that subtypes can refer to themselves.
  */
 public interface Vector<
-F extends Field<F>,
-// Dimension of the vector space:
-C extends Cardinality,
+E extends Field.Fe<E>,
+F extends Vector.Ve<E, F>,
 // Self-reference:
-V extends Vector<F, C, V>
+V extends Vector<E, F, V>
 >
 extends
-Module<F, C, V>
+Module<E, F, V>
 {
+    interface Ve<R extends Ring.SmrE<R>, E extends Me<R, E>>
+    extends Module.Me<R, E>
+    {	
+    }
 }

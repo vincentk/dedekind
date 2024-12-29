@@ -13,9 +13,9 @@ public class MatrixTest {
     public void testMock() {
 
         @SuppressWarnings("unchecked")
-        final Matrix<R, ?, ?, ?> subject = mock(Matrix.class);
+        final Matrix<R.R64, ?, ?, ?> subject = mock(Matrix.class);
         
         @SuppressWarnings("unused")
-        final Ket<R, ?, ?> actual = subject.apply(null);
+        final Ket<R.R64, ?, ?> actual = subject.apply(null);
     }
 }

@@ -5,6 +5,8 @@ import static com.github.vincentk.dedekind.algebra.numbers.Q.ZERO;
 import static com.github.vincentk.dedekind.algebra.numbers.Q.rational;
 import static org.assertj.core.api.Assertions.assertThat;
 
+import java.util.Optional;
+
 import org.junit.jupiter.api.Test;
 
 import com.github.vincentk.dedekind.algebra.numbers.Q;
@@ -53,7 +55,7 @@ public class QsTest {
 	
 	@Test
 	public void testInverse() {
-		assertThat(UNIT.inverse()).isEqualTo(UNIT);
+		assertThat(UNIT.inverse()).isEqualTo(Optional.of(UNIT));
 	}
 	
 	@Test
@@ -83,7 +85,7 @@ public class QsTest {
 	    assertThat(UNIT.neg().distance(ZERO)).isEqualTo(UNIT);
 	}
 
-	private static Q q(int en, int de) {
+	private static Q.Rat q(int en, int de) {
 		return rational(en, de);
 	}
 }

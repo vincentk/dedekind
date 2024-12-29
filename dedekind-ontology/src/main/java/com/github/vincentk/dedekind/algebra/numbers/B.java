@@ -3,11 +3,12 @@
  */
 package com.github.vincentk.dedekind.algebra.numbers;
 
+import com.github.vincentk.dedekind.algebra.numbers.N.Nat;
 import com.github.vincentk.dedekind.algebra.sets.SemiRings.Booleans;
-import com.github.vincentk.dedekind.algebra.structures.Group;
 import com.github.vincentk.dedekind.algebra.structures.SemiRing;
+import com.github.vincentk.dedekind.geometry.MetricSpace;
 import com.github.vincentk.dedekind.sets.Cardinality;
-import com.github.vincentk.dedekind.sets.Set;
+import com.github.vincentk.dedekind.sets.Finite;
 import com.github.vincentk.dedekind.sets.ordered.TotallyOrdered;
 
 /**
@@ -17,78 +18,96 @@ import com.github.vincentk.dedekind.sets.ordered.TotallyOrdered;
  */
 public interface B
 extends
-SemiRing<B>,
-Group.M0<B>,
-Set.Finite<B>,
-TotallyOrdered<Cardinality.Finite, B>,
+SemiRing<B.Bool, B>,
+NumberLine<B.Bool, Cardinality.Finite, B>,
+Finite<B.Bool, Cardinality.Finite, B>,
 Booleans
 {
-
-    public boolean bool();
-
-    default long cardinality() {
-	return 2;
-    }
-
-    @Override
-    default boolean isIdentityP() {
-	return !bool();
-    }
-
-    /**
-     * a && b ~ a * b
-     * 
-     * a && 1 = a => 1 is the monoid unit (~ multiplication).
-     * 
-     * @param that
-     * @return boolean product (and)
-     */
-    default B and(B that) {
-	return x(that);
-    }
-
-    /**
-     * a || b ~ a + b
-     * 
-     * a || 0 = a => zero is the monoid unit (~ addition).
-     * 
-     * @param that
-     * @return boolean sum (or)
-     */
-    default B or(B that) {
-	return plus(that);
-    }
-
-    @Override
-    default Be plus(B that) {
-	return bool(bool() || that.bool());
-    }
-
-    @Override
-    default Be inverse0() {
-	return bool(!bool());
-    }
-
-    @Override
-    default Be times(B that) {
-	return bool(bool() && that.bool());
-    }
-
-    @Override
-    default int compareTo(B o) {
-	return Boolean.compare(bool(), o.bool());
-    }
-
-    default N nat() {
-	return bool() ? N.ONE : N.ZERO;
-    }
-
     static Be bool(boolean n) {
 	return n ? TRUE : FALSE;
     }
 
-    record Be (boolean bool) implements B {
+    public static final Be TRUE = new Be(true), FALSE = new Be(false);
+
+    @Override
+    default long cardinality() {
+	return 2;
     }
 
-    public static final Be TRUE = new Be(true), FALSE = new Be(false);
+    interface Bool
+    extends
+    SemiRing.SmrE<Bool>,
+    TotallyOrdered.Oe<Bool>,
+    MetricSpace.Me<Bool, Bool>
+    {
+	boolean bool();
+
+	@Override
+	default boolean isIdentityP() {
+	    return !bool();
+	}
+
+	/**
+	 * a && b ~ a * b
+	 * 
+	 * a && 1 = a => 1 is the monoid unit (~ multiplication).
+	 * 
+	 * @param that
+	 * @return boolean product (and)
+	 */
+	default Bool and(Bool that) {
+	    return x(that);
+	}
+
+	/**
+	 * a || b ~ a + b
+	 * 
+	 * a || 0 = a => zero is the monoid unit (~ addition).
+	 * 
+	 * @param that
+	 * @return boolean sum (or)
+	 */
+	default Bool or(Bool that) {
+	    return plus(that);
+	}
+
+	@Override
+	default Be plus(Bool that) {
+	    return B.bool(bool() || that.bool());
+	}
+
+	default Be complement() {
+	    return B.bool(!bool());
+	}
+
+	@Override
+	default Be times(Bool that) {
+	    return B.bool(bool() && that.bool());
+	}
+
+	@Override
+	default int compareTo(Bool o) {
+	    return Boolean.compare(bool(), o.bool());
+	}
+
+	@Override
+	default Bool upperBound(Bool that) {
+	    return plus(that);
+	}
+
+	@Override
+	default Bool distance(Bool other) {
+	    return B.bool(eq(other));
+	}
+
+
+	default Nat nat() {
+	    return bool() ? N.ONE : N.ZERO;
+	}
+    }
+
+    record Be (boolean bool) implements Bool {
+
+
+    }
 }

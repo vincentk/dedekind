@@ -3,10 +3,11 @@
  */
 package com.github.vincentk.dedekind.algebra.numbers;
 
-import com.github.vincentk.dedekind.algebra.structures.MetricSpace;
+import com.github.vincentk.dedekind.algebra.sets.SemiRings;
 import com.github.vincentk.dedekind.algebra.structures.SemiRing;
+import com.github.vincentk.dedekind.geometry.MetricSpace;
 import com.github.vincentk.dedekind.sets.Cardinality;
-import com.github.vincentk.dedekind.sets.Set;
+import com.github.vincentk.dedekind.sets.Finite;
 import com.github.vincentk.dedekind.sets.ordered.Interval;
 import com.github.vincentk.dedekind.sets.ordered.TotallyOrdered;
 
@@ -15,14 +16,11 @@ import com.github.vincentk.dedekind.sets.ordered.TotallyOrdered;
  */
 public interface N
 extends
-TotallyOrdered<Cardinality.Finite, N>,
-Set.Finite<N>,
-SemiRing.Natural<N>,
-MetricSpace<N, N>,
-Interval.HalfOpen.Right<N, N, Cardinality.Finite, N>
+SemiRings.Naturals,
+Finite<N.Nat, Cardinality.Finite, N>,
+NumberLine<N.Nat, Cardinality.Finite, N>,
+Interval.HalfOpen.Right<N.Nat, N, N, Cardinality.Finite, N>
 {
-
-    public long integer();
 
     @Override
     default long cardinality() {
@@ -30,50 +28,55 @@ Interval.HalfOpen.Right<N, N, Cardinality.Finite, N>
     }
 
     @Override
-    default Ne plus(N that) {
-	return nat(integer() + that.integer());
-    }
-
-    @Override
-    default Ne times(N that) {
-	return nat(integer() * that.integer());
-    }
-
-    @Override
-    default boolean eq(N that) {
-	return integer() == that.integer();
-    }
-
-    @Override
-    default N abs() {
-	return this;
-    }
-
-    @Override
-    default Ne distance(N other) {
-	return nat(Math.abs(integer() - other.integer()));
-    }
-
-    @Override
-    default N lowerBound() {
+    default Nat lowerBound() {
 	return ZERO;
     }
 
-    default Z asInt() {
-	return Z.integer(integer());
+    interface Nat
+    extends
+    SemiRing.SmrE<Nat>,
+    TotallyOrdered.Oe<Nat>,
+    MetricSpace.Me<Nat, Nat>
+    {
+	public long integer();
+
+	@Override
+	default int compareTo(Nat o) {
+	    return Long.compare(integer(), o.integer());
+	}
+
+	@Override
+	default Ne plus(Nat that) {
+	    return nat(integer() + that.integer());
+	}
+
+	@Override
+	default Ne times(Nat that) {
+	    return nat(integer() * that.integer());
+	}
+
+	@Override
+	default boolean eq(Nat that) {
+	    return integer() == that.integer();
+	}
+
+	@Override
+	default Ne distance(Nat other) {
+	    return nat(Math.abs(integer() - other.integer()));
+	}
+
+	default Z.Int asInt() {
+	    return Z.integer(integer());
+	}
     }
 
-    record Ne (long integer) implements N {
+    record Ne (long integer) implements Nat {
 
 	public Ne(long integer) {
 	    assert integer >= 0;
 	    this.integer = integer;
 	}
 
-	@Override
-	public int compareTo(N o) {
-	    return Long.compare(integer, o.integer());
-	}
     }
 
     static Ne nat(long n) {

@@ -8,9 +8,9 @@ import com.github.vincentk.dedekind.sets.Set;
  */
 public interface Pair<
 // Domain:
-A extends Set<A>,
+A extends Set.Element<A>,
 // Range:
-B extends Set<B>,
+B extends Set.Element<B>,
 // Implementation type:
 P extends Pair<A, B, P>>
 extends Relation<A, B, P>
@@ -24,9 +24,9 @@ extends Relation<A, B, P>
     }
 
     public record Impl<
-    A extends Set<A>,
+    A extends Set.Element<A>,
     // Range:
-    B extends Set<B>
+    B extends Set.Element<B>
     > 
     (A fst, B snd)
     implements Pair<A, B, Impl<A, B>>

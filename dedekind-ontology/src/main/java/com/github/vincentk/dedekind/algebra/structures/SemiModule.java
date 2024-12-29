@@ -11,27 +11,33 @@ package com.github.vincentk.dedekind.algebra.structures;
  * @param <R> the scalar ring
  * @param <N> self-type
  */
-public interface SemiModule<R extends SemiRing<R>, N extends SemiModule<R, N>>
-extends Monoid.P<N>
+public interface SemiModule<
+R extends SemiRing.SmrE<R>,
+E extends SemiModule.SmE<R, E>,
+N extends SemiModule<R, E, N>>
+extends Monoid.P<E, N>
 {
+    interface SmE<R extends SemiRing.SmrE<R>, E extends SmE<R, E>>
+    extends Monoid.P.Pe<E>
+    {
+	/**
+	 * Scalar multiplication.
+	 *
+	 * Expectations:
+	 * https://en.wikipedia.org/wiki/Module_(mathematics)#Formal_definition
+	 *
+	 * @param scalar
+	 * @return the scaled module element / vector.
+	 */
+	E mult(R scalar);
 
-    /**
-     * Scalar multiplication.
-     *
-     * Expectations:
-     * https://en.wikipedia.org/wiki/Module_(mathematics)#Formal_definition
-     *
-     * @param scalar
-     * @return the scaled module element / vector.
-     */
-    N mult(R scalar);
-
-    /**
-     * Module addition.
-     *
-     * @param module from the same vector space.
-     * @return a new vector in the same vector space.
-     */
-    @Override
-    N plus(N module);
+	/**
+	 * Module addition.
+	 *
+	 * @param module from the same vector space.
+	 * @return a new vector in the same vector space.
+	 */
+	@Override
+	E plus(E module);	
+    }
 }

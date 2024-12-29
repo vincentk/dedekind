@@ -8,7 +8,7 @@ import com.github.vincentk.dedekind.algebra.numbers.N;
 
 public class LambdaTest {
 
-    private static final N
+    private static final N.Ne
     ONE = N.ONE,
     TWO = N.TWO,
     FOUR = TWO.plus(TWO);

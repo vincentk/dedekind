@@ -12,7 +12,7 @@ import com.github.vincentk.dedekind.algebra.structures.SemiRing;
  * @param <E>
  */
 public record MatrixMultiplication<
-F extends SemiRing<F>,
+F extends SemiRing.SmrE<F>,
 C extends Ket<F, ?, C>,
 D extends Ket<F, ?, D>,
 E extends Ket<F, ?, E>

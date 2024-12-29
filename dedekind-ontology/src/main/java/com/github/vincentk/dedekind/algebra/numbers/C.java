@@ -1,79 +1,100 @@
 package com.github.vincentk.dedekind.algebra.numbers;
 
+import java.util.Optional;
+
+import com.github.vincentk.dedekind.algebra.numbers.R.R64;
 import com.github.vincentk.dedekind.algebra.structures.Field;
-import com.github.vincentk.dedekind.algebra.structures.MetricSpace;
+import com.github.vincentk.dedekind.algebra.structures.Vector;
+import com.github.vincentk.dedekind.geometry.MetricSpace;
 
 /**
  * The set of complex numbers.
  */
-public interface C extends Field.Complex<C>, MetricSpace<C, R> {
+public interface C
+extends
+Field.Complex<C.C64, C>,
+Vector<R.R64, C.C64, C>,
+MetricSpace<R.R64, C.C64, C>
+{
+    public static final C64 
+    ZERO = complex(0, 0),
+    R1 = complex(1, 0),
+    I1 = complex(0, 1),
+    UNIT = complex(1, 1);
 
-    public R re();
-    public R im();
-
-    public static final C ZERO = complex(0, 0), R1 = complex(1, 0), I1 = complex(0, 1), UNIT = complex(1, 1);
-
-    public static C complex(double re, double im) {
-        return of(R.real(re), R.real(im));
+    public static C64 complex(double re, double im) {
+	return of(R.real(re), R.real(im));
     }
 
-    public static C of(R re, R im) {
-        return new Ce(re, im);
+    public static C64 of(R64 re, R64 im) {
+	return new Ce(re, im);
     }
 
-    record Ce (R re, R im) implements C {
+    interface C64
+    extends
+    Field.Complex.Ce<C64>,
+    MetricSpace.MeG<R64, C64>,
+    Vector.Ve<R64, C64>
+    {
+	public R64 re();
+	public R64 im();
 
-        @Override
-        public C plus(C that) {
-            return of(re.十(that.re()), im.十(that.im()));
-        }
+	@Override
+	default C64 plus(C64 that) {
+	    return of(re().十(that.re()), im().十(that.im()));
+	}
 
+	@Override
+	default C64 negate() {
+	    return of(re().neg(), im().neg());
+	}
 
-        @Override
-        public C negate() {
-            return of(re.neg(), im.neg());
-        }
+	@Override
+	default Optional<C64> inverse() {
+	    final R64 r2 = re().x(re());
+	    final Optional<R64> r2iO = r2.inv();
+	    return r2iO.map(r2i -> conj().mult(r2i));
+	}
 
-        @Override
-        public C inverse() {
+	@Override
+	default C64 mult(R64 scalar) {
+	    return of(re().x(scalar), im().x(scalar));
+	}
 
-            final var xs = conj(); 
-            final R r2 = re.x(re);
+	@Override
+	default C64 times(C64 that) {
 
-            return of(xs.re().div(r2), xs.im().div(r2));
-        }
+	    final var r2 = re().x(that.re());
+	    final var i2 = im().x(that.im());
 
-        @Override
-        public C times(C that) {
+	    final var ri = re().x(that.im());
+	    final var ir = im().x(that.re());
 
-            final var r2 = re.x(that.re());
-            final var i2 = im.x(that.im());
+	    return of(r2.minus(i2), ri.十(ir));
+	}
 
-            final var ri = re.x(that.im());
-            final var ir = im.x(that.re());
+	@Override
+	default C64 conjugate() {
+	    return of(re(), im().neg());
+	}
 
-            return of(r2.minus(i2), ri.十(ir));
-        }
+	@Override
+	default boolean eq(C64 that) {
+	    return re().eq(that.re()) && im().eq(that.im());
+	}
 
-        @Override
-        public C conjugate() {
-            return of(re, im.neg());
-        }
+	@Override
+	default R64 abs() {
+	    return times(conj()).re().sqrt();
+	}
+    }
 
+    record Ce (R64 re, R64 im) implements C64 {
 
-        @Override
-        public R distance(C other) {
-            return minus(other).abs();
-        }
-        
-        @Override
-        public boolean eq(C that) {
-            return this.re.eq(that.re()) && this.im.eq(that.im());
-        }
-
-        @Override
-        public R abs() {
-            return times(conj()).re().sqrt();
-        }
+	@Override
+	public boolean equals(Object that) {
+	    if (!(that instanceof C64)) return false;
+	    return this.eq((C64) that);
+	}
     }
 }

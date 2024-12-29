@@ -11,8 +11,18 @@ import com.github.vincentk.dedekind.sets.Cardinality;
  * @see https://en.wikipedia.org/wiki/Lattice_(order)
  */
 public interface Lattice<
+E extends Lattice.Le<E>,
 C extends Cardinality,
-T extends Lattice<C, T>
+T extends Lattice<E, C, T>
 >
-extends Directed<C, T>, SemiLattice.Join<C, T>,  SemiLattice.Meet<C, T> {
+extends
+PoSet<E, C, T>,
+SemiLattice.Join<E, C, T>,  SemiLattice.Meet<E, C, T> {
+
+    interface Le<E extends Le<E>>
+    extends
+    SemiLattice.Join.Je<E>, SemiLattice.Meet.Me<E>, Directed.De<E>
+    {	
+
+    }
 }
