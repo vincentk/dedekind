@@ -2,6 +2,7 @@ package com.github.vincentk.dedekind.sets.ordered;
 
 import com.github.vincentk.dedekind.sets.Cardinality;
 import com.github.vincentk.dedekind.sets.Set;
+import com.github.vincentk.dedekind.sets.binary.relation.homogeneous.Identity;
 import com.github.vincentk.dedekind.sets.binary.relation.homogeneous.PreOrder;
 
 /**
@@ -28,6 +29,17 @@ extends Set<E, T> {
     extends
     Set.Element<E>, PreOrder.Directed<E>
     {
-
+	/**
+	 * A trivial {@link PreOrder} using the {@link Identity} relation.
+	 * 
+	 * <p>
+	 * {@inheritDoc}
+	 * </p>
+	 */
+	@SuppressWarnings("unchecked")
+	@Override
+	default boolean leq(E that) {
+	    return ((E) this).eq(that);
+	}
     }
 }

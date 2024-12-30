@@ -21,8 +21,6 @@ public interface PreOrder<T> {
 	/**
 	 * @param that
 	 * @return an upper bound value F such that this <= F and that <= F
-	 * 
-	 * @see https://en.wikipedia.org/wiki/Preorder
 	 */
 	T upperBound(T that);
     }

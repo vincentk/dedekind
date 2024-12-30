@@ -22,22 +22,18 @@ public class EmptySetTest {
 
 	assertThat(SUBJECT.sub(SUBJECT))
 	.as(() -> "The empty set is a subset of itself.")
-	.isEqualTo(true);
+	.isTrue();
 
 	assertThat(SUBJECT.sup(SUBJECT))
 	.as(() -> "The empty set is a super-set of itself.")
-	.isEqualTo(true);
-	
+	.isTrue();
+
 	assertThat(SUBJECT.where(x -> true))
 	.as(() -> "A conditioned empty set is still empty.")
 	.isEqualTo(SUBJECT);
 
-	/*
-	assertTrue(B.TRUE.eq(B.TRUE));
-	assertTrue(B.FALSE.eq(B.FALSE));
-
-	assertFalse(B.TRUE.eq(B.FALSE));
-	assertFalse(B.FALSE.eq(B.TRUE));
-	 */
+	assertThat(SUBJECT.complement(SUBJECT))
+	.as(() -> "The difference between the empty set and itself empty.")
+	.isEqualTo(SUBJECT);
     }
 }
