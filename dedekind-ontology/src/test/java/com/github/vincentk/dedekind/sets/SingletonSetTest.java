@@ -9,7 +9,7 @@ import com.github.vincentk.dedekind.algebra.numbers.N;
 
 public class SingletonSetTest {
 
-    private static final SingletonSet<N.Nat> SUBJECT = new SingletonSet<>(N.ONE);
+    private static final SingletonSet.Ordered<N.Nat, ?> SUBJECT = new SingletonSet.Ordered.Default<>(N.ONE);
     private static final EmptySet<N.Nat> EMPTY = EmptySet.empty();
 
     @Test
