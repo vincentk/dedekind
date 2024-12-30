@@ -31,17 +31,25 @@ PoSet<E, C, T>
     C extends Cardinality,
     T extends Join<E, C, T>
     >
-    extends SemiLattice<E, C, T>
+    extends
+    SemiLattice<E, C, T>,
+    Directed<E, C, T>
     {
 	interface Je<E extends Je<E>>
 	extends
-	Sle<E>
+	Sle<E>, De<E>
 	{
 	    /**
 	     * @param that
 	     * @return the lowest upper bound of this and that.
 	     */
 	    E join(E that);
+
+	    @SuppressWarnings("unchecked")
+	    @Override
+	    default E upperBound(E that) {
+		return ((E)this).join(that);
+	    }
 	}
     }
 

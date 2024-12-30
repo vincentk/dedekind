@@ -5,7 +5,7 @@ import com.github.vincentk.dedekind.sets.Set;
 import com.github.vincentk.dedekind.sets.binary.relation.homogeneous.PreOrder;
 
 /**
- * Set with a preorder and an upper bound &isin; set.
+ * A non-empty {@link Set} with a preorder and an upper bound &isin; set.
  * 
  * @param <C> cardinality
  * @param <T> implementation type
@@ -18,11 +18,16 @@ C extends Cardinality,
 T extends Directed<E, C, T>
 >
 extends Set<E, T> {
-    
+
+    @Override
+    default boolean isEmpty() {
+	return false;
+    }
+
     interface De<E extends De<E>>
     extends
     Set.Element<E>, PreOrder.Directed<E>
     {
-	
+
     }
 }

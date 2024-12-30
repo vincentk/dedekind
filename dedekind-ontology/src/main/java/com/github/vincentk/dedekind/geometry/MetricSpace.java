@@ -51,6 +51,7 @@ TopologicalSpace<E, M>
 	 * @param other
 	 * @return the distance from this element to the argument.
 	 */
+	@Override
 	default T distance(E other) {
 	    return minus(other).abs();
 	}

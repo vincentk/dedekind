@@ -55,6 +55,7 @@ public record Ds (R.R64 re, R.R64 ep) implements Field.Fe<Ds> {
 	return of(re.x(that.re), ri.十(ir));
     }
 
+    @Override
     public boolean eq(Ds that) {
 	return this.re.eq(that.re) && this.ep.eq(that.ep);
     }
