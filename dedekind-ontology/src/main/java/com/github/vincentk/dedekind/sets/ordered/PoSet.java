@@ -1,6 +1,7 @@
 package com.github.vincentk.dedekind.sets.ordered;
 
 import com.github.vincentk.dedekind.sets.Cardinality;
+import com.github.vincentk.dedekind.sets.Element;
 import com.github.vincentk.dedekind.sets.Set;
 import com.github.vincentk.dedekind.sets.binary.relation.homogeneous.PartialOrder;
 
@@ -21,11 +22,11 @@ extends Set<E, T>
 {
     interface Pe<E extends Pe<E>>
     extends
-    Set.Element<E>, PartialOrder.Strict<E>
+    Element<E>, PartialOrder.Strict<E>
     {
 	@Override
 	default boolean eq(E that) {
-	    return Set.Element.super.eq(that);
+	    return Element.super.eq(that);
 	}	
     }
 }

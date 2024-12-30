@@ -12,7 +12,7 @@ import com.github.vincentk.dedekind.algebra.structures.Monoid;
  * @param <T> often equal to {@link M}.
  */
 public interface MetricSpace<
-T extends Magma.M.Me<T>,
+T extends Magma.Oe<T>,
 E extends MetricSpace.Me<T, E>,
 M extends MetricSpace<T, E, M>
 >
@@ -21,7 +21,7 @@ TopologicalSpace<E, M>
 {
 
     interface Me<
-    T extends Magma.M.Me<T>,
+    T extends Magma.Oe<T>,
     E extends Me<T, E>
     >
     extends
@@ -51,6 +51,7 @@ TopologicalSpace<E, M>
 	 * @param other
 	 * @return the distance from this element to the argument.
 	 */
+	@Override
 	default T distance(E other) {
 	    return minus(other).abs();
 	}

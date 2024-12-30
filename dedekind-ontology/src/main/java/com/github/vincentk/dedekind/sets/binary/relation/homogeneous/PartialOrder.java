@@ -1,7 +1,8 @@
 package com.github.vincentk.dedekind.sets.binary.relation.homogeneous;
 
 /**
- * A partial order is a pre-order which prohibits non-trivial cycles.
+ * A {@link PartialOrder} is an anti-symmetric {@link PreOrder}.
+ * I.e. a {@link PreOrder} which prohibits non-trivial cycles.
  * 
  * @see https://en.wikipedia.org/wiki/Partially_ordered_set
  */

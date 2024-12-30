@@ -1,5 +1,6 @@
 package com.github.vincentk.dedekind.algebra.structures;
 
+import com.github.vincentk.dedekind.sets.Element;
 import com.github.vincentk.dedekind.sets.Set;
 import com.github.vincentk.dedekind.sets.binary.function.arithmetic.Addition;
 import com.github.vincentk.dedekind.sets.binary.function.arithmetic.Multiplication;
@@ -23,7 +24,7 @@ Set<E, T>
 {
     interface Oe<E extends Oe<E>>
     extends
-    Set.Element<E>,
+    Element<E>,
     BinaryOperation<E, E>
     {
     }

@@ -1,6 +1,7 @@
 package com.github.vincentk.dedekind.families;
 
 import com.github.vincentk.dedekind.sets.Cardinality;
+import com.github.vincentk.dedekind.sets.Element;
 import com.github.vincentk.dedekind.sets.Set;
 
 /**
@@ -9,10 +10,10 @@ import com.github.vincentk.dedekind.sets.Set;
 @FunctionalInterface
 public interface Family<
 // Range:
-R extends Set.Element<R>,
+R extends Element<R>,
 C extends Cardinality,
 // Domain and its elements:
-E extends Set.Element<E>,
+E extends Element<E>,
 D extends Set<E, D>
 >
 {

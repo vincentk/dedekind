@@ -27,6 +27,7 @@ Group.P<E, R>
 	 * @param that
 	 * @return this - that
 	 */
+	@Override
 	default R minus(R that) {
 	    return plus(that.negate());
 	}

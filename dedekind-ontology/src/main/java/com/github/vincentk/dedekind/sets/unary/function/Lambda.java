@@ -2,7 +2,7 @@ package com.github.vincentk.dedekind.sets.unary.function;
 
 import java.util.function.Function;
 
-import com.github.vincentk.dedekind.sets.Set;
+import com.github.vincentk.dedekind.sets.Element;
 
 /**
  * Unary functions.
@@ -14,9 +14,9 @@ import com.github.vincentk.dedekind.sets.Set;
 @FunctionalInterface
 public interface Lambda<
 // Domain
-A extends Set.Element<A>,
+A extends Element<A>,
 // Range
-B extends Set.Element<B>,
+B extends Element<B>,
 // Implementation
 L extends Lambda<A, B, L>
 >

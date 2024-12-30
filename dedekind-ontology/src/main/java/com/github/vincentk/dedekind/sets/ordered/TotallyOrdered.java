@@ -33,6 +33,11 @@ extends Lattice<E, C, T>{
 	    return leq(that) ? that : (T) this;
 	}
 
+	@Override
+	default T upperBound(T that) {
+	    return join(that);
+	}
+
 	@SuppressWarnings("unchecked")
 	@Override
 	default T meet(T that) {

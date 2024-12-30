@@ -1,6 +1,6 @@
 package com.github.vincentk.dedekind.sets.binary.function.operation;
 
-import com.github.vincentk.dedekind.sets.Set;
+import com.github.vincentk.dedekind.sets.Element;
 import com.github.vincentk.dedekind.sets.unary.function.Lambda;
 
 /**
@@ -13,7 +13,7 @@ import com.github.vincentk.dedekind.sets.unary.function.Lambda;
  */
 public interface BinaryOperation<
 //Domain
-A extends Set.Element<A>,
+A extends Element<A>,
 //Implementation
 L extends BinaryOperation<A, L>>
 extends Lambda<A, A, L>

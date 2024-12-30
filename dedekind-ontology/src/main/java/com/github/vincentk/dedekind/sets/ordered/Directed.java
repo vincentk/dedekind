@@ -1,11 +1,14 @@
 package com.github.vincentk.dedekind.sets.ordered;
 
 import com.github.vincentk.dedekind.sets.Cardinality;
+import com.github.vincentk.dedekind.sets.Element;
+import com.github.vincentk.dedekind.sets.NonEmptySet;
 import com.github.vincentk.dedekind.sets.Set;
+import com.github.vincentk.dedekind.sets.binary.relation.homogeneous.Identity;
 import com.github.vincentk.dedekind.sets.binary.relation.homogeneous.PreOrder;
 
 /**
- * Set with a preorder and an upper bound &isin; set.
+ * A non-empty {@link Set} with a preorder and an upper bound &isin; set.
  * 
  * @param <C> cardinality
  * @param <T> implementation type
@@ -17,12 +20,23 @@ E extends Directed.De<E>,
 C extends Cardinality,
 T extends Directed<E, C, T>
 >
-extends Set<E, T> {
-    
+extends NonEmptySet<E, T> {
+
     interface De<E extends De<E>>
     extends
-    Set.Element<E>, PreOrder.Directed<E>
+    Element<E>, PreOrder.Directed<E>
     {
-	
+	/**
+	 * A trivial {@link PreOrder} using the {@link Identity} relation.
+	 * 
+	 * <p>
+	 * {@inheritDoc}
+	 * </p>
+	 */
+	@SuppressWarnings("unchecked")
+	@Override
+	default boolean leq(E that) {
+	    return ((E) this).eq(that);
+	}
     }
 }
