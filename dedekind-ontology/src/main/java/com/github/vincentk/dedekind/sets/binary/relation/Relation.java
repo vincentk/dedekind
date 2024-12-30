@@ -1,13 +1,13 @@
 package com.github.vincentk.dedekind.sets.binary.relation;
 
-import com.github.vincentk.dedekind.sets.Set;
+import com.github.vincentk.dedekind.sets.Element;
 
 @FunctionalInterface
 public interface Relation<
 // Domain:
-A extends Set.Element<A>,
+A extends Element<A>,
 // Range:
-B extends Set.Element<B>,
+B extends Element<B>,
 // Implementation type:
 P extends Relation<A, B, P>>
 // Namely, it is a subset of the Cartesian product A x B.

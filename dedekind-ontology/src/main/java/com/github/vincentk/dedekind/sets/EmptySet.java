@@ -2,14 +2,20 @@ package com.github.vincentk.dedekind.sets;
 
 import java.util.function.Predicate;
 
+import com.github.vincentk.dedekind.families.Sequence;
+import com.github.vincentk.dedekind.sets.ordered.TotallyOrdered.Oe;
+import com.github.vincentk.dedekind.sets.unary.function.Lambda;
+
 /**
  * There exists exactly one empty set denoted as &empty; .
  * I.e. in java terminology, this is a singleton.
  * 
  * @param <E> ignored
  */
-public final class EmptySet<E extends Set.Element<E>>
-implements Set<E, EmptySet<E>>{
+public final class EmptySet<E extends Element<E>>
+implements
+Finite<E, Cardinality.Finite, EmptySet<E>>
+{
 
     @Override
     public boolean isEmpty() {
@@ -47,9 +53,20 @@ implements Set<E, EmptySet<E>>{
 
     @SuppressWarnings("unchecked")
     public static
-    <E extends Set.Element<E>> 
+    <E extends Element<E>> 
     EmptySet<E>
     empty() {
 	return (EmptySet<E>) EMPTY;
+    }
+
+    @Override
+    public <N extends Oe<N>> Sequence<E, Finite, N, ?, ?> enumerate(Lambda<N, E, ?> enumeration) {
+	// TODO Auto-generated method stub
+	return null;
+    }
+
+    @Override
+    public long cardinality() {
+	return 0;
     }
 }

@@ -11,7 +11,7 @@ import com.github.vincentk.dedekind.sets.unary.function.Lambda;
  * @param <T> implementation type
  */
 public interface Countable<
-E extends Set.Element<E>,
+E extends Element<E>,
 C extends Cardinality.Countable,
 T extends Countable<E, C, T>
 >

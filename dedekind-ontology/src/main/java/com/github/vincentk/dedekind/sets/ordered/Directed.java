@@ -1,6 +1,7 @@
 package com.github.vincentk.dedekind.sets.ordered;
 
 import com.github.vincentk.dedekind.sets.Cardinality;
+import com.github.vincentk.dedekind.sets.Element;
 import com.github.vincentk.dedekind.sets.NonEmptySet;
 import com.github.vincentk.dedekind.sets.Set;
 import com.github.vincentk.dedekind.sets.binary.relation.homogeneous.Identity;
@@ -23,7 +24,7 @@ extends NonEmptySet<E, T> {
 
     interface De<E extends De<E>>
     extends
-    Set.Element<E>, PreOrder.Directed<E>
+    Element<E>, PreOrder.Directed<E>
     {
 	/**
 	 * A trivial {@link PreOrder} using the {@link Identity} relation.

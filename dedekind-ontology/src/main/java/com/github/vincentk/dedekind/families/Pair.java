@@ -1,6 +1,6 @@
 package com.github.vincentk.dedekind.families;
 
-import com.github.vincentk.dedekind.sets.Set;
+import com.github.vincentk.dedekind.sets.Element;
 
 /**
  * @see https://en.wikipedia.org/wiki/Ordered_pair
@@ -8,13 +8,13 @@ import com.github.vincentk.dedekind.sets.Set;
  */
 public interface Pair<
 // Domain:
-A extends Set.Element<A>,
+A extends Element<A>,
 // Range:
-B extends Set.Element<B>,
+B extends Element<B>,
 // Implementation type:
 P extends Pair<A, B, P>>
 extends
-Set.Element<P>
+Element<P>
 {
     A fst();
     B snd();
@@ -25,16 +25,16 @@ Set.Element<P>
     }
     
     interface Homogeneous<
-    E extends Set.Element<E>,
+    E extends Element<E>,
     H extends Homogeneous<E, H>
     >
     extends Pair<E, E, H>
     {}
 
     public record Impl<
-    A extends Set.Element<A>,
+    A extends Element<A>,
     // Range:
-    B extends Set.Element<B>
+    B extends Element<B>
     > 
     (A fst, B snd)
     implements Pair<A, B, Impl<A, B>>

@@ -2,12 +2,12 @@ package com.github.vincentk.dedekind.families;
 
 import java.util.Optional;
 
-import com.github.vincentk.dedekind.sets.Set;
+import com.github.vincentk.dedekind.sets.Element;
 
 @FunctionalInterface
 public interface Enumeration<
-T extends Set.Element<T>,
-E extends Enumeration<T, E> & Set.Element<E>
+T extends Element<T>,
+E extends Enumeration<T, E> & Element<E>
 >
 {
     /**

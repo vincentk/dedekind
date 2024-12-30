@@ -1,5 +1,6 @@
 package com.github.vincentk.dedekind.sets.binary.function.operation;
 
+import com.github.vincentk.dedekind.sets.Element;
 import com.github.vincentk.dedekind.sets.Set;
 
 /**
@@ -28,10 +29,10 @@ import com.github.vincentk.dedekind.sets.Set;
  */
 public interface Closure<
 // Superset:
-E extends Set.Element<E> & BinaryOperation<E, ?>,
+E extends Element<E> & BinaryOperation<E, ?>,
 A extends Set<E, ?>,
 // Subset:
-F extends Set.Element<F> & BinaryOperation<F, ?>,
+F extends Element<F> & BinaryOperation<F, ?>,
 B extends Set<F, ?>,
 // Implementing class:
 C extends Set<E, C> & Closure<E, A, F, B, C>

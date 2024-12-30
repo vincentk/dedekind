@@ -13,15 +13,17 @@ import com.github.vincentk.dedekind.sets.binary.relation.homogeneous.Identity;
  * @see https://en.wikipedia.org/wiki/Set_(mathematics)
  */
 public
-// TODO: should probably be sealed:
-// sealed
 interface Set<
-E extends Set.Element<E>,
+E extends Element<E>,
 T extends Set<E, T>>
 extends
 Identity<Set<E, ?>>
-//permits EmptySet<?>, NonEmptySet<E, ?>
 {
+    @Override
+    default boolean eq(Set<E, ?> that) {
+	return sub(that) && sup(that);
+    }
+
     /**
      * By default, set membership is tested via a type-check.
      * 
@@ -35,7 +37,9 @@ Identity<Set<E, ?>>
     /**
      * @return true exactly if this is &empty;.
      */
-    boolean isEmpty();
+    default boolean isEmpty() {
+	return this instanceof EmptySet<?>;
+    }
 
     /**
      * @param that
@@ -49,7 +53,17 @@ Identity<Set<E, ?>>
      * @param that
      * @return this &cup; that
      */
-    Set<E, ?> union(Set<E, ?> that);
+    default Set<E, ?> union(Set<E, ?> that) {
+
+	if (isEmpty()) return that;
+
+	if (that.isEmpty()) return this;
+
+	final var cpl = complement(that);
+	if (cpl.isEmpty()) return that;
+
+	return new Union<E>(this, cpl);
+    }
 
     /**
      * @param that
@@ -73,29 +87,15 @@ Identity<Set<E, ?>>
      * @param that
      * @return this &sub; that
      */
-    boolean sub(Set<E, ?> that);
+    default boolean sub(Set<E, ?> that) {
+	return complement(that).isEmpty();
+    }
 
     /**
      * @param that
      * @return this &sup; that
      */
-    boolean sup(Set<E, ?> that);
-
-    /**
-     * An element of a set.
-     */
-    interface Element<E extends Element<E>>
-    extends Identity<E>
-    {
-	@SuppressWarnings("unchecked")
-	@Override
-	default boolean eq(E that) {
-	    return ((E) this).equals(that);
-	}
-
-	@SuppressWarnings("unchecked")
-	default boolean isin(Set<E, ?> set) {
-	    return set.contains((E) this);
-	}
+    default boolean sup(Set<E, ?> that) {
+	return that.complement(this).isEmpty();
     }
 }

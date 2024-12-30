@@ -1,6 +1,7 @@
 package com.github.vincentk.dedekind.geometry;
 
 
+import com.github.vincentk.dedekind.sets.Element;
 import com.github.vincentk.dedekind.sets.Set;
 
 /**
@@ -20,7 +21,7 @@ Set<E, M>
     E extends Me<E>
     >
     extends
-    Set.Element<E>
+    Element<E>
     {
     }
 }

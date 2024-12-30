@@ -5,7 +5,7 @@ package com.github.vincentk.dedekind.families;
 
 import com.github.vincentk.dedekind.algebra.structures.Magma;
 import com.github.vincentk.dedekind.sets.Cardinality;
-import com.github.vincentk.dedekind.sets.Set;
+import com.github.vincentk.dedekind.sets.Element;
 import com.github.vincentk.dedekind.sets.ordered.ConvexSet;
 import com.github.vincentk.dedekind.sets.ordered.TotallyOrdered;
 
@@ -14,7 +14,7 @@ import com.github.vincentk.dedekind.sets.ordered.TotallyOrdered;
  * @see https://en.wikipedia.org/wiki/Stream_(computing)
  */
 public interface Sequence<
-R extends Set.Element<R>,
+R extends Element<R>,
 C extends Cardinality.Countable,
 
 E extends TotallyOrdered.Oe<E>,
@@ -36,7 +36,7 @@ extends Family<R, C, E, I>
      * @see https://en.wikipedia.org/wiki/List_(abstract_data_type)
      */
     interface Finite<
-    R extends Set.Element<R>,
+    R extends Element<R>,
     C extends Cardinality.Finite,
 
     E extends TotallyOrdered.Oe<E> & Magma.Oe<E>,

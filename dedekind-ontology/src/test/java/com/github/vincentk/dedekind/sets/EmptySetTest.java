@@ -34,6 +34,6 @@ public class EmptySetTest {
 
 	assertThat(SUBJECT.complement(SUBJECT))
 	.as(() -> "The difference between the empty set and itself empty.")
-	.isEqualTo(SUBJECT);
+	.isEqualTo(EmptySet.empty());
     }
 }
