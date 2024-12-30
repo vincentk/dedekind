@@ -8,7 +8,7 @@ import com.github.vincentk.dedekind.geometry.MetricSpace;
 import com.github.vincentk.dedekind.geometry.NumberLine;
 import com.github.vincentk.dedekind.sets.Cardinality;
 import com.github.vincentk.dedekind.sets.Set;
-import com.github.vincentk.dedekind.sets.ordered.Interval;
+import com.github.vincentk.dedekind.sets.ordered.ConvexSet;
 
 /**
  * The integer numbers.
@@ -44,7 +44,7 @@ NumberLine<E, Cardinality.Countable, T>
     interface Z64
     extends
     Z<Z64.Int64, Z64>,
-    Interval.Closed<Z64.Int64, Z64, Cardinality.Countable, Z64>
+    ConvexSet.Closed<Z64.Int64, Z64, Cardinality.Countable, Z64>
     {
 	public interface Int64
 	extends Integer<Int64>

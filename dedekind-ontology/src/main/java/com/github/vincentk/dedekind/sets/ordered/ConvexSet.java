@@ -3,14 +3,21 @@ package com.github.vincentk.dedekind.sets.ordered;
 import com.github.vincentk.dedekind.sets.Cardinality;
 
 /**
+ * A {@link ConvexSet} is a generalization of an interval on the real number line
+ * to partially ordered sets ({@link PoSet}.
+ * 
+ * The following property holds for a convex set I &sub; P:
+ * <p>
+ * &forall; x, y &isin; I: x &le; z &le; y => z &isin; I. 
+ * </p>
  * @see https://en.wikipedia.org/wiki/Interval_(mathematics)
  * @see https://en.wikipedia.org/wiki/Partially_ordered_set#Intervals
  */
-public interface Interval<
+public interface ConvexSet<
 E extends PoSet.Pe<E>,
 A extends PoSet<E, C, A>,
 C extends Cardinality,
-T extends Interval<E, A, C, T>
+T extends ConvexSet<E, A, C, T>
 >
 extends PoSet<E, C, T>
 {
@@ -28,7 +35,7 @@ extends PoSet<E, C, T>
     C extends Cardinality,
     T extends HalfBounded<E, A, C, T>
     >
-    extends Interval<E, A, C, T> {
+    extends ConvexSet<E, A, C, T> {
 
 	interface Left<
 	E extends PoSet.Pe<E>,

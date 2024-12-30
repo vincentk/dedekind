@@ -11,7 +11,7 @@ import com.github.vincentk.dedekind.geometry.MetricSpace;
 import com.github.vincentk.dedekind.geometry.NumberLine;
 import com.github.vincentk.dedekind.sets.Cardinality;
 import com.github.vincentk.dedekind.sets.Finite;
-import com.github.vincentk.dedekind.sets.ordered.Interval;
+import com.github.vincentk.dedekind.sets.ordered.ConvexSet;
 import com.github.vincentk.dedekind.sets.ordered.TotallyOrdered;
 
 /**
@@ -27,7 +27,7 @@ extends
 SemiRings.Naturals,
 Finite<N.Nat, Cardinality.Finite, T>,
 NumberLine<N.Nat, Cardinality.Finite, T>,
-Interval.HalfOpen.Right<N.Nat, T, Cardinality.Finite, T>
+ConvexSet.HalfOpen.Right<N.Nat, T, Cardinality.Finite, T>
 {
     /**
      * Elements &isin; {@link Z}.

@@ -3,7 +3,7 @@ package com.github.vincentk.dedekind.families;
 import com.github.vincentk.dedekind.algebra.sets.SemiRings;
 import com.github.vincentk.dedekind.algebra.structures.Magma;
 import com.github.vincentk.dedekind.sets.Cardinality;
-import com.github.vincentk.dedekind.sets.ordered.Interval;
+import com.github.vincentk.dedekind.sets.ordered.ConvexSet;
 import com.github.vincentk.dedekind.sets.ordered.TotallyOrdered;
 
 /**
@@ -18,15 +18,14 @@ M extends Magma.Oe<M>,
 C extends Cardinality.Finite,
 
 // Declaration of domain elements and the domain:
-E extends SemiRings.Naturals & TotallyOrdered.Oe<E>,
+E extends SemiRings.Naturals & TotallyOrdered.Oe<E> & Magma.Oe<E>,
 D extends TotallyOrdered<E, C, D>,
-I extends Interval.Closed<E, D, C, I>,
+I extends ConvexSet.Closed<E, D, C, I>,
 
 // Self-reference to the implementation type:
 T extends Tuple<M, C, E, D, I, T>
 >
 extends
-Sequence<E, C, E, D, I>
+Sequence.Finite<E, C, E, D, I>
 {
-    int length();
 }
