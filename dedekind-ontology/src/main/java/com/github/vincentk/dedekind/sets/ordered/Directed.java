@@ -1,6 +1,7 @@
 package com.github.vincentk.dedekind.sets.ordered;
 
 import com.github.vincentk.dedekind.sets.Cardinality;
+import com.github.vincentk.dedekind.sets.NonEmptySet;
 import com.github.vincentk.dedekind.sets.Set;
 import com.github.vincentk.dedekind.sets.binary.relation.homogeneous.Identity;
 import com.github.vincentk.dedekind.sets.binary.relation.homogeneous.PreOrder;
@@ -18,12 +19,7 @@ E extends Directed.De<E>,
 C extends Cardinality,
 T extends Directed<E, C, T>
 >
-extends Set<E, T> {
-
-    @Override
-    default boolean isEmpty() {
-	return false;
-    }
+extends NonEmptySet<E, T> {
 
     interface De<E extends De<E>>
     extends

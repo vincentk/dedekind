@@ -1,6 +1,7 @@
 package com.github.vincentk.dedekind.sets.ordered;
 
 import com.github.vincentk.dedekind.sets.Cardinality;
+import com.github.vincentk.dedekind.sets.NonEmptySet;
 
 /**
  * A partially ordered set with joins and meets.
@@ -19,6 +20,7 @@ T extends SemiLattice<E, C, T>
 extends
 PoSet<E, C, T> 
 {
+
     interface Sle<E extends Pe<E>>
     extends
     PoSet.Pe<E>
@@ -51,6 +53,21 @@ PoSet<E, C, T>
 		return ((E)this).join(that);
 	    }
 	}
+
+	interface Bounded<
+	E extends Join.Je<E>,
+	C extends Cardinality,
+	T extends Join<E, C, T>
+	>
+	extends
+	Join<E, C, T>,
+	NonEmptySet<E, T>
+	{
+	    /**
+	     * @return the maximum element t so that t &ge; x &forall; x &isin; X.
+	     */
+	    E top();
+	}
     }
 
     interface Meet<
@@ -58,7 +75,9 @@ PoSet<E, C, T>
     C extends Cardinality,
     T extends Meet<E, C, T>
     >
-    extends SemiLattice<E, C, T> {
+    extends
+    SemiLattice<E, C, T>
+    {
 
 	interface Me<E extends Me<E>>
 	extends
@@ -69,6 +88,22 @@ PoSet<E, C, T>
 	     * @return the greatest lower bound of this and that.
 	     */
 	    E meet(E that);
+	}
+
+	interface Bounded<
+	E extends Meet.Me<E>,
+	C extends Cardinality,
+	T extends Meet<E, C, T>
+	>
+	extends
+	Meet<E, C, T>,
+	NonEmptySet<E, T>
+	{
+
+	    /**
+	     * @return the minimum element t so that t &le; x &forall; x &isin; X.
+	     */
+	    E  bottom();
 	}
     }
 }
