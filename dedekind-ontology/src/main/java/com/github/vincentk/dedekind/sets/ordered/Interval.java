@@ -4,13 +4,13 @@ import com.github.vincentk.dedekind.sets.Cardinality;
 
 /**
  * @see https://en.wikipedia.org/wiki/Interval_(mathematics)
+ * @see https://en.wikipedia.org/wiki/Partially_ordered_set#Intervals
  */
 public interface Interval<
 E extends PoSet.Pe<E>,
 A extends PoSet<E, C, A>,
-B extends A,
 C extends Cardinality,
-T extends Interval<E, A, B, C, T>
+T extends Interval<E, A, C, T>
 >
 extends PoSet<E, C, T>
 {
@@ -25,23 +25,21 @@ extends PoSet<E, C, T>
     interface HalfBounded<
     E extends PoSet.Pe<E>,
     A extends PoSet<E, C, A>,
-    B extends A,
     C extends Cardinality,
-    T extends HalfBounded<E, A, B, C, T>
+    T extends HalfBounded<E, A, C, T>
     >
-    extends Interval<E, A, B, C, T> {
+    extends Interval<E, A, C, T> {
 
 	interface Left<
 	E extends PoSet.Pe<E>,
 	A extends PoSet<E, C, A>,
-	B extends A,
 	C extends Cardinality,
-	T extends Left<E, A, B, C, T>
+	T extends Left<E, A, C, T>
 	>
-	extends HalfBounded<E, A, B, C, T> {
+	extends HalfBounded<E, A, C, T> {
 
 	    /**
-	     * a_min < b &forall; b &isin; B. 
+	     * a_min < b &forall; b &isin; A. 
 	     * 
 	     * @return
 	     */
@@ -51,14 +49,13 @@ extends PoSet<E, C, T>
 	interface Right<
 	E extends PoSet.Pe<E>,
 	A extends PoSet<E, C, A>,
-	B extends A,
 	C extends Cardinality,
-	T extends Right<E, A, B, C, T>
+	T extends Right<E, A, C, T>
 	>
-	extends HalfBounded<E, A, B, C, T> {
+	extends HalfBounded<E, A, C, T> {
 
 	    /**
-	     * a_max > b &forall; b &isin; B. 
+	     * a_max > b &forall; b &isin; A.
 	     * @return
 	     */
 	    E upperBound();
@@ -69,52 +66,47 @@ extends PoSet<E, C, T>
      * Intervals with two boundary values (lower, upper).
      * 
      * @param <A>
-     * @param <B>
      * @param <C>
      * @param <T>
      */
     interface Bounded<
     E extends PoSet.Pe<E>,
     A extends PoSet<E, C, A>,
-    B extends A,
     C extends Cardinality,
-    T extends Bounded<E, A, B, C, T>
+    T extends Bounded<E, A, C, T>
     >
     extends
-    HalfBounded.Left<E, A, B, C, T>,
-    HalfBounded.Right<E, A, B, C, T> {
+    HalfBounded.Left<E, A, C, T>,
+    HalfBounded.Right<E, A, C, T> {
     }
 
     /**
      * Intervals where at least one boundary value is in the set.
      * 
      * @param <A>
-     * @param <B>
      * @param <C>
      * @param <T>
      */
     interface HalfOpen<
     E extends PoSet.Pe<E>,
     A extends PoSet<E, C, A>,
-    B extends A,
     C extends Cardinality,
-    T extends HalfOpen<E, A, B, C, T>
+    T extends HalfOpen<E, A, C, T>
     >
-    extends HalfBounded<E, A, B, C, T> {
+    extends HalfBounded<E, A, C, T> {
 
 	interface Right<
 	E extends PoSet.Pe<E>,
 	A extends PoSet<E, C, A>,
-	B extends A,
 	C extends Cardinality,
-	T extends Right<E, A, B, C, T>
+	T extends Right<E, A, C, T>
 	>
 	extends
-	HalfOpen<E, A, B, C, T>,
-	HalfBounded.Left<E, A, B, C, T> {
+	HalfOpen<E, A, C, T>,
+	HalfBounded.Left<E, A, C, T> {
 
 	    /**
-	     * b_min <= b &forall; b &isin; B. 
+	     * b_min <= b &forall; b &isin; A.
 	     * 
 	     * @return
 	     */
@@ -125,16 +117,15 @@ extends PoSet<E, C, T>
 	interface Left<
 	E extends PoSet.Pe<E>,
 	A extends PoSet<E, C, A>,
-	B extends A,
 	C extends Cardinality,
-	T extends Left<E, A, B, C, T>
+	T extends Left<E, A, C, T>
 	>
 	extends
-	HalfOpen<E, A, B, C, T>,
-	HalfBounded.Right<E, A, B, C, T>
+	HalfOpen<E, A, C, T>,
+	HalfBounded.Right<E, A, C, T>
 	{
 	    /**
-	     * b_max >= b &forall; b &isin; B. 
+	     * b_max >= b &forall; b &isin; A. 
 	     * @return
 	     */
 	    @Override
@@ -154,13 +145,12 @@ extends PoSet<E, C, T>
     interface Closed<
     E extends PoSet.Pe<E>,
     A extends PoSet<E, C, A>,
-    B extends A,
     C extends Cardinality,
-    T extends Closed<E, A, B, C, T>
+    T extends Closed<E, A, C, T>
     >
     extends
-    Bounded<E, A, B, C, T>,
-    HalfOpen.Left<E, A, B, C, T>,
-    HalfOpen.Right<E, A, B, C, T> {
+    Bounded<E, A, C, T>,
+    HalfOpen.Left<E, A, C, T>,
+    HalfOpen.Right<E, A, C, T> {
     }
 }

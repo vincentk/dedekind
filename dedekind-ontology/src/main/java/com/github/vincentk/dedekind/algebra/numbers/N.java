@@ -27,7 +27,7 @@ extends
 SemiRings.Naturals,
 Finite<N.Nat, Cardinality.Finite, T>,
 NumberLine<N.Nat, Cardinality.Finite, T>,
-Interval.HalfOpen.Right<N.Nat, T, T, Cardinality.Finite, T>
+Interval.HalfOpen.Right<N.Nat, T, Cardinality.Finite, T>
 {
     /**
      * Elements &isin; {@link Z}.

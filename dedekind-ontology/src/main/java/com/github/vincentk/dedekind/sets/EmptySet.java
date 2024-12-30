@@ -1,12 +1,14 @@
 package com.github.vincentk.dedekind.sets;
 
+import java.util.function.Predicate;
+
 /**
  * There exists exactly one empty set denoted as &empty; .
  * I.e. in java terminology, this is a singleton.
  * 
  * @param <E> ignored
  */
-final class EmptySet<E extends Set.Element<E>>
+public final class EmptySet<E extends Set.Element<E>>
 implements Set<E, EmptySet<E>>{
 
     @Override
@@ -15,7 +17,7 @@ implements Set<E, EmptySet<E>>{
     }
 
     @Override
-    public Set<E, ?> intersection(Set<E, ?> that) {
+    public EmptySet<E> intersection(Set<E, ?> that) {
 	return this;
     }
 
@@ -34,7 +36,20 @@ implements Set<E, EmptySet<E>>{
 	return false;
     }
 
+    @Override
+    public EmptySet<E> where(Predicate<E> Φ) {
+	return this;
+    }
+
     private EmptySet() {}
 
-    static final EmptySet<?> EMPTY = new EmptySet<>();
+    private static final EmptySet<?> EMPTY = new EmptySet<>();
+
+    @SuppressWarnings("unchecked")
+    public static
+    <E extends Set.Element<E>> 
+    EmptySet<E>
+    empty() {
+	return (EmptySet<E>) EMPTY;
+    }
 }

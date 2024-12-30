@@ -18,7 +18,7 @@ C extends Cardinality.Countable,
 
 E extends TotallyOrdered.Oe<E>,
 D extends TotallyOrdered<E, C, D>,
-I extends Interval<E, D, D, C, I>
+I extends Interval.HalfOpen.Right<E, D, C, I>
 >
 extends Family<R, C, E, I>
 {

@@ -44,7 +44,7 @@ NumberLine<E, Cardinality.Countable, T>
     interface Z64
     extends
     Z<Z64.Int64, Z64>,
-    Interval.Closed<Z64.Int64, Z64, Z64, Cardinality.Countable, Z64>
+    Interval.Closed<Z64.Int64, Z64, Cardinality.Countable, Z64>
     {
 	public interface Int64
 	extends Integer<Int64>

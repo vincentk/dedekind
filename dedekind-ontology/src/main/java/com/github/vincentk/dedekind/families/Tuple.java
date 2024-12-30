@@ -20,7 +20,7 @@ C extends Cardinality.Finite,
 // Declaration of domain elements and the domain:
 E extends SemiRings.Naturals & TotallyOrdered.Oe<E>,
 D extends TotallyOrdered<E, C, D>,
-I extends Interval.Bounded<E, D, D, C, I>,
+I extends Interval.Closed<E, D, C, I>,
 
 // Self-reference to the implementation type:
 T extends Tuple<M, C, E, D, I, T>

@@ -3,6 +3,8 @@ package com.github.vincentk.dedekind.sets.binary.relation.homogeneous;
 /**
  * @param <T>
  * 
+ * Notably, a {@link PreOrder} is not required to be symmetric.
+ * 
  * @see https://en.wikipedia.org/wiki/Preorder
  */
 public interface PreOrder<T> {
