@@ -19,7 +19,7 @@ interface Set<
 E extends Set.Element<E>,
 T extends Set<E, T>>
 extends
-Identity<T>
+Identity<Set<E, ?>>
 //permits EmptySet<?>, NonEmptySet<E, ?>
 {
     /**

@@ -33,7 +33,7 @@ implements Set<E, EmptySet<E>>{
 
     @Override
     public boolean sup(Set<E, ?> that) {
-	return false;
+	return that.isEmpty();
     }
 
     @Override
