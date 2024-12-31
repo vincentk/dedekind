@@ -9,7 +9,6 @@ import com.github.vincentk.dedekind.geometry.MetricSpace;
 import com.github.vincentk.dedekind.geometry.NumberLine;
 import com.github.vincentk.dedekind.sets.Cardinality;
 import com.github.vincentk.dedekind.sets.Cardinality.Finite.PowerOfTwo;
-import com.github.vincentk.dedekind.sets.FiniteSet.B64;
 import com.github.vincentk.dedekind.sets.Set;
 import com.github.vincentk.dedekind.sets.ordered.ConvexSet;
 

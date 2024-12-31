@@ -27,9 +27,9 @@ T extends N<E, S, T>
 >
 extends
 SemiRings.Naturals,
-CountableSet<E, Cardinality.Countable, T>,
-NumberLine<E, Cardinality.Countable, T>,
-ConvexSet.HalfOpen.Right<E, T, Cardinality.Countable, T>
+CountableSet<E, S, T>,
+NumberLine<E, S, T>,
+ConvexSet.HalfOpen.Right<E, T, S, T>
 {
     /**
      * Elements &isin; {@link N}.
