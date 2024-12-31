@@ -4,7 +4,7 @@ import com.github.vincentk.dedekind.sets.Cardinality;
 
 /**
  * A {@link ConvexSet} is a generalization of an interval on the real number line
- * to partially ordered sets ({@link PoSet}.
+ * to partially ordered sets ({@link PoSet}).
  * 
  * The following property holds for a convex set I &sub; P:
  * <p>

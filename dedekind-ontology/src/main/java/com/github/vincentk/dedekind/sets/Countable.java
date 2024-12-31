@@ -1,5 +1,6 @@
 package com.github.vincentk.dedekind.sets;
 
+import com.github.vincentk.dedekind.algebra.numbers.N;
 import com.github.vincentk.dedekind.families.Sequence;
 import com.github.vincentk.dedekind.sets.ordered.TotallyOrdered;
 import com.github.vincentk.dedekind.sets.unary.function.Lambda;
@@ -26,6 +27,6 @@ Set<E, T>
      * 
      * @see https://en.wikipedia.org/wiki/Enumeration#Set_theory
      */
-    <N extends TotallyOrdered.Oe<N>>
-    Sequence<E, C, N, ?, ?> enumerate(Lambda<N, E, ?> enumeration);
+    Sequence<E, C, N, ?, ?>
+    enumerate(Lambda<N.Nat, E, ?> enumeration);
 }

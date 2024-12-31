@@ -14,7 +14,7 @@ import com.github.vincentk.dedekind.sets.unary.function.Lambda;
  */
 public final class EmptySet<E extends Element<E>>
 implements
-Finite<E, Cardinality.Finite, EmptySet<E>>
+FiniteSet.B64<E, Cardinality.Finite.PowerOfTwo.B64.Empty, EmptySet<E>>
 {
 
     @Override
@@ -57,12 +57,6 @@ Finite<E, Cardinality.Finite, EmptySet<E>>
     EmptySet<E>
     empty() {
 	return (EmptySet<E>) EMPTY;
-    }
-
-    @Override
-    public <N extends Oe<N>> Sequence<E, Finite, N, ?, ?> enumerate(Lambda<N, E, ?> enumeration) {
-	// TODO Auto-generated method stub
-	return null;
     }
 
     @Override

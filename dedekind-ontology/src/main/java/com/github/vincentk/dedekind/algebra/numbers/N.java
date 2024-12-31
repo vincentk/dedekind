@@ -10,27 +10,29 @@ import com.github.vincentk.dedekind.algebra.structures.SemiRing;
 import com.github.vincentk.dedekind.geometry.MetricSpace;
 import com.github.vincentk.dedekind.geometry.NumberLine;
 import com.github.vincentk.dedekind.sets.Cardinality;
-import com.github.vincentk.dedekind.sets.Finite;
+import com.github.vincentk.dedekind.sets.Countable;
 import com.github.vincentk.dedekind.sets.ordered.ConvexSet;
 import com.github.vincentk.dedekind.sets.ordered.TotallyOrdered;
 
 /**
  * The natural numbers.
  */
+@SuppressWarnings("hiding")
 public interface N<
 //Element type:
 E extends N.Natural<E>,
+C extends Cardinality.Countable,
 //Implementation type:
-T extends N<E, T>
+T extends N<E, C, T>
 >
 extends
 SemiRings.Naturals,
-Finite<N.Nat, Cardinality.Finite, T>,
-NumberLine<N.Nat, Cardinality.Finite, T>,
-ConvexSet.HalfOpen.Right<N.Nat, T, Cardinality.Finite, T>
+Countable<N.Nat, Cardinality.Countable, T>,
+NumberLine<N.Nat, Cardinality.Countable, T>,
+ConvexSet.HalfOpen.Right<N.Nat, T, Cardinality.Countable, T>
 {
     /**
-     * Elements &isin; {@link Z}.
+     * Elements &isin; {@link N}.
      * 
      * @param <E>
      */

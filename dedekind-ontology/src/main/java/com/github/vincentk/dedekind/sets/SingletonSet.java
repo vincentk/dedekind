@@ -11,7 +11,7 @@ import com.github.vincentk.dedekind.sets.unary.function.Lambda;
 public interface SingletonSet<E extends Element<E>, S extends SingletonSet<E, S>>
 extends
 NonEmptySet<E, S>,
-Finite<E, Cardinality.Finite, S>
+FiniteSet.B64<E, Cardinality.Finite.PowerOfTwo.B64, S>
 {
     E elem();
 
@@ -23,12 +23,6 @@ Finite<E, Cardinality.Finite, S>
     @Override
     default boolean sub(Set<E, ?> that) {
 	return elem().isin(that);
-    }
-
-    @Override
-    default <N extends Oe<N>> Sequence<E, Finite, N, ?, ?> enumerate(Lambda<N, E, ?> enumeration) {
-	// TODO Auto-generated method stub
-	return null;
     }
 
     @Override

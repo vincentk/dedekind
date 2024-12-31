@@ -9,7 +9,7 @@ import com.github.vincentk.dedekind.algebra.structures.SemiRing;
 import com.github.vincentk.dedekind.geometry.MetricSpace;
 import com.github.vincentk.dedekind.geometry.NumberLine;
 import com.github.vincentk.dedekind.sets.Cardinality;
-import com.github.vincentk.dedekind.sets.Finite;
+import com.github.vincentk.dedekind.sets.FiniteSet;
 import com.github.vincentk.dedekind.sets.ordered.TotallyOrdered;
 
 /**
@@ -21,7 +21,7 @@ public interface B
 extends
 SemiRing<B.Bool, B>,
 NumberLine<B.Bool, Cardinality.Finite, B>,
-Finite<B.Bool, Cardinality.Finite, B>,
+FiniteSet.B64<B.Bool, Cardinality.Finite.PowerOfTwo.B64, B>,
 Booleans
 {
     static Be bool(boolean n) {
