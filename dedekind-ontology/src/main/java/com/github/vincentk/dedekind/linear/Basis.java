@@ -23,6 +23,6 @@ C extends Cardinality,
 S extends Basis<E, F, C, S>
 >
 extends
-Vector<E, F, S>
+Vector<E, C, F, S>
 {
 }

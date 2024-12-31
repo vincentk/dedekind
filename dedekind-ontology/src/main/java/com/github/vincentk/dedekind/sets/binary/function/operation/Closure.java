@@ -1,5 +1,6 @@
 package com.github.vincentk.dedekind.sets.binary.function.operation;
 
+import com.github.vincentk.dedekind.sets.Cardinality;
 import com.github.vincentk.dedekind.sets.Element;
 import com.github.vincentk.dedekind.sets.Set;
 
@@ -28,16 +29,17 @@ import com.github.vincentk.dedekind.sets.Set;
  * @see https://en.wikipedia.org/wiki/Closure_(mathematics)
  */
 public interface Closure<
+C extends Cardinality,
 // Superset:
 E extends Element<E> & BinaryOperation<E, ?>,
-A extends Set<E, ?>,
+A extends Set<E, ? super C, ?>,
 // Subset:
 F extends Element<F> & BinaryOperation<F, ?>,
-B extends Set<F, ?>,
+B extends Set<F, ? extends C, ?>,
 // Implementing class:
-C extends Set<E, C> & Closure<E, A, F, B, C>
+T extends Set<E, C, T> & Closure<C, E, A, F, B, T>
 >
-extends Set<E, C>, BinaryOperation<F, C>
+extends Set<E, C, T>, BinaryOperation<F, T>
 {
     // Enable to force a type check:
     B ap(B a);

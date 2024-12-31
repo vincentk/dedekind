@@ -14,7 +14,7 @@ R extends Element<R>,
 C extends Cardinality,
 // Domain and its elements:
 E extends Element<E>,
-D extends Set<E, D>
+D extends Set<E, C, D>
 >
 {
     R at(E e);

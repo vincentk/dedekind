@@ -1,5 +1,7 @@
 package com.github.vincentk.dedekind.algebra.structures;
 
+import com.github.vincentk.dedekind.sets.Cardinality;
+
 /**
  * An associative {@link Magma}.
  * 
@@ -9,9 +11,10 @@ package com.github.vincentk.dedekind.algebra.structures;
  */
 public interface SemiGroup<
 E extends SemiGroup.Oe<E>,
-T extends SemiGroup<E, T>>
+C extends Cardinality,
+T extends SemiGroup<E, C, T>>
 extends
-Magma<E, T>
+Magma<E, C, T>
 {
     interface Oe<E extends Oe<E>>
     extends

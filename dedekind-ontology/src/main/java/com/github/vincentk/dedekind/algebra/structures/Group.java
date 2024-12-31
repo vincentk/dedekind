@@ -2,6 +2,7 @@ package com.github.vincentk.dedekind.algebra.structures;
 
 import java.util.Optional;
 
+import com.github.vincentk.dedekind.sets.Cardinality;
 import com.github.vincentk.dedekind.sets.unary.function.Negation;
 
 /**
@@ -15,9 +16,10 @@ import com.github.vincentk.dedekind.sets.unary.function.Negation;
  */
 public interface Group<
 E extends Group.Ge<E>,
-T extends Group<E, T>>
+C extends Cardinality,
+T extends Group<E, C, T>>
 extends
-Monoid<E, T> {
+Monoid<E, C, T> {
 
     /**
      * Set elements of a group.
@@ -44,8 +46,9 @@ Monoid<E, T> {
      */
     interface P<
     E extends P.Pe<E>,
-    T extends P<E, T>>
-    extends Group<E, T>, Monoid.P<E, T> {
+    C extends Cardinality,
+    T extends P<E, C, T>>
+    extends Group<E, C, T>, Monoid.P<E, C, T> {
 
 	/**
 	 * Set elements of a group under addition.
@@ -83,9 +86,10 @@ Monoid<E, T> {
      */
     interface M<
     E extends M.Me<E>,
-    T extends M<E, T>>
-    extends Group<E, T>,
-    Monoid.M<E, T> {
+    C extends Cardinality,
+    T extends M<E, C, T>>
+    extends Group<E, C, T>,
+    Monoid.M<E, C, T> {
 
 	/**
 	 * Set elements of a group under multiplication.
@@ -125,8 +129,9 @@ Monoid<E, T> {
 	 */
 	interface M0<
 	E extends Group.M.M0.Me0<E>,
-	T extends M0<E, T>>
-	extends Group.M<E, T>
+	C extends Cardinality,
+	T extends M0<E, C, T>>
+	extends Group.M<E, C, T>
 	{
 	    interface Me0<E extends Me0<E>>
 	    extends Group.M.Me<E>, Monoid.M.Te<E>

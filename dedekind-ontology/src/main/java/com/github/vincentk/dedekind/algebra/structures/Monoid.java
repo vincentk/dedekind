@@ -1,5 +1,7 @@
 package com.github.vincentk.dedekind.algebra.structures;
 
+import com.github.vincentk.dedekind.sets.Cardinality;
+
 /**
  * A {@link Magma} with the following properties:
  * 
@@ -14,9 +16,10 @@ package com.github.vincentk.dedekind.algebra.structures;
  */
 public interface Monoid<
 E extends Monoid.Me<E>,
-T extends Monoid<E, T>
+C extends Cardinality,
+T extends Monoid<E, C, T>
 >
-extends SemiGroup<E, T>
+extends SemiGroup<E, C, T>
 {
     /**
      * Set elements of a monoid.
@@ -36,8 +39,9 @@ extends SemiGroup<E, T>
      */
     interface P<
     E extends Monoid.P.Pe<E>,
-    T extends P<E, T>>
-    extends Monoid<E, T>, Magma.P<E, T>
+    C extends Cardinality,
+    T extends P<E, C, T>>
+    extends Monoid<E, C, T>, Magma.P<E, C, T>
     {
 	interface Pe<E extends Pe<E>>
 	extends
@@ -82,10 +86,11 @@ extends SemiGroup<E, T>
      */
     interface M<
     E extends Monoid.M.Te<E>,
-    T extends M<E, T>> 
+    C extends Cardinality,
+    T extends M<E, C, T>> 
     extends
-    Monoid<E, T>,
-    Magma.M<E, T>
+    Monoid<E, C, T>,
+    Magma.M<E, C, T>
     {
 
 	interface Te<E extends Te<E>>

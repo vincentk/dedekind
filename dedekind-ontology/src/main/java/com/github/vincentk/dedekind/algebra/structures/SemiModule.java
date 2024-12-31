@@ -1,5 +1,7 @@
 package com.github.vincentk.dedekind.algebra.structures;
 
+import com.github.vincentk.dedekind.sets.Cardinality;
+
 /**
  * Definition of scalar multiplication over a {@link SemiRing}.
  *
@@ -14,8 +16,9 @@ package com.github.vincentk.dedekind.algebra.structures;
 public interface SemiModule<
 R extends SemiRing.SmrE<R>,
 E extends SemiModule.SmE<R, E>,
-N extends SemiModule<R, E, N>>
-extends Monoid.P<E, N>
+C extends Cardinality,
+N extends SemiModule<R, E, C, N>>
+extends Monoid.P<E, C, N>
 {
     interface SmE<R extends SemiRing.SmrE<R>, E extends SmE<R, E>>
     extends Monoid.P.Pe<E>

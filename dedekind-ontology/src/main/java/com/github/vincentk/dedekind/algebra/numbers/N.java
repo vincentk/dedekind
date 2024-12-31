@@ -11,7 +11,7 @@ import com.github.vincentk.dedekind.algebra.structures.SemiRing;
 import com.github.vincentk.dedekind.geometry.MetricSpace;
 import com.github.vincentk.dedekind.geometry.NumberLine;
 import com.github.vincentk.dedekind.sets.Cardinality;
-import com.github.vincentk.dedekind.sets.Countable;
+import com.github.vincentk.dedekind.sets.CountableSet;
 import com.github.vincentk.dedekind.sets.ordered.ConvexSet;
 import com.github.vincentk.dedekind.sets.ordered.TotallyOrdered;
 
@@ -27,7 +27,7 @@ T extends N<E, S, T>
 >
 extends
 SemiRings.Naturals,
-Countable<E, Cardinality.Countable, T>,
+CountableSet<E, Cardinality.Countable, T>,
 NumberLine<E, Cardinality.Countable, T>,
 ConvexSet.HalfOpen.Right<E, T, Cardinality.Countable, T>
 {

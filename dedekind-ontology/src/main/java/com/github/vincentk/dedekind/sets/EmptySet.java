@@ -2,8 +2,10 @@ package com.github.vincentk.dedekind.sets;
 
 import java.util.function.Predicate;
 
+import com.github.vincentk.dedekind.algebra.numbers.N;
 import com.github.vincentk.dedekind.algebra.numbers.N.Nat;
 import com.github.vincentk.dedekind.families.Sequence;
+import com.github.vincentk.dedekind.sets.Cardinality.Small.Empty;
 import com.github.vincentk.dedekind.sets.unary.function.Lambda;
 
 /**
@@ -14,7 +16,8 @@ import com.github.vincentk.dedekind.sets.unary.function.Lambda;
  */
 public final class EmptySet<E extends Element<E>>
 implements
-FiniteSet.B64<E, Cardinality.Finite.PowerOfTwo.B64.Empty, EmptySet<E>>
+Empty,
+FiniteSet.B64<E, Empty, EmptySet<E>>
 {
 
     @Override
@@ -23,22 +26,22 @@ FiniteSet.B64<E, Cardinality.Finite.PowerOfTwo.B64.Empty, EmptySet<E>>
     }
 
     @Override
-    public EmptySet<E> intersection(Set<E, ?> that) {
+    public EmptySet<E> intersection(Set<E, ?, ?> that) {
 	return this;
     }
 
     @Override
-    public Set<E, ?> union(Set<E, ?> that) {
+    public Set<E, ?, ?> union(Set<E, ?, ?> that) {
 	return that;
     }
 
     @Override
-    public boolean sub(Set<E, ?> that) {
+    public boolean sub(Set<E, ?, ?> that) {
 	return true;
     }
 
     @Override
-    public boolean sup(Set<E, ?> that) {
+    public boolean sup(Set<E, ?, ?> that) {
 	return that.isEmpty();
     }
 
@@ -59,15 +62,15 @@ FiniteSet.B64<E, Cardinality.Finite.PowerOfTwo.B64.Empty, EmptySet<E>>
 	return (EmptySet<E>) EMPTY;
     }
 
-    @Override
-    public long cardinality() {
-	return 0;
-    }
 
     @Override
     public
-    <D extends Nat<D>>
-    Sequence<E, Empty, D, ?> enumerate(Lambda<D, E, ?> enumeration) {
+    <
+    Z extends Nat<Z>,
+    D extends N<Z, Empty, D>
+    >
+    Sequence<E, Empty, Z, D>
+    enumerate(Lambda<Z, E, ?> enumeration) {
 	// TODO Auto-generated method stub
 	return null;
     }

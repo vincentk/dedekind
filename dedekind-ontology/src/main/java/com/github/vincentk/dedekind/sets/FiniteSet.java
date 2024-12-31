@@ -11,7 +11,7 @@ C extends Cardinality.Finite,
 T extends FiniteSet<E, C, T>
 >
 extends
-Countable<E, C, T>,
+CountableSet<E, C, T>,
 Cardinality.Finite
 {
     

@@ -5,7 +5,9 @@ package com.github.vincentk.dedekind.families;
 
 import com.github.vincentk.dedekind.algebra.numbers.N;
 import com.github.vincentk.dedekind.sets.Cardinality;
+import com.github.vincentk.dedekind.sets.Cardinality.Small;
 import com.github.vincentk.dedekind.sets.Element;
+import com.github.vincentk.dedekind.sets.EmptySet;
 
 /**
  * @see https://en.wikipedia.org/wiki/Sequence#Definition
@@ -39,7 +41,28 @@ Family<R, C, E, D>
     D extends N<E, C, D>
     >
     extends Sequence<R, C, E, D>{
-	
+
 	E length();
+    }
+
+    record Empty<
+    R extends Element<R>,
+    E extends N.Nat<E>,
+    D extends EmptySet<E>
+    >
+    ()
+    implements Finite<R, Small.Empty, E, D>
+    {
+	@Override
+	public R at(E e) {
+	    // TODO Auto-generated method stub
+	    return null;
+	}
+
+	@Override
+	public E length() {
+	    // TODO Auto-generated method stub
+	    return null;
+	}
     }
 }

@@ -2,6 +2,7 @@ package com.github.vincentk.dedekind.algebra.structures;
 
 
 import com.github.vincentk.dedekind.algebra.sets.Rings;
+import com.github.vincentk.dedekind.sets.Cardinality;
 import com.github.vincentk.dedekind.sets.binary.function.operation.Closure;
 
 /**
@@ -10,11 +11,12 @@ import com.github.vincentk.dedekind.sets.binary.function.operation.Closure;
  */
 public interface Ring<
 E extends Ring.Re<E>,
-R extends Ring<E, R>>
+C extends Cardinality,
+R extends Ring<E, C, R>>
 extends
 Rings,
-SemiRing<E, R>,
-Group.P<E, R>
+SemiRing<E, C, R>,
+Group.P<E, C, R>
 {
     interface Re<R extends Re<R>>
     extends
@@ -45,9 +47,10 @@ Group.P<E, R>
      */
     interface Integer<
     E extends Re<E>,
-    Z extends Integer<E, Z>
+    C extends Cardinality.Countable,
+    Z extends Integer<E, C, Z>
     >
-    extends Ring<E, Z>, Integers,
-    Closure<E, Z, E, Z, Z>
+    extends Ring<E, C, Z>, Integers,
+    Closure<C, E, Z, E, Z, Z>
     {}
 }

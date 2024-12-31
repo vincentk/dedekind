@@ -1,22 +1,23 @@
 package com.github.vincentk.dedekind.sets;
 
+import com.github.vincentk.dedekind.algebra.numbers.N;
 import com.github.vincentk.dedekind.algebra.numbers.N.Nat;
 import com.github.vincentk.dedekind.families.Sequence;
 import com.github.vincentk.dedekind.sets.unary.function.Lambda;
 
 /**
- * A {@link Countable} set. Its elements can be enumerated.
+ * A {@link CountableSet}. Its elements can be enumerated.
  * 
  * @param <C> cardinality
  * @param <T> implementation type
  */
-public interface Countable<
+public interface CountableSet<
 E extends Element<E>,
 C extends Cardinality.Countable,
-T extends Countable<E, C, T>
+T extends CountableSet<E, C, T>
 >
 extends
-Set<E, T>
+Set<E, C, T>
 {
     /**
      * @param enumeration
@@ -26,7 +27,10 @@ Set<E, T>
      * 
      * @param <D> natural numbers
      */
-    <D extends Nat<D>>
-    Sequence<E, C, D, ?>
-    enumerate(Lambda<D, E, ?> enumeration);
+    <
+    Z extends Nat<Z>,
+    D extends N<Z, C, D>
+    >
+    Sequence<E, C, Z, D>
+    enumerate(Lambda<Z, E, ?> enumeration);
 }

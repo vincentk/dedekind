@@ -2,6 +2,7 @@ package com.github.vincentk.dedekind.algebra.structures;
 
 
 import com.github.vincentk.dedekind.algebra.sets.Rings;
+import com.github.vincentk.dedekind.sets.Cardinality;
 import com.github.vincentk.dedekind.sets.binary.function.operation.Closure;
 
 /**
@@ -11,12 +12,13 @@ import com.github.vincentk.dedekind.sets.binary.function.operation.Closure;
  */
 public interface SemiRing<
 S extends SemiRing.SmrE<S>,
-R extends SemiRing<S, R>
+C extends Cardinality,
+R extends SemiRing<S, C, R>
 >
 extends
 Rings,
-Monoid.P<S, R>,
-Monoid.M<S, R>
+Monoid.P<S, C, R>,
+Monoid.M<S, C, R>
 {
     interface SmrE<E extends SmrE<E>>
     extends
@@ -54,9 +56,10 @@ Monoid.M<S, R>
      */
     interface Natural<
     E extends SmrE<E>,
-    T extends Natural<E, T>>
+    C extends Cardinality.Countable,
+    T extends Natural<E, C, T>>
     extends
-    SemiRing<E, T>, Naturals,
-    Closure<E, T, E, T, T>
+    SemiRing<E, C, T>, Naturals,
+    Closure<C, E, T, E, T, T>
     {}
 }

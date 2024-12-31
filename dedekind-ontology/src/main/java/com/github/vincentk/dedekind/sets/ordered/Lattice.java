@@ -39,7 +39,7 @@ SemiLattice.Join<E, C, T>,  SemiLattice.Meet<E, C, T> {
     Lattice<E, C, T>,
     SemiLattice.Join.Bounded<E, C, T>,
     SemiLattice.Meet.Bounded<E, C, T>,
-    NonEmptySet<E, T>
+    NonEmptySet<E, C, T>
     {
     }
 }

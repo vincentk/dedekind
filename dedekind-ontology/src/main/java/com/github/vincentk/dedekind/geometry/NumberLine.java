@@ -21,9 +21,9 @@ C1 extends Cardinality,
 T extends NumberLine<E, C1, T>
 >
 extends
-SemiRing<E, T>,
+SemiRing<E, C1, T>,
 TotallyOrdered<E, C1, T>,
-MetricSpace<E, E, T>
+MetricSpace<E, C1, E, T>
 {
     
     /**

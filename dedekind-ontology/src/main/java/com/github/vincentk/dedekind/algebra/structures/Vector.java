@@ -1,5 +1,7 @@
 package com.github.vincentk.dedekind.algebra.structures;
 
+import com.github.vincentk.dedekind.sets.Cardinality;
+
 /**
  * An element of a vector space satisfying the vector axioms.
  *
@@ -13,12 +15,13 @@ package com.github.vincentk.dedekind.algebra.structures;
  */
 public interface Vector<
 E extends Field.Fe<E>,
+C extends Cardinality,
 F extends Vector.Ve<E, F>,
 // Self-reference:
-V extends Vector<E, F, V>
+V extends Vector<E, C, F, V>
 >
 extends
-Module<E, F, V>
+Module<E, F, C, V>
 {
     interface Ve<R extends Ring.SmrE<R>, E extends Me<R, E>>
     extends Module.Me<R, E>

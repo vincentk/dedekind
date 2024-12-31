@@ -10,16 +10,16 @@ import com.github.vincentk.dedekind.algebra.structures.Field;
 import com.github.vincentk.dedekind.geometry.MetricSpace;
 import com.github.vincentk.dedekind.geometry.NumberLine;
 import com.github.vincentk.dedekind.sets.Cardinality;
-import com.github.vincentk.dedekind.sets.Countable;
+import com.github.vincentk.dedekind.sets.CountableSet;
 import com.github.vincentk.dedekind.sets.ordered.TotallyOrdered;
 
 /**
  * An implementation of rational numbers.
  */
 public interface Q extends
-Countable<Q.Rat, Cardinality.Countable, Q>,
+CountableSet<Q.Rat, Cardinality.Countable, Q>,
 NumberLine<Q.Rat, Cardinality.Countable, Q>,
-Field.Rationals<Q.Rat, Q>
+Field.Rationals<Q.Rat, Cardinality.Countable, Q>
 {
     public static final Q.Rat ZERO = rational(0, 1), UNIT = rational(1, 1);
 

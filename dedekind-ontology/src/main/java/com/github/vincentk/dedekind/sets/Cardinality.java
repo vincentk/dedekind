@@ -36,15 +36,35 @@ public interface Cardinality {
 	    interface B64 extends PowerOfTwo { 
 
 		long cardinality(); 
-
-		interface Empty extends B64 {
-
-		    @Override
-		    default long cardinality() {
-			return 0;
-		    }
-		}
 	    }
 	}
+    }
+
+    interface Small extends Finite.PowerOfTwo.B64 {
+
+	interface Two extends B64 {
+
+	    @Override
+	    default long cardinality() {
+		return 2;
+	    }
+	}
+	
+	interface One extends Two {
+
+	    @Override
+	    default long cardinality() {
+		return 1;
+	    }
+	}
+
+	interface Empty extends One {
+
+	    @Override
+	    default long cardinality() {
+		return 0;
+	    }
+	}
+
     }
 }
