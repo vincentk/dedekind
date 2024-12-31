@@ -3,6 +3,7 @@
  */
 package com.github.vincentk.dedekind.algebra.numbers;
 
+import com.github.vincentk.dedekind.algebra.numbers.N.N63.Ne;
 import com.github.vincentk.dedekind.algebra.numbers.Z.Z64;
 import com.github.vincentk.dedekind.algebra.numbers.Z.Z64.Int64;
 import com.github.vincentk.dedekind.algebra.sets.SemiRings;
@@ -26,9 +27,9 @@ T extends N<E, S, T>
 >
 extends
 SemiRings.Naturals,
-Countable<N.Nat63, Cardinality.Countable, T>,
-NumberLine<N.Nat63, Cardinality.Countable, T>,
-ConvexSet.HalfOpen.Right<N.Nat63, T, Cardinality.Countable, T>
+Countable<E, Cardinality.Countable, T>,
+NumberLine<E, Cardinality.Countable, T>,
+ConvexSet.HalfOpen.Right<E, T, Cardinality.Countable, T>
 {
     /**
      * Elements &isin; {@link N}.
@@ -45,57 +46,83 @@ ConvexSet.HalfOpen.Right<N.Nat63, T, Cardinality.Countable, T>
     {
     }
 
-    @Override
-    default Nat63 lowerBound() {
-	return ZERO;
-    }
-
-    interface Nat63
-    extends
-    SemiRing.SmrE<Nat63>,
-    TotallyOrdered.Oe<Nat63>,
-    MetricSpace.Me<Nat63, Nat63>
+    interface N63
+    <
+    //Element type:
+    E extends N63.Nat63<E>,
+    S extends Cardinality.Countable,
+    //Implementation type:
+    T extends N<E, S, T>
+    >
     {
-	public long integer();
 
-	@Override
-	default int compareTo(Nat63 o) {
-	    return Long.compare(integer(), o.integer());
+	interface Nat63<I extends Nat63<I>>
+	extends
+	Nat<I>,
+	SemiRing.SmrE<I>,
+	TotallyOrdered.Oe<I>,
+	MetricSpace.Me<I, I>
+	{
+	    long integer();
+
+	    I nat(long val);
+
+	    @Override
+	    default int compareTo(I o) {
+		return Long.compare(integer(), o.integer());
+	    }
+
+	    @Override
+	    default I plus(I that) {
+		return nat(integer() + that.integer());
+	    }
+
+	    @Override
+	    default I times(I that) {
+		return nat(integer() * that.integer());
+	    }
+
+	    @Override
+	    default boolean eq(I that) {
+		return integer() == that.integer();
+	    }
+
+	    @Override
+	    default I distance(I other) {
+		return nat(Math.abs(integer() - other.integer()));
+	    }
+
+	    default Int64 asInt() {
+		return Z64.integer(integer());
+	    }
 	}
 
-	@Override
-	default Ne plus(Nat63 that) {
-	    return nat(integer() + that.integer());
-	}
+	record Ne (long integer) implements Nat63<Ne> {
 
-	@Override
-	default Ne times(Nat63 that) {
-	    return nat(integer() * that.integer());
-	}
+	    public Ne(long integer) {
+		assert integer >= 0;
+		this.integer = integer;
+	    }
 
-	@Override
-	default boolean eq(Nat63 that) {
-	    return integer() == that.integer();
-	}
+	    @Override
+	    public
+	    Ne nat(long val) {
+		return N.nat(val);
+	    }
 
-	@Override
-	default Ne distance(Nat63 other) {
-	    return nat(Math.abs(integer() - other.integer()));
-	}
+	    @Override
+	    public Ne abs() {
+		return this;
+	    }
 
-	default Int64 asInt() {
-	    return Z64.integer(integer());
+	    @Override
+	    public Ne negate() {
+		assert false : "implementation not possible";
+		return null;
+	    }
 	}
     }
 
-    record Ne (long integer) implements Nat63 {
-
-	public Ne(long integer) {
-	    assert integer >= 0;
-	    this.integer = integer;
-	}
-
-    }
 
     static Ne nat(long n) {
 

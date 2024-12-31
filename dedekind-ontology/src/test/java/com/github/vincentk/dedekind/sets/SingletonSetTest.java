@@ -9,8 +9,8 @@ import com.github.vincentk.dedekind.algebra.numbers.N;
 
 public class SingletonSetTest {
 
-    private static final SingletonSet.Ordered<N.Nat63, ?> SUBJECT = new SingletonSet.Ordered.Default<>(N.ONE);
-    private static final EmptySet<N.Nat63> EMPTY = EmptySet.empty();
+    private static final SingletonSet.Ordered<N.N63.Ne, ?> SUBJECT = new SingletonSet.Ordered.Default<>(N.ONE);
+    private static final EmptySet<N.N63.Ne> EMPTY = EmptySet.empty();
 
     @Test
     public void testSingletonSet() {

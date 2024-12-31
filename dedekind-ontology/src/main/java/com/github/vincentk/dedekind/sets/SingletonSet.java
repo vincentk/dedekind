@@ -33,7 +33,7 @@ FiniteSet.B64<E, Cardinality.Finite.PowerOfTwo.B64, S>
     @Override
     default
     <D extends Nat<D>>
-    Sequence<E, Cardinality.Finite.PowerOfTwo.B64, D, ?, ?> enumerate(
+    Sequence<E, Cardinality.Finite.PowerOfTwo.B64, D, ?> enumerate(
 	    Lambda<D, E, ?> enumeration) {
 	// TODO Auto-generated method stub
 	return null;

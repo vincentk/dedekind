@@ -3,7 +3,6 @@
  */
 package com.github.vincentk.dedekind.algebra.numbers;
 
-import com.github.vincentk.dedekind.algebra.numbers.N.Nat63;
 import com.github.vincentk.dedekind.algebra.sets.SemiRings.Booleans;
 import com.github.vincentk.dedekind.algebra.structures.SemiRing;
 import com.github.vincentk.dedekind.geometry.MetricSpace;
@@ -102,7 +101,7 @@ Booleans
 	}
 
 
-	default Nat63 nat() {
+	default N.N63.Ne nat() {
 	    return bool() ? N.ONE : N.ZERO;
 	}
     }

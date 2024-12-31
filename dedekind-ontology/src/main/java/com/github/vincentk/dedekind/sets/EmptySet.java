@@ -67,7 +67,7 @@ FiniteSet.B64<E, Cardinality.Finite.PowerOfTwo.B64.Empty, EmptySet<E>>
     @Override
     public
     <D extends Nat<D>>
-    Sequence<E, Empty, D, ?, ?> enumerate(Lambda<D, E, ?> enumeration) {
+    Sequence<E, Empty, D, ?> enumerate(Lambda<D, E, ?> enumeration) {
 	// TODO Auto-generated method stub
 	return null;
     }

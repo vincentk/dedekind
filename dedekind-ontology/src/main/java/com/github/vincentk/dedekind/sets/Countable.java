@@ -27,6 +27,6 @@ Set<E, T>
      * @param <D> natural numbers
      */
     <D extends Nat<D>>
-    Sequence<E, C, D, ?, ?>
+    Sequence<E, C, D, ?>
     enumerate(Lambda<D, E, ?> enumeration);
 }
