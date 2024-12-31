@@ -3,7 +3,7 @@
  */
 package com.github.vincentk.dedekind.families;
 
-import com.github.vincentk.dedekind.algebra.structures.Magma;
+import com.github.vincentk.dedekind.algebra.numbers.N;
 import com.github.vincentk.dedekind.sets.Cardinality;
 import com.github.vincentk.dedekind.sets.Element;
 import com.github.vincentk.dedekind.sets.ordered.ConvexSet;
@@ -17,11 +17,12 @@ public interface Sequence<
 R extends Element<R>,
 C extends Cardinality.Countable,
 
-E extends TotallyOrdered.Oe<E>,
+E extends N.Nat<E>,
 D extends TotallyOrdered<E, C, D>,
 I extends ConvexSet.HalfOpen.Right<E, D, C, I>
 >
-extends Family<R, C, E, I>
+extends
+Family<R, C, E, I>
 {
     I interval();
 
@@ -39,7 +40,7 @@ extends Family<R, C, E, I>
     R extends Element<R>,
     C extends Cardinality.Finite,
 
-    E extends TotallyOrdered.Oe<E> & Magma.Oe<E>,
+    E extends N.Nat<E>,
     D extends TotallyOrdered<E, C, D>,
     I extends ConvexSet.Closed<E, D, C, I>
     >

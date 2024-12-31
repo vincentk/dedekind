@@ -2,10 +2,10 @@ package com.github.vincentk.dedekind.sets;
 
 import java.util.function.Predicate;
 
+import com.github.vincentk.dedekind.algebra.numbers.N.Nat;
 import com.github.vincentk.dedekind.families.Sequence;
 import com.github.vincentk.dedekind.sets.ordered.Lattice;
 import com.github.vincentk.dedekind.sets.ordered.TotallyOrdered;
-import com.github.vincentk.dedekind.sets.ordered.TotallyOrdered.Oe;
 import com.github.vincentk.dedekind.sets.unary.function.Lambda;
 
 public interface SingletonSet<E extends Element<E>, S extends SingletonSet<E, S>>
@@ -30,8 +30,18 @@ FiniteSet.B64<E, Cardinality.Finite.PowerOfTwo.B64, S>
 	return 1;
     }
 
+    @Override
+    default
+    <D extends Nat<D>>
+    Sequence<E, Cardinality.Finite.PowerOfTwo.B64, D, ?, ?> enumerate(
+	    Lambda<D, E, ?> enumeration) {
+	// TODO Auto-generated method stub
+	return null;
+    }
+
     public record Default<E extends Element<E>>(E elem)
     implements SingletonSet<E, Default<E>> {
+
     }
 
     public interface Ordered<

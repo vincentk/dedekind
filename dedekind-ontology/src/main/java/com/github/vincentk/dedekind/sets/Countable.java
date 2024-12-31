@@ -1,8 +1,7 @@
 package com.github.vincentk.dedekind.sets;
 
-import com.github.vincentk.dedekind.algebra.numbers.N;
+import com.github.vincentk.dedekind.algebra.numbers.N.Nat;
 import com.github.vincentk.dedekind.families.Sequence;
-import com.github.vincentk.dedekind.sets.ordered.TotallyOrdered;
 import com.github.vincentk.dedekind.sets.unary.function.Lambda;
 
 /**
@@ -20,13 +19,14 @@ extends
 Set<E, T>
 {
     /**
-     * 
-     * @param <N> natural numbers
      * @param enumeration
      * @return
      * 
      * @see https://en.wikipedia.org/wiki/Enumeration#Set_theory
+     * 
+     * @param <D> natural numbers
      */
-    Sequence<E, C, N, ?, ?>
-    enumerate(Lambda<N.Nat, E, ?> enumeration);
+    <D extends Nat<D>>
+    Sequence<E, C, D, ?, ?>
+    enumerate(Lambda<D, E, ?> enumeration);
 }

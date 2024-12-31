@@ -1,6 +1,6 @@
 package com.github.vincentk.dedekind.families;
 
-import com.github.vincentk.dedekind.algebra.sets.SemiRings;
+import com.github.vincentk.dedekind.algebra.numbers.N;
 import com.github.vincentk.dedekind.algebra.structures.Magma;
 import com.github.vincentk.dedekind.sets.Cardinality;
 import com.github.vincentk.dedekind.sets.ordered.ConvexSet;
@@ -18,7 +18,7 @@ M extends Magma.Oe<M>,
 C extends Cardinality.Finite,
 
 // Declaration of domain elements and the domain:
-E extends SemiRings.Naturals & TotallyOrdered.Oe<E> & Magma.Oe<E>,
+E extends N.Nat<E>,
 D extends TotallyOrdered<E, C, D>,
 I extends ConvexSet.Closed<E, D, C, I>,
 

@@ -2,8 +2,8 @@ package com.github.vincentk.dedekind.sets;
 
 import java.util.function.Predicate;
 
+import com.github.vincentk.dedekind.algebra.numbers.N.Nat;
 import com.github.vincentk.dedekind.families.Sequence;
-import com.github.vincentk.dedekind.sets.ordered.TotallyOrdered.Oe;
 import com.github.vincentk.dedekind.sets.unary.function.Lambda;
 
 /**
@@ -62,5 +62,13 @@ FiniteSet.B64<E, Cardinality.Finite.PowerOfTwo.B64.Empty, EmptySet<E>>
     @Override
     public long cardinality() {
 	return 0;
+    }
+
+    @Override
+    public
+    <D extends Nat<D>>
+    Sequence<E, Empty, D, ?, ?> enumerate(Lambda<D, E, ?> enumeration) {
+	// TODO Auto-generated method stub
+	return null;
     }
 }

@@ -17,75 +17,69 @@ import com.github.vincentk.dedekind.sets.ordered.TotallyOrdered;
 /**
  * The natural numbers.
  */
-@SuppressWarnings("hiding")
 public interface N<
 //Element type:
-E extends N.Natural<E>,
-C extends Cardinality.Countable,
+E extends N.Nat<E>,
+S extends Cardinality.Countable,
 //Implementation type:
-T extends N<E, C, T>
+T extends N<E, S, T>
 >
 extends
 SemiRings.Naturals,
-Countable<N.Nat, Cardinality.Countable, T>,
-NumberLine<N.Nat, Cardinality.Countable, T>,
-ConvexSet.HalfOpen.Right<N.Nat, T, Cardinality.Countable, T>
+Countable<N.Nat63, Cardinality.Countable, T>,
+NumberLine<N.Nat63, Cardinality.Countable, T>,
+ConvexSet.HalfOpen.Right<N.Nat63, T, Cardinality.Countable, T>
 {
     /**
      * Elements &isin; {@link N}.
      * 
      * @param <E>
      */
-    interface Natural<E extends Natural<E>>
+    interface Nat<E extends Nat<E>>
     extends
     // addition, multiplication:
     SemiRing.SmrE<E>,
     NumberLine.Number<E>,
     // distances etc. are defined:
     MetricSpace.MeG<E, E>
-    {	
+    {
     }
 
     @Override
-    default long cardinality() {
-	return Long.MAX_VALUE;
-    }
-
-    @Override
-    default Nat lowerBound() {
+    default Nat63 lowerBound() {
 	return ZERO;
     }
 
-    interface Nat
+    interface Nat63
     extends
-    SemiRing.SmrE<Nat>,
-    TotallyOrdered.Oe<Nat>,
-    MetricSpace.Me<Nat, Nat>
+    SemiRing.SmrE<Nat63>,
+    TotallyOrdered.Oe<Nat63>,
+    MetricSpace.Me<Nat63, Nat63>
     {
 	public long integer();
 
 	@Override
-	default int compareTo(Nat o) {
+	default int compareTo(Nat63 o) {
 	    return Long.compare(integer(), o.integer());
 	}
 
 	@Override
-	default Ne plus(Nat that) {
+	default Ne plus(Nat63 that) {
 	    return nat(integer() + that.integer());
 	}
 
 	@Override
-	default Ne times(Nat that) {
+	default Ne times(Nat63 that) {
 	    return nat(integer() * that.integer());
 	}
 
 	@Override
-	default boolean eq(Nat that) {
+	default boolean eq(Nat63 that) {
 	    return integer() == that.integer();
 	}
 
 	@Override
-	default Ne distance(Nat other) {
+	default Ne distance(Nat63 other) {
 	    return nat(Math.abs(integer() - other.integer()));
 	}
 
@@ -94,7 +88,7 @@ ConvexSet.HalfOpen.Right<N.Nat, T, Cardinality.Countable, T>
 	}
     }
 
-    record Ne (long integer) implements Nat {
+    record Ne (long integer) implements Nat63 {
 
 	public Ne(long integer) {
 	    assert integer >= 0;

@@ -9,7 +9,7 @@ import com.github.vincentk.dedekind.algebra.numbers.N;
 
 public class EmptySetTest {
 
-    private static final EmptySet<N.Nat> SUBJECT = EmptySet.empty();
+    private static final EmptySet<N.Nat63> SUBJECT = EmptySet.empty();
 
     @Test
     public void testPosetEq() {
