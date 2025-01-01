@@ -1,15 +1,11 @@
 package com.github.vincentk.dedekind.sets;
 
-import com.github.vincentk.dedekind.algebra.numbers.N;
-import com.github.vincentk.dedekind.algebra.numbers.N.Nat;
 import com.github.vincentk.dedekind.families.Sequence;
-import com.github.vincentk.dedekind.sets.unary.function.Lambda;
 
 /**
  * A {@link CountableSet}. Its elements can be enumerated.
  * 
- * @param <C> cardinality
- * @param <T> implementation type
+ * @see https://en.wikipedia.org/wiki/Countable_set
  */
 public interface CountableSet<
 E extends Element<E>,
@@ -20,17 +16,14 @@ extends
 Set<E, C, T>
 {
     /**
-     * @param enumeration
-     * @return
+     * A set is countable exactly if its elements can be arranged in a {@link Sequence}
+     * such that every element is listed.
+     * 
+     * @return the corresponding {@link Sequence}
      * 
      * @see https://en.wikipedia.org/wiki/Enumeration#Set_theory
-     * 
-     * @param <D> natural numbers
+     * @see https://en.wikipedia.org/wiki/Countable_set#Definition
      */
-    <
-    Z extends Nat<Z>,
-    D extends N<Z, C, D>
-    >
-    Sequence<E, C, Z, D>
-    enumerate(Lambda<Z, E, ?> enumeration);
+    Sequence<?, ?, ?, ?, ?, ?>
+    enumerate();
 }

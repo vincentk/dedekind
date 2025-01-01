@@ -29,11 +29,6 @@ Booleans
 
     public static final Be TRUE = new Be(true), FALSE = new Be(false);
 
-    @Override
-    default long cardinality() {
-	return 2;
-    }
-
     interface Bool
     extends
     SemiRing.SmrE<Bool>,

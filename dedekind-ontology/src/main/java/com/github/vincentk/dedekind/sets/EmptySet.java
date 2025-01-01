@@ -2,11 +2,8 @@ package com.github.vincentk.dedekind.sets;
 
 import java.util.function.Predicate;
 
-import com.github.vincentk.dedekind.algebra.numbers.N;
-import com.github.vincentk.dedekind.algebra.numbers.N.Nat;
 import com.github.vincentk.dedekind.families.Sequence;
 import com.github.vincentk.dedekind.sets.Cardinality.Small.Empty;
-import com.github.vincentk.dedekind.sets.unary.function.Lambda;
 
 /**
  * There exists exactly one empty set denoted as &empty; .
@@ -62,16 +59,10 @@ FiniteSet.B64<E, Empty, EmptySet<E>>
 	return (EmptySet<E>) EMPTY;
     }
 
-
     @Override
     public
-    <
-    Z extends Nat<Z>,
-    D extends N<Z, Empty, D>
-    >
-    Sequence<E, Empty, Z, D>
-    enumerate(Lambda<Z, E, ?> enumeration) {
-	// TODO Auto-generated method stub
-	return null;
+    Sequence<?, Empty, ?, ?, ?, ?>
+    enumerate() {
+	return new Sequence.Finite.Empty<>();
     }
 }

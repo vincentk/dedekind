@@ -52,8 +52,9 @@ ConvexSet.HalfOpen.Right<E, T, S, T>
     E extends N63.Nat63<E>,
     S extends Cardinality.Countable,
     //Implementation type:
-    T extends N<E, S, T>
+    T extends N63<E, S, T>
     >
+    extends N<E, S, T>
     {
 
 	interface Nat63<I extends Nat63<I>>

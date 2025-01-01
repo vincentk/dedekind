@@ -18,10 +18,11 @@ E extends Element<E>,
 C extends Cardinality,
 T extends Set<E, C, T>>
 extends
-Identity<Set<E, C, ?>>
+Identity<Set<E, ?, ?>>,
+Element<Set<E, ?, ?>>
 {
     @Override
-    default boolean eq(Set<E, C, ?> that) {
+    default boolean eq(Set<E, ?, ?> that) {
 	return sub(that) && sup(that);
     }
 
@@ -99,4 +100,16 @@ Identity<Set<E, C, ?>>
     default boolean sup(Set<E, ?, ?> that) {
 	return that.complement(this).isEmpty();
     }
+    
+    /**
+     * Apply a function to every element &isin; this.
+     * 
+     * @param Λ
+     * @return the resulting {@link Family}.
+     */
+    /*
+    <D extends Element<D>>
+    Family<E, C, ?, D, ?, ?>
+    map(Lambda<? super E, D, ?> Λ);
+    */
 }

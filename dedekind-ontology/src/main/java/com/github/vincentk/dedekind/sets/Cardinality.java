@@ -34,6 +34,12 @@ public interface Cardinality {
 	     * 64 bits <=> 2^64
 	     */
 	    interface B64 extends PowerOfTwo { 
+	    }
+	    
+	    /**
+	     * 64 bits <=> 2^63 i.e. enumerable by the (signed) 64-bit long.
+	     */
+	    interface B63 extends B64 { 
 
 		long cardinality(); 
 	    }
@@ -42,7 +48,7 @@ public interface Cardinality {
 
     interface Small extends Finite.PowerOfTwo.B64 {
 
-	interface Two extends B64 {
+	interface Two extends B63 {
 
 	    @Override
 	    default long cardinality() {

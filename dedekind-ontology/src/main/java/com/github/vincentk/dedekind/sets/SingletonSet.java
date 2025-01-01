@@ -3,13 +3,11 @@ package com.github.vincentk.dedekind.sets;
 import java.util.function.Predicate;
 
 import com.github.vincentk.dedekind.algebra.numbers.N;
-import com.github.vincentk.dedekind.algebra.numbers.N.Nat;
 import com.github.vincentk.dedekind.families.Sequence;
 import com.github.vincentk.dedekind.sets.Cardinality.Small;
 import com.github.vincentk.dedekind.sets.Cardinality.Small.One;
 import com.github.vincentk.dedekind.sets.ordered.Lattice;
 import com.github.vincentk.dedekind.sets.ordered.TotallyOrdered;
-import com.github.vincentk.dedekind.sets.unary.function.Lambda;
 
 public interface SingletonSet<E extends Element<E>, S extends SingletonSet<E, S>>
 extends
@@ -36,19 +34,12 @@ FiniteSet.B64<E, Small.One, S>
 
     @Override
     default
-    <
-    Z extends Nat<Z>,
-    D extends N<Z, One, D>
-    >
-    Sequence<E, One, Z, D> enumerate(
-	    Lambda<Z, E, ?> enumeration) {
-	// TODO Auto-generated method stub
-	return null;
+    Sequence<?, One, ?, ?, ?, ?> enumerate() {
+	return new Sequence.Finite.SingletonSequence<>(N.ZERO, elem());
     }
 
     public record Default<E extends Element<E>>(E elem)
     implements SingletonSet<E, Default<E>> {
-
     }
 
     public interface Ordered<
