@@ -6,13 +6,14 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import org.junit.jupiter.api.Test;
 
 import com.github.vincentk.dedekind.algebra.numbers.N;
+import com.github.vincentk.dedekind.families.Sequence;
 
 public class EmptySetTest {
 
     private static final EmptySet<N.N63.Ne> SUBJECT = EmptySet.empty();
 
     @Test
-    public void testPosetEq() {
+    public void testEmptySet() {
 
 	assertTrue(SUBJECT.eq(SUBJECT));
 
@@ -35,5 +36,9 @@ public class EmptySetTest {
 	assertThat(SUBJECT.complement(SUBJECT))
 	.as(() -> "The difference between the empty set and itself empty.")
 	.isEqualTo(EmptySet.empty());
+	
+	assertThat(SUBJECT.enumerate())
+	.as(() -> "The enumeration of the empty set is the empty sequence.")
+	.isEqualTo(new Sequence.Finite.Empty<>());
     }
 }

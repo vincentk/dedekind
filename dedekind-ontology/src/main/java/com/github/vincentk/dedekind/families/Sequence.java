@@ -23,7 +23,7 @@ public interface Sequence<
 
 // Domain of the sequence (i.e. a subset of the natural numbers):
 Ni extends N.Nat<Ni>,
-C extends Cardinality.Countable,
+C  extends Cardinality.Countable,
 Ns extends N<Ni, C, Ns>,
 
 // Range of the sequence:

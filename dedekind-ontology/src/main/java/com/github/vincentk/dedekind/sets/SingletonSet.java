@@ -4,8 +4,8 @@ import java.util.function.Predicate;
 
 import com.github.vincentk.dedekind.algebra.numbers.N;
 import com.github.vincentk.dedekind.families.Sequence;
+import com.github.vincentk.dedekind.families.Sequence.Finite.SingletonSequence;
 import com.github.vincentk.dedekind.sets.Cardinality.Small;
-import com.github.vincentk.dedekind.sets.Cardinality.Small.One;
 import com.github.vincentk.dedekind.sets.ordered.Lattice;
 import com.github.vincentk.dedekind.sets.ordered.TotallyOrdered;
 
@@ -16,7 +16,7 @@ Small.One,
 FiniteSet.B64<E, Small.One, S>
 {
     E elem();
-
+    
     @Override
     default Set<E, ? extends Small.One, ?> where(Predicate<E> Φ) {
 	return Φ.test(elem()) ? this : EmptySet.empty();
@@ -34,11 +34,11 @@ FiniteSet.B64<E, Small.One, S>
 
     @Override
     default
-    Sequence<?, One, ?, ?, ?, ?> enumerate() {
+    SingletonSequence<N.N63.Ne, ?, E> enumerate() {
 	return new Sequence.Finite.SingletonSequence<>(N.ZERO, elem());
     }
 
-    public record Default<E extends Element<E>>(E elem)
+    record Default<E extends Element<E>>(E elem)
     implements SingletonSet<E, Default<E>> {
     }
 
@@ -61,7 +61,7 @@ FiniteSet.B64<E, Small.One, S>
 	    return elem();
 	}
 
-	public record Default<E extends TotallyOrdered.Oe<E>>(E elem)
+	record Default<E extends TotallyOrdered.Oe<E>>(E elem)
 	implements Ordered<E, Default<E>> {
 	}
     }

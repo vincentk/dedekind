@@ -16,13 +16,13 @@ public class SingletonSetTest {
     public void testSingletonSet() {
 
 	assertTrue(SUBJECT.eq(SUBJECT));
-	
+
 	assertThat(SUBJECT.intersection(SUBJECT)).isEqualTo(SUBJECT);
 	assertThat(SUBJECT.intersection(EMPTY)).isEqualTo(EMPTY);
-	
+
 	assertThat(SUBJECT.union(SUBJECT)).isEqualTo(SUBJECT);
 	assertThat(SUBJECT.union(EMPTY)).isEqualTo(SUBJECT);
-	
+
 	assertThat(SUBJECT.sub(SUBJECT))
 	.as(() -> "The singleton set is a subset of itself.")
 	.isTrue();
@@ -50,5 +50,10 @@ public class SingletonSetTest {
 	assertThat(SUBJECT.complement(EMPTY))
 	.as(() -> "The difference between the singleton set the empty set is the singleton set.")
 	.isEqualTo(SUBJECT);
+
+	final SingletonSet<N.N63.Ne, ?> im = SUBJECT.enumerate().image();
+	assertThat(im.eq(SUBJECT))
+	.as(() -> "Enumeration and image are mutual inverses.")
+	.isTrue();
     }
 }
