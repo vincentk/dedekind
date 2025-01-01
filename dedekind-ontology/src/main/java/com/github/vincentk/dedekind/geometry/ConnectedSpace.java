@@ -1,5 +1,7 @@
 package com.github.vincentk.dedekind.geometry;
 
+import com.github.vincentk.dedekind.sets.Cardinality;
+
 /**
  * @param <E> typically something like the real numbers.
  * @param <M>
@@ -8,9 +10,10 @@ package com.github.vincentk.dedekind.geometry;
  */
 public interface ConnectedSpace<
 E extends TopologicalSpace.Me<E>,
-M extends ConnectedSpace<E, M>
+C extends Cardinality,
+M extends ConnectedSpace<E, C, M>
 >
 extends
-TopologicalSpace<E, M>
+TopologicalSpace<E, C, M>
 {
 }

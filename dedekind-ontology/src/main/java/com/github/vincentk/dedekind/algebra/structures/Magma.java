@@ -1,5 +1,6 @@
 package com.github.vincentk.dedekind.algebra.structures;
 
+import com.github.vincentk.dedekind.sets.Cardinality;
 import com.github.vincentk.dedekind.sets.Element;
 import com.github.vincentk.dedekind.sets.Set;
 import com.github.vincentk.dedekind.sets.binary.function.arithmetic.Addition;
@@ -18,9 +19,10 @@ import com.github.vincentk.dedekind.sets.binary.function.operation.BinaryOperati
  */
 public interface Magma<
 E extends Magma.Oe<E>,
-T extends Magma<E, T>>
+C extends Cardinality,
+T extends Magma<E, C, T>>
 extends
-Set<E, T>
+Set<E, C, T>
 {
     interface Oe<E extends Oe<E>>
     extends
@@ -36,10 +38,11 @@ Set<E, T>
      */
     interface P<
     E extends P.Pe<E>,
-    T extends P<E, T>
+    C extends Cardinality,
+    T extends P<E, C, T>
     >
     extends
-    Magma<E, T>
+    Magma<E, C, T>
     {
 	/**
 	 * Elements of the magma.
@@ -64,10 +67,11 @@ Set<E, T>
      */
     interface M<
     E extends M.Me<E>,
-    T extends M<E, T>
+    C extends Cardinality,
+    T extends M<E, C, T>
     >
     extends
-    Magma<E, T>
+    Magma<E, C, T>
     {
 	/**
 	 * Elements of the magma.

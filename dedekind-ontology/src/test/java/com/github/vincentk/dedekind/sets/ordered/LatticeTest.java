@@ -9,7 +9,7 @@ import com.github.vincentk.dedekind.sets.SingletonSet;
 
 public class LatticeTest {
 
-    private static final Lattice.Bounded<N.Nat, ?, ?> SUBJECT = new SingletonSet.Ordered.Default<>(N.ONE);
+    private static final Lattice.Bounded<N.N63.Ne, ?, ?> SUBJECT = new SingletonSet.Ordered.Default<>(N.ONE);
 
     @Test
     public void testRelations() {

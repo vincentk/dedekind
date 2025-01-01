@@ -3,13 +3,12 @@
  */
 package com.github.vincentk.dedekind.algebra.numbers;
 
-import com.github.vincentk.dedekind.algebra.numbers.N.Nat;
 import com.github.vincentk.dedekind.algebra.sets.SemiRings.Booleans;
 import com.github.vincentk.dedekind.algebra.structures.SemiRing;
 import com.github.vincentk.dedekind.geometry.MetricSpace;
 import com.github.vincentk.dedekind.geometry.NumberLine;
-import com.github.vincentk.dedekind.sets.Cardinality;
-import com.github.vincentk.dedekind.sets.Finite;
+import com.github.vincentk.dedekind.sets.Cardinality.Small;
+import com.github.vincentk.dedekind.sets.FiniteSet;
 import com.github.vincentk.dedekind.sets.ordered.TotallyOrdered;
 
 /**
@@ -19,9 +18,9 @@ import com.github.vincentk.dedekind.sets.ordered.TotallyOrdered;
  */
 public interface B
 extends
-SemiRing<B.Bool, B>,
-NumberLine<B.Bool, Cardinality.Finite, B>,
-Finite<B.Bool, Cardinality.Finite, B>,
+SemiRing<B.Bool, Small.Two, B>,
+NumberLine<B.Bool, Small.Two, B>,
+FiniteSet.B64<B.Bool, Small.Two, B>,
 Booleans
 {
     static Be bool(boolean n) {
@@ -29,11 +28,6 @@ Booleans
     }
 
     public static final Be TRUE = new Be(true), FALSE = new Be(false);
-
-    @Override
-    default long cardinality() {
-	return 2;
-    }
 
     interface Bool
     extends
@@ -102,7 +96,7 @@ Booleans
 	}
 
 
-	default Nat nat() {
+	default N.N63.Ne nat() {
 	    return bool() ? N.ONE : N.ZERO;
 	}
     }

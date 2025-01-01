@@ -10,13 +10,16 @@ import com.github.vincentk.dedekind.sets.binary.relation.homogeneous.TotalOrder;
  * @param <T> implementation type
  * 
  * @see https://en.wikipedia.org/wiki/Partially_ordered_set#Derived_notions
+ * @see https://en.wikipedia.org/wiki/Total_order
  */
 public interface TotallyOrdered<
 E extends TotallyOrdered.Oe<E>,
 C extends Cardinality,
 T extends TotallyOrdered<E, C, T>
 >
-extends Lattice<E, C, T>{
+extends
+Lattice<E, C, T>
+{
 
     interface Oe<T extends Oe<T>>
     extends

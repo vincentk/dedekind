@@ -15,12 +15,14 @@ import com.github.vincentk.dedekind.sets.binary.relation.homogeneous.Identity;
 public
 interface Set<
 E extends Element<E>,
-T extends Set<E, T>>
+C extends Cardinality,
+T extends Set<E, C, T>>
 extends
-Identity<Set<E, ?>>
+Identity<Set<E, ?, ?>>,
+Element<Set<E, ?, ?>>
 {
     @Override
-    default boolean eq(Set<E, ?> that) {
+    default boolean eq(Set<E, ?, ?> that) {
 	return sub(that) && sup(that);
     }
 
@@ -45,7 +47,7 @@ Identity<Set<E, ?>>
      * @param that
      * @return this &cap; that
      */
-    default Set<E, ?> intersection(Set<E, ?> that) {
+    default Set<E, ?, ?> intersection(Set<E, ?, ?> that) {
 	return where(x -> that.contains(x));
     }
 
@@ -53,7 +55,7 @@ Identity<Set<E, ?>>
      * @param that
      * @return this &cup; that
      */
-    default Set<E, ?> union(Set<E, ?> that) {
+    default Set<E, ?, ?> union(Set<E, ?, ?> that) {
 
 	if (isEmpty()) return that;
 
@@ -62,7 +64,7 @@ Identity<Set<E, ?>>
 	final var cpl = complement(that);
 	if (cpl.isEmpty()) return that;
 
-	return new Union<E>(this, cpl);
+	return new Union<E, C>(this, cpl);
     }
 
     /**
@@ -71,7 +73,7 @@ Identity<Set<E, ?>>
      * 
      * @see https://en.wikipedia.org/wiki/Set-builder_notation
      */
-    Set<E, ?> where(Predicate<E> Φ);
+    Set<E, ?, ?> where(Predicate<E> Φ);
 
     /**
      * The relative complement (a.k.a left difference) of this vs. that.
@@ -79,7 +81,7 @@ Identity<Set<E, ?>>
      * @param that
      * @return {x &isin; this | &not; x &isin; that}
      */
-    default Set<E, ?> complement(Set<E, ?> that) {
+    default Set<E, ?, ?> complement(Set<E, ?, ?> that) {
 	return where(x -> !that.contains(x));
     }
 
@@ -87,7 +89,7 @@ Identity<Set<E, ?>>
      * @param that
      * @return this &sub; that
      */
-    default boolean sub(Set<E, ?> that) {
+    default boolean sub(Set<E, ?, ?> that) {
 	return complement(that).isEmpty();
     }
 
@@ -95,7 +97,19 @@ Identity<Set<E, ?>>
      * @param that
      * @return this &sup; that
      */
-    default boolean sup(Set<E, ?> that) {
+    default boolean sup(Set<E, ?, ?> that) {
 	return that.complement(this).isEmpty();
     }
+    
+    /**
+     * Apply a function to every element &isin; this.
+     * 
+     * @param Λ
+     * @return the resulting {@link Family}.
+     */
+    /*
+    <D extends Element<D>>
+    Family<E, C, ?, D, ?, ?>
+    map(Lambda<? super E, D, ?> Λ);
+    */
 }

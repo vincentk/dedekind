@@ -10,12 +10,13 @@ import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
 import com.github.vincentk.dedekind.algebra.numbers.N;
+import com.github.vincentk.dedekind.algebra.numbers.N.N63.Ne;
 
 public class NeTest {
 
     @ParameterizedTest
     @MethodSource
-    public void testAddition(N.Ne b1, N.Ne b2, N.Ne expected, String name) {
+    public void testAddition(Ne b1, Ne b2, Ne expected, String name) {
         assertThat(b1.十(b2)).isEqualTo(expected);
     }
 
@@ -30,7 +31,7 @@ public class NeTest {
     
     @ParameterizedTest
     @MethodSource
-    public void testMultiplication(N.Ne b1, N.Ne b2, N.Ne expected, String name) {
+    public void testMultiplication(Ne b1, Ne b2, Ne expected, String name) {
         assertThat(b1.times(b2)).isEqualTo(expected);
     }
 
@@ -45,7 +46,7 @@ public class NeTest {
     
     @ParameterizedTest
     @MethodSource
-    public void testDistance(N.Ne b1, N.Ne b2, N.Ne expected) {
+    public void testDistance(Ne b1, Ne b2, Ne expected) {
         assertThat(b1.distance(b2)).isEqualTo(expected);
         assertThat(b2.distance(b1)).isEqualTo(expected);
     }

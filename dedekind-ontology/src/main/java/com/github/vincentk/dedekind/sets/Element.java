@@ -17,7 +17,7 @@ extends Identity<E>
     }
 
     @SuppressWarnings("unchecked")
-    default boolean isin(Set<E, ?> set) {
+    default boolean isin(Set<? super E, ?, ?> set) {
 	return set.contains((E) this);
     }
 }

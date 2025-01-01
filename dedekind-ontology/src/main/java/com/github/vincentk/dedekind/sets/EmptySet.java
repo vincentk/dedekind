@@ -3,8 +3,7 @@ package com.github.vincentk.dedekind.sets;
 import java.util.function.Predicate;
 
 import com.github.vincentk.dedekind.families.Sequence;
-import com.github.vincentk.dedekind.sets.ordered.TotallyOrdered.Oe;
-import com.github.vincentk.dedekind.sets.unary.function.Lambda;
+import com.github.vincentk.dedekind.sets.Cardinality.Small.Empty;
 
 /**
  * There exists exactly one empty set denoted as &empty; .
@@ -14,7 +13,8 @@ import com.github.vincentk.dedekind.sets.unary.function.Lambda;
  */
 public final class EmptySet<E extends Element<E>>
 implements
-Finite<E, Cardinality.Finite, EmptySet<E>>
+Empty,
+FiniteSet.B64<E, Empty, EmptySet<E>>
 {
 
     @Override
@@ -23,22 +23,22 @@ Finite<E, Cardinality.Finite, EmptySet<E>>
     }
 
     @Override
-    public EmptySet<E> intersection(Set<E, ?> that) {
+    public EmptySet<E> intersection(Set<E, ?, ?> that) {
 	return this;
     }
 
     @Override
-    public Set<E, ?> union(Set<E, ?> that) {
+    public Set<E, ?, ?> union(Set<E, ?, ?> that) {
 	return that;
     }
 
     @Override
-    public boolean sub(Set<E, ?> that) {
+    public boolean sub(Set<E, ?, ?> that) {
 	return true;
     }
 
     @Override
-    public boolean sup(Set<E, ?> that) {
+    public boolean sup(Set<E, ?, ?> that) {
 	return that.isEmpty();
     }
 
@@ -60,13 +60,9 @@ Finite<E, Cardinality.Finite, EmptySet<E>>
     }
 
     @Override
-    public <N extends Oe<N>> Sequence<E, Finite, N, ?, ?> enumerate(Lambda<N, E, ?> enumeration) {
-	// TODO Auto-generated method stub
-	return null;
-    }
-
-    @Override
-    public long cardinality() {
-	return 0;
+    public
+    Sequence<?, Empty, ?, ?, ?, ?>
+    enumerate() {
+	return new Sequence.Finite.Empty<>();
     }
 }

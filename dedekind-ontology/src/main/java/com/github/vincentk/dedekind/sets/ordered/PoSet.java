@@ -18,7 +18,7 @@ E extends PoSet.Pe<E>,
 C extends Cardinality,
 T extends PoSet<E, C, T>
 >
-extends Set<E, T>
+extends Set<E, C, T>
 {
     interface Pe<E extends Pe<E>>
     extends

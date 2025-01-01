@@ -3,15 +3,17 @@ package com.github.vincentk.dedekind.algebra.structures;
 import java.util.Optional;
 
 import com.github.vincentk.dedekind.algebra.sets.Fields;
+import com.github.vincentk.dedekind.sets.Cardinality;
 
 /**
  * @see https://en.wikipedia.org/wiki/Field_(mathematics)#Examples
  */
 public interface Field<
 E extends Field.Fe<E>,
-F extends Field<E, F>>
+C extends Cardinality,
+F extends Field<E, C, F>>
 extends
-Ring<E, F>, Group.M<E, F>
+Ring<E, C, F>, Group.M<E, C, F>
 {
     interface Fe<R extends Fe<R>>
     extends
@@ -28,10 +30,11 @@ Ring<E, F>, Group.M<E, F>
      */
     interface Complex<
     E extends Complex.Ce<E>,
-    C extends Complex<E, C>
+    Z extends Cardinality,
+    C extends Complex<E, Z, C>
     >
     extends
-    Field<E, C>
+    Field<E, Z, C>
     {
 	interface Ce<E extends Ce<E>>
 	extends Fe<E>
@@ -52,20 +55,22 @@ Ring<E, F>, Group.M<E, F>
      */
     interface Duals<
     E extends Field.Fe<E>,
-    R extends Duals<E, R>
+    C extends Cardinality,
+    R extends Duals<E, C, R>
     >
     extends
-    Field<E, R> {}
+    Field<E, C, R> {}
 
     /**
      * Real numbers:
      */
     interface Reals<
     E extends Field.Fe<E>,
-    R extends Reals<E, R>
+    C extends Cardinality,
+    R extends Reals<E, C, R>
     >
     extends
-    Field<E, R>, Fields.Reals
+    Field<E, C, R>, Fields.Reals
     {}
 
     /**
@@ -73,10 +78,11 @@ Ring<E, F>, Group.M<E, F>
      */
     interface Rationals<
     E extends Field.Fe<E>,
-    Q extends Rationals<E, Q>
+    C extends Cardinality.Countable,
+    Q extends Rationals<E, C, Q>
     >
     extends
-    Field<E, Q>,
+    Field<E, C, Q>,
     Fields.Rationals
     {}
 

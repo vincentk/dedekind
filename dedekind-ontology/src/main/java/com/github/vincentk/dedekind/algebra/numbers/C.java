@@ -7,15 +7,15 @@ import com.github.vincentk.dedekind.algebra.structures.Field;
 import com.github.vincentk.dedekind.algebra.structures.Vector;
 import com.github.vincentk.dedekind.families.Pair;
 import com.github.vincentk.dedekind.geometry.MetricSpace;
+import com.github.vincentk.dedekind.sets.Cardinality;
 
 /**
  * The set of complex numbers.
  */
 public interface C
 extends
-Field.Complex<C.C64, C>,
-Vector<R.R64, C.C64, C>,
-MetricSpace<R.R64, C.C64, C>
+Field.Complex<C.C64, Cardinality.Uncountable, C>,
+MetricSpace<R.R64, Cardinality.Uncountable, C.C64, C>
 {
     public static final C64 
     ZERO = complex(0, 0),

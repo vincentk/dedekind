@@ -4,6 +4,7 @@ package com.github.vincentk.dedekind.geometry;
 import com.github.vincentk.dedekind.algebra.structures.Group;
 import com.github.vincentk.dedekind.algebra.structures.Magma;
 import com.github.vincentk.dedekind.algebra.structures.Monoid;
+import com.github.vincentk.dedekind.sets.Cardinality;
 
 /**
  * @see https://en.wikipedia.org/wiki/Metric_space
@@ -13,11 +14,12 @@ import com.github.vincentk.dedekind.algebra.structures.Monoid;
  */
 public interface MetricSpace<
 T extends Magma.Oe<T>,
+C extends Cardinality,
 E extends MetricSpace.Me<T, E>,
-M extends MetricSpace<T, E, M>
+M extends MetricSpace<T, C, E, M>
 >
 extends
-TopologicalSpace<E, M>
+TopologicalSpace<E, C, M>
 {
 
     interface Me<

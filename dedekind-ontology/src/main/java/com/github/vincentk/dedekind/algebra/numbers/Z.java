@@ -3,24 +3,29 @@
  */
 package com.github.vincentk.dedekind.algebra.numbers;
 
+import com.github.vincentk.dedekind.algebra.sets.Rings;
 import com.github.vincentk.dedekind.algebra.structures.Ring;
 import com.github.vincentk.dedekind.geometry.MetricSpace;
 import com.github.vincentk.dedekind.geometry.NumberLine;
 import com.github.vincentk.dedekind.sets.Cardinality;
+import com.github.vincentk.dedekind.sets.Cardinality.Finite.PowerOfTwo;
 import com.github.vincentk.dedekind.sets.Set;
 import com.github.vincentk.dedekind.sets.ordered.ConvexSet;
 
 /**
  * The integer numbers.
  */
+@SuppressWarnings("hiding")
 public interface Z<
 // Element type:
 E extends Z.Integer<E>,
+C extends Cardinality.Countable,
 // Implementation type:
-T extends Z<E, T>
+T extends Z<E, C, T>
 >
 extends
-NumberLine<E, Cardinality.Countable, T>
+Rings.Integers,
+NumberLine<E, C, T>
 {
     /**
      * Elements &isin; {@link Z}.
@@ -43,8 +48,8 @@ NumberLine<E, Cardinality.Countable, T>
      */
     interface Z64
     extends
-    Z<Z64.Int64, Z64>,
-    ConvexSet.Closed<Z64.Int64, Z64, Cardinality.Countable, Z64>
+    Z<Z64.Int64, PowerOfTwo.B64, Z64>,
+    ConvexSet.Closed<Z64.Int64, Z64, PowerOfTwo.B64, Z64>
     {
 	public interface Int64
 	extends Integer<Int64>
@@ -105,22 +110,22 @@ NumberLine<E, Cardinality.Countable, T>
 	}
 
 	@Override
-	default Set<Int64, ?> intersection(Set<Int64, ?> that) {
+	default Set<Int64, ?, ?> intersection(Set<Int64, ?, ?> that) {
 	    return that;
 	}
 
 	@Override
-	default Z64 union(Set<Int64, ?> that) {
+	default Z64 union(Set<Int64, ?, ?> that) {
 	    return this;
 	}
 
 	@Override
-	default boolean sub(Set<Int64, ?> that) {
+	default boolean sub(Set<Int64, ?, ?> that) {
 	    return this == that;
 	}
 
 	@Override
-	default boolean sup(Set<Int64, ?> that) {
+	default boolean sup(Set<Int64, ?, ?> that) {
 	    return true;
 	}
 

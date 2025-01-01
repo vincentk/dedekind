@@ -8,11 +8,12 @@ import com.github.vincentk.dedekind.sets.ordered.TotallyOrdered;
 /**
  * A specialization of a {@link MetricSpace} to sets which are {@link TotallyOrdered}.
  * 
- * @param <C>
- * @param <T>
- * 
  * @see https://en.wikipedia.org/wiki/Number_line
  * @see https://en.wikipedia.org/wiki/Interval_(mathematics)#Properties
+ * 
+ * @param <E>
+ * @param <C1>
+ * @param <T>
  */
 public interface NumberLine<
 E extends MetricSpace.Me<E, E> & TotallyOrdered.Oe<E> & SemiRing.SmrE<E>,
@@ -20,9 +21,9 @@ C1 extends Cardinality,
 T extends NumberLine<E, C1, T>
 >
 extends
-SemiRing<E, T>,
+SemiRing<E, C1, T>,
 TotallyOrdered<E, C1, T>,
-MetricSpace<E, E, T>
+MetricSpace<E, C1, E, T>
 {
     
     /**

@@ -27,14 +27,50 @@ public interface Cardinality {
 
     interface Finite extends Countable {
 
-        long cardinality();        
+	interface PowerOfTwo
+	extends Finite
+	{
+	    /**
+	     * 64 bits <=> 2^64
+	     */
+	    interface B64 extends PowerOfTwo { 
+	    }
+	    
+	    /**
+	     * 64 bits <=> 2^63 i.e. enumerable by the (signed) 64-bit long.
+	     */
+	    interface B63 extends B64 { 
+
+		long cardinality(); 
+	    }
+	}
     }
 
-    interface Empty extends Finite {
+    interface Small extends Finite.PowerOfTwo.B64 {
 
-        @Override
-        default long cardinality() {
-            return 0;
-        }
+	interface Two extends B63 {
+
+	    @Override
+	    default long cardinality() {
+		return 2;
+	    }
+	}
+	
+	interface One extends Two {
+
+	    @Override
+	    default long cardinality() {
+		return 1;
+	    }
+	}
+
+	interface Empty extends One {
+
+	    @Override
+	    default long cardinality() {
+		return 0;
+	    }
+	}
+
     }
 }

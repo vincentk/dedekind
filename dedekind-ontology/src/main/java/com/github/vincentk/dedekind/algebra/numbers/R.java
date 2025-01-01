@@ -14,7 +14,7 @@ import com.github.vincentk.dedekind.sets.ordered.TotallyOrdered;
 public interface R
 extends
 NumberLine<R.R64, Cardinality.Uncountable, R>,
-Field.Reals<R.R64, R>
+Field.Reals<R.R64, Cardinality.Uncountable, R>
 {
     public static final R64 ZERO = real(0), ONE = real(1), TWO = real(2), THREE = real(3);
 

@@ -1,10 +1,8 @@
 package com.github.vincentk.dedekind.families;
 
-import com.github.vincentk.dedekind.algebra.sets.SemiRings;
+import com.github.vincentk.dedekind.algebra.numbers.N;
 import com.github.vincentk.dedekind.algebra.structures.Magma;
 import com.github.vincentk.dedekind.sets.Cardinality;
-import com.github.vincentk.dedekind.sets.ordered.ConvexSet;
-import com.github.vincentk.dedekind.sets.ordered.TotallyOrdered;
 
 /**
  * Tuple ~ a finite sequence of number-like things.
@@ -14,18 +12,18 @@ import com.github.vincentk.dedekind.sets.ordered.TotallyOrdered;
  * @see https://en.wikipedia.org/wiki/Tuple
  */
 public interface Tuple<
-M extends Magma.Oe<M>,
+Ri extends Magma.Oe<Ri>,
 C extends Cardinality.Finite,
 
 // Declaration of domain elements and the domain:
-E extends SemiRings.Naturals & TotallyOrdered.Oe<E> & Magma.Oe<E>,
-D extends TotallyOrdered<E, C, D>,
-I extends ConvexSet.Closed<E, D, C, I>,
+Ni extends N.Nat<Ni>,
+Ns extends N<Ni, C, Ns>,
 
-// Self-reference to the implementation type:
-T extends Tuple<M, C, E, D, I, T>
+// Implementation details:
+P extends Pair.OrderedUsingFirst<Ni, Ri, P>,
+T extends Tuple<Ri, C, Ni, Ns, P, T>
 >
 extends
-Sequence.Finite<E, C, E, D, I>
+Sequence.Finite<Ni, C, Ns, Ri, P, T>
 {
 }

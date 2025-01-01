@@ -3,6 +3,7 @@
  */
 package com.github.vincentk.dedekind.algebra.numbers;
 
+import com.github.vincentk.dedekind.algebra.numbers.N.N63.Ne;
 import com.github.vincentk.dedekind.algebra.numbers.Z.Z64;
 import com.github.vincentk.dedekind.algebra.numbers.Z.Z64.Int64;
 import com.github.vincentk.dedekind.algebra.sets.SemiRings;
@@ -10,7 +11,7 @@ import com.github.vincentk.dedekind.algebra.structures.SemiRing;
 import com.github.vincentk.dedekind.geometry.MetricSpace;
 import com.github.vincentk.dedekind.geometry.NumberLine;
 import com.github.vincentk.dedekind.sets.Cardinality;
-import com.github.vincentk.dedekind.sets.Finite;
+import com.github.vincentk.dedekind.sets.CountableSet;
 import com.github.vincentk.dedekind.sets.ordered.ConvexSet;
 import com.github.vincentk.dedekind.sets.ordered.TotallyOrdered;
 
@@ -19,87 +20,110 @@ import com.github.vincentk.dedekind.sets.ordered.TotallyOrdered;
  */
 public interface N<
 //Element type:
-E extends N.Natural<E>,
+E extends N.Nat<E>,
+S extends Cardinality.Countable,
 //Implementation type:
-T extends N<E, T>
+T extends N<E, S, T>
 >
 extends
 SemiRings.Naturals,
-Finite<N.Nat, Cardinality.Finite, T>,
-NumberLine<N.Nat, Cardinality.Finite, T>,
-ConvexSet.HalfOpen.Right<N.Nat, T, Cardinality.Finite, T>
+CountableSet<E, S, T>,
+NumberLine<E, S, T>,
+ConvexSet.HalfOpen.Right<E, T, S, T>
 {
     /**
-     * Elements &isin; {@link Z}.
+     * Elements &isin; {@link N}.
      * 
      * @param <E>
      */
-    interface Natural<E extends Natural<E>>
+    interface Nat<E extends Nat<E>>
     extends
     // addition, multiplication:
     SemiRing.SmrE<E>,
     NumberLine.Number<E>,
     // distances etc. are defined:
     MetricSpace.MeG<E, E>
-    {	
-    }
-
-    @Override
-    default long cardinality() {
-	return Long.MAX_VALUE;
-    }
-
-    @Override
-    default Nat lowerBound() {
-	return ZERO;
-    }
-
-    interface Nat
-    extends
-    SemiRing.SmrE<Nat>,
-    TotallyOrdered.Oe<Nat>,
-    MetricSpace.Me<Nat, Nat>
     {
-	public long integer();
+    }
 
-	@Override
-	default int compareTo(Nat o) {
-	    return Long.compare(integer(), o.integer());
+    interface N63
+    <
+    //Element type:
+    E extends N63.Nat63<E>,
+    S extends Cardinality.Countable,
+    //Implementation type:
+    T extends N63<E, S, T>
+    >
+    extends N<E, S, T>
+    {
+
+	interface Nat63<I extends Nat63<I>>
+	extends
+	Nat<I>,
+	SemiRing.SmrE<I>,
+	TotallyOrdered.Oe<I>,
+	MetricSpace.Me<I, I>
+	{
+	    long integer();
+
+	    I nat(long val);
+
+	    @Override
+	    default int compareTo(I o) {
+		return Long.compare(integer(), o.integer());
+	    }
+
+	    @Override
+	    default I plus(I that) {
+		return nat(integer() + that.integer());
+	    }
+
+	    @Override
+	    default I times(I that) {
+		return nat(integer() * that.integer());
+	    }
+
+	    @Override
+	    default boolean eq(I that) {
+		return integer() == that.integer();
+	    }
+
+	    @Override
+	    default I distance(I other) {
+		return nat(Math.abs(integer() - other.integer()));
+	    }
+
+	    default Int64 asInt() {
+		return Z64.integer(integer());
+	    }
 	}
 
-	@Override
-	default Ne plus(Nat that) {
-	    return nat(integer() + that.integer());
-	}
+	record Ne (long integer) implements Nat63<Ne> {
 
-	@Override
-	default Ne times(Nat that) {
-	    return nat(integer() * that.integer());
-	}
+	    public Ne(long integer) {
+		assert integer >= 0;
+		this.integer = integer;
+	    }
 
-	@Override
-	default boolean eq(Nat that) {
-	    return integer() == that.integer();
-	}
+	    @Override
+	    public
+	    Ne nat(long val) {
+		return N.nat(val);
+	    }
 
-	@Override
-	default Ne distance(Nat other) {
-	    return nat(Math.abs(integer() - other.integer()));
-	}
+	    @Override
+	    public Ne abs() {
+		return this;
+	    }
 
-	default Int64 asInt() {
-	    return Z64.integer(integer());
+	    @Override
+	    public Ne negate() {
+		assert false : "implementation not possible";
+		return null;
+	    }
 	}
     }
 
-    record Ne (long integer) implements Nat {
-
-	public Ne(long integer) {
-	    assert integer >= 0;
-	    this.integer = integer;
-	}
-
-    }
 
     static Ne nat(long n) {
 

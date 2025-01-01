@@ -61,7 +61,7 @@ PoSet<E, C, T>
 	>
 	extends
 	Join<E, C, T>,
-	NonEmptySet<E, T>
+	NonEmptySet<E, C, T>
 	{
 	    /**
 	     * @return the maximum element t so that t &ge; x &forall; x &isin; X.
@@ -97,7 +97,7 @@ PoSet<E, C, T>
 	>
 	extends
 	Meet<E, C, T>,
-	NonEmptySet<E, T>
+	NonEmptySet<E, C, T>
 	{
 
 	    /**

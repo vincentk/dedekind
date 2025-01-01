@@ -1,24 +1,30 @@
-/**
- * 
- */
 package com.github.vincentk.dedekind.families;
 
-import com.github.vincentk.dedekind.geometry.MetricSpace;
 import com.github.vincentk.dedekind.sets.Cardinality;
+import com.github.vincentk.dedekind.sets.Element;
 import com.github.vincentk.dedekind.sets.ordered.Directed;
 
 /**
  * @see https://en.wikipedia.org/wiki/Net_(mathematics)
+ * @see https://en.wikipedia.org/wiki/Net_(mathematics)#As_generalization_of_sequences
  */
-@FunctionalInterface
 public interface Net<
-T extends MetricSpace.Me<?, T>,
-C extends Cardinality,
 
 // Domain of the net and its elements:
 E extends Directed.De<E>,
-S extends Directed<E, C, S>
+C extends Cardinality,
+D extends Directed<E, C, D>,
+
+// Range of the net:
+T extends Element<T>,
+
+
+//Implementation details:
+P extends Pair<E, T, P> & Directed.De<P>,
+Z extends Net<E, C, D, T, P, Z>
 >
-extends Family<T, C, E, S>
+extends
+Family<E, C, D, T, P, Z>,
+Directed<P, C, Z>
 {
 }

@@ -20,10 +20,6 @@ B extends Element<B>,
 // Implementation
 L extends Lambda<A, B, L>
 >
-/*
-extends
-Relation<A, B, L>
-*/
 {
     B ap(A a);
 

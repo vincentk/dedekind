@@ -6,16 +6,27 @@ import com.github.vincentk.dedekind.sets.Set;
 
 /**
  * @see https://en.wikipedia.org/wiki/Indexed_family
+ * @see https://en.wikipedia.org/wiki/Function_(mathematics)#Definition
  */
-@FunctionalInterface
 public interface Family<
-// Range:
-R extends Element<R>,
+
+//Domain and its elements:
+De extends Element<De>,
 C extends Cardinality,
-// Domain and its elements:
-E extends Element<E>,
-D extends Set<E, D>
+D extends Set<De, C, D>,
+
+//Range / Co-domain:
+Re extends Element<Re>,
+
+// Implementation details:
+P extends Pair<De, Re, P>,
+Z extends Family<De, C, D, Re, P, Z>
 >
+extends Set<P, C, Z>
 {
-    R at(E e);
+    /**
+     * @return the image of the function.
+     */
+    <C1 extends C>
+    Set<Re, C1, ?> image();
 }

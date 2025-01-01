@@ -2,6 +2,10 @@ package com.github.vincentk.dedekind.sets.binary.relation.homogeneous;
 
 import com.github.vincentk.dedekind.sets.binary.relation.homogeneous.PreOrder.Directed;
 
+/**
+ * @see https://en.wikipedia.org/wiki/Total_order
+ * @param <T>
+ */
 public interface TotalOrder<T extends TotalOrder<T>>
 extends
 PartialOrder.Strict<T>, Comparable<T>, Directed<T> {

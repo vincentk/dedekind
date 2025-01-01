@@ -2,33 +2,29 @@ package com.github.vincentk.dedekind.sets;
 
 import java.util.function.Predicate;
 
+import com.github.vincentk.dedekind.algebra.numbers.N;
 import com.github.vincentk.dedekind.families.Sequence;
+import com.github.vincentk.dedekind.families.Sequence.Finite.SingletonSequence;
+import com.github.vincentk.dedekind.sets.Cardinality.Small;
 import com.github.vincentk.dedekind.sets.ordered.Lattice;
 import com.github.vincentk.dedekind.sets.ordered.TotallyOrdered;
-import com.github.vincentk.dedekind.sets.ordered.TotallyOrdered.Oe;
-import com.github.vincentk.dedekind.sets.unary.function.Lambda;
 
 public interface SingletonSet<E extends Element<E>, S extends SingletonSet<E, S>>
 extends
-NonEmptySet<E, S>,
-Finite<E, Cardinality.Finite, S>
+NonEmptySet<E, Small.One, S>,
+Small.One,
+FiniteSet.B64<E, Small.One, S>
 {
     E elem();
-
+    
     @Override
-    default Set<E, ?> where(Predicate<E> Φ) {
+    default Set<E, ? extends Small.One, ?> where(Predicate<E> Φ) {
 	return Φ.test(elem()) ? this : EmptySet.empty();
     }
 
     @Override
-    default boolean sub(Set<E, ?> that) {
+    default boolean sub(Set<E, ?, ?> that) {
 	return elem().isin(that);
-    }
-
-    @Override
-    default <N extends Oe<N>> Sequence<E, Finite, N, ?, ?> enumerate(Lambda<N, E, ?> enumeration) {
-	// TODO Auto-generated method stub
-	return null;
     }
 
     @Override
@@ -36,7 +32,13 @@ Finite<E, Cardinality.Finite, S>
 	return 1;
     }
 
-    public record Default<E extends Element<E>>(E elem)
+    @Override
+    default
+    SingletonSequence<N.N63.Ne, ?, E> enumerate() {
+	return new Sequence.Finite.SingletonSequence<>(N.ZERO, elem());
+    }
+
+    record Default<E extends Element<E>>(E elem)
     implements SingletonSet<E, Default<E>> {
     }
 
@@ -46,8 +48,8 @@ Finite<E, Cardinality.Finite, S>
     >
     extends 
     SingletonSet<E, S>,
-    TotallyOrdered<E, Cardinality.Finite, S>,
-    Lattice.Bounded<E, Cardinality.Finite, S>
+    TotallyOrdered<E, Small.One, S>,
+    Lattice.Bounded<E, Small.One, S>
     {
 	@Override
 	default E top() {
@@ -59,7 +61,7 @@ Finite<E, Cardinality.Finite, S>
 	    return elem();
 	}
 
-	public record Default<E extends TotallyOrdered.Oe<E>>(E elem)
+	record Default<E extends TotallyOrdered.Oe<E>>(E elem)
 	implements Ordered<E, Default<E>> {
 	}
     }
