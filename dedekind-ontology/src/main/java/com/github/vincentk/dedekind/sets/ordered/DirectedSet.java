@@ -20,7 +20,9 @@ E extends DirectedSet.De<E>,
 C extends Cardinality,
 T extends DirectedSet<E, C, T>
 >
-extends NonEmptySet<E, C, T> {
+extends
+NonEmptySet<E, C, T>
+{
 
     interface De<E extends De<E>>
     extends
