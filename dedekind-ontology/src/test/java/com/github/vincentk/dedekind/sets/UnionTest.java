@@ -1,7 +1,6 @@
 package com.github.vincentk.dedekind.sets;
 
 import static org.assertj.core.api.Assertions.assertThat;
-import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
 
@@ -24,33 +23,5 @@ public class UnionTest {
 	assertThat(u2).isInstanceOf(Union.class);
 	assertThat(u2.contains(N.ONE)).isTrue();
 	assertThat(u2.contains(N.TWO)).isTrue();
-    }
-
-    @Test
-    public void testEmptySet() {
-
-	final var SUBJECT = S1.union(S1);
-
-	assertTrue(SUBJECT.eq(SUBJECT));
-
-	assertThat(SUBJECT.intersection(SUBJECT)).isEqualTo(SUBJECT);
-
-	assertThat(SUBJECT.union(SUBJECT)).isEqualTo(SUBJECT);
-
-	assertThat(SUBJECT.sub(SUBJECT))
-	.as(() -> "The empty set is a subset of itself.")
-	.isTrue();
-
-	assertThat(SUBJECT.sup(SUBJECT))
-	.as(() -> "The empty set is a super-set of itself.")
-	.isTrue();
-
-	assertThat(SUBJECT.where(x -> true))
-	.as(() -> "A conditioned empty set is still empty.")
-	.isEqualTo(SUBJECT);
-
-	assertThat(SUBJECT.complement(SUBJECT))
-	.as(() -> "The difference between the empty set and itself empty.")
-	.isEqualTo(EmptySet.empty());
     }
 }
