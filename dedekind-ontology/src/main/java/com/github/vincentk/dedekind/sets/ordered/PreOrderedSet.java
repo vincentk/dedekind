@@ -4,17 +4,17 @@ import com.github.vincentk.dedekind.graph.DirectedGraph;
 import com.github.vincentk.dedekind.sets.Cardinality;
 import com.github.vincentk.dedekind.sets.Element;
 import com.github.vincentk.dedekind.sets.NonEmptySet;
-import com.github.vincentk.dedekind.sets.Set;
 import com.github.vincentk.dedekind.sets.binary.relation.homogeneous.Identity;
 import com.github.vincentk.dedekind.sets.binary.relation.homogeneous.PreOrder;
 
 /**
- * A non-empty {@link Set} with a preorder and an upper bound &isin; set.
+ * A {@link NonEmptySet} with a {@link PreOrder}.
  * 
  * @param <C> cardinality
  * @param <T> implementation type
  * 
- * @see https://en.wikipedia.org/wiki/Directed_set
+ * @see https://en.wikipedia.org/wiki/Preorder
+ * @see https://en.wikipedia.org/wiki/Directed_graph
  */
 public interface PreOrderedSet<
 E extends PreOrderedSet.De<E>,

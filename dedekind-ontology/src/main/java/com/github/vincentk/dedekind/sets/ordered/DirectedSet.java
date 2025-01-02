@@ -1,11 +1,10 @@
 package com.github.vincentk.dedekind.sets.ordered;
 
 import com.github.vincentk.dedekind.sets.Cardinality;
-import com.github.vincentk.dedekind.sets.Set;
 import com.github.vincentk.dedekind.sets.binary.relation.homogeneous.PreOrder;
 
 /**
- * A non-empty {@link Set} with a preorder and an upper bound &isin; set.
+ * A {@link PreOrderedSet} and an upper bound &isin; set.
  * 
  * @param <C> cardinality
  * @param <T> implementation type

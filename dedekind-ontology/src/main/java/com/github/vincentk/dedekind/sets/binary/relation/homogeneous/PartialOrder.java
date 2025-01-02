@@ -11,7 +11,8 @@ extends
 PreOrder.AntiSymmetric<T> {
 
     /**
-     * A partial order where there exist no cycles.
+     * A partial order where there exist no cycles. 
+     * The identity relation a < a is false.
      * 
      * @param <T>
      * 
