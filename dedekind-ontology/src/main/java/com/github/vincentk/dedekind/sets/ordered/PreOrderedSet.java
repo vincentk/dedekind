@@ -1,25 +1,46 @@
 package com.github.vincentk.dedekind.sets.ordered;
 
+import com.github.vincentk.dedekind.graph.DirectedGraph;
 import com.github.vincentk.dedekind.sets.Cardinality;
 import com.github.vincentk.dedekind.sets.Element;
 import com.github.vincentk.dedekind.sets.NonEmptySet;
 import com.github.vincentk.dedekind.sets.Set;
+import com.github.vincentk.dedekind.sets.binary.relation.homogeneous.Identity;
 import com.github.vincentk.dedekind.sets.binary.relation.homogeneous.PreOrder;
 
 /**
- * A {@link Set} with a {@link PreOrder}.
+ * A non-empty {@link Set} with a preorder and an upper bound &isin; set.
+ * 
+ * @param <C> cardinality
+ * @param <T> implementation type
  * 
  * @see https://en.wikipedia.org/wiki/Directed_set
  */
 public interface PreOrderedSet<
-E extends Element<E>,
+E extends PreOrderedSet.De<E>,
 C extends Cardinality,
-
-// Implementation details:
-O extends PreOrder<E>,
-T extends PreOrderedSet<E, C, O, T>
+T extends PreOrderedSet<E, C, T>
 >
 extends
-NonEmptySet<E, C, T>
+NonEmptySet<E, C, T>,
+DirectedGraph<E>
 {
+
+    interface De<E extends De<E>>
+    extends
+    Element<E>, PreOrder<E>
+    {
+	/**
+	 * A trivial {@link PreOrder} using the {@link Identity} relation.
+	 * 
+	 * <p>
+	 * {@inheritDoc}
+	 * </p>
+	 */
+	@SuppressWarnings("unchecked")
+	@Override
+	default boolean leq(E that) {
+	    return ((E) this).eq(that);
+	}
+    }
 }
