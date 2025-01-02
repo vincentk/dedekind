@@ -12,7 +12,8 @@ import com.github.vincentk.dedekind.sets.binary.relation.homogeneous.Identity;
  * 
  * @see https://en.wikipedia.org/wiki/Set_(mathematics)
  */
-public
+@SuppressWarnings("rawtypes") // Permits clause does not expect generic type arguments.
+sealed public
 interface Set<
 E extends Element<E>,
 C extends Cardinality,
@@ -20,6 +21,7 @@ T extends Set<E, C, T>>
 extends
 Identity<Set<E, ?, ?>>,
 Element<Set<E, ?, ?>>
+permits EmptySet, NonEmptySet
 {
     @Override
     default boolean eq(Set<E, ?, ?> that) {
@@ -42,6 +44,12 @@ Element<Set<E, ?, ?>>
     default boolean isEmpty() {
 	return this instanceof EmptySet<?>;
     }
+    
+    /**
+     * @param that
+     * @return this &cup; that
+     */
+    Set<E, ?, ?> union(Set<E, ?, ?> that);
 
     /**
      * @param that
@@ -49,22 +57,6 @@ Element<Set<E, ?, ?>>
      */
     default Set<E, ?, ?> intersection(Set<E, ?, ?> that) {
 	return where(x -> that.contains(x));
-    }
-
-    /**
-     * @param that
-     * @return this &cup; that
-     */
-    default Set<E, ?, ?> union(Set<E, ?, ?> that) {
-
-	if (isEmpty()) return that;
-
-	if (that.isEmpty()) return this;
-
-	final var cpl = complement(that);
-	if (cpl.isEmpty()) return that;
-
-	return new Union<E, C>(this, cpl);
     }
 
     /**
@@ -100,7 +92,7 @@ Element<Set<E, ?, ?>>
     default boolean sup(Set<E, ?, ?> that) {
 	return that.complement(this).isEmpty();
     }
-    
+
     /**
      * Apply a function to every element &isin; this.
      * 

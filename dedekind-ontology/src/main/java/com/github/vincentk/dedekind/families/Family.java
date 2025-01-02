@@ -2,6 +2,7 @@ package com.github.vincentk.dedekind.families;
 
 import com.github.vincentk.dedekind.sets.Cardinality;
 import com.github.vincentk.dedekind.sets.Element;
+import com.github.vincentk.dedekind.sets.NonEmptySet;
 import com.github.vincentk.dedekind.sets.Set;
 
 /**
@@ -22,7 +23,7 @@ Re extends Element<Re>,
 P extends Pair<De, Re, P>,
 Z extends Family<De, C, D, Re, P, Z>
 >
-extends Set<P, C, Z>
+extends NonEmptySet<P, C, Z>
 {
     /**
      * @return the image of the function.

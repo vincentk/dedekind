@@ -2,7 +2,7 @@ package com.github.vincentk.dedekind.families;
 
 import com.github.vincentk.dedekind.sets.Cardinality;
 import com.github.vincentk.dedekind.sets.Element;
-import com.github.vincentk.dedekind.sets.ordered.Directed;
+import com.github.vincentk.dedekind.sets.ordered.DirectedSet;
 
 /**
  * @see https://en.wikipedia.org/wiki/Net_(mathematics)
@@ -11,20 +11,20 @@ import com.github.vincentk.dedekind.sets.ordered.Directed;
 public interface Net<
 
 // Domain of the net and its elements:
-E extends Directed.De<E>,
+E extends DirectedSet.De<E>,
 C extends Cardinality,
-D extends Directed<E, C, D>,
+D extends DirectedSet<E, C, D>,
 
 // Range of the net:
 T extends Element<T>,
 
 
 //Implementation details:
-P extends Pair<E, T, P> & Directed.De<P>,
+P extends Pair<E, T, P> & DirectedSet.De<P>,
 Z extends Net<E, C, D, T, P, Z>
 >
 extends
 Family<E, C, D, T, P, Z>,
-Directed<P, C, Z>
+DirectedSet<P, C, Z>
 {
 }

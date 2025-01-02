@@ -2,6 +2,7 @@ package com.github.vincentk.dedekind.sets.binary.function.operation;
 
 import com.github.vincentk.dedekind.sets.Cardinality;
 import com.github.vincentk.dedekind.sets.Element;
+import com.github.vincentk.dedekind.sets.NonEmptySet;
 import com.github.vincentk.dedekind.sets.Set;
 
 /**
@@ -39,7 +40,7 @@ B extends Set<F, ? extends C, ?>,
 // Implementing class:
 T extends Set<E, C, T> & Closure<C, E, A, F, B, T>
 >
-extends Set<E, C, T>, BinaryOperation<F, T>
+extends NonEmptySet<E, C, T>, BinaryOperation<F, T>
 {
     // Enable to force a type check:
     B ap(B a);

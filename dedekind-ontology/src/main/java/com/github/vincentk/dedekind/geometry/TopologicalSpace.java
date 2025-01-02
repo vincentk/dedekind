@@ -3,7 +3,7 @@ package com.github.vincentk.dedekind.geometry;
 
 import com.github.vincentk.dedekind.sets.Cardinality;
 import com.github.vincentk.dedekind.sets.Element;
-import com.github.vincentk.dedekind.sets.Set;
+import com.github.vincentk.dedekind.sets.NonEmptySet;
 
 /**
  * @see https://en.wikipedia.org/wiki/Topological_space
@@ -17,7 +17,7 @@ C extends Cardinality,
 M extends TopologicalSpace<E, C, M>
 >
 extends
-Set<E, C, M>
+NonEmptySet<E, C, M>
 {
     interface Me<
     E extends Me<E>

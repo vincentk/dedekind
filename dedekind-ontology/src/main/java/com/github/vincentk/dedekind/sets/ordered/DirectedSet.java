@@ -15,10 +15,10 @@ import com.github.vincentk.dedekind.sets.binary.relation.homogeneous.PreOrder;
  * 
  * @see https://en.wikipedia.org/wiki/Directed_set
  */
-public interface Directed<
-E extends Directed.De<E>,
+public interface DirectedSet<
+E extends DirectedSet.De<E>,
 C extends Cardinality,
-T extends Directed<E, C, T>
+T extends DirectedSet<E, C, T>
 >
 extends NonEmptySet<E, C, T> {
 

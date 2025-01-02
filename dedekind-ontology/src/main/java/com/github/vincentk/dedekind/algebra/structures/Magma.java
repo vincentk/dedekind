@@ -2,7 +2,7 @@ package com.github.vincentk.dedekind.algebra.structures;
 
 import com.github.vincentk.dedekind.sets.Cardinality;
 import com.github.vincentk.dedekind.sets.Element;
-import com.github.vincentk.dedekind.sets.Set;
+import com.github.vincentk.dedekind.sets.NonEmptySet;
 import com.github.vincentk.dedekind.sets.binary.function.arithmetic.Addition;
 import com.github.vincentk.dedekind.sets.binary.function.arithmetic.Multiplication;
 import com.github.vincentk.dedekind.sets.binary.function.operation.BinaryOperation;
@@ -22,7 +22,7 @@ E extends Magma.Oe<E>,
 C extends Cardinality,
 T extends Magma<E, C, T>>
 extends
-Set<E, C, T>
+NonEmptySet<E, C, T>
 {
     interface Oe<E extends Oe<E>>
     extends

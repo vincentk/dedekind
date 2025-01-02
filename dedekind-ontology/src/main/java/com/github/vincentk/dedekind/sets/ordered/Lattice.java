@@ -22,7 +22,7 @@ SemiLattice.Join<E, C, T>,  SemiLattice.Meet<E, C, T> {
 
     interface Le<E extends Le<E>>
     extends
-    SemiLattice.Join.Je<E>, SemiLattice.Meet.Me<E>, Directed.De<E>
+    SemiLattice.Join.Je<E>, SemiLattice.Meet.Me<E>, DirectedSet.De<E>
     {	
 
     }

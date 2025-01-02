@@ -13,6 +13,7 @@ import com.github.vincentk.dedekind.sets.Cardinality.Small.Empty;
  */
 public final class EmptySet<E extends Element<E>>
 implements
+Set<E, Empty, EmptySet<E>>,
 Empty,
 FiniteSet.B64<E, Empty, EmptySet<E>>
 {

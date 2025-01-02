@@ -13,7 +13,7 @@ C extends Cardinality.Countable,
 T extends CountableSet<E, C, T>
 >
 extends
-Set<E, C, T>
+NonEmptySet<E, C, T>
 {
     /**
      * A set is countable exactly if its elements can be arranged in a {@link Sequence}
