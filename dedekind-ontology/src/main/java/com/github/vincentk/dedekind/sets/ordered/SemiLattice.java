@@ -35,7 +35,7 @@ PoSet<E, C, T>
     >
     extends
     SemiLattice<E, C, T>,
-    Directed<E, C, T>
+    DirectedSet<E, C, T>
     {
 	interface Je<E extends Je<E>>
 	extends
