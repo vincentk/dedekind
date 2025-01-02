@@ -23,5 +23,7 @@ public class UnionTest {
 	assertThat(u2).isInstanceOf(Union.class);
 	assertThat(u2.contains(N.ONE)).isTrue();
 	assertThat(u2.contains(N.TWO)).isTrue();
+	
+	assertThat(u2.where(x -> x.eq(N.ZERO))).isEqualTo(EMPTY);
     }
 }
