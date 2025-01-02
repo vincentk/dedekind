@@ -12,6 +12,7 @@ import com.github.vincentk.dedekind.sets.binary.relation.homogeneous.Identity;
  * 
  * @see https://en.wikipedia.org/wiki/Set_(mathematics)
  */
+@SuppressWarnings("rawtypes") // Permits clause does not expect generic type arguments.
 sealed public
 interface Set<
 E extends Element<E>,
@@ -20,7 +21,7 @@ T extends Set<E, C, T>>
 extends
 Identity<Set<E, ?, ?>>,
 Element<Set<E, ?, ?>>
-permits EmptySet<E>, NonEmptySet<E, C, T>
+permits EmptySet, NonEmptySet
 {
     @Override
     default boolean eq(Set<E, ?, ?> that) {
