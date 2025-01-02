@@ -26,7 +26,7 @@ public interface PreOrder<T> {
     }
     
     /**
-     * A pre-order which is guaranteed by the implementor to be anti-symmetric.
+     * A {@link} which is guaranteed by the implementor to be anti-symmetric.
      * 
      * I.e. a <= b && b <= a => a == b
      * 
