@@ -16,7 +16,12 @@ Small.One,
 FiniteSet.B64<E, Small.One, S>
 {
     E elem();
-    
+
+    @Override
+    default boolean contains(E that) {
+	return elem().eq(that);
+    }
+
     @Override
     default Set<E, ? extends Small.One, ?> where(Predicate<E> Φ) {
 	return Φ.test(elem()) ? this : EmptySet.empty();

@@ -28,6 +28,6 @@ extends Set<E, C, T>
 
 	// TODO: the cardinality of the union is actually not known
 	// at this point:
-	return new Union<E, C>(this, (NonEmptySet<E, ?, ?>) cpl);
+	return new Union<E, C>((NonEmptySet<E, ?, ?>) cpl, (NonEmptySet<E, ?, ?>) that);
     }
 }

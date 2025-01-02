@@ -14,6 +14,12 @@ implements
 NonEmptySet<E, C, Union<E, C>>
 {
     @Override
+    public boolean
+    contains(E elem) {
+	return fst().contains(elem) || snd().contains(elem);
+    }
+    
+    @Override
     public
     Set<E, ?, ?>
     where(Predicate<E> Φ)
