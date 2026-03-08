@@ -27,11 +27,7 @@ jobs:
 
     - name: Configure CMake
       # Explicitly point CMake to Clang 18 for C++20 module support
-      run: |
-        cmake -S . -B build -G Ninja \
-          -DCMAKE_CXX_COMPILER=clang++-18 \
-          -DCMAKE_BUILD_TYPE=Release \
-		  -DCMAKE_CXX_SCAN_FOR_MODULES=ON
+      run: cmake -S . -B build -G Ninja -DCMAKE_CXX_COMPILER=clang++-18 -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_SCAN_FOR_MODULES=ON
 
     - name: Build Library
       run: cmake --build build
