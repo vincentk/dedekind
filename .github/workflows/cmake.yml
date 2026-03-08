@@ -1,0 +1,51 @@
+# This workflow will build a Java project with Maven, and cache/restore any dependencies to improve the workflow execution time
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-java-with-maven
+
+# This workflow uses actions that are not certified by GitHub.
+# They are provided by a third-party and are governed by
+# separate terms of service, privacy policy, and support
+# documentation.
+
+name: Java CI with Maven
+
+on:
+  push:
+    branches: [ "main" ]
+  pull_request:
+    branches: [ "main" ]
+
+jobs:
+  build:
+
+    runs-on: ubuntu-latest
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Check Code Formatting
+      # This command returns a non-zero exit code if files need formatting
+      run: |
+        sudo apt-get install -y clang-format
+        find src -name "*.cpp" -o -name "*.cppm" | xargs clang-format --dry-run --Werror
+
+    - name: Install LLVM 18 and Ninja
+      run: |
+      - name: Install Clang 18 and Ninja
+        run: |
+        sudo apt-get update
+        sudo apt-get install -y clang-18 ninja-build
+
+    - name: Configure CMake
+      # Explicitly point CMake to Clang 18 for C++20 module support
+      run: |
+        cmake -S . -B build -G Ninja \
+          -DCMAKE_CXX_COMPILER=clang++-18 \
+          -DCMAKE_BUILD_TYPE=Release \
+		  -DCMAKE_CXX_SCAN_FOR_MODULES=ON
+
+    - name: Build Library
+      run: cmake --build build
+
+    - name: Run Tests
+      working-directory: build
+      run: ctest --output-on-failure
