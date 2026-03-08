@@ -14,20 +14,20 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
+    - name: Install recent versions of clang build chain
+      run: |
+        wget https://apt.llvm.org/llvm.sh
+        chmod +x llvm.sh
+        sudo ./llvm.sh 21
+        sudo apt-get install -y clang-18 ninja-build clang-format-21
+
     - name: Check Code Formatting
       # This command returns a non-zero exit code if files need formatting
       run: |
-        sudo apt-get install -y clang-format-18
-        find src -name "*.cpp" -o -name "*.cppm" | xargs clang-format --dry-run --Werror
-
-    - name: Install Clang 18 and Ninja
-      run: |
-        sudo apt-get update
-        sudo apt-get install -y clang-18 ninja-build
+        find src -name "*.cpp" -o -name "*.cppm" | xargs clang-format-21 --dry-run --Werror
 
     - name: Configure CMake
-      # Explicitly point CMake to Clang 18 for C++20 module support
-      run: cmake -S . -B build -G Ninja -DCMAKE_CXX_COMPILER=clang++-18 -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_SCAN_FOR_MODULES=ON
+      run: cmake -S . -B build -G Ninja -DCMAKE_CXX_COMPILER=clang++-21 -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_SCAN_FOR_MODULES=ON
 
     - name: Build Library
       run: cmake --build build
