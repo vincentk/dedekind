@@ -17,15 +17,13 @@ jobs:
     - name: Check Code Formatting
       # This command returns a non-zero exit code if files need formatting
       run: |
-        sudo apt-get install -y clang-format
-        find src -name "*.cpp" -o -name "*.cppm" | xargs clang-format --dry-run --Werror
+      sudo apt-get install -y clang-format
+      find src -name "*.cpp" -o -name "*.cppm" | xargs clang-format --dry-run --Werror
 
-    - name: Install LLVM 18 and Ninja
+    - name: Install Clang 18 and Ninja
       run: |
-      - name: Install Clang 18 and Ninja
-        run: |
-        sudo apt-get update
-        sudo apt-get install -y clang-18 ninja-build
+      sudo apt-get update
+      sudo apt-get install -y clang-18 ninja-build
 
     - name: Configure CMake
       # Explicitly point CMake to Clang 18 for C++20 module support
