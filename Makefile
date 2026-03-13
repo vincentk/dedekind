@@ -37,6 +37,8 @@ $(BUILD_DIR)/CMakeCache.txt:
 		-DCMAKE_CXX_FLAGS=$(CXXFLAGS) \
 		-DCMAKE_EXE_LINKER_FLAGS=$(LDFLAGS) \
 		-DCMAKE_CXX_SCAN_FOR_MODULES=ON
+#		-DPython_EXECUTABLE=$(which python) \
+#		-DCMAKE_INSTALL_PREFIX=$(python -c "import site; print(site.getsitepackages()[0])")
 
 # mvn compile
 compile: $(BUILD_DIR)/CMakeCache.txt
