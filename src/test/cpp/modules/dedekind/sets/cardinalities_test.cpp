@@ -97,4 +97,28 @@ TEST_CASE("Extensional Cardinality Arithmetic (Runtime Bounds)",
     REQUIRE(a != b);
     REQUIRE(e < a);
   }
+  SECTION("The Pathological Frontier (Symbolic Explosion)") {
+    using namespace dedekind::sets;
+
+    // 1. The Power Set Jump: P(N64)
+    // Mathematically: A set of size 2^(2^64).
+    // Symbolic Result: LargeFinite (Finite, but unmeasurable).
+    using PowerSetOfUniverse = decltype(2u << ℕ64{});
+    STATIC_REQUIRE(std::is_same_v<PowerSetOfUniverse, LargeFinite>);
+
+    // 2. The Cartesian Product: N64 x N64
+    // Mathematically: A set of size 2^64 * 2^64 = 2^128.
+    // Symbolic Result: LargeFinite.
+    using ProductOfUniverse = decltype(ℕ64{} * ℕ64{});
+    STATIC_REQUIRE(std::is_same_v<ProductOfUniverse, LargeFinite>);
+
+    // 3. Chain Reaction
+    // P(N64 x N64) -> Still LargeFinite (The Finite Ceiling)
+    using ExplodedSet = decltype(2u << (ℕ64{} * ℕ64{}));
+    STATIC_REQUIRE(std::is_same_v<ExplodedSet, LargeFinite>);
+
+    // 4. Comparison Proof
+    // Even the largest machine space is smaller than the smallest "Large" set
+    STATIC_REQUIRE(ℕ64{} < LargeFinite{});
+  }
 }

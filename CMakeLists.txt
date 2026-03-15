@@ -23,7 +23,7 @@ target_sources(dedekind
     BASE_DIRS src/main/modules
     FILES
         src/main/modules/dedekind/sets/cardinalities.cppm
-#        src/main/modules/dedekind/sets/algebra.cppm
+        src/main/modules/dedekind/sets/algebra.cppm
 #        src/main/modules/dedekind/sets/universes.cppm
 #        src/main/modules/dedekind/sets/expressions.cppm
 #        src/main/modules/dedekind/sets/operators.cppm
@@ -48,6 +48,7 @@ enable_testing()
 
 add_executable(dedekind_test 
     src/test/cpp/modules/dedekind/sets/cardinalities_test.cpp
+    src/test/cpp/modules/dedekind/sets/algebra_test.cpp
     # src/test/cpp/dedekind/sets_test.cpp 
 )
 

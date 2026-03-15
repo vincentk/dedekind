@@ -53,10 +53,31 @@ export struct Countable : public CardinalityBase {
 // 3. Finite: Terminating, but size might be unknown or > 2^64
 export struct Finite : public Countable {};
 
+// Tier 2: Finite sets that are too big for a CPU register (> 2^64)
+// e.g. P(N8) = 2^256
+export struct LargeFinite : public Finite {
+  constexpr LargeFinite() : Finite() {}
+};
+
+// Symbolic bound for a space of N bits (e.g., 2^32, 2^64)
+export template <std::size_t N>
+struct ℕ : public LargeFinite {
+  static constexpr std::size_t bits = N;
+  constexpr ℕ() : LargeFinite() {}
+};
+
+export using ℕ1 = ℕ<1>;
+export using ℕ8 = ℕ<8>;
+export using ℕ32 = ℕ<32>;
+export using ℕ64 = ℕ<64>;
+
+// Link Extensional to the native pointer width (usually ℕ64)
+export using PlatformNative = ℕ<sizeof(std::size_t) * 8>;
+
 // 2. Extensional (The Bounded)
-export struct Extensional : public Finite {
+export struct Extensional : public PlatformNative {
   std::size_t bound;
-  explicit constexpr Extensional(std::size_t n) : bound(n) {}
+  explicit constexpr Extensional(std::size_t n) : PlatformNative(), bound(n) {}
 };
 
 // 3. Empty (The Identity / Unit)
@@ -100,15 +121,18 @@ using higher_t = typename higher_cardinality<L, R>::type;
 export template <IsCardinality L, IsCardinality R>
 using lower_t = std::conditional_t<std::is_same_v<higher_t<L, R>, L>, R, L>;
 
-// 1. Define the Tiers (The Linear Proof)
 template <typename T>
 consteval int tier() {
   if constexpr (std::is_same_v<T, Empty>) return 0;
   if constexpr (std::is_base_of_v<Extensional, T>) return 1;
-  if constexpr (std::is_base_of_v<Finite, T>) return 2;
-  if constexpr (std::is_base_of_v<ℵ<0>, T>) return 3;  // Aleph-0
-  if constexpr (std::is_base_of_v<Uncountable, T>) return 4;
-  return 5;
+
+  // Machine Tier: Any type with a 'bits' member (ℕ<N>)
+  if constexpr (requires { T::bits; }) return 2;
+
+  if constexpr (std::is_base_of_v<Finite, T>) return 3;
+  if constexpr (std::is_base_of_v<ℵ_0, T>) return 4;
+  if constexpr (std::is_base_of_v<Uncountable, T>) return 5;
+  return 6;
 }
 
 // In union, the Higher Tier always wins (the "Absorbing Law"). If both are
@@ -135,6 +159,37 @@ constexpr auto operator&(L l, R r) {
   } else {
     return lower_t<L, R>();
   }
+}
+
+// Intersection (&): The smaller bit-width restricts the space
+export template <std::size_t N, std::size_t M>
+constexpr ℕ<(N < M ? N : M)> operator&(ℕ<N>, ℕ<M>) {
+  return {};
+}
+
+// Union (|): The larger bit-width absorbs the smaller
+export template <std::size_t N, std::size_t M>
+constexpr ℕ<(N > M ? N : M)> operator|(ℕ<N>, ℕ<M>) {
+  return {};
+}
+
+// Mixed Math: Extensional vs Machine Symbol
+// Theorem: A specific value bound always loses to a bit-width symbol
+export template <std::size_t N>
+constexpr Extensional operator&(Extensional e, ℕ<N>) {
+  return e;
+}
+
+export template <std::size_t N>
+constexpr ℕ<N> operator|(Extensional, ℕ<N> n) {
+  return n;
+}
+
+// --- Union Logic ---
+// N64 | N64 = N64 (Identical spaces merge)
+// N64 | LargeFinite = LargeFinite (The larger bound absorbs)
+export constexpr LargeFinite operator|(ℕ64, LargeFinite) {
+  return LargeFinite();
 }
 
 export template <std::size_t N, std::size_t M>
@@ -168,6 +223,9 @@ constexpr auto operator*(L l, R r) {
     return higher_t<L, R>{};
   }
 }
+// --- Cartesian Product Logic ---
+// N64 * N64 = 2^128 -> Strictly LargeFinite
+export constexpr LargeFinite operator*(ℕ64, ℕ64) { return LargeFinite(); }
 
 // --- Cardinality Successors (2^S) for Power Sets ---
 
@@ -181,13 +239,28 @@ export constexpr Extensional operator<<(unsigned int base, Extensional e) {
   return Extensional(1ULL << e.bound);
 }
 
-// 2^Countable (aleph_0) = Continuum (beth_1)
-export constexpr ℶ<1> operator<<(unsigned int base, Countable) { return {}; }
+export template <std::size_t N>
+constexpr LargeFinite operator<<(unsigned int, ℕ<N>) {
+  return LargeFinite();
+}
+
+export constexpr LargeFinite operator<<(unsigned int, LargeFinite) {
+  return LargeFinite();
+}
+
+// 2^(aleph_0) = Continuum (beth_1)
+export constexpr ℶ_1 operator<<(unsigned int, ℵ_0) { return ℶ_1(); }
 
 // 2^beth_n = beth_{n+1}
 export template <std::size_t N>
 constexpr ℶ<N + 1> operator<<(unsigned int base, ℶ<N>) {
   return {};
+}
+
+// --- Power Set Logic ---
+// 2^N64 = 2^(2^64) -> Strictly LargeFinite
+export constexpr LargeFinite operator<<(unsigned int, ℕ64) {
+  return LargeFinite();
 }
 
 // 1. Equality: Two cardinalities are equal if they are the same type
