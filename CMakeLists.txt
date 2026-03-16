@@ -24,6 +24,7 @@ target_sources(dedekind
     FILES
         src/main/modules/dedekind/algebra/algebra.cppm
         src/main/modules/dedekind/algebra/abstract.cppm
+        src/main/modules/dedekind/algebra/nodes.cppm
         src/main/modules/dedekind/order/order.cppm
         src/main/modules/dedekind/order/algebra.cppm
         src/main/modules/dedekind/order/nodes.cppm
