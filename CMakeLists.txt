@@ -52,6 +52,28 @@ add_executable(dedekind_test
     # src/test/cpp/dedekind/sets_test.cpp 
 )
 
+# --- 1. RIGOROUS COMPILER ENFORCEMENT ---
+if(MSVC)
+    # Windows/MSVC flags
+    target_compile_options(dedekind PRIVATE /W4 /WX /permissive-)
+    target_compile_options(dedekind_test PRIVATE /W4 /WX /permissive-)
+else()
+    # Clang/GCC flags
+    set(DEDEKIND_WARNING_FLAGS
+        -Wall          # Essential warnings
+        -Wextra        # Even more warnings
+        -Wpedantic     # Strict ISO C++ compliance
+        -Wshadow       # Warn if a local variable hides a member
+        -Wunused       # Catch unused variables/imports
+        -Wunreachable-code # Catch logic that can never execute
+        -Wconversion   # Warn on implicit type conversions (e.g. long to int)
+        -Werror        # Treat warnings as errors (The "Strict Math" mode)
+    )
+    
+    target_compile_options(dedekind PRIVATE ${DEDEKIND_WARNING_FLAGS})
+    target_compile_options(dedekind_test PRIVATE ${DEDEKIND_WARNING_FLAGS})
+endif()
+
 set_target_properties(dedekind_test PROPERTIES CXX_SCAN_FOR_MODULES ON)
 
 target_link_libraries(dedekind_test PRIVATE dedekind Catch2::Catch2WithMain)

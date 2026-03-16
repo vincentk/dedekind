@@ -31,7 +31,9 @@ class CardinalityBase {
 
 // 1. Define the "Seal" check
 template <typename C>
-concept IsCardinality = std::is_base_of_v<CardinalityBase, C>;
+concept IsCardinality = std::is_base_of_v<CardinalityBase, C> && requires(C c) {
+  { power(c) } -> std::derived_from<CardinalityBase>;
+};
 
 // Aleph-0 OR Uncountable
 export struct Transfinite : public CardinalityBase {
@@ -229,38 +231,47 @@ export constexpr LargeFinite operator*(ℕ64, ℕ64) { return LargeFinite(); }
 
 // --- Cardinality Successors (2^S) for Power Sets ---
 
-// 2^Empty = 1
-export constexpr Extensional operator<<(unsigned int base, Empty) {
-  return Extensional(1);
-}
+// 2^0 = 1
+export constexpr Extensional power(Empty) { return Extensional(1); }
 
-// 2^Extensional = 2^n
-export constexpr Extensional operator<<(unsigned int base, Extensional e) {
+// 2^n = Extensional bound
+export constexpr Extensional power(Extensional e) {
+  // Note: We use 1ULL to ensure 64-bit math for the bound
   return Extensional(1ULL << e.bound);
 }
 
+// 2^Finite = Finite (We know it's finite, but bound is unknown)
+export constexpr Finite power(Finite) { return Finite(); }
+
+// --- Machine Cardinality Successors ---
+
+// 2^ℕ8 (2^256) -> Fits in a LargeFinite symbolic type
+export constexpr LargeFinite power(ℕ8) { return LargeFinite(); }
+
+// 2^ℕ32 -> LargeFinite
+export constexpr LargeFinite power(ℕ32) { return LargeFinite(); }
+
+// 2^ℕ64 (2^(2^64)) -> LargeFinite
+// This is the "Theorem" that machine types eventually "overflow"
+// into symbolic finiteness.
+export constexpr LargeFinite power(ℕ64) { return LargeFinite(); }
+
+// 2^LargeFinite -> LargeFinite (Symbolic closure)
+export constexpr LargeFinite power(LargeFinite) { return LargeFinite(); }
+
+// 2^ℵ₀ = ℶ₁ (The jump from Countable to Continuum)
+export constexpr ℶ_1 power(Countable) { return ℶ_1(); }
+
+// 2^ℶ_n = ℶ_{n+1} (Successive Power Sets)
 export template <std::size_t N>
-constexpr LargeFinite operator<<(unsigned int, ℕ<N>) {
-  return LargeFinite();
+constexpr ℶ<N + 1> power(ℶ<N>) {
+  return ℶ<N + 1>();
 }
 
-export constexpr LargeFinite operator<<(unsigned int, LargeFinite) {
-  return LargeFinite();
-}
-
-// 2^(aleph_0) = Continuum (beth_1)
-export constexpr ℶ_1 operator<<(unsigned int, ℵ_0) { return ℶ_1(); }
-
-// 2^beth_n = beth_{n+1}
+// 2^ℵ_n = ℶ_{n+1} (Generalized jump)
 export template <std::size_t N>
-constexpr ℶ<N + 1> operator<<(unsigned int base, ℶ<N>) {
-  return {};
-}
-
-// --- Power Set Logic ---
-// 2^N64 = 2^(2^64) -> Strictly LargeFinite
-export constexpr LargeFinite operator<<(unsigned int, ℕ64) {
-  return LargeFinite();
+constexpr ℶ<N + 1> power(ℵ<N>) {
+  return ℶ<N + 1>();
 }
 
 // 1. Equality: Two cardinalities are equal if they are the same type
