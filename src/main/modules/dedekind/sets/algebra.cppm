@@ -161,6 +161,8 @@ export template <typename S, typename T>
 concept IsComplementedSet = IsLatticeSet<S, T> && requires(S s) {
   { !s } -> IsSet<T>;
   { s - s } -> IsSet<T>;
+  // Theorem: Every complemented set can be reduced to its Normal Form
+  { normalize(s) } -> IsSet<T>;
 };
 
 // --- 4. THE SPACE (Category Theory) ---
@@ -208,6 +210,28 @@ struct UniversalSet
 
 // --- 2. THE COMPLEMENT THEOREMS (Overloads) ---
 
+// --- Tier 2C: The Complement (Negation) ---
+export template <typename T, typename Base, IsCardinality Card>
+struct ComplementNode
+    : public RelativeExpression<T, Base, Card, ComplementNode<T, Base, Card>> {
+  using Parent =
+      RelativeExpression<T, Base, Card, ComplementNode<T, Base, Card>>;
+
+  constexpr ComplementNode(Base b, Card c)
+      : Parent(std::move(b), std::move(c)) {}
+
+  // Axiom of Complement: x ∈ ¬A iff x ∉ A
+  constexpr bool contains(const T& v) const {
+    return !this->base_set().contains(v);
+  }
+};
+
+// Theorem: !!S -> S (Law of Double Negation)
+export template <typename T, typename B, typename C>
+auto operator!(const ComplementNode<T, B, C>& c) {
+  return c.base;  // Simply "unwrap" the complement
+}
+
 // Theorem: !UniversalSet -> ø
 export template <typename T, IsCardinality Card>
 auto operator!(const UniversalSet<T, Card>& u) {
@@ -218,6 +242,19 @@ auto operator!(const UniversalSet<T, Card>& u) {
 export template <typename T, IsSet<T> Base>
 auto operator!(const ø<T, Base>& e) {
   return e.base_set();
+}
+
+export template <typename S>
+  requires IsSet<S, typename S::element_type>
+auto operator!(S s) {
+  using T = typename S::element_type;
+
+  // Theorem: |¬A| = |Universe| - |A|
+  // (We'll assume your :cardinalities partition can handle this
+  // subtraction/estimate)
+  auto new_card = s.base_set().cardinality() - s.cardinality();
+
+  return ComplementNode<T, S, decltype(new_card)>(std::move(s), new_card);
 }
 
 // --- 1. PRODUCT ELEMENT CONCEPT ---
@@ -336,6 +373,10 @@ struct PredicateNode
   }
 };
 
+export template <typename T, typename S,
+                 typename P = std::function<bool(const T&)>>
+using PredicateSet = PredicateNode<T, S, P, typename S::cardinality_type>;
+
 export template <typename S, typename P>
   requires IsSet<S, typename S::element_type> &&
            std::predicate<P, typename S::element_type>
@@ -352,6 +393,46 @@ auto operator^(S s, P p) {
     return PredicateNode<T, S, P, typename S::cardinality_type>(
         std::move(s), std::move(p), s.cardinality());
   }
+}
+
+export template <typename S>
+  requires IsSet<S, typename S::element_type>
+constexpr auto normalize(const S s) {
+  return s;
+}
+
+export template <typename T, typename L, typename R, typename C>
+constexpr auto normalize(const IntersectionNode<T, L, R, C>& node) {
+  return normalize(node.base_set()) & normalize(node.right);
+}
+
+export template <typename T, typename L, typename R, typename C>
+constexpr auto normalize(const UnionNode<T, L, R, C>& node) {
+  return normalize(node.base_set()) | normalize(node.right);
+}
+
+// Theorem: !(A & B) -> !A | !B
+export template <typename T, typename L, typename R, typename C, typename NC>
+constexpr auto normalize(
+    const ComplementNode<T, IntersectionNode<T, L, R, C>, NC>& node) {
+  auto& inner = node.base_set();
+  return normalize(!inner.base_set()) | normalize(!inner.right);
+}
+
+// Theorem: !(A | B) -> !A & !B
+export template <typename T, typename L, typename R, typename C, typename NC>
+constexpr auto normalize(
+    const ComplementNode<T, UnionNode<T, L, R, C>, NC>& node) {
+  auto& inner = node.base_set();
+  // We "push" the negation down: Not (L or R) is (Not L) and (Not R)
+  return normalize(!inner.base_set()) & normalize(!inner.right);
+}
+
+// Theorem: !!A -> A
+export template <typename T, typename S, typename C, typename NC>
+constexpr auto normalize(
+    const ComplementNode<T, ComplementNode<T, S, C>, NC>& node) {
+  return normalize(node.base_set().base_set());
 }
 
 /*

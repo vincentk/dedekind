@@ -274,6 +274,20 @@ constexpr ℶ<N + 1> power(ℵ<N>) {
   return ℶ<N + 1>();
 }
 
+// Theorem: Arithmetic of Sizes (Subtraction/Relative Complement)
+export template <IsCardinality L, IsCardinality R>
+constexpr auto operator-(const L& l, const R& r) {
+  if constexpr (std::is_base_of_v<Extensional, L> &&
+                std::is_base_of_v<Extensional, R>) {
+    // Finite math: Clamp at zero
+    return Extensional(l.bound > r.bound ? l.bound - r.bound : 0);
+  } else {
+    // Transfinite math: For an MVP, we assume Infinity - X is still Infinity
+    // (This is the standard "absorption" logic for cardinal estimates)
+    return l;
+  }
+}
+
 // 1. Equality: Two cardinalities are equal if they are the same type
 // AND (if extensional) they have the same bound.
 export template <IsCardinality L, IsCardinality R>

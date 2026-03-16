@@ -120,7 +120,6 @@ TEST_CASE("Symbolic Set Algebra: Intersection & Booleans",
   }
 
   SECTION("The Complete Symbolic System") {
-
     // 1. Lattice Identity
     STATIC_REQUIRE(IsLatticeSet<decltype(U), bool>);
 
@@ -203,5 +202,46 @@ TEST_CASE("Symbolic Predicates (The Specification Axiom)",
     // Logic: {x | x && !x} is empty
     REQUIRE(complex[true] == false);
     REQUIRE(complex[false] == false);
+  }
+}
+
+TEST_CASE("Symbolic Algebra: Pure Type Proofs", "[algebra][static]") {
+  using namespace dedekind::sets;
+
+  // We only need the types for these proofs
+  using U = UniversalSet<int, ℵ_0>;
+  using Empty = ø<int, U>;
+
+  SECTION("Identity Annihilation") {
+    // Theorem: !!A == A
+    // We prove the 'ComplementNode' layers are physically gone
+    using A = PredicateSet<int, U>;
+    using DoubleNeg = decltype(!!std::declval<A>());
+
+    STATIC_REQUIRE(std::is_same_v<DoubleNeg, A>);
+  }
+
+  SECTION("Universal Identities") {
+    // Theorem: !U == ø
+    STATIC_REQUIRE(std::is_same_v<decltype(!std::declval<U>()), Empty>);
+
+    // Theorem: !ø == U
+    STATIC_REQUIRE(std::is_same_v<decltype(!std::declval<Empty>()), U>);
+  }
+  SECTION("De Morgan Normalization (Distinct Types)") {
+    // We create two distinct types by using different lambda types
+    auto p1 = [](int x) { return x > 0; };
+    auto p2 = [](int x) { return x < 10; };
+
+    using A = PredicateNode<int, U, decltype(p1), ℵ_0>;
+    using B = PredicateNode<int, U, decltype(p2), ℵ_0>;
+
+    // Now A and B are DIFFERENT types. Idempotency will be skipped.
+    using Raw = decltype(!(std::declval<A>() & std::declval<B>()));
+    using Normalized = decltype(normalize(std::declval<Raw>()));
+    using Expected = decltype(!std::declval<A>() | !std::declval<B>());
+
+    // This should now be a UnionNode!
+    STATIC_REQUIRE(std::is_same_v<Normalized, Expected>);
   }
 }
