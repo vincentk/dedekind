@@ -120,7 +120,6 @@ TEST_CASE("Symbolic Set Algebra: Intersection & Booleans",
   }
 
   SECTION("The Complete Symbolic System") {
-    auto U = bool_universe();
 
     // 1. Lattice Identity
     STATIC_REQUIRE(IsLatticeSet<decltype(U), bool>);
@@ -193,7 +192,6 @@ TEST_CASE("Symbolic Predicates (The Specification Axiom)",
   }
 
   SECTION("Predicate Merging") {
-    auto U = bool_universe();
     auto complex = (U ^ [](bool x) { return x; }) ^ [](bool x) { return !x; };
 
     // The type should NOT be a nested PredicateNode<PredicateNode<...>>
