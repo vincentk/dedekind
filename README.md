@@ -1,58 +1,76 @@
-# dedekind
+# Dedekind 
+### Symbolic Set Theory in Modern C++20
+> *Dedekind: Because sets are rules, not buckets. Infinitely faster (at least at compile-time).*
 
-Exercises in strongly typed linear algebra on the JVM.
+**Dedekind** is a modular C++20 library designed to model abstract set theory. Named after Richard Dedekind, the library treats sets not as containers, but as **symbolic expressions** governed by a strictly typed, sealed cardinality algebra.
 
-![GitHub Workflow Status](https://img.shields.io/github/actions/workflow/status/vincentk/dedekind/maven.yml?branch=main&style=flat-square)
-[![license](https://img.shields.io/github/license/vincentk/dedekind.svg?style=flat-square)](LICENSE)
+## Core Intent
+Most libraries treat sets as "bags of data." **Dedekind** treats them as **logical rules**. By using **Expression Templates** and a **Sealed Cardinality Hierarchy**, Dedekind allows you to perform operations on infinite sets (the Reals), countable sets (the Integers), and finite sets (the Booleans) using a terse, "mathy" syntax.
 
-An attempt to model and reproduce some results from 
-* [The simple essence of automatic differentiation](https://arxiv.org/abs/1804.00746#) 
-* [Lineare Algebra](https://people.math.ethz.ch/~stammb/linalg.html)
+### Key Features
+*   **Lazy Evaluation:** Operations like Union (`|`) and Intersection (`&`) build a symbolic tree; no logic is executed until a membership test is performed.
+*   **Cardinality Algebra:** The type system "proves" the size of results. Intersecting an `Uncountable` set with a `Finite` set automatically promotes the result to `Finite` at compile-time.
+*   **Handle Pattern:** `SetHandle<T>` provides a unified, safe interface using `std::shared_ptr` to manage expression lifetimes.
+*   **C++20 Modules:** Built from the ground up using C++20 modules for clean boundaries and fast compilation.
 
-in a modern core java.
+---
 
-To facilitate later specialization of `interface` implementations, [higher-kinded types](https://www.baeldung.com/scala/higher-kinded-types) are emulated through recursive generics and `default` methods, following about the following pattern:
-```java
-interface A<M extends A<M>> {
-   default M plus(M that) {
-     return this.binaryOp(that);
-   }
-}
+## Code Highlights
+
+### 1. The "Such That" Filter ($\{ x \in \mathbb{Z} \mid x > 0 \land x \text{ is prime} \}$)
+Using the `^` operator as the "such that" glyph, you can carve specific subsets out of infinite universes.
+```cpp
+// Dedekind one-liner:
+auto PositivePrimes = Z ^ (is_positive && is_prime);
+
+// Membership test via operator[]
+bool result = PositivePrimes[7]; // Returns true 
 ```
 
-This is a multi-module maven project with the following layout:
+### 2. Symbolic Difference and Identity ($\emptyset \setminus \mathbb{R} = \emptyset$)
+The library understands monoidal identities. Subtracting the infinite Reals from an Empty set results in a set that is statically proven to be `Empty`.
 
-* [dedekind-ontology](https://github.com/vincentk/dedekind/tree/main/dedekind-ontology) an attempt to express concepts from abstract algebra in the java type system as directly as possible.
+```cpp
+auto E = universes::EmptySet<double>();
+auto Reals = universes::RealUniverse<double>();
 
-* [dedekind-matrices](https://github.com/vincentk/dedekind/tree/main/dedekind-matrices) building on the former, provide some basic implementations of vectors, matrices and operations thereupon.
+auto result = E - Reals; // Internally: E & (!Reals)
 
-For build instructions, please refer to the [build pipeline](https://github.com/vincentk/dedekind/blob/main/.github/workflows/maven.yml).
-
-## Known Limitations
-
-Many, for the time being.
-
-## Preliminary Results
-
-* Some limited support for type-checked bracket-type notation, e.g. inner $\braket{0|0}$ or outer $\ket{x}\bra{y}$ product spaces.
-
-* Some limited support for lazy evaluation and "infinite" as well as sparse vectors and matrices. In particular, specific operations such as a transpose or outer (tensor) product may offer "infinite" speedup vis-a-vis common libraries as they may execute in $\mathcal{O}(0)$ as opposed to e.g. $\mathcal{O}(N)$.
-
-* Similarly (again due to lazy evaluation), some symbolic manipulation is supported, e.g. $(A * B)^t = B^t * A^t$ or
-$(A + B) * C = A * C + B * C$ can be evaluated symbolically and composed in $\mathcal{O}(0)$.
-
-* Some support exists for typical operations such as concatenation and slicing, as they can be implemented efficiently via matrix addition and multiplication, the intuition being as follows:
-```math
-\begin{eqnarray} 
-\begin{bmatrix}a\end{bmatrix}    &=& \begin{bmatrix}1 & 0\end{bmatrix} \begin{bmatrix}a\\x\end{bmatrix}\\
-\begin{bmatrix}a & b\end{bmatrix}&=& \begin{bmatrix}a\end{bmatrix} \begin{bmatrix}1 & 0\end{bmatrix} + \begin{bmatrix}b\end{bmatrix} \begin{bmatrix}0 & 1\end{bmatrix}
-\end{eqnarray}
+// This check is a compile-time metadata lookup:
+assert(result.cardinality() <= Cardinality::Empty{}); 
 ```
 
+### 3. Cross-Universe Intersection
 
+```markdown
+### 3. Cross-Universe Intersection with Bounds Propagation
+When you intersect a "Black Box" predicate with a "Small" universe, the result inherits the metadata of the smaller set, enabling optimizations.
 
-### Implementation notes:
+```cpp
+auto SmallSet = universes::ExtensionalSet<int>({1, 2, 3, 4, 5});
+auto Evens = universes::Z ^ is_even;
 
-Notable challenges with the java type system which need to be overcome as compared to e.g. haskell or scala:
+// Intersecting Countable & Extensional results in an Extensional set
+auto result = Evens & SmallSet; 
 
-* Type erasure vs. polymorphism preventing an interface to be implemented multiple times with different arguments. I.e. while the default implementation for polymorphism in java is dynamic dispatch, a generic interface (`Foo<A>`)  declaring a method `foo(A)` can not be implemented twice with different parameters `Foo<X>` and `Foo<Y>`.
+// result.size() is now available because the type system proved it's Extensional!
+// Returns 5 (the mathematical upper bound for the intersection)
+std::cout << "Max possible size: " << result.size() << std::endl; 
+```
+
+### Build Requirements and Footer
+
+```markdown
+---
+
+## Build Requirements
+*   **Compiler:** LLVM/Clang 16+ or GCC 13+ (Full C++20 Module support required).
+*   **Build System:** CMake 3.28+.
+*   **Testing:** Catch2 v3.
+
+### Local Build (macOS/Ubuntu)
+```bash
+mkdir build && cd build
+cmake .. -DCMAKE_CXX_COMPILER=clang++
+cmake --build .
+ctest --output-on-failure
