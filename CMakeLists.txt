@@ -22,16 +22,14 @@ target_sources(dedekind
     FILE_SET CXX_MODULES 
     BASE_DIRS src/main/modules
     FILES
+        src/main/modules/dedekind/algebra/algebra.cppm
+        src/main/modules/dedekind/algebra/abstract.cppm
         src/main/modules/dedekind/order/order.cppm
         src/main/modules/dedekind/order/algebra.cppm
         src/main/modules/dedekind/order/nodes.cppm
         src/main/modules/dedekind/sets/sets.cppm
         src/main/modules/dedekind/sets/cardinalities.cppm
         src/main/modules/dedekind/sets/algebra.cppm
-#        src/main/modules/dedekind/sets/universes.cppm
-#        src/main/modules/dedekind/sets/expressions.cppm
-#        src/main/modules/dedekind/sets/operators.cppm
-#        src/main/modules/dedekind/sets/predicates.cppm
 )
 
 
@@ -50,10 +48,10 @@ FetchContent_MakeAvailable(Catch2)
 enable_testing()
 
 add_executable(dedekind_test 
+    src/test/cpp/modules/dedekind/algebra/nodes_test.cpp
+    src/test/cpp/modules/dedekind/order/nodes_test.cpp
     src/test/cpp/modules/dedekind/sets/cardinalities_test.cpp
     src/test/cpp/modules/dedekind/sets/algebra_test.cpp
-    src/test/cpp/modules/dedekind/order/nodes_test.cpp
-    # src/test/cpp/dedekind/sets_test.cpp 
 )
 
 # --- 1. RIGOROUS COMPILER ENFORCEMENT ---

@@ -165,4 +165,27 @@ auto upper_closed_ray(S s) {
       std::move(s), P{}, s.cardinality());
 }
 
+/**
+ * @brief Theorem: A Closed Interval [Min, Max] is the intersection of two
+ * closed rays.
+ *
+ * [Min, Max] = [Min, ∞) ∩ (-∞, Max]
+ *
+ * @tparam T The element type.
+ * @tparam S The base set (Universe).
+ * @tparam Min The lower bound value.
+ * @tparam Max The upper bound value.
+ * @param s The universe/base instance.
+ */
+export template <typename T, typename S, auto Min, auto Max>
+auto closed_interval(S s) {
+  // 1. Create the Symbolic Rays
+  auto lower = lower_closed_ray<T, S, Min>(s);
+  auto upper = upper_closed_ray<T, S, Max>(std::move(s));
+
+  // 2. Intersect them.
+  // If Max < Min, this symbolically returns sets::ø at compile-time!
+  return lower & upper;
+}
+
 }  // namespace dedekind::order

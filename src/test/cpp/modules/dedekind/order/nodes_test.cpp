@@ -31,4 +31,14 @@ TEST_CASE("Symbolic Order: Ray Algebra", "[order][static]") {
     STATIC_REQUIRE(std::is_same_v<decltype(L & R), ø<int, decltype(U)>>);
     STATIC_REQUIRE(std::is_same_v<decltype(R & L), ø<int, decltype(U)>>);
   }
+
+  SECTION("Interval Factory: [0, 10]") {
+    auto I = closed_interval<int, decltype(U), 0, 10>(U);
+
+    REQUIRE(I.contains(0));
+    REQUIRE(I.contains(5));
+    REQUIRE(I.contains(10));
+    REQUIRE_FALSE(I.contains(11));
+    REQUIRE_FALSE(I.contains(-1));
+  }
 }
