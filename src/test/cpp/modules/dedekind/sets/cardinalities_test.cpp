@@ -31,11 +31,11 @@ TEST_CASE("Cardinality Arithmetic (Compile-time Theorems)",
   }
 
   SECTION("Power Set Jumps") {
-    STATIC_REQUIRE((2u << Zero{}) == Extensional(1));
-    STATIC_REQUIRE((2u << Extensional(4)) == Extensional(16));
+    STATIC_REQUIRE(power(Zero{}) == Extensional(1));
+    STATIC_REQUIRE(power(Extensional(4)) == Extensional(16));
 
     // 2^ℵ₀ = ℶ₁ (The jump from Countable to Continuum)
-    STATIC_REQUIRE(std::is_same_v<decltype(2u << ℵ_0{}), ℶ_1>);
+    STATIC_REQUIRE(std::is_same_v<decltype(power(ℵ_0{})), ℶ_1>);
   }
 
   SECTION("Relational Proofs") {
@@ -103,7 +103,7 @@ TEST_CASE("Extensional Cardinality Arithmetic (Runtime Bounds)",
     // 1. The Power Set Jump: P(N64)
     // Mathematically: A set of size 2^(2^64).
     // Symbolic Result: LargeFinite (Finite, but unmeasurable).
-    using PowerSetOfUniverse = decltype(2u << ℕ64{});
+    using PowerSetOfUniverse = decltype(power(ℕ64{}));
     STATIC_REQUIRE(std::is_same_v<PowerSetOfUniverse, LargeFinite>);
 
     // 2. The Cartesian Product: N64 x N64
@@ -114,7 +114,7 @@ TEST_CASE("Extensional Cardinality Arithmetic (Runtime Bounds)",
 
     // 3. Chain Reaction
     // P(N64 x N64) -> Still LargeFinite (The Finite Ceiling)
-    using ExplodedSet = decltype(2u << (ℕ64{} * ℕ64{}));
+    using ExplodedSet = decltype(power(ℕ64{} * ℕ64{}));
     STATIC_REQUIRE(std::is_same_v<ExplodedSet, LargeFinite>);
 
     // 4. Comparison Proof

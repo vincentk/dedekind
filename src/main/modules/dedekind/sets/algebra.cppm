@@ -256,7 +256,6 @@ export template <typename L, typename R>
   requires std::is_same_v<typename L::element_type, typename R::element_type>
 auto operator&(L l, R r) {
   using T = typename L::element_type;
-  using BaseT = typename L::base_set_type;  // Use the common universe
 
   // Theorem 1: L ∩ ø = ø
   if constexpr (std::is_base_of_v<Empty, typename R::cardinality_type>) {
