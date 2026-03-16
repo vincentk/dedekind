@@ -1,10 +1,10 @@
 module;
 
 #include <concepts>
+#include <cstdint>
 #include <functional>
 #include <type_traits>
 #include <utility>
-#include <cstdint>
 
 export module dedekind.sets:algebra;
 
