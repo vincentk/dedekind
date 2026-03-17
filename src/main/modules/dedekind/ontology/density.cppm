@@ -1,52 +1,57 @@
+/**
+ * @file ontology:density.cppm
+ * @brief The Study of In-Betweenness and Limits.
+ * 
+ * Copyright 2026 The Dedekind Authors
+ * Licensed under the Apache License, Version 2.0.
+ * 
+ * @section Density: The Grain of the Continuum.
+ * @details This partition defines the requirements for a species to be "Dense," 
+ *          ensuring that no gaps exist that cannot be approached by a sequence.
+ * Wikipedia: Dense set, Order density, Archimedean property
+ */
+
 export module dedekind.ontology:density;
 
 import :mereology;
+import :numbers;
 
-/** 
- * @section Density: The study of "In-Betweenness" and limits.
- */
 namespace dedekind::ontology {
 
-export template <typename T>
-inline constexpr bool is_dense_v = false;
-
-/** @brief Theorem: Rational numbers are dense; Integers are not. */
-template <> inline constexpr bool is_dense_v<float> = true;
-template <> inline constexpr bool is_dense_v<double> = true;
-// Our future 'Rational' type will also be registered here.
-
-/** 
+/**
  * @concept IsDense
- * @brief A property of the underlying scalar type T. 
- *        Between any two distinct elements, there exists a third.
- * Wikipedia: Dense set, Order density
+ * @brief A Total Order where a midpoint always exists between distinct elements.
+ * @details Structural Proof: For any a < b, there exists c such that a < c < b.
+ *          In our "Naked" world, this is satisfied by the existence of (a + b) / 2.
+ * @note Wikipedia: Dense set
  */
 export template <typename T>
-concept IsDense = is_dense_v<T> && requires(T a, T b) {
-    // Theorem: If a < b, then there exists c such that a < c < b.
+concept IsDense = IsTotallyOrdered<T> && requires(const T a, const T b) {
+    // The "Midpoint" Morphism
     { (a + b) / 2 } -> std::convertible_to<T>;
 };
 
 /**
+ * @section Density: The Archimedean Property.
  * @concept IsArchimedean
- * @brief Requires a Total Order to ensure "exceeding" y is well-defined.
- * Wikipedia: Archimedean property
+ * @brief Property: Measurement via inductive "stepping."
+ * @details We define this "Nakedly" as the existence of a Successor Morphism 
+ *          that respects the Total Order.
  */
 export template <typename T>
-concept IsArchimedean = IsTotallyOrdered<T> && requires(T x, T y) {
-    { x + x } -> std::same_as<T>;
+concept IsArchimedean = IsTotallyOrdered<T> && requires(T x) {
+    { ++x } -> std::same_as<T&>;
+    // Theorem: Repeated application of ++ eventually exceeds any y.
 };
 
 /**
  * @concept IsDedekindComplete
- * @brief The "Destination": Every non-empty set with an upper bound 
- *        has a least upper bound (Supremum).
- * Wikipedia: Completeness of the real numbers, Dedekind completeness
+ * @brief The "Smooth" Destination.
+ * @details A Dense, Archimedean Field where every bounded set has a supremum.
+ * Wikipedia: Completeness of the real numbers
  */
 export template <typename T>
-concept IsDedekindComplete = IsDense<T> && IsArchimedean<T> && requires {
-    // This is what our Dedekind Cut will eventually provide to the Rationals.
-    typename T::supremum_type;
-};
+concept IsDedekindComplete = IsDense<T> && IsArchimedean<T> && IsField<T>;
 
 } // namespace dedekind::ontology
+

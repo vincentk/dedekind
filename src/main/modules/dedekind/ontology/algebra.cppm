@@ -16,6 +16,17 @@ inline constexpr bool is_commutative_v<T, std::plus<T>> = true;
 template <std::floating_point T> 
 inline constexpr bool is_commutative_v<T, std::plus<T>> = true;
 
+/**
+ * @section Algebra: Actions and Scaling.
+ * @concept IsScalableBy
+ * @brief An additive species T that can be "stepped" by an index N.
+ * @note This is the "Naked" engine of the Archimedean property.
+ */
+export template <typename T, typename N>
+concept IsScalableBy = requires(T x, N n) {
+    { x * n } -> std::same_as<T>;
+};
+
 /** 
  * @section Algebra: The study of operations and structures.
  * 
@@ -113,5 +124,45 @@ concept IsField = IsCommutativeRing<T> && requires(T a, T b) {
     // The Inverse Morphism for Multiplication: Division
     { a / b } -> std::same_as<T>;
 };
+
+/**
+ * @section Algebra: The Finitude of Machines.
+ */
+
+/**
+ * @concept IsModular
+ * @brief An algebraic structure that wraps around a modulus (n).
+ * @details x + y = (x + y) mod n.
+ * Wikipedia: Modular arithmetic, Cyclic group
+ */
+export template <typename T>
+concept IsModular = IsRing<T> && requires(T a) {
+    { T::modulus() } -> std::convertible_to<T>;
+    typename T::is_modular_tag;
+};
+
+/**
+ * @concept IsExtensional
+ * @brief A set whose identity is determined solely by its enumerated members.
+ * Wikipedia: Extensionality, Axiom of extensionality
+ */
+export template <typename S>
+concept IsExtensional = IsSet<S, typename S::element_type> && requires {
+    typename S::is_extensional_tag;
+    // An extensional set must be able to report its size or iterate its members.
+    { s.size() } -> std::integral;
+};
+
+/**
+ * @concept IsBounded
+ * @brief Theorem: Every Extensional species is Bounded (in our finite universe).
+ */
+export template <typename S>
+concept IsBounded = IsExtensional<S> || requires {
+    { std::numeric_limits<typename S::element_type>::max() };
+};
+
+};
+
 
 } // namespace dedekind::ontology

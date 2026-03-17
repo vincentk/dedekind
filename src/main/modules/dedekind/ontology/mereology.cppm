@@ -21,6 +21,37 @@ concept IsSet = requires(const S s, const T x) {
 };
 
 /**
+ * @concept IsExtensional
+ * @brief A set defined solely by the enumeration of its members.
+ * @details In our silicon reality, this implies a finite "Size Upper Bound."
+ * Wikipedia: Extensionality, Axiom of extensionality
+ */
+export template <typename S>
+concept IsExtensional = IsSet<S, typename S::element_type> && requires(const S s) {
+    typename S::is_extensional_tag; // Structural proof
+    { s.size_upper_bound() } -> std::integral; 
+};
+
+/**
+ * @section Mereology: Pointed Species.
+ * @concept IsPointed
+ * @brief A species that defines its own structural origin.
+ * Wikipedia: Pointed space, Origin (mathematics)
+ */
+export template <typename T>
+concept IsPointed = requires {
+    { T::origin() } -> std::same_as<T>;
+};
+
+/**
+ * @concept IsPointedSet
+ * @brief A Set that has a designated "Origin" or "Identity" element.
+ * Wikipedia: Pointed set
+ */
+export template <typename S, typename T>
+concept IsPointedSet = IsSet<S, T> && IsPointed { };
+
+/**
  * @concept IsMeetSemiLattice
  * @brief A refinement of IsSet that supports the algebraic 
  *        structure of Meet (&).
@@ -52,6 +83,20 @@ export template <typename S>
 concept IsLattice = IsMeetSemilattice<S> && IsJoinSemilattice<S>;
 
 /**
+ * @concept IsBoundedLattice
+ * @brief A Lattice with a unique "Top" (1) and "Bottom" (0).
+ * @details 
+ * 1. Meet(a, Bottom) = Bottom
+ * 2. Join(a, Top) = Top
+ * Wikipedia: Bounded lattice
+ */
+export template <typename S>
+concept IsBoundedLattice = IsLattice<S> && requires(S s) {
+    { s.lower_bound() } -> std::same_as<typename S::element_type>; // The Bottom
+    { s.upper_bound() } -> std::same_as<typename S::element_type>; // The Top
+};
+
+/**
  * @concept IsPartiallyOrdered
  * @brief Elements that can be compared, but some may be "parallel."
  * Wikipedia: Partial order
@@ -64,14 +109,14 @@ concept IsPartiallyOrdered = requires(const T a, const T b) {
 
 /**
  * @concept IsTotallyOrdered
- * @brief A Partial Order where every pair is comparable. No "Parallel" elements.
- * Wikipedia: Total order
+ * @brief A Partial Order where every pair is comparable.
+ * @details This is the "Ruler" for our 1D road trip.
  */
 export template <typename T>
 concept IsTotallyOrdered = IsPartiallyOrdered<T> && requires(const T a, const T b) {
-    { a < b || a > b || a == b } -> std::convertible_to<bool>;
-    // In C++20, this is elegantly captured by:
-    requires std::three_way_comparable<T>;
+    { a < b } -> std::convertible_to<bool>;
+    { a <=> b } -> std::same_as<std::strong_ordering>;
+    requires std::three_way_comparable<T>; // The C++20 "Naked" Proof
 };
 
 /**
