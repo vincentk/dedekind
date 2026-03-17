@@ -342,4 +342,34 @@ constexpr bool operator>=(const L& lhs, const R& rhs) {
   return rhs <= lhs;
 }
 
+/** @brief Theorem: ℵ_0 + n = ℵ_0 */
+export template <std::size_t Bits>
+constexpr ℕ<Bits> operator+(ℕ<Bits> n, Extensional) {
+  return n;
+}
+
+/** @brief Symmetric version */
+export template <std::size_t Bits, typename T>
+constexpr ℕ<Bits> operator+(Extensional, ℕ<Bits> n) {
+  return n;
+}
+
+/** @brief ℵ_0 + ℵ_0 = ℵ_0 */
+export template <std::size_t Bits>
+constexpr ℕ<Bits> operator+(ℕ<Bits> n, ℕ<Bits> /*m*/) {
+  return n;
+}
+
+/** @brief Theorem: Finite + Finite = Finite (Upper bound: |A|*|B|) */
+export constexpr Extensional operator+(Extensional a, Extensional b) {
+  // Note: We use the product because in the worst case (all sums unique),
+  // the Minkowski sum has a size up to the product of the sizes.
+  return Extensional(a.bound * b.bound);
+}
+
+/** @brief Theorem: Uncountable + Anything = Uncountable */
+export constexpr Uncountable operator+(Uncountable u, auto /*any*/) {
+  return u;
+}
+
 }  // namespace dedekind::sets

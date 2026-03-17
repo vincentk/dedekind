@@ -46,11 +46,6 @@ TEST_CASE("Cardinality Arithmetic (Compile-time Theorems)",
   }
 }
 
-#include <catch2/catch_test_macros.hpp>
-
-// Import your module
-import dedekind.sets;
-
 TEST_CASE("Extensional Cardinality Arithmetic (Runtime Bounds)",
           "[cardinality][runtime]") {
   using namespace dedekind::sets;
@@ -120,5 +115,44 @@ TEST_CASE("Extensional Cardinality Arithmetic (Runtime Bounds)",
     // 4. Comparison Proof
     // Even the largest machine space is smaller than the smallest "Large" set
     STATIC_REQUIRE(ℕ64{} < LargeFinite{});
+  }
+}
+
+TEST_CASE("Symbolic Cardinality: Addition Axioms", "[cardinality][static]") {
+  SECTION("Absorption: ℵ₀ + n = ℵ₀") {
+    auto infinite = dedekind::sets::ℕ64{};
+    auto finite = dedekind::sets::Extensional(42);
+
+    // Theorem: Adding a finite shift to an infinite set
+    // does not change its cardinality class.
+    auto result = infinite + finite;
+    auto result2 = finite + infinite;
+
+    STATIC_REQUIRE(std::is_same_v<decltype(result), dedekind::sets::ℕ64>);
+    STATIC_REQUIRE(std::is_same_v<decltype(result2), dedekind::sets::ℕ64>);
+  }
+
+  SECTION("Upper Bound: Finite + Finite") {
+    auto a = dedekind::sets::Extensional(10);
+    auto b = dedekind::sets::Extensional(5);
+
+    // Theorem: The maximum possible size of A ⊕ B is |A| * |B|.
+    // We use this as our symbolic upper bound.
+    auto result = a + b;
+
+    REQUIRE(result.bound == 50);
+    STATIC_REQUIRE(
+        std::is_same_v<decltype(result), dedekind::sets::Extensional>);
+  }
+
+  SECTION("Continuum Dominance: 𝔠 + ℵ₀ = 𝔠") {
+    auto countable = dedekind::sets::ℕ64();
+    auto uncountable = dedekind::sets::Uncountable();
+
+    // Theorem: Uncountable sets dominate lower infinities.
+    auto result = uncountable + countable;
+
+    STATIC_REQUIRE(
+        std::is_same_v<decltype(result), dedekind::sets::Uncountable>);
   }
 }

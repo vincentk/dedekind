@@ -166,6 +166,17 @@ auto upper_closed_ray(S s) {
 }
 
 /**
+ * @brief Symbolic Alias: A Closed Interval is an Intersection of two Closed
+ * Rays.
+ *
+ * Note: We explicitly qualify order::LowerBound and order::Closed.
+ */
+export template <typename T, typename S, auto Min, auto Max, typename Card>
+using ClosedInterval = sets::IntersectionNode<
+    T, sets::PredicateNode<T, S, LowerBound<T, Min, Closed>, Card>,
+    sets::PredicateNode<T, S, UpperBound<T, Max, Closed>, Card>, Card>;
+
+/**
  * @brief Theorem: A Closed Interval [Min, Max] is the intersection of two
  * closed rays.
  *

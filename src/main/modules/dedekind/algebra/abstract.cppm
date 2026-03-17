@@ -3,6 +3,7 @@ module;
 #include <concepts>
 #include <functional>
 
+import dedekind.sets;
 export module dedekind.algebra:abstract;
 
 namespace dedekind::algebra {
@@ -103,6 +104,9 @@ concept IsGroup = IsMonoid<T, Op> && requires(T a) {
 export template <typename T, typename Op>
 concept IsAbelianGroup = IsGroup<T, Op> && is_commutative_v<T, Op>;
 
+export template <typename T>
+concept IsAdditiveGroup = IsAbelianGroup<T, std::plus<T>>;
+
 export template <typename T, typename Add = std::plus<T>,
                  typename Mul = std::multiplies<T>>
 concept IsRing =
@@ -118,22 +122,6 @@ concept IsRing =
 export template <typename S, typename Op>
 concept IsAlgebraicSet = sets::IsSet<S, typename S::element_type> &&
                          IsMonoid<typename S::element_type, Op>;
-
-/**
- * @brief Theorem: Minkowski Sum of two sets in the same Monoid.
- *
- * @note We default to std::plus if no specific species is provided.
- */
-export template <typename L, typename R,
-                 typename Op = std::plus<typename L::element_type>>
-  requires IsAlgebraicSet<L, Op> && IsAlgebraicSet<R, Op>
-auto operator+(L l, R r) {
-  using T = typename L::element_type;
-  auto new_card = l.cardinality() + r.cardinality();
-
-  return MinkowskiSumNode<T, L, R, Op, decltype(new_card)>(
-      std::move(l), std::move(r), new_card);
-}
 
 /**
  * @brief Axiom of a Field.

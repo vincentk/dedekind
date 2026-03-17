@@ -2,9 +2,12 @@
 #include <type_traits>
 
 import dedekind.algebra;
+import dedekind.order;
 import dedekind.sets;
 
 using namespace dedekind::algebra;
+using namespace dedekind::sets;
+using namespace dedekind::order;
 
 TEST_CASE("Symbolic Algebra: Axiomatic Proofs", "[algebra][static]") {
   SECTION("Monoid Proof: Strings") {
@@ -28,5 +31,40 @@ TEST_CASE("Symbolic Algebra: Axiomatic Proofs", "[algebra][static]") {
   SECTION("Field Proof: Floating Point") {
     // Theorem: double satisfies the Field axioms (approximate math aside)
     STATIC_REQUIRE(IsField<double>);
+  }
+}
+
+TEST_CASE("Symbolic Algebra: Minkowski Sum", "[algebra][static]") {
+  auto U = UniversalSet<int, ℕ64>(ℕ64());
+
+  SECTION("Identity Theorem: A + {0} = A") {
+    auto A = closed_interval<int, decltype(U), 0, 10>(U);
+
+    // We simulate a singleton {0} as an interval [0, 0]
+    auto Zero = closed_interval<int, decltype(U), 0, 0>(U);
+
+    auto result = A + Zero;
+
+    // THE COOLNESS: If we implement the shortcut,
+    // the type is still a ClosedIntervalNode, not a MinkowskiSumNode!
+    using ResultType = decltype(result);
+    STATIC_REQUIRE(is_interval_v<ResultType>);
+
+    // Value Check
+    REQUIRE(result.contains(5));
+    REQUIRE_FALSE(result.contains(11));
+  }
+
+  SECTION("Interval Translation: [1, 2] + [10, 20] = [11, 22]") {
+    auto I1 = closed_interval<int, decltype(U), 1, 2>(U);
+    auto I2 = closed_interval<int, decltype(U), 10, 20>(U);
+
+    auto sum = I1 + I2;
+
+    // This proves the bounds were summed symbolically
+    REQUIRE(sum.contains(11));  // 1 + 10
+    REQUIRE(sum.contains(22));  // 2 + 20
+    REQUIRE_FALSE(sum.contains(10));
+    REQUIRE_FALSE(sum.contains(23));
   }
 }
