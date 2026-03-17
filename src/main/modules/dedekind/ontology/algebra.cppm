@@ -4,16 +4,19 @@ import :mereology;
 
 namespace dedekind::ontology {
 
-
 // --- 1. THE TRAITS (The "Naked" Axioms) ---
-export template <typename T, typename Op> inline constexpr bool is_associative_v = false;
-export template <typename T, typename Op> inline constexpr bool is_commutative_v = false;
-export template <typename T, typename Op> inline constexpr T identity_v = T(0);
-/** @brief Proof Assistant: Integers and Floats are Commutative under Addition. */
-template <std::integral T> 
+export template <typename T, typename Op>
+inline constexpr bool is_associative_v = false;
+export template <typename T, typename Op>
+inline constexpr bool is_commutative_v = false;
+export template <typename T, typename Op>
+inline constexpr T identity_v = T(0);
+/** @brief Proof Assistant: Integers and Floats are Commutative under Addition.
+ */
+template <std::integral T>
 inline constexpr bool is_commutative_v<T, std::plus<T>> = true;
 
-template <std::floating_point T> 
+template <std::floating_point T>
 inline constexpr bool is_commutative_v<T, std::plus<T>> = true;
 
 /**
@@ -23,18 +26,19 @@ inline constexpr bool is_commutative_v<T, std::plus<T>> = true;
  */
 export template <typename S>
 concept IsExtensional = IsSet<S, typename S::element_type> && requires {
-    typename S::is_extensional_tag;
-    // An extensional set must be able to report its size or iterate its members.
-    { s.size() } -> std::integral;
+  typename S::is_extensional_tag;
+  // An extensional set must be able to report its size or iterate its members.
+  { s.size() } -> std::integral;
 };
 
 /**
  * @concept IsBounded
- * @brief Theorem: Every Extensional species is Bounded (in our finite universe).
+ * @brief Theorem: Every Extensional species is Bounded (in our finite
+ * universe).
  */
 export template <typename S>
 concept IsBounded = IsExtensional<S> || requires {
-    { std::numeric_limits<typename S::element_type>::max() };
+  { std::numeric_limits<typename S::element_type>::max() };
 };
 
 /**
@@ -45,19 +49,19 @@ concept IsBounded = IsExtensional<S> || requires {
  */
 export template <typename T, typename N>
 concept IsScalableBy = requires(T x, N n) {
-    { x * n } -> std::same_as<T>;
+  { x * n } -> std::same_as<T>;
 };
 
-/** 
+/**
  * @section Algebra: The study of operations and structures.
- * 
+ *
  * @concept IsMagma
  * @brief The most primitive operation: a set closed under a binary operator.
  * Wikipedia: Magma (algebra)
  */
 export template <typename T, typename Op>
 concept IsMagma = requires(T a, T b) {
-    { Op{}(a, b) } -> std::same_as<T>;
+  { Op{}(a, b) } -> std::same_as<T>;
 };
 
 /**
@@ -65,9 +69,8 @@ concept IsMagma = requires(T a, T b) {
  * @brief An associative Magma (No identity required).
  */
 export template <typename T, typename Op>
-concept IsSemigroup = IsMagma<T, Op> && requires {
-    requires is_associative_v<T, Op>;
-};
+concept IsSemigroup =
+    IsMagma<T, Op> && requires { requires is_associative_v<T, Op>; };
 
 /**
  * @concept IsMonoid
@@ -76,8 +79,8 @@ concept IsSemigroup = IsMagma<T, Op> && requires {
  */
 export template <typename T, typename Op>
 concept IsMonoid = IsMagma<T, Op> && requires {
-    { identity_v<T, Op> } -> std::same_as<T>;
-    requires is_associative_v<T, Op>;
+  { identity_v<T, Op> } -> std::same_as<T>;
+  requires is_associative_v<T, Op>;
 };
 
 /**
@@ -87,19 +90,18 @@ concept IsMonoid = IsMagma<T, Op> && requires {
  */
 export template <typename T, typename Op>
 concept IsGroup = IsMonoid<T, Op> && requires(T a) {
-    { inverse<T, Op>(a) } -> std::same_as<T>;
+  { inverse<T, Op>(a) } -> std::same_as<T>;
 };
 
 /**
  * @section Algebra: The Hierarchy of Operations.
- * 
+ *
  * @concept IsAbelianGroup
  * @brief A Group where the operator (usually +) is commutative.
  * Wikipedia: Abelian group
  */
 export template <typename T, typename Op = std::plus<T>>
 concept IsAbelianGroup = IsGroup<T, Op> && is_commutative_v<T, Op>;
-
 
 /**
  * @concept IsOrderedAbelianGroup
@@ -108,8 +110,8 @@ concept IsAbelianGroup = IsGroup<T, Op> && is_commutative_v<T, Op>;
  * Wikipedia: Ordered abelian group
  */
 export template <typename T>
-concept IsOrderedAbelianGroup = IsAbelianGroup<T, std::plus<T>> && 
-                                IsTotallyOrdered<T>;
+concept IsOrderedAbelianGroup =
+    IsAbelianGroup<T, std::plus<T>> && IsTotallyOrdered<T>;
 
 /**
  * @concept IsSemiring
@@ -117,17 +119,18 @@ concept IsOrderedAbelianGroup = IsAbelianGroup<T, std::plus<T>> &&
  * @note This is the home of 'bool' and 'Natural Numbers'.
  */
 export template <typename T>
-concept IsSemiring = IsMonoid<T, std::plus<T>> && 
-                     IsMonoid<T, std::multiplies<T>> &&
-                     requires(T a, T b, T c) {
-    { a * (b + c) } -> std::same_as<T>; // Distributivity
-};
+concept IsSemiring =
+    IsMonoid<T, std::plus<T>> && IsMonoid<T, std::multiplies<T>> &&
+    requires(T a, T b, T c) {
+      { a * (b + c) } -> std::same_as<T>;  // Distributivity
+    };
 
 /**
  * @concept IsRing
  * @brief A set that is both a Semiring AND an Abelian Group under addition.
  */
-export template <typename T, typename Add = std::plus<T>, typename Mul = std::multiplies<T>>
+export template <typename T, typename Add = std::plus<T>,
+                 typename Mul = std::multiplies<T>>
 concept IsRing = IsSemiring<T> && IsAbelianGroup<T, Add>;
 
 /**
@@ -135,7 +138,8 @@ concept IsRing = IsSemiring<T> && IsAbelianGroup<T, Add>;
  * @brief A Ring where multiplication is commutative.
  */
 export template <typename T>
-concept IsCommutativeRing = IsRing<T> && is_commutative_v<T, std::multiplies<T>>;
+concept IsCommutativeRing =
+    IsRing<T> && is_commutative_v<T, std::multiplies<T>>;
 
 /**
  * @concept IsModular
@@ -145,8 +149,8 @@ concept IsCommutativeRing = IsRing<T> && is_commutative_v<T, std::multiplies<T>>
  */
 export template <typename T>
 concept IsModular = IsRing<T> && requires(T a) {
-    { T::modulus() } -> std::convertible_to<T>;
-    typename T::is_modular_tag;
+  { T::modulus() } -> std::convertible_to<T>;
+  typename T::is_modular_tag;
 };
 
 /**
@@ -156,22 +160,23 @@ concept IsModular = IsRing<T> && requires(T a) {
  */
 export template <typename T>
 concept IsDivisionRing = IsRing<T> && requires(T a, T b) {
-    // Axiom: b must not be the Additive Identity (Zero).
-    requires (b != identity_v<T, std::plus<T>>); 
-    { a / b } -> std::same_as<T>;
+  // Axiom: b must not be the Additive Identity (Zero).
+  requires(b != identity_v<T, std::plus<T>>);
+  { a / b } -> std::same_as<T>;
 };
 
 /**
  * @concept IsField
- * @brief The "Painless" Field: A Commutative Ring where every non-zero element 
+ * @brief The "Painless" Field: A Commutative Ring where every non-zero element
  *        has a multiplicative inverse (Division).
  * Wikipedia: Field (mathematics)
  */
 export template <typename T>
-concept IsField = IsCommutativeRing<T> && IsDivisionRing<T> && requires(T a, T b) {
-    // The Inverse Morphism for Multiplication: Division
-    { a / b } -> std::same_as<T>;
-};
+concept IsField =
+    IsCommutativeRing<T> && IsDivisionRing<T> && requires(T a, T b) {
+      // The Inverse Morphism for Multiplication: Division
+      { a / b } -> std::same_as<T>;
+    };
 
 /**
  * @concept IsOrderedField
@@ -181,22 +186,22 @@ concept IsField = IsCommutativeRing<T> && IsDivisionRing<T> && requires(T a, T b
  * Wikipedia: Ordered field
  */
 export template <typename T>
-concept IsOrderedField = IsField<T> && IsTotallyOrdered<T> && 
-                        requires(T a, T b, T c) {
-    // Structural Proof: The order is invariant under translation and scaling.
-    // In our Naked Ontology, we trust the species to satisfy these 
-    // internal laws if it claims the 'IsOrderedField' tag.
-};
+concept IsOrderedField =
+    IsField<T> && IsTotallyOrdered<T> && requires(T a, T b, T c) {
+      // Structural Proof: The order is invariant under translation and scaling.
+      // In our Naked Ontology, we trust the species to satisfy these
+      // internal laws if it claims the 'IsOrderedField' tag.
+    };
 
 /**
  * @concept IsSemimodule
  * @brief A Monoid (V) acted upon by a Semiring (S).
  */
 export template <typename V, typename S>
-concept IsSemimodule = IsMonoid<V, std::plus<V>> && IsSemiring<S> && 
-                       requires(V v, S s) {
-    { v * s } -> std::same_as<V>;
-};
+concept IsSemimodule =
+    IsMonoid<V, std::plus<V>> && IsSemiring<S> && requires(V v, S s) {
+      { v * s } -> std::same_as<V>;
+    };
 
 /**
  * @section Algebra: The Linear Shelf.
@@ -206,8 +211,8 @@ concept IsSemimodule = IsMonoid<V, std::plus<V>> && IsSemiring<S> &&
  */
 export template <typename V, typename S>
 concept IsModule = IsAbelianGroup<V> && IsRing<S> && requires(V v, S s) {
-    { v * s } -> std::same_as<V>; 
-    { s * v } -> std::same_as<V>; 
+  { v * s } -> std::same_as<V>;
+  { s * v } -> std::same_as<V>;
 };
 
 /**
@@ -218,17 +223,4 @@ concept IsModule = IsAbelianGroup<V> && IsRing<S> && requires(V v, S s) {
 export template <typename V, typename S>
 concept IsVectorSpace = IsModule<V, S> && IsField<S>;
 
-/**
- * @section Geometry: The Study of Distance.
- * @concept IsEuclideanSpace
- * @brief A Vector Space equipped with an Inner Product (Norm).
- * Wikipedia: Euclidean space
- */
-export template <typename V, typename S>
-concept IsEuclideanSpace = IsVectorSpace<V, S> && requires(V v) {
-    // The Norm Morphism: Distance is a projection to the Scalar field.
-    { norm(v) } -> std::same_as<S>; 
-    requires IsOrderedField<S>; // Distance must be comparable!
-};
-
-} // namespace dedekind::ontology
+}  // namespace dedekind::ontology

@@ -1,14 +1,14 @@
 /**
  * @file ontology:topology.cppm
  * @brief Topological Foundations: Openness, Closure, and Boundaries.
- * 
+ *
  * Copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
- * 
+ *
  * @section Topology: The study of neighborhoods, boundaries, and continuity.
- * @details This partition establishes the qualitative "shape" of our sets before 
- *          they are quantified by coordinates.
- * Wikipedia: Topology, Open set, Closed set, Limit point
+ * @details This partition establishes the qualitative "shape" of our sets
+ * before they are quantified by coordinates. Wikipedia: Topology, Open set,
+ * Closed set, Limit point
  */
 
 export module dedekind.ontology:topology;
@@ -23,9 +23,8 @@ namespace dedekind::ontology {
  * @note Wikipedia: Open set
  */
 export template <typename S>
-concept IsOpen = IsSet<S, typename S::element_type> && requires {
-    typename S::is_open_tag;
-};
+concept IsOpen =
+    IsSet<S, typename S::element_type> && requires { typename S::is_open_tag; };
 
 /**
  * @concept IsClosed
@@ -33,9 +32,8 @@ concept IsOpen = IsSet<S, typename S::element_type> && requires {
  * @note Wikipedia: Closed set
  */
 export template <typename S>
-concept IsClosed = IsSet<S, typename S::element_type> && requires {
-    typename S::is_closed_tag;
-};
+concept IsClosed = IsSet<S, typename S::element_type> &&
+                   requires { typename S::is_closed_tag; };
 
 /**
  * @concept IsSequence
@@ -46,12 +44,12 @@ concept IsClosed = IsSet<S, typename S::element_type> && requires {
  */
 export template <typename Seq, typename T>
 concept IsSequence = requires(Seq s, size_t n) {
-    { s[n] } -> std::convertible_to<T>;
+  { s[n] } -> std::convertible_to<T>;
 };
 
-/** 
+/**
  * @section Topology: The study of solid shapes and boundaries.
- * 
+ *
  * @brief Axiom: Is the set morphologically solid (no holes)?
  * Wikipedia: Convex set
  */
@@ -73,8 +71,8 @@ concept IsConvex = IsSet<S, typename S::element_type> && is_convex_v<S>;
  */
 export template <typename S>
 concept IsHalfSpace = IsConvex<S> && requires {
-    typename S::is_ray_tag; // Structural proof
-    S::bound;               // The naked limit
+  typename S::is_ray_tag;  // Structural proof
+  S::bound;                // The naked limit
 };
 
 /**
@@ -84,10 +82,10 @@ concept IsHalfSpace = IsConvex<S> && requires {
  */
 export template <typename S>
 concept IsInterval = IsConvex<S> && requires {
-    typename S::lower_ray_type;
-    typename S::upper_ray_type;
-    requires IsHalfSpace<typename S::lower_ray_type>;
-    requires IsHalfSpace<typename S::upper_ray_type>;
+  typename S::lower_ray_type;
+  typename S::upper_ray_type;
+  requires IsHalfSpace<typename S::lower_ray_type>;
+  requires IsHalfSpace<typename S::upper_ray_type>;
 };
 
-} // namespace dedekind::ontology
+}  // namespace dedekind::ontology

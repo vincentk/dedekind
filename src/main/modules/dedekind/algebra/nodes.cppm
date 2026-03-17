@@ -41,12 +41,14 @@ struct MinkowskiSumNode
   constexpr bool contains(const T& /*v*/) const { return false; }
 };
 
-export template <typename L, typename R, typename Op = std::plus<typename L::element_type>>
+export template <typename L, typename R,
+                 typename Op = std::plus<typename L::element_type>>
   requires IsMonoid<typename L::element_type, Op>
 auto operator+(L l, R r) {
-    using T = typename L::element_type;
-    auto new_card = l.cardinality() | r.cardinality();
-    return MinkowskiSumNode<T, L, R, Op, new_card>(std::move(l), std::move(r), new_card);
+  using T = typename L::element_type;
+  auto new_card = l.cardinality() | r.cardinality();
+  return MinkowskiSumNode<T, L, R, Op, new_card>(std::move(l), std::move(r),
+                                                 new_card);
 }
 
 /**

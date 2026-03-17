@@ -1,10 +1,10 @@
 /**
  * @file ontology:number_systems.cppm
  * @brief The Hierarchy of Numerical Species.
- * 
+ *
  * Copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
- * 
+ *
  * @section Number Systems: The Inductive and Algebraic Ladder.
  * @details This partition defines the requirements for N, Z, Q, and R.
  * Wikipedia: Natural number, Integer, Rational number, Real number
@@ -20,20 +20,17 @@ namespace dedekind::ontology {
 
 /**
  * @concept IsNatural
- * @brief N is a Pointed, Closed, Archimedean, Commutative Monoid 
+ * @brief N is a Pointed, Closed, Archimedean, Commutative Monoid
  *        under BOTH Addition and Multiplication.
  * Wikipedia: Semiring, Peano axioms
  */
 export template <typename N>
-concept IsNatural = IsPointed<N> && 
-                   IsClosedSet<N> && 
-                   IsArchimedean<N> &&
-                   IsMonoid<N, std::plus<N>> &&
-                   IsMonoid<N, std::multiplies<N>> &&
-                   requires(N n) {
-    { ++n } -> std::same_as<N&>;
-    { n.is_origin() } -> std::convertible_to<bool>;
-};
+concept IsNatural = IsPointed<N> && IsClosedSet<N> && IsArchimedean<N> &&
+                    IsMonoid<N, std::plus<N>> &&
+                    IsMonoid<N, std::multiplies<N>> && requires(N n) {
+                      { ++n } -> std::same_as<N&>;
+                      { n.is_origin() } -> std::convertible_to<bool>;
+                    };
 
 /**
  * @concept IsInteger
@@ -42,8 +39,8 @@ concept IsNatural = IsPointed<N> &&
  */
 export template <typename Z>
 concept IsInteger = IsNatural<Z> && requires(Z a, Z b) {
-    { -a } -> std::same_as<Z>;    // Unary Inverse
-    { a - b } -> std::same_as<Z>; // Binary Subtraction
+  { -a } -> std::same_as<Z>;     // Unary Inverse
+  { a - b } -> std::same_as<Z>;  // Binary Subtraction
 };
 
 /**
@@ -54,11 +51,11 @@ concept IsInteger = IsNatural<Z> && requires(Z a, Z b) {
  *          It is "Measured" by the Integers.
  */
 export template <typename Q>
-concept IsRational = IsOrderedField<Q> && IsDense<Q> && IsArchimedean<Q> && 
-                    requires(Q q) { 
-    { q.numerator() }   -> IsInteger;
-    { q.denominator() } -> IsInteger;
-};
+concept IsRational =
+    IsOrderedField<Q> && IsDense<Q> && IsArchimedean<Q> && requires(Q q) {
+      { q.numerator() } -> IsInteger;
+      { q.denominator() } -> IsInteger;
+    };
 
 /**
  * @concept IsReal
@@ -79,13 +76,13 @@ concept IsReal = IsDedekindComplete<R> && IsArchimedean<R>;
  */
 export template <typename C, typename R>
 concept IsComplex = IsField<C> && requires(const C z) {
-    // The "Naked" Projection to the Plane
-    { z.real() } -> std::same_as<R>;
-    { z.imag() } -> std::same_as<R>;
-    { z.conjugate() } -> std::same_as<C>;
-    requires IsReal<R> &&
-    // Algebra: Complex numbers are NOT Totally Ordered!
-    // (You can't say if 'i' is greater than '1').
-    !IsTotallyOrdered<C>;
+  // The "Naked" Projection to the Plane
+  { z.real() } -> std::same_as<R>;
+  { z.imag() } -> std::same_as<R>;
+  { z.conjugate() } -> std::same_as<C>;
+  requires IsReal<R> &&
+               // Algebra: Complex numbers are NOT Totally Ordered!
+               // (You can't say if 'i' is greater than '1').
+               !IsTotallyOrdered<C>;
 };
-} // namespace dedekind::ontology
+}  // namespace dedekind::ontology
