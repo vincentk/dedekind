@@ -59,4 +59,33 @@ concept IsRational = IsOrderedField<Q> && IsDense<Q> && IsArchimedean<Q> &&
     { q.numerator() }   -> IsInteger;
     { q.denominator() } -> IsInteger;
 };
+
+/**
+ * @concept IsReal
+ * @brief The species of the Continuum (R).
+ * @details A Real species is a Dedekind-Complete, Archimedean Field.
+ *          This is the "Smooth" destination of our numerical journey.
+ * Wikipedia: Real number
+ */
+export template <typename R>
+concept IsReal = IsDedekindComplete<R> && IsArchimedean<R>;
+
+/**
+ * @concept IsComplex
+ * @brief The Algebraic Closure of the Continuum.
+ * @details A species that is an Algebraically Closed Field.
+ *          Every non-constant polynomial has a root within this species.
+ * Wikipedia: Complex number, Fundamental theorem of algebra
+ */
+export template <typename C, typename R>
+concept IsComplex = IsField<C> && requires(const C z) {
+    // The "Naked" Projection to the Plane
+    { z.real() } -> std::same_as<R>;
+    { z.imag() } -> std::same_as<R>;
+    { z.conjugate() } -> std::same_as<C>;
+    requires IsReal<R> &&
+    // Algebra: Complex numbers are NOT Totally Ordered!
+    // (You can't say if 'i' is greater than '1').
+    !IsTotallyOrdered<C>;
+};
 } // namespace dedekind::ontology

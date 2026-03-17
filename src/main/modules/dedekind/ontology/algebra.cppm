@@ -61,6 +61,15 @@ concept IsMagma = requires(T a, T b) {
 };
 
 /**
+ * @concept IsSemigroup
+ * @brief An associative Magma (No identity required).
+ */
+export template <typename T, typename Op>
+concept IsSemigroup = IsMagma<T, Op> && requires {
+    requires is_associative_v<T, Op>;
+};
+
+/**
  * @concept IsMonoid
  * @brief A Magma that is associative and has an identity element (Zero/Empty).
  * Wikipedia: Monoid, Identity element
@@ -103,28 +112,30 @@ concept IsOrderedAbelianGroup = IsAbelianGroup<T, std::plus<T>> &&
                                 IsTotallyOrdered<T>;
 
 /**
+ * @concept IsSemiring
+ * @brief A set with two Monoids (Add, Mul) where Mul distributes over Add.
+ * @note This is the home of 'bool' and 'Natural Numbers'.
+ */
+export template <typename T>
+concept IsSemiring = IsMonoid<T, std::plus<T>> && 
+                     IsMonoid<T, std::multiplies<T>> &&
+                     requires(T a, T b, T c) {
+    { a * (b + c) } -> std::same_as<T>; // Distributivity
+};
+
+/**
+ * @concept IsRing
+ * @brief A set that is both a Semiring AND an Abelian Group under addition.
+ */
+export template <typename T, typename Add = std::plus<T>, typename Mul = std::multiplies<T>>
+concept IsRing = IsSemiring<T> && IsAbelianGroup<T, Add>;
+
+/**
  * @concept IsCommutativeRing
  * @brief A Ring where multiplication is commutative.
  */
 export template <typename T>
 concept IsCommutativeRing = IsRing<T> && is_commutative_v<T, std::multiplies<T>>;
-
-/** @concept IsAbelianGroup: A Group where the order of operations doesn't matter. */
-export template <typename T, typename Op = std::plus<T>>
-concept IsAbelianGroup = IsGroup<T, Op> && is_commutative_v<T, Op>;
-
-/**
- * @concept IsRing
- * @brief A set with two binary operations (Addition and Multiplication).
- * Wikipedia: Ring (mathematics)
- */
-export template <typename T, typename Add = std::plus<T>, typename Mul = std::multiplies<T>>
-concept IsRing = IsAbelianGroup<T, Add> && 
-                 IsMonoid<T, Mul> && 
-                 requires(T a, T b, T c) {
-    // Axiom: Multiplication distributes over addition
-    { Mul{}(a, Add{}(b, c)) } -> std::same_as<T>;
-};
 
 /**
  * @concept IsModular
@@ -137,14 +148,6 @@ concept IsModular = IsRing<T> && requires(T a) {
     { T::modulus() } -> std::convertible_to<T>;
     typename T::is_modular_tag;
 };
-
-/**
- * @concept IsCommutativeRing
- * @brief A Ring where multiplication is also commutative.
- * Wikipedia: Commutative ring
- */
-export template <typename T>
-concept IsCommutativeRing = IsRing<T> && is_commutative_v<T, std::multiplies<T>>;
 
 /**
  * @concept IsDivisionRing
@@ -183,6 +186,49 @@ concept IsOrderedField = IsField<T> && IsTotallyOrdered<T> &&
     // Structural Proof: The order is invariant under translation and scaling.
     // In our Naked Ontology, we trust the species to satisfy these 
     // internal laws if it claims the 'IsOrderedField' tag.
+};
+
+/**
+ * @concept IsSemimodule
+ * @brief A Monoid (V) acted upon by a Semiring (S).
+ */
+export template <typename V, typename S>
+concept IsSemimodule = IsMonoid<V, std::plus<V>> && IsSemiring<S> && 
+                       requires(V v, S s) {
+    { v * s } -> std::same_as<V>;
+};
+
+/**
+ * @section Algebra: The Linear Shelf.
+ * @concept IsModule
+ * @brief An Abelian Group V acted upon by a Ring S.
+ * Wikipedia: Module (mathematics)
+ */
+export template <typename V, typename S>
+concept IsModule = IsAbelianGroup<V> && IsRing<S> && requires(V v, S s) {
+    { v * s } -> std::same_as<V>; 
+    { s * v } -> std::same_as<V>; 
+};
+
+/**
+ * @concept IsVectorSpace
+ * @brief A Module where the Scalars form a Field.
+ * Wikipedia: Vector space
+ */
+export template <typename V, typename S>
+concept IsVectorSpace = IsModule<V, S> && IsField<S>;
+
+/**
+ * @section Geometry: The Study of Distance.
+ * @concept IsEuclideanSpace
+ * @brief A Vector Space equipped with an Inner Product (Norm).
+ * Wikipedia: Euclidean space
+ */
+export template <typename V, typename S>
+concept IsEuclideanSpace = IsVectorSpace<V, S> && requires(V v) {
+    // The Norm Morphism: Distance is a projection to the Scalar field.
+    { norm(v) } -> std::same_as<S>; 
+    requires IsOrderedField<S>; // Distance must be comparable!
 };
 
 } // namespace dedekind::ontology
