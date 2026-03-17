@@ -10,7 +10,7 @@ TEST_CASE("Cardinality Arithmetic (Compile-time Theorems)",
 
   SECTION("Finite Logic") {
     // Exact values for tractable finite sets
-    STATIC_REQUIRE((Extensional(5) | Extensional(5)) == Extensional(10));
+    STATIC_REQUIRE((Extensional(5) | Extensional(5)) == Extensional(5));
     STATIC_REQUIRE(Extensional(12) * Extensional(3) == Extensional(36));
     STATIC_REQUIRE((Extensional(7) & Extensional(15)) == Extensional(7));
 

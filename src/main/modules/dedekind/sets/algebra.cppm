@@ -10,6 +10,8 @@ export module dedekind.sets:algebra;
 
 import :cardinalities;
 
+import dedekind.ontology;
+
 namespace dedekind::sets {
 
 // --- 1. THE CARRIER (IsSet) ---
@@ -43,14 +45,6 @@ export template <typename S, typename T>
 concept ExtensionalSet =
     FiniteSet<S, T> &&
     std::is_base_of_v<Extensional, typename S::cardinality_type>;
-
-// --- THE ALGEBRAIC PROMISES (Forward Declarations) ---
-export template <typename L, typename R>
-auto operator&(L l, R r);
-export template <typename L, typename R>
-auto operator|(L l, R r);
-export template <typename S>
-auto operator!(S s);
 
 // Theorem: A \ B = A ∩ ¬B
 export template <typename L, typename R>
@@ -290,7 +284,9 @@ struct IntersectionNode
 };
 
 export template <typename L, typename R>
-  requires std::is_same_v<typename L::element_type, typename R::element_type>
+  requires std::is_same_v<typename L::element_type, typename R::element_type> &&
+  ontology::IsSet<L, typename L::element_type> && 
+           ontology::IsSet<R, typename R::element_type>
 auto operator&(L l, R r) {
   using T = typename L::element_type;
 
@@ -332,6 +328,8 @@ struct UnionNode
 };
 
 export template <typename L, typename R>
+  requires ontology::IsSet<L, typename L::element_type> && 
+           ontology::IsSet<R, typename R::element_type>
 auto operator|(L l, R r) {
   // 1. Identity / Equality Proof (A ∪ A = A)
   if constexpr (requires { l == r; }) {

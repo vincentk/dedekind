@@ -1,20 +1,24 @@
-cpp
-    /**
-     * @file ontology:geometry.cppm
-     * @brief The Study of Distance, Metrics, and Curvature.
-     *
-     * Copyright 2026 The Dedekind Authors
-     * Licensed under the Apache License, Version 2.0.
-     *
-     * @section Geometry: The Logic of Space.
-     * @details This partition bridges Algebra and Topology by introducing the
-     *          concept of a "Metric." It ensures that our numerical species
-     *          can be measured not just as sets or fields, but as physical
-     * points on a 1D, 2D, or n-dimensional manifold. Wikipedia: Geometry,
-     * Metric space, Euclidean space
-     */
+/**
+ * @file ontology:geometry.cppm
+ * @brief The Study of Distance, Metrics, and Curvature.
+ *
+ * Copyright 2026 The Dedekind Authors
+ * Licensed under the Apache License, Version 2.0.
+ *
+ * @section Geometry: The Logic of Space.
+ * @details This partition bridges Algebra and Topology by introducing the
+ *          concept of a "Metric." It ensures that our numerical species
+ *          can be measured not just as sets or fields, but as physical
+ * points on a 1D, 2D, or n-dimensional manifold. Wikipedia: Geometry,
+ * Metric space, Euclidean space
+ */
 
-    export module dedekind.ontology : geometry;
+module;
+
+#include <concepts>
+#include <functional>
+
+export module dedekind.ontology:geometry;
 
 import :mereology;
 import :algebra;
@@ -30,7 +34,7 @@ namespace dedekind::ontology {
  */
 export template <typename T, typename S>
 concept IsMetricSpace =
-    IsSet<T> && IsOrderedField<S> && requires(const T a, const T b) {
+    IsSet<T, S> && IsOrderedField<S> && requires(const T a, const T b) {
       // The Distance Morphism: d(a, b)
       { distance(a, b) } -> std::same_as<S>;
     };

@@ -1,6 +1,13 @@
+module;
+
+#include <compare>     // for std::strong_ordering
+#include <concepts>    // for std::integral, std::floating_point
+#include <functional>  // for std::plus, std::multiplies
+
 export module dedekind.ontology:algebra;
 
 import :mereology;
+import :topology;
 
 namespace dedekind::ontology {
 
@@ -18,18 +25,6 @@ inline constexpr bool is_commutative_v<T, std::plus<T>> = true;
 
 template <std::floating_point T>
 inline constexpr bool is_commutative_v<T, std::plus<T>> = true;
-
-/**
- * @concept IsExtensional
- * @brief A set whose identity is determined solely by its enumerated members.
- * Wikipedia: Extensionality, Axiom of extensionality
- */
-export template <typename S>
-concept IsExtensional = IsSet<S, typename S::element_type> && requires {
-  typename S::is_extensional_tag;
-  // An extensional set must be able to report its size or iterate its members.
-  { s.size() } -> std::integral;
-};
 
 /**
  * @concept IsBounded
@@ -63,6 +58,17 @@ export template <typename T, typename Op>
 concept IsMagma = requires(T a, T b) {
   { Op{}(a, b) } -> std::same_as<T>;
 };
+
+/**
+ * @section Mereology: The Geometry of Overlap.
+ * @concept IsConvexMagma
+ * @brief Convex sets form a Magma under the Intersection operation.
+ * @details Structural Proof: If A and B are Convex, then A ∩ B is Convex.
+ * Wikipedia: Convex set (Intersection property)
+ */
+export template <typename S>
+concept IsConvexMagma =
+    IsMagma<S, std::bit_and<S>> && requires(S a) { requires IsConvex<S>; };
 
 /**
  * @concept IsSemigroup
@@ -186,12 +192,7 @@ concept IsField =
  * Wikipedia: Ordered field
  */
 export template <typename T>
-concept IsOrderedField =
-    IsField<T> && IsTotallyOrdered<T> && requires(T a, T b, T c) {
-      // Structural Proof: The order is invariant under translation and scaling.
-      // In our Naked Ontology, we trust the species to satisfy these
-      // internal laws if it claims the 'IsOrderedField' tag.
-    };
+concept IsOrderedField = IsField<T> && IsTotallyOrdered<T>;
 
 /**
  * @concept IsSemimodule

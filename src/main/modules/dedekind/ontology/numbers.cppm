@@ -9,6 +9,10 @@
  * @details This partition defines the requirements for N, Z, Q, and R.
  * Wikipedia: Natural number, Integer, Rational number, Real number
  */
+module;
+
+#include <concepts>
+#include <functional>
 
 export module dedekind.ontology:numbers;
 
@@ -25,7 +29,7 @@ namespace dedekind::ontology {
  * Wikipedia: Semiring, Peano axioms
  */
 export template <typename N>
-concept IsNatural = IsPointed<N> && IsClosedSet<N> && IsArchimedean<N> &&
+concept IsNatural = IsPointed<N> && IsClosed<N> && IsArchimedean<N> &&
                     IsMonoid<N, std::plus<N>> &&
                     IsMonoid<N, std::multiplies<N>> && requires(N n) {
                       { ++n } -> std::same_as<N&>;
@@ -56,6 +60,20 @@ concept IsRational =
       { q.numerator() } -> IsInteger;
       { q.denominator() } -> IsInteger;
     };
+
+/**
+ * @concept IsDedekindComplete
+ * @brief The "Smooth" Destination (R).
+ * @details An Ordered Field where every non-empty subset that is
+ *          bounded above has a supremum within the same species.
+ * Wikipedia: Completeness of the real numbers
+ */
+export template <typename T>
+concept IsDedekindComplete = IsOrderedField<T> && IsDense<T> && requires(T a) {
+  // The "Supremum" Morphism:
+  // The ability to find the 'limit' or 'ceiling' of a bounded set.
+  { supremum_of(a) } -> std::same_as<T>;
+};
 
 /**
  * @concept IsReal

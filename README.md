@@ -1,6 +1,9 @@
 # Dedekind 
+
+[ 🌸 Don't panic. ]
+
 ### Symbolic Set Theory in Modern C++20
-> *Dedekind: Because sets are rules, not buckets. Infinitely faster (at least at compile-time).*
+Because sets are rules, not buckets.
 
 **Dedekind** is a modular C++20 library designed to model abstract set theory. Named after Richard Dedekind, the library treats sets not as containers, but as **symbolic expressions** governed by a strictly typed, sealed cardinality algebra.
 
@@ -74,3 +77,7 @@ mkdir build && cd build
 cmake .. -DCMAKE_CXX_COMPILER=clang++
 cmake --build .
 ctest --output-on-failure
+
+
+
+

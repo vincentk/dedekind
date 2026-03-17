@@ -6,11 +6,13 @@ module;
 #include <variant>
 
 export module dedekind.sets:cardinalities;
+import dedekind.ontology;
 
 // C++23 feature, disabled for now:
 // import std;
 
 namespace dedekind::sets {
+using ontology::IsCardinality;
 
 // The "Seal": Only classes in this namespace can inherit from this
 class CardinalityBase {
@@ -29,31 +31,31 @@ class CardinalityBase {
   friend struct ℶ;
 };
 
-// 1. Define the "Seal" check
-template <typename C>
-concept IsCardinality = std::is_base_of_v<CardinalityBase, C> && requires(C c) {
-  { power(c) } -> std::derived_from<CardinalityBase>;
-};
-
 // Aleph-0 OR Uncountable
 export struct Transfinite : public CardinalityBase {
   // Public constructor allows global operators to create Uncountable and its
   // children
   constexpr Transfinite() : CardinalityBase() {}
+  constexpr bool is_finite() const { return false; }
 };
 
 // Uncountable: Transfinite but NOT Countable
-export struct Uncountable : public Transfinite {};
+export struct Uncountable : public Transfinite {
+  constexpr bool is_finite() const { return false; }
+};
 
 // Finite OR Aleph-0
 export struct Countable : public CardinalityBase {
   // Public constructor allows global operators to create Uncountable and its
   // children
   constexpr Countable() : CardinalityBase() {}
+  constexpr bool is_finite() const { return false; }
 };
 
 // 3. Finite: Terminating, but size might be unknown or > 2^64
-export struct Finite : public Countable {};
+export struct Finite : public Countable {
+  constexpr bool is_finite() const { return false; }
+};
 
 // Tier 2: Finite sets that are too big for a CPU register (> 2^64)
 // e.g. P(N8) = 2^256
@@ -137,36 +139,50 @@ consteval int tier() {
   return 6;
 }
 
-// In union, the Higher Tier always wins (the "Absorbing Law"). If both are
-// extensional, we sum the bounds.
-export template <IsCardinality L, IsCardinality R>
-constexpr auto operator|(L l, R r) {
-  if constexpr (std::is_base_of_v<Extensional, L> &&
-                std::is_base_of_v<Extensional, R>) {
-    return Extensional(l.bound + r.bound);
-  } else {
-    // Use () instead of {} to be explicit, and
-    // ensure the higher type has a valid constructor call.
-    return higher_t<L, R>();
-  }
+// Theorem: A ∩ Ø = Ø
+export template <typename L> 
+  requires std::is_base_of_v<CardinalityBase, L>
+constexpr Empty operator&(L, Empty e) { return e; }
+export template <typename R> 
+  requires std::is_base_of_v<CardinalityBase, R>
+constexpr Empty operator&(Empty e, R) { return e; }
+
+
+/** @brief Tier 1: Discrete Intersection. Both are bounded. */
+export template <typename L, typename R>
+  requires std::is_base_of_v<Extensional, L> && 
+           std::is_base_of_v<Extensional, R>
+constexpr Extensional operator&(L l, R r) {
+    const std::size_t min_bound = std::min(l.bound, r.bound);
+    // The Collapse: If it's zero, return the 'Empty' type
+    if (min_bound == 0) return Empty{};
+    return Extensional(min_bound);
 }
 
-// In intersection, the Lower Tier always wins. If tiers are equal and finite,
-// we take the minimum bound.
-export template <IsCardinality L, IsCardinality R>
+/** @brief Tier 2: Symbolic Intersection. General Case. */
+export template <typename L, typename R>
+  requires std::is_base_of_v<CardinalityBase, L> && 
+           std::is_base_of_v<CardinalityBase, R> &&
+           (!(std::is_base_of_v<Extensional, L> && std::is_base_of_v<Extensional, R>))
 constexpr auto operator&(L l, R r) {
-  if constexpr (std::is_base_of_v<Extensional, L> &&
-                std::is_base_of_v<Extensional, R>) {
-    return Extensional(std::min(l.bound, r.bound));
-  } else {
-    return lower_t<L, R>();
-  }
+    return lower_t<L, R>(l, r);
 }
 
 // Intersection (&): The smaller bit-width restricts the space
 export template <std::size_t N, std::size_t M>
 constexpr ℕ<(N < M ? N : M)> operator&(ℕ<N>, ℕ<M>) {
   return {};
+}
+
+/** @brief Tier 1: Discrete Union. Both are bounded. */
+export template <typename L, typename R>
+  requires std::is_base_of_v<Extensional, L> &&
+           std::is_base_of_v<Extensional, R>
+constexpr Extensional operator|(L l, R r) {
+    const std::size_t max_bound = std::max(l.bound, r.bound);
+    // The Collapse: If it's zero, return the 'Empty' type
+    if (max_bound == 0) return Empty{};
+    return Extensional(max_bound);
 }
 
 // Union (|): The larger bit-width absorbs the smaller
@@ -288,56 +304,34 @@ constexpr auto operator-(const L& l, const R& r) {
   }
 }
 
-// 1. Equality: Two cardinalities are equal if they are the same type
-// AND (if extensional) they have the same bound.
-export template <IsCardinality L, IsCardinality R>
+export template <typename L, typename R>
+  requires std::is_base_of_v<CardinalityBase, L> &&
+           std::is_base_of_v<CardinalityBase, R>
 constexpr bool operator==(const L& lhs, const R& rhs) {
-  // 1. If BOTH are Bounded (Extensional, Empty, or Zero), compare the bounds.
+  if constexpr (tier<L>() != tier<R>()) return false;
   if constexpr (std::is_base_of_v<Extensional, L> &&
                 std::is_base_of_v<Extensional, R>) {
     return lhs.bound == rhs.bound;
   }
-  // 2. Otherwise, they must be the exact same symbolic type (e.g. ℵ₀ == ℵ₀)
-  else {
-    return std::is_same_v<L, R>;
+  return true;
+}
+
+export template <typename L, typename R>
+  requires std::is_base_of_v<CardinalityBase, L> &&
+           std::is_base_of_v<CardinalityBase, R>
+constexpr std::strong_ordering operator<=>(const L& lhs, const R& rhs) {
+  if constexpr (tier<L>() != tier<R>()) return tier<L>() <=> tier<R>();
+  if constexpr (std::is_base_of_v<Extensional, L> &&
+                std::is_base_of_v<Extensional, R>) {
+    return lhs.bound <=> rhs.bound;
   }
-}
-
-// 2. Strict Less-Than: The "Theorem" of Size
-export template <IsCardinality L, IsCardinality R>
-constexpr bool operator<(const L& lhs, const R& rhs) {
-  // If tiers are different, the lower tier is strictly smaller
-  if constexpr (tier<L>() != tier<R>()) {
-    return tier<L>() < tier<R>();
-  }
-  // If tiers are the same and it's an Extensional tier, compare the bounds
-  else if constexpr (std::is_base_of_v<Extensional, L>) {
-    return lhs.bound < rhs.bound;
-  }
-  // Otherwise, they are the same symbolic infinite cardinal
-  return false;
-}
-
-// 3. Less-Than-or-Equal (Subset cardinality check)
-export template <IsCardinality L, IsCardinality R>
-constexpr bool operator<=(const L& lhs, const R& rhs) {
-  return (lhs == rhs) || (lhs < rhs);
-}
-
-// 1. Not Equal
-export template <IsCardinality L, IsCardinality R>
-constexpr bool operator!=(const L& lhs, const R& rhs) {
-  return !(lhs == rhs);
-}
-
-// 2. Greater Than
-export template <IsCardinality L, IsCardinality R>
-constexpr bool operator>(const L& lhs, const R& rhs) {
-  return rhs < lhs;
+  return std::strong_ordering::equal;
 }
 
 // 3. Greater Than or Equal
-export template <IsCardinality L, IsCardinality R>
+export template <typename L, typename R>
+  requires std::is_base_of_v<CardinalityBase, L> &&
+           std::is_base_of_v<CardinalityBase, R>
 constexpr bool operator>=(const L& lhs, const R& rhs) {
   return rhs <= lhs;
 }

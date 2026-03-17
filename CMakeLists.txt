@@ -22,6 +22,13 @@ target_sources(dedekind
     FILE_SET CXX_MODULES 
     BASE_DIRS src/main/modules
     FILES
+        src/main/modules/dedekind/ontology/ontology.cppm
+        src/main/modules/dedekind/ontology/algebra.cppm
+        src/main/modules/dedekind/ontology/geometry.cppm
+        src/main/modules/dedekind/ontology/mereology.cppm
+        src/main/modules/dedekind/ontology/numbers.cppm
+        src/main/modules/dedekind/ontology/order_algebra.cppm
+        src/main/modules/dedekind/ontology/topology.cppm
         src/main/modules/dedekind/algebra/algebra.cppm
         src/main/modules/dedekind/algebra/abstract.cppm
         src/main/modules/dedekind/algebra/nodes.cppm
