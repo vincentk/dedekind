@@ -50,9 +50,13 @@ concept IsInteger = IsNatural<Z> && requires(Z a, Z b) {
  * @concept IsRational
  * @brief The extension of Z to a Field (Q).
  * Wikipedia: Rational number
+ * @details A Rational is a Dense Field that remains Archimedean.
+ *          It is "Measured" by the Integers.
  */
 export template <typename Q>
-concept IsRational = IsInteger<Q> && IsField<Q> && IsDense<Q>;
-
+concept IsRational = IsOrderedField<Q> && IsDense<Q> && IsArchimedean<Q> && 
+                    requires(Q q) { 
+    { q.numerator() }   -> IsInteger;
+    { q.denominator() } -> IsInteger;
+};
 } // namespace dedekind::ontology
-
