@@ -1,12 +1,16 @@
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.28)
 project(Dedekind VERSION 1.0.0 LANGUAGES CXX)
 
 # Force C++20 standard for macOS Clang
 set(CMAKE_CXX_STANDARD 20)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 # Disable global scanning to protect FetchContent/dependencies
 set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
+
+# For clangd:
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # 1. THE LIBRARY (src/main)
 add_library(dedekind STATIC)
@@ -34,6 +38,7 @@ target_sources(dedekind
         src/main/modules/dedekind/algebra/nodes.cppm
         src/main/modules/dedekind/order/order.cppm
         src/main/modules/dedekind/order/algebra.cppm
+        src/main/modules/dedekind/sets/logic.cppm
         src/main/modules/dedekind/order/nodes.cppm
         src/main/modules/dedekind/sets/sets.cppm
         src/main/modules/dedekind/sets/cardinalities.cppm

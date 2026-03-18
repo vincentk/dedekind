@@ -285,17 +285,17 @@ struct IntersectionNode
 
 export template <typename L, typename R>
   requires std::is_same_v<typename L::element_type, typename R::element_type> &&
-  ontology::IsSet<L, typename L::element_type> && 
+           ontology::IsSet<L, typename L::element_type> &&
            ontology::IsSet<R, typename R::element_type>
 auto operator&(L l, R r) {
   using T = typename L::element_type;
 
   // Theorem 1: L ∩ ø = ø
-  if constexpr (std::is_base_of_v<Empty, typename R::cardinality_type>) {
+  if constexpr (std::is_base_of_v<Zero, typename R::cardinality_type>) {
     return r;  // Returns the Empty Set instance
   }
   // Theorem 2: ø ∩ R = ø
-  else if constexpr (std::is_base_of_v<Empty, typename L::cardinality_type>) {
+  else if constexpr (std::is_base_of_v<Zero, typename L::cardinality_type>) {
     return l;
   }
   // Theorem 3: Idempotency (A ∩ A = A)
@@ -328,7 +328,7 @@ struct UnionNode
 };
 
 export template <typename L, typename R>
-  requires ontology::IsSet<L, typename L::element_type> && 
+  requires ontology::IsSet<L, typename L::element_type> &&
            ontology::IsSet<R, typename R::element_type>
 auto operator|(L l, R r) {
   // 1. Identity / Equality Proof (A ∪ A = A)

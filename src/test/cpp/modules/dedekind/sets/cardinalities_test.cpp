@@ -9,13 +9,15 @@ TEST_CASE("Cardinality Arithmetic (Compile-time Theorems)",
   using namespace dedekind::sets;
 
   SECTION("Finite Logic") {
+    static constexpr Zero _0{};
+    static constexpr Extensional _5{5}, _7{7}, _15{15}, _42{42};
     // Exact values for tractable finite sets
-    STATIC_REQUIRE((Extensional(5) | Extensional(5)) == Extensional(5));
+    STATIC_REQUIRE((_5 | _5) == _5);
     STATIC_REQUIRE(Extensional(12) * Extensional(3) == Extensional(36));
-    STATIC_REQUIRE((Extensional(7) & Extensional(15)) == Extensional(7));
+    STATIC_REQUIRE((_7 & _15) == _7);
 
     // Zero/Identity Laws
-    STATIC_REQUIRE((Extensional(42) | Zero{}) == Extensional(42));
+    STATIC_REQUIRE((_42 | _0) == Extensional(42));
     STATIC_REQUIRE((Extensional(42) & Zero{}) == Zero{});
   }
 

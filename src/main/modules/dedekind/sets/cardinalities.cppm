@@ -24,7 +24,7 @@ class CardinalityBase {
   friend struct Countable;
   friend struct Finite;
   friend struct Extensional;
-  friend struct Empty;
+  friend struct Zero;
   template <std::size_t N>
   friend struct ℵ;
   template <std::size_t N>
@@ -84,9 +84,9 @@ export struct Extensional : public PlatformNative {
   explicit constexpr Extensional(std::size_t n) : PlatformNative(), bound(n) {}
 };
 
-// 3. Empty (The Identity / Unit)
-export struct Empty : public Extensional {
-  constexpr Empty() : Extensional(0) {}
+// Convenience for the additive identity
+export struct Zero : public Extensional {
+  constexpr Zero() : Extensional(0) {}
 };
 
 // Base for all Aleph numbers
@@ -110,24 +110,8 @@ export using ℵ_0 = ℵ<0>;  // Countably Infinite
 export using ℵ_1 = ℵ<1>;  // First Uncountable Cardinal
 export using ℶ_1 = ℶ<1>;  // Cardinality of the Continuum (R)
 
-// The "Arithmetic" Alias
-export using Zero = Empty;
-
-// A meta-function to find the "Higher" type in the hierarchy
-template <IsCardinality L, IsCardinality R>
-struct higher_cardinality {
-  using type = std::conditional_t<std::is_base_of_v<R, L>, R, L>;
-};
-
-export template <IsCardinality L, IsCardinality R>
-using higher_t = typename higher_cardinality<L, R>::type;
-
-export template <IsCardinality L, IsCardinality R>
-using lower_t = std::conditional_t<std::is_same_v<higher_t<L, R>, L>, R, L>;
-
 template <typename T>
 consteval int tier() {
-  if constexpr (std::is_same_v<T, Empty>) return 0;
   if constexpr (std::is_base_of_v<Extensional, T>) return 1;
 
   // Machine Tier: Any type with a 'bits' member (ℕ<N>)
@@ -139,80 +123,55 @@ consteval int tier() {
   return 6;
 }
 
-// Theorem: A ∩ Ø = Ø
-export template <typename L> 
-  requires std::is_base_of_v<CardinalityBase, L>
-constexpr Empty operator&(L, Empty e) { return e; }
-export template <typename R> 
-  requires std::is_base_of_v<CardinalityBase, R>
-constexpr Empty operator&(Empty e, R) { return e; }
-
-
-/** @brief Tier 1: Discrete Intersection. Both are bounded. */
+/** @brief Tier 1: Discrete Intersection. Arguments might be Zero. */
 export template <typename L, typename R>
-  requires std::is_base_of_v<Extensional, L> && 
+  requires std::is_base_of_v<Extensional, L> &&
            std::is_base_of_v<Extensional, R>
-constexpr Extensional operator&(L l, R r) {
-    const std::size_t min_bound = std::min(l.bound, r.bound);
-    // The Collapse: If it's zero, return the 'Empty' type
-    if (min_bound == 0) return Empty{};
-    return Extensional(min_bound);
+constexpr decltype(auto) lower_val(const L& l, const R& r) {
+  if constexpr (std::is_same_v<L, R>) {
+    // Identical species: compare numerical bounds
+    return (l.bound <= r.bound) ? l : r;
+  } else {
+    // Mixed species: (Extensional vs Zero)
+    // Zero is always the 'lower' bound by definition.
+    if constexpr (std::is_same_v<L, Zero>) return l;
+    else return r;
+  }
+}
+
+/** @brief Tier >1 (due to overload): Discrete Intersection.  Dispatch on types as the arguments are not Extensional. */
+template <typename L, typename R>
+  requires std::is_base_of_v<CardinalityBase, L> &&
+           std::is_base_of_v<CardinalityBase, R> &&
+           (!(std::is_base_of_v<Extensional, L> &&
+              std::is_base_of_v<Extensional, R>))
+constexpr decltype(auto) lower_val(const L& l, const R& r) {
+  if constexpr (tier<L>() > tier<R>())
+    return l;
+  else
+    return r;
+}
+
+template <typename L, typename R>
+  requires std::is_base_of_v<CardinalityBase, L> &&
+           std::is_base_of_v<CardinalityBase, R>
+constexpr decltype(auto) higher_val(const L& l, const R& r) {
+  return lower_val(l, r) == l ? r : l;
+}
+
+export template <typename L, typename R>
+  requires std::is_base_of_v<CardinalityBase, L> &&
+           std::is_base_of_v<CardinalityBase, R>
+constexpr decltype(auto) operator&(const L& l, const R& r) {
+  return lower_val<L, R>(l, r);
 }
 
 /** @brief Tier 2: Symbolic Intersection. General Case. */
 export template <typename L, typename R>
-  requires std::is_base_of_v<CardinalityBase, L> && 
-           std::is_base_of_v<CardinalityBase, R> &&
-           (!(std::is_base_of_v<Extensional, L> && std::is_base_of_v<Extensional, R>))
-constexpr auto operator&(L l, R r) {
-    return lower_t<L, R>(l, r);
-}
-
-// Intersection (&): The smaller bit-width restricts the space
-export template <std::size_t N, std::size_t M>
-constexpr ℕ<(N < M ? N : M)> operator&(ℕ<N>, ℕ<M>) {
-  return {};
-}
-
-/** @brief Tier 1: Discrete Union. Both are bounded. */
-export template <typename L, typename R>
-  requires std::is_base_of_v<Extensional, L> &&
-           std::is_base_of_v<Extensional, R>
-constexpr Extensional operator|(L l, R r) {
-    const std::size_t max_bound = std::max(l.bound, r.bound);
-    // The Collapse: If it's zero, return the 'Empty' type
-    if (max_bound == 0) return Empty{};
-    return Extensional(max_bound);
-}
-
-// Union (|): The larger bit-width absorbs the smaller
-export template <std::size_t N, std::size_t M>
-constexpr ℕ<(N > M ? N : M)> operator|(ℕ<N>, ℕ<M>) {
-  return {};
-}
-
-// Mixed Math: Extensional vs Machine Symbol
-// Theorem: A specific value bound always loses to a bit-width symbol
-export template <std::size_t N>
-constexpr Extensional operator&(Extensional e, ℕ<N>) {
-  return e;
-}
-
-export template <std::size_t N>
-constexpr ℕ<N> operator|(Extensional, ℕ<N> n) {
-  return n;
-}
-
-// --- Union Logic ---
-// N64 | N64 = N64 (Identical spaces merge)
-// N64 | LargeFinite = LargeFinite (The larger bound absorbs)
-export constexpr LargeFinite operator|(ℕ64, LargeFinite) {
-  return LargeFinite();
-}
-
-export template <std::size_t N, std::size_t M>
-constexpr auto operator&(ℵ<N>, ℵ<M>) {
-  return ℵ<std::min(N, M)>{};
+  requires std::is_base_of_v<CardinalityBase, L> &&
+           std::is_base_of_v<CardinalityBase, R>
+constexpr decltype(auto) operator|(const L& l, const R& r) {
+  return higher_val<L, R>(l, r);
 }
 
 // 1. Finite * Finite = Finite (Product of bounds)
@@ -228,17 +187,13 @@ constexpr auto operator*(L l, R r)
 // * Infinite = Infinite Max.
 export template <IsCardinality L, IsCardinality R>
 constexpr auto operator*(L l, R r) {
-  // Identity: 0 * X = 0
-  if constexpr (std::is_same_v<L, Empty> || std::is_same_v<R, Empty>) {
-    return Empty{};
-  }
   // 1. Both Finite: Numerical product
-  else if constexpr (tier<L>() == 0 && tier<R>() == 0) {
+  if constexpr (tier<L>() == 0 && tier<R>() == 0) {
     return Extensional(l.bound * r.bound);
   }
   // 2. At least one is Infinite: The higher tier (max) wins
   else {
-    return higher_t<L, R>{};
+    return higher_val<L, R>(l, r);
   }
 }
 // --- Cartesian Product Logic ---
@@ -246,9 +201,6 @@ constexpr auto operator*(L l, R r) {
 export constexpr LargeFinite operator*(ℕ64, ℕ64) { return LargeFinite(); }
 
 // --- Cardinality Successors (2^S) for Power Sets ---
-
-// 2^0 = 1
-export constexpr Extensional power(Empty) { return Extensional(1); }
 
 // 2^n = Extensional bound
 export constexpr Extensional power(Extensional e) {

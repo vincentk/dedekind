@@ -84,6 +84,82 @@ concept IsCardinality = IsTotallyOrdered<C> && requires(C c) {
 };
 
 /**
+ * @concept IsCountable
+ * @brief A Cardinality that is either Finite or Aleph-0.
+ */
+export template <typename C>
+concept IsCountable = IsCardinality<C> {};
+
+/** @brief Any cardinality that is NOT countable is Uncountable. */
+export template <typename C>
+concept IsUncountable = IsCardinality<C> && !IsCountable<C>;
+
+/** @brief The Axiomatic Order of Regions. 
+    Theorem: Any Uncountable species is strictly greater than any Countable species. */
+export template <IsCardinality L, IsCardinality R>
+  requires (IsCountable<L> != IsCountable<R>)
+constexpr std::strong_ordering operator<=>(const L&, const R&) {
+  if constexpr (IsUncountable<L>) return std::strong_ordering::greater;
+  else return std::strong_ordering::less;
+}
+
+/**
+ * @concept IsFinite
+ * @brief A Cardinality that models a terminating Natural Number.
+ *        Axiom: All Finite cardinalities are Countable.
+ */
+export template <typename C>
+concept IsFinite = IsCountable<C> && {
+};
+
+/** 
+ * @brief Any cardinality that is NOT finite is Transfinite (a Limit).
+ */
+export template <typename C>
+concept IsTransfinite = IsCardinality<C> && !IsFinite<C>;
+
+/** @brief The Axiomatic Order of Finitude. 
+    Theorem: Any Transfinite species is strictly greater than any Finite species. */
+export template <IsCardinality L, IsCardinality R>
+  requires (IsFinite<L> != IsFinite<R>)
+constexpr std::strong_ordering operator<=>(const L&, const R&) {
+  if constexpr (IsTransfinite<L>) return std::strong_ordering::greater;
+  else return std::strong_ordering::less;
+}
+
+/** 
+ * @concept IsAleph0
+ * @brief The unique identity of the Countably Infinite.
+ *        Axiom: It is the first Transfinite but remains Countable.
+ *        In the Dedekind construction, this is the magnitude of the Rationals (Q).
+ */
+export template <typename C>
+concept IsAleph0 = IsCountable<C> && IsTransfinite<C>;
+
+/** @concept IsDiscrete
+ *  @brief A space where every point has a neighborhood containing no other points.
+ *  @details Axiom: All IsNatural species are Discrete. 
+ *           The Rationals (IsAleph0) are also Discrete in their atoms. */
+export template <typename S>
+concept IsDiscrete = IsCountable<typename S::cardinality_type>;
+
+/** @concept IsContinuous
+ *  @brief A space that is dense and complete (no gaps).
+ *  @details Theorem: A Dedekind Cut transforms a Discrete space into a Continuous one. */
+export template <typename S>
+concept IsContinuous = IsUncountable<typename S::cardinality_type> && IsComplete<S>;
+
+/** 
+ * @concept IsContinuum
+ * @brief The magnitude of the Real Numbers (R).
+ *        Axiom: It is the species of 2^ℵ₀.
+ */
+export template <typename C>
+concept IsContinuum = IsUncountable<C> && requires(C c) {
+    // Theorem: IsContinuum is the species of power(Aleph0)
+};
+
+/**
  * @concept IsSet
  * @brief The fundamental species of a Collection.
  *
