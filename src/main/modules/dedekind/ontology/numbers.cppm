@@ -16,6 +16,8 @@ module;
 
 export module dedekind.ontology:numbers;
 
+import :cardinalities; // The foundation of magnitude
+
 namespace dedekind::ontology {
 
 

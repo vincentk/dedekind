@@ -3,7 +3,13 @@
 [ 🌸 Don't panic. ]
 
 ### Symbolic Set Theory in Modern C++20
-Because sets are rules, not buckets.
+
+By implementing this in Modern C++20, we turn mathematical theorems into compile-time proofs. The result is a system where the "Soul" of a number is only evaluated when needed, ensuring the build remains a clean, efficient Directed Acyclic Graph.
+
+Because our numbers are built through structural recursion, this DAG architecture extends from the compiler to the runtime. We don't just hope the math is right; we often ensure that every calculation stays within the limits of what is actually computable, providing a guaranteed path to termination without infinite loops.
+
+"Sets are Rules, not buckets. Logic is the build, not the helper."
+
 
 **Dedekind** is a modular C++20 library designed to model abstract set theory. Named after Richard Dedekind, the library treats sets not as containers, but as **symbolic expressions** governed by a strictly typed, sealed cardinality algebra.
 
