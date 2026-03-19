@@ -40,28 +40,17 @@ concept IsPartOf = requires(S1 a, S2 b) {
   { a <= b } -> std::convertible_to<bool>;
 };
 
-/**
- * @brief The Parthood Relation (sqsubseteq).
- * @details A <= B returns true if A is a part of B.
- *          In our ontology, this is a "Sub-Species" check.
- *
- * @tparam Part The potential part.
- * @tparam Whole The encompassing whole.
- * @return constexpr bool True if Part is a sub-species or subset of Whole.
+/** 
+ * @concept IsProperPart
+ * @brief The primitive binary relation: x < y (x is a part of y).
+ * @details We define the syntax here. The "Soul" (transitivity, antisymmetry) 
+ *          is proven downstream in :order or :algebra.
  */
-template <typename Part, typename Whole>
-  requires IsSpecies<Part> && IsSpecies<Whole>
-constexpr auto operator<=(const Part& a, const Whole& b) -> bool {
-  // 1. Structural Identity: Is Part a literal C++ sub-type of Whole?
-  if constexpr (std::derived_from<Part, Whole>) return true;
-
-  // 2. Cardinality Constraint: A part cannot be "larger" than its whole.
-  if constexpr (Part::cardinality() > Whole::cardinality()) return false;
-
-  // 3. Predicate Inclusion: Is the 'rule' of A a stricter version of B?
-  // This is the "Symbolic" check we use for Dedekind Cuts.
-  return proves_inclusion(a, b);
-}
+export template <typename Part, typename Whole>
+concept IsProperPart = requires(const Part p, const Whole w) {
+    /** @brief The Morphism: Is p a part of w? */
+    { p.is_part_of(w) } -> std::convertible_to<bool>;
+};
 
 /**
  * @concept IsPartiallyOrdered
@@ -118,69 +107,6 @@ concept IsCardinality = IsTotallyOrdered<C> && requires(C c) {
   /** @brief cardinality of the corresponding power set.  */
   { power(c) } -> IsTotallyOrdered;
 };
-
-/**
- * @concept IsCountable
- * @brief A Cardinality that is either Finite or Aleph-0.
- */
-export template <typename C>
-concept IsCountable = IsCardinality<C>;
-
-/** @brief Any cardinality that is NOT countable is Uncountable. */
-export template <typename C>
-concept IsUncountable = IsCardinality<C> && !IsCountable<C>;
-
-/** @brief The Axiomatic Order of Regions.
-    Theorem: Any Uncountable species is strictly greater than any Countable
-   species. */
-export template <IsCardinality L, IsCardinality R>
-  requires(IsCountable<L> != IsCountable<R>)
-constexpr std::strong_ordering operator<=>(const L&, const R&) {
-  if constexpr (IsUncountable<L>)
-    return std::strong_ordering::greater;
-  else
-    return std::strong_ordering::less;
-}
-
-/**
- * @brief Any cardinality that is NOT finite is Transfinite (a Limit).
- */
-export template <typename C>
-concept IsTransfinite = IsCardinality<C>;
-
-/**
- * @brief Mathematical finiteness defined via Countability.
- *
- * A species is Finite if it is Countable and its cardinality
- * is strictly less than Aleph-0. This property allows for
- * exact counting and symbolic reduction.
- *
- * @tparam C A cardinality species.
- */
-template <typename C>
-concept IsFinite = IsCountable<C> && !IsTransfinite<C>;
-
-/** @brief The Axiomatic Order of Finitude.
-    Theorem: Any Transfinite species is strictly greater than any Finite
-   species. */
-export template <IsCardinality L, IsCardinality R>
-  requires(IsFinite<L> != IsFinite<R>)
-constexpr std::strong_ordering operator<=>(const L&, const R&) {
-  if constexpr (IsTransfinite<L>)
-    return std::strong_ordering::greater;
-  else
-    return std::strong_ordering::less;
-}
-
-/**
- * @concept IsAleph0
- * @brief The unique identity of the Countably Infinite.
- *        Axiom: It is the first Transfinite but remains Countable.
- *        In the Dedekind construction, this is the magnitude of the Rationals
- * (Q).
- */
-export template <typename C>
-concept IsAleph0 = IsCountable<C> && IsTransfinite<C>;
 
 /**
  * @brief Identifies a set that is physically representable in memory.
