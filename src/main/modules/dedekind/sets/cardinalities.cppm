@@ -134,12 +134,15 @@ constexpr decltype(auto) lower_val(const L& l, const R& r) {
   } else {
     // Mixed species: (Extensional vs Zero)
     // Zero is always the 'lower' bound by definition.
-    if constexpr (std::is_same_v<L, Zero>) return l;
-    else return r;
+    if constexpr (std::is_same_v<L, Zero>)
+      return l;
+    else
+      return r;
   }
 }
 
-/** @brief Tier >1 (due to overload): Discrete Intersection.  Dispatch on types as the arguments are not Extensional. */
+/** @brief Tier >1 (due to overload): Discrete Intersection.  Dispatch on types
+ * as the arguments are not Extensional. */
 template <typename L, typename R>
   requires std::is_base_of_v<CardinalityBase, L> &&
            std::is_base_of_v<CardinalityBase, R> &&

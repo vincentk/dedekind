@@ -19,6 +19,7 @@ export module dedekind.ontology:order_algebra;
 
 import :mereology;
 import :algebra;
+import :order;
 
 namespace dedekind::ontology {
 

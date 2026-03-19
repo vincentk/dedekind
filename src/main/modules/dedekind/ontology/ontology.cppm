@@ -19,4 +19,5 @@ export import :topology;   // Open/Closed Sets and Sequences
 export import :algebra;    // Monoids, Groups, and Fields
 export import :geometry;
 export import :numbers;        // N ⊂ Z ⊂ Q ⊂ R
+export import :order;          // Orders, Density, and Midpoints
 export import :order_algebra;  // Rays, Points, and Minkowski Sums

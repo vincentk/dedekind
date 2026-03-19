@@ -39,21 +39,6 @@ concept IsClosed = IsSet<S, typename S::element_type> &&
                    requires { typename S::is_closed_tag; };
 
 /**
- * @concept IsDense
- * @brief A Total Order where a midpoint always exists between distinct
- * elements.
- * @details Structural Proof: For any a < b, there exists c such that a < c < b.
- *          In our "Naked" world, this is satisfied by the existence of (a + b)
- * / 2.
- * @note Wikipedia: Dense set
- */
-export template <typename T>
-concept IsDense = IsTotallyOrdered<T> && requires(const T a, const T b) {
-  // The "Midpoint" Morphism
-  { (a + b) / 2 } -> std::convertible_to<T>;
-};
-
-/**
  * @section Density: The Archimedean Property.
  * @concept IsArchimedean
  * @brief Property: Measurement via inductive "stepping."

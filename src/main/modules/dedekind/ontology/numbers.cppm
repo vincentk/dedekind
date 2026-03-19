@@ -62,20 +62,6 @@ concept IsRational =
     };
 
 /**
- * @concept IsDedekindComplete
- * @brief The "Smooth" Destination (R).
- * @details An Ordered Field where every non-empty subset that is
- *          bounded above has a supremum within the same species.
- * Wikipedia: Completeness of the real numbers
- */
-export template <typename T>
-concept IsDedekindComplete = IsOrderedField<T> && IsDense<T> && requires(T a) {
-  // The "Supremum" Morphism:
-  // The ability to find the 'limit' or 'ceiling' of a bounded set.
-  { supremum_of(a) } -> std::same_as<T>;
-};
-
-/**
  * @concept IsReal
  * @brief The species of the Continuum (R).
  * @details A Real species is a Dedekind-Complete, Archimedean Field.
