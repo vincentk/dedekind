@@ -6,8 +6,10 @@ module;
 
 export module dedekind.ontology:algebra;
 
-import :mereology;
-import :topology;
+import :mereology;         // For Ordered Fields
+import :numbers;  // For Ordered Fields and Density
+
+
 
 namespace dedekind::ontology {
 

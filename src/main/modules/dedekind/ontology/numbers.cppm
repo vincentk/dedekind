@@ -16,11 +16,8 @@ module;
 
 export module dedekind.ontology:numbers;
 
-import :mereology;
-import :topology;
-import :algebra;
-
 namespace dedekind::ontology {
+
 
 /**
  * @concept IsNatural

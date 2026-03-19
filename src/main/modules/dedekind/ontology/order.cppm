@@ -18,7 +18,7 @@ module;
 
 export module dedekind.ontology:order;
 
-import :algebra;  // For arithmetic requirements (+, /)
+import :numbers;
 
 namespace dedekind::ontology {
 
@@ -31,6 +31,7 @@ namespace dedekind::ontology {
  */
 export template <typename T>
 concept IsTotallyOrdered = std::totally_ordered<T>;
+
 
 /**
  * @concept IsDense

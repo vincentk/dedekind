@@ -16,7 +16,7 @@ module;
 
 export module dedekind.ontology:topology;
 
-import :mereology;
+import :algebra;
 
 namespace dedekind::ontology {
 

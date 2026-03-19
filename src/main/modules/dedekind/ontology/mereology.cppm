@@ -20,6 +20,8 @@ module;
 #include <functional>
 
 export module dedekind.ontology:mereology;
+
+import :cardinalities;
 import :order;
 
 /**
