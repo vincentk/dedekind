@@ -266,34 +266,27 @@ concept IsContinuum = IsUncountable<C> && requires(C c) {
 
 /**
  * @concept IsSet
- * @brief The fundamental species of a Collection.
- *
- * @details A Set is defined by its membership function (contains) and its
- *          measure (cardinality). In our Structuralist approach, we require
- *          the species to expose its internal types to allow the compiler
- *          to verify morphisms across the Numerical Hierarchy.
- *
- * @tparam S The Set species (the container or expression).
- * @tparam T The Element species (the members).
- *
- * Wikipedia: Set (mathematics), Axiom of extensionality
+ * @brief The fundamental species of a Collection (The Rule).
+ * 
+ * @tparam S The Set species (the predicate/expression).
+ * @tparam C The Cardinality (The Magnitude).
+ * @tparam T The Element species (The "What").
  */
-export template <typename S, typename T>
-concept IsSet = requires(const S s, const T v) {
-  /** @brief The Membership Morphism: x ∈ S */
-  { s.contains(v) } -> std::convertible_to<bool>;
+export template <typename S, typename C, typename T = typename S::element_type>
+concept IsSet = 
+    IsCardinality<C> &&
+    requires(const S s, const T v) {
+        /** @brief The Membership Predicate: x ∈ S */
+        { s.contains(v) } -> std::convertible_to<bool>;
 
-  /** @brief The "Anatomy" requirements for type-safe algebraic chaining. */
-  typename S::element_type;
-  typename S::cardinality_type;
+        /** @brief The "Anatomy" for type-safe chaining. */
+        typename S::element_type;
+        typename S::cardinality_type;
 
-  /** @brief The Measure Morphism: Returns the symbolic magnitude of the set. */
-  { s.cardinality() } -> std::same_as<typename S::cardinality_type>;
-
-  /** @brief Requirement: The cardinality must be a valid Ontological
-   * Cardinality. */
-  requires IsCardinality<typename S::cardinality_type>;
-};
+        /** @brief Magnitude Matching: The claim C must match the implementation. */
+        { s.cardinality() } -> std::same_as<C>;
+        requires std::same_as<C, typename S::cardinality_type>;
+    };
 
 /**
  * @concept IsExtensional

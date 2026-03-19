@@ -20,6 +20,12 @@ import :cardinalities; // The foundation of magnitude
 
 namespace dedekind::ontology {
 
+export template <typename T>
+concept IsAdditiveSpecies = requires(T a, T b) {
+    { a + b } -> std::same_as<T>;
+    { a * b } -> std::same_as<T>;
+    { T::zero() } -> std::same_as<T>;
+};
 
 /**
  * @concept IsNatural
@@ -28,12 +34,14 @@ namespace dedekind::ontology {
  * Wikipedia: Semiring, Peano axioms
  */
 export template <typename N>
-concept IsNatural = IsPointed<N> && IsClosed<N> && IsArchimedean<N> &&
-                    IsMonoid<N, std::plus<N>> &&
-                    IsMonoid<N, std::multiplies<N>> && requires(N n) {
-                      { ++n } -> std::same_as<N&>;
-                      { n.is_origin() } -> std::convertible_to<bool>;
-                    };
+concept IsNatural = IsAdditiveSpecies<N> && requires(N n, N m) {
+    { N::successor(n) } -> std::same_as<N>;
+};
+
+export template <typename T>
+concept IsReflectiveSpecies = IsAdditiveSpecies<T> && requires(T a) {
+    { -a } -> std::same_as<T>; // Additive Inverse
+};
 
 /**
  * @concept IsInteger
@@ -41,24 +49,40 @@ concept IsNatural = IsPointed<N> && IsClosed<N> && IsArchimedean<N> &&
  * @details a - b is structurally defined as a + (-b).
  */
 export template <typename Z>
-concept IsInteger = IsNatural<Z> && requires(Z a, Z b) {
+concept IsInteger = IsReflectiveSpecies<Z> && requires(Z a, Z b) {
   { -a } -> std::same_as<Z>;     // Unary Inverse
   { a - b } -> std::same_as<Z>;  // Binary Subtraction
 };
 
 /**
- * @concept IsRational
- * @brief The extension of Z to a Field (Q).
- * Wikipedia: Rational number
- * @details A Rational is a Dense Field that remains Archimedean.
- *          It is "Measured" by the Integers.
+ * @concept IsFieldSpecies
+ * @brief The common "DNA" for all division-capable species (Q, R, C).
+ * @details Provides the tools for multiplicative reflection.
  */
-export template <typename Q>
-concept IsRational =
-    IsOrderedField<Q> && IsDense<Q> && IsArchimedean<Q> && requires(Q q) {
-      { q.numerator() } -> IsInteger;
-      { q.denominator() } -> IsInteger;
+export template <typename T>
+concept IsFieldSpecies = IsReflectiveSpecies<T> && requires(T a, T b) {
+    { a / b }       -> std::same_as<T>;
+    { a.inverse() } -> std::same_as<T>;
+    { T::one() }    -> std::same_as<T>;
+};
+
+/**
+ * @concept IsRational
+ * @brief Q is a rational species constructed over the integer species Z.
+ * 
+ * @tparam Q The Rational species (The "What").
+ * @tparam Z The underlying Integer species.
+ */
+export template <typename Q, typename Z>
+concept IsRational = 
+    IsFieldSpecies<Q> && 
+    IsInteger<Z> && 
+    requires(Q q, Z z) {
+        /** @brief Projection: Proves Q is a ratio of Z. */
+        { q.numerator() }   -> std::same_as<Z>;
+        { q.denominator() } -> std::same_as<Z>;
     };
+
 
 /**
  * @concept IsReal
@@ -68,24 +92,33 @@ concept IsRational =
  * Wikipedia: Real number
  */
 export template <typename R>
-concept IsReal = IsDedekindComplete<R> && IsArchimedean<R>;
+concept IsReal = IsFieldSpecies<R>;
 
 /**
  * @concept IsComplex
- * @brief The Algebraic Closure of the Continuum.
- * @details A species that is an Algebraically Closed Field.
- *          Every non-constant polynomial has a root within this species.
- * Wikipedia: Complex number, Fundamental theorem of algebra
+ * @brief The coordinate species of the Complex Plane (The "What").
+ * 
+ * @tparam C The Complex species (The Element).
+ * @tparam R The underlying Real species (The "Ancestry").
+ * 
+ * @details C is a Field Species that provides projections to its Real (R)
+ *          and Imaginary (R) components.
  */
 export template <typename C, typename R>
-concept IsComplex = IsField<C> && requires(const C z) {
-  // The "Naked" Projection to the Plane
-  { z.real() } -> std::same_as<R>;
-  { z.imag() } -> std::same_as<R>;
-  { z.conjugate() } -> std::same_as<C>;
-  requires IsReal<R> &&
-               // Algebra: Complex numbers are NOT Totally Ordered!
-               // (You can't say if 'i' is greater than '1').
-               !IsTotallyOrdered<C>;
-};
-}  // namespace dedekind::ontology
+concept IsComplex = IsFieldSpecies<C> && IsReal<R> && 
+    requires(const C z, R r) {
+        /** @brief Projections: C ↠ R */
+        { z.real() } -> std::same_as<R>;
+        { z.imag() } -> std::same_as<R>;
+        
+        /** 
+         * @brief Algebraic Morphism: √z
+         * In C, every number has a square root within the species.
+         */
+        { z.sqrt() } -> std::same_as<C>;
+
+        /** @brief Morphism: The Complex Conjugate z̄ */
+        { z.conjugate() } -> std::same_as<C>;
+    };
+
+};  // namespace dedekind::ontology

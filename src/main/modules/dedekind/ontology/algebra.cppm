@@ -28,6 +28,152 @@ inline constexpr bool is_commutative_v<T, std::plus<T>> = true;
 template <std::floating_point T>
 inline constexpr bool is_commutative_v<T, std::plus<T>> = true;
 
+
+/**
+ * @concept IsNumbers
+ * @brief The Root Category for all Numerical Structures.
+ * 
+ * @tparam M The Algebraic Structure (The "Rule").
+ * @tparam C The Cardinality (The "Magnitude").
+ * @tparam E The Element Species (The "What").
+ */
+export template <typename M, typename C, typename E = typename M::element_type>
+concept IsNumbers = 
+    IsSet<M, C, E> &&             // 1. It must be a Rule (Predicate-based)
+    IsCardinality<C> &&     // 2. It must have a defined Magnitude
+    requires(const M& m) {
+        requires IsCommutativeMonoid<M, std::plus<E>>;
+    };
+
+
+/**
+ * @concept Monoid_ℕ
+ * @brief The Parametric Algebraic Soul of the Natural Numbers.
+ * 
+ * @tparam M The Monoid structure.
+ * @tparam C The Magnitude (Must satisfy IsCountable).
+ * @tparam E The underlying Element species.
+ */
+export template <typename M, typename C, typename E = typename M::element_type>
+concept Monoid_ℕ = 
+    IsNumbers<M, Aleph_0, E> &&
+    IsNatural<E> && 
+    requires(const M& m) {
+        // The structure must actually possess the claimed cardinality.
+        { m.cardinality() } -> std::same_as<C>;
+        
+        // The Soul: Structural Laws
+        requires IsArchimedean<M>;
+        requires IsCommutativeMonoid<M, std::plus<E>>;
+        requires IsCommutativeMonoid<M, std::multiplies<E>>;
+    };
+
+/**
+ * @concept Group_ℤ
+ * @brief The Canonical Algebraic Soul of the Integers.
+ * 
+ * @details ℤ is the uniquely determined Infinite Cyclic Group (under addition)
+ *          that extends the Naturals with additive inverses.
+ */
+export template <typename M, , typename C, typename E = typename M::element_type>
+concept Group_ℤ = 
+    IsAleph0<C> &&
+    IsNumbers<M, C, E> && // The Magnitude (Coded in)
+    IsInteger<E> &&             // The Species (The "What")
+    requires(const M& m) {
+        // The Soul: Group Axioms
+        // Note: Subtraction is now a Total Morphism.
+        requires IsAbelianGroup<M, std::plus<E>>;
+        requires IsCommutativeRing<M>; // If you want to include Multiplication
+        requires IsArchimedean<M>;
+    };
+
+/**
+ * @concept Field_ℚ
+ * @brief The Canonical Algebraic Soul of the Rational Numbers.
+ * 
+ * @details ℚ is defined as the unique Ordered, Dense, Archimedean Field 
+ *          constructed over an underlying Integer species. In our 
+ *          "Rules, not buckets" manifesto, this concept "blesses" a 
+ *          coordinate species (E) with the structural laws of the 
+ *          Rational Field (M).
+ * 
+ * @tparam M The Field structure (The "Rule" or "Soul").
+ * @tparam C The Magnitude (Strictly Aleph_0 for the universal field).
+ * @tparam E The underlying Rational species (The "What" / Element).
+ * @tparam Z The underlying Integer species (The "Ancestry" of E).
+ * 
+ * @section Structural_Recursion:
+ * This concept enforces that the Field is strictly Countable (Aleph_0) 
+ * and that every element E can be projected back to its Integer 
+ * components (Z), ensuring a verified path from N to Q.
+ */
+export template <typename M, typename C, typename E, typename Z>
+concept Field_ℚ = 
+    IsNumbers<M, C, E> && 
+    IsAleph0<C> &&
+    IsRational<E, Z> && // <--- The Relative Species Check
+    requires(const M& m) {
+        { m.cardinality() } -> std::same_as<C>;
+        requires IsOrderedField<M>;
+        requires IsDense<M>;
+        requires IsArchimedean<M>;
+    };
+
+/**
+ * @concept Continuum_ℝ
+ * @brief The Canonical "Blessing" of the Real Numbers.
+ * 
+ * @tparam M The Field structure (The "Rule").
+ * @tparam E The underlying Real species (The "Element").
+ * @tparam Q The underlying Rational species (The "Ancestry").
+ */
+export template <typename M, typename E, typename Q>
+concept Continuum_ℝ = 
+    IsNumbers<M, typename M::cardinality_type, E> && 
+    IsBeth1<typename M::cardinality_type> && // The Rule is strictly Beth-1
+    IsReal<E, Q> && 
+    requires(const M& m) {
+        /** @property IsDedekindComplete: The defining "Soul" of R. */
+        requires IsDedekindComplete<M>;
+        requires IsOrderedField<M>;
+        requires IsArchimedean<M>;
+    };
+
+/**
+ * @concept IsAlgebraicallyClosed
+ * @brief Semantic requirement for a Field where every polynomial has a root.
+ * @details This is the "Soul" property required by Algebra_ℂ.
+ */
+export template <typename M>
+concept IsAlgebraicallyClosed = IsField<M>; // Refined by its use in Algebra_ℂ
+
+/**
+ * @concept Algebra_ℂ
+ * @brief The Canonical "Blessing" of the Complex Numbers.
+ * 
+ * @details ℂ is the Algebraically Closed Field over the Real Continuum. 
+ *          It inherits the Magnitude (Beth_1) but rejects the Order.
+ */
+export template <typename M, typename E, typename R>
+concept Algebra_ℂ = 
+    IsNumbers<M, typename M::cardinality_type, E> && 
+    IsBeth1<typename M::cardinality_type> && 
+    IsComplex<E, R> && 
+    requires(const M& m) {
+        requires IsField<M>;
+        
+        /** 
+         * @property IsAlgebraicallyClosed
+         * This soul is "pre-validated" by the species' ability to solve 
+         * quadratic roots via sqrt().
+         */
+        requires IsAlgebraicallyClosed<M>;
+        
+        /** @property !IsOrderedField: C is NOT totally ordered. */
+        requires !IsOrderedField<M>;
+    };
+
 /**
  * @concept IsBounded
  * @brief Theorem: Every Extensional species is Bounded (in our finite
