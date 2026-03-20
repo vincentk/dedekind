@@ -194,11 +194,32 @@ struct lift_natural_transformation {
   }
 };
 
+/**
+ * @section The Unit of the Species (The Entry Gate)
+ * @details
+ *   - PhD: η (eta) - The Unit Transformation Id ⟹ G.
+ *   - Haskell: pure/return - Lifts a value into a context.
+ *   - Dedekind: unit - The structural "one" of the category.
+ */
+export template <template <typename> typename G, typename T, typename OpT,
+                 typename OpG, auto Morphism>
+using unit = lift_natural_transformation<Identity, G, T, OpT, OpG, Morphism>;
+
+// The Haskell-style alias
+export template <template <typename> typename G, typename T, typename OpT,
+                 typename OpG, auto Morphism>
+using pure = unit<G, T, OpT, OpG, Morphism>;
+
+// The Greek (Category Theory) alias
+export template <template <typename> typename G, typename T, typename OpT,
+                 typename OpG, auto Morphism>
+using eta = unit<G, T, OpT, OpG, Morphism>;
+
 constexpr int my_promotion_sauce(bool b) { return b ? 1 : 0; }
 
 /** @section THE FIX: Supply all 6 parameters to the type alias */
 export using BoolToInt =
-    lift_natural_transformation<Identity, Identity, bool,
+    unit<Identity, bool,
                                 std::logical_and<bool>,  // OpF
                                 std::multiplies<int>,    // OpG
                                 my_promotion_sauce       // Morphism
