@@ -102,6 +102,33 @@ concept IsFunctor =
     IsSmallCategory<T, Op> &&
     IsSmallCategory<F<T>, Op>;  // Simplification: assuming Op maps over F
 
+/** 
+ * @brief A Natural Transformation between Functors F and G.
+ * 
+ * @details In Category Theory, η: F ⟹ G is a family of morphisms η_t: F(t) → G(t).
+ *          In C++, this is a polymorphic mapping that preserves the "Soul" 
+ *          of the underlying category regardless of the coordinate type T.
+ * 
+ * @tparam F The source Functor (e.g., a "species" like Single<T>).
+ * @tparam G The target Functor (e.g., a "species" like PowerSet<T>).
+ * @tparam T The object type being mapped.
+ */
+export template <
+    template <typename> typename F, 
+    template <typename> typename G, 
+    typename T
+>
+// We assume Op is implicitly handled or void for this structural mapping
+requires IsFunctor<F, T, void> && IsFunctor<G, T, void>
+struct NaturalTransformation {
+    /**
+     * @brief The component of the natural transformation at type T.
+     * @param x An object in the image of functor F.
+     * @return The corresponding object in the image of functor G.
+     */
+    G<T> operator()(F<T> x) const;
+};
+
 /** @section Primitive Specializations */
 
 // --- Booleans: An Abelian Monoid (Lattice) ---

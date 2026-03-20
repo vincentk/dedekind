@@ -16,11 +16,6 @@ using ::dedekind::ontology::IsDense;
 using ::dedekind::ontology::IsTotallyOrdered;
 using ::dedekind::ontology::ℵ_0;
 
-// --- 1. THE TRAITS (The "Naked" Axioms) ---
-export template <typename T, typename Op>
-inline constexpr bool is_commutative_v = false;
-export template <typename T, typename Op>
-inline constexpr T identity_v = T(0);
 /** @brief Proof Assistant: Integers and Floats are Commutative under Addition.
  */
 template <std::integral T>
