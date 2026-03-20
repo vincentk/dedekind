@@ -40,13 +40,14 @@ inline constexpr T identity_v = [] {
   return T{};
 }();
 
-/** 
+/**
  * @brief The Characteristic of the Species.
- * @details For a finite ring (like char or int), this is the modulus n 
+ * @details For a finite ring (like char or int), this is the modulus n
  *          where n * 1 = 0. For infinite fields (Q, R), it is 0.
  */
 export template <typename T>
-inline constexpr size_t characteristic_v = 0; // Default to infinite/characteristic 0
+inline constexpr size_t characteristic_v =
+    0;  // Default to infinite/characteristic 0
 
 template <>
 inline constexpr size_t characteristic_v<unsigned char> = 256;
@@ -90,8 +91,8 @@ inline constexpr T identity_v<T, std::multiplies<T>> = 1;
 
 /**
  * @brief Modulus is NOT associative nor commutative, and has no identity.
- * @details This is because (a mod n) mod n = a mod n, but (a mod n) mod m != a mod m in general.
- *         Also, a mod n != n mod a in general.
+ * @details This is because (a mod n) mod n = a mod n, but (a mod n) mod m != a
+ * mod m in general. Also, a mod n != n mod a in general.
  */
 template <std::integral T>
 inline constexpr bool is_associative_v<T, std::modulus<T>> = false;
