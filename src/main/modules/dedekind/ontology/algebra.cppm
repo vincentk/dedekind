@@ -18,8 +18,6 @@ using ::dedekind::ontology::ℵ_0;
 
 // --- 1. THE TRAITS (The "Naked" Axioms) ---
 export template <typename T, typename Op>
-inline constexpr bool is_associative_v = false;
-export template <typename T, typename Op>
 inline constexpr bool is_commutative_v = false;
 export template <typename T, typename Op>
 inline constexpr T identity_v = T(0);
