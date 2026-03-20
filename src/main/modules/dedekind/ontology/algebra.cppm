@@ -16,14 +16,6 @@ using ::dedekind::ontology::IsDense;
 using ::dedekind::ontology::IsTotallyOrdered;
 using ::dedekind::ontology::ℵ_0;
 
-/** @brief Proof Assistant: Integers and Floats are Commutative under Addition.
- */
-template <std::integral T>
-inline constexpr bool is_commutative_v<T, std::plus<T>> = true;
-
-template <std::floating_point T>
-inline constexpr bool is_commutative_v<T, std::plus<T>> = true;
-
 /**
  * @concept IsDedekindComplete
  * @brief The topological "Soul" of the Continuum.
@@ -185,6 +177,24 @@ concept IsOrderedAbelianGroup =
     IsAbelianGroup<T, std::plus<T>> && IsTotallyOrdered<T>;
 
 /**
+ * @concept IsRing
+ * @brief A set that is both a Semiring AND an Abelian Group under addition.
+ */
+export template <typename T, typename Add = std::plus<T>,
+                 typename Mul = std::multiplies<T>>
+concept IsRing = IsSemiring<T> && IsAbelianGroup<T, Add>;
+
+/**
+ * @concept IsCommutativeRing
+ * @brief A Ring where multiplication is also commutative.
+ * @details This is the foundation for Z, Q, and R.
+ * Wikipedia: Commutative ring
+ */
+export template <typename T>
+concept IsCommutativeRing =
+    IsRing<T> && IsCommutativeMonoid<T, std::multiplies<T>>;
+
+/**
  * @concept Group_ℤ
  * @brief The Canonical Algebraic Soul of the Integers.
  *
@@ -305,24 +315,6 @@ export template <typename T, typename N>
 concept IsScalableBy = requires(T x, N n) {
   { x * n } -> std::same_as<T>;
 };
-
-/**
- * @concept IsRing
- * @brief A set that is both a Semiring AND an Abelian Group under addition.
- */
-export template <typename T, typename Add = std::plus<T>,
-                 typename Mul = std::multiplies<T>>
-concept IsRing = IsSemiring<T> && IsAbelianGroup<T, Add>;
-
-/**
- * @concept IsCommutativeRing
- * @brief A Ring where multiplication is also commutative.
- * @details This is the foundation for Z, Q, and R.
- * Wikipedia: Commutative ring
- */
-export template <typename T>
-concept IsCommutativeRing =
-    IsRing<T> && IsCommutativeMonoid<T, std::multiplies<T>>;
 
 /**
  * @concept IsCyclic

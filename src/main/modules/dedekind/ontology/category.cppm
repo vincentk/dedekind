@@ -40,6 +40,17 @@ inline constexpr T identity_v = [] {
   return T{};
 }();
 
+/** 
+ * @brief The Characteristic of the Species.
+ * @details For a finite ring (like char or int), this is the modulus n 
+ *          where n * 1 = 0. For infinite fields (Q, R), it is 0.
+ */
+export template <typename T>
+inline constexpr size_t characteristic_v = 0; // Default to infinite/characteristic 0
+
+template <>
+inline constexpr size_t characteristic_v<unsigned char> = 256;
+
 // --- Booleans: An Abelian Monoid (Lattice) ---
 template <>
 inline constexpr bool is_associative_v<bool, std::logical_or<bool>> = true;
@@ -55,21 +66,38 @@ inline constexpr bool is_commutative_v<bool, std::logical_and<bool>> = true;
 template <>
 inline constexpr bool identity_v<bool, std::logical_and<bool>> = true;
 
-// --- Integers: An Abelian Group (Z, +) ---
-template <>
-inline constexpr bool is_associative_v<int, std::plus<int>> = true;
-template <>
-inline constexpr bool is_commutative_v<int, std::plus<int>> = true;
-template <>
-inline constexpr int identity_v<int, std::plus<int>> = 0;
+// --- Integers: The finite ring (Z, +, *) ---
 
-// Integers: A Multiplicative Monoid (Z, *)
-template <>
-inline constexpr bool is_associative_v<int, std::multiplies<int>> = true;
-template <>
-inline constexpr bool is_commutative_v<int, std::multiplies<int>> = true;
-template <>
-inline constexpr int identity_v<int, std::multiplies<int>> = 1;
+/**
+ * @brief Addition is associative and commutative, with identity 0.
+ */
+template <std::integral T>
+inline constexpr bool is_associative_v<T, std::plus<T>> = true;
+template <std::integral T>
+inline constexpr bool is_commutative_v<T, std::plus<T>> = true;
+template <std::integral T>
+inline constexpr T identity_v<T, std::plus<T>> = 0;
+
+/**
+ * @brief Multiplication is associative and commutative, with identity 1.
+ */
+template <std::integral T>
+inline constexpr bool is_associative_v<T, std::multiplies<T>> = true;
+template <std::integral T>
+inline constexpr bool is_commutative_v<T, std::multiplies<T>> = true;
+template <std::integral T>
+inline constexpr T identity_v<T, std::multiplies<T>> = 1;
+
+/**
+ * @brief Modulus is NOT associative nor commutative, and has no identity.
+ * @details This is because (a mod n) mod n = a mod n, but (a mod n) mod m != a mod m in general.
+ *         Also, a mod n != n mod a in general.
+ */
+template <std::integral T>
+inline constexpr bool is_associative_v<T, std::modulus<T>> = false;
+
+template <std::integral T>
+inline constexpr bool is_commutative_v<T, std::modulus<T>> = false;
 
 // --- Characters: A Commutative Species ---
 template <>
