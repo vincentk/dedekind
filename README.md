@@ -2,27 +2,22 @@
 
 [ 🌸 Don't panic. ]
 
-### Symbolic Set Theory in Modern C++20
+### Categorical Set Theory in Modern C++20
 
-By implementing this in Modern C++20, we turn mathematical theorems into compile-time proofs. The result is a system where the "Soul" of a number is only evaluated when needed, ensuring the build remains a clean, efficient Directed Acyclic Graph.
+`dedekind` is a structuralist C++20 library that transforms mathematical theorems into compile-time proofs. by treating sets as **rules, not buckets**, we aim to ensure that a numerical system is type-checked as soon as possible but evaluated only when logically required, maintaining an efficient directed acyclic graph from the compiler to the runtime.
 
-Because our numbers are built through structural recursion, this DAG architecture extends from the compiler to the runtime. We don't just hope the math is right; we often ensure that every calculation stays within the limits of what is actually computable, providing a guaranteed path to termination without infinite loops.
+## Core Intent: Structuralism over Mereology
+Many libraries treat sets as "bags of data." `dedekind` treats them as algebraic objects within a strictly defined category. By using expression templates and a hierarchical morphism engine, `dedekind` allows you to animate the transitions extensional (`size_t`) $\rightarrow$ finite $\rightarrow$ countable ($\aleph_0$) $\rightarrow$ continuous ($2^{\aleph_0}$) using the same laws that govern the finite.
 
-"Sets are Rules, not buckets. Logic is the build, not the helper."
+## Key Features
+*   `ontology:category`: built on the categorical logic of semigroupoids and small categories. we define the laws of composition and identity before a single element is ever "contained."
+*   `ontology:cardinalities`: a unified, inductive ladder of infinity. by positing the generalized continuum hypothesis. The $\aleph$ and $\beth$ hierarchies are collapsed as follows:
+    $$\forall n: \aleph_n = \beth_n \implies 2^{\aleph_n} = \aleph_{n+1}$$
+    the library promotes the cantor jump through a recursive `power_type` morphism.
+*   `ontology:mereology`: operations like union ($|$) and intersection ($\&$) build a symbolic tree. the cardinality algebra promotes results at compile-time (e.g., $\text{uncountable} \cap \text{finite} \to \text{finite}$).
+*   `ontology:algebra`: a raw coordinate species is lifted to a higher algebraic rank once it satisfies the required axioms: `Monoid_ℕ \subset Group_ℤ \subset Field_ℚ \subset Continuum_ℝ`.
 
-
-**Dedekind** is a modular C++20 library designed to model abstract set theory. Named after Richard Dedekind, the library treats sets not as containers, but as **symbolic expressions** governed by a strictly typed, sealed cardinality algebra.
-
-## Core Intent
-Most libraries treat sets as "bags of data." **Dedekind** treats them as **logical rules**. By using **Expression Templates** and a **Sealed Cardinality Hierarchy**, Dedekind allows you to perform operations on infinite sets (the Reals), countable sets (the Integers), and finite sets (the Booleans) using a terse, "mathy" syntax.
-
-### Key Features
-*   **Lazy Evaluation:** Operations like Union (`|`) and Intersection (`&`) build a symbolic tree; no logic is executed until a membership test is performed.
-*   **Cardinality Algebra:** The type system "proves" the size of results. Intersecting an `Uncountable` set with a `Finite` set automatically promotes the result to `Finite` at compile-time.
-*   **Handle Pattern:** `SetHandle<T>` provides a unified, safe interface using `std::shared_ptr` to manage expression lifetimes.
-*   **C++20 Modules:** Built from the ground up using C++20 modules for clean boundaries and fast compilation.
-
----
+> "Sets are rules, not buckets. Algebra is the category, not the helper. Logic is the build.
 
 ## Code Highlights
 
