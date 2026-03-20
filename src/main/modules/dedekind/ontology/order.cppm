@@ -23,6 +23,17 @@ import :numbers;
 namespace dedekind::ontology {
 
 /**
+ * @concept IsPartiallyOrdered
+ * @brief Elements that can be compared, but some may be "parallel."
+ * Wikipedia: Partial order
+ */
+export template <typename T>
+concept IsPartiallyOrdered = requires(const T a, const T b) {
+  { a <= b } -> std::convertible_to<bool>;
+  { a == b } -> std::convertible_to<bool>;
+};
+
+/**
  * @concept IsTotallyOrdered
  * @brief A refinement of the C++ totally_ordered concept for the Dedekind
  * species.
@@ -30,8 +41,14 @@ namespace dedekind::ontology {
  * a == b.
  */
 export template <typename T>
-concept IsTotallyOrdered = std::totally_ordered<T>;
+concept IsTotallyOrdered = IsPartiallyOrdered<T> && std::totally_ordered<T>;
 
+/**
+ * @concept IsLinearOrder
+ * @brief Synonym for Total Order in our 1D road trip.
+ */
+export template <typename T>
+concept IsLinearOrder = IsTotallyOrdered<T>;
 
 /**
  * @concept IsDense

@@ -32,8 +32,6 @@ concept IsSet = requires(S s, T v) {
   { s.cardinality() } -> std::same_as<typename S::cardinality_type>;
 };
 
-
-
 // Constraints on cardinalities:
 export template <typename S, typename T>
 concept CountableSet =

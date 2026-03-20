@@ -22,13 +22,13 @@ module;
 export module dedekind.ontology:mereology;
 
 import :cardinalities;
-import :order;
 
 /**
  * @section Mereology: The study of parts and wholes.
  * @section Mereology: The Hierarchy of Order.
  */
 namespace dedekind::ontology {
+using ::dedekind::ontology::IsCardinality;
 
 /**
  * @brief The Mereological Part-Whole relation (sqsubseteq).
@@ -40,72 +40,16 @@ concept IsPartOf = requires(S1 a, S2 b) {
   { a <= b } -> std::convertible_to<bool>;
 };
 
-/** 
+/**
  * @concept IsProperPart
  * @brief The primitive binary relation: x < y (x is a part of y).
- * @details We define the syntax here. The "Soul" (transitivity, antisymmetry) 
+ * @details We define the syntax here. The "Soul" (transitivity, antisymmetry)
  *          is proven downstream in :order or :algebra.
  */
 export template <typename Part, typename Whole>
 concept IsProperPart = requires(const Part p, const Whole w) {
-    /** @brief The Morphism: Is p a part of w? */
-    { p.is_part_of(w) } -> std::convertible_to<bool>;
-};
-
-/**
- * @concept IsPartiallyOrdered
- * @brief Elements that can be compared, but some may be "parallel."
- * Wikipedia: Partial order
- */
-export template <typename T>
-concept IsPartiallyOrdered = requires(const T a, const T b) {
-  { a <= b } -> std::convertible_to<bool>;
-  { a == b } -> std::convertible_to<bool>;
-};
-
-/**
- * @concept IsTotallyOrdered
- * @brief A Partial Order where every pair is comparable.
- * @details This is the "Ruler" for our 1D road trip.
- */
-export template <typename T>
-concept IsTotallyOrdered =
-    IsPartiallyOrdered<T> && requires(const T a, const T b) {
-      { a < b } -> std::convertible_to<bool>;
-      { a <=> b } -> std::same_as<std::strong_ordering>;
-      requires std::three_way_comparable<T>;  // The C++20 "Naked" Proof
-    };
-
-/**
- * @concept IsLinearOrder
- * @brief Synonym for Total Order in our 1D road trip.
- */
-export template <typename T>
-concept IsLinearOrder = IsTotallyOrdered<T>;
-
-/**
- * @concept IsCardinality
- * @beief The formal measure of a Set's magnitude.
- *
- * @details Cardinality defines the "how many" of a species, moving from
- *          the Empty set (Zero) through Machine-finite spaces (N64)
- *          to the Transfinite (Aleph) and the Continuum (Beth).
- *          In our Structuralist Ontology, we use a type-hierarchy
- *          to allow the compiler to reason about the size of infinity
- *          at compile-time.
- *
- * @tparam C The Cardinality species.
- *
- * Wikipedia: Cardinality, Aleph number, Beth number
- */
-export template <typename C>
-concept IsCardinality = IsTotallyOrdered<C> && requires(C c) {
-  /** @brief The Boundedness check: Is this measure representable in the
-   * discrete grid? */
-  { c.is_finite() } -> std::same_as<bool>;
-
-  /** @brief cardinality of the corresponding power set.  */
-  { power(c) } -> IsTotallyOrdered;
+  /** @brief The Morphism: Is p a part of w? */
+  { p.is_part_of(w) } -> std::convertible_to<bool>;
 };
 
 /**
@@ -142,86 +86,26 @@ concept HasExtrema = requires(S s) {
 };
 
 /**
- * @brief The property of a Continuous field.
- *
- * A species is Continuous if its size is that of the Continuum (Beth-1)
- * and it satisfies the Dedekind-Completeness axiom (HasExtrema).
- * This distinguishes the "Smooth" Real line from the "Holey" Rational field.
- *
- * @tparam S A set species.
- */
-template <typename S>
-concept IsContinuous =
-    IsUncountable<typename S::cardinality_type> && HasExtrema<S>;
-
-}
-
-/**
- * @concept IsDiscrete
- * @brief A space of isolated points (Z, N).
- * @details A species is Discrete if it is Countable but lacks a
- *          midpoint morphism between its elements. This property
- *          enables mathematical induction and successor-based logic.
- * @note Axiom: For a discrete set, there exists a "gap" between any
- *       two distinct elements.
- */
-export template <typename S>
-concept IsDiscrete = IsCountable<S> && !IsDense<S>;
-
-/**
- * @concept IsContinuous
- * @brief A space that is both dense and complete (R).
- * @details A species is Continuous if it possesses the cardinality
- *          of the Continuum (Beth-1) and satisfies the Dedekind-Completeness
- *          axiom.
- *
- * @theorem The Dedekind Cut transforms a Dense, Countable field (Q)
- *          into a Continuous one (R).
- */
-export template <typename S>
-concept IsContinuous = IsUncountable<S> && IsDedekindComplete<S>;
-/**
- * @concept IsContinuum
- * @brief The magnitude of the Real Numbers (R).
- *        Axiom: It is the species of 2^ℵ₀.
- */
-export template <typename C>
-concept IsContinuum = IsUncountable<C> && requires(C c) {
-  // Theorem: IsContinuum is the species of power(Aleph0)
-};
-
-/**
  * @concept IsSet
  * @brief The fundamental species of a Collection (The Rule).
- * 
+ *
  * @tparam S The Set species (the predicate/expression).
  * @tparam C The Cardinality (The Magnitude).
  * @tparam T The Element species (The "What").
  */
 export template <typename S, typename C, typename T = typename S::element_type>
-concept IsSet = 
-    IsCardinality<C> &&
-    requires(const S s, const T v) {
-        /** @brief The Membership Predicate: x ∈ S */
-        { s.contains(v) } -> std::convertible_to<bool>;
+concept IsSet = IsCardinality<C> && requires(const S s, const T v) {
+  /** @brief The Membership Predicate: x ∈ S */
+  { s.contains(v) } -> std::convertible_to<bool>;
 
-        /** @brief The "Anatomy" for type-safe chaining. */
-        typename S::element_type;
-        typename S::cardinality_type;
+  /** @brief The "Anatomy" for type-safe chaining. */
+  typename S::element_type;
+  typename S::cardinality_type;
 
-        /** @brief Magnitude Matching: The claim C must match the implementation. */
-        { s.cardinality() } -> std::same_as<C>;
-        requires std::same_as<C, typename S::cardinality_type>;
-    };
-
-/**
- * @concept IsExtensional
- * @brief A Set species that is bounded and indexable.
- * Wikipedia: Extensionality, Axiom of extensionality
- */
-export template <typename S>
-concept IsExtensional =
-    IsSet<S, typename S::element_type> && S::cardinality().is_finite();
+  /** @brief Magnitude Matching: The claim C must match the implementation. */
+  { s.cardinality() } -> std::same_as<C>;
+  requires std::same_as<C, typename S::cardinality_type>;
+};
 
 /**
  * @section Mereology: Pointed Species.
@@ -287,31 +171,4 @@ concept IsBoundedLattice = IsLattice<S> && requires(S s) {
   { s.upper_bound() } -> std::same_as<typename S::element_type>;  // The Top
 };
 
-/**
- * @brief The Least Upper Bound (LUB) of a Species.
- * @details A refinement of IsJoinSemilattice that extends the Join (|)
- *          operation to entire bounded subsets.
- * @see Wikipedia: Completeness of the real numbers
- */
-export template <typename T>
-concept IsDedekindComplete =
-    IsOrderedField<T> && IsDense<T> && IsLattice<T> && requires(T a) {
-      /** @brief The Supremum Morphism: Finding the 'ceiling' of a bounded set.
-       */
-      { supremum_of(a) } -> std::same_as<T>;
-    };
-
-/**
- * @brief The Continuous Field property.
- * @details A species is Continuous if it possesses the cardinality
- *          of the power set of the naturals (Beth-1) and satisfies
- *          the Dedekind-Completeness axiom.
- *
- * This represents the "Smooth" transition where gaps in the
- * Rational field have been "filled" by the Dedekind Cut.
- */
-export template <typename S>
-concept IsContinuous =
-    IsUncountable<typename S::cardinality_type> && IsDedekindComplete<S>;
-
-}  // namespace dedekind::ontology
+};  // namespace dedekind::ontology

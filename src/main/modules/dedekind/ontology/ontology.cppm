@@ -14,10 +14,10 @@
 export module dedekind.ontology;
 
 // --- The Structural Partitions ---
-export import :mereology;  // Sets, Lattices, and Pointed Species
-export import :cardinalities; // The hierarchy of sizes and infinities
-export import :topology;   // Open/Closed Sets and Sequences
-export import :algebra;    // Monoids, Groups, and Fields
+export import :mereology;      // Sets, Lattices, and Pointed Species
+export import :cardinalities;  // The hierarchy of sizes and infinities
+export import :topology;       // Open/Closed Sets and Sequences
+export import :algebra;        // Monoids, Groups, and Fields
 export import :geometry;
 export import :numbers;        // N ⊂ Z ⊂ Q ⊂ R
 export import :order;          // Orders, Density, and Midpoints

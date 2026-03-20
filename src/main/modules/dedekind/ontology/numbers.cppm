@@ -16,15 +16,15 @@ module;
 
 export module dedekind.ontology:numbers;
 
-import :cardinalities; // The foundation of magnitude
+import :cardinalities;  // The foundation of magnitude
 
 namespace dedekind::ontology {
 
 export template <typename T>
 concept IsAdditiveSpecies = requires(T a, T b) {
-    { a + b } -> std::same_as<T>;
-    { a * b } -> std::same_as<T>;
-    { T::zero() } -> std::same_as<T>;
+  { a + b } -> std::same_as<T>;
+  { a * b } -> std::same_as<T>;
+  { T::zero() } -> std::same_as<T>;
 };
 
 /**
@@ -35,12 +35,12 @@ concept IsAdditiveSpecies = requires(T a, T b) {
  */
 export template <typename N>
 concept IsNatural = IsAdditiveSpecies<N> && requires(N n, N m) {
-    { N::successor(n) } -> std::same_as<N>;
+  { N::successor(n) } -> std::same_as<N>;
 };
 
 export template <typename T>
 concept IsReflectiveSpecies = IsAdditiveSpecies<T> && requires(T a) {
-    { -a } -> std::same_as<T>; // Additive Inverse
+  { -a } -> std::same_as<T>;  // Additive Inverse
 };
 
 /**
@@ -61,28 +61,24 @@ concept IsInteger = IsReflectiveSpecies<Z> && requires(Z a, Z b) {
  */
 export template <typename T>
 concept IsFieldSpecies = IsReflectiveSpecies<T> && requires(T a, T b) {
-    { a / b }       -> std::same_as<T>;
-    { a.inverse() } -> std::same_as<T>;
-    { T::one() }    -> std::same_as<T>;
+  { a / b } -> std::same_as<T>;
+  { a.inverse() } -> std::same_as<T>;
+  { T::one() } -> std::same_as<T>;
 };
 
 /**
  * @concept IsRational
  * @brief Q is a rational species constructed over the integer species Z.
- * 
+ *
  * @tparam Q The Rational species (The "What").
  * @tparam Z The underlying Integer species.
  */
 export template <typename Q, typename Z>
-concept IsRational = 
-    IsFieldSpecies<Q> && 
-    IsInteger<Z> && 
-    requires(Q q, Z z) {
-        /** @brief Projection: Proves Q is a ratio of Z. */
-        { q.numerator() }   -> std::same_as<Z>;
-        { q.denominator() } -> std::same_as<Z>;
-    };
-
+concept IsRational = IsFieldSpecies<Q> && IsInteger<Z> && requires(Q q, Z z) {
+  /** @brief Projection: Proves Q is a ratio of Z. */
+  { q.numerator() } -> std::same_as<Z>;
+  { q.denominator() } -> std::same_as<Z>;
+};
 
 /**
  * @concept IsReal
@@ -97,28 +93,27 @@ concept IsReal = IsFieldSpecies<R>;
 /**
  * @concept IsComplex
  * @brief The coordinate species of the Complex Plane (The "What").
- * 
+ *
  * @tparam C The Complex species (The Element).
  * @tparam R The underlying Real species (The "Ancestry").
- * 
+ *
  * @details C is a Field Species that provides projections to its Real (R)
  *          and Imaginary (R) components.
  */
 export template <typename C, typename R>
-concept IsComplex = IsFieldSpecies<C> && IsReal<R> && 
-    requires(const C z, R r) {
-        /** @brief Projections: C ↠ R */
-        { z.real() } -> std::same_as<R>;
-        { z.imag() } -> std::same_as<R>;
-        
-        /** 
-         * @brief Algebraic Morphism: √z
-         * In C, every number has a square root within the species.
-         */
-        { z.sqrt() } -> std::same_as<C>;
+concept IsComplex = IsFieldSpecies<C> && IsReal<R> && requires(const C z, R r) {
+  /** @brief Projections: C ↠ R */
+  { z.real() } -> std::same_as<R>;
+  { z.imag() } -> std::same_as<R>;
 
-        /** @brief Morphism: The Complex Conjugate z̄ */
-        { z.conjugate() } -> std::same_as<C>;
-    };
+  /**
+   * @brief Algebraic Morphism: √z
+   * In C, every number has a square root within the species.
+   */
+  { z.sqrt() } -> std::same_as<C>;
+
+  /** @brief Morphism: The Complex Conjugate z̄ */
+  { z.conjugate() } -> std::same_as<C>;
+};
 
 };  // namespace dedekind::ontology
