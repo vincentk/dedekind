@@ -14,6 +14,7 @@
 export module dedekind.ontology;
 
 // --- The Structural Partitions ---
+export import :category;       //  Small category.
 export import :mereology;      // Sets, Lattices, and Pointed Species
 export import :cardinalities;  // The hierarchy of sizes and infinities
 export import :topology;       // Open/Closed Sets and Sequences

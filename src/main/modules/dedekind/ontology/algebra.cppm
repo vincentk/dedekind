@@ -90,17 +90,6 @@ concept IsMagma = requires(T a, T b) {
 };
 
 /**
- * @section Mereology: The Geometry of Overlap.
- * @concept IsConvexMagma
- * @brief Convex sets form a Magma under the Intersection operation.
- * @details Structural Proof: If A and B are Convex, then A ∩ B is Convex.
- * Wikipedia: Convex set (Intersection property)
- */
-export template <typename S>
-concept IsConvexMagma =
-    IsMagma<S, std::bit_and<S>> && requires(S a) { requires IsConvex<S>; };
-
-/**
  * @concept IsSemigroup
  * @brief An associative Magma (No identity required).
  */
@@ -125,6 +114,18 @@ concept IsMonoid = IsMagma<T, Op> && requires {
 export template <typename T, typename Op>
 concept IsCommutativeMonoid =
     IsMonoid<T, Op> && requires { requires is_commutative_v<T, Op>; };
+
+/**
+ * @concept IsSemiring
+ * @brief A set with two Monoids (Add, Mul) where Mul distributes over Add.
+ * @note This is the home of 'bool' and 'Natural Numbers'.
+ */
+export template <typename T>
+concept IsSemiring =
+    IsMonoid<T, std::plus<T>> && IsMonoid<T, std::multiplies<T>> &&
+    requires(T a, T b, T c) {
+      { a * (b + c) } -> std::same_as<T>;  // Distributivity
+    };
 
 /**
  * @concept IsNumbers
@@ -160,6 +161,36 @@ concept Monoid_ℕ =
     };
 
 /**
+ * @concept IsGroup
+ * @brief A Monoid where every element has an inverse.
+ * Wikipedia: Group (mathematics), Additive inverse
+ */
+export template <typename T, typename Op>
+concept IsGroup = IsMonoid<T, Op> && requires(T a) {
+  { inverse<T, Op>(a) } -> std::same_as<T>;
+};
+
+/**
+ * @section Algebra: The Hierarchy of Operations.
+ *
+ * @concept IsAbelianGroup
+ * @brief A Group where the operator (usually +) is commutative.
+ * Wikipedia: Abelian group
+ */
+export template <typename T, typename Op = std::plus<T>>
+concept IsAbelianGroup = IsGroup<T, Op> && IsCommutativeMonoid<T, Op>;
+
+/**
+ * @concept IsOrderedAbelianGroup
+ * @brief An Abelian Group where the order is preserved by addition.
+ *        If a < b, then a + c < b + c.
+ * Wikipedia: Ordered abelian group
+ */
+export template <typename T>
+concept IsOrderedAbelianGroup =
+    IsAbelianGroup<T, std::plus<T>> && IsTotallyOrdered<T>;
+
+/**
  * @concept Group_ℤ
  * @brief The Canonical Algebraic Soul of the Integers.
  *
@@ -173,7 +204,7 @@ concept Group_ℤ =
     requires(const M& m) {
       // The Soul: Group Axioms
       // Note: Subtraction is now a Total Morphism.
-      requires IsAbelianGroup<M, std::plus<E>>;
+      requires IsOrderedAbelianGroup<M>;
       requires IsCommutativeRing<M>;  // If you want to include Multiplication
       requires IsArchimedean<M>;
     };
@@ -280,48 +311,6 @@ export template <typename T, typename N>
 concept IsScalableBy = requires(T x, N n) {
   { x * n } -> std::same_as<T>;
 };
-
-/**
- * @concept IsGroup
- * @brief A Monoid where every element has an inverse.
- * Wikipedia: Group (mathematics), Additive inverse
- */
-export template <typename T, typename Op>
-concept IsGroup = IsMonoid<T, Op> && requires(T a) {
-  { inverse<T, Op>(a) } -> std::same_as<T>;
-};
-
-/**
- * @section Algebra: The Hierarchy of Operations.
- *
- * @concept IsAbelianGroup
- * @brief A Group where the operator (usually +) is commutative.
- * Wikipedia: Abelian group
- */
-export template <typename T, typename Op = std::plus<T>>
-concept IsAbelianGroup = IsGroup<T, Op> && IsCommutativeMonoid<T, Op>;
-
-/**
- * @concept IsOrderedAbelianGroup
- * @brief An Abelian Group where the order is preserved by addition.
- *        If a < b, then a + c < b + c.
- * Wikipedia: Ordered abelian group
- */
-export template <typename T>
-concept IsOrderedAbelianGroup =
-    IsAbelianGroup<T, std::plus<T>> && IsTotallyOrdered<T>;
-
-/**
- * @concept IsSemiring
- * @brief A set with two Monoids (Add, Mul) where Mul distributes over Add.
- * @note This is the home of 'bool' and 'Natural Numbers'.
- */
-export template <typename T>
-concept IsSemiring =
-    IsMonoid<T, std::plus<T>> && IsMonoid<T, std::multiplies<T>> &&
-    requires(T a, T b, T c) {
-      { a * (b + c) } -> std::same_as<T>;  // Distributivity
-    };
 
 /**
  * @concept IsRing

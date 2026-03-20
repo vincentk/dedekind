@@ -67,6 +67,17 @@ export template <typename S>
 concept IsConvex = IsSet<S, typename S::element_type> && is_convex_v<S>;
 
 /**
+ * @section Mereology: The Geometry of Overlap.
+ * @concept IsConvexMagma
+ * @brief Convex sets form a Magma under the Intersection operation.
+ * @details Structural Proof: If A and B are Convex, then A ∩ B is Convex.
+ * Wikipedia: Convex set (Intersection property)
+ */
+export template <typename S>
+concept IsConvexMagma =
+    IsMagma<S, std::bit_and<S>> && requires(S a) { requires IsConvex<S>; };
+
+/**
  * @concept IsHalfSpace
  * @brief A Convex Set defined by a single "Naked" boundary.
  * Wikipedia: Half-space (geometry), Ray (geometry)
