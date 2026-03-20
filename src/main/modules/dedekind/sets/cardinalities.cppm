@@ -1,5 +1,6 @@
 module;
 
+#include <compare>
 #include <concepts>
 #include <ranges>
 #include <type_traits>
@@ -64,10 +65,32 @@ export struct LargeFinite : public Finite {
 };
 
 // Symbolic bound for a space of N bits (e.g., 2^32, 2^64)
-export template <std::size_t N>
-struct ℕ : public LargeFinite {
-  static constexpr std::size_t bits = N;
-  constexpr ℕ() : LargeFinite() {}
+// 1. The General Case (N < 64)
+template <size_t N>
+struct ℕ {
+  static constexpr size_t value = N;
+  static constexpr bool is_countable = true;
+  static constexpr bool is_finite = true;
+
+  constexpr std::partial_ordering operator<=>(const ℕ&) const = default;
+
+  // We only calculate 2^N if it fits in a size_t
+  using power_type = ℕ<(1ULL << N)>;
+};
+
+// 2. The Specialization (The "Hardware Horizon")
+// This stops the infinite shift and jumps to the next species.
+template <>
+struct ℕ<64> {
+  static constexpr size_t value = 64;
+  static constexpr bool is_countable = true;
+  static constexpr bool is_finite = true;
+
+  constexpr std::partial_ordering operator<=>(const ℕ&) const = default;
+
+  // THE JUMP: The power set of 2^64 is still countably finite
+  // but no longer with a known finite representation.
+  using power_type = LargeFinite;
 };
 
 export using ℕ1 = ℕ<1>;
