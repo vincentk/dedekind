@@ -20,7 +20,7 @@ namespace dedekind::sets {
  */
 template <ontology::IsOrderedField Q>
   requires ontology::IsDense<Q> &&
-           ontology::IsAleph0<typename Q::cardinality_type>
+           std::same_as<typename Q::cardinality_type, ontology::ℵ_0>
 struct DedekindCut {
   using Predicate = std::function<bool(Q)>;
 
