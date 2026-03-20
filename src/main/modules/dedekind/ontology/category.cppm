@@ -104,21 +104,27 @@ concept IsFunctor =
 
 /** @section Primitive Specializations */
 
-// --- Booleans (The Monoid of Choice) ---
-template <>
-inline constexpr bool is_associative_v<bool, std::logical_or<>> = true;
-template <>
-inline constexpr bool identity_v<bool, std::logical_or<>> = false;
+// --- Booleans: An Abelian Monoid (Lattice) ---
+template <> inline constexpr bool is_associative_v<bool, std::logical_or<>> = true;
+template <> inline constexpr bool is_commutative_v<bool, std::logical_or<>> = true;
+template <> inline constexpr bool identity_v<bool, std::logical_or<>> = false;
 
-template <>
-inline constexpr bool is_associative_v<bool, std::logical_and<>> = true;
-template <>
-inline constexpr bool identity_v<bool, std::logical_and<>> = true;
+template <> inline constexpr bool is_associative_v<bool, std::logical_and<>> = true;
+template <> inline constexpr bool is_commutative_v<bool, std::logical_and<>> = true;
+template <> inline constexpr bool identity_v<bool, std::logical_and<>> = true;
 
-// --- Integers (The Additive Group) ---
-template <>
-inline constexpr bool is_associative_v<int, std::plus<>> = true;
-template <>
-inline constexpr int identity_v<int, std::plus<>> = 0;
+// --- Integers: An Abelian Group (Z, +) ---
+template <> inline constexpr bool is_associative_v<int, std::plus<>> = true;
+template <> inline constexpr bool is_commutative_v<int, std::plus<>> = true;
+template <> inline constexpr int identity_v<int, std::plus<>> = 0;
+
+// --- Characters: A Commutative Species ---
+template <> inline constexpr bool is_associative_v<char, std::plus<>> = true;
+template <> inline constexpr bool is_commutative_v<char, std::plus<>> = true;
+template <> inline constexpr char identity_v<char, std::plus<>> = 0;
+
+/** @section Verification */
+static_assert(IsAbelian<int, std::plus<>>);
+static_assert(IsAbelian<bool, std::logical_or<>>);
 
 }  // namespace dedekind::ontology
