@@ -8,13 +8,13 @@
 
 `dedekind` expressly aims to bridge the gap between **High-Performance Computing (HPC)** and **Category Theory**. 
 
-While formal verification tools (like Lean or Coq) provide the mathematical rigor, they lack the hardware-level efficiency required for heavy computation. Conversely, standard numeric libraries often sacrifice mathematical "essence" for raw speed. `dedekind` uses C++20 concepts to enforce categorical invariants at compile-time, ensuring that a directed acyclic graph of operations not only possesses the required mathematical structure but also zero-overhead at runtime.
+While formal verification tools (like Lean or Coq) provide the mathematical rigor, they lack the hardware-level efficiency required for heavy computation. Conversely, standard numeric libraries often sacrifice mathematical "essence" for raw speed. `dedekind` uses C++20 concepts to enforce categorical invariants at compile-time, ensuring that a directed acyclic graph of operations not only possesses the required mathematical structure but also zero-overhead at runtime. The API aims to be approachable and so extensive training using dedicated tools should not be required to make it accessible for everyday use.
 
 *   Compile-time pruning: Because the library understands **Mereology**, it can prune symbolic trees (e.g., $A \cap \emptyset \to \emptyset$) before a single assembly instruction is generated.
 *   Zero-Cost Abstractions: Your algebraic checks happen during compilation. Once the compiler is satisfied, it emits the same optimized machine code as a "naked" loop.
 *   Structural Optimization: Compile-time inspection of an operation's properties such as associativity or commutativity allows the compiler to reorder and parallelise calculations safely without "guessing" at side effects.
 
-In practice, `dedekind` does not just use `consteval` because it's somehow cool. The compiler may be able to reassociate a $(A + B) + C$ into a $A + (B + C)$ without worrying about floating-point drift, because we've proven the associativity.
+In practice, `dedekind` does not just use `consteval` because it's somehow cool. The compiler may be able to reassociate a $(A + B) + C$ into a $A + (B + C)$ without worrying about floating-point drift, because we've proven the associativity. Similarly, the compiler can identify and optimize identities such as $(A \union (B \intersection \empty) = A)$.
 
 
 ## Core Intent: Structuralism over Mereology
