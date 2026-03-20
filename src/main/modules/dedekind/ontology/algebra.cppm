@@ -347,13 +347,9 @@ concept Field_ℚ = IsNumbers<M, ℵ_0, E> &&
  */
 export template <typename M, typename E, typename Q>
 concept Continuum_ℝ =
-    IsNumbers<M, typename M::cardinality_type, E> &&
-    IsBeth1<typename M::cardinality_type> &&  // The Rule is strictly Beth-1
-    IsReal<E, Q> && requires(const M& m) {
+    IsNumbers<M, ℶ_1, E> && IsReal<E> && requires(const M& m) {
       /** @property IsDedekindComplete: The defining "Soul" of R. */
-      requires IsDedekindComplete<M>;
-      requires IsOrderedField<M>;
-      requires IsArchimedean<M>;
+      requires IsDedekindComplete<M> && IsOrderedField<M> && IsArchimedean<M>;
     };
 
 /**
@@ -372,22 +368,21 @@ concept IsAlgebraicallyClosed = IsField<M>;  // Refined by its use in Algebra_�
  *          It inherits the Magnitude (Beth_1) but rejects the Order.
  */
 export template <typename M, typename E, typename R>
-concept Algebra_ℂ = IsNumbers<M, typename M::cardinality_type, E> &&
-                    IsBeth1<typename M::cardinality_type> && IsComplex<E, R> &&
-                    requires(const M& m) {
-                      requires IsField<M>;
+concept Algebra_ℂ =
+    IsNumbers<M, ℶ_1, E> && IsComplex<E, R> && requires(const M& m) {
+      requires IsField<M>;
 
-                      /**
-                       * @property IsAlgebraicallyClosed
-                       * This soul is "pre-validated" by the species' ability to
-                       * solve quadratic roots via sqrt().
-                       */
-                      requires IsAlgebraicallyClosed<M>;
+      /**
+       * @property IsAlgebraicallyClosed
+       * This soul is "pre-validated" by the species' ability to
+       * solve quadratic roots via sqrt().
+       */
+      requires IsAlgebraicallyClosed<M>;
 
-                      /** @property !IsOrderedField: C is NOT totally ordered.
-                       */
-                      requires !IsOrderedField<M>;
-                    };
+      /** @property !IsOrderedField: C is NOT totally ordered.
+       */
+      requires !IsOrderedField<M>;
+    };
 
 /**
  * @concept IsBounded
