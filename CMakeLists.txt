@@ -28,6 +28,7 @@ target_sources(dedekind
     FILES
         src/main/modules/dedekind/ontology/ontology.cppm
         src/main/modules/dedekind/ontology/cardinalities.cppm
+        src/main/modules/dedekind/ontology/category.cppm
         src/main/modules/dedekind/ontology/algebra.cppm
         src/main/modules/dedekind/ontology/geometry.cppm
         src/main/modules/dedekind/ontology/mereology.cppm
