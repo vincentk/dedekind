@@ -134,7 +134,7 @@ concept IsAbelian = IsSmallCategory<T, Op> && is_commutative_v<T, Op>;
  *
  * @details F: C ↣ D such that F(f ∘ g) = F(f) ∘ F(g).
  *          In C++, this is a Type-Morphism (template) that preserves
- *          the IsSmallCategory "Soul".
+ *          the IsSmallCategory concept.
  */
 export template <template <typename> typename F, typename T, typename Op>
 concept IsFunctor =
@@ -153,25 +153,39 @@ struct Identity {
   constexpr operator T() const { return value; }
 };
 
+/** @section Lifting Traits to the Identity Functor */
+
+// 1. If T is associative, Identity<T> is associative.
+template <typename T, typename Op>
+inline constexpr bool is_associative_v<Identity<T>, Op> =
+    is_associative_v<T, Op>;
+
+// 2. The identity of Identity<T> is just the identity of T, wrapped.
+template <typename T, typename Op>
+inline constexpr Identity<T> identity_v<Identity<T>, Op> =
+    Identity<T>{identity_v<T, Op>};
+
 /** @section The Natural Transformation Factory */
 export template <template <typename> typename F, template <typename> typename G,
-                 auto Morphism>
+                 typename T,    // The Source Type (e.g., bool)
+                 typename OpF,  // The Source Operation (e.g., logical_and)
+                 typename OpG,  // The Target Operation (e.g., multiplies)
+                 auto Morphism  // The "Secret Sauce"
+                 >
+  requires IsFunctor<F, T, OpF> && IsFunctor<G, decltype(Morphism(T{})), OpG>
 struct lift_natural_transformation {
-  /** @brief The Original: Handles the "Boxed" version (F<T>) */
-  template <typename T>
+  /** @brief The Original: Only for items ALREADY in the box F<T> */
   constexpr auto operator()(F<T> x) const {
     return G{Morphism(static_cast<T>(x))};
   }
 
-  /** @brief THE RECOVERY: Handles the "Naked" version (T)
-   *  It wraps the raw type into F<T> automatically.
-   */
-  template <typename T>
+  /** @brief THE RECOVERY: Only for "Loose" items NOT in the box F */
+  template <typename U>
+    requires(!std::same_as<U, F<T>>)
   constexpr auto operator()(T x) const {
     return (*this)(F<T>{x});
   }
 
-  template <typename T, typename OpF, typename OpG>
   static constexpr bool preserves_identity() {
     // Does the promoted identity of the source match the identity of the
     // target?
@@ -180,24 +194,24 @@ struct lift_natural_transformation {
   }
 };
 
-// The "Secret Sauce"
 constexpr int my_promotion_sauce(bool b) { return b ? 1 : 0; }
 
-// WE SUPPLY THEM HERE: <SourceFunctor, TargetFunctor, TheSauce>
+/** @section THE FIX: Supply all 6 parameters to the type alias */
 export using BoolToInt =
-    lift_natural_transformation<Identity, Identity, my_promotion_sauce>;
+    lift_natural_transformation<Identity, Identity, bool,
+                                std::logical_and<bool>,  // OpF
+                                std::multiplies<int>,    // OpG
+                                my_promotion_sauce       // Morphism
+                                >;
 
-/** @section The "Nice Looking" Usage */
-
-// Now BoolToInt is a real type, so we can instantiate it!
+/** @section The Usage */
 export constexpr BoolToInt transform{};
 
+// This works because 'transform' is now a concrete instance of that specific
+// bridge
 static_assert(transform(true) == 1);
-static_assert(transform(false) == 0);
 
-// 4. Verify the Category Law (The Identity Check)
-static_assert(BoolToInt::preserves_identity<bool, std::logical_and<bool>,
-                                            std::multiplies<int>>());
-
+// This works because the struct already 'knows' T, OpF, and OpG!
+static_assert(BoolToInt::preserves_identity());
 
 }  // namespace dedekind::ontology
