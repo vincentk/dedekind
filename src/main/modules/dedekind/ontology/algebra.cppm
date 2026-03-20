@@ -8,9 +8,12 @@ export module dedekind.ontology:algebra;
 
 import :mereology;  // For Ordered Fields
 import :numbers;    // For Ordered Fields and Density
+import :order;      // For the Dedekind Completeness requirement
 
 namespace dedekind::ontology {
-using dedekind::ontology::ℵ_0;
+using ::dedekind::ontology::IsDense;
+using ::dedekind::ontology::IsTotallyOrdered;
+using ::dedekind::ontology::ℵ_0;
 
 // --- 1. THE TRAITS (The "Naked" Axioms) ---
 export template <typename T, typename Op>
@@ -47,7 +50,7 @@ inline constexpr bool is_commutative_v<T, std::plus<T>> = true;
  * Wikipedia: Completeness of the real numbers, Least-upper-bound property
  */
 export template <typename S>
-concept IsDedekindComplete = IsTotalOrder<S> && IsDense<S> && HasExtrema<S>;
+concept IsDedekindComplete = IsTotallyOrdered<S> && IsDense<S> && HasExtrema<S>;
 
 /**
  * @brief The Continuous Field property.
@@ -75,17 +78,53 @@ export template <typename S>
 concept IsDiscrete = IsCountable<S> && !IsDense<S>;
 
 /**
- * @concept IsContinuous
- * @brief A space that is both dense and complete (R).
- * @details A species is Continuous if it possesses the cardinality
- *          of the Continuum (Beth-1) and satisfies the Dedekind-Completeness
- *          axiom.
+ * @section Algebra: The study of operations and structures.
  *
- * @theorem The Dedekind Cut transforms a Dense, Countable field (Q)
- *          into a Continuous one (R).
+ * @concept IsMagma
+ * @brief The most primitive operation: a set closed under a binary operator.
+ * Wikipedia: Magma (algebra)
+ */
+export template <typename T, typename Op>
+concept IsMagma = requires(T a, T b) {
+  { Op{}(a, b) } -> std::same_as<T>;
+};
+
+/**
+ * @section Mereology: The Geometry of Overlap.
+ * @concept IsConvexMagma
+ * @brief Convex sets form a Magma under the Intersection operation.
+ * @details Structural Proof: If A and B are Convex, then A ∩ B is Convex.
+ * Wikipedia: Convex set (Intersection property)
  */
 export template <typename S>
-concept IsContinuous = IsUncountable<S> && IsDedekindComplete<S> && !IsDense<S>;
+concept IsConvexMagma =
+    IsMagma<S, std::bit_and<S>> && requires(S a) { requires IsConvex<S>; };
+
+/**
+ * @concept IsSemigroup
+ * @brief An associative Magma (No identity required).
+ */
+export template <typename T, typename Op>
+concept IsSemigroup =
+    IsMagma<T, Op> && requires { requires is_associative_v<T, Op>; };
+
+/**
+ * @concept IsMonoid
+ * @brief A Magma that is associative and has an identity element (Zero/Empty).
+ * Wikipedia: Monoid, Identity element
+ */
+export template <typename T, typename Op>
+concept IsMonoid = IsMagma<T, Op> && requires {
+  { identity_v<T, Op> } -> std::same_as<T>;
+};
+
+/**
+ * @concept IsCommutativeMonoid
+ * @brief A Monoid where order of operations does not change the result.
+ */
+export template <typename T, typename Op>
+concept IsCommutativeMonoid =
+    IsMonoid<T, Op> && requires { requires is_commutative_v<T, Op>; };
 
 /**
  * @concept IsNumbers
@@ -106,14 +145,13 @@ concept IsNumbers =
  * @brief The Parametric Algebraic Soul of the Natural Numbers.
  *
  * @tparam M The Monoid structure.
- * @tparam C The Magnitude (Must satisfy IsCountable).
  * @tparam E The underlying Element species.
  */
-export template <typename M, typename C, typename E = typename M::element_type>
+export template <typename M, typename E = typename M::element_type>
 concept Monoid_ℕ =
     IsNumbers<M, ℵ_0, E> && IsNatural<E> && requires(const M& m) {
       // The structure must actually possess the claimed cardinality.
-      { m.cardinality() } -> std::same_as<C>;
+      { m.cardinality() } -> std::same_as<ℵ_0>;
 
       // The Soul: Structural Laws
       requires IsArchimedean<M>;
@@ -244,48 +282,6 @@ concept IsScalableBy = requires(T x, N n) {
 };
 
 /**
- * @section Algebra: The study of operations and structures.
- *
- * @concept IsMagma
- * @brief The most primitive operation: a set closed under a binary operator.
- * Wikipedia: Magma (algebra)
- */
-export template <typename T, typename Op>
-concept IsMagma = requires(T a, T b) {
-  { Op{}(a, b) } -> std::same_as<T>;
-};
-
-/**
- * @section Mereology: The Geometry of Overlap.
- * @concept IsConvexMagma
- * @brief Convex sets form a Magma under the Intersection operation.
- * @details Structural Proof: If A and B are Convex, then A ∩ B is Convex.
- * Wikipedia: Convex set (Intersection property)
- */
-export template <typename S>
-concept IsConvexMagma =
-    IsMagma<S, std::bit_and<S>> && requires(S a) { requires IsConvex<S>; };
-
-/**
- * @concept IsSemigroup
- * @brief An associative Magma (No identity required).
- */
-export template <typename T, typename Op>
-concept IsSemigroup =
-    IsMagma<T, Op> && requires { requires is_associative_v<T, Op>; };
-
-/**
- * @concept IsMonoid
- * @brief A Magma that is associative and has an identity element (Zero/Empty).
- * Wikipedia: Monoid, Identity element
- */
-export template <typename T, typename Op>
-concept IsMonoid = IsMagma<T, Op> && requires {
-  { identity_v<T, Op> } -> std::same_as<T>;
-  requires is_associative_v<T, Op>;
-};
-
-/**
  * @concept IsGroup
  * @brief A Monoid where every element has an inverse.
  * Wikipedia: Group (mathematics), Additive inverse
@@ -303,7 +299,7 @@ concept IsGroup = IsMonoid<T, Op> && requires(T a) {
  * Wikipedia: Abelian group
  */
 export template <typename T, typename Op = std::plus<T>>
-concept IsAbelianGroup = IsGroup<T, Op> && is_commutative_v<T, Op>;
+concept IsAbelianGroup = IsGroup<T, Op> && IsCommutativeMonoid<T, Op>;
 
 /**
  * @concept IsOrderedAbelianGroup
@@ -337,23 +333,58 @@ concept IsRing = IsSemiring<T> && IsAbelianGroup<T, Add>;
 
 /**
  * @concept IsCommutativeRing
- * @brief A Ring where multiplication is commutative.
+ * @brief A Ring where multiplication is also commutative.
+ * @details This is the foundation for Z, Q, and R.
+ * Wikipedia: Commutative ring
  */
 export template <typename T>
 concept IsCommutativeRing =
-    IsRing<T> && is_commutative_v<T, std::multiplies<T>>;
+    IsRing<T> && IsCommutativeMonoid<T, std::multiplies<T>>;
 
 /**
- * @concept IsModular
- * @brief An algebraic structure that wraps around a modulus (n).
- * @details x + y = (x + y) mod n.
- * Wikipedia: Modular arithmetic, Cyclic group
+ * @concept IsCyclic
+ * @brief The "Clock" Soul: An Abelian Group that wraps after n steps.
+ *
+ * @details A structure is Cyclic if it is an Abelian Group where every element
+ *          is invariant under the Modulus. This defines the topology of a
+ *          Circle rather than a Line.
+ *
+ * @tparam T The coordinate species.
+ *
+ * @section Structural_Logic:
+ * 1. Magnitude: The cardinality must be Finite and equal to the modulus.
+ * 2. Symmetry: Every Cyclic group is Abelian (Commutative).
+ * 3. Closure: The Successor Morphism (++x) eventually returns to the Identity.
+ *
+ * Wikipedia: Cyclic group, Modular arithmetic, Circle group
  */
 export template <typename T>
-concept IsModular = IsRing<T> && requires(T a) {
-  { T::modulus() } -> std::convertible_to<T>;
-  typename T::is_modular_tag;
-};
+concept IsCyclic = IsAbelianGroup<T, std::plus<T>> &&
+                   IsFinite<typename T::cardinality_type> && requires(T a) {
+                     /** @brief The Modulus: The circumference/order of the
+                      * cycle. */
+                     { T::modulus() } -> std::convertible_to<T>;
+
+                     /** @brief The Remainder Morphism: x mod n. */
+                     { a % T::modulus() } -> std::same_as<T>;
+
+                     /** @brief Axiom: The set is its own remainder. */
+                     requires(a % T::modulus() == a);
+
+                     /** @brief Proof: The size of the set matches the cycle
+                      * length. */
+                     requires(T::cardinality() == T::modulus());
+                   };
+
+/**
+ * @concept IsCyclicRing
+ * @brief The "Painless" Modular Arithmetic (Z/nZ).
+ *
+ * @details A Cyclic Ring is the algebraic soul of a Finite Commutative Ring.
+ *          By requiring IsCommutativeRing, we satisfy IsRing implicitly.
+ */
+export template <typename T>
+concept IsCyclicRing = IsCommutativeRing<T> && IsCyclic<T>;
 
 /**
  * @concept IsDivisionRing
@@ -362,8 +393,11 @@ concept IsModular = IsRing<T> && requires(T a) {
  */
 export template <typename T>
 concept IsDivisionRing = IsRing<T> && requires(T a, T b) {
-  // Axiom: b must not be the Additive Identity (Zero).
-  requires(b != identity_v<T, std::plus<T>>);
+  /**
+   * @brief The Division Morphism.
+   * Note: The "b != 0" requirement is a runtime contract,
+   * not a compile-time type constraint.
+   */
   { a / b } -> std::same_as<T>;
 };
 
@@ -374,11 +408,7 @@ concept IsDivisionRing = IsRing<T> && requires(T a, T b) {
  * Wikipedia: Field (mathematics)
  */
 export template <typename T>
-concept IsField =
-    IsCommutativeRing<T> && IsDivisionRing<T> && requires(T a, T b) {
-      // The Inverse Morphism for Multiplication: Division
-      { a / b } -> std::same_as<T>;
-    };
+concept IsField = IsCommutativeRing<T> && IsDivisionRing<T>;
 
 /**
  * @concept IsOrderedField

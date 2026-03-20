@@ -67,4 +67,18 @@ concept IsDense = IsTotallyOrdered<T> && requires(const T a, const T b) {
   { (a + b) / 2 } -> std::convertible_to<T>;
 };
 
+/**
+ * @section Density: The Archimedean Property.
+ * @concept IsArchimedean
+ * @brief Property: Measurement via inductive "stepping."
+ * @details We define this "Nakedly" as the existence of a Successor Morphism
+ *          that respects the Total Order.
+ */
+export template <typename T>
+concept IsArchimedean = IsTotallyOrdered<T> && requires(T x) {
+  { ++x } -> std::same_as<T&>;
+  // Theorem: Repeated application of ++ eventually exceeds any y.
+  requires(x < x++);
+};
+
 }  // namespace dedekind::ontology

@@ -39,19 +39,6 @@ concept IsClosed = IsSet<S, typename S::element_type> &&
                    requires { typename S::is_closed_tag; };
 
 /**
- * @section Density: The Archimedean Property.
- * @concept IsArchimedean
- * @brief Property: Measurement via inductive "stepping."
- * @details We define this "Nakedly" as the existence of a Successor Morphism
- *          that respects the Total Order.
- */
-export template <typename T>
-concept IsArchimedean = IsTotallyOrdered<T> && requires(T x) {
-  { ++x } -> std::same_as<T&>;
-  // Theorem: Repeated application of ++ eventually exceeds any y.
-};
-
-/**
  * @concept IsSequence
  * @brief A mapping from an Archimedean Index to a Value.
  * @details This keeps the door to Infinity open (BigInt/Peano)
