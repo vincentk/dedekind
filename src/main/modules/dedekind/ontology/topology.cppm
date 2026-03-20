@@ -13,6 +13,7 @@
 
 module;
 #include <concepts>
+#include <functional>
 
 export module dedekind.ontology:topology;
 
