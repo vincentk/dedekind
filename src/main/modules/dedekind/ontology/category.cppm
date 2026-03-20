@@ -15,7 +15,7 @@ namespace dedekind::ontology {
 
 /** @section The Traits (The categorical invariants) */
 
-/** 
+/**
  * @brief Trait to mark an operation as associative: (a ∘ b) ∘ c = a ∘ (b ∘ c)
  **/
 export template <typename T, typename Op>
@@ -39,6 +39,45 @@ inline constexpr T identity_v = [] {
                 "Dedekind: No identity_v defined for this Type/Op pair.");
   return T{};
 }();
+
+// --- Booleans: An Abelian Monoid (Lattice) ---
+template <>
+inline constexpr bool is_associative_v<bool, std::logical_or<bool>> = true;
+template <>
+inline constexpr bool is_commutative_v<bool, std::logical_or<bool>> = true;
+template <>
+inline constexpr bool identity_v<bool, std::logical_or<bool>> = false;
+
+template <>
+inline constexpr bool is_associative_v<bool, std::logical_and<bool>> = true;
+template <>
+inline constexpr bool is_commutative_v<bool, std::logical_and<bool>> = true;
+template <>
+inline constexpr bool identity_v<bool, std::logical_and<bool>> = true;
+
+// --- Integers: An Abelian Group (Z, +) ---
+template <>
+inline constexpr bool is_associative_v<int, std::plus<int>> = true;
+template <>
+inline constexpr bool is_commutative_v<int, std::plus<int>> = true;
+template <>
+inline constexpr int identity_v<int, std::plus<int>> = 0;
+
+// Integers: A Multiplicative Monoid (Z, *)
+template <>
+inline constexpr bool is_associative_v<int, std::multiplies<int>> = true;
+template <>
+inline constexpr bool is_commutative_v<int, std::multiplies<int>> = true;
+template <>
+inline constexpr int identity_v<int, std::multiplies<int>> = 1;
+
+// --- Characters: A Commutative Species ---
+template <>
+inline constexpr bool is_associative_v<char, std::plus<char>> = true;
+template <>
+inline constexpr bool is_commutative_v<char, std::plus<char>> = true;
+template <>
+inline constexpr char identity_v<char, std::plus<char>> = 0;
 
 /**
  * @brief The Inverse Morphism for Groupoids.
@@ -82,8 +121,8 @@ concept IsGroupoid = IsSmallCategory<T, Op> && requires(T a) {
   { inverse<T, Op>(a) } -> std::convertible_to<T>;
 };
 
-/** 
- * @concept IsAbelian 
+/**
+ * @concept IsAbelian
  * @brief A Category where the binary operation is commutative.
  */
 export template <typename T, typename Op>
@@ -102,56 +141,63 @@ concept IsFunctor =
     IsSmallCategory<T, Op> &&
     IsSmallCategory<F<T>, Op>;  // Simplification: assuming Op maps over F
 
-/** 
- * @brief A Natural Transformation between Functors F and G.
- * 
- * @details In Category Theory, η: F ⟹ G is a family of morphisms η_t: F(t) → G(t).
- *          In C++, this is a polymorphic mapping that preserves the "Soul" 
- *          of the underlying category regardless of the coordinate type T.
- * 
- * @tparam F The source Functor (e.g., a "species" like Single<T>).
- * @tparam G The target Functor (e.g., a "species" like PowerSet<T>).
- * @tparam T The object type being mapped.
- */
-export template <
-    template <typename> typename F, 
-    template <typename> typename G, 
-    typename T
->
-// We assume Op is implicitly handled or void for this structural mapping
-requires IsFunctor<F, T, void> && IsFunctor<G, T, void>
-struct NaturalTransformation {
-    /**
-     * @brief The component of the natural transformation at type T.
-     * @param x An object in the image of functor F.
-     * @return The corresponding object in the image of functor G.
-     */
-    G<T> operator()(F<T> x) const;
+/** @section Verification */
+static_assert(IsAbelian<int, std::plus<int>>);
+static_assert(IsAbelian<bool, std::logical_or<bool>>);
+
+/** @section Identity Functor */
+export template <typename T>
+struct Identity {
+  T value;
+  constexpr Identity(T v) : value(v) {}
+  constexpr operator T() const { return value; }
 };
 
-/** @section Primitive Specializations */
+/** @section The Natural Transformation Factory */
+export template <template <typename> typename F, template <typename> typename G,
+                 auto Morphism>
+struct lift_natural_transformation {
+  /** @brief The Original: Handles the "Boxed" version (F<T>) */
+  template <typename T>
+  constexpr auto operator()(F<T> x) const {
+    return G{Morphism(static_cast<T>(x))};
+  }
 
-// --- Booleans: An Abelian Monoid (Lattice) ---
-template <> inline constexpr bool is_associative_v<bool, std::logical_or<>> = true;
-template <> inline constexpr bool is_commutative_v<bool, std::logical_or<>> = true;
-template <> inline constexpr bool identity_v<bool, std::logical_or<>> = false;
+  /** @brief THE RECOVERY: Handles the "Naked" version (T)
+   *  It wraps the raw type into F<T> automatically.
+   */
+  template <typename T>
+  constexpr auto operator()(T x) const {
+    return (*this)(F<T>{x});
+  }
 
-template <> inline constexpr bool is_associative_v<bool, std::logical_and<>> = true;
-template <> inline constexpr bool is_commutative_v<bool, std::logical_and<>> = true;
-template <> inline constexpr bool identity_v<bool, std::logical_and<>> = true;
+  template <typename T, typename OpF, typename OpG>
+  static constexpr bool preserves_identity() {
+    // Does the promoted identity of the source match the identity of the
+    // target?
+    return Morphism(identity_v<T, OpF>) ==
+           identity_v<decltype(Morphism(T{})), OpG>;
+  }
+};
 
-// --- Integers: An Abelian Group (Z, +) ---
-template <> inline constexpr bool is_associative_v<int, std::plus<>> = true;
-template <> inline constexpr bool is_commutative_v<int, std::plus<>> = true;
-template <> inline constexpr int identity_v<int, std::plus<>> = 0;
+// The "Secret Sauce"
+constexpr int my_promotion_sauce(bool b) { return b ? 1 : 0; }
 
-// --- Characters: A Commutative Species ---
-template <> inline constexpr bool is_associative_v<char, std::plus<>> = true;
-template <> inline constexpr bool is_commutative_v<char, std::plus<>> = true;
-template <> inline constexpr char identity_v<char, std::plus<>> = 0;
+// WE SUPPLY THEM HERE: <SourceFunctor, TargetFunctor, TheSauce>
+export using BoolToInt =
+    lift_natural_transformation<Identity, Identity, my_promotion_sauce>;
 
-/** @section Verification */
-static_assert(IsAbelian<int, std::plus<>>);
-static_assert(IsAbelian<bool, std::logical_or<>>);
+/** @section The "Nice Looking" Usage */
+
+// Now BoolToInt is a real type, so we can instantiate it!
+export constexpr BoolToInt transform{};
+
+static_assert(transform(true) == 1);
+static_assert(transform(false) == 0);
+
+// 4. Verify the Category Law (The Identity Check)
+static_assert(BoolToInt::preserves_identity<bool, std::logical_and<bool>,
+                                            std::multiplies<int>>());
+
 
 }  // namespace dedekind::ontology
