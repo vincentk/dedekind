@@ -205,48 +205,41 @@ export template <template <typename> typename G, typename T, typename OpT,
                  typename OpG, auto Morphism>
 using unit_5 = lift_natural_transformation<Identity, G, T, OpT, OpG, Morphism>;
 
+/** @brief Extracts the argument type from a function pointer. */
+template <typename T>
+struct morphism_traits;
+
+template <typename R, typename A>
+struct morphism_traits<R (*)(A)> {
+  using argument_type = A;
+};
+
+/** @section The 4-Parameter Unit */
+export template <template <typename> typename G, typename OpF, typename OpG,
+                 auto Morphism>
+using unit = unit_5<
+    G,
+    typename morphism_traits<decltype(Morphism)>::argument_type,  // Auto-T!
+    OpF, OpG, Morphism>;
+
 // The Haskell-style alias
 export template <template <typename> typename G, typename T, typename OpT,
                  typename OpG, auto Morphism>
-using pure = unit_5<G, T, OpT, OpG, Morphism>;
+using pure = unit<G, OpT, OpG, Morphism>;
 
 // The Greek (Category Theory) alias
 export template <template <typename> typename G, typename T, typename OpT,
                  typename OpG, auto Morphism>
-using eta = unit_5<G, T, OpT, OpG, Morphism>;
-
-/** @brief Extracts the argument type from a function pointer. */
-template <typename T> struct morphism_traits;
-
-template <typename R, typename A>
-struct morphism_traits<R(*)(A)> {
-    using argument_type = A;
-};
-
-/** @section The 4-Parameter Unit */
-export template <
-    template <typename> typename G, 
-    typename OpF, 
-    typename OpG, 
-    auto Morphism
->
-using unit = unit_5<
-    G, 
-    typename morphism_traits<decltype(Morphism)>::argument_type, // Auto-T!
-    OpF, 
-    OpG, 
-    Morphism
->;
+using eta = unit<G, OpT, OpG, Morphism>;
 
 constexpr int my_promotion_sauce(bool b) { return b ? 1 : 0; }
 
 /** @section THE FIX: Supply all 6 parameters to the type alias */
-export using BoolToInt =
-    unit<Identity,
-                                std::logical_and<bool>,  // OpF
-                                std::multiplies<int>,    // OpG
-                                my_promotion_sauce       // Morphism
-                                >;
+export using BoolToInt = unit<Identity,
+                              std::logical_and<bool>,  // OpF
+                              std::multiplies<int>,    // OpG
+                              my_promotion_sauce       // Morphism
+                              >;
 
 /** @section The Usage */
 export constexpr BoolToInt transform{};
