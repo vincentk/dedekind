@@ -6,6 +6,7 @@ module;
 
 export module dedekind.ontology:algebra;
 
+import :category;
 import :mereology;  // For Ordered Fields
 import :numbers;    // For Ordered Fields and Density
 import :order;      // For the Dedekind Completeness requirement
