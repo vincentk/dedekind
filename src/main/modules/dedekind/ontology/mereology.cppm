@@ -5,11 +5,29 @@
  * Copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
+ * @partition :mereology
  * @build_order 2
- * @details Defines the 'Box'. It introduces the concept of a "Domain of
- *          Discourse" (UniversalSet) and "Partiality" (Subsets).
- * @anchors C++ Logical Operators: && (Intersection), || (Union), !
- * (Complement).
+ * @dependency :category
+ *
+ * @section Mereology: The Geometry of Composition
+ * This partition defines the "Body" of our species. In the Dedekind
+ * structuralist ontology, Mereology establishes the relationship between
+ * 'Parts' and 'Wholes' before they are assigned a quantitative order.
+ *
+ * @details
+ * This module defines the formal existence of containers:
+ * - IsSet: The rule-based predicate for membership.
+ * - UniversalSet: The Domain of Discourse (The Top element).
+ * - Subset: The foundational 'inclusion' morphism.
+ * - Union/Intersection: The Latticial operations (Join and Meet).
+ *
+ * @section Structural_Anchors
+ * We anchor the C++ bitwise/logical operators here as Set Morphisms:
+ * - operator&&, operator& : Intersection (The Meet).
+ * - operator||, operator| : Union (The Join).
+ * - operator! : Complement (The Remainder).
+ *
+ * Wikipedia: Mereology, Set theory, Mereotopology
  */
 module;
 

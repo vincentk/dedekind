@@ -5,10 +5,30 @@
  * Copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @build_order 3
- * @details Assigns a "Size" to the Body. It links the bit-width of hardware
- *          (N64) to the infinite rungs of the Cantor Ladder.
- * @anchors C++ Comparisons: <=> (The Spaceship Operator for Size).
+ * @partition :cardinalities
+ * @build_order 4
+ * @dependency :order
+ *
+ * @section Cardinalities: The Scale of Infinities
+ * This partition assigns a "Quantity" to our species. In the Dedekind
+ * structuralist ontology, Cardinality is the result of measuring a
+ * Totally Ordered Set (The Chain).
+ *
+ * @details
+ * This module defines the formal rungs of the Cantor Ladder:
+ * - Finite: N_n (Bits and Hardware species).
+ * - Countable: Aleph_0 (The Naturals, Integers, and Rationals).
+ * - Uncountable: Beth_1 (The Real Continuum).
+ * - Cantor Jump: The Power Set Morphism (2^C).
+ *
+ * @section Structural_Inference
+ * We leverage the Ordering from the previous partition to prove:
+ * 1. N < Aleph_0 (The First Jump).
+ * 2. Aleph_0 < Beth_1 (The Second Jump).
+ *
+ * @anchors C++ Comparison: <=> (The Spaceship Operator for Ranking Infinities).
+ *
+ * Wikipedia: Cardinal number, Cantor's theorem, Aleph number
  */
 module;
 

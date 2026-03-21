@@ -1,21 +1,33 @@
 /**
- * @file ontology:number_systems.cppm
- * @brief Level 4: The Dictionary of Species (int, double, Rational, Real).
+ * @file ontology:numbers.cppm
+ * @brief Level 4: The Dictionary of Species (The Registry).
  *
  * Copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @section Number Systems: The Inductive and Algebraic Ladder.
- * @details This partition defines the requirements for N, Z, Q, and R.
- * Wikipedia: Natural number, Integer, Rational number, Real number
- *
  * @partition :numbers
- * @build_order 5
- * @details This partition defines the requirements for N, Z, Q, and R.
- * This contains the actual C++ types that serve as the coordinates for our
- * mathematical universe.
- * @anchors C++ Primitive Types: bool, char, int, uint64_t, float.
- * Wikipedia: Natural number, Integer, Rational number, Real number
+ * @build_order 7
+ * @dependency :algebra, :topology, :cardinalities
+ *
+ * @section Numbers: The Realization of the Soul
+ * This partition is the final "Registry" of the ontology. It maps concrete
+ * C++ types to their formal algebraic and topological identities.
+ *
+ * @details
+ * We "Bless" the coordinate species by verifying their rungs on the ladder:
+ * - IsNatural  : N (ℕ) - The Discrete Monoid.
+ * - IsInteger  : Z (ℤ) - The Euclidean Group.
+ * - IsRational : Q (ℚ) - The Countable Dense Field.
+ * - IsReal     : R (ℝ) - The Continuous Dedekind-Complete Field.
+ *
+ * @section Structural_Mapping
+ * This is where we perform the final 'Lifting'. We prove that 'int'
+ * satisfies 'Group_ℤ' and that 'double' is a hardware-constrained
+ * approximation of 'Field_ℝ'.
+ *
+ * @anchors C++ Fundamental Types: bool, char, int, long, float, double.
+ *
+ * Wikipedia: Number, Natural number, Integer, Rational number, Real number
  */
 module;
 

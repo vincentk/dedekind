@@ -1,10 +1,41 @@
 /**
+ * @file ontology:category.cppm
+ * @brief Level 0: The Skeletal Foundation (The Bricks and the Cement).
+ *
+ * Copyright 2026 The Dedekind Authors
+ * Licensed under the Apache License, Version 2.0.
+ *
  * @partition :category
- * @brief Level 0: The Rules of Action (Morphisms and Functors).
  * @build_order 1
- * @details This is the foundation. It defines how elements transform and
- *          combine without any knowledge of "Sets" or "Numbers".
- * @anchors C++ Functors: std::plus, std::multiplies, std::logical_and.
+ * @dependency None (Bootstrap Partition)
+ *
+ * @section The_Structuralist_Unity: Bricks and Cement
+ * This partition establishes the "Standard Model" of the Dedekind library.
+ * The raw C++ machine instructions are unified with the abstract laws of
+ * Category Theory to create a self-verifying skeletal layer.
+ *
+ * @subsection The_Bricks: Machine Primitives
+ * The library capture the C++ standard library primitive types (bool, char,
+ * int, double) and operators (+, *, &&) by providing Proof Assistant Traits.
+ * This enriches the CPU's silicon instructions with mathematical authority.
+ * - identity_v: The neutral element (0, 1, true).
+ * - is_associative_v: The proof of grouping independence.
+ * - is_commutative_v: The proof of swap-safety.
+ *
+ * @subsection The_Cement: Categorical Logic
+ * We provide the "Highways" and "Bridges" that allow these bricks to
+ * move between worlds without breaking the math:
+ * - IsFunctor: The "Box" that preserves the skeletal structure.
+ * - lift_natural_transformation: The "Bridge" between functors.
+ * - unit / pure / eta: The on-ramp from raw values to structures.
+ * - IsEmbedding: A static assertion for injective (1:1) promotions.
+ *
+ * @section Structural_Inference
+ * By keeping the Bricks and Cement together, Level 0 can perform
+ * Exhaustive Proofs (like the Bool-to-Int embedding) before any
+ * higher-level sets or numbers are even defined.
+ *
+ * Wikipedia: Category theory, Natural transformation, Functor, Monoid
  */
 module;
 
@@ -352,5 +383,38 @@ concept IsEmbedding =
     requires(T a, T b) {
       { (Morphism(a) == Morphism(b)) == (a == b) } -> std::same_as<bool>;
     };
+
+/**
+ * @concept IsHomomorphism
+ * @brief A structure-preserving map between two similar species.
+ * @details f(a ∘ b) = f(a) ∘ f(b).
+ *          This is the "Naturality" check for binary operations.
+ */
+template <typename Source, typename Target, auto Morphism, typename Op>
+concept IsHomomorphism = requires(Source a, Source b) {
+  {
+    Morphism(Op{}(a, b)) == Op{}(Morphism(a), Morphism(b))
+  } -> std::same_as<bool>;
+};
+
+/**
+ * @concept IsIsomorphism
+ * @brief A perfect, reversible bridge (A "Mirror").
+ * @details There exists an inverse Morphism G such that G(F(x)) = x.
+ */
+template <typename A, typename B, auto F, auto G>
+concept IsIsomorphism = requires(A a, B b) {
+  { G(F(a)) == a } -> std::same_as<bool>;
+  { F(G(b)) == b } -> std::same_as<bool>;
+};
+
+/**
+ * @concept IsHomeomorphism
+ * @brief A Topological Isomorphism (A "Deformation").
+ * @details A bijection that is continuous in both directions.
+ * @note This will be refined in :topology by adding 'IsContinuous'.
+ */
+template <typename A, typename B, auto F, auto G>
+concept IsHomeomorphism = IsIsomorphism<A, B, F, G>;
 
 }  // namespace dedekind::ontology

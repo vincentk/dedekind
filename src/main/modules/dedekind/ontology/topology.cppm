@@ -1,16 +1,35 @@
 /**
  * @file ontology:topology.cppm
- * @brief Topological Foundations: Openness, Closure, and Boundaries.
+ * @brief Level 3: The Rules of Continuity (Neighborhoods, Limits, and Cuts).
  *
  * Copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @section Topology: The study of neighborhoods, boundaries, and continuity.
- * @details This partition establishes the qualitative "shape" of our sets
- * before they are quantified by coordinates. Wikipedia: Topology, Open set,
- * Closed set, Limit point
+ * @partition :topology
+ * @build_order 6
+ * @dependency :algebra, :order
+ *
+ * @section Topology: The Geometry of Closeness
+ * This partition establishes the qualitative "shape" of our species. It
+ * transforms discrete algebraic structures (like Q) into continuous spaces
+ * (like R) by defining the concepts of "closeness" and "convergence".
+ *
+ * @details
+ * This module defines the formal boundaries of the continuum:
+ * - IsOpen / IsClosed: The "Skin" and "Body" of a set.
+ * - IsNeighborhood: The "Space Around" a point.
+ * - IsSequence / HasLimit: The "Path" to a point (Convergence).
+ * - IsDedekindComplete: The "Seamless" property (No gaps).
+ *
+ * @section Structural_Synthesis
+ * We synthesize the Order from (:order) and the Metric from (:algebra)
+ * to define the 'Dedekind Cut'. This is the ultimate "Promotion" in the
+ * library: moving from the Discrete (N, Z) to the Continuous (R).
+ *
+ * @anchors C++ Concepts: std::floating_point (The Machine Approximation of R).
+ *
+ * Wikipedia: Topology, Dedekind cut, Metric space, Limit of a sequence
  */
-
 module;
 #include <concepts>
 #include <functional>

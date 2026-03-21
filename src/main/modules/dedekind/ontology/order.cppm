@@ -1,18 +1,35 @@
 /**
  * @file ontology:order.cppm
- * @brief The Foundation of Ordered Structures and Density.
+ * @brief Level 1.5: The Rules of Relation (Posets, Lattices, and Chains).
  *
  * Copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @section Order Theory: The Logic of Midpoints and Totality.
- * @details This partition defines the properties of ordered types.
- *          It introduces Density—the algebraic requirement that a
- *          midpoint exists between any two distinct elements.
+ * @partition :order
+ * @build_order 3
+ * @dependency :mereology
  *
- * Wikipedia: Total order, Dense set, Midpoint
+ * @section Order: The Geography of Sets
+ * This partition establishes the "Relative Positioning" of species before they
+ * are assigned a quantitative magnitude. In the Dedekind structuralist
+ * ontology, Order is the prerequisite for Cardinality; we must define
+ * "Comparison" before we can define "Count".
+ *
+ * @details
+ * This module defines the formal properties of binary relations:
+ * - Reflexivity, Antisymmetry, and Transitivity (The Poset).
+ * - Totality (The Chain/Linear Order).
+ * - Density (The Existence of Midpoints).
+ * - Completeness (The Least-Upper-Bound Property).
+ *
+ * @section Structural_Anchors
+ * We anchor the C++ comparison operators here via the Category Theory
+ * 'Morphism' logic:
+ * - operator<, operator<= : Partial/Total Order Morphisms.
+ * - operator<=> : The Canonical Comparison (The Spaceship).
+ *
+ * Wikipedia: Order theory, Partially ordered set, Lattice (order)
  */
-
 module;
 #include <concepts>
 
