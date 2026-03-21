@@ -15,7 +15,7 @@
  * Category Theory to create a self-verifying skeletal layer.
  *
  * @subsection The_Bricks: Machine Primitives
- * The library capture the C++ standard library primitive types (bool, char,
+ * The library captures the C++ standard library primitive types (bool, char,
  * int, double) and operators (+, *, &&) by providing Proof Assistant Traits.
  * This enriches the CPU's silicon instructions with mathematical authority.
  * - identity_v: The neutral element (0, 1, true).
