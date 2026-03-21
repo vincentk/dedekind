@@ -143,10 +143,17 @@ inline constexpr char identity_v<char, std::plus<char>> = 0;
 
 /**
  * @brief The Inverse Morphism for Groupoids.
- * @note Must be implemented for types satisfying IsGroupoid.
+ * @note Primary template is deleted to ensure IsGroupoid fails
+ *       unless a concrete 'Undo' is specialized (e.g. for Z, +).
  */
 export template <typename T, typename Op>
-T inverse(T a);
+T inverse(T a) = delete;
+
+/** @section Integer Inverse: Negation is the Inverse of Addition */
+template <>
+inline int inverse<int, std::plus<int>>(int a) {
+  return -a;
+}
 
 /**
  * @concept IsMagmoid
@@ -200,12 +207,14 @@ concept IsSmallCategory = IsSemigroupoid<T, Op> && requires {
 
 /**
  * @concept IsAbelian
- * @brief A Category where the binary composition is Commutative.
+ * @brief A Category where the binary composition is Commutative (a ∘ b = b ∘
+ * a).
  *
- * @details While standard categories do not require commutativity,
- *          Abelian structures (like Logic or Addition) allow: a ∘ b = b ∘ a.
- *          In our system, this allows the compiler to safely reorder
- *          operations for symbolic optimization or parallel execution.
+ * @details In the Dedekind topos, Abelian structures (like Logic or Addition)
+ *          provide formal permission for the DAG to reorder morphisms.
+ *          This enables radical symbolic optimizations, such as SIMD folding,
+ *          parallel reductions, and identity-erasure, without altering the
+ *          mathematical essence of the result.
  */
 export template <typename T, typename Op>
 concept IsAbelian = IsSmallCategory<T, Op> && is_commutative_v<T, Op>;
@@ -260,6 +269,23 @@ auto id() {
   return Identity<A>{};
 }
 
+/** @section Lifting Traits to the Identity Functor */
+
+// 1. If T is associative under Op, Identity<T> is associative.
+template <typename T, typename Op>
+inline constexpr bool is_associative_v<Identity<T>, Op> =
+    is_associative_v<T, Op>;
+
+// 2. If T is commutative under Op, Identity<T> is commutative.
+template <typename T, typename Op>
+inline constexpr bool is_commutative_v<Identity<T>, Op> =
+    is_commutative_v<T, Op>;
+
+// 3. The identity of Identity<T> is just the identity of T.
+template <typename T, typename Op>
+inline constexpr Identity<T> identity_v<Identity<T>, Op> =
+    Identity<T>{identity_v<T, Op>};
+
 /** @section Identity Verification */
 
 // We verify that for any object T, Identity<T> is an arrow T -> T.
@@ -282,18 +308,6 @@ auto operator>>(F&& f, G&& g) {
     return g(f(std::move(x)));
   };
 }
-
-/** @section Lifting Traits to the Identity Functor */
-
-// 1. If T is associative, Identity<T> is associative.
-template <typename T, typename Op>
-inline constexpr bool is_associative_v<Identity<T>, Op> =
-    is_associative_v<T, Op>;
-
-// 2. The identity of Identity<T> is just the identity of T, wrapped.
-template <typename T, typename Op>
-inline constexpr Identity<T> identity_v<Identity<T>, Op> =
-    Identity<T>{identity_v<T, Op>};
 
 /** @brief The Composition Morphism: (g ∘ f)(x) = g(f(x)) */
 export template <typename F, typename G>
@@ -322,16 +336,6 @@ template <typename T>
   return id;
 }
 
-/** @section Isomorphism Verification */
-
-// Proof: id_int is an isomorphism from int to int.
-static_assert(IsIsomorphism<Identity<int>, int, int>,
-              "Identity must be a self-inverse isomorphism.");
-
-// Proof: id_bool is an isomorphism from bool to bool.
-static_assert(IsIsomorphism<Identity<bool>, bool, bool>,
-              "Identity must be a self-inverse isomorphism.");
-
 /**
  * @concept IsGroupoid
  * @brief A Category where every morphism is an Isomorphism (Invertible).
@@ -347,6 +351,48 @@ concept IsGroupoid = IsSmallCategory<T, Op> && requires(T x) {
   // Every element must have an inverse relative to the operation Op
   { inverse<T, Op>(x) } -> std::same_as<T>;
 };
+
+/**
+ * @concept IsAbelianGroupoid
+ * @brief A Category where every Morphism is an Isomorphism and
+ *        Composition is Commutative.
+ *
+ * @details This represents the peak of structural symmetry in the
+ *          Skeletal layer. In Algebra, this corresponds to an
+ *          Abelian Group (e.g., Integer Addition).
+ *
+ * @section HPC_Authority
+ * Because an Abelian Groupoid is both invertible and commutative,
+ * the Dedekind engine can:
+ * 1. Reorder operations safely for SIMD/Vectorization (Commutativity).
+ * 2. Perform "Inverse Pruning" (f ∘ f⁻¹ → id) to eliminate
+ *    redundant machine instructions (Invertibility).
+ *
+ * @note While we will define formal 'Groups' in ontology:algebra,
+ *       this concept anchors the requirement at the Category level.
+ */
+export template <typename T, typename Op>
+concept IsAbelianGroupoid = IsGroupoid<T, Op> && IsAbelian<T, Op>;
+
+/** @section Verification of the Standard Model */
+
+// Proof: (Z, +) is an Abelian Groupoid.
+static_assert(IsAbelianGroupoid<int, std::plus<int>>,
+              "Integer addition must be a reversible, symmetric action.");
+
+// Proof: (bool, &&) is NOT an Abelian Groupoid (It's an Abelian Monoid).
+static_assert(!IsAbelianGroupoid<bool, std::logical_and<bool>>,
+              "Logic is symmetric but not reversible (Annihilation).");
+
+/** @section Isomorphism Verification */
+
+// Proof: id_int is an isomorphism from int to int.
+static_assert(IsIsomorphism<Identity<int>, int, int>,
+              "Identity must be a self-inverse isomorphism.");
+
+// Proof: id_bool is an isomorphism from bool to bool.
+static_assert(IsIsomorphism<Identity<bool>, bool, bool>,
+              "Identity must be a self-inverse isomorphism.");
 
 /** @section The Natural Transformation Factory */
 export template <template <typename> typename F, template <typename> typename G,
