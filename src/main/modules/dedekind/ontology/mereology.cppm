@@ -1,17 +1,15 @@
 /**
  * @file ontology:mereology.cppm
- * @brief The Study of Parts, Wholes, and Boundaries.
+ * @brief Level 1: The Rules of Presence (Sets, Parts, and Membership).
  *
  * Copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @section Mereology: The Foundation of Sets and Lattices.
- * @details This partition defines the "Naked" requirements for existence and
- *          containment. It provides the axioms for IsSet, IsLattice, and the
- *          ternary relation of Betweenness. In our structuralist journey,
- *          Mereology ensures that "Rules, not buckets" govern how elements
- *          relate to the totalities they inhabit.
- * Wikipedia: Mereology, Set theory, Lattice (order)
+ * @build_order 2
+ * @details Defines the 'Box'. It introduces the concept of a "Domain of
+ *          Discourse" (UniversalSet) and "Partiality" (Subsets).
+ * @anchors C++ Logical Operators: && (Intersection), || (Union), !
+ * (Complement).
  */
 module;
 

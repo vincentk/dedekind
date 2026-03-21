@@ -1,3 +1,15 @@
+/**
+ * @partition :algebra
+ * @brief Level 3: The Rules of Harmony (Groups, Rings, and Fields).
+ *
+ * Copyright 2026 The Dedekind Authors
+ * Licensed under the Apache License, Version 2.0.
+ *
+ * @build_order 4
+ * @details The synthesis. It "blesses" a Body (Set) with the Actions
+ * (Category). This is where we anchor the arithmetic operators.
+ * @anchors C++ Arithmetic: +, -, *, /, % (The Algebraic Operations).
+ */
 module;
 
 #include <compare>     // for std::strong_ordering
@@ -434,5 +446,26 @@ concept IsModule = IsAbelianGroup<V> && IsRing<S> && requires(V v, S s) {
  */
 export template <typename V, typename S>
 concept IsVectorSpace = IsModule<V, S> && IsField<S>;
+
+// If T is a Group under addition, then '+' is legally defined.
+template <typename T>
+  requires IsGroupoid<T, std::plus<T>>
+constexpr T operator+(T a, T b) {
+  return std::plus<T>{}(a, b);
+}
+
+// If T is a Ring, then '*' is legally defined.
+template <typename T>
+  requires IsSmallCategory<T, std::multiplies<T>>
+constexpr T operator*(T a, T b) {
+  return std::multiplies<T>{}(a, b);
+}
+
+// If T is a Boolean species, then '|' is a Categorical Join (Union).
+template <typename T>
+  requires IsAbelian<T, std::logical_or<T>>
+constexpr T operator|(T a, T b) {
+  return std::logical_or<T>{}(a, b);
+}
 
 }  // namespace dedekind::ontology

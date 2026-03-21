@@ -1,9 +1,14 @@
 /**
  * @file ontology:cardinalities.cppm
- * @brief The Ontological Foundation of Magnitude.
+ * @brief Level 2: The Rules of Magnitude (Aleph and Beth Towers).
  *
  * Copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
+ *
+ * @build_order 3
+ * @details Assigns a "Size" to the Body. It links the bit-width of hardware
+ *          (N64) to the infinite rungs of the Cantor Ladder.
+ * @anchors C++ Comparisons: <=> (The Spaceship Operator for Size).
  */
 module;
 

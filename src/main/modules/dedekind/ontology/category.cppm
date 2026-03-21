@@ -1,8 +1,10 @@
 /**
- * @file ontology:category.cppm
- * @brief The Categorical "Skeletal" Foundations.
- *
- * Wikipedia: Category theory, Morphism, Functor
+ * @partition :category
+ * @brief Level 0: The Rules of Action (Morphisms and Functors).
+ * @build_order 1
+ * @details This is the foundation. It defines how elements transform and
+ *          combine without any knowledge of "Sets" or "Numbers".
+ * @anchors C++ Functors: std::plus, std::multiplies, std::logical_and.
  */
 module;
 
@@ -117,7 +119,15 @@ T inverse(T a);
 
 /**
  * @concept IsMagmoid
- * @brief Basic binary composition: T × T → T.
+ * @brief Represents a Magma-like structure where a binary operation is defined.
+ *
+ * @details In Category Theory, this corresponds to a 'Quiver' or 'Graph' with
+ *          a composition rule that is closed: T × T → T. At this level, we
+ *          only guarantee that two elements can be combined; we do not yet
+ *          enforce associativity or identity.
+ *
+ * @tparam T The coordinate species (The "Objects" or "Elements").
+ * @tparam Op The binary operation (The "Morphism" or "Composition Rule").
  */
 export template <typename T, typename Op>
 concept IsMagmoid = requires(T a, T b) {
@@ -126,15 +136,31 @@ concept IsMagmoid = requires(T a, T b) {
 
 /**
  * @concept IsSemigroupoid
- * @brief : (f ∘ g) ∘ h = f ∘ (g ∘ h)
- * */
+ * @brief A Magmoid that satisfies the Associative Law.
+ *
+ * @details This is a Category without a guaranteed identity. It enforces:
+ *          (f ∘ g) ∘ h = f ∘ (g ∘ h). In our structuralist approach, we
+ *          verify this by checking the 'is_associative_v' trait, which
+ *          acts as a compile-time proof of the associative property.
+ *
+ * @note Many high-performance algorithms (like parallel reductions)
+ *       only require this level of structure.
+ */
 export template <typename T, typename Op>
 concept IsSemigroupoid =
     IsMagmoid<T, Op> && requires { requires is_associative_v<T, Op>; };
 
 /**
  * @concept IsSmallCategory
- * @brief A Semigroupoid where every object has an identity morphism.
+ * @brief The fundamental structure of a Monoid viewed as a Category.
+ *
+ * @details A Category is 'Small' if its collection of morphisms forms a Set.
+ *          In C++, this means the structure can be fully represented by a type
+ * T. It adds the 'Identity Morphism' (Unit) to a Semigroupoid: f ∘ id = f = id
+ * ∘ f.
+ *
+ * @section Structuralist_Identity
+ * The 'identity_v' trait provides the neutral element for the operation Op.
  */
 export template <typename T, typename Op>
 concept IsSmallCategory = IsSemigroupoid<T, Op> && requires {
@@ -143,8 +169,14 @@ concept IsSmallCategory = IsSemigroupoid<T, Op> && requires {
 
 /**
  * @concept IsGroupoid
- * @brief Every arrow is reversible (Isomorphism).
- **/
+ * @brief A Category where every morphism is an Isomorphism (Invertible).
+ *
+ * @details This represents a structure where every "action" has a perfect
+ *          "undo". In Algebra, this is a Group. It requires an 'inverse'
+ *          morphism such that: f ∘ f⁻¹ = id.
+ *
+ * @note For the Integers (Z), this is addition with negation.
+ */
 export template <typename T, typename Op>
 concept IsGroupoid = IsSmallCategory<T, Op> && requires(T a) {
   { inverse<T, Op>(a) } -> std::convertible_to<T>;
@@ -152,7 +184,12 @@ concept IsGroupoid = IsSmallCategory<T, Op> && requires(T a) {
 
 /**
  * @concept IsAbelian
- * @brief A Category where the binary operation is commutative.
+ * @brief A Category where the binary composition is Commutative.
+ *
+ * @details While standard categories do not require commutativity,
+ *          Abelian structures (like Logic or Addition) allow: a ∘ b = b ∘ a.
+ *          In our system, this allows the compiler to safely reorder
+ *          operations for symbolic optimization or parallel execution.
  */
 export template <typename T, typename Op>
 concept IsAbelian = IsSmallCategory<T, Op> && is_commutative_v<T, Op>;
@@ -282,8 +319,27 @@ static_assert(BoolToInt::preserves_identity());
 
 /**
  * @concept IsEmbedding
- * @brief A Natural Transformation (Unit) that is also Injective.
- * @details η: Id ↪ G
+ * @brief A Natural Transformation that preserves the injective property of the
+ * underlying mapping.
+ *
+ * @details In Category Theory, an embedding (specifically a Monomorphism) is a
+ * morphism f: A -> B such that for any two morphisms g1, g2: X -> A, if f ∘ g1
+ * = f ∘ g2, then g1 = g2. In our C++ structuralist approach, we verify this by
+ * proving the "Sauce" (Morphism) is one-to-one (Injective) across the entire
+ * domain T.
+ *
+ * @tparam G The Target Functor (The "Box" we are promoting into).
+ * @tparam T The Coordinate Type (The "Species" being promoted, e.g., bool).
+ * @tparam OpT The Binary Operation of the Source Category (e.g.,
+ * std::logical_and).
+ * @tparam OpG The Binary Operation of the Target Category (e.g.,
+ * std::multiplies).
+ * @tparam Morphism The "Secret Sauce" (The actual C++ function pointer or
+ * constexpr lambda).
+ *
+ * @note This concept requires that the 'unit_5' natural transformation is
+ * valid, ensuring the structural identity and associativity laws are preserved
+ *       during the promotion.
  */
 export template <template <typename> typename G, typename T, typename OpT,
                  typename OpG, auto Morphism>

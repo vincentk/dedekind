@@ -1,12 +1,20 @@
 /**
  * @file ontology:number_systems.cppm
- * @brief The Hierarchy of Numerical Species.
+ * @brief Level 4: The Dictionary of Species (int, double, Rational, Real).
  *
  * Copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
  * @section Number Systems: The Inductive and Algebraic Ladder.
  * @details This partition defines the requirements for N, Z, Q, and R.
+ * Wikipedia: Natural number, Integer, Rational number, Real number
+ *
+ * @partition :numbers
+ * @build_order 5
+ * @details This partition defines the requirements for N, Z, Q, and R.
+ * This contains the actual C++ types that serve as the coordinates for our
+ * mathematical universe.
+ * @anchors C++ Primitive Types: bool, char, int, uint64_t, float.
  * Wikipedia: Natural number, Integer, Rational number, Real number
  */
 module;
