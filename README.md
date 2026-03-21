@@ -21,12 +21,11 @@ In practice, `dedekind` does not just use `consteval` because it's somehow cool.
 Many libraries treat sets as "bags of data." `dedekind` treats them as algebraic objects within a strictly defined category. By using expression templates and a hierarchical morphism engine, `dedekind` allows you to animate the transitions extensional (`size_t`) $\rightarrow$ finite $\rightarrow$ countable ($\aleph_0$) $\rightarrow$ continuous ($2^{\aleph_0}$) using the same laws that govern the finite.
 
 ## Key Features
-*   `ontology:category`: built on the categorical logic of semigroupoids and small categories. we define the laws of composition and identity before a single element is ever "contained."
-*   `ontology:cardinalities`: a unified, inductive ladder of infinity. by positing the generalized continuum hypothesis. The $\aleph$ and $\beth$ hierarchies are collapsed as follows:
-    $$\forall n: \aleph_n = \beth_n \implies 2^{\aleph_n} = \aleph_{n+1}$$
-    the library promotes the cantor jump through a recursive `power_type` morphism.
-*   `ontology:mereology`: operations like union ($|$) and intersection ($\&$) build a symbolic tree which can be optimized at compile time. The cardinality algebra promotes results at compile-time (e.g., $\text{uncountable} \cap \text{finite} \to \text{finite}$).
-*   `ontology:algebra`: a raw coordinate species is lifted to a higher algebraic rank once it satisfies the required axioms: `Monoid_ℕ \subset Group_ℤ \subset Field_ℚ \subset Continuum_ℝ`.
+*   `ontology:logic`: The "Subobject Classifier" ($\Omega$). Defines the internal logic (Boolean, Ternary/Kleene, or Fuzzy) that governs membership rules. Supports point-free composition: `is_valid = is_even && is_pos`.
+*   `ontology:category`: The skeletal foundation. Built on the categorical logic of semigroupoids and small categories. Defines the natural transformations ($\eta$) that bridge the "Machine Category" (C++ primitives) to the "Mathematical Category."
+*   `ontology:mereology`: The study of parts and wholes. Operations like union ($|$) and intersection ($\&$) build a symbolic Directed Acyclic Graph (DAG). Because it understands identity ($A \cup \emptyset \to A$), the compiler prunes the tree before code generation.
+*   `ontology:cardinalities`: An inductive ladder of infinity. By positing the Generalized Continuum Hypothesis ($\aleph_n = \beth_n$), the library promotes the Cantor Jump through a recursive `power_type` morphism: $2^{\aleph_n} = \aleph_{n+1}$.
+*   `ontology:algebra`: The "Soul" of the system. A coordinate species is lifted to a higher algebraic rank (Monoid $\to$ Group $\to$ Field) once it satisfies the required axioms. 
 
 > "Sets are rules, not buckets. Algebra is the category, not the helper. Logic is the build.
 

@@ -1,8 +1,8 @@
 cmake_minimum_required(VERSION 3.28)
 project(Dedekind VERSION 1.0.0 LANGUAGES CXX)
 
-# Force C++20 standard for macOS Clang
-set(CMAKE_CXX_STANDARD 20)
+# Force C++23 standard for Clang 21
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
@@ -27,15 +27,16 @@ target_sources(dedekind
     BASE_DIRS src/main/modules
     FILES
         src/main/modules/dedekind/ontology/ontology.cppm
-        src/main/modules/dedekind/ontology/cardinalities.cppm
+        src/main/modules/dedekind/ontology/logic.cppm
         src/main/modules/dedekind/ontology/category.cppm
+        src/main/modules/dedekind/ontology/mereology.cppm
+        src/main/modules/dedekind/ontology/order.cppm
+        src/main/modules/dedekind/ontology/topology.cppm
+        src/main/modules/dedekind/ontology/cardinalities.cppm
         src/main/modules/dedekind/ontology/algebra.cppm
         src/main/modules/dedekind/ontology/geometry.cppm
-        src/main/modules/dedekind/ontology/mereology.cppm
         src/main/modules/dedekind/ontology/numbers.cppm
-        src/main/modules/dedekind/ontology/order.cppm
         src/main/modules/dedekind/ontology/order_algebra.cppm
-        src/main/modules/dedekind/ontology/topology.cppm
         src/main/modules/dedekind/algebra/algebra.cppm
         src/main/modules/dedekind/algebra/abstract.cppm
         src/main/modules/dedekind/algebra/nodes.cppm
