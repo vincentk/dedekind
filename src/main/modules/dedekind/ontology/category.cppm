@@ -520,16 +520,6 @@ using η = unit<G, OpF, OpG, η_X>;
 
 constexpr int my_promotion_sauce(bool b) { return b ? 1 : 0; }
 
-/** @section THE FIX: Supply all 6 parameters to the type alias */
-export using BoolToInt = unit<Identity,
-                              std::logical_and<bool>,  // OpF
-                              std::multiplies<int>,    // OpG
-                              my_promotion_sauce       // Morphism
-                              >;
-
-/** @section The Usage */
-export constexpr BoolToInt transform{};
-
 /** @brief The Retraction Morphism (r: 𝒢 ⟹ 1_𝒞).
     Primary template is deleted to enforce explicit existence. */
 export template <typename 𝒯, typename Op𝒯, typename Op𝒢, auto η_X>
@@ -620,9 +610,6 @@ constexpr LogicToArithmetic transform{};
 // This works because 'transform' is now a concrete instance of that specific
 // bridge
 static_assert(transform(true) == 1);
-
-// This works because the struct already 'knows' T, OpF, and OpG!
-static_assert(BoolToInt::preserves_identity());
 
 static_assert(LogicToArithmetic::preserves_identity(),
               "Categorical Error: Identity mapping failed.");
