@@ -405,8 +405,15 @@ export template <template <typename> typename F, typename 𝒯, typename Op𝒯,
 concept IsFunctor = IsSmallCategory<𝒯, Op𝒯> && IsSmallCategory<𝒰, Op𝒰> &&
                     requires(F<𝒯> box, 𝒯 value) {
                       typename F<𝒯>;
-                      requires std::same_as<F<𝒯>, 𝒰>;
-                      { box(value) } -> std::convertible_to<𝒰>;
+                      // RELAXATION: F<𝒯> doesn't have to BE 𝒰, it just has to
+                      // MAP to it.
+                      // For Identity<bool>, this is true because it returns
+                      // bool.
+                      // requires std::same_as<F<𝒯>, 𝒰>;
+                      // PROBE: Use std::move to match the Identity(T&&)
+                      // signature
+                      { box(std::move(value)) } -> std::convertible_to<𝒰>;
+                      //{ box(value) } -> std::convertible_to<𝒰>;
                     };
 
 /**
@@ -451,7 +458,8 @@ export template <template <typename> typename F, template <typename> typename G,
                  auto η_X  // The Morphism Component
                  >
   requires IsEndofunctor<F, 𝒯, OpF> &&
-           IsEndofunctor<G, 𝒯, OpG>  // Simplified T mapping
+           IsEndofunctor<G, decltype(η_X(std::declval<𝒯>())),
+                         OpG>  // Simplified T mapping
 struct Naturality final {
   using Source = 𝒯;
   using Target = decltype(η_X(std::declval<𝒯>()));
