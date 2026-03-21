@@ -601,25 +601,23 @@ static_assert(
 
 /**
  * @concept IsHomomorphism
- * @brief A structure-preserving map between two similar species.
- * @details f(a ∘ b) = f(a) ∘ f(b).
- *          This is the "Naturality" check for binary operations.
+ * @brief A structure-preserving map between two similar Species (𝒞 and 𝒟).
+ * @details
+ * Formally: f(a ∘ b) = f(a) ⋆ f(b), where ∘ is Op𝒞 and ⋆ is Op𝒟.
+ * This verifies the "Naturality" of the binary operation across the morphism.
  */
-/*
-template <typename Source, typename Target, auto Morphism, typename Op>
-concept IsHomomorphism = requires(Source a, Source b) {
-(BRACKET), "Dedekind: Concept correctly identified a non-injective mapping.");
-*/
-/**
- * @concept IsHomomorphism
- * @brief A structure-preserving map between two similar species.
- * @details f(a ∘ b) = f(a) ∘ f(b).
- *          This is the "Naturality" check for binary operations.
- */
-template <typename Source, typename Target, auto Morphism, typename Op>
-concept IsHomomorphism = requires(Source a, Source b) {
-  {
-    Morphism(Op{}(a, b)) == Op{}(Morphism(a), Morphism(b))
-  } -> std::same_as<bool>;
-};  // namespace dedekind::ontology
+export template <typename 𝒯, typename 𝒰, auto η_X, typename Op𝒯, typename Op𝒰>
+concept IsHomomorphism =
+    IsSmallCategory<𝒯, Op𝒯> && IsSmallCategory<𝒰, Op𝒰> &&
+    // 1. Axiom: η(id_𝒞) = id_𝒟
+    (η_X(identity_v<𝒯, Op𝒯>) == identity_v<𝒰, Op𝒰>) &&
+    // 2. Structural Proof: The Naturality Square commutes at the Unit
+    requires(𝒯 a, 𝒯 b) {
+      typename η<Identity, Op𝒯, Op𝒰, η_X>;
+      requires η<Identity, Op𝒯, Op𝒰, η_X>::preserves_identity();
+    };
+
+static_assert(IsHomomorphism<bool, int, my_promotion_sauce,
+                             std::logical_and<bool>, std::multiplies<int>>,
+              "Dedekind: Promotion must preserve the product structure.");
 }  // namespace dedekind::ontology
