@@ -13,38 +13,8 @@ import :cardinalities;
 import dedekind.ontology;
 
 namespace dedekind::sets {
-
-// --- 1. THE CARRIER (IsSet) ---
-// Defines the "Ground" requirements for membership and metadata.
-export template <typename S, typename T>
-concept IsSet = requires(S s, T v) {
-  // Membership interface
-  { s.contains(v) } -> std::convertible_to<bool>;
-  { s[v] } -> std::convertible_to<bool>;
-
-  // Required Metadata
-  typename S::element_type;
-  typename S::cardinality_type;
-  typename S::base_set_type;
-
-  // Every set must be able to return its parent and its measure
-  { s.base_set() } -> std::convertible_to<typename S::base_set_type>;
-  { s.cardinality() } -> std::same_as<typename S::cardinality_type>;
-};
-
-// Constraints on cardinalities:
-export template <typename S, typename T>
-concept CountableSet =
-    IsSet<S, T> && std::is_base_of_v<Countable, typename S::cardinality_type>;
-
-export template <typename S, typename T>
-concept FiniteSet = CountableSet<S, T> &&
-                    std::is_base_of_v<Finite, typename S::cardinality_type>;
-
-export template <typename S, typename T>
-concept ExtensionalSet =
-    FiniteSet<S, T> &&
-    std::is_base_of_v<Extensional, typename S::cardinality_type>;
+using ontology::IsCardinality;
+using ontology::IsSet;
 
 // Theorem: A \ B = A ∩ ¬B
 export template <typename L, typename R>

@@ -1,8 +1,8 @@
 #include <catch2/catch_test_macros.hpp>
 #include <type_traits>
 
-// Import your module
-import dedekind.sets;
+import dedekind.sets:cardinalities;
+import dedekind.ontology;
 
 TEST_CASE("Cardinality Arithmetic (Compile-time Theorems)",
           "[cardinality][static]") {

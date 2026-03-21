@@ -5,6 +5,7 @@ module;
 
 export module dedekind.algebra:nodes;
 
+import dedekind.ontology;
 import dedekind.sets;
 import dedekind.order;
 import :abstract;

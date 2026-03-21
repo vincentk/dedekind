@@ -159,7 +159,7 @@ concept IsAbelian = IsSmallCategory<T, Op> && is_commutative_v<T, Op>;
 
 /**
  * @concept IsFunctor
- * @brief A mapping between categories that preserves structure.
+ * @brief A mapping between (small) categories that preserves structure.
  *
  * @details F: C ↣ D such that F(f ∘ g) = F(f) ∘ F(g).
  *          In C++, this is a Type-Morphism (template) that preserves
@@ -279,5 +279,22 @@ static_assert(transform(true) == 1);
 
 // This works because the struct already 'knows' T, OpF, and OpG!
 static_assert(BoolToInt::preserves_identity());
+
+/**
+ * @concept IsEmbedding
+ * @brief A Natural Transformation (Unit) that is also Injective.
+ * @details η: Id ↪ G
+ */
+export template <template <typename> typename G, typename T, typename OpT,
+                 typename OpG, auto Morphism>
+concept IsEmbedding =
+    // 1. Check that the Unit type exists and is valid
+    // Note: We use the 5-parameter 'unit_5' to be explicit here
+    requires { typename unit_5<G, T, OpT, OpG, Morphism>; } &&
+
+    // 2. The Injective Property: η(a) = η(b) => a = b
+    requires(T a, T b) {
+      { (Morphism(a) == Morphism(b)) == (a == b) } -> std::same_as<bool>;
+    };
 
 }  // namespace dedekind::ontology

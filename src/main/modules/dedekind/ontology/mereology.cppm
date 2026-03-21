@@ -97,14 +97,18 @@ export template <typename S, typename C, typename T = typename S::element_type>
 concept IsSet = IsCardinality<C> && requires(const S s, const T v) {
   /** @brief The Membership Predicate: x ∈ S */
   { s.contains(v) } -> std::convertible_to<bool>;
+  { s[v] } -> std::convertible_to<bool>;
 
   /** @brief The "Anatomy" for type-safe chaining. */
   typename S::element_type;
   typename S::cardinality_type;
+  typename S::base_set_type;
 
   /** @brief Magnitude Matching: The claim C must match the implementation. */
   { s.cardinality() } -> std::same_as<C>;
   requires std::same_as<C, typename S::cardinality_type>;
+
+  { s.base_set() } -> std::convertible_to<typename S::base_set_type>;
 };
 
 /**
