@@ -530,13 +530,6 @@ export using BoolToInt = unit<Identity,
 /** @section The Usage */
 export constexpr BoolToInt transform{};
 
-// This works because 'transform' is now a concrete instance of that specific
-// bridge
-static_assert(transform(true) == 1);
-
-// This works because the struct already 'knows' T, OpF, and OpG!
-static_assert(BoolToInt::preserves_identity());
-
 /** @brief The Retraction Morphism (r: 𝒢 ⟹ 1_𝒞).
     Primary template is deleted to enforce explicit existence. */
 export template <typename 𝒯, typename Op𝒯, typename Op𝒢, auto η_X>
@@ -584,13 +577,6 @@ inline bool retraction<bool, std::logical_and<bool>, std::multiplies<int>,
   return y != 0;  // The unique "Undo" for the promotion
 }
 
-/** @section Verification: The Promotion Bridge (Success) */
-
-// Proof: η: (bool, ∧) ⟹ (int, ×) is a strictly injective Embedding.
-static_assert(IsEmbedding<Identity, bool, std::logical_and<bool>,
-                          std::multiplies<int>, my_promotion_sauce>,
-              "Dedekind: Bool-to-Int promotion must be injective.");
-
 constexpr int non_injective_sauce(bool) { return 0; }
 
 // Proof: Non-injective sauce must fail the IsEmbedding concept.
@@ -617,7 +603,37 @@ concept IsHomomorphism =
       requires η<Identity, Op𝒯, Op𝒰, η_X>::preserves_identity();
     };
 
-static_assert(IsHomomorphism<bool, int, my_promotion_sauce,
-                             std::logical_and<bool>, std::multiplies<int>>,
-              "Dedekind: Promotion must preserve the product structure.");
+namespace {
+// 1. The Proving Sauce
+constexpr int promote_v(bool b) { return b ? 1 : 0; }
+
+// 2. The Verification Bridge
+using LogicToArithmetic = unit<Identity,
+                               std::logical_and<bool>,  // OpF
+                               std::multiplies<int>,    // OpG
+                               promote_v                // Morphism
+                               >;
+
+constexpr LogicToArithmetic transform{};
+
+// 3. The Formal Proofs
+// This works because 'transform' is now a concrete instance of that specific
+// bridge
+static_assert(transform(true) == 1);
+
+// This works because the struct already 'knows' T, OpF, and OpG!
+static_assert(BoolToInt::preserves_identity());
+
+static_assert(LogicToArithmetic::preserves_identity(),
+              "Categorical Error: Identity mapping failed.");
+
+static_assert(IsHomomorphism<bool, int, promote_v, std::logical_and<bool>,
+                             std::multiplies<int>>,
+              "Categorical Error: Product preservation failed.");
+
+// Proof: η: (bool, ∧) ⟹ (int, ×) is a strictly injective Embedding.
+static_assert(IsEmbedding<Identity, bool, std::logical_and<bool>,
+                          std::multiplies<int>, my_promotion_sauce>,
+              "Dedekind: Bool-to-Int promotion must be injective.");
+}  // namespace
 }  // namespace dedekind::ontology
