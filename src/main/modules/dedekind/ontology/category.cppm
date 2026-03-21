@@ -219,19 +219,6 @@ concept IsSmallCategory = IsSemigroupoid<T, Op> && requires {
 export template <typename T, typename Op>
 concept IsAbelian = IsSmallCategory<T, Op> && is_commutative_v<T, Op>;
 
-/**
- * @concept IsFunctor
- * @brief A mapping between (small) categories that preserves structure.
- *
- * @details F: C ↣ D such that F(f ∘ g) = F(f) ∘ F(g).
- *          In C++, this is a Type-Morphism (template) that preserves
- *          the IsSmallCategory concept.
- */
-export template <template <typename> typename F, typename T, typename Op>
-concept IsFunctor =
-    IsSmallCategory<T, Op> &&
-    IsSmallCategory<F<T>, Op>;  // Simplification: assuming Op maps over F
-
 /** @section Verification */
 static_assert(IsAbelian<int, std::plus<int>>);
 static_assert(IsAbelian<bool, std::logical_or<bool>>);
@@ -394,45 +381,96 @@ static_assert(IsIsomorphism<Identity<int>, int, int>,
 static_assert(IsIsomorphism<Identity<bool>, bool, bool>,
               "Identity must be a self-inverse isomorphism.");
 
-/** @section The Natural Transformation Factory */
+/**
+ * @concept IsFunctor
+ * @brief A structure-preserving mapping between two Categories 𝒞 and 𝒟.
+ *
+ * @details
+ * Formally, a Functor F : 𝒞 → 𝒟 consists of:
+ *   - Object Mapping: For every object X ∈ 𝒞, an object F⟨X⟩ ∈ 𝒟.
+ *   - Morphism Mapping: For every arrow f : X → Y, an arrow F(f) : F⟨X⟩ → F⟨Y⟩.
+ *
+ * It must satisfy the Functor Laws:
+ *   1. Identity Preservation: F(id_X) = id_F⟨X⟩
+ *   2. Composition Preservation: F(g ∘ f) = F(g) ∘ F(f)
+ *
+ * @tparam F   The Type-Morphism (The "Box" or "Transformer").
+ * @tparam 𝒯   The Object in the Source Category 𝒞.
+ * @tparam Op𝒯 The Composition Rule (Morphism) in 𝒞.
+ * @tparam 𝒰   The Object in the Target Category 𝒟.
+ * @tparam Op𝒰 The Composition Rule (Morphism) in 𝒟.
+ */
+export template <template <typename> typename F, typename 𝒯, typename Op𝒯,
+                 typename 𝒰, typename Op𝒰>
+concept IsFunctor = IsSmallCategory<𝒯, Op𝒯> && IsSmallCategory<𝒰, Op𝒰> &&
+                    requires(F<𝒯> box, 𝒯 value) {
+                      typename F<𝒯>;
+                      requires std::same_as<F<𝒯>, 𝒰>;
+                      { box(value) } -> std::convertible_to<𝒰>;
+                    };
+
+/**
+ * @concept IsEndofunctor
+ * @brief A structure-preserving mapping from a Category back to itself (F : 𝒞 →
+ * 𝒞).
+ *
+ * @tparam F   The Type-Morphism (The "Box" or "Transformer").
+ * @tparam 𝒯   The Object in the Category 𝒞.
+ * @tparam Op𝒯 The Composition Rule (Morphism) in 𝒞.
+ */
+export template <template <typename> typename F, typename 𝒯, typename Op𝒯>
+concept IsEndofunctor = IsFunctor<F, 𝒯, Op𝒯, 𝒯, Op𝒯>;
+
+/**
+ * @section The Natural Transformation (η: F ⟹ G)
+ * @brief A structure-preserving "Bridge" between two Functors.
+ *
+ * @details
+ * For every object X, we define a morphism η_X: F⟨X⟩ → G⟨X⟩.
+ * To be "Natural," the following square must commute for any f: X → Y:
+ *
+ *        η_X
+ *   F⟨X⟩ ────→ G⟨X⟩
+ *    │          │
+ * F(f)│          │G(f)
+ *    ↓          ↓
+ *   F⟨Y⟩ ────→ G⟨Y⟩
+ *        η_Y
+ *
+ * Formally: G(f) ∘ η_X = η_Y ∘ F(f)
+ *
+ * @tparam F   The Source Functor.
+ * @tparam G   The Target Functor.
+ * @tparam 𝒯   The Object in the Category.
+ * @tparam OpF The Operation of the source.
+ * @tparam OpG The Operation of the target.
+ * @tparam η   The Morphism component (The "Secret Sauce").
+ */
 export template <template <typename> typename F, template <typename> typename G,
-                 typename T,    // The Source Type (e.g., bool)
-                 typename OpF,  // The Source Operation (e.g., logical_and)
-                 typename OpG,  // The Target Operation (e.g., multiplies)
-                 auto Morphism  // The "Secret Sauce"
+                 typename 𝒯, typename OpF, typename OpG,
+                 auto η_X  // The Morphism Component
                  >
-  requires IsFunctor<F, T, OpF> && IsFunctor<G, decltype(Morphism(T{})), OpG>
-struct lift_natural_transformation {
-  /** @brief The Original: Only for items ALREADY in the box F<T> */
-  constexpr auto operator()(F<T> x) const {
-    return G{Morphism(static_cast<T>(x))};
-  }
+  requires IsEndofunctor<F, 𝒯, OpF> &&
+           IsEndofunctor<G, 𝒯, OpG>  // Simplified T mapping
+struct Naturality final {
+  using Source = 𝒯;
+  using Target = decltype(η_X(std::declval<𝒯>()));
 
-  /** @brief THE RECOVERY: Only for "Loose" items NOT in the box F */
-  template <typename U>
-    requires(!std::same_as<U, F<T>>)
-  constexpr auto operator()(T x) const {
-    return (*this)(F<T>{x});
-  }
+  /** @brief η_X : F⟨X⟩ → G⟨X⟩ */
+  constexpr Target operator()(Source x) const noexcept { return η_X(x); }
 
-  static constexpr bool preserves_identity() {
-    // Does the promoted identity of the source match the identity of the
-    // target?
-    return Morphism(identity_v<T, OpF>) ==
-           identity_v<decltype(Morphism(T{})), OpG>;
+  /** @brief Axiom: η(id_F) = id_G */
+  static constexpr bool preserves_identity() noexcept {
+    return η_X(identity_v<Source, OpF>) == identity_v<Target, OpG>;
   }
 };
 
 /**
- * @section The Unit of the Species (The Entry Gate)
- * @details
- *   - PhD: η (eta) - The Unit Transformation Id ⟹ G.
- *   - Haskell: pure/return - Lifts a value into a context.
- *   - Dedekind: unit - The structural "one" of the category.
+ * @brief η: Id ⟹ G (The 6-Parameter Explicit Transformation)
  */
-export template <template <typename> typename G, typename T, typename OpT,
-                 typename OpG, auto Morphism>
-using unit_5 = lift_natural_transformation<Identity, G, T, OpT, OpG, Morphism>;
+export template <template <typename> typename ℱ, template <typename> typename 𝒢,
+                 typename 𝒯, typename Opℱ, typename Op𝒢, auto η_X>
+using natural_transformation = Naturality<ℱ, 𝒢, 𝒯, Opℱ, Op𝒢, η_X>;
 
 /** @brief Extracts the argument type from a function pointer. */
 template <typename T>
@@ -443,23 +481,34 @@ struct morphism_traits<R (*)(A)> {
   using argument_type = A;
 };
 
-/** @section The 4-Parameter Unit */
+/**
+ * @section The Unit of the Functor (η: 1_𝒞 ⟹ G)
+ *
+ * @details
+ * In Category Theory, the unit (η) is the natural transformation that
+ * embeds an object into a Functorial context: η_X : X → G⟨X⟩.
+ *
+ * From a structuralist C++ perspective, this is the "On-Ramp".
+ * By using `morphism_traits`, we perform "Object Discovery"—the
+ * transformation is defined by the Morphism itself, allowing the
+ * Domain Object (𝒯) to be inferred from the "Secret Sauce" (η_X).
+ *
+ * @tparam G   The Target Functor (The "Box").
+ * @tparam OpF The Source Operation (in 𝒞).
+ * @tparam OpG The Target Operation (in 𝒟).
+ * @tparam η_X The Morphism Component (The Action).
+ */
 export template <template <typename> typename G, typename OpF, typename OpG,
-                 auto Morphism>
-using unit = unit_5<
-    G,
-    typename morphism_traits<decltype(Morphism)>::argument_type,  // Auto-T!
-    OpF, OpG, Morphism>;
+                 auto η_X>
+using unit = natural_transformation<
+    Identity, G,
+    typename morphism_traits<decltype(η_X)>::argument_type,  // Auto-Deduction!
+    OpF, OpG, η_X>;
 
-// The Haskell-style alias
-export template <template <typename> typename G, typename T, typename OpT,
-                 typename OpG, auto Morphism>
-using pure = unit<G, OpT, OpG, Morphism>;
-
-// The Greek (Category Theory) alias
-export template <template <typename> typename G, typename T, typename OpT,
-                 typename OpG, auto Morphism>
-using eta = unit<G, OpT, OpG, Morphism>;
+/** @brief The Greek (Category Theory) Alias for the Unit. */
+export template <template <typename> typename G, typename OpF, typename OpG,
+                 auto η_X>
+using η = unit<G, OpF, OpG, η_X>;
 
 constexpr int my_promotion_sauce(bool b) { return b ? 1 : 0; }
 
