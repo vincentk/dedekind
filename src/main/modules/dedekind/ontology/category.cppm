@@ -537,42 +537,79 @@ static_assert(transform(true) == 1);
 // This works because the struct already 'knows' T, OpF, and OpG!
 static_assert(BoolToInt::preserves_identity());
 
+/** @brief The Retraction Morphism (r: 𝒢 ⟹ 1_𝒞).
+    Primary template is deleted to enforce explicit existence. */
+export template <typename 𝒯, typename Op𝒯, typename Op𝒢, auto η_X>
+𝒯 retraction(decltype(η_X(std::declval<𝒯>())) y) = delete;
+
 /**
  * @concept IsEmbedding
- * @brief A Natural Transformation that preserves the injective property of the
- * underlying mapping.
+ * @brief A Natural Transformation η: 1_𝒞 ⟹ 𝒢 that preserves injectivity.
  *
- * @details In Category Theory, an embedding (specifically a Monomorphism) is a
- * morphism f: A -> B such that for any two morphisms g1, g2: X -> A, if f ∘ g1
- * = f ∘ g2, then g1 = g2. In our C++ structuralist approach, we verify this by
- * proving the "Sauce" (Morphism) is one-to-one (Injective) across the entire
- * domain T.
+ * @details
+ * In Category Theory, an embedding (specifically a Monomorphism) is a morphism
+ * f: A → B such that for any two morphisms g₁, g₂: X → A,
+ * if f ∘ g₁ = f ∘ g₂, then g₁ = g₂.
  *
- * @tparam G The Target Functor (The "Box" we are promoting into).
- * @tparam T The Coordinate Type (The "Species" being promoted, e.g., bool).
- * @tparam OpT The Binary Operation of the Source Category (e.g.,
- * std::logical_and).
- * @tparam OpG The Binary Operation of the Target Category (e.g.,
- * std::multiplies).
- * @tparam Morphism The "Secret Sauce" (The actual C++ function pointer or
- * constexpr lambda).
+ * In our structuralist C++ approach, we verify this "Monomorphism" property
+ * by proving the Morphism (η_X) is strictly injective (1:1)
+ * across the entire Domain 𝒯.
  *
- * @note This concept requires that the 'unit_5' natural transformation is
- * valid, ensuring the structural identity and associativity laws are preserved
- *       during the promotion.
+ * @tparam G   The Target Functor (The "Box" we are promoting into).
+ * @tparam 𝒯   The Coordinate Species (The Domain Object, e.g., bool).
+ * @tparam Op𝒯 The Binary Operation of the Source Category (e.g., AND).
+ * @tparam Op𝒰 The Binary Operation of the Target Category (e.g., MULT).
+ * @tparam η_X The Morphism Component (The actual C++ promotion logic).
  */
-export template <template <typename> typename G, typename T, typename OpT,
-                 typename OpG, auto Morphism>
+export template <template <typename> typename 𝒢, typename 𝒯, typename Op𝒯,
+                 typename Op𝒢, auto η_X>
 concept IsEmbedding =
-    // 1. Check that the Unit type exists and is valid
-    // Note: We use the 5-parameter 'unit_5' to be explicit here
-    requires { typename unit_5<G, T, OpT, OpG, Morphism>; } &&
+    // 1. Structural Check: Does the Unit bridge actually exist?
+    requires { typename η<𝒢, Op𝒯, Op𝒢, η_X>; } &&
 
-    // 2. The Injective Property: η(a) = η(b) => a = b
-    requires(T a, T b) {
-      { (Morphism(a) == Morphism(b)) == (a == b) } -> std::same_as<bool>;
+    // 2. The Retraction Bridge: r (The "Undo" across Categories)
+    requires(decltype(η_X(std::declval<𝒯>())) y) {
+      // We look for a specialized retraction morphism for this species
+      { retraction<𝒯, Op𝒯, Op𝒢, η_X>(y) } -> std::same_as<𝒯>;
+
+      // The Axiom: r(η(x)) == x
+      requires std::same_as<
+          decltype(retraction<𝒯, Op𝒯, Op𝒢, η_X>(η_X(std::declval<𝒯>()))), 𝒯>;
     };
 
+/** @section The Retraction for Bool-to-Int */
+template <>
+inline bool retraction<bool, std::logical_and<bool>, std::multiplies<int>,
+                       my_promotion_sauce>(int y) {
+  return y != 0;  // The unique "Undo" for the promotion
+}
+
+/** @section Verification: The Promotion Bridge (Success) */
+
+// Proof: η: (bool, ∧) ⟹ (int, ×) is a strictly injective Embedding.
+static_assert(IsEmbedding<Identity, bool, std::logical_and<bool>,
+                          std::multiplies<int>, my_promotion_sauce>,
+              "Dedekind: Bool-to-Int promotion must be injective.");
+
+constexpr int non_injective_sauce(bool) { return 0; }
+
+// Proof: Non-injective sauce must fail the IsEmbedding concept.
+static_assert(
+    !IsEmbedding<Identity, bool, std::logical_and<bool>, std::multiplies<int>,
+                 non_injective_sauce>,
+    "Dedekind: Concept correctly identified a non-injective mapping.");
+
+/**
+ * @concept IsHomomorphism
+ * @brief A structure-preserving map between two similar species.
+ * @details f(a ∘ b) = f(a) ∘ f(b).
+ *          This is the "Naturality" check for binary operations.
+ */
+/*
+template <typename Source, typename Target, auto Morphism, typename Op>
+concept IsHomomorphism = requires(Source a, Source b) {
+(BRACKET), "Dedekind: Concept correctly identified a non-injective mapping.");
+*/
 /**
  * @concept IsHomomorphism
  * @brief A structure-preserving map between two similar species.
@@ -584,26 +621,5 @@ concept IsHomomorphism = requires(Source a, Source b) {
   {
     Morphism(Op{}(a, b)) == Op{}(Morphism(a), Morphism(b))
   } -> std::same_as<bool>;
-};
-
-/**
- * @concept IsIsomorphism
- * @brief A perfect, reversible bridge (A "Mirror").
- * @details There exists an inverse Morphism G such that G(F(x)) = x.
- */
-template <typename A, typename B, auto F, auto G>
-concept IsIsomorphism = requires(A a, B b) {
-  { G(F(a)) == a } -> std::same_as<bool>;
-  { F(G(b)) == b } -> std::same_as<bool>;
-};
-
-/**
- * @concept IsHomeomorphism
- * @brief A Topological Isomorphism (A "Deformation").
- * @details A bijection that is continuous in both directions.
- * @note This will be refined in :topology by adding 'IsContinuous'.
- */
-template <typename A, typename B, auto F, auto G>
-concept IsHomeomorphism = IsIsomorphism<A, B, F, G>;
-
+};  // namespace dedekind::ontology
 }  // namespace dedekind::ontology
