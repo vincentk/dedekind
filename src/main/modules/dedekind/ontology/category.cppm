@@ -179,7 +179,7 @@ concept IsMagmoid = requires(T a, T b) {
  */
 export template <typename T, typename Op>
 concept IsSemigroupoid =
-    IsMagmoid<T, Op> && requires { requires is_associative_v<T, Op>; };
+    IsMagmoid<T, Op> && requires { requires is_associative_v<T, Op> == true; };
 
 /**
  * @concept IsSmallCategory
@@ -196,21 +196,6 @@ concept IsSemigroupoid =
 export template <typename T, typename Op>
 concept IsSmallCategory = IsSemigroupoid<T, Op> && requires {
   { identity_v<T, Op> } -> std::convertible_to<T>;
-};
-
-/**
- * @concept IsGroupoid
- * @brief A Category where every morphism is an Isomorphism (Invertible).
- *
- * @details This represents a structure where every "action" has a perfect
- *          "undo". In Algebra, this is a Group. It requires an 'inverse'
- *          morphism such that: f ∘ f⁻¹ = id.
- *
- * @note For the Integers (Z), this is addition with negation.
- */
-export template <typename T, typename Op>
-concept IsGroupoid = IsSmallCategory<T, Op> && requires(T a) {
-  { inverse<T, Op>(a) } -> std::convertible_to<T>;
 };
 
 /**
@@ -242,13 +227,61 @@ concept IsFunctor =
 static_assert(IsAbelian<int, std::plus<int>>);
 static_assert(IsAbelian<bool, std::logical_or<bool>>);
 
-/** @section Identity Functor */
-export template <typename T>
-struct Identity {
-  T value;
-  constexpr Identity(T v) : value(v) {}
-  constexpr operator T() const { return value; }
+/**
+ * @concept IsArrow
+ * @brief The formal signature of a Morphism f: A -> B.
+ */
+export template <typename F, typename A, typename B>
+concept IsArrow = requires(F f, A x) {
+  // We probe the action and strip references/const to find the true Codomain.
+  typename std::remove_cvref_t<decltype(f(std::forward<A>(x)))>;
+  requires std::same_as<std::remove_cvref_t<decltype(f(std::forward<A>(x)))>,
+                        B>;
 };
+
+/**
+ * @brief The Identity Morphism (id_A)
+ * The categorical anchor that returns the object unchanged.
+ * Essential for verifying monoidal identities at compile-time.
+ */
+export template <typename T>
+struct Identity final {
+  /**
+   * @brief The Identity Action.
+   * Perfect forwarding ensures that the morphism preserves the original
+   * value category and constness of the Domain object.
+   */
+  constexpr T&& operator()(T&& x) const noexcept { return std::forward<T>(x); }
+};
+
+/** @section The Identity Factory: id<A>() */
+export template <typename A>
+auto id() {
+  return Identity<A>{};
+}
+
+/** @section Identity Verification */
+
+// We verify that for any object T, Identity<T> is an arrow T -> T.
+// This anchors the "Skeletal" layer to the "Machine" layer.
+static_assert(IsArrow<Identity<int>, int, int>,
+              "Identity<int> must be a morphism from int to int.");
+
+static_assert(IsArrow<Identity<bool>, bool, bool>,
+              "Identity<bool> must be a morphism from bool to bool.");
+
+/**
+ * @section Categorical Composition (h = g ∘ f)
+ * @brief Synthesizes an arrow A -> C from A -> B and B -> C.
+ */
+export template <typename A, typename B, typename C, typename F, typename G>
+  requires IsArrow<F, A, B> && IsArrow<G, B, C>
+auto operator>>(F&& f, G&& g) {
+  // We return a new lambda that the compiler recognizes as IsArrow<h, A, C>
+  return [f = std::forward<F>(f), g = std::forward<G>(g)](A x) mutable -> C {
+    return g(f(std::move(x)));
+  };
+}
 
 /** @section Lifting Traits to the Identity Functor */
 
@@ -261,6 +294,59 @@ inline constexpr bool is_associative_v<Identity<T>, Op> =
 template <typename T, typename Op>
 inline constexpr Identity<T> identity_v<Identity<T>, Op> =
     Identity<T>{identity_v<T, Op>};
+
+/** @brief The Composition Morphism: (g ∘ f)(x) = g(f(x)) */
+export template <typename F, typename G>
+auto operator>>(F&& f, G&& g) {
+  return [f = std::forward<F>(f), g = std::forward<G>(g)](auto&& x) {
+    return g(f(std::forward<decltype(x)>(x)));
+  };
+}
+
+/**
+ * @concept IsIsomorphism
+ * @brief An Arrow f: A -> B with a guaranteed Inverse g: B -> A.
+ */
+export template <typename F, typename A, typename B>
+concept IsIsomorphism = IsArrow<F, A, B> && requires(F f, B y) {
+  // We look for a structural 'inverse' morphism
+  { inverse(f) } -> IsArrow<B, A>;
+
+  // Categorical Proof: f ∘ inverse(f) == id_B
+  // In Level 0, we verify the EXISTENCE of the path.
+};
+
+/** @brief The structural inverse of an Identity is itself. */
+template <typename T>
+[[nodiscard]] constexpr auto inverse(Identity<T> id) noexcept {
+  return id;
+}
+
+/** @section Isomorphism Verification */
+
+// Proof: id_int is an isomorphism from int to int.
+static_assert(IsIsomorphism<Identity<int>, int, int>,
+              "Identity must be a self-inverse isomorphism.");
+
+// Proof: id_bool is an isomorphism from bool to bool.
+static_assert(IsIsomorphism<Identity<bool>, bool, bool>,
+              "Identity must be a self-inverse isomorphism.");
+
+/**
+ * @concept IsGroupoid
+ * @brief A Category where every morphism is an Isomorphism (Invertible).
+ *
+ * @details This represents a structure where every "action" has a perfect
+ *          "undo". In Algebra, this is a Group. It requires an 'inverse'
+ *          morphism such that: f ∘ f⁻¹ = id.
+ *
+ * @note For the Integers (Z), this is addition with negation.
+ */
+export template <typename T, typename Op>
+concept IsGroupoid = IsSmallCategory<T, Op> && requires(T x) {
+  // Every element must have an inverse relative to the operation Op
+  { inverse<T, Op>(x) } -> std::same_as<T>;
+};
 
 /** @section The Natural Transformation Factory */
 export template <template <typename> typename F, template <typename> typename G,
