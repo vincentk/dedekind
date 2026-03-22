@@ -393,27 +393,15 @@ static_assert(IsAbelian<bool, std::logical_or<bool>>);
  */
 export template <typename F, typename A, typename B>
 concept IsArrow = requires(F f, A x) {
-  // We probe the action and strip references/const to find the true Codomain.
-  typename std::remove_cvref_t<decltype(f(std::forward<A>(x)))>;
-  requires std::same_as<std::remove_cvref_t<decltype(f(std::forward<A>(x)))>,
-                        B>;
+  // 1. Structural Tags: The Morphism must announce its Species.
+  typename F::Domain;
+  typename F::Codomain;
+  requires std::same_as<typename F::Domain, A>;
+  requires std::same_as<typename F::Codomain, B>;
+
+  // 2. Functional Action: The implementation must match the tags.
+  { f(std::forward<A>(x)) } -> std::same_as<B>;
 };
-
-// Proof: Negation is an Arrow from int to int.
-static_assert(IsArrow<std::negate<int>, int, int>,
-              "Arrow: Integer negation must map Z to Z.");
-
-// Proof: A bound comparison (x > 0) is an Arrow: Z -> B.
-static_assert(IsArrow<decltype([](int x) { return x > 0; }), int, bool>,
-              "Arrow: An anonymous bound comparison must map Z to B.");
-
-// Proof: A pure doubling function is an Arrow: Z -> Z.
-static_assert(IsArrow<decltype([](int x) { return x * 2; }), int, int>,
-              "Arrow: An anonymous scaling function must map Z to Z.");
-
-// Negative Proof: Addition is NOT a Unary Arrow (it's a Binary Morphism).
-static_assert(!IsArrow<std::plus<int>, int, int>,
-              "Arrow: Binary operators are not simple arrows.");
 
 /**
  * @struct Morphism
@@ -437,6 +425,41 @@ struct Morphism {
   /** @brief Performs the mapping A -> B. */
   constexpr B operator()(const A& x) const { return action(x); }
 };
+
+/** @section The Morphism Factory: arrow <A, B> (f) */
+export template <typename A, typename B, typename F>
+constexpr auto arrow(F&& f) {
+  return Morphism<A, B, std::decay_t<F>>{std::forward<F>(f)};
+}
+
+/** @section Arrow Factory Verification: Tagging & Species Integrity */
+
+// 1. Proof: arrow<A, B> correctly tags a standard function object.
+using Negate = std::negate<int>;
+using TaggedNegate = decltype(arrow<int, int>(Negate{}));
+
+static_assert(std::same_as<typename TaggedNegate::Domain, int>,
+              "Arrow Factory: Failed to tag Domain as 'int'.");
+static_assert(std::same_as<typename TaggedNegate::Codomain, int>,
+              "Arrow Factory: Failed to tag Codomain as 'int'.");
+
+// 2. Proof: arrow<A, B> correctly tags a cross-species lambda (Z -> B).
+using IsPositive = decltype([](int x) { return x > 0; });
+using TaggedIsPositive = decltype(arrow<int, bool>(IsPositive{}));
+
+static_assert(std::same_as<typename TaggedIsPositive::Domain, int>,
+              "Arrow Factory: Failed to tag cross-species Domain.");
+static_assert(std::same_as<typename TaggedIsPositive::Codomain, bool>,
+              "Arrow Factory: Failed to tag cross-species Codomain.");
+
+// 3. Proof: arrow<A, B> satisfies the IsArrow concept.
+static_assert(IsArrow<TaggedIsPositive, int, bool>,
+              "Arrow Factory: Produced an object that violates IsArrow.");
+
+// 4. Action Proof: The tagged arrow preserves the underlying action.
+// We verify that the factory-produced morphism actually executes.
+static_assert(arrow<int, int>([](int x) { return x * 2; })(21) == 42,
+              "Arrow Factory: Action check failed for anonymous lambda.");
 
 /**
  * @struct IdentityAction
@@ -505,41 +528,6 @@ inline constexpr Identity<T> identity_v<Identity<T>, Op> = Identity<T>{};
 // We verify the factory id<A>() produces a valid Arrow (B -> B).
 static_assert(IsArrow<decltype(id<bool>()), bool, bool>,
               "The id<A>() factory must produce a valid Arrow.");
-
-/** @section The Morphism Factory: arrow <A, B> (f) */
-export template <typename A, typename B, typename F>
-constexpr auto arrow(F&& f) {
-  return Morphism<A, B, std::decay_t<F>>{std::forward<F>(f)};
-}
-
-/** @section Arrow Factory Verification: Tagging & Species Integrity */
-
-// 1. Proof: arrow<A, B> correctly tags a standard function object.
-using Negate = std::negate<int>;
-using TaggedNegate = decltype(arrow<int, int>(Negate{}));
-
-static_assert(std::same_as<typename TaggedNegate::Domain, int>,
-              "Arrow Factory: Failed to tag Domain as 'int'.");
-static_assert(std::same_as<typename TaggedNegate::Codomain, int>,
-              "Arrow Factory: Failed to tag Codomain as 'int'.");
-
-// 2. Proof: arrow<A, B> correctly tags a cross-species lambda (Z -> B).
-using IsPositive = decltype([](int x) { return x > 0; });
-using TaggedIsPositive = decltype(arrow<int, bool>(IsPositive{}));
-
-static_assert(std::same_as<typename TaggedIsPositive::Domain, int>,
-              "Arrow Factory: Failed to tag cross-species Domain.");
-static_assert(std::same_as<typename TaggedIsPositive::Codomain, bool>,
-              "Arrow Factory: Failed to tag cross-species Codomain.");
-
-// 3. Proof: arrow<A, B> satisfies the IsArrow concept.
-static_assert(IsArrow<TaggedIsPositive, int, bool>,
-              "Arrow Factory: Produced an object that violates IsArrow.");
-
-// 4. Action Proof: The tagged arrow preserves the underlying action.
-// We verify that the factory-produced morphism actually executes.
-static_assert(arrow<int, int>([](int x) { return x * 2; })(21) == 42,
-              "Arrow Factory: Action check failed for anonymous lambda.");
 
 /**
  * @section Categorical Composition (Explicitly Typed)
