@@ -182,16 +182,29 @@ struct identity_trait<bool, std::bit_and<bool>> {
 
 /** @section Categorical_Inverses: The 'Undo' Bricks */
 
-/** @brief In XOR, every element is its own inverse (Involutive). */
+/**
+ * @brief In XOR, every element is its own inverse (Involutive).
+ * @details This satisfies the Group axiom `a ∘ a = e` where e is 0.
+ *          In bitwise logic, this is a perfectly symmetric, non-overflowing
+ *          action across the entire Species range.
+ */
 template <std::integral 𝒯>
 inline constexpr 𝒯 inverse(𝒯 a, std::bit_xor<𝒯>) {
   return a;
 }
 
-/** @brief In Addition, negation is the inverse. */
+/**
+ * @brief In Addition, negation is the inverse.
+ * @note [Mathematical Authority]: For signed types, this assumes Two's
+ * Complement arithmetic. Note that for the minimum value (e.g., INT_MIN), the
+ *       inverse overflows back to itself, satisfying `a + inverse(a) = 0`
+ *       via machine wrapping (Modular Arithmetic in Z/2^nZ).
+ */
 template <std::integral 𝒯>
 inline constexpr 𝒯 inverse(𝒯 a, std::plus<𝒯>) {
-  return -a;
+  // In C++20/23, signed overflow for negation is defined behavior
+  // as Two's Complement wrapping.
+  return static_cast<𝒯>(-static_cast<std::make_unsigned_t<𝒯>>(a));
 }
 
 /**
@@ -200,11 +213,11 @@ inline constexpr 𝒯 inverse(𝒯 a, std::plus<𝒯>) {
  *          above. If no implementation exists, the concept fails (Skeletal
  * Safety).
  */
-export template <typename 𝒯, typename Op>
-  requires requires(𝒯 a) {
-    { inverse(a, Op{}) } -> std::same_as<𝒯>;
+export template <typename T, typename Op>  // Note: Op first or deduced
+  requires requires(T a) {
+    { inverse(a, Op{}) } -> std::same_as<T>;
   }
-inline constexpr 𝒯 inverse(𝒯 a) {
+inline constexpr T inverse(T a) {
   return inverse(a, Op{});
 }
 
@@ -222,7 +235,7 @@ inline constexpr 𝒯 inverse(𝒯 a) {
  */
 export template <typename T, typename Op>
 concept IsMagmoid = requires(T a, T b) {
-  { Op{}(a, b) } -> std::convertible_to<T>;
+  { std::declval<Op>()(a, b) } -> std::convertible_to<T>;
 };
 
 /** @section Magmoid Verification: The Atomic Bricks */
