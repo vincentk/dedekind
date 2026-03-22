@@ -60,18 +60,13 @@ inline constexpr bool is_associative_v = false;
 export template <typename T, typename Op>
 inline constexpr bool is_commutative_v = false;
 
-/**
- * @brief The Identity Morphism for a given Type and Operation.
- * @note Must be specialized for each Category/Monoid.
- */
+/** @brief Primary trait: Identity does not exist by default. */
 export template <typename T, typename Op>
-inline constexpr T identity_v = [] {
-  // Hard-coding 'false' here usually breaks the build immediately.
-  // We use 'sizeof(T) == 0' as a trick to make it dependent on T.
-  static_assert(sizeof(T) == 0,
-                "Dedekind: No identity_v defined for this Type/Op pair.");
-  return T{};
-}();
+struct identity_trait {};  // Empty by default
+
+/** @brief Helper to access the value if it exists. */
+export template <typename T, typename Op>
+inline constexpr T identity_v = identity_trait<T, Op>::value;
 
 /**
  * @brief The Characteristic of the Species.
@@ -91,14 +86,18 @@ inline constexpr bool is_associative_v<bool, std::logical_or<bool>> = true;
 template <>
 inline constexpr bool is_commutative_v<bool, std::logical_or<bool>> = true;
 template <>
-inline constexpr bool identity_v<bool, std::logical_or<bool>> = false;
+struct identity_trait<bool, std::logical_or<bool>> {
+  static constexpr bool value = false;  // ⊥ (Null/False)
+};
 
 template <>
 inline constexpr bool is_associative_v<bool, std::logical_and<bool>> = true;
 template <>
 inline constexpr bool is_commutative_v<bool, std::logical_and<bool>> = true;
 template <>
-inline constexpr bool identity_v<bool, std::logical_and<bool>> = true;
+struct identity_trait<bool, std::logical_and<bool>> {
+  static constexpr bool value = true;  // ⊤ (Whole/True)
+};
 
 // --- Integers: The finite ring (Z, +, *) ---
 
@@ -110,7 +109,9 @@ inline constexpr bool is_associative_v<T, std::plus<T>> = true;
 template <std::integral T>
 inline constexpr bool is_commutative_v<T, std::plus<T>> = true;
 template <std::integral T>
-inline constexpr T identity_v<T, std::plus<T>> = 0;
+struct identity_trait<T, std::plus<T>> {
+  static constexpr T value = 0;
+};
 
 /**
  * @brief Multiplication is associative and commutative, with identity 1.
@@ -120,7 +121,9 @@ inline constexpr bool is_associative_v<T, std::multiplies<T>> = true;
 template <std::integral T>
 inline constexpr bool is_commutative_v<T, std::multiplies<T>> = true;
 template <std::integral T>
-inline constexpr T identity_v<T, std::multiplies<T>> = 1;
+struct identity_trait<T, std::multiplies<T>> {
+  static constexpr T value = 1;
+};
 
 /**
  * @brief Modulus is NOT associative nor commutative, and has no identity.
@@ -133,26 +136,76 @@ inline constexpr bool is_associative_v<T, std::modulus<T>> = false;
 template <std::integral T>
 inline constexpr bool is_commutative_v<T, std::modulus<T>> = false;
 
-// --- Characters: A Commutative Species ---
+/** @section Bitwise_Certifications: (Z, ^) and (Z, &) */
+
+// 1. Bitwise XOR (^) is Associative, Commutative, and has Identity 0.
+template <std::integral T>
+inline constexpr bool is_associative_v<T, std::bit_xor<T>> = true;
+
+template <std::integral T>
+inline constexpr bool is_commutative_v<T, std::bit_xor<T>> = true;
+
+template <std::integral T>
+struct identity_trait<T, std::bit_xor<T>> {
+  static constexpr T value = 0;
+};
+
+// 2. Bitwise AND: Associative and Commutative.
+// Note: We intentionally omit identity_v for (int, &).
+template <std::integral T>
+inline constexpr bool is_associative_v<T, std::bit_and<T>> = true;
+
+template <std::integral T>
+inline constexpr bool is_commutative_v<T, std::bit_and<T>> = true;
+
+/** @section Boolean_Bitwise_Certifications: (B, ^) and (B, &) */
+
+// 1. Boolean XOR (Exclusive OR)
 template <>
-inline constexpr bool is_associative_v<char, std::plus<char>> = true;
+inline constexpr bool is_associative_v<bool, std::bit_xor<bool>> = true;
 template <>
-inline constexpr bool is_commutative_v<char, std::plus<char>> = true;
+inline constexpr bool is_commutative_v<bool, std::bit_xor<bool>> = true;
 template <>
-inline constexpr char identity_v<char, std::plus<char>> = 0;
+struct identity_trait<bool, std::bit_xor<bool>> {
+  static constexpr bool value = false;
+};
+
+// 2. Boolean AND (Conjunction)
+template <>
+inline constexpr bool is_associative_v<bool, std::bit_and<bool>> = true;
+template <>
+inline constexpr bool is_commutative_v<bool, std::bit_and<bool>> = true;
+template <>
+struct identity_trait<bool, std::bit_and<bool>> {
+  static constexpr bool value = true;
+};
+
+/** @section Categorical_Inverses: The 'Undo' Bricks */
+
+/** @brief In XOR, every element is its own inverse (Involutive). */
+template <std::integral 𝒯>
+inline constexpr 𝒯 inverse(𝒯 a, std::bit_xor<𝒯>) {
+  return a;
+}
+
+/** @brief In Addition, negation is the inverse. */
+template <std::integral 𝒯>
+inline constexpr 𝒯 inverse(𝒯 a, std::plus<𝒯>) {
+  return -a;
+}
 
 /**
- * @brief The Inverse Morphism for Groupoids.
- * @note Primary template is deleted to ensure IsGroupoid fails
- *       unless a concrete 'Undo' is specialized (e.g. for Z, +).
+ * @brief The Master Bridge: The entry point for IsGroupoid.
+ * @details This bridge 'routes' the request to the specific implementation
+ *          above. If no implementation exists, the concept fails (Skeletal
+ * Safety).
  */
-export template <typename T, typename Op>
-T inverse(T a) = delete;
-
-/** @section Integer Inverse: Negation is the Inverse of Addition */
-template <>
-inline int inverse<int, std::plus<int>>(int a) {
-  return -a;
+export template <typename 𝒯, typename Op>
+  requires requires(𝒯 a) {
+    { inverse(a, Op{}) } -> std::same_as<𝒯>;
+  }
+inline constexpr 𝒯 inverse(𝒯 a) {
+  return inverse(a, Op{});
 }
 
 /**
@@ -175,15 +228,15 @@ concept IsMagmoid = requires(T a, T b) {
 /** @section Magmoid Verification: The Atomic Bricks */
 
 // Proof: Boolean AND is a Magmoid.
-static_assert(IsMagmoid<bool, std::logical_and<bool>>, 
+static_assert(IsMagmoid<bool, std::logical_and<bool>>,
               "Magmoid: bool must be closed under logical conjunction.");
 
 // Proof: Integer Addition is a Magmoid.
-static_assert(IsMagmoid<int, std::plus<int>>, 
+static_assert(IsMagmoid<int, std::plus<int>>,
               "Magmoid: int must be closed under addition.");
 
 // Proof: std::modulus is a Magmoid (even if it's not a Monoid).
-static_assert(IsMagmoid<int, std::modulus<int>>, 
+static_assert(IsMagmoid<int, std::modulus<int>>,
               "Magmoid: int must be closed under remainder.");
 
 /**
@@ -205,12 +258,16 @@ concept IsSemigroupoid =
 /** @section Semigroupoid Verification: The Grouping Law */
 
 // Proof: (int, +) is associative: (a + b) + c = a + (b + c).
-static_assert(IsSemigroupoid<int, std::plus<int>>, 
+static_assert(IsSemigroupoid<int, std::plus<int>>,
               "Semigroupoid: Integer addition must allow re-grouping.");
 
 // Proof: (int, -) is NOT associative: (10 - 5) - 2 != 10 - (5 - 2).
-static_assert(!IsSemigroupoid<int, std::minus<int>>, 
+static_assert(!IsSemigroupoid<int, std::minus<int>>,
               "Semigroupoid: Subtraction must fail the grouping proof.");
+
+// 2. Proof: (int, &) is a Semigroupoid (Associative).
+static_assert(IsSemigroupoid<int, std::bit_and<int>>,
+              "Bitwise: AND is associative.");
 
 /**
  * @concept IsSmallCategory
@@ -225,13 +282,29 @@ static_assert(!IsSemigroupoid<int, std::minus<int>>,
  * The 'identity_v' trait provides the neutral element for the operation Op.
  */
 export template <typename T, typename Op>
-concept IsSmallCategory = IsSemigroupoid<T, Op> && requires {
-  { identity_v<T, Op> } -> std::convertible_to<T>;
-};
+concept IsSmallCategory = IsSemigroupoid<T, Op> && is_associative_v<T, Op> &&
+                          requires {
+                            typename identity_trait<T, Op>;
+                          } &&  // Ensure specialization exists
+                          requires {
+                            {
+                              identity_trait<T, Op>::value
+                            } -> std::same_as<const T&>;
+                          };
 
-// Verification: (bool, ∧) is a Small Category (Monoid) but NOT a Groupoid.
+// Proof: (int, +) with '0' is a Small Category.
+static_assert(IsSmallCategory<int, std::plus<int>>,
+              "SmallCategory: Integer addition with 0 is a Monoid.");
+
+// Proof: (bool, &&) with 'true' is a Small Category.
 static_assert(IsSmallCategory<bool, std::logical_and<bool>>,
-              "Logic: Boolean AND must be a valid Monoid.");
+              "SmallCategory: Boolean AND with 'true' is a Monoid.");
+
+// 3. Proof: (int, &) is NOT a SmallCategory (No Identity).
+// This fails the identity_v check because we haven't anchored a
+// "Universal Mask" for the Integer Species.
+static_assert(!IsSmallCategory<int, std::bit_and<int>>,
+              "Bitwise: AND lacks a universal neutral element in Z.");
 
 /**
  * @concept IsAbelian
@@ -275,7 +348,9 @@ struct Identity final {
    * Perfect forwarding ensures that the morphism preserves the original
    * value category and constness of the Domain object.
    */
-  constexpr T&& operator()(T&& x) const noexcept { return std::forward<T>(x); }
+  constexpr T&& operator()(T&& x) const noexcept {
+    return std::forward<T>(x);
+  }  // namespace dedekind::ontology
 };
 
 /** @section The Identity Factory: id<A>() */
@@ -415,6 +490,10 @@ static_assert(IsAbelian<bool, std::logical_and<bool>>,
 // Proof: (Z, +) is an Abelian Groupoid.
 static_assert(IsAbelianGroupoid<int, std::plus<int>>,
               "Integer addition must be a reversible, symmetric action.");
+
+// 1. Proof: (int, ^) is an Abelian Groupoid.
+static_assert(IsAbelianGroupoid<int, std::bit_xor<int>>,
+              "Bitwise: XOR is a reversible, symmetric Category.");
 
 /**
  * @concept IsFunctor
