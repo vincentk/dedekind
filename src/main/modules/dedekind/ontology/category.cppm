@@ -931,8 +931,9 @@ struct morphism_traits<R(A)> {
 
 // 1. Proof: Discovery for raw function pointers.
 constexpr bool raw_func(int) { return true; }
-static_assert(std::same_as<morphism_traits<decltype(&raw_func)>::argument_type, int>,
-              "Discovery: Failed to extract argument from raw function pointer.");
+static_assert(
+    std::same_as<morphism_traits<decltype(&raw_func)>::argument_type, int>,
+    "Discovery: Failed to extract argument from raw function pointer.");
 
 // 2. Proof: Discovery for anonymous lambdas.
 using IsZero = decltype([](int x) { return x == 0; });
@@ -943,8 +944,6 @@ static_assert(std::same_as<morphism_traits<IsZero>::argument_type, int>,
 using Counter = decltype([i = 0](int x) mutable { return x + i++; });
 static_assert(std::same_as<morphism_traits<Counter>::argument_type, int>,
               "Discovery: Failed to extract argument from mutable lambda.");
-
-              
 
 /**
  * @section The Unit of the Functor (η: 1_𝒞 ⟹ G)
@@ -1049,20 +1048,35 @@ static_assert(
  * Formally: f(a ∘ b) = f(a) ⋆ f(b), where ∘ is Op𝒞 and ⋆ is Op𝒟.
  * This verifies the "Naturality" of the binary operation across the morphism.
  */
-export template <typename 𝒯, typename 𝒰, auto η_X, typename Op𝒯, typename Op𝒰>
+export template <typename T, typename U, auto η_X, typename OpT, typename OpU>
 concept IsHomomorphism =
-    IsSmallCategory<𝒯, Op𝒯> && IsSmallCategory<𝒰, Op𝒰> &&
-    // 1. Axiom: η(id_𝒞) = id_𝒟
-    (η_X(identity_v<𝒯, Op𝒯>) == identity_v<𝒰, Op𝒰>) &&
-    // 2. Structural Proof: The Naturality Square commutes at the Unit
-    requires(𝒯 a, 𝒯 b) {
-      typename η<Identity, Op𝒯, Op𝒰, η_X>;
-      requires η<Identity, Op𝒯, Op𝒰, η_X>::preserves_identity();
-    };
+    IsSmallCategory<T, OpT> && IsSmallCategory<U, OpU> &&
+    requires(T a, T b) {
+      // We only check if the expression is VALID.
+      { η_X(OpT{}(a, b)) } -> std::same_as<U>;
+      { OpU{}(η_X(a), η_X(b)) } -> std::same_as<U>;
+    } &&
+    // Identity Preservation (This works because identity_v has a known value)
+    (η_X(identity_v<T, OpT>) == identity_v<U, OpU>);
+
+/** @section Homomorphism Verification: Boolean -> Integer */
+namespace {
+constexpr int promote_v(bool b) { return b ? 1 : 0; }
+
+// 1. Proof: Structural Homomorphism exists.
+static_assert(IsHomomorphism<bool, int, promote_v, std::logical_and<bool>,
+                             std::multiplies<int>>,
+              "Structural Error: Boolean-to-Integer bridge is broken.");
+
+// 2. Proof: Binary Action Axiom (Manual check of the truth table)
+// f(a ∘ b) == f(a) ⋆ f(b)
+static_assert(promote_v(true && false) == (promote_v(true) * promote_v(false)));
+static_assert(promote_v(true && true) == (promote_v(true) * promote_v(true)));
+static_assert(promote_v(false && false) ==
+              (promote_v(false) * promote_v(false)));
+}  // namespace
 
 namespace {
-// 1. The Proving Sauce
-constexpr int promote_v(bool b) { return b ? 1 : 0; }
 
 // 2. The Verification Bridge
 using LogicToArithmetic = unit<Identity,
