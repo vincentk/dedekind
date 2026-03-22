@@ -634,6 +634,42 @@ static_assert(IsIsomorphism<TaggedNegate, int, int>,
               "Negation must be recognized as a reversible Morphism.");
 
 /**
+ * @struct ZeroAction
+ * @brief The 'Absorption' logic.
+ * @details Maps any input of species A to the neutral element of species B.
+ */
+export template <typename A, typename B, typename Op>
+struct ZeroAction {
+  constexpr B operator()(const A&) const noexcept { return identity_v<B, Op>; }
+};
+
+/**
+ * @brief The Zero Morphism Factory: zero<A, B, Op>()
+ * @details Synthesizes an arrow that absorbs all information,
+ *          collapsing the Domain into the Codomain's identity.
+ */
+export template <typename A, typename B, typename Op>
+  requires IsSmallCategory<B, Op>
+constexpr auto zero() {
+  return arrow<A, B>(ZeroAction<A, B, Op>{});
+}
+
+/** @section Zero Morphism Verification */
+
+// 1. Proof: Zero is an Arrow from int to int (under addition).
+using ZeroZ = decltype(zero<int, int, std::plus<int>>());
+static_assert(IsArrow<ZeroZ, int, int>,
+              "Zero: Must be a valid morphism mapping Z to Z.");
+
+// 2. Action Proof: Zero maps everything to 0.
+static_assert(zero<int, int, std::plus<int>>()(42) == 0,
+              "Absorption: Zero morphism must return the identity element.");
+
+// 3. Action Proof: Zero maps everything to 'true' (under logic AND).
+static_assert(zero<int, bool, std::logical_and<bool>>()(42) == true,
+              "Absorption: Boolean AND zero must return 'true'.");
+
+/**
  * @concept IsGroupoid
  * @brief A Category where every morphism is an Isomorphism (Invertible).
  *
