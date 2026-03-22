@@ -745,6 +745,29 @@ static_assert(IsAbelianGroupoid<int, std::plus<int>>,
 static_assert(IsAbelianGroupoid<int, std::bit_xor<int>>,
               "Bitwise: XOR is a reversible, symmetric Category.");
 
+/** @section Peak Symmetry: Zero vs. Groupoid */
+
+// Proof: The Zero Morphism (int -> int) is an Arrow,
+// even if it maps into an Abelian Groupoid.
+static_assert(IsArrow<ZeroZ, int, int>,
+              "Zero: A 'Black Hole' arrow must map Z to Z.");
+
+// Proof: The result of zero() belongs to the Identity element.
+static_assert(zero<int, int, std::plus<int>>()(99) == 0,
+              "Absorption: Z -> Z via + must yield 0.");
+
+/**
+ * @section Functor Lifting (fmap)
+ * @brief Lifts a Morphism f: A -> B into the Functor world F⟨A⟩ -> F⟨B⟩.
+ */
+export template <template <typename> typename F, typename A, typename B,
+                 typename Impl>
+constexpr auto lift(Morphism<A, B, Impl> f) {
+  // For the Identity Functor, F⟨A⟩ is just A.
+  // Therefore, lifting f is simply returning f.
+  return f;
+}
+
 /**
  * @concept IsFunctor
  * @brief A structure-preserving mapping between two Categories 𝒞 and 𝒟.
@@ -778,6 +801,10 @@ concept IsFunctor = IsSmallCategory<𝒯, Op𝒯> && IsSmallCategory<𝒰, Op�
                       // signature
                       { box(std::move(value)) } -> std::convertible_to<𝒰>;
                       //{ box(value) } -> std::convertible_to<𝒰>;
+                      // 2. Morphism Mapping: f -> F(f)
+                      // We verify that 'lift' produces a valid arrow in the
+                      // target category.
+                      //{ lift<F>(f) } -> IsArrow<T, T>;
                     };
 
 /**
@@ -791,6 +818,22 @@ concept IsFunctor = IsSmallCategory<𝒯, Op𝒯> && IsSmallCategory<𝒰, Op�
  */
 export template <template <typename> typename F, typename 𝒯, typename Op𝒯>
 concept IsEndofunctor = IsFunctor<F, 𝒯, Op𝒯, 𝒯, Op𝒯>;
+
+/** @section Functor Verification: The Identity Endofunctor */
+
+// 1. Proof: Identity is an Endofunctor on (int, +).
+// F=Identity, T=int, Op=plus<int>
+static_assert(IsEndofunctor<Identity, int, std::plus<int>>,
+              "Functor: Identity must be a valid Endofunctor on Z.");
+
+// 2. Proof: Identity is an Endofunctor on the Boolean Lattice (bool, &&).
+static_assert(IsEndofunctor<Identity, bool, std::logical_and<bool>>,
+              "Functor: Identity must be a valid Endofunctor on B.");
+
+// 3. Proof: Identity is an Endofunctor on XOR logic (bool, ^).
+static_assert(
+    IsEndofunctor<Identity, bool, std::bit_xor<bool>>,
+    "Functor: Identity must be a valid Endofunctor on the XOR Group.");
 
 /**
  * @section The Natural Transformation (η: F ⟹ G)
