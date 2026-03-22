@@ -387,6 +387,9 @@ static_assert(IsAbelian<bool, std::logical_or<bool>>);
 /**
  * @concept IsArrow
  * @brief The formal signature of a Morphism f: A -> B.
+ * @details Represents a unary transformation between two Species.
+ *          It ensures the Codomain is stable by stripping CV-qualifiers
+ *          and references, revealing the underlying mathematical object.
  */
 export template <typename F, typename A, typename B>
 concept IsArrow = requires(F f, A x) {
@@ -413,7 +416,15 @@ static_assert(!IsArrow<std::plus<int>, int, int>,
               "Arrow: Binary operators are not simple arrows.");
 
 /**
- * @brief A Tagged Morphism f: A -> B.
+ * @struct Morphism
+ * @brief A Tagged Arrow carrying its Domain and Codomain as static metadata.
+ * @details This is the primary 'Highway' brick. By 'tagging' a C++ callable,
+ *          we enable automated structural inference for categorical
+ * composition.
+ *
+ * @tparam A The Domain Species (Source).
+ * @tparam B The Codomain Species (Target).
+ * @tparam Impl The underlying machine implementation (Function/Lambda).
  */
 export template <typename A, typename B, typename Impl>
 struct Morphism {
@@ -423,16 +434,25 @@ struct Morphism {
 
   constexpr Morphism(Impl f) : action(f) {}
 
+  /** @brief Performs the mapping A -> B. */
   constexpr B operator()(const A& x) const { return action(x); }
 };
 
-/** @brief The raw 'do-nothing' logic. */
+/**
+ * @struct IdentityAction
+ * @brief The primitive 'do-nothing' logic for the Identity Morphism.
+ */
 export template <typename T>
 struct IdentityAction {
   constexpr T operator()(const T& x) const noexcept { return x; }
 };
 
-/** @brief The Tagged Identity Morphism id_A: A -> A. */
+/**
+ * @struct Identity
+ * @brief The Tagged Identity Morphism id_A: A -> A.
+ * @details This is the 'Zero-Length Highway' required for Category Theory.
+ *          It satisfies the Unit Laws: f ∘ id = f and id ∘ g = g.
+ */
 export template <typename T>
 struct Identity : Morphism<T, T, IdentityAction<T>> {
   // You MUST name the full base class type in the initializer list
@@ -440,16 +460,23 @@ struct Identity : Morphism<T, T, IdentityAction<T>> {
       : Morphism<T, T, IdentityAction<T>>(IdentityAction<T>{}) {}
 };
 
-/** @section The Identity Factory: id <A>() */
+// We verify that for any object T, Identity<T> is an arrow T -> T.
+// This anchors the "Skeletal" layer to the "Machine" layer.
+static_assert(IsArrow<Identity<int>, int, int>,
+              "Identity<int> must be a morphism from int to int.");
+
+static_assert(IsArrow<Identity<bool>, bool, bool>,
+              "Identity<bool> must be a morphism from bool to bool.");
+
+// 3. Negative Proof: Species Safety.
+// Identity <int> is NOT an arrow for bool (no promotion allowed).
+static_assert(!IsArrow<Identity<int>, bool, bool>,
+              "Type Safety: Identity<int> cannot act on booleans.");
+
+/** @brief The Identity Factory: Returns the neutral arrow for Species A. */
 export template <typename A>
 constexpr auto id() {
   return Identity<A>{};
-}
-
-/** @section The Morphism Factory: arrow <A, B> (f) */
-export template <typename A, typename B, typename F>
-constexpr auto arrow(F&& f) {  // Added constexpr
-  return Morphism<A, B, std::decay_t<F>>{std::forward<F>(f)};
 }
 
 /** @section Lifting Traits to the Identity Functor */
@@ -474,23 +501,45 @@ inline constexpr Identity<T> identity_v<Identity<T>, Op> = Identity<T>{};
 
 /** @section Identity Verification */
 
-// We verify that for any object T, Identity<T> is an arrow T -> T.
-// This anchors the "Skeletal" layer to the "Machine" layer.
-static_assert(IsArrow<Identity<int>, int, int>,
-              "Identity<int> must be a morphism from int to int.");
-
-static_assert(IsArrow<Identity<bool>, bool, bool>,
-              "Identity<bool> must be a morphism from bool to bool.");
-
 // 2. Proof: Identity is "Universal" for its Species.
 // We verify the factory id<A>() produces a valid Arrow (B -> B).
 static_assert(IsArrow<decltype(id<bool>()), bool, bool>,
               "The id<A>() factory must produce a valid Arrow.");
 
-// 3. Negative Proof: Species Safety.
-// Identity <int> is NOT an arrow for bool (no promotion allowed).
-static_assert(!IsArrow<Identity<int>, bool, bool>,
-              "Type Safety: Identity<int> cannot act on booleans.");
+/** @section The Morphism Factory: arrow <A, B> (f) */
+export template <typename A, typename B, typename F>
+constexpr auto arrow(F&& f) {
+  return Morphism<A, B, std::decay_t<F>>{std::forward<F>(f)};
+}
+
+/** @section Arrow Factory Verification: Tagging & Species Integrity */
+
+// 1. Proof: arrow<A, B> correctly tags a standard function object.
+using Negate = std::negate<int>;
+using TaggedNegate = decltype(arrow<int, int>(Negate{}));
+
+static_assert(std::same_as<typename TaggedNegate::Domain, int>,
+              "Arrow Factory: Failed to tag Domain as 'int'.");
+static_assert(std::same_as<typename TaggedNegate::Codomain, int>,
+              "Arrow Factory: Failed to tag Codomain as 'int'.");
+
+// 2. Proof: arrow<A, B> correctly tags a cross-species lambda (Z -> B).
+using IsPositive = decltype([](int x) { return x > 0; });
+using TaggedIsPositive = decltype(arrow<int, bool>(IsPositive{}));
+
+static_assert(std::same_as<typename TaggedIsPositive::Domain, int>,
+              "Arrow Factory: Failed to tag cross-species Domain.");
+static_assert(std::same_as<typename TaggedIsPositive::Codomain, bool>,
+              "Arrow Factory: Failed to tag cross-species Codomain.");
+
+// 3. Proof: arrow<A, B> satisfies the IsArrow concept.
+static_assert(IsArrow<TaggedIsPositive, int, bool>,
+              "Arrow Factory: Produced an object that violates IsArrow.");
+
+// 4. Action Proof: The tagged arrow preserves the underlying action.
+// We verify that the factory-produced morphism actually executes.
+static_assert(arrow<int, int>([](int x) { return x * 2; })(21) == 42,
+              "Arrow Factory: Action check failed for anonymous lambda.");
 
 /**
  * @section Categorical Composition (Explicitly Typed)
@@ -503,7 +552,7 @@ export template <typename F, typename G>
     typename F::Domain;
     typename G::Codomain;
   }
-constexpr auto operator>>(F&& f, G&& g) {  // Added constexpr
+constexpr auto operator>>(F&& f, G&& g) {
   using A = typename F::Domain;
   using C = typename G::Codomain;
 
@@ -527,8 +576,7 @@ static_assert(
     "Unit Law: id_B must be a right-identity for morphisms into B.");
 
 // 2. Proof: Cross-Species Identity
-// id_Z combined with a Z -> B bridge must result in a Z -> B bridge.
-using IsPositive = decltype([](int x) { return x > 0; });
+// id_Z combined with a Z -> B bridge must result in a Z -> B bridge
 static_assert(
     IsArrow<decltype(id<int>() >> arrow<int, bool>(IsPositive{})), int, bool>,
     "Unit Law: Identity must preserve the bridge from Z to B.");
@@ -551,14 +599,13 @@ static_assert(
 /**
  * @concept IsIsomorphism
  * @brief An Arrow f: A -> B with a guaranteed Inverse g: B -> A.
+ * @details Represents a reversible morphism. In Level 0, we verify
+ *          the structural existence of the 'Undo' path.
  */
 export template <typename F, typename A, typename B>
-concept IsIsomorphism = IsArrow<F, A, B> && requires(F f, B y) {
-  // We look for a structural 'inverse' morphism
+concept IsIsomorphism = IsArrow<F, A, B> && requires(F f) {
+  // We probe the global/partition 'inverse' bridge for this specific Morphism.
   { inverse(f) } -> IsArrow<B, A>;
-
-  // Categorical Proof: f ∘ inverse(f) == id_B
-  // In Level 0, we verify the EXISTENCE of the path.
 };
 
 /** @brief The structural inverse of an Identity is itself. */
@@ -567,8 +614,6 @@ template <typename T>
   return id;
 }
 
-/** @section Isomorphism Verification */
-
 // Proof: id_int is an isomorphism from int to int.
 static_assert(IsIsomorphism<Identity<int>, int, int>,
               "Identity must be a self-inverse isomorphism.");
@@ -576,6 +621,17 @@ static_assert(IsIsomorphism<Identity<int>, int, int>,
 // Proof: id_bool is an isomorphism from bool to bool.
 static_assert(IsIsomorphism<Identity<bool>, bool, bool>,
               "Identity must be a self-inverse isomorphism.");
+
+/** @brief The structural inverse of Negation is itself (Involutive). */
+template <typename A, typename B, typename Impl>
+  requires std::same_as<Impl, std::negate<A>>
+[[nodiscard]] constexpr auto inverse(Morphism<A, B, Impl> f) noexcept {
+  return f;  // Negate is its own inverse
+}
+
+// Proof: Tagged Negation is a formal Isomorphism.
+static_assert(IsIsomorphism<TaggedNegate, int, int>,
+              "Negation must be recognized as a reversible Morphism.");
 
 /**
  * @concept IsGroupoid
