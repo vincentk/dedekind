@@ -265,8 +265,7 @@ static_assert(IsMagmoid<int, std::modulus<int>>,
  *       only require this level of structure.
  */
 export template <typename T, typename Op>
-concept IsSemigroupoid =
-    IsMagmoid<T, Op> && requires { requires is_associative_v<T, Op> == true; };
+concept IsSemigroupoid = IsMagmoid<T, Op> && is_associative_v<T, Op>;
 
 /** @section Semigroupoid Verification: The Grouping Law */
 
@@ -281,6 +280,10 @@ static_assert(!IsSemigroupoid<int, std::minus<int>>,
 // 2. Proof: (int, &) is a Semigroupoid (Associative).
 static_assert(IsSemigroupoid<int, std::bit_and<int>>,
               "Bitwise: AND is associative.");
+
+// Proof: (int, *) is a Semigroupoid.
+static_assert(IsSemigroupoid<int, std::multiplies<int>>,
+              "Semigroupoid: Integer multiplication is associative.");
 
 /**
  * @concept IsSmallCategory
