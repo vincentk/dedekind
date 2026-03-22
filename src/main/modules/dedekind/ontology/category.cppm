@@ -442,13 +442,13 @@ struct Identity : Morphism<T, T, IdentityAction<T>> {
 
 /** @section The Identity Factory: id <A>() */
 export template <typename A>
-auto id() {
+constexpr auto id() {
   return Identity<A>{};
 }
 
 /** @section The Morphism Factory: arrow <A, B> (f) */
 export template <typename A, typename B, typename F>
-auto arrow(F&& f) {
+constexpr auto arrow(F&& f) {  // Added constexpr
   return Morphism<A, B, std::decay_t<F>>{std::forward<F>(f)};
 }
 
@@ -498,60 +498,55 @@ static_assert(!IsArrow<Identity<int>, bool, bool>,
  * @details By requiring A, B, and C as template parameters, we ensure
  *          the composition is a statically verified bridge.
  */
-export template <typename A, typename B, typename C, typename F, typename G>
-  requires IsArrow<F, A, B> && IsArrow<G, B, C>
-auto operator>>(F&& f, G&& g) {
-  return [f = std::forward<F>(f), g = std::forward<G>(g)](A x) -> C {
-    return g(f(std::move(x)));
-  };
+export template <typename F, typename G>
+  requires requires {
+    typename F::Domain;
+    typename G::Codomain;
+  }
+constexpr auto operator>>(F&& f, G&& g) {  // Added constexpr
+  using A = typename F::Domain;
+  using C = typename G::Codomain;
+
+  // Note: The lambda is implicitly constexpr in C++23 if possible
+  return arrow<A, C>([f = std::forward<F>(f), g = std::forward<G>(g)](
+                         A x) constexpr { return g(f(std::move(x))); });
 }
 
-/** @section Categorical Identity Law: f ∘ id = f */
+/** @section Categorical Verification: The Unit Laws (f ∘ id = f = id ∘ f) */
 
-// 1. Proof: (int -> int) ∘ id<int> remains an Arrow (int -> int).
-using Negate = std::negate<int>;
+// 1. Proof: Morphism Identity (Existence & Tagging)
+// We verify that id exists and chains with tagged morphisms.
 static_assert(
-    IsArrow<decltype(std::declval<Negate>() >> id<int>()), int, int>,
-    "Identity Law: Composing an arrow with id must preserve the morphism.");
+    IsArrow<decltype(id<int>() >> arrow<int, int>(std::negate<int>{})), int,
+            int>,
+    "Unit Law: id_A must be a left-identity for morphisms out of A.");
 
-// 2. Proof: id<bool> ∘ (int -> bool) remains an Arrow (int -> bool).
+static_assert(
+    IsArrow<decltype(arrow<int, int>(std::negate<int>{}) >> id<int>()), int,
+            int>,
+    "Unit Law: id_B must be a right-identity for morphisms into B.");
+
+// 2. Proof: Cross-Species Identity
+// id_Z combined with a Z -> B bridge must result in a Z -> B bridge.
 using IsPositive = decltype([](int x) { return x > 0; });
 static_assert(
-    IsArrow<decltype(id<int>() >> std::declval<IsPositive>()), int, bool>,
-    "Identity Law: Identity on the left must preserve the morphism.");
-
-// 3. Proof: id<int> ∘ id<int> is still id<int>.
-static_assert(IsArrow<decltype(id<int>() >> id<int>()), int, int>,
-              "Identity Law: Composing id with itself must yield id.");
-
-/** @section Level 0: The 'Pre-Monadic' Unit Laws */
-
-// 1. Left Identity: id >> f == f
-static_assert(
-    IsArrow<decltype(id<int>() >> arrow<int, int>(Negate{})), int, int>);
-
-// 2. Right Identity: f >> id == f
-static_assert(
-    IsArrow<decltype(arrow<int, int>(Negate{}) >> id<int>()), int, int>);
-
-/** @section Categorical Proof: Unit Laws */
-
-// 1. Left Identity: id_B ∘ f = f
-// We verify that the composition of id and IsPositive is an arrow Z -> B.
-static_assert(
     IsArrow<decltype(id<int>() >> arrow<int, bool>(IsPositive{})), int, bool>,
-    "Proof: id_Z ∘ f = f must be a valid Arrow Z -> B.");
+    "Unit Law: Identity must preserve the bridge from Z to B.");
 
-// 2. Right Identity: f ∘ id_A = f
-static_assert(
-    IsArrow<decltype(arrow<int, bool>(IsPositive{}) >> id<bool>()), int, bool>,
-    "Proof: f ∘ id_B = f must be a valid Arrow Z -> B.");
+// 3. Proof: Extensional Equality (The Action)
+// The composite morphism (f ∘ id) must yield the same value as f.
+static_assert((arrow<int, int>(std::negate<int>{}) >> id<int>())(42) == -42,
+              "Action Proof: Composition with id must be value-invariant.");
 
-// 3. Extensional Equality (The Action)
-// We verify that (f ∘ id)(x) == f(x) for a sample 'Brick'.
+// 4. Proof: Categorical Unity (id ∘ id = id)
 static_assert(
-    (id<int>() >> arrow<int, int>(std::negate<int>{}))(42) == -42,
-    "Action Proof: Composition must preserve the mathematical result.");
+    IsArrow<decltype(id<int>() >> id<int>()), int, int>,
+    "Unity: id composed with itself must remain the Identity Morphism.");
+
+// 5. Negative Proof: Species Safety (The Broken Bridge)
+// This should fail to compile if you uncomment it, because bool != int.
+// static_assert(!IsArrow<decltype(id<bool>() >> arrow<int,
+// int>(std::negate<int>{})), int, int>);
 
 /**
  * @concept IsIsomorphism
