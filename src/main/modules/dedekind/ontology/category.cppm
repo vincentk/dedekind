@@ -323,6 +323,50 @@ static_assert(!IsSmallCategory<int, std::bit_and<int>>,
               "Bitwise: AND lacks a universal neutral element in Z.");
 
 /**
+ * @concept IsCommutative
+ * @brief Represents the Symmetry Law (a ∘ b = b ∘ a) for a binary operation.
+ *
+ * @details In the Dedekind structuralist hierarchy, Commutativity is the
+ *          "Permission to Swap." It acts as a formal proof that the order
+ *          of operands is irrelevant to the final result of the morphism.
+ *
+ * @section Computational_Authority
+ * Unlike Associativity (which permits re-grouping), Commutativity permits
+ * structural re-ordering. This is the foundational requirement for:
+ * - Order-independent parallel reductions.
+ * - Hardware-level instruction scheduling (Out-of-Order Execution).
+ * - Simplification of DAG nodes by canonicalizing operand order (e.g., x + 1).
+ *
+ * @tparam T The coordinate species.
+ * @tparam Op The binary operation being verified for symmetry.
+ */
+export template <typename T, typename Op>
+concept IsCommutative = IsMagmoid<T, Op> && is_commutative_v<T, Op>;
+
+/** @section Commutative Verification: The Symmetry Law */
+
+// Proof: (int, &) is Commutative (even though it's not a SmallCategory).
+// This allows a compiler to reorder bitwise AND masks.
+static_assert(IsCommutative<int, std::bit_and<int>>,
+              "Commutative: Integer AND must allow operand swapping.");
+
+// Proof: (int, +) is Commutative.
+static_assert(IsCommutative<int, std::plus<int>>,
+              "Commutative: Integer addition is symmetric.");
+
+// Proof: (bool, ||) is Commutative.
+static_assert(IsCommutative<bool, std::logical_or<bool>>,
+              "Commutative: Boolean OR is symmetric.");
+
+// Negative Proof: (int, -) is NOT Commutative: 5 - 2 != 2 - 5.
+static_assert(!IsCommutative<int, std::minus<int>>,
+              "Commutative: Subtraction must fail the symmetry proof.");
+
+// Negative Proof: (int, /) is NOT Commutative.
+static_assert(!IsCommutative<int, std::divides<int>>,
+              "Commutative: Division must fail the symmetry proof.");
+
+/**
  * @concept IsAbelian
  * @brief A Category where the binary composition is Commutative (a ∘ b = b ∘
  * a).
@@ -334,7 +378,7 @@ static_assert(!IsSmallCategory<int, std::bit_and<int>>,
  *          mathematical essence of the result.
  */
 export template <typename T, typename Op>
-concept IsAbelian = IsSmallCategory<T, Op> && is_commutative_v<T, Op>;
+concept IsAbelian = IsSmallCategory<T, Op> && IsCommutative<T, Op>;
 
 /** @section Verification */
 static_assert(IsAbelian<int, std::plus<int>>);
