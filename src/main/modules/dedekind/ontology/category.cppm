@@ -400,9 +400,13 @@ concept IsArrow = requires(F f, A x) {
 static_assert(IsArrow<std::negate<int>, int, int>,
               "Arrow: Integer negation must map Z to Z.");
 
-// Proof: The 'Greater Than' operator is an Arrow from int to bool.
-static_assert(IsArrow<std::greater<int>, int, bool>,
-              "Arrow: Comparison must map Z to B.");
+// Proof: A bound comparison (x > 0) is an Arrow: Z -> B.
+static_assert(IsArrow<decltype([](int x) { return x > 0; }), int, bool>,
+              "Arrow: An anonymous bound comparison must map Z to B.");
+
+// Proof: A pure doubling function is an Arrow: Z -> Z.
+static_assert(IsArrow<decltype([](int x) { return x * 2; }), int, int>,
+              "Arrow: An anonymous scaling function must map Z to Z.");
 
 // Negative Proof: Addition is NOT a Unary Arrow (it's a Binary Morphism).
 static_assert(!IsArrow<std::plus<int>, int, int>,
@@ -415,14 +419,8 @@ static_assert(!IsArrow<std::plus<int>, int, int>,
  */
 export template <typename T>
 struct Identity final {
-  /**
-   * @brief The Identity Action.
-   * Perfect forwarding ensures that the morphism preserves the original
-   * value category and constness of the Domain object.
-   */
-  constexpr T&& operator()(T&& x) const noexcept {
-    return std::forward<T>(x);
-  }  // namespace dedekind::ontology
+  // It takes a T and returns a T. No state, no "bricks" inside.
+  constexpr T operator()(const T& x) const noexcept { return x; }
 };
 
 /** @section The Identity Factory: id<A>() */
@@ -443,10 +441,13 @@ template <typename T, typename Op>
 inline constexpr bool is_commutative_v<Identity<T>, Op> =
     is_commutative_v<T, Op>;
 
-// 3. The identity of Identity<T> is just the identity of T.
+/**
+ * @section Lifting Traits: Morphism Identity
+ * The identity element of the Identity Morphism under composition
+ * is the Identity Morphism itself (id ∘ id = id).
+ */
 template <typename T, typename Op>
-inline constexpr Identity<T> identity_v<Identity<T>, Op> =
-    Identity<T>{identity_v<T, Op>};
+inline constexpr Identity<T> identity_v<Identity<T>, Op> = Identity<T>{};
 
 /** @section Identity Verification */
 
@@ -458,6 +459,16 @@ static_assert(IsArrow<Identity<int>, int, int>,
 static_assert(IsArrow<Identity<bool>, bool, bool>,
               "Identity<bool> must be a morphism from bool to bool.");
 
+// 2. Proof: Identity is "Universal" for its Species.
+// We verify the factory id<A>() produces a valid Arrow (B -> B).
+static_assert(IsArrow<decltype(id<bool>()), bool, bool>,
+              "The id<A>() factory must produce a valid Arrow.");
+
+// 3. Negative Proof: Species Safety.
+// Identity OPEN int CLOSE is NOT an arrow for bool (no promotion allowed).
+static_assert(!IsArrow<Identity<int>, bool, bool>,
+              "Type Safety: Identity<int> cannot act on booleans.");
+
 /**
  * @section Categorical Composition (h = g ∘ f)
  * @brief Synthesizes an arrow A -> C from A -> B and B -> C.
@@ -468,14 +479,6 @@ auto operator>>(F&& f, G&& g) {
   // We return a new lambda that the compiler recognizes as IsArrow<h, A, C>
   return [f = std::forward<F>(f), g = std::forward<G>(g)](A x) mutable -> C {
     return g(f(std::move(x)));
-  };
-}
-
-/** @brief The Composition Morphism: (g ∘ f)(x) = g(f(x)) */
-export template <typename F, typename G>
-auto operator>>(F&& f, G&& g) {
-  return [f = std::forward<F>(f), g = std::forward<G>(g)](auto&& x) {
-    return g(f(std::forward<decltype(x)>(x)));
   };
 }
 
