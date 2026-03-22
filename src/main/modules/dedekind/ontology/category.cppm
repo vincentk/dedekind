@@ -205,6 +205,10 @@ concept IsSmallCategory = IsSemigroupoid<T, Op> && requires {
   { identity_v<T, Op> } -> std::convertible_to<T>;
 };
 
+// Verification: (bool, ∧) is a Small Category (Monoid) but NOT a Groupoid.
+static_assert(IsSmallCategory<bool, std::logical_and<bool>>,
+              "Logic: Boolean AND must be a valid Monoid.");
+
 /**
  * @concept IsAbelian
  * @brief A Category where the binary composition is Commutative (a ∘ b = b ∘
@@ -323,6 +327,16 @@ template <typename T>
   return id;
 }
 
+/** @section Isomorphism Verification */
+
+// Proof: id_int is an isomorphism from int to int.
+static_assert(IsIsomorphism<Identity<int>, int, int>,
+              "Identity must be a self-inverse isomorphism.");
+
+// Proof: id_bool is an isomorphism from bool to bool.
+static_assert(IsIsomorphism<Identity<bool>, bool, bool>,
+              "Identity must be a self-inverse isomorphism.");
+
 /**
  * @concept IsGroupoid
  * @brief A Category where every morphism is an Isomorphism (Invertible).
@@ -363,23 +377,16 @@ concept IsAbelianGroupoid = IsGroupoid<T, Op> && IsAbelian<T, Op>;
 
 /** @section Verification of the Standard Model */
 
-// Proof: (Z, +) is an Abelian Groupoid.
-static_assert(IsAbelianGroupoid<int, std::plus<int>>,
-              "Integer addition must be a reversible, symmetric action.");
-
 // Proof: (bool, &&) is NOT an Abelian Groupoid (It's an Abelian Monoid).
 static_assert(!IsAbelianGroupoid<bool, std::logical_and<bool>>,
               "Logic is symmetric but not reversible (Annihilation).");
 
-/** @section Isomorphism Verification */
+static_assert(IsAbelian<bool, std::logical_and<bool>>,
+              "Logic: AND must be commutative.");
 
-// Proof: id_int is an isomorphism from int to int.
-static_assert(IsIsomorphism<Identity<int>, int, int>,
-              "Identity must be a self-inverse isomorphism.");
-
-// Proof: id_bool is an isomorphism from bool to bool.
-static_assert(IsIsomorphism<Identity<bool>, bool, bool>,
-              "Identity must be a self-inverse isomorphism.");
+// Proof: (Z, +) is an Abelian Groupoid.
+static_assert(IsAbelianGroupoid<int, std::plus<int>>,
+              "Integer addition must be a reversible, symmetric action.");
 
 /**
  * @concept IsFunctor
