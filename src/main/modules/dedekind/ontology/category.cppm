@@ -396,6 +396,18 @@ concept IsArrow = requires(F f, A x) {
                         B>;
 };
 
+// Proof: Negation is an Arrow from int to int.
+static_assert(IsArrow<std::negate<int>, int, int>,
+              "Arrow: Integer negation must map Z to Z.");
+
+// Proof: The 'Greater Than' operator is an Arrow from int to bool.
+static_assert(IsArrow<std::greater<int>, int, bool>,
+              "Arrow: Comparison must map Z to B.");
+
+// Negative Proof: Addition is NOT a Unary Arrow (it's a Binary Morphism).
+static_assert(!IsArrow<std::plus<int>, int, int>,
+              "Arrow: Binary operators are not simple arrows.");
+
 /**
  * @brief The Identity Morphism (id_A)
  * The categorical anchor that returns the object unchanged.
