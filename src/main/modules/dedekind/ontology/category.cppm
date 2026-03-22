@@ -172,6 +172,20 @@ concept IsMagmoid = requires(T a, T b) {
   { Op{}(a, b) } -> std::convertible_to<T>;
 };
 
+/** @section Magmoid Verification: The Atomic Bricks */
+
+// Proof: Boolean AND is a Magmoid.
+static_assert(IsMagmoid<bool, std::logical_and<bool>>, 
+              "Magmoid: bool must be closed under logical conjunction.");
+
+// Proof: Integer Addition is a Magmoid.
+static_assert(IsMagmoid<int, std::plus<int>>, 
+              "Magmoid: int must be closed under addition.");
+
+// Proof: std::modulus is a Magmoid (even if it's not a Monoid).
+static_assert(IsMagmoid<int, std::modulus<int>>, 
+              "Magmoid: int must be closed under remainder.");
+
 /**
  * @concept IsSemigroupoid
  * @brief A Magmoid that satisfies the Associative Law.
@@ -187,6 +201,16 @@ concept IsMagmoid = requires(T a, T b) {
 export template <typename T, typename Op>
 concept IsSemigroupoid =
     IsMagmoid<T, Op> && requires { requires is_associative_v<T, Op> == true; };
+
+/** @section Semigroupoid Verification: The Grouping Law */
+
+// Proof: (int, +) is associative: (a + b) + c = a + (b + c).
+static_assert(IsSemigroupoid<int, std::plus<int>>, 
+              "Semigroupoid: Integer addition must allow re-grouping.");
+
+// Proof: (int, -) is NOT associative: (10 - 5) - 2 != 10 - (5 - 2).
+static_assert(!IsSemigroupoid<int, std::minus<int>>, 
+              "Semigroupoid: Subtraction must fail the grouping proof.");
 
 /**
  * @concept IsSmallCategory
@@ -352,6 +376,10 @@ concept IsGroupoid = IsSmallCategory<T, Op> && requires(T x) {
   // Every element must have an inverse relative to the operation Op
   { inverse<T, Op>(x) } -> std::same_as<T>;
 };
+
+// Verification: (bool, ∧) is a Small Category (Monoid) but NOT a Groupoid.
+static_assert(!IsGroupoid<bool, std::logical_and<bool>>,
+              "Logic: Boolean AND must not be a Groupoid.");
 
 /**
  * @concept IsAbelianGroupoid
