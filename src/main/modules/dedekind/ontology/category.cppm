@@ -874,15 +874,15 @@ export template <template <typename> typename F, template <typename> typename G,
            IsEndofunctor<G, decltype(η_X(std::declval<𝒯>())),
                          OpG>  // Simplified T mapping
 struct Naturality final {
-  using Source = 𝒯;
-  using Target = decltype(η_X(std::declval<𝒯>()));
+  using Domain = 𝒯;
+  using Codomain = decltype(η_X(std::declval<𝒯>()));
 
   /** @brief η_X : F⟨X⟩ → G⟨X⟩ */
-  constexpr Target operator()(Source x) const noexcept { return η_X(x); }
+  constexpr Codomain operator()(Domain x) const noexcept { return η_X(x); }
 
   /** @brief Axiom: η(id_F) = id_G */
   static constexpr bool preserves_identity() noexcept {
-    return η_X(identity_v<Source, OpF>) == identity_v<Target, OpG>;
+    return η_X(identity_v<Domain, OpF>) == identity_v<Codomain, OpG>;
   }
 };
 
@@ -974,7 +974,47 @@ export template <template <typename> typename G, typename OpF, typename OpG,
                  auto η_X>
 using η = unit<G, OpF, OpG, η_X>;
 
-constexpr int my_promotion_sauce(bool b) { return b ? 1 : 0; }
+/** @section Canonical_Embeddings: The One-Liner On-Ramps */
+
+// 1. Logic -> Character (B ↪ Z/256Z)
+export using η_bool_char =
+    unit<Identity, std::logical_and<bool>, std::plus<char>,
+         [](bool b) constexpr -> char { return b ? char(1) : char(0); }>;
+
+static_assert(std::same_as<typename η_bool_char::Domain, bool>,
+              "Discovery: η failed to extract 'bool' from the lambda.");
+
+// 2. Character -> Unsigned (Z/256Z ↪ Z_u)
+export using η_char_uint =
+    unit<Identity, std::plus<char>, std::plus<unsigned int>, [](char c) {
+      return static_cast<unsigned int>(static_cast<unsigned char>(c));
+    }>;
+
+static_assert(std::same_as<typename η_char_uint::Domain, char>,
+              "Discovery: η failed to extract 'char' from the lambda.");
+
+/**
+ * @brief Proof: Transitive Composition of Embeddings.
+ * We compose the two Natural Transformations into a single 'Long Bridge'.
+ * η_bool_uint = η_char_uint ∘ η_bool_char
+ */
+constexpr auto bool_to_uint = (η_bool_char{}) >> (η_char_uint{});
+
+// 1. Proof: The 'Long Bridge' is a valid Arrow (B -> Z_u).
+static_assert(IsArrow<decltype(bool_to_uint), bool, unsigned int>,
+              "Transitivity: The composed promotion must be a valid Arrow from "
+              "bool to uint.");
+
+// 2. Action Proof: Extensional Equality across the chain.
+// We verify that 'true' maps to '1' through the entire pipeline.
+static_assert(bool_to_uint(true) == 1u,
+              "Action: The escalator must preserve the 'True' identity (1) "
+              "across species.");
+
+// 3. Action Proof: The 'False' identity (0) preservation.
+static_assert(bool_to_uint(false) == 0u,
+              "Action: The escalator must preserve the 'False' identity (0) "
+              "across species.");
 
 /** @brief The Retraction Morphism (r: 𝒢 ⟹ 1_𝒞).
     Primary template is deleted to enforce explicit existence. */
@@ -1016,6 +1056,7 @@ concept IsEmbedding =
           decltype(retraction<𝒯, Op𝒯, Op𝒢, η_X>(η_X(std::declval<𝒯>()))), 𝒯>;
     };
 
+constexpr int my_promotion_sauce(bool b) { return b ? 1 : 0; }
 /** @section The Retraction for Bool-to-Int */
 template <>
 inline bool retraction<bool, std::logical_and<bool>, std::multiplies<int>,
