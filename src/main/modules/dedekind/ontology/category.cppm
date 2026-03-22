@@ -298,7 +298,7 @@ static_assert(IsSemigroupoid<int, std::multiplies<int>>,
  * The 'identity_v' trait provides the neutral element for the operation Op.
  */
 export template <typename T, typename Op>
-concept IsSmallCategory = IsSemigroupoid<T, Op> && is_associative_v<T, Op> &&
+concept IsSmallCategory = IsSemigroupoid<T, Op> &&
                           requires {
                             typename identity_trait<T, Op>;
                           } &&  // Ensure specialization exists
