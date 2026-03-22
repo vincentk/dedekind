@@ -893,14 +893,58 @@ export template <template <typename> typename ℱ, template <typename> typename 
                  typename 𝒯, typename Opℱ, typename Op𝒢, auto η_X>
 using natural_transformation = Naturality<ℱ, 𝒢, 𝒯, Opℱ, Op𝒢, η_X>;
 
-/** @brief Extracts the argument type from a function pointer. */
-template <typename T>
-struct morphism_traits;
+/** @section Internal_Morphism_Traits (Private to :category) */
 
+// Primary template: Redirects to member function pointer if T is a class
+template <typename T>
+struct morphism_traits : morphism_traits<decltype(&T::operator())> {};
+
+// Specialization for const member functions (Standard Lambdas)
+template <typename C, typename R, typename A>
+struct morphism_traits<R (C::*)(A) const> {
+  using argument_type = A;
+  using result_type = R;
+};
+
+// Specialization for non-const member functions (Mutable Lambdas)
+template <typename C, typename R, typename A>
+struct morphism_traits<R (C::*)(A)> {
+  using argument_type = A;
+  using result_type = R;
+};
+
+// Specialization for raw function pointers
 template <typename R, typename A>
 struct morphism_traits<R (*)(A)> {
   using argument_type = A;
+  using result_type = R;
 };
+
+// Specialization for raw function types (Final fallback)
+template <typename R, typename A>
+struct morphism_traits<R(A)> {
+  using argument_type = A;
+  using result_type = R;
+};
+
+/** @section Verification: Morphism Discovery */
+
+// 1. Proof: Discovery for raw function pointers.
+constexpr bool raw_func(int) { return true; }
+static_assert(std::same_as<morphism_traits<decltype(&raw_func)>::argument_type, int>,
+              "Discovery: Failed to extract argument from raw function pointer.");
+
+// 2. Proof: Discovery for anonymous lambdas.
+using IsZero = decltype([](int x) { return x == 0; });
+static_assert(std::same_as<morphism_traits<IsZero>::argument_type, int>,
+              "Discovery: Failed to extract argument from lambda.");
+
+// 3. Proof: Discovery for mutable lambdas (Stateful).
+using Counter = decltype([i = 0](int x) mutable { return x + i++; });
+static_assert(std::same_as<morphism_traits<Counter>::argument_type, int>,
+              "Discovery: Failed to extract argument from mutable lambda.");
+
+              
 
 /**
  * @section The Unit of the Functor (η: 1_𝒞 ⟹ G)
