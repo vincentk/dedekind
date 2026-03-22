@@ -768,6 +768,18 @@ constexpr auto lift(Morphism<A, B, Impl> f) {
   return f;
 }
 
+/** @section Lift Verification: Action & Preservation */
+
+// 1. Proof: Lifting 'Negate' via Identity preserves the result.
+static_assert(lift<Identity>(arrow<int, int>(Negate{}))(42) == -42,
+              "Lift: The Identity-lifted arrow must produce the same result.");
+
+// 2. Proof: Identity Law (F(id) = id).
+// We verify that lifting the identity morphism remains a valid Arrow.
+static_assert(
+    IsArrow<decltype(lift<Identity>(id<int>())), int, int>,
+    "Lift: Lifting the identity morphism must result in a valid Arrow.");
+
 /**
  * @concept IsFunctor
  * @brief A structure-preserving mapping between two Categories 𝒞 and 𝒟.
@@ -787,24 +799,18 @@ constexpr auto lift(Morphism<A, B, Impl> f) {
  * @tparam 𝒰   The Object in the Target Category 𝒟.
  * @tparam Op𝒰 The Composition Rule (Morphism) in 𝒟.
  */
-export template <template <typename> typename F, typename 𝒯, typename Op𝒯,
-                 typename 𝒰, typename Op𝒰>
-concept IsFunctor = IsSmallCategory<𝒯, Op𝒯> && IsSmallCategory<𝒰, Op𝒰> &&
-                    requires(F<𝒯> box, 𝒯 value) {
-                      typename F<𝒯>;
-                      // RELAXATION: F<𝒯> doesn't have to BE 𝒰, it just has to
-                      // MAP to it.
-                      // For Identity<bool>, this is true because it returns
-                      // bool.
-                      // requires std::same_as<F<𝒯>, 𝒰>;
-                      // PROBE: Use std::move to match the Identity(T&&)
-                      // signature
-                      { box(std::move(value)) } -> std::convertible_to<𝒰>;
-                      //{ box(value) } -> std::convertible_to<𝒰>;
-                      // 2. Morphism Mapping: f -> F(f)
-                      // We verify that 'lift' produces a valid arrow in the
-                      // target category.
-                      //{ lift<F>(f) } -> IsArrow<T, T>;
+export template <template <typename> typename F, typename T, typename OpT,
+                 typename U, typename OpU>
+concept IsFunctor = IsSmallCategory<T, OpT> && IsSmallCategory<U, OpU> &&
+                    requires(Morphism<T, T, IdentityAction<T>> f) {
+                      // 1. Object Mapping: Does the Species T exist in the Box
+                      // F?
+                      typename F<T>;
+
+                      // 2. Morphism Mapping: Can we lift an arrow f: T -> T
+                      // into the Functor? For an Endofunctor (T=U), this must
+                      // produce a valid Arrow T -> T.
+                      { lift<F>(f) } -> IsArrow<T, T>;
                     };
 
 /**
