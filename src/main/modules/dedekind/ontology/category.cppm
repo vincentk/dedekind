@@ -685,6 +685,23 @@ concept IsGroupoid = IsSmallCategory<T, Op> && requires(T x) {
   { inverse<T, Op>(x) } -> std::same_as<T>;
 };
 
+/** @section Groupoid Verification: The Symmetry Law */
+
+// 1. Proof: (int, +) is a Groupoid (Additive Group).
+// Since we defined inverse<int, plus>(x) as -x, this must pass.
+static_assert(IsGroupoid<int, std::plus<int>>,
+              "Arithmetic: Integer addition must be a Groupoid.");
+
+// 2. Proof: (int, ^) is a Groupoid (Self-inverse).
+// XOR is its own inverse, satisfying a ^ a = 0.
+static_assert(IsGroupoid<int, std::bit_xor<int>>,
+              "Bitwise: XOR must be a Groupoid.");
+
+// 3. Proof: (bool, ^) is a Groupoid (The Boolean Group).
+// Unlike AND/OR, XOR/NOT logic allows for perfect reversibility.
+static_assert(IsGroupoid<bool, std::bit_xor<bool>>,
+              "Logic: Boolean XOR must be a Groupoid.");
+
 // Verification: (bool, ∧) is a Small Category (Monoid) but NOT a Groupoid.
 static_assert(!IsGroupoid<bool, std::logical_and<bool>>,
               "Logic: Boolean AND must not be a Groupoid.");
