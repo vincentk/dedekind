@@ -567,12 +567,22 @@ inline bool retraction<bool, std::logical_and<bool>, std::multiplies<int>,
   return y != 0;  // The unique "Undo" for the promotion
 }
 
-constexpr int non_injective_sauce(bool) { return 0; }
-
-// Proof: Non-injective sauce must fail the IsEmbedding concept.
+/**
+ * @section Verification: The Injective Trap (Negative Proof)
+ * @brief Proves that a non-invertible mapping is rejected by the ontology.
+ *
+ * @details
+ * To be an 'IsEmbedding', a transformation must admit a 'retraction' (r).
+ * Since an anonymous lambda that collapses all inputs to '0' (Annihilation)
+ * cannot have a well-defined inverse mapping back to the Boolean domain,
+ * no 'retraction' specialization can exist.
+ *
+ * The concept correctly evaluates to 'false' because it cannot find the
+ * required "Undo" bridge for this specific morphism.
+ */
 static_assert(
     !IsEmbedding<Identity, bool, std::logical_and<bool>, std::multiplies<int>,
-                 non_injective_sauce>,
+                 [](bool) { return 0; }>,
     "Dedekind: Concept correctly identified a non-injective mapping.");
 
 /**
