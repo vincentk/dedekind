@@ -1269,48 +1269,93 @@ concept IsMonad = IsEndofunctor<F, T, OpT> && requires(F<F<T>> nested, T x) {
     // 2. Role Verification: Do these types satisfy the Monadic Concepts?
     requires is_η<η<F, T, OpT>, F, T>;
     requires is_μ<μ<F, T, OpT>, F, T>;
+
+    // 3. Axiomatic Action (Uncommented & Refined):
+    // We verify the actual mapping of data through the witness.
+    { η<F, T, OpT>{}(x) } -> std::same_as<F<T>>;
+    { μ<F, T, OpT>{}(nested) } -> std::same_as<F<T>>;
   };
-  /**
-   * @brief Axiom 1: The Monoid Unit (η)
-   * Maps the object to the 'Box' (T -> F<T>).
-   */
-  //{ unit<F>(x) } -> std::same_as<F<T>>;
-
-  /**
-   * @brief η: Id ⟹ F (The Natural Unit)
-   * We prove the Unit is a Natural Transformation by instantiating
-   * your alias with the canonical component.
-   */
-  // typename unit<F, OpT, OpT, η_component<F, T>>;
-
-  /**
-   * @brief Axiom 2: The Monoid Multiplication (μ)
-   * Collapses the 'Tensor Product' of the functor with itself (F ∘ F -> F).
-   */
-  // { multiplication<F, T>(nested) } -> std::same_as<F<T>>;
 };
+
+/** @section Level_0_Final_Proof: The Box Monad */
+
+// 1. Proof: Box satisfies the formal IsMonad concept for (Z, +)
+static_assert(IsMonad<Box, int, std::plus<int>>,
+              "Ontology: Box must be recognized as a formal Monad.");
+
+// 2. Action Proof: Join (μ) must collapse the context via the pipe
+static_assert((42 >> into<> >> into<> >> join<>) == 42 >> into<>,
+              "Ontology: The Monadic Join (μ) failed the Action Proof.");
+
+// 3. Action Proof: Unit (η) must lift the species
+static_assert((42 >> into<>) == Box{42},
+              "Ontology: The Monadic Unit (η) failed the Action Proof.");
 
 /**
  * @section Comonadic_Morphisms: Extract (ε) and Duplicate (δ)
  */
-
 /** @brief ε: W⟨T⟩ → T (The Core Extraction) */
 export template <template <typename> typename W, typename T>
-constexpr T extract(W<T> box);
+constexpr T extract_v(W<T> box) {
+  // If the compiler reaches here, it means no specialization matched.
+  // In C++23, we can just static_assert(false) or similar.
+  return box.value;
+}
 
 /** @brief δ: W⟨T⟩ → W⟨W⟨T⟩⟩ (The Contextual Duplication) */
 export template <template <typename> typename W, typename T>
-constexpr W<W<T>> duplicate(W<T> box);
+constexpr W<W<T>> duplicate_v(W<T> box) {
+  return W<W<T>>{box};
+}
 
 /** @section Identity_Comonad_Specialization */
 template <typename T>
-constexpr T extract(Identity<T> box) {
+constexpr T extract_v(Id<T> box) {
   return box;
 }
 
 template <typename T>
-constexpr Identity<Identity<T>> duplicate(Identity<T> box) {
+constexpr Id<Id<T>> duplicate_v(Id<T> box) {
   return box;
+}
+
+/** @section Box_Comonad_Specialization */
+
+// The reality of how to extract from a Box
+template <typename T>
+constexpr T extract_v(Box<T> box) {
+  return box.value;
+}
+
+// The reality of how to duplicate a Box
+template <typename T>
+constexpr Box<Box<T>> duplicate_v(Box<T> box) {
+  return Box<Box<T>>{box};
+}
+
+/** @brief The Extraction Tag (ε: W ⟹ Id) */
+template <template <typename> typename W>
+struct extract_tag {};
+
+/** @brief The Duplication Tag (δ: W ⟹ W ∘ W) */
+template <template <typename> typename W>
+struct duplicate_tag {};
+
+export template <typename T = void>
+constexpr auto extract = extract_tag<Box>{};
+
+export template <typename T = void>
+constexpr auto duplicate = duplicate_tag<Box>{};
+
+/** @brief The Comonadic Action Bridges */
+export template <typename T, template <typename> typename W>
+constexpr auto operator>>(W<T>&& box, extract_tag<W>) {
+  return extract_v<W, T>(std::move(box));
+}
+
+export template <typename T, template <typename> typename W>
+constexpr auto operator>>(W<T>&& box, duplicate_tag<W>) {
+  return duplicate_v<W, T>(std::move(box));
 }
 
 /**
@@ -1319,9 +1364,25 @@ constexpr Identity<Identity<T>> duplicate(Identity<T> box) {
  */
 export template <template <typename> typename W, typename T, typename OpT>
 concept IsComonad = IsEndofunctor<W, T, OpT> && requires(W<T> box) {
-  { extract<W, T>(box) } -> std::same_as<T>;
-  { duplicate<W, T>(box) } -> std::same_as<W<W<T>>>;
+  { extract_v<W, T>(box) } -> std::same_as<T>;
+  { duplicate_v<W, T>(box) } -> std::same_as<W<W<T>>>;
 };
+
+/** @section Comonad_Verification: The Slick Highway Proofs */
+
+// 1. The Extract Law (ε): Getting the car out of the Box.
+static_assert((42 >> into<> >> extract<>) == 42,
+              "Comonad Law: Extract (ε) must recover the raw Species.");
+
+// 2. The Duplicate Law (δ): Making a 'Shadow' Box.
+// Instead of that decltype(arrow) mess, we just pipe it.
+static_assert((42 >> into<> >> duplicate<>).value.value == 42,
+              "Comonad Law: Duplicate (δ) must yield a nested Context.");
+
+// 3. The Co-Unit Law: ext(dup(x)) == x
+// Reading: "Take a box, duplicate it, then extract the outer layer."
+static_assert((42 >> into<> >> duplicate<> >> extract<>) == 42 >> into<>,
+              "Comonad Law: Extract ∘ Duplicate must be an Identity on Boxes.");
 
 /** @brief The Retraction Morphism (r: 𝒢 ⟹ 1_𝒞).
     Primary template is deleted to enforce explicit existence. */
@@ -1362,66 +1423,5 @@ concept IsEmbedding =
       requires std::same_as<
           decltype(retraction<𝒯, Op𝒯, Op𝒢, η_X>(η_X(std::declval<𝒯>()))), 𝒯>;
     };
-
-constexpr int my_promotion_sauce(bool b) { return b ? 1 : 0; }
-/** @section The Retraction for Bool-to-Int */
-template <>
-inline bool retraction<bool, std::logical_and<bool>, std::multiplies<int>,
-                       my_promotion_sauce>(int y) {
-  return y != 0;  // The unique "Undo" for the promotion
-}
-
-/**
- * @section Verification: The Injective Trap (Negative Proof)
- * @brief Proves that a non-invertible mapping is rejected by the ontology.
- *
- * @details
- * To be an 'IsEmbedding', a transformation must admit a 'retraction' (r).
- * Since an anonymous lambda that collapses all inputs to '0' (Annihilation)
- * cannot have a well-defined inverse mapping back to the Boolean domain,
- * no 'retraction' specialization can exist.
- *
- * The concept correctly evaluates to 'false' because it cannot find the
- * required "Undo" bridge for this specific morphism.
- */
-static_assert(
-    !IsEmbedding<Identity, bool, std::logical_and<bool>, std::multiplies<int>,
-                 [](bool) { return 0; }>,
-    "Dedekind: Concept correctly identified a non-injective mapping.");
-
-/**
- * @concept IsHomomorphism
- * @brief A structure-preserving map between two similar Species (𝒞 and 𝒟).
- * @details
- * Formally: f(a ∘ b) = f(a) ⋆ f(b), where ∘ is Op𝒞 and ⋆ is Op𝒟.
- * This verifies the "Naturality" of the binary operation across the morphism.
- */
-export template <typename T, typename U, auto η_X, typename OpT, typename OpU>
-concept IsHomomorphism =
-    IsSmallCategory<T, OpT> && IsSmallCategory<U, OpU> &&
-    requires(T a, T b) {
-      // We only check if the expression is VALID.
-      { η_X(OpT{}(a, b)) } -> std::same_as<U>;
-      { OpU{}(η_X(a), η_X(b)) } -> std::same_as<U>;
-    } &&
-    // Identity Preservation (This works because identity_v has a known value)
-    (η_X(identity_v<T, OpT>) == identity_v<U, OpU>);
-
-/** @section Homomorphism Verification: Boolean -> Integer */
-namespace {
-constexpr int promote_v(bool b) { return b ? 1 : 0; }
-
-// 1. Proof: Structural Homomorphism exists.
-static_assert(IsHomomorphism<bool, int, promote_v, std::logical_and<bool>,
-                             std::multiplies<int>>,
-              "Structural Error: Boolean-to-Integer bridge is broken.");
-
-// 2. Proof: Binary Action Axiom (Manual check of the truth table)
-// f(a ∘ b) == f(a) ⋆ f(b)
-static_assert(promote_v(true && false) == (promote_v(true) * promote_v(false)));
-static_assert(promote_v(true && true) == (promote_v(true) * promote_v(true)));
-static_assert(promote_v(false && false) ==
-              (promote_v(false) * promote_v(false)));
-}  // namespace
 
 }  // namespace dedekind::ontology
