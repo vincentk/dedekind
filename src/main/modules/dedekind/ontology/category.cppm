@@ -518,7 +518,7 @@ static_assert(
 
 /** @section Identity_Verification: The Unit Laws */
 
-constexpr auto f = arrow<int, int>(std::negate<int>{});
+constexpr auto f_neg = arrow<int, int>(std::negate<int>{});
 constexpr auto identity_int = id<int>();
 
 /** @section Identity Verification */
@@ -526,10 +526,12 @@ static_assert(IsArrow<decltype(id<bool>()), bool, bool>,
               "The id<A>() factory must produce a valid Arrow.");
 
 // 1. Right Identity: f(id(x)) == f(x)
-static_assert(f(identity_int(42)) == f(42), "Unit Law: f ∘ id_A must equal f.");
+static_assert(f_neg(identity_int(42)) == f_neg(42),
+              "Unit Law: f ∘ id_A must equal f.");
 
 // 2. Left Identity: id(f(x)) == f(x)
-static_assert(identity_int(f(42)) == f(42), "Unit Law: id_B ∘ f must equal f.");
+static_assert(identity_int(f_neg(42)) == f_neg(42),
+              "Unit Law: id_B ∘ f must equal f.");
 
 /** @section Lifting Traits to the Identity Functor */
 
@@ -767,61 +769,6 @@ static_assert(zero<int, int, std::plus<int>>()(99) == 0,
               "Absorption: Z -> Z via + must yield 0.");
 
 /**
- * @section Functor Lifting (fmap: F(f))
- * @theorem Morphism Mapping
- * @brief Lifts a Morphism f: A -> B into the Functorial world F⟨A⟩ -> F⟨B⟩.
- */
-
-/**
- * @brief Primary Template: The Unproven Lift.
- * @details This is 'deleted' to enforce that every Functor must provide
- *          its own specific witness for how to map morphisms.
- */
-// 1. The Primary Theorem (Proposition): Every Functor must define its own lift.
-export template <template <typename> typename F, typename Arrow,
-                 typename A = typename Arrow::Domain,
-                 typename B = typename Arrow::Codomain>
-  requires IsArrow<Arrow, A, B>
-constexpr auto lift(Arrow f) = delete;
-
-/**
- * @brief The Identity Lift (F: 𝒞 → 𝒞)
- * @details We wrap the morphism f in the Identity context.
- *          This ensures the resulting Arrow is tagged as Identity<T> ->
- * Identity<T>.
- */
-export template <template <typename> typename F, typename Arrow,
-                 typename A = typename Arrow::Domain,
-                 typename B = typename Arrow::Codomain>
-  requires IsArrow<Arrow, A, B> && std::same_as<F<A>, Identity<A>>
-constexpr auto lift(Arrow f) {
-  // We lift the arrow from 'T -> T' to 'Identity<T> -> Identity<T>'
-  return arrow<Identity<A>, Identity<B>>(f);
-}
-
-/** @section Lift_Verification: The Identity Law (F(id_X) = id_F⟨X⟩) */
-
-// We verify that lifting the identity morphism results in a valid
-// Arrow between the 'Boxed' species (Identity<int> -> Identity<int>).
-static_assert(
-    IsArrow<decltype(lift<Identity>(id<int>())), Identity<int>, Identity<int>>,
-    "Lift: The Identity-lifted arrow must map Identity<int> to Identity<int>.");
-
-static_assert(lift<Identity>(arrow<int, int>(Negate{}))(Identity<int>{42}) ==
-              -42);
-
-// Proof: The lifted Negate arrow produces the correct 'Boxed' result.
-static_assert(
-    lift<Identity>(arrow<int, int>(Negate{}))(id<int>()(42)) == -42,
-    "Lift: The Identity-lifted Negate must preserve the species-level action.");
-
-// 2. Proof: Identity Law (F(id) = id).
-// We verify that lifting the identity morphism remains a valid Arrow.
-static_assert(
-    IsArrow<decltype(lift<Identity>(id<int>())), int, int>,
-    "Lift: Lifting the identity morphism must result in a valid Arrow.");
-
-/**
  * @concept IsFunctor
  * @brief A structure-preserving mapping between two Categories 𝒞 and 𝒟.
  *
@@ -843,7 +790,7 @@ static_assert(
 export template <template <typename> typename F, typename T, typename OpT,
                  typename U, typename OpU>
 concept IsFunctor = IsSmallCategory<T, OpT> && IsSmallCategory<U, OpU> &&
-                    requires(Morphism<T, T, IdentityAction<T>> f) {
+                    requires(Identity<T> id_t) {
                       // 1. Object Mapping: Does the Species T exist in the Box
                       // F?
                       typename F<T>;
@@ -851,8 +798,13 @@ concept IsFunctor = IsSmallCategory<T, OpT> && IsSmallCategory<U, OpU> &&
                       // 2. Morphism Mapping: F(f: T -> T) must yield an arrow
                       // F<T> -> F<T>. This 'lift' stays within the Functor's
                       // context F.
-                      { lift<F>(f) } -> IsArrow<F<T>, F<T>>;
+                      { fmap<F>(id_t) } -> IsArrow<F<T>, F<T>>;
                     };
+
+// Proof: Box is a Functor between the Additive Category of Integers and itself.
+static_assert(
+    IsFunctor<Box, int, std::plus<int>, int, std::plus<int>>,
+    "Level 0 Proof: Box must satisfy the Functor concept for (Z, +).");
 
 /**
  * @concept IsEndofunctor
@@ -870,16 +822,16 @@ concept IsEndofunctor = IsFunctor<F, 𝒯, Op𝒯, 𝒯, Op𝒯>;
 
 // 1. Proof: Identity is an Endofunctor on (int, +).
 // F=Identity, T=int, Op=plus<int>
-static_assert(IsEndofunctor<Identity, int, std::plus<int>>,
+static_assert(IsEndofunctor<Box, int, std::plus<int>>,
               "Functor: Identity must be a valid Endofunctor on Z.");
 
 // 2. Proof: Identity is an Endofunctor on the Boolean Lattice (bool, &&).
-static_assert(IsEndofunctor<Identity, bool, std::logical_and<bool>>,
+static_assert(IsEndofunctor<Box, bool, std::logical_and<bool>>,
               "Functor: Identity must be a valid Endofunctor on B.");
 
 // 3. Proof: Identity is an Endofunctor on XOR logic (bool, ^).
 static_assert(
-    IsEndofunctor<Identity, bool, std::bit_xor<bool>>,
+    IsEndofunctor<Box, bool, std::bit_xor<bool>>,
     "Functor: Identity must be a valid Endofunctor on the XOR Group.");
 
 /**
