@@ -524,6 +524,17 @@ constexpr auto id() {
   return Identity<A>{};
 }
 
+/** @brief The Identity Functor: F(X) = X. (The "Invisible Box") */
+export template <typename T>
+using Id = T; 
+
+/** @brief fmap for the Identity Functor: F(f) = f. */
+export template <template <typename> typename F, typename Arrow>
+  requires std::same_as<F<typename Arrow::Domain>, typename Arrow::Domain>
+constexpr auto fmap(Arrow f) {
+  return f; // The invisible box doesn't change the highway.
+}
+
 /** @section Verification: The Identity Law (F(id_X) = id_F<X>) */
 
 // Proof: Lifting the identity morphism on 'int' gives us an arrow on
@@ -532,9 +543,9 @@ static_assert(IsArrow<decltype(fmap<Box>(id<int>())), Box<int>, Box<int>>,
               "Identity Law: fmap(id) must preserve the Boxed species.");
 
 // Proof: The lifted Negate morphism correctly transforms a Boxed value.
-static_assert(
-    fmap<Box>(endo<int>(std::negate<int>{}))(Box<int>{42}).value == -42,
-    "Action: fmap(f) must preserve the underlying machine logic.");
+static_assert(fmap<Box>(endo<int>(std::negate<int>{}))(Box<int>{42}).value ==
+                  -42,
+              "Action: fmap(f) must preserve the underlying machine logic.");
 
 /** @section Identity_Verification: The Unit Laws */
 
@@ -603,8 +614,7 @@ static_assert(
     "Unit Law: id_A must be a left-identity for morphisms out of A.");
 
 static_assert(
-    IsArrow<decltype(endo<int>(std::negate<int>{}) >> id<int>()), int,
-            int>,
+    IsArrow<decltype(endo<int>(std::negate<int>{}) >> id<int>()), int, int>,
     "Unit Law: id_B must be a right-identity for morphisms into B.");
 
 // 2. Proof: Cross-Species Identity
@@ -854,13 +864,12 @@ static_assert(
     IsEndofunctor<Box, bool, std::bit_xor<bool>>,
     "Functor: Identity must be a valid Endofunctor on the XOR Group.");
 
-
 /** @brief The Functorial Bridge Tag. */
 template <template <typename> typename F>
 struct fmap_tag {};
 
 /** @brief Global witness for Box mapping. */
-export template <typename T = void> // Template to keep it header-friendly
+export template <typename T = void>  // Template to keep it header-friendly
 constexpr auto Boxed = fmap_tag<Box>{};
 
 /** @brief Postfix Operator: arrow >> Boxed */
@@ -885,23 +894,22 @@ constexpr auto operator>>(T&& value, into_tag<F>) {
   return F<std::decay_t<T>>{std::forward<T>(value)};
 }
 
-/** 
+/**
  * @section The Action Bridge (Value >> Arrow)
  * @brief Proposition: A Value x can be piped into a Morphism f: A -> B.
- * @details This is the terminal step of a Highway pipeline. It maps the 
+ * @details This is the terminal step of a Highway pipeline. It maps the
  *          Species-level data into the Codomain result.
- * 
+ *
  * @tparam T     The Input Value type (The 'Car').
  * @tparam Arrow The Morphism type (The 'Highway').
- * 
+ *
  * @note Syntactic Sugar: x >> f ≡ f(x).
  */
 export template <typename T, typename Arrow>
-  requires IsArrow<Arrow, typename Arrow::Domain, typename Arrow::Codomain>
-           && std::convertible_to<T, typename Arrow::Domain>
-constexpr auto operator>>(T&& value, const Arrow& f) 
-  -> typename Arrow::Codomain 
-{
+  requires IsArrow<Arrow, typename Arrow::Domain, typename Arrow::Codomain> &&
+           std::convertible_to<T, typename Arrow::Domain>
+constexpr auto operator>>(T&& value, const Arrow& f) ->
+    typename Arrow::Codomain {
   return f(std::forward<T>(value));
 }
 
@@ -919,7 +927,8 @@ static_assert((41 >> into<> >> (increment >> Boxed<>)).value == 42,
 // Reading: "Take 10, put it INTO a Box, then increment it, then negate it."
 constexpr auto negate = endo<int>(std::negate<int>{});
 
-static_assert((10 >> into<> >> (increment >> Boxed<>) >> (negate >> Boxed<>)).value == -11,
+static_assert((10 >> into<> >> (increment >> Boxed<>) >> (negate >> Boxed<>))
+                      .value == -11,
               "Pipeline: Multi-stage functorial composition failed.");
 
 /** @brief The Join/Flatten Tag (μ: F ∘ F ⟹ F) */
@@ -980,8 +989,7 @@ export template <typename Alpha, template <typename> typename F,
                  template <typename> typename G, typename T, typename U,
                  typename OpT, typename OpU>
 concept IsNaturalTransformation =
-    IsFunctor<F, T, OpT, T, OpT> && 
-    IsFunctor<G, U, OpU, U, OpU> &&
+    IsFunctor<F, T, OpT, T, OpT> && IsFunctor<G, U, OpU, U, OpU> &&
     IsArrow<Alpha, F<T>, G<U>>;
 
 /**
@@ -989,9 +997,9 @@ concept IsNaturalTransformation =
  * @brief The "Highway" Theorem: F ⟹ G where F, G : 𝒞 → 𝒞.
  * @details Reduces the 7-parameter boilerplate to 5 for the 99% case.
  */
-export template <typename Alpha, template <typename> typename F, 
+export template <typename Alpha, template <typename> typename F,
                  template <typename> typename G, typename T, typename Op>
-concept IsNaturalEndoTransformation = 
+concept IsNaturalEndoTransformation =
     IsNaturalTransformation<Alpha, F, G, T, T, Op, Op>;
 
 /**
@@ -1037,8 +1045,10 @@ struct Naturality final {
 
 /**
  * @struct NaturalEndo
- * @brief Ergonomic Witness for transformations within the same Category (𝒞 → 𝒞).
- * @details Reduces the 7-parameter boilerplate to 5 for the common endofunctor case.
+ * @brief Ergonomic Witness for transformations within the same Category (𝒞 →
+ * 𝒞).
+ * @details Reduces the 7-parameter boilerplate to 5 for the common endofunctor
+ * case.
  */
 export template <template <typename> typename F, template <typename> typename G,
                  typename T, typename Op, auto η_X>
@@ -1134,12 +1144,12 @@ using unit_endo = unit<F, G, Op, Op, η_X>;
 
 // 1. Logic -> Character (B ↪ Z/256Z)
 export using η_bool_char =
-    unit<Identity, Identity, std::logical_and<bool>, std::multiplies<char>,
+    unit<Id, Id, std::logical_and<bool>, std::multiplies<char>,
          [](bool b) constexpr -> char { return b ? char(1) : char(0); }>;
 
 // 2. Character -> Unsigned (Z/256Z ↪ Z_u)
 export using η_char_uint =
-    unit<Identity, Identity, std::plus<char>, std::plus<unsigned int>,
+    unit<Id, Id, std::plus<char>, std::plus<unsigned int>,
          [](char c) {
            return static_cast<unsigned int>(static_cast<char>(c));
          }>;
@@ -1148,14 +1158,17 @@ export using η_char_uint =
 
 // 1. Logic -> Character (B ↪ Z/256Z)
 // Path: bool >> η >> char_op   must equal  bool >> bool_op >> η
-constexpr auto f_bool = endo<bool>([](bool x) { return !x; }); // A bool endomorphism
-constexpr auto g_char = endo<char>([](char x) { return x == 0 ? 1 : 0; }); // Corresponding char endomorphism
+constexpr auto f_bool =
+    endo<bool>([](bool x) { return !x; });  // A bool endomorphism
+constexpr auto g_char = endo<char>(
+    [](char x) { return x == 0 ? 1 : 0; });  // Corresponding char endomorphism
 
-static_assert((true >> η_bool_char{} >> g_char) == (true >> f_bool >> η_bool_char{}),
+static_assert((true >> η_bool_char{} >> g_char) ==
+                  (true >> f_bool >> η_bool_char{}),
               "Naturality: η_bool_char failed to commute on the Highway.");
 
 // 2. Character -> Unsigned (Z/256Z ↪ Z_u)
-static_assert((char{42} >> η_char_uint{}) == 42u, 
+static_assert((char{42} >> η_char_uint{}) == 42u,
               "Action: η_char_uint must be a bit-faithful promotion.");
 
 /**
