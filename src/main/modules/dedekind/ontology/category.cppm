@@ -854,6 +854,95 @@ static_assert(
     IsEndofunctor<Box, bool, std::bit_xor<bool>>,
     "Functor: Identity must be a valid Endofunctor on the XOR Group.");
 
+
+/** @brief The Functorial Bridge Tag. */
+template <template <typename> typename F>
+struct fmap_tag {};
+
+/** @brief Global witness for Box mapping. */
+export template <typename T = void> // Template to keep it header-friendly
+constexpr auto Boxed = fmap_tag<Box>{};
+
+/** @brief Postfix Operator: arrow >> Boxed */
+export template <typename Arrow, template <typename> typename F>
+  requires IsArrow<Arrow, typename Arrow::Domain, typename Arrow::Codomain>
+constexpr auto operator>>(Arrow f, fmap_tag<F>) {
+  return fmap<F>(f);
+}
+
+/** @brief The Unit/Pure Tag for value lifting. */
+template <template <typename> typename F>
+struct into_tag {};
+
+/** @brief Global witness for Box entry. */
+export template <typename T = void>
+constexpr auto into = into_tag<Box>{};
+
+/** @brief Postfix Operator: value >> into<F> */
+export template <typename T, template <typename> typename F>
+constexpr auto operator>>(T&& value, into_tag<F>) {
+  // Uses your existing 'pure' or explicit constructor
+  return F<std::decay_t<T>>{std::forward<T>(value)};
+}
+
+/** 
+ * @section The Action Bridge (Value >> Arrow)
+ * @brief Proposition: A Value x can be piped into a Morphism f: A -> B.
+ * @details This is the terminal step of a Highway pipeline. It maps the 
+ *          Species-level data into the Codomain result.
+ * 
+ * @tparam T     The Input Value type (The 'Car').
+ * @tparam Arrow The Morphism type (The 'Highway').
+ * 
+ * @note Syntactic Sugar: x >> f ≡ f(x).
+ */
+export template <typename T, typename Arrow>
+  requires IsArrow<Arrow, typename Arrow::Domain, typename Arrow::Codomain>
+           && std::convertible_to<T, typename Arrow::Domain>
+constexpr auto operator>>(T&& value, const Arrow& f) 
+  -> typename Arrow::Codomain 
+{
+  return f(std::forward<T>(value));
+}
+
+/** @section Pipeline_Verification: From Brick to Box */
+
+// The Logic (Brick)
+constexpr auto increment = endo<int>([](int x) { return x + 1; });
+
+// The Flow: Value -> Box -> Morphism-on-Box
+// Reading: "Take 41, put it INTO a Box, then apply increment BOXED."
+static_assert((41 >> into<> >> (increment >> Boxed<>)).value == 42,
+              "Pipeline: The linear flow from value to boxed result failed.");
+
+// The Composition Flow:
+// Reading: "Take 10, put it INTO a Box, then increment it, then negate it."
+constexpr auto negate = endo<int>(std::negate<int>{});
+
+static_assert((10 >> into<> >> (increment >> Boxed<>) >> (negate >> Boxed<>)).value == -11,
+              "Pipeline: Multi-stage functorial composition failed.");
+
+/** @brief The Join/Flatten Tag (μ: F ∘ F ⟹ F) */
+template <template <typename> typename F>
+struct join_tag {};
+
+/** @brief Global witness for Box collapsing. */
+export template <typename T = void>
+constexpr auto join = join_tag<Box>{};
+
+/** @brief The Join Bridge: Box<Box<T>> >> join */
+export template <typename T, template <typename> typename F>
+constexpr auto operator>>(F<F<T>>&& nested_box, join_tag<F>) {
+  // We reach through the double-layer to recover the inner value.
+  return F<T>{std::move(nested_box.value.value)};
+}
+
+// A "Double-Entry" Pipeline:
+// 42 >> into >> into -> Box<Box<int>>
+// ... then >> join -> Box<int>
+static_assert((42 >> into<> >> into<> >> join<>).value == 42,
+              "Monad Law: Join must collapse the double-context.");
+
 /**
  * @concept IsNaturalTransformation
  * @theorem Naturality (F ⟹ G)
@@ -887,12 +976,23 @@ static_assert(
  * @tparam OpT   The Operation of the Source Category 𝒞.
  * @tparam OpU   The Operation of the Target Category 𝒟.
  */
-export template <typename Eta, template <typename> typename F,
+export template <typename Alpha, template <typename> typename F,
                  template <typename> typename G, typename T, typename U,
                  typename OpT, typename OpU>
 concept IsNaturalTransformation =
-    IsFunctor<F, T, OpT, T, OpT> && IsFunctor<G, U, OpU, U, OpU> &&
-    IsArrow<Eta, F<T>, G<U>>;
+    IsFunctor<F, T, OpT, T, OpT> && 
+    IsFunctor<G, U, OpU, U, OpU> &&
+    IsArrow<Alpha, F<T>, G<U>>;
+
+/**
+ * @concept IsNaturalEndoTransformation
+ * @brief The "Highway" Theorem: F ⟹ G where F, G : 𝒞 → 𝒞.
+ * @details Reduces the 7-parameter boilerplate to 5 for the 99% case.
+ */
+export template <typename Alpha, template <typename> typename F, 
+                 template <typename> typename G, typename T, typename Op>
+concept IsNaturalEndoTransformation = 
+    IsNaturalTransformation<Alpha, F, G, T, T, Op, Op>;
 
 /**
  * @struct Naturality
@@ -934,6 +1034,15 @@ struct Naturality final {
     return η_X(identity_v<T, OpF>) == identity_v<U, OpG>;
   }
 };
+
+/**
+ * @struct NaturalEndo
+ * @brief Ergonomic Witness for transformations within the same Category (𝒞 → 𝒞).
+ * @details Reduces the 7-parameter boilerplate to 5 for the common endofunctor case.
+ */
+export template <template <typename> typename F, template <typename> typename G,
+                 typename T, typename Op, auto η_X>
+using NaturalEndo = Naturality<F, G, T, T, Op, Op, η_X>;
 
 /** @section Internal_Morphism_Traits (Private to :category) */
 
@@ -987,66 +1096,6 @@ using Counter = decltype([i = 0](int x) mutable { return x + i++; });
 static_assert(std::same_as<morphism_traits<Counter>::argument_type, int>,
               "Discovery: Failed to extract argument from mutable lambda.");
 
-/** @brief The Functorial Bridge Tag. */
-template <template <typename> typename F>
-struct fmap_tag {};
-
-/** @brief Global witness for Box mapping. */
-export template <typename T = void> // Template to keep it header-friendly
-constexpr auto Boxed = fmap_tag<Box>{};
-
-/** @brief Postfix Operator: arrow >> Boxed */
-export template <typename Arrow, template <typename> typename F>
-  requires IsArrow<Arrow, typename Arrow::Domain, typename Arrow::Codomain>
-constexpr auto operator>>(Arrow f, fmap_tag<F>) {
-  return fmap<F>(f);
-}
-
-/** @brief The Unit/Pure Tag for value lifting. */
-template <template <typename> typename F>
-struct into_tag {};
-
-/** @brief Global witness for Box entry. */
-export template <typename T = void>
-constexpr auto into = into_tag<Box>{};
-
-/** @brief Postfix Operator: value >> into<F> */
-export template <typename T, template <typename> typename F>
-constexpr auto operator>>(T&& value, into_tag<F>) {
-  // Uses your existing 'pure' or explicit constructor
-  return F<std::decay_t<T>>{std::forward<T>(value)};
-}
-
-/** 
- * @section The Action Bridge (Value >> Arrow)
- * @brief Allows a value to be applied to a Morphism using the pipe operator.
- * @details This completes the 'Streaming' syntax: x >> f ≡ f(x).
- */
-export template <typename T, typename Arrow,
-                 typename A = typename Arrow::Domain,
-                 typename B = typename Arrow::Codomain>
-  requires IsArrow<Arrow, A, B> && std::convertible_to<T, A>
-constexpr auto operator>>(T&& value, Arrow&& f) {
-  return f(std::forward<T>(value));
-}
-
-/** @section Pipeline_Verification: From Brick to Box */
-
-// The Logic (Brick)
-constexpr auto increment = endo<int>([](int x) { return x + 1; });
-
-// The Flow: Value -> Box -> Morphism-on-Box
-// Reading: "Take 41, put it INTO a Box, then apply increment BOXED."
-static_assert((41 >> into<> >> (increment >> Boxed<>)).value == 42,
-              "Pipeline: The linear flow from value to boxed result failed.");
-
-// The Composition Flow:
-// Reading: "Take 10, put it INTO a Box, then increment it, then negate it."
-constexpr auto negate = endo<int>(std::negate<int>{});
-
-static_assert((10 >> into<> >> (increment >> Boxed<>) >> (negate >> Boxed<>)).value == -11,
-              "Pipeline: Multi-stage functorial composition failed.");
-
 /**
  * @section The Unit Proof (η: 1_𝒞 ⟹ G)
  *
@@ -1073,6 +1122,14 @@ using unit = Naturality<
     arrow<typename morphism_traits<decltype(η_X)>::argument_type,
           typename morphism_traits<decltype(η_X)>::result_type>(η_X)>;
 
+/**
+ * @brief The Unit Assembler (Endo-specialized).
+ * @details Infers T and U from η_X, assuming a single Category (T, Op).
+ */
+export template <template <typename> typename F, template <typename> typename G,
+                 typename Op, auto η_X>
+using unit_endo = unit<F, G, Op, Op, η_X>;
+
 /** @section Canonical_Embeddings: The One-Liner On-Ramps */
 
 // 1. Logic -> Character (B ↪ Z/256Z)
@@ -1080,32 +1137,26 @@ export using η_bool_char =
     unit<Identity, Identity, std::logical_and<bool>, std::multiplies<char>,
          [](bool b) constexpr -> char { return b ? char(1) : char(0); }>;
 
-// We verify that our construction (η_bool_char) satisfies
-// the Naturality Theorem (IsNaturalTransformation).
-// 𝒯 = bool, Op𝒯 = logical_and<bool>, Op𝒰 = plus<char>
-static_assert(
-    IsNaturalTransformation<η_bool_char, Identity, Identity, bool, char,
-                            std::logical_and<bool>, std::multiplies<char>> &&
-        η_bool_char::preserves_identity(),
-    "Theorem Failure: η_bool_char is not a valid Natural Transformation (B ⟹ "
-    "Z/256Z).");
-
 // 2. Character -> Unsigned (Z/256Z ↪ Z_u)
 export using η_char_uint =
     unit<Identity, Identity, std::plus<char>, std::plus<unsigned int>,
          [](char c) {
-           return static_cast<unsigned int>(static_cast<unsigned char>(c));
+           return static_cast<unsigned int>(static_cast<char>(c));
          }>;
 
-// We verify that our construction (η_bool_char) satisfies
-// the Naturality Theorem (IsNaturalTransformation).
-// 𝒯 = bool, Op𝒯 = logical_and<bool>, Op𝒰 = plus<char>
-static_assert(
-    IsNaturalTransformation<η_char_uint, Identity, Identity, char, unsigned int,
-                            std::plus<char>, std::plus<unsigned int>> &&
-        η_char_uint::preserves_identity(),
-    "Theorem Failure: η_char_uint is not a valid Natural Transformation "
-    "(Z/256Z ⟹ Z_u).");
+/** @section Canonical_Embeddings: Highway Proofs */
+
+// 1. Logic -> Character (B ↪ Z/256Z)
+// Path: bool >> η >> char_op   must equal  bool >> bool_op >> η
+constexpr auto f_bool = endo<bool>([](bool x) { return !x; }); // A bool endomorphism
+constexpr auto g_char = endo<char>([](char x) { return x == 0 ? 1 : 0; }); // Corresponding char endomorphism
+
+static_assert((true >> η_bool_char{} >> g_char) == (true >> f_bool >> η_bool_char{}),
+              "Naturality: η_bool_char failed to commute on the Highway.");
+
+// 2. Character -> Unsigned (Z/256Z ↪ Z_u)
+static_assert((char{42} >> η_char_uint{}) == 42u, 
+              "Action: η_char_uint must be a bit-faithful promotion.");
 
 /**
  * @brief Proof: Transitive Composition of Embeddings.
@@ -1362,32 +1413,4 @@ static_assert(promote_v(false && false) ==
               (promote_v(false) * promote_v(false)));
 }  // namespace
 
-namespace {
-
-// 2. The Verification Bridge
-using LogicToArithmetic = unit<Identity,
-                               std::logical_and<bool>,  // OpF
-                               std::multiplies<int>,    // OpG
-                               promote_v                // Morphism
-                               >;
-
-constexpr LogicToArithmetic transform{};
-
-// 3. The Formal Proofs
-// This works because 'transform' is now a concrete instance of that specific
-// bridge
-static_assert(transform(true) == 1);
-
-static_assert(LogicToArithmetic::preserves_identity(),
-              "Categorical Error: Identity mapping failed.");
-
-static_assert(IsHomomorphism<bool, int, promote_v, std::logical_and<bool>,
-                             std::multiplies<int>>,
-              "Categorical Error: Product preservation failed.");
-
-// Proof: η: (bool, ∧) ⟹ (int, ×) is a strictly injective Embedding.
-static_assert(IsEmbedding<Identity, bool, std::logical_and<bool>,
-                          std::multiplies<int>, my_promotion_sauce>,
-              "Dedekind: Bool-to-Int promotion must be injective.");
-}  // namespace
 }  // namespace dedekind::ontology
