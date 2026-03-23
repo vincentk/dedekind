@@ -526,13 +526,13 @@ constexpr auto id() {
 
 /** @brief The Identity Functor: F(X) = X. (The "Invisible Box") */
 export template <typename T>
-using Id = T; 
+using Id = T;
 
 /** @brief fmap for the Identity Functor: F(f) = f. */
 export template <template <typename> typename F, typename Arrow>
   requires std::same_as<F<typename Arrow::Domain>, typename Arrow::Domain>
 constexpr auto fmap(Arrow f) {
-  return f; // The invisible box doesn't change the highway.
+  return f;  // The invisible box doesn't change the highway.
 }
 
 /** @section Verification: The Identity Law (F(id_X) = id_F<X>) */
@@ -1149,10 +1149,9 @@ export using η_bool_char =
 
 // 2. Character -> Unsigned (Z/256Z ↪ Z_u)
 export using η_char_uint =
-    unit<Id, Id, std::plus<char>, std::plus<unsigned int>,
-         [](char c) {
-           return static_cast<unsigned int>(static_cast<char>(c));
-         }>;
+    unit<Id, Id, std::plus<char>, std::plus<unsigned int>, [](char c) {
+      return static_cast<unsigned int>(static_cast<char>(c));
+    }>;
 
 /** @section Canonical_Embeddings: Highway Proofs */
 
@@ -1160,8 +1159,9 @@ export using η_char_uint =
 // Path: bool >> η >> char_op   must equal  bool >> bool_op >> η
 constexpr auto f_bool =
     endo<bool>([](bool x) { return !x; });  // A bool endomorphism
-constexpr auto g_char = endo<char>(
-    [](char x) { return x == 0 ? 1 : 0; });  // Corresponding char endomorphism
+
+constexpr auto g_char =
+    endo<char>([](char x) { return x == 0 ? char(1) : char(0); });
 
 static_assert((true >> η_bool_char{} >> g_char) ==
                   (true >> f_bool >> η_bool_char{}),
@@ -1183,14 +1183,12 @@ static_assert(IsArrow<decltype(bool_to_uint), bool, unsigned int>,
               "Transitivity: The composed promotion must be a valid Arrow from "
               "bool to uint.");
 
-// 2. Action Proof: Extensional Equality across the chain.
-// We verify that 'true' maps to '1' through the entire pipeline.
-static_assert(bool_to_uint(true) == 1u,
-              "Action: The escalator must preserve the 'True' identity (1) "
-              "across species.");
+// 2. Action Proof: true -> 1u
+static_assert((true >> bool_to_uint) == 1u,
+              "Transitivity: The value was lost in translation.");
 
 // 3. Action Proof: The 'False' identity (0) preservation.
-static_assert(bool_to_uint(false) == 0u,
+static_assert((false >> bool_to_uint) == 0u,
               "Action: The escalator must preserve the 'False' identity (0) "
               "across species.");
 
@@ -1211,7 +1209,7 @@ constexpr Identity<T> η_component(T x) {
  *          Signature: (F, T, OpT). It finds the η_component automatically.
  */
 export template <template <typename> typename F, typename T, typename OpT>
-using η = unit<F, OpT, OpT, η_component<F, T>>;
+using η = unit<Id, F, OpT, OpT, η_component<F, T>>;
 
 /**
  * @brief The Monadic Multiplication (μ_X: F⟨F⟨X⟩⟩ → F⟨X⟩)
@@ -1237,7 +1235,7 @@ constexpr Identity<T> multiplication(Identity<T> box) {
  * automatically.
  */
 export template <template <typename> typename F, typename T, typename OpT>
-using μ = natural_transformation<F, F, T, OpT, OpT, [](auto box) constexpr {
+using μ = Naturality<F, F, T, T, OpT, OpT, [](auto box) constexpr {
   return multiplication<F, T>(box);
 }>;
 
@@ -1353,7 +1351,7 @@ export template <template <typename> typename 𝒢, typename 𝒯, typename Op�
                  typename Op𝒢, auto η_X>
 concept IsEmbedding =
     // 1. Structural Check: Does the Unit bridge actually exist?
-    requires { typename unit<𝒢, Op𝒯, Op𝒢, η_X>; } &&
+    requires { typename unit<Id, 𝒢, Op𝒯, Op𝒢, η_X>; } &&
 
     // 2. The Retraction Bridge: r (The "Undo" across Categories)
     requires(decltype(η_X(std::declval<𝒯>())) y) {
