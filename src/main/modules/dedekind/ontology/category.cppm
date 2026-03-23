@@ -461,46 +461,75 @@ static_assert(IsArrow<TaggedIsPositive, int, bool>,
 static_assert(arrow<int, int>([](int x) { return x * 2; })(21) == 42,
               "Arrow Factory: Action check failed for anonymous lambda.");
 
+// The Box (The "Cement")
+template <typename T>
+struct Box final {
+  T value;
+  bool operator==(const Box&) const = default;
+};
+
+/** @brief The Unit/Pure Factory: Lifts a raw value into the Box context. */
+template <typename T>
+constexpr auto pure(T&& value) {
+  return Box<std::decay_t<T>>{std::forward<T>(value)};
+}
+
 /**
- * @struct IdentityAction
- * @brief The primitive 'do-nothing' logic for the Identity Morphism.
+ * @section Functor Mapping (fmap: F(f))
+ * @theorem Morphism Mapping
+ * @brief Lifts a Morphism f: A -> B into the Functorial world F<A> -> F<B>.
  */
+export template <template <typename> typename F, typename Arrow,
+                 typename A = typename Arrow::Domain,
+                 typename B = typename Arrow::Codomain>
+  requires IsArrow<Arrow, A, B> && std::same_as<F<A>, Box<A>>
+constexpr auto fmap(Arrow f) {
+  // We return a new Morphism that acts on Boxes.
+  return arrow<Box<A>, Box<B>>([f](Box<A> b) { return Box<B>{f(b.value)}; });
+}
+
+/** @brief The Identity Morphism: The "Zero-Length Highway" for Species T. */
 export template <typename T>
-struct IdentityAction {
+struct Identity final {
+  using Domain = T;
+  using Codomain = T;
+
+  // The logic is baked into the type itself.
   constexpr T operator()(const T& x) const noexcept { return x; }
 };
-
-/**
- * @struct Identity
- * @brief The Tagged Identity Morphism id_A: A -> A.
- * @details This is the 'Zero-Length Highway' required for Category Theory.
- *          It satisfies the Unit Laws: f ∘ id = f and id ∘ g = g.
- */
-export template <typename T>
-struct Identity : Morphism<T, T, IdentityAction<T>> {
-  // You MUST name the full base class type in the initializer list
-  constexpr Identity()
-      : Morphism<T, T, IdentityAction<T>>(IdentityAction<T>{}) {}
-};
-
-// We verify that for any object T, Identity<T> is an arrow T -> T.
-// This anchors the "Skeletal" layer to the "Machine" layer.
-static_assert(IsArrow<Identity<int>, int, int>,
-              "Identity<int> must be a morphism from int to int.");
-
-static_assert(IsArrow<Identity<bool>, bool, bool>,
-              "Identity<bool> must be a morphism from bool to bool.");
-
-// 3. Negative Proof: Species Safety.
-// Identity <int> is NOT an arrow for bool (no promotion allowed).
-static_assert(!IsArrow<Identity<int>, bool, bool>,
-              "Type Safety: Identity<int> cannot act on booleans.");
 
 /** @brief The Identity Factory: Returns the neutral arrow for Species A. */
 export template <typename A>
 constexpr auto id() {
   return Identity<A>{};
 }
+
+/** @section Verification: The Identity Law (F(id_X) = id_F<X>) */
+
+// Proof: Lifting the identity morphism on 'int' gives us an arrow on
+// 'Box<int>'.
+static_assert(IsArrow<decltype(fmap<Box>(id<int>())), Box<int>, Box<int>>,
+              "Identity Law: fmap(id) must preserve the Boxed species.");
+
+// Proof: The lifted Negate morphism correctly transforms a Boxed value.
+static_assert(
+    fmap<Box>(arrow<int, int>(std::negate<int>{}))(Box<int>{42}).value == -42,
+    "Action: fmap(f) must preserve the underlying machine logic.");
+
+/** @section Identity_Verification: The Unit Laws */
+
+constexpr auto f = arrow<int, int>(std::negate<int>{});
+constexpr auto identity_int = id<int>();
+
+/** @section Identity Verification */
+static_assert(IsArrow<decltype(id<bool>()), bool, bool>,
+              "The id<A>() factory must produce a valid Arrow.");
+
+// 1. Right Identity: f(id(x)) == f(x)
+static_assert(f(identity_int(42)) == f(42), "Unit Law: f ∘ id_A must equal f.");
+
+// 2. Left Identity: id(f(x)) == f(x)
+static_assert(identity_int(f(42)) == f(42), "Unit Law: id_B ∘ f must equal f.");
 
 /** @section Lifting Traits to the Identity Functor */
 
@@ -521,13 +550,6 @@ inline constexpr bool is_commutative_v<Identity<T>, Op> =
  */
 template <typename T, typename Op>
 inline constexpr Identity<T> identity_v<Identity<T>, Op> = Identity<T>{};
-
-/** @section Identity Verification */
-
-// 2. Proof: Identity is "Universal" for its Species.
-// We verify the factory id<A>() produces a valid Arrow (B -> B).
-static_assert(IsArrow<decltype(id<bool>()), bool, bool>,
-              "The id<A>() factory must produce a valid Arrow.");
 
 /**
  * @section Categorical Composition (Explicitly Typed)
@@ -745,22 +767,53 @@ static_assert(zero<int, int, std::plus<int>>()(99) == 0,
               "Absorption: Z -> Z via + must yield 0.");
 
 /**
- * @section Functor Lifting (fmap)
- * @brief Lifts a Morphism f: A -> B into the Functor world F⟨A⟩ -> F⟨B⟩.
+ * @section Functor Lifting (fmap: F(f))
+ * @theorem Morphism Mapping
+ * @brief Lifts a Morphism f: A -> B into the Functorial world F⟨A⟩ -> F⟨B⟩.
  */
-export template <template <typename> typename F, typename A, typename B,
-                 typename Impl>
-constexpr auto lift(Morphism<A, B, Impl> f) {
-  // For the Identity Functor, F⟨A⟩ is just A.
-  // Therefore, lifting f is simply returning f.
-  return f;
+
+/**
+ * @brief Primary Template: The Unproven Lift.
+ * @details This is 'deleted' to enforce that every Functor must provide
+ *          its own specific witness for how to map morphisms.
+ */
+// 1. The Primary Theorem (Proposition): Every Functor must define its own lift.
+export template <template <typename> typename F, typename Arrow,
+                 typename A = typename Arrow::Domain,
+                 typename B = typename Arrow::Codomain>
+  requires IsArrow<Arrow, A, B>
+constexpr auto lift(Arrow f) = delete;
+
+/**
+ * @brief The Identity Lift (F: 𝒞 → 𝒞)
+ * @details We wrap the morphism f in the Identity context.
+ *          This ensures the resulting Arrow is tagged as Identity<T> ->
+ * Identity<T>.
+ */
+export template <template <typename> typename F, typename Arrow,
+                 typename A = typename Arrow::Domain,
+                 typename B = typename Arrow::Codomain>
+  requires IsArrow<Arrow, A, B> && std::same_as<F<A>, Identity<A>>
+constexpr auto lift(Arrow f) {
+  // We lift the arrow from 'T -> T' to 'Identity<T> -> Identity<T>'
+  return arrow<Identity<A>, Identity<B>>(f);
 }
 
-/** @section Lift Verification: Action & Preservation */
+/** @section Lift_Verification: The Identity Law (F(id_X) = id_F⟨X⟩) */
 
-// 1. Proof: Lifting 'Negate' via Identity preserves the result.
-static_assert(lift<Identity>(arrow<int, int>(Negate{}))(42) == -42,
-              "Lift: The Identity-lifted arrow must produce the same result.");
+// We verify that lifting the identity morphism results in a valid
+// Arrow between the 'Boxed' species (Identity<int> -> Identity<int>).
+static_assert(
+    IsArrow<decltype(lift<Identity>(id<int>())), Identity<int>, Identity<int>>,
+    "Lift: The Identity-lifted arrow must map Identity<int> to Identity<int>.");
+
+static_assert(lift<Identity>(arrow<int, int>(Negate{}))(Identity<int>{42}) ==
+              -42);
+
+// Proof: The lifted Negate arrow produces the correct 'Boxed' result.
+static_assert(
+    lift<Identity>(arrow<int, int>(Negate{}))(id<int>()(42)) == -42,
+    "Lift: The Identity-lifted Negate must preserve the species-level action.");
 
 // 2. Proof: Identity Law (F(id) = id).
 // We verify that lifting the identity morphism remains a valid Arrow.
@@ -795,10 +848,10 @@ concept IsFunctor = IsSmallCategory<T, OpT> && IsSmallCategory<U, OpU> &&
                       // F?
                       typename F<T>;
 
-                      // 2. Morphism Mapping: Can we lift an arrow f: T -> T
-                      // into the Functor? For an Endofunctor (T=U), this must
-                      // produce a valid Arrow T -> T.
-                      { lift<F>(f) } -> IsArrow<T, T>;
+                      // 2. Morphism Mapping: F(f: T -> T) must yield an arrow
+                      // F<T> -> F<T>. This 'lift' stays within the Functor's
+                      // context F.
+                      { lift<F>(f) } -> IsArrow<F<T>, F<T>>;
                     };
 
 /**
@@ -871,60 +924,44 @@ concept IsNaturalTransformation =
 
 /**
  * @struct Naturality
- * @proof Construction of a Natural Transformation η: F ⟹ G.
+ * @witness The Proof-Object for the IsNaturalTransformation Theorem.
  *
  * @details
- * This structure serves as the witness (the proof-object) for the
- * IsNaturalTransformation theorem.
+ * This structure serves as the formal inhabitant (the witness) of the
+ * Naturality proposition. It does not perform discovery or lifting;
+ * it simply carries a verified Morphism across a functorial bridge.
  *
- * It constructs the bridge by:
- * 1. Embedding the 'Secret Sauce' (η_X) into a Tagged Morphism.
- * 2. Mapping the Domain F⟨𝒯⟩ to the Codomain G⟨𝒯⟩.
- * 3. Verifying the Identity Preservation Lemma as a static property of the
- * proof.
+ * Its role is to:
+ * 1. Hold a pre-verified Morphism (η_X) that maps the Species.
+ * 2. Define the Functorial Domain (F⟨T⟩) and Codomain (G⟨U⟩).
+ * 3. Provide the Identity Preservation Lemma as a static property of the
+ * witness.
  *
- * @tparam F    The Source Functor.
- * @tparam G    The Target Functor.
+ * @tparam F    The Source Functor context.
+ * @tparam G    The Target Functor context.
  * @tparam T    The source Species (The object).
  * @tparam U    The target Species (The object).
  * @tparam OpF  The Operation of the source category.
  * @tparam OpG  The Operation of the target category.
- * @tparam η_X  The Component Action (The constructive logic of the
- * transformation).
+ * @tparam η_X  The Verified Morphism (The 'Secret Sauce' already lifted to an
+ * Arrow).
  */
 export template <template <typename> typename F, template <typename> typename G,
-                 typename T, typename U, typename OpF, typename OpG,
-                 auto η_X  // The Morphism Component
-                 >
-  requires IsEndofunctor<F, T, OpF> &&
-           IsEndofunctor<G, decltype(η_X(std::declval<U>())),
-                         OpG>  // Simplified T mapping
+                 typename T, typename U, typename OpF, typename OpG, auto η_X>
+  requires IsEndofunctor<F, T, OpF> && IsEndofunctor<G, U, OpG> &&
+           IsArrow<decltype(η_X), F<T>, G<U>>
 struct Naturality final {
   using Domain = F<T>;
   using Codomain = G<U>;
 
-  /** @brief η_X : F⟨X⟩ → G⟨X⟩ */
+  /** @brief Execution: Invokes the verified Morphism η_X. */
   constexpr Codomain operator()(Domain x) const noexcept { return η_X(x); }
 
-  /** @brief Lemma: η(id_F) = id_G (Identity Preservation) */
+  /** @brief Lemma: η(id_F) = id_G (Verified via the internal Morphism). */
   static constexpr bool preserves_identity() noexcept {
-    // 1. We get the identity of the Source Species (T).
-    constexpr T source_id = identity_v<T, OpF>;
-
-    // 2. We get the identity of the Target Species (U).
-    constexpr U target_id = identity_v<U, OpG>;
-
-    // 3. We prove the Action maps one identity to the other.
-    return η_X(source_id) == target_id;
+    return η_X(identity_v<T, OpF>) == identity_v<U, OpG>;
   }
 };
-
-/**
- * @brief η: Id ⟹ G (The 6-Parameter Explicit Transformation)
- */
-export template <template <typename> typename ℱ, template <typename> typename 𝒢,
-                 typename T, typename U, typename Opℱ, typename Op𝒢, auto η_X>
-using natural_transformation = Naturality<ℱ, 𝒢, T, U, Opℱ, Op𝒢, η_X>;
 
 /** @section Internal_Morphism_Traits (Private to :category) */
 
@@ -979,34 +1016,36 @@ static_assert(std::same_as<morphism_traits<Counter>::argument_type, int>,
               "Discovery: Failed to extract argument from mutable lambda.");
 
 /**
- * @section The Unit of the Functor (η: 1_𝒞 ⟹ G)
+ * @section The Unit Proof (η: 1_𝒞 ⟹ G)
  *
  * @details
- * In Category Theory, the unit (η) is the natural transformation that
- * embeds an object into a Functorial context: η_X : X → G⟨X⟩.
- *
- * From a structuralist C++ perspective, this is the "On-Ramp".
- * By using `morphism_traits`, we perform "Object Discovery"—the
- * transformation is defined by the Morphism itself, allowing the
- * Domain Object (𝒯) to be inferred from the "Secret Sauce" (η_X).
+ * Under the Curry-Howard correspondence, this alias is the 'Assembler'.
+ * It constructs the 'Naturality' witness by:
+ * 1. Automatic Discovery: Extracting T and U from the 'Secret Sauce' (η_X).
+ * 2. Formal Lifting: Wrapping the raw action into a tagged 'arrow'.
+ * 3. Inhabitation: Instantiating the 'Naturality' struct with verified parts.
  *
  * @tparam G   The Target Functor (The "Box").
  * @tparam OpF The Source Operation (in 𝒞).
  * @tparam OpG The Target Operation (in 𝒟).
- * @tparam η_X The Morphism Component (The Action).
+ * @tparam η_X The Morphism Component (The raw C++ action).
  */
-export template <template <typename> typename G, typename OpF, typename OpG,
-                 auto η_X>
-using unit = natural_transformation<
-    Identity, G, typename morphism_traits<decltype(η_X)>::argument_type,
-    typename morphism_traits<decltype(η_X)>::result_type,  // Auto-Deduction!
-    OpF, OpG, η_X>;
+export template <template <typename> typename F, template <typename> typename G,
+                 typename OpF, typename OpG, auto η_X>
+using unit = Naturality<
+    F, G,
+    typename morphism_traits<decltype(η_X)>::argument_type,  // T
+    typename morphism_traits<decltype(η_X)>::result_type,    // U
+    OpF, OpG,
+    // The Lifting: Converts raw lambda into a tagged Arrow (Proof-Object)
+    arrow<typename morphism_traits<decltype(η_X)>::argument_type,
+          typename morphism_traits<decltype(η_X)>::result_type>(η_X)>;
 
 /** @section Canonical_Embeddings: The One-Liner On-Ramps */
 
 // 1. Logic -> Character (B ↪ Z/256Z)
 export using η_bool_char =
-    unit<Identity, std::logical_and<bool>, std::plus<char>,
+    unit<Identity, Identity, std::logical_and<bool>, std::multiplies<char>,
          [](bool b) constexpr -> char { return b ? char(1) : char(0); }>;
 
 // We verify that our construction (η_bool_char) satisfies
@@ -1014,24 +1053,27 @@ export using η_bool_char =
 // 𝒯 = bool, Op𝒯 = logical_and<bool>, Op𝒰 = plus<char>
 static_assert(
     IsNaturalTransformation<η_bool_char, Identity, Identity, bool, char,
-                            std::logical_and<bool>, std::plus<char>>,
+                            std::logical_and<bool>, std::multiplies<char>> &&
+        η_bool_char::preserves_identity(),
     "Theorem Failure: η_bool_char is not a valid Natural Transformation (B ⟹ "
     "Z/256Z).");
 
 // 2. Character -> Unsigned (Z/256Z ↪ Z_u)
 export using η_char_uint =
-    unit<Identity, std::plus<char>, std::plus<unsigned int>, [](char c) {
-      return static_cast<unsigned int>(static_cast<unsigned char>(c));
-    }>;
+    unit<Identity, Identity, std::plus<char>, std::plus<unsigned int>,
+         [](char c) {
+           return static_cast<unsigned int>(static_cast<unsigned char>(c));
+         }>;
 
 // We verify that our construction (η_bool_char) satisfies
 // the Naturality Theorem (IsNaturalTransformation).
 // 𝒯 = bool, Op𝒯 = logical_and<bool>, Op𝒰 = plus<char>
 static_assert(
     IsNaturalTransformation<η_char_uint, Identity, Identity, char, unsigned int,
-                            std::plus<char>, std::plus<unsigned int>>,
-    "Theorem Failure: η_char_uint is not a valid Natural Transformation (Z/256Z ⟹ "
-    "Z_u).");
+                            std::plus<char>, std::plus<unsigned int>> &&
+        η_char_uint::preserves_identity(),
+    "Theorem Failure: η_char_uint is not a valid Natural Transformation "
+    "(Z/256Z ⟹ Z_u).");
 
 /**
  * @brief Proof: Transitive Composition of Embeddings.
