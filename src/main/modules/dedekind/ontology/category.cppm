@@ -1412,16 +1412,29 @@ export template <template <typename> typename 𝒢, typename 𝒯, typename Op�
                  typename Op𝒢, auto η_X>
 concept IsEmbedding =
     // 1. Structural Check: Does the Unit bridge actually exist?
-    requires { typename unit<Id, 𝒢, Op𝒯, Op𝒢, η_X>; } &&
+    requires { typename unit<Id, 𝒢, Op𝒯, Op𝒢, η_X>; } && requires(𝒯 x) {
+      // The Axiom: Mapping then Retracting must recover the exact same value.
+      { retraction<𝒯, Op𝒯, Op𝒢, η_X>(η_X(x)) } -> std::same_as<𝒯>;
 
-    // 2. The Retraction Bridge: r (The "Undo" across Categories)
-    requires(decltype(η_X(std::declval<𝒯>())) y) {
-      // We look for a specialized retraction morphism for this species
-      { retraction<𝒯, Op𝒯, Op𝒢, η_X>(y) } -> std::same_as<𝒯>;
-
-      // The Axiom: r(η(x)) == x
-      requires std::same_as<
-          decltype(retraction<𝒯, Op𝒯, Op𝒢, η_X>(η_X(std::declval<𝒯>()))), 𝒯>;
+      // Proof of Identity preservation (Value Level)
+      requires retraction<𝒯, Op𝒯, Op𝒢, η_X>(η_X(x)) == x;
     };
+
+/** @section Self_Contained_Verification: The Local Embedding Proof */
+
+static_assert(
+    [] {
+      // 1. Local Logic (The Brick)
+      constexpr auto logic = [](bool b) { return b ? 1 : 0; };
+
+      // 2. Local Highways (The Mortar)
+      constexpr auto eta = arrow<bool, int>(logic);
+      constexpr auto r = arrow<int, bool>([](int y) { return y != 0; });
+
+      // 3. The Theorem: r ∘ η = id_bool
+      // We verify both states of the Boolean species locally.
+      return (true >> eta >> r) == true && (false >> eta >> r) == false;
+    }(),
+    "Local Proof: Bool-to-Int embedding must be a bit-faithful round-trip.");
 
 }  // namespace dedekind::ontology
