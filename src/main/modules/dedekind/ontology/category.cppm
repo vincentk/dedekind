@@ -987,6 +987,66 @@ using Counter = decltype([i = 0](int x) mutable { return x + i++; });
 static_assert(std::same_as<morphism_traits<Counter>::argument_type, int>,
               "Discovery: Failed to extract argument from mutable lambda.");
 
+/** @brief The Functorial Bridge Tag. */
+template <template <typename> typename F>
+struct fmap_tag {};
+
+/** @brief Global witness for Box mapping. */
+export template <typename T = void> // Template to keep it header-friendly
+constexpr auto Boxed = fmap_tag<Box>{};
+
+/** @brief Postfix Operator: arrow >> Boxed */
+export template <typename Arrow, template <typename> typename F>
+  requires IsArrow<Arrow, typename Arrow::Domain, typename Arrow::Codomain>
+constexpr auto operator>>(Arrow f, fmap_tag<F>) {
+  return fmap<F>(f);
+}
+
+/** @brief The Unit/Pure Tag for value lifting. */
+template <template <typename> typename F>
+struct into_tag {};
+
+/** @brief Global witness for Box entry. */
+export template <typename T = void>
+constexpr auto into = into_tag<Box>{};
+
+/** @brief Postfix Operator: value >> into<F> */
+export template <typename T, template <typename> typename F>
+constexpr auto operator>>(T&& value, into_tag<F>) {
+  // Uses your existing 'pure' or explicit constructor
+  return F<std::decay_t<T>>{std::forward<T>(value)};
+}
+
+/** 
+ * @section The Action Bridge (Value >> Arrow)
+ * @brief Allows a value to be applied to a Morphism using the pipe operator.
+ * @details This completes the 'Streaming' syntax: x >> f ≡ f(x).
+ */
+export template <typename T, typename Arrow,
+                 typename A = typename Arrow::Domain,
+                 typename B = typename Arrow::Codomain>
+  requires IsArrow<Arrow, A, B> && std::convertible_to<T, A>
+constexpr auto operator>>(T&& value, Arrow&& f) {
+  return f(std::forward<T>(value));
+}
+
+/** @section Pipeline_Verification: From Brick to Box */
+
+// The Logic (Brick)
+constexpr auto increment = endo<int>([](int x) { return x + 1; });
+
+// The Flow: Value -> Box -> Morphism-on-Box
+// Reading: "Take 41, put it INTO a Box, then apply increment BOXED."
+static_assert((41 >> into<> >> (increment >> Boxed<>)).value == 42,
+              "Pipeline: The linear flow from value to boxed result failed.");
+
+// The Composition Flow:
+// Reading: "Take 10, put it INTO a Box, then increment it, then negate it."
+constexpr auto negate = endo<int>(std::negate<int>{});
+
+static_assert((10 >> into<> >> (increment >> Boxed<>) >> (negate >> Boxed<>)).value == -11,
+              "Pipeline: Multi-stage functorial composition failed.");
+
 /**
  * @section The Unit Proof (η: 1_𝒞 ⟹ G)
  *
