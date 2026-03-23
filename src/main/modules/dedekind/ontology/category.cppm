@@ -957,11 +957,6 @@ using unit = natural_transformation<
     typename morphism_traits<decltype(η_X)>::argument_type,  // Auto-Deduction!
     OpF, OpG, η_X>;
 
-/** @brief The Greek (Category Theory) Alias for the Unit. */
-export template <template <typename> typename G, typename OpF, typename OpG,
-                 auto η_X>
-using η = unit<G, OpF, OpG, η_X>;
-
 /** @section Canonical_Embeddings: The One-Liner On-Ramps */
 
 // 1. Logic -> Character (B ↪ Z/256Z)
@@ -1004,6 +999,114 @@ static_assert(bool_to_uint(false) == 0u,
               "Action: The escalator must preserve the 'False' identity (0) "
               "across species.");
 
+/** @brief The Canonical Component η_X for a Functor F and Species T. */
+export template <template <typename> typename F, typename T>
+constexpr F<T> η_component(T x) = delete;
+
+/** @brief Specialization: Identity's η_X is the Identity mapping. */
+template <typename T>
+constexpr Identity<T> η_component(T x) {
+  return x;
+}
+
+/**
+ * @section The Monadic Unit (η: Id ⟹ F)
+ * @brief The CANONICAL unit for a verified Monad.
+ * @details This is the 'Standard On-Ramp' for Functor F and Species T.
+ *          Signature: (F, T, OpT). It finds the η_component automatically.
+ */
+export template <template <typename> typename F, typename T, typename OpT>
+using η = unit<F, OpT, OpT, η_component<F, T>>;
+
+/**
+ * @brief The Monadic Multiplication (μ_X: F⟨F⟨X⟩⟩ → F⟨X⟩)
+ * @details In the Category of Endofunctors, the Monad is a Monoid.
+ *          This 'Multiplication' collapses the nested composition
+ *          of the functor back into a single layer.
+ */
+/*
+export template <template <typename> typename F, typename T>
+  requires(!std::same_as<F<F<T>>, F<T>>)  // The "Structure Gap" Constraint
+constexpr F<T> multiplication(F<F<T>> box);*/
+
+/** @brief Specialization: The Identity Monad's Multiplication. */
+template <typename T>
+constexpr Identity<T> multiplication(Identity<T> box) {
+  return box;  // Unwrap the nested Identity
+}
+
+/**
+ * @section The Monadic Multiplication (μ: F ∘ F ⟹ F)
+ * @brief The CANONICAL multiplication (Join) for a verified Monad.
+ * @details Signature: (F, T, OpT). It finds the multiplication logic
+ * automatically.
+ */
+export template <template <typename> typename F, typename T, typename OpT>
+using μ = natural_transformation<F, F, T, OpT, OpT, [](auto box) constexpr {
+  return multiplication<F, T>(box);
+}>;
+
+/**
+ * @section Monad_as_Monoid (Explicit Definition)
+ * We bridge the gap:
+ *   η (Unit)           <--> identity_v (Monoid Unit)
+ *   μ (Multiplication) <--> Op         (Monoid Operation)
+ */
+export template <template <typename> typename F, typename T, typename OpT>
+concept IsMonad = IsEndofunctor<F, T, OpT> && requires(F<F<T>> nested, T x) {
+  /**
+   * @brief Axiom 1: The Monoid Unit (η)
+   * Maps the object to the 'Box' (T -> F<T>).
+   */
+  //{ unit<F>(x) } -> std::same_as<F<T>>;
+
+  /**
+   * @brief η: Id ⟹ F (The Natural Unit)
+   * We prove the Unit is a Natural Transformation by instantiating
+   * your alias with the canonical component.
+   */
+  typename unit<F, OpT, OpT, η_component<F, T>>;
+
+  /**
+   * @brief Axiom 2: The Monoid Multiplication (μ)
+   * Collapses the 'Tensor Product' of the functor with itself (F ∘ F -> F).
+   */
+  { multiplication<F, T>(nested) } -> std::same_as<F<T>>;
+};
+
+/**
+ * @section Comonadic_Morphisms: Extract (ε) and Duplicate (δ)
+ */
+
+/** @brief ε: W⟨T⟩ → T (The Core Extraction) */
+export template <template <typename> typename W, typename T>
+constexpr T extract(W<T> box);
+
+/** @brief δ: W⟨T⟩ → W⟨W⟨T⟩⟩ (The Contextual Duplication) */
+export template <template <typename> typename W, typename T>
+constexpr W<W<T>> duplicate(W<T> box);
+
+/** @section Identity_Comonad_Specialization */
+template <typename T>
+constexpr T extract(Identity<T> box) {
+  return box;
+}
+
+template <typename T>
+constexpr Identity<Identity<T>> duplicate(Identity<T> box) {
+  return box;
+}
+
+/**
+ * @concept IsComonad
+ * @brief The Dual of a Monad: A Functor with Extract and Duplicate.
+ */
+export template <template <typename> typename W, typename T, typename OpT>
+concept IsComonad = IsEndofunctor<W, T, OpT> && requires(W<T> box) {
+  { extract<W, T>(box) } -> std::same_as<T>;
+  { duplicate<W, T>(box) } -> std::same_as<W<W<T>>>;
+};
+
 /** @brief The Retraction Morphism (r: 𝒢 ⟹ 1_𝒞).
     Primary template is deleted to enforce explicit existence. */
 export template <typename 𝒯, typename Op𝒯, typename Op𝒢, auto η_X>
@@ -1032,7 +1135,7 @@ export template <template <typename> typename 𝒢, typename 𝒯, typename Op�
                  typename Op𝒢, auto η_X>
 concept IsEmbedding =
     // 1. Structural Check: Does the Unit bridge actually exist?
-    requires { typename η<𝒢, Op𝒯, Op𝒢, η_X>; } &&
+    requires { typename unit<𝒢, Op𝒯, Op𝒢, η_X>; } &&
 
     // 2. The Retraction Bridge: r (The "Undo" across Categories)
     requires(decltype(η_X(std::declval<𝒯>())) y) {
