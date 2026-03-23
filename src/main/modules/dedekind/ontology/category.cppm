@@ -404,6 +404,13 @@ concept IsArrow = requires(F f, A x) {
 };
 
 /**
+ * @concept IsEndomorphism
+ * @brief Proposition: A Morphism where Domain ≡ Codomain (f: A -> A).
+ */
+export template <typename F, typename T>
+concept IsEndomorphism = IsArrow<F, T, T>;
+
+/**
  * @struct Morphism
  * @brief A Tagged Arrow carrying its Domain and Codomain as static metadata.
  * @details This is the primary 'Highway' brick. By 'tagging' a C++ callable,
@@ -432,11 +439,24 @@ constexpr auto arrow(F&& f) {
   return Morphism<A, B, std::decay_t<F>>{std::forward<F>(f)};
 }
 
+/**
+ * @section Endomorphisms (f: A -> A)
+ * @brief A specialized Morphism where Domain and Codomain are identical.
+ */
+export template <typename A, typename Impl>
+using Endomorphism = Morphism<A, A, Impl>;
+
+/** @brief The Endomorphism Factory: endo<A>(f) */
+export template <typename A, typename F>
+constexpr auto endo(F&& f) {
+  return arrow<A, A>(std::forward<F>(f));
+}
+
 /** @section Arrow Factory Verification: Tagging & Species Integrity */
 
 // 1. Proof: arrow<A, B> correctly tags a standard function object.
 using Negate = std::negate<int>;
-using TaggedNegate = decltype(arrow<int, int>(Negate{}));
+using TaggedNegate = decltype(endo<int>(Negate{}));
 
 static_assert(std::same_as<typename TaggedNegate::Domain, int>,
               "Arrow Factory: Failed to tag Domain as 'int'.");
@@ -458,7 +478,7 @@ static_assert(IsArrow<TaggedIsPositive, int, bool>,
 
 // 4. Action Proof: The tagged arrow preserves the underlying action.
 // We verify that the factory-produced morphism actually executes.
-static_assert(arrow<int, int>([](int x) { return x * 2; })(21) == 42,
+static_assert(endo<int>([](int x) { return x * 2; })(21) == 42,
               "Arrow Factory: Action check failed for anonymous lambda.");
 
 // The Box (The "Cement")
@@ -513,12 +533,12 @@ static_assert(IsArrow<decltype(fmap<Box>(id<int>())), Box<int>, Box<int>>,
 
 // Proof: The lifted Negate morphism correctly transforms a Boxed value.
 static_assert(
-    fmap<Box>(arrow<int, int>(std::negate<int>{}))(Box<int>{42}).value == -42,
+    fmap<Box>(endo<int>(std::negate<int>{}))(Box<int>{42}).value == -42,
     "Action: fmap(f) must preserve the underlying machine logic.");
 
 /** @section Identity_Verification: The Unit Laws */
 
-constexpr auto f_neg = arrow<int, int>(std::negate<int>{});
+constexpr auto f_neg = endo<int>(std::negate<int>{});
 constexpr auto identity_int = id<int>();
 
 /** @section Identity Verification */
@@ -583,7 +603,7 @@ static_assert(
     "Unit Law: id_A must be a left-identity for morphisms out of A.");
 
 static_assert(
-    IsArrow<decltype(arrow<int, int>(std::negate<int>{}) >> id<int>()), int,
+    IsArrow<decltype(endo<int>(std::negate<int>{}) >> id<int>()), int,
             int>,
     "Unit Law: id_B must be a right-identity for morphisms into B.");
 
@@ -595,7 +615,7 @@ static_assert(
 
 // 3. Proof: Extensional Equality (The Action)
 // The composite morphism (f ∘ id) must yield the same value as f.
-static_assert((arrow<int, int>(std::negate<int>{}) >> id<int>())(42) == -42,
+static_assert((endo<int>(std::negate<int>{}) >> id<int>())(42) == -42,
               "Action Proof: Composition with id must be value-invariant.");
 
 // 4. Proof: Categorical Unity (id ∘ id = id)
