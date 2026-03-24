@@ -35,7 +35,7 @@ module;
 
 export module dedekind.ontology:order;
 
-import :numbers;
+import :mereology;
 
 namespace dedekind::ontology {
 

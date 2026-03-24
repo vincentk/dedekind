@@ -36,17 +36,17 @@ target_sources(dedekind
         src/main/modules/dedekind/ontology/algebra.cppm
         src/main/modules/dedekind/ontology/geometry.cppm
         src/main/modules/dedekind/ontology/numbers.cppm
-        src/main/modules/dedekind/ontology/order_algebra.cppm
-        src/main/modules/dedekind/algebra/algebra.cppm
-        src/main/modules/dedekind/algebra/abstract.cppm
-        src/main/modules/dedekind/algebra/nodes.cppm
-        src/main/modules/dedekind/order/order.cppm
-        src/main/modules/dedekind/order/algebra.cppm
-        src/main/modules/dedekind/sets/logic.cppm
-        src/main/modules/dedekind/order/nodes.cppm
-        src/main/modules/dedekind/sets/sets.cppm
-        src/main/modules/dedekind/sets/cardinalities.cppm
-        src/main/modules/dedekind/sets/algebra.cppm
+#        src/main/modules/dedekind/ontology/order_algebra.cppm
+#        src/main/modules/dedekind/algebra/algebra.cppm
+#        src/main/modules/dedekind/algebra/abstract.cppm
+#        src/main/modules/dedekind/algebra/nodes.cppm
+#        src/main/modules/dedekind/order/order.cppm
+#        src/main/modules/dedekind/order/algebra.cppm
+#        src/main/modules/dedekind/sets/logic.cppm
+#        src/main/modules/dedekind/order/nodes.cppm
+#        src/main/modules/dedekind/sets/sets.cppm
+#        src/main/modules/dedekind/sets/cardinalities.cppm
+#        src/main/modules/dedekind/sets/algebra.cppm
 )
 
 
@@ -65,10 +65,7 @@ FetchContent_MakeAvailable(Catch2)
 enable_testing()
 
 add_executable(dedekind_test 
-    src/test/cpp/modules/dedekind/algebra/nodes_test.cpp
-    src/test/cpp/modules/dedekind/order/nodes_test.cpp
-    src/test/cpp/modules/dedekind/sets/cardinalities_test.cpp
-    src/test/cpp/modules/dedekind/sets/algebra_test.cpp
+    src/test/cpp/modules/dedekind/ontology/ontology_test.cpp
 )
 
 # --- 1. RIGOROUS COMPILER ENFORCEMENT ---

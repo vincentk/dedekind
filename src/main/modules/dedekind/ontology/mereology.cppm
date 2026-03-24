@@ -37,14 +37,13 @@ module;
 
 export module dedekind.ontology:mereology;
 
-import :cardinalities;
+import :category;
 
 /**
  * @section Mereology: The study of parts and wholes.
  * @section Mereology: The Hierarchy of Order.
  */
 namespace dedekind::ontology {
-using ::dedekind::ontology::IsCardinality;
 
 /**
  * @brief The Mereological Part-Whole relation (sqsubseteq).
@@ -68,21 +67,6 @@ concept IsProperPart = requires(const Part p, const Whole w) {
   { p.is_part_of(w) } -> std::convertible_to<bool>;
 };
 
-/**
- * @brief Identifies a set that is physically representable in memory.
- *
- * A set is Extensional only if it is mathematically Finite. This
- * ensures that any set we attempt to iterate over or store as
- * a "bucket of data" has a terminating sequence.
- *
- * @tparam S A set species.
- */
-export template <typename S>
-concept IsExtensional =
-    IsFinite<typename S::cardinality_type> && requires(S s) {
-      /** @brief Computable upper bound for memory-safe allocations. */
-      { s.upper_bound() } -> std::convertible_to<std::size_t>;
-    };
 
 /**
  * @brief The Existence of Extreme Bounds.
@@ -104,28 +88,64 @@ concept HasExtrema = requires(S s) {
 /**
  * @concept IsSet
  * @brief The fundamental species of a Collection (The Rule).
+ * 
+ * In the Dedekind structuralist ontology, a Set is defined by its ability 
+ * to provide a membership predicate (contains) and a declaration of its 
+ * own magnitude (cardinality).
  *
- * @tparam S The Set species (the predicate/expression).
- * @tparam C The Cardinality (The Magnitude).
- * @tparam T The Element species (The "What").
+ * @section Structural_Requirements
+ * Every species satisfying IsSet must define:
+ * - element_type: The species of the members (The "What").
+ * - cardinality_type: The species of the magnitude (The "How Many").
+ * - base_set_type: The underlying algebraic or mereological origin.
+ *
+ * @tparam S The Set implementation type being verified.
  */
-export template <typename S, typename C, typename T = typename S::element_type>
-concept IsSet = IsCardinality<C> && requires(const S s, const T v) {
-  /** @brief The Membership Predicate: x ∈ S */
-  { s.contains(v) } -> std::convertible_to<bool>;
-  { s[v] } -> std::convertible_to<bool>;
-
-  /** @brief The "Anatomy" for type-safe chaining. */
+export template <typename S>
+concept IsSet = requires {
+  /** @section Anatomy: Structural Requirements */
   typename S::element_type;
   typename S::cardinality_type;
   typename S::base_set_type;
+} && requires(const S s, const typename S::element_type v) {
+  /** @section Membership: The Predicate (x ∈ S) */
+  { s.contains(v) } -> std::convertible_to<bool>;
+  { s[v] } -> std::convertible_to<bool>;
 
-  /** @brief Magnitude Matching: The claim C must match the implementation. */
-  { s.cardinality() } -> std::same_as<C>;
-  requires std::same_as<C, typename S::cardinality_type>;
+  /** @section Magnitude: The Cardinality Hook */
+  { s.cardinality() } -> std::same_as<typename S::cardinality_type>;
 
+  /** @section Relation: The Underlying Structure */
   { s.base_set() } -> std::convertible_to<typename S::base_set_type>;
 };
+
+/**
+ * @brief Identifies a set that is mathematically Finite
+ * as opposed to an infinite or unbounded set (The "Conceptual Space").
+ * @concept IsFinite
+ */
+export template <typename S>
+concept IsFinite =
+    IsSet<S> && requires(S s) {
+      /** @brief True exactly if it is an extensional set. */
+      { s.is_extensional() } -> std::convertible_to<bool>;
+    };
+
+/**
+ * @brief Identifies a set that is physically representable in memory (the "Bucket of Data").
+ *
+ * A set is Extensional only if it is mathematically Finite. This
+ * ensures that any set we attempt to iterate over or store as
+ * a "bucket of data" has a terminating sequence.
+ *
+ * @tparam S A set species.
+ */
+export template <typename S>
+concept IsExtensional =
+    IsFinite<S> && requires(S s) {
+      /** @brief Computable upper bound for memory-safe allocations. */
+      { s.upper_bound() } -> std::convertible_to<std::size_t>;
+    };
 
 /**
  * @section Mereology: Pointed Species.
@@ -144,7 +164,7 @@ concept IsPointed = requires {
  * Wikipedia: Pointed set
  */
 export template <typename S, typename T>
-concept IsPointedSet = IsSet<S, T> && IsPointed<T>;
+concept IsPointedSet = IsSet<S> && IsPointed<T>;
 
 /**
  * @concept IsMeetSemiLattice
