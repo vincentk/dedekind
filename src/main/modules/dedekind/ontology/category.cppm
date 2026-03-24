@@ -481,11 +481,15 @@ static_assert(IsArrow<TaggedIsPositive, int, bool>,
 static_assert(endo<int>([](int x) { return x * 2; })(21) == 42,
               "Arrow Factory: Action check failed for anonymous lambda.");
 
-// The Box (The "Cement")
-template <typename T>
+/**
+ * @struct Box
+ * @brief The Identity Monad: The "Cement" of the structuralist ontology.
+ */
+export template <typename T>
 struct Box final {
   T value;
-  bool operator==(const Box&) const = default;
+
+  constexpr bool operator==(const Box&) const = default;
 };
 
 /** @brief The Unit/Pure Factory: Lifts a raw value into the Box context. */
@@ -890,7 +894,7 @@ constexpr auto into = into_tag<Box>{};
 /** @brief Postfix Operator: value >> into<F> */
 export template <typename T, template <typename> typename F>
 constexpr auto operator>>(T&& value, into_tag<F>) {
-  // Uses your existing 'pure' or explicit constructor
+  // Always produce a fresh Box from the value
   return F<std::decay_t<T>>{std::forward<T>(value)};
 }
 
@@ -939,11 +943,21 @@ struct join_tag {};
 export template <typename T = void>
 constexpr auto join = join_tag<Box>{};
 
-/** @brief The Join Bridge: Box<Box<T>> >> join */
-export template <typename T, template <typename> typename F>
-constexpr auto operator>>(F<F<T>>&& nested_box, join_tag<F>) {
-  // We reach through the double-layer to recover the inner value.
-  return F<T>{std::move(nested_box.value.value)};
+/**
+ * @brief The Join/Collapse Morphism specialized for the Box Monad.
+ * @details Axiom: μ : Box ∘ Box ⟹ Box is the identity on the inner Box.
+ */
+export template <typename T>
+constexpr auto operator>>(const Box<Box<T>>& nested_box, join_tag<Box>) {
+  // We return the inner Box<T> directly.
+  // No re-construction, no temporary copies—just pure structural extraction.
+  return nested_box.value;
+}
+
+/** @brief Rvalue overload for "High-Speed" Move semantics */
+export template <typename T>
+constexpr auto operator>>(Box<Box<T>>&& nested_box, join_tag<Box>) {
+  return std::move(nested_box.value);
 }
 
 // A "Double-Entry" Pipeline:
