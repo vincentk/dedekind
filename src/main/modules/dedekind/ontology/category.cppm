@@ -1365,8 +1365,8 @@ static_assert((42 >> into<>) == Box{42},
  */
 export template <template <typename> typename W, typename T, typename OpT>
 concept IsComonad = IsEndofunctor<W, T, OpT> && requires(W<T> box) {
-  { extract_v<W, T>(box) } -> std::same_as<T>;
-  { duplicate_v<W, T>(box) } -> std::same_as<W<W<T>>>;
+  { extract_v(box) } -> std::same_as<T>;
+  { duplicate_v(box) } -> std::same_as<W<W<T>>>;
 };
 
 /** @brief ε: W⟨T⟩ → T (The Core Extraction) */
@@ -1416,38 +1416,43 @@ constexpr auto duplicate = duplicate_tag<Box>{};
 
 /** @section Comonadic_Guardrails: Enforcing the Pull */
 
-/** @brief Deleted Pull: ε : W<T> → T */
-export template <typename T, template <typename> typename W, typename OpT>
-  requires IsComonad<W, T, OpT>
-auto operator<<(const W<T>&, extract_tag<W>) = delete;
-
-/** @brief Deleted Duplicate: δ : W<T> → W<W<T>> */
-export template <typename T, template <typename> typename W, typename OpT>
-  requires IsComonad<W, T, OpT>
-auto operator<<(const W<T>&, duplicate_tag<W>) = delete;
-
-/** @section Comonadic_Pull (The Exit) */
-// int x = box << extract<>;
+/** @brief 1. The Lvalue Pull (For named variables) */
 export template <typename T, template <typename> typename W>
-constexpr auto operator<<(const W<T>& box, extract_tag<W>) {
+  requires requires(const W<T>& b) {
+    { extract_v(b) } -> std::same_as<T>;
+  }
+constexpr T operator<<(const W<T>& box, extract_tag<W>) {
   return extract_v(box);
 }
 
+/** @brief 2. The Rvalue Pull (For temporaries) */
+export template <typename T, template <typename> typename W>
+  requires requires(const W<T>& b) {
+    { extract_v(b) } -> std::same_as<T>;
+  }
+constexpr T operator<<(W<T>&& box, extract_tag<W>) {
+  return extract_v(std::move(box));
+}
+
+/** @brief Deleted Duplicate: δ : W<T> → W<W<T>> */
+export template <typename T, template <typename> typename W>
+  requires requires(const W<T>& b) {
+    { duplicate_v(b) } -> std::same_as<W<W<T>>>;
+  }
+constexpr auto operator<<(const W<T>&, duplicate_tag<W>) = delete;
+
 /** @brief δ: W⟨T⟩ → W⟨W⟨T⟩⟩ (The Contextual Duplication) */
-export template <template <typename> typename W, typename T>
+export template <typename T, template <typename> typename W>
 constexpr W<W<T>> duplicate_v(W<T> box) {
   return W<W<T>>{box};
 }
 
-/** @brief The Comonadic Action Bridges */
 export template <typename T, template <typename> typename W>
-constexpr auto operator<<(W<T>&& box, extract_tag<W>) {
-  return extract_v<W, T>(std::move(box));
-}
-
-export template <typename T, template <typename> typename W>
+  requires requires(const W<T>& b) {
+    { duplicate_v(b) } -> std::same_as<W<W<T>>>;
+  }
 constexpr auto operator<<(W<T>&& box, duplicate_tag<W>) {
-  return duplicate_v<W, T>(std::move(box));
+  return duplicate_v(std::move(box));
 }
 
 /** @section Comonad_Verification: The Slick Highway Proofs */
