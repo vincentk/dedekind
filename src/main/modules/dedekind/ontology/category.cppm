@@ -11,23 +11,23 @@
  *
  * @section The_Structuralist_Unity: Bricks and Cement
  * This partition establishes the standard model of the Dedekind library.
- * Raw machine instructions are unified with the abstract laws of 
- * Category Theory to create a self-verifying skeletal layer. By treating 
- * the C++ type system as a proof assistant, structural integrity is 
+ * Raw machine instructions are unified with the abstract laws of
+ * Category Theory to create a self-verifying skeletal layer. By treating
+ * the C++ type system as a proof assistant, structural integrity is
  * guaranteed before higher-level modules are initialized.
  *
  * @subsection The_Bricks: Machine Primitives
- * Fundamental C++ types (bool, int, double) are augmented with algebraic 
- * traits. This process transforms primitive bit-fields into formal members 
+ * Fundamental C++ types (bool, int, double) are augmented with algebraic
+ * traits. This process transforms primitive bit-fields into formal members
  * of mathematical structures, such as the Integer Group (ℤ, +).
- * - identity_v      : The neutral element (0, 1, true). 
+ * - identity_v      : The neutral element (0, 1, true).
  * - is_associative_v : The proof of grouping independence.
  * - is_commutative_v : The proof of order independence.
  *
  * @subsection The_Cement: Categorical Morphisms
- * While types represent the bricks, categorical logic provides the cement 
- * required to bind them. Functional "highways" and "bridges" are defined 
- * to allow data to transition between contexts without violating 
+ * While types represent the bricks, categorical logic provides the cement
+ * required to bind them. Functional "highways" and "bridges" are defined
+ * to allow data to transition between contexts without violating
  * structural invariants:
  * - IsFunctor     : A "box" that preserves internal relationships.
  * - IsMonad       : A "highway" for lifting species into a context (Push).
@@ -35,19 +35,22 @@
  * - IsEmbedding   : A static invariant for injective (1:1) promotions.
  *
  * @section The_Highway_Notation: Directional Vectors
- * Directional operators are utilized to represent the vector of data flow 
+ * Directional operators are utilized to represent the vector of data flow
  * across the ontology:
  * - value >> into<>  : The Monadic Push (Lifting a species into a "box").
- * - box   << extract<> : The Comonadic Pull (Extracting a species from a "box").
- * - box   >>= f      : The Logical Chain (Composition within a Monadic context).
+ * - box   << extract<> : The Comonadic Pull (Extracting a species from a
+ * "box").
+ * - box   >>= f      : The Logical Chain (Composition within a Monadic
+ * context).
  *
  * @section Structural_Inference
- * By aggregating primitives and categorical morphisms at Level 0, 
- * exhaustive proofs—such as the verification of the Bool-to-Int 
- * embedding—are performed at compile-time. This ensures the foundation 
+ * By aggregating primitives and categorical morphisms at Level 0,
+ * exhaustive proofs—such as the verification of the Bool-to-Int
+ * embedding—are performed at compile-time. This ensures the foundation
  * is secure before the introduction of complex number species.
  *
- * Wikipedia: Category theory, Natural transformation, Monad (functional programming)
+ * Wikipedia: Category theory, Natural transformation, Monad (functional
+ * programming)
  */
 module;
 
@@ -505,7 +508,7 @@ struct Box final {
 };
 
 /** @brief The Unit/Pure Factory: Lifts a raw value into the Box context. */
-template <typename T>
+export template <typename T>
 constexpr auto pure(T&& value) {
   return Box<std::decay_t<T>>{std::forward<T>(value)};
 }
@@ -1355,6 +1358,17 @@ static_assert((42 >> into<>) == Box{42},
 /**
  * @section Comonadic_Morphisms: Extract (ε) and Duplicate (δ)
  */
+
+/**
+ * @concept IsComonad
+ * @brief The Dual of a Monad: A Functor with Extract and Duplicate.
+ */
+export template <template <typename> typename W, typename T, typename OpT>
+concept IsComonad = IsEndofunctor<W, T, OpT> && requires(W<T> box) {
+  { extract_v<W, T>(box) } -> std::same_as<T>;
+  { duplicate_v<W, T>(box) } -> std::same_as<W<W<T>>>;
+};
+
 /** @brief ε: W⟨T⟩ → T (The Core Extraction) */
 export template <template <typename> typename W, typename T>
 constexpr T extract_v(W<T> box) {
@@ -1379,19 +1393,6 @@ constexpr T extract_v(Id<T> box) {
 template <template <typename> typename W>
 struct extract_tag {};
 
-/** @section Comonadic_Pull (The Exit) */
-// int x = box << extract<>;
-export template <typename T, template <typename> typename W>
-constexpr auto operator<<(const W<T>& box, extract_tag<W>) {
-  return extract_v(box);
-}
-
-/** @brief δ: W⟨T⟩ → W⟨W⟨T⟩⟩ (The Contextual Duplication) */
-export template <template <typename> typename W, typename T>
-constexpr W<W<T>> duplicate_v(W<T> box) {
-  return W<W<T>>{box};
-}
-
 template <typename T>
 constexpr Id<Id<T>> duplicate_v(Id<T> box) {
   return box;
@@ -1413,27 +1414,6 @@ constexpr auto extract = extract_tag<Box>{};
 export template <typename T = void>
 constexpr auto duplicate = duplicate_tag<Box>{};
 
-/** @brief The Comonadic Action Bridges */
-export template <typename T, template <typename> typename W>
-constexpr auto operator<<(W<T>&& box, extract_tag<W>) {
-  return extract_v<W, T>(std::move(box));
-}
-
-export template <typename T, template <typename> typename W>
-constexpr auto operator<<(W<T>&& box, duplicate_tag<W>) {
-  return duplicate_v<W, T>(std::move(box));
-}
-
-/**
- * @concept IsComonad
- * @brief The Dual of a Monad: A Functor with Extract and Duplicate.
- */
-export template <template <typename> typename W, typename T, typename OpT>
-concept IsComonad = IsEndofunctor<W, T, OpT> && requires(W<T> box) {
-  { extract_v<W, T>(box) } -> std::same_as<T>;
-  { duplicate_v<W, T>(box) } -> std::same_as<W<W<T>>>;
-};
-
 /** @section Comonadic_Guardrails: Enforcing the Pull */
 
 /** @brief Deleted Pull: ε : W<T> → T */
@@ -1445,6 +1425,30 @@ auto operator<<(const W<T>&, extract_tag<W>) = delete;
 export template <typename T, template <typename> typename W, typename OpT>
   requires IsComonad<W, T, OpT>
 auto operator<<(const W<T>&, duplicate_tag<W>) = delete;
+
+/** @section Comonadic_Pull (The Exit) */
+// int x = box << extract<>;
+export template <typename T, template <typename> typename W>
+constexpr auto operator<<(const W<T>& box, extract_tag<W>) {
+  return extract_v(box);
+}
+
+/** @brief δ: W⟨T⟩ → W⟨W⟨T⟩⟩ (The Contextual Duplication) */
+export template <template <typename> typename W, typename T>
+constexpr W<W<T>> duplicate_v(W<T> box) {
+  return W<W<T>>{box};
+}
+
+/** @brief The Comonadic Action Bridges */
+export template <typename T, template <typename> typename W>
+constexpr auto operator<<(W<T>&& box, extract_tag<W>) {
+  return extract_v<W, T>(std::move(box));
+}
+
+export template <typename T, template <typename> typename W>
+constexpr auto operator<<(W<T>&& box, duplicate_tag<W>) {
+  return duplicate_v<W, T>(std::move(box));
+}
 
 /** @section Comonad_Verification: The Slick Highway Proofs */
 
