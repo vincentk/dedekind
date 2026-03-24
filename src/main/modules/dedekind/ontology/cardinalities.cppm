@@ -37,6 +37,8 @@ module;
 
 export module dedekind.ontology:cardinalities;
 
+import :order;  // The prerequisite for defining cardinalities (Total Order)
+
 namespace dedekind::ontology {
 
 /** @concept IsCardinality */

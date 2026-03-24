@@ -98,4 +98,39 @@ concept IsArchimedean = IsTotallyOrdered<T> && requires(T x) {
   requires(x < x++);
 };
 
+/**
+ * @concept IsDividableChain
+ * @brief A Totally Ordered species with a partitioning algorithm.
+ * @details For any a, b (b ≠ 0), there exist a quotient and a remainder.
+ *          This represents the "Metric" ability to measure one magnitude
+ *          against another (The Scissors).
+ */
+export template <typename T>
+concept IsDividableChain = IsTotallyOrdered<T> && requires(T a, T b) {
+  { a / b } -> std::same_as<T>;  // The Measurement (How many fits)
+  { a % b } -> std::same_as<T>;  // The Remainder (The Leftover)
+};
+
+/**
+ * @concept IsDedekindComplete
+ * @brief The topological "Soul" of the Continuum.
+ *
+ * @details A structure is Dedekind-complete if it possesses the
+ * Least-Upper-Bound property. In our structuralist approach, this requires the
+ * existence of a Total Order, Density, and the functional ability to resolve
+ *          extrema (Supremum/Infimum).
+ *
+ * @tparam S The Ordered Structure (The Rule).
+ *
+ * @section Structural_Inference:
+ * While the Rationals (Q) are Dense and Totally Ordered, they fail this
+ * requirement because they lack the "Extrema" morphism for sets like
+ * {q ∈ Q | q² < 2}. The Real Continuum (R) satisfies this by definition
+ * through the Dedekind Cut synthesis.
+ *
+ * Wikipedia: Completeness of the real numbers, Least-upper-bound property
+ */
+export template <typename S>
+concept IsDedekindComplete = IsTotallyOrdered<S> && IsDense<S> && HasExtrema<S>;
+
 }  // namespace dedekind::ontology

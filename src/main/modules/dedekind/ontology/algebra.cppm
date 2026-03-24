@@ -47,28 +47,6 @@ using ::dedekind::ontology::IsDense;
 using ::dedekind::ontology::IsTotallyOrdered;
 
 /**
- * @concept IsDedekindComplete
- * @brief The topological "Soul" of the Continuum.
- *
- * @details A structure is Dedekind-complete if it possesses the
- * Least-Upper-Bound property. In our structuralist approach, this requires the
- * existence of a Total Order, Density, and the functional ability to resolve
- *          extrema (Supremum/Infimum).
- *
- * @tparam S The Ordered Structure (The Rule).
- *
- * @section Structural_Inference:
- * While the Rationals (Q) are Dense and Totally Ordered, they fail this
- * requirement because they lack the "Extrema" morphism for sets like
- * {q ∈ Q | q² < 2}. The Real Continuum (R) satisfies this by definition
- * through the Dedekind Cut synthesis.
- *
- * Wikipedia: Completeness of the real numbers, Least-upper-bound property
- */
-export template <typename S>
-concept IsDedekindComplete = IsTotallyOrdered<S> && IsDense<S> && HasExtrema<S>;
-
-/**
  * @section Algebra: The study of operations and structures.
  *
  * @concept IsMagma
@@ -183,15 +161,16 @@ concept IsCommutativeRing =
  * Wikipedia: Euclidean domain
  */
 export template <typename T>
-concept IsEuclidean = IsCommutativeRing<T> && requires(T a, T b) {
-  // The Division Morphism
-  { a / b } -> std::same_as<T>;
-  // The Remainder Morphism (The "Scissors")
-  { a % b } -> std::same_as<T>;
+concept IsEuclidean =
+    IsDividableChain<T> && IsCommutativeRing<T> && requires(T a, T b) {
+      // The Division Morphism
+      { a / b } -> std::same_as<T>;
+      // The Remainder Morphism (The "Scissors")
+      { a % b } -> std::same_as<T>;
 
-  // Euclidean Property: a = (a/b)*b + (a%b)
-  // Note: In C++, we assume std::divides and std::modulus satisfy this.
-};
+      // Euclidean Property: a = (a/b)*b + (a%b)
+      // Note: In C++, we assume std::divides and std::modulus satisfy this.
+    };
 
 /**
  * @concept IsCyclic
