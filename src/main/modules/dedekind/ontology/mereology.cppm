@@ -91,37 +91,47 @@ concept HasExtrema = requires(S s) {
   { s.infimum() };
 };
 
+/** @section The_Scale: The Logic of Magnitude */
+
+export template <typename C>
+concept IsCardinality = requires {
+  { C::is_finite } -> std::convertible_to<bool>;
+  { C::is_countable } -> std::convertible_to<bool>;
+  typename C::power_type;
+};
+
+/** @struct Finite: Hardware-bound magnitude. */
+export struct Finite {
+  static constexpr bool is_finite = true;
+  static constexpr bool is_countable = true;
+  using power_type = Finite;  // Finite sets always jump to other Finite sets.
+};
+
+/** @struct ℵ: The Transfinite Ladder. */
+export template <std::size_t N>
+struct ℵ {
+  static constexpr bool is_finite = false;
+  static constexpr bool is_countable = (N == 0);
+  using power_type = ℵ<N + 1>;
+};
+
+using ℵ_0 = ℵ<0>;  // Countable Infinity
+using ℶ_1 = ℵ<1>;  // The Continuum (assuming GCH)
+
+/** @section The_Body: The Logic of Presence */
+
 /**
  * @concept IsSet
- * @brief The fundamental species of a Collection (The Rule).
- *
- * A species fulfills IsSet if it provides a membership predicate (contains)
- * and a declaration of its own magnitude (cardinality) relative to a
- * specific Logic L.
- *
- * @tparam S The Set implementation type being verified.
- * @tparam L The Logic species (The Subobject Classifier Ω) governing the
- *           membership predicate. Defaults to ClassicalLogic (Binary).
- *
- * @section Structural_Requirements
- * Every species satisfying IsSet must define:
- * - element_type: The species of the members (The "What").
- * - cardinality_type: The species of the magnitude (The "How Many").
- * - base_set_type: The underlying algebraic or mereological origin.
+ * @brief The Universal Morphism of Presence.
+ * @tparam L The Subobject Classifier (Ω). Defaults to ClassicalLogic.
  */
 export template <typename S, typename L = ClassicalLogic>
 concept IsSet = requires {
-  /** @section Anatomy: Structural Requirements */
   typename S::element_type;
   typename S::cardinality_type;
+  requires IsCardinality<typename S::cardinality_type>;
 } && requires(const S s, const typename S::element_type v) {
-  /**
-   * @section Membership: The Predicate (x ∈ S)
-   * The truth value (ω) must match the expected Logic L.
-   */
   { s.contains(v) } -> std::same_as<typename L::type>;
-
-  /** @section Magnitude: The Scale */
   { s.cardinality() } -> std::same_as<typename S::cardinality_type>;
 };
 
@@ -137,21 +147,39 @@ export template <typename S>
 concept IsKleeneSet =
     IsSet<S> && std::same_as<typename S::logic_species, TernaryLogic>;
 
+/** @section The_Extent: The Logic of Realization */
+
 /**
- * @brief Identifies a set that is physically representable in memory (the
- * "Bucket of Data").
+ * @concept IsExtensional
+ * @brief A set whose members are materialized or bounded in memory (The
+ * "Bucket").
  *
- * A set is Extensional only if it is mathematically Finite. This
- * ensures that any set we attempt to iterate over or store as
- * a "bucket of data" has a terminating sequence.
+ * @details In the structuralist ontology, Extensionality implies that
+ *          membership is not merely a rule (λx. P(x)) but is constrained
+ *          by a physical container with a terminable address space.
  *
  * @tparam S A set species.
  */
 export template <typename S>
-concept IsExtensional = IsSet<S> && requires(S s) {
-  /** @brief Computable upper bound for memory-safe allocations. */
+concept IsExtensional = IsSet<S> && requires(const S s) {
+  /** @section Magnitude: The Physical Proof */
+  // An extensional set MUST claim a Finite cardinality type.
+  requires(S::cardinality_type::is_finite == true);
+
+  /** @section Termination: The Boundedness Proof */
+  // Every extensional set must define a maximum capacity (upper_bound)
+  // to ensure memory-safe allocations and finite iteration.
   { s.upper_bound() } -> std::convertible_to<std::size_t>;
 };
+
+/**
+ * @concept IsIntentional
+ * @brief A set defined by a "Rule" or "Predicate" (λx. P(x)).
+ * @details These sets (like UniversalSet or EmptySet) are not stored;
+ *          they are calculated. They may be Transfinite.
+ */
+export template <typename S>
+concept IsIntentional = IsSet<S> && !IsExtensional<S>;
 
 /**
  * @section Mereology: Pointed Species.

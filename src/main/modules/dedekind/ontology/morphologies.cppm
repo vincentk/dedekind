@@ -18,7 +18,7 @@
  * - Archimedean Species: Algebra constrained by the Successor Morphism.
  *
  * @build_order 6
- * @dependency :algebra, :cardinalities, :order
+ * @dependency :algebra, :order
  *
  * Wikipedia: Structuralism (philosophy of mathematics), Cyclic group, Ordered
  * field
@@ -31,7 +31,6 @@ module;
 export module dedekind.ontology:morphologies;
 
 import :algebra;        // The Abstract Laws (Groups, Rings)
-import :cardinalities;  // The Scale of Magnitude (IsFinite, IsCountable)
 import :order;          // The Rules of Relation (IsTotallyOrdered, IsDense)
 
 namespace dedekind::ontology {

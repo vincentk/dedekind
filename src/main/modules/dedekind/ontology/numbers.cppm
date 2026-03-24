@@ -37,7 +37,6 @@ module;
 export module dedekind.ontology:numbers;
 
 import :mereology;      // For IsSet
-import :cardinalities;  // For ℵ_0, ℶ_1
 import :order;          // For IsArchimedean, IsDedekindComplete
 import :algebra;        // For IsCommutativeMonoid, IsField, IsRing
 import :morphologies;   // For IsOrderedField, IsEuclidean, IsCyclic

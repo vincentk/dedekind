@@ -31,7 +31,6 @@ export import :order;      // Rules of Relation (Posets, Lattices, and Chains)
 export import :topology;   // Rules of Closeness (Open Sets and Continuity)
 
 /** @section Level_2: The Scale (Measurement and Path) */
-export import :cardinalities;  // The Scale of Magnitude (Aleph and Beth Towers)
 export import :sequences;      // The Path: Mapping Magnitudes to Enumerations
 
 /** @section Level_3: The Soul (Harmony and Action) */

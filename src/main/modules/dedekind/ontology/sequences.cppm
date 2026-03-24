@@ -18,7 +18,7 @@
  * - IsFiniteSet: A sequence that possesses a Terminal Index.
  *
  * @build_order 5
- * @dependency :mereology, :cardinalities
+ * @dependency :mereology
  *
  * Wikipedia: Sequence, Enumeration, Computable set, Constructivism
  */
@@ -30,7 +30,6 @@ module;
 export module dedekind.ontology:sequences;
 
 import :mereology;      // Required for IsSet
-import :cardinalities;  // Required for IsFiniteMagnitude/IsCountable
 
 /// @brief
 namespace dedekind::ontology {
