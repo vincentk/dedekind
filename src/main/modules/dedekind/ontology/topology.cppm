@@ -37,81 +37,70 @@ module;
 export module dedekind.ontology:topology;
 
 import :algebra;
+import :order;
+import :sequences;  // Bridge Level 2.5: For the Path to a point
 
 namespace dedekind::ontology {
 
 /**
  * @concept IsOpen
  * @brief A set where every point has a neighborhood entirely within the set.
- * @note Wikipedia: Open set
+ * @note Arity: Updated to structuralist 1-arg IsSet.
  */
 export template <typename S>
-concept IsOpen =
-    IsSet<S, typename S::element_type> && requires { typename S::is_open_tag; };
+concept IsOpen = IsSet<S> && requires { typename S::is_open_tag; };
 
 /**
  * @concept IsClosed
  * @brief A set that contains all its limit points.
- * @note Wikipedia: Closed set
  */
 export template <typename S>
-concept IsClosed = IsSet<S, typename S::element_type> &&
-                   requires { typename S::is_closed_tag; };
+concept IsClosed = IsSet<S> && requires { typename S::is_closed_tag; };
 
 /**
- * @concept IsSequence
- * @brief A mapping from an Archimedean Index to a Value.
- * @details This keeps the door to Infinity open (BigInt/Peano)
- *          without a circular dependency on IsNatural.
+ * @concept IsNeighborhood
+ * @brief A set that "surrounds" a point p.
+ * @details Synthesized from the Open set morphology.
  */
-export template <typename Seq, typename T, typename N>
-concept IsSequence = IsArchimedean<N> && requires(Seq s, N n) {
-  { s[n] } -> std::convertible_to<T>;
+export template <typename N, typename T>
+concept IsNeighborhood = IsSet<N> && IsOpen<N> && requires(N n, T p) {
+  { n.contains(p) } -> std::same_as<bool>;
 };
 
 /**
- * @section Topology: The study of solid shapes and boundaries.
- *
- * @brief Axiom: Is the set morphologically solid (no holes)?
- * Wikipedia: Convex set
+ * @section Topology: Morphological Shapes
  */
+
 export template <typename S>
 inline constexpr bool is_convex_v = false;
 
 /**
  * @concept IsConvex
- * @brief A Set that satisfies the convexity theorem.
- * Wikipedia: Convex set, Line segment
+ * @brief A Set that satisfies the convexity theorem (no holes).
  */
 export template <typename S>
-concept IsConvex = IsSet<S, typename S::element_type> && is_convex_v<S>;
+concept IsConvex = IsSet<S> && is_convex_v<S>;
 
 /**
- * @section Mereology: The Geometry of Overlap.
  * @concept IsConvexMagma
- * @brief Convex sets form a Magma under the Intersection operation.
- * @details Structural Proof: If A and B are Convex, then A ∩ B is Convex.
- * Wikipedia: Convex set (Intersection property)
+ * @brief Convex sets form a Magma under Intersection.
  */
 export template <typename S>
-concept IsConvexMagma =
-    IsMagma<S, std::bit_and<S>> && requires(S a) { requires IsConvex<S>; };
+concept IsConvexMagma = IsMagma<S, std::bit_and<S>> && IsConvex<S>;
 
 /**
  * @concept IsHalfSpace
- * @brief A Convex Set defined by a single "Naked" boundary.
- * Wikipedia: Half-space (geometry), Ray (geometry)
+ * @brief A Convex Set defined by a single "Naked" boundary (Ray).
  */
 export template <typename S>
 concept IsHalfSpace = IsConvex<S> && requires {
-  typename S::is_ray_tag;  // Structural proof
-  S::bound;                // The naked limit
+  typename S::is_ray_tag;
+  S::bound;
 };
 
 /**
  * @concept IsInterval
- * @brief A "Molecule" formed by the intersection (Meet) of two Half-Spaces.
- * Wikipedia: Interval (mathematics)
+ * @brief A "Molecule" formed by the intersection of two Half-Spaces.
  */
 export template <typename S>
 concept IsInterval = IsConvex<S> && requires {
