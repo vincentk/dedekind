@@ -1,12 +1,16 @@
-cmake_minimum_required(VERSION 3.14)
+cmake_minimum_required(VERSION 3.28)
 project(Dedekind VERSION 1.0.0 LANGUAGES CXX)
 
-# Force C++20 standard for macOS Clang
-set(CMAKE_CXX_STANDARD 20)
+# Force C++23 standard for Clang 21
+set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 # Disable global scanning to protect FetchContent/dependencies
 set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
+
+# For clangd:
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # 1. THE LIBRARY (src/main)
 add_library(dedekind STATIC)
@@ -22,13 +26,28 @@ target_sources(dedekind
     FILE_SET CXX_MODULES 
     BASE_DIRS src/main/modules
     FILES
-        src/main/modules/dedekind/sets/cardinalities.cppm
-        src/main/modules/dedekind/sets/algebra.cppm
-#        src/main/modules/dedekind/sets/universes.cppm
-#        src/main/modules/dedekind/sets/expressions.cppm
-#        src/main/modules/dedekind/sets/operators.cppm
-#        src/main/modules/dedekind/sets/predicates.cppm
-        src/main/modules/dedekind/sets/sets.cppm
+        src/main/modules/dedekind/ontology/ontology.cppm
+        src/main/modules/dedekind/ontology/logic.cppm
+        src/main/modules/dedekind/ontology/category.cppm
+        src/main/modules/dedekind/ontology/mereology.cppm
+        src/main/modules/dedekind/ontology/order.cppm
+        src/main/modules/dedekind/ontology/topology.cppm
+        src/main/modules/dedekind/ontology/cardinalities.cppm
+        src/main/modules/dedekind/ontology/sequences.cppm
+        src/main/modules/dedekind/ontology/algebra.cppm
+        src/main/modules/dedekind/ontology/morphologies.cppm
+        src/main/modules/dedekind/ontology/geometry.cppm
+        src/main/modules/dedekind/ontology/numbers.cppm
+#        src/main/modules/dedekind/algebra/algebra.cppm
+#        src/main/modules/dedekind/algebra/abstract.cppm
+#        src/main/modules/dedekind/algebra/nodes.cppm
+#        src/main/modules/dedekind/order/order.cppm
+#        src/main/modules/dedekind/order/algebra.cppm
+#        src/main/modules/dedekind/sets/logic.cppm
+#        src/main/modules/dedekind/order/nodes.cppm
+#        src/main/modules/dedekind/sets/sets.cppm
+#        src/main/modules/dedekind/sets/cardinalities.cppm
+#        src/main/modules/dedekind/sets/algebra.cppm
 )
 
 
@@ -47,9 +66,7 @@ FetchContent_MakeAvailable(Catch2)
 enable_testing()
 
 add_executable(dedekind_test 
-    src/test/cpp/modules/dedekind/sets/cardinalities_test.cpp
-    src/test/cpp/modules/dedekind/sets/algebra_test.cpp
-    # src/test/cpp/dedekind/sets_test.cpp 
+    src/test/cpp/modules/dedekind/ontology/category_test.cpp
 )
 
 # --- 1. RIGOROUS COMPILER ENFORCEMENT ---
