@@ -66,7 +66,7 @@ FetchContent_MakeAvailable(Catch2)
 enable_testing()
 
 add_executable(dedekind_test 
-    src/test/cpp/modules/dedekind/ontology/ontology_test.cpp
+    src/test/cpp/modules/dedekind/ontology/category_test.cpp
 )
 
 # --- 1. RIGOROUS COMPILER ENFORCEMENT ---

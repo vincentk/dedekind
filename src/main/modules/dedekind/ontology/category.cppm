@@ -1,41 +1,53 @@
 /**
  * @file ontology:category.cppm
- * @brief Level 0: The Skeletal Foundation (The Bricks and the Cement).
+ * @brief Level 0: The Skeletal Foundation (Bricks and Cement).
  *
  * Copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
  * @partition :category
  * @build_order 1
- * @dependency None (Bootstrap Partition)
+ * @dependency None (The Bootstrap Partition)
  *
  * @section The_Structuralist_Unity: Bricks and Cement
- * This partition establishes the "Standard Model" of the Dedekind library.
- * The raw C++ machine instructions are unified with the abstract laws of
- * Category Theory to create a self-verifying skeletal layer.
+ * This partition establishes the standard model of the Dedekind library.
+ * Raw machine instructions are unified with the abstract laws of 
+ * Category Theory to create a self-verifying skeletal layer. By treating 
+ * the C++ type system as a proof assistant, structural integrity is 
+ * guaranteed before higher-level modules are initialized.
  *
  * @subsection The_Bricks: Machine Primitives
- * The library captures the C++ standard library primitive types (bool, char,
- * int, double) and operators (+, *, &&) by providing Proof Assistant Traits.
- * This enriches the CPU's silicon instructions with mathematical authority.
- * - identity_v: The neutral element (0, 1, true).
- * - is_associative_v: The proof of grouping independence.
- * - is_commutative_v: The proof of swap-safety.
+ * Fundamental C++ types (bool, int, double) are augmented with algebraic 
+ * traits. This process transforms primitive bit-fields into formal members 
+ * of mathematical structures, such as the Integer Group (ℤ, +).
+ * - identity_v      : The neutral element (0, 1, true). 
+ * - is_associative_v : The proof of grouping independence.
+ * - is_commutative_v : The proof of order independence.
  *
- * @subsection The_Cement: Categorical Logic
- * We provide the "Highways" and "Bridges" that allow these bricks to
- * move between worlds without breaking the math:
- * - IsFunctor: The "Box" that preserves the skeletal structure.
- * - lift_natural_transformation: The "Bridge" between functors.
- * - unit / pure / eta: The on-ramp from raw values to structures.
- * - IsEmbedding: A static assertion for injective (1:1) promotions.
+ * @subsection The_Cement: Categorical Morphisms
+ * While types represent the bricks, categorical logic provides the cement 
+ * required to bind them. Functional "highways" and "bridges" are defined 
+ * to allow data to transition between contexts without violating 
+ * structural invariants:
+ * - IsFunctor     : A "box" that preserves internal relationships.
+ * - IsMonad       : A "highway" for lifting species into a context (Push).
+ * - IsComonad     : A mechanism for sampling species from a context (Pull).
+ * - IsEmbedding   : A static invariant for injective (1:1) promotions.
+ *
+ * @section The_Highway_Notation: Directional Vectors
+ * Directional operators are utilized to represent the vector of data flow 
+ * across the ontology:
+ * - value >> into<>  : The Monadic Push (Lifting a species into a "box").
+ * - box   << extract<> : The Comonadic Pull (Extracting a species from a "box").
+ * - box   >>= f      : The Logical Chain (Composition within a Monadic context).
  *
  * @section Structural_Inference
- * By keeping the Bricks and Cement together, Level 0 can perform
- * Exhaustive Proofs (like the Bool-to-Int embedding) before any
- * higher-level sets or numbers are even defined.
+ * By aggregating primitives and categorical morphisms at Level 0, 
+ * exhaustive proofs—such as the verification of the Bool-to-Int 
+ * embedding—are performed at compile-time. This ensures the foundation 
+ * is secure before the introduction of complex number species.
  *
- * Wikipedia: Category theory, Natural transformation, Functor, Monoid
+ * Wikipedia: Category theory, Natural transformation, Monad (functional programming)
  */
 module;
 
@@ -1291,6 +1303,41 @@ concept IsMonad = IsEndofunctor<F, T, OpT> && requires(F<F<T>> nested, T x) {
   };
 };
 
+/** @section Monadic_Guardrails: Enforcing the Contract
+ *  If a species satisfies the concept but lacks a specialization,
+ *  we delete the operator to prevent fallback to bit-shifts.
+ */
+
+/** @brief Deleted Push: η : T → F<T> */
+export template <typename T, template <typename> typename F, typename OpT>
+  requires IsMonad<F, T, OpT>
+auto operator>>(T&&, into_tag<F>) = delete;
+
+/** @brief Deleted Bind: >>= : F<T> → (T → F<U>) → F<U> */
+export template <typename T, template <typename> typename F, typename OpT,
+                 typename Function>
+  requires IsMonad<F, T, OpT>
+auto operator>>=(const F<T>&, Function) = delete;
+
+/**
+ * @section Monadic_Bind (The Logical Chain)
+ * @brief The >>= operator (Bind/AndThen) for Monadic Composition.
+ * @details Synthesized as: Map (f) followed by Join (μ).
+ */
+export template <typename T, template <typename> typename F, typename Function>
+  requires IsMonad<F, T, std::plus<T>>  // Optional: Tighten with concepts
+constexpr auto operator>>=(const F<T>& box, Function f) {
+  // Logic: Unbox -> Apply -> Return new Box
+  // For the Identity Monad (Box), this is just f(x).
+  return f(box.value);
+}
+
+/** @brief Rvalue overload for "High-Speed" Bind */
+export template <typename T, template <typename> typename F, typename Function>
+constexpr auto operator>>=(F<T>&& box, Function f) {
+  return f(std::move(box.value));
+}
+
 /** @section Level_0_Final_Proof: The Box Monad */
 
 // 1. Proof: Box satisfies the formal IsMonad concept for (Z, +)
@@ -1316,10 +1363,10 @@ constexpr T extract_v(W<T> box) {
   return box.value;
 }
 
-/** @brief δ: W⟨T⟩ → W⟨W⟨T⟩⟩ (The Contextual Duplication) */
-export template <template <typename> typename W, typename T>
-constexpr W<W<T>> duplicate_v(W<T> box) {
-  return W<W<T>>{box};
+// The reality of how to extract from a Box
+template <typename T>
+constexpr T extract_v(Box<T> box) {
+  return box.value;
 }
 
 /** @section Identity_Comonad_Specialization */
@@ -1328,17 +1375,26 @@ constexpr T extract_v(Id<T> box) {
   return box;
 }
 
+/** @brief The Extraction Tag (ε: W ⟹ Id) */
+template <template <typename> typename W>
+struct extract_tag {};
+
+/** @section Comonadic_Pull (The Exit) */
+// int x = box << extract<>;
+export template <typename T, template <typename> typename W>
+constexpr auto operator<<(const W<T>& box, extract_tag<W>) {
+  return extract_v(box);
+}
+
+/** @brief δ: W⟨T⟩ → W⟨W⟨T⟩⟩ (The Contextual Duplication) */
+export template <template <typename> typename W, typename T>
+constexpr W<W<T>> duplicate_v(W<T> box) {
+  return W<W<T>>{box};
+}
+
 template <typename T>
 constexpr Id<Id<T>> duplicate_v(Id<T> box) {
   return box;
-}
-
-/** @section Box_Comonad_Specialization */
-
-// The reality of how to extract from a Box
-template <typename T>
-constexpr T extract_v(Box<T> box) {
-  return box.value;
 }
 
 // The reality of how to duplicate a Box
@@ -1346,10 +1402,6 @@ template <typename T>
 constexpr Box<Box<T>> duplicate_v(Box<T> box) {
   return Box<Box<T>>{box};
 }
-
-/** @brief The Extraction Tag (ε: W ⟹ Id) */
-template <template <typename> typename W>
-struct extract_tag {};
 
 /** @brief The Duplication Tag (δ: W ⟹ W ∘ W) */
 template <template <typename> typename W>
@@ -1363,12 +1415,12 @@ constexpr auto duplicate = duplicate_tag<Box>{};
 
 /** @brief The Comonadic Action Bridges */
 export template <typename T, template <typename> typename W>
-constexpr auto operator>>(W<T>&& box, extract_tag<W>) {
+constexpr auto operator<<(W<T>&& box, extract_tag<W>) {
   return extract_v<W, T>(std::move(box));
 }
 
 export template <typename T, template <typename> typename W>
-constexpr auto operator>>(W<T>&& box, duplicate_tag<W>) {
+constexpr auto operator<<(W<T>&& box, duplicate_tag<W>) {
   return duplicate_v<W, T>(std::move(box));
 }
 
@@ -1382,20 +1434,32 @@ concept IsComonad = IsEndofunctor<W, T, OpT> && requires(W<T> box) {
   { duplicate_v<W, T>(box) } -> std::same_as<W<W<T>>>;
 };
 
+/** @section Comonadic_Guardrails: Enforcing the Pull */
+
+/** @brief Deleted Pull: ε : W<T> → T */
+export template <typename T, template <typename> typename W, typename OpT>
+  requires IsComonad<W, T, OpT>
+auto operator<<(const W<T>&, extract_tag<W>) = delete;
+
+/** @brief Deleted Duplicate: δ : W<T> → W<W<T>> */
+export template <typename T, template <typename> typename W, typename OpT>
+  requires IsComonad<W, T, OpT>
+auto operator<<(const W<T>&, duplicate_tag<W>) = delete;
+
 /** @section Comonad_Verification: The Slick Highway Proofs */
 
 // 1. The Extract Law (ε): Getting the car out of the Box.
-static_assert((42 >> into<> >> extract<>) == 42,
+static_assert((42 >> into<> << extract<>) == 42,
               "Comonad Law: Extract (ε) must recover the raw Species.");
 
 // 2. The Duplicate Law (δ): Making a 'Shadow' Box.
 // Instead of that decltype(arrow) mess, we just pipe it.
-static_assert((42 >> into<> >> duplicate<>).value.value == 42,
+static_assert((42 >> into<> << duplicate<>).value.value == 42,
               "Comonad Law: Duplicate (δ) must yield a nested Context.");
 
 // 3. The Co-Unit Law: ext(dup(x)) == x
 // Reading: "Take a box, duplicate it, then extract the outer layer."
-static_assert((42 >> into<> >> duplicate<> >> extract<>) == 42 >> into<>,
+static_assert((42 >> into<> << duplicate<> << extract<>) == 42 >> into<>,
               "Comonad Law: Extract ∘ Duplicate must be an Identity on Boxes.");
 
 /** @brief The Retraction Morphism (r: 𝒢 ⟹ 1_𝒞).
