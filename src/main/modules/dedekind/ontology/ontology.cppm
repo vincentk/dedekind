@@ -10,7 +10,7 @@
  * required to synthesize the Continuum from the Discrete. By treating
  * mathematical objects as structures (Structuralism) rather than
  * collections (Mereology), we enable zero-overhead formal verification
- * within the C++20 type system.
+ * within the C++23 type system.
  *
  * @see dedekind.ontology:logic (Level -1)
  * @see dedekind.ontology:category (Level 0)
@@ -30,9 +30,14 @@ export import :mereology;  // Rules of Presence (Sets, Parts, and Wholes)
 export import :order;      // Rules of Relation (Posets, Lattices, and Chains)
 export import :topology;   // Rules of Closeness (Open Sets and Continuity)
 
-/** @section Level_2_to_3: The Soul (Magnitude and Harmony) */
+/** @section Level_2: The Scale (Measurement and Path) */
 export import :cardinalities;  // The Scale of Magnitude (Aleph and Beth Towers)
-export import :algebra;  // The Laws of Harmony (Groups, Rings, and Fields)
+export import :sequences;      // The Path: Mapping Magnitudes to Enumerations
+
+/** @section Level_3: The Soul (Harmony and Action) */
+export import :algebra;       // The Pure Laws (Groups, Rings, and Fields)
+export import :morphologies;  // The Realized Forms (Cyclic, Ordered, and
+                              // Archimedean)
 
 /** @section Level_4: The Realization (The Registry) */
 export import :geometry;  // Metric Spaces and Manifolds

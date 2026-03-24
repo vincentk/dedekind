@@ -33,7 +33,9 @@ target_sources(dedekind
         src/main/modules/dedekind/ontology/order.cppm
         src/main/modules/dedekind/ontology/topology.cppm
         src/main/modules/dedekind/ontology/cardinalities.cppm
+        src/main/modules/dedekind/ontology/sequences.cppm
         src/main/modules/dedekind/ontology/algebra.cppm
+        src/main/modules/dedekind/ontology/morphologies.cppm
         src/main/modules/dedekind/ontology/geometry.cppm
         src/main/modules/dedekind/ontology/numbers.cppm
 #        src/main/modules/dedekind/ontology/order_algebra.cppm

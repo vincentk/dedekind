@@ -173,51 +173,6 @@ concept IsEuclidean =
     };
 
 /**
- * @concept IsCyclic
- * @brief The "Clock" Soul: An Abelian Group that wraps after n steps.
- *
- * @details A structure is Cyclic if it is an Abelian Group where every element
- *          is invariant under the Modulus. This defines the topology of a
- *          Circle rather than a Line.
- *
- * @tparam T The coordinate species.
- *
- * @section Structural_Logic:
- * 1. Magnitude: The cardinality must be Finite and equal to the modulus.
- * 2. Symmetry: Every Cyclic group is Abelian (Commutative).
- * 3. Closure: The Successor Morphism (++x) eventually returns to the Identity.
- *
- * Wikipedia: Cyclic group, Modular arithmetic, Circle group
- */
-export template <typename T>
-concept IsCyclic = IsAbelianGroup<T, std::plus<T>> &&
-                   IsFinite<typename T::cardinality_type> && requires(T a) {
-                     /** @brief The Modulus: The circumference/order of the
-                      * cycle. */
-                     { T::modulus() } -> std::convertible_to<T>;
-
-                     /** @brief The Remainder Morphism: x mod n. */
-                     { a % T::modulus() } -> std::same_as<T>;
-
-                     /** @brief Axiom: The set is its own remainder. */
-                     requires(a % T::modulus() == a);
-
-                     /** @brief Proof: The size of the set matches the cycle
-                      * length. */
-                     requires(T::cardinality() == T::modulus());
-                   };
-
-/**
- * @concept IsCyclicRing
- * @brief The "Painless" Modular Arithmetic (Z/nZ).
- *
- * @details A Cyclic Ring is the algebraic soul of a Finite Commutative Ring.
- *          By requiring IsCommutativeRing, we satisfy IsRing implicitly.
- */
-export template <typename T>
-concept IsCyclicRing = IsCommutativeRing<T> && IsCyclic<T>;
-
-/**
  * @concept IsDivisionRing
  * @brief A Ring where every non-zero element has a multiplicative inverse.
  * @details This is the formal "Roadblock" for division by zero.
@@ -240,16 +195,6 @@ concept IsDivisionRing = IsRing<T> && requires(T a, T b) {
  */
 export template <typename T>
 concept IsField = IsCommutativeRing<T> && IsDivisionRing<T>;
-
-/**
- * @concept IsOrderedField
- * @brief A Field where the algebraic operations preserve the Total Order.
- * @details Axiom 1: If a < b, then a + c < b + c.
- *          Axiom 2: If 0 < a and 0 < b, then 0 < ab.
- * Wikipedia: Ordered field
- */
-export template <typename T>
-concept IsOrderedField = IsField<T> && IsTotallyOrdered<T>;
 
 /**
  * @concept IsAlgebraicallyClosed

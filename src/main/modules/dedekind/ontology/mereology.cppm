@@ -119,17 +119,6 @@ concept IsSet = requires {
 };
 
 /**
- * @brief Identifies a set that is mathematically Finite
- * as opposed to an infinite or unbounded set (The "Conceptual Space").
- * @concept IsFinite
- */
-export template <typename S>
-concept IsFinite = IsSet<S> && requires(S s) {
-  /** @brief True exactly if it is an extensional set. */
-  { s.is_extensional() } -> std::convertible_to<bool>;
-};
-
-/**
  * @brief Identifies a set that is physically representable in memory (the
  * "Bucket of Data").
  *
@@ -140,7 +129,7 @@ concept IsFinite = IsSet<S> && requires(S s) {
  * @tparam S A set species.
  */
 export template <typename S>
-concept IsExtensional = IsFinite<S> && requires(S s) {
+concept IsExtensional = IsSet<S> && requires(S s) {
   /** @brief Computable upper bound for memory-safe allocations. */
   { s.upper_bound() } -> std::convertible_to<std::size_t>;
 };
