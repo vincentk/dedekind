@@ -10,27 +10,27 @@
  * @dependency :logic, :category
  *
  * @section Mereology: The Geometry of Existence
- * This partition defines the "Body" of the Dedekind species. In the 
- * structuralist ontology, Mereology establishes the relationship between 
+ * This partition defines the "Body" of the Dedekind species. In the
+ * structuralist ontology, Mereology establishes the relationship between
  * 'Parts' and 'Wholes' as a mapping between a Domain and a Logic.
  *
  * @details
- * Membership is defined as a morphism to a Subobject Classifier (Ω). 
- * By decoupling the "Body" from the "Truth," the same mereological laws 
+ * Membership is defined as a morphism to a Subobject Classifier (Ω).
+ * By decoupling the "Body" from the "Truth," the same mereological laws
  * are applied across different logical universes:
  * - IsSet: The universal rule-based predicate for membership.
  * - IsBooleanSet: The Classical {True, False} universe (The Binary Prime).
  * - IsKleeneSet: The Indeterminate {True, False, Unknown} universe.
  *
  * @section Structural_Anchors
- * Standard C++ operators are anchored here as Set Morphisms, 
+ * Standard C++ operators are anchored here as Set Morphisms,
  * lifting logical connectives into latticial operations:
  * - operator&&, operator& : Intersection (The Meet).
  * - operator||, operator| : Union (The Join).
  * - operator! : Complement (The Remainder).
  *
  * @tparam S The Set implementation type being verified.
- * @tparam L The Logic species (Ω) governing the membership predicate. 
+ * @tparam L The Logic species (Ω) governing the membership predicate.
  *           Defaults to ClassicalLogic for zero-overhead arithmetic.
  *
  * Wikipedia: Mereology, Subobject classifier, Topos theory
@@ -95,12 +95,12 @@ concept HasExtrema = requires(S s) {
  * @concept IsSet
  * @brief The fundamental species of a Collection (The Rule).
  *
- * A species fulfills IsSet if it provides a membership predicate (contains) 
- * and a declaration of its own magnitude (cardinality) relative to a 
- * specific Logic L. 
+ * A species fulfills IsSet if it provides a membership predicate (contains)
+ * and a declaration of its own magnitude (cardinality) relative to a
+ * specific Logic L.
  *
  * @tparam S The Set implementation type being verified.
- * @tparam L The Logic species (The Subobject Classifier Ω) governing the 
+ * @tparam L The Logic species (The Subobject Classifier Ω) governing the
  *           membership predicate. Defaults to ClassicalLogic (Binary).
  *
  * @section Structural_Requirements
@@ -115,8 +115,8 @@ concept IsSet = requires {
   typename S::element_type;
   typename S::cardinality_type;
 } && requires(const S s, const typename S::element_type v) {
-  /** 
-   * @section Membership: The Predicate (x ∈ S) 
+  /**
+   * @section Membership: The Predicate (x ∈ S)
    * The truth value (ω) must match the expected Logic L.
    */
   { s.contains(v) } -> std::same_as<typename L::type>;
