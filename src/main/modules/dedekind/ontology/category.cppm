@@ -1414,39 +1414,42 @@ constexpr auto extract = extract_tag<Box>{};
 export template <typename T = void>
 constexpr auto duplicate = duplicate_tag<Box>{};
 
-/** @section Comonadic_Guardrails: Enforcing the Pull */
-
-/** @brief 1. The Lvalue Pull (For named variables) */
-export template <typename T, template <typename> typename W>
-  requires requires(const W<T>& b) {
-    { extract_v(b) } -> std::same_as<T>;
-  }
-constexpr T operator<<(const W<T>& box, extract_tag<W>) {
-  return extract_v(box);
-}
-
-/** @brief 2. The Rvalue Pull (For temporaries) */
-export template <typename T, template <typename> typename W>
-  requires requires(const W<T>& b) {
-    { extract_v(b) } -> std::same_as<T>;
-  }
-constexpr T operator<<(W<T>&& box, extract_tag<W>) {
-  return extract_v(std::move(box));
-}
-
-/** @brief Deleted Duplicate: δ : W<T> → W<W<T>> */
-export template <typename T, template <typename> typename W>
-  requires requires(const W<T>& b) {
-    { duplicate_v(b) } -> std::same_as<W<W<T>>>;
-  }
-constexpr auto operator<<(const W<T>&, duplicate_tag<W>) = delete;
-
 /** @brief δ: W⟨T⟩ → W⟨W⟨T⟩⟩ (The Contextual Duplication) */
 export template <typename T, template <typename> typename W>
 constexpr W<W<T>> duplicate_v(W<T> box) {
   return W<W<T>>{box};
 }
 
+/** @section Comonadic_Pull: The Directional Extraction */
+
+// 1. The Lvalue Pull (For named variables like 'start')
+export template <typename T, template <typename> typename W>
+  requires requires(const W<T>& b) {
+    { extract_v(b) } -> std::same_as<T>;
+  }
+constexpr auto operator<<(const W<T>& box, extract_tag<W>) {
+  return extract_v(box);
+}
+
+// 2. The Rvalue Pull (For temporaries)
+export template <typename T, template <typename> typename W>
+  requires requires(const W<T>& b) {
+    { extract_v(b) } -> std::same_as<T>;
+  }
+constexpr auto operator<<(W<T>&& box, extract_tag<W>) {
+  return extract_v(std::move(box));
+}
+
+// 3. The Duplicate Pull (δ) - Lvalue
+export template <typename T, template <typename> typename W>
+  requires requires(const W<T>& b) {
+    { duplicate_v(b) } -> std::same_as<W<W<T>>>;
+  }
+constexpr auto operator<<(const W<T>& box, duplicate_tag<W>) {
+  return duplicate_v(box);
+}
+
+// 4. The Duplicate Pull (δ) - Rvalue
 export template <typename T, template <typename> typename W>
   requires requires(const W<T>& b) {
     { duplicate_v(b) } -> std::same_as<W<W<T>>>;
