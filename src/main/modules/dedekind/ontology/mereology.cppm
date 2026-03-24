@@ -300,4 +300,24 @@ struct SingletonSet {
   constexpr std::size_t upper_bound() const { return 1; }
 };
 
+/** @section The_Set_Monad_Realization */
+
+/** @brief η: T -> SingletonSet<T> (The Unit) */
+export template <typename T>
+constexpr auto singleton(T&& value) {
+  return SingletonSet<std::decay_t<T>>{std::forward<T>(value)};
+}
+
+/** @brief The Canonical Set-Monad Tag. */
+export template <typename T>
+using Set = SingletonSet<T>;
+
+/**
+ * @brief The Set-Monad On-Ramp.
+ * @details We target the 'Set' alias template.
+ */
+export template <typename T>
+constexpr auto operator>>(T&& value, into_tag<Set>) {
+  return singleton(std::forward<T>(value));
+}
 };  // namespace dedekind::ontology

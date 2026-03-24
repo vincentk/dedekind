@@ -695,6 +695,33 @@ static_assert(IsIsomorphism<TaggedNegate, int, int>,
               "Negation must be recognized as a reversible Morphism.");
 
 /**
+ * @concept IsInitialObject
+ * @brief The "Zero" of the Category (0).
+ * @details For any object X, there exists a unique morphism ! : 0 -> X.
+ *          In Mereology, this is the set that contains nothing.
+ */
+export template <typename T>
+concept IsInitialObject = requires(const T s) {
+  /** @brief Axiom: Magnitude must be the additive identity (Zero). */
+  requires s.cardinality().is_finite == true;
+  requires s.upper_bound() == 0;
+};
+
+/**
+ * @concept IsTerminalObject
+ * @brief The "One" of the Category (1).
+ * @details For any object X, there exists a unique morphism ! : X -> 1.
+ *          In Mereology, this is the set that contains everything (The Domain).
+ */
+export template <typename T>
+concept IsTerminalObject =
+    requires(const T s, const typename T::element_type x) {
+      /** @brief Axiom: The Membership Morphism is the identity of the Logic. */
+      // It must always evaluate to the "Top" (True) of its internal logic.
+      { s.contains(x) } -> std::same_as<typename T::logic_species::type>;
+    };
+
+/**
  * @struct ZeroAction
  * @brief The 'Absorption' logic.
  * @details Maps any input of species A to the neutral element of species B.
