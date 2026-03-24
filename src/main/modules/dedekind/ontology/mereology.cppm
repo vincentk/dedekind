@@ -1,33 +1,39 @@
 /**
  * @file ontology:mereology.cppm
- * @brief Level 1: The Rules of Presence (Sets, Parts, and Membership).
+ * @brief Level 1: The Rules of Presence (Topos-Aware Sets).
  *
  * Copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
  * @partition :mereology
  * @build_order 2
- * @dependency :category
+ * @dependency :logic, :category
  *
- * @section Mereology: The Geometry of Composition
- * This partition defines the "Body" of our species. In the Dedekind
- * structuralist ontology, Mereology establishes the relationship between
- * 'Parts' and 'Wholes' before they are assigned a quantitative order.
+ * @section Mereology: The Geometry of Existence
+ * This partition defines the "Body" of the Dedekind species. In the 
+ * structuralist ontology, Mereology establishes the relationship between 
+ * 'Parts' and 'Wholes' as a mapping between a Domain and a Logic.
  *
  * @details
- * This module defines the formal existence of containers:
- * - IsSet: The rule-based predicate for membership.
- * - UniversalSet: The Domain of Discourse (The Top element).
- * - Subset: The foundational 'inclusion' morphism.
- * - Union/Intersection: The Latticial operations (Join and Meet).
+ * Membership is defined as a morphism to a Subobject Classifier (Ω). 
+ * By decoupling the "Body" from the "Truth," the same mereological laws 
+ * are applied across different logical universes:
+ * - IsSet: The universal rule-based predicate for membership.
+ * - IsBooleanSet: The Classical {True, False} universe (The Binary Prime).
+ * - IsKleeneSet: The Indeterminate {True, False, Unknown} universe.
  *
  * @section Structural_Anchors
- * We anchor the C++ bitwise/logical operators here as Set Morphisms:
+ * Standard C++ operators are anchored here as Set Morphisms, 
+ * lifting logical connectives into latticial operations:
  * - operator&&, operator& : Intersection (The Meet).
  * - operator||, operator| : Union (The Join).
  * - operator! : Complement (The Remainder).
  *
- * Wikipedia: Mereology, Set theory, Mereotopology
+ * @tparam S The Set implementation type being verified.
+ * @tparam L The Logic species (Ω) governing the membership predicate. 
+ *           Defaults to ClassicalLogic for zero-overhead arithmetic.
+ *
+ * Wikipedia: Mereology, Subobject classifier, Topos theory
  */
 module;
 
@@ -38,6 +44,7 @@ module;
 export module dedekind.ontology:mereology;
 
 import :category;
+import :logic;
 
 /**
  * @section Mereology: The study of parts and wholes.
@@ -88,35 +95,47 @@ concept HasExtrema = requires(S s) {
  * @concept IsSet
  * @brief The fundamental species of a Collection (The Rule).
  *
- * In the Dedekind structuralist ontology, a Set is defined by its ability
- * to provide a membership predicate (contains) and a declaration of its
- * own magnitude (cardinality).
+ * A species fulfills IsSet if it provides a membership predicate (contains) 
+ * and a declaration of its own magnitude (cardinality) relative to a 
+ * specific Logic L. 
+ *
+ * @tparam S The Set implementation type being verified.
+ * @tparam L The Logic species (The Subobject Classifier Ω) governing the 
+ *           membership predicate. Defaults to ClassicalLogic (Binary).
  *
  * @section Structural_Requirements
  * Every species satisfying IsSet must define:
  * - element_type: The species of the members (The "What").
  * - cardinality_type: The species of the magnitude (The "How Many").
  * - base_set_type: The underlying algebraic or mereological origin.
- *
- * @tparam S The Set implementation type being verified.
  */
-export template <typename S>
+export template <typename S, typename L = ClassicalLogic>
 concept IsSet = requires {
   /** @section Anatomy: Structural Requirements */
   typename S::element_type;
   typename S::cardinality_type;
-  typename S::base_set_type;
 } && requires(const S s, const typename S::element_type v) {
-  /** @section Membership: The Predicate (x ∈ S) */
-  { s.contains(v) } -> std::convertible_to<bool>;
-  { s[v] } -> std::convertible_to<bool>;
+  /** 
+   * @section Membership: The Predicate (x ∈ S) 
+   * The truth value (ω) must match the expected Logic L.
+   */
+  { s.contains(v) } -> std::same_as<typename L::type>;
 
-  /** @section Magnitude: The Cardinality Hook */
+  /** @section Magnitude: The Scale */
   { s.cardinality() } -> std::same_as<typename S::cardinality_type>;
-
-  /** @section Relation: The Underlying Structure */
-  { s.base_set() } -> std::convertible_to<typename S::base_set_type>;
 };
+
+/** @section The_Canonical_Specializations */
+
+/** @concept IsBooleanSet: Classical {True, False} */
+export template <typename S>
+concept IsBooleanSet =
+    IsSet<S> && std::same_as<typename S::logic_species, ClassicalLogic>;
+
+/** @concept IsKleeneSet: Indeterminate {True, False, Unknown} */
+export template <typename S>
+concept IsKleeneSet =
+    IsSet<S> && std::same_as<typename S::logic_species, TernaryLogic>;
 
 /**
  * @brief Identifies a set that is physically representable in memory (the
