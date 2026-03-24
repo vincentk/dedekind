@@ -246,4 +246,58 @@ concept IsBoundedLattice = IsLattice<S> && requires(S s) {
   { s.upper_bound() } -> std::same_as<typename S::element_type>;  // The Top
 };
 
+/** @brief ∅: The Initial Object. Extensional (Size 0). */
+template <typename T, typename L = ClassicalLogic>
+struct EmptySet {
+  using element_type = T;
+  using logic_species = L;
+  using cardinality_type = Finite;
+  using base_set_type = EmptySet<T, L>;
+
+  constexpr typename L::type contains(const T&) const {
+    return L::NOT(identity_v<typename L::type, L>);
+  }
+
+  /** @section Extensionality_Proof */
+  constexpr std::size_t size() const { return 0; }
+  constexpr std::size_t upper_bound() const { return 0; }
+};
+
+/**
+ * @struct UniversalSet
+ * @brief U: The Terminal Object.
+ * @details Intentional but Decidable: The rule "x ∈ U" always returns True.
+ */
+template <typename T, typename L = ClassicalLogic>
+struct UniversalSet {
+  using element_type = T;
+  using cardinality_type = ℵ_0;  // Countable Domain of Discourse
+  using base_set_type = UniversalSet<T, L>;
+  using logic_species = L;
+
+  // The Axiom: Total Presence
+  constexpr typename L::type contains(const T&) const {
+    return identity_v<typename L::type, L>;
+  }
+};
+
+/** @brief {x}: The Atom. Extensional (Size 1). */
+template <typename T, typename L = ClassicalLogic>
+struct SingletonSet {
+  T pivot;
+  using element_type = T;
+  using logic_species = L;
+  using cardinality_type = Finite;
+  using base_set_type = SingletonSet<T, L>;
+
+  constexpr typename L::type contains(const T& v) const {
+    return (v == pivot) ? identity_v<typename L::type, L>
+                        : L::NOT(identity_v<typename L::type, L>);
+  }
+
+  /** @section Extensionality_Proof */
+  constexpr std::size_t size() const { return 1; }
+  constexpr std::size_t upper_bound() const { return 1; }
+};
+
 };  // namespace dedekind::ontology
