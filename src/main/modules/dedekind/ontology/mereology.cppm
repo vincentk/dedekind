@@ -247,8 +247,8 @@ concept IsBoundedLattice = IsLattice<S> && requires(S s) {
 };
 
 /** @brief ∅: The Initial Object. Extensional (Size 0). */
-template <typename T, typename L = ClassicalLogic>
-struct EmptySet {
+export template <typename T, typename L = ClassicalLogic>
+struct EmptySet final {
   using element_type = T;
   using logic_species = L;
   using cardinality_type = Finite;
@@ -260,15 +260,25 @@ struct EmptySet {
 
   /** @section Extensionality_Proof */
   constexpr std::size_t size() const { return 0; }
+
+  // Required by IsInitialObject
+  constexpr cardinality_type cardinality() const { return cardinality_type{}; }
   constexpr std::size_t upper_bound() const { return 0; }
 };
+
+/** @section The_Seal_of_Initiality */
+// This is your 'override'. If EmptySet fails the concept,
+// the build stops right here with a clear error.
+static_assert(IsInitialObject<EmptySet<int>>,
+              "Mereology: EmptySet must satisfy the Initial Object axiom.");
 
 /**
  * @struct UniversalSet
  * @brief U: The Terminal Object.
  * @details Intentional but Decidable: The rule "x ∈ U" always returns True.
  */
-template <typename T, typename L = ClassicalLogic>
+
+export template <typename T, typename L = ClassicalLogic>
 struct UniversalSet {
   using element_type = T;
   using cardinality_type = ℵ_0;  // Countable Domain of Discourse
@@ -282,7 +292,7 @@ struct UniversalSet {
 };
 
 /** @brief {x}: The Atom. Extensional (Size 1). */
-template <typename T, typename L = ClassicalLogic>
+export template <typename T, typename L = ClassicalLogic>
 struct SingletonSet {
   T pivot;
   using element_type = T;
@@ -308,16 +318,22 @@ constexpr auto singleton(T&& value) {
   return SingletonSet<std::decay_t<T>>{std::forward<T>(value)};
 }
 
-/** @brief The Canonical Set-Monad Tag. */
+/** @section The_Set_Monad: The Categorical Identity */
+
+/**
+ * @brief The SetMonad Alias (The Unary Blueprint).
+ * @details This provides the 'template <typename> typename' signature
+ *          required for the Category Level 0 Highway.
+ */
 export template <typename T>
-using Set = SingletonSet<T>;
+using SetMonad = SingletonSet<T, ClassicalLogic>;
 
 /**
  * @brief The Set-Monad On-Ramp.
  * @details We target the 'Set' alias template.
  */
 export template <typename T>
-constexpr auto operator>>(T&& value, into_tag<Set>) {
+constexpr auto operator>>(T&& value, into_tag<SetMonad>) {
   return singleton(std::forward<T>(value));
 }
 };  // namespace dedekind::ontology
