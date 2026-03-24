@@ -67,7 +67,6 @@ concept IsProperPart = requires(const Part p, const Whole w) {
   { p.is_part_of(w) } -> std::convertible_to<bool>;
 };
 
-
 /**
  * @brief The Existence of Extreme Bounds.
  *
@@ -88,9 +87,9 @@ concept HasExtrema = requires(S s) {
 /**
  * @concept IsSet
  * @brief The fundamental species of a Collection (The Rule).
- * 
- * In the Dedekind structuralist ontology, a Set is defined by its ability 
- * to provide a membership predicate (contains) and a declaration of its 
+ *
+ * In the Dedekind structuralist ontology, a Set is defined by its ability
+ * to provide a membership predicate (contains) and a declaration of its
  * own magnitude (cardinality).
  *
  * @section Structural_Requirements
@@ -125,14 +124,14 @@ concept IsSet = requires {
  * @concept IsFinite
  */
 export template <typename S>
-concept IsFinite =
-    IsSet<S> && requires(S s) {
-      /** @brief True exactly if it is an extensional set. */
-      { s.is_extensional() } -> std::convertible_to<bool>;
-    };
+concept IsFinite = IsSet<S> && requires(S s) {
+  /** @brief True exactly if it is an extensional set. */
+  { s.is_extensional() } -> std::convertible_to<bool>;
+};
 
 /**
- * @brief Identifies a set that is physically representable in memory (the "Bucket of Data").
+ * @brief Identifies a set that is physically representable in memory (the
+ * "Bucket of Data").
  *
  * A set is Extensional only if it is mathematically Finite. This
  * ensures that any set we attempt to iterate over or store as
@@ -141,11 +140,10 @@ concept IsFinite =
  * @tparam S A set species.
  */
 export template <typename S>
-concept IsExtensional =
-    IsFinite<S> && requires(S s) {
-      /** @brief Computable upper bound for memory-safe allocations. */
-      { s.upper_bound() } -> std::convertible_to<std::size_t>;
-    };
+concept IsExtensional = IsFinite<S> && requires(S s) {
+  /** @brief Computable upper bound for memory-safe allocations. */
+  { s.upper_bound() } -> std::convertible_to<std::size_t>;
+};
 
 /**
  * @section Mereology: Pointed Species.

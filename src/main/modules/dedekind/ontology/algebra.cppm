@@ -1,14 +1,32 @@
 /**
+ * @file ontology:algebra.cppm
  * @partition :algebra
  * @brief Level 3: The Rules of Harmony (Groups, Rings, and Fields).
  *
  * Copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
+ * @section Algebra: The Synthesis of Body and Action
+ * This partition defines the "Soul" of the Dedekind species. While mereology
+ * defines the notion of a "Set", algebra provides structure-preserving
+ * operations.
+ *
+ * @details
+ * We anchor the standard C++ arithmetic operators as formal Algebraic
+ * Morphisms within the Dedekind Ontology:
+ * - operator+ : The Additive Group Morphism (The Translation).
+ * - operator* : The Multiplicative Morphism (The Scaling).
+ * - operator- : The Inverse Morphism (The Symmetry).
+ *
  * @build_order 4
- * @details The synthesis. It "blesses" a Body (Set) with the Actions
- * (Category). This is where we anchor the arithmetic operators.
- * @anchors C++ Arithmetic: +, -, *, /, % (The Algebraic Operations).
+ * @dependency :category, :mereology, :order
+ *
+ * @see dedekind.ontology:category (Level 0)
+ * @see dedekind.ontology:mereology (Level 1)
+ * @see dedekind.ontology:order (Level 1.5)
+ *
+ * Wikipedia: Abstract algebra, Group theory, Ring (mathematics), Field
+ * (physics)
  */
 module;
 
@@ -18,15 +36,15 @@ module;
 
 export module dedekind.ontology:algebra;
 
-import :category;
-import :mereology;  // For Ordered Fields
-import :numbers;    // For Ordered Fields and Density
-import :order;      // For the Dedekind Completeness requirement
+import :category;   // Level 0: To define Morphisms (Monads, Functors, Identity)
+import :mereology;  // Level 1: To define the Domain of Discourse (IsSet,
+                    // IsPointed)
+import :order;      // Level 1.5: Necessary for Ordered Groups/Fields
+                    // (IsTotallyOrdered)
 
 namespace dedekind::ontology {
 using ::dedekind::ontology::IsDense;
 using ::dedekind::ontology::IsTotallyOrdered;
-using ::dedekind::ontology::ℵ_0;
 
 /**
  * @concept IsDedekindComplete
@@ -49,31 +67,6 @@ using ::dedekind::ontology::ℵ_0;
  */
 export template <typename S>
 concept IsDedekindComplete = IsTotallyOrdered<S> && IsDense<S> && HasExtrema<S>;
-
-/**
- * @brief The Continuous Field property.
- * @details A species is Continuous if it possesses the cardinality
- *          of the power set of the naturals (Beth-1) and satisfies
- *          the Dedekind-Completeness axiom.
- *
- * This represents the "Smooth" transition where gaps in the
- * Rational field have been "filled" by the Dedekind Cut.
- */
-export template <typename S>
-concept IsContinuous =
-    IsUncountable<typename S::cardinality_type> && IsDedekindComplete<S>;
-
-/**
- * @concept IsDiscrete
- * @brief A space of isolated points (Z, N).
- * @details A species is Discrete if it is Countable but lacks a
- *          midpoint morphism between its elements. This property
- *          enables mathematical induction and successor-based logic.
- * @note Axiom: For a discrete set, there exists a "gap" between any
- *       two distinct elements.
- */
-export template <typename S>
-concept IsDiscrete = IsCountable<S> && !IsDense<S>;
 
 /**
  * @section Algebra: The study of operations and structures.
@@ -130,33 +123,9 @@ concept IsSemiring =
  * @brief The Root Category for all Numerical Structures.
  *
  * @tparam M The Algebraic Structure (The "Rule").
- * @tparam C The Cardinality (The "Magnitude").
- * @tparam E The Element Species (The "What").
  */
-export template <typename M, typename C, typename E = typename M::element_type>
-concept IsNumbers =
-    IsSet<M, C, E> &&    // 1. It must be a Rule (Predicate-based)
-    IsCardinality<C> &&  // 2. It must have a defined Magnitude
-    requires(const M& m) { requires IsCommutativeMonoid<M, std::plus<E>>; };
-
-/**
- * @concept Monoid_ℕ
- * @brief The Parametric Algebraic Soul of the Natural Numbers.
- *
- * @tparam M The Monoid structure.
- * @tparam E The underlying Element species.
- */
-export template <typename M, typename E = typename M::element_type>
-concept Monoid_ℕ =
-    IsNumbers<M, ℵ_0, E> && IsNatural<E> && requires(const M& m) {
-      // The structure must actually possess the claimed cardinality.
-      { m.cardinality() } -> std::same_as<ℵ_0>;
-
-      // The Soul: Structural Laws
-      requires IsArchimedean<M>;
-      requires IsCommutativeMonoid<M, std::plus<E>>;
-      requires IsCommutativeMonoid<M, std::multiplies<E>>;
-    };
+export template <typename M>
+concept IsNumbers = IsSet<M>;
 
 /**
  * @concept IsGroup
@@ -223,23 +192,6 @@ concept IsEuclidean = IsCommutativeRing<T> && requires(T a, T b) {
   // Euclidean Property: a = (a/b)*b + (a%b)
   // Note: In C++, we assume std::divides and std::modulus satisfy this.
 };
-
-/**
- * @concept Group_ℤ
- * @brief The Canonical Algebraic Soul of the Integers.
- *
- * @details ℤ is the uniquely determined Infinite Cyclic Group (under addition)
- *          that extends the Naturals with additive inverses.
- */
-export template <typename M, typename E = typename M::element_type>
-concept Group_ℤ = IsNumbers<M, ℵ_0, E> &&  // The Magnitude (Coded in)
-                  IsInteger<E> &&          // The Species (The "What")
-                  requires(const M& m) {
-                    // The Soul: Group Axioms
-                    // Note: Subtraction is now a Total Morphism.
-                    requires IsOrderedAbelianGroup<M> && IsCommutativeRing<M> &&
-                                 IsArchimedean<M> && IsEuclidean<M>;
-                  };
 
 /**
  * @concept IsCyclic
@@ -321,80 +273,12 @@ export template <typename T>
 concept IsOrderedField = IsField<T> && IsTotallyOrdered<T>;
 
 /**
- * @concept Field_ℚ
- * @brief The Canonical Algebraic Soul of the Rational Numbers.
- *
- * @details ℚ is defined as the unique Ordered, Dense, Archimedean Field
- *          constructed over an underlying Integer species. In our
- *          "Rules, not buckets" manifesto, this concept "blesses" a
- *          coordinate species (E) with the structural laws of the
- *          Rational Field (M).
- *
- * @tparam M The Field structure (The "Rule" or "Soul").
- * @tparam C The Magnitude (Strictly Aleph_0 for the universal field).
- * @tparam E The underlying Rational species (The "What" / Element).
- * @tparam Z The underlying Integer species (The "Ancestry" of E).
- *
- * @section Structural_Recursion:
- * This concept enforces that the Field is strictly Countable (Aleph_0)
- * and that every element E can be projected back to its Integer
- * components (Z), ensuring a verified path from N to Q.
- */
-export template <typename M, typename E, typename Z>
-concept Field_ℚ = IsNumbers<M, ℵ_0, E> &&
-                  IsRational<E, Z> &&  // <--- The Relative Species Check
-                  requires(const M& m) {
-                    requires IsOrderedField<M>;
-                    requires IsDense<M>;
-                    requires IsArchimedean<M>;
-                  };
-
-/**
- * @concept Continuum_ℝ
- * @brief The Canonical "Blessing" of the Real Numbers.
- *
- * @tparam M The Field structure (The "Rule").
- * @tparam E The underlying Real species (The "Element").
- * @tparam Q The underlying Rational species (The "Ancestry").
- */
-export template <typename M, typename E, typename Q>
-concept Continuum_ℝ =
-    IsNumbers<M, ℶ_1, E> && IsReal<E> && requires(const M& m) {
-      /** @property IsDedekindComplete: The defining "Soul" of R. */
-      requires IsDedekindComplete<M> && IsOrderedField<M> && IsArchimedean<M>;
-    };
-
-/**
  * @concept IsAlgebraicallyClosed
  * @brief Semantic requirement for a Field where every polynomial has a root.
  * @details This is the "Soul" property required by Algebra_ℂ.
  */
 export template <typename M>
 concept IsAlgebraicallyClosed = IsField<M>;  // Refined by its use in Algebra_ℂ
-
-/**
- * @concept Algebra_ℂ
- * @brief The Canonical "Blessing" of the Complex Numbers.
- *
- * @details ℂ is the Algebraically Closed Field over the Real Continuum.
- *          It inherits the Magnitude (Beth_1) but rejects the Order.
- */
-export template <typename M, typename E, typename R>
-concept Algebra_ℂ =
-    IsNumbers<M, ℶ_1, E> && IsComplex<E, R> && requires(const M& m) {
-      requires IsField<M>;
-
-      /**
-       * @property IsAlgebraicallyClosed
-       * This soul is "pre-validated" by the species' ability to
-       * solve quadratic roots via sqrt().
-       */
-      requires IsAlgebraicallyClosed<M>;
-
-      /** @property !IsOrderedField: C is NOT totally ordered.
-       */
-      requires !IsOrderedField<M>;
-    };
 
 /**
  * @concept IsBounded
