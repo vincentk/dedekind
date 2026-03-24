@@ -97,15 +97,6 @@ concept IsSemiring =
     };
 
 /**
- * @concept IsNumbers
- * @brief The Root Category for all Numerical Structures.
- *
- * @tparam M The Algebraic Structure (The "Rule").
- */
-export template <typename M>
-concept IsNumbers = IsSet<M>;
-
-/**
  * @concept IsGroup
  * @brief A Monoid where every element has an inverse.
  * Wikipedia: Group (mathematics), Additive inverse

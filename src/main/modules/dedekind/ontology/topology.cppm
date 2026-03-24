@@ -99,6 +99,16 @@ concept IsHalfSpace = IsConvex<S> && requires {
 };
 
 /**
+ * @concept IsRay
+ * @brief A set representing all points greater than (or less than) a pivot.
+ */
+export template <typename R, typename T>
+concept IsRay = IsSet<R> && IsTotallyOrdered<T> && requires(T pivot) {
+  { R::upward_from(pivot) } -> std::same_as<R>;
+  { R::downward_from(pivot) } -> std::same_as<R>;
+};
+
+/**
  * @concept IsInterval
  * @brief A "Molecule" formed by the intersection of two Half-Spaces.
  */

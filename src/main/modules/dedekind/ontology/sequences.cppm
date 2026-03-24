@@ -32,6 +32,7 @@ export module dedekind.ontology:sequences;
 import :mereology;      // Required for IsSet
 import :cardinalities;  // Required for IsFiniteMagnitude/IsCountable
 
+/// @brief
 namespace dedekind::ontology {
 /**
  * @concept IsSequence
@@ -52,11 +53,11 @@ concept IsCountableSet = requires(S s) {
 };
 
 /**
- * @concept IsFinite
+ * @concept IsTerminalSet
  * @brief A Sequence that has a terminal index.
  */
 export template <typename S>
-concept IsFinite = IsCountableSet<S> && requires(S s) {
+concept IsTerminalSet = IsCountableSet<S> && requires(S s) {
   { s.size() } -> std::integral;  // The termination proof
 };
 };  // namespace dedekind::ontology

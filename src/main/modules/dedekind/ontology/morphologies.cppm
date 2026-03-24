@@ -92,4 +92,15 @@ export template <typename T>
 concept IsDedekindCompleteField =
     IsArchimedeanField<T> && IsDedekindComplete<T>;
 
+/**
+ * @concept IsMinkowskiSummable
+ * @brief Species that support set-based addition.
+ * @details A + B = { a + b : a ∈ A, b ∈ B }.
+ */
+export template <typename S>
+concept IsMinkowskiSummable =
+    IsSet<S> && IsAbelianGroup<typename S::element_type> && requires(S a, S b) {
+      { a + b } -> std::same_as<S>;
+    };
+
 }  // namespace dedekind::ontology

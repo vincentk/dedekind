@@ -42,6 +42,3 @@ export import :morphologies;  // The Realized Forms (Cyclic, Ordered, and
 /** @section Level_4: The Realization (The Registry) */
 export import :geometry;  // Metric Spaces and Manifolds
 export import :numbers;   // The Species Registry (ℕ ⊂ ℤ ⊂ ℚ ⊂ ℝ)
-
-/** @section Extensions: Applied Structuralism */
-export import :order_algebra;  // Minkowski Sums and Ordered Groups

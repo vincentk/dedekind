@@ -44,6 +44,19 @@ import :morphologies;   // For IsOrderedField, IsEuclidean, IsCyclic
 
 namespace dedekind::ontology {
 
+/**
+ * @concept IsNumbers
+ * @brief The Root Category for all Numerical Structures.
+ *
+ * @tparam M The Algebraic Structure (The "Rule").
+ * @tparam C The Cardinality (The "Magnitude").
+ */
+export template <typename M, typename C>
+concept IsNumbers = IsSet<M> && IsCardinality<C> && requires {
+  // This "locks" the structure to the ruler
+  requires std::same_as<typename M::cardinality_type, C>;
+};
+
 export template <typename T>
 concept IsAdditiveSpecies = requires(T a, T b) {
   { a + b } -> std::same_as<T>;
@@ -70,16 +83,15 @@ concept IsNatural = IsAdditiveSpecies<N> && requires(N n, N m) {
  * @tparam E The underlying Element species.
  */
 export template <typename M, typename E = typename M::element_type>
-concept Monoid_ℕ =
-    IsNumbers<M, ℵ_0, E> && IsNatural<E> && requires(const M& m) {
-      // The structure must actually possess the claimed cardinality.
-      { m.cardinality() } -> std::same_as<ℵ_0>;
+concept Monoid_ℕ = IsNumbers<M, ℵ_0> && IsNatural<E> && requires(const M& m) {
+  // The structure must actually possess the claimed cardinality.
+  { m.cardinality() } -> std::same_as<ℵ_0>;
 
-      // The Soul: Structural Laws
-      requires IsArchimedean<M>;
-      requires IsCommutativeMonoid<M, std::plus<E>>;
-      requires IsCommutativeMonoid<M, std::multiplies<E>>;
-    };
+  // The Soul: Structural Laws
+  requires IsArchimedean<M>;
+  requires IsCommutativeMonoid<M, std::plus<E>>;
+  requires IsCommutativeMonoid<M, std::multiplies<E>>;
+};
 
 export template <typename T>
 concept IsReflectiveSpecies = IsAdditiveSpecies<T> && requires(T a) {
@@ -105,8 +117,8 @@ concept IsInteger = IsReflectiveSpecies<Z> && requires(Z a, Z b) {
  *          that extends the Naturals with additive inverses.
  */
 export template <typename M, typename E = typename M::element_type>
-concept Group_ℤ = IsNumbers<M, ℵ_0, E> &&  // The Magnitude (Coded in)
-                  IsInteger<E> &&          // The Species (The "What")
+concept Group_ℤ = IsNumbers<M, ℵ_0> &&  // The Magnitude (Coded in)
+                  IsInteger<E> &&       // The Species (The "What")
                   requires(const M& m) {
                     // The Soul: Group Axioms
                     // Note: Subtraction is now a Total Morphism.
@@ -161,13 +173,13 @@ concept IsRational = IsFieldSpecies<Q> && IsInteger<Z> && requires(Q q, Z z) {
  * components (Z), ensuring a verified path from N to Q.
  */
 export template <typename M, typename E, typename Z>
-concept Field_ℚ = IsNumbers<M, ℵ_0, E> &&
-                  IsRational<E, Z> &&  // <--- The Relative Species Check
-                  requires(const M& m) {
-                    requires IsOrderedField<M>;
-                    requires IsDense<M>;
-                    requires IsArchimedean<M>;
-                  };
+concept Field_ℚ =
+    IsNumbers<M, ℵ_0> && IsRational<E, Z> &&  // <--- The Relative Species Check
+    requires(const M& m) {
+      requires IsOrderedField<M>;
+      requires IsDense<M>;
+      requires IsArchimedean<M>;
+    };
 
 /**
  * @concept IsReal
@@ -213,11 +225,10 @@ concept IsDiscrete = IsCountable<S> && !IsDense<S>;
  * @tparam Q The underlying Rational species (The "Ancestry").
  */
 export template <typename M, typename E, typename Q>
-concept Continuum_ℝ =
-    IsNumbers<M, ℶ_1, E> && IsReal<E> && requires(const M& m) {
-      /** @property IsDedekindComplete: The defining "Soul" of R. */
-      requires IsDedekindComplete<M> && IsOrderedField<M> && IsArchimedean<M>;
-    };
+concept Continuum_ℝ = IsNumbers<M, ℶ_1> && IsReal<E> && requires(const M& m) {
+  /** @property IsDedekindComplete: The defining "Soul" of R. */
+  requires IsDedekindComplete<M> && IsOrderedField<M> && IsArchimedean<M>;
+};
 
 /**
  * @concept IsComplex
@@ -254,7 +265,7 @@ concept IsComplex = IsFieldSpecies<C> && IsReal<R> && requires(const C z, R r) {
  */
 export template <typename M, typename E, typename R>
 concept Algebra_ℂ =
-    IsNumbers<M, ℶ_1, E> && IsComplex<E, R> && requires(const M& m) {
+    IsNumbers<M, ℶ_1> && IsComplex<E, R> && requires(const M& m) {
       requires IsField<M>;
 
       /**

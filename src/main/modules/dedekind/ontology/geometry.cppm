@@ -22,6 +22,7 @@ export module dedekind.ontology:geometry;
 
 import :mereology;
 import :algebra;
+import :morphologies;
 import :topology;
 
 namespace dedekind::ontology {
@@ -34,7 +35,7 @@ namespace dedekind::ontology {
  */
 export template <typename T, typename S>
 concept IsMetricSpace =
-    IsSet<T, S> && IsOrderedField<S> && requires(const T a, const T b) {
+    IsSet<T> && IsOrderedField<S> && requires(const T a, const T b) {
       // The Distance Morphism: d(a, b)
       { distance(a, b) } -> std::same_as<S>;
     };
