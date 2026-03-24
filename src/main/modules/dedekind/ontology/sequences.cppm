@@ -29,7 +29,7 @@ module;
 
 export module dedekind.ontology:sequences;
 
-import :mereology;      // Required for IsSet
+import :mereology;  // Required for IsSet
 
 /// @brief
 namespace dedekind::ontology {

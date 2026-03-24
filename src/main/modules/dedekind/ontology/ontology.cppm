@@ -31,7 +31,7 @@ export import :order;      // Rules of Relation (Posets, Lattices, and Chains)
 export import :topology;   // Rules of Closeness (Open Sets and Continuity)
 
 /** @section Level_2: The Scale (Measurement and Path) */
-export import :sequences;      // The Path: Mapping Magnitudes to Enumerations
+export import :sequences;  // The Path: Mapping Magnitudes to Enumerations
 
 /** @section Level_3: The Soul (Harmony and Action) */
 export import :algebra;       // The Pure Laws (Groups, Rings, and Fields)

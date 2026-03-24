@@ -36,10 +36,10 @@ module;
 
 export module dedekind.ontology:numbers;
 
-import :mereology;      // For IsSet
-import :order;          // For IsArchimedean, IsDedekindComplete
-import :algebra;        // For IsCommutativeMonoid, IsField, IsRing
-import :morphologies;   // For IsOrderedField, IsEuclidean, IsCyclic
+import :mereology;     // For IsSet
+import :order;         // For IsArchimedean, IsDedekindComplete
+import :algebra;       // For IsCommutativeMonoid, IsField, IsRing
+import :morphologies;  // For IsOrderedField, IsEuclidean, IsCyclic
 
 namespace dedekind::ontology {
 

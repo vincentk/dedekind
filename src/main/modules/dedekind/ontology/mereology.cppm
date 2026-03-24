@@ -100,6 +100,18 @@ concept IsCardinality = requires {
   typename C::power_type;
 };
 
+/** @concept IsCountable: Magnitude is at most Aleph_0. */
+export template <typename C>
+concept IsCountable = IsCardinality<C> && (C::is_countable == true);
+
+/** @concept IsUncountable: Magnitude is strictly greater than Aleph_0. */
+export template <typename C>
+concept IsUncountable = IsCardinality<C> && !IsCountable<C>;
+
+/** @concept IsFiniteMagnitude: Strictly terminating. */
+export template <typename C>
+concept IsFiniteMagnitude = IsCountable<C> && (C::is_finite == true);
+
 /** @struct Finite: Hardware-bound magnitude. */
 export struct Finite {
   static constexpr bool is_finite = true;
@@ -135,18 +147,6 @@ concept IsSet = requires {
   { s.cardinality() } -> std::same_as<typename S::cardinality_type>;
 };
 
-/** @section The_Canonical_Specializations */
-
-/** @concept IsBooleanSet: Classical {True, False} */
-export template <typename S>
-concept IsBooleanSet =
-    IsSet<S> && std::same_as<typename S::logic_species, ClassicalLogic>;
-
-/** @concept IsKleeneSet: Indeterminate {True, False, Unknown} */
-export template <typename S>
-concept IsKleeneSet =
-    IsSet<S> && std::same_as<typename S::logic_species, TernaryLogic>;
-
 /** @section The_Extent: The Logic of Realization */
 
 /**
@@ -159,9 +159,10 @@ concept IsKleeneSet =
  *          by a physical container with a terminable address space.
  *
  * @tparam S A set species.
+ * @tparam L The Subobject Classifier (Ω). Defaults to ClassicalLogic.
  */
-export template <typename S>
-concept IsExtensional = IsSet<S> && requires(const S s) {
+export template <typename S, typename L = ClassicalLogic>
+concept IsExtensional = IsSet<S, L> && requires(const S s) {
   /** @section Magnitude: The Physical Proof */
   // An extensional set MUST claim a Finite cardinality type.
   requires(S::cardinality_type::is_finite == true);
@@ -178,8 +179,8 @@ concept IsExtensional = IsSet<S> && requires(const S s) {
  * @details These sets (like UniversalSet or EmptySet) are not stored;
  *          they are calculated. They may be Transfinite.
  */
-export template <typename S>
-concept IsIntentional = IsSet<S> && !IsExtensional<S>;
+export template <typename S, typename L = TernaryLogic>
+concept IsIntentional = IsSet<S, L> && !IsExtensional<S, L>;
 
 /**
  * @section Mereology: Pointed Species.
