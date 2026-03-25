@@ -58,14 +58,21 @@ struct SingletonSet {
   using cardinality_type = Finite;
   using base_set_type = SingletonSet<T, L>;
 
-  constexpr typename L::type contains(const T& v) const {
+  // This satisfies IsProperPart and IsSet simultaneously
+  constexpr auto operator()(const T& v) const {
     return (v == pivot) ? L::True : L::False;
   }
+
+  constexpr auto origin() const { return pivot; }
 
   /** @section Extensionality_Proof */
   constexpr std::size_t size() const { return 1; }
   constexpr std::size_t upper_bound() const { return 1; }
 };
+
+static_assert(IsPointedSet<SingletonSet<int>, int> &&
+                  IsExtensional<SingletonSet<int>>,
+              "Mereology: SingletonSet must satisfy the Singleton axiom.");
 
 /** @section The_Set_Monad_Realization */
 

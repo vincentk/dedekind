@@ -6,13 +6,13 @@
  * Licensed under the Apache License, Version 2.0.
  *
  * @section Set_Theory: The Realization of Mereological Bodies
- * This module provides the physical implementations for the abstract laws 
- * defined in dedekind.ontology. While the Ontology defines "What is a Set," 
+ * This module provides the physical implementations for the abstract laws
+ * defined in dedekind.ontology. While the Ontology defines "What is a Set,"
  * this module provides the "How to Build a Set."
- * 
+ *
  * @details
- * In the Dedekind architecture, Set Theory serves as the bridge between 
- * Pure Logic (Level -1) and Concrete Magnitude (Level 2). By implementing 
+ * In the Dedekind architecture, Set Theory serves as the bridge between
+ * Pure Logic (Level -1) and Concrete Magnitude (Level 2). By implementing
  * the Monadic and Comonadic extensions for specific bodies, we enable:
  * - Extensional Sets: Materialized collections (Singleton, Finite Sets).
  * - Intentional Sets: Rule-based definitions (Comprehensions).

@@ -65,13 +65,69 @@ concept IsPartOf = requires(S1 a, S2 b) {
 /**
  * @concept IsProperPart
  * @brief The primitive binary relation: x < y (x is a part of y).
- * @details We define the syntax here. The "Soul" (transitivity, antisymmetry)
- *          is proven downstream in :order or :algebra.
+ *
+ * @details
+ * Membership as a Morphism. In the Dedekind universe, the presence of
+ * a part within a whole is defined by the functional application y(part).
+ *
+ * This concept anchors the syntax for the "Characteristic Function" (Ω = y(x)).
+ * While the relational syntax (x < y) is established here, the structural
+ * "Soul" of the relation—including transitivity and antisymmetry—is
+ * formally proven downstream in :order or :algebra.
+ *
+ * @tparam Part The potential subobject or element.
+ * @tparam Whole The containing mereological body or species.
+ * @tparam L The Subobject Classifier (Ω) governing the set's logic.
  */
-export template <typename Part, typename Whole>
+export template <typename Part, typename Whole, typename L = ClassicalLogic>
 concept IsProperPart = requires(const Part p, const Whole w) {
-  /** @brief The Morphism: Is p a part of w? */
-  { p.is_part_of(w) } -> std::convertible_to<bool>;
+  /** @brief The Characteristic Function: Ω = w(p) */
+  { w(p) } -> std::same_as<typename L::type>;
+};
+
+/**
+ * @concept IsMeetSemiLattice
+ * @brief A refinement of IsSet that supports the algebraic
+ *        structure of Meet (&).
+ * Wikipedia: SemiLattice (order)
+ */
+export template <typename S>
+concept IsMeetSemilattice = requires(S a, S b) {
+  { a & b } -> std::same_as<S>;  // The Great Lower Bound
+};
+
+/**
+ * @concept IsJoinSemiLattice
+ * @brief A refinement of IsSet that supports the algebraic
+ *        structure of Join (|).
+ * Wikipedia: SemiLattice (order)
+ */
+export template <typename S>
+concept IsJoinSemilattice = requires(S a, S b) {
+  { a | b } -> std::same_as<S>;  // The Least Upper Bound
+};
+
+/**
+ * @concept IsLattice
+ * @brief A refinement of IsSet that supports the algebraic
+ *        structure of Meet (&) and Join (|).
+ * Wikipedia: Lattice (order), Absorption law
+ */
+export template <typename S>
+concept IsLattice = IsMeetSemilattice<S> && IsJoinSemilattice<S>;
+
+/**
+ * @concept IsBoundedLattice
+ * @brief A Lattice with a unique "Top" (1) and "Bottom" (0).
+ * @details
+ * 1. Meet(a, Bottom) = Bottom
+ * 2. Join(a, Top) = Top
+ * Wikipedia: Bounded lattice
+ */
+export template <typename S>
+concept IsBoundedLattice = IsLattice<S> && requires(S s) {
+  { s.lower_bound() } -> std::same_as<typename S::element_type>;  // The Bottom
+  { s.upper_bound() } -> std::same_as<typename S::element_type>;  // The Top
 };
 
 /**
@@ -141,12 +197,13 @@ using ℶ_1 = ℵ<1>;  // The Continuum (assuming GCH)
  * @tparam L The Subobject Classifier (Ω). Defaults to ClassicalLogic.
  */
 export template <typename S, typename L = ClassicalLogic>
-concept IsSet = requires {
+concept IsSet = IsLattice<S> && requires {
   typename S::element_type;
   typename S::cardinality_type;
-  requires IsCardinality<typename S::cardinality_type>;
+  requires IsCardinality<typename S::cardinality_type> &&
+               IsProperPart<typename S::element_type, S, L>;
 } && requires(const S s, const typename S::element_type v) {
-  { s.contains(v) } -> std::same_as<typename L::type>;
+  { !s } -> IsLattice;  // The Complement (Remainder)
   { s.cardinality() } -> std::same_as<typename S::cardinality_type>;
 };
 
@@ -204,51 +261,6 @@ concept IsPointed = requires {
 export template <typename S, typename T>
 concept IsPointedSet = IsSet<S> && IsPointed<T>;
 
-/**
- * @concept IsMeetSemiLattice
- * @brief A refinement of IsSet that supports the algebraic
- *        structure of Meet (&).
- * Wikipedia: SemiLattice (order)
- */
-export template <typename S>
-concept IsMeetSemilattice = requires(S a, S b) {
-  { a & b } -> std::same_as<S>;  // The Great Lower Bound
-};
-
-/**
- * @concept IsJoinSemiLattice
- * @brief A refinement of IsSet that supports the algebraic
- *        structure of Join (|).
- * Wikipedia: SemiLattice (order)
- */
-export template <typename S>
-concept IsJoinSemilattice = requires(S a, S b) {
-  { a | b } -> std::same_as<S>;  // The Least Upper Bound
-};
-
-/**
- * @concept IsLattice
- * @brief A refinement of IsSet that supports the algebraic
- *        structure of Meet (&) and Join (|).
- * Wikipedia: Lattice (order), Absorption law
- */
-export template <typename S>
-concept IsLattice = IsMeetSemilattice<S> && IsJoinSemilattice<S>;
-
-/**
- * @concept IsBoundedLattice
- * @brief A Lattice with a unique "Top" (1) and "Bottom" (0).
- * @details
- * 1. Meet(a, Bottom) = Bottom
- * 2. Join(a, Top) = Top
- * Wikipedia: Bounded lattice
- */
-export template <typename S>
-concept IsBoundedLattice = IsLattice<S> && requires(S s) {
-  { s.lower_bound() } -> std::same_as<typename S::element_type>;  // The Bottom
-  { s.upper_bound() } -> std::same_as<typename S::element_type>;  // The Top
-};
-
 /** @brief ∅: The Initial Object. Extensional (Size 0). */
 export template <typename T, typename L = ClassicalLogic>
 struct EmptySet final {
@@ -257,12 +269,24 @@ struct EmptySet final {
   using cardinality_type = Finite;
   using base_set_type = EmptySet<T, L>;
 
+      /** @section Lattice_Laws: Absorption and Identity */
+    constexpr EmptySet operator&(const EmptySet&) const { return *this; }
+    constexpr EmptySet operator|(const EmptySet&) const { return *this; }
+
   constexpr typename L::type contains(const T&) const {
     return L::False;  // The Axiom: Total Absence
   }
 
   /** @section Extensionality_Proof */
   constexpr std::size_t size() const { return 0; }
+
+  // The Duality: !∅ = V
+  // Forward declaration to satisfy the compiler for the UniversalSet.
+  constexpr auto operator!() const;
+
+  constexpr typename L::type operator()(const T&) const { return L::False; }
+
+  constexpr auto operator<=>(const EmptySet&) const = default;
 
   // Required by IsInitialObject
   constexpr cardinality_type cardinality() const { return cardinality_type{}; }
@@ -280,7 +304,6 @@ static_assert(IsInitialObject<EmptySet<int>>,
  * @brief U: The Terminal Object.
  * @details Intentional but Decidable: The rule "x ∈ U" always returns True.
  */
-
 export template <typename T, typename L = ClassicalLogic>
 struct UniversalSet {
   using element_type = T;
@@ -288,8 +311,33 @@ struct UniversalSet {
   using base_set_type = UniversalSet<T, L>;
   using logic_species = L;
 
+  constexpr auto operator!() const { return EmptySet<T, L>{}; }
+
+  constexpr auto operator<=>(const UniversalSet&) const = default;
+
+      /** @section Lattice_Laws: Absorption and Identity */
+    constexpr UniversalSet operator&(const UniversalSet&) const { return *this; }
+    constexpr UniversalSet operator|(const UniversalSet&) const { return *this; }
+    
+    // Note: You'll eventually want overloads for: 
+    // Universal | Any = Universal
+    // Universal & Any = Any
+
   // The Axiom: Total Presence
-  constexpr typename L::type contains(const T&) const { return L::True; }
+  constexpr typename L::type operator()(const T&) const { return L::True; }
+
+  constexpr cardinality_type cardinality() const { return cardinality_type{}; }
 };
+
+// Now define the Universal complement once EmptySet is complete
+template <typename Species, typename L>
+constexpr auto EmptySet<Species, L>::operator!() const {
+  return UniversalSet<Species, L>{};
+}
+
+static_assert(IsSet<UniversalSet<int>>,
+              "Mereology: UniversalSet must satisfy IsSet.");
+
+static_assert(IsSet<EmptySet<int>>, "Mereology: EmptySet must satisfy IsSet.");
 
 };  // namespace dedekind::ontology

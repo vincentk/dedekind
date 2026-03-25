@@ -21,8 +21,8 @@ TEST_CASE("Level 1 Final Proof: The Mereology Highway",
                   "U is the Terminal Object.");
 
     // Verify the Logical Truth across species
-    REQUIRE(empty.contains(42) == false);
-    REQUIRE(universe.contains(42) == true);
+    REQUIRE(empty(42) == false);
+    REQUIRE(universe(42) == true);
 
     // Verify the Magnitude (The Ruler)
     // Note: UniversalSet<int> is Countable (ℵ_0)
@@ -33,6 +33,6 @@ TEST_CASE("Level 1 Final Proof: The Mereology Highway",
     // Universal Set over the Ternary Topos (Kleene Logic)
     UniversalSet<int, TernaryLogic> k_universe;
 
-    REQUIRE(k_universe.contains(42) == Ternary::True);
+    REQUIRE(k_universe(42) == Ternary::True);
   }
 }
