@@ -66,7 +66,7 @@ struct Morphism {
 /**
  * @concept IsArrow
  * @brief Structural verification of a Morphism signature.
- * @details This is the 'Static Blueprint' of a transformation. 
+ * @details This is the 'Static Blueprint' of a transformation.
  *          It ensures the type can act as a mapping between species.
  */
 export template <typename F, typename A, typename B>
@@ -86,9 +86,9 @@ export template <typename F, typename T>
 concept IsEndomorphism = IsArrow<F, T, T>;
 
 /** @section Morphism_Proof */
-static_assert(IsArrow<Morphism<int, bool, std::function<bool(int)>>, int, bool>,
-              "Taxonomy Error: Morphism must satisfy the skeletal IsArrow concept.");
-
+static_assert(
+    IsArrow<Morphism<int, bool, std::function<bool(int)>>, int, bool>,
+    "Taxonomy Error: Morphism must satisfy the skeletal IsArrow concept.");
 
 /** @section The Traits (The categorical invariants) */
 
@@ -373,7 +373,7 @@ static_assert(!IsCommutative<int, std::minus<int>>,
 static_assert(!IsCommutative<int, std::divides<int>>,
               "Commutative: Division must fail the symmetry proof.");
 
-/** 
+/**
  * @section Taxonomic_Validation
  * @brief Self-verifying the structural integrity of the reified species.
  */
@@ -392,7 +392,8 @@ static_assert(identity_v<size_t, std::multiplies<size_t>> == 1,
 static_assert(is_associative_v<int, std::plus<int>>,
               "Taxonomy Error: Integer addition must be associative.");
 
-static_assert(characteristic_v<unsigned char> == 256,
-              "Taxonomy Error: 8-bit unsigned species must have characteristic 256.");
+static_assert(
+    characteristic_v<unsigned char> == 256,
+    "Taxonomy Error: 8-bit unsigned species must have characteristic 256.");
 
 }  // namespace dedekind::ontology

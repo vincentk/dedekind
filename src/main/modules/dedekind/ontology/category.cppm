@@ -125,7 +125,6 @@ concept IsAbelian = IsSmallCategory<T, Op> && IsCommutative<T, Op>;
 static_assert(IsAbelian<int, std::plus<int>>);
 static_assert(IsAbelian<bool, std::logical_or<bool>>);
 
-
 /** @section The Morphism Factory: arrow <A, B> (f) */
 export template <typename A, typename B, typename F>
 constexpr auto arrow(F&& f) {
