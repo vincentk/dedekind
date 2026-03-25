@@ -144,7 +144,6 @@ constexpr auto endo(F&& f) {
 static_assert(endo<int>([](int x) { return x * 2; })(21) == 42,
               "Arrow Factory: Action check failed for anonymous lambda.");
 
-
 /**
  * @concept IsInitialObject
  * @brief The "Zero" of the Category (0).
@@ -210,43 +209,6 @@ static_assert(zero<int, bool, std::logical_and<bool>>()(42) == true,
 
 /** @section The_Universal_Functor_Interface */
 
-
-/**
- * @section The_Skeletal_Hole (The Interface)
- * @brief The Universal Entry Point for Functorial Morphism Mapping.
- * 
- * @details 
- * In the Dedekind ontology, fmap is the "Highway" that lifts an arrow 
- * f: A -> B into a categorical context F<A> -> F<B>. This primary template 
- * acts as a formal interface and a diagnostic fallback.
- * 
- * @note The Structuralist "Hole" logic:
- * Following the Stroustrupian principle of "Clear Errors," this function 
- * provides a catch-all that only instantiates if no specialized or 
- * bootstrapped "Paved Highway" (e.g., via Kleisli Discovery) is found. 
- * It effectively serves as a compile-time "Proof of Absence."
- * 
- * @tparam F     The species template (The "Box" or "Context").
- * @tparam Arrow The morphism being lifted (Satisfies IsArrow).
- * 
- * @return Does not return a valid Morphism; triggers a static_assert instead.
- * 
- * @throws static_assert If the species F has not been formally elevated 
- *         to a Functor in the downstream partitions (Level 1+).
- */
-export template <template <typename...> typename F, typename Arrow>
-  requires IsArrow<Arrow, typename Arrow::Domain, typename Arrow::Codomain>
-auto fmap(Arrow) {
-  struct Fmap_Not_Found {
-    static_assert(
-        sizeof(F<int>) == 0,
-        "Ontology Error: No fmap implementation found for the requested Species. "
-        "Check the compiler trace below to see which 'F' failed to route.");
-  };
-  return Fmap_Not_Found{};
-}
-
-
 /** @brief The Identity Morphism: The "Zero-Length Highway" for Species T. */
 export template <typename T>
 struct Identity final {
@@ -263,43 +225,39 @@ constexpr auto id() {
   return Identity<A>{};
 }
 
-/** @brief The Identity Functor: F(X) = X. (The "Invisible Box") */
-export template <typename T>
-using Id = T;
-
-/** @brief fmap for the Identity Functor: F(f) = f. */
-export template <template <typename> typename F, typename Arrow>
-  requires std::same_as<F<typename Arrow::Domain>, typename Arrow::Domain>
-constexpr auto fmap(Arrow f) {
-  return f;  // The invisible box doesn't change the highway.
-}
-
-/** 
+/**
  * @section The_Kleisli_Extension_System
  * @brief Formal detection of the Monadic "Lift and Chain" action.
- * 
- * @details 
+ *
+ * @details
  * A species F satisfies this system if it provides:
  * 1. η (Unit): A way to lift a raw species into the context.
  * 2. >>= (Bind): A way to chain a context to a Kleisli Arrow (T -> F<U>).
  */
 export template <template <typename...> typename F, typename T, typename U>
 concept IsKleisliExtension = requires(T x, F<T> box, std::function<F<U>(T)> f) {
-  { η<F, U>{}(x) } -> std::same_as<F<U>>; // The Lift (η)
-  { box >>= f }    -> std::same_as<F<U>>; // The Chain (Bind)
+  { η<F, U>{}(x) } -> std::same_as<F<U>>;  // The Lift (η)
+  { box >>= f } -> std::same_as<F<U>>;     // The Chain (Bind)
 };
 
-/** 
+/**
  * @section Kleisli_Discovery_Proof
  * @brief Proof of the 'Push' Action for the Standard Model (Box).
- * 
+ *
  * This verifies that:
  * 1. η (Unit) exists for Box.
  * 2. operator>>= (Bind) is findable via ADL.
  */
-static_assert(IsKleisliExtension<Box, int, int>,
-              "Skeletal Failure: Box does not satisfy the Kleisli Extension System.");
+static_assert(
+    IsKleisliExtension<Box, int, int>,
+    "Skeletal Failure: Box does not satisfy the Kleisli Extension System.");
 
+/** @section CoKleisli_Extension_System (The Pull) */
+export template <template <typename...> typename F, typename T, typename U>
+concept IsCoKleisliExtension = requires(F<T> box, std::function<U(F<T>)> f) {
+  { ε<F, T>{}(box) } -> std::same_as<T>;  // The Extract
+  { box <<= f } -> std::same_as<F<U>>;    // The Extend
+};
 
 /** @brief The Unit/Pure Factory: Lifts a raw value into the Box context. */
 export template <typename T>
@@ -307,33 +265,89 @@ constexpr auto pure(T&& value) {
   return Box<std::decay_t<T>>{std::forward<T>(value)};
 }
 
-/** 
- * @section The_Monadic_Bridge
- * @brief Automatic derivation of fmap from the Kleisli Triple.
- * @theorem fmap(f) = m >>= (η ∘ f)
+/** @section The_Monadic_Derivation */
+template <template <typename...> typename F, typename Arrow>
+constexpr auto derive_monadic_fmap(Arrow f) {
+  return arrow<F<typename Arrow::Domain>, F<typename Arrow::Codomain>>(
+      [f](const auto& box) {
+        using U = typename Arrow::Codomain;
+        return box >>= [f](auto&& x) { return η<F, U>{}(f(x)); };
+      });
+}
+
+/** @section The_Comonadic_Derivation */
+template <template <typename...> typename F, typename Arrow>
+constexpr auto derive_comonadic_fmap(Arrow f) {
+  using T = typename Arrow::Domain;
+  using U = typename Arrow::Codomain;
+
+  return arrow<F<T>, F<U>>([f](const F<T>& box) {
+    return box <<= [f](const F<T>& w) { return f(ε<F, T>{}(w)); };
+  });
+}
+
+/**
+ * @section The_Unified_Highway_Bridge (The Discovery Dispatcher)
+ * @brief Automates the derivation of fmap from the species' extension system.
+ *
+ * @details
+ * In the Dedekind ontology, a Functor is not a "primitive" but an
+ * "epi-phenomenon" derived from the underlying Monadic or Comonadic
+ * structure. This dispatcher resolves the Bootstrapping Paradox:
+ * 1. It prioritises the Monadic Push (Kleisli: m >>= η ∘ f).
+ * 2. It falls back to the Comonadic Pull (Co-Kleisli: w <<= f ∘ ε).
+ * 3. It provides a formal Proof of Absence if neither structure is present.
+ *
+ * @note Architectural Choice:
+ * We utilize 'if constexpr' dispatch instead of multiple overloads to:
+ * - Eliminate overload ambiguity in the C++ template system.
+ * - Centralise the diagnostic logic for structural failures.
+ * - Ensure zero-overhead selection of the most efficient highway.
  */
 export template <template <typename...> typename F, typename Arrow,
                  typename T = typename Arrow::Domain,
                  typename U = typename Arrow::Codomain>
-  requires IsKleisliExtension<F, T, U> && IsArrow<Arrow, T, U>
+  requires IsArrow<Arrow, T, U>
 constexpr IsArrow<F<T>, F<U>> auto fmap(Arrow f) {
-  // We return a "Lifted Arrow" that performs the Monadic Jump.
-  return arrow<F<T>, F<U>>([f](const F<T>& box) {
-    return box >>= [f](const T& x) { 
-      // This is the core 'Strange Loop': 
-      // Sampling the part, transforming it, and re-lifting it.
-      return η<F, U>{}(f(x)); 
+  // 1. Priority: Identity Functor (The Invisible Box)
+  if constexpr (std::same_as<F<T>, T>) {
+    return f;
+  } else if constexpr (IsKleisliExtension<F, T, U>) {
+    /** @theorem fmap(f) = m >>= (η ∘ f) */
+    return arrow<F<T>, F<U>>([f](const F<T>& m) {
+      return m >>= [f](const T& x) { return η<F, U>{}(f(x)); };
+    });
+  } else if constexpr (IsCoKleisliExtension<F, T, U>) {
+    /** @theorem fmap(f) = w <<= (f ∘ ε) */
+    return arrow<F<T>, F<U>>([f](const F<T>& w) {
+      return w <<= [f](const F<T>& ctx) { return f(ε<F, T>{}(ctx)); };
+    });
+  } else {
+    /** @section The_Controlled_Explosion */
+    struct Discovery_Failure {
+      static_assert(sizeof(T) == 0,
+                    "Ontology Error: Species lacks both Kleisli (>>=) and "
+                    "Co-Kleisli (<<=) structures. "
+                    "A Functorial mapping cannot be derived for this context.");
     };
-  });
+    return Discovery_Failure{};
+  }
 }
 
+/** @section Morphism_Lifting_Proof */
+using Negate = std::negate<int>;
+using TaggedNegate = Morphism<int, int, Negate>;
 
+// This triggers the 'fmap' discovery via the Monadic Bridge
+static_assert(
+    IsArrow<decltype(fmap<Box>(TaggedNegate{Negate{}})), Box<int>, Box<int>>,
+    "Skeletal Failure: Failed to derive fmap for Box from its Kleisli Triple.");
 
 /** @section Verification: The Identity Law (F(id_X) = id_F<X>) */
 
 // Proof: Lifting the identity morphism on 'int' gives us an arrow on
 // 'Box<int>'.
-static_assert(IsArrow<decltype(fmap(id<int>())), Box<int>, Box<int>>,
+static_assert(IsArrow<decltype(fmap<Box>(id<int>())), Box<int>, Box<int>>,
               "Identity Law: fmap(id) must preserve the Boxed species.");
 
 // Proof: The lifted Negate morphism correctly transforms a Boxed value.
@@ -654,45 +668,6 @@ constexpr IsArrow<F<T>, F<U>> auto fmap(Arrow f) {
   // fmap(f, w) = w <<= (f ∘ ε)
   // We extend the box by sampling the species, applying f,
   // and letting the Comonad wrap it back up.
-  return arrow<F<T>, F<U>>([f](const F<T>& box) {
-    return box <<= [f](const F<T>& w) { return f(ε<F, T>{}(w)); };
-  });
-}
-
-/** @section Kleisli_Extension_System (The Push) */
-export template <template <typename...> typename F, typename T, typename U>
-concept IsKleisliExtension = requires(T x, F<T> box, std::function<F<U>(T)> f) {
-  { η<F, U>{}(x) } -> std::same_as<F<U>>;  // The Unit
-  { box >>= f } -> std::same_as<F<U>>;     // The Bind
-};
-
-/** @section The_Monadic_Bootstrap */
-export template <template <typename...> typename F, typename Arrow,
-                 typename T = typename Arrow::Domain,
-                 typename U = typename Arrow::Codomain>
-  requires IsKleisliExtension<F, T, U> && IsArrow<Arrow, T, U>
-constexpr IsArrow<F<T>, F<U>> auto fmap(Arrow f) {
-  // fmap(f, m) = m >>= (η ∘ f)
-  return arrow<F<T>, F<U>>([f](const F<T>& box) {
-    return box >>= [f](const T& x) { return η<F, U>{}(f(x)); };
-  });
-}
-
-/** @section CoKleisli_Extension_System (The Pull) */
-export template <template <typename...> typename F, typename T, typename U>
-concept IsCoKleisliExtension = requires(F<T> box, std::function<U(F<T>)> f) {
-  { ε<F, T>{}(box) } -> std::same_as<T>;  // The Extract
-  { box <<= f } -> std::same_as<F<U>>;    // The Extend
-};
-
-/** @section The_Comonadic_Bootstrap */
-export template <template <typename...> typename F, typename Arrow,
-                 typename T = typename Arrow::Domain,
-                 typename U = typename Arrow::Codomain>
-  requires IsCoKleisliExtension<F, T, U> && IsArrow<Arrow, T, U>
-//   requires IsCoKleisliExtension<F, T, U> && (!IsKleisliExtension<F, T, U>)
-constexpr IsArrow<F<T>, F<U>> auto fmap(Arrow f) {
-  // fmap(f, w) = w <<= (f ∘ ε)
   return arrow<F<T>, F<U>>([f](const F<T>& box) {
     return box <<= [f](const F<T>& w) { return f(ε<F, T>{}(w)); };
   });
