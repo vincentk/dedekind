@@ -13,7 +13,8 @@
  * within the C++23 type system.
  *
  * @see dedekind.ontology:logic (Level -1)
- * @see dedekind.ontology:category (Level 0)
+ * @see dedekind.ontology:species (Level 0a)
+ * @see dedekind.ontology:category (Level 0b)
  * @see dedekind.ontology:mereology (Level 1)
  *
  * Wikipedia: Formal ontology, Structuralism (philosophy of mathematics)
@@ -22,8 +23,9 @@
 export module dedekind.ontology;
 
 /** @section Level_-1_to_0: The Foundations (The Bricks and Cement) */
-export import :logic;     // Truth Objects (Ω) and Predicate Logic
-export import :category;  // Morphisms, Functors, and Natural Units (η)
+export import :logic;     // Level -1: Truth Objects (Ω) and Predicate Logic
+export import :species;   // Level 0a: Reified Machine Primitives (The Bricks)
+export import :category;  // Level 0b: Morphisms, Functors, and Kleisli Highways
 
 /** @section Level_1: The Space (The Body and Relation) */
 export import :mereology;  // Rules of Presence (Sets, Parts, and Wholes)

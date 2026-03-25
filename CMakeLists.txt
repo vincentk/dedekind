@@ -28,6 +28,7 @@ target_sources(dedekind
     FILES
         src/main/modules/dedekind/ontology/ontology.cppm
         src/main/modules/dedekind/ontology/logic.cppm
+        src/main/modules/dedekind/ontology/species.cppm
         src/main/modules/dedekind/ontology/category.cppm
         src/main/modules/dedekind/ontology/mereology.cppm
         src/main/modules/dedekind/ontology/order.cppm

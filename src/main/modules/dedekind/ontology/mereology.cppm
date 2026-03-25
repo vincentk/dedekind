@@ -336,4 +336,44 @@ export template <typename T>
 constexpr auto operator>>(T&& value, into_tag<SetMonad>) {
   return singleton(std::forward<T>(value));
 }
+
+/**
+ * @section Monadic_Witness
+ * We prove that the SingletonSet (the Unit of Mereology)
+ * satisfies the formal Monadic Highway.
+ */
+template <typename T>
+using ClassicalSingleton = SingletonSet<T, ClassicalLogic>;
+
+/**
+ * @section Existential_Proof: fmap for (Z, ClassicalSingleton)
+ * We lift a formal Morphism into the Singleton context.
+ */
+export template <>
+auto fmap<ClassicalSingleton>(Morphism<int, int, std::plus<int>> op) {
+  return [op](const ClassicalSingleton<int>& s) -> ClassicalSingleton<int> {
+    // We use the Arrow's operator() and the identity element.
+    // Assuming your Morphism handles the application:
+    return ClassicalSingleton<int>{op(s << extract<int>())};
+  };
+}
+
+/**
+ * @section Existential_Identity: fmap for (Z, Identity)
+ * Identity<int> already has the Domain/Codomain, so it just needs 'The Pull'.
+ */
+export template <>
+auto fmap<ClassicalSingleton>(Identity<int> id_t) {
+  return [id_t](const ClassicalSingleton<int>& s) -> ClassicalSingleton<int> {
+    return ClassicalSingleton<int>{id_t(s << extract<int>())};
+  };
+}
+
+// 1. Proof: IsSet satisfies the formal IsMonad concept for the Classical Logic
+// universe. We verify that the "Set-of-Integers" behaves as a Monoid in the
+// Category of Endofunctors.
+static_assert(IsMonad<ClassicalSingleton, int, std::plus<int>>,
+              "Ontology: IsSet must be recognized as a formal Monad (The "
+              "Highway of Existence).");
+
 };  // namespace dedekind::ontology

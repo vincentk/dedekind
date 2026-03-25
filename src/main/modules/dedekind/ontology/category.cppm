@@ -1,63 +1,72 @@
 /**
  * @file ontology:category.cppm
- * @brief Level 0: The Skeletal Foundation (Bricks and Cement).
+ * @brief Level 0: The Skeletal Foundation (Algebraic Bricks and Categorical
+ * Cement).
  *
- * Copyright 2026 The Dedekind Authors
- * Licensed under the Apache License, Version 2.0.
- *
- * @partition :category
- * @build_order 1
- * @dependency None (The Bootstrap Partition)
- *
- * @section The_Structuralist_Unity: Bricks and Cement
- * This partition establishes the standard model of the Dedekind library.
- * Raw machine instructions are unified with the abstract laws of
- * Category Theory to create a self-verifying skeletal layer. By treating
- * the C++ type system as a proof assistant, structural integrity is
- * guaranteed before higher-level modules are initialized.
+ * @section The_Structuralist_Unity
+ * This partition unifies machine-level instructions with the abstract laws of
+ * Category Theory. By treating the C++ type system as a formal proof assistant,
+ * we ensure structural integrity via compile-time verification (Static
+ * Mereology).
  *
  * @subsection The_Bricks: Machine Primitives
- * Fundamental C++ types (bool, int, double) are augmented with algebraic
- * traits. This process transforms primitive bit-fields into formal members
- * of mathematical structures, such as the Integer Group (ℤ, +).
- * - identity_v      : The neutral element (0, 1, true).
- * - is_associative_v : The proof of grouping independence.
- * - is_commutative_v : The proof of order independence.
+ * Fundamental types are augmented with algebraic traits, promoting raw
+ * bit-fields into formal members of mathematical structures (e.g., the Integer
+ * Group ℤ).
+ * - identity_v      : The neutral element (0, 1, true) for a given operation.
+ * - is_associative_v : Proof of grouping independence.
+ * - is_commutative_v : Proof of order independence.
  *
  * @subsection The_Cement: Categorical Morphisms
- * While types represent the bricks, categorical logic provides the cement
- * required to bind them. Functional "highways" and "bridges" are defined
- * to allow data to transition between contexts without violating
- * structural invariants:
- * - IsFunctor     : A "box" that preserves internal relationships.
- * - IsMonad       : A "highway" for lifting species into a context (Push).
- * - IsComonad     : A mechanism for sampling species from a context (Pull).
- * - IsEmbedding   : A static invariant for injective (1:1) promotions.
+ * Primitives are bound by morphisms that preserve structural invariants:
+ * - IsFunctor     : A structure-preserving mapping between categories.
+ * - IsMonad       : A mechanism for lifting and chaining species (The Push).
+ * - IsComonad     : A mechanism for sampling and extending contexts (The Pull).
+ * - IsEmbedding   : A proof of injective (1:1) type promotion.
+ *
+ * @section The_Bootstrapping_Strategy: Action-First Derivation
+ * To resolve the circular dependency between Functors and Monads, Dedekind
+ * implements an "Action-First" bootstrapping strategy.
+ *
+ * @note Technical Implementation Constraints:
+ * In textbook Category Theory, a Monad is a Monoid in the category of
+ * Endofunctors. However, C++ language constraints necessitate a divergence to
+ * Kleisli Triples:
+ * 1. Partial Specialization: C++ forbids partial specialization of function
+ *    templates (e.g., fmap<Box>), preventing a centralized definition.
+ * 2. ADL Resolution: Function templates called via name-lookup (fmap<F>) cannot
+ *    trigger Argument-Dependent Lookup.
+ *
+ * By defining Monads/Comonads as Extension Systems (η/ε + >>= / <<=), we
+ * utilize operator overloading on concrete objects. This triggers ADL, allowing
+ * Level 0 to instantiate a derived 'fmap' without prior knowledge of Level 1
+ * species.
+ *
+ * - Monadic Discovery   : fmap(f) is derived as: m >>= (η ∘ f).
+ * - Comonadic Discovery : fmap(f) is derived as: w <<= (f ∘ ε).
  *
  * @section The_Highway_Notation: Directional Vectors
- * Directional operators are utilized to represent the vector of data flow
- * across the ontology:
- * - value >> into<>  : The Monadic Push (Lifting a species into a "box").
- * - box   << extract<> : The Comonadic Pull (Extracting a species from a
- * "box").
- * - box   >>= f      : The Logical Chain (Composition within a Monadic
- * context).
+ * Operators represent the flow of data across the ontology:
+ * - value >> into<>    : η (Unit) - Lifting a species into a context.
+ * - box   << extract<> : ε (Counit) - Sampling a species from a context.
+ * - box   >>= f        : Bind - Monadic composition (Left-to-Right).
+ * - box   <<= f        : Extend - Comonadic composition (Right-to-Left /
+ * Contextual).
  *
  * @section Structural_Inference
- * By aggregating primitives and categorical morphisms at Level 0,
- * exhaustive proofs—such as the verification of the Bool-to-Int
- * embedding—are performed at compile-time. This ensures the foundation
- * is secure before the introduction of complex number species.
- *
- * Wikipedia: Category theory, Natural transformation, Monad (functional
- * programming)
+ * Compile-time exhaustive proofs (e.g., Bool-to-Int embedding) guarantee
+ * the security of the skeletal layer before higher-level complex species
+ * are initialized.
  */
+
 module;
 
 #include <concepts>
 #include <functional>
 
 export module dedekind.ontology:category;
+
+import :species;
 
 namespace dedekind::ontology {
 
@@ -513,18 +522,33 @@ constexpr auto pure(T&& value) {
   return Box<std::decay_t<T>>{std::forward<T>(value)};
 }
 
+/** @section The_Universal_Functor_Interface */
+export template <template <typename...> typename F, typename Arrow>
+  requires IsArrow<Arrow, typename Arrow::Domain, typename Arrow::Codomain>
+auto fmap(Arrow) {
+  // This helper will trigger the error and echo the template F
+  // in the compiler's diagnostic trace.
+  struct Fmap_Not_Found {
+    static_assert(
+        sizeof(F<int>) == 0,
+        "Ontology Error: No fmap implementation found for the requested "
+        "Species. "
+        "Check the compiler trace below to see which 'F' failed to route.");
+  };
+  return Fmap_Not_Found{};
+}
+
 /**
- * @section Functor Mapping (fmap: F(f))
- * @theorem Morphism Mapping
- * @brief Lifts a Morphism f: A -> B into the Functorial world F<A> -> F<B>.
+ * @section Standard_Model: The Box Functor
+ * @brief Uses a constrained return type to prove the Morphism Mapping.
  */
 export template <template <typename> typename F, typename Arrow,
                  typename A = typename Arrow::Domain,
                  typename B = typename Arrow::Codomain>
-  requires IsArrow<Arrow, A, B> && std::same_as<F<A>, Box<A>>
-constexpr auto fmap(Arrow f) {
-  // We return a new Morphism that acts on Boxes.
-  return arrow<Box<A>, Box<B>>([f](Box<A> b) { return Box<B>{f(b.value)}; });
+  requires std::same_as<F<A>, Box<A>> && IsArrow<Arrow, A, B>
+constexpr IsArrow<Box<A>, Box<B>> auto fmap(Arrow f) {
+  return arrow<Box<A>, Box<B>>(
+      [f](const Box<A>& b) { return Box<B>{f(b.value)}; });
 }
 
 /** @brief The Identity Morphism: The "Zero-Length Highway" for Species T. */
@@ -558,7 +582,7 @@ constexpr auto fmap(Arrow f) {
 
 // Proof: Lifting the identity morphism on 'int' gives us an arrow on
 // 'Box<int>'.
-static_assert(IsArrow<decltype(fmap<Box>(id<int>())), Box<int>, Box<int>>,
+static_assert(IsArrow<decltype(fmap(id<int>())), Box<int>, Box<int>>,
               "Identity Law: fmap(id) must preserve the Boxed species.");
 
 // Proof: The lifted Negate morphism correctly transforms a Boxed value.
@@ -876,6 +900,115 @@ concept IsFunctor = IsSmallCategory<T, OpT> && IsSmallCategory<U, OpU> &&
                       // context F.
                       { fmap<F>(id_t) } -> IsArrow<F<T>, F<T>>;
                     };
+
+/**
+ * @section The_Kleisli_Triple_Bridge
+ * @brief If a Species can Lift (η) and Chain (>>=), it IS a Functor.
+ */
+export template <template <typename...> typename F, typename Arrow>
+  requires requires(F<typename Arrow::Domain> box, Arrow f) {
+    // 1. The Unit (η): T -> F<T>
+    {
+      η<F, typename Arrow::Codomain>{}(
+          f(box << extract<typename Arrow::Domain>()))
+    } -> std::same_as<F<typename Arrow::Codomain>>;
+    // 2. The Bind (>>=): F<T> -> (T -> F<U>) -> F<U>
+    {
+      box >>=
+          [](typename Arrow::Domain x) { return F<typename Arrow::Codomain>{}; }
+    };
+  }
+auto fmap(Arrow f) {
+  return [f](auto box) {
+    using T = typename Arrow::Domain;
+    using U = typename Arrow::Codomain;
+    // The Canonical Derivation: fmap(f, m) = m >>= (η ∘ f)
+    return box >>= [f](T x) { return η<F, U>{}(f(x)); };
+  };
+}
+
+/// .... or broken down
+
+/** @section The_Kleisli_Triple */
+export template <template <typename...> typename F, typename T, typename U>
+concept IsKleisli = requires(T x, F<T> box, std::function<F<U>(T)> f) {
+  { η<F, U>{}(x) } -> std::same_as<F<U>>;  // Can we Lift?
+  { box >>= f } -> std::same_as<F<U>>;     // Can we Chain?
+};
+
+/** @section The_Monadic_Highway_Bridge */
+export template <template <typename...> typename F, typename Arrow,
+                 typename T = typename Arrow::Domain,
+                 typename U = typename Arrow::Codomain>
+  requires IsKleisli<F, T, U> && IsArrow<Arrow, T, U>
+constexpr IsArrow<F<T>, F<U>> auto fmap(Arrow f) {
+  // fmap(f, m) = m >>= (η ∘ f)
+  return arrow<F<T>, F<U>>([f](const F<T>& box) {
+    return box >>= [f](const T& x) { return η<F, U>{}(f(x)); };
+  });
+}
+
+/** @section The_Co_Kleisli_Triple */
+export template <template <typename...> typename F, typename T, typename U>
+concept IsCoKleisli = requires(F<T> box, std::function<U(F<T>)> f) {
+  { ε<F, T>{}(box) } -> std::same_as<T>;  // The Pull: F<T> -> T
+  {
+    box <<= f
+  } -> std::same_as<F<U>>;  // The Stretch: F<T> -> (F<T> -> U) -> F<U>
+};
+
+/** @section The_Comonadic_Highway_Bridge */
+export template <template <typename...> typename F, typename Arrow,
+                 typename T = typename Arrow::Domain,
+                 typename U = typename Arrow::Codomain>
+  requires IsCoKleisli<F, T, U> && IsArrow<Arrow, T, U>
+constexpr IsArrow<F<T>, F<U>> auto fmap(Arrow f) {
+  // fmap(f, w) = w <<= (f ∘ ε)
+  // We extend the box by sampling the species, applying f,
+  // and letting the Comonad wrap it back up.
+  return arrow<F<T>, F<U>>([f](const F<T>& box) {
+    return box <<= [f](const F<T>& w) { return f(ε<F, T>{}(w)); };
+  });
+}
+
+/** @section Kleisli_Extension_System (The Push) */
+export template <template <typename...> typename F, typename T, typename U>
+concept IsKleisliExtension = requires(T x, F<T> box, std::function<F<U>(T)> f) {
+  { η<F, U>{}(x) } -> std::same_as<F<U>>;  // The Unit
+  { box >>= f } -> std::same_as<F<U>>;     // The Bind
+};
+
+/** @section The_Monadic_Bootstrap */
+export template <template <typename...> typename F, typename Arrow,
+                 typename T = typename Arrow::Domain,
+                 typename U = typename Arrow::Codomain>
+  requires IsKleisliExtension<F, T, U> && IsArrow<Arrow, T, U>
+constexpr IsArrow<F<T>, F<U>> auto fmap(Arrow f) {
+  // fmap(f, m) = m >>= (η ∘ f)
+  return arrow<F<T>, F<U>>([f](const F<T>& box) {
+    return box >>= [f](const T& x) { return η<F, U>{}(f(x)); };
+  });
+}
+
+/** @section CoKleisli_Extension_System (The Pull) */
+export template <template <typename...> typename F, typename T, typename U>
+concept IsCoKleisliExtension = requires(F<T> box, std::function<U(F<T>)> f) {
+  { ε<F, T>{}(box) } -> std::same_as<T>;  // The Extract
+  { box <<= f } -> std::same_as<F<U>>;    // The Extend
+};
+
+/** @section The_Comonadic_Bootstrap */
+export template <template <typename...> typename F, typename Arrow,
+                 typename T = typename Arrow::Domain,
+                 typename U = typename Arrow::Codomain>
+  requires IsCoKleisliExtension<F, T, U> && IsArrow<Arrow, T, U>
+//   requires IsCoKleisliExtension<F, T, U> && (!IsKleisliExtension<F, T, U>)
+constexpr IsArrow<F<T>, F<U>> auto fmap(Arrow f) {
+  // fmap(f, w) = w <<= (f ∘ ε)
+  return arrow<F<T>, F<U>>([f](const F<T>& box) {
+    return box <<= [f](const F<T>& w) { return f(ε<F, T>{}(w)); };
+  });
+}
 
 // Proof: Box is a Functor between the Additive Category of Integers and itself.
 static_assert(
