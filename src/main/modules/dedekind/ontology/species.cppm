@@ -401,6 +401,8 @@ export template <typename T>
 struct Box final {
   using machine_type = T;
   T value;
+
+  constexpr bool operator==(const Box& other) const = default;
 };
 
 // >>= (Bind): Chaining the Box to a Kleisli Arrow

@@ -697,19 +697,18 @@ constexpr auto operator>>(Arrow f, fmap_tag<F>) {
   return fmap<F>(f);
 }
 
-/** @brief The Unit/Pure Tag for value lifting. */
-template <template <typename> typename F>
+/** @section The_Into_Tag */
+export template <template <typename...> typename F>
 struct into_tag {};
 
-/** @brief Global witness for Box entry. */
-export template <typename T = void>
-constexpr auto into = into_tag<Box>{};
+export template <template <typename...> typename F>
+inline constexpr into_tag<F> into{};
 
-/** @brief Postfix Operator: value >> into<F> */
-export template <typename T, template <typename> typename F>
-constexpr auto operator>>(T&& value, into_tag<F>) {
-  // Always produce a fresh Box from the value
-  return F<std::decay_t<T>>{std::forward<T>(value)};
+/** @section The_Push_Operator (η) */
+export template <typename T, template <typename...> typename F>
+constexpr auto operator>>(T&& x, into_tag<F>) {
+  // We use the η witness from :species to lift the value
+  return η<F, std::decay_t<T>>{}(std::forward<T>(x));
 }
 
 /**
@@ -738,34 +737,29 @@ constexpr auto increment = endo<int>([](int x) { return x + 1; });
 
 // The Flow: Value -> Box -> Morphism-on-Box
 // Reading: "Take 41, put it INTO a Box, then apply increment BOXED."
-static_assert((41 >> into<> >> (increment >> Boxed<>)).value == 42,
+static_assert((41 >> into<Box> >> (increment >> Boxed<>)).value == 42,
               "Pipeline: The linear flow from value to boxed result failed.");
 
 // The Composition Flow:
 // Reading: "Take 10, put it INTO a Box, then increment it, then negate it."
 constexpr auto negate = endo<int>(std::negate<int>{});
 
-static_assert((10 >> into<> >> (increment >> Boxed<>) >> (negate >> Boxed<>))
+static_assert((10 >> into<Box> >> (increment >> Boxed<>) >> (negate >> Boxed<>))
                       .value == -11,
               "Pipeline: Multi-stage functorial composition failed.");
 
-/** @brief The Join/Flatten Tag (μ: F ∘ F ⟹ F) */
-template <template <typename> typename F>
+/** @section The_Join_Tag */
+export template <template <typename...> typename F>
 struct join_tag {};
 
-/** @brief Global witness for Box collapsing. */
-export template <typename T = void>
-constexpr auto join = join_tag<Box>{};
+export template <template <typename...> typename F>
+inline constexpr join_tag<F> join{};
 
-/**
- * @brief The Join/Collapse Morphism specialized for the Box Monad.
- * @details Axiom: μ : Box ∘ Box ⟹ Box is the identity on the inner Box.
- */
-export template <typename T>
-constexpr auto operator>>(const Box<Box<T>>& nested_box, join_tag<Box>) {
-  // We return the inner Box<T> directly.
-  // No re-construction, no temporary copies—just pure structural extraction.
-  return nested_box.value;
+/** @section The_Collapse_Operator (μ) */
+export template <typename T, template <typename...> typename F>
+constexpr auto operator>>(const F<F<T>>& nested, join_tag<F>) {
+  // μ(m) = m >>= id
+  return nested >>= [](const F<T>& inner) { return inner; };
 }
 
 /** @brief Rvalue overload for "High-Speed" Move semantics */
@@ -777,7 +771,7 @@ constexpr auto operator>>(Box<Box<T>>&& nested_box, join_tag<Box>) {
 // A "Double-Entry" Pipeline:
 // 42 >> into >> into -> Box<Box<int>>
 // ... then >> join -> Box<int>
-static_assert((42 >> into<> >> into<> >> join<>).value == 42,
+static_assert((42 >> into<Box> >> into<Box> >> join<Box>).value == 42,
               "Monad Law: Join must collapse the double-context.");
 
 /**
@@ -831,314 +825,34 @@ concept IsNaturalEndoTransformation =
     IsNaturalTransformation<Alpha, F, G, T, T, Op, Op>;
 
 /**
- * @struct Naturality
- * @witness The Proof-Object for the IsNaturalTransformation Theorem.
- *
- * @details
- * This structure serves as the formal inhabitant (the witness) of the
- * Naturality proposition. It does not perform discovery or lifting;
- * it simply carries a verified Morphism across a functorial bridge.
- *
- * Its role is to:
- * 1. Hold a pre-verified Morphism (η_X) that maps the Species.
- * 2. Define the Functorial Domain (F⟨T⟩) and Codomain (G⟨U⟩).
- * 3. Provide the Identity Preservation Lemma as a static property of the
- * witness.
- *
- * @tparam F    The Source Functor context.
- * @tparam G    The Target Functor context.
- * @tparam T    The source Species (The object).
- * @tparam U    The target Species (The object).
- * @tparam OpF  The Operation of the source category.
- * @tparam OpG  The Operation of the target category.
- * @tparam η_X  The Verified Morphism (The 'Secret Sauce' already lifted to an
- * Arrow).
- */
-export template <template <typename> typename F, template <typename> typename G,
-                 typename T, typename U, typename OpF, typename OpG, auto η_X>
-  requires IsEndofunctor<F, T, OpF> && IsEndofunctor<G, U, OpG> &&
-           IsArrow<decltype(η_X), F<T>, G<U>>
-struct Naturality final {
-  using Domain = F<T>;
-  using Codomain = G<U>;
-
-  /** @brief Execution: Invokes the verified Morphism η_X. */
-  constexpr Codomain operator()(Domain x) const noexcept { return η_X(x); }
-
-  /** @brief Lemma: η(id_F) = id_G (Verified via the internal Morphism). */
-  static constexpr bool preserves_identity() noexcept {
-    return η_X(identity_v<T, OpF>) == identity_v<U, OpG>;
-  }
-};
-
-/**
- * @struct NaturalEndo
- * @brief Ergonomic Witness for transformations within the same Category (𝒞 →
- * 𝒞).
- * @details Reduces the 7-parameter boilerplate to 5 for the common endofunctor
- * case.
- */
-export template <template <typename> typename F, template <typename> typename G,
-                 typename T, typename Op, auto η_X>
-using NaturalEndo = Naturality<F, G, T, T, Op, Op, η_X>;
-
-/** @section Internal_Morphism_Traits (Private to :category) */
-
-// Primary template: Redirects to member function pointer if T is a class
-template <typename T>
-struct morphism_traits : morphism_traits<decltype(&T::operator())> {};
-
-// Specialization for const member functions (Standard Lambdas)
-template <typename C, typename R, typename A>
-struct morphism_traits<R (C::*)(A) const> {
-  using argument_type = A;
-  using result_type = R;
-};
-
-// Specialization for non-const member functions (Mutable Lambdas)
-template <typename C, typename R, typename A>
-struct morphism_traits<R (C::*)(A)> {
-  using argument_type = A;
-  using result_type = R;
-};
-
-// Specialization for raw function pointers
-template <typename R, typename A>
-struct morphism_traits<R (*)(A)> {
-  using argument_type = A;
-  using result_type = R;
-};
-
-// Specialization for raw function types (Final fallback)
-template <typename R, typename A>
-struct morphism_traits<R(A)> {
-  using argument_type = A;
-  using result_type = R;
-};
-
-/** @section Verification: Morphism Discovery */
-
-// 1. Proof: Discovery for raw function pointers.
-constexpr bool raw_func(int) { return true; }
-static_assert(
-    std::same_as<morphism_traits<decltype(&raw_func)>::argument_type, int>,
-    "Discovery: Failed to extract argument from raw function pointer.");
-
-// 2. Proof: Discovery for anonymous lambdas.
-using IsZero = decltype([](int x) { return x == 0; });
-static_assert(std::same_as<morphism_traits<IsZero>::argument_type, int>,
-              "Discovery: Failed to extract argument from lambda.");
-
-// 3. Proof: Discovery for mutable lambdas (Stateful).
-using Counter = decltype([i = 0](int x) mutable { return x + i++; });
-static_assert(std::same_as<morphism_traits<Counter>::argument_type, int>,
-              "Discovery: Failed to extract argument from mutable lambda.");
-
-/**
- * @section The Unit Proof (η: 1_𝒞 ⟹ G)
- *
- * @details
- * Under the Curry-Howard correspondence, this alias is the 'Assembler'.
- * It constructs the 'Naturality' witness by:
- * 1. Automatic Discovery: Extracting T and U from the 'Secret Sauce' (η_X).
- * 2. Formal Lifting: Wrapping the raw action into a tagged 'arrow'.
- * 3. Inhabitation: Instantiating the 'Naturality' struct with verified parts.
- *
- * @tparam G   The Target Functor (The "Box").
- * @tparam OpF The Source Operation (in 𝒞).
- * @tparam OpG The Target Operation (in 𝒟).
- * @tparam η_X The Morphism Component (The raw C++ action).
- */
-export template <template <typename> typename F, template <typename> typename G,
-                 typename OpF, typename OpG, auto η_X>
-using unit = Naturality<
-    F, G,
-    typename morphism_traits<decltype(η_X)>::argument_type,  // T
-    typename morphism_traits<decltype(η_X)>::result_type,    // U
-    OpF, OpG,
-    // The Lifting: Converts raw lambda into a tagged Arrow (Proof-Object)
-    arrow<typename morphism_traits<decltype(η_X)>::argument_type,
-          typename morphism_traits<decltype(η_X)>::result_type>(η_X)>;
-
-/**
- * @brief The Unit Assembler (Endo-specialized).
- * @details Infers T and U from η_X, assuming a single Category (T, Op).
- */
-export template <template <typename> typename F, template <typename> typename G,
-                 typename Op, auto η_X>
-using unit_endo = unit<F, G, Op, Op, η_X>;
-
-/** @section Canonical_Embeddings: The One-Liner On-Ramps */
-
-// 1. Logic -> Character (B ↪ Z/256Z)
-export using η_bool_char =
-    unit<Id, Id, std::logical_and<bool>, std::multiplies<char>,
-         [](bool b) constexpr -> char { return b ? char(1) : char(0); }>;
-
-// 2. Character -> Unsigned (Z/256Z ↪ Z_u)
-export using η_char_uint =
-    unit<Id, Id, std::plus<char>, std::plus<unsigned int>, [](char c) {
-      return static_cast<unsigned int>(static_cast<char>(c));
-    }>;
-
-/** @section Canonical_Embeddings: Highway Proofs */
-
-// 1. Logic -> Character (B ↪ Z/256Z)
-// Path: bool >> η >> char_op   must equal  bool >> bool_op >> η
-constexpr auto f_bool =
-    endo<bool>([](bool x) { return !x; });  // A bool endomorphism
-
-constexpr auto g_char =
-    endo<char>([](char x) { return x == 0 ? char(1) : char(0); });
-
-static_assert((true >> η_bool_char{} >> g_char) ==
-                  (true >> f_bool >> η_bool_char{}),
-              "Naturality: η_bool_char failed to commute on the Highway.");
-
-// 2. Character -> Unsigned (Z/256Z ↪ Z_u)
-static_assert((char{42} >> η_char_uint{}) == 42u,
-              "Action: η_char_uint must be a bit-faithful promotion.");
-
-/**
- * @brief Proof: Transitive Composition of Embeddings.
- * We compose the two Natural Transformations into a single 'Long Bridge'.
- * η_bool_uint = η_char_uint ∘ η_bool_char
- */
-constexpr auto bool_to_uint = (η_bool_char{}) >> (η_char_uint{});
-
-// 1. Proof: The 'Long Bridge' is a valid Arrow (B -> Z_u).
-static_assert(IsArrow<decltype(bool_to_uint), bool, unsigned int>,
-              "Transitivity: The composed promotion must be a valid Arrow from "
-              "bool to uint.");
-
-// 2. Action Proof: true -> 1u
-static_assert((true >> bool_to_uint) == 1u,
-              "Transitivity: The value was lost in translation.");
-
-// 3. Action Proof: The 'False' identity (0) preservation.
-static_assert((false >> bool_to_uint) == 0u,
-              "Action: The escalator must preserve the 'False' identity (0) "
-              "across species.");
-
-/** @brief The Canonical Component η_X for a Functor F and Species T. */
-export template <template <typename> typename F, typename T>
-constexpr F<T> η_component(T x) = delete;
-
-/** @brief Specialization: Identity's η_X is the Identity mapping. */
-template <typename T>
-constexpr Identity<T> η_component(T x) {
-  return x;
-}
-
-/**
- * @section The Monadic Unit (η: Id ⟹ F)
- * @brief The CANONICAL unit for a verified Monad.
- * @details This is the 'Standard On-Ramp' for Functor F and Species T.
- *          Signature: (F, T, OpT). It finds the η_component automatically.
- */
-export template <template <typename> typename F, typename T, typename OpT>
-using η = unit<Id, F, OpT, OpT, η_component<F, T>>;
-
-/**
- * @brief The Monadic Multiplication (μ_X: F⟨F⟨X⟩⟩ → F⟨X⟩)
- * @details In the Category of Endofunctors, the Monad is a Monoid.
- *          This 'Multiplication' collapses the nested composition
- *          of the functor back into a single layer.
- */
-/*
-export template <template <typename> typename F, typename T>
-  requires(!std::same_as<F<F<T>>, F<T>>)  // The "Structure Gap" Constraint
-constexpr F<T> multiplication(F<F<T>> box);*/
-
-/** @brief Specialization: The Identity Monad's Multiplication. */
-template <typename T>
-constexpr Identity<T> multiplication(Identity<T> box) {
-  return box;  // Unwrap the nested Identity
-}
-
-/**
- * @section The Monadic Multiplication (μ: F ∘ F ⟹ F)
- * @brief The CANONICAL multiplication (Join) for a verified Monad.
- * @details Signature: (F, T, OpT). It finds the multiplication logic
- * automatically.
- */
-export template <template <typename> typename F, typename T, typename OpT>
-using μ = Naturality<F, F, T, T, OpT, OpT, [](auto box) constexpr {
-  return multiplication<F, T>(box);
-}>;
-
-/**
- * @concept η (The Monadic Unit)
- * @brief Formalizes the "On-Ramp" signature: T ⟹ F⟨T⟩.
- */
-export template <typename Transform, template <typename> typename F, typename T>
-concept is_η = IsArrow<Transform, T, F<T>>;
-
-/**
- * @concept μ (The Monadic Multiplication)
- * @brief Formalizes the "Flattening" signature: F⟨F⟨T⟩⟩ ⟹ F⟨T⟩.
- */
-export template <typename Transform, template <typename> typename F, typename T>
-concept is_μ = IsArrow<Transform, F<F<T>>, F<T>>;
-
-/**
  * @section Monad_as_Monoid (Explicit Definition)
  * We bridge the gap:
  *   η (Unit)           <--> identity_v (Monoid Unit)
  *   μ (Multiplication) <--> Op         (Monoid Operation)
  */
 export template <template <typename> typename F, typename T, typename OpT>
-concept IsMonad = IsEndofunctor<F, T, OpT> && requires(F<F<T>> nested, T x) {
-  IsEndofunctor<F, T, OpT> && requires {
-    // 1. Structural Verification: Do the canonical aliases exist?
-    typename η<F, T, OpT>;
-    typename μ<F, T, OpT>;
+concept IsMonad =
+    // 1. Requirement: Must be a Functor (Derived via our Dispatcher)
+    IsEndofunctor<F, T, OpT> &&
 
-    // 2. Role Verification: Do these types satisfy the Monadic Concepts?
-    requires is_η<η<F, T, OpT>, F, T>;
-    requires is_μ<μ<F, T, OpT>, F, T>;
+    // 2. Requirement: Must satisfy the Kleisli Extension System
+    IsKleisliExtension<F, T, T> &&
 
-    // 3. Axiomatic Action (Uncommented & Refined):
-    // We verify the actual mapping of data through the witness.
-    { η<F, T, OpT>{}(x) } -> std::same_as<F<T>>;
-    { μ<F, T, OpT>{}(nested) } -> std::same_as<F<T>>;
-  };
-};
+    requires(F<F<T>> nested, T x, F<T> box, std::function<F<T>(T)> f) {
+      // 3. Axiomatic Verification:
+      // Verification of η (Unit): T -> F<T>
+      { η<F, T>{}(x) } -> std::same_as<F<T>>;
 
-/** @section Monadic_Guardrails: Enforcing the Contract
- *  If a species satisfies the concept but lacks a specialization,
- *  we delete the operator to prevent fallback to bit-shifts.
- */
+      // Verification of >>= (Bind): F<T> -> (T -> F<T>) -> F<T>
+      { box >>= f } -> std::same_as<F<T>>;
 
-/** @brief Deleted Push: η : T → F<T> */
-export template <typename T, template <typename> typename F, typename OpT>
-  requires IsMonad<F, T, OpT>
-auto operator>>(T&&, into_tag<F>) = delete;
-
-/** @brief Deleted Bind: >>= : F<T> → (T → F<U>) → F<U> */
-export template <typename T, template <typename> typename F, typename OpT,
-                 typename Function>
-  requires IsMonad<F, T, OpT>
-auto operator>>=(const F<T>&, Function) = delete;
-
-/**
- * @section Monadic_Bind (The Logical Chain)
- * @brief The >>= operator (Bind/AndThen) for Monadic Composition.
- * @details Synthesized as: Map (f) followed by Join (μ).
- */
-export template <typename T, template <typename> typename F, typename Function>
-  requires IsMonad<F, T, std::plus<T>>  // Optional: Tighten with concepts
-constexpr auto operator>>=(const F<T>& box, Function f) {
-  // Logic: Unbox -> Apply -> Return new Box
-  // For the Identity Monad (Box), this is just f(x).
-  return f(box.value);
-}
-
-/** @brief Rvalue overload for "High-Speed" Bind */
-export template <typename T, template <typename> typename F, typename Function>
-constexpr auto operator>>=(F<T>&& box, Function f) {
-  return f(std::move(box.value));
-}
+      // 4. Structural Emergence:
+      // μ (Join) is now an observable property of the Kleisli Action.
+      // We verify that the "Self-Bind" correctly collapses layers.
+      {
+        box >>= [](T val) { return η<F, T>{}(val); }
+      } -> std::same_as<F<T>>;
+    };
 
 /** @section Level_0_Final_Proof: The Box Monad */
 
@@ -1147,11 +861,11 @@ static_assert(IsMonad<Box, int, std::plus<int>>,
               "Ontology: Box must be recognized as a formal Monad.");
 
 // 2. Action Proof: Join (μ) must collapse the context via the pipe
-static_assert((42 >> into<> >> into<> >> join<>) == 42 >> into<>,
+static_assert((42 >> into<Box> >> into<Box> >> join<Box>) == 42 >> into<Box>,
               "Ontology: The Monadic Join (μ) failed the Action Proof.");
 
 // 3. Action Proof: Unit (η) must lift the species
-static_assert((42 >> into<>) == Box{42},
+static_assert((42 >> into<Box>) == Box{42},
               "Ontology: The Monadic Unit (η) failed the Action Proof.");
 
 /**
@@ -1160,170 +874,86 @@ static_assert((42 >> into<>) == Box{42},
 
 /**
  * @concept IsComonad
- * @brief The Dual of a Monad: A Functor with Extract and Duplicate.
+ * @brief The Unified Comonadic Proof: Co-Kleisli Action as Contextual Being.
+ *
+ * @details
+ * This concept bridges the dual formal definitions:
+ * 1. Co-Kleisli Triple (Action): Existence of ε (Extract) and <<= (Extend).
+ * 2. Comonoid in Endofunctors (Structure): F is a Functor with δ (Duplicate).
+ *
+ * @section The_Mereological_Pull
+ * Following the Dedekind posture, we do not require δ (Duplicate/Coreturn)
+ * to be explicitly defined if <<= (Extend) is present, as δ is the
+ * "Self-Extend": δ(w) = w <<= id.
  */
-export template <template <typename> typename W, typename T, typename OpT>
-concept IsComonad = IsEndofunctor<W, T, OpT> && requires(W<T> box) {
-  { extract_v(box) } -> std::same_as<T>;
-  { duplicate_v(box) } -> std::same_as<W<W<T>>>;
-};
+export template <template <typename...> typename F, typename T, typename OpT>
+concept IsComonad =
+    // 1. Requirement: Must be a Functor (Derived via Discovery)
+    IsEndofunctor<F, T, OpT> &&
 
-/** @brief ε: W⟨T⟩ → T (The Core Extraction) */
-export template <template <typename> typename W, typename T>
-constexpr T extract_v(W<T> box) {
-  // If the compiler reaches here, it means no specialization matched.
-  // In C++23, we can just static_assert(false) or similar.
-  return box.value;
-}
+    // 2. Requirement: Must satisfy the Co-Kleisli Extension System
+    IsCoKleisliExtension<F, T, T> &&
 
-// The reality of how to extract from a Box
-template <typename T>
-constexpr T extract_v(Box<T> box) {
-  return box.value;
-}
+    requires(F<T> box, std::function<T(F<T>)> f) {
+      // 3. Axiomatic Verification:
+      // Verification of ε (Extract): F<T> -> T
+      { ε<F, T>{}(box) } -> std::same_as<T>;
 
-/** @section Identity_Comonad_Specialization */
-template <typename T>
-constexpr T extract_v(Id<T> box) {
-  return box;
-}
+      // Verification of <<= (Extend): F<T> -> (F<T> -> T) -> F<T>
+      { box <<= f } -> std::same_as<F<T>>;
 
-/** @brief The Extraction Tag (ε: W ⟹ Id) */
-template <template <typename> typename W>
+      // 4. Structural Emergence:
+      // δ (Duplicate) is an observable property of the Co-Kleisli Action.
+      // We verify that the "Self-Extend" correctly nests the context.
+      {
+        box <<= [](auto&& w) { return w; }
+      } -> std::same_as<F<F<T>>>;
+    };
+
+/** @section The_Counit_Tag (ε) */
+export template <template <typename...> typename F>
 struct extract_tag {};
 
-template <typename T>
-constexpr Id<Id<T>> duplicate_v(Id<T> box) {
-  return box;
-}
+export template <template <typename...> typename F>
+inline constexpr extract_tag<F> extract{};
 
-// The reality of how to duplicate a Box
-template <typename T>
-constexpr Box<Box<T>> duplicate_v(Box<T> box) {
-  return Box<Box<T>>{box};
-}
-
-/** @brief The Duplication Tag (δ: W ⟹ W ∘ W) */
-template <template <typename> typename W>
+/** @section The_Co_Multiplication_Tag (δ) */
+export template <template <typename...> typename F>
 struct duplicate_tag {};
 
-export template <typename T = void>
-constexpr auto extract = extract_tag<Box>{};
+export template <template <typename...> typename F>
+inline constexpr duplicate_tag<F> duplicate{};
 
-export template <typename T = void>
-constexpr auto duplicate = duplicate_tag<Box>{};
-
-/** @brief δ: W⟨T⟩ → W⟨W⟨T⟩⟩ (The Contextual Duplication) */
-export template <typename T, template <typename> typename W>
-constexpr W<W<T>> duplicate_v(W<T> box) {
-  return W<W<T>>{box};
+/** @section The_Pull_Operator (ε) */
+export template <typename T, template <typename...> typename F>
+constexpr T operator<<(const F<T>& box, extract_tag<F>) {
+  // Routes to the ε witness in :species
+  return ε<F, T>{}(box);
 }
 
-/** @section Comonadic_Pull: The Directional Extraction */
-
-// 1. The Lvalue Pull (For named variables like 'start')
-export template <typename T, template <typename> typename W>
-  requires requires(const W<T>& b) {
-    { extract_v(b) } -> std::same_as<T>;
-  }
-constexpr auto operator<<(const W<T>& box, extract_tag<W>) {
-  return extract_v(box);
-}
-
-// 2. The Rvalue Pull (For temporaries)
-export template <typename T, template <typename> typename W>
-  requires requires(const W<T>& b) {
-    { extract_v(b) } -> std::same_as<T>;
-  }
-constexpr auto operator<<(W<T>&& box, extract_tag<W>) {
-  return extract_v(std::move(box));
-}
-
-// 3. The Duplicate Pull (δ) - Lvalue
-export template <typename T, template <typename> typename W>
-  requires requires(const W<T>& b) {
-    { duplicate_v(b) } -> std::same_as<W<W<T>>>;
-  }
-constexpr auto operator<<(const W<T>& box, duplicate_tag<W>) {
-  return duplicate_v(box);
-}
-
-// 4. The Duplicate Pull (δ) - Rvalue
-export template <typename T, template <typename> typename W>
-  requires requires(const W<T>& b) {
-    { duplicate_v(b) } -> std::same_as<W<W<T>>>;
-  }
-constexpr auto operator<<(W<T>&& box, duplicate_tag<W>) {
-  return duplicate_v(std::move(box));
+/** @section The_Duplicate_Operator (δ) */
+export template <typename T, template <typename...> typename F>
+  requires IsCoKleisliExtension<F, T, T>
+constexpr auto operator<<(const F<T>& box, duplicate_tag<F>) {
+  // δ(w) = w <<= id
+  return box <<= [](const F<T>& w) { return w; };
 }
 
 /** @section Comonad_Verification: The Slick Highway Proofs */
 
 // 1. The Extract Law (ε): Getting the car out of the Box.
-static_assert((42 >> into<> << extract<>) == 42,
+static_assert((42 >> into<Box> << extract<Box>) == 42,
               "Comonad Law: Extract (ε) must recover the raw Species.");
 
 // 2. The Duplicate Law (δ): Making a 'Shadow' Box.
 // Instead of that decltype(arrow) mess, we just pipe it.
-static_assert((42 >> into<> << duplicate<>).value.value == 42,
+static_assert((42 >> into<Box> << duplicate<Box>).value.value == 42,
               "Comonad Law: Duplicate (δ) must yield a nested Context.");
 
 // 3. The Co-Unit Law: ext(dup(x)) == x
 // Reading: "Take a box, duplicate it, then extract the outer layer."
-static_assert((42 >> into<> << duplicate<> << extract<>) == 42 >> into<>,
+static_assert((42 >> into<Box> << duplicate<Box> << extract<Box>) ==
+                  42 >> into<Box>,
               "Comonad Law: Extract ∘ Duplicate must be an Identity on Boxes.");
-
-/** @brief The Retraction Morphism (r: 𝒢 ⟹ 1_𝒞).
-    Primary template is deleted to enforce explicit existence. */
-export template <typename 𝒯, typename Op𝒯, typename Op𝒢, auto η_X>
-𝒯 retraction(decltype(η_X(std::declval<𝒯>())) y) = delete;
-
-/**
- * @concept IsEmbedding
- * @brief A Natural Transformation η: 1_𝒞 ⟹ 𝒢 that preserves injectivity.
- *
- * @details
- * In Category Theory, an embedding (specifically a Monomorphism) is a morphism
- * f: A → B such that for any two morphisms g₁, g₂: X → A,
- * if f ∘ g₁ = f ∘ g₂, then g₁ = g₂.
- *
- * In our structuralist C++ approach, we verify this "Monomorphism" property
- * by proving the Morphism (η_X) is strictly injective (1:1)
- * across the entire Domain 𝒯.
- *
- * @tparam G   The Target Functor (The "Box" we are promoting into).
- * @tparam 𝒯   The Coordinate Species (The Domain Object, e.g., bool).
- * @tparam Op𝒯 The Binary Operation of the Source Category (e.g., AND).
- * @tparam Op𝒰 The Binary Operation of the Target Category (e.g., MULT).
- * @tparam η_X The Morphism Component (The actual C++ promotion logic).
- */
-export template <template <typename> typename 𝒢, typename 𝒯, typename Op𝒯,
-                 typename Op𝒢, auto η_X>
-concept IsEmbedding =
-    // 1. Structural Check: Does the Unit bridge actually exist?
-    requires { typename unit<Id, 𝒢, Op𝒯, Op𝒢, η_X>; } && requires(𝒯 x) {
-      // The Axiom: Mapping then Retracting must recover the exact same value.
-      { retraction<𝒯, Op𝒯, Op𝒢, η_X>(η_X(x)) } -> std::same_as<𝒯>;
-
-      // Proof of Identity preservation (Value Level)
-      requires retraction<𝒯, Op𝒯, Op𝒢, η_X>(η_X(x)) == x;
-    };
-
-/** @section Self_Contained_Verification: The Local Embedding Proof */
-
-static_assert(
-    [] {
-      // 1. Local Logic (The Brick)
-      constexpr auto logic = [](bool b) { return b ? 1 : 0; };
-
-      // 2. Local Highways (The Mortar)
-      constexpr auto eta = arrow<bool, int>(logic);
-      constexpr auto r = arrow<int, bool>([](int y) { return y != 0; });
-
-      // 3. The Theorem: r ∘ η = id_bool
-      // We verify both states of the Boolean species locally.
-      return (true >> eta >> r) == true && (false >> eta >> r) == false;
-    }(),
-    "Local Proof: Bool-to-Int embedding must be a bit-faithful round-trip.");
 
 }  // namespace dedekind::ontology
