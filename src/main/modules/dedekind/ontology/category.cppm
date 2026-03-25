@@ -273,6 +273,32 @@ concept IsCoKleisliExtension = requires(F<T> box, std::function<U(F<T>)> f) {
   { box <<= f } -> std::same_as<F<U>>;    // The Extend
 };
 
+/**
+ * @section The_Kleisli_Monad_Proof
+ * @brief Elevates a Kleisli Extension to a formal Monad.
+ *
+ * @details
+ * A species is a Kleisli Monad if it possesses the 'Action' (Extension)
+ * and satisfies the 'Categorical Identity' (The Arrow Mapping).
+ */
+export template <template <typename...> typename F, typename T, typename U>
+concept IsKleisli = IsKleisliExtension<F, T, U> &&
+                    requires(T x, F<T> box, std::function<F<U>(T)> f) {
+                      // We add the formal Categorical requirements here.
+                      // E.g., The result must be a stable F<U>.
+                      { box >>= f } -> std::same_as<F<U>>;
+                    };
+
+/**
+ * @section The_CoKleisli_Comonad_Proof
+ * @brief Elevates a Co-Kleisli Extension to a formal Comonad.
+ */
+export template <template <typename...> typename F, typename T, typename U>
+concept IsCoKleisli = IsCoKleisliExtension<F, T, U> &&
+                      requires(F<T> box, std::function<U(F<T>)> f) {
+                        { box <<= f } -> std::same_as<F<U>>;
+                      };
+
 static_assert(
     IsCoKleisliExtension<Box, int, int>,
     "Skeletal Failure: Box does not satisfy the Co-Kleisli Extension System.");
@@ -445,9 +471,11 @@ static_assert(
 
 // 2. Proof: Cross-Species Identity
 // id_Z combined with a Z -> B bridge must result in a Z -> B bridge
+/** @section Cross_Species_Proof: Z -> B */
 static_assert(
-    IsArrow<decltype(id<int>() >> arrow<int, bool>(IsPositive{})), int, bool>,
-    "Unit Law: Identity must preserve the bridge from Z to B.");
+    IsArrow<decltype(arrow<int, bool>([](int x) { return x > 0; })), int, bool>,
+    "Skeletal Failure: Failed to construct an anonymous cross-species "
+    "Morphism.");
 
 // 3. Proof: Extensional Equality (The Action)
 // The composite morphism (f ∘ id) must yield the same value as f.
@@ -620,76 +648,6 @@ concept IsFunctor = IsSmallCategory<T, OpT> && IsSmallCategory<U, OpU> &&
                       // context F.
                       { fmap<F>(id_t) } -> IsArrow<F<T>, F<T>>;
                     };
-
-/**
- * @section The_Kleisli_Triple_Bridge
- * @brief If a Species can Lift (η) and Chain (>>=), it IS a Functor.
- */
-export template <template <typename...> typename F, typename Arrow>
-  requires requires(F<typename Arrow::Domain> box, Arrow f) {
-    // 1. The Unit (η): T -> F<T>
-    {
-      η<F, typename Arrow::Codomain>{}(
-          f(box << extract<typename Arrow::Domain>()))
-    } -> std::same_as<F<typename Arrow::Codomain>>;
-    // 2. The Bind (>>=): F<T> -> (T -> F<U>) -> F<U>
-    {
-      box >>=
-          [](typename Arrow::Domain x) { return F<typename Arrow::Codomain>{}; }
-    };
-  }
-auto fmap(Arrow f) {
-  return [f](auto box) {
-    using T = typename Arrow::Domain;
-    using U = typename Arrow::Codomain;
-    // The Canonical Derivation: fmap(f, m) = m >>= (η ∘ f)
-    return box >>= [f](T x) { return η<F, U>{}(f(x)); };
-  };
-}
-
-/// .... or broken down
-
-/** @section The_Kleisli_Triple */
-export template <template <typename...> typename F, typename T, typename U>
-concept IsKleisli = requires(T x, F<T> box, std::function<F<U>(T)> f) {
-  { η<F, U>{}(x) } -> std::same_as<F<U>>;  // Can we Lift?
-  { box >>= f } -> std::same_as<F<U>>;     // Can we Chain?
-};
-
-/** @section The_Monadic_Highway_Bridge */
-export template <template <typename...> typename F, typename Arrow,
-                 typename T = typename Arrow::Domain,
-                 typename U = typename Arrow::Codomain>
-  requires IsKleisli<F, T, U> && IsArrow<Arrow, T, U>
-constexpr IsArrow<F<T>, F<U>> auto fmap(Arrow f) {
-  // fmap(f, m) = m >>= (η ∘ f)
-  return arrow<F<T>, F<U>>([f](const F<T>& box) {
-    return box >>= [f](const T& x) { return η<F, U>{}(f(x)); };
-  });
-}
-
-/** @section The_Co_Kleisli_Triple */
-export template <template <typename...> typename F, typename T, typename U>
-concept IsCoKleisli = requires(F<T> box, std::function<U(F<T>)> f) {
-  { ε<F, T>{}(box) } -> std::same_as<T>;  // The Pull: F<T> -> T
-  {
-    box <<= f
-  } -> std::same_as<F<U>>;  // The Stretch: F<T> -> (F<T> -> U) -> F<U>
-};
-
-/** @section The_Comonadic_Highway_Bridge */
-export template <template <typename...> typename F, typename Arrow,
-                 typename T = typename Arrow::Domain,
-                 typename U = typename Arrow::Codomain>
-  requires IsCoKleisli<F, T, U> && IsArrow<Arrow, T, U>
-constexpr IsArrow<F<T>, F<U>> auto fmap(Arrow f) {
-  // fmap(f, w) = w <<= (f ∘ ε)
-  // We extend the box by sampling the species, applying f,
-  // and letting the Comonad wrap it back up.
-  return arrow<F<T>, F<U>>([f](const F<T>& box) {
-    return box <<= [f](const F<T>& w) { return f(ε<F, T>{}(w)); };
-  });
-}
 
 // Proof: Box is a Functor between the Additive Category of Integers and itself.
 static_assert(

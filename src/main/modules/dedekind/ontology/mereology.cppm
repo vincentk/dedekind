@@ -320,6 +320,71 @@ constexpr auto singleton(T&& value) {
 
 /** @section The_Set_Monad: The Categorical Identity */
 
+/** @section Singleton_Unit (η) */
+template <typename T, typename L>
+struct η<SingletonSet, T> {
+  // We take a species and wrap it in the 'Rule of Presence' (The Singleton).
+  constexpr auto operator()(const T& x) const { return SingletonSet<T, L>{x}; }
+};
+
+/** @section Singleton_Multiplication (μ) */
+export template <typename T, typename L>
+constexpr auto flatten(const SingletonSet<SingletonSet<T, L>, L>& nested) {
+  // To flatten, we sample the inner set and return it.
+  // Structuralist logic: Presence(Presence(x)) == Presence(x).
+  return nested.raw_species();
+}
+
+template <typename T, typename L>
+struct μ<SingletonSet, T> {
+  constexpr auto operator()(
+      const SingletonSet<SingletonSet<T, L>, L>& s) const {
+    return flatten(s);
+  }
+};
+
+/**
+ * @section Singleton_Kleisli_Triple
+ * @brief The Bricks of the Singleton Monad.
+ */
+
+/** @section Unit (η) */
+template <typename T, typename L>
+struct η<SingletonSet, T> {
+  // T -> SingletonSet<T, L>
+  constexpr auto operator()(const T& x) const { return SingletonSet<T, L>{x}; }
+};
+
+/** @section Bind (>>=) */
+export template <typename T, typename L, typename Func>
+constexpr auto operator>>=(const SingletonSet<T, L>& s, Func&& f) {
+  /**
+   * @details Kleisli Bind for Singletons:
+   * 1. Sample the internal species (The Pull).
+   * 2. Apply the Kleisli Arrow f: T -> SingletonSet<U, L>.
+   */
+  return std::forward<Func>(f)(s.raw_species());
+}
+
+/** @section Singleton_CoKleisli_Triple */
+
+/** @section Extract (ε) */
+template <typename T, typename L>
+struct ε<SingletonSet, T> {
+  // SingletonSet<T, L> -> T
+  constexpr T operator()(const SingletonSet<T, L>& s) const {
+    return s.raw_species();
+  }
+};
+
+/** @section Extend (<<=) */
+export template <typename T, typename L, typename Func>
+constexpr auto operator<<=(const SingletonSet<T, L>& s, Func&& f) {
+  using U = std::invoke_result_t<Func, SingletonSet<T, L>>;
+  // Co-Kleisli Extend: apply contextual logic and re-wrap.
+  return SingletonSet<U, L>{std::forward<Func>(f)(s)};
+}
+
 /**
  * @brief The SetMonad Alias (The Unary Blueprint).
  * @details This provides the 'template <typename> typename' signature
