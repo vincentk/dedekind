@@ -403,31 +403,12 @@ struct Box final {
   T value;
 };
 
-/** @section The_Kleisli_Triple_for_Box */
-// η (Unit): Lifting a value into the Box
-export template <template <typename> typename F, typename T>
-struct η final {
-  constexpr auto operator()(T x) const { return Box<T>{x}; }
-};
-
 // >>= (Bind): Chaining the Box to a Kleisli Arrow
 export template <typename T, typename Func>
 constexpr auto operator>>=(const Box<T>& b, Func&& f) {
   // We sample the part and hand it to the factory.
   return std::forward<Func>(f)(b.value);
 }
-
-/** @section The_Extract_Witness (ε) */
-// This is the general "Hole" for the Counit
-export template <template <typename...> typename F, typename T>
-struct ε;
-
-/** @section Box_Specialization_for_ε */
-template <typename T>
-struct ε<Box, T> final {
-  // For a Box, extraction is simply accessing the value.
-  constexpr T operator()(const Box<T>& b) const noexcept { return b.value; }
-};
 
 /** @section The_Extend_Operator (<<=) */
 export template <typename T, typename Func>

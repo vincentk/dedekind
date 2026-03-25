@@ -225,6 +225,28 @@ constexpr auto id() {
   return Identity<A>{};
 }
 
+/** @section The_Universal_Unit (η) */
+export template <template <typename...> typename F, typename T>
+struct η;  // Primary template for all kinds of contexts
+
+/** @section The_Kleisli_Triple_for_Box */
+// η (Unit): Lifting a value into the Box
+export template <typename T>
+struct η<Box, T> final {
+  constexpr auto operator()(T x) const { return Box<T>{x}; }
+};
+
+/** @section The_Universal_Counit (ε) */
+export template <template <typename...> typename F, typename T>
+struct ε;
+
+/** @section Box_Specialization_for_ε */
+template <typename T>
+struct ε<Box, T> final {
+  // For a Box, extraction is simply accessing the value.
+  constexpr T operator()(const Box<T>& b) const noexcept { return b.value; }
+};
+
 /**
  * @section The_Kleisli_Extension_System
  * @brief Formal detection of the Monadic "Lift and Chain" action.
@@ -240,14 +262,6 @@ concept IsKleisliExtension = requires(T x, F<T> box, std::function<F<U>(T)> f) {
   { box >>= f } -> std::same_as<F<U>>;     // The Chain (Bind)
 };
 
-/**
- * @section Kleisli_Discovery_Proof
- * @brief Proof of the 'Push' Action for the Standard Model (Box).
- *
- * This verifies that:
- * 1. η (Unit) exists for Box.
- * 2. operator>>= (Bind) is findable via ADL.
- */
 static_assert(
     IsKleisliExtension<Box, int, int>,
     "Skeletal Failure: Box does not satisfy the Kleisli Extension System.");
@@ -258,6 +272,10 @@ concept IsCoKleisliExtension = requires(F<T> box, std::function<U(F<T>)> f) {
   { ε<F, T>{}(box) } -> std::same_as<T>;  // The Extract
   { box <<= f } -> std::same_as<F<U>>;    // The Extend
 };
+
+static_assert(
+    IsCoKleisliExtension<Box, int, int>,
+    "Skeletal Failure: Box does not satisfy the Co-Kleisli Extension System.");
 
 /** @brief The Unit/Pure Factory: Lifts a raw value into the Box context. */
 export template <typename T>
