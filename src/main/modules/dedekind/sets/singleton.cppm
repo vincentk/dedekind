@@ -1,39 +1,35 @@
 /**
- * @file ontology:mereology.cppm
- * @brief Level 1: The Rules of Presence (Topos-Aware Sets).
+ * @file dedekind/sets/singleton.cppm
+ * @brief The Atomic Body: Implementation of the Singleton Species {x}.
  *
  * Copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @partition :mereology
- * @build_order 2
- * @dependency :logic, :category
+ * @module dedekind.sets:singleton
+ * @dependency dedekind.ontology
  *
- * @section Mereology: The Geometry of Existence
- * This partition defines the "Body" of the Dedekind species. In the
- * structuralist ontology, Mereology establishes the relationship between
- * 'Parts' and 'Wholes' as a mapping between a Domain and a Logic.
+ * @section The_Singleton_Atom: Mereological Singularity
+ * In the Dedekind universe, the Singleton is the "Unit of Presence."
+ * It serves as the canonical implementation of a Pointed Set and acts
+ * as the 'pure' or 'return' operation (η) for the Set Monad.
  *
  * @details
- * Membership is defined as a morphism to a Subobject Classifier (Ω).
- * By decoupling the "Body" from the "Truth," the same mereological laws
- * are applied across different logical universes:
- * - IsSet: The universal rule-based predicate for membership.
- * - IsBooleanSet: The Classical {True, False} universe (The Binary Prime).
- * - IsKleeneSet: The Indeterminate {True, False, Unknown} universe.
+ * This structure bridges Level 0a (Species) and Level 1 (Mereology):
+ * - It is Extensional: It exists in memory as a single 'pivot' element.
+ * - It is a Monad: It supports the Kleisli Highway (>>=) via direct
+ * application.
+ * - It is a Comonad: It supports the Co-Kleisli Pull (<<=) via extraction (ε).
  *
- * @section Structural_Anchors
- * Standard C++ operators are anchored here as Set Morphisms,
- * lifting logical connectives into latticial operations:
- * - operator&&, operator& : Intersection (The Meet).
- * - operator||, operator| : Union (The Join).
- * - operator! : Complement (The Remainder).
+ * @section Structural_Role
+ * The SingletonSet provides the baseline proof for the Unified Highway Bridge.
+ * By defining η and ε here, we allow fmap to be derived automatically
+ * for any morphism f: T -> U lifted into the Singleton context.
  *
- * @tparam S The Set implementation type being verified.
- * @tparam L The Logic species (Ω) governing the membership predicate.
- *           Defaults to ClassicalLogic for zero-overhead arithmetic.
+ * @tparam T The underlying Species of the pivot element.
+ * @tparam L The Subobject Classifier (Ω) governing the set's logic.
+ *           Defaults to ClassicalLogic {True, False}.
  *
- * Wikipedia: Mereology, Subobject classifier, Topos theory
+ * Wikipedia: Singleton (mathematics), Unit element, Monad (category theory)
  */
 module;
 
@@ -86,16 +82,6 @@ constexpr auto singleton(T&& value) {
  * @brief The Bricks of the Singleton Monad.
  */
 
-/** @section Singleton_Unit (η) */
-// We only need T here. We 'fix' the logic to Classical.
-template <typename T>
-struct dedekind::ontology::η<SingletonSet, T> {
-  constexpr auto operator()(const T& x) const {
-    // We explicitly construct the Classical variety.
-    return SingletonSet<T, ClassicalLogic>{x};
-  }
-};
-
 /** @section Bind (>>=) */
 export template <typename T, typename L, typename Func>
 constexpr auto operator>>=(const SingletonSet<T, L>& s, Func&& f) {
@@ -109,17 +95,6 @@ constexpr auto operator>>=(const SingletonSet<T, L>& s, Func&& f) {
 
 /** @section Singleton_CoKleisli_Triple */
 
-/** @section Singleton_Counit (ε) */
-template <typename T>
-struct ε<SingletonSet, T> {
-  // Extraction is logic-agnostic, so we can use a variadic match here
-  // or just match the Classical version.
-  template <typename L>
-  constexpr T operator()(const SingletonSet<T, L>& s) const {
-    return s.pivot;
-  }
-};
-
 /** @section Extend (<<=) */
 export template <typename T, typename L, typename Func>
 constexpr auto operator<<=(const SingletonSet<T, L>& s, Func&& f) {
@@ -128,8 +103,30 @@ constexpr auto operator<<=(const SingletonSet<T, L>& s, Func&& f) {
   return SingletonSet<U, L>{std::forward<Func>(f)(s)};
 }
 
+};  // namespace dedekind::sets
+
+namespace dedekind::ontology {
+using namespace dedekind::sets;
+// Re-open the ontology namespace to provide the specialization
+export template <typename T>
+struct η<SingletonSet, T> {
+  constexpr auto operator()(const T& x) const { return SingletonSet<T>{x}; }
+};
+
+/** @section Singleton_Counit (ε) */
+export template <typename T>
+struct ε<SingletonSet, T> {
+  // Extraction is logic-agnostic, so we can use a variadic match here
+  // or just match the Classical version.
+  template <typename L>
+  constexpr T operator()(const SingletonSet<T, L>& s) const {
+    return s.pivot;
+  }
+};
+};  // namespace dedekind::ontology
+
 /** @section The_Final_Ontology_Proof */
-namespace {
+namespace dedekind::sets {
 // A simple cross-species transformation: int -> bool
 constexpr auto is_even = arrow<int, bool>([](int x) { return x % 2 == 0; });
 
@@ -146,16 +143,4 @@ static_assert(((IntSet{42} >> fmap<SingletonSet>(is_even))
                << extract<SingletonSet>) == true,
               "PR Failure: The Set Monad failed to preserve the truth value of "
               "the species.");
-}  // namespace
-
-};  // namespace dedekind::sets
-
-namespace dedekind::ontology {
-// Re-open the ontology namespace to provide the specialization
-export template <typename T>
-struct η<dedekind::sets::SingletonSet, T> {
-  auto operator()(const T& x) const {
-    return dedekind::sets::SingletonSet<T>{x};
-  }
-};
-}  // namespace dedekind::ontology
+}  // namespace dedekind::sets

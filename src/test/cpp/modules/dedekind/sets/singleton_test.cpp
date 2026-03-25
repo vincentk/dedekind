@@ -1,10 +1,12 @@
 #include <catch2/catch_test_macros.hpp>
 import dedekind.ontology;
+import dedekind.sets;
 
 using namespace dedekind::ontology;
+using namespace dedekind::sets;
 
-TEST_CASE("Level 1 Final Proof: The Mereology Highway",
-          "[ontology][mereology][highway]") {
+TEST_CASE("Sets: Singleton Final Proof: The Highway",
+          "[sets][singleton][highway]") {
   SECTION("1. The Singleton Lifting") {
     // Target the struct directly to satisfy Clang's template-template rules
     auto atom = 42 >> into<SingletonSet>;

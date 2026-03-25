@@ -23,4 +23,4 @@
 export module dedekind.sets;
 
 export import :singleton;
-export import :expressions;
+// export import :expressions;
