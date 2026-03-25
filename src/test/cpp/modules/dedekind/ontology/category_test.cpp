@@ -29,7 +29,6 @@ TEST_CASE("Ontology: Arrow Factory Verification",
 
   SECTION("Cross-Species Lambda Tagging (Z -> B)") {
     auto is_positive_lambda = [](int x) { return x > 0; };
-    using IsPositive = decltype(is_positive_lambda);
 
     // Testing the explicit 'arrow' factory for Domain -> Codomain mapping
     using TaggedIsPositive =
@@ -112,8 +111,9 @@ TEST_CASE("Level 0 Final Proof: The Box Monad & Comonad",
 
     // The Combined Round-Trip Proof
     // Push -> Duplicate -> Extract -> Extract -> Result
-    static_assert((42 >> into<Box> >> duplicate<Box> >> extract<Box> >>
-                   extract<Box>) == 42,
-                  "Ontology: Comonadic round-trip failed the Action Proof.");
+    static_assert(
+        (42 >> into<Box> << duplicate<Box> << extract<Box> << extract<Box>) ==
+            42,
+        "Ontology: Comonadic round-trip failed the Action Proof.");
   }
 }

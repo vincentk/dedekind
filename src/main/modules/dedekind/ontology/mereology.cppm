@@ -116,6 +116,9 @@ concept IsFiniteMagnitude = IsCountable<C> && (C::is_finite == true);
 export struct Finite {
   static constexpr bool is_finite = true;
   static constexpr bool is_countable = true;
+
+  auto operator<=>(const Finite&) const = default;
+
   using power_type = Finite;  // Finite sets always jump to other Finite sets.
 };
 
@@ -255,7 +258,7 @@ struct EmptySet final {
   using base_set_type = EmptySet<T, L>;
 
   constexpr typename L::type contains(const T&) const {
-    return L::NOT(identity_v<typename L::type, L>);
+    return L::False;  // The Axiom: Total Absence
   }
 
   /** @section Extensionality_Proof */
@@ -286,9 +289,7 @@ struct UniversalSet {
   using logic_species = L;
 
   // The Axiom: Total Presence
-  constexpr typename L::type contains(const T&) const {
-    return identity_v<typename L::type, L>;
-  }
+  constexpr typename L::type contains(const T&) const { return L::True; }
 };
 
 /** @brief {x}: The Atom. Extensional (Size 1). */
@@ -301,8 +302,7 @@ struct SingletonSet {
   using base_set_type = SingletonSet<T, L>;
 
   constexpr typename L::type contains(const T& v) const {
-    return (v == pivot) ? identity_v<typename L::type, L>
-                        : L::NOT(identity_v<typename L::type, L>);
+    return (v == pivot) ? L::True : L::False;
   }
 
   /** @section Extensionality_Proof */
