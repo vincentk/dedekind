@@ -144,6 +144,71 @@ constexpr auto endo(F&& f) {
 static_assert(endo<int>([](int x) { return x * 2; })(21) == 42,
               "Arrow Factory: Action check failed for anonymous lambda.");
 
+
+/**
+ * @concept IsInitialObject
+ * @brief The "Zero" of the Category (0).
+ * @details For any object X, there exists a unique morphism ! : 0 -> X.
+ *          In Mereology, this is the set that contains nothing.
+ */
+export template <typename T>
+concept IsInitialObject = requires(const T s) {
+  /** @brief Axiom: Magnitude must be the additive identity (Zero). */
+  requires s.cardinality().is_finite == true;
+  requires s.upper_bound() == 0;
+};
+
+/**
+ * @concept IsTerminalObject
+ * @brief The "One" of the Category (1).
+ * @details For any object X, there exists a unique morphism ! : X -> 1.
+ *          In Mereology, this is the set that contains everything (The Domain).
+ */
+export template <typename T>
+concept IsTerminalObject =
+    requires(const T s, const typename T::element_type x) {
+      /** @brief Axiom: The Membership Morphism is the identity of the Logic. */
+      // It must always evaluate to the "Top" (True) of its internal logic.
+      { s.contains(x) } -> std::same_as<typename T::logic_species::type>;
+    };
+
+/**
+ * @struct ZeroAction
+ * @brief The 'Absorption' logic.
+ * @details Maps any input of species A to the neutral element of species B.
+ */
+export template <typename A, typename B, typename Op>
+struct ZeroAction {
+  constexpr B operator()(const A&) const noexcept { return identity_v<B, Op>; }
+};
+
+/**
+ * @brief The Zero Morphism Factory: zero<A, B, Op>()
+ * @details Synthesizes an arrow that absorbs all information,
+ *          collapsing the Domain into the Codomain's identity.
+ */
+export template <typename A, typename B, typename Op>
+  requires IsSmallCategory<B, Op>
+constexpr auto zero() {
+  return arrow<A, B>(ZeroAction<A, B, Op>{});
+}
+
+/** @section Zero Morphism Verification */
+
+// 1. Proof: Zero is an Arrow from int to int (under addition).
+using ZeroZ = decltype(zero<int, int, std::plus<int>>());
+static_assert(IsArrow<ZeroZ, int, int>,
+              "Zero: Must be a valid morphism mapping Z to Z.");
+
+// 2. Action Proof: Zero maps everything to 0.
+static_assert(zero<int, int, std::plus<int>>()(42) == 0,
+              "Absorption: Zero morphism must return the identity element.");
+
+// 3. Action Proof: Zero maps everything to 'true' (under logic AND).
+static_assert(zero<int, bool, std::logical_and<bool>>()(42) == true,
+              "Absorption: Boolean AND zero must return 'true'.");
+
+
 /**
  * @struct Box
  * @brief The Identity Monad: The "Cement" of the structuralist ontology.
@@ -366,69 +431,6 @@ template <typename A, typename B, typename Impl>
 // Proof: Tagged Negation is a formal Isomorphism.
 static_assert(IsIsomorphism<TaggedNegate, int, int>,
               "Negation must be recognized as a reversible Morphism.");
-
-/**
- * @concept IsInitialObject
- * @brief The "Zero" of the Category (0).
- * @details For any object X, there exists a unique morphism ! : 0 -> X.
- *          In Mereology, this is the set that contains nothing.
- */
-export template <typename T>
-concept IsInitialObject = requires(const T s) {
-  /** @brief Axiom: Magnitude must be the additive identity (Zero). */
-  requires s.cardinality().is_finite == true;
-  requires s.upper_bound() == 0;
-};
-
-/**
- * @concept IsTerminalObject
- * @brief The "One" of the Category (1).
- * @details For any object X, there exists a unique morphism ! : X -> 1.
- *          In Mereology, this is the set that contains everything (The Domain).
- */
-export template <typename T>
-concept IsTerminalObject =
-    requires(const T s, const typename T::element_type x) {
-      /** @brief Axiom: The Membership Morphism is the identity of the Logic. */
-      // It must always evaluate to the "Top" (True) of its internal logic.
-      { s.contains(x) } -> std::same_as<typename T::logic_species::type>;
-    };
-
-/**
- * @struct ZeroAction
- * @brief The 'Absorption' logic.
- * @details Maps any input of species A to the neutral element of species B.
- */
-export template <typename A, typename B, typename Op>
-struct ZeroAction {
-  constexpr B operator()(const A&) const noexcept { return identity_v<B, Op>; }
-};
-
-/**
- * @brief The Zero Morphism Factory: zero<A, B, Op>()
- * @details Synthesizes an arrow that absorbs all information,
- *          collapsing the Domain into the Codomain's identity.
- */
-export template <typename A, typename B, typename Op>
-  requires IsSmallCategory<B, Op>
-constexpr auto zero() {
-  return arrow<A, B>(ZeroAction<A, B, Op>{});
-}
-
-/** @section Zero Morphism Verification */
-
-// 1. Proof: Zero is an Arrow from int to int (under addition).
-using ZeroZ = decltype(zero<int, int, std::plus<int>>());
-static_assert(IsArrow<ZeroZ, int, int>,
-              "Zero: Must be a valid morphism mapping Z to Z.");
-
-// 2. Action Proof: Zero maps everything to 0.
-static_assert(zero<int, int, std::plus<int>>()(42) == 0,
-              "Absorption: Zero morphism must return the identity element.");
-
-// 3. Action Proof: Zero maps everything to 'true' (under logic AND).
-static_assert(zero<int, bool, std::logical_and<bool>>()(42) == true,
-              "Absorption: Boolean AND zero must return 'true'.");
 
 /**
  * @concept IsGroupoid
