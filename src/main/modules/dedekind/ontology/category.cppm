@@ -139,28 +139,6 @@ constexpr auto endo(F&& f) {
 
 /** @section Arrow Factory Verification: Tagging & Species Integrity */
 
-// 1. Proof: arrow<A, B> correctly tags a standard function object.
-using Negate = std::negate<int>;
-using TaggedNegate = decltype(endo<int>(Negate{}));
-
-static_assert(std::same_as<typename TaggedNegate::Domain, int>,
-              "Arrow Factory: Failed to tag Domain as 'int'.");
-static_assert(std::same_as<typename TaggedNegate::Codomain, int>,
-              "Arrow Factory: Failed to tag Codomain as 'int'.");
-
-// 2. Proof: arrow<A, B> correctly tags a cross-species lambda (Z -> B).
-using IsPositive = decltype([](int x) { return x > 0; });
-using TaggedIsPositive = decltype(arrow<int, bool>(IsPositive{}));
-
-static_assert(std::same_as<typename TaggedIsPositive::Domain, int>,
-              "Arrow Factory: Failed to tag cross-species Domain.");
-static_assert(std::same_as<typename TaggedIsPositive::Codomain, bool>,
-              "Arrow Factory: Failed to tag cross-species Codomain.");
-
-// 3. Proof: arrow<A, B> satisfies the IsArrow concept.
-static_assert(IsArrow<TaggedIsPositive, int, bool>,
-              "Arrow Factory: Produced an object that violates IsArrow.");
-
 // 4. Action Proof: The tagged arrow preserves the underlying action.
 // We verify that the factory-produced morphism actually executes.
 static_assert(endo<int>([](int x) { return x * 2; })(21) == 42,

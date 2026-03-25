@@ -5,6 +5,55 @@
 import dedekind.ontology;
 
 using namespace dedekind::ontology;
+#include <catch2/catch_test_macros.hpp>
+#include <concepts>
+#include <functional>
+
+// Assuming the dedekind.ontology:species and :category are imported
+// import dedekind.ontology;
+
+TEST_CASE("Ontology: Arrow Factory Verification",
+          "[ontology][species][category]") {
+  SECTION("Standard Function Object Tagging (Endomorphisms)") {
+    using Negate = std::negate<int>;
+    // Testing the 'endo' factory which implies Domain == Codomain
+    using TaggedNegate = decltype(dedekind::ontology::endo<int>(Negate{}));
+
+    STATIC_CHECK(std::same_as<typename TaggedNegate::Domain, int>);
+    STATIC_CHECK(std::same_as<typename TaggedNegate::Codomain, int>);
+
+    // Operational check
+    TaggedNegate f{Negate{}};
+    CHECK(f(42) == -42);
+  }
+
+  SECTION("Cross-Species Lambda Tagging (Z -> B)") {
+    auto is_positive_lambda = [](int x) { return x > 0; };
+    using IsPositive = decltype(is_positive_lambda);
+
+    // Testing the explicit 'arrow' factory for Domain -> Codomain mapping
+    using TaggedIsPositive =
+        decltype(dedekind::ontology::arrow<int, bool>(is_positive_lambda));
+
+    STATIC_CHECK(std::same_as<typename TaggedIsPositive::Domain, int>);
+    STATIC_CHECK(std::same_as<typename TaggedIsPositive::Codomain, bool>);
+
+    // Operational check
+    TaggedIsPositive g{is_positive_lambda};
+    CHECK(g(10) == true);
+    CHECK(g(-5) == false);
+  }
+
+  SECTION("Categorical Concept Fulfillment") {
+    auto logic_gate = [](int x) { return x != 0; };
+    using TaggedGate =
+        decltype(dedekind::ontology::arrow<int, bool>(logic_gate));
+
+    // Final proof: Does the factory output satisfy the foundational IsArrow
+    // concept?
+    STATIC_CHECK(dedekind::ontology::IsArrow<TaggedGate, int, bool>);
+  }
+}
 
 TEST_CASE("Level 0 Final Proof: The Box Monad & Comonad",
           "[ontology][category][highway]") {
