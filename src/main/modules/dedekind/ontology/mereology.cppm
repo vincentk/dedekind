@@ -320,39 +320,19 @@ constexpr auto singleton(T&& value) {
 
 /** @section The_Set_Monad: The Categorical Identity */
 
-/** @section Singleton_Unit (η) */
-template <typename T, typename L>
-struct η<SingletonSet, T> {
-  // We take a species and wrap it in the 'Rule of Presence' (The Singleton).
-  constexpr auto operator()(const T& x) const { return SingletonSet<T, L>{x}; }
-};
-
-/** @section Singleton_Multiplication (μ) */
-export template <typename T, typename L>
-constexpr auto flatten(const SingletonSet<SingletonSet<T, L>, L>& nested) {
-  // To flatten, we sample the inner set and return it.
-  // Structuralist logic: Presence(Presence(x)) == Presence(x).
-  return nested.raw_species();
-}
-
-template <typename T, typename L>
-struct μ<SingletonSet, T> {
-  constexpr auto operator()(
-      const SingletonSet<SingletonSet<T, L>, L>& s) const {
-    return flatten(s);
-  }
-};
-
 /**
  * @section Singleton_Kleisli_Triple
  * @brief The Bricks of the Singleton Monad.
  */
 
-/** @section Unit (η) */
-template <typename T, typename L>
+/** @section Singleton_Unit (η) */
+// We only need T here. We 'fix' the logic to Classical.
+template <typename T>
 struct η<SingletonSet, T> {
-  // T -> SingletonSet<T, L>
-  constexpr auto operator()(const T& x) const { return SingletonSet<T, L>{x}; }
+  constexpr auto operator()(const T& x) const {
+    // We explicitly construct the Classical variety.
+    return SingletonSet<T, ClassicalLogic>{x};
+  }
 };
 
 /** @section Bind (>>=) */
@@ -363,17 +343,19 @@ constexpr auto operator>>=(const SingletonSet<T, L>& s, Func&& f) {
    * 1. Sample the internal species (The Pull).
    * 2. Apply the Kleisli Arrow f: T -> SingletonSet<U, L>.
    */
-  return std::forward<Func>(f)(s.raw_species());
+  return std::forward<Func>(f)(s.pivot);
 }
 
 /** @section Singleton_CoKleisli_Triple */
 
-/** @section Extract (ε) */
-template <typename T, typename L>
+/** @section Singleton_Counit (ε) */
+template <typename T>
 struct ε<SingletonSet, T> {
-  // SingletonSet<T, L> -> T
+  // Extraction is logic-agnostic, so we can use a variadic match here
+  // or just match the Classical version.
+  template <typename L>
   constexpr T operator()(const SingletonSet<T, L>& s) const {
-    return s.raw_species();
+    return s.pivot;
   }
 };
 
@@ -385,60 +367,24 @@ constexpr auto operator<<=(const SingletonSet<T, L>& s, Func&& f) {
   return SingletonSet<U, L>{std::forward<Func>(f)(s)};
 }
 
-/**
- * @brief The SetMonad Alias (The Unary Blueprint).
- * @details This provides the 'template <typename> typename' signature
- *          required for the Category Level 0 Highway.
- */
-export template <typename T>
-using SetMonad = SingletonSet<T, ClassicalLogic>;
+/** @section The_Final_Ontology_Proof */
+namespace {
+// A simple cross-species transformation: int -> bool
+constexpr auto is_even = arrow<int, bool>([](int x) { return x % 2 == 0; });
 
-/**
- * @brief The Set-Monad On-Ramp.
- * @details We target the 'Set' alias template.
- */
-export template <typename T>
-constexpr auto operator>>(T&& value, into_tag<SetMonad>) {
-  return singleton(std::forward<T>(value));
-}
+using IntSet = SingletonSet<int, ClassicalLogic>;
+using BoolSet = SingletonSet<bool, ClassicalLogic>;
 
-/**
- * @section Monadic_Witness
- * We prove that the SingletonSet (the Unit of Mereology)
- * satisfies the formal Monadic Highway.
- */
-template <typename T>
-using ClassicalSingleton = SingletonSet<T, ClassicalLogic>;
+// The Proof: "Lifting 'is_even' into the Singleton context"
+static_assert(
+    IsArrow<decltype(fmap<SingletonSet>(is_even)), IntSet, BoolSet>,
+    "PR Failure: SingletonSet failed to discover its Functorial Highway.");
 
-/**
- * @section Existential_Proof: fmap for (Z, ClassicalSingleton)
- * We lift a formal Morphism into the Singleton context.
- */
-export template <>
-auto fmap<ClassicalSingleton>(Morphism<int, int, std::plus<int>> op) {
-  return [op](const ClassicalSingleton<int>& s) -> ClassicalSingleton<int> {
-    // We use the Arrow's operator() and the identity element.
-    // Assuming your Morphism handles the application:
-    return ClassicalSingleton<int>{op(s << extract<int>())};
-  };
-}
-
-/**
- * @section Existential_Identity: fmap for (Z, Identity)
- * Identity<int> already has the Domain/Codomain, so it just needs 'The Pull'.
- */
-export template <>
-auto fmap<ClassicalSingleton>(Identity<int> id_t) {
-  return [id_t](const ClassicalSingleton<int>& s) -> ClassicalSingleton<int> {
-    return ClassicalSingleton<int>{id_t(s << extract<int>())};
-  };
-}
-
-// 1. Proof: IsSet satisfies the formal IsMonad concept for the Classical Logic
-// universe. We verify that the "Set-of-Integers" behaves as a Monoid in the
-// Category of Endofunctors.
-static_assert(IsMonad<ClassicalSingleton, int, std::plus<int>>,
-              "Ontology: IsSet must be recognized as a formal Monad (The "
-              "Highway of Existence).");
+// The Action: "Executing the lifted morphism"
+static_assert(((IntSet{42} >> fmap<SingletonSet>(is_even))
+               << extract<SingletonSet>) == true,
+              "PR Failure: The Set Monad failed to preserve the truth value of "
+              "the species.");
+}  // namespace
 
 };  // namespace dedekind::ontology

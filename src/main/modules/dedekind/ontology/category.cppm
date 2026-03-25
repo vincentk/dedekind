@@ -226,7 +226,8 @@ constexpr auto id() {
 }
 
 /** @section The_Universal_Unit (η) */
-export template <template <typename...> typename F, typename T>
+export template <template <typename...> typename F, typename T,
+                 typename... Context>
 struct η;  // Primary template for all kinds of contexts
 
 /** @section The_Kleisli_Triple_for_Box */
@@ -237,7 +238,8 @@ struct η<Box, T> final {
 };
 
 /** @section The_Universal_Counit (ε) */
-export template <template <typename...> typename F, typename T>
+export template <template <typename...> typename F, typename T,
+                 typename... Context>
 struct ε;
 
 /** @section Box_Specialization_for_ε */
@@ -307,27 +309,6 @@ static_assert(
 export template <typename T>
 constexpr auto pure(T&& value) {
   return Box<std::decay_t<T>>{std::forward<T>(value)};
-}
-
-/** @section The_Monadic_Derivation */
-template <template <typename...> typename F, typename Arrow>
-constexpr auto derive_monadic_fmap(Arrow f) {
-  return arrow<F<typename Arrow::Domain>, F<typename Arrow::Codomain>>(
-      [f](const auto& box) {
-        using U = typename Arrow::Codomain;
-        return box >>= [f](auto&& x) { return η<F, U>{}(f(x)); };
-      });
-}
-
-/** @section The_Comonadic_Derivation */
-template <template <typename...> typename F, typename Arrow>
-constexpr auto derive_comonadic_fmap(Arrow f) {
-  using T = typename Arrow::Domain;
-  using U = typename Arrow::Codomain;
-
-  return arrow<F<T>, F<U>>([f](const F<T>& box) {
-    return box <<= [f](const F<T>& w) { return f(ε<F, T>{}(w)); };
-  });
 }
 
 /**

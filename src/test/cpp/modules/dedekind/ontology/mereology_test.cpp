@@ -7,7 +7,7 @@ TEST_CASE("Level 1 Final Proof: The Mereology Highway",
           "[ontology][mereology][highway]") {
   SECTION("1. The Singleton Lifting") {
     // Target the struct directly to satisfy Clang's template-template rules
-    auto atom = 42 >> into<SetMonad<int>>;
+    auto atom = 42 >> into<SingletonSet>;
     REQUIRE(atom.contains(42) == true);
   }
 
@@ -20,10 +20,10 @@ TEST_CASE("Level 1 Final Proof: The Mereology Highway",
   SECTION("2. The Pull from the Identity (ε)") {
     // Pushing into the set and pulling the value back out
     // Note: SingletonSet must provide extract_v to satisfy IsPreComonad
-    int value = 42 >> into<SetMonad<int>> << extract<>;
+    int value = 42 >> into<SingletonSet> << extract<>;
 
     REQUIRE(value == 42);
-    static_assert((7 >> into<SetMonad<int>> << extract<>) == 7,
+    static_assert((7 >> into<SingletonSet> << extract<>) == 7,
                   "The Round-trip Axiom.");
   }
 
