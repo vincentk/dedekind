@@ -64,6 +64,10 @@ concept LogicalSpecies = requires(typename L::type a, typename L::type b) {
   { L::AND(a, b) } -> std::same_as<typename L::type>;
   { L::OR(a, b) } -> std::same_as<typename L::type>;
   { L::NOT(a) } -> std::same_as<typename L::type>;
+
+  // The Categorical Constants (True/False)
+  { L::True } -> std::convertible_to<typename L::type>;
+  { L::False } -> std::convertible_to<typename L::type>;
 };
 
 /**
@@ -80,6 +84,9 @@ concept LogicalSpecies = requires(typename L::type a, typename L::type b) {
  */
 export struct ClassicalLogic final {
   using type = bool;
+  static constexpr bool True = true;
+  static constexpr bool False = false;
+
   static constexpr bool AND(bool a, bool b) { return a && b; }
   static constexpr bool OR(bool a, bool b) { return a || b; }
   static constexpr bool NOT(bool a) { return !a; }
@@ -114,6 +121,10 @@ export enum class Ternary : int8_t { False = -1, Unknown = 0, True = 1 };
  */
 export struct TernaryLogic final {
   using type = Ternary;
+
+  static constexpr Ternary True = Ternary::True;
+  static constexpr Ternary False = Ternary::False;
+  static constexpr Ternary Unknown = Ternary::Unknown;
 
   /** @brief Kleene Conjunction: Returns the minimum truth value. */
   static constexpr Ternary AND(Ternary a, Ternary b) {

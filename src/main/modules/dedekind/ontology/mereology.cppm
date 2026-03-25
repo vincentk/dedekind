@@ -1,33 +1,39 @@
 /**
  * @file ontology:mereology.cppm
- * @brief Level 1: The Rules of Presence (Sets, Parts, and Membership).
+ * @brief Level 1: The Rules of Presence (Topos-Aware Sets).
  *
  * Copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
  * @partition :mereology
  * @build_order 2
- * @dependency :category
+ * @dependency :logic, :category
  *
- * @section Mereology: The Geometry of Composition
- * This partition defines the "Body" of our species. In the Dedekind
+ * @section Mereology: The Geometry of Existence
+ * This partition defines the "Body" of the Dedekind species. In the
  * structuralist ontology, Mereology establishes the relationship between
- * 'Parts' and 'Wholes' before they are assigned a quantitative order.
+ * 'Parts' and 'Wholes' as a mapping between a Domain and a Logic.
  *
  * @details
- * This module defines the formal existence of containers:
- * - IsSet: The rule-based predicate for membership.
- * - UniversalSet: The Domain of Discourse (The Top element).
- * - Subset: The foundational 'inclusion' morphism.
- * - Union/Intersection: The Latticial operations (Join and Meet).
+ * Membership is defined as a morphism to a Subobject Classifier (Ω).
+ * By decoupling the "Body" from the "Truth," the same mereological laws
+ * are applied across different logical universes:
+ * - IsSet: The universal rule-based predicate for membership.
+ * - IsBooleanSet: The Classical {True, False} universe (The Binary Prime).
+ * - IsKleeneSet: The Indeterminate {True, False, Unknown} universe.
  *
  * @section Structural_Anchors
- * We anchor the C++ bitwise/logical operators here as Set Morphisms:
+ * Standard C++ operators are anchored here as Set Morphisms,
+ * lifting logical connectives into latticial operations:
  * - operator&&, operator& : Intersection (The Meet).
  * - operator||, operator| : Union (The Join).
  * - operator! : Complement (The Remainder).
  *
- * Wikipedia: Mereology, Set theory, Mereotopology
+ * @tparam S The Set implementation type being verified.
+ * @tparam L The Logic species (Ω) governing the membership predicate.
+ *           Defaults to ClassicalLogic for zero-overhead arithmetic.
+ *
+ * Wikipedia: Mereology, Subobject classifier, Topos theory
  */
 module;
 
@@ -38,6 +44,7 @@ module;
 export module dedekind.ontology:mereology;
 
 import :category;
+import :logic;
 
 /**
  * @section Mereology: The study of parts and wholes.
@@ -84,55 +91,99 @@ concept HasExtrema = requires(S s) {
   { s.infimum() };
 };
 
+/** @section The_Scale: The Logic of Magnitude */
+
+export template <typename C>
+concept IsCardinality = requires {
+  { C::is_finite } -> std::convertible_to<bool>;
+  { C::is_countable } -> std::convertible_to<bool>;
+  typename C::power_type;
+};
+
+/** @concept IsCountable: Magnitude is at most Aleph_0. */
+export template <typename C>
+concept IsCountable = IsCardinality<C> && (C::is_countable == true);
+
+/** @concept IsUncountable: Magnitude is strictly greater than Aleph_0. */
+export template <typename C>
+concept IsUncountable = IsCardinality<C> && !IsCountable<C>;
+
+/** @concept IsFiniteMagnitude: Strictly terminating. */
+export template <typename C>
+concept IsFiniteMagnitude = IsCountable<C> && (C::is_finite == true);
+
+/** @struct Finite: Hardware-bound magnitude. */
+export struct Finite {
+  static constexpr bool is_finite = true;
+  static constexpr bool is_countable = true;
+
+  auto operator<=>(const Finite&) const = default;
+
+  using power_type = Finite;  // Finite sets always jump to other Finite sets.
+};
+
+/** @struct ℵ: The Transfinite Ladder. */
+export template <std::size_t N>
+struct ℵ {
+  static constexpr bool is_finite = false;
+  static constexpr bool is_countable = (N == 0);
+  using power_type = ℵ<N + 1>;
+};
+
+using ℵ_0 = ℵ<0>;  // Countable Infinity
+using ℶ_1 = ℵ<1>;  // The Continuum (assuming GCH)
+
+/** @section The_Body: The Logic of Presence */
+
 /**
  * @concept IsSet
- * @brief The fundamental species of a Collection (The Rule).
- *
- * In the Dedekind structuralist ontology, a Set is defined by its ability
- * to provide a membership predicate (contains) and a declaration of its
- * own magnitude (cardinality).
- *
- * @section Structural_Requirements
- * Every species satisfying IsSet must define:
- * - element_type: The species of the members (The "What").
- * - cardinality_type: The species of the magnitude (The "How Many").
- * - base_set_type: The underlying algebraic or mereological origin.
- *
- * @tparam S The Set implementation type being verified.
+ * @brief The Universal Morphism of Presence.
+ * @tparam L The Subobject Classifier (Ω). Defaults to ClassicalLogic.
  */
-export template <typename S>
+export template <typename S, typename L = ClassicalLogic>
 concept IsSet = requires {
-  /** @section Anatomy: Structural Requirements */
   typename S::element_type;
   typename S::cardinality_type;
-  typename S::base_set_type;
+  requires IsCardinality<typename S::cardinality_type>;
 } && requires(const S s, const typename S::element_type v) {
-  /** @section Membership: The Predicate (x ∈ S) */
-  { s.contains(v) } -> std::convertible_to<bool>;
-  { s[v] } -> std::convertible_to<bool>;
-
-  /** @section Magnitude: The Cardinality Hook */
+  { s.contains(v) } -> std::same_as<typename L::type>;
   { s.cardinality() } -> std::same_as<typename S::cardinality_type>;
+};
 
-  /** @section Relation: The Underlying Structure */
-  { s.base_set() } -> std::convertible_to<typename S::base_set_type>;
+/** @section The_Extent: The Logic of Realization */
+
+/**
+ * @concept IsExtensional
+ * @brief A set whose members are materialized or bounded in memory (The
+ * "Bucket").
+ *
+ * @details In the structuralist ontology, Extensionality implies that
+ *          membership is not merely a rule (λx. P(x)) but is constrained
+ *          by a physical container with a terminable address space.
+ *
+ * @tparam S A set species.
+ * @tparam L The Subobject Classifier (Ω). Defaults to ClassicalLogic.
+ */
+export template <typename S, typename L = ClassicalLogic>
+concept IsExtensional = IsSet<S, L> && requires(const S s) {
+  /** @section Magnitude: The Physical Proof */
+  // An extensional set MUST claim a Finite cardinality type.
+  requires(S::cardinality_type::is_finite == true);
+
+  /** @section Termination: The Boundedness Proof */
+  // Every extensional set must define a maximum capacity (upper_bound)
+  // to ensure memory-safe allocations and finite iteration.
+  { s.upper_bound() } -> std::convertible_to<std::size_t>;
 };
 
 /**
- * @brief Identifies a set that is physically representable in memory (the
- * "Bucket of Data").
- *
- * A set is Extensional only if it is mathematically Finite. This
- * ensures that any set we attempt to iterate over or store as
- * a "bucket of data" has a terminating sequence.
- *
- * @tparam S A set species.
+ * @concept IsIntentional
+ * @brief A set defined by a "Rule" or "Predicate" (λx. P(x)).
+ * @details These sets (like UniversalSet or EmptySet) are not stored;
+ *          they are calculated. They may be Transfinite.
  */
-export template <typename S>
-concept IsExtensional = IsSet<S> && requires(S s) {
-  /** @brief Computable upper bound for memory-safe allocations. */
-  { s.upper_bound() } -> std::convertible_to<std::size_t>;
-};
+export template <typename S, typename L = TernaryLogic>
+concept IsIntentional = IsSet<S, L> && !IsExtensional<S, L>;
 
 /**
  * @section Mereology: Pointed Species.
@@ -197,5 +248,143 @@ concept IsBoundedLattice = IsLattice<S> && requires(S s) {
   { s.lower_bound() } -> std::same_as<typename S::element_type>;  // The Bottom
   { s.upper_bound() } -> std::same_as<typename S::element_type>;  // The Top
 };
+
+/** @brief ∅: The Initial Object. Extensional (Size 0). */
+export template <typename T, typename L = ClassicalLogic>
+struct EmptySet final {
+  using element_type = T;
+  using logic_species = L;
+  using cardinality_type = Finite;
+  using base_set_type = EmptySet<T, L>;
+
+  constexpr typename L::type contains(const T&) const {
+    return L::False;  // The Axiom: Total Absence
+  }
+
+  /** @section Extensionality_Proof */
+  constexpr std::size_t size() const { return 0; }
+
+  // Required by IsInitialObject
+  constexpr cardinality_type cardinality() const { return cardinality_type{}; }
+  constexpr std::size_t upper_bound() const { return 0; }
+};
+
+/** @section The_Seal_of_Initiality */
+// This is your 'override'. If EmptySet fails the concept,
+// the build stops right here with a clear error.
+static_assert(IsInitialObject<EmptySet<int>>,
+              "Mereology: EmptySet must satisfy the Initial Object axiom.");
+
+/**
+ * @struct UniversalSet
+ * @brief U: The Terminal Object.
+ * @details Intentional but Decidable: The rule "x ∈ U" always returns True.
+ */
+
+export template <typename T, typename L = ClassicalLogic>
+struct UniversalSet {
+  using element_type = T;
+  using cardinality_type = ℵ_0;  // Countable Domain of Discourse
+  using base_set_type = UniversalSet<T, L>;
+  using logic_species = L;
+
+  // The Axiom: Total Presence
+  constexpr typename L::type contains(const T&) const { return L::True; }
+};
+
+/** @brief {x}: The Atom. Extensional (Size 1). */
+export template <typename T, typename L = ClassicalLogic>
+struct SingletonSet {
+  T pivot;
+  using element_type = T;
+  using logic_species = L;
+  using cardinality_type = Finite;
+  using base_set_type = SingletonSet<T, L>;
+
+  constexpr typename L::type contains(const T& v) const {
+    return (v == pivot) ? L::True : L::False;
+  }
+
+  /** @section Extensionality_Proof */
+  constexpr std::size_t size() const { return 1; }
+  constexpr std::size_t upper_bound() const { return 1; }
+};
+
+/** @section The_Set_Monad_Realization */
+
+/** @brief η: T -> SingletonSet<T> (The Unit) */
+export template <typename T>
+constexpr auto singleton(T&& value) {
+  return SingletonSet<std::decay_t<T>>{std::forward<T>(value)};
+}
+
+/** @section The_Set_Monad: The Categorical Identity */
+
+/**
+ * @section Singleton_Kleisli_Triple
+ * @brief The Bricks of the Singleton Monad.
+ */
+
+/** @section Singleton_Unit (η) */
+// We only need T here. We 'fix' the logic to Classical.
+template <typename T>
+struct η<SingletonSet, T> {
+  constexpr auto operator()(const T& x) const {
+    // We explicitly construct the Classical variety.
+    return SingletonSet<T, ClassicalLogic>{x};
+  }
+};
+
+/** @section Bind (>>=) */
+export template <typename T, typename L, typename Func>
+constexpr auto operator>>=(const SingletonSet<T, L>& s, Func&& f) {
+  /**
+   * @details Kleisli Bind for Singletons:
+   * 1. Sample the internal species (The Pull).
+   * 2. Apply the Kleisli Arrow f: T -> SingletonSet<U, L>.
+   */
+  return std::forward<Func>(f)(s.pivot);
+}
+
+/** @section Singleton_CoKleisli_Triple */
+
+/** @section Singleton_Counit (ε) */
+template <typename T>
+struct ε<SingletonSet, T> {
+  // Extraction is logic-agnostic, so we can use a variadic match here
+  // or just match the Classical version.
+  template <typename L>
+  constexpr T operator()(const SingletonSet<T, L>& s) const {
+    return s.pivot;
+  }
+};
+
+/** @section Extend (<<=) */
+export template <typename T, typename L, typename Func>
+constexpr auto operator<<=(const SingletonSet<T, L>& s, Func&& f) {
+  using U = std::invoke_result_t<Func, SingletonSet<T, L>>;
+  // Co-Kleisli Extend: apply contextual logic and re-wrap.
+  return SingletonSet<U, L>{std::forward<Func>(f)(s)};
+}
+
+/** @section The_Final_Ontology_Proof */
+namespace {
+// A simple cross-species transformation: int -> bool
+constexpr auto is_even = arrow<int, bool>([](int x) { return x % 2 == 0; });
+
+using IntSet = SingletonSet<int, ClassicalLogic>;
+using BoolSet = SingletonSet<bool, ClassicalLogic>;
+
+// The Proof: "Lifting 'is_even' into the Singleton context"
+static_assert(
+    IsArrow<decltype(fmap<SingletonSet>(is_even)), IntSet, BoolSet>,
+    "PR Failure: SingletonSet failed to discover its Functorial Highway.");
+
+// The Action: "Executing the lifted morphism"
+static_assert(((IntSet{42} >> fmap<SingletonSet>(is_even))
+               << extract<SingletonSet>) == true,
+              "PR Failure: The Set Monad failed to preserve the truth value of "
+              "the species.");
+}  // namespace
 
 };  // namespace dedekind::ontology

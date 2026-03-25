@@ -28,11 +28,11 @@ target_sources(dedekind
     FILES
         src/main/modules/dedekind/ontology/ontology.cppm
         src/main/modules/dedekind/ontology/logic.cppm
+        src/main/modules/dedekind/ontology/species.cppm
         src/main/modules/dedekind/ontology/category.cppm
         src/main/modules/dedekind/ontology/mereology.cppm
         src/main/modules/dedekind/ontology/order.cppm
         src/main/modules/dedekind/ontology/topology.cppm
-        src/main/modules/dedekind/ontology/cardinalities.cppm
         src/main/modules/dedekind/ontology/sequences.cppm
         src/main/modules/dedekind/ontology/algebra.cppm
         src/main/modules/dedekind/ontology/morphologies.cppm
@@ -67,6 +67,7 @@ enable_testing()
 
 add_executable(dedekind_test 
     src/test/cpp/modules/dedekind/ontology/category_test.cpp
+    src/test/cpp/modules/dedekind/ontology/mereology_test.cpp
 )
 
 # --- 1. RIGOROUS COMPILER ENFORCEMENT ---

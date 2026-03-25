@@ -18,7 +18,7 @@
  * - Archimedean Species: Algebra constrained by the Successor Morphism.
  *
  * @build_order 6
- * @dependency :algebra, :cardinalities, :order
+ * @dependency :algebra, :order
  *
  * Wikipedia: Structuralism (philosophy of mathematics), Cyclic group, Ordered
  * field
@@ -30,34 +30,39 @@ module;
 
 export module dedekind.ontology:morphologies;
 
-import :algebra;        // The Abstract Laws (Groups, Rings)
-import :cardinalities;  // The Scale of Magnitude (IsFinite, IsCountable)
-import :order;          // The Rules of Relation (IsTotallyOrdered, IsDense)
+import :algebra;  // The Abstract Laws (Groups, Rings)
+import :order;    // The Rules of Relation (IsTotallyOrdered, IsDense)
 
 namespace dedekind::ontology {
 
 /**
  * @concept IsCyclic
- * @brief The "Clock" Soul: An Abelian Group that wraps after n steps.
- * @details A structure is Cyclic if its cardinality is Finite and matches
- *          its own Modulus.
+ * @brief The Dedekind Chain (Kette): A structure defined by a closed
+ *        successor mapping.
+ *
+ * @details Dedekind's Axiom: A system S is cyclic if there exists a
+ *          mapping f: S -> S such that S is the 'Chain' of some
+ *          element g (the generator).
  */
 export template <typename T>
-concept IsCyclic =
-    IsAbelianGroup<T> && IsFinite<typename T::cardinality_type> &&
-    requires(typename T::element_type a) {
-      /** @brief The Modulus: The circumference/order of the cycle. */
-      { T::modulus() } -> std::convertible_to<typename T::element_type>;
+concept IsCyclic = IsAbelianGroup<T> &&
+                   // Removed 'typename' from value access (is_countable)
+                   (T::cardinality_type::is_countable == true) &&
+                   requires(typename T::element_type a) {
+                     {
+                       T::successor(a)
+                     } -> std::same_as<typename T::element_type>;
+                     {
+                       T::generator()
+                     } -> std::same_as<typename T::element_type>;
+                   };
 
-      /** @brief The Remainder Morphism: x mod n. */
-      { a % T::modulus() } -> std::same_as<typename T::element_type>;
-
-      /** @brief Axiom: The set is its own remainder. */
-      requires(a % T::modulus() == a);
-
-      /** @brief Proof: The size of the set matches the cycle length. */
-      requires(T::cardinality() == T::modulus());
-    };
+/** @concept IsSimplyInfinite
+ *  @brief Dedekind's definition of the Natural/Integer 'Line'.
+ */
+export template <typename T>
+concept IsSimplyInfinite =
+    IsCyclic<T> && (T::cardinality_type::is_finite == false);
 
 /**
  * @concept IsCyclicRing
