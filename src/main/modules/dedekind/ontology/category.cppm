@@ -162,33 +162,43 @@ constexpr auto pure(T&& value) {
 }
 
 /** @section The_Universal_Functor_Interface */
+
+
+/**
+ * @section The_Skeletal_Hole (The Interface)
+ * @brief The Universal Entry Point for Functorial Morphism Mapping.
+ * 
+ * @details 
+ * In the Dedekind ontology, fmap is the "Highway" that lifts an arrow 
+ * f: A -> B into a categorical context F<A> -> F<B>. This primary template 
+ * acts as a formal interface and a diagnostic fallback.
+ * 
+ * @note The Structuralist "Hole" logic:
+ * Following the Stroustrupian principle of "Clear Errors," this function 
+ * provides a catch-all that only instantiates if no specialized or 
+ * bootstrapped "Paved Highway" (e.g., via Kleisli Discovery) is found. 
+ * It effectively serves as a compile-time "Proof of Absence."
+ * 
+ * @tparam F     The species template (The "Box" or "Context").
+ * @tparam Arrow The morphism being lifted (Satisfies IsArrow).
+ * 
+ * @return Does not return a valid Morphism; triggers a static_assert instead.
+ * 
+ * @throws static_assert If the species F has not been formally elevated 
+ *         to a Functor in the downstream partitions (Level 1+).
+ */
 export template <template <typename...> typename F, typename Arrow>
   requires IsArrow<Arrow, typename Arrow::Domain, typename Arrow::Codomain>
 auto fmap(Arrow) {
-  // This helper will trigger the error and echo the template F
-  // in the compiler's diagnostic trace.
   struct Fmap_Not_Found {
     static_assert(
         sizeof(F<int>) == 0,
-        "Ontology Error: No fmap implementation found for the requested "
-        "Species. "
+        "Ontology Error: No fmap implementation found for the requested Species. "
         "Check the compiler trace below to see which 'F' failed to route.");
   };
   return Fmap_Not_Found{};
 }
 
-/**
- * @section Standard_Model: The Box Functor
- * @brief Uses a constrained return type to prove the Morphism Mapping.
- */
-export template <template <typename> typename F, typename Arrow,
-                 typename A = typename Arrow::Domain,
-                 typename B = typename Arrow::Codomain>
-  requires std::same_as<F<A>, Box<A>> && IsArrow<Arrow, A, B>
-constexpr IsArrow<Box<A>, Box<B>> auto fmap(Arrow f) {
-  return arrow<Box<A>, Box<B>>(
-      [f](const Box<A>& b) { return Box<B>{f(b.value)}; });
-}
 
 /** @brief The Identity Morphism: The "Zero-Length Highway" for Species T. */
 export template <typename T>
