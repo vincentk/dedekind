@@ -396,4 +396,26 @@ static_assert(
     characteristic_v<unsigned char> == 256,
     "Taxonomy Error: 8-bit unsigned species must have characteristic 256.");
 
+/** @section The_Box_Species (The Standard Model) */
+export template <typename T>
+struct Box final {
+  using machine_type = T;
+  T value;
+};
+
+/** @section The_Kleisli_Triple_for_Box */
+// η (Unit): Lifting a value into the Box
+export template <template <typename> typename F, typename T>
+struct η {
+  auto operator()(T x) const { return Box<T>{x}; }
+};
+
+// >>= (Bind): Chaining the Box to a Kleisli Arrow
+export template <typename T, typename Func>
+auto operator>>=(const Box<T>& b, Func&& f) {
+  // We sample the part and hand it to the factory.
+  return std::forward<Func>(f)(b.value);
+}
+
+
 }  // namespace dedekind::ontology

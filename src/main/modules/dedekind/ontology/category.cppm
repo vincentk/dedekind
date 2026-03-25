@@ -208,24 +208,6 @@ static_assert(zero<int, int, std::plus<int>>()(42) == 0,
 static_assert(zero<int, bool, std::logical_and<bool>>()(42) == true,
               "Absorption: Boolean AND zero must return 'true'.");
 
-
-/**
- * @struct Box
- * @brief The Identity Monad: The "Cement" of the structuralist ontology.
- */
-export template <typename T>
-struct Box final {
-  T value;
-
-  constexpr bool operator==(const Box&) const = default;
-};
-
-/** @brief The Unit/Pure Factory: Lifts a raw value into the Box context. */
-export template <typename T>
-constexpr auto pure(T&& value) {
-  return Box<std::decay_t<T>>{std::forward<T>(value)};
-}
-
 /** @section The_Universal_Functor_Interface */
 
 
@@ -291,6 +273,61 @@ export template <template <typename> typename F, typename Arrow>
 constexpr auto fmap(Arrow f) {
   return f;  // The invisible box doesn't change the highway.
 }
+
+/** 
+ * @section The_Kleisli_Extension_System
+ * @brief Formal detection of the Monadic "Lift and Chain" action.
+ * 
+ * @details 
+ * A species F satisfies this system if it provides:
+ * 1. η (Unit): A way to lift a raw species into the context.
+ * 2. >>= (Bind): A way to chain a context to a Kleisli Arrow (T -> F<U>).
+ */
+export template <template <typename...> typename F, typename T, typename U>
+concept IsKleisliExtension = requires(T x, F<T> box, std::function<F<U>(T)> f) {
+  { η<F, U>{}(x) } -> std::same_as<F<U>>; // The Lift (η)
+  { box >>= f }    -> std::same_as<F<U>>; // The Chain (Bind)
+};
+
+/** 
+ * @section Kleisli_Discovery_Proof
+ * @brief Proof of the 'Push' Action for the Standard Model (Box).
+ * 
+ * This verifies that:
+ * 1. η (Unit) exists for Box.
+ * 2. operator>>= (Bind) is findable via ADL.
+ */
+static_assert(IsKleisliExtension<Box, int, int>,
+              "Skeletal Failure: Box does not satisfy the Kleisli Extension System.");
+
+
+/** @brief The Unit/Pure Factory: Lifts a raw value into the Box context. */
+export template <typename T>
+constexpr auto pure(T&& value) {
+  return Box<std::decay_t<T>>{std::forward<T>(value)};
+}
+
+/** 
+ * @section The_Monadic_Bridge
+ * @brief Automatic derivation of fmap from the Kleisli Triple.
+ * @theorem fmap(f) = m >>= (η ∘ f)
+ */
+export template <template <typename...> typename F, typename Arrow,
+                 typename T = typename Arrow::Domain,
+                 typename U = typename Arrow::Codomain>
+  requires IsKleisliExtension<F, T, U> && IsArrow<Arrow, T, U>
+constexpr IsArrow<F<T>, F<U>> auto fmap(Arrow f) {
+  // We return a "Lifted Arrow" that performs the Monadic Jump.
+  return arrow<F<T>, F<U>>([f](const F<T>& box) {
+    return box >>= [f](const T& x) { 
+      // This is the core 'Strange Loop': 
+      // Sampling the part, transforming it, and re-lifting it.
+      return η<F, U>{}(f(x)); 
+    };
+  });
+}
+
+
 
 /** @section Verification: The Identity Law (F(id_X) = id_F<X>) */
 
