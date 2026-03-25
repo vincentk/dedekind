@@ -243,7 +243,7 @@ export template <template <typename...> typename F, typename T,
 struct ε;
 
 /** @section Box_Specialization_for_ε */
-template <typename T>
+export template <typename T>
 struct ε<Box, T> final {
   // For a Box, extraction is simply accessing the value.
   constexpr T operator()(const Box<T>& b) const noexcept { return b.value; }
