@@ -62,6 +62,13 @@ concept IsPartOf = requires(S1 a, S2 b) {
   { a <= b } -> std::same_as<typename L::type>;
 };
 
+/** @brief The Dual of the Part-Whole relation. */
+export template <typename S1, typename S2, typename L = ClassicalLogic>
+  requires IsPartOf<S1, S2, L>
+constexpr bool operator>=(const S2& whole, const S1& part) {
+    return part <= whole; // The Converse Morphism
+}
+
 /**
  * @concept IsProperPart
  * @brief The primitive binary relation: x < y (x is a part of y).
