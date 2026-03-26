@@ -228,7 +228,7 @@ using ℶ_1 = ℵ<1>;         // The Continuum (assuming GCH)
  * @tparam Ω The Subobject Classifier (Ω). Defaults to ClassicalLogic.
  */
 export template <typename S, typename Ω = ClassicalLogic>
-concept IsSet = IsLattice<S> && requires {
+concept IsSet = requires {
   typename S::element_type;
   typename S::cardinality_type;
   requires IsCardinality<typename S::cardinality_type> &&
@@ -236,7 +236,7 @@ concept IsSet = IsLattice<S> && requires {
 } && requires(const S s, const typename S::element_type v) {
   { !s } -> IsLattice;  // The Complement (Remainder)
   { s.cardinality() } -> std::same_as<typename S::cardinality_type>;
-};
+} && IsLattice<S>;
 
 /** @section The_Extent: The Logic of Realization */
 

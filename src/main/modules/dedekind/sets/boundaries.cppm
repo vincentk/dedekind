@@ -50,17 +50,17 @@ using namespace dedekind::ontology;
  */
 namespace dedekind::sets {
 
+struct Boundaries {
+  // This struct serves as a namespace for the boundary definitions.
+};
+
 /** @brief ∅: The Initial Object. Extensional (Size 0). */
 export template <typename T, typename L = ClassicalLogic>
-struct Ø final {
+struct Ø final : Boundaries {
   using element_type = T;
   using logic_species = L;
   using cardinality_type = Finite;
   using base_set_type = Ø<T, L>;
-
-  /** @section Lattice_Laws: Absorption and Identity */
-  constexpr Ø operator&(const Ø&) const { return *this; }
-  constexpr Ø operator|(const Ø&) const { return *this; }
 
   /** @section Extensionality_Proof */
   constexpr std::size_t size() const { return 0; }
@@ -72,47 +72,19 @@ struct Ø final {
   // The Axiom: Total Absence
   constexpr typename L::type operator()(const T&) const { return L::False; }
 
-  constexpr auto operator<=>(const Ø&) const = default;
-
   // Required by IsInitialObject
   constexpr cardinality_type cardinality() const { return cardinality_type{}; }
   constexpr std::size_t upper_bound() const { return 0; }
 
-  /** @section Lattice_Laws: The Bottom (⊥) */
-
-  // 1. Ø | S = S (Identity for Union)
+  // Ø | S = S
   template <typename S>
-    requires requires(S s, T v) {
-      { s(v) };
-    }
-  friend constexpr S operator|(const Ø&, const S& s) {
+  constexpr auto operator|(const S& s) const {
     return s;
   }
-
-  // 2. Ø & S = Ø (Annihilation for Intersection)
+  // Ø & S = Ø
   template <typename S>
-    requires requires(S s, T v) {
-      { s(v) };
-    }
-  friend constexpr Ø operator&(const Ø& self, const S&) {
-    return self;
-  }
-
-  /** @section Symmetry: S | Ø and S & Ø */
-  template <typename S>
-    requires requires(S s, T v) {
-      { s(v) };
-    }
-  friend constexpr S operator|(const S& s, const Ø&) {
-    return s;
-  }
-
-  template <typename S>
-    requires requires(S s, T v) {
-      { s(v) };
-    }
-  friend constexpr Ø operator&(const S&, const Ø& self) {
-    return self;
+  constexpr auto operator&(const S&) const {
+    return *this;
   }
 };
 
@@ -122,7 +94,7 @@ struct Ø final {
  * @details Intentional but Decidable: The rule "x ∈ U" always returns True.
  */
 export template <typename T, typename L = ClassicalLogic, typename C = ℵ_0>
-struct Ω final {
+struct Ω final : Boundaries {
   using element_type = T;
   using cardinality_type = C;
   using base_set_type = Ω<T, L>;
@@ -131,10 +103,6 @@ struct Ω final {
   constexpr auto operator!() const { return Ø<T, L>{}; }
 
   constexpr auto operator<=>(const Ω&) const = default;
-
-  /** @section Lattice_Laws: Absorption and Identity */
-  constexpr Ω operator&(const Ω&) const { return *this; }
-  constexpr Ω operator|(const Ω&) const { return *this; }
 
   // Note: You'll eventually want overloads for:
   // Universal | Any = Universal
@@ -145,41 +113,15 @@ struct Ω final {
 
   constexpr cardinality_type cardinality() const { return cardinality_type{}; }
 
-  /** @section Lattice_Laws: The Top (⊤) */
-
-  // 1. Ω | S = Ω (Annihilation)
-  // We use a "Shallow" check: Does S look like a set (is it callable)?
+  // Ω | S = Ω
   template <typename S>
-    requires requires(S s, T v) {
-      { s(v) };
-    }
-  friend constexpr Ω operator|(const Ω& self, const S&) {
-    return self;
+  constexpr auto operator|(const S&) const {
+    return *this;
   }
 
-  // 2. Ω & S = S (Identity)
+  // Ω & S = S
   template <typename S>
-    requires requires(S s, T v) {
-      { s(v) };
-    }
-  friend constexpr S operator&(const Ω&, const S& s) {
-    return s;
-  }
-
-  /** @section Symmetry: S | Ω and S & Ω */
-  template <typename S>
-    requires requires(S s, T v) {
-      { s(v) };
-    }
-  friend constexpr Ω operator|(const S&, const Ω& self) {
-    return self;
-  }
-
-  template <typename S>
-    requires requires(S s, T v) {
-      { s(v) };
-    }
-  friend constexpr S operator&(const S& s, const Ω&) {
+  constexpr auto operator&(const S& s) const {
     return s;
   }
 };

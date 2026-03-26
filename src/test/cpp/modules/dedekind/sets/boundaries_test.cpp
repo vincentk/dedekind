@@ -38,3 +38,45 @@ TEST_CASE("Level 1 Final Proof: The Mereology Highway",
     REQUIRE(k_universe(42) == Ternary::True);
   }
 }
+
+TEST_CASE("Boundaries: The Algebra of Extremality", "[sets][boundaries]") {
+  using ℤ = int;  // Using a raw type as a Species proxy
+
+  // The Identities: Ø and Ω as the "North and South Poles"
+  constexpr Ø<ℤ> null;
+  constexpr Ω<ℤ> universe;
+
+  SECTION("Aha! 1: The Law of Absorption (Annihilation)") {
+    /**
+     * In a Union, the Universe is the Annihilator: Ω | S = Ω.
+     * In an Intersection, the Void is the Annihilator: ∅ & S = ∅.
+     */
+    static_assert(std::is_same_v<decltype((universe | null)), Ω<ℤ>>);
+    static_assert(std::is_same_v<decltype((null & universe)), Ø<ℤ>>);
+  }
+
+  // SECTION("Aha! 2: The Law of Identity") {
+  //   /**
+  //    * In a Union, the Void is the Identity: ∅ | S = S.
+  //    * In an Intersection, the Universe is the Identity: Ω & S = S.
+  //    */
+  //   // Let's use a Singleton to prove it preserves the specific "Body"
+  //   constexpr SingletonSet<ℤ>{42} s;
+
+  //   static_assert(std::is_same_v<decltype(null | s), SingletonSet<ℤ>>);
+  //   static_assert(std::is_same_v<decltype(universe & s), SingletonSet<ℤ>>);
+  // }
+
+  SECTION("Aha! 3: The Involution of the Remainder") {
+    /**
+     * The Double Negation (Complement of the Complement) is the Identity.
+     * !!S = S.
+     */
+    static_assert(std::is_same_v<decltype(!!null), Ø<ℤ>>);
+    static_assert(std::is_same_v<decltype(!!universe), Ω<ℤ>>);
+
+    // The cross-duality check
+    static_assert(std::is_same_v<decltype(!null), Ω<ℤ>>);
+    static_assert(std::is_same_v<decltype(!universe), Ø<ℤ>>);
+  }
+}
