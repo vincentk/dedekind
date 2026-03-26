@@ -138,6 +138,28 @@ concept IsBoundedLattice = IsLattice<S> && requires(S s) {
 };
 
 /**
+ * @concept IsSystem
+ * @brief The mereological framework for a "Space of Parts."
+ * @details 
+ * A System is a Lattice where every element is a 'Whole' relative to the 
+ * underlying Species, but a 'Part' relative to the System itself.
+ */
+export template <typename S, typename Species, typename L = ClassicalLogic>
+concept IsSystem = IsBoundedLattice<S> && requires {
+  /** @brief The inhabitant of the system (The Body). */
+  typename S::element_type;
+  
+  /** 
+   * @requirement The inhabitant is a 'Whole' for the Species.
+   * This anchors membership as the Characteristic Morphism: Body(Species::element)
+   */
+  requires IsProperPart<typename Species::element_type, typename S::element_type, L>;
+  
+  /** @requirement All inhabitants share the same mereological context. */
+  requires std::same_as<typename S::element_type::ambient_species, Species>;
+};
+
+/**
  * @brief The Existence of Extreme Bounds.
  *
  * This concept governs the species' ability to find a Supremum (Least Upper
@@ -260,83 +282,5 @@ concept IsPointedSet = IsSet<S> && requires(const S s) {
   { s.origin() } -> std::same_as<typename S::element_type>;
 };
 
-/** @brief ∅: The Initial Object. Extensional (Size 0). */
-export template <typename T, typename L = ClassicalLogic>
-struct EmptySet final {
-  using element_type = T;
-  using logic_species = L;
-  using cardinality_type = Finite;
-  using base_set_type = EmptySet<T, L>;
-
-  /** @section Lattice_Laws: Absorption and Identity */
-  constexpr EmptySet operator&(const EmptySet&) const { return *this; }
-  constexpr EmptySet operator|(const EmptySet&) const { return *this; }
-
-  constexpr typename L::type contains(const T&) const {
-    return L::False;  // The Axiom: Total Absence
-  }
-
-  /** @section Extensionality_Proof */
-  constexpr std::size_t size() const { return 0; }
-
-  // The Duality: !∅ = V
-  // Forward declaration to satisfy the compiler for the UniversalSet.
-  constexpr auto operator!() const;
-
-  constexpr typename L::type operator()(const T&) const { return L::False; }
-
-  constexpr auto operator<=>(const EmptySet&) const = default;
-
-  // Required by IsInitialObject
-  constexpr cardinality_type cardinality() const { return cardinality_type{}; }
-  constexpr std::size_t upper_bound() const { return 0; }
-};
-
-/** @section The_Seal_of_Initiality */
-// This is your 'override'. If EmptySet fails the concept,
-// the build stops right here with a clear error.
-static_assert(IsInitialObject<EmptySet<int>>,
-              "Mereology: EmptySet must satisfy the Initial Object axiom.");
-
-/**
- * @struct UniversalSet
- * @brief U: The Terminal Object.
- * @details Intentional but Decidable: The rule "x ∈ U" always returns True.
- */
-export template <typename T, typename L = ClassicalLogic>
-struct UniversalSet {
-  using element_type = T;
-  using cardinality_type = ℵ_0;  // Countable Domain of Discourse
-  using base_set_type = UniversalSet<T, L>;
-  using logic_species = L;
-
-  constexpr auto operator!() const { return EmptySet<T, L>{}; }
-
-  constexpr auto operator<=>(const UniversalSet&) const = default;
-
-  /** @section Lattice_Laws: Absorption and Identity */
-  constexpr UniversalSet operator&(const UniversalSet&) const { return *this; }
-  constexpr UniversalSet operator|(const UniversalSet&) const { return *this; }
-
-  // Note: You'll eventually want overloads for:
-  // Universal | Any = Universal
-  // Universal & Any = Any
-
-  // The Axiom: Total Presence
-  constexpr typename L::type operator()(const T&) const { return L::True; }
-
-  constexpr cardinality_type cardinality() const { return cardinality_type{}; }
-};
-
-// Now define the Universal complement once EmptySet is complete
-template <typename Species, typename L>
-constexpr auto EmptySet<Species, L>::operator!() const {
-  return UniversalSet<Species, L>{};
-}
-
-static_assert(IsSet<UniversalSet<int>>,
-              "Mereology: UniversalSet must satisfy IsSet.");
-
-static_assert(IsSet<EmptySet<int>>, "Mereology: EmptySet must satisfy IsSet.");
 
 };  // namespace dedekind::ontology

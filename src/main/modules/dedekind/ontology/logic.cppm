@@ -118,6 +118,8 @@ export enum class Ternary : int8_t { False = -1, Unknown = 0, True = 1 };
  * over the {-1, 0, 1} lattice. This ensures that 'Unknown' acts as
  * a neutral element in specific contexts while 'False' remains
  * an annihilator for conjunction.
+ * 
+ * The intention is to allow the type system to say that some predicate is not computable.
  */
 export struct TernaryLogic final {
   using type = Ternary;

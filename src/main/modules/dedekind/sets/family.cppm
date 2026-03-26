@@ -1,0 +1,92 @@
+/**
+ * @file dedekind/sets/family.cppm
+ * @brief The Collective Body: Realized Families of Sets (Systems of Parts).
+ *
+ * Copyright 2026 The Dedekind Authors
+ * Licensed under the Apache License, Version 2.0.
+ *
+ * @module dedekind.sets:family
+ * @dependency dedekind.ontology, dedekind.sets:boundaries
+ *
+ * @section The_Family: The Algebra of Collections
+ * In the Dedekind topos, a Family is a 'Set of Sets'—a realized mereological 
+ * 'System' that collects various parts (subsets) of a common Ambient Species. 
+ * It acts as the higher-order structural layer where sets themselves 
+ * become the elements of a larger Lattice.
+ *
+ * @details
+ * A Family is defined by its adherence to the Bounded Lattice axioms:
+ * - Membership: An element of a Family must satisfy the IsSet concept.
+ * - Integrity: All member sets must share the same 'Ambient Species' context.
+ * - Extremality: The Family is bounded by the Empty Set (⊥) and the 
+ *   Universal Set (⊤) provided by the :boundaries partition.
+ *
+ * @section Structural_Mapping
+ * While individual sets define 'Presence', the Family defines 'Space'. 
+ * By collecting singletons, intervals, and rule-based bodies, the Family 
+ * provides the topological foundation for advanced Dedekind structures 
+ * like Atlases and Manifolds.
+ *
+ * @tparam Species The underlying domain (e.g., Integers) that constrains 
+ *                 the membership of the constituent sets.
+ * @tparam L The Subobject Classifier (Ω) governing the internal logic.
+ *
+ * Wikipedia: Family of sets, Power set, System of sets, Bounded lattice
+ */
+module;
+
+#include <compare>
+#include <concepts>
+#include <functional>
+
+export module dedekind.sets:family;
+
+import :category;
+import :logic;
+
+/**
+ * @section Mereology: The study of parts and wholes.
+ * @section Mereology: The Hierarchy of Order.
+ */
+namespace dedekind::sets {
+/**
+ * @class Family
+ * @brief A realized collection of sets (A "Set of Sets") over a common Species.
+ * 
+ * @details 
+ * In the Dedekind architecture, a Family is the extensional realization of a 
+ * mereological 'System'. It acts as a container for parts of a specific 
+ * Ambient Species, satisfying the IsSystem concept.
+ * 
+ * Unlike a raw collection, a Family is a Bounded Lattice where the 
+ * extreme points—the Empty Set and the Universal Set—serve as the 
+ * structural Identities for Union and Intersection.
+ * 
+ * @section Semantic_Role
+ * - An element of a Family is itself an IsSet (e.g., SingletonSet).
+ * - A Family over Species X is bounded by the Power Set P(X).
+ * - It provides the context for Topos-aware set operations.
+ * 
+ * @tparam Species The underlying domain (e.g., Integers) that all 
+ *                 member sets must inhabit.
+ * @tparam L The Subobject Classifier (Ω) governing the truth logic 
+ *           of the member sets. Defaults to ClassicalLogic.
+ * 
+ * @see dedekind.ontology:IsSystem
+ * @see dedekind.sets:EmptySet
+ * @see dedekind.sets:UniversalSet
+ */
+export template <typename Species, typename L = ClassicalLogic>
+struct Family {
+    using element_type = AnySetOver<Species, L>; // General interface
+    
+    /** @section The_Boundaries */
+    static constexpr auto bottom() { return EmptySet<Species, L>{}; }
+    static constexpr auto top()    { return UniversalSet<Species, L>{}; }
+
+    // ... Implementation of Lattice operators ...
+};
+
+static_assert(IsSystem<Family<int>>, "Family must satisfy IsSystem.");
+
+}  // namespace dedekind::sets

@@ -38,16 +38,10 @@ target_sources(dedekind
         src/main/modules/dedekind/ontology/morphologies.cppm
         src/main/modules/dedekind/ontology/geometry.cppm
         src/main/modules/dedekind/ontology/numbers.cppm
-#        src/main/modules/dedekind/algebra/algebra.cppm
-#        src/main/modules/dedekind/algebra/abstract.cppm
-#        src/main/modules/dedekind/algebra/nodes.cppm
-#        src/main/modules/dedekind/order/order.cppm
-#        src/main/modules/dedekind/order/algebra.cppm
-#        src/main/modules/dedekind/order/nodes.cppm
-#        src/main/modules/dedekind/sets/logic.cppm
         src/main/modules/dedekind/sets/sets.cppm
+        src/main/modules/dedekind/sets/boundaries.cppm
+        src/main/modules/dedekind/sets/family.cppm
         src/main/modules/dedekind/sets/singleton.cppm
-#        src/main/modules/dedekind/sets/algebra.cppm
 )
 
 
@@ -68,6 +62,7 @@ enable_testing()
 add_executable(dedekind_test 
     src/test/cpp/modules/dedekind/ontology/category_test.cpp
     src/test/cpp/modules/dedekind/ontology/mereology_test.cpp
+    src/test/cpp/modules/dedekind/sets/boundaries_test.cpp
     src/test/cpp/modules/dedekind/sets/singleton_test.cpp
 #    src/test/cpp/modules/dedekind/sets/expressions_test.cpp
 )

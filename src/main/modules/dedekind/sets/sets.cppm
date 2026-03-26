@@ -29,5 +29,6 @@
  */
 export module dedekind.sets;
 
+export import :boundaries;
 export import :singleton;
 // export import :expressions;

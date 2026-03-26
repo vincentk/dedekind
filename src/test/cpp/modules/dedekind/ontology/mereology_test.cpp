@@ -3,36 +3,44 @@ import dedekind.ontology;
 
 using namespace dedekind::ontology;
 
-TEST_CASE("Level 1 Final Proof: The Mereology Highway",
-          "[ontology][mereology][highway]") {
-  SECTION("2. Initial Object Proof") {
-    EmptySet<int> empty;
-    // This will now pass because cardinality() exists
-    static_assert(IsInitialObject<decltype(empty)>);
-  }
+/** @section Morphic_Mimes: Pure Structuralist Mocking */
+struct MockSpecies { using element_type = int; };
 
-  SECTION("3. The Extreme Bounds (0 and 1)") {
-    EmptySet<int> empty;
-    UniversalSet<int> universe;
+struct MockPart {
+    using element_type = int;
+    using ambient_species = MockSpecies;
+    // The Characteristic Morphism: y(x)
+    constexpr bool operator()(int) const { return true; }
+};
 
-    // Verify the Categorical Roles
-    static_assert(IsInitialObject<decltype(empty)>, "∅ is the Initial Object.");
-    static_assert(IsTerminalObject<decltype(universe)>,
-                  "U is the Terminal Object.");
+struct MockSystem {
+    using element_type = MockPart;
 
-    // Verify the Logical Truth across species
-    REQUIRE(empty(42) == false);
-    REQUIRE(universe(42) == true);
+    /** @section Bounded_Lattice_Interface */
+    // Using the exact names required by IsBoundedLattice concept
+    constexpr MockPart lower_bound() const { return {}; }
+    constexpr MockPart upper_bound() const { return {}; }
 
-    // Verify the Magnitude (The Ruler)
-    // Note: UniversalSet<int> is Countable (ℵ_0)
-    REQUIRE(empty.cardinality() == Finite{});
-  }
+    // Meet and Join operators to satisfy IsLattice
+    constexpr MockSystem operator&(const MockSystem&) const { return *this; }
+    constexpr MockSystem operator|(const MockSystem&) const { return *this; }
+};
 
-  SECTION("4. The Logic Swapping (Topos-Awareness)") {
-    // Universal Set over the Ternary Topos (Kleene Logic)
-    UniversalSet<int, TernaryLogic> k_universe;
+TEST_CASE("Mereology: Ontological Concept Verification", "[ontology][mereology]") {
+    
+    // 1. Verify the Presence Morphism (The Functional Essence)
+    // Does the concept correctly identify a callable 'Whole' for a 'Part'?
+    STATIC_REQUIRE(IsProperPart<int, MockPart>);
 
-    REQUIRE(k_universe(42) == Ternary::True);
-  }
+    // 2. Verify the Systemic Lattice (The Space of Parts)
+    // Does the concept recognize a Bounded Lattice inhabited by valid Parts?
+    STATIC_REQUIRE(IsSystem<MockSystem, MockSpecies>);
+
+    // 3. Verify Relational Duality
+    // Does 'operator>=' automatically derive from '<=' once the concept is hit?
+    struct WeakPart { 
+        constexpr bool operator<=(const WeakPart&) const { return true; } 
+    };
+    STATIC_REQUIRE(IsPartOf<WeakPart, WeakPart>);
+    STATIC_REQUIRE(WeakPart{} >= WeakPart{}); 
 }
