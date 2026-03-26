@@ -57,9 +57,9 @@ namespace dedekind::ontology {
  * @details Returns true if S1 is a symbolic part of S2.
  *          Example: Integers <= Reals.
  */
-export template <typename S1, typename S2>
+export template <typename S1, typename S2, typename L = ClassicalLogic>
 concept IsPartOf = requires(S1 a, S2 b) {
-  { a <= b } -> std::convertible_to<bool>;
+  { a <= b } -> std::same_as<typename L::type>;
 };
 
 /**
@@ -243,23 +243,15 @@ export template <typename S, typename L = TernaryLogic>
 concept IsIntentional = IsSet<S, L> && !IsExtensional<S, L>;
 
 /**
- * @section Mereology: Pointed Species.
- * @concept IsPointed
- * @brief A species that defines its own structural origin.
- * Wikipedia: Pointed space, Origin (mathematics)
- */
-export template <typename T>
-concept IsPointed = requires {
-  { T::origin() } -> std::same_as<T>;
-};
-
-/**
  * @concept IsPointedSet
  * @brief A Set that has a designated "Origin" or "Identity" element.
  * Wikipedia: Pointed set
  */
 export template <typename S, typename T>
-concept IsPointedSet = IsSet<S> && IsPointed<T>;
+concept IsPointedSet = IsSet<S> && requires(const S s) {
+  /** @brief The Morphism: Retrieve the designated basepoint. */
+  { s.origin() } -> std::same_as<typename S::element_type>;
+};
 
 /** @brief ∅: The Initial Object. Extensional (Size 0). */
 export template <typename T, typename L = ClassicalLogic>
@@ -269,9 +261,9 @@ struct EmptySet final {
   using cardinality_type = Finite;
   using base_set_type = EmptySet<T, L>;
 
-      /** @section Lattice_Laws: Absorption and Identity */
-    constexpr EmptySet operator&(const EmptySet&) const { return *this; }
-    constexpr EmptySet operator|(const EmptySet&) const { return *this; }
+  /** @section Lattice_Laws: Absorption and Identity */
+  constexpr EmptySet operator&(const EmptySet&) const { return *this; }
+  constexpr EmptySet operator|(const EmptySet&) const { return *this; }
 
   constexpr typename L::type contains(const T&) const {
     return L::False;  // The Axiom: Total Absence
@@ -315,13 +307,13 @@ struct UniversalSet {
 
   constexpr auto operator<=>(const UniversalSet&) const = default;
 
-      /** @section Lattice_Laws: Absorption and Identity */
-    constexpr UniversalSet operator&(const UniversalSet&) const { return *this; }
-    constexpr UniversalSet operator|(const UniversalSet&) const { return *this; }
-    
-    // Note: You'll eventually want overloads for: 
-    // Universal | Any = Universal
-    // Universal & Any = Any
+  /** @section Lattice_Laws: Absorption and Identity */
+  constexpr UniversalSet operator&(const UniversalSet&) const { return *this; }
+  constexpr UniversalSet operator|(const UniversalSet&) const { return *this; }
+
+  // Note: You'll eventually want overloads for:
+  // Universal | Any = Universal
+  // Universal & Any = Any
 
   // The Axiom: Total Presence
   constexpr typename L::type operator()(const T&) const { return L::True; }

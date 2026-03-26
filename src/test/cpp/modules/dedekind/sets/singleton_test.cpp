@@ -10,7 +10,7 @@ TEST_CASE("Sets: Singleton Final Proof: The Highway",
   SECTION("1. The Singleton Lifting") {
     // Target the struct directly to satisfy Clang's template-template rules
     auto atom = 42 >> into<SingletonSet>;
-    REQUIRE(atom.contains(42) == true);
+    REQUIRE(atom(42) == true);
   }
 
   SECTION("2. The Pull from the Identity (ε)") {

@@ -63,11 +63,20 @@ struct SingletonSet {
     return (v == pivot) ? L::True : L::False;
   }
 
-  constexpr auto origin() const { return pivot; }
+  constexpr T origin() const { return pivot; }
 
   /** @section Extensionality_Proof */
   constexpr std::size_t size() const { return 1; }
   constexpr std::size_t upper_bound() const { return 1; }
+  constexpr auto cardinality() const { return Finite{}; }
+
+  constexpr SingletonSet operator<=>(const SingletonSet&) const = default;
+
+  // FIXME: The below are clearly wrong:
+  /** @section Lattice_Laws: Absorption and Identity */
+  constexpr SingletonSet operator&(const SingletonSet&) const { return *this; }
+  constexpr SingletonSet operator|(const SingletonSet&) const { return *this; }
+  constexpr SingletonSet operator!() const { return *this; }
 };
 
 static_assert(IsPointedSet<SingletonSet<int>, int> &&
