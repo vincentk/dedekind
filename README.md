@@ -10,8 +10,6 @@ The `dedekind` library defines a domain specific language for symbolic math embe
 *   Zero-Cost Abstractions: Algebraic checks happen during compilation. Once the compiler is satisfied, it emits the same optimized machine code as a "naked" loop.
 *   Structural Optimization: Compile-time inspection of an operation's properties such as associativity or commutativity provides the structural proof for the compiler to reorder (and in principle also parallelise) calculations *safely* without guessing at side effects.
 
-While formal verification tools (like Lean or Coq) provide mathematical rigor, they lack the hardware-level efficiency required for heavy computation. Conversely, standard numeric libraries often sacrifice mathematical "essence" for raw speed. `dedekind` uses C++23 concepts to try to bridge that gap. The API aims to be approachable. Extensive training using dedicated tools should not be required to make it accessible for everyday use. Its small default footprint should make it viable as an embedded library or in embedded applications. As a matter of fact, the runtime footprint is often non-existent, as structural truths are collapsed into direct machine instructions.
-
 ### Status: Embryonic
 
 The following structural anchors are currently established in the registry:
@@ -20,6 +18,10 @@ The following structural anchors are currently established in the registry:
 *   **Intentional / Undecidable**: **ℕ** (The Naturals) — *Represented as a symbolic rule-based species.*
 
 [Note: ℤ (Integers) and ℚ (Rationals) are currently undergoing mereological integration.]
+
+### Background
+
+While formal verification tools (like Lean or Coq) provide mathematical rigor, they lack the hardware-level efficiency required for heavy computation. Conversely, standard numeric libraries often sacrifice mathematical "essence" for raw speed. `dedekind` uses C++23 concepts to try to bridge that gap. The API aims to be approachable. Extensive training using dedicated tools should not be required to make it accessible for everyday use. Its small default footprint should make it viable as an embedded library or in embedded applications. As a matter of fact, the runtime footprint is often non-existent, as structural truths are collapsed into direct machine instructions.
 
 ### Synthesis Acknowledgement
 
