@@ -61,7 +61,7 @@ concept IsPartiallyOrdered =
 export template <typename S1, typename S2>
   requires IsPartOf<S1, S2> && IsPartiallyOrdered<S1>
 constexpr bool operator<(const S1& a, const S2& b) {
-    return (a <= b) && !(a == b); // The Remainder
+  return (a <= b) && !(a == b);  // The Remainder
 }
 
 /**

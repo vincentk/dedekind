@@ -66,7 +66,7 @@ concept IsPartOf = requires(S1 a, S2 b) {
 export template <typename S1, typename S2, typename L = ClassicalLogic>
   requires IsPartOf<S1, S2, L>
 constexpr bool operator>=(const S2& whole, const S1& part) {
-    return part <= whole; // The Converse Morphism
+  return part <= whole;  // The Converse Morphism
 }
 
 /**
@@ -140,21 +140,23 @@ concept IsBoundedLattice = IsLattice<S> && requires(S s) {
 /**
  * @concept IsSystem
  * @brief The mereological framework for a "Space of Parts."
- * @details 
- * A System is a Lattice where every element is a 'Whole' relative to the 
+ * @details
+ * A System is a Lattice where every element is a 'Whole' relative to the
  * underlying Species, but a 'Part' relative to the System itself.
  */
 export template <typename S, typename Species, typename L = ClassicalLogic>
 concept IsSystem = IsBoundedLattice<S> && requires {
   /** @brief The inhabitant of the system (The Body). */
   typename S::element_type;
-  
-  /** 
+
+  /**
    * @requirement The inhabitant is a 'Whole' for the Species.
-   * This anchors membership as the Characteristic Morphism: Body(Species::element)
+   * This anchors membership as the Characteristic Morphism:
+   * Body(Species::element)
    */
-  requires IsProperPart<typename Species::element_type, typename S::element_type, L>;
-  
+  requires IsProperPart<typename Species::element_type,
+                        typename S::element_type, L>;
+
   /** @requirement All inhabitants share the same mereological context. */
   requires std::same_as<typename S::element_type::ambient_species, Species>;
 };
@@ -215,8 +217,8 @@ struct ℵ {
   using power_type = ℵ<N + 1>;
 };
 
-using ℵ_0 = ℵ<0>;  // Countable Infinity
-using ℶ_1 = ℵ<1>;  // The Continuum (assuming GCH)
+export using ℵ_0 = ℵ<0>;  // Countable Infinity
+using ℶ_1 = ℵ<1>;         // The Continuum (assuming GCH)
 
 /** @section The_Body: The Logic of Presence */
 
@@ -281,6 +283,5 @@ concept IsPointedSet = IsSet<S> && requires(const S s) {
   /** @brief The Morphism: Retrieve the designated basepoint. */
   { s.origin() } -> std::same_as<typename S::element_type>;
 };
-
 
 };  // namespace dedekind::ontology
