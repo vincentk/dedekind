@@ -77,23 +77,54 @@ struct Ø final {
   // Required by IsInitialObject
   constexpr cardinality_type cardinality() const { return cardinality_type{}; }
   constexpr std::size_t upper_bound() const { return 0; }
-};
 
-/** @section The_Seal_of_Initiality */
-// This is your 'override'. If EmptySet fails the concept,
-// the build stops right here with a clear error.
-static_assert(IsInitialObject<Ø<int>>,
-              "Ø must satisfy the Initial Object axiom.");
+  /** @section Lattice_Laws: The Bottom (⊥) */
+
+  // 1. Ø | S = S (Identity for Union)
+  template <typename S>
+    requires requires(S s, T v) {
+      { s(v) };
+    }
+  friend constexpr S operator|(const Ø&, const S& s) {
+    return s;
+  }
+
+  // 2. Ø & S = Ø (Annihilation for Intersection)
+  template <typename S>
+    requires requires(S s, T v) {
+      { s(v) };
+    }
+  friend constexpr Ø operator&(const Ø& self, const S&) {
+    return self;
+  }
+
+  /** @section Symmetry: S | Ø and S & Ø */
+  template <typename S>
+    requires requires(S s, T v) {
+      { s(v) };
+    }
+  friend constexpr S operator|(const S& s, const Ø&) {
+    return s;
+  }
+
+  template <typename S>
+    requires requires(S s, T v) {
+      { s(v) };
+    }
+  friend constexpr Ø operator&(const S&, const Ø& self) {
+    return self;
+  }
+};
 
 /**
  * @struct UniversalSet
  * @brief U: The Terminal Object.
  * @details Intentional but Decidable: The rule "x ∈ U" always returns True.
  */
-export template <typename T, typename L = ClassicalLogic>
+export template <typename T, typename L = ClassicalLogic, typename C = ℵ_0>
 struct Ω final {
   using element_type = T;
-  using cardinality_type = ℵ_0;
+  using cardinality_type = C;
   using base_set_type = Ω<T, L>;
   using logic_species = L;
 
@@ -113,16 +144,59 @@ struct Ω final {
   constexpr typename L::type operator()(const T&) const { return L::True; }
 
   constexpr cardinality_type cardinality() const { return cardinality_type{}; }
+
+  /** @section Lattice_Laws: The Top (⊤) */
+
+  // 1. Ω | S = Ω (Annihilation)
+  // We use a "Shallow" check: Does S look like a set (is it callable)?
+  template <typename S>
+    requires requires(S s, T v) {
+      { s(v) };
+    }
+  friend constexpr Ω operator|(const Ω& self, const S&) {
+    return self;
+  }
+
+  // 2. Ω & S = S (Identity)
+  template <typename S>
+    requires requires(S s, T v) {
+      { s(v) };
+    }
+  friend constexpr S operator&(const Ω&, const S& s) {
+    return s;
+  }
+
+  /** @section Symmetry: S | Ω and S & Ω */
+  template <typename S>
+    requires requires(S s, T v) {
+      { s(v) };
+    }
+  friend constexpr Ω operator|(const S&, const Ω& self) {
+    return self;
+  }
+
+  template <typename S>
+    requires requires(S s, T v) {
+      { s(v) };
+    }
+  friend constexpr S operator&(const S& s, const Ω&) {
+    return s;
+  }
 };
 
-// Now define the Universal complement once EmptySet is complete
-template <typename Species, typename L>
-constexpr auto Ø<Species, L>::operator!() const {
-  return Ω<Species, L>{};
+template <typename T, typename L>
+constexpr auto Ø<T, L>::operator!() const {
+  return Ω<T, L>{};
 }
 
-static_assert(IsSet<Ω<int>>, "Mereology: UniversalSet must satisfy IsSet.");
+static_assert(IsSet<Ω<int>>, "The universal set must satisfy IsSet.");
 
-static_assert(IsSet<Ø<int>>, "Mereology: EmptySet must satisfy IsSet.");
+static_assert(IsSet<Ø<int>>);
+
+/** @section The_Seal_of_Initiality */
+// This is your 'override'. If EmptySet fails the concept,
+// the build stops right here with a clear error.
+static_assert(IsInitialObject<Ø<int>>,
+              "Ø must satisfy the Initial Object axiom.");
 
 };  // namespace dedekind::sets

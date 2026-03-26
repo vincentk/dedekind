@@ -225,14 +225,14 @@ using ℶ_1 = ℵ<1>;         // The Continuum (assuming GCH)
 /**
  * @concept IsSet
  * @brief The Universal Morphism of Presence.
- * @tparam L The Subobject Classifier (Ω). Defaults to ClassicalLogic.
+ * @tparam Ω The Subobject Classifier (Ω). Defaults to ClassicalLogic.
  */
-export template <typename S, typename L = ClassicalLogic>
+export template <typename S, typename Ω = ClassicalLogic>
 concept IsSet = IsLattice<S> && requires {
   typename S::element_type;
   typename S::cardinality_type;
   requires IsCardinality<typename S::cardinality_type> &&
-               IsProperPart<typename S::element_type, S, L>;
+               IsProperPart<typename S::element_type, S, Ω>;
 } && requires(const S s, const typename S::element_type v) {
   { !s } -> IsLattice;  // The Complement (Remainder)
   { s.cardinality() } -> std::same_as<typename S::cardinality_type>;
