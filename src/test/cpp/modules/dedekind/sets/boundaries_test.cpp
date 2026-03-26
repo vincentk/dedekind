@@ -8,19 +8,19 @@ using namespace dedekind::sets;
 TEST_CASE("Level 1 Final Proof: The Mereology Highway",
           "[ontology][mereology][highway]") {
   SECTION("2. Initial Object Proof") {
-    ∅<int> empty;
+    Ø<int> empty;
     // This will now pass because cardinality() exists
     static_assert(IsInitialObject<decltype(empty)>);
   }
 
   SECTION("3. The Extreme Bounds (0 and 1)") {
-    ∅<int> empty;
-    V<int> universe;
+    Ø<int> empty;
+    Ω<int> universe;
 
     // Verify the Categorical Roles
-    static_assert(IsInitialObject<decltype(empty)>, "∅ is the Initial Object.");
+    static_assert(IsInitialObject<decltype(empty)>, "Ø is the Initial Object.");
     static_assert(IsTerminalObject<decltype(universe)>,
-                  "U is the Terminal Object.");
+                  "Ω is the Terminal Object.");
 
     // Verify the Logical Truth across species
     REQUIRE(empty(42) == false);
@@ -33,7 +33,7 @@ TEST_CASE("Level 1 Final Proof: The Mereology Highway",
 
   SECTION("4. The Logic Swapping (Topos-Awareness)") {
     // Universal Set over the Ternary Topos (Kleene Logic)
-    V<int, TernaryLogic> k_universe;
+    Ω<int, TernaryLogic> k_universe;
 
     REQUIRE(k_universe(42) == Ternary::True);
   }
