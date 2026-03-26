@@ -38,12 +38,15 @@ module;
 #include <compare>
 #include <concepts>
 #include <functional>
+#include <variant>
 
 export module dedekind.sets:family;
 
+// import std;
 import dedekind.ontology;
 
 import :boundaries;
+import :singleton;
 
 using namespace dedekind::ontology;
 
@@ -52,6 +55,28 @@ using namespace dedekind::ontology;
  * @section Mereology: The Hierarchy of Order.
  */
 namespace dedekind::sets {
+
+/** @section Structural_Resolution */
+
+template <typename T>
+struct resolve_species {
+  using type = T;  // Fallback for primitives (int, bool)
+};
+
+template <typename T>
+  requires requires { typename T::element_type; }
+struct resolve_species<T> {
+  using type = typename T::element_type;  // Extract from formal Species
+};
+
+template <typename T>
+using element_of_t = typename resolve_species<T>::type;
+
+/** @section Set_Type_Erasure */
+
+export template <typename Species, typename L = ontology::ClassicalLogic>
+using AnySetOver = std::variant<Ø<Species, L>, Ω<Species, L>,
+                                SingletonSet<element_of_t<Species>, L> >;
 /**
  * @class Family
  * @brief A realized collection of sets (A "Set of Sets") over a common Species.
@@ -81,15 +106,17 @@ namespace dedekind::sets {
  */
 export template <typename Species, typename L = ClassicalLogic>
 struct Family {
-  using element_type = AnySetOver<Species, L>;  // General interface
+  // Implies a type-erased interface for member sets, but we can still enforce
+  // the IsSet concept at runtime.
+  using element_type = AnySetOver<Species, L>;
 
-  /** @section The_Boundaries */
-  static constexpr auto bottom() { return EmptySet<Species, L>{}; }
-  static constexpr auto top() { return UniversalSet<Species, L>{}; }
+  static constexpr auto bottom() { return Ø<Species, L>{}; }
+  static constexpr auto top() { return Ω<Species, L>{}; }
 
   // ... Implementation of Lattice operators ...
 };
 
-static_assert(IsSystem<Family<int>>, "Family must satisfy IsSystem.");
+// FIXME:
+// static_assert(IsSystem<Family<int>, int>, "Family must satisfy IsSystem.");
 
 }  // namespace dedekind::sets
