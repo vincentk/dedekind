@@ -57,21 +57,108 @@ namespace dedekind::ontology {
  * @details Returns true if S1 is a symbolic part of S2.
  *          Example: Integers <= Reals.
  */
-export template <typename S1, typename S2>
+export template <typename S1, typename S2, typename L = ClassicalLogic>
 concept IsPartOf = requires(S1 a, S2 b) {
-  { a <= b } -> std::convertible_to<bool>;
+  { a <= b } -> std::same_as<typename L::type>;
 };
+
+/** @brief The Dual / Converse of the Part-Whole relation. */
+export template <typename S1, typename S2, typename L = ClassicalLogic>
+  requires IsPartOf<S1, S2, L>
+constexpr bool operator>=(const S2& whole, const S1& part) {
+  return part <= whole;  // The Converse Morphism
+}
 
 /**
  * @concept IsProperPart
  * @brief The primitive binary relation: x < y (x is a part of y).
- * @details We define the syntax here. The "Soul" (transitivity, antisymmetry)
- *          is proven downstream in :order or :algebra.
+ *
+ * @details
+ * Membership as a Morphism. In the Dedekind universe, the presence of
+ * a part within a whole is defined by the functional application y(part).
+ *
+ * This concept anchors the syntax for the "Characteristic Function" (Ω = y(x)).
+ * While the relational syntax (x < y) is established here, the structural
+ * "Soul" of the relation—including transitivity and antisymmetry—is
+ * formally proven downstream in :order or :algebra.
+ *
+ * @tparam Part The potential subobject or element.
+ * @tparam Whole The containing mereological body or species.
+ * @tparam L The Subobject Classifier (Ω) governing the set's logic.
  */
-export template <typename Part, typename Whole>
+export template <typename Part, typename Whole, typename L = ClassicalLogic>
 concept IsProperPart = requires(const Part p, const Whole w) {
-  /** @brief The Morphism: Is p a part of w? */
-  { p.is_part_of(w) } -> std::convertible_to<bool>;
+  /** @brief The Characteristic Function: Ω = w(p) */
+  { w(p) } -> std::same_as<typename L::type>;
+};
+
+/**
+ * @concept IsMeetSemiLattice
+ * @brief A refinement of IsSet that supports the algebraic
+ *        structure of Meet (&).
+ * Wikipedia: SemiLattice (order)
+ */
+export template <typename S>
+concept IsMeetSemilattice = requires(S a, S b) {
+  { a & b } -> std::same_as<S>;  // The Great Lower Bound
+};
+
+/**
+ * @concept IsJoinSemiLattice
+ * @brief A refinement of IsSet that supports the algebraic
+ *        structure of Join (|).
+ * Wikipedia: SemiLattice (order)
+ */
+export template <typename S>
+concept IsJoinSemilattice = requires(S a, S b) {
+  { a | b } -> std::same_as<S>;  // The Least Upper Bound
+};
+
+/**
+ * @concept IsLattice
+ * @brief A refinement of IsSet that supports the algebraic
+ *        structure of Meet (&) and Join (|).
+ * Wikipedia: Lattice (order), Absorption law
+ */
+export template <typename S>
+concept IsLattice = IsMeetSemilattice<S> && IsJoinSemilattice<S>;
+
+/**
+ * @concept IsBoundedLattice
+ * @brief A Lattice with a unique "Top" (1) and "Bottom" (0).
+ * @details
+ * 1. Meet(a, Bottom) = Bottom
+ * 2. Join(a, Top) = Top
+ * Wikipedia: Bounded lattice
+ */
+export template <typename S>
+concept IsBoundedLattice = IsLattice<S> && requires(S s) {
+  { s.lower_bound() } -> std::same_as<typename S::element_type>;  // The Bottom
+  { s.upper_bound() } -> std::same_as<typename S::element_type>;  // The Top
+};
+
+/**
+ * @concept IsSystem
+ * @brief The mereological framework for a "Space of Parts."
+ * @details
+ * A System is a Lattice where every element is a 'Whole' relative to the
+ * underlying Species, but a 'Part' relative to the System itself.
+ */
+export template <typename S, typename Species, typename L = ClassicalLogic>
+concept IsSystem = IsBoundedLattice<S> && requires {
+  /** @brief The inhabitant of the system (The Body). */
+  typename S::element_type;
+
+  /**
+   * @requirement The inhabitant is a 'Whole' for the Species.
+   * This anchors membership as the Characteristic Morphism:
+   * Body(Species::element)
+   */
+  requires IsProperPart<typename Species::element_type,
+                        typename S::element_type, L>;
+
+  /** @requirement All inhabitants share the same mereological context. */
+  requires std::same_as<typename S::element_type::ambient_species, Species>;
 };
 
 /**
@@ -130,25 +217,26 @@ struct ℵ {
   using power_type = ℵ<N + 1>;
 };
 
-using ℵ_0 = ℵ<0>;  // Countable Infinity
-using ℶ_1 = ℵ<1>;  // The Continuum (assuming GCH)
+export using ℵ_0 = ℵ<0>;  // Countable Infinity
+using ℶ_1 = ℵ<1>;         // The Continuum (assuming GCH)
 
 /** @section The_Body: The Logic of Presence */
 
 /**
  * @concept IsSet
  * @brief The Universal Morphism of Presence.
- * @tparam L The Subobject Classifier (Ω). Defaults to ClassicalLogic.
+ * @tparam Ω The Subobject Classifier (Ω). Defaults to ClassicalLogic.
  */
-export template <typename S, typename L = ClassicalLogic>
+export template <typename S, typename Ω = ClassicalLogic>
 concept IsSet = requires {
   typename S::element_type;
   typename S::cardinality_type;
-  requires IsCardinality<typename S::cardinality_type>;
+  requires IsCardinality<typename S::cardinality_type> &&
+               IsProperPart<typename S::element_type, S, Ω>;
 } && requires(const S s, const typename S::element_type v) {
-  { s.contains(v) } -> std::same_as<typename L::type>;
+  { !s } -> IsLattice;  // The Complement (Remainder)
   { s.cardinality() } -> std::same_as<typename S::cardinality_type>;
-};
+} && IsLattice<S>;
 
 /** @section The_Extent: The Logic of Realization */
 
@@ -186,205 +274,14 @@ export template <typename S, typename L = TernaryLogic>
 concept IsIntentional = IsSet<S, L> && !IsExtensional<S, L>;
 
 /**
- * @section Mereology: Pointed Species.
- * @concept IsPointed
- * @brief A species that defines its own structural origin.
- * Wikipedia: Pointed space, Origin (mathematics)
- */
-export template <typename T>
-concept IsPointed = requires {
-  { T::origin() } -> std::same_as<T>;
-};
-
-/**
  * @concept IsPointedSet
  * @brief A Set that has a designated "Origin" or "Identity" element.
  * Wikipedia: Pointed set
  */
 export template <typename S, typename T>
-concept IsPointedSet = IsSet<S> && IsPointed<T>;
-
-/**
- * @concept IsMeetSemiLattice
- * @brief A refinement of IsSet that supports the algebraic
- *        structure of Meet (&).
- * Wikipedia: SemiLattice (order)
- */
-export template <typename S>
-concept IsMeetSemilattice = requires(S a, S b) {
-  { a & b } -> std::same_as<S>;  // The Great Lower Bound
+concept IsPointedSet = IsSet<S> && requires(const S s) {
+  /** @brief The Morphism: Retrieve the designated basepoint. */
+  { s.origin() } -> std::same_as<typename S::element_type>;
 };
-
-/**
- * @concept IsJoinSemiLattice
- * @brief A refinement of IsSet that supports the algebraic
- *        structure of Join (|).
- * Wikipedia: SemiLattice (order)
- */
-export template <typename S>
-concept IsJoinSemilattice = requires(S a, S b) {
-  { a | b } -> std::same_as<S>;  // The Least Upper Bound
-};
-
-/**
- * @concept IsLattice
- * @brief A refinement of IsSet that supports the algebraic
- *        structure of Meet (&) and Join (|).
- * Wikipedia: Lattice (order), Absorption law
- */
-export template <typename S>
-concept IsLattice = IsMeetSemilattice<S> && IsJoinSemilattice<S>;
-
-/**
- * @concept IsBoundedLattice
- * @brief A Lattice with a unique "Top" (1) and "Bottom" (0).
- * @details
- * 1. Meet(a, Bottom) = Bottom
- * 2. Join(a, Top) = Top
- * Wikipedia: Bounded lattice
- */
-export template <typename S>
-concept IsBoundedLattice = IsLattice<S> && requires(S s) {
-  { s.lower_bound() } -> std::same_as<typename S::element_type>;  // The Bottom
-  { s.upper_bound() } -> std::same_as<typename S::element_type>;  // The Top
-};
-
-/** @brief ∅: The Initial Object. Extensional (Size 0). */
-export template <typename T, typename L = ClassicalLogic>
-struct EmptySet final {
-  using element_type = T;
-  using logic_species = L;
-  using cardinality_type = Finite;
-  using base_set_type = EmptySet<T, L>;
-
-  constexpr typename L::type contains(const T&) const {
-    return L::False;  // The Axiom: Total Absence
-  }
-
-  /** @section Extensionality_Proof */
-  constexpr std::size_t size() const { return 0; }
-
-  // Required by IsInitialObject
-  constexpr cardinality_type cardinality() const { return cardinality_type{}; }
-  constexpr std::size_t upper_bound() const { return 0; }
-};
-
-/** @section The_Seal_of_Initiality */
-// This is your 'override'. If EmptySet fails the concept,
-// the build stops right here with a clear error.
-static_assert(IsInitialObject<EmptySet<int>>,
-              "Mereology: EmptySet must satisfy the Initial Object axiom.");
-
-/**
- * @struct UniversalSet
- * @brief U: The Terminal Object.
- * @details Intentional but Decidable: The rule "x ∈ U" always returns True.
- */
-
-export template <typename T, typename L = ClassicalLogic>
-struct UniversalSet {
-  using element_type = T;
-  using cardinality_type = ℵ_0;  // Countable Domain of Discourse
-  using base_set_type = UniversalSet<T, L>;
-  using logic_species = L;
-
-  // The Axiom: Total Presence
-  constexpr typename L::type contains(const T&) const { return L::True; }
-};
-
-/** @brief {x}: The Atom. Extensional (Size 1). */
-export template <typename T, typename L = ClassicalLogic>
-struct SingletonSet {
-  T pivot;
-  using element_type = T;
-  using logic_species = L;
-  using cardinality_type = Finite;
-  using base_set_type = SingletonSet<T, L>;
-
-  constexpr typename L::type contains(const T& v) const {
-    return (v == pivot) ? L::True : L::False;
-  }
-
-  /** @section Extensionality_Proof */
-  constexpr std::size_t size() const { return 1; }
-  constexpr std::size_t upper_bound() const { return 1; }
-};
-
-/** @section The_Set_Monad_Realization */
-
-/** @brief η: T -> SingletonSet<T> (The Unit) */
-export template <typename T>
-constexpr auto singleton(T&& value) {
-  return SingletonSet<std::decay_t<T>>{std::forward<T>(value)};
-}
-
-/** @section The_Set_Monad: The Categorical Identity */
-
-/**
- * @section Singleton_Kleisli_Triple
- * @brief The Bricks of the Singleton Monad.
- */
-
-/** @section Singleton_Unit (η) */
-// We only need T here. We 'fix' the logic to Classical.
-template <typename T>
-struct η<SingletonSet, T> {
-  constexpr auto operator()(const T& x) const {
-    // We explicitly construct the Classical variety.
-    return SingletonSet<T, ClassicalLogic>{x};
-  }
-};
-
-/** @section Bind (>>=) */
-export template <typename T, typename L, typename Func>
-constexpr auto operator>>=(const SingletonSet<T, L>& s, Func&& f) {
-  /**
-   * @details Kleisli Bind for Singletons:
-   * 1. Sample the internal species (The Pull).
-   * 2. Apply the Kleisli Arrow f: T -> SingletonSet<U, L>.
-   */
-  return std::forward<Func>(f)(s.pivot);
-}
-
-/** @section Singleton_CoKleisli_Triple */
-
-/** @section Singleton_Counit (ε) */
-template <typename T>
-struct ε<SingletonSet, T> {
-  // Extraction is logic-agnostic, so we can use a variadic match here
-  // or just match the Classical version.
-  template <typename L>
-  constexpr T operator()(const SingletonSet<T, L>& s) const {
-    return s.pivot;
-  }
-};
-
-/** @section Extend (<<=) */
-export template <typename T, typename L, typename Func>
-constexpr auto operator<<=(const SingletonSet<T, L>& s, Func&& f) {
-  using U = std::invoke_result_t<Func, SingletonSet<T, L>>;
-  // Co-Kleisli Extend: apply contextual logic and re-wrap.
-  return SingletonSet<U, L>{std::forward<Func>(f)(s)};
-}
-
-/** @section The_Final_Ontology_Proof */
-namespace {
-// A simple cross-species transformation: int -> bool
-constexpr auto is_even = arrow<int, bool>([](int x) { return x % 2 == 0; });
-
-using IntSet = SingletonSet<int, ClassicalLogic>;
-using BoolSet = SingletonSet<bool, ClassicalLogic>;
-
-// The Proof: "Lifting 'is_even' into the Singleton context"
-static_assert(
-    IsArrow<decltype(fmap<SingletonSet>(is_even)), IntSet, BoolSet>,
-    "PR Failure: SingletonSet failed to discover its Functorial Highway.");
-
-// The Action: "Executing the lifted morphism"
-static_assert(((IntSet{42} >> fmap<SingletonSet>(is_even))
-               << extract<SingletonSet>) == true,
-              "PR Failure: The Set Monad failed to preserve the truth value of "
-              "the species.");
-}  // namespace
 
 };  // namespace dedekind::ontology

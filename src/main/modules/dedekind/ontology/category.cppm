@@ -168,7 +168,7 @@ concept IsTerminalObject =
     requires(const T s, const typename T::element_type x) {
       /** @brief Axiom: The Membership Morphism is the identity of the Logic. */
       // It must always evaluate to the "Top" (True) of its internal logic.
-      { s.contains(x) } -> std::same_as<typename T::logic_species::type>;
+      { s(x) } -> std::same_as<typename T::logic_species::type>;
     };
 
 /**
@@ -243,7 +243,7 @@ export template <template <typename...> typename F, typename T,
 struct ε;
 
 /** @section Box_Specialization_for_ε */
-template <typename T>
+export template <typename T>
 struct ε<Box, T> final {
   // For a Box, extraction is simply accessing the value.
   constexpr T operator()(const Box<T>& b) const noexcept { return b.value; }

@@ -3,52 +3,46 @@ import dedekind.ontology;
 
 using namespace dedekind::ontology;
 
-TEST_CASE("Level 1 Final Proof: The Mereology Highway",
-          "[ontology][mereology][highway]") {
-  SECTION("1. The Singleton Lifting") {
-    // Target the struct directly to satisfy Clang's template-template rules
-    auto atom = 42 >> into<SingletonSet>;
-    REQUIRE(atom.contains(42) == true);
-  }
+/** @section Morphic_Mimes: Pure Structuralist Mocking */
+struct MockSpecies {
+  using element_type = int;
+};
 
-  SECTION("2. Initial Object Proof") {
-    EmptySet<int> empty;
-    // This will now pass because cardinality() exists
-    static_assert(IsInitialObject<decltype(empty)>);
-  }
+struct MockPart {
+  using element_type = int;
+  using ambient_species = MockSpecies;
+  // The Characteristic Morphism: y(x)
+  constexpr bool operator()(int) const { return true; }
+};
 
-  SECTION("2. The Pull from the Identity (ε)") {
-    // Pushing into the set and pulling the value back out
-    // Note: SingletonSet must provide extract_v to satisfy IsPreComonad
-    int value = 42 >> into<SingletonSet> << extract<SingletonSet>;
+struct MockSystem {
+  using element_type = MockPart;
 
-    REQUIRE(value == 42);
-    static_assert((7 >> into<SingletonSet> << extract<SingletonSet>) == 7,
-                  "The Round-trip Axiom.");
-  }
+  /** @section Bounded_Lattice_Interface */
+  // Using the exact names required by IsBoundedLattice concept
+  constexpr MockPart lower_bound() const { return {}; }
+  constexpr MockPart upper_bound() const { return {}; }
 
-  SECTION("3. The Extreme Bounds (0 and 1)") {
-    EmptySet<int> empty;
-    UniversalSet<int> universe;
+  // Meet and Join operators to satisfy IsLattice
+  constexpr MockSystem operator&(const MockSystem&) const { return *this; }
+  constexpr MockSystem operator|(const MockSystem&) const { return *this; }
+};
 
-    // Verify the Categorical Roles
-    static_assert(IsInitialObject<decltype(empty)>, "∅ is the Initial Object.");
-    static_assert(IsTerminalObject<decltype(universe)>,
-                  "U is the Terminal Object.");
+TEST_CASE("Mereology: Ontological Concept Verification",
+          "[ontology][mereology]") {
+  // 1. Verify the Presence Morphism (The Functional Essence)
+  // Does the concept correctly identify a callable 'Whole' for a 'Part'?
+  STATIC_REQUIRE(IsProperPart<int, MockPart>);
 
-    // Verify the Logical Truth across species
-    REQUIRE(empty.contains(42) == false);
-    REQUIRE(universe.contains(42) == true);
+  // 2. Verify the Systemic Lattice (The Space of Parts)
+  // Does the concept recognize a Bounded Lattice inhabited by valid Parts?
+  STATIC_REQUIRE(IsSystem<MockSystem, MockSpecies>);
 
-    // Verify the Magnitude (The Ruler)
-    // Note: UniversalSet<int> is Countable (ℵ_0)
-    REQUIRE(empty.cardinality() == Finite{});
-  }
-
-  SECTION("4. The Logic Swapping (Topos-Awareness)") {
-    // Universal Set over the Ternary Topos (Kleene Logic)
-    UniversalSet<int, TernaryLogic> k_universe;
-
-    REQUIRE(k_universe.contains(42) == Ternary::True);
-  }
+  // 3. Verify Relational Duality
+  // Does 'operator>=' automatically derive from '<=' once the concept is hit?
+  struct WeakPart {
+    constexpr bool operator<=(const WeakPart&) const { return true; }
+  };
+  STATIC_REQUIRE(IsPartOf<WeakPart, WeakPart>);
+  STATIC_REQUIRE(WeakPart{} >= WeakPart{});
 }

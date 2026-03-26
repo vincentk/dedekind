@@ -143,6 +143,25 @@ struct identity_trait<bool, std::logical_and<bool>> {
   static constexpr bool value = true;  // ⊤ (Whole/True)
 };
 
+/**
+ * @brief Trait to mark a relation as Reflexive: a ∘ a is always True.
+ **/
+export template <typename T, typename Rel>
+inline constexpr bool is_reflexive_v = false;
+
+/**
+ * @brief Trait to mark a relation as Transitive: (a ∘ b) && (b ∘ c) => (a ∘ c)
+ **/
+export template <typename T, typename Rel>
+inline constexpr bool is_transitive_v = false;
+
+/**
+ * @brief Trait to mark a relation as Antisymmetric: (a ∘ b) && (b ∘ a) => (a ==
+ * b)
+ **/
+export template <typename T, typename Rel>
+inline constexpr bool is_antisymmetric_v = false;
+
 // --- Integers: The finite ring (Z, +, *) ---
 
 /**
@@ -395,6 +414,34 @@ static_assert(is_associative_v<int, std::plus<int>>,
 static_assert(
     characteristic_v<unsigned char> == 256,
     "Taxonomy Error: 8-bit unsigned species must have characteristic 256.");
+
+/**
+ * @concept IsPointed
+ * @brief The Law of the Origin: A species with a distinguished structural
+ * identity.
+ *
+ * @details
+ * In the structuralist registry, a Pointed Species is a type T that designates
+ * a unique "Structural Origin" (0) via a static factory. This is the
+ * algebraic prerequisite for higher-level structures:
+ * - Level 3: Monoids (Identity element e).
+ * - Level 3: Groups (Neutral element 0).
+ * - Level 4: Vector Spaces (The Zero Vector).
+ *
+ * @section Ontological_Role
+ * While a singleton set provides a "Basepoint" for a specific body, an
+ * IsPointed Species defines an "Absolute Zero" for its entire domain.
+ * This allows for zero-overhead symbolic evaluation of identities
+ * across the Dedekind universe.
+ *
+ * @tparam T The Species being verified (e.g., Integer, Matrix, Complex).
+ *
+ * Wikipedia: Pointed space, Origin (mathematics), Zero element
+ */
+export template <typename T>
+concept IsPointed = requires {
+  { T::origin() } -> std::same_as<T>;
+};
 
 /** @section The_Box_Species (The Standard Model) */
 export template <typename T>

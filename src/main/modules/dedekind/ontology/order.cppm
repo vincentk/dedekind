@@ -32,6 +32,7 @@
  */
 module;
 #include <concepts>
+#include <functional>
 
 export module dedekind.ontology:order;
 
@@ -39,16 +40,29 @@ import :mereology;
 
 namespace dedekind::ontology {
 
+export template <typename T, typename L = ClassicalLogic>
+concept IsPreOrdered =
+    IsPartOf<T, T, L> && is_reflexive_v<T, std::less_equal<>> &&
+    is_transitive_v<T, std::less_equal<>>;
+
 /**
  * @concept IsPartiallyOrdered
  * @brief Elements that can be compared, but some may be "parallel."
  * Wikipedia: Partial order
  */
-export template <typename T>
-concept IsPartiallyOrdered = requires(const T a, const T b) {
-  { a <= b } -> std::convertible_to<bool>;
-  { a == b } -> std::convertible_to<bool>;
-};
+export template <typename T, typename L = ClassicalLogic>
+concept IsPartiallyOrdered =
+    IsPreOrdered<T, L> && is_antisymmetric_v<T, std::less_equal<>> &&
+    requires(const T a, const T b) {
+      { a == b } -> std::same_as<typename L::type>;
+    };
+
+/** @brief The Strict Relation (Proper Part). */
+export template <typename S1, typename S2>
+  requires IsPartOf<S1, S2> && IsPartiallyOrdered<S1>
+constexpr bool operator<(const S1& a, const S2& b) {
+  return (a <= b) && !(a == b);  // The Remainder
+}
 
 /**
  * @concept IsTotallyOrdered
