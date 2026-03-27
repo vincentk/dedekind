@@ -58,6 +58,17 @@ struct SingletonSet {
   using cardinality_type = Finite;
   using base_set_type = SingletonSet<T, L>;
 
+  /** @section Algebraic_Axioms */
+  template <typename Op>
+  static constexpr bool is_associative_v =
+      std::is_same_v<Op, std::bit_and<base_set_type>> ||
+      std::is_same_v<Op, std::bit_or<base_set_type>>;
+
+  template <typename Op>
+  static constexpr bool is_idempotent_v =
+      std::is_same_v<Op, std::bit_and<base_set_type>> ||
+      std::is_same_v<Op, std::bit_or<base_set_type>>;
+
   // This satisfies IsProperPart and IsSet simultaneously
   constexpr auto operator()(const T& v) const {
     return (v == pivot) ? L::True : L::False;
@@ -70,7 +81,21 @@ struct SingletonSet {
   constexpr std::size_t upper_bound() const { return 1; }
   constexpr auto cardinality() const { return Finite{}; }
 
-  constexpr SingletonSet operator<=>(const SingletonSet&) const = default;
+  /** @section Mereological_Relation (sqsubseteq) */
+
+  // 1. Manual definition to satisfy: { a <= b } -> typename L::type
+  constexpr typename L::type operator<=(const SingletonSet& other) const {
+    return (pivot == other.pivot) ? L::True : L::False;
+  }
+
+  // 2. Manual equality for IsExtensional
+  constexpr bool operator==(const SingletonSet& other) const {
+    return pivot == other.pivot;
+  }
+
+  // 3. DELETE the spaceship to stop the compiler from generating
+  // a 'bool'-returning operator<= that breaks the concept.
+  auto operator<=>(const SingletonSet&) const = delete;
 
   // FIXME: The below are clearly wrong:
   /** @section Lattice_Laws: Absorption and Identity */
