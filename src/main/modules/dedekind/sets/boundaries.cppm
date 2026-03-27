@@ -143,7 +143,6 @@ static_assert(IsInitialObject<Ø<int>>,
 
 };  // namespace dedekind::sets
 
-
 /** @section Level_0a: Kleisli Extensions for Boundaries */
 
 namespace dedekind::ontology {
@@ -151,13 +150,13 @@ namespace dedekind::ontology {
 /** @brief η for the Empty Set: T -> Ø<T> */
 template <typename T>
 struct η<dedekind::sets::Ø, T> {
-    constexpr auto operator()(const T&) const { return dedekind::sets::Ø<T>{}; }
+  constexpr auto operator()(const T&) const { return dedekind::sets::Ø<T>{}; }
 };
 
 /** @brief η for the Universal Set: T -> Ω<T> */
 template <typename T>
 struct η<dedekind::sets::Ω, T> {
-    constexpr auto operator()(const T&) const { return dedekind::sets::Ω<T>{}; }
+  constexpr auto operator()(const T&) const { return dedekind::sets::Ω<T>{}; }
 };
 
-} // namespace dedekind::ontology
+}  // namespace dedekind::ontology

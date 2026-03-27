@@ -100,15 +100,8 @@ concept IsProperPart = requires(const Part p, const Whole w) {
  * Wikipedia: SemiLattice (order)
  */
 export template <typename S>
-concept IsMeetSemilattice = 
-    IsSemigroupoid<S, std::bit_and<S>> && 
-    requires(S a) {
-        /** 
-         * @axiom Idempotency: a & a = a
-         * The core of Meet pruning (e.g., Intersection with self is identity).
-         */
-        requires is_idempotent_v<S, std::bit_and<S>>;
-    };
+concept IsMeetSemilattice =
+    IsSemigroupoid<S, std::bit_and<S>> && IsIdempotent<S, std::bit_and<S>>;
 
 /**
  * @concept IsJoinSemiLattice
@@ -117,11 +110,8 @@ concept IsMeetSemilattice =
  * Wikipedia: SemiLattice (order)
  */
 export template <typename S>
-concept IsJoinSemilattice =  IsSemigroupoid<S, std::bit_or<S>> && 
-    requires(S a) {
-        // Idempotency: a | a = a (The core of Lattice pruning)
-        requires is_idempotent_v<S, std::bit_or<S>>;
-    };
+concept IsJoinSemilattice =
+    IsSemigroupoid<S, std::bit_or<S>> && IsIdempotent<S, std::bit_or<S>>;
 
 /**
  * @concept IsLattice
@@ -149,83 +139,78 @@ concept IsBoundedLattice = IsLattice<S> && requires(S s) {
 /**
  * @concept IsMereologicalLattice
  * @brief A Lattice where Join/Meet are synonymous with Sum/Product.
- * 
+ *
  * @details
- * We bake the 'Overlap' axiom directly into the requirement. 
- * For a structure to be mereological, it must be possible to 
+ * We bake the 'Overlap' axiom directly into the requirement.
+ * For a structure to be mereological, it must be possible to
  * determine if two parts share a common 'Individual'.
  */
 export template <typename S, typename L = ClassicalLogic>
-concept IsMereologicalLattice = 
-    IsLattice<S> && 
-    IsPartOf<S, S, L> && 
-    requires(S a, S b) {
-        // 1. Consistency Axiom: (a <= b) <=> (a | b == b)
-        { (a | b) == b } -> std::convertible_to<typename L::type>;
+concept IsMereologicalLattice =
+    IsLattice<S> && IsPartOf<S, S, L> && requires(S a, S b) {
+      // 1. Consistency Axiom: (a <= b) <=> (a | b == b)
+      { (a | b) == b } -> std::convertible_to<typename L::type>;
 
-        // 2. Overlap Axiom: Meet is detectable via Initiality
-        requires requires { IsInitialObject<decltype(a & b)>; };
+      // 2. Overlap Axiom: Meet is detectable via Initiality
+      requires requires { IsInitialObject<decltype(a & b)>; };
 
-        /** 
-         * @section The_Absorption_Proofs
-         * These laws anchor the duality of the Monadic Push (|) 
-         * and the Comonadic Pull (&).
-         */
-        // Axiom 1: a ∪ (a ∩ b) = a
-        { (a | (a & b)) == a } -> std::convertible_to<typename L::type>;
+      /**
+       * @section The_Absorption_Proofs
+       * These laws anchor the duality of the Monadic Push (|)
+       * and the Comonadic Pull (&).
+       */
+      // Axiom 1: a ∪ (a ∩ b) = a
+      { (a | (a & b)) == a } -> std::convertible_to<typename L::type>;
 
-        // Axiom 2: a ∩ (a ∪ b) = a
-        { (a & (a | b)) == a } -> std::convertible_to<typename L::type>;
+      // Axiom 2: a ∩ (a ∪ b) = a
+      { (a & (a | b)) == a } -> std::convertible_to<typename L::type>;
     };
 
 /**
  * @concept IsExtensional
- * @brief The Axiom of Identity: Wholes are identical iff they have the same parts.
- * 
+ * @brief The Axiom of Identity: Wholes are identical iff they have the same
+ * parts.
+ *
  * @details
- * This is the 'Soul' of Set Theory. It transforms a Lattice into a 
+ * This is the 'Soul' of Set Theory. It transforms a Lattice into a
  * recognizable 'Collection'.
- * 
+ *
  * Theorem: (a == b) <=> (a <= b && b <= a)
  */
 export template <typename S, typename L = ClassicalLogic>
-concept IsExtensional = 
-    IsMereologicalLattice<S, L> && 
-    requires(S a, S b) {
-        { (a == b) } -> std::convertible_to<typename L::type>;
-        // The Proof: Equality is equivalent to Mutual Parthood.
-        requires requires { (a <= b && b <= a) == (a == b); };
-    };
+concept IsExtensional = IsMereologicalLattice<S, L> && requires(S a, S b) {
+  { (a == b) } -> std::convertible_to<typename L::type>;
+  // The Proof: Equality is equivalent to Mutual Parthood.
+  requires requires { (a <= b && b <= a) == (a == b); };
+};
 
 /**
  * @concept IsAtom
  * @brief An Individual that possesses no proper parts.
- * 
+ *
  * @details
  * In the Calculus of Individuals, x is an Atom iff:
- * For all y, if y is a part of x (y ⊆ x), then y is either x or the 
- * Initial Object (0). 
- * 
+ * For all y, if y is a part of x (y ⊆ x), then y is either x or the
+ * Initial Object (0).
+ *
  * Wikipedia: Atom (order theory), Simple object (category theory)
  */
 export template <typename S, typename L = ClassicalLogic>
-concept IsAtom = 
-    IsMereologicalLattice<S, L> && 
-    requires(S x) {
-        /** 
-         * @axiom The Atomic Constraint
-         * For any part 'y', we must be able to prove its identity 
-         * relative to the atom and the bottom of the lattice.
-         */
-        requires requires(S y) {
-            { (y <= x) } -> std::same_as<typename L::type>;
-            /**
-             * @theorem If (y <= x) is True, then (y == x || IsInitialObject<decltype(y)>).
-             * In C++23, we enforce this as a structural requirement for 
-             * species that claim to be Atomic.
-             */
-        };
-    };
+concept IsAtom = IsMereologicalLattice<S, L> && requires(S x) {
+  /**
+   * @axiom The Atomic Constraint
+   * For any part 'y', we must be able to prove its identity
+   * relative to the atom and the bottom of the lattice.
+   */
+  requires requires(S y) {
+    { (y <= x) } -> std::same_as<typename L::type>;
+    /**
+     * @theorem If (y <= x) is True, then (y == x ||
+     * IsInitialObject<decltype(y)>). In C++23, we enforce this as a structural
+     * requirement for species that claim to be Atomic.
+     */
+  };
+};
 
 /**
  * @concept IsSystem
@@ -357,18 +342,18 @@ concept IsEnumerated = IsSet<S, L> && requires(const S s) {
 /**
  * @concept IsSymbolic
  * @brief A set defined by a "Rule" or "Predicate" (λx. P(x)).
- * 
- * @details 
- * Symbolic sets are intentional species where membership is a calculated 
- * morphism (λx. P(x)) rather than a physical lookup. Because these 
- * predicates may be undecidable or non-terminating, we default to 
+ *
+ * @details
+ * Symbolic sets are intentional species where membership is a calculated
+ * morphism (λx. P(x)) rather than a physical lookup. Because these
+ * predicates may be undecidable or non-terminating, we default to
  * TernaryLogic {True, False, Unknown}.
- * 
+ *
  * @note Structural Role:
- * Symbolic sets are the 'Soul' of the Dedekind universe. They allow 
- * for Transfinite cardinality (ℵ₀, ℵ₁, etc.) and serve as the 
+ * Symbolic sets are the 'Soul' of the Dedekind universe. They allow
+ * for Transfinite cardinality (ℵ₀, ℵ₁, etc.) and serve as the
  * functional basis for Infinite species like the Naturals (ℕ).
- * 
+ *
  * Wikipedia: Intensional definition, Indicator function, Ternary logic
  */
 export template <typename S, typename L = TernaryLogic>

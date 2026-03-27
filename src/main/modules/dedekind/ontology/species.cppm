@@ -90,18 +90,41 @@ static_assert(
     IsArrow<Morphism<int, bool, std::function<bool(int)>>, int, bool>,
     "Taxonomy Error: Morphism must satisfy the skeletal IsArrow concept.");
 
+/**
+ * @concept IsMagmoid
+ * @brief Represents a Magma-like structure where a binary operation is defined.
+ *
+ * @details In Category Theory, this corresponds to a 'Quiver' or 'Graph' with
+ *          a composition rule that is closed: T × T → T. At this level, we
+ *          only guarantee that two elements can be combined; we do not yet
+ *          enforce associativity or identity.
+ *
+ * @tparam T The coordinate species (The "Objects" or "Elements").
+ * @tparam Op The binary operation (The "Morphism" or "Composition Rule").
+ */
+export template <typename T, typename Op>
+concept IsMagmoid = requires(T a, T b) {
+  { Op{}(a, b) } -> std::convertible_to<T>;
+};
+
 /** @section The Traits (The categorical invariants) */
 
 /**
  * @brief Trait to mark an operation as associative: (a ∘ b) ∘ c = a ∘ (b ∘ c)
  **/
-/** @section The_Ledger */
 export template <typename T, typename Op>
 struct is_associative : std::false_type {};
 
-/** @brief The Public View */
 export template <typename T, typename Op>
 inline constexpr bool is_associative_v = is_associative<T, Op>::value;
+
+/**
+ * @concept IsAssociative
+ * @brief Formal verification that (a ∘ b) ∘ c = a ∘ (b ∘ c).
+ */
+export template <typename T, typename Op>
+concept IsAssociative =
+    IsMagmoid<T, Op> && requires { requires is_associative_v<T, Op>; };
 
 /**
  * @brief Trait to mark an operation as commutative: a ∘ b = b ∘ a
@@ -113,19 +136,27 @@ export template <typename T, typename Op>
 inline constexpr bool is_commutative_v = is_commutative<T, Op>::value;
 
 /**
- * @brief Trait verifying the Law of Persistence: x ∘ x = x.
- * 
- * @details
- * In a Mereological Lattice, idempotency is the engine of pruning.
- * Without this proof, the compiler cannot safely collapse (A ∪ A) 
- * or (A ∩ A) into a single identity.
+ * @concept IsCommutative
+ * @brief Formal verification that a ∘ b = b ∘ a.
  */
+export template <typename T, typename Op>
+concept IsCommutative =
+    IsMagmoid<T, Op> && requires { requires is_commutative_v<T, Op>; };
+
 export template <typename T, typename Op>
 struct is_idempotent : std::false_type {};
 
 /** @brief Helper for shorthand access in concepts. */
 export template <typename T, typename Op>
 inline constexpr bool is_idempotent_v = is_idempotent<T, Op>::value;
+
+/**
+ * @concept IsIdempotent
+ * @brief Formal verification that x ∘ x = x.
+ */
+export template <typename T, typename Op>
+concept IsIdempotent =
+    IsMagmoid<T, Op> && requires { requires is_idempotent_v<T, Op>; };
 
 /** @brief Primary trait: Identity does not exist by default. */
 export template <typename T, typename Op>
@@ -307,23 +338,6 @@ inline constexpr T inverse(T a) {
   return inverse(a, Op{});
 }
 
-/**
- * @concept IsMagmoid
- * @brief Represents a Magma-like structure where a binary operation is defined.
- *
- * @details In Category Theory, this corresponds to a 'Quiver' or 'Graph' with
- *          a composition rule that is closed: T × T → T. At this level, we
- *          only guarantee that two elements can be combined; we do not yet
- *          enforce associativity or identity.
- *
- * @tparam T The coordinate species (The "Objects" or "Elements").
- * @tparam Op The binary operation (The "Morphism" or "Composition Rule").
- */
-export template <typename T, typename Op>
-concept IsMagmoid = requires(T a, T b) {
-  { std::declval<Op>()(a, b) } -> std::convertible_to<T>;
-};
-
 /** @section Magmoid Verification: The Atomic Bricks */
 
 // Proof: Boolean AND is a Magmoid.
@@ -351,7 +365,7 @@ static_assert(IsMagmoid<int, std::modulus<int>>,
  *       only require this level of structure.
  */
 export template <typename T, typename Op>
-concept IsSemigroupoid = IsMagmoid<T, Op> && is_associative_v<T, Op>;
+concept IsSemigroupoid = IsMagmoid<T, Op> && IsAssociative<T, Op>;
 
 /** @section Semigroupoid Verification: The Grouping Law */
 
@@ -370,27 +384,6 @@ static_assert(IsSemigroupoid<int, std::bit_and<int>>,
 // Proof: (int, *) is a Semigroupoid.
 static_assert(IsSemigroupoid<int, std::multiplies<int>>,
               "Semigroupoid: Integer multiplication is associative.");
-
-/**
- * @concept IsCommutative
- * @brief Represents the Symmetry Law (a ∘ b = b ∘ a) for a binary operation.
- *
- * @details In the Dedekind structuralist hierarchy, Commutativity is the
- *          "Permission to Swap." It acts as a formal proof that the order
- *          of operands is irrelevant to the final result of the morphism.
- *
- * @section Computational_Authority
- * Unlike Associativity (which permits re-grouping), Commutativity permits
- * structural re-ordering. This is the foundational requirement for:
- * - Order-independent parallel reductions.
- * - Hardware-level instruction scheduling (Out-of-Order Execution).
- * - Simplification of DAG nodes by canonicalizing operand order (e.g., x + 1).
- *
- * @tparam T The coordinate species.
- * @tparam Op The binary operation being verified for symmetry.
- */
-export template <typename T, typename Op>
-concept IsCommutative = IsMagmoid<T, Op> && is_commutative_v<T, Op>;
 
 /** @section Commutative Verification: The Symmetry Law */
 
@@ -449,10 +442,12 @@ template <>
 struct is_idempotent<bool, std::logical_or<bool>> : std::true_type {};
 
 // Theorem: Bitwise Logic is Idempotent.
-template <typename T> requires std::is_integral_v<T>
+template <typename T>
+  requires std::is_integral_v<T>
 struct is_idempotent<T, std::bit_and<T>> : std::true_type {};
 
-template <typename T> requires std::is_integral_v<T>
+template <typename T>
+  requires std::is_integral_v<T>
 struct is_idempotent<T, std::bit_or<T>> : std::true_type {};
 
 /**
