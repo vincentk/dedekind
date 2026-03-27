@@ -416,6 +416,39 @@ static_assert(
     "Taxonomy Error: 8-bit unsigned species must have characteristic 256.");
 
 /**
+ * @section Algebraic_Properties: Idempotency
+ * @brief Trait verifying the Law of Persistence: x ∘ x = x.
+ * 
+ * @details
+ * In a Mereological Lattice, idempotency is the engine of pruning.
+ * Without this proof, the compiler cannot safely collapse (A ∪ A) 
+ * or (A ∩ A) into a single identity.
+ */
+template <typename T, typename Op>
+struct is_idempotent : std::false_type {};
+
+/** @brief Helper for shorthand access in concepts. */
+template <typename T, typename Op>
+inline constexpr bool is_idempotent_v = is_idempotent<T, Op>::value;
+
+/** @section Logic_Species_Specializations */
+
+// Theorem: Truth is Idempotent. (True ∧ True = True)
+template <>
+struct is_idempotent<bool, std::logical_and<bool>> : std::true_type {};
+
+// Theorem: Presence is Idempotent. (True ∨ True = True)
+template <>
+struct is_idempotent<bool, std::logical_or<bool>> : std::true_type {};
+
+// Theorem: Bitwise Logic is Idempotent.
+template <typename T> requires std::is_integral_v<T>
+struct is_idempotent<T, std::bit_and<T>> : std::true_type {};
+
+template <typename T> requires std::is_integral_v<T>
+struct is_idempotent<T, std::bit_or<T>> : std::true_type {};
+
+/**
  * @concept IsPointed
  * @brief The Law of the Origin: A species with a distinguished structural
  * identity.

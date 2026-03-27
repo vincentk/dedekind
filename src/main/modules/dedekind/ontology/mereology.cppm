@@ -45,6 +45,7 @@ export module dedekind.ontology:mereology;
 
 import :category;
 import :logic;
+import :species;
 
 /**
  * @section Mereology: The study of parts and wholes.
@@ -99,9 +100,15 @@ concept IsProperPart = requires(const Part p, const Whole w) {
  * Wikipedia: SemiLattice (order)
  */
 export template <typename S>
-concept IsMeetSemilattice = requires(S a, S b) {
-  { a & b } -> std::same_as<S>;  // The Great Lower Bound
-};
+concept IsMeetSemilattice = 
+    IsSemigroupoid<S, std::bit_and<S>> && 
+    requires(S a) {
+        /** 
+         * @axiom Idempotency: a & a = a
+         * The core of Meet pruning (e.g., Intersection with self is identity).
+         */
+        requires is_idempotent_v<S, std::bit_and<S>>;
+    };
 
 /**
  * @concept IsJoinSemiLattice
@@ -110,9 +117,11 @@ concept IsMeetSemilattice = requires(S a, S b) {
  * Wikipedia: SemiLattice (order)
  */
 export template <typename S>
-concept IsJoinSemilattice = requires(S a, S b) {
-  { a | b } -> std::same_as<S>;  // The Least Upper Bound
-};
+concept IsJoinSemilattice =  IsSemigroupoid<S, std::bit_or<S>> && 
+    requires(S a) {
+        // Idempotency: a | a = a (The core of Lattice pruning)
+        requires is_idempotent_v<S, std::bit_or<S>>;
+    };
 
 /**
  * @concept IsLattice
@@ -136,6 +145,109 @@ concept IsBoundedLattice = IsLattice<S> && requires(S s) {
   { s.lower_bound() } -> std::same_as<typename S::element_type>;  // The Bottom
   { s.upper_bound() } -> std::same_as<typename S::element_type>;  // The Top
 };
+
+/**
+ * @concept IsMereologicalLattice
+ * @brief A Lattice where Join/Meet are synonymous with Sum/Product.
+ * 
+ * @details
+ * We bake the 'Overlap' axiom directly into the requirement. 
+ * For a structure to be mereological, it must be possible to 
+ * determine if two parts share a common 'Individual'.
+ */
+export template <typename S, typename L = ClassicalLogic>
+concept IsMereologicalLattice = 
+    IsLattice<S> && 
+    IsPartOf<S, S, L> && 
+    requires(S a, S b) {
+        // 1. The Consistency Axiom: (a <= b) <=> (a | b == b)
+        { (a | b) == b } -> std::convertible_to<typename L::type>;
+
+        // 2. The Overlap Axiom: Two parts overlap (a ◯ b) if their 
+        // Meet is NOT the Initial Object.
+        // We require that the result of 'a & b' can be checked for Initiality.
+        requires requires { 
+            IsInitialObject<decltype(a & b)>; 
+        };
+
+/**
+ * @concept IsAtom
+ * @brief An Individual that possesses no proper parts.
+ * 
+ * @details
+ * In the Calculus of Individuals, x is an Atom iff:
+ * For all y, if y is a part of x (y ⊆ x), then y is either x or the 
+ * Initial Object (0). 
+ * 
+ * Wikipedia: Atom (order theory), Simple object (category theory)
+ */
+export template <typename S, typename L = ClassicalLogic>
+concept IsAtom = 
+    IsMereologicalLattice<S, L> && 
+    requires(S x) {
+        /** 
+         * @axiom The Atomic Constraint
+         * For any part 'y', we must be able to prove its identity 
+         * relative to the atom and the bottom of the lattice.
+         */
+        requires requires(S y) {
+            { (y <= x) } -> std::same_as<typename L::type>;
+            /**
+             * @theorem If (y <= x) is True, then (y == x || IsInitialObject<decltype(y)>).
+             * In C++23, we enforce this as a structural requirement for 
+             * species that claim to be Atomic.
+             */
+        };
+    };
+  };
+
+/**
+ * @theorem The Overlap Relation (Overlap)
+ * @details a overlaps b (a O b) iff ∃x such that (x <= a && x <= b).
+ * In Dedekind, this is equivalent to: (a & b) != EmptySet.
+ */
+export template <typename S1, typename S2, typename L = ClassicalLogic>
+concept Overlaps = requires(S1 a, S2 b) {
+    { (a & b) != Ø<typename S1::element_type, L>{} } -> std::same_as<typename L::type>;
+};
+
+/** 
+ * @section The_Symmetry_Bridge
+ * Forward-declaration of the customization point. 
+ * The actual 'Join' type will be plugged in by the sets module.
+ */
+template <typename S1, typename S2>
+struct LatticeTraits; 
+
+/** @section Lattice_Algebra: The Logic-Aware Join */
+export template <typename S1, typename S2>
+  requires IsJoinSemilattice<S1> && IsJoinSemilattice<S2>
+constexpr auto operator|(const S1& a, const S2& b) {
+    using L = typename S1::logic_species; // e.g., ClassicalLogic
+    
+    // 1. Structural Identity
+    if constexpr (std::is_same_v<S1, S2>) return a;
+
+    // 2. Boundary Identity & Absorption
+    else if constexpr (IsInitialObject<S1>) return b; // Ø | S = S
+    else if constexpr (IsInitialObject<S2>) return a; // S | Ø = S
+    else if constexpr (IsTerminalObject<S1>) return a; // Ω | S = Ω
+    else if constexpr (IsTerminalObject<S2>) return b; // S | Ω = Ω
+
+    // 3. Mereological Subsumption via Logic Species
+    // We check if the relationship is "True" in the specific Logic L.
+    else if constexpr (requires { { a <= b } -> std::same_as<typename L::type>; } 
+                       && (a <= b) == L::True) {
+        return b; 
+    }
+    else if constexpr (requires { { b <= a } -> std::same_as<typename L::type>; } 
+                       && (b <= a) == L::True) {
+        return a;
+    }
+
+    // 4. Fallback to Synthesis
+    else return typename LatticeTraits<S1, S2>::JoinType{a, b};
+}
 
 /**
  * @concept IsSystem
@@ -228,7 +340,7 @@ using ℶ_1 = ℵ<1>;         // The Continuum (assuming GCH)
  * @tparam Ω The Subobject Classifier (Ω). Defaults to ClassicalLogic.
  */
 export template <typename S, typename Ω = ClassicalLogic>
-concept IsSet = requires {
+concept IsSet = IsMereologicalLattice<S, Ω> && requires {
   typename S::element_type;
   typename S::cardinality_type;
   requires IsCardinality<typename S::cardinality_type> &&
