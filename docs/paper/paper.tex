@@ -36,7 +36,7 @@
 }
 
 % --- Document Metadata ---
-\title{The Dedekind Topos: A Structuralist Mereology in C++23}
+\title{\textsc{dedekind}: An Excursion in Structuralist Mereology in C++23}
 \author{The Dedekind Authors}
 \date{\today} % Automatically inserts current date
 
@@ -51,13 +51,19 @@ Your abstract text.
 \section{Introduction}
 \label{sec:introductio}
 
-The quest for a unified computational environment that simultaneously satisfies the rigour of formal proof assistants and the raw efficiency of hardware-level numerics remains a central challenge in computer science. Historically, this has been a binary choice: researchers either employ dedicated provers such as Coq or Lean to ensure mathematical correctness at the cost of execution speed, or utilize traditional numeric libraries that prioritize throughput while treating mathematical axioms as mere documentation.
+A powerful abstraction in mathematical logic is set-builder notation: the ability to define a collection of objects $\{ x \in \mathbb{R} \mid \mathbf P(x) \}$ based purely on their satisfying a predicate $\mathbf P(x)$. In traditional systems programming, however, this declarative elegance is lost. Developers are forced to manually translate these logical intentions into imperative loops, filter functions, and temporary buffers. This translation is not only prone to error but also opaque to the compiler, which cannot optimize a "black-box" loop using the formal properties of the set it is iterating over.
 
-In this paper, we propose \texttt{dedekind}, a Domain Specific Language (DSL) embedded in modern C++23 \cite{cpp23standard}, designed to bridge this dichotomy. Our approach is rooted in the \textit{Curry-Howard correspondence}, which establishes a direct isomorphism between computer programs and mathematical proofs. By leveraging C++23 \texttt{concepts} and template metaprogramming, we treat the C++ type system as a logic engine. 
+In this paper, we propose dedekind, a C++23 DSL that embeds set-builder notation directly into the host language syntax. By leveraging C++23 Concepts and variadic templates, dedekind allows developers to define complex mathematical species using a syntax that mirrors formal logic. Crucially, these are not mere runtime "filter" objects; they are compile-time structural specifications.
 
-While the Clang compiler \cite{lattner2004llvm} is not traditionally viewed as a formal verification tool, we embrace its role as a ``poor man's theorem prover'' as a central pillar of our methodology. We view the ``hacking'' of industry-standard optimization passes to resolve structural identities at compile-time not as a workaround, but as a strategic alignment with the most pervasive toolchain in modern computing. 
+The contributions of this work include:
+\begin{itemize}
+\item The Set-Builder Isomorphism: A syntax-driven mapping that allows expressions like \begin{equation}\mathrm{Set\{x \mathbin{\%} \mathbb{R} \wedge (x + 5 < 10)\}}\end{equation} to be resolved at compile-time. We demonstrate how the C++ type system acts as a Constraint Satisfaction Engine to verify the validity of these sets.
+\item Intensional-to-Extensional Materialization: A strategy for partial, lazy evaluation, where a set defined by a symbolic rule is only converted into machine instructions (extensional data) when an operation requires it. This enables the evaluation of Infinite Sets (e.g., the Naturals $\mathbb N$) within a finite execution environment.
+\item Mereological Pruning of Predicates: Because the library understands the logical structure of the set-builder predicates, the compiler can prune the search space of the set. For example, a set defined by a contradiction $\{ x \in \mathbb{S} \mid \mathbf P(x) \wedge \neg P(x) \}$ is collapsed into the empty set $\emptyset$ at compile-time, emitting zero machine instructions.
+\item Zero-Overhead Semantic Mapping: We show that these high-level abstractions result in machine code that is identical to hand-optimized assembly, effectively proving that formal rigor does not necessitate a "performance tax."
+\end{itemize}
 
-Our work is heavily inspired by the recursion schemes and categorical combinators introduced by Meijer et al. \cite{meijer1991functional}, as well as the denotational approach to automatic differentiation proposed by Elliott \cite{elliott2018simple}. Following the intuition provided by Wadler in \textit{Theorems for Free} \cite{wadler1989theorems}, \texttt{dedekind} utilizes parametric polymorphism to derive structural properties of mathematical objects directly from their type signatures. By encoding these category-theoretic axioms into the ``structural registry'' of the C++ translation unit, we enable the compiler to perform symbolic pruning of the computational Directed Acyclic Graph (DAG) before a single machine instruction is emitted. The resulting binary is as lean as a manually optimized ``naked'' loop, while remaining as rigorous as a formal proof.
+By reifying the set-builder notation, dedekind turns the C++ translation unit into a symbolic laboratory. The programmer is free to reason in the language of Cantor and Dedekind, while the compiler produces the performance of a naked C++ loop.
 
 
 \section{Methods}
