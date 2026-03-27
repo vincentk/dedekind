@@ -160,15 +160,42 @@ concept IsMereologicalLattice =
     IsLattice<S> && 
     IsPartOf<S, S, L> && 
     requires(S a, S b) {
-        // 1. The Consistency Axiom: (a <= b) <=> (a | b == b)
+        // 1. Consistency Axiom: (a <= b) <=> (a | b == b)
         { (a | b) == b } -> std::convertible_to<typename L::type>;
 
-        // 2. The Overlap Axiom: Two parts overlap (a ◯ b) if their 
-        // Meet is NOT the Initial Object.
-        // We require that the result of 'a & b' can be checked for Initiality.
-        requires requires { 
-            IsInitialObject<decltype(a & b)>; 
-        };
+        // 2. Overlap Axiom: Meet is detectable via Initiality
+        requires requires { IsInitialObject<decltype(a & b)>; };
+
+        /** 
+         * @section The_Absorption_Proofs
+         * These laws anchor the duality of the Monadic Push (|) 
+         * and the Comonadic Pull (&).
+         */
+        // Axiom 1: a ∪ (a ∩ b) = a
+        { (a | (a & b)) == a } -> std::convertible_to<typename L::type>;
+
+        // Axiom 2: a ∩ (a ∪ b) = a
+        { (a & (a | b)) == a } -> std::convertible_to<typename L::type>;
+    };
+
+/**
+ * @concept IsExtensional
+ * @brief The Axiom of Identity: Wholes are identical iff they have the same parts.
+ * 
+ * @details
+ * This is the 'Soul' of Set Theory. It transforms a Lattice into a 
+ * recognizable 'Collection'.
+ * 
+ * Theorem: (a == b) <=> (a <= b && b <= a)
+ */
+export template <typename S, typename L = ClassicalLogic>
+concept IsExtensional = 
+    IsMereologicalLattice<S, L> && 
+    requires(S a, S b) {
+        { (a == b) } -> std::convertible_to<typename L::type>;
+        // The Proof: Equality is equivalent to Mutual Parthood.
+        requires requires { (a <= b && b <= a) == (a == b); };
+    };
 
 /**
  * @concept IsAtom
@@ -199,55 +226,6 @@ concept IsAtom =
              */
         };
     };
-  };
-
-/**
- * @theorem The Overlap Relation (Overlap)
- * @details a overlaps b (a O b) iff ∃x such that (x <= a && x <= b).
- * In Dedekind, this is equivalent to: (a & b) != EmptySet.
- */
-export template <typename S1, typename S2, typename L = ClassicalLogic>
-concept Overlaps = requires(S1 a, S2 b) {
-    { (a & b) != Ø<typename S1::element_type, L>{} } -> std::same_as<typename L::type>;
-};
-
-/** 
- * @section The_Symmetry_Bridge
- * Forward-declaration of the customization point. 
- * The actual 'Join' type will be plugged in by the sets module.
- */
-template <typename S1, typename S2>
-struct LatticeTraits; 
-
-/** @section Lattice_Algebra: The Logic-Aware Join */
-export template <typename S1, typename S2>
-  requires IsJoinSemilattice<S1> && IsJoinSemilattice<S2>
-constexpr auto operator|(const S1& a, const S2& b) {
-    using L = typename S1::logic_species; // e.g., ClassicalLogic
-    
-    // 1. Structural Identity
-    if constexpr (std::is_same_v<S1, S2>) return a;
-
-    // 2. Boundary Identity & Absorption
-    else if constexpr (IsInitialObject<S1>) return b; // Ø | S = S
-    else if constexpr (IsInitialObject<S2>) return a; // S | Ø = S
-    else if constexpr (IsTerminalObject<S1>) return a; // Ω | S = Ω
-    else if constexpr (IsTerminalObject<S2>) return b; // S | Ω = Ω
-
-    // 3. Mereological Subsumption via Logic Species
-    // We check if the relationship is "True" in the specific Logic L.
-    else if constexpr (requires { { a <= b } -> std::same_as<typename L::type>; } 
-                       && (a <= b) == L::True) {
-        return b; 
-    }
-    else if constexpr (requires { { b <= a } -> std::same_as<typename L::type>; } 
-                       && (b <= a) == L::True) {
-        return a;
-    }
-
-    // 4. Fallback to Synthesis
-    else return typename LatticeTraits<S1, S2>::JoinType{a, b};
-}
 
 /**
  * @concept IsSystem
@@ -365,7 +343,7 @@ concept IsSet = IsMereologicalLattice<S, Ω> && requires {
  * @tparam L The Subobject Classifier (Ω). Defaults to ClassicalLogic.
  */
 export template <typename S, typename L = ClassicalLogic>
-concept IsExtensional = IsSet<S, L> && requires(const S s) {
+concept IsEnumerated = IsSet<S, L> && requires(const S s) {
   /** @section Magnitude: The Physical Proof */
   // An extensional set MUST claim a Finite cardinality type.
   requires(S::cardinality_type::is_finite == true);
@@ -377,13 +355,24 @@ concept IsExtensional = IsSet<S, L> && requires(const S s) {
 };
 
 /**
- * @concept IsIntentional
+ * @concept IsSymbolic
  * @brief A set defined by a "Rule" or "Predicate" (λx. P(x)).
- * @details These sets (like UniversalSet or EmptySet) are not stored;
- *          they are calculated. They may be Transfinite.
+ * 
+ * @details 
+ * Symbolic sets are intentional species where membership is a calculated 
+ * morphism (λx. P(x)) rather than a physical lookup. Because these 
+ * predicates may be undecidable or non-terminating, we default to 
+ * TernaryLogic {True, False, Unknown}.
+ * 
+ * @note Structural Role:
+ * Symbolic sets are the 'Soul' of the Dedekind universe. They allow 
+ * for Transfinite cardinality (ℵ₀, ℵ₁, etc.) and serve as the 
+ * functional basis for Infinite species like the Naturals (ℕ).
+ * 
+ * Wikipedia: Intensional definition, Indicator function, Ternary logic
  */
 export template <typename S, typename L = TernaryLogic>
-concept IsIntentional = IsSet<S, L> && !IsExtensional<S, L>;
+concept IsSymbolic = IsSet<S, L> && !IsEnumerated<S, L>;
 
 /**
  * @concept IsPointedSet
