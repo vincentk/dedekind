@@ -117,10 +117,10 @@ By establishing this explicit correspondence—where \texttt{operator<=} serves 
 \toprule
 \textbf{Mathematical Concept} & \textbf{Symbol} & \textbf{C++ Operator / Type} & \textbf{C++ Concept} & \textbf{Basis} \\ \midrule
 \textit{Category Theory} & & & & \\
-Kleisli Extension & $(T, \eta, \gg=)$ & \texttt{operator>>=} & \texttt{IsKleisliExtension} & \texttt{IsAccociative}\\
-Kleisli Extension & $\bind$ & \texttt{operator>>=} & \texttt{IsKleisliExtension} & \texttt{IsAccociative}\\
-Kleisli Composition & $\circ\_{K}$ & \texttt{operator>>} & \texttt{IsMonad} & \texttt{IsAccociative}\\
-Co-Kleisli Extension (The Pull) & $(W, \varepsilon, \ll=)$ & \texttt{operator<<=} & \texttt{IsCoKleisliExtension} & \\
+Kleisli Extension & $(T, \eta, \gg=)$ & \texttt{operator>>=} & \texttt{IsKleisliExtension} & \texttt{IsAssociative}\\
+Kleisli Extension & $\bind$ & \texttt{operator>>=} & \texttt{IsKleisliExtension} & \texttt{IsAssociative}\\
+Kleisli Composition & $\circ\_{K}$ & \texttt{operator>>} & \texttt{IsMonad} & \texttt{IsAssociative}\\
+Co-Kleisli Extension & $\bind_{co}$ & \texttt{operator<<=} & \texttt{IsComonad} & \texttt{IsAssociative} \\
 Morphic Injection (Unit) & $\eta$ & \texttt{into<F>} / \texttt{singleton} & \texttt{IsMonad} & $\eta: T \to F(T)$ \\
 Morphic Extraction (Counit) & $\varepsilon$ & \texttt{extract<F>} & \texttt{IsComonad} & $\varepsilon: F(T) \to T$ \\
 Characteristic Morphism & $\chi$ & \texttt{operator()} & \texttt{IsCharacteristic} & \\
@@ -212,6 +212,11 @@ In textbook Category Theory, a Monad is traditionally defined as a \textit{Monoi
 \end{enumerate}
 
 To resolve this circular dependency, \texttt{dedekind} implements an \textit{Action-First} bootstrapping strategy. By defining Monads and Comonads as \textit{Extension Systems} (Kleisli Triples consisting of $\eta/\varepsilon$ and $\gg=/\ll=$), we utilize operator overloading on concrete objects. This triggers ADL at the call site, allowing the Level 0 foundation to instantiate a derived \texttt{fmap} without prior knowledge of Level 1 species.
+
+\paragraph{The Precedence-Associativity Constraint} 
+A significant friction point in embedding categorical notation within the C++ grammar is the language's fixed operator precedence and associativity table. While the \textit{Highway Notation} utilizes \texttt{operator>>=} to model the Monadic Bind ($\bind$), the ISO C++ standard defines compound assignment operators (including >>=, <<=, +=, *=, etc.) with \textbf{right-to-left associativity}. Consequently, a standard monadic chain such as $m \bind f \bind g$---which mathematically implies a left-to-right flow of data---is parsed by the compiler as $m \bind (f \bind g)$. 
+
+Because the right-hand operands ($f$ and $g$) are typically Kleisli arrows (lambdas) rather than monadic types, this default parsing triggers a candidate resolution failure, as the compiler attempts to "bind" two functions before involving the monadic context $m$. To maintain the "Forward Highway" semantics without introducing a non-standard pre-processor, \texttt{dedekind} currently requires explicit grouping, e.g., \texttt{(m >>= f) >>= g}. This constraint highlights a fundamental tension between the declarative goals of the DSL and the imperative heritage of the host language's grammar, necessitating a ``parenthetical tax'' to enforce the correct directional vector of the computation.
 
 \subsection{The Unified Highway Bridge}
 

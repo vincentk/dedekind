@@ -314,6 +314,10 @@ concept IsSet = IsMereologicalLattice<S, Ω> && requires {
 } && requires(const S s, const typename S::element_type v) {
   { !s } -> IsLattice;  // The Complement (Remainder)
   { s.cardinality() } -> std::same_as<typename S::cardinality_type>;
+
+  // FIXME: power set, Cartesian product, etc. should be defined here as well.
+  // FIXME: Maybe even the existential and universal quantifiers as morphisms to
+  // Ω.
 } && IsLattice<S>;
 
 /** @section The_Extent: The Logic of Realization */
