@@ -425,12 +425,15 @@ inline constexpr Identity<T> identity_v<Identity<T>, Op> = Identity<T>{};
  */
 export template <typename F, typename G>
   requires requires {
-    typename F::Domain;
-    typename G::Codomain;
+    typename std::decay_t<F>::Domain;
+    typename std::decay_t<G>::Codomain;
   }
 constexpr auto operator>>(F&& f, G&& g) {
-  using A = typename F::Domain;
-  using C = typename G::Codomain;
+  using F_pure = std::decay_t<F>;
+  using G_pure = std::decay_t<G>;
+
+  using A = typename F_pure::Domain;
+  using C = typename G_pure::Codomain;
 
   // Note: The lambda is implicitly constexpr in C++23 if possible
   return arrow<A, C>([f = std::forward<F>(f), g = std::forward<G>(g)](
