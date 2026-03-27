@@ -86,37 +86,47 @@ By establishing this explicit correspondence—where \texttt{operator<=} serves 
 \caption{The Dedekind Semantic Mapping: A Registry of Formal Correspondences}
 \label{table:semantic_mapping}
 \begin{small}
-\begin{tabular}{@{}llll@{}}
+\begin{tabular}{@{}lllll@{}}
 \toprule
-\textbf{Mathematical Concept} & \textbf{Symbol} & \textbf{C++ Operator / Type} & \textbf{C++ Concept} \\ \midrule
-\textit{Mereology} & & & \\
-Parthood (Pre-order) & $\sqsubseteq$ & \texttt{operator<=} & \texttt{IsPartiallyOrdered} \\
-Mereological Sum (Join) & $\sqcup$ & \texttt{operator|} & \texttt{IsJoinSemilattice} \\
-Mereological Product (Meet) & $\sqcap$ & \texttt{operator\&} & \texttt{IsMeetSemilattice} \\
-Universal Complement & $\neg$ & \texttt{operator!} & \texttt{IsComplemented} \\
-Initial Object (Empty) & $\emptyset$ & \texttt{$\emptyset$<T>} & \texttt{IsInitialObject} \\
-Terminal Object (Universal) & $\Omega$ & \texttt{$\Omega$<T>} & \texttt{IsTerminalObject} \\ \midrule
-\textit{Category Theory} & & & \\
-Characteristic Morphism & $\chi$ & \texttt{operator()} & \texttt{IsSet} / \texttt{IsProperPart} \\
-Monadic Bind (Push) & $\gg=$ & \texttt{operator>>=} & \texttt{IsMonad} \\
-Kleisli Composition & $\circ_{K}$ & \texttt{operator>>} & \texttt{IsMonad} \\
-Morphic Injection (Lift) & $\eta$ & \texttt{into<F>} / \texttt{singleton} & \texttt{IsMonad} \\
-Comonadic Extend (Pull) & $\ll=$ & \texttt{operator<<=} & \texttt{IsComonad} \\
-Co-Kleisli Composition & $\circ_{CoK}$ & \texttt{operator<<} & \texttt{IsComonad} \\
-Counit (Extraction) & $\varepsilon$ & \texttt{extract<F>} & \texttt{IsComonad} \\ \midrule
-\textit{Algebra} & & & \\
-Structural Origin (Zero) & $0$ & \texttt{T::origin()} & \texttt{IsPointed} \\
-Additive Composition & $+$ & \texttt{operator+} & \texttt{IsGroup} \\
-Additive Inverse & $-$ & \texttt{operator-} & \texttt{IsGroup} \\
-Multiplicative Composition & $\times$ & \texttt{operator*} & \texttt{IsRing} \\
-Multiplicative Inverse & $/$, $^{-1}$ & \texttt{operator/} & \texttt{IsField} \\
-Associativity & $(a \circ b) \circ c$ & \texttt{is\_associative\_v} & \texttt{IsSemigroupoid} \\
-Idempotency & $a \circ a = a$ & \texttt{is\_idempotent\_v} & \texttt{IsIdempotent} \\
-Magnitude / Count & $|S|$ & \texttt{s.size()} / \texttt{s.cardinality()} & \texttt{IsCardinality} \\
-Supremum / Infimum & $\sup, \inf$ & \texttt{s.supremum(), s.infimum()} & \texttt{HasExtrema} \\ 
-\textit{Set Theory} & & & \\
-Countable Infinity & $\aleph_0$ & $\aleph$\texttt{\_0} & \texttt{IsCardinality} \\
-Continuum Cardinality & $\beth_1$ & $\beth$\texttt{\_1} & \texttt{IsCardinality} \\
+\textbf{Mathematical Concept} & \textbf{Symbol} & \textbf{C++ Operator / Type} & \textbf{C++ Concept} & \textbf{Basis} \\ \midrule
+\textit{Category Theory} & & & & \\
+Kleisli Extension (The Push) & $(T, \eta, \gg=)$ & \texttt{operator>>=} & \texttt{IsKleisliExtension} & \\
+Co-Kleisli Extension (The Pull) & $(W, \varepsilon, \ll=)$ & \texttt{operator<<=} & \texttt{IsCoKleisliExtension} & \\
+Morphic Injection (Unit) & $\eta$ & \texttt{into<F>} / \texttt{singleton} & \texttt{IsMonad} & $\eta: T \to F(T)$ \\
+Morphic Extraction (Counit) & $\varepsilon$ & \texttt{extract<F>} & \texttt{IsComonad} & $\varepsilon: F(T) \to T$ \\
+Characteristic Morphism & $\chi$ & \texttt{operator()} & \texttt{IsCharacteristic} & \\
+Kleisli Composition & $\circ_{K}$ & \texttt{operator>>} & \texttt{IsMonad} & \\
+Co-Kleisli Composition & $\circ_{CoK}$ & \texttt{operator<<} & \texttt{IsComonad} & \\
+Counit (Extraction) & $\varepsilon$ & \texttt{extract<F>} & \texttt{IsComonad} & \\ 
+\midrule
+\textit{Mereology} & & & & \\
+Proper Parthood & $\chi$ & \texttt{operator()} & \texttt{IsProperPart} & \texttt{IsCharacteristic}\\
+Parthood (Pre-order) & $\sqsubseteq$ & \texttt{operator<=} & \texttt{IsPartOf} & \\
+Mereological Sum (Join) & $\sqcup$ & \texttt{operator|} & \texttt{IsJoinSemilattice} & \\
+Mereological Product (Meet) & $\sqcap$ & \texttt{operator\&} & \texttt{IsMeetSemilattice}&  \\
+Universal Complement & $\neg$ & \texttt{operator!} & \texttt{IsComplemented} & \\
+Initial Object (Empty) & $\emptyset$ & \texttt{$\emptyset$<T>} & \texttt{IsInitialObject} & \\
+Terminal Object (Universal) & $\Omega$ & \texttt{$\Omega$<T>} & \texttt{IsTerminalObject} & \\ 
+\midrule
+\textit{Set Theory} & & & & \\
+Membership & $\in$ & \texttt{operator()} & \texttt{IsSet} & \texttt{IsProperPart}\\
+Subset & $\subseteq$ & \texttt{operator<=} & \texttt{IsSubset} & \texttt{IsPartOf}\\
+Countable Infinity & $\aleph_0$ & $\aleph$\texttt{\_0} & \texttt{IsCardinality} & \\
+Continuum Cardinality & $\beth_1$ & $\beth$\texttt{\_1} & \texttt{IsCardinality} & \\
+\midrule
+\textit{Order Theory} & & & & \\
+Pre-order & $\sqsubseteq$ & \texttt{operator<=} & \texttt{IsPartiallyOrdered} & \texttt{IsPartOf}\\
+\midrule
+\textit{Algebra} & & & & \\
+Structural Origin (Zero) & $0$ & \texttt{T::origin()} & \texttt{IsPointed} & \\
+Additive Composition & $+$ & \texttt{operator+} & \texttt{IsGroup} & \\
+Additive Inverse & $-$ & \texttt{operator-} & \texttt{IsGroup} & \\
+Multiplicative Composition & $\times$ & \texttt{operator*} & \texttt{IsRing} & \\
+Multiplicative Inverse & $/$, $^{-1}$ & \texttt{operator/} & \texttt{IsField} & \\
+Associativity & $(a \circ b) \circ c$ & \texttt{is\_associative\_v} & \texttt{IsSemigroupoid} & \\
+Idempotency & $a \circ a = a$ & \texttt{is\_idempotent\_v} & \texttt{IsIdempotent} & \\
+Magnitude / Count & $|S|$ & \texttt{s.size()} / \texttt{s.cardinality()} & \texttt{IsCardinality} & \\
+Supremum / Infimum & $\sup, \inf$ & \texttt{s.supremum(), s.infimum()} & \texttt{HasExtrema} & \\
 \bottomrule
 \end{tabular}
 \end{small}
