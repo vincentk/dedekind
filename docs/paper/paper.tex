@@ -13,16 +13,26 @@
 \usepackage{booktabs}                  % High-quality tables
 % For code listings
 \usepackage{xcolor}
+% Landscape tables:
+\usepackage[figuresright]{rotating}
+
+\usepackage[style=numeric, sorting=none]{biblatex}
+\addbibresource{references.bib}     % Points to your .bib file (include the extension)
 
 \usepackage{listings}
 \lstset{
+  basicstyle=\small\ttfamily, % Makes text smaller and monospace
+  keywordstyle=\color{blue},  % Optional: highlights C++23 keywords
+  tabsize=2,
+  frame=single                % Adds a subtle border around the code
   language=C++,
-  % Remove 'industrial=true'
   morekeywords={concept, requires, co_await, import, module, export},
   keywordstyle=\color{blue}\bfseries,
   commentstyle=\color{gray}\itshape,
   stringstyle=\color{red},
   breaklines=true
+  float=htbp,      % <--- This prevents internal page breaks
+  captionpos=b 
 }
 
 % --- Document Metadata ---
@@ -41,13 +51,14 @@ Your abstract text.
 \section{Introduction}
 \label{sec:introductio}
 
-The quest for a unified computational environment that simultaneously satisfies the rigour of formal proof assistants and the raw efficiency of hardware-level numerics remains a central challenge in computer science. Historically, this has been a binary choice: one either employs a dedicated prover such as Coq or Lean to ensure mathematical correctness at the cost of execution speed, or one utilizes traditional numeric libraries that prioritize throughput while treating mathematical axioms as mere documentation.
+The quest for a unified computational environment that simultaneously satisfies the rigour of formal proof assistants and the raw efficiency of hardware-level numerics remains a central challenge in computer science. Historically, this has been a binary choice: researchers either employ dedicated provers such as Coq or Lean to ensure mathematical correctness at the cost of execution speed, or utilize traditional numeric libraries that prioritize throughput while treating mathematical axioms as mere documentation.
 
-In this paper, we propose \texttt{dedekind}, a Domain Specific Language (DSL) embedded in modern C++23, designed to bridge this dichotomy. Our approach is rooted in the \textit{Curry-Howard correspondence}, which establishes a direct isomorphism between computer programs and mathematical proofs. By leveraging C++23 \texttt{concepts} and template metaprogramming, we treat the C++ type system as a logic engine. While the Clang compiler may not be the most sophisticated theorem prover in existence, its ubiquity and industry-standard optimization passes make it perhaps the most accessible vehicle for what we term \textit{Computational Structuralism}.
+In this paper, we propose \texttt{dedekind}, a Domain Specific Language (DSL) embedded in modern C++23 \cite{cpp23standard}, designed to bridge this dichotomy. Our approach is rooted in the \textit{Curry-Howard correspondence}, which establishes a direct isomorphism between computer programs and mathematical proofs. By leveraging C++23 \texttt{concepts} and template metaprogramming, we treat the C++ type system as a logic engine. 
 
-Following the intuition provided by Wadler in \textit{Theorems for Free}, \texttt{dedekind} utilizes parametric polymorphism to derive structural properties of mathematical objects—such as associativity, commutativity, and idempotency—directly from their type signatures. By encoding mereotopological and category-theoretic axioms into the "structural registry" of the C++ translation unit, we enable the compiler to perform symbolic pruning of the computational Directed Acyclic Graph (DAG) before a single machine instruction is emitted. The resulting binary is as lean as a manually optimized "naked" loop, yet remains as rigorous as a formal proof, reifying the DAG as a concrete artifact of the underlying mathematical theorem.
+While the Clang compiler \cite{lattner2004llvm} is not traditionally viewed as a formal verification tool, we embrace its role as a ``poor man's theorem prover'' as a central pillar of our methodology. We view the ``hacking'' of industry-standard optimization passes to resolve structural identities at compile-time not as a workaround, but as a strategic alignment with the most pervasive toolchain in modern computing. 
 
-While the Clang compiler is not traditionally viewed as a formal verification tool, we embrace its role as a ``poor man's theorem prover'' as a central pillar of our methodology. We view the ``hacking'' of industry-standard optimization passes to resolve structural identities at compile-time not as a workaround, but as a strategic alignment with the most pervasive toolchain in modern computing. This approach allows us to leverage the ubiquity of the C\texttt{++} ecosystem to theorems for free in a mainstream environment. As an added benefit, the resulting binary is as lean as a manually optimized ``naked'' loop, while being validated by rigorous and formal proofs. 
+Our work is heavily inspired by the recursion schemes and categorical combinators introduced by Meijer et al. \cite{meijer1991functional}, as well as the denotational approach to automatic differentiation proposed by Elliott \cite{elliott2018simple}. Following the intuition provided by Wadler in \textit{Theorems for Free} \cite{wadler1989theorems}, \texttt{dedekind} utilizes parametric polymorphism to derive structural properties of mathematical objects directly from their type signatures. By encoding these category-theoretic axioms into the ``structural registry'' of the C++ translation unit, we enable the compiler to perform symbolic pruning of the computational Directed Acyclic Graph (DAG) before a single machine instruction is emitted. The resulting binary is as lean as a manually optimized ``naked'' loop, while remaining as rigorous as a formal proof.
+
 
 \section{Methods}
 
@@ -83,7 +94,7 @@ Crucially, the \texttt{dedekind.ontology} acts as the definitive mapping between
 
 By establishing this explicit correspondence—where \texttt{operator<=} serves as the formal proof of \textit{Parthood} ($\sqsubseteq$) and \texttt{operator/} represents the \textit{Quotienting} of a species—we ensure that the resulting code is not merely a simulation of a mathematical model, but a direct execution of it. This semantic alignment allows the programmer to write expressions that are readable as equations, while the compiler treats them as a sequence of verifiable type-transformations. In this architecture, the C++ \texttt{concept} becomes the "Gatekeeper of Truth," ensuring that a species cannot participate in an operation (such as a Join-Semilattice union) unless it has first provided a manual or structural certification of its algebraic invariants.
 
-\begin{table}[ht]
+\begin{sidewaystable}
 \centering
 \caption{The Dedekind Semantic Mapping: A Registry of Formal Correspondences}
 \label{table:semantic_mapping}
@@ -132,7 +143,7 @@ Supremum / Infimum & $\sup, \inf$ & \texttt{s.supremum(), s.infimum()} & \texttt
 \bottomrule
 \end{tabular}
 \end{small}
-\end{table}
+\end{sidewaystable}
 
 \subsection{The Registry of Structural Proofs}
 
@@ -228,6 +239,6 @@ To facilitate a readable "Algebra of Programming," we map categorical data flows
 
 This mapping ensures that the "Categorical Cement" holding the "Algebraic Bricks" together is both syntactically expressive and computationally invisible.
 
-
+\printbibliography
 
 \end{document}
