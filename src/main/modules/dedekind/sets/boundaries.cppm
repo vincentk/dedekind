@@ -50,9 +50,7 @@ using namespace dedekind::ontology;
  */
 namespace dedekind::sets {
 
-struct Boundaries {
-  // This struct serves as a namespace for the boundary definitions.
-};
+struct Boundaries {};
 
 /** @brief ∅: The Initial Object. Extensional (Size 0). */
 export template <typename T, typename L = ClassicalLogic>
@@ -62,8 +60,35 @@ struct Ø final : Boundaries {
   using cardinality_type = Finite;
   using base_set_type = Ø<T, L>;
 
+  /** @section Algebraic_Axioms */
+  template <typename Op>
+  static constexpr bool is_associative_v =
+      std::is_same_v<Op, std::bit_and<base_set_type>> ||
+      std::is_same_v<Op, std::bit_or<base_set_type>>;
+
+  template <typename Op>
+  static constexpr bool is_idempotent_v =
+      std::is_same_v<Op, std::bit_and<base_set_type>> ||
+      std::is_same_v<Op, std::bit_or<base_set_type>>;
+
   /** @section Extensionality_Proof */
   constexpr std::size_t size() const { return 0; }
+
+  // Axiom: The Empty Set is a part of everything (including itself)
+  template <typename S>
+  constexpr typename L::type operator<=(const S&) const {
+    return L::True;
+  }
+
+  // Theorem: Two empty sets of the same species are identical.
+  constexpr bool operator==(const Ø&) const { return true; }
+
+  // Necessary for (a | b) == b where b might be Ø
+  template <typename S>
+  constexpr bool operator==(const S&) const {
+    if constexpr (std::is_same_v<S, Ø>) return true;
+    return false;  // A non-empty set cannot be equal to Ø
+  }
 
   // The Duality: !∅ = V
   // Forward declaration to satisfy the compiler for the UniversalSet.
@@ -100,9 +125,30 @@ struct Ω final : Boundaries {
   using base_set_type = Ω<T, L>;
   using logic_species = L;
 
+  /** @section Algebraic_Axioms */
+  template <typename Op>
+  static constexpr bool is_associative_v =
+      std::is_same_v<Op, std::bit_and<base_set_type>> ||
+      std::is_same_v<Op, std::bit_or<base_set_type>>;
+
+  template <typename Op>
+  static constexpr bool is_idempotent_v =
+      std::is_same_v<Op, std::bit_and<base_set_type>> ||
+      std::is_same_v<Op, std::bit_or<base_set_type>>;
+
   constexpr auto operator!() const { return Ø<T, L>{}; }
 
-  constexpr auto operator<=>(const Ω&) const = default;
+  // Axiom: Everything is a part of the Universal Set
+  template <typename S>
+  friend constexpr typename L::type operator<=(const S&, const Ω&) {
+    return L::True;
+  }
+
+  // Axiom: Universal Set is only a part of itself
+  constexpr typename L::type operator<=(const Ω&) const { return L::True; }
+
+  // Explicitly define equality if <=> is being deleted by members
+  constexpr bool operator==(const Ω&) const { return true; }
 
   // Note: You'll eventually want overloads for:
   // Universal | Any = Universal
@@ -142,3 +188,21 @@ static_assert(IsInitialObject<Ø<int>>,
               "Ø must satisfy the Initial Object axiom.");
 
 };  // namespace dedekind::sets
+
+/** @section Level_0a: Kleisli Extensions for Boundaries */
+
+namespace dedekind::ontology {
+
+/** @brief η for the Empty Set: T -> Ø<T> */
+template <typename T>
+struct η<dedekind::sets::Ø, T> {
+  constexpr auto operator()(const T&) const { return dedekind::sets::Ø<T>{}; }
+};
+
+/** @brief η for the Universal Set: T -> Ω<T> */
+template <typename T>
+struct η<dedekind::sets::Ω, T> {
+  constexpr auto operator()(const T&) const { return dedekind::sets::Ω<T>{}; }
+};
+
+}  // namespace dedekind::ontology

@@ -45,6 +45,7 @@ export module dedekind.ontology:mereology;
 
 import :category;
 import :logic;
+import :species;
 
 /**
  * @section Mereology: The study of parts and wholes.
@@ -58,6 +59,8 @@ namespace dedekind::ontology {
  *          Example: Integers <= Reals.
  */
 export template <typename S1, typename S2, typename L = ClassicalLogic>
+// FIXME Use the concept definitions from the :species.
+// FIXME This is transitive, anticommutative...
 concept IsPartOf = requires(S1 a, S2 b) {
   { a <= b } -> std::same_as<typename L::type>;
 };
@@ -99,9 +102,8 @@ concept IsProperPart = requires(const Part p, const Whole w) {
  * Wikipedia: SemiLattice (order)
  */
 export template <typename S>
-concept IsMeetSemilattice = requires(S a, S b) {
-  { a & b } -> std::same_as<S>;  // The Great Lower Bound
-};
+concept IsMeetSemilattice =
+    IsSemigroupoid<S, std::bit_and<S>> && IsIdempotent<S, std::bit_and<S>>;
 
 /**
  * @concept IsJoinSemiLattice
@@ -110,9 +112,8 @@ concept IsMeetSemilattice = requires(S a, S b) {
  * Wikipedia: SemiLattice (order)
  */
 export template <typename S>
-concept IsJoinSemilattice = requires(S a, S b) {
-  { a | b } -> std::same_as<S>;  // The Least Upper Bound
-};
+concept IsJoinSemilattice =
+    IsSemigroupoid<S, std::bit_or<S>> && IsIdempotent<S, std::bit_or<S>>;
 
 /**
  * @concept IsLattice
@@ -121,6 +122,7 @@ concept IsJoinSemilattice = requires(S a, S b) {
  * Wikipedia: Lattice (order), Absorption law
  */
 export template <typename S>
+// FIXME: this has more structure than semigroup on the individual operations.
 concept IsLattice = IsMeetSemilattice<S> && IsJoinSemilattice<S>;
 
 /**
@@ -135,6 +137,82 @@ export template <typename S>
 concept IsBoundedLattice = IsLattice<S> && requires(S s) {
   { s.lower_bound() } -> std::same_as<typename S::element_type>;  // The Bottom
   { s.upper_bound() } -> std::same_as<typename S::element_type>;  // The Top
+};
+
+/**
+ * @concept IsMereologicalLattice
+ * @brief A Lattice where Join/Meet are synonymous with Sum/Product.
+ *
+ * @details
+ * We bake the 'Overlap' axiom directly into the requirement.
+ * For a structure to be mereological, it must be possible to
+ * determine if two parts share a common 'Individual'.
+ */
+export template <typename S, typename L = ClassicalLogic>
+concept IsMereologicalLattice =
+    IsLattice<S> && IsPartOf<S, S, L> && requires(S a, S b) {
+      // 1. Consistency Axiom: (a <= b) <=> (a | b == b)
+      { (a | b) == b } -> std::convertible_to<typename L::type>;
+
+      // 2. Overlap Axiom: Meet is detectable via Initiality
+      requires requires { IsInitialObject<decltype(a & b)>; };
+
+      /**
+       * @section The_Absorption_Proofs
+       * These laws anchor the duality of the Monadic Push (|)
+       * and the Comonadic Pull (&).
+       */
+      // Axiom 1: a ∪ (a ∩ b) = a
+      { (a | (a & b)) == a } -> std::convertible_to<typename L::type>;
+
+      // Axiom 2: a ∩ (a ∪ b) = a
+      { (a & (a | b)) == a } -> std::convertible_to<typename L::type>;
+    };
+
+/**
+ * @concept IsExtensional
+ * @brief The Axiom of Identity: Wholes are identical iff they have the same
+ * parts.
+ *
+ * @details
+ * This is the 'Soul' of Set Theory. It transforms a Lattice into a
+ * recognizable 'Collection'.
+ *
+ * Theorem: (a == b) <=> (a <= b && b <= a)
+ */
+export template <typename S, typename L = ClassicalLogic>
+concept IsExtensional = IsMereologicalLattice<S, L> && requires(S a, S b) {
+  { (a == b) } -> std::convertible_to<typename L::type>;
+  // The Proof: Equality is equivalent to Mutual Parthood.
+  requires requires { (a <= b && b <= a) == (a == b); };
+};
+
+/**
+ * @concept IsAtom
+ * @brief An Individual that possesses no proper parts.
+ *
+ * @details
+ * In the Calculus of Individuals, x is an Atom iff:
+ * For all y, if y is a part of x (y ⊆ x), then y is either x or the
+ * Initial Object (0).
+ *
+ * Wikipedia: Atom (order theory), Simple object (category theory)
+ */
+export template <typename S, typename L = ClassicalLogic>
+concept IsAtom = IsMereologicalLattice<S, L> && requires(S x) {
+  /**
+   * @axiom The Atomic Constraint
+   * For any part 'y', we must be able to prove its identity
+   * relative to the atom and the bottom of the lattice.
+   */
+  requires requires(S y) {
+    { (y <= x) } -> std::same_as<typename L::type>;
+    /**
+     * @theorem If (y <= x) is True, then (y == x ||
+     * IsInitialObject<decltype(y)>). In C++23, we enforce this as a structural
+     * requirement for species that claim to be Atomic.
+     */
+  };
 };
 
 /**
@@ -228,7 +306,7 @@ using ℶ_1 = ℵ<1>;         // The Continuum (assuming GCH)
  * @tparam Ω The Subobject Classifier (Ω). Defaults to ClassicalLogic.
  */
 export template <typename S, typename Ω = ClassicalLogic>
-concept IsSet = requires {
+concept IsSet = IsMereologicalLattice<S, Ω> && requires {
   typename S::element_type;
   typename S::cardinality_type;
   requires IsCardinality<typename S::cardinality_type> &&
@@ -253,7 +331,7 @@ concept IsSet = requires {
  * @tparam L The Subobject Classifier (Ω). Defaults to ClassicalLogic.
  */
 export template <typename S, typename L = ClassicalLogic>
-concept IsExtensional = IsSet<S, L> && requires(const S s) {
+concept IsEnumerated = IsSet<S, L> && requires(const S s) {
   /** @section Magnitude: The Physical Proof */
   // An extensional set MUST claim a Finite cardinality type.
   requires(S::cardinality_type::is_finite == true);
@@ -265,13 +343,24 @@ concept IsExtensional = IsSet<S, L> && requires(const S s) {
 };
 
 /**
- * @concept IsIntentional
+ * @concept IsSymbolic
  * @brief A set defined by a "Rule" or "Predicate" (λx. P(x)).
- * @details These sets (like UniversalSet or EmptySet) are not stored;
- *          they are calculated. They may be Transfinite.
+ *
+ * @details
+ * Symbolic sets are intentional species where membership is a calculated
+ * morphism (λx. P(x)) rather than a physical lookup. Because these
+ * predicates may be undecidable or non-terminating, we default to
+ * TernaryLogic {True, False, Unknown}.
+ *
+ * @note Structural Role:
+ * Symbolic sets are the 'Soul' of the Dedekind universe. They allow
+ * for Transfinite cardinality (ℵ₀, ℵ₁, etc.) and serve as the
+ * functional basis for Infinite species like the Naturals (ℕ).
+ *
+ * Wikipedia: Intensional definition, Indicator function, Ternary logic
  */
 export template <typename S, typename L = TernaryLogic>
-concept IsIntentional = IsSet<S, L> && !IsExtensional<S, L>;
+concept IsSymbolic = IsSet<S, L> && !IsEnumerated<S, L>;
 
 /**
  * @concept IsPointedSet
