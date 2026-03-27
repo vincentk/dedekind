@@ -115,6 +115,13 @@ concept IsMagmoid = requires(T a, T b) {
 export template <typename T, typename Op>
 struct is_associative : std::false_type {};
 
+// This "Discovery" specialization looks for a member variable
+// named 'is_associative_v' that is parameterized by the Op.
+template <typename T, typename Op>
+  requires requires { T::template is_associative_v<Op>; }
+struct is_associative<T, Op>
+    : std::bool_constant<T::template is_associative_v<Op>> {};
+
 export template <typename T, typename Op>
 inline constexpr bool is_associative_v = is_associative<T, Op>::value;
 
@@ -132,6 +139,11 @@ concept IsAssociative =
 export template <typename T, typename Op>
 struct is_commutative : std::false_type {};
 
+template <typename T, typename Op>
+  requires requires { T::template is_commutative_v<Op>; }
+struct is_commutative<T, Op>
+    : std::bool_constant<T::template is_commutative_v<Op>> {};
+
 export template <typename T, typename Op>
 inline constexpr bool is_commutative_v = is_commutative<T, Op>::value;
 
@@ -145,6 +157,11 @@ concept IsCommutative =
 
 export template <typename T, typename Op>
 struct is_idempotent : std::false_type {};
+
+template <typename T, typename Op>
+  requires requires { T::template is_idempotent_v<Op>; }
+struct is_idempotent<T, Op>
+    : std::bool_constant<T::template is_idempotent_v<Op>> {};
 
 /** @brief Helper for shorthand access in concepts. */
 export template <typename T, typename Op>

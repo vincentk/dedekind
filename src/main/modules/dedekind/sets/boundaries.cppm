@@ -50,9 +50,7 @@ using namespace dedekind::ontology;
  */
 namespace dedekind::sets {
 
-struct Boundaries {
-  // This struct serves as a namespace for the boundary definitions.
-};
+struct Boundaries {};
 
 /** @brief ∅: The Initial Object. Extensional (Size 0). */
 export template <typename T, typename L = ClassicalLogic>
@@ -61,6 +59,17 @@ struct Ø final : Boundaries {
   using logic_species = L;
   using cardinality_type = Finite;
   using base_set_type = Ø<T, L>;
+
+  /** @section Algebraic_Axioms */
+  template <typename Op>
+  static constexpr bool is_associative_v =
+      std::is_same_v<Op, std::bit_and<base_set_type>> ||
+      std::is_same_v<Op, std::bit_or<base_set_type>>;
+
+  template <typename Op>
+  static constexpr bool is_idempotent_v =
+      std::is_same_v<Op, std::bit_and<base_set_type>> ||
+      std::is_same_v<Op, std::bit_or<base_set_type>>;
 
   /** @section Extensionality_Proof */
   constexpr std::size_t size() const { return 0; }
@@ -99,6 +108,17 @@ struct Ω final : Boundaries {
   using cardinality_type = C;
   using base_set_type = Ω<T, L>;
   using logic_species = L;
+
+  /** @section Algebraic_Axioms */
+  template <typename Op>
+  static constexpr bool is_associative_v =
+      std::is_same_v<Op, std::bit_and<base_set_type>> ||
+      std::is_same_v<Op, std::bit_or<base_set_type>>;
+
+  template <typename Op>
+  static constexpr bool is_idempotent_v =
+      std::is_same_v<Op, std::bit_and<base_set_type>> ||
+      std::is_same_v<Op, std::bit_or<base_set_type>>;
 
   constexpr auto operator!() const { return Ø<T, L>{}; }
 

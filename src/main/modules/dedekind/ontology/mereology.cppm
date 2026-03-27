@@ -59,6 +59,8 @@ namespace dedekind::ontology {
  *          Example: Integers <= Reals.
  */
 export template <typename S1, typename S2, typename L = ClassicalLogic>
+// FIXME Use the concept definitions from the :species.
+// FIXME This is transitive, anticommutative...
 concept IsPartOf = requires(S1 a, S2 b) {
   { a <= b } -> std::same_as<typename L::type>;
 };
@@ -120,6 +122,7 @@ concept IsJoinSemilattice =
  * Wikipedia: Lattice (order), Absorption law
  */
 export template <typename S>
+// FIXME: this has more structure than semigroup on the individual operations.
 concept IsLattice = IsMeetSemilattice<S> && IsJoinSemilattice<S>;
 
 /**
