@@ -83,22 +83,19 @@ By establishing this explicit correspondence—where \texttt{operator<=} serves 
 
 \begin{table}[ht]
 \centering
-\caption{The Dedekind Semantic Mapping (Expanded)}
+\caption{The Dedekind Semantic Mapping: A Registry of Formal Correspondences}
 \label{table:semantic_mapping}
 \begin{small}
 \begin{tabular}{@{}llll@{}}
 \toprule
 \textbf{Mathematical Concept} & \textbf{Symbol} & \textbf{C++ Operator / Type} & \textbf{C++ Concept} \\ \midrule
 \textit{Mereology} & & & \\
-Parthood (Pre-order) & $\sqsubseteq$ & \texttt{operator<=} & \texttt{IsPartOf} \\
-Structural Identity & $\equiv$ & \texttt{operator==} & \texttt{IsExtensional} \\
-Total Ordering & $<$ & \texttt{operator<=>} & \texttt{IsPartiallyOrdered} \\
+Parthood (Pre-order) & $\sqsubseteq$ & \texttt{operator<=} & \texttt{IsPartiallyOrdered} \\
 Mereological Sum (Join) & $\sqcup$ & \texttt{operator|} & \texttt{IsJoinSemilattice} \\
 Mereological Product (Meet) & $\sqcap$ & \texttt{operator\&} & \texttt{IsMeetSemilattice} \\
 Universal Complement & $\neg$ & \texttt{operator!} & \texttt{IsComplemented} \\
 Initial Object (Empty) & $\emptyset$ & \texttt{$\emptyset$<T>} & \texttt{IsInitialObject} \\
-Terminal Object (Universal) & $\Omega$ & \texttt{$\Omega$<T>} & \texttt{IsTerminalObject} \\ 
-Structural Origin (Zero) & $0$ & \texttt{T::origin()} & \texttt{IsPointed} \\ \midrule
+Terminal Object (Universal) & $\Omega$ & \texttt{$\Omega$<T>} & \texttt{IsTerminalObject} \\ \midrule
 \textit{Category Theory} & & & \\
 Characteristic Morphism & $\chi$ & \texttt{operator()} & \texttt{IsSet} / \texttt{IsProperPart} \\
 Monadic Bind (Push) & $\gg=$ & \texttt{operator>>=} & \texttt{IsMonad} \\
@@ -106,22 +103,25 @@ Kleisli Composition & $\circ_{K}$ & \texttt{operator>>} & \texttt{IsMonad} \\
 Morphic Injection (Lift) & $\eta$ & \texttt{into<F>} / \texttt{singleton} & \texttt{IsMonad} \\
 Comonadic Extend (Pull) & $\ll=$ & \texttt{operator<<=} & \texttt{IsComonad} \\
 Co-Kleisli Composition & $\circ_{CoK}$ & \texttt{operator<<} & \texttt{IsComonad} \\
-Morphic Pullback (Extend) & $\ll=$ & \texttt{operator<<=} & \texttt{IsComonad} \\
 Counit (Extraction) & $\varepsilon$ & \texttt{extract<F>} & \texttt{IsComonad} \\ \midrule
 \textit{Algebra} & & & \\
-Equivalence / Identity & $\cong$ & \texttt{operator==} & \texttt{IsExtensional} \\
+Structural Origin (Zero) & $0$ & \texttt{T::origin()} & \texttt{IsPointed} \\
 Additive Composition & $+$ & \texttt{operator+} & \texttt{IsGroup} \\
-Additive Inverse (Negation) & $-$ & \texttt{operator-} & \texttt{IsGroup} \\
+Additive Inverse & $-$ & \texttt{operator-} & \texttt{IsGroup} \\
 Multiplicative Composition & $\times$ & \texttt{operator*} & \texttt{IsRing} \\
-Multiplicative Inverse & $/$, $^{-1}$ & \texttt{operator/} & \texttt{IsField} \\ \midrule
+Multiplicative Inverse & $/$, $^{-1}$ & \texttt{operator/} & \texttt{IsField} \\
 Associativity & $(a \circ b) \circ c$ & \texttt{is\_associative\_v} & \texttt{IsSemigroupoid} \\
-Idempotency & $a \circ a = a$ & \texttt{is\_idempotent\_v} & \texttt{IsIdempotent} \\ 
+Idempotency & $a \circ a = a$ & \texttt{is\_idempotent\_v} & \texttt{IsIdempotent} \\
 Magnitude / Count & $|S|$ & \texttt{s.size()} / \texttt{s.cardinality()} & \texttt{IsCardinality} \\
-Supremum (LUB) & $\sup$ & \texttt{s.supremum()} & \texttt{HasExtrema} \\
-Infimum (GLB) & $\inf$ & \texttt{s.infimum()} & \texttt{HasExtrema} \\ \bottomrule
+Supremum / Infimum & $\sup, \inf$ & \texttt{s.supremum(), s.infimum()} & \texttt{HasExtrema} \\ 
+\textit{Set Theory} & & & \\
+Countable Infinity & $\aleph_0$ & $\aleph$\texttt{\_0} & \texttt{IsCardinality} \\
+Continuum Cardinality & $\beth_1$ & $\beth$\texttt{\_1} & \texttt{IsCardinality} \\
+\bottomrule
 \end{tabular}
 \end{small}
 \end{table}
+
 
 
 
