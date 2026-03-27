@@ -28,6 +28,26 @@ struct MockSystem {
   constexpr MockSystem operator|(const MockSystem&) const { return *this; }
 };
 
+/** @section Mock_Certification_Registry */
+// We manually verify the algebraic properties of MockSystem 
+// to satisfy the IsSemigroupoid and IsLattice concepts.
+
+namespace dedekind::ontology {
+
+    template <>
+    struct is_associative<MockSystem, std::bit_and<MockSystem>> : std::true_type {};
+
+    template <>
+    struct is_associative<MockSystem, std::bit_or<MockSystem>> : std::true_type {};
+
+    template <>
+    struct is_idempotent<MockSystem, std::bit_and<MockSystem>> : std::true_type {};
+
+    template <>
+    struct is_idempotent<MockSystem, std::bit_or<MockSystem>> : std::true_type {};
+
+} // namespace dedekind::ontology
+
 TEST_CASE("Mereology: Ontological Concept Verification",
           "[ontology][mereology]") {
   // 1. Verify the Presence Morphism (The Functional Essence)

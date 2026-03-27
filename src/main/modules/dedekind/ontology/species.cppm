@@ -95,14 +95,37 @@ static_assert(
 /**
  * @brief Trait to mark an operation as associative: (a ∘ b) ∘ c = a ∘ (b ∘ c)
  **/
+/** @section The_Ledger */
 export template <typename T, typename Op>
-inline constexpr bool is_associative_v = false;
+struct is_associative : std::false_type {};
+
+/** @brief The Public View */
+export template <typename T, typename Op>
+inline constexpr bool is_associative_v = is_associative<T, Op>::value;
 
 /**
  * @brief Trait to mark an operation as commutative: a ∘ b = b ∘ a
  **/
 export template <typename T, typename Op>
-inline constexpr bool is_commutative_v = false;
+struct is_commutative : std::false_type {};
+
+export template <typename T, typename Op>
+inline constexpr bool is_commutative_v = is_commutative<T, Op>::value;
+
+/**
+ * @brief Trait verifying the Law of Persistence: x ∘ x = x.
+ * 
+ * @details
+ * In a Mereological Lattice, idempotency is the engine of pruning.
+ * Without this proof, the compiler cannot safely collapse (A ∪ A) 
+ * or (A ∩ A) into a single identity.
+ */
+export template <typename T, typename Op>
+struct is_idempotent : std::false_type {};
+
+/** @brief Helper for shorthand access in concepts. */
+export template <typename T, typename Op>
+inline constexpr bool is_idempotent_v = is_idempotent<T, Op>::value;
 
 /** @brief Primary trait: Identity does not exist by default. */
 export template <typename T, typename Op>
@@ -414,22 +437,6 @@ static_assert(is_associative_v<int, std::plus<int>>,
 static_assert(
     characteristic_v<unsigned char> == 256,
     "Taxonomy Error: 8-bit unsigned species must have characteristic 256.");
-
-/**
- * @section Algebraic_Properties: Idempotency
- * @brief Trait verifying the Law of Persistence: x ∘ x = x.
- * 
- * @details
- * In a Mereological Lattice, idempotency is the engine of pruning.
- * Without this proof, the compiler cannot safely collapse (A ∪ A) 
- * or (A ∩ A) into a single identity.
- */
-template <typename T, typename Op>
-struct is_idempotent : std::false_type {};
-
-/** @brief Helper for shorthand access in concepts. */
-template <typename T, typename Op>
-inline constexpr bool is_idempotent_v = is_idempotent<T, Op>::value;
 
 /** @section Logic_Species_Specializations */
 
