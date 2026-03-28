@@ -35,12 +35,10 @@ jobs:
       # Note: CMAKE_BUILD_TYPE=Release is required for the code to compile at all, due to the use of concepts and modules.
       run: cmake -S . -B build -G Ninja -DCMAKE_CXX_COMPILER=clang++-21 -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_SCAN_FOR_MODULES=ON
 
-    - name: Build Library
-      run: cmake --build build
-
-    - name: Run Tests
-      working-directory: build
-      run: ctest --output-on-failure
+    - name: Build & Run Tests
+      run: |
+        cmake --build build
+        LLVM_PROFILE_FILE="build/dedekind.profraw" ./build/dedekind_test
 
     - name: Process Coverage Data
       run: |
