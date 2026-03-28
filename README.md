@@ -23,3 +23,7 @@ The following structural anchors are currently established in the registry:
 [Note: ℤ (Integers) and ℚ (Rationals) are currently undergoing mereological integration.]
 
 An AI assisted during the development of this project.
+
+### Futher reading:
+
+* Doxygen: https://vincentk.github.io/dedekind/
