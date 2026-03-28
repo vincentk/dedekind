@@ -49,7 +49,7 @@ jobs:
         llvm-cov-21 export ./build/dedekind_test \
           -instr-profile=build/dedekind.profdata \
           -format=lcov \
-          -ignore-filename-regex=".*_deps/.*" > build/coverage.info
+          -ignore-filename-regex=".*_deps/.*|.*test/.*" > build/coverage.info
 
     - name: Upload to Codecov
       uses: codecov/codecov-action@v4
