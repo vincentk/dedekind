@@ -40,9 +40,8 @@ jobs:
 
   deploy-docs:
     needs: build
-    runs-on: ubuntu-latest 
-    # Optional: uncomment to restrict to main branch
-    # if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     
     environment:
       name: github-pages
