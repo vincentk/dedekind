@@ -42,12 +42,20 @@ jobs:
 
     - name: Process Coverage Data
       run: |
+        # 1. Merge the raw profile data
         llvm-profdata-21 merge -sparse build/dedekind.profraw -o build/dedekind.profdata
-        # Export to LCOV for Codecov
-        llvm-cov-21 export ./build/dedekind_test -instr-profile=build/dedekind.profdata -format=lcov -ignore-filename-regex=".*_deps/.*" > build/coverage.info
-        # Export to Cobertura XML for PR comment (using gcovr)
-        pip install gcovr
-        gcovr --add-tracefile build/coverage.info --xml build/coverage.xml
+        
+        # 2. Export to LCOV format (Supported by Codecov and PR reporters)
+        llvm-cov-21 export ./build/dedekind_test \
+          -instr-profile=build/dedekind.profdata \
+          -format=lcov \
+          -ignore-filename-regex=".*_deps/.*" > build/coverage.info
+
+    - name: Upload to Codecov
+      uses: codecov/codecov-action@v4
+      with:
+        files: build/coverage.info
+        token: ${{ secrets.CODECOV_TOKEN }}
 
 
   deploy-docs:
