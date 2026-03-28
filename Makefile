@@ -40,26 +40,21 @@ $(BUILD_DIR)/CMakeCache.txt:
 #		-DPython_EXECUTABLE=$(which python) \
 #		-DCMAKE_INSTALL_PREFIX=$(python -c "import site; print(site.getsitepackages()[0])")
 
-# mvn compile
 compile: $(BUILD_DIR)/CMakeCache.txt
 	cmake --build $(BUILD_DIR)
 
-# mvn test
 test: compile
 	ctest --test-dir $(BUILD_DIR) --output-on-failure
 
-# mvn install
 install: compile
 	cmake --install $(BUILD_DIR) --prefix $(INSTALL_DIR)
 
-# mvn checkstyle (Format)
 format:
 	find src -name "*.cpp" -o -name "*.cppm" | xargs $(LLVM_ROOT)/bin/clang-format -i
 
-# mvn site (Generate Documentation)
-doc: compile
+doxygen: compile
 	cmake --build $(BUILD_DIR) --target docs
-	open $(BUILD_DIR)/html/index.html
+	#open $(BUILD_DIR)/html/index.html
 
 
 # The coverage report depends on the tests having been run
