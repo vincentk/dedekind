@@ -22,10 +22,9 @@ LDFLAGS     := "-L$(LLVM_CXX_LIB) -L$(LLVM_ROOT)/lib -lc++ -Wl,-rpath,$(LLVM_CXX
 
 .PHONY: all clean compile test install format doc coverage
 
-# Default: mvn compile
+# Default: compile
 all: compile
 
-# mvn clean
 clean:
 	rm -rf $(BUILD_DIR) $(INSTALL_DIR)
 
@@ -37,6 +36,7 @@ $(BUILD_DIR)/CMakeCache.txt:
 		-DCMAKE_CXX_FLAGS=$(CXXFLAGS) \
 		-DCMAKE_EXE_LINKER_FLAGS=$(LDFLAGS) \
 		-DCMAKE_CXX_SCAN_FOR_MODULES=ON
+# FIXME: python support with e.g. nanobind
 #		-DPython_EXECUTABLE=$(which python) \
 #		-DCMAKE_INSTALL_PREFIX=$(python -c "import site; print(site.getsitepackages()[0])")
 
