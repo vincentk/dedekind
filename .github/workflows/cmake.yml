@@ -57,6 +57,14 @@ jobs:
         files: build/coverage.info
         token: ${{ secrets.CODECOV_TOKEN }}
 
+    - name: Add coverage to PR
+      if: github.event_name == 'pull_request'
+      uses: barecheck/code-coverage-action@v1
+      with:
+        barecheck-github-app-token: ${{ secrets.GITHUB_TOKEN }}
+        lcov-file: build/coverage.info
+        minimum-ratio: 50 # Adjust as needed
+
 
   deploy-docs:
     needs: build
