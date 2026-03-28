@@ -1,5 +1,5 @@
 [![C++ CI](https://github.com/vincentk/dedekind/actions/workflows/cmake.yml/badge.svg)](https://github.com/vincentk/dedekind/actions)
-[![codecov](https://codecov.io/vincentk/dedekind/graph/badge.svg)](https://codecov.io/vincentk/dedekind/)
+[![codecov](https://codecov.io/github/vincentk/dedekind/graph/badge.svg?token=NO83DSL8GZ)](https://codecov.io/github/vincentk/dedekind)
 
 # Dedekind 
 
