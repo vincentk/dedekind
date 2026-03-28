@@ -20,6 +20,10 @@ COV      := $(LLVM_ROOT)/bin/llvm-cov
 CXXFLAGS    := "-stdlib=libc++ -isysroot $(SDK_PATH)"
 LDFLAGS     := "-L$(LLVM_CXX_LIB) -L$(LLVM_ROOT)/lib -lc++ -Wl,-rpath,$(LLVM_CXX_LIB),-rpath,$(LLVM_ROOT)/lib"
 
+# Graphviz dot files for inclusion in the draft paper
+LATEX_DIR := docs/paper
+GRAPH_SRC := $(BUILD_DIR)/graphs/$(PROJECT_NAME).dot
+
 .PHONY: all clean compile test install format doc coverage
 
 # Default: compile
@@ -78,3 +82,17 @@ coverage: test
 	
 	@echo "Report generated at $(BUILD_DIR)/coverage/index.html"
 	open $(BUILD_DIR)/coverage/index.html
+
+
+
+# Generate build dependency graph without breaking the Ninja build
+dot: $(BUILD_DIR)/CMakeCache.txt
+	@mkdir -p $(LATEX_DIR)/figures
+	ninja -C build -t graph | gvpr -c 'N[match(label, ".*\.cppm") < 0]{delete($$G, $$)}' > docs/paper/figures/dedekind_module_dependencies.dot
+	dot -Tpdf $(LATEX_DIR)/figures/dedekind_module_dependencies.dot -o $(LATEX_DIR)/figures/dedekind_deps.pdf
+
+
+doc: dot
+	pdflatex paper.tex
+	biber paper
+	pdflatex paper.tex

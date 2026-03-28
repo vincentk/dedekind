@@ -1,0 +1,3 @@
+set(GRAPHVIZ_EXECUTABLES FALSE)
+set(GRAPHVIZ_STATIC_LIBS TRUE)
+set(GRAPHVIZ_MODULE_LIBS TRUE) # Refers to CMake MODULE libraries, not C++ modules
