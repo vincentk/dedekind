@@ -10,6 +10,7 @@ permissions:
   contents: read
   pages: write
   id-token: write
+  pull-requests: write
 
 jobs:
   build:
@@ -50,12 +51,16 @@ jobs:
     steps:
     - uses: actions/checkout@v4
 
-    - name: Install Doxygen and Build Tools
-      run: sudo apt-get install -y doxygen graphviz cmake ninja-build
+    - name: Install Doxygen and Clang 21
+      run: |
+        wget https://apt.llvm.org/llvm.sh && chmod +x llvm.sh && sudo ./llvm.sh 21
+        sudo apt-get install -y doxygen graphviz cmake ninja-build clang-21
 
     - name: Build Doxygen Documentation
       run: |
-        cmake -S . -B build -G Ninja
+        cmake -S . -B build -G Ninja \
+          -DCMAKE_CXX_COMPILER=clang++-21 \
+          -DCMAKE_CXX_SCAN_FOR_MODULES=ON
         cmake --build build --target docs
 
     - name: Add .nojekyll
@@ -69,3 +74,11 @@ jobs:
     - name: Deploy to GitHub Pages
       id: deployment
       uses: actions/deploy-pages@v4
+
+    - name: Post Doc Link to PR
+      if: github.event_name == 'pull_request'
+      uses: thollander/actions-comment-pull-request@v2
+      with:
+        message: |
+          📖 **Doxygen Documentation Preview:**
+          https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/
