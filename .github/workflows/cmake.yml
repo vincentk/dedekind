@@ -29,20 +29,39 @@ jobs:
       run: find src -name "*.cpp" -o -name "*.cppm" | xargs clang-format-21 --dry-run --Werror
 
     - name: Configure CMake
+      # Note: CMAKE_CXX_COMPILER is required to use a recent clang.
+      # Note: CMAKE_CXX_SCAN_FOR_MODULES is required for clang to find the module interfaces.
+      # Note: Ninja is required for CMAKE_CXX_SCAN_FOR_MODULES to work.
+      # Note: CMAKE_BUILD_TYPE=Release is required for the code to compile at all, due to the use of concepts and modules.
       run: cmake -S . -B build -G Ninja -DCMAKE_CXX_COMPILER=clang++-21 -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_SCAN_FOR_MODULES=ON
 
-    - name: Build Library
-      run: cmake --build build
+    - name: Build & Run Tests
+      run: |
+        cmake --build build
+        LLVM_PROFILE_FILE="build/dedekind.profraw" ./build/dedekind_test
 
-    - name: Run Tests
-      working-directory: build
-      run: ctest --output-on-failure
+    - name: Process Coverage Data
+      run: |
+        # 1. Merge the raw profile data
+        llvm-profdata-21 merge -sparse build/dedekind.profraw -o build/dedekind.profdata
+        
+        # 2. Export to LCOV format (Supported by Codecov and PR reporters)
+        llvm-cov-21 export ./build/dedekind_test \
+          -instr-profile=build/dedekind.profdata \
+          -format=lcov \
+          -ignore-filename-regex=".*_deps/.*" > build/coverage.info
+
+    - name: Upload to Codecov
+      uses: codecov/codecov-action@v4
+      with:
+        files: build/coverage.info
+        token: ${{ secrets.CODECOV_TOKEN }}
+
 
   deploy-docs:
     needs: build
-    runs-on: ubuntu-latest 
-    # Optional: uncomment to restrict to main branch
-    # if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     
     environment:
       name: github-pages

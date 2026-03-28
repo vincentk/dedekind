@@ -1,3 +1,6 @@
+[![C++ CI](https://github.com/vincentk/dedekind/actions/workflows/cmake.yml/badge.svg)](https://github.com/vincentk/dedekind/actions)
+[![codecov](https://codecov.io/github/vincentk/dedekind/graph/badge.svg?token=NO83DSL8GZ)](https://codecov.io/github/vincentk/dedekind)
+
 # Dedekind 
 
 [ 🌸 Don't panic. ]
@@ -19,9 +22,4 @@ The following structural anchors are currently established in the registry:
 
 [Note: ℤ (Integers) and ℚ (Rationals) are currently undergoing mereological integration.]
 
-### Background
-
-While formal verification tools (like Lean or Coq) provide mathematical rigor, they lack the hardware-level efficiency required for heavy computation. Conversely, standard numeric libraries often sacrifice mathematical "essence" for raw speed. `dedekind` uses C++23 concepts to try to bridge that gap. The API aims to be approachable. Extensive training using dedicated tools should not be required to make it accessible for everyday use. Its small default footprint should make it viable as an embedded library or in embedded applications. As a matter of fact, the runtime footprint is often non-existent, as structural truths are collapsed into direct machine instructions.
-
-An AI assisted developing this project.
-
+An AI assisted during the development of this project.
