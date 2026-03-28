@@ -16,6 +16,10 @@
 % Landscape tables:
 \usepackage[figuresright]{rotating}
 
+% Graphs
+\usepackage{tikz}
+\usetikzlibrary{arrows.meta, positioning, shapes.geometric}
+
 \usepackage[style=numeric, sorting=none]{biblatex}
 \addbibresource{references.bib}     % Points to your .bib file (include the extension)
 
@@ -97,6 +101,47 @@ The programmer is free to reason in the language of Cantor, while the compiler p
 \section{Implementation}
 
 The methodology of \texttt{dedekind} is predicated on the translation of formal mathematical structures into a stratified registry of C++23 modules. This stratification allows for a "bottom-up" synthesis of complex mathematical objects, where each level serves as a verified foundation for the next.
+
+To ensure the decidability of the ontology and mitigate the 'template tax,' we utilize a strictly enforced build graph (see Figure \ref{fig:build_graph}). This DAG mirrors the formal structure of a mathematical proof: \textit{Axiom} $\rightarrow$ \textit{Theorem} $\rightarrow$ \textit{Proof}. By isolating foundational mereological axioms into the \texttt{:mereology} partition, the compiler produces a Binary Module Interface (BMI) that acts as a 'cached truth.'
+This physical stratification prohibits circular reasoning at the compiler level; a partition can only reference previously verified structural properties. Subsequent partitions, such as \texttt{:algebra}, import these BMIs as established lemmas, allowing the compiler to focus solely on the synthesis of higher-order laws without the risk of recursive definition or re-instantiation of the underlying species. In this architecture, the C++ build system serves as a physical guardrail for the integrity of the formal derivation.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}
+
+% --- Nodes: Foundations ---
+\node[partition] (logic) {:logic \\ \scriptsize Level -1};
+\node[partition, right=of logic] (species) {:species \\ \scriptsize Level 0a};
+\node[partition, right=of species] (category) {:category \\ \scriptsize Level 0b};
+
+% --- Nodes: Space ---
+\node[partition, below=1.8cm of species] (mereology) {:mereology \\ \scriptsize Level 1};
+\node[partition, left=0.8cm of mereology] (order) {:order};
+\node[partition, right=0.8cm of mereology] (topology) {:topology};
+
+% --- Nodes: Scale, Soul, Realization ---
+\node[partition, below=1cm of mereology] (sequences) {:sequences \\ \scriptsize Level 2};
+\node[partition, below=1cm of sequences] (algebra) {:algebra \\ \scriptsize Level 3};
+\node[partition, below=1cm of algebra] (numbers) {:numbers \\ \scriptsize Level 4};
+
+% --- Connections (Direct Paths) ---
+\draw[->, thick, gray] (logic.south) -- (mereology.north);
+\draw[->, thick, gray] (species.south) -- (mereology.north);
+\draw[->, thick, gray] (category.south) -- (mereology.north);
+
+\draw[->, thick, gray] (mereology.west) -- (order.east);
+\draw[->, thick, gray] (mereology.east) -- (topology.west);
+\draw[->, thick, gray] (mereology.south) -- (sequences.north);
+
+\draw[->, thick, gray] (sequences.south) -- (algebra.north);
+\draw[->, thick, gray] (order.south) |- ([yshift=0.4cm]algebra.north) -- (algebra.north);
+\draw[->, thick, gray] (algebra.south) -- (numbers.north);
+
+\end{tikzpicture}
+\caption{The Ontological Build Graph: Enforcing a Non-Circular Derivation of Truth.}
+\label{fig:build_graph}
+\end{figure}
+
 
 \subsection{The Unified Dedekind Ontology}
 
