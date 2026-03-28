@@ -14,6 +14,62 @@ using namespace dedekind::ontology;
 
 TEST_CASE("Ontology: Arrow Factory Verification",
           "[ontology][species][category]") {
+  SECTION("6. Functorial Composition (fmap)") {
+    auto increment = [](int x) { return x + 1; };
+    auto double_it = [](int x) { return x * 2; };
+
+    // Pass the lambda into fmap first
+    auto result = 5 >> into<Box> >> fmap<Box>(endo<int>(increment)) >>
+                  fmap<Box>(endo<int>(double_it));
+
+    CHECK(result == Box<int>{12});
+
+    // // Proof of the Functor Law
+    // auto composed_pure = [&](int x) { return double_it(increment(x)); };
+
+    // auto left_side = (5 >> into<Box>) << fmap(composed_pure);
+    // auto right_side = ((5 >> into<Box>) << fmap(increment)) <<
+    // fmap(double_it);
+
+    // CHECK(left_side == right_side);
+  }
+
+  SECTION("6. Composite Morphism (The Refined Way)") {
+    // Convert plain lambdas into tagged endomorphisms:
+    auto f = endo<int>([](int x) { return x + 1; });
+    auto g = endo<int>([](int x) { return x * 2; });
+
+    // Morphism composition: (h = g . f):
+    auto h = f >> g;
+
+    // Lifting into the Box and applying the composed morphism:
+    auto result = 5 >> into<Box> >> fmap<Box>(h);
+
+    CHECK(result == Box<int>{12});
+  }
+
+  SECTION("5. Monadic Chain Composition (The Kleisli Flow)") {
+    // Define two monadic arrows (Species -> Boxed Species)
+    auto f = [](int x) { return pure(x + 1); };
+    auto g = [](int x) { return pure(x * 2); };
+
+    // Chain composition via Bind (>>=)
+    // Starting with a raw value, lifting it, then chaining the monadic arrows.
+    auto x = (5 >> into<Box> >>= f) >>= g;
+
+    // (5 + 1) * 2 = 12, wrapped in a Box
+    CHECK(x == Box<int>{12});
+
+    // Verification of the Monadic Associativity Law:
+    // (m >>= f) >>= g  is equivalent to  m >>= (x => f(x) >>= g)
+    auto lh = (5 >> into<Box> >>= f) >>= g;
+
+    auto rh = 5 >> into<Box> >>= [&](int x) { return f(x) >>= g; };
+
+    CHECK(lh == rh);
+    STATIC_CHECK(std::same_as<decltype(x), Box<int>>);
+  }
+
   SECTION("Standard Function Object Tagging (Endomorphisms)") {
     using Negate = std::negate<int>;
     // Testing the 'endo' factory which implies Domain == Codomain

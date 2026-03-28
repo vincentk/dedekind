@@ -23,9 +23,5 @@ The following structural anchors are currently established in the registry:
 
 While formal verification tools (like Lean or Coq) provide mathematical rigor, they lack the hardware-level efficiency required for heavy computation. Conversely, standard numeric libraries often sacrifice mathematical "essence" for raw speed. `dedekind` uses C++23 concepts to try to bridge that gap. The API aims to be approachable. Extensive training using dedicated tools should not be required to make it accessible for everyday use. Its small default footprint should make it viable as an embedded library or in embedded applications. As a matter of fact, the runtime footprint is often non-existent, as structural truths are collapsed into direct machine instructions.
 
-### Synthesis Acknowledgement
-
-The structural anchors of the `dedekind` ontology and the refinement of its C++23 DSL were developed in recursive dialogue.
-
-In this collaboration, the AI assisted in mapping categorical morphisms to template metaprogramming patterns. While the mathematical intuition remains human, the linguistic and structural logic of this library has been co-synthesized through artificial reasoning—ensuring that the code not only compiles but "speaks" the language of formal logic.
+An AI assisted developing this project.
 

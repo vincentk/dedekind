@@ -27,3 +27,12 @@ buildNumber.properties
 
 **/build/
 **/dist/
+
+
+docs/paper/*.aux
+docs/paper/*.bbl
+docs/paper/*.bcf
+docs/paper/*.blg
+docs/paper/*.log
+docs/paper/*.out
+docs/paper/*.run.xml
