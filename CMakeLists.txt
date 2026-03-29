@@ -33,6 +33,10 @@ target_sources(dedekind_category
         src/main/modules/dedekind/category/functorial.cppm
         src/main/modules/dedekind/category/monad.cppm
         src/main/modules/dedekind/category/comonad.cppm
+        src/main/modules/dedekind/category/cartesian.cppm
+        src/main/modules/dedekind/category/posetal.cppm
+        src/main/modules/dedekind/category/small.cppm
+        src/main/modules/dedekind/category/etcs.cppm
 )
 target_compile_options(dedekind_category PRIVATE ${DEDEKIND_WARNING_FLAGS})
 
@@ -103,7 +107,7 @@ FetchContent_MakeAvailable(Catch2)
 enable_testing()
 
 add_executable(dedekind_test 
-    src/test/cpp/modules/dedekind/ontology/category_test.cpp
+    src/test/cpp/modules/dedekind/category/category_test.cpp
     src/test/cpp/modules/dedekind/ontology/mereology_test.cpp
     src/test/cpp/modules/dedekind/sets/boundaries_test.cpp
     src/test/cpp/modules/dedekind/sets/singleton_test.cpp

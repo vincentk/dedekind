@@ -44,8 +44,6 @@ module;
 export module dedekind.ontology:mereology;
 
 import dedekind.category;
-import :logic;
-import :species;
 
 /**
  * @section Mereology: The study of parts and wholes.
