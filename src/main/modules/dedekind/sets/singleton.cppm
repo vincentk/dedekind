@@ -149,7 +149,8 @@ constexpr auto operator<<=(const SingletonSet<T, L>& s, Func&& f) {
 
 namespace dedekind::category {
 using namespace dedekind::sets;
-// Re-open the category namespace to provide η/ε specializations for SingletonSet
+// Re-open the category namespace to provide η/ε specializations for
+// SingletonSet
 export template <typename T>
 struct η<SingletonSet, T> {
   constexpr auto operator()(const T& x) const { return SingletonSet<T>{x}; }
