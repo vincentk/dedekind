@@ -74,7 +74,8 @@ In traditional systems programming, however, this declarative elegance is lost.
 Developers are usually forced to manually translate these logical intentions into imperative loops, filter functions, and temporary buffers.
 This translation is not only prone to error but also opaque to the compiler, which cannot optimize a "black-box" loop using the formal properties of the set it is iterating over.
 
-In this paper, we propose \texttt{dedekind}, a domain-specific language (DSL) for C++23 \cite{cpp23standard} that embeds set-builder notation directly into the host language syntax. Recently added C++23 features—such as modules, \texttt{concept}, \texttt{consteval}, and non-type template parameters (NTTP)—allow developers to define complex mathematical species using a syntax that mirrors formal logic. Crucially, these are not mere runtime "filter" objects; they are compile-time structural specifications.
+In this paper, we propose \texttt{dedekind}, a domain-specific language (DSL) for C++23 \cite{cpp23standard} that embeds set-builder notation directly into the host language syntax. Recently added C++23 features—such as modules, \texttt{concept}, \texttt{consteval}, and non-type template parameters (NTTP)—allow developers to define complex mathematical species using a syntax that mirrors formal logic. Crucially, these are not mere runtime "filter" objects; they are compile-time structural specifications \cite{milewski2018category}.
+Just as a C++ concept defines a set of behaviors without mandating a specific memory layout, Structuralism \cite{shapiro2000thinking} treats mathematical entities as positions in a system of relations.
 
 The aim of the \texttt{dedekind} library is to serve as a high-performance bridge for the computational sciences, specifically aiming to narrow the gap between C++ and the symbolic algebra systems prevalent in the Python ecosystem. While Python allows for the expressive definition of the Continuum, the execution is often decoupled from the hardware's potential. Conversely, while the Rust programming language provides a "safety-first" approach to systems programming, its trait system currently lacks the "white-box" structural transparency required to hoist complex mereological invariants, such as the Dedekind cut, into the heart of the optimization pipeline.
 
@@ -114,6 +115,7 @@ Despite these constraints, the contributions of this work include:
 The structural mereology \cite{mormann2013structural} approach in \texttt{dedekind} defines sets via formal relations—union ($X \cup Y$), intersection ($X \cap Y$), and parthood ($X \subseteq Y$) and last but not least element ($x \in Y$)  -- prior to implementation. 
 This mirrors structuralist foundations such as Lawvere’s Elementary Theory of the Category of Sets (ETCS) \cite{lawvere2005elementary} and Cartesian Closed Categories (CCCs) \cite{lambek1988introduction, nlab:structural_set_theory}.
 By prioritizing \textit{structural transparency}, this methodology fundamentally departs from object-oriented encapsulation. 
+In a sense, it encodes the well known rule of thumb of "composition over inheritance" \cite{marquis2022structuralist}.
 In a standard \texttt{std::set}, the internal representation is an opaque implementation detail, invisible to the type system’s logic. 
 Conversely, in \texttt{dedekind}, the \textit{type is the definition}. 
 Because the set’s constituents—predicates, universes, and mereological relations—are hoisted into the type signature as first-class members, the C++ type system and the \texttt{CMake} toolchain function as a Constraint Satisfaction Engine (CSE). 
@@ -180,6 +182,7 @@ At the foundation, an embedding of Category Theory (Level 0) within the type sys
 Because higher algebraic structures—such as Groups, Rings, and Fields—are formally defined by the operations performed upon sets, the build order mandates that Level 1 (Space and Mereology) precedes Level 3 (Algebra).
 This ensures that the "Soul" of the system (its laws of action and harmony) is always grounded in the "Body" (the structural presence of its parts). By the time the compiler reaches the \texttt{:algebra} partition, the mereological validity of the underlying species is already a type-checked invariant within the translation unit.
 This hierarchy transforms the C++ module mapper into a directed acyclic graph of mathematical truth, where the linker cannot even begin its work until the ontological prerequisites are satisfied.
+The strict directed acyclic graph (DAG) of the dedekind module partitions mirrors the Bourbaki style of 'Mother Structures' \cite{marquis2022structuralist}, where the physical order of compilation serves as a proof of logical consistency.
 
 \begin{description}
     \item[Level -1 to 0: Foundations (Bricks and Cement)] 
