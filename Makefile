@@ -88,7 +88,11 @@ coverage: test
 # Generate build dependency graph without breaking the Ninja build
 dot: $(BUILD_DIR)/CMakeCache.txt
 	@mkdir -p $(LATEX_DIR)/figures
-	ninja -C build -t graph | gvpr -c 'N[match(label, ".*\.cppm") < 0]{delete($$G, $$)}' > docs/paper/figures/dedekind_module_dependencies.dot
+	#ninja -C build -t graph | \
+	#gvpr -c 'N[match(label, ".*\.cppm") < 0]{delete($$G, $$)}' | \
+	#sed -E 's|label="(.*/)?([^/]+)\.cppm"|label="\2"|g' | \
+	#> docs/paper/figures/dedekind_module_dependencies.dot
+	ninja -C build -t graph | gvpr -f filter.gvpr
 	dot -Tpdf $(LATEX_DIR)/figures/dedekind_module_dependencies.dot -o $(LATEX_DIR)/figures/dedekind_deps.pdf
 
 
