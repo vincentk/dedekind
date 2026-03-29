@@ -37,6 +37,8 @@ target_sources(dedekind_category
         src/main/modules/dedekind/category/small.cppm
         src/main/modules/dedekind/category/etcs.cppm
 )
+# Define DEDEKIND_WARNING_FLAGS before using it so it does not expand as undefined.
+set(DEDEKIND_WARNING_FLAGS "")
 target_compile_options(dedekind_category PRIVATE ${DEDEKIND_WARNING_FLAGS})
 
 # --- 1b. THE ONTOLOGY LAYER (Level 1+) ---
