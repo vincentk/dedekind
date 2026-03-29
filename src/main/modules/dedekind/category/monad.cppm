@@ -64,11 +64,11 @@ module;
 #include <concepts>
 #include <functional>
 
-export module dedekind.ontology:category;
+export module dedekind.category:monad;
 
 import :species;
 
-namespace dedekind::ontology {
+namespace dedekind::category {
 
 /**
  * @concept IsSmallCategory

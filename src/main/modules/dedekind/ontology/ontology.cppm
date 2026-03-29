@@ -12,20 +12,16 @@
  * collections (Mereology), we enable zero-overhead formal verification
  * within the C++23 type system.
  *
- * @see dedekind.ontology:logic (Level -1)
- * @see dedekind.ontology:species (Level 0a)
- * @see dedekind.ontology:category (Level 0b)
- * @see dedekind.ontology:mereology (Level 1)
+ * @see dedekind.category (Level -1 to 0b: Foundations and Mappings)
+ * @see dedekind.ontology:mereology (Level 1: The Space)
  *
  * Wikipedia: Formal ontology, Structuralism (philosophy of mathematics)
  */
 
 export module dedekind.ontology;
 
-/** @section Level_-1_to_0: The Foundations (The Bricks and Cement) */
-export import :logic;     // Level -1: Truth Objects (Ω) and Predicate Logic
-export import :species;   // Level 0a: Reified Machine Primitives (The Bricks)
-export import :category;  // Level 0b: Morphisms, Functors, and Kleisli Highways
+/** @section Level_-1_to_0: The Foundations (External Engine) */
+export import dedekind.category; // Truth (Ω), Machine Species, and Functorial Mapping
 
 /** @section Level_1: The Space (The Body and Relation) */
 export import :mereology;  // Rules of Presence (Sets, Parts, and Wholes)
@@ -43,3 +39,4 @@ export import :morphologies;  // The Realized Forms (Cyclic, Ordered, and
 /** @section Level_4: The Realization (The Registry) */
 export import :geometry;  // Metric Spaces and Manifolds
 export import :numbers;   // The Species Registry (ℕ ⊂ ℤ ⊂ ℚ ⊂ ℝ)
+
