@@ -66,8 +66,7 @@ module;
 
 export module dedekind.category:functorial;
 
-import :comonad;
-import :monad;
+import :kleisli;
 import :species;
 
 namespace dedekind::category {
@@ -226,86 +225,6 @@ export template <typename A>
 constexpr auto id() {
   return Identity<A>{};
 }
-
-/** @section The_Universal_Unit (η) */
-export template <template <typename...> typename F, typename T,
-                 typename... Context>
-struct η;  // Primary template for all kinds of contexts
-
-/** @section The_Kleisli_Triple_for_Box */
-// η (Unit): Lifting a value into the Box
-export template <typename T>
-struct η<Box, T> final {
-  constexpr auto operator()(T x) const { return Box<T>{x}; }
-};
-
-/** @section The_Universal_Counit (ε) */
-export template <template <typename...> typename F, typename T,
-                 typename... Context>
-struct ε;
-
-/** @section Box_Specialization_for_ε */
-export template <typename T>
-struct ε<Box, T> final {
-  // For a Box, extraction is simply accessing the value.
-  constexpr T operator()(const Box<T>& b) const noexcept { return b.value; }
-};
-
-/**
- * @section The_Kleisli_Extension_System
- * @brief Formal detection of the Monadic "Lift and Chain" action.
- *
- * @details
- * A species F satisfies this system if it provides:
- * 1. η (Unit): A way to lift a raw species into the context.
- * 2. >>= (Bind): A way to chain a context to a Kleisli Arrow (T -> F<U>).
- */
-export template <template <typename...> typename F, typename T, typename U>
-concept IsKleisliExtension = requires(T x, F<T> box, std::function<F<U>(T)> f) {
-  { η<F, U>{}(x) } -> std::same_as<F<U>>;  // The Lift (η)
-  { box >>= f } -> std::same_as<F<U>>;     // The Chain (Bind)
-};
-
-static_assert(
-    IsKleisliExtension<Box, int, int>,
-    "Skeletal Failure: Box does not satisfy the Kleisli Extension System.");
-
-/** @section CoKleisli_Extension_System (The Pull) */
-export template <template <typename...> typename F, typename T, typename U>
-concept IsCoKleisliExtension = requires(F<T> box, std::function<U(F<T>)> f) {
-  { ε<F, T>{}(box) } -> std::same_as<T>;  // The Extract
-  { box <<= f } -> std::same_as<F<U>>;    // The Extend
-};
-
-/**
- * @section The_Kleisli_Monad_Proof
- * @brief Elevates a Kleisli Extension to a formal Monad.
- *
- * @details
- * A species is a Kleisli Monad if it possesses the 'Action' (Extension)
- * and satisfies the 'Categorical Identity' (The Arrow Mapping).
- */
-export template <template <typename...> typename F, typename T, typename U>
-concept IsKleisli = IsKleisliExtension<F, T, U> &&
-                    requires(T x, F<T> box, std::function<F<U>(T)> f) {
-                      // We add the formal Categorical requirements here.
-                      // E.g., The result must be a stable F<U>.
-                      { box >>= f } -> std::same_as<F<U>>;
-                    };
-
-/**
- * @section The_CoKleisli_Comonad_Proof
- * @brief Elevates a Co-Kleisli Extension to a formal Comonad.
- */
-export template <template <typename...> typename F, typename T, typename U>
-concept IsCoKleisli = IsCoKleisliExtension<F, T, U> &&
-                      requires(F<T> box, std::function<U(F<T>)> f) {
-                        { box <<= f } -> std::same_as<F<U>>;
-                      };
-
-static_assert(
-    IsCoKleisliExtension<Box, int, int>,
-    "Skeletal Failure: Box does not satisfy the Co-Kleisli Extension System.");
 
 /** @brief The Unit/Pure Factory: Lifts a raw value into the Box context. */
 export template <typename T>

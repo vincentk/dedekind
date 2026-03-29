@@ -32,8 +32,7 @@ export import :species;  // Reified Machine Primitives
 
 /** @section Level_0a: The Mapping Engine */
 export import :functorial;  // Morphisms and Natural Transformations
-export import :monad;       // The Algebra of Contextual Composition
-export import :comonad;     // The Dual Algebra of Extraction
+export import :kleisli;     // The Algebra of Contextual Composition
 
 /** @section Level_0b: The Higher Structures (The Universe Laws) */
 export import :cartesian;  // Finite Products, Terminal Objects, and

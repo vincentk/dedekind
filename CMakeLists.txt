@@ -31,8 +31,7 @@ target_sources(dedekind_category
         src/main/modules/dedekind/category/logic.cppm
         src/main/modules/dedekind/category/species.cppm
         src/main/modules/dedekind/category/functorial.cppm
-        src/main/modules/dedekind/category/monad.cppm
-        src/main/modules/dedekind/category/comonad.cppm
+        src/main/modules/dedekind/category/kleisli.cppm
         src/main/modules/dedekind/category/cartesian.cppm
         src/main/modules/dedekind/category/posetal.cppm
         src/main/modules/dedekind/category/small.cppm
