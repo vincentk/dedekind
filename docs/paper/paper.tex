@@ -51,7 +51,7 @@
 
 % --- Document Metadata ---
 \title{\textsc{dedekind}: An Excursion in Structuralist Mereology in C++23}
-\author{The Dedekind Authors}
+\author{Vincent Kr\"autler}
 \date{\today} % Automatically inserts current date
 
 \begin{document}
@@ -424,7 +424,7 @@ using Intersection = dedekind::meet_t<Evens, Odds>;
 static_assert(dedekind::is_empty_v);
 static_assert(sizeof(Intersection) == 1); // No machine state required
 \end{lstlisting}
-\begin{lstlisting}[caption={Listing 2: The Reverse Curry-Howard Isomorphism in action}]
+\begin{lstlisting}[caption={The Reverse Curry-Howard Isomorphism in action}]
 // In dedekind, a valid program is a constructive proof.
 // If the 'Proof' (the type-transformation) fails, the 'Program' does not compile.
 template
@@ -456,7 +456,6 @@ static_assert(!dedekind::contains(7));
 The stratification mentioned in Section 2 is strictly enforced via the module system. By using \texttt{export module dedekind.ontology:mereology}, we ensure that the compiler can cache the "structural truths" of the system. This prevents the exponential blow-up of compile times typically associated with heavy template libraries, as the "laws" of the ontology are compiled once into binary module interfaces (BMIs)
 
 \section{Conclusion}
-\section{Conclusion}
 This paper has explored the feasibility of embedding formal mereology within the C++23 type system through the \texttt{dedekind} library.
 By transitioning from the traditional object-oriented paradigm of information hiding toward a model of structural transparency, we have illustrated how the compiler can be utilized as a rudimentary constraint satisfaction engine. This approach allows for the high-level representation of mathematical species, such as set-builder notation, without the typical runtime performance penalties associated with abstract modeling.
 
@@ -464,7 +463,7 @@ Our investigation suggests that while the Clang/LLVM toolchain is not a dedicate
 
 The stratification of these formalisms into module partitions provides a scalable pathway for managing the ``template tax,'' ensuring that the rigors of formal logic do not destabilize the build pipeline. By embedding the Dedekind cut and the construction of the Continuum into the build process, we have moved toward a nascent paradigm of \textit{Axiomatic Systems Programming}: a development style where the build process acts as a physical guardrail for mathematical truth.
 
-Future work will investigate extending this mereological framework to other domains of the computational sciences and high-performance computing, such as a direct integration with the upcoming linear algebra capabilities of the C++ standard library \cite{CPP26BLAS}.
+Future work will investigate extending this mereological framework to other domains of the computational sciences and high-performance computing, such as a direct integration with the upcoming linear algebra capabilities of the C++ standard library \cite{CPP26BLAS} while expressly facilitating computations not just using floating point numbers but more generally supporting simplified algebraic systems such as semimodules over rings ($\mathbb B, \mathbb N$) or extended number systems such as the complex numbers ($\mathbb C$), the dual numbers or quaternions.
 
 
 \printbibliography
