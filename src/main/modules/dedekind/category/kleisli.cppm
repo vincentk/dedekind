@@ -75,7 +75,7 @@ struct ε<Box, T> final {
  */
 export template <template <typename...> typename F, typename T, typename U>
 concept IsKleisliExtension = requires(T x, F<T> box, std::function<F<U>(T)> f) {
-  { η<F, U>{}(x) } -> std::same_as<F<U>>;  // The Lift (η)
+  { η<F, T>{}(x) } -> std::same_as<F<T>>;  // The Lift (η)
   { box >>= f } -> std::same_as<F<U>>;     // The Chain (Bind)
 };
 
