@@ -78,8 +78,8 @@ Crucially, these are not mere runtime "filter" objects; they are compile-time st
 However, reifying a formal ontology in a statically-typed \textbf{systems} language presents significant challenges compared to "pure" functional languages like Haskell \cite{GHC2024} or Agda \cite{norell2007towards}, which have native support for higher-kinded types, dependent types and first-class functions.
 Challenges encountered include:
 \begin{itemize}
-\item \textbf{Template Template Parameters}: C++ is notoriously bad at true Category Theory because it lacks Higher-Kinded Types (HKTs).  Without HKTs, you cannot easily define a generic Monad<F>. Here, we use "template template parameters," which have significant edge cases (e.g., they don't play well with aliases or multiple template arguments).
-\item \textbf{The Lambda Hurdle (Opaqueness)}: Unlike the first-class, inspectable functions in the ML family, C++ lambdas are unique, anonymous types. They do not inherently expose their domain or codomain to the type system. A morphim's domain and codomain must be inferred at the call site or explicitly provided by the programmer.
+\item \textbf{Template Template Parameters}: C++ is notoriously bad at true Category Theory because it lacks higher-kinded Types (HKTs).  As a result \texttt{Functor<F>} or \texttt{Monad<F>} are defined in terms of \texttt{template template}, which have significant edge cases (e.g., they don't play well with aliases or multiple template arguments).
+\item \textbf{The Lambda Hurdle (Opaqueness)}: Unlike the first-class, inspectable functions in the ML family, C++ lambdas are unique, anonymous types. They do not inherently expose their domain or codomain to the type system. A morphim's domain and codomain must be inferred at the call site or explicitly provided by the programmer. Although if used as \textit{Non-Type Template Paramters} (NTTP),  they can be "inspected" them via \texttt{concept} checks or by wrapping them in a type that carries its own signature metadata.
 \item \textbf{Decidability vs. Instantiation}: While dependent-type systems use proof-search, C++ relies on template instantiation. This introduces the risk of "Late Detection," where a mathematical violation is only discovered when a set is materialized, rather than when it is defined. This can be mitigated by forcing evaluations into \texttt{consteval} and \texttt{constexpr} contexts.
 \item \textbf{The Performance-Rigidity Tradeoff}: High-level abstractions in C++ often incur a "template tax" in compile times. We utilize C++23 \textbf{Module Partitions} to create a directed acyclic graph of truth, caching structural invariants to ensure that formal rigor does not collapse the build pipeline.
 \item \textbf{The Specialization Constraint}: Unlike the unified pattern matching of functional languages, C++ relies on Partial Template Specialization to resolve structural properties.
@@ -87,6 +87,8 @@ This creates a "Rigidity Challenge": the compiler cannot readily deduce that a p
 \item \textbf{The Precedence-Associativity Constraint}: A significant friction point in embedding categorical notation within the C++ grammar is the language's fixed set of \texttt{operator} candidates and fixed precedence and associativity rules. While the \texttt{operator>>=} is used to model the Monadic Bind ($\bind$), the ISO C++ standard defines compound assignment operators (including \texttt{>>=}, \texttt{<<=}, \texttt{+=}, \texttt{*=}, etc.) with \textbf{right-to-left associativity}.
 Consequently, a standard monadic chain such as $m \bind f \bind g = (m \bind f) \bind g$ is parsed by the compiler as \texttt{m >>= (f >>= g)}. As this makes no sense in a monadic chain, explicit grouping, e.g., \texttt{(m >>= f) >>= g} is required.
 \end{itemize}
+
+We note that while these kinds of restrictions may make C++ appear frugal when compared to a "proper" functional programming environment, the small runtime footprint of C++ will still make the approach worthwhile for many use cases.
 
 Despite these constraints, the contributions of this work include:
 \begin{itemize}
@@ -96,13 +98,21 @@ Despite these constraints, the contributions of this work include:
 \item \textbf{Zero-Overhead Semantic Mapping}: We show that these high-level abstractions result in machine code that is identical to hand-optimized assembly, effectively proving that formal rigor does not necessitate a "performance tax."
 \end{itemize}
 
+We note that when we use words like "structural", or "mereological", what we mean is almost precisely the opposite of encapsulation and abstraction. 
+E.g. a set is defined in terms of its mereological relations first (union, intersection, subset relation - parthood).
+We believe this mirrors how sets are defined when starting out from a foundation in category theory: we note e.g. the Elementary Theory of the Category of Sets (ETCS) or cartesian closed categories.
+The intended result is that type signatures get complex so that the type checker can verify the structure of the programs and the claims being made. 
+The Clang C++ compiler is not designed to be a theorem prover first and foremost, this approach should still help us to establish many computer-verified guard rails that will help manage complexity and correctness down the line. We should still be able to use it as a constraint satisfaction engine.
+
 By reifying a subset of the set-builder notation, dedekind turns the C++ translation unit into a symbolic laboratory.
 The programmer is free to reason in the language of Cantor, while the compiler produces the performance of a naked C++ loop.
 
 
 \section{Implementation}
 
-The methodology of \texttt{dedekind} is predicated on the translation of formal mathematical structures into a stratified registry of C++23 modules. This stratification allows for a "bottom-up" synthesis of complex mathematical objects, where each level serves as a verified foundation for the next.
+The methodology of \texttt{dedekind} is predicated on the translation of formal mathematical structures into a stratified registry of C++23 modules. This stratification allows for a "bottom-up" synthesis of complex mathematical objects, where each level serves as a verified foundation for the next. 
+The intention being that the flow of compilation would mirror the order in which objects might get introduced in a textbook or a lecture. 
+I.e. objects which are compiled first would tend to be more general, more foundational (either in the mathematical sense or in terms of embedding in the C++ host language) whereas objects chich get compiled later will be more elaborate and specialized but also perhaps more practical to the user.
 
 To ensure the decidability of the ontology and mitigate the 'template tax,' we utilize a strictly enforced build graph (see Figure \ref{fig:build_graph}). This DAG mirrors the formal structure of a mathematical proof: \textit{Axiom} $\rightarrow$ \textit{Theorem} $\rightarrow$ \textit{Proof}. By isolating foundational mereological axioms into the \texttt{:mereology} partition, the compiler produces a Binary Module Interface (BMI) that acts as a 'cached truth.'
 This physical stratification prohibits circular reasoning at the compiler level; a partition can only reference previously verified structural properties. Subsequent partitions, such as \texttt{:algebra}, import these BMIs as established lemmas, allowing the compiler to focus solely on the synthesis of higher-order laws without the risk of recursive definition or re-instantiation of the underlying species. In this architecture, the C++ build system serves as a physical guardrail for the integrity of the formal derivation.
