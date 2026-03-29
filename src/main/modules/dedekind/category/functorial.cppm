@@ -194,7 +194,6 @@ constexpr auto zero() {
   return arrow<A, B>(ZeroAction<A, B, Op>{});
 }
 
-
 /** @section Zero Morphism Verification */
 
 // 1. Proof: Zero is an Arrow from int to int (under addition).
@@ -943,4 +942,4 @@ static_assert((42 >> into<Box> << duplicate<Box> << extract<Box>) ==
                   42 >> into<Box>,
               "Comonad Law: Extract ∘ Duplicate must be an Identity on Boxes.");
 
-}  // namespace dedekind::ontology
+}  // namespace dedekind::category

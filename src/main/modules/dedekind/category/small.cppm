@@ -4,8 +4,8 @@
  *
  * @partition :small
  * @section Small: Categories with Set-Sized Morphisms
- * A Small Category is a category where the collection of morphisms is a Set. 
- * This partition enables the definition of finite categories, diagrams, 
+ * A Small Category is a category where the collection of morphisms is a Set.
+ * This partition enables the definition of finite categories, diagrams,
  * and discrete structures that can be explicitly navigated.
  *
  * Wikipedia: Small category, Discrete category
@@ -17,9 +17,9 @@ import :functorial;
 
 namespace dedekind::category {
 
-/** 
+/**
  * @section Small_Category_Concepts
- * Concepts for categories with enumerable Objects (Obj) and 
+ * Concepts for categories with enumerable Objects (Obj) and
  * Hom-sets (Hom<A, B>).
  */
 
@@ -28,5 +28,4 @@ namespace dedekind::category {
  * Special cases where the only morphisms are identities.
  */
 
-} // namespace dedekind::category
-
+}  // namespace dedekind::category

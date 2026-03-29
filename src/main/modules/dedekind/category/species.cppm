@@ -520,4 +520,4 @@ constexpr auto operator<<=(const Box<T>& b, Func&& f) {
   return Box<U>{std::forward<Func>(f)(b)};
 }
 
-}  // namespace dedekind::ontology
+}  // namespace dedekind::category

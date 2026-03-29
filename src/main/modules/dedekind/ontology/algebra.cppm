@@ -37,8 +37,8 @@ module;
 export module dedekind.ontology:algebra;
 
 import dedekind.category;
-import :order;      // Level 1.5: Necessary for Ordered Groups/Fields
-                    // (IsTotallyOrdered)
+import :order;  // Level 1.5: Necessary for Ordered Groups/Fields
+                // (IsTotallyOrdered)
 
 namespace dedekind::ontology {
 using ::dedekind::ontology::IsDense;

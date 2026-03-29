@@ -68,5 +68,4 @@ export module dedekind.category:monad;
 
 import :species;
 
-namespace dedekind::category {
-}
+namespace dedekind::category {}

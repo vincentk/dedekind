@@ -21,7 +21,8 @@
 export module dedekind.ontology;
 
 /** @section Level_-1_to_0: The Foundations (External Engine) */
-export import dedekind.category; // Truth (Ω), Machine Species, and Functorial Mapping
+export import dedekind
+    .category;  // Truth (Ω), Machine Species, and Functorial Mapping
 
 /** @section Level_1: The Space (The Body and Relation) */
 export import :mereology;  // Rules of Presence (Sets, Parts, and Wholes)
@@ -39,4 +40,3 @@ export import :morphologies;  // The Realized Forms (Cyclic, Ordered, and
 /** @section Level_4: The Realization (The Registry) */
 export import :geometry;  // Metric Spaces and Manifolds
 export import :numbers;   // The Species Registry (ℕ ⊂ ℤ ⊂ ℚ ⊂ ℝ)
-

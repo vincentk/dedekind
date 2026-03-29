@@ -68,6 +68,4 @@ export module dedekind.category:comonad;
 
 import :species;
 
-namespace dedekind::category {
-
-}
+namespace dedekind::category {}

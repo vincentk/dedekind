@@ -4,8 +4,8 @@
  *
  * @partition :posetal
  * @section Posetal: Categories as Partially Ordered Sets
- * A Posetal Category is a structure where there is at most one morphism 
- * between any two objects. This partition enables the interpretation 
+ * A Posetal Category is a structure where there is at most one morphism
+ * between any two objects. This partition enables the interpretation
  * of "A -> B" as the relation "A ≤ B".
  *
  * Wikipedia: Poset, Preorder (category theory)
@@ -18,9 +18,8 @@ namespace dedekind::category {
 
 /**
  * @section Zero_Morphism
- * The unique morphism existing between any two objects in a collapsed 
+ * The unique morphism existing between any two objects in a collapsed
  * posetal structure.
  */
 
-} // namespace dedekind::category
-
+}  // namespace dedekind::category

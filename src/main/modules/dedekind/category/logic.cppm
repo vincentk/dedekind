@@ -306,4 +306,4 @@ static_assert(
     }(),
     "Dedekind: Ternary Logic Invariants failed!");
 
-}  // namespace dedekind::ontology
+}  // namespace dedekind::category

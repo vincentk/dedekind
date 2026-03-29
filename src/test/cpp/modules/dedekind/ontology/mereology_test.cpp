@@ -48,7 +48,7 @@ struct is_idempotent<MockSystem, std::bit_and<MockSystem>> : std::true_type {};
 template <>
 struct is_idempotent<MockSystem, std::bit_or<MockSystem>> : std::true_type {};
 
-}  // namespace dedekind::ontology
+}  // namespace dedekind::category
 
 TEST_CASE("Mereology: Ontological Concept Verification",
           "[ontology][mereology]") {
