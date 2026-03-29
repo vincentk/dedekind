@@ -34,7 +34,7 @@ struct MockSystem {
 // We manually verify the algebraic properties of MockSystem
 // to satisfy the IsSemigroupoid and IsLattice concepts.
 
-namespace dedekind::ontology {
+namespace dedekind::category {
 
 template <>
 struct is_associative<MockSystem, std::bit_and<MockSystem>> : std::true_type {};

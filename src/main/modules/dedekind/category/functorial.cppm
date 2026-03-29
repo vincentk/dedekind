@@ -66,6 +66,8 @@ module;
 
 export module dedekind.category:functorial;
 
+import :comonad;
+import :monad;
 import :species;
 
 namespace dedekind::category {

@@ -138,7 +138,7 @@ endif()
 
 set_target_properties(dedekind_test PROPERTIES CXX_SCAN_FOR_MODULES ON)
 
-target_link_libraries(dedekind_test PRIVATE dedekind dedekind_ontology dedekind_sets Catch2::Catch2WithMain)
+target_link_libraries(dedekind_test PRIVATE dedekind dedekind_category dedekind_ontology dedekind_sets Catch2::Catch2WithMain)
 # Register the test with CTest (allows running 'ctest' from build folder)
 include(Catch)
 catch_discover_tests(dedekind_test)

@@ -42,12 +42,13 @@ module;
 
 export module dedekind.sets:family;
 
-// import std;
+import dedekind.category;
 import dedekind.ontology;
 
 import :boundaries;
 import :singleton;
 
+using namespace dedekind::category;
 using namespace dedekind::ontology;
 
 /**
@@ -74,7 +75,7 @@ using element_of_t = typename resolve_species<T>::type;
 
 /** @section Set_Type_Erasure */
 
-export template <typename Species, typename L = ontology::ClassicalLogic>
+export template <typename Species, typename L = ClassicalLogic>
 using AnySetOver = std::variant<Ø<Species, L>, Ω<Species, L>,
                                 SingletonSet<element_of_t<Species>, L> >;
 /**
