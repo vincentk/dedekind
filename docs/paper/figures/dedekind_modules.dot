@@ -1,0 +1,93 @@
+digraph G {
+  compound=true; rankdir=LR; splines=ortho;
+  node [shape=box, fontname="Helvetica", style=filled, fillcolor="#f9f9f9"];
+
+  subgraph cluster_dedekind_order {
+    label = "dedekind.order";
+    style = dashed; color = gray; fontname="Helvetica-Bold";
+    "dedekind.order:algebra" [label="algebra"];
+    "dedekind.order:nodes" [label="nodes"];
+    "dedekind.order" [label="main"];
+  }
+
+  subgraph cluster_dedekind_ontology {
+    label = "dedekind.ontology";
+    style = dashed; color = gray; fontname="Helvetica-Bold";
+    "dedekind.ontology:algebra" [label="algebra"];
+    "dedekind.ontology:category" [label="category"];
+    "dedekind.ontology:geometry" [label="geometry"];
+    "dedekind.ontology:logic" [label="logic"];
+    "dedekind.ontology:mereology" [label="mereology"];
+    "dedekind.ontology:morphologies" [label="morphologies"];
+    "dedekind.ontology:numbers" [label="numbers"];
+    "dedekind.ontology:order" [label="order"];
+    "dedekind.ontology" [label="main"];
+    "dedekind.ontology:sequences" [label="sequences"];
+    "dedekind.ontology:species" [label="species"];
+    "dedekind.ontology:symbolic" [label="symbolic"];
+    "dedekind.ontology:topology" [label="topology"];
+  }
+
+  subgraph cluster_dedekind_sets {
+    label = "dedekind.sets";
+    style = dashed; color = gray; fontname="Helvetica-Bold";
+    "dedekind.sets:algebra" [label="algebra"];
+    "dedekind.sets:boundaries" [label="boundaries"];
+    "dedekind.sets:expressions" [label="expressions"];
+    "dedekind.sets:family" [label="family"];
+    "dedekind.sets:logic" [label="logic"];
+    "dedekind.sets" [label="main"];
+    "dedekind.sets:singleton" [label="singleton"];
+    "dedekind.sets:universes" [label="universes"];
+  }
+
+  subgraph cluster_dedekind_algebra {
+    label = "dedekind.algebra";
+    style = dashed; color = gray; fontname="Helvetica-Bold";
+    "dedekind.algebra:abstract" [label="abstract"];
+    "dedekind.algebra:nodes" [label="nodes"];
+    "dedekind.algebra" [label="main"];
+  }
+
+  "dedekind.algebra:abstract" -> "dedekind.algebra:nodes";
+  "dedekind.ontology" -> "dedekind.algebra:nodes";
+  "dedekind.ontology" -> "dedekind.sets:algebra";
+  "dedekind.ontology" -> "dedekind.sets:boundaries";
+  "dedekind.ontology" -> "dedekind.sets:family";
+  "dedekind.ontology" -> "dedekind.sets:logic";
+  "dedekind.ontology" -> "dedekind.sets:singleton";
+  "dedekind.ontology:algebra" -> "dedekind.ontology:geometry";
+  "dedekind.ontology:algebra" -> "dedekind.ontology:morphologies";
+  "dedekind.ontology:algebra" -> "dedekind.ontology:numbers";
+  "dedekind.ontology:algebra" -> "dedekind.ontology:topology";
+  "dedekind.ontology:category" -> "dedekind.ontology:algebra";
+  "dedekind.ontology:category" -> "dedekind.ontology:mereology";
+  "dedekind.ontology:logic" -> "dedekind.ontology:mereology";
+  "dedekind.ontology:logic" -> "dedekind.ontology:symbolic";
+  "dedekind.ontology:mereology" -> "dedekind.ontology:algebra";
+  "dedekind.ontology:mereology" -> "dedekind.ontology:geometry";
+  "dedekind.ontology:mereology" -> "dedekind.ontology:numbers";
+  "dedekind.ontology:mereology" -> "dedekind.ontology:order";
+  "dedekind.ontology:mereology" -> "dedekind.ontology:sequences";
+  "dedekind.ontology:mereology" -> "dedekind.ontology:symbolic";
+  "dedekind.ontology:morphologies" -> "dedekind.ontology:geometry";
+  "dedekind.ontology:morphologies" -> "dedekind.ontology:numbers";
+  "dedekind.ontology:order" -> "dedekind.ontology:algebra";
+  "dedekind.ontology:order" -> "dedekind.ontology:morphologies";
+  "dedekind.ontology:order" -> "dedekind.ontology:numbers";
+  "dedekind.ontology:order" -> "dedekind.ontology:topology";
+  "dedekind.ontology:sequences" -> "dedekind.ontology:topology";
+  "dedekind.ontology:species" -> "dedekind.ontology:category";
+  "dedekind.ontology:species" -> "dedekind.ontology:mereology";
+  "dedekind.ontology:topology" -> "dedekind.ontology:geometry";
+  "dedekind.order" -> "dedekind.algebra:nodes";
+  "dedekind.order:algebra" -> "dedekind.order:nodes";
+  "dedekind.sets" -> "None";
+  "dedekind.sets" -> "dedekind.algebra:nodes";
+  "dedekind.sets" -> "dedekind.order:nodes";
+  "dedekind.sets:boundaries" -> "dedekind.sets:family";
+  "dedekind.sets:cardinalities" -> "dedekind.sets:algebra";
+  "dedekind.sets:cardinalities" -> "dedekind.sets:logic";
+  "dedekind.sets:singleton" -> "dedekind.sets:family";
+  "dedekind.sets:traits" -> "dedekind.sets:universes";
+}

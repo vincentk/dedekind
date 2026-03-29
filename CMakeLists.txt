@@ -13,15 +13,17 @@ set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # 1. THE LIBRARY (src/main)
-add_library(dedekind STATIC)
+#add_library(dedekind STATIC)
 
 # Explicitly enable scanning only for this target
-set_target_properties(dedekind PROPERTIES CXX_SCAN_FOR_MODULES ON)
+#set_target_properties(dedekind PROPERTIES CXX_SCAN_FOR_MODULES ON)
 
 
-# 2. Add the Module Interface explicitly
-# IMPORTANT: The keyword 'FILE_SET' must follow 'PUBLIC' or 'INTERFACE' immediately
-target_sources(dedekind
+# --- 1. THE ONTOLOGY LAYER ---
+add_library(dedekind_ontology OBJECT)
+set_target_properties(dedekind_ontology PROPERTIES CXX_SCAN_FOR_MODULES ON)
+
+target_sources(dedekind_ontology
     PUBLIC 
     FILE_SET CXX_MODULES 
     BASE_DIRS src/main/modules
@@ -38,12 +40,37 @@ target_sources(dedekind
         src/main/modules/dedekind/ontology/morphologies.cppm
         src/main/modules/dedekind/ontology/geometry.cppm
         src/main/modules/dedekind/ontology/numbers.cppm
+)
+target_compile_options(dedekind_ontology PRIVATE ${DEDEKIND_WARNING_FLAGS})
+
+# --- 2. THE SETS LAYER ---
+add_library(dedekind_sets OBJECT)
+set_target_properties(dedekind_sets PROPERTIES CXX_SCAN_FOR_MODULES ON)
+
+target_sources(dedekind_sets
+    PUBLIC 
+    FILE_SET CXX_MODULES 
+    BASE_DIRS src/main/modules
+    FILES
         src/main/modules/dedekind/sets/sets.cppm
         src/main/modules/dedekind/sets/boundaries.cppm
         src/main/modules/dedekind/sets/family.cppm
         src/main/modules/dedekind/sets/singleton.cppm
 )
+target_link_libraries(dedekind_sets PUBLIC dedekind_ontology)
+target_compile_options(dedekind_sets PRIVATE ${DEDEKIND_WARNING_FLAGS})
 
+# --- 3. THE FINAL ASSEMBLY (The Public Interface) ---
+
+# The book of math according to the dedekind project.
+# Each chapter corresponds the book to an object file which in turn
+# corresponds to a module interface unit.
+# The "dedekind" library is the final product
+add_library(dedekind INTERFACE)
+add_dependencies(dedekind dedekind_ontology dedekind_sets)
+# No source files needed here; it just bundles the objects
+target_link_libraries(dedekind INTERFACE dedekind_ontology dedekind_sets)
+target_compile_features(dedekind INTERFACE cxx_std_23)
 
 # 2. THE TESTS (src/test) - Maven's "test" phase
 include(FetchContent)
@@ -85,22 +112,22 @@ else()
         -Werror        # Treat warnings as errors (The "Strict Math" mode)
     )
     
-    target_compile_options(dedekind PRIVATE ${DEDEKIND_WARNING_FLAGS})
+    target_compile_options(dedekind INTERFACE ${DEDEKIND_WARNING_FLAGS})
     target_compile_options(dedekind_test PRIVATE ${DEDEKIND_WARNING_FLAGS})
 endif()
 
 set_target_properties(dedekind_test PROPERTIES CXX_SCAN_FOR_MODULES ON)
 
-target_link_libraries(dedekind_test PRIVATE dedekind Catch2::Catch2WithMain)
-
+target_link_libraries(dedekind_test PRIVATE dedekind dedekind_ontology dedekind_sets Catch2::Catch2WithMain)
 # Register the test with CTest (allows running 'ctest' from build folder)
 include(Catch)
 catch_discover_tests(dedekind_test)
 
-install(TARGETS dedekind
+install(TARGETS dedekind dedekind_ontology dedekind_sets
     EXPORT dedekind-targets
     FILE_SET CXX_MODULES DESTINATION lib/modules/dedekind
 )
+
 
 install(EXPORT dedekind-targets
     FILE dedekindConfig.cmake
@@ -141,8 +168,8 @@ endif()
 
 # Add coverage flags for Clang
 if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    target_compile_options(dedekind PRIVATE -fprofile-instr-generate -fcoverage-mapping)
-    target_link_options(dedekind PRIVATE -fprofile-instr-generate)
+    target_compile_options(dedekind INTERFACE -fprofile-instr-generate -fcoverage-mapping)
+    target_link_options(dedekind INTERFACE -fprofile-instr-generate)
     
     target_compile_options(dedekind_test PRIVATE -fprofile-instr-generate -fcoverage-mapping)
     target_link_options(dedekind_test PRIVATE -fprofile-instr-generate)

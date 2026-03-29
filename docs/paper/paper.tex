@@ -16,6 +16,9 @@
 % Landscape tables:
 \usepackage[figuresright]{rotating}
 
+% Graphs
+\usepackage{graphviz}
+
 \usepackage[style=numeric, sorting=none]{biblatex}
 \addbibresource{references.bib}     % Points to your .bib file (include the extension)
 
@@ -41,6 +44,8 @@
   captionpos=b 
 }
 
+\newcommand{\bind}{\mathbin{>\!\!>\mkern-6.7mu=}}
+
 % --- Document Metadata ---
 \title{\textsc{dedekind}: An Excursion in Structuralist Mereology in C++23}
 \author{The Dedekind Authors}
@@ -57,30 +62,68 @@ Your abstract text.
 \section{Introduction}
 \label{sec:introductio}
 
-A powerful abstraction in mathematical logic is set-builder notation: the ability to define a collection of objects $\{ x \in \mathbb{R} \mid \mathbf P(x) \}$ based purely on their satisfying a predicate $\mathbf P(x)$. In traditional systems programming, however, this declarative elegance is lost. Developers are forced to manually translate these logical intentions into imperative loops, filter functions, and temporary buffers. This translation is not only prone to error but also opaque to the compiler, which cannot optimize a "black-box" loop using the formal properties of the set it is iterating over.
+A powerful abstraction in mathematical logic is set-builder notation:
+the ability to define a collection of objects $\{ x \in \mathbb{R} \mid \mathbf P(x) \}$ based purely on the selection of a universe (in this case $\mathbb{R}$) and their satisfying a predicate $\mathbf P(x)$.
+In traditional systems programming, however, this declarative elegance is lost.
+Developers are usually forced to manually translate these logical intentions into imperative loops, filter functions, and temporary buffers.
+This translation is not only prone to error but also opaque to the compiler, which cannot optimize a "black-box" loop using the formal properties of the set it is iterating over.
 
-In this paper, we propose dedekind, a C++23 DSL that embeds set-builder notation directly into the host language syntax. By leveraging C++23 Concepts and variadic templates, dedekind allows developers to define complex mathematical species using a syntax that mirrors formal logic. Crucially, these are not mere runtime "filter" objects; they are compile-time structural specifications.
+In this paper, we propose \texttt{dedekind}, a domain specific language (DSL) for C++23 \cite{cpp23standard} that embeds set-builder notation directly into the host language syntax.
+Recently added C++23 features such as modules, \texttt{concept}, \texttt{const\_expr}, template specialization, and variadic templates allow developers to define complex mathematical species using a syntax that mirrors formal logic.
+Crucially, these are not mere runtime "filter" objects; they are compile-time structural specifications.
 
-The contributions of this work include:
+However, reifying a formal ontology in a statically-typed \textbf{systems} language presents significant challenges compared to "pure" functional languages like Haskell \cite{GHC2024} or Agda \cite{norell2007towards}, which have native support for higher-kinded types, dependent types and first-class functions.
+Challenges encountered include:
 \begin{itemize}
-\item The Set-Builder Isomorphism: A syntax-driven mapping that allows expressions like \begin{equation}\mathrm{Set\{x \mathbin{\%} \mathbb{R} \wedge (x + 5 < 10)\}}\end{equation} to be resolved at compile-time. We demonstrate how the C++ type system acts as a Constraint Satisfaction Engine to verify the validity of these sets.
-\item Intensional-to-Extensional Materialization: A strategy for partial, lazy evaluation, where a set defined by a symbolic rule is only converted into machine instructions (extensional data) when an operation requires it. This enables the evaluation of Infinite Sets (e.g., the Naturals $\mathbb N$) within a finite execution environment.
-\item Mereological Pruning of Predicates: Because the library understands the logical structure of the set-builder predicates, the compiler can prune the search space of the set. For example, a set defined by a contradiction $\{ x \in \mathbb{S} \mid \mathbf P(x) \wedge \neg P(x) \}$ is collapsed into the empty set $\emptyset$ at compile-time, emitting zero machine instructions.
-\item Zero-Overhead Semantic Mapping: We show that these high-level abstractions result in machine code that is identical to hand-optimized assembly, effectively proving that formal rigor does not necessitate a "performance tax."
+\item \textbf{Template Template Parameters}: C++ is notoriously bad at true Category Theory because it lacks Higher-Kinded Types (HKTs).  Without HKTs, you cannot easily define a generic Monad<F>. Here, we use "template template parameters," which have significant edge cases (e.g., they don't play well with aliases or multiple template arguments).
+\item \textbf{The Lambda Hurdle (Opaqueness)}: Unlike the first-class, inspectable functions in the ML family, C++ lambdas are unique, anonymous types. They do not inherently expose their domain or codomain to the type system. A morphim's domain and codomain must be inferred at the call site or explicitly provided by the programmer.
+\item \textbf{Decidability vs. Instantiation}: While dependent-type systems use proof-search, C++ relies on template instantiation. This introduces the risk of "Late Detection," where a mathematical violation is only discovered when a set is materialized, rather than when it is defined. This can be mitigated by forcing evaluations into \texttt{consteval} and \texttt{constexpr} contexts.
+\item \textbf{The Performance-Rigidity Tradeoff}: High-level abstractions in C++ often incur a "template tax" in compile times. We utilize C++23 \textbf{Module Partitions} to create a directed acyclic graph of truth, caching structural invariants to ensure that formal rigor does not collapse the build pipeline.
+\item \textbf{The Specialization Constraint}: Unlike the unified pattern matching of functional languages, C++ relies on Partial Template Specialization to resolve structural properties.
+This creates a "Rigidity Challenge": the compiler cannot readily deduce that a property of $A$ also applies to $A \cup B$ without explicit boilerplate. We address this by using \texttt{concept ... requires} as logical compile-time predicate, thereby simulating the polymorphic reach of a true dependent-type system.
+\item \textbf{The Precedence-Associativity Constraint}: A significant friction point in embedding categorical notation within the C++ grammar is the language's fixed set of \texttt{operator} candidates and fixed precedence and associativity rules. While the \texttt{operator>>=} is used to model the Monadic Bind ($\bind$), the ISO C++ standard defines compound assignment operators (including \texttt{>>=}, \texttt{<<=}, \texttt{+=}, \texttt{*=}, etc.) with \textbf{right-to-left associativity}.
+Consequently, a standard monadic chain such as $m \bind f \bind g = (m \bind f) \bind g$ is parsed by the compiler as \texttt{m >>= (f >>= g)}. As this makes no sense in a monadic chain, explicit grouping, e.g., \texttt{(m >>= f) >>= g} is required.
 \end{itemize}
 
-By reifying the set-builder notation, dedekind turns the C++ translation unit into a symbolic laboratory. The programmer is free to reason in the language of Cantor and Dedekind, while the compiler produces the performance of a naked C++ loop.
+Despite these constraints, the contributions of this work include:
+\begin{itemize}
+\item \textbf{Set-Builder Isomorphism}: A syntax-driven mapping that allows expressions like \begin{equation}\mathrm{Set\{x \mathbin{\%} \mathbb{R} \wedge (x + 5 < 10)\}}\end{equation} to be resolved at compile-time. We demonstrate how the C++ type system acts as a Constraint Satisfaction Engine to verify the validity of these sets.
+\item \textbf{Intensional-to-Extensional Materialization}: A strategy for partial, lazy evaluation, where a set defined by a symbolic rule is only converted into machine instructions (extensional data) when an operation requires it. This enables the evaluation of Infinite Sets (e.g., the Naturals $\mathbb N$) within a finite execution environment.
+\item \textbf{Mereological Pruning of Predicates}: Because the library understands the logical structure of the set-builder predicates, the compiler can prune the search space of the set. For example, a set defined by a contradiction $\{ x \in \mathbb{S} \mid \mathbf P(x) \wedge \neg P(x) \}$ is collapsed into the empty set $\emptyset$ at compile-time, emitting zero machine instructions.
+\item \textbf{Zero-Overhead Semantic Mapping}: We show that these high-level abstractions result in machine code that is identical to hand-optimized assembly, effectively proving that formal rigor does not necessitate a "performance tax."
+\end{itemize}
+
+By reifying a subset of the set-builder notation, dedekind turns the C++ translation unit into a symbolic laboratory.
+The programmer is free to reason in the language of Cantor, while the compiler produces the performance of a naked C++ loop.
 
 
-\section{Methods}
+\section{Implementation}
 
 The methodology of \texttt{dedekind} is predicated on the translation of formal mathematical structures into a stratified registry of C++23 modules. This stratification allows for a "bottom-up" synthesis of complex mathematical objects, where each level serves as a verified foundation for the next.
 
+To ensure the decidability of the ontology and mitigate the 'template tax,' we utilize a strictly enforced build graph (see Figure \ref{fig:build_graph}). This DAG mirrors the formal structure of a mathematical proof: \textit{Axiom} $\rightarrow$ \textit{Theorem} $\rightarrow$ \textit{Proof}. By isolating foundational mereological axioms into the \texttt{:mereology} partition, the compiler produces a Binary Module Interface (BMI) that acts as a 'cached truth.'
+This physical stratification prohibits circular reasoning at the compiler level; a partition can only reference previously verified structural properties. Subsequent partitions, such as \texttt{:algebra}, import these BMIs as established lemmas, allowing the compiler to focus solely on the synthesis of higher-order laws without the risk of recursive definition or re-instantiation of the underlying species. In this architecture, the C++ build system serves as a physical guardrail for the integrity of the formal derivation.
+
+\begin{figure}[ht]
+    \centering
+    % This will now pull the PDF generated by your Makefile
+    \includegraphics[width=0.8\textwidth]{figures/dedekind_deps.pdf}
+    \caption{The Ontological Build Graph: Automated dependency resolution.}
+    \label{fig:build_graph}
+\end{figure}
+
+
 \subsection{The Unified Dedekind Ontology}
 
-The \texttt{dedekind.ontology} module serves as a central registry of structural truths. It aggregates skeletal, mereological, and algebraic laws to enable the synthesis of the \textit{Continuum} from the \textit{Discrete}. By adopting a \textit{Structuralist} posture—viewing mathematical objects as positions within a structure rather than isolated collections—we facilitate zero-overhead formal verification within the C++ type system.
+The \texttt{dedekind.ontology} module serves as a central registry of structural truths.
+It aggregates skeletal, mereological, and algebraic laws to enable the synthesis of the \textit{Continuum} from the \textit{Discrete}.
+By adopting a \textit{Structuralist} posture—viewing mathematical objects as positions within a structure rather than isolated collections—we facilitate zero-overhead formal verification within the C++ type system.
 
-The ontology is organized into four primary levels of abstraction, mirroring the historical construction of mathematics:
+The stratification of the \texttt{dedekind.ontology} into C++ module partitions mirrors the constructive dependencies of formal mathematics.
+At the foundation, an embedding of Category Theory (Level 0) within the type system provides the primary substrate; as it makes the fewest assumptions—treating objects merely as nodes in a graph of morphisms—it establishes the "highways" (Functors and Kleisli Triples) necessary for all subsequent synthesis.
+Because higher algebraic structures—such as Groups, Rings, and Fields—are formally defined by the operations performed upon sets, the build order mandates that Level 1 (Space and Mereology) precedes Level 3 (Algebra).
+This ensures that the "Soul" of the system (its laws of action and harmony) is always grounded in the "Body" (the structural presence of its parts). By the time the compiler reaches the \texttt{:algebra} partition, the mereological validity of the underlying species is already a type-checked invariant within the translation unit.
+This hierarchy transforms the C++ module mapper into a directed acyclic graph of mathematical truth, where the linker cannot even begin its work until the ontological prerequisites are satisfied.
 
 \begin{description}
     \item[Level -1 to 0: Foundations (Bricks and Cement)] 
@@ -99,14 +142,32 @@ The ontology is organized into four primary levels of abstraction, mirroring the
     The final level, \texttt{:geometry} and \texttt{:numbers}, realizes the continuum through the species registry, formally constructing the inclusion $\mathbb{N} \subset \mathbb{Z} \subset \mathbb{Q} \subset \mathbb{R}$.
 \end{description}
 
+The physical build order of the \texttt{dedekind.ontology} module mirrors this conceptual hierarchy. By enforcing a linear dependency graph—where \texttt{:mereology} is compiled before \texttt{:algebra}—we ensure that the compiler's proof-search for a Ring's identity element is grounded in the prior verification of its mereological subobjects. This hierarchy transforms the C++ module mapper into a directed acyclic graph of mathematical truth.
+
+\subsection{The Compiler as a Deterministic Proof Assistant}
+The core of \texttt{dedekind} is a recursive template evaluator that treats C++ \texttt{concepts} as logical predicates. Unlike traditional template metaprogramming that relies on SFINAE, we utilize C++23's \texttt{requires} expressions to perform "structural inspection" of types.
+
+In the \texttt{dedekind} framework, the C++ compiler acts as a decidability engine for our mathematical ontology. Rather than relying on traditional class hierarchies, we use C++23 Concepts to define the structural requirements of a species. A type is not explicitly inherited from a base; instead, it is verified to be compliant with a species' \texttt{concept} through its intrinsic properties. 
+
+This verification is supported by Template Specialization to define axiomatic base cases and SFINAE to prune invalid overloads. We leverage the Curiously Recurring Template Pattern (CRTP) within our internal wrappers to provide a unified interface for disparate types without the overhead of dynamic dispatch. By conducting these checks in a \texttt{constexpr} context and utilizing Move Semantics for resource management, we ensure that the "Proof" of a mathematical construction is resolved entirely at compile-time.
+
+\begin{lstlisting}[caption={LCompile-time inference of set invariants}]
+// Verifying that the intersection of disjoint sets is empty
+using Evens = dedekind::set<int, [](auto x){ return x % 2 == 0; }>;
+using Odds  = dedekind::set<int, [](auto x){ return x % 2 != 0; }>;
+
+using Intersection = dedekind::meet_t<Evens, Odds>;
+
+// The compiler resolves this to the Empty Set species
+static_assert(dedekind::is_empty_v<Intersection>); 
+static_assert(sizeof(Intersection) == 1); // No machine state required
+\end{lstlisting}
 
 \subsection{The Semantic Mapping}
 
 Crucially, the \texttt{dedekind.ontology} acts as the definitive mapping between formal mathematical nomenclature and the concrete syntax of the C++23 language. Rather than introducing a foreign vocabulary, we anchor established axioms directly into the standard operator set and primitive types. For instance, the mereological \textit{Sum} and \textit{Product} are reified as the bitwise operators \texttt{|} and \texttt{\&}, while the \textit{Mereological Complement} (the remainder) is bound to the negation operator \texttt{!}. 
 
 By establishing this explicit correspondence—where \texttt{operator<=} serves as the formal proof of \textit{Parthood} ($\sqsubseteq$) and \texttt{operator/} represents the \textit{Quotienting} of a species—we ensure that the resulting code is not merely a simulation of a mathematical model, but a direct execution of it. This semantic alignment allows the programmer to write expressions that are readable as equations, while the compiler treats them as a sequence of verifiable type-transformations. In this architecture, the C++ \texttt{concept} becomes the "Gatekeeper of Truth," ensuring that a species cannot participate in an operation (such as a Join-Semilattice union) unless it has first provided a manual or structural certification of its algebraic invariants.
-
-\newcommand{\bind}{\mathbin{>\!\!>\mkern-6.7mu=}}
 
 \begin{sidewaystable}
 \centering
@@ -191,7 +252,7 @@ struct is_associative<T, Op> : T::template is_associative_for<Op> {};
 By anchoring concepts like \texttt{IsJoinSemilattice} in these requirements (requiring both \texttt{IsAssociative} and \texttt{IsIdempotent}), we ensure that the \textit{Lattice Dispatcher} never performs a "speculative" pruning. If the developer has not provided the proof, the dispatcher falls back to a safe, unoptimized \texttt{UnionSet} synthesis. This "Axiom of Responsibility" ensures that the performance of the "Naked Loop" is always mathematically justified by a prior formal certification.
 
 
-\subsection{Reverse Curry-Howard Validation}
+\subsection{Ontological Model Validation}
 
 To verify the integrity of the proposed mapping between formal axioms and C++ concepts, we employ a "Reverse Curry-Howard" validation strategy. Rather than simply assuming the correctness of our ontological translations, we use the inherent properties of C++ built-in types as an empirical proof of the reverse-engineered axioms. 
 
@@ -212,11 +273,6 @@ In textbook Category Theory, a Monad is traditionally defined as a \textit{Monoi
 \end{enumerate}
 
 To resolve this circular dependency, \texttt{dedekind} implements an \textit{Action-First} bootstrapping strategy. By defining Monads and Comonads as \textit{Extension Systems} (Kleisli Triples consisting of $\eta/\varepsilon$ and $\gg=/\ll=$), we utilize operator overloading on concrete objects. This triggers ADL at the call site, allowing the Level 0 foundation to instantiate a derived \texttt{fmap} without prior knowledge of Level 1 species.
-
-\paragraph{The Precedence-Associativity Constraint} 
-A significant friction point in embedding categorical notation within the C++ grammar is the language's fixed operator precedence and associativity table. While the \textit{Highway Notation} utilizes \texttt{operator>>=} to model the Monadic Bind ($\bind$), the ISO C++ standard defines compound assignment operators (including >>=, <<=, +=, *=, etc.) with \textbf{right-to-left associativity}. Consequently, a standard monadic chain such as $m \bind f \bind g$---which mathematically implies a left-to-right flow of data---is parsed by the compiler as $m \bind (f \bind g)$. 
-
-Because the right-hand operands ($f$ and $g$) are typically Kleisli arrows (lambdas) rather than monadic types, this default parsing triggers a candidate resolution failure, as the compiler attempts to "bind" two functions before involving the monadic context $m$. To maintain the "Forward Highway" semantics without introducing a non-standard pre-processor, \texttt{dedekind} currently requires explicit grouping, e.g., \texttt{(m >>= f) >>= g}. This constraint highlights a fundamental tension between the declarative goals of the DSL and the imperative heritage of the host language's grammar, necessitating a ``parenthetical tax'' to enforce the correct directional vector of the computation.
 
 \subsection{The Unified Highway Bridge}
 
@@ -296,6 +352,52 @@ STATIC_CHECK(std::same_as<decltype(x), Box<int>>);
 
 
 This mapping ensures that the "Categorical Cement" holding the "Algebraic Bricks" together is both syntactically expressive and computationally invisible.
+
+\section{Implementation: The Compile-Time Logic Engine}
+The core of \texttt{dedekind} is a recursive template evaluator that treats C++ \texttt{concepts} as logical predicates. Unlike traditional template metaprogramming that relies on SFINAE, we utilize C++23's \texttt{requires} expressions to perform "structural inspection" of types.
+
+\subsection{The Compiler as a Deterministic Proof Assistant}
+In the \texttt{dedekind} framework, the C++ compiler acts as a decidability engine for our mathematical ontology. Rather than relying on traditional class hierarchies, we use C++23 Concepts to define the structural requirements of a species. A type is not explicitly inherited from a base; instead, it is verified to be compliant with a species' \texttt{concept} through its intrinsic properties. This allows for a structuralist approach where any type—primitive or user-defined—can participate in the mereology if it satisfies the necessary algebraic invariants.
+This verification is supported by Template Specialization to define axiomatic base cases and SFINAE to prune invalid overloads. We leverage the Curiously Recurring Template Pattern (CRTP) within our internal wrappers to provide a unified interface for disparate types without the overhead of dynamic dispatch. By conducting these checks in a \texttt{constexpr} context and utilizing Move Semantics for resource management, we ensure that the "Proof" of a mathematical construction is resolved entirely at compile-time, leaving only optimized machine code.
+\begin{lstlisting}[caption={Compile-time inference of set invariants}]
+// Verifying that the intersection of disjoint sets is empty
+using Evens = dedekind::set<int, [](auto x){ return x % 2 == 0; }>;
+using Odds = dedekind::set<int, [](auto x){ return x % 2 != 0; }>;
+using Intersection = dedekind::meet_t<Evens, Odds>;
+// The compiler resolves this to the Empty Set species
+static_assert(dedekind::is_empty_v);
+static_assert(sizeof(Intersection) == 1); // No machine state required
+\end{lstlisting}
+\begin{lstlisting}[caption={Listing 2: The Reverse Curry-Howard Isomorphism in action}]
+// In dedekind, a valid program is a constructive proof.
+// If the 'Proof' (the type-transformation) fails, the 'Program' does not compile.
+template
+requires dedekind::is_archimedean_field_v
+auto compute_limit(T sequence) {
+return sequence.limit();
+}
+// Attempting to compute a limit on a Discrete Ring:
+// The compiler acts as a proof-assistant and rejects the invalid mathematical path.
+// Error: constraints not satisfied for 'is_archimedean_field_v'
+auto result = compute_limit(my_discrete_ring);
+\end{lstlisting}
+
+\subsection{Reifying the Set-Builder}
+To achieve the syntax \begin{equation}\mathrm{Set\{x \mathbin{\%} \mathbb{R} \wedge (x + 5 < 10)\}}\end{equation}, we introduce a \texttt{set} template that accepts a domain and a predicate. The predicate is not a function pointer, but a \textit{Stateless Constraint Type}.
+\begin{lstlisting}[caption={Example of Set-Builder realization in Dedekind}]
+import dedekind.numbers;
+import dedekind.logic;
+// Define a predicate: x is even and greater than 10
+auto P = [](auto x) {
+return (x % 2 == 0) && (x > 10);
+};
+// Materialize the set at compile-time
+using EvenGreaterTen = dedekind::set<int, P>;
+static_assert(dedekind::contains(12));
+static_assert(!dedekind::contains(7));
+\end{lstlisting}
+\subsection{The Role of C++23 Modules}
+The stratification mentioned in Section 2 is strictly enforced via the module system. By using \texttt{export module dedekind.ontology:mereology}, we ensure that the compiler can cache the "structural truths" of the system. This prevents the exponential blow-up of compile times typically associated with heavy template libraries, as the "laws" of the ontology are compiled once into binary module interfaces (BMIs)
 
 \printbibliography
 
