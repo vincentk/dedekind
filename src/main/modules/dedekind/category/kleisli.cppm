@@ -62,7 +62,7 @@ export template <typename T>
 struct ε<Box, T> final {
   // For a Box, extraction is simply accessing the value.
   constexpr T operator()(const Box<T>& b) const noexcept { return b.value; }
-};    
+};
 
 /**
  * @section The_Kleisli_Extension_System
@@ -116,9 +116,8 @@ concept IsCoKleisli = IsCoKleisliExtension<F, T, U> &&
                         { box <<= f } -> std::same_as<F<U>>;
                       };
 
-static_assert(
-     IsCoKleisliExtension<Box, int, int>,
-     "Box does not satisfy the Co-Kleisli Extension System.");
+static_assert(IsCoKleisliExtension<Box, int, int>,
+              "Box does not satisfy the Co-Kleisli Extension System.");
 
 /**
  * @brief Concept for Frobenius Structures (The Unified Highway).
@@ -138,8 +137,7 @@ template <template <typename...> typename F, typename T, typename U>
 concept IsFrobenius =
     IsKleisliExtension<F, T, U> && IsCoKleisliExtension<F, T, U>;
 
-static_assert(
-     IsFrobenius<Box, int, int>,
-     "Box does not satisfy the Co-Kleisli Extension System.");
+static_assert(IsFrobenius<Box, int, int>,
+              "Box does not satisfy the Co-Kleisli Extension System.");
 
-}  // namespace dedekind
+}  // namespace dedekind::category
