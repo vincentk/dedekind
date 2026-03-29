@@ -18,8 +18,30 @@ set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 # Explicitly enable scanning only for this target
 #set_target_properties(dedekind PROPERTIES CXX_SCAN_FOR_MODULES ON)
 
+# --- 1a. THE CATEGORY LAYER (Levels -1 to 0b) ---
+add_library(dedekind_category OBJECT)
+set_target_properties(dedekind_category PROPERTIES CXX_SCAN_FOR_MODULES ON)
 
-# --- 1. THE ONTOLOGY LAYER ---
+target_sources(dedekind_category
+    PUBLIC 
+    FILE_SET CXX_MODULES 
+    BASE_DIRS src/main/modules
+    FILES
+        src/main/modules/dedekind/category/category.cppm
+        src/main/modules/dedekind/category/logic.cppm
+        src/main/modules/dedekind/category/species.cppm
+        src/main/modules/dedekind/category/functorial.cppm
+        src/main/modules/dedekind/category/kleisli.cppm
+        src/main/modules/dedekind/category/cartesian.cppm
+        src/main/modules/dedekind/category/posetal.cppm
+        src/main/modules/dedekind/category/small.cppm
+        src/main/modules/dedekind/category/etcs.cppm
+)
+# Define DEDEKIND_WARNING_FLAGS before using it so it does not expand as undefined.
+set(DEDEKIND_WARNING_FLAGS "")
+target_compile_options(dedekind_category PRIVATE ${DEDEKIND_WARNING_FLAGS})
+
+# --- 1b. THE ONTOLOGY LAYER (Level 1+) ---
 add_library(dedekind_ontology OBJECT)
 set_target_properties(dedekind_ontology PROPERTIES CXX_SCAN_FOR_MODULES ON)
 
@@ -29,9 +51,6 @@ target_sources(dedekind_ontology
     BASE_DIRS src/main/modules
     FILES
         src/main/modules/dedekind/ontology/ontology.cppm
-        src/main/modules/dedekind/ontology/logic.cppm
-        src/main/modules/dedekind/ontology/species.cppm
-        src/main/modules/dedekind/ontology/category.cppm
         src/main/modules/dedekind/ontology/mereology.cppm
         src/main/modules/dedekind/ontology/order.cppm
         src/main/modules/dedekind/ontology/topology.cppm
@@ -41,6 +60,8 @@ target_sources(dedekind_ontology
         src/main/modules/dedekind/ontology/geometry.cppm
         src/main/modules/dedekind/ontology/numbers.cppm
 )
+# Link ontology to category so Level 1+ can 'import dedekind.category'
+target_link_libraries(dedekind_ontology PUBLIC dedekind_category)
 target_compile_options(dedekind_ontology PRIVATE ${DEDEKIND_WARNING_FLAGS})
 
 # --- 2. THE SETS LAYER ---
@@ -87,7 +108,7 @@ FetchContent_MakeAvailable(Catch2)
 enable_testing()
 
 add_executable(dedekind_test 
-    src/test/cpp/modules/dedekind/ontology/category_test.cpp
+    src/test/cpp/modules/dedekind/category/category_test.cpp
     src/test/cpp/modules/dedekind/ontology/mereology_test.cpp
     src/test/cpp/modules/dedekind/sets/boundaries_test.cpp
     src/test/cpp/modules/dedekind/sets/singleton_test.cpp
@@ -118,13 +139,14 @@ endif()
 
 set_target_properties(dedekind_test PROPERTIES CXX_SCAN_FOR_MODULES ON)
 
-target_link_libraries(dedekind_test PRIVATE dedekind dedekind_ontology dedekind_sets Catch2::Catch2WithMain)
+target_link_libraries(dedekind_test PRIVATE dedekind dedekind_category dedekind_ontology dedekind_sets Catch2::Catch2WithMain)
 # Register the test with CTest (allows running 'ctest' from build folder)
 include(Catch)
 catch_discover_tests(dedekind_test)
 
-install(TARGETS dedekind dedekind_ontology dedekind_sets
+install(TARGETS dedekind dedekind_category dedekind_ontology dedekind_sets
     EXPORT dedekind-targets
+    # Ensure CXX_MODULES are installed for all targets
     FILE_SET CXX_MODULES DESTINATION lib/modules/dedekind
 )
 

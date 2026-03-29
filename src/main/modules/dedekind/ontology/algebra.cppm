@@ -36,11 +36,9 @@ module;
 
 export module dedekind.ontology:algebra;
 
-import :category;   // Level 0: To define Morphisms (Monads, Functors, Identity)
-import :mereology;  // Level 1: To define the Domain of Discourse (IsSet,
-                    // IsPointed)
-import :order;      // Level 1.5: Necessary for Ordered Groups/Fields
-                    // (IsTotallyOrdered)
+import dedekind.category;
+import :order;  // Level 1.5: Necessary for Ordered Groups/Fields
+                // (IsTotallyOrdered)
 
 namespace dedekind::ontology {
 using ::dedekind::ontology::IsDense;

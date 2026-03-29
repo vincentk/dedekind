@@ -47,6 +47,7 @@ import dedekind.ontology;
  */
 namespace dedekind::sets {
 
+using namespace dedekind::category;
 using namespace dedekind::ontology;
 
 /** @brief {x}: The Atom. Extensional (Size 1). */
@@ -146,9 +147,10 @@ constexpr auto operator<<=(const SingletonSet<T, L>& s, Func&& f) {
 
 };  // namespace dedekind::sets
 
-namespace dedekind::ontology {
+namespace dedekind::category {
 using namespace dedekind::sets;
-// Re-open the ontology namespace to provide the specialization
+// Re-open the category namespace to provide η/ε specializations for
+// SingletonSet
 export template <typename T>
 struct η<SingletonSet, T> {
   constexpr auto operator()(const T& x) const { return SingletonSet<T>{x}; }
@@ -164,7 +166,7 @@ struct ε<SingletonSet, T> {
     return s.pivot;
   }
 };
-};  // namespace dedekind::ontology
+};  // namespace dedekind::category
 
 /** @section The_Final_Ontology_Proof */
 namespace dedekind::sets {

@@ -2,18 +2,15 @@
 #include <functional>  // for std::plus
 #include <type_traits>
 
-import dedekind.ontology;
+import dedekind.category;
 
-using namespace dedekind::ontology;
+using namespace dedekind::category;
 #include <catch2/catch_test_macros.hpp>
 #include <concepts>
 #include <functional>
 
-// Assuming the dedekind.ontology:species and :category are imported
-// import dedekind.ontology;
-
 TEST_CASE("Ontology: Arrow Factory Verification",
-          "[ontology][species][category]") {
+          "[category][species][category]") {
   SECTION("6. Functorial Composition (fmap)") {
     auto increment = [](int x) { return x + 1; };
     auto double_it = [](int x) { return x * 2; };
@@ -73,7 +70,7 @@ TEST_CASE("Ontology: Arrow Factory Verification",
   SECTION("Standard Function Object Tagging (Endomorphisms)") {
     using Negate = std::negate<int>;
     // Testing the 'endo' factory which implies Domain == Codomain
-    using TaggedNegate = decltype(dedekind::ontology::endo<int>(Negate{}));
+    using TaggedNegate = decltype(dedekind::category::endo<int>(Negate{}));
 
     STATIC_CHECK(std::same_as<typename TaggedNegate::Domain, int>);
     STATIC_CHECK(std::same_as<typename TaggedNegate::Codomain, int>);
@@ -88,7 +85,7 @@ TEST_CASE("Ontology: Arrow Factory Verification",
 
     // Testing the explicit 'arrow' factory for Domain -> Codomain mapping
     using TaggedIsPositive =
-        decltype(dedekind::ontology::arrow<int, bool>(is_positive_lambda));
+        decltype(dedekind::category::arrow<int, bool>(is_positive_lambda));
 
     STATIC_CHECK(std::same_as<typename TaggedIsPositive::Domain, int>);
     STATIC_CHECK(std::same_as<typename TaggedIsPositive::Codomain, bool>);
@@ -102,16 +99,16 @@ TEST_CASE("Ontology: Arrow Factory Verification",
   SECTION("Categorical Concept Fulfillment") {
     auto logic_gate = [](int x) { return x != 0; };
     using TaggedGate =
-        decltype(dedekind::ontology::arrow<int, bool>(logic_gate));
+        decltype(dedekind::category::arrow<int, bool>(logic_gate));
 
     // Final proof: Does the factory output satisfy the foundational IsArrow
     // concept?
-    STATIC_CHECK(dedekind::ontology::IsArrow<TaggedGate, int, bool>);
+    STATIC_CHECK(dedekind::category::IsArrow<TaggedGate, int, bool>);
   }
 }
 
 TEST_CASE("Level 0 Final Proof: The Box Monad & Comonad",
-          "[ontology][category][highway]") {
+          "[category][category][highway]") {
   SECTION("1. Structural Identity (Monad/Comonad)") {
     // Verify the dual concepts at compile-time
     static_assert(IsMonad<Box, int, std::plus<int>>,

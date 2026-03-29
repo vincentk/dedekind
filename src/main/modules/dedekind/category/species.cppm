@@ -36,9 +36,9 @@ module;
 #include <concepts>
 #include <functional>
 
-export module dedekind.ontology:species;
+export module dedekind.category:species;
 
-namespace dedekind::ontology {
+namespace dedekind::category {
 
 /**
  * @concept IsSpecies
@@ -520,4 +520,4 @@ constexpr auto operator<<=(const Box<T>& b, Func&& f) {
   return Box<U>{std::forward<Func>(f)(b)};
 }
 
-}  // namespace dedekind::ontology
+}  // namespace dedekind::category

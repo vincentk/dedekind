@@ -43,15 +43,15 @@ module;
 
 export module dedekind.ontology:mereology;
 
-import :category;
-import :logic;
-import :species;
+import dedekind.category;
 
 /**
  * @section Mereology: The study of parts and wholes.
  * @section Mereology: The Hierarchy of Order.
  */
 namespace dedekind::ontology {
+
+using namespace dedekind::category;
 
 /**
  * @brief The Mereological Part-Whole relation (sqsubseteq).

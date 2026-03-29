@@ -1,6 +1,8 @@
 #include <catch2/catch_test_macros.hpp>
+import dedekind.category;
 import dedekind.ontology;
 
+using namespace dedekind::category;
 using namespace dedekind::ontology;
 
 /** @section Morphic_Mimes: Pure Structuralist Mocking */
@@ -32,7 +34,7 @@ struct MockSystem {
 // We manually verify the algebraic properties of MockSystem
 // to satisfy the IsSemigroupoid and IsLattice concepts.
 
-namespace dedekind::ontology {
+namespace dedekind::category {
 
 template <>
 struct is_associative<MockSystem, std::bit_and<MockSystem>> : std::true_type {};
@@ -46,7 +48,7 @@ struct is_idempotent<MockSystem, std::bit_and<MockSystem>> : std::true_type {};
 template <>
 struct is_idempotent<MockSystem, std::bit_or<MockSystem>> : std::true_type {};
 
-}  // namespace dedekind::ontology
+}  // namespace dedekind::category
 
 TEST_CASE("Mereology: Ontological Concept Verification",
           "[ontology][mereology]") {

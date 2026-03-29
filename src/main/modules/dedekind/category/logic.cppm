@@ -38,9 +38,9 @@ module;
 #include <algorithm>
 #include <concepts>
 
-export module dedekind.ontology:logic;
+export module dedekind.category:logic;
 
-namespace dedekind::ontology {
+namespace dedekind::category {
 
 /**
  * @brief The Logical Species Concept (The Algebraic Signature of Truth).
@@ -306,4 +306,4 @@ static_assert(
     }(),
     "Dedekind: Ternary Logic Invariants failed!");
 
-}  // namespace dedekind::ontology
+}  // namespace dedekind::category
