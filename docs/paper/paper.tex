@@ -59,7 +59,13 @@
 \maketitle
 
 \begin{abstract}
-Your abstract text.
+This paper investigates an experimental approach to embedding formal mereology within the C++23 programming language. 
+We present \texttt{dedekind}, a library that attempts to reify mathematical structures not as opaque objects, but as transparent, type-level definitions. 
+By utilizing recent language features—specifically modules, concepts, and non-type template parameters—we explore a move away from traditional object-oriented encapsulation toward a model of structural transparency. 
+This methodology allows the C++ compiler and the associated build toolchain to serve as a rudimentary constraint satisfaction engine, capable of verifying mereological relations and pruning certain logical contradictions during the translation phase. 
+While we acknowledge that the Clang/LLVM toolchain is not a dedicated theorem prover, it possesses a remarkable capacity for aggressive code optimization. 
+By hoisting formal invariants into the type system, we provide the compiler with the semantic context necessary to eliminate abstraction overhead and produce machine code that rivals hand-optimized assembly. 
+We demonstrate this by providing a unified syntax that allows formal set-builder notation—such as $\{x \in \mathbb R \mid \mathbf P(x)\}$--to be expressed and resolved directly within the host language's type system, bridging the gap between formal specification and high-performance execution.
 \end{abstract}
 
 \section{Introduction}
@@ -98,11 +104,41 @@ Despite these constraints, the contributions of this work include:
 \item \textbf{Zero-Overhead Semantic Mapping}: We show that these high-level abstractions result in machine code that is identical to hand-optimized assembly, effectively proving that formal rigor does not necessitate a "performance tax."
 \end{itemize}
 
-We note that when we use words like "structural", or "mereological", what we mean is almost precisely the opposite of encapsulation and abstraction. 
-E.g. a set is defined in terms of its mereological relations first (union, intersection, subset relation - parthood).
-We believe this mirrors how sets are defined when starting out from a foundation in category theory: we note e.g. the Elementary Theory of the Category of Sets (ETCS) or cartesian closed categories.
-The intended result is that type signatures get complex so that the type checker can verify the structure of the programs and the claims being made. 
-The Clang C++ compiler is not designed to be a theorem prover first and foremost, this approach should still help us to establish many computer-verified guard rails that will help manage complexity and correctness down the line. We should still be able to use it as a constraint satisfaction engine.
+The structural mereology \cite{mormann2013structural} approach in \texttt{dedekind} defines sets via formal relations—union ($X \cup Y$), intersection ($X \cap Y$), and parthood ($X \subseteq Y$) and last but not least element ($x \in Y$)  -- prior to implementation. 
+This mirrors structuralist foundations such as Lawvere’s Elementary Theory of the Category of Sets (ETCS) \cite{lawvere2005elementary} and Cartesian Closed Categories (CCCs) \cite{lambek1988introduction, nlab:structural_set_theory}.
+By prioritizing \textit{structural transparency}, this methodology fundamentally departs from object-oriented encapsulation. 
+In a standard \texttt{std::set}, the internal representation is an opaque implementation detail, invisible to the type system’s logic. 
+Conversely, in \texttt{dedekind}, the \textit{type is the definition}. 
+Because the set’s constituents—predicates, universes, and mereological relations—are hoisted into the type signature as first-class members, the C++ type system and the \texttt{CMake} toolchain function as a Constraint Satisfaction Engine (CSE). 
+This allows the compiler to inspect, decompose, and optimize a set based on its logical essence rather than its storage layout, trading the 'black-box' safety of encapsulation for the 'white-box' provability of formal mereology.
+
+\begin{lstlisting}[caption={Compile-time mereological verification using C++23 concepts.}, label={lst:concepts}]
+#include <concepts>
+#include <type_traits>
+
+// Verifies the "Element Of" relation (x in Y)
+template <typename T, typename S>
+concept IsElementOf = requires(T x, S s) {
+    { s.contains(x) } -> std::same_as<bool>;
+};
+
+// Verifies "Parthood" or "Subset" relation (X subset of Y)
+template <typename Sub, typename Super>
+concept IsSubsetOf = requires {
+    requires std::derived_from<Sub, Super> || 
+             requires { typename Sub::is_subset_of<Super>; };
+};
+
+// CSE Pruning: Collapsing contradictory intersections to EmptySet
+template <typename SetA, typename SetB>
+struct Intersection {
+    using type = std::conditional_t<
+        HasContradictoryPredicates_v<SetA, SetB>, // Evaluated at compile-time
+        EmptySet,
+        InternalIntersection<SetA, SetB>
+    >;
+};
+\end{lstlisting}
 
 By reifying a subset of the set-builder notation, dedekind turns the C++ translation unit into a symbolic laboratory.
 The programmer is free to reason in the language of Cantor, while the compiler produces the performance of a naked C++ loop.
@@ -411,6 +447,11 @@ static_assert(!dedekind::contains(7));
 \end{lstlisting}
 \subsection{The Role of C++23 Modules}
 The stratification mentioned in Section 2 is strictly enforced via the module system. By using \texttt{export module dedekind.ontology:mereology}, we ensure that the compiler can cache the "structural truths" of the system. This prevents the exponential blow-up of compile times typically associated with heavy template libraries, as the "laws" of the ontology are compiled once into binary module interfaces (BMIs)
+
+\section{Conclusion}
+This paper has explored the feasibility of embedding formal mereology within the C++23 type system through the \texttt{dedekind} library. By transitioning from the traditional object-oriented paradigm of information hiding toward a model of structural transparency, we have demonstrated how the compiler can be utilized as a rudimentary constraint satisfaction engine. This approach allows for the high-level representation of mathematical species, such as set-builder notation, without the typical runtime performance penalties associated with abstract modeling.
+Our investigation suggests that while the Clang/LLVM toolchain is not a dedicated theorem prover, its capacity for aggressive optimization can be significantly enhanced when provided with formal semantic context. By hoisting mereological relations into the type signature, we enable the compiler to perform "structural pruning"—collapsing contradictions and optimizing intersections—resulting in machine code that maintains the efficiency of hand-tuned assembly.
+The stratification of these formalisms into module partitions provides a scalable pathway for managing the "template tax," ensuring that the rigors of formal logic do not destabilize the build pipeline. This work suggests a nascent paradigm of Axiomatic Systems Programming: a development style where the build process acts as a physical guardrail for mathematical truth. Future work will investigate extending this mereological framework to other domains of systems safety, such as the formal verification of memory ownership and concurrent state transitions, potentially bringing "correct-by-construction" principles to the broader C++ ecosystem.
 
 \printbibliography
 
