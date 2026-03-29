@@ -1,39 +1,45 @@
 /**
  * @file category.cppm
- * @brief The Foundational Topos: Logic, Species, and Functorial Control.
+ * @brief The Categorical Engine: From Truth Objects to ETCS.
  *
  * Copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @section Category: The Internal Language and Mapping Engine
- * This module constitutes the structural bedrock of the Dedekind Universe
- * (Levels -1 to 0b). It synthesizes the relationship between "Truth" (Logic),
- * "Representation" (Species), and "Transformation" (Category Theory). 
+ * @section Category: The Structuralist Foundation
+ * This module defines the internal language of the Dedekind Universe. 
+ * By implementing the Elementary Theory of the Category of Sets (ETCS), 
+ * we treat mathematical objects as positions within a structure rather 
+ * than collections of elements.
  *
- * By housing the Subobject Classifier (Ω) alongside Functors and Monads, 
- * we enable a framework where logical predicates and computational contexts 
- * share a unified categorical grammar.
+ * @subsection Structural_Hierarchies
+ * - Level -1: Internal Logic (Ω) and Machine Species.
+ * - Level 0a: Functorial Mapping and Kleisli Highways.
+ * - Level 0b: Cartesian Closed Structures (Products and Exponentials).
+ * - Level 0c: Posetal Reductions (Order as Morphism).
  *
- * @subsection Levels_and_Mechanics
- * - Level -1 (Logic): Pluggable Truths (Classical, Kleene, Lattice Morphisms).
- * - Level 0a (Species): The reification of machine primitives into the ontology.
- * - Level 0b (Functorial): The morphisms, lifting rules, and Kleisli pathways.
+ * @see dedekind.category:logic (The Subobject Classifier Ω)
+ * @see dedekind.category:cartesian (Finite Products and Exponentials)
+ * @see dedekind.category:posetal (Morphisms as Relations)
  *
- * @see dedekind.category:logic (The Internal Language / Ω)
- * @see dedekind.category:species (The Mathematical Primitives)
- * @see dedekind.category:functorial (Morphisms and Functorial Lifting)
- * @see dedekind.category:monad (The Logic of Context and Composition)
- * @see dedekind.category:comonad (The Logic of Extraction and Co-context)
+ * Wikipedia: ETCS, Cartesian closed category, Topos
  */
 
 export module dedekind.category;
 
-/** @section Foundations: Logic and Material */
-export import :logic;      // Level -1: Truth Objects and Predicate Synthesis
-export import :species;    // Level 0a: Machine Reification
+/** @section Level_-1: The Bricks and Internal Language */
+export import :logic;      // The Subobject Classifier (Ω)
+export import :species;    // Reified Machine Primitives
 
-/** @section Morphisms: The Functorial Engine */
-export import :functorial; // Level 0b: Lifting and Natural Transformations
-export import :monad;      // The Algebra of Composition (Unit, Bind)
-export import :comonad;    // The Dual Algebra (Extract, Extend)
+/** @section Level_0a: The Mapping Engine */
+export import :functorial; // Morphisms and Natural Transformations
+export import :monad;      // The Algebra of Contextual Composition
+export import :comonad;    // The Dual Algebra of Extraction
+
+/** @section Level_0b: The Higher Structures (The Universe Laws) */
+export import :cartesian;  // Finite Products, Terminal Objects, and Exponentials
+export import :posetal;    // Order-theoretic Categories (A ≤ B as a Morphism)
+export import :small;      // Enumerated and Finite Categories
+
+/** @section Level_0c: The Axiomatic Registry */
+export import :etcs;       // Elementary Theory of the Category of Sets
 

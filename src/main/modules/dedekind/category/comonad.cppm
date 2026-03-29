@@ -193,14 +193,6 @@ constexpr auto zero() {
 }
 
 
-FIXME: deliberate build breakage.
-A Posetal Category is a category where there is at most one morphism between any two objects. In such categories, the existence of a morphism from object A to object B can be interpreted as A being "less than or equal to" B in some ordering. The zero morphism in a posetal category would be the unique morphism that exists between any two objects, effectively collapsing the structure into a single point.
-
-A Cartesian Closed Category is a category that has all finite products (including a terminal object) and exponentials. In such categories, the zero morphism would typically be the unique morphism from the initial object to any other object, which serves as a kind of "zero" in the sense that it represents the absence of information or structure.
-
-Talk a little about The 10 Axioms of Elementary Theory of the Category of Sets (ETCS)
-
-
 /** @section Zero Morphism Verification */
 
 // 1. Proof: Zero is an Arrow from int to int (under addition).
