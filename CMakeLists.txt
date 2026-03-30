@@ -10,19 +10,6 @@ set(DEDEKIND_WARNING_FLAGS
     -fcoverage-mapping
 )
 
-# Platform-specific "Whole Archive" wrappers for coverage/modules
-if(APPLE)
-    # Note the trailing space after the comma for -force_load if needed, 
-    # but usually Mac prefers no space after -force_load. 
-    # For -Wl, the comma acts as the separator.
-    set(DEDEKIND_WHOLE_ARCHIVE_PREFIX "-Wl,-force_load,")
-    set(DEDEKIND_WHOLE_ARCHIVE_SUFFIX "")
-else()
-    # Note the SPACES here so they don't mash into the filename
-    set(DEDEKIND_WHOLE_ARCHIVE_PREFIX "-Wl,--whole-archive ")
-    set(DEDEKIND_WHOLE_ARCHIVE_SUFFIX " -Wl,--no-whole-archive")
-endif()
-
 # Ensure the linker also uses the profiling runtime
 add_link_options(-fprofile-instr-generate)
 # Force C++23 standard for Clang 21
@@ -90,24 +77,25 @@ function(add_dedekind_layer LAYER_NAME DEPENDS_ON)
     add_executable(${TEST_TARGET} ${TEST_SOURCES})
     set_target_properties(${TEST_TARGET} PROPERTIES CXX_SCAN_FOR_MODULES ON)
     
-    # 1. Provide metadata (PCMs) WITHOUT providing objects again
-    # We use the INTERFACE properties of the library to avoid double-linking .o files
-    target_link_libraries(${TEST_TARGET} PRIVATE 
-        ${LIB_TARGET}
-        Catch2::Catch2WithMain
-    )
+    # 1. Normal Link: Handles Module PCM visibility and metadata
+    target_link_libraries(${TEST_TARGET} PRIVATE ${LIB_TARGET} Catch2::Catch2WithMain)
 
-    # 2. Provide the binary objects EXACTLY ONCE with the "Whole Archive" wrap
-    # This ensures instrumentation counters aren't stripped.
-    target_link_options(${TEST_TARGET} PRIVATE 
-        ${DEDEKIND_WHOLE_ARCHIVE_PREFIX}$<TARGET_FILE:${LIB_TARGET}>${DEDEKIND_WHOLE_ARCHIVE_SUFFIX}
-    )
+    # 2. Scoped Link: Force the whole archive for coverage (Platform Specific)
+    if(APPLE)
+        target_link_options(${TEST_TARGET} PRIVATE "-Wl,-force_load,$<TARGET_FILE:${LIB_TARGET}>")
+    else()
+        target_link_options(${TEST_TARGET} PRIVATE 
+            "-Wl,--whole-archive" 
+            "$<TARGET_FILE:${LIB_TARGET}>" 
+            "-Wl,--no-whole-archive"
+        )
+    endif()
 
     add_test(NAME ${TEST_TARGET} COMMAND ${TEST_TARGET})
     
     add_custom_command(TARGET ${TEST_TARGET} POST_BUILD
         COMMAND $<TARGET_FILE:${TEST_TARGET}>
-        COMMENT "Enforcing ${LAYER_NAME} ontology..."
+        COMMENT "Enforcing ${LAYER_NAME} ..."
         USES_TERMINAL
     )
 endfunction()
