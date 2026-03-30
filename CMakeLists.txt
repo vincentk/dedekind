@@ -77,18 +77,19 @@ function(add_dedekind_layer LAYER_NAME DEPENDS_ON)
     add_executable(${TEST_TARGET} ${TEST_SOURCES})
     set_target_properties(${TEST_TARGET} PROPERTIES CXX_SCAN_FOR_MODULES ON)
     
-    # 1. Normal Link: Handles Module PCM visibility and metadata
+    # 1. Normal Link: Handles Module PCM visibility
     target_link_libraries(${TEST_TARGET} PRIVATE ${LIB_TARGET} Catch2::Catch2WithMain)
 
-    # 2. Scoped Link: Force the whole archive for coverage (Platform Specific)
+    # 2. THE FIX: Force instrumentation at the binary level
+    # This ensures the test runner itself initiates the profiling session
+    target_compile_options(${TEST_TARGET} PRIVATE -fprofile-instr-generate -fcoverage-mapping)
+    target_link_options(${TEST_TARGET} PRIVATE -fprofile-instr-generate)
+
+    # 3. Scoped Link: Force the whole archive
     if(APPLE)
         target_link_options(${TEST_TARGET} PRIVATE "-Wl,-force_load,$<TARGET_FILE:${LIB_TARGET}>")
     else()
-        target_link_options(${TEST_TARGET} PRIVATE 
-            "-Wl,--whole-archive" 
-            "$<TARGET_FILE:${LIB_TARGET}>" 
-            "-Wl,--no-whole-archive"
-        )
+        target_link_options(${TEST_TARGET} PRIVATE "-Wl,--whole-archive" "$<TARGET_FILE:${LIB_TARGET}>" "-Wl,--no-whole-archive")
     endif()
 
     add_test(NAME ${TEST_TARGET} COMMAND ${TEST_TARGET})
