@@ -10,6 +10,15 @@ set(DEDEKIND_WARNING_FLAGS
     -fcoverage-mapping
 )
 
+# Platform-specific "Whole Archive" wrappers for coverage/modules
+if(APPLE)
+    set(DEDEKIND_WHOLE_ARCHIVE_PREFIX "-Wl,-force_load,")
+    set(DEDEKIND_WHOLE_ARCHIVE_SUFFIX "")
+else()
+    set(DEDEKIND_WHOLE_ARCHIVE_PREFIX "-Wl,--whole-archive")
+    set(DEDEKIND_WHOLE_ARCHIVE_SUFFIX "-Wl,--no-whole-archive")
+endif()
+
 # Ensure the linker also uses the profiling runtime
 add_link_options(-fprofile-instr-generate)
 # Force C++23 standard for Clang 21
@@ -54,9 +63,6 @@ function(add_dedekind_layer LAYER_NAME DEPENDS_ON)
     # Use STATIC but force the linker to keep all instrumented code
     add_library(${LIB_TARGET} STATIC)
     set_target_properties(${LIB_TARGET} PROPERTIES CXX_SCAN_FOR_MODULES ON)
-    
-    # This is the "magic" line for coverage and module initializers
-    set_target_properties(${LIB_TARGET} PROPERTIES INTERFACE_LINK_OPTIONS "-Wl,--whole-archive")
 
     target_sources(${LIB_TARGET}
         PUBLIC 
@@ -78,9 +84,14 @@ function(add_dedekind_layer LAYER_NAME DEPENDS_ON)
     add_executable(${TEST_TARGET} ${TEST_SOURCES})
     set_target_properties(${TEST_TARGET} PROPERTIES CXX_SCAN_FOR_MODULES ON)
     
-    # Linking here now pulls in the logic and all dependencies correctly
-    target_link_libraries(${TEST_TARGET} PRIVATE ${LIB_TARGET} Catch2::Catch2WithMain)
+    # 1. Normal Link: Handles Module PCM visibility and header paths
+    target_link_libraries(${TEST_TARGET} PRIVATE ${LIB_TARGET})
 
+    # 2. Scoped Link: Forces all instrumented code into the binary for Codecov
+    target_link_libraries(${TEST_TARGET} PRIVATE 
+        ${DEDEKIND_WHOLE_ARCHIVE_PREFIX} $<TARGET_FILE:${LIB_TARGET}> ${DEDEKIND_WHOLE_ARCHIVE_SUFFIX}
+        Catch2::Catch2WithMain
+    )
     add_test(NAME ${TEST_TARGET} COMMAND ${TEST_TARGET})
     
     add_custom_command(TARGET ${TEST_TARGET} POST_BUILD
