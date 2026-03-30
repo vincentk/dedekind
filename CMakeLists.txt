@@ -52,7 +52,10 @@ function(add_dedekind_layer LAYER_NAME DEPENDS_ON)
     file(GLOB MODULE_SOURCES CONFIGURE_DEPENDS "src/main/modules/dedekind/${LAYER_NAME}/*.cppm")
     file(GLOB TEST_SOURCES   CONFIGURE_DEPENDS "src/test/cpp/modules/dedekind/${LAYER_NAME}/*_test.cpp")
 
-    add_library(${LIB_TARGET} STATIC)
+    # OBJECT or STATIC? Expert opinions differ ....
+    # Test coverage appears to prefer OBJECT.
+    # CMAKE sometimes prefers STATIC.
+    add_library(${LIB_TARGET} OBJECT)
     set_target_properties(${LIB_TARGET} PROPERTIES CXX_SCAN_FOR_MODULES ON)
 
     target_sources(${LIB_TARGET}
