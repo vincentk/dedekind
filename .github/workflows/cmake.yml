@@ -54,19 +54,19 @@ jobs:
     # --- CONDITIONAL DEPLOYMENT STEPS ---
     
     - name: Build Doxygen Documentation
-      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      #if: github.ref == 'refs/heads/main' && github.event_name == 'push'
       run: |
         sudo apt-get install -y doxygen graphviz
         cmake --build build --target docs
         touch build/docs/html/.nojekyll
 
     - name: Upload artifact
-      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      #if: github.ref == 'refs/heads/main' && github.event_name == 'push'
       uses: actions/upload-pages-artifact@v4
       with:
         path: 'build/docs/html' # Adjust to match your CMake DOXYGEN_OUTPUT_DIR
 
     - name: Deploy to GitHub Pages
-      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      #if: github.ref == 'refs/heads/main' && github.event_name == 'push'
       id: deployment
       uses: actions/deploy-pages@v4
