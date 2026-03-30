@@ -492,7 +492,11 @@ static_assert(!dedekind::contains(7));
 \subsection{The Role of C++23 Modules}
 The stratification mentioned in Section 2 is strictly enforced via the module system. By using \texttt{export module dedekind.ontology:mereology}, we ensure that the compiler can cache the "structural truths" of the system. This prevents the exponential blow-up of compile times typically associated with heavy template libraries, as the "laws" of the ontology are compiled once into binary module interfaces (BMIs)
 
-The implementation of the \textsf{dedekind} library and its associated build graph are available on GitHub \cite{Krautler_dedekind_2026}. We utilize GitHub Actions to verify the project's structural integrity; each commit is checked via \texttt{static\_assert} compile-time proofs and a suite of automated tests. Following the tradition of property-based testing \cite{ClaessenHughes2000}, we utilize these tests as "runtime witnesses" to verify the materialization of our categorical primitives, aiming for a patch coverage threshold of 60\% or higher for all new module partitions.
+\subsection{Continuous Integration}
+The implementation of the \textsf{dedekind} library and its associated build graph are available on GitHub \cite{Krautler_dedekind_2026}.
+We utilize GitHub Actions to verify the project's structural integrity; each commit is checked via \texttt{static\_assert} compile-time proofs and a suite of automated tests.
+Following the tradition of property-based testing \cite{ClaessenHughes2000}, we utilize these tests as "runtime witnesses" to verify the materialization of our categorical primitives, aiming for a patch coverage threshold of 60\% or higher for all new module partitions.
+While the automation of build and test cycles is considered a 'bread-and-butter' practice in contemporary software engineering \cite{Duvall2007}, its application in the \textsf{dedekind} framework serves a specific epistemological purpose. By treating the CI pipeline as a continuous verification engine, we ensure that the categorical ontology remains decidable and physically materialized across all translation units.
 
 \section{Conclusion}
 This paper has explored the feasibility of embedding formal mereology within the C++23 type system through the \texttt{dedekind} library.
