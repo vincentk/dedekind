@@ -52,7 +52,10 @@ enable_testing()
 
 # Run build on a per module basis. I.e.
 # Module A -> Test A -> Module B -> Test B -> ...
-# This macro describes the build of one module.
+# This function describes the build of one module.
+# Note, there is a bit of CMake magic to cope with code coverage measurement during testing.
+# The key is to link the test executable with the library target in two ways:
+# 1. Link the library target normally to provide metadata (PCMs) without providing objects again. We use the INTERFACE properties of the library to avoid double-linking .o files.
 function(add_dedekind_layer LAYER_NAME DEPENDS_ON)
     set(LIB_TARGET dedekind_${LAYER_NAME})
     set(TEST_TARGET test_${LAYER_NAME})
@@ -60,7 +63,6 @@ function(add_dedekind_layer LAYER_NAME DEPENDS_ON)
     file(GLOB MODULE_SOURCES CONFIGURE_DEPENDS "src/main/modules/dedekind/${LAYER_NAME}/*.cppm")
     file(GLOB TEST_SOURCES   CONFIGURE_DEPENDS "src/test/cpp/modules/dedekind/${LAYER_NAME}/*_test.cpp")
 
-    # Use STATIC but force the linker to keep all instrumented code
     add_library(${LIB_TARGET} STATIC)
     set_target_properties(${LIB_TARGET} PROPERTIES CXX_SCAN_FOR_MODULES ON)
 
@@ -84,14 +86,19 @@ function(add_dedekind_layer LAYER_NAME DEPENDS_ON)
     add_executable(${TEST_TARGET} ${TEST_SOURCES})
     set_target_properties(${TEST_TARGET} PROPERTIES CXX_SCAN_FOR_MODULES ON)
     
-    # 1. Normal Link: Handles Module PCM visibility and header paths
-    target_link_libraries(${TEST_TARGET} PRIVATE ${LIB_TARGET})
-
-    # 2. Scoped Link: Forces all instrumented code into the binary for Codecov
+    # 1. Provide metadata (PCMs) WITHOUT providing objects again
+    # We use the INTERFACE properties of the library to avoid double-linking .o files
     target_link_libraries(${TEST_TARGET} PRIVATE 
-        ${DEDEKIND_WHOLE_ARCHIVE_PREFIX} $<TARGET_FILE:${LIB_TARGET}> ${DEDEKIND_WHOLE_ARCHIVE_SUFFIX}
+        ${LIB_TARGET}
         Catch2::Catch2WithMain
     )
+
+    # 2. Provide the binary objects EXACTLY ONCE with the "Whole Archive" wrap
+    # This ensures instrumentation counters aren't stripped.
+    target_link_options(${TEST_TARGET} PRIVATE 
+        ${DEDEKIND_WHOLE_ARCHIVE_PREFIX}$<TARGET_FILE:${LIB_TARGET}>${DEDEKIND_WHOLE_ARCHIVE_SUFFIX}
+    )
+
     add_test(NAME ${TEST_TARGET} COMMAND ${TEST_TARGET})
     
     add_custom_command(TARGET ${TEST_TARGET} POST_BUILD
