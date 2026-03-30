@@ -104,6 +104,17 @@ function(add_dedekind_layer LAYER_NAME DEPENDS_ON)
 
     add_test(NAME ${TEST_TARGET} COMMAND ${TEST_TARGET})
 
+    # Use an absolute path for the profile file, utilizing GITHUB_WORKSPACE if available
+    if(DEFINED ENV{GITHUB_WORKSPACE})
+        set(PROFILE_DIR "$ENV{GITHUB_WORKSPACE}/build")
+    else()
+        set(PROFILE_DIR "${CMAKE_BINARY_DIR}")
+    endif()
+
+    set_tests_properties(${TEST_TARGET} PROPERTIES 
+        ENVIRONMENT "LLVM_PROFILE_FILE=${PROFILE_DIR}/dedekind-${LAYER_NAME}-%m.profraw"
+    )
+
     # Track binaries for the final coverage report
     set_property(GLOBAL APPEND PROPERTY DEDEKIND_ALL_TEST_BINARIES $<TARGET_FILE:${TEST_TARGET}>)
     set_property(GLOBAL APPEND PROPERTY DEDEKIND_ALL_LIB_ARCHIVES $<TARGET_FILE:${LIB_TARGET}>)
@@ -204,8 +215,8 @@ endif()
 
 add_custom_target(generate_coverage
     # 1. Merge the raw profiles into a single .profdata file
-    COMMAND sh -c "${LLVM_PROFDATA_TOOL} merge -sparse ${CMAKE_BINARY_DIR}/*.profraw -o ${CMAKE_BINARY_DIR}/dedekind.profdata"
-
+    COMMAND sh -c "${LLVM_PROFDATA_TOOL} merge -sparse $(find ${CMAKE_BINARY_DIR} -name '*.profraw') -o ${CMAKE_BINARY_DIR}/dedekind.profdata"
+    
     # 2. Export to LCOV
     COMMAND ${LLVM_COV_TOOL} export 
         -instr-profile=${CMAKE_BINARY_DIR}/dedekind.profdata 
@@ -217,7 +228,7 @@ add_custom_target(generate_coverage
      # 3. Strip absolute paths using Perl (Identical syntax on Mac & Linux)
     COMMAND perl -i -pe "s|${CMAKE_SOURCE_DIR}/||g" ${CMAKE_BINARY_DIR}/coverage.info
     COMMAND perl -i -pe "s|SF:\./|SF:|g" ${CMAKE_BINARY_DIR}/coverage.info
-    
+
     WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
     VERBATIM
     COMMENT "Generating unified LCOV coverage report..."
