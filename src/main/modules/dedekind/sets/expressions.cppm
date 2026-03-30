@@ -1,84 +1,61 @@
 module;
-#include <cmath>
+
+#include <compare>
 #include <concepts>
 #include <functional>
-#include <type_traits>
 
 export module dedekind.sets:expressions;
-// C++23 feature:
-// import std;
 
-namespace dedekind::sets::expressions {
+import dedekind.ontology;
+import :boundaries;  // For Ω, Ø
 
-/**
- * @file ontology:symbolic.cppm
- * @brief The Generic Element: A Symbolic Proxy for Species.
- */
-export module dedekind.ontology:symbolic;
-import :logic;
-import :mereology;
+namespace dedekind::sets {
+using namespace dedekind::ontology;
+using namespace dedekind::category;
 
-/**
- * @struct SymbolicExpr
- * @brief A delayed-evaluation node representing a mathematical operation.
- * @tparam Op The operation tag (e.g., std::plus<>).
- */
-template <typename S, typename Op, typename Lhs, typename Rhs>
-struct SymbolicExpr {
-  using element_type = typename S::element_type;
-  Lhs lhs;
-  Rhs rhs;
-  Op op;
+export template <typename Base, typename Predicate>
+struct Comprehension {
+  const Base& base;
+  Predicate predicate;
+  using element_type = typename Base::element_type;
+};
 
-  /** @brief Terminal evaluation: substitutes the variable with a value. */
-  constexpr auto operator()(const element_type& v) const {
-    // Recursively evaluate if operands are themselves expressions or variables
-    return op(evaluate(lhs, v), evaluate(rhs, v));
+/** @brief The Membership Binding: Bridges a Variable to its Domain. */
+template <typename Species>
+struct MembershipBinding {
+  const Species& base;
+
+  /** @section The_Comprehension_Pipe */
+  template <typename P>
+  constexpr auto operator|(P&& p) const {
+    return Comprehension<Species, std::decay_t<P>>{base, std::forward<P>(p)};
   }
 };
 
 /**
  * @class Variable
- * @brief The 'Generic Element' (id_S) of a Species.
- * @details Represents a point-in-potentia. Overloads are constrained by
- *          the algebraic registry of the parent Species.
+ * @brief The 'Symbolic Scout' (id_S) of a Species.
+ * @details Represents a point-in-potentia for set construction.
  */
 export template <typename Species>
-  requires IsSet<Species>
 struct Variable {
   using T = typename Species::element_type;
-
-  /** @section Mereological_Binding */
+  using is_variable = void;
 
   /** @brief The Membership Morphism (x % S). Mimics 'x \in S'. */
   constexpr auto operator%(const Species& s) const {
-    return MembershipConstraint<Species>{s};
+    return MembershipBinding<Species>{s};
   }
 
-  /** @section Algebraic_Lifting (Level 3) */
-
   /**
-   * @brief Symbolic Addition.
-   * @requires The Species must satisfy a Ring-like structure.
+   * @brief The Membership Morphism.
+   * Allows binding this variable to any set S,
+   * provided they share the same underlying element type.
    */
-  template <typename Rhs>
-  friend constexpr auto operator+(const Variable& lhs, const Rhs& rhs)
-    requires IsRingoid<Species>
-  {
-    return SymbolicExpr<Species, std::plus<>, Variable, Rhs>{lhs, rhs, {}};
-  }
-
-  /** @section Relational_Lifting (Level 1) */
-
-  /**
-   * @brief Symbolic Ordering (Predicate Generation).
-   * @requires The Species must be at least a Partial Order.
-   */
-  template <typename Rhs>
-  friend constexpr auto operator<(const Variable& lhs, const Rhs& rhs)
-    requires IsPartOf<Species, Species>
-  {
-    return Predicate<T>{[rhs](const T& v) { return v < rhs; }};
+  template <typename SubSpecies>
+    requires std::same_as<T, typename SubSpecies::element_type>
+  constexpr auto operator%(const SubSpecies& s) const {
+    return MembershipBinding<SubSpecies>{s};
   }
 };
 
@@ -86,43 +63,87 @@ struct Variable {
 export template <typename S>
 inline constexpr Variable<S> var{};
 
-/**
- * @class IntentionalSet
- * @brief A set defined by the Axiom of Specification: { x \in B | P(x) }.
- */
+/** @brief Convenience Alias: If S is a type, var<S> is the scout. */
+// This allows: auto x = var<int>; where int is mapped to Ω<int>
+export template <typename T>
+inline constexpr Variable<Ω<T>> var_for_type{};
+
 export template <typename T, typename L = ClassicalLogic>
-class IntentionalSet {
+class Set {
  public:
-  using element_type = T;
-  using cardinality_type = ℵ_0;
-
+  using logic_species = L;
   template <typename B, typename P>
-  constexpr IntentionalSet(Comprehension<B, P> cp)
-      : base_(cp.base), predicate_(cp.predicate) {}
+  constexpr Set(Comprehension<B, P> cp)
+      : predicate_([p = cp.predicate](const T& v) {
+          return dedekind::category::lift_logic<L>(p(v));
+        }) {}
 
-  /** @brief The Subobject Classifier check. */
-  auto contains(const T& v) const -> typename L::type {
-    if (!base_.contains(v)) return L::bottom();
-    return predicate_(v);
-  }
+  /** @brief Identity Constructor: Set{ Ω } */
+  template <typename Species>
+    requires std::same_as<T, typename Species::element_type>
+  constexpr Set(const Species&)
+      : predicate_([](const T&) { return L::True; }) {}
+
+  auto operator()(const T& v) const { return predicate_(v); }
 
  private:
-  const IsSet auto& base_;
   std::function<typename L::type(const T&)> predicate_;
 };
 
-/** @section The_Universal_Dispatcher */
-template <typename T>
-struct Set {
-  // 1. Extensional: Set{ 1, 2, 3 }
-  template <typename... Args>
-  Set(Args... args) : data_{args...} {}
+export template <typename B, typename P>
+Set(Comprehension<B, P>)
+    -> Set<typename B::element_type,
+           typename dedekind::ontology::NaturalLogic<B>::type>;
 
-  // 2. Intentional: Set{ x % ℕ | x < 10 }
-  template <typename B, typename P>
-  Set(ontology::Comprehension<B, P> cp) : data_{cp} {}
+/** @section Identity_CTAD */
+template <typename Species>
+Set(Species) -> Set<typename Species::element_type,
+                    typename dedekind::ontology::NaturalLogic<Species>::type>;
 
-  // ... internal storage/dispatch ...
-};
+/** @section Relational_Lifting (Level 1) */
 
-}  // namespace dedekind::sets::expressions
+// Note: We move these OUTSIDE the Variable struct, into namespace
+// dedekind::sets
+
+export template <typename Species, typename Rhs>
+constexpr auto operator<(const Variable<Species>&, const Rhs& rhs) {
+  return [rhs](const typename Species::element_type& v) { return v < rhs; };
+}
+
+export template <typename Species, typename Rhs>
+constexpr auto operator<=(const Variable<Species>&, const Rhs& rhs) {
+  return [rhs](const typename Species::element_type& v) { return v <= rhs; };
+}
+
+export template <typename Species, typename Rhs>
+constexpr auto operator>(const Variable<Species>&, const Rhs& rhs) {
+  return [rhs](const typename Species::element_type& v) { return v > rhs; };
+}
+
+export template <typename Species, typename Rhs>
+constexpr auto operator>=(const Variable<Species>&, const Rhs& rhs) {
+  return [rhs](const typename Species::element_type& v) { return v >= rhs; };
+}
+
+export template <typename Species, typename Rhs>
+constexpr auto operator==(const Variable<Species>&, const Rhs& rhs) {
+  return [rhs](const typename Species::element_type& v) { return v == rhs; };
+}
+
+/** @section Logical_Lifting */
+
+export template <typename P1, typename P2>
+constexpr auto operator&&(P1&& p1, P2&& p2) {
+  return [p1 = std::forward<P1>(p1), p2 = std::forward<P2>(p2)](const auto& v) {
+    return p1(v) && p2(v);
+  };
+}
+
+export template <typename P1, typename P2>
+constexpr auto operator||(P1&& p1, P2&& p2) {
+  return [p1 = std::forward<P1>(p1), p2 = std::forward<P2>(p2)](const auto& v) {
+    return p1(v) || p2(v);
+  };
+}
+
+}  // namespace dedekind::sets

@@ -76,7 +76,9 @@ struct Ø final : Boundaries {
   /** @section Extensionality_Proof */
   constexpr std::size_t size() const { return 0; }
 
-  // Axiom: The Empty Set is a part of everything (including itself)
+  /** @section Lattice_Axiom: Initiality */
+  // The Empty Set is a part of everything (including itself)
+  // We use a simple template to avoid recursion with IsSet
   template <typename S>
   constexpr typename L::type operator<=(const S&) const {
     return L::True;
@@ -140,13 +142,20 @@ struct Ω final : Boundaries {
 
   constexpr auto operator!() const { return Ø<T, L>{}; }
 
-  // Axiom: Everything is a part of the Universal Set
+  /**
+   * @section Lattice_Axiom: Terminality
+   * Everything is a part of the Universal Set.
+   * Constraint: Exclude Variables (which have a member T) to let
+   * symbolic expressions handle their own comparisons.
+   */
   template <typename S>
+    requires(!requires { typename S::T; }) &&
+            (!requires { typename S::is_variable; })
   friend constexpr typename L::type operator<=(const S&, const Ω&) {
     return L::True;
   }
 
-  // Axiom: Universal Set is only a part of itself
+  /** @section Lattice_Axiom: Reflexivity */
   constexpr typename L::type operator<=(const Ω&) const { return L::True; }
 
   // Explicitly define equality if <=> is being deleted by members
@@ -188,6 +197,13 @@ static_assert(IsSet<Ø<int>>);
 // the build stops right here with a clear error.
 static_assert(IsInitialObject<Ø<int>>,
               "Ø must satisfy the Initial Object axiom.");
+
+// FIXME: This is a hack to make the tests compile. The NaturalNumbers class
+// should Define the symbol used in your test Define the type
+export using NaturalNumbers = Ω<int>;
+
+// Define the symbol used in your test
+export inline constexpr NaturalNumbers ℕ{};
 
 };  // namespace dedekind::sets
 

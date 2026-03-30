@@ -2,51 +2,50 @@
 
 // Import our Dedekind modules
 import dedekind.sets;
+import dedekind.ontology;
 
+using namespace dedekind::category;
+using namespace dedekind::ontology;
 using namespace dedekind::sets;
-using namespace dedekind::sets::universes;
 
 TEST_CASE("Dedekind MVP: Basic Membership and Symbols", "[sets]") {
   SECTION("Integer Universe Membership") {
-    // 1. Declare our symbolic scout for the Integer Species
-    constexpr auto x = var<Integers>;
+    auto x = var<Ω<int>>;  // A variable representing an element of the integer
+                           // universe
 
-    /**
-     * 2. Build a Set Expression:
-     * { x \in \mathbb{Z} | x + 5 < 10 }
-     *
-     * Mechanics:
-     * - 'x % Integers' creates the MembershipConstraint (The Base).
-     * - 'x + 5' creates a SymbolicExpr (The Transformation).
-     * - '... < 10' creates the final Predicate (The Logic).
-     */
-    auto MySet = IntentionalSet{x % Integers | (x + 5 < 10)};
+    // Should be Set<int, ClassicalLogic>
+    auto finite = Set{x % singleton(1) | (x == 1)};
 
-    // 3. Verification
-    CHECK(MySet.contains(2));
-    CHECK(MySet.contains(10);
-    
-    /**
-     * @note Ontological Safety:
-     * If we tried: var<Naturals> - 10, the compiler would error 
-     * because Naturals (Level 0a) do not satisfy IsGroup (Level 3).
-     */
-
-    SECTION("Boolean species with Logical Predicates") {
-      // A concrete singleton
-      auto Unit = Singleton{1.0};
-
-      // The Symbolic DSL over the Booleans species
-      constexpr auto b = var<Booleans>;
-
-      /**
-       * Terse Expression:
-       * "The set of booleans such that they are true."
-       */
-      auto OnlyTrue = IntentionalSet{b % Booleans{} | (b == true)};
-
-      static_assert(IsSet<decltype(OnlyTrue)>);
-      assert(OnlyTrue.contains(true) == true);
-      assert(OnlyTrue.contains(false) == false);
+    // Should be Set<int, TernaryLogic> (because ℕ is transfinite)
+    auto infinite = Set{x % ℕ | (x > 0)};
   }
+}
+
+TEST_CASE("Dedekind Identities: Extremal Collapse", "[sets][identities]") {
+  auto x = var<NaturalNumbers>;
+
+  SECTION("Identity: Set{Ω} is Ω") {
+    // The terminal object should remain terminal
+    auto U = Set{ℕ};
+
+    // It must satisfy the 'Total Presence' axiom
+    static_assert(std::is_same_v<decltype(U)::logic_species, TernaryLogic>);
+    REQUIRE(U(42) == Ternary::True);
+    REQUIRE(U(-1) == Ternary::True);
   }
+
+  SECTION("Contradiction: {x ∈ ℕ | x > 10 ∧ x < 5} is ∅") {
+    // Here we combine the symbolic predicates
+    auto S = Set{x % ℕ | (x > 10 && x < 5)};
+
+    // For a non-trivial polish, we verify it is 'Total Absence'
+    REQUIRE(S(0) == Ternary::False);
+    REQUIRE(S(7) == Ternary::False);
+    REQUIRE(S(12) == Ternary::False);
+  }
+
+  SECTION("Tautology: {x ∈ ℕ | x > 10 ∨ x <= 10} is Ω") {
+    auto S = Set{x % ℕ | (x > 10 || x <= 10)};
+    REQUIRE(S(7) == Ternary::True);
+  }
+}

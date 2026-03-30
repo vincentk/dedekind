@@ -377,4 +377,18 @@ concept IsPointedSet = IsSet<S> && requires(const S s) {
   { s.origin() } -> std::same_as<typename S::element_type>;
 };
 
+// Inside namespace dedekind::ontology
+export template <typename Base>
+struct NaturalLogic {
+  // Check for Transfiniteness via cardinality_type
+  static constexpr bool is_transfinite = requires {
+    typename Base::cardinality_type;
+    requires !std::is_same_v<typename Base::cardinality_type, Finite>;
+  };
+
+  // Heuristic: Extensional & Finite -> Classical. Else -> Ternary.
+  using type = std::conditional_t<IsExtensional<Base> && !is_transfinite,
+                                  ClassicalLogic, TernaryLogic>;
+};
+
 };  // namespace dedekind::ontology
