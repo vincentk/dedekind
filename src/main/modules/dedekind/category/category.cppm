@@ -1,27 +1,40 @@
 /**
  * @file category.cppm
- * @brief The Categorical Engine: From Truth Objects to ETCS.
- *
- * Copyright 2026 The Dedekind Authors
+ * @brief The Categorical Engine: From Subobject Classifiers to ETCS.
+ * 
+ * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @section Category: The Structuralist Foundation
- * This module defines the internal language of the Dedekind Universe.
- * By implementing the Elementary Theory of the Category of Sets (ETCS),
- * we treat mathematical objects as positions within a structure rather
- * than collections of elements.
+ * @section The_Dedekind_Universe
+ * This module implements the internal language of the Dedekind ontology. 
+ * By adopting the Elementary Theory of the Category of Sets (ETCS), we 
+ * move away from "element-oriented" programming. Instead, mathematical 
+ * objects are treated as positions within a structure, defined entirely 
+ * by their morphisms (arrows).
  *
- * @subsection Structural_Hierarchies
- * - Level -1: Internal Logic (Ω) and Machine Species.
- * - Level 0a: Functorial Mapping and Kleisli Highways.
- * - Level 0b: Cartesian Closed Structures (Products and Exponentials).
- * - Level 0c: Posetal Reductions (Order as Morphism).
+ * @section Structural_Levels
+ * The ontology is organized into layers of increasing abstraction:
+ * 
+ * - **Level -1: The Internal Language** (\ref logic, \ref species)
+ *   Foundational machine primitives reified as categorical objects, 
+ *   governed by the Subobject Classifier (Ω).
+ * 
+ * - **Level 0a: The Mapping Engine** (\ref morphisms, \ref functorial, \ref kleisli)
+ *   The "Highway System" for data flow. This layer defines how species 
+ *   transform while preserving algebraic invariants via Functors and 
+ *   Kleisli triples.
+ * 
+ * - **Level 0b: Higher Structures** (\ref cartesian, \ref posetal)
+ *   Cartesian Closed Categories (CCC) providing the logic for Products, 
+ *   Exponentials (Function Spaces), and Order-theoretic reductions.
+ * 
+ * - **Level 0c: Axiomatic Foundations** (\ref etcs)
+ *   The formalization of set-theoretic behavior using categorical axioms 
+ *   rather than ZFC membership.
  *
- * @see dedekind.category:logic (The Subobject Classifier Ω)
- * @see dedekind.category:cartesian (Finite Products and Exponentials)
- * @see dedekind.category:posetal (Morphisms as Relations)
- *
- * Wikipedia: ETCS, Cartesian closed category, Topos
+ * @see Wikipedia: [ETCS](https://en.wikipedia.org), 
+ *      [Cartesian Closed Category](https://en.wikipedia.org), 
+ *      [Topos Theory](https://en.wikipedia.org)
  */
 
 export module dedekind.category;

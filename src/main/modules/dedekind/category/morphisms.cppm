@@ -1,64 +1,37 @@
 /**
- * @file ontology:category.cppm
- * @brief Level 0: The Skeletal Foundation (Algebraic Bricks and Categorical
- * Cement).
+ * @file ontology:category.morphisms
+ * @brief Level 0: The Algebraic Core (Morphisms, Categories, and Structural Invariants).
  *
- * @section The_Structuralist_Unity
- * This partition unifies machine-level instructions with the abstract laws of
- * Category Theory. By treating the C++ type system as a formal proof assistant,
- * we ensure structural integrity via compile-time verification (Static
- * Mereology).
+ * @section The_Structuralist_Framework
+ * This partition defines the categorical primitives that govern the interaction 
+ * between species. By encoding mathematical structures into C++ concepts, we 
+ * treat the compiler as a formal verifier for structural integrity.
  *
- * @subsection The_Bricks: Machine Primitives
- * Fundamental types are augmented with algebraic traits, promoting raw
- * bit-fields into formal members of mathematical structures (e.g., the Integer
- * Group ℤ).
- * - identity_v      : The neutral element (0, 1, true) for a given operation.
- * - is_associative_v : Proof of grouping independence.
- * - is_commutative_v : Proof of order independence.
+ * @subsection Categories_and_Monoids
+ * In the Dedekind ontology, we primarily interface with 'Small' Categories—those 
+ * where objects and morphisms are representable as discrete types and functions.
+ * - IsSmallCategory : A Monoid viewed as a category with a single object.
+ * - IsAbelian       : A category where the composition (Op) is commutative, 
+ *                     permitting symbolic reordering and optimization.
  *
- * @subsection The_Cement: Categorical Morphisms
- * Primitives are bound by morphisms that preserve structural invariants:
- * - IsFunctor     : A structure-preserving mapping between categories.
- * - IsMonad       : A mechanism for lifting and chaining species (The Push).
- * - IsComonad     : A mechanism for sampling and extending contexts (The Pull).
- * - IsEmbedding   : A proof of injective (1:1) type promotion.
+ * @subsection Morphisms_and_Arrows
+ * Morphisms are the "cement" of the ontology, defining how data flows between 
+ * species while preserving their underlying algebraic laws.
+ * - Morphism (Arrow) : A tagged mapping from a Domain (A) to a Codomain (B).
+ * - IsInitial       : The "Zero" object (0); the source of the unique morphism to any X.
+ * - IsTerminal      : The "One" object (1); the target of the unique morphism from any X.
  *
- * @section The_Bootstrapping_Strategy: Action-First Derivation
- * To resolve the circular dependency between Functors and Monads, Dedekind
- * implements an "Action-First" bootstrapping strategy.
+ * @section The_Action_Axiom
+ * To bypass C++ template limitations regarding ADL and partial specialization, 
+ * morphisms are treated as "Actions." Rather than defining a global 'compose' 
+ * function, we utilize the internal structure of the species (Kleisli or 
+ * Co-Kleisli extension systems) to derive higher-order behavior like functors.
  *
- * @note Technical Implementation Constraints:
- * In textbook Category Theory, a Monad is a Monoid in the category of
- * Endofunctors. However, C++ language constraints necessitate a divergence to
- * Kleisli Triples:
- * 1. Partial Specialization: C++ forbids partial specialization of function
- *    templates (e.g., fmap<Box>), preventing a centralized definition.
- * 2. ADL Resolution: Function templates called via name-lookup (fmap<F>) cannot
- *    trigger Argument-Dependent Lookup.
- *
- * By defining Monads/Comonads as Extension Systems (η/ε + >>= / <<=), we
- * utilize operator overloading on concrete objects. This triggers ADL, allowing
- * Level 0 to instantiate a derived 'fmap' without prior knowledge of Level 1
- * species.
- *
- * - Monadic Discovery   : fmap(f) is derived as: m >>= (η ∘ f).
- * - Comonadic Discovery : fmap(f) is derived as: w <<= (f ∘ ε).
- *
- * @section The_Highway_Notation: Directional Vectors
- * Operators represent the flow of data across the ontology:
- * - value >> into<>    : η (Unit) - Lifting a species into a context.
- * - box   << extract<> : ε (Counit) - Sampling a species from a context.
- * - box   >>= f        : Bind - Monadic composition (Left-to-Right).
- * - box   <<= f        : Extend - Comonadic composition (Right-to-Left /
- * Contextual).
- *
- * @section Structural_Inference
- * Compile-time exhaustive proofs (e.g., Bool-to-Int embedding) guarantee
- * the security of the skeletal layer before higher-level complex species
- * are initialized.
+ * @section Universal_Zero
+ * The ontology provides a 'Zero Morphism' (\ref zero), which represents information 
+ * absorption. It maps any element of the domain to the identity element of the 
+ * codomain's underlying monoid.
  */
-
 module;
 
 #include <concepts>

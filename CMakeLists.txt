@@ -174,11 +174,23 @@ if (DOXYGEN_FOUND)
     set(DOXYGEN_EXTRACT_PRIVATE NO)
     set(DOXYGEN_EXTRACT_STATIC NO)
 
+    # Improves how Doxygen resolves imports/includes for modules
+    set(DOXYGEN_BUILTIN_STL_SUPPORT YES)
+    set(DOXYGEN_CPP_CLI_SUPPORT NO)
+    set(DOXYGEN_SIP_SUPPORT NO)
+
+    # Crucial for ETCS/Topos documentation: 
+    # Allows Doxygen to parse LaTeX-style math if you use it in the future
+    set(DOXYGEN_USE_MATHJAX YES) 
+
+    # Ensure the "Level" sections show up in the hierarchy
+    set(DOXYGEN_TOC_INCLUDE_HEADINGS 3)
+
     # Automatically pulls "1.0.0" from the project() call above
     set(DOXYGEN_PROJECT_NUMBER ${PROJECT_VERSION})
     
     # Optional: Add a project brief (like a Maven description)
-    set(DOXYGEN_PROJECT_BRIEF "A modern C++20 Module Library")
+    set(DOXYGEN_PROJECT_BRIEF "A structuralist C++23 Module Library")
     
     # Use the FindDoxygen built-in macro to configure a Doxyfile automatically
     doxygen_add_docs(docs

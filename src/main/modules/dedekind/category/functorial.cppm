@@ -2,21 +2,7 @@
  * @file ontology:category.cppm
  * @brief Level 0: The Skeletal Foundation (Algebraic Bricks and Categorical
  * Cement).
- *
- * @section The_Structuralist_Unity
- * This partition unifies machine-level instructions with the abstract laws of
- * Category Theory. By treating the C++ type system as a formal proof assistant,
- * we ensure structural integrity via compile-time verification (Static
- * Mereology).
- *
- * @subsection The_Bricks: Machine Primitives
- * Fundamental types are augmented with algebraic traits, promoting raw
- * bit-fields into formal members of mathematical structures (e.g., the Integer
- * Group ℤ).
- * - identity_v      : The neutral element (0, 1, true) for a given operation.
- * - is_associative_v : Proof of grouping independence.
- * - is_commutative_v : Proof of order independence.
- *
+
  * @subsection The_Cement: Categorical Morphisms
  * Primitives are bound by morphisms that preserve structural invariants:
  * - IsFunctor     : A structure-preserving mapping between categories.
