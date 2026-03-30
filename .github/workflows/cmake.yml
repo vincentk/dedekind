@@ -70,17 +70,14 @@ jobs:
     - name: Upload to Codecov
       uses: codecov/codecov-action@v4
       with:
-        # 1. Use the 'file' argument again, but point to the raw lcov
-        file: build/coverage.info
-        # 2. Use 'plugin: gcov' instead of 'xcode'
-        # This is the correct parser for Clang/LLVM lcov output on Linux.
+        # 1. Remove 'files: build/coverage.info'
+        # 2. Use 'directory: build/' to let the CLI search and identify the file
+        directory: build/
+        # 3. Use 'plugin: gcov' - This is the standard parser for Clang/LLVM lcov
         plugin: gcov
         token: ${{ secrets.CODECOV_TOKEN }}
-        # 3. Explicitly set the flag so Codecov knows this is the 'backend' logic
-        flags: backend
         verbose: true
         fail_ci_if_error: true
-
 
     # --- CONDITIONAL DEPLOYMENT STEPS ---
     
