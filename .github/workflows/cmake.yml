@@ -44,15 +44,29 @@ jobs:
 
     - name: Process Coverage Data
       run: |
-      run: |
-        # 1. Check if the raw data actually exists before merging
+        # 1. Check for raw data
         ls -l build/*.profraw || echo "NO PROFRAW FILES FOUND"
 
-        # 2. Existing merge/export logic...
+        # 2. Merge
         llvm-profdata-21 merge -sparse build/*.profraw -o build/dedekind.profdata
         
-        # 3. Analytic: Did the merge actually find any counter data?
+        # 3. Analytic: Check counts
         llvm-profdata-21 show build/dedekind.profdata | head -n 10
+
+        # 4. Export (Required for Codecov)
+        llvm-cov-21 export \
+          -instr-profile=build/dedekind.profdata \
+          -format=lcov \
+          -ignore-filename-regex=".*_deps/.*|.*test/.*" \
+          ./build/test_category \
+          ./build/test_ontology \
+          ./build/test_sets \
+          -object build/libdedekind_category.a \
+          -object build/libdedekind_ontology.a \
+          -object build/libdedekind_sets.a > build/coverage.info
+        
+        # 5. Path Fix (Crucial for Codecov mapping)
+        sed -i "s|$(pwd)/||g" build/coverage.info
 
     - name: Upload to Codecov
       uses: codecov/codecov-action@v4
@@ -73,7 +87,7 @@ jobs:
 
     - name: Upload artifact
       if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-      uses: actions/upload-pages-artifact@v3
+      uses: actions/upload-pages-artifact@v4
       with:
         path: 'build/docs/html' # Adjust to match your CMake DOXYGEN_OUTPUT_DIR
 
