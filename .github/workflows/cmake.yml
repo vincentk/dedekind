@@ -44,18 +44,22 @@ jobs:
 
     - name: Process Coverage Data
       run: |
-        # 1. Merge all generated .profraw files into one .profdata
         llvm-profdata-21 merge -sparse build/*.profraw -o build/dedekind.profdata
         
-        # 2. Export coverage for all test binaries
-        # We point to the main library targets or the binaries themselves
+        # Include the .a files as objects so llvm-cov finds the instrumented code
         llvm-cov-21 export \
           -instr-profile=build/dedekind.profdata \
           -format=lcov \
           -ignore-filename-regex=".*_deps/.*|.*test/.*" \
           ./build/test_category \
           ./build/test_ontology \
-          ./build/test_sets > build/coverage.info
+          ./build/test_sets \
+          -object build/libdedekind_category.a \
+          -object build/libdedekind_ontology.a \
+          -object build/libdedekind_sets.a > build/coverage.info
+
+        # Verify the file is not empty
+        ls -sh build/coverage.info
 
     - name: Upload to Codecov
       uses: codecov/codecov-action@v4
