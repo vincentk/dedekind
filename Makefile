@@ -32,7 +32,6 @@ test: compile
 coverage: compile
 	@echo "Running tests with profile environment..."
 	# Set the variable for the duration of the ctest command
-	LLVM_PROFILE_FILE="$(PWD)/$(BUILD_DIR)/dedekind-%m.profraw" \
 	ctest --test-dir $(BUILD_DIR) --output-on-failure
 	
 	@echo "Processing coverage..."

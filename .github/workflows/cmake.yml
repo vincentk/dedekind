@@ -38,9 +38,7 @@ jobs:
     - name: Build & Run Tests
       run: |
         cmake --build build
-        # The %m ensures test_category, test_ontology, and test_sets 
-        # each write to a unique .profraw file instead of clobbering 'dedekind.profraw'
-        LLVM_PROFILE_FILE="build/dedekind-%m.profraw" ctest --test-dir build --output-on-failure -V
+        ctest --test-dir build --output-on-failure -V
 
     - name: Process Coverage Data
       run: cmake --build build --target generate_coverage
