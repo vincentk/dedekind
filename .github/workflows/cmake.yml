@@ -47,12 +47,10 @@ jobs:
         # 1. Merge
         llvm-profdata-21 merge -sparse build/*.profraw -o build/dedekind.profdata
         
-        # 2. Export with explicit path-equivalence to ensure relative paths
-        # This is cleaner than sed and ensures the mapping is perfect.
+        # 2. Export with the CI's absolute path (to ensure all hits are caught)
         llvm-cov-21 export \
           -instr-profile=build/dedekind.profdata \
           -format=lcov \
-          -path-equivalence=$(pwd),. \
           -ignore-filename-regex=".*_deps/.*|.*test/.*" \
           ./build/test_category \
           ./build/test_ontology \
@@ -61,7 +59,12 @@ jobs:
           -object build/libdedekind_ontology.a \
           -object build/libdedekind_sets.a > build/coverage.info
 
-        # 3. Analytic: Verify paths look like SF:src/... (no leading ./ or /)
+        # 3. THE FIX: Strip the absolute path AND the leading "./" 
+        # This ensures paths look like "src/main/..." exactly.
+        sed -i "s|$(pwd)/||g" build/coverage.info
+        sed -i "s|SF:\./|SF:|g" build/coverage.info
+
+        # 4. Verify: Paths should now start with "src/"
         grep "SF:" build/coverage.info | head -n 5
 
     - name: Upload to Codecov
