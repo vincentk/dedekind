@@ -44,19 +44,15 @@ jobs:
 
     - name: Process Coverage Data
       run: |
-        # 1. Check for raw data
-        ls -l build/*.profraw || echo "NO PROFRAW FILES FOUND"
-
-        # 2. Merge
+        # 1. Merge
         llvm-profdata-21 merge -sparse build/*.profraw -o build/dedekind.profdata
         
-        # 3. Analytic: Check counts
-        llvm-profdata-21 show build/dedekind.profdata | head -n 10
-
-        # 4. Export (Required for Codecov)
+        # 2. Export with explicit path-equivalence to ensure relative paths
+        # This is cleaner than sed and ensures the mapping is perfect.
         llvm-cov-21 export \
           -instr-profile=build/dedekind.profdata \
           -format=lcov \
+          -path-equivalence=$(pwd),. \
           -ignore-filename-regex=".*_deps/.*|.*test/.*" \
           ./build/test_category \
           ./build/test_ontology \
@@ -64,9 +60,9 @@ jobs:
           -object build/libdedekind_category.a \
           -object build/libdedekind_ontology.a \
           -object build/libdedekind_sets.a > build/coverage.info
-        
-        # 5. Path Fix (Crucial for Codecov mapping)
-        sed -i "s|$(pwd)/||g" build/coverage.info
+
+        # 3. Analytic: Verify paths look like SF:src/... (no leading ./ or /)
+        grep "SF:" build/coverage.info | head -n 5
 
     - name: Upload to Codecov
       uses: codecov/codecov-action@v4
