@@ -70,9 +70,15 @@ jobs:
     - name: Upload to Codecov
       uses: codecov/codecov-action@v4
       with:
-        files: build/coverage.info
+        # 1. Remove the 'files:' argument to let the CLI search 'build/'
+        # 2. Add 'directory: build/' to narrow the search
+        directory: build/
+        # 3. Add 'plugin: xcode' - This is the "secret sauce" for LLVM/Clang coverage
+        # Even on Linux, the xcode plugin handles the specific 'lcov' quirks of llvm-cov.
+        plugin: xcode
         token: ${{ secrets.CODECOV_TOKEN }}
         verbose: true
+        fail_ci_if_error: true
 
 
     # --- CONDITIONAL DEPLOYMENT STEPS ---
