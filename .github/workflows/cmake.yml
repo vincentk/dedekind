@@ -73,10 +73,10 @@ jobs:
         # 1. Point to the SPECIFIC file again, but use the 'file' argument
         # 2. Use 'token: ${{ secrets.CODECOV_TOKEN }}' (mandatory for v4/v5)
         # 3. Add 'handle_no_reports_found: true' to prevent silent failures
-        file: build/coverage.info
+        files: build/coverage.info
         token: ${{ secrets.CODECOV_TOKEN }}
         # 4. CRITICAL: Use 'plugin: gcov' to force the standard lcov parser
-        plugin: gcov
+        plugins: gcov
         verbose: true
         fail_ci_if_error: true
 
