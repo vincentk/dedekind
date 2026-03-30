@@ -44,28 +44,15 @@ jobs:
 
     - name: Process Coverage Data
       run: |
-        # 1. Merge all generated .profraw files into one .profdata
+      run: |
+        # 1. Check if the raw data actually exists before merging
+        ls -l build/*.profraw || echo "NO PROFRAW FILES FOUND"
+
+        # 2. Existing merge/export logic...
         llvm-profdata-21 merge -sparse build/*.profraw -o build/dedekind.profdata
         
-        # 2. Export coverage for all test binaries and static library objects
-        llvm-cov-21 export \
-          -instr-profile=build/dedekind.profdata \
-          -format=lcov \
-          -ignore-filename-regex=".*_deps/.*|.*test/.*" \
-          ./build/test_category \
-          ./build/test_ontology \
-          ./build/test_sets \
-          -object build/libdedekind_category.a \
-          -object build/libdedekind_ontology.a \
-          -object build/libdedekind_sets.a > build/coverage.info
-
-        # 3. CRITICAL: Convert absolute paths to relative paths
-        # This strips the GitHub Actions runner path so Codecov can map the files
-        sed -i "s|$(pwd)/||g" build/coverage.info
-
-        # 4. Verify the file has content and correct paths
-        ls -sh build/coverage.info
-        grep "SF:" build/coverage.info | head -n 5
+        # 3. Analytic: Did the merge actually find any counter data?
+        llvm-profdata-21 show build/dedekind.profdata | head -n 10
 
     - name: Upload to Codecov
       uses: codecov/codecov-action@v4
