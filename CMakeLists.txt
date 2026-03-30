@@ -1,18 +1,17 @@
 cmake_minimum_required(VERSION 3.28)
 project(Dedekind VERSION 1.0.0 LANGUAGES CXX)
 
+# --- Instrumentation and Warnings ---
+# Hard-coded for Clang 21 as used in the CI pipeline
 set(DEDEKIND_WARNING_FLAGS
     -Wall -Wextra -Wpedantic -Wshadow -Wunused 
     -Wunreachable-code -Wconversion -Werror
+    -fprofile-instr-generate 
+    -fcoverage-mapping
 )
 
-if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    add_compile_options(
-        -fno-implicit-modules
-        -fno-implicit-module-maps
-    )
-endif()
-
+# Ensure the linker also uses the profiling runtime
+add_link_options(-fprofile-instr-generate)
 # Force C++23 standard for Clang 21
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -109,38 +108,13 @@ add_dependencies(dedekind dedekind_category dedekind_ontology dedekind_sets)
 target_link_libraries(dedekind INTERFACE dedekind_ontology dedekind_sets)
 target_compile_features(dedekind INTERFACE cxx_std_23)
 
-# --- 1. RIGOROUS COMPILER ENFORCEMENT ---
-if(MSVC)
-    # Windows/MSVC flags
-    target_compile_options(dedekind PRIVATE /W4 /WX /permissive-)
-    #target_compile_options(dedekind_test PRIVATE /W4 /WX /permissive-)
-else()
-    # Clang/GCC flags
-    set(DEDEKIND_WARNING_FLAGS
-        -Wall          # Essential warnings
-        -Wextra        # Even more warnings
-        -Wpedantic     # Strict ISO C++ compliance
-        -Wshadow       # Warn if a local variable hides a member
-        -Wunused       # Catch unused variables/imports
-        -Wunreachable-code # Catch logic that can never execute
-        -Wconversion   # Warn on implicit type conversions (e.g. long to int)
-        -Werror        # Treat warnings as errors (The "Strict Math" mode)
-    )
-    
-    target_compile_options(dedekind INTERFACE ${DEDEKIND_WARNING_FLAGS})
-    #target_compile_options(dedekind_test PRIVATE ${DEDEKIND_WARNING_FLAGS})
-endif()
-
-#set_target_properties(dedekind_test PROPERTIES CXX_SCAN_FOR_MODULES ON)
-
-#target_link_libraries(dedekind_test PRIVATE dedekind dedekind_category dedekind_ontology dedekind_sets Catch2::Catch2WithMain)
+target_compile_options(dedekind INTERFACE ${DEDEKIND_WARNING_FLAGS})
 
 install(TARGETS dedekind dedekind_category dedekind_ontology dedekind_sets
     EXPORT dedekind-targets
     # Ensure CXX_MODULES are installed for all targets
     FILE_SET CXX_MODULES DESTINATION lib/modules/dedekind
 )
-
 
 install(EXPORT dedekind-targets
     FILE dedekindConfig.cmake
@@ -189,17 +163,6 @@ if (DOXYGEN_FOUND)
     )
     
 endif()
-
-
-# Add coverage flags for Clang
-if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
-    target_compile_options(dedekind INTERFACE -fprofile-instr-generate -fcoverage-mapping)
-    target_link_options(dedekind INTERFACE -fprofile-instr-generate)
-    
-    #target_compile_options(dedekind_test PRIVATE -fprofile-instr-generate -fcoverage-mapping)
-    #target_link_options(dedekind_test PRIVATE -fprofile-instr-generate)
-endif()
-
 
 # Python bindings using nanobind:
 #find_package(Python 3.13 REQUIRED COMPONENTS Interpreter Development)
