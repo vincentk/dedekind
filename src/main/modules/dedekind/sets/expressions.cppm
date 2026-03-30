@@ -40,6 +40,7 @@ struct MembershipBinding {
 export template <typename Species>
 struct Variable {
   using T = typename Species::element_type;
+  using is_variable = void;
 
   /** @brief The Membership Morphism (x % S). Mimics 'x \in S'. */
   constexpr auto operator%(const Species& s) const {
@@ -55,26 +56,6 @@ struct Variable {
     requires std::same_as<T, typename SubSpecies::element_type>
   constexpr auto operator%(const SubSpecies& s) const {
     return MembershipBinding<SubSpecies>{s};
-  }
-
-  /** @section Relational_Lifting (Level 1) */
-
-  // Symbolic Ordering: Generates a boolean-compatible predicate
-  template <typename Rhs>
-  friend constexpr auto operator<(const Variable&, const Rhs& rhs) {
-    return [rhs](const T& v) { return v < rhs; };
-  }
-
-  // Symbolic Equality
-  template <typename Rhs>
-  friend constexpr auto operator==(const Variable&, const Rhs& rhs) {
-    return [rhs](const T& v) { return v == rhs; };
-  }
-
-  // Symbolic Greater-than
-  template <typename Rhs>
-  friend constexpr auto operator>(const Variable&, const Rhs& rhs) {
-    return [rhs](const T& v) { return v > rhs; };
   }
 };
 
@@ -109,22 +90,6 @@ class Set {
   std::function<typename L::type(const T&)> predicate_;
 };
 
-/** @brief Symbolic Conjunction for Predicates */
-export template <typename P1, typename P2>
-constexpr auto operator&&(P1&& p1, P2&& p2) {
-  return [p1, p2](const auto& v) {
-    // This automatically uses the Correct Logic (Ω)
-    // because of our earlier operator&& overloads for Ternary/Bool.
-    return p1(v) && p2(v);
-  };
-}
-
-/** @brief Symbolic Disjunction for Predicates */
-export template <typename P1, typename P2>
-constexpr auto operator||(P1&& p1, P2&& p2) {
-  return [p1, p2](const auto& v) { return p1(v) || p2(v); };
-}
-
 export template <typename B, typename P>
 Set(Comprehension<B, P>)
     -> Set<typename B::element_type,
@@ -134,4 +99,51 @@ Set(Comprehension<B, P>)
 template <typename Species>
 Set(Species) -> Set<typename Species::element_type,
                     typename dedekind::ontology::NaturalLogic<Species>::type>;
+
+/** @section Relational_Lifting (Level 1) */
+
+// Note: We move these OUTSIDE the Variable struct, into namespace
+// dedekind::sets
+
+export template <typename Species, typename Rhs>
+constexpr auto operator<(const Variable<Species>&, const Rhs& rhs) {
+  return [rhs](const typename Species::element_type& v) { return v < rhs; };
+}
+
+export template <typename Species, typename Rhs>
+constexpr auto operator<=(const Variable<Species>&, const Rhs& rhs) {
+  return [rhs](const typename Species::element_type& v) { return v <= rhs; };
+}
+
+export template <typename Species, typename Rhs>
+constexpr auto operator>(const Variable<Species>&, const Rhs& rhs) {
+  return [rhs](const typename Species::element_type& v) { return v > rhs; };
+}
+
+export template <typename Species, typename Rhs>
+constexpr auto operator>=(const Variable<Species>&, const Rhs& rhs) {
+  return [rhs](const typename Species::element_type& v) { return v >= rhs; };
+}
+
+export template <typename Species, typename Rhs>
+constexpr auto operator==(const Variable<Species>&, const Rhs& rhs) {
+  return [rhs](const typename Species::element_type& v) { return v == rhs; };
+}
+
+/** @section Logical_Lifting */
+
+export template <typename P1, typename P2>
+constexpr auto operator&&(P1&& p1, P2&& p2) {
+  return [p1 = std::forward<P1>(p1), p2 = std::forward<P2>(p2)](const auto& v) {
+    return p1(v) && p2(v);
+  };
+}
+
+export template <typename P1, typename P2>
+constexpr auto operator||(P1&& p1, P2&& p2) {
+  return [p1 = std::forward<P1>(p1), p2 = std::forward<P2>(p2)](const auto& v) {
+    return p1(v) || p2(v);
+  };
+}
+
 }  // namespace dedekind::sets

@@ -149,7 +149,8 @@ struct Ω final : Boundaries {
    * symbolic expressions handle their own comparisons.
    */
   template <typename S>
-    requires(!requires { typename S::T; })
+    requires(!requires { typename S::T; }) &&
+            (!requires { typename S::is_variable; })
   friend constexpr typename L::type operator<=(const S&, const Ω&) {
     return L::True;
   }
