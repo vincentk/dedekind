@@ -1,14 +1,33 @@
 cmake_minimum_required(VERSION 3.28)
 project(Dedekind VERSION 1.0.0 LANGUAGES CXX)
 
+# --- Toolchain/Platform Adjustments ---
+if(APPLE)
+    # Move the Makefile's "CXXFLAGS" logic here so it's not overwritten
+    add_compile_options("-stdlib=libc++")
+    add_link_options("-stdlib=libc++" "-L/usr/local/opt/llvm/lib")
+    
+    # Auto-find SDK path on Mac
+    execute_process(COMMAND xcrun --sdk macosx --show-sdk-path
+                    OUTPUT_VARIABLE MACOS_SDK_PATH
+                    OUTPUT_STRIP_TRAILING_WHITESPACE)
+    add_compile_options("-isysroot" "${MACOS_SDK_PATH}")
+endif()
+
 # --- Instrumentation and Warnings ---
 # Hard-coded for Clang 21 as used in the CI pipeline
 set(DEDEKIND_WARNING_FLAGS
     -Wall -Wextra -Wpedantic -Wshadow -Wunused 
     -Wunreachable-code -Wconversion -Werror
-    -fprofile-instr-generate 
-    -fcoverage-mapping
 )
+
+# --- Instrumentation (Shared by CI and Local) ---
+set(DEDEKIND_COVERAGE_FLAGS -fprofile-instr-generate -fcoverage-mapping)
+
+# 2. Use a unified "instrumentation" block for the whole project
+# This ensures the profiling runtime is linked into every binary
+add_compile_options(${DEDEKIND_COVERAGE_FLAGS})
+add_link_options(${DEDEKIND_COVERAGE_FLAGS})
 
 # Ensure the linker also uses the profiling runtime
 add_link_options(-fprofile-instr-generate)
@@ -47,6 +66,10 @@ enable_testing()
 # Note, there is a bit of CMake magic to cope with code coverage measurement during testing.
 # The key is to link the test executable with the library target in two ways:
 # 1. Link the library target normally to provide metadata (PCMs) without providing objects again. We use the INTERFACE properties of the library to avoid double-linking .o files.
+# --- Global tracking for coverage ---
+set_property(GLOBAL PROPERTY DEDEKIND_ALL_TEST_BINARIES "")
+set_property(GLOBAL PROPERTY DEDEKIND_ALL_LIB_ARCHIVES "")
+
 function(add_dedekind_layer LAYER_NAME DEPENDS_ON)
     set(LIB_TARGET dedekind_${LAYER_NAME})
     set(TEST_TARGET test_${LAYER_NAME})
@@ -56,36 +79,23 @@ function(add_dedekind_layer LAYER_NAME DEPENDS_ON)
 
     add_library(${LIB_TARGET} STATIC)
     set_target_properties(${LIB_TARGET} PROPERTIES CXX_SCAN_FOR_MODULES ON)
-
-    target_sources(${LIB_TARGET}
-        PUBLIC 
-        FILE_SET CXX_MODULES 
-        BASE_DIRS src/main/modules
-        FILES ${MODULE_SOURCES}
-    )
-
+    target_sources(${LIB_TARGET} PUBLIC FILE_SET CXX_MODULES BASE_DIRS src/main/modules FILES ${MODULE_SOURCES})
     target_compile_options(${LIB_TARGET} PRIVATE ${DEDEKIND_WARNING_FLAGS})
     
     if(DEPENDS_ON)
         target_link_libraries(${LIB_TARGET} PUBLIC ${DEPENDS_ON})
     endif()
 
-    if(NOT TEST_SOURCES)
-        message(FATAL_ERROR "No tests found for layer: ${LAYER_NAME}")
-    endif()
-
     add_executable(${TEST_TARGET} ${TEST_SOURCES})
     set_target_properties(${TEST_TARGET} PROPERTIES CXX_SCAN_FOR_MODULES ON)
-    
-    # 1. Normal Link: Handles Module PCM visibility
     target_link_libraries(${TEST_TARGET} PRIVATE ${LIB_TARGET} Catch2::Catch2WithMain)
 
-    # 2. THE FIX: Force instrumentation at the binary level
-    # This ensures the test runner itself initiates the profiling session
-    target_compile_options(${TEST_TARGET} PRIVATE -fprofile-instr-generate -fcoverage-mapping)
-    target_link_options(${TEST_TARGET} PRIVATE -fprofile-instr-generate)
+    # Instrumentation
+    # Only apply the warnings here (Coverage is now global via add_compile_options)
+    target_compile_options(${LIB_TARGET} PRIVATE ${DEDEKIND_WARNING_FLAGS})
+    target_compile_options(${TEST_TARGET} PRIVATE ${DEDEKIND_WARNING_FLAGS})
 
-    # 3. Scoped Link: Force the whole archive
+    # Force whole-archive to ensure all module code is instrumented
     if(APPLE)
         target_link_options(${TEST_TARGET} PRIVATE "-Wl,-force_load,$<TARGET_FILE:${LIB_TARGET}>")
     else()
@@ -93,12 +103,10 @@ function(add_dedekind_layer LAYER_NAME DEPENDS_ON)
     endif()
 
     add_test(NAME ${TEST_TARGET} COMMAND ${TEST_TARGET})
-    
-    add_custom_command(TARGET ${TEST_TARGET} POST_BUILD
-        COMMAND $<TARGET_FILE:${TEST_TARGET}>
-        COMMENT "Enforcing ${LAYER_NAME} ..."
-        USES_TERMINAL
-    )
+
+    # Track binaries for the final coverage report
+    set_property(GLOBAL APPEND PROPERTY DEDEKIND_ALL_TEST_BINARIES $<TARGET_FILE:${TEST_TARGET}>)
+    set_property(GLOBAL APPEND PROPERTY DEDEKIND_ALL_LIB_ARCHIVES $<TARGET_FILE:${LIB_TARGET}>)
 endfunction()
 
 # --- THE PROPOSITIONS (Serialized by Libraries) ---
@@ -175,25 +183,42 @@ if (DOXYGEN_FOUND)
     
 endif()
 
-# Python bindings using nanobind:
-#find_package(Python 3.13 REQUIRED COMPONENTS Interpreter Development)
+get_property(ALL_TESTS GLOBAL PROPERTY DEDEKIND_ALL_TEST_BINARIES)
+get_property(ALL_LIBS GLOBAL PROPERTY DEDEKIND_ALL_LIB_ARCHIVES)
+# --- Find LLVM Tools (Cross-Platform) ---
+find_program(LLVM_PROFDATA_TOOL NAMES llvm-profdata-21 llvm-profdata REQUIRED)
+find_program(LLVM_COV_TOOL      NAMES llvm-cov-21 llvm-cov REQUIRED)
 
-# Determine nanobind's location
-#execute_process(
-#    COMMAND "${Python_EXECUTABLE}" -m nanobind --cmake_dir
-#    OUTPUT_STRIP_TRAILING_WHITESPACE OUTPUT_VARIABLE nanobind_ROOT)
-#
-#list(APPEND CMAKE_PREFIX_PATH "${nanobind_ROOT}")
+# Prepare the -object list for the command line
+set(OBJ_ARGS "")
+foreach(lib IN LISTS ALL_LIBS)
+    list(APPEND OBJ_ARGS -object ${lib})
+endforeach()
 
-#find_package(nanobind CONFIG REQUIRED)
-# Remove: find_package(nanobind CONFIG REQUIRED)
-#add_subdirectory(ext/nanobind)
+# Determine sed flag based on OS
+if(APPLE)
+    set(SED_INPLACE_FLAG "-i" "") # macOS requires an empty string after -i
+else()
+    set(SED_INPLACE_FLAG "-i")    # Linux (GNU) does not
+endif()
 
-#nanobind_add_module(dedekind_py src/main/bindings.cpp)
+add_custom_target(generate_coverage
+    # 1. Merge the raw profiles into a single .profdata file
+    COMMAND sh -c "${LLVM_PROFDATA_TOOL} merge -sparse ${CMAKE_BINARY_DIR}/*.profraw -o ${CMAKE_BINARY_DIR}/dedekind.profdata"
 
-# 3. CRITICAL: Disable scanning for the Python binding target
-# AppleClang can 'import' the .pcm file if it's linked, 
-# but CMake's automatic 'scanner' doesn't know how to ask AppleClang for the graph yet.
-#set_target_properties(dedekind_py PROPERTIES CMAKE_CXX_SCAN_FOR_MODULES OFF)
-
-#target_link_libraries(dedekind_py PRIVATE dedekind)
+    # 2. Export to LCOV
+    COMMAND ${LLVM_COV_TOOL} export 
+        -instr-profile=${CMAKE_BINARY_DIR}/dedekind.profdata 
+        -format=lcov 
+        -ignore-filename-regex=".*_deps/.*|.*test/.*"
+        ${ALL_TESTS} 
+        ${OBJ_ARGS} > ${CMAKE_BINARY_DIR}/coverage.info
+    
+     # 3. Strip absolute paths using Perl (Identical syntax on Mac & Linux)
+    COMMAND perl -i -pe "s|${CMAKE_SOURCE_DIR}/||g" ${CMAKE_BINARY_DIR}/coverage.info
+    COMMAND perl -i -pe "s|SF:\./|SF:|g" ${CMAKE_BINARY_DIR}/coverage.info
+    
+    WORKING_DIRECTORY ${CMAKE_SOURCE_DIR}
+    VERBATIM
+    COMMENT "Generating unified LCOV coverage report..."
+)

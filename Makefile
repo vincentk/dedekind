@@ -1,48 +1,27 @@
+# For all practical purposes, this Makefile serves as a convenient 
+# wrapper around CMake and Ninja, for local development.
+# The reference build is the GitHub build action.
+
 # Project Variables
-PROJECT_NAME := dedekind
 BUILD_DIR    := build
-INSTALL_DIR  := dist
-
-# Toolchain Paths (Homebrew Intel Mac)
 LLVM_ROOT    := /usr/local/opt/llvm
-LLVM_CXX_LIB := $(LLVM_ROOT)/lib/c++
-SDK_PATH     := $(shell xcrun --sdk macosx --show-sdk-path)
+CXX          := $(LLVM_ROOT)/bin/clang++
+CC           := $(LLVM_ROOT)/bin/clang
 
-# Compilers
-CXX := $(LLVM_ROOT)/bin/clang++
-CC  := $(LLVM_ROOT)/bin/clang
+.PHONY: all clean compile test coverage
 
-# Profiling and coverage
-PROFDATA := $(LLVM_ROOT)/bin/llvm-profdata
-COV      := $(LLVM_ROOT)/bin/llvm-cov
-
-# Flags
-CXXFLAGS    := "-stdlib=libc++ -isysroot $(SDK_PATH)"
-LDFLAGS     := "-L$(LLVM_CXX_LIB) -L$(LLVM_ROOT)/lib -lc++ -Wl,-rpath,$(LLVM_CXX_LIB),-rpath,$(LLVM_ROOT)/lib"
-
-# Graphviz dot files for inclusion in the draft paper
-LATEX_DIR := docs/paper
-GRAPH_SRC := $(BUILD_DIR)/graphs/$(PROJECT_NAME).dot
-
-.PHONY: all clean compile test install format doc coverage
-
-# Default: compile
 all: compile
 
 clean:
-	rm -rf $(BUILD_DIR) $(INSTALL_DIR)
+	rm -rf $(BUILD_DIR)
 
-# mvn initialize (Configure CMake)
+# Minimal config: Only tell CMake which compiler to use.
 $(BUILD_DIR)/CMakeCache.txt:
 	cmake -S . -B $(BUILD_DIR) -G Ninja \
 		-DCMAKE_CXX_COMPILER=$(CXX) \
 		-DCMAKE_C_COMPILER=$(CC) \
-		-DCMAKE_CXX_FLAGS=$(CXXFLAGS) \
-		-DCMAKE_EXE_LINKER_FLAGS=$(LDFLAGS) \
-		-DCMAKE_CXX_SCAN_FOR_MODULES=ON
-# FIXME: python support with e.g. nanobind
-#		-DPython_EXECUTABLE=$(which python) \
-#		-DCMAKE_INSTALL_PREFIX=$(python -c "import site; print(site.getsitepackages()[0])")
+		-DCMAKE_CXX_SCAN_FOR_MODULES=ON \
+		-DCMAKE_BUILD_TYPE=Release
 
 compile: $(BUILD_DIR)/CMakeCache.txt
 	cmake --build $(BUILD_DIR)
@@ -50,40 +29,14 @@ compile: $(BUILD_DIR)/CMakeCache.txt
 test: compile
 	ctest --test-dir $(BUILD_DIR) --output-on-failure
 
-install: compile
-	cmake --install $(BUILD_DIR) --prefix $(INSTALL_DIR)
-
-format:
-	find src -name "*.cpp" -o -name "*.cppm" | xargs $(LLVM_ROOT)/bin/clang-format -i
-
-doxygen: compile
-	cmake --build $(BUILD_DIR) --target docs
-	#open $(BUILD_DIR)/html/index.html
-
-
-# The coverage report depends on the tests having been run
-coverage: test
-	@echo "Generating LLVM coverage report..."
-	# 1. Run with the profile environment variable to get the data
-	LLVM_PROFILE_FILE="$(BUILD_DIR)/dedekind.profraw" ./$(BUILD_DIR)/dedekind_test
+coverage: compile
+	@echo "Running tests with profile environment..."
+	# Set the variable for the duration of the ctest command
+	LLVM_PROFILE_FILE="$(PWD)/$(BUILD_DIR)/dedekind-%m.profraw" \
+	ctest --test-dir $(BUILD_DIR) --output-on-failure
 	
-	# 2. Merge and index
-	$(PROFDATA) merge -sparse $(BUILD_DIR)/dedekind.profraw -o $(BUILD_DIR)/dedekind.profdata
-	
-	# 3. Generate HTML (Focusing only on your source, ignoring Catch2/GTest)
-	$(COV) show ./$(BUILD_DIR)/dedekind_test \
-		-instr-profile=$(BUILD_DIR)/dedekind.profdata \
-		-ignore-filename-regex=".*_deps/.*" \
-		-format=html \
-		-output-dir=$(BUILD_DIR)/coverage
-	
-	# 4. Summary
-	$(COV) report ./$(BUILD_DIR)/dedekind_test -instr-profile=$(BUILD_DIR)/dedekind.profdata -ignore-filename-regex=".*_deps/.*"
-	
-	@echo "Report generated at $(BUILD_DIR)/coverage/index.html"
-	open $(BUILD_DIR)/coverage/index.html
-
-
+	@echo "Processing coverage..."
+	cmake --build $(BUILD_DIR) --target generate_coverage
 
 # Generate build dependency graph without breaking the Ninja build
 dot: $(BUILD_DIR)/CMakeCache.txt

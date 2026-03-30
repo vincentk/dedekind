@@ -43,42 +43,15 @@ jobs:
         LLVM_PROFILE_FILE="build/dedekind-%m.profraw" ctest --test-dir build --output-on-failure -V
 
     - name: Process Coverage Data
-      run: |
-        # 1. Merge
-        llvm-profdata-21 merge -sparse build/*.profraw -o build/dedekind.profdata
-        
-        # 2. Export with the CI's absolute path (to ensure all hits are caught)
-        llvm-cov-21 export \
-          -instr-profile=build/dedekind.profdata \
-          -format=lcov \
-          -ignore-filename-regex=".*_deps/.*|.*test/.*" \
-          ./build/test_category \
-          ./build/test_ontology \
-          ./build/test_sets \
-          -object build/libdedekind_category.a \
-          -object build/libdedekind_ontology.a \
-          -object build/libdedekind_sets.a > build/coverage.info
-
-        # 3. THE FIX: Strip the absolute path AND the leading "./" 
-        # This ensures paths look like "src/main/..." exactly.
-        sed -i "s|$(pwd)/||g" build/coverage.info
-        sed -i "s|SF:\./|SF:|g" build/coverage.info
-
-        # 4. Verify: Paths should now start with "src/"
-        grep "SF:" build/coverage.info | head -n 5
+      run: cmake --build build --target generate_coverage
 
     - name: Upload to Codecov
       uses: codecov/codecov-action@v5
       with:
-        # 1. Point to the SPECIFIC file again, but use the 'file' argument
-        # 2. Use 'token: ${{ secrets.CODECOV_TOKEN }}' (mandatory for v4/v5)
-        # 3. Add 'handle_no_reports_found: true' to prevent silent failures
         files: build/coverage.info
         token: ${{ secrets.CODECOV_TOKEN }}
-        # 4. CRITICAL: Use 'plugin: gcov' to force the standard lcov parser
-        plugins: gcov
-        verbose: true
         fail_ci_if_error: true
+        verbose: true
 
     # --- CONDITIONAL DEPLOYMENT STEPS ---
     
