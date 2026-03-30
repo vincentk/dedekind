@@ -6,6 +6,13 @@ set(DEDEKIND_WARNING_FLAGS
     -Wunreachable-code -Wconversion -Werror
 )
 
+if(CMAKE_CXX_COMPILER_ID MATCHES "Clang")
+    add_compile_options(
+        -fno-implicit-modules
+        -fno-implicit-module-maps
+    )
+endif()
+
 # Force C++23 standard for Clang 21
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
@@ -71,7 +78,7 @@ function(add_dedekind_layer LAYER_NAME DEPENDS_ON)
     # Run the enforcer
     add_custom_command(TARGET ${TEST_TARGET} POST_BUILD
         COMMAND $<TARGET_FILE:${TEST_TARGET}>
-        COMMENT "Verifying ${LAYER_NAME} ontology..."
+        COMMENT "Verifying ${LAYER_NAME} ..."
     )
 endfunction()
 
@@ -92,16 +99,6 @@ add_dependencies(dedekind dedekind_category dedekind_ontology dedekind_sets)
 # No source files needed here; it just bundles the objects
 target_link_libraries(dedekind INTERFACE dedekind_ontology dedekind_sets)
 target_compile_features(dedekind INTERFACE cxx_std_23)
-
-#file(GLOB CATEGORY_TEST_PARTITIONS "src/test/cpp/modules/dedekind/category/*_test.cpp")
-#file(GLOB ONTOLOGY_TEST_PARTITIONS "src/test/cpp/modules/dedekind/ontology/*_test.cpp")
-#file(GLOB SETS_TEST_PARTITIONS "src/test/cpp/modules/dedekind/sets/*_test.cpp")
-
-#add_executable(dedekind_test 
-#    ${CATEGORY_TEST_PARTITIONS}
-#    ${ONTOLOGY_TEST_PARTITIONS}
-#    ${SETS_TEST_PARTITIONS}
-#)
 
 # --- 1. RIGOROUS COMPILER ENFORCEMENT ---
 if(MSVC)

@@ -13,7 +13,7 @@ permissions:
   pull-requests: write
 
 jobs:
-  build:
+  build-and-deploy:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
@@ -38,18 +38,24 @@ jobs:
     - name: Build & Run Tests
       run: |
         cmake --build build
-        LLVM_PROFILE_FILE="build/dedekind.profraw" ./build/dedekind_test
+        # The %m ensures test_category, test_ontology, and test_sets 
+        # each write to a unique .profraw file instead of clobbering 'dedekind.profraw'
+        LLVM_PROFILE_FILE="build/dedekind-%m.profraw" ctest --test-dir build --output-on-failure -V
 
     - name: Process Coverage Data
       run: |
-        # 1. Merge the raw profile data
-        llvm-profdata-21 merge -sparse build/dedekind.profraw -o build/dedekind.profdata
+        # 1. Merge all generated .profraw files into one .profdata
+        llvm-profdata-21 merge -sparse build/*.profraw -o build/dedekind.profdata
         
-        # 2. Export to LCOV format (Supported by Codecov and PR reporters)
-        llvm-cov-21 export ./build/dedekind_test \
+        # 2. Export coverage for all test binaries
+        # We point to the main library targets or the binaries themselves
+        llvm-cov-21 export \
           -instr-profile=build/dedekind.profdata \
           -format=lcov \
-          -ignore-filename-regex=".*_deps/.*|.*test/.*" > build/coverage.info
+          -ignore-filename-regex=".*_deps/.*|.*test/.*" \
+          ./build/test_category \
+          ./build/test_ontology \
+          ./build/test_sets > build/coverage.info
 
     - name: Upload to Codecov
       uses: codecov/codecov-action@v4
@@ -58,46 +64,22 @@ jobs:
         token: ${{ secrets.CODECOV_TOKEN }}
 
 
-  deploy-docs:
-    needs: build
-    runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    # --- CONDITIONAL DEPLOYMENT STEPS ---
     
-    environment:
-      name: github-pages
-      url: ${{ steps.deployment.outputs.page_url }}
-
-    steps:
-    - uses: actions/checkout@v4
-
-    - name: Install Doxygen and Clang 21
-      run: |
-        wget https://apt.llvm.org/llvm.sh && chmod +x llvm.sh && sudo ./llvm.sh 21
-        sudo apt-get install -y doxygen graphviz cmake ninja-build clang-21
-
     - name: Build Doxygen Documentation
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
       run: |
-        cmake -S . -B build -G Ninja \
-          -DCMAKE_CXX_COMPILER=clang++-21 \
-          -DCMAKE_CXX_SCAN_FOR_MODULES=ON
+        sudo apt-get install -y doxygen graphviz
         cmake --build build --target docs
-
-    - name: Add .nojekyll
-      run: touch build/html/.nojekyll
+        touch build/docs/html/.nojekyll
 
     - name: Upload artifact
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
       uses: actions/upload-pages-artifact@v3
       with:
-        path: 'build/html'
+        path: 'build/docs/html' # Adjust to match your CMake DOXYGEN_OUTPUT_DIR
 
     - name: Deploy to GitHub Pages
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
       id: deployment
       uses: actions/deploy-pages@v4
-
-    - name: Post Doc Link to PR
-      if: github.event_name == 'pull_request'
-      uses: thollander/actions-comment-pull-request@v2
-      with:
-        message: |
-          📖 **Doxygen Documentation Preview:**
-          https://${{ github.repository_owner }}.github.io/${{ github.event.repository.name }}/
