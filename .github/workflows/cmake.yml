@@ -68,15 +68,15 @@ jobs:
         grep "SF:" build/coverage.info | head -n 5
 
     - name: Upload to Codecov
-      uses: codecov/codecov-action@v4
+      uses: codecov/codecov-action@v5
       with:
-        # 1. Use the 'file' argument to point directly to the 468K report
+        # 1. Point to the SPECIFIC file again, but use the 'file' argument
+        # 2. Use 'token: ${{ secrets.CODECOV_TOKEN }}' (mandatory for v4/v5)
+        # 3. Add 'handle_no_reports_found: true' to prevent silent failures
         file: build/coverage.info
-        # 2. Use 'plugin: gcov' (standard for LLVM lcov on Linux)
-        plugin: gcov
-        # 3. Explicitly set 'name' so we can find it in the Codecov UI
-        name: dedekind-cpp-modules
         token: ${{ secrets.CODECOV_TOKEN }}
+        # 4. CRITICAL: Use 'plugin: gcov' to force the standard lcov parser
+        plugin: gcov
         verbose: true
         fail_ci_if_error: true
 
