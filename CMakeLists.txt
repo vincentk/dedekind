@@ -12,11 +12,15 @@ set(DEDEKIND_WARNING_FLAGS
 
 # Platform-specific "Whole Archive" wrappers for coverage/modules
 if(APPLE)
+    # Note the trailing space after the comma for -force_load if needed, 
+    # but usually Mac prefers no space after -force_load. 
+    # For -Wl, the comma acts as the separator.
     set(DEDEKIND_WHOLE_ARCHIVE_PREFIX "-Wl,-force_load,")
     set(DEDEKIND_WHOLE_ARCHIVE_SUFFIX "")
 else()
-    set(DEDEKIND_WHOLE_ARCHIVE_PREFIX "-Wl,--whole-archive")
-    set(DEDEKIND_WHOLE_ARCHIVE_SUFFIX "-Wl,--no-whole-archive")
+    # Note the SPACES here so they don't mash into the filename
+    set(DEDEKIND_WHOLE_ARCHIVE_PREFIX "-Wl,--whole-archive ")
+    set(DEDEKIND_WHOLE_ARCHIVE_SUFFIX " -Wl,--no-whole-archive")
 endif()
 
 # Ensure the linker also uses the profiling runtime
