@@ -1,36 +1,40 @@
 /**
  * @file ontology:category.morphisms
- * @brief Level 0: The Algebraic Core (Morphisms, Categories, and Structural Invariants).
+ * @brief Level 0: The Algebraic Core (Morphisms, Categories, and Structural
+ * Invariants).
  *
  * @section The_Structuralist_Framework
- * This partition defines the categorical primitives that govern the interaction 
- * between species. By encoding mathematical structures into C++ concepts, we 
+ * This partition defines the categorical primitives that govern the interaction
+ * between species. By encoding mathematical structures into C++ concepts, we
  * treat the compiler as a formal verifier for structural integrity.
  *
  * @subsection Categories_and_Monoids
- * In the Dedekind ontology, we primarily interface with 'Small' Categories—those 
- * where objects and morphisms are representable as discrete types and functions.
+ * In the Dedekind ontology, we primarily interface with 'Small'
+ * Categories—those where objects and morphisms are representable as discrete
+ * types and functions.
  * - IsSmallCategory : A Monoid viewed as a category with a single object.
- * - IsAbelian       : A category where the composition (Op) is commutative, 
+ * - IsAbelian       : A category where the composition (Op) is commutative,
  *                     permitting symbolic reordering and optimization.
  *
  * @subsection Morphisms_and_Arrows
- * Morphisms are the "cement" of the ontology, defining how data flows between 
+ * Morphisms are the "cement" of the ontology, defining how data flows between
  * species while preserving their underlying algebraic laws.
  * - Morphism (Arrow) : A tagged mapping from a Domain (A) to a Codomain (B).
- * - IsInitial       : The "Zero" object (0); the source of the unique morphism to any X.
- * - IsTerminal      : The "One" object (1); the target of the unique morphism from any X.
+ * - IsInitial       : The "Zero" object (0); the source of the unique morphism
+ * to any X.
+ * - IsTerminal      : The "One" object (1); the target of the unique morphism
+ * from any X.
  *
  * @section The_Action_Axiom
- * To bypass C++ template limitations regarding ADL and partial specialization, 
- * morphisms are treated as "Actions." Rather than defining a global 'compose' 
- * function, we utilize the internal structure of the species (Kleisli or 
+ * To bypass C++ template limitations regarding ADL and partial specialization,
+ * morphisms are treated as "Actions." Rather than defining a global 'compose'
+ * function, we utilize the internal structure of the species (Kleisli or
  * Co-Kleisli extension systems) to derive higher-order behavior like functors.
  *
  * @section Universal_Zero
- * The ontology provides a 'Zero Morphism' (\ref zero), which represents information 
- * absorption. It maps any element of the domain to the identity element of the 
- * codomain's underlying monoid.
+ * The ontology provides a 'Zero Morphism' (\ref zero), which represents
+ * information absorption. It maps any element of the domain to the identity
+ * element of the codomain's underlying monoid.
  */
 module;
 
