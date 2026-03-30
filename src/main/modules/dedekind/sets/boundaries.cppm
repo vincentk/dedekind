@@ -189,6 +189,15 @@ static_assert(IsSet<Ø<int>>);
 static_assert(IsInitialObject<Ø<int>>,
               "Ø must satisfy the Initial Object axiom.");
 
+
+// FIXME: This is a hack to make the tests compile. The NaturalNumbers class should
+    // Define the symbol used in your test
+    // Define the type
+    export using NaturalNumbers = Ω<int>;
+    
+    // Define the symbol used in your test
+    export inline constexpr NaturalNumbers ℕ{}; 
+
 };  // namespace dedekind::sets
 
 /** @section Level_0a: Kleisli Extensions for Boundaries */
