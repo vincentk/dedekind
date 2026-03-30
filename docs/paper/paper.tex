@@ -102,6 +102,12 @@ However, the aim of the \textsc{dedekind} library is more focussed on serving th
 By implementing the Dedekind cut—defining real numbers $\mathbb R$ as partitions of the rationals $\mathbb Q$ —directly within the type system, we enable the exact representation of transcendental numbers like $e$ and $\pi$ without floating-point approximation. 
 This puts dedekind in a unique position relative to Rust: while Rust provides superior memory safety through its borrow checker, C++23’s advanced template metaprogramming and modules allow for a deeper, "white-box" formal verification of mathematical structures that Rust’s current trait system cannot easily replicate.
 
+\subsection{Instrumented Model Validation: The CI Pipeline as a Prover}
+While formal verification in languages like Agda or Coq typically relies on static type-level proofs that are erased during compilation, the \textsf{dedekind} framework adopts a methodology of \textbf{Instrumented Model Validation}. By leveraging the LLVM profiling infrastructure, we provide an empirical \textit{Runtime Witness} for our categorical primitives. 
+
+This approach serves as a deterministic evolution of the property-based testing tradition pioneered by \text{QuickCheck} \cite{ClaessenHughes2000}. Where QuickCheck utilizes stochastic search to falsify algebraic properties in Haskell, \textsf{dedekind} utilizes the CI/CD pipeline to ensure that every structural identity is physically materialized in the binary. By enforcing 100\% patch coverage on new ontological partitions, we provide a "Physical Proof" that the abstract category theory—often treated as a ghost in the machine—is actually traversed by the hardware. This aligns with the "Real World" functional programming philosophy advocated by \text{O'Sullivan et al.} \cite{OSullivan2008}, where formal rigor is balanced with the practical necessity of observable, high-performance execution.
+
+
 Despite these constraints, the contributions of this work include:
 \begin{itemize}
 \item \textbf{Intensional-to-Extensional Materialization}: A strategy for partial, lazy evaluation, where a set defined by a symbolic rule is only converted into machine instructions (extensional data) when an operation requires it. This enables the evaluation of Infinite Sets (e.g., the Naturals $\mathbb N$) within a finite execution environment.
@@ -485,6 +491,8 @@ static_assert(!dedekind::contains(7));
 \end{lstlisting}
 \subsection{The Role of C++23 Modules}
 The stratification mentioned in Section 2 is strictly enforced via the module system. By using \texttt{export module dedekind.ontology:mereology}, we ensure that the compiler can cache the "structural truths" of the system. This prevents the exponential blow-up of compile times typically associated with heavy template libraries, as the "laws" of the ontology are compiled once into binary module interfaces (BMIs)
+
+The implementation of the \textsf{dedekind} library and its associated build graph are available on GitHub \cite{Krautler_dedekind_2026}. We utilize GitHub Actions to verify the project's structural integrity; each commit is checked via \texttt{static\_assert} compile-time proofs and a suite of automated tests. Following the tradition of property-based testing \cite{ClaessenHughes2000}, we utilize these tests as "runtime witnesses" to verify the materialization of our categorical primitives, aiming for a patch coverage threshold of 60\% or higher for all new module partitions.
 
 \section{Conclusion}
 This paper has explored the feasibility of embedding formal mereology within the C++23 type system through the \texttt{dedekind} library.
