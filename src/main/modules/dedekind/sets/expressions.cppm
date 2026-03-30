@@ -7,30 +7,29 @@ module;
 export module dedekind.sets:expressions;
 
 import dedekind.ontology;
-import :boundaries; // For Ω, Ø
+import :boundaries;  // For Ω, Ø
 
 namespace dedekind::sets {
 using namespace dedekind::ontology;
 using namespace dedekind::category;
 
-
 export template <typename Base, typename Predicate>
 struct Comprehension {
-    const Base& base;
-    Predicate predicate;
-    using element_type = typename Base::element_type;
+  const Base& base;
+  Predicate predicate;
+  using element_type = typename Base::element_type;
 };
 
 /** @brief The Membership Binding: Bridges a Variable to its Domain. */
 template <typename Species>
 struct MembershipBinding {
-    const Species& base;
+  const Species& base;
 
-    /** @section The_Comprehension_Pipe */
-    template <typename P>
-    constexpr auto operator|(P&& p) const {
-        return Comprehension<Species, std::decay_t<P>>{base, std::forward<P>(p)};
-    }
+  /** @section The_Comprehension_Pipe */
+  template <typename P>
+  constexpr auto operator|(P&& p) const {
+    return Comprehension<Species, std::decay_t<P>>{base, std::forward<P>(p)};
+  }
 };
 
 /**
@@ -40,43 +39,43 @@ struct MembershipBinding {
  */
 export template <typename Species>
 struct Variable {
-    using T = typename Species::element_type;
+  using T = typename Species::element_type;
 
-    /** @brief The Membership Morphism (x % S). Mimics 'x \in S'. */
-    constexpr auto operator%(const Species& s) const {
-        return MembershipBinding<Species>{s};
-    }
+  /** @brief The Membership Morphism (x % S). Mimics 'x \in S'. */
+  constexpr auto operator%(const Species& s) const {
+    return MembershipBinding<Species>{s};
+  }
 
-        /** 
-     * @brief The Membership Morphism.
-     * Allows binding this variable to any set S, 
-     * provided they share the same underlying element type.
-     */
-    template <typename SubSpecies>
+  /**
+   * @brief The Membership Morphism.
+   * Allows binding this variable to any set S,
+   * provided they share the same underlying element type.
+   */
+  template <typename SubSpecies>
     requires std::same_as<T, typename SubSpecies::element_type>
-    constexpr auto operator%(const SubSpecies& s) const {
-        return MembershipBinding<SubSpecies>{s};
-    }
+  constexpr auto operator%(const SubSpecies& s) const {
+    return MembershipBinding<SubSpecies>{s};
+  }
 
-    /** @section Relational_Lifting (Level 1) */
-    
-    // Symbolic Ordering: Generates a boolean-compatible predicate
-    template <typename Rhs>
-    friend constexpr auto operator<(const Variable&, const Rhs& rhs) {
-        return [rhs](const T& v) { return v < rhs; };
-    }
+  /** @section Relational_Lifting (Level 1) */
 
-    // Symbolic Equality
-    template <typename Rhs>
-    friend constexpr auto operator==(const Variable&, const Rhs& rhs) {
-        return [rhs](const T& v) { return v == rhs; };
-    }
-    
-    // Symbolic Greater-than
-    template <typename Rhs>
-    friend constexpr auto operator>(const Variable&, const Rhs& rhs) {
-        return [rhs](const T& v) { return v > rhs; };
-    }
+  // Symbolic Ordering: Generates a boolean-compatible predicate
+  template <typename Rhs>
+  friend constexpr auto operator<(const Variable&, const Rhs& rhs) {
+    return [rhs](const T& v) { return v < rhs; };
+  }
+
+  // Symbolic Equality
+  template <typename Rhs>
+  friend constexpr auto operator==(const Variable&, const Rhs& rhs) {
+    return [rhs](const T& v) { return v == rhs; };
+  }
+
+  // Symbolic Greater-than
+  template <typename Rhs>
+  friend constexpr auto operator>(const Variable&, const Rhs& rhs) {
+    return [rhs](const T& v) { return v > rhs; };
+  }
 };
 
 /** @brief Global factory for symbolic scouts. */
@@ -90,23 +89,49 @@ inline constexpr Variable<Ω<T>> var_for_type{};
 
 export template <typename T, typename L = ClassicalLogic>
 class Set {
-public:
-    template <typename B, typename P>
-    constexpr Set(Comprehension<B, P> cp) 
+ public:
+  using logic_species = L;
+  template <typename B, typename P>
+  constexpr Set(Comprehension<B, P> cp)
       : predicate_([p = cp.predicate](const T& v) {
-            return dedekind::category::lift_logic<L>(p(v));
+          return dedekind::category::lift_logic<L>(p(v));
         }) {}
 
-    auto operator()(const T& v) const { return predicate_(v); }
+  /** @brief Identity Constructor: Set{ Ω } */
+  template <typename Species>
+    requires std::same_as<T, typename Species::element_type>
+  constexpr Set(const Species&)
+      : predicate_([](const T&) { return L::True; }) {}
 
-private:
-    std::function<typename L::type(const T&)> predicate_;
+  auto operator()(const T& v) const { return predicate_(v); }
+
+ private:
+  std::function<typename L::type(const T&)> predicate_;
 };
 
-export template <typename B, typename P>
-Set(Comprehension<B, P>) -> Set<
-    typename B::element_type, 
-    typename dedekind::ontology::NaturalLogic<B>::type
->;
+/** @brief Symbolic Conjunction for Predicates */
+export template <typename P1, typename P2>
+constexpr auto operator&&(P1&& p1, P2&& p2) {
+  return [p1, p2](const auto& v) {
+    // This automatically uses the Correct Logic (Ω)
+    // because of our earlier operator&& overloads for Ternary/Bool.
+    return p1(v) && p2(v);
+  };
+}
 
+/** @brief Symbolic Disjunction for Predicates */
+export template <typename P1, typename P2>
+constexpr auto operator||(P1&& p1, P2&& p2) {
+  return [p1, p2](const auto& v) { return p1(v) || p2(v); };
+}
+
+export template <typename B, typename P>
+Set(Comprehension<B, P>)
+    -> Set<typename B::element_type,
+           typename dedekind::ontology::NaturalLogic<B>::type>;
+
+/** @section Identity_CTAD */
+template <typename Species>
+Set(Species) -> Set<typename Species::element_type,
+                    typename dedekind::ontology::NaturalLogic<Species>::type>;
 }  // namespace dedekind::sets

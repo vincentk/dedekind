@@ -306,14 +306,14 @@ static_assert(
     }(),
     "Dedekind: Ternary Logic Invariants failed!");
 
-
-    // Inside namespace dedekind::category
+// Inside namespace dedekind::category
 export template <typename TargetLogic, typename T>
 constexpr auto lift_logic(T value) {
-    if constexpr (std::is_same_v<TargetLogic, TernaryLogic> && std::is_same_v<T, bool>) {
-        return value ? Ternary::True : Ternary::False;
-    } else {
-        return value;
-    }
+  if constexpr (std::is_same_v<TargetLogic, TernaryLogic> &&
+                std::is_same_v<T, bool>) {
+    return value ? Ternary::True : Ternary::False;
+  } else {
+    return value;
+  }
 }
 }  // namespace dedekind::category
