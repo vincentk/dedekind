@@ -31,7 +31,8 @@ export import :logic;    // The Subobject Classifier (Ω)
 export import :species;  // Reified Machine Primitives
 
 /** @section Level_0a: The Mapping Engine */
-export import :functorial;  // Morphisms and Natural Transformations
+export import :morphisms;   // Morphisms
+export import :functorial;  // Natural Transformations
 export import :kleisli;     // The Algebra of Contextual Composition
 
 /** @section Level_0b: The Higher Structures (The Universe Laws) */

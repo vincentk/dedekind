@@ -30,6 +30,7 @@ target_sources(dedekind_category
         src/main/modules/dedekind/category/category.cppm
         src/main/modules/dedekind/category/logic.cppm
         src/main/modules/dedekind/category/species.cppm
+        src/main/modules/dedekind/category/morphisms.cppm
         src/main/modules/dedekind/category/functorial.cppm
         src/main/modules/dedekind/category/kleisli.cppm
         src/main/modules/dedekind/category/cartesian.cppm
