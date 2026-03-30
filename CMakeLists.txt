@@ -16,13 +16,11 @@ endif()
 # Force C++23 standard for Clang 21
 set(CMAKE_CXX_STANDARD 23)
 set(CMAKE_CXX_STANDARD_REQUIRED ON)
+# For clangd:
 set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 set(CMAKE_CXX_EXTENSIONS OFF)
 # Disable global scanning to protect FetchContent/dependencies
 set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
-
-# For clangd:
-set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 # Enable testing with Catch2:
 include(FetchContent)
@@ -71,14 +69,25 @@ function(add_dedekind_layer LAYER_NAME DEPENDS_ON)
         target_link_libraries(${LIB_TARGET} PUBLIC ${DEPENDS_ON})
     endif()
 
+    # 1. Fail-fast check: if no sources, add_executable would fail anyway, 
+    # but we can make it explicit.
+    if(NOT TEST_SOURCES)
+        message(FATAL_ERROR "No tests found for layer: ${LAYER_NAME}")
+    endif()
+
+
     add_executable(${TEST_TARGET} ${TEST_SOURCES})
     set_target_properties(${TEST_TARGET} PROPERTIES CXX_SCAN_FOR_MODULES ON)
     target_link_libraries(${TEST_TARGET} PRIVATE ${LIB_TARGET} Catch2::Catch2WithMain)
+
+    # 2. Register with CTest so 'ctest' command works (and coverage works)
+    add_test(NAME ${TEST_TARGET} COMMAND ${TEST_TARGET})
     
-    # Run the enforcer
+    # 3. Keep the "Enforcer" but make it stream output
     add_custom_command(TARGET ${TEST_TARGET} POST_BUILD
         COMMAND $<TARGET_FILE:${TEST_TARGET}>
-        COMMENT "Verifying ${LAYER_NAME} ..."
+        COMMENT "Enforcing ${LAYER_NAME} ontology..."
+        USES_TERMINAL
     )
 endfunction()
 
