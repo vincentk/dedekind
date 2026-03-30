@@ -41,22 +41,22 @@ include(Catch)
 enable_testing()
 
 
-# Macro to run build on a per module basis. I.e.
+# Run build on a per module basis. I.e.
 # Module A -> Test A -> Module B -> Test B -> ...
 # This macro describes the build of one module.
 function(add_dedekind_layer LAYER_NAME DEPENDS_ON)
     set(LIB_TARGET dedekind_${LAYER_NAME})
     set(TEST_TARGET test_${LAYER_NAME})
 
-    # Use EXACT paths to match your working diff
     file(GLOB MODULE_SOURCES CONFIGURE_DEPENDS "src/main/modules/dedekind/${LAYER_NAME}/*.cppm")
     file(GLOB TEST_SOURCES   CONFIGURE_DEPENDS "src/test/cpp/modules/dedekind/${LAYER_NAME}/*_test.cpp")
 
-    # OBJECT or STATIC? Expert opinions differ ....
-    # Test coverage appears to prefer OBJECT.
-    # CMAKE sometimes prefers STATIC.
-    add_library(${LIB_TARGET} OBJECT)
+    # Use STATIC but force the linker to keep all instrumented code
+    add_library(${LIB_TARGET} STATIC)
     set_target_properties(${LIB_TARGET} PROPERTIES CXX_SCAN_FOR_MODULES ON)
+    
+    # This is the "magic" line for coverage and module initializers
+    set_target_properties(${LIB_TARGET} PROPERTIES INTERFACE_LINK_OPTIONS "-Wl,--whole-archive")
 
     target_sources(${LIB_TARGET}
         PUBLIC 
@@ -71,21 +71,18 @@ function(add_dedekind_layer LAYER_NAME DEPENDS_ON)
         target_link_libraries(${LIB_TARGET} PUBLIC ${DEPENDS_ON})
     endif()
 
-    # 1. Fail-fast check: if no sources, add_executable would fail anyway, 
-    # but we can make it explicit.
     if(NOT TEST_SOURCES)
         message(FATAL_ERROR "No tests found for layer: ${LAYER_NAME}")
     endif()
 
-
     add_executable(${TEST_TARGET} ${TEST_SOURCES})
     set_target_properties(${TEST_TARGET} PROPERTIES CXX_SCAN_FOR_MODULES ON)
+    
+    # Linking here now pulls in the logic and all dependencies correctly
     target_link_libraries(${TEST_TARGET} PRIVATE ${LIB_TARGET} Catch2::Catch2WithMain)
 
-    # 2. Register with CTest so 'ctest' command works (and coverage works)
     add_test(NAME ${TEST_TARGET} COMMAND ${TEST_TARGET})
     
-    # 3. Keep the "Enforcer" but make it stream output
     add_custom_command(TARGET ${TEST_TARGET} POST_BUILD
         COMMAND $<TARGET_FILE:${TEST_TARGET}>
         COMMENT "Enforcing ${LAYER_NAME} ontology..."
