@@ -1,7 +1,3 @@
-# codecov.yml - Fixing the C++20 Module mapping
-languages:
-  - cpp
-
 # Map the .cppm extension to the C++ language
 # This ensures Codecov actually "looks" at the hits for your partitions
 # as described in Section 4.4 of the draft.
