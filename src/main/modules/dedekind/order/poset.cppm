@@ -34,11 +34,11 @@ module;
 #include <concepts>
 #include <functional>
 
-export module dedekind.ontology:order;
+export module dedekind.order:poset;
 
 import dedekind.sets;
 
-namespace dedekind::ontology {
+namespace dedekind::order {
 using namespace dedekind::sets;
 
 export template <typename T, typename L = ClassicalLogic>
@@ -148,4 +148,4 @@ concept IsDividableChain = IsTotallyOrdered<T> && requires(T a, T b) {
 export template <typename S>
 concept IsDedekindComplete = IsTotallyOrdered<S> && IsDense<S> && HasExtrema<S>;
 
-}  // namespace dedekind::ontology
+}  // namespace dedekind::order
