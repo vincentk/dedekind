@@ -34,13 +34,13 @@ module;
 #include <concepts>
 #include <functional>
 
-export module dedekind.ontology:topology;
+export module dedekind.topology:topology;
 
-import :algebra;
-import :order;
-import :sequences;  // Bridge Level 2.5: For the Path to a point
+import dedekind.algebra;   // The Pure Laws (Groups, Rings, and Fields)
+import dedekind.order;     // The Rules of Relation (IsTotallyOrdered, IsDense)
+import dedekind.sequences; // Bridge Level 2.5: For the Path to a point
 
-namespace dedekind::ontology {
+namespace dedekind::topology {
 
 /**
  * @concept IsOpen
@@ -120,4 +120,4 @@ concept IsInterval = IsConvex<S> && requires {
   requires IsHalfSpace<typename S::upper_ray_type>;
 };
 
-}  // namespace dedekind::ontology
+}  // namespace dedekind::topology

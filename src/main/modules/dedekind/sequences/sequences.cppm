@@ -27,12 +27,12 @@ module;
 #include <concepts>
 #include <cstddef>  // Required for size_t
 
-export module dedekind.ontology:sequences;
+export module dedekind.sequences:sequences;
 
 import :mereology;  // Required for IsSet
 
 /// @brief
-namespace dedekind::ontology {
+namespace dedekind::sequences {
 /**
  * @concept IsSequence
  * @brief A mapping from a Countable Index to a Set.
@@ -59,4 +59,4 @@ export template <typename S>
 concept IsTerminalSet = IsCountableSet<S> && requires(S s) {
   { s.size() } -> std::integral;  // The termination proof
 };
-};  // namespace dedekind::ontology
+};  // namespace dedekind::sequences
