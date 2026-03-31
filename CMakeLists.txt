@@ -125,9 +125,12 @@ add_dedekind_layer(category "")
 #add_dedekind_layer(ontology dedekind_category)
 add_dedekind_layer(sets dedekind_category)
 add_dedekind_layer(order dedekind_sets)
-add_dedekind_layer(algebra dedekind_order)
+add_dedekind_layer(topology dedekind_order)
+add_dedekind_layer(sequences dedekind_topology)
+add_dedekind_layer(algebra dedekind_sequences)
 add_dedekind_layer(morphologies dedekind_algebra)
-add_dedekind_layer(numbers dedekind_morphologies)
+add_dedekind_layer(geometry dedekind_morphologies)
+add_dedekind_layer(numbers dedekind_geometry)
 
 
 # --- 3. THE FINAL ASSEMBLY (The Public Interface) ---
@@ -137,14 +140,14 @@ add_dedekind_layer(numbers dedekind_morphologies)
 # corresponds to a module interface unit.
 # The "dedekind" library is the final product
 add_library(dedekind INTERFACE)
-add_dependencies(dedekind dedekind_category dedekind_sets dedekind_order dedekind_algebra dedekind_morphologies dedekind_numbers)
+add_dependencies(dedekind dedekind_category dedekind_sets dedekind_order dedekind_topology dedekind_sequences dedekind_algebra dedekind_morphologies dedekind_geometry dedekind_numbers)
 # No source files needed here; it just bundles the objects
-target_link_libraries(dedekind INTERFACE dedekind_category dedekind_sets dedekind_order dedekind_algebra dedekind_morphologies dedekind_numbers)
+target_link_libraries(dedekind INTERFACE dedekind_category dedekind_sets dedekind_order dedekind_topology dedekind_sequences dedekind_algebra dedekind_morphologies dedekind_geometry dedekind_numbers)
 target_compile_features(dedekind INTERFACE cxx_std_23)
 
 target_compile_options(dedekind INTERFACE ${DEDEKIND_WARNING_FLAGS})
 
-install(TARGETS dedekind dedekind_category dedekind_sets dedekind_order dedekind_algebra dedekind_morphologies dedekind_numbers
+install(TARGETS dedekind dedekind_category dedekind_sets dedekind_order dedekind_topology dedekind_sequences dedekind_algebra dedekind_morphologies dedekind_geometry dedekind_numbers
     EXPORT dedekind-targets
     # Ensure CXX_MODULES are installed for all targets
     FILE_SET CXX_MODULES DESTINATION lib/modules/dedekind
