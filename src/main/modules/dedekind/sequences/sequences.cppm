@@ -29,10 +29,12 @@ module;
 
 export module dedekind.sequences:sequences;
 
-import :mereology;  // Required for IsSet
+import dedekind.sets; // Required for IsSet
 
 /// @brief
 namespace dedekind::sequences {
+using namespace dedekind::sets;
+
 /**
  * @concept IsSequence
  * @brief A mapping from a Countable Index to a Set.

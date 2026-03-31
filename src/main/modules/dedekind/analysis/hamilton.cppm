@@ -1,3 +1,5 @@
+export module dedekind.analysis:hamilton;
+
 /**
  * @concept IsHamiltonianSystem
  * @brief A system where the flow preserves the Symplectic Form.

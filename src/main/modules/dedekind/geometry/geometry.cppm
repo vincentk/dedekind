@@ -18,14 +18,11 @@ module;
 #include <concepts>
 #include <functional>
 
-export module dedekind.ontology:geometry;
+export module dedekind.geometry:geometry;
 
-import :mereology;
-import :algebra;
-import :morphologies;
-import :topology;
+import dedekind.morphologies; // For Vector Spaces and Norms
 
-namespace dedekind::ontology {
+namespace dedekind::geometry {
 
 /**
  * @concept IsMetricSpace
@@ -53,4 +50,4 @@ concept IsEuclideanSpace =
       { norm(v) } -> std::same_as<S>;
     };
 
-}  // namespace dedekind::ontology
+}  // namespace dedekind::geometry
