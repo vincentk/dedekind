@@ -122,7 +122,6 @@ endfunction()
 
 # --- THE PROPOSITIONS (Serialized by Libraries) ---
 add_dedekind_layer(category "")
-#add_dedekind_layer(ontology dedekind_category)
 add_dedekind_layer(sets dedekind_category)
 add_dedekind_layer(order dedekind_sets)
 add_dedekind_layer(topology dedekind_order)

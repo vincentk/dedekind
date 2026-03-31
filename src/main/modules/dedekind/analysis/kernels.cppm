@@ -26,7 +26,6 @@ export module dedekind.analysis:kernels;
 import dedekind.sets;      // IsSet, IsCardinality, RealLine
 import dedekind.sequences; // IsSequence, IsFiniteSequence
 import dedekind.category;  // IsMorphism, IsSymmetric, IsEndomorphism
-import <cmath>;
 
 namespace dedekind::analysis {
 using namespace dedekind::sets;
