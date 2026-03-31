@@ -133,7 +133,7 @@ static_assert(IsCoKleisliExtension<Box, int, int>,
  * distributive laws, our ontology uses this concept to signify that
  * a species can be navigated from both directions (into and out of context).
  */
-template <template <typename...> typename F, typename T, typename U>
+export template <template <typename...> typename F, typename T, typename U>
 concept IsFrobenius =
     IsKleisliExtension<F, T, U> && IsCoKleisliExtension<F, T, U>;
 
