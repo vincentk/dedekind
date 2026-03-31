@@ -354,10 +354,7 @@ static_assert(IsIsomorphism<TaggedNegate, int, int>,
  * @note For the Integers (Z), this is addition with negation.
  */
 export template <typename T, typename Op>
-concept IsGroupoid = IsSmallCategory<T, Op> && requires(T x) {
-  // Every element must have an inverse relative to the operation Op
-  { inverse<T, Op>(x) } -> std::same_as<T>;
-};
+concept IsGroupoid = IsSmallCategory<T, Op> && IsInvertible<T, Op>;
 
 /** @section Groupoid Verification: The Symmetry Law */
 

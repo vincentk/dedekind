@@ -155,6 +155,9 @@ export template <typename T, typename Op>
 concept IsCommutative =
     IsMagmoid<T, Op> && requires { requires is_commutative_v<T, Op>; };
 
+
+
+
 export template <typename T, typename Op>
 struct is_idempotent : std::false_type {};
 
@@ -175,13 +178,35 @@ export template <typename T, typename Op>
 concept IsIdempotent =
     IsMagmoid<T, Op> && requires { requires is_idempotent_v<T, Op>; };
 
-/** @brief Primary trait: Identity does not exist by default. */
-export template <typename T, typename Op>
-struct identity_trait {};  // Empty by default
 
-/** @brief Helper to access the value if it exists. */
+
+
+/** @brief Primary trait: Identity (neutral element) does not exist by default. */
+export template <typename T, typename Op>
+struct identity_trait {
+  // Empty by default: Truth is opted-in, not assumed.
+};
+
+/** @brief Helper to access the identity value if the trait is specialized. */
 export template <typename T, typename Op>
 inline constexpr T identity_v = identity_trait<T, Op>::value;
+
+/** @brief Helper for shorthand boolean verification of the trait. */
+export template <typename T, typename Op>
+inline constexpr bool has_identity_v = requires { 
+  typename identity_trait<T, Op>::value_type; 
+};
+
+/**
+ * @concept HasIdentity
+ * @brief Formal verification of the existence of a neutral element 'e' 
+ *        such that x ∘ e = x and e ∘ x = x.
+ */
+export template <typename T, typename Op>
+concept HasIdentity =
+    IsMagmoid<T, Op> && requires { requires has_identity_v<T, Op>; };
+
+
 
 /**
  * @brief The Characteristic of the Species.
@@ -202,6 +227,7 @@ template <>
 inline constexpr bool is_commutative_v<bool, std::logical_or<bool>> = true;
 template <>
 struct identity_trait<bool, std::logical_or<bool>> {
+    using value_type = bool;  
   static constexpr bool value = false;  // ⊥ (Null/False)
 };
 
@@ -211,6 +237,7 @@ template <>
 inline constexpr bool is_commutative_v<bool, std::logical_and<bool>> = true;
 template <>
 struct identity_trait<bool, std::logical_and<bool>> {
+    using value_type = bool;
   static constexpr bool value = true;  // ⊤ (Whole/True)
 };
 
@@ -242,8 +269,10 @@ template <std::integral T>
 inline constexpr bool is_associative_v<T, std::plus<T>> = true;
 template <std::integral T>
 inline constexpr bool is_commutative_v<T, std::plus<T>> = true;
+
 template <std::integral T>
 struct identity_trait<T, std::plus<T>> {
+  using value_type = T;
   static constexpr T value = 0;
 };
 
@@ -256,6 +285,7 @@ template <std::integral T>
 inline constexpr bool is_commutative_v<T, std::multiplies<T>> = true;
 template <std::integral T>
 struct identity_trait<T, std::multiplies<T>> {
+  using value_type = T;
   static constexpr T value = 1;
 };
 
@@ -281,6 +311,7 @@ inline constexpr bool is_commutative_v<T, std::bit_xor<T>> = true;
 
 template <std::integral T>
 struct identity_trait<T, std::bit_xor<T>> {
+  using value_type = T;
   static constexpr T value = 0;
 };
 
@@ -301,6 +332,7 @@ template <>
 inline constexpr bool is_commutative_v<bool, std::bit_xor<bool>> = true;
 template <>
 struct identity_trait<bool, std::bit_xor<bool>> {
+  using value_type = bool;
   static constexpr bool value = false;
 };
 
@@ -311,49 +343,52 @@ template <>
 inline constexpr bool is_commutative_v<bool, std::bit_and<bool>> = true;
 template <>
 struct identity_trait<bool, std::bit_and<bool>> {
+  using value_type = bool;
   static constexpr bool value = true;
 };
 
 /** @section Categorical_Inverses: The 'Undo' Bricks */
 
-/**
- * @brief In XOR, every element is its own inverse (Involutive).
- * @details This satisfies the Group axiom `a ∘ a = e` where e is 0.
- *          In bitwise logic, this is a perfectly symmetric, non-overflowing
- *          action across the entire Species range.
- */
+/** @brief In XOR, every element is its own inverse (Involutive). */
 template <std::integral 𝒯>
 inline constexpr 𝒯 inverse(𝒯 a, std::bit_xor<𝒯>) {
   return a;
 }
 
-/**
- * @brief In Addition, negation is the inverse.
- * @note [Mathematical Authority]: For signed types, this assumes Two's
- * Complement arithmetic. Note that for the minimum value (e.g., INT_MIN), the
- *       inverse overflows back to itself, satisfying `a + inverse(a) = 0`
- *       via machine wrapping (Modular Arithmetic in Z/2^nZ).
- */
+/** @brief In Addition, negation is the inverse (Two's Complement wrapping). */
 template <std::integral 𝒯>
 inline constexpr 𝒯 inverse(𝒯 a, std::plus<𝒯>) {
-  // In C++20/23, signed overflow for negation is defined behavior
-  // as Two's Complement wrapping.
   return static_cast<𝒯>(-static_cast<std::make_unsigned_t<𝒯>>(a));
 }
 
-/**
- * @brief The Master Bridge: The entry point for IsGroupoid.
- * @details This bridge 'routes' the request to the specific implementation
- *          above. If no implementation exists, the concept fails (Skeletal
- * Safety).
- */
-export template <typename T, typename Op>  // Note: Op first or deduced
-  requires requires(T a) {
-    { inverse(a, Op{}) } -> std::same_as<T>;
-  }
-inline constexpr T inverse(T a) {
+/** @brief The Master Bridge: Routes the request to specific implementations. */
+export template <typename T, typename Op>
+  requires requires(T a) { { inverse(a, Op{}) } -> std::same_as<T>; }
+inline constexpr T inverse_v(T a) {
   return inverse(a, Op{});
 }
+
+/** @brief The Formal Trait: Hooks the bridge into the Concept system. */
+export template <typename T, typename Op>
+struct inverse_trait {
+  static constexpr bool exists = requires(T a) { 
+    { inverse(a, Op{}) } -> std::same_as<T>; 
+  };
+};
+
+/** @brief The Shorthand for the Registry. */
+export template <typename T, typename Op>
+inline constexpr bool is_invertible_v = inverse_trait<T, Op>::exists;
+
+/**
+ * @concept IsInvertible
+ * @brief Formal verification that x ∘ x⁻¹ = e.
+ */
+export template <typename T, typename Op>
+concept IsInvertible =
+    HasIdentity<T, Op> && requires { requires is_invertible_v<T, Op>; };
+
+
 
 /** @section Magmoid Verification: The Atomic Bricks */
 
