@@ -6,9 +6,10 @@ import dedekind.category;
 
 using namespace dedekind::category;
 
-FIXME: fake tests
+FIXME : fake tests
 
-TEST_CASE("Category: Morphisms and Arrow Factories", "[category][morphisms]") {
+        TEST_CASE("Category: Morphisms and Arrow Factories",
+                  "[category][morphisms]") {
   SECTION("Identity Morphism (id)") {
     auto identity = id<int>();
 
