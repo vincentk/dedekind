@@ -7,12 +7,12 @@
  *
  * @section Set_Theory: Implementation of Mereological Relations
  * This module provides concrete implementations for the abstract laws
- * defined in dedekind.ontology. While the ontology defines the requirements 
+ * defined in dedekind.ontology. While the ontology defines the requirements
  * for a set, this module provides the mechanisms to construct them.
  *
  * @details
- * In the Dedekind architecture, set theory bridges logic (Level -1) 
- * and magnitude (Level 2). By implementing monadic and comonadic 
+ * In the Dedekind architecture, set theory bridges logic (Level -1)
+ * and magnitude (Level 2). By implementing monadic and comonadic
  * extensions for specific structures, we enable:
  * - Extensional Sets: Materialized collections (Singleton, Finite Sets).
  * - Intensional Sets: Rule-based definitions (Comprehensions).
