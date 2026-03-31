@@ -315,6 +315,28 @@ inline constexpr bool is_associative_v<T, std::bit_and<T>> = true;
 template <std::integral T>
 inline constexpr bool is_commutative_v<T, std::bit_and<T>> = true;
 
+
+/**
+ * @brief Proof: Integral types satisfy the Total Order axioms.
+ * @details [Architectural Decision 2026-04-01]:
+ * We specifically whitelist std::integral types here because they satisfy
+ * Reflexivity (x <= x) and Antisymmetry (a <= b && b <= a => a == b) 
+ * without exception. 
+ *
+ * @note [Future Work]: Floating-point types (double/float) are currently 
+ * excluded from this blanket proof due to IEEE 754 'NaN' violating 
+ * Reflexivity. To support them, we will require a 'Safe' wrapper or a 
+ * NaN-aware comparison morphism.
+ */
+template <std::integral T>
+inline constexpr bool is_reflexive_v<T, std::less_equal<>> = true;
+
+template <std::integral T>
+inline constexpr bool is_transitive_v<T, std::less_equal<>> = true;
+
+template <std::integral T>
+inline constexpr bool is_antisymmetric_v<T, std::less_equal<>> = true;
+
 /** @section Boolean_Bitwise_Certifications: (B, ^) and (B, &) */
 
 // 1. Boolean XOR (Exclusive OR)
