@@ -3,12 +3,12 @@
  * @partition :hamilton
  * @brief Level 4: The Principle of Least Action (Hamiltonian Dynamics).
  *
- * @quote "The variation of the definite integral of the difference between 
+ * @quote "The variation of the definite integral of the difference between
  * the kinetic and potential energies is zero." — Sir William Rowan Hamilton
  *
  * @section Hamiltonian: The Flow of the Species
- * This partition defines the generator of motion \( \mathcal{H} \). In the 
- * Dedekind Category, the Hamiltonian is the Morphism that maps the Phase 
+ * This partition defines the generator of motion \( \mathcal{H} \). In the
+ * Dedekind Category, the Hamiltonian is the Morphism that maps the Phase
  * Space (Position and Momentum) to the Energy Scalar Field.
  *
  * @details
@@ -41,7 +41,7 @@ using namespace dedekind::geometry;
  */
 export template <typename H, typename S, typename F>
 concept IsHamiltonian = requires(H h, S s) {
-  { h.energy(s) } -> std::same_as<F>; 
+  { h.energy(s) } -> std::same_as<F>;
 };
 
 /**
@@ -51,7 +51,7 @@ concept IsHamiltonian = requires(H h, S s) {
 export template <IsField R, std::size_t N>
 constexpr R poisson_bracket(auto&& f, auto&& g, const Vector<R, N>& state) {
   // Use Dual numbers from Geometry to compute the Automatic Gradient
-  auto grad_f = gradient<R, N>(f, state); 
+  auto grad_f = gradient<R, N>(f, state);
   auto grad_g = gradient<R, N>(g, state);
 
   // Symplectic inner product logic
@@ -67,4 +67,4 @@ concept IsPoissonAlgebra = IsRing<A> && requires(A f, A g) {
   { bracket(f, g) } -> std::same_as<A>;
 };
 
-} // namespace dedekind::analysis
+}  // namespace dedekind::analysis

@@ -155,9 +155,6 @@ export template <typename T, typename Op>
 concept IsCommutative =
     IsMagmoid<T, Op> && requires { requires is_commutative_v<T, Op>; };
 
-
-
-
 export template <typename T, typename Op>
 struct is_idempotent : std::false_type {};
 
@@ -178,10 +175,8 @@ export template <typename T, typename Op>
 concept IsIdempotent =
     IsMagmoid<T, Op> && requires { requires is_idempotent_v<T, Op>; };
 
-
-
-
-/** @brief Primary trait: Identity (neutral element) does not exist by default. */
+/** @brief Primary trait: Identity (neutral element) does not exist by default.
+ */
 export template <typename T, typename Op>
 struct identity_trait {
   // Empty by default: Truth is opted-in, not assumed.
@@ -193,20 +188,17 @@ inline constexpr T identity_v = identity_trait<T, Op>::value;
 
 /** @brief Helper for shorthand boolean verification of the trait. */
 export template <typename T, typename Op>
-inline constexpr bool has_identity_v = requires { 
-  typename identity_trait<T, Op>::value_type; 
-};
+inline constexpr bool has_identity_v =
+    requires { typename identity_trait<T, Op>::value_type; };
 
 /**
  * @concept HasIdentity
- * @brief Formal verification of the existence of a neutral element 'e' 
+ * @brief Formal verification of the existence of a neutral element 'e'
  *        such that x ∘ e = x and e ∘ x = x.
  */
 export template <typename T, typename Op>
 concept HasIdentity =
     IsMagmoid<T, Op> && requires { requires has_identity_v<T, Op>; };
-
-
 
 /**
  * @brief The Characteristic of the Species.
@@ -227,7 +219,7 @@ template <>
 inline constexpr bool is_commutative_v<bool, std::logical_or<bool>> = true;
 template <>
 struct identity_trait<bool, std::logical_or<bool>> {
-    using value_type = bool;  
+  using value_type = bool;
   static constexpr bool value = false;  // ⊥ (Null/False)
 };
 
@@ -237,7 +229,7 @@ template <>
 inline constexpr bool is_commutative_v<bool, std::logical_and<bool>> = true;
 template <>
 struct identity_trait<bool, std::logical_and<bool>> {
-    using value_type = bool;
+  using value_type = bool;
   static constexpr bool value = true;  // ⊤ (Whole/True)
 };
 
@@ -363,7 +355,9 @@ inline constexpr 𝒯 inverse(𝒯 a, std::plus<𝒯>) {
 
 /** @brief The Master Bridge: Routes the request to specific implementations. */
 export template <typename T, typename Op>
-  requires requires(T a) { { inverse(a, Op{}) } -> std::same_as<T>; }
+  requires requires(T a) {
+    { inverse(a, Op{}) } -> std::same_as<T>;
+  }
 inline constexpr T inverse_v(T a) {
   return inverse(a, Op{});
 }
@@ -371,8 +365,8 @@ inline constexpr T inverse_v(T a) {
 /** @brief The Formal Trait: Hooks the bridge into the Concept system. */
 export template <typename T, typename Op>
 struct inverse_trait {
-  static constexpr bool exists = requires(T a) { 
-    { inverse(a, Op{}) } -> std::same_as<T>; 
+  static constexpr bool exists = requires(T a) {
+    { inverse(a, Op{}) } -> std::same_as<T>;
   };
 };
 
@@ -387,8 +381,6 @@ inline constexpr bool is_invertible_v = inverse_trait<T, Op>::exists;
 export template <typename T, typename Op>
 concept IsInvertible =
     HasIdentity<T, Op> && requires { requires is_invertible_v<T, Op>; };
-
-
 
 /** @section Magmoid Verification: The Atomic Bricks */
 
