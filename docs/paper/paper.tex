@@ -8,6 +8,7 @@
 
 % --- Recommended Math & Science Packages ---
 \usepackage{amsmath, amssymb, amsthm} % Essential math tools
+\usepackage{mathrsfs}
 \usepackage{graphicx}                  % Support for images
 \usepackage{hyperref}                  % Clickable links & cross-refs
 \usepackage{booktabs}                  % High-quality tables
@@ -50,7 +51,7 @@
 \newcommand{\bind}{\mathbin{>\!\!>\mkern-6.7mu=}}
 
 % --- Document Metadata ---
-\title{\textsc{Dedekind}: A C++23 Library for Compile-Time Set Algebra and Exact Real Arithmetic}
+\title{Axiomatic Systems Programming: Structural Type Theory and Exact Arithmetic in C++23}
 \author{Vincent Kr\"autler}
 \date{\today} % Automatically inserts current date
 
@@ -59,17 +60,16 @@
 \maketitle
 
 \begin{abstract}
-This paper presents \texttt{dedekind}, a C++23 library designed to embed formal mathematical structures directly within the language's type system. We address the performance-productivity gap in computational science—often characterized as the ``two-language problem''—by leveraging modern C++ features, including modules, concepts, and non-type template parameters (NTTP).
+This paper introduces \texttt{dedekind}, a C\texttt{++}23 library designed to embed formal mathematical structures directly within the language's type system.
+We address the performance-productivity gap in computational science---often characterized as the ``two-language problem''---by leveraging modern C\texttt{++} features, including modules, concepts, and non-type template parameters (NTTP).
 Unlike traditional object-oriented frameworks that rely on nominal inheritance, \texttt{dedekind} employs a structural type theory to reify mathematical entities as compile-time specifications.
 We demonstrate the utility of this approach through a formal construction of the continuum $\mathbb{R}$ via Dedekind cuts, enabling the exact resolution of transcendental numbers without floating-point overhead.
-Furthermore, we show how hoisting logical invariants into type signatures allows the \texttt{LLVM} backend to perform aggressive optimization, such as collapsing contradictory set-builder predicates into zero-instruction machine code.
+Furthermore, we show how hoisting logical invariants into type signatures allows the LLVM backend to perform aggressive structural pruning, such as collapsing contradictory set-builder predicates into zero-instruction machine code.
 This work illustrates that integrating formal mathematical rigor into systems programming can yield zero-overhead abstractions suitable for high-performance symbolic computing.
 \end{abstract}
 
 \section{Introduction}
 \label{sec:introductio}
-
-\section{Introduction}
 The development of computational science software is often constrained by a persistent performance gap between high-level symbolic environments and low-level execution backends.
 While tools like \texttt{PyTorch} \cite{paszke2019pytorch} and \texttt{NumPy} \cite{harris2020numpy} offer expressive interfaces for symbolic reasoning, they typically rely on C++ backends that treat mathematical logic as a runtime implementation detail.
 This results in a \emph{two-language problem} where the high-level mathematical intent is decoupled from the underlying hardware execution.
@@ -173,7 +173,76 @@ In a sense, \texttt{dedekind} hopes to be a *compiler* for mathematical concepts
 \end{tabular}
 \end{table}
 
+By adopting a categorical foundation, the library provides a unified interface for both \emph{extensional} and \emph{intensional} representations.
+For finite collections, such as the \texttt{Booleans}, the system performs \emph{extensional} materialization to compute exact results at compile-time.
+Conversely, for infinite or transcendental structures like the \texttt{Complex Numbers}, the library utilizes \emph{intensional} symbolic expressions to maintain structural integrity.
+By embedding these categorical definitions in the \texttt{C++} host language, the programmer—and crucially the \emph{compiler}—can examine the algebraic properties of a field even when the underlying elements cannot be fully materialized as discrete machine data.
+
+\subsubsection{Intensional Sets and Computational Undecidability}
+The utility of the categorical approach is most evident when defining sets whose membership conditions are conceptually clear but computationally undecidable.
+Consider the set of \emph{Normal Numbers} $\mathscr N$, defined as those real numbers whose infinite digit expansion follows a uniform distribution.
+Formally, a real number $x$ is normal in base $b$ if for every finite sequence of digits $s$, the limiting frequency of $s$ appearing in the expansion of $x$ satisfies:
+\begin{equation}
+\lim_{n \to \infty} \frac{N(s, x, n)}{n} = \frac{1}{b^{|s|}}
+\end{equation}
+where $N(s, x, n)$ denotes the number of occurrences of the string $s$ in the first $n$ digits of $x$.
+While we can easily define this property as a symbolic predicate within the \texttt{dedekind} ontology, the membership of specific constants like $\pi$ or $e$ remains a famous open problem in mathematics.
+
+In a traditional imperative framework, such a set is unusable because membership cannot be \emph{computed} to a boolean result.
+However, by treating $\mathscr{N}$ as an \emph{intensional} set, the \texttt{dedekind} library allows the programmer to define morphisms that take $\mathscr{N}$ as their formal domain.
+This enables the \texttt{C++} compiler to verify the structural validity of a function pipeline based solely on the \emph{definition} of normality, even while the empirical membership of $\pi$ remains unresolved.
+By hoisting the predicate into a \texttt{Stateless Constraint Type}, we decouple the logical requirement of the set from the necessity of materializing its elements.
+This allows the compiler to treat $\mathscr{N}$ as a valid algebraic object, facilitating symbolic reasoning about digit distribution without requiring a prior numerical proof of normality, thereby avoiding the runtime overhead of high-precision digit evaluation.
+
+
+This allows the compiler to treat $\mathscr{N}$ as a valid algebraic object, facilitating symbolic reasoning about digit distribution without requiring a prior numerical proof of normality, thereby avoiding the runtime overhead of high-precision digit evaluation.
+
+This intensional logic extends to non-elementary functions where the antiderivative cannot be expressed in a finite combination of elementary terms.
+For example, the Gaussian integral $e^{-t^2}$ defines the \emph{Error Function} ($\text{erf}$) as a structural rule for area rather than a simple algebraic formula:
+\begin{equation}
+\text{erf}(x) = \frac{2}{\sqrt{\pi}} \int_{0}^{x} e^{-t^2} dt
+\end{equation}
+While traditional backends rely on lossy polynomial approximations to evaluate this integral, the \texttt{dedekind} ontology reifies $\text{erf}(x)$ as a set of symbolic properties.
+This allows the \texttt{C++} compiler to resolve identities—such as the symmetry $\text{erf}(-x) = -\text{erf}(x)$—as zero-overhead type transformations, delaying numerical approximation until the final realization of the continuum.
+
 \subsubsection{Categorification of Sequences and the Continuum}
+
+While \textsc{ETCS} provides the axioms for discrete collections, the representation of sequences and the analytic continuum requires a transition from set-theoretic membership to functorial structures.
+In the \texttt{dedekind} library, we avoid the imperative indexing of terms by treating sequences as \emph{Combinatorial Species} \cite{joyal1981species}.
+By defining a sequence as a functor from the category of finite sets to itself, we can express growth rules—such as the Fibonacci recurrence—as algebraic identities between functors.
+This allows the compiler to resolve the structural identity of a series through symbolic substitution before any machine-level summation occurs \cite{joyal1986analytic}.
+To reach the exact real arithmetic promised in Section 1, we ground our implementation of convergence in \textsc{Lawvere}'s theory of enriched categories \cite{lawvere1973metric}.
+By treating metric spaces as categories enriched over the poset of non-negative reals $[0, \infty)$, the library reifies Cauchy sequences not as floating-point approximations, but as formal Cauchy completions \cite{borceux1986cauchy}.
+This methodology ensures that the \emph{Dedekind cut}—defining real numbers $\mathbb{R}$ as partitions of the rationals $\mathbb{Q}$ \cite{lawvere2003sets}—is not merely a runtime filter, but a verified limit of a rational sequence.
+This allows the \texttt{LLVM} backend to treat transcendental constants like $e$ and $\pi$ as symbolic invariants rather than opaque numeric variables.
+
+The library addresses the representation of transcendental constants by distinguishing between their algebraic \emph{definition} and their numerical \emph{realization}.
+While the machine may be unable to \emph{compute} the final digit of $\pi$, the \texttt{dedekind} ontology can lazily \emph{define} it as a formal limit of a rational sequence.
+By encoding the \textsc{Leibniz} series for $\pi$ or the \textsc{Taylor} expansion for $e$, the library treats these constants as symbolic \emph{intensional} types.
+\begin{equation}
+e = \sum_{n=0}^{\infty} \frac{1}{n!} = 1 + 1 + \frac{1}{2} + \frac{1}{6} + \dots
+\end{equation}
+This approach leverages \emph{lazy evaluation} at the type-level, where the \texttt{C++} compiler performs symbolic substitutions of the series terms before any floating-point approximation is required.
+By teaching the compiler the \emph{rule} of the sequence rather than a static value, the library ensures that mathematical identities—such as $e^0 = 1$—can be resolved as zero-instruction compile-time proofs.
+
+\begin{table}[ht]
+\centering
+\caption{Categorification of Sequences and Series in the Dedekind Ontology}
+\label{table:categorification}
+\begin{tabular}{@{}llll@{}} 
+\toprule
+\textbf{Mathematical Concept} & \textbf{Set-Theoretic Form} & \textbf{Categorical Framework} & \textbf{C++ Structural Basis} \\ \midrule
+\textbf{Recursive Sequence}    & $F_{n} = F_{n-1} + F_{n-2}$ & Combinatorial Species \cite{joyal1981species} & Functorial Coproducts \\
+\textbf{Formal Power Series}  & $\sum a_n x^n$              & Analytic Functors \cite{joyal1986analytic}    & Polynomial Species \\
+\textbf{Metric/Distance}      & $|x - y| < \epsilon$        & Lawvere Enriched Category \cite{lawvere1973metric} & Enriched Hom-sets \\
+\textbf{Cauchy Convergence}   & $\lim_{n \to \infty} a_n$   & Cauchy Completion \cite{borceux1986cauchy}    & Limit / Terminal Object \\
+\textbf{Real Numbers ($\mathbb{R}$)} & Dedekind Cuts / Cauchy & Archimedian Completion \cite{mclarty1992toposes} & Adjoint Functors \\ \bottomrule
+\end{tabular}
+\end{table}
+
+
+
+xxxxxx
 
 While ETCS provides the axioms for discrete collections, the representation of sequences and the analytic continuum requires a transition from set-theoretic membership to functorial structures.
 In the \texttt{dedekind} library, we avoid the imperative indexing of terms by treating sequences as Combinatorial Species \cite{joyal1981species}.
@@ -182,6 +251,15 @@ This allows the compiler to resolve the "combinatorial essence" of a series thro
 To reach the exact real arithmetic promised in Section 1, we ground our implementation of convergence in Lawvere's theory of enriched categories \cite{lawvere1973metric}.
 By treating metric spaces as categories enriched over the poset of non-negative reals $[0, \infty)$, the library reifies Cauchy sequences not as floating-point approximations, but as formal Cauchy completions \cite{borceux1986cauchy}.
 This methodology ensures that the Dedekind cut -- defining real numbers as partitions of the rationals \cite{lawvere2003sets} -- is not merely a runtime filter, but a verified limit of a rational sequence, allowing the LLVM backend to treat transcendental constants like $e$ and $\pi$ as first-class structural invariants.
+
+The library addresses the representation of transcendental constants by distinguishing between their algebraic \emph{definition} and their numerical \emph{realization}.
+While the machine may be unable to \emph{compute} the final digit of $\pi$, the \texttt{dedekind} ontology can lazily \emph{define} it as a formal limit of a rational sequence.
+By encoding the Leibniz series for $\pi$ or the Taylor expansion for $e$, the library treats these constants as symbolic \emph{intensional} types.
+\begin{equation}
+e = \sum_{n=0}^{\infty} \frac{1}{n!} = 1 + 1 + \frac{1}{2} + \frac{1}{6} + \dots
+\end{equation}
+This approach leverages \texttt{lazy evaluation} at the type-level, where the \texttt{C++} compiler performs symbolic substitutions of the series terms before any floating-point approximation is required.
+By teaching the compiler the \emph{rule} of the sequence rather than a static value, the library ensures that mathematical identities—such as $e^0 = 1$—can be resolved as zero-instruction compile-time proofs.
 
 \begin{table}[ht]
 \centering
