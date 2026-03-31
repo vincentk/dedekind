@@ -5,22 +5,18 @@
  *
  * @section Sequences: The Logic of Enumeration
  * This partition defines the "Path" (λn. s_n) as a Morphism from a Domain
- * (Index Set) to a Codomain (Species). In the Bourbaki "Mother Structures,"
- * this represents the transition from Static Magnitude (Lattice-based Sets) to
- * Ordered Traversal.
+ * (Index Set) to a Codomain (Species). This provides the functional basis for
+ * Sequence Spaces like ℓ² (Hilbert Spaces), where the Path is an element and
+ * the Space is the Set.
  *
  * @details
- * We distinguish between the Mereological nature of the Domain and the
- * Functional nature of the Sequence:
- * - IsSequence: A mapping from an Index Set (IsSet) to values. Supports
- * infinite domains.
- * - IsFiniteSequence: A sequence whose Domain satisfies IsFinite.
- * - IsCountableSet: A Set that admits an Enumeration (can be projected to a
- * Sequence).
- * - IsTerminalSet: An Enumerable set with a Provable Termination (size).
- *
- * @build_order 5
- * @dependency :mereology
+ * Transitioning from Static Magnitude to Ordered Traversal:
+ * - IsSequence: A functional mapping f: D → S. Unlike a Set, it is ordered and
+ *   not necessarily idempotent under concatenation.
+ * - IsFiniteSequence: A Path over a Domain with Finite Cardinality.
+ * - IsCountableSet: A Set (Lattice) that can be projected into a Path via an
+ *   as_sequence() morphism (Enumerability).
+ * - IsTerminalSet: An Enumerable set with a provable size_t limit.
  */
 module;
 
