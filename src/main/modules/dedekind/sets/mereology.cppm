@@ -41,7 +41,7 @@ module;
 #include <concepts>
 #include <functional>
 
-export module dedekind.ontology:mereology;
+export module dedekind.sets:mereology;
 
 import dedekind.category;
 
@@ -49,7 +49,7 @@ import dedekind.category;
  * @section Mereology: The study of parts and wholes.
  * @section Mereology: The Hierarchy of Order.
  */
-namespace dedekind::ontology {
+namespace dedekind::sets {
 
 using namespace dedekind::category;
 

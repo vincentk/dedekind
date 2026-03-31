@@ -1,33 +1,32 @@
 /**
  * @file ontology:numbers.cppm
- * @brief Level 4: The Dictionary of Species (The Registry).
+ * @brief Semirings as the formal algebraic basis for scalar number systems.
  *
  * Copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @partition :numbers
- * @build_order 7
+ * @partition :scalars
  * @dependency :algebra, :topology, :cardinalities
  *
- * @section Numbers: The Realization of the Soul
- * This partition is the final "Registry" of the ontology. It maps concrete
- * C++ types to their formal algebraic and topological identities.
+ * @section Numbers: The Registry of Numeric Types
+ * This partition defines the @b Scalar—the fundamental unit of the ontology. 
+ * It maps concrete C++ types to their formal algebraic and topological identities.
  *
  * @details
- * We "Bless" the coordinate species by verifying their rungs on the ladder:
- * - IsNatural  : N (ℕ) - The Discrete Monoid.
- * - IsInteger  : Z (ℤ) - The Euclidean Group.
- * - IsRational : Q (ℚ) - The Countable Dense Field.
- * - IsReal     : R (ℝ) - The Continuous Dedekind-Complete Field.
+ * A Scalar is the "Lowest Common Denominator" of our number systems. By 
+ * grounding the definition in a @b Semiring (or "Rig"), we create a unified 
+ * interface that encompasses:
+ * - @b Booleans : The Binary Semiring ({0, 1}, ∨, ∧).
+ * - @b Naturals : The Discrete Monoid (ℕ, +, ×).
+ * - @b Reals    : The Continuous Field (ℝ, +, ×).
  *
- * @section Structural_Mapping
- * This is where we perform the final 'Lifting'. We prove that 'int'
- * satisfies 'Group_ℤ' and that 'double' is a hardware-constrained
- * approximation of 'Field_ℝ'.
+ * This structure guarantees an additive identity (Zero) and a multiplicative 
+ * identity (One), providing the necessary anchors for all coordinate-based 
+ * calculations without requiring additive inverses (negatives).
  *
  * @anchors C++ Fundamental Types: bool, char, int, long, float, double.
  *
- * Wikipedia: Number, Natural number, Integer, Rational number, Real number
+ * Wikipedia: Scalar (mathematics), Semiring, Monoid, Number system
  */
 module;
 

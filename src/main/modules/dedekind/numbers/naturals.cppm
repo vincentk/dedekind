@@ -47,33 +47,13 @@ using namespace dedekind::ontology;
 using namespace dedekind::sets;
 
 /**
- * @concept IsNumbers
- * @brief The Root Category for all Numerical Structures.
- *
- * @tparam M The Algebraic Structure (The "Rule").
- * @tparam C The Cardinality (The "Magnitude").
- */
-export template <typename M, typename C>
-concept IsNumbers = IsSet<M> && IsCardinality<C> && requires {
-  // This "locks" the structure to the ruler
-  requires std::same_as<typename M::cardinality_type, C>;
-};
-
-export template <typename T>
-concept IsAdditiveSpecies = requires(T a, T b) {
-  { a + b } -> std::same_as<T>;
-  { a * b } -> std::same_as<T>;
-  { T::zero() } -> std::same_as<T>;
-};
-
-/**
  * @concept IsNatural
  * @brief N is a Pointed, Closed, Archimedean, Commutative Monoid
  *        under BOTH Addition and Multiplication.
  * Wikipedia: Semiring, Peano axioms
  */
 export template <typename N>
-concept IsNatural = IsAdditiveSpecies<N> && requires(N n, N m) {
+concept IsNatural = IsScalar<N> && requires(N n, N m) {
   { N::successor(n) } -> std::same_as<N>;
 };
 
@@ -85,7 +65,7 @@ concept IsNatural = IsAdditiveSpecies<N> && requires(N n, N m) {
  * @tparam E The underlying Element species.
  */
 export template <typename M, typename E = typename M::element_type>
-concept Monoid_ℕ = IsNumbers<M, ℵ_0> && IsNatural<E> && requires(const M& m) {
+concept Monoid_ℕ = IsNatural<E> && requires(const M& m) {
   // The structure must actually possess the claimed cardinality.
   { m.cardinality() } -> std::same_as<ℵ_0>;
 

@@ -13,5 +13,6 @@
 
 export module dedekind.numbers;
 
+export import :booleans;
 export import :naturals;
 export import :scalars;

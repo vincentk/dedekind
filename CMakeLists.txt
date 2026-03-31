@@ -124,7 +124,8 @@ endfunction()
 add_dedekind_layer(category "")
 add_dedekind_layer(ontology dedekind_category)
 add_dedekind_layer(sets dedekind_ontology)
-add_dedekind_layer(numbers dedekind_sets)
+add_dedekind_layer(order dedekind_sets)
+add_dedekind_layer(numbers dedekind_order)
 
 
 # --- 3. THE FINAL ASSEMBLY (The Public Interface) ---

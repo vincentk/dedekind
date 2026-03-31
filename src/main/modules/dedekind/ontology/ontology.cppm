@@ -25,7 +25,6 @@ export import dedekind
     .category;  // Truth (Ω), Machine Species, and Functorial Mapping
 
 /** @section Level_1: The Space (The Body and Relation) */
-export import :mereology;  // Rules of Presence (Sets, Parts, and Wholes)
 export import :order;      // Rules of Relation (Posets, Lattices, and Chains)
 export import :topology;   // Rules of Closeness (Open Sets and Continuity)
 
