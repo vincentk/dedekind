@@ -9,7 +9,7 @@
  * of a sequence as it enters the infinitesimal neighborhood of a species.
  *
  * @details
- * We utilize the Archimedean property from (:order) to ensure that the 
+ * We utilize the Archimedean property from (:order) to ensure that the
  * species supports the notion of "stepping" toward an asymptotic horizon.
  *
  * Wikipedia: Limit of a sequence, Archimedean property, Convergence
@@ -36,15 +36,15 @@ using namespace dedekind::order;
  */
 export template <typename T>
 concept HasLimit = IsArchimedean<T> && requires(Path<T> s) {
-    /** @brief The Resolution: Mapping the infinite path to the continuum. */
-    { limit(s) } -> std::same_as<T>;
+  /** @brief The Resolution: Mapping the infinite path to the continuum. */
+  { limit(s) } -> std::same_as<T>;
 };
 
 /**
  * @brief The Archimedean Limit (lim n->∞ s_n)
- * @details For machine primitives (floating_point), this resolves 
+ * @details For machine primitives (floating_point), this resolves
  *          to the epsilon-stabilized tail of the sequence.
- * 
+ *
  * @tparam T A floating-point species satisfying the Archimedean property.
  * @param s The path (sequence) to be resolved.
  * @return The value at the species' asymptotic horizon.
@@ -52,27 +52,31 @@ concept HasLimit = IsArchimedean<T> && requires(Path<T> s) {
 export template <typename T>
   requires std::floating_point<T> && IsArchimedean<T>
 constexpr T limit(const Path<T>& s) {
-    /** 
-     * @section Structuralist_Resolution
-     * In a machine context, we sample the path at the 'asymptotic' 
-     * horizon of the species. 
-     */
-    return s.at(10000); 
+  /**
+   * @section Structuralist_Resolution
+   * In a machine context, we sample the path at the 'asymptotic'
+   * horizon of the species.
+   */
+  return s.at(10000);
 }
 
 /** @section Formal_Verification */
 
 /** @proof Double-precision reals are Archimedean and support limits. */
-static_assert(IsArchimedean<double>, 
+static_assert(
+    IsArchimedean<double>,
     "Order Error: double must satisfy IsArchimedean to support limits.");
 
-static_assert(HasLimit<double>, 
+static_assert(
+    HasLimit<double>,
     "Topology Error: double must satisfy the HasLimit convergence concept.");
 
-/** @proof Integers are Archimedean but do not (necessarily) have limits in Z. */
-// This depends on whether you've specialized limit<int>. 
+/** @proof Integers are Archimedean but do not (necessarily) have limits in Z.
+ */
+// This depends on whether you've specialized limit<int>.
 // If not, HasLimit<int> should be false.
-static_assert(!HasLimit<int>, 
-    "Axiom Check: Discrete integers do not support the continuous limit morphism.");
+static_assert(!HasLimit<int>,
+              "Axiom Check: Discrete integers do not support the continuous "
+              "limit morphism.");
 
-} // namespace dedekind::sequences
+}  // namespace dedekind::sequences

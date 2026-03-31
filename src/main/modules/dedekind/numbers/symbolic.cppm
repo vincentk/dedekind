@@ -14,15 +14,15 @@ namespace dedekind::numbers {
 
 using namespace dedekind::sets;
 
-/** 
+/**
  * @section Symbolic_Set_Construction
  * We use the 'x % S | predicate' syntax to define the cuts.
  */
 export template <typename Q>
 constexpr auto Sqrt2_Symbolic() {
-    auto x = var<Q>;
-    // { x ∈ Q | x < 0 ∨ x² < 2 }
-    return DedekindCut<Q>{ x % Ω<Q>{} | (x < 0.0 || (x * x < 2.0)) };
+  auto x = var<Q>;
+  // { x ∈ Q | x < 0 ∨ x² < 2 }
+  return DedekindCut<Q>{x % Ω<Q>{} | (x < 0.0 || (x * x < 2.0))};
 }
 
 /** @section Transcendental_Anchors */
@@ -41,17 +41,17 @@ inline constexpr bool is_transcendental_v = false;
 export template <typename R>
   requires IsField<R>
 constexpr auto TranscendentalSet() {
-    // We bind the symbolic scout to the Universal Set of the Real Species.
-    auto x = var<R>;
-    
-    /** 
-     * @section The_Symbolic_Predicate
-     * We map the species-level trait into a set-level comprehension.
-     */
-    return x % Ω<R>{} | [](const R& val) {
-        // In Level 9, this resolves via trait discovery.
-        return is_transcendental_v<R>; 
-    };
+  // We bind the symbolic scout to the Universal Set of the Real Species.
+  auto x = var<R>;
+
+  /**
+   * @section The_Symbolic_Predicate
+   * We map the species-level trait into a set-level comprehension.
+   */
+  return x % Ω<R>{} | [](const R& val) {
+    // In Level 9, this resolves via trait discovery.
+    return is_transcendental_v<R>;
+  };
 }
 
-} // namespace dedekind::numbers
+}  // namespace dedekind::numbers

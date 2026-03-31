@@ -1,0 +1,59 @@
+#include <catch2/catch_test_macros.hpp>
+import dedekind.numbers;
+
+using namespace dedekind::numbers;
+
+TEST_CASE("Numbers: Rational Simplification", "[numbers][rational]") {
+  SECTION("Integer Fractions") {
+    Rational<int> q(12, 18);
+
+    // 12/18 simplified via GCD(12, 18)=6 -> 2/3
+    REQUIRE(q.num() == 2);
+    REQUIRE(q.den() == 3);
+  }
+
+  SECTION("Polynomial Fractions (Rational Functions)") {
+    using ℚx = Polynomial<double>;
+    // (x² - 1) / (x - 1)
+    ℚx num({-1, 0, 1});
+    ℚx den({-1, 1});
+
+    // In a structuralist library, the 'Rational' template
+    // can even handle Polynomials!
+    Rational<ℚx> func(num, den);
+
+    // Should simplify to (x + 1) / 1
+    REQUIRE(func.num().degree() == 1);
+    REQUIRE(func.den().degree() == 0);
+  }
+}
+
+TEST_CASE("Numbers: The Rational Field", "[numbers][field]") {
+  using ℚ = Rational<int>;
+
+  SECTION("Multiplicative Identity: (a/b) * (b/a) = 1") {
+    ℚ a(3, 4);
+    auto a_inv = a.inverse();  // 4/3
+
+    auto identity = a * a_inv;
+
+    // Should simplify to 1/1
+    REQUIRE(identity.num() == 1);
+    REQUIRE(identity.den() == 1);
+  }
+
+  SECTION("Division Morphism") {
+    ℚ a(1, 2);
+    ℚ b(1, 4);
+
+    // (1/2) / (1/4) = 2
+    auto res = a / b;
+    REQUIRE(res.num() == 2);
+    REQUIRE(res.den() == 1);
+  }
+
+  SECTION("Zero-Denominator Protection") {
+    // Reciprocal of zero must throw
+    REQUIRE_THROWS_AS(ℚ(0, 1).inverse(), std::domain_error);
+  }
+}
