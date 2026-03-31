@@ -36,9 +36,10 @@ module;
 
 export module dedekind.ontology:order;
 
-import :mereology;
+import dedekind.sets;
 
 namespace dedekind::ontology {
+using namespace dedekind::sets;
 
 export template <typename T, typename L = ClassicalLogic>
 concept IsPreOrdered =
