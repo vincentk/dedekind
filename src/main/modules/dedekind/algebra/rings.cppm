@@ -40,8 +40,8 @@ import dedekind.category;
 import dedekind.order;
 
 namespace dedekind::algebra {
-using ::dedekind::order::IsDense;
-using ::dedekind::order::IsTotallyOrdered;
+using namespace dedekind::category;
+using namespace dedekind::order;
 
 /**
  * @section Algebra: The study of operations and structures.
