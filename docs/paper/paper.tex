@@ -50,7 +50,7 @@
 \newcommand{\bind}{\mathbin{>\!\!>\mkern-6.7mu=}}
 
 % --- Document Metadata ---
-\title{\mathsc{Dedekind}: A C++23 Library for Compile-Time Set Algebra and Exact Real Arithmetic}
+\title{\textsc{Dedekind}: A C++23 Library for Compile-Time Set Algebra and Exact Real Arithmetic}
 \author{Vincent Kr\"autler}
 \date{\today} % Automatically inserts current date
 
@@ -69,7 +69,6 @@ This work illustrates that integrating formal mathematical rigor into systems pr
 \section{Introduction}
 \label{sec:introductio}
 
-\section{Introduction}
 The development of computational science software is often constrained by a persistent ``two-language'' trade-off. High-level environments like \texttt{PyTorch} \cite{paszke2019pytorch} and \texttt{NumPy}  \cite{harris2020numpy} offer expressive symbolic reasoning but rely on opaque C++ backends for execution.
 This dichotomy creates a semantic gap: while the high-level intent is clear, the underlying C++ implementation frequently treats mathematical logic as a runtime implementation detail rather than a first-class type property.
 This paper introduces \texttt{dedekind}, a domain-specific library for C++23 \cite{cpp23standard} that addresses this gap by lifting mathematical invariants—such as mereological relations and algebraic laws—directly into the compilation pipeline.
@@ -135,10 +134,13 @@ Despite these constraints, the contributions of this work include:
 \subsection{Structural Type Theory in C++23}
 
 \subsubsection{Nominal vs. Structural Subtyping}
-Traditional object-oriented systems, such as those implemented in Java or C#, typically rely on \textit{nominal subtyping}. In these systems, a type $T$ is recognized as belonging to a category $C$ only through explicit inheritance declarations (e.g., \texttt{class T : public Monoid}). The \texttt{dedekind} framework rejects this taxonomic approach in favour of a \textbf{Structural Type Theory}. Leveraging C++20/23 Concepts, types are treated as mathematical objects defined entirely by their interface and satisfied invariants. A type $T$ is identified as a \texttt{SmallCategory} if it possesses the required algebraic morphisms ($\otimes, e$); its internal name and declaration lineage are irrelevant to the compiler's logical resolution.
+Traditional object-oriented systems, such as those implemented in Java or C\#, typically rely on \textit{nominal subtyping}. In these systems, a type $T$ is recognized as belonging to a category $C$ only through explicit inheritance declarations (e.g., \texttt{class T : public Monoid}). The \texttt{dedekind} framework rejects this taxonomic approach in favour of a \textbf{Structural Type Theory}. Leveraging C++20/23 Concepts, types are treated as mathematical objects defined entirely by their interface and satisfied invariants. A type $T$ is identified as a \texttt{SmallCategory} if it possesses the required algebraic morphisms ($\otimes, e$); its internal name and declaration lineage are irrelevant to the compiler's logical resolution.
 
 \subsubsection{The Compiler as a Verification and Optimization Engine}
-While functional languages like Haskell or Agda are traditionally viewed as the primary environments for category theory, C++23 offers a high-performance substrate for structural verification. By applying \texttt{static\_assert} against structural concepts, we transform the compilation process into a formal verification phase. Crucially, this provides the \texttt{LLVM} toolchain with the semantic context required for ``structural pruning.'' By hoisting mereological relations into the type signature, the backend can identify logical contradictions as unreachable code paths. This allows the compiler to collapse complex intersections—such as an empty set defined by contradictory predicates—into zero-overhead machine instructions. This ``correctness-by-construction'' methodology ensures that the structural integrity of the mathematical model is verified and optimized before the final binary is generated.
+While functional languages like Haskell are often viewed as the natural home for Category Theory, the foundations for a structuralist approach in C++ have been well-established by Milewski \cite{milewski2019category}, who demonstrated that C++'s type system is capable of modeling complex categorical morphisms. \texttt{dedekind} builds upon this conceptual bridge by utilizing modern C++23 features to move from mere simulation to compile-time verification and optimization.
+By applying \texttt{static\_assert} against structural concepts, we transform the compilation process into a formal verification phase. Crucially, this provides the \texttt{LLVM} toolchain with the semantic context required for ``structural pruning.'' By hoisting mereological relations into the type signature, the backend can identify logical contradictions as unreachable code paths.
+By using \texttt{constexpr} and \texttt{requires}, to identify and potentially prune complex expressions—such as an empty set defined by contradictory predicates—into zero-overhead machine instructions.
+This ``correctness-by-construction'' methodology ensures that the structural integrity of the mathematical model is verified and optimized before the final binary is generated.
 
 \subsubsection{Mapping ETCS to C++ Structural Primitives}
 To ground this theoretical approach, Table 1 maps the fundamental axioms of the Elementary Theory of the Category of Sets (ETCS) to their structural equivalents in \texttt{dedekind}. This mapping ensures that the library is not merely a numerical simulation, but a direct implementation of algebraic laws within the host language's type system.
