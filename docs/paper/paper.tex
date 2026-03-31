@@ -50,7 +50,7 @@
 \newcommand{\bind}{\mathbin{>\!\!>\mkern-6.7mu=}}
 
 % --- Document Metadata ---
-\title{\textsc{dedekind}: An Excursion in Structuralist Mereology in C++23}
+\title{\mathsc{Dedekind}: A C++23 Library for Compile-Time Set Algebra and Exact Real Arithmetic}
 \author{Vincent Kr\"autler}
 \date{\today} % Automatically inserts current date
 
@@ -59,25 +59,39 @@
 \maketitle
 
 \begin{abstract}
-This paper presents \texttt{dedekind}, an experimental C++23 library that reifies mathematical structures as transparent, type-level definitions. Unlike traditional object-oriented approaches, \texttt{dedekind} utilizes modules and concepts to transform the C++ compiler into a constraint satisfaction engine. 
-We specifically demonstrate how this approach enables the formal construction of the continuum $\mathbb{R}$ via the Dedekind cut, allowing for the exact, compile-time resolution of real and transcendental numbers.
-By hoisting these formal invariants, we eliminate abstraction overhead, providing a high-performance alternative to Python’s symbolic systems while offering a level of axiomatic rigor that complements the safety-first philosophy of languages like Rust.
-We illustrate this by providing a unified syntax that allows formal set-builder notation---such as $\{x \in \mathbb{R} \mid \mathbf{P}(x)\}$---to be expressed and resolved directly within the host language's type system, bridging the gap between formal specification and high-performance execution.
+This paper presents \texttt{dedekind}, a C++23 library designed to embed formal mathematical structures directly within the language's type system. We address the performance-productivity gap in computational science—often characterized as the ``two-language problem''—by leveraging modern C++ features, including modules, concepts, and non-type template parameters (NTTP).
+Unlike traditional object-oriented frameworks that rely on nominal inheritance, \texttt{dedekind} employs a structural type theory to reify mathematical entities as compile-time specifications.
+We demonstrate the utility of this approach through a formal construction of the continuum $\mathbb{R}$ via Dedekind cuts, enabling the exact resolution of transcendental numbers without floating-point overhead.
+Furthermore, we show how hoisting logical invariants into type signatures allows the \texttt{LLVM} backend to perform aggressive optimization, such as collapsing contradictory set-builder predicates into zero-instruction machine code.
+This work illustrates that integrating formal mathematical rigor into systems programming can yield zero-overhead abstractions suitable for high-performance symbolic computing.
 \end{abstract}
 
 \section{Introduction}
 \label{sec:introductio}
 
-A powerful abstraction in mathematical logic is set-builder notation:
-the ability to define a collection of objects $\{ x \in \mathbb{R} \mid \mathbf P(x) \}$ based purely on the selection of a universe (in this case $\mathbb{R}$) and their satisfying a predicate $\mathbf P(x)$.
-In traditional systems programming, however, this declarative elegance is lost.
-Developers are usually forced to manually translate these logical intentions into imperative loops, filter functions, and temporary buffers.
-This translation is not only prone to error but also opaque to the compiler, which cannot optimize a "black-box" loop using the formal properties of the set it is iterating over.
+\section{Introduction}
+The development of computational science software is often constrained by a persistent ``two-language'' trade-off. High-level environments like \texttt{PyTorch} \cite{paszke2019pytorch} and \texttt{NumPy}  \cite{harris2020numpy} offer expressive symbolic reasoning but rely on opaque C++ backends for execution.
+This dichotomy creates a semantic gap: while the high-level intent is clear, the underlying C++ implementation frequently treats mathematical logic as a runtime implementation detail rather than a first-class type property.
+This paper introduces \texttt{dedekind}, a domain-specific library for C++23 \cite{cpp23standard} that addresses this gap by lifting mathematical invariants—such as mereological relations and algebraic laws—directly into the compilation pipeline.
+By treating the C++ compiler as a verification engine, we enable a programming model where the structural integrity of a mathematical model is enforced at compile-time, resulting in machine code that mirrors the efficiency of hand-optimized assembly.
 
-In this paper, we propose \texttt{dedekind}, a domain-specific language (DSL) for C++23 \cite{cpp23standard} that embeds set-builder notation directly into the host language syntax. Recently added C++23 features—such as modules, \texttt{concept}, \texttt{consteval}, and non-type template parameters (NTTP)—allow developers to define complex mathematical species using a syntax that mirrors formal logic. Crucially, these are not mere runtime "filter" objects; they are compile-time structural specifications \cite{milewski2018category}.
+A developer intent on integrating high-performance C++ code with \texttt{Python}'s flexible ecosystem often involves a trade-off between manual binding effort and runtime overhead.
+While legacy tools like \texttt{ctypes} provide a standard library solution, they lack native C++ type safety and necessitate verbose C-compatible wrappers.
+Modern alternatives such as \textbf{nanobind} \cite{jakob2022nanobind} and \textbf{cppyy} \cite{lavrijsen2016cppyy} represent the current frontier: \textit{nanobind} leverages C++17 and the Python stable ABI to provide high-performance, compiled bindings with minimal binary bloat, while \textit{cppyy} utilizes Just-In-Time (JIT) compilation to automate the mapping of complex C++ headers directly into the \texttt{Python} interpreter. However, these tools introduce specific integration challenges, including \textit{nanobind}'s requirement for a sophisticated \texttt{CMake} build infrastructure and \textit{cppyy}'s dependency on local compiler toolchains and a heavy \texttt{LLVM} backend, which can complicate cross-platform distribution and environment reproducibility.
+
+In this paper, we hope to push back on this overhead for as long as we can by way of exploring a \emph{direct embedding of mathematical concepts} directly in the C++ language syntax.
+As a result, we propose \texttt{dedekind}, a domain-specific language (DSL) for C++23 \cite{cpp23standard}. 
+We hope to show that recently added C++23 features—such as modules, \texttt{concept}, \texttt{consteval}, and non-type template parameters (NTTP)—allow developers to define complex mathematical species using a syntax that mirrors formal logic.
+Crucially, these are not mere runtime "filter" objects; they are compile-time structural specifications \cite{milewski2018category}.
 Just as a C++ concept defines a set of behaviors without mandating a specific memory layout, Structuralism \cite{shapiro2000thinking} treats mathematical entities as positions in a system of relations.
 
-The aim of the \texttt{dedekind} library is to serve as a high-performance bridge for the computational sciences, specifically aiming to narrow the gap between C++ and the symbolic algebra systems prevalent in the Python ecosystem. While Python allows for the expressive definition of the Continuum, the execution is often decoupled from the hardware's potential. Conversely, while the Rust programming language provides a "safety-first" approach to systems programming, its trait system currently lacks the "white-box" structural transparency required to hoist complex mereological invariants, such as the Dedekind cut, into the heart of the optimization pipeline.
+As a goal, we set ourselves to model powerful abstraction in mathematical logic such as concepts from category theory number theory or set-builder notation.
+In the latter, an often transfinite collection of objects such as $\{ x \in \mathbb{R} \mid \mathbf P(x) \}$ is deinfed purely by the selection of a universe (in this case $\mathbb{R}$) and predicates $\mathbf P(x)$ which must be matched by the elements of that universe.
+In traditional systems programming, this declarative elegance is lost in the management of imperative loops, filter functions and temporary buffers.
+The translation effort in turn is often manual, difficult and error prone.
+We hope to demonstrate that this need not always be the case.
+
+Correspondingly, the aim of the \texttt{dedekind} library is to serve as a high-performance bridge for the computational sciences, specifically aiming to narrow the gap between C++ and the symbolic algebra systems prevalent in the Python ecosystem. While Python allows for the expressive definition of the Continuum, the execution is often decoupled from the hardware's potential. Conversely, while the Rust programming language provides a "safety-first" approach to systems programming, its trait system currently lacks the "white-box" structural transparency required to hoist complex mereological invariants, such as the Dedekind cut, into the heart of the optimization pipeline.
 
 By reifying the Dedekind cut—defining real numbers $\mathbb R$ as partitions of the rationals $\mathbb Q$ —directly within the C++ type system, we enable the exact representation of transcendental numbers like $e$ and $\pi$ at compile-time.
 This methodology allows the C++ compiler to act as a physical guardrail for mathematical truth, ensuring that a "Ring" or a "Field" is not merely a label, but a verified invariant.
@@ -118,28 +132,34 @@ Despite these constraints, the contributions of this work include:
 \item \textbf{Zero-Overhead Semantic Mapping}: We show that these high-level abstractions result in machine code that is identical to hand-optimized assembly, effectively proving that formal rigor does not necessitate a "performance tax."
 \end{itemize}
 
-\subsection{A Structuralist Type Theory: C++ vs. Nominal Systems}
+\subsection{Structural Type Theory in C++23}
 
-\subsubsection{Nominal vs. Structural Ontology}
-In traditional object-oriented paradigms (e.g., Java, C\#), the ontology is \textit{nominal}. A type $T$ belongs to a category $\mathcal{C}$ only if it explicitly declares its lineage via inheritance (e.g., \texttt{class T implements Monoid}). In the \textsf{Dedekind} framework, we reject this biological taxonomy in favour of a \textbf{Structuralist Ontology}. Using C++20 Concepts, we treat types as mathematical objects defined entirely by their available morphisms. A type $T$ \textit{is} a \texttt{SmallCategory} if and only if it possesses the required algebraic structure ($\otimes, e$); its name and declaration are irrelevant.
+\subsubsection{Nominal vs. Structural Subtyping}
+Traditional object-oriented systems, such as those implemented in Java or C#, typically rely on \textit{nominal subtyping}. In these systems, a type $T$ is recognized as belonging to a category $C$ only through explicit inheritance declarations (e.g., \texttt{class T : public Monoid}). The \texttt{dedekind} framework rejects this taxonomic approach in favour of a \textbf{Structural Type Theory}. Leveraging C++20/23 Concepts, types are treated as mathematical objects defined entirely by their interface and satisfied invariants. A type $T$ is identified as a \texttt{SmallCategory} if it possesses the required algebraic morphisms ($\otimes, e$); its internal name and declaration lineage are irrelevant to the compiler's logical resolution.
 
-\subsubsection{The Idiosyncratic Fit: C++ as a Formal Verifier}
-While functional languages like Haskell are often viewed as the natural home for Category Theory, C++ offers an \textit{idiosyncratic} but rigorous fit for structuralism. By utilizing \texttt{static\_assert} against structural concepts, we transform the compiler into a formal proof assistant. This allows for a "proven by construction" methodology where the structural integrity of the mathematical topos is verified before a single byte of machine code is emitted.
+\subsubsection{The Compiler as a Verification and Optimization Engine}
+While functional languages like Haskell or Agda are traditionally viewed as the primary environments for category theory, C++23 offers a high-performance substrate for structural verification. By applying \texttt{static\_assert} against structural concepts, we transform the compilation process into a formal verification phase. Crucially, this provides the \texttt{LLVM} toolchain with the semantic context required for ``structural pruning.'' By hoisting mereological relations into the type signature, the backend can identify logical contradictions as unreachable code paths. This allows the compiler to collapse complex intersections—such as an empty set defined by contradictory predicates—into zero-overhead machine instructions. This ``correctness-by-construction'' methodology ensures that the structural integrity of the mathematical model is verified and optimized before the final binary is generated.
 
 \subsubsection{Mapping ETCS to C++ Structural Primitives}
-The following table maps the fundamental axioms of the \textit{Elementary Theory of the Category of Sets} (ETCS) to their structural implementations within the \textsf{Dedekind} library:
+To ground this theoretical approach, Table 1 maps the fundamental axioms of the Elementary Theory of the Category of Sets (ETCS) to their structural equivalents in \texttt{dedekind}. This mapping ensures that the library is not merely a numerical simulation, but a direct implementation of algebraic laws within the host language's type system.
 
-\begin{table}[h]
+\begin{table}[ht]
 \centering
-\caption{ETCS Axioms and C++ Structural Equivalents}
-\label{tab:etcs_mapping}
-\begin{tabular}{@{}lll@{}}
-\toprule
-\textbf{ETCS Axiom} & \textbf{C++ Language Feature} & \textbf{\textsf{Dedekind} Concept} \\ \midrule
-Composition         & \texttt{std::invoke} / \texttt{operator>>} & \texttt{IsSemigroupoid<T, Op>}     \\
-Identity            & \texttt{identity\_trait<T, Op>}            & \texttt{IsSmallCategory<T, Op>}    \\
-Functionality       & \texttt{std::is\_invocable\_v<F, A>}       & \texttt{IsArrow<F, A, B>}          \\
-Terminal Object     & \texttt{s(x) -> Logic::top}                & \texttt{IsTerminalObject<T>}       \\ \bottomrule
+\caption{Complete Mapping of ETCS Axioms to C++23 Structural Invariants}
+\label{table:etcs_complete}
+\begin{tabular}{lll}
+\hline
+\textbf{ETCS Axiom} & \textbf{C++ Language Feature} & \textbf{Structural Invariant} \\ \hline
+1. Composition & \texttt{std::invoke} / \texttt{operator>>} & \texttt{IsSemigroupoid<T, Op>} \\
+2. Identity & \texttt{identity\_trait<T, Op>} & \texttt{IsSmallCategory<T, Op>} \\
+3. Terminal Object & \texttt{s(x) -> Logic::top} & \texttt{IsTerminalObject<T>} \\
+4. Well-Pointedness & \texttt{operator()} (Element access) & \texttt{IsWellPointed} \\
+5. Cartesian Product & \texttt{std::tuple} / \texttt{std::pair} & \texttt{HasProduct<A, B>} \\
+6. Exponentiation & Lambda NTTP / \texttt{std::function} & \texttt{IsInternalHom<A, B>} \\
+7. Equalizers & \texttt{dedekind::set<T, P>} & \texttt{IsEqualizer<f, g>} \\
+8. Empty Set & \texttt{dedekind::EmptySet} & \texttt{IsInitialObject<T>} \\
+9. Infinity (NNO) & \texttt{dedekind::Naturals} & \texttt{HasNaturalNumbersObject} \\
+10. Axiom of Choice & Lattice Dispatcher & \texttt{AxiomOfChoice} \\ \hline
 \end{tabular}
 \end{table}
 
