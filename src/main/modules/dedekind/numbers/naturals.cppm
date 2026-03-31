@@ -34,14 +34,17 @@ module;
 #include <concepts>
 #include <functional>
 
-export module dedekind.ontology:numbers;
+export module dedekind.numbers:naturals;
 
-import :mereology;     // For IsSet
-import :order;         // For IsArchimedean, IsDedekindComplete
-import :algebra;       // For IsCommutativeMonoid, IsField, IsRing
-import :morphologies;  // For IsOrderedField, IsEuclidean, IsCyclic
+import dedekind.category;
+import dedekind.ontology;
+import dedekind.sets;
+import :scalars;
 
-namespace dedekind::ontology {
+namespace dedekind::numbers {
+using namespace dedekind::category;
+using namespace dedekind::ontology;
+using namespace dedekind::sets;
 
 /**
  * @concept IsNumbers

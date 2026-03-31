@@ -14,3 +14,4 @@
 export module dedekind.numbers;
 
 export import :naturals;
+export import :scalars;

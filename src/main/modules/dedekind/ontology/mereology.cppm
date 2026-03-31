@@ -296,7 +296,7 @@ struct ℵ {
 };
 
 export using ℵ_0 = ℵ<0>;  // Countable Infinity
-using ℶ_1 = ℵ<1>;         // The Continuum (assuming GCH)
+export using ℶ_1 = ℵ<1>;         // The Continuum (assuming GCH)
 
 /** @section The_Body: The Logic of Presence */
 
