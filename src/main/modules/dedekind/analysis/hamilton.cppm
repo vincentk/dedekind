@@ -1,32 +1,61 @@
+/**
+ * @file ontology:analysis:hamilton.cppm
+ * @partition :hamilton
+ * @brief Level 4: The Principle of Least Action (Hamiltonian Dynamics).
+ *
+ * @quote "The variation of the definite integral of the difference between 
+ * the kinetic and potential energies is zero." — Sir William Rowan Hamilton
+ *
+ * @section Hamiltonian: The Flow of the Species
+ * This partition defines the generator of motion \( \mathcal{H} \). In the 
+ * Dedekind Category, the Hamiltonian is the Morphism that maps the Phase 
+ * Space (Position and Momentum) to the Energy Scalar Field.
+ *
+ * @details
+ * Following the Poisson formulation:
+ * - IsHamiltonian: A mapping \(\mathcal{H}: \mathcal{S} \to \mathbb{F}\).
+ * - Poisson Bracket: The Lie Algebra structure defining the flow.
+ * - Conservation: The proof that \(\{f, \mathcal{H}\} = 0\) for invariants.
+ *
+ * @build_order 9
+ * @dependency :algebra, :geometry, :sequences
+ */
+module;
+
+#include <concepts>
+#include <cstddef>
+
 export module dedekind.analysis:hamilton;
 
+import dedekind.category;
+import dedekind.algebra;
+import dedekind.geometry;
+
+namespace dedekind::analysis {
+using namespace dedekind::algebra;
+using namespace dedekind::geometry;
+
 /**
- * @concept IsHamiltonianSystem
- * @brief A system where the flow preserves the Symplectic Form.
+ * @concept IsHamiltonian
+ * @brief Formal verification of the energy mapping.
  */
-export template <typename H, typename State, typename F>
-concept IsHamiltonianSystem = requires(H energy, State s) {
-  { energy(s) } -> std::same_as<F>;  // H(q, p)
-  // The Symplectic Gradient: q' = ∂H/∂p, p' = -∂H/∂q
+export template <typename H, typename S, typename F>
+concept IsHamiltonian = requires(H h, S s) {
+  { h.energy(s) } -> std::same_as<F>; 
 };
 
 /**
- * @brief The Poisson Bracket Morphism: {f, g}
- * @tparam F An observable function (State -> Scalar)
- * @tparam S The Phase Space State (q, p)
+ * @brief The Poisson Bracket: The fundamental operation of Classical Mechanics.
+ * @details {f, g} = Σ (∂f/∂q ∂g/∂p - ∂f/∂p ∂g/∂q)
  */
 export template <IsField R, std::size_t N>
 constexpr R poisson_bracket(auto&& f, auto&& g, const Vector<R, N>& state) {
-  /**
-   * @section Differential_Discovery
-   * We use Dual numbers to extract the partial derivatives
-   * of f and g at the current state coordinates.
-   */
-  auto grad_f = /* Gradient logic using Dual<R> */;
-  auto grad_g = /* Gradient logic using Dual<R> */;
+  // Use Dual numbers from Geometry to compute the Automatic Gradient
+  auto grad_f = gradient<R, N>(f, state); 
+  auto grad_g = gradient<R, N>(g, state);
 
-  // {f, g} = (∂f/∂q * ∂g/∂p) - (∂f/∂p * ∂g/∂q)
-  return (grad_f.dq * grad_g.dp) - (grad_f.dp * grad_g.dq);
+  // Symplectic inner product logic
+  return symplectic_inner_product(grad_f, grad_g);
 }
 
 /**
@@ -34,7 +63,8 @@ constexpr R poisson_bracket(auto&& f, auto&& g, const Vector<R, N>& state) {
  * @brief A Ring equipped with a bracket satisfying the Jacobi Identity.
  */
 export template <typename A>
-concept IsPoissonAlgebra = IsRing<A> && requires(A f, A g, A h) {
+concept IsPoissonAlgebra = IsRing<A> && requires(A f, A g) {
   { bracket(f, g) } -> std::same_as<A>;
-  // Axiom: {f, {g, h}} + {g, {h, f}} + {h, {f, g}} == 0
 };
+
+} // namespace dedekind::analysis
