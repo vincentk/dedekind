@@ -8,6 +8,7 @@ export module dedekind.sets:expressions;
 
 import dedekind.category;
 import :boundaries;  // For Ω, Ø
+import :mereology;   // For NaturalLogic
 
 namespace dedekind::sets {
 using namespace dedekind::category;
@@ -91,13 +92,12 @@ class Set {
 
 export template <typename B, typename P>
 Set(Comprehension<B, P>)
-    -> Set<typename B::element_type,
-           typename dedekind::ontology::NaturalLogic<B>::type>;
+    -> Set<typename B::element_type, typename NaturalLogic<B>::type>;
 
 /** @section Identity_CTAD */
 template <typename Species>
 Set(Species) -> Set<typename Species::element_type,
-                    typename dedekind::ontology::NaturalLogic<Species>::type>;
+                    typename NaturalLogic<Species>::type>;
 
 /** @section Relational_Lifting (Level 1) */
 

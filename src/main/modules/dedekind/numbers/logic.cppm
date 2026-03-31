@@ -17,9 +17,8 @@ namespace dedekind::sets {
  * Rationals.
  * @tparam Q An Ordered Field (typically the Rational species).
  */
-template <ontology::IsOrderedField Q>
-  requires ontology::IsDense<Q> &&
-           std::same_as<typename Q::cardinality_type, ontology::ℵ_0>
+template <IsOrderedField Q>
+  requires IsDense<Q> && std::same_as<typename Q::cardinality_type, ℵ_0>
 struct DedekindCut {
   using Predicate = std::function<bool(Q)>;
 

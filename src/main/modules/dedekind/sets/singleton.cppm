@@ -41,6 +41,8 @@ export module dedekind.sets:singleton;
 
 import dedekind.category;
 
+import :mereology;
+
 /**
  * @section Mereology: The study of parts and wholes.
  * @section Mereology: The Hierarchy of Order.

@@ -14,5 +14,7 @@
 export module dedekind.numbers;
 
 export import :booleans;
+// FIXME: temporary naming.
+export import :logic;
 export import :naturals;
 export import :scalars;
