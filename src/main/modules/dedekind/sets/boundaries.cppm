@@ -42,6 +42,8 @@ export module dedekind.sets:boundaries;
 
 import dedekind.category;
 
+import :mereology;
+
 using namespace dedekind::category;
 
 /**
