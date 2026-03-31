@@ -9,19 +9,20 @@
  * @dependency :algebra, :topology, :cardinalities
  *
  * @section Numbers: The Registry of Numeric Types
- * This partition defines the @b Scalar—the fundamental unit of the ontology. 
- * It maps concrete C++ types to their formal algebraic and topological identities.
+ * This partition defines the @b Scalar—the fundamental unit of the ontology.
+ * It maps concrete C++ types to their formal algebraic and topological
+ * identities.
  *
  * @details
- * A Scalar is the "Lowest Common Denominator" of our number systems. By 
- * grounding the definition in a @b Semiring (or "Rig"), we create a unified 
+ * A Scalar is the "Lowest Common Denominator" of our number systems. By
+ * grounding the definition in a @b Semiring (or "Rig"), we create a unified
  * interface that encompasses:
  * - @b Booleans : The Binary Semiring ({0, 1}, ∨, ∧).
  * - @b Naturals : The Discrete Monoid (ℕ, +, ×).
  * - @b Reals    : The Continuous Field (ℝ, +, ×).
  *
- * This structure guarantees an additive identity (Zero) and a multiplicative 
- * identity (One), providing the necessary anchors for all coordinate-based 
+ * This structure guarantees an additive identity (Zero) and a multiplicative
+ * identity (One), providing the necessary anchors for all coordinate-based
  * calculations without requiring additive inverses (negatives).
  *
  * @anchors C++ Fundamental Types: bool, char, int, long, float, double.
@@ -57,4 +58,4 @@ concept IsScalar = IsSemiring<M> && IsCardinality<C> && requires {
   requires std::same_as<typename M::cardinality_type, C>;
 };
 
-};
+};  // namespace dedekind::numbers

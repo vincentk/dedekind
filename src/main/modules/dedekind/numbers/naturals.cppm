@@ -262,4 +262,4 @@ concept Algebra_ℂ =
       requires !IsOrderedField<M>;
     };
 
-};  // namespace dedekind::ontology
+};  // namespace dedekind::numbers

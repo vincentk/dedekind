@@ -61,8 +61,7 @@ concept IsMagma = requires(T a, T b) {
  * @brief An associative Magma (No identity required).
  */
 export template <typename T, typename Op>
-concept IsSemigroup =
-    IsMagma<T, Op> && && IsAssociative<T, Op>;
+concept IsSemigroup = IsMagma<T, Op> && &&IsAssociative<T, Op>;
 
 /**
  * @concept IsMonoid
@@ -77,47 +76,47 @@ concept IsMonoid = IsSemigroup<T, Op> && HasIdentity<T, Op>;
  * @brief A Monoid where order of operations does not change the result.
  */
 export template <typename T, typename Op>
-concept IsCommutativeMonoid =
-    IsMonoid<T, Op> && IsCommutativeMonoid<T, Op>;
+concept IsCommutativeMonoid = IsMonoid<T, Op> && IsCommutativeMonoid<T, Op>;
 
 /**
  * @concept IsSemiring
  * @brief The Unification of Algebra and Action.
- * 
+ *
  * @details
- * Formally, a Semiring (or "Rig") is a set $R$ equipped with two binary operations 
- * ($+$ and $\times$) such that $(R, +)$ is a commutative monoid and $(R, \times)$ 
- * is a monoid. 
+ * Formally, a Semiring (or "Rig") is a set $R$ equipped with two binary
+ * operations
+ * ($+$ and $\times$) such that $(R, +)$ is a commutative monoid and $(R,
+ * \times)$ is a monoid.
  *
  * @section The "Day 1" Identity: Scalar as Operator
- * From a category-theoretic perspective, this definition is equivalent to saying 
- * that a Semiring is a @b Semimodule @b over @b itself. 
- * 
+ * From a category-theoretic perspective, this definition is equivalent to
+ * saying that a Semiring is a @b Semimodule @b over @b itself.
+ *
  * By grounding the Scalar in this identity:
- * - The multiplicative identity ($1$) acts as the @b basis @b vector for the 
+ * - The multiplicative identity ($1$) acts as the @b basis @b vector for the
  *   1D space.
- * - Multiplication ($s \times v$) is interpreted as a @b scalar @b action (scaling).
+ * - Multiplication ($s \times v$) is interpreted as a @b scalar @b action
+ * (scaling).
  * - Addition ($v_1 + v_2$) is the @b vector @b accumulation within that space.
  *
- * This allows the ontology to treat logical 'AND' as a linear action on the 
- * Boolean semimodule, and real multiplication as a linear action on the 
+ * This allows the ontology to treat logical 'AND' as a linear action on the
+ * Boolean semimodule, and real multiplication as a linear action on the
  * 1D Euclidean vector space, using a single unified interface.
  *
  * @tparam T The type satisfying the Semiring axioms.
- * 
- * @note This definition enforces both Left and Right Distributivity to ensure 
- * compatibility with non-commutative structures (e.g., Square Matrices over T), 
+ *
+ * @note This definition enforces both Left and Right Distributivity to ensure
+ * compatibility with non-commutative structures (e.g., Square Matrices over T),
  * which are themselves Semirings.
  */
 export template <typename T>
-concept IsSemiring = 
-    IsCommutativeMonoid<T, std::plus<T>> && 
-    IsMonoid<T, std::multiplies<T>> &&
-    IsSemimodule<T, T> && // The "Day 1" elegance: T acts on T.
+concept IsSemiring =
+    IsCommutativeMonoid<T, std::plus<T>> && IsMonoid<T, std::multiplies<T>> &&
+    IsSemimodule<T, T> &&  // The "Day 1" elegance: T acts on T.
     requires(T a, T b, T c) {
-        // Distributivity of Multiplication over Addition
-        { a * (b + c) } -> std::same_as<T>; // Left-distributive
-        { (a + b) * c } -> std::same_as<T>; // Right-distributive
+      // Distributivity of Multiplication over Addition
+      { a * (b + c) } -> std::same_as<T>;  // Left-distributive
+      { (a + b) * c } -> std::same_as<T>;  // Right-distributive
     };
 
 /**
@@ -136,7 +135,8 @@ concept IsGroup = IsMonoid<T, Op> && IsInvertible<T, Op>;
  * Wikipedia: Abelian group
  */
 export template <typename T, typename Op = std::plus<T>>
-concept IsAbelianGroup =  IsModule<T, T> && IsGroup<T, Op> && IsCommutativeMonoid<T, Op>;
+concept IsAbelianGroup =
+    IsModule<T, T> && IsGroup<T, Op> && IsCommutativeMonoid<T, Op>;
 
 /**
  * @concept IsOrderedAbelianGroup
@@ -220,16 +220,14 @@ concept IsAlgebraicallyClosed = IsField<M>;  // Refined by its use in Algebra_â„
 /**
  * @concept IsVectorSpace
  * @brief A Module where the scalar provider is a Field.
- * @details This is the "Gold Standard" for geometry and physics. 
- * While a Module represents a Lattice, a Vector Space represents 
+ * @details This is the "Gold Standard" for geometry and physics.
+ * While a Module represents a Lattice, a Vector Space represents
  * a "Flat" space where division by scalars (scaling down) is always possible.
- * 
+ *
  * Wikipedia: Vector space
  */
 export template <typename V, typename F>
-concept IsVectorSpace = 
-    IsModule<V, F> && 
-    IsField<F>;
+concept IsVectorSpace = IsModule<V, F> && IsField<F>;
 
 /**
  * @concept IsBounded
