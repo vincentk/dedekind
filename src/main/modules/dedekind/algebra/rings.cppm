@@ -75,7 +75,7 @@ concept IsMonoid = IsSemigroup<T, Op> && HasIdentity<T, Op>;
  * @brief A Monoid where order of operations does not change the result.
  */
 export template <typename T, typename Op>
-concept IsCommutativeMonoid = IsMonoid<T, Op> && IsCommutativeMonoid<T, Op>;
+concept IsCommutativeMonoid = IsMonoid<T, Op> && IsCommutative<T, Op>;
 
 /**
  * @concept IsSemiring
