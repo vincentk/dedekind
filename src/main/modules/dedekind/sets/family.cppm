@@ -43,13 +43,11 @@ module;
 export module dedekind.sets:family;
 
 import dedekind.category;
-import dedekind.ontology;
 
 import :boundaries;
 import :singleton;
 
 using namespace dedekind::category;
-using namespace dedekind::ontology;
 
 /**
  * @section Mereology: The study of parts and wholes.

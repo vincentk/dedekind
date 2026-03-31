@@ -39,7 +39,7 @@ module;
 
 export module dedekind.sets:singleton;
 
-import dedekind.ontology;
+import dedekind.category;
 
 /**
  * @section Mereology: The study of parts and wholes.
@@ -48,7 +48,6 @@ import dedekind.ontology;
 namespace dedekind::sets {
 
 using namespace dedekind::category;
-using namespace dedekind::ontology;
 
 /** @brief {x}: The Atom. Extensional (Size 1). */
 export template <typename T, typename L = ClassicalLogic>

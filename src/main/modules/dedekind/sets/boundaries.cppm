@@ -41,10 +41,8 @@ module;
 export module dedekind.sets:boundaries;
 
 import dedekind.category;
-import dedekind.ontology;
 
 using namespace dedekind::category;
-using namespace dedekind::ontology;
 
 /**
  * @section Mereology: The study of parts and wholes.

@@ -8,11 +8,9 @@ module;
 
 export module dedekind.sets:logic;
 
-import dedekind.ontology;
+import :mereology;
 
 namespace dedekind::sets {
-
-using namespace dedekind::ontology;
 
 /**
  * @brief The Dedekind Cut: Representing a Real number as a partition of

@@ -6,11 +6,10 @@ module;
 
 export module dedekind.sets:expressions;
 
-import dedekind.ontology;
+import dedekind.category;
 import :boundaries;  // For Ω, Ø
 
 namespace dedekind::sets {
-using namespace dedekind::ontology;
 using namespace dedekind::category;
 
 export template <typename Base, typename Predicate>
