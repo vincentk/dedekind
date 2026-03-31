@@ -1,40 +1,46 @@
 /**
  * @file category.cppm
- * @brief The Categorical Engine: From Subobject Classifiers to ETCS.
+ * @brief Categorical Foundations for C++23.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
+ * 
+ * @section Implementation_Philosophy
+ * This module implements a structuralist approach to set theory based on the 
+ * Elementary Theory of the Category of Sets (ETCS). We use C++23 modules and 
+ * concepts to treat mathematical objects as positions within a system of 
+ * relations (morphisms) rather than traditional object-oriented hierarchies. 
  *
- * @section The_Dedekind_Universe
- * This module implements the internal language of the Dedekind ontology.
- * By adopting the Elementary Theory of the Category of Sets (ETCS), we
- * move away from "element-oriented" programming. Instead, mathematical
- * objects are treated as positions within a structure, defined entirely
- * by their morphisms (arrows).
+ * By lifting these structural invariants into the type system, we aim to bridge 
+ * the performance gap between high-level symbolic reasoning and low-level 
+ * machine execution, allowing the compiler to optimize code based on 
+ * mathematical laws (e.g., algebraic pruning of contradictory predicates).
  *
- * @section Structural_Levels
- * The ontology is organized into layers of increasing abstraction:
+ * @section Module_Hierarchy
+ * To manage compile-time overhead ("template tax"), the implementation is 
+ * stratified into a Directed Acyclic Graph (DAG) of module partitions:
  *
- * - **Level -1: The Internal Language** (\ref logic, \ref species)
- *   Foundational machine primitives reified as categorical objects,
- *   governed by the Subobject Classifier (Ω).
+ * - **Level -1: Base Primitives** (\ref logic, \ref species)
+ *   Foundational types including the subobject classifier (Ω) and 
+ *   machine-level representations of mathematical species.
  *
- * - **Level 0a: The Mapping Engine** (\ref morphisms, \ref functorial, \ref
- * kleisli) The "Highway System" for data flow. This layer defines how species
- *   transform while preserving algebraic invariants via Functors and
- *   Kleisli triples.
+ * - **Level 0a: Functorial Mappings** (\ref morphisms, \ref functorial, \ref kleisli)
+ *   The "Highway System" for data flow. Implements the mechanics of 
+ *   morphism transformation via Functors and Kleisli triples.
  *
- * - **Level 0b: Higher Structures** (\ref cartesian, \ref posetal)
- *   Cartesian Closed Categories (CCC) providing the logic for Products,
- *   Exponentials (Function Spaces), and Order-theoretic reductions.
+ * - **Level 0b: Higher Category Theory** (\ref cartesian, \ref posetal)
+ *   Cartesian Closed Categories (CCC) providing the logic for products, 
+ *   exponentials (function spaces), and order-theoretic relations.
  *
- * - **Level 0c: Axiomatic Foundations** (\ref etcs)
- *   The formalization of set-theoretic behavior using categorical axioms
- *   rather than ZFC membership.
- *
+ * - **Level 0c: Set-Theoretic Axioms** (\ref etcs)
+ *   A formal registry mapping ETCS axioms to C++ language features, 
+ *   enabling compile-time verification of algebraic laws.
+ * 
  * @see Wikipedia: [ETCS](https://en.wikipedia.org),
  *      [Cartesian Closed Category](https://en.wikipedia.org),
  *      [Topos Theory](https://en.wikipedia.org)
+ * @see Lawvere, F.W. (1964) "An Elementary Theory of the Category of Sets"
+ * @see McLarty, C. (1993) "Numbers can be just what they have to"
  */
 
 export module dedekind.category;
