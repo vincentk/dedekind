@@ -26,16 +26,25 @@ module;
 export module dedekind.sequences:sequences;
 
 import dedekind.sets;
+import dedekind.order;
 
 namespace dedekind::sequences {
 using namespace dedekind::sets;
+using namespace dedekind::order;
+
+/** @concept IsNet: A Morphism whose Domain is a Directed Set. */
+export template <typename N>
+concept IsNet = requires {
+  typename N::Domain;
+  requires dedekind::order::IsDirectedSet<typename N::Domain>;
+};
 
 /**
  * @concept IsSequence
  * @brief The fundamental mapping from a Domain Set to a Value Type.
  */
 export template <typename Seq>
-concept IsSequence = requires {
+concept IsSequence = IsNet<Seq> && requires {
   typename Seq::value_type;
   typename Seq::Domain;
 } && requires(Seq s) {
