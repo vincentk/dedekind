@@ -36,10 +36,12 @@ module;
 
 export module dedekind.order:poset;
 
+import dedekind.category;
 import dedekind.sets;
 
 namespace dedekind::order {
 using namespace dedekind::sets;
+using namespace dedekind::category;
 
 export template <typename T, typename L = ClassicalLogic>
 concept IsPreOrdered =

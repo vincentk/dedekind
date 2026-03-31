@@ -34,15 +34,14 @@ module;
 #include <concepts>    // for std::integral, std::floating_point
 #include <functional>  // for std::plus, std::multiplies
 
-export module dedekind.ontology:algebra;
+export module dedekind.algebra:rings;
 
 import dedekind.category;
-import :order;  // Level 1.5: Necessary for Ordered Groups/Fields
-                // (IsTotallyOrdered)
+import dedekind.order;
 
-namespace dedekind::ontology {
-using ::dedekind::ontology::IsDense;
-using ::dedekind::ontology::IsTotallyOrdered;
+namespace dedekind::algebra {
+using ::dedekind::order::IsDense;
+using ::dedekind::order::IsTotallyOrdered;
 
 /**
  * @section Algebra: The study of operations and structures.
@@ -301,4 +300,4 @@ constexpr T operator|(T a, T b) {
   return std::logical_or<T>{}(a, b);
 }
 
-}  // namespace dedekind::ontology
+}  // namespace dedekind::algebra

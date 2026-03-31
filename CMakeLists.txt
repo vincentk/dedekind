@@ -126,7 +126,8 @@ add_dedekind_layer(category "")
 add_dedekind_layer(sets dedekind_category)
 add_dedekind_layer(order dedekind_sets)
 add_dedekind_layer(algebra dedekind_order)
-add_dedekind_layer(numbers dedekind_order)
+add_dedekind_layer(morphologies dedekind_algebra)
+add_dedekind_layer(numbers dedekind_morphologies)
 
 
 # --- 3. THE FINAL ASSEMBLY (The Public Interface) ---

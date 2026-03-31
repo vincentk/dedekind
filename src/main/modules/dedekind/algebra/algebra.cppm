@@ -11,8 +11,6 @@
  *      [Topos Theory](https://en.wikipedia.org)
  */
 
-export module dedekind.numbers;
+export module dedekind.algebra;
 
-export import :booleans;
-export import :naturals;
-export import :scalars;
+export import :rings;

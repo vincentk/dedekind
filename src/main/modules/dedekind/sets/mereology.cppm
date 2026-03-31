@@ -248,7 +248,7 @@ concept IsSystem = IsBoundedLattice<S> && requires {
  *
  * @tparam S A set species.
  */
-template <typename S>
+export template <typename S>
 concept HasExtrema = requires(S s) {
   /** @brief Computes the least upper bound of a bounded subset. */
   { s.supremum() };
