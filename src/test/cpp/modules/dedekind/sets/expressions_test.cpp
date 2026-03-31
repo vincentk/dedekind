@@ -2,10 +2,8 @@
 
 // Import our Dedekind modules
 import dedekind.sets;
-import dedekind.ontology;
 
 using namespace dedekind::category;
-using namespace dedekind::ontology;
 using namespace dedekind::sets;
 
 TEST_CASE("Dedekind MVP: Basic Membership and Symbols", "[sets]") {

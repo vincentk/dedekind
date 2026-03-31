@@ -28,12 +28,14 @@ module;
 #include <concepts>
 #include <functional>
 
-export module dedekind.ontology:morphologies;
+export module dedekind.morphologies:archimedean;
 
-import :algebra;  // The Abstract Laws (Groups, Rings)
-import :order;    // The Rules of Relation (IsTotallyOrdered, IsDense)
+import dedekind.algebra; // The Abstract Laws (Groups, Rings)
+import dedekind.order;   // The Rules of Relation (IsTotallyOrdered, IsDense)
 
-namespace dedekind::ontology {
+namespace dedekind::morphologies {
+using namespace dedekind::algebra;
+using namespace dedekind::order;
 
 /**
  * @concept IsCyclic
@@ -108,4 +110,4 @@ concept IsMinkowskiSummable =
       { a + b } -> std::same_as<S>;
     };
 
-}  // namespace dedekind::ontology
+}  // namespace dedekind::morphologies

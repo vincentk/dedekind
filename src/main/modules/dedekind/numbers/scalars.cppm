@@ -36,13 +36,13 @@ module;
 
 export module dedekind.numbers:scalars;
 
+import dedekind.algebra; // The Pure Laws (Groups, Rings, and Fields)
 import dedekind.category;
-import dedekind.ontology;
 import dedekind.sets;
 
 namespace dedekind::numbers {
+using namespace dedekind::algebra;
 using namespace dedekind::category;
-using namespace dedekind::ontology;
 using namespace dedekind::sets;
 
 /**

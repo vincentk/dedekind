@@ -1,9 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 import dedekind.category;
-import dedekind.ontology;
 
 using namespace dedekind::category;
-using namespace dedekind::ontology;
 
 /** @section Morphic_Mimes: Pure Structuralist Mocking */
 struct MockSpecies {

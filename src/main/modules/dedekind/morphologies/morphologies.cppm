@@ -1,3 +1,3 @@
-export module dedekind.order;
+export module dedekind.morphologies;
 
 export import :archimedean;

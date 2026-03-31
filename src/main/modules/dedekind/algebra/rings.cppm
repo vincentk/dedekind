@@ -60,7 +60,7 @@ concept IsMagma = requires(T a, T b) {
  * @brief An associative Magma (No identity required).
  */
 export template <typename T, typename Op>
-concept IsSemigroup = IsMagma<T, Op> && &&IsAssociative<T, Op>;
+concept IsSemigroup = IsMagma<T, Op> && IsAssociative<T, Op>;
 
 /**
  * @concept IsMonoid
