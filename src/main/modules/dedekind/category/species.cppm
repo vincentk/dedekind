@@ -147,6 +147,15 @@ struct is_commutative<T, Op>
 export template <typename T, typename Op>
 inline constexpr bool is_commutative_v = is_commutative<T, Op>::value;
 
+/** @section The_Bitwise_Commutativity_Axiom */
+template <typename T>
+  requires std::is_integral_v<T>
+struct is_commutative<T, std::bit_or<T>> : std::true_type {};
+
+template <typename T>
+  requires std::is_integral_v<T>
+struct is_commutative<T, std::bit_and<T>> : std::true_type {};
+
 /**
  * @concept IsCommutative
  * @brief Formal verification that a ∘ b = b ∘ a.
