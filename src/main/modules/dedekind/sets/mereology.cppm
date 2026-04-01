@@ -169,8 +169,21 @@ concept IsMereologicalLattice =
       { (a & (a | b)) == a } -> std::convertible_to<typename L::type>;
     };
 
+/** @brief Primary trait: Is a species defined by its members? */
+export template <typename T>
+struct is_extensional : std::false_type {};
+
+// Atomic Proof: Integrals are always extensional.
+template <std::integral T>
+struct is_extensional<T> : std::true_type {};
+
+/** @concept IsExtensional (The Proof) */
+export template <typename S>
+concept IsExtensional =
+    is_extensional<S>::value || requires { typename S::is_extensional_tag; };
+
 /**
- * @concept IsExtensional
+ * @concept IsExtensionalLattice
  * @brief The Axiom of Identity: Wholes are identical iff they have the same
  * parts.
  *
@@ -181,11 +194,12 @@ concept IsMereologicalLattice =
  * Theorem: (a == b) <=> (a <= b && b <= a)
  */
 export template <typename S, typename L = ClassicalLogic>
-concept IsExtensional = IsMereologicalLattice<S, L> && requires(S a, S b) {
-  { (a == b) } -> std::convertible_to<typename L::type>;
-  // The Proof: Equality is equivalent to Mutual Parthood.
-  requires requires { (a <= b && b <= a) == (a == b); };
-};
+concept IsExtensionalLattice =
+    IsMereologicalLattice<S, L> && IsExtensional<S> && requires(S a, S b) {
+      { (a == b) } -> std::convertible_to<typename L::type>;
+      // The Proof: Equality is equivalent to Mutual Parthood.
+      requires requires { (a <= b && b <= a) == (a == b); };
+    };
 
 /**
  * @concept IsAtom
@@ -372,23 +386,24 @@ concept IsSymbolic = IsSet<S, L> && !IsEnumerated<S, L>;
  * Wikipedia: Pointed set
  */
 export template <typename S, typename T>
-concept IsPointedSet = IsSet<S> && requires(const S s) {
-  /** @brief The Morphism: Retrieve the designated basepoint. */
-  { s.origin() } -> std::same_as<typename S::element_type>;
-};
+concept IsPointedSet = IsSet<S> && IsPointed<T>;
 
-// Inside namespace dedekind::ontology
+/**
+ * @section Structural_Inference: NaturalLogic
+ * @brief Deduce the governing logic species from the nature of the Base.
+ *
+ * Theorem:
+ * If a Species is Finite AND Extensional, it is a Classical Topos (Binary).
+ * If a Species is Transfinite OR Non-Extensional, it is a Kleene Topos
+ * (Ternary).
+ */
 export template <typename Base>
 struct NaturalLogic {
-  // Check for Transfiniteness via cardinality_type
-  static constexpr bool is_transfinite = requires {
-    typename Base::cardinality_type;
-    requires !std::is_same_v<typename Base::cardinality_type, Finite>;
-  };
+  static constexpr bool is_infinite = IsTransfinite<Base>;
+  static constexpr bool is_extensional_v = IsExtensional<Base>;  // Now safe!
 
-  // Heuristic: Extensional & Finite -> Classical. Else -> Ternary.
-  using type = std::conditional_t<IsExtensional<Base> && !is_transfinite,
-                                  ClassicalLogic, TernaryLogic>;
+  using species = std::conditional_t<is_extensional_v && !is_infinite,
+                                     ClassicalLogic, TernaryLogic>;
 };
 
 };  // namespace dedekind::sets

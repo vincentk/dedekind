@@ -315,17 +315,16 @@ inline constexpr bool is_associative_v<T, std::bit_and<T>> = true;
 template <std::integral T>
 inline constexpr bool is_commutative_v<T, std::bit_and<T>> = true;
 
-
 /**
  * @brief Proof: Integral types satisfy the Total Order axioms.
  * @details [Architectural Decision 2026-04-01]:
  * We specifically whitelist std::integral types here because they satisfy
- * Reflexivity (x <= x) and Antisymmetry (a <= b && b <= a => a == b) 
- * without exception. 
+ * Reflexivity (x <= x) and Antisymmetry (a <= b && b <= a => a == b)
+ * without exception.
  *
- * @note [Future Work]: Floating-point types (double/float) are currently 
- * excluded from this blanket proof due to IEEE 754 'NaN' violating 
- * Reflexivity. To support them, we will require a 'Safe' wrapper or a 
+ * @note [Future Work]: Floating-point types (double/float) are currently
+ * excluded from this blanket proof due to IEEE 754 'NaN' violating
+ * Reflexivity. To support them, we will require a 'Safe' wrapper or a
  * NaN-aware comparison morphism.
  */
 template <std::integral T>
@@ -515,6 +514,25 @@ struct is_idempotent<T, std::bit_and<T>> : std::true_type {};
 template <typename T>
   requires std::is_integral_v<T>
 struct is_idempotent<T, std::bit_or<T>> : std::true_type {};
+
+// Finite and transfinite species are mutually exclusive.
+
+/** @brief Primary trait for Transfiniteness. */
+export template <typename T>
+struct is_transfinite : std::false_type {};  // Default: The world is Finite.
+
+/** @brief Shorthand helper. */
+export template <typename T>
+inline constexpr bool is_transfinite_v = is_transfinite<T>::value;
+
+/** @concept IsTransfinite: A species that exceeds any terminal ordinal. */
+export template <typename T>
+concept IsTransfinite =
+    is_transfinite_v<T> || requires { typename T::is_transfinite_tag; };
+
+/** @concept IsFinite: The "Pedestrian" reality of terminating sets. */
+export template <typename T>
+concept IsFinite = !IsTransfinite<T>;
 
 /**
  * @concept IsPointed
