@@ -1,3 +1,9 @@
+#include <catch2/catch_test_macros.hpp>
+#include <catch2/matchers/catch_matchers_floating_point.hpp>
+
+import dedekind.numbers;
+import dedekind.sequences;
+
 TEST_CASE("Analysis: Dual Numbers and Differentiation", "[numbers][dual]") {
   using ℝ = double;
   using 𝔻 = Dual<ℝ>;

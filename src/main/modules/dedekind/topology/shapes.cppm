@@ -127,3 +127,28 @@ static_assert(dedekind::order::IsDirectedSet<Interval<int>::Domain>,
               "Lattice Join.");
 
 }  // namespace dedekind::topology
+
+namespace dedekind::category {
+// We formally vouch for the Ray's algebraic soul
+// at the point of definition.
+template <typename T, dedekind::topology::Direction D, typename L>
+struct is_associative<dedekind::topology::Ray<T, D, L>,
+                      std::bit_or<dedekind::topology::Ray<T, D, L>>>
+    : std::true_type {};
+
+template <typename T, dedekind::topology::Direction D, typename L>
+struct is_idempotent<dedekind::topology::Ray<T, D, L>,
+                     std::bit_or<dedekind::topology::Ray<T, D, L>>>
+    : std::true_type {};
+
+// Repeat for std::bit_and (The Meet)
+template <typename T, dedekind::topology::Direction D, typename L>
+struct is_associative<dedekind::topology::Ray<T, D, L>,
+                      std::bit_and<dedekind::topology::Ray<T, D, L>>>
+    : std::true_type {};
+
+template <typename T, dedekind::topology::Direction D, typename L>
+struct is_idempotent<dedekind::topology::Ray<T, D, L>,
+                     std::bit_and<dedekind::topology::Ray<T, D, L>>>
+    : std::true_type {};
+}  // namespace dedekind::category

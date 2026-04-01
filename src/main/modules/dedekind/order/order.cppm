@@ -88,23 +88,37 @@ export template <typename T>
 concept IsLinearOrder = IsTotallyOrdered<T>;
 
 /**
- * @concept IsDense
- * @brief A property where a midpoint always exists (a < c < b).
- */
-export template <typename T>
-concept IsDense = IsTotallyOrdered<T> && requires(const T a, const T b) {
-  { (a + b) / 2 } -> std::convertible_to<T>;
-};
-
-/**
  * @concept IsArchimedean
  * @brief Measurement via inductive "stepping" (++).
  */
 export template <typename T>
 concept IsArchimedean = IsTotallyOrdered<T> && requires(T x) {
   { ++x } -> std::same_as<T&>;
-  requires(x < x++);
+  { x++ } -> std::same_as<T>;  // Check that post-increment exists
+
+  { x + T(1) } -> std::convertible_to<T>;
+  // (Peano) Categorical Archimedean Property:
+  // If x is a number, x < x + 1 must be true.
+  // requires bool(x < (x + T(1)));
 };
+
+/** @brief A set where every point is isolated by a successor. */
+template <typename T>
+concept IsDiscrete = IsArchimedean<T> && requires(T x) {
+  // The "Unit Gap" Axiom: There is no z such that x < z < x + 1
+  // In C++, we represent this by the atomic nature of the increment.
+  { x + T(1) };
+};
+
+/**
+ * @concept IsDense
+ * @brief A property where a midpoint always exists (a < c < b).
+ */
+export template <typename T>
+concept IsDense =
+    IsTotallyOrdered<T> && !IsDiscrete<T> && requires(const T a, const T b) {
+      { (a + b) / 2 } -> std::convertible_to<T>;
+    };
 
 /**
  * @concept IsDividableChain

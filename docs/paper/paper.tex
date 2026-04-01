@@ -16,6 +16,7 @@
 \usepackage{xcolor}
 % Landscape tables:
 \usepackage[figuresright]{rotating}
+\usepackage[table]{xcolor}
 
 % Graphs
 \usepackage{graphviz}
@@ -171,6 +172,32 @@ In a sense, \texttt{dedekind} hopes to be a *compiler* for mathematical concepts
 9. Infinity (NNO) & \texttt{dedekind::Naturals} & \texttt{HasNaturalNumbersObject} \\
 10. Axiom of Choice & Lattice Dispatcher & \texttt{AxiomOfChoice} \\ \hline
 \end{tabular}
+\end{table}
+
+\begin{table}[h]
+\centering
+\caption{The Feature Cube: Structural Invariants for Primitive Species}
+\label{tab:feature_cube}
+\begin{tabular}{ll|ccc|ccc|c}
+\hline
+\textbf{Species} & \textbf{Op / Rel} & \textbf{Assoc} & \textbf{Comm} & \textbf{Idemp} & \textbf{Refl} & \textbf{Trans} & \textbf{Anti} & \textbf{Logic} \\ \hline
+\rowcolor[HTML]{EFEFEF} 
+\textit{Logical} & \textit{std::logical} & & & & & & & \\
+\texttt{bool} & \texttt{\&\&} / \texttt{||} & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark & Classical \\ \hline
+\rowcolor[HTML]{EFEFEF} 
+\textit{Integral} & \textit{std::bit} & & & & & & & \\
+\texttt{int} & \texttt{\&} / \texttt{|} & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark & Classical \\ 
+\texttt{int} & \texttt{+} / \texttt{*} & \checkmark & \checkmark & -- & \checkmark & \checkmark & \checkmark & Classical \\ \hline
+\rowcolor[HTML]{EFEFEF} 
+\textit{Floating} & \textit{std::arith} & & & & & & & \\
+\texttt{double} & \texttt{+} / \texttt{*} & --\textsuperscript{*} & \checkmark & -- & --\textsuperscript{†} & \checkmark & \checkmark & Ternary \\ \hline
+\end{tabular}
+\begin{flushleft}
+\footnotesize{
+\textsuperscript{*} Fails bit-perfect associativity due to IEEE 754 precision loss. \\
+\textsuperscript{†} Fails reflexivity due to NaN ($x \le x$ is false for NaN).
+}
+\end{flushleft}
 \end{table}
 
 By adopting a categorical foundation, the library provides a unified interface for both \emph{extensional} and \emph{intensional} representations.
@@ -353,6 +380,57 @@ This ensures that the "Soul" of the system (its laws of action and harmony) is a
 This hierarchy transforms the C++ module mapper into a directed acyclic graph of mathematical truth, where the linker cannot even begin its work until the ontological prerequisites are satisfied.
 The strict directed acyclic graph (DAG) of the dedekind module partitions mirrors the Bourbaki style of 'Mother Structures' \cite{marquis2022structuralist}, where the physical order of compilation serves as a proof of logical consistency.
 
+Some truth tables, to be refined:
+
+% --- Classical Logic Table ---
+\begin{table}[h]
+\centering
+\caption{Truth Table for the Classical Topos ($\Omega = \{0, 1\}$)}
+\label{tab:classical_logic}
+\begin{tabular}{cc|ccc}
+\hline
+$A$ & $B$ & $A \land B$ & $A \lor B$ & $\neg A$ \\ \hline
+0 & 0 & 0 & 0 & 1 \\
+0 & 1 & 0 & 1 & 1 \\
+1 & 0 & 0 & 1 & 0 \\
+1 & 1 & 1 & 1 & 0 \\ \hline
+\end{tabular}
+\end{table}
+
+% --- Kleene Ternary Logic Table ---
+\begin{table}[h]
+\centering
+\caption{Truth Table for the Kleene Topos ($\Omega = \{-1, 0, 1\}$)}
+\label{tab:kleene_logic}
+\begin{tabular}{cc|ccc}
+\hline
+$A$ & $B$ & $A \land B$ & $A \lor B$ & $\neg A$ \\ \hline
+-1 & -1 & -1 & -1 & 1 \\
+-1 & 0  & -1 & 0  & 1 \\
+-1 & 1  & -1 & 1  & 1 \\
+0  & 0  & 0  & 0  & 0 \\
+0  & 1  & 0  & 1  & 0 \\
+1  & 1  & 1  & 1  & -1 \\ \hline
+\end{tabular}
+\end{table}
+
+% --- Kleene Ternary Logic Table (The Logic of Indeterminacy) ---
+\begin{table}[h]
+\centering
+\caption{Truth Table for the Kleene Topos ($\Omega = \{-1, 0, 1\}$)}
+\label{tab:kleene_logic}
+\begin{tabular}{cc|ccc}
+\hline
+$A$ & $B$ & $A \land B$ (AND) & $A \lor B$ (OR) & $\neg A$ (NOT) \\ \hline
+-1 & -1 & -1 & -1 & 1 \\
+-1 & 0  & -1 & 0  & 1 \\
+-1 & 1  & -1 & 1  & 1 \\
+0  & 0  & 0  & 0  & 0 \\
+0  & 1  & 0  & 1  & 0 \\
+1  & 1  & 1  & 1  & -1 \\ \hline
+\end{tabular}
+\end{table}
+
 \subsection{\texttt{sets} Module}
 \subsection{\texttt{order} Module}
 \subsection{\texttt{topology} Module}
@@ -469,6 +547,8 @@ template <typename T, typename Op>
   requires requires { T::is_associative_for<Op>; }
 struct is_associative<T, Op> : T::template is_associative_for<Op> {};
 \end{lstlisting}
+
+
 
 By anchoring concepts like \texttt{IsJoinSemilattice} in these requirements (requiring both \texttt{IsAssociative} and \texttt{IsIdempotent}), we ensure that the \textit{Lattice Dispatcher} never performs a "speculative" pruning. If the developer has not provided the proof, the dispatcher falls back to a safe, unoptimized \texttt{UnionSet} synthesis. This "Axiom of Responsibility" ensures that the performance of the "Naked Loop" is always mathematically justified by a prior formal certification.
 

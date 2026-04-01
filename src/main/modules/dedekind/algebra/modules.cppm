@@ -8,12 +8,16 @@
  * In the Dedekind ontology, a Module is the bridge between
  * Pure Algebra and Metric Geometry.
  */
+module;
+
+#include <compare>     // for std::strong_ordering
+#include <concepts>    // for std::integral, std::floating_point
+#include <functional>  // for std::plus, std::multiplies
 
 export module dedekind.algebra:modules;
 
 import dedekind.category; // For IsLinearAction
 import :rings;            // For IsRing, IsSemiring
-import :groups;           // For IsAbelianGroup
 
 namespace dedekind::algebra {
 using namespace dedekind::category;

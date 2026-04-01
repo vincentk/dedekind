@@ -36,7 +36,7 @@ using namespace dedekind::order;
 
 /** @concept IsNet: A Morphism from a Directed Set. */
 export template <typename N>
-concept IsNet = IsCharacteristic<N> &&  // It maps its domain to a truth value?
+concept IsNet = IsArrow<N, typename N::Domain, typename N::Codomain> &&
                 IsDirectedSet<typename N::Domain>;
 
 /**

@@ -1,6 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 
-// Import our Dedekind modules
+import dedekind.category;
 import dedekind.sets;
 
 using namespace dedekind::category;
@@ -13,9 +13,13 @@ TEST_CASE("Dedekind MVP: Basic Membership and Symbols", "[sets]") {
 
     // Should be Set<int, ClassicalLogic>
     auto finite = Set{x % singleton(1) | (x == 1)};
+    REQUIRE(finite(1) == true);
+    REQUIRE(finite(2) == false);
 
     // Should be Set<int, TernaryLogic> (because ℕ is transfinite)
     auto infinite = Set{x % ℕ | (x > 0)};
+    REQUIRE(infinite(5) == Ternary::True);
+    REQUIRE(infinite(-5) == Ternary::False);
   }
 }
 

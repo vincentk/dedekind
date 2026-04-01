@@ -9,11 +9,17 @@
  *
  * Wikipedia: Polynomial ring, Free algebra, Monoid ring
  */
+module;
+
+#include <compare>     // for std::strong_ordering
+#include <concepts>    // for std::integral, std::floating_point
+#include <functional>  // for std::plus, std::multiplies
 
 export module dedekind.algebra:polynomials;
 
 import dedekind.category;
 import :rings;
+import :modules;
 
 namespace dedekind::algebra {
 

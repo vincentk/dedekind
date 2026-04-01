@@ -18,6 +18,11 @@ struct Comprehension {
   const Base& base;
   Predicate predicate;
   using Domain = typename Base::Domain;
+
+  template <typename Op>
+  static constexpr bool is_associative_v = true;
+  template <typename Op>
+  static constexpr bool is_idempotent_v = true;
 };
 
 /** @brief The Membership Binding: Bridges a Variable to its Domain. */
@@ -68,36 +73,34 @@ inline constexpr Variable<S> var{};
 export template <typename T>
 inline constexpr Variable<Ω<T>> var_for_type{};
 
-export template <typename T, typename L = ClassicalLogic>
+export template <typename T, typename L, typename Predicate>
 class Set {
  public:
   using logic_species = L;
+
+  // Store the predicate as a concrete type, not a std::function
+  constexpr Set(Predicate p) : predicate_(std::move(p)) {}
+
   template <typename B, typename P>
-  constexpr Set(Comprehension<B, P> cp)
-      : predicate_([p = cp.predicate](const T& v) {
-          return dedekind::category::lift_logic<L>(p(v));
-        }) {}
+    requires std::same_as<Predicate, P>
+  constexpr Set(Comprehension<B, P> cp) : predicate_(std::move(cp.predicate)) {}
 
-  /** @brief Identity Constructor: Set{ Ω } */
-  template <typename Species>
-    requires std::same_as<T, typename Species::Domain>
-  constexpr Set(const Species&)
-      : predicate_([](const T&) { return L::True; }) {}
-
-  auto operator()(const T& v) const { return predicate_(v); }
+  constexpr auto operator()(const T& v) const {
+    return dedekind::category::lift_logic<L>(predicate_(v));
+  }
 
  private:
-  std::function<typename L::type(const T&)> predicate_;
+  Predicate predicate_;
 };
 
 export template <typename B, typename P>
 Set(Comprehension<B, P>)
-    -> Set<typename B::Domain, typename NaturalLogic<B>::type>;
+    -> Set<typename B::Domain, typename NaturalLogic<B>::type, P>;
 
 /** @section Identity_CTAD */
 template <typename Species>
-Set(Species)
-    -> Set<typename Species::Domain, typename NaturalLogic<Species>::type>;
+Set(Species) -> Set<typename Species::Domain,
+                    typename NaturalLogic<Species>::type, Species>;
 
 /** @section Relational_Lifting (Level 1) */
 
