@@ -59,7 +59,7 @@ TEST_CASE("Topology: Rules of Continuity Coverage", "[topology][continuity]") {
      * Requirement: Intersection (&) of convex sets must be closed.
      */
     struct ConvexBody {
-      using element_type = ℝ;
+      using Domain = ℝ;
       friend ConvexBody operator&(ConvexBody, ConvexBody) { return {}; }
     };
     // Register trait

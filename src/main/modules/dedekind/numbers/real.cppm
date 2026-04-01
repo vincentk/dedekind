@@ -35,7 +35,7 @@ export template <IsField Q>
   requires IsDense<Q> && IsCountableSet<Q>
 class Real {
  public:
-  using element_type = Q;
+  using Domain = Q;
   using path_type = CauchyPath<Q>;
 
   /** @section The_Construction */

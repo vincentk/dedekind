@@ -39,13 +39,13 @@ using namespace dedekind::order;
  */
 export template <typename Seq>
 concept IsCauchy =
-    IsSequence<Seq> && IsArchimedean<typename Seq::element_type> &&
+    IsSequence<Seq> && IsArchimedean<typename Seq::Domain> &&
     requires(Seq s, std::size_t n, std::size_t m) {
       /** @brief The Metric Morphism: Distance between two points in the path.
        */
       {
         std::abs(s.at(n) - s.at(m))
-      } -> std::convertible_to<typename Seq::element_type>;
+      } -> std::convertible_to<typename Seq::Domain>;
     };
 
 /**
@@ -53,7 +53,7 @@ concept IsCauchy =
  * @brief A Cauchy path that possesses a limit within its own species.
  */
 export template <typename Seq>
-concept IsConvergent = IsCauchy<Seq> && HasLimit<typename Seq::element_type>;
+concept IsConvergent = IsCauchy<Seq> && HasLimit<typename Seq::Domain>;
 
 /**
  * @struct CauchyPath

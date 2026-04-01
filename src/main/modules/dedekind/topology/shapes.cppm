@@ -43,7 +43,7 @@ export enum class Direction { Upward, Downward };
 export template <IsTotallyOrdered T, Direction D, typename L = ClassicalLogic>
 class Ray {
  public:
-  using element_type = T;
+  using Domain = T;
   using is_open_tag = void;
   using is_ray_tag = void;
 
@@ -85,7 +85,7 @@ class Ray {
 export template <IsTotallyOrdered T, typename L = ClassicalLogic>
 class Interval {
  public:
-  using element_type = T;
+  using Domain = T;
   using lower_ray_type = Ray<T, Direction::Upward, L>;
   using upper_ray_type = Ray<T, Direction::Downward, L>;
 

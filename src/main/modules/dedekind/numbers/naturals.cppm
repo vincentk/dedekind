@@ -64,7 +64,7 @@ concept IsNatural = IsScalar<N> && requires(N n, N m) {
  * @tparam M The Monoid structure.
  * @tparam E The underlying Element species.
  */
-export template <typename M, typename E = typename M::element_type>
+export template <typename M, typename E = typename M::Domain>
 concept Monoid_ℕ = IsNatural<E> && requires(const M& m) {
   // The structure must actually possess the claimed cardinality.
   { m.cardinality() } -> std::same_as<ℵ_0>;
@@ -98,7 +98,7 @@ concept IsInteger = IsReflectiveSpecies<Z> && requires(Z a, Z b) {
  * @details ℤ is the uniquely determined Infinite Cyclic Group (under addition)
  *          that extends the Naturals with additive inverses.
  */
-export template <typename M, typename E = typename M::element_type>
+export template <typename M, typename E = typename M::Domain>
 concept Group_ℤ = IsNumbers<M, ℵ_0> &&  // The Magnitude (Coded in)
                   IsInteger<E> &&       // The Species (The "What")
                   requires(const M& m) {

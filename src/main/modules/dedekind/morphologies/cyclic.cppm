@@ -41,7 +41,7 @@ export template <std::integral T, T N>
 class CyclicRing {
  public:
   using machine_type = T;
-  using element_type = T;
+  using Domain = T;
   using cardinality_type = Finite;
 
   static constexpr T successor(T a) { return (a + 1) % N; }

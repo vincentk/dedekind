@@ -96,7 +96,7 @@ struct ReproducingKernel {
   value_type y_point;
 
   // The 'Morphism' aspect: evaluation at x
-  T operator[](const typename DomainSet::element_type& x) const {
+  T operator[](const typename DomainSet::Domain& x) const {
     return inner_product_logic(x, y_point);
   }
 

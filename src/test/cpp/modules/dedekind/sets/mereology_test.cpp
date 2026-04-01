@@ -7,18 +7,18 @@ using namespace dedekind::sets;
 
 /** @section Morphic_Mimes: Pure Structuralist Mocking */
 struct MockSpecies {
-  using element_type = int;
+  using Domain = int;
 };
 
 struct MockPart {
-  using element_type = int;
+  using Domain = int;
   using ambient_species = MockSpecies;
   // The Characteristic Morphism: y(x)
   constexpr bool operator()(int) const { return true; }
 };
 
 struct MockSystem {
-  using element_type = MockPart;
+  using Domain = MockPart;
 
   /** @section Bounded_Lattice_Interface */
   // Using the exact names required by IsBoundedLattice concept

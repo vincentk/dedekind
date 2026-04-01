@@ -43,7 +43,7 @@ using namespace dedekind::category;
  */
 export template <typename T>
 struct Path {
-  using element_type = T;
+  using Domain = T;
 
   /** @brief The underlying mapping f(n). */
   std::function<T(std::size_t)> generator;
@@ -61,7 +61,7 @@ struct Path {
    */
   template <typename F>
   friend constexpr auto operator>>=(const Path& m, F&& f) {
-    using U = typename std::invoke_result_t<F, T>::element_type;
+    using U = typename std::invoke_result_t<F, T>::Domain;
     return Path<U>{[m, f = std::forward<F>(f)](std::size_t n) {
       return f(m.at(n)).at(n);
     }};

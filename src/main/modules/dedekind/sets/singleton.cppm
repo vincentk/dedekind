@@ -55,7 +55,8 @@ using namespace dedekind::category;
 export template <typename T, typename L = ClassicalLogic>
 struct SingletonSet {
   T pivot;
-  using element_type = T;
+  using Domain = T;
+  using Codomain = typename L::type;
   using logic_species = L;
   using cardinality_type = Finite;
   using is_extensional_tag = void;

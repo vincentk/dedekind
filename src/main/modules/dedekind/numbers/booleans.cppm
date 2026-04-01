@@ -54,7 +54,7 @@ using namespace dedekind::sets;
  * @tparam M The Algebraic Structure governing the Boolean set.
  * @tparam E The underlying element type (e.g., bool).
  */
-export template <typename M, typename E = typename M::element_type>
+export template <typename M, typename E = typename M::Domain>
 concept Is_B = IsSemiring<M> && IsBoolean<E> && requires(const M& m) {
   // The structure must possess a discrete cardinality |S| = 2.
   { m.cardinality() } -> std::same_as<std::size_t>;

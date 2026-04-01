@@ -17,7 +17,7 @@ export template <typename Base, typename Predicate>
 struct Comprehension {
   const Base& base;
   Predicate predicate;
-  using element_type = typename Base::element_type;
+  using Domain = typename Base::Domain;
 };
 
 /** @brief The Membership Binding: Bridges a Variable to its Domain. */
@@ -39,7 +39,7 @@ struct MembershipBinding {
  */
 export template <typename Species>
 struct Variable {
-  using T = typename Species::element_type;
+  using T = typename Species::Domain;
   using is_variable = void;
 
   /** @brief The Membership Morphism (x % S). Mimics 'x \in S'. */
@@ -53,7 +53,7 @@ struct Variable {
    * provided they share the same underlying element type.
    */
   template <typename SubSpecies>
-    requires std::same_as<T, typename SubSpecies::element_type>
+    requires std::same_as<T, typename SubSpecies::Domain>
   constexpr auto operator%(const SubSpecies& s) const {
     return MembershipBinding<SubSpecies>{s};
   }
@@ -80,7 +80,7 @@ class Set {
 
   /** @brief Identity Constructor: Set{ Ω } */
   template <typename Species>
-    requires std::same_as<T, typename Species::element_type>
+    requires std::same_as<T, typename Species::Domain>
   constexpr Set(const Species&)
       : predicate_([](const T&) { return L::True; }) {}
 
@@ -92,11 +92,11 @@ class Set {
 
 export template <typename B, typename P>
 Set(Comprehension<B, P>)
-    -> Set<typename B::element_type, typename NaturalLogic<B>::type>;
+    -> Set<typename B::Domain, typename NaturalLogic<B>::type>;
 
 /** @section Identity_CTAD */
 template <typename Species>
-Set(Species) -> Set<typename Species::element_type,
+Set(Species) -> Set<typename Species::Domain,
                     typename NaturalLogic<Species>::type>;
 
 /** @section Relational_Lifting (Level 1) */
@@ -106,27 +106,27 @@ Set(Species) -> Set<typename Species::element_type,
 
 export template <typename Species, typename Rhs>
 constexpr auto operator<(const Variable<Species>&, const Rhs& rhs) {
-  return [rhs](const typename Species::element_type& v) { return v < rhs; };
+  return [rhs](const typename Species::Domain& v) { return v < rhs; };
 }
 
 export template <typename Species, typename Rhs>
 constexpr auto operator<=(const Variable<Species>&, const Rhs& rhs) {
-  return [rhs](const typename Species::element_type& v) { return v <= rhs; };
+  return [rhs](const typename Species::Domain& v) { return v <= rhs; };
 }
 
 export template <typename Species, typename Rhs>
 constexpr auto operator>(const Variable<Species>&, const Rhs& rhs) {
-  return [rhs](const typename Species::element_type& v) { return v > rhs; };
+  return [rhs](const typename Species::Domain& v) { return v > rhs; };
 }
 
 export template <typename Species, typename Rhs>
 constexpr auto operator>=(const Variable<Species>&, const Rhs& rhs) {
-  return [rhs](const typename Species::element_type& v) { return v >= rhs; };
+  return [rhs](const typename Species::Domain& v) { return v >= rhs; };
 }
 
 export template <typename Species, typename Rhs>
 constexpr auto operator==(const Variable<Species>&, const Rhs& rhs) {
-  return [rhs](const typename Species::element_type& v) { return v == rhs; };
+  return [rhs](const typename Species::Domain& v) { return v == rhs; };
 }
 
 /** @section Logical_Lifting */

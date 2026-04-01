@@ -19,7 +19,7 @@ using namespace dedekind::algebra;
 export template <IsIntegralDomain Z>
 class Rational {
  public:
-  using element_type = Z;
+  using Domain = Z;
 
   constexpr Rational(Z num, Z den) : num_(num), den_(den) { simplify(); }
 

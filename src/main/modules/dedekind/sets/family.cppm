@@ -63,9 +63,9 @@ struct resolve_species {
 };
 
 template <typename T>
-  requires requires { typename T::element_type; }
+  requires requires { typename T::Domain; }
 struct resolve_species<T> {
-  using type = typename T::element_type;  // Extract from formal Species
+  using type = typename T::Domain;  // Extract from formal Species
 };
 
 template <typename T>
@@ -107,7 +107,7 @@ export template <typename Species, typename L = ClassicalLogic>
 struct Family {
   // Implies a type-erased interface for member sets, but we can still enforce
   // the IsSet concept at runtime.
-  using element_type = AnySetOver<Species, L>;
+  using Domain = AnySetOver<Species, L>;
 
   static constexpr auto bottom() { return Ø<Species, L>{}; }
   static constexpr auto top() { return Ω<Species, L>{}; }

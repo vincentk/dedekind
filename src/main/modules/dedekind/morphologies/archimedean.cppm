@@ -50,16 +50,16 @@ export template <typename T>
 concept IsCyclic = IsAbelianGroup<T> &&
                    // Removed 'typename' from value access (is_countable)
                    (T::cardinality_type::is_countable == true) &&
-                   requires(typename T::element_type a) {
+                   requires(typename T::Domain a) {
                      {
                        T::successor(a)
-                     } -> std::same_as<typename T::element_type>;
+                     } -> std::same_as<typename T::Domain>;
                      {
                        T::generator()
-                     } -> std::same_as<typename T::element_type>;
+                     } -> std::same_as<typename T::Domain>;
                    };
 
-/** @concept IsSimplyInfinite
+/** @concept IsSimplyInfiniteDomain
  *  @brief Dedekind's definition of the Natural/Integer 'Line'.
  */
 export template <typename T>
@@ -106,7 +106,7 @@ concept IsDedekindCompleteField =
  */
 export template <typename S>
 concept IsMinkowskiSummable =
-    IsSet<S> && IsAbelianGroup<typename S::element_type> && requires(S a, S b) {
+    IsSet<S> && IsAbelianGroup<typename S::Domain> && requires(S a, S b) {
       { a + b } -> std::same_as<S>;
     };
 

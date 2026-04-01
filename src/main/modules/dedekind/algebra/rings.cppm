@@ -218,7 +218,7 @@ concept IsAlgebraicallyClosed = IsField<M>;  // Refined by its use in Algebra_â„
  */
 export template <typename S>
 concept IsBounded = IsExtensional<S> || requires {
-  { std::numeric_limits<typename S::element_type>::max() };
+  { std::numeric_limits<typename S::Domain>::max() };
 };
 
 /**

@@ -135,8 +135,8 @@ concept IsLattice = IsMeetSemilattice<S> && IsJoinSemilattice<S>;
  */
 export template <typename S>
 concept IsBoundedLattice = IsLattice<S> && requires(S s) {
-  { s.lower_bound() } -> std::same_as<typename S::element_type>;  // The Bottom
-  { s.upper_bound() } -> std::same_as<typename S::element_type>;  // The Top
+  { s.lower_bound() } -> std::same_as<typename S::Domain>;  // The Bottom
+  { s.upper_bound() } -> std::same_as<typename S::Domain>;  // The Top
 };
 
 /**
@@ -239,18 +239,18 @@ concept IsAtom = IsMereologicalLattice<S, L> && requires(S x) {
 export template <typename S, typename Species, typename L = ClassicalLogic>
 concept IsSystem = IsBoundedLattice<S> && requires {
   /** @brief The inhabitant of the system (The Body). */
-  typename S::element_type;
+  typename S::Domain;
 
   /**
    * @requirement The inhabitant is a 'Whole' for the Species.
    * This anchors membership as the Characteristic Morphism:
    * Body(Species::element)
    */
-  requires IsProperPart<typename Species::element_type,
-                        typename S::element_type, L>;
+  requires IsProperPart<typename Species::Domain,
+                        typename S::Domain, L>;
 
   /** @requirement All inhabitants share the same mereological context. */
-  requires std::same_as<typename S::element_type::ambient_species, Species>;
+  requires std::same_as<typename S::Domain::ambient_species, Species>;
 };
 
 /**
@@ -321,11 +321,11 @@ export using ℶ_1 = ℵ<1>;  // The Continuum (assuming GCH)
  */
 export template <typename S, typename Ω = ClassicalLogic>
 concept IsSet = IsMereologicalLattice<S, Ω> && IsCharacteristic<S, Ω> && requires {
-  typename S::element_type;
+  typename S::Domain;
   typename S::cardinality_type;
   requires IsCardinality<typename S::cardinality_type> &&
-               IsProperPart<typename S::element_type, S, Ω>;
-} && requires(const S s, const typename S::element_type v) {
+               IsProperPart<typename S::Domain, S, Ω>;
+} && requires(const S s, const typename S::Domain v) {
   { !s } -> IsLattice;  // The Complement (Remainder)
   { s.cardinality() } -> std::same_as<typename S::cardinality_type>;
 
