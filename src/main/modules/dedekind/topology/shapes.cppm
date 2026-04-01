@@ -44,6 +44,7 @@ export template <IsTotallyOrdered T, Direction D, typename L = ClassicalLogic>
 class Ray {
  public:
   using Domain = T;
+  using Codomain = typename L::type;
   using is_open_tag = void;
   using is_ray_tag = void;
 
@@ -86,6 +87,7 @@ export template <IsTotallyOrdered T, typename L = ClassicalLogic>
 class Interval {
  public:
   using Domain = T;
+  using Codomain = typename L::type;
   using lower_ray_type = Ray<T, Direction::Upward, L>;
   using upper_ray_type = Ray<T, Direction::Downward, L>;
 
@@ -109,10 +111,10 @@ export template <typename T, typename L>
 inline constexpr bool is_convex_v<Interval<T, L>> = true;
 
 /** @section Formal_Verification */
-static_assert(IsJoinSemilattice<Ray<double, Direction::Upward>>,
+static_assert(IsJoinSemilattice<Ray<int, Direction::Upward>>,
               "Axiom Failure: Rays must be Directed Sets (Join-Semilattices).");
 
-static_assert(IsMeetSemilattice<Ray<double, Direction::Upward>>,
+static_assert(IsMeetSemilattice<Ray<int, Direction::Upward>>,
               "Axiom Failure: Rays must satisfy Idempotent Intersection.");
 
 /** @section ETCS_Verification */

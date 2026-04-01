@@ -38,15 +38,15 @@ using namespace dedekind::order;
  * s_m| < ε.
  */
 export template <typename Seq>
-concept IsCauchy =
-    IsSequence<Seq> && IsArchimedean<typename Seq::Domain> &&
-    requires(Seq s, std::size_t n, std::size_t m) {
-      /** @brief The Metric Morphism: Distance between two points in the path.
-       */
-      {
-        std::abs(s.at(n) - s.at(m))
-      } -> std::convertible_to<typename Seq::Domain>;
-    };
+concept IsCauchy = IsSequence<Seq> && IsArchimedean<typename Seq::Domain> &&
+                   requires(Seq s, std::size_t n, std::size_t m) {
+                     /** @brief The Metric Morphism: Distance between two points
+                      * in the path.
+                      */
+                     {
+                       std::abs(s.at(n) - s.at(m))
+                     } -> std::convertible_to<typename Seq::Domain>;
+                   };
 
 /**
  * @concept IsConvergent

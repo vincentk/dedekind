@@ -51,12 +51,8 @@ concept IsCyclic = IsAbelianGroup<T> &&
                    // Removed 'typename' from value access (is_countable)
                    (T::cardinality_type::is_countable == true) &&
                    requires(typename T::Domain a) {
-                     {
-                       T::successor(a)
-                     } -> std::same_as<typename T::Domain>;
-                     {
-                       T::generator()
-                     } -> std::same_as<typename T::Domain>;
+                     { T::successor(a) } -> std::same_as<typename T::Domain>;
+                     { T::generator() } -> std::same_as<typename T::Domain>;
                    };
 
 /** @concept IsSimplyInfiniteDomain

@@ -154,8 +154,10 @@ concept IsMereologicalLattice =
       // 1. Consistency Axiom: (a <= b) <=> (a | b == b)
       { (a | b) == b } -> std::convertible_to<typename L::type>;
 
-      // 2. Overlap Axiom: Meet is detectable via Initiality
-      requires requires { IsInitialObject<decltype(a & b)>; };
+      // 2. Overlap Axiom: Meet with an empty set is detectable.
+      // If the intersection (a & b) results in an empty set,
+      // it must be equivalent to the Initial Object Ø.
+      { (a & b) == a } -> std::convertible_to<typename L::type>;
 
       /**
        * @section The_Absorption_Proofs
@@ -246,8 +248,7 @@ concept IsSystem = IsBoundedLattice<S> && requires {
    * This anchors membership as the Characteristic Morphism:
    * Body(Species::element)
    */
-  requires IsProperPart<typename Species::Domain,
-                        typename S::Domain, L>;
+  requires IsProperPart<typename Species::Domain, typename S::Domain, L>;
 
   /** @requirement All inhabitants share the same mereological context. */
   requires std::same_as<typename S::Domain::ambient_species, Species>;
@@ -320,19 +321,32 @@ export using ℶ_1 = ℵ<1>;  // The Continuum (assuming GCH)
  * @tparam Ω The Subobject Classifier (Ω). Defaults to ClassicalLogic.
  */
 export template <typename S, typename Ω = ClassicalLogic>
-concept IsSet = IsMereologicalLattice<S, Ω> && IsCharacteristic<S, Ω> && requires {
-  typename S::Domain;
-  typename S::cardinality_type;
-  requires IsCardinality<typename S::cardinality_type> &&
-               IsProperPart<typename S::Domain, S, Ω>;
-} && requires(const S s, const typename S::Domain v) {
-  { !s } -> IsLattice;  // The Complement (Remainder)
-  { s.cardinality() } -> std::same_as<typename S::cardinality_type>;
+concept IsSet =
+    IsMereologicalLattice<S, Ω> && IsCharacteristic<S, Ω> && requires {
+      typename S::Domain;
+      typename S::cardinality_type;
+      requires IsCardinality<typename S::cardinality_type> &&
+                   IsProperPart<typename S::Domain, S, Ω>;
+    } && requires(const S s, const typename S::Domain v) {
+      { !s } -> IsLattice;  // The Complement (Remainder)
+      { s.cardinality() } -> std::same_as<typename S::cardinality_type>;
 
-  // FIXME: power set, Cartesian product, etc. should be defined here as well.
-  // FIXME: Maybe even the existential and universal quantifiers as morphisms to
-  // Ω.
-} && IsLattice<S>;
+      // FIXME: power set, Cartesian product, etc. should be defined here as
+      // well.
+      // FIXME: Maybe even the existential and universal quantifiers as
+      // morphisms to Ω.
+    } && IsLattice<S>;
+
+/**
+ * Note we have two choices: a) apply the morphism to the set or
+ * b) compose with the morphism. Here, we prefer a).
+ **/
+export template <IsSet S, typename F>
+  requires IsArrow<F, S, typename F::Codomain> && // F accepts the Set itself as Domain
+           std::same_as<typename S::Domain, typename F::Domain::Domain> // Species Match
+constexpr auto operator>>(const S& s, const F& f) {
+  return f(s);
+}
 
 /** @section The_Extent: The Logic of Realization */
 

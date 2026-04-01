@@ -58,6 +58,7 @@ struct Boundaries {};
 export template <typename T, typename L = ClassicalLogic>
 struct Ø final : Boundaries {
   using Domain = T;
+  using Codomain = typename L::type;
   using logic_species = L;
   using cardinality_type = Finite;
   using is_extensional_tag = void;
@@ -126,6 +127,7 @@ struct Ø final : Boundaries {
 export template <typename T, typename L = ClassicalLogic, typename C = ℵ_0>
 struct Ω final : Boundaries {
   using Domain = T;
+  using Codomain = typename L::type;
   using cardinality_type = C;
   using base_set_type = Ω<T, L>;
   using logic_species = L;

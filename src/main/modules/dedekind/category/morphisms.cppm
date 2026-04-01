@@ -228,7 +228,12 @@ inline constexpr Identity<T> identity_v<Identity<T>, Op> = Identity<T>{};
 export template <typename F, typename G>
   requires requires {
     typename std::decay_t<F>::Domain;
+    typename std::decay_t<F>::Codomain;
+    typename std::decay_t<G>::Domain;
     typename std::decay_t<G>::Codomain;
+    // The strict Categorical Identity:
+    requires std::same_as<typename std::decay_t<F>::Codomain, 
+                         typename std::decay_t<G>::Domain>;
   }
 constexpr auto operator>>(F&& f, G&& g) {
   using F_pure = std::decay_t<F>;

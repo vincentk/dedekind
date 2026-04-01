@@ -96,8 +96,8 @@ Set(Comprehension<B, P>)
 
 /** @section Identity_CTAD */
 template <typename Species>
-Set(Species) -> Set<typename Species::Domain,
-                    typename NaturalLogic<Species>::type>;
+Set(Species)
+    -> Set<typename Species::Domain, typename NaturalLogic<Species>::type>;
 
 /** @section Relational_Lifting (Level 1) */
 

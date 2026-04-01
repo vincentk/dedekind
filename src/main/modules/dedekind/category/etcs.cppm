@@ -28,7 +28,6 @@ namespace dedekind::category {
  * @details S : Domain → Ω.
  */
 export template <typename S, typename Ω = ClassicalLogic>
-concept IsCharacteristic = 
-    IsArrow<S, typename S::Domain, typename Ω::type>;
+concept IsCharacteristic = IsArrow<S, typename S::Domain, typename Ω::type>;
 
-} // namespace dedekind::category
+}  // namespace dedekind::category

@@ -18,21 +18,19 @@ import :etcs;  // For IsCharacteristic
 
 namespace dedekind::category {
 
-
 /**
  * @concept IsInitialObject
  * @brief The "Zero" of the Category (0).
  * @details ∀x ∈ Domain: χ(x) == False.
  */
 export template <typename S, typename Ω = ClassicalLogic>
-concept IsInitialObject = 
-    IsCharacteristic<S, Ω> && 
-    requires(const S s, const typename S::Domain x) {
-        // The Annihilator: Proof of absolute falsehood in Ω.
-        { s(x) == Ω::False } -> std::same_as<typename Ω::type>;
-        
-        // Semantic: ensure it actually evaluates to the constant False
-        requires (s(x) == Ω::False);
+concept IsInitialObject =
+    IsCharacteristic<S, Ω> && requires(const S s, const typename S::Domain x) {
+      // The Annihilator: Proof of absolute falsehood in Ω.
+      { s(x) == Ω::False } -> std::same_as<typename Ω::type>;
+
+      // Semantic: ensure it actually evaluates to the constant False
+      requires(s(x) == Ω::False);
     };
 
 /**
@@ -42,13 +40,12 @@ concept IsInitialObject =
  */
 export template <typename S, typename Ω = ClassicalLogic>
 concept IsTerminalObject =
-    IsCharacteristic<S, Ω> && 
-    requires(const S s, const typename S::Domain x) {
-        // The Identity: Proof of absolute truth in Ω.
-        { s(x) == Ω::True } -> std::same_as<typename Ω::type>;
-        
-        // Semantic: ensure it actually evaluates to the constant True
-        requires (s(x) == Ω::True);
+    IsCharacteristic<S, Ω> && requires(const S s, const typename S::Domain x) {
+      // The Identity: Proof of absolute truth in Ω.
+      { s(x) == Ω::True } -> std::same_as<typename Ω::type>;
+
+      // Semantic: ensure it actually evaluates to the constant True
+      requires(s(x) == Ω::True);
     };
 
 }  // namespace dedekind::category
