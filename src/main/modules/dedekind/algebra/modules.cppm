@@ -5,7 +5,7 @@
  *
  * @section Modules: The Geometry of Scaling
  * This partition defines the "Action" of a Ring on an Abelian Group.
- * In the Dedekind ontology, a Module is the bridge between 
+ * In the Dedekind ontology, a Module is the bridge between
  * Pure Algebra and Metric Geometry.
  */
 
@@ -18,33 +18,26 @@ import :groups;           // For IsAbelianGroup
 namespace dedekind::algebra {
 using namespace dedekind::category;
 
-/** 
- * @concept IsSemimodule 
+/**
+ * @concept IsSemimodule
  * @brief A commutative additive monoid participating in a Linear Action.
  */
 export template <typename M, typename S>
-concept IsSemimodule = 
-    IsCommutativeMonoid<M, std::plus<M>> && 
-    IsSemiring<S> && 
-    IsLinearAction<S, M>;
+concept IsSemimodule = IsCommutativeMonoid<M, std::plus<M>> && IsSemiring<S> &&
+                       IsLinearAction<S, M>;
 
-/** 
- * @concept IsModule 
+/**
+ * @concept IsModule
  * @brief An Abelian Group participating in a Linear Action by a Ring.
  */
 export template <typename M, typename S>
-concept IsModule = 
-    IsAbelianGroup<M> && 
-    IsRing<S> && 
-    IsSemimodule<M, S>;
+concept IsModule = IsAbelianGroup<M> && IsRing<S> && IsSemimodule<M, S>;
 
-/** 
- * @concept IsVectorSpace 
+/**
+ * @concept IsVectorSpace
  * @brief The Gold Standard: A Module where the Scalar is a Field.
  */
 export template <typename V, typename F>
-concept IsVectorSpace = 
-    IsModule<V, F> && 
-    IsField<F>;
+concept IsVectorSpace = IsModule<V, F> && IsField<F>;
 
-} // namespace dedekind::algebra
+}  // namespace dedekind::algebra

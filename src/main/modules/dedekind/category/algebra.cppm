@@ -2,7 +2,7 @@
  * @file ontology:category.cppm
  * @partition :algebra
  * @brief Level 0.2: The Laws of Composition (Magmas, Monoids, and Groups).
- * 
+ *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  */
@@ -43,4 +43,4 @@ concept IsGroup = IsMonoid<T, Op> && IsInvertible<T, Op>;
 export template <typename T, typename Op>
 concept IsAbelianGroup = IsGroup<T, Op> && IsCommutative<T, Op>;
 
-} // namespace dedekind::category
+}  // namespace dedekind::category

@@ -111,8 +111,8 @@ concept IsCommutativeMonoid = IsMonoid<T, Op> && IsCommutative<T, Op>;
  * which are themselves Semirings.
  */
 export template <typename T>
-concept IsSemiring =
-    IsCommutativeMonoid<T, std::plus<T>> && IsMonoid<T, std::multiplies<T>> && IsLinearAction<T, T>;
+concept IsSemiring = IsCommutativeMonoid<T, std::plus<T>> &&
+                     IsMonoid<T, std::multiplies<T>> && IsLinearAction<T, T>;
 
 /**
  * @concept IsGroup
@@ -231,7 +231,6 @@ export template <typename T, typename N>
 concept IsScalableBy = requires(T x, N n) {
   { x * n } -> std::same_as<T>;
 };
-
 
 // If T is a Ring, then '*' is legally defined.
 template <typename T>

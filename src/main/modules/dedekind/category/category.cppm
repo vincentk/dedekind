@@ -51,10 +51,11 @@ export import :species;  // Reified Machine Primitives
 
 /** @section Level_0a: The Mapping Engine */
 export import :morphisms;   // Morphisms
-export import :algebra;  // Functors and Natural Transformations
+export import :algebra;     // Functors and Natural Transformations
 export import :functorial;  // Natural Transformations
 export import :kleisli;     // The Algebra of Contextual Composition
-export import :actions;    // The Action-First Bootstrapping of Monads and Comonads
+export import :actions;     // The Action-First Bootstrapping of Monads and
+                            // Comonads
 
 /** @section Level_0b: The Higher Structures (The Universe Laws) */
 export import :cartesian;  // Finite Products, Terminal Objects, and
