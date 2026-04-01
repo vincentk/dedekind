@@ -320,7 +320,7 @@ export using ℶ_1 = ℵ<1>;  // The Continuum (assuming GCH)
  * @tparam Ω The Subobject Classifier (Ω). Defaults to ClassicalLogic.
  */
 export template <typename S, typename Ω = ClassicalLogic>
-concept IsSet = IsMereologicalLattice<S, Ω> && requires {
+concept IsSet = IsMereologicalLattice<S, Ω> && IsCharacteristic<S, Ω> && requires {
   typename S::element_type;
   typename S::cardinality_type;
   requires IsCardinality<typename S::cardinality_type> &&

@@ -10,18 +10,25 @@
  *
  * Wikipedia: Elementary Theory of the Category of Sets
  */
+module;
+
+#include <concepts>
+#include <functional>
+
 export module dedekind.category:etcs;
 
 import :logic;
-import :functorial;
-import :cartesian;
+import :species;
 
 namespace dedekind::category {
 
 /**
- * @section ETCS_Axioms
- * Formal C++23 Concepts representing the 10 axioms of ETCS, including
- * the Natural Number Object (NNO) and the Axiom of Choice.
+ * @concept IsCharacteristic
+ * @brief The Morphic identity of a Set-like species (ETCS Compliance).
+ * @details S : Domain → Ω.
  */
+export template <typename S, typename Ω = ClassicalLogic>
+concept IsCharacteristic = 
+    IsArrow<S, typename S::Domain, typename Ω::type>;
 
-}  // namespace dedekind::category
+} // namespace dedekind::category

@@ -55,7 +55,8 @@ export import :algebra;     // Functors and Natural Transformations
 export import :functorial;  // Natural Transformations
 export import :kleisli;     // The Algebra of Contextual Composition
 export import :actions;     // The Action-First Bootstrapping of Monads and
-                            // Comonads
+// Comonads
+export import :limits;  // The ETCS Characteristic Morphism
 
 /** @section Level_0b: The Higher Structures (The Universe Laws) */
 export import :cartesian;  // Finite Products, Terminal Objects, and

@@ -57,7 +57,7 @@ struct Boundaries {};
 /** @brief ∅: The Initial Object. Extensional (Size 0). */
 export template <typename T, typename L = ClassicalLogic>
 struct Ø final : Boundaries {
-  using element_type = T;
+  using Domain = T;
   using logic_species = L;
   using cardinality_type = Finite;
   using is_extensional_tag = void;
@@ -125,7 +125,7 @@ struct Ø final : Boundaries {
  */
 export template <typename T, typename L = ClassicalLogic, typename C = ℵ_0>
 struct Ω final : Boundaries {
-  using element_type = T;
+  using Domain = T;
   using cardinality_type = C;
   using base_set_type = Ω<T, L>;
   using logic_species = L;
@@ -192,6 +192,9 @@ constexpr auto Ø<T, L>::operator!() const {
 static_assert(IsSet<Ω<int>>, "The universal set must satisfy IsSet.");
 
 static_assert(IsSet<Ø<int>>);
+
+static_assert(IsTerminalObject<Ω<int>>,
+              "The universal set must satisfy IsTerminalObject.");
 
 /** @section The_Seal_of_Initiality */
 // This is your 'override'. If EmptySet fails the concept,

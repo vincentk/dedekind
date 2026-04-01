@@ -52,7 +52,7 @@
 
 % --- Document Metadata ---
 \title{Axiomatic Systems Programming: Structural Type Theory and Exact Arithmetic in C++23}
-\author{Vincent Kr\"autler}
+\author{The \texttt{dedekind} Authors}
 \date{\today} % Automatically inserts current date
 
 \begin{document}
@@ -338,7 +338,7 @@ This physical stratification prohibits circular reasoning at the compiler level;
 \end{figure}
 
 
-\subsection{The \textsc{Dedekind} `category` Module}
+\subsection{\texttt{category} Module}
 
 The \texttt{dedekind.category} module serves as an anchor of the DSL in the established formalism of category theory.
 It aggregates skeletal, mereological, and algebraic laws to enable the synthesis of the \textit{Continuum} from the \textit{Discrete}.
@@ -353,22 +353,15 @@ This ensures that the "Soul" of the system (its laws of action and harmony) is a
 This hierarchy transforms the C++ module mapper into a directed acyclic graph of mathematical truth, where the linker cannot even begin its work until the ontological prerequisites are satisfied.
 The strict directed acyclic graph (DAG) of the dedekind module partitions mirrors the Bourbaki style of 'Mother Structures' \cite{marquis2022structuralist}, where the physical order of compilation serves as a proof of logical consistency.
 
-\begin{description}
-    \item[Level -1 to 0: Foundations (Bricks and Cement)] 
-    At the base lies \texttt{:logic}, defining the subobject classifier $\Omega$ and predicate logic. This is supported by \texttt{:species}, which provides reified machine primitives, and \texttt{:category}, which establishes the "Highways" of the system via Morphisms, Functors, and Kleisli Triples.
-    
-    \item[Level 1: Space (Body and Relation)] 
-    The \texttt{:mereology} partition defines the rules of presence (parts and wholes), while \texttt{:order} and \texttt{:topology} establish the rules of relation and closeness (posets, lattices, and open sets).
-    
-    \item[Level 2: Scale (Measurement and Path)] 
-    The \texttt{:sequences} module maps magnitudes to enumerations, providing the necessary machinery for limits and convergence.
-    
-    \item[Level 3: Soul (Harmony and Action)] 
-    This level implements the pure algebraic laws (\texttt{:algebra}) including Groups, Rings, and Fields, alongside their realized \texttt{:morphologies} (Cyclic, Ordered, and Archimedean forms).
-    
-    \item[Level 4: Realization (The Registry)] 
-    The final level, \texttt{:geometry} and \texttt{:numbers}, realizes the continuum through the species registry, formally constructing the inclusion $\mathbb{N} \subset \mathbb{Z} \subset \mathbb{Q} \subset \mathbb{R}$.
-\end{description}
+\subsection{\texttt{sets} Module}
+\subsection{\texttt{order} Module}
+\subsection{\texttt{topology} Module}
+\subsection{\texttt{sequences} Module}
+\subsection{\texttt{algebra} Module}
+\subsection{\texttt{morphologies} Module}
+\subsection{\texttt{geometry} Module}
+\subsection{\texttt{numbers} Module}
+\subsection{\texttt{analysis} Module}
 
 The physical build order of the \texttt{dedekind.ontology} module mirrors this conceptual hierarchy. By enforcing a linear dependency graph—where \texttt{:mereology} is compiled before \texttt{:algebra}—we ensure that the compiler's proof-search for a Ring's identity element is grounded in the prior verification of its mereological subobjects. This hierarchy transforms the C++ module mapper into a directed acyclic graph of mathematical truth.
 

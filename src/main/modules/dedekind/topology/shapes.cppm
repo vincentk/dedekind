@@ -115,4 +115,13 @@ static_assert(IsJoinSemilattice<Ray<double, Direction::Upward>>,
 static_assert(IsMeetSemilattice<Ray<double, Direction::Upward>>,
               "Axiom Failure: Rays must satisfy Idempotent Intersection.");
 
+/** @section ETCS_Verification */
+static_assert(
+    IsCharacteristic<Interval<int>>,
+    "Ontological Failure: Interval must be a valid ETCS Characteristic Arrow.");
+
+static_assert(dedekind::order::IsDirectedSet<Interval<int>::Domain>,
+              "Convergence Failure: The Interval's Domain must support the "
+              "Lattice Join.");
+
 }  // namespace dedekind::topology
