@@ -58,6 +58,7 @@ struct SingletonSet {
   using element_type = T;
   using logic_species = L;
   using cardinality_type = Finite;
+  using is_extensional_tag = void;
   using base_set_type = SingletonSet<T, L>;
 
   /** @section Algebraic_Axioms */
