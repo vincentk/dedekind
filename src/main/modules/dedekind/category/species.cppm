@@ -234,23 +234,86 @@ struct identity_trait<bool, std::logical_and<bool>> {
 };
 
 /**
- * @brief Trait to mark a relation as Reflexive: a ∘ a is always True.
+ * @brief Trait to mark a relation as reflexive: a ~ a = True
  **/
 export template <typename T, typename Rel>
-inline constexpr bool is_reflexive_v = false;
+struct is_reflexive : std::false_type {};
+
+// Discovery: Look for a member variable 'is_reflexive_v'
+template <typename T, typename Rel>
+  requires requires { T::template is_reflexive_v<Rel>; }
+struct is_reflexive<T, Rel>
+    : std::bool_constant<T::template is_reflexive_v<Rel>> {};
+
+// The Bridge (The "v" helper)
+export template <typename T, typename Rel>
+inline constexpr bool is_reflexive_v = is_reflexive<T, Rel>::value;
+
+/** @section The_Reflexivity_Axiom */
+// General case: Any type T is reflexive under std::less_equal
+// if it satisfies basic totally_ordered requirements.
+template <typename T>
+  requires std::totally_ordered<T>
+struct is_reflexive<T, std::less_equal<T>> : std::true_type {};
 
 /**
- * @brief Trait to mark a relation as Transitive: (a ∘ b) && (b ∘ c) => (a ∘ c)
- **/
+ * @concept IsReflexive
+ * @brief Formal verification of the identity relation.
+ */
 export template <typename T, typename Rel>
-inline constexpr bool is_transitive_v = false;
+concept IsReflexive = requires(T a) {
+  { Rel{}(a, a) };
+} && requires { requires is_reflexive_v<T, Rel>; };
+
+/** @section Transitivity: (a <= b && b <= c) => a <= c */
+export template <typename T, typename Rel>
+struct is_transitive : std::false_type {};
+
+template <typename T, typename Rel>
+  requires requires { T::template is_transitive_v<Rel>; }
+struct is_transitive<T, Rel>
+    : std::bool_constant<T::template is_transitive_v<Rel>> {};
+
+export template <typename T, typename Rel>
+inline constexpr bool is_transitive_v = is_transitive<T, Rel>::value;
+
+template <typename T>
+  requires std::is_integral_v<T> || std::is_same_v<T, bool>
+struct is_transitive<T, std::less_equal<T>> : std::true_type {};
 
 /**
- * @brief Trait to mark a relation as Antisymmetric: (a ∘ b) && (b ∘ a) => (a ==
- * b)
- **/
+ * @concept IsTransitive
+ * @brief Formal verification: (a ≤ b ∧ b ≤ c) ⇒ a ≤ c.
+ */
 export template <typename T, typename Rel>
-inline constexpr bool is_antisymmetric_v = false;
+concept IsTransitive = requires(T a, T b) {
+  { Rel{}(a, b) } -> std::convertible_to<bool>;
+} && requires { requires is_transitive_v<T, Rel>; };
+
+/** @section Antisymmetry: (a <= b && b <= a) => a == b */
+export template <typename T, typename Rel>
+struct is_antisymmetric : std::false_type {};
+
+template <typename T, typename Rel>
+  requires requires { T::template is_antisymmetric_v<Rel>; }
+struct is_antisymmetric<T, Rel>
+    : std::bool_constant<T::template is_antisymmetric_v<Rel>> {};
+
+export template <typename T, typename Rel>
+inline constexpr bool is_antisymmetric_v = is_antisymmetric<T, Rel>::value;
+
+template <typename T>
+  requires std::is_integral_v<T> || std::is_same_v<T, bool>
+struct is_antisymmetric<T, std::less_equal<T>> : std::true_type {};
+
+/**
+ * @concept IsAntisymmetric
+ * @brief Formal verification: (a ≤ b ∧ b ≤ a) ⇒ a = b.
+ */
+export template <typename T, typename Rel>
+concept IsAntisymmetric = requires(T a, T b) {
+  { Rel{}(a, b) } -> std::convertible_to<bool>;
+} && requires { requires is_antisymmetric_v<T, Rel>; };
 
 // --- Integers: The finite ring (Z, +, *) ---
 
@@ -514,6 +577,10 @@ struct is_idempotent<T, std::bit_and<T>> : std::true_type {};
 template <typename T>
   requires std::is_integral_v<T>
 struct is_idempotent<T, std::bit_or<T>> : std::true_type {};
+
+template <typename T>
+  requires std::is_integral_v<T>
+struct is_associative<T, std::bit_or<T>> : std::true_type {};
 
 // Finite and transfinite species are mutually exclusive.
 

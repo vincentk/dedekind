@@ -232,8 +232,8 @@ export template <typename F, typename G>
     typename std::decay_t<G>::Domain;
     typename std::decay_t<G>::Codomain;
     // The strict Categorical Identity:
-    requires std::same_as<typename std::decay_t<F>::Codomain, 
-                         typename std::decay_t<G>::Domain>;
+    requires std::same_as<typename std::decay_t<F>::Codomain,
+                          typename std::decay_t<G>::Domain>;
   }
 constexpr auto operator>>(F&& f, G&& g) {
   using F_pure = std::decay_t<F>;

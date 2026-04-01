@@ -342,8 +342,10 @@ concept IsSet =
  * b) compose with the morphism. Here, we prefer a).
  **/
 export template <IsSet S, typename F>
-  requires IsArrow<F, S, typename F::Codomain> && // F accepts the Set itself as Domain
-           std::same_as<typename S::Domain, typename F::Domain::Domain> // Species Match
+  requires IsArrow<F, S, typename F::Codomain> &&  // F accepts the Set itself
+                                                   // as Domain
+           std::same_as<typename S::Domain,
+                        typename F::Domain::Domain>  // Species Match
 constexpr auto operator>>(const S& s, const F& f) {
   return f(s);
 }
