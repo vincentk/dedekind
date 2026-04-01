@@ -181,16 +181,79 @@ export constexpr Ternary operator!(Ternary a) { return TernaryLogic::NOT(a); }
 template <typename T>
 struct SpeciesTraits;
 
+/**
+ * @brief The Primary Template: The "Internal Discovery" Bridge.
+ * By default, we assume the species defines its own metadata.
+ */
+template <typename T>
+struct SpeciesTraits {};
+
+/** @brief Helper to resolve logic species without hard errors */
+template <typename T>
+struct GetLogic {
+  using type = ClassicalLogic;
+};
+
+template <typename T>
+  requires requires { typename T::logic_species; }
+struct GetLogic<T> {
+  using type = typename T::logic_species;
+};
+
+/** @brief Specialization: For types that define their own internal ontology. */
+template <typename T>
+  requires requires {
+    typename T::Domain;
+    typename T::Codomain;
+  }
+struct SpeciesTraits<T> {
+  using Domain = typename T::Domain;
+  using Codomain = typename T::Codomain;
+
+  // Safe resolution: No member access on the fallback
+  using species = typename GetLogic<T>::type;
+};
+
 /** @brief Specialization for the Classical (Boolean) Topos. */
 template <>
 struct SpeciesTraits<bool> {
   using species = ClassicalLogic;
+
+  using Domain = bool;
+  using Codomain = bool;
+
+  /** @section Algebraic_Axioms */
+  template <typename Op>
+  static constexpr bool is_associative_v = true;
+  template <typename Op>
+  static constexpr bool is_idempotent_v =
+      std::is_same_v<Op, std::bit_and<bool>> ||
+      std::is_same_v<Op, std::bit_or<bool>> ||
+      std::is_same_v<Op, std::logical_and<bool>> ||
+      std::is_same_v<Op, std::logical_or<bool>>;
 };
 
 /** @brief Specialization for the Kleene (Ternary) Topos. */
 template <>
 struct SpeciesTraits<Ternary> {
   using species = TernaryLogic;
+};
+
+/** @brief Specialization for the Integer Ring (The Discrete Topos). */
+template <std::integral T>
+struct SpeciesTraits<T> {
+  using species = ClassicalLogic;  // The Logic
+
+  // THE BLESSING:
+  using Domain = T;    // The Domain identity
+  using Codomain = T;  // The Codomain identity
+
+  /** @section Algebraic_Axioms */
+  template <typename Op>
+  static constexpr bool is_associative_v = true;
+  template <typename Op>
+  static constexpr bool is_idempotent_v =
+      std::is_same_v<Op, std::bit_and<T>> || std::is_same_v<Op, std::bit_or<T>>;
 };
 
 /** @section The Point-Free Composition Engine */

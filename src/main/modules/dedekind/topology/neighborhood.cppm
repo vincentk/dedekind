@@ -34,7 +34,7 @@ module;
 #include <concepts>
 #include <functional>
 
-export module dedekind.topology:topology;
+export module dedekind.topology:neighborhood;
 
 import dedekind.category;
 import dedekind.sets;

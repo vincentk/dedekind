@@ -8,7 +8,7 @@ import dedekind.topology;
 using namespace dedekind::topology;
 
 TEST_CASE("Topology: Rules of Continuity Coverage", "[topology][continuity]") {
-  using ℝ = double;
+  using ℝ = int;
   using UnitRay = Ray<ℝ, Direction::Upward>;
   using UnitInterval = Interval<ℝ>;
 

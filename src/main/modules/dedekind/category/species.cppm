@@ -38,6 +38,8 @@ module;
 
 export module dedekind.category:species;
 
+import :logic;
+
 namespace dedekind::category {
 
 /**
@@ -64,18 +66,40 @@ struct Morphism {
 };
 
 /**
+ * FIXME: The template parameters A, B are actually redundant
+ * if we find a decent way to deal with lambdas. Presently, we do
+ * a fair amount of lookup so that we can inject type metadata for
+ * primitive types via SpeciesTraits, pass the Domain and Codomain
+ * via the Functor F or pass them explicitly via A, B.
+ *
  * @concept IsArrow
  * @brief Structural verification of a Morphism signature.
  * @details This is the 'Static Blueprint' of a transformation.
  *          It ensures the type can act as a mapping between species.
  */
 export template <typename F, typename A, typename B>
-concept IsArrow = requires(F f, A x) {
-  typename F::Domain;
-  typename F::Codomain;
-  requires std::same_as<typename F::Domain, A>;
-  requires std::same_as<typename F::Codomain, B>;
-  { f(x) } -> std::same_as<B>;
+concept IsArrow = requires {
+  // 1. The Registry Check (External Traits)
+  typename SpeciesTraits<F>::Domain;
+  typename SpeciesTraits<F>::Codomain;
+} && requires(F f, A x) {
+  // 2. The Routing Logic
+  requires[]() constexpr {
+    if constexpr (requires { typename SpeciesTraits<F>::Domain; }) {
+      // It's a Blessed Primitive (like int)
+      // We only check that the Trait endpoints match A and B.
+      // We do NOT try to call 'f(x)' because int is not a function.
+      return std::same_as<typename SpeciesTraits<F>::Domain, A> &&
+             std::same_as<typename SpeciesTraits<F>::Codomain, B>;
+    } else {
+      // It's a functional object (Lambda, Morphism, std::function)
+      // Here we DO check that { f(x) } works.
+      return requires {
+        { f(x) } -> std::same_as<B>;
+      };
+    }
+  }
+  ();
 };
 
 /**
