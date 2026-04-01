@@ -38,10 +38,12 @@ export module dedekind.algebra:rings;
 
 import dedekind.category;
 import dedekind.order;
+import dedekind.sets;
 
 namespace dedekind::algebra {
 using namespace dedekind::category;
 using namespace dedekind::order;
+using namespace dedekind::sets;
 
 /**
  * @section Algebra: The study of operations and structures.
@@ -110,13 +112,7 @@ concept IsCommutativeMonoid = IsMonoid<T, Op> && IsCommutative<T, Op>;
  */
 export template <typename T>
 concept IsSemiring =
-    IsCommutativeMonoid<T, std::plus<T>> && IsMonoid<T, std::multiplies<T>> &&
-    IsSemimodule<T, T> &&  // The "Day 1" elegance: T acts on T.
-    requires(T a, T b, T c) {
-      // Distributivity of Multiplication over Addition
-      { a * (b + c) } -> std::same_as<T>;  // Left-distributive
-      { (a + b) * c } -> std::same_as<T>;  // Right-distributive
-    };
+    IsCommutativeMonoid<T, std::plus<T>> && IsMonoid<T, std::multiplies<T>> && IsLinearAction<T, T>;
 
 /**
  * @concept IsGroup
@@ -134,8 +130,7 @@ concept IsGroup = IsMonoid<T, Op> && IsInvertible<T, Op>;
  * Wikipedia: Abelian group
  */
 export template <typename T, typename Op = std::plus<T>>
-concept IsAbelianGroup =
-    IsModule<T, T> && IsGroup<T, Op> && IsCommutativeMonoid<T, Op>;
+concept IsAbelianGroup = IsGroup<T, Op> && IsCommutative<T, Op>;
 
 /**
  * @concept IsOrderedAbelianGroup
@@ -217,18 +212,6 @@ export template <typename M>
 concept IsAlgebraicallyClosed = IsField<M>;  // Refined by its use in Algebra_ℂ
 
 /**
- * @concept IsVectorSpace
- * @brief A Module where the scalar provider is a Field.
- * @details This is the "Gold Standard" for geometry and physics.
- * While a Module represents a Lattice, a Vector Space represents
- * a "Flat" space where division by scalars (scaling down) is always possible.
- *
- * Wikipedia: Vector space
- */
-export template <typename V, typename F>
-concept IsVectorSpace = IsModule<V, F> && IsField<F>;
-
-/**
  * @concept IsBounded
  * @brief Theorem: Every Extensional species is Bounded (in our finite
  * universe).
@@ -249,42 +232,6 @@ concept IsScalableBy = requires(T x, N n) {
   { x * n } -> std::same_as<T>;
 };
 
-/**
- * @concept IsSemimodule
- * @brief A Monoid (V) acted upon by a Semiring (S).
- */
-export template <typename V, typename S>
-concept IsSemimodule =
-    IsMonoid<V, std::plus<V>> && IsSemiring<S> && requires(V v, S s) {
-      { v * s } -> std::same_as<V>;
-    };
-
-/**
- * @section Algebra: The Linear Shelf.
- * @concept IsModule
- * @brief An Abelian Group V acted upon by a Ring S.
- * Wikipedia: Module (mathematics)
- */
-export template <typename V, typename S>
-concept IsModule = IsAbelianGroup<V> && IsRing<S> && requires(V v, S s) {
-  { v * s } -> std::same_as<V>;
-  { s * v } -> std::same_as<V>;
-};
-
-/**
- * @concept IsVectorSpace
- * @brief A Module where the Scalars form a Field.
- * Wikipedia: Vector space
- */
-export template <typename V, typename S>
-concept IsVectorSpace = IsModule<V, S> && IsField<S>;
-
-// If T is a Group under addition, then '+' is legally defined.
-template <typename T>
-  requires IsGroupoid<T, std::plus<T>>
-constexpr T operator+(T a, T b) {
-  return std::plus<T>{}(a, b);
-}
 
 // If T is a Ring, then '*' is legally defined.
 template <typename T>

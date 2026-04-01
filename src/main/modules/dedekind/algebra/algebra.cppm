@@ -15,5 +15,6 @@ export module dedekind.algebra;
 
 export import :euclidean;
 export import :groups;
+export import :modules;
 export import :polynomials;
 export import :rings;
