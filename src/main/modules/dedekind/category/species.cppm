@@ -534,6 +534,24 @@ concept IsTransfinite =
 export template <typename T>
 concept IsFinite = !IsTransfinite<T>;
 
+/** @brief Primary trait: The distinguished 'Point' of a species. */
+export template <typename T>
+struct origin_trait {
+  // Empty by default.
+};
+
+/** @brief Atomic Proof: Integrals are pointed at 0. */
+template <std::integral T>
+struct origin_trait<T> {
+  static constexpr T value = 0;
+};
+
+/** @brief Atomic Proof: Floating-point types are pointed at 0. */
+template <std::floating_point T>
+struct origin_trait<T> {
+  static constexpr T value = 0.0;
+};
+
 /**
  * @concept IsPointed
  * @brief The Law of the Origin: A species with a distinguished structural
@@ -559,6 +577,8 @@ concept IsFinite = !IsTransfinite<T>;
  */
 export template <typename T>
 concept IsPointed = requires {
+  { origin_trait<T>::value } -> std::same_as<const T&>;
+} || requires {
   { T::origin() } -> std::same_as<T>;
 };
 
