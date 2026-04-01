@@ -420,6 +420,8 @@ struct NaturalLogic {
 
   using species = std::conditional_t<is_extensional_v && !is_infinite,
                                      ClassicalLogic, TernaryLogic>;
+
+  using type = typename species::type;
 };
 
 };  // namespace dedekind::sets
