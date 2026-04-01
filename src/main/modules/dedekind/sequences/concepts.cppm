@@ -25,10 +25,12 @@ module;
 
 export module dedekind.sequences:sequences;
 
+import dedekind.category;
 import dedekind.sets;
 import dedekind.order;
 
 namespace dedekind::sequences {
+using namespace dedekind::category;
 using namespace dedekind::sets;
 using namespace dedekind::order;
 
