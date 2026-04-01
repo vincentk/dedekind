@@ -34,12 +34,10 @@ using namespace dedekind::category;
 using namespace dedekind::sets;
 using namespace dedekind::order;
 
-/** @concept IsNet: A Morphism whose Domain is a Directed Set. */
+/** @concept IsNet: A Morphism from a Directed Set. */
 export template <typename N>
-concept IsNet = requires {
-  typename N::Domain;
-  requires dedekind::order::IsDirectedSet<typename N::Domain>;
-};
+concept IsNet = IsCharacteristic<N> &&  // It maps its domain to a truth value?
+                IsDirectedSet<typename N::Domain>;
 
 /**
  * @concept IsSequence
@@ -47,7 +45,8 @@ concept IsNet = requires {
  */
 export template <typename Seq>
 concept IsSequence = IsNet<Seq> && requires {
-  typename Seq::value_type;
+  // Refactored: value_type -> Codomain
+  typename Seq::Codomain;
   typename Seq::Domain;
 } && requires(Seq s) {
   requires IsSet<typename Seq::Domain>;

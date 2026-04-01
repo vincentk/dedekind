@@ -51,10 +51,10 @@ TEST_CASE("Category: The Species Feature Cube", "[category][species][cube]") {
     audit_feature_cube<T, std::bit_or<T>>();
   }
 
-  SECTION("The Floating Species (double)") {
-    using T = double;
-    // This is where the Auditor (Clang) gets pedantic:
-    // is_reflexive_v should fail due to NaN
-    // is_associative_v should fail due to precision loss
-  }
+  // SECTION("The Floating Species (double)") {
+  //   using T = double;
+  //  This is where the Auditor (Clang) gets pedantic:
+  //  is_reflexive_v should fail due to NaN
+  //  is_associative_v should fail due to precision loss
+  //}
 }

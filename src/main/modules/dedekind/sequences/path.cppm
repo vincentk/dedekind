@@ -43,7 +43,8 @@ using namespace dedekind::category;
  */
 export template <typename T>
 struct Path {
-  using Domain = T;
+  using Domain = std::size_t;
+  using Codomain = T;
 
   /** @brief The underlying mapping f(n). */
   std::function<T(std::size_t)> generator;
