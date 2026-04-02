@@ -37,6 +37,7 @@ module;
 
 #include <algorithm>
 #include <concepts>
+#include <functional>
 
 export module dedekind.category:logic;
 
