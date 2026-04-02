@@ -90,7 +90,7 @@ concept IsArrow = requires {
       // We only check that the Trait endpoints match A and B.
       // We do NOT try to call 'f(x)' because int is not a function.
       return std::same_as<typename SpeciesTraits<F>::Domain, A> &&
-             std::same_as<typename SpeciesTraits<F>::Codomain, B>;
+             std::convertible_to<typename SpeciesTraits<F>::Codomain, B>;
     } else {
       // It's a functional object (Lambda, Morphism, std::function)
       // Here we DO check that { f(x) } works.
