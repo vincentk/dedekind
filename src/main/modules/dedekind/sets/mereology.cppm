@@ -62,15 +62,15 @@ export template <typename S1, typename S2, typename L = ClassicalLogic>
 // FIXME Use the concept definitions from the :species.
 // FIXME This is transitive, anticommutative...
 concept IsPartOf = requires(const S1& p, const S2& w) {
-  // 1. Structural Link: Either it's a Blessed Primitive identity...
-  (requires { typename SpeciesTraits<S2>::Domain; } &&
-   (std::same_as<S1, S2> || std::convertible_to<S1, S2>)) ||
-      // ...OR it's a Functional Set that we can call.
-      requires {
-        { w(p) } -> std::same_as<typename L::type>;
-      };
+  // 1. The Logic Router:
+  // We use || to prevent Dr. Clang from 'eagerly' calling w(p)
+  (requires {
+    typename SpeciesTraits<S2>::Domain;
+  } && (std::same_as<S1, S2> || std::convertible_to<S1, S2>)) || requires {
+    { w(p) } -> std::same_as<typename L::type>;
+  };
 
-  // 2. Relational Link: The Subset check
+  // 2. The Subset check
   { p <= w } -> std::same_as<typename L::type>;
 };
 
