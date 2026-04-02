@@ -179,30 +179,33 @@ export constexpr Ternary operator!(Ternary a) { return TernaryLogic::NOT(a); }
  *
  * @tparam T The raw truth-value type (e.g., bool, float, Ternary).
  */
-template <typename T>
+export template <typename T>
 struct SpeciesTraits;
 
 /**
  * @brief The Primary Template: The "Internal Discovery" Bridge.
  * By default, we assume the species defines its own metadata.
  */
-template <typename T>
+export template <typename T>
 struct SpeciesTraits {};
 
 /** @brief Helper to resolve logic species without hard errors */
-template <typename T>
+export template <typename T>
 struct GetLogic {
   using type = ClassicalLogic;
 };
 
-template <typename T>
+export template <typename T>
   requires requires { typename T::logic_species; }
 struct GetLogic<T> {
   using type = typename T::logic_species;
 };
 
+/** @section Cardinality_Ontology_Tokens */
+export enum class CardinalityTag { Finite, Countable, Continuum };
+
 /** @brief Specialization: For types that define their own internal ontology. */
-template <typename T>
+export template <typename T>
   requires requires {
     typename T::Domain;
     typename T::Codomain;
@@ -216,12 +219,12 @@ struct SpeciesTraits<T> {
 };
 
 /** @brief Specialization for the Classical (Boolean) Topos. */
-template <>
+export template <>
 struct SpeciesTraits<bool> {
   using species = ClassicalLogic;
-
   using Domain = bool;
   using Codomain = bool;
+  static constexpr auto cardinality = CardinalityTag::Finite;
 
   /** @section Algebraic_Axioms */
   template <typename Op>
@@ -235,19 +238,20 @@ struct SpeciesTraits<bool> {
 };
 
 /** @brief Specialization for the Kleene (Ternary) Topos. */
-template <>
+export template <>
 struct SpeciesTraits<Ternary> {
   using species = TernaryLogic;
 };
 
 /** @brief Specialization for the Integer Ring (The Discrete Topos). */
-template <std::integral T>
+export template <std::integral T>
 struct SpeciesTraits<T> {
   using species = ClassicalLogic;  // The Logic
 
   // THE BLESSING:
-  using Domain = T;    // The Domain identity
-  using Codomain = T;  // The Codomain identity
+  using Domain = T;
+  using Codomain = T;
+  static constexpr auto cardinality = CardinalityTag::Countable;
 
   /** @section Algebraic_Axioms */
   template <typename Op>

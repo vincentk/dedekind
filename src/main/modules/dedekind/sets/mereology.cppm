@@ -61,8 +61,17 @@ using namespace dedekind::category;
 export template <typename S1, typename S2, typename L = ClassicalLogic>
 // FIXME Use the concept definitions from the :species.
 // FIXME This is transitive, anticommutative...
-concept IsPartOf = requires(S1 a, S2 b) {
-  { a <= b } -> std::same_as<typename L::type>;
+concept IsPartOf = requires(const S1& p, const S2& w) {
+  // 1. Structural Link: Either it's a Blessed Primitive identity...
+  (requires { typename SpeciesTraits<S2>::Domain; } &&
+   (std::same_as<S1, S2> || std::convertible_to<S1, S2>)) ||
+      // ...OR it's a Functional Set that we can call.
+      requires {
+        { w(p) } -> std::same_as<typename L::type>;
+      };
+
+  // 2. Relational Link: The Subset check
+  { p <= w } -> std::same_as<typename L::type>;
 };
 
 /** @brief The Dual / Converse of the Part-Whole relation. */
@@ -80,10 +89,10 @@ constexpr bool operator>=(const S2& whole, const S1& part) {
  * Membership as a Morphism. In the Dedekind universe, the presence of
  * a part within a whole is defined by the functional application y(part).
  *
- * This concept anchors the syntax for the "Characteristic Function" (Ω = y(x)).
- * While the relational syntax (x < y) is established here, the structural
- * "Soul" of the relation—including transitivity and antisymmetry—is
- * formally proven downstream in :order or :algebra.
+ * This concept anchors the syntax for the "Characteristic Function" (Ω =
+ * y(x)). While the relational syntax (x < y) is established here, the
+ * structural "Soul" of the relation—including transitivity and
+ * antisymmetry—is formally proven downstream in :order or :algebra.
  *
  * @tparam Part The potential subobject or element.
  * @tparam Whole The containing mereological body or species.
@@ -234,8 +243,8 @@ concept IsAtom = IsMereologicalLattice<S, L> && requires(S x) {
     { (y <= x) } -> std::same_as<typename L::type>;
     /**
      * @theorem If (y <= x) is True, then (y == x ||
-     * IsInitialObject<decltype(y)>). In C++23, we enforce this as a structural
-     * requirement for species that claim to be Atomic.
+     * IsInitialObject<decltype(y)>). In C++23, we enforce this as a
+     * structural requirement for species that claim to be Atomic.
      */
   };
 };
@@ -267,8 +276,8 @@ concept IsSystem = IsBoundedLattice<S> && requires {
  * @brief The Existence of Extreme Bounds.
  *
  * This concept governs the species' ability to find a Supremum (Least Upper
- * Bound) or Infimum (Greatest Lower Bound). This is the functional requirement
- * for Dedekind Completeness.
+ * Bound) or Infimum (Greatest Lower Bound). This is the functional
+ * requirement for Dedekind Completeness.
  *
  * @tparam S A set species.
  */
@@ -324,6 +333,25 @@ export using ℶ_1 = ℵ<1>;  // The Continuum (assuming GCH)
 
 /** @section The_Body: The Logic of Presence */
 
+// FIXME: to be removed when migrating to full-on ETCS:
+// 1. Primary Template: The "Passive" Fallback (Blessed Types)
+template <typename S, typename Enable = void>
+struct SetMetadata {
+  using Domain = typename SpeciesTraits<S>::Domain;
+
+  // Translate the Ontology Token into the Mereological Type
+  using Cardinality = std::conditional_t<
+      SpeciesTraits<S>::cardinality == CardinalityTag::Finite, Finite, ℵ_0>;
+};
+
+// 2. Specialization: Only for types with internal members (Custom Species)
+template <typename S>
+struct SetMetadata<
+    S, std::void_t<typename S::Domain, typename S::cardinality_type>> {
+  using Domain = typename S::Domain;
+  using Cardinality = typename S::cardinality_type;
+};
+
 /**
  * @concept IsSet
  * @brief The Universal Morphism of Presence.
@@ -332,18 +360,26 @@ export using ℶ_1 = ℵ<1>;  // The Continuum (assuming GCH)
 export template <typename S, typename Ω = ClassicalLogic>
 concept IsSet =
     IsMereologicalLattice<S, Ω> && IsCharacteristic<S, Ω> && requires {
-      typename S::Domain;
-      typename S::cardinality_type;
-      requires IsCardinality<typename S::cardinality_type> &&
-                   IsProperPart<typename S::Domain, S, Ω>;
-    } && requires(const S s, const typename S::Domain v) {
-      { !s } -> IsLattice;  // The Complement (Remainder)
-      { s.cardinality() } -> std::same_as<typename S::cardinality_type>;
+      // 1. Structural Metadata
+      requires IsCardinality<typename SetMetadata<S>::Cardinality>;
+      requires IsProperPart<typename SetMetadata<S>::Domain, S, Ω>;
+    } && requires(const S s) {
+      // 2. Functional Laws
+      { !s } -> IsLattice;
 
-      // FIXME: power set, Cartesian product, etc. should be defined here as
-      // well.
-      // FIXME: Maybe even the existential and universal quantifiers as
-      // morphisms to Ω.
+      // 3. Conditional Cardinality (The "Slack")
+      // We check the property directly rather than via a lambda
+      requires requires {
+        {
+          s.cardinality()
+        } -> std::same_as<typename SetMetadata<S>::Cardinality>;
+      } || !requires { s.cardinality(); };
+
+      // 4. Domain Mapping (The "Presence" check)
+      // Simply ensure the characteristic function is callable with the Domain
+      {
+        s(std::declval<typename SetMetadata<S>::Domain>())
+      } -> std::same_as<typename Ω::type>;
     } && IsLattice<S>;
 
 /**
@@ -351,8 +387,8 @@ concept IsSet =
  * b) compose with the morphism. Here, we prefer a).
  **/
 export template <IsSet S, typename F>
-  requires IsArrow<F, S, typename F::Codomain> &&  // F accepts the Set itself
-                                                   // as Domain
+  requires IsArrow<F, S, typename F::Codomain> &&  // F accepts the Set
+                                                   // itself as Domain
            std::same_as<typename S::Domain,
                         typename F::Domain::Domain>  // Species Match
 constexpr auto operator>>(const S& s, const F& f) {
@@ -418,9 +454,9 @@ concept IsPointedSet = IsSet<S> && IsPointed<T>;
  * @brief Deduce the governing logic species from the nature of the Base.
  *
  * Theorem:
- * If a Species is Finite AND Extensional, it is a Classical Topos (Binary).
- * If a Species is Transfinite OR Non-Extensional, it is a Kleene Topos
- * (Ternary).
+ * If a Species is Finite AND Extensional, it is a Classical Topos
+ * (Binary). If a Species is Transfinite OR Non-Extensional, it is a
+ * Kleene Topos (Ternary).
  */
 export template <typename Base>
 struct NaturalLogic {
@@ -431,5 +467,4 @@ struct NaturalLogic {
                                      ClassicalLogic, TernaryLogic>;
   using type = species;
 };
-
 };  // namespace dedekind::sets
