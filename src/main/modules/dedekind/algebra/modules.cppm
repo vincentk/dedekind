@@ -1,12 +1,23 @@
 /**
- * @file ontology:algebra.cppm
+ * @file algebra:modules.cppm
  * @partition :modules
- * @brief Level 3.2: The Linear Synthesis (Modules and Vector Spaces).
+ * @brief Level 3.6: The Linear Synthesis (Modules and Vector Spaces).
  *
- * @section Modules: The Geometry of Scaling
- * This partition defines the "Action" of a Ring on an Abelian Group.
- * In the Dedekind ontology, a Module is the bridge between
- * Pure Algebra and Metric Geometry.
+ * @copyright 2026 The Dedekind Authors
+ * Licensed under the Apache License, Version 2.0.
+ *
+ * @section The_Noetherian_Influence
+ * „Die Arithmetik, Algebra und Analysis sind nur eine einzige Wissenschaft,
+ *  die Wissenschaft der Zahlen.“
+ *  (Arithmetic, algebra, and analysis are but a single science,
+ *   the science of numbers.)
+ *  — Emmy Noether
+ *
+ * @section Taxonomy_of_Influence
+ * A Module is the reification of 'Structural Action'. It defines how
+ * a Ring (the Scalar) acts upon an Additive Group (the Vector),
+ * creating the 'Linear Action' that serves as the engine for all
+ * Vector Spaces and Metric Geometry in the Dedekind topos.
  */
 module;
 

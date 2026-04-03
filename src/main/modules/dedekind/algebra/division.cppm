@@ -1,7 +1,24 @@
 /**
- * @file dedekind/algebra/polynomials.cppm
- * @partition :euclidean
- * @brief Level 3.3: The Euclidean Algorithm for R[x].
+ * @file algebra:division.cppm
+ * @partition :division
+ * @brief Level 3.3: The Euclidean Engine (Division Rings and Domains).
+ *
+ * @copyright 2026 The Dedekind Authors
+ * Licensed under the Apache License, Version 2.0.
+ *
+ * @section The_Euclidean_Restoration
+ * « إن هذا العلم، أي الجبر، غايته استخراج المجهولات، سواء كانت
+ *   مقادير عددية أو هندسية. »
+ * (The aim of this science, Algebra, is to extract unknowns,
+ *  whether they be numerical or geometrical magnitudes.)
+ *  — Omar Khayyam (عمر الخيام), 'Treatise on Demonstration of Problems of
+ * Algebra'
+ *
+ * @section Taxonomy_of_Extraction
+ * This partition reifies the "Morphism of Remainder." By establishing
+ * IsEuclidean, we enable the recursive balancing of magnitudes—the
+ * foundational GCD algorithm that allows for the 'restoration' of
+ * simpler algebraic forms through the Euclidean algorithm.
  */
 module;
 
