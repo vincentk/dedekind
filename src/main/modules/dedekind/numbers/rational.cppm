@@ -91,3 +91,14 @@ static_assert(IsField<Rational<int>>,
 static_assert((Rational<int>(2, 3).inverse().num() == 3));
 
 }  // namespace dedekind::numbers
+
+namespace dedekind::category {
+export template <IsIntegralDomain Z>
+struct SpeciesTraits<Rational<Z>> {
+  using Domain = Z;
+  using Codomain = Rational<Z>;
+
+  // Categorical Metadata for Level 9 resolution
+  static constexpr bool is_dense = true;
+  static constexpr CardinalityTag cardinality = CardinalityTag::Countable;
+};
