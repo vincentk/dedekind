@@ -3,8 +3,27 @@
  * @partition :actions
  * @brief Level 0.5: The Morphisms of Influence (Actions and Representations).
  *
+ * @section The_Action_Axiom
+ * « Качественные методы позволяют исследовать структуру пространства
+ *   через инвариантные множества и их преобразования. »
+ *  (Qualitative methods allow the study of the structure of space
+ *   through invariant sets and their transformations.)
+ *  — V. V. Stepanov (В. В. Степанов), 'Курс дифференциальных уравнений'
+ *
+ * @section Structural_Influence
+ * While Level 0.1 (:morphisms) defines the mapping between species,
+ * Level 0.5 defines the "Action" of a Species S upon a Species M (S ⟳ M).
+ * In the Dedekind structuralist view, an Action is the reification of
+ * Scalar multiplication, leading naturally to the concepts of Modules,
+ * Vector Spaces, and eventually, the Linear Algebra of the Continuum.
+ *
+ * @section The_PR96_Shielding_Logic
+ * To ensure zero-overhead and prevent "too few arguments" errors when
+ * checking binary functors (like std::multiplies) against unary morphism
+ * concepts, we utilize "Signature Shields." This allows the compiler to
+ * reason about the algebraic law without attempting an invalid invocation.
+ *
  * @copyright 2026 The Dedekind Authors
- * Licensed under the Apache License, Version 2.0.
  */
 module;
 

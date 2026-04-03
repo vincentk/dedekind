@@ -26,6 +26,7 @@ module;
 export module dedekind.sequences:cauchy;
 
 import dedekind.category;
+import dedekind.morphologies;
 import dedekind.order;
 import :path;
 import :limits;
