@@ -127,29 +127,39 @@ using Polynomial = RigPolynomial<R>;
 
 }  // namespace dedekind::algebra
 
+/** @section Categorical_Discovery_Bridge */
 namespace dedekind::category {
 
+// 1. Explicitly enable the Identity Axiom for the Monoid check
 template <typename R>
-inline constexpr bool is_associative_v<algebra::RigPolynomial<R>, std::plus<>> =
+inline constexpr bool has_identity_v<algebra::RigPolynomial<R>, std::plus<>> =
     true;
 
-// ADD THIS: Multiplicative Associativity (Cauchy Product is associative)
 template <typename R>
 inline constexpr bool
-    is_associative_v<algebra::RigPolynomial<R>, std::multiplies<>> = true;
+    has_identity_v<algebra::RigPolynomial<R>, std::multiplies<>> = true;
 
+// 2. Provide the actual Identity Morphisms
 template <typename R>
 struct identity_trait<algebra::RigPolynomial<R>, std::plus<>> {
   static constexpr algebra::RigPolynomial<R> value() { return {}; }
 };
 
-// Multiplicative Identity (The constant polynomial '1')
 template <typename R>
 struct identity_trait<algebra::RigPolynomial<R>, std::multiplies<>> {
   static constexpr algebra::RigPolynomial<R> value() {
     return algebra::RigPolynomial<R>{identity_v<R, std::multiplies<>>};
   }
 };
+
+// 3. Mark Associativity (required for IsSemigroup)
+template <typename R>
+inline constexpr bool is_associative_v<algebra::RigPolynomial<R>, std::plus<>> =
+    true;
+
+template <typename R>
+inline constexpr bool
+    is_associative_v<algebra::RigPolynomial<R>, std::multiplies<>> = true;
 
 // OPTIONAL: If IsSemiring also probes Commutativity
 template <typename R>

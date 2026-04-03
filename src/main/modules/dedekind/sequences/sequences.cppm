@@ -7,6 +7,6 @@
 
 export module dedekind.sequences;
 
-export import :concepts;
+export import :net;
 export import :limits;
 export import :path;

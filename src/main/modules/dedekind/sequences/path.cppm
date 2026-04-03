@@ -29,7 +29,7 @@ module;
 export module dedekind.sequences:path;
 
 import dedekind.category;
-import :sequences;
+import :net;
 
 namespace dedekind::sequences {
 

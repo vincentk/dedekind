@@ -57,8 +57,8 @@ using namespace dedekind::sets;
  * By bootstrapping, we ensure that the multiplication is Abelian
  * before we attempt to invert it.
  */
-export template <IsCommutativeRing T>
-concept IsField = IsDivisionRing<T>;
+export template <typename T>
+concept IsField = IsCommutativeRing<T> && IsDivisionRing<T>;
 
 /**
  * @concept IsAlgebraicallyClosed
@@ -70,8 +70,9 @@ concept IsField = IsDivisionRing<T>;
  *
  * @tparam F A species already established as a Field.
  */
-export template <IsField F>
-concept IsAlgebraicallyClosed = true;  // Refined by its use in Algebra_ℂ
+export template <typename T>
+concept IsAlgebraicallyClosed =
+    IsField<T> && true;  // Refined by its use in Algebra_ℂ
 
 /**
  * @concept IsBounded

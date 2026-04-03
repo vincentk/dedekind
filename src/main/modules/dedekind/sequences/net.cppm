@@ -23,7 +23,7 @@ module;
 #include <concepts>
 #include <cstddef>
 
-export module dedekind.sequences:sequences;
+export module dedekind.sequences:net;
 
 import dedekind.category;
 import dedekind.sets;
