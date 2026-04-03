@@ -18,6 +18,50 @@ import :rings;
 namespace dedekind::algebra {
 
 /**
+ * @concept IsCommutativeRing
+ * @brief A Ring where multiplication is also commutative.
+ * @details This is the foundation for Z, Q, and R.
+ * Wikipedia: Commutative ring
+ */
+export template <typename T>
+concept IsCommutativeRing =
+    IsRing<T> && IsCommutativeMonoid<T, std::multiplies<T>>;
+
+/**
+ * @concept IsEuclidean
+ * @brief A Commutative Ring with a division algorithm.
+ * @details For any a, b (b ≠ 0), there exist q, r such that a = bq + r.
+ *
+ * Wikipedia: Euclidean domain
+ */
+export template <typename T>
+concept IsEuclidean =
+    IsDividableChain<T> && IsCommutativeRing<T> && requires(T a, T b) {
+      // The Division Morphism
+      { a / b } -> std::same_as<T>;
+      // The Remainder Morphism (The "Scissors")
+      { a % b } -> std::same_as<T>;
+
+      // Euclidean Property: a = (a/b)*b + (a%b)
+      // Note: In C++, we assume std::divides and std::modulus satisfy this.
+    };
+
+/**
+ * @concept IsDivisionRing
+ * @brief A Ring where every non-zero element has a multiplicative inverse.
+ * @details This is the formal "Roadblock" for division by zero.
+ */
+export template <typename T>
+concept IsDivisionRing = IsRing<T> && requires(T a, T b) {
+  /**
+   * @brief The Division Morphism.
+   * Note: The "b != 0" requirement is a runtime contract,
+   * not a compile-time type constraint.
+   */
+  { a / b } -> std::same_as<T>;
+};
+
+/**
  * @brief Performs Euclidean Division on Polynomials.
  * @return A pair {quotient, remainder}.
  */
