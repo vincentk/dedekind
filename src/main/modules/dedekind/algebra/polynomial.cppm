@@ -127,45 +127,41 @@ using Polynomial = RigPolynomial<R>;
 
 }  // namespace dedekind::algebra
 
-/** @section Categorical_Discovery_Bridge */
+// FIXME: this is really not pretty.
 namespace dedekind::category {
 
-// 1. Explicitly enable the Identity Axiom for the Monoid check
 template <typename R>
-inline constexpr bool has_identity_v<algebra::RigPolynomial<R>, std::plus<>> =
+using Poly = algebra::RigPolynomial<R>;
+
+/** @section Symmetry_Axioms */
+template <typename R>
+inline constexpr bool is_associative_v<Poly<R>, std::plus<>> = true;
+template <typename R>
+inline constexpr bool is_associative_v<Poly<R>, std::plus<Poly<R>>> = true;
+
+template <typename R>
+inline constexpr bool is_associative_v<Poly<R>, std::multiplies<>> = true;
+template <typename R>
+inline constexpr bool is_associative_v<Poly<R>, std::multiplies<Poly<R>>> =
     true;
 
+/** @section Identity_Axioms */
 template <typename R>
-inline constexpr bool
-    has_identity_v<algebra::RigPolynomial<R>, std::multiplies<>> = true;
+inline constexpr bool has_identity_v<Poly<R>, std::plus<>> = true;
+template <typename R>
+inline constexpr bool has_identity_v<Poly<R>, std::multiplies<>> = true;
 
-// 2. Provide the actual Identity Morphisms
 template <typename R>
-struct identity_trait<algebra::RigPolynomial<R>, std::plus<>> {
-  static constexpr algebra::RigPolynomial<R> value() { return {}; }
+struct identity_trait<Poly<R>, std::plus<>> {
+  static constexpr Poly<R> value() { return {}; }
 };
 
 template <typename R>
-struct identity_trait<algebra::RigPolynomial<R>, std::multiplies<>> {
-  static constexpr algebra::RigPolynomial<R> value() {
-    return algebra::RigPolynomial<R>{identity_v<R, std::multiplies<>>};
+struct identity_trait<Poly<R>, std::multiplies<>> {
+  static constexpr Poly<R> value() {
+    return Poly<R>{identity_v<R, std::multiplies<>>};
   }
 };
-
-// 3. Mark Associativity (required for IsSemigroup)
-template <typename R>
-inline constexpr bool is_associative_v<algebra::RigPolynomial<R>, std::plus<>> =
-    true;
-
-template <typename R>
-inline constexpr bool
-    is_associative_v<algebra::RigPolynomial<R>, std::multiplies<>> = true;
-
-// OPTIONAL: If IsSemiring also probes Commutativity
-template <typename R>
-inline constexpr bool
-    is_commutative_v<algebra::RigPolynomial<R>, std::multiplies<>> =
-        is_commutative_v<R, std::multiplies<>>;
 
 }  // namespace dedekind::category
 
