@@ -73,8 +73,22 @@ static_assert(
     IsArchimedean<unsigned int>,
     "Order Error: double must satisfy IsArchimedean to support limits.");
 
+/**
+ * @brief The Discrete Limit Morphism for Boolean Truth.
+ * @details In the Boolean Topos, a path converges if it is
+ *          eventually constant.
+ *
+ * FIXME: PR 96 existential proof. Generalize.
+ */
+export constexpr Boolean limit(const Path<Boolean>& s) {
+  // If Path is a Morphism f: N -> Boolean, we sample the
+  // "Eventual" state. For PR 96, index 0 is the minimal
+  // witness of the constant path.
+  return s(0);
+}
+
 static_assert(
-    HasLimit<bool>,
+    HasLimit<Boolean>,
     "Topology Error: bool must satisfy the HasLimit convergence concept.");
 
 // FIXME: re-enable support for floating-point limits once we have a proper
