@@ -3,6 +3,12 @@
  * @partition :euclidean
  * @brief Level 3.3: The Euclidean Algorithm for R[x].
  */
+module;
+
+#include <functional>  // for std::plus
+#include <stdexcept>   // for std::domain_error
+#include <utility>     // for std::make_pair
+#include <vector>
 
 export module dedekind.algebra:euclidean;
 

@@ -145,3 +145,25 @@ static_assert(dedekind::order::IsDirectedSet<Interval<int>::Domain>,
               "Lattice Join.");
 
 }  // namespace dedekind::topology
+
+/**
+ * @section The_Topological_Bridge
+ * We re-open the category namespace to reify the Ray as a formal Species.
+ */
+namespace dedekind::category {
+
+export template <typename T, dedekind::topology::Direction D>
+struct SpeciesTraits<dedekind::topology::Ray<T, D>> {
+  using species = ClassicalLogic;
+
+  // A Ray is an Arrow T -> Ω (Characteristic Morphism)
+  using Domain = T;
+  using Codomain = T;
+
+  // The Mereological Measure:
+  // We bifurcate the measure based on the underlying discrete/continuous type.
+  static constexpr auto cardinality =
+      std::integral<T> ? CardinalityTag::Countable : CardinalityTag::Continuum;
+};
+
+}  // namespace dedekind::category
