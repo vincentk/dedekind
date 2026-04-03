@@ -21,6 +21,10 @@
  * establishing the skeletal foundation for all higher-order
  * Ring and Field structures.
  */
+module;
+
+#include <concepts>
+#include <functional>
 
 export module dedekind.algebra:monoid;
 

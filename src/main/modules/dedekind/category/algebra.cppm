@@ -29,30 +29,26 @@ import :species;
 
 namespace dedekind::category {
 
-/** @concept IsMagma: A species closed under a binary operator. */
+/** @concept IsMagma: T × T → T */
 export template <typename T, typename Op>
 concept IsMagma = requires(T a, T b) {
   { Op{}(a, b) } -> std::same_as<T>;
 };
 
-/** @concept IsSemigroup: An associative Magma. */
-export template <IsMagma<Op> T, typename Op>
-concept IsSemigroup = IsAssociative<T, Op>;
+/** @concept IsSemigroup: Associative Magma */
+export template <typename T, typename Op>
+concept IsSemigroup = IsMagma<T, Op> && IsAssociative<T, Op>;
 
-/** @concept IsMonoid: A Semigroup with an Identity. */
-export template <IsSemigroup<Op> T, typename Op>
-concept IsMonoid = HasIdentity<T, Op>;
+/** @concept IsMonoid: Semigroup + Identity */
+export template <typename T, typename Op>
+concept IsMonoid = IsSemigroup<T, Op> && HasIdentity<T, Op>;
 
-/** @concept IsCommutativeMonoid: A Monoid where order is invariant. */
-export template <IsMonoid<Op> T, typename Op>
-concept IsCommutativeMonoid = IsCommutative<T, Op>;
+/** @concept IsGroup: Monoid + Inverse */
+export template <typename T, typename Op>
+concept IsGroup = IsMonoid<T, Op> && IsInvertible<T, Op>;
 
-/** @concept IsGroup: A Monoid where every element is invertible. */
-export template <IsMonoid<Op> T, typename Op>
-concept IsGroup = IsInvertible<T, Op>;
-
-/** @concept IsAbelianGroup: A Group where the law is commutative. */
-export template <IsGroup<Op> T, typename Op>
-concept IsAbelianGroup = IsCommutative<T, Op>;
+/** @concept IsAbelianGroup: Commutative Group */
+export template <typename T, typename Op>
+concept IsAbelianGroup = IsGroup<T, Op> && IsCommutative<T, Op>;
 
 }  // namespace dedekind::category

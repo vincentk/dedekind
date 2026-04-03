@@ -32,7 +32,7 @@
  *
  * @section The_Algebraic_Stack
  * - **Group (@ref group)**: The logic of Inversion and Symmetry.
- * - **Rings (@ref rings)**: The dual structure of Addition and Multiplication.
+ * - **Rings (@ref ring)**: The dual structure of Addition and Multiplication.
  * - **Division (@ref division)**: The Euclidean Algorithm and the GCD Morphism.
  * - **Modules (@ref modules)**: Linear actions of Rings on additive Groups.
  * - **Polynomials (@ref polynomials)**: Formal power series R[x] and
@@ -45,4 +45,4 @@ export import :fields;
 export import :group;
 export import :modules;
 export import :polynomials;
-export import :rings;
+export import :ring;

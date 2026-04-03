@@ -19,6 +19,10 @@
  * symmetric elements: the negative (-x) for addition and the
  * reciprocal (1/x) for multiplication.
  */
+module;
+
+#include <concepts>
+#include <functional>
 
 export module dedekind.algebra:group;
 

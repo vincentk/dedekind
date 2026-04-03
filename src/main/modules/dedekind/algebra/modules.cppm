@@ -17,7 +17,7 @@ module;
 export module dedekind.algebra:modules;
 
 import dedekind.category; // For IsLinearAction
-import :rings;            // For IsRing, IsSemiring
+import :ring;             // For IsRing, IsSemiring
 
 namespace dedekind::algebra {
 using namespace dedekind::category;
