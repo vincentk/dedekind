@@ -47,4 +47,9 @@ export template <typename T>
 concept IsMultiplicativeMonoid =
     dedekind::category::IsMonoid<T, std::multiplies<>>;
 
+/** @section Atomic_Verification */
+static_assert(IsAdditiveMonoid<int>, "Axiom Failure: (Z, +) must have a Zero.");
+static_assert(IsMultiplicativeMonoid<int>,
+              "Axiom Failure: (Z, *) must have a Unit.");
+
 }  // namespace dedekind::algebra

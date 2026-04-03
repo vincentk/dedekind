@@ -71,4 +71,9 @@ constexpr T operator*(T a, T b) {
   return std::multiplies<T>{}(a, b);
 }
 
+/** @section Atomic_Verification */
+static_assert(IsRing<int>, "Axiom Failure: Integers must satisfy Ring axioms.");
+static_assert(IsCommutativeRing<int>,
+              "Axiom Failure: Integers must be Commutative.");
+
 }  // namespace dedekind::algebra

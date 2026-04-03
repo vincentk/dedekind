@@ -130,4 +130,9 @@ constexpr auto div_rem(const Poly& a, const Poly& b) {
   return std::make_pair(q, r);
 }
 
+/** @section Atomic_Verification */
+static_assert(IsField<double>,
+              "Axiom Failure: Floating point primitives must act as Fields.");
+static_assert(!IsField<int>, "Structural Integrity: Integers are not a Field.");
+
 }  // namespace dedekind::algebra
