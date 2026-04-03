@@ -41,19 +41,20 @@ using namespace dedekind::order;
  * horizon.
  *
  * @details
- * A species is Cauchy if its elements (Codomain) can be measured against 
- * an Archimedean scale. The metric distance must be representable within 
+ * A species is Cauchy if its elements (Codomain) can be measured against
+ * an Archimedean scale. The metric distance must be representable within
  * the species' own logical universe.
  *
  * @tparam Seq A species fulfilling the IsSequence requirement.
- * @axiom For every ε > 0, there exists N such that for all n, m > N, |s_n - s_m| < ε.
+ * @axiom For every ε > 0, there exists N such that for all n, m > N, |s_n -
+ * s_m| < ε.
  */
 export template <IsSequence Seq>
 concept IsCauchy = IsArchimedeanField<typename Seq::Codomain> &&
                    requires(Seq s, std::size_t n, std::size_t m) {
-                     /** 
+                     /**
                       * @brief The Metric Morphism.
-                      * The distance between points must resolve to the 
+                      * The distance between points must resolve to the
                       * Codomain's internal representation of magnitude.
                       */
                      {
@@ -63,12 +64,12 @@ concept IsCauchy = IsArchimedeanField<typename Seq::Codomain> &&
 /**
  * @concept IsConvergent
  * @brief A Cauchy path that possesses a limit within its own species.
- * 
- * @details 
- * For a sequence to be convergent, it must first satisfy the Cauchy 
- * property (internal coherence) and its Codomain (the species of its 
+ *
+ * @details
+ * For a sequence to be convergent, it must first satisfy the Cauchy
+ * property (internal coherence) and its Codomain (the species of its
  * values, e.g., ℝ or ℚ) must admit a limit point.
- * 
+ *
  * @tparam Seq A species fulfilling the IsCauchy requirement.
  */
 export template <IsCauchy Seq>
