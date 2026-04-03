@@ -19,6 +19,7 @@
 
 module;
 
+#include <cmath>
 #include <concepts>
 #include <functional>
 
