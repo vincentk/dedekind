@@ -106,4 +106,74 @@ concept IsMinkowskiSummable =
       { a + b } -> std::same_as<S>;
     };
 
+/**
+ * @concept IsCauchy
+ * @brief A path where the metric distance between elements vanishes at the
+ * horizon.
+ *
+ * @details
+ * A species is Cauchy if its elements (Codomain) can be measured against
+ * an Archimedean scale. The metric distance must be representable within
+ * the species' own logical universe.
+ *
+ * @tparam Seq A species fulfilling the IsSequence requirement.
+ * @axiom For every ε > 0, there exists N such that for all n, m > N, |s_n -
+ * s_m| < ε.
+ */
+export template <typename Seq>
+concept IsCauchy =
+    IsSequence<Seq> && IsArchimedeanField<typename Seq::Codomain> &&
+    requires(Seq s, std::size_t n, std::size_t m) {
+      /**
+       * @brief The Metric Morphism.
+       * The distance between points must resolve to the
+       * Codomain's internal representation of magnitude.
+       */
+      {
+        std::abs(s.at(n) - s.at(m))
+      } -> std::convertible_to<typename Seq::Codomain>;
+    };
+
+/**
+ * @concept IsConvergent
+ * @brief A Cauchy path that possesses a limit within its own species.
+ *
+ * @details
+ * For a sequence to be convergent, it must first satisfy the Cauchy
+ * property (internal coherence) and its Codomain (the species of its
+ * values, e.g., ℝ or ℚ) must admit a limit point.
+ *
+ * @tparam Seq A species fulfilling the IsCauchy requirement.
+ */
+export template <typename Seq>
+concept IsConvergent = IsCauchy<Seq> && HasLimit<typename Seq::Codomain>;
+
+/**
+ * @struct CauchyPath
+ * @brief A Path formally reified as a Cauchy-compliant sequence.
+ */
+export template <typename T>
+  requires IsArchimedean<T>
+struct CauchyPath : public Path<T> {
+  using Path<T>::Path;  // Inherit the Frobenius generator
+
+  /** @section Mereological_Tagging */
+  using is_cauchy_tag = void;
+};
+
+/** @section Formal_Verification */
+
+/** @proof Archimedean paths over double satisfy the Cauchy logic. */
+static_assert(IsCauchy<Path<double>>,
+              "Axiom Failure: Paths over ℝ must support Cauchy metric logic.");
+
+/** @proof Archimedean paths over double are Convergent (possess a limit). */
+static_assert(IsConvergent<Path<double>>,
+              "Topology Failure: Cauchy paths over ℝ must resolve to a limit.");
+
+/** @proof Negative Proof: Integers are Archimedean but NOT convergent. */
+static_assert(
+    !IsConvergent<Path<int>>,
+    "Structural Safety: Discrete species (ℤ) cannot claim convergence.");
+
 }  // namespace dedekind::morphologies
