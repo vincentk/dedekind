@@ -25,8 +25,7 @@ module;
 export module dedekind.algebra:polynomials;
 
 import dedekind.category;
-import :rings;
-import :modules;
+import :ring;
 
 namespace dedekind::algebra {
 
@@ -43,17 +42,8 @@ export template <typename R = unsigned int>
 class RigPolynomial {
  public:
   using coefficient_type = R;
+  using value_type = R;
   using machine_type = std::vector<R>;
-
-  /** @section Structural_Axioms */
-
-  // Proof: In the Dedekind ontology, the formal sum construction
-  // preserves associativity and commutativity from the base Semiring.
-  template <typename Op>
-  static constexpr bool is_associative_v = true;
-
-  template <typename Op>
-  static constexpr bool is_commutative_v = true;
 
   /**
    * @section Inversion_Axiom (The Rig Property)
@@ -90,9 +80,15 @@ class RigPolynomial {
     canonicalize();
   }
 
-  /** @brief The Evaluation Morphism: p(x) using Horner's Method. */
+  /** @brief The Evaluation Morphism: p(x) using Horner's Method.
+   * FIXME: strictly speaking, T should be a ringoid, but that would introduce
+   * a circular dependency. Think about it some more at a later stage. */
   template <typename T>
-    requires IsModule<T, R>
+    requires requires(T t, R r) {
+      { t * r } -> std::same_as<T>;
+      { t + t } -> std::same_as<T>;
+    }
+  template <typename T>
   constexpr T operator()(const T& x) const {
     T result = dedekind::category::identity_v<T, std::plus<T>>;
     for (auto it = coeffs_.rbegin(); it != coeffs_.rend(); ++it) {
@@ -154,3 +150,15 @@ static_assert(IsSemiring<RigPolynomial<unsigned int>>,
               "IsSemiring concept.");
 
 }  // namespace dedekind::algebra
+
+/** @section Categorical_Discovery_Bridge */
+namespace dedekind::category {
+template <typename R>
+struct is_associative<algebra::RigPolynomial<R>, std::plus<>> : std::true_type {
+};
+
+template <typename R>
+struct identity_trait<algebra::RigPolynomial<R>, std::plus<>> {
+  static constexpr algebra::RigPolynomial<R> value() { return {}; }
+};
+}  // namespace dedekind::category

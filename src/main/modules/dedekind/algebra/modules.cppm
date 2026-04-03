@@ -16,8 +16,9 @@ module;
 
 export module dedekind.algebra:modules;
 
-import dedekind.category; // For IsLinearAction
-import :ring;             // For IsRing, IsSemiring
+import dedekind.category;
+import :field;
+import :group;
 
 namespace dedekind::algebra {
 using namespace dedekind::category;
@@ -35,7 +36,7 @@ concept IsSemimodule = IsCommutativeMonoid<M, std::plus<M>> && IsSemiring<S> &&
  * @brief An Abelian Group participating in a Linear Action by a Ring.
  */
 export template <typename M, typename S>
-concept IsModule = IsAbelianGroup<M> && IsRing<S> && IsSemimodule<M, S>;
+concept IsModule = IsAdditiveGroup<M> && IsRing<S> && IsSemimodule<M, S>;
 
 /**
  * @concept IsVectorSpace

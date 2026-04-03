@@ -34,13 +34,13 @@ module;
 #include <concepts>    // for std::integral, std::floating_point
 #include <functional>  // for std::plus, std::multiplies
 
-export module dedekind.algebra:fields;
+export module dedekind.algebra:field;
 
 import dedekind.category;
 import dedekind.order;
 import dedekind.sets;
 
-import :rings;
+import :ring;
 import :division;
 
 namespace dedekind::algebra {

@@ -41,7 +41,7 @@
 export module dedekind.algebra;
 
 export import :division;
-export import :fields;
+export import :field;
 export import :group;
 export import :modules;
 export import :polynomials;
