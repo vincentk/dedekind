@@ -10,6 +10,10 @@
  *  geglaubt werden.“ (What is provable should not be believed without proof.)
  *  — Richard Dedekind
  */
+module;
+
+#include <concepts>
+#include <functional>
 
 export module dedekind.algebra:ring;
 
@@ -18,6 +22,8 @@ import :group;
 import dedekind.category;
 
 namespace dedekind::algebra {
+
+using namespace dedekind::category;
 
 /**
  * @concept IsSemiring
@@ -29,21 +35,32 @@ export template <typename T>
 concept IsSemiring = IsAdditiveMonoid<T> && IsMultiplicativeMonoid<T> &&
                      dedekind::category::IsLinearAction<T, T>;
 
+/** @concept IsRig: The "Natural" Harmony (No negatives) */
+export template <typename T>
+concept IsRig =
+    IsCommutativeMonoid<T, std::plus<>> && IsMonoid<T, std::multiplies<>> &&
+    IsDistributive<T, std::plus<>, std::multiplies<>>;
+
+/** @concept IsRng: The "Identity-less" Harmony (No unit) */
+export template <typename T>
+concept IsRng =
+    IsAbelianGroup<T, std::plus<>> && IsSemigroup<T, std::multiplies<>> &&
+    IsDistributive<T, std::plus<>, std::multiplies<>>;
+
 /**
  * @concept IsRing
  * @brief A set that is both a Semiring AND an Abelian Group under addition.
  */
 export template <typename T>
-concept IsRing = IsSemiring<T> && IsAdditiveGroup<T>;
+concept IsRing = IsRig<T> && IsRng<T> && IsSemiring<T> && IsAdditiveGroup<T>;
 
 /**
  * @concept IsCommutativeRing
  * @brief A Ring where multiplication is also commutative.
  */
-export template <IsRing T>
+export template <typename T>
 concept IsCommutativeRing =
-    IsMultiplicativeMonoid<T> &&
-    dedekind::category::IsCommutative<T, std::multiplies<>>;
+    IsRing<T> && dedekind::category::IsCommutative<T, std::multiplies<>>;
 
 /** @section The_Point_Free_Infix_Engine */
 

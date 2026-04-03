@@ -35,15 +35,17 @@ namespace dedekind::algebra {
  * @concept IsAdditiveGroup
  * @brief Proposition: The species (T, +) forms an Abelian Group (ℤ).
  */
-export template <IsAdditiveMonoid T>
-concept IsAdditiveGroup = dedekind::category::IsAbelianGroup<T, std::plus<>>;
+export template <typename T>
+concept IsAdditiveGroup =
+    IsAdditiveMonoid<T> && dedekind::category::IsAbelianGroup<T, std::plus<>>;
 
 /**
  * @concept IsMultiplicativeGroup
  * @brief Proposition: The non-zero species (T*, *) forms a Group (ℚ*).
  */
-export template <IsMultiplicativeMonoid T>
+export template <typename T>
 concept IsMultiplicativeGroup =
+    IsMultiplicativeMonoid<T> &&
     dedekind::category::IsGroup<T, std::multiplies<>>;
 
 /** @section Formal_Verification */

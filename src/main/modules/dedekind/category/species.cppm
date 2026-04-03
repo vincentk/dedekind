@@ -400,20 +400,98 @@ concept IsAntisymmetric = requires(T a, T b) {
   { Rel{}(a, b) } -> std::convertible_to<bool>;
 } && requires { requires is_antisymmetric_v<T, Rel>; };
 
+/** @section Categorical_Inverses: The 'Undo' Bricks */
+
+/** @brief In XOR, every element is its own inverse (Involutive). */
+template <std::integral 𝒯>
+inline constexpr 𝒯 inverse(𝒯 a, std::bit_xor<𝒯>) {
+  return a;
+}
+
+/** @brief In Addition, negation is the inverse (Two's Complement wrapping). */
+template <std::integral 𝒯>
+inline constexpr 𝒯 inverse(𝒯 a, std::plus<𝒯>) {
+  return static_cast<𝒯>(-static_cast<std::make_unsigned_t<𝒯>>(a));
+}
+
+/** @brief The Master Bridge: Routes the request to specific implementations. */
+export template <typename T, typename Op>
+  requires requires(T a) {
+    { inverse(a, Op{}) } -> std::same_as<T>;
+  }
+inline constexpr T inverse_v(T a) {
+  return inverse(a, Op{});
+}
+
+/** @brief The Formal Trait: Hooks the bridge into the Concept system. */
+export template <typename T, typename Op>
+struct inverse_trait {
+  static constexpr bool exists = requires(T a) {
+    { inverse(a, Op{}) } -> std::same_as<T>;
+  };
+};
+
+/** @brief The Shorthand for the Registry. */
+export template <typename T, typename Op>
+inline constexpr bool is_invertible_v = inverse_trait<T, Op>::exists;
+
+/**
+ * @concept IsInvertible
+ * @brief Formal verification that x ∘ x⁻¹ = e.
+ */
+export template <typename T, typename Op>
+concept IsInvertible =
+    HasIdentity<T, Op> && requires { requires is_invertible_v<T, Op>; };
+
 // --- Integers: The finite ring (Z, +, *) ---
 
 /**
  * @brief Addition is associative and commutative, with identity 0.
+ * We use std::plus<> (transparent) to catch both explicit and implicit calls.
  */
+template <std::integral T>
+inline constexpr bool is_associative_v<T, std::plus<>> = true;
+template <std::integral T>
+inline constexpr bool is_commutative_v<T, std::plus<>> = true;
+
+/**
+ * @brief Integers possess additive inverses (negatives).
+ * This promotes the Monoid (N) to the Group (Z).
+ */
+template <std::integral T>
+inline constexpr bool is_invertible_v<T, std::plus<>> = true;
+
+template <std::integral T>
+inline constexpr bool is_invertible_v<T, std::plus<T>> = true;
+
 template <std::integral T>
 inline constexpr bool is_associative_v<T, std::plus<T>> = true;
 template <std::integral T>
 inline constexpr bool is_commutative_v<T, std::plus<T>> = true;
 
 template <std::integral T>
+struct identity_trait<T, std::plus<>> {
+  using value_type = T;
+  static constexpr T value = 0;
+};
+
+template <std::integral T>
 struct identity_trait<T, std::plus<T>> {
   using value_type = T;
   static constexpr T value = 0;
+};
+
+// Also for multiplication
+template <std::integral T>
+inline constexpr bool is_associative_v<T, std::multiplies<>> = true;
+
+template <std::integral T>
+inline constexpr bool is_commutative_v<T, std::multiplies<>> = true;
+
+template <std::integral T>
+struct identity_trait<T, std::multiplies<>> {
+  using value_type = T;
+  static constexpr T value = 1;
 };
 
 /**
@@ -507,49 +585,6 @@ struct identity_trait<bool, std::bit_and<bool>> {
   using value_type = bool;
   static constexpr bool value = true;
 };
-
-/** @section Categorical_Inverses: The 'Undo' Bricks */
-
-/** @brief In XOR, every element is its own inverse (Involutive). */
-template <std::integral 𝒯>
-inline constexpr 𝒯 inverse(𝒯 a, std::bit_xor<𝒯>) {
-  return a;
-}
-
-/** @brief In Addition, negation is the inverse (Two's Complement wrapping). */
-template <std::integral 𝒯>
-inline constexpr 𝒯 inverse(𝒯 a, std::plus<𝒯>) {
-  return static_cast<𝒯>(-static_cast<std::make_unsigned_t<𝒯>>(a));
-}
-
-/** @brief The Master Bridge: Routes the request to specific implementations. */
-export template <typename T, typename Op>
-  requires requires(T a) {
-    { inverse(a, Op{}) } -> std::same_as<T>;
-  }
-inline constexpr T inverse_v(T a) {
-  return inverse(a, Op{});
-}
-
-/** @brief The Formal Trait: Hooks the bridge into the Concept system. */
-export template <typename T, typename Op>
-struct inverse_trait {
-  static constexpr bool exists = requires(T a) {
-    { inverse(a, Op{}) } -> std::same_as<T>;
-  };
-};
-
-/** @brief The Shorthand for the Registry. */
-export template <typename T, typename Op>
-inline constexpr bool is_invertible_v = inverse_trait<T, Op>::exists;
-
-/**
- * @concept IsInvertible
- * @brief Formal verification that x ∘ x⁻¹ = e.
- */
-export template <typename T, typename Op>
-concept IsInvertible =
-    HasIdentity<T, Op> && requires { requires is_invertible_v<T, Op>; };
 
 /** @section Magmoid Verification: The Atomic Bricks */
 
@@ -666,6 +701,33 @@ struct is_idempotent<T, std::bit_or<T>> : std::true_type {};
 template <typename T>
   requires std::is_integral_v<T>
 struct is_associative<T, std::bit_or<T>> : std::true_type {};
+
+/**
+ * @section The_Distributive_Axiom
+ * @brief Trait to mark the structural glue between two operators.
+ * axiom: a * (b + c) = (a * b) + (a * c)
+ */
+export template <typename T, typename Add, typename Mul>
+inline constexpr bool is_distributive_v = false;
+
+/** @section Machine_Distributivity: Integers */
+template <std::integral T>
+inline constexpr bool is_distributive_v<T, std::plus<>, std::multiplies<>> =
+    true;
+
+template <std::integral T>
+inline constexpr bool is_distributive_v<T, std::plus<T>, std::multiplies<T>> =
+    true;
+
+/**
+ * @concept IsDistributive
+ * @brief The "Glue" of the Ring: a * (b + c) = a*b + a*c.
+ */
+export template <typename T, typename Add, typename Mul>
+concept IsDistributive = requires(T a, T b, T c) {
+  // We check the semantic presence of the law (usually via a trait)
+  requires is_distributive_v<T, Add, Mul>;
+};
 
 // Finite and transfinite species are mutually exclusive.
 

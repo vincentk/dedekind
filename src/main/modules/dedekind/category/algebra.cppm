@@ -43,6 +43,9 @@ concept IsSemigroup = IsMagma<T, Op> && IsAssociative<T, Op>;
 export template <typename T, typename Op>
 concept IsMonoid = IsSemigroup<T, Op> && HasIdentity<T, Op>;
 
+export template <typename T, typename Op>
+concept IsCommutativeMonoid = IsMonoid<T, Op> && IsCommutative<T, Op>;
+
 /** @concept IsGroup: Monoid + Inverse */
 export template <typename T, typename Op>
 concept IsGroup = IsMonoid<T, Op> && IsInvertible<T, Op>;
