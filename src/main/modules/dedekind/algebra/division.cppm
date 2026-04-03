@@ -10,7 +10,7 @@ module;
 #include <utility>     // for std::make_pair
 #include <vector>
 
-export module dedekind.algebra:euclidean;
+export module dedekind.algebra:division;
 
 import :polynomials;
 import :rings;
