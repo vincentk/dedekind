@@ -7,7 +7,6 @@
 
 export module dedekind.sequences;
 
-export import :cauchy;
 export import :concepts;
 export import :limits;
 export import :path;

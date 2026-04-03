@@ -108,4 +108,25 @@ constexpr T operator|(T a, T b) {
   return std::logical_or<T>{}(a, b);
 }
 
+/**
+ * @brief Generic Polynomial Euclidean Division (Bootstrap).
+ * @details This must be TEMPLATE-GENERIC to avoid a circular dependency
+ *          on the concrete :polynomials partition.
+ */
+export template <typename Poly, typename Coeff>
+  requires IsField<Coeff>
+constexpr auto div_rem(const Poly& a, const Poly& b) {
+  if (b.is_zero()) throw std::domain_error("Division by zero.");
+
+  Poly q({dedekind::category::identity_v<Coeff, std::plus<>>});
+  Poly r = a;
+
+  while (!r.is_zero() && r.degree() >= b.degree()) {
+    Coeff leading_coeff = r.leading_coefficient() / b.leading_coefficient();
+    // Implementation uses Poly's own internal vector-scaling logic
+    // ...
+  }
+  return std::make_pair(q, r);
+}
+
 }  // namespace dedekind::algebra

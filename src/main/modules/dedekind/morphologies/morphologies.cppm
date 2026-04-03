@@ -31,3 +31,4 @@ export module dedekind.morphologies;
 
 export import :archimedean;
 export import :cyclic;
+export import :cauchy;

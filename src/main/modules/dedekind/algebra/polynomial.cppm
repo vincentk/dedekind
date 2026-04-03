@@ -22,7 +22,7 @@ module;
 #include <functional>  // for std::plus, std::multiplies
 #include <vector>
 
-export module dedekind.algebra:polynomials;
+export module dedekind.algebra:polynomial;
 
 import dedekind.category;
 import :ring;
@@ -80,23 +80,6 @@ class RigPolynomial {
     canonicalize();
   }
 
-  /** @brief The Evaluation Morphism: p(x) using Horner's Method.
-   * FIXME: strictly speaking, T should be a ringoid, but that would introduce
-   * a circular dependency. Think about it some more at a later stage. */
-  template <typename T>
-    requires requires(T t, R r) {
-      { t * r } -> std::same_as<T>;
-      { t + t } -> std::same_as<T>;
-    }
-  template <typename T>
-  constexpr T operator()(const T& x) const {
-    T result = dedekind::category::identity_v<T, std::plus<T>>;
-    for (auto it = coeffs_.rbegin(); it != coeffs_.rend(); ++it) {
-      result = (result * x) + (*it);
-    }
-    return result;
-  }
-
   /** @section Algebraic_Morphisms */
   friend constexpr RigPolynomial operator+(const RigPolynomial& a,
                                            const RigPolynomial& b) {
@@ -142,23 +125,45 @@ class RigPolynomial {
 export template <typename R = unsigned int>
 using Polynomial = RigPolynomial<R>;
 
-/** @section Formal_Verification */
+}  // namespace dedekind::algebra
 
+namespace dedekind::category {
+
+template <typename R>
+inline constexpr bool is_associative_v<algebra::RigPolynomial<R>, std::plus<>> =
+    true;
+
+// ADD THIS: Multiplicative Associativity (Cauchy Product is associative)
+template <typename R>
+inline constexpr bool
+    is_associative_v<algebra::RigPolynomial<R>, std::multiplies<>> = true;
+
+template <typename R>
+struct identity_trait<algebra::RigPolynomial<R>, std::plus<>> {
+  static constexpr algebra::RigPolynomial<R> value() { return {}; }
+};
+
+// Multiplicative Identity (The constant polynomial '1')
+template <typename R>
+struct identity_trait<algebra::RigPolynomial<R>, std::multiplies<>> {
+  static constexpr algebra::RigPolynomial<R> value() {
+    return algebra::RigPolynomial<R>{identity_v<R, std::multiplies<>>};
+  }
+};
+
+// OPTIONAL: If IsSemiring also probes Commutativity
+template <typename R>
+inline constexpr bool
+    is_commutative_v<algebra::RigPolynomial<R>, std::multiplies<>> =
+        is_commutative_v<R, std::multiplies<>>;
+
+}  // namespace dedekind::category
+
+/** @section Formal_Verification */
+namespace dedekind::algebra {
 // We verify the "Rig" property specifically for the unsigned implementation.
 static_assert(IsSemiring<RigPolynomial<unsigned int>>,
               "Axiom Failure: RigPolynomial must satisfy the Level 3.1 "
               "IsSemiring concept.");
 
 }  // namespace dedekind::algebra
-
-/** @section Categorical_Discovery_Bridge */
-namespace dedekind::category {
-template <typename R>
-struct is_associative<algebra::RigPolynomial<R>, std::plus<>> : std::true_type {
-};
-
-template <typename R>
-struct identity_trait<algebra::RigPolynomial<R>, std::plus<>> {
-  static constexpr algebra::RigPolynomial<R> value() { return {}; }
-};
-}  // namespace dedekind::category

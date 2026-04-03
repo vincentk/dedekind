@@ -44,5 +44,5 @@ export import :division;
 export import :field;
 export import :group;
 export import :modules;
-export import :polynomials;
+export import :polynomial;
 export import :ring;

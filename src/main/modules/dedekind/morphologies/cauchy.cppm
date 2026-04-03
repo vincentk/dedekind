@@ -23,10 +23,10 @@ module;
 #include <concepts>
 #include <functional>
 
-export module dedekind.sequences:cauchy;
+export module dedekind.morphologies:cauchy;
 
 import dedekind.category;
-import dedekind.morphologies;
+// import dedekind.morphologies;
 import dedekind.order;
 import :path;
 import :limits;
