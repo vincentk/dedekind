@@ -30,7 +30,7 @@ export module dedekind.algebra:modules;
 import dedekind.category;
 import :field;
 import :group;
-import :polynomials;
+import :polynomial;
 
 namespace dedekind::algebra {
 using namespace dedekind::category;
