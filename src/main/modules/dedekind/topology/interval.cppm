@@ -23,7 +23,7 @@
 module;
 #include <concepts>
 #include <functional>
-export module dedekind.topology:shapes;
+export module dedekind.topology:interval;
 
 import dedekind.category;
 import dedekind.order;
@@ -148,22 +148,38 @@ static_assert(dedekind::order::IsDirectedSet<Interval<int>::Domain>,
 
 /**
  * @section The_Topological_Bridge
- * We re-open the category namespace to reify the Ray as a formal Species.
+ * We re-open the category namespace to reify the Ray as a formal Species
+ * and establish its Algebraic Harmony.
  */
 namespace dedekind::category {
 
 export template <typename T, dedekind::topology::Direction D>
 struct SpeciesTraits<dedekind::topology::Ray<T, D>> {
   using species = ClassicalLogic;
-
-  // A Ray is an Arrow T -> Ω (Characteristic Morphism)
   using Domain = T;
   using Codomain = T;
 
-  // The Mereological Measure:
-  // We bifurcate the measure based on the underlying discrete/continuous type.
   static constexpr auto cardinality =
       std::integral<T> ? CardinalityTag::Countable : CardinalityTag::Continuum;
 };
+
+/** @section Mereological_Harmony */
+
+// We must explicitly register the Lattice Axioms for IsSet to resolve.
+template <typename T, dedekind::topology::Direction D>
+inline constexpr bool
+    is_associative_v<dedekind::topology::Ray<T, D>, std::bit_and<>> = true;
+
+template <typename T, dedekind::topology::Direction D>
+inline constexpr bool
+    is_idempotent_v<dedekind::topology::Ray<T, D>, std::bit_and<>> = true;
+
+template <typename T, dedekind::topology::Direction D>
+inline constexpr bool
+    is_associative_v<dedekind::topology::Ray<T, D>, std::bit_or<>> = true;
+
+template <typename T, dedekind::topology::Direction D>
+inline constexpr bool
+    is_idempotent_v<dedekind::topology::Ray<T, D>, std::bit_or<>> = true;
 
 }  // namespace dedekind::category
