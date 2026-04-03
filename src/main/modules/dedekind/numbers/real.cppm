@@ -77,9 +77,15 @@ class Real {
 
 /** @section Formal_Verification */
 
-// 1. Proof of Completion: The Real line must satisfy Dedekind-Completeness.
-static_assert(IsField<Real<double>>);
-static_assert(IsArchimedeanField<Real<double>>);
+// Use the Quotient Field of Integers instead of the IEEE primitive
+using Q_int = Rational<int>;
+
+// 1. Proof of Completion: The Real line over Q must satisfy Field axioms.
+static_assert(IsField<Real<Q_int>>,
+              "Axiom Failure: Real<Rational<int>> must satisfy IsField.");
+
+static_assert(IsArchimedeanField<Real<Q_int>>,
+              "Topology Failure: The Completion of Q must be Archimedean.");
 // Note: IsDedekindCompleteField check would happen here!
 
 }  // namespace dedekind::numbers
