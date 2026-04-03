@@ -88,19 +88,23 @@ export template <typename T>
 concept IsLinearOrder = IsTotallyOrdered<T>;
 
 /**
- * @concept IsArchimedean
- * @brief Measurement via inductive "stepping" (++).
+ * @concept IsSuccessor
+ * @brief The algebraic S: T -> T mapping via the Unit element.
  */
 export template <typename T>
-concept IsArchimedean = IsTotallyOrdered<T> && requires(T x) {
-  { ++x } -> std::same_as<T&>;
-  { x++ } -> std::same_as<T>;  // Check that post-increment exists
+concept IsSuccessor =
+    IsMagmoid<T, std::plus<T>> && HasIdentity<T, std::multiplies<T>> &&
+    requires(const T x) {
+      // The Successor Morphism: S(x) = x + 1
+      { x + identity_v<T, std::multiplies<T>> } -> std::same_as<T>;
+    };
 
-  { x + T(1) } -> std::convertible_to<T>;
-  // (Peano) Categorical Archimedean Property:
-  // If x is a number, x < x + 1 must be true.
-  // requires bool(x < (x + T(1)));
-};
+/**
+ * @concept IsArchimedean
+ * @brief The scale axiom: Every element can be 'reached' by the Successor.
+ */
+export template <typename T>
+concept IsArchimedean = IsTotallyOrdered<T> && IsSuccessor<T>;
 
 /** @brief A set where every point is isolated by a successor. */
 template <typename T>

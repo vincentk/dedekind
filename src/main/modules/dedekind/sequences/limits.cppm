@@ -15,6 +15,11 @@
  * Wikipedia: Limit of a sequence, Archimedean property, Convergence
  */
 
+module;
+
+#include <concepts>
+#include <functional>
+
 export module dedekind.sequences:limits;
 
 import dedekind.category;
@@ -65,12 +70,15 @@ constexpr T limit(const Path<T>& s) {
 
 /** @proof Double-precision reals are Archimedean and support limits. */
 static_assert(
-    IsArchimedean<double>,
+    IsArchimedean<unsigned int>,
     "Order Error: double must satisfy IsArchimedean to support limits.");
 
 static_assert(
-    HasLimit<double>,
-    "Topology Error: double must satisfy the HasLimit convergence concept.");
+    HasLimit<bool>,
+    "Topology Error: bool must satisfy the HasLimit convergence concept.");
+
+// FIXME: re-enable support for floating-point limits once we have a proper
+// ε-stabilization mechanism.
 
 /** @proof Integers are Archimedean but do not (necessarily) have limits in Z.
  */

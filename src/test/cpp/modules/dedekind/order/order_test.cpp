@@ -23,3 +23,20 @@ TEST_CASE("Order: The Geography of Species", "[order][axioms]") {
     STATIC_CHECK(IsPartiallyOrdered<bool>);
   }
 }
+
+TEST_CASE("Order: Archimedean Scales", "[order][archimedean]") {
+  using namespace dedekind::category;
+
+  SECTION("Discrete Logic Scales") {
+    // Boolean: 0 + 1 = 1 (Saturating)
+    STATIC_CHECK(IsArchimedean<Boolean>);
+
+    // Kleene: U + 1 = 1
+    STATIC_CHECK(IsArchimedean<Kleene>);
+  }
+
+  SECTION("Discrete Integral Scales") {
+    STATIC_CHECK(IsArchimedean<unsigned int>);
+    STATIC_CHECK(IsArchimedean<int>);
+  }
+}

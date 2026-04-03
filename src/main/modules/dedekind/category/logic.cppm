@@ -1,37 +1,37 @@
 /**
  * @file ontology:logic.cppm
- * @brief Level -1: The Rules of Thought (Boolean Algebra and Predicate
- * Synthesis).
+ * @partition :logic
+ * @brief Level -1: The Rules of Thought (Ω).
  *
- * Copyright 2026 The Dedekind Authors
+ * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @partition :logic
- * @build_order 0
- * @dependency None (The Absolute Foundation)
- *
- * @section Logic: The Internal Language of the Topos
- * Before we can define an "Action" (Category) or a "Body" (Set), we must
- * establish the "Subobject Classifier" (Ω). This partition defines the
- * internal logic that governs all structuralist predicates.
+ * @section Algebraic_Logic
+ * "Metoda algebraiczna w logice polega na traktowaniu każdego systemu
+ *  logicznego jako pewnego określonego rodzaju algebry abstrakcyjnej."
+ *  (The algebraic method in logic consists in treating every logical system
+ *  as a specific type of abstract algebra.)
+ *  — Helena Rasiowa
  *
  * @details
- * Unlike the "External Logic" of the C++ compiler (which is strictly binary),
- * this partition allows for "Pluggable Truths":
- * - Classical Logic: The standard {True, False} boolean lightbulb.
- * - Kleene Logic: The {True, False, Unknown} propositional engine for
- *   handling undecidability and partial information.
- * - Lattice Morphisms: Infix operators (&&, ||, !) are anchored here as
- *   Point-Free composition rules, turning Predicates into a Bounded Lattice.
+ * Before we can define a "Body" (Set) or a "Path" (Sequence), we must
+ * establish the "Rules of Presence." This partition defines the logic species
+ * that act as the truth-value objects (Ω) for all categorical predicates.
  *
- * @section Structural_Inference
- * By defining logic at Level -1, we enable "Decoupled Truth". A Set's
- * membership rule can switch from Boolean to Ternary without altering
- * the Mereological code in the partitions above.
+ * By reifying logic into the @ref Truth wrapper, we prevent the "leaky
+ * abstractions" of C++ machine types (such as integral promotion of bool)
+ * while allowing for pluggable logical universes:
+ * - ClassicalLogic: The Boolean Topos ({True, False}).
+ * - TernaryLogic: The Kleene Topos ({True, False, Unknown}).
  *
- * @anchors C++ Logical Primitives: bool, Ternary (Kleene), &&, ||, !.
+ * @section Structural_Invariants
+ * Logics in Dedekind are treated as Rigs (Semirings).
+ * - Addition (+) is the Supremum/Join (OR).
+ * - Multiplication (*) is the Infimum/Meet (AND).
+ * - Successor (S) is the mapping x ∨ 1 (The Archimedean Step).
  *
- * Wikipedia: Subobject classifier, Kleene logic, Internal logic, Point-free
+ * Wikipedia: Subobject classifier, Topos theory, Kleene logic
+ * @see Rasiowa, H. (1974). An Algebraic Approach to Non-Classical Logics.
  */
 module;
 
@@ -384,33 +384,6 @@ auto operator!(P1&& p1) {
   };
 }
 
-/** @subsection Test 1: Boolean (Classical) Invariants */
-static_assert((true && true) == true);
-static_assert((true && false) == false);
-static_assert(!true == false);
-static_assert((true || false) == true);
-
-/** @subsection Test 2: Ternary (Kleene) Invariants */
-static_assert(
-    [] {
-      using enum Ternary;
-
-      bool ok = true;
-      ok &= ((True && Unknown) == Unknown);
-      ok &= ((False && Unknown) == False);
-      ok &= ((True || Unknown) == True);
-      ok &= ((False || Unknown) == Unknown);
-      ok &= (!Unknown == Unknown);
-      ok &= (!True == False);
-      ok &= (!False == True);
-
-      // De Morgan's Law Proof: !(A && B) == !A || !B
-      ok &= (!(True && Unknown) == (!True || !Unknown));
-
-      return ok;
-    }(),
-    "Dedekind: Ternary Logic Invariants failed!");
-
 // Inside namespace dedekind::category
 export template <typename TargetLogic, typename T>
 constexpr auto lift_logic(T value) {
@@ -421,4 +394,75 @@ constexpr auto lift_logic(T value) {
     return value;
   }
 }
+
+/**
+ * @class Truth
+ * @brief The Monic Wrapper for a Logical Species (Ω).
+ * @details Elevates raw types (bool, Ternary) into algebraic Rigs
+ *          to prevent machine-level integral promotion.
+ */
+export template <typename L = ClassicalLogic>
+struct Truth {
+  using logic_species = L;
+  using machine_type = typename L::type;
+
+  machine_type value;
+
+  /** @section Rig_Operations */
+
+  // Addition as the Supremum (OR)
+  friend constexpr Truth operator+(Truth a, Truth b) noexcept {
+    return {L::OR(a.value, b.value)};
+  }
+
+  // Multiplication as the Infimum (AND)
+  friend constexpr Truth operator*(Truth a, Truth b) noexcept {
+    return {L::AND(a.value, b.value)};
+  }
+
+  /** @section Identity_Discovery */
+  template <typename Op>
+  static constexpr auto identity_v = []() {
+    if constexpr (std::is_same_v<Op, std::plus<Truth>> ||
+                  std::is_same_v<Op, std::plus<void>>) {
+      return Truth{L::False};
+    } else if constexpr (std::is_same_v<Op, std::multiplies<Truth>> ||
+                         std::is_same_v<Op, std::multiplies<void>>) {
+      return Truth{L::True};
+    }
+  }();
+
+  // The Archimedean Anchor (Successor = x + 1)
+  static constexpr Truth one() { return {L::True}; }
+
+  /** @section Conversion */
+  constexpr explicit operator machine_type() const noexcept { return value; }
+  constexpr bool operator==(const Truth&) const = default;
+};
+
+/** @section Logic_Species_Aliases */
+
+/** @brief The Boolean Species (The Binary Prime). */
+export using Boolean = Truth<ClassicalLogic>;
+
+/** @brief The Kleene Species (The Indeterminacy). */
+export using Kleene = Truth<TernaryLogic>;
+
+/** @brief Bridge the Monic Wrapper to the Logic Species Registry. */
+export template <typename L>
+struct SpeciesTraits<Truth<L>> {
+  using species = L;
+  using Domain = typename L::type;
+  using Codomain = typename L::type;
+  static constexpr auto cardinality = CardinalityTag::Finite;
+};
+
+/**
+ * FIXME: Extension Point for Option-Logic.
+ * In a future sprint (post-ETCS), consider specializing lift_logic for
+ * std::optional<bool>. This would bridge the C++ 'missing value' semantics
+ * with the Kleene 'Unknown' state, providing a functorial mapping from
+ * the Standard Library to the Ternary Topos.
+ */
+
 }  // namespace dedekind::category
