@@ -31,9 +31,11 @@
  */
 module;
 
-#include <compare>     // for std::strong_ordering
-#include <concepts>    // for std::integral, std::floating_point
-#include <functional>  // for std::plus, std::multiplies
+#include <compare>
+#include <concepts>
+#include <functional>
+#include <stdexcept>
+#include <utility>
 
 export module dedekind.algebra:field;
 
