@@ -85,6 +85,46 @@ static_assert(!IsSmallCategory<int, std::bit_and<int>>,
               "Bitwise: AND lacks a universal neutral element in Z.");
 
 /**
+ * @struct Rule
+ * @brief A type-erased Morphism A -> B between Species.
+ * @details This wrapper reifies a functional rule into a formal
+ *          Categorical Arrow, preventing C-style pointer decay.
+ *
+ * @tparam A The Domain Species (The Source).
+ * @tparam B The Codomain Species (The Target).
+ */
+export template <IsSpecies A, IsSpecies B>
+struct Rule {
+  using Domain = A;
+  using Codomain = B;
+
+  // We use std::function to erase the lambda's unique type
+  // and provide a stable "Morphic Identity."
+  std::function<B(const A&)> apply;
+
+  /** @brief The Morphic Application (The Arrow's Action) */
+  constexpr B operator()(const A& x) const { return apply(x); }
+};
+
+/** @section Rule_Overloads */
+// Specifically target Rule to kill the 'bool' ambiguity and fix deduction.
+export template <typename A, typename B>
+auto operator&&(const Rule<A, B>& p1, const Rule<A, B>& p2) {
+  return Rule<A, B>{[p1, p2](const A& x) {
+    using S = typename SpeciesTraits<B>::species;
+    return B{S::AND(p1(x).value, p2(x).value)};
+  }};
+}
+
+export template <typename A, typename B>
+auto operator||(const Rule<A, B>& p1, const Rule<A, B>& p2) {
+  return Rule<A, B>{[p1, p2](const A& x) {
+    using S = typename SpeciesTraits<B>::species;
+    return B{S::OR(p1(x).value, p2(x).value)};
+  }};
+}
+
+/**
  * @concept IsAbelian
  * @brief A Category where the binary composition is Commutative (a ∘ b = b ∘
  * a).

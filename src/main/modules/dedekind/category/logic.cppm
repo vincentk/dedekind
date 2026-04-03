@@ -361,18 +361,18 @@ auto operator&&(P1&& p1, P2&& p2) {
 }
 
 /** @brief Logical Disjunction (Union): Synthesizes a rule for A ∪ B. */
-export template <typename P1, typename P2, typename T>
+export template <typename T, typename P1, typename P2>
   requires IsPredicate<P1, T> && IsPredicate<P2, T>
 auto operator||(P1&& p1, P2&& p2) {
   return [p1 = std::forward<P1>(p1),
-          p2 = std::forward<P2>(p2)](const T& x) mutable {
-    // 1. Resolve the return type of the first predicate
+          p2 = std::forward<P2>(p2)](auto&& x) mutable -> decltype(p1(x)) {
+    // 1. Resolve the Logic Species (Ω) from the return type
     using Res = decltype(p1(x));
-    // 2. Resolve the underlying Logic Species (Ω)
     using S = typename SpeciesTraits<Res>::species;
 
-    // 3. Return the Supremum (Join) of the two results
-    return S::OR(p1(x), p2(x));
+    // 2. Synthesize the Supremum (Join)
+    return S::OR(p1(std::forward<decltype(x)>(x)),
+                 p2(std::forward<decltype(x)>(x)));
   };
 }
 
@@ -409,6 +409,16 @@ struct Truth {
   using machine_type = typename L::type;
 
   machine_type value;
+
+  /** @section Monic_Construction */
+  // Removed 'explicit' to allow seamless return from lambdas/expressions
+  constexpr Truth(machine_type v) noexcept : value(v) {}
+  constexpr Truth() noexcept : value(L::False) {}
+
+  // Unary Negation: Ensures !Boolean returns a Boolean, not a raw bool
+  friend constexpr Truth operator!(Truth a) noexcept {
+    return {L::NOT(a.value)};
+  }
 
   /** @section Rig_Operations */
 

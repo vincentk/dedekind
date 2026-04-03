@@ -759,4 +759,18 @@ constexpr auto operator<<=(const Box<T>& b, Func&& f) {
   return Box<U>{std::forward<Func>(f)(b)};
 }
 
+/** @section Logic_Order_Traits */
+
+// 1. Reflexivity: a <= a (Lattice Join: a || a == a)
+template <typename L>
+struct is_reflexive<Truth<L>, std::less_equal<>> : std::true_type {};
+
+// 2. Antisymmetry: (a <= b && b <= a) => a == b
+template <typename L>
+struct is_antisymmetric<Truth<L>, std::less_equal<>> : std::true_type {};
+
+// 3. Transitivity: (a <= b && b <= c) => a <= c
+template <typename L>
+struct is_transitive<Truth<L>, std::less_equal<>> : std::true_type {};
+
 }  // namespace dedekind::category
