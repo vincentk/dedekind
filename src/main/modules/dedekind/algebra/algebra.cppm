@@ -31,7 +31,7 @@
  * of the mathematical equation.
  *
  * @section The_Algebraic_Stack
- * - **Groups (@ref groups)**: The logic of Inversion and Symmetry.
+ * - **Group (@ref group)**: The logic of Inversion and Symmetry.
  * - **Rings (@ref rings)**: The dual structure of Addition and Multiplication.
  * - **Division (@ref division)**: The Euclidean Algorithm and the GCD Morphism.
  * - **Modules (@ref modules)**: Linear actions of Rings on additive Groups.
@@ -42,7 +42,7 @@ export module dedekind.algebra;
 
 export import :division;
 export import :fields;
-export import :groups;
+export import :group;
 export import :modules;
 export import :polynomials;
 export import :rings;
