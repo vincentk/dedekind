@@ -40,26 +40,39 @@ using namespace dedekind::order;
  * @brief A path where the metric distance between elements vanishes at the
  * horizon.
  *
- * @axiom For every ε > 0, there exists N such that for all n, m > N, |s_n -
- * s_m| < ε.
+ * @details
+ * A species is Cauchy if its elements (Codomain) can be measured against 
+ * an Archimedean scale. The metric distance must be representable within 
+ * the species' own logical universe.
+ *
+ * @tparam Seq A species fulfilling the IsSequence requirement.
+ * @axiom For every ε > 0, there exists N such that for all n, m > N, |s_n - s_m| < ε.
  */
-export template <typename Seq>
-concept IsCauchy = IsSequence<Seq> && IsArchimedean<typename Seq::Domain> &&
+export template <IsSequence Seq>
+concept IsCauchy = IsArchimedeanField<typename Seq::Codomain> &&
                    requires(Seq s, std::size_t n, std::size_t m) {
-                     /** @brief The Metric Morphism: Distance between two points
-                      * in the path.
+                     /** 
+                      * @brief The Metric Morphism.
+                      * The distance between points must resolve to the 
+                      * Codomain's internal representation of magnitude.
                       */
                      {
                        std::abs(s.at(n) - s.at(m))
-                     } -> std::convertible_to<typename Seq::Domain>;
+                     } -> std::convertible_to<typename Seq::Codomain>;
                    };
-
 /**
  * @concept IsConvergent
  * @brief A Cauchy path that possesses a limit within its own species.
+ * 
+ * @details 
+ * For a sequence to be convergent, it must first satisfy the Cauchy 
+ * property (internal coherence) and its Codomain (the species of its 
+ * values, e.g., ℝ or ℚ) must admit a limit point.
+ * 
+ * @tparam Seq A species fulfilling the IsCauchy requirement.
  */
-export template <typename Seq>
-concept IsConvergent = IsCauchy<Seq> && HasLimit<typename Seq::Domain>;
+export template <IsCauchy Seq>
+concept IsConvergent = HasLimit<typename Seq::Codomain>;
 
 /**
  * @struct CauchyPath
