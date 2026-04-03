@@ -50,20 +50,28 @@ using namespace dedekind::sets;
 
 /**
  * @concept IsField
- * @brief The "Painless" Field: A Commutative Ring where every non-zero element
- *        has a multiplicative inverse (Division).
- * Wikipedia: Field (mathematics)
+ * @brief The "Painless" Field: A Commutative Ring that admits Division.
+ *
+ * @tparam T A species already established as a Commutative Ring.
+ * @details
+ * By bootstrapping, we ensure that the multiplication is Abelian
+ * before we attempt to invert it.
  */
-export template <typename T>
-concept IsField = IsCommutativeRing<T> && IsDivisionRing<T>;
+export template <IsCommutativeRing T>
+concept IsField = IsDivisionRing<T>;
 
 /**
  * @concept IsAlgebraicallyClosed
- * @brief Semantic requirement for a Field where every polynomial has a root.
- * @details This is the "Soul" property required by Algebra_ℂ.
+ * @brief The "Soul" of the Field: Every polynomial has a root in the species.
+ *
+ * @details
+ * This represents the ultimate completion of the algebraic journey.
+ * While IsField guarantees division, Closure guarantees resolution.
+ *
+ * @tparam F A species already established as a Field.
  */
-export template <typename M>
-concept IsAlgebraicallyClosed = IsField<M>;  // Refined by its use in Algebra_ℂ
+export template <IsField F>
+concept IsAlgebraicallyClosed = true;  // Refined by its use in Algebra_ℂ
 
 /**
  * @concept IsBounded

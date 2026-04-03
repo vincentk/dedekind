@@ -161,57 +161,6 @@ concept IsCommutativeRing =
     IsRing<T> && IsCommutativeMonoid<T, std::multiplies<T>>;
 
 /**
- * @concept IsEuclidean
- * @brief A Commutative Ring with a division algorithm.
- * @details For any a, b (b ≠ 0), there exist q, r such that a = bq + r.
- *
- * Wikipedia: Euclidean domain
- */
-export template <typename T>
-concept IsEuclidean =
-    IsDividableChain<T> && IsCommutativeRing<T> && requires(T a, T b) {
-      // The Division Morphism
-      { a / b } -> std::same_as<T>;
-      // The Remainder Morphism (The "Scissors")
-      { a % b } -> std::same_as<T>;
-
-      // Euclidean Property: a = (a/b)*b + (a%b)
-      // Note: In C++, we assume std::divides and std::modulus satisfy this.
-    };
-
-/**
- * @concept IsDivisionRing
- * @brief A Ring where every non-zero element has a multiplicative inverse.
- * @details This is the formal "Roadblock" for division by zero.
- */
-export template <typename T>
-concept IsDivisionRing = IsRing<T> && requires(T a, T b) {
-  /**
-   * @brief The Division Morphism.
-   * Note: The "b != 0" requirement is a runtime contract,
-   * not a compile-time type constraint.
-   */
-  { a / b } -> std::same_as<T>;
-};
-
-/**
- * @concept IsField
- * @brief The "Painless" Field: A Commutative Ring where every non-zero element
- *        has a multiplicative inverse (Division).
- * Wikipedia: Field (mathematics)
- */
-export template <typename T>
-concept IsField = IsCommutativeRing<T> && IsDivisionRing<T>;
-
-/**
- * @concept IsAlgebraicallyClosed
- * @brief Semantic requirement for a Field where every polynomial has a root.
- * @details This is the "Soul" property required by Algebra_ℂ.
- */
-export template <typename M>
-concept IsAlgebraicallyClosed = IsField<M>;  // Refined by its use in Algebra_ℂ
-
-/**
  * @concept IsBounded
  * @brief Theorem: Every Extensional species is Bounded (in our finite
  * universe).

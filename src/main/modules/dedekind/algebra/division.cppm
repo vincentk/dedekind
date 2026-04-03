@@ -18,6 +18,35 @@ import :rings;
 namespace dedekind::algebra {
 
 /**
+ * @concept IsDivisionRing
+ * @brief A Ring where every non-zero element has a multiplicative inverse.
+ * @details This is the formal "Roadblock" for division by zero.
+ */
+export template <IsRing T>
+concept IsDivisionRing = requires(T a, T b) {
+  /**
+   * @brief The Division Morphism.
+   * Note: The "b != 0" requirement is a runtime contract,
+   * not a compile-time type constraint.
+   */
+  { a / b } -> std::same_as<T>;
+};
+
+/**
+ * @concept IsDivisionRing
+ * @brief A Ring where every non-zero element has a multiplicative inverse.
+ * @details This is the formal "Roadblock" for division by zero.
+ *
+ * @tparam T A species already established as a Ring.
+ */
+export template <IsRing T>
+concept IsDivisionRing = requires(T a, T b) {
+  // We require BOTH the property (Inverse) and the Morphism (Division)
+  { a.inverse() } -> std::same_as<T>;
+  { a / b } -> std::same_as<T>;
+};
+
+/**
  * @concept IsCommutativeRing
  * @brief A Ring where multiplication is also commutative.
  * @details This is the foundation for Z, Q, and R.
@@ -34,31 +63,15 @@ concept IsCommutativeRing =
  *
  * Wikipedia: Euclidean domain
  */
-export template <typename T>
-concept IsEuclidean =
-    IsDividableChain<T> && IsCommutativeRing<T> && requires(T a, T b) {
-      // The Division Morphism
-      { a / b } -> std::same_as<T>;
-      // The Remainder Morphism (The "Scissors")
-      { a % b } -> std::same_as<T>;
-
-      // Euclidean Property: a = (a/b)*b + (a%b)
-      // Note: In C++, we assume std::divides and std::modulus satisfy this.
-    };
-
-/**
- * @concept IsDivisionRing
- * @brief A Ring where every non-zero element has a multiplicative inverse.
- * @details This is the formal "Roadblock" for division by zero.
- */
-export template <typename T>
-concept IsDivisionRing = IsRing<T> && requires(T a, T b) {
-  /**
-   * @brief The Division Morphism.
-   * Note: The "b != 0" requirement is a runtime contract,
-   * not a compile-time type constraint.
-   */
+export template <IsCommutativeRing T>
+concept IsEuclidean = IsDividableChain<T> && requires(T a, T b) {
+  // The Division Morphism
   { a / b } -> std::same_as<T>;
+  // The Remainder Morphism (The "Scissors")
+  { a % b } -> std::same_as<T>;
+
+  // Euclidean Property: a = (a/b)*b + (a%b)
+  // Note: In C++, we assume std::divides and std::modulus satisfy this.
 };
 
 /**
