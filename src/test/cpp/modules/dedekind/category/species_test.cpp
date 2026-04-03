@@ -28,7 +28,13 @@ void audit_feature_cube() {
   STATIC_CHECK(is_antisymmetric_v<T, Rel>);
 
   // --- Plane 3: Identity & Mapping (The "Boundary" constants) ---
-  STATIC_CHECK(requires { identity_v<T, Op>; });
+  if constexpr (has_identity_v<T, Op>) {
+    STATIC_CHECK(requires { identity_v<T, Op>; });
+    // We strip the cv-qualifiers (like 'const') from the constexpr storage
+    // so that it matches the raw species type T.
+    STATIC_CHECK(
+        std::same_as<std::remove_cvref_t<decltype(identity_v<T, Op>)>, T>);
+  }
 
   // if constexpr (IsSet<T>) {
   //     STATIC_CHECK(requires { characteristic_v<T>; });

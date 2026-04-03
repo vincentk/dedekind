@@ -367,6 +367,22 @@ This physical stratification prohibits circular reasoning at the compiler level;
 
 \subsection{\texttt{category} Module}
 
+\begin{lstlisting}[caption={Anchoring the ring operations as morphisms.}]
+template <typename T>
+struct SpeciesTraits<std::plus<T>> {
+  using Domain = T;
+  using Codomain = T;
+};
+
+template <typename T>
+struct SpeciesTraits<std::multiplies<T>> {
+  using Domain = T;
+  using Codomain = T;
+};
+\end{lstlisting}
+
+\subsection{The Semantic Mapping}
+
 The \texttt{dedekind.category} module serves as an anchor of the DSL in the established formalism of category theory.
 It aggregates skeletal, mereological, and algebraic laws to enable the synthesis of the \textit{Continuum} from the \textit{Discrete}.
 The adopted \emph{structuralist} posture views mathematical objects as positions within a structure rather than isolated collections.

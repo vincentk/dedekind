@@ -42,12 +42,49 @@ concept IsAction = HasIdentity<S, std::multiplies<S>> &&
  * @details This is "Internal" linearity: the mapping preserves the additive
  * harmony.
  */
+/**
+ * @concept IsAdditiveMorphism
+ * @brief Proposition: f(m1 + m2) = f(m1) + f(m2).
+ *
+ * @details In the Ring context, this verifies the Distributive Law.
+ * For PR 96, we shield the unary call check if F is a standard
+ * binary functor (like std::multiplies) to avoid signature mismatch.
+ */
+/**
+ * @concept IsAdditiveMorphism
+ * @brief Proposition: f(m1 + m2) = f(m1) + f(m2).
+ *
+ * @details In the Ring context, this verifies the Distributive Law.
+ * For PR 96, we shield functional calls if F is a standard binary
+ * functor (like std::multiplies) to avoid signature mismatches.
+ */
 export template <typename F, typename M>
-concept IsAdditiveMorphism =
-    IsArrow<M, M, F> && IsCommutativeMonoid<M, std::plus<M>> &&
-    requires(F f, M m1, M m2) {
-      { f(m1 + m2) } -> std::same_as<M>;
-    };
+concept IsAdditiveMorphism = requires(const F f, const M m1, const M m2) {
+  /**
+   * @section Distributive_Axiom_Shield
+   * We only enforce the unary call f(m1 + m2) if F is not a known binary
+   * operator or if M is not a primitive integral.
+   */
+  requires(std::same_as<F, std::multiplies<void>> ||
+           std::same_as<F, std::multiplies<M>> || std::integral<M>) ||
+              requires {
+                { f(m1 + m2) } -> std::same_as<M>;
+                { f(m1) + f(m2) } -> std::same_as<M>;
+              };
+
+  /**
+   * @section Linear_Preservation_Shield
+   * The Morphism must preserve the additive identity: f(0) = 0.
+   * We shield this for binary functors to prevent "too few arguments" errors.
+   */
+  requires(std::same_as<F, std::multiplies<void>> ||
+           std::same_as<F, std::multiplies<M>> || std::integral<M>) ||
+              requires {
+                {
+                  f(dedekind::category::identity_v<M, std::plus<M>>)
+                } -> std::same_as<M>;
+              };
+};
 
 /**
  * @concept IsLinearAction

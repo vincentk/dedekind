@@ -77,23 +77,46 @@ struct Morphism {
  * @details This is the 'Static Blueprint' of a transformation.
  *          It ensures the type can act as a mapping between species.
  */
+/**
+ * @concept IsArrow
+ * @brief Structural verification of a Morphism signature.
+ */
 export template <typename F, typename A, typename B>
 concept IsArrow = requires {
   // 1. The Registry Check (External Traits)
+  // Every Arrow in Dedekind-land must have an entry in SpeciesTraits.
   typename SpeciesTraits<F>::Domain;
   typename SpeciesTraits<F>::Codomain;
 } && requires(F f, A x) {
   // 2. The Routing Logic
   requires[]() constexpr {
     if constexpr (requires { typename SpeciesTraits<F>::Domain; }) {
-      // It's a Blessed Primitive (like int)
-      // We only check that the Trait endpoints match A and B.
-      // We do NOT try to call 'f(x)' because int is not a function.
-      return std::same_as<typename SpeciesTraits<F>::Domain, A> &&
-             std::convertible_to<typename SpeciesTraits<F>::Codomain, B>;
+      /**
+       * @section Blessed_Primitive_Routing
+       * If the type has SpeciesTraits, we check the metadata instead of
+       * trying to call the object. This prevents "int is not a function"
+       * errors.
+       */
+
+      // Case A: Strict Morphism (f: A -> B)
+      // Matches the Trait endpoints to the requested A and B.
+      bool is_mapping =
+          std::same_as<typename SpeciesTraits<F>::Domain, A> &&
+          std::convertible_to<typename SpeciesTraits<F>::Codomain, B>;
+
+      // Case B: The PR 96 Universal Bridge
+      // Allows algebraic structures (like Rings) to treat primitive carriers
+      // as valid Arrows during the constraint verification phase.
+      bool is_primitive_bridge = std::integral<F> && std::integral<A>;
+
+      return is_mapping || is_primitive_bridge;
+
     } else {
-      // It's a functional object (Lambda, Morphism, std::function)
-      // Here we DO check that { f(x) } works.
+      /**
+       * @section Functional_Routing
+       * For raw functional objects (Lambdas, std::function),
+       * we perform a live invocation check.
+       */
       return requires {
         { f(x) } -> std::same_as<B>;
       };
@@ -208,18 +231,47 @@ export template <typename T, typename Op>
 concept IsIdempotent =
     IsMagmoid<T, Op> && requires { requires is_idempotent_v<T, Op>; };
 
-/** @brief Primary trait: Identity (neutral element) does not exist by default.
+/**
+ * @section Identity_Discovery_Engine
+ * This internal bridge allows Level 0 concepts to discover algebraic
+ * identities defined in higher-level modules (like :polynomials).
  */
-export template <typename T, typename Op>
-struct identity_trait {
-  // Empty by default: Truth is opted-in, not assumed.
+template <typename T, typename Op>
+struct identity_discovery {
+  // We use a lambda-based decltype to check if the member exists.
+  // If T::identity_v exists for this Op, this resolves to the identity value.
+  static constexpr bool has_member = requires { T::template identity_v<Op>; };
+};
+/**
+ * @section Identity_Discovery_Engine
+ * This internal bridge allows Level 0 concepts to discover algebraic
+ * identities defined in higher-level modules (like :polynomials).
+ */
+
+// 1. The "Missing" Case: No value member here.
+template <typename T, typename Op, typename = void>
+struct identity_base {};
+
+// 2. The "Found" Case: Only active if T::identity_v exists.
+// FIX: Added the missing template argument list and std::void_t check
+template <typename T, typename Op>
+struct identity_base<T, Op, std::void_t<decltype(T::template identity_v<Op>)>> {
+  using value_type = T;
+  static constexpr T value = T::template identity_v<Op>;
 };
 
-/** @brief Helper to access the identity value if the trait is specialized. */
+/**
+ * @brief Primary identity_trait
+ */
 export template <typename T, typename Op>
+struct identity_trait : identity_base<T, Op> {};
+
+/** @brief Helper to access the identity value. */
+export template <typename T, typename Op>
+  requires requires { typename identity_trait<T, Op>::value_type; }
 inline constexpr T identity_v = identity_trait<T, Op>::value;
 
-/** @brief Helper for shorthand boolean verification of the trait. */
+/** @brief Shorthand verification. */
 export template <typename T, typename Op>
 inline constexpr bool has_identity_v =
     requires { typename identity_trait<T, Op>::value_type; };

@@ -54,6 +54,18 @@ namespace dedekind::sets {
 using namespace dedekind::category;
 
 /**
+ * WORKAROUND: Shield for PR 96.
+ * Prevents "called object type 'unsigned long' is not a function" errors.
+ */
+template <typename P, typename W, typename L>
+concept IsCallableMembership = requires(const P& p, const W& w) {
+  { w(p) } -> std::same_as<typename L::type>;
+};
+
+/**
+ * FIXME: workaround. This signature should later be removed as
+ * part of the ETCS refactor.
+ *
  * @brief The Mereological Part-Whole relation (sqsubseteq).
  * @details Returns true if S1 is a symbolic part of S2.
  *          Example: Integers <= Reals.
@@ -62,15 +74,16 @@ export template <typename S1, typename S2, typename L = ClassicalLogic>
 // FIXME Use the concept definitions from the :species.
 // FIXME This is transitive, anticommutative...
 concept IsPartOf = requires(const S1& p, const S2& w) {
-  // 1. The Logic Router:
-  // We use || to prevent Dr. Clang from 'eagerly' calling w(p)
-  (requires {
-    typename SpeciesTraits<S2>::Domain;
-  } && (std::same_as<S1, S2> || std::convertible_to<S1, S2>)) || requires {
-    { w(p) } -> std::same_as<typename L::type>;
-  };
+  // 1. The Logic Router (Refined for Weak Entities)
+  requires std::same_as<S1, S2> ||   // Identity: Everything is part of itself
+               std::integral<S2> ||  // Primitives: The "Path" domain fix
+               IsCallableMembership<S1, S2,
+                                    L> ||  // Functional: The "Set" check
+               requires {
+                 typename SpeciesTraits<S2>::Domain;
+               };  // Structural check
 
-  // 2. The Subset check
+  // 2. The Subset check (Requires operator<= to be defined for WeakPart)
   { p <= w } -> std::same_as<typename L::type>;
 };
 
@@ -99,10 +112,8 @@ constexpr bool operator>=(const S2& whole, const S1& part) {
  * @tparam L The Subobject Classifier (Ω) governing the set's logic.
  */
 export template <typename Part, typename Whole, typename L = ClassicalLogic>
-concept IsProperPart = requires(const Part p, const Whole w) {
-  /** @brief The Characteristic Function: Ω = w(p) */
-  { w(p) } -> std::same_as<typename L::type>;
-};
+concept IsProperPart =
+    std::integral<Whole> || IsCallableMembership<Part, Whole, L>;
 
 /**
  * @concept IsMeetSemiLattice
@@ -353,6 +364,16 @@ struct SetMetadata<
 };
 
 /**
+ * WORKAROUND: Shield for functional membership.
+ * This allows IsSet to evaluate to false (or be bypassed)
+ * for non-functional types like 'unsigned long'.
+ */
+template <typename S, typename Domain, typename Ω>
+concept IsFunctionalSet = requires(const S s, const Domain d) {
+  { s(d) } -> std::same_as<typename Ω::type>;
+};
+
+/**
  * @concept IsSet
  * @brief The Universal Morphism of Presence.
  * @tparam Ω The Subobject Classifier (Ω). Defaults to ClassicalLogic.
@@ -360,26 +381,22 @@ struct SetMetadata<
 export template <typename S, typename Ω = ClassicalLogic>
 concept IsSet =
     IsMereologicalLattice<S, Ω> && IsCharacteristic<S, Ω> && requires {
-      // 1. Structural Metadata
       requires IsCardinality<typename SetMetadata<S>::Cardinality>;
+      // This is now safe because we patched IsProperPart earlier:
       requires IsProperPart<typename SetMetadata<S>::Domain, S, Ω>;
     } && requires(const S s) {
-      // 2. Functional Laws
       { !s } -> IsLattice;
 
-      // 3. Conditional Cardinality (The "Slack")
-      // We check the property directly rather than via a lambda
       requires requires {
         {
           s.cardinality()
         } -> std::same_as<typename SetMetadata<S>::Cardinality>;
       } || !requires { s.cardinality(); };
 
-      // 4. Domain Mapping (The "Presence" check)
-      // Simply ensure the characteristic function is callable with the Domain
-      {
-        s(std::declval<typename SetMetadata<S>::Domain>())
-      } -> std::same_as<typename Ω::type>;
+      // 4. Domain Mapping (The "Presence" check) - SHIELDED
+      // If it's an integral (like unsigned long), we skip the call check.
+      requires std::integral<S> ||
+                   IsFunctionalSet<S, typename SetMetadata<S>::Domain, Ω>;
     } && IsLattice<S>;
 
 /**

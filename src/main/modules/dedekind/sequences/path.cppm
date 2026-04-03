@@ -83,6 +83,13 @@ struct Path {
       return f(Path<T>{[w, n](std::size_t i) { return w.at(n + i); }});
     }};
   }
+
+  /** @brief The Path is generally viewed as a mapping from N. */
+  constexpr auto cardinality() const noexcept {
+    // Return ℵ_0 for infinite paths,
+    // or a Finite(n) wrapper if Path tracks its own length.
+    return ℵ_0{};
+  }
 };
 
 }  // namespace dedekind::sequences

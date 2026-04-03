@@ -189,6 +189,19 @@ struct SpeciesTraits;
 export template <typename T>
 struct SpeciesTraits {};
 
+/** @section ETCS_Bridge: Standard Library Morphisms */
+template <typename T>
+struct SpeciesTraits<std::plus<T>> {
+  using Domain = T;
+  using Codomain = T;
+};
+
+template <typename T>
+struct SpeciesTraits<std::multiplies<T>> {
+  using Domain = T;
+  using Codomain = T;
+};
+
 /** @brief Helper to resolve logic species without hard errors */
 export template <typename T>
 struct GetLogic {
@@ -243,12 +256,13 @@ struct SpeciesTraits<Ternary> {
   using species = TernaryLogic;
 };
 
-/** @brief Specialization for the Integer Ring (The Discrete Topos). */
+/**
+ * @brief Specialization for the Integer Ring (The Discrete Topos).
+ * This "Blessing" lifts all integral types into the algebraic ontology.
+ */
 export template <std::integral T>
 struct SpeciesTraits<T> {
-  using species = ClassicalLogic;  // The Logic
-
-  // THE BLESSING:
+  using species = ClassicalLogic;
   using Domain = T;
   using Codomain = T;
   static constexpr auto cardinality = CardinalityTag::Countable;
@@ -256,9 +270,30 @@ struct SpeciesTraits<T> {
   /** @section Algebraic_Axioms */
   template <typename Op>
   static constexpr bool is_associative_v = true;
+
   template <typename Op>
   static constexpr bool is_idempotent_v =
       std::is_same_v<Op, std::bit_and<T>> || std::is_same_v<Op, std::bit_or<T>>;
+
+  /** @section Identity_Discovery */
+  // This allows the identity_trait discovery engine to find
+  // identities for both Ring and Bitwise operations.
+  template <typename Op>
+  static constexpr auto identity_v = []() {
+    if constexpr (std::is_same_v<Op, std::plus<T>> ||
+                  std::is_same_v<Op, std::bit_or<T>>) {
+      return T{0};
+    } else if constexpr (std::is_same_v<Op, std::multiplies<T>> ||
+                         std::is_same_v<Op, std::bit_and<T>>) {
+      return T{1};
+    } else if constexpr (std::is_same_v<Op, std::bit_and<T>>) {
+      return static_cast<T>(~T{0});  // All ones
+    }
+  }();
+
+  /** @section Identity_Elements (Legacy/Direct) */
+  static constexpr T zero = 0;
+  static constexpr T one = 1;
 };
 
 /** @section The Point-Free Composition Engine */
@@ -273,7 +308,8 @@ struct SpeciesTraits<T> {
  * @tparam P The Predicate candidate (typically a Lambda or a Functor).
  * @tparam T The Domain of the predicate (the type of object being tested).
  *
- * @req { p(x) } The candidate must be callable with an instance of the Domain.
+ * @req { p(x) } The candidate must be callable with an instance of the
+ * Domain.
  * @req SpeciesTraits<Res>::species The return type must be registered in the
  *      Ontology Bridge.
  * @req LogicalSpecies<S> The resolved logic species must satisfy the
@@ -313,7 +349,8 @@ concept IsPredicate =
  * a nested 'if' statement.
  */
 
-/** @brief Logical Conjunction (Intersection): Synthesizes a rule for A ∩ B. */
+/** @brief Logical Conjunction (Intersection): Synthesizes a rule for A ∩ B.
+ */
 export template <typename T, typename P1, typename P2>
   requires IsPredicate<P1, T> && IsPredicate<P2, T>
 auto operator&&(P1&& p1, P2&& p2) {
