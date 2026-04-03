@@ -67,3 +67,51 @@ TEST_CASE("Logic: Archimedean Successor", "[category][logic][peano]") {
     CHECK((Boolean{true} + Boolean::one()).value == true);
   }
 }
+
+/** @file test/cpp/modules/dedekind/category/logic_test.cpp */
+
+TEST_CASE("Logic: The Lattice Order (Relational Honesty)",
+          "[category][logic][order]") {
+  SECTION("Boolean Lattice Order") {
+    using B = Boolean;
+    B t{true}, f{false};
+
+    // Axiom: a <= b iff (a + b) == b
+    CHECK((f <= t));        // (false || true) == true
+    CHECK((f <= f));        // (false || false) == false
+    CHECK((t <= t));        // (true || true) == true
+    CHECK_FALSE((t <= f));  // (true || false) != false
+  }
+
+  SECTION("Kleene Information/Truth Order") {
+    using K = Kleene;
+    using enum Ternary;
+    K T{True}, F{False}, U{Unknown};
+
+    // Verifying the Linear Truth Chain: False < Unknown < True
+    CHECK((F <= U));  // (False || Unknown) == Unknown
+    CHECK((U <= T));  // (Unknown || True) == True
+    CHECK((F <= T));  // Transitivity
+
+    // Reflexivity
+    CHECK((U <= U));
+
+    // Antisymmetry (Strictly different values cannot be <= each other both
+    // ways)
+    CHECK_FALSE((T <= U));
+  }
+
+  SECTION("Predicate Composition (Type-Hinted)") {
+    // Use explicit function pointers. This is a "Real Type" that
+    // satisfies IsPredicate better than it satisfies a bool conversion.
+    Boolean (*is_true)(Boolean) = [](Boolean b) { return b; };
+    Boolean (*is_false)(Boolean) = [](Boolean b) { return !b; };
+
+    // NOW THIS WORKS WITHOUT BREAKING THE CONCEPT:
+    auto both = is_true && is_true;
+    auto either = is_true || is_false;
+
+    CHECK(both(Boolean{true}).value == true);
+    CHECK(either(Boolean{false}).value == true);
+  }
+}

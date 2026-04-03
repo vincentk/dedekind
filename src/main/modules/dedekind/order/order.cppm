@@ -104,7 +104,7 @@ concept IsSuccessor =
  * @brief The scale axiom: Every element can be 'reached' by the Successor.
  */
 export template <typename T>
-concept IsArchimedean = IsTotallyOrdered<T> && IsSuccessor<T>;
+concept IsArchimedean = IsPartiallyOrdered<T> && IsSuccessor<T>;
 
 /** @brief A set where every point is isolated by a successor. */
 template <typename T>

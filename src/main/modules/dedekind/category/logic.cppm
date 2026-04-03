@@ -321,10 +321,9 @@ struct SpeciesTraits<T> {
  */
 export template <typename P, typename T>
 concept IsPredicate =
+    !std::same_as<std::remove_cvref_t<P>, bool> &&  // Don't match raw bools
     requires(P p, T x) {
-      // 1. Must be callable with T
       { p(x) };
-      // 2. The result MUST have a mapping in our Logic Ontology
       typename SpeciesTraits<decltype(p(x))>::species;
     } &&
     LogicalSpecies<
@@ -351,26 +350,29 @@ concept IsPredicate =
 
 /** @brief Logical Conjunction (Intersection): Synthesizes a rule for A ∩ B.
  */
-export template <typename T, typename P1, typename P2>
+export template <typename P1, typename P2, typename T>
   requires IsPredicate<P1, T> && IsPredicate<P2, T>
 auto operator&&(P1&& p1, P2&& p2) {
   return [p1 = std::forward<P1>(p1),
-          p2 = std::forward<P2>(p2)](auto&& x) mutable -> decltype(p1(x)) {
+          p2 = std::forward<P2>(p2)](const T& x) mutable {
     using S = typename SpeciesTraits<decltype(p1(x))>::species;
-    return S::AND(p1(std::forward<decltype(x)>(x)),
-                  p2(std::forward<decltype(x)>(x)));
+    return S::AND(p1(x), p2(x));
   };
 }
 
 /** @brief Logical Disjunction (Union): Synthesizes a rule for A ∪ B. */
-export template <typename T, typename P1, typename P2>
+export template <typename P1, typename P2, typename T>
   requires IsPredicate<P1, T> && IsPredicate<P2, T>
 auto operator||(P1&& p1, P2&& p2) {
   return [p1 = std::forward<P1>(p1),
-          p2 = std::forward<P2>(p2)](auto&& x) mutable -> decltype(p1(x)) {
-    using S = typename SpeciesTraits<decltype(p1(x))>::species;
-    return S::OR(p1(std::forward<decltype(x)>(x)),
-                 p2(std::forward<decltype(x)>(x)));
+          p2 = std::forward<P2>(p2)](const T& x) mutable {
+    // 1. Resolve the return type of the first predicate
+    using Res = decltype(p1(x));
+    // 2. Resolve the underlying Logic Species (Ω)
+    using S = typename SpeciesTraits<Res>::species;
+
+    // 3. Return the Supremum (Join) of the two results
+    return S::OR(p1(x), p2(x));
   };
 }
 
@@ -418,6 +420,11 @@ struct Truth {
   // Multiplication as the Infimum (AND)
   friend constexpr Truth operator*(Truth a, Truth b) noexcept {
     return {L::AND(a.value, b.value)};
+  }
+
+  friend constexpr bool operator<=(Truth a, Truth b) noexcept {
+    // Universal Lattice Order: a <= b iff the Join of a and b is b.
+    return (a + b) == b;
   }
 
   /** @section Identity_Discovery */
