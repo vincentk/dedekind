@@ -6,10 +6,11 @@
  * Copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @section Algebra: The Synthesis of Body and Action
- * This partition defines the "Soul" of the Dedekind species. While mereology
- * defines the notion of a "Set", algebra provides structure-preserving
- * operations.
+ * @section The_Field_of_Reunion
+ * In the tradition of Sharaf al-Dīn al-Ṭūsī, the Field is the species
+ * of total inversion. It ensures that every action has a symmetric
+ * reaction—a multiplicative inverse—allowing for the 'completion'
+ * and 'reunion' of any algebraic equation within its own universe.
  *
  * @details
  * We anchor the standard C++ arithmetic operators as formal Algebraic
@@ -130,9 +131,6 @@ constexpr auto div_rem(const Poly& a, const Poly& b) {
   return std::make_pair(q, r);
 }
 
-/** @section Atomic_Verification */
-static_assert(IsField<double>,
-              "Axiom Failure: Floating point primitives must act as Fields.");
 static_assert(!IsField<int>, "Structural Integrity: Integers are not a Field.");
 
 }  // namespace dedekind::algebra

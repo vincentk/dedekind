@@ -27,8 +27,11 @@
 export module dedekind.morphologies:cyclic;
 
 import dedekind.algebra;
+import dedekind.sequences;
 
 namespace dedekind::morphologies {
+using namespace algebra;
+using namespace sequences;
 
 /**
  * @class CyclicRing

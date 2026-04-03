@@ -26,15 +26,12 @@ module;
 export module dedekind.morphologies:cauchy;
 
 import dedekind.category;
-// import dedekind.morphologies;
-import dedekind.order;
-import :path;
-import :limits;
+import dedekind.sequences;
 
-namespace dedekind::sequences {
+namespace dedekind::morphologies {
 
 using namespace dedekind::category;
-using namespace dedekind::order;
+using namespace dedekind::sequences;
 
 /**
  * @concept IsCauchy
@@ -104,4 +101,4 @@ static_assert(
     !IsConvergent<Path<int>>,
     "Structural Safety: Discrete species (ℤ) cannot claim convergence.");
 
-}  // namespace dedekind::sequences
+}  // namespace dedekind::morphologies
