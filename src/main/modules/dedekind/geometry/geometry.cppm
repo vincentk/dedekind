@@ -1,53 +1,50 @@
 /**
- * @file ontology:geometry.cppm
- * @brief The Study of Distance, Metrics, and Curvature.
+ * @file geometry.cppm
+ * @module dedekind.geometry
+ * @brief Level 9: Geometric Species (Affine ⊂ InnerProduct ⊂ Euclidean ⊂ Hilbert).
  *
- * Copyright 2026 The Dedekind Authors
+ * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @section Geometry: The Logic of Space.
- * @details This partition bridges Algebra and Topology by introducing the
- *          concept of a "Metric." It ensures that our numerical species
- *          can be measured not just as sets or fields, but as physical
- * points on a 1D, 2D, or n-dimensional manifold. Wikipedia: Geometry,
- * Metric space, Euclidean space
+ * @section Structural_Geometry
+ * "Geometrie ist nicht die Lehre von den Dingen, sondern von der Art und Weise, 
+ *  wie sie koexistieren. Raum ist eine relationale Ordnung koexistierender Objekte."
+ *  (Geometry is not the study of things, but of the way in which they coexist. 
+ *  Space is a relational order of coexisting objects.)
+ *  — Bernulf Kanitscheider, 'Geometrie und Wirklichkeit' (1971).
+ *
+ * @section Geometric_Taxonomy
+ * Following the Erlangen Program and ETCS foundations, we treat geometry as 
+ * the study of invariants under specific groups of morphisms:
+ * 
+ * - **Affine (@ref affine)**: The study of parallelisms and ratios. 
+ *   Defined by the action of a Vector Space (Module) on a set of Points.
+ * 
+ * - **Metric (@ref inner_product, @ref euclidean)**: The study of congruence. 
+ *   Introduces the Bilinear Form ⟨u, v⟩ to measure angles and the Norm ||v|| 
+ *   to measure the "Magnitude of Being."
+ * 
+ * - **Analytic (@ref hilbert)**: The study of infinite convergence. 
+ *   Completes the metric space, allowing for Fourier analysis and 
+ *   Quantum Mechanical state-representations.
+ *
+ * @see Wikipedia: [Erlangen Program](https://wikipedia.org), 
+ *                 [Hilbert Space](https://wikipedia.org)
+ * @see Kanitscheider, B. (1971). Geometrie und Wirklichkeit.
  */
 
-module;
+export module dedekind.geometry;
 
-#include <concepts>
-#include <functional>
+/** @section Level_9.1: The Relational Foundation */
+export import :affine;         // The Point-Vector Duality
+export import :inner_product;  // The Bilinear Mapping ⟨-, -⟩
 
-export module dedekind.geometry:geometry;
-
-import dedekind.morphologies; // For Vector Spaces and Norms
-
-namespace dedekind::geometry {
+/** @section Level_9.2: The Metric Completion */
+export import :euclidean;      // The Normed Space (L2-Topology)
+export import :hilbert;        // The Complete Unitary Space (L2-Convergence)
 
 /**
- * @concept IsMetricSpace
- * @brief A set equipped with a distance function (metric) d(a, b).
- * @details In our Naked Ontology, the metric projects any two points
- *          to a scalar field S, which must be an Ordered Field (the ruler).
+ * @note The build order is critical:
+ * :affine must be scanned before :euclidean, as an Euclidean space 
+ * is an Affine space equipped with a specific Inner Product.
  */
-export template <typename T, typename S>
-concept IsMetricSpace =
-    IsSet<T> && IsOrderedField<S> && requires(const T a, const T b) {
-      // The Distance Morphism: d(a, b)
-      { distance(a, b) } -> std::same_as<S>;
-    };
-
-/**
- * @concept IsEuclideanSpace
- * @brief A Vector Space that is also a Metric Space where distance is the Norm.
- * @details Structural Constraint: distance(a, b) == norm(a - b).
- *          In the mirror, this is the "flat" geometry of R^n.
- */
-export template <typename V, typename S>
-concept IsEuclideanSpace =
-    IsVectorSpace<V, S> && IsMetricSpace<V, S> && requires(const V v) {
-      // The Norm (Magnitude) of a single vector.
-      { norm(v) } -> std::same_as<S>;
-    };
-
-}  // namespace dedekind::geometry
