@@ -1,7 +1,11 @@
 /**
- * @file ontology:category.cppm
+ * @file algebra:monoid.cppm
  * @partition :monoid
- * @brief Level 0.2: The Rule of Identity (Semigroups and Monoids).
+ * @brief Level 3.0a: The Additive and Multiplicative Monoids (ℕ).
+ *
+ * @copyright 2026 The Dedekind Authors
+ * Licensed under the Apache License, Version 2.0 (the "License");
+ * you may not use this file except in compliance with the License.
  *
  * @section The_Identity_Axiom
  * « Wprowadzenie pojęcia kategorii pozwala na jednolite traktowanie
@@ -10,42 +14,33 @@
  *   treatment of various mathematical structures.)
  *  — Samuel Eilenberg, 'Algebraic Topology'
  *
- * @details
- * A Monoid is the simplest "Small Category"—a species with a single object
- * where every morphism (element) can be composed associatively and
- * possesses a neutral identity.
+ * @section Taxonomy_of_Identity
+ * This partition grounds the abstract categorical Monoid into the
+ * established arithmetic notation of Algebra. It reifies the
+ * "Rules of Neutrality" for Addition (0) and Multiplication (1),
+ * establishing the skeletal foundation for all higher-order
+ * Ring and Field structures.
  */
 
-export module dedekind.category:monoid;
+export module dedekind.algebra:monoid;
 
-import :species;
+import dedekind.category;
 
-namespace dedekind::category {
+namespace dedekind::algebra {
 
 /**
- * @concept IsSemigroup
- * @brief An associative species closed under binary composition.
- *
- * @tparam T A species already established as a Magma.
- * @tparam Op The binary operator (e.g., std::plus).
+ * @concept IsAdditiveMonoid
+ * @brief Proposition: The species (T, +) forms a Monoid.
  */
-export template <IsMagma<Op> T, typename Op>
-concept IsSemigroup = IsAssociative<T, Op>;
+export template <typename T>
+concept IsAdditiveMonoid = dedekind::category::IsMonoid<T, std::plus<>>;
 
 /**
- * @concept IsMonoid
- * @brief A Semigroup endowed with a Two-Sided Identity (Unit).
- * @axiom 1 * a = a = a * 1
+ * @concept IsMultiplicativeMonoid
+ * @brief Proposition: The species (T, *) forms a Monoid.
  */
-export template <IsSemigroup<Op> T, typename Op>
-concept IsMonoid = HasIdentity<T, Op>;
+export template <typename T>
+concept IsMultiplicativeMonoid =
+    dedekind::category::IsMonoid<T, std::multiplies<>>;
 
-/**
- * @concept IsCommutativeMonoid
- * @brief A Monoid where the order of composition is invariant.
- * @details This is the skeletal structure of Addition (+) and Logic (&&).
- */
-export template <IsMonoid<Op> T, typename Op>
-concept IsCommutativeMonoid = IsCommutative<T, Op>;
-
-}  // namespace dedekind::category
+}  // namespace dedekind::algebra
