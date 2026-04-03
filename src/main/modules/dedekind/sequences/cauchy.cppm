@@ -17,6 +17,11 @@
  * Wikipedia: Cauchy sequence, Completeness of the real numbers, Metric space
  */
 
+module;
+
+#include <concepts>
+#include <functional>
+
 export module dedekind.sequences:cauchy;
 
 import dedekind.category;

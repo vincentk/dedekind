@@ -39,6 +39,16 @@ class Rational {
     }
   }
 
+  /** @section Relational_Morphisms */
+
+  // (a/b) <= (c/d) <=> ad <= cb (assuming positive denominators)
+  friend constexpr bool operator<=(const Rational& a, const Rational& b) {
+    return (a.num_ * b.den_) <= (b.num_ * a.den_);
+  }
+
+  friend constexpr bool operator==(const Rational&,
+                                   const Rational&) const = default;
+
   constexpr Z num() const { return num_; }
   constexpr Z den() const { return den_; }
 
