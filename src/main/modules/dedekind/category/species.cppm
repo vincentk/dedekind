@@ -901,6 +901,15 @@ concept IsInvertible = IsPointed<T, Op> && is_invertible_v<T, Op>;
 export template <typename T, typename Op>
 concept IsPeriodic = is_periodic_v<T, Op>;
 
+/**
+ * @concept IsTotal
+ * @brief The Master Safety Certificate for Level 0.
+ * A morphism is total if it is either Periodic (Circular) or Idempotent
+ * (Stable).
+ */
+export template <typename T, typename Op>
+concept IsTotal = IsPeriodic<T, Op> || IsIdempotent<T, Op>;
+
 /** @section The_Box_Species (The Standard Model) */
 export template <typename T>
 struct Box final {

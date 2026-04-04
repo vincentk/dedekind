@@ -119,14 +119,6 @@ static_assert(IsRig<unsigned int, std::plus<unsigned int>,
 static_assert(IsRing<unsigned int, std::plus<unsigned int>,
                      std::multiplies<unsigned int>>);
 
-/**
- * @concept IsIdempotent
- * @brief Level 1.4: The operation satisfies the law x ∘ x = x.
- */
-export template <typename T, typename Op>
-concept IsIdempotent =
-    IsMagma<T, Op> && requires { requires is_idempotent_v<T, Op>; };
-
 /** @concept IsJoinSemilattice */
 export template <typename T, typename Op>
 concept IsJoinSemilattice = IsCommutativeMonoid<T, Op> && IsIdempotent<T, Op>;
