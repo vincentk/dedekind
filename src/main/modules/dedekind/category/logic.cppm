@@ -36,6 +36,7 @@
 module;
 
 #include <algorithm>
+#include <cmath>
 #include <concepts>
 #include <functional>
 
@@ -196,25 +197,6 @@ struct SpeciesTraits<T> {
 
   // Safe resolution: No member access on the fallback
   using species = typename GetLogic<T>::type;
-};
-
-/** @brief Specialization for the Classical (Boolean) Topos. */
-export template <>
-struct SpeciesTraits<bool> {
-  using species = ClassicalLogic;
-  using Domain = bool;
-  using Codomain = bool;
-  static constexpr auto cardinality = CardinalityTag::Finite;
-
-  /** @section Algebraic_Axioms */
-  template <typename Op>
-  static constexpr bool is_associative_v = true;
-  template <typename Op>
-  static constexpr bool is_idempotent_v =
-      std::is_same_v<Op, std::bit_and<bool>> ||
-      std::is_same_v<Op, std::bit_or<bool>> ||
-      std::is_same_v<Op, std::logical_and<bool>> ||
-      std::is_same_v<Op, std::logical_or<bool>>;
 };
 
 /** @brief Specialization for the Kleene (Ternary) Topos. */
@@ -441,6 +423,42 @@ struct SpeciesTraits<Truth<L>> {
 };
 
 /**
+ * @section Logic_Atlas_Bridge
+ * Maps a Species to its specific Truth Object (Omega).
+ * This bridge consumes the facts from the :species Atlas to determine
+ * which logical system governs a given type.
+ */
+
+/** @brief Primary Template: Default to Classical (Boolean) Logic */
+export template <typename T>
+struct LogicTraits {
+  using type = ClassicalLogic;
+};
+
+/** @brief Specialization for Floating-Point Species (IEEE 754 NaN handling) */
+template <std::floating_point T>
+struct LogicTraits<T> {
+  using type = TernaryLogic;
+};
+
+/**
+ * @brief Specialization for Signed Integrals (Lipschitz Boundary handling)
+ * Note: We use Ternary here to represent the 'Unknown' state of an overflow.
+ */
+template <std::signed_integral T>
+struct LogicTraits<T> {
+  using type = TernaryLogic;
+};
+
+/** @brief Shorthand for the Logic Species of a type */
+export template <typename T>
+using LogicOf = typename LogicTraits<T>::type;
+
+/** @brief Shorthand for the Subobject Classifier (Omega) of a species */
+export template <typename T>
+using Omega = typename LogicOf<T>::type;
+
+/**
  * @section The_Subobject_Classifier
  * Formal elevation from Machine Result -> Omega.
  */
@@ -452,26 +470,25 @@ struct SubobjectClassifier {
   /** @brief Lipschitz Boundary Check for Signed Integers */
   template <typename Op>
     requires std::signed_integral<T>
-  static constexpr Omega evaluate_arithmetic(T a, T b, Op op) {
-      // Use compiler built-ins for overflow detection (The Guardrail)
-      T result;
-      if (__builtin_add_overflow(a, b, &result)) {
-          return L::Unknown; // Lipschitz boundary breached
-      }
-      return L::True; // Operation is safe/contained
+  static constexpr Omega evaluate_arithmetic(T a, T b, Op) {
+    // Use compiler built-ins for overflow detection (The Guardrail)
+    T result;
+    if (__builtin_add_overflow(a, b, &result)) {
+      return L::Unknown;  // Lipschitz boundary breached
+    }
+    return L::True;  // Operation is safe/contained
   }
 
   /** @brief NaN Truth-Hole Check for IEEE 754 */
   template <typename Op>
     requires std::floating_point<T>
   static constexpr Omega evaluate_relational(T a, T b, Op rel) {
-      if (std::isnan(a) || std::isnan(b)) {
-          return L::Unknown; // Singularity detected
-      }
-      return rel(a, b) ? L::True : L::False;
+    if (std::isnan(a) || std::isnan(b)) {
+      return L::Unknown;  // Singularity detected
+    }
+    return rel(a, b) ? L::True : L::False;
   }
 };
-
 
 /**
  * FIXME: Extension Point for Option-Logic.
