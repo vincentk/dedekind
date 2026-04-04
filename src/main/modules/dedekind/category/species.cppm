@@ -238,14 +238,6 @@ export template <typename T, typename Op>
 inline constexpr bool is_associative_v = is_associative<T, Op>::value;
 
 /**
- * @concept IsAssociative
- * @brief Formal verification that (a ∘ b) ∘ c = a ∘ (b ∘ c).
- */
-export template <typename T, typename Op>
-concept IsAssociative =
-    IsMagmoid<T, Op> && requires { requires is_associative_v<T, Op>; };
-
-/**
  * @brief Trait to mark an operation as commutative: a ∘ b = b ∘ a
  **/
 export template <typename T, typename Op>
@@ -268,14 +260,6 @@ template <typename T>
   requires std::is_integral_v<T>
 struct is_commutative<T, std::bit_and<T>> : std::true_type {};
 
-/**
- * @concept IsCommutative
- * @brief Formal verification that a ∘ b = b ∘ a.
- */
-export template <typename T, typename Op>
-concept IsCommutative =
-    IsMagmoid<T, Op> && requires { requires is_commutative_v<T, Op>; };
-
 export template <typename T, typename Op>
 struct is_idempotent : std::false_type {};
 
@@ -287,14 +271,6 @@ struct is_idempotent<T, Op>
 /** @brief Helper for shorthand access in concepts. */
 export template <typename T, typename Op>
 inline constexpr bool is_idempotent_v = is_idempotent<T, Op>::value;
-
-/**
- * @concept IsIdempotent
- * @brief Formal verification that x ∘ x = x.
- */
-export template <typename T, typename Op>
-concept IsIdempotent =
-    IsMagmoid<T, Op> && requires { requires is_idempotent_v<T, Op>; };
 
 /**
  * @section Identity_Discovery_Engine
@@ -340,15 +316,6 @@ inline constexpr T identity_v = identity_trait<T, Op>::value;
 export template <typename T, typename Op>
 inline constexpr bool has_identity_v =
     requires { typename identity_trait<T, Op>::value_type; };
-
-/**
- * @concept HasIdentity
- * @brief Formal verification of the existence of a neutral element 'e'
- *        such that x ∘ e = x and e ∘ x = x.
- */
-export template <typename T, typename Op>
-concept HasIdentity =
-    IsMagmoid<T, Op> && requires { requires has_identity_v<T, Op>; };
 
 /**
  * @brief The Characteristic of the Species.
@@ -500,14 +467,6 @@ struct inverse_trait {
 export template <typename T, typename Op>
 inline constexpr bool is_invertible_v = inverse_trait<T, Op>::exists;
 
-/**
- * @concept IsInvertible
- * @brief Formal verification that x ∘ x⁻¹ = e.
- */
-export template <typename T, typename Op>
-concept IsInvertible =
-    HasIdentity<T, Op> && requires { requires is_invertible_v<T, Op>; };
-
 // --- Integers: The finite ring (Z, +, *) ---
 
 /**
@@ -651,76 +610,6 @@ struct identity_trait<bool, std::bit_and<bool>> {
   static constexpr bool value = true;
 };
 
-/** @section Magmoid Verification: The Atomic Bricks */
-
-// Proof: Boolean AND is a Magmoid.
-static_assert(IsMagmoid<bool, std::logical_and<bool>>,
-              "Magmoid: bool must be closed under logical conjunction.");
-
-// Proof: Integer Addition is a Magmoid.
-static_assert(IsMagmoid<int, std::plus<int>>,
-              "Magmoid: int must be closed under addition.");
-
-// Proof: std::modulus is a Magmoid (even if it's not a Monoid).
-static_assert(IsMagmoid<int, std::modulus<int>>,
-              "Magmoid: int must be closed under remainder.");
-
-/**
- * @concept IsSemigroupoid
- * @brief A Magmoid that satisfies the Associative Law.
- *
- * @details This is a Category without a guaranteed identity. It enforces:
- *          (f ∘ g) ∘ h = f ∘ (g ∘ h). In our structuralist approach, we
- *          verify this by checking the 'is_associative_v' trait, which
- *          acts as a compile-time proof of the associative property.
- *
- * @note Many high-performance algorithms (like parallel reductions)
- *       only require this level of structure.
- */
-export template <typename T, typename Op>
-concept IsSemigroupoid = IsMagmoid<T, Op> && IsAssociative<T, Op>;
-
-/** @section Semigroupoid Verification: The Grouping Law */
-
-// Proof: (int, +) is associative: (a + b) + c = a + (b + c).
-static_assert(IsSemigroupoid<int, std::plus<int>>,
-              "Semigroupoid: Integer addition must allow re-grouping.");
-
-// Proof: (int, -) is NOT associative: (10 - 5) - 2 != 10 - (5 - 2).
-static_assert(!IsSemigroupoid<int, std::minus<int>>,
-              "Semigroupoid: Subtraction must fail the grouping proof.");
-
-// 2. Proof: (int, &) is a Semigroupoid (Associative).
-static_assert(IsSemigroupoid<int, std::bit_and<int>>,
-              "Bitwise: AND is associative.");
-
-// Proof: (int, *) is a Semigroupoid.
-static_assert(IsSemigroupoid<int, std::multiplies<int>>,
-              "Semigroupoid: Integer multiplication is associative.");
-
-/** @section Commutative Verification: The Symmetry Law */
-
-// Proof: (int, &) is Commutative (even though it's not a SmallCategory).
-// This allows a compiler to reorder bitwise AND masks.
-static_assert(IsCommutative<int, std::bit_and<int>>,
-              "Commutative: Integer AND must allow operand swapping.");
-
-// Proof: (int, +) is Commutative.
-static_assert(IsCommutative<int, std::plus<int>>,
-              "Commutative: Integer addition is symmetric.");
-
-// Proof: (bool, ||) is Commutative.
-static_assert(IsCommutative<bool, std::logical_or<bool>>,
-              "Commutative: Boolean OR is symmetric.");
-
-// Negative Proof: (int, -) is NOT Commutative: 5 - 2 != 2 - 5.
-static_assert(!IsCommutative<int, std::minus<int>>,
-              "Commutative: Subtraction must fail the symmetry proof.");
-
-// Negative Proof: (int, /) is NOT Commutative.
-static_assert(!IsCommutative<int, std::divides<int>>,
-              "Commutative: Division must fail the symmetry proof.");
-
 /**
  * @section Taxonomic_Validation
  * @brief Self-verifying the structural integrity of the reified species.
@@ -784,16 +673,6 @@ template <std::integral T>
 inline constexpr bool is_distributive_v<T, std::plus<T>, std::multiplies<T>> =
     true;
 
-/**
- * @concept IsDistributive
- * @brief The "Glue" of the Ring: a * (b + c) = a*b + a*c.
- */
-export template <typename T, typename Add, typename Mul>
-concept IsDistributive = requires(T a, T b, T c) {
-  // We check the semantic presence of the law (usually via a trait)
-  requires is_distributive_v<T, Add, Mul>;
-};
-
 // Finite and transfinite species are mutually exclusive.
 
 /** @brief Primary trait for Transfiniteness. */
@@ -803,15 +682,6 @@ struct is_transfinite : std::false_type {};  // Default: The world is Finite.
 /** @brief Shorthand helper. */
 export template <typename T>
 inline constexpr bool is_transfinite_v = is_transfinite<T>::value;
-
-/** @concept IsTransfinite: A species that exceeds any terminal ordinal. */
-export template <typename T>
-concept IsTransfinite =
-    is_transfinite_v<T> || requires { typename T::is_transfinite_tag; };
-
-/** @concept IsFinite: The "Pedestrian" reality of terminating sets. */
-export template <typename T>
-concept IsFinite = !IsTransfinite<T>;
 
 /** @brief Primary trait: The distinguished 'Point' of a species. */
 export template <typename T>
@@ -831,35 +701,70 @@ struct origin_trait<T> {
   static constexpr T value = 0.0;
 };
 
+/** @section The_Decorator_Concepts */
+
+/** @concept IsTransfinite: A species that exceeds any terminal ordinal. */
+export template <typename T>
+concept IsTransfinite =
+    is_transfinite_v<T> || requires { typename T::is_transfinite_tag; };
+
+/** @concept IsFinite: The "Pedestrian" reality of terminating sets. */
+export template <typename T>
+concept IsFinite = !IsTransfinite<T>;
+
+export template <typename T, typename Op>
+concept IsAssociative = is_associative_v<T, Op>;
+
+export template <typename T, typename Op>
+concept IsCommutative = is_commutative_v<T, Op>;
+
+/** @section Commutative Verification: The Symmetry Law */
+
+// Proof: (int, &) is Commutative (even though it's not a SmallCategory).
+// This allows a compiler to reorder bitwise AND masks.
+static_assert(IsCommutative<int, std::bit_and<int>>,
+              "Commutative: Integer AND must allow operand swapping.");
+
+// Proof: (int, +) is Commutative.
+static_assert(IsCommutative<int, std::plus<int>>,
+              "Commutative: Integer addition is symmetric.");
+
+// Proof: (bool, ||) is Commutative.
+static_assert(IsCommutative<bool, std::logical_or<bool>>,
+              "Commutative: Boolean OR is symmetric.");
+
+// Negative Proof: (int, -) is NOT Commutative: 5 - 2 != 2 - 5.
+static_assert(!IsCommutative<int, std::minus<int>>,
+              "Commutative: Subtraction must fail the symmetry proof.");
+
+// Negative Proof: (int, /) is NOT Commutative.
+static_assert(!IsCommutative<int, std::divides<int>>,
+              "Commutative: Division must fail the symmetry proof.");
+
+/**
+ * @concept IsDistributive
+ * @brief The "Glue" of the Ring: a * (b + c) = a*b + a*c.
+ */
+export template <typename T, typename Add, typename Mul>
+concept IsDistributive = requires(T a, T b, T c) {
+  // We check the semantic presence of the law (usually via a trait)
+  requires is_distributive_v<T, Add, Mul>;
+};
+
+export template <typename T, typename Op>
+concept IsIdempotent = is_idempotent_v<T, Op>;
+
 /**
  * @concept IsPointed
- * @brief The Law of the Origin: A species with a distinguished structural
- * identity.
- *
- * @details
- * In the structuralist registry, a Pointed Species is a type T that designates
- * a unique "Structural Origin" (0) via a static factory. This is the
- * algebraic prerequisite for higher-level structures:
- * - Level 3: Monoids (Identity element e).
- * - Level 3: Groups (Neutral element 0).
- * - Level 4: Vector Spaces (The Zero Vector).
- *
- * @section Ontological_Role
- * While a singleton set provides a "Basepoint" for a specific body, an
- * IsPointed Species defines an "Absolute Zero" for its entire domain.
- * This allows for zero-overhead symbolic evaluation of identities
- * across the Dedekind universe.
- *
- * @tparam T The Species being verified (e.g., Integer, Matrix, Complex).
- *
- * Wikipedia: Pointed space, Origin (mathematics), Zero element
+ * Replaces the missing 'HasIdentity' for Level 0.1
  */
-export template <typename T>
+export template <typename T, typename Op>
 concept IsPointed = requires {
-  { origin_trait<T>::value } -> std::same_as<const T&>;
-} || requires {
-  { T::origin() } -> std::same_as<T>;
+  { identity_v<T, Op> } -> std::convertible_to<T>;
 };
+
+export template <typename T, typename Op>
+concept IsInvertible = IsPointed<T, Op> && is_invertible_v<T, Op>;
 
 /** @section The_Box_Species (The Standard Model) */
 export template <typename T>
@@ -885,19 +790,5 @@ constexpr auto operator<<=(const Box<T>& b, Func&& f) {
   // and re-wrap the result in a new Box.
   return Box<U>{std::forward<Func>(f)(b)};
 }
-
-/** @section Logic_Order_Traits */
-
-// 1. Reflexivity: a <= a (Lattice Join: a || a == a)
-template <typename L>
-struct is_reflexive<Truth<L>, std::less_equal<>> : std::true_type {};
-
-// 2. Antisymmetry: (a <= b && b <= a) => a == b
-template <typename L>
-struct is_antisymmetric<Truth<L>, std::less_equal<>> : std::true_type {};
-
-// 3. Transitivity: (a <= b && b <= c) => a <= c
-template <typename L>
-struct is_transitive<Truth<L>, std::less_equal<>> : std::true_type {};
 
 }  // namespace dedekind::category
