@@ -576,16 +576,39 @@ static_assert(!IsMagma<int, std::plus<int>>);
 \end{lstlisting}
 
 
-\subsubsection{The \texttt{:partial} partition}
+\subsubsection{The \texttt{:partial} partition: The Pragmatic Rescue}
 
-The transition from \textit{Rings} to \textit{Fields} introduces a fundamental tension between totality and partiality. 
-In a strict categorical ontology, the multiplicative inverse morphism $\text{inv}: X \rightharpoonup X$ cannot be considered a total morphism in the \texttt{:total} partition, as it remains undefined for the additive identity $0$. 
-Following the "Honest" architecture of the \texttt{dedekind} library, we relegate the definition of a \textbf{Field} to the \texttt{:partial} partition. 
+The \texttt{:partial} partition performs the "Categorical Rescue" of species that failed the strict requirements of the \texttt{:total} domain. 
+This "Rescue Mission" is where we formalise the transition from the \textit{Platonic} to the \textit{Pragmatic}: the goal is to show that while the machine is "broken," it is \textbf{consistently broken}. 
+Following the informal explorations of the \textit{n-Category Caf\'{e}}~\cite{ncategorycafe} and the subsequent formalisations of the \textit{nLab} community~\cite{nlab_kleisli}, we acknowledge these consistent failures as structured data. 
 
-This maturation is modeled as a \textbf{Subobject Classification} problem \cite{mclarty1992toposes}. 
-We define the field as a ring where the predicate $x \neq 0$ classifies a subobject $U \hookrightarrow X$ upon which multiplication is a total \textbf{Abelian Group}. 
-By using the Kleene Ternary Logic ($\Omega$) defined in our \texttt{:logic} partition, we can explicitly represent the "failure" of division by zero as a structural invariant rather than a runtime exception. 
-This ensures that \textit{Universal Constructions} requiring exact inversion, such as the \textbf{Equalizer} used in Dedekind cuts, are only permitted when the species provides a formal proof of its subobject boundaries \cite{lawvere2003sets}.
+By utilizing the \textbf{Ternary Topos} ($\Omega_{K3}$), the library "clips" the domain of definition to exclude singularities such as $NaN$ and arithmetic overflow. 
+To enable composition, these partial functions are lifted into the \textbf{Kleisli Category} of the \textit{Maybe Monad}~\cite{kleisli1965every}. 
+This "Rescue" ensures that even when we navigate the messy reality of hardware, we remain within a rigorous algebraic landscape, where the "Rules of Thought" are preserved even as the "Laws of Harmony" are relaxed.
+
+This "Rescue Mission" is where we formalise the transition from the \textit{Platonic} to the \textit{Pragmatic}: the goal is to show that while the machine is "broken," it is \textbf{consistently broken}. 
+By acknowledging these consistent failures—such as the Lipschitz boundary of signed integers or the truth-holes of IEEE 754—we can build a \textbf{Kleisli Category} that remains algebraically rigorous despite the physical limitations of the hardware.
+
+Following topos-theoretic foundations~\cite{mclarty1992toposes}, we treat a partial morphism $f: A \rightharpoonup B$ as a total mapping from a \textit{subobject} $S \hookrightarrow A$, where $S$ is the \textbf{Support} defined by the characteristic function $\chi: A \to \Omega_{K3}$ provided by the \texttt{:logic} partition.
+Within this restricted domain, we can define \textit{locally total} structures, such as \textbf{Partial Groups} or \textbf{Partial Loops}. 
+These structures guarantee that the laws of harmony hold strictly on the support $U = \{a \in A \mid \chi(a) = \top\}$. 
+
+To enable composition, these partial functions are lifted into the \textbf{Kleisli Category} of the \textit{Maybe Monad}~\cite{kleisli1965every}. 
+As codified by the \textit{n-Lab} community~\cite{nlab_kleisli}, this category allows us to treat "effectful" or partial computations as regular morphisms by shifting the composition logic into the monad itself. 
+In our implementation, the composition $g \circ f$ automatically propagates the \textbf{Unknown} state: if an operation breaches the Lipschitz boundary or encounters a $NaN$ singularity, the entire chain "monadically" transitions to indeterminate. 
+This prevents the execution of undefined machine behavior while maintaining the structuralist integrity of the transformation pipeline.
+
+
+\begin{lstlisting}[caption={The Kleisli Lift: Reclaiming the Lipschitz Boundary via Subobject Exclusion.}]
+// The "Rescue": int addition is recognized as a Partial Abelian Group.
+// It is total only on the subobject where overflow is absent.
+static_assert(IsPartialAbelianGroup<int, std::plus<int>>);
+
+// Composition in the Kleisli Category:
+auto f = partial_plus(1, 2);          // Result: 3 (True)
+auto g = partial_plus(f, INT_MAX);    // Result: Unknown (Overflow)
+auto h = partial_plus(g, 1);          // Result: Unknown (Propagation)
+\end{lstlisting}
 
 \subsubsection{The `:numeric` partition}
 
