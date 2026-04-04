@@ -346,25 +346,38 @@ The methodology of \texttt{dedekind} is predicated on the translation of formal 
 This stratification allows for a "bottom-up" synthesis of complex mathematical objects, where each level serves as a verified foundation for the next. 
 The intention is that the flow of compilation mirrors the order in which objects are introduced in a formal textbook: foundational mereological axioms are isolated into the \texttt{:mereology} partition, which produces a Binary Module Interface (BMI) that acts as a "cached truth."
 
-\begin{lstlisting}[caption={Anchoring the ring operations as morphisms.}]
-template <typename T>
-struct SpeciesTraits<std::plus<T>> {
-  using Domain = T;
-  using Codomain = T;
-}; 
-
-template <typename T>
-struct SpeciesTraits<std::multiplies<T>> {
-  using Domain = T;
-  using Codomain = T;
-};
-\end{lstlisting}
-
 \subsubsection{The \texttt{:species} partition}
 
 The \texttt{:species} partition functions as an \textit{Algebraic Atlas}, providing a stratified registry of structural invariants for C++ primitive types and standard library operators.
 By reifying these categorical axioms—associativity, commutativity, and idempotency—as compile-time constants, the library transforms the C++ type system into a formal verification engine.
 This design follows the combinatorial species theory of Joyal~\cite{joyal1981species, joyal1986analytic}, treating fundamental types not merely as sets of values, but as rules for generating structure.
+
+\begin{lstlisting}[caption={Excerpt to illustrate the anchoring the monoid operations as morphisms at compile time.}]
+/**
+ * @tparam T The type (Species) or the Function Object (Arrow).
+ * @tparam Args Optional Domain for inference.
+ */
+export template <typename T, typename... Args>
+struct SpeciesTraits;
+
+// ...
+
+/** @brief Universal inference for any Morphism signature f: Args... -> Codomain
+ */
+template <typename F, typename... Args>
+struct infer_morphism {
+  // For binary operators, Domain is the first argument type
+  using Domain = std::tuple_element_t<0, std::tuple<Args...>>;
+  using Codomain = std::invoke_result_t<F, Args...>;
+};
+
+// ...
+
+static_assert(IsCommutative<int, std::plus<int>>,
+              "Commutative: Integer addition is commutative.");
+
+// ...
+\end{lstlisting}
 
 As shown in Table~\ref{tab:structural_invariants}, the "Feature Cube" serves as a formal ledger mapping algebraic properties to the language's fundamental atoms. 
 This explicit mapping allows the \texttt{dedekind} dispatcher to distinguish between strict algebraic structures (e.g., \texttt{unsigned int} addition) and numerical species, such as floating-point operations which exhibit numerical non-associativity under the IEEE 754 standard~\cite{ieee754_2019}.
@@ -408,32 +421,46 @@ In this setup, providing the axiomatic truths (e.g. $a || b$ is commutative) or 
 }
 \end{table}
 
+\subsubsection{The \texttt{:logic} partition}
 
-\subsubsection{The \texttt{:species} partition}
+Before a "Body" (Set) or a "Path" (Sequence) can be reified, we must establish the "Rules of Presence" through the \textbf{Subobject Classifier} $\Omega$. 
+Following the algebraic logic of Rasiowa \cite{ajdukiewicz1985jezyk}, we treat every logical system as a specific type of abstract algebra where truth-values act as the objects of a \textbf{Topos}. 
+By reifying logic into the \texttt{LogicalSpecies} concept, we prevent the "leaky abstractions" inherent in machine-level \texttt{bool} types—such as implicit integral promotion—while allowing for pluggable logical universes.
 
-The primary challenge in bridging C++ with formal category theory lies in the language's fixed operator semantics and its traditionally nominal type system.
-To overcome this, the \texttt{dedekind} library utilizes \texttt{SpeciesTraits} within the \texttt{:species} partition to "lift" standard library function objects into the categorical domain. 
-By explicitly defining the \texttt{Domain} and \texttt{Codomain} for types like \texttt{std::plus<T>}, we transform opaque imperative operations into verifiable morphisms. 
-This mapping ensures that the library is not merely a numerical simulation, but a direct implementation of algebraic laws within the host language's type system, effectively serving as a "compiler" for mathematical concepts~\cite{lawvere2003sets, milewski2019category}.
-Following the structuralist approach advocated by Awodey~\cite{awodey2004structuralism}, this design treats mathematical objects not by their internal "essence," but by their roles and relations within a category. 
+In the \texttt{ClassicalLogic} species, $\Omega$ is the binary prime $\{True, False\}$, as shown in Table \ref{tab:classical_logic}. 
+This corresponds to the standard Boolean Topos where the \textbf{Law of Excluded Middle} holds. 
+However, to honestly model computational undecidability or "missing knowledge," we introduce the \texttt{TernaryLogic} species based on Kleene's strong logic of indeterminacy (K3) \cite{mclarty1992toposes}. 
+As shown in Table \ref{tab:kleene_logic}, this logic introduces an \textbf{Unknown} state (0), which act as a neutral element in disjunction and an annihilator in specific conjunctions. 
+Within the \texttt{dedekind} framework, these logics are treated as \textbf{Rigs}; the \textit{Join} ($\lor$) serves as additive composition, while the \textit{Meet} ($\land$) serves as multiplicative composition. 
+This structural mapping ensures that any \textbf{Predicate} $X \to \Omega$ provides a mathematically rigorous foundation for the subobject classification required by the \texttt{:partial} partition.
 
-This "action-first" architectural decision is motivated by the persistent performance-productivity gap in computational science, often characterized as the "two-language problem"~\cite{harris2020numpy, paszke2019pytorch}.
-By anchoring standard operators as first-class categorical entities at Level 0.1, we enable the C++ compiler to act as a physical guardrail for mathematical truth.
-This alignment allows the programmer to write expressive, point-free equations while maintaining the performance characteristic of "mechanical sympathy"~\cite{thompson2011mechanical}.
-As noted by Ajdukiewicz~\cite{ajdukiewicz1985jezyk}, the structure of our language determines our image of the world; by reifying these morphisms directly within the type system, we ensure that the structural integrity of the mathematical model is verified and optimized long before the final binary is generated.
-
-% Table 5 from the draft, integrated here
-\begin{table}[h!]
+\begin{table}[h]
 \centering
-\caption{The Morphic Signature Registry: Lifting Standard Operators to Level 0.1}
-\label{tab:morphic_signatures}
-\begin{tabular}{lll}
+\caption{Truth Table for the Classical Topos ($\Omega = \{0, 1\}$)}
+\label{tab:classical_logic}
+\begin{tabular}{cc|ccc}
 \hline
-\textbf{Standard Operator} & \textbf{Trait Mapping (Signature)} & \textbf{Categorical Role} \\ \hline
-\texttt{std::plus<T>} & $\text{Domain} = T, \text{Codomain} = T$ & Additive Morphism \\
-\texttt{std::multiplies<T>} & $\text{Domain} = T, \text{Codomain} = T$ & Multiplicative Morphism \\
-\texttt{std::identity} & $\text{Domain} = T, \text{Codomain} = T$ & Identity Arrow ($1_X$) \\
-\texttt{std::equal\_to<T>} & $\text{Domain} = T, \text{Codomain} = \Omega$ & Subobject Classifier ($\chi$) \\ \hline
+$A$ & $B$ & $A \land B$ & $A \lor B$ & $\neg A$ \\ \hline
+0 & 0 & 0 & 0 & 1 \\
+0 & 1 & 0 & 1 & 1 \\
+1 & 0 & 0 & 1 & 0 \\
+1 & 1 & 1 & 1 & 0 \\ \hline
+\end{tabular}
+\end{table}
+
+\begin{table}[h]
+\centering
+\caption{Truth Table for the Kleene Topos ($\Omega = \{-1, 0, 1\}$)}
+\label{tab:kleene_logic}
+\begin{tabular}{cc|ccc}
+\hline
+$A$ & $B$ & $A \land B$ (AND) & $A \lor B$ (OR) & $\neg A$ (NOT) \\ \hline
+-1 & -1 & -1 & -1 & 1 \\
+-1 & 0  & -1 & 0  & 1 \\
+-1 & 1  & -1 & 1  & 1 \\
+0  & 0  & 0  & 0  & 0 \\
+0  & 1  & 0  & 1  & 0 \\
+1  & 1  & 1  & 1  & -1 \\ \hline
 \end{tabular}
 \end{table}
 
@@ -485,48 +512,6 @@ static_assert(!IsMagma<int, std::plus<int>>);
 
 
 
-\subsubsection{The \texttt{:logic} partition}
-
-Before a "Body" (Set) or a "Path" (Sequence) can be reified, we must establish the "Rules of Presence" through the \textbf{Subobject Classifier} $\Omega$. 
-Following the algebraic logic of Rasiowa \cite{ajdukiewicz1985jezyk}, we treat every logical system as a specific type of abstract algebra where truth-values act as the objects of a \textbf{Topos}. 
-By reifying logic into the \texttt{LogicalSpecies} concept, we prevent the "leaky abstractions" inherent in machine-level \texttt{bool} types—such as implicit integral promotion—while allowing for pluggable logical universes.
-
-In the \texttt{ClassicalLogic} species, $\Omega$ is the binary prime $\{True, False\}$, as shown in Table \ref{tab:classical_logic}. 
-This corresponds to the standard Boolean Topos where the \textbf{Law of Excluded Middle} holds. 
-However, to honestly model computational undecidability or "missing knowledge," we introduce the \texttt{TernaryLogic} species based on Kleene's strong logic of indeterminacy (K3) \cite{mclarty1992toposes}. 
-As shown in Table \ref{tab:kleene_logic}, this logic introduces an \textbf{Unknown} state (0), which act as a neutral element in disjunction and an annihilator in specific conjunctions. 
-Within the \texttt{dedekind} framework, these logics are treated as \textbf{Rigs}; the \textit{Join} ($\lor$) serves as additive composition, while the \textit{Meet} ($\land$) serves as multiplicative composition. 
-This structural mapping ensures that any \textbf{Predicate} $X \to \Omega$ provides a mathematically rigorous foundation for the subobject classification required by the \texttt{:partial} partition.
-
-\begin{table}[h]
-\centering
-\caption{Truth Table for the Classical Topos ($\Omega = \{0, 1\}$)}
-\label{tab:classical_logic}
-\begin{tabular}{cc|ccc}
-\hline
-$A$ & $B$ & $A \land B$ & $A \lor B$ & $\neg A$ \\ \hline
-0 & 0 & 0 & 0 & 1 \\
-0 & 1 & 0 & 1 & 1 \\
-1 & 0 & 0 & 1 & 0 \\
-1 & 1 & 1 & 1 & 0 \\ \hline
-\end{tabular}
-\end{table}
-
-\begin{table}[h]
-\centering
-\caption{Truth Table for the Kleene Topos ($\Omega = \{-1, 0, 1\}$)}
-\label{tab:kleene_logic}
-\begin{tabular}{cc|ccc}
-\hline
-$A$ & $B$ & $A \land B$ (AND) & $A \lor B$ (OR) & $\neg A$ (NOT) \\ \hline
--1 & -1 & -1 & -1 & 1 \\
--1 & 0  & -1 & 0  & 1 \\
--1 & 1  & -1 & 1  & 1 \\
-0  & 0  & 0  & 0  & 0 \\
-0  & 1  & 0  & 1  & 0 \\
-1  & 1  & 1  & 1  & -1 \\ \hline
-\end{tabular}
-\end{table}
 
 \subsubsection{The \texttt{:partial} partition}
 
