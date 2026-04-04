@@ -800,6 +800,11 @@ template <std::integral T>
 inline constexpr bool is_distributive_v<T, std::plus<T>, std::multiplies<T>> =
     true;
 
+template <>
+inline constexpr bool
+    is_distributive_v<bool, std::logical_or<bool>, std::logical_and<bool>> =
+        true;
+
 // Finite and transfinite species are mutually exclusive.
 
 /** @brief Primary trait for Transfiniteness. */

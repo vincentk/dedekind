@@ -31,11 +31,11 @@ import :species;
 namespace dedekind::category {
 
 /**
- * @concept IsTotal
+ * @concept IsTotalArrow
  * @brief Formal verification that a morphism is defined for the entire species.
  */
 export template <typename F, typename A, typename B>
-concept IsTotal = IsArrow<F, A, B> && requires(F f, A x) {
+concept IsTotalArrow = IsArrow<F, A, B> && requires(F f, A x) {
   // Totality check: The SubobjectClassifier must return 'True' (Classical)
   // for all elements in the species.
   requires std::same_as<typename SubobjectClassifier<A>::Omega, bool>;
@@ -49,7 +49,7 @@ concept IsTotal = IsArrow<F, A, B> && requires(F f, A x) {
 export template <IsSpecies A, IsSpecies B, typename Func>
 struct TotalMorphism : Morphism<A, B, Func> {
   static_assert(
-      IsTotal<Func, A, B>,
+      IsTotalArrow<Func, A, B>,
       "Totality Error: The provided function is not total over the domain.");
 };
 
