@@ -163,41 +163,6 @@ export constexpr Ternary operator||(Ternary a, Ternary b) {
 }
 export constexpr Ternary operator!(Ternary a) { return TernaryLogic::NOT(a); }
 
-/**
- * @brief The Logic Species Registry (The Ontology Bridge).
- *
- * `SpeciesTraits` is the central mapping mechanism that connects a raw data
- * representation (the 'Codomain') to its governing Logic Species (the 'Rules').
- *
- * @section Extension_Point Registering Custom Logics
- * To introduce a new logical system (e.g., Fuzzy Logic, Łukasiewicz Logic,
- * or Quantum Logic) into the Dedekind framework, users must:
- * 1. Define a struct that fulfills the `LogicalSpecies` concept.
- * 2. Provide a template specialization of `SpeciesTraits` for the new
- *    underlying type.
- *
- * Once registered, the Point-Free Infix Engine will automatically detect
- * and apply the correct logical morphisms during DAG synthesis.
- *
- * @tparam T The raw truth-value type (e.g., bool, float, Ternary).
- */
-export template <typename T>
-struct SpeciesTraits;
-
-/**
- * @brief The Primary Template: The "Internal Discovery" Bridge.
- * By default, we assume the species defines its own metadata.
- */
-export template <typename T>
-struct SpeciesTraits {};
-
-/** @section ETCS_Bridge: Standard Library Morphisms */
-template <typename T>
-struct SpeciesTraits<std::plus<T>> {
-  using Domain = T;
-  using Codomain = T;
-};
-
 template <typename T>
 struct SpeciesTraits<std::multiplies<T>> {
   using Domain = T;
@@ -474,6 +439,39 @@ struct SpeciesTraits<Truth<L>> {
   using Codomain = typename L::type;
   static constexpr auto cardinality = CardinalityTag::Finite;
 };
+
+/**
+ * @section The_Subobject_Classifier
+ * Formal elevation from Machine Result -> Omega.
+ */
+export template <IsSpecies T>
+struct SubobjectClassifier {
+  using L = typename LogicTraits<T>::type;
+  using Omega = typename L::type;
+
+  /** @brief Lipschitz Boundary Check for Signed Integers */
+  template <typename Op>
+    requires std::signed_integral<T>
+  static constexpr Omega evaluate_arithmetic(T a, T b, Op op) {
+      // Use compiler built-ins for overflow detection (The Guardrail)
+      T result;
+      if (__builtin_add_overflow(a, b, &result)) {
+          return L::Unknown; // Lipschitz boundary breached
+      }
+      return L::True; // Operation is safe/contained
+  }
+
+  /** @brief NaN Truth-Hole Check for IEEE 754 */
+  template <typename Op>
+    requires std::floating_point<T>
+  static constexpr Omega evaluate_relational(T a, T b, Op rel) {
+      if (std::isnan(a) || std::isnan(b)) {
+          return L::Unknown; // Singularity detected
+      }
+      return rel(a, b) ? L::True : L::False;
+  }
+};
+
 
 /**
  * FIXME: Extension Point for Option-Logic.
