@@ -723,6 +723,20 @@ struct Modular {
 };
 
 template <auto N>
+struct is_associative<Modular<N>, std::plus<Modular<N>>> : std::true_type {};
+
+template <auto N>
+struct is_commutative<Modular<N>, std::plus<Modular<N>>> : std::true_type {};
+
+template <auto N>
+struct is_associative<Modular<N>, std::multiplies<Modular<N>>>
+    : std::true_type {};
+
+template <auto N>
+struct is_commutative<Modular<N>, std::multiplies<Modular<N>>>
+    : std::true_type {};
+
+template <auto N>
 struct is_periodic<Modular<N>, std::plus<Modular<N>>> : std::true_type {};
 
 template <auto N>

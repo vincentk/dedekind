@@ -55,9 +55,13 @@ struct TotalMorphism : Morphism<A, B, Func> {
 
 /** @concept IsMagma: T × T → T (The Base Total Species) */
 export template <typename T, typename Op>
-concept IsMagma = requires(T a, T b) {
+concept IsMagma = IsTotal<T, Op> && requires(T a, T b) {
   { Op{}(a, b) } -> std::same_as<T>;
 };
+
+// REJECTION: Signed addition is NOT a Magma (No Periodicity, No Idempotency).
+// It is correctly identified as a Hazard/Partial function.
+static_assert(!IsMagma<int, std::plus<int>>);
 
 /**
  * @concept IsUnitalMagma
@@ -86,35 +90,40 @@ concept IsMonoid = IsSemigroup<T, Op> && IsUnitalMagma<T, Op>;
 export template <typename T, typename Op>
 concept IsCommutativeMonoid = IsMonoid<T, Op> && IsCommutative<T, Op>;
 
+static_assert(IsCommutativeMonoid<bool, std::logical_or<bool>>);
+static_assert(IsCommutativeMonoid<bool, std::logical_and<bool>>);
+
+// Strictly True: Multiplication on integers is a Total Commutative Monoid.
+// It is NOT a group (no integer inverse for 2).
+static_assert(!IsCommutativeMonoid<int, std::multiplies<int>>);
+static_assert(IsCommutativeMonoid<unsigned int, std::multiplies<unsigned int>>);
+
 /** @concept IsGroup: Monoid + Inverse (The Perfect Symmetry) */
 export template <typename T, typename Op>
 concept IsGroup = IsMonoid<T, Op> && IsLoop<T, Op>;
+
+// REJECTION: subtraction on uint is NOT a Group (no negative results).
+// While it is periodic (wraps), it lacks the inverse axiom in the positive
+// domain.
+static_assert(!IsGroup<unsigned int, std::minus<unsigned int>>);
 
 /** @concept IsAbelianGroup: Commutative Group */
 export template <typename T, typename Op>
 concept IsAbelianGroup = IsGroup<T, Op> && IsCommutative<T, Op>;
 
-/** @section Truth_Anchors */
-
-// Strictly True: Logical operators on bool are Total Commutative Monoids.
-static_assert(IsCommutativeMonoid<bool, std::logical_or<bool>>);
-static_assert(IsCommutativeMonoid<bool, std::logical_and<bool>>);
-
 // Strictly True: Unsigned addition is a Total Abelian Group (Z/2^nZ).
 static_assert(IsAbelianGroup<unsigned int, std::plus<unsigned int>>);
-
-// Strictly True: Multiplication on integers is a Total Commutative Monoid.
-// It is NOT a group (no integer inverse for 2).
-static_assert(IsCommutativeMonoid<int, std::multiplies<int>>);
-
-// The "Honest" Rejection: Signed addition is NOT a Total Magma
-// in this partition because of UB/Overflow (Partiality).
-static_assert(!IsMagma<int, std::plus<int>>);
 
 /** @concept IsRig: Semiring without Negatives (Addition is a Monoid) */
 export template <typename T, typename Add, typename Mult>
 concept IsRig = IsCommutativeMonoid<T, Add> && IsMonoid<T, Mult> &&
                 IsDistributive<T, Add, Mult>;
+
+// Strictly True: bool with OR/AND is a Rig (but not a Ring, no subtraction).
+static_assert(IsRig<bool, std::logical_or<bool>, std::logical_and<bool>>);
+// Strictly True: unsigned int is a Rig (no negative integers).
+static_assert(IsRig<unsigned int, std::plus<unsigned int>,
+                    std::multiplies<unsigned int>>);
 
 /** @concept IsRng: Ring without Identity (Multiplication is a Semigroup) */
 export template <typename T, typename Add, typename Mult>
@@ -129,19 +138,14 @@ concept IsSemiring = IsRig<T, Add, Mult>;
 export template <typename T, typename Add, typename Mult>
 concept IsRing = IsRig<T, Add, Mult> && IsRng<T, Add, Mult>;
 
-/** @section Multi_Operation_Anchors */
-
-// Strictly True: bool with OR/AND is a Rig (but not a Ring, no subtraction).
-static_assert(IsRig<bool, std::logical_or<bool>, std::logical_and<bool>>);
-
-// Strictly True: unsigned int is a Rig (no negative integers).
-static_assert(IsRig<unsigned int, std::plus<unsigned int>,
-                    std::multiplies<unsigned int>>);
-
 // Strictly True: int with modular addition/multiplication is a Ring.
 // (Assuming we use a modular_plus to stay in the :total partition).
 static_assert(IsRing<unsigned int, std::plus<unsigned int>,
                      std::multiplies<unsigned int>>);
+
+// SUCCESS: Modular<N> is a Total Ring (Axiomatic Periodicity).
+static_assert(IsRing<Modular<256>, std::plus<Modular<256>>,
+                     std::multiplies<Modular<256>>>);
 
 /** @concept IsJoinSemilattice */
 export template <typename T, typename Op>
@@ -154,8 +158,6 @@ concept IsMeetSemilattice = IsCommutativeMonoid<T, Op> && IsIdempotent<T, Op>;
 /** @concept IsLattice */
 export template <typename T, typename Join, typename Meet>
 concept IsLattice = IsJoinSemilattice<T, Join> && IsMeetSemilattice<T, Meet>;
-
-/** @section Idempotency_Anchors */
 
 // bool is a Distributive Lattice (AND/OR are both idempotent)
 static_assert(IsLattice<bool, std::logical_or<bool>, std::logical_and<bool>>);
