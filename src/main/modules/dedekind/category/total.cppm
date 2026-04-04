@@ -25,9 +25,33 @@ module;
 
 export module dedekind.category:total;
 
+import :logic;
 import :species;
 
 namespace dedekind::category {
+
+/**
+ * @concept IsTotal
+ * @brief Formal verification that a morphism is defined for the entire species.
+ */
+export template <typename F, typename A, typename B>
+concept IsTotal = IsArrow<F, A, B> && requires(F f, A x) {
+  // Totality check: The SubobjectClassifier must return 'True' (Classical)
+  // for all elements in the species.
+  requires std::same_as<typename SubobjectClassifier<A>::Omega, bool>;
+  { SubobjectClassifier<A>::evaluate_total(x) } -> std::same_as<bool>;
+};
+
+/**
+ * @section Total_Morphism_Reification
+ * A concrete wrapper for functions that are mathematically 'Total'.
+ */
+export template <IsSpecies A, IsSpecies B, typename Func>
+struct TotalMorphism : Morphism<A, B, Func> {
+  static_assert(
+      IsTotal<Func, A, B>,
+      "Totality Error: The provided function is not total over the domain.");
+};
 
 /** @concept IsMagma: T × T → T (The Base Total Species) */
 export template <typename T, typename Op>
@@ -40,7 +64,7 @@ concept IsMagma = requires(T a, T b) {
  * @brief Level 1.1: A Magma with a global Identity (0 or 1).
  */
 export template <typename T, typename Op>
-concept IsUnitalMagma = IsMagma<T, Op> && HasIdentity<T, Op>;
+concept IsUnitalMagma = IsMagma<T, Op> && IsPointed<T, Op>;
 
 /**
  * @concept IsLoop
@@ -118,14 +142,6 @@ static_assert(IsRig<unsigned int, std::plus<unsigned int>,
 // (Assuming we use a modular_plus to stay in the :total partition).
 static_assert(IsRing<unsigned int, std::plus<unsigned int>,
                      std::multiplies<unsigned int>>);
-
-/**
- * @concept IsIdempotent
- * @brief Level 1.4: The operation satisfies the law x ∘ x = x.
- */
-export template <typename T, typename Op>
-concept IsIdempotent =
-    IsMagma<T, Op> && requires { requires is_idempotent_v<T, Op>; };
 
 /** @concept IsJoinSemilattice */
 export template <typename T, typename Op>

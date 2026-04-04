@@ -33,6 +33,7 @@
 
 module;
 
+#include <algorithm>
 #include <concepts>
 #include <functional>
 
@@ -260,6 +261,9 @@ template <typename T>
   requires std::is_integral_v<T>
 struct is_commutative<T, std::bit_and<T>> : std::true_type {};
 
+/**
+ * @brief Trait to mark an operation as idempotent: a ∘ a = a
+ **/
 export template <typename T, typename Op>
 struct is_idempotent : std::false_type {};
 
@@ -271,6 +275,25 @@ struct is_idempotent<T, Op>
 /** @brief Helper for shorthand access in concepts. */
 export template <typename T, typename Op>
 inline constexpr bool is_idempotent_v = is_idempotent<T, Op>::value;
+
+// 1. Bitwise is Idempotent
+template <std::integral T>
+struct is_idempotent<T, std::bit_and<T>> : std::true_type {};
+
+template <std::integral T>
+struct is_idempotent<T, std::bit_or<T>> : std::true_type {};
+
+// 2. Min/Max is Idempotent
+
+// 1. Get the types of the range-based function objects
+using MinOp = decltype(std::ranges::min);
+using MaxOp = decltype(std::ranges::max);
+
+template <std::integral T>
+struct is_idempotent<T, MinOp> : std::true_type {};
+
+template <std::integral T>
+struct is_idempotent<T, MaxOp> : std::true_type {};
 
 /**
  * @section Identity_Discovery_Engine
@@ -629,6 +652,110 @@ static_assert(identity_v<size_t, std::multiplies<size_t>> == 1,
 static_assert(is_associative_v<int, std::plus<int>>,
               "Taxonomy Error: Integer addition must be associative.");
 
+/** @section Property_Ledger: Periodicity
+ *  A type is periodic if it defines a circular topology where
+ *  "stepping off the edge" results in a valid, defined wrap.
+ */
+export template <typename T, typename Op>
+struct is_periodic : std::false_type {};
+
+export template <typename T, typename Op>
+inline constexpr bool is_periodic_v = is_periodic<T, Op>::value;
+
+/** @section totality  */
+export template <typename T, typename Op>
+struct is_total
+    : std::bool_constant<
+          is_periodic_v<T, Op> ||  // Path A: It wraps (Groups/Rings)
+          is_idempotent_v<T, Op>   // Path B: It's stable (Lattices/Extrema)
+          > {};
+
+export template <typename T, typename Op>
+inline constexpr bool is_total_v = is_total<T, Op>::value;
+
+/**
+ * Unsigned integers are natively periodic under
+ * addition/subtraction/multiplication.
+ **/
+template <typename T>
+  requires std::unsigned_integral<T>
+struct is_periodic<T, std::plus<T>> : std::true_type {};
+
+template <typename T>
+  requires std::unsigned_integral<T>
+struct is_periodic<T, std::minus<T>> : std::true_type {};
+
+template <typename T>
+  requires std::unsigned_integral<T>
+struct is_periodic<T, std::multiplies<T>> : std::true_type {};
+
+// XOR is Periodic (Order 2), ensuring its totality
+template <std::integral T>
+struct is_periodic<T, std::bit_xor<T>> : std::true_type {};
+
+/**
+ * @section The_Modular_Species (Z/nZ)
+ * A total species representing a Finite Cyclic Group.
+ */
+export template <auto N>
+struct Modular {
+  static_assert(N > 0, "Modulus must be positive.");
+  using machine_type = decltype(N);
+  machine_type value;
+
+  // We keep the constructor explicit to maintain structuralist integrity
+  explicit constexpr Modular(machine_type v) : value(v % N) {}
+
+  // Total Addition: (a + b) mod N
+  constexpr friend Modular operator+(Modular a, Modular b) {
+    return Modular((a.value + b.value) % N);
+  }
+
+  // Total Multiplication: (a * b) mod N
+  constexpr friend Modular operator*(Modular a, Modular b) {
+    return Modular((a.value * b.value) % N);
+  }
+
+  // Equality as a Subobject Classifier
+  constexpr friend bool operator==(Modular a, Modular b) {
+    return a.value == b.value;
+  }
+};
+
+template <auto N>
+struct is_periodic<Modular<N>, std::plus<Modular<N>>> : std::true_type {};
+
+template <auto N>
+struct is_periodic<Modular<N>, std::multiplies<Modular<N>>> : std::true_type {};
+
+/** @section Atlas_Registration: Modular<N> */
+export template <auto N>
+struct SpeciesTraits<Modular<N>> {
+  using Domain = Modular<N>;
+  using machine_type = decltype(N);
+
+  /** @section Algebraic_Facts */
+  template <typename Op>
+  static constexpr bool is_associative_v = true;
+
+  template <typename Op>
+  static constexpr bool is_commutative_v = true;
+
+  // Addition and Multiplication are both idempotent ONLY if N=1 (Trivial Ring)
+  template <typename Op>
+  static constexpr bool is_idempotent_v = (N == 1);
+
+  /** @section Identity_Discovery */
+  template <typename Op>
+  static constexpr auto identity_v = []() {
+    if constexpr (std::is_same_v<Op, std::plus<Modular<N>>>) {
+      return Modular<N>{0};
+    } else if constexpr (std::is_same_v<Op, std::multiplies<Modular<N>>>) {
+      return Modular<N>{1};
+    }
+  }();
+};
+
 static_assert(
     characteristic_v<unsigned char> == 256,
     "Taxonomy Error: 8-bit unsigned species must have characteristic 256.");
@@ -765,6 +892,14 @@ concept IsPointed = requires {
 
 export template <typename T, typename Op>
 concept IsInvertible = IsPointed<T, Op> && is_invertible_v<T, Op>;
+
+/**
+ * @concept IsPeriodic
+ * @brief Taxonomic Decorator: Certifies that an operation is circular (wraps).
+ * This is the "Safety Certificate" for machine totality.
+ */
+export template <typename T, typename Op>
+concept IsPeriodic = is_periodic_v<T, Op>;
 
 /** @section The_Box_Species (The Standard Model) */
 export template <typename T>

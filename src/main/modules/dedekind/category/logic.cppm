@@ -164,12 +164,6 @@ export constexpr Ternary operator||(Ternary a, Ternary b) {
 }
 export constexpr Ternary operator!(Ternary a) { return TernaryLogic::NOT(a); }
 
-template <typename T>
-struct SpeciesTraits<std::multiplies<T>> {
-  using Domain = T;
-  using Codomain = T;
-};
-
 /** @brief Helper to resolve logic species without hard errors */
 export template <typename T>
 struct GetLogic {
@@ -184,66 +178,6 @@ struct GetLogic<T> {
 
 /** @section Cardinality_Ontology_Tokens */
 export enum class CardinalityTag { Finite, Countable, Continuum };
-
-/** @brief Specialization: For types that define their own internal ontology. */
-export template <typename T>
-  requires requires {
-    typename T::Domain;
-    typename T::Codomain;
-  }
-struct SpeciesTraits<T> {
-  using Domain = typename T::Domain;
-  using Codomain = typename T::Codomain;
-
-  // Safe resolution: No member access on the fallback
-  using species = typename GetLogic<T>::type;
-};
-
-/** @brief Specialization for the Kleene (Ternary) Topos. */
-export template <>
-struct SpeciesTraits<Ternary> {
-  using species = TernaryLogic;
-};
-
-/**
- * @brief Specialization for the Integer Ring (The Discrete Topos).
- * This "Blessing" lifts all integral types into the algebraic ontology.
- */
-export template <std::integral T>
-struct SpeciesTraits<T> {
-  using species = ClassicalLogic;
-  using Domain = T;
-  using Codomain = T;
-  static constexpr auto cardinality = CardinalityTag::Countable;
-
-  /** @section Algebraic_Axioms */
-  template <typename Op>
-  static constexpr bool is_associative_v = true;
-
-  template <typename Op>
-  static constexpr bool is_idempotent_v =
-      std::is_same_v<Op, std::bit_and<T>> || std::is_same_v<Op, std::bit_or<T>>;
-
-  /** @section Identity_Discovery */
-  // This allows the identity_trait discovery engine to find
-  // identities for both Ring and Bitwise operations.
-  template <typename Op>
-  static constexpr auto identity_v = []() {
-    if constexpr (std::is_same_v<Op, std::plus<T>> ||
-                  std::is_same_v<Op, std::bit_or<T>>) {
-      return T{0};
-    } else if constexpr (std::is_same_v<Op, std::multiplies<T>> ||
-                         std::is_same_v<Op, std::bit_and<T>>) {
-      return T{1};
-    } else if constexpr (std::is_same_v<Op, std::bit_and<T>>) {
-      return static_cast<T>(~T{0});  // All ones
-    }
-  }();
-
-  /** @section Identity_Elements (Legacy/Direct) */
-  static constexpr T zero = 0;
-  static constexpr T one = 1;
-};
 
 /** @section The Point-Free Composition Engine */
 
