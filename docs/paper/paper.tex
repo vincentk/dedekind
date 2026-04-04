@@ -422,8 +422,6 @@ In this setup, providing the axiomatic truths (e.g. $a || b$ is commutative) or 
 }
 \end{table}
 
-\subsubsection{The \texttt{:logic} partition}
-
 \subsubsection{The \texttt{:logic} partition: The Subobject Classifier (\texorpdfstring{$\Omega$}{Omega})}
 
 Before a "Body" (Set) or a "Path" (Sequence) can be reified, the \texttt{dedekind} library establishes the "Rules of Presence" through the \textbf{Subobject Classifier} $\Omega$. 
@@ -492,36 +490,76 @@ Ternary LEM   = P || NOT_P;                        // Unknown
 By mapping these "numerical hazards" to the \textbf{Unknown} state, the library ensures that downstream algebraic transformations (such as those in the \texttt{:partial} partition) do not proceed under the false assumption of a binary state. 
 This "honesty" in the logic layer allows the compiler to treat \texttt{NaN} or integer overflow boundaries as formal subobject exclusions rather than undefined behavior.
 
+The \texttt{dedekind} library acknowledges the machine's physical constraints by identifying two primary categories of "truth-holes" where the standard mapping between $ \mathbb{Z} $ or $ \mathbb{R} $ and their machine counterparts, \texttt{int} and \texttt{double}, breaks down.
 
+\paragraph{The NaN Truth-Hole.}
+As specified in the IEEE 754 standard~\cite{ieee754_2019}, the \texttt{NaN} state represents a logical singularity. 
+For a predicate $P(x) \coloneqq (x \leq 1.0)$, if $x = \text{NaN}$, then both $P(x)$ and its negation $\neg P(x)$ evaluate to \texttt{false}. 
+This paradox, $P \lor \neg P = \bot$, directly violates the \textbf{Law of Excluded Middle (LEM)}, a failure that the \texttt{SubobjectClassifier} resolves by elevating the result to the \textbf{Ternary Topos} ($\Omega_{K3}$)~\cite{mclarty1992toposes}.
 
-\subsubsection{The \texttt{:total} partition}
+\paragraph{The Lipschitz Boundary.}
+For signed integral types, the mapping from the infinite ring of integers to the finite machine representation is only stable within a defined "Lipschitz domain" $[-2^{N-1}, 2^{N-1}-1]$. 
+Once an operation, such as addition, breaches this boundary, it results in \textit{undefined behavior} or "wrap-around" effects, effectively losing its Lipschitz continuity. 
+By utilizing compiler built-ins (e.g., \texttt{\_\_builtin\_add\_overflow}), the \texttt{SubobjectClassifier} detects these boundary breaches and maps them to the \textbf{Unknown} state, as illustrated in Listing~\ref{lst:lipschitz_classifier}.
 
-In the "Platonic" domain of our ontology, we define the Category $\mathcal{C}$ of Total Species, where an algebraic structure is governed by a collection of total morphisms $\mu: X \times X \to X$. 
-Following the \textit{Polish School of Logic} \cite{ajdukiewicz1985jezyk}, these structures represent "Laws of Harmony" that are absolute. 
-This approach aligns with the Elementary Theory of the Category of Sets (ETCS) as proposed by Lawvere \cite{lawvere1964etcs, lawvere2005elementary}, where types are defined by their morphisms rather than internal elements \cite{mclarty1993numbers}.
+\begin{lstlisting}[caption={Subobject Classifier for the Lipschitz Boundary and NaN Truth-Hole.}, label={lst:lipschitz_classifier}]
+export template <IsSpecies T>
+struct SubobjectClassifier {
+  using L = typename LogicTraits<T>::type;
+  using Omega = typename L::type;
 
-A primary inhabitant of this total universe is the type \texttt{bool}. 
-Under the morphisms of logical conjunction ($\land$) and disjunction ($\lor$), \texttt{bool} behaves as a \textbf{Distributive Lattice}—a specialized \textbf{Rig} where both operations are \textbf{Idempotent}. 
-This idempotency provides the structural basis for \textbf{Universal Constructions} such as \textbf{Products} and \textbf{Coproducts}, which appear in systems programming as \textit{Meet} and \textit{Join} operations \cite{milewski2019category}. 
-Similarly, we identify \texttt{unsigned int} as a total species under modular addition, forming a strict \textbf{Abelian Group} $(\mathbb{Z}/2^n\mathbb{Z}, +)$. 
-By mapping these to C++23 concepts, we transform the compiler into a \textbf{Constraint Satisfaction Engine} (CSE) that verifies mathematical truth as a physical invariant of the binary \cite{Krautler_dedekind_2026}.
+  /** @brief Lipschitz Boundary Check for Signed Integers */
+  template <typename Op>
+    requires std::signed_integral<T>
+  static constexpr Omega evaluate_arithmetic(T a, T b, Op op) {
+      T result;
+      if (__builtin_add_overflow(a, b, &result)) {
+          return L::Unknown; // Lipschitz boundary breached
+      }
+      return L::True; 
+  }
+
+  /** @brief NaN Truth-Hole Check for IEEE 754 */
+  template <typename Op>
+    requires std::floating_point<T>
+  static constexpr Omega evaluate_relational(T a, T b, Op rel) {
+      if (std::isnan(a) || std::isnan(b)) {
+          return L::Unknown; 
+      }
+      return rel(a, b) ? L::True : L::False;
+  }
+};
+\end{lstlisting}
+
+\subsubsection{The \texttt{:total} partition: The Laws of Harmony}
+
+In the "Platonic" domain of our ontology, we define the category $\mathcal{C}$ of \textbf{Total Species}, where algebraic structures are governed by a collection of total morphisms $\mu: X \times X \to X$. 
+Following the \textit{Polish School of Logic}~\cite{ajdukiewicz1985jezyk}, these structures represent "Laws of Harmony" that are treated as absolute invariants. 
+This approach aligns with the \textit{Elementary Theory of the Category of Sets} (ETCS) as proposed by Lawvere~\cite{lawvere1964etcs, lawvere2005elementary}, where types are defined by their morphisms rather than their internal elements~\cite{mclarty1993numbers}.
+
+As shown in Table~\ref{tab:algebraic_hierarchy}, species in this partition "mature" as they gain axioms, moving from the primal \textbf{Magma} to the perfect symmetry of an \textbf{Abelian Group}. 
+A primary inhabitant of this total universe is the \texttt{bool} species; under the morphisms of logical conjunction ($\land$) and disjunction ($\lor$), it behaves as a \textbf{Distributive Lattice}—a specialized \textbf{Rig} where both operations are \textbf{Idempotent}. 
+This idempotency provides the structural basis for \textbf{Universal Constructions} such as \textit{Products} and \textit{Coproducts}, which appear in systems programming as \textit{Meet} and \textit{Join} operations~\cite{milewski2019category}.
+
+By mapping these structures to C++23 concepts, the \texttt{dedekind} library transforms the compiler into a \textbf{Constraint Satisfaction Engine} (CSE) that verifies mathematical truth as a physical invariant of the binary~\cite{Krautler_dedekind_2026}. 
+This leads to the \textbf{Honest Rejection} illustrated in Listing~\ref{lst:abelian_group}: while \texttt{unsigned int} addition is verified as a total Abelian Group ($\mathbb{Z}/2^n\mathbb{Z}, +$), signed \texttt{int} addition is rejected as a total Magma due to the potential for overflow at the Lipschitz boundary.
 
 \begin{table}[h!]
 \centering
-\caption{The Path to Symmetry: Single-Operation Species in \texttt{dedekind.category}}
+\caption{The Path to Symmetry: Single-Operation Species in \texttt{dedekind.category}. Each level introduces a new structural invariant, from basic closure to commutative inversion.}
 \label{tab:algebraic_hierarchy}
 \begin{tabular}{llll}
 \hline
 \textbf{Concept} & \textbf{Structure} & \textbf{Axiomatic Requirements} & \textbf{C++ Concept} \\ \hline
 \textbf{Magma} & $\langle T, \circ \rangle$ & $\forall a, b \in T : a \circ b \in T$ (Totality) & \texttt{IsMagma} \\
-\textbf{Semigroup} & $\langle T, \circ \rangle$ & Magma + $(a \circ b) \circ c = a \circ (b \circ c)$ & \texttt{IsSemigroup} \\
-\textbf{Monoid} & $\langle T, \circ, e \rangle$ & Semigroup + $a \circ e = a = e \circ a$ & \texttt{IsMonoid} \\
-\textbf{Group} & $\langle T, \circ, e, \text{inv} \rangle$ & Monoid + $a \circ a^{-1} = e$ & \texttt{IsGroup} \\
-\textbf{Abelian Group} & $\langle T, \circ, e \rangle$ & Group + $a \circ b = b \circ a$ & \texttt{IsAbelianGroup} \\ \hline
+\textbf{Semigroup} & $\langle T, \circ \rangle$ & Magma + Associativity & \texttt{IsSemigroup} \\
+\textbf{Monoid} & $\langle T, \circ, e \rangle$ & Semigroup + Identity & \texttt{IsMonoid} \\
+\textbf{Group} & $\langle T, \circ, e, \text{inv} \rangle$ & Monoid + Inverse & \texttt{IsGroup} \\
+\textbf{Abelian Group} & $\langle T, \circ, e \rangle$ & Group + Commutativity & \texttt{IsAbelianGroup} \\ \hline
 \end{tabular}
 \end{table}
 
-\begin{lstlisting}[caption={Structural Maturation and the Path to Symmetry in \texttt{dedekind.category}}, label={lst:abelian_group}]
+\begin{lstlisting}[caption={Structural Maturation and the Honest Rejection in \texttt{dedekind.category}.}, label={lst:abelian_group}]
 // Level 1.3: The Perfect Symmetry (Monoid + Inverse + Symmetry)
 export template <typename T, typename Op>
 concept IsAbelianGroup = IsMonoid<T, Op> && 
@@ -531,16 +569,12 @@ concept IsAbelianGroup = IsMonoid<T, Op> &&
 /** @section Truth_Anchors */
 
 // SUCCESS: Unsigned addition is a Total Abelian Group (Z/2^nZ).
-// The compiler verifies this structural invariant at compile-time.
 static_assert(IsAbelianGroup<unsigned int, std::plus<unsigned int>>);
 
-// HONEST REJECTION: Signed addition is NOT a Total Magma in this partition.
+// HONEST REJECTION: Signed addition is NOT a Total Magma.
 // It fails because of Undefined Behavior/Overflow (Partiality).
 static_assert(!IsMagma<int, std::plus<int>>);
 \end{lstlisting}
-
-
-
 
 
 \subsubsection{The \texttt{:partial} partition}
