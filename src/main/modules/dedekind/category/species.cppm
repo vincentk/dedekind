@@ -38,18 +38,112 @@ module;
 
 export module dedekind.category:species;
 
-import :logic;
-
 namespace dedekind::category {
 
 /**
+ * @tparam T The type (Species) or the Function Object (Arrow).
+ * @tparam Args Optional Domain for inference.
+ */
+export template <typename T, typename... Args>
+struct SpeciesTraits;
+
+/** @section Primary_Registration_for_Atoms */
+// We register the "Species" themselves so they satisfy IsSpecies
+template <typename T>
+  requires std::integral<T> || std::floating_point<T> || std::same_as<T, bool>
+struct SpeciesTraits<T> {
+  using Domain = T;
+  using machine_type = T;
+};
+
+/** @brief Universal inference for any Morphism signature f: Args... -> Codomain
+ */
+template <typename F, typename... Args>
+struct infer_morphism {
+  // For binary operators, Domain is the first argument type
+  using Domain = std::tuple_element_t<0, std::tuple<Args...>>;
+  using Codomain = std::invoke_result_t<F, Args...>;
+};
+
+// 1. Unary Discovery (e.g. std::identity)
+template <typename F, typename A>
+  requires requires(F f, A x) { f(x); }
+struct SpeciesTraits<F, A> : infer_morphism<F, A> {};
+
+// 2. Binary Discovery (e.g. std::plus)
+template <typename F, typename A>
+  requires requires(F f, A x) { f(x, x); }
+struct SpeciesTraits<F, A> : infer_morphism<F, A, A> {};
+
+/** @section Logical_Species (bool) */
+template <>
+struct SpeciesTraits<std::logical_and<bool>>
+    : infer_morphism<std::logical_and<bool>, bool, bool> {};
+template <>
+struct SpeciesTraits<std::logical_or<bool>>
+    : infer_morphism<std::logical_or<bool>, bool, bool> {};
+template <>
+struct SpeciesTraits<std::equal_to<bool>>
+    : infer_morphism<std::equal_to<bool>, bool, bool> {};
+
+/** @section Integral_Species (uint/int) */
+template <typename T>
+  requires std::integral<T>
+struct SpeciesTraits<std::plus<T>> : infer_morphism<std::plus<T>, T, T> {};
+
+template <typename T>
+  requires std::integral<T>
+struct SpeciesTraits<std::minus<T>> : infer_morphism<std::minus<T>, T, T> {};
+
+template <typename T>
+  requires std::integral<T>
+struct SpeciesTraits<std::multiplies<T>>
+    : infer_morphism<std::multiplies<T>, T, T> {};
+
+template <typename T>
+  requires std::integral<T>
+struct SpeciesTraits<std::divides<T>> : infer_morphism<std::divides<T>, T, T> {
+};
+
+template <typename T>
+  requires std::integral<T>
+struct SpeciesTraits<std::bit_and<T>> : infer_morphism<std::bit_and<T>, T, T> {
+};
+
+template <typename T>
+  requires std::integral<T>
+struct SpeciesTraits<std::bit_or<T>> : infer_morphism<std::bit_or<T>, T, T> {};
+
+/** @section Relational_Morphisms (Subobject Classifiers) */
+template <typename T>
+struct SpeciesTraits<std::less_equal<T>>
+    : infer_morphism<std::less_equal<T>, T, T> {};
+
+template <typename T>
+struct SpeciesTraits<std::less<T>> : infer_morphism<std::less<T>, T, T> {};
+
+/**
  * @concept IsSpecies
- * @brief Ensures a type has been formally reified with algebraic traits.
+ * @brief Formal verification that a type has been registered in the Atlas.
  */
 export template <typename T>
-concept IsSpecies = requires {
-  typename T::machine_type;  // Maps back to the Stroustrupian primitive
-};
+concept IsSpecies = requires { typename SpeciesTraits<T>::Domain; };
+
+/**
+ * @concept IsArrow
+ * @brief Verified mapping f: A -> B.
+ *
+ * Supports three paths:
+ * 1. The Morphic Registry (Formal SpeciesTraits)
+ * 2. Functional Deduction (Lambdas/Callables via invoke_result)
+ * 3. The Universal Bridge (Primitives acting as Identity Arrows)
+ */
+export template <typename F, typename A, typename B>
+concept IsArrow =
+    (requires { typename SpeciesTraits<F, A>::Codomain; } &&
+     std::convertible_to<typename SpeciesTraits<F, A>::Codomain, B>) ||
+    ((std::integral<F> || std::floating_point<F> || std::same_as<F, bool>) &&
+     std::same_as<F, A> && std::same_as<A, B>);
 
 /**
  * @section The_Skeletal_Morphism
@@ -65,65 +159,9 @@ struct Morphism {
   constexpr B operator()(const A& x) const { return transform(x); }
 };
 
-/**
- * FIXME: The template parameters A, B are actually redundant
- * if we find a decent way to deal with lambdas. Presently, we do
- * a fair amount of lookup so that we can inject type metadata for
- * primitive types via SpeciesTraits, pass the Domain and Codomain
- * via the Functor F or pass them explicitly via A, B.
- *
- * @concept IsArrow
- * @brief Structural verification of a Morphism signature.
- * @details This is the 'Static Blueprint' of a transformation.
- *          It ensures the type can act as a mapping between species.
- */
-/**
- * @concept IsArrow
- * @brief Structural verification of a Morphism signature.
- */
-export template <typename F, typename A, typename B>
-concept IsArrow = requires {
-  // 1. The Registry Check (External Traits)
-  // Every Arrow in Dedekind-land must have an entry in SpeciesTraits.
-  typename SpeciesTraits<F>::Domain;
-  typename SpeciesTraits<F>::Codomain;
-} && requires(F f, A x) {
-  // 2. The Routing Logic
-  requires[]() constexpr {
-    if constexpr (requires { typename SpeciesTraits<F>::Domain; }) {
-      /**
-       * @section Blessed_Primitive_Routing
-       * If the type has SpeciesTraits, we check the metadata instead of
-       * trying to call the object. This prevents "int is not a function"
-       * errors.
-       */
-
-      // Case A: Strict Morphism (f: A -> B)
-      // Matches the Trait endpoints to the requested A and B.
-      bool is_mapping =
-          std::same_as<typename SpeciesTraits<F>::Domain, A> &&
-          std::convertible_to<typename SpeciesTraits<F>::Codomain, B>;
-
-      // Case B: The PR 96 Universal Bridge
-      // Allows algebraic structures (like Rings) to treat primitive carriers
-      // as valid Arrows during the constraint verification phase.
-      bool is_primitive_bridge = std::integral<F> && std::integral<A>;
-
-      return is_mapping || is_primitive_bridge;
-
-    } else {
-      /**
-       * @section Functional_Routing
-       * For raw functional objects (Lambdas, std::function),
-       * we perform a live invocation check.
-       */
-      return requires {
-        { f(x) } -> std::same_as<B>;
-      };
-    }
-  }
-  ();
-};
+static_assert(
+    IsArrow<Morphism<int, bool, std::function<bool(int)>>, int, bool>,
+    "Taxonomy Error: Morphism must satisfy the skeletal IsArrow concept.");
 
 /**
  * @concept IsEndomorphism
@@ -137,22 +175,49 @@ static_assert(
     IsArrow<Morphism<int, bool, std::function<bool(int)>>, int, bool>,
     "Taxonomy Error: Morphism must satisfy the skeletal IsArrow concept.");
 
-/**
- * @concept IsMagmoid
- * @brief Represents a Magma-like structure where a binary operation is defined.
- *
- * @details In Category Theory, this corresponds to a 'Quiver' or 'Graph' with
- *          a composition rule that is closed: T × T → T. At this level, we
- *          only guarantee that two elements can be combined; we do not yet
- *          enforce associativity or identity.
- *
- * @tparam T The coordinate species (The "Objects" or "Elements").
- * @tparam Op The binary operation (The "Morphism" or "Composition Rule").
- */
-export template <typename T, typename Op>
-concept IsMagmoid = requires(T a, T b) {
-  { Op{}(a, b) } -> std::convertible_to<T>;
-};
+/** @section Verification_of_the_Algebraic_Atlas */
+
+// 1. Verify "Atoms" (IsSpecies)
+static_assert(IsSpecies<int>, "Atlas Error: int must be a recognized Species.");
+static_assert(IsSpecies<double>,
+              "Atlas Error: double must be a recognized Species.");
+static_assert(IsSpecies<bool>,
+              "Atlas Error: bool must be a recognized Species.");
+
+// 2. Verify "Inferred Arrows" (Inference Engine)
+// Testing std::plus<int>: int x int -> int
+static_assert(
+    IsArrow<std::plus<int>, int, int>,
+    "Inference Error: std::plus<int> should be an Arrow from int to int.");
+
+// Testing Relational Morphisms: double x double -> bool
+static_assert(IsArrow<std::less_equal<double>, double, bool>,
+              "Inference Error: std::less_equal<double> should be an Arrow "
+              "from double to bool.");
+
+// 3. Verify "Lambdas" (Functional Auto-Discovery)
+auto logic_gate = [](int x) -> bool { return x > 0; };
+static_assert(
+    IsArrow<decltype(logic_gate), int, bool>,
+    "Inference Error: Lambda was not automatically discovered as an Arrow.");
+
+// 4. Verify "The Universal Bridge" (Primitives as Identity Arrows)
+// Allows using a raw '5' as an identity mapping in algebraic expressions
+static_assert(
+    IsArrow<int, int, int>,
+    "Bridge Error: Primitive int should act as an identity Arrow for itself.");
+static_assert(IsArrow<double, double, double>,
+              "Bridge Error: Primitive double should act as an identity Arrow "
+              "for itself.");
+
+// 5. Verify "Morphism Struct" (Reification)
+using IntToBool = Morphism<int, bool, std::function<bool(int)>>;
+static_assert(IsArrow<IntToBool, int, bool>,
+              "Taxonomy Error: Formal Morphism struct failed IsArrow check.");
+
+static_assert(
+    IsEndomorphism<std::plus<int>, int>,
+    "Taxonomy Error: std::plus<int> must be recognized as an Endomorphism.");
 
 /** @section The Traits (The categorical invariants) */
 

@@ -46,23 +46,24 @@
 export module dedekind.category;
 
 /** @section Level_-1: The Bricks and Internal Language */
-export import :logic;    // The Subobject Classifier (Ω)
 export import :species;  // Reified Machine Primitives
+export import :logic;    // The Subobject Classifier (Ω)
 
 /** @section Level_0a: The Mapping Engine */
-export import :morphisms;   // Morphisms
-export import :algebra;     // Functors and Natural Transformations
-export import :functorial;  // Natural Transformations
-export import :kleisli;     // The Algebra of Contextual Composition
-export import :actions;     // The Action-First Bootstrapping of Monads and
-// Comonads
-export import :limits;  // The ETCS Characteristic Morphism
+// export import :morphisms;   // Morphisms
+// export import :partial;     // Functors and Natural Transformations
+// export import :algebra;     // Functors and Natural Transformations
+// export import :functorial;  // Natural Transformations
+// export import :kleisli;     // The Algebra of Contextual Composition
+// export import :actions;     // The Action-First Bootstrapping of Monads and
+//  Comonads
+// export import :limits;  // The ETCS Characteristic Morphism
 
 /** @section Level_0b: The Higher Structures (The Universe Laws) */
-export import :cartesian;  // Finite Products, Terminal Objects, and
-                           // Exponentials
-export import :posetal;    // Order-theoretic Categories (A ≤ B as a Morphism)
-export import :small;      // Enumerated and Finite Categories
+// export import :cartesian;  // Finite Products, Terminal Objects, and
+//  Exponentials
+// export import :posetal;    // Order-theoretic Categories (A ≤ B as a
+// Morphism) export import :small;      // Enumerated and Finite Categories
 
 /** @section Level_0c: The Axiomatic Registry */
-export import :etcs;  // Elementary Theory of the Category of Sets
+// export import :etcs;  // Elementary Theory of the Category of Sets

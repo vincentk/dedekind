@@ -1,6 +1,6 @@
 /**
- * @file ontology:category.cppm
- * @partition :algebra
+ * @file category:total.cppm
+ * @partition :total
  * @brief Level 0.2: The Laws of Composition (The Algebraic Hierarchy).
  *
  * @section The_Categorical_Foundation
@@ -23,7 +23,7 @@ module;
 #include <concepts>
 #include <functional>
 
-export module dedekind.category:total;
+export module dedekind.category:algebra;
 
 import :species;
 

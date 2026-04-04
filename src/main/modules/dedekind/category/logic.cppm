@@ -41,6 +41,8 @@ module;
 
 export module dedekind.category:logic;
 
+import :species;
+
 namespace dedekind::category {
 
 /**
@@ -386,7 +388,6 @@ auto operator!(P1&& p1) {
   };
 }
 
-// Inside namespace dedekind::category
 export template <typename TargetLogic, typename T>
 constexpr auto lift_logic(T value) {
   if constexpr (std::is_same_v<TargetLogic, TernaryLogic> &&

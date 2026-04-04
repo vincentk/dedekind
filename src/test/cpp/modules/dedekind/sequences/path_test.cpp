@@ -14,14 +14,16 @@ TEST_CASE("Sequences: The Path to Continuity",
 
   // A convergent path: s_n = 1/n + 42
   auto s_n = [](std::size_t n) -> ℤ {
-    return (1 / static_cast<ℤ>(n + 1)) + 42;  // Note: Integer division will yield 0 for n > 0
+    return (1 / static_cast<ℤ>(n + 1)) +
+           42;  // Note: Integer division will yield 0 for n > 0
   };
   Path<ℤ> path{s_n};
 
   SECTION("Axiomatic Proofs") {
     /** @proof A Path must be a Frobenius structure to support both Push and
      * Pull. */
-    static_assert(IsFrobenius<Path, ℤ, ℤ>, "
+    static_assert(IsFrobenius<Path, ℤ, ℤ>,
+                  "
                   "Path must satisfy Frobenius duality.");
 
     /** @proof The target species must be Archimedean to resolve a limit. */
