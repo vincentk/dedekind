@@ -21,6 +21,11 @@
  *
  * Wikipedia: Reproducing kernel Hilbert space, Radial basis function, Morphism
  */
+module;
+
+#include <concepts>
+#include <functional>
+
 export module dedekind.analysis:kernels;
 
 import dedekind.sets;      // IsSet, IsCardinality, RealLine

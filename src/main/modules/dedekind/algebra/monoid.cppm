@@ -31,21 +31,21 @@ export module dedekind.algebra:monoid;
 import dedekind.category;
 
 namespace dedekind::algebra {
+using namespace dedekind::category;
 
 /**
  * @concept IsAdditiveMonoid
  * @brief Proposition: The species (T, +) forms a Monoid.
  */
 export template <typename T>
-concept IsAdditiveMonoid = dedekind::category::IsMonoid<T, std::plus<>>;
+concept IsAdditiveMonoid = IsMonoid<T, std::plus<>>;
 
 /**
  * @concept IsMultiplicativeMonoid
  * @brief Proposition: The species (T, *) forms a Monoid.
  */
 export template <typename T>
-concept IsMultiplicativeMonoid =
-    dedekind::category::IsMonoid<T, std::multiplies<>>;
+concept IsMultiplicativeMonoid = IsMonoid<T, std::multiplies<>>;
 
 /** @section Atomic_Verification */
 static_assert(IsAdditiveMonoid<int>, "Axiom Failure: (Z, +) must have a Zero.");

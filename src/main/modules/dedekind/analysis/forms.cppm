@@ -4,6 +4,11 @@
  * @brief Level 11.5: The Exterior Algebra (Differential Forms).
  */
 
+module;
+
+#include <concepts>
+#include <functional>
+
 export module dedekind.analysis:forms;
 
 import dedekind.geometry;

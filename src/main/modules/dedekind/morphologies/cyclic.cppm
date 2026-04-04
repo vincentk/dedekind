@@ -23,6 +23,11 @@
  *
  * Wikipedia: Cyclic group, Modular arithmetic, Dedekind cut
  */
+module;
+
+#include <cmath>
+#include <concepts>
+#include <functional>
 
 export module dedekind.morphologies:cyclic;
 

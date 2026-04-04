@@ -62,15 +62,6 @@ export template <typename T>
 concept IsCommutativeRing =
     IsRing<T> && dedekind::category::IsCommutative<T, std::multiplies<>>;
 
-/** @section The_Point_Free_Infix_Engine */
-
-// If T is established as a Ring, we grant the Point-Free Engine
-// permission to use the standard operator overloads.
-export template <IsRing T>
-constexpr T operator*(T a, T b) {
-  return std::multiplies<T>{}(a, b);
-}
-
 /** @section Atomic_Verification */
 static_assert(IsRing<int>, "Axiom Failure: Integers must satisfy Ring axioms.");
 static_assert(IsCommutativeRing<int>,

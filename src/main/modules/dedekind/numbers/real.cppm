@@ -15,13 +15,15 @@ import dedekind.category;
 import dedekind.order;
 import dedekind.sequences;
 import dedekind.algebra;
+import dedekind.morphologies;
 
 namespace dedekind::numbers {
 
+using namespace dedekind::algebra;
 using namespace dedekind::category;
+using namespace dedekind::morphologies;
 using namespace dedekind::order;
 using namespace dedekind::sequences;
-using namespace dedekind::algebra;
 
 /**
  * @class Real

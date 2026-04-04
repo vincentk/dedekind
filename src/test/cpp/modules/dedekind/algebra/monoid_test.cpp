@@ -1,7 +1,9 @@
 #include <catch2/catch_test_macros.hpp>
 
 import dedekind.algebra;
+import dedekind.category;
 using namespace dedekind::algebra;
+using namespace dedekind::category;
 
 TEST_CASE("Algebra: Monoid Axioms (Atomic)", "[algebra][monoid]") {
   SECTION("Additive Identity (0)") {

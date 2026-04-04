@@ -3,6 +3,10 @@
  * @partition :exterior
  * @brief Level 11.6: The Wedge Product and Symplectic Geometry.
  */
+module;
+
+#include <concepts>
+#include <functional>
 
 export module dedekind.analysis:exterior;
 

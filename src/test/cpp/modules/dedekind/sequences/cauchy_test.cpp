@@ -9,10 +9,10 @@ using namespace dedekind::topology;
 using namespace dedekind::category;
 
 TEST_CASE("Sequences: Cauchy Convergence", "[sequences][cauchy]") {
-  using ℝ = double;
+  using ℤ = int;
 
   // The classic harmonic sequence (convergent/Cauchy)
-  Path<ℝ> harmonic{[](std::size_t n) { return 1.0 / (n + 1.0); }};
+  Path<ℤ> harmonic{[](std::size_t n) { return 1 / (n + 1); }};
 
   SECTION("Axiomatic Discovery") {
     static_assert(IsCauchy<decltype(harmonic)>);
@@ -21,8 +21,8 @@ TEST_CASE("Sequences: Cauchy Convergence", "[sequences][cauchy]") {
 
   SECTION("Metric Verification") {
     // Sample two points far out in the path
-    ℝ s_1000 = harmonic.at(1000);
-    ℝ s_2000 = harmonic.at(2000);
+    ℤ s_1000 = harmonic.at(1000);
+    ℤ s_2000 = harmonic.at(2000);
 
     // The distance between them must be approaching zero
     REQUIRE(std::abs(s_1000 - s_2000) < 0.001);

@@ -31,11 +31,13 @@ module;
 
 export module dedekind.morphologies:archimedean;
 
-import dedekind.algebra; // The Abstract Laws (Groups, Rings)
-import dedekind.order;   // The Rules of Relation (IsTotallyOrdered, IsDense)
+import dedekind.algebra;
+import dedekind.sequences;
+import dedekind.order;
 
 namespace dedekind::morphologies {
 using namespace dedekind::algebra;
+using namespace dedekind::sequences;
 using namespace dedekind::order;
 
 /**
@@ -48,7 +50,7 @@ using namespace dedekind::order;
  *          element g (the generator).
  */
 export template <typename T>
-concept IsCyclic = IsAbelianGroup<T> &&
+concept IsCyclic = IsAdditiveGroup<T> &&
                    // Removed 'typename' from value access (is_countable)
                    (T::cardinality_type::is_countable == true) &&
                    requires(typename T::Domain a) {
@@ -103,7 +105,7 @@ concept IsDedekindCompleteField =
  */
 export template <typename S>
 concept IsMinkowskiSummable =
-    IsSet<S> && IsAbelianGroup<typename S::Domain> && requires(S a, S b) {
+    IsSet<S> && IsAdditiveGroup<typename S::Domain> && requires(S a, S b) {
       { a + b } -> std::same_as<S>;
     };
 
