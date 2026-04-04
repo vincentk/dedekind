@@ -149,7 +149,7 @@ By applying \texttt{static\_assert} against structural concepts, we transform th
 By using \texttt{constexpr} and \texttt{requires}, to identify and potentially prune complex expressions—such as an empty set defined by contradictory predicates—into zero-overhead machine instructions.
 This ``correctness-by-construction'' methodology ensures that the structural integrity of the mathematical model is verified and optimized before the final binary is generated.
 
-\subsubsection{Mapping ETCS to C++ Structural Primitives}
+\subsubsection{The \texttt{:set} partition}
 To ground this theoretical approach, Table 1 maps the fundamental axioms of the Elementary Theory of the Category of Sets (ETCS) -- as codified in the pedagogical treatment by Lawvere and Rosebrugh \cite{lawvere2003sets} -- to their structural equivalents in \texttt{dedekind}.
 This mapping ensures that the library is not merely a numerical simulation, but a direct implementation of algebraic laws within the host language's type system.
 In a sense, \texttt{dedekind} hopes to be a *compiler* for mathematical concepts.
@@ -174,31 +174,6 @@ In a sense, \texttt{dedekind} hopes to be a *compiler* for mathematical concepts
 \end{tabular}
 \end{table}
 
-\begin{table}[h]
-\centering
-\caption{The Feature Cube: Structural Invariants for Primitive Species}
-\label{tab:feature_cube}
-\begin{tabular}{ll|ccc|ccc|c}
-\hline
-\textbf{Species} & \textbf{Op / Rel} & \textbf{Assoc} & \textbf{Comm} & \textbf{Idemp} & \textbf{Refl} & \textbf{Trans} & \textbf{Anti} & \textbf{Logic} \\ \hline
-\rowcolor[HTML]{EFEFEF} 
-\textit{Logical} & \textit{std::logical} & & & & & & & \\
-\texttt{bool} & \texttt{\&\&} / \texttt{||} & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark & Classical \\ \hline
-\rowcolor[HTML]{EFEFEF} 
-\textit{Integral} & \textit{std::bit} & & & & & & & \\
-\texttt{int} & \texttt{\&} / \texttt{|} & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark & Classical \\ 
-\texttt{int} & \texttt{+} / \texttt{*} & \checkmark & \checkmark & -- & \checkmark & \checkmark & \checkmark & Classical \\ \hline
-\rowcolor[HTML]{EFEFEF} 
-\textit{Floating} & \textit{std::arith} & & & & & & & \\
-\texttt{double} & \texttt{+} / \texttt{*} & --\textsuperscript{*} & \checkmark & -- & --\textsuperscript{†} & \checkmark & \checkmark & Ternary \\ \hline
-\end{tabular}
-\begin{flushleft}
-\footnotesize{
-\textsuperscript{*} Fails bit-perfect associativity due to IEEE 754 precision loss. \\
-\textsuperscript{†} Fails reflexivity due to NaN ($x \le x$ is false for NaN).
-}
-\end{flushleft}
-\end{table}
 
 By adopting a categorical foundation, the library provides a unified interface for both \emph{extensional} and \emph{intensional} representations.
 For finite collections, such as the \texttt{Booleans}, the system performs \emph{extensional} materialization to compute exact results at compile-time.
@@ -367,12 +342,16 @@ This physical stratification prohibits circular reasoning at the compiler level;
 
 \subsection{\texttt{category} Module}
 
+The methodology of \texttt{dedekind} is predicated on the translation of formal mathematical structures into a stratified registry of C++23 modules. 
+This stratification allows for a "bottom-up" synthesis of complex mathematical objects, where each level serves as a verified foundation for the next. 
+The intention is that the flow of compilation mirrors the order in which objects are introduced in a formal textbook: foundational mereological axioms are isolated into the \texttt{:mereology} partition, which produces a Binary Module Interface (BMI) that acts as a "cached truth."
+
 \begin{lstlisting}[caption={Anchoring the ring operations as morphisms.}]
 template <typename T>
 struct SpeciesTraits<std::plus<T>> {
   using Domain = T;
   using Codomain = T;
-};
+}; 
 
 template <typename T>
 struct SpeciesTraits<std::multiplies<T>> {
@@ -381,7 +360,190 @@ struct SpeciesTraits<std::multiplies<T>> {
 };
 \end{lstlisting}
 
-\subsection{The Semantic Mapping}
+\subsubsection{The \texttt{:species} partition}
+
+The \texttt{:species} partition functions as an \textit{Algebraic Atlas}, providing a stratified registry of structural invariants for C++ primitive types and standard library operators.
+By reifying these categorical axioms—associativity, commutativity, and idempotency—as compile-time constants, the library transforms the C++ type system into a formal verification engine.
+This design follows the combinatorial species theory of Joyal~\cite{joyal1981species, joyal1986analytic}, treating fundamental types not merely as sets of values, but as rules for generating structure.
+
+As shown in Table~\ref{tab:structural_invariants}, the "Feature Cube" serves as a formal ledger mapping algebraic properties to the language's fundamental atoms. 
+This explicit mapping allows the \texttt{dedekind} dispatcher to distinguish between strict algebraic structures (e.g., \texttt{unsigned int} addition) and numerical species, such as floating-point operations which exhibit numerical non-associativity under the IEEE 754 standard~\cite{ieee754_2019}.
+By anchoring these operators as first-class categorical entities, we enable the compiler to act as a physical guardrail for mathematical truth, ensuring structural integrity is verified prior to binary generation.
+
+The overall intention is to anchor the C++ type system (primitive types and operators) as a substrate for modelling truths obtained from category theory and abstract algebra.
+In this setup, providing the axiomatic truths (e.g. $a || b$ is commutative) or the absence thereof (the messy reality of $NaN$, overflows, or rounding errors) is through this registry of truths the responsibility of the library developer.
+
+
+\begin{table}[h!]
+\centering
+\caption{The Feature Cube: Structural Invariants for Primitive Species. \textbf{Assoc}, \textbf{Comm}, and \textbf{Idemp} denote properties of binary operations ($S \times S \to S$); \textbf{Refl}, \textbf{Trans}, and \textbf{Anti} denote properties of binary relations ($S \times S \to \Omega$).}
+\label{tab:structural_invariants}
+\resizebox{\textwidth}{!}{%
+\begin{tabular}{llccccccc}
+\hline
+\textbf{Species} & \textbf{Op / Rel} & \textbf{Assoc} & \textbf{Comm} & \textbf{Idemp} & \textbf{Refl} & \textbf{Trans} & \textbf{Anti} & \textbf{Logic} \\ \hline
+\rowcolor[HTML]{EFEFEF} 
+\textit{Logical} & \texttt{std::logical\_} & & & & & & & \\
+\texttt{bool}    & \texttt{and / or}   & \checkmark & \checkmark & \checkmark & --- & --- & --- & Class. \\
+\texttt{bool}    & \texttt{equal\_to}  & \checkmark & \checkmark & ---        & \checkmark & \checkmark & \checkmark & Class. \\ \hline
+\rowcolor[HTML]{EFEFEF} 
+\textit{Integral} & \texttt{std::bit\_} & & & & & & & \\
+\texttt{uint}    & \texttt{and / or}   & \checkmark & \checkmark & \checkmark & --- & --- & --- & Class. \\
+\texttt{uint}    & \texttt{xor}        & \checkmark & \checkmark & ---        & --- & --- & --- & Class. \\ \hline
+\rowcolor[HTML]{EFEFEF} 
+\textit{Integral} & \texttt{std::arithmetic} & & & & & & & \\
+\texttt{uint/int} & \texttt{plus / mult} & \checkmark & \checkmark & ---        & --- & --- & --- & Class. \\
+\texttt{uint/int} & \texttt{minus}      & ---        & ---        & ---        & --- & --- & --- & Class. \\ \hline
+\rowcolor[HTML]{EFEFEF} 
+\textit{Floating} & \texttt{std::arithmetic} & & & & & & & \\
+\texttt{double}  & \texttt{plus / mult} & \textasteriskcentered & \checkmark & --- & --- & --- & --- & Tern. \\
+\texttt{double}  & \texttt{minus}      & ---        & ---        & ---        & --- & --- & --- & Tern. \\ \hline
+\rowcolor[HTML]{EFEFEF} 
+\textit{Relational} & \texttt{std::relational} & & & & & & & \\
+\texttt{uint/int} & \texttt{less\_equal} & ---        & ---        & \checkmark & \checkmark & \checkmark & \checkmark & Class. \\
+\texttt{double}  & \texttt{less\_equal} & ---        & ---        & \checkmark & \textdagger & \checkmark & \checkmark & Tern. \\ \hline
+\multicolumn{9}{l}{\small \textasteriskcentered \textit{Fails bit-perfect associativity due to rounding error in IEEE 754~\cite{ieee754_2019}.}} \\
+\multicolumn{9}{l}{\small \textdagger \textit{Fails reflexivity (\texttt{NaN <= NaN} is false).}}
+\end{tabular}
+}
+\end{table}
+
+
+\subsubsection{The \texttt{:species} partition}
+
+The primary challenge in bridging C++ with formal category theory lies in the language's fixed operator semantics and its traditionally nominal type system.
+To overcome this, the \texttt{dedekind} library utilizes \texttt{SpeciesTraits} within the \texttt{:species} partition to "lift" standard library function objects into the categorical domain. 
+By explicitly defining the \texttt{Domain} and \texttt{Codomain} for types like \texttt{std::plus<T>}, we transform opaque imperative operations into verifiable morphisms. 
+This mapping ensures that the library is not merely a numerical simulation, but a direct implementation of algebraic laws within the host language's type system, effectively serving as a "compiler" for mathematical concepts~\cite{lawvere2003sets, milewski2019category}.
+Following the structuralist approach advocated by Awodey~\cite{awodey2004structuralism}, this design treats mathematical objects not by their internal "essence," but by their roles and relations within a category. 
+
+This "action-first" architectural decision is motivated by the persistent performance-productivity gap in computational science, often characterized as the "two-language problem"~\cite{harris2020numpy, paszke2019pytorch}.
+By anchoring standard operators as first-class categorical entities at Level 0.1, we enable the C++ compiler to act as a physical guardrail for mathematical truth.
+This alignment allows the programmer to write expressive, point-free equations while maintaining the performance characteristic of "mechanical sympathy"~\cite{thompson2011mechanical}.
+As noted by Ajdukiewicz~\cite{ajdukiewicz1985jezyk}, the structure of our language determines our image of the world; by reifying these morphisms directly within the type system, we ensure that the structural integrity of the mathematical model is verified and optimized long before the final binary is generated.
+
+% Table 5 from the draft, integrated here
+\begin{table}[h!]
+\centering
+\caption{The Morphic Signature Registry: Lifting Standard Operators to Level 0.1}
+\label{tab:morphic_signatures}
+\begin{tabular}{lll}
+\hline
+\textbf{Standard Operator} & \textbf{Trait Mapping (Signature)} & \textbf{Categorical Role} \\ \hline
+\texttt{std::plus<T>} & $\text{Domain} = T, \text{Codomain} = T$ & Additive Morphism \\
+\texttt{std::multiplies<T>} & $\text{Domain} = T, \text{Codomain} = T$ & Multiplicative Morphism \\
+\texttt{std::identity} & $\text{Domain} = T, \text{Codomain} = T$ & Identity Arrow ($1_X$) \\
+\texttt{std::equal\_to<T>} & $\text{Domain} = T, \text{Codomain} = \Omega$ & Subobject Classifier ($\chi$) \\ \hline
+\end{tabular}
+\end{table}
+
+\subsubsection{The \texttt{:total} partition}
+
+In the "Platonic" domain of our ontology, we define the Category $\mathcal{C}$ of Total Species, where an algebraic structure is governed by a collection of total morphisms $\mu: X \times X \to X$. 
+Following the \textit{Polish School of Logic} \cite{ajdukiewicz1985jezyk}, these structures represent "Laws of Harmony" that are absolute. 
+This approach aligns with the Elementary Theory of the Category of Sets (ETCS) as proposed by Lawvere \cite{lawvere1964etcs, lawvere2005elementary}, where types are defined by their morphisms rather than internal elements \cite{mclarty1993numbers}.
+
+A primary inhabitant of this total universe is the type \texttt{bool}. 
+Under the morphisms of logical conjunction ($\land$) and disjunction ($\lor$), \texttt{bool} behaves as a \textbf{Distributive Lattice}—a specialized \textbf{Rig} where both operations are \textbf{Idempotent}. 
+This idempotency provides the structural basis for \textbf{Universal Constructions} such as \textbf{Products} and \textbf{Coproducts}, which appear in systems programming as \textit{Meet} and \textit{Join} operations \cite{milewski2019category}. 
+Similarly, we identify \texttt{unsigned int} as a total species under modular addition, forming a strict \textbf{Abelian Group} $(\mathbb{Z}/2^n\mathbb{Z}, +)$. 
+By mapping these to C++23 concepts, we transform the compiler into a \textbf{Constraint Satisfaction Engine} (CSE) that verifies mathematical truth as a physical invariant of the binary \cite{Krautler_dedekind_2026}.
+
+\begin{table}[h!]
+\centering
+\caption{The Path to Symmetry: Single-Operation Species in \texttt{dedekind.category}}
+\label{tab:algebraic_hierarchy}
+\begin{tabular}{llll}
+\hline
+\textbf{Concept} & \textbf{Structure} & \textbf{Axiomatic Requirements} & \textbf{C++ Concept} \\ \hline
+\textbf{Magma} & $\langle T, \circ \rangle$ & $\forall a, b \in T : a \circ b \in T$ (Totality) & \texttt{IsMagma} \\
+\textbf{Semigroup} & $\langle T, \circ \rangle$ & Magma + $(a \circ b) \circ c = a \circ (b \circ c)$ & \texttt{IsSemigroup} \\
+\textbf{Monoid} & $\langle T, \circ, e \rangle$ & Semigroup + $a \circ e = a = e \circ a$ & \texttt{IsMonoid} \\
+\textbf{Group} & $\langle T, \circ, e, \text{inv} \rangle$ & Monoid + $a \circ a^{-1} = e$ & \texttt{IsGroup} \\
+\textbf{Abelian Group} & $\langle T, \circ, e \rangle$ & Group + $a \circ b = b \circ a$ & \texttt{IsAbelianGroup} \\ \hline
+\end{tabular}
+\end{table}
+
+\begin{lstlisting}[caption={Structural Maturation and the Path to Symmetry in \texttt{dedekind.category}}, label={lst:abelian_group}]
+// Level 1.3: The Perfect Symmetry (Monoid + Inverse + Symmetry)
+export template <typename T, typename Op>
+concept IsAbelianGroup = IsMonoid<T, Op> && 
+                         IsLoop<T, Op>   && 
+                         IsCommutative<T, Op>;
+
+/** @section Truth_Anchors */
+
+// SUCCESS: Unsigned addition is a Total Abelian Group (Z/2^nZ).
+// The compiler verifies this structural invariant at compile-time.
+static_assert(IsAbelianGroup<unsigned int, std::plus<unsigned int>>);
+
+// HONEST REJECTION: Signed addition is NOT a Total Magma in this partition.
+// It fails because of Undefined Behavior/Overflow (Partiality).
+static_assert(!IsMagma<int, std::plus<int>>);
+\end{lstlisting}
+
+
+
+
+\subsubsection{The \texttt{:logic} partition}
+
+Before a "Body" (Set) or a "Path" (Sequence) can be reified, we must establish the "Rules of Presence" through the \textbf{Subobject Classifier} $\Omega$. 
+Following the algebraic logic of Rasiowa \cite{ajdukiewicz1985jezyk}, we treat every logical system as a specific type of abstract algebra where truth-values act as the objects of a \textbf{Topos}. 
+By reifying logic into the \texttt{LogicalSpecies} concept, we prevent the "leaky abstractions" inherent in machine-level \texttt{bool} types—such as implicit integral promotion—while allowing for pluggable logical universes.
+
+In the \texttt{ClassicalLogic} species, $\Omega$ is the binary prime $\{True, False\}$, as shown in Table \ref{tab:classical_logic}. 
+This corresponds to the standard Boolean Topos where the \textbf{Law of Excluded Middle} holds. 
+However, to honestly model computational undecidability or "missing knowledge," we introduce the \texttt{TernaryLogic} species based on Kleene's strong logic of indeterminacy (K3) \cite{mclarty1992toposes}. 
+As shown in Table \ref{tab:kleene_logic}, this logic introduces an \textbf{Unknown} state (0), which act as a neutral element in disjunction and an annihilator in specific conjunctions. 
+Within the \texttt{dedekind} framework, these logics are treated as \textbf{Rigs}; the \textit{Join} ($\lor$) serves as additive composition, while the \textit{Meet} ($\land$) serves as multiplicative composition. 
+This structural mapping ensures that any \textbf{Predicate} $X \to \Omega$ provides a mathematically rigorous foundation for the subobject classification required by the \texttt{:partial} partition.
+
+\begin{table}[h]
+\centering
+\caption{Truth Table for the Classical Topos ($\Omega = \{0, 1\}$)}
+\label{tab:classical_logic}
+\begin{tabular}{cc|ccc}
+\hline
+$A$ & $B$ & $A \land B$ & $A \lor B$ & $\neg A$ \\ \hline
+0 & 0 & 0 & 0 & 1 \\
+0 & 1 & 0 & 1 & 1 \\
+1 & 0 & 0 & 1 & 0 \\
+1 & 1 & 1 & 1 & 0 \\ \hline
+\end{tabular}
+\end{table}
+
+\begin{table}[h]
+\centering
+\caption{Truth Table for the Kleene Topos ($\Omega = \{-1, 0, 1\}$)}
+\label{tab:kleene_logic}
+\begin{tabular}{cc|ccc}
+\hline
+$A$ & $B$ & $A \land B$ (AND) & $A \lor B$ (OR) & $\neg A$ (NOT) \\ \hline
+-1 & -1 & -1 & -1 & 1 \\
+-1 & 0  & -1 & 0  & 1 \\
+-1 & 1  & -1 & 1  & 1 \\
+0  & 0  & 0  & 0  & 0 \\
+0  & 1  & 0  & 1  & 0 \\
+1  & 1  & 1  & 1  & -1 \\ \hline
+\end{tabular}
+\end{table}
+
+\subsubsection{The \texttt{:partial} partition}
+
+The transition from \textit{Rings} to \textit{Fields} introduces a fundamental tension between totality and partiality. 
+In a strict categorical ontology, the multiplicative inverse morphism $\text{inv}: X \rightharpoonup X$ cannot be considered a total morphism in the \texttt{:total} partition, as it remains undefined for the additive identity $0$. 
+Following the "Honest" architecture of the \texttt{dedekind} library, we relegate the definition of a \textbf{Field} to the \texttt{:partial} partition. 
+
+This maturation is modeled as a \textbf{Subobject Classification} problem \cite{mclarty1992toposes}. 
+We define the field as a ring where the predicate $x \neq 0$ classifies a subobject $U \hookrightarrow X$ upon which multiplication is a total \textbf{Abelian Group}. 
+By using the Kleene Ternary Logic ($\Omega$) defined in our \texttt{:logic} partition, we can explicitly represent the "failure" of division by zero as a structural invariant rather than a runtime exception. 
+This ensures that \textit{Universal Constructions} requiring exact inversion, such as the \textbf{Equalizer} used in Dedekind cuts, are only permitted when the species provides a formal proof of its subobject boundaries \cite{lawvere2003sets}.
+
+\subsubsection{The `:numeric` partition}
+
+Finally, we encounter the "Curious" case of \textit{Numerical Species} (IEEE 754). These types are categories where the subobject classifier $\Omega$ is internalized within the species itself (\texttt{NaN}, \texttt{Inf}). While these structures appear to be total morphisms $\mu: \mathbb{R}_{f} \times \mathbb{R}_{f} \to \mathbb{R}_{f}$ in their signature, they are semantically partial. Specifically, they fail the \textbf{Equalizer} conditions required for associativity; the rounding error ensures that $(a+b)+c$ and $a+(b+c)$ are not generally isomorphic. This progression—from the absolute (\textit{Total}), through the filtered (\textit{Partial}), to the exceptional (\textit{Numerical})—allows us to build a "strictly speaking" true ontology that respects both categorical rigor and machine-level reality.
+
+\subsubsection{The Semantic Mapping}
 
 The \texttt{dedekind.category} module serves as an anchor of the DSL in the established formalism of category theory.
 It aggregates skeletal, mereological, and algebraic laws to enable the synthesis of the \textit{Continuum} from the \textit{Discrete}.
@@ -398,56 +560,6 @@ This ensures that the "Soul" of the system (its laws of action and harmony) is a
 This hierarchy transforms the C++ module mapper into a directed acyclic graph of mathematical truth, where the linker cannot even begin its work until the ontological prerequisites are satisfied.
 The strict directed acyclic graph (DAG) of the dedekind module partitions mirrors the Bourbaki style of 'Mother Structures' \cite{marquis2022structuralist}, where the physical order of compilation serves as a proof of logical consistency.
 
-Some truth tables, to be refined:
-
-% --- Classical Logic Table ---
-\begin{table}[h]
-\centering
-\caption{Truth Table for the Classical Topos ($\Omega = \{0, 1\}$)}
-\label{tab:classical_logic}
-\begin{tabular}{cc|ccc}
-\hline
-$A$ & $B$ & $A \land B$ & $A \lor B$ & $\neg A$ \\ \hline
-0 & 0 & 0 & 0 & 1 \\
-0 & 1 & 0 & 1 & 1 \\
-1 & 0 & 0 & 1 & 0 \\
-1 & 1 & 1 & 1 & 0 \\ \hline
-\end{tabular}
-\end{table}
-
-% --- Kleene Ternary Logic Table ---
-\begin{table}[h]
-\centering
-\caption{Truth Table for the Kleene Topos ($\Omega = \{-1, 0, 1\}$)}
-\label{tab:kleene_logic}
-\begin{tabular}{cc|ccc}
-\hline
-$A$ & $B$ & $A \land B$ & $A \lor B$ & $\neg A$ \\ \hline
--1 & -1 & -1 & -1 & 1 \\
--1 & 0  & -1 & 0  & 1 \\
--1 & 1  & -1 & 1  & 1 \\
-0  & 0  & 0  & 0  & 0 \\
-0  & 1  & 0  & 1  & 0 \\
-1  & 1  & 1  & 1  & -1 \\ \hline
-\end{tabular}
-\end{table}
-
-% --- Kleene Ternary Logic Table (The Logic of Indeterminacy) ---
-\begin{table}[h]
-\centering
-\caption{Truth Table for the Kleene Topos ($\Omega = \{-1, 0, 1\}$)}
-\label{tab:kleene_logic}
-\begin{tabular}{cc|ccc}
-\hline
-$A$ & $B$ & $A \land B$ (AND) & $A \lor B$ (OR) & $\neg A$ (NOT) \\ \hline
--1 & -1 & -1 & -1 & 1 \\
--1 & 0  & -1 & 0  & 1 \\
--1 & 1  & -1 & 1  & 1 \\
-0  & 0  & 0  & 0  & 0 \\
-0  & 1  & 0  & 1  & 0 \\
-1  & 1  & 1  & 1  & -1 \\ \hline
-\end{tabular}
-\end{table}
 
 \subsection{\texttt{sets} Module}
 
