@@ -8,6 +8,7 @@
 
 % --- Recommended Math & Science Packages ---
 \usepackage{amsmath, amssymb, amsthm} % Essential math tools
+\usepackage{mathtools}
 \usepackage{mathrsfs}
 \usepackage{graphicx}                  % Support for images
 \usepackage{hyperref}                  % Clickable links & cross-refs
@@ -423,21 +424,25 @@ In this setup, providing the axiomatic truths (e.g. $a || b$ is commutative) or 
 
 \subsubsection{The \texttt{:logic} partition}
 
-Before a "Body" (Set) or a "Path" (Sequence) can be reified, we must establish the "Rules of Presence" through the \textbf{Subobject Classifier} $\Omega$. 
-Following the algebraic logic of Rasiowa \cite{ajdukiewicz1985jezyk}, we treat every logical system as a specific type of abstract algebra where truth-values act as the objects of a \textbf{Topos}. 
-By reifying logic into the \texttt{LogicalSpecies} concept, we prevent the "leaky abstractions" inherent in machine-level \texttt{bool} types—such as implicit integral promotion—while allowing for pluggable logical universes.
+\subsubsection{The \texttt{:logic} partition: The Subobject Classifier (\texorpdfstring{$\Omega$}{Omega})}
 
-In the \texttt{ClassicalLogic} species, $\Omega$ is the binary prime $\{True, False\}$, as shown in Table \ref{tab:classical_logic}. 
-This corresponds to the standard Boolean Topos where the \textbf{Law of Excluded Middle} holds. 
-However, to honestly model computational undecidability or "missing knowledge," we introduce the \texttt{TernaryLogic} species based on Kleene's strong logic of indeterminacy (K3) \cite{mclarty1992toposes}. 
-As shown in Table \ref{tab:kleene_logic}, this logic introduces an \textbf{Unknown} state (0), which act as a neutral element in disjunction and an annihilator in specific conjunctions. 
-Within the \texttt{dedekind} framework, these logics are treated as \textbf{Rigs}; the \textit{Join} ($\lor$) serves as additive composition, while the \textit{Meet} ($\land$) serves as multiplicative composition. 
-This structural mapping ensures that any \textbf{Predicate} $X \to \Omega$ provides a mathematically rigorous foundation for the subobject classification required by the \texttt{:partial} partition.
+Before a "Body" (Set) or a "Path" (Sequence) can be reified, the \texttt{dedekind} library establishes the "Rules of Presence" through the \textbf{Subobject Classifier} $\Omega$. 
+Following the algebraic logic of Rasiowa~\cite{ajdukiewicz1985jezyk}, we treat every logical system as a specific type of abstract algebra where truth-values act as the objects of a \textbf{Topos}. 
+By reifying these systems via the \texttt{LogicalSpecies} concept, we prevent the "leaky abstractions" inherent in machine-level \texttt{bool} types—such as implicit integral promotion—while allowing for pluggable logical universes.
+
+In the \texttt{ClassicalLogic} species, $\Omega$ is the binary prime $\{True, False\}$ (see Table~\ref{tab:logic_comparison}), corresponding to the standard Boolean Topos where the \textbf{Law of Excluded Middle} holds. 
+However, to honestly model computational undecidability or the "truth-holes" inherent in floating-point $NaN$ boundaries, we introduce the \texttt{TernaryLogic} species. 
+Based on Kleene's strong logic of indeterminacy (K3)~\cite{mclarty1992toposes}, this logic introduces an \textbf{Unknown} state (0) as seen in Table~\ref{tab:logic_comparison}. 
+Within the \texttt{dedekind} framework, these logics are formalized as \textbf{Rigs}; the \textit{Join} ($\lor$) serves as additive composition (Supremum), while the \textit{Meet} ($\land$) serves as multiplicative composition (Infimum). 
+This structural mapping ensures that any \textbf{Predicate} $X \to \Omega$ provides the mathematically rigorous foundation required for the subobject classification in the downstream \texttt{:partial} partition.
 
 \begin{table}[h]
 \centering
-\caption{Truth Table for the Classical Topos ($\Omega = \{0, 1\}$)}
-\label{tab:classical_logic}
+\caption{Truth Tables for Classical ($\Omega_{\mathbb{B}}$) and Kleene ($\Omega_{K3}$) Toposes. In the Ternary system, the \textit{Unknown} state (0) acts as a fixed point for negation and a neutral element for disjunction.}
+\label{tab:logic_comparison}
+\begin{minipage}{.45\linewidth}
+\centering
+\caption*{Classical ($\Omega = \{0, 1\}$)}
 \begin{tabular}{cc|ccc}
 \hline
 $A$ & $B$ & $A \land B$ & $A \lor B$ & $\neg A$ \\ \hline
@@ -446,15 +451,13 @@ $A$ & $B$ & $A \land B$ & $A \lor B$ & $\neg A$ \\ \hline
 1 & 0 & 0 & 1 & 0 \\
 1 & 1 & 1 & 1 & 0 \\ \hline
 \end{tabular}
-\end{table}
-
-\begin{table}[h]
+\end{minipage}
+\begin{minipage}{.5\linewidth}
 \centering
-\caption{Truth Table for the Kleene Topos ($\Omega = \{-1, 0, 1\}$)}
-\label{tab:kleene_logic}
+\caption*{Kleene K3 ($\Omega = \{-1, 0, 1\}$)}
 \begin{tabular}{cc|ccc}
 \hline
-$A$ & $B$ & $A \land B$ (AND) & $A \lor B$ (OR) & $\neg A$ (NOT) \\ \hline
+$A$ & $B$ & $A \land B$ & $A \lor B$ & $\neg A$ \\ \hline
 -1 & -1 & -1 & -1 & 1 \\
 -1 & 0  & -1 & 0  & 1 \\
 -1 & 1  & -1 & 1  & 1 \\
@@ -462,7 +465,34 @@ $A$ & $B$ & $A \land B$ (AND) & $A \lor B$ (OR) & $\neg A$ (NOT) \\ \hline
 0  & 1  & 0  & 1  & 0 \\
 1  & 1  & 1  & 1  & -1 \\ \hline
 \end{tabular}
+\end{minipage}
 \end{table}
+
+The necessity of the \texttt{TernaryLogic} species is most evident when observing the breakdown of the \textbf{Law of Excluded Middle} ($P \lor \neg P = \top$) in floating-point arithmetic. 
+Following the IEEE 754 standard~\cite{ieee754_2019}, the \texttt{NaN} (Not-a-Number) state represents a singularity where standard relational morphisms fail to provide a binary partition of the species. 
+Consider a predicate $P(x) \coloneqq (x \leq 1.0)$ for $x = \text{NaN}$. 
+In classical C++, the expression \texttt{(x <= 1.0)} evaluates to \texttt{false}. 
+However, the logical complement $\neg P(x)$, represented by \texttt{(x > 1.0)}, also evaluates to \texttt{false}. 
+This results in the paradox $P \lor \neg P = \bot$, a violation of classical tautology that the \texttt{dedekind} library resolves by elevating the subobject classification to $\Omega_{K3}$.
+
+\begin{lstlisting}[caption={The NaN Truth-Hole: Violating the Law of Excluded Middle in C++.}]
+double x = std::numeric_limits<double>::quiet_NaN();
+
+// In a Classical Topos (bool), both are false:
+bool p     = (x <= 1.0); // false
+bool not_p = (x > 1.0);  // false
+bool lem   = p || not_p; // false (LEM Violation!)
+
+// In the Dedekind Ternary Topos (Omega):
+Ternary P     = Classifier<double>::eval(x <= 1.0); // Unknown
+Ternary NOT_P = !P;                                // Unknown
+Ternary LEM   = P || NOT_P;                        // Unknown
+\end{lstlisting}
+
+By mapping these "numerical hazards" to the \textbf{Unknown} state, the library ensures that downstream algebraic transformations (such as those in the \texttt{:partial} partition) do not proceed under the false assumption of a binary state. 
+This "honesty" in the logic layer allows the compiler to treat \texttt{NaN} or integer overflow boundaries as formal subobject exclusions rather than undefined behavior.
+
+
 
 \subsubsection{The \texttt{:total} partition}
 
