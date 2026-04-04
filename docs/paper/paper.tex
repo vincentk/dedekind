@@ -387,40 +387,39 @@ By anchoring these operators as first-class categorical entities, we enable the 
 The overall intention is to anchor the C++ type system (primitive types and operators) as a substrate for modelling truths obtained from category theory and abstract algebra.
 In this setup, providing the axiomatic truths (e.g. $a || b$ is commutative) or the absence thereof (the messy reality of $NaN$, overflows, or rounding errors) is through this registry of truths the responsibility of the library developer.
 
-
 \begin{table}[h!]
 \centering
-\caption{The Feature Cube: Structural Invariants for Primitive Species. \textbf{Assoc}, \textbf{Comm}, and \textbf{Idemp} denote properties of binary operations ($S \times S \to S$); \textbf{Refl}, \textbf{Trans}, and \textbf{Anti} denote properties of binary relations ($S \times S \to \Omega$).}
+\caption{The Feature Cube: Structural Invariants for Primitive Species. \textbf{Assoc}, \textbf{Comm}, and \textbf{Idemp} denote algebraic properties of binary operations; \textbf{Refl}, \textbf{Trans}, and \textbf{Anti} denote properties of binary relations; \textbf{Period} denotes the "Safety Certificate" for totality (circular topology).}
 \label{tab:structural_invariants}
 \resizebox{\textwidth}{!}{%
-\begin{tabular}{llccccccc}
+\begin{tabular}{llcccccccc}
 \hline
-\textbf{Species} & \textbf{Op / Rel} & \textbf{Assoc} & \textbf{Comm} & \textbf{Idemp} & \textbf{Refl} & \textbf{Trans} & \textbf{Anti} & \textbf{Logic} \\ \hline
+\textbf{Species} & \textbf{Op / Rel} & \textbf{Assoc} & \textbf{Comm} & \textbf{Idemp} & \textbf{Period} & \textbf{Refl} & \textbf{Trans} & \textbf{Anti} & \textbf{Logic} \\ \hline
 \rowcolor[HTML]{EFEFEF} 
-\textit{Logical} & \texttt{std::logical\_} & & & & & & & \\
-\texttt{bool}    & \texttt{and / or}   & \checkmark & \checkmark & \checkmark & --- & --- & --- & Class. \\
-\texttt{bool}    & \texttt{equal\_to}  & \checkmark & \checkmark & ---        & \checkmark & \checkmark & \checkmark & Class. \\ \hline
+\textit{Logical} & \texttt{std::logical\_} & & & & & & & & \\
+\texttt{bool}    & \texttt{and / or}   & \checkmark & \checkmark & \checkmark & \textdagger & --- & --- & --- & Class. \\
+\texttt{bool}    & \texttt{equal\_to}  & \checkmark & \checkmark & ---        & ---         & \checkmark & \checkmark & \checkmark & Class. \\ \hline
 \rowcolor[HTML]{EFEFEF} 
-\textit{Integral} & \texttt{std::bit\_} & & & & & & & \\
-\texttt{uint}    & \texttt{and / or}   & \checkmark & \checkmark & \checkmark & --- & --- & --- & Class. \\
-\texttt{uint}    & \texttt{xor}        & \checkmark & \checkmark & ---        & --- & --- & --- & Class. \\ \hline
+\textit{Integral} & \texttt{std::bit\_} & & & & & & & & \\
+\texttt{uint/int} & \texttt{and / or}   & \checkmark & \checkmark & \checkmark & ---         & --- & --- & --- & Class. \\
+\texttt{uint/int} & \texttt{xor}        & \checkmark & \checkmark & ---        & \checkmark  & --- & --- & --- & Class. \\ \hline
 \rowcolor[HTML]{EFEFEF} 
-\textit{Integral} & \texttt{std::arithmetic} & & & & & & & \\
-\texttt{uint/int} & \texttt{plus / mult} & \checkmark & \checkmark & ---        & --- & --- & --- & Class. \\
-\texttt{uint/int} & \texttt{minus}      & ---        & ---        & ---        & --- & --- & --- & Class. \\ \hline
+\textit{Integral} & \texttt{std::arithmetic} & & & & & & & & \\
+\texttt{uint}     & \texttt{plus / mult} & \checkmark & \checkmark & ---        & \checkmark  & --- & --- & --- & Class. \\
+\texttt{int}      & \texttt{plus / mult} & \checkmark & \checkmark & ---        & ---         & --- & --- & --- & Class. \\ \hline
 \rowcolor[HTML]{EFEFEF} 
-\textit{Floating} & \texttt{std::arithmetic} & & & & & & & \\
-\texttt{double}  & \texttt{plus / mult} & \textasteriskcentered & \checkmark & --- & --- & --- & --- & Tern. \\
-\texttt{double}  & \texttt{minus}      & ---        & ---        & ---        & --- & --- & --- & Tern. \\ \hline
-\rowcolor[HTML]{EFEFEF} 
-\textit{Relational} & \texttt{std::relational} & & & & & & & \\
-\texttt{uint/int} & \texttt{less\_equal} & ---        & ---        & \checkmark & \checkmark & \checkmark & \checkmark & Class. \\
-\texttt{double}  & \texttt{less\_equal} & ---        & ---        & \checkmark & \textdagger & \checkmark & \checkmark & Tern. \\ \hline
-\multicolumn{9}{l}{\small \textasteriskcentered \textit{Fails bit-perfect associativity due to rounding error in IEEE 754~\cite{ieee754_2019}.}} \\
-\multicolumn{9}{l}{\small \textdagger \textit{Fails reflexivity (\texttt{NaN <= NaN} is false).}}
+\textit{Floating} & \texttt{std::arithmetic} & & & & & & & & \\
+\texttt{double}  & \texttt{plus / mult} & \textasteriskcentered & \checkmark & --- & --- & --- & --- & --- & Tern. \\ \hline
+\textit{Relational} & \texttt{std::relational} & & & & & & & & \\
+\texttt{uint/int} & \texttt{less\_equal} & ---        & ---        & \checkmark & ---         & \checkmark & \checkmark & \checkmark & Class. \\
+\texttt{double}  & \texttt{less\_equal} & ---        & ---        & \checkmark & ---         & \textdaggerdbl & \checkmark & \checkmark & Tern. \\ \hline
+\multicolumn{10}{l}{\small \textasteriskcentered \textit{Fails bit-perfect associativity due to rounding error in IEEE 754~\cite{ieee754_2019}.}} \\
+\multicolumn{10}{l}{\small \textdagger \textit{Lattice operations are total via idempotency rather than periodicity.}} \\
+\multicolumn{10}{l}{\small \textdaggerdbl \textit{Fails reflexivity (\texttt{NaN <= NaN} is false).}}
 \end{tabular}
 }
 \end{table}
+
 
 \subsubsection{The \texttt{:logic} partition: The Subobject Classifier (\texorpdfstring{$\Omega$}{Omega})}
 
