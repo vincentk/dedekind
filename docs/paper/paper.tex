@@ -575,6 +575,41 @@ static_assert(IsAbelianGroup<unsigned int, std::plus<unsigned int>>);
 static_assert(!IsMagma<int, std::plus<int>>);
 \end{lstlisting}
 
+\subsubsection{The \texttt{:kleisli} and \texttt{:monad} partitions: The \texorpdfstring{$\Omega$}{Omega}-Monad}
+
+While the \texttt{:total} partition defines absolute laws, real-world computation requires a mechanism for handling "effectful" transformations—mappings that may encounter singularities or boundaries.
+Following the construction of Kleisli~\cite{kleisli1965every} and its application to computer science by Moggi~\cite{moggi1991notions}, we implement the \textbf{Kleisli Triple} ($\eta, \gg=$) as the fundamental unit of composition for potential results.
+
+The \texttt{dedekind} library implements this "Pragmatic Rescue" by diverging from textbook endofunctor definitions in favor of \textbf{Kleisli Triples} ($\eta, \gg=$)~\cite{kleisli1965every}. 
+While traditional category theory introduces these concepts in a linear hierarchy—progressing from \textit{Functors} and \textit{Natural Transformations} to \textit{Monads}—the \texttt{dedekind} architecture deliberately inverts this order to accommodate the constraints of the C++ type system.
+
+Since C++ lacks native support for higher-kinded types (HKTs), we utilize \texttt{template template} parameters in conjunction with an "Action-First" bootstrapping strategy. 
+By utilizing Argument-Dependent Lookup (ADL), the \texttt{fmap} functorial mapping is derived as an epi-phenomenon of the underlying monadic "Push." 
+This inversion—deriving the Functor from the Monad—ensures that any species providing a \texttt{bind} operator ($\gg=$) automatically matures into a \texttt{Functor} without the need for manual, intrusive registration. 
+This "Structuralist Hack" allows the library to achieve HKT-like polymorphism while remaining within the zero-overhead requirements of the machine.
+
+
+In the \texttt{:monad} partition, we unify the "Rules of Presence" from the \texttt{:logic} topos with this composition machinery to define the \textbf{$\Omega$-Monad} (or Logic Monad).
+As illustrated in Listing~\ref{lst:logic_monad}, we extract the \texttt{IsPotential} concept to create a structural isomorphism between standard C++ types and the \texttt{dedekind} \texttt{Partial<T>} container.
+This unification ensures that binary absence in \texttt{std::optional} and ternary indeterminacy in the hardware species are handled by the same algebraic highway.
+
+
+\begin{lstlisting}[caption={The $\Omega$-Monad: Structural Parity between Binary and Ternary Presence.}, label={lst:logic_monad}]
+export template <typename R>
+concept IsPotential = requires(R r) {
+    typename R::value_type;
+    { *r } -> std::convertible_to<typename R::value_type&>;
+    { presence_of(r) } -> LogicalValue; // Bridge to Omega
+};
+
+// The Universal Highway: Works for any IsPotential result
+export template <IsPotential M, typename F>
+constexpr auto operator>>=(const M& m, F f) {
+    using L = typename GetLogic<M>::type;
+    if (presence_of(m) != L::True) return empty<M>(presence_of(m));
+    return f(*m);
+}
+\end{lstlisting}
 
 \subsubsection{The \texttt{:partial} partition: The Pragmatic Rescue}
 
@@ -582,22 +617,17 @@ The \texttt{:partial} partition performs the "Categorical Rescue" of species tha
 This stage formalises the transition from the \textit{Platonic} to the \textit{Pragmatic}: the goal is to show that while the machine is "broken," it is \textbf{consistently broken}. 
 Following the informal explorations of the \textit{n-Category Caf\'{e}}~\cite{ncategorycafe} and the subsequent formalisations of the \textit{nLab} community~\cite{nlab_kleisli}, we acknowledge these consistent failures—such as the Lipschitz boundary of signed integers or the truth-holes of IEEE 754—not as errors, but as structured data.
 
-Following topos-theoretic foundations~\cite{mclarty1992toposes}, we treat a partial morphism $f: A \rightharpoonup B$ as a total mapping from a \textit{subobject} $S \hookrightarrow A$, where $S$ is the \textbf{Support} defined by the characteristic function $\chi: A \to \Omega_{K3}$ provided by the \texttt{:logic} partition.
+Following topos-theoretic foundations~\cite{mclarty1992toposes}, we treat a partial morphism $f: A \rightharpoonup B$ as a total mapping from a \textit{subobject} $S \hookrightarrow A$.
+Here, $S$ represents the \textbf{Support} defined by the characteristic function $\chi: A \to \Omega_{K3}$ provided by the \texttt{:logic} partition.
 Within this restricted domain, we can define \textit{locally total} structures, such as \textbf{Partial Groups} or \textbf{Partial Loops}.
 These structures guarantee that the "Laws of Harmony" hold strictly on the support $U = \{a \in A \mid \chi(a) = \top\}$, ensuring that even when navigating the messy reality of hardware, we remain within a rigorous algebraic landscape.
 
-To enable composition, these partial functions are lifted into the \textbf{Kleisli Category} of the \textit{Maybe Monad}~\cite{kleisli1965every}.
-As codified by the \textit{n-Lab} community~\cite{nlab_kleisli}, this category allows us to treat partial computations as regular morphisms by shifting the composition logic into the monad itself.
-The \texttt{dedekind} library implements this "Pragmatic Rescue" by diverging from textbook endofunctor definitions in favor of \textbf{Kleisli Triples} ($\eta, \gg=$). 
-This "Action-First" derivation allows the library to utilize C++ Argument-Dependent Lookup (ADL) to discover the mapping logic of a species at compile-time.
+By reifying the \texttt{Partial<T>} "Rescue Pod" as an inhabitant of the \textbf{$\Omega$-Monad}, the library enables the composition of these partial morphisms via the universal highway established in the \texttt{:monad} partition.
+The bind operator ($\gg=$) acts as the monadic gatekeeper: it consumes the \texttt{Ternary} presence, ensuring that any "Truth-Hole" is propagated through the Kleisli chain.
+This transforms "Consistently Broken" machine behavior into a rigorous, composable algebraic flow, preventing undefined machine behavior while maintaining the structuralist integrity of the transformation pipeline.
 
-By reifying the \textit{Maybe Monad} as the \texttt{Partial<T>} "Rescue Pod," the bind operator ($\gg=$) acts as the monadic gatekeeper. 
-It consumes the \texttt{Ternary} presence from the \texttt{:logic} partition, ensuring that any "Truth-Hole" (such as a $NaN$ or Lipschitz breach) is propagated through the Kleisli chain.
-If an operation encounters a singularity, the entire chain "monadically" transitions to indeterminate, preventing undefined machine behavior while maintaining the structuralist integrity of the transformation pipeline.
-
-\begin{lstlisting}[caption={The Kleisli Lift: Reclaiming the Lipschitz Boundary via Subobject Exclusion.}]
+\begin{lstlisting}[caption={The Kleisli Lift: Reclaiming the Lipschitz Boundary via Subobject Exclusion.}, label={lst:partial_rescue}]
 // The "Rescue": int addition is recognized as a Partial Abelian Group.
-// It is total only on the subobject where overflow is absent.
 static_assert(IsPartialAbelianGroup<int, std::plus<int>>);
 
 // Composition in the Kleisli Category:
@@ -605,6 +635,8 @@ auto f = partial_plus(1, 2);          // Result: 3 (True)
 auto g = partial_plus(f, INT_MAX);    // Result: Unknown (Overflow)
 auto h = partial_plus(g, 1);          // Result: Unknown (Propagation)
 \end{lstlisting}
+
+
 
 \subsubsection{The `:numeric` partition}
 
