@@ -579,25 +579,21 @@ static_assert(!IsMagma<int, std::plus<int>>);
 \subsubsection{The \texttt{:partial} partition: The Pragmatic Rescue}
 
 The \texttt{:partial} partition performs the "Categorical Rescue" of species that failed the strict requirements of the \texttt{:total} domain. 
-This "Rescue Mission" is where we formalise the transition from the \textit{Platonic} to the \textit{Pragmatic}: the goal is to show that while the machine is "broken," it is \textbf{consistently broken}. 
-Following the informal explorations of the \textit{n-Category Caf\'{e}}~\cite{ncategorycafe} and the subsequent formalisations of the \textit{nLab} community~\cite{nlab_kleisli}, we acknowledge these consistent failures as structured data. 
-
-By utilizing the \textbf{Ternary Topos} ($\Omega_{K3}$), the library "clips" the domain of definition to exclude singularities such as $NaN$ and arithmetic overflow. 
-To enable composition, these partial functions are lifted into the \textbf{Kleisli Category} of the \textit{Maybe Monad}~\cite{kleisli1965every}. 
-This "Rescue" ensures that even when we navigate the messy reality of hardware, we remain within a rigorous algebraic landscape, where the "Rules of Thought" are preserved even as the "Laws of Harmony" are relaxed.
-
-This "Rescue Mission" is where we formalise the transition from the \textit{Platonic} to the \textit{Pragmatic}: the goal is to show that while the machine is "broken," it is \textbf{consistently broken}. 
-By acknowledging these consistent failures—such as the Lipschitz boundary of signed integers or the truth-holes of IEEE 754—we can build a \textbf{Kleisli Category} that remains algebraically rigorous despite the physical limitations of the hardware.
+This stage formalises the transition from the \textit{Platonic} to the \textit{Pragmatic}: the goal is to show that while the machine is "broken," it is \textbf{consistently broken}. 
+Following the informal explorations of the \textit{n-Category Caf\'{e}}~\cite{ncategorycafe} and the subsequent formalisations of the \textit{nLab} community~\cite{nlab_kleisli}, we acknowledge these consistent failures—such as the Lipschitz boundary of signed integers or the truth-holes of IEEE 754—not as errors, but as structured data.
 
 Following topos-theoretic foundations~\cite{mclarty1992toposes}, we treat a partial morphism $f: A \rightharpoonup B$ as a total mapping from a \textit{subobject} $S \hookrightarrow A$, where $S$ is the \textbf{Support} defined by the characteristic function $\chi: A \to \Omega_{K3}$ provided by the \texttt{:logic} partition.
-Within this restricted domain, we can define \textit{locally total} structures, such as \textbf{Partial Groups} or \textbf{Partial Loops}. 
-These structures guarantee that the laws of harmony hold strictly on the support $U = \{a \in A \mid \chi(a) = \top\}$. 
+Within this restricted domain, we can define \textit{locally total} structures, such as \textbf{Partial Groups} or \textbf{Partial Loops}.
+These structures guarantee that the "Laws of Harmony" hold strictly on the support $U = \{a \in A \mid \chi(a) = \top\}$, ensuring that even when navigating the messy reality of hardware, we remain within a rigorous algebraic landscape.
 
-To enable composition, these partial functions are lifted into the \textbf{Kleisli Category} of the \textit{Maybe Monad}~\cite{kleisli1965every}. 
-As codified by the \textit{n-Lab} community~\cite{nlab_kleisli}, this category allows us to treat "effectful" or partial computations as regular morphisms by shifting the composition logic into the monad itself. 
-In our implementation, the composition $g \circ f$ automatically propagates the \textbf{Unknown} state: if an operation breaches the Lipschitz boundary or encounters a $NaN$ singularity, the entire chain "monadically" transitions to indeterminate. 
-This prevents the execution of undefined machine behavior while maintaining the structuralist integrity of the transformation pipeline.
+To enable composition, these partial functions are lifted into the \textbf{Kleisli Category} of the \textit{Maybe Monad}~\cite{kleisli1965every}.
+As codified by the \textit{n-Lab} community~\cite{nlab_kleisli}, this category allows us to treat partial computations as regular morphisms by shifting the composition logic into the monad itself.
+The \texttt{dedekind} library implements this "Pragmatic Rescue" by diverging from textbook endofunctor definitions in favor of \textbf{Kleisli Triples} ($\eta, \gg=$). 
+This "Action-First" derivation allows the library to utilize C++ Argument-Dependent Lookup (ADL) to discover the mapping logic of a species at compile-time.
 
+By reifying the \textit{Maybe Monad} as the \texttt{Partial<T>} "Rescue Pod," the bind operator ($\gg=$) acts as the monadic gatekeeper. 
+It consumes the \texttt{Ternary} presence from the \texttt{:logic} partition, ensuring that any "Truth-Hole" (such as a $NaN$ or Lipschitz breach) is propagated through the Kleisli chain.
+If an operation encounters a singularity, the entire chain "monadically" transitions to indeterminate, preventing undefined machine behavior while maintaining the structuralist integrity of the transformation pipeline.
 
 \begin{lstlisting}[caption={The Kleisli Lift: Reclaiming the Lipschitz Boundary via Subobject Exclusion.}]
 // The "Rescue": int addition is recognized as a Partial Abelian Group.

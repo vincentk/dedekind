@@ -24,18 +24,35 @@ export module dedekind.category:partial;
 
 import :logic;    // Provides LogicalSpecies, TernaryLogic, Ternary
 import :species;  // Provides Morphism<A, B, Func>
+import :kleisli;
 
 namespace dedekind::category {
 
 /**
  * @concept IsPotential
- * @brief A result R governed by Logic L containing species T.
+ * @brief Structural isomorphism for "Maybe-like" species.
+ *
+ * Any type that provides a value and a way to check if that
+ * value is 'legitimate' (Total) satisfies this concept.
  */
-export template <typename R, typename T, typename L>
-concept IsPotential = LogicalSpecies<L> && requires(R r) {
-  { r.presence() } -> std::same_as<typename L::type>;
-  { *r } -> std::convertible_to<T>;
+export template <typename R>
+concept IsPotential = requires(R r) {
+  typename R::value_type;
+  { *r } -> std::convertible_to<typename R::value_type&>;
+  { presence_of(r) } -> LogicalValue;  // Open-ended bridge
 };
+
+// 1. Align std::optional (Classical/Binary)
+template <typename T>
+constexpr bool presence_of(const std::optional<T>& opt) {
+  return opt.has_value();
+}
+
+// 2. Align Partial (Ternary/Ω)
+template <typename T>
+constexpr Ternary presence_of(const Partial<T>& p) {
+  return p.status;
+}
 
 /** @brief A Logic-Aware Result container for Ternary outcomes. */
 template <typename T>
@@ -124,5 +141,47 @@ static_assert(IsPartialMonoid<int, SafeAddTransform<int>>);
 
 // 3. Division fails Semigroup maturation (Not associative).
 static_assert(!IsPartialSemigroup<int, HonestDivTransform<int>>);
+
+/**
+ * @section The_Rescue_Pod
+ * @brief The Kleisli Context for "Consistently Broken" Species.
+ */
+export template <typename T>
+struct Partial {
+  using value_type = T;
+  T value;
+  Ternary presence;  // Our Ω from :logic
+
+  // Equality: Only true if values match AND both are present.
+  constexpr bool operator==(const Partial& other) const {
+    return (presence == Ternary::True && other.presence == Ternary::True)
+               ? (value == other.value)
+               : (presence == other.presence);
+  }
+};
+
+/** @section Kleisli_Triple: η and >>= */
+
+// η (Unit): Lifting a value into the Partial context.
+export template <typename T>
+struct η_impl<Partial, T> {
+  constexpr Partial<T> operator()(T x) const { return {x, Ternary::True}; }
+};
+
+// >>= (Bind): The monadic gatekeeper for Kleisli composition.
+export template <typename T, typename F>
+constexpr auto operator>>=(const Partial<T>& m, F f) {
+  using U_partial = std::invoke_result_t<F, T>;
+  using U = typename U_partial::value_type;
+
+  // The "Honest Propagation" logic:
+  // If the input is already indeterminate, the output must be as well.
+  if (m.presence != Ternary::True) {
+    return U_partial{U{}, m.presence};
+  }
+
+  // Otherwise, execute the morphism (which may return Unknown itself).
+  return f(m.value);
+}
 
 }  // namespace dedekind::category

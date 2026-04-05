@@ -176,6 +176,20 @@ struct GetLogic<T> {
   using type = typename T::logic_species;
 };
 
+/**
+ * @concept LogicalValue
+ * @brief Any type that serves as the Omega (Ω) for a Logical Species.
+ * This is open-ended: if you register a FuzzyLogic, its 'type'
+ * automatically becomes a LogicalValue.
+ */
+export template <typename T>
+concept LogicalValue = requires {
+  // We check if there exists a Logic Species L that uses T as its
+  // representation.
+  typename GetLogic<T>::type;
+  requires LogicalSpecies<typename GetLogic<T>::type>;
+};
+
 /** @section Cardinality_Ontology_Tokens */
 export enum class CardinalityTag { Finite, Countable, Continuum };
 
