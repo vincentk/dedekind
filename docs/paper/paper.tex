@@ -551,7 +551,12 @@ auto h = partial_plus(g, 1);          // Result: Unknown (Propagation)
 
 
 
-\subsubsection{The `:numeric` partition}
+\subsubsection{The \texttt{:numeric} partition: The Material Landing}
+
+The \texttt{:numeric} partition represents the final ``landing'' of the abstract theory back onto the hardware substrate. While the \texttt{:partial} partition establishes the general algebraic laws for inconsistent structures, the \texttt{:numeric} partition provides the specific mapping for IEEE 754 floating-point types and bounded integers. 
+
+\textit{Guided Remark:} Focus on how the library utilizes the \texttt{Partial<T>} rescue pod to formally model the non-associative nature of \texttt{double} and the non-reflexive behavior of \texttt{NaN}. This section should document the "Safety Certificates" for specific machine species, explaining how the \texttt{dedekind} dispatcher uses these certificates to enable or disable algebraic optimizations. By anchoring these hardware-specific behaviors as first-class inhabitants of a partial monoid, we ensure that the ``messy reality'' of rounding errors and overflows is not an exception to the theory, but a verified and traceable component of the categorical flow.
+
 
 Finally, we encounter the "Curious" case of \textit{Numerical Species} (IEEE 754). These types are categories where the subobject classifier $\Omega$ is internalized within the species itself (\texttt{NaN}, \texttt{Inf}). While these structures appear to be total morphisms $\mu: \mathbb{R}_{f} \times \mathbb{R}_{f} \to \mathbb{R}_{f}$ in their signature, they are semantically partial. Specifically, they fail the \textbf{Equalizer} conditions required for associativity; the rounding error ensures that $(a+b)+c$ and $a+(b+c)$ are not generally isomorphic. This progression—from the absolute (\textit{Total}), through the filtered (\textit{Partial}), to the exceptional (\textit{Numerical})—allows us to build a "strictly speaking" true ontology that respects both categorical rigor and machine-level reality.
 
