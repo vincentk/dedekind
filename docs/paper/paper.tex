@@ -448,7 +448,7 @@ static_assert(IsArrow<decltype(logic_gate), int>,
 
 The \texttt{:mereology} partition introduces the formal signature of parthood as the foundational structural primitive of the library. Following the mereological grounding of Stanisław Leśniewski, we treat parthood not as naive set membership, but as a primitive binary relation ($\leq$) that governs the structural identity of an entity. **If the Morphism is the atom of composability, then Mereology is the atom of hierarchy**, providing the skeletal vocabulary required for any downstream category to reason about sub-structures.
 
-By utilizing the signature discovery established in the previous section, the library reified parthood as a \textbf{Morphic Invariant}. A relation $R: A \times A \to \Omega$ is verified as a valid mereological inhabitant only if it satisfies the axioms of a \textbf{Partial Order}. As shown in Listing~\ref{lst:mereology_concept}, the \texttt{IsPartRelation} concept acts as a formal verification gate, enforcing reflexivity ($a \leq a$), transitivity ($a \leq b \land b \leq c \implies a \leq c$), and antisymmetry ($a \leq b \land b \leq a \implies a = b$). 
+By utilizing the signature discovery established in the previous section, the library reified parthood as a \textbf{Morphic Constraint}. A relation $R: A \times A \to \Omega$ is verified as a valid mereological inhabitant only if it satisfies the axioms of a \textbf{Partial Order}. As shown in Listing~\ref{lst:mereology_concept}, the \texttt{IsPartRelation} concept acts as a formal verification gate, enforcing reflexivity ($a \leq a$), transitivity ($a \leq b \land b \leq c \implies a \leq c$), and antisymmetry ($a \leq b \land b \leq a \implies a = b$). 
 
 Crucially, the library does not yet bind these axioms to specific hardware operators like \texttt{std::less\_equal}. This abstraction allows the \texttt{:logic} partition (Section 3.1.4) to address the "Reflexivity Failure" observed in IEEE 754 floating-point species, where the singularity \texttt{NaN <= NaN} evaluates to \texttt{false}. By isolating these axioms in Level 0, we ensure that the subsequent synthesis of Set Theory in Level 4 inherits a verified, algebraic definition of "part-of" relationships.
 
@@ -460,7 +460,7 @@ Crucially, the library does not yet bind these axioms to specific hardware opera
 template <typename R, typename T>
 concept IsPartRelation = IsArrow<R, T, T, bool> && 
   requires(R rel, T a, T b, T c) {
-    // 1. Reflexivity: Pars partos est pars totius.
+    // 1. Reflexivity: Pars partis est pars totius.
     static_assert(rel(a, a), "Reflexivity failed.");
 
     // 2. Transitivity: Hierarchical propagation.
@@ -511,6 +511,7 @@ $A$ & $B$ & $A \land B$ & $A \lor B$ & $\neg A$ \\ \hline
 -1 & 1  & -1 & 1  & 1 \\
 0  & 0  & 0  & 0  & 0 \\
 0  & 1  & 0  & 1  & 0 \\
+1  & 0  & 0  & 1  & -1 \\ % Added for clarity
 1  & 1  & 1  & 1  & -1 \\ \hline
 \end{tabular}
 \end{minipage}
