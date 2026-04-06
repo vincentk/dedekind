@@ -235,7 +235,7 @@ In this approach, the structure of the paper is intended to be isomorphic to the
 By the time the reader reaches the final sections, the library's 'textbook' derivation will have been fully materialized as a verified C++ library object traversed by the underlying hardware.
 
 
-\subsection{\texttt{category} Module}
+\subsection{Level 0: The Algebraic Atlas (\texttt{dedekind.category})}
 
 The methodology of \texttt{dedekind} is predicated on the translation of formal mathematical structures into a stratified registry of C++23 modules. 
 This stratification allows for a "bottom-up" synthesis of complex mathematical objects, where each level serves as a verified foundation for the next. 
@@ -424,6 +424,12 @@ struct SubobjectClassifier {
 };
 \end{lstlisting}
 
+\subsubsection{The \texttt{:morphisms} partition: The Skeletal Arrow}
+
+The \texttt{:morphisms} partition establishes the primary inhabitant of the \texttt{dedekind} topos: the \textbf{Arrow} (or Morphism). While traditional C++ development treats functions as opaque executable blocks, this partition reifies them as formal mappings $f: A \to B$ equipped with domain and codomain metadata.
+
+\textit{Guided Remark:} Focus on the definition of the \texttt{Morphism} structure and the \texttt{IsArrow} concept. This section should explain how we utilize C++23 \texttt{std::invoke\_result} to perform "Signature Discovery," allowing the library to automatically categorize raw lambdas and function pointers. By establishing this skeletal signature early, we provide the "connective tissue" for the algebraic structures in Level 1 and the functorial lift in Level 2. Document how the \texttt{static\_assert} checks in this partition verify that a mapping is well-formed before it can be used as a "Taxonomic Brick" in the broader ontology.
+
 \subsubsection{The \texttt{:total} partition: The Laws of Harmony}
 
 In the "Platonic" domain of our ontology, we define the category $\mathcal{C}$ of \textbf{Total Species}, where algebraic structures are governed by a collection of total morphisms $\mu: X \times X \to X$. 
@@ -469,25 +475,25 @@ static_assert(IsAbelianGroup<unsigned int, std::plus<unsigned int>>);
 static_assert(!IsMagma<int, std::plus<int>>);
 \end{lstlisting}
 
-\subsubsection{The \texttt{:kleisli} and \texttt{:monad} partitions: The \texorpdfstring{$\Omega$}{Omega}-Monad}
+\subsubsection{The \texttt{:functor} partition: Mappings between Categories}
 
-While the \texttt{:total} partition defines absolute laws, real-world computation requires a mechanism for handling "effectful" transformations—mappings that encounter singularities or boundaries. 
-Following the construction of Kleisli~\cite{kleisli1965every} and its application to computer science by Moggi~\cite{moggi1991notions}, we implement the \textbf{Kleisli Triple} ($\eta, \gg=$) as the fundamental unit of composition for potential results. 
-In the \texttt{:monad} partition, we unify the "Rules of Presence" from the \texttt{:logic} topos with this machinery to define the \textbf{$\Omega$-Monad} (or Logic Monad). 
+Following the fractal progression of the library, the \texttt{:functor} partition reifies the algebraic laws of Level 1 to act upon the categories themselves. A Functor is treated not as a container, but as a structural morphism $F: \mathcal{C} \to \mathcal{D}$ that preserves the composition of arrows and identity mappings. 
 
-As illustrated in Listing~\ref{lst:logic_monad}, we extract the \texttt{IsPotential} concept to create a structural isomorphism between standard C++ types and the \texttt{dedekind} \texttt{Partial<T>} container. 
-While contemporary functional C++ literature—most notably \v{C}uki\'{e}~\cite{cukic2018functional}—treats monadic composition as a nominal feature implemented via member functions (e.g., \texttt{.and\_then()}), \texttt{dedekind} utilizes Argument-Dependent Lookup (ADL) to enable a non-intrusive, structuralist "Rescue" of primitive machine types.
+\textit{Guided Remark:} Document the implementation of \texttt{fmap} as a high-level dispatcher. This section should highlight how the \texttt{dedekind} dispatcher utilizes C++23 template-template parameters to ensure that functorial mapping is a zero-overhead operation, effectively "shielding" the user from the underlying machine representation while maintaining categorical rigor.
 
-\paragraph{The Action-First Bootstrapping Strategy.}
-In textbook Category Theory, a Monad is traditionally defined as a \textit{Monoid in the category of Endofunctors}. 
-However, the structural implementation of this definition in C++ faces significant language constraints, specifically the inability to partially specialize function templates (e.g., \texttt{fmap<F>}) and the failure of explicit name-lookups to trigger ADL. 
-To resolve this circular dependency, the \texttt{dedekind} architecture deliberately inverts the textbook hierarchy ($Functor \to Monad$) to accommodate the lack of native higher-kinded types (HKTs).
+\subsubsection{The \texttt{:natural} partition: Natural Transformations}
 
-By utilizing \texttt{template template} parameters in conjunction with an "Action-First" bootstrapping strategy, the \texttt{fmap} functorial mapping is derived as an \textit{epi-phenomenon} of the underlying monadic "Push" ($m \gg= \eta \circ f$). 
-By defining Monads as \textit{Extension Systems} (Kleisli Triples), we utilize operator overloading on concrete objects to trigger ADL at the call site. 
-This ensures that any species providing a \textit{bind} operator ($\gg=$) automatically matures into a \textit{Functor} without intrusive registration, achieving HKT-like polymorphism through what we term \textit{Synthetic Inference}.
+To complete the Level 2 bridge, the \texttt{:natural} partition introduces Natural Transformations—morphisms between functors. This provides the mathematical basis for "Component-wise" transformations that remain invariant under functorial mapping, satisfying the naturality square: $\alpha_Y \circ F(f) = G(f) \circ \alpha_X$.
 
-\begin{lstlisting}[caption={The $\Omega$-Monad: Structural Parity and the Universal Highway.}, label={lst:logic_monad}]
+\textit{Guided Remark:} This partition is a technical prerequisite for the \texttt{:monad} partition, as it provides the formal definition for the unit ($\eta$) and multiplication ($\mu$) transformations. Document how \texttt{dedekind} utilizes C++23 Concepts to verify the "naturality" of a transformation at compile-time, ensuring that structural mappings are consistent across different functorial contexts.
+
+
+\subsubsection{The \texttt{:monad} partition: The \texorpdfstring{$\Omega$}{Omega}-Monad}
+While Level 1 defines absolute laws, real-world computation requires a mechanism for handling ``effectful'' transformations. Following the constructions of Kleisli~\cite{kleisli1965every} and Moggi~\cite{moggi1991notions}, we implement the \textbf{Kleisli Triple} $(\eta, \gg=)$ as the fundamental unit of composition. In the \texttt{:monad} partition, we unify the ``Rules of Presence'' from the \texttt{:logic} topos with this machinery to define the \textbf{$\Omega$-Monad}.
+
+As illustrated in Listing~\ref{lst:logic_monad}, we extract the \texttt{IsPotential} concept to create a structural isomorphism between standard C++ types and the \texttt{dedekind} \texttt{Partial<T>} container. To resolve the lack of native higher-kinded types (HKTs) in C++, we utilize an ``Action-First'' bootstrapping strategy: the \texttt{fmap} functorial mapping is derived as an \emph{epi-phenomenon} of the underlying monadic ``Push'' ($m \gg= \eta \circ f$). This ensures that any species providing a \emph{bind} operator ($\gg=$) automatically matures into a \textit{Functor} through what we term \textit{Synthetic Inference}.
+
+\begin{lstlisting}[language=C++, caption={The $\Omega$-Monad: Structural Parity and the Universal Highway.}, label={lst:logic_monad}]
 export template <typename R>
 concept IsPotential = requires(R r) {
     typename R::value_type;
@@ -504,31 +510,19 @@ constexpr auto operator>>=(const M& m, F f) {
 }
 \end{lstlisting}
 
-The \texttt{fmap} dispatcher serves as the implementation of this strategy. It automates the derivation of functorial mappings from the underlying monadic "Push" or comonadic "Pull."
+\subsubsection{The \texttt{:kleisli} partition: The Universal Highway}
+A core innovation of the Kleisli bridge is the introduction of the \textbf{``Highway'' notation} (\texttt{operator>>}) for Kleisli composition. Grounded in the functional tradition of the ``Fish Operator'' (\texttt{>=>}) \cite{jones2003haskell}, \texttt{dedekind} adapts this to the C++ context by leveraging the left-associativity and higher precedence of \texttt{operator>>} over the standard monadic bind (\texttt{operator>>=}). 
 
-\begin{lstlisting}[caption={The Unified Highway Bridge (fmap derivation)}]
-export template <template <typename...> typename F, typename Arrow,
-                 typename T = typename Arrow::Domain,
-                 typename U = typename Arrow::Codomain>
-  requires IsArrow<Arrow, T, U>
-constexpr IsArrow<F<T>, F<U>> auto fmap(Arrow f) {
-  if constexpr (std::same_as<F<T>, T>) {
-    return f; // Identity Functor
-  } else if constexpr (IsKleisliExtension<F, T, U>) {
-    /** @theorem fmap(f) = m >>= (eta o f) */
-    return arrow<F<T>, F<U>>([f](const F<T>& m) {
-      return m >>= [f](const T& x) { return into<F, U>(f(x)); };
-    }); 
-  } else if constexpr (IsCoKleisliExtension<F, T, U>) {
-    /** @theorem fmap(f) = w <<= (f o epsilon) */
-    return arrow<F<T>, F<U>>([f](const F<T>& w) { 
-      return w <<= [f](const F<T>& ctx) { return f(extract<F, T>(ctx)); };
-    });
-  } else {
-    static_assert(sizeof(T) == 0, "Ontology Error: Species lacks highway structure.");
-  }
-}   
+As advocated by Milewski \cite{milewski2019category}, viewing monads as a composition engine for ``embellished functions'' allows the compiler to treat the entire Highway as a single, verifiable unit of transformation. Within the verified module graph, the LLVM backend can perform \emph{structural pruning}: if a total function is composed with a partial operation statically known to return an \texttt{Unknown} or \texttt{NaN} state, the compiler can identify the unreachable path and optimize the Highway into a branch-free instruction sequence.
+
+\begin{lstlisting}[language=C++, caption={The Highway: Kleisli composition as a first-class citizen.}]
+// Equivalent to Haskell's (f >=> g)
+auto highway = morphism_f >> morphism_g; 
+
+// Composition is verified against the Monad axioms
+static_assert(IsKleisliArrow<decltype(highway)>);
 \end{lstlisting}
+
 
 \subsubsection{The \texttt{:partial} partition: The Pragmatic Rescue}
 
