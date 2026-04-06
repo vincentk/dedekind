@@ -1,69 +1,66 @@
 /**
- * @file category.cppm
- * @brief Categorical Foundations for C++23.
+ * @file dedekind/category.cppm
+ * @module dedekind.category
+ * @brief The Universal Category Theory Substrate.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
  * @section Implementation_Philosophy
- * This module implements a structuralist approach to set theory based on the
- * Elementary Theory of the Category of Sets (ETCS). We use C++23 modules and
- * concepts to treat mathematical objects as positions within a system of
- * relations (morphisms) rather than traditional object-oriented hierarchies.
+ * "La structure d’une chose n’est nullement une chose qu’on puisse « saisir » 
+ *  si l’on n’est pas d’abord prêt à s’y fondre."
+ *  (The structure of a thing is by no means something that one can "grasp" 
+ *  if one is not first prepared to melt into it.)
+ *  — Alexander Grothendieck, Récoltes et Semailles.
+ * 
+ * This module implements a structuralist approach based on the Elementary 
+ * Theory of the Category of Sets (ETCS). We use C++23 modules and concepts 
+ * to treat mathematical objects as positions within a system of relations 
+ * (morphisms) rather than traditional object-oriented hierarchies.
  *
- * By lifting these structural invariants into the type system, we aim to bridge
- * the performance gap between high-level symbolic reasoning and low-level
- * machine execution, allowing the compiler to optimize code based on
- * mathematical laws (e.g., algebraic pruning of contradictory predicates).
+ * @section Fractal_Build_Order
+ * To manage the "template tax" and ensure ontological decidability, the 
+ * implementation follows a fractal progression across a Directed Acyclic 
+ * Graph (DAG) of module partitions:
  *
- * @section Module_Hierarchy
- * To manage compile-time overhead ("template tax"), the implementation is
- * stratified into a Directed Acyclic Graph (DAG) of module partitions:
+ * 1.  ATOMS (:species, :logic, :morphisms): Reification of machine primitives 
+ *     and the Subobject Classifier (Ω).
+ * 2.  IDEALS (:total, :algebra_total): Defining the pure laws of total algebra.
+ * 3.  BRIDGE (:functorial, :kleisli): Reifying algebraic laws as functors to 
+ *     enable the Monadic Kleisli lift.
+ * 4.  REALITY (:partial, :algebra_partial, :numeric): Reconciling the theory 
+ *     with hardware-level indeterminacy and IEEE 754.
+ * 5.  SIGNATURES (:mereology, :etcs): Establishing the skeletal vocabulary 
+ *     for the high-level ontologies of Parthood and Sets.
  *
- * - **Level -1: Base Primitives** (\ref logic, \ref species)
- *   Foundational types including the subobject classifier (Ω) and
- *   machine-level representations of mathematical species.
- *
- * - **Level 0a: Functorial Mappings** (\ref morphisms, \ref functorial, \ref
- * kleisli) The "Highway System" for data flow. Implements the mechanics of
- *   morphism transformation via Functors and Kleisli triples.
- *
- * - **Level 0b: Higher Category Theory** (\ref cartesian, \ref posetal)
- *   Cartesian Closed Categories (CCC) providing the logic for products,
- *   exponentials (function spaces), and order-theoretic relations.
- *
- * - **Level 0c: Set-Theoretic Axioms** (\ref etcs)
- *   A formal registry mapping ETCS axioms to C++ language features,
- *   enabling compile-time verification of algebraic laws.
- *
- * @see Wikipedia: [ETCS](https://en.wikipedia.org),
- *      [Cartesian Closed Category](https://en.wikipedia.org),
- *      [Topos Theory](https://en.wikipedia.org)
  * @see Lawvere, F.W. (1964) "An Elementary Theory of the Category of Sets"
  * @see McLarty, C. (1993) "Numbers can be just what they have to"
  */
 
 export module dedekind.category;
 
-/** @section Level_-1: The Bricks and Internal Language */
-export import :species;  // Reified Machine Primitives
-export import :logic;    // The Subobject Classifier (Ω)
+// Level 0: The Taxonomic Bricks (Atoms)
+export import :species;    // Machine Atoms (int, double, bool)
+export import :logic;      // The Subobject Classifier (Omega)
+export import :morphisms;  // The Base Arrow Signature (f: A -> B)
 
-/** @section Level_0a: The Mapping Engine */
-// export import :morphisms;   // Morphisms
-// export import :partial;     // Functors and Natural Transformations
-// export import :algebra;     // Functors and Natural Transformations
-// export import :functorial;  // Natural Transformations
-// export import :kleisli;     // The Algebra of Contextual Composition
-// export import :actions;     // The Action-First Bootstrapping of Monads and
-//  Comonads
-// export import :limits;  // The ETCS Characteristic Morphism
+// Level 1: The Ideal (Total)
+export import :total;      // Total Morphisms and Endomorphisms
+export import :algebra_total; // Monoids, Rigs, Semirings on Atoms
 
-/** @section Level_0b: The Higher Structures (The Universe Laws) */
-// export import :cartesian;  // Finite Products, Terminal Objects, and
-//  Exponentials
-// export import :posetal;    // Order-theoretic Categories (A ≤ B as a
-// Morphism) export import :small;      // Enumerated and Finite Categories
+// Level 2: The Bridge (Reification)
+export import :functorial; // Functors and Natural Transformations
+export import :kleisli;    // The Monadic Lifting Bridge (Kleisli Category)
 
-/** @section Level_0c: The Axiomatic Registry */
-// export import :etcs;  // Elementary Theory of the Category of Sets
+// Level 3: The Reality (Partial/Numeric)
+export import :partial;    // Partial Functions and Algebras
+export import :algebra_partial; // Monoids/Rigs on Lifted Types
+export import :numeric;    // Reconciling Algebra with IEEE 754/Overflows
+
+// Level 4: The Skeletal Signatures
+export import :mereology;  // Parthood as a Sub-structural Relation
+export import :etcs;       // The Elementary Theory of the Category of Sets
+
+namespace dedekind::category {
+    // Top-level category-theoretic aliases and universal compositions.
+}
