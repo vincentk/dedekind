@@ -540,13 +540,73 @@ static constexpr Omega evaluate_arithmetic(T a, T b, Op op) {
 
 
 
-\subsubsection{Partial Orders and Posets (\texttt{:posetal})}
-The \texttt{:posetal} partition establishes the $(\leq)$ relation as a structural primitive. Following Pierce, we treat Posets as categories where there is at most one morphism between any two objects. This provides the order-theoretic foundation required for the Lattices in \texttt{:logic} and the parthood axioms in \texttt{:mereology}.
+\subsubsection{Posetal Categories (\texttt{:posetal})}
 
+The \texttt{:posetal} partition matures the abstract parthood defined in \texttt{:mereology} into a formal \textbf{Posetal Category}. It is critical to note that while traditional mathematics defines a Poset over a \textit{set}, the \texttt{dedekind} build graph establishes these relations at Level 0—before the \texttt{:etcs} partition (Section 2.3.1) provides the set-theoretic axioms. Consequently, we treat posetal structures not as collections of elements, but as \textbf{Skeletal Categories} where, for any two objects $A$ and $B$, there exists \textit{at most one} morphism $f: A \to B$.
+
+In this skeletal framework, the existence of a unique arrow is governed by the parthood relation $(\leq)$ as evaluated by the chosen Subobject Classifier $\Omega$. By anchoring these ``Skeletal Orders'' early, we provide the order-theoretic foundation required for the Lattices in Level 1 and the Dedekind-completeness proofs in Level 4. The \texttt{IsPosetal} concept (Listing~\ref{lst:posetal_concept}) verifies that the relation is decidable within the species' specific logic, transforming a raw type into a structured coordinate system.
+
+\begin{lstlisting}[language=C++, caption={The Posetal Category: Orders as Unique Morphisms.}, label={lst:posetal_concept}]
+/** 
+ * @brief The Posetal Concept: A Skeletal Category.
+ * @tparam T The Species (the objects of the category).
+ * @tparam Rel The Partial Order (the unique morphisms).
+ */
+template <typename T, typename Rel>
+concept IsPosetal = IsPartRelation<Rel, T> && 
+  requires(Rel rel, T a, T b) {
+    // The relation must return a value from the Species' Topos Omega
+    { rel(a, b) } -> std::same_as<typename Classifier<T>::type>;
+  };
+
+// Verification: Standard integers under Classical Logic form a Posetal structure.
+static_assert(IsPosetal<T, std::less_equal<int>>, 
+              "Verified: Integrals form a valid Posetal Category.");
+
+// Structural Pruning: The compiler resolves categorical transitivity.
+template <typename T, typename Rel>
+requires IsPosetal<T, Rel>
+constexpr auto check_chain(T a, T b, T c) {
+    // If the arrows A->B and B->C exist...
+    if constexpr (Rel{}(a, b) && Rel{}(b, c)) {
+        // ...the arrow A->C is a categorical necessity.
+        static_assert(Rel{}(a, c), "Categorical Transitivity Violation!");
+        return true;
+    }
+    return false;
+}
+\end{lstlisting}
 
 \subsubsection{Small Categories (\texttt{:small})}
 
-TBD.
+The \texttt{:small} partition formalises the transition from relational parthood to the general \textbf{Small Category}. While a \textit{Posetal Category} (Section 2.2.5) restricts the morphism count between objects to at most one, the \texttt{IsSmallCategory} concept removes this constraint, reifying the axioms of **Categorical Composition** and **Identity**. In the \texttt{dedekind} ontology, a small category is treated as a finite registry of types and arrows that are visible to the compiler's proof-search engine.
+
+By anchoring these axioms in Level 0, we provide the skeletal structure required for the \textit{Functors} in Level 2. Crucially, the library enforces that for every object $X$ in the category, there exists an identity morphism $id_X$ and that the composition of arrows $f: A \to B$ and $g: B \to C$ is associative. As shown in Listing~\ref{lst:small_category}, this allows the compiler to verify that a transformation pipeline is not merely a sequence of function calls, but a mathematically valid path through the species' graph.
+
+\begin{lstlisting}[language=C++, caption={The Small Category: Composition and Identity.}, label={lst:small_category}]
+/** 
+ * @brief The Small Category Concept: Composition and Identity laws.
+ * @tparam Cat The Category registry.
+ */
+template <typename Cat>
+concept IsSmallCategory = requires {
+    // 1. Identity: Every object X must have an identity arrow id_X.
+    requires requires(typename Cat::Object X) {
+        { Cat::identity(X) } -> IsArrow<typename Cat::Object, typename Cat::Object>;
+    };
+
+    // 2. Composition: f: A -> B and g: B -> C must compose to h: A -> C.
+    requires requires(typename Cat::Arrow f, typename Cat::Arrow g) {
+        requires std::same_as<typename SpeciesTraits<f>::Codomain, 
+                             typename SpeciesTraits<g>::Domain>;
+        { Cat::compose(g, f) } -> IsArrow;
+    };
+};
+
+// SANITY CHECK: The 'Atomic' category of C++ types satisfies Smallness.
+static_assert(IsSmallCategory<CPlusPlusTypeCategory>);
+\end{lstlisting}
+
 
 \subsubsection{Universal Products and Coproducts (\texttt{:cartesian})}
 
