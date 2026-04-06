@@ -42,13 +42,17 @@ export module dedekind.category;
 // Level 0: The Taxonomic Bricks (Atoms)
 export import :species;    // Machine Atoms (int, double, bool)
 export import :logic;      // The Subobject Classifier (Omega)
-export import :morphisms;  // The Base Arrow Signature (f: A -> B)
+export import :posetal;    // Partial Orders (Pre-requisite for Lattices/Mereology)
+export import :morphism;  // The Base Arrow Signature (f: A -> B)
+export import :small;      // Small Categories (Objects + Arrows)
 export import :cartesian;  // Products/Coproducts (Binary)
 export import :limit;     // Initial/Terminal (Empty)
+export import :pullback;   // Universal Constructions (Equalizers/Intersections)
 
 // Level 1: The Ideal (Total)
 export import :total;      // Total Morphisms and Endomorphisms
 export import :algebra_total; // Monoids, Rigs, Semirings on Atoms
+export import :actions;    // Monoid Actions / Modules (Semi-Modules)
 
 // Level 2: The Bridge (Reification)
 export import :functor;    // Mappings between categories

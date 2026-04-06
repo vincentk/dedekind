@@ -361,6 +361,10 @@ static constexpr Omega evaluate_arithmetic(T a, T b, Op op) {
 }
 \end{lstlisting}
 
+\subsubsection{Partial Orders and Posets (\texttt{:posetal})}
+The \texttt{:posetal} partition establishes the $(\leq)$ relation as a structural primitive. Following Pierce, we treat Posets as categories where there is at most one morphism between any two objects. This provides the order-theoretic foundation required for the Lattices in \texttt{:logic} and the parthood axioms in \texttt{:mereology}.
+
+
 \subsubsection{The \texttt{:morphisms} partition: The Skeletal Arrow}
 
 The \texttt{:morphisms} partition establishes the primary inhabitant of the \texttt{dedekind} topos: the \textbf{Arrow} (or Morphism). While traditional C++ development treats functions as opaque, executable blocks, this partition reifies them as formal mappings $f: A \to B$ equipped with domain and codomain metadata. By elevating the function object into a structural entity, we move from the procedural "how" to the categorical "what," enabling the library to reason about the composition and validity of transformations at compile-time.
@@ -418,6 +422,10 @@ using Zero = std::nullptr_t; // Or a dedicated empty type
 static_assert(IsInitialObject<Zero>);
 \end{lstlisting}
 
+\subsubsection{Universal Constructions and Pullbacks (\texttt{:pullback})}
+To support relational reasoning and intersections, the \texttt{:pullback} partition introduces the universal property of the pullback. As noted in Pierce, pullbacks are the categorical tool for handling constraints and fiber products. By reifying the pullback, the library enables the formal definition of \textbf{Equalizers}, which are essential for identifying the rounding-error singularities in the \texttt{:numeric} partition.
+
+
 \subsubsection{The \texttt{:total} partition: The Property of Totality}
 
 Before algebraic structures can be synthesized, the \texttt{:total} partition formalizes the property of \emph{Morphic Totality}. In the ``Platonic'' domain of our ontology, we define the category $\mathcal{C}$ of \textbf{Total Species}, where every morphism $f: A \to B$ is verified to be defined across its entire domain. Following the \textit{Polish School of Logic}~\cite{ajdukiewicz1985jezyk}, this totality is treated as an absolute invariant. By establishing the signature of total endomorphisms ($\mu: X \times X \to X$), we provide the skeletal requirement for the harmonic laws that follow. This approach aligns with the \textit{Elementary Theory of the Category of Sets} (ETCS) as proposed by Lawvere~\cite{lawvere1964etcs, lawvere2005elementary}, where types are defined by their morphisms rather than their internal elements~\cite{mclarty1993numbers}.
@@ -461,6 +469,9 @@ static_assert(IsAbelianGroup<unsigned int, std::plus<unsigned int>>);
 // Closure fails at the Lipschitz boundary (Overflow).
 static_assert(!IsMagma<int, std::plus<int>>);
 \end{lstlisting}
+
+\subsubsection{Monoid Actions and Modules (\texttt{:actions})}
+The \texttt{:actions} partition materializes the concept of a Species being acted upon by an Algebraic Structure. This partition defines the \texttt{IsSemiModule} and \texttt{IsModule} concepts, where a Monoid (from \texttt{:algebra_total}) defines a transformation rule over a target Species. This represents the transition from internal algebraic laws to external structural influences.
 
 
 \subsubsection{The \texttt{:functor} partition: Mappings between Categories}
