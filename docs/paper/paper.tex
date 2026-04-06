@@ -668,8 +668,46 @@ using Zero = std::nullptr_t; // Or a dedicated empty type
 static_assert(IsInitialObject<Zero>);
 \end{lstlisting}
 
+\subsubsection{Boundary Objects (\texttt{:limit})}
+
+The \texttt{:limit} partition defines the logical boundaries of the category: the \textbf{Initial} ($0$) and \textbf{Terminal} ($1$) objects. Following the structuralist approach advocated by Lawvere~\cite{lawvere1964etcs}, these are defined not by their internal contents, but by the existence of unique morphisms to or from these boundaries. In the C++23 context, we reify the Terminal object as \texttt{std::monostate} (or a unit type), representing a state of pure existence without information.
+
+This abstraction allows for the formal definition of ``elements'' as morphisms from the terminal object ($1 \to X$). In \texttt{dedekind}, a constant value is not a static literal, but a \textit{global element}—a mapping that selects a specific inhabitant of a species. Dually, the Initial object ($0$) represents the absolute annihilator; a morphism from the initial object $0 \to X$ is the categorical equivalent of an unreachable code path. By anchoring these boundaries early in the build graph, we provide the formal basis for the \texttt{:etcs} partition to reason about set membership as a structural relation.
+
+\begin{lstlisting}[language=C++, caption={The Boundary Objects: Reifying 0 and 1 in C++23.}, label={lst:limit_boundaries}]
+/** @brief The Terminal Object (1): Pure existence. */
+using One = std::monostate;
+static_assert(IsTerminalObject<One>);
+
+/** @brief Defining a "Global Element" as a Morphism 1 -> X */
+auto five = Morphism<One, int>([](One) { return 5; });
+static_assert(IsArrow<decltype(five), One, int>);
+
+/** @brief Initial Object (0): The unreachable annihilator. */
+using Zero = std::nullptr_t; // Categorical void / Unreachable
+static_assert(IsInitialObject<Zero>);
+
+// Verification: Every species T has a unique morphism T -> 1 (Terminality)
+static_assert(HasUniqueMorphismTo<int, One>);
+\end{lstlisting}
+
 \subsubsection{Universal Constructions and Pullbacks (\texttt{:pullback})}
-To support relational reasoning and intersections, the \texttt{:pullback} partition introduces the universal property of the pullback. As noted in Pierce, pullbacks are the categorical tool for handling constraints and fiber products. By reifying the pullback, the library enables the formal definition of \textbf{Equalizers}, which are essential for identifying the rounding-error singularities in the \texttt{:numeric} partition.
+
+To support relational reasoning and intersections, the \texttt{:pullback} partition introduces the universal property of the **Pullback**. As noted in Pierce~\cite{pierce1991basic}, pullbacks are the categorical tool for handling constraints and fiber products. By reifying the pullback, the library enables the formal definition of \textbf{Equalizers}, which are essential for identifying the rounding-error singularities in the \texttt{:numeric} partition.
+
+In the \texttt{dedekind} ontology, the pullback $P$ of two morphisms $f: A \to C$ and $g: B \to C$ represents the subset of the product $A \times B$ where the morphisms coincide ($f(a) = g(b)$). This construction is the categorical engine for set intersection; by hoisting this requirement into the type-system, we allow the compiler to perform **Symbolic Equalization**, identifying when two computational paths are structurally identical or divergent before any floating-point operation is executed.
+
+\begin{lstlisting}[language=C++, caption={Pullbacks and Equalizers: The Engine of Constraint.}, label={lst:pullback_logic}]
+/** @brief Pullback P of f: A -> C and g: B -> C */
+template <typename f, typename g>
+using Pullback = Set<Product<Domain<f>, Domain<g>>, [](auto pair) {
+    return f{}(project<0>(pair)) == g{}(project<1>(pair));
+}>;
+
+// An Equalizer is a pullback of f and g over the same codomain
+using Eq = Equalizer<f, g>; 
+static_assert(IsLimit<Eq>);
+\end{lstlisting}
 
 
 \subsubsection{The \texttt{:total} partition: The Property of Totality}
