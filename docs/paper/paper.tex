@@ -317,19 +317,13 @@ In this setup, providing the axiomatic truths (e.g. $a || b$ is commutative) or 
 
 \subsubsection{The \texttt{:logic} partition: The Subobject Classifier (\texorpdfstring{$\Omega$}{Omega})}
 
-Before a "Body" (Set) or a "Path" (Sequence) can be reified, the \texttt{dedekind} library establishes the "Rules of Presence" through the \textbf{Subobject Classifier} $\Omega$. 
-Following the algebraic logic of Rasiowa~\cite{ajdukiewicz1985jezyk}, we treat every logical system as a specific type of abstract algebra where truth-values act as the objects of a \textbf{Topos}. 
-By reifying these systems via the \texttt{LogicalSpecies} concept, we prevent the "leaky abstractions" inherent in machine-level \texttt{bool} types—such as implicit integral promotion—while allowing for pluggable logical universes.
+Before a ``Body'' (Set) or a ``Path'' (Sequence) can be reified, the \texttt{dedekind} library establishes the ``Rules of Presence'' through the \textbf{Subobject Classifier} $\Omega$. Following the algebraic logic of Rasiowa~\cite{rasiowa1974}, we treat every logical system as a specific type of abstract algebra where truth-values act as the objects of a \textbf{Topos}. By reifying these systems via the \texttt{LogicalSpecies} concept, we prevent the ``leaky abstractions'' inherent in machine-level \texttt{bool} types—such as implicit integral promotion—while allowing for pluggable logical universes.
 
-In the \texttt{ClassicalLogic} species, $\Omega$ is the binary prime $\{True, False\}$ (see Table~\ref{tab:logic_comparison}), corresponding to the standard Boolean Topos where the \textbf{Law of Excluded Middle} holds. 
-However, to honestly model computational undecidability or the "truth-holes" inherent in floating-point $NaN$ boundaries, we introduce the \texttt{TernaryLogic} species. 
-Based on Kleene's strong logic of indeterminacy (K3)~\cite{mclarty1992toposes}, this logic introduces an \textbf{Unknown} state (0) as seen in Table~\ref{tab:logic_comparison}. 
-Within the \texttt{dedekind} framework, these logics are formalized as \textbf{Rigs}; the \textit{Join} ($\lor$) serves as additive composition (Supremum), while the \textit{Meet} ($\land$) serves as multiplicative composition (Infimum). 
-This structural mapping ensures that any \textbf{Predicate} $X \to \Omega$ provides the mathematically rigorous foundation required for the subobject classification in the downstream \texttt{:partial} partition.
+In the \texttt{ClassicalLogic} species, $\Omega$ is the binary prime $\{True, False\}$ (see Table~\ref{tab:logic_comparison}), corresponding to the standard Boolean Topos where the \textbf{Law of Excluded Middle} (LEM) holds. However, to honestly model computational undecidability or the ``truth-holes'' inherent in floating-point boundaries, we introduce the \texttt{TernaryLogic} species. Based on Kleene's strong logic of indeterminacy (K3)~\cite{mclarty1992toposes}, this logic introduces an \textbf{Unknown} state ($0$). Within \texttt{dedekind}, these logics are formalized as \textbf{Rigs}; the \textit{Join} ($\lor$) serves as additive composition (Supremum), while the \textit{Meet} ($\land$) serves as multiplicative composition (Infimum).
 
 \begin{table}[h]
 \centering
-\caption{Truth Tables for Classical ($\Omega_{\mathbb{B}}$) and Kleene ($\Omega_{K3}$) Toposes. In the Ternary system, the \textit{Unknown} state (0) acts as a fixed point for negation and a neutral element for disjunction.}
+\caption{Truth Tables for Classical ($\Omega_{\mathbb{B}}$) and Kleene ($\Omega_{K3}$) Toposes.}
 \label{tab:logic_comparison}
 \begin{minipage}{.45\linewidth}
 \centering
@@ -359,69 +353,25 @@ $A$ & $B$ & $A \land B$ & $A \lor B$ & $\neg A$ \\ \hline
 \end{minipage}
 \end{table}
 
-The necessity of the \texttt{TernaryLogic} species is most evident when observing the breakdown of the \textbf{Law of Excluded Middle} ($P \lor \neg P = \top$) in floating-point arithmetic. 
-Following the IEEE 754 standard~\cite{ieee754_2019}, the \texttt{NaN} (Not-a-Number) state represents a singularity where standard relational morphisms fail to provide a binary partition of the species. 
-Consider a predicate $P(x) \coloneqq (x \leq 1.0)$ for $x = \text{NaN}$. 
-In classical C++, the expression \texttt{(x <= 1.0)} evaluates to \texttt{false}. 
-However, the logical complement $\neg P(x)$, represented by \texttt{(x > 1.0)}, also evaluates to \texttt{false}. 
-This results in the paradox $P \lor \neg P = \bot$, a violation of classical tautology that the \texttt{dedekind} library resolves by elevating the subobject classification to $\Omega_{K3}$.
+The necessity of \texttt{TernaryLogic} is most evident when observing the breakdown of the LEM in floating-point arithmetic. Following IEEE 754~\cite{ieee754_2019}, the \texttt{NaN} (Not-a-Number) state represents a singularity where standard relational morphisms fail to provide a binary partition. For a predicate $P(x) \coloneqq (x \leq 1.0)$ where $x = \text{NaN}$, classical C++ evaluates both $P(x)$ and its logical complement $\neg P(x)$ as \texttt{false}. This results in the paradox $P \lor \neg P = \bot$, a violation of classical tautology that \texttt{dedekind} resolves by elevating the subobject classification to $\Omega_{K3}$.
 
-\begin{lstlisting}[caption={The NaN Truth-Hole: Violating the Law of Excluded Middle in C++.}]
-double x = std::numeric_limits<double>::quiet_NaN();
+\paragraph{The Lipschitz Boundary.} For signed integral types, the mapping from the infinite ring of integers to finite machine representations is only stable within a defined ``Lipschitz domain'' $[-2^{N-1}, 2^{N-1}-1]$. By utilizing compiler built-ins (e.g., \texttt{\_\_builtin\_add\_overflow}), the \texttt{SubobjectClassifier} detects boundary breaches and maps them to the \textbf{Unknown} state, ensuring that downstream transformations treat these singularities as formal subobject exclusions rather than undefined behavior.
 
-// In a Classical Topos (bool), both are false:
-bool p     = (x <= 1.0); // false
-bool not_p = (x > 1.0);  // false
-bool lem   = p || not_p; // false (LEM Violation!)
-
+\begin{lstlisting}[language=C++, caption={The NaN Truth-Hole and Lipschitz Boundary.}, label={lst:lipschitz_classifier}]
 // In the Dedekind Ternary Topos (Omega):
 Ternary P     = Classifier<double>::eval(x <= 1.0); // Unknown
 Ternary NOT_P = !P;                                // Unknown
 Ternary LEM   = P || NOT_P;                        // Unknown
-\end{lstlisting}
 
-By mapping these "numerical hazards" to the \textbf{Unknown} state, the library ensures that downstream algebraic transformations (such as those in the \texttt{:partial} partition) do not proceed under the false assumption of a binary state. 
-This "honesty" in the logic layer allows the compiler to treat \texttt{NaN} or integer overflow boundaries as formal subobject exclusions rather than undefined behavior.
-
-The \texttt{dedekind} library acknowledges the machine's physical constraints by identifying two primary categories of "truth-holes" where the standard mapping between $ \mathbb{Z} $ or $ \mathbb{R} $ and their machine counterparts, \texttt{int} and \texttt{double}, breaks down.
-
-\paragraph{The NaN Truth-Hole.}
-As specified in the IEEE 754 standard~\cite{ieee754_2019}, the \texttt{NaN} state represents a logical singularity. 
-For a predicate $P(x) \coloneqq (x \leq 1.0)$, if $x = \text{NaN}$, then both $P(x)$ and its negation $\neg P(x)$ evaluate to \texttt{false}. 
-This paradox, $P \lor \neg P = \bot$, directly violates the \textbf{Law of Excluded Middle (LEM)}, a failure that the \texttt{SubobjectClassifier} resolves by elevating the result to the \textbf{Ternary Topos} ($\Omega_{K3}$)~\cite{mclarty1992toposes}.
-
-\paragraph{The Lipschitz Boundary.}
-For signed integral types, the mapping from the infinite ring of integers to the finite machine representation is only stable within a defined "Lipschitz domain" $[-2^{N-1}, 2^{N-1}-1]$. 
-Once an operation, such as addition, breaches this boundary, it results in \textit{undefined behavior} or "wrap-around" effects, effectively losing its Lipschitz continuity. 
-By utilizing compiler built-ins (e.g., \texttt{\_\_builtin\_add\_overflow}), the \texttt{SubobjectClassifier} detects these boundary breaches and maps them to the \textbf{Unknown} state, as illustrated in Listing~\ref{lst:lipschitz_classifier}.
-
-\begin{lstlisting}[caption={Subobject Classifier for the Lipschitz Boundary and NaN Truth-Hole.}, label={lst:lipschitz_classifier}]
-export template <IsSpecies T>
-struct SubobjectClassifier {
-  using L = typename LogicTraits<T>::type;
-  using Omega = typename L::type;
-
-  /** @brief Lipschitz Boundary Check for Signed Integers */
-  template <typename Op>
-    requires std::signed_integral<T>
-  static constexpr Omega evaluate_arithmetic(T a, T b, Op op) {
-      T result;
-      if (__builtin_add_overflow(a, b, &result)) {
-          return L::Unknown; // Lipschitz boundary breached
-      }
-      return L::True; 
-  }
-
-  /** @brief NaN Truth-Hole Check for IEEE 754 */
-  template <typename Op>
-    requires std::floating_point<T>
-  static constexpr Omega evaluate_relational(T a, T b, Op rel) {
-      if (std::isnan(a) || std::isnan(b)) {
-          return L::Unknown; 
-      }
-      return rel(a, b) ? L::True : L::False;
-  }
-};
+/** @brief Lipschitz Boundary Check for Signed Integers */
+template <typename Op, typename T>
+static constexpr Omega evaluate_arithmetic(T a, T b, Op op) {
+    T result;
+    if (__builtin_add_overflow(a, b, &result)) {
+        return L::Unknown; // Lipschitz boundary breached
+    }
+    return L::True; 
+}
 \end{lstlisting}
 
 \subsubsection{The \texttt{:morphisms} partition: The Skeletal Arrow}
@@ -474,6 +424,13 @@ static_assert(IsAbelianGroup<unsigned int, std::plus<unsigned int>>);
 // It fails because of Undefined Behavior/Overflow (Partiality).
 static_assert(!IsMagma<int, std::plus<int>>);
 \end{lstlisting}
+
+\subsubsection{The \texttt{:algebra\_total} partition: The Harmonic Baseline}
+
+Building upon the base endomorphisms defined in \texttt{:total}, the \texttt{:algebra\_total} partition materializes the ``Pure Ideals'' of abstract algebra. In this partition, we define the algebraic hierarchy—from Magmas to Abelian Groups—assuming a world of total functions and defined results. 
+
+\textit{Guided Remark:} Focus on the structural requirements for \textbf{Monoids} and \textbf{Rigs} over machine atoms. This section should document how the library utilizes C++23 Concepts to verify that an operation like \texttt{unsigned int} addition satisfies the strict laws of an Abelian Group. By establishing this harmonic baseline, the library provides the ``Platonic'' reference point against which the subsequent partiality and numeric failures are measured.
+
 
 \subsubsection{The \texttt{:functor} partition: Mappings between Categories}
 
@@ -549,6 +506,11 @@ auto g = partial_plus(f, INT_MAX);    // Result: Unknown (Overflow)
 auto h = partial_plus(g, 1);          // Result: Unknown (Propagation)
 \end{lstlisting}
 
+\subsubsection{The \texttt{:algebra\_partial} partition: The Generalised Reality}
+
+Following the monadic Kleisli lift, the \texttt{:algebra\_partial} partition generalizes the laws of Level 1 to handle the ``broken'' reality of hardware. Here, the strict algebraic requirements are relaxed into \textbf{Partial Monoids} and \textbf{Partial Groups}, where operations are only guaranteed to hold within a specific support $S \hookrightarrow A$.
+
+\textit{Guided Remark:} Document the transition from absolute to local totality. This section should explain how a partial operation is verified as ``consistently broken''—ensuring that if a result is defined, it still satisfies the required algebraic laws (e.g., associativity). By reifying these partial structures, the \texttt{dedekind} dispatcher can safely propagate \texttt{Unknown} or \texttt{NaN} states through the algebraic pipeline without triggering undefined behavior.
 
 
 \subsubsection{The \texttt{:numeric} partition: The Material Landing}
@@ -559,6 +521,19 @@ The \texttt{:numeric} partition represents the final ``landing'' of the abstract
 
 
 Finally, we encounter the "Curious" case of \textit{Numerical Species} (IEEE 754). These types are categories where the subobject classifier $\Omega$ is internalized within the species itself (\texttt{NaN}, \texttt{Inf}). While these structures appear to be total morphisms $\mu: \mathbb{R}_{f} \times \mathbb{R}_{f} \to \mathbb{R}_{f}$ in their signature, they are semantically partial. Specifically, they fail the \textbf{Equalizer} conditions required for associativity; the rounding error ensures that $(a+b)+c$ and $a+(b+c)$ are not generally isomorphic. This progression—from the absolute (\textit{Total}), through the filtered (\textit{Partial}), to the exceptional (\textit{Numerical})—allows us to build a "strictly speaking" true ontology that respects both categorical rigor and machine-level reality.
+
+\subsubsection{The \texttt{:mereology} partition: The Language of Parts}
+
+The \texttt{:mereology} partition introduces the formal signature of parthood as a foundational structural primitive. Following the axiomatization of Stanisław Leśniewski, we treat parthood not as set membership, but as a primitive relation ($\leq$) that governs the relationship between an entity and its constituent parts.
+
+\textit{Guided Remark:} Focus on the definition of the \texttt{IsPartRelation} concept and its enforcement of reflexivity, transitivity, and antisymmetry. This skeletal signature provides the vocabulary for any downstream category to reason about sub-structures. By isolating these axioms here, we ensure that the subsequent \texttt{set} and \texttt{mereology} modules inherit a verified, algebraic definition of ``part-of'' relationships.
+
+\subsubsection{The \texttt{:etcs} partition: The Set-Theoretic Interface}
+
+The final stage of the foundational build, the \texttt{:etcs} partition, anchors Lawvere’s \emph{Elementary Theory of the Category of Sets}. This serves as the ``Skeletal Atlas'' for the dedicated \texttt{set} module, defining a set not by its internal elements, but by its universal properties.
+
+\textit{Guided Remark:} Document the structural requirements for a \textbf{Terminal Object} ($1$), \textbf{Products} ($\times$), and \textbf{Power Objects} ($P$). This section should highlight how \texttt{dedekind} utilizes C++23 Concepts to define the set-theoretic interface as a purely structural requirement, allowing the \texttt{category} module to reason about functions between sets before their materialization in memory.
+
 
 \subsubsection{The Semantic Mapping}
 

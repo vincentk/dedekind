@@ -49,8 +49,10 @@ export import :total;      // Total Morphisms and Endomorphisms
 export import :algebra_total; // Monoids, Rigs, Semirings on Atoms
 
 // Level 2: The Bridge (Reification)
-export import :functorial; // Functors and Natural Transformations
-export import :kleisli;    // The Monadic Lifting Bridge (Kleisli Category)
+export import :functor;    // Mappings between categories
+export import :natural;    // Natural Transformations
+export import :monad;      // Monads (η, μ) as algebraic triples
+export import :kleisli;    // The Monadic Composition Engine (Lifting)
 
 // Level 3: The Reality (Partial/Numeric)
 export import :partial;    // Partial Functions and Algebras
