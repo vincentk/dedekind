@@ -40,34 +40,36 @@
 export module dedekind.category;
 
 // Level 0: The Taxonomic Bricks (Atoms)
-export import :species;    // Machine Atoms (int, double, bool)
-export import :logic;      // The Subobject Classifier (Omega)
-export import :posetal;    // Partial Orders (Pre-requisite for Lattices/Mereology)
-export import :morphism;  // The Base Arrow Signature (f: A -> B)
-export import :small;      // Small Categories (Objects + Arrows)
-export import :cartesian;  // Products/Coproducts (Binary)
-export import :limit;     // Initial/Terminal (Empty)
-export import :pullback;   // Universal Constructions (Equalizers/Intersections)
+export import :species;    // The Raw Machine Data
+export import :morphism;   // The Base Arrow (Prerequisite for everything)
+export import :mereology;  // Parthood (Prerequisite for Logic/Sets)
+export import :logic;      // The Subobject Classifier (Truth)
 
-// Level 1: The Ideal (Total)
-export import :total;      // Total Morphisms and Endomorphisms
-export import :algebra_total; // Monoids, Rigs, Semirings on Atoms
-export import :actions;    // Monoid Actions / Modules (Semi-Modules)
+// Level 0.5: The Structural Infrastructure
+export import :posetal;    // Partial Orders (Verified by Logic)
+export import :small;      // Small Categories
+export import :cartesian;  // Products/Coproducts
+export import :limit;      // Universal Limits
+export import :pullback;   // The Universal Construction "Sink"
 
-// Level 2: The Bridge (Reification)
-export import :functor;    // Mappings between categories
-export import :natural;    // Natural Transformations
-export import :monad;      // Monads (η, μ) as algebraic triples
-export import :kleisli;    // The Monadic Composition Engine (Lifting)
+// Level 1: The Ideal (Total Algebra)
+export import :total;      
+export import :algebra_total; 
+export import :actions;    
 
-// Level 3: The Reality (Partial/Numeric)
-export import :partial;    // Partial Functions and Algebras
-export import :algebra_partial; // Monoids/Rigs on Lifted Types
-export import :numeric;    // Reconciling Algebra with IEEE 754/Overflows
+// Level 2: The Bridge (Functorial Spine)
+export import :functor;    
+export import :natural;    
+export import :monad;      
+export import :kleisli;    
 
-// Level 4: The Skeletal Signatures
-export import :mereology;  // Parthood as a Sub-structural Relation
-export import :etcs;       // The Elementary Theory of the Category of Sets
+// Level 3: The Reality (Hardware -> Abstraction)
+export import :numeric;         // Concrete Hardware Logic (IEEE 754)
+export import :algebra_partial; // Algebraic Lifting
+export import :partial;         // The Final Abstracted Partial Interface
+
+// Level 4: The Skeletal Signatures (Synthesis)
+export import :etcs;       // The World of Sets (Importing Partial + Mereology)
 
 namespace dedekind::category {
     // Top-level category-theoretic aliases and universal compositions.

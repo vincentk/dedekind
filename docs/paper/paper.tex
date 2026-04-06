@@ -22,6 +22,9 @@
 % Graphs
 \usepackage{graphviz}
 
+\usepackage{tikz}
+\usetikzlibrary{shapes.geometric, arrows.meta, positioning, calc, backgrounds}
+
 \usepackage{draftwatermark}
 \SetWatermarkScale{5}
 
@@ -240,6 +243,107 @@ By the time the reader reaches the final sections, the library's 'textbook' deri
 The methodology of \texttt{dedekind} is predicated on the translation of formal mathematical structures into a stratified registry of C++23 modules. 
 This stratification allows for a "bottom-up" synthesis of complex mathematical objects, where each level serves as a verified foundation for the next. 
 The intention is that the flow of compilation mirrors the order in which objects are introduced in a formal textbook: foundational mereological axioms are isolated into the \texttt{:mereology} partition, which produces a Binary Module Interface (BMI) that acts as a "cached truth."
+
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}[
+    node distance=1.1cm and 0.6cm,
+    partition/.style={rectangle, draw=black!80, fill=white, thick, inner sep=4pt, font=\small\ttfamily, minimum width=2.3cm},
+    level_label/.style={font=\small\bfseries\sffamily, color=black!80, align=right},
+    dependency/.style={-{Stealth[scale=1.0]}, thick, draw=black!70},
+    stratum/.style={draw=gray!10, thick}
+]
+
+    % --- CORRECTED LEVEL STRATA (Wider Bounding Boxes) ---
+    \begin{scope}[on background layer]
+        \fill[gray!5] (-1.5,-0.2) rectangle (11.0, 2.8);   % L0 (Rows 0-1)
+        \fill[blue!2] (-1.5, 2.8) rectangle (11.0, 5.0);   % L1 (Row 2)
+        \fill[green!2] (-1.5, 5.0) rectangle (11.0, 7.5);  % L2 (Row 3)
+        \fill[red!2] (-1.5, 7.5) rectangle (11.0, 10.0);   % L3 (Row 4)
+        \fill[orange!5] (-1.5, 10.0) rectangle (11.0, 12.0); % L4 (Synthesis)
+        
+        \draw[stratum] (-1.5, 2.8) -- (11.0, 2.8);
+        \draw[stratum] (-1.5, 5.0) -- (11.0, 5.0);
+        \draw[stratum] (-1.5, 7.5) -- (11.0, 7.5);
+        \draw[stratum] (-1.5, 10.0) -- (11.0, 10.0);
+    \end{scope}
+
+    % --- Row 0: L0 (Left to Right) ---
+    \node[partition] (species) at (0,0.5) {:species};
+    \node[partition, right=of species] (morphism) {:morphism};
+    \node[partition, right=of morphism] (mereology) {:mereology};
+    \node[partition, right=of mereology] (logic) {:logic};
+
+    % --- Row 1: L0 (Right to Left - Reversed) ---
+    \node[partition] (posetal) at (9.0, 1.8) {:posetal};
+    \node[partition, left=of posetal] (small) {:small};
+    \node[partition, left=of small] (limit) {:limit};
+    \node[partition, left=of limit] (pullback) {:pullback};
+
+    % --- Row 2: L1 (Left to Right) ---
+    \node[partition] (total) at (0, 3.8) {:total};
+    \node[partition, right=of total] (alg_total) {:algebra\_total};
+    \node[partition, right=of alg_total] (actions) {:actions};
+
+    % --- Row 3: L2 (Right to Left - Reversed) ---
+    \node[partition] (kleisli) at (9.0, 6.2) {:kleisli};
+    \node[partition, left=of kleisli] (monad) {:monad};
+    \node[partition, left=of monad] (natural) {:natural};
+    \node[partition, left=of natural] (functor) {:functor};
+
+    % --- Row 4: L3 (Left to Right) ---
+    \node[partition] (numeric) at (0, 8.7) {:numeric};
+    \node[partition, right=of numeric] (alg_partial) {:algebra\_partial};
+    \node[partition, right=of alg_partial] (partial) {:partial};
+
+    % --- Level 4: Synthesis ---
+    \node[partition] (etcs) at (4.5, 11.0) {:etcs};
+
+    % --- THE ISOMORPHIC "S-CURVE" ---
+    
+    % L0 Flow
+    \draw[dependency] (species) -- (morphism);
+    \draw[dependency] (morphism) -- (mereology);
+    \draw[dependency] (mereology) -- (logic);
+    \draw[dependency] (logic) .. controls (10.5, 1.2) and (10.5, 1.8) .. (posetal); % Turn
+
+    \draw[dependency] (posetal) -- (small);
+    \draw[dependency] (small) -- (limit);
+    \draw[dependency] (limit) -- (pullback);
+    \draw[dependency] (pullback) .. controls (-1.0, 2.5) and (-1.0, 3.1) .. (total); % Turn
+
+    % L1 Flow
+    \draw[dependency] (total) -- (alg_total);
+    \draw[dependency] (alg_total) -- (actions);
+    \draw[dependency] (actions) .. controls (10.5, 4.8) and (10.5, 5.5) .. (kleisli); % Turn
+
+    % L2 Flow (The Monadic Spine)
+    \draw[dependency] (kleisli) -- (monad);
+    \draw[dependency] (monad) -- (natural);
+    \draw[dependency] (natural) -- (functor);
+    \draw[dependency] (functor) .. controls (-1.0, 7.5) and (-1.0, 8.1) .. (numeric); % Turn
+
+    % L3 Flow (The "Rescue" Refinement)
+    \draw[dependency] (numeric) -- (alg_partial);
+    \draw[dependency] (alg_partial) -- (partial);
+    \draw[dependency] (partial) -- (etcs); % Final Decoupled Ascent
+
+    % Formal Anchors (Right Gutter)
+    \draw[dependency] (mereology) .. controls (10.8, 3) and (10.8, 9) .. (etcs);
+    \draw[dependency] (pullback) .. controls (10.2, 3) and (10.2, 9) .. (etcs);
+
+    % --- LABELS ---
+    \node[level_label] at (10.5, 1.2) {L0};
+    \node[level_label] at (10.5, 3.8) {L1};
+    \node[level_label] at (10.5, 6.2) {L2};
+    \node[level_label] at (10.5, 8.7) {L3};
+    \node[level_label] at (10.5, 11.0) {L4};
+
+\end{tikzpicture}
+\caption{Refined Build Graph: The "Numeric" layer now serves as the base for "Partial" logic, allowing "ETCS" to remain decoupled from hardware specificities.}
+\end{figure}
+
+
 
 \subsubsection{The \texttt{:species} partition: The Algebraic Atlas}
 
@@ -471,7 +575,7 @@ static_assert(!IsMagma<int, std::plus<int>>);
 \end{lstlisting}
 
 \subsubsection{Monoid Actions and Modules (\texttt{:actions})}
-The \texttt{:actions} partition materializes the concept of a Species being acted upon by an Algebraic Structure. This partition defines the \texttt{IsSemiModule} and \texttt{IsModule} concepts, where a Monoid (from \texttt{:algebra_total}) defines a transformation rule over a target Species. This represents the transition from internal algebraic laws to external structural influences.
+The \texttt{:actions} partition materializes the concept of a Species being acted upon by an Algebraic Structure. This partition defines the \texttt{IsSemiModule} and \texttt{IsModule} concepts, where a Monoid (from \texttt{:algebra\_total}) defines a transformation rule over a target Species. This represents the transition from internal algebraic laws to external structural influences.
 
 
 \subsubsection{The \texttt{:functor} partition: Mappings between Categories}
