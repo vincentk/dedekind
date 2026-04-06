@@ -717,7 +717,7 @@ The transition from Level 0 to Level 1 represents the "Maturation of Species." F
 
 \subsubsection{The \texttt{:total} partition: The Property of Totality}
 
-The \texttt{:total} partition formalizes \emph{Morphic Totality}. In our ontology, a morphism $f: A \to B$ is verified as a \texttt{TotalMorphism} only if it is defined across its entire domain without triggering a subobject exclusion (e.g., overflow or division by zero).
+The \texttt{:total} partition formalizes \emph{Morphic Totality}. In our ontology, a morphism $f: A \to B$ is verified as a \texttt{TotalMorphism} only if it is defined across its entire domain without triggering a subobject exclusion (e.g., overflow or division by zero). Following the restriction category framework \cite{cockett2002restriction}, we treat totality as a property verified against a specific subobject support, ensuring that the ``active apparatus'' of the morphism is physically stable within the machine's constraints.
 
 \begin{lstlisting}[language=C++, caption={Totality Verification and the Total Morphism wrapper.}, label={lst:totality}]
 /** @brief Formal verification that a morphism is defined for the entire species. */
@@ -736,9 +736,16 @@ struct TotalMorphism : Morphism<A, B, Func> {
 
 \subsubsection{The \texttt{:algebra\_total} partition: The Laws of Harmony}
 
-Building upon the total mappings established in Level 1a, the \texttt{:algebra\_total} partition materializes the ``Pure Ideals'' of abstract algebra. In this partition, species ``mature'' as they gain axioms, moving from the primal \textbf{Magma} to the perfect symmetry of an \textbf{Abelian Group}. A key architectural decision in \texttt{dedekind} is the decoupling of \emph{associativity} from \emph{invertibility}: while a \textbf{Monoid} provides an identity to an associative Semigroup, a \textbf{Loop} provides an identity to a Quasigroup. A \textbf{Group} is thus reified as the perfect synthesis of these two paths, as shown in Table~\ref{tab:algebraic_hierarchy}.
+Building upon the total mappings established in Level 1a, the \texttt{:algebra\_total} partition materializes the ``Pure Ideals'' of abstract algebra.
+In this partition, species ``mature'' as they gain axioms, moving from the primal \textbf{Magma} to the perfect symmetry of an \textbf{Abelian Group}.
+A key architectural decision in \texttt{dedekind} is the decoupling of \emph{associativity} from \emph{invertibility}: while a \textbf{Monoid} provides an identity to an associative Semigroup, a \textbf{Loop} provides an identity to a Quasigroup \cite{bruck1971survey}.
+A \textbf{Group} is thus reified as the perfect synthesis of these two paths, as shown in Table~\ref{tab:algebraic_hierarchy}.
 
-By mapping these structures to C++23 concepts, the library transforms the compiler into a \textbf{Constraint Satisfaction Engine} (CSE) that verifies mathematical truth as a physical invariant of the binary. This leads to the \textbf{Honest Rejection} illustrated in Listing~\ref{lst:abelian_group}: while \texttt{unsigned int} addition is verified as a total Abelian Group ($\mathbb{Z}/2^n\mathbb{Z}, +$), signed \texttt{int} addition is rejected even as a total Magma due to the potential for overflow at the Lipschitz boundary. This harmonic baseline provides the ``Platonic'' reference point against which the subsequent partiality and numeric failures are measured.
+By mapping these structures to \texttt{C++23} concepts, the library transforms the compiler into a \textbf{Constraint Satisfaction Engine} (CSE) that verifies mathematical truth as a physical invariant of the binary \cite{benton1998computational}.
+This leads to the \textbf{Honest Rejection} illustrated in Listing~\ref{lst:abelian_group}: while \texttt{unsigned int} addition is verified as a total Abelian Group ($\mathbb{Z}/2^n\mathbb{Z}, +$) due to its bit-perfect periodicity, signed \texttt{int} addition is rejected even as a total Magma.
+Because signed overflow constitutes undefined behavior, the operation fails to satisfy the requirements for periodicity or idempotency within the total domain.
+The library correctly identifies such operations as \textbf{Hazards} \cite{pomerance2001smooth}, shifting them from the Platonic realm of Level 1 into the pragmatic ``Rescue'' logic of the \texttt{:partial} partition.
+
 
 \begin{table}[h!]
 \centering
@@ -756,26 +763,28 @@ By mapping these structures to C++23 concepts, the library transforms the compil
 \end{tabular}
 \end{table}
 
-\begin{lstlisting}[language=C++, caption={Structural Maturation and the Honest Rejection in \texttt{dedekind.category}.}, label={lst:abelian_group}]
-// The Perfect Synthesis: A Group is an associative Loop.
-export template <typename T, typename Op>
-concept IsGroup = IsMonoid<T, Op> && IsLoop<T, Op>;
-
-export template <typename T, typename Op>
-concept IsAbelianGroup = IsGroup<T, Op> && IsCommutative<T, Op>;
-
+\begin{lstlisting}[language=C++, caption={Structural Maturation and the Honest Rejection in dedekind.category.}, label={lst:abelian_group}]
 /** @section Truth_Anchors */
 
 // SUCCESS: Unsigned addition is a Total Abelian Group (Z/2^nZ).
 static_assert(IsAbelianGroup<unsigned int, std::plus<unsigned int>>);
 
 // HONEST REJECTION: Signed addition is NOT a Total Magma.
-// Closure fails at the Lipschitz boundary (Overflow).
+// No Periodicity, No Idempotency; identified as a Hazard/Partial function.
 static_assert(!IsMagma<int, std::plus<int>>);
+
+// The compiler now "knows" the algebra of the machine.
 \end{lstlisting}
 
+
 \subsubsection{Monoid Actions and Modules (\texttt{:actions})}
-The \texttt{:actions} partition materializes the concept of a Species being acted upon by an Algebraic Structure. This partition defines the \texttt{IsSemiModule} and \texttt{IsModule} concepts, where a Monoid (from \texttt{:algebra\_total}) defines a transformation rule over a target Species. This represents the transition from internal algebraic laws to external structural influences.
+
+The \texttt{:actions} partition materializes the concept of a Species being acted upon by an Algebraic Structure. This partition defines the \texttt{IsSemiModule} and \texttt{IsModule} concepts, where a \textbf{Monoid} (from \texttt{:algebra\_total}) defines a transformation rule over a target Species. 
+
+Following the pedagogical tradition of Stammbach \cite{stammbach1994lineare}, we treat linear algebra not as a series of matrix operations, but as the study of structured actions.
+In this ontology, we distinguish between \textbf{Internal Composition} (operations within a species) and \textbf{External Influence} (actions upon a species).
+This "coordinate-free" approach \cite{halmos1958finite} is critical for transitioning from pure algebraic laws to the modeling of transformations across spaces, establishing the formal basis for the linear transformations and tensor structures later introduced in the \texttt{:geometry} module.
+
 
 
 \subsubsection{The \texttt{:functor} partition: Mappings between Categories}
@@ -846,17 +855,21 @@ constexpr auto operator>>=(const M& m, F f) {
 \end{lstlisting}
 
 \subsubsection{The \texttt{:kleisli} partition: The Universal Highway}
-A core innovation of the Kleisli bridge is the introduction of the \textbf{``Highway'' notation} (\texttt{operator>>}) for Kleisli composition. Grounded in the functional tradition of the ``Fish Operator'' (\texttt{>=>}) \cite{jones2003haskell}, \texttt{dedekind} adapts this to the C++ context by leveraging the left-associativity and higher precedence of \texttt{operator>>} over the standard monadic bind (\texttt{operator>>=}). 
+The \texttt{:kleisli} partition introduces the formal machinery for \textit{Highway composition} (operator \texttt{>>}).
+Following the functional tradition of the ``Fish Operator'' (\texttt{>=>}) \cite{milewski2018}, \texttt{dedekind} adapts this to the C++23 context by leveraging the left-associativity of \texttt{operator>>} to model the directional vector of computation across the ontology.
 
-As advocated by Milewski \cite{milewski2019category}, viewing monads as a composition engine for ``embellished functions'' allows the compiler to treat the entire Highway as a single, verifiable unit of transformation. Within the verified module graph, the LLVM backend can perform \emph{structural pruning}: if a total function is composed with a partial operation statically known to return an \texttt{Unknown} or \texttt{NaN} state, the compiler can identify the unreachable path and optimize the Highway into a branch-free instruction sequence.
+To resolve the lack of native higher-kinded types (HKTs) in C++, the library utilizes an \textit{Action-First} bootstrapping strategy. By defining Monads as Extension Systems (Kleisli Triples consisting of $\eta$ and $\gg=$), we utilize operator overloading on concrete objects to trigger Argument-Dependent Lookup (ADL) at the call site. This allows the Level 0 foundation to instantiate a derived \texttt{fmap} as an epi-phenomenon of the underlying monadic ``Push'' ($m \gg= \eta \circ f$).
 
-\begin{lstlisting}[language=C++, caption={The Highway: Kleisli composition as a first-class citizen.}]
-// Equivalent to Haskell's (f >=> g)
-auto highway = morphism_f >> morphism_g; 
+The resulting \textit{Highway Notation} reifies categorical data flows as directional vectors:
+\begin{itemize}
+    \item \texttt{value >> into<F>} : Represents $\eta$ (Unit), lifting a species into a context.
+    \item \texttt{box << extract<F>} : Represents $\varepsilon$ (Counit), sampling a species from a context.
+    \item \texttt{box >>= f} : Represents Bind, the forward monadic composition.
+    \item \texttt{box <<= f} : Represents Extend, the contextual comonadic composition.
+\end{itemize}
 
-// Composition is verified against the Monad axioms
-static_assert(IsKleisliArrow<decltype(highway)>);
-\end{lstlisting}
+Within the verified module graph, the LLVM backend utilizes this structural transparency to perform \textit{Highway Pruning}. if a total function is composed with a partial operation statically known to return an \texttt{Unknown} or \texttt{NaN} state, the compiler identifies the unreachable path and optimizes the Highway into a branch-free instruction sequence.
+
 
 \subsubsection{The \texttt{:partial} partition: The Pragmatic Rescue}
 
@@ -914,28 +927,22 @@ static_assert(!is_associative_v<double, std::plus<double>>);
 
 
 \subsubsection{The \texttt{:etcs} partition: The Set-Theoretic Interface}
+The final stage of the foundational build anchors Lawvere's Elementary Theory of the Category of Sets (ETCS) \cite{lawvere1964}. This partition defines a set not by its internal elements, but by its universal properties, utilizing C++23 Concepts to enforce well-pointedness and the existence of power objects.
 
-The final stage of the foundational build, the \texttt{:etcs} partition, anchors Lawvere’s \emph{Elementary Theory of the Category of Sets}. This serves as the ``Skeletal Atlas'' for the dedicated \texttt{set} module, defining a set not by its internal elements, but by its universal properties.
+The core innovation of this partition is the reification of the \textit{Set-Builder} notation. By representing a set $S = \{x \in X \mid P(x)\}$ as a \texttt{Stateless Constraint Type}, we transform the C++ translation unit into a symbolic laboratory. 
 
-\textit{Guided Remark:} Document the structural requirements for a \textbf{Terminal Object} ($1$), \textbf{Products} ($\times$), and \textbf{Power Objects} ($P$). This section should highlight how \texttt{dedekind} utilizes C++23 Concepts to define the set-theoretic interface as a purely structural requirement, allowing the \texttt{category} module to reason about functions between sets before their materialization in memory.
+\begin{lstlisting}[language=C++, caption={Reifying the Set-Builder via Stateless Constraints.}]
+// Define a predicate: x is even and greater than 10
+auto P = [](auto x) { return (x % 2 == 0) && (x > 10); };
 
+// Materialize the set at compile-time as a structural type
+using EvenGreaterTen = dedekind::set<int, P>;
 
-\subsubsection{The Semantic Mapping}
+static_assert(dedekind::contains<EvenGreaterTen>(12));
+\end{lstlisting}
 
-The \texttt{dedekind.category} module serves as an anchor of the DSL in the established formalism of category theory.
-It aggregates skeletal, mereological, and algebraic laws to enable the synthesis of the \textit{Continuum} from the \textit{Discrete}.
-The adopted \emph{structuralist} posture views mathematical objects as positions within a structure rather than isolated collections.
-McLarty \cite{mclarty1992toposes} demonstrated that this is sufficient for the complete recovery of number theory.
-In turn, we facilitate formal verification within the C++ type system with zero runtime overhead.
+By hoisting these mereological invariants into the type signature, we enable \textit{Symbolic Equalization}. The compiler can decompose and optimize a set based on its logical essence rather than its storage layout, allowing contradictory set-builder predicates to collapse into zero-instruction machine code. This ensures that the performance of the ``Naked Loop'' is always mathematically justified by the prior formal certification of the ETCS axioms.
 
-Note the pain with C++ "transparent" operator mappings in the truth registry.
-
-The stratification of the \texttt{dedekind.ontology} into C++ module partitions mirrors the constructive dependencies of formal mathematics.
-At the foundation, an embedding of Category Theory (Level 0) within the type system provides the primary substrate; as it makes the fewest assumptions—treating objects merely as nodes in a graph of morphisms—it establishes the "highways" (Functors and Kleisli Triples) necessary for all subsequent synthesis.
-Because higher algebraic structures—such as Groups, Rings, and Fields—are formally defined by the operations performed upon sets, the build order mandates that Level 1 (Space and Mereology) precedes Level 3 (Algebra).
-This ensures that the "Soul" of the system (its laws of action and harmony) is always grounded in the "Body" (the structural presence of its parts). By the time the compiler reaches the \texttt{:algebra} partition, the mereological validity of the underlying species is already a type-checked invariant within the translation unit.
-This hierarchy transforms the C++ module mapper into a directed acyclic graph of mathematical truth, where the linker cannot even begin its work until the ontological prerequisites are satisfied.
-The strict directed acyclic graph (DAG) of the dedekind module partitions mirrors the Bourbaki style of 'Mother Structures' \cite{marquis2022structuralist}, where the physical order of compilation serves as a proof of logical consistency.
 
 
 \subsection{\texttt{sets} Module}
@@ -1248,126 +1255,6 @@ By anchoring concepts like \texttt{IsJoinSemilattice} in these requirements (req
 To verify the integrity of the proposed mapping between formal axioms and C++ concepts, we employ a "Reverse Curry-Howard" validation strategy. Rather than simply assuming the correctness of our ontological translations, we use the inherent properties of C++ built-in types as an empirical proof of the reverse-engineered axioms. 
 
 By executing a suite of \texttt{static\_assert} evaluations on primitive types—such as verifying that \texttt{bool} satisfies the requirements of an \texttt{IsJoinSemilattice} or that bitwise operations on \texttt{uint32\_t} adhere to the \texttt{IsMereologicalLattice} consistency axioms—we confirm that the machine-level behavior is isomorphic to the formal mathematical theory. In this posture, the built-in types serve as the "Initial Models" for our concepts. If the compiler successfully verifies that a standard integer under bitwise conjunction satisfies our \texttt{IsMeetSemilattice} proof, it provides an automated, formal confirmation that our C++ concepts correctly capture the essential structural invariants found in the mathematical literature.
-
-
-\section{Implementation: The Functor Highway}
-
-The operational efficiency of \texttt{dedekind} is achieved through a technique we term \textit{Synthetic Inference}. This level represents the "Skeletal Foundation" of the ontology, where machine-level instructions are unified with the abstract laws of Category Theory. By treating the C++ type system as a formal proof assistant, we ensure structural integrity via compile-time verification, or \textit{Static Mereology}.
-
-\subsection{The Action-First Bootstrapping Strategy}
-
-In textbook Category Theory, a Monad is traditionally defined as a \textit{Monoid in the category of Endofunctors}. However, the structural implementation of this definition in C++ faces significant language constraints:
-
-\begin{enumerate}
-    \item \textbf{Partial Specialization Limitations}: C++ forbids the partial specialization of function templates (e.g., \texttt{fmap<F>}), preventing a centralized, generic definition for disparate species.
-    \item \textbf{ADL Resolution}: Function templates called via explicit name-lookup cannot trigger Argument-Dependent Lookup (ADL), making it difficult for the ontology to "discover" mappings for types defined in downstream modules.
-\end{enumerate}
-
-To resolve this circular dependency, \texttt{dedekind} implements an \textit{Action-First} bootstrapping strategy. By defining Monads and Comonads as \textit{Extension Systems} (Kleisli Triples consisting of $\eta/\varepsilon$ and $\gg=/\ll=$), we utilize operator overloading on concrete objects. This triggers ADL at the call site, allowing the Level 0 foundation to instantiate a derived \texttt{fmap} without prior knowledge of Level 1 species.
-
-\subsection{Highway Notation: Directional Vectors}
-
-To facilitate a readable "Algebra of Programming," we map categorical data flows to directional operators, creating a "Highway Notation" that reflects the vector of computation across the ontology:
-
-\begin{itemize}
-    \item \texttt{value >> into<F>} : Represents $\eta$ (Unit), lifting a species into a context.
-    \item \texttt{box << extract<F>} : Represents $\varepsilon$ (Counit), sampling a species from a context.
-    \item \texttt{box >>= f} : Represents \textit{Bind}, the forward monadic composition (Left-to-Right).
-    \item \texttt{box <<= f} : Represents \textit{Extend}, the contextual comonadic composition (Right-to-Left).
-\end{itemize}
-
-\begin{lstlisting}[caption={Example of fused Kleisli "Highway" composition via the functor law.}]
-// Convert plain lambdas into tagged endomorphisms:
-auto f = endo<int>([](int x) { return x + 1; });
-auto g = endo<int>([](int x) { return x * 2; });
-
-// Morphism composition: (h = g . f):
-auto h = f >> g;
-
-// Lifting into the Box and applying the composed morphism:
-auto result = 5 >> into<Box> >> fmap<Box>(h);
-
-CHECK(result == Box<int>{12});
-\end{lstlisting}
-
-
-\begin{lstlisting}[caption={Chain Composition (Bind / >>=)}]
-// Define two monadic arrows (Species -> Boxed Species)
-auto f = [](int x) { return pure(x + 1); };
-auto g = [](int x) { return pure(x * 2); };
-
-// Chain composition via Bind (>>=)
-// Starting with a raw value, lifting it, then chaining the monadic arrows.
-auto x = (5 >> into<Box> >>= f) >>= g;
-
-// (5 + 1) * 2 = 12, wrapped in a Box
-CHECK(x == Box<int>{12});
-
-// Verification of the Monadic Associativity Law:
-// (m >>= f) >>= g  is equivalent to  m >>= (x => f(x) >>= g)
-auto lh = (5 >> into<Box> >>= f) >>= g;
-
-auto rh = 5 >> into<Box> >>= [&](int x) { return f(x) >>= g; };
-
-CHECK(lh == rh);
-STATIC_CHECK(std::same_as<decltype(x), Box<int>>);
-\end{lstlisting}
-
-
-This mapping ensures that the "Categorical Cement" holding the "Algebraic Bricks" together is both syntactically expressive and computationally invisible.
-
-\section{Implementation: The Compile-Time Logic Engine}
-The core of \texttt{dedekind} is a recursive template evaluator that treats C++ \texttt{concepts} as logical predicates. Unlike traditional template metaprogramming that relies on SFINAE, we utilize C++23's \texttt{requires} expressions to perform "structural inspection" of types.
-
-\subsection{The Compiler as a Deterministic Proof Assistant}
-In the \texttt{dedekind} framework, the C++ compiler acts as a decidability engine for our mathematical ontology. Rather than relying on traditional class hierarchies, we use C++23 Concepts to define the structural requirements of a species. A type is not explicitly inherited from a base; instead, it is verified to be compliant with a species' \texttt{concept} through its intrinsic properties. This allows for a structuralist approach where any type—primitive or user-defined—can participate in the mereology if it satisfies the necessary algebraic invariants.
-This verification is supported by Template Specialization to define axiomatic base cases and SFINAE to prune invalid overloads. We leverage the Curiously Recurring Template Pattern (CRTP) within our internal wrappers to provide a unified interface for disparate types without the overhead of dynamic dispatch. By conducting these checks in a \texttt{constexpr} context and utilizing Move Semantics for resource management, we ensure that the "Proof" of a mathematical construction is resolved entirely at compile-time, leaving only optimized machine code.
-\begin{lstlisting}[caption={Compile-time inference of set invariants}]
-// Verifying that the intersection of disjoint sets is empty
-using Evens = dedekind::set<int, [](auto x){ return x % 2 == 0; }>;
-using Odds = dedekind::set<int, [](auto x){ return x % 2 != 0; }>;
-using Intersection = dedekind::meet_t<Evens, Odds>;
-// The compiler resolves this to the Empty Set species
-static_assert(dedekind::is_empty_v);
-static_assert(sizeof(Intersection) == 1); // No machine state required
-\end{lstlisting}
-\begin{lstlisting}[caption={The Reverse Curry-Howard Isomorphism in action}]
-// In dedekind, a valid program is a constructive proof.
-// If the 'Proof' (the type-transformation) fails, the 'Program' does not compile.
-template
-requires dedekind::is_archimedean_field_v
-auto compute_limit(T sequence) {
-return sequence.limit();
-}
-// Attempting to compute a limit on a Discrete Ring:
-// The compiler acts as a proof-assistant and rejects the invalid mathematical path.
-// Error: constraints not satisfied for 'is_archimedean_field_v'
-auto result = compute_limit(my_discrete_ring);
-\end{lstlisting}
-
-\subsection{Reifying the Set-Builder}
-To achieve the syntax \begin{equation}\mathrm{Set\{x \mathbin{\%} \mathbb{R} \wedge (x + 5 < 10)\}}\end{equation}, we introduce a \texttt{set} template that accepts a domain and a predicate. The predicate is not a function pointer, but a \textit{Stateless Constraint Type}.
-\begin{lstlisting}[caption={Example of Set-Builder realization in Dedekind}]
-import dedekind.numbers;
-import dedekind.logic;
-// Define a predicate: x is even and greater than 10
-auto P = [](auto x) {
-return (x % 2 == 0) && (x > 10);
-};
-// Materialize the set at compile-time
-using EvenGreaterTen = dedekind::set<int, P>;
-static_assert(dedekind::contains(12));
-static_assert(!dedekind::contains(7));
-\end{lstlisting}
-\subsection{The Role of C++23 Modules}
-The stratification mentioned in Section 2 is strictly enforced via the module system. By using \texttt{export module dedekind.ontology:mereology}, we ensure that the compiler can cache the "structural truths" of the system. This prevents the exponential blow-up of compile times typically associated with heavy template libraries, as the "laws" of the ontology are compiled once into binary module interfaces (BMIs)
-
-\subsection{Continuous Integration}
-%The implementation of the \textsf{dedekind} library and its associated build graph are available on GitHub.
-% Avoid self-citation due to anonymization restriction on publication: \cite{Krautler_dedekind_2026}.
-We utilize GitHub Actions to verify the project's structural integrity; each commit is checked via \texttt{static\_assert} compile-time proofs and a suite of automated tests.
-Following the tradition of property-based testing \cite{ClaessenHughes2000}, we utilize these tests as "runtime witnesses" to verify the materialization of our categorical primitives, aiming for a patch coverage threshold of 60\% or higher for all new module partitions.
-While the automation of build and test cycles is considered a 'bread-and-butter' practice in contemporary software engineering \cite{Duvall2007}, its application in the \textsf{dedekind} framework serves a specific epistemological purpose. By treating the CI pipeline as a continuous verification engine, we ensure that the categorical ontology remains decidable and physically materialized across all translation units.
 
 \section{Discussion}
 

@@ -55,7 +55,7 @@ export import :pullback;   // The Universal Construction "Sink"
 // Level 1: The Ideal (Total Algebra)
 export import :total;      
 export import :algebra_total; 
-export import :actions;    
+export import :action;    
 
 // Level 2: The Bridge (Functorial Spine)
 export import :functor;    
