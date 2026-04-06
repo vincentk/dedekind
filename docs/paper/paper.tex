@@ -465,21 +465,53 @@ static_assert(!IsMagma<int, std::plus<int>>);
 
 \subsubsection{The \texttt{:functor} partition: Mappings between Categories}
 
-Following the fractal progression of the library, the \texttt{:functor} partition reifies the algebraic laws of Level 1 to act upon the categories themselves. A Functor is treated not as a container, but as a structural morphism $F: \mathcal{C} \to \mathcal{D}$ that preserves the composition of arrows and identity mappings. 
+Following the fractal progression of the library, the \texttt{:functor} partition reifies the algebraic laws of Level 1 to act upon the categories themselves. In \texttt{dedekind}, a Functor is treated not as a container, but as a structural morphism $F: \mathcal{C} \to \mathcal{D}$ that preserves the composition of arrows and the identity of objects. By elevating the notion of mapping to a category-level operation, we allow the library to reason about transformations across different ontological domains.
 
-\textit{Guided Remark:} Document the implementation of \texttt{fmap} as a high-level dispatcher. This section should highlight how the \texttt{dedekind} dispatcher utilizes C++23 template-template parameters to ensure that functorial mapping is a zero-overhead operation, effectively "shielding" the user from the underlying machine representation while maintaining categorical rigor.
+The implementation centers on a high-level \texttt{fmap} dispatcher. Leveraging C++23 template-template parameters (e.g., \texttt{template <typename> typename F}), the dispatcher ensures that functorial mapping is a zero-overhead operation. This architecture shields the user from the underlying machine representation while maintaining strict categorical rigor. By verifying that $F(g \circ f) = F(g) \circ F(f)$ at compile-time, the compiler ensures that the structural integrity of the mathematical model remains invariant under transformation.
+
+\begin{lstlisting}[language=C++, caption={Functorial Mapping: Mappings as zero-overhead dispatchers.}, label={lst:functor_fmap}]
+/** 
+ * @brief The Functorial Dispatcher (fmap).
+ * Maps an Arrow (f: A -> B) to a lifted Arrow (F(f): F<A> -> F<B>).
+ */
+export template <template <typename> typename F, IsArrow Arrow>
+constexpr auto fmap(Arrow f) {
+    return lifted_morphism<F>(f);
+}
+
+// Verification: Functors must preserve the Identity Morphism.
+// Here, 'F' represents a generic skeletal functor.
+static_assert(PreservesIdentity<F, int>);
+\end{lstlisting}
 
 \subsubsection{The \texttt{:natural} partition: Natural Transformations}
 
-To complete the Level 2 bridge, the \texttt{:natural} partition introduces Natural Transformations—morphisms between functors. This provides the mathematical basis for "Component-wise" transformations that remain invariant under functorial mapping, satisfying the naturality square: $\alpha_Y \circ F(f) = G(f) \circ \alpha_X$.
+To complete the Level 2 bridge, the \texttt{:natural} partition introduces \textbf{Natural Transformations}—morphisms between functors. This provides the mathematical basis for ``component-wise'' transformations that remain invariant under functorial mapping, satisfying the naturality square: $\alpha_Y \circ F(f) = G(f) \circ \alpha_X$. By formalizing these mappings, the library ensures that structural changes—such as the transition from a skeletal species to an effectful one—are consistent across all objects in the category.
 
-\textit{Guided Remark:} This partition is a technical prerequisite for the \texttt{:monad} partition, as it provides the formal definition for the unit ($\eta$) and multiplication ($\mu$) transformations. Document how \texttt{dedekind} utilizes C++23 Concepts to verify the "naturality" of a transformation at compile-time, ensuring that structural mappings are consistent across different functorial contexts.
+The \texttt{:natural} partition is a strict technical prerequisite for the \texttt{:monad} partition, as it establishes the formal requirements for the unit ($\eta$) and multiplication ($\mu$) transformations. In \texttt{dedekind}, naturality is not merely a convention but a verified invariant. Leveraging C++23 Concepts, we implement the \texttt{IsNaturalTransformation} constraint to verify that a structural mapping $\alpha$ commutes with the \texttt{fmap} of its source and target functors. This verification ensures that the underlying structural integrity is maintained across different functorial contexts without ``species-leak'' or logical drift.
 
+\begin{lstlisting}[language=C++, caption={The Naturality Square: Verifying consistency between Functors.}, label={lst:natural_morphism}]
+/** 
+ * @concept IsNaturalTransformation
+ * @brief Formal verification of the naturality square.
+ */
+export template <typename Alpha, template <typename> typename F, 
+                 template <typename> typename G>
+concept IsNaturalTransformation = requires(Alpha alpha) {
+    // For any morphism f: A -> B, the following must commute:
+    // alpha<B> o fmap<F>(f) == fmap<G>(f) o alpha<A>
+    requires CommutesWithFmap<Alpha, F, G>;
+};
+
+// Skeletal unit transformation (eta): Id -> F
+export template <template <typename> typename F>
+struct UnitTransformation;
+\end{lstlisting}
 
 \subsubsection{The \texttt{:monad} partition: The \texorpdfstring{$\Omega$}{Omega}-Monad}
 While Level 1 defines absolute laws, real-world computation requires a mechanism for handling ``effectful'' transformations. Following the constructions of Kleisli~\cite{kleisli1965every} and Moggi~\cite{moggi1991notions}, we implement the \textbf{Kleisli Triple} $(\eta, \gg=)$ as the fundamental unit of composition. In the \texttt{:monad} partition, we unify the ``Rules of Presence'' from the \texttt{:logic} topos with this machinery to define the \textbf{$\Omega$-Monad}.
 
-As illustrated in Listing~\ref{lst:logic_monad}, we extract the \texttt{IsPotential} concept to create a structural isomorphism between standard C++ types and the \texttt{dedekind} \texttt{Partial<T>} container. To resolve the lack of native higher-kinded types (HKTs) in C++, we utilize an ``Action-First'' bootstrapping strategy: the \texttt{fmap} functorial mapping is derived as an \emph{epi-phenomenon} of the underlying monadic ``Push'' ($m \gg= \eta \circ f$). This ensures that any species providing a \emph{bind} operator ($\gg=$) automatically matures into a \textit{Functor} through what we term \textit{Synthetic Inference}.
+As illustrated in Listing~\ref{lst:logic_monad}, we extract the \texttt{IsPotential} concept to create a structural isomorphism between standard C++ types and the \texttt{dedekind} \texttt{Partial<T>} container. To resolve the lack of native higher-kinded types (HKTs) in C++, we utilize an ``Action-First'' bootstrapping strategy: the \texttt{fmap} functorial mapping is derived as an \emph{epi-phenomenon} of the underlying monadic ``Push'' ($m \gg= \eta \circ f$). This ensures that any species providing a \emph{bind} operator ($\gg=$) automatically matures into a \textit{Functor} through \textit{Synthetic Inference}.
 
 \begin{lstlisting}[language=C++, caption={The $\Omega$-Monad: Structural Parity and the Universal Highway.}, label={lst:logic_monad}]
 export template <typename R>
@@ -511,27 +543,19 @@ auto highway = morphism_f >> morphism_g;
 static_assert(IsKleisliArrow<decltype(highway)>);
 \end{lstlisting}
 
-
 \subsubsection{The \texttt{:partial} partition: The Pragmatic Rescue}
 
-The \texttt{:partial} partition performs the "Categorical Rescue" of species that failed the strict requirements of the \texttt{:total} domain. 
-This stage formalises the transition from the \textit{Platonic} to the \textit{Pragmatic}: the goal is to show that while the machine is "broken," it is \textbf{consistently broken}. 
-Following the informal explorations of the \textit{n-Category Caf\'{e}}~\cite{ncategorycafe} and the subsequent formalisations of the \textit{nLab} community~\cite{nlab_kleisli}, we acknowledge these consistent failures—such as the Lipschitz boundary of signed integers or the truth-holes of IEEE 754—not as errors, but as structured data.
+The \texttt{:partial} partition performs the ``Categorical Rescue'' of species that failed the strict requirements of the total domain. This stage formalises the transition from the \emph{Platonic} to the \emph{Pragmatic}: acknowledging that while hardware-level operations may be ``broken'' (e.g., via overflow or division by zero), they are \textbf{consistently broken}. Following the formalisations of the \emph{nLab} community~\cite{nlab_kleisli}, we treat these consistent failures not as exceptions, but as structured data.
 
-Following topos-theoretic foundations~\cite{mclarty1992toposes}, we treat a partial morphism $f: A \rightharpoonup B$ as a total mapping from a \textit{subobject} $S \hookrightarrow A$.
-Here, $S$ represents the \textbf{Support} defined by the characteristic function $\chi: A \to \Omega_{K3}$ provided by the \texttt{:logic} partition.
-Within this restricted domain, we can define \textit{locally total} structures, such as \textbf{Partial Groups} or \textbf{Partial Loops}.
-These structures guarantee that the "Laws of Harmony" hold strictly on the support $U = \{a \in A \mid \chi(a) = \top\}$, ensuring that even when navigating the messy reality of hardware, we remain within a rigorous algebraic landscape.
+Following topos-theoretic foundations~\cite{mclarty1992toposes}, we treat a partial morphism $f: A \rightharpoonup B$ as a total mapping from a \textit{subobject} $S \hookrightarrow A$. Here, $S$ represents the \textbf{Support} defined by the characteristic function $\chi: A \to \Omega_{K3}$ provided by the \texttt{:logic} partition. Within this restricted domain, we define \textit{locally total} structures, such as \textbf{Partial Groups} or \textbf{Partial Monoids}. These structures guarantee that the ``Laws of Harmony'' hold strictly on the support $U = \{a \in A \mid \chi(a) = \top\}$, ensuring that even when navigating the messy reality of hardware, we remain within a rigorous algebraic landscape.
 
-By reifying the \texttt{Partial<T>} "Rescue Pod" as an inhabitant of the \textbf{$\Omega$-Monad}, the library enables the composition of these partial morphisms via the universal highway established in the \texttt{:monad} partition.
-The bind operator ($\gg=$) acts as the monadic gatekeeper: it consumes the \texttt{Ternary} presence, ensuring that any "Truth-Hole" is propagated through the Kleisli chain.
-This transforms "Consistently Broken" machine behavior into a rigorous, composable algebraic flow, preventing undefined machine behavior while maintaining the structuralist integrity of the transformation pipeline.
+By reifying the \texttt{Partial<T>} ``Rescue Pod'' as an inhabitant of the $\Omega$-Monad, the library enables the composition of these partial morphisms via the universal Highway established in the \texttt{:kleisli} partition. The bind operator ($\gg=$) acts as the monadic gatekeeper: it consumes the \texttt{Ternary} presence, ensuring that any ``Truth-Hole'' is propagated through the Kleisli chain. This transforms inconsistent machine behavior into a rigorous, composable algebraic flow.
 
-\begin{lstlisting}[caption={The Kleisli Lift: Reclaiming the Lipschitz Boundary via Subobject Exclusion.}, label={lst:partial_rescue}]
+\begin{lstlisting}[language=C++, caption={The Kleisli Lift: Reclaiming the Lipschitz Boundary.}, label={lst:partial_rescue}]
 // The "Rescue": int addition is recognized as a Partial Abelian Group.
 static_assert(IsPartialAbelianGroup<int, std::plus<int>>);
 
-// Composition in the Kleisli Category:
+// Composition in the Kleisli Category via the Highway:
 auto f = partial_plus(1, 2);          // Result: 3 (True)
 auto g = partial_plus(f, INT_MAX);    // Result: Unknown (Overflow)
 auto h = partial_plus(g, 1);          // Result: Unknown (Propagation)
@@ -539,19 +563,40 @@ auto h = partial_plus(g, 1);          // Result: Unknown (Propagation)
 
 \subsubsection{The \texttt{:algebra\_partial} partition: The Generalised Reality}
 
-Following the monadic Kleisli lift, the \texttt{:algebra\_partial} partition generalizes the laws of Level 1 to handle the ``broken'' reality of hardware. Here, the strict algebraic requirements are relaxed into \textbf{Partial Monoids} and \textbf{Partial Groups}, where operations are only guaranteed to hold within a specific support $S \hookrightarrow A$.
+Following the monadic Kleisli lift, the \texttt{:algebra\_partial} partition generalizes the algebraic laws of Level 1 to handle the ``broken'' reality of hardware. In this partition, the strict requirements of absolute closure and identity are relaxed into \textbf{Partial Monoids} and \textbf{Partial Groups}. Unlike their total counterparts, these structures are only guaranteed to hold within the specific support $S \hookrightarrow A$ provided by the \texttt{:logic} and \texttt{:partial} partitions.
 
-\textit{Guided Remark:} Document the transition from absolute to local totality. This section should explain how a partial operation is verified as ``consistently broken''—ensuring that if a result is defined, it still satisfies the required algebraic laws (e.g., associativity). By reifying these partial structures, the \texttt{dedekind} dispatcher can safely propagate \texttt{Unknown} or \texttt{NaN} states through the algebraic pipeline without triggering undefined behavior.
+The core objective of this partition is to verify that a species is ``consistently broken.'' By reifying partiality through the $\Omega$-Monad, \texttt{dedekind} ensures that if a result is defined (i.e., its presence is $\top$), it must still satisfy the required algebraic identities. For instance, a \textbf{Partial Monoid} must remain associative wherever its composition is defined. This allows the library's dispatcher to safely propagate \texttt{Unknown} or \texttt{NaN} states through the algebraic pipeline without triggering undefined behavior. By enforcing these laws within the support, we ensure that the ``Laws of Harmony'' are not discarded, but are instead localized, allowing the compiler to perform structural pruning even in the presence of indeterminate data.
 
+\begin{lstlisting}[language=C++, caption={Local Totality: Verifying the Laws of Harmony on the Support.}, label={lst:algebra_partial}]
+// Verification: A Partial Monoid is associative on its support.
+export template <typename T, typename Op>
+concept IsPartialMonoid = IsPartialMagma<T, Op> && 
+                         HasLocalIdentity<T, Op> &&
+                         IsLocallyAssociative<T, Op>;
+
+// Signed integers: Total Magma (REJECTED), Partial Abelian Group (SUCCESS).
+static_assert(IsPartialAbelianGroup<int, std::plus<int>>);
+\end{lstlisting}
 
 \subsubsection{The \texttt{:numeric} partition: The Material Landing}
 
-The \texttt{:numeric} partition represents the final ``landing'' of the abstract theory back onto the hardware substrate. While the \texttt{:partial} partition establishes the general algebraic laws for inconsistent structures, the \texttt{:numeric} partition provides the specific mapping for IEEE 754 floating-point types and bounded integers. 
+The \texttt{:numeric} partition represents the final ``landing'' of the abstract theory back onto the hardware substrate. While the \texttt{:partial} and \texttt{:algebra\_partial} partitions establish the general laws for inconsistent structures, the \texttt{:numeric} partition provides the specific mapping for IEEE 754 floating-point types and bounded integers. 
 
-\textit{Guided Remark:} Focus on how the library utilizes the \texttt{Partial<T>} rescue pod to formally model the non-associative nature of \texttt{double} and the non-reflexive behavior of \texttt{NaN}. This section should document the "Safety Certificates" for specific machine species, explaining how the \texttt{dedekind} dispatcher uses these certificates to enable or disable algebraic optimizations. By anchoring these hardware-specific behaviors as first-class inhabitants of a partial monoid, we ensure that the ``messy reality'' of rounding errors and overflows is not an exception to the theory, but a verified and traceable component of the categorical flow.
+In this partition, the library utilizes the \texttt{Partial<T>} rescue pod to formally model the non-associative nature of \texttt{double} and the non-reflexive behavior of \texttt{NaN}. By anchoring these hardware-specific behaviors as first-class inhabitants of a partial monoid, we ensure that the ``messy reality'' of rounding errors and overflows is not an exception to the theory, but a verified and traceable component of the categorical flow. This is achieved through ``Safety Certificates'' for specific machine species, which allow the \texttt{dedekind} dispatcher to dynamically enable or disable algebraic optimizations (such as expression reordering) based on the material reality of the underlying type.
 
+Finally, we encounter the curious case of \textit{Numerical Species} (IEEE 754). These types are effectively categories where the subobject classifier $\Omega$ is internalized within the species itself via states such as \texttt{NaN} and \texttt{Inf}. While these structures appear to be total morphisms $\mu: \mathbb{R}_{f} \times \mathbb{R}_{f} \to \mathbb{R}_{f}$ in their machine signature, they are semantically partial. Specifically, they fail the \textbf{Equalizer} conditions required for bit-perfect associativity; the rounding error ensures that $(a+b)+c$ and $a+(b+c)$ are not generally isomorphic. This progression—from the absolute (\textit{Total}), through the filtered (\textit{Partial}), to the exceptional (\textit{Numerical})—allows us to build a rigorous ontology that respects both categorical rigor and the physical constraints of the C++ host language.
 
-Finally, we encounter the "Curious" case of \textit{Numerical Species} (IEEE 754). These types are categories where the subobject classifier $\Omega$ is internalized within the species itself (\texttt{NaN}, \texttt{Inf}). While these structures appear to be total morphisms $\mu: \mathbb{R}_{f} \times \mathbb{R}_{f} \to \mathbb{R}_{f}$ in their signature, they are semantically partial. Specifically, they fail the \textbf{Equalizer} conditions required for associativity; the rounding error ensures that $(a+b)+c$ and $a+(b+c)$ are not generally isomorphic. This progression—from the absolute (\textit{Total}), through the filtered (\textit{Partial}), to the exceptional (\textit{Numerical})—allows us to build a "strictly speaking" true ontology that respects both categorical rigor and machine-level reality.
+\begin{lstlisting}[language=C++, caption={The Numeric Landing: Verifying the IEEE 754 Partial Monoid.}, label={lst:numeric_landing}]
+// IEEE 754 Addition: Partial Abelian Group (SUCCESS).
+static_assert(IsPartialAbelianGroup<double, std::plus<double>>);
+
+// However, it is NOT a Total Monoid due to rounding error.
+static_assert(!IsTotalMonoid<double, std::plus<double>>);
+
+// Safety Certificate: Disables reassociation for floating-point.
+static_assert(!is_associative_v<double, std::plus<double>>);
+\end{lstlisting}
+
 
 \subsubsection{The \texttt{:mereology} partition: The Language of Parts}
 
