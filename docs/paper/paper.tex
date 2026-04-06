@@ -197,8 +197,33 @@ Together, these features bridge the gap between the declarative ease of symbolic
 The methodology of \texttt{dedekind} is predicated on the translation of formal mathematical structures into a stratified registry of C++23 modules. This stratification allows for a "bottom-up" synthesis of complex mathematical objects, where each level serves as a verified foundation for the next.
 By design, the flow of compilation mirrors a pedagogical progression: foundational, general-purpose modules are verified first, providing an immutable basis for the specialized and practical abstractions that follow.
 
+\begin{table}[ht]
+\centering
+\caption{The Dedekind Atomic Floor: Primary Formal Correspondences}
+\label{table:dedekind_floor}
+\begin{tabular}{lll}
+\toprule
+\textbf{Mathematical Concept} & \textbf{C++23 Implementation} & \textbf{Structural \texttt{concept}} \\ 
+\midrule
+\textit{Morphic Foundations} & & \\
+Morphism ($f: A \to B$) & \texttt{std::invoke\_result\_t} & \texttt{IsArrow} \\
+Terminal Object ($1$) & \texttt{std::monostate} & \texttt{IsTerminalObject} \\
+Initial Object ($0$) & \texttt{std::nullptr\_t} & \texttt{IsInitialObject} \\
+\addlinespace
+\textit{Structural Relations} & & \\
+Parthood ($\sqsubseteq$) & \texttt{operator<=} & \texttt{IsPartOf} \\
+Subobject Classifier ($\Omega$) & \texttt{enum class Omega} & \texttt{LogicalSpecies} \\
+\addlinespace
+\textit{Universal Constructions} & & \\
+Product ($A \times B$) & \texttt{std::pair} & \texttt{IsProduct} \\
+Coproduct ($A + B$) & \texttt{std::variant} & \texttt{IsCoproduct} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
 \subsection{Instrumented Model Validation: The CI Pipeline as an Independent Auditor}
 While formal verification in languages like Agda or Coq typically relies on static type-level proofs that are erased during compilation, the \texttt{dedekind} framework adopts a methodology of \emph{Instrumented Model Validation}. By leveraging the LLVM profiling infrastructure, we provide an empirical \emph{Runtime Witness} for our categorical primitives. 
+
 
 This approach serves as a deterministic evolution of the property-based testing tradition pioneered by \textsc{QuickCheck} \cite{ClaessenHughes2000}.
 Where \textsc{QuickCheck} utilizes stochastic search to falsify algebraic properties in Haskell, \texttt{dedekind} utilizes the CI/CD pipeline, which exercises \texttt{static\_assert} (evaluated at compile-time) combined with \texttt{Catch2} tests (executed after unit compilation) to ensure that every structural identity is physically materialized in the binary. By enforcing high levels of patch coverage on new ontological partitions, we provide a "Physical Proof" in the form of \emph{Binary Module Interface} (BMI) files that the abstract category theory—often treated as a ghost in the machine—is actually traversed by the hardware.
@@ -238,21 +263,43 @@ While functional languages like Haskell are often viewed as the natural home for
 By applying \texttt{static\_assert} against structural concepts, we transform the compilation process into a formal verification phase. This provides the \texttt{LLVM} toolchain with the semantic context required for ``structural pruning'': by hoisting mereological relations into the type signature, the backend can identify logical contradictions—such as an empty set defined by contradictory predicates—and prune them into zero-overhead machine instructions. This ``correctness-by-construction'' methodology ensures that the structural integrity of the mathematical model is verified and optimized before the final binary is generated.
 
 \subsubsection{Ontological Decidability and the Build Graph}
-To mitigate the ``template tax'' and ensure the practical decidability of the ontology, we utilize a strictly enforced build graph (see Figure \ref{fig:build_graph}). This DAG mirrors the formal structure of a mathematical proof: \textit{Axiom} $\rightarrow$ \textit{Theorem} $\rightarrow$ \textit{Proof}. While the underlying mathematical nature of certain propositions remains inherently undecidable, \texttt{dedekind} provides structural guardrails by isolating foundational axioms into the \texttt{:mereology} partition. The resulting BMI acts as the ``cached truth'' established in the previous section.
+To mitigate the ``template tax'' and ensure the practical decidability of the ontology, we utilize a directed acyclic build graph (see Figure \ref{fig:dedekind_module_dependencies}).
+This directed acyclic graph mirrors the formal structure of a mathematical proof: \textit{Axiom} $\rightarrow$ \textit{Theorem} $\rightarrow$ \textit{Proof}.
+While the underlying mathematical nature of certain propositions remains inherently undecidable, \texttt{dedekind} provides structural guardrails by isolating foundational axioms into up-stream module partitions.
+The resulting BMI acts as the ``cached truth'' established in the previous section.
 
-This physical stratification prohibits circular reasoning at the compiler level; a partition can only reference previously verified properties. Subsequent partitions, such as \texttt{:algebra}, import these BMIs as established lemmas, allowing the compiler to focus on the synthesis of higher-order laws without the risk of recursive definition or redundant re-instantiation. While the module graph serves as an external meta-logical constraint ensuring build-time termination, we later introduce a pluggable \textit{Subobject Classifier} ($\Omega$) in the \texttt{:logic} partition (see Section \ref{sec:algebraic_logic}). This internalizes the notion of undecidability within the C++ type system itself through a Kleene ternary logic, allowing the library to explicitly represent and propagate indeterminate states without compromising the integrity of the broader derivation.
-
+This physical stratification prohibits circular reasoning at the compiler level as a partition can only reference a \texttt{concept} which was previously defined.
+Subsequent partitions then import these BMIs as established, immutable lemmata, allowing the compiler to focus on the synthesis of higher-order laws with a greatly reduced risk of recursive definition or redundant re-instantiation.
+While the module graph serves as an external meta-logical constraint ensuring build-time termination, we later introduce a pluggable \textit{Subobject Classifier} ($\Omega$) in the \ref{sec:algebraic_logic} section which internalizes the notion of undecidability within the C++ type system itself.
 
 \begin{figure}[ht]
-    \centering
-    % This will now pull the PDF generated by your Makefile
-    \includegraphics[width=0.8\textwidth]{figures/dedekind_deps.pdf}
-    \caption{The Ontological Build Graph: Automated dependency resolution.}
-    \label{fig:build_graph}
+\label{fig:dedekind_module_dependencies}
+\centering
+\begin{tikzpicture}[
+    node distance=1.2cm and 1.8cm,
+    module/.style={rectangle, draw=black, fill=blue!5, thick, minimum width=3.2cm, minimum height=0.8cm, font=\ttfamily},
+    arrow/.style={-Stealth, thick}
+]
+    % Global Module Hierarchy
+    \node[module] (cat) {dedekind.category};
+    \node[module, right=of cat] (sets) {dedekind.sets};
+    \node[module, right=of sets] (seq) {dedekind.sequences};
+    \node[module, below=of sets] (alg) {dedekind.algebra};
+
+    % Dependencies
+    \draw[arrow] (cat) -- (sets);
+    \draw[arrow] (sets) -- (seq);
+    \draw[arrow] (cat) |- (alg);
+    \draw[arrow] (sets) -- (alg);
+
+    \node[below=0.1cm of cat, font=\scriptsize\itshape] {Axiomatic Primitives};
+    \node[below=0.1cm of sets, font=\scriptsize\itshape] {ETCS / Set-Builder};
+    \node[below=0.1cm of seq, font=\scriptsize\itshape] {Continuum / Limits};
+\end{tikzpicture}
+\caption{Module build dependencies in the \texttt{dedekind} library.}
 \end{figure}
 
-For the remainder of the implementation section, we follow the strictly enforced build order of the system.
-We will annotate and document the specific modules and partitions as they are defined and validated, beginning with the foundational partitions of the \texttt{dedekind.category} module. 
+For the remainder of the implementation section, we simply follow build order of the system. We will annotate and document the specific modules and partitions as they are defined and validated, beginning with the foundational internal partitions of the \texttt{dedekind.category} module.
 
 In this approach, the structure of the paper is intended to be isomorphic to the CI/CD pipeline: the text serves as a formal documentation of the build, while the build, in turn, provides a physical validation of the claims made within the paper.
 By the time the reader reaches the final sections, the library's 'textbook' derivation will have been fully materialized as a verified C++ library object traversed by the underlying hardware.
@@ -260,11 +307,13 @@ By the time the reader reaches the final sections, the library's 'textbook' deri
 
 \subsection{Level 0: The Algebraic Atlas (\texttt{dedekind.category})}
 
-The methodology of \texttt{dedekind} is predicated on the translation of formal mathematical structures into a stratified registry of C++23 modules. 
-This stratification allows for a "bottom-up" synthesis of complex mathematical objects, where each level serves as a verified foundation for the next. 
-The intention is that the flow of compilation mirrors the order in which objects are introduced in a formal textbook: foundational mereological axioms are isolated into the \texttt{:mereology} partition, which produces a Binary Module Interface (BMI) that acts as a "cached truth."
+While the global build graph establishes the dependency between C++ modules, the \texttt{dedekind.category} module constitutes the system's "Atomic Floor."
+To maintain absolute linear order, this module is itself stratified into internal partitions.
+These partitions represent the maturation of mathematical species from raw mappings (\texttt{:morphisms}) to structured universes (\texttt{:logic}).
+
 
 \begin{figure}[ht]
+\label{category_partitions_dependencies}
 \centering
 \begin{tikzpicture}[
     node distance=1.1cm and 0.6cm,
@@ -463,6 +512,21 @@ auto logic_gate = [](int x) -> bool { return x > 0; };
 static_assert(IsArrow<decltype(logic_gate), int>, 
               "Morphism Validated: The Atom of Composability is discovered.");
 \end{lstlisting}
+
+\subsection{The :morphisms partition: The Skeletal Arrow}
+
+Following the mapping established in Table \ref{table:dedekind_floor}, the \texttt{:morphisms} partition reifies C++ callables as formal arrows $f: A \to B$. The core mechanism of this partition is \textbf{Signature Discovery}, which utilizes \texttt{std::invoke\_result\_t} and variadic template metaprogramming to extract domain and codomain metadata directly from the type system \cite{cukic2018functional, milewski2019category}.
+
+\begin{lstlisting}[language=C++, caption={The Morphic Reification Hook (Compressed).}]
+template <typename F, typename... Args>
+concept IsArrow = requires {
+    typename std::invoke_result_t<F, Args...>; // Codomain exists
+    requires sizeof...(Args) > 0;              // Domain is non-empty
+};
+\end{lstlisting}
+
+This ``Atomic Arrow'' serves as the fundamental unit from which all higher-level categorical structures are synthesized. By elevating the function object from an opaque procedural block to a structural entity, the library enables the compiler to reason about the composition and validity of transformations before any machine instructions are emitted.
+
 
 \subsubsection{The \texttt{:mereology} partition: The Language of Parts}
 
