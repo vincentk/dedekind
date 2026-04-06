@@ -79,6 +79,8 @@ Furthermore, we show how hoisting logical invariants into type signatures allows
 This work illustrates that integrating formal mathematical rigor into systems programming can yield zero-overhead abstractions suitable for high-performance symbolic computing.
 \end{abstract}
 
+\tableofcontents
+
 \section{Introduction}
 \label{sec:introduction}
 
@@ -208,9 +210,29 @@ This methodology is physically enforced by a strictly layered directed acyclic g
 By carefully selecting C++ module partitions and build-step boundaries, we translate the dependencies of formal mathematics into a sequence of verified compilation units. This architecture mimics the pedagogical progression of a mathematical textbook, where the ontology matures from foundational axioms to complex theorems through a series of verified proofs. By isolating these prerequisites into a `category` module, we leverage what Wadler termed "Theorems for Free!" \cite{wadler1989theorems}: once a structural identity is established and cached as a Binary Module Interface (BMI), its properties are inherited by all downstream partitions as an immutable "cached truth." This ensures that the compiler's proof-search is grounded in a physical hierarchy, preventing circular reasoning and ensuring that the structural integrity of the model is a prerequisite for successful linking. Crucially, the CI/CD methodology provides an independent, physical verification of this progression; by requiring every node in the build graph to pass its respective model validation before the pipeline can proceed, we ensure that the "textbook" derivation is not merely a logical possibility, but a materialized reality across the entire module graph.
 
 \subsubsection{Nominal vs. Structural Subtyping}
-Traditional object-oriented systems typically rely on \textit{nominal subtyping}, where a type $T$ is recognized as belonging to a category $C$ only through explicit inheritance declarations (e.g., \texttt{class T : public Monoid}). In contrast, \texttt{dedekind} adopts a structural type theory. This alignment mirrors the mathematical structuralism advocated by Awodey \cite{awodey2004structuralism}, where mathematical objects are defined not by an internal ``essence'' but by their roles and relations within a category. 
+Traditional object-oriented systems typically rely on \textit{nominal subtyping}, where a type $T$ is recognized as belonging to a category $C$ only through explicit inheritance declarations (e.g., \texttt{class T : public Monoid}). In this "Capulet/Montague" paradigm, a type is rejected if it lacks the correct "family name," regardless of its actual properties. 
+
+In contrast, \texttt{dedekind} adopts a structural type theory. This alignment mirrors the mathematical structuralism advocated by Awodey \cite{7}, where mathematical objects are defined not by an internal "essence" but by their roles and relations within a category. As famously noted by Shakespeare, "a rose by any other name would smell as sweet" \cite{shakespeare1597romeo}. In \texttt{dedekind}, we codify this by prioritizing the "scent" (structural invariants) over the "lineage" (nominal inheritance), as illustrated in Listing \ref{lst:juliet}.
+
+\begin{lstlisting}[language=C++, caption={The "Juliet" Posture: Nominal vs. Structural Typing in C++23.}, label={lst:juliet}]
+// Nominal: The "Feudal" approach (Inheritance-based)
+struct Flower { virtual bool smells_sweet() const = 0; };
+struct Rose : public Flower { 
+    bool smells_sweet() const override { return true; } 
+};
+
+// Structural: The "Juliet" approach (Concept-based)
+template <typename T>
+concept SmellsSweet = requires(T t) {
+    { t.scent() } -> std::same_as<Sweetness>;
+};
+
+// In dedekind, even a 'Briar' is a 'Rose' if it satisfies the scent invariant.
+static_assert(SmellsSweet<Briar>, "A rose by any other name...");
+\end{lstlisting}
 
 Leveraging C++20/23 Concepts, types are treated as mathematical objects defined entirely by their interface and satisfied invariants. A type $T$ is identified as a \texttt{MonoidalCategory} if it possesses the required algebraic morphisms ($\otimes, e$); its internal name and declaration lineage are irrelevant to the compiler's logical resolution.
+
 
 \subsubsection{The Compiler as a Verification and Optimization Engine}
 While functional languages like Haskell are often viewed as the natural home for Category Theory, Milewski \cite{milewski2019category} demonstrated that C++ is equally capable of modeling complex categorical morphisms. \texttt{dedekind} builds upon this bridge by utilizing C++23 features to move from mere simulation to compile-time verification. 
@@ -655,26 +677,6 @@ The \texttt{:limit} partition defines the logical boundaries of the category: th
 This abstraction allows for the formal definition of ``elements'' as morphisms from the terminal object ($1 \to X$). In \texttt{dedekind}, a constant value is not a static literal, but a \textit{global element}—a mapping that selects a specific inhabitant of a species. Dually, the Initial object ($0$) represents the absolute annihilator; a morphism from the initial object $0 \to X$ is the categorical equivalent of an unreachable code path. By anchoring these boundaries early in the build graph, we provide the formal basis for the \texttt{:etcs} partition to reason about set membership as a structural relation.
 
 \begin{lstlisting}[language=C++, caption={The Boundary Objects: Reifying 0 and 1 in C++23.}, label={lst:limit_boundaries}]
-// The Terminal Object (1): Pure existence.
-using One = std::monostate;
-static_assert(IsTerminalObject<One>);
-
-// Defining a "Global Element" as a Morphism 1 -> X
-auto five = Morphism<One, int>([](One) { return 5; });
-static_assert(IsArrow<decltype(five), One, int>);
-
-// Initial Object (0): The unreachable annihilator.
-using Zero = std::nullptr_t; // Or a dedicated empty type
-static_assert(IsInitialObject<Zero>);
-\end{lstlisting}
-
-\subsubsection{Boundary Objects (\texttt{:limit})}
-
-The \texttt{:limit} partition defines the logical boundaries of the category: the \textbf{Initial} ($0$) and \textbf{Terminal} ($1$) objects. Following the structuralist approach advocated by Lawvere~\cite{lawvere1964etcs}, these are defined not by their internal contents, but by the existence of unique morphisms to or from these boundaries. In the C++23 context, we reify the Terminal object as \texttt{std::monostate} (or a unit type), representing a state of pure existence without information.
-
-This abstraction allows for the formal definition of ``elements'' as morphisms from the terminal object ($1 \to X$). In \texttt{dedekind}, a constant value is not a static literal, but a \textit{global element}—a mapping that selects a specific inhabitant of a species. Dually, the Initial object ($0$) represents the absolute annihilator; a morphism from the initial object $0 \to X$ is the categorical equivalent of an unreachable code path. By anchoring these boundaries early in the build graph, we provide the formal basis for the \texttt{:etcs} partition to reason about set membership as a structural relation.
-
-\begin{lstlisting}[language=C++, caption={The Boundary Objects: Reifying 0 and 1 in C++23.}, label={lst:limit_boundaries}]
 /** @brief The Terminal Object (1): Pure existence. */
 using One = std::monostate;
 static_assert(IsTerminalObject<One>);
@@ -709,10 +711,28 @@ using Eq = Equalizer<f, g>;
 static_assert(IsLimit<Eq>);
 \end{lstlisting}
 
+\subsection{Level 1: Space and Action (\texttt{dedekind.category})}
+
+The transition from Level 0 to Level 1 represents the "Maturation of Species." Following the Polish School of Logic as articulated by Ajdukiewicz \cite{ajdukiewicz1985jezyk}, we treat mathematical structures as active apparatuses—or conceptual orientations—that determine the image of the computational world. This aligns with the restriction category approach \cite{cockett2002restriction}, where totality is not a default state but a property verified against a specific subobject support.
 
 \subsubsection{The \texttt{:total} partition: The Property of Totality}
 
-Before algebraic structures can be synthesized, the \texttt{:total} partition formalizes the property of \emph{Morphic Totality}. In the ``Platonic'' domain of our ontology, we define the category $\mathcal{C}$ of \textbf{Total Species}, where every morphism $f: A \to B$ is verified to be defined across its entire domain. Following the \textit{Polish School of Logic}~\cite{ajdukiewicz1985jezyk}, this totality is treated as an absolute invariant. By establishing the signature of total endomorphisms ($\mu: X \times X \to X$), we provide the skeletal requirement for the harmonic laws that follow. This approach aligns with the \textit{Elementary Theory of the Category of Sets} (ETCS) as proposed by Lawvere~\cite{lawvere1964etcs, lawvere2005elementary}, where types are defined by their morphisms rather than their internal elements~\cite{mclarty1993numbers}.
+The \texttt{:total} partition formalizes \emph{Morphic Totality}. In our ontology, a morphism $f: A \to B$ is verified as a \texttt{TotalMorphism} only if it is defined across its entire domain without triggering a subobject exclusion (e.g., overflow or division by zero).
+
+\begin{lstlisting}[language=C++, caption={Totality Verification and the Total Morphism wrapper.}, label={lst:totality}]
+/** @brief Formal verification that a morphism is defined for the entire species. */
+export template <typename F, typename A, typename B>
+concept IsTotalArrow = IsArrow<F, A, B> && requires(F f, A x) {
+  // Totality check: The SubobjectClassifier must return 'True'
+  requires std::same_as<typename SubobjectClassifier<A>::Omega, bool>;
+  { SubobjectClassifier<A>::evaluate_total(x) } -> std::same_as<bool>;
+};
+
+export template <IsSpecies A, IsSpecies B, typename Func>
+struct TotalMorphism : Morphism<A, B, Func> {
+  static_assert(IsTotalArrow<Func, A, B>, "Totality Error: Function is not total.");
+};
+\end{lstlisting}
 
 \subsubsection{The \texttt{:algebra\_total} partition: The Laws of Harmony}
 
