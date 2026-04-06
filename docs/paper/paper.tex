@@ -378,7 +378,14 @@ static constexpr Omega evaluate_arithmetic(T a, T b, Op op) {
 
 The \texttt{:morphisms} partition establishes the primary inhabitant of the \texttt{dedekind} topos: the \textbf{Arrow} (or Morphism). While traditional C++ development treats functions as opaque executable blocks, this partition reifies them as formal mappings $f: A \to B$ equipped with domain and codomain metadata.
 
-\textit{Guided Remark:} Focus on the definition of the \texttt{Morphism} structure and the \texttt{IsArrow} concept. This section should explain how we utilize C++23 \texttt{std::invoke\_result} to perform "Signature Discovery," allowing the library to automatically categorize raw lambdas and function pointers. By establishing this skeletal signature early, we provide the "connective tissue" for the algebraic structures in Level 1 and the functorial lift in Level 2. Document how the \texttt{static\_assert} checks in this partition verify that a mapping is well-formed before it can be used as a "Taxonomic Brick" in the broader ontology.
+\textit{Guided Remark:} Focus on the definition of the \texttt{Morphism} structure and the \texttt{IsArrow} concept. This section should explain how we utilize C++23 \texttt{std::invoke\_result\_t} to perform "Signature Discovery," allowing the library to automatically categorize raw lambdas and function pointers. By establishing this skeletal signature early, we provide the "connective tissue" for the algebraic structures in Level 1 and the functorial lift in Level 2. Document how the \texttt{static\_assert} checks in this partition verify that a mapping is well-formed before it can be used as a "Taxonomic Brick" in the broader ontology.
+
+\subsubsection{Universal Products and Coproducts (\texttt{:cartesian})}
+To support multi-variable transformations and formal choice, the \texttt{:cartesian} partition reifies \texttt{std::pair} and \texttt{std::variant} through their universal properties: the existence of unique projections for products ($\times$) and injections for coproducts ($+$). This provides the structural basis for binary algebraic operations and branching logic, ensuring that the ``Rules of Both'' and the ``Rules of Choice'' are verified as categorical invariants.
+
+\subsubsection{Boundary Objects (\texttt{:limit})}
+The \texttt{:limit} partition defines the logical boundaries of the category: the \textbf{Initial} (0) and \textbf{Terminal} (1) objects. Following the structuralist approach, these are defined by the existence of unique morphisms to or from these boundaries. This allows for the formal definition of ``elements'' as morphisms from the terminal object ($1 \to X$), anchoring the abstract theory in a verifiable framework before the realization of set-theoretic modules.
+
 
 \subsubsection{The \texttt{:total} partition: The Laws of Harmony}
 

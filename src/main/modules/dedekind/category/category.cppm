@@ -43,6 +43,8 @@ export module dedekind.category;
 export import :species;    // Machine Atoms (int, double, bool)
 export import :logic;      // The Subobject Classifier (Omega)
 export import :morphisms;  // The Base Arrow Signature (f: A -> B)
+export import :cartesian;  // Products/Coproducts (Binary)
+export import :limit;     // Initial/Terminal (Empty)
 
 // Level 1: The Ideal (Total)
 export import :total;      // Total Morphisms and Endomorphisms
