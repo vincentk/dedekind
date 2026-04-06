@@ -610,16 +610,38 @@ static_assert(IsSmallCategory<CPlusPlusTypeCategory>);
 
 \subsubsection{Universal Products and Coproducts (\texttt{:cartesian})}
 
-To support multi-variable transformations and formal choice, the \texttt{:cartesian} partition reifies \texttt{std::pair} and \texttt{std::variant} through their universal properties. In the \texttt{dedekind} topos, a \textbf{Product} ($A \times B$) is not merely a data container, but a structural requirement for the existence of unique projections $\pi_1$ and $\pi_2$. By mapping the categorical product to \texttt{std::pair}, we establish the formal basis for binary algebraic operations—modeled as morphisms of the form $X \times X \to X$—ensuring that the ``Rules of Both'' are verified as categorical invariants.
+To support multi-variable transformations and formal choice, the \texttt{:cartesian} partition reifies \texttt{std::pair} and \texttt{std::variant} through their universal properties. In the \texttt{dedekind} topos, a \textbf{Product} ($A \times B$) is not merely a passive data container, but a structural requirement for the existence of unique projections $\pi_1$ and $\pi_2$. By mapping the categorical product to \texttt{std::pair}, we establish the formal basis for binary algebraic operations—modeled as morphisms of the form $X \times X \to X$—ensuring that the ``Rules of Both'' are verified as categorical invariants.
 
-Dually, the \textbf{Coproduct} ($A + B$) is reified through \texttt{std::variant}, representing the ``Rules of Choice.'' This allows for the categorical modeling of branching logic: a morphism out of a coproduct $f: A + B \to C$ is uniquely determined by a pair of morphisms $(f_A: A \to C, f_B: B \to C)$. By anchoring these universal constructions in the standard library's vocabulary, the library enables the \texttt{:algebra\_total} partition to define complex signatures while maintaining the zero-overhead performance of C++ machine types.
+Dually, the \textbf{Coproduct} ($A + B$) is reified through \texttt{std::variant}, representing the ``Rules of Choice.'' This allows for the categorical modeling of branching logic: a morphism out of a coproduct $f: A + B \to C$ is uniquely determined by a pair of morphisms $(f_A: A \to C, f_B: B \to C)$ via the mediator. By anchoring these universal constructions in the standard library's vocabulary, the library enables the \texttt{:algebra\_total} partition to define complex signatures while maintaining the zero-overhead performance of C++ machine types.
 
 \begin{lstlisting}[language=C++, caption={The Universal Bridge: Mapping Products and Coproducts to C++ Primitives.}, label={lst:cartesian_bridge}]
+/** 
+ * @brief Categorical Product Verification: 
+ * Ensures T satisfies universal projection properties for A and B.
+ */
+template <typename T, typename A, typename B>
+concept IsProduct = requires(T product) {
+    { project<0>(product) } -> std::same_as<A>;
+    { project<1>(product) } -> std::same_as<B>;
+};
+
 // Verification of the Categorical Product (std::pair)
-static_assert(IsProduct<std::pair<int, int>, int, int>);
+static_assert(IsProduct<std::pair<int, int>, int, int>, 
+              "Verified: std::pair is a valid Categorical Product.");
+
+/** 
+ * @brief Categorical Coproduct Verification: 
+ * Ensures T satisfies the Rule of Choice (Injectors).
+ */
+template <typename T, typename A, typename B>
+concept IsCoproduct = requires(A a, B b) {
+    { inject<A>(a) } -> std::same_as<T>;
+    { inject<B>(b) } -> std::same_as<T>;
+};
 
 // Verification of the Categorical Coproduct (std::variant)
-static_assert(IsCoproduct<std::variant<int, bool>, int, bool>);
+static_assert(IsCoproduct<std::variant<int, bool>, int, bool>,
+              "Verified: std::variant is a valid Categorical Coproduct.");
 
 // Binary Morphism Signature: X * X -> X
 using Addition = Morphism<std::pair<int, int>, int, std::plus<int>>;
