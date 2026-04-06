@@ -417,23 +417,32 @@ The core objective is to anchor the C++ type system as a substrate for modeling 
 
 \subsubsection{The \texttt{:morphisms} partition: The Skeletal Arrow}
 
-The \texttt{:morphisms} partition establishes the primary inhabitant of the \texttt{dedekind} topos: the \textbf{Arrow} (or Morphism). While traditional C++ development treats functions as opaque, executable blocks, this partition reifies them as formal mappings $f: A \to B$ equipped with domain and codomain metadata. By elevating the function object into a structural entity, we move from the procedural "how" to the categorical "what," enabling the library to reason about the composition and validity of transformations at compile-time.
+The \texttt{:morphisms} partition establishes the primary inhabitant of the \texttt{dedekind} topos: the \textbf{Arrow} (or Morphism). While traditional C++ development treats functions as opaque, executable blocks, this partition reifies them as formal mappings $f: A \to B$. **In this ontology, the Morphism serves as the "Atom of Composability"**---the fundamental unit from which all higher-level categorical structures are synthesized. By elevating the function object from a procedural instruction to a structural entity, we enable the library to reason about the composition and validity of transformations at compile-time, a strategy central to modern functional C++ architectures \cite{cukic2018functional, milewski2019category}.
 
-A core mechanism of this partition is \emph{Signature Discovery}. Utilizing C++23 \texttt{std::invoke\_result\_t} and \texttt{template} metaprogramming, the library automatically extracts the domain and codomain of raw lambdas, function pointers, and functors, registering them into the categorical atlas without intrusive boilerplate. This metadata acts as the ``connective tissue'' for the algebraic structures in Level 1 and the functorial lift in Level 2. By applying \texttt{static\_assert} against the \texttt{IsArrow} concept, we ensure that every mapping is well-formed—possessing a verifiable signature—before it can be used as a taxonomic brick in the broader ontology.
+A core mechanism of this partition is \textbf{Signature Discovery}. Utilizing C++23 \texttt{std::invoke\_result\_t} and variadic template metaprogramming, the library automatically extracts the domain and codomain of raw lambdas, function pointers, and functors. This reification process registers the callable into the categorical atlas as a first-class inhabitant, providing the "connective tissue" required for the algebraic structures in Level 1 and the functorial lifting in Level 2. 
 
-\begin{lstlisting}[language=C++, caption={Signature Discovery and the Morphic Metadata.}, label={lst:morphism_discovery}]
-// Automatic inference of f: Domain -> Codomain
+As shown in Listing~\ref{lst:morphism_discovery}, the \texttt{IsArrow} concept acts as a formal gatekeeper. It ensures that every mapping is well-formed---possessing a verifiable signature and satisfying the axioms of a morphism---before it can be used as a taxonomic brick in the broader structural hierarchy \cite{mclarty1992toposes}.
+
+\begin{lstlisting}[language=C++, caption={The Atom of Composability: Morphic Reification.}, label={lst:morphism_discovery}]
+/** @brief Automatic inference of Morphism metadata f: Domain -> Codomain */
 template <typename F, typename... Args>
-struct infer_morphism {
-  using Domain = std::tuple_element_t<0, std::tuple<Args...>>;
+struct SpeciesTraits<F, Args...> {
+  using Domain   = std::tuple_element_t<0, std::tuple<Args...>>;
   using Codomain = std::invoke_result_t<F, Args...>;
+  static constexpr bool is_morphism = true;
 };
 
-// Reification of a raw lambda into a formal Arrow
-auto logic_gate = [](int x) -> bool { return x > 0; };
-static_assert(IsArrow<decltype(logic_gate), int, bool>);
-\end{lstlisting}
+/** @brief Concept enforcing the integrity of the Skeletal Arrow */
+template <typename F, typename... Args>
+concept IsArrow = SpeciesTraits<F, Args...>::is_morphism && 
+                  requires { typename SpeciesTraits<F, Args...>::Codomain; };
 
+// Reification of a raw lambda into an 'Atomic Arrow'
+auto logic_gate = [](int x) -> bool { return x > 0; };
+
+static_assert(IsArrow<decltype(logic_gate), int>, 
+              "Morphism Validated: The Atom of Composability is discovered.");
+\end{lstlisting}
 
 \subsubsection{The \texttt{:mereology} partition: The Language of Parts}
 
