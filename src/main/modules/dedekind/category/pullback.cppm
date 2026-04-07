@@ -36,39 +36,39 @@ export module dedekind.category:pullback;
 import :limit;
 
 namespace dedekind::category {
-
 /**
- * @concept IsPosetal
- * @brief A Category where morphisms are governed by a specific Logic Species
- * (Ω).
+ * @concept IsPullback
+ * @brief The universal construction of the pullback (fiber product).
+ * @details Given morphisms f: X -> Z and g: Y -> Z, a pullback is an object P
+ *          along with morphisms p1: P -> X and p2: P -> Y such that f ∘ p1 =
+ *          g ∘ p2, and for any other object Q with morphisms q1: Q -> X and
+ *          q2: Q -> Y satisfying the same commutativity, there exists a unique
+ *          morphism u: Q -> P making the entire diagram commute.
  *
- * This definition reifies the Poset as a skeletal category over a Topos L.
- * By default, it assumes Classical (Boolean) logic, but it can be
- * parameterized to support intuitionistic or fuzzy relations.
- *
- * @tparam T   The Domain (Objects).
- * @tparam Rel The Relation (Morphisms).
- * @tparam L   The Logic Species (The Subobject Classifier).
+ * @tparam P  The candidate pullback object.
+ * @tparam Z  The codomain of both f and g.
+ * @tparam f  The morphism from X to Z.
+ * @tparam g  The morphism from Y to Z.
  */
-export template <typename T, typename Rel, typename L = ClassicalLogic>
-concept IsPosetal = IsPartRelation<Rel, T> && requires(Rel rel, T a, T b) {
-  // The relation must yield a result from the logical classifier
-  { rel(a, b) } -> std::same_as<typename L::type>;
-};
+export template <typename P, typename f, typename g>
+concept IsPullback = IsArrow<f> && IsArrow<g> &&
+                     std::same_as<typename f::Codomain, typename g::Codomain> &&
+                     requires(P p, typename f::Domain x, typename g::Domain y) {
+                       // The pullback must provide morphisms to X and Y
+                       { p.p1(x) } -> std::same_as<typename f::Domain>;
+                       { p.p2(y) } -> std::same_as<typename g::Domain>;
 
-/**
- * @section Structural_Pruning
- * Utility to verify categorical transitivity at compile-time.
- */
-export template <typename T, typename Rel>
-  requires IsPosetal<T, Rel>
-constexpr auto check_path(T a, T b, T c) {
-  if constexpr (Rel{}(a, b) && Rel{}(b, c)) {
-    // In a Poset, the path A -> C is a structural certainty.
-    static_assert(Rel{}(a, c), "Categorical Transitivity Violation!");
-    return true;
-  }
-  return false;
-}
+                       // The pullback must satisfy the commutativity condition:
+                       // f ∘ p1 = g ∘ p2
+                       requires(f(p.p1(x)) == g(p.p2(y)));
+
+                       // For any other object Q with morphisms q1: Q -> X and
+                       // q2: Q -> Y satisfying the same commutativity, there
+                       // must exist a unique morphism u: Q -> P.
+                       requires requires(typename P::Domain q) {
+                         { p.u(q) } -> std::same_as<P>;
+                         requires(f(p.p1(q)) == g(p.p2(q)));
+                       };
+                     };
 
 }  // namespace dedekind::category
