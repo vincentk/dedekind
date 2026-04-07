@@ -19,19 +19,18 @@
  * (morphisms) rather than traditional object-oriented hierarchies.
  *
  * @section Fractal_Build_Order
- * To manage the "template tax" and ensure ontological decidability, the
- * implementation follows a fractal progression across a Directed Acyclic
- * Graph (DAG) of module partitions:
- *
- * 1.  ATOMS (:species, :logic, :morphisms): Reification of machine primitives
- *     and the Subobject Classifier (Ω).
- * 2.  IDEALS (:total, :algebra_total): Defining the pure laws of total algebra.
- * 3.  BRIDGE (:functorial, :kleisli): Reifying algebraic laws as functors to
- *     enable the Monadic Kleisli lift.
- * 4.  REALITY (:partial, :algebra_partial, :numeric): Reconciling the theory
- *     with hardware-level indeterminacy and IEEE 754.
- * 5.  SIGNATURES (:mereology, :etcs): Establishing the skeletal vocabulary
- *     for the high-level ontologies of Parthood and Sets.
+ * 0.   ATOMS (:species, :morphism, :mereology, :logic): Reification of machine
+ *      primitives, the Skeletal Arrow, and the grounding of Truth via Parthood.
+ * 0.5  INFRASTRUCTURE (:posetal, :small, :cartesian, :limit, :pullback):
+ *      The universal category-theoretic constructions.
+ * 1.   IDEALS (:total, :algebra_total, :action): The pure laws of total
+ algebra.
+ * 2.   BRIDGE (:functor, :natural, :monad, :kleisli): The Functorial Spine
+ *      enabling the Monadic Kleisli lift.
+ * 3.   REALITY (:numeric, :algebra_partial, :partial): Reconciling theory
+ *      with hardware-level indeterminacy and IEEE 754.
+ * 4.   SKELETAL SIGNATURES (:etcs): The Set-Theoretic Interface (ETCS).
+
  *
  * @see Lawvere, F.W. (1964) "An Elementary Theory of the Category of Sets"
  * @see McLarty, C. (1993) "Numbers can be just what they have to"
