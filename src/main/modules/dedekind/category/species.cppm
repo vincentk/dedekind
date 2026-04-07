@@ -522,9 +522,8 @@ inline constexpr bool is_associative_v<T, std::multiplies<>> = true;
 template <std::signed_integral T>
 inline constexpr bool is_associative_v<T, std::multiplies<>> = false;
 
-// Certification: Multiplication distributes over Addition (Modular Semiring)
 template <typename T>
-inline constexpr bool is_distributive_v<T, std::multiplies<>, std::plus<>> =
+inline constexpr bool is_distributive_v<T, std::multiplies<T>, std::plus<T>> =
     std::unsigned_integral<T>;
 
 // Certification: Bitwise AND distributes over Bitwise OR (Boolean Algebra)
@@ -622,6 +621,10 @@ struct Modular {
   }
 };
 
+template <typename T>
+inline constexpr bool is_distributive_v<T, std::multiplies<>, std::plus<>> =
+    std::unsigned_integral<T>;
+
 template <auto N>
 inline constexpr bool
     is_distributive_v<Modular<N>, std::multiplies<>, std::plus<>> = true;
@@ -629,6 +632,14 @@ inline constexpr bool
 template <auto N>
 inline constexpr bool is_distributive_v<Modular<N>, std::multiplies<Modular<N>>,
                                         std::plus<Modular<N>>> = true;
+
+/** @section Additive_Inverses */
+template <auto N>
+inline constexpr bool is_invertible_v<Modular<N>, std::plus<Modular<N>>> = true;
+
+// Also for the transparent version if your concepts use it:
+template <auto N>
+inline constexpr bool is_invertible_v<Modular<N>, std::plus<>> = true;
 
 template <auto N>
 struct is_associative<Modular<N>, std::plus<Modular<N>>> : std::true_type {};

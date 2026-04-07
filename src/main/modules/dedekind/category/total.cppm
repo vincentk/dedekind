@@ -35,12 +35,15 @@ namespace dedekind::category {
  * @concept IsTotalArrow
  * @brief Formal verification that a morphism is defined for the entire species.
  */
-export template <typename F, typename A, typename B>
-concept IsTotalArrow = IsArrow<F, A, B> && requires(F f, A x) {
+export template <typename F>
+concept IsTotalArrow = IsArrow<F> && requires(F f, typename F::Domain x) {
   // Totality check: The SubobjectClassifier must return 'True' (Classical)
   // for all elements in the species.
-  requires std::same_as<typename SubobjectClassifier<A>::Omega, bool>;
-  { SubobjectClassifier<A>::evaluate_total(x) } -> std::same_as<bool>;
+  requires std::same_as<typename SubobjectClassifier<typename F::Domain>::Omega,
+                        bool>;
+  {
+    SubobjectClassifier<typename F::Domain>::evaluate_total(x)
+  } -> std::same_as<bool>;
 };
 
 /**
@@ -50,7 +53,7 @@ concept IsTotalArrow = IsArrow<F, A, B> && requires(F f, A x) {
 export template <IsSpecies A, IsSpecies B, typename Func>
 struct TotalMorphism : Morphism<A, B, Func> {
   static_assert(
-      IsTotalArrow<Func, A, B>,
+      IsTotalArrow<Func>,
       "Totality Error: The provided function is not total over the domain.");
 };
 
