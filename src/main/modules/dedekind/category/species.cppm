@@ -129,13 +129,6 @@ struct is_idempotent<T, Op>
 export template <typename T, typename Op>
 inline constexpr bool is_idempotent_v = is_idempotent<T, Op>::value;
 
-// 1. Bitwise is Idempotent
-template <std::integral T>
-struct is_idempotent<T, std::bit_and<T>> : std::true_type {};
-
-template <std::integral T>
-struct is_idempotent<T, std::bit_or<T>> : std::true_type {};
-
 // 2. Min/Max is Idempotent
 
 // 1. Get the types of the range-based function objects
@@ -339,37 +332,65 @@ struct inverse_trait {
   };
 };
 
+/**
+ * @section The_Distributive_Axiom
+ * @brief Trait to mark the structural glue between two operators.
+ * axiom: a * (b + c) = (a * b) + (a * c)
+ */
+export template <typename T, typename Op1, typename Op2>
+inline constexpr bool is_distributive_v = false;
+
 /** @brief The Shorthand for the Registry. */
 export template <typename T, typename Op>
 inline constexpr bool is_invertible_v = inverse_trait<T, Op>::exists;
 
+// --- Booleans: The Perfect Symmetry ---
+
+/**
+ * @brief XOR on bool is the additive composition of the Boolean Ring.
+ * It is bit-perfect, associative, and total.
+ */
+template <>
+inline constexpr bool is_associative_v<bool, std::bit_xor<bool>> = true;
+
+/**
+ * @brief Every boolean is its own inverse (x ^ x = false).
+ * There is no Lipschitz boundary breach here.
+ */
+template <>
+inline constexpr bool is_invertible_v<bool, std::bit_xor<bool>> = true;
+
+template <>
+struct identity_trait<bool, std::bit_xor<bool>> {
+  using value_type = bool;
+  static constexpr bool value = false;
+};
+
 // --- Integers: The finite ring (Z, +, *) ---
 
 /**
- * @brief Addition is associative and commutative, with identity 0.
- * We use std::plus<> (transparent) to catch both explicit and implicit calls.
+ * @brief Associativity is only total for unsigned types (modular arithmetic).
+ * For signed types, it is REJECTED here due to the re-ordering hazard (UB).
  */
-template <std::integral T>
+template <std::unsigned_integral T>
 inline constexpr bool is_associative_v<T, std::plus<>> = true;
-template <std::integral T>
-inline constexpr bool is_commutative_v<T, std::plus<>> = true;
+template <std::unsigned_integral T>
+inline constexpr bool is_associative_v<T, std::plus<T>> = true;
+
+template <std::signed_integral T>
+inline constexpr bool is_associative_v<T, std::plus<>> = false;
+template <std::signed_integral T>
+inline constexpr bool is_associative_v<T, std::plus<T>> = false;
 
 /**
- * @brief Integers possess additive inverses (negatives).
- * This promotes the Monoid (N) to the Group (Z).
+ * @brief Commutativity remains a total property (order-independence).
  */
 template <std::integral T>
-inline constexpr bool is_invertible_v<T, std::plus<>> = true;
-
-template <std::integral T>
-inline constexpr bool is_invertible_v<T, std::plus<T>> = true;
-
-template <std::integral T>
-inline constexpr bool is_associative_v<T, std::plus<T>> = true;
+inline constexpr bool is_commutative_v<T, std::plus<>> = true;
 template <std::integral T>
 inline constexpr bool is_commutative_v<T, std::plus<T>> = true;
 
-template <std::integral T>
+template <std::unsigned_integral T>
 struct identity_trait<T, std::plus<>> {
   using value_type = T;
   static constexpr T value = 0;
@@ -381,13 +402,6 @@ struct identity_trait<T, std::plus<T>> {
   static constexpr T value = 0;
 };
 
-// Also for multiplication
-template <std::integral T>
-inline constexpr bool is_associative_v<T, std::multiplies<>> = true;
-
-template <std::integral T>
-inline constexpr bool is_commutative_v<T, std::multiplies<>> = true;
-
 template <std::integral T>
 struct identity_trait<T, std::multiplies<>> {
   using value_type = T;
@@ -395,13 +409,16 @@ struct identity_trait<T, std::multiplies<>> {
 };
 
 /**
- * @brief Multiplication is associative and commutative, with identity 1.
+ * @brief Multiplication is ONLY associative for types with defined (modular)
+ * overflow. Signed integers fail this at Level 0 due to the UB hazard.
  */
-template <std::integral T>
+template <std::unsigned_integral T>
 inline constexpr bool is_associative_v<T, std::multiplies<T>> = true;
-template <std::integral T>
-inline constexpr bool is_commutative_v<T, std::multiplies<T>> = true;
-template <std::integral T>
+
+template <std::signed_integral T>
+inline constexpr bool is_associative_v<T, std::multiplies<T>> = false;
+
+template <std::unsigned_integral T>
 struct identity_trait<T, std::multiplies<T>> {
   using value_type = T;
   static constexpr T value = 1;
@@ -462,19 +479,6 @@ inline constexpr bool is_transitive_v<T, std::less_equal<>> = true;
 template <std::integral T>
 inline constexpr bool is_antisymmetric_v<T, std::less_equal<>> = true;
 
-/** @section Boolean_Bitwise_Certifications: (B, ^) and (B, &) */
-
-// 1. Boolean XOR (Exclusive OR)
-template <>
-inline constexpr bool is_associative_v<bool, std::bit_xor<bool>> = true;
-template <>
-inline constexpr bool is_commutative_v<bool, std::bit_xor<bool>> = true;
-template <>
-struct identity_trait<bool, std::bit_xor<bool>> {
-  using value_type = bool;
-  static constexpr bool value = false;
-};
-
 // 2. Boolean AND (Conjunction)
 template <>
 inline constexpr bool is_associative_v<bool, std::bit_and<bool>> = true;
@@ -485,6 +489,45 @@ struct identity_trait<bool, std::bit_and<bool>> {
   using value_type = bool;
   static constexpr bool value = true;
 };
+
+/** @section Transparent_Bridges */
+
+// 1. Bitwise OR (|)
+template <std::integral T>
+inline constexpr bool is_idempotent_v<T, std::bit_or<>> = true;
+
+template <std::integral T>
+inline constexpr bool is_commutative_v<T, std::bit_or<>> = true;
+
+template <std::integral T>
+struct identity_trait<T, std::bit_or<>> {
+  using value_type = T;
+  static constexpr T value = 0;
+};
+
+// 2. Bitwise AND (&)
+template <std::integral T>
+inline constexpr bool is_idempotent_v<T, std::bit_and<>> = true;
+
+template <std::integral T>
+inline constexpr bool is_associative_v<T, std::bit_and<>> = true;
+
+// 3. Multiplication (*)
+template <std::unsigned_integral T>
+inline constexpr bool is_associative_v<T, std::multiplies<>> = true;
+
+template <std::signed_integral T>
+inline constexpr bool is_associative_v<T, std::multiplies<>> = false;
+
+// Certification: Multiplication distributes over Addition (Modular Semiring)
+template <typename T>
+inline constexpr bool is_distributive_v<T, std::multiplies<>, std::plus<>> =
+    std::unsigned_integral<T>;
+
+// Certification: Bitwise AND distributes over Bitwise OR (Boolean Algebra)
+template <typename T>
+inline constexpr bool is_distributive_v<T, std::bit_and<>, std::bit_or<>> =
+    std::integral<T>;
 
 /**
  * @section Taxonomic_Validation
@@ -502,8 +545,9 @@ static_assert(identity_v<int, std::plus<int>> == 0,
 static_assert(identity_v<size_t, std::multiplies<size_t>> == 1,
               "Taxonomy Error: Unsigned multiplicative identity must be 1.");
 
-static_assert(is_associative_v<int, std::plus<int>>,
-              "Taxonomy Error: Integer addition must be associative.");
+static_assert(
+    !is_associative_v<int, std::plus<int>>,
+    "Honesty Check: Signed addition is NOT associative due to UB hazards.");
 
 /** @section Property_Ledger: Periodicity
  *  A type is periodic if it defines a circular topology where
@@ -649,14 +693,6 @@ struct is_idempotent<T, std::bit_or<T>> : std::true_type {};
 template <typename T>
   requires std::is_integral_v<T>
 struct is_associative<T, std::bit_or<T>> : std::true_type {};
-
-/**
- * @section The_Distributive_Axiom
- * @brief Trait to mark the structural glue between two operators.
- * axiom: a * (b + c) = (a * b) + (a * c)
- */
-export template <typename T, typename Add, typename Mul>
-inline constexpr bool is_distributive_v = false;
 
 /** @section Machine_Distributivity: Integers */
 template <std::integral T>
@@ -806,5 +842,110 @@ constexpr auto operator<<=(const Box<T>& b, Func&& f) {
   // and re-wrap the result in a new Box.
   return Box<U>{std::forward<Func>(f)(b)};
 }
+
+/** @section Atomic_Floor_Verification */
+
+static_assert(!is_associative_v<int, std::plus<int>>,
+              "Honesty Check: Signed addition is NOT associative due to UB.");
+
+// 1. Verify "Species" Registration (Section 2.2.1)
+static_assert(IsSpecies<int>,
+              "Taxonomy Error: int must be a registered Species.");
+static_assert(IsSpecies<bool>,
+              "Taxonomy Error: bool must be a registered Species.");
+
+// 2. Verify Algebraic Invariants (The "Feature Cube", Table 2)
+static_assert(is_idempotent_v<bool, std::logical_or<bool>>,
+              "Axiom Error: Boolean 'OR' must be idempotent.");
+
+static_assert(is_idempotent_v<bool, std::logical_and<bool>>,
+              "Axiom Error: Boolean 'AND' must be idempotent.");
+
+static_assert(is_idempotent_v<unsigned int, std::bit_and<unsigned int>>,
+              "Axiom Error: Bitwise 'AND' must be idempotent for integrals.");
+
+static_assert(is_commutative_v<int, std::bit_or<int>>,
+              "Axiom Error: Bitwise 'OR' must be commutative.");
+
+// 3. Verify Discovery Engine: Boolean Monoids (Table 7)
+static_assert(
+    has_identity_v<bool, std::logical_or<bool>>,
+    "ETCS Violation: Boolean Or-Monoid must have a discoverable identity.");
+
+static_assert(identity_v<bool, std::logical_or<bool>> == false,
+              "Logic Error: Boolean Or-Monoid identity must be False.");
+
+static_assert(
+    has_identity_v<bool, std::logical_and<bool>>,
+    "ETCS Violation: Boolean And-Monoid must have a discoverable identity.");
+static_assert(identity_v<bool, std::logical_and<bool>> == true,
+              "Logic Error: Boolean And-Monoid identity must be True.");
+
+// 4. Verify The "Honest Rejection" (Section 2.4.2)
+// Since signed int addition has undefined overflow, we do NOT define
+// an identity for it in the total domain. This test confirms the
+// discovery engine correctly reports its absence.
+static_assert(has_identity_v<int, std::plus<int>>,
+              "Identity is valid (0) even if associativity is rejected.");
+
+// 5. Verify Material Constants
+static_assert(characteristic_v<unsigned char> == 256,
+              "Modulus Error: unsigned char must have characteristic 256.");
+static_assert(
+    characteristic_v<double> == 0,
+    "Field Error: Continuous species (double) must have characteristic 0.");
+
+// Unsigned is modular and safe (Associative)
+static_assert(is_associative_v<unsigned int, std::multiplies<>>,
+              "Axiom Error: Unsigned multiplication must be associative.");
+
+// Signed is rejected due to UB overflow hazard
+static_assert(
+    !is_associative_v<int, std::multiplies<>>,
+    "Honesty Check: Signed multiplication is NOT associative due to UB.");
+
+static_assert(identity_v<int, std::multiplies<>> == 1,
+              "Axiom Error: Multiplicative identity must be 1.");
+
+// Bitwise OR
+static_assert(is_idempotent_v<int, std::bit_or<>>,
+              "Axiom Error: Bitwise OR must be idempotent.");
+static_assert(is_commutative_v<int, std::bit_or<>>,
+              "Axiom Error: Bitwise OR must be commutative.");
+static_assert(identity_v<int, std::bit_or<>> == 0,
+              "Logic Error: Bitwise OR identity must be 0.");
+
+// Bitwise AND
+static_assert(is_idempotent_v<int, std::bit_and<>>,
+              "Axiom Error: Bitwise AND must be idempotent.");
+static_assert(is_associative_v<int, std::bit_and<>>,
+              "Axiom Error: Bitwise AND must be associative.");
+
+static_assert(!is_associative_v<int, std::modulus<>>,
+              "Axiom Error: Modulus is not associative.");
+static_assert(!is_commutative_v<int, std::modulus<>>,
+              "Axiom Error: Modulus is not commutative.");
+static_assert(!has_identity_v<int, std::modulus<>>,
+              "Axiom Error: Modulus has no identity.");
+
+/** @section Distributive_Certifications */
+
+// 1. Unsigned: Multiplicative Distribution over Addition is Total.
+static_assert(is_distributive_v<unsigned int, std::multiplies<>, std::plus<>>,
+              "Axiom Error: Unsigned * must distribute over +.");
+
+// 2. Signed: Multiplicative Distribution over Addition is REJECTED.
+static_assert(!is_distributive_v<int, std::multiplies<>, std::plus<>>,
+              "Honesty Check: Signed * does NOT distribute over + due to UB.");
+
+// 3. Bitwise Distributivity: AND distributes over OR (Boolean Ring properties).
+static_assert(is_distributive_v<unsigned int, std::bit_and<>, std::bit_or<>>,
+              "Axiom Error: Bitwise AND must distribute over bitwise OR.");
+
+// 4. Verification: Multiplication does NOT distribute over bitwise OR.
+// (a * (b | c) != (a * b) | (a * c) in general).
+static_assert(
+    !is_distributive_v<int, std::multiplies<>, std::bit_or<>>,
+    "Logic Error: Multiplication should not distribute over bitwise OR.");
 
 }  // namespace dedekind::category

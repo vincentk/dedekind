@@ -802,13 +802,12 @@ struct TotalMorphism : Morphism<A, B, Func> {
 
 Building upon the total mappings established in Level 1a, the \texttt{:algebra\_total} partition materializes the ``Pure Ideals'' of abstract algebra.
 In this partition, species ``mature'' as they gain axioms, moving from the primal \textbf{Magma} to the perfect symmetry of an \textbf{Abelian Group}.
-A key architectural decision in \texttt{dedekind} is the decoupling of \emph{associativity} from \emph{invertibility}: while a \textbf{Monoid} provides an identity to an associative Semigroup, a \textbf{Loop} provides an identity to a Quasigroup \cite{bruck1971survey}.
+A key architectural decision in \texttt{dedekind} is the decoupling of \emph{associativity} from \emph{invertibility}: while a \textbf{Monoid} provides an identity to an associative Semigroup, a \textbf{Unital Magma} (or \textbf{Loop} if invertible) provides an identity even when associativity is rejected \cite{bruck1971survey}.
 A \textbf{Group} is thus reified as the perfect synthesis of these two paths, as shown in Table~\ref{tab:algebraic_hierarchy}.
 
-By mapping these structures to \texttt{C++23} concepts, the library transforms the compiler into a \textbf{Constraint Satisfaction Engine} (CSE) that verifies mathematical truth as a physical invariant of the binary \cite{benton1998computational}.
-This leads to the \textbf{Honest Rejection} illustrated in Listing~\ref{lst:abelian_group}: while \texttt{unsigned int} addition is verified as a total Abelian Group ($\mathbb{Z}/2^n\mathbb{Z}, +$) due to its bit-perfect periodicity, signed \texttt{int} addition is rejected even as a total Magma.
-Because signed overflow constitutes undefined behavior, the operation fails to satisfy the requirements for periodicity or idempotency within the total domain.
-The library correctly identifies such operations as \textbf{Hazards} \cite{pomerance2001smooth}, shifting them from the Platonic realm of Level 1 into the pragmatic ``Rescue'' logic of the \texttt{:partial} partition.
+This leads to the \textbf{Honest Rejection} policy: while \texttt{unsigned int} addition is verified as a total Abelian Group ($\mathbb{Z}/2^n\mathbb{Z}, +$), signed \texttt{int} is relegated to a \textbf{Unital Magma}. 
+The library discovers the identity element ($0$) as a safe invariant, yet rejects the \textbf{Associative} and \textbf{Distributive} axioms. 
+Because signed overflow constitutes undefined behavior, the C++ abstract machine cannot guarantee structural harmony under re-ordering; the library correctly identifies such operations as \textbf{Hazards} \cite{pomerance2001smooth}, preserving the integrity of the total domain.
 
 
 \begin{table}[h!]
@@ -830,14 +829,35 @@ The library correctly identifies such operations as \textbf{Hazards} \cite{pomer
 \begin{lstlisting}[language=C++, caption={Structural Maturation and the Honest Rejection in dedekind.category.}, label={lst:abelian_group}]
 /** @section Truth_Anchors */
 
-// SUCCESS: Unsigned addition is a Total Abelian Group (Z/2^nZ).
-static_assert(IsAbelianGroup<unsigned int, std::plus<unsigned int>>);
+// 1. Verification of the Modular Ideal (Z/2^nZ, +)
+static_assert(IsAbelianGroup<unsigned int, std::plus<>>,
+              "Axiom Error: Unsigned addition is a perfect Abelian Group.");
 
-// HONEST REJECTION: Signed addition is NOT a Total Magma.
-// No Periodicity, No Idempotency; identified as a Hazard/Partial function.
-static_assert(!IsMagma<int, std::plus<int>>);
+// 2. The Honest Rejection (Hazardous Domain)
+// Signed addition provides an identity (Unital Magma), 
+// but is rejected as a Semigroup due to the UB overflow hazard.
+static_assert(has_identity_v<int, std::plus<>>,
+              "Maturation: Signed identity (0) is safe and discoverable.");
 
-// The compiler now "knows" the algebra of the machine.
+static_assert(!is_associative_v<int, std::plus<>>,
+              "Honesty Check: Signed associativity rejected due to UB.");
+
+static_assert(!IsSemigroup<int, std::plus<>>,
+              "Taxonomy: Signed int addition is not a Semigroup.");
+
+// 3. The Boolean Ring (Characteristic 2)
+static_assert(characteristic_v<bool> == 2,
+              "Axiom Error: Boolean Ring must have characteristic 2.");
+
+static_assert(is_idempotent_v<bool, std::logical_or<>>,
+              "Axiom Error: Boolean OR must be idempotent.");
+
+// 4. Distributive Handshake
+static_assert(is_distributive_v<unsigned int, std::multiplies<>, std::plus<>>,
+              "Axiom Error: Unsigned * must distribute over +.");
+
+static_assert(!is_distributive_v<int, std::multiplies<>, std::plus<>>,
+              "Honesty Check: Distributivity rejected for signed hazards.");
 \end{lstlisting}
 
 
