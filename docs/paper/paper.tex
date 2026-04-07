@@ -18,6 +18,10 @@
 % Landscape tables:
 \usepackage[figuresright]{rotating}
 \usepackage[table]{xcolor}
+\usepackage{pdflscape}
+\usepackage{tabularx}
+\usepackage{booktabs}
+
 
 % Graphs
 \usepackage{graphviz}
@@ -418,7 +422,12 @@ These partitions represent the maturation of mathematical species from raw mappi
 
 The \texttt{:species} partition serves as the foundational \textit{Algebraic Atlas} of the library, providing a stratified registry of structural invariants for C++ machine types and standard library operators. Following the combinatorial species theory of Joyal~\cite{joyal1981species, joyal1986analytic}, we treat fundamental types not merely as passive sets of values, but as active rules for generating mathematical structure. By reifying categorical axioms---such as associativity and commutativity---as compile-time constants, the library transforms the C++ type system into a formal verification engine.
 
-As illustrated in Table~\ref{tab:structural_invariants}, the \textbf{Feature Cube} acts as a formal ledger mapping algebraic properties to the language's fundamental atoms. This explicit mapping allows the \texttt{dedekind} dispatcher to distinguish between idealized algebraic structures (e.g., \texttt{unsigned int} modular addition) and the messy inhabitants of the hardware, such as floating-point operations which exhibit numerical non-associativity under the IEEE 754 standard~\cite{ieee754_2019}. By anchoring these operators as first-class categorical entities, we enable the compiler to act as a physical guardrail, ensuring that structural integrity is verified before the final binary is generated.
+As illustrated in Table~\ref{tab:structural_invariants}, the \textbf{Feature Cube} acts as a formal ledger mapping algebraic properties to the language's fundamental atoms. This explicit mapping allows the \texttt{dedekind} dispatcher to distinguish between idealized algebraic structures (e.g., \texttt{unsigned int} modular addition) and the messy inhabitants of the hardware, such as floating-point operations which exhibit numerical non-associativity under the IEEE 754 standard~\cite{ieee754_2019}.
+By anchoring these operators as first-class categorical entities, we enable the compiler to act as a physical guardrail, ensuring that structural integrity is verified before the final binary is generated. 
+
+Crucially, this allows for the \textit{Honest Rejection} of hardware species that violate the laws of the intended mathematical space: while \texttt{unsigned int} addition satisfies the \textit{Monoid} axioms, it fails as an \textit{Ordered Monoid} at the Lipschitz boundary due to modular wrap-around. Conversely, \texttt{signed int} is treated as a \textit{Hazardous Ordered Monoid} where the compiler exploits UB to enforce a false sense of algebraic harmony through assumed monotonicity.
+
+
 
 \begin{lstlisting}[language=C++, caption={The Species Registry: Reifying Algebraic Invariants.}, label={lst:species_registry}]
 /** 
@@ -450,39 +459,49 @@ static_assert(!SpeciesTraits<double, std::plus<double>>::is_associative,
 
 The core objective is to anchor the C++ type system as a substrate for modeling truths obtained from category theory and abstract algebra. In this structuralist setup, providing the axiomatic truths (e.g., that $a \lor b$ is commutative) or documenting their absence (e.g., $NaN$ singularities) becomes the explicit responsibility of the registry. This static grounding provides the necessary "alphabet" for the \texttt{:morphism} partition to begin defining the "language" of functional mappings.
 
+% Custom column type for uniform data cells
+\newcolumntype{Y}{>{\centering\arraybackslash}p{0.82cm}}
 
+\begin{landscape}
 \begin{table}[h!]
 \centering
-\caption{The Feature Cube: Structural Invariants for Primitive Species. \textbf{Assoc}, \textbf{Comm}, and \textbf{Idemp} denote algebraic properties of binary operations; \textbf{Refl}, \textbf{Trans}, and \textbf{Anti} denote properties of binary relations; \textbf{Logic} identifies the requisite subobject classifier ($\Omega$).}
-\label{tab:structural_invariants}
-\resizebox{\textwidth}{!}{%
-\begin{tabular}{llcccccccc}
-\hline
-\textbf{Species} & \textbf{Op / Rel} & \textbf{Assoc} & \textbf{Comm} & \textbf{Idemp} & \textbf{Period} & \textbf{Refl} & \textbf{Trans} & \textbf{Anti} & \textbf{Logic} \\ \hline
-\rowcolor[HTML]{EFEFEF} 
-\textit{Logical} & \texttt{std::logical\_} & & & & & & & & \\
-\texttt{bool}    & \texttt{and / or}   & \checkmark & \checkmark & \checkmark & \textdagger & --- & --- & --- & Class. \\
-\texttt{bool}    & \texttt{equal\_to}  & \checkmark & \checkmark & ---        & ---         & \checkmark & \checkmark & \checkmark & Class. \\ \hline
-\rowcolor[HTML]{EFEFEF} 
-\textit{Integral} & \texttt{std::bit\_} & & & & & & & & \\
-\texttt{uint/int} & \texttt{and / or}   & \checkmark & \checkmark & \checkmark & ---         & --- & --- & --- & Class. \\
-\texttt{uint/int} & \texttt{xor}        & \checkmark & \checkmark & ---        & \checkmark  & --- & --- & --- & Class. \\ \hline
-\rowcolor[HTML]{EFEFEF} 
-\textit{Integral} & \texttt{std::arithmetic} & & & & & & & & \\
-\texttt{uint}     & \texttt{plus / mult} & \checkmark & \checkmark & ---        & \checkmark  & --- & --- & --- & Class. \\
-\texttt{int}      & \texttt{plus / mult} & \checkmark & \checkmark & ---        & ---         & --- & --- & --- & Class. \\ \hline
-\rowcolor[HTML]{EFEFEF} 
-\textit{Floating} & \texttt{std::arithmetic} & & & & & & & & \\
-\texttt{double}  & \texttt{plus / mult} & \textasteriskcentered & \checkmark & --- & --- & --- & --- & --- & Tern. \\ \hline
-\textit{Relational} & \texttt{std::relational} & & & & & & & & \\
-\texttt{uint/int} & \texttt{less\_equal} & ---        & ---        & \checkmark & ---         & \checkmark & \checkmark & \checkmark & Class. \\
-\texttt{double}  & \texttt{less\_equal} & ---        & ---        & \checkmark & ---         & \textdaggerdbl & \checkmark & \checkmark & Tern. \\ \hline
-\multicolumn{10}{l}{\small \textasteriskcentered \textit{Fails bit-perfect associativity due to rounding error in IEEE 754~\cite{ieee754_2019}.}} \\
-\multicolumn{10}{l}{\small \textdagger \textit{Lattice operations are total via idempotency rather than periodicity.}} \\
-\multicolumn{10}{l}{\small \textdaggerdbl \textit{Fails reflexivity (\texttt{NaN <= NaN} is false).}}
+\caption{The Feature Cube: Hierarchical Axiomatic Mapping. Groups correspond to the \texttt{:species} partition. 
+\textbf{Laws}: \textit{Identity} ($x \circ e = x$); \textit{Absorber} ($x \circ z = z$); \textit{Associative} ($(x \circ y) \circ z = x \circ (y \circ z)$); 
+\textit{Commutative} ($x \circ y = y \circ x$); \textit{Idempotent} ($a \circ a = a$); \textit{Inverse} ($a \circ a^{-1} = e$); 
+\textit{Monotonic} ($x < y \implies (x \circ z) < (y \circ z)$); \textit{Logic} ($\chi : A \to \Omega$).}
+\label{tab:feature_cube_final}
+\small
+\begin{tabular}{l|cc|ccc|ccc|ccc|ccc|ccc|cc}
+\toprule
+\textbf{Species} & \multicolumn{2}{c|}{\textbf{bool}} & \multicolumn{3}{c|}{\textbf{bool (Bit)}} & \multicolumn{3}{c|}{\textbf{uint}} & \multicolumn{3}{c|}{\textbf{uint (O/B)}} & \multicolumn{3}{c|}{\textbf{int}} & \multicolumn{3}{c|}{\textbf{int (Bit)}} & \multicolumn{2}{c}{\textbf{double}} \\ \midrule
+\textbf{Category} & \multicolumn{2}{c|}{Logical} & \multicolumn{3}{c|}{Bitwise} & \multicolumn{3}{c|}{Arith.} & \multicolumn{3}{c|}{Order/Bit} & \multicolumn{3}{c|}{Arith.} & \multicolumn{3}{c|}{Bitwise} & \multicolumn{2}{c}{Arith.} \\ \midrule
+\textbf{Operator} & \texttt{||} & \texttt{\&\&} & \texttt{|} & \texttt{\&} & \texttt{\^{}} & \texttt{+} & \texttt{*} & \texttt{\%} & \texttt{min} & \texttt{max} & \texttt{\^{}} & \texttt{+} & \texttt{*} & \texttt{\%} & \texttt{|} & \texttt{\&} & \texttt{\^{}} & \texttt{+} & \texttt{*} \\ \midrule
+
+\textbf{Identity}   & \texttt{f} & \texttt{t} & \texttt{f} & \texttt{t} & \texttt{f} & \texttt{0} & \texttt{1} & --- & \texttt{max} & \texttt{0} & \texttt{0} & \texttt{0} & \texttt{1} & --- & \texttt{0} & \texttt{-1} & \texttt{0} & \texttt{0.0} & \texttt{1.0} \\ 
+\textbf{Absorber}   & \texttt{t} & \texttt{f} & \texttt{t} & \texttt{f} & --- & --- & \texttt{0} & \textbf{Hz}\textsuperscript{D} & \texttt{0} & \texttt{max} & --- & --- & \texttt{0} & \textbf{Hz}\textsuperscript{D} & \texttt{-1} & \texttt{0} & --- & \texttt{Inf} & \texttt{NaN} \\ 
+\textbf{Associative}& \checkmark & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark\textsuperscript{M} & \checkmark\textsuperscript{M} & --- & \checkmark & \checkmark & \checkmark & \textbf{Hz}\textsuperscript{U} & \checkmark & --- & \checkmark & \checkmark & \checkmark & \textasteriskcentered & \textasteriskcentered \\ 
+\textbf{Commutative}& \checkmark & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark & --- & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark & --- & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark \\ 
+\textbf{Idempotent} & \checkmark & \checkmark & \checkmark & \checkmark & --- & --- & --- & --- & \checkmark & \checkmark & --- & --- & --- & --- & \checkmark & \checkmark & --- & --- & --- \\ 
+\textbf{Inverse}    & --- & --- & --- & --- & \checkmark & \checkmark\textsuperscript{M} & --- & --- & --- & --- & \checkmark & \textbf{Hz}\textsuperscript{A} & --- & --- & --- & --- & \checkmark & \checkmark & \checkmark \\ 
+\textbf{Monotonic}  & \checkmark & \checkmark & \checkmark & \checkmark & --- & \textbf{Hz}\textsuperscript{W} & \textbf{Hz}\textsuperscript{W} & --- & \checkmark & \checkmark & --- & \checkmark\textsuperscript{P} & \checkmark\textsuperscript{P} & --- & --- & --- & --- & \checkmark & \checkmark \\ \midrule
+\textbf{Logic ($\Omega$)} & \multicolumn{5}{c|}{Classical ($\Omega_{\mathbb{B}}$)} & \multicolumn{6}{c|}{Classical ($\Omega_{\mathbb{B}}$)} & \multicolumn{6}{c|}{Classical ($\Omega_{\mathbb{B}}$)} & \multicolumn{2}{c}{Ternary ($\Omega_{K3}$)} \\ \bottomrule
 \end{tabular}
-}
+
+\begin{flushleft}
+\scriptsize
+\textsuperscript{M} \textbf{Modular success}: Inverses and associativity hold in the modular ring $\mathbb{Z}/2^n\mathbb{Z}$. \\
+\textsuperscript{A} \textbf{Asymmetry hazard}: Signed inverse (\texttt{-x}) fails at \texttt{INT\_MIN} due to range asymmetry. \\
+\textsuperscript{W} \textbf{Wrap-around hazard}: Monotonicity fails at the Lipschitz boundary. \\
+\textsuperscript{U} \textbf{Undefined behavior}: Associativity rejected due to non-deterministic overflow. \\
+\textsuperscript{D} \textbf{Division hazard}: Modulo by zero triggers hardware halt (Absorber of Doom). \\
+\textasteriskcentered \textit{Fails bit-perfect associativity due to rounding or NaN interactions.}
+\end{flushleft}
 \end{table}
+\end{landscape}
+
+
+
+
 
 \subsubsection{The \texttt{:morphism} partition: The Skeletal Arrow}
 
