@@ -13,6 +13,10 @@
  * 2. Transitivity: A part of a part is a part of the whole.
  * 3. Antisymmetry: Two distinct things cannot be parts of each other.
  */
+module;
+
+#include <concepts>
+#include <functional>
 
 export module dedekind.category:mereology;
 
@@ -29,10 +33,11 @@ namespace dedekind::category {
  * @tparam Op The parthood operator (e.g., a "sub-structure" check).
  * @tparam T The type being reasoned about.
  */
-export template <typename Op, typename T>
+export template <typename Op, typename T, typename Omega = bool>
 concept IsPartRelation = requires(Op op, T a, T b, T c) {
-  // Basic requirement: must return a LogicalValue (Classical or Ternary)
-  { op(a, b) } -> LogicalValue;
+  {
+    op(a, b)
+  } -> std::same_as<Omega>;  // The operator must return a truth value
 
   // Mereological Axiom 1: Reflexivity (∀x, x ≤ x)
   // Axiom 2: Transitivity (∀x,y,z: x ≤ y ∧ y ≤ z ⇒ x ≤ z)
@@ -52,9 +57,10 @@ struct Parthood {
   using species = T;
 
   static constexpr bool check(const T& part, const T& whole) {
-    // In the embryo, we provide the signature;
-    // concrete implementations (like Set inclusion) follow in later modules.
-    return true;
+    (void)part;
+    (void)whole;
+    return true;  // The "Trivial Universe" where everything is part of
+                  // everything
   }
 };
 

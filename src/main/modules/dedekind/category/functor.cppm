@@ -52,10 +52,20 @@ module;
 
 export module dedekind.category:functor;
 
-import :morphism;
-import :species;
+import :action;
 
 namespace dedekind::category {
+
+/**
+ * @brief Skeletal Functor (Box): A generic testing container.
+ */
+export template <typename T>
+struct Box final {
+  using machine_type = T;
+  T value;
+
+  constexpr bool operator==(const Box& other) const = default;
+};
 
 /**
  * @section The_Unified_Highway_Bridge (The Discovery Dispatcher)
