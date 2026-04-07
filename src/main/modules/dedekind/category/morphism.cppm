@@ -77,6 +77,72 @@ struct Morphism {
   constexpr B operator()(const A& x) const { return transform(x); }
 };
 
+/** @brief Universal inference for any Morphism signature f: Args... -> Codomain
+ */
+template <typename F, typename... Args>
+struct infer_morphism {
+  // For binary operators, Domain is the first argument type
+  using Domain = std::tuple_element_t<0, std::tuple<Args...>>;
+  using Codomain = std::invoke_result_t<F, Args...>;
+};
+
+// 1. Unary Discovery (e.g. std::identity)
+template <typename F, typename A>
+  requires requires(F f, A x) { f(x); }
+struct SpeciesTraits<F, A> : infer_morphism<F, A> {};
+
+// 2. Binary Discovery (e.g. std::plus)
+template <typename F, typename A>
+  requires requires(F f, A x) { f(x, x); }
+struct SpeciesTraits<F, A> : infer_morphism<F, A, A> {};
+
+/** @section Logical_Species (bool) */
+template <>
+struct SpeciesTraits<std::logical_and<bool>>
+    : infer_morphism<std::logical_and<bool>, bool, bool> {};
+template <>
+struct SpeciesTraits<std::logical_or<bool>>
+    : infer_morphism<std::logical_or<bool>, bool, bool> {};
+template <>
+struct SpeciesTraits<std::equal_to<bool>>
+    : infer_morphism<std::equal_to<bool>, bool, bool> {};
+
+/** @section Integral_Species (uint/int) */
+template <typename T>
+  requires std::integral<T>
+struct SpeciesTraits<std::plus<T>> : infer_morphism<std::plus<T>, T, T> {};
+
+template <typename T>
+  requires std::integral<T>
+struct SpeciesTraits<std::minus<T>> : infer_morphism<std::minus<T>, T, T> {};
+
+template <typename T>
+  requires std::integral<T>
+struct SpeciesTraits<std::multiplies<T>>
+    : infer_morphism<std::multiplies<T>, T, T> {};
+
+template <typename T>
+  requires std::integral<T>
+struct SpeciesTraits<std::divides<T>> : infer_morphism<std::divides<T>, T, T> {
+};
+
+template <typename T>
+  requires std::integral<T>
+struct SpeciesTraits<std::bit_and<T>> : infer_morphism<std::bit_and<T>, T, T> {
+};
+
+template <typename T>
+  requires std::integral<T>
+struct SpeciesTraits<std::bit_or<T>> : infer_morphism<std::bit_or<T>, T, T> {};
+
+/** @section Relational_Morphisms (Subobject Classifiers) */
+template <typename T>
+struct SpeciesTraits<std::less_equal<T>>
+    : infer_morphism<std::less_equal<T>, T, T> {};
+
+template <typename T>
+struct SpeciesTraits<std::less<T>> : infer_morphism<std::less<T>, T, T> {};
+
 static_assert(
     IsArrow<Morphism<int, bool, std::function<bool(int)>>, int, bool>,
     "Taxonomy Error: Morphism must satisfy the skeletal IsArrow concept.");
