@@ -7,30 +7,30 @@
  * Licensed under the Apache License, Version 2.0.
  *
  * @section Implementation_Philosophy
- * "La structure d’une chose n’est nullement une chose qu’on puisse « saisir » 
+ * "La structure d’une chose n’est nullement une chose qu’on puisse « saisir »
  *  si l’on n’est pas d’abord prêt à s’y fondre."
- *  (The structure of a thing is by no means something that one can "grasp" 
+ *  (The structure of a thing is by no means something that one can "grasp"
  *  if one is not first prepared to melt into it.)
  *  — Alexander Grothendieck, Récoltes et Semailles.
- * 
- * This module implements a structuralist approach based on the Elementary 
- * Theory of the Category of Sets (ETCS). We use C++23 modules and concepts 
- * to treat mathematical objects as positions within a system of relations 
+ *
+ * This module implements a structuralist approach based on the Elementary
+ * Theory of the Category of Sets (ETCS). We use C++23 modules and concepts
+ * to treat mathematical objects as positions within a system of relations
  * (morphisms) rather than traditional object-oriented hierarchies.
  *
  * @section Fractal_Build_Order
- * To manage the "template tax" and ensure ontological decidability, the 
- * implementation follows a fractal progression across a Directed Acyclic 
+ * To manage the "template tax" and ensure ontological decidability, the
+ * implementation follows a fractal progression across a Directed Acyclic
  * Graph (DAG) of module partitions:
  *
- * 1.  ATOMS (:species, :logic, :morphisms): Reification of machine primitives 
+ * 1.  ATOMS (:species, :logic, :morphisms): Reification of machine primitives
  *     and the Subobject Classifier (Ω).
  * 2.  IDEALS (:total, :algebra_total): Defining the pure laws of total algebra.
- * 3.  BRIDGE (:functorial, :kleisli): Reifying algebraic laws as functors to 
+ * 3.  BRIDGE (:functorial, :kleisli): Reifying algebraic laws as functors to
  *     enable the Monadic Kleisli lift.
- * 4.  REALITY (:partial, :algebra_partial, :numeric): Reconciling the theory 
+ * 4.  REALITY (:partial, :algebra_partial, :numeric): Reconciling the theory
  *     with hardware-level indeterminacy and IEEE 754.
- * 5.  SIGNATURES (:mereology, :etcs): Establishing the skeletal vocabulary 
+ * 5.  SIGNATURES (:mereology, :etcs): Establishing the skeletal vocabulary
  *     for the high-level ontologies of Parthood and Sets.
  *
  * @see Lawvere, F.W. (1964) "An Elementary Theory of the Category of Sets"
@@ -53,24 +53,24 @@ export import :limit;      // Universal Limits
 export import :pullback;   // The Universal Construction "Sink"
 
 // Level 1: The Ideal (Total Algebra)
-export import :total;      
-export import :algebra_total; 
-export import :action;    
+export import :total;
+export import :algebra_total;
+export import :action;
 
 // Level 2: The Bridge (Functorial Spine)
-export import :functor;    
-export import :natural;    
-export import :monad;      
-export import :kleisli;    
+export import :functor;
+export import :natural;
+export import :monad;
+export import :kleisli;
 
 // Level 3: The Reality (Hardware -> Abstraction)
-export import :numeric;         // Concrete Hardware Logic (IEEE 754)
-export import :algebra_partial; // Algebraic Lifting
-export import :partial;         // The Final Abstracted Partial Interface
+export import :numeric;          // Concrete Hardware Logic (IEEE 754)
+export import :algebra_partial;  // Algebraic Lifting
+export import :partial;          // The Final Abstracted Partial Interface
 
 // Level 4: The Skeletal Signatures (Synthesis)
-export import :etcs;       // The World of Sets (Importing Partial + Mereology)
+export import :etcs;  // The World of Sets (Importing Partial + Mereology)
 
 namespace dedekind::category {
-    // Top-level category-theoretic aliases and universal compositions.
+// Top-level category-theoretic aliases and universal compositions.
 }

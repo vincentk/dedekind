@@ -309,7 +309,7 @@ By the time the reader reaches the final sections, the library's 'textbook' deri
 
 While the global build graph establishes the dependency between C++ modules, the \texttt{dedekind.category} module constitutes the system's "Atomic Floor."
 To maintain absolute linear order, this module is itself stratified into internal partitions.
-These partitions represent the maturation of mathematical species from raw mappings (\texttt{:morphisms}) to structured universes (\texttt{:logic}).
+These partitions represent the maturation of mathematical species from raw mappings (\texttt{:morphism}) to structured universes (\texttt{:logic}).
 
 
 \begin{figure}[ht]
@@ -484,9 +484,9 @@ The core objective is to anchor the C++ type system as a substrate for modeling 
 }
 \end{table}
 
-\subsubsection{The \texttt{:morphisms} partition: The Skeletal Arrow}
+\subsubsection{The \texttt{:morphism} partition: The Skeletal Arrow}
 
-The \texttt{:morphisms} partition establishes the primary inhabitant of the \texttt{dedekind} topos: the \textbf{Arrow} (or Morphism). While traditional C++ development treats functions as opaque, executable blocks, this partition reifies them as formal mappings $f: A \to B$. **In this ontology, the Morphism serves as the "Atom of Composability"**---the fundamental unit from which all higher-level categorical structures are synthesized. By elevating the function object from a procedural instruction to a structural entity, we enable the library to reason about the composition and validity of transformations at compile-time, a strategy central to modern functional C++ architectures \cite{cukic2018functional, milewski2019category}.
+The \texttt{:morphism} partition establishes the primary inhabitant of the \texttt{dedekind} topos: the \textbf{Arrow} (or Morphism). While traditional C++ development treats functions as opaque, executable blocks, this partition reifies them as formal mappings $f: A \to B$. **In this ontology, the Morphism serves as the "Atom of Composability"**---the fundamental unit from which all higher-level categorical structures are synthesized. By elevating the function object from a procedural instruction to a structural entity, we enable the library to reason about the composition and validity of transformations at compile-time, a strategy central to modern functional C++ architectures \cite{cukic2018functional, milewski2019category}.
 
 A core mechanism of this partition is \textbf{Signature Discovery}. Utilizing C++23 \texttt{std::invoke\_result\_t} and variadic template metaprogramming, the library automatically extracts the domain and codomain of raw lambdas, function pointers, and functors. This reification process registers the callable into the categorical atlas as a first-class inhabitant, providing the "connective tissue" required for the algebraic structures in Level 1 and the functorial lifting in Level 2. 
 
@@ -513,9 +513,9 @@ static_assert(IsArrow<decltype(logic_gate), int>,
               "Morphism Validated: The Atom of Composability is discovered.");
 \end{lstlisting}
 
-\subsection{The :morphisms partition: The Skeletal Arrow}
+\subsection{The \texttt{:morphism} partition: The Skeletal Arrow}
 
-Following the mapping established in Table \ref{table:dedekind_floor}, the \texttt{:morphisms} partition reifies C++ callables as formal arrows $f: A \to B$. The core mechanism of this partition is \textbf{Signature Discovery}, which utilizes \texttt{std::invoke\_result\_t} and variadic template metaprogramming to extract domain and codomain metadata directly from the type system \cite{cukic2018functional, milewski2019category}.
+Following the mapping established in Table \ref{table:dedekind_floor}, the \texttt{:morphism} partition reifies C++ callables as formal arrows $f: A \to B$. The core mechanism of this partition is \textbf{Signature Discovery}, which utilizes \texttt{std::invoke\_result\_t} and variadic template metaprogramming to extract domain and codomain metadata directly from the type system \cite{cukic2018functional, milewski2019category}.
 
 \begin{lstlisting}[language=C++, caption={The Morphic Reification Hook (Compressed).}]
 template <typename F, typename... Args>
