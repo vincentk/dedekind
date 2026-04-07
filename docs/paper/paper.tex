@@ -459,9 +459,6 @@ static_assert(!SpeciesTraits<double, std::plus<double>>::is_associative,
 
 The core objective is to anchor the C++ type system as a substrate for modeling truths obtained from category theory and abstract algebra. In this structuralist setup, providing the axiomatic truths (e.g., that $a \lor b$ is commutative) or documenting their absence (e.g., $NaN$ singularities) becomes the explicit responsibility of the registry. This static grounding provides the necessary "alphabet" for the \texttt{:morphism} partition to begin defining the "language" of functional mappings.
 
-% Custom column type for uniform data cells
-\newcolumntype{Y}{>{\centering\arraybackslash}p{0.82cm}}
-
 \begin{landscape}
 \begin{table}[h!]
 \centering
@@ -471,20 +468,20 @@ The core objective is to anchor the C++ type system as a substrate for modeling 
 \textit{Monotonic} ($x < y \implies (x \circ z) < (y \circ z)$); \textit{Logic} ($\chi : A \to \Omega$).}
 \label{tab:feature_cube_final}
 \small
-\begin{tabular}{l|cc|ccc|ccc|ccc|ccc|ccc|cc}
+\begin{tabular}{l|cc|ccc|ccc|cc|ccc|ccc|cc|ccc|cc}
 \toprule
-\textbf{Species} & \multicolumn{2}{c|}{\textbf{bool}} & \multicolumn{3}{c|}{\textbf{bool (Bit)}} & \multicolumn{3}{c|}{\textbf{uint}} & \multicolumn{3}{c|}{\textbf{uint (O/B)}} & \multicolumn{3}{c|}{\textbf{int}} & \multicolumn{3}{c|}{\textbf{int (Bit)}} & \multicolumn{2}{c}{\textbf{double}} \\ \midrule
-\textbf{Category} & \multicolumn{2}{c|}{Logical} & \multicolumn{3}{c|}{Bitwise} & \multicolumn{3}{c|}{Arith.} & \multicolumn{3}{c|}{Order/Bit} & \multicolumn{3}{c|}{Arith.} & \multicolumn{3}{c|}{Bitwise} & \multicolumn{2}{c}{Arith.} \\ \midrule
-\textbf{Operator} & \texttt{||} & \texttt{\&\&} & \texttt{|} & \texttt{\&} & \texttt{\^{}} & \texttt{+} & \texttt{*} & \texttt{\%} & \texttt{min} & \texttt{max} & \texttt{\^{}} & \texttt{+} & \texttt{*} & \texttt{\%} & \texttt{|} & \texttt{\&} & \texttt{\^{}} & \texttt{+} & \texttt{*} \\ \midrule
+\textbf{Species} & \multicolumn{5}{c|}{\textbf{bool}} & \multicolumn{8}{c|}{\textbf{uint}} & \multicolumn{8}{c|}{\textbf{int}} & \multicolumn{2}{c}{\textbf{double}} \\ \midrule
+\textbf{Category} & \multicolumn{2}{c|}{Logical} & \multicolumn{3}{c|}{Bitwise} & \multicolumn{3}{c|}{Arithmetic} & \multicolumn{2}{c|}{Order} & \multicolumn{3}{c|}{Bitwise} & \multicolumn{3}{c|}{Arithmetic} & \multicolumn{2}{c|}{Order} & \multicolumn{3}{c|}{Bitwise} & \multicolumn{2}{c}{Arithmetic} \\ \midrule
+\textbf{Operator} & \texttt{||} & \texttt{\&\&} & \texttt{|} & \texttt{\&} & \texttt{\^{}} & \texttt{+} & \texttt{*} & \texttt{\%} & \texttt{min} & \texttt{max} & \texttt{|} & \texttt{\&} & \texttt{\^{}} & \texttt{+} & \texttt{*} & \texttt{\%} & \texttt{min} & \texttt{max} & \texttt{|} & \texttt{\&} & \texttt{\^{}} & \texttt{+} & \texttt{*} \\ \midrule
 
-\textbf{Identity}   & \texttt{f} & \texttt{t} & \texttt{f} & \texttt{t} & \texttt{f} & \texttt{0} & \texttt{1} & --- & \texttt{max} & \texttt{0} & \texttt{0} & \texttt{0} & \texttt{1} & --- & \texttt{0} & \texttt{-1} & \texttt{0} & \texttt{0.0} & \texttt{1.0} \\ 
-\textbf{Absorber}   & \texttt{t} & \texttt{f} & \texttt{t} & \texttt{f} & --- & --- & \texttt{0} & \textbf{Hz}\textsuperscript{D} & \texttt{0} & \texttt{max} & --- & --- & \texttt{0} & \textbf{Hz}\textsuperscript{D} & \texttt{-1} & \texttt{0} & --- & \texttt{Inf} & \texttt{NaN} \\ 
-\textbf{Associative}& \checkmark & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark\textsuperscript{M} & \checkmark\textsuperscript{M} & --- & \checkmark & \checkmark & \checkmark & \textbf{Hz}\textsuperscript{U} & \checkmark & --- & \checkmark & \checkmark & \checkmark & \textasteriskcentered & \textasteriskcentered \\ 
-\textbf{Commutative}& \checkmark & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark & --- & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark & --- & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark \\ 
-\textbf{Idempotent} & \checkmark & \checkmark & \checkmark & \checkmark & --- & --- & --- & --- & \checkmark & \checkmark & --- & --- & --- & --- & \checkmark & \checkmark & --- & --- & --- \\ 
-\textbf{Inverse}    & --- & --- & --- & --- & \checkmark & \checkmark\textsuperscript{M} & --- & --- & --- & --- & \checkmark & \textbf{Hz}\textsuperscript{A} & --- & --- & --- & --- & \checkmark & \checkmark & \checkmark \\ 
-\textbf{Monotonic}  & \checkmark & \checkmark & \checkmark & \checkmark & --- & \textbf{Hz}\textsuperscript{W} & \textbf{Hz}\textsuperscript{W} & --- & \checkmark & \checkmark & --- & \checkmark\textsuperscript{P} & \checkmark\textsuperscript{P} & --- & --- & --- & --- & \checkmark & \checkmark \\ \midrule
-\textbf{Logic ($\Omega$)} & \multicolumn{5}{c|}{Classical ($\Omega_{\mathbb{B}}$)} & \multicolumn{6}{c|}{Classical ($\Omega_{\mathbb{B}}$)} & \multicolumn{6}{c|}{Classical ($\Omega_{\mathbb{B}}$)} & \multicolumn{2}{c}{Ternary ($\Omega_{K3}$)} \\ \bottomrule
+\textbf{Identity}   & \texttt{f} & \texttt{t} & \texttt{f} & \texttt{t} & \texttt{f} & \texttt{0} & \texttt{1} & --- & \texttt{\textasciitilde 0u} & \texttt{0} & \texttt{0} & \texttt{\textasciitilde 0u} & \texttt{0} & \texttt{0} & \texttt{1} & --- & \texttt{INT\_MAX} & \texttt{INT\_MIN} & \texttt{0} & \texttt{-1} & \texttt{0} & \texttt{0.0} & \texttt{1.0} \\ 
+\textbf{Absorber}   & \texttt{t} & \texttt{f} & \texttt{t} & \texttt{f} & --- & --- & \texttt{0} & \textbf{Hz}\textsuperscript{D} & \texttt{0} & \texttt{\textasciitilde 0u} & \texttt{\textasciitilde 0u} & \texttt{0} & --- & --- & \texttt{0} & \textbf{Hz}\textsuperscript{D} & \texttt{INT\_MIN} & \texttt{INT\_MAX} & \texttt{-1} & \texttt{0} & --- & \texttt{Inf} & \texttt{NaN} \\ 
+\textbf{Associative}& \checkmark & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark\textsuperscript{M} & \checkmark\textsuperscript{M} & --- & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark & \textbf{Hz}\textsuperscript{U} & \checkmark & --- & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark & \textasteriskcentered & \textasteriskcentered \\ 
+\textbf{Commutative}& \checkmark & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark & --- & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark & --- & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark \\ 
+\textbf{Idempotent} & \checkmark & \checkmark & \checkmark & \checkmark & --- & --- & --- & --- & \checkmark & \checkmark & \checkmark & \checkmark & --- & --- & --- & --- & \checkmark & \checkmark & \checkmark & \checkmark & --- & --- & --- \\ 
+\textbf{Inverse}    & --- & --- & --- & --- & \checkmark & \checkmark\textsuperscript{M} & --- & --- & --- & --- & --- & --- & \checkmark & \textbf{Hz}\textsuperscript{A} & --- & --- & --- & --- & --- & --- & \checkmark & \checkmark & \checkmark \\ 
+\textbf{Monotonic}  & \checkmark & \checkmark & \checkmark & \checkmark & --- & \textbf{Hz}\textsuperscript{W} & \textbf{Hz}\textsuperscript{W} & --- & \checkmark & \checkmark & --- & --- & --- & \checkmark\textsuperscript{P} & \checkmark\textsuperscript{P} & --- & \checkmark & \checkmark & --- & --- & --- & \checkmark & \checkmark \\ \midrule
+\textbf{Logic ($\Omega$)} & \multicolumn{5}{c|}{Classical ($\Omega_{\mathbb{B}}$)} & \multicolumn{8}{c|}{Classical ($\Omega_{\mathbb{B}}$)} & \multicolumn{8}{c|}{Classical ($\Omega_{\mathbb{B}}$)} & \multicolumn{2}{c}{Ternary ($\Omega_{K3}$)} \\ \bottomrule
 \end{tabular}
 
 \begin{flushleft}
@@ -498,7 +495,6 @@ The core objective is to anchor the C++ type system as a substrate for modeling 
 \end{flushleft}
 \end{table}
 \end{landscape}
-
 
 
 
