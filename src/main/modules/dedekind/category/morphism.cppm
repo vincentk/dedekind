@@ -234,24 +234,6 @@ auto operator||(const Rule<A, B>& p1, const Rule<A, B>& p2) {
   }};
 }
 
-/**
- * @concept IsAbelian
- * @brief A Category where the binary composition is Commutative (a ∘ b = b ∘
- * a).
- *
- * @details In the Dedekind topos, Abelian structures (like Logic or Addition)
- *          provide formal permission for the DAG to reorder morphisms.
- *          This enables radical symbolic optimizations, such as SIMD folding,
- *          parallel reductions, and identity-erasure, without altering the
- *          mathematical essence of the result.
- */
-export template <typename T, typename Op>
-concept IsAbelian = IsSmallCategory<T, Op> && IsCommutative<T, Op>;
-
-/** @section Verification */
-static_assert(IsAbelian<int, std::plus<int>>);
-static_assert(IsAbelian<bool, std::logical_or<bool>>);
-
 /** @section The Morphism Factory: arrow <A, B> (f) */
 export template <typename A, typename B, typename F>
 constexpr auto arrow(F&& f) {
@@ -279,17 +261,6 @@ export template <typename A, typename B, typename Op>
 struct ZeroAction {
   constexpr B operator()(const A&) const noexcept { return identity_v<B, Op>; }
 };
-
-/**
- * @brief The Zero Morphism Factory: zero<A, B, Op>()
- * @details Synthesizes an arrow that absorbs all information,
- *          collapsing the Domain into the Codomain's identity.
- */
-export template <typename A, typename B, typename Op>
-  requires IsSmallCategory<B, Op>
-constexpr auto zero() {
-  return arrow<A, B>(ZeroAction<A, B, Op>{});
-}
 
 /** @section Zero Morphism Verification */
 
@@ -469,79 +440,6 @@ template <typename A, typename B, typename Impl>
 // Proof: Tagged Negation is a formal Isomorphism.
 static_assert(IsIsomorphism<TaggedNegate, int, int>,
               "Negation must be recognized as a reversible Morphism.");
-
-/**
- * @concept IsGroupoid
- * @brief A Category where every morphism is an Isomorphism (Invertible).
- *
- * @details This represents a structure where every "action" has a perfect
- *          "undo". In Algebra, this is a Group. It requires an 'inverse'
- *          morphism such that: f ∘ f⁻¹ = id.
- *
- * @note For the Integers (Z), this is addition with negation.
- */
-export template <typename T, typename Op>
-concept IsGroupoid = IsSmallCategory<T, Op> && IsInvertible<T, Op>;
-
-/** @section Groupoid Verification: The Symmetry Law */
-
-// 1. Proof: (int, +) is a Groupoid (Additive Group).
-// Since we defined inverse<int, plus>(x) as -x, this must pass.
-static_assert(IsGroupoid<int, std::plus<int>>,
-              "Arithmetic: Integer addition must be a Groupoid.");
-
-// 2. Proof: (int, ^) is a Groupoid (Self-inverse).
-// XOR is its own inverse, satisfying a ^ a = 0.
-static_assert(IsGroupoid<int, std::bit_xor<int>>,
-              "Bitwise: XOR must be a Groupoid.");
-
-// 3. Proof: (bool, ^) is a Groupoid (The Boolean Group).
-// Unlike AND/OR, XOR/NOT logic allows for perfect reversibility.
-static_assert(IsGroupoid<bool, std::bit_xor<bool>>,
-              "Logic: Boolean XOR must be a Groupoid.");
-
-// Verification: (bool, ∧) is a Small Category (Monoid) but NOT a Groupoid.
-static_assert(!IsGroupoid<bool, std::logical_and<bool>>,
-              "Logic: Boolean AND must not be a Groupoid.");
-
-/**
- * @concept IsAbelianGroupoid
- * @brief A Category where every Morphism is an Isomorphism and
- *        Composition is Commutative.
- *
- * @details This represents the peak of structural symmetry in the
- *          Skeletal layer. In Algebra, this corresponds to an
- *          Abelian Group (e.g., Integer Addition).
- *
- * @section HPC_Authority
- * Because an Abelian Groupoid is both invertible and commutative,
- * the Dedekind engine can:
- * 1. Reorder operations safely for SIMD/Vectorization (Commutativity).
- * 2. Perform "Inverse Pruning" (f ∘ f⁻¹ → id) to eliminate
- *    redundant machine instructions (Invertibility).
- *
- * @note While we will define formal 'Groups' in ontology:algebra,
- *       this concept anchors the requirement at the Category level.
- */
-export template <typename T, typename Op>
-concept IsAbelianGroupoid = IsGroupoid<T, Op> && IsAbelian<T, Op>;
-
-/** @section Verification of the Standard Model */
-
-// Proof: (bool, &&) is NOT an Abelian Groupoid (It's an Abelian Monoid).
-static_assert(!IsAbelianGroupoid<bool, std::logical_and<bool>>,
-              "Logic is symmetric but not reversible (Annihilation).");
-
-static_assert(IsAbelian<bool, std::logical_and<bool>>,
-              "Logic: AND must be commutative.");
-
-// Proof: (Z, +) is an Abelian Groupoid.
-static_assert(IsAbelianGroupoid<int, std::plus<int>>,
-              "Integer addition must be a reversible, symmetric action.");
-
-// 1. Proof: (int, ^) is an Abelian Groupoid.
-static_assert(IsAbelianGroupoid<int, std::bit_xor<int>>,
-              "Bitwise: XOR is a reversible, symmetric Category.");
 
 /** @section Peak Symmetry: Zero vs. Groupoid */
 

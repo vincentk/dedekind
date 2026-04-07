@@ -42,6 +42,8 @@ module;
 
 export module dedekind.category:logic;
 
+import :mereology;
+import :morphism;
 import :species;
 
 namespace dedekind::category {

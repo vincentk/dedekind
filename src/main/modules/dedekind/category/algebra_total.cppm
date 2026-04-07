@@ -84,44 +84,6 @@ concept IsLoop = IsUnitalMagma<T, Op> && IsInvertible<T, Op>;
 export template <typename T, typename Op>
 concept IsSemigroup = IsMagma<T, Op> && IsAssociative<T, Op>;
 
-
-/**
- * @concept IsSmallCategory
- * @brief The fundamental structure of a Monoid viewed as a Category.
- *
- * @details A Category is 'Small' if its collection of morphisms forms a Set.
- *          In C++, this means the structure can be fully represented by a type
- * T. It adds the 'Identity Morphism' (Unit) to a Semigroupoid: f ∘ id = f = id
- * ∘ f.
- *
- * @section Structuralist_Identity
- * The 'identity_v' trait provides the neutral element for the operation Op.
- */
-export template <typename T, typename Op>
-concept IsSmallCategory = IsSemigroupoid<T, Op> &&
-                          requires {
-                            typename identity_trait<T, Op>;
-                          } &&  // Ensure specialization exists
-                          requires {
-                            {
-                              identity_trait<T, Op>::value
-                            } -> std::same_as<const T&>;
-                          };
-
-// Proof: (int, +) with '0' is a Small Category.
-static_assert(IsSmallCategory<int, std::plus<int>>,
-              "SmallCategory: Integer addition with 0 is a Monoid.");
-
-// Proof: (bool, &&) with 'true' is a Small Category.
-static_assert(IsSmallCategory<bool, std::logical_and<bool>>,
-              "SmallCategory: Boolean AND with 'true' is a Monoid.");
-
-// 3. Proof: (int, &) is NOT a SmallCategory (No Identity).
-// This fails the identity_v check because we haven't anchored a
-// "Universal Mask" for the Integer Species.
-static_assert(!IsSmallCategory<int, std::bit_and<int>>,
-              "Bitwise: AND lacks a universal neutral element in Z.");
-
 /** @concept IsMonoid: Semigroup + Identity */
 export template <typename T, typename Op>
 concept IsMonoid = IsSemigroup<T, Op> && IsUnitalMagma<T, Op>;
@@ -153,6 +115,24 @@ concept IsAbelianGroup = IsGroup<T, Op> && IsCommutative<T, Op>;
 
 // Strictly True: Unsigned addition is a Total Abelian Group (Z/2^nZ).
 static_assert(IsAbelianGroup<unsigned int, std::plus<unsigned int>>);
+
+/**
+ * @concept IsAbelian
+ * @brief A Category where the binary composition is Commutative (a ∘ b = b ∘
+ * a).
+ *
+ * @details In the Dedekind topos, Abelian structures (like Logic or Addition)
+ *          provide formal permission for the DAG to reorder morphisms.
+ *          This enables radical symbolic optimizations, such as SIMD folding,
+ *          parallel reductions, and identity-erasure, without altering the
+ *          mathematical essence of the result.
+ */
+export template <typename T, typename Op>
+concept IsAbelian = IsSmallCategory<T, Op> && IsCommutative<T, Op>;
+
+/** @section Verification */
+static_assert(IsAbelian<int, std::plus<int>>);
+static_assert(IsAbelian<bool, std::logical_or<bool>>);
 
 /** @concept IsRig: Semiring without Negatives (Addition is a Monoid) */
 export template <typename T, typename Add, typename Mult>

@@ -33,7 +33,7 @@ module;
 export module dedekind.category:actions;
 
 import :species;
-import :morphisms;
+import :morphism;
 import :algebra;
 
 namespace dedekind::category {

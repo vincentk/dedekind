@@ -818,31 +818,6 @@ concept IsPeriodic = is_periodic_v<T, Op>;
 export template <typename T, typename Op>
 concept IsTotal = IsPeriodic<T, Op> || IsIdempotent<T, Op>;
 
-/** @section The_Box_Species (The Standard Model) */
-export template <typename T>
-struct Box final {
-  using machine_type = T;
-  T value;
-
-  constexpr bool operator==(const Box& other) const = default;
-};
-
-// >>= (Bind): Chaining the Box to a Kleisli Arrow
-export template <typename T, typename Func>
-constexpr auto operator>>=(const Box<T>& b, Func&& f) {
-  // We sample the part and hand it to the factory.
-  return std::forward<Func>(f)(b.value);
-}
-
-/** @section The_Extend_Operator (<<=) */
-export template <typename T, typename Func>
-constexpr auto operator<<=(const Box<T>& b, Func&& f) {
-  using U = std::invoke_result_t<Func, Box<T>>;
-  // Co-Kleisli Extend: apply 'f' to the whole box,
-  // and re-wrap the result in a new Box.
-  return Box<U>{std::forward<Func>(f)(b)};
-}
-
 /** @section Atomic_Floor_Verification */
 
 static_assert(!is_associative_v<int, std::plus<int>>,
