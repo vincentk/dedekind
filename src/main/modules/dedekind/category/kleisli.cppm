@@ -36,7 +36,7 @@ module;
 
 export module dedekind.category:kleisli;
 
-import :species;
+import :monad;
 
 namespace dedekind::category {
 

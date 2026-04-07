@@ -16,7 +16,7 @@
 
 export module dedekind.category:monad;
 
-import :kleisli;
+import :natural;
 
 namespace dedekind::category {
 

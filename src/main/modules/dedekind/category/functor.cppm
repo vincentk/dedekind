@@ -50,9 +50,8 @@ module;
 #include <concepts>
 #include <functional>
 
-export module dedekind.category:functorial;
+export module dedekind.category:functor;
 
-import :kleisli;
 import :morphism;
 import :species;
 
