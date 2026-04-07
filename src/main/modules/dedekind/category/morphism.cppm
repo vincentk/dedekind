@@ -195,43 +195,6 @@ static_assert(
     "Taxonomy Error: std::plus<int> must be recognized as an Endomorphism.");
 
 /**
- * @concept IsSmallCategory
- * @brief The fundamental structure of a Monoid viewed as a Category.
- *
- * @details A Category is 'Small' if its collection of morphisms forms a Set.
- *          In C++, this means the structure can be fully represented by a type
- * T. It adds the 'Identity Morphism' (Unit) to a Semigroupoid: f ∘ id = f = id
- * ∘ f.
- *
- * @section Structuralist_Identity
- * The 'identity_v' trait provides the neutral element for the operation Op.
- */
-export template <typename T, typename Op>
-concept IsSmallCategory = IsSemigroupoid<T, Op> &&
-                          requires {
-                            typename identity_trait<T, Op>;
-                          } &&  // Ensure specialization exists
-                          requires {
-                            {
-                              identity_trait<T, Op>::value
-                            } -> std::same_as<const T&>;
-                          };
-
-// Proof: (int, +) with '0' is a Small Category.
-static_assert(IsSmallCategory<int, std::plus<int>>,
-              "SmallCategory: Integer addition with 0 is a Monoid.");
-
-// Proof: (bool, &&) with 'true' is a Small Category.
-static_assert(IsSmallCategory<bool, std::logical_and<bool>>,
-              "SmallCategory: Boolean AND with 'true' is a Monoid.");
-
-// 3. Proof: (int, &) is NOT a SmallCategory (No Identity).
-// This fails the identity_v check because we haven't anchored a
-// "Universal Mask" for the Integer Species.
-static_assert(!IsSmallCategory<int, std::bit_and<int>>,
-              "Bitwise: AND lacks a universal neutral element in Z.");
-
-/**
  * @struct Rule
  * @brief A type-erased Morphism A -> B between Species.
  * @details This wrapper reifies a functional rule into a formal
