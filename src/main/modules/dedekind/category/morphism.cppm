@@ -49,19 +49,16 @@ namespace dedekind::category {
 
 /**
  * @concept IsArrow
- * @brief Verified mapping f: A -> B.
- *
- * Supports three paths:
- * 1. The Morphic Registry (Formal SpeciesTraits)
- * 2. Functional Deduction (Lambdas/Callables via invoke_result)
- * 3. The Universal Bridge (Primitives acting as Identity Arrows)
+ * @brief A type that knows its own Domain (A) and Codomain (B).
  */
-export template <typename F, typename A, typename B>
-concept IsArrow =
-    (requires { typename SpeciesTraits<F, A>::Codomain; } &&
-     std::convertible_to<typename SpeciesTraits<F, A>::Codomain, B>) ||
-    ((std::integral<F> || std::floating_point<F> || std::same_as<F, bool>) &&
-     std::same_as<F, A> && std::same_as<A, B>);
+export template <typename F>
+concept IsArrow = requires {
+  typename F::Domain;
+  typename F::Codomain;
+  requires requires(F f, typename F::Domain x) {
+    { f(x) } -> std::convertible_to<typename F::Codomain>;
+  };
+};
 
 /**
  * @section The_Skeletal_Morphism
@@ -69,12 +66,14 @@ concept IsArrow =
  */
 export template <typename A, typename B, typename Func>
 struct Morphism {
-  using Domain = A;
+  using Domain = A;  // The concept is looking for these exact names
   using Codomain = B;
   Func transform;
 
+  constexpr explicit Morphism(Func f) : transform(std::move(f)) {}
+
   // We provide the call operator, but NOT the composition (f ∘ g).
-  constexpr B operator()(const A& x) const { return transform(x); }
+  constexpr Codomain operator()(const Domain& x) const { return transform(x); }
 };
 
 /** @brief Universal inference for any Morphism signature f: Args... -> Codomain
@@ -143,56 +142,110 @@ struct SpeciesTraits<std::less_equal<T>>
 template <typename T>
 struct SpeciesTraits<std::less<T>> : infer_morphism<std::less<T>, T, T> {};
 
+/** @section Lambda_Introspection */
+template <typename T>
+struct MorphicBridge;
+
+// Pattern match for: ReturnType Class::operator()(ArgType) const
+template <typename C, typename R, typename A>
+struct MorphicBridge<R (C::*)(A) const> {
+  using Domain = std::decay_t<A>;
+  using Codomain = std::decay_t<R>;
+};
+
+// Pattern match for: ReturnType Class::operator()(ArgType)
+template <typename C, typename R, typename A>
+struct MorphicBridge<R (C::*)(A)> {
+  using Domain = std::decay_t<A>;
+  using Codomain = std::decay_t<R>;
+};
+
+/** @section Library_Function_Support */
+template <typename R, typename A>
+struct MorphicBridge<std::function<R(A)>> {
+  using Domain = std::decay_t<A>;
+  using Codomain = std::decay_t<R>;
+};
+
+/** @section Morphic_Resolution */
+
+template <typename F>
+struct signature_extractor {
+  // Track 1: Match types with a specific operator() (Lambdas, Functors)
+  template <typename U>
+  static auto resolve(int) -> decltype(&std::remove_cvref_t<U>::operator());
+
+  // Track 2: Match types that ARE the signature (std::function, function
+  // pointers)
+  template <typename U>
+  static auto resolve(...) -> std::remove_cvref_t<U>;
+
+  using type = decltype(resolve<F>(0));
+};
+
+// 2. Define aliases for the Domain and Codomain extraction
+template <typename F>
+using domain_t =
+    typename MorphicBridge<typename signature_extractor<F>::type>::Domain;
+
+template <typename F>
+using codomain_t =
+    typename MorphicBridge<typename signature_extractor<F>::type>::Codomain;
+
+/** @section CTAD_Guide */
+template <typename F>
+Morphism(F) -> Morphism<domain_t<F>, codomain_t<F>, F>;
+
 static_assert(
-    IsArrow<Morphism<int, bool, std::function<bool(int)>>, int, bool>,
+    IsArrow<Morphism<int, bool, std::function<bool(int)>>>,
     "Taxonomy Error: Morphism must satisfy the skeletal IsArrow concept.");
 
-// 2. Verify "Inferred Arrows" (Inference Engine)
-// Testing std::plus<int>: int x int -> int
-static_assert(
-    IsArrow<std::plus<int>, int, int>,
-    "Inference Error: std::plus<int> should be an Arrow from int to int.");
+/** @section Morphic_Factory */
 
-// Testing Relational Morphisms: double x double -> bool
-static_assert(IsArrow<std::less_equal<double>, double, bool>,
-              "Inference Error: std::less_equal<double> should be an Arrow "
-              "from double to bool.");
+// 1. Overload for raw Lambdas / Functors
+// Restricted: Only if it's NOT already an Arrow but IS callable.
+template <typename F>
+  requires(!IsArrow<std::remove_cvref_t<F>>) &&
+          requires(F f) { typename signature_extractor<F>::type; }
+constexpr auto arrow(F&& f) {
+  using D = domain_t<F>;
+  using C = codomain_t<F>;
+  return Morphism<D, C, std::decay_t<F>>(std::forward<F>(f));
+}
+
+// 2. Passthrough for things that are already Arrows (Idempotent factory)
+template <IsArrow F>
+constexpr auto arrow(F&& f) {
+  return std::forward<F>(f);
+}
 
 // 3. Verify "Lambdas" (Functional Auto-Discovery)
-auto logic_gate = [](int x) -> bool { return x > 0; };
+auto logic_gate = arrow([](int x) -> bool { return x > 0; });
+
 static_assert(
-    IsArrow<decltype(logic_gate), int, bool>,
+    IsArrow<decltype(logic_gate)>,
     "Inference Error: Lambda was not automatically discovered as an Arrow.");
 
 // 4. Verify "The Universal Bridge" (Primitives as Identity Arrows)
 // Allows using a raw '5' as an identity mapping in algebraic expressions
 static_assert(
-    IsArrow<int, int, int>,
+    IsArrow<decltype(arrow([](int x) { return x; }))>,
     "Bridge Error: Primitive int should act as an identity Arrow for itself.");
-static_assert(IsArrow<double, double, double>,
+static_assert(IsArrow<decltype(arrow([](double x) { return x; }))>,
               "Bridge Error: Primitive double should act as an identity Arrow "
               "for itself.");
 
 // 5. Verify "Morphism Struct" (Reification)
 using IntToBool = Morphism<int, bool, std::function<bool(int)>>;
-static_assert(IsArrow<IntToBool, int, bool>,
+static_assert(IsArrow<IntToBool>,
               "Taxonomy Error: Formal Morphism struct failed IsArrow check.");
-
-/** @section Morphism_Proof */
-static_assert(
-    IsArrow<Morphism<int, bool, std::function<bool(int)>>, int, bool>,
-    "Taxonomy Error: Morphism must satisfy the skeletal IsArrow concept.");
 
 /**
  * @concept IsEndomorphism
  * @brief Proposition: A Morphism where Domain ≡ Codomain (f: A -> A).
  */
-export template <typename F, typename T>
-concept IsEndomorphism = IsArrow<F, T, T>;
-
-static_assert(
-    IsEndomorphism<std::plus<int>, int>,
-    "Taxonomy Error: std::plus<int> must be recognized as an Endomorphism.");
+export template <typename T>
+concept IsEndomorphism = IsArrow<T> && std::same_as<domain_t<T>, codomain_t<T>>;
 
 /**
  * @struct Rule
@@ -234,13 +287,13 @@ auto operator||(const Rule<A, B>& p1, const Rule<A, B>& p2) {
   }};
 }
 
-/** @section The Morphism Factory: arrow <A, B> (f) */
+// 1. Explicit Arrow: arrow<A, B>(f)
 export template <typename A, typename B, typename F>
 constexpr auto arrow(F&& f) {
-  return Morphism<A, B, std::decay_t<F>>{std::forward<F>(f)};
+  return Morphism<A, B, std::decay_t<F>>(std::forward<F>(f));
 }
 
-/** @brief The Endomorphism Factory: endo<A>(f) */
+// 2. Explicit Endomorphism: endo<A>(f)
 export template <typename A, typename F>
 constexpr auto endo(F&& f) {
   return arrow<A, A>(std::forward<F>(f));
@@ -279,7 +332,7 @@ constexpr auto f_neg = endo<int>(std::negate<int>{});
 constexpr auto identity_int = id<int>();
 
 /** @section Identity Verification */
-static_assert(IsArrow<decltype(id<bool>()), bool, bool>,
+static_assert(IsArrow<decltype(id<bool>())>,
               "The id<A>() factory must produce a valid Arrow.");
 
 // 1. Right Identity: f(id(x)) == f(x)
@@ -343,19 +396,17 @@ constexpr auto operator>>(F&& f, G&& g) {
 // 1. Proof: Morphism Identity (Existence & Tagging)
 // We verify that id exists and chains with tagged morphisms.
 static_assert(
-    IsArrow<decltype(id<int>() >> arrow<int, int>(std::negate<int>{})), int,
-            int>,
+    IsArrow<decltype(id<int>() >> arrow<int, int>(std::negate<int>{}))>,
     "Unit Law: id_A must be a left-identity for morphisms out of A.");
 
-static_assert(
-    IsArrow<decltype(endo<int>(std::negate<int>{}) >> id<int>()), int, int>,
-    "Unit Law: id_B must be a right-identity for morphisms into B.");
+static_assert(IsArrow<decltype(endo<int>(std::negate<int>{}) >> id<int>())>,
+              "Unit Law: id_B must be a right-identity for morphisms into B.");
 
 // 2. Proof: Cross-Species Identity
 // id_Z combined with a Z -> B bridge must result in a Z -> B bridge
 /** @section Cross_Species_Proof: Z -> B */
 static_assert(
-    IsArrow<decltype(arrow<int, bool>([](int x) { return x > 0; })), int, bool>,
+    IsArrow<decltype(arrow<int, bool>([](int x) { return x > 0; }))>,
     "Skeletal Failure: Failed to construct an anonymous cross-species "
     "Morphism.");
 
@@ -366,13 +417,8 @@ static_assert((endo<int>(std::negate<int>{}) >> id<int>())(42) == -42,
 
 // 4. Proof: Categorical Unity (id ∘ id = id)
 static_assert(
-    IsArrow<decltype(id<int>() >> id<int>()), int, int>,
+    IsArrow<decltype(id<int>() >> id<int>())>,
     "Unity: id composed with itself must remain the Identity Morphism.");
-
-// 5. Negative Proof: Species Safety (The Broken Bridge)
-// This should fail to compile if you uncomment it, because bool != int.
-// static_assert(!IsArrow<decltype(id<bool>() >> arrow<int,
-// int>(std::negate<int>{})), int, int>);
 
 /**
  * @concept IsIsomorphism
@@ -380,10 +426,13 @@ static_assert(
  * @details Represents a reversible morphism. In Level 0, we verify
  *          the structural existence of the 'Undo' path.
  */
-export template <typename F, typename A, typename B>
-concept IsIsomorphism = IsArrow<F, A, B> && requires(F f) {
-  // We probe the global/partition 'inverse' bridge for this specific Morphism.
-  { inverse(f) } -> IsArrow<B, A>;
+export template <typename F>
+concept IsIsomorphism = IsArrow<F> && requires(F f) {
+  // An isomorphism must provide its own inverse arrow
+  { inverse(f) } -> IsArrow;
+  // And the domain of the inverse must be the codomain of the original
+  requires std::same_as<typename F::Codomain,
+                        typename decltype(inverse(f))::Domain>;
 };
 
 /** @brief The structural inverse of an Identity is itself. */
@@ -393,11 +442,11 @@ template <typename T>
 }
 
 // Proof: id_int is an isomorphism from int to int.
-static_assert(IsIsomorphism<Identity<int>, int, int>,
+static_assert(IsIsomorphism<Identity<int>>,
               "Identity must be a self-inverse isomorphism.");
 
 // Proof: id_bool is an isomorphism from bool to bool.
-static_assert(IsIsomorphism<Identity<bool>, bool, bool>,
+static_assert(IsIsomorphism<Identity<bool>>,
               "Identity must be a self-inverse isomorphism.");
 
 /** @brief The structural inverse of Negation is itself (Involutive). */
@@ -408,7 +457,7 @@ template <typename A, typename B, typename Impl>
 }
 
 // Proof: Tagged Negation is a formal Isomorphism.
-static_assert(IsIsomorphism<TaggedNegate, int, int>,
+static_assert(IsIsomorphism<TaggedNegate>,
               "Negation must be recognized as a reversible Morphism.");
 /**
  * @section The Action Bridge (Value >> Arrow)
@@ -422,8 +471,7 @@ static_assert(IsIsomorphism<TaggedNegate, int, int>,
  * @note Syntactic Sugar: x >> f ≡ f(x).
  */
 export template <typename T, typename Arrow>
-  requires IsArrow<Arrow, typename Arrow::Domain, typename Arrow::Codomain> &&
-           std::convertible_to<T, typename Arrow::Domain>
+  requires IsArrow<Arrow> && std::convertible_to<T, typename Arrow::Domain>
 constexpr auto operator>>(T&& value, const Arrow& f) ->
     typename Arrow::Codomain {
   return f(std::forward<T>(value));

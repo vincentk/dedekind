@@ -34,9 +34,10 @@ module;
 
 export module dedekind.category:etcs;
 
-import :logic;
 import :morphism;
+import :logic;
 import :species;
+import :partial;
 
 namespace dedekind::category {
 
@@ -46,7 +47,6 @@ namespace dedekind::category {
  * @details S : Domain → Ω.
  */
 export template <typename S, typename Ω = ClassicalLogic>
-concept IsCharacteristic =
-    IsArrow<S, typename SpeciesTraits<S>::Domain, typename Ω::type>;
+concept IsCharacteristic = IsArrow<S>;
 
 }  // namespace dedekind::category

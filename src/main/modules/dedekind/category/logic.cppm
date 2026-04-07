@@ -222,11 +222,18 @@ export template <typename P, typename T>
 concept IsPredicate =
     !std::same_as<std::remove_cvref_t<P>, bool> &&  // Don't match raw bools
     requires(P p, T x) {
-      { p(x) };
+      { p(x) } -> LogicalValue;
       typename SpeciesTraits<decltype(p(x))>::species;
     } &&
     LogicalSpecies<
         typename SpeciesTraits<decltype(p(std::declval<T>()))>::species>;
+
+/**
+ * @concept IsCharacteristic
+ * @brief Categorical alias for a Predicate mapping to Ω.
+ */
+export template <typename P, typename T>
+concept IsCharacteristic = IsPredicate<P, T>;
 
 /**
  * @section The Point-Free Infix Engine (Lattice Morphisms)

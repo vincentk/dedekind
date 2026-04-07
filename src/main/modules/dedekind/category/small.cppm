@@ -25,6 +25,7 @@ module;
 
 export module dedekind.category:small;
 
+import :morphism;
 import :posetal;
 
 namespace dedekind::category {
@@ -38,9 +39,7 @@ export template <typename Cat>
 concept IsSmallCategory = requires {
   // 1. Identity: Every object X in the category must have an identity arrow
   typename Cat::Object;
-  {
-    Cat::identity(std::declval<typename Cat::Object>())
-  } -> IsArrow<typename Cat::Object, typename Cat::Object>;
+  { Cat::identity(std::declval<typename Cat::Object>()) } -> IsEndomorphism;
 
   // 2. Composition: f: A -> B and g: B -> C must compose
   typename Cat::Arrow;
