@@ -30,11 +30,9 @@ module;
 #include <concepts>
 #include <functional>
 
-export module dedekind.category:actions;
+export module dedekind.category:action;
 
-import :species;
-import :morphism;
-import :algebra;
+import :algebra_total;
 
 namespace dedekind::category {
 
@@ -132,5 +130,41 @@ concept IsLinearMorphism =
       { f(s * m) } -> std::same_as<M>;
       // Semantic: f(s * m) == s * f(m)
     };
+
+/**
+ * @struct ZeroAction
+ * @brief The 'Absorption' logic.
+ * @details Maps any input of species A to the neutral element of species B.
+ */
+export template <typename A, typename B, typename Op>
+struct ZeroAction {
+  constexpr B operator()(const A&) const noexcept { return identity_v<B, Op>; }
+};
+
+/** @section Zero Morphism Verification */
+
+/** @section Peak Symmetry: Zero vs. Groupoid */
+
+// Proof: The Zero Morphism (int -> int) is an Arrow,
+// even if it maps into an Abelian Groupoid.
+static_assert(IsArrow<ZeroZ, int, int>,
+              "Zero: A 'Black Hole' arrow must map Z to Z.");
+
+// Proof: The result of zero() belongs to the Identity element.
+static_assert(zero<int, int, std::plus<int>>()(99) == 0,
+              "Absorption: Z -> Z via + must yield 0.");
+
+// 1. Proof: Zero is an Arrow from int to int (under addition).
+using ZeroZ = decltype(zero<int, int, std::plus<int>>());
+static_assert(IsArrow<ZeroZ, int, int>,
+              "Zero: Must be a valid morphism mapping Z to Z.");
+
+// 2. Action Proof: Zero maps everything to 0.
+static_assert(zero<int, int, std::plus<int>>()(42) == 0,
+              "Absorption: Zero morphism must return the identity element.");
+
+// 3. Action Proof: Zero maps everything to 'true' (under logic AND).
+static_assert(zero<int, bool, std::logical_and<bool>>()(42) == true,
+              "Absorption: Boolean AND zero must return 'true'.");
 
 }  // namespace dedekind::category

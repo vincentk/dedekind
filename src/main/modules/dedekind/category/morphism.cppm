@@ -252,30 +252,6 @@ constexpr auto endo(F&& f) {
 // We verify that the factory-produced morphism actually executes.
 static_assert(endo<int>([](int x) { return x * 2; })(21) == 42,
               "Arrow Factory: Action check failed for anonymous lambda.");
-/**
- * @struct ZeroAction
- * @brief The 'Absorption' logic.
- * @details Maps any input of species A to the neutral element of species B.
- */
-export template <typename A, typename B, typename Op>
-struct ZeroAction {
-  constexpr B operator()(const A&) const noexcept { return identity_v<B, Op>; }
-};
-
-/** @section Zero Morphism Verification */
-
-// 1. Proof: Zero is an Arrow from int to int (under addition).
-using ZeroZ = decltype(zero<int, int, std::plus<int>>());
-static_assert(IsArrow<ZeroZ, int, int>,
-              "Zero: Must be a valid morphism mapping Z to Z.");
-
-// 2. Action Proof: Zero maps everything to 0.
-static_assert(zero<int, int, std::plus<int>>()(42) == 0,
-              "Absorption: Zero morphism must return the identity element.");
-
-// 3. Action Proof: Zero maps everything to 'true' (under logic AND).
-static_assert(zero<int, bool, std::logical_and<bool>>()(42) == true,
-              "Absorption: Boolean AND zero must return 'true'.");
 
 /** @section The_Universal_Functor_Interface */
 
@@ -293,12 +269,6 @@ struct Identity final {
 export template <typename A>
 constexpr auto id() {
   return Identity<A>{};
-}
-
-/** @brief The Unit/Pure Factory: Lifts a raw value into the Box context. */
-export template <typename T>
-constexpr auto pure(T&& value) {
-  return Box<std::decay_t<T>>{std::forward<T>(value)};
 }
 
 /** @section Morphism_Lifting_Proof */
@@ -440,18 +410,6 @@ template <typename A, typename B, typename Impl>
 // Proof: Tagged Negation is a formal Isomorphism.
 static_assert(IsIsomorphism<TaggedNegate, int, int>,
               "Negation must be recognized as a reversible Morphism.");
-
-/** @section Peak Symmetry: Zero vs. Groupoid */
-
-// Proof: The Zero Morphism (int -> int) is an Arrow,
-// even if it maps into an Abelian Groupoid.
-static_assert(IsArrow<ZeroZ, int, int>,
-              "Zero: A 'Black Hole' arrow must map Z to Z.");
-
-// Proof: The result of zero() belongs to the Identity element.
-static_assert(zero<int, int, std::plus<int>>()(99) == 0,
-              "Absorption: Z -> Z via + must yield 0.");
-
 /**
  * @section The Action Bridge (Value >> Arrow)
  * @brief Proposition: A Value x can be piped into a Morphism f: A -> B.

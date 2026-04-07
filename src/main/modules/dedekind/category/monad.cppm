@@ -45,4 +45,10 @@ constexpr auto operator<<=(const Box<T>& b, Func&& f) {
   return Box<U>{std::forward<Func>(f)(b)};
 }
 
+/** @brief The Unit/Pure Factory: Lifts a raw value into the Box context. */
+export template <typename T>
+constexpr auto pure(T&& value) {
+  return Box<std::decay_t<T>>{std::forward<T>(value)};
+}
+
 }  // namespace dedekind::category
