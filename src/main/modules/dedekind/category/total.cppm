@@ -26,6 +26,7 @@ module;
 export module dedekind.category:total;
 
 import :logic;
+import :morphism;
 import :species;
 
 namespace dedekind::category {

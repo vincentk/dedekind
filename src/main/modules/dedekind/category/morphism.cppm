@@ -41,11 +41,92 @@ module;
 #include <concepts>
 #include <functional>
 
-export module dedekind.category:morphisms;
+export module dedekind.category:morphism;
 
 import :species;
 
 namespace dedekind::category {
+
+/**
+ * @concept IsArrow
+ * @brief Verified mapping f: A -> B.
+ *
+ * Supports three paths:
+ * 1. The Morphic Registry (Formal SpeciesTraits)
+ * 2. Functional Deduction (Lambdas/Callables via invoke_result)
+ * 3. The Universal Bridge (Primitives acting as Identity Arrows)
+ */
+export template <typename F, typename A, typename B>
+concept IsArrow =
+    (requires { typename SpeciesTraits<F, A>::Codomain; } &&
+     std::convertible_to<typename SpeciesTraits<F, A>::Codomain, B>) ||
+    ((std::integral<F> || std::floating_point<F> || std::same_as<F, bool>) &&
+     std::same_as<F, A> && std::same_as<A, B>);
+
+/**
+ * @section The_Skeletal_Morphism
+ * @brief The formal structure of an Arrow f: A -> B.
+ */
+export template <typename A, typename B, typename Func>
+struct Morphism {
+  using Domain = A;
+  using Codomain = B;
+  Func transform;
+
+  // We provide the call operator, but NOT the composition (f ∘ g).
+  constexpr B operator()(const A& x) const { return transform(x); }
+};
+
+static_assert(
+    IsArrow<Morphism<int, bool, std::function<bool(int)>>, int, bool>,
+    "Taxonomy Error: Morphism must satisfy the skeletal IsArrow concept.");
+
+// 2. Verify "Inferred Arrows" (Inference Engine)
+// Testing std::plus<int>: int x int -> int
+static_assert(
+    IsArrow<std::plus<int>, int, int>,
+    "Inference Error: std::plus<int> should be an Arrow from int to int.");
+
+// Testing Relational Morphisms: double x double -> bool
+static_assert(IsArrow<std::less_equal<double>, double, bool>,
+              "Inference Error: std::less_equal<double> should be an Arrow "
+              "from double to bool.");
+
+// 3. Verify "Lambdas" (Functional Auto-Discovery)
+auto logic_gate = [](int x) -> bool { return x > 0; };
+static_assert(
+    IsArrow<decltype(logic_gate), int, bool>,
+    "Inference Error: Lambda was not automatically discovered as an Arrow.");
+
+// 4. Verify "The Universal Bridge" (Primitives as Identity Arrows)
+// Allows using a raw '5' as an identity mapping in algebraic expressions
+static_assert(
+    IsArrow<int, int, int>,
+    "Bridge Error: Primitive int should act as an identity Arrow for itself.");
+static_assert(IsArrow<double, double, double>,
+              "Bridge Error: Primitive double should act as an identity Arrow "
+              "for itself.");
+
+// 5. Verify "Morphism Struct" (Reification)
+using IntToBool = Morphism<int, bool, std::function<bool(int)>>;
+static_assert(IsArrow<IntToBool, int, bool>,
+              "Taxonomy Error: Formal Morphism struct failed IsArrow check.");
+
+/** @section Morphism_Proof */
+static_assert(
+    IsArrow<Morphism<int, bool, std::function<bool(int)>>, int, bool>,
+    "Taxonomy Error: Morphism must satisfy the skeletal IsArrow concept.");
+
+/**
+ * @concept IsEndomorphism
+ * @brief Proposition: A Morphism where Domain ≡ Codomain (f: A -> A).
+ */
+export template <typename F, typename T>
+concept IsEndomorphism = IsArrow<F, T, T>;
+
+static_assert(
+    IsEndomorphism<std::plus<int>, int>,
+    "Taxonomy Error: std::plus<int> must be recognized as an Endomorphism.");
 
 /**
  * @concept IsSmallCategory

@@ -35,6 +35,7 @@ module;
 export module dedekind.category:etcs;
 
 import :logic;
+import :morphism;
 import :species;
 
 namespace dedekind::category {

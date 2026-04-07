@@ -53,7 +53,7 @@ module;
 export module dedekind.category:functorial;
 
 import :kleisli;
-import :morphisms;
+import :morphism;
 import :species;
 
 namespace dedekind::category {
