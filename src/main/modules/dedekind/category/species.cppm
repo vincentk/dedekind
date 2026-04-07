@@ -337,7 +337,7 @@ struct inverse_trait {
  * @brief Trait to mark the structural glue between two operators.
  * axiom: a * (b + c) = (a * b) + (a * c)
  */
-export template <typename T, typename Op1, typename Op2>
+export template <typename T, typename Mult, typename Add>
 inline constexpr bool is_distributive_v = false;
 
 /** @brief The Shorthand for the Registry. */
@@ -414,6 +414,9 @@ struct identity_trait<T, std::multiplies<>> {
  */
 template <std::unsigned_integral T>
 inline constexpr bool is_associative_v<T, std::multiplies<T>> = true;
+
+template <std::unsigned_integral T>
+inline constexpr bool is_commutative_v<T, std::multiplies<T>> = true;
 
 template <std::signed_integral T>
 inline constexpr bool is_associative_v<T, std::multiplies<T>> = false;
@@ -620,6 +623,14 @@ struct Modular {
 };
 
 template <auto N>
+inline constexpr bool
+    is_distributive_v<Modular<N>, std::multiplies<>, std::plus<>> = true;
+
+template <auto N>
+inline constexpr bool is_distributive_v<Modular<N>, std::multiplies<Modular<N>>,
+                                        std::plus<Modular<N>>> = true;
+
+template <auto N>
 struct is_associative<Modular<N>, std::plus<Modular<N>>> : std::true_type {};
 
 template <auto N>
@@ -639,6 +650,18 @@ struct is_periodic<Modular<N>, std::plus<Modular<N>>> : std::true_type {};
 template <auto N>
 struct is_periodic<Modular<N>, std::multiplies<Modular<N>>> : std::true_type {};
 
+template <auto N>
+struct identity_trait<Modular<N>, std::plus<Modular<N>>> {
+  using value_type = Modular<N>;
+  static constexpr Modular<N> value = Modular<N>{0};
+};
+
+template <auto N>
+struct identity_trait<Modular<N>, std::multiplies<Modular<N>>> {
+  using value_type = Modular<N>;
+  static constexpr Modular<N> value = Modular<N>{1};
+};
+
 /** @section Atlas_Registration: Modular<N> */
 export template <auto N>
 struct SpeciesTraits<Modular<N>> {
@@ -656,15 +679,9 @@ struct SpeciesTraits<Modular<N>> {
   template <typename Op>
   static constexpr bool is_idempotent_v = (N == 1);
 
-  /** @section Identity_Discovery */
-  template <typename Op>
-  static constexpr auto identity_v = []() {
-    if constexpr (std::is_same_v<Op, std::plus<Modular<N>>>) {
-      return Modular<N>{0};
-    } else if constexpr (std::is_same_v<Op, std::multiplies<Modular<N>>>) {
-      return Modular<N>{1};
-    }
-  }();
+  static constexpr Modular<N> identity = Modular<N>(0);
+
+  static constexpr bool is_distributive = true;
 };
 
 static_assert(
@@ -694,18 +711,15 @@ template <typename T>
   requires std::is_integral_v<T>
 struct is_associative<T, std::bit_or<T>> : std::true_type {};
 
-/** @section Machine_Distributivity: Integers */
-template <std::integral T>
-inline constexpr bool is_distributive_v<T, std::plus<>, std::multiplies<>> =
-    true;
-
-template <std::integral T>
-inline constexpr bool is_distributive_v<T, std::plus<T>, std::multiplies<T>> =
-    true;
-
+// Boolean uniqueness: (a ∨ b) ∧ (a ∨ c) = a ∨ (b ∧ c)
 template <>
 inline constexpr bool
     is_distributive_v<bool, std::logical_or<bool>, std::logical_and<bool>> =
+        true;
+
+template <>
+inline constexpr bool
+    is_distributive_v<bool, std::logical_and<bool>, std::logical_or<bool>> =
         true;
 
 // Finite and transfinite species are mutually exclusive.
@@ -780,10 +794,10 @@ static_assert(!IsCommutative<int, std::divides<int>>,
  * @concept IsDistributive
  * @brief The "Glue" of the Ring: a * (b + c) = a*b + a*c.
  */
-export template <typename T, typename Add, typename Mul>
+export template <typename T, typename Mul, typename Add>
 concept IsDistributive = requires(T a, T b, T c) {
   // We check the semantic presence of the law (usually via a trait)
-  requires is_distributive_v<T, Add, Mul>;
+  requires is_distributive_v<T, Mul, Add>;
 };
 
 export template <typename T, typename Op>
@@ -912,6 +926,11 @@ static_assert(is_distributive_v<unsigned int, std::multiplies<>, std::plus<>>,
 // 2. Signed: Multiplicative Distribution over Addition is REJECTED.
 static_assert(!is_distributive_v<int, std::multiplies<>, std::plus<>>,
               "Honesty Check: Signed * does NOT distribute over + due to UB.");
+
+static_assert(is_distributive_v<Modular<256>, std::multiplies<Modular<256>>,
+                                std::plus<Modular<256>>>,
+              "Axiom Error: Modular multiplication must distribute over "
+              "modular addition.");
 
 // 3. Bitwise Distributivity: AND distributes over OR (Boolean Ring properties).
 static_assert(is_distributive_v<unsigned int, std::bit_and<>, std::bit_or<>>,

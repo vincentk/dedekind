@@ -118,7 +118,7 @@ static_assert(IsAbelianGroup<unsigned int, std::plus<unsigned int>>);
 /** @concept IsRig: Semiring without Negatives (Addition is a Monoid) */
 export template <typename T, typename Add, typename Mult>
 concept IsRig = IsCommutativeMonoid<T, Add> && IsMonoid<T, Mult> &&
-                IsDistributive<T, Add, Mult>;
+                IsDistributive<T, Mult, Add>;
 
 // Strictly True: bool with OR/AND is a Rig (but not a Ring, no subtraction).
 static_assert(IsRig<bool, std::logical_or<bool>, std::logical_and<bool>>);
@@ -129,7 +129,7 @@ static_assert(IsRig<unsigned int, std::plus<unsigned int>,
 /** @concept IsRng: Ring without Identity (Multiplication is a Semigroup) */
 export template <typename T, typename Add, typename Mult>
 concept IsRng = IsAbelianGroup<T, Add> && IsSemigroup<T, Mult> &&
-                IsDistributive<T, Add, Mult>;
+                IsDistributive<T, Mult, Add>;
 
 /** @concept IsSemiring: General Multi-operation Species */
 export template <typename T, typename Add, typename Mult>

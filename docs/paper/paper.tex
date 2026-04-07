@@ -459,7 +459,6 @@ static_assert(!SpeciesTraits<double, std::plus<double>>::is_associative,
 
 The core objective is to anchor the C++ type system as a substrate for modeling truths obtained from category theory and abstract algebra. In this structuralist setup, providing the axiomatic truths (e.g., that $a \lor b$ is commutative) or documenting their absence (e.g., $NaN$ singularities) becomes the explicit responsibility of the registry. This static grounding provides the necessary "alphabet" for the \texttt{:morphism} partition to begin defining the "language" of functional mappings.
 
-\begin{landscape}
 \begin{table}[h!]
 \centering
 \caption{The Feature Cube: Hierarchical Axiomatic Mapping. Groups correspond to the \texttt{:species} partition. 
@@ -468,33 +467,76 @@ The core objective is to anchor the C++ type system as a substrate for modeling 
 \textit{Monotonic} ($x < y \implies (x \circ z) < (y \circ z)$); \textit{Logic} ($\chi : A \to \Omega$).}
 \label{tab:feature_cube_final}
 \small
-\begin{tabular}{l|cc|ccc|ccc|cc|ccc|ccc|cc|ccc|cc}
-\toprule
-\textbf{Species} & \multicolumn{5}{c|}{\textbf{bool}} & \multicolumn{8}{c|}{\textbf{uint}} & \multicolumn{8}{c|}{\textbf{int}} & \multicolumn{2}{c}{\textbf{double}} \\ \midrule
-\textbf{Category} & \multicolumn{2}{c|}{Logical} & \multicolumn{3}{c|}{Bitwise} & \multicolumn{3}{c|}{Arithmetic} & \multicolumn{2}{c|}{Order} & \multicolumn{3}{c|}{Bitwise} & \multicolumn{3}{c|}{Arithmetic} & \multicolumn{2}{c|}{Order} & \multicolumn{3}{c|}{Bitwise} & \multicolumn{2}{c}{Arithmetic} \\ \midrule
-\textbf{Operator} & \texttt{||} & \texttt{\&\&} & \texttt{|} & \texttt{\&} & \texttt{\^{}} & \texttt{+} & \texttt{*} & \texttt{\%} & \texttt{min} & \texttt{max} & \texttt{|} & \texttt{\&} & \texttt{\^{}} & \texttt{+} & \texttt{*} & \texttt{\%} & \texttt{min} & \texttt{max} & \texttt{|} & \texttt{\&} & \texttt{\^{}} & \texttt{+} & \texttt{*} \\ \midrule
 
-\textbf{Identity}   & \texttt{f} & \texttt{t} & \texttt{f} & \texttt{t} & \texttt{f} & \texttt{0} & \texttt{1} & --- & \texttt{\textasciitilde 0u} & \texttt{0} & \texttt{0} & \texttt{\textasciitilde 0u} & \texttt{0} & \texttt{0} & \texttt{1} & --- & \texttt{INT\_MAX} & \texttt{INT\_MIN} & \texttt{0} & \texttt{-1} & \texttt{0} & \texttt{0.0} & \texttt{1.0} \\ 
-\textbf{Absorber}   & \texttt{t} & \texttt{f} & \texttt{t} & \texttt{f} & --- & --- & \texttt{0} & \textbf{Hz}\textsuperscript{D} & \texttt{0} & \texttt{\textasciitilde 0u} & \texttt{\textasciitilde 0u} & \texttt{0} & --- & --- & \texttt{0} & \textbf{Hz}\textsuperscript{D} & \texttt{INT\_MIN} & \texttt{INT\_MAX} & \texttt{-1} & \texttt{0} & --- & \texttt{Inf} & \texttt{NaN} \\ 
-\textbf{Associative}& \checkmark & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark\textsuperscript{M} & \checkmark\textsuperscript{M} & --- & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark & \textbf{Hz}\textsuperscript{U} & \checkmark & --- & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark & \textasteriskcentered & \textasteriskcentered \\ 
-\textbf{Commutative}& \checkmark & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark & --- & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark & --- & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark \\ 
-\textbf{Idempotent} & \checkmark & \checkmark & \checkmark & \checkmark & --- & --- & --- & --- & \checkmark & \checkmark & \checkmark & \checkmark & --- & --- & --- & --- & \checkmark & \checkmark & \checkmark & \checkmark & --- & --- & --- \\ 
-\textbf{Inverse}    & --- & --- & --- & --- & \checkmark & \checkmark\textsuperscript{M} & --- & --- & --- & --- & --- & --- & \checkmark & \textbf{Hz}\textsuperscript{A} & --- & --- & --- & --- & --- & --- & \checkmark & \checkmark & \checkmark \\ 
-\textbf{Monotonic}  & \checkmark & \checkmark & \checkmark & \checkmark & --- & \textbf{Hz}\textsuperscript{W} & \textbf{Hz}\textsuperscript{W} & --- & \checkmark & \checkmark & --- & --- & --- & \checkmark\textsuperscript{P} & \checkmark\textsuperscript{P} & --- & \checkmark & \checkmark & --- & --- & --- & \checkmark & \checkmark \\ \midrule
-\textbf{Logic ($\Omega$)} & \multicolumn{5}{c|}{Classical ($\Omega_{\mathbb{B}}$)} & \multicolumn{8}{c|}{Classical ($\Omega_{\mathbb{B}}$)} & \multicolumn{8}{c|}{Classical ($\Omega_{\mathbb{B}}$)} & \multicolumn{2}{c}{Ternary ($\Omega_{K3}$)} \\ \bottomrule
+% --- 1. BOOLEAN SPECIES ---
+\begin{tabular}{l|cc|ccc|c}
+\toprule
+\textbf{Species: bool} & \multicolumn{2}{c|}{Logical} & \multicolumn{3}{c|}{Bitwise} & \textbf{Logic} \\ \midrule
+\textbf{Operator} & \texttt{||} & \texttt{\&\&} & \texttt{|} & \texttt{\&} & \texttt{\^{}} & $\Omega$ \\ \midrule
+\textbf{Identity}   & \texttt{f} & \texttt{t} & \texttt{f} & \texttt{t} & \texttt{f} & \\ 
+\textbf{Absorber}   & \texttt{t} & \texttt{f} & \texttt{t} & \texttt{f} & --- & \\ 
+\textbf{Associative}& \checkmark & \checkmark & \checkmark & \checkmark & \checkmark & \\ 
+\textbf{Commutative}& \checkmark & \checkmark & \checkmark & \checkmark & \checkmark & Classical \\ 
+\textbf{Idempotent} & \checkmark & \checkmark & \checkmark & \checkmark & --- & ($\Omega_{\mathbb{B}}$) \\ 
+\textbf{Inverse}    & --- & --- & --- & --- & \checkmark & \\ 
+\textbf{Monotonic}  & \checkmark & \checkmark & \checkmark & \checkmark & --- & \\ \bottomrule
+\end{tabular}
+
+\vspace{1.5em}
+
+% --- 2. UNSIGNED INTEGER SPECIES ---
+\begin{tabular}{l|ccc|ccc|ccc|c}
+\toprule
+\textbf{Species: uint} & \multicolumn{3}{c|}{Arithmetic} & \multicolumn{3}{c|}{Order} & \multicolumn{3}{c|}{Bitwise} & \textbf{Logic} \\ \midrule
+\textbf{Operator} & \texttt{+} & \texttt{*} & \texttt{\%} & \texttt{min} & \texttt{max} & \texttt{<=} & \texttt{|} & \texttt{\&} & \texttt{\^{}} & $\Omega$ \\ \midrule
+\textbf{Identity}   & \texttt{0} & \texttt{1} & --- & \texttt{\textasciitilde 0u} & \texttt{0} & --- & \texttt{0} & \texttt{\textasciitilde 0u} & \texttt{0} & \\ 
+\textbf{Absorber}   & --- & \texttt{0} & \textbf{Hz}\textsuperscript{D} & \texttt{0} & \texttt{\textasciitilde 0u} & --- & \texttt{\textasciitilde 0u} & \texttt{0} & --- & Classical \\ 
+\textbf{Associative}& \checkmark\textsuperscript{M} & \checkmark\textsuperscript{M} & --- & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark & ($\Omega_{\mathbb{B}}$) \\ 
+\textbf{Commutative}& \checkmark & \checkmark & --- & \checkmark & \checkmark & --- & \checkmark & \checkmark & \checkmark & \\ 
+\textbf{Idempotent} & --- & --- & --- & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark & --- & \\ 
+\textbf{Inverse}    & \checkmark\textsuperscript{M} & --- & --- & --- & --- & --- & --- & --- & \checkmark & \\ 
+\textbf{Monotonic}  & \textbf{Hz}\textsuperscript{W} & \textbf{Hz}\textsuperscript{W} & --- & \checkmark & \checkmark & \checkmark & --- & --- & --- & \\ \bottomrule
+\end{tabular}
+
+\vspace{1.5em}
+
+% --- 3. SIGNED INTEGER SPECIES ---
+\begin{tabular}{l|ccc|ccc|ccc|c}
+\toprule
+\textbf{Species: int} & \multicolumn{3}{c|}{Arithmetic} & \multicolumn{3}{c|}{Order} & \multicolumn{3}{c|}{Bitwise} & \textbf{Logic} \\ \midrule
+\textbf{Operator} & \texttt{+} & \texttt{*} & \texttt{\%} & \texttt{min} & \texttt{max} & \texttt{<=} & \texttt{|} & \texttt{\&} & \texttt{\^{}} & $\Omega$ \\ \midrule
+\textbf{Identity}   & \texttt{0} & \texttt{1} & --- & \texttt{I\_MAX} & \texttt{I\_MIN} & --- & \texttt{0} & \texttt{-1} & \texttt{0} & \\ 
+\textbf{Absorber}   & --- & \texttt{0} & \textbf{Hz}\textsuperscript{D} & \texttt{I\_MIN} & \texttt{I\_MAX} & --- & \texttt{-1} & \texttt{0} & --- & Classical \\ 
+\textbf{Associative}& \textbf{Hz}\textsuperscript{U} & \checkmark & --- & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark & ($\Omega_{\mathbb{B}}$) \\ 
+\textbf{Commutative}& \checkmark & \checkmark & --- & \checkmark & \checkmark & --- & \checkmark & \checkmark & \checkmark & \\ 
+\textbf{Idempotent} & --- & --- & --- & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark & --- & \\ 
+\textbf{Inverse}    & \textbf{Hz}\textsuperscript{A} & --- & --- & --- & --- & --- & --- & --- & \checkmark & \\ 
+\textbf{Monotonic}  & \checkmark\textsuperscript{P} & \checkmark\textsuperscript{P} & --- & \checkmark & \checkmark & \checkmark & --- & --- & --- & \\ \bottomrule
+\end{tabular}
+
+\vspace{1.5em}
+
+% --- 4. FLOATING POINT SPECIES ---
+\begin{tabular}{l|cc|ccc|c}
+\toprule
+\textbf{Species: double} & \multicolumn{2}{c|}{Arithmetic} & \multicolumn{3}{c|}{Order} & \textbf{Logic} \\ \midrule
+\textbf{Operator} & \texttt{+} & \texttt{*} & \texttt{min} & \texttt{max} & \texttt{<=} & $\Omega$ \\ \midrule
+\textbf{Identity}   & \texttt{0.0} & \texttt{1.0} & \texttt{Inf} & \texttt{-Inf} & --- & \\ 
+\textbf{Absorber}   & \texttt{Inf} & \texttt{NaN} & \texttt{-Inf} & \texttt{Inf} & --- & \\ 
+\textbf{Associative}& \textasteriskcentered & \textasteriskcentered & \checkmark & \checkmark & \checkmark & Ternary \\ 
+\textbf{Commutative}& \checkmark & \checkmark & \checkmark & \checkmark & --- & ($\Omega_{K3}$) \\ 
+\textbf{Idempotent} & --- & --- & \checkmark & \checkmark & \checkmark & \\ 
+\textbf{Inverse}    & \checkmark & \checkmark & --- & --- & --- & \\ 
+\textbf{Monotonic}  & \checkmark & \checkmark & \checkmark & \checkmark & \checkmark & \\ \bottomrule
 \end{tabular}
 
 \begin{flushleft}
 \scriptsize
-\textsuperscript{M} \textbf{Modular success}: Inverses and associativity hold in the modular ring $\mathbb{Z}/2^n\mathbb{Z}$. \\
-\textsuperscript{A} \textbf{Asymmetry hazard}: Signed inverse (\texttt{-x}) fails at \texttt{INT\_MIN} due to range asymmetry. \\
-\textsuperscript{W} \textbf{Wrap-around hazard}: Monotonicity fails at the Lipschitz boundary. \\
-\textsuperscript{U} \textbf{Undefined behavior}: Associativity rejected due to non-deterministic overflow. \\
-\textsuperscript{D} \textbf{Division hazard}: Modulo by zero triggers hardware halt (Absorber of Doom). \\
-\textasteriskcentered \textit{Fails bit-perfect associativity due to rounding or NaN interactions.}
+\textsuperscript{M} Modular success. \textsuperscript{A} Asymmetry hazard (\texttt{INT\_MIN}). \textsuperscript{W} Wrap-around hazard. \\
+\textsuperscript{U} Undefined behavior (overflow). \textsuperscript{D} Division hazard. \textsuperscript{P} Partial success. \\
+\textasteriskcentered \textit{Fails bit-perfect associativity due to rounding/NaN.}
 \end{flushleft}
 \end{table}
-\end{landscape}
 
 
 

@@ -10,6 +10,11 @@
  *
  * Wikipedia: Poset, Preorder (category theory)
  */
+module;
+
+#include <concepts>
+#include <functional>
+
 export module dedekind.category:posetal;
 
 import :logic;
