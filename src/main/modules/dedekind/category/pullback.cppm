@@ -31,10 +31,9 @@ module;
 #include <concepts>
 #include <functional>
 
-export module dedekind.category:posetal;
+export module dedekind.category:pullback;
 
-import :logic;
-import :mereology;
+import :limit;
 
 namespace dedekind::category {
 

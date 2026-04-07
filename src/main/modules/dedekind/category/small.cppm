@@ -18,6 +18,11 @@
  *
  * Wikipedia: Small category, Discrete category
  */
+module;
+
+#include <concepts>
+#include <functional>
+
 export module dedekind.category:small;
 
 import :posetal;

@@ -12,9 +12,9 @@ module;
 #include <concepts>
 #include <functional>
 
-export module dedekind.category:limits;
+export module dedekind.category:limit;
 
-import :etcs;  // For IsCharacteristic
+import :cartesian;
 
 namespace dedekind::category {
 
