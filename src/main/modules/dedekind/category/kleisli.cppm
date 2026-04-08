@@ -140,4 +140,37 @@ concept IsFrobenius =
 static_assert(IsFrobenius<Box, int, int>,
               "Box does not satisfy the Co-Kleisli Extension System.");
 
+/**
+ * @section The_Unified_Highway_Bridge (The Discovery Dispatcher)
+ */
+export template <template <typename...> typename F, typename Arrow>
+  requires IsArrow<Arrow>
+constexpr IsArrow auto fmap(Arrow f) {
+  // Extract the underlying species from the skeletal arrow
+  using T = domain_t<Arrow>;
+  using U = codomain_t<Arrow>;
+
+  // 1. Priority: Identity Functor (The Invisible Box)
+  if constexpr (std::same_as<F<T>, T>) {
+    return f;
+  } else if constexpr (IsKleisliExtension<F, T, U>) {
+    /** @theorem fmap(f) = m >>= (η ∘ f) */
+    // Use the skeletal arrow factory (no explicit T, U needed)
+    return arrow([f](const F<T>& m) -> F<U> {
+      return m >>= [f](const T& x) { return η<F, U>{}(f(x)); };
+    });
+  } else if constexpr (IsCoKleisliExtension<F, T, U>) {
+    /** @theorem fmap(f) = w <<= (f ∘ ε) */
+    return arrow([f](const F<T>& w) -> F<U> {
+      return w <<= [f](const F<T>& ctx) { return f(ε<F, T>{}(ctx)); };
+    });
+  } else {
+    /** @section The_Controlled_Explosion */
+    static_assert(sizeof(T) == 0,
+                  "Ontology Error: Species lacks both Kleisli (>>=) and "
+                  "Co-Kleisli (<<=) structures.");
+    return f;  // Unreachable but satisfies return type
+  }
+}
+
 }  // namespace dedekind::category

@@ -5,30 +5,30 @@
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
- * 
+ *
  * This partition reifies the simplest possible categorical structure: the
- * Discrete Category, where the only morphisms are identities. In our 
+ * Discrete Category, where the only morphisms are identities. In our
  * structuralist framework, this provides the "Point" (1) and the "Empty" (0)
- * objects, as well as the means to treat any species element as a 
+ * objects, as well as the means to treat any species element as a
  * constant mapping.
  *
  * @quote
  * 「道生一，一生二，二生三，三生萬物。」
- * (The Tao produced One; One produced Two; Two produced Three; 
+ * (The Tao produced One; One produced Two; Two produced Three;
  *  Three produced All things.)
  * — 老子 (Laozi), 道德經
  *
  * @section The_Discrete_Duality
- * While Level 0 (:morphism) provides the syntax of the Arrow, Level 0.25 
+ * While Level 0 (:morphism) provides the syntax of the Arrow, Level 0.25
  * provides the "Discrete Points" that populate the objects:
  * - @ref One (1)   : The Terminal Object; the categorical "Atom" of Truth.
  * - @ref Zero (0)  : The Initial Object; the categorical "Atom" of Falsehood.
- * - @ref ConstantMorphism : A mapping that factors through the Terminal 
+ * - @ref ConstantMorphism : A mapping that factors through the Terminal
  *                          Object, collapsing the domain into a single point.
  *
  * @section Role_in_the_Fractal
- * By establishing the Discrete Floor here, we enable Level 0.5 (:limit) to 
- * define universal properties (Initiality/Terminality) and Level 1 (:total) 
+ * By establishing the Discrete Floor here, we enable Level 0.5 (:limit) to
+ * define universal properties (Initiality/Terminality) and Level 1 (:total)
  * to define algebraic identities (Zero/Unit) without circular dependencies.
  */
 
@@ -49,6 +49,20 @@ namespace dedekind::category {
 export struct One final {
   constexpr bool operator==(const One&) const noexcept { return true; }
 };
+
+/** @section Terminal_Identity */
+template <typename Op>
+struct identity_registry<One, Op> {
+  static constexpr One value{};
+};
+
+// 2. One is Associative (Trivial mapping)
+template <typename Op>
+inline constexpr bool is_associative_v<One, Op> = true;
+
+// 3. One is Commutative (Optional, but useful for Lattices)
+template <typename Op>
+inline constexpr bool is_commutative_v<One, Op> = true;
 
 /** @brief The Initial Object (0): The Empty Discrete Space. */
 export struct Zero final {

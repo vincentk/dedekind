@@ -47,13 +47,6 @@ concept IsInitialMorphism =
                                   std::logical_or<>>;
     };
 
-/** @section Registration_Infrastructure */
-
-template <>
-struct identity_registry<One, std::multiplies<>> {
-  static constexpr One value{};
-};
-
 /**
  * @concept IsTerminalObject
  * @brief Verification that T behaves as the Terminal Object (1).

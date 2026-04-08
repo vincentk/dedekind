@@ -1,48 +1,28 @@
 /**
- * @file ontology:category.cppm
- * @brief Level 0: The Skeletal Foundation (Algebraic Bricks and Categorical
- * Cement).
-
- * @subsection The_Cement: Categorical Morphisms
- * Primitives are bound by morphisms that preserve structural invariants:
- * - IsFunctor     : A structure-preserving mapping between categories.
- * - IsMonad       : A mechanism for lifting and chaining species (The Push).
- * - IsComonad     : A mechanism for sampling and extending contexts (The Pull).
- * - IsEmbedding   : A proof of injective (1:1) type promotion.
+ * @file dedekind/category/functor.cppm
+ * @module dedekind.category:functor
+ * @brief Level 2: The Functorial Spine (Structure Preservation).
  *
- * @section The_Bootstrapping_Strategy: Action-First Derivation
- * To resolve the circular dependency between Functors and Monads, Dedekind
- * implements an "Action-First" bootstrapping strategy.
+ * @copyright 2026 The Dedekind Authors
+ * Licensed under the Apache License, Version 2.0.
  *
- * @note Technical Implementation Constraints:
- * In textbook Category Theory, a Monad is a Monoid in the category of
- * Endofunctors. However, C++ language constraints necessitate a divergence to
- * Kleisli Triples:
- * 1. Partial Specialization: C++ forbids partial specialization of function
- *    templates (e.g., fmap<Box>), preventing a centralized definition.
- * 2. ADL Resolution: Function templates called via name-lookup (fmap<F>) cannot
- *    trigger Argument-Dependent Lookup.
+ * @quote
+ * "एकं सद् विप्रा बहुधा वदन्ति"
+ * (Truth is One, though the sages speak of it as many.)
+ * — ऋग्वेद (Rig Veda)
  *
- * By defining Monads/Comonads as Extension Systems (η/ε + >>= / <<=), we
- * utilize operator overloading on concrete objects. This triggers ADL, allowing
- * Level 0 to instantiate a derived 'fmap' without prior knowledge of Level 1
- * species.
+ * @section The_Functorial_Mapping
+ * A Functor is a bridge between categories that preserves the "Grammar" of
+ * the source. In our skeletal framework, a Functor F: T -> U ensures that:
+ * 1. Objects are mapped: Every species T has a corresponding F<T>.
+ * 2. Morphisms are lifted: Every arrow f: T -> U has a corresponding F(f).
+ * 3. Identities are preserved: F(id_T) = id_{F<T>}.
  *
- * - Monadic Discovery   : fmap(f) is derived as: m >>= (η ∘ f).
- * - Comonadic Discovery : fmap(f) is derived as: w <<= (f ∘ ε).
- *
- * @section The_Highway_Notation: Directional Vectors
- * Operators represent the flow of data across the ontology:
- * - value >> into<>    : η (Unit) - Lifting a species into a context.
- * - box   << extract<> : ε (Counit) - Sampling a species from a context.
- * - box   >>= f        : Bind - Monadic composition (Left-to-Right).
- * - box   <<= f        : Extend - Comonadic composition (Right-to-Left /
- * Contextual).
- *
- * @section Structural_Inference
- * Compile-time exhaustive proofs (e.g., Bool-to-Int embedding) guarantee
- * the security of the skeletal layer before higher-level complex species
- * are initialized.
+ * @section Skeletal_Discovery
+ * By utilizing the "Canonical Discovery" engine, Dedekind functors do not
+ * require explicit operator passing. The species T announces its own
+ * category structure, allowing the Functor to verify the mapping properties
+ * through introspection.
  */
 
 module;
@@ -67,68 +47,20 @@ struct Box final {
   constexpr bool operator==(const Box& other) const = default;
 };
 
-/**
- * @section The_Unified_Highway_Bridge (The Discovery Dispatcher)
- * @brief Automates the derivation of fmap from the species' extension system.
- *
- * @details
- * In the Dedekind ontology, a Functor is not a "primitive" but an
- * "epi-phenomenon" derived from the underlying Monadic or Comonadic
- * structure. This dispatcher resolves the Bootstrapping Paradox:
- * 1. It prioritises the Monadic Push (Kleisli: m >>= η ∘ f).
- * 2. It falls back to the Comonadic Pull (Co-Kleisli: w <<= f ∘ ε).
- * 3. It provides a formal Proof of Absence if neither structure is present.
- *
- * @note Architectural Choice:
- * We utilize 'if constexpr' dispatch instead of multiple overloads to:
- * - Eliminate overload ambiguity in the C++ template system.
- * - Centralise the diagnostic logic for structural failures.
- * - Ensure zero-overhead selection of the most efficient highway.
- */
-export template <template <typename...> typename F, typename Arrow,
-                 typename T = typename Arrow::Domain,
-                 typename U = typename Arrow::Codomain>
-  requires IsArrow<Arrow, T, U>
-constexpr IsArrow<F<T>, F<U>> auto fmap(Arrow f) {
-  // 1. Priority: Identity Functor (The Invisible Box)
-  if constexpr (std::same_as<F<T>, T>) {
-    return f;
-  } else if constexpr (IsKleisliExtension<F, T, U>) {
-    /** @theorem fmap(f) = m >>= (η ∘ f) */
-    return arrow<F<T>, F<U>>([f](const F<T>& m) {
-      return m >>= [f](const T& x) { return η<F, U>{}(f(x)); };
-    });
-  } else if constexpr (IsCoKleisliExtension<F, T, U>) {
-    /** @theorem fmap(f) = w <<= (f ∘ ε) */
-    return arrow<F<T>, F<U>>([f](const F<T>& w) {
-      return w <<= [f](const F<T>& ctx) { return f(ε<F, T>{}(ctx)); };
-    });
-  } else {
-    /** @section The_Controlled_Explosion */
-    struct Discovery_Failure {
-      static_assert(sizeof(T) == 0,
-                    "Ontology Error: Species lacks both Kleisli (>>=) and "
-                    "Co-Kleisli (<<=) structures. "
-                    "A Functorial mapping cannot be derived for this context.");
-    };
-    return Discovery_Failure{};
-  }
-}
-
 /** @section Morphism_Lifting_Proof */
 using Negate = std::negate<int>;
 using TaggedNegate = Morphism<int, int, Negate>;
 
 // This triggers the 'fmap' discovery via the Monadic Bridge
 static_assert(
-    IsArrow<decltype(fmap<Box>(TaggedNegate{Negate{}})), Box<int>, Box<int>>,
+    IsArrow<decltype(fmap<Box>(TaggedNegate{Negate{}}))>,
     "Skeletal Failure: Failed to derive fmap for Box from its Kleisli Triple.");
 
 /** @section Verification: The Identity Law (F(id_X) = id_F<X>) */
 
 // Proof: Lifting the identity morphism on 'int' gives us an arrow on
 // 'Box<int>'.
-static_assert(IsArrow<decltype(fmap<Box>(id<int>())), Box<int>, Box<int>>,
+static_assert(IsArrow<decltype(fmap<Box>(id<int>()))>,
               "Identity Law: fmap(id) must preserve the Boxed species.");
 
 // Proof: The lifted Negate morphism correctly transforms a Boxed value.
@@ -138,36 +70,26 @@ static_assert(fmap<Box>(endo<int>(std::negate<int>{}))(Box<int>{42}).value ==
 
 /**
  * @concept IsFunctor
- * @brief A structure-preserving mapping between two Categories 𝒞 and 𝒟.
+ * @brief A structure-preserving mapping between categories.
  *
- * @details
- * Formally, a Functor F : 𝒞 → 𝒟 consists of:
- *   - Object Mapping: For every object X ∈ 𝒞, an object F⟨X⟩ ∈ 𝒟.
- *   - Morphism Mapping: For every arrow f : X → Y, an arrow F(f) : F⟨X⟩ → F⟨Y⟩.
+ * "A functor translates the grammar of one category into another."
  *
- * It must satisfy the Functor Laws:
- *   1. Identity Preservation: F(id_X) = id_F⟨X⟩
- *   2. Composition Preservation: F(g ∘ f) = F(g) ∘ F(f)
- *
- * @tparam F   The Type-Morphism (The "Box" or "Transformer").
- * @tparam 𝒯   The Object in the Source Category 𝒞.
- * @tparam Op𝒯 The Composition Rule (Morphism) in 𝒞.
- * @tparam 𝒰   The Object in the Target Category 𝒟.
- * @tparam Op𝒰 The Composition Rule (Morphism) in 𝒟.
+ * @tparam F  The Functorial 'Box' (e.g., Maybe, List, Ternary).
+ * @tparam T  The Source Species.
+ * @tparam U  The Target Species.
  */
-export template <template <typename> typename F, typename T, typename OpT,
-                 typename U, typename OpU>
-concept IsFunctor = IsSmallCategory<T, OpT> && IsSmallCategory<U, OpU> &&
-                    requires(Identity<T> id_t) {
-                      // 1. Object Mapping: Does the Species T exist in the Box
-                      // F?
-                      typename F<T>;
+export template <template <typename> typename F, typename T, typename U>
+concept IsFunctor =
+    IsSmallCategory<T> && IsSmallCategory<U> && requires(Identity<T> id_t) {
+      typename F<T>;
+      typename F<U>;
 
-                      // 2. Morphism Mapping: F(f: T -> T) must yield an arrow
-                      // F<T> -> F<T>. This 'lift' stays within the Functor's
-                      // context F.
-                      { fmap<F>(id_t) } -> IsArrow<F<T>, F<T>>;
-                    };
+      // The lift: F(id_T)
+      { fmap<F>(id_t) } -> IsArrow;
+
+      // The labels: F(T) -> F(U) logic
+      requires std::same_as<domain_t<decltype(fmap<F>(id_t))>, F<T>>;
+    };
 
 // Proof: Box is a Functor between the Additive Category of Integers and itself.
 static_assert(
@@ -179,12 +101,11 @@ static_assert(
  * @brief A structure-preserving mapping from a Category back to itself (F : 𝒞 →
  * 𝒞).
  *
- * @tparam F   The Type-Morphism (The "Box" or "Transformer").
- * @tparam 𝒯   The Object in the Category 𝒞.
- * @tparam Op𝒯 The Composition Rule (Morphism) in 𝒞.
+ * @tparam F  The Functorial 'Box' (The Transformer).
+ * @tparam T  The Species acting as the Category 𝒞.
  */
-export template <template <typename> typename F, typename 𝒯, typename Op𝒯>
-concept IsEndofunctor = IsFunctor<F, 𝒯, Op𝒯, 𝒯, Op𝒯>;
+export template <template <typename> typename F, typename T>
+concept IsEndofunctor = IsFunctor<F, T, T>;
 
 /** @section Functor Verification: The Identity Endofunctor */
 

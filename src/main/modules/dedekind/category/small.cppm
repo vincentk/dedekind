@@ -1,23 +1,29 @@
 /**
- * @file small.cppm
+ * @file dedekind/category/small.cppm
+ * @module dedekind.category:small
  * @brief Level 0b: Small Categories (Enumerated Morphism Sets).
  *
- * @partition :small
+ * @copyright 2026 The Dedekind Authors
+ * Licensed under the Apache License, Version 2.0.
+ *
+ * @quote
+ * "Il linguaggio delle categorie è affettuosamente noto come 'nonsense
+ * astratto'. Questo termine è essenzialmente accurato: le categorie si
+ * riferiscono al 'nonsense' nel senso che riguardano esclusivamente la
+ * 'struttura', e non il 'significato' di ciò che rappresentano." (The language
+ * of categories is affectionately known as "abstract nonsense." This term is
+ * essentially accurate: categories refer to "nonsense" in the sense that they
+ * are all about the "structure," and not about the "meaning," of what they
+ * represent.) — Paolo Aluffi, Algebra: Chapter 0
+ *
  * @section Small: Categories with Set-Sized Morphisms
  * A Small Category is defined by the property that its collections of objects
  * and morphisms are Sets (not Classes). In the context of C++23, "Smallness"
  * is a pragmatic guarantee: any category reifiable within the type system is
  * inherently Small, as its inhabitants are bounded by the translation unit's
  * finite universe of types.
- *
- * @section Structural_Decidability
- * By formalising Smallness at Level 0, we provide the LLVM backend with a
- * decidable graph of transformations. This allows for symbolic path-tracing
- * and pruning before the maturation of specific algebraic laws (like
- * Associativity) in downstream partitions.
- *
- * Wikipedia: Small category, Discrete category
  */
+
 module;
 
 #include <concepts>
@@ -27,30 +33,41 @@ export module dedekind.category:small;
 
 import :morphism;
 import :posetal;
+import :species;
+import :discrete;
 
 namespace dedekind::category {
 
-/**
- * @section Small_Category_Concepts
- * Concepts for categories with enumerable Objects (Obj) and
- * Hom-sets (Hom<A, B>).
- */
-export template <typename Cat>
-concept IsSmallCategory = requires {
-  // 1. Identity: Every object X in the category must have an identity arrow
-  typename Cat::Object;
-  { Cat::identity(std::declval<typename Cat::Object>()) } -> IsEndomorphism;
-
-  // 2. Composition: f: A -> B and g: B -> C must compose
-  typename Cat::Arrow;
-  requires requires(typename Cat::Arrow f, typename Cat::Arrow g) {
-    { Cat::compose(g, f) } -> IsArrow;
-  };
+/** @brief Discovery engine for a Species' canonical composition rule. */
+template <typename T>
+struct canonical_op {
+  using type = std::multiplies<>;  // The default "Highway"
 };
+
+/** @brief Shorthand for the composition rule of a category. */
+template <typename T>
+using category_op_t = typename canonical_op<T>::type;
+
+/**
+ * @concept IsSmallCategory
+ * @brief A category where objects and morphisms form sets (decidable
+ * collections).
+ */
+export template <typename T>
+concept IsSmallCategory =
+    IsPointed<T, category_op_t<T>> && IsAssociative<T, category_op_t<T>>;
 
 /**
  * @section Discrete_Categories
- * Special cases where the only morphisms are identities.
+ * A Discrete Category is a Small Category where the only morphisms are
+ * identities.
  */
+export template <typename T>
+concept IsDiscreteCategory =
+    IsSmallCategory<T> && (std::same_as<T, One> || std::same_as<T, Zero>);
+
+/** @brief Verification: The Terminal Object is a Discrete Category. */
+static_assert(IsDiscreteCategory<One>,
+              "Categorical Proof: The Terminal Object (1) must be Discrete.");
 
 }  // namespace dedekind::category
