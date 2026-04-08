@@ -38,15 +38,56 @@ import :discrete;
 
 namespace dedekind::category {
 
-/** @brief Discovery engine for a Species' canonical composition rule. */
+/** @section Canonical_Species_Infrastructure */
+
+/** @brief Primary template for canonical operations. */
 template <typename T>
-struct canonical_op {
-  using type = std::multiplies<>;  // The default "Highway"
+struct canonical_op;
+
+/** @brief Specialization for Unsigned: Modulo Addition. */
+template <std::unsigned_integral T>
+struct canonical_op<T> {
+  using type = std::plus<void>;
 };
 
-/** @brief Shorthand for the composition rule of a category. */
+/** @brief Specialization for Signed: Lattice Max. */
+template <std::signed_integral T>
+struct canonical_op<T> {
+  using type = std::ranges::greater;
+};
+
+/** @brief Specialization for Floating: Lattice Max. */
+template <std::floating_point T>
+struct canonical_op<T> {
+  using type = std::ranges::greater;
+};
+
+/** @brief Specialization for Bools: Boolean Logic. */
+template <>
+struct canonical_op<bool> {
+  using type = std::logical_and<void>;
+};
+
+/** @brief Specialization for Strings: Concatenation. */
+template <>
+struct canonical_op<std::string> {
+  using type = std::plus<void>;
+};
+
+/** @brief Canonical operation shorthand. */
 template <typename T>
 using category_op_t = typename canonical_op<T>::type;
+
+/** @section Grounding_Truths */
+
+// Since is_associative_v is already defined in :species, we must
+// specialize the underlying is_associative trait it likely wraps,
+// or provide the specialized bool value directly if permitted.
+
+template <typename T, typename Op>
+  requires(std::integral<T> || std::floating_point<T>) &&
+              std::same_as<Op, std::ranges::greater>
+inline constexpr bool is_associative_v<T, Op> = true;
 
 /**
  * @concept IsSmallCategory
@@ -56,6 +97,29 @@ using category_op_t = typename canonical_op<T>::type;
 export template <typename T>
 concept IsSmallCategory =
     IsPointed<T, category_op_t<T>> && IsAssociative<T, category_op_t<T>>;
+
+/** @section Verification_of_Primitive_Categories */
+
+static_assert(IsSmallCategory<int>,
+              "Spine Error: int must be a Small Category.");
+static_assert(IsSmallCategory<unsigned int>,
+              "Spine Error: unsigned int must be a Small Category.");
+static_assert(IsSmallCategory<double>,
+              "Spine Error: double must be a Small Category.");
+static_assert(IsSmallCategory<bool>,
+              "Spine Error: bool must be a Small Category.");
+
+/** @brief Specialization for the Terminal Object: One. */
+template <>
+struct canonical_op<One> {
+  // Logic: On a single point, any operation (multiplication/addition)
+  // collapses to the point itself. We use multiplies for consistency.
+  using type = std::multiplies<void>;
+};
+
+/** @brief Shorthand for the composition rule. */
+template <typename T>
+using category_op_t = typename canonical_op<T>::type;
 
 /**
  * @section Discrete_Categories

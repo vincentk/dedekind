@@ -145,20 +145,42 @@ struct is_idempotent<T, MaxOp> : std::true_type {};
 template <typename T, typename Op>
 struct identity_registry {};  // Empty box
 
-/** @section Integral_Pointed_Species */
+/** @section Lattice Identities */
 
-// 1. Integers under Addition (Zero)
-template <typename T>
-  requires std::integral<T>
-struct identity_registry<T, std::plus<T>> {
-  static constexpr T value = T(0);
+// Signed/Floating: The Lattice (Max) identity is the absolute floor.
+template <typename T, typename Op>
+  requires(std::signed_integral<T> || std::floating_point<T>) &&
+          (std::same_as<Op, std::ranges::greater> ||
+           std::same_as<Op, std::ranges::greater_equal>)
+struct identity_registry<T, Op> {
+  static constexpr T value = std::numeric_limits<T>::lowest();
 };
 
-// 2. Integers under Multiplication (One)
-template <typename T>
-  requires std::integral<T>
-struct identity_registry<T, std::multiplies<T>> {
-  static constexpr T value = T(1);
+// Signed/Floating: The Lattice (Min) identity is the absolute floor.
+template <typename T, typename Op>
+  requires(std::signed_integral<T> || std::floating_point<T>) &&
+          (std::same_as<Op, std::ranges::less> ||
+           std::same_as<Op, std::ranges::less_equal>)
+struct identity_registry<T, Op> {
+  static constexpr T value = std::numeric_limits<T>::max();
+};
+
+/** @section Integral_Pointed_Species */
+
+// The Modulo Group identity is 0.
+template <typename T, typename Op>
+  requires std::integral<T> &&
+           (std::same_as<Op, std::plus<T>> || std::same_as<Op, std::plus<void>>)
+struct identity_registry<T, Op> {
+  static constexpr T value = T{0};
+};
+
+// The Modulo Group identity is 0.
+template <typename T, typename Op>
+  requires std::integral<T> && (std::same_as<Op, std::multiplies<T>> ||
+                                std::same_as<Op, std::multiplies<void>>)
+struct identity_registry<T, Op> {
+  static constexpr T value = T{1};
 };
 
 /** @section Bitwise_Pointed_Species */
@@ -199,22 +221,28 @@ struct identity_registry<T, std::multiplies<T>> {
 
 // 1. Boolean 'Addition' (OR) has identity FALSE
 // a ∨ false = a
-template <>
-struct identity_registry<bool, std::logical_or<bool>> {
+template <typename Op>
+  requires std::same_as<Op, std::logical_or<bool>> ||
+           std::same_as<Op, std::logical_or<void>>
+struct identity_registry<bool, Op> {
   static constexpr bool value = false;
 };
 
 // 2. Boolean 'Multiplication' (AND) has identity TRUE
 // a ∧ true = a
-template <>
-struct identity_registry<bool, std::logical_and<bool>> {
+template <typename Op>
+  requires std::same_as<Op, std::logical_and<bool>> ||
+           std::same_as<Op, std::logical_and<void>>
+struct identity_registry<bool, Op> {
   static constexpr bool value = true;
 };
 
 // 3. Boolean 'XOR' (Ring Addition) has identity FALSE
 // a ⊕ false = a
-template <>
-struct identity_registry<bool, std::bit_xor<bool>> {
+template <typename Op>
+  requires std::same_as<Op, std::bit_xor<bool>> ||
+           std::same_as<Op, std::bit_xor<void>>
+struct identity_registry<bool, Op> {
   static constexpr bool value = false;
 };
 
@@ -273,16 +301,29 @@ inline constexpr size_t characteristic_v =
 template <>
 inline constexpr size_t characteristic_v<unsigned char> = 256;
 
-// --- Booleans: An Abelian Monoid (Lattice) ---
-template <>
-inline constexpr bool is_associative_v<bool, std::logical_or<bool>> = true;
-template <>
-inline constexpr bool is_commutative_v<bool, std::logical_or<bool>> = true;
+// --- Booleans: A commutative Abelian Monoid (Lattice) ---
+template <typename Op>
+  requires std::same_as<Op, std::logical_or<bool>> ||
+               std::same_as<Op, std::logical_or<void>>
+inline constexpr bool is_commutative_v<bool, Op> = true;
 
-template <>
-inline constexpr bool is_associative_v<bool, std::logical_and<bool>> = true;
-template <>
-inline constexpr bool is_commutative_v<bool, std::logical_and<bool>> = true;
+template <typename Op>
+  requires std::same_as<Op, std::logical_and<bool>> ||
+               std::same_as<Op, std::logical_and<void>>
+inline constexpr bool is_commutative_v<bool, Op> = true;
+
+// Dijkstra would appreciate the exhaustiveness here:
+// Whether using std::logical_and<bool> or the transparent std::logical_and<>,
+// the operation on the species 'bool' is strictly associative.
+template <typename Op>
+  requires std::same_as<Op, std::logical_and<bool>> ||
+               std::same_as<Op, std::logical_and<void>>
+inline constexpr bool is_associative_v<bool, Op> = true;
+
+template <typename Op>
+  requires std::same_as<Op, std::logical_or<bool>> ||
+               std::same_as<Op, std::logical_or<void>>
+inline constexpr bool is_associative_v<bool, Op> = true;
 
 /**
  * @brief Trait to mark a relation as reflexive: a ~ a = True
