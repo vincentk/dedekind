@@ -23,8 +23,7 @@
  *      primitives, the Skeletal Arrow, and the grounding of Truth via Parthood.
  * 0.5  INFRASTRUCTURE (:posetal, :small, :cartesian, :limit, :pullback):
  *      The universal category-theoretic constructions.
- * 1.   IDEALS (:total, :algebra_total, :action): The pure laws of total
- algebra.
+ * 1.   IDEALS (:total, :action): The pure laws of total algebra.
  * 2.   BRIDGE (:functor, :natural, :monad, :kleisli): The Functorial Spine
  *      enabling the Monadic Kleisli lift.
  * 3.   REALITY (:numeric, :algebra_partial, :partial): Reconciling theory
@@ -53,7 +52,6 @@ export import :pullback;   // The Universal Construction "Sink"
 
 // Level 1: The Ideal (Total Algebra)
 export import :total;
-export import :algebra_total;
 export import :action;
 
 // Level 2: The Bridge (Functorial Spine)
@@ -63,9 +61,8 @@ export import :monad;
 export import :kleisli;
 
 // Level 3: The Reality (Hardware -> Abstraction)
-export import :numeric;          // Concrete Hardware Logic (IEEE 754)
-export import :algebra_partial;  // Algebraic Lifting
-export import :partial;          // The Final Abstracted Partial Interface
+export import :numeric;  // Concrete Hardware Logic (IEEE 754)
+export import :partial;  // The Final Abstracted Partial Interface
 
 // Level 4: The Skeletal Signatures (Synthesis)
 export import :etcs;  // The World of Sets (Importing Partial + Mereology)

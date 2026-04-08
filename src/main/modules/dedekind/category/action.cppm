@@ -32,7 +32,7 @@ module;
 
 export module dedekind.category:action;
 
-import :algebra_total;
+import :total;
 
 namespace dedekind::category {
 
@@ -45,7 +45,7 @@ namespace dedekind::category {
  *       IsMonad concept at a later stage.
  */
 export template <typename S, typename M>
-concept IsAction = HasIdentity<S, std::multiplies<S>> &&
+concept IsAction = IsPointed<S, std::multiplies<S>> &&
                    IsAssociative<S, std::multiplies<S>> && requires(S s, M m) {
                      { s * m } -> std::same_as<M>;
                      // Semantic: 1 * m == m
