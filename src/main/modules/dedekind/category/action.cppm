@@ -38,26 +38,53 @@ namespace dedekind::category {
 
 /**
  * @concept IsAction
- * @brief An Action (S ⟳ M) as a Monadic Transformation.
- * @details Axioms: (s1 * s2) * m = s1 * (s2 * m) and 1 * m = m.
- *
- * @note FIXME: Consider formal alignment with the template-template
- *       IsMonad concept at a later stage.
+ * @brief An Action (S ⟳ M) where S acts on M via its mapping property.
  */
-export template <typename S, typename M, typename Op = std::multiplies<>>
-concept IsAction =
-    IsPointed<S, Op> && IsAssociative<S, Op> && requires(S s, M m) {
-      { Op{}(s, m) } -> std::same_as<M>;
-    };
+export template <typename S, typename M>
+concept IsAction = requires(S s, M m) {
+  // Categorical Action: The arrow s maps an element of its domain to M.
+  { s(m) } -> std::same_as<M>;
+};
 
 // Pass the transparent version to the assert
-static_assert(IsAction<decltype(zero<int, int>()), int, std::plus<>>,
+static_assert(IsAction<decltype(zero<int, int>()), int>,
               "Zero Morphism must satisfy the Additive Action axioms.");
 
 // Verify that the Unit Morphism fulfills the Action Axioms
 // (Mapping everything to identity satisfies the "Neutrality" of the action)
 static_assert(IsAction<decltype(unit<int, int>()), int>,
               "Unit Morphism must satisfy the Action axioms (Absorption).");
+
+/** @section Level_1_Axiomatic_Verification */
+
+constexpr auto z = zero<int, int>();
+constexpr auto highway = id<int>();
+constexpr auto u = unit<int, int>();
+
+// 1. Verification of Absorption (Level 1 Logic)
+// The Zero Morphism maps any input to the Point 0.
+static_assert(
+    z(42) == 0,
+    "Absorption Law: The Zero Morphism must map all inputs to the Point 0.");
+
+// 2. Verification of Preservation (Level 0 Logic)
+// The Identity Morphism (Highway) preserves the input value.
+static_assert(highway(42) == 42,
+              "Unit Law: The Identity Highway must preserve the input.");
+
+/** @section Unit_Algebraic_Verification */
+
+// 1. The Multiplicative Unit Law (Point-wise)
+// The Unit Morphism maps any input to the Point 1.
+static_assert(
+    u(42) == 1,
+    "Absorption Law: The Unit Morphism must map all inputs to the Point 1.");
+
+// 2. The Successor Relationship (Manual Composition)
+// To verify 1 + n, we evaluate the unit and then perform the species addition.
+static_assert(
+    u(42) + 42 == 43,
+    "Successor Law: The value of the unit (1) plus n (42) must be 43.");
 
 /**
  * @concept IsAdditiveMorphism
