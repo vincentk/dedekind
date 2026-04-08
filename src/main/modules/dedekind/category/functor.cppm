@@ -97,7 +97,7 @@ concept IsFunctor =
     requires(Identity<typename F::Domain> id_C) {
         // The Identity of the source category slides through the Functor
         // and emerges as the Identity of the target context.
-        { id_C >> F{} } -> std::same_as<Identity<typename F::Codomain>>; 
+        { F{}(id_C) } -> std::same_as<Identity<typename F::Codomain>>; 
     };
 
 /** @section Verification */
