@@ -19,33 +19,71 @@ import :cartesian;
 namespace dedekind::category {
 
 /**
- * @concept IsInitialObject
- * @brief The "Zero" of the Category (0).
- * @details ∀x ∈ Domain: χ(x) == False.
+ * @concept IsTerminalMorphism
+ * @brief The "Truth" mapping (! : X -> 1).
+ * @details Categorically, the unique morphism to the terminal object.
+ *          Ontologically, the morphism where every element maps to 'True'.
  */
-export template <typename S, typename Ω = ClassicalLogic>
-concept IsInitialObject =
-    IsCharacteristic<S, Ω> && requires(const S s, const typename S::Domain x) {
-      // The Annihilator: Proof of absolute falsehood in Ω.
-      { s(x) == Ω::False } -> std::same_as<typename Ω::type>;
-
-      // Semantic: ensure it actually evaluates to the constant False
-      requires(s(x) == Ω::False);
+export template <typename S>
+concept IsTerminalMorphism =
+    IsPredicate<S, domain_t<S>> && requires(const S s, const domain_t<S> x) {
+      // The result must be the Multiplicative Identity (True) of the Domain's
+      // Logic.
+      requires s(x) == identity_v<typename GetLogic<domain_t<S>>::type::type,
+                                  std::logical_and<>>;
     };
 
 /**
- * @concept IsTerminalObject
- * @brief The "One" of the Category (1).
- * @details ∀x ∈ Domain: χ(x) == True.
+ * @concept IsInitialMorphism
+ * @brief The "Falsehood" mapping (? : 0 -> X).
+ * @details Categorically, the unique morphism from the initial object.
+ *          Ontologically, the morphism where every element maps to 'False'.
  */
-export template <typename S, typename Ω = ClassicalLogic>
-concept IsTerminalObject =
-    IsCharacteristic<S, Ω> && requires(const S s, const typename S::Domain x) {
-      // The Identity: Proof of absolute truth in Ω.
-      { s(x) == Ω::True } -> std::same_as<typename Ω::type>;
-
-      // Semantic: ensure it actually evaluates to the constant True
-      requires(s(x) == Ω::True);
+export template <typename S>
+concept IsInitialMorphism =
+    IsPredicate<S, domain_t<S>> && requires(const S s, const domain_t<S> x) {
+      // The result must be the Additive Identity (False) of the Domain's Logic.
+      requires s(x) == identity_v<typename GetLogic<domain_t<S>>::type::type,
+                                  std::logical_or<>>;
     };
+
+/**
+ * @section Universal_Objects
+ * We define the "Point" (1) and the "Empty" (0) as boundary species.
+ */
+
+/** @brief The Terminal Object (1): The species with exactly one inhabitant. */
+export struct One final {
+  constexpr bool operator==(const One&) const noexcept { return true; }
+};
+
+/** @brief The Initial Object (0): The species with no inhabitants. */
+export struct Zero final {
+  // Inhabitants are impossible; construction is forbidden.
+  Zero() = delete;
+};
+
+/** @section Registration_Infrastructure */
+
+template <>
+struct identity_registry<One, std::multiplies<>> {
+  static constexpr One value{};
+};
+
+/**
+ * @concept IsTerminalObject
+ * @brief Verification that T behaves as the Terminal Object (1).
+ */
+export template <typename T>
+concept IsTerminalObject =
+    std::same_as<T, One> || IsTerminalMorphism<decltype(unit<T, T>())>;
+
+/**
+ * @concept IsInitialObject
+ * @brief Verification that T behaves as the Initial Object (0).
+ */
+export template <typename T>
+concept IsInitialObject =
+    std::same_as<T, Zero> || IsInitialMorphism<decltype(zero<T, T>())>;
 
 }  // namespace dedekind::category
