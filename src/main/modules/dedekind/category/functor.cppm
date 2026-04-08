@@ -33,100 +33,111 @@ module;
 export module dedekind.category:functor;
 
 import :action;
+import :morphism;
 
 namespace dedekind::category {
 
 /**
- * @brief Skeletal Functor (Box): A generic testing container.
+ * @brief The Universal fmap (Forward Declaration).
+ * This remains open for Action-First specializations (Kleisli, Partial).
+ */
+export template <template <typename> typename F, IsArrow Arrow>
+constexpr auto fmap(Arrow f);
+
+/** @section The_Lifting_Engine */
+
+// 1. Naked Identity fmap (The Zero-Length Highway)
+export template <template <typename> typename F, IsArrow Arrow>
+  requires std::same_as<F<typename Arrow::Domain>,
+                        Identity<typename Arrow::Domain>>
+constexpr auto fmap(Arrow f) {
+  return f;
+}
+
+/**
+ * @brief The Boxed Identity Functor.
+ * This type constructor allows raw species (int, bool) to participate
+ * in the functorial spine without physical boxing.
  */
 export template <typename T>
 struct Box final {
-  using machine_type = T;
+  using Domain = T;
+  using Codomain = T;
   T value;
-
-  constexpr bool operator==(const Box& other) const = default;
+  constexpr bool operator==(const Box&) const = default;
 };
 
-/**
- * @brief Canonical Functorial Lift specialized to the Box type.
- *
- * @tparam Box   The Functorial Context (renamed from F for clarity).
- * @tparam Arrow The Skeletal Morphism to be lifted.
- */
+static_assert(IsArrow<Identity<Box<int>>>, "Box is an identity arrow.");
+
+// 2. Boxed fmap (The Actual Lift)
 export template <template <typename> typename F, IsArrow Arrow>
-  requires requires {
-    typename F<typename Arrow::Domain>::machine_type;  // Extra constraint
-  }
+  requires std::same_as<F<typename Arrow::Domain>, Box<typename Arrow::Domain>>
 constexpr auto fmap(Arrow f) {
   using T = typename Arrow::Domain;
   using U = typename Arrow::Codomain;
-
-  // We can still use 'Box' internally or as an alias if you prefer,
-  // but the signature must use 'F' to match the skeletal declaration.
-  auto lifted = [f](F<T> boxed) -> F<U> { return F<U>{f(boxed.value)}; };
-
-  return Morphism<F<T>, F<U>, decltype(lifted)>{std::move(lifted)};
+  auto lifted = [f](Box<T> bx) -> Box<U> { return Box<U>{f(bx.value)}; };
+  return Morphism<Box<T>, Box<U>, decltype(lifted)>{std::move(lifted)};
 }
-
-/** @section Verification: The Identity Law (F(id_X) = id_F<X>) */
-
-// 4. Proof: Identity check on a complex Species.
-// This confirms the skeletal labels match F<T> -> F<T>.
-static_assert(IsArrow<decltype(fmap<Box>(id<int>()))>,
-              "Identity Law: fmap(id) must preserve the Boxed species.");
 
 /**
  * @concept IsFunctor
- * @brief A structure-preserving mapping between categories.
- *
- * "A functor translates the grammar of one category into another."
- *
- * @tparam F  The Functorial 'Box' (e.g., Maybe, List, Ternary).
- * @tparam T  The Source Species.
- * @tparam U  The Target Species.
+ * @brief F: C -> D (Morphism between Categories) which conserves identities on
+ * C and D.
  */
-export template <template <typename> typename F, typename T, typename U>
+/**
+ * @concept IsFunctor
+ * @brief F: C -> D
+ * Formalises the Law: F(id_C) = id_{F(C)}
+ */
+export template <typename F>
 concept IsFunctor =
-    IsSmallCategory<T> && IsSmallCategory<U> && requires(Identity<T> id_t) {
-      typename F<T>;
-      typename F<U>;
-
-      // The lift: F(id_T)
-      { fmap<F>(id_t) } -> IsArrow;
-
-      // The labels: F(T) -> F(U) logic
-      requires std::same_as<domain_t<decltype(fmap<F>(id_t))>, F<T>>;
+    IsArrow<F> && 
+    IsSmallCategory<typename F::Domain> && 
+    IsSmallCategory<typename F::Codomain> &&
+    requires(Identity<typename F::Domain> id_C) {
+        // The Identity of the source category slides through the Functor
+        // and emerges as the Identity of the target context.
+        { id_C >> F{} } -> std::same_as<Identity<typename F::Codomain>>; 
     };
 
-// 1. Proof: Box is a Functor between Integer species.
-// Reduced from 5 params to 3: <Box, Source, Target>
-static_assert(IsFunctor<Box, int, int>,
-              "Level 0 Proof: Box must satisfy the Functor concept for Z.");
+/** @section Verification */
+// The Identity Functor on Integers (Naked)
+static_assert(IsFunctor<Identity<int>, Identity<int>>,
+              "Spine Error: Naked Identity failed.");
+
+// 2. The Boxed Functor
+static_assert(IsFunctor<Box<int>, Box<int>>, "Spine Error: Box failed.");
+
+// The Boxed Functor
+static_assert(IsFunctor<Box<int>, Box<int>>, "Spine Error: Box failed.");
 
 /**
  * @concept IsEndofunctor
  * @brief A structure-preserving mapping from a Category back to itself (F : 𝒞 →
  * 𝒞).
  *
- * @tparam F  The Functorial 'Box' (The Transformer).
- * @tparam T  The Species acting as the Category 𝒞.
+ * @concept IsEndofunctor
+ * @brief F : C -> C
+ * The reflexive case where the species-space remains invariant.
  */
-export template <template <typename> typename F, typename T>
-concept IsEndofunctor = IsFunctor<F, T, T>;
-
-/** @section Functor Verification: The Identity Endofunctor */
+export template <typename Context>
+concept IsEndofunctor = IsFunctor<Context, Context>;
 
 /** @section Endofunctor_Verification */
 
-// 2. Proof: Box is an Endofunctor on Integers.
-// Discovery: IsSmallCategory<int> finds (int, multiplies) or (int, plus)
-// internally.
-static_assert(IsEndofunctor<Box, int>,
-              "Functor: Box must be a valid Endofunctor on Z.");
+/** @section Endofunctor_Verification */
 
-// 3. Proof: Box is an Endofunctor on the Boolean Lattice.
-static_assert(IsEndofunctor<Box, bool>,
-              "Functor: Box must be a valid Endofunctor on B.");
+// 3. Proof: Box is an Endofunctor on Integers.
+static_assert(IsEndofunctor<Box<int>>,
+              "Functor: Box<int> must be a valid Endofunctor on Z.");
+
+// 4. Proof: Box is an Endofunctor on the Boolean Lattice.
+static_assert(IsEndofunctor<Box<bool>>,
+              "Functor: Box<bool> must be a valid Endofunctor on B.");
+
+// 5. Verification of 'naked' lifting (Identity Functor)
+static_assert(std::same_as<decltype(fmap<Identity>(id<int>())), Identity<int>>,
+              "Highway Error: Identity lift must return the original arrow.");
 
 /** @brief The Functorial Bridge Tag. */
 template <template <typename> typename F>
