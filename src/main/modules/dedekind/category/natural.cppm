@@ -64,10 +64,34 @@ namespace dedekind::category {
  * This is as sharp as it gets. It reads exactly like the definition:
  * "A morphism between Functors that preserves the Species."
  */
-export template <typename α>
-concept IsNaturalTransformation =
-    IsArrow<α> && IsFunctor<typename α::Domain> &&
-    IsFunctor<typename α::Codomain> &&
-    std::same_as<typename α::Domain::Domain, typename α::Codomain::Domain>;
+
+/**
+ * @concept IsNaturalTransformation
+ * @brief α : F ⟹ G
+ *
+ * A Natural Transformation is a family of morphisms α_X : F(X) -> G(X)
+ * such that for every f : X -> Y, the square G(f) ∘ α_X = α_Y ∘ F(f) commutes.
+ */
+export template <typename α_Factory>
+concept IsNaturalTransformation = requires {
+  // 1. Component Extraction Proof
+  typename α_Factory::template Component<int>;
+  requires IsArrow<typename α_Factory::template Component<int>>;
+
+  // 2. Commutativity Verification (The Slide)
+  requires requires(Morphism<int, int, std::function<int(int)>> f) {
+    // Path A: F(f) >> α_Y
+    {
+      fmap<α_Factory::SourceFunctor::template Shape>(f) >>
+          typename α_Factory::template Component<int>{}
+    } -> IsArrow;
+
+    // Path B: α_X >> G(f)
+    {
+      typename α_Factory::template Component<int>{} >>
+          fmap<α_Factory::TargetFunctor::template Shape>(f)
+    } -> IsArrow;
+  };
+};
 
 }  // namespace dedekind::category

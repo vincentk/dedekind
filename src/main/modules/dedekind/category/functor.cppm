@@ -37,6 +37,19 @@ import :morphism;
 
 namespace dedekind::category {
 
+/** @section Monadic_Bootstrap */
+export template <template <typename> typename F, typename T>
+struct η;
+export template <template <typename> typename F, typename T>
+struct μ;
+
+/** @brief fmap derived from Kleisli Triple: fmap(f) = (f >> η) >> μ */
+export template <template <typename> typename F, IsArrow Arrow>
+constexpr auto fmap(Arrow f) {
+  using U = typename Arrow::Codomain;
+  return (f >> η<F, U>{}) >> μ<F, U>{};
+}
+
 /**
  * @concept IsFunctor
  * @brief F: C -> D
@@ -76,15 +89,24 @@ concept IsEndofunctor =
     std::same_as<typename Context::Domain, typename Context::Codomain>;
 
 /**
- * @brief The Boxed Identity Functor.
- * This type constructor allows raw species (int, bool) to participate
- * in the functorial spine without physical boxing.
+ * @brief The Boxed Species (The F<T> Context).
+ *
+ * Reifies the "Box" as a categorical object that announces its
+ * own species and shape, enabling 1-parameter functorial discovery.
  */
 export template <typename T>
 struct Box final {
-  using Domain = T;
-  using Codomain = T;
+  /** @brief The underlying species (The Object T). */
+  using Species = T;
+
+  /** @brief The Functorial Shape (The Type Constructor F). */
+  template <typename U>
+  using Shape = Box<U>;
+
+  /** @brief The physical payload. */
   T value;
+
+  /** @brief Equality for structural verification in static_asserts. */
   constexpr bool operator==(const Box&) const = default;
 };
 
