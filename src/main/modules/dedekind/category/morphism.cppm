@@ -316,14 +316,66 @@ static_assert(endo<int>([](int x) { return x * 2; })(21) == 42,
 
 /** @section The_Universal_Functor_Interface */
 
-/** @brief The Identity Morphism: The "Zero-Length Highway" for Species T. */
+/**
+ * @brief The Identity Morphism and Functorial Witness.
+ *
+ * In the Category of Species (Set), Identity acts as the unit morphism \(id_T:
+ * T \to T\). In the Category of Functors, it acts as the Identity Functor \(Id:
+ * \mathcal{C} \to \mathcal{C}\).
+ *
+ * This reification is "Dual-Action": it preserves the structure of both
+ * individual elements (Species) and their transformations (Morphisms). It is
+ * the canonical "Zero-Length Highway" that connects a species to itself without
+ * distortion.
+ *
+ * @tparam T The Species (Object) for which this identity is defined.
+ */
 export template <typename T>
 struct Identity final {
+  /** @brief The source category species. */
   using Domain = T;
+  /** @brief The target category species (invariant for identity). */
   using Codomain = T;
 
-  // The logic is baked into the type itself.
+  /**
+   * @section Categorical_Actions
+   * The following operators ensure that Identity acts as a structure-preserving
+   * map across different levels of the categorical hierarchy.
+   */
+
+  /**
+   * @brief The Morphic Action (Object -> Object).
+   *
+   * Implements the identity function \(f(x) = x\). This satisfies the
+   * "Identity on Set" requirement for Level 0 categorical grounding.
+   *
+   * @param x The species value to be mapped.
+   * @return The identical species value.
+   */
   constexpr T operator()(const T& x) const noexcept { return x; }
+
+  /**
+   * @brief The Functorial Action (Morphism -> Morphism).
+   *
+   * Implements the Identity Functor lift \(F(f) = f\). This satisfies the
+   * Functorial Identity Law: mapping an arrow through the identity context
+   * must result in the original arrow.
+   *
+   * @tparam Arrow A type satisfying the IsArrow concept.
+   * @param f The arrow to be lifted into the identity context.
+   * @return The original arrow, preserved without transformation.
+   */
+  template <IsArrow Arrow>
+    requires std::same_as<typename Arrow::Domain, T>
+  constexpr auto operator()(Arrow f) const noexcept {
+    return f;
+  }
+
+  /**
+   * @note Any type passed to this identity that is neither the Species @p T
+   * nor a valid @p IsArrow will result in a substitution failure (SFINAE),
+   * preventing "loose" or non-categorical sliding.
+   */
 };
 
 /** @brief The Identity Factory: Returns the neutral arrow for Species A. */
