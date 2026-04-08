@@ -26,6 +26,7 @@ module;
 
 export module dedekind.category:total;
 
+import :discrete;
 import :pullback;
 import :morphism;
 import :species;
@@ -53,47 +54,6 @@ struct TotalMorphism : Morphism<A, B, Func> {
       "Totality Error: The provided function is not total over the domain.");
 };
 
-/**
- * @brief The Constant Morphism f: A -> B.
- * @details Maps every element of A to a fixed element c in B.
- */
-export template <typename A, typename B>
-struct ConstantMorphism final {
-  using Domain = A;
-  using Codomain = B;
-  B value;
-
-  constexpr B operator()(const A&) const noexcept { return value; }
-};
-
-/** @section Registration_Atomic_Floor */
-template <typename A, typename B, typename Op>
-  requires IsPointed<B, Op>
-struct identity_registry<ConstantMorphism<A, B>, Op> {
-  static constexpr ConstantMorphism<A, B> value{identity_v<B, Op>};
-};
-
-/**
- * @section Constant_Morphism_Axioms
- * A Constant Mapping is inherently associative under any operation
- * because it is a fixed sink: c ∘ (c ∘ c) = c.
- */
-template <typename A, typename B, typename Op>
-inline constexpr bool is_associative_v<ConstantMorphism<A, B>, Op> = true;
-
-/** @section Unified_Ideal_Factories */
-export template <typename A, typename B, typename Op = std::plus<B>>
-  requires IsPointed<B, Op>
-constexpr auto zero() {
-  return ConstantMorphism<A, B>{identity_v<B, Op>};
-}
-
-export template <typename A, typename B, typename Op = std::multiplies<B>>
-  requires IsPointed<B, Op>
-constexpr auto unit() {
-  return ConstantMorphism<A, B>{identity_v<B, Op>};
-}
-
 // 3. Verify it is a Total Arrow (defined for all x in Domain)
 static_assert(IsTotalArrow<decltype(zero<int, int>())>,
               "Totality Error: zero() must be total constant over its domain.");
@@ -101,14 +61,6 @@ static_assert(IsTotalArrow<decltype(zero<int, int>())>,
 // 3. Verify it is a Total Arrow (defined for all x in Domain)
 static_assert(IsTotalArrow<decltype(unit<int, int>())>,
               "Totality Error: unit() must be total constant over its domain.");
-
-static_assert(IsPointed<decltype(zero<int, int>()), std::plus<int>>);
-static_assert(IsPointed<decltype(unit<int, int>()), std::multiplies<int>>);
-
-// 4. Verify functional correctness (maps to the 'Point' 0)
-static_assert(
-    zero<int, int, std::plus<int>>()(123) == 0,
-    "Logic Error: Zero mapping failed to return the identity element.");
 
 /** @concept IsMagma: T × T → T (The Base Total Species) */
 export template <typename T, typename Op>

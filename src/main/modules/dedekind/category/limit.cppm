@@ -47,22 +47,6 @@ concept IsInitialMorphism =
                                   std::logical_or<>>;
     };
 
-/**
- * @section Universal_Objects
- * We define the "Point" (1) and the "Empty" (0) as boundary species.
- */
-
-/** @brief The Terminal Object (1): The species with exactly one inhabitant. */
-export struct One final {
-  constexpr bool operator==(const One&) const noexcept { return true; }
-};
-
-/** @brief The Initial Object (0): The species with no inhabitants. */
-export struct Zero final {
-  // Inhabitants are impossible; construction is forbidden.
-  Zero() = delete;
-};
-
 /** @section Registration_Infrastructure */
 
 template <>

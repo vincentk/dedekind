@@ -38,8 +38,9 @@
 export module dedekind.category;
 
 // Level 0: The Taxonomic Bricks (Atoms)
-export import :species;    // The Raw Machine Data
-export import :morphism;   // The Base Arrow (Prerequisite for everything)
+export import :species;   // The Raw Machine Data
+export import :morphism;  // The Base Arrow (Prerequisite for everything)
+export import :discrete;
 export import :mereology;  // Parthood (Prerequisite for Logic/Sets)
 export import :logic;      // The Subobject Classifier (Truth)
 
