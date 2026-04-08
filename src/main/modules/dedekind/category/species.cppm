@@ -843,6 +843,40 @@ concept IsPeriodic = is_periodic_v<T, Op>;
 export template <typename T, typename Op>
 concept IsTotal = IsPeriodic<T, Op> || IsIdempotent<T, Op>;
 
+/** @section Lattice_Morphisms (std::ranges) */
+
+// 1. Join (max) is Idempotent, Associative, and Commutative
+template <typename T>
+inline constexpr bool is_idempotent_v<T, decltype(std::ranges::max)> = true;
+
+template <typename T>
+inline constexpr bool is_associative_v<T, decltype(std::ranges::max)> = true;
+
+template <typename T>
+inline constexpr bool is_commutative_v<T, decltype(std::ranges::max)> = true;
+
+// 2. Meet (min) is Idempotent, Associative, and Commutative
+template <typename T>
+inline constexpr bool is_idempotent_v<T, decltype(std::ranges::min)> = true;
+
+template <typename T>
+inline constexpr bool is_associative_v<T, decltype(std::ranges::min)> = true;
+
+template <typename T>
+inline constexpr bool is_commutative_v<T, decltype(std::ranges::min)> = true;
+
+/** @section Distributive_Lattice_Laws (std::ranges) */
+
+// 1. Max distributes over Min
+template <typename T>
+inline constexpr bool is_distributive_v<T, decltype(std::ranges::max),
+                                        decltype(std::ranges::min)> = true;
+
+// 2. Min distributes over Max
+template <typename T>
+inline constexpr bool is_distributive_v<T, decltype(std::ranges::min),
+                                        decltype(std::ranges::max)> = true;
+
 /** @section Atomic_Floor_Verification */
 
 static_assert(!is_associative_v<int, std::plus<int>>,

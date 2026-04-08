@@ -20,6 +20,7 @@
  */
 module;
 
+#include <algorithm>
 #include <concepts>
 #include <functional>
 
@@ -60,7 +61,7 @@ struct TotalMorphism : Morphism<A, B, Func> {
 /** @concept IsMagma: T × T → T (The Base Total Species) */
 export template <typename T, typename Op>
 concept IsMagma = IsTotal<T, Op> && requires(T a, T b) {
-  { Op{}(a, b) } -> std::same_as<T>;
+  { Op{}(a, b) } -> std::convertible_to<T>;
 };
 
 // REJECTION: Signed addition is NOT a Magma (No Periodicity, No Idempotency).
@@ -85,6 +86,9 @@ concept IsLoop = IsUnitalMagma<T, Op> && IsInvertible<T, Op>;
 /** @concept IsSemigroup: Associative Magma */
 export template <typename T, typename Op>
 concept IsSemigroup = IsMagma<T, Op> && IsAssociative<T, Op>;
+
+export template <typename T, typename Op>
+concept IsCommutativeSemigroup = IsSemigroup<T, Op> && IsCommutative<T, Op>;
 
 /** @concept IsMonoid: Semigroup + Identity */
 export template <typename T, typename Op>
@@ -153,22 +157,36 @@ static_assert(IsRing<Modular<256>, std::plus<Modular<256>>,
 
 /** @concept IsJoinSemilattice */
 export template <typename T, typename Op>
-concept IsJoinSemilattice = IsCommutativeMonoid<T, Op> && IsIdempotent<T, Op>;
+concept IsJoinSemilattice =
+    IsCommutativeSemigroup<T, Op> && IsIdempotent<T, Op>;
 
 /** @concept IsMeetSemilattice */
 export template <typename T, typename Op>
-concept IsMeetSemilattice = IsCommutativeMonoid<T, Op> && IsIdempotent<T, Op>;
+concept IsMeetSemilattice =
+    IsCommutativeSemigroup<T, Op> && IsIdempotent<T, Op>;
 
 /** @concept IsLattice */
 export template <typename T, typename Join, typename Meet>
 concept IsLattice = IsJoinSemilattice<T, Join> && IsMeetSemilattice<T, Meet>;
 
+/**
+ * @concept IsDistributiveLattice
+ * @brief Axiom: Join and Meet must mutually distribute over each other.
+ *
+ * Formal Laws:
+ * 1. a ∨ (b ∧ c) = (a ∨ b) ∧ (a ∨ c)  [Join over Meet]
+ * 2. a ∧ (b ∨ c) = (a ∧ b) ∨ (a ∧ c)  [Meet over Join]
+ */
+export template <typename T, typename Join, typename Meet>
+concept IsDistributiveLattice =
+    IsLattice<T, Join, Meet> && IsDistributive<T, Join, Meet> &&
+    IsDistributive<T, Meet, Join>;
+
 // bool is a Distributive Lattice (AND/OR are both idempotent)
-static_assert(IsLattice<bool, std::logical_or<bool>, std::logical_and<bool>>);
+static_assert(
+    IsDistributiveLattice<bool, std::logical_or<bool>, std::logical_and<bool>>);
 
-// extrema as Lattices
-static_assert(IsJoinSemilattice<int, decltype([](int a, int b) {
-                                  return std::max(a, b);
-                                })>);
-
+// Lattice laws for integers under max/min (Total Order).
+static_assert(IsDistributiveLattice<int, decltype(std::ranges::max),
+                                    decltype(std::ranges::min)>);
 }  // namespace dedekind::category
