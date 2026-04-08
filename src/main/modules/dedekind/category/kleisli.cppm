@@ -173,4 +173,18 @@ constexpr IsArrow auto fmap(Arrow f) {
   }
 }
 
+/** @section The_Into_Tag */
+export template <template <typename...> typename F>
+struct into_tag {};
+
+export template <template <typename...> typename F>
+inline constexpr into_tag<F> into{};
+
+/** @section The_Push_Operator (η) */
+export template <typename T, template <typename...> typename F>
+constexpr auto operator>>(T&& x, into_tag<F>) {
+  // We use the η witness from :species to lift the value
+  return η<F, std::decay_t<T>>{}(std::forward<T>(x));
+}
+
 }  // namespace dedekind::category

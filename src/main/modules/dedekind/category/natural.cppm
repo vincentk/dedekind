@@ -36,6 +36,56 @@ namespace dedekind::category {
 
 /**
  * @concept IsNaturalTransformation
+ * @theorem Naturality (F ⟹ G)
+ * @brief Proposition: There exists a structure-preserving bridge between two
+ * Functors.
+ *
+ * @details
+ * For this theorem to hold for a candidate (Eta), the following must be true:
+ * 1. Categorical Context: F and G are verified Functors over the Species (T,
+ * OpT).
+ * 2. Morphism Signature: Eta is a valid Arrow mapping the context F⟨T⟩ to G⟨T⟩.
+ *
+ * For every object X, we define a morphism η_X: F⟨X⟩ → G⟨X⟩.
+ * To be "Natural," the following square must commute for any f: X → Y:
+ *
+ *        η_X
+ *   F⟨X⟩ ────→ G⟨X⟩
+ *    │          │
+ * F(f)│          │G(f)
+ *    ↓          ↓
+ *   F⟨Y⟩ ────→ G⟨Y⟩
+ *        η_Y
+ *
+ * Formally: G(f) ∘ η_X = η_Y ∘ F(f)
+ *
+ * @tparam Eta  The candidate proof-object (The transformation type).
+ * @tparam F    The source Functor (The origin context).
+ * @tparam G    The target Functor (The destination context).
+ * @tparam T    The source Species (The object).
+ * @tparam U    The target Species (The object).
+ * @tparam OpT   The Operation of the Source Category 𝒞.
+ * @tparam OpU   The Operation of the Target Category 𝒟.
+ */
+export template <typename Alpha, template <typename> typename F,
+                 template <typename> typename G, typename T, typename U,
+                 typename OpT, typename OpU>
+concept IsNaturalTransformation =
+    IsFunctor<F, T, OpT, T, OpT> && IsFunctor<G, U, OpU, U, OpU> &&
+    IsArrow<Alpha, F<T>, G<U>>;
+
+/**
+ * @concept IsNaturalEndoTransformation
+ * @brief The "Highway" Theorem: F ⟹ G where F, G : 𝒞 → 𝒞.
+ * @details Reduces the 7-parameter boilerplate to 5 for the 99% case.
+ */
+export template <typename Alpha, template <typename> typename F,
+                 template <typename> typename G, typename T, typename Op>
+concept IsNaturalEndoTransformation =
+    IsNaturalTransformation<Alpha, F, G, T, T, Op, Op>;
+
+/**
+ * @concept IsNaturalTransformation
  * @brief A "Slide" between two functors F and G.
  *
  * Formalizes the commutativity of the square: G(f) ∘ η_X = η_Y ∘ F(f)
