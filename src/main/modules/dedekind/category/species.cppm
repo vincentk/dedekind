@@ -877,6 +877,66 @@ template <typename T>
 inline constexpr bool is_distributive_v<T, decltype(std::ranges::min),
                                         decltype(std::ranges::max)> = true;
 
+/**
+ * @brief The Absorber Trait (Axiom: a ∨ (a ∧ b) = a)
+ * Represents the structural tethering between two dual operations.
+ */
+template <typename T, typename Op1, typename Op2>
+inline constexpr bool is_absorptive_v = false;
+
+/** @section Lattice_Absorber_Registration */
+
+// 1. Integers: max/min (Mutual)
+template <typename T>
+inline constexpr bool
+    is_absorptive_v<T, decltype(std::ranges::max), decltype(std::ranges::min)> =
+        true;
+template <typename T>
+inline constexpr bool
+    is_absorptive_v<T, decltype(std::ranges::min), decltype(std::ranges::max)> =
+        true;
+
+// 2. Logic: OR/AND (Mutual)
+template <typename T>
+inline constexpr bool
+    is_absorptive_v<T, std::logical_or<T>, std::logical_and<T>> = true;
+template <typename T>
+inline constexpr bool
+    is_absorptive_v<T, std::logical_and<T>, std::logical_or<T>> = true;
+
+/** @section Boolean_Ring_Morphisms (XOR, AND) */
+
+// 1. XOR (std::bit_xor) is NOT idempotent (a ^ a = 0)
+template <typename T>
+inline constexpr bool is_idempotent_v<T, std::bit_xor<T>> = false;
+
+// 2. AND (std::bit_and) IS idempotent
+template <typename T>
+inline constexpr bool is_idempotent_v<T, std::bit_and<T>> = true;
+
+// 3. The Absorption Failure (Crucial for the "Not a Lattice" proof)
+template <typename T>
+inline constexpr bool is_absorptive_v<T, std::bit_xor<T>, std::bit_and<T>> =
+    false;
+
+template <typename T>
+inline constexpr bool is_absorptive_v<T, std::bit_and<T>, std::bit_xor<T>> =
+    false;
+
+/**
+ * @concept IsAbsorptive
+ * @brief Axiom: Mutual Absorption and Internal Idempotency.
+ *
+ * Verifies that Op1 and Op2 are dual partners:
+ * 1. Op1 absorbs Op2: a ∨ (a ∧ b) = a
+ * 2. Op2 absorbs Op1: a ∧ (a ∨ b) = a
+ * 3. Both are idempotent (inherent in absorption, but verified for rigor).
+ */
+export template <typename T, typename Op1, typename Op2>
+concept IsAbsorptive =
+    IsIdempotent<T, Op1> && IsIdempotent<T, Op2> &&
+    is_absorptive_v<T, Op1, Op2> && is_absorptive_v<T, Op2, Op1>;
+
 /** @section Atomic_Floor_Verification */
 
 static_assert(!is_associative_v<int, std::plus<int>>,

@@ -167,7 +167,8 @@ concept IsMeetSemilattice =
 
 /** @concept IsLattice */
 export template <typename T, typename Join, typename Meet>
-concept IsLattice = IsJoinSemilattice<T, Join> && IsMeetSemilattice<T, Meet>;
+concept IsLattice = IsJoinSemilattice<T, Join> && IsMeetSemilattice<T, Meet> &&
+                    IsAbsorptive<T, Join, Meet>;
 
 /**
  * @concept IsDistributiveLattice
@@ -189,4 +190,21 @@ static_assert(
 // Lattice laws for integers under max/min (Total Order).
 static_assert(IsDistributiveLattice<int, decltype(std::ranges::max),
                                     decltype(std::ranges::min)>);
+
+/** @section Boolean_Ring_Negative_Proof */
+
+using XOR = std::bit_xor<unsigned int>;
+using AND = std::bit_and<unsigned int>;
+
+// This MUST be false because XOR is not idempotent.
+static_assert(!IsIdempotent<unsigned int, XOR>);
+
+// This MUST be false because a ^ (a & b) != a.
+static_assert(
+    !IsAbsorptive<unsigned int, XOR, AND>,
+    "Taxonomy Error: Boolean Ring operations must NOT be absorptive.");
+
+// The Final Verdict:
+static_assert(!IsLattice<unsigned int, XOR, AND>,
+              "Taxonomy Error: A Boolean Ring is a Ring, not a Lattice.");
 }  // namespace dedekind::category
