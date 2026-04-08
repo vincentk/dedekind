@@ -5,31 +5,32 @@
  *
  * @section The_Structuralist_Framework
  * This partition defines the categorical primitives that govern the interaction
- * between species. In the Dedekind ontology, we do not treat functions as 
+ * between species. In the Dedekind ontology, we do not treat functions as
  * ephemeral blocks of logic, but as formal "Arrows" that carry their own
  * metadata (Domain and Codomain).
  *
  * @quote
- * "A morphism is not just a function, but a function *together with* its 
- *  domain and codomain... This 'bookkeeping' is exactly what allows the 
+ * "A morphism is not just a function, but a function *together with* its
+ *  domain and codomain... This 'bookkeeping' is exactly what allows the
  *  categorical machinery to work its magic."
  *  — Urs Schreiber, n-Category Café
  *
  * @subsection The_Skeletal_Arrow
- * The primary purpose of this partition is to provide the "Box and Label" 
+ * The primary purpose of this partition is to provide the "Box and Label"
  * for any mapping:
  * - @ref Morphism (Arrow) : A labeled struct f: A -> B.
- * - @ref IsArrow         : The skeletal concept verifying Domain/Codomain labels.
+ * - @ref IsArrow         : The skeletal concept verifying Domain/Codomain
+ * labels.
  * - @ref Identity (id)   : The "Zero-Length Highway" (Reflexivity).
  * - @ref operator>>      : Categorical composition (The Path Axiom).
  *
  * @section The_Action_Axiom
- * To bypass C++ template limitations regarding ADL, morphisms are treated as 
- * "Actions." This allows us to lift total functions into the monadic Kleisli 
+ * To bypass C++ template limitations regarding ADL, morphisms are treated as
+ * "Actions." This allows us to lift total functions into the monadic Kleisli
  * spine without losing the formal species-integrity of the Domain.
  *
- * @note Universal constructions (Initial, Terminal, Zero Morphism) are 
- *       deferred to Level 0.5 (:limit) and Level 1 (:total), as they 
+ * @note Universal constructions (Initial, Terminal, Zero Morphism) are
+ *       deferred to Level 0.5 (:limit) and Level 1 (:total), as they
  *       rely on specific algebraic properties of the species.
  */
 
@@ -143,6 +144,13 @@ struct SpeciesTraits<std::less<T>> : infer_morphism<std::less<T>, T, T> {};
 template <typename T>
 struct MorphicBridge;
 
+// If the type is already a verified Arrow, just extract its labels.
+template <IsArrow T>
+struct MorphicBridge<T> {
+  using Domain = typename T::Domain;
+  using Codomain = typename T::Codomain;
+};
+
 // Pattern match for: ReturnType Class::operator()(ArgType) const
 template <typename C, typename R, typename A>
 struct MorphicBridge<R (C::*)(A) const> {
@@ -168,12 +176,15 @@ struct MorphicBridge<std::function<R(A)>> {
 
 template <typename F>
 struct signature_extractor {
-  // Track 1: Match types with a specific operator() (Lambdas, Functors)
+  // Priority 1: Formal Arrows (Morphism, Identity, ZeroMorphism)
+  template <IsArrow U>
+  static auto resolve(int) -> U;
+
+  // Priority 2: Lambdas and Functors (Internal operator())
   template <typename U>
   static auto resolve(int) -> decltype(&std::remove_cvref_t<U>::operator());
 
-  // Track 2: Match types that ARE the signature (std::function, function
-  // pointers)
+  // Priority 3: Function Pointers / std::function
   template <typename U>
   static auto resolve(...) -> std::remove_cvref_t<U>;
 

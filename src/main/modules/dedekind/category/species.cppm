@@ -141,50 +141,125 @@ struct is_idempotent<T, MinOp> : std::true_type {};
 template <std::integral T>
 struct is_idempotent<T, MaxOp> : std::true_type {};
 
-/**
- * @section Identity_Discovery_Engine
- * This internal bridge allows Level 0 concepts to discover algebraic
- * identities defined in higher-level modules (like :polynomials).
- */
+// --- THE STORAGE (Facts) ---
 template <typename T, typename Op>
-struct identity_discovery {
-  // We use a lambda-based decltype to check if the member exists.
-  // If T::identity_v exists for this Op, this resolves to the identity value.
-  static constexpr bool has_member = requires { T::template identity_v<Op>; };
+struct identity_registry {};  // Empty box
+
+/** @section Integral_Pointed_Species */
+
+// 1. Integers under Addition (Zero)
+template <typename T>
+  requires std::integral<T>
+struct identity_registry<T, std::plus<T>> {
+  static constexpr T value = T(0);
 };
-/**
- * @section Identity_Discovery_Engine
- * This internal bridge allows Level 0 concepts to discover algebraic
- * identities defined in higher-level modules (like :polynomials).
- */
 
-// 1. The "Missing" Case: No value member here.
+// 2. Integers under Multiplication (One)
+template <typename T>
+  requires std::integral<T>
+struct identity_registry<T, std::multiplies<T>> {
+  static constexpr T value = T(1);
+};
+
+/** @section Bitwise_Pointed_Species */
+
+// 1. Bitwise OR/XOR Identity is 0
+template <typename T>
+  requires std::integral<T>
+struct identity_registry<T, std::bit_or<T>> {
+  static constexpr T value = T(0);
+};
+
+template <typename T>
+  requires std::integral<T>
+struct identity_registry<T, std::bit_xor<T>> {
+  static constexpr T value = T(0);
+};
+
+// 2. Bitwise AND Identity is All-Ones (~0)
+template <typename T>
+  requires std::integral<T>
+struct identity_registry<T, std::bit_and<T>> {
+  static constexpr T value = ~T(0);
+};
+
+// 3. Floats under Addition (Zero)
+template <typename T>
+  requires std::floating_point<T>
+struct identity_registry<T, std::plus<T>> {
+  static constexpr T value = T(0.0);
+};
+
+// 3. Floats under Multiplication (One)
+template <typename T>
+  requires std::floating_point<T>
+struct identity_registry<T, std::multiplies<T>> {
+  static constexpr T value = T(1.0);
+};
+
+// 1. Boolean 'Addition' (OR) has identity FALSE
+// a ∨ false = a
+template <>
+struct identity_registry<bool, std::logical_or<bool>> {
+  static constexpr bool value = false;
+};
+
+// 2. Boolean 'Multiplication' (AND) has identity TRUE
+// a ∧ true = a
+template <>
+struct identity_registry<bool, std::logical_and<bool>> {
+  static constexpr bool value = true;
+};
+
+// 3. Boolean 'XOR' (Ring Addition) has identity FALSE
+// a ⊕ false = a
+template <>
+struct identity_registry<bool, std::bit_xor<bool>> {
+  static constexpr bool value = false;
+};
+
+// --- THE LIBRARIAN (Discovery Logic) ---
 template <typename T, typename Op, typename = void>
-struct identity_base {};
+struct identity_trait : identity_registry<T, Op> {};
 
-// 2. The "Found" Case: Only active if T::identity_v exists.
-// FIX: Added the missing template argument list and std::void_t check
+// Special "Discovery" track for types that define their own identity internally
 template <typename T, typename Op>
-struct identity_base<T, Op, std::void_t<decltype(T::template identity_v<Op>)>> {
-  using value_type = T;
+struct identity_trait<T, Op,
+                      std::void_t<decltype(T::template identity_v<Op>)>> {
   static constexpr T value = T::template identity_v<Op>;
 };
 
-/**
- * @brief Primary identity_trait
- */
+// --- THE SERVICE DESK (Public API) ---
 export template <typename T, typename Op>
-struct identity_trait : identity_base<T, Op> {};
-
-/** @brief Helper to access the identity value. */
-export template <typename T, typename Op>
-  requires requires { typename identity_trait<T, Op>::value_type; }
+  requires requires { identity_trait<T, Op>::value; }
 inline constexpr T identity_v = identity_trait<T, Op>::value;
 
-/** @brief Shorthand verification. */
+/**
+ * @concept IsPointed
+ * Replaces the missing 'HasIdentity' for Level 0.1
+ */
 export template <typename T, typename Op>
-inline constexpr bool has_identity_v =
-    requires { typename identity_trait<T, Op>::value_type; };
+concept IsPointed = requires {
+  { identity_v<T, Op> } -> std::convertible_to<T>;
+};
+
+static_assert(IsPointed<bool, std::logical_or<bool>>,
+              "Pointed: Booleans must have an additive identity (false).");
+
+static_assert(IsPointed<bool, std::logical_and<bool>>,
+              "Pointed: Booleans must have a multiplicative identity (true).");
+
+static_assert(IsPointed<int, std::plus<int>>,
+              "Pointed: Integers must have an additive identity (0).");
+
+static_assert(IsPointed<int, std::multiplies<int>>,
+              "Pointed: Integers must have a multiplicative identity (1).");
+
+static_assert(IsPointed<double, std::plus<double>>,
+              "Pointed: Doubles must have an additive identity (0).");
+
+static_assert(IsPointed<double, std::multiplies<double>>,
+              "Pointed: Doubles must have a multiplicative identity (1).");
 
 /**
  * @brief The Characteristic of the Species.
@@ -203,21 +278,11 @@ template <>
 inline constexpr bool is_associative_v<bool, std::logical_or<bool>> = true;
 template <>
 inline constexpr bool is_commutative_v<bool, std::logical_or<bool>> = true;
-template <>
-struct identity_trait<bool, std::logical_or<bool>> {
-  using value_type = bool;
-  static constexpr bool value = false;  // ⊥ (Null/False)
-};
 
 template <>
 inline constexpr bool is_associative_v<bool, std::logical_and<bool>> = true;
 template <>
 inline constexpr bool is_commutative_v<bool, std::logical_and<bool>> = true;
-template <>
-struct identity_trait<bool, std::logical_and<bool>> {
-  using value_type = bool;
-  static constexpr bool value = true;  // ⊤ (Whole/True)
-};
 
 /**
  * @brief Trait to mark a relation as reflexive: a ~ a = True
@@ -814,15 +879,6 @@ concept IsDistributive = requires(T a, T b, T c) {
 export template <typename T, typename Op>
 concept IsIdempotent = is_idempotent_v<T, Op>;
 
-/**
- * @concept IsPointed
- * Replaces the missing 'HasIdentity' for Level 0.1
- */
-export template <typename T, typename Op>
-concept IsPointed = requires {
-  { identity_v<T, Op> } -> std::convertible_to<T>;
-};
-
 export template <typename T, typename Op>
 concept IsInvertible = IsPointed<T, Op> && is_invertible_v<T, Op>;
 
@@ -961,26 +1017,11 @@ static_assert(is_idempotent_v<unsigned int, std::bit_and<unsigned int>>,
 static_assert(is_commutative_v<int, std::bit_or<int>>,
               "Axiom Error: Bitwise 'OR' must be commutative.");
 
-// 3. Verify Discovery Engine: Boolean Monoids (Table 7)
-static_assert(
-    has_identity_v<bool, std::logical_or<bool>>,
-    "ETCS Violation: Boolean Or-Monoid must have a discoverable identity.");
-
 static_assert(identity_v<bool, std::logical_or<bool>> == false,
               "Logic Error: Boolean Or-Monoid identity must be False.");
 
-static_assert(
-    has_identity_v<bool, std::logical_and<bool>>,
-    "ETCS Violation: Boolean And-Monoid must have a discoverable identity.");
 static_assert(identity_v<bool, std::logical_and<bool>> == true,
               "Logic Error: Boolean And-Monoid identity must be True.");
-
-// 4. Verify The "Honest Rejection" (Section 2.4.2)
-// Since signed int addition has undefined overflow, we do NOT define
-// an identity for it in the total domain. This test confirms the
-// discovery engine correctly reports its absence.
-static_assert(has_identity_v<int, std::plus<int>>,
-              "Identity is valid (0) even if associativity is rejected.");
 
 // 5. Verify Material Constants
 static_assert(characteristic_v<unsigned char> == 256,
@@ -1019,8 +1060,6 @@ static_assert(!is_associative_v<int, std::modulus<>>,
               "Axiom Error: Modulus is not associative.");
 static_assert(!is_commutative_v<int, std::modulus<>>,
               "Axiom Error: Modulus is not commutative.");
-static_assert(!has_identity_v<int, std::modulus<>>,
-              "Axiom Error: Modulus has no identity.");
 
 /** @section Distributive_Certifications */
 

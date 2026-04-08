@@ -53,6 +53,114 @@ struct TotalMorphism : Morphism<A, B, Func> {
       "Totality Error: The provided function is not total over the domain.");
 };
 
+/**
+ * @brief The Constant Morphism f: A -> B.
+ * Maps every element of A to a fixed element c in B.
+ */
+export template <typename A, typename B>
+struct ConstantMorphism {
+  using Domain = A;
+  using Codomain = B;
+  B value;
+
+  constexpr B operator()(const A&) const noexcept { return value; }
+
+  // The generic "Action" logic: Constant beats Input.
+  template <typename M>
+  constexpr B act(const M&) const noexcept {
+    return value;
+  }
+};
+
+/** @brief The Additive Sink */
+export template <typename A, typename B>
+struct AdditiveConstant : ConstantMorphism<A, B> {
+  template <typename M>
+  friend constexpr B operator+(const AdditiveConstant& s, const M& m) {
+    return s.act(m);
+  }
+};
+
+/** @brief The Multiplicative Scaler */
+export template <typename A, typename B>
+struct MultiplicativeConstant : ConstantMorphism<A, B> {
+  template <typename M>
+  friend constexpr B operator*(const MultiplicativeConstant& s, const M& m) {
+    return s.act(m);
+  }
+};
+
+/** @section Derived_Morphic_Identities */
+
+/** @section Registration_Atomic_Floor */
+// We register the facts in the registry once the types are complete.
+template <typename A, typename B, typename Op>
+  requires IsPointed<B, Op>
+struct identity_registry<MultiplicativeConstant<A, B>, Op> {
+  static constexpr MultiplicativeConstant<A, B> value{
+      dedekind::category::identity_v<B, Op>};
+};
+
+template <typename A, typename B, typename Op>
+  requires IsPointed<B, Op>
+struct identity_registry<AdditiveConstant<A, B>, Op> {
+  static constexpr AdditiveConstant<A, B> value{
+      dedekind::category::identity_v<B, Op>};
+};
+
+/** @section Transparent_Registrations */
+template <typename A, typename B>
+struct identity_registry<AdditiveConstant<A, B>, std::plus<>> {
+  static constexpr AdditiveConstant<A, B> value{identity_v<B, std::plus<B>>};
+};
+
+template <typename A, typename B>
+struct identity_registry<MultiplicativeConstant<A, B>, std::multiplies<>> {
+  static constexpr MultiplicativeConstant<A, B> value{
+      identity_v<B, std::multiplies<B>>};
+};
+
+// 3. Mark both as Associative so IsAction passes
+template <typename A, typename B, typename Op>
+inline constexpr bool is_associative_v<AdditiveConstant<A, B>, Op> = true;
+
+template <typename A, typename B, typename Op>
+inline constexpr bool is_associative_v<MultiplicativeConstant<A, B>, Op> = true;
+
+/** @brief Zero Morphism: Maps to the Additive Identity (0). */
+export template <typename A, typename B, typename Op = std::plus<B>>
+  requires IsPointed<B, Op>
+constexpr auto zero() {
+  return AdditiveConstant<A, B>{identity_v<B, Op>};
+}
+
+/** @brief Unit Morphism: Maps to the Multiplicative Identity (1). */
+export template <typename A, typename B, typename Op = std::multiplies<B>>
+  requires IsPointed<B, Op>
+constexpr auto unit() {
+  return MultiplicativeConstant<A, B>{identity_v<B, Op>};
+}
+
+// 3. Verify it is a Total Arrow (defined for all x in Domain)
+static_assert(IsTotalArrow<decltype(zero<int, int>())>,
+              "Totality Error: zero() must be total constant over its domain.");
+
+// 3. Verify it is a Total Arrow (defined for all x in Domain)
+static_assert(IsTotalArrow<decltype(unit<int, int>())>,
+              "Totality Error: unit() must be total constant over its domain.");
+
+static_assert(IsPointed<AdditiveConstant<int, int>, std::plus<int>>,
+              "Axiom Error: AdditiveConstant must be Pointed (Zero exists).");
+
+static_assert(
+    IsPointed<MultiplicativeConstant<int, int>, std::multiplies<int>>,
+    "Axiom Error: MultiplicativeConstant must be Pointed (Unit exists).");
+
+// 4. Verify functional correctness (maps to the 'Point' 0)
+static_assert(
+    zero<int, int, std::plus<int>>()(123) == 0,
+    "Logic Error: Zero mapping failed to return the identity element.");
+
 /** @concept IsMagma: T × T → T (The Base Total Species) */
 export template <typename T, typename Op>
 concept IsMagma = IsTotal<T, Op> && requires(T a, T b) {

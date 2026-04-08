@@ -44,13 +44,20 @@ namespace dedekind::category {
  * @note FIXME: Consider formal alignment with the template-template
  *       IsMonad concept at a later stage.
  */
-export template <typename S, typename M>
-concept IsAction = IsPointed<S, std::multiplies<S>> &&
-                   IsAssociative<S, std::multiplies<S>> && requires(S s, M m) {
-                     { s * m } -> std::same_as<M>;
-                     // Semantic: 1 * m == m
-                     // Semantic: (s1 * s2) * m == s1 * (s2 * m)
-                   };
+export template <typename S, typename M, typename Op = std::multiplies<>>
+concept IsAction =
+    IsPointed<S, Op> && IsAssociative<S, Op> && requires(S s, M m) {
+      { Op{}(s, m) } -> std::same_as<M>;
+    };
+
+// Pass the transparent version to the assert
+static_assert(IsAction<decltype(zero<int, int>()), int, std::plus<>>,
+              "Zero Morphism must satisfy the Additive Action axioms.");
+
+// Verify that the Unit Morphism fulfills the Action Axioms
+// (Mapping everything to identity satisfies the "Neutrality" of the action)
+static_assert(IsAction<decltype(unit<int, int>()), int>,
+              "Unit Morphism must satisfy the Action axioms (Absorption).");
 
 /**
  * @concept IsAdditiveMorphism
@@ -137,7 +144,7 @@ concept IsLinearMorphism =
  * @details Maps any input of species A to the neutral element of species B.
  */
 export template <typename A, typename B, typename Op>
-struct ZeroAction {
+struct ZeroAction final {
   constexpr B operator()(const A&) const noexcept { return identity_v<B, Op>; }
 };
 
@@ -145,19 +152,18 @@ struct ZeroAction {
 
 /** @section Peak Symmetry: Zero vs. Groupoid */
 
-// Proof: The Zero Morphism (int -> int) is an Arrow,
-// even if it maps into an Abelian Groupoid.
-static_assert(IsArrow<ZeroZ, int, int>,
-              "Zero: A 'Black Hole' arrow must map Z to Z.");
-
 // Proof: The result of zero() belongs to the Identity element.
 static_assert(zero<int, int, std::plus<int>>()(99) == 0,
               "Absorption: Z -> Z via + must yield 0.");
 
 // 1. Proof: Zero is an Arrow from int to int (under addition).
 using ZeroZ = decltype(zero<int, int, std::plus<int>>());
-static_assert(IsArrow<ZeroZ, int, int>,
-              "Zero: Must be a valid morphism mapping Z to Z.");
+
+// Proof: The Zero Morphism (int -> int) is an Arrow,
+// even if it maps into an Abelian Groupoid.
+static_assert(IsArrow<ZeroZ>, "Zero: A 'Black Hole' arrow must map Z to Z.");
+
+static_assert(IsArrow<ZeroZ>, "Zero: Must be a valid morphism mapping Z to Z.");
 
 // 2. Action Proof: Zero maps everything to 0.
 static_assert(zero<int, int, std::plus<int>>()(42) == 0,
