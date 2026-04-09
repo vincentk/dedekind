@@ -28,6 +28,7 @@ module;
 
 #include <concepts>
 #include <functional>
+#include <string>
 
 export module dedekind.category:small;
 
