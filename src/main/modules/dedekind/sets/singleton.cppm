@@ -39,7 +39,11 @@ module;
 
 export module dedekind.sets:singleton;
 
-import dedekind.ontology;
+import dedekind.category;
+
+import :mereology;
+import :boundaries;
+import :expressions;
 
 /**
  * @section Mereology: The study of parts and wholes.
@@ -48,15 +52,16 @@ import dedekind.ontology;
 namespace dedekind::sets {
 
 using namespace dedekind::category;
-using namespace dedekind::ontology;
 
 /** @brief {x}: The Atom. Extensional (Size 1). */
 export template <typename T, typename L = ClassicalLogic>
 struct SingletonSet {
   T pivot;
-  using element_type = T;
+  using Domain = T;
+  using Codomain = typename L::type;
   using logic_species = L;
   using cardinality_type = Finite;
+  using is_extensional_tag = void;
   using base_set_type = SingletonSet<T, L>;
 
   /** @section Algebraic_Axioms */
@@ -98,11 +103,42 @@ struct SingletonSet {
   // a 'bool'-returning operator<= that breaks the concept.
   auto operator<=>(const SingletonSet&) const = delete;
 
-  // FIXME: The below are clearly wrong:
-  /** @section Lattice_Laws: Absorption and Identity */
-  constexpr SingletonSet operator&(const SingletonSet&) const { return *this; }
-  constexpr SingletonSet operator|(const SingletonSet&) const { return *this; }
-  constexpr SingletonSet operator!() const { return *this; }
+  // S1 <= S2 (Is S1 a part of S2?)
+  template <typename S>
+  constexpr typename L::type operator<=(const S& other) const {
+    // If it's another singleton, compare pivots
+    if constexpr (requires { other.pivot; }) {
+      return (pivot == other.pivot) ? L::True : L::False;
+    }
+    // If it's the Universal Set, it's always true
+    if constexpr (std::is_base_of_v<Boundaries, S>) {
+      return other(*this);  // Let the boundary decide (Ω returns True)
+    }
+    return L::False;
+  }
+
+  /** @section Mereological_Lattice_Audit */
+
+  /** @section Unified_Lattice_Operations (Level 1) */
+
+  template <typename U, typename L2>
+  constexpr auto operator|(const SingletonSet<U, L2>& other) const {
+    // Return a structural Join: {x | x == pivot || x == other.pivot}
+    return var<Ω<T, L>> % Ω<T, L>{} |
+           [s1 = *this, s2 = other](const T& x) { return s1(x) || s2(x); };
+  }
+
+  template <typename U, typename L2>
+  constexpr auto operator&(const SingletonSet<U, L2>& other) const {
+    // Return a structural Meet: {x | x == pivot && x == other.pivot}
+    return var<Ω<T, L>> % Ω<T, L>{} |
+           [s1 = *this, s2 = other](const T& x) { return s1(x) && s2(x); };
+  }
+
+  // Complement: !{a}
+  // In a strict sense, this is the relative complement (Universe \ {a}).
+  // For the sake of the lattice, we return the Universal boundary.
+  constexpr auto operator!() const { return Ω<T, L>{}; }
 };
 
 static_assert(IsPointedSet<SingletonSet<int>, int> &&

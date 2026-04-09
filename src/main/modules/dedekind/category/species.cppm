@@ -33,6 +33,7 @@
 
 module;
 
+#include <algorithm>
 #include <concepts>
 #include <functional>
 
@@ -41,71 +42,36 @@ export module dedekind.category:species;
 namespace dedekind::category {
 
 /**
+ * @tparam T The type (Species) or the Function Object (Arrow).
+ * @tparam Args Optional Domain for inference.
+ */
+export template <typename T, typename... Args>
+struct SpeciesTraits;
+
+/** @section Primary_Registration_for_Atoms */
+// We register the "Species" themselves so they satisfy IsSpecies
+template <typename T>
+  requires std::integral<T> || std::floating_point<T> || std::same_as<T, bool>
+struct SpeciesTraits<T> {
+  using Domain = T;
+  using machine_type = T;
+};
+
+/**
  * @concept IsSpecies
- * @brief Ensures a type has been formally reified with algebraic traits.
+ * @brief Formal verification that a type has been registered in the Atlas.
  */
 export template <typename T>
-concept IsSpecies = requires {
-  typename T::machine_type;  // Maps back to the Stroustrupian primitive
-};
+concept IsSpecies = requires { typename SpeciesTraits<T>::Domain; };
 
-/**
- * @section The_Skeletal_Morphism
- * @brief The formal structure of an Arrow f: A -> B.
- */
-export template <typename A, typename B, typename Func>
-struct Morphism {
-  using Domain = A;
-  using Codomain = B;
-  Func transform;
+/** @section Verification_of_the_Algebraic_Atlas */
 
-  // We provide the call operator, but NOT the composition (f ∘ g).
-  constexpr B operator()(const A& x) const { return transform(x); }
-};
-
-/**
- * @concept IsArrow
- * @brief Structural verification of a Morphism signature.
- * @details This is the 'Static Blueprint' of a transformation.
- *          It ensures the type can act as a mapping between species.
- */
-export template <typename F, typename A, typename B>
-concept IsArrow = requires(F f, A x) {
-  typename F::Domain;
-  typename F::Codomain;
-  requires std::same_as<typename F::Domain, A>;
-  requires std::same_as<typename F::Codomain, B>;
-  { f(x) } -> std::same_as<B>;
-};
-
-/**
- * @concept IsEndomorphism
- * @brief Proposition: A Morphism where Domain ≡ Codomain (f: A -> A).
- */
-export template <typename F, typename T>
-concept IsEndomorphism = IsArrow<F, T, T>;
-
-/** @section Morphism_Proof */
-static_assert(
-    IsArrow<Morphism<int, bool, std::function<bool(int)>>, int, bool>,
-    "Taxonomy Error: Morphism must satisfy the skeletal IsArrow concept.");
-
-/**
- * @concept IsMagmoid
- * @brief Represents a Magma-like structure where a binary operation is defined.
- *
- * @details In Category Theory, this corresponds to a 'Quiver' or 'Graph' with
- *          a composition rule that is closed: T × T → T. At this level, we
- *          only guarantee that two elements can be combined; we do not yet
- *          enforce associativity or identity.
- *
- * @tparam T The coordinate species (The "Objects" or "Elements").
- * @tparam Op The binary operation (The "Morphism" or "Composition Rule").
- */
-export template <typename T, typename Op>
-concept IsMagmoid = requires(T a, T b) {
-  { Op{}(a, b) } -> std::convertible_to<T>;
-};
+// 1. Verify "Atoms" (IsSpecies)
+static_assert(IsSpecies<int>, "Atlas Error: int must be a recognized Species.");
+static_assert(IsSpecies<double>,
+              "Atlas Error: double must be a recognized Species.");
+static_assert(IsSpecies<bool>,
+              "Atlas Error: bool must be a recognized Species.");
 
 /** @section The Traits (The categorical invariants) */
 
@@ -126,14 +92,6 @@ export template <typename T, typename Op>
 inline constexpr bool is_associative_v = is_associative<T, Op>::value;
 
 /**
- * @concept IsAssociative
- * @brief Formal verification that (a ∘ b) ∘ c = a ∘ (b ∘ c).
- */
-export template <typename T, typename Op>
-concept IsAssociative =
-    IsMagmoid<T, Op> && requires { requires is_associative_v<T, Op>; };
-
-/**
  * @brief Trait to mark an operation as commutative: a ∘ b = b ∘ a
  **/
 export template <typename T, typename Op>
@@ -147,14 +105,18 @@ struct is_commutative<T, Op>
 export template <typename T, typename Op>
 inline constexpr bool is_commutative_v = is_commutative<T, Op>::value;
 
-/**
- * @concept IsCommutative
- * @brief Formal verification that a ∘ b = b ∘ a.
- */
-export template <typename T, typename Op>
-concept IsCommutative =
-    IsMagmoid<T, Op> && requires { requires is_commutative_v<T, Op>; };
+/** @section The_Bitwise_Commutativity_Axiom */
+template <typename T>
+  requires std::is_integral_v<T>
+struct is_commutative<T, std::bit_or<T>> : std::true_type {};
 
+template <typename T>
+  requires std::is_integral_v<T>
+struct is_commutative<T, std::bit_and<T>> : std::true_type {};
+
+/**
+ * @brief Trait to mark an operation as idempotent: a ∘ a = a
+ **/
 export template <typename T, typename Op>
 struct is_idempotent : std::false_type {};
 
@@ -167,21 +129,165 @@ struct is_idempotent<T, Op>
 export template <typename T, typename Op>
 inline constexpr bool is_idempotent_v = is_idempotent<T, Op>::value;
 
+// 2. Min/Max is Idempotent
+
+// 1. Get the types of the range-based function objects
+using MinOp = decltype(std::ranges::min);
+using MaxOp = decltype(std::ranges::max);
+
+template <std::integral T>
+struct is_idempotent<T, MinOp> : std::true_type {};
+
+template <std::integral T>
+struct is_idempotent<T, MaxOp> : std::true_type {};
+
+// --- THE STORAGE (Facts) ---
+template <typename T, typename Op>
+struct identity_registry {};  // Empty box
+
+/** @section Lattice Identities */
+
+// Signed/Floating: The Lattice (Max) identity is the absolute floor.
+template <typename T, typename Op>
+  requires(std::signed_integral<T> || std::floating_point<T>) &&
+          (std::same_as<Op, std::ranges::greater> ||
+           std::same_as<Op, std::ranges::greater_equal>)
+struct identity_registry<T, Op> {
+  static constexpr T value = std::numeric_limits<T>::lowest();
+};
+
+// Signed/Floating: The Lattice (Min) identity is the absolute floor.
+template <typename T, typename Op>
+  requires(std::signed_integral<T> || std::floating_point<T>) &&
+          (std::same_as<Op, std::ranges::less> ||
+           std::same_as<Op, std::ranges::less_equal>)
+struct identity_registry<T, Op> {
+  static constexpr T value = std::numeric_limits<T>::max();
+};
+
+/** @section Integral_Pointed_Species */
+
+// The Modulo Group identity is 0.
+template <typename T, typename Op>
+  requires std::integral<T> &&
+           (std::same_as<Op, std::plus<T>> || std::same_as<Op, std::plus<void>>)
+struct identity_registry<T, Op> {
+  static constexpr T value = T{0};
+};
+
+// The Modulo Group identity is 0.
+template <typename T, typename Op>
+  requires std::integral<T> && (std::same_as<Op, std::multiplies<T>> ||
+                                std::same_as<Op, std::multiplies<void>>)
+struct identity_registry<T, Op> {
+  static constexpr T value = T{1};
+};
+
+/** @section Bitwise_Pointed_Species */
+
+// 1. Bitwise OR/XOR Identity is 0
+template <typename T>
+  requires std::integral<T>
+struct identity_registry<T, std::bit_or<T>> {
+  static constexpr T value = T(0);
+};
+
+template <typename T>
+  requires std::integral<T>
+struct identity_registry<T, std::bit_xor<T>> {
+  static constexpr T value = T(0);
+};
+
+// 2. Bitwise AND Identity is All-Ones (~0)
+template <typename T>
+  requires std::integral<T>
+struct identity_registry<T, std::bit_and<T>> {
+  static constexpr T value = ~T(0);
+};
+
+// 3. Floats under Addition (Zero)
+template <typename T>
+  requires std::floating_point<T>
+struct identity_registry<T, std::plus<T>> {
+  static constexpr T value = T(0.0);
+};
+
+// 3. Floats under Multiplication (One)
+template <typename T>
+  requires std::floating_point<T>
+struct identity_registry<T, std::multiplies<T>> {
+  static constexpr T value = T(1.0);
+};
+
+// 1. Boolean 'Addition' (OR) has identity FALSE
+// a ∨ false = a
+template <typename Op>
+  requires std::same_as<Op, std::logical_or<bool>> ||
+           std::same_as<Op, std::logical_or<void>>
+struct identity_registry<bool, Op> {
+  static constexpr bool value = false;
+};
+
+// 2. Boolean 'Multiplication' (AND) has identity TRUE
+// a ∧ true = a
+template <typename Op>
+  requires std::same_as<Op, std::logical_and<bool>> ||
+           std::same_as<Op, std::logical_and<void>>
+struct identity_registry<bool, Op> {
+  static constexpr bool value = true;
+};
+
+// 3. Boolean 'XOR' (Ring Addition) has identity FALSE
+// a ⊕ false = a
+template <typename Op>
+  requires std::same_as<Op, std::bit_xor<bool>> ||
+           std::same_as<Op, std::bit_xor<void>>
+struct identity_registry<bool, Op> {
+  static constexpr bool value = false;
+};
+
+// --- THE LIBRARIAN (Discovery Logic) ---
+template <typename T, typename Op, typename = void>
+struct identity_trait : identity_registry<T, Op> {};
+
+// Special "Discovery" track for types that define their own identity internally
+template <typename T, typename Op>
+struct identity_trait<T, Op,
+                      std::void_t<decltype(T::template identity_v<Op>)>> {
+  static constexpr T value = T::template identity_v<Op>;
+};
+
+// --- THE SERVICE DESK (Public API) ---
+export template <typename T, typename Op>
+  requires requires { identity_trait<T, Op>::value; }
+inline constexpr T identity_v = identity_trait<T, Op>::value;
+
 /**
- * @concept IsIdempotent
- * @brief Formal verification that x ∘ x = x.
+ * @concept IsPointed
+ * Replaces the missing 'HasIdentity' for Level 0.1
  */
 export template <typename T, typename Op>
-concept IsIdempotent =
-    IsMagmoid<T, Op> && requires { requires is_idempotent_v<T, Op>; };
+concept IsPointed = requires {
+  { identity_v<T, Op> } -> std::convertible_to<T>;
+};
 
-/** @brief Primary trait: Identity does not exist by default. */
-export template <typename T, typename Op>
-struct identity_trait {};  // Empty by default
+static_assert(IsPointed<bool, std::logical_or<bool>>,
+              "Pointed: Booleans must have an additive identity (false).");
 
-/** @brief Helper to access the value if it exists. */
-export template <typename T, typename Op>
-inline constexpr T identity_v = identity_trait<T, Op>::value;
+static_assert(IsPointed<bool, std::logical_and<bool>>,
+              "Pointed: Booleans must have a multiplicative identity (true).");
+
+static_assert(IsPointed<int, std::plus<int>>,
+              "Pointed: Integers must have an additive identity (0).");
+
+static_assert(IsPointed<int, std::multiplies<int>>,
+              "Pointed: Integers must have a multiplicative identity (1).");
+
+static_assert(IsPointed<double, std::plus<double>>,
+              "Pointed: Doubles must have an additive identity (0).");
+
+static_assert(IsPointed<double, std::multiplies<double>>,
+              "Pointed: Doubles must have a multiplicative identity (1).");
 
 /**
  * @brief The Characteristic of the Species.
@@ -195,67 +301,235 @@ inline constexpr size_t characteristic_v =
 template <>
 inline constexpr size_t characteristic_v<unsigned char> = 256;
 
-// --- Booleans: An Abelian Monoid (Lattice) ---
-template <>
-inline constexpr bool is_associative_v<bool, std::logical_or<bool>> = true;
-template <>
-inline constexpr bool is_commutative_v<bool, std::logical_or<bool>> = true;
-template <>
-struct identity_trait<bool, std::logical_or<bool>> {
-  static constexpr bool value = false;  // ⊥ (Null/False)
+// --- Booleans: A commutative Abelian Monoid (Lattice) ---
+template <typename Op>
+  requires std::same_as<Op, std::logical_or<bool>> ||
+               std::same_as<Op, std::logical_or<void>>
+inline constexpr bool is_commutative_v<bool, Op> = true;
+
+template <typename Op>
+  requires std::same_as<Op, std::logical_and<bool>> ||
+               std::same_as<Op, std::logical_and<void>>
+inline constexpr bool is_commutative_v<bool, Op> = true;
+
+// Dijkstra would appreciate the exhaustiveness here:
+// Whether using std::logical_and<bool> or the transparent std::logical_and<>,
+// the operation on the species 'bool' is strictly associative.
+template <typename Op>
+  requires std::same_as<Op, std::logical_and<bool>> ||
+               std::same_as<Op, std::logical_and<void>>
+inline constexpr bool is_associative_v<bool, Op> = true;
+
+template <typename Op>
+  requires std::same_as<Op, std::logical_or<bool>> ||
+               std::same_as<Op, std::logical_or<void>>
+inline constexpr bool is_associative_v<bool, Op> = true;
+
+/**
+ * @brief Trait to mark a relation as reflexive: a ~ a = True
+ **/
+export template <typename T, typename Rel>
+struct is_reflexive : std::false_type {};
+
+// Discovery: Look for a member variable 'is_reflexive_v'
+template <typename T, typename Rel>
+  requires requires { T::template is_reflexive_v<Rel>; }
+struct is_reflexive<T, Rel>
+    : std::bool_constant<T::template is_reflexive_v<Rel>> {};
+
+// The Bridge (The "v" helper)
+export template <typename T, typename Rel>
+inline constexpr bool is_reflexive_v = is_reflexive<T, Rel>::value;
+
+/** @section The_Reflexivity_Axiom */
+// General case: Any type T is reflexive under std::less_equal
+// if it satisfies basic totally_ordered requirements.
+template <typename T>
+  requires std::totally_ordered<T>
+struct is_reflexive<T, std::less_equal<T>> : std::true_type {};
+
+/**
+ * @concept IsReflexive
+ * @brief Formal verification of the identity relation.
+ */
+export template <typename T, typename Rel>
+concept IsReflexive = requires(T a) {
+  { Rel{}(a, a) };
+} && requires { requires is_reflexive_v<T, Rel>; };
+
+/** @section Transitivity: (a <= b && b <= c) => a <= c */
+export template <typename T, typename Rel>
+struct is_transitive : std::false_type {};
+
+template <typename T, typename Rel>
+  requires requires { T::template is_transitive_v<Rel>; }
+struct is_transitive<T, Rel>
+    : std::bool_constant<T::template is_transitive_v<Rel>> {};
+
+export template <typename T, typename Rel>
+inline constexpr bool is_transitive_v = is_transitive<T, Rel>::value;
+
+template <typename T>
+  requires std::is_integral_v<T> || std::is_same_v<T, bool>
+struct is_transitive<T, std::less_equal<T>> : std::true_type {};
+
+/**
+ * @concept IsTransitive
+ * @brief Formal verification: (a ≤ b ∧ b ≤ c) ⇒ a ≤ c.
+ */
+export template <typename T, typename Rel>
+concept IsTransitive = requires(T a, T b) {
+  { Rel{}(a, b) } -> std::convertible_to<bool>;
+} && requires { requires is_transitive_v<T, Rel>; };
+
+/** @section Antisymmetry: (a <= b && b <= a) => a == b */
+export template <typename T, typename Rel>
+struct is_antisymmetric : std::false_type {};
+
+template <typename T, typename Rel>
+  requires requires { T::template is_antisymmetric_v<Rel>; }
+struct is_antisymmetric<T, Rel>
+    : std::bool_constant<T::template is_antisymmetric_v<Rel>> {};
+
+export template <typename T, typename Rel>
+inline constexpr bool is_antisymmetric_v = is_antisymmetric<T, Rel>::value;
+
+template <typename T>
+  requires std::is_integral_v<T> || std::is_same_v<T, bool>
+struct is_antisymmetric<T, std::less_equal<T>> : std::true_type {};
+
+/**
+ * @concept IsAntisymmetric
+ * @brief Formal verification: (a ≤ b ∧ b ≤ a) ⇒ a = b.
+ */
+export template <typename T, typename Rel>
+concept IsAntisymmetric = requires(T a, T b) {
+  { Rel{}(a, b) } -> std::convertible_to<bool>;
+} && requires { requires is_antisymmetric_v<T, Rel>; };
+
+/** @section Categorical_Inverses: The 'Undo' Bricks */
+
+/** @brief In XOR, every element is its own inverse (Involutive). */
+template <std::integral 𝒯>
+inline constexpr 𝒯 inverse(𝒯 a, std::bit_xor<𝒯>) {
+  return a;
+}
+
+/** @brief In Addition, negation is the inverse (Two's Complement wrapping). */
+template <std::integral 𝒯>
+inline constexpr 𝒯 inverse(𝒯 a, std::plus<𝒯>) {
+  return static_cast<𝒯>(-static_cast<std::make_unsigned_t<𝒯>>(a));
+}
+
+/** @brief The Master Bridge: Routes the request to specific implementations. */
+export template <typename T, typename Op>
+  requires requires(T a) {
+    { inverse(a, Op{}) } -> std::same_as<T>;
+  }
+inline constexpr T inverse_v(T a) {
+  return inverse(a, Op{});
+}
+
+/** @brief The Formal Trait: Hooks the bridge into the Concept system. */
+export template <typename T, typename Op>
+struct inverse_trait {
+  static constexpr bool exists = requires(T a) {
+    { inverse(a, Op{}) } -> std::same_as<T>;
+  };
 };
 
+/**
+ * @section The_Distributive_Axiom
+ * @brief Trait to mark the structural glue between two operators.
+ * axiom: a * (b + c) = (a * b) + (a * c)
+ */
+export template <typename T, typename Mult, typename Add>
+inline constexpr bool is_distributive_v = false;
+
+/** @brief The Shorthand for the Registry. */
+export template <typename T, typename Op>
+inline constexpr bool is_invertible_v = inverse_trait<T, Op>::exists;
+
+// --- Booleans: The Perfect Symmetry ---
+
+/**
+ * @brief XOR on bool is the additive composition of the Boolean Ring.
+ * It is bit-perfect, associative, and total.
+ */
 template <>
-inline constexpr bool is_associative_v<bool, std::logical_and<bool>> = true;
+inline constexpr bool is_associative_v<bool, std::bit_xor<bool>> = true;
+
+/**
+ * @brief Every boolean is its own inverse (x ^ x = false).
+ * There is no Lipschitz boundary breach here.
+ */
 template <>
-inline constexpr bool is_commutative_v<bool, std::logical_and<bool>> = true;
+inline constexpr bool is_invertible_v<bool, std::bit_xor<bool>> = true;
+
 template <>
-struct identity_trait<bool, std::logical_and<bool>> {
-  static constexpr bool value = true;  // ⊤ (Whole/True)
+struct identity_trait<bool, std::bit_xor<bool>> {
+  using value_type = bool;
+  static constexpr bool value = false;
 };
-
-/**
- * @brief Trait to mark a relation as Reflexive: a ∘ a is always True.
- **/
-export template <typename T, typename Rel>
-inline constexpr bool is_reflexive_v = false;
-
-/**
- * @brief Trait to mark a relation as Transitive: (a ∘ b) && (b ∘ c) => (a ∘ c)
- **/
-export template <typename T, typename Rel>
-inline constexpr bool is_transitive_v = false;
-
-/**
- * @brief Trait to mark a relation as Antisymmetric: (a ∘ b) && (b ∘ a) => (a ==
- * b)
- **/
-export template <typename T, typename Rel>
-inline constexpr bool is_antisymmetric_v = false;
 
 // --- Integers: The finite ring (Z, +, *) ---
 
 /**
- * @brief Addition is associative and commutative, with identity 0.
+ * @brief Associativity is only total for unsigned types (modular arithmetic).
+ * For signed types, it is REJECTED here due to the re-ordering hazard (UB).
+ */
+template <std::unsigned_integral T>
+inline constexpr bool is_associative_v<T, std::plus<>> = true;
+template <std::unsigned_integral T>
+inline constexpr bool is_associative_v<T, std::plus<T>> = true;
+
+template <std::signed_integral T>
+inline constexpr bool is_associative_v<T, std::plus<>> = false;
+template <std::signed_integral T>
+inline constexpr bool is_associative_v<T, std::plus<T>> = false;
+
+/**
+ * @brief Commutativity remains a total property (order-independence).
  */
 template <std::integral T>
-inline constexpr bool is_associative_v<T, std::plus<T>> = true;
+inline constexpr bool is_commutative_v<T, std::plus<>> = true;
 template <std::integral T>
 inline constexpr bool is_commutative_v<T, std::plus<T>> = true;
-template <std::integral T>
-struct identity_trait<T, std::plus<T>> {
+
+template <std::unsigned_integral T>
+struct identity_trait<T, std::plus<>> {
+  using value_type = T;
   static constexpr T value = 0;
 };
 
+template <std::integral T>
+struct identity_trait<T, std::plus<T>> {
+  using value_type = T;
+  static constexpr T value = 0;
+};
+
+template <std::integral T>
+struct identity_trait<T, std::multiplies<>> {
+  using value_type = T;
+  static constexpr T value = 1;
+};
+
 /**
- * @brief Multiplication is associative and commutative, with identity 1.
+ * @brief Multiplication is ONLY associative for types with defined (modular)
+ * overflow. Signed integers fail this at Level 0 due to the UB hazard.
  */
-template <std::integral T>
+template <std::unsigned_integral T>
 inline constexpr bool is_associative_v<T, std::multiplies<T>> = true;
-template <std::integral T>
+
+template <std::unsigned_integral T>
 inline constexpr bool is_commutative_v<T, std::multiplies<T>> = true;
-template <std::integral T>
+
+template <std::signed_integral T>
+inline constexpr bool is_associative_v<T, std::multiplies<T>> = false;
+
+template <std::unsigned_integral T>
 struct identity_trait<T, std::multiplies<T>> {
+  using value_type = T;
   static constexpr T value = 1;
 };
 
@@ -281,6 +555,7 @@ inline constexpr bool is_commutative_v<T, std::bit_xor<T>> = true;
 
 template <std::integral T>
 struct identity_trait<T, std::bit_xor<T>> {
+  using value_type = T;
   static constexpr T value = 0;
 };
 
@@ -292,17 +567,26 @@ inline constexpr bool is_associative_v<T, std::bit_and<T>> = true;
 template <std::integral T>
 inline constexpr bool is_commutative_v<T, std::bit_and<T>> = true;
 
-/** @section Boolean_Bitwise_Certifications: (B, ^) and (B, &) */
+/**
+ * @brief Proof: Integral types satisfy the Total Order axioms.
+ * @details [Architectural Decision 2026-04-01]:
+ * We specifically whitelist std::integral types here because they satisfy
+ * Reflexivity (x <= x) and Antisymmetry (a <= b && b <= a => a == b)
+ * without exception.
+ *
+ * @note [Future Work]: Floating-point types (double/float) are currently
+ * excluded from this blanket proof due to IEEE 754 'NaN' violating
+ * Reflexivity. To support them, we will require a 'Safe' wrapper or a
+ * NaN-aware comparison morphism.
+ */
+template <std::integral T>
+inline constexpr bool is_reflexive_v<T, std::less_equal<>> = true;
 
-// 1. Boolean XOR (Exclusive OR)
-template <>
-inline constexpr bool is_associative_v<bool, std::bit_xor<bool>> = true;
-template <>
-inline constexpr bool is_commutative_v<bool, std::bit_xor<bool>> = true;
-template <>
-struct identity_trait<bool, std::bit_xor<bool>> {
-  static constexpr bool value = false;
-};
+template <std::integral T>
+inline constexpr bool is_transitive_v<T, std::less_equal<>> = true;
+
+template <std::integral T>
+inline constexpr bool is_antisymmetric_v<T, std::less_equal<>> = true;
 
 // 2. Boolean AND (Conjunction)
 template <>
@@ -311,96 +595,294 @@ template <>
 inline constexpr bool is_commutative_v<bool, std::bit_and<bool>> = true;
 template <>
 struct identity_trait<bool, std::bit_and<bool>> {
+  using value_type = bool;
   static constexpr bool value = true;
 };
 
-/** @section Categorical_Inverses: The 'Undo' Bricks */
+/** @section Transparent_Bridges */
+
+// 1. Bitwise OR (|)
+template <std::integral T>
+inline constexpr bool is_idempotent_v<T, std::bit_or<>> = true;
+
+template <std::integral T>
+inline constexpr bool is_commutative_v<T, std::bit_or<>> = true;
+
+template <std::integral T>
+struct identity_trait<T, std::bit_or<>> {
+  using value_type = T;
+  static constexpr T value = 0;
+};
+
+// 2. Bitwise AND (&)
+template <std::integral T>
+inline constexpr bool is_idempotent_v<T, std::bit_and<>> = true;
+
+template <std::integral T>
+inline constexpr bool is_associative_v<T, std::bit_and<>> = true;
+
+// 3. Multiplication (*)
+template <std::unsigned_integral T>
+inline constexpr bool is_associative_v<T, std::multiplies<>> = true;
+
+template <std::signed_integral T>
+inline constexpr bool is_associative_v<T, std::multiplies<>> = false;
+
+template <typename T>
+inline constexpr bool is_distributive_v<T, std::multiplies<T>, std::plus<T>> =
+    std::unsigned_integral<T>;
+
+// Certification: Bitwise AND distributes over Bitwise OR (Boolean Algebra)
+template <typename T>
+inline constexpr bool is_distributive_v<T, std::bit_and<>, std::bit_or<>> =
+    std::integral<T>;
 
 /**
- * @brief In XOR, every element is its own inverse (Involutive).
- * @details This satisfies the Group axiom `a ∘ a = e` where e is 0.
- *          In bitwise logic, this is a perfectly symmetric, non-overflowing
- *          action across the entire Species range.
+ * @section Taxonomic_Validation
+ * @brief Self-verifying the structural integrity of the reified species.
  */
-template <std::integral 𝒯>
-inline constexpr 𝒯 inverse(𝒯 a, std::bit_xor<𝒯>) {
-  return a;
-}
+static_assert(identity_v<bool, std::logical_or<bool>> == false,
+              "Taxonomy Error: Boolean OR identity must be False (⊥).");
 
-/**
- * @brief In Addition, negation is the inverse.
- * @note [Mathematical Authority]: For signed types, this assumes Two's
- * Complement arithmetic. Note that for the minimum value (e.g., INT_MIN), the
- *       inverse overflows back to itself, satisfying `a + inverse(a) = 0`
- *       via machine wrapping (Modular Arithmetic in Z/2^nZ).
- */
-template <std::integral 𝒯>
-inline constexpr 𝒯 inverse(𝒯 a, std::plus<𝒯>) {
-  // In C++20/23, signed overflow for negation is defined behavior
-  // as Two's Complement wrapping.
-  return static_cast<𝒯>(-static_cast<std::make_unsigned_t<𝒯>>(a));
-}
+static_assert(identity_v<bool, std::logical_and<bool>> == true,
+              "Taxonomy Error: Boolean AND identity must be True (⊤).");
 
-/**
- * @brief The Master Bridge: The entry point for IsGroupoid.
- * @details This bridge 'routes' the request to the specific implementation
- *          above. If no implementation exists, the concept fails (Skeletal
- * Safety).
- */
-export template <typename T, typename Op>  // Note: Op first or deduced
-  requires requires(T a) {
-    { inverse(a, Op{}) } -> std::same_as<T>;
-  }
-inline constexpr T inverse(T a) {
-  return inverse(a, Op{});
-}
+static_assert(identity_v<int, std::plus<int>> == 0,
+              "Taxonomy Error: Integer additive identity must be 0.");
 
-/** @section Magmoid Verification: The Atomic Bricks */
+static_assert(identity_v<size_t, std::multiplies<size_t>> == 1,
+              "Taxonomy Error: Unsigned multiplicative identity must be 1.");
 
-// Proof: Boolean AND is a Magmoid.
-static_assert(IsMagmoid<bool, std::logical_and<bool>>,
-              "Magmoid: bool must be closed under logical conjunction.");
+static_assert(
+    !is_associative_v<int, std::plus<int>>,
+    "Honesty Check: Signed addition is NOT associative due to UB hazards.");
 
-// Proof: Integer Addition is a Magmoid.
-static_assert(IsMagmoid<int, std::plus<int>>,
-              "Magmoid: int must be closed under addition.");
-
-// Proof: std::modulus is a Magmoid (even if it's not a Monoid).
-static_assert(IsMagmoid<int, std::modulus<int>>,
-              "Magmoid: int must be closed under remainder.");
-
-/**
- * @concept IsSemigroupoid
- * @brief A Magmoid that satisfies the Associative Law.
- *
- * @details This is a Category without a guaranteed identity. It enforces:
- *          (f ∘ g) ∘ h = f ∘ (g ∘ h). In our structuralist approach, we
- *          verify this by checking the 'is_associative_v' trait, which
- *          acts as a compile-time proof of the associative property.
- *
- * @note Many high-performance algorithms (like parallel reductions)
- *       only require this level of structure.
+/** @section Property_Ledger: Periodicity
+ *  A type is periodic if it defines a circular topology where
+ *  "stepping off the edge" results in a valid, defined wrap.
  */
 export template <typename T, typename Op>
-concept IsSemigroupoid = IsMagmoid<T, Op> && IsAssociative<T, Op>;
+struct is_periodic : std::false_type {};
 
-/** @section Semigroupoid Verification: The Grouping Law */
+export template <typename T, typename Op>
+inline constexpr bool is_periodic_v = is_periodic<T, Op>::value;
 
-// Proof: (int, +) is associative: (a + b) + c = a + (b + c).
-static_assert(IsSemigroupoid<int, std::plus<int>>,
-              "Semigroupoid: Integer addition must allow re-grouping.");
+/** @section totality  */
+export template <typename T, typename Op>
+struct is_total
+    : std::bool_constant<
+          is_periodic_v<T, Op> ||  // Path A: It wraps (Groups/Rings)
+          is_idempotent_v<T, Op>   // Path B: It's stable (Lattices/Extrema)
+          > {};
 
-// Proof: (int, -) is NOT associative: (10 - 5) - 2 != 10 - (5 - 2).
-static_assert(!IsSemigroupoid<int, std::minus<int>>,
-              "Semigroupoid: Subtraction must fail the grouping proof.");
+export template <typename T, typename Op>
+inline constexpr bool is_total_v = is_total<T, Op>::value;
 
-// 2. Proof: (int, &) is a Semigroupoid (Associative).
-static_assert(IsSemigroupoid<int, std::bit_and<int>>,
-              "Bitwise: AND is associative.");
+/**
+ * Unsigned integers are natively periodic under
+ * addition/subtraction/multiplication.
+ **/
+template <typename T>
+  requires std::unsigned_integral<T>
+struct is_periodic<T, std::plus<T>> : std::true_type {};
 
-// Proof: (int, *) is a Semigroupoid.
-static_assert(IsSemigroupoid<int, std::multiplies<int>>,
-              "Semigroupoid: Integer multiplication is associative.");
+template <typename T>
+  requires std::unsigned_integral<T>
+struct is_periodic<T, std::minus<T>> : std::true_type {};
+
+template <typename T>
+  requires std::unsigned_integral<T>
+struct is_periodic<T, std::multiplies<T>> : std::true_type {};
+
+// XOR is Periodic (Order 2), ensuring its totality
+template <std::integral T>
+struct is_periodic<T, std::bit_xor<T>> : std::true_type {};
+
+/**
+ * @section The_Modular_Species (Z/nZ)
+ * A total species representing a Finite Cyclic Group.
+ */
+export template <auto N>
+struct Modular {
+  static_assert(N > 0, "Modulus must be positive.");
+  using machine_type = decltype(N);
+  machine_type value;
+
+  // We keep the constructor explicit to maintain structuralist integrity
+  explicit constexpr Modular(machine_type v) : value(v % N) {}
+
+  // Total Addition: (a + b) mod N
+  constexpr friend Modular operator+(Modular a, Modular b) {
+    return Modular((a.value + b.value) % N);
+  }
+
+  // Total Multiplication: (a * b) mod N
+  constexpr friend Modular operator*(Modular a, Modular b) {
+    return Modular((a.value * b.value) % N);
+  }
+
+  // Equality as a Subobject Classifier
+  constexpr friend bool operator==(Modular a, Modular b) {
+    return a.value == b.value;
+  }
+};
+
+template <typename T>
+inline constexpr bool is_distributive_v<T, std::multiplies<>, std::plus<>> =
+    std::unsigned_integral<T>;
+
+template <auto N>
+inline constexpr bool
+    is_distributive_v<Modular<N>, std::multiplies<>, std::plus<>> = true;
+
+template <auto N>
+inline constexpr bool is_distributive_v<Modular<N>, std::multiplies<Modular<N>>,
+                                        std::plus<Modular<N>>> = true;
+
+/** @section Additive_Inverses */
+template <auto N>
+inline constexpr bool is_invertible_v<Modular<N>, std::plus<Modular<N>>> = true;
+
+// Also for the transparent version if your concepts use it:
+template <auto N>
+inline constexpr bool is_invertible_v<Modular<N>, std::plus<>> = true;
+
+template <auto N>
+struct is_associative<Modular<N>, std::plus<Modular<N>>> : std::true_type {};
+
+template <auto N>
+struct is_commutative<Modular<N>, std::plus<Modular<N>>> : std::true_type {};
+
+template <auto N>
+struct is_associative<Modular<N>, std::multiplies<Modular<N>>>
+    : std::true_type {};
+
+template <auto N>
+struct is_commutative<Modular<N>, std::multiplies<Modular<N>>>
+    : std::true_type {};
+
+template <auto N>
+struct is_periodic<Modular<N>, std::plus<Modular<N>>> : std::true_type {};
+
+template <auto N>
+struct is_periodic<Modular<N>, std::multiplies<Modular<N>>> : std::true_type {};
+
+template <auto N>
+struct identity_trait<Modular<N>, std::plus<Modular<N>>> {
+  using value_type = Modular<N>;
+  static constexpr Modular<N> value = Modular<N>{0};
+};
+
+template <auto N>
+struct identity_trait<Modular<N>, std::multiplies<Modular<N>>> {
+  using value_type = Modular<N>;
+  static constexpr Modular<N> value = Modular<N>{1};
+};
+
+/** @section Atlas_Registration: Modular<N> */
+export template <auto N>
+struct SpeciesTraits<Modular<N>> {
+  using Domain = Modular<N>;
+  using machine_type = decltype(N);
+
+  /** @section Algebraic_Facts */
+  template <typename Op>
+  static constexpr bool is_associative_v = true;
+
+  template <typename Op>
+  static constexpr bool is_commutative_v = true;
+
+  // Addition and Multiplication are both idempotent ONLY if N=1 (Trivial Ring)
+  template <typename Op>
+  static constexpr bool is_idempotent_v = (N == 1);
+
+  static constexpr Modular<N> identity = Modular<N>(0);
+
+  static constexpr bool is_distributive = true;
+};
+
+static_assert(
+    characteristic_v<unsigned char> == 256,
+    "Taxonomy Error: 8-bit unsigned species must have characteristic 256.");
+
+/** @section Logic_Species_Specializations */
+
+// Theorem: Truth is Idempotent. (True ∧ True = True)
+template <>
+struct is_idempotent<bool, std::logical_and<bool>> : std::true_type {};
+
+// Theorem: Presence is Idempotent. (True ∨ True = True)
+template <>
+struct is_idempotent<bool, std::logical_or<bool>> : std::true_type {};
+
+// Theorem: Bitwise Logic is Idempotent.
+template <typename T>
+  requires std::is_integral_v<T>
+struct is_idempotent<T, std::bit_and<T>> : std::true_type {};
+
+template <typename T>
+  requires std::is_integral_v<T>
+struct is_idempotent<T, std::bit_or<T>> : std::true_type {};
+
+template <typename T>
+  requires std::is_integral_v<T>
+struct is_associative<T, std::bit_or<T>> : std::true_type {};
+
+// Boolean uniqueness: (a ∨ b) ∧ (a ∨ c) = a ∨ (b ∧ c)
+template <>
+inline constexpr bool
+    is_distributive_v<bool, std::logical_or<bool>, std::logical_and<bool>> =
+        true;
+
+template <>
+inline constexpr bool
+    is_distributive_v<bool, std::logical_and<bool>, std::logical_or<bool>> =
+        true;
+
+// Finite and transfinite species are mutually exclusive.
+
+/** @brief Primary trait for Transfiniteness. */
+export template <typename T>
+struct is_transfinite : std::false_type {};  // Default: The world is Finite.
+
+/** @brief Shorthand helper. */
+export template <typename T>
+inline constexpr bool is_transfinite_v = is_transfinite<T>::value;
+
+/** @brief Primary trait: The distinguished 'Point' of a species. */
+export template <typename T>
+struct origin_trait {
+  // Empty by default.
+};
+
+/** @brief Atomic Proof: Integrals are pointed at 0. */
+template <std::integral T>
+struct origin_trait<T> {
+  static constexpr T value = 0;
+};
+
+/** @brief Atomic Proof: Floating-point types are pointed at 0. */
+template <std::floating_point T>
+struct origin_trait<T> {
+  static constexpr T value = 0.0;
+};
+
+/** @section The_Decorator_Concepts */
+
+/** @concept IsTransfinite: A species that exceeds any terminal ordinal. */
+export template <typename T>
+concept IsTransfinite =
+    is_transfinite_v<T> || requires { typename T::is_transfinite_tag; };
+
+/** @concept IsFinite: The "Pedestrian" reality of terminating sets. */
+export template <typename T>
+concept IsFinite = !IsTransfinite<T>;
+
+export template <typename T, typename Op>
+concept IsAssociative = is_associative_v<T, Op>;
+
+export template <typename T, typename Op>
+concept IsCommutative = is_commutative_v<T, Op>;
 
 /** @section Commutative Verification: The Symmetry Law */
 
@@ -426,98 +908,223 @@ static_assert(!IsCommutative<int, std::divides<int>>,
               "Commutative: Division must fail the symmetry proof.");
 
 /**
- * @section Taxonomic_Validation
- * @brief Self-verifying the structural integrity of the reified species.
+ * @concept IsDistributive
+ * @brief The "Glue" of the Ring: a * (b + c) = a*b + a*c.
  */
-static_assert(identity_v<bool, std::logical_or<bool>> == false,
-              "Taxonomy Error: Boolean OR identity must be False (⊥).");
+export template <typename T, typename Mul, typename Add>
+concept IsDistributive = requires(T a, T b, T c) {
+  // We check the semantic presence of the law (usually via a trait)
+  requires is_distributive_v<T, Mul, Add>;
+};
 
-static_assert(identity_v<bool, std::logical_and<bool>> == true,
-              "Taxonomy Error: Boolean AND identity must be True (⊤).");
+export template <typename T, typename Op>
+concept IsIdempotent = is_idempotent_v<T, Op>;
 
-static_assert(identity_v<int, std::plus<int>> == 0,
-              "Taxonomy Error: Integer additive identity must be 0.");
-
-static_assert(identity_v<size_t, std::multiplies<size_t>> == 1,
-              "Taxonomy Error: Unsigned multiplicative identity must be 1.");
-
-static_assert(is_associative_v<int, std::plus<int>>,
-              "Taxonomy Error: Integer addition must be associative.");
-
-static_assert(
-    characteristic_v<unsigned char> == 256,
-    "Taxonomy Error: 8-bit unsigned species must have characteristic 256.");
-
-/** @section Logic_Species_Specializations */
-
-// Theorem: Truth is Idempotent. (True ∧ True = True)
-template <>
-struct is_idempotent<bool, std::logical_and<bool>> : std::true_type {};
-
-// Theorem: Presence is Idempotent. (True ∨ True = True)
-template <>
-struct is_idempotent<bool, std::logical_or<bool>> : std::true_type {};
-
-// Theorem: Bitwise Logic is Idempotent.
-template <typename T>
-  requires std::is_integral_v<T>
-struct is_idempotent<T, std::bit_and<T>> : std::true_type {};
-
-template <typename T>
-  requires std::is_integral_v<T>
-struct is_idempotent<T, std::bit_or<T>> : std::true_type {};
+export template <typename T, typename Op>
+concept IsInvertible = IsPointed<T, Op> && is_invertible_v<T, Op>;
 
 /**
- * @concept IsPointed
- * @brief The Law of the Origin: A species with a distinguished structural
- * identity.
- *
- * @details
- * In the structuralist registry, a Pointed Species is a type T that designates
- * a unique "Structural Origin" (0) via a static factory. This is the
- * algebraic prerequisite for higher-level structures:
- * - Level 3: Monoids (Identity element e).
- * - Level 3: Groups (Neutral element 0).
- * - Level 4: Vector Spaces (The Zero Vector).
- *
- * @section Ontological_Role
- * While a singleton set provides a "Basepoint" for a specific body, an
- * IsPointed Species defines an "Absolute Zero" for its entire domain.
- * This allows for zero-overhead symbolic evaluation of identities
- * across the Dedekind universe.
- *
- * @tparam T The Species being verified (e.g., Integer, Matrix, Complex).
- *
- * Wikipedia: Pointed space, Origin (mathematics), Zero element
+ * @concept IsPeriodic
+ * @brief Taxonomic Decorator: Certifies that an operation is circular (wraps).
+ * This is the "Safety Certificate" for machine totality.
  */
-export template <typename T>
-concept IsPointed = requires {
-  { T::origin() } -> std::same_as<T>;
-};
+export template <typename T, typename Op>
+concept IsPeriodic = is_periodic_v<T, Op>;
 
-/** @section The_Box_Species (The Standard Model) */
-export template <typename T>
-struct Box final {
-  using machine_type = T;
-  T value;
+/**
+ * @concept IsTotal
+ * @brief The Master Safety Certificate for Level 0.
+ * A morphism is total if it is either Periodic (Circular) or Idempotent
+ * (Stable).
+ */
+export template <typename T, typename Op>
+concept IsTotal = IsPeriodic<T, Op> || IsIdempotent<T, Op>;
 
-  constexpr bool operator==(const Box& other) const = default;
-};
+/** @section Lattice_Morphisms (std::ranges) */
 
-// >>= (Bind): Chaining the Box to a Kleisli Arrow
-export template <typename T, typename Func>
-constexpr auto operator>>=(const Box<T>& b, Func&& f) {
-  // We sample the part and hand it to the factory.
-  return std::forward<Func>(f)(b.value);
-}
+// 1. Join (max) is Idempotent, Associative, and Commutative
+template <typename T>
+inline constexpr bool is_idempotent_v<T, decltype(std::ranges::max)> = true;
 
-/** @section The_Extend_Operator (<<=) */
-export template <typename T, typename Func>
-constexpr auto operator<<=(const Box<T>& b, Func&& f) {
-  using U = std::invoke_result_t<Func, Box<T>>;
-  // Co-Kleisli Extend: apply 'f' to the whole box,
-  // and re-wrap the result in a new Box.
-  return Box<U>{std::forward<Func>(f)(b)};
-}
+template <typename T>
+inline constexpr bool is_associative_v<T, decltype(std::ranges::max)> = true;
+
+template <typename T>
+inline constexpr bool is_commutative_v<T, decltype(std::ranges::max)> = true;
+
+// 2. Meet (min) is Idempotent, Associative, and Commutative
+template <typename T>
+inline constexpr bool is_idempotent_v<T, decltype(std::ranges::min)> = true;
+
+template <typename T>
+inline constexpr bool is_associative_v<T, decltype(std::ranges::min)> = true;
+
+template <typename T>
+inline constexpr bool is_commutative_v<T, decltype(std::ranges::min)> = true;
+
+/** @section Distributive_Lattice_Laws (std::ranges) */
+
+// 1. Max distributes over Min
+template <typename T>
+inline constexpr bool is_distributive_v<T, decltype(std::ranges::max),
+                                        decltype(std::ranges::min)> = true;
+
+// 2. Min distributes over Max
+template <typename T>
+inline constexpr bool is_distributive_v<T, decltype(std::ranges::min),
+                                        decltype(std::ranges::max)> = true;
+
+/**
+ * @brief The Absorber Trait (Axiom: a ∨ (a ∧ b) = a)
+ * Represents the structural tethering between two dual operations.
+ */
+template <typename T, typename Op1, typename Op2>
+inline constexpr bool is_absorptive_v = false;
+
+/** @section Lattice_Absorber_Registration */
+
+// 1. Integers: max/min (Mutual)
+template <typename T>
+inline constexpr bool
+    is_absorptive_v<T, decltype(std::ranges::max), decltype(std::ranges::min)> =
+        true;
+template <typename T>
+inline constexpr bool
+    is_absorptive_v<T, decltype(std::ranges::min), decltype(std::ranges::max)> =
+        true;
+
+// 2. Logic: OR/AND (Mutual)
+template <typename T>
+inline constexpr bool
+    is_absorptive_v<T, std::logical_or<T>, std::logical_and<T>> = true;
+template <typename T>
+inline constexpr bool
+    is_absorptive_v<T, std::logical_and<T>, std::logical_or<T>> = true;
+
+/** @section Boolean_Ring_Morphisms (XOR, AND) */
+
+// 1. XOR (std::bit_xor) is NOT idempotent (a ^ a = 0)
+template <typename T>
+inline constexpr bool is_idempotent_v<T, std::bit_xor<T>> = false;
+
+// 2. AND (std::bit_and) IS idempotent
+template <typename T>
+inline constexpr bool is_idempotent_v<T, std::bit_and<T>> = true;
+
+// 3. The Absorption Failure (Crucial for the "Not a Lattice" proof)
+template <typename T>
+inline constexpr bool is_absorptive_v<T, std::bit_xor<T>, std::bit_and<T>> =
+    false;
+
+template <typename T>
+inline constexpr bool is_absorptive_v<T, std::bit_and<T>, std::bit_xor<T>> =
+    false;
+
+/**
+ * @concept IsAbsorptive
+ * @brief Axiom: Mutual Absorption and Internal Idempotency.
+ *
+ * Verifies that Op1 and Op2 are dual partners:
+ * 1. Op1 absorbs Op2: a ∨ (a ∧ b) = a
+ * 2. Op2 absorbs Op1: a ∧ (a ∨ b) = a
+ * 3. Both are idempotent (inherent in absorption, but verified for rigor).
+ */
+export template <typename T, typename Op1, typename Op2>
+concept IsAbsorptive =
+    IsIdempotent<T, Op1> && IsIdempotent<T, Op2> &&
+    is_absorptive_v<T, Op1, Op2> && is_absorptive_v<T, Op2, Op1>;
+
+/** @section Atomic_Floor_Verification */
+
+static_assert(!is_associative_v<int, std::plus<int>>,
+              "Honesty Check: Signed addition is NOT associative due to UB.");
+
+// 1. Verify "Species" Registration (Section 2.2.1)
+static_assert(IsSpecies<int>,
+              "Taxonomy Error: int must be a registered Species.");
+static_assert(IsSpecies<bool>,
+              "Taxonomy Error: bool must be a registered Species.");
+
+// 2. Verify Algebraic Invariants (The "Feature Cube", Table 2)
+static_assert(is_idempotent_v<bool, std::logical_or<bool>>,
+              "Axiom Error: Boolean 'OR' must be idempotent.");
+
+static_assert(is_idempotent_v<bool, std::logical_and<bool>>,
+              "Axiom Error: Boolean 'AND' must be idempotent.");
+
+static_assert(is_idempotent_v<unsigned int, std::bit_and<unsigned int>>,
+              "Axiom Error: Bitwise 'AND' must be idempotent for integrals.");
+
+static_assert(is_commutative_v<int, std::bit_or<int>>,
+              "Axiom Error: Bitwise 'OR' must be commutative.");
+
+static_assert(identity_v<bool, std::logical_or<bool>> == false,
+              "Logic Error: Boolean Or-Monoid identity must be False.");
+
+static_assert(identity_v<bool, std::logical_and<bool>> == true,
+              "Logic Error: Boolean And-Monoid identity must be True.");
+
+// 5. Verify Material Constants
+static_assert(characteristic_v<unsigned char> == 256,
+              "Modulus Error: unsigned char must have characteristic 256.");
+static_assert(
+    characteristic_v<double> == 0,
+    "Field Error: Continuous species (double) must have characteristic 0.");
+
+// Unsigned is modular and safe (Associative)
+static_assert(is_associative_v<unsigned int, std::multiplies<>>,
+              "Axiom Error: Unsigned multiplication must be associative.");
+
+// Signed is rejected due to UB overflow hazard
+static_assert(
+    !is_associative_v<int, std::multiplies<>>,
+    "Honesty Check: Signed multiplication is NOT associative due to UB.");
+
+static_assert(identity_v<int, std::multiplies<>> == 1,
+              "Axiom Error: Multiplicative identity must be 1.");
+
+// Bitwise OR
+static_assert(is_idempotent_v<int, std::bit_or<>>,
+              "Axiom Error: Bitwise OR must be idempotent.");
+static_assert(is_commutative_v<int, std::bit_or<>>,
+              "Axiom Error: Bitwise OR must be commutative.");
+static_assert(identity_v<int, std::bit_or<>> == 0,
+              "Logic Error: Bitwise OR identity must be 0.");
+
+// Bitwise AND
+static_assert(is_idempotent_v<int, std::bit_and<>>,
+              "Axiom Error: Bitwise AND must be idempotent.");
+static_assert(is_associative_v<int, std::bit_and<>>,
+              "Axiom Error: Bitwise AND must be associative.");
+
+static_assert(!is_associative_v<int, std::modulus<>>,
+              "Axiom Error: Modulus is not associative.");
+static_assert(!is_commutative_v<int, std::modulus<>>,
+              "Axiom Error: Modulus is not commutative.");
+
+/** @section Distributive_Certifications */
+
+// 1. Unsigned: Multiplicative Distribution over Addition is Total.
+static_assert(is_distributive_v<unsigned int, std::multiplies<>, std::plus<>>,
+              "Axiom Error: Unsigned * must distribute over +.");
+
+// 2. Signed: Multiplicative Distribution over Addition is REJECTED.
+static_assert(!is_distributive_v<int, std::multiplies<>, std::plus<>>,
+              "Honesty Check: Signed * does NOT distribute over + due to UB.");
+
+static_assert(is_distributive_v<Modular<256>, std::multiplies<Modular<256>>,
+                                std::plus<Modular<256>>>,
+              "Axiom Error: Modular multiplication must distribute over "
+              "modular addition.");
+
+// 3. Bitwise Distributivity: AND distributes over OR (Boolean Ring properties).
+static_assert(is_distributive_v<unsigned int, std::bit_and<>, std::bit_or<>>,
+              "Axiom Error: Bitwise AND must distribute over bitwise OR.");
+
+// 4. Verification: Multiplication does NOT distribute over bitwise OR.
+// (a * (b | c) != (a * b) | (a * c) in general).
+static_assert(
+    !is_distributive_v<int, std::multiplies<>, std::bit_or<>>,
+    "Logic Error: Multiplication should not distribute over bitwise OR.");
 
 }  // namespace dedekind::category

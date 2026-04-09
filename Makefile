@@ -37,6 +37,13 @@ coverage: compile
 	@echo "Processing coverage..."
 	cmake --build $(BUILD_DIR) --target generate_coverage
 
+
+format:
+	find src -name "*.cpp" -o -name "*.cppm" | xargs $(LLVM_ROOT)/bin/clang-format -i
+
+doxygen: compile
+	cmake --build $(BUILD_DIR) --target docs
+
 # Generate build dependency graph without breaking the Ninja build
 dot: $(BUILD_DIR)/CMakeCache.txt
 	@mkdir -p $(LATEX_DIR)/figures

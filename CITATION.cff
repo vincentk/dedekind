@@ -1,9 +1,0 @@
-cff-version: 1.2.0
-message: "If you use this software, please cite it as below."
-authors:
-  - family-names: "Kräutler"
-    given-names: "Vincent"
-title: "dedekind: A Structuralist Mereology in C++23"
-version: 1.0.0
-date-released: 2026-03-30
-url: "https://github.com/vincentk/dedekind"

@@ -1,0 +1,18 @@
+#include <catch2/catch_test_macros.hpp>
+
+import dedekind.algebra;
+using namespace dedekind::algebra;
+
+TEST_CASE("Algebra: The Ring of Integers", "[algebra][ring]") {
+  SECTION("The Identity of Z") { STATIC_CHECK(IsRing<int>); }
+
+  SECTION("Axiomatic Action") {
+    int a = 6;
+    int b = 7;
+    // This will now correctly use the BUILT-IN operator*
+    CHECK(a * b == 42);
+
+    // If you want to verify our algebraic logic:
+    CHECK(std::multiplies<int>{}(a, b) == 42);
+  }
+}

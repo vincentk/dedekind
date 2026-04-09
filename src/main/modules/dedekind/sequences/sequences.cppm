@@ -1,0 +1,12 @@
+/**
+ * @file category.cppm
+ *
+ * @copyright 2026 The Dedekind Authors
+ * Licensed under the Apache License, Version 2.0.
+ */
+
+export module dedekind.sequences;
+
+export import :net;
+export import :limits;
+export import :path;

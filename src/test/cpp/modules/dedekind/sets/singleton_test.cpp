@@ -1,10 +1,8 @@
 #include <catch2/catch_test_macros.hpp>
 import dedekind.category;
-import dedekind.ontology;
 import dedekind.sets;
 
 using namespace dedekind::category;
-using namespace dedekind::ontology;
 using namespace dedekind::sets;
 
 TEST_CASE("Sets: Singleton Final Proof: The Highway",

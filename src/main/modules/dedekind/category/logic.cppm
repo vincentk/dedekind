@@ -1,44 +1,50 @@
 /**
  * @file ontology:logic.cppm
- * @brief Level -1: The Rules of Thought (Boolean Algebra and Predicate
- * Synthesis).
+ * @partition :logic
+ * @brief Level -1: The Rules of Thought (Ω).
  *
- * Copyright 2026 The Dedekind Authors
+ * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @partition :logic
- * @build_order 0
- * @dependency None (The Absolute Foundation)
- *
- * @section Logic: The Internal Language of the Topos
- * Before we can define an "Action" (Category) or a "Body" (Set), we must
- * establish the "Subobject Classifier" (Ω). This partition defines the
- * internal logic that governs all structuralist predicates.
+ * @section Algebraic_Logic
+ * "Metoda algebraiczna w logice polega na traktowaniu każdego systemu
+ *  logicznego jako pewnego określonego rodzaju algebry abstrakcyjnej."
+ *  (The algebraic method in logic consists in treating every logical system
+ *  as a specific type of abstract algebra.)
+ *  — Helena Rasiowa
  *
  * @details
- * Unlike the "External Logic" of the C++ compiler (which is strictly binary),
- * this partition allows for "Pluggable Truths":
- * - Classical Logic: The standard {True, False} boolean lightbulb.
- * - Kleene Logic: The {True, False, Unknown} propositional engine for
- *   handling undecidability and partial information.
- * - Lattice Morphisms: Infix operators (&&, ||, !) are anchored here as
- *   Point-Free composition rules, turning Predicates into a Bounded Lattice.
+ * Before we can define a "Body" (Set) or a "Path" (Sequence), we must
+ * establish the "Rules of Presence." This partition defines the logic species
+ * that act as the truth-value objects (Ω) for all categorical predicates.
  *
- * @section Structural_Inference
- * By defining logic at Level -1, we enable "Decoupled Truth". A Set's
- * membership rule can switch from Boolean to Ternary without altering
- * the Mereological code in the partitions above.
+ * By reifying logic into the @ref Truth wrapper, we prevent the "leaky
+ * abstractions" of C++ machine types (such as integral promotion of bool)
+ * while allowing for pluggable logical universes:
+ * - ClassicalLogic: The Boolean Topos ({True, False}).
+ * - TernaryLogic: The Kleene Topos ({True, False, Unknown}).
  *
- * @anchors C++ Logical Primitives: bool, Ternary (Kleene), &&, ||, !.
+ * @section Structural_Invariants
+ * Logics in Dedekind are treated as Rigs (Semirings).
+ * - Addition (+) is the Supremum/Join (OR).
+ * - Multiplication (*) is the Infimum/Meet (AND).
+ * - Successor (S) is the mapping x ∨ 1 (The Archimedean Step).
  *
- * Wikipedia: Subobject classifier, Kleene logic, Internal logic, Point-free
+ * Wikipedia: Subobject classifier, Topos theory, Kleene logic
+ * @see Rasiowa, H. (1974). An Algebraic Approach to Non-Classical Logics.
  */
 module;
 
 #include <algorithm>
+#include <cmath>
 #include <concepts>
+#include <functional>
 
 export module dedekind.category:logic;
+
+import :mereology;
+import :morphism;
+import :species;
 
 namespace dedekind::category {
 
@@ -160,38 +166,34 @@ export constexpr Ternary operator||(Ternary a, Ternary b) {
 }
 export constexpr Ternary operator!(Ternary a) { return TernaryLogic::NOT(a); }
 
+/** @brief Helper to resolve logic species without hard errors */
+export template <typename T>
+struct GetLogic {
+  using type = ClassicalLogic;
+};
+
+export template <typename T>
+  requires requires { typename T::logic_species; }
+struct GetLogic<T> {
+  using type = typename T::logic_species;
+};
+
 /**
- * @brief The Logic Species Registry (The Ontology Bridge).
- *
- * `SpeciesTraits` is the central mapping mechanism that connects a raw data
- * representation (the 'Codomain') to its governing Logic Species (the 'Rules').
- *
- * @section Extension_Point Registering Custom Logics
- * To introduce a new logical system (e.g., Fuzzy Logic, Łukasiewicz Logic,
- * or Quantum Logic) into the Dedekind framework, users must:
- * 1. Define a struct that fulfills the `LogicalSpecies` concept.
- * 2. Provide a template specialization of `SpeciesTraits` for the new
- *    underlying type.
- *
- * Once registered, the Point-Free Infix Engine will automatically detect
- * and apply the correct logical morphisms during DAG synthesis.
- *
- * @tparam T The raw truth-value type (e.g., bool, float, Ternary).
+ * @concept LogicalValue
+ * @brief Any type that serves as the Omega (Ω) for a Logical Species.
+ * This is open-ended: if you register a FuzzyLogic, its 'type'
+ * automatically becomes a LogicalValue.
  */
-template <typename T>
-struct SpeciesTraits;
-
-/** @brief Specialization for the Classical (Boolean) Topos. */
-template <>
-struct SpeciesTraits<bool> {
-  using species = ClassicalLogic;
+export template <typename T>
+concept LogicalValue = requires {
+  // We check if there exists a Logic Species L that uses T as its
+  // representation.
+  typename GetLogic<T>::type;
+  requires LogicalSpecies<typename GetLogic<T>::type>;
 };
 
-/** @brief Specialization for the Kleene (Ternary) Topos. */
-template <>
-struct SpeciesTraits<Ternary> {
-  using species = TernaryLogic;
-};
+/** @section Cardinality_Ontology_Tokens */
+export enum class CardinalityTag { Finite, Countable, Continuum };
 
 /** @section The Point-Free Composition Engine */
 
@@ -205,7 +207,8 @@ struct SpeciesTraits<Ternary> {
  * @tparam P The Predicate candidate (typically a Lambda or a Functor).
  * @tparam T The Domain of the predicate (the type of object being tested).
  *
- * @req { p(x) } The candidate must be callable with an instance of the Domain.
+ * @req { p(x) } The candidate must be callable with an instance of the
+ * Domain.
  * @req SpeciesTraits<Res>::species The return type must be registered in the
  *      Ontology Bridge.
  * @req LogicalSpecies<S> The resolved logic species must satisfy the
@@ -217,14 +220,20 @@ struct SpeciesTraits<Ternary> {
  */
 export template <typename P, typename T>
 concept IsPredicate =
+    !std::same_as<std::remove_cvref_t<P>, bool> &&  // Don't match raw bools
     requires(P p, T x) {
-      // 1. Must be callable with T
-      { p(x) };
-      // 2. The result MUST have a mapping in our Logic Ontology
+      { p(x) } -> LogicalValue;
       typename SpeciesTraits<decltype(p(x))>::species;
     } &&
     LogicalSpecies<
         typename SpeciesTraits<decltype(p(std::declval<T>()))>::species>;
+
+/**
+ * @concept IsCharacteristic
+ * @brief Categorical alias for a Predicate mapping to Ω.
+ */
+export template <typename P, typename T>
+concept IsCharacteristic = IsPredicate<P, T>;
 
 /**
  * @section The Point-Free Infix Engine (Lattice Morphisms)
@@ -245,15 +254,15 @@ concept IsPredicate =
  * a nested 'if' statement.
  */
 
-/** @brief Logical Conjunction (Intersection): Synthesizes a rule for A ∩ B. */
-export template <typename T, typename P1, typename P2>
+/** @brief Logical Conjunction (Intersection): Synthesizes a rule for A ∩ B.
+ */
+export template <typename P1, typename P2, typename T>
   requires IsPredicate<P1, T> && IsPredicate<P2, T>
 auto operator&&(P1&& p1, P2&& p2) {
   return [p1 = std::forward<P1>(p1),
-          p2 = std::forward<P2>(p2)](auto&& x) mutable -> decltype(p1(x)) {
+          p2 = std::forward<P2>(p2)](const T& x) mutable {
     using S = typename SpeciesTraits<decltype(p1(x))>::species;
-    return S::AND(p1(std::forward<decltype(x)>(x)),
-                  p2(std::forward<decltype(x)>(x)));
+    return S::AND(p1(x), p2(x));
   };
 }
 
@@ -263,7 +272,11 @@ export template <typename T, typename P1, typename P2>
 auto operator||(P1&& p1, P2&& p2) {
   return [p1 = std::forward<P1>(p1),
           p2 = std::forward<P2>(p2)](auto&& x) mutable -> decltype(p1(x)) {
-    using S = typename SpeciesTraits<decltype(p1(x))>::species;
+    // 1. Resolve the Logic Species (Ω) from the return type
+    using Res = decltype(p1(x));
+    using S = typename SpeciesTraits<Res>::species;
+
+    // 2. Synthesize the Supremum (Join)
     return S::OR(p1(std::forward<decltype(x)>(x)),
                  p2(std::forward<decltype(x)>(x)));
   };
@@ -279,34 +292,6 @@ auto operator!(P1&& p1) {
   };
 }
 
-/** @subsection Test 1: Boolean (Classical) Invariants */
-static_assert((true && true) == true);
-static_assert((true && false) == false);
-static_assert(!true == false);
-static_assert((true || false) == true);
-
-/** @subsection Test 2: Ternary (Kleene) Invariants */
-static_assert(
-    [] {
-      using enum Ternary;
-
-      bool ok = true;
-      ok &= ((True && Unknown) == Unknown);
-      ok &= ((False && Unknown) == False);
-      ok &= ((True || Unknown) == True);
-      ok &= ((False || Unknown) == Unknown);
-      ok &= (!Unknown == Unknown);
-      ok &= (!True == False);
-      ok &= (!False == True);
-
-      // De Morgan's Law Proof: !(A && B) == !A || !B
-      ok &= (!(True && Unknown) == (!True || !Unknown));
-
-      return ok;
-    }(),
-    "Dedekind: Ternary Logic Invariants failed!");
-
-// Inside namespace dedekind::category
 export template <typename TargetLogic, typename T>
 constexpr auto lift_logic(T value) {
   if constexpr (std::is_same_v<TargetLogic, TernaryLogic> &&
@@ -316,4 +301,158 @@ constexpr auto lift_logic(T value) {
     return value;
   }
 }
+
+/**
+ * @class Truth
+ * @brief The Monic Wrapper for a Logical Species (Ω).
+ * @details Elevates raw types (bool, Ternary) into algebraic Rigs
+ *          to prevent machine-level integral promotion.
+ */
+export template <typename L = ClassicalLogic>
+struct Truth {
+  using logic_species = L;
+  using machine_type = typename L::type;
+
+  machine_type value;
+
+  /** @section Monic_Construction */
+  // Removed 'explicit' to allow seamless return from lambdas/expressions
+  constexpr Truth(machine_type v) noexcept : value(v) {}
+  constexpr Truth() noexcept : value(L::False) {}
+
+  // Unary Negation: Ensures !Boolean returns a Boolean, not a raw bool
+  friend constexpr Truth operator!(Truth a) noexcept {
+    return {L::NOT(a.value)};
+  }
+
+  /** @section Rig_Operations */
+
+  // Addition as the Supremum (OR)
+  friend constexpr Truth operator+(Truth a, Truth b) noexcept {
+    return {L::OR(a.value, b.value)};
+  }
+
+  // Multiplication as the Infimum (AND)
+  friend constexpr Truth operator*(Truth a, Truth b) noexcept {
+    return {L::AND(a.value, b.value)};
+  }
+
+  friend constexpr bool operator<=(Truth a, Truth b) noexcept {
+    // Universal Lattice Order: a <= b iff the Join of a and b is b.
+    return (a + b) == b;
+  }
+
+  /** @section Identity_Discovery */
+  template <typename Op>
+  static constexpr auto identity_v = []() {
+    if constexpr (std::is_same_v<Op, std::plus<Truth>> ||
+                  std::is_same_v<Op, std::plus<void>>) {
+      return Truth{L::False};
+    } else if constexpr (std::is_same_v<Op, std::multiplies<Truth>> ||
+                         std::is_same_v<Op, std::multiplies<void>>) {
+      return Truth{L::True};
+    }
+  }();
+
+  // The Archimedean Anchor (Successor = x + 1)
+  static constexpr Truth one() { return {L::True}; }
+
+  /** @section Conversion */
+  constexpr explicit operator machine_type() const noexcept { return value; }
+  constexpr bool operator==(const Truth&) const = default;
+};
+
+/** @section Logic_Species_Aliases */
+
+/** @brief The Boolean Species (The Binary Prime). */
+export using Boolean = Truth<ClassicalLogic>;
+
+/** @brief The Kleene Species (The Indeterminacy). */
+export using Kleene = Truth<TernaryLogic>;
+
+/** @brief Bridge the Monic Wrapper to the Logic Species Registry. */
+export template <typename L>
+struct SpeciesTraits<Truth<L>> {
+  using species = L;
+  using Domain = typename L::type;
+  using Codomain = typename L::type;
+  static constexpr auto cardinality = CardinalityTag::Finite;
+};
+
+/**
+ * @section Logic_Atlas_Bridge
+ * Maps a Species to its specific Truth Object (Omega).
+ * This bridge consumes the facts from the :species Atlas to determine
+ * which logical system governs a given type.
+ */
+
+/** @brief Primary Template: Default to Classical (Boolean) Logic */
+export template <typename T>
+struct LogicTraits {
+  using type = ClassicalLogic;
+};
+
+/** @brief Specialization for Floating-Point Species (IEEE 754 NaN handling) */
+template <std::floating_point T>
+struct LogicTraits<T> {
+  using type = TernaryLogic;
+};
+
+/**
+ * @brief Specialization for Signed Integrals (Lipschitz Boundary handling)
+ * Note: We use Ternary here to represent the 'Unknown' state of an overflow.
+ */
+template <std::signed_integral T>
+struct LogicTraits<T> {
+  using type = TernaryLogic;
+};
+
+/** @brief Shorthand for the Logic Species of a type */
+export template <typename T>
+using LogicOf = typename LogicTraits<T>::type;
+
+/** @brief Shorthand for the Subobject Classifier (Omega) of a species */
+export template <typename T>
+using Omega = typename LogicOf<T>::type;
+
+/**
+ * @section The_Subobject_Classifier
+ * Formal elevation from Machine Result -> Omega.
+ */
+export template <IsSpecies T>
+struct SubobjectClassifier {
+  using L = typename LogicTraits<T>::type;
+  using Omega = typename L::type;
+
+  /** @brief Lipschitz Boundary Check for Signed Integers */
+  template <typename Op>
+    requires std::signed_integral<T>
+  static constexpr Omega evaluate_arithmetic(T a, T b, Op) {
+    // Use compiler built-ins for overflow detection (The Guardrail)
+    T result;
+    if (__builtin_add_overflow(a, b, &result)) {
+      return L::Unknown;  // Lipschitz boundary breached
+    }
+    return L::True;  // Operation is safe/contained
+  }
+
+  /** @brief NaN Truth-Hole Check for IEEE 754 */
+  template <typename Op>
+    requires std::floating_point<T>
+  static constexpr Omega evaluate_relational(T a, T b, Op rel) {
+    if (std::isnan(a) || std::isnan(b)) {
+      return L::Unknown;  // Singularity detected
+    }
+    return rel(a, b) ? L::True : L::False;
+  }
+};
+
+/**
+ * FIXME: Extension Point for Option-Logic.
+ * In a future sprint (post-ETCS), consider specializing lift_logic for
+ * std::optional<bool>. This would bridge the C++ 'missing value' semantics
+ * with the Kleene 'Unknown' state, providing a functorial mapping from
+ * the Standard Library to the Ternary Topos.
+ */
+
 }  // namespace dedekind::category

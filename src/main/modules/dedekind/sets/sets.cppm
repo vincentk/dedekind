@@ -1,25 +1,25 @@
 /**
  * @file sets.cppm
- * @brief The Dedekind Universe: Realized Collections and Set Morphisms.
+ * @brief The Dedekind Set Model: Concrete Collections and Set Morphisms.
  *
  * Copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @section Set_Theory: The Realization of Mereological Bodies
- * This module provides the physical implementations for the abstract laws
- * defined in dedekind.ontology. While the Ontology defines "What is a Set,"
- * this module provides the "How to Build a Set."
+ * @section Set_Theory: Implementation of Mereological Relations
+ * This module provides concrete implementations for the abstract laws
+ * defined in dedekind.ontology. While the ontology defines the requirements
+ * for a set, this module provides the mechanisms to construct them.
  *
  * @details
- * In the Dedekind architecture, Set Theory serves as the bridge between
- * Pure Logic (Level -1) and Concrete Magnitude (Level 2). By implementing
- * the Monadic and Comonadic extensions for specific bodies, we enable:
+ * In the Dedekind architecture, set theory bridges logic (Level -1)
+ * and magnitude (Level 2). By implementing monadic and comonadic
+ * extensions for specific structures, we enable:
  * - Extensional Sets: Materialized collections (Singleton, Finite Sets).
- * - Intentional Sets: Rule-based definitions (Comprehensions).
+ * - Intensional Sets: Rule-based definitions (Comprehensions).
  * - Set Morphisms: Automatic lifting of functions (fmap) and filters (bind).
  *
  * @section The_Comprehension_Syntax
- * This module enables the "Aggressive" set-builder notation:
+ * This module enables symbolic set-builder notation:
  * { f | x % S | P } -> The mapping of elements in S satisfying P by f.
  *
  * @see dedekind.sets:singleton (The Atomic Point)
@@ -30,5 +30,6 @@
 export module dedekind.sets;
 
 export import :boundaries;
-export import :singleton;
 export import :expressions;
+export import :mereology;
+export import :singleton;

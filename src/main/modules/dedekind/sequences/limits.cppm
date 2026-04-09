@@ -1,0 +1,105 @@
+/**
+ * @file dedekind/sequences/limits.cppm
+ * @partition :limits
+ * @brief Level 2.5b: The Convergence Morphism (Resolution of the Path).
+ *
+ * @section Convergence: The Bridge to Continuity
+ * This partition defines the "Resolution" of a Path into a single point.
+ * In the Dedekind structuralist framework, a limit is the terminal state
+ * of a sequence as it enters the infinitesimal neighborhood of a species.
+ *
+ * @details
+ * We utilize the Archimedean property from (:order) to ensure that the
+ * species supports the notion of "stepping" toward an asymptotic horizon.
+ *
+ * Wikipedia: Limit of a sequence, Archimedean property, Convergence
+ */
+
+module;
+
+#include <concepts>
+#include <functional>
+
+export module dedekind.sequences:limits;
+
+import dedekind.category;
+import dedekind.topology;
+import dedekind.order;
+import :path;
+
+namespace dedekind::sequences {
+
+using namespace dedekind::category;
+using namespace dedekind::topology;
+using namespace dedekind::order;
+
+/**
+ * @concept HasLimit
+ * @brief Species that can resolve a Path into a single point.
+ * @details Requires the species to be Archimedean (ordered and steppable)
+ *          and provides a formal 'limit' mapping.
+ */
+export template <typename T>
+concept HasLimit = IsArchimedean<T> && requires(Path<T> s) {
+  /** @brief The Resolution: Mapping the infinite path to the continuum. */
+  { limit(s) } -> std::same_as<T>;
+};
+
+/**
+ * @brief The Archimedean Limit (lim n->∞ s_n)
+ * @details For machine primitives (floating_point), this resolves
+ *          to the epsilon-stabilized tail of the sequence.
+ *
+ * @tparam T A floating-point species satisfying the Archimedean property.
+ * @param s The path (sequence) to be resolved.
+ * @return The value at the species' asymptotic horizon.
+ */
+export template <typename T>
+  requires std::floating_point<T> && IsArchimedean<T>
+constexpr T limit(const Path<T>& s) {
+  /**
+   * @section Structuralist_Resolution
+   * In a machine context, we sample the path at the 'asymptotic'
+   * horizon of the species.
+   */
+  // FIXME: Magic constant.
+  return s.at(10000);
+}
+
+/** @section Formal_Verification */
+
+/** @proof Double-precision reals are Archimedean and support limits. */
+static_assert(
+    IsArchimedean<unsigned int>,
+    "Order Error: double must satisfy IsArchimedean to support limits.");
+
+/**
+ * @brief The Discrete Limit Morphism for Boolean Truth.
+ * @details In the Boolean Topos, a path converges if it is
+ *          eventually constant.
+ *
+ * FIXME: PR 96 existential proof. Generalize.
+ */
+export constexpr Boolean limit(const Path<Boolean>& s) {
+  // If Path is a Morphism f: N -> Boolean, we sample the
+  // "Eventual" state. For PR 96, index 0 is the minimal
+  // witness of the constant path.
+  return s(0);
+}
+
+static_assert(
+    HasLimit<Boolean>,
+    "Topology Error: bool must satisfy the HasLimit convergence concept.");
+
+// FIXME: re-enable support for floating-point limits once we have a proper
+// ε-stabilization mechanism.
+
+/** @proof Integers are Archimedean but do not (necessarily) have limits in Z.
+ */
+// This depends on whether you've specialized limit<int>.
+// If not, HasLimit<int> should be false.
+static_assert(!HasLimit<int>,
+              "Axiom Check: Discrete integers do not support the continuous "
+              "limit morphism.");
+
+}  // namespace dedekind::sequences

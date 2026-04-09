@@ -37,4 +37,5 @@ docs/paper/*.bcf
 docs/paper/*.blg
 docs/paper/*.log
 docs/paper/*.out
+docs/paper/*.toc
 docs/paper/*.run.xml

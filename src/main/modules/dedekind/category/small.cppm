@@ -1,31 +1,139 @@
 /**
- * @file small.cppm
+ * @file dedekind/category/small.cppm
+ * @module dedekind.category:small
  * @brief Level 0b: Small Categories (Enumerated Morphism Sets).
  *
- * @partition :small
- * @section Small: Categories with Set-Sized Morphisms
- * A Small Category is a category where the collection of morphisms is a Set.
- * This partition enables the definition of finite categories, diagrams,
- * and discrete structures that can be explicitly navigated.
+ * @copyright 2026 The Dedekind Authors
+ * Licensed under the Apache License, Version 2.0.
  *
- * Wikipedia: Small category, Discrete category
+ * @quote
+ * "Il linguaggio delle categorie è affettuosamente noto come 'nonsense
+ * astratto'. Questo termine è essenzialmente accurato: le categorie si
+ * riferiscono al 'nonsense' nel senso che riguardano esclusivamente la
+ * 'struttura', e non il 'significato' di ciò che rappresentano." (The language
+ * of categories is affectionately known as "abstract nonsense." This term is
+ * essentially accurate: categories refer to "nonsense" in the sense that they
+ * are all about the "structure," and not about the "meaning," of what they
+ * represent.) — Paolo Aluffi, Algebra: Chapter 0
+ *
+ * @section Small: Categories with Set-Sized Morphisms
+ * A Small Category is defined by the property that its collections of objects
+ * and morphisms are Sets (not Classes). In the context of C++23, "Smallness"
+ * is a pragmatic guarantee: any category reifiable within the type system is
+ * inherently Small, as its inhabitants are bounded by the translation unit's
+ * finite universe of types.
  */
+
+module;
+
+#include <concepts>
+#include <functional>
+#include <string>
+
 export module dedekind.category:small;
 
-import :logic;
-import :functorial;
+import :morphism;
+import :posetal;
+import :species;
 
 namespace dedekind::category {
 
-/**
- * @section Small_Category_Concepts
- * Concepts for categories with enumerable Objects (Obj) and
- * Hom-sets (Hom<A, B>).
- */
+/** @section Canonical_Species_Infrastructure */
+
+/** @brief Primary template for canonical operations. */
+template <typename T>
+struct canonical_op;
+
+/** @brief Specialization for Unsigned: Modulo Addition. */
+template <std::unsigned_integral T>
+struct canonical_op<T> {
+  using type = std::plus<void>;
+};
+
+/** @brief Specialization for Signed: Lattice Max. */
+template <std::signed_integral T>
+struct canonical_op<T> {
+  using type = std::ranges::greater;
+};
+
+/** @brief Specialization for Floating: Lattice Max. */
+template <std::floating_point T>
+struct canonical_op<T> {
+  using type = std::ranges::greater;
+};
+
+/** @brief Specialization for Bools: Boolean Logic. */
+template <>
+struct canonical_op<bool> {
+  using type = std::logical_and<void>;
+};
+
+/** @brief Specialization for Strings: Concatenation. */
+template <>
+struct canonical_op<std::string> {
+  using type = std::plus<void>;
+};
+
+/** @brief Canonical operation shorthand. */
+template <typename T>
+using category_op_t = typename canonical_op<T>::type;
+
+/** @section Grounding_Truths */
+
+// Since is_associative_v is already defined in :species, we must
+// specialize the underlying is_associative trait it likely wraps,
+// or provide the specialized bool value directly if permitted.
+
+template <typename T, typename Op>
+  requires(std::integral<T> || std::floating_point<T>) &&
+              std::same_as<Op, std::ranges::greater>
+inline constexpr bool is_associative_v<T, Op> = true;
 
 /**
- * @section Discrete_Categories
- * Special cases where the only morphisms are identities.
+ * @partition :small
+ * @concept IsCategory
  */
+export template <typename Cat>
+concept IsCategory = requires {
+  typename Cat::Arrow;
+
+  // 1. The Type: Capitalized to avoid shadowing the function
+  typename Cat::Id;
+  requires IsArrow<typename Cat::Id>;
+  requires std::convertible_to<typename Cat::Id, typename Cat::Arrow>;
+
+  // 2. The Factory: Keeps the name id_c
+  requires requires(typename Cat::Arrow::Domain x) {
+    { Cat::id_c(x) } -> std::same_as<typename Cat::Id>;
+  };
+
+  // 4. Composition Contract
+  // The "Fish" must be closed under the Category's Arrow type.
+  requires requires(typename Cat::Arrow f, typename Cat::Arrow g) {
+    { f >> g } -> std::same_as<typename Cat::Arrow>;
+  };
+};
+
+/** @section Identity_Short_Circuits */
+
+// Law: id_A >> g = g
+export template <typename T, IsArrow G>
+  requires std::same_as<T, typename G::Domain>
+constexpr auto operator>>(Identity<T>, G&& g) {
+  return std::forward<G>(g);
+}
+
+// Law: f >> id_B = f
+export template <IsArrow F, typename T>
+  requires std::same_as<typename F::Codomain, T>
+constexpr auto operator>>(F&& f, Identity<T>) {
+  return std::forward<F>(f);
+}
+
+// Law: id_T >> id_T = id_T
+export template <typename T>
+constexpr auto operator>>(Identity<T> i, Identity<T>) {
+  return i;
+}
 
 }  // namespace dedekind::category

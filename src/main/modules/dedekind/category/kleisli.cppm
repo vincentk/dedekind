@@ -28,7 +28,6 @@
  * Kleisli or Co-Kleisli structure allows the automatic derivation of functorial
  * mapping via the Highway Bridge.
  */
-
 module;
 
 #include <concepts>
@@ -36,108 +35,102 @@ module;
 
 export module dedekind.category:kleisli;
 
-import :species;
+import :monad;
+import :small;
+import :morphism;
 
 namespace dedekind::category {
 
-/** @section The_Universal_Unit (η) */
-export template <template <typename...> typename F, typename T,
-                 typename... Context>
-struct η;  // Primary template for all kinds of contexts
+/** @section The_Box_Action_Engine */
 
-/** @section The_Kleisli_Triple_for_Box */
+// Bind: Box<T> >>= (T -> Box<U>) -> Box<U>
+export template <typename T, typename Func>
+constexpr auto operator>>=(const Box<T>& b, Func&& f) {
+  return std::forward<Func>(f)(b.value);
+}
+
+// Extend: Box<T> <<= (Box<T> -> U) -> Box<U>
+export template <typename T, typename Func>
+constexpr auto operator<<=(const Box<T>& b, Func&& f) {
+  using U = std::invoke_result_t<Func, Box<T>>;
+  return Box<U>{std::forward<Func>(f)(b)};
+}
+
+/** @section The_Kleisli_Witnesses */
+
 // η (Unit): Lifting a value into the Box
+export template <template <typename...> typename F, typename T>
+struct η;
+
 export template <typename T>
 struct η<Box, T> final {
-  constexpr auto operator()(T x) const { return Box<T>{x}; }
+  constexpr auto operator()(T x) const { return Box<T>{std::move(x)}; }
 };
 
-/** @section The_Universal_Counit (ε) */
-export template <template <typename...> typename F, typename T,
-                 typename... Context>
+// ε (Counit): Sampling a value from the Box
+export template <template <typename...> typename F, typename T>
 struct ε;
 
-/** @section Box_Specialization_for_ε */
 export template <typename T>
 struct ε<Box, T> final {
-  // For a Box, extraction is simply accessing the value.
   constexpr T operator()(const Box<T>& b) const noexcept { return b.value; }
 };
 
-/**
- * @section The_Kleisli_Extension_System
- * @brief Formal detection of the Monadic "Lift and Chain" action.
- *
- * @details
- * A species F satisfies this system if it provides:
- * 1. η (Unit): A way to lift a raw species into the context.
- * 2. >>= (Bind): A way to chain a context to a Kleisli Arrow (T -> F<U>).
- */
+/** @section Extension_Concepts */
+
 export template <template <typename...> typename F, typename T, typename U>
 concept IsKleisliExtension = requires(T x, F<T> box, std::function<F<U>(T)> f) {
-  { η<F, T>{}(x) } -> std::same_as<F<T>>;  // The Lift (η)
-  { box >>= f } -> std::same_as<F<U>>;     // The Chain (Bind)
+  { η<F, T>{}(x) } -> std::same_as<F<T>>;
+  { box >>= f } -> std::same_as<F<U>>;
 };
 
-static_assert(
-    IsKleisliExtension<Box, int, int>,
-    "Skeletal Failure: Box does not satisfy the Kleisli Extension System.");
-
-/**
- * @section The_Kleisli_Monad_Proof
- * @brief Elevates a Kleisli Extension to a formal Monad.
- *
- * @details
- * A species is a Kleisli Monad if it possesses the 'Action' (Extension)
- * and satisfies the 'Categorical Identity' (The Arrow Mapping).
- */
-export template <template <typename...> typename F, typename T, typename U>
-concept IsKleisli = IsKleisliExtension<F, T, U> &&
-                    requires(T x, F<T> box, std::function<F<U>(T)> f) {
-                      // We add the formal Categorical requirements here.
-                      // E.g., The result must be a stable F<U>.
-                      { box >>= f } -> std::same_as<F<U>>;
-                    };
-
-/** @section CoKleisli_Extension_System (The Pull) */
 export template <template <typename...> typename F, typename T, typename U>
 concept IsCoKleisliExtension = requires(F<T> box, std::function<U(F<T>)> f) {
-  { ε<F, T>{}(box) } -> std::same_as<T>;  // The Extract
-  { box <<= f } -> std::same_as<F<U>>;    // The Extend
+  { ε<F, T>{}(box) } -> std::same_as<T>;
+  { box <<= f } -> std::same_as<F<U>>;
 };
 
-/**
- * @section The_CoKleisli_Comonad_Proof
- * @brief Elevates a Co-Kleisli Extension to a formal Comonad.
- */
 export template <template <typename...> typename F, typename T, typename U>
-concept IsCoKleisli = IsCoKleisliExtension<F, T, U> &&
-                      requires(F<T> box, std::function<U(F<T>)> f) {
-                        { box <<= f } -> std::same_as<F<U>>;
-                      };
-
-static_assert(IsCoKleisliExtension<Box, int, int>,
-              "Box does not satisfy the Co-Kleisli Extension System.");
-
-/**
- * @brief Concept for Frobenius Structures (The Unified Highway).
- *
- * @section The_Frobenius_Isomorphism
- * A species is Frobenius if it provides both a Kleisli (Monadic) and
- * Co-Kleisli (Comonadic) extension system. In this state, the 'Push'
- * and 'Pull' highways are functionally equivalent for the derivation
- * of fmap, ensuring structural symmetry.
- *
- * @note Dedekind Requirement:
- * While a Frobenius monad in pure category theory requires specific
- * distributive laws, our ontology uses this concept to signify that
- * a species can be navigated from both directions (into and out of context).
- */
-template <template <typename...> typename F, typename T, typename U>
 concept IsFrobenius =
     IsKleisliExtension<F, T, U> && IsCoKleisliExtension<F, T, U>;
 
-static_assert(IsFrobenius<Box, int, int>,
-              "Box does not satisfy the Co-Kleisli Extension System.");
+/** @section Static_Axioms */
+
+static_assert(IsKleisliExtension<Box, int, int>);
+static_assert(IsCoKleisliExtension<Box, int, int>);
+static_assert(IsFrobenius<Box, int, int>);
+
+/** @section The_Unified_Highway_Bridge */
+
+export template <template <typename...> typename F, typename Arrow>
+  requires IsArrow<Arrow>
+constexpr auto fmap(Arrow f) {
+  using T = typename std::remove_cvref_t<Arrow>::Domain;
+  using U = typename std::remove_cvref_t<Arrow>::Codomain;
+
+  if constexpr (IsKleisliExtension<F, T, U>) {
+    // Capture 'f' by value [f] to lift it into the monadic context
+    return arrow([f](const F<T>& m) {
+      return m >>= [f](const T& x) { return η<F, U>{}(f(x)); };
+    });
+  } else if constexpr (IsCoKleisliExtension<F, T, U>) {
+    // Capture 'f' by value [f] to lift it into the comonadic context
+    return arrow([f](const F<T>& w) {
+      return w <<= [f](const F<T>& ctx) { return f(ε<F, T>{}(ctx)); };
+    });
+  }
+}
+
+/** @section Pipeline_Infrastructure */
+
+export template <template <typename...> typename F>
+struct ε_tag {};
+
+// Duplicate (δ) defined as Self-Extend (w <<= id)
+export template <typename T, template <typename...> typename F>
+  requires IsCoKleisliExtension<F, T, T>
+constexpr auto operator<<(const F<T>& box, ε_tag<F>) {
+  return box <<= [](const F<T>& w) { return w; };
+}
 
 }  // namespace dedekind::category

@@ -13,7 +13,7 @@
 export module dedekind.category:cartesian;
 
 import :logic;
-import :functorial;
+import :discrete;
 
 namespace dedekind::category {
 
