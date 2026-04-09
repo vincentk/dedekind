@@ -36,29 +36,25 @@ export template <typename T, typename η_t, typename μ_t>
 concept IsMonad =
     IsEndofunctor<T> &&
     // η: Id_C ⟹ T (Unit)
-    IsNaturalTransformation<η_t, identity_functor<typename T::SourceCategory>,
-                            T> &&
+    IsNaturalTransformation<η_t, identity_functor<typename T::Σ_cat>, T> &&
     // μ: T² ⟹ T (Multiplication/Join)
     IsNaturalTransformation<μ_t, composite_functor<T, T>, T> &&
 
-    requires(η_t η, μ_t μ, typename T::SourceCategory::Arrow::Domain c) {
+    requires(η_t η, μ_t μ, typename T::Σ_cat::Arrow::Domain c) {
       // 1. Associativity Law: μ ∘ T(μ) == μ ∘ μ(T)
       {
         T{}.fmap(μ(c)) >> μ(c)
       } -> std::same_as<
-          decltype(μ(T{}.fmap(T{}.fmap(typename T::SourceCategory::id_c(c)))
-                         .vertex) >>
+          decltype(μ(T{}.fmap(T{}.fmap(typename T::Σ_cat::id_c(c))).vertex) >>
                    μ(c))>;
 
       // 2. Left Unit Law: μ ∘ T(η) == id_T
-      {
-        T{}.fmap(η(c)) >> μ(c)
-      } -> std::same_as<typename T::TargetCategory::Id>;
+      { T{}.fmap(η(c)) >> μ(c) } -> std::same_as<typename T::Τ_cat::Id>;
 
       // 3. Right Unit Law: μ ∘ η_T == id_T
       {
-        η(T{}.fmap(T::SourceCategory::id_c(c)).vertex) >> μ(c)
-      } -> std::same_as<typename T::TargetCategory::Id>;
+        η(T{}.fmap(T::Σ_cat::id_c(c)).vertex) >> μ(c)
+      } -> std::same_as<typename T::Τ_cat::Id>;
     };
 
 /**
@@ -83,28 +79,23 @@ export template <typename W, typename ε_t, typename δ_t>
 concept IsComonad =
     IsEndofunctor<W> &&
     // ε: W ⟹ Id_C (Counit / Extract)
-    IsNaturalTransformation<ε_t, W,
-                            identity_functor<typename W::SourceCategory>> &&
+    IsNaturalTransformation<ε_t, W, identity_functor<typename W::Σ_cat>> &&
     // δ: W ⟹ W² (Comultiplication / Duplicate)
     IsNaturalTransformation<δ_t, W, composite_functor<W, W>> &&
 
-    requires(ε_t ε, δ_t δ, typename W::SourceCategory::Arrow::Domain w_obj) {
+    requires(ε_t ε, δ_t δ, typename W::Σ_cat::Arrow::Domain w_obj) {
       // 1. Coassociativity Law: W(δ) ∘ δ == δ_W ∘ δ
       {
         δ(w_obj) >> W{}.fmap(δ(w_obj))
       } -> std::same_as<decltype(δ(w_obj) >> δ(δ(w_obj).vertex))>;
 
       // 2. Left Counit Law: W(ε) ∘ δ == id_W
-      {
-        δ(w_obj) >> W{}.fmap(ε(w_obj))
-      } -> std::same_as<typename W::SourceCategory::Id>;
+      { δ(w_obj) >> W{}.fmap(ε(w_obj)) } -> std::same_as<typename W::Σ_cat::Id>;
 
       // 3. Right Counit Law: ε_W ∘ δ == id_W
       // We move across the duplication, then extract using the component at the
       // result.
-      {
-        δ(w_obj) >> ε(δ(w_obj).vertex)
-      } -> std::same_as<typename W::SourceCategory::Id>;
+      { δ(w_obj) >> ε(δ(w_obj).vertex) } -> std::same_as<typename W::Σ_cat::Id>;
     };
 
 /** @section Generic_Monadic_Pipeline */

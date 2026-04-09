@@ -71,17 +71,17 @@ export template <typename Alpha, typename F, typename G>
 concept IsTwoMorphism =
     IsFunctor<F> && IsFunctor<G> &&
     // Symmetry check: Both functors must connect the same Categories
-    std::same_as<typename F::SourceCategory, typename G::SourceCategory> &&
-    std::same_as<typename F::TargetCategory, typename G::TargetCategory> &&
-    requires(Alpha alpha, typename F::SourceCategory::Arrow::Domain c) {
+    std::same_as<typename F::Σ_cat, typename G::Σ_cat> &&
+    std::same_as<typename F::Τ_cat, typename G::Τ_cat> &&
+    requires(Alpha alpha, typename F::Σ_cat::Arrow::Domain c) {
       // Component at c connects F(c) to G(c) in the Target Hub
       // Note: We use identity lifting to find the objects F(c) and G(c)
       requires std::same_as<typename decltype(alpha(c))::Domain,
                             typename decltype(F{}.fmap(
-                                F::SourceCategory::id_c(c)))::Domain>;
+                                F::Σ_cat::id_c(c)))::Domain>;
       requires std::same_as<typename decltype(alpha(c))::Codomain,
                             typename decltype(G{}.fmap(
-                                G::SourceCategory::id_c(c)))::Domain>;
+                                G::Σ_cat::id_c(c)))::Domain>;
     };
 
 /**
@@ -91,8 +91,7 @@ concept IsTwoMorphism =
 export template <typename Alpha, typename F, typename G>
 concept IsNaturalTransformation =
     IsTwoMorphism<Alpha, F, G> &&
-    requires(Alpha alpha, F f_map, G g_map,
-             typename F::SourceCategory::Arrow f_spoke) {
+    requires(Alpha alpha, F f_map, G g_map, typename F::Σ_cat::Arrow f_spoke) {
       // The Slide: F(f) >> alpha(Y) == alpha(X) >> G(f)
       // Path A: Lift f through F and then move across alpha at Codomain(f)
       {
@@ -111,11 +110,11 @@ struct identity_transformation {
 
   F f_map;
 
-  auto operator()(const typename F::SourceCategory::Arrow::Domain& c) const {
+  auto operator()(const typename F::Σ_cat::Arrow::Domain& c) const {
     // We find the object F(c) by lifting the identity of c
-    auto id_Fc = f_map.fmap(F::SourceCategory::id_c(c));
+    auto id_Fc = f_map.fmap(F::Σ_cat::id_c(c));
     // The Domain of F(id_c) is the object F(c)
-    return F::TargetCategory::id_c(id_Fc.vertex);
+    return F::Τ_cat::id_c(id_Fc.vertex);
   }
 };
 
@@ -131,7 +130,7 @@ struct vertical_composition {
   Alpha alpha;
   Beta beta;
 
-  auto operator()(const typename F::SourceCategory::Arrow::Domain& c) const {
+  auto operator()(const typename F::Σ_cat::Arrow::Domain& c) const {
     return alpha(c) >> beta(c);
   }
 };
@@ -149,11 +148,11 @@ struct horizontal_composition {
   Beta beta;
   G g_functor;  // Required for mapping the components of alpha through G
 
-  auto operator()(const typename F::SourceCategory::Arrow::Domain& c) const {
+  auto operator()(const typename F::Σ_cat::Arrow::Domain& c) const {
     // (beta * alpha)_c = G'(alpha_c) >> beta_{F(c)}
     // or equivalent: beta_{F'(c)} >> G(alpha_c)
     return G_prime{}.fmap(alpha(c)) >>
-           beta(F_prime{}.fmap(F::SourceCategory::id_c(c)).vertex);
+           beta(F_prime{}.fmap(F::Σ_cat::id_c(c)).vertex);
   }
 };
 

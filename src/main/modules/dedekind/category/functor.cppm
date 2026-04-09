@@ -57,21 +57,17 @@ namespace dedekind::category {
  */
 export template <typename F>
 concept IsFunctor = IsArrow<F> && requires {
-  typename F::SourceCategory;
-  typename F::TargetCategory;
-  requires IsCategory<typename F::SourceCategory>;
-  requires IsCategory<typename F::TargetCategory>;
-} && requires(F f, typename F::SourceCategory::Arrow f_c) {
+  typename F::Σ_cat;
+  typename F::Τ_cat;
+  requires IsCategory<typename F::Σ_cat>;
+  requires IsCategory<typename F::Τ_cat>;
+} && requires(F f, typename F::Σ_cat::Arrow f_c) {
   // The Functor must provide an fmap that preserves composition
-  {
-    f.fmap(f_c >> f_c)
-  } -> std::convertible_to<typename F::TargetCategory::Arrow>;
+  { f.fmap(f_c >> f_c) } -> std::convertible_to<typename F::Τ_cat::Arrow>;
 
   // Identity Preservation check using fmap
-  requires requires(typename F::SourceCategory::Arrow::Domain c) {
-    {
-      f.fmap(F::SourceCategory::id_c(c))
-    } -> std::same_as<typename F::TargetCategory::Id>;
+  requires requires(typename F::Σ_cat::Arrow::Domain c) {
+    { f.fmap(F::Σ_cat::id_c(c)) } -> std::same_as<typename F::Τ_cat::Id>;
   };
 };
 
@@ -82,10 +78,10 @@ concept IsFunctor = IsArrow<F> && requires {
  * of the second, maintaining the structural spine.
  */
 export template <IsFunctor F, IsFunctor G>
-  requires std::same_as<typename F::TargetCategory, typename G::SourceCategory>
+  requires std::same_as<typename F::Τ_cat, typename G::Σ_cat>
 struct composite_functor {
-  using SourceCategory = typename F::SourceCategory;
-  using TargetCategory = typename G::TargetCategory;
+  using Σ_cat = typename F::Σ_cat;
+  using Τ_cat = typename G::Τ_cat;
 
   using Domain = typename F::Domain;
   using Codomain = typename G::Codomain;
@@ -116,8 +112,8 @@ struct composite_functor {
  */
 export template <typename Context>
 concept IsEndofunctor =
-    IsFunctor<Context> && std::same_as<typename Context::SourceCategory,
-                                       typename Context::TargetCategory>;
+    IsFunctor<Context> &&
+    std::same_as<typename Context::Σ_cat, typename Context::Τ_cat>;
 
 /**
  * @section The_Identity_Functor
@@ -128,12 +124,12 @@ concept IsEndofunctor =
 export template <IsCategory CatC>
 struct identity_functor {
   // Hub Handles
-  using SourceCategory = CatC;
-  using TargetCategory = CatC;
+  using Σ_cat = CatC;
+  using Τ_cat = CatC;
 
   // Arrow Mapping Labels
-  using Domain = typename CatC::Arrow;
-  using Codomain = typename CatC::Arrow;
+  using Domain = typename Σ_cat::Arrow;
+  using Codomain = typename Τ_cat::Arrow;
 
   /**
    * @section Functorial_Action
@@ -154,13 +150,13 @@ struct identity_functor {
 
 /** @brief Categorical Composition for Functors (F: C->D, G: D->E) */
 export template <IsFunctor F, IsFunctor G>
-  requires std::same_as<typename F::TargetCategory, typename G::SourceCategory>
+  requires std::same_as<typename F::Τ_cat, typename G::Σ_cat>
 constexpr auto operator>>(F f, G g) {
   // We wrap the base arrow composition but re-attach the Hub handles
   struct Composite
       : decltype(static_cast<const F&>(f) >> static_cast<const G&>(g)) {
-    using SourceCategory = typename F::SourceCategory;
-    using TargetCategory = typename G::TargetCategory;
+    using Σ_cat = typename F::Σ_cat;
+    using Τ_cat = typename G::Τ_cat;
 
     // Inherit the constructor/call operator from the arrow composition
     using Base = decltype(static_cast<const F&>(f) >> static_cast<const G&>(g));
@@ -179,9 +175,8 @@ export template <typename F, typename Arrow>
   requires IsFunctor<std::remove_cvref_t<F>> &&
            IsArrow<std::remove_cvref_t<Arrow>> &&  // Concepts must be
                                                    // reference-safe
-           std::same_as<
-               typename std::remove_cvref_t<Arrow>::Domain,
-               typename std::remove_cvref_t<F>::SourceCategory::Arrow::Domain>
+           std::same_as<typename std::remove_cvref_t<Arrow>::Domain,
+                        typename std::remove_cvref_t<F>::Σ_cat::Arrow::Domain>
 constexpr auto operator>>(F&& functor, Arrow&& f) {
   return functor.fmap(std::forward<Arrow>(f));
 }
@@ -211,16 +206,16 @@ struct Box final {
 export template <typename T>
 struct box_functor {
   // 1. Hub Handles (Must be these exact names for IsFunctor)
-  using SourceCategory = DiscreteCategory<T>;
-  using TargetCategory = DiscreteCategory<Box<T>>;
+  using Σ_cat = DiscreteCategory<T>;
+  using Τ_cat = DiscreteCategory<Box<T>>;
 
   // 2. Spoke Handles (Must be these exact names for IsArrow)
-  using Domain = typename SourceCategory::Arrow;
-  using Codomain = typename TargetCategory::Arrow;
+  using Domain = typename Σ_cat::Arrow;
+  using Codomain = typename Τ_cat::Arrow;
 
   // 3. Identity Case: Strictly returns the Target Hub's Id type
   constexpr auto fmap(const Identity<T>&) const noexcept {
-    return TargetCategory::id_c(Box<T>{});
+    return Τ_cat::id_c(Box<T>{});
   }
 
   // 4. General Case: Lifts any Morphism
