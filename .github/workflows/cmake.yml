@@ -62,7 +62,7 @@ jobs:
       if: github.ref == 'refs/heads/main' && github.event_name == 'push'
       uses: actions/upload-pages-artifact@v4
       with:
-        path: 'build/docs/html' # Adjust to match your CMake DOXYGEN_OUTPUT_DIR
+        path: 'build/html' # Adjust to match your CMake DOXYGEN_OUTPUT_DIR
 
     - name: Deploy to GitHub Pages
       if: github.ref == 'refs/heads/main' && github.event_name == 'push'
