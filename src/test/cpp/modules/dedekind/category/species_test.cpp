@@ -28,7 +28,7 @@ void audit_feature_cube() {
   STATIC_CHECK(is_antisymmetric_v<T, Rel>);
 
   // --- Plane 3: Identity & Mapping (The "Boundary" constants) ---
-  if constexpr (has_identity_v<T, Op>) {
+  if constexpr (IsPointed<T, Op>) {
     STATIC_CHECK(requires { identity_v<T, Op>; });
     // We strip the cv-qualifiers (like 'const') from the constexpr storage
     // so that it matches the raw species type T.
@@ -50,7 +50,7 @@ TEST_CASE("Category: The Species Feature Cube", "[category][species][cube]") {
   }
 
   SECTION("The Integral Species (int)") {
-    using T = int;
+    using T = unsigned int;
     // Arithmetic Plane
     audit_feature_cube<T, std::plus<T>>();
     // Lattice Plane (The bitwise join/meet we just fixed)
