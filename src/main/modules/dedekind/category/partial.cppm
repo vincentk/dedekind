@@ -28,6 +28,71 @@ import :numeric;
 
 namespace dedekind::category {
 
+/** @section Forward_Declarations_of_Traits */
+template <typename T, typename Op>
+inline constexpr bool is_kleene_associative_v = false;
+
+template <typename T, typename Op>
+inline constexpr T partial_identity_v = T{};
+
+// Specialization for the Classical/Binary result
+template <typename T>
+struct GetLogic<std::optional<T>> {
+  using type = ClassicalLogic;
+};
+
+/**
+ * @section The_Rescue_Pod
+ * @brief The Kleisli Context for "Consistently Broken" Species.
+ */
+export template <typename T>
+struct Partial {
+  using value_type = T;
+  using logic_species = TernaryLogic;  // Add this for the bridge
+
+  T value;
+  Ternary status;  // Use 'status' consistently
+
+  constexpr const T& operator*() const noexcept { return value; }
+  constexpr T& operator*() noexcept { return value; }
+
+  constexpr bool operator==(const Partial& other) const {
+    return (status == Ternary::True && other.status == Ternary::True)
+               ? (value == other.value)
+               : (status == other.status);
+  }
+};
+
+/** @brief A Logic-Aware Result container for Ternary outcomes. */
+template <typename T>
+struct TernaryResult {
+  using value_type = T;
+  using logic_species = TernaryLogic;  // Required for GetLogic
+  Ternary status;
+  T value;
+
+  constexpr const T& operator*() const noexcept { return value; }
+  constexpr T& operator*() noexcept { return value; }
+};
+
+// 1. Classical
+template <typename T>
+constexpr bool presence_of(const std::optional<T>& opt) {
+  return opt.has_value();
+}
+
+// 2. Ternary (Partial)
+template <typename T>
+constexpr Ternary presence_of(const Partial<T>& p) {
+  return p.status;
+}
+
+// 3. Ternary (Result)
+template <typename T>
+constexpr Ternary presence_of(const TernaryResult<T>& tr) {
+  return tr.status;
+}
+
 /**
  * @concept IsPotential
  * @brief Structural isomorphism for "Maybe-like" species.
@@ -35,44 +100,25 @@ namespace dedekind::category {
  * Any type that provides a value and a way to check if that
  * value is 'legitimate' (Total) satisfies this concept.
  */
-export template <typename R>
+export template <typename R, typename L = typename GetLogic<R>::type>
 concept IsPotential = requires(R r) {
   typename R::value_type;
-  { *r } -> std::convertible_to<typename R::value_type&>;
-  { presence_of(r) } -> LogicalValue;  // Open-ended bridge
+  { *r } -> std::convertible_to<const typename R::value_type&>;
+  { presence_of(r) } -> std::convertible_to<typename L::type>;
 };
 
-// 1. Align std::optional (Classical/Binary)
-template <typename T>
-constexpr bool presence_of(const std::optional<T>& opt) {
-  return opt.has_value();
-}
-
-// 2. Align Partial (Ternary/Ω)
-template <typename T>
-constexpr Ternary presence_of(const Partial<T>& p) {
-  return p.status;
-}
-
-/** @brief A Logic-Aware Result container for Ternary outcomes. */
-template <typename T>
-struct TernaryResult {
-  using value_type = T;
-  Ternary status;
-  T value;
-
-  constexpr Ternary presence() const noexcept { return status; }
-  constexpr const T& operator*() const noexcept { return value; }
-};
+static_assert(IsPotential<std::optional<int>>,
+              "std::optional must fulfill IsPotential");
+static_assert(IsPotential<Partial<int>>, "Partial<T> must fulfill IsPotential");
+static_assert(IsPotential<TernaryResult<int>>,
+              "TernaryResult<T> must fulfill IsPotential");
 
 /**
  * @concept IsMagmoid: (T × T) ⇸ T
  */
 export template <typename T, typename Op>
 concept IsMagmoid = requires(T a, T b) {
-  // Resolve the logic species (Ternary for int, Classical for others)
-  typename GetLogic<T>::type;
-  { Op{}(std::make_pair(a, b)) } -> IsPotential<T, typename GetLogic<T>::type>;
+  { Op{}(std::make_pair(a, b)) } -> IsPotential;
 };
 
 /**
@@ -110,6 +156,12 @@ struct SafeAddTransform {
   using logic_species = ClassicalLogic;
 };
 
+template <typename T>
+inline constexpr bool is_kleene_associative_v<T, SafeAddTransform<T>> = true;
+
+template <typename T>
+inline constexpr T partial_identity_v<T, SafeAddTransform<T>> = T(0);
+
 /** @brief Division with truncation-awareness (Ternary Logic). */
 template <std::integral T>
 struct HonestDivTransform {
@@ -141,47 +193,5 @@ static_assert(IsPartialMonoid<int, SafeAddTransform<int>>);
 
 // 3. Division fails Semigroup maturation (Not associative).
 static_assert(!IsPartialSemigroup<int, HonestDivTransform<int>>);
-
-/**
- * @section The_Rescue_Pod
- * @brief The Kleisli Context for "Consistently Broken" Species.
- */
-export template <typename T>
-struct Partial {
-  using value_type = T;
-  T value;
-  Ternary presence;  // Our Ω from :logic
-
-  // Equality: Only true if values match AND both are present.
-  constexpr bool operator==(const Partial& other) const {
-    return (presence == Ternary::True && other.presence == Ternary::True)
-               ? (value == other.value)
-               : (presence == other.presence);
-  }
-};
-
-/** @section Kleisli_Triple: η and >>= */
-
-// η (Unit): Lifting a value into the Partial context.
-export template <typename T>
-struct η_impl<Partial, T> {
-  constexpr Partial<T> operator()(T x) const { return {x, Ternary::True}; }
-};
-
-// >>= (Bind): The monadic gatekeeper for Kleisli composition.
-export template <typename T, typename F>
-constexpr auto operator>>=(const Partial<T>& m, F f) {
-  using U_partial = std::invoke_result_t<F, T>;
-  using U = typename U_partial::value_type;
-
-  // The "Honest Propagation" logic:
-  // If the input is already indeterminate, the output must be as well.
-  if (m.presence != Ternary::True) {
-    return U_partial{U{}, m.presence};
-  }
-
-  // Otherwise, execute the morphism (which may return Unknown itself).
-  return f(m.value);
-}
 
 }  // namespace dedekind::category

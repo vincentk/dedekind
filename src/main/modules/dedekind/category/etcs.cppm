@@ -39,14 +39,4 @@ import :logic;
 import :species;
 import :partial;
 
-namespace dedekind::category {
-
-/**
- * @concept IsCharacteristic
- * @brief The Morphic identity of a Set-like species (ETCS Compliance).
- * @details S : Domain → Ω.
- */
-export template <typename S, typename Ω = ClassicalLogic>
-concept IsCharacteristic = IsArrow<S>;
-
-}  // namespace dedekind::category
+namespace dedekind::category {}  // namespace dedekind::category
