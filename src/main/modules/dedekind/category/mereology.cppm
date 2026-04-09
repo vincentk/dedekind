@@ -22,7 +22,6 @@ export module dedekind.category:mereology;
 
 import :species;
 import :morphism;
-import :discrete;
 
 namespace dedekind::category {
 

@@ -13,10 +13,9 @@
  * constant mapping.
  *
  * @quote
- * 「道生一，一生二，二生三，三生萬物。」
- * (The Tao produced One; One produced Two; Two produced Three;
- *  Three produced All things.)
- * — 老子 (Laozi), 道德經
+ *「三十輻，共一轂，當其無，有車之用。」
+ * (Thirty spokes meet at a single hub; it is the empty space (the relation)
+ * that makes the wheel useful.) — 老子 (Laozi)
  *
  * @section The_Discrete_Duality
  * While Level 0 (:morphism) provides the syntax of the Arrow, Level 0.25
@@ -41,33 +40,10 @@ module;
 export module dedekind.category:discrete;
 
 import :morphism;
+import :small;
 import :species;
 
 namespace dedekind::category {
-
-/** @brief The Terminal Object (1): The Discrete Point. */
-export struct One final {
-  constexpr bool operator==(const One&) const noexcept { return true; }
-};
-
-/** @section Terminal_Identity */
-template <typename Op>
-struct identity_registry<One, Op> {
-  static constexpr One value{};
-};
-
-// 2. One is Associative (Trivial mapping)
-template <typename Op>
-inline constexpr bool is_associative_v<One, Op> = true;
-
-// 3. One is Commutative (Optional, but useful for Lattices)
-template <typename Op>
-inline constexpr bool is_commutative_v<One, Op> = true;
-
-/** @brief The Initial Object (0): The Empty Discrete Space. */
-export struct Zero final {
-  Zero() = delete;
-};
 
 /**
  * @brief The Constant Morphism f: A -> B.
@@ -117,4 +93,52 @@ static_assert(IsPointed<decltype(unit<int, int>()), std::multiplies<int>>);
 static_assert(
     zero<int, int, std::plus<int>>()(123) == 0,
     "Logic Error: Zero mapping failed to return the identity element.");
+
+/**
+ * @section Discrete_Categories
+ * A Discrete Category is a Small Category where the only morphisms are
+ * identities.
+ */
+export template <typename Cat>
+concept IsDiscreteCategory =
+    IsCategory<Cat> && std::same_as<typename Cat::Arrow, typename Cat::Id>;
+
+/**
+ * @brief DiscreteCategory realization using the Identity Morphism.
+ * Lifts a species T into a category where every arrow is the Identity<T>.
+ */
+export template <typename T>
+struct DiscreteCategory {
+  using Arrow = Identity<T>;
+
+  // Type alias uses Capitalized name
+  using Id = Identity<T>;
+
+  // Factory function uses lower_case name
+  static constexpr Id id_c(const T&) noexcept { return category::id<T>(); }
+};
+
+// 1. Define the Subject: A discrete category over a primitive 'int'
+using IntCat = DiscreteCategory<int>;
+
+// 2. Test: Does it satisfy the general Category contract?
+// This verifies: Arrow exists, id exists, and factory works.
+static_assert(
+    IsCategory<IntCat>,
+    "Verification Failed: DiscreteCategory<int> must satisfy IsCategory.");
+
+// 3. Test: Does it satisfy the Discrete-specific property?
+// This verifies: Arrow type is identical to the Identity type.
+static_assert(
+    IsDiscreteCategory<IntCat>,
+    "Verification Failed: DiscreteCategory<int> must be IsDiscreteCategory.");
+
+// 4. Test: Operational check of the identity factory
+// Verifies the factory's static callability and return type.
+static_assert(
+    requires(int x) {
+      // The return type of the function id_c must match the type alias Id
+      { IntCat::id_c(x) } -> std::same_as<typename IntCat::Id>;
+    }, "Verification Failed: id_c factory does not return the correct type.");
+
 }  // namespace dedekind::category

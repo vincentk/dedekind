@@ -51,10 +51,10 @@ namespace dedekind::category {
  */
 export template <typename F>
 concept IsArrow = requires {
-  typename F::Domain;
-  typename F::Codomain;
+  typename std::remove_cvref_t<F>::Domain;
+  typename std::remove_cvref_t<F>::Codomain;
   requires requires(F f, typename F::Domain x) {
-    { f(x) } -> std::convertible_to<typename F::Codomain>;
+    { f(x) } -> std::convertible_to<typename std::remove_cvref_t<F>::Codomain>;
   };
 };
 

@@ -38,15 +38,15 @@
 export module dedekind.category;
 
 // Level 0: The Taxonomic Bricks (Atoms)
-export import :species;   // The Raw Machine Data
-export import :morphism;  // The Base Arrow (Prerequisite for everything)
-export import :discrete;
+export import :species;    // The Raw Machine Data
+export import :morphism;   // The Base Arrow (Prerequisite for everything)
 export import :mereology;  // Parthood (Prerequisite for Logic/Sets)
 export import :logic;      // The Subobject Classifier (Truth)
 
 // Level 0.5: The Structural Infrastructure
 export import :posetal;    // Partial Orders (Verified by Logic)
 export import :small;      // Small Categories
+export import :discrete;   // The Discrete Category (Points as Arrows)
 export import :cartesian;  // Products/Coproducts
 export import :limit;      // Universal Limits
 export import :pullback;   // The Universal Construction "Sink"

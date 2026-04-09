@@ -34,7 +34,6 @@ export module dedekind.category:small;
 import :morphism;
 import :posetal;
 import :species;
-import :discrete;
 
 namespace dedekind::category {
 
@@ -90,48 +89,50 @@ template <typename T, typename Op>
 inline constexpr bool is_associative_v<T, Op> = true;
 
 /**
- * @concept IsSmallCategory
- * @brief A category where objects and morphisms form sets (decidable
- * collections).
+ * @partition :small
+ * @concept IsCategory
  */
-export template <typename T>
-concept IsSmallCategory =
-    IsPointed<T, category_op_t<T>> && IsAssociative<T, category_op_t<T>>;
+export template <typename Cat>
+concept IsCategory = requires {
+  typename Cat::Arrow;
 
-/** @section Verification_of_Primitive_Categories */
+  // 1. The Type: Capitalized to avoid shadowing the function
+  typename Cat::Id;
+  requires IsArrow<typename Cat::Id>;
+  requires std::convertible_to<typename Cat::Id, typename Cat::Arrow>;
 
-static_assert(IsSmallCategory<int>,
-              "Spine Error: int must be a Small Category.");
-static_assert(IsSmallCategory<unsigned int>,
-              "Spine Error: unsigned int must be a Small Category.");
-static_assert(IsSmallCategory<double>,
-              "Spine Error: double must be a Small Category.");
-static_assert(IsSmallCategory<bool>,
-              "Spine Error: bool must be a Small Category.");
+  // 2. The Factory: Keeps the name id_c
+  requires requires(typename Cat::Arrow::Domain x) {
+    { Cat::id_c(x) } -> std::same_as<typename Cat::Id>;
+  };
 
-/** @brief Specialization for the Terminal Object: One. */
-template <>
-struct canonical_op<One> {
-  // Logic: On a single point, any operation (multiplication/addition)
-  // collapses to the point itself. We use multiplies for consistency.
-  using type = std::multiplies<void>;
+  // 4. Composition Contract
+  // The "Fish" must be closed under the Category's Arrow type.
+  requires requires(typename Cat::Arrow f, typename Cat::Arrow g) {
+    { f >> g } -> std::same_as<typename Cat::Arrow>;
+  };
 };
 
-/** @brief Shorthand for the composition rule. */
-template <typename T>
-using category_op_t = typename canonical_op<T>::type;
+/** @section Identity_Short_Circuits */
 
-/**
- * @section Discrete_Categories
- * A Discrete Category is a Small Category where the only morphisms are
- * identities.
- */
+// Law: id_A >> g = g
+export template <typename T, IsArrow G>
+  requires std::same_as<T, typename G::Domain>
+constexpr auto operator>>(Identity<T>, G&& g) {
+  return std::forward<G>(g);
+}
+
+// Law: f >> id_B = f
+export template <IsArrow F, typename T>
+  requires std::same_as<typename F::Codomain, T>
+constexpr auto operator>>(F&& f, Identity<T>) {
+  return std::forward<F>(f);
+}
+
+// Law: id_T >> id_T = id_T
 export template <typename T>
-concept IsDiscreteCategory =
-    IsSmallCategory<T> && (std::same_as<T, One> || std::same_as<T, Zero>);
-
-/** @brief Verification: The Terminal Object is a Discrete Category. */
-static_assert(IsDiscreteCategory<One>,
-              "Categorical Proof: The Terminal Object (1) must be Discrete.");
+constexpr auto operator>>(Identity<T> i, Identity<T>) {
+  return i;
+}
 
 }  // namespace dedekind::category

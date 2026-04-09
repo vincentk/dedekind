@@ -13,6 +13,10 @@
  * 2. Transitivity: A part of a part is a part of the whole.
  * 3. Antisymmetry: Two distinct things cannot be parts of each other.
  */
+module;
+
+#include <concepts>
+#include <functional>
 
 export module dedekind.category:monad;
 
@@ -20,55 +24,42 @@ import :natural;
 
 namespace dedekind::category {
 
-// A "Double-Entry" Pipeline:
-// 42 >> into >> into -> Box<Box<int>>
-// ... then >> join -> Box<int>
-static_assert((42 >> into<Box> >> into<Box> >> join<Box>).value == 42,
-              "Monad Law: Join must collapse the double-context.");
-
 /**
  * @section Monad_as_Monoid (Explicit Definition)
  * We bridge the gap:
  *   η (Unit)           <--> identity_v (Monoid Unit)
  *   μ (Multiplication) <--> Op         (Monoid Operation)
+ *
+ * @brief T : C -> C with η : Id ⟹ T and μ : T² ⟹ T
  */
-export template <template <typename> typename F, typename T, typename OpT>
+export template <typename T, typename η_t, typename μ_t>
 concept IsMonad =
-    // 1. Requirement: Must be a Functor (Derived via our Dispatcher)
-    IsEndofunctor<F, T, OpT> &&
+    IsEndofunctor<T> &&
+    // η: Id_C ⟹ T (Unit)
+    IsNaturalTransformation<η_t, identity_functor<typename T::SourceCategory>,
+                            T> &&
+    // μ: T² ⟹ T (Multiplication/Join)
+    IsNaturalTransformation<μ_t, composite_functor<T, T>, T> &&
 
-    // 2. Requirement: Must satisfy the Kleisli Extension System
-    IsKleisliExtension<F, T, T> &&
-
-    requires(F<F<T>> nested, T x, F<T> box, std::function<F<T>(T)> f) {
-      // 3. Axiomatic Verification:
-      // Verification of η (Unit): T -> F<T>
-      { η<F, T>{}(x) } -> std::same_as<F<T>>;
-
-      // Verification of >>= (Bind): F<T> -> (T -> F<T>) -> F<T>
-      { box >>= f } -> std::same_as<F<T>>;
-
-      // 4. Structural Emergence:
-      // μ (Join) is now an observable property of the Kleisli Action.
-      // We verify that the "Self-Bind" correctly collapses layers.
+    requires(η_t η, μ_t μ, typename T::SourceCategory::Arrow::Domain c) {
+      // 1. Associativity Law: μ ∘ T(μ) == μ ∘ μ(T)
       {
-        box >>= [](T val) { return η<F, T>{}(val); }
-      } -> std::same_as<F<T>>;
+        T{}.fmap(μ(c)) >> μ(c)
+      } -> std::same_as<
+          decltype(μ(T{}.fmap(T{}.fmap(typename T::SourceCategory::id_c(c)))
+                         .vertex) >>
+                   μ(c))>;
+
+      // 2. Left Unit Law: μ ∘ T(η) == id_T
+      {
+        T{}.fmap(η(c)) >> μ(c)
+      } -> std::same_as<typename T::TargetCategory::Id>;
+
+      // 3. Right Unit Law: μ ∘ η_T == id_T
+      {
+        η(T{}.fmap(T::SourceCategory::id_c(c)).vertex) >> μ(c)
+      } -> std::same_as<typename T::TargetCategory::Id>;
     };
-
-/** @section Level_0_Final_Proof: The Box Monad */
-
-// 1. Proof: Box satisfies the formal IsMonad concept for (Z, +)
-static_assert(IsMonad<Box, int, std::plus<int>>,
-              "Ontology: Box must be recognized as a formal Monad.");
-
-// 2. Action Proof: Join (μ) must collapse the context via the pipe
-static_assert((42 >> into<Box> >> into<Box> >> join<Box>) == 42 >> into<Box>,
-              "Ontology: The Monadic Join (μ) failed the Action Proof.");
-
-// 3. Action Proof: Unit (η) must lift the species
-static_assert((42 >> into<Box>) == Box{42},
-              "Ontology: The Monadic Unit (η) failed the Action Proof.");
 
 /**
  * @section Comonadic_Morphisms: Extract (ε) and Duplicate (δ)
@@ -88,116 +79,64 @@ static_assert((42 >> into<Box>) == Box{42},
  * to be explicitly defined if <<= (Extend) is present, as δ is the
  * "Self-Extend": δ(w) = w <<= id.
  */
-export template <template <typename...> typename F, typename T, typename OpT>
+export template <typename W, typename ε_t, typename δ_t>
 concept IsComonad =
-    // 1. Requirement: Must be a Functor (Derived via Discovery)
-    IsEndofunctor<F, T, OpT> &&
+    IsEndofunctor<W> &&
+    // ε: W ⟹ Id_C (Counit / Extract)
+    IsNaturalTransformation<ε_t, W,
+                            identity_functor<typename W::SourceCategory>> &&
+    // δ: W ⟹ W² (Comultiplication / Duplicate)
+    IsNaturalTransformation<δ_t, W, composite_functor<W, W>> &&
 
-    // 2. Requirement: Must satisfy the Co-Kleisli Extension System
-    IsCoKleisliExtension<F, T, T> &&
-
-    requires(F<T> box, std::function<T(F<T>)> f) {
-      // 3. Axiomatic Verification:
-      // Verification of ε (Extract): F<T> -> T
-      { ε<F, T>{}(box) } -> std::same_as<T>;
-
-      // Verification of <<= (Extend): F<T> -> (F<T> -> T) -> F<T>
-      { box <<= f } -> std::same_as<F<T>>;
-
-      // 4. Structural Emergence:
-      // δ (Duplicate) is an observable property of the Co-Kleisli Action.
-      // We verify that the "Self-Extend" correctly nests the context.
+    requires(ε_t ε, δ_t δ, typename W::SourceCategory::Arrow::Domain w_obj) {
+      // 1. Coassociativity Law: W(δ) ∘ δ == δ_W ∘ δ
       {
-        box <<= [](auto&& w) { return w; }
-      } -> std::same_as<F<F<T>>>;
+        δ(w_obj) >> W{}.fmap(δ(w_obj))
+      } -> std::same_as<decltype(δ(w_obj) >> δ(δ(w_obj).vertex))>;
+
+      // 2. Left Counit Law: W(ε) ∘ δ == id_W
+      {
+        δ(w_obj) >> W{}.fmap(ε(w_obj))
+      } -> std::same_as<typename W::SourceCategory::Id>;
+
+      // 3. Right Counit Law: ε_W ∘ δ == id_W
+      // We move across the duplication, then extract using the component at the
+      // result.
+      {
+        δ(w_obj) >> ε(δ(w_obj).vertex)
+      } -> std::same_as<typename W::SourceCategory::Id>;
     };
 
-/** @section The_Counit_Tag (ε) */
-export template <template <typename...> typename F>
-struct extract_tag {};
+/** @section Generic_Monadic_Pipeline */
 
-export template <template <typename...> typename F>
-inline constexpr extract_tag<F> extract{};
+export template <typename W>
+struct η_tag {};
 
-/** @section The_Co_Multiplication_Tag (δ) */
-export template <template <typename...> typename F>
-struct duplicate_tag {};
+export template <typename W>
+struct μ_tag {};
 
-export template <template <typename...> typename F>
-inline constexpr duplicate_tag<F> duplicate{};
-
-/** @section The_Pull_Operator (ε) */
-export template <typename T, template <typename...> typename F>
-constexpr T operator<<(const F<T>& box, extract_tag<F>) {
-  // Routes to the ε witness in :species
-  return ε<F, T>{}(box);
+// 1. Entry: value >> into<η_t>
+// Since η is a transformation from Id -> T, we use its component at T
+export template <typename T, typename η_t>
+constexpr auto operator>>(T&& val, η_tag<η_t>) {
+  // η_t{}(val) produces the arrow, we then apply it to the value
+  return η_t{}(val)(std::forward<T>(val));
 }
 
-/** @section The_Duplicate_Operator (δ) */
-export template <typename T, template <typename...> typename F>
-  requires IsCoKleisliExtension<F, T, T>
-constexpr auto operator<<(const F<T>& box, duplicate_tag<F>) {
-  // δ(w) = w <<= id
-  return box <<= [](const F<T>& w) { return w; };
-}
+// 2. Join: T<T<X>> >> join<μ_t>
+// μ_t is the natural transformation T^2 => T
+export template <typename NestedContext, typename μ_t>
+constexpr auto operator>>(NestedContext&& nested, μ_tag<μ_t>) {
+  // 1. Recover the inner object type X
+  using T2 = std::remove_cvref_t<NestedContext>;
+  using X =
+      typename T2::Domain::Domain;  // Deep extraction from the Arrow's Domain
 
-/** @section Comonad_Verification: The Slick Highway Proofs */
+  // 2. Get the component of μ at X: T(T(X)) -> T(X)
+  auto mu_x = μ_t{}(X{});
 
-// 1. The Extract Law (ε): Getting the car out of the Box.
-static_assert((42 >> into<Box> << extract<Box>) == 42,
-              "Comonad Law: Extract (ε) must recover the raw Species.");
-
-// 2. The Duplicate Law (δ): Making a 'Shadow' Box.
-// Instead of that decltype(arrow) mess, we just pipe it.
-static_assert((42 >> into<Box> << duplicate<Box>).value.value == 42,
-              "Comonad Law: Duplicate (δ) must yield a nested Context.");
-
-// 3. The Co-Unit Law: ext(dup(x)) == x
-// Reading: "Take a box, duplicate it, then extract the outer layer."
-static_assert((42 >> into<Box> << duplicate<Box> << extract<Box>) ==
-                  42 >> into<Box>,
-              "Comonad Law: Extract ∘ Duplicate must be an Identity on Boxes.");
-
-// >>= (Bind): Chaining the Box to a Kleisli Arrow
-export template <typename T, typename Func>
-constexpr auto operator>>=(const Box<T>& b, Func&& f) {
-  // We sample the part and hand it to the factory.
-  return std::forward<Func>(f)(b.value);
-}
-
-/** @section The_Extend_Operator (<<=) */
-export template <typename T, typename Func>
-constexpr auto operator<<=(const Box<T>& b, Func&& f) {
-  using U = std::invoke_result_t<Func, Box<T>>;
-  // Co-Kleisli Extend: apply 'f' to the whole box,
-  // and re-wrap the result in a new Box.
-  return Box<U>{std::forward<Func>(f)(b)};
-}
-
-/** @brief The Unit/Pure Factory: Lifts a raw value into the Box context. */
-export template <typename T>
-constexpr auto pure(T&& value) {
-  return Box<std::decay_t<T>>{std::forward<T>(value)};
-}
-
-/** @section The_Join_Tag */
-export template <template <typename...> typename F>
-struct join_tag {};
-
-export template <template <typename...> typename F>
-inline constexpr join_tag<F> join{};
-
-/** @section The_Collapse_Operator (μ) */
-export template <typename T, template <typename...> typename F>
-constexpr auto operator>>(const F<F<T>>& nested, join_tag<F>) {
-  // μ(m) = m >>= id
-  return nested >>= [](const F<T>& inner) { return inner; };
-}
-
-/** @brief Rvalue overload for "High-Speed" Move semantics */
-export template <typename T>
-constexpr auto operator>>(Box<Box<T>>&& nested_box, join_tag<Box>) {
-  return std::move(nested_box.value);
+  // 3. Apply the join arrow to the nested context
+  return mu_x(std::forward<NestedContext>(nested));
 }
 
 }  // namespace dedekind::category

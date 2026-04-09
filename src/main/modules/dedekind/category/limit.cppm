@@ -1,11 +1,21 @@
 /**
  * @file ontology:category.cppm
- * @partition :limits
+ * @partition :limit
  * @brief Level 0.6: The Boundary Objects (Initial and Terminal).
  *
- * @section Limits: The 0 and 1 of the Topos
- * In the Dedekind topos, the Initial (0) and Terminal (1) objects
- * define the logical boundaries of all characteristic morphisms.
+ * @copyright 2026 The Dedekind Authors
+ * Licensed under the Apache License, Version 2.0.
+ *
+ * @quote
+ * "The progress of mathematics can be viewed as progress from the
+ *  infinite to the finite."
+ *  — Gian-Carlo Rota, Indiscrete Thoughts
+ *
+ * @section Limits: The Universal Boundaries
+ * In the Dedekind topos, the Initial (0) and Terminal (1) objects represent
+ * the finite "anchors" of a system of otherwise infinite potential relations.
+ * They are the unique sinks and sources through which the structure of
+ * every other species is measured and made finite.
  */
 module;
 
@@ -17,6 +27,30 @@ export module dedekind.category:limit;
 import :cartesian;
 
 namespace dedekind::category {
+
+/** @brief The Terminal Object (1): The Discrete Point. */
+export struct One final {
+  constexpr bool operator==(const One&) const noexcept { return true; }
+};
+
+/** @section Terminal_Identity */
+template <typename Op>
+struct identity_registry<One, Op> {
+  static constexpr One value{};
+};
+
+// 2. One is Associative (Trivial mapping)
+template <typename Op>
+inline constexpr bool is_associative_v<One, Op> = true;
+
+// 3. One is Commutative (Optional, but useful for Lattices)
+template <typename Op>
+inline constexpr bool is_commutative_v<One, Op> = true;
+
+/** @brief The Initial Object (0): The Empty Discrete Space. */
+export struct Zero final {
+  Zero() = delete;
+};
 
 /**
  * @concept IsTerminalMorphism
@@ -62,5 +96,21 @@ concept IsTerminalObject =
 export template <typename T>
 concept IsInitialObject =
     std::same_as<T, Zero> || IsInitialMorphism<decltype(zero<T, T>())>;
+
+/** @brief The Terminal Category Realization. */
+using TerminalCategory = DiscreteCategory<One>;
+
+/** @brief The Initial Category Realization. */
+using InitialCategory = DiscreteCategory<Zero>;
+
+/** @brief Verification: The realization (the hub) is a Discrete Category. */
+static_assert(
+    IsDiscreteCategory<TerminalCategory>,
+    "Categorical Proof: The Terminal Object realization (1) must be Discrete.");
+
+/** @brief Infrastructure check: TerminalCategory must be a valid Category. */
+static_assert(
+    IsCategory<TerminalCategory>,
+    "Infrastructure Error: TerminalCategory failed the IsCategory contract.");
 
 }  // namespace dedekind::category
