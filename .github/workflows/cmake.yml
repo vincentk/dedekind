@@ -57,7 +57,6 @@ jobs:
       if: github.ref == 'refs/heads/main' && github.event_name == 'push'
       run: |
         cmake --build build --target docs
-        touch build/docs/html/.nojekyll
 
     - name: Upload artifact
       if: github.ref == 'refs/heads/main' && github.event_name == 'push'
