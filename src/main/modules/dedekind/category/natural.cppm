@@ -118,12 +118,16 @@ struct identity_transformation {
   F f_map;
 
   auto operator()(const typename F::Σ_cat::Arrow::Domain& c) const {
-    // We find the object F(c) by lifting the identity of c.
-    // This is the standard recovery path in the project's single-species
-    // category model.
-    auto id_Fc = f_map.fmap(F::Σ_cat::id_c(c));
-    // The Domain of F(id_c) is the object F(c)
-    return F::Τ_cat::id_c(id_Fc.vertex);
+    // In the common single-species case, the source object label can be reused
+    // directly as the target witness. Otherwise we fall back to any explicit
+    // object witness carried by the lifted identity spoke.
+    if constexpr (std::convertible_to<typename F::Σ_cat::Arrow::Domain,
+                                      typename F::Τ_cat::Arrow::Domain>) {
+      return F::Τ_cat::id_c(static_cast<typename F::Τ_cat::Arrow::Domain>(c));
+    } else {
+      auto id_Fc = f_map.fmap(F::Σ_cat::id_c(c));
+      return F::Τ_cat::id_c(id_Fc.vertex);
+    }
   }
 };
 
@@ -160,8 +164,14 @@ struct horizontal_composition {
   auto operator()(const typename F::Σ_cat::Arrow::Domain& c) const {
     // (beta * alpha)_c = G'(alpha_c) >> beta_{F(c)}
     // or equivalent: beta_{F'(c)} >> G(alpha_c)
-    return G_prime{}.fmap(alpha(c)) >>
-           beta(F_prime{}.fmap(F::Σ_cat::id_c(c)).vertex);
+    if constexpr (std::convertible_to<typename F::Σ_cat::Arrow::Domain,
+                                      typename G::Σ_cat::Arrow::Domain>) {
+      return G_prime{}.fmap(alpha(c)) >>
+             beta(static_cast<typename G::Σ_cat::Arrow::Domain>(c));
+    } else {
+      return G_prime{}.fmap(alpha(c)) >>
+             beta(F_prime{}.fmap(F::Σ_cat::id_c(c)).vertex);
+    }
   }
 };
 
