@@ -48,7 +48,7 @@ namespace dedekind::category {
  * Domain.
  * @req SpeciesTraits<Res>::species The return type must be registered in the
  *      Ontology Bridge.
- * @req LogicalSpecies<S> The resolved logic species must satisfy the
+ * @req IsLogicalSpecies<S> The resolved logic species must satisfy the
  *      formal algebraic requirements (AND/OR/NOT).
  *
  * @note By enforcing this contract, `dedekind` ensures that logical
@@ -204,7 +204,7 @@ auto operator!(P&& p) {
  * @brief The 'true' morphism: 1 → Ω.
  */
 export template <typename L = ClassicalLogic>
-  requires LogicalSpecies<L>
+  requires IsLogicalSpecies<L>
 auto logical_true() {
   return arrow<One, typename L::type>([](One) { return L::True; });
 }
@@ -213,7 +213,7 @@ auto logical_true() {
  * @brief The 'false' morphism: 1 → Ω.
  */
 export template <typename L = ClassicalLogic>
-  requires LogicalSpecies<L>
+  requires IsLogicalSpecies<L>
 auto logical_false() {
   return arrow<One, typename L::type>([](One) { return L::False; });
 }

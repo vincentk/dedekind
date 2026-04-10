@@ -86,7 +86,7 @@ concept IsPullback = IsArrow<F> && IsArrow<G> && std::same_as<Cod<F>, Cod<G>> &&
  * @note Cod<F> and Cod<G> must be the same type and equality-comparable.
  */
 template <typename L, typename Π, typename F, typename G>
-  requires LogicalSpecies<L> && IsArrow<F> && IsArrow<G> &&
+  requires IsLogicalSpecies<L> && IsArrow<F> && IsArrow<G> &&
            IsProduct<Π, Dom<F>, Dom<G>> && std::same_as<Cod<F>, Cod<G>> &&
            std::equality_comparable<Cod<F>>
 auto make_χ(F f, G g) {

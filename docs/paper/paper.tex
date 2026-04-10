@@ -232,7 +232,7 @@ Initial Object ($0$) & \texttt{std::nullptr\_t} & \texttt{IsInitialObject} \\
 \addlinespace
 \textit{Structural Relations} & & \\
 Parthood ($\sqsubseteq$) & \texttt{operator<=} & \texttt{IsPartOf} \\
-Subobject Classifier ($\Omega$) & \texttt{enum class Omega} & \texttt{LogicalSpecies} \\
+Subobject Classifier ($\Omega$) & \texttt{enum class Omega} & \texttt{IsLogicalSpecies} \\
 \addlinespace
 \textit{Universal Constructions} & & \\
 Product ($A \times B$) & \texttt{std::pair} & \texttt{IsProduct} \\
@@ -614,7 +614,7 @@ static_assert(IsPartRelation<std::less_equal<int>, int>,
 \subsubsection{The \texttt{:logic} partition: The Subobject Classifier (\texorpdfstring{$\Omega$}{Omega})}
 \label{dedekind.category::logic}
 
-Before a ``Body'' (Set) or a ``Path'' (Sequence) can be reified, the \texttt{dedekind} library establishes the ``Rules of Presence'' through the \textbf{Subobject Classifier} $\Omega$. Following the algebraic logic of Rasiowa~\cite{rasiowa1974algebraic}, we treat every logical system as a specific type of abstract algebra where truth-values act as the objects of a \textbf{Topos}. By reifying these systems via the \texttt{LogicalSpecies} concept, we prevent the ``leaky abstractions'' inherent in machine-level \texttt{bool} types—such as implicit integral promotion—while allowing for pluggable logical universes.
+Before a ``Body'' (Set) or a ``Path'' (Sequence) can be reified, the \texttt{dedekind} library establishes the ``Rules of Presence'' through the \textbf{Subobject Classifier} $\Omega$. Following the algebraic logic of Rasiowa~\cite{rasiowa1974algebraic}, we treat every logical system as a specific type of abstract algebra where truth-values act as the objects of a \textbf{Topos}. By reifying these systems via the \texttt{IsLogicalSpecies} concept, we prevent the ``leaky abstractions'' inherent in machine-level \texttt{bool} types—such as implicit integral promotion—while allowing for pluggable logical universes.
 
 In the \texttt{ClassicalLogic} species, $\Omega$ is the binary prime $\{True, False\}$ (see Table~\ref{tab:logic_comparison}), corresponding to the standard Boolean Topos where the \textbf{Law of Excluded Middle} (LEM) holds. However, to honestly model computational undecidability or the ``truth-holes'' inherent in floating-point boundaries, we introduce the \texttt{TernaryLogic} species. Based on Kleene's strong logic of indeterminacy ($K3$)~\cite{mclarty1992toposes}, this logic introduces an \textbf{Unknown} state ($0$). Within \texttt{dedekind}, these logics are formalized as \textbf{Rigs}; the \textit{Join} ($\lor$) serves as additive composition (Supremum), while the \textit{Meet} ($\land$) serves as multiplicative composition (Infimum).
 

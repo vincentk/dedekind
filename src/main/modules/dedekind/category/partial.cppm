@@ -22,7 +22,7 @@ module;
 
 export module dedekind.category:partial;
 
-import :logic;    // Provides LogicalSpecies, TernaryLogic, Ternary
+import :logic;    // Provides IsLogicalSpecies, TernaryLogic, Ternary
 import :species;  // Provides Morphism<A, B, Func>
 import :numeric;
 

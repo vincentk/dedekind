@@ -51,7 +51,7 @@ namespace dedekind::category {
 /**
  * @brief The Logical Species Concept (The Algebraic Signature of Truth).
  *
- * A type fulfills `LogicalSpecies` if it defines a consistent internal logic
+ * A type fulfills `IsLogicalSpecies` if it defines a consistent internal logic
  * over a specific 'type' of truth value. In categorical terms, this defines
  * the structure of the Subobject Classifier (Ω).
  *
@@ -66,7 +66,7 @@ namespace dedekind::category {
  * logic operations must not result in type-decay or "species-leak."
  */
 export template <typename L>
-concept LogicalSpecies = requires(typename L::type a, typename L::type b) {
+concept IsLogicalSpecies = requires(typename L::type a, typename L::type b) {
   { L::AND(a, b) } -> std::same_as<typename L::type>;
   { L::OR(a, b) } -> std::same_as<typename L::type>;
   { L::NOT(a) } -> std::same_as<typename L::type>;
@@ -99,8 +99,8 @@ export struct ClassicalLogic final {
 };
 
 // STATIC "IS A" CHECK:
-static_assert(LogicalSpecies<ClassicalLogic>,
-              "ClassicalLogic must fulfill LogicalSpecies");
+static_assert(IsLogicalSpecies<ClassicalLogic>,
+              "ClassicalLogic must fulfill IsLogicalSpecies");
 
 /**
  * @section Species 2: Kleene Ternary Logic (The Logic of Indeterminacy)
@@ -155,8 +155,8 @@ export struct TernaryLogic final {
 };
 
 // STATIC "IS A" CHECK:
-static_assert(LogicalSpecies<TernaryLogic>,
-              "TernaryLogic must fulfill LogicalSpecies");
+static_assert(IsLogicalSpecies<TernaryLogic>,
+              "TernaryLogic must fulfill IsLogicalSpecies");
 
 export constexpr Ternary operator&&(Ternary a, Ternary b) {
   return TernaryLogic::AND(a, b);
@@ -194,7 +194,7 @@ concept LogicalValue = requires {
   // We check if there exists a Logic Species L that uses T as its
   // representation.
   typename GetLogic<T>::type;
-  requires LogicalSpecies<typename GetLogic<T>::type>;
+  requires IsLogicalSpecies<typename GetLogic<T>::type>;
 };
 
 /** @section Cardinality_Ontology_Tokens */
