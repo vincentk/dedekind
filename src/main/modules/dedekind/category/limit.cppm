@@ -29,6 +29,7 @@
 module;
 
 #include <concepts>
+#include <cstddef>
 #include <exception>
 #include <variant>  // Required for std::monostate
 
