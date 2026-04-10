@@ -203,18 +203,39 @@ auto mediate_coproduct(F&& f, G&& g) {
 
   return arrow<Var, X>(
       [f = std::forward<F>(f), g = std::forward<G>(g)](const Var& v) -> X {
-        return std::visit(
-            [&](auto&& val) -> X {
-              using T = std::decay_t<decltype(val)>;
-              if constexpr (std::same_as<T, A>)
-                return f(val);
-              else
-                return g(val);
-            },
-            v);
+        if constexpr (std::same_as<A, B>) {
+          return v.index() == 0 ? f(std::get<0>(v)) : g(std::get<1>(v));
+        } else {
+          return std::visit(
+              [&](auto&& val) -> X {
+                using T = std::decay_t<decltype(val)>;
+                if constexpr (std::same_as<T, A>)
+                  return f(val);
+                else
+                  return g(val);
+              },
+              v);
+        }
       });
 }
 
+namespace {
+constexpr bool mediate_coproduct_same_type_regression() {
+  auto f = arrow<int, int>([](int x) { return x + 1; });
+  auto g = arrow<int, int>([](int x) { return x + 10; });
+  auto h = mediate_coproduct(f, g);
+
+  auto left = ι_1<int, int>(1);
+  auto right = ι_2<int, int>(1);
+
+  return h(left) == 2 && h(right) == 11;
+}
+
+static_assert(
+    mediate_coproduct_same_type_regression(),
+    "Verification Failed: mediate_coproduct must distinguish identical "
+    "coproduct alternatives by variant index.");
+}  // namespace
 /**
  * @concept IsExponential
  * @brief Categorification of `std::function<B(A)>` as the Internal Hom-set
