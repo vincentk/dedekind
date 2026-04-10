@@ -1,6 +1,7 @@
 /** @file src/test/cpp/modules/dedekind/category/cartesian_test.cpp */
 #include <catch2/catch_test_macros.hpp>
 #include <concepts>
+#include <utility>
 #include <variant>
 
 import dedekind.category;
