@@ -60,6 +60,8 @@ export template <typename E, typename A, typename B, typename H, typename K>
 concept IsEqualizer =
     IsArrow<H> && IsArrow<K> && std::same_as<typename H::Domain, A> &&
     std::same_as<typename H::Codomain, B> &&
+    std::same_as<typename K::Domain, A> &&
+    std::same_as<typename K::Codomain, B> &&
     requires(E e, typename E::Member m) {
       // The equalizer must provide an inclusion into A
       { e.inclusion(m) } -> std::same_as<A>;
