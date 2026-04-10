@@ -23,6 +23,7 @@ module;
 
 #include <concepts>
 #include <utility>
+#include <type_traits>
 
 export module dedekind.category:topoi;
 
