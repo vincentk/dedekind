@@ -87,14 +87,14 @@ concept IsSubobject = requires(S s, typename S::Member m) {
    * Every subobject in a Topos is uniquely classified by a
    * morphism into the subobject classifier Ω.
    */
-  { s.χ } -> IsArrow;
+  { s.χ } -> IsPredicate;
 
-  // Metadata verification: The rule must belong to the ambient space
+  // Metadata verification: The declared ambient must match A.
   typename S::Ambient;
+  requires std::same_as<typename S::Ambient, A>;
 
-  // Logic verification: The codomain of χ must be the Logic's underlying type
-  requires std::same_as<typename decltype(s.χ)::Codomain,
-                        typename GetLogic<typename S::Ambient>::type::type>;
+  // Characteristic morphism verification: χ must classify elements of A.
+  requires std::same_as<Dom<decltype(s.χ)>, A>;
 };
 
 /**
