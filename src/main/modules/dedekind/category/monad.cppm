@@ -1,17 +1,13 @@
 /**
- * @file dedekind.category:mereology
- * @partition :mereology
- * @brief Level 0c: Embryonic Mereology (The Language of Parts).
+ * @file dedekind.category:monad
+ * @partition :monad
+ * @brief Level 2.5: Monads and Comonads (Context as Algebra).
  *
- * Following the formal axiomatization of Stanisław Leśniewski, this partition
- * introduces the "Part-Whole" relation as a foundational structural primitive.
- * In this "embryonic" stage, we define the axioms of a partial order that
- * govern any category with mereological structure.
- *
- * @section Axioms
- * 1. Reflexivity: Everything is a part of itself.
- * 2. Transitivity: A part of a part is a part of the whole.
- * 3. Antisymmetry: Two distinct things cannot be parts of each other.
+ * This partition internalizes monads and comonads as endofunctor-level
+ * algebraic structure. Because categories in this library are specialized to a
+ * single `Species` type, the object witness used by the laws is always
+ * recovered through the identity spoke `id_c(x)` rather than through a
+ * separate textbook object universe.
  */
 module;
 
@@ -31,6 +27,11 @@ namespace dedekind::category {
  *   μ (Multiplication) <--> Op         (Monoid Operation)
  *
  * @brief T : C -> C with η : Id ⟹ T and μ : T² ⟹ T
+ * @details In the project's single-species setting, the component laws are
+ *          checked against an object label `c`, then transported into the
+ *          endofunctor context by lifting the identity spoke `id_c(c)`. This
+ *          is how the type system recovers the object witnesses `T(c)` and
+ *          `T(T(c))` needed for η and μ.
  */
 export template <typename T, typename η_t, typename μ_t>
 concept IsMonad =
@@ -41,6 +42,8 @@ concept IsMonad =
     IsNaturalTransformation<μ_t, composite_functor<T, T>, T> &&
 
     requires(η_t η, μ_t μ, typename T::Σ_cat::Arrow::Domain c) {
+      // `c` is the object label. The corresponding object in T and T² is
+      // recovered by functorially lifting the identity spoke on c.
       // 1. Associativity Law: μ ∘ T(μ) == μ ∘ μ(T)
       {
         T{}.fmap(μ(c)) >> μ(c)
@@ -69,6 +72,11 @@ concept IsMonad =
  * This concept bridges the dual formal definitions:
  * 1. Co-Kleisli Triple (Action): Existence of ε (Extract) and <<= (Extend).
  * 2. Comonoid in Endofunctors (Structure): F is a Functor with δ (Duplicate).
+ *
+ * As with `IsMonad`, the laws are stated over a single object label from the
+ * source category. The corresponding contextual objects are recovered through
+ * identity lifting, which is the canonical witness mechanism in this library's
+ * single-species categories.
  *
  * @section The_Mereological_Pull
  * Following the Dedekind posture, we do not require δ (Duplicate/Coreturn)
@@ -107,7 +115,9 @@ export template <typename W>
 struct μ_tag {};
 
 // 1. Entry: value >> into<η_t>
-// Since η is a transformation from Id -> T, we use its component at T
+// Since η is a transformation from Id -> T, we select its component using the
+// raw object label directly. In the single-species setting that label is the
+// canonical witness for the identity spoke at the same object.
 export template <typename T, typename η_t>
 constexpr auto operator>>(T&& val, η_tag<η_t>) {
   // η_t{}(val) produces the arrow, we then apply it to the value
@@ -115,7 +125,9 @@ constexpr auto operator>>(T&& val, η_tag<η_t>) {
 }
 
 // 2. Join: T<T<X>> >> join<μ_t>
-// μ_t is the natural transformation T^2 => T
+// μ_t is the natural transformation T^2 => T.
+// The nested context itself acts as the witness for selecting the appropriate
+// component, mirroring the identity-based recovery strategy used in the laws.
 export template <typename NestedContext, typename μ_t>
 constexpr auto operator>>(NestedContext&& nested, μ_tag<μ_t>) {
   // The nested context itself acts as the witness for selecting the component.

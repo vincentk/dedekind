@@ -77,8 +77,7 @@ using Cod = typename std::remove_cvref_t<F>::Codomain;
  *          category to arrows in another category.
  */
 export template <typename T>
-concept IsHubArrow =
-  IsArrow<T> && IsArrow<Dom<T>> && IsArrow<Cod<T>>;
+concept IsHubArrow = IsArrow<T> && IsArrow<Dom<T>> && IsArrow<Cod<T>>;
 
 /**
  * @concept IsSpokeArrow
@@ -89,8 +88,7 @@ concept IsHubArrow =
  *          appropriate bridge partitions.
  */
 export template <typename T>
-concept IsSpokeArrow =
-  IsArrow<T> && !IsArrow<Dom<T>> && !IsArrow<Cod<T>>;
+concept IsSpokeArrow = IsArrow<T> && !IsArrow<Dom<T>> && !IsArrow<Cod<T>>;
 
 /**
  * @section The_Skeletal_Morphism

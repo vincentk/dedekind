@@ -96,9 +96,8 @@ concept IsTwoMorphism =
  */
 export template <typename Alpha, typename F, typename G>
 concept IsNaturalTransformation =
-    IsTwoMorphism<Alpha, F, G> &&
-    requires(Alpha alpha, F f_map, G g_map,
-             typename F::Σ_cat::Arrow::Domain c) {
+    IsTwoMorphism<Alpha, F, G> && requires(Alpha alpha, F f_map, G g_map,
+                                           typename F::Σ_cat::Arrow::Domain c) {
       // The Slide is witnessed through the identity spoke at c.
       // This keeps the condition structural for categories whose object
       // labels are recovered via their identity arrows.

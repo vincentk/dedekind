@@ -16,18 +16,20 @@ struct WitnessArrow {
   std::function<int(int)> transform;
 
   int operator()(int x) const { return transform(x); }
-};
 
-auto operator>>(const WitnessArrow& f, const WitnessArrow& g) {
-  return WitnessArrow{g.vertex, [f, g](int x) { return g(f(x)); }};
-}
+  friend auto operator>>(const WitnessArrow& f, const WitnessArrow& g) {
+    return WitnessArrow{g.vertex, [f, g](int x) { return g(f(x)); }};
+  }
+};
 
 struct WitnessCategory {
   using Species = int;
   using Arrow = WitnessArrow;
   using Id = WitnessArrow;
 
-  static Arrow id_c(int x) { return Arrow{x, [](int y) { return y; }}; }
+  static Arrow id_c(int x) {
+    return Arrow{x, [](int y) { return y; }};
+  }
 };
 
 template <int Offset>
@@ -89,7 +91,7 @@ TEST_CASE("Category: Natural Transformation Runtime Witnesses",
 
   SECTION("Vertical composition stacks component arrows") {
     vertical_composition<Shift01, Shift12, IdF, F1, F2> composite{Shift01{},
-                                                                   Shift12{}};
+                                                                  Shift12{}};
     auto component = composite(3);
 
     CHECK(component.vertex == 5);
