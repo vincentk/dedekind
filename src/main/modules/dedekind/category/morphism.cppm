@@ -244,6 +244,15 @@ constexpr auto arrow(F&& f) {
   return std::forward<F>(f);
 }
 
+// 3. Semi-Automatic: Explicit Domain, Inferred Codomain
+// This is what classify<A>(f) needs to function.
+export template <typename A, typename F>
+  requires(!IsArrow<F> && std::invocable<std::decay_t<F>, const A&>)
+constexpr auto arrow(F&& f) {
+  using B = std::invoke_result_t<std::decay_t<F>, const A&>;
+  return Morphism<A, B, std::decay_t<F>>(std::forward<F>(f));
+}
+
 // 2. Explicit Endomorphism: endo<A>(f)
 export template <typename A, typename F>
 constexpr auto endo(F&& f) {

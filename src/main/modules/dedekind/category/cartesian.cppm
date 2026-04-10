@@ -95,6 +95,57 @@ concept IsArrowFromProduct =
                             typename Dom<F>::second_type>;
 
 /**
+ * @concept IsExponential
+ * @brief Categorification of `std::function<B(A)>` as the Internal Hom-set
+ * (B^A).
+ * @details Identifies a type as an inhabitant of the function space from A to
+ * B. A type F satisfies this concept when it is move-constructible and
+ * callable with a single argument of type A returning B.
+ *
+ * Three canonical inhabitants in the `std` namespace:
+ * - `std::function<B(A)>` — type-erased, copyable function wrapper.
+ * - `std::move_only_function<B(A)>` (C++23) — move-only, lighter-weight
+ *   alternative.
+ * - Any lambda `[...](A) -> B` — anonymous structural closure.
+ */
+export template <typename F, typename A, typename B>
+concept IsExponential =
+    std::move_constructible<F> && std::same_as<std::invoke_result_t<F, A>, B>;
+
+/**
+ * @brief Internal Hom Factory (Exponential)
+ * @details 1. Fully Automatic: Inferred from lambda signature
+ */
+export template <typename F>
+constexpr auto exponential(F&& f) {
+  return arrow(std::forward<F>(f));
+}
+
+/**
+ * @details 2. Semi-Automatic: Explicit Domain A, Inferred Codomain B
+ */
+export template <typename A, typename F>
+constexpr auto exponential(F&& f) {
+  return arrow<A>(std::forward<F>(f));
+}
+
+/**
+ * @details 3. Fully Explicit: Explicit A and B
+ */
+export template <typename A, typename B, typename F>
+constexpr auto exponential(F&& f) {
+  return arrow<A, B>(std::forward<F>(f));
+}
+
+/**
+ * @brief The Exponential Object B^A (Type Alias)
+ * @details Now defined specifically as the result of the exponential factory.
+ */
+export template <typename A, typename B>
+using Exponential =
+    decltype(exponential<A, B>(std::declval<std::function<B(A)>>()));
+
+/**
  * @brief Currying: (X × A → B) ⟹ (X → B^A)
  */
 export template <IsArrowFromProduct F>
@@ -107,7 +158,7 @@ auto curry(F&& f) {
   auto shared_f = std::make_shared<std::decay_t<F>>(std::forward<F>(f));
 
   return arrow([shared_f](const X& x) {
-    return arrow([shared_f, x](const A& a) {
+    return exponential([shared_f, x](const A& a) {
       // Call the shared morphism
       return (*shared_f)({x, a});
     });
@@ -225,24 +276,6 @@ auto mediate_coproduct(F&& f, G&& g) {
         }
       });
 }
-
-/**
- * @concept IsExponential
- * @brief Categorification of `std::function<B(A)>` as the Internal Hom-set
- * (B^A).
- * @details Identifies a type as an inhabitant of the function space from A to
- * B. A type F satisfies this concept when it is move-constructible and
- * callable with a single argument of type A returning B.
- *
- * Three canonical inhabitants in the `std` namespace:
- * - `std::function<B(A)>` — type-erased, copyable function wrapper.
- * - `std::move_only_function<B(A)>` (C++23) — move-only, lighter-weight
- *   alternative.
- * - Any lambda `[...](A) -> B` — anonymous structural closure.
- */
-export template <typename F, typename A, typename B>
-concept IsExponential =
-    std::move_constructible<F> && std::same_as<std::invoke_result_t<F, A>, B>;
 
 /**
  * @brief The canonical evaluation morphism for the CCC: (B^A × A) → B.
