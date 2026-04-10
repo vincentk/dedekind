@@ -145,7 +145,7 @@ auto logical_false() {
  * @brief Power Object Alias
  * @details In a Topos, P(A) is the exponential object Ω^A.
  */
-template <typename A, typename L = ClassicalLogic>
+export template <typename A, typename L = ClassicalLogic>
 using PowerObject = Exponential<A, typename L::type>;
 
 }  // namespace dedekind::category
