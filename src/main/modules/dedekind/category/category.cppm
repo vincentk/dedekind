@@ -1,5 +1,5 @@
 /**
- * @file dedekind/category.cppm
+ * @file dedekind/category/category.cppm
  * @module dedekind.category
  * @brief The Universal Category Theory Substrate.
  *
@@ -47,8 +47,8 @@ export import :logic;      // The Subobject Classifier (Truth)
 export import :posetal;    // Partial Orders (Verified by Logic)
 export import :small;      // Small Categories
 export import :discrete;   // The Discrete Category (Points as Arrows)
-export import :cartesian;  // Products/Coproducts
 export import :limit;      // Universal Limits
+export import :cartesian;  // Products/Coproducts, CCC Foundations
 export import :pullback;   // The Universal Construction "Sink"
 
 // Level 1: The Ideal (Total Algebra)

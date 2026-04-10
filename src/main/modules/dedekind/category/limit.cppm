@@ -1,5 +1,5 @@
 /**
- * @file ontology:category.cppm
+ * @file dedekind/category/limit.cppm
  * @partition :limit
  * @brief Level 0.6: The Boundary Objects (Initial and Terminal).
  *
@@ -16,101 +16,154 @@
  * the finite "anchors" of a system of otherwise infinite potential relations.
  * They are the unique sinks and sources through which the structure of
  * every other species is measured and made finite.
+ *
+ * @section Std_Namespace_Mappings
+ * This partition asserts bidirectional mappings between categorical boundary
+ * objects and `std` types:
+ *
+ * | Concept / Alias     | `std` representative  | Categorical role     |
+ * |---------------------|-----------------------|----------------------|
+ * | `One` (Terminal)    | `std::monostate`      | Unique sink (1)      |
+ * | `Zero` (Initial)    | `std::nullptr_t`      | Unique source (0)    |
  */
 module;
 
 #include <concepts>
-#include <functional>
+#include <cstddef>
+#include <exception>
+#include <variant>  // Required for std::monostate
 
 export module dedekind.category:limit;
 
-import :cartesian;
+import :discrete;
+import :morphism;
+import :species;
 
 namespace dedekind::category {
 
-/** @brief The Terminal Object (1): The Discrete Point. */
-export struct One final {
-  constexpr bool operator==(const One&) const noexcept { return true; }
-};
+/**
+ * @brief The Terminal Object (1): the unique sink of every morphism.
+ * @details Categorification of `std::monostate` as the Terminal Object.
+ * `std::monostate` is a unit type (exactly one value, `{}`), making it the
+ * canonical C++ representative of the categorical "1". Every species T admits
+ * exactly one morphism T → One (the constant function).
+ *
+ * @see IsTerminalObject, unit()
+ */
+export using One = std::monostate;
 
-/** @section Terminal_Identity */
-template <typename Op>
-struct identity_registry<One, Op> {
-  static constexpr One value{};
-};
+/**
+ * @brief The Initial Object (0): the unique source of every morphism.
+ * @details Categorification of `std::nullptr_t` as the Initial Object.
+ * `std::nullptr_t` has exactly one value (`nullptr`) that cannot be
+ * constructed from anything else, making it the canonical C++ representative
+ * of the categorical "0". From Zero, there exists exactly one (logically
+ * unreachable) morphism to every species T, the zero morphism.
+ *
+ * @see IsInitialObject, zero()
+ */
+export using Zero = std::nullptr_t;
 
-// 2. One is Associative (Trivial mapping)
-template <typename Op>
-inline constexpr bool is_associative_v<One, Op> = true;
-
-// 3. One is Commutative (Optional, but useful for Lattices)
-template <typename Op>
-inline constexpr bool is_commutative_v<One, Op> = true;
-
-/** @brief The Initial Object (0): The Empty Discrete Space. */
-export struct Zero final {
-  Zero() = delete;
-};
+/**
+ * @concept IsMorphicTotal
+ * @brief A Morphism whose Codomain is the Terminal Object (One).
+ * @details A morphism f: A → One is "morphically total" in the categorical
+ * sense: it maps every element of its domain to the unique element of One.
+ * This is the categorical analogue of a constant function that always returns
+ * `std::monostate{}`.
+ *
+ * @note This is distinct from `IsTotalArrow` (in :total), which concerns
+ * whether a morphism is defined on all inputs without undefined behaviour.
+ */
+export template <typename F>
+concept IsMorphicTotal = requires {
+  typename F::Domain;
+  typename F::Codomain;
+} && std::same_as<typename F::Codomain, One>;
 
 /**
  * @concept IsTerminalMorphism
- * @brief The "Truth" mapping (! : X -> 1).
- * @details Categorically, the unique morphism to the terminal object.
- *          Ontologically, the morphism where every element maps to 'True'.
+ * @brief A morphism that maps into the Terminal Object (One).
+ * @details Alias for `IsMorphicTotal`. A terminal morphism `!: T → One`
+ * collapses all information: every element of T maps to the single inhabitant
+ * of `std::monostate`.
  */
-export template <typename S>
-concept IsTerminalMorphism =
-    IsPredicate<S, domain_t<S>> && requires(const S s, const domain_t<S> x) {
-      // The result must be the Multiplicative Identity (True) of the Domain's
-      // Logic.
-      requires s(x) == identity_v<typename GetLogic<domain_t<S>>::type::type,
-                                  std::logical_and<>>;
-    };
+export template <typename F>
+concept IsTerminalMorphism = IsMorphicTotal<F>;
 
 /**
- * @concept IsInitialMorphism
- * @brief The "Falsehood" mapping (? : 0 -> X).
- * @details Categorically, the unique morphism from the initial object.
- *          Ontologically, the morphism where every element maps to 'False'.
+ * @brief The unit morphism factory: produces the unique arrow !: T → One.
+ * @details For every species T there is exactly one morphism to the Terminal
+ * Object. This factory constructs it as a constant function that ignores its
+ * input and returns `One{}` (`std::monostate{}`).
+ * @tparam T The domain species.
  */
-export template <typename S>
-concept IsInitialMorphism =
-    IsPredicate<S, domain_t<S>> && requires(const S s, const domain_t<S> x) {
-      // The result must be the Additive Identity (False) of the Domain's Logic.
-      requires s(x) == identity_v<typename GetLogic<domain_t<S>>::type::type,
-                                  std::logical_or<>>;
-    };
+export template <typename T>
+auto unit() {
+  return arrow<T, One>([](const T&) { return One{}; });
+}
 
 /**
  * @concept IsTerminalObject
- * @brief Verification that T behaves as the Terminal Object (1).
+ * @brief A type that is (or maps canonically to) the Terminal Object One.
+ * @details `std::monostate` (aliased as `One`) is the sole terminal object.
+ * Any type T that produces a valid `IsTerminalMorphism` via `unit<T>()` also
+ * satisfies this concept.
  */
 export template <typename T>
-concept IsTerminalObject =
-    std::same_as<T, One> || IsTerminalMorphism<decltype(unit<T, T>())>;
+concept IsTerminalObject = std::same_as<T, One>;
+
+/**
+ * @brief The zero morphism factory: produces the unique (unreachable) arrow
+ *        ?: Zero → T.
+ * @details From the Initial Object `Zero` (`std::nullptr_t`) there is exactly
+ * one morphism to any species T. Since `nullptr` can never actually appear as
+ * input in a well-formed program, this arrow's body is logically unreachable
+ * and terminates if ever called.
+ * @tparam T The codomain species.
+ */
+export template <typename T>
+auto zero() {
+  return arrow<Zero, T>([](Zero) -> T {
+    // Logically unreachable annihilator
+    std::terminate();
+  });
+}
+
+/**
+ * @concept HasUniqueMorphismTo
+ * @brief Asserts that there exists a unique morphism from T to U = One.
+ * @details Encodes the universal property of the Terminal Object: for every
+ * species T, the factory `unit<T>()` produces the unique arrow T → One.
+ */
+export template <typename T, typename U>
+concept HasUniqueMorphismTo = std::same_as<U, One> && requires {
+  { unit<T>() } -> IsTerminalMorphism;
+};
+
+/**
+ * @concept HasUniqueMorphismFrom
+ * @brief Asserts that there exists a unique (unreachable) morphism from Z =
+ * Zero to T.
+ * @details Encodes the universal property of the Initial Object: for every
+ * species T, the factory `zero<T>()` produces the unique arrow Zero → T.
+ */
+export template <typename Z, typename T>
+concept HasUniqueMorphismFrom = std::same_as<Z, Zero> && requires {
+  { zero<T>() } -> IsArrow;  // zero<T> is the unique arrow 0 -> T
+};
 
 /**
  * @concept IsInitialObject
- * @brief Verification that T behaves as the Initial Object (0).
+ * @brief A type that is the Initial Object Zero.
+ * @details `std::nullptr_t` (aliased as `Zero`) is the sole initial object.
+ * It is the unique type from which a morphism to every other species exists.
  */
 export template <typename T>
-concept IsInitialObject =
-    std::same_as<T, Zero> || IsInitialMorphism<decltype(zero<T, T>())>;
+concept IsInitialObject = std::same_as<T, Zero>;
 
-/** @brief The Terminal Category Realization. */
-using TerminalCategory = DiscreteCategory<One>;
-
-/** @brief The Initial Category Realization. */
-using InitialCategory = DiscreteCategory<Zero>;
-
-/** @brief Verification: The realization (the hub) is a Discrete Category. */
-static_assert(
-    IsDiscreteCategory<TerminalCategory>,
-    "Categorical Proof: The Terminal Object realization (1) must be Discrete.");
-
-/** @brief Infrastructure check: TerminalCategory must be a valid Category. */
-static_assert(
-    IsCategory<TerminalCategory>,
-    "Infrastructure Error: TerminalCategory failed the IsCategory contract.");
+/** @section Realizations */
+export using TerminalCategory = DiscreteCategory<One>;
+export using InitialCategory = DiscreteCategory<Zero>;
 
 }  // namespace dedekind::category

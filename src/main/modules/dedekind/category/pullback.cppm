@@ -33,9 +33,43 @@ module;
 
 export module dedekind.category:pullback;
 
-import :limit;
+import :cartesian;
 
 namespace dedekind::category {
+
+/**
+ * @concept IsEqualizer
+ * @brief The categorical reification of a "Solution Set" for an equation.
+ *
+ * @details To derive a Pullback from a Product, we require an Equalizer. While
+ * the Product provides the "unconstrained" space (X × Y), the Equalizer acts as
+ * a logical filter that selects exactly those pairs (x, y) where f(x) = g(y).
+ *
+ * An Equalizer of two parallel arrows h, k: A -> B is an object E and an
+ * inclusion e: E -> A such that h ∘ e = k ∘ e. In the Dedekind universe,
+ * this serves as the foundational structure for solving internal equations
+ * and defining sub-species.
+ *
+ * @tparam E The candidate Equalizer species.
+ * @tparam A The domain of the parallel arrows.
+ * @tparam B The codomain of the parallel arrows.
+ * @tparam H The first parallel morphism.
+ * @tparam K The second parallel morphism.
+ */
+export template <typename E, typename A, typename B, typename H, typename K>
+concept IsEqualizer =
+    IsArrow<H> && IsArrow<K> && std::same_as<typename H::Domain, A> &&
+    std::same_as<typename H::Codomain, B> &&
+    std::same_as<typename K::Domain, A> &&
+    std::same_as<typename K::Codomain, B> &&
+    requires(E e, typename E::Member m) {
+      // The equalizer must provide an inclusion into A
+      { e.inclusion(m) } -> std::same_as<A>;
+
+      // Structural Invariant: H(inclusion(m)) == K(inclusion(m))
+      // In Dedekind, this is often a predicate-based 'Set'
+    };
+
 /**
  * @concept IsPullback
  * @brief The universal construction of the pullback (fiber product).
@@ -49,6 +83,9 @@ namespace dedekind::category {
  * @tparam Z  The codomain of both f and g.
  * @tparam f  The morphism from X to Z.
  * @tparam g  The morphism from Y to Z.
+ *
+ * IRL: SQL INNER JOIN is a pullback in the category of sets, where the "join
+ * condition" corresponds to the commutativity condition f ∘ p1 = g ∘ p2.
  */
 export template <typename P, typename f, typename g>
 concept IsPullback = IsArrow<f> && IsArrow<g> &&
