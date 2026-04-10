@@ -131,6 +131,14 @@ concept IsCategory = requires {
   requires requires(typename Cat::Arrow f, typename Cat::Arrow g) {
     { f >> g } -> std::same_as<typename Cat::Arrow>;
   };
+
+  /**
+   * @note External composition (Exo-composition)
+   * While not strictly required by the IsCategory concept, implementations
+   * are encouraged to provide templated operator>> overloads to allow
+   * composition with any external type satisfying IsArrow, provided
+   * the Domain/Codomain plumbing is compatible.
+   */
 };
 
 /** @section Identity_Short_Circuits */
