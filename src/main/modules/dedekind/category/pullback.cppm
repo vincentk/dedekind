@@ -78,15 +78,17 @@ concept IsPullback = IsArrow<F> && IsArrow<G> && std::same_as<Cod<F>, Cod<G>> &&
  *
  * @tparam L The Logic Species defining the Subobject Classifier Ω.
  * @tparam Π The Product Species (e.g., std::pair<X, Y>).
- * @tparam F Morphism type for f: X ⟶ Z.
- * @tparam G Morphism type for g: Y ⟶ Z.
+ * @tparam F Morphism type for f: X ⟶ Z (must share codomain with G).
+ * @tparam G Morphism type for g: Y ⟶ Z (must share codomain with F).
  * @param f The first morphism f: X ⟶ Z.
  * @param g The second morphism g: Y ⟶ Z.
  * @return An arrow χ: Π ⟶ Ω that is `L::True` iff f(π₁(pair)) == g(π₂(pair)).
+ * @note Cod<F> and Cod<G> must be the same type and equality-comparable.
  */
 template <typename L, typename Π, typename F, typename G>
   requires LogicalSpecies<L> && IsArrow<F> && IsArrow<G> &&
-           IsProduct<Π, Dom<F>, Dom<G>>
+           IsProduct<Π, Dom<F>, Dom<G>> && std::same_as<Cod<F>, Cod<G>> &&
+           std::equality_comparable<Cod<F>>
 auto make_χ(F f, G g) {
   using Ω = typename L::type;
 
