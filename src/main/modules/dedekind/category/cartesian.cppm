@@ -24,6 +24,7 @@ module;
 
 #include <concepts>
 #include <functional>
+#include <memory>
 #include <utility>
 #include <variant>
 
