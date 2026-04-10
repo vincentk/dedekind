@@ -70,6 +70,29 @@ export template <IsArrow F>
 using Cod = typename std::remove_cvref_t<F>::Codomain;
 
 /**
+ * @concept IsHubArrow
+ * @brief Higher-order arrow whose Domain/Codomain are themselves arrows.
+ * @details In the hub/spoke vocabulary, a "hub" arrow acts on spokes as its
+ *          objects. Functors are the canonical example: they map arrows in one
+ *          category to arrows in another category.
+ */
+export template <typename T>
+concept IsHubArrow =
+  IsArrow<T> && IsArrow<Dom<T>> && IsArrow<Cod<T>>;
+
+/**
+ * @concept IsSpokeArrow
+ * @brief Object-level arrow whose Domain/Codomain are not arrows.
+ * @details A "spoke" arrow connects ordinary species-level objects. Generic
+ *          categorical composition in this partition is intentionally limited
+ *          to spoke arrows so higher-order composition can be owned by the
+ *          appropriate bridge partitions.
+ */
+export template <typename T>
+concept IsSpokeArrow =
+  IsArrow<T> && !IsArrow<Dom<T>> && !IsArrow<Cod<T>>;
+
+/**
  * @section The_Skeletal_Morphism
  * @brief The formal structure of an Arrow f: A -> B.
  */
@@ -448,17 +471,14 @@ inline constexpr Identity<T> identity_v<Identity<T>, Op> = Identity<T>{};
  * @brief Synthesizes an arrow A -> C from A -> B and B -> C.
  * @details By requiring A, B, and C as template parameters, we ensure
  *          the composition is a statically verified bridge.
+ *          This overload is the spoke-level path constructor: it composes
+ *          object-level arrows only. Hub-level arrows such as functors are
+ *          composed in their own partitions.
  */
 export template <typename F, typename G>
-  requires requires {
-    typename std::decay_t<F>::Domain;
-    typename std::decay_t<F>::Codomain;
-    typename std::decay_t<G>::Domain;
-    typename std::decay_t<G>::Codomain;
-    // The strict Categorical Identity:
-    requires std::same_as<typename std::decay_t<F>::Codomain,
-                          typename std::decay_t<G>::Domain>;
-  }
+  requires IsSpokeArrow<std::decay_t<F>> && IsSpokeArrow<std::decay_t<G>> &&
+           std::same_as<typename std::decay_t<F>::Codomain,
+                        typename std::decay_t<G>::Domain>
 constexpr auto operator>>(F&& f, G&& g) {
   using F_pure = std::decay_t<F>;
   using G_pure = std::decay_t<G>;
