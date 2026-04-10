@@ -1,4 +1,4 @@
-/** @file test/cpp/modules/dedekind/category/discrete_test.cpp */
+/** @file src/test/cpp/modules/dedekind/category/cartesian_test.cpp */
 #include <catch2/catch_test_macros.hpp>
 #include <concepts>
 #include <variant>
