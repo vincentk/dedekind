@@ -147,7 +147,7 @@ auto pullback(F_Raw&& f_raw, G_Raw&& g_raw) {
  * @tparam E The candidate Equalizer species.  Must satisfy
  *           `IsSubobject<E, typename F::Domain>`, guaranteeing:
  *           - an inclusion ι: E ↣ A into the shared domain A,
- *           - a characteristic morphism χ: A ⟶ Ω (a `IsPredicate`)
+ *           - a characteristic morphism χ: A ⟶ Ω (an `IsPredicate`)
  *             with `Dom<χ> == A`, classifying the solution set.
  * @tparam F The first parallel morphism f: A ⟶ B.
  * @tparam G The second parallel morphism g: A ⟶ B.
