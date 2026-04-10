@@ -72,3 +72,21 @@ TEST_CASE("Cartesian: Labeled Coproduct and Uncurry",
     CHECK(uncurried({6, 7}) == 42);
   }
 }
+
+TEST_CASE(CCCTest, CurryPlus) {
+  // 1. Define a morphism from a product (int × int) → int
+  auto plus_morphism = arrow<std::pair<int, int>, int>(
+      [](auto p) { return p.first + p.second; });
+
+  // 2. Curry it: (int × int → int) ⟹ (int → (int → int))
+  auto curried_plus = curry(plus_morphism);
+
+  // 3. Test the partial application (X -> B^A)
+  auto add_five = curried_plus(5);  // This returns a Morphism<int, int>
+
+  EXPECT_EQ(add_five(10), 15);
+  EXPECT_EQ(add_five(-2), 3);
+
+  // One-liner "Categorical" style:
+  EXPECT_EQ(curried_plus(10)(20), 30);
+}

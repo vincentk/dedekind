@@ -53,9 +53,8 @@ export template <typename F>
 concept IsArrow = requires {
   typename std::remove_cvref_t<F>::Domain;
   typename std::remove_cvref_t<F>::Codomain;
-  requires requires(F f, typename F::Domain x) {
-    { f(x) } -> std::convertible_to<typename std::remove_cvref_t<F>::Codomain>;
-  };
+} && requires(F f, typename std::remove_cvref_t<F>::Domain x) {
+  { f(x) } -> std::convertible_to<typename std::remove_cvref_t<F>::Codomain>;
 };
 
 /**

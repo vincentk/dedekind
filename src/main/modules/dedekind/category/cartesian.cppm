@@ -246,18 +246,9 @@ concept IsArrowFromProduct =
  */
 export template <IsArrowFromProduct F>
 auto curry(F&& f) {
-  using XA = typename std::decay_t<F>::Domain;
-  using B = typename std::decay_t<F>::Codomain;
-
-  using X = typename XA::first_type;
-  using A = typename XA::second_type;
-
-  // We return a morphism from X to the internal hom (A -> B)
-  return arrow<X, decltype(arrow<A, B>(std::declval<std::function<B(A)>>()))>(
-      [f = std::forward<F>(f)](const X& x) mutable {
-        return arrow<A, B>(
-            [f, x](const A& a) -> B { return f(std::pair<X, A>{x, a}); });
-      });
+  return arrow([f = std::forward<F>(f)](const auto& x) mutable {
+    return arrow([f, x](const auto& a) { return f({x, a}); });
+  });
 }
 
 /**
@@ -265,20 +256,11 @@ auto curry(F&& f) {
  * @details Transforms a function returning a function into a single function
  * taking a categorical product (std::pair).
  */
-export template <typename F>
+export template <IsArrow F>
 auto uncurry(F&& f) {
-  using X = typename SpeciesTraits<std::decay_t<F>>::Domain;
-  using Exponential = typename SpeciesTraits<std::decay_t<F>>::Codomain;
-
-  // Discover A and B from the Internal Hom/Exponential signature
-  using A = typename SpeciesTraits<Exponential>::Domain;
-  using B = typename SpeciesTraits<Exponential>::Codomain;
-
-  return arrow<std::pair<X, A>, B>(
-      [f = std::forward<F>(f)](const std::pair<X, A>& p) -> B {
-        // Double-application: f(x)(a)
-        return (f(p.first))(p.second);
-      });
+  return arrow([f = std::forward<F>(f)](const auto& p) mutable {
+    return f(p.first)(p.second);
+  });
 }
 
 /**
