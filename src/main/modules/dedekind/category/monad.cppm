@@ -45,9 +45,7 @@ concept IsMonad =
       // `c` is the object label. The corresponding object in T and T² is
       // recovered by functorially lifting the identity spoke on c.
       // 1. Associativity Law: μ ∘ T(μ) == μ ∘ μ(T)
-      {
-        T{}.fmap(μ(c)) >> μ(c)
-      } -> std::same_as<decltype(μ(c) >> μ(c))>;
+      { T{}.fmap(μ(c)) >> μ(c) } -> std::same_as<decltype(μ(c) >> μ(c))>;
 
       // 2. Left Unit Law: μ ∘ T(η) == id_T
       { T{}.fmap(η(c)) >> μ(c) } -> std::same_as<typename T::Τ_cat::Id>;

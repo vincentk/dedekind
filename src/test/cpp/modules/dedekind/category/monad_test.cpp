@@ -26,8 +26,8 @@ struct IdentityDuplicate {
   auto operator()(int) const { return id<int>(); }
 };
 
-static_assert(IsNaturalTransformation<IdentityUnit, identity_functor<IntCat>,
-                                      IdF>);
+static_assert(
+    IsNaturalTransformation<IdentityUnit, identity_functor<IntCat>, IdF>);
 static_assert(
     IsNaturalTransformation<IdentityJoin, composite_functor<IdF, IdF>, IdF>);
 static_assert(
@@ -42,7 +42,8 @@ TEST_CASE("Category: Monad and Comonad Concepts", "[category][monad]") {
   STATIC_CHECK(IsComonad<IdF, IdentityCounit, IdentityDuplicate>);
 }
 
-TEST_CASE("Category: Monad Pipeline Operators", "[category][monad][operator-shift]") {
+TEST_CASE("Category: Monad Pipeline Operators",
+          "[category][monad][operator-shift]") {
   SECTION("η_tag lifts through the identity monad") {
     CHECK((42 >> η_tag<IdentityUnit>{}) == 42);
     CHECK((-7 >> η_tag<IdentityUnit>{}) == -7);
