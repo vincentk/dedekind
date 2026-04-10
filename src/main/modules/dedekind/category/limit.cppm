@@ -1,5 +1,5 @@
 /**
- * @file ontology:category.cppm
+ * @file dedekind/category/limit.cppm
  * @partition :limit
  * @brief Level 0.6: The Boundary Objects (Initial and Terminal).
  *
@@ -16,10 +16,6 @@
  * the finite "anchors" of a system of otherwise infinite potential relations.
  * They are the unique sinks and sources through which the structure of
  * every other species is measured and made finite.
- */
-/**
- * @file ontology:category.cppm
- * @partition :limit
  */
 module;
 
@@ -51,9 +47,7 @@ concept IsMorphicTotal =
 
 /** @concept IsTerminalMorphism */
 export template <typename F>
-concept IsTerminalMorphism =
-    IsArrow<F> && IsMorphicTotal<F> &&
-    std::same_as<typename SpeciesTraits<F>::Codomain, One>;
+concept IsTerminalMorphism = IsMorphicTotal<F>;
 
 /** @brief The unit morphism factory !: T -> One */
 export template <typename T>
@@ -75,13 +69,22 @@ auto zero() {
   });
 }
 
+export template <typename T, typename U>
+concept HasUniqueMorphismTo = std::same_as<U, One> && requires {
+  { unit<T>() } -> IsTerminalMorphism;
+};
+
+export template <typename Z, typename T>
+concept HasUniqueMorphismFrom = std::same_as<Z, Zero> && requires {
+  { zero<T>() } -> IsArrow;  // zero<T> is the unique arrow 0 -> T
+};
+
 /** @concept IsInitialObject */
 export template <typename T>
-concept IsInitialObject = std::same_as<T, Zero> ||
-                          requires { requires IsArrow<decltype(zero<int>())>; };
+concept IsInitialObject = std::same_as<T, Zero>;
 
 /** @section Realizations */
-using TerminalCategory = DiscreteCategory<One>;
-using InitialCategory = DiscreteCategory<Zero>;
+export using TerminalCategory = DiscreteCategory<One>;
+export using InitialCategory = DiscreteCategory<Zero>;
 
 }  // namespace dedekind::category

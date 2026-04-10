@@ -1,6 +1,7 @@
-/** @file test/cpp/modules/dedekind/category/discrete_test.cpp */
+/** @file test/cpp/modules/dedekind/category/limit_test.cpp */
 #include <catch2/catch_test_macros.hpp>
 #include <concepts>
+#include <exception>
 #include <variant>
 
 import dedekind.category;
@@ -19,8 +20,8 @@ TEST_CASE("Discrete: Terminal Object (1) - Pure Existence",
 
   SECTION("Global Elements (Morphisms 1 -> X)") {
     // A constant value '5' is a mapping from the state of pure existence to
-    // 'int'
-    auto five = Morphism<One, int>([](One) { return 5; });
+    // 'int'. We use the arrow factory to deduce the lambda type.
+    auto five = arrow<One, int>([](One) { return 5; });
 
     STATIC_CHECK(IsArrow<decltype(five)>);
     CHECK(five(One{}) == 5);
@@ -38,10 +39,11 @@ TEST_CASE("Discrete: Initial Object (0) - The Annihilator",
   }
 
   SECTION("Annihilation Logic") {
-    // A morphism out of Zero represents an unreachable code path
-    auto unreachable = Morphism<Zero, int>([](Zero) -> int {
-      // This body is logically never entered
-      return 0;
+    // A morphism out of Zero represents an unreachable code path.
+    // Explicit return type is provided to assist the factory deduction.
+    auto unreachable = arrow<Zero, int>([](Zero) -> int {
+      // Logically never entered in a valid category of sets
+      std::terminate();
     });
 
     STATIC_CHECK(IsArrow<decltype(unreachable)>);
