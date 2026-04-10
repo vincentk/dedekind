@@ -9,8 +9,6 @@ using namespace dedekind::category;
 
 TEST_CASE("Discrete: Terminal Object (1) - Pure Existence",
           "[category][discrete][terminal]") {
-  // Table 1: Terminal Object (1) maps to std::monostate
-  using One = std::monostate;
 
   SECTION("Existence Axiom") {
     STATIC_CHECK(IsTerminalObject<One>);
@@ -32,9 +30,6 @@ TEST_CASE("Discrete: Terminal Object (1) - Pure Existence",
 
 TEST_CASE("Discrete: Initial Object (0) - The Annihilator",
           "[category][discrete][initial]") {
-  // Table 1: Initial Object (0) maps to std::nullptr_t (representing the
-  // unreachable)
-  using Zero = std::nullptr_t;
 
   SECTION("Unreachability Axiom") {
     STATIC_CHECK(IsInitialObject<Zero>);

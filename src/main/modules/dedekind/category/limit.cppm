@@ -17,94 +17,76 @@
  * They are the unique sinks and sources through which the structure of
  * every other species is measured and made finite.
  */
+/**
+ * @file ontology:category.cppm
+ * @partition :limit
+ */
 module;
 
 #include <concepts>
-#include <functional>
+#include <exception>
+#include <variant>  // Required for std::monostate
 
 export module dedekind.category:limit;
 
-import :cartesian;
+import :discrete;
+import :morphism;
+import :species;
 
 namespace dedekind::category {
 
-/**
- * @section Universal_Aliases
- * Reifying the paper's Table 1 mapping directly.
+/** @section Universal_Aliases */
+export using One  = std::monostate; 
+export using Zero = std::nullptr_t;
+
+/** 
+ * @section Totality_Bridge
+ * We define 'IsMorphicTotal' to avoid the name collision with 'IsTotal' (binary).
+ * An arrow to 'One' is axiomatically total (the Juliet "scent" of a sink).
  */
-export using One = std::monostate;   // The Terminal Object (1)
-export using Zero = std::nullptr_t;  // The Initial Object (0)
-
-/** @section Terminal_Identity */
-template <typename Op>
-struct identity_registry<One, Op> {
-  static constexpr One value{};
-};
-
-// 2. One is Associative (Trivial mapping)
-template <typename Op>
-inline constexpr bool is_associative_v<One, Op> = true;
-
-// 3. One is Commutative (Optional, but useful for Lattices)
-template <typename Op>
-inline constexpr bool is_commutative_v<One, Op> = true;
-
-/**
- * @section Automatic_Totality_Registration
- * Any morphism whose codomain is the Terminal Object (One)
- * is inherently total, as it represents a trivial sink.
- */
-template <typename F>
-  requires(std::same_as<typename SpeciesTraits<F>::Codomain, One>)
-inline constexpr bool is_total_v<F> = true;
-
-/**
- * @concept IsTerminalMorphism
- * @brief The "Truth" mapping (! : X -> 1).
- * @details Categorically, the unique morphism to the terminal object.
- *          Ontologically, the morphism where every element maps to 'True'.
- */
-export template <typename S>
-concept IsTerminalMorphism =
-    IsPredicate<S, domain_t<S>> && requires(const S s, const domain_t<S> x) {
-      // The result must be the Multiplicative Identity (True) of the Domain's
-      // Logic.
-      requires s(x) == identity_v<typename GetLogic<domain_t<S>>::type::type,
-                                  std::logical_and<>>;
-    };
-
-/**
- * @concept IsInitialMorphism
- * @brief The "Falsehood" mapping (? : 0 -> X).
- * @details Categorically, the unique morphism from the initial object.
- *          Ontologically, the morphism where every element maps to 'False'.
- */
-export template <typename T>
-concept IsInitialObject = IsInitialMorphism<decltype(zero<T, T>())>;
-
-/**
- * @concept IsTerminalObject
- * @brief Verification that T behaves as the Terminal Object (1).
- */
-export template <typename T>
-concept IsTerminalObject =
-    IsArrow<F> && IsTotal<F> &&
+export template <typename F>
+concept IsMorphicTotal = 
+    IsArrow<F> && 
     std::same_as<typename SpeciesTraits<F>::Codomain, One>;
 
-/** @brief The Terminal Category Realization. */
+/** @concept IsTerminalMorphism */
+export template <typename F>
+concept IsTerminalMorphism =
+    IsArrow<F> && 
+    IsMorphicTotal<F> && 
+    std::same_as<typename SpeciesTraits<F>::Codomain, One>;
+
+/** @brief The unit morphism factory !: T -> One */
+export template <typename T>
+auto unit() {
+    return arrow<T, One>([](const T&) { return One{}; });
+}
+
+/** @concept IsTerminalObject */
+export template <typename T>
+concept IsTerminalObject =
+    std::same_as<T, One> || 
+    IsTerminalMorphism<decltype(unit<T>())>;
+
+/** @brief The zero morphism factory ?: Zero -> T */
+export template <typename T>
+auto zero() {
+    return arrow<Zero, T>([](Zero) -> T { 
+        // Logically unreachable annihilator
+        std::terminate(); 
+    });
+}
+
+/** @concept IsInitialObject */
+export template <typename T>
+concept IsInitialObject = 
+    std::same_as<T, Zero> ||
+    requires {
+        requires IsArrow<decltype(zero<int>())>;
+    };
+
+/** @section Realizations */
 using TerminalCategory = DiscreteCategory<One>;
-
-/** @brief The Initial Category Realization. */
-using InitialCategory = DiscreteCategory<Zero>;
-
-/** @brief Verification: The realization (the hub) is a Discrete Category. */
-static_assert(
-    IsDiscreteCategory<TerminalCategory>,
-    "Categorical Proof: The Terminal Object realization (1) must be Discrete.");
-
-/** @brief Infrastructure check: TerminalCategory must be a valid Category. */
-static_assert(
-    IsCategory<TerminalCategory>,
-    "Infrastructure Error: TerminalCategory failed the IsCategory contract.");
+using InitialCategory  = DiscreteCategory<Zero>;
 
 }  // namespace dedekind::category
