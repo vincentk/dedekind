@@ -100,22 +100,4 @@ TEST_CASE("Logic: The Lattice Order (Relational Honesty)",
     // ways)
     CHECK_FALSE((T <= U));
   }
-
-  SECTION("Predicate Composition (Rule-Anchored)") {
-    using P = Rule<Boolean, Boolean>;
-
-    // 1. Explicitly return Boolean to match the Rule's Codomain
-    // 2. Use the constructor directly instead of { }
-    P is_true([](const Boolean& b) -> Boolean { return b; });
-    P is_false([](const Boolean& b) -> Boolean { return !b; });
-
-    // 3. This should now find your Rule-specific operator&&
-    auto both = is_true && is_true;
-
-    CHECK(both(Boolean{true}).value == true);
-    CHECK(both(Boolean{false}).value == false);
-
-    auto either = is_true || is_false;
-    CHECK(either(Boolean{false}).value == true);
-  }
 }

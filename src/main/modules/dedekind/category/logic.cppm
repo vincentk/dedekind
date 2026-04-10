@@ -172,6 +172,11 @@ struct GetLogic {
   using type = ClassicalLogic;
 };
 
+export template <>
+struct GetLogic<Ternary> {
+  using type = TernaryLogic;
+};
+
 export template <typename T>
   requires requires { typename T::logic_species; }
 struct GetLogic<T> {

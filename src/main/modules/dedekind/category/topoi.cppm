@@ -66,16 +66,39 @@ concept IsPredicate = IsArrow<P> && LogicalValue<Cod<P>> &&
 export template <typename P>
 concept IsCharacteristic = IsPredicate<P>;
 
+/**
+ * @brief Characteristic Morphism Factory (classify)
+ * @details Lifts a raw mapping into a formal Predicate Morphism A → Ω.
+ *
+ * @tparam A The Domain object.
+ * @tparam F A mapping that must result in a LogicalValue (bool, Ternary, etc.).
+ */
+export template <typename A, typename F>
+// 1. First, verify the logic of the mapping itself
+  requires LogicalValue<std::invoke_result_t<std::decay_t<F>, A>>
+constexpr auto classify(F&& f) {
+  // 2. Now call the skeletal factory
+  auto result = arrow<A>(std::forward<F>(f));
+
+  // 3. Optional: static_assert here instead of 'requires'
+  // to avoid circular dependency in template resolution
+  static_assert(
+      IsPredicate<decltype(result)>,
+      "Dedekind Logic Error: result of classify must be an IsPredicate.");
+
+  return result;
+}
+
 /** @brief Logical Conjunction (Intersection): Synthesizes a rule for A ∩ B.
  */
 export template <IsPredicate P, IsPredicate Q>
   requires std::same_as<Dom<P>, Dom<Q>> && std::same_as<Cod<P>, Cod<Q>>
 auto operator&&(P&& p, Q&& q) {
-  // Logic is resolved locally from the Codomain type Ω
   using L = typename GetLogic<Cod<P>>::type;
+  using A = Dom<P>;
 
-  return arrow<Dom<P>>([p = std::forward<P>(p), q = std::forward<Q>(q)](
-                           const auto& x) { return L::AND(p(x), q(x)); });
+  return classify<A>([p = std::forward<P>(p), q = std::forward<Q>(q)](
+                         const A& x) { return L::AND(p(x), q(x)); });
 }
 
 /** @brief Logical Disjunction (Union): Synthesizes a rule for A ∪ B. */
@@ -85,9 +108,8 @@ auto operator||(P&& p, Q&& q) {
   using L = typename GetLogic<Cod<P>>::type;
   using A = Dom<P>;
 
-  return arrow<A>([p = std::forward<P>(p), q = std::forward<Q>(q)](const A& x) {
-    return L::OR(p(x), q(x));
-  });
+  return classify<A>([p = std::forward<P>(p), q = std::forward<Q>(q)](
+                         const A& x) { return L::OR(p(x), q(x)); });
 }
 
 /** @brief Logical Negation (Complement): Synthesizes a rule for ¬A. */
@@ -97,7 +119,7 @@ auto operator!(P&& p) {
   using A = Dom<P>;
 
   // Return a formal Morphism A -> Ω
-  return arrow<A>(
+  return classify<A>(
       [p = std::forward<P>(p)](const A& x) { return L::NOT(p(x)); });
 }
 
