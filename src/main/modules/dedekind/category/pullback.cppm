@@ -33,7 +33,7 @@ module;
 
 export module dedekind.category:pullback;
 
-import :limit;
+import :cartesian;
 
 namespace dedekind::category {
 /**

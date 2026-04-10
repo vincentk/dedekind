@@ -20,7 +20,7 @@ module;
 export module dedekind.category:cartesian;
 
 import :logic;
-import :discrete;
+import :limit;
 
 namespace dedekind::category {
 
@@ -144,5 +144,30 @@ static_assert(
 // Valid function, but wrong mapping for this specific Hom-set
 static_assert(!IsExponential<std::function<int(int)>, int, bool>,
               "Verification: Rejected due to Codomain mismatch.");
+
+/**
+ * @concept IsCartesianClosed
+ * @brief A Category equipped with Terminal Objects, Products, and Exponentials.
+ * @details This concept extends IsCategory to satisfy the axioms of a
+ * Cartesian Closed Category (CCC), providing the structural foundations
+ * for the Dedekind topos.
+ */
+export template <typename Cat>
+concept IsCartesianClosed = IsCategory<Cat> && requires {
+  // 1. Terminal Object exists
+  typename Cat::Terminal;
+  requires IsTerminalObject<typename Cat::Terminal>;
+} && requires(typename Cat::Arrow::Domain A, typename Cat::Arrow::Codomain B) {
+  // 2. Cartesian: Products exist for objects in the category
+  typename Cat::template Product<decltype(A), decltype(B)>;
+  requires IsProduct<typename Cat::template Product<decltype(A), decltype(B)>,
+                     decltype(A), decltype(B)>;
+
+  // 3. Closed: Exponentials exist for objects in the category
+  typename Cat::template Exponential<decltype(A), decltype(B)>;
+  requires IsExponential<
+      typename Cat::template Exponential<decltype(A), decltype(B)>, decltype(A),
+      decltype(B)>;
+};
 
 }  // namespace dedekind::category

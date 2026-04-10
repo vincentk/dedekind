@@ -90,27 +90,64 @@ template <typename T, typename Op>
 inline constexpr bool is_associative_v<T, Op> = true;
 
 /**
- * @partition :small
  * @concept IsCategory
+ * @brief A point-free, morphism-only reification of a Category.
+ * @details In this structuralist approach, we bypass the traditional
+ * object-morphism dichotomy. A category is defined solely by its arrows and
+ * their composition laws. Objects are not distinct entities but are identified
+ * with their identity morphisms (Id). This "singly-typed" view allows functors
+ * and natural transformations to be treated as arrows within higher-dimensional
+ * structures.
+ *
+ * Axioms:
+ * 1. Existence: For every arrow f, there exist unique identity arrows id_dom(f)
+ *    and id_cod(f).
+ * 2. Composition: If cod(f) == dom(g), then f >> g exists.
+ * 3. Unitary: id_dom(f) >> f = f = f >> id_cod(f).
  */
 export template <typename Cat>
 concept IsCategory = requires {
   typename Cat::Arrow;
+
+  // The 'label' type for objects in this category
+  typename Cat::Species;
+  requires std::same_as<typename Cat::Species, typename Cat::Arrow::Domain>;
 
   // 1. The Type: Capitalized to avoid shadowing the function
   typename Cat::Id;
   requires IsArrow<typename Cat::Id>;
   requires std::convertible_to<typename Cat::Id, typename Cat::Arrow>;
 
-  // 2. The Factory: Keeps the name id_c
-  requires requires(typename Cat::Arrow::Domain x) {
+  // 2. The Factory: Map a Species to its Identity Morphism
+  requires requires(typename Cat::Species x) {
     { Cat::id_c(x) } -> std::same_as<typename Cat::Id>;
   };
 
-  // 4. Composition Contract
-  // The "Fish" must be closed under the Category's Arrow type.
+  /** @flavour 1: Endo-composition (The Fortress) */
+  // Internal closure: f: A -> B, g: B -> C must stay in the category.
   requires requires(typename Cat::Arrow f, typename Cat::Arrow g) {
     { f >> g } -> std::same_as<typename Cat::Arrow>;
+  };
+
+  // Flavor 2: Inbound (Left-Hand Side)
+  // We use "IsArrow auto" and a nested "requires" block
+  requires requires(typename Cat::Arrow g) {
+    []<IsArrow F_in>(F_in&& f, typename Cat::Arrow g_inner) {
+      if constexpr (std::same_as<typename F_in::Codomain,
+                                 typename Cat::Species>) {
+        return f >> g_inner;
+      }
+    };
+  };
+
+  // Flavor 3: Outbound (Right-Hand Side)
+  requires requires(typename Cat::Arrow f) {
+    []<IsArrow G_out>(typename Cat::Arrow f_inner, G_out&& g) {
+      if constexpr (std::same_as<typename G_out::Domain,
+                                 typename Cat::Species>) {
+        return f_inner >> g;
+      }
+    };
   };
 };
 

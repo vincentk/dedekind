@@ -1,5 +1,5 @@
 /**
- * @file ontology:category.discrete
+ * @file dedekind/category/discrete.cppm
  * @partition :discrete
  * @brief Level 0.25: The Discrete Infrastructure (Points as Arrows).
  *
@@ -108,7 +108,10 @@ concept IsDiscreteCategory =
  * Lifts a species T into a category where every arrow is the Identity<T>.
  */
 export template <typename T>
-struct DiscreteCategory {
+struct DiscreteCategory final {
+  // 1. The Label: Species is the underlying type
+  using Species = T;
+
   using Arrow = Identity<T>;
 
   // Type alias uses Capitalized name
