@@ -90,7 +90,7 @@ template <typename L, typename Π, typename F, typename G>
            IsProduct<Π, Dom<F>, Dom<G>> && std::same_as<Cod<F>, Cod<G>> &&
            std::equality_comparable<Cod<F>>
 auto make_χ(F f, G g) {
-  using Ω = typename L::type;
+  using Ω = typename L::Ω;
 
   // We capture by value because Morphism is a lightweight skeletal struct.
   // If F or G contain large lambdas, Morphism handles the storage.

@@ -57,7 +57,7 @@ namespace dedekind::category {
  *
  * @tparam L The Logic Species (e.g., ClassicalLogic, TernaryLogic).
  *
- * @req L::type The underlying data representation (e.g., bool, enum).
+ * @req L::Ω The underlying data representation (e.g., bool, enum).
  * @req L::AND(a, b) The infimum (conjunction) morphism.
  * @req L::OR(a, b)  The supremum (disjunction) morphism.
  * @req L::NOT(a)    The negation (complement) morphism.
@@ -66,14 +66,15 @@ namespace dedekind::category {
  * logic operations must not result in type-decay or "species-leak."
  */
 export template <typename L>
-concept IsLogicalSpecies = requires(typename L::type a, typename L::type b) {
-  { L::AND(a, b) } -> std::same_as<typename L::type>;
-  { L::OR(a, b) } -> std::same_as<typename L::type>;
-  { L::NOT(a) } -> std::same_as<typename L::type>;
+concept IsLogicalSpecies = requires(typename L::Ω a, typename L::Ω b) {
+  typename L::Ω;
+  { L::AND(a, b) } -> std::same_as<typename L::Ω>;
+  { L::OR(a, b) } -> std::same_as<typename L::Ω>;
+  { L::NOT(a) } -> std::same_as<typename L::Ω>;
 
   // The Categorical Constants (True/False)
-  { L::True } -> std::convertible_to<typename L::type>;
-  { L::False } -> std::convertible_to<typename L::type>;
+  { L::True } -> std::convertible_to<typename L::Ω>;
+  { L::False } -> std::convertible_to<typename L::Ω>;
 };
 
 /**
@@ -89,7 +90,7 @@ concept IsLogicalSpecies = requires(typename L::type a, typename L::type b) {
  * into single bitwise assembly instructions during DAG pruning.
  */
 export struct ClassicalLogic final {
-  using type = bool;
+  using Ω = bool;  // Renamed from 'type'
   static constexpr bool True = true;
   static constexpr bool False = false;
 
@@ -129,7 +130,7 @@ export enum class Ternary : int8_t { False = -1, Unknown = 0, True = 1 };
  * computable.
  */
 export struct TernaryLogic final {
-  using type = Ternary;
+  using Ω = Ternary;  // Renamed from 'type'
 
   static constexpr Ternary True = Ternary::True;
   static constexpr Ternary False = Ternary::False;
@@ -219,7 +220,7 @@ constexpr auto lift_logic(T value) {
 export template <typename L = ClassicalLogic>
 struct Truth {
   using logic_species = L;
-  using machine_type = typename L::type;
+  using machine_type = typename L::Ω;
 
   machine_type value;
 
@@ -282,8 +283,8 @@ export using Kleene = Truth<TernaryLogic>;
 export template <typename L>
 struct SpeciesTraits<Truth<L>> {
   using species = L;
-  using Domain = typename L::type;
-  using Codomain = typename L::type;
+  using Domain = typename L::Ω;
+  using Codomain = typename L::Ω;
   static constexpr auto cardinality = CardinalityTag::Finite;
 };
 
@@ -321,7 +322,7 @@ using LogicOf = typename LogicTraits<T>::type;
 
 /** @brief Shorthand for the Subobject Classifier (Omega) of a species */
 export template <typename T>
-using Omega = typename LogicOf<T>::type;
+using Omega = typename LogicOf<T>::Ω;
 
 /**
  * @section The_Subobject_Classifier
@@ -330,7 +331,7 @@ using Omega = typename LogicOf<T>::type;
 export template <IsSpecies T>
 struct SubobjectClassifier {
   using L = typename LogicTraits<T>::type;
-  using Omega = typename L::type;
+  using Omega = typename L::Ω;
 
   /** @brief Lipschitz Boundary Check for Signed Integers */
   template <typename Op>

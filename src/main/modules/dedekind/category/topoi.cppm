@@ -206,7 +206,7 @@ auto operator!(P&& p) {
 export template <typename L = ClassicalLogic>
   requires IsLogicalSpecies<L>
 auto logical_true() {
-  return arrow<One, typename L::type>([](One) { return L::True; });
+  return arrow<One, typename L::Ω>([](One) { return L::True; });
 }
 
 /**
@@ -215,7 +215,7 @@ auto logical_true() {
 export template <typename L = ClassicalLogic>
   requires IsLogicalSpecies<L>
 auto logical_false() {
-  return arrow<One, typename L::type>([](One) { return L::False; });
+  return arrow<One, typename L::Ω>([](One) { return L::False; });
 }
 
 /**
@@ -223,6 +223,6 @@ auto logical_false() {
  * @details In a Topos, P(A) is the exponential object Ω^A.
  */
 export template <typename A, typename L = ClassicalLogic>
-using PowerObject = Exponential<A, typename L::type>;
+using PowerObject = Exponential<A, typename L::Ω>;
 
 }  // namespace dedekind::category

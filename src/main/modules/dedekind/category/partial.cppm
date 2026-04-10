@@ -104,7 +104,7 @@ export template <typename R, typename L = typename GetLogic<R>::type>
 concept IsPotential = requires(R r) {
   typename R::value_type;
   { *r } -> std::convertible_to<const typename R::value_type&>;
-  { presence_of(r) } -> std::convertible_to<typename L::type>;
+  { presence_of(r) } -> std::convertible_to<typename L::Ω>;
 };
 
 static_assert(IsPotential<std::optional<int>>,

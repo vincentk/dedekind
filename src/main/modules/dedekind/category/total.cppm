@@ -57,7 +57,7 @@ namespace dedekind::category {
 export template <typename F>
 concept IsTotalArrow =
     IsArrow<F> &&
-    std::same_as<typename GetLogic<domain_t<F>>::type::type, bool>;
+    std::same_as<typename GetLogic<domain_t<F>>::type::Ω, bool>;
 
 /**
  * @struct TotalMorphism
