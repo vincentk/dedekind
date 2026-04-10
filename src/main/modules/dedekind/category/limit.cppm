@@ -28,10 +28,12 @@ import :cartesian;
 
 namespace dedekind::category {
 
-/** @brief The Terminal Object (1): The Discrete Point. */
-export struct One final {
-  constexpr bool operator==(const One&) const noexcept { return true; }
-};
+/** 
+ * @section Universal_Aliases
+ * Reifying the paper's Table 1 mapping directly.
+ */
+export using One  = std::monostate; // The Terminal Object (1)
+export using Zero = std::nullptr_t; // The Initial Object (0)
 
 /** @section Terminal_Identity */
 template <typename Op>
@@ -47,10 +49,14 @@ inline constexpr bool is_associative_v<One, Op> = true;
 template <typename Op>
 inline constexpr bool is_commutative_v<One, Op> = true;
 
-/** @brief The Initial Object (0): The Empty Discrete Space. */
-export struct Zero final {
-  Zero() = delete;
-};
+/** 
+ * @section Automatic_Totality_Registration
+ * Any morphism whose codomain is the Terminal Object (One) 
+ * is inherently total, as it represents a trivial sink.
+ */
+template <typename F>
+    requires (std::same_as<typename SpeciesTraits<F>::Codomain, One>)
+inline constexpr bool is_total_v<F> = true;
 
 /**
  * @concept IsTerminalMorphism
@@ -73,29 +79,16 @@ concept IsTerminalMorphism =
  * @details Categorically, the unique morphism from the initial object.
  *          Ontologically, the morphism where every element maps to 'False'.
  */
-export template <typename S>
-concept IsInitialMorphism =
-    IsPredicate<S, domain_t<S>> && requires(const S s, const domain_t<S> x) {
-      // The result must be the Additive Identity (False) of the Domain's Logic.
-      requires s(x) == identity_v<typename GetLogic<domain_t<S>>::type::type,
-                                  std::logical_or<>>;
-    };
+export template <typename T>
+concept IsInitialObject = IsInitialMorphism<decltype(zero<T, T>())>;
 
 /**
  * @concept IsTerminalObject
  * @brief Verification that T behaves as the Terminal Object (1).
  */
 export template <typename T>
-concept IsTerminalObject =
-    std::same_as<T, One> || IsTerminalMorphism<decltype(unit<T, T>())>;
-
-/**
- * @concept IsInitialObject
- * @brief Verification that T behaves as the Initial Object (0).
- */
-export template <typename T>
-concept IsInitialObject =
-    std::same_as<T, Zero> || IsInitialMorphism<decltype(zero<T, T>())>;
+concept IsTerminalObject = IsArrow<F> && IsTotal<F> && 
+    std::same_as<typename SpeciesTraits<F>::Codomain, One>;
 
 /** @brief The Terminal Category Realization. */
 using TerminalCategory = DiscreteCategory<One>;

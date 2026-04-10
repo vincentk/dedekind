@@ -1267,6 +1267,40 @@ struct Intersection {
 By reifying a subset of the set-builder notation, dedekind turns the C++ translation unit into a symbolic laboratory.
 The programmer is free to reason in the language of Cantor, while the compiler produces the performance of a naked C++ loop.
 
+\section{Results}
+
+\begin{table}[ht]
+\centering
+\caption{The Dedekind Registry: Mapping C++23 Standard Primitives to Categorical Species.}
+\label{table:std_correspondence}
+\begin{tabular}{llll}
+\hline
+\textbf{Mathematical Concept} & \textbf{Standard C++23 Entity} & \textbf{Dedekind Concept} & \textbf{Ontological Status} \\ \hline
+\rowcolor[HTML]{EFEFEF} 
+\multicolumn{4}{l}{\textit{Boundary Objects (Limits)}} \\
+Terminal Object ($1$) & \texttt{std::monostate} & \texttt{IsTerminalObject} & \textbf{Total} (Singleton) \\
+Initial Object ($0$) & \texttt{std::nullptr\_t} & \texttt{IsInitialObject} & \textbf{Total} (Unreachable) \\ \hline
+\rowcolor[HTML]{EFEFEF} 
+\multicolumn{4}{l}{\textit{Morphic Foundations}} \\
+Product ($A \times B$) & \texttt{std::pair<A, B>} & \texttt{IsProduct} & Universal Projection \\
+Coproduct ($A + B$) & \texttt{std::variant<A, B>} & \texttt{IsCoproduct} & Rule of Choice \\ \hline
+\rowcolor[HTML]{EFEFEF} 
+\multicolumn{4}{l}{\textit{Algebraic Species (Total)}} \\
+Modular Group ($\mathbb{Z}/2^n\mathbb{Z}, +$) & \texttt{unsigned int}, \texttt{std::plus} & \texttt{IsAbelianGroup} & \textbf{Total} (Closed) \\
+Boolean Rig ($\mathbb{B}, \vee, \wedge$) & \texttt{bool}, \texttt{||}, \texttt{\&\&} & \texttt{IsRig} & \textbf{Total} (Idempotent) \\
+Modular Ring ($\mathbb{Z}/2^n\mathbb{Z}, +, \times$) & \texttt{unsigned int}, \texttt{+}, \texttt{*} & \texttt{IsRing} & \textbf{Total} (Distributive) \\ \hline
+\rowcolor[HTML]{EFEFEF} 
+\multicolumn{4}{l}{\textit{Hazardous Species (Rejected)}} \\
+Hazardous Magma & \texttt{int}, \texttt{std::plus} & \texttt{IsPointed} & \textbf{Hazard} (UB Overflow) \\
+Floating Point Magma & \texttt{double}, \texttt{std::plus} & \texttt{IsMagma} & \textbf{Hazard} (Non-assoc.) \\ \hline
+\rowcolor[HTML]{EFEFEF} 
+\multicolumn{4}{l}{\textit{Relational Lattices}} \\
+Distributive Lattice & \texttt{bool}, \texttt{std::logical\_or} & \texttt{IsDistributiveLattice} & \textbf{Total} \\
+Pre-order ($\sqsubseteq$) & \texttt{operator<=} & \texttt{IsPartOf} & Mereological Basis \\ \hline
+\end{tabular}
+\end{table}
+
+
 
 \subsection{The Registry of Formal Correspondences}
 To conclude the implementation hierarchy, we provide a formal mapping between the abstract nomenclature of the mathematical literature and the concrete syntax of the \texttt{C++23} language. In this structuralist posture, the ``identity'' of a species is not found in its nominal inheritance, but in its ability to satisfy the mereological and algebraic requirements dictated by the \textbf{Dedekind Atlas} (see Table \ref{table:semantic_mapping}).
