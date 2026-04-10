@@ -1260,6 +1260,7 @@ The programmer is free to reason in the language of Cantor, while the compiler p
 
 \section{Results}
 
+\subsection{Semantics}
 \begin{landscape}
 
 \begin{table}[ht]
@@ -1302,9 +1303,6 @@ Pre-order ($\sqsubseteq$) & \texttt{operator<=} & \texttt{IsPartOf} & Mereologic
 \end{landscape}
 
 
-
-
-\subsection{The Registry of Formal Correspondences}
 To conclude the implementation hierarchy, we provide a formal mapping between the abstract nomenclature of the mathematical literature and the concrete syntax of the \texttt{C++23} language. In this structuralist posture, the ``identity'' of a species is not found in its nominal inheritance, but in its ability to satisfy the mereological and algebraic requirements dictated by the \textbf{Dedekind Atlas} (see Table \ref{table:semantic_mapping}).
 
 By anchoring established axioms directly into the standard operator set---where \texttt{operator<=} serves as the formal proof of Parthood ($\sqsubseteq$) and the ``Highway'' \texttt{operator>>} represents Kleisli composition---we ensure that the resulting system is not merely a simulation of a mathematical model, but a direct execution of its laws. This registry serves as the final ``Seal of Truth'' for the implementation, providing the compiler with the semantic map required to navigate the ontology.
@@ -1375,6 +1373,10 @@ Needed to push back repeatedly on attempts to go the convenient `double` route i
 \subsection{\texttt{analysis} Module}
 
 The physical build order of the \texttt{dedekind.ontology} module mirrors this conceptual hierarchy. By enforcing a linear dependency graph—where \texttt{:mereology} is compiled before \texttt{:algebra}—we ensure that the compiler's proof-search for a Ring's identity element is grounded in the prior verification of its mereological subobjects. This hierarchy transforms the C++ module mapper into a directed acyclic graph of mathematical truth.
+
+\subsection{Benchmarks}
+
+TODO: include some benchmarks e.g. from the bengchmarks game. Pidigits, SpectralNorm, \ldots maybe something "memory-bound" to feature sparsity and lazy evaluation.
 
 \section{Discussion}
 
