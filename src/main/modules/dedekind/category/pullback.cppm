@@ -136,7 +136,7 @@ auto pullback(F_Raw&& f_raw, G_Raw&& g_raw) {
  * @concept IsEqualizer
  * @brief The kernel of a parallel pair (f, g: A ⟶ B).
  *
- * @details In the Dedekind Topos, an Equalizer represents the subobject E ↣ A
+ * @details In the Dedekind Topos, an Equalizer is a `Subobject` E ↣ A
  * containing exactly those members where the morphisms f and g coincide.
  * It is the internal "Solution Set" for the equation f(x) = g(x).
  *
@@ -144,7 +144,11 @@ auto pullback(F_Raw&& f_raw, G_Raw&& g_raw) {
  * For any object Q and morphism q: Q ⟶ A such that f ∘ q = g ∘ q,
  * there exists a unique morphism u: Q ⟶ E such that ι ∘ u = q.
  *
- * @tparam E The candidate Equalizer species (The Subobject).
+ * @tparam E The candidate Equalizer species.  Must satisfy
+ *           `IsSubobject<E, typename F::Domain>`, guaranteeing:
+ *           - an inclusion ι: E ↣ A into the shared domain A,
+ *           - a characteristic morphism χ: A ⟶ Ω (a `IsPredicate`)
+ *             with `Dom<χ> == A`, classifying the solution set.
  * @tparam F The first parallel morphism f: A ⟶ B.
  * @tparam G The second parallel morphism g: A ⟶ B.
  */
@@ -153,23 +157,6 @@ concept IsEqualizer =
     IsArrow<F> && IsArrow<G> &&
     std::same_as<typename F::Domain, typename G::Domain> &&
     std::same_as<typename F::Codomain, typename G::Codomain> &&
-    requires(E e, typename E::Member m) {
-      /**
-       * @brief ι: E ↣ A
-       * The canonical inclusion morphism from the Equalizer to the domain.
-       */
-      { e.ι(m) } -> std::same_as<typename F::Domain>;
-
-      /**
-       * @section Type_Witness
-       * Validates that the composition f ∘ ι and g ∘ ι are well-formed at the
-       * type level, ensuring the species E acts as a valid domain for the
-       * parallel pair.
-       */
-      requires requires(typename F::Domain a, F f, G g) {
-        { f(a) } -> std::same_as<typename F::Codomain>;
-        { g(a) } -> std::same_as<typename G::Codomain>;
-      };
-    };
+    IsSubobject<E, typename F::Domain>;
 
 }  // namespace dedekind::category
