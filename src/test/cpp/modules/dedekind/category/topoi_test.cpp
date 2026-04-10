@@ -25,10 +25,10 @@ TEST_CASE("Topos: Point-Free Logic Composition", "[category][topoi]") {
     auto is_even_or_positive = is_even || is_positive;
 
     STATIC_CHECK(IsPredicate<decltype(is_even_or_positive)>);
-    CHECK(is_even_or_positive(2) == true);   // even
-    CHECK(is_even_or_positive(3) == true);   // positive
-    CHECK(is_even_or_positive(-2) == true);  // even
-    CHECK(is_even_or_positive(-3) == false); // neither
+    CHECK(is_even_or_positive(2) == true);    // even
+    CHECK(is_even_or_positive(3) == true);    // positive
+    CHECK(is_even_or_positive(-2) == true);   // even
+    CHECK(is_even_or_positive(-3) == false);  // neither
   }
 
   SECTION("Negation (Complement)") {
