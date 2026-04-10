@@ -7,53 +7,59 @@ import dedekind.category;
 using namespace dedekind::category;
 
 TEST_CASE("Topos: Point-Free Logic Composition", "[category][topoi]") {
-  // 1. We now classify raw lambdas into formal Predicate arrows
-  auto is_even = classify<int>([](int x) { return x % 2 == 0; });
-  auto is_positive = classify<int>([](int x) { return x > 0; });
+  // 1. Materialise Subobjects (Bodies)
+  auto s_even = classify<int>([](int x) { return x % 2 == 0; });
+  auto s_positive = classify<int>([](int x) { return x > 0; });
 
   SECTION("Conjunction (Intersection)") {
-    // operator&& now requires both to be IsArrow
-    auto is_even_and_positive = is_even && is_positive;
+    // 2. Extract the characteristic arrows (Rules) for composition
+    auto χ_both = s_even.χ && s_positive.χ;
 
-    STATIC_CHECK(IsPredicate<decltype(is_even_and_positive)>);
-    CHECK(is_even_and_positive(2) == true);
-    CHECK(is_even_and_positive(-2) == false);
-    CHECK(is_even_and_positive(3) == false);
+    // 3. Materialise the resulting intersection as a new Subobject
+    auto s_both = classify<int>(χ_both);
+
+    STATIC_CHECK(IsSubobject<decltype(s_both), int>);
+    // We check the internal rule χ to verify membership
+    CHECK(s_both.χ(2) == true);
+    CHECK(s_both.χ(-2) == false);
+    CHECK(s_both.χ(3) == false);
   }
 
   SECTION("Disjunction (Union)") {
-    auto is_even_or_positive = is_even || is_positive;
+    auto χ_either = s_even.χ || s_positive.χ;
+    auto s_either = classify<int>(χ_either);
 
-    STATIC_CHECK(IsPredicate<decltype(is_even_or_positive)>);
-    CHECK(is_even_or_positive(2) == true);    // even
-    CHECK(is_even_or_positive(3) == true);    // positive
-    CHECK(is_even_or_positive(-2) == true);   // even
-    CHECK(is_even_or_positive(-3) == false);  // neither
+    STATIC_CHECK(IsSubobject<decltype(s_either), int>);
+    CHECK(s_either.χ(2) == true);    // even
+    CHECK(s_either.χ(3) == true);    // positive
+    CHECK(s_either.χ(-2) == true);   // even
+    CHECK(s_either.χ(-3) == false);  // neither
   }
 
   SECTION("Negation (Complement)") {
-    auto is_odd = !is_even;
+    auto χ_odd = !s_even.χ;
+    auto s_odd = classify<int>(χ_odd);
 
-    STATIC_CHECK(IsPredicate<decltype(is_odd)>);
-    CHECK(is_odd(1) == true);
-    CHECK(is_odd(2) == false);
+    STATIC_CHECK(IsSubobject<decltype(s_odd), int>);
+    CHECK(s_odd.χ(1) == true);
+    CHECK(s_odd.χ(2) == false);
   }
 
   SECTION("Ternary Logic Support") {
-    // Verify that the sovereign logic resolves correctly for non-bool Ω
-    auto t_true = classify<int>([](int) { return Ternary::True; });
-    auto t_unknown = classify<int>([](int) { return Ternary::Unknown; });
+    // Note: use arrow directly to stay in the morphic layer for composition
+    auto t_true = arrow<int>([](int) { return Ternary::True; });
+    auto t_unknown = arrow<int>([](int) { return Ternary::Unknown; });
 
-    auto result = t_true && t_unknown;
-    CHECK(result(0) == Ternary::Unknown);
+    auto χ_res = t_true && t_unknown;
+    CHECK(χ_res(0) == Ternary::Unknown);
   }
 }
 
 TEST_CASE("Topos: IsCharacteristic Concept", "[category][topoi]") {
-  // IsCharacteristic is a categorical alias for IsPredicate
-  auto is_even = classify<int>([](int x) { return x % 2 == 0; });
+  // IsCharacteristic is a categorical alias for IsPredicate (The Arrow)
+  auto χ = arrow<int>([](int x) { return x % 2 == 0; });
 
-  STATIC_CHECK(IsCharacteristic<decltype(is_even)>);
+  STATIC_CHECK(IsCharacteristic<decltype(χ)>);
 }
 
 TEST_CASE("Topos: Constant Truth Morphisms", "[category][topoi]") {

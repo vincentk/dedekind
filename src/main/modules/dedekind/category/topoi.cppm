@@ -171,8 +171,9 @@ export template <IsPredicate P, IsPredicate Q>
 auto operator&&(P&& p, Q&& q) {
   using L = typename GetLogic<Cod<P>>::type;
   using A = Dom<P>;
+  using Ω = Cod<P>;
 
-  return classify<A>([p = std::forward<P>(p), q = std::forward<Q>(q)](
+  return arrow<A, Ω>([p = std::forward<P>(p), q = std::forward<Q>(q)](
                          const A& x) { return L::AND(p(x), q(x)); });
 }
 
@@ -182,8 +183,9 @@ export template <IsPredicate P, IsPredicate Q>
 auto operator||(P&& p, Q&& q) {
   using L = typename GetLogic<Cod<P>>::type;
   using A = Dom<P>;
+  using Ω = Cod<P>;
 
-  return classify<A>([p = std::forward<P>(p), q = std::forward<Q>(q)](
+  return arrow<A, Ω>([p = std::forward<P>(p), q = std::forward<Q>(q)](
                          const A& x) { return L::OR(p(x), q(x)); });
 }
 
@@ -194,7 +196,7 @@ auto operator!(P&& p) {
   using A = Dom<P>;
 
   // Return a formal Morphism A -> Ω
-  return classify<A>(
+  return arrow<A>(
       [p = std::forward<P>(p)](const A& x) { return L::NOT(p(x)); });
 }
 
