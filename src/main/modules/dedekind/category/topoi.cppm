@@ -42,7 +42,6 @@ namespace dedekind::category {
  * Species (Ω).
  *
  * @tparam P The Predicate candidate (typically a Lambda or a Functor).
- * @tparam T The Domain of the predicate (the type of object being tested).
  *
  * @req { p(x) } The candidate must be callable with an instance of the
  * Domain.
