@@ -114,6 +114,7 @@ auto curry(F&& f) {
  * taking a categorical product (std::pair).
  */
 export template <IsArrow F>
+  requires IsArrow<Cod<F>>
 auto uncurry(F&& f) {
   using X = Dom<F>;
   using Exp = Cod<F>;
