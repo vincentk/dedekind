@@ -36,57 +36,52 @@ import :species;
 namespace dedekind::category {
 
 /** @section Universal_Aliases */
-export using One  = std::monostate; 
+export using One = std::monostate;
 export using Zero = std::nullptr_t;
 
-/** 
+/**
  * @section Totality_Bridge
- * We define 'IsMorphicTotal' to avoid the name collision with 'IsTotal' (binary).
- * An arrow to 'One' is axiomatically total (the Juliet "scent" of a sink).
+ * We define 'IsMorphicTotal' to avoid the name collision with 'IsTotal'
+ * (binary). An arrow to 'One' is axiomatically total (the Juliet "scent" of a
+ * sink).
  */
 export template <typename F>
-concept IsMorphicTotal = 
-    IsArrow<F> && 
-    std::same_as<typename SpeciesTraits<F>::Codomain, One>;
+concept IsMorphicTotal =
+    IsArrow<F> && std::same_as<typename SpeciesTraits<F>::Codomain, One>;
 
 /** @concept IsTerminalMorphism */
 export template <typename F>
 concept IsTerminalMorphism =
-    IsArrow<F> && 
-    IsMorphicTotal<F> && 
+    IsArrow<F> && IsMorphicTotal<F> &&
     std::same_as<typename SpeciesTraits<F>::Codomain, One>;
 
 /** @brief The unit morphism factory !: T -> One */
 export template <typename T>
 auto unit() {
-    return arrow<T, One>([](const T&) { return One{}; });
+  return arrow<T, One>([](const T&) { return One{}; });
 }
 
 /** @concept IsTerminalObject */
 export template <typename T>
 concept IsTerminalObject =
-    std::same_as<T, One> || 
-    IsTerminalMorphism<decltype(unit<T>())>;
+    std::same_as<T, One> || IsTerminalMorphism<decltype(unit<T>())>;
 
 /** @brief The zero morphism factory ?: Zero -> T */
 export template <typename T>
 auto zero() {
-    return arrow<Zero, T>([](Zero) -> T { 
-        // Logically unreachable annihilator
-        std::terminate(); 
-    });
+  return arrow<Zero, T>([](Zero) -> T {
+    // Logically unreachable annihilator
+    std::terminate();
+  });
 }
 
 /** @concept IsInitialObject */
 export template <typename T>
-concept IsInitialObject = 
-    std::same_as<T, Zero> ||
-    requires {
-        requires IsArrow<decltype(zero<int>())>;
-    };
+concept IsInitialObject = std::same_as<T, Zero> ||
+                          requires { requires IsArrow<decltype(zero<int>())>; };
 
 /** @section Realizations */
 using TerminalCategory = DiscreteCategory<One>;
-using InitialCategory  = DiscreteCategory<Zero>;
+using InitialCategory = DiscreteCategory<Zero>;
 
 }  // namespace dedekind::category
