@@ -104,20 +104,37 @@ In contrast, the evolution of C++ toward the \texttt{C++23} standard  \cite{cpp2
 Unlike traditional object-oriented hierarchies, these tools allow developers to define "mathematical species" based on their internal requirements and relational properties rather than their inherited names.
 As explored by Čukić \cite{cukic2018functional}, modern C++ is now sufficiently advanced to simulate, and in some cases surpass, the expressive power of pure functional programming languages.
 By treating types not merely as memory layouts but as compile-time predicates, C++ can now reify abstract "notions of computation" directly into the machine code.
-
-This shift allows for the embedding of category-theoretic patterns, such as monads and functors, which serve as the formal foundation for structured side-effects and composition \cite{moggi1991notions}.
-In the \texttt{dedekind} library, we leverage this functional substrate to treat mathematical entities as positions in a system of relations.
-Specifically, we utilize C++ \texttt{concepts} to enforce structural integrity at the call site, ensuring that the compiler acts as a verification engine.
-This approach transforms the C++ backend from a simple execution target into a sophisticated environment capable of reasoning about symbolic logic —effectively turning the "slow oracle" of a high-level symbolic system into a zero-overhead, statically-verified binary.
-
-\par This shift toward compile-time verification mirrors a long-standing debate in the philosophy of mathematics between substance-based and structuralist ontologies.
-While traditional object-oriented programming relies on \emph{nominal typing}—where an object’s identity is tied to its named inheritance from a specific class—modern C++ features like \texttt{concepts} facilitate a \emph{structural} approach.
-This aligns with the mathematical structuralism championed by the Bourbaki group and further formalized through category theory \cite{awodey2004structuralism}.
-In this view, mathematical entities are not defined by what they "are" in isolation, but by the system of relations they inhabit.
+This shift allows for the embedding of category-theoretic patterns, such as monads and functors, which serve as the formal foundation for structured side-effects and composition \cite{moggi1991notions, awodey2004structuralism}.
 
 The \texttt{dedekind} library specifically adopts the framework of \emph{combinatorial species} introduced by Joyal \cite{joyal1981species, joyal1986analytic}.
 By treating mathematical structures as "species"—mappings that describe how a structure is placed upon a set of labels—we can reify abstract species (such as rings, fields, or even the continuum itself) as C++ template specifications.
 This "white-box" structural transparency allows the compiler to reason about the properties of a type (e.g., its commutativity or its completeness) purely by inspecting its requirements, much like McLarty’s observation that "numbers can be just what they have to" within a categorical framework \cite{mclarty1993numbers}.
+
+This shift toward compile-time verification mirrors the transition from substance-based to structuralist ontologies.
+While traditional object-oriented systems rely on \textbf{nominal typing}---where an object’s identity is tied to its named inheritance---\texttt{dedekind} adopts a \textbf{structural type theory}.
+This follows the mathematical structuralism of Awodey \cite{7}, where objects are defined by their roles and relations rather than an internal "essence."
+While "duck typing" served as a dynamic precursor to this idea, C++ Concepts allow for its formal, static verification.
+As Juliet observes, "a rose by any other name would smell as sweet" \cite{shakespeare1597romeo}; we prioritize the "scent" (structural invariants) over the "lineage" (nominal inheritance), as shown in Listing \ref{lst:juliet}.
+
+\begin{lstlisting}[language=C++, caption={The Juliet Posture: Nominal vs. Structural Recognition.}, label={lst:juliet}]
+// Nominal: Recognition by lineage
+struct Flower { virtual bool smells_sweet() const = 0; };
+struct Rose : public Flower { ... };
+
+// Structural: Recognition by scent (C++23)
+template <typename T>
+concept SmellsSweet = requires(T t) {
+    { t.scent() } -> std::same_as<Sweetness>;
+};
+
+// In dedekind, a 'Briar' is a 'Rose' if it satisfies the scent.
+static_assert(SmellsSweet<Briar>);
+\end{lstlisting}
+
+By treating mathematical structures as \textbf{combinatorial species} \cite{joyal1981species}, we allow the compiler to reason about abstract properties purely by inspecting type requirements.
+This "white-box" transparency enables the compiler to identify a type as a representation of $\mathbb{R}$ if it satisfies the requirements of a Dedekind-complete ordered field, regardless of its name.
+These mappings and their categorical implications are summarized in Table \ref{table:std_correspondence} and Table \ref{table:semantic_mapping}.
+
 
 \begin{lstlisting}[caption={A simplified illustration of a set intersection implementation in \texttt{C++} in the structuralist, mereological style.}, , label={lst:set_intersection}]
 template <typename Universe, auto Predicate>
@@ -137,8 +154,7 @@ In practice, this allows us to move beyond the "black-box" constraints of nomina
 By hoisting these mereological invariants into the type signature, we enable the LLVM backend to perform aggressive structural pruning. As noted in the \emph{n-Category Café} \cite{ncategorycafe}, this categorical perspective treats the "logic" of the system and the "computation" of the system as dual aspects of the same structure—a principle we aim to exploit. 
 For example, to ensure that contradictory set-builder predicates collapse into zero-instruction machine code (see Listing \ref{lst:set_intersection}).
 
-\begin{lstlisting}[caption={A simplified illustration of the compiler simplifies the intersection with the empty set 
- to a zero-cost identity.}]
+\begin{lstlisting}[caption={Compile-time reduction of contradictory set intersections.}]
 using 
  = Set<
 , [](auto x) { return x > 0.0; }>;
@@ -194,34 +210,6 @@ static_assert(e < π);
 \end{lstlisting}
 
 Together, these features bridge the gap between the declarative ease of symbolic algebra and the mechanical sympathy required for modern high-performance computing \cite{thompson2011mechanical}. By allowing the C++ compiler itself to understand the symbolic logic of the Continuum, \texttt{dedekind} ensures that high-level mathematical invariants are preserved from specification to machine code, effectively treating the compiler as a formal proof assistant for systems-level performance.
-
-
-In this paper, we do not want to re-invent the wheel. 
-Instead we want to re-discover the both mathematical structures as well as basic concepts and types found in the C++ language.
-To do this, we use a structural type theory, which allows us to identify a mathematic `concept` in the standard library and make it accessible to programmers and the compiler alike.
-
-While traditional object-oriented systems typically rely on \textit{nominal subtyping}, where a type $T$ is recognized as belonging to a category $C$ only through explicit inheritance declarations (e.g., \texttt{class T : public Monoid}). In this "Capulet/Montague" paradigm, a type is rejected if it lacks the correct "family name," regardless of its actual properties. 
-
-In contrast, \texttt{dedekind} adopts a structural type theory. This alignment mirrors the mathematical structuralism advocated by Awodey \cite{7}, where mathematical objects are defined not by an internal "essence" but by their roles and relations within a category. As famously noted by Shakespeare, "a rose by any other name would smell as sweet" \cite{shakespeare1597romeo}. In \texttt{dedekind}, we codify this by prioritizing the "scent" (structural invariants) over the "lineage" (nominal inheritance), as illustrated in Listing \ref{lst:juliet}.
-
-\begin{lstlisting}[language=C++, caption={The "Juliet" Posture: Nominal vs. Structural Typing in C++23.}, label={lst:juliet}]
-// Nominal: The "Feudal" approach (Inheritance-based)
-struct Flower { virtual bool smells_sweet() const = 0; };
-struct Rose : public Flower { 
-    bool smells_sweet() const override { return true; } 
-};
-
-// Structural: The "Juliet" approach (Concept-based)
-template <typename T>
-concept SmellsSweet = requires(T t) {
-    { t.scent() } -> std::same_as<Sweetness>;
-};
-
-// In dedekind, even a 'Briar' is a 'Rose' if it satisfies the scent invariant.
-static_assert(SmellsSweet<Briar>, "A rose by any other name...");
-\end{lstlisting}
-
-Leveraging C++20/23 Concepts, types are treated as mathematical objects defined entirely by their interface and satisfied invariants. A type $T$ is identified as a \texttt{MonoidalCategory} if it possesses the required algebraic morphisms ($\otimes, e$); its internal name and declaration lineage are irrelevant to the compiler's logical resolution.
 
 
 \section{Implementation}
@@ -1272,27 +1260,35 @@ The programmer is free to reason in the language of Cantor, while the compiler p
 
 \section{Results}
 
+\begin{landscape}
+
 \begin{table}[ht]
-\centering
+\centering 
 \caption{The Dedekind Registry: Mapping C++23 Standard Primitives to Categorical Species.}
 \label{table:std_correspondence}
 \begin{tabular}{llll}
 \hline
 \textbf{Mathematical Concept} & \textbf{Standard C++23 Entity} & \textbf{Dedekind Concept} & \textbf{Ontological Status} \\ \hline
-\rowcolor[HTML]{EFEFEF} 
-\multicolumn{4}{l}{\textit{Boundary Objects (Limits)}} \\
+\rowcolor[HTML]{EFEFEF}
+\multicolumn{4}{l}{\textit{Boundary Objects (Limits)}} \\ 
 Terminal Object ($1$) & \texttt{std::monostate} & \texttt{IsTerminalObject} & \textbf{Total} (Singleton) \\
 Initial Object ($0$) & \texttt{std::nullptr\_t} & \texttt{IsInitialObject} & \textbf{Total} (Unreachable) \\ \hline
-\rowcolor[HTML]{EFEFEF} 
+\rowcolor[HTML]{EFEFEF}
 \multicolumn{4}{l}{\textit{Morphic Foundations}} \\
-Product ($A \times B$) & \texttt{std::pair<A, B>} & \texttt{IsProduct} & Universal Projection \\
+Strict Product ($A \times B$) & \texttt{std::pair<A, B>} & \texttt{IsProduct} & \textbf{Strict} (Non-conv.) \\
 Coproduct ($A + B$) & \texttt{std::variant<A, B>} & \texttt{IsCoproduct} & Rule of Choice \\ \hline
+\rowcolor[HTML]{EFEFEF} 
+\multicolumn{4}{l}{\textit{Function Spaces (Exponentials)}} \\
+Internal Hom-set ($B^A$) & \texttt{std::move\_only\_function<B(A)>} & \texttt{IsExponential} & \textbf{Move-Only} (Linear) \\
+Evaluation Morphism ($\epsilon$) & \texttt{std::invoke} & \texttt{eval} & \textbf{Universal} \\
+Abstraction (Currying) & \texttt{[=](A a) \{ return f(x, a); \}} & \texttt{IsExponential} & \textbf{Adjunction} \\
+Structural Closure & \texttt{[cap](A a) \{ ... \}} & \texttt{IsExponential} & \textbf{Structural} (Anonymous) \\ \hline
 \rowcolor[HTML]{EFEFEF} 
 \multicolumn{4}{l}{\textit{Algebraic Species (Total)}} \\
 Modular Group ($\mathbb{Z}/2^n\mathbb{Z}, +$) & \texttt{unsigned int}, \texttt{std::plus} & \texttt{IsAbelianGroup} & \textbf{Total} (Closed) \\
 Boolean Rig ($\mathbb{B}, \vee, \wedge$) & \texttt{bool}, \texttt{||}, \texttt{\&\&} & \texttt{IsRig} & \textbf{Total} (Idempotent) \\
 Modular Ring ($\mathbb{Z}/2^n\mathbb{Z}, +, \times$) & \texttt{unsigned int}, \texttt{+}, \texttt{*} & \texttt{IsRing} & \textbf{Total} (Distributive) \\ \hline
-\rowcolor[HTML]{EFEFEF} 
+\rowcolor[HTML]{EFEFEF}
 \multicolumn{4}{l}{\textit{Hazardous Species (Rejected)}} \\
 Hazardous Magma & \texttt{int}, \texttt{std::plus} & \texttt{IsPointed} & \textbf{Hazard} (UB Overflow) \\
 Floating Point Magma & \texttt{double}, \texttt{std::plus} & \texttt{IsMagma} & \textbf{Hazard} (Non-assoc.) \\ \hline
@@ -1302,6 +1298,9 @@ Distributive Lattice & \texttt{bool}, \texttt{std::logical\_or} & \texttt{IsDist
 Pre-order ($\sqsubseteq$) & \texttt{operator<=} & \texttt{IsPartOf} & Mereological Basis \\ \hline
 \end{tabular}
 \end{table}
+
+\end{landscape}
+
 
 
 
