@@ -28,12 +28,12 @@ import :cartesian;
 
 namespace dedekind::category {
 
-/** 
+/**
  * @section Universal_Aliases
  * Reifying the paper's Table 1 mapping directly.
  */
-export using One  = std::monostate; // The Terminal Object (1)
-export using Zero = std::nullptr_t; // The Initial Object (0)
+export using One = std::monostate;   // The Terminal Object (1)
+export using Zero = std::nullptr_t;  // The Initial Object (0)
 
 /** @section Terminal_Identity */
 template <typename Op>
@@ -49,13 +49,13 @@ inline constexpr bool is_associative_v<One, Op> = true;
 template <typename Op>
 inline constexpr bool is_commutative_v<One, Op> = true;
 
-/** 
+/**
  * @section Automatic_Totality_Registration
- * Any morphism whose codomain is the Terminal Object (One) 
+ * Any morphism whose codomain is the Terminal Object (One)
  * is inherently total, as it represents a trivial sink.
  */
 template <typename F>
-    requires (std::same_as<typename SpeciesTraits<F>::Codomain, One>)
+  requires(std::same_as<typename SpeciesTraits<F>::Codomain, One>)
 inline constexpr bool is_total_v<F> = true;
 
 /**
@@ -87,7 +87,8 @@ concept IsInitialObject = IsInitialMorphism<decltype(zero<T, T>())>;
  * @brief Verification that T behaves as the Terminal Object (1).
  */
 export template <typename T>
-concept IsTerminalObject = IsArrow<F> && IsTotal<F> && 
+concept IsTerminalObject =
+    IsArrow<F> && IsTotal<F> &&
     std::same_as<typename SpeciesTraits<F>::Codomain, One>;
 
 /** @brief The Terminal Category Realization. */
