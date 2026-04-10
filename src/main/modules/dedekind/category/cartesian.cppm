@@ -68,6 +68,20 @@ static_assert(
     "Verification Failed: std::pair<int, bool> must satisfy IsProduct.");
 
 /**
+ * @brief Mediating morphism for Products: ⟨f, g⟩: X -> (A × B)
+ * @details Given f: X -> A and g: X -> B, constructs the unique morphism
+ * that pairs their results.
+ */
+export template <typename F, typename G>
+auto mediate_product(F&& f, G&& g) {
+  return [f = std::forward<F>(f), g = std::forward<G>(g)](auto&& x) {
+    using A = std::invoke_result_t<F, decltype(x)>;
+    using B = std::invoke_result_t<G, decltype(x)>;
+    return std::pair<A, B>(f(x), g(x));
+  };
+}
+
+/**
  * @concept IsCoproduct
  * @brief Categorification of `std::variant<A, B>` as the categorical
  * coproduct (A + B).
@@ -127,6 +141,29 @@ auto ι_2(B&& value) {
   } else {
     return Var(std::forward<B>(value));
   }
+}
+
+/**
+ * @brief Mediating morphism for Coproducts: [f, g]: (A + B) -> X
+ * @details Given f: A -> X and g: B -> X, constructs the unique morphism
+ * (the "case" analysis) that handles either alternative of a variant.
+ */
+export template <typename Ret, typename F, typename G>
+auto mediate_coproduct(F&& f, G&& g) {
+  return
+      [f = std::forward<F>(f), g = std::forward<G>(g)](auto&& variant) -> Ret {
+        return std::visit(
+            [&](auto&& val) -> Ret {
+              using T = std::decay_t<decltype(val)>;
+              // Logic to determine which function to apply based on type
+              if constexpr (std::is_invocable_r_v<Ret, F, T>) {
+                return std::invoke(f, std::forward<decltype(val)>(val));
+              } else {
+                return std::invoke(g, std::forward<decltype(val)>(val));
+              }
+            },
+            std::forward<decltype(variant)>(variant));
+      };
 }
 
 /**

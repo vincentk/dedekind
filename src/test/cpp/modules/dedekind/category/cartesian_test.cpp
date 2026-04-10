@@ -42,3 +42,32 @@ TEST_CASE("Discrete: Product and Coproduct (Cartesian Bridge)",
     CHECK(std::get<1>(choice_4) == true);
   }
 }
+
+TEST_CASE("Cartesian: Universal Property Verification",
+          "[category][cartesian][universal]") {
+  SECTION("Product Universal Property (The 'Both' Rule)") {
+    // Given f: X -> A and g: X -> B
+    auto f = [](int x) -> int { return x + 1; };
+    auto g = [](int x) -> bool { return x > 0; };
+
+    // The unique mediating arrow ⟨f, g⟩: X -> (A x B)
+    auto both = mediate_product(f, g);
+
+    auto result = both(10);
+    STATIC_CHECK(std::same_as<decltype(result), std::pair<int, bool>>);
+    CHECK(result.first == 11);
+    CHECK(result.second == true);
+  }
+
+  SECTION("Coproduct Universal Property (The 'Case' Rule)") {
+    // Given f: A -> X and g: B -> X
+    auto f = [](int i) -> double { return static_cast<double>(i); };
+    auto g = [](bool b) -> double { return b ? 1.0 : 0.0; };
+
+    // The unique mediating arrow [f, g]: (A + B) -> X
+    auto select = mediate_coproduct<double>(f, g);
+
+    CHECK(select(std::variant<int, bool>{42}) == 42.0);
+    CHECK(select(std::variant<int, bool>{true}) == 1.0);
+  }
+}
