@@ -59,7 +59,9 @@ namespace dedekind::category {
  * @tparam G The morphism g: Y ⟶ Z.
  */
 export template <typename P, typename F, typename G>
-concept IsPullback = IsSubobject<P, typename P::Ambient> &&
+concept IsPullback = IsArrow<F> && IsArrow<G> &&
+                     std::same_as<Cod<F>, Cod<G>> &&
+                     IsSubobject<P, typename P::Ambient> &&
                      IsProduct<typename P::Ambient, Dom<F>, Dom<G>> &&
                      requires(P p, typename P::Member m) {
                        // π₁: P ⟶ X and π₂: P ⟶ Y (Projections via the inclusion
