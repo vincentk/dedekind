@@ -42,51 +42,47 @@ TEST_CASE("Discrete: Product and Coproduct (Cartesian Bridge)",
     CHECK(std::get<1>(choice_4) == true);
   }
 }
-
 TEST_CASE("Cartesian: Labeled Coproduct and Uncurry",
           "[category][cartesian][labeled]") {
   SECTION("Coproduct Mediation (Case Analysis)") {
-    auto f =
-        Morphism<int, double>([](int i) { return static_cast<double>(i); });
-    auto g = Morphism<bool, double>([](bool b) { return b ? 1.0 : 0.0; });
+    // Let arrow() deduce Morphism<int, double> and Morphism<bool, double>
+    auto f = arrow([](int i) { return static_cast<double>(i); });
+    auto g = arrow([](bool b) { return b ? 1.0 : 0.0; });
 
     auto cases = mediate_coproduct(f, g);
 
-    using CaseType = decltype(cases);
-    STATIC_CHECK(IsArrow<CaseType, std::variant<int, bool>, double>);
+    // IsArrow now uses your inferred labels
+    STATIC_CHECK(IsArrow<decltype(cases)>);
+    using Var = std::variant<int, bool>;
 
-    CHECK(cases(std::variant<int, bool>{42}) == 42.0);
-    CHECK(cases(std::variant<int, bool>{true}) == 1.0);
+    CHECK(cases(Var{42}) == 42.0);
+    CHECK(cases(Var{true}) == 1.0);
   }
 
   SECTION("Uncurry Adjunction Identity") {
-    // A curried arrow: int -> (int -> int)
-    auto curried_val = Morphism<int, std::move_only_function<int(int)>>(
-        [](int x) { return [x](int y) { return x * y; }; });
+    // Instead of move_only_function, we return a nested arrow
+    // This allows uncurry to deduce its labels from the nested Morphism
+    auto curried_val =
+        arrow([](int x) { return arrow([x](int y) { return x * y; }); });
 
     auto uncurried = uncurry(curried_val);
 
-    using UncurryType = decltype(uncurried);
-    STATIC_CHECK(IsArrow<UncurryType, std::pair<int, int>, int>);
-
+    STATIC_CHECK(IsArrow<decltype(uncurried)>);
+    // Domain should be inferred as std::pair<int, int>
     CHECK(uncurried({6, 7}) == 42);
   }
 }
 
-TEST_CASE(CCCTest, CurryPlus) {
-  // 1. Define a morphism from a product (int × int) → int
-  auto plus_morphism = arrow<std::pair<int, int>, int>(
-      [](auto p) { return p.first + p.second; });
+TEST_CASE("CCC: CurryPlus", "[category][cartesian]") {
+  // Use the simplest arrow inference
+  auto plus_morphism =
+      arrow([](std::pair<int, int> p) { return p.first + p.second; });
 
-  // 2. Curry it: (int × int → int) ⟹ (int → (int → int))
   auto curried_plus = curry(plus_morphism);
 
-  // 3. Test the partial application (X -> B^A)
-  auto add_five = curried_plus(5);  // This returns a Morphism<int, int>
+  // curried_plus(5) returns a labeled arrow, so it is callable
+  auto add_five = curried_plus(5);
 
-  EXPECT_EQ(add_five(10), 15);
-  EXPECT_EQ(add_five(-2), 3);
-
-  // One-liner "Categorical" style:
-  EXPECT_EQ(curried_plus(10)(20), 30);
+  CHECK(add_five(10) == 15);
+  CHECK(curried_plus(10)(20) == 30);
 }

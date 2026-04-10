@@ -72,16 +72,58 @@ static_assert(
  * @details Given f: X -> A and g: X -> B, constructs the unique morphism
  * that pairs their results.
  */
-export template <typename F, typename G>
+export template <IsArrow F, IsArrow G>
+  requires std::same_as<Dom<F>, Dom<G>>  // Universal property: same source X
 auto mediate_product(F&& f, G&& g) {
-  using X = typename SpeciesTraits<std::decay_t<F>>::Domain;
-  using A = typename SpeciesTraits<std::decay_t<F>>::Codomain;
-  using B = typename SpeciesTraits<std::decay_t<G>>::Codomain;
+  using X = Dom<F>;
+  using A = Cod<F>;
+  using B = Cod<G>;
 
-  return arrow<X, std::pair<A, B>>(
-      [f = std::forward<F>(f), g = std::forward<G>(g)](const X& x) {
-        return std::pair<A, B>(f(x), g(x));
-      });
+  return arrow([f = std::forward<F>(f), g = std::forward<G>(g)](const X& x) {
+    return std::pair<A, B>(f(x), g(x));
+  });
+}
+
+/**
+ * @concept IsArrowFromProduct
+ * @brief Matches an Arrow whose Domain is a categorical Product (std::pair).
+ */
+export template <typename F>
+concept IsArrowFromProduct =
+    IsArrow<F> && IsProduct<Dom<F>, typename Dom<F>::first_type,
+                            typename Dom<F>::second_type>;
+
+/**
+ * @brief Currying: (X × A → B) ⟹ (X → B^A)
+ */
+export template <IsArrowFromProduct F>
+auto curry(F&& f) {
+  using X = typename Dom<F>::first_type;
+  using A = typename Dom<F>::second_type;
+
+  // Use explicit 'const X& x' instead of 'const auto& x'
+  return arrow([f = std::forward<F>(f)](const X& x) {
+    // Use explicit 'const A& a'
+    return arrow([f, x](const A& a) { return f({x, a}); });
+  });
+}
+
+/**
+ * @brief Uncurrying: (X → B^A) ⟹ (X × A → B)
+ * @details Transforms a function returning a function into a single function
+ * taking a categorical product (std::pair).
+ */
+export template <IsArrow F>
+auto uncurry(F&& f) {
+  using X = Dom<F>;
+  using Exp = Cod<F>;
+  using A = Dom<Exp>;
+  // using B = Cod<Exp>;
+
+  // Use explicit types in the lambda so signature_extractor works
+  return arrow([f = std::forward<F>(f)](const std::pair<X, A>& p) {
+    return f(p.first)(p.second);
+  });
 }
 
 /**
@@ -151,12 +193,12 @@ auto ι_2(B&& value) {
  * @details Given f: A -> X and g: B -> X, constructs the unique morphism
  * (the "case" analysis) that handles either alternative of a variant.
  */
-export template <typename F, typename G>
+export template <IsArrow F, IsArrow G>
+  requires std::same_as<Cod<F>, Cod<G>>  // Must map to the same Target X
 auto mediate_coproduct(F&& f, G&& g) {
-  using A = typename SpeciesTraits<std::decay_t<F>>::Domain;
-  using B = typename SpeciesTraits<std::decay_t<G>>::Domain;
-  using X = typename SpeciesTraits<std::decay_t<F>>::Codomain;
-
+  using A = Dom<F>;
+  using B = Dom<G>;
+  using X = Cod<F>;
   using Var = std::variant<A, B>;
 
   return arrow<Var, X>(
@@ -230,38 +272,6 @@ static_assert(
 // Valid function, but wrong mapping for this specific Hom-set
 static_assert(!IsExponential<std::function<int(int)>, int, bool>,
               "Verification: Rejected due to Codomain mismatch.");
-
-/**
- * @concept IsArrowFromProduct
- * @brief Matches an Arrow whose Domain is a categorical Product (std::pair).
- */
-export template <typename F>
-concept IsArrowFromProduct =
-    IsArrow<F> && IsProduct<typename std::decay_t<F>::Domain,
-                            typename std::decay_t<F>::Domain::first_type,
-                            typename std::decay_t<F>::Domain::second_type>;
-
-/**
- * @brief Currying: (X × A → B) ⟹ (X → B^A)
- */
-export template <IsArrowFromProduct F>
-auto curry(F&& f) {
-  return arrow([f = std::forward<F>(f)](const auto& x) mutable {
-    return arrow([f, x](const auto& a) { return f({x, a}); });
-  });
-}
-
-/**
- * @brief Uncurrying: (X → B^A) ⟹ (X × A → B)
- * @details Transforms a function returning a function into a single function
- * taking a categorical product (std::pair).
- */
-export template <IsArrow F>
-auto uncurry(F&& f) {
-  return arrow([f = std::forward<F>(f)](const auto& p) mutable {
-    return f(p.first)(p.second);
-  });
-}
 
 /**
  * @concept IsCartesianClosed
