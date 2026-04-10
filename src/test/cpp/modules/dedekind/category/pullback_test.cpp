@@ -108,7 +108,8 @@ TEST_CASE("Pullback: Non-identity morphisms", "[category][pullback]") {
   }
 }
 
-TEST_CASE("Pullback: TernaryLogic classifier", "[category][pullback][ternary]") {
+TEST_CASE("Pullback: TernaryLogic classifier",
+          "[category][pullback][ternary]") {
   using X = int;
   using Y = int;
   using Z = int;
