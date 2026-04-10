@@ -71,11 +71,13 @@ concept IsCharacteristic = IsPredicate<P>;
  * @details Lifts a raw mapping into a formal Predicate Morphism A → Ω.
  *
  * @tparam A The Domain object.
- * @tparam F A mapping that must result in a LogicalValue (bool, Ternary, etc.).
+ * @tparam F A callable invocable as `F(const A&)` that returns a LogicalValue.
  */
 export template <typename A, typename F>
-// 1. First, verify the logic of the mapping itself
-  requires LogicalValue<std::invoke_result_t<std::decay_t<F>, A>>
+// 1. First, verify the logic of the mapping itself, matching how Morphism
+// actually invokes the callable (i.e. via `const A&`).
+  requires std::invocable<std::decay_t<F>, const A&> &&
+           LogicalValue<std::invoke_result_t<std::decay_t<F>, const A&>>
 constexpr auto classify(F&& f) {
   // 2. Now call the skeletal factory
   auto result = arrow<A>(std::forward<F>(f));
