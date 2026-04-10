@@ -101,10 +101,15 @@ auto curry(F&& f) {
   using X = typename Dom<F>::first_type;
   using A = typename Dom<F>::second_type;
 
-  // Use explicit 'const X& x' instead of 'const auto& x'
-  return arrow([f = std::forward<F>(f)](const X& x) {
-    // Use explicit 'const A& a'
-    return arrow([f, x](const A& a) { return f({x, a}); });
+  // Heap-allocate the morphism to ensure it can be captured by the inner lambda
+  // and called multiple times without copying.
+  auto shared_f = std::make_shared<std::decay_t<F>>(std::forward<F>(f));
+
+  return arrow([shared_f](const X& x) {
+    return arrow([shared_f, x](const A& a) {
+      // Call the shared morphism
+      return (*shared_f)({x, a});
+    });
   });
 }
 
