@@ -196,6 +196,34 @@ static_assert(e < π);
 Together, these features bridge the gap between the declarative ease of symbolic algebra and the mechanical sympathy required for modern high-performance computing \cite{thompson2011mechanical}. By allowing the C++ compiler itself to understand the symbolic logic of the Continuum, \texttt{dedekind} ensures that high-level mathematical invariants are preserved from specification to machine code, effectively treating the compiler as a formal proof assistant for systems-level performance.
 
 
+In this paper, we do not want to re-invent the wheel. 
+Instead we want to re-discover the both mathematical structures as well as basic concepts and types found in the C++ language.
+To do this, we use a structural type theory, which allows us to identify a mathematic `concept` in the standard library and make it accessible to programmers and the compiler alike.
+
+While traditional object-oriented systems typically rely on \textit{nominal subtyping}, where a type $T$ is recognized as belonging to a category $C$ only through explicit inheritance declarations (e.g., \texttt{class T : public Monoid}). In this "Capulet/Montague" paradigm, a type is rejected if it lacks the correct "family name," regardless of its actual properties. 
+
+In contrast, \texttt{dedekind} adopts a structural type theory. This alignment mirrors the mathematical structuralism advocated by Awodey \cite{7}, where mathematical objects are defined not by an internal "essence" but by their roles and relations within a category. As famously noted by Shakespeare, "a rose by any other name would smell as sweet" \cite{shakespeare1597romeo}. In \texttt{dedekind}, we codify this by prioritizing the "scent" (structural invariants) over the "lineage" (nominal inheritance), as illustrated in Listing \ref{lst:juliet}.
+
+\begin{lstlisting}[language=C++, caption={The "Juliet" Posture: Nominal vs. Structural Typing in C++23.}, label={lst:juliet}]
+// Nominal: The "Feudal" approach (Inheritance-based)
+struct Flower { virtual bool smells_sweet() const = 0; };
+struct Rose : public Flower { 
+    bool smells_sweet() const override { return true; } 
+};
+
+// Structural: The "Juliet" approach (Concept-based)
+template <typename T>
+concept SmellsSweet = requires(T t) {
+    { t.scent() } -> std::same_as<Sweetness>;
+};
+
+// In dedekind, even a 'Briar' is a 'Rose' if it satisfies the scent invariant.
+static_assert(SmellsSweet<Briar>, "A rose by any other name...");
+\end{lstlisting}
+
+Leveraging C++20/23 Concepts, types are treated as mathematical objects defined entirely by their interface and satisfied invariants. A type $T$ is identified as a \texttt{MonoidalCategory} if it possesses the required algebraic morphisms ($\otimes, e$); its internal name and declaration lineage are irrelevant to the compiler's logical resolution.
+
+
 \section{Implementation}
 
 The methodology of \texttt{dedekind} is predicated on the translation of formal mathematical structures into a stratified registry of C++23 modules. This stratification allows for a "bottom-up" synthesis of complex mathematical objects, where each level serves as a verified foundation for the next.
@@ -235,31 +263,6 @@ This aligns with the "Real World" functional programming philosophy advocated by
 
 This methodology is physically enforced by a strictly layered directed acyclic graph (DAG) of the system's build order.
 By carefully selecting C++ module partitions and build-step boundaries, we translate the dependencies of formal mathematics into a sequence of verified compilation units. This architecture mimics the pedagogical progression of a mathematical textbook, where the ontology matures from foundational axioms to complex theorems through a series of verified proofs. By isolating these prerequisites into a `category` module, we leverage what Wadler termed "Theorems for Free!" \cite{wadler1989theorems}: once a structural identity is established and cached as a Binary Module Interface (BMI), its properties are inherited by all downstream partitions as an immutable "cached truth." This ensures that the compiler's proof-search is grounded in a physical hierarchy, preventing circular reasoning and ensuring that the structural integrity of the model is a prerequisite for successful linking. Crucially, the CI/CD methodology provides an independent, physical verification of this progression; by requiring every node in the build graph to pass its respective model validation before the pipeline can proceed, we ensure that the "textbook" derivation is not merely a logical possibility, but a materialized reality across the entire module graph.
-
-\subsubsection{Nominal vs. Structural Subtyping}
-Traditional object-oriented systems typically rely on \textit{nominal subtyping}, where a type $T$ is recognized as belonging to a category $C$ only through explicit inheritance declarations (e.g., \texttt{class T : public Monoid}). In this "Capulet/Montague" paradigm, a type is rejected if it lacks the correct "family name," regardless of its actual properties. 
-
-In contrast, \texttt{dedekind} adopts a structural type theory. This alignment mirrors the mathematical structuralism advocated by Awodey \cite{7}, where mathematical objects are defined not by an internal "essence" but by their roles and relations within a category. As famously noted by Shakespeare, "a rose by any other name would smell as sweet" \cite{shakespeare1597romeo}. In \texttt{dedekind}, we codify this by prioritizing the "scent" (structural invariants) over the "lineage" (nominal inheritance), as illustrated in Listing \ref{lst:juliet}.
-
-\begin{lstlisting}[language=C++, caption={The "Juliet" Posture: Nominal vs. Structural Typing in C++23.}, label={lst:juliet}]
-// Nominal: The "Feudal" approach (Inheritance-based)
-struct Flower { virtual bool smells_sweet() const = 0; };
-struct Rose : public Flower { 
-    bool smells_sweet() const override { return true; } 
-};
-
-// Structural: The "Juliet" approach (Concept-based)
-template <typename T>
-concept SmellsSweet = requires(T t) {
-    { t.scent() } -> std::same_as<Sweetness>;
-};
-
-// In dedekind, even a 'Briar' is a 'Rose' if it satisfies the scent invariant.
-static_assert(SmellsSweet<Briar>, "A rose by any other name...");
-\end{lstlisting}
-
-Leveraging C++20/23 Concepts, types are treated as mathematical objects defined entirely by their interface and satisfied invariants. A type $T$ is identified as a \texttt{MonoidalCategory} if it possesses the required algebraic morphisms ($\otimes, e$); its internal name and declaration lineage are irrelevant to the compiler's logical resolution.
-
 
 \subsubsection{The Compiler as a Verification and Optimization Engine}
 While functional languages like Haskell are often viewed as the natural home for Category Theory, Milewski \cite{milewski2019category} demonstrated that C++ is equally capable of modeling complex categorical morphisms. \texttt{dedekind} builds upon this bridge by utilizing C++23 features to move from mere simulation to compile-time verification. 
