@@ -86,3 +86,31 @@ TEST_CASE("CCC: CurryPlus", "[category][cartesian]") {
   CHECK(add_five(10) == 15);
   CHECK(curried_plus(10)(20) == 30);
 }
+
+TEST_CASE("Cartesian: Product Mediation", "[category][cartesian][labeled]") {
+  SECTION("Product Mediation (Pairing)") {
+    // 1. Define two morphisms f: X -> A and g: X -> B
+    auto f = arrow([](int i) { return i * 2.0; });  // int -> double
+    auto g = arrow([](int i) { return i > 0; });    // int -> bool
+
+    // 2. Mediate them into a product arrow <f, g>: int -> (double x bool)
+    auto pairing = mediate_product(f, g);
+
+    // 3. Verify it satisfies the skeletal IsArrow concept
+    STATIC_CHECK(IsArrow<decltype(pairing)>);
+
+    // 4. Verify Domain and Codomain labels are correct
+    using ProductType = std::pair<double, bool>;
+    STATIC_CHECK(std::same_as<Dom<decltype(pairing)>, int>);
+    STATIC_CHECK(std::same_as<Cod<decltype(pairing)>, ProductType>);
+
+    // 5. Verify the action: <f, g>(x) == (f(x), g(x))
+    auto result = pairing(5);
+    CHECK(result.first == 10.0);
+    CHECK(result.second == true);
+
+    auto result_zero = pairing(-1);
+    CHECK(result_zero.first == -2.0);
+    CHECK(result_zero.second == false);
+  }
+}
