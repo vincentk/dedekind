@@ -36,9 +36,9 @@ namespace dedekind::category {
  *     f   g
  *    /     \
  *   A       B
- *    \     /
+ *    \      /
  *     π₁   π₂
- *      \   /
+ *      \  /
  *       P
  */
 export template <typename P, typename A, typename B>
@@ -68,16 +68,36 @@ static_assert(
  *        /     \
  *       X       X
  */
-template <typename T, typename A, typename B>
+export template <typename T, typename A, typename B>
 concept IsCoproduct = requires(A a, B b) {
   { T(a) } -> std::same_as<T>;
   { T(b) } -> std::same_as<T>;
 };
 
-export template <typename T, typename V>
-auto inject(V&& value) {
-  // In a true topos, this finds the unique injector into the coproduct
-  return std::variant<std::decay_t<V>, T>(std::forward<V>(value));
+/**
+ * @brief Left injection ι₁: A -> A + B
+ */
+export template <typename A, typename B>
+auto ι_1(A&& value) {
+  using Var = std::variant<A, B>;
+  if constexpr (std::same_as<A, B>) {
+    return Var(std::in_place_index<0>, std::forward<A>(value));
+  } else {
+    return Var(std::forward<A>(value));
+  }
+}
+
+/**
+ * @brief Right injection ι₂: B -> A + B
+ */
+export template <typename A, typename B>
+auto ι_2(B&& value) {
+  using Var = std::variant<A, B>;
+  if constexpr (std::same_as<A, B>) {
+    return Var(std::in_place_index<1>, std::forward<B>(value));
+  } else {
+    return Var(std::forward<B>(value));
+  }
 }
 
 /**

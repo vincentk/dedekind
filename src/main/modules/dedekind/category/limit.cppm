@@ -31,19 +31,37 @@ import :species;
 
 namespace dedekind::category {
 
-/** @section Universal_Aliases */
+/**
+ * @brief The Constant Morphism f: A -> B.
+ * @details the categorification of std::monostate as a constant function,
+ * mapping every element of A to a fixed element c in B.
+ */
 export using One = std::monostate;
+
+/**
+ * @brief The zero morphism factory ?: Zero -> T.
+ * @details the categorification of std::nullptr_t as a zero morphism,
+ * representing an unreachable code path. It maps any input to a logically
+ * unreachable state, and thus serves as the Initial Object in the category.
+ */
 export using Zero = std::nullptr_t;
 
 /**
- * @section Totality_Bridge
- * We define 'IsMorphicTotal' to avoid the name collision with 'IsTotal'
- * (binary). An arrow to 'One' is axiomatically total (the Juliet "scent" of a
- * sink).
+ * @concept IsMorphicTotal
+ *
+ * @details A morphism is "Morphic Total" if its codomain is the Terminal Object
+ * (One). This concept captures the idea that such morphisms are "total" in the
+ * sense that they are defined for all inputs and always yield a valid output
+ * (the unique element of One).
+ *
+ * See also: IsTotal which captures the idea of a species being total with
+ * respect to a binary operation.
  */
 export template <typename F>
-concept IsMorphicTotal =
-    IsArrow<F> && std::same_as<typename SpeciesTraits<F>::Codomain, One>;
+concept IsMorphicTotal = requires {
+  typename F::Domain;
+  typename F::Codomain;
+} && std::same_as<typename F::Codomain, One>;
 
 /** @concept IsTerminalMorphism */
 export template <typename F>

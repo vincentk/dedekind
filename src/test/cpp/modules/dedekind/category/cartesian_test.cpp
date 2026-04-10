@@ -22,11 +22,22 @@ TEST_CASE("Discrete: Product and Coproduct (Cartesian Bridge)",
   }
 
   SECTION("Coproduct (A + B) via std::variant") {
-    using C = std::variant<int, bool>;
-    STATIC_CHECK(IsCoproduct<C, int, bool>);
+    STATIC_CHECK(IsCoproduct<std::variant<int, bool>, int, bool>);
 
-    auto choice = inject<int>(10);
-    STATIC_CHECK(std::same_as<decltype(choice), C>);
-    CHECK(std::get<int>(choice) == 10);
+    auto choice_1 = ι_1<int, bool>(10);
+    STATIC_CHECK(std::same_as<decltype(choice_1), std::variant<int, bool>>);
+    CHECK(std::get<int>(choice_1) == 10);
+
+    auto choice_2 = ι_1<int, int>(10);
+    STATIC_CHECK(std::same_as<decltype(choice_2), std::variant<int, int>>);
+    CHECK(std::get<0>(choice_2) == 10);
+
+    auto choice_3 = ι_2<int, bool>(true);
+    STATIC_CHECK(std::same_as<decltype(choice_3), std::variant<int, bool>>);
+    CHECK(std::get<bool>(choice_3) == true);
+
+    auto choice_4 = ι_2<bool, bool>(true);
+    STATIC_CHECK(std::same_as<decltype(choice_4), std::variant<bool, bool>>);
+    CHECK(std::get<1>(choice_4) == true);
   }
 }
