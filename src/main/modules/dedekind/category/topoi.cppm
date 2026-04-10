@@ -123,4 +123,29 @@ auto operator!(P&& p) {
       [p = std::forward<P>(p)](const A& x) { return L::NOT(p(x)); });
 }
 
+/**
+ * @brief The 'true' morphism: 1 → Ω.
+ */
+export template <typename L = ClassicalLogic>
+  requires LogicalSpecies<L>
+auto logical_true() {
+  return arrow<One, typename L::type>([](One) { return L::True; });
+}
+
+/**
+ * @brief The 'false' morphism: 1 → Ω.
+ */
+export template <typename L = ClassicalLogic>
+  requires LogicalSpecies<L>
+auto logical_false() {
+  return arrow<One, typename L::type>([](One) { return L::False; });
+}
+
+/**
+ * @brief Power Object Alias
+ * @details In a Topos, P(A) is the exponential object Ω^A.
+ */
+template <typename A, typename L = ClassicalLogic>
+using PowerObject = Exponential<A, typename L::type>;
+
 }  // namespace dedekind::category
