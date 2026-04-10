@@ -67,28 +67,101 @@ export template <typename P>
 concept IsCharacteristic = IsPredicate<P>;
 
 /**
- * @brief Characteristic Morphism Factory (classify)
- * @details Lifts a raw mapping into a formal Predicate Morphism A → Ω.
+ * @concept IsSubobject
+ * @brief The categorical witness of a monomorphism ι: S ↣ A.
  *
- * @tparam A The Domain object.
- * @tparam F A callable invocable as `F(const A&)` that returns a LogicalValue.
+ * @tparam S The Subobject Species (The "Body").
+ * @tparam A The Ambient Species (The "Space").
+ */
+export template <typename S, typename A>
+concept IsSubobject = requires(S s, typename S::Member m) {
+  /**
+   * @brief ι: S ↣ A
+   * The canonical inclusion morphism. Every member of S must
+   * uniquely map to a member of the ambient species A.
+   */
+  { s.ι(m) } -> std::same_as<A>;
+
+  /**
+   * @brief χ: A ⟶ Ω
+   * Every subobject in a Topos is uniquely classified by a
+   * morphism into the subobject classifier Ω.
+   */
+  { s.χ } -> IsPredicate;
+
+  // Metadata verification: The declared ambient must match A.
+  typename S::Ambient;
+  requires std::same_as<typename S::Ambient, A>;
+
+  // Characteristic morphism verification: χ must classify elements of A.
+  requires std::same_as<Dom<decltype(s.χ)>, A>;
+};
+
+/**
+ * @brief The Subobject Species S ↣ A.
+ * @details Represents a subset of the ambient species A, defined by the
+ * characteristic morphism χ: A ⟶ Ω.
+ *
+ * @tparam A The Ambient (Super) Species.
+ * @tparam Chi The type of the characteristic morphism χ.
+ */
+export template <typename A, typename Chi>
+struct Subobject {
+  using Ambient = A;
+  Chi χ;  // The Rule: A ⟶ Ω
+
+  /**
+   * @brief The Internal Member of the Subobject.
+   * Wraps a value from the ambient space that satisfies the classifier.
+   */
+  struct Member {
+    A value;
+  };
+
+  /** @brief ι: S ↣ A (The Textbook Inclusion) */
+  constexpr A ι(const Member& m) const { return m.value; }
+
+  /**
+   * @section Pullback_Projections
+   * These projections are only valid when the Ambient space A satisfies
+   * the IsProduct concept (X × Y).
+   */
+
+  /** @brief π₁: S ⟶ X */
+  constexpr auto π1(const Member& m) const
+    requires requires { m.value.first; }
+  {
+    return m.value.first;
+  }
+
+  /** @brief π2: S ⟶ Y */
+  constexpr auto π2(const Member& m) const
+    requires requires { m.value.second; }
+  {
+    return m.value.second;
+  }
+};
+
+/**
+ * @brief Characteristic Morphism Factory (classify)
+ * Returns the Subobject Species (The Body) carrying the rule (The Arrow).
  */
 export template <typename A, typename F>
-// 1. First, verify the logic of the mapping itself, matching how Morphism
-// actually invokes the callable (i.e. via `const A&`).
-  requires std::invocable<std::decay_t<F>, const A&> &&
-           LogicalValue<std::invoke_result_t<std::decay_t<F>, const A&>>
+  requires(!IsArrow<std::remove_cvref_t<F>>) &&
+          std::invocable<std::decay_t<F>, const A&> &&
+          LogicalValue<std::invoke_result_t<std::decay_t<F>, const A&>>
 constexpr auto classify(F&& f) {
-  // 2. Now call the skeletal factory
-  auto result = arrow<A>(std::forward<F>(f));
+  auto rule = arrow<A>(std::forward<F>(f));
+  return Subobject<A, decltype(rule)>{std::move(rule)};
+}
 
-  // 3. Optional: static_assert here instead of 'requires'
-  // to avoid circular dependency in template resolution
-  static_assert(
-      IsPredicate<decltype(result)>,
-      "Dedekind Logic Error: result of classify must be an IsPredicate.");
-
-  return result;
+/**
+ * @brief Idempotent classify: Passthrough for existing Arrows.
+ */
+export template <typename A, IsArrow F>
+  requires IsPredicate<F> && std::same_as<Dom<F>, A>
+constexpr auto classify(F&& f) {
+  return Subobject<A, std::remove_cvref_t<F>>{std::forward<F>(f)};
 }
 
 /** @brief Logical Conjunction (Intersection): Synthesizes a rule for A ∩ B.
@@ -98,8 +171,9 @@ export template <IsPredicate P, IsPredicate Q>
 auto operator&&(P&& p, Q&& q) {
   using L = typename GetLogic<Cod<P>>::type;
   using A = Dom<P>;
+  using Ω = Cod<P>;
 
-  return classify<A>([p = std::forward<P>(p), q = std::forward<Q>(q)](
+  return arrow<A, Ω>([p = std::forward<P>(p), q = std::forward<Q>(q)](
                          const A& x) { return L::AND(p(x), q(x)); });
 }
 
@@ -109,8 +183,9 @@ export template <IsPredicate P, IsPredicate Q>
 auto operator||(P&& p, Q&& q) {
   using L = typename GetLogic<Cod<P>>::type;
   using A = Dom<P>;
+  using Ω = Cod<P>;
 
-  return classify<A>([p = std::forward<P>(p), q = std::forward<Q>(q)](
+  return arrow<A, Ω>([p = std::forward<P>(p), q = std::forward<Q>(q)](
                          const A& x) { return L::OR(p(x), q(x)); });
 }
 
@@ -121,7 +196,7 @@ auto operator!(P&& p) {
   using A = Dom<P>;
 
   // Return a formal Morphism A -> Ω
-  return classify<A>(
+  return arrow<A>(
       [p = std::forward<P>(p)](const A& x) { return L::NOT(p(x)); });
 }
 
