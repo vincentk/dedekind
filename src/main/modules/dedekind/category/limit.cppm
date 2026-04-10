@@ -110,8 +110,7 @@ auto unit() {
  * satisfies this concept.
  */
 export template <typename T>
-concept IsTerminalObject =
-    std::same_as<T, One> || IsTerminalMorphism<decltype(unit<T>())>;
+concept IsTerminalObject = std::same_as<T, One>;
 
 /**
  * @brief The zero morphism factory: produces the unique (unreachable) arrow
