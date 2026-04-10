@@ -1,30 +1,31 @@
 /**
- * @concept IsPosetal
- * @brief Represents a Posetal Category (A Category derived from a Partially
- * Ordered Set).
+ * @file dedekind/category/pullback.cppm
+ * @partition :pullback
+ * @brief Level 2: Limits — Equalizers and Fiber Products (Pullbacks).
  *
- * @section Categorical_Definition
- * A Posetal Category is a category where for any two objects A and B, there is
- * **at most one** morphism from A to B. In this framework:
- * - Objects are elements of the set.
- * - Morphisms represent the relation (a ≤ b).
- * - Identity morphisms correspond to Reflexivity (a ≤ a).
- * - Composition corresponds to Transitivity (a ≤ b and b ≤ c implies a ≤ c).
- * - Skeletality in the category corresponds to Antisymmetry (a ≤ b and b ≤ a
- * implies a = b).
- *
- * @section Order_Structure
- * This structure corresponds to a **Partially Ordered Set (Poset)**. Unlike a
- * Preorder, a Posetal Category is skeletal, meaning isomorphic objects are
- * identical.
+ * @copyright 2026 The Dedekind Authors
+ * Licensed under the Apache License, Version 2.0.
  *
  * @quote
- * "In a sense, the most basic category is a partially ordered set;
- *  the arrows are just the instances of the order relation."
+ * "The pullback is the categorical generalisation of the fiber product:
+ *  it is the universal solution to finding pairs (x, y) that agree in Z."
  *  — Saunders Mac Lane, *Categories for the Working Mathematician*
  *
- * @tparam T The type of objects in the poset.
- * @tparam Rel The relation defining the order (the Morphism Generator).
+ * @section Pullbacks_and_Equalizers
+ * This partition defines the two primary limit constructions used in the
+ * Dedekind Topos:
+ *
+ * - **Equalizer** (`IsEqualizer`): The kernel of a parallel pair (f, g: A ⟶ B).
+ *   Selects exactly those members of A where f and g coincide.
+ *
+ * - **Pullback** (`IsPullback`, `pullback`): The Fiber Product X ×_Z Y.
+ *   Given f: X ⟶ Z and g: Y ⟶ Z, the pullback is a Subobject of X × Y
+ *   containing exactly those pairs (x, y) where f(x) = g(y).
+ *
+ * In this implementation both are realised as `Subobject` species whose
+ * characteristic morphism χ encodes the membership predicate.
+ *
+ * Wikipedia: Pullback (category theory), Equaliser (mathematics)
  */
 module;
 
@@ -76,8 +77,11 @@ concept IsPullback = IsSubobject<P, typename P::Ambient> &&
  *
  * @tparam L The Logic Species defining the Subobject Classifier Ω.
  * @tparam Π The Product Species (e.g., std::pair<X, Y>).
- * @tparam F Morphism X ⟶ Z.
- * @tparam G Morphism Y ⟶ Z.
+ * @tparam F Morphism type for f: X ⟶ Z.
+ * @tparam G Morphism type for g: Y ⟶ Z.
+ * @param f The first morphism f: X ⟶ Z.
+ * @param g The second morphism g: Y ⟶ Z.
+ * @return An arrow χ: Π ⟶ Ω that is `L::True` iff f(π₁(pair)) == g(π₂(pair)).
  */
 template <typename L, typename Π, typename F, typename G>
   requires LogicalSpecies<L> && IsArrow<F> && IsArrow<G> &&
@@ -93,13 +97,24 @@ auto make_χ(F f, G g) {
 }
 
 /**
- * @brief The Pullback Factory (The Join).
+ * @brief The Pullback Factory — constructs the Fiber Product X ×_Z Y.
  *
- * Constructs the Fiber Product P ≅ X ×_Z Y as the kernel of the
- * characteristic morphism χ.
+ * Given two morphisms f: X ⟶ Z and g: Y ⟶ Z, constructs the Fiber Product
+ * P ≅ X ×_Z Y as the Subobject of Π = X × Y classified by the characteristic
+ * morphism χ(x, y) = (f(x) == g(y)).
+ *
+ * @tparam L  The Logic Species used for the Subobject Classifier Ω.
+ *            Defaults to `ClassicalLogic` (bool).
+ * @tparam Π  The Product Species (must satisfy IsProduct<Π, Dom<F>, Dom<G>>).
+ *            Typically `std::pair<X, Y>`.
+ * @tparam F_Raw The (possibly raw callable) type for the first morphism f: X ⟶ Z.
+ * @tparam G_Raw The (possibly raw callable) type for the second morphism g: Y ⟶ Z.
+ * @param f_raw The first morphism (or raw callable) f: X ⟶ Z.
+ * @param g_raw The second morphism (or raw callable) g: Y ⟶ Z.
+ * @return A `Subobject<Π, χ>` representing P = X ×_Z Y.
  */
-template <typename L = ClassicalLogic, typename Π, typename F_Raw,
-          typename G_Raw>
+export template <typename L = ClassicalLogic, typename Π, typename F_Raw,
+                 typename G_Raw>
 auto pullback(F_Raw&& f_raw, G_Raw&& g_raw) {
   // 1. Lift raw callables into formal Morphisms using your skeletal factory.
   auto f = arrow(std::forward<F_Raw>(f_raw));
