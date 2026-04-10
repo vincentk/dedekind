@@ -118,15 +118,8 @@ constexpr auto operator>>(T&& val, η_tag<η_t>) {
 // μ_t is the natural transformation T^2 => T
 export template <typename NestedContext, typename μ_t>
 constexpr auto operator>>(NestedContext&& nested, μ_tag<μ_t>) {
-  // 1. Recover the inner object type X
-  using T2 = std::remove_cvref_t<NestedContext>;
-  using X =
-      typename T2::Domain::Domain;  // Deep extraction from the Arrow's Domain
-
-  // 2. Get the component of μ at X: T(T(X)) -> T(X)
-  auto mu_x = μ_t{}(X{});
-
-  // 3. Apply the join arrow to the nested context
+  // The nested context itself acts as the witness for selecting the component.
+  auto mu_x = μ_t{}(nested);
   return mu_x(std::forward<NestedContext>(nested));
 }
 

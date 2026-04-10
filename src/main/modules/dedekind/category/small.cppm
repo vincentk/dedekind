@@ -99,6 +99,12 @@ inline constexpr bool is_associative_v<T, Op> = true;
  * and natural transformations to be treated as arrows within higher-dimensional
  * structures.
  *
+ * In this codebase we use a further specialization: a category fixes a single
+ * `Species` type, and `Cat::Arrow::Domain` is required to coincide with that
+ * object label type. This is stricter than the textbook many-object view, but
+ * it gives a canonical way to recover an object from the identity arrow
+ * `Cat::id_c(x)` and to re-enter object-level reasoning through composition.
+ *
  * Axioms:
  * 1. Existence: For every arrow f, there exist unique identity arrows id_dom(f)
  *    and id_cod(f).

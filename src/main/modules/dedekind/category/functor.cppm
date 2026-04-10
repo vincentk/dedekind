@@ -57,6 +57,11 @@ namespace dedekind::category {
  * 1. Mapping: F(f: A->B) -> F(f): F(A)->F(B)
  * 2. Identity Law: F(id_c) = id_{F(c)}
  * 3. Composition Law: F(f >> g) = F(f) >> F(g)
+ *
+ * Because `IsCategory` in this project is single-species, the object witness
+ * for `c` is always recovered by first forming the identity arrow `id_c(c)`.
+ * Functorial object mapping is therefore observed indirectly through the spoke
+ * `F(id_c(c))`, whose domain recovers the image object `F(c)`.
  */
 export template <typename F>
 concept IsFunctor = IsArrow<F> && requires {
@@ -68,7 +73,9 @@ concept IsFunctor = IsArrow<F> && requires {
   // The Functor must provide an fmap that preserves composition
   { f.fmap(f_c >> f_c) } -> std::convertible_to<typename F::Τ_cat::Arrow>;
 
-  // Identity Preservation check using fmap
+  // Identity Preservation check using fmap.
+  // In the single-species setting, `c` is the object label and `id_c(c)` is
+  // the canonical spoke from which the image object F(c) is recovered.
   requires requires(typename F::Σ_cat::Arrow::Domain c) {
     { f.fmap(F::Σ_cat::id_c(c)) } -> std::same_as<typename F::Τ_cat::Id>;
   };
