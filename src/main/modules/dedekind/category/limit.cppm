@@ -143,8 +143,8 @@ concept HasUniqueMorphismTo = std::same_as<U, One> && requires {
 
 /**
  * @concept HasUniqueMorphismFrom
- * @brief Asserts that there exists a unique (unreachable) morphism from Z = Zero
- * to T.
+ * @brief Asserts that there exists a unique (unreachable) morphism from Z =
+ * Zero to T.
  * @details Encodes the universal property of the Initial Object: for every
  * species T, the factory `zero<T>()` produces the unique arrow Zero → T.
  */
