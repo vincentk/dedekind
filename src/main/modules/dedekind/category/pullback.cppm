@@ -107,8 +107,10 @@ auto make_χ(F f, G g) {
  *            Defaults to `ClassicalLogic` (bool).
  * @tparam Π  The Product Species (must satisfy IsProduct<Π, Dom<F>, Dom<G>>).
  *            Typically `std::pair<X, Y>`.
- * @tparam F_Raw The (possibly raw callable) type for the first morphism f: X ⟶ Z.
- * @tparam G_Raw The (possibly raw callable) type for the second morphism g: Y ⟶ Z.
+ * @tparam F_Raw The (possibly raw callable) type for the first morphism f: X ⟶
+ * Z.
+ * @tparam G_Raw The (possibly raw callable) type for the second morphism g: Y ⟶
+ * Z.
  * @param f_raw The first morphism (or raw callable) f: X ⟶ Z.
  * @param g_raw The second morphism (or raw callable) g: Y ⟶ Z.
  * @return A `Subobject<Π, χ>` representing P = X ×_Z Y.
