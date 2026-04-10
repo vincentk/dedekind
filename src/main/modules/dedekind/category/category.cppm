@@ -49,6 +49,7 @@ export import :small;      // Small Categories
 export import :discrete;   // The Discrete Category (Points as Arrows)
 export import :limit;      // Universal Limits
 export import :cartesian;  // Products/Coproducts, CCC Foundations
+export import :topoi;      // Internal Logic of the Topos
 export import :pullback;   // The Universal Construction "Sink"
 
 // Level 1: The Ideal (Total Algebra)
