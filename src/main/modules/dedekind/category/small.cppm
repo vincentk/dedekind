@@ -123,31 +123,13 @@ concept IsCategory = requires {
     { Cat::id_c(x) } -> std::same_as<typename Cat::Id>;
   };
 
-  /** @flavour 1: Endo-composition (The Fortress) */
-  // Internal closure: f: A -> B, g: B -> C must stay in the category.
+  /**
+   * @brief Internal Closure (Endo-composition)
+   * A category must be able to compose its own arrows f: A -> B and g: B -> C.
+   * This is a strict requirement of the concept.
+   */
   requires requires(typename Cat::Arrow f, typename Cat::Arrow g) {
     { f >> g } -> std::same_as<typename Cat::Arrow>;
-  };
-
-  // Flavor 2: Inbound (Left-Hand Side)
-  // We use "IsArrow auto" and a nested "requires" block
-  requires requires(typename Cat::Arrow g) {
-    []<IsArrow F_in>(F_in&& f, typename Cat::Arrow g_inner) {
-      if constexpr (std::same_as<typename F_in::Codomain,
-                                 typename Cat::Species>) {
-        return f >> g_inner;
-      }
-    };
-  };
-
-  // Flavor 3: Outbound (Right-Hand Side)
-  requires requires(typename Cat::Arrow f) {
-    []<IsArrow G_out>(typename Cat::Arrow f_inner, G_out&& g) {
-      if constexpr (std::same_as<typename G_out::Domain,
-                                 typename Cat::Species>) {
-        return f_inner >> g;
-      }
-    };
   };
 };
 
