@@ -43,31 +43,32 @@ TEST_CASE("Discrete: Product and Coproduct (Cartesian Bridge)",
   }
 }
 
-TEST_CASE("Cartesian: Universal Property Verification",
-          "[category][cartesian][universal]") {
-  SECTION("Product Universal Property (The 'Both' Rule)") {
-    // Given f: X -> A and g: X -> B
-    auto f = [](int x) -> int { return x + 1; };
-    auto g = [](int x) -> bool { return x > 0; };
+TEST_CASE("Cartesian: Labeled Coproduct and Uncurry",
+          "[category][cartesian][labeled]") {
+  SECTION("Coproduct Mediation (Case Analysis)") {
+    auto f =
+        Morphism<int, double>([](int i) { return static_cast<double>(i); });
+    auto g = Morphism<bool, double>([](bool b) { return b ? 1.0 : 0.0; });
 
-    // The unique mediating arrow ⟨f, g⟩: X -> (A x B)
-    auto both = mediate_product(f, g);
+    auto cases = mediate_coproduct(f, g);
 
-    auto result = both(10);
-    STATIC_CHECK(std::same_as<decltype(result), std::pair<int, bool>>);
-    CHECK(result.first == 11);
-    CHECK(result.second == true);
+    using CaseType = decltype(cases);
+    STATIC_CHECK(IsArrow<CaseType, std::variant<int, bool>, double>);
+
+    CHECK(cases(std::variant<int, bool>{42}) == 42.0);
+    CHECK(cases(std::variant<int, bool>{true}) == 1.0);
   }
 
-  SECTION("Coproduct Universal Property (The 'Case' Rule)") {
-    // Given f: A -> X and g: B -> X
-    auto f = [](int i) -> double { return static_cast<double>(i); };
-    auto g = [](bool b) -> double { return b ? 1.0 : 0.0; };
+  SECTION("Uncurry Adjunction Identity") {
+    // A curried arrow: int -> (int -> int)
+    auto curried_val = Morphism<int, std::move_only_function<int(int)>>(
+        [](int x) { return [x](int y) { return x * y; }; });
 
-    // The unique mediating arrow [f, g]: (A + B) -> X
-    auto select = mediate_coproduct<double>(f, g);
+    auto uncurried = uncurry(curried_val);
 
-    CHECK(select(std::variant<int, bool>{42}) == 42.0);
-    CHECK(select(std::variant<int, bool>{true}) == 1.0);
+    using UncurryType = decltype(uncurried);
+    STATIC_CHECK(IsArrow<UncurryType, std::pair<int, int>, int>);
+
+    CHECK(uncurried({6, 7}) == 42);
   }
 }

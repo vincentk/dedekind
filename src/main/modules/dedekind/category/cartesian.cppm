@@ -74,11 +74,14 @@ static_assert(
  */
 export template <typename F, typename G>
 auto mediate_product(F&& f, G&& g) {
-  return [f = std::forward<F>(f), g = std::forward<G>(g)](auto&& x) {
-    using A = std::invoke_result_t<F, decltype(x)>;
-    using B = std::invoke_result_t<G, decltype(x)>;
-    return std::pair<A, B>(f(x), g(x));
-  };
+  using X = typename SpeciesTraits<std::decay_t<F>>::Domain;
+  using A = typename SpeciesTraits<std::decay_t<F>>::Codomain;
+  using B = typename SpeciesTraits<std::decay_t<G>>::Codomain;
+
+  return arrow<X, std::pair<A, B>>(
+      [f = std::forward<F>(f), g = std::forward<G>(g)](const X& x) {
+        return std::pair<A, B>(f(x), g(x));
+      });
 }
 
 /**
@@ -148,22 +151,26 @@ auto ι_2(B&& value) {
  * @details Given f: A -> X and g: B -> X, constructs the unique morphism
  * (the "case" analysis) that handles either alternative of a variant.
  */
-export template <typename Ret, typename F, typename G>
+export template <typename F, typename G>
 auto mediate_coproduct(F&& f, G&& g) {
-  return
-      [f = std::forward<F>(f), g = std::forward<G>(g)](auto&& variant) -> Ret {
+  using A = typename SpeciesTraits<std::decay_t<F>>::Domain;
+  using B = typename SpeciesTraits<std::decay_t<G>>::Domain;
+  using X = typename SpeciesTraits<std::decay_t<F>>::Codomain;
+
+  using Var = std::variant<A, B>;
+
+  return arrow<Var, X>(
+      [f = std::forward<F>(f), g = std::forward<G>(g)](const Var& v) -> X {
         return std::visit(
-            [&](auto&& val) -> Ret {
+            [&](auto&& val) -> X {
               using T = std::decay_t<decltype(val)>;
-              // Logic to determine which function to apply based on type
-              if constexpr (std::is_invocable_r_v<Ret, F, T>) {
-                return std::invoke(f, std::forward<decltype(val)>(val));
-              } else {
-                return std::invoke(g, std::forward<decltype(val)>(val));
-              }
+              if constexpr (std::same_as<T, A>)
+                return f(val);
+              else
+                return g(val);
             },
-            std::forward<decltype(variant)>(variant));
-      };
+            v);
+      });
 }
 
 /**
@@ -223,6 +230,56 @@ static_assert(
 // Valid function, but wrong mapping for this specific Hom-set
 static_assert(!IsExponential<std::function<int(int)>, int, bool>,
               "Verification: Rejected due to Codomain mismatch.");
+
+/**
+ * @concept IsArrowFromProduct
+ * @brief Matches an Arrow whose Domain is a categorical Product (std::pair).
+ */
+export template <typename F>
+concept IsArrowFromProduct =
+    IsArrow<F> && IsProduct<typename std::decay_t<F>::Domain,
+                            typename std::decay_t<F>::Domain::first_type,
+                            typename std::decay_t<F>::Domain::second_type>;
+
+/**
+ * @brief Currying: (X × A → B) ⟹ (X → B^A)
+ */
+export template <IsArrowFromProduct F>
+auto curry(F&& f) {
+  using XA = typename std::decay_t<F>::Domain;
+  using B = typename std::decay_t<F>::Codomain;
+
+  using X = typename XA::first_type;
+  using A = typename XA::second_type;
+
+  // We return a morphism from X to the internal hom (A -> B)
+  return arrow<X, decltype(arrow<A, B>(std::declval<std::function<B(A)>>()))>(
+      [f = std::forward<F>(f)](const X& x) mutable {
+        return arrow<A, B>(
+            [f, x](const A& a) -> B { return f(std::pair<X, A>{x, a}); });
+      });
+}
+
+/**
+ * @brief Uncurrying: (X → B^A) ⟹ (X × A → B)
+ * @details Transforms a function returning a function into a single function
+ * taking a categorical product (std::pair).
+ */
+export template <typename F>
+auto uncurry(F&& f) {
+  using X = typename SpeciesTraits<std::decay_t<F>>::Domain;
+  using Exponential = typename SpeciesTraits<std::decay_t<F>>::Codomain;
+
+  // Discover A and B from the Internal Hom/Exponential signature
+  using A = typename SpeciesTraits<Exponential>::Domain;
+  using B = typename SpeciesTraits<Exponential>::Codomain;
+
+  return arrow<std::pair<X, A>, B>(
+      [f = std::forward<F>(f)](const std::pair<X, A>& p) -> B {
+        // Double-application: f(x)(a)
+        return (f(p.first))(p.second);
+      });
+}
 
 /**
  * @concept IsCartesianClosed
