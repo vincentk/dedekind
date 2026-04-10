@@ -33,9 +33,37 @@ module;
 
 export module dedekind.category:pullback;
 
-import :cartesian;
+import :morphism;   // For arrow<>
+import :logic;      // For LogicalValue
+import :cartesian;  // For Product
+import :topoi;
 
 namespace dedekind::category {
+
+/**
+ * @brief The Internal Logic of the Join.
+ *
+ * @tparam L The Logic Species to use (e.g., ClassicalLogic).
+ * @tparam P The Product candidate (Domain).
+ * @tparam F Morphism X -> Z.
+ * @tparam G Morphism Y -> Z.
+ */
+template <typename L, typename P, typename F, typename G>
+  requires LogicalSpecies<L> && IsArrow<F> && IsArrow<G> &&
+           IsProduct<P, typename F::Domain, typename G::Domain>
+auto make_pullback_predicate(std::shared_ptr<F> f, std::shared_ptr<G> g) {
+  // We return an arrow that maps to the 'type' of the Logic L (e.g., bool or
+  // Ternary)
+  return arrow<P, typename L::type>([f, g](const P& pair) -> typename L::type {
+    // Use the projections defined in your IsProduct concept
+    auto x = pair.first;
+    auto y = pair.second;
+
+    // Perform the internal equality check
+    // In the Classical case, this returns bool (L::type)
+    return ((*f)(x) == (*g)(y)) ? L::True : L::False;
+  });
+}
 
 /**
  * @concept IsEqualizer
