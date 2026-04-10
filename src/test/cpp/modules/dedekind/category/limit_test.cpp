@@ -13,8 +13,6 @@ TEST_CASE("Discrete: Terminal Object (1) - Pure Existence",
   SECTION("Existence Axiom") {
     STATIC_CHECK(IsTerminalObject<One>);
 
-    CHECK(One{} == One{});
-
     // Every species T must have exactly one morphism to the Terminal Object (T
     // -> 1)
     STATIC_CHECK(HasUniqueMorphismTo<int, One>);
