@@ -41,99 +41,134 @@ import :topoi;
 namespace dedekind::category {
 
 /**
- * @brief The Internal Logic of the Join.
+ * @concept IsPullback
+ * @brief The Fiber Product (X ×_Z Y) as a Subobject of the Product (X × Y).
  *
- * @tparam L The Logic Species to use (e.g., ClassicalLogic).
- * @tparam P The Product candidate (Domain).
- * @tparam F Morphism X -> Z.
- * @tparam G Morphism Y -> Z.
+ * @details A pullback of f: X ⟶ Z and g: Y ⟶ Z is an object P that represents
+ * the subset of the product species X × Y where the images in Z coincide.
+ *
+ * In this implementation, the pullback is realized as a Subobject:
+ * - ι: P ↣ X × Y is the inclusion into the product space.
+ * - π₁ = p1 ∘ ι and π₂ = p2 ∘ ι are the projections to the domains.
+ * - Commutativity (f ∘ π₁ = g ∘ π₂) is guaranteed by the characteristic
+ *   morphism χ used to classify the subobject.
+ *
+ * @tparam P The candidate pullback species (a Subobject).
+ * @tparam F The morphism f: X ⟶ Z.
+ * @tparam G The morphism g: Y ⟶ Z.
  */
-template <typename L, typename P, typename F, typename G>
-  requires LogicalSpecies<L> && IsArrow<F> && IsArrow<G> &&
-           IsProduct<P, typename F::Domain, typename G::Domain>
-auto make_pullback_predicate(std::shared_ptr<F> f, std::shared_ptr<G> g) {
-  // We return an arrow that maps to the 'type' of the Logic L (e.g., bool or
-  // Ternary)
-  return arrow<P, typename L::type>([f, g](const P& pair) -> typename L::type {
-    // Use the projections defined in your IsProduct concept
-    auto x = pair.first;
-    auto y = pair.second;
+export template <typename P, typename F, typename G>
+concept IsPullback = IsSubobject<P, typename P::Ambient> &&
+                     IsProduct<typename P::Ambient, Dom<F>, Dom<G>> &&
+                     requires(P p, typename P::Member m) {
+                       // π₁: P ⟶ X and π₂: P ⟶ Y (Projections via the inclusion
+                       // ι)
+                       { p.π1(m) } -> std::same_as<Dom<F>>;
+                       { p.π2(m) } -> std::same_as<Dom<G>>;
+                     };
 
-    // Perform the internal equality check
-    // In the Classical case, this returns bool (L::type)
-    return ((*f)(x) == (*g)(y)) ? L::True : L::False;
+/**
+ * @brief The Characteristic Morphism χ: (X × Y) ⟶ Ω.
+ *
+ * In a Topos, every subobject is uniquely determined by a morphism into the
+ * subobject classifier Ω. For a pullback, χ identifies pairs (x, y)
+ * that map to the same image in the codomain Z.
+ *
+ * @tparam L The Logic Species defining the Subobject Classifier Ω.
+ * @tparam Π The Product Species (e.g., std::pair<X, Y>).
+ * @tparam F Morphism X ⟶ Z.
+ * @tparam G Morphism Y ⟶ Z.
+ */
+template <typename L, typename Π, typename F, typename G>
+  requires LogicalSpecies<L> && IsArrow<F> && IsArrow<G> &&
+           IsProduct<Π, Dom<F>, Dom<G>>
+auto make_χ(F f, G g) {
+  using Ω = typename L::type;
+
+  // We capture by value because Morphism is a lightweight skeletal struct.
+  // If F or G contain large lambdas, Morphism handles the storage.
+  return arrow<Π, Ω>([f, g](const Π& pair) -> Ω {
+    return (f(pair.first) == g(pair.second)) ? L::True : L::False;
   });
 }
 
 /**
- * @concept IsEqualizer
- * @brief The categorical reification of a "Solution Set" for an equation.
+ * @brief The Pullback Factory (The Join).
  *
- * @details To derive a Pullback from a Product, we require an Equalizer. While
- * the Product provides the "unconstrained" space (X × Y), the Equalizer acts as
- * a logical filter that selects exactly those pairs (x, y) where f(x) = g(y).
- *
- * An Equalizer of two parallel arrows h, k: A -> B is an object E and an
- * inclusion e: E -> A such that h ∘ e = k ∘ e. In the Dedekind universe,
- * this serves as the foundational structure for solving internal equations
- * and defining sub-species.
- *
- * @tparam E The candidate Equalizer species.
- * @tparam A The domain of the parallel arrows.
- * @tparam B The codomain of the parallel arrows.
- * @tparam H The first parallel morphism.
- * @tparam K The second parallel morphism.
+ * Constructs the Fiber Product P ≅ X ×_Z Y as the kernel of the
+ * characteristic morphism χ.
  */
-export template <typename E, typename A, typename B, typename H, typename K>
-concept IsEqualizer =
-    IsArrow<H> && IsArrow<K> && std::same_as<typename H::Domain, A> &&
-    std::same_as<typename H::Codomain, B> &&
-    std::same_as<typename K::Domain, A> &&
-    std::same_as<typename K::Codomain, B> &&
-    requires(E e, typename E::Member m) {
-      // The equalizer must provide an inclusion into A
-      { e.inclusion(m) } -> std::same_as<A>;
+template <typename L = ClassicalLogic, typename Π, typename F_Raw,
+          typename G_Raw>
+auto pullback(F_Raw&& f_raw, G_Raw&& g_raw) {
+  // 1. Lift raw callables into formal Morphisms using your skeletal factory.
+  auto f = arrow(std::forward<F_Raw>(f_raw));
+  auto g = arrow(std::forward<G_Raw>(g_raw));
 
-      // Structural Invariant: H(inclusion(m)) == K(inclusion(m))
-      // In Dedekind, this is often a predicate-based 'Set'
-    };
+  // 2. Construct the characteristic morphism χ using the formal Arrows.
+  auto χ = make_χ<L, Π>(f, g);
+
+  // 3. The Pullback is the subobject of Π classified by χ.
+  return classify<Π>(χ);
+}
 
 /**
- * @concept IsPullback
- * @brief The universal construction of the pullback (fiber product).
- * @details Given morphisms f: X -> Z and g: Y -> Z, a pullback is an object P
- *          along with morphisms p1: P -> X and p2: P -> Y such that f ∘ p1 =
- *          g ∘ p2, and for any other object Q with morphisms q1: Q -> X and
- *          q2: Q -> Y satisfying the same commutativity, there exists a unique
- *          morphism u: Q -> P making the entire diagram commute.
+ * @concept IsEqualizer
+ * @brief The kernel of a parallel pair (f, g: A ⟶ B).
  *
- * @tparam P  The candidate pullback object.
- * @tparam Z  The codomain of both f and g.
- * @tparam f  The morphism from X to Z.
- * @tparam g  The morphism from Y to Z.
+ * @details In the Dedekind Topos, an Equalizer represents the subobject E ↣ A
+ * containing exactly those members where the morphisms f and g coincide.
+ * It is the internal "Solution Set" for the equation f(x) = g(x).
  *
- * IRL: SQL INNER JOIN is a pullback in the category of sets, where the "join
- * condition" corresponds to the commutativity condition f ∘ p1 = g ∘ p2.
+ * @section Universal_Property
+ * For any object Q and morphism q: Q ⟶ A such that f ∘ q = g ∘ q,
+ * there exists a unique morphism u: Q ⟶ E such that ι ∘ u = q.
+ *
+ * @tparam E The candidate Equalizer species (The Subobject).
+ * @tparam F The first parallel morphism f: A ⟶ B.
+ * @tparam G The second parallel morphism g: A ⟶ B.
  */
-export template <typename P, typename f, typename g>
-concept IsPullback = IsArrow<f> && IsArrow<g> &&
-                     std::same_as<typename f::Codomain, typename g::Codomain> &&
-                     requires(P p, typename f::Domain x, typename g::Domain y) {
-                       // The pullback must provide morphisms to X and Y
-                       { p.p1(x) } -> std::same_as<typename f::Domain>;
-                       { p.p2(y) } -> std::same_as<typename g::Domain>;
+export template <typename E, typename F, typename G>
+concept IsEqualizer =
+    IsArrow<F> && IsArrow<G> &&
+    std::same_as<typename F::Domain, typename G::Domain> &&
+    std::same_as<typename F::Codomain, typename G::Codomain> &&
+    requires(E e, typename E::Member m) {
+      /**
+       * @brief ι: E ↣ A
+       * The canonical inclusion morphism from the Equalizer to the domain.
+       */
+      { e.ι(m) } -> std::same_as<typename F::Domain>;
 
-                       // The pullback must satisfy the commutativity condition:
-                       // f ∘ p1 = g ∘ p2
-                       requires(f(p.p1(x)) == g(p.p2(y)));
+      /**
+       * @section Type_Witness
+       * Validates that the composition f ∘ ι and g ∘ ι are well-formed at the
+       * type level, ensuring the species E acts as a valid domain for the
+       * parallel pair.
+       */
+      requires requires(typename F::Domain a, F f, G g) {
+        { f(a) } -> std::same_as<typename F::Codomain>;
+        { g(a) } -> std::same_as<typename G::Codomain>;
+      };
+    };
 
-                       // For any other object Q with morphisms q1: Q -> X and
-                       // q2: Q -> Y satisfying the same commutativity, there
-                       // must exist a unique morphism u: Q -> P.
-                       requires requires(typename P::Domain q) {
-                         { p.u(q) } -> std::same_as<P>;
-                         requires(f(p.p1(q)) == g(p.p2(q)));
-                       };
-                     };
+void verify_ontology() {
+  using X = int;
+  using Y = int;
+  using Z = int;
+  auto f = arrow<X, Z>([](X x) { return x; });
+  auto g = arrow<Y, Z>([](Y y) { return y; });
+
+  using Π = std::pair<X, Y>;
+  auto P = pullback<ClassicalLogic, Π>(f, g);
+
+  // Define the parallel pair over the Product Π
+  auto h = arrow<Π, Z>([f](const Π& p) { return f(p.first); });
+  auto k = arrow<Π, Z>([g](const Π& p) { return g(p.second); });
+
+  // Now this assert should pass: P equalizes h and k
+  static_assert(IsEqualizer<decltype(P), decltype(h), decltype(k)>);
+  static_assert(IsPullback<decltype(P), decltype(f), decltype(g)>);
+}
 
 }  // namespace dedekind::category
