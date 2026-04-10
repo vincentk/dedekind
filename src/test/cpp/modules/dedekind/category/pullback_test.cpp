@@ -107,3 +107,26 @@ TEST_CASE("Pullback: Non-identity morphisms", "[category][pullback]") {
     CHECK(P.χ({2, 3}) == false);
   }
 }
+
+TEST_CASE("Pullback: TernaryLogic classifier", "[category][pullback][ternary]") {
+  using X = int;
+  using Y = int;
+  using Z = int;
+  using Π = std::pair<X, Y>;
+
+  // f(x) = x,  g(y) = y  =>  pullback selects pairs where x == y
+  auto f = arrow<X, Z>([](X x) { return x; });
+  auto g = arrow<Y, Z>([](Y y) { return y; });
+
+  auto P = pullback<TernaryLogic, Π>(f, g);
+
+  SECTION("χ returns Ternary::True when f(x) == g(y)") {
+    CHECK(P.χ({5, 5}) == Ternary::True);
+    CHECK(P.χ({0, 0}) == Ternary::True);
+  }
+
+  SECTION("χ returns Ternary::False when f(x) != g(y)") {
+    CHECK(P.χ({1, 2}) == Ternary::False);
+    CHECK(P.χ({-1, 1}) == Ternary::False);
+  }
+}

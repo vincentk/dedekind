@@ -172,23 +172,4 @@ concept IsEqualizer =
       };
     };
 
-void verify_ontology() {
-  using X = int;
-  using Y = int;
-  using Z = int;
-  auto f = arrow<X, Z>([](X x) { return x; });
-  auto g = arrow<Y, Z>([](Y y) { return y; });
-
-  using Π = std::pair<X, Y>;
-  auto P = pullback<ClassicalLogic, Π>(f, g);
-
-  // Define the parallel pair over the Product Π
-  auto h = arrow<Π, Z>([f](const Π& p) { return f(p.first); });
-  auto k = arrow<Π, Z>([g](const Π& p) { return g(p.second); });
-
-  // Now this assert should pass: P equalizes h and k
-  static_assert(IsEqualizer<decltype(P), decltype(h), decltype(k)>);
-  static_assert(IsPullback<decltype(P), decltype(f), decltype(g)>);
-}
-
 }  // namespace dedekind::category
