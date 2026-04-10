@@ -53,10 +53,21 @@ export template <typename F>
 concept IsArrow = requires {
   typename std::remove_cvref_t<F>::Domain;
   typename std::remove_cvref_t<F>::Codomain;
-  requires requires(F f, typename F::Domain x) {
-    { f(x) } -> std::convertible_to<typename std::remove_cvref_t<F>::Codomain>;
-  };
+} && requires(F f, typename std::remove_cvref_t<F>::Domain x) {
+  { f(x) } -> std::convertible_to<typename std::remove_cvref_t<F>::Codomain>;
 };
+
+/**
+ * @brief Shorthand to look up the Domain of an Arrow type F.
+ */
+export template <IsArrow F>
+using Dom = typename std::remove_cvref_t<F>::Domain;
+
+/**
+ * @brief Shorthand to look up the Codomain of an Arrow type F.
+ */
+export template <IsArrow F>
+using Cod = typename std::remove_cvref_t<F>::Codomain;
 
 /**
  * @section The_Skeletal_Morphism
@@ -212,7 +223,7 @@ static_assert(
 
 // 1. Overload for raw Lambdas / Functors
 // Restricted: Only if it's NOT already an Arrow but IS callable.
-template <typename F>
+export template <typename F>
   requires(!IsArrow<std::remove_cvref_t<F>>) &&
           requires(F f) { typename signature_extractor<F>::type; }
 constexpr auto arrow(F&& f) {
@@ -221,10 +232,22 @@ constexpr auto arrow(F&& f) {
   return Morphism<D, C, std::decay_t<F>>(std::forward<F>(f));
 }
 
+// 1. Explicit Arrow: arrow<A, B>(f)
+export template <typename A, typename B, typename F>
+constexpr auto arrow(F&& f) {
+  return Morphism<A, B, std::decay_t<F>>(std::forward<F>(f));
+}
+
 // 2. Passthrough for things that are already Arrows (Idempotent factory)
 template <IsArrow F>
 constexpr auto arrow(F&& f) {
   return std::forward<F>(f);
+}
+
+// 2. Explicit Endomorphism: endo<A>(f)
+export template <typename A, typename F>
+constexpr auto endo(F&& f) {
+  return arrow<A, A>(std::forward<F>(f));
 }
 
 // 3. Verify "Lambdas" (Functional Auto-Discovery)
@@ -293,18 +316,6 @@ auto operator||(const Rule<A, B>& p1, const Rule<A, B>& p2) {
     using S = typename SpeciesTraits<B>::species;
     return B{S::OR(p1(x).value, p2(x).value)};
   }};
-}
-
-// 1. Explicit Arrow: arrow<A, B>(f)
-export template <typename A, typename B, typename F>
-constexpr auto arrow(F&& f) {
-  return Morphism<A, B, std::decay_t<F>>(std::forward<F>(f));
-}
-
-// 2. Explicit Endomorphism: endo<A>(f)
-export template <typename A, typename F>
-constexpr auto endo(F&& f) {
-  return arrow<A, A>(std::forward<F>(f));
 }
 
 /** @section Arrow Factory Verification: Tagging & Species Integrity */

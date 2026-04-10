@@ -24,6 +24,7 @@ module;
 
 #include <concepts>
 #include <functional>
+#include <memory>
 #include <utility>
 #include <variant>
 
@@ -66,6 +67,71 @@ concept IsProduct = requires(P p) {
 static_assert(
     IsProduct<std::pair<int, bool>, int, bool>,
     "Verification Failed: std::pair<int, bool> must satisfy IsProduct.");
+
+/**
+ * @brief Mediating morphism for Products: ⟨f, g⟩: X -> (A × B)
+ * @details Given f: X -> A and g: X -> B, constructs the unique morphism
+ * that pairs their results.
+ */
+export template <IsArrow F, IsArrow G>
+  requires std::same_as<Dom<F>, Dom<G>>  // Universal property: same source X
+auto mediate_product(F&& f, G&& g) {
+  using X = Dom<F>;
+  using A = Cod<F>;
+  using B = Cod<G>;
+
+  return arrow([f = std::forward<F>(f), g = std::forward<G>(g)](const X& x) {
+    return std::pair<A, B>(f(x), g(x));
+  });
+}
+
+/**
+ * @concept IsArrowFromProduct
+ * @brief Matches an Arrow whose Domain is a categorical Product (std::pair).
+ */
+export template <typename F>
+concept IsArrowFromProduct =
+    IsArrow<F> && IsProduct<Dom<F>, typename Dom<F>::first_type,
+                            typename Dom<F>::second_type>;
+
+/**
+ * @brief Currying: (X × A → B) ⟹ (X → B^A)
+ */
+export template <IsArrowFromProduct F>
+auto curry(F&& f) {
+  using X = typename Dom<F>::first_type;
+  using A = typename Dom<F>::second_type;
+
+  // Heap-allocate the morphism to ensure it can be captured by the inner lambda
+  // and called multiple times without copying.
+  auto shared_f = std::make_shared<std::decay_t<F>>(std::forward<F>(f));
+
+  return arrow([shared_f](const X& x) {
+    return arrow([shared_f, x](const A& a) {
+      // Call the shared morphism
+      return (*shared_f)({x, a});
+    });
+  });
+}
+
+/**
+ * @brief Uncurrying: (X → B^A) ⟹ (X × A → B)
+ * @details Transforms a function returning a function into a single function
+ * taking a categorical product (std::pair).
+ */
+export template <IsArrow F>
+  requires IsArrow<Cod<F>>
+auto uncurry(F&& f) {
+  using X = Dom<F>;
+  using Exp = Cod<F>;
+  using A = Dom<Exp>;
+  // using B = Cod<Exp>;
+
+  // Use explicit types in the lambda so signature_extractor works
+  return arrow([f = std::forward<F>(f)](const std::pair<X, A>& p) {
+    return f(p.first)(p.second);
+  });
+}
 
 /**
  * @concept IsCoproduct
@@ -127,6 +193,37 @@ auto ι_2(B&& value) {
   } else {
     return Var(std::forward<B>(value));
   }
+}
+
+/**
+ * @brief Mediating morphism for Coproducts: [f, g]: (A + B) -> X
+ * @details Given f: A -> X and g: B -> X, constructs the unique morphism
+ * (the "case" analysis) that handles either alternative of a variant.
+ */
+export template <IsArrow F, IsArrow G>
+  requires std::same_as<Cod<F>, Cod<G>>  // Must map to the same Target X
+auto mediate_coproduct(F&& f, G&& g) {
+  using A = Dom<F>;
+  using B = Dom<G>;
+  using X = Cod<F>;
+  using Var = std::variant<A, B>;
+
+  return arrow<Var, X>(
+      [f = std::forward<F>(f), g = std::forward<G>(g)](const Var& v) -> X {
+        if constexpr (std::same_as<A, B>) {
+          return v.index() == 0 ? f(std::get<0>(v)) : g(std::get<1>(v));
+        } else {
+          return std::visit(
+              [&](auto&& val) -> X {
+                using T = std::decay_t<decltype(val)>;
+                if constexpr (std::same_as<T, A>)
+                  return f(val);
+                else
+                  return g(val);
+              },
+              v);
+        }
+      });
 }
 
 /**
