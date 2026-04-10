@@ -159,15 +159,20 @@ static_assert(IsRing<unsigned int, std::plus<unsigned int>,
 static_assert(IsRing<Modular<256>, std::plus<Modular<256>>,
                      std::multiplies<Modular<256>>>);
 
+/**
+ * @concept IsSemilattice
+ * @brief A commutative, idempotent semigroup.
+ */
+export template <typename T, typename Op>
+concept IsSemilattice = IsCommutativeSemigroup<T, Op> && IsIdempotent<T, Op>;
+
 /** @concept IsJoinSemilattice */
 export template <typename T, typename Op>
-concept IsJoinSemilattice =
-    IsCommutativeSemigroup<T, Op> && IsIdempotent<T, Op>;
+concept IsJoinSemilattice = IsSemilattice<T, Op>;
 
 /** @concept IsMeetSemilattice */
 export template <typename T, typename Op>
-concept IsMeetSemilattice =
-    IsCommutativeSemigroup<T, Op> && IsIdempotent<T, Op>;
+concept IsMeetSemilattice = IsSemilattice<T, Op>;
 
 /** @concept IsLattice */
 export template <typename T, typename Join, typename Meet>
