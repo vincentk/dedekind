@@ -7,7 +7,8 @@
 
 ### Computational Structuralism In Modern C++23
 
-The `dedekind` library is an attempt at faithful translation of concepts from math taxtbooks to modern C++ `concept`s, with the intention to define an embedded domain specific language for math. 
+The `dedekind` library is an attempt at faithful translation of concepts from math taxtbooks to modern C++. 
+The intention is to define an embedded domain specific programming language for math. 
 
 The overall architecture rests on two pillars: the C++ language on the one hand, and category theory on the other hand.
  - The choice of C++ is motivated by its strong but quite flexible type system and its status as a mainstream systems programming language.
