@@ -20,6 +20,56 @@ import :natural;
 
 namespace dedekind::category {
 
+// --- Monadic Components ---
+// η (eta): a -> T a (Unit)
+template <template <typename> typename T, typename A>
+constexpr T<A> η(A&&) = delete;
+
+// μ (mu): T (T a) -> T a (Multiplication)
+template <template <typename> typename T, typename A>
+constexpr T<A> μ(T<T<A>> const&) = delete;
+
+// --- Comonadic Components ---
+// ε (epsilon): W a -> a (Counit)
+template <template <typename> typename W, typename A>
+constexpr A ε(W<A> const&) = delete;
+
+// δ (delta): W a -> W (W a) (Comultiplication)
+template <template <typename> typename W, typename A>
+constexpr W<W<A>> δ(W<A> const&) = delete;
+
+// --- Monad Aliases ---
+template <template <typename> typename T, typename A>
+constexpr auto pure(A&& v) {
+  return η<T>(std::forward<A>(v));
+}
+
+template <template <typename> typename T, typename A>
+constexpr auto join(T<T<A>> const& mma) {
+  return μ(mma);
+}
+
+template <template <typename> typename T, typename A, typename F>
+constexpr auto bind(T<A> const& ma, F&& f) {
+  return κ(ma, std::forward<F>(f));
+}
+
+// --- Comonad Aliases ---
+template <template <typename> typename W, typename A>
+constexpr auto extract(W<A> const& wa) {
+  return ε(wa);
+}
+
+template <template <typename> typename W, typename A>
+constexpr auto duplicate(W<A> const& wa) {
+  return δ(wa);
+}
+
+template <template <typename> typename W, typename A, typename F>
+constexpr auto extend(W<A> const& wa, F&& f) {
+  return σ(wa, std::forward<F>(f));
+}
+
 /**
  * @section Monad_as_Monoid (Explicit Definition)
  * We bridge the gap:

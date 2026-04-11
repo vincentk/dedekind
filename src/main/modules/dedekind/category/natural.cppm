@@ -56,23 +56,23 @@ import :morphism;
 
 namespace dedekind::category {
 
-    // --- Monadic Components ---
-    // η (eta): a -> T a (Unit)
-    template<template<typename> typename T, typename A>
-    constexpr T<A> η(A&&) = delete;
+// --- Monadic Components ---
+// η (eta): a -> T a (Unit)
+template <template <typename> typename T, typename A>
+constexpr T<A> η(A&&) = delete;
 
-    // μ (mu): T (T a) -> T a (Multiplication)
-    template<template<typename> typename T, typename A>
-    constexpr T<A> μ(T<T<A>> const&) = delete;
+// μ (mu): T (T a) -> T a (Multiplication)
+template <template <typename> typename T, typename A>
+constexpr T<A> μ(T<T<A>> const&) = delete;
 
-    // --- Comonadic Components ---
-    // ε (epsilon): W a -> a (Counit)
-    template<template<typename> typename W, typename A>
-    constexpr A ε(W<A> const&) = delete;
+// --- Comonadic Components ---
+// ε (epsilon): W a -> a (Counit)
+template <template <typename> typename W, typename A>
+constexpr A ε(W<A> const&) = delete;
 
-    // δ (delta): W a -> W (W a) (Comultiplication)
-    template<template<typename> typename W, typename A>
-    constexpr W<W<A>> δ(W<A> const&) = delete;
+// δ (delta): W a -> W (W a) (Comultiplication)
+template <template <typename> typename W, typename A>
+constexpr W<W<A>> δ(W<A> const&) = delete;
 
 /**
  * @concept IsPreTransformation

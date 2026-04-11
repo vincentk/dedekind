@@ -49,13 +49,20 @@ import :small;
 
 namespace dedekind::category {
 
-    /**
-     * @brief φ (phi): Morphism lift (fmap).
-     * Constraint: (a -> b) -> (T a -> T b)
-     */
-    template<template<typename> typename T, typename A, typename F>
-    constexpr auto φ(T<A> const&, F&&) -> T<std::invoke_result_t<F, A>> = delete;
+/**
+ * @brief φ (phi): Morphism lift (fmap).
+ * Constraint: (a -> b) -> (T a -> T b)
+ */
+template <template <typename> typename T, typename A, typename F>
+constexpr auto φ(T<A> const&, F&&) -> T<std::invoke_result_t<F, A>> = delete;
 
+/**
+ * @brief an alias for φ (phi) to match the standard "fmap" terminology.
+ */
+template <template <typename> typename T, typename A, typename F>
+constexpr auto fmap(T<A> const& m, F&& f) {
+  return φ(m, std::forward<F>(f));
+}
 
 /**
  * @concept IsFunctor
@@ -244,9 +251,7 @@ struct box_functor {
   }
 
   // 5. Arrow Action (Required to satisfy IsArrow)
-  constexpr Codomain operator()(const Domain& f) const noexcept {
-    return φ(f);
-  }
+  constexpr Codomain operator()(const Domain& f) const noexcept { return φ(f); }
 };
 
 using IntCat = DiscreteCategory<int>;
