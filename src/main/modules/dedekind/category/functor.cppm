@@ -49,6 +49,14 @@ import :small;
 
 namespace dedekind::category {
 
+    /**
+     * @brief φ (phi): Morphism lift (fmap).
+     * Constraint: (a -> b) -> (T a -> T b)
+     */
+    template<template<typename> typename T, typename A, typename F>
+    constexpr auto φ(T<A> const&, F&&) -> T<std::invoke_result_t<F, A>> = delete;
+
+
 /**
  * @concept IsFunctor
  * @brief A 1-morphism mapping CatS -> CatT.
@@ -71,13 +79,13 @@ concept IsFunctor = IsArrow<F> && requires {
   requires IsCategory<typename F::Τ_cat>;
 } && requires(F f, typename F::Σ_cat::Arrow f_c) {
   // The Functor must provide an fmap that preserves composition
-  { f.fmap(f_c >> f_c) } -> std::convertible_to<typename F::Τ_cat::Arrow>;
+  { f.φ(f_c >> f_c) } -> std::convertible_to<typename F::Τ_cat::Arrow>;
 
   // Identity Preservation check using fmap.
   // In the single-species setting, `c` is the object label and `id_c(c)` is
   // the canonical spoke from which the image object F(c) is recovered.
   requires requires(typename F::Σ_cat::Arrow::Domain c) {
-    { f.fmap(F::Σ_cat::id_c(c)) } -> std::same_as<typename F::Τ_cat::Id>;
+    { f.φ(F::Σ_cat::id_c(c)) } -> std::same_as<typename F::Τ_cat::Id>;
   };
 };
 
@@ -97,18 +105,18 @@ struct composite_functor {
   using Codomain = typename G::Codomain;
 
   /**
-   * @brief fmap(f) = G.fmap(F.fmap(f))
+   * @brief φ(f) = G.φ(F.φ(f))
    * Chaining the functorial lift.
    */
   template <typename A>
     requires IsArrow<std::remove_cvref_t<A>>
-  constexpr auto fmap(A&& f) const {
+  constexpr auto φ(A&& f) const {
     // First lift through F, then through G
-    return G{}.fmap(F{}.fmap(std::forward<A>(f)));
+    return G{}.φ(F{}.φ(std::forward<A>(f)));
   }
 
   /** @brief Morphic Action: (G . F)(f) */
-  constexpr Codomain operator()(const Domain& f) const { return fmap(f); }
+  constexpr Codomain operator()(const Domain& f) const { return φ(f); }
 };
 
 /**
@@ -148,13 +156,13 @@ struct identity_functor {
    */
   template <typename T>
     requires IsArrow<std::remove_cvref_t<T>>
-  constexpr auto fmap(T&& f) const noexcept {
+  constexpr auto φ(T&& f) const noexcept {
     return std::forward<T>(f);
   }
 
   /** @brief Morphic Action: Allows the functor itself to act as an Arrow. */
   constexpr Codomain operator()(const Domain& f) const noexcept {
-    return this->fmap(f);
+    return this->φ(f);
   }
 };
 
@@ -184,7 +192,7 @@ export template <typename F, typename Arrow>
            std::same_as<typename std::remove_cvref_t<Arrow>::Domain,
                         typename std::remove_cvref_t<F>::Σ_cat::Arrow::Domain>
 constexpr auto operator>>(F&& functor, Arrow&& f) {
-  return functor.fmap(std::forward<Arrow>(f));
+  return functor.φ(std::forward<Arrow>(f));
 }
 
 /**
@@ -220,7 +228,7 @@ struct box_functor {
   using Codomain = typename Τ_cat::Arrow;
 
   // 3. Identity Case: Strictly returns the Target Hub's Id type
-  constexpr auto fmap(const Identity<T>&) const noexcept {
+  constexpr auto φ(const Identity<T>&) const noexcept {
     return Τ_cat::id_c(Box<T>{});
   }
 
@@ -228,7 +236,7 @@ struct box_functor {
   template <typename A>
     requires IsArrow<std::remove_cvref_t<A>> &&
              (!std::same_as<std::remove_cvref_t<A>, Identity<T>>)
-  constexpr auto fmap(A&& f) const {
+  constexpr auto φ(A&& f) const {
     using PureA = std::remove_cvref_t<A>;
     return arrow([f = std::forward<A>(f)](Box<T> b) {
       return Box<typename PureA::Codomain>{f(std::move(b.value))};
@@ -237,7 +245,7 @@ struct box_functor {
 
   // 5. Arrow Action (Required to satisfy IsArrow)
   constexpr Codomain operator()(const Domain& f) const noexcept {
-    return fmap(f);
+    return φ(f);
   }
 };
 

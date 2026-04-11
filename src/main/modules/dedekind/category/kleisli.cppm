@@ -100,8 +100,28 @@ static_assert(IsKleisliExtension<Box, int, int>);
 static_assert(IsCoKleisliExtension<Box, int, int>);
 static_assert(IsFrobenius<Box, int, int>);
 
-/** @section The_Unified_Highway_Bridge */
+        /**
+     * @brief κ (kappa): Kleisli extension (bind).
+     * Inferred as: κ(f) = μ ∘ φ(f)
+     */
+    template<template<typename> typename T, typename A, typename F>
+    requires IsMonad<T>
+    constexpr auto κ(T<A> const& ma, F&& f) {
+        return μ(φ(ma, std::forward<F>(f)));
+    }
 
+    /**
+     * @brief σ (sigma): Co-Kleisli extension (extend).
+     * Inferred as: σ(f) = φ(f) ∘ δ
+     */
+    template<template<typename> typename W, typename A, typename F>
+    requires IsComonad<W>
+    constexpr auto σ(W<A> const& wa, F&& f) {
+        return φ(δ(wa), std::forward<F>(f));
+    }
+
+/** @section The_Unified_Highway_Bridge (presumably
+ * just another way to state the Kleisli operator kappa) */
 export template <template <typename...> typename F, typename Arrow>
   requires IsArrow<Arrow>
 constexpr auto fmap(Arrow f) {
@@ -132,5 +152,55 @@ export template <typename T, template <typename...> typename F>
 constexpr auto operator<<(const F<T>& box, ε_tag<F>) {
   return box <<= [](const F<T>& w) { return w; };
 }
+
+
+    /**
+     * @brief The Maybe endofunctor T, implemented via std::optional.
+     */
+    template<typename T>
+    using Maybe = std::optional<T>;
+
+    /**
+     * @brief φ (phi): The functorial map (lift).
+     * Maps a morphism f: a -> b to T f: M a -> M b.
+     */
+    template<typename T, typename F>
+    constexpr auto φ(const Maybe<T>& ma, F&& f) -> Maybe<std::invoke_result_t<F, T>> {
+        if (ma.has_value()) {
+            return std::make_optional(std::invoke(std::forward<F>(f), *ma));
+        }
+        return std::nullopt;
+    }
+
+    /**
+     * @brief η (eta): The Unit natural transformation.
+     * Components η_a: a -> M a.
+     */
+    template<typename T>
+    constexpr Maybe<std::decay_t<T>> η(T&& value) {
+        return std::make_optional(std::forward<T>(value));
+    }
+
+    /**
+     * @brief μ (mu): The Multiplication natural transformation.
+     * Components μ_a: M (M a) -> M a.
+     */
+    template<typename T>
+    constexpr Maybe<T> μ(const Maybe<Maybe<T>>& mma) {
+        return mma.has_value() ? *mma : std::nullopt;
+    }
+
+    // --- Static Constraints ---
+
+    // 1. Verify Maybe is a valid Functor
+    // This ensures φ satisfies the Functor concept for the Maybe type.
+    static_assert(Functor<Maybe>);
+
+    // 2. Verify η and μ are Natural Transformations
+    // Naturality requires that for any f: a -> b, the diagram commutes:
+    // For η: T f ∘ η_a = η_b ∘ f
+    // For μ: T f ∘ μ_a = μ_b ∘ T(T f)
+    static_assert(NaturalTransformation<η, Maybe>);
+    static_assert(NaturalTransformation<μ, Maybe>);
 
 }  // namespace dedekind::category
