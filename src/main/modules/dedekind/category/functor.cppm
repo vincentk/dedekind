@@ -18,6 +18,12 @@
  * 2. Morphisms are lifted: Every arrow f: T -> U has a corresponding F(f).
  * 3. Identities are preserved: F(id_T) = id_{F<T>}.
  * 4. Composition is preserved: F(f >> g) = F(f) >> F(g).
+ * 
+ * @details Represents a Functor as a morphism between categories (Σ_cat -> Τ_cat). 
+ * In this library's hierarchy, a Functor is an "arrow between species" that 
+ * maps morphisms from the source category to the target category while 
+ * strictly preserving identity and composition laws.
+ *
  *
  * @section The_Hub_Spoke_Architecture
  * In our Category-First formalism, we distinguish between the **Hub** (the

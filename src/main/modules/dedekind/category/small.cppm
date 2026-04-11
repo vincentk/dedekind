@@ -5,6 +5,19 @@
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
+ * 
+ * @section Small: Categories with Set-Sized Morphisms
+ * A Small Category is defined by the property that its collections of objects
+ * and morphisms are Sets (not Classes). In the context of C++23, "Smallness"
+ * is a pragmatic guarantee: any category reifiable within the type system is
+ * inherently Small, as its inhabitants are bounded by the translation unit's
+ * finite universe of types.
+ * 
+ * @details Defines a single-species category as a small category containing 
+ * exactly one object type. In this setting, all morphisms are endomorphisms, 
+ * causing the category to behave as a monoid where composition is the binary 
+ * operation. This provides a focused foundation for species-specific logic 
+ * within the C++ type system.
  *
  * @quote
  * "Il linguaggio delle categorie è affettuosamente noto come 'nonsense
@@ -16,12 +29,6 @@
  * are all about the "structure," and not about the "meaning," of what they
  * represent.) — Paolo Aluffi, Algebra: Chapter 0
  *
- * @section Small: Categories with Set-Sized Morphisms
- * A Small Category is defined by the property that its collections of objects
- * and morphisms are Sets (not Classes). In the context of C++23, "Smallness"
- * is a pragmatic guarantee: any category reifiable within the type system is
- * inherently Small, as its inhabitants are bounded by the translation unit's
- * finite universe of types.
  */
 
 module;
