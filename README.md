@@ -7,23 +7,19 @@
 
 ### Computational Structuralism In Modern C++23
 
-The `dedekind` library defines a domain specific language for symbolic math embedded in modern C++23. Starting from established axioms, dedekind provides mathematical theorems as type-checked proofs. Intensional sets are treated as (sometimes undecidable) rules, while extensional sets act as materialized bodies of structured data. By encoding mereology and algebra into the C++ type system, `dedekind` attempts to evaluate and prune symbolic operations at compile-time. The resulting machine code should be as lean as a 'naked' loop, but as rigorous as a formal proof. Dedekind treats the computational DAG as a reified proof of the underlying theorem.
+The `dedekind` library is an attempt at faithful translation of concepts from math taxtbooks to modern C++ `concept`s, with the intention to define an embedded domain specific language for math. 
 
-*   Compile-time pruning: Because the library understands **Mereology**, it can prune symbolic trees (e.g., $A \cap \emptyset \to \emptyset$) before a single assembly instruction is generated.
-*   Zero-Cost Abstractions: Algebraic checks happen during compilation. Once the compiler is satisfied, it emits the same optimized machine code as a "naked" loop.
-*   Structural Optimization: Compile-time inspection of an operation's properties such as associativity or commutativity provides the structural proof for the compiler to reorder (and in principle also parallelise) calculations *safely* without guessing at side effects.
+The overall architecture rests on two pillars: the C++ language on the one hand, and category theory on the other hand.
+ - The choice of C++ is motivated by its strong but quite flexible type system and its status as a mainstream systems programming language.
+Specifically, recent versions of C++ allow for the simulation of functional programming languages (higher-kinded types, dependent types) via template metaprogramming techniques such as concepts and traits.
+ - The choice of category theory is motivated by the observation that it bridges the gap from the other end: typed $\lambda$-calculus can be expressed in terms of established math textbook terminology.
 
-### Status: Embryonic
-
-The following structural anchors are currently established in the registry:
-
-*   **Extensional / Decidable**: **𝔹** (The Booleans) — *Materialized as a finite binary body.*
-*   **Intentional / Undecidable**: **ℕ** (The Naturals) — *Represented as a symbolic rule-based species.*
-
-[Note: ℤ (Integers) and ℚ (Rationals) are currently undergoing mereological integration.]
+The hope is that if the translation from math to C++ (and, for validation, the other way around) results in a system which is easily recognizable by a mathematician, a C++ programmer.
+In this context, the C++ compiler and a strict build system are used both as a type-checker and optimizer for the resulting code.
 
 An AI assisted during the development of this project.
 
 ### Futher reading:
 
+* Build: the build instructions are available through the [CMakeLists.txt](CMakeLists.txt) and controlled through the [build action](.github/workflows/cmake.yml).
 * Doxygen: https://vincentk.github.io/dedekind/
