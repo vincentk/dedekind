@@ -49,3 +49,4 @@ AI assistance is used during the development of this project.
 
 * Build: the build instructions are available through the [CMakeLists.txt](CMakeLists.txt) and controlled through the [build action](.github/workflows/cmake.yml).
 * Doxygen: https://vincentk.github.io/dedekind/
+* For the theoretical foundations of this library, see the [Draft Paper](docs/paper/paper.pdf). Note: Just like much of the code base, this is a work-in-progress document.
