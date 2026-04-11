@@ -8,7 +8,10 @@
 ### Computational Structuralism In Modern C++23
 
 The `dedekind` library aims to be a faithful translation of concepts from math taxtbooks to modern C++. 
-The intention is to define an embedded domain specific programming language for math. 
+The intention is to define an embedded domain specific programming language for math with the following properties:
+- The result is easily recognizable by a mathematician as well as a C++ programmer.
+- The DSL should be able to express infinite (intensional, symbolic) as well as finite (extensional, data) structures.
+- It should be able to carry out *mathematically motivated* optimizations (e.g. common identities) *at compile-time*.
 
 The overall architecture rests on two pillars: the C++ language on the one hand, and category theory on the other hand.
  - The choice of C++ is motivated by its strong but quite flexible type system and its status as a mainstream systems programming language.
@@ -20,7 +23,7 @@ In this approach,
 2. The adjustments required to conform to the constraints of the host language are deliberately minimized and are often quite small.
 3. Once a translation of a math concept to C++ compiles, the translation's fidelity can then be tested by checking the reverse translation from C++ invariants to math invariants as part of the test suite.
 
-The hope is that if the translation from math to C++ (and, for validation, the other way around) results in a system which is easily recognizable by a mathematician as well as a C++ programmer.
+
 
 AI assistance is used during the development of this project.
 
