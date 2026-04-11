@@ -32,7 +32,7 @@ ctest --test-dir build --output-on-failure
 
 ### Architecture
 
-The project rests on two pillars: *C++23* and *Category Theory*.
+The project rests on two pillars: **C++23** and **Category Theory**.
 
  - **Why C++?** Its flexible type system and status as a mainstream systems language allow for the simulation of functional concepts—such as higher-kinded and dependent types—via template metaprogramming, concepts, and traits.
  - **Why Category Theory?** It bridges the gap from the mathematical end: typed -calculus can be expressed directly in the terminology of established mathematical textbooks.
