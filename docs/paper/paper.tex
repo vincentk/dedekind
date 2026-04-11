@@ -534,6 +534,9 @@ The core objective is to anchor the C++ type system as a substrate for modeling 
 
 \subsubsection{The \texttt{:morphism} partition: The Skeletal Arrow}
 
+\textbf{Type-Level Labelling:} We employ type-level labelling to associate categorical metadata---specifically domain and codomain species---with C++ types. By utilizing template traits and nested aliases, these labels exist strictly at compile-time. This mechanism enables the direct embedding of primitive and standard library types (e.g., \texttt{std::optional}) into formal categorical structures with zero runtime overhead and without the need for invasive wrappers.
+
+
 The \texttt{:morphism} partition establishes the primary inhabitant of the \texttt{dedekind} topos: the \textbf{Arrow} (or Morphism). While traditional C++ development treats functions as opaque, executable blocks, this partition reifies them as formal mappings $f: A \to B$. **In this ontology, the Morphism serves as the "Atom of Composability"**---the fundamental unit from which all higher-level categorical structures are synthesized. By elevating the function object from a procedural instruction to a structural entity, we enable the library to reason about the composition and validity of transformations at compile-time, a strategy central to modern functional C++ architectures \cite{cukic2018functional, milewski2019category}.
 
 A core mechanism of this partition is \textbf{Signature Discovery}. Utilizing C++23 \texttt{std::invoke\_result\_t} and variadic template metaprogramming, the library automatically extracts the domain and codomain of raw lambdas, function pointers, and functors. This reification process registers the callable into the categorical atlas as a first-class inhabitant, providing the "connective tissue" required for the algebraic structures in Level 1 and the functorial lifting in Level 2. 
@@ -712,6 +715,11 @@ constexpr auto check_chain(T a, T b, T c) {
 \end{lstlisting}
 
 \subsubsection{Small Categories (\texttt{:small})}
+
+% --- Small Partition ---
+\textbf{Single-Species Category:} A single-species category is defined as a small category $\mathcal{C}$ containing exactly one object (the species) corresponding to exactly one C++ type or template parameter \texttt{T}. 
+In this restricted setting, all morphisms $f: A \to A$ are endomorphisms, and the category inherits the structure of a monoid where the binary operation is defined by morphism composition. This model provides a foundation for isolating species-specific logic before elevating interactions to functors, Cartesian products or coproducts, which is how mixed-type behaviour is modelled.
+
 
 The \texttt{:small} partition formalises the transition from relational parthood to the general \textbf{Small Category}. While a \textit{Posetal Category} (Section 2.2.5) restricts the morphism count between objects to at most one, the \texttt{IsSmallCategory} concept removes this constraint, reifying the axioms of **Categorical Composition** and **Identity**. In the \texttt{dedekind} ontology, a small category is treated as a finite registry of types and arrows that are visible to the compiler's proof-search engine.
 
@@ -921,6 +929,11 @@ This "coordinate-free" approach \cite{halmos1958finite} is critical for transiti
 
 \subsubsection{The \texttt{:functor} partition: Mappings between Categories}
 
+
+% --- Functor Partition (Revised) ---
+\textbf{Functors and Endofunctors:} A functor $F: \mathcal{C} \to \mathcal{D}$ is modeled as a morphism between categories. In our implementation, $F$ acts as an ``arrow between species'' mapping arrows from $\Sigma_{cat}$ to $\mathrm{T}_{cat}$. Crucially, we distinguish \textbf{endofunctors} where $\Sigma_{cat} = \mathrm{T}_{cat}$. In this library, all Monads and Comonads are strictly required to be endofunctors to ensure the coherence of multiplication ($\mu: T^2 \Rightarrow T$) and comultiplication ($\delta: W \Rightarrow W^2$).
+
+
 Following the fractal progression of the library, the \texttt{:functor} partition reifies the algebraic laws of Level 1 to act upon the categories themselves. In \texttt{dedekind}, a Functor is treated not as a container, but as a structural morphism $F: \mathcal{C} \to \mathcal{D}$ that preserves the composition of arrows and the identity of objects. By elevating the notion of mapping to a category-level operation, we allow the library to reason about transformations across different ontological domains.
 
 The implementation centers on a high-level \texttt{fmap} dispatcher. Leveraging C++23 template-template parameters (e.g., \texttt{template <typename> typename F}), the dispatcher ensures that functorial mapping is a zero-overhead operation. This architecture shields the user from the underlying machine representation while maintaining strict categorical rigor. By verifying that $F(g \circ f) = F(g) \circ F(f)$ at compile-time, the compiler ensures that the structural integrity of the mathematical model remains invariant under transformation.
@@ -941,6 +954,9 @@ static_assert(PreservesIdentity<F, int>);
 \end{lstlisting}
 
 \subsubsection{The \texttt{:natural} partition: Natural Transformations}
+
+% --- Natural Partition ---
+\textbf{Natural Transformations:} Natural transformations are treated as 2-cells, acting as morphisms between functors. For any two functors $F, G: \mathcal{C} \to \mathcal{D}$, a natural transformation $\alpha: F \Rightarrow G$ provides a family of morphisms in the target category $\mathcal{D}$ such that for every arrow $f: A \to B$ in $\mathcal{C}$, the naturality square commutes: $\alpha_B \circ F(f) = G(f) \circ \alpha_A$.
 
 To complete the Level 2 bridge, the \texttt{:natural} partition introduces \textbf{Natural Transformations}—morphisms between functors. This provides the mathematical basis for ``component-wise'' transformations that remain invariant under functorial mapping, satisfying the naturality square: $\alpha_Y \circ F(f) = G(f) \circ \alpha_X$. By formalizing these mappings, the library ensures that structural changes—such as the transition from a skeletal species to an effectful one—are consistent across all objects in the category.
 
@@ -965,6 +981,16 @@ struct UnitTransformation;
 \end{lstlisting}
 
 \subsubsection{The \texttt{:monad} partition: The \texorpdfstring{$\Omega$}{Omega}-Monad}
+
+% --- Monad Partition ---
+\textbf{Monads and Comonads as Endomorphisms:} In this library, Monads and Comonads are defined strictly over endofunctors $T: \mathcal{C} \to \mathcal{C}$. This "endo" property is a foundational requirement for the coherence of the natural transformations: the monadic multiplication $\mu: T \circ T \Rightarrow T$ and the comonadic comultiplication $\delta: W \Rightarrow W \circ W$ are only well-defined when the source category $\Sigma_{cat}$ and target category $\mathrm{T}_{cat}$ are identical. Consequently, any type satisfying the \texttt{IsMonad} or \texttt{IsComonad} concept must provide a compile-time proof that its underlying functor maps the species category back to itself.
+
+% --- Frobenius Symmetry ---
+\textbf{Frobenius Symmetry:} A structure $F$ is identified as a Frobenius type when it simultaneously satisfies the requirements of a monad and a comonad in a way that the monoid $(\eta, \mu)$ and comonoid $(\varepsilon, \delta)$ structures are compatible. This symmetry is expressed through the Frobenius law:
+\[ \mu \circ ( \delta \times Id ) = \delta \circ \mu = \mu \circ ( Id \times \delta ) \]
+In the context of the C++ type system, types such as finite coproducts (\texttt{std::variant}) or the List monad (\texttt{std::vector}) exhibit this symmetry, where the "wrapping" and "unwrapping" of context are adjoint operations that preserve the underlying categorical energy.
+
+
 While Level 1 defines absolute laws, real-world computation requires a mechanism for handling ``effectful'' transformations. Following the constructions of Kleisli~\cite{kleisli1965every} and Moggi~\cite{moggi1991notions}, we implement the \textbf{Kleisli Triple} $(\eta, \gg=)$ as the fundamental unit of composition. In the \texttt{:monad} partition, we unify the ``Rules of Presence'' from the \texttt{:logic} topos with this machinery to define the \textbf{$\Omega$-Monad}.
 
 As illustrated in Listing~\ref{lst:logic_monad}, we extract the \texttt{IsPotential} concept to create a structural isomorphism between standard C++ types and the \texttt{dedekind} \texttt{Partial<T>} container. To resolve the lack of native higher-kinded types (HKTs) in C++, we utilize an ``Action-First'' bootstrapping strategy: the \texttt{fmap} functorial mapping is derived as an \emph{epi-phenomenon} of the underlying monadic ``Push'' ($m \gg= \eta \circ f$). This ensures that any species providing a \emph{bind} operator ($\gg=$) automatically matures into a \textit{Functor} through \textit{Synthetic Inference}.
@@ -1258,9 +1284,31 @@ struct Intersection {
 By reifying a subset of the set-builder notation, dedekind turns the C++ translation unit into a symbolic laboratory.
 The programmer is free to reason in the language of Cantor, while the compiler produces the performance of a naked C++ loop.
 
+\subsection{Semantics}
 \section{Results}
 
-\subsection{Semantics}
+% --- Table with Endofunctor Constraint ---
+\begin{table}[h]
+\centering
+\begin{tabular}{lllll}
+\hline
+\textbf{Structure} & \textbf{Endofunctor $T$} & \textbf{Unit ($\eta$)} & \textbf{Mult. ($\mu$)} & \textbf{Species Interaction} \\ \hline
+\texttt{std::identity\_t} & $Id: \mathcal{C} \to \mathcal{C}$ & \texttt{x} & \texttt{x} & Identity \\
+\texttt{std::optional} & $T(A) = A + 1$ & \texttt{just(x)} & \texttt{flatten} & Coproduct ($+$) \\
+\texttt{std::variant} & $T(A) = \sum A_i$ & \texttt{in\_i(x)} & \texttt{join} & Sum ($\sum$) \\
+\texttt{std::vector} & $T(A) = A^*$ & \texttt{\{x\}} & \texttt{concat} & List Monad \\
+\texttt{std::pair<W, A>} & $T(A) = W \times A$ & \texttt{\{id\_w, x\}} & \texttt{combine\_w} & Product ($\times$) \\
+\hline
+\end{tabular}
+\caption{C++ Standard Types as Endofunctors in the Category of Species}
+\label{tab:cpp_endofunctor_mapping}
+\end{table}
+
+\begin{itemize}
+    \item \textbf{Frobenius Algebra:} The \texttt{std::vector} (List) and finite Coproducts (\texttt{std::variant}) can be viewed as Frobenius algebras in the category of sets, as they possess compatible monoid and comonoid structures (e.g., \texttt{concat} and \texttt{duplicate}).
+    \item \textbf{Comonadic Applicability:} \texttt{std::pair} acts as the Product Comonad (often used for local environment state), while \texttt{std::vector} can be comonadic if treated as a non-empty focused stream (Zipper).
+\end{itemize}
+
 \begin{landscape}
 
 \begin{table}[ht]
