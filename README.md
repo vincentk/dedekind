@@ -35,11 +35,11 @@ ctest --test-dir build --output-on-failure
 The project rests on two pillars: **C++23** and **Category Theory**.
 
  - **Why C++?** Its flexible type system and status as a mainstream systems language allow for the simulation of functional concepts—such as higher-kinded and dependent types—via template metaprogramming, concepts, and traits.
- - **Why Category Theory?** It bridges the gap from the mathematical end: typed -calculus can be expressed directly in the terminology of established mathematical textbooks.
+ - **Why Category Theory?** It bridges the gap from the mathematical end: typed λ-calculus can be expressed directly in the terminology of established mathematical textbooks.
 
 In this approach;
-1. **Verbatim Lifting**: Mathematical concepts are translated into C++ `concept`s with minimal adjustments.
-2. **Language Conformity**: Modifications required to satisfy the host language (C++) are kept as non-intrusive as possible.
+1. **Verbatim Lifting**: Mathematical concepts are translated into C++ `concept`s with minimal adjustments. The flow from axioms to theorems is enforced by the module build order and the import graph.
+2. **Language Conformity**: Modifications required to satisfy the host language (C++) are kept as non-intrusive as possible. 
 3. **Bi-directional Fidelity**: Once a concept compiles, its fidelity is verified by checking that C++ invariants map correctly back to their mathematical counterparts within the test suite.
 
 _AI assistance is used during the development of this project._
