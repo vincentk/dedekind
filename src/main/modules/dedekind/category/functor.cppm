@@ -156,16 +156,35 @@ concept IsFunctor = IsArrow<F> && requires {
   requires IsCategory<typename F::Σ_cat>;
   requires IsCategory<typename F::Τ_cat>;
 } && requires(F f, typename F::Σ_cat::Arrow f_c) {
-  // The Functor must provide an fmap that preserves composition
-  { f.φ(f_c >> f_c) } -> std::convertible_to<typename F::Τ_cat::Arrow>;
+  // 1. Morphism mapping check
+  { φ(f_c >> f_c) } -> std::convertible_to<typename F::Τ_cat::Arrow>;
 
-  // Identity Preservation check using fmap.
-  // In the single-species setting, `c` is the object label and `id_c(c)` is
-  // the canonical spoke from which the image object F(c) is recovered.
+  // 2. Identity Preservation check (The Textbook Embedding)
+  // We introduce 'c' to represent an arbitrary object in the source category
   requires requires(typename F::Σ_cat::Arrow::Domain c) {
-    { f.φ(F::Σ_cat::id_c(c)) } -> std::same_as<typename F::Τ_cat::Id>;
+    /**
+     * The image of the identity on object c in the source category
+     * must be exactly the identity morphism in the target category.
+     */
+    requires std::same_as<decltype(φ(F::Σ_cat::id_c(c))),
+                          typename F::Τ_cat::Id>;
   };
 };
+
+template <typename F, typename G, typename H>
+  requires IsFunctor<F>
+void verify_functor_composition(typename F::Σ_cat::Arrow f,
+                                typename F::Σ_cat::Arrow g) {
+  // Path 1: φ(g >> f)
+  using Path1 = decltype(φ(g >> f));
+
+  // Path 2: φ(g) >> φ(f)
+  // (This assumes your target category Τ_cat supports >> for its arrows)
+  using Path2 = decltype(φ(g) >> φ(f));
+
+  static_assert(std::same_as<Path1, Path2>,
+                "Functor violates type-level composition preservation!");
+}
 
 /**
  * @brief Composite Functor G . F (Maps CatS -> CatT -> CatU).
