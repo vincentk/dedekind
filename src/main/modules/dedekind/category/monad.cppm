@@ -106,7 +106,8 @@ export template <typename W>
 struct η_tag {};
 
 // μ_tag carries the monad functor type T so that the operator can index μ_t
-// using the correct source-category object label typename T::Σ_cat::Arrow::Domain.
+// using the correct source-category object label typename
+// T::Σ_cat::Arrow::Domain.
 export template <typename T, typename μ_t>
 struct μ_tag {};
 
