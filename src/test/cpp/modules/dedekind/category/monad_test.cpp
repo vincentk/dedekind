@@ -50,7 +50,7 @@ TEST_CASE("Category: Monad Pipeline Operators",
   }
 
   SECTION("μ_tag joins through the identity monad") {
-    CHECK((42 >> μ_tag<IdentityJoin>{}) == 42);
-    CHECK((-7 >> μ_tag<IdentityJoin>{}) == -7);
+    CHECK((42 >> μ_tag<IdF, IdentityJoin>{}) == 42);
+    CHECK((-7 >> μ_tag<IdF, IdentityJoin>{}) == -7);
   }
 }

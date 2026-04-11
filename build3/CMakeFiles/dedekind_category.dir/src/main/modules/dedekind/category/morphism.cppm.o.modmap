@@ -1,0 +1,3 @@
+-x c++-module
+-fmodule-output=CMakeFiles/dedekind_category.dir/dedekind.category-morphism.pcm
+-fmodule-file=dedekind.category:species=CMakeFiles/dedekind_category.dir/dedekind.category-species.pcm

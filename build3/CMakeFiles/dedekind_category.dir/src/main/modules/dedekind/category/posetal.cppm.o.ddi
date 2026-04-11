@@ -1,0 +1,24 @@
+{
+  "revision": 0,
+  "rules": [
+    {
+      "primary-output": "CMakeFiles/dedekind_category.dir/src/main/modules/dedekind/category/posetal.cppm.o",
+      "provides": [
+        {
+          "is-interface": true,
+          "logical-name": "dedekind.category:posetal",
+          "source-path": "/home/runner/work/dedekind/dedekind/src/main/modules/dedekind/category/posetal.cppm"
+        }
+      ],
+      "requires": [
+        {
+          "logical-name": "dedekind.category:logic"
+        },
+        {
+          "logical-name": "dedekind.category:mereology"
+        }
+      ]
+    }
+  ],
+  "version": 1
+}

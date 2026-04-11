@@ -105,7 +105,9 @@ concept IsComonad =
 export template <typename W>
 struct η_tag {};
 
-export template <typename W>
+// μ_tag carries the monad functor type T so that the operator can index μ_t
+// using the correct source-category object label typename T::Σ_cat::Arrow::Domain.
+export template <typename T, typename μ_t>
 struct μ_tag {};
 
 // 1. Entry: value >> into<η_t>
@@ -118,14 +120,19 @@ constexpr auto operator>>(T&& val, η_tag<η_t>) {
   return η_t{}(val)(std::forward<T>(val));
 }
 
-// 2. Join: T<T<X>> >> join<μ_t>
-// μ_t is the natural transformation T^2 => T.
-// The nested context itself acts as the witness for selecting the appropriate
-// component, mirroring the identity-based recovery strategy used in the laws.
-export template <typename NestedContext, typename μ_t>
-constexpr auto operator>>(NestedContext&& nested, μ_tag<μ_t>) {
-  // The nested context itself acts as the witness for selecting the component.
-  auto mu_x = μ_t{}(nested);
+// 2. Join: T<T<X>> >> join<T, μ_t>
+// μ_t is the natural transformation T^2 => T, indexed by
+// typename T::Σ_cat::Arrow::Domain. NestedContext must be convertible to
+// that domain type for the component selection to be valid (e.g., for the
+// identity monad, NestedContext = int = Domain, so the cast is a no-op).
+export template <typename NestedContext, typename T, typename μ_t>
+  requires IsFunctor<T> &&
+           std::convertible_to<NestedContext, typename T::Σ_cat::Arrow::Domain>
+constexpr auto operator>>(NestedContext&& nested, μ_tag<T, μ_t>) {
+  using Domain = typename T::Σ_cat::Arrow::Domain;
+  // Select the component using the correct object witness (the domain label),
+  // not the nested context value itself.
+  auto mu_x = μ_t{}(static_cast<Domain>(nested));
   return mu_x(std::forward<NestedContext>(nested));
 }
 

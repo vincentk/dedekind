@@ -1,0 +1,24 @@
+{
+  "revision": 0,
+  "rules": [
+    {
+      "primary-output": "CMakeFiles/dedekind_category.dir/src/main/modules/dedekind/category/cartesian.cppm.o",
+      "provides": [
+        {
+          "is-interface": true,
+          "logical-name": "dedekind.category:cartesian",
+          "source-path": "/home/runner/work/dedekind/dedekind/src/main/modules/dedekind/category/cartesian.cppm"
+        }
+      ],
+      "requires": [
+        {
+          "logical-name": "dedekind.category:logic"
+        },
+        {
+          "logical-name": "dedekind.category:limit"
+        }
+      ]
+    }
+  ],
+  "version": 1
+}

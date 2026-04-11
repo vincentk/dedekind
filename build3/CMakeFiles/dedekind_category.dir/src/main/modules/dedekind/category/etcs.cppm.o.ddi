@@ -1,0 +1,30 @@
+{
+  "revision": 0,
+  "rules": [
+    {
+      "primary-output": "CMakeFiles/dedekind_category.dir/src/main/modules/dedekind/category/etcs.cppm.o",
+      "provides": [
+        {
+          "is-interface": true,
+          "logical-name": "dedekind.category:etcs",
+          "source-path": "/home/runner/work/dedekind/dedekind/src/main/modules/dedekind/category/etcs.cppm"
+        }
+      ],
+      "requires": [
+        {
+          "logical-name": "dedekind.category:morphism"
+        },
+        {
+          "logical-name": "dedekind.category:logic"
+        },
+        {
+          "logical-name": "dedekind.category:species"
+        },
+        {
+          "logical-name": "dedekind.category:partial"
+        }
+      ]
+    }
+  ],
+  "version": 1
+}

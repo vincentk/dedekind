@@ -1,0 +1,21 @@
+{
+  "revision": 0,
+  "rules": [
+    {
+      "primary-output": "CMakeFiles/dedekind_category.dir/src/main/modules/dedekind/category/numeric.cppm.o",
+      "provides": [
+        {
+          "is-interface": true,
+          "logical-name": "dedekind.category:numeric",
+          "source-path": "/home/runner/work/dedekind/dedekind/src/main/modules/dedekind/category/numeric.cppm"
+        }
+      ],
+      "requires": [
+        {
+          "logical-name": "dedekind.category:kleisli"
+        }
+      ]
+    }
+  ],
+  "version": 1
+}

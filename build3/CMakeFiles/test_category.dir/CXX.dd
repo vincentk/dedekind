@@ -1,0 +1,25 @@
+ninja_dyndep_version = 1.0
+build CMakeFiles/test_category.dir/src/test/cpp/modules/dedekind/category/cartesian_test.cpp.o: dyndep | CMakeFiles/dedekind_category.dir/dedekind.category.pcm
+
+build CMakeFiles/test_category.dir/src/test/cpp/modules/dedekind/category/functor_test.cpp.o: dyndep | CMakeFiles/dedekind_category.dir/dedekind.category.pcm
+
+build CMakeFiles/test_category.dir/src/test/cpp/modules/dedekind/category/kleisli_test.cpp.o: dyndep | CMakeFiles/dedekind_category.dir/dedekind.category.pcm
+
+build CMakeFiles/test_category.dir/src/test/cpp/modules/dedekind/category/limit_test.cpp.o: dyndep | CMakeFiles/dedekind_category.dir/dedekind.category.pcm
+
+build CMakeFiles/test_category.dir/src/test/cpp/modules/dedekind/category/logic_test.cpp.o: dyndep | CMakeFiles/dedekind_category.dir/dedekind.category.pcm
+
+build CMakeFiles/test_category.dir/src/test/cpp/modules/dedekind/category/monad_test.cpp.o: dyndep | CMakeFiles/dedekind_category.dir/dedekind.category.pcm
+
+build CMakeFiles/test_category.dir/src/test/cpp/modules/dedekind/category/morphism_test.cpp.o: dyndep | CMakeFiles/dedekind_category.dir/dedekind.category.pcm
+
+build CMakeFiles/test_category.dir/src/test/cpp/modules/dedekind/category/natural_test.cpp.o: dyndep | CMakeFiles/dedekind_category.dir/dedekind.category.pcm
+
+build CMakeFiles/test_category.dir/src/test/cpp/modules/dedekind/category/pullback_test.cpp.o: dyndep | CMakeFiles/dedekind_category.dir/dedekind.category.pcm
+
+build CMakeFiles/test_category.dir/src/test/cpp/modules/dedekind/category/species_test.cpp.o: dyndep | CMakeFiles/dedekind_category.dir/dedekind.category.pcm
+
+build CMakeFiles/test_category.dir/src/test/cpp/modules/dedekind/category/topoi_test.cpp.o: dyndep | CMakeFiles/dedekind_category.dir/dedekind.category.pcm
+
+build CMakeFiles/test_category.dir/src/test/cpp/modules/dedekind/category/total_test.cpp.o: dyndep | CMakeFiles/dedekind_category.dir/dedekind.category.pcm
+

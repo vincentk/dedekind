@@ -1,0 +1,55 @@
+CMakeFiles/dedekind_category.dir/src/main/modules/dedekind/category/limit.cppm.o.ddi: \
+  /home/runner/work/dedekind/dedekind/src/main/modules/dedekind/category/limit.cppm \
+  /usr/bin/../lib/gcc/x86_64-linux-gnu/14/../../../../include/c++/14/concepts \
+  /usr/bin/../lib/gcc/x86_64-linux-gnu/14/../../../../include/c++/14/bits/version.h \
+  /usr/bin/../lib/gcc/x86_64-linux-gnu/14/../../../../include/x86_64-linux-gnu/c++/14/bits/c++config.h \
+  /usr/bin/../lib/gcc/x86_64-linux-gnu/14/../../../../include/x86_64-linux-gnu/c++/14/bits/os_defines.h \
+  /usr/include/features.h /usr/include/features-time64.h \
+  /usr/include/x86_64-linux-gnu/bits/wordsize.h \
+  /usr/include/x86_64-linux-gnu/bits/timesize.h \
+  /usr/include/stdc-predef.h /usr/include/x86_64-linux-gnu/sys/cdefs.h \
+  /usr/include/x86_64-linux-gnu/bits/long-double.h \
+  /usr/include/x86_64-linux-gnu/gnu/stubs.h \
+  /usr/include/x86_64-linux-gnu/gnu/stubs-64.h \
+  /usr/bin/../lib/gcc/x86_64-linux-gnu/14/../../../../include/x86_64-linux-gnu/c++/14/bits/cpu_defines.h \
+  /usr/bin/../lib/gcc/x86_64-linux-gnu/14/../../../../include/c++/14/pstl/pstl_config.h \
+  /usr/bin/../lib/gcc/x86_64-linux-gnu/14/../../../../include/c++/14/type_traits \
+  /usr/bin/../lib/gcc/x86_64-linux-gnu/14/../../../../include/c++/14/cstddef \
+  /usr/lib/llvm-18/lib/clang/18/include/stddef.h \
+  /usr/lib/llvm-18/lib/clang/18/include/__stddef_ptrdiff_t.h \
+  /usr/lib/llvm-18/lib/clang/18/include/__stddef_size_t.h \
+  /usr/lib/llvm-18/lib/clang/18/include/__stddef_wchar_t.h \
+  /usr/lib/llvm-18/lib/clang/18/include/__stddef_null.h \
+  /usr/lib/llvm-18/lib/clang/18/include/__stddef_nullptr_t.h \
+  /usr/lib/llvm-18/lib/clang/18/include/__stddef_max_align_t.h \
+  /usr/lib/llvm-18/lib/clang/18/include/__stddef_offsetof.h \
+  /usr/bin/../lib/gcc/x86_64-linux-gnu/14/../../../../include/c++/14/exception \
+  /usr/bin/../lib/gcc/x86_64-linux-gnu/14/../../../../include/c++/14/bits/exception.h \
+  /usr/bin/../lib/gcc/x86_64-linux-gnu/14/../../../../include/c++/14/bits/exception_ptr.h \
+  /usr/bin/../lib/gcc/x86_64-linux-gnu/14/../../../../include/c++/14/bits/exception_defines.h \
+  /usr/bin/../lib/gcc/x86_64-linux-gnu/14/../../../../include/c++/14/bits/cxxabi_init_exception.h \
+  /usr/bin/../lib/gcc/x86_64-linux-gnu/14/../../../../include/c++/14/typeinfo \
+  /usr/bin/../lib/gcc/x86_64-linux-gnu/14/../../../../include/c++/14/bits/hash_bytes.h \
+  /usr/bin/../lib/gcc/x86_64-linux-gnu/14/../../../../include/c++/14/new \
+  /usr/bin/../lib/gcc/x86_64-linux-gnu/14/../../../../include/c++/14/bits/move.h \
+  /usr/bin/../lib/gcc/x86_64-linux-gnu/14/../../../../include/c++/14/bits/nested_exception.h \
+  /usr/bin/../lib/gcc/x86_64-linux-gnu/14/../../../../include/c++/14/variant \
+  /usr/bin/../lib/gcc/x86_64-linux-gnu/14/../../../../include/c++/14/initializer_list \
+  /usr/bin/../lib/gcc/x86_64-linux-gnu/14/../../../../include/c++/14/bits/enable_special_members.h \
+  /usr/bin/../lib/gcc/x86_64-linux-gnu/14/../../../../include/c++/14/bits/functional_hash.h \
+  /usr/bin/../lib/gcc/x86_64-linux-gnu/14/../../../../include/c++/14/bits/invoke.h \
+  /usr/bin/../lib/gcc/x86_64-linux-gnu/14/../../../../include/c++/14/bits/parse_numbers.h \
+  /usr/bin/../lib/gcc/x86_64-linux-gnu/14/../../../../include/c++/14/ext/numeric_traits.h \
+  /usr/bin/../lib/gcc/x86_64-linux-gnu/14/../../../../include/c++/14/bits/cpp_type_traits.h \
+  /usr/bin/../lib/gcc/x86_64-linux-gnu/14/../../../../include/c++/14/ext/type_traits.h \
+  /usr/bin/../lib/gcc/x86_64-linux-gnu/14/../../../../include/c++/14/bits/stl_iterator_base_funcs.h \
+  /usr/bin/../lib/gcc/x86_64-linux-gnu/14/../../../../include/c++/14/bits/concept_check.h \
+  /usr/bin/../lib/gcc/x86_64-linux-gnu/14/../../../../include/c++/14/debug/assertions.h \
+  /usr/bin/../lib/gcc/x86_64-linux-gnu/14/../../../../include/c++/14/bits/stl_iterator_base_types.h \
+  /usr/bin/../lib/gcc/x86_64-linux-gnu/14/../../../../include/c++/14/bits/iterator_concepts.h \
+  /usr/bin/../lib/gcc/x86_64-linux-gnu/14/../../../../include/c++/14/bits/ptr_traits.h \
+  /usr/bin/../lib/gcc/x86_64-linux-gnu/14/../../../../include/c++/14/bits/ranges_cmp.h \
+  /usr/bin/../lib/gcc/x86_64-linux-gnu/14/../../../../include/c++/14/bits/stl_construct.h \
+  /usr/bin/../lib/gcc/x86_64-linux-gnu/14/../../../../include/c++/14/bits/utility.h \
+  /usr/bin/../lib/gcc/x86_64-linux-gnu/14/../../../../include/c++/14/compare \
+  /usr/bin/../lib/gcc/x86_64-linux-gnu/14/../../../../include/c++/14/ext/aligned_buffer.h

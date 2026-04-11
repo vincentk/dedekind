@@ -1,0 +1,27 @@
+{
+  "revision": 0,
+  "rules": [
+    {
+      "primary-output": "CMakeFiles/dedekind_category.dir/src/main/modules/dedekind/category/natural.cppm.o",
+      "provides": [
+        {
+          "is-interface": true,
+          "logical-name": "dedekind.category:natural",
+          "source-path": "/home/runner/work/dedekind/dedekind/src/main/modules/dedekind/category/natural.cppm"
+        }
+      ],
+      "requires": [
+        {
+          "logical-name": "dedekind.category:functor"
+        },
+        {
+          "logical-name": "dedekind.category:small"
+        },
+        {
+          "logical-name": "dedekind.category:morphism"
+        }
+      ]
+    }
+  ],
+  "version": 1
+}

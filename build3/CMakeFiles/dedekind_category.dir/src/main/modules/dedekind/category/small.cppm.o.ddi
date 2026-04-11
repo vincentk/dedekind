@@ -1,0 +1,27 @@
+{
+  "revision": 0,
+  "rules": [
+    {
+      "primary-output": "CMakeFiles/dedekind_category.dir/src/main/modules/dedekind/category/small.cppm.o",
+      "provides": [
+        {
+          "is-interface": true,
+          "logical-name": "dedekind.category:small",
+          "source-path": "/home/runner/work/dedekind/dedekind/src/main/modules/dedekind/category/small.cppm"
+        }
+      ],
+      "requires": [
+        {
+          "logical-name": "dedekind.category:morphism"
+        },
+        {
+          "logical-name": "dedekind.category:posetal"
+        },
+        {
+          "logical-name": "dedekind.category:species"
+        }
+      ]
+    }
+  ],
+  "version": 1
+}
