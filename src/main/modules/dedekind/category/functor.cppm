@@ -65,6 +65,37 @@ constexpr auto fmap(T<A> const& m, F&& f) {
 }
 
 /**
+ * @brief φ for Maybe (std::optional).
+ * If ma has a value, applies f and wraps the result.
+ */
+template <typename A, typename F>
+constexpr auto φ(std::optional<A> const& ma, F&& f)
+    -> std::optional<std::invoke_result_t<F, A>> {
+  if (ma) {
+    return std::make_optional(std::invoke(std::forward<F>(f), *ma));
+  }
+  return std::nullopt;
+}
+
+/**
+ * @brief φ for Identity.
+ * Simply applies the function to the underlying value.
+ */
+template <typename A, typename F>
+constexpr auto φ(Identity<A> const& id, F&& f)
+    -> Identity<std::invoke_result_t<F, A>> {
+  return {std::invoke(std::forward<F>(f), id.value)};
+}
+
+/**
+ * @brief φ for Box.
+ */
+template <typename A, typename F>
+constexpr auto φ(Box<A> const& box, F&& f) -> Box<std::invoke_result_t<F, A>> {
+  return {std::invoke(std::forward<F>(f), box.value)};
+}
+
+/**
  * @concept IsFunctor
  * @brief A 1-morphism mapping CatS -> CatT.
  *
@@ -139,6 +170,10 @@ export template <typename Context>
 concept IsEndofunctor =
     IsFunctor<Context> &&
     std::same_as<typename Context::Σ_cat, typename Context::Τ_cat>;
+
+static_assert(IsEndofunctor<std::optional>);
+static_assert(IsEndofunctor<Identity>);
+static_assert(IsEndofunctor<Box>);
 
 /**
  * @section The_Identity_Functor
