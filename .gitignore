@@ -28,6 +28,8 @@ buildNumber.properties
 **/_deps/
 
 **/build/
+**/build2/
+**/build3/
 **/dist/
 
 

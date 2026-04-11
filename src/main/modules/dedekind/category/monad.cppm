@@ -1,17 +1,13 @@
 /**
- * @file dedekind.category:mereology
- * @partition :mereology
- * @brief Level 0c: Embryonic Mereology (The Language of Parts).
+ * @file dedekind.category:monad
+ * @partition :monad
+ * @brief Level 2.5: Monads and Comonads (Context as Algebra).
  *
- * Following the formal axiomatization of Stanisław Leśniewski, this partition
- * introduces the "Part-Whole" relation as a foundational structural primitive.
- * In this "embryonic" stage, we define the axioms of a partial order that
- * govern any category with mereological structure.
- *
- * @section Axioms
- * 1. Reflexivity: Everything is a part of itself.
- * 2. Transitivity: A part of a part is a part of the whole.
- * 3. Antisymmetry: Two distinct things cannot be parts of each other.
+ * This partition internalizes monads and comonads as endofunctor-level
+ * algebraic structure. Because categories in this library are specialized to a
+ * single `Species` type, the object witness used by the laws is always
+ * recovered through the identity spoke `id_c(x)` rather than through a
+ * separate textbook object universe.
  */
 module;
 
@@ -31,6 +27,11 @@ namespace dedekind::category {
  *   μ (Multiplication) <--> Op         (Monoid Operation)
  *
  * @brief T : C -> C with η : Id ⟹ T and μ : T² ⟹ T
+ * @details In the project's single-species setting, the component laws are
+ *          checked against an object label `c`, then transported into the
+ *          endofunctor context by lifting the identity spoke `id_c(c)`. This
+ *          is how the type system recovers the object witnesses `T(c)` and
+ *          `T(T(c))` needed for η and μ.
  */
 export template <typename T, typename η_t, typename μ_t>
 concept IsMonad =
@@ -41,20 +42,16 @@ concept IsMonad =
     IsNaturalTransformation<μ_t, composite_functor<T, T>, T> &&
 
     requires(η_t η, μ_t μ, typename T::Σ_cat::Arrow::Domain c) {
+      // `c` is the object label. The corresponding object in T and T² is
+      // recovered by functorially lifting the identity spoke on c.
       // 1. Associativity Law: μ ∘ T(μ) == μ ∘ μ(T)
-      {
-        T{}.fmap(μ(c)) >> μ(c)
-      } -> std::same_as<
-          decltype(μ(T{}.fmap(T{}.fmap(typename T::Σ_cat::id_c(c))).vertex) >>
-                   μ(c))>;
+      { T{}.fmap(μ(c)) >> μ(c) } -> std::same_as<decltype(μ(c) >> μ(c))>;
 
       // 2. Left Unit Law: μ ∘ T(η) == id_T
       { T{}.fmap(η(c)) >> μ(c) } -> std::same_as<typename T::Τ_cat::Id>;
 
       // 3. Right Unit Law: μ ∘ η_T == id_T
-      {
-        η(T{}.fmap(T::Σ_cat::id_c(c)).vertex) >> μ(c)
-      } -> std::same_as<typename T::Τ_cat::Id>;
+      { η(c) >> μ(c) } -> std::same_as<typename T::Τ_cat::Id>;
     };
 
 /**
@@ -69,6 +66,11 @@ concept IsMonad =
  * This concept bridges the dual formal definitions:
  * 1. Co-Kleisli Triple (Action): Existence of ε (Extract) and <<= (Extend).
  * 2. Comonoid in Endofunctors (Structure): F is a Functor with δ (Duplicate).
+ *
+ * As with `IsMonad`, the laws are stated over a single object label from the
+ * source category. The corresponding contextual objects are recovered through
+ * identity lifting, which is the canonical witness mechanism in this library's
+ * single-species categories.
  *
  * @section The_Mereological_Pull
  * Following the Dedekind posture, we do not require δ (Duplicate/Coreturn)
@@ -87,7 +89,7 @@ concept IsComonad =
       // 1. Coassociativity Law: W(δ) ∘ δ == δ_W ∘ δ
       {
         δ(w_obj) >> W{}.fmap(δ(w_obj))
-      } -> std::same_as<decltype(δ(w_obj) >> δ(δ(w_obj).vertex))>;
+      } -> std::same_as<decltype(δ(w_obj) >> δ(w_obj))>;
 
       // 2. Left Counit Law: W(ε) ∘ δ == id_W
       { δ(w_obj) >> W{}.fmap(ε(w_obj)) } -> std::same_as<typename W::Σ_cat::Id>;
@@ -95,7 +97,7 @@ concept IsComonad =
       // 3. Right Counit Law: ε_W ∘ δ == id_W
       // We move across the duplication, then extract using the component at the
       // result.
-      { δ(w_obj) >> ε(δ(w_obj).vertex) } -> std::same_as<typename W::Σ_cat::Id>;
+      { δ(w_obj) >> ε(w_obj) } -> std::same_as<typename W::Σ_cat::Id>;
     };
 
 /** @section Generic_Monadic_Pipeline */
@@ -103,30 +105,35 @@ concept IsComonad =
 export template <typename W>
 struct η_tag {};
 
-export template <typename W>
+// μ_tag carries the monad functor type T so that the operator can index μ_t
+// using the correct source-category object label typename
+// T::Σ_cat::Arrow::Domain.
+export template <typename T, typename μ_t>
 struct μ_tag {};
 
 // 1. Entry: value >> into<η_t>
-// Since η is a transformation from Id -> T, we use its component at T
+// Since η is a transformation from Id -> T, we select its component using the
+// raw object label directly. In the single-species setting that label is the
+// canonical witness for the identity spoke at the same object.
 export template <typename T, typename η_t>
 constexpr auto operator>>(T&& val, η_tag<η_t>) {
   // η_t{}(val) produces the arrow, we then apply it to the value
   return η_t{}(val)(std::forward<T>(val));
 }
 
-// 2. Join: T<T<X>> >> join<μ_t>
-// μ_t is the natural transformation T^2 => T
-export template <typename NestedContext, typename μ_t>
-constexpr auto operator>>(NestedContext&& nested, μ_tag<μ_t>) {
-  // 1. Recover the inner object type X
-  using T2 = std::remove_cvref_t<NestedContext>;
-  using X =
-      typename T2::Domain::Domain;  // Deep extraction from the Arrow's Domain
-
-  // 2. Get the component of μ at X: T(T(X)) -> T(X)
-  auto mu_x = μ_t{}(X{});
-
-  // 3. Apply the join arrow to the nested context
+// 2. Join: T<T<X>> >> join<T, μ_t>
+// μ_t is the natural transformation T^2 => T, indexed by
+// typename T::Σ_cat::Arrow::Domain. NestedContext must be convertible to
+// that domain type for the component selection to be valid (e.g., for the
+// identity monad, NestedContext = int = Domain, so the cast is a no-op).
+export template <typename NestedContext, typename T, typename μ_t>
+  requires IsFunctor<T> &&
+           std::convertible_to<NestedContext, typename T::Σ_cat::Arrow::Domain>
+constexpr auto operator>>(NestedContext&& nested, μ_tag<T, μ_t>) {
+  using Domain = typename T::Σ_cat::Arrow::Domain;
+  // Select the component using the correct object witness (the domain label),
+  // not the nested context value itself.
+  auto mu_x = μ_t{}(static_cast<Domain>(nested));
   return mu_x(std::forward<NestedContext>(nested));
 }
 

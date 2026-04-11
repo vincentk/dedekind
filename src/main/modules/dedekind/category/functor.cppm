@@ -21,11 +21,14 @@
  *
  * @section The_Hub_Spoke_Architecture
  * In our Category-First formalism, we distinguish between the **Hub** (the
- * Category struct) and the **Spoke** (the Arrow type).
+ * category-level structure that owns arrow factories such as @ref id_c) and
+ * the **Spoke** (an ordinary arrow inside such a category).
  *
  * While a Functor is technically an @ref IsArrow mapping spokes to spokes,
- * the Categorical Laws (Identity/Composition preservation) require access
- * to the Hub's static factories (e.g., @ref id_c).
+ * it is also a hub arrow in the sense of @ref IsHubArrow: its Domain and
+ * Codomain are themselves arrow spaces. The Categorical Laws
+ * (Identity/Composition preservation) therefore require access to the Hub's
+ * static factories (e.g., @ref id_c).
  *
  * Therefore, every @ref IsFunctor must carry handles to its @ref SourceCategory
  * and @ref TargetCategory. Without these "Hub" handles, a mapping of
@@ -54,6 +57,11 @@ namespace dedekind::category {
  * 1. Mapping: F(f: A->B) -> F(f): F(A)->F(B)
  * 2. Identity Law: F(id_c) = id_{F(c)}
  * 3. Composition Law: F(f >> g) = F(f) >> F(g)
+ *
+ * Because `IsCategory` in this project is single-species, the object witness
+ * for `c` is always recovered by first forming the identity arrow `id_c(c)`.
+ * Functorial object mapping is therefore observed indirectly through the spoke
+ * `F(id_c(c))`, whose domain recovers the image object `F(c)`.
  */
 export template <typename F>
 concept IsFunctor = IsArrow<F> && requires {
@@ -65,7 +73,9 @@ concept IsFunctor = IsArrow<F> && requires {
   // The Functor must provide an fmap that preserves composition
   { f.fmap(f_c >> f_c) } -> std::convertible_to<typename F::Τ_cat::Arrow>;
 
-  // Identity Preservation check using fmap
+  // Identity Preservation check using fmap.
+  // In the single-species setting, `c` is the object label and `id_c(c)` is
+  // the canonical spoke from which the image object F(c) is recovered.
   requires requires(typename F::Σ_cat::Arrow::Domain c) {
     { f.fmap(F::Σ_cat::id_c(c)) } -> std::same_as<typename F::Τ_cat::Id>;
   };
@@ -148,21 +158,15 @@ struct identity_functor {
   }
 };
 
-/** @brief Categorical Composition for Functors (F: C->D, G: D->E) */
+/**
+ * @brief Categorical Composition for Functors (F: C->D, G: D->E).
+ * @details This is the hub-level composition law: it composes arrows whose
+ *          objects are themselves spokes.
+ */
 export template <IsFunctor F, IsFunctor G>
   requires std::same_as<typename F::Τ_cat, typename G::Σ_cat>
-constexpr auto operator>>(F f, G g) {
-  // We wrap the base arrow composition but re-attach the Hub handles
-  struct Composite
-      : decltype(static_cast<const F&>(f) >> static_cast<const G&>(g)) {
-    using Σ_cat = typename F::Σ_cat;
-    using Τ_cat = typename G::Τ_cat;
-
-    // Inherit the constructor/call operator from the arrow composition
-    using Base = decltype(static_cast<const F&>(f) >> static_cast<const G&>(g));
-    using Base::Base;
-  };
-  return Composite{f >> g};
+constexpr auto operator>>(F, G) -> composite_functor<F, G> {
+  return {};
 }
 
 /**
@@ -170,6 +174,8 @@ constexpr auto operator>>(F f, G g) {
  * @brief F >> f = F(f)
  * We use forwarding references (F&&) to ensure this matches better
  * than the "Action" overloads in :morphism.
+ * This is the bridge from a hub arrow to a spoke arrow: a functor acts on a
+ * spoke and returns the corresponding spoke in the target hub.
  */
 export template <typename F, typename Arrow>
   requires IsFunctor<std::remove_cvref_t<F>> &&

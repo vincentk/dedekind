@@ -54,7 +54,7 @@ namespace dedekind::category {
 export template <typename T, typename Rel, typename L = ClassicalLogic>
 concept IsPosetal = IsPartRelation<Rel, T> && requires(Rel rel, T a, T b) {
   // The relation must yield a result from the logical classifier
-  { rel(a, b) } -> std::same_as<typename L::type>;
+  { rel(a, b) } -> std::same_as<typename L::Ω>;
 };
 
 /**

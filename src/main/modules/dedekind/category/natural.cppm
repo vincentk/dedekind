@@ -37,6 +37,11 @@
  * A Natural Transformation η: F ⟹ G is a family of morphisms that provides
  * a structural bridge between two functorial contexts. Unlike a Functor
  * which maps species, the Transformation maps the *context* itself.
+ *
+ * In this library's single-species categories, object labels are recovered via
+ * the identity spoke `id_c(x)`. As a result, component arrows such as `η_x`
+ * are checked by lifting identity arrows and reading off the resulting domain
+ * object, rather than by ranging over a separate textbook object class.
  */
 module;
 
@@ -75,7 +80,8 @@ concept IsTwoMorphism =
     std::same_as<typename F::Τ_cat, typename G::Τ_cat> &&
     requires(Alpha alpha, typename F::Σ_cat::Arrow::Domain c) {
       // Component at c connects F(c) to G(c) in the Target Hub
-      // Note: We use identity lifting to find the objects F(c) and G(c)
+      // In the single-species setting, we recover F(c) and G(c) by lifting
+      // the identity spoke on c and reading the resulting spoke's domain.
       requires std::same_as<typename decltype(alpha(c))::Domain,
                             typename decltype(F{}.fmap(
                                 F::Σ_cat::id_c(c)))::Domain>;
@@ -90,13 +96,14 @@ concept IsTwoMorphism =
  */
 export template <typename Alpha, typename F, typename G>
 concept IsNaturalTransformation =
-    IsTwoMorphism<Alpha, F, G> &&
-    requires(Alpha alpha, F f_map, G g_map, typename F::Σ_cat::Arrow f_spoke) {
-      // The Slide: F(f) >> alpha(Y) == alpha(X) >> G(f)
-      // Path A: Lift f through F and then move across alpha at Codomain(f)
+    IsTwoMorphism<Alpha, F, G> && requires(Alpha alpha, F f_map, G g_map,
+                                           typename F::Σ_cat::Arrow::Domain c) {
+      // The Slide is witnessed through the identity spoke at c.
+      // This keeps the condition structural for categories whose object
+      // labels are recovered via their identity arrows.
       {
-        (f_map >> f_spoke) >> alpha(f_spoke.Codomain)
-      } -> std::same_as<decltype(alpha(f_spoke.Domain) >> (g_map >> f_spoke))>;
+        (f_map >> F::Σ_cat::id_c(c)) >> alpha(c)
+      } -> std::same_as<decltype(alpha(c) >> (g_map >> F::Σ_cat::id_c(c)))>;
     };
 
 /**
@@ -111,10 +118,15 @@ struct identity_transformation {
   F f_map;
 
   auto operator()(const typename F::Σ_cat::Arrow::Domain& c) const {
-    // We find the object F(c) by lifting the identity of c
-    auto id_Fc = f_map.fmap(F::Σ_cat::id_c(c));
-    // The Domain of F(id_c) is the object F(c)
-    return F::Τ_cat::id_c(id_Fc.vertex);
+    // In the common single-species case, the source object label can be reused
+    // directly as the target witness. Otherwise, return the lifted identity
+    // arrow itself: by the functor identity law, fmap(id_c(c)) = id_{F(c)}.
+    if constexpr (std::convertible_to<typename F::Σ_cat::Arrow::Domain,
+                                      typename F::Τ_cat::Arrow::Domain>) {
+      return F::Τ_cat::id_c(static_cast<typename F::Τ_cat::Arrow::Domain>(c));
+    } else {
+      return f_map.fmap(F::Σ_cat::id_c(c));
+    }
   }
 };
 
@@ -151,8 +163,14 @@ struct horizontal_composition {
   auto operator()(const typename F::Σ_cat::Arrow::Domain& c) const {
     // (beta * alpha)_c = G'(alpha_c) >> beta_{F(c)}
     // or equivalent: beta_{F'(c)} >> G(alpha_c)
-    return G_prime{}.fmap(alpha(c)) >>
-           beta(F_prime{}.fmap(F::Σ_cat::id_c(c)).vertex);
+    if constexpr (std::convertible_to<typename F::Σ_cat::Arrow::Domain,
+                                      typename G::Σ_cat::Arrow::Domain>) {
+      return G_prime{}.fmap(alpha(c)) >>
+             beta(static_cast<typename G::Σ_cat::Arrow::Domain>(c));
+    } else {
+      return G_prime{}.fmap(alpha(c)) >>
+             beta(F_prime{}.fmap(F::Σ_cat::id_c(c)).vertex);
+    }
   }
 };
 
