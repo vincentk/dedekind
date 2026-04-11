@@ -7,11 +7,29 @@
 
 ### Computational Structuralism In Modern C++23
 
-The `dedekind` library aims to be a faithful translation of concepts from math taxtbooks to modern C++. 
+The `dedekind` library aims to be a faithful translation of concepts from math textbooks to modern C++. 
 The intention is to define an embedded domain specific programming language for math with the following properties:
 - The result is easily recognizable by a mathematician as well as a C++ programmer.
 - The DSL should be able to express infinite (intensional, symbolic) as well as finite (extensional, data) structures.
 - It should be able to carry out *mathematically motivated* optimizations (e.g. common identities) *at compile-time*.
+
+```cpp
+// If it satisfies the requirements of a Dedekind-complete ordered field,
+// it is treated as a representation of ℝ, regardless of its name.
+static_assert( SmellsLike<ℝ, DedekindCompleteField> );
+```
+
+
+### Quickstart
+```bash
+# Clone the repository
+git clone https://github.com/vincentk/dedekind && cd dedekind
+
+# Build and run the formal verification (test) suite
+cmake -B build -G Ninja
+cmake --build build
+ctest --test-dir build --output-on-failure
+```
 
 The overall architecture rests on two pillars: the C++ language on the one hand, and category theory on the other hand.
  - The choice of C++ is motivated by its strong but quite flexible type system and its status as a mainstream systems programming language.
