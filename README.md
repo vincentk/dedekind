@@ -7,9 +7,9 @@
 
 ### Computational Structuralism in Modern C++23
 
-The `dedekind` library is a faithful translation of mathematical concepts into modern C++. It defines an embedded domain-specific language (eDSL) for mathematics with the following goals:
+The `dedekind` library is a faithful translation of mathematical concepts into modern `C++`. It defines an embedded domain-specific language (eDSL) for mathematics with the following goals:
 
-- **Recognizability:** Code should be intuitive to both mathematicians and C++ programmers.
+- **Recognizability:** Code should be intuitive to both mathematicians and `C++` programmers.
 - **Versatility:** The DSL expresses both infinite (intensional, symbolic) and finite (extensional, data) structures.
 - **Optimization:** The library performs *mathematically motivated* optimizations (e.g., identity laws) at compile-time.
 
@@ -38,9 +38,9 @@ The project rests on two pillars: **C++23** and **Category Theory**.
  - **Why Category Theory?** It bridges the gap from the mathematical end: typed λ-calculus can be expressed directly in the terminology of established mathematical textbooks.
 
 In this approach;
-1. **Verbatim Lifting**: Mathematical concepts are translated into C++ `concept`s with minimal adjustments. The flow from axioms to theorems is enforced by the `module` build order and the `import` graph.
-2. **Language Conformity**: Modifications required to satisfy the host language (C++) are kept as non-intrusive as possible. 
-3. **Bi-directional Fidelity**: Once a concept compiles, its fidelity is verified by checking that C++ invariants map correctly back to their mathematical counterparts within the test suite.
+1. **Verbatim Lifting**: Mathematical concepts are translated into `C++` `concept`s with minimal adjustments. The flow from axioms to theorems is enforced by the `module` build order, the `import` graph and `C++` declaration order rules.
+2. **Language Conformity**: Modifications required to satisfy the host language (`C++`) are kept as non-intrusive as possible. 
+3. **Bi-directional Fidelity**: Once a concept compiles, its fidelity is verified by checking that `C++` invariants map correctly back to their mathematical counterparts within the test suite.
 
 _AI assistance is used during the development of this project._
 
