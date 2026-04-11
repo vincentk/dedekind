@@ -75,6 +75,74 @@ template <template <typename> typename W, typename A>
 constexpr W<W<A>> δ(W<A> const&) = delete;
 
 /**
+ * @brief The Maybe endofunctor T, implemented via std::optional.
+ */
+// η (Unit): a -> Maybe a
+template <typename A>
+constexpr Maybe<std::decay_t<A>> η(A&& value) {
+  return std::make_optional(std::forward<A>(value));
+}
+
+// μ (Multiplication): Maybe (Maybe a) -> Maybe a
+template <typename A>
+constexpr Maybe<A> μ(Maybe<Maybe<A>> const& mma) {
+  return mma.has_value() ? *mma : std::nullopt;
+}
+
+/**
+ * @brief The Identity Functor Id_C.
+ * Reified 1-morphism that preserves both objects and arrows exactly.
+ */
+
+// Monadic
+template <typename A>
+constexpr Identity<std::decay_t<A>> η(A&& value) {
+  return {std::forward<A>(value)};
+}
+
+template <typename A>
+constexpr Identity<A> μ(Identity const& iia) {
+  return {iia.value.value};
+}
+
+// Comonadic
+template <typename A>
+constexpr A ε(Identity<A> const& ia) {
+  return ia.value;
+}
+
+template <typename A>
+constexpr Identity δ(Identity<A> const& ia) {
+  return {ia};
+}
+
+/**
+ * @brief The Box endofunctor.
+ * Reified 1-morphism that preserves both objects and arrows exactly.
+ */
+// Monadic
+template <typename A>
+constexpr Box<std::decay_t<A>> η(A&& value) {
+  return {std::forward<A>(value)};
+}
+
+template <typename A>
+constexpr Box<A> μ(Box<Box<A>> const& bba) {
+  return {bba.value.value};
+}
+
+// Comonadic
+template <typename A>
+constexpr A ε(Box<A> const& ba) {
+  return ba.value;
+}
+
+template <typename A>
+constexpr Box<Box<A>> δ(Box<A> const& ba) {
+  return {ba};
+}
+
+/**
  * @concept IsPreTransformation
  * @brief Level 2.1: The raw family of components.
  */

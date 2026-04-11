@@ -64,13 +64,53 @@ constexpr auto fmap(T<A> const& m, F&& f) {
   return φ(m, std::forward<F>(f));
 }
 
+// ma >> f  =>  φ(ma, f)  [The downstram fish]
+template <template <typename> typename T, typename A, typename F>
+  requires Functor<T>
+constexpr auto operator>>(T<A> const& ma, F&& f) {
+  return φ(ma, std::forward<F>(f));
+}
+
+// f << wa  =>  φ(wa, f)  [The upstream fish]
+template <template <typename> typename T, typename A, typename F>
+  requires Functor<T>
+constexpr auto operator<<(F&& f, T<A> const& wa) {
+  return φ(wa, std::forward<F>(f));
+}
+
+// f >> g  =>  g ∘ f      [The Functorial "Fish"]
+// At this level, it's just standard composition.
+template <typename F, typename G>
+constexpr auto operator>>(F&& f, G&& g) {
+  return [f = std::forward<F>(f), g = std::forward<G>(g)](auto&& x) {
+    return std::invoke(g, std::invoke(f, std::forward<decltype(x)>(x)));
+  };
+}
+
+/**
+ * @brief The "Upstream Fish" (Standard Composition)
+ * g << f  =>  g ∘ f
+ */
+template <typename G, typename F>
+constexpr auto operator<<(G&& g, F&& f) {
+  return [g = std::forward<G>(g), f = std::forward<F>(f)](auto&& x) {
+    return std::invoke(g, std::invoke(f, std::forward<decltype(x)>(x)));
+  };
+}
+
+/**
+ * @brief The Maybe endofunctor T, implemented via std::optional.
+ */
+template <typename T>
+using Maybe = std::optional<T>;
+
 /**
  * @brief φ for Maybe (std::optional).
  * If ma has a value, applies f and wraps the result.
  */
 template <typename A, typename F>
-constexpr auto φ(std::optional<A> const& ma, F&& f)
-    -> std::optional<std::invoke_result_t<F, A>> {
+constexpr auto φ(Maybe<A> const& ma, F&& f)
+    -> Maybe<std::invoke_result_t<F, A>> {
   if (ma) {
     return std::make_optional(std::invoke(std::forward<F>(f), *ma));
   }

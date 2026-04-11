@@ -168,40 +168,75 @@ constexpr auto operator<<(const F<T>& box, ε_tag<F>) {
 }
 
 /**
- * @brief The Maybe endofunctor T, implemented via std::optional.
+ * @brief operator >>= : Syntactic sugar for monadic bind.
  */
-template <typename T>
-using Maybe = std::optional<T>;
+template <template <typename> typename T, typename A, typename F>
+  requires IsMonad<T>
+constexpr auto operator>>=(T<A> const& ma, F&& f) {
+  return κ(ma, std::forward<F>(f));
+}
 
 /**
- * @brief φ (phi): The functorial map (lift).
- * Maps a morphism f: a -> b to T f: M a -> M b.
+ * @brief operator <<= : Syntactic sugar for comonadic extension.
  */
-template <typename T, typename F>
-constexpr auto φ(const Maybe<T>& ma, F&& f)
-    -> Maybe<std::invoke_result_t<F, T>> {
-  if (ma.has_value()) {
-    return std::make_optional(std::invoke(std::forward<F>(f), *ma));
+template <template <typename> typename W, typename A, typename F>
+  requires IsComonad<W>
+constexpr auto operator<<=(W<A> const& wa, F&& f) {
+  return σ(wa, std::forward<F>(f));
+}
+
+/**
+ * @brief The "Fish" Operator (Kleisli Arrow Composition)
+ * f >> g  =>  λx. κ(f(x), g)
+ */
+template <typename F, typename G>
+constexpr auto operator>>(F&& f, G&& g) {
+  return [f = std::forward<F>(f), g = std::forward<G>(g)](auto&& x) {
+    return κ(f(std::forward<decltype(x)>(x)), g);
+  };
+}
+
+/**
+ * @brief The "Co-Fish" Operator (Co-Kleisli Arrow Composition).
+ * wa << f  =>  σ(wa, f)
+ */
+template <template <typename> typename W, typename A, typename F>
+  requires Comonad<W>
+constexpr auto operator<<(W<A> const& wa, F&& f) {
+  return σ(wa, std::forward<F>(f));
+}
+
+/**
+ * @brief The "Downstream Fish" (Standard Composition)
+ * g << f  =>  g ∘ f
+ *
+ * @note: while for plain endofunctors, the upstream and the downstream fish
+ * operators are symmetric, the symmetry break vis-a-vis the "Downstream Fish"
+ * is now intentional.
+ */
+template <typename F, typename G>
+constexpr auto operator>>(F&& f, G&& g) {
+  return [f = std::forward<F>(f), g = std::forward<G>(g)](auto&& x) {
+    // Result of f(x) is T<b>. We feed that into g via κ.
+    return κ(f(std::forward<decltype(x)>(x)), g);
+  };
+
+  /**
+   * @brief The "Upstream Fish" (Standard Composition)
+   * g << f  =>  g ∘ f
+   *
+
+   * @note: while for plain endofunctors, the upstream and the downstream fish
+   operators are symmetric, the symmetry break vis-a-vis the "Downstream Fish"
+   is now intentional.
+   */
+  template <typename F, typename G>
+  constexpr auto operator<<(F&& f, G&& g) {
+    return [f = std::forward<F>(f), g = std::forward<G>(g)](auto&& wa) {
+      // Use σ to transform W<a> to W<b> using g, then apply f.
+      return f(σ(wa, g));
+    };
   }
-  return std::nullopt;
-}
-
-/**
- * @brief η (eta): The Unit natural transformation.
- * Components η_a: a -> M a.
- */
-template <typename T>
-constexpr Maybe<std::decay_t<T>> η(T&& value) {
-  return std::make_optional(std::forward<T>(value));
-}
-
-/**
- * @brief μ (mu): The Multiplication natural transformation.
- * Components μ_a: M (M a) -> M a.
- */
-template <typename T>
-constexpr Maybe<T> μ(const Maybe<Maybe<T>>& mma) {
-  return mma.has_value() ? *mma : std::nullopt;
 }
 
 // --- Static Constraints ---
