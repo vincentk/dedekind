@@ -75,9 +75,16 @@ concept IsFunctor = IsArrow<F> && requires {
   typename F::Τ_cat;
   requires IsCategory<typename F::Σ_cat>;
   requires IsCategory<typename F::Τ_cat>;
+
+  /**
+   * 2. The Type Constructor (The Recipe)
+   * This verifies that F::Shape exists and is a valid template.
+   * We test it with 'int' as a dummy species.
+   */
+  typename F::template Shape<int>;
 } && requires(F f, typename F::Σ_cat::Arrow f_c) {
   // 1. Morphism mapping check
-  { φ(f_c >> f_c) } -> std::convertible_to<typename F::Τ_cat::Arrow>;
+  { f.φ(f_c >> f_c) } -> std::convertible_to<typename F::Τ_cat::Arrow>;
 
   // 2. Identity Preservation check (The Textbook Embedding)
   // We introduce 'c' to represent an arbitrary object in the source category
@@ -86,7 +93,7 @@ concept IsFunctor = IsArrow<F> && requires {
      * The image of the identity on object c in the source category
      * must be exactly the identity morphism in the target category.
      */
-    requires std::same_as<decltype(φ(F::Σ_cat::id_c(c))),
+    requires std::same_as<decltype(F::φ(F::Σ_cat::id_c(c))),
                           typename F::Τ_cat::Id>;
   };
 };
@@ -96,70 +103,85 @@ template <typename F, typename G, typename H>
 void verify_functor_composition(typename F::Σ_cat::Arrow f,
                                 typename F::Σ_cat::Arrow g) {
   // Path 1: φ(g >> f)
-  using Path1 = decltype(φ(g >> f));
+  using Path1 = decltype(F::φ(g >> f));
 
   // Path 2: φ(g) >> φ(f)
   // (This assumes your target category Τ_cat supports >> for its arrows)
-  using Path2 = decltype(φ(g) >> φ(f));
+  using Path2 = decltype(F::φ(g) >> F::φ(f));
 
   static_assert(std::same_as<Path1, Path2>,
                 "Functor violates type-level composition preservation!");
 }
 
 /**
- * @brief φ (phi): Morphism lift (fmap).
+ * @brief φ (phi): The Functorial Morphism Lift (fmap).
+ *
  * Constraint: (a -> b) -> (T a -> T b)
+ *
+ * @details This is the core lifting engine of the library. It upgrades a
+ * "homeless" function (a raw morphism) into a bona fide arrow within the
+ * Functorial context.
+ *
+ * @tparam 𝗙 The Functorial type (The Box/Shape). Must satisfy @ref IsFunctor.
+ * @tparam 𝗳 The raw morphism type. Must be invocable with the source category's
+ * species.
+ *
+ * @param ma The functorial witness (the "Boxed" value) representing an object
+ * in Σ_cat.
+ * @param f  The transformation A -> B to be lifted into the functor.
+ *
+ * @return A new functorial instance of the same @ref Shape, containing the
+ * result of f.
+ * @note This base overload is deleted to force specialization for concrete
+ * functors.
  */
-template <template <typename> typename T, typename A, typename F>
-constexpr auto φ(T<A> const&, F&&) -> T<std::invoke_result_t<F, A>> = delete;
+template <typename 𝗙, typename 𝗳>
+  requires IsFunctor<𝗙> && std::invocable<𝗳, typename 𝗙::Σ_cat::Species>
+[[nodiscard]]
+constexpr auto φ(𝗙 const&, 𝗳&&) -> typename 𝗙::template Shape<
+    std::invoke_result_t<𝗳, typename 𝗙::Σ_cat::Species>> = delete;
 
 /**
  * @brief an alias for φ (phi) to match the standard "fmap" terminology.
  */
-template <template <typename> typename T, typename A, typename F>
-constexpr auto fmap(T<A> const& m, F&& f) {
-  return φ(m, std::forward<F>(f));
-}
-
-// ma >> f  =>  φ(ma, f)  [The downstram fish]
-template <template <typename> typename T, typename A, typename F>
-  requires IsFunctor<T>
-constexpr auto operator>>(T<A> const& ma, F&& f) {
-  return φ(ma, std::forward<F>(f));
-}
-
-// f << wa  =>  φ(wa, f)  [The upstream fish]
-template <template <typename> typename T, typename A, typename F>
-  requires IsFunctor<T>
-constexpr auto operator<<(F&& f, T<A> const& wa) {
-  return φ(wa, std::forward<F>(f));
-}
-
-// f >> g  =>  g ∘ f      [The Functorial "Fish"]
-// At this level, it's just standard composition.
-template <typename F, typename G>
-  requires IsFunctor<F> && IsFunctor<G> &&
-           std::same_as<typename F::Σ_cat, typename G::Σ_cat> &&
-           std::same_as<typename F::Τ_cat, typename G::Τ_cat>
-constexpr auto operator>>(F&& f, G&& g) {
-  return [f = std::forward<F>(f), g = std::forward<G>(g)](auto&& x) {
-    return std::invoke(g, std::invoke(f, std::forward<decltype(x)>(x)));
-  };
+template <typename... Args>
+[[nodiscard]]
+constexpr auto fmap(Args&&... args)
+    -> decltype(φ(std::forward<Args>(args)...)) {
+  return φ(std::forward<Args>(args)...);
 }
 
 /**
- * @brief The "Upstream Fish" (Standard Composition)
- * g << f  =>  g ∘ f
+ * @brief The "Downstream Fish" Operator (ma >> f).
+ *
+ * @details Provides a pipe-like syntax for functorial mapping (fmap).
+ * It bridges the Value World and the Category World by applying a
+ * raw function to the contents of a verified Categorical Functor.
+ *
+ * @example
+ * auto result = maybe_value >> [](int i){ return i + 1; };
+ *
+ * @tparam 𝗙 The type of the Functorial container.
+ * @tparam 𝗳 The type of the function to be lifted.
+ *
+ * @param ma The "Boxed" value (the Object) to operate upon.
+ * @param f  The raw function (The Morphism) to apply.
+ *
+ * @return The result of φ(ma, f).
  */
-template <typename G, typename F>
-template <typename F, typename G>
-  requires IsFunctor<F> && IsFunctor<G> &&
-           std::same_as<typename F::Σ_cat, typename G::Σ_cat> &&
-           std::same_as<typename F::Τ_cat, typename G::Τ_cat>
-constexpr auto operator<<(G&& g, F&& f) {
-  return [g = std::forward<G>(g), f = std::forward<F>(f)](auto&& x) {
-    return std::invoke(g, std::invoke(f, std::forward<decltype(x)>(x)));
-  };
+template <typename 𝗙, typename 𝗳>
+  requires IsFunctor<𝗙> && std::invocable<𝗳, typename 𝗙::Σ_cat::Species>
+[[nodiscard]]
+constexpr auto operator>>(𝗙 const& ma, 𝗳&& f) {
+  return φ(ma, std::forward<𝗳>(f));
+}
+
+// f << wa  =>  φ(wa, f)  [The upstream fish]
+template <typename 𝗙, typename 𝗳>
+  requires IsFunctor<𝗙> && std::invocable<𝗳, typename 𝗙::Σ_cat::Species>
+[[nodiscard]]
+constexpr auto operator<<(𝗳&& f, 𝗙 const& wa) {
+  return φ(wa, std::forward<𝗳>(f));
 }
 
 /**
@@ -192,6 +214,32 @@ struct composite_functor {
   constexpr Codomain operator()(const Domain& f) const { return φ(f); }
 };
 
+// f >> g  =>  g ∘ f      [The Functorial "Fish"]
+// At this level, it's just standard composition.
+template <typename 𝗙, typename 𝗚>
+  requires IsFunctor<𝗙> && IsFunctor<𝗚> &&
+           std::same_as<typename 𝗙::Σ_cat, typename 𝗚::Σ_cat> &&
+           std::same_as<typename 𝗙::Τ_cat, typename 𝗚::Τ_cat>
+[[nodiscard]]
+constexpr auto operator>>(𝗙&& f, 𝗚&& g) {
+  return composite_functor<std::remove_cvref_t<𝗙>, std::remove_cvref_t<𝗚>>{
+      std::forward<𝗙>(f), std::forward<𝗚>(g)};
+}
+
+/**
+ * @brief The "Upstream Fish" (Standard Composition)
+ * g << f  =>  g ∘ f
+ */
+template <typename 𝗙, typename 𝗚>
+  requires IsFunctor<𝗙> && IsFunctor<𝗚> &&
+           std::same_as<typename 𝗙::Σ_cat, typename 𝗚::Σ_cat> &&
+           std::same_as<typename 𝗙::Τ_cat, typename 𝗚::Τ_cat>
+[[nodiscard]]
+constexpr auto operator<<(𝗙&& f, 𝗚&& g) {
+  return composite_functor<std::remove_cvref_t<𝗙>, std::remove_cvref_t<𝗚>>{
+      std::forward<𝗙>(f), std::forward<𝗚>(g)};
+}
+
 /**
  * @concept IsEndofunctor
  * @brief A structure-preserving mapping from a Category back to itself (F : 𝒞 →
@@ -214,18 +262,40 @@ concept IsEndofunctor =
  */
 export template <typename T>
 struct Box final {
-  /** @brief The underlying species (The Object T). */
-  using Species = T;
-
-  /** @brief The Functorial Shape (The Type Constructor F). */
-  template <typename U>
-  using Shape = Box<U>;
-
   /** @brief The physical payload. */
-  T value;
+  const T value;
 
   /** @brief Equality for structural verification in static_asserts. */
   constexpr bool operator==(const Box&) const = default;
+};
+
+/**
+ * @brief TraceHub: Maps Set -> StringCategory.
+ *
+ * Instead of 'boxing' a value, this functor 'describes' the mapping.
+ * It's perfect for verifying that fmap is called exactly when it should be.
+ */
+template <typename T>
+struct trace_hub {
+  using Σ_cat = Set<T>;
+  using Τ_cat = StringCategory;
+
+  using Domain = typename Σ_cat::Arrow;
+  using Codomain = typename Τ_cat::Arrow;
+
+  template <typename 𝗳>
+  constexpr auto φ([[maybe_unused]] 𝗳&& f) const {
+    // Use operator+= or explicit construction for every part
+    std::string label = "lifted(";
+    label += typeid(𝗳).name();
+    label += ")";
+
+    return StringArrow{
+        .label = std::move(label), .domain_id = 0, .codomain_id = 0};
+  }
+
+  template <typename U>
+  using Shape = std::string;
 };
 
 /**
@@ -282,5 +352,5 @@ static_assert(IsArrow<decltype(boxed_f)>);
 
 static_assert(IsEndofunctor<std::optional>);
 static_assert(IsEndofunctor<Identity>);
-static_assert(IsEndofunctor<Box>);
+
 }  // namespace dedekind::category

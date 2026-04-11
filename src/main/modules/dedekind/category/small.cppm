@@ -146,7 +146,11 @@ concept IsCategory = requires {
    * This is a strict requirement of the concept.
    */
   requires requires(typename Cat::Arrow f, typename Cat::Arrow g) {
-    { f >> g } -> std::same_as<typename Cat::Arrow>;
+    { f >> g } -> IsArrow;
+    requires std::same_as<typename decltype(f >> g)::Domain,
+                          typename Cat::Arrow::Domain>;
+    requires std::same_as<typename decltype(f >> g)::Codomain,
+                          typename Cat::Arrow::Codomain>;
   };
 
   /**
@@ -179,5 +183,91 @@ export template <typename T>
 constexpr auto operator>>(Identity<T> i, Identity<T>) {
   return i;
 }
+
+/**
+ * @brief The Identity morphism for the category Set.
+ */
+template <typename T>
+struct SetId final {
+  using Domain = T;
+  using Codomain = T;
+
+  T species;
+
+  constexpr T operator()(const T& x) const { return x; }
+
+  /**
+   * @brief The explicit bridge to the Category's Arrow type.
+   * This satisfies the std::convertible_to constraint in IsCategory.
+   */
+  constexpr operator Morphism<T, T, std::function<T(T)>>() const {
+    return Morphism<T, T, std::function<T(T)>>{
+        std::function<T(T)>{[](T x) { return x; }}};
+  }
+};
+
+/**
+ * @brief The Category of C++ Types (Set).
+ * This category is "dense": every valid function is a valid Arrow.
+ */
+template <typename T>
+struct Set final {
+  using Species = T;
+
+  // The 'Canonical' Arrow type for this category
+  using Arrow = Morphism<T, T, std::function<T(T)>>;
+  using Id = SetId<T>;
+
+  static constexpr Id id_c(const T& x) noexcept { return Id{x}; }
+
+  /**
+   * @brief Force composition to stay within the Arrow type.
+   */
+  friend constexpr Arrow operator>>(const Arrow& f, const Arrow& g) {
+    // 1. Extract the underlying std::functions
+    // 2. Compose them into a new std::function
+    // 3. Wrap back into the canonical Morphism type (Arrow)
+    std::function<T(T)> composed = [f_fn = f.action, g_fn = g.action](T x) {
+      return g_fn(f_fn(std::move(x)));
+    };
+
+    return Arrow{std::move(composed)};
+  }
+};
+
+static_assert(IsCategory<Set<int>>,
+              "Verification Failed: Set<int> must satisfy IsCategory.");
+
+/**
+ * @brief An arrow that is just a label.
+ */
+struct StringArrow {
+  std::string label;
+  int domain_id;    // The "Object" it starts from
+  int codomain_id;  // The "Object" it ends at
+
+  using Domain = int;
+  using Codomain = int;
+
+  // Composition is just string concatenation
+  friend constexpr StringArrow operator>>(const StringArrow& f,
+                                          const StringArrow& g) {
+    return {f.label + " then " + g.label, f.domain_id, g.codomain_id};
+  }
+
+  // To satisfy IsArrow, it must be "invocable" in some sense
+  constexpr int operator()(int x) const { return x; }
+};
+
+/**
+ * @brief The Category of Labels.
+ */
+struct StringCategory {
+  using Species = int;
+  using Arrow = StringArrow;
+  using Id = StringArrow;
+
+  static constexpr Id id_c(int x) { return {"id", x, x}; }
+};
 
 }  // namespace dedekind::category
