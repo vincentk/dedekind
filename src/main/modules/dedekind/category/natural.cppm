@@ -38,10 +38,10 @@
  * a structural bridge between two functorial contexts. Unlike a Functor
  * which maps species, the Transformation maps the *context* itself.
  *
- * @details Defines Natural Transformations as 2-cells, acting as morphisms 
- * between Functors. For any two functors F, G: C -> D, a natural transformation 
- * provides a family of morphisms in the target category D that satisfies 
- * the naturality square, enabling structural translation between different 
+ * @details Defines Natural Transformations as 2-cells, acting as morphisms
+ * between Functors. For any two functors F, G: C -> D, a natural transformation
+ * provides a family of morphisms in the target category D that satisfies
+ * the naturality square, enabling structural translation between different
  * species-mappings.
  *
  * In this library's single-species categories, object labels are recovered via

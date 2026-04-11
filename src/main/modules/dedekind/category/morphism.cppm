@@ -8,11 +8,11 @@
  * between species. In the Dedekind ontology, we do not treat functions as
  * ephemeral blocks of logic, but as formal "Arrows" that carry their own
  * metadata (Domain and Codomain).
- * 
- * @details Implements type-level labelling to associate categorical metadata 
- * (like domain and codomain species) with C++ types. These labels exist 
- * strictly at compile-time via traits or nested aliases, allowing primitive 
- * and standard library types to be embedded directly into categorical 
+ *
+ * @details Implements type-level labelling to associate categorical metadata
+ * (like domain and codomain species) with C++ types. These labels exist
+ * strictly at compile-time via traits or nested aliases, allowing primitive
+ * and standard library types to be embedded directly into categorical
  * structures with zero runtime overhead or invasive wrapping.
  *
  * @quote
