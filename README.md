@@ -5,20 +5,19 @@
 
 [ 🌸 Don't panic. ]
 
-### Computational Structuralism In Modern C++23
+### Computational Structuralism in Modern C++23
 
-The `dedekind` library aims to be a faithful translation of concepts from math textbooks to modern C++. 
-The intention is to define an embedded domain specific programming language for math with the following properties:
-- The result is easily recognizable by a mathematician as well as a C++ programmer.
-- The DSL should be able to express infinite (intensional, symbolic) as well as finite (extensional, data) structures.
-- It should be able to carry out *mathematically motivated* optimizations (e.g. common identities) *at compile-time*.
+The `dedekind` library is a faithful translation of mathematical concepts into modern C++. It defines an embedded domain-specific language (eDSL) for mathematics with the following goals:
+
+- **Recognizability:** Code should be intuitive to both mathematicians and C++ programmers.
+- **Versatility:** The DSL expresses both infinite (intensional, symbolic) and finite (extensional, data) structures.
+- **Optimization:** The library performs *mathematically motivated* optimizations (e.g., identity laws) at compile-time.
 
 ```cpp
 // If it satisfies the requirements of a Dedekind-complete ordered field,
 // it is treated as a representation of ℝ, regardless of its name.
 static_assert( SmellsLike<ℝ, DedekindCompleteField> );
 ```
-
 
 ### Quickstart
 ```bash
@@ -31,22 +30,22 @@ cmake --build build
 ctest --test-dir build --output-on-failure
 ```
 
-The overall architecture rests on two pillars: the C++ language on the one hand, and category theory on the other hand.
- - The choice of C++ is motivated by its strong but quite flexible type system and its status as a mainstream systems programming language.
-It allows for the simulation of functional programming language concepts (lambdas, higher-kinded types, dependent types) via template metaprogramming techniques such as concepts and traits.
- - The choice of category theory is motivated by the observation that it bridges the gap from the other end: typed $\lambda$-calculus can be expressed in terms of established math textbook terminology. 
+### Architecture
 
-In this approach, 
-1. Math concepts can often be lifted almost verbatim from a textbook and checked into the code base as a C++ `concept`.
-2. The adjustments required to conform to the constraints of the host language are deliberately minimized and are often quite small.
-3. Once a translation of a math concept to C++ compiles, the translation's fidelity can then be tested by checking the reverse translation from C++ invariants to math invariants as part of the test suite.
+The project rests on two pillars: *C++23* and *Category Theory*.
 
+ - *Why C++?* Its flexible type system and status as a mainstream systems language allow for the simulation of functional concepts—such as higher-kinded and dependent types—via template metaprogramming, concepts, and traits.
+ - *Why Category Theory?* It bridges the gap from the mathematical end: typed -calculus can be expressed directly in the terminology of established mathematical textbooks.
 
+In this approach;
+1. *Verbatim Lifting*: Mathematical concepts are translated into C++ `concept`s with minimal adjustments.
+2. *Language Conformity*: Modifications required to satisfy the host language (C++) are kept as non-intrusive as possible.
+3. *Bi-directional Fidelity*: Once a concept compiles, its fidelity is verified by checking that C++ invariants map correctly back to their mathematical counterparts within the test suite.
 
-AI assistance is used during the development of this project.
+_AI assistance is used during the development of this project._
 
-### Futher reading:
+### Further reading:
 
-* Build: the build instructions are available through the [CMakeLists.txt](CMakeLists.txt) and controlled through the [build action](.github/workflows/cmake.yml).
-* Doxygen: https://vincentk.github.io/dedekind/
-* For the theoretical foundations of this library, see the [Draft Paper](docs/paper/paper.pdf). Note: Just like much of the code base, this is a work-in-progress document.
+* *Build*: the build instructions are available through the [CMakeLists.txt](CMakeLists.txt) and controlled through the [build action](.github/workflows/cmake.yml).
+* *Documentation*: [Doxygen API Reference](https://vincentk.github.io/dedekind/)
+* *Theory*: See the [Draft Paper](docs/paper/paper.pdf) for the theoretical foundations. _Note: Just like much of the code base, this is a work-in-progress document._
