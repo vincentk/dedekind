@@ -13,12 +13,16 @@ The intention is to define an embedded domain specific programming language for 
 The overall architecture rests on two pillars: the C++ language on the one hand, and category theory on the other hand.
  - The choice of C++ is motivated by its strong but quite flexible type system and its status as a mainstream systems programming language.
 It allows for the simulation of functional programming language concepts (lambdas, higher-kinded types, dependent types) via template metaprogramming techniques such as concepts and traits.
- - The choice of category theory is motivated by the observation that it bridges the gap from the other end: typed $\lambda$-calculus can be expressed in terms of established math textbook terminology.
+ - The choice of category theory is motivated by the observation that it bridges the gap from the other end: typed $\lambda$-calculus can be expressed in terms of established math textbook terminology. 
 
-The hope is that if the translation from math to C++ (and, for validation, the other way around) results in a system which is easily recognizable by a mathematician, a C++ programmer.
-In this context, the C++ compiler and a strict build system are used both as a type-checker and optimizer for the resulting code.
+In this approach, a math concept can often be copied directly from the corresponding textbook and checked into the code base as C++ `concept`.
+Quite often, only modest adjustments need to be made to conform to the constraints of the executable host language.
 
-An AI assisted during the development of this project.
+The hope is that if the translation from math to C++ (and, for validation, the other way around) results in a system which is easily recognizable by a mathematician as well as a C++ programmer.
+In this context, the C++ compiler and a strict build system are used both as a type-checker and optimizer for the resulting code. 
+Once a translation of a math concept to C++ compiles, the translation's fidelity can then be tested by checking the reverse translation from C++ invariants to math invariants as part of the test suite.
+
+AI assistance is used during the development of this project.
 
 ### Futher reading:
 
