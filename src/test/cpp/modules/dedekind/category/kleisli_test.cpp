@@ -11,6 +11,40 @@ TEST_CASE("Category: Kleisli Extension Concepts", "[category][kleisli]") {
   STATIC_CHECK(IsFrobenius<Box, int, int>);
 }
 
+TEST_CASE("Category: Box Frobenius structure",
+          "[category][kleisli][frobenius]") {
+  Box<int> value{9};
+
+  SECTION("Unit followed by counit returns the original value") {
+    auto boxed = unit_witness<Box, int>{}(value.value);
+    auto raw = counit_witness<Box, int>{}(boxed);
+    CHECK(raw == value.value);
+  }
+
+  SECTION("Kleisli right unit law: κ(ma, η) = ma") {
+    auto result = κ(value, unit_witness<Box, int>{});
+    CHECK(result == value);
+  }
+
+  SECTION("Co-Kleisli right counit law: σ(wa, ε) = wa") {
+    auto result = σ(value, counit_witness<Box, int>{});
+    CHECK(result == value);
+  }
+
+  SECTION("Bind then extract agrees with direct function result") {
+    auto f = [](int x) { return Box<int>{x * 3}; };
+    auto via_bind = κ(value, f);
+    CHECK(counit_witness<Box, int>{}(via_bind) ==
+          counit_witness<Box, int>{}(f(value.value)));
+  }
+
+  SECTION("Extend then extract agrees with direct co-Kleisli result") {
+    auto g = [](Box<int> b) { return b.value + 4; };
+    auto via_extend = σ(value, g);
+    CHECK(counit_witness<Box, int>{}(via_extend) == g(value));
+  }
+}
+
 TEST_CASE("Category: Box Bind and Extend", "[category][kleisli]") {
   Box<int> value{21};
 
