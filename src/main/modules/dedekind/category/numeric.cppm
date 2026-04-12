@@ -110,10 +110,12 @@ constexpr NumericWitness<T> certify_add(T a, T b, Policy policy) {
   }
 
   if constexpr (std::is_signed_v<T>) {
-    T result{};
-    if (__builtin_add_overflow(a, b, &result)) {
+    if ((b > 0 && a > (std::numeric_limits<T>::max() - b)) ||
+        (b < 0 && a < (std::numeric_limits<T>::min() - b))) {
       return {T{}, Ternary::Unknown};
     }
+
+    const T result = static_cast<T>(a + b);
 
     const Ternary support_result = policy(result);
     return {result, TernaryLogic::AND(support_inputs, support_result)};
@@ -159,10 +161,21 @@ constexpr NumericWitness<T> certify_mul(T a, T b, Policy policy) {
   }
 
   if constexpr (std::is_signed_v<T>) {
-    T result{};
-    if (__builtin_mul_overflow(a, b, &result)) {
+    if (a == 0 || b == 0) {
+      const T result = static_cast<T>(0);
+      const Ternary support_result = policy(result);
+      return {result, TernaryLogic::AND(support_inputs, support_result)};
+    }
+
+    // Signed overflow check without compiler builtins (portable across toolchains).
+    if ((a > 0 && b > 0 && a > (std::numeric_limits<T>::max() / b)) ||
+        (a > 0 && b < 0 && b < (std::numeric_limits<T>::min() / a)) ||
+        (a < 0 && b > 0 && a < (std::numeric_limits<T>::min() / b)) ||
+        (a < 0 && b < 0 && a < (std::numeric_limits<T>::max() / b))) {
       return {T{}, Ternary::Unknown};
     }
+
+    const T result = static_cast<T>(a * b);
 
     const Ternary support_result = policy(result);
     return {result, TernaryLogic::AND(support_inputs, support_result)};
