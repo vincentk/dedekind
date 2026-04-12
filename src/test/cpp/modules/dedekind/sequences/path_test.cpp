@@ -1,5 +1,4 @@
 #include <catch2/catch_test_macros.hpp>
-#include <cmath>
 
 import dedekind.sequences;
 import dedekind.topology;
@@ -13,7 +12,7 @@ TEST_CASE("Sequences: The Path to Continuity",
           "[sequences][topology][limits]") {
   using ℤ = int;
 
-  // A convergent path: s_n = 1/n + 42
+  // A divergent integer path: s_n = n + 42
   auto s_n = [](std::size_t n) -> ℤ { return static_cast<ℤ>(n) + 42; };
   Path<ℤ> path{s_n};
 
