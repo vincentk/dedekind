@@ -59,10 +59,7 @@ constexpr R poisson_bracket(auto&& f, auto&& g, const Vector<R, N>& state) {
 
   auto bump = [&](std::size_t idx, R delta) {
     Vector<R, N> s = state;
-    if (idx == 0)
-      s = s + Vector<R, N>{delta, static_cast<R>(0)};
-    else
-      s = s + Vector<R, N>{static_cast<R>(0), delta};
+    s[idx] += delta;
     return s;
   };
 
