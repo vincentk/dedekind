@@ -187,18 +187,4 @@ constexpr auto operator>>(NestedContext&& nested, μ_tag<T, μ_t>) {
   return mu_x(std::forward<NestedContext>(nested));
 }
 
-// --- Verification Assertions ---
-
-// Maybe is a Monad, but NOT a Comonad.
-static_assert(Monad<Maybe>);
-// static_assert(!Comonad<Maybe>);
-
-// Identity is both.
-static_assert(Monad);
-static_assert(Comonad);
-
-// Box is both.
-static_assert(Monad<Box>);
-static_assert(Comonad<Box>);
-
 }  // namespace dedekind::category

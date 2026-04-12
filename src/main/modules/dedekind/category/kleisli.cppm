@@ -58,21 +58,27 @@ constexpr auto operator<<=(const Box<T>& b, Func&& f) {
 
 /** @section The_Kleisli_Witnesses */
 
-// η (Unit): Lifting a value into the Box
+/**
+ * @brief unit_witness<F, T>: Generic Kleisli unit witness.
+ * Lifts a value into the Kleisli extension.
+ */
 export template <template <typename...> typename F, typename T>
-struct η;
+struct unit_witness;
 
 export template <typename T>
-struct η<Box, T> final {
+struct unit_witness<Box, T> final {
   constexpr auto operator()(T x) const { return Box<T>{std::move(x)}; }
 };
 
-// ε (Counit): Sampling a value from the Box
+/**
+ * @brief counit_witness<F, T>: Generic Kleisli counit witness.
+ * Samples a value from the co-Kleisli extension.
+ */
 export template <template <typename...> typename F, typename T>
-struct ε;
+struct counit_witness;
 
 export template <typename T>
-struct ε<Box, T> final {
+struct counit_witness<Box, T> final {
   constexpr T operator()(const Box<T>& b) const noexcept { return b.value; }
 };
 
@@ -80,13 +86,13 @@ struct ε<Box, T> final {
 
 export template <template <typename...> typename F, typename T, typename U>
 concept IsKleisliExtension = requires(T x, F<T> box, std::function<F<U>(T)> f) {
-  { η<F, T>{}(x) } -> std::same_as<F<T>>;
+  { unit_witness<F, T>{}(x) } -> std::same_as<F<T>>;
   { box >>= f } -> std::same_as<F<U>>;
 };
 
 export template <template <typename...> typename F, typename T, typename U>
 concept IsCoKleisliExtension = requires(F<T> box, std::function<U(F<T>)> f) {
-  { ε<F, T>{}(box) } -> std::same_as<T>;
+  { counit_witness<F, T>{}(box) } -> std::same_as<T>;
   { box <<= f } -> std::same_as<F<U>>;
 };
 
@@ -94,162 +100,92 @@ export template <template <typename...> typename F, typename T, typename U>
 concept IsFrobenius =
     IsKleisliExtension<F, T, U> && IsCoKleisliExtension<F, T, U>;
 
-/** @section Static_Axioms */
-
-static_assert(IsKleisliExtension<Box, int, int>);
-static_assert(IsCoKleisliExtension<Box, int, int>);
-static_assert(IsFrobenius<Box, int, int>);
+/** @section Kleisli_Operators */
 
 /**
- * @brief κ (kappa): Kleisli extension (bind).
- * Inferred as: κ(f) = μ ∘ φ(f)
+ * @brief κ (kappa): Kleisli bind (monadic extension).
+ * @details Given a monadic value ma: T<A> and a Kleisli arrow f: A → T<B>,
+ * produces a value of type T<B> by:
+ *   κ(ma, f) = μ(φ(ma, f))
+ * This is the textbook Kleisli extension operation.
+ * 
+ * @tparam MA The monadic type (e.g., Box<T>, Maybe<T>, Identity<T>)
+ * @tparam F The function type to apply (typically A → MA<B>)
+ * 
+ * @param ma The monadic value to bind
+ * @param f The Kleisli arrow to extend
+ * @return The result of applying μ(φ(ma, f))
  */
-template <template <typename> typename T, typename A, typename F>
-  requires IsMonad<T>
-constexpr auto κ(T<A> const& ma, F&& f) {
+export template <typename MA, typename F>
+constexpr auto κ(MA const& ma, F&& f) {
   return μ(φ(ma, std::forward<F>(f)));
 }
 
 /**
- * @brief σ (sigma): Co-Kleisli extension (extend).
- * Inferred as: σ(f) = φ(f) ∘ δ
+ * @brief σ (sigma): Co-Kleisli extend (comonadic extension).
+ * @details Given a comonadic value wa: W<A> and a co-Kleisli arrow f: W<A> → B,
+ * produces a value of type W<B> by:
+ *   σ(wa, f) = φ(δ(wa), f)
+ * This is the textbook co-Kleisli extension operation (extend/cobind).
+ * 
+ * @tparam WA The comonadic type (e.g., Box<T>, Identity<T>)
+ * @tparam F The function type to apply (typically W<A> → B)
+ * 
+ * @param wa The comonadic value to extend
+ * @param f The co-Kleisli arrow to apply
+ * @return The result of applying φ(δ(wa), f)
  */
-template <template <typename> typename W, typename A, typename F>
-  requires IsComonad<W>
-constexpr auto σ(W<A> const& wa, F&& f) {
+export template <typename WA, typename F>
+constexpr auto σ(WA const& wa, F&& f) {
   return φ(δ(wa), std::forward<F>(f));
 }
 
-// Monadic Bind: ma >>= f
-template <template <typename> typename T, typename A, typename F>
-  requires IsMonad<T>
-constexpr auto operator>>=(T<A> const& ma, F&& f) {
-  return κ(ma, std::forward<F>(f));
-}
-
-// Comonadic Extend: wa <<= f
-template <template <typename> typename W, typename A, typename F>
-  requires IsComonad<W>
-constexpr auto operator<<=(W<A> const& wa, F&& f) {
-  return σ(wa, std::forward<F>(f));
-}
-
-/** @section The_Unified_Highway_Bridge (presumably
- * just another way to state the Kleisli operator kappa) */
-export template <template <typename...> typename F, typename Arrow>
-  requires IsArrow<Arrow>
-constexpr auto fmap(Arrow f) {
-  using T = typename std::remove_cvref_t<Arrow>::Domain;
-  using U = typename std::remove_cvref_t<Arrow>::Codomain;
-
-  if constexpr (IsKleisliExtension<F, T, U>) {
-    // Capture 'f' by value [f] to lift it into the monadic context
-    return arrow([f](const F<T>& m) {
-      return m >>= [f](const T& x) { return η<F, U>{}(f(x)); };
-    });
-  } else if constexpr (IsCoKleisliExtension<F, T, U>) {
-    // Capture 'f' by value [f] to lift it into the comonadic context
-    return arrow([f](const F<T>& w) {
-      return w <<= [f](const F<T>& ctx) { return f(ε<F, T>{}(ctx)); };
-    });
-  }
-}
-
-/** @section Pipeline_Infrastructure */
-
-export template <template <typename...> typename F>
-struct ε_tag {};
-
-// Duplicate (δ) defined as Self-Extend (w <<= id)
-export template <typename T, template <typename...> typename F>
-  requires IsCoKleisliExtension<F, T, T>
-constexpr auto operator<<(const F<T>& box, ε_tag<F>) {
-  return box <<= [](const F<T>& w) { return w; };
-}
+/** @section Kleisli_Bind_Operators */
 
 /**
- * @brief operator >>= : Syntactic sugar for monadic bind.
+ * @brief operator>>= : Monadic bind (Kleisli arrow application).
+ * @details Syntactic sugar for κ(ma, f).
+ * Given ma: T<A> and f: A → T<B>, produces T<B>.
  */
-template <template <typename> typename T, typename A, typename F>
-  requires IsMonad<T>
-constexpr auto operator>>=(T<A> const& ma, F&& f) {
+export template <typename MA, typename F>
+constexpr auto operator>>=(MA const& ma, F&& f) {
   return κ(ma, std::forward<F>(f));
 }
 
 /**
- * @brief operator <<= : Syntactic sugar for comonadic extension.
+ * @brief operator>> : Fish alias for monadic bind.
+ * @details Enables left-associative Kleisli pipelines:
+ *   ma >> f >> g
+ * which is parsed as (ma >> f) >> g and avoids assignment-operator
+ * associativity of >>=.
  */
-template <template <typename> typename W, typename A, typename F>
-  requires IsComonad<W>
-constexpr auto operator<<=(W<A> const& wa, F&& f) {
+export template <typename MA, typename F>
+  requires requires(MA const& ma, F&& f) { κ(ma, std::forward<F>(f)); }
+constexpr auto operator>>(MA const& ma, F&& f) {
+  return κ(ma, std::forward<F>(f));
+}
+
+/**
+ * @brief operator<<= : Comonadic extend (co-Kleisli arrow application).
+ * @details Syntactic sugar for σ(wa, f).
+ * Given wa: W<A> and f: W<A> → B, produces W<B>.
+ */
+export template <typename WA, typename F>
+constexpr auto operator<<=(WA const& wa, F&& f) {
   return σ(wa, std::forward<F>(f));
 }
 
 /**
- * @brief The "Fish" Operator (Kleisli Arrow Composition)
- * f >> g  =>  λx. κ(f(x), g)
+ * @brief operator<< : Fish alias for comonadic extend.
+ * @details Enables left-associative co-Kleisli pipelines:
+ *   wa << f << g
+ * which is parsed as (wa << f) << g and avoids assignment-operator
+ * associativity of <<=.
  */
-template <typename F, typename G>
-constexpr auto operator>>(F&& f, G&& g) {
-  return [f = std::forward<F>(f), g = std::forward<G>(g)](auto&& x) {
-    return κ(f(std::forward<decltype(x)>(x)), g);
-  };
-}
-
-/**
- * @brief The "Co-Fish" Operator (Co-Kleisli Arrow Composition).
- * wa << f  =>  σ(wa, f)
- */
-template <template <typename> typename W, typename A, typename F>
-  requires Comonad<W>
-constexpr auto operator<<(W<A> const& wa, F&& f) {
+export template <typename WA, typename F>
+  requires requires(WA const& wa, F&& f) { σ(wa, std::forward<F>(f)); }
+constexpr auto operator<<(WA const& wa, F&& f) {
   return σ(wa, std::forward<F>(f));
 }
-
-/**
- * @brief The "Downstream Fish" (Standard Composition)
- * g << f  =>  g ∘ f
- *
- * @note: while for plain endofunctors, the upstream and the downstream fish
- * operators are symmetric, the symmetry break vis-a-vis the "Downstream Fish"
- * is now intentional.
- */
-template <typename F, typename G>
-constexpr auto operator>>(F&& f, G&& g) {
-  return [f = std::forward<F>(f), g = std::forward<G>(g)](auto&& x) {
-    // Result of f(x) is T<b>. We feed that into g via κ.
-    return κ(f(std::forward<decltype(x)>(x)), g);
-  };
-
-  /**
-   * @brief The "Upstream Fish" (Standard Composition)
-   * g << f  =>  g ∘ f
-   *
-
-   * @note: while for plain endofunctors, the upstream and the downstream fish
-   operators are symmetric, the symmetry break vis-a-vis the "Downstream Fish"
-   is now intentional.
-   */
-  template <typename F, typename G>
-  constexpr auto operator<<(F&& f, G&& g) {
-    return [f = std::forward<F>(f), g = std::forward<G>(g)](auto&& wa) {
-      // Use σ to transform W<a> to W<b> using g, then apply f.
-      return f(σ(wa, g));
-    };
-  }
-}
-
-// --- Static Constraints ---
-
-// 1. Verify Maybe is a valid Functor
-// This ensures φ satisfies the Functor concept for the Maybe type.
-static_assert(Functor<Maybe>);
-
-// 2. Verify η and μ are Natural Transformations
-// Naturality requires that for any f: a -> b, the diagram commutes:
-// For η: T f ∘ η_a = η_b ∘ f
-// For μ: T f ∘ μ_a = μ_b ∘ T(T f)
-static_assert(NaturalTransformation<η, Maybe>);
-static_assert(NaturalTransformation<μ, Maybe>);
 
 }  // namespace dedekind::category

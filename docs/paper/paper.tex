@@ -1029,6 +1029,21 @@ The resulting \textit{Highway Notation} reifies categorical data flows as direct
     \item \texttt{box <<= f} : Represents Extend, the contextual comonadic composition.
 \end{itemize}
 
+Because assignment-style operators in C++ are right-associative, the partition also provides fish-style aliases for value-level extension: \texttt{box >> f} as an alias of bind and \texttt{box << f} as an alias of cobind. This supports readable left-associated pipelines (e.g., \texttt{box >> f >> g} and \texttt{box << f << g}) while preserving the same Kleisli and co-Kleisli semantics.
+A minimal implementation example is shown in Listing \ref{lst:kleisli_fish_aliases}, with regression coverage in \texttt{src/test/cpp/modules/dedekind/category/kleisli\_test.cpp}.
+
+\begin{lstlisting}[language=C++, caption={Value-level fish aliases for Kleisli and co-Kleisli extension.}, label={lst:kleisli_fish_aliases}]
+Box<int> value{5};
+auto bound = value >> [](int x) { return Box<int>{x + 10}; };
+auto chained = value >> [](int x) { return Box<int>{x * 2}; }
+                     >> [](int x) { return Box<int>{x + 1}; };
+
+Box<int> context{8};
+auto cobound = context << [](Box<int> b) { return b.value - 2; };
+auto cochained = context << [](Box<int> b) { return b.value / 2; }
+                         << [](Box<int> b) { return b.value + 3; };
+\end{lstlisting}
+
 Within the verified module graph, the LLVM backend utilizes this structural transparency to perform \textit{Highway Pruning}. if a total function is composed with a partial operation statically known to return an \texttt{Unknown} or \texttt{NaN} state, the compiler identifies the unreachable path and optimizes the Highway into a branch-free instruction sequence.
 
 

@@ -62,24 +62,6 @@ import :morphism;
 
 namespace dedekind::category {
 
-// --- Monadic Components ---
-// η (eta): a -> T a (Unit)
-template <template <typename> typename T, typename A>
-constexpr T<A> η(A&&) = delete;
-
-// μ (mu): T (T a) -> T a (Multiplication)
-template <template <typename> typename T, typename A>
-constexpr T<A> μ(T<T<A>> const&) = delete;
-
-// --- Comonadic Components ---
-// ε (epsilon): W a -> a (Counit)
-template <template <typename> typename W, typename A>
-constexpr A ε(W<A> const&) = delete;
-
-// δ (delta): W a -> W (W a) (Comultiplication)
-template <template <typename> typename W, typename A>
-constexpr W<W<A>> δ(W<A> const&) = delete;
-
 /**
  * @brief The Maybe endofunctor T, implemented via std::optional.
  */
@@ -106,8 +88,12 @@ constexpr Identity<std::decay_t<A>> η(A&& value) {
   return {std::forward<A>(value)};
 }
 
+/**
+ * @brief Monadic join (μ): Identity<Identity<A>> → Identity<A>.
+ * In hub/spoke terms: unwraps a doubly-wrapped spoke.
+ */
 template <typename A>
-constexpr Identity<A> μ(Identity const& iia) {
+constexpr Identity<A> μ(Identity<Identity<A>> const& iia) {
   return {iia.value.value};
 }
 
@@ -117,8 +103,12 @@ constexpr A ε(Identity<A> const& ia) {
   return ia.value;
 }
 
+/**
+ * @brief Comonadic duplicate (δ): Identity<A> → Identity<Identity<A>>.
+ * In hub/spoke terms: wraps a spoke into a doubly-wrapped spoke.
+ */
 template <typename A>
-constexpr Identity δ(Identity<A> const& ia) {
+constexpr Identity<Identity<A>> δ(Identity<A> const& ia) {
   return {ia};
 }
 

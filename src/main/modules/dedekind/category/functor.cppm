@@ -357,36 +357,17 @@ constexpr auto immerse(Hub&& h, Spoke&& s) {
 }
 
 /**
- * @brief The "Downstream Fish" Operator (ma >> f).
+ * @brief Hub Action Fish: apply a functor hub to a spoke arrow.
  *
- * @details Provides a pipe-like syntax for functorial mapping (fmap).
- * It bridges the Value World and the Category World by applying a
- * raw function to the contents of a verified Categorical Functor.
- *
- * @example
- * auto result = maybe_value >> [](int i){ return i + 1; };
- *
- * @tparam 𝗙 The type of the Functorial container.
- * @tparam 𝗳 The type of the function to be lifted.
- *
- * @param ma The "Boxed" value (the Object) to operate upon.
- * @param f  The raw function (The Morphism) to apply.
- *
- * @return The result of φ(ma, f).
+ * @details This keeps fish syntax at the hub level for general functors:
+ *   F >> f
+ * where F is a verified functor and f is an arrow in F::Σ_cat.
  */
-template <typename 𝗙, typename 𝗳>
-  requires IsFunctor<𝗙> && std::invocable<𝗳, typename 𝗙::Σ_cat::Species>
+template <typename Hub, typename Arrow>
+  requires IsFunctor<Hub> && IsSpokeArrow<std::remove_cvref_t<Arrow>>
 [[nodiscard]]
-constexpr auto operator>>(𝗙 const& ma, 𝗳&& f) {
-  return φ(ma, std::forward<𝗳>(f));
-}
-
-// f << wa  =>  φ(wa, f)  [The upstream fish]
-template <typename 𝗙, typename 𝗳>
-  requires IsFunctor<𝗙> && std::invocable<𝗳, typename 𝗙::Σ_cat::Species>
-[[nodiscard]]
-constexpr auto operator<<(𝗳&& f, 𝗙 const& wa) {
-  return φ(wa, std::forward<𝗳>(f));
+constexpr auto operator>>(Hub const& hub, Arrow&& f) {
+  return hub.φ(std::forward<Arrow>(f));
 }
 
 /**
@@ -419,8 +400,7 @@ struct composite_functor {
   constexpr Codomain operator()(const Domain& f) const { return φ(f); }
 };
 
-// f >> g  =>  g ∘ f      [The Functorial "Fish"]
-// At this level, it's just standard composition.
+// f >> g  =>  g ∘ f      [Canonical Functorial Fish]
 template <typename 𝗙, typename 𝗚>
   requires IsFunctor<𝗙> && IsFunctor<𝗚> &&
            std::same_as<typename 𝗙::Σ_cat, typename 𝗚::Σ_cat> &&
@@ -432,7 +412,7 @@ constexpr auto operator>>(𝗙&& f, 𝗚&& g) {
 }
 
 /**
- * @brief The "Upstream Fish" (Standard Composition)
+ * @brief The "Upstream Fish" (Optional Composition Sugar)
  * g << f  =>  g ∘ f
  */
 template <typename 𝗙, typename 𝗚>
@@ -535,13 +515,13 @@ static_assert(IsEndofunctor<identity_hub<Set<int>>>,
 /**
  * @brief Type alias for the identity functor on a category.
  */
-template <typename Cat>
+export template <typename Cat>
 using identity_functor = identity_hub<Cat>;
 
 /**
  * @brief Type alias for the Box functor.
  */
-template <typename T>
+export template <typename T>
 using box_functor = box_hub<T>;
 
 /**
