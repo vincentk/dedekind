@@ -55,4 +55,19 @@ TEST_CASE("ETCS: ternary support lattice", "[category][etcs][support]") {
     CHECK(support.χ(-5) == Ternary::False);
     CHECK(support.χ(50) == Ternary::Unknown);
   }
+
+  SECTION("Support union and complement preserve ternary semantics") {
+    const auto support_union = set_union(bounded, non_negative);
+    const auto support_not_non_negative = set_complement(non_negative);
+
+    STATIC_CHECK(HasTernarySupport<decltype(support_union)>);
+    STATIC_CHECK(HasTernarySupport<decltype(support_not_non_negative)>);
+
+    CHECK(support_union.χ(5) == Ternary::True);
+    CHECK(support_union.χ(-5) == Ternary::True);
+    CHECK(support_union.χ(-50) == Ternary::Unknown);
+
+    CHECK(support_not_non_negative.χ(5) == Ternary::False);
+    CHECK(support_not_non_negative.χ(-5) == Ternary::True);
+  }
 }
