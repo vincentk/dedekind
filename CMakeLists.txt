@@ -40,6 +40,17 @@ set(CMAKE_CXX_EXTENSIONS OFF)
 # Disable global scanning to protect FetchContent/dependencies
 set(CMAKE_CXX_SCAN_FOR_MODULES OFF)
 
+# Optional: runtime/noinline bridge wrappers for coverage attribution in
+# dedekind.category:numeric. Leave OFF for final builds (constexpr bridges).
+# Usage:
+#   Final/default build (constexpr bridges):
+#     cmake -S . -B build -DDEDEKIND_RUNTIME_COVERAGE_BRIDGES=OFF
+#   Coverage-attribution build (runtime/noinline bridges):
+#     cmake -S . -B build -DDEDEKIND_RUNTIME_COVERAGE_BRIDGES=ON
+option(DEDEKIND_RUNTIME_COVERAGE_BRIDGES
+    "Use runtime/noinline numeric bridge wrappers for coverage attribution"
+    OFF)
+
 # Enable testing with Catch2:
 include(FetchContent)
 FetchContent_Declare(
@@ -81,6 +92,10 @@ function(add_dedekind_layer LAYER_NAME DEPENDS_ON)
     set_target_properties(${LIB_TARGET} PROPERTIES CXX_SCAN_FOR_MODULES ON)
     target_sources(${LIB_TARGET} PUBLIC FILE_SET CXX_MODULES BASE_DIRS src/main/modules FILES ${MODULE_SOURCES})
     target_compile_options(${LIB_TARGET} PRIVATE ${DEDEKIND_WARNING_FLAGS})
+    if(DEDEKIND_RUNTIME_COVERAGE_BRIDGES)
+        target_compile_definitions(${LIB_TARGET}
+            PRIVATE DEDEKIND_RUNTIME_COVERAGE_BRIDGES)
+    endif()
     
     if(DEPENDS_ON)
         target_link_libraries(${LIB_TARGET} PUBLIC ${DEPENDS_ON})
@@ -94,6 +109,10 @@ function(add_dedekind_layer LAYER_NAME DEPENDS_ON)
     # Only apply the warnings here (Coverage is now global via add_compile_options)
     target_compile_options(${LIB_TARGET} PRIVATE ${DEDEKIND_WARNING_FLAGS})
     target_compile_options(${TEST_TARGET} PRIVATE ${DEDEKIND_WARNING_FLAGS})
+    if(DEDEKIND_RUNTIME_COVERAGE_BRIDGES)
+        target_compile_definitions(${TEST_TARGET}
+            PRIVATE DEDEKIND_RUNTIME_COVERAGE_BRIDGES)
+    endif()
 
     # Force whole-archive to ensure all module code is instrumented
     if(APPLE)

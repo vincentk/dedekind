@@ -1,7 +1,7 @@
 /**
- * @file ontology:category.cppm
+ * @file dedekind/category/partial.cppm
  * @partition :partial
- * @brief Level 0.2-P: The Logic of Potentiality (Partial Algebra).
+ * @brief Level 3: The Logic of Potentiality (Partial Algebra).
  *
  * @section The_Algebraic_Logic_of_Partiality
  * "Metoda algebraiczna w logice polega na traktowaniu każdego systemu
@@ -24,6 +24,7 @@ export module dedekind.category:partial;
 
 import :logic;    // Provides IsLogicalSpecies, TernaryLogic, Ternary
 import :species;  // Provides Morphism<A, B, Func>
+import :topoi;    // Provides IsCharacteristic for support classifiers
 import :numeric;
 
 namespace dedekind::category {
@@ -31,6 +32,12 @@ namespace dedekind::category {
 /** @section Forward_Declarations_of_Traits */
 template <typename T, typename Op>
 inline constexpr bool is_kleene_associative_v = false;
+
+template <typename T, typename Op>
+inline constexpr bool is_kleene_commutative_v = false;
+
+template <typename T, typename Op>
+inline constexpr bool is_kleene_invertible_v = false;
 
 template <typename T, typename Op>
 inline constexpr T partial_identity_v = T{};
@@ -64,7 +71,7 @@ struct Partial {
 };
 
 /** @brief A Logic-Aware Result container for Ternary outcomes. */
-template <typename T>
+export template <typename T>
 struct TernaryResult {
   using value_type = T;
   using logic_species = TernaryLogic;  // Required for GetLogic
@@ -139,10 +146,19 @@ concept HasPartialIdentity = IsMagmoid<T, Op> && requires {
   { partial_identity_v<T, Op> } -> std::convertible_to<T>;
 };
 
+/**
+ * @concept IsPartialSupportClassifier
+ * @brief Characteristic morphism χ: T -> Ω_K3 for partial support.
+ */
+export template <typename Chi, typename T>
+concept IsPartialSupportClassifier =
+    IsCharacteristic<Chi> && std::same_as<Dom<Chi>, T> &&
+    std::same_as<Cod<Chi>, Ternary>;
+
 /** @section Honest_Generic_Arithmetic_Transforms */
 
 /** @brief Addition with overflow check (Classical Logic). */
-template <std::integral T>
+export template <std::integral T>
 struct SafeAddTransform {
   std::optional<T> operator()(std::pair<T, T> p) const noexcept {
     auto [a, b] = p;
@@ -162,8 +178,89 @@ inline constexpr bool is_kleene_associative_v<T, SafeAddTransform<T>> = true;
 template <typename T>
 inline constexpr T partial_identity_v<T, SafeAddTransform<T>> = T(0);
 
+/**
+ * @brief Addition that consults a user-supplied numeric boundary policy.
+ *
+ * This transform is intentionally policy-driven, so support can be supplied
+ * explicitly when a canonical Lipschitz boundary is unknown.
+ */
+export template <std::integral T,
+                 typename BoundaryPolicy = FullMachineBoundaryPolicy<T>>
+  requires IsLipschitzBoundaryPolicy<BoundaryPolicy, T>
+struct BoundedAddTransform {
+  BoundaryPolicy boundary{};
+
+  TernaryResult<T> operator()(std::pair<T, T> p) const noexcept {
+    auto [a, b] = p;
+    const auto witness = certify_add(a, b, boundary);
+    return {witness.status, witness.value};
+  }
+
+  using logic_species = TernaryLogic;
+};
+
+template <std::unsigned_integral T>
+inline constexpr bool is_kleene_associative_v<
+    T, BoundedAddTransform<T, FullMachineBoundaryPolicy<T>>> = true;
+
+template <std::unsigned_integral T>
+inline constexpr bool is_kleene_commutative_v<
+    T, BoundedAddTransform<T, FullMachineBoundaryPolicy<T>>> = true;
+
+template <std::unsigned_integral T>
+inline constexpr bool is_kleene_invertible_v<
+    T, BoundedAddTransform<T, FullMachineBoundaryPolicy<T>>> = true;
+
+template <std::unsigned_integral T>
+inline constexpr T partial_identity_v<
+    T, BoundedAddTransform<T, FullMachineBoundaryPolicy<T>>> = T(0);
+
+/** @brief Multiplication with user-supplied numeric boundary policy. */
+export template <std::integral T,
+                 typename BoundaryPolicy = FullMachineBoundaryPolicy<T>>
+  requires IsLipschitzBoundaryPolicy<BoundaryPolicy, T>
+struct BoundedMulTransform {
+  BoundaryPolicy boundary{};
+
+  TernaryResult<T> operator()(std::pair<T, T> p) const noexcept {
+    auto [a, b] = p;
+    const auto witness = certify_mul(a, b, boundary);
+    return {witness.status, witness.value};
+  }
+
+  using logic_species = TernaryLogic;
+};
+
+template <std::unsigned_integral T>
+inline constexpr bool is_kleene_associative_v<
+    T, BoundedMulTransform<T, FullMachineBoundaryPolicy<T>>> = true;
+
+template <std::unsigned_integral T>
+inline constexpr bool is_kleene_commutative_v<
+    T, BoundedMulTransform<T, FullMachineBoundaryPolicy<T>>> = true;
+
+template <std::unsigned_integral T>
+inline constexpr T partial_identity_v<
+    T, BoundedMulTransform<T, FullMachineBoundaryPolicy<T>>> = T(1);
+
+/** @brief Division with user-supplied numeric boundary policy. */
+export template <std::integral T,
+                 typename BoundaryPolicy = FullMachineBoundaryPolicy<T>>
+  requires IsLipschitzBoundaryPolicy<BoundaryPolicy, T>
+struct BoundedDivTransform {
+  BoundaryPolicy boundary{};
+
+  TernaryResult<T> operator()(std::pair<T, T> p) const noexcept {
+    auto [a, b] = p;
+    const auto witness = certify_div(a, b, boundary);
+    return {witness.status, witness.value};
+  }
+
+  using logic_species = TernaryLogic;
+};
+
 /** @brief Division with truncation-awareness (Ternary Logic). */
-template <std::integral T>
+export template <std::integral T>
 struct HonestDivTransform {
   TernaryResult<T> operator()(std::pair<T, T> p) const noexcept {
     auto [a, b] = p;
@@ -183,6 +280,30 @@ export template <typename T, typename Op>
 concept IsPartialMonoid =
     IsPartialSemigroup<T, Op> && HasPartialIdentity<T, Op>;
 
+/**
+ * @concept IsPartialLoop
+ * @brief A Partial Monoid with local invertibility on support.
+ */
+export template <typename T, typename Op>
+concept IsPartialLoop = IsPartialMonoid<T, Op> &&
+                        requires { requires is_kleene_invertible_v<T, Op>; };
+
+/** @concept IsPartialCommutativeSemigroup */
+export template <typename T, typename Op>
+concept IsPartialCommutativeSemigroup = IsPartialSemigroup<T, Op> && requires {
+  requires is_kleene_commutative_v<T, Op>;
+};
+
+/** @concept IsPartialGroup */
+export template <typename T, typename Op>
+concept IsPartialGroup = IsPartialLoop<T, Op>;
+
+/** @concept IsPartialAbelianGroup */
+export template <typename T, typename Op>
+concept IsPartialAbelianGroup = IsPartialGroup<T, Op> && requires {
+  requires is_kleene_commutative_v<T, Op>;
+};
+
 /** @section Honesty_Anchors */
 
 // 1. HonestDiv is a Magmoid.
@@ -193,5 +314,23 @@ static_assert(IsPartialMonoid<int, SafeAddTransform<int>>);
 
 // 3. Division fails Semigroup maturation (Not associative).
 static_assert(!IsPartialSemigroup<int, HonestDivTransform<int>>);
+
+// 4. Unsigned bounded-add with full machine support matures to a partial
+// Abelian group.
+static_assert(IsPartialAbelianGroup<
+              unsigned int,
+              BoundedAddTransform<unsigned int,
+                                  FullMachineBoundaryPolicy<unsigned int>>>);
+
+// 5. Unsigned bounded-mul with full machine support matures to a partial
+// commutative monoid.
+static_assert(IsPartialCommutativeSemigroup<
+              unsigned int,
+              BoundedMulTransform<unsigned int,
+                                  FullMachineBoundaryPolicy<unsigned int>>>);
+static_assert(IsPartialMonoid<
+              unsigned int,
+              BoundedMulTransform<unsigned int,
+                                  FullMachineBoundaryPolicy<unsigned int>>>);
 
 }  // namespace dedekind::category

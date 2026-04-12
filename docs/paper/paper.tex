@@ -346,7 +346,7 @@ These partitions represent the maturation of mathematical species from raw mappi
 
     % --- Row 2: L1 (Left to Right) ---
     \node[partition] (total) at (0, 3.8) {:total};
-    \node[partition, right=of total] (actions) {:actions};
+    \node[partition, right=of total] (actions) {:action};
 
     % --- Row 3: L2 (Right to Left - Reversed) ---
     \node[partition] (kleisli) at (9.0, 6.2) {:kleisli};
@@ -916,9 +916,9 @@ static_assert(!is_distributive_v<int, std::multiplies<>, std::plus<>>,
 \end{lstlisting}
 
 
-\subsubsection{Monoid Actions and Modules (\texttt{:actions})}
+\subsubsection{Monoid Actions and Modules (\texttt{:action})}
 
-The \texttt{:actions} partition materializes the concept of a Species being acted upon by an Algebraic Structure. This partition defines the \texttt{IsSemiModule} and \texttt{IsModule} concepts, where a \textbf{Monoid} (from the \texttt{:total} algebraic layer) defines a transformation rule over a target Species. 
+The \texttt{:action} partition materializes the concept of a Species being acted upon by an Algebraic Structure. This partition defines the \texttt{IsSemiModule} and \texttt{IsModule} concepts, where a \textbf{Monoid} (from the \texttt{:total} algebraic layer) defines a transformation rule over a target Species. 
 
 Following the pedagogical tradition of Stammbach \cite{stammbach1994lineare}, we treat linear algebra not as a series of matrix operations, but as the study of structured actions.
 In this ontology, we distinguish between \textbf{Internal Composition} (operations within a species) and \textbf{External Influence} (actions upon a species).
@@ -1046,6 +1046,8 @@ Within the verified module graph, the LLVM backend utilizes this structural tran
 \subsubsection{The \texttt{:partial} partition: The Pragmatic Rescue}
 
 The \texttt{:partial} partition performs the ``Categorical Rescue'' of species that failed the strict requirements of the total domain. This stage formalises the transition from the \emph{Platonic} to the \emph{Pragmatic}: acknowledging that while hardware-level operations may be ``broken'' (e.g., via overflow or division by zero), they are \textbf{consistently broken}. Following the formalisations of the \emph{nLab} community~\cite{nlab_kleisli}, we treat these consistent failures not as exceptions, but as structured data.
+
+In the current build graph, \texttt{:numeric} is imported before \texttt{:partial} to provide hardware-level boundary classifiers used by partial algebra; the exposition here preserves the conceptual narrative while the implementation follows dependency order.
 
 Following topos-theoretic foundations~\cite{mclarty1992toposes}, we treat a partial morphism $f: A \rightharpoonup B$ as a total mapping from a \textit{subobject} $S \hookrightarrow A$. Here, $S$ represents the \textbf{Support} defined by the characteristic function $\chi: A \to \Omega_{K3}$ provided by the \texttt{:logic} partition. Within this restricted domain, we define \textit{locally total} structures, such as \textbf{Partial Groups} or \textbf{Partial Monoids}. These structures guarantee that the ``Laws of Harmony'' hold strictly on the support $U = \{a \in A \mid \chi(a) = \top\}$, ensuring that even when navigating the messy reality of hardware, we remain within a rigorous algebraic landscape.
 
