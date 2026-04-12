@@ -9,7 +9,7 @@ TEST_CASE("Level 1 Final Proof: The Mereology Highway",
           "[ontology][mereology][highway]") {
   SECTION("2. Initial Object Proof") {
     Ø<int> empty;
-    static_assert(dedekind::sets::IsSet<decltype(empty)>);
+    static_assert(dedekind::sets::IsMereologicalSet<decltype(empty)>);
   }
 
   SECTION("3. The Extreme Bounds (0 and 1)") {
@@ -17,8 +17,8 @@ TEST_CASE("Level 1 Final Proof: The Mereology Highway",
     Ω<int> universe;
 
     // Verify these are valid sets over the active logic species.
-    static_assert(dedekind::sets::IsSet<decltype(empty)>);
-    static_assert(dedekind::sets::IsSet<decltype(universe)>);
+    static_assert(dedekind::sets::IsMereologicalSet<decltype(empty)>);
+    static_assert(dedekind::sets::IsMereologicalSet<decltype(universe)>);
 
     // Verify the Logical Truth across species
     REQUIRE(empty(42) == false);

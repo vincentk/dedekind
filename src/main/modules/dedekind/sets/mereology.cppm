@@ -365,7 +365,7 @@ struct SetMetadata<
 
 /**
  * WORKAROUND: Shield for functional membership.
- * This allows IsSet to evaluate to false (or be bypassed)
+ * This allows IsMereologicalSet to evaluate to false (or be bypassed)
  * for non-functional types like 'unsigned long'.
  */
 template <typename S, typename Domain, typename Ω>
@@ -374,12 +374,13 @@ concept IsFunctionalSet = requires(const S s, const Domain d) {
 };
 
 /**
- * @concept IsSet
+ * @concept IsMereologicalSet
  * @brief The Universal Morphism of Presence.
  * @tparam Ω The Subobject Classifier (Ω). Defaults to ClassicalLogic.
  */
 export template <typename S, typename Ω = ClassicalLogic>
-concept IsSet = IsMereologicalLattice<S, Ω> && IsPredicate<S> && requires {
+concept IsMereologicalSet =
+    IsMereologicalLattice<S, Ω> && IsPredicate<S> && requires {
   requires IsCardinality<typename SetMetadata<S>::Cardinality>;
   // This is now safe because we patched IsProperPart earlier:
   requires IsProperPart<typename SetMetadata<S>::Domain, S, Ω>;
@@ -400,7 +401,7 @@ concept IsSet = IsMereologicalLattice<S, Ω> && IsPredicate<S> && requires {
  * Note we have two choices: a) apply the morphism to the set or
  * b) compose with the morphism. Here, we prefer a).
  **/
-export template <IsSet S, typename F>
+export template <IsMereologicalSet S, typename F>
   requires IsArrow<F> && std::same_as<Dom<F>, S> &&  // F accepts the Set
            requires {
              typename Dom<F>::Domain;
@@ -426,7 +427,7 @@ constexpr auto operator>>(const S& s, const F& f) {
  * @tparam L The Subobject Classifier (Ω). Defaults to ClassicalLogic.
  */
 export template <typename S, typename L = ClassicalLogic>
-concept IsEnumerated = IsSet<S, L> && requires(const S s) {
+concept IsEnumerated = IsMereologicalSet<S, L> && requires(const S s) {
   /** @section Magnitude: The Physical Proof */
   // An extensional set MUST claim a Finite cardinality type.
   requires(S::cardinality_type::is_finite == true);
@@ -455,7 +456,7 @@ concept IsEnumerated = IsSet<S, L> && requires(const S s) {
  * Wikipedia: Intensional definition, Indicator function, Ternary logic
  */
 export template <typename S, typename L = TernaryLogic>
-concept IsSymbolic = IsSet<S, L> && !IsEnumerated<S, L>;
+concept IsSymbolic = IsMereologicalSet<S, L> && !IsEnumerated<S, L>;
 
 /**
  * @concept IsPointedSet
@@ -463,7 +464,7 @@ concept IsSymbolic = IsSet<S, L> && !IsEnumerated<S, L>;
  * Wikipedia: Pointed set
  */
 export template <typename S, typename T>
-concept IsPointedSet = IsSet<S> && IsPointed<T, std::plus<T>>;
+concept IsPointedSet = IsMereologicalSet<S> && IsPointed<T, std::plus<T>>;
 
 /**
  * @section Structural_Inference: NaturalLogic
