@@ -43,9 +43,8 @@ TEST_CASE("ETCS: ternary support lattice", "[category][etcs][support]") {
     return Ternary::True;
   });
 
-  const auto non_negative = classify<int>([](const int& x) {
-    return x >= 0 ? Ternary::True : Ternary::False;
-  });
+  const auto non_negative = classify<int>(
+      [](const int& x) { return x >= 0 ? Ternary::True : Ternary::False; });
 
   SECTION("Support intersection propagates unknown honestly") {
     const auto support = set_intersection(bounded, non_negative);

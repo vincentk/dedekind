@@ -25,6 +25,74 @@ import :topoi;
 
 namespace dedekind::category {
 
+namespace detail {
+
+template <std::signed_integral T>
+constexpr bool add_overflow_signed(T a, T b, T& out) {
+#if defined(__GNUC__) || defined(__clang__)
+  // Use a fixed builtin signature to avoid template-dependent overload
+  // ambiguity across compilers.
+  if constexpr (sizeof(T) <= sizeof(long long)) {
+    long long tmp = 0;
+    if (__builtin_saddll_overflow(static_cast<long long>(a),
+                                  static_cast<long long>(b), &tmp)) {
+      return true;
+    }
+    if (tmp > static_cast<long long>(std::numeric_limits<T>::max()) ||
+        tmp < static_cast<long long>(std::numeric_limits<T>::min())) {
+      return true;
+    }
+    out = static_cast<T>(tmp);
+    return false;
+  }
+#endif
+
+  // Portable fallback
+  if ((b > 0 && a > (std::numeric_limits<T>::max() - b)) ||
+      (b < 0 && a < (std::numeric_limits<T>::min() - b))) {
+    return true;
+  }
+  out = static_cast<T>(a + b);
+  return false;
+}
+
+template <std::signed_integral T>
+constexpr bool mul_overflow_signed(T a, T b, T& out) {
+#if defined(__GNUC__) || defined(__clang__)
+  // Use a fixed builtin signature to avoid template-dependent overload
+  // ambiguity across compilers.
+  if constexpr (sizeof(T) <= sizeof(long long)) {
+    long long tmp = 0;
+    if (__builtin_smulll_overflow(static_cast<long long>(a),
+                                  static_cast<long long>(b), &tmp)) {
+      return true;
+    }
+    if (tmp > static_cast<long long>(std::numeric_limits<T>::max()) ||
+        tmp < static_cast<long long>(std::numeric_limits<T>::min())) {
+      return true;
+    }
+    out = static_cast<T>(tmp);
+    return false;
+  }
+#endif
+
+  // Portable fallback
+  if (a == 0 || b == 0) {
+    out = static_cast<T>(0);
+    return false;
+  }
+  if ((a > 0 && b > 0 && a > (std::numeric_limits<T>::max() / b)) ||
+      (a > 0 && b < 0 && b < (std::numeric_limits<T>::min() / a)) ||
+      (a < 0 && b > 0 && a < (std::numeric_limits<T>::min() / b)) ||
+      (a < 0 && b < 0 && a < (std::numeric_limits<T>::max() / b))) {
+    return true;
+  }
+  out = static_cast<T>(a * b);
+  return false;
+}
+
+}  // namespace detail
+
 /** @brief A typed witness of numeric classification in Ω_K3. */
 export template <typename T>
 struct NumericWitness {
@@ -110,12 +178,10 @@ constexpr NumericWitness<T> certify_add(T a, T b, Policy policy) {
   }
 
   if constexpr (std::is_signed_v<T>) {
-    if ((b > 0 && a > (std::numeric_limits<T>::max() - b)) ||
-        (b < 0 && a < (std::numeric_limits<T>::min() - b))) {
+    T result{};
+    if (detail::add_overflow_signed(a, b, result)) {
       return {T{}, Ternary::Unknown};
     }
-
-    const T result = static_cast<T>(a + b);
 
     const Ternary support_result = policy(result);
     return {result, TernaryLogic::AND(support_inputs, support_result)};
@@ -161,21 +227,10 @@ constexpr NumericWitness<T> certify_mul(T a, T b, Policy policy) {
   }
 
   if constexpr (std::is_signed_v<T>) {
-    if (a == 0 || b == 0) {
-      const T result = static_cast<T>(0);
-      const Ternary support_result = policy(result);
-      return {result, TernaryLogic::AND(support_inputs, support_result)};
-    }
-
-    // Signed overflow check without compiler builtins (portable across toolchains).
-    if ((a > 0 && b > 0 && a > (std::numeric_limits<T>::max() / b)) ||
-        (a > 0 && b < 0 && b < (std::numeric_limits<T>::min() / a)) ||
-        (a < 0 && b > 0 && a < (std::numeric_limits<T>::min() / b)) ||
-        (a < 0 && b < 0 && a < (std::numeric_limits<T>::max() / b))) {
+    T result{};
+    if (detail::mul_overflow_signed(a, b, result)) {
       return {T{}, Ternary::Unknown};
     }
-
-    const T result = static_cast<T>(a * b);
 
     const Ternary support_result = policy(result);
     return {result, TernaryLogic::AND(support_inputs, support_result)};
