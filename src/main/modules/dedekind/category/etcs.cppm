@@ -22,18 +22,22 @@
  * The following table maps each of the 10 axioms of Lawvere's ETCS to the
  * corresponding C++23 implementation. Items marked (asp.) are aspirational.
  *
- * | ETCS Axiom                    | C++23 Implementation                 | Partition       |
+ * | ETCS Axiom                    | C++23 Implementation                 |
+ * Partition       |
  * |:------------------------------|:-------------------------------------|:----------------|
- * | **1. Composition**            | `operator>>` / `IsArrow`             | `:morphism`     |
- * | **2. Identity**               | `Identity<T>` / `Cat::id_c(x)`       | `:small`        |
- * | **3. Terminal Object (1)**    | `One` (`std::monostate`)             | `:limit`        |
- * | **4. Well-Pointedness**       | `s.χ(x) → Ω` (global element eval)   | `:topoi`        |
- * | **5. Cartesian Product**      | `std::pair` / `IsProduct`            | `:cartesian`    |
- * | **6. Exponentiation (B^A)**   | `Exponential<A,B>` / `IsExponential` | `:cartesian`    |
- * | **7. Subobject Classifier**   | `Subobject<A,χ>` / `classify<A>(p)`  | `:topoi`        |
- * | **8. Empty Set (∅)**          | `Zero` (`std::nullptr_t`)            | `:limit`        |
- * | **9. NNO (ℕ)**               | `SpeciesTraits<unsigned>`             | `:numeric`      |
- * | **10. Axiom of Choice**       | `meet`/`join` lattice dispatcher     | `:etcs` (asp.)  |
+ * | **1. Composition**            | `operator>>` / `IsArrow`             |
+ * `:morphism`     | | **2. Identity**               | `Identity<T>` /
+ * `Cat::id_c(x)`       | `:small`        | | **3. Terminal Object (1)**    |
+ * `One` (`std::monostate`)             | `:limit`        | | **4.
+ * Well-Pointedness**       | `s.χ(x) → Ω` (global element eval)   | `:topoi` |
+ * | **5. Cartesian Product**      | `std::pair` / `IsProduct`            |
+ * `:cartesian`    | | **6. Exponentiation (B^A)**   | `Exponential<A,B>` /
+ * `IsExponential` | `:cartesian`    | | **7. Subobject Classifier**   |
+ * `Subobject<A,χ>` / `classify<A>(p)`  | `:topoi`        | | **8. Empty Set
+ * (∅)**          | `Zero` (`std::nullptr_t`)            | `:limit`        | |
+ * **9. NNO (ℕ)**               | `SpeciesTraits<unsigned>`             |
+ * `:numeric`      | | **10. Axiom of Choice**       | `meet`/`join` lattice
+ * dispatcher     | `:etcs` (asp.)  |
  *
  * @see Lawvere, F.W. (1964) "An Elementary Theory of the Category of Sets"
  * @see McLarty, C. (1993) "Numbers can be just what they have to"
@@ -81,7 +85,7 @@ concept IsCompatibleSetPair =
     IsSubobject<S2, typename S2::Ambient> &&
     std::same_as<typename S1::Ambient, typename S2::Ambient> &&
     std::same_as<Cod<decltype(std::declval<S1>().χ)>,
-           Cod<decltype(std::declval<S2>().χ)>>;
+                 Cod<decltype(std::declval<S2>().χ)>>;
 
 /** @brief ETCS intersection: materialize A ∩ B from χ_A ∧ χ_B. */
 export template <typename S1, typename S2>
