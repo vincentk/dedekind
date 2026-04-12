@@ -160,38 +160,31 @@ constexpr auto φ(𝗙 const&, 𝗳&&) -> typename 𝗙::template Shape<
     std::invoke_result_t<𝗳, typename 𝗙::Σ_cat::Species>> = delete;
 
 /**
- * @concept IsIntensionalFunctor
- * @brief A stateless Hub representing the formal functorial mapping F: Σ -> Τ.
+ * @concept IsMorphicApplicator
+ * @brief The stage-2 engine that has the data and waits for the action.
  */
-export template <typename F>
-concept IsIntensionalFunctor =
-    IsArrow<F> &&  // It is an arrow in the Category of Categories
-    requires {
-      typename F::Σ_cat;  // Source Category handle
-      typename F::Τ_cat;  // Target Category handle
-      requires IsCategory<typename F::Σ_cat>;
-      requires IsCategory<typename F::Τ_cat>;
+template <typename T, typename Hub, typename Spoke>
+concept IsMorphicApplicator = requires(T engine, typename Hub::Σ_cat::Arrow f) {
+  /**
+   * The engine accepts a "Spoke-Arrow" and returns the result.
+   * We check that the result type is exactly the Target Category's Species.
+   */
+  { engine(f) } -> std::same_as<typename Hub::Τ_cat::Species>;
+};
 
+/**
+ * @concept IsFunctorialApplicator
+ * @brief The interface of the "Contextual Wrapper" returned by fmap(Hub).
+ */
+export template <typename T, typename Hub>
+concept IsFunctorialApplicator =
+    requires(T applicator, typename Hub::Σ_cat::Species ma) {
       /**
-       * The Object Recipe (F_obj)
-       * Maps a Species (A) to its image species F(A).
+       * 1. Data Binding
+       * The applicator must accept a Spoke (ma) from the Hub's source category.
+       * This returns the "Morphic Applicator" (Stage 2).
        */
-      typename F::template Shape<int>;
-    } && requires(F hub, typename F::Σ_cat::Arrow f) {
-      /**
-       * The Morphic Action (F_mor / φ)
-       * Maps an Arrow (f: A -> B) to its lifted arrow F(f): F(A) -> F(B).
-       * This is the "Intensional" core.
-       */
-      { hub.φ(f) } -> IsArrow;
-
-      // Verify that the lifted arrow lands on the correct transformed objects
-      requires std::same_as<
-          typename decltype(hub.φ(f))::Domain,
-          typename F::template Shape<typename decltype(f)::Domain>>;
-      requires std::same_as<
-          typename decltype(hub.φ(f))::Codomain,
-          typename F::template Shape<typename decltype(f)::Codomain>>;
+      { applicator(ma) } -> IsMorphicApplicator<Hub, decltype(ma)>;
     };
 
 /**
@@ -199,7 +192,7 @@ concept IsIntensionalFunctor =
  * Returns a closure (or a wrapper) that satisfies IsFunctor.
  */
 template <typename Hub>
-  requires IsIntensionalFunctor<Hub>
+  requires IsFunctor<Hub>
 [[nodiscard]]
 constexpr auto fmap(Hub const& h) {
   // We return a "Witness" that knows how to use the Hub's logic

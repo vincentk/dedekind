@@ -207,38 +207,6 @@ struct SetId final {
 };
 
 /**
- * @brief The Category of C++ Types (Set).
- * This category is "dense": every valid function is a valid Arrow.
- */
-template <typename T>
-struct Set final {
-  using Species = T;
-
-  // The 'Canonical' Arrow type for this category
-  using Arrow = Morphism<T, T, std::function<T(T)>>;
-  using Id = SetId<T>;
-
-  static constexpr Id id_c(const T& x) noexcept { return Id{x}; }
-
-  /**
-   * @brief Force composition to stay within the Arrow type.
-   */
-  friend constexpr Arrow operator>>(const Arrow& f, const Arrow& g) {
-    // 1. Extract the underlying std::functions
-    // 2. Compose them into a new std::function
-    // 3. Wrap back into the canonical Morphism type (Arrow)
-    std::function<T(T)> composed = [f_fn = f.action, g_fn = g.action](T x) {
-      return g_fn(f_fn(std::move(x)));
-    };
-
-    return Arrow{std::move(composed)};
-  }
-};
-
-static_assert(IsCategory<Set<int>>,
-              "Verification Failed: Set<int> must satisfy IsCategory.");
-
-/**
  * @brief An arrow that is just a label.
  */
 struct StringArrow {
