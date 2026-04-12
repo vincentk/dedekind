@@ -81,6 +81,7 @@ module;
 export module dedekind.category:functor;
 
 import :action;
+import :cartesian;
 import :morphism;
 import :small;
 
