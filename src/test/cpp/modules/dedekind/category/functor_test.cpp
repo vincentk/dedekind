@@ -78,7 +78,8 @@ TEST_CASE("Category: Functor operator>> (Functor composition)",
   }
 }
 
-TEST_CASE("Category: Immerse and Fish Examples", "[category][functor][immerse]") {
+TEST_CASE("Category: Immerse and Fish Examples",
+          "[category][functor][immerse]") {
   SECTION("Box immerse with lambda application") {
     auto b = Box{42};
     auto h = box_hub<int>{};
