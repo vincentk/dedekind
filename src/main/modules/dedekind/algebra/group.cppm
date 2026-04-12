@@ -43,7 +43,7 @@ concept IsAdditiveGroup = IsAdditiveMonoid<T>;
  * @brief Proposition: The non-zero species (T*, *) forms a Group (ℚ*).
  */
 export template <typename T>
-concept IsMultiplicativeGroup = IsMultiplicativeMonoid<T>;
+concept IsMultiplicativeGroup = dedekind::category::IsGroup<T, std::multiplies<>>;
 
 /** @section Formal_Verification */
 
