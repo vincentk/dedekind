@@ -59,7 +59,7 @@ using namespace dedekind::category;
  */
 template <typename P, typename W, typename L>
 concept IsCallableMembership = requires(const P& p, const W& w) {
-  { w(p) } -> std::same_as<typename L::type>;
+  { w(p) } -> std::same_as<typename L::Ω>;
 };
 
 /**
@@ -84,7 +84,7 @@ concept IsPartOf = requires(const S1& p, const S2& w) {
                };  // Structural check
 
   // 2. The Subset check (Requires operator<= to be defined for WeakPart)
-  { p <= w } -> std::same_as<typename L::type>;
+  { p <= w } -> std::same_as<typename L::Ω>;
 };
 
 /** @brief The Dual / Converse of the Part-Whole relation. */
@@ -123,7 +123,7 @@ concept IsProperPart =
  */
 export template <typename S>
 concept IsMeetSemilattice =
-    IsSemigroupoid<S, std::bit_and<S>> && IsIdempotent<S, std::bit_and<S>>;
+    IsAssociative<S, std::bit_and<S>> && IsIdempotent<S, std::bit_and<S>>;
 
 /**
  * @concept IsJoinSemiLattice
@@ -133,7 +133,7 @@ concept IsMeetSemilattice =
  */
 export template <typename S>
 concept IsJoinSemilattice =
-    IsSemigroupoid<S, std::bit_or<S>> && IsIdempotent<S, std::bit_or<S>>;
+    IsAssociative<S, std::bit_or<S>> && IsIdempotent<S, std::bit_or<S>>;
 
 /**
  * @concept IsLattice
@@ -227,7 +227,7 @@ concept IsExtensional =
 export template <typename S, typename L = ClassicalLogic>
 concept IsExtensionalLattice =
     IsMereologicalLattice<S, L> && IsExtensional<S> && requires(S a, S b) {
-      { (a == b) } -> std::convertible_to<typename L::type>;
+      { (a == b) } -> std::convertible_to<typename L::Ω>;
       // The Proof: Equality is equivalent to Mutual Parthood.
       requires requires { (a <= b && b <= a) == (a == b); };
     };
@@ -251,7 +251,7 @@ concept IsAtom = IsMereologicalLattice<S, L> && requires(S x) {
    * relative to the atom and the bottom of the lattice.
    */
   requires requires(S y) {
-    { (y <= x) } -> std::same_as<typename L::type>;
+    { (y <= x) } -> std::same_as<typename L::Ω>;
     /**
      * @theorem If (y <= x) is True, then (y == x ||
      * IsInitialObject<decltype(y)>). In C++23, we enforce this as a
@@ -370,7 +370,7 @@ struct SetMetadata<
  */
 template <typename S, typename Domain, typename Ω>
 concept IsFunctionalSet = requires(const S s, const Domain d) {
-  { s(d) } -> std::same_as<typename Ω::type>;
+  { s(d) } -> std::same_as<typename Ω::Ω>;
 };
 
 /**
@@ -379,35 +379,34 @@ concept IsFunctionalSet = requires(const S s, const Domain d) {
  * @tparam Ω The Subobject Classifier (Ω). Defaults to ClassicalLogic.
  */
 export template <typename S, typename Ω = ClassicalLogic>
-concept IsSet =
-    IsMereologicalLattice<S, Ω> && IsCharacteristic<S, Ω> && requires {
-      requires IsCardinality<typename SetMetadata<S>::Cardinality>;
-      // This is now safe because we patched IsProperPart earlier:
-      requires IsProperPart<typename SetMetadata<S>::Domain, S, Ω>;
-    } && requires(const S s) {
-      { !s } -> IsLattice;
+concept IsSet = IsMereologicalLattice<S, Ω> && IsPredicate<S> && requires {
+  requires IsCardinality<typename SetMetadata<S>::Cardinality>;
+  // This is now safe because we patched IsProperPart earlier:
+  requires IsProperPart<typename SetMetadata<S>::Domain, S, Ω>;
+} && requires(const S s) {
+  { !s } -> IsLattice;
 
-      requires requires {
-        {
-          s.cardinality()
-        } -> std::same_as<typename SetMetadata<S>::Cardinality>;
-      } || !requires { s.cardinality(); };
+  requires requires {
+    { s.cardinality() } -> std::same_as<typename SetMetadata<S>::Cardinality>;
+  } || !requires { s.cardinality(); };
 
-      // 4. Domain Mapping (The "Presence" check) - SHIELDED
-      // If it's an integral (like unsigned long), we skip the call check.
-      requires std::integral<S> ||
-                   IsFunctionalSet<S, typename SetMetadata<S>::Domain, Ω>;
-    } && IsLattice<S>;
+  // 4. Domain Mapping (The "Presence" check) - SHIELDED
+  // If it's an integral (like unsigned long), we skip the call check.
+  requires std::integral<S> ||
+               IsFunctionalSet<S, typename SetMetadata<S>::Domain, Ω>;
+} && IsLattice<S>;
 
 /**
  * Note we have two choices: a) apply the morphism to the set or
  * b) compose with the morphism. Here, we prefer a).
  **/
 export template <IsSet S, typename F>
-  requires IsArrow<F, S, typename F::Codomain> &&  // F accepts the Set
-                                                   // itself as Domain
-           std::same_as<typename S::Domain,
-                        typename F::Domain::Domain>  // Species Match
+  requires IsArrow<F> && std::same_as<Dom<F>, S> &&  // F accepts the Set
+           requires {
+             typename Dom<F>::Domain;
+             requires std::same_as<typename S::Domain,
+                                   typename Dom<F>::Domain>;  // Species Match
+           }
 constexpr auto operator>>(const S& s, const F& f) {
   return f(s);
 }
@@ -464,7 +463,7 @@ concept IsSymbolic = IsSet<S, L> && !IsEnumerated<S, L>;
  * Wikipedia: Pointed set
  */
 export template <typename S, typename T>
-concept IsPointedSet = IsSet<S> && IsPointed<T>;
+concept IsPointedSet = IsSet<S> && IsPointed<T, std::plus<T>>;
 
 /**
  * @section Structural_Inference: NaturalLogic

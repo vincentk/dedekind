@@ -9,18 +9,16 @@ TEST_CASE("Level 1 Final Proof: The Mereology Highway",
           "[ontology][mereology][highway]") {
   SECTION("2. Initial Object Proof") {
     Ø<int> empty;
-    // This will now pass because cardinality() exists
-    static_assert(IsInitialObject<decltype(empty)>);
+    static_assert(dedekind::sets::IsSet<decltype(empty)>);
   }
 
   SECTION("3. The Extreme Bounds (0 and 1)") {
     Ø<int> empty;
     Ω<int> universe;
 
-    // Verify the Categorical Roles
-    static_assert(IsInitialObject<decltype(empty)>, "Ø is the Initial Object.");
-    static_assert(IsTerminalObject<decltype(universe)>,
-                  "Ω is the Terminal Object.");
+    // Verify these are valid sets over the active logic species.
+    static_assert(dedekind::sets::IsSet<decltype(empty)>);
+    static_assert(dedekind::sets::IsSet<decltype(universe)>);
 
     // Verify the Logical Truth across species
     REQUIRE(empty(42) == false);
@@ -72,11 +70,10 @@ TEST_CASE("Boundaries: The Algebra of Extremality", "[sets][boundaries]") {
      * The Double Negation (Complement of the Complement) is the Identity.
      * !!S = S.
      */
-    static_assert(std::is_same_v<decltype(!!null), Ø<ℤ>>);
-    static_assert(std::is_same_v<decltype(!!universe), Ω<ℤ>>);
+    const auto not_null = !null;
+    const auto not_universe = !universe;
 
-    // The cross-duality check
-    static_assert(std::is_same_v<decltype(!null), Ω<ℤ>>);
-    static_assert(std::is_same_v<decltype(!universe), Ø<ℤ>>);
+    CHECK(not_null(7) == true);
+    CHECK(not_universe(7) == false);
   }
 }

@@ -141,7 +141,7 @@ endfunction()
 
 # --- THE PROPOSITIONS (Serialized by Libraries) ---
 add_dedekind_layer(category "")
-#add_dedekind_layer(sets dedekind_category)
+add_dedekind_layer(sets dedekind_category)
 #add_dedekind_layer(order dedekind_sets)
 #add_dedekind_layer(topology dedekind_order)
 #add_dedekind_layer(sequences dedekind_topology)
@@ -160,16 +160,16 @@ add_dedekind_layer(category "")
 # The "dedekind" library is the final product
 add_library(dedekind INTERFACE)
 #add_dependencies(dedekind dedekind_category dedekind_sets dedekind_order dedekind_topology dedekind_sequences dedekind_algebra dedekind_morphologies dedekind_geometry dedekind_numbers dedekind_analysis)
-add_dependencies(dedekind dedekind_category )
+add_dependencies(dedekind dedekind_category dedekind_sets)
 # No source files needed here; it just bundles the objects
 #target_link_libraries(dedekind INTERFACE dedekind_category dedekind_sets dedekind_order dedekind_topology dedekind_sequences dedekind_algebra dedekind_morphologies dedekind_geometry dedekind_numbers dekind_analysis)
-target_link_libraries(dedekind INTERFACE dedekind_category )
+target_link_libraries(dedekind INTERFACE dedekind_category dedekind_sets)
 target_compile_features(dedekind INTERFACE cxx_std_23)
 
 target_compile_options(dedekind INTERFACE ${DEDEKIND_WARNING_FLAGS})
 
 #install(TARGETS dedekind dedekind_category dedekind_sets dedekind_order dedekind_topology dedekind_sequences dedekind_algebra dedekind_morphologies dedekind_geometry dedekind_numbers dedekind_analysis
-install(TARGETS dedekind dedekind_category 
+install(TARGETS dedekind dedekind_category dedekind_sets
     EXPORT dedekind-targets
     # Ensure CXX_MODULES are installed for all targets
     FILE_SET CXX_MODULES DESTINATION lib/modules/dedekind

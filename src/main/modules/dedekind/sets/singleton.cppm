@@ -10,8 +10,8 @@
  *
  * @section The_Singleton_Atom: Mereological Singularity
  * In the Dedekind universe, the Singleton is the "Unit of Presence."
- * It serves as the canonical implementation of a Pointed Set and acts
- * as the 'pure' or 'return' operation (η) for the Set Monad.
+ * It serves as the canonical implementation of a Pointed Set and provides
+ * the concrete singleton constructor used in sets-level monadic workflows.
  *
  * @details
  * This structure bridges Level 0a (Species) and Level 1 (Mereology):
@@ -20,10 +20,15 @@
  * application.
  * - It is a Comonad: It supports the Co-Kleisli Pull (<<=) via extraction (ε).
  *
+ * Category-level η/ε specializations for SingletonSet are currently deferred
+ * while dedekind.sets is being retargeted to the updated hub/spoke interfaces
+ * in dedekind.category.
+ *
  * @section Structural_Role
  * The SingletonSet provides the baseline proof for the Unified Highway Bridge.
- * By defining η and ε here, we allow fmap to be derived automatically
- * for any morphism f: T -> U lifted into the Singleton context.
+ * Its sets-layer operations (constructor, bind, extend) are available now;
+ * category-layer η/ε and derived fmap wiring is intentionally postponed to a
+ * follow-up integration pass.
  *
  * @tparam T The underlying Species of the pivot element.
  * @tparam L The Subobject Classifier (Ω) governing the set's logic.
@@ -58,7 +63,7 @@ export template <typename T, typename L = ClassicalLogic>
 struct SingletonSet {
   T pivot;
   using Domain = T;
-  using Codomain = typename L::type;
+  using Codomain = typename L::Ω;
   using logic_species = L;
   using cardinality_type = Finite;
   using is_extensional_tag = void;
@@ -89,8 +94,8 @@ struct SingletonSet {
 
   /** @section Mereological_Relation (sqsubseteq) */
 
-  // 1. Manual definition to satisfy: { a <= b } -> typename L::type
-  constexpr typename L::type operator<=(const SingletonSet& other) const {
+  // 1. Manual definition to satisfy: { a <= b } -> typename L::Ω
+  constexpr typename L::Ω operator<=(const SingletonSet& other) const {
     return (pivot == other.pivot) ? L::True : L::False;
   }
 
@@ -105,7 +110,7 @@ struct SingletonSet {
 
   // S1 <= S2 (Is S1 a part of S2?)
   template <typename S>
-  constexpr typename L::type operator<=(const S& other) const {
+  constexpr typename L::Ω operator<=(const S& other) const {
     // If it's another singleton, compare pivots
     if constexpr (requires { other.pivot; }) {
       return (pivot == other.pivot) ? L::True : L::False;
@@ -183,43 +188,7 @@ constexpr auto operator<<=(const SingletonSet<T, L>& s, Func&& f) {
 
 };  // namespace dedekind::sets
 
-namespace dedekind::category {
-using namespace dedekind::sets;
-// Re-open the category namespace to provide η/ε specializations for
-// SingletonSet
-export template <typename T>
-struct η<SingletonSet, T> {
-  constexpr auto operator()(const T& x) const { return SingletonSet<T>{x}; }
-};
-
-/** @section Singleton_Counit (ε) */
-export template <typename T>
-struct ε<SingletonSet, T> {
-  // Extraction is logic-agnostic, so we can use a variadic match here
-  // or just match the Classical version.
-  template <typename L>
-  constexpr T operator()(const SingletonSet<T, L>& s) const {
-    return s.pivot;
-  }
-};
-};  // namespace dedekind::category
-
-/** @section The_Final_Ontology_Proof */
-namespace dedekind::sets {
-// A simple cross-species transformation: int -> bool
-constexpr auto is_even = arrow<int, bool>([](int x) { return x % 2 == 0; });
-
-using IntSet = SingletonSet<int, ClassicalLogic>;
-using BoolSet = SingletonSet<bool, ClassicalLogic>;
-
-// The Proof: "Lifting 'is_even' into the Singleton context"
-static_assert(
-    IsArrow<decltype(fmap<SingletonSet>(is_even)), IntSet, BoolSet>,
-    "PR Failure: SingletonSet failed to discover its Functorial Highway.");
-
-// The Action: "Executing the lifted morphism"
-static_assert(((IntSet{42} >> fmap<SingletonSet>(is_even))
-               << extract<SingletonSet>) == true,
-              "PR Failure: The Set Monad failed to preserve the truth value of "
-              "the species.");
-}  // namespace dedekind::sets
+/** @section The_Final_Ontology_Proof
+ * Deferred while `dedekind.sets` is being retargeted to the updated
+ * `dedekind.category` hub/spoke functor API.
+ */
