@@ -31,7 +31,6 @@ module;
 
 #include <concepts>
 #include <functional>
-#include <type_traits>
 
 export module dedekind.category:etcs;
 
