@@ -23,21 +23,17 @@
  * corresponding C++23 implementation. Items marked (asp.) are aspirational.
  *
  * | ETCS Axiom                    | C++23 Implementation                 |
- * Partition       |
- * |:------------------------------|:-------------------------------------|:----------------|
+ * |:------------------------------|:-------------------------------------|
  * | **1. Composition**            | `operator>>` / `IsArrow`             |
- * `:morphism`     | | **2. Identity**               | `Identity<T>` /
- * `Cat::id_c(x)`       | `:small`        | | **3. Terminal Object (1)**    |
- * `One` (`std::monostate`)             | `:limit`        | | **4.
- * Well-Pointedness**       | `s.χ(x) → Ω` (global element eval)   | `:topoi` |
+ * | **2. Identity**               | `Identity<T>` / `id<T>()`            |
+ * | **3. Terminal Object (1)**    | `One` (`std::monostate`)             |
+ * | **4. Well-Pointedness**       | `s.χ(x) → Ω` (global element eval)   |
  * | **5. Cartesian Product**      | `std::pair` / `IsProduct`            |
- * `:cartesian`    | | **6. Exponentiation (B^A)**   | `Exponential<A,B>` /
- * `IsExponential` | `:cartesian`    | | **7. Subobject Classifier**   |
- * `Subobject<A,χ>` / `classify<A>(p)`  | `:topoi`        | | **8. Empty Set
- * (∅)**          | `Zero` (`std::nullptr_t`)            | `:limit`        | |
- * **9. NNO (ℕ)**               | `SpeciesTraits<unsigned>`             |
- * `:numeric`      | | **10. Axiom of Choice**       | `meet`/`join` lattice
- * dispatcher     | `:etcs` (asp.)  |
+ * | **6. Exponentiation (B^A)**   | `Exponential<A,B>` / `IsExponential` |
+ * | **7. Subobject Classifier**   | `Subobject<A,χ>` / `classify<A>(p)`  |
+ * | **8. Empty Set (∅)**          | `Zero` (`std::nullptr_t`)            |
+ * | **9. NNO (ℕ)**               | `SpeciesTraits<unsigned>`             |
+ * | **10. Axiom of Choice**       | `meet` / `join` lattice dispatcher   |
  *
  * @see Lawvere, F.W. (1964) "An Elementary Theory of the Category of Sets"
  * @see McLarty, C. (1993) "Numbers can be just what they have to"
@@ -46,12 +42,17 @@
 module;
 
 #include <concepts>
+#include <functional>
+#include <type_traits>
 #include <utility>
 
 export module dedekind.category:etcs;
 
+import :cartesian;
+import :limit;
 import :logic;
 import :morphism;
+import :species;
 import :topoi;
 
 namespace dedekind::category {
@@ -125,16 +126,86 @@ constexpr auto join(const S1& lhs, const S2& rhs) {
   return set_union(lhs, rhs);
 }
 
+/** @brief ETCS axiom 1 witness: composition is available for ambient arrows. */
+export template <typename A>
+concept HasAxiom1Composition =
+    IsArrow<Identity<A>> && IsArrow<decltype(id<A>() >> id<A>())>;
+
+/** @brief ETCS axiom 2 witness: identity arrow acts neutrally on A. */
+export template <typename A>
+concept HasAxiom2Identity =
+    IsArrow<Identity<A>> && std::same_as<Dom<Identity<A>>, A> &&
+    std::same_as<Cod<Identity<A>>, A>;
+
+/** @brief ETCS axiom 3 witness: terminal object 1 is present. */
+export template <typename A>
+concept HasAxiom3TerminalObject = IsTerminalObject<One>;
+
+/** @brief ETCS axiom 4 witness: membership is evaluation through χ. */
+export template <typename S>
+concept HasAxiom4WellPointedness =
+    IsSubobject<S, typename S::Ambient> &&
+    IsPredicate<std::remove_cvref_t<decltype(std::declval<S>().χ)>>;
+
+/** @brief ETCS axiom 5 witness: products exist for ambient species A. */
+export template <typename A>
+concept HasAxiom5CartesianProduct = IsProduct<std::pair<A, A>, A, A>;
+
+/** @brief ETCS axiom 6 witness: exponentials B^A exist (here A^A witness). */
+export template <typename A>
+concept HasAxiom6Exponentiation =
+    IsExponential<Exponential<A, A>, A, A> && IsArrow<Exponential<A, A>>;
+
+/** @brief ETCS axiom 7 witness: every set is represented by a subobject. */
+export template <typename S>
+concept HasAxiom7SubobjectClassifier = IsSubobject<S, typename S::Ambient>;
+
+/** @brief ETCS axiom 8 witness: initial object 0 is present. */
+export template <typename A>
+concept HasAxiom8EmptySet = IsInitialObject<Zero>;
+
+/** @brief ETCS axiom 9 witness: arithmetic species atlas exposes ℕ witness. */
+export template <typename A>
+concept HasAxiom9NNO = IsSpecies<unsigned>;
+
+/** @brief ETCS axiom 10 witness: meet/join lattice operators are available. */
+export template <typename S>
+concept HasAxiom10ChoiceDispatcher =
+    IsSetObject<S, typename S::Ambient> && IsCompatibleSetPair<S, S> &&
+    requires(S lhs, S rhs) {
+      requires IsSetObject<decltype(meet(lhs, rhs)), typename S::Ambient>;
+      requires IsSetObject<decltype(join(lhs, rhs)), typename S::Ambient>;
+    };
+
 /**
  * @concept IsSet
- * @brief Alias concept for set objects represented as subobjects.
+ * @brief ETCS set concept that aggregates all 10 axiom witnesses in one place.
  *
  * @details
- * IsSet intentionally models set-hood via the existing topoi interface:
- * a carrier T is a set exactly when it is a valid subobject over its
- * declared ambient species.
+ * IsSet keeps the elegant Subobject representation (axiom 7) while making
+ * the ETCS axiom mapping explicit and discoverable as concept-level witnesses.
  */
 export template <typename T>
-concept IsSet = IsSetObject<T, typename T::Ambient>;
+concept IsSet =
+    IsSetObject<T, typename T::Ambient> &&
+    HasAxiom1Composition<typename T::Ambient> &&
+    HasAxiom2Identity<typename T::Ambient> &&
+    HasAxiom3TerminalObject<typename T::Ambient> &&
+    HasAxiom4WellPointedness<T> &&
+    HasAxiom5CartesianProduct<typename T::Ambient> &&
+    HasAxiom6Exponentiation<typename T::Ambient> &&
+    HasAxiom7SubobjectClassifier<T> && HasAxiom8EmptySet<typename T::Ambient> &&
+    HasAxiom9NNO<typename T::Ambient> && HasAxiom10ChoiceDispatcher<T>;
+
+/**
+ * @brief Construct a set object over ambient species A from a characteristic
+ * predicate.
+ */
+export template <typename A, typename Pred>
+  requires IsSpecies<A> && std::invocable<std::decay_t<Pred>, const A&> &&
+           LogicalValue<std::invoke_result_t<std::decay_t<Pred>, const A&>>
+constexpr auto ambient_set(Pred&& predicate) {
+  return classify<A>(std::forward<Pred>(predicate));
+}
 
 }  // namespace dedekind::category
