@@ -111,4 +111,52 @@ constexpr auto join(const S1& lhs, const S2& rhs) {
   return set_union(lhs, rhs);
 }
 
+/**
+ * @concept IsSet
+ * @brief The Categorical Seal of Set-hood.
+ * @details A Set is a Subobject (S ↣ A) that matures into a Small Category.
+ * This identifies the set not as a buffer of values, but as a position 
+ * within the categorical system of relations.
+ /**
+ * @section ETCS_Axiom_Mapping The 10 Axioms of ETCS
+ * Following the Lawvere-Tierney axiomatisation, the dedekind library maps 
+ * the formal requirements of the Category of Sets directly to C++23 structural 
+ * invariants. This mapping ensures that the compiler serves as a formal 
+ * verification engine for mathematical truth.
+ *
+ * | ETCS Axiom                     | C++23 Implementation           | Categorical Role              |
+ * |:-------------------------------|:-------------------------------|:------------------------------|
+ * | **1. Composition**             | `operator>>` / `IsArrow`       | Morphic Associativity         |
+ * | **2. Identity**                | `Cat::id_c(x)`                 | Identity Morphism             |
+ * | **3. Terminal Object**         | `One` (`std::monostate`)       | Unique Sink (1)               |
+ * | **4. Well-Pointedness**        | `IsSet::contains(x) -> Ω`      | Global Elements (1 → X)       |
+ * | **5. Cartesian Product**       | `IsProduct` (`std::pair`)      | Product (A × B)               |
+ * | **6. Exponentiation**          | `IsExponential` (Lambda NTTP)  | Internal Hom-set (B^A)        |
+ * | **7. Equalizers**              | `classify<A>(p)`               | Subobject Classification      |
+ * | **8. Empty Set**               | `Zero` (`std::nullptr_t`)      | Initial Object (0)            |
+ * | **9. Infinity (NNO)**          | `dedekind.numeric` Grounding   | Natural Numbers Object        |
+ * | **10. Axiom of Choice**        | Lattice Dispatcher             | Existential Selection         |
+ *
+ * @note By anchoring these axioms in Level 0, the subsequent synthesis 
+ * of the `dedekind.sets` module inherits a verified, algebraic definition 
+ * of Set-hood that enables aggressive structural pruning by the LLVM backend.
+ */
+export template <typename T>
+concept IsSet = 
+  // 1. Every Set is an object in a Small Category (Level 0b)
+  IsCategory<T> && 
+  // 2. Every Set is a Subobject classified by Ω (Level 1)
+  requires(T s) {
+    typename T::Ambient;
+    requires IsSubobject<T, typename T::Ambient>;
+    
+    /**
+     * @section ETCS_Well_Pointedness
+     * Membership is the evaluation of the subobject's characteristic 
+     * morphism χ at a specific point in the ambient species.
+     */
+    { s.contains(std::declval<typename T::Ambient>()) } 
+      -> std::same_as<Cod<decltype(s.χ)>>;
+  };
+
 }  // namespace dedekind::category
