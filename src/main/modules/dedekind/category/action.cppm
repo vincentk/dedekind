@@ -1,7 +1,7 @@
 /**
- * @file category:actions.cppm
- * @partition :actions
- * @brief Level 0.5: The Morphisms of Influence (Actions and Representations).
+ * @file dedekind/category/action.cppm
+ * @partition :action
+ * @brief Level 1: The Morphisms of Influence (Actions and Representations).
  *
  * @section The_Action_Axiom
  * « Качественные методы позволяют исследовать структуру пространства
@@ -11,8 +11,8 @@
  *  — V. V. Stepanov (В. В. Степанов), 'Курс дифференциальных уравнений'
  *
  * @section Structural_Influence
- * While Level 0.1 (:morphisms) defines the mapping between species,
- * Level 0.5 defines the "Action" of a Species S upon a Species M (S ⟳ M).
+ * While Level 0 (:morphism) defines mapping between species,
+ * Level 1 defines the "Action" of a Species S upon a Species M (S ⟳ M).
  * In the Dedekind structuralist view, an Action is the reification of
  * Scalar multiplication, leading naturally to the concepts of Modules,
  * Vector Spaces, and eventually, the Linear Algebra of the Continuum.

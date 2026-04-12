@@ -1,7 +1,7 @@
 /**
- * @file ontology:category.cppm
+ * @file dedekind/category/partial.cppm
  * @partition :partial
- * @brief Level 0.2-P: The Logic of Potentiality (Partial Algebra).
+ * @brief Level 3: The Logic of Potentiality (Partial Algebra).
  *
  * @section The_Algebraic_Logic_of_Partiality
  * "Metoda algebraiczna w logice polega na traktowaniu każdego systemu
