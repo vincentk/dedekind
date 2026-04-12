@@ -52,6 +52,7 @@ class Vector {
     return res;
   }
 
+  constexpr F& operator[](std::size_t i) { return coords_[i]; }
   constexpr const F& operator[](std::size_t i) const { return coords_[i]; }
 
  private:

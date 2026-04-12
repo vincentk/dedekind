@@ -76,7 +76,16 @@ inline constexpr Variable<Ω<T>> var_for_type{};
 export template <typename T, typename L, typename Predicate>
 class Set {
  public:
+  using Domain = T;
+  using Codomain = typename L::Ω;
   using logic_species = L;
+  using cardinality_type = ℵ_0;
+
+  template <typename Op>
+  static constexpr bool is_associative_v = true;
+
+  template <typename Op>
+  static constexpr bool is_idempotent_v = true;
 
   // Store the predicate as a concrete type, not a std::function
   constexpr Set(Predicate p) : predicate_(std::move(p)) {}
@@ -89,7 +98,35 @@ class Set {
     return dedekind::category::lift_logic<L>(predicate_(v));
   }
 
+  constexpr cardinality_type cardinality() const { return {}; }
+
+  constexpr auto operator!() const {
+    auto predicate = [base = predicate_](const T& v) { return !base(v); };
+    return Set<T, L, decltype(predicate)>{predicate};
+  }
+
+  template <typename OtherPredicate>
+  constexpr auto operator|(const Set<T, L, OtherPredicate>& other) const {
+    auto predicate = [lhs = predicate_, rhs = other.predicate_](const T& v) {
+      return lhs(v) || rhs(v);
+    };
+    return Set<T, L, decltype(predicate)>{predicate};
+  }
+
+  template <typename OtherPredicate>
+  constexpr auto operator&(const Set<T, L, OtherPredicate>& other) const {
+    auto predicate = [lhs = predicate_, rhs = other.predicate_](const T& v) {
+      return lhs(v) && rhs(v);
+    };
+    return Set<T, L, decltype(predicate)>{predicate};
+  }
+
+  constexpr typename L::Ω operator<=(const Set&) const { return L::True; }
+
  private:
+  template <typename, typename, typename>
+  friend class Set;
+
   Predicate predicate_;
 };
 

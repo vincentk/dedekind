@@ -51,14 +51,16 @@ using namespace dedekind::order;
  * @note Arity: Updated to structuralist 1-arg IsSet.
  */
 export template <typename S>
-concept IsOpen = requires { typename S::is_open_tag; };
+concept IsOpen =
+  dedekind::category::IsPredicate<S> && requires { typename S::is_open_tag; };
 
 /**
  * @concept IsClosed
  * @brief A set that contains all its limit points.
  */
 export template <typename S>
-concept IsClosed = requires { typename S::is_closed_tag; };
+concept IsClosed =
+  dedekind::category::IsPredicate<S> && requires { typename S::is_closed_tag; };
 
 /**
  * @concept IsNeighborhood
@@ -82,7 +84,7 @@ inline constexpr bool is_convex_v = false;
  * @brief A Set that satisfies the convexity theorem (no holes).
  */
 export template <typename S>
-concept IsConvex = is_convex_v<S>;
+concept IsConvex = dedekind::category::IsPredicate<S> && is_convex_v<S>;
 
 /**
  * @concept IsConvexMagmoid
