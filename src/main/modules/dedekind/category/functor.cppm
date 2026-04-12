@@ -455,23 +455,23 @@ struct trace_hub {
   using Σ_cat = Set<T>;
   using Τ_cat = StringCategory;
 
-  using Domain = typename Σ_cat::Arrow;
-  using Codomain = typename Τ_cat::Arrow;
+  using Domain = Σ_cat;
+  using Codomain = Τ_cat;
 
   template <typename 𝗳>
+    requires IsArrow<std::remove_cvref_t<𝗳>>
   constexpr auto φ([[maybe_unused]] 𝗳&& f) const {
-    // Use operator+= or explicit construction for every part
-    std::string label = "lifted(";
-    label += typeid(𝗳).name();
-    label += ")";
-
-    return StringArrow{
-        .label = std::move(label), .domain_id = 0, .codomain_id = 0};
+    return StringArrow{.label = "lifted", .domain_id = 0, .codomain_id = 0};
   }
 
   template <typename U>
-  using Shape = std::string;
+  using Shape = int;
+
+  constexpr Τ_cat operator()(const Σ_cat&) const noexcept { return {}; }
 };
+
+static_assert(IsFunctor<trace_hub<int>>,
+              "Verification Failed: trace_hub must satisfy IsFunctor.");
 
 /**
  * The "Identity Hub" for any category, which simply returns the input arrow
@@ -528,6 +528,12 @@ using identity_functor = identity_hub<Cat>;
  */
 export template <typename T>
 using box_functor = box_hub<T>;
+
+/**
+ * @brief Type alias for the trace functor from Set<T> to StringCategory.
+ */
+export template <typename T>
+using trace_functor = trace_hub<T>;
 
 /**
  * @brief The Maybe endofunctor T, implemented via std::optional.

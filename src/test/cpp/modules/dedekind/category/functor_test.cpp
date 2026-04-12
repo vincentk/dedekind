@@ -12,6 +12,7 @@ TEST_CASE("Category: Functor Concepts", "[category][functor]") {
   STATIC_CHECK(IsFunctor<identity_functor<IntCat>>);
   STATIC_CHECK(IsEndofunctor<identity_functor<IntCat>>);
   STATIC_CHECK(IsFunctor<box_functor<int>>);
+  STATIC_CHECK(IsFunctor<trace_functor<int>>);
   STATIC_CHECK(IsSpokeArrow<decltype(plus_one)>);
 }
 
@@ -36,6 +37,18 @@ TEST_CASE("Category: Functor hub action", "[category][functor][hub-action]") {
     STATIC_CHECK(IsArrow<decltype(lifted)>);
     CHECK(lifted(Box<int>{41}) == Box<int>{42});
     CHECK(lifted(Box<int>{-2}) == Box<int>{-1});
+  }
+
+  SECTION("Trace functor lifts into StringCategory") {
+    trace_functor<int> tracef;
+    auto plus_one = arrow([](int x) { return x + 1; });
+
+    auto lifted = tracef.φ(plus_one);
+
+    STATIC_CHECK(IsArrow<decltype(lifted)>);
+    CHECK(lifted.label == "lifted");
+    CHECK(lifted.domain_id == 0);
+    CHECK(lifted.codomain_id == 0);
   }
 }
 
