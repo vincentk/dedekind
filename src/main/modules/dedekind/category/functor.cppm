@@ -131,16 +131,16 @@ concept IsFunctor = IsArrow<F> && requires {
   };
 };
 
-template <typename F, typename G, typename H>
+export template <typename F>
   requires IsFunctor<F>
 void verify_functor_composition(typename F::Σ_cat::Arrow f,
                                 typename F::Σ_cat::Arrow g) {
   // Path 1: φ(g >> f)
-  using Path1 = decltype(F::φ(g >> f));
+  using Path1 = decltype(F{}.φ(g >> f));
 
   // Path 2: φ(g) >> φ(f)
   // (This assumes your target category Τ_cat supports >> for its arrows)
-  using Path2 = decltype(F::φ(g) >> F::φ(f));
+  using Path2 = decltype(F{}.φ(g) >> F{}.φ(f));
 
   static_assert(std::same_as<Path1, Path2>,
                 "Functor violates type-level composition preservation!");

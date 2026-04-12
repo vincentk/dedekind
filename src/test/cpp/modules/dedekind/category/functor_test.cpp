@@ -60,3 +60,15 @@ TEST_CASE("Category: Functor composition", "[category][functor][composition]") {
     CHECK(via_composed(-1) == via_direct(-1));
   }
 }
+
+TEST_CASE("Category: verify_functor_composition",
+          "[category][functor][composition-proof]") {
+  using IntCat = DiscreteCategory<int>;
+  using IdF = identity_functor<IntCat>;
+
+  typename IdF::Σ_cat::Arrow f = id<int>();
+  typename IdF::Σ_cat::Arrow g = id<int>();
+
+  verify_functor_composition<IdF>(f, g);
+  SUCCEED();
+}

@@ -72,8 +72,12 @@ constexpr Maybe<std::decay_t<A>> η(A&& value) {
   return std::make_optional(std::forward<A>(value));
 }
 
-// μ (Multiplication): Maybe (Maybe a) -> Maybe a
+/**
+ * @brief μ for Maybe: flattens nested optional context.
+ * @details Maybe<Maybe<A>> -> Maybe<A>
+ */
 template <typename A>
+  requires IsSpecies<A>
 constexpr Maybe<A> μ(Maybe<Maybe<A>> const& mma) {
   return mma.has_value() ? *mma : std::nullopt;
 }
@@ -94,6 +98,7 @@ constexpr Identity<std::decay_t<A>> η(A&& value) {
  * In hub/spoke terms: unwraps a doubly-wrapped spoke.
  */
 template <typename A>
+  requires IsSpecies<A>
 constexpr Identity<A> μ(Identity<Identity<A>> const& iia) {
   return {iia.value.value};
 }
@@ -123,7 +128,12 @@ constexpr Box<std::decay_t<A>> η(A&& value) {
   return {std::forward<A>(value)};
 }
 
+/**
+ * @brief μ for Box: flattens nested box context.
+ * @details Box<Box<A>> -> Box<A>
+ */
 template <typename A>
+  requires IsSpecies<A>
 constexpr Box<A> μ(Box<Box<A>> const& bba) {
   return {bba.value.value};
 }

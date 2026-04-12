@@ -25,7 +25,14 @@ namespace dedekind::category {
 template <template <typename> typename T, typename A>
 constexpr T<A> η(A&&) = delete;
 
-// μ (mu): T (T a) -> T a (Multiplication)
+/**
+ * @brief μ (mu): Monadic multiplication customization point.
+ * @details This primary template is intentionally deleted. Concrete monads
+ * provide their own overloads (for example in :natural) with carrier-specific
+ * constraints and semantics.
+ *
+ * Signature: T<T<A>> -> T<A>
+ */
 template <template <typename> typename T, typename A>
 constexpr T<A> μ(T<T<A>> const&) = delete;
 
@@ -45,6 +52,9 @@ constexpr auto pure(A&& v) {
 }
 
 template <template <typename> typename T, typename A>
+  requires requires(T<T<A>> const& mma) {
+    { μ(mma) } -> std::same_as<T<A>>;
+  }
 constexpr auto join(T<T<A>> const& mma) {
   return μ(mma);
 }
