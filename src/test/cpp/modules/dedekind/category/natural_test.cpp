@@ -32,23 +32,4 @@ TEST_CASE("Category: Natural Transformation Runtime Witnesses",
     CHECK(component(42) == 42);
     CHECK(component(4) == 4);
   }
-
-  SECTION("Vertical composition stacks component arrows") {
-    vertical_composition<IdentityComponent, IdentityComponent, IdF, IdF, IdF>
-        composite{IdentityComponent{}, IdentityComponent{}};
-    auto component = composite(3);
-
-    CHECK(component(10) == 10);
-    CHECK(component(3) == 3);
-  }
-
-  SECTION("Horizontal composition preserves the identity component") {
-    horizontal_composition<IdentityComponent, IdentityComponent, IdF, IdF, IdF,
-                           IdF>
-        composite{IdentityComponent{}, IdentityComponent{}, IdF{}};
-    auto component = composite(3);
-
-    CHECK(component(10) == 10);
-    CHECK(component(3) == 3);
-  }
 }

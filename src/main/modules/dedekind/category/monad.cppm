@@ -95,10 +95,10 @@ concept IsMonad =
       // `c` is the object label. The corresponding object in T and T² is
       // recovered by functorially lifting the identity spoke on c.
       // 1. Associativity Law: μ ∘ T(μ) == μ ∘ μ(T)
-      { T{}.fmap(μ(c)) >> μ(c) } -> std::same_as<decltype(μ(c) >> μ(c))>;
+      { T{}.φ(μ(c)) >> μ(c) } -> std::same_as<decltype(μ(c) >> μ(c))>;
 
       // 2. Left Unit Law: μ ∘ T(η) == id_T
-      { T{}.fmap(η(c)) >> μ(c) } -> std::same_as<typename T::Τ_cat::Id>;
+      { T{}.φ(η(c)) >> μ(c) } -> std::same_as<typename T::Τ_cat::Id>;
 
       // 3. Right Unit Law: μ ∘ η_T == id_T
       { η(c) >> μ(c) } -> std::same_as<typename T::Τ_cat::Id>;
@@ -138,11 +138,11 @@ concept IsComonad =
     requires(ε_t ε, δ_t δ, typename W::Σ_cat::Arrow::Domain w_obj) {
       // 1. Coassociativity Law: W(δ) ∘ δ == δ_W ∘ δ
       {
-        δ(w_obj) >> W{}.fmap(δ(w_obj))
+        δ(w_obj) >> W{}.φ(δ(w_obj))
       } -> std::same_as<decltype(δ(w_obj) >> δ(w_obj))>;
 
       // 2. Left Counit Law: W(ε) ∘ δ == id_W
-      { δ(w_obj) >> W{}.fmap(ε(w_obj)) } -> std::same_as<typename W::Σ_cat::Id>;
+      { δ(w_obj) >> W{}.φ(ε(w_obj)) } -> std::same_as<typename W::Σ_cat::Id>;
 
       // 3. Right Counit Law: ε_W ∘ δ == id_W
       // We move across the duplication, then extract using the component at the

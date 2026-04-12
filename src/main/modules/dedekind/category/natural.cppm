@@ -165,10 +165,10 @@ concept IsTwoMorphism =
       // In the single-species setting, we recover F(c) and G(c) by lifting
       // the identity spoke on c and reading the resulting spoke's domain.
       requires std::same_as<typename decltype(alpha(c))::Domain,
-                            typename decltype(F{}.fmap(
+                  typename decltype(F{}.φ(
                                 F::Σ_cat::id_c(c)))::Domain>;
       requires std::same_as<typename decltype(alpha(c))::Codomain,
-                            typename decltype(G{}.fmap(
+                  typename decltype(G{}.φ(
                                 G::Σ_cat::id_c(c)))::Domain>;
     };
 
@@ -207,7 +207,7 @@ struct identity_transformation {
                                       typename F::Τ_cat::Arrow::Domain>) {
       return F::Τ_cat::id_c(static_cast<typename F::Τ_cat::Arrow::Domain>(c));
     } else {
-      return f_map.fmap(F::Σ_cat::id_c(c));
+      return f_map.φ(F::Σ_cat::id_c(c));
     }
   }
 };
@@ -247,11 +247,11 @@ struct horizontal_composition {
     // or equivalent: beta_{F'(c)} >> G(alpha_c)
     if constexpr (std::convertible_to<typename F::Σ_cat::Arrow::Domain,
                                       typename G::Σ_cat::Arrow::Domain>) {
-      return G_prime{}.fmap(alpha(c)) >>
+      return G_prime{}.φ(alpha(c)) >>
              beta(static_cast<typename G::Σ_cat::Arrow::Domain>(c));
     } else {
-      return G_prime{}.fmap(alpha(c)) >>
-             beta(F_prime{}.fmap(F::Σ_cat::id_c(c)).vertex);
+      return G_prime{}.φ(alpha(c)) >>
+             beta(F_prime{}.φ(F::Σ_cat::id_c(c)).vertex);
     }
   }
 };

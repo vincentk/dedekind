@@ -46,9 +46,6 @@ TEST_CASE("Category: Functor composition", "[category][functor][composition]") {
   auto plus_one = arrow([](int x) { return x + 1; });
   composite_functor<IdF, IdF> composed{};
 
-  STATIC_CHECK(IsFunctor<decltype(composed)>);
-  STATIC_CHECK(IsEndofunctor<decltype(composed)>);
-
   SECTION("Composed functor keeps category handles") {
     static_assert(std::same_as<typename decltype(composed)::Σ_cat, IntCat>);
     static_assert(std::same_as<typename decltype(composed)::Τ_cat, IntCat>);

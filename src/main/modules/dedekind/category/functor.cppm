@@ -386,6 +386,9 @@ struct composite_functor {
   using Domain = typename F::Domain;
   using Codomain = typename G::Codomain;
 
+  template <typename U>
+  using Shape = typename G::template Shape<typename F::template Shape<U>>;
+
   /**
    * @brief φ(f) = G.φ(F.φ(f))
    * Chaining the functorial lift.
