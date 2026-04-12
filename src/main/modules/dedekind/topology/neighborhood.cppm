@@ -52,15 +52,15 @@ using namespace dedekind::order;
  */
 export template <typename S>
 concept IsOpen =
-  dedekind::category::IsPredicate<S> && requires { typename S::is_open_tag; };
+    dedekind::category::IsPredicate<S> && requires { typename S::is_open_tag; };
 
 /**
  * @concept IsClosed
  * @brief A set that contains all its limit points.
  */
 export template <typename S>
-concept IsClosed =
-  dedekind::category::IsPredicate<S> && requires { typename S::is_closed_tag; };
+concept IsClosed = dedekind::category::IsPredicate<S> &&
+                   requires { typename S::is_closed_tag; };
 
 /**
  * @concept IsNeighborhood

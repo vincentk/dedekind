@@ -14,8 +14,8 @@ TEST_CASE("Numbers: Symbolic Checkpoint", "[numbers][symbolic]") {
 
   SECTION("Sqrt2 symbolic anchor") {
     const auto root2 = Sqrt2_Symbolic<double>();
-    STATIC_CHECK(
-        dedekind::sets::IsSet<decltype(root2), dedekind::category::TernaryLogic>);
+    STATIC_CHECK(dedekind::sets::IsSet<decltype(root2),
+                                       dedekind::category::TernaryLogic>);
     REQUIRE(root2(1.4) == Ternary::True);
     REQUIRE(root2(1.5) == Ternary::False);
   }
