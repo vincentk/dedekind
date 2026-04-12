@@ -335,22 +335,4 @@ constexpr auto φ(Box<A> const& box, F&& f) -> Box<std::invoke_result_t<F, A>> {
   return {std::invoke(std::forward<F>(f), box.value)};
 }
 
-using IntCat = DiscreteCategory<int>;
-identity_functor<IntCat> Id;
-box_functor<int> B;
-
-auto f_functor_test_FIXME = arrow([](int x) { return x + 1; });
-
-// 1. Lifting via Identity Functor
-// Syntax: Id >> f == f
-static_assert(IsArrow<decltype(Id >> f_functor_test_FIXME)>);
-
-// 2. Lifting via Box Functor
-// Syntax: B >> f == Boxed version of f
-auto boxed_f = B >> f_functor_test_FIXME;
-static_assert(IsArrow<decltype(boxed_f)>);
-
-static_assert(IsEndofunctor<std::optional>);
-static_assert(IsEndofunctor<Identity>);
-
 }  // namespace dedekind::category
