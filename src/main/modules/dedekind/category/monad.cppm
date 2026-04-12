@@ -20,55 +20,24 @@ import :natural;
 
 namespace dedekind::category {
 
-// --- Monadic Components ---
-// η (eta): a -> T a (Unit)
-template <template <typename> typename T, typename A>
-constexpr T<A> η(A&&) = delete;
-
 /**
- * @brief μ (mu): Monadic multiplication customization point.
- * @details This primary template is intentionally deleted. Concrete monads
- * provide their own overloads (for example in :natural) with carrier-specific
- * constraints and semantics.
+ * @section Monadic_and_Comonadic_Components
  *
- * Signature: T<T<A>> -> T<A>
+ * The concrete implementations of η (Unit), μ (Multiplication), ε (Counit),
+ * and δ (Comultiplication) are defined in the :natural partition for each
+ * supported monad/comonad type (e.g., η for Maybe, Identity, Box). These
+ * are specific overloads, not generic template-template helpers.
+ *
+ * This design leverages the hub-spoke architectural pattern established in
+ * the :functor partition, avoiding C++ limitations with template-template
+ * parameter overloading and maintaining clean partition boundaries.
+ *
+ * Textbook alignment:
+ * - η (eta): unit/pure      [defined in :natural]
+ * - μ (mu):  multiplication [defined in :natural]
+ * - ε (epsilon): counit     [defined in :natural]
+ * - δ (delta): comultiplication [defined in :natural]
  */
-template <template <typename> typename T, typename A>
-constexpr T<A> μ(T<T<A>> const&) = delete;
-
-// --- Comonadic Components ---
-// ε (epsilon): W a -> a (Counit)
-template <template <typename> typename W, typename A>
-constexpr A ε(W<A> const&) = delete;
-
-// δ (delta): W a -> W (W a) (Comultiplication)
-template <template <typename> typename W, typename A>
-constexpr W<W<A>> δ(W<A> const&) = delete;
-
-// --- Monad Aliases ---
-template <template <typename> typename T, typename A>
-constexpr auto pure(A&& v) {
-  return η<T>(std::forward<A>(v));
-}
-
-template <template <typename> typename T, typename A>
-  requires requires(T<T<A>> const& mma) {
-    { μ(mma) } -> std::same_as<T<A>>;
-  }
-constexpr auto join(T<T<A>> const& mma) {
-  return μ(mma);
-}
-
-// --- Comonad Aliases ---
-template <template <typename> typename W, typename A>
-constexpr auto extract(W<A> const& wa) {
-  return ε(wa);
-}
-
-template <template <typename> typename W, typename A>
-constexpr auto duplicate(W<A> const& wa) {
-  return δ(wa);
-}
 
 /**
  * @section Monad_as_Monoid (Explicit Definition)
