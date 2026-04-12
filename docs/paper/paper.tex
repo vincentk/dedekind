@@ -1445,7 +1445,7 @@ In practice, we observe that build times follow an $O(L)$ complexity, where $L$ 
     \item \textbf{Incremental Stability:} Changes to terminal partitions (e.g., \texttt{:numeric}) result in $O(1)$ rebuild times, as the foundational Binary Module Interfaces (BMIs) for \texttt{:morphism} and \texttt{:small} remain cached.
     \item \textbf{Linear Scaling:} A full cold-start rebuild scales as $O(N)$, where $N$ is the number of partitions, preventing the exponential "template blow-up" typically associated with header-only functional C++ libraries.
 \end{itemize}
-This stratifiation ensures that the formal verifiation of the continuum does not destabilize the build pipeline, making Axiomatic Systems Programming viable for industrial-scale symbolic computing.
+This stratification ensures that the formal verifiation of the continuum does not destabilize the build pipeline, making Axiomatic Systems Programming viable for industrial-scale symbolic computing.
 Exponential build times, while strictly speaking possible, have not been observed during library development.
 
 \textbf{3.9 Benchmarks: The Pragmatic Displacement.} 
