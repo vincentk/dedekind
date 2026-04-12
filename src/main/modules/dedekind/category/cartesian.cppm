@@ -396,8 +396,8 @@ struct Set final {
   static constexpr Id id_c(const T& x) noexcept { return Id{x}; }
 
   friend constexpr auto operator>>(const Arrow& f, const Arrow& g) {
-    return arrow<T, T>([f_act = f.action, g_act = g.action](T x) {
-      return g_act(f_act(std::move(x)));
+    return arrow<T, T>([f, g](T x) {
+      return g(f(std::move(x)));
     });
   }
 };
