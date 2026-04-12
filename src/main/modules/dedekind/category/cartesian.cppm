@@ -373,10 +373,10 @@ struct Set final {
 
   static constexpr Id id_c(const T& x) noexcept { return Id{x}; }
 
-  friend constexpr Arrow operator>>(const Arrow& f, const Arrow& g) {
-    return Arrow{std::function<T(T)>{[f_act = f.action, g_act = g.action](T x) {
+  friend constexpr auto operator>>(const Arrow& f, const Arrow& g) {
+    return arrow<T, T>([f_act = f.action, g_act = g.action](T x) {
       return g_act(f_act(std::move(x)));
-    }}};
+    });
   }
 };
 
