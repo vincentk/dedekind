@@ -7,24 +7,22 @@
 module;
 
 #include <concepts>
-#include <functional>
+#include <cstddef>
 
 export module dedekind.analysis:forms;
 
 import dedekind.geometry;
-import dedekind.numbers;
 
 namespace dedekind::analysis {
 
 using namespace dedekind::geometry;
-using namespace dedekind::numbers;
 
 /**
  * @concept IsDifferentialForm
  * @brief A mapping from a Tangent Space to a Scalar.
  */
 export template <typename W, typename V, typename F>
-concept IsDifferentialForm = IsVectorSpace<V, F> && requires(W w, V v) {
+concept IsDifferentialForm = requires(W w, V v) {
   { w(v) } -> std::same_as<F>;  // Evaluation (Interior Product)
 };
 
@@ -32,7 +30,7 @@ concept IsDifferentialForm = IsVectorSpace<V, F> && requires(W w, V v) {
  * @class OneForm
  * @brief The cotangent vector (The 'Gradient' components).
  */
-export template <IsField F, std::size_t N>
+export template <std::floating_point F, std::size_t N>
 struct OneForm {
   Vector<F, N> components;
 

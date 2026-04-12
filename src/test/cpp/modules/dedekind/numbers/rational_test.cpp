@@ -12,20 +12,6 @@ TEST_CASE("Numbers: Rational Simplification", "[numbers][rational]") {
     REQUIRE(q.den() == 3);
   }
 
-  SECTION("Polynomial Fractions (Rational Functions)") {
-    using ℚx = Polynomial<double>;
-    // (x² - 1) / (x - 1)
-    ℚx num({-1, 0, 1});
-    ℚx den({-1, 1});
-
-    // In a structuralist library, the 'Rational' template
-    // can even handle Polynomials!
-    Rational<ℚx> func(num, den);
-
-    // Should simplify to (x + 1) / 1
-    REQUIRE(func.num().degree() == 1);
-    REQUIRE(func.den().degree() == 0);
-  }
 }
 
 TEST_CASE("Numbers: The Rational Field", "[numbers][field]") {

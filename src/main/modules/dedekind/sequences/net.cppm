@@ -36,8 +36,7 @@ using namespace dedekind::order;
 
 /** @concept IsNet: A Morphism from a Directed Set. */
 export template <typename N>
-concept IsNet = IsArrow<N, typename N::Domain, typename N::Codomain> &&
-                IsDirectedSet<typename N::Domain>;
+concept IsNet = IsArrow<N> && IsDirectedSet<typename N::Domain>;
 
 /**
  * @concept IsSequence
@@ -49,7 +48,7 @@ concept IsSequence = IsNet<Seq> && requires {
   typename Seq::Codomain;
   typename Seq::Domain;
 } && requires(Seq s) {
-  requires IsSet<typename Seq::Domain>;
+  requires IsSpecies<typename Seq::Domain>;
   { s.cardinality() } -> IsCardinality;
 };
 

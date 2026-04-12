@@ -48,14 +48,27 @@ concept IsHamiltonian = requires(H h, S s) {
  * @brief The Poisson Bracket: The fundamental operation of Classical Mechanics.
  * @details {f, g} = Σ (∂f/∂q ∂g/∂p - ∂f/∂p ∂g/∂q)
  */
-export template <IsField R, std::size_t N>
+export template <std::floating_point R, std::size_t N>
 constexpr R poisson_bracket(auto&& f, auto&& g, const Vector<R, N>& state) {
-  // Use Dual numbers from Geometry to compute the Automatic Gradient
-  auto grad_f = gradient<R, N>(f, state);
-  auto grad_g = gradient<R, N>(g, state);
+  static_assert(N >= 2, "Poisson bracket requires at least 2 dimensions.");
 
-  // Symplectic inner product logic
-  return symplectic_inner_product(grad_f, grad_g);
+  const R eps = static_cast<R>(1e-6);
+
+  auto bump = [&](std::size_t idx, R delta) {
+    Vector<R, N> s = state;
+    if (idx == 0)
+      s = s + Vector<R, N>{delta, static_cast<R>(0)};
+    else
+      s = s + Vector<R, N>{static_cast<R>(0), delta};
+    return s;
+  };
+
+  const R df_dq = (f(bump(0, eps)) - f(bump(0, -eps))) / (static_cast<R>(2) * eps);
+  const R df_dp = (f(bump(1, eps)) - f(bump(1, -eps))) / (static_cast<R>(2) * eps);
+  const R dg_dq = (g(bump(0, eps)) - g(bump(0, -eps))) / (static_cast<R>(2) * eps);
+  const R dg_dp = (g(bump(1, eps)) - g(bump(1, -eps))) / (static_cast<R>(2) * eps);
+
+  return (df_dq * dg_dp) - (df_dp * dg_dq);
 }
 
 /**

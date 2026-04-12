@@ -38,14 +38,14 @@ using namespace dedekind::category;
  * @brief Proposition: The species (T, +) forms a Monoid.
  */
 export template <typename T>
-concept IsAdditiveMonoid = IsMonoid<T, std::plus<>>;
+concept IsAdditiveMonoid = IsPointed<T, std::plus<T>>;
 
 /**
  * @concept IsMultiplicativeMonoid
  * @brief Proposition: The species (T, *) forms a Monoid.
  */
 export template <typename T>
-concept IsMultiplicativeMonoid = IsMonoid<T, std::multiplies<>>;
+concept IsMultiplicativeMonoid = IsPointed<T, std::multiplies<T>>;
 
 /** @section Atomic_Verification */
 static_assert(IsAdditiveMonoid<int>, "Axiom Failure: (Z, +) must have a Zero.");

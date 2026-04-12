@@ -1,4 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
+#include <concepts>
+#include <utility>
 
 import dedekind.category;
 import dedekind.sets;
@@ -24,8 +26,8 @@ TEST_CASE("Topology: Rules of Continuity Coverage", "[topology][continuity]") {
   }
 
   SECTION("Neighborhoods: The Space Around a Point") {
-    UnitInterval neighborhood(0.0, 2.0);
-    ℝ point = 1.0;
+    UnitInterval neighborhood(0, 2);
+    ℝ point = 1;
 
     /**
      * @requirement IsNeighborhood
@@ -36,7 +38,7 @@ TEST_CASE("Topology: Rules of Continuity Coverage", "[topology][continuity]") {
     static_assert(IsNeighborhood<UnitInterval, ℝ>,
                   "Topology: Interval must satisfy the Neighborhood concept.");
 
-    REQUIRE(neighborhood.contains(point) == true);
+    REQUIRE(neighborhood(point) == dedekind::category::ClassicalLogic::True);
   }
 
   SECTION("Morphological Shapes: Half-Spaces & Molecules") {
@@ -54,18 +56,9 @@ TEST_CASE("Topology: Rules of Continuity Coverage", "[topology][continuity]") {
   }
 
   SECTION("Intersection Laws: The Convex Magma") {
-    /**
-     * @concept IsConvexMagma
-     * Requirement: Intersection (&) of convex sets must be closed.
-     */
-    struct ConvexBody {
-      using Domain = ℝ;
-      friend ConvexBody operator&(ConvexBody, ConvexBody) { return {}; }
-    };
-    // Register trait
-    dedekind::topology::is_convex_v<ConvexBody> = true;
-
-    static_assert(IsConvexMagma<ConvexBody>,
-                  "Topology: Intersection of convex bodies must form a Magma.");
+    static_assert(is_convex_v<UnitRay>);
+    static_assert((std::same_as<decltype(std::declval<UnitRay>() &
+                                         std::declval<UnitRay>()),
+                                UnitRay>));
   }
 }

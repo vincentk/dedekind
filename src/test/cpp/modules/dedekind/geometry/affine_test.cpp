@@ -1,32 +1,28 @@
 #include <catch2/catch_test_macros.hpp>
 import dedekind.geometry;
-import dedekind.numbers;
 
 using namespace dedekind::geometry;
-using namespace dedekind::numbers;
 
 TEST_CASE("Geometry: Affine Rational Space", "[geometry][affine]") {
-  using ℚ = Rational<int>;
-  using Vec2 = Vector<ℚ, 2>;
+  using R = double;
+  using Vec2 = Vector<R, 2>;
 
   SECTION("Rational Scaling") {
-    // v = (1, 1), scale = 1/2
-    Vec2 v{ℚ(1, 1), ℚ(1, 1)};
-    ℚ scale(1, 2);
+    Vec2 v{1.0, 1.0};
+    R scale = 0.5;
 
     auto res = v * scale;
 
-    // Result: (1/2, 1/2)
-    REQUIRE(res[0].num() == 1);
-    REQUIRE(res[0].den() == 2);
+    REQUIRE(res[0] == 0.5);
+    REQUIRE(res[1] == 0.5);
   }
 
   SECTION("Linear Combination") {
-    Vec2 a{ℚ(1, 2), ℚ(0, 1)};
-    Vec2 b{ℚ(1, 2), ℚ(1, 1)};
+    Vec2 a{0.5, 0.0};
+    Vec2 b{0.5, 1.0};
 
-    auto c = a + b;  // (1/2 + 1/2, 0 + 1) = (1, 1)
-    REQUIRE(c[0].num() == 1);
-    REQUIRE(c[1].num() == 1);
+    auto c = a + b;
+    REQUIRE(c[0] == 1.0);
+    REQUIRE(c[1] == 1.0);
   }
 }

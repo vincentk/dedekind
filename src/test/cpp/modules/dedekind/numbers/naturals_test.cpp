@@ -26,7 +26,7 @@ TEST_CASE("Category: Morphisms and Arrow Factories", "[category][morphisms]") {
     CHECK(is_even(3) == false);
 
     // Verify it satisfies the IsArrow concept
-    STATIC_CHECK(IsArrow<decltype(is_even), int, bool>);
+    STATIC_CHECK(IsArrow<decltype(is_even)>);
   }
 
   SECTION("Endomorphism Factory (endo)") {
@@ -68,8 +68,8 @@ TEST_CASE("Category: Algebraic Proofs (Runtime Witnesses)",
   SECTION("Abelian Property Verification") {
     // We verify that the concepts used in the partition actually
     // distinguish between commutative and non-commutative operations.
-    STATIC_CHECK(IsAbelian<int, std::plus<int>>);
-    STATIC_CHECK(IsAbelian<bool, std::logical_or<bool>>);
+    STATIC_CHECK(IsCommutative<int, std::plus<int>>);
+    STATIC_CHECK(IsCommutative<bool, std::logical_or<bool>>);
 
     // String concatenation is a monoid but NOT abelian (not commutative)
     // This is a "Negative Proof" witness.

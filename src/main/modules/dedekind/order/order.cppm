@@ -48,7 +48,8 @@ concept IsPreOrdered =
  *          This is the "Ground" for all Nets and Sequences.
  */
 export template <typename D, typename L = ClassicalLogic>
-concept IsDirectedSet = IsPreOrdered<D, L> && IsJoinSemilattice<D>;
+concept IsDirectedSet =
+  IsPreOrdered<D, L> && dedekind::sets::IsJoinSemilattice<D>;
 
 /**
  * @concept IsPartiallyOrdered
@@ -58,7 +59,7 @@ export template <typename T, typename L = ClassicalLogic>
 concept IsPartiallyOrdered =
     IsPreOrdered<T, L> && is_antisymmetric_v<T, std::less_equal<>> &&
     requires(const T a, const T b) {
-      { a == b } -> std::same_as<typename L::type>;
+      { a == b } -> std::same_as<typename L::Ω>;
     };
 
 /**
@@ -93,7 +94,7 @@ concept IsLinearOrder = IsTotallyOrdered<T>;
  */
 export template <typename T>
 concept IsSuccessor =
-    IsMagmoid<T, std::plus<T>> && HasIdentity<T, std::multiplies<T>> &&
+    IsMagmoid<T, std::plus<T>> && IsPointed<T, std::multiplies<T>> &&
     requires(const T x) {
       // The Successor Morphism: S(x) = x + 1
       { x + identity_v<T, std::multiplies<T>> } -> std::same_as<T>;

@@ -161,7 +161,7 @@ add_dedekind_layer(analysis dedekind_numbers)
 add_library(dedekind INTERFACE)
 add_dependencies(dedekind dedekind_category dedekind_sets dedekind_order dedekind_topology dedekind_sequences dedekind_algebra dedekind_morphologies dedekind_geometry dedekind_numbers dedekind_analysis)
 # No source files needed here; it just bundles the objects
-target_link_libraries(dedekind INTERFACE dedekind_category dedekind_sets dedekind_order dedekind_topology dedekind_sequences dedekind_algebra dedekind_morphologies dedekind_geometry dedekind_numbers dekind_analysis)
+target_link_libraries(dedekind INTERFACE dedekind_category dedekind_sets dedekind_order dedekind_topology dedekind_sequences dedekind_algebra dedekind_morphologies dedekind_geometry dedekind_numbers dedekind_analysis)
 target_compile_features(dedekind INTERFACE cxx_std_23)
 
 target_compile_options(dedekind INTERFACE ${DEDEKIND_WARNING_FLAGS})

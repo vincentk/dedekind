@@ -53,7 +53,7 @@ using namespace dedekind::sets;
  * @tparam C The Cardinality (The "Magnitude").
  */
 export template <typename M, typename C>
-concept IsScalar = IsSemiring<M> && IsCardinality<C> && requires {
+concept IsScalar = dedekind::algebra::IsSemiring<M> && IsCardinality<C> && requires {
   // This "locks" the structure to the ruler
   requires std::same_as<typename M::cardinality_type, C>;
 };

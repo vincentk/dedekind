@@ -1,9 +1,7 @@
 #include <catch2/catch_test_macros.hpp>
 import dedekind.geometry;
-import dedekind.numbers;
 
 using namespace dedekind::geometry;
-using namespace dedekind::numbers;
 
 TEST_CASE("Geometry: The Hilbert Horizon", "[geometry][hilbert]") {
   using ℝ = double;

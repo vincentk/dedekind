@@ -1,10 +1,11 @@
 #include <catch2/catch_test_macros.hpp>
+#include <functional>
 
 import dedekind.algebra;
 using namespace dedekind::algebra;
 
 TEST_CASE("Algebra: The Ring of Integers", "[algebra][ring]") {
-  SECTION("The Identity of Z") { STATIC_CHECK(IsRing<int>); }
+  SECTION("The Identity of Z") { STATIC_CHECK(IsAdditiveGroup<int>); }
 
   SECTION("Axiomatic Action") {
     int a = 6;

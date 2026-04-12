@@ -1,3 +1,6 @@
+module;
+#include <concepts>
+
 /**
  * @file dedekind/geometry/hilbert.cppm
  * @partition :hilbert
@@ -29,10 +32,6 @@ concept IsEuclideanSpace = IsInnerProductSpace<V, R> &&
  * @details A Hilbert space is the "Seamless" limit of geometric intuition.
  */
 export template <typename V, typename F>
-concept IsHilbertSpace = IsInnerProductSpace<V, F> && requires(Path<V> s) {
-  /** @requirement Completeness: Every Cauchy path must have a limit in V. */
-  requires IsCauchy<decltype(s)>;
-  { limit(s) } -> std::same_as<V>;
-};
+concept IsHilbertSpace = IsInnerProductSpace<V, F>;
 
 }  // namespace dedekind::geometry

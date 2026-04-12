@@ -18,7 +18,7 @@ module;
 #include <concepts>
 #include <functional>
 
-export module dedekind.geometry:geometry;
+export module dedekind.geometry:euclidean;
 
 import dedekind.morphologies; // For Vector Spaces and Norms
 
@@ -32,7 +32,7 @@ namespace dedekind::geometry {
  */
 export template <typename T, typename S>
 concept IsMetricSpace =
-    IsSet<T> && IsOrderedField<S> && requires(const T a, const T b) {
+    requires(const T a, const T b) {
       // The Distance Morphism: d(a, b)
       { distance(a, b) } -> std::same_as<S>;
     };
@@ -45,7 +45,7 @@ concept IsMetricSpace =
  */
 export template <typename V, typename S>
 concept IsEuclideanSpace =
-    IsVectorSpace<V, S> && IsMetricSpace<V, S> && requires(const V v) {
+    IsMetricSpace<V, S> && requires(const V v) {
       // The Norm (Magnitude) of a single vector.
       { norm(v) } -> std::same_as<S>;
     };

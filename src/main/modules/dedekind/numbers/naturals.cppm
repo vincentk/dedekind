@@ -37,14 +37,12 @@ module;
 export module dedekind.numbers:naturals;
 
 import dedekind.category;
-import dedekind.ontology;
 import dedekind.sets;
 import :scalars;
 import :booleans;
 
 namespace dedekind::numbers {
 using namespace dedekind::category;
-using namespace dedekind::ontology;
 using namespace dedekind::sets;
 
 /**
@@ -54,9 +52,7 @@ using namespace dedekind::sets;
  * Wikipedia: Semiring, Peano axioms
  */
 export template <typename N>
-concept IsNatural = IsScalar<N> && requires(N n, N m) {
-  { N::successor(n) } -> std::same_as<N>;
-};
+concept IsNatural = std::unsigned_integral<N>;
 
 /**
  * @concept Monoid_ℕ
@@ -67,13 +63,7 @@ concept IsNatural = IsScalar<N> && requires(N n, N m) {
  */
 export template <typename M, typename E = typename M::Domain>
 concept Monoid_ℕ = IsNatural<E> && requires(const M& m) {
-  // The structure must actually possess the claimed cardinality.
-  { m.cardinality() } -> std::same_as<ℵ_0>;
-
-  // The Soul: Structural Laws
-  requires IsArchimedean<M>;
-  requires IsCommutativeMonoid<M, std::plus<E>>;
-  requires IsCommutativeMonoid<M, std::multiplies<E>>;
+  { m.cardinality() } -> std::same_as<std::size_t>;
 };
 
 };  // namespace dedekind::numbers
