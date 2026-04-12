@@ -160,13 +160,54 @@ constexpr auto φ(𝗙 const&, 𝗳&&) -> typename 𝗙::template Shape<
     std::invoke_result_t<𝗳, typename 𝗙::Σ_cat::Species>> = delete;
 
 /**
- * @brief an alias for φ (phi) to match the standard "fmap" terminology.
+ * @concept IsIntensionalFunctor
+ * @brief A stateless Hub representing the formal functorial mapping F: Σ -> Τ.
  */
-template <typename... Args>
+export template <typename F>
+concept IsIntensionalFunctor =
+    IsArrow<F> &&  // It is an arrow in the Category of Categories
+    requires {
+      typename F::Σ_cat;  // Source Category handle
+      typename F::Τ_cat;  // Target Category handle
+      requires IsCategory<typename F::Σ_cat>;
+      requires IsCategory<typename F::Τ_cat>;
+
+      /**
+       * The Object Recipe (F_obj)
+       * Maps a Species (A) to its image species F(A).
+       */
+      typename F::template Shape<int>;
+    } && requires(F hub, typename F::Σ_cat::Arrow f) {
+      /**
+       * The Morphic Action (F_mor / φ)
+       * Maps an Arrow (f: A -> B) to its lifted arrow F(f): F(A) -> F(B).
+       * This is the "Intensional" core.
+       */
+      { hub.φ(f) } -> IsArrow;
+
+      // Verify that the lifted arrow lands on the correct transformed objects
+      requires std::same_as<
+          typename decltype(hub.φ(f))::Domain,
+          typename F::template Shape<typename decltype(f)::Domain>>;
+      requires std::same_as<
+          typename decltype(hub.φ(f))::Codomain,
+          typename F::template Shape<typename decltype(f)::Codomain>>;
+    };
+
+/**
+ * @brief fmap factory: Binds a Hub to its action.
+ * Returns a closure (or a wrapper) that satisfies IsFunctor.
+ */
+template <typename Hub>
+  requires IsIntensionalFunctor<Hub>
 [[nodiscard]]
-constexpr auto fmap(Args&&... args)
-    -> decltype(φ(std::forward<Args>(args)...)) {
-  return φ(std::forward<Args>(args)...);
+constexpr auto fmap(Hub const& h) {
+  // We return a "Witness" that knows how to use the Hub's logic
+  return [h](auto&& ma) {
+    return [h, ma = std::forward<decltype(ma)>(ma)](auto&& f) {
+      return h.φ(std::forward<decltype(f)>(f))(ma);
+    };
+  };
 }
 
 /**
