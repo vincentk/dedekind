@@ -16,6 +16,8 @@ TEST_CASE("Analysis: Kernel Methods", "[analysis][rkhs]") {
   SECTION("Evaluation behavior") {
     REQUIRE(k(0.0, 0.0) == 1.0);
     REQUIRE(k(0.0, 10.0) < k(0.0, 1.0));
+    REQUIRE(k(2.0) == k(0.0, 2.0));
+    REQUIRE(k[2.0] == k(0.0, 2.0));
     REQUIRE(k.at(0) == 1.0);
   }
 }

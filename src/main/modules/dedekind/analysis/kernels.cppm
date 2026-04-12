@@ -17,7 +17,7 @@ namespace dedekind::analysis {
 export template <typename T = double>
 struct GaussianKernel {
   using value_type = T;
-  using Domain = std::size_t;
+  using Domain = T;
   using Codomain = T;
 
   T sigma = static_cast<T>(1);
@@ -31,6 +31,11 @@ struct GaussianKernel {
     return (*this)(static_cast<T>(0), static_cast<T>(n));
   }
 
+  // Unary representer view: x |-> K(0, x)
+  constexpr T operator()(T x) const noexcept {
+    return (*this)(static_cast<T>(0), x);
+  }
+
   constexpr T operator[](T x) const noexcept {
     return (*this)(static_cast<T>(0), x);
   }
@@ -39,6 +44,7 @@ struct GaussianKernel {
 export template <typename K, typename D, typename T>
 concept IsKernel = requires(K k, D a, D b) {
   { k(a, b) } -> std::convertible_to<T>;
+  { k(b, a) } -> std::convertible_to<T>;
 };
 
 export template <typename DomainSet, typename T = double>
