@@ -223,7 +223,9 @@ constexpr NumericWitness<T> certify_add(T a, T b, Policy policy = {}) {
 /**
  * @brief Certified integer multiplication with an explicit support policy.
  *
- * Overflow or support breach is surfaced as Ω_K3::Unknown.
+ * Signed overflow is surfaced as Ω_K3::Unknown. Support-policy failures are
+ * propagated via the policy result for the inputs/result and therefore may
+ * surface as either Ω_K3::False or Ω_K3::Unknown.
  */
 export template <std::integral T, typename Policy>
   requires IsLipschitzBoundaryPolicy<Policy, T>
