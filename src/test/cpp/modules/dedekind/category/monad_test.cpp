@@ -55,7 +55,8 @@ TEST_CASE("Category: Monad Pipeline Operators",
   }
 }
 
-TEST_CASE("Category: Maybe monad bind and join", "[category][monad][maybe]") {
+TEST_CASE("Category: Maybe-style bind and join behavior",
+          "[category][monad][maybe]") {
   SECTION("Bind maps present optional values") {
     std::optional<int> value{5};
     auto result = value >>= [](int x) { return std::optional<int>{x + 7}; };

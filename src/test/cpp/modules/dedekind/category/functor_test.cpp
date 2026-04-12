@@ -12,6 +12,7 @@ TEST_CASE("Category: Functor Concepts", "[category][functor]") {
   STATIC_CHECK(IsFunctor<identity_functor<IntCat>>);
   STATIC_CHECK(IsEndofunctor<identity_functor<IntCat>>);
   STATIC_CHECK(IsFunctor<box_functor<int>>);
+  STATIC_CHECK(IsFunctor<maybe_functor<int>>);
   STATIC_CHECK(IsFunctor<trace_functor<int>>);
   STATIC_CHECK(IsSpokeArrow<decltype(plus_one)>);
 }
@@ -39,6 +40,17 @@ TEST_CASE("Category: Functor hub action", "[category][functor][hub-action]") {
     CHECK(lifted(Box<int>{-2}) == Box<int>{-1});
   }
 
+  SECTION("Maybe functor short-circuits empty inputs") {
+    maybe_functor<int> maybef;
+    auto plus_one = arrow([](int x) { return x + 1; });
+
+    auto lifted = maybef.φ(plus_one);
+
+    STATIC_CHECK(IsArrow<decltype(lifted)>);
+    CHECK(lifted(std::optional<int>{41}) == std::optional<int>{42});
+    CHECK(lifted(std::optional<int>{}) == std::nullopt);
+  }
+
   SECTION("Trace functor lifts into StringCategory") {
     trace_functor<int> tracef;
     auto plus_one = arrow([](int x) { return x + 1; });
@@ -60,8 +72,16 @@ TEST_CASE("Category: Functor composition", "[category][functor][composition]") {
   composite_functor<IdF, IdF> composed{};
 
   SECTION("Composed functor keeps category handles") {
+    static_assert(IsFunctor<decltype(composed)>);
     static_assert(std::same_as<typename decltype(composed)::Σ_cat, IntCat>);
     static_assert(std::same_as<typename decltype(composed)::Τ_cat, IntCat>);
+    SUCCEED();
+  }
+
+  SECTION("Composed object mapping matches direct application") {
+    auto mapped = composed(IntCat{});
+
+    STATIC_CHECK(std::same_as<decltype(mapped), IntCat>);
     SUCCEED();
   }
 
@@ -71,6 +91,16 @@ TEST_CASE("Category: Functor composition", "[category][functor][composition]") {
 
     CHECK(via_composed(9) == via_direct(9));
     CHECK(via_composed(-1) == via_direct(-1));
+  }
+
+  SECTION("Fish composition instantiates to a functor") {
+    auto downstream = IdF{} >> IdF{};
+    auto upstream = IdF{} << IdF{};
+
+    STATIC_CHECK(IsFunctor<decltype(downstream)>);
+    STATIC_CHECK(IsFunctor<decltype(upstream)>);
+    CHECK(downstream.φ(plus_one)(9) == 10);
+    CHECK(upstream.φ(plus_one)(9) == 10);
   }
 }
 

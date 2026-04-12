@@ -92,6 +92,12 @@ constexpr auto extend(W<A> const& wa, F&& f) {
  *          endofunctor context by lifting the identity spoke `id_c(c)`. This
  *          is how the type system recovers the object witnesses `T(c)` and
  *          `T(T(c))` needed for η and μ.
+ *
+ * Textbook note: this concept intentionally requires `T` to satisfy
+ * @ref IsEndofunctor. Therefore, a functor that changes the ambient category
+ * (for example `Set<T> -> Set<std::optional<T>>`) is not admitted as an
+ * `IsMonad` witness in this formalization, even if value-level `η/μ/κ`
+ * behavior exists for its carrier.
  */
 export template <typename T, typename η_t, typename μ_t>
 concept IsMonad =

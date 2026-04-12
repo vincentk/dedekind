@@ -53,6 +53,22 @@
  * Applicator**. This witness allows the "Handy" fish operators (>> and <<) to
  * resolve unambiguously by utilizing the Hub's categorical authority.
  *
+ * @section IsFunctor_Models Concrete IsFunctor Models In This Partition
+ *
+ * The following types in this partition model @ref IsFunctor:
+ * - @ref identity_functor: Cat -> Cat.
+ * - @ref box_functor: Set<T> -> Set<Box<T>>.
+ * - @ref maybe_functor: Set<T> -> Set<Maybe<T>>.
+ * - @ref trace_functor: Set<T> -> StringCategory.
+ * - @ref composite_functor: composition G . F for any composable functors.
+ *
+ * Notes:
+ * - @ref maybe_functor is a concrete @ref IsFunctor model in this partition,
+ *   but under the current category choices it is not an @ref IsEndofunctor
+ *   witness for @ref IsMonad (see `:monad` for the textbook constraint).
+ * - Value-level overloads of φ for Maybe/Identity/Box at the end of this file
+ *   are lifting utilities, not IsFunctor hub models by themselves.
+ *
  */
 
 module;
@@ -83,6 +99,9 @@ namespace dedekind::category {
  * for `c` is always recovered by first forming the identity arrow `id_c(c)`.
  * Functorial object mapping is therefore observed indirectly through the spoke
  * `F(id_c(c))`, whose domain recovers the image object `F(c)`.
+ *
+ * Canonical hub models provided in this partition are listed in
+ * @ref IsFunctor_Models.
  */
 export template <typename F>
 concept IsFunctor = IsArrow<F> && requires {
@@ -245,10 +264,12 @@ struct Box final {
 
 /**
  * @brief The Intensional Hub for Boxed values.
- * Acts as an Endofunctor on Set.
+ * @details Concrete @ref IsFunctor model. Acts as an endofunctor
+ * Set<T> -> Set<Box<T>>.
  */
-template <typename T>
-struct box_hub {
+export template <typename T>
+struct box_functor {
+  using ArrowKind = hub_arrow_tag;
   using Σ_cat = Set<T>;
   using Τ_cat = Set<Box<T>>;
 
@@ -275,10 +296,13 @@ struct box_hub {
 };
 
 /**
- * @brief The Intensional Hub for Optional (Maybe) values.
+ * @brief The Intensional Functor for Optional (Maybe) values.
+ * @details Concrete @ref IsFunctor model implementing
+ * Set<T> -> Set<std::optional<T>>.
  */
-template <typename T>
-struct maybe_hub {
+export template <typename T>
+struct maybe_functor {
+  using ArrowKind = hub_arrow_tag;
   using Σ_cat = Set<T>;
   using Τ_cat = Set<std::optional<T>>;
 
@@ -301,10 +325,13 @@ struct maybe_hub {
   constexpr Τ_cat operator()(const Σ_cat&) const noexcept { return {}; }
 };
 
-static_assert(
-    IsMorphicApplicator<morphic_engine<box_hub<int>, int>, box_hub<int>, int>,
-    "Structural Integrity Failed: morphic_engine must satisfy "
-    "IsMorphicApplicator.");
+static_assert(IsFunctor<maybe_functor<int>>,
+              "Verification Failed: maybe_functor must satisfy IsFunctor.");
+
+static_assert(IsMorphicApplicator<morphic_engine<box_functor<int>, int>,
+                                  box_functor<int>, int>,
+              "Structural Integrity Failed: morphic_engine must satisfy "
+              "IsMorphicApplicator.");
 
 /**
  * @brief Stage 1: The Functorial Applicator.
@@ -320,10 +347,10 @@ struct functor_applicator {
   }
 };
 
-static_assert(
-    IsFunctorialApplicator<functor_applicator<box_hub<int>>, box_hub<int>>,
-    "Structural Integrity Failed: functor_applicator must satisfy "
-    "IsFunctorialApplicator.");
+static_assert(IsFunctorialApplicator<functor_applicator<box_functor<int>>,
+                                     box_functor<int>>,
+              "Structural Integrity Failed: functor_applicator must satisfy "
+              "IsFunctorialApplicator.");
 
 // Now fmap is just a factory for the Applicator
 template <typename Hub>
@@ -365,7 +392,7 @@ constexpr auto immerse(Hub&& h, Spoke&& s) {
  *   F >> f
  * where F is a verified functor and f is an arrow in F::Σ_cat.
  */
-template <typename Hub, typename Arrow>
+export template <typename Hub, typename Arrow>
   requires IsFunctor<Hub> && IsSpokeArrow<std::remove_cvref_t<Arrow>>
 [[nodiscard]]
 constexpr auto operator>>(Hub const& hub, Arrow&& f) {
@@ -377,10 +404,16 @@ constexpr auto operator>>(Hub const& hub, Arrow&& f) {
  *
  * Verifies that the target of the first functor matches the source
  * of the second, maintaining the structural spine.
+ * This is a concrete @ref IsFunctor model whenever F and G are composable
+ * functors.
  */
 export template <IsFunctor F, IsFunctor G>
   requires std::same_as<typename F::Τ_cat, typename G::Σ_cat>
 struct composite_functor {
+  using ArrowKind = hub_arrow_tag;
+  F first{};
+  G second{};
+
   using Σ_cat = typename F::Σ_cat;
   using Τ_cat = typename G::Τ_cat;
 
@@ -397,19 +430,21 @@ struct composite_functor {
   template <typename A>
     requires IsArrow<std::remove_cvref_t<A>>
   constexpr auto φ(A&& f) const {
-    // First lift through F, then through G
-    return G{}.φ(F{}.φ(std::forward<A>(f)));
+    // First lift through F, then through G.
+    return second.φ(first.φ(std::forward<A>(f)));
   }
 
-  /** @brief Morphic Action: (G . F)(f) */
-  constexpr Codomain operator()(const Domain& f) const { return φ(f); }
+  /** @brief Object Mapping: (G . F)(c) = G(F(c)) */
+  constexpr Codomain operator()(const Domain& c) const {
+    return second(first(c));
+  }
 };
 
 // f >> g  =>  g ∘ f      [Canonical Functorial Fish]
-template <typename 𝗙, typename 𝗚>
+export template <typename 𝗙, typename 𝗚>
   requires IsFunctor<𝗙> && IsFunctor<𝗚> &&
-           std::same_as<typename 𝗙::Σ_cat, typename 𝗚::Σ_cat> &&
-           std::same_as<typename 𝗙::Τ_cat, typename 𝗚::Τ_cat>
+           std::same_as<typename std::remove_cvref_t<𝗙>::Τ_cat,
+                        typename std::remove_cvref_t<𝗚>::Σ_cat>
 [[nodiscard]]
 constexpr auto operator>>(𝗙&& f, 𝗚&& g) {
   return composite_functor<std::remove_cvref_t<𝗙>, std::remove_cvref_t<𝗚>>{
@@ -420,14 +455,14 @@ constexpr auto operator>>(𝗙&& f, 𝗚&& g) {
  * @brief The "Upstream Fish" (Optional Composition Sugar)
  * g << f  =>  g ∘ f
  */
-template <typename 𝗙, typename 𝗚>
+export template <typename 𝗙, typename 𝗚>
   requires IsFunctor<𝗙> && IsFunctor<𝗚> &&
-           std::same_as<typename 𝗙::Σ_cat, typename 𝗚::Σ_cat> &&
-           std::same_as<typename 𝗙::Τ_cat, typename 𝗚::Τ_cat>
+           std::same_as<typename std::remove_cvref_t<𝗚>::Τ_cat,
+                        typename std::remove_cvref_t<𝗙>::Σ_cat>
 [[nodiscard]]
 constexpr auto operator<<(𝗙&& f, 𝗚&& g) {
-  return composite_functor<std::remove_cvref_t<𝗙>, std::remove_cvref_t<𝗚>>{
-      std::forward<𝗙>(f), std::forward<𝗚>(g)};
+  return composite_functor<std::remove_cvref_t<𝗚>, std::remove_cvref_t<𝗙>>{
+      std::forward<𝗚>(g), std::forward<𝗙>(f)};
 }
 
 /**
@@ -445,13 +480,15 @@ concept IsEndofunctor =
     std::same_as<typename Context::Σ_cat, typename Context::Τ_cat>;
 
 /**
- * @brief TraceHub: Maps Set -> StringCategory.
+ * @brief TraceFunctor: Maps Set -> StringCategory.
  *
  * Instead of 'boxing' a value, this functor 'describes' the mapping.
  * It's perfect for verifying that fmap is called exactly when it should be.
+ * Concrete @ref IsFunctor model.
  */
-template <typename T>
-struct trace_hub {
+export template <typename T>
+struct trace_functor {
+  using ArrowKind = hub_arrow_tag;
   using Σ_cat = Set<T>;
   using Τ_cat = StringCategory;
 
@@ -470,8 +507,8 @@ struct trace_hub {
   constexpr Τ_cat operator()(const Σ_cat&) const noexcept { return {}; }
 };
 
-static_assert(IsFunctor<trace_hub<int>>,
-              "Verification Failed: trace_hub must satisfy IsFunctor.");
+static_assert(IsFunctor<trace_functor<int>>,
+              "Verification Failed: trace_functor must satisfy IsFunctor.");
 
 /**
  * The "Identity Hub" for any category, which simply returns the input arrow
@@ -480,10 +517,12 @@ static_assert(IsFunctor<trace_hub<int>>,
  *
  * I.e. this is presumably the only functor which is truly *generic* across all
  * categories, since it doesn't rely on any specific structure of the category.
+ * Concrete @ref IsFunctor model.
  */
-template <typename Cat>
+export template <typename Cat>
   requires IsCategory<Cat>
-struct identity_hub {
+struct identity_functor {
+  using ArrowKind = hub_arrow_tag;
   using Σ_cat = Cat;
   using Τ_cat = Cat;
 
@@ -514,26 +553,9 @@ struct identity_hub {
   using Shape = U;
 };
 
-static_assert(IsEndofunctor<identity_hub<Set<int>>>,
-              "Verification Failed: identity_hub must satisfy IsEndofunctor.");
-
-/**
- * @brief Type alias for the identity functor on a category.
- */
-export template <typename Cat>
-using identity_functor = identity_hub<Cat>;
-
-/**
- * @brief Type alias for the Box functor.
- */
-export template <typename T>
-using box_functor = box_hub<T>;
-
-/**
- * @brief Type alias for the trace functor from Set<T> to StringCategory.
- */
-export template <typename T>
-using trace_functor = trace_hub<T>;
+static_assert(
+    IsEndofunctor<identity_functor<Set<int>>>,
+    "Verification Failed: identity_functor must satisfy IsEndofunctor.");
 
 /**
  * @brief The Maybe endofunctor T, implemented via std::optional.
