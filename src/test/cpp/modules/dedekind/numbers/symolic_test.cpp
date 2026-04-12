@@ -2,11 +2,9 @@
 
 import dedekind.numbers;
 import dedekind.category;
-import dedekind.sets;
 
 using namespace dedekind::numbers;
 using namespace dedekind::category;
-using namespace dedekind::sets;
 
 TEST_CASE("Numbers: Symbolic Checkpoint", "[numbers][symbolic]") {
   using R = Real<double>;
@@ -14,10 +12,9 @@ TEST_CASE("Numbers: Symbolic Checkpoint", "[numbers][symbolic]") {
 
   SECTION("Sqrt2 symbolic anchor") {
     const auto root2 = Sqrt2_Symbolic<double>();
-    STATIC_CHECK(dedekind::sets::IsSet<decltype(root2),
-                                       dedekind::category::TernaryLogic>);
-    REQUIRE(root2(1.4) == Ternary::True);
-    REQUIRE(root2(1.5) == Ternary::False);
+    STATIC_CHECK(dedekind::category::IsSet<decltype(root2)>);
+    REQUIRE(root2.χ(1.4) == true);
+    REQUIRE(root2.χ(1.5) == false);
   }
 
   SECTION("Complex arithmetic over Real wrapper") {
@@ -32,8 +29,7 @@ TEST_CASE("Numbers: Symbolic Checkpoint", "[numbers][symbolic]") {
     REQUIRE(Pi().resolve() > 3.14);
     REQUIRE(E().resolve() > 2.71);
     const auto T = TranscendentalSet<double>();
-    STATIC_CHECK(
-        dedekind::sets::IsSet<decltype(T), dedekind::category::TernaryLogic>);
-    REQUIRE(T(0.0) == Ternary::False);
+    STATIC_CHECK(dedekind::category::IsSet<decltype(T)>);
+    REQUIRE(T.χ(0.0) == false);
   }
 }

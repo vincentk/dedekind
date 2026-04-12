@@ -11,16 +11,19 @@ export module dedekind.numbers:symbolic;
 
 import :real;
 import :complex;
+import dedekind.category;
 import dedekind.sets;
 
 namespace dedekind::numbers {
-using namespace dedekind::sets;
+using namespace dedekind::category;
 
 export template <typename Q>
 constexpr auto Sqrt2_Symbolic() {
-  auto x = var<Ω<Q>>;
-  // Lower Dedekind cut prototype: { q in Q | q^2 < 2 }.
-  return Set{x % Ω<Q>{} | [](const Q& q) { return q * q < static_cast<Q>(2); }};
+  const dedekind::sets::Ω<Q> universe{};
+  // Lower-cut prototype encoded as an ETCS subobject over Q.
+  return ambient_set<Q>([universe](const Q& q) {
+    return universe(q) && (q * q < static_cast<Q>(2));
+  });
 }
 
 /** @section Transcendental_Anchors */
@@ -39,9 +42,10 @@ inline constexpr bool is_transcendental_v = false;
 export template <typename R>
   requires std::regular<R>
 constexpr auto TranscendentalSet() {
-  auto x = var<Ω<R>>;
-  return Set{x % Ω<R>{} |
-             [](const R&) constexpr { return is_transcendental_v<R>; }};
+  const dedekind::sets::Ω<R> universe{};
+  return ambient_set<R>([universe](const R& x) constexpr {
+    return universe(x) && is_transcendental_v<R>;
+  });
 }
 
 }  // namespace dedekind::numbers
