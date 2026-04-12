@@ -24,22 +24,35 @@
  * that maps morphisms from the source category to the target category while
  * strictly preserving identity and composition laws.
  *
+ * @section The_Honest_Spine Hub (Intensional Law) vs. Spoke (Extensional
+ * Matter)
  *
- * @section The_Hub_Spoke_Architecture
- * In our Category-First formalism, we distinguish between the **Hub** (the
- * category-level structure that owns arrow factories such as @ref id_c) and
- * the **Spoke** (an ordinary arrow inside such a category).
+ * With a view to interoperability with primitive types and the std::library,
+ * Dedekind distinguishes between the mathematical rule of transformation
+ * and the data instances that undergo it. This separation ensures that
+ * categorical laws are verified at the structural level before they are
+ * applied to values.
  *
- * While a Functor is technically an @ref IsArrow mapping spokes to spokes,
- * it is also a hub arrow in the sense of @ref IsHubArrow: its Domain and
- * Codomain are themselves arrow spaces. The Categorical Laws
- * (Identity/Composition preservation) therefore require access to the Hub's
- * static factories (e.g., @ref id_c).
+ * 1. The Hub (Intensional Hub / Law):
+ *    Represented by @ref IsFunctor, this is a stateless blueprint acting
+ *    as a 1-morphism between categories. It owns the "Morphic Action" (φ)—the
+ *    mathematical recipe for lifting arrows. It requires handles to its
+ *    @ref Σ_cat and @ref Τ_cat to verify structural integrity (Identity and
+ *    Composition preservation). Without these handles, a mapping is a
+ *    mere function; with them, it becomes a verified Functor.
  *
- * Therefore, every @ref IsFunctor must carry handles to its @ref SourceCategory
- * and @ref TargetCategory. Without these "Hub" handles, a mapping of
- * types would be a mere function; with them, it becomes a verified
- * structure-preserving Functor.
+ * 2. The Spoke (Extensional Spoke / Matter):
+ *    This is the concrete instance—an ordinary arrow (@ref IsArrow) or a data
+ *    container (e.g., Box<T>). While the Hub provides the "How," the Spoke
+ *    provides the "What." The spoke is a resident of a category, but it
+ *    does not own the mapping logic itself.
+ *
+ * 3. The Applicator (The Bridge):
+ *    To bridge the Intensional and the Extensional, we use the @ref fmap
+ *    factory. This binds a Hub to a Spoke, creating a **Functorial
+ * Applicator**. This witness allows the "Handy" fish operators (>> and <<) to
+ * resolve unambiguously by utilizing the Hub's categorical authority.
+ *
  */
 
 module;
@@ -188,19 +201,158 @@ concept IsFunctorialApplicator =
     };
 
 /**
- * @brief fmap factory: Binds a Hub to its action.
- * Returns a closure (or a wrapper) that satisfies IsFunctor.
+ * @brief Stage 2: The Morphic Engine.
+ * It has the Law and the Matter; it just needs the Action.
+ */
+template <typename Hub, typename Spoke>
+struct morphic_engine {
+  Hub h;
+  Spoke ma;
+
+  template <typename Func>
+  constexpr auto operator()(Func&& f) const {
+    // 1. Ensure we have an Arrow (lifts lambdas if necessary)
+    auto lifted_arrow = h.φ(arrow(std::forward<Func>(f)));
+
+    /**
+     * 2. The Crucial Step:
+     * Your Hub knows the Target Category (Τ_cat).
+     * We wrap the raw data 'ma' into that category's Species (e.g., Box<int>).
+     */
+    using TargetSpecies = typename Hub::Τ_cat::Species;
+
+    // Pass the 'Boxed' version of ma to the lifted morphism
+    return lifted_arrow(TargetSpecies{ma});
+  }
+};
+
+/**
+ * @brief The Boxed Species (The F<T> Context).
+ *
+ * Reifies the "Box" as a categorical object that announces its
+ * own species and shape, enabling 1-parameter functorial discovery.
+ */
+export template <typename T>
+struct Box final {
+  /** @brief The physical payload. */
+  const T value;
+
+  /** @brief Equality for structural verification in static_asserts. */
+  constexpr bool operator==(const Box&) const = default;
+};
+
+/**
+ * @brief The Intensional Hub for Boxed values.
+ * Acts as an Endofunctor on Set.
+ */
+template <typename T>
+struct box_hub {
+  using Σ_cat = Set<T>;
+  using Τ_cat = Set<Box<T>>;
+
+  // Requirement for IsArrow (Hub as 1-morphism in Cat)
+  using Domain = Σ_cat;
+  using Codomain = Τ_cat;
+
+  /** @brief F_obj: The Type Constructor */
+  template <typename U>
+  using Shape = Box<U>;
+
+  /** @brief F_mor (φ): The Morphic Lift */
+  template <typename 𝗳>
+    requires IsArrow<std::remove_cvref_t<𝗳>>
+  constexpr auto φ(𝗳&& f) const {
+    // We return an Arrow in the Target Category (Set<Box<T>>)
+    return arrow([f = std::forward<𝗳>(f)](Box<T> const& b) {
+      return Box{std::invoke(f, b.value)};
+    });
+  }
+
+  // Action on Objects
+  constexpr Τ_cat operator()(const Σ_cat&) const noexcept { return {}; }
+};
+
+/**
+ * @brief The Intensional Hub for Optional (Maybe) values.
+ */
+template <typename T>
+struct maybe_hub {
+  using Σ_cat = Set<T>;
+  using Τ_cat = Set<std::optional<T>>;
+
+  using Domain = Σ_cat;
+  using Codomain = Τ_cat;
+
+  template <typename U>
+  using Shape = std::optional<U>;
+
+  /** @brief φ: The Morphic Lift with Short-Circuiting Law */
+  template <typename 𝗳>
+    requires IsArrow<std::remove_cvref_t<𝗳>>
+  constexpr auto φ(𝗳&& f) const {
+    return arrow([f = std::forward<𝗳>(f)](std::optional<T> const& m) {
+      // The Law: If the input is empty, the result remains empty.
+      return m.has_value() ? std::optional{std::invoke(f, *m)} : std::nullopt;
+    });
+  }
+
+  constexpr Τ_cat operator()(const Σ_cat&) const noexcept { return {}; }
+};
+
+static_assert(
+    IsMorphicApplicator<morphic_engine<box_hub<int>, int>, box_hub<int>, int>,
+    "Structural Integrity Failed: morphic_engine must satisfy "
+    "IsMorphicApplicator.");
+
+/**
+ * @brief Stage 1: The Functorial Applicator.
+ * It has the Law; it just needs the Matter.
  */
 template <typename Hub>
+struct functor_applicator {
+  Hub h;
+
+  template <typename Spoke>
+  constexpr auto operator()(Spoke&& ma) const {
+    return morphic_engine<Hub, std::decay_t<Spoke>>{h, std::forward<Spoke>(ma)};
+  }
+};
+
+static_assert(
+    IsFunctorialApplicator<functor_applicator<box_hub<int>>, box_hub<int>>,
+    "Structural Integrity Failed: functor_applicator must satisfy "
+    "IsFunctorialApplicator.");
+
+// Now fmap is just a factory for the Applicator
+template <typename Hub>
   requires IsFunctor<Hub>
-[[nodiscard]]
-constexpr auto fmap(Hub const& h) {
-  // We return a "Witness" that knows how to use the Hub's logic
-  return [h](auto&& ma) {
-    return [h, ma = std::forward<decltype(ma)>(ma)](auto&& f) {
-      return h.φ(std::forward<decltype(f)>(f))(ma);
-    };
-  };
+[[nodiscard]] constexpr auto fmap(Hub const& h) {
+  return functor_applicator<Hub>{h};
+}
+
+/**
+ * @brief A Functorial Context (The "Fishy" Spoke).
+ * Holds both the Law (Hub) and the Matter (Spoke).
+ */
+template <typename Hub, typename Spoke>
+struct context final {
+  Hub hub;      // The "Instruction Manual" (can have state!)
+  Spoke value;  // The "Matter"
+
+  template <typename Func>
+  constexpr auto operator>>(Func&& f) const {
+    // We use the specific instance of the hub, preserving its state
+    return fmap(hub)(value)(std::forward<Func>(f));
+  }
+};
+
+/**
+ * @brief 1-Argument Factory: Bind data to a specific Hub instance.
+ */
+template <typename Hub, typename Spoke>
+constexpr auto immerse(Hub&& h, Spoke&& s) {
+  return context<std::decay_t<Hub>, std::decay_t<Spoke>>{
+      std::forward<Hub>(h), std::forward<Spoke>(s)};
 }
 
 /**
@@ -305,21 +457,6 @@ export template <typename Context>
 concept IsEndofunctor =
     IsFunctor<Context> &&
     std::same_as<typename Context::Σ_cat, typename Context::Τ_cat>;
-
-/**
- * @brief The Boxed Species (The F<T> Context).
- *
- * Reifies the "Box" as a categorical object that announces its
- * own species and shape, enabling 1-parameter functorial discovery.
- */
-export template <typename T>
-struct Box final {
-  /** @brief The physical payload. */
-  const T value;
-
-  /** @brief Equality for structural verification in static_asserts. */
-  constexpr bool operator==(const Box&) const = default;
-};
 
 /**
  * @brief TraceHub: Maps Set -> StringCategory.
@@ -430,5 +567,24 @@ template <typename A, typename F>
 constexpr auto φ(Box<A> const& box, F&& f) -> Box<std::invoke_result_t<F, A>> {
   return {std::invoke(std::forward<F>(f), box.value)};
 }
+
+auto b = Box{42};
+auto h = box_hub<int>{};  // The Instruction Manual
+
+// The "Click": Immerse the matter in the law
+auto fishy_box = immerse(h, b);
+
+// The "Swim": Pipe the data.
+// Note how 'h' is preserved inside the context.
+auto result_box = fishy_box >> [](int x) { return x + 1; };
+
+auto m = std::optional<int>{std::nullopt};
+auto mh = maybe_hub<int>{};
+
+auto fishy_maybe = immerse(mh, m);
+
+// This "Swim" follows the Maybe law: it won't even call the lambda
+// if m is empty, because the Hub's φ handles the short-circuit.
+auto resulb_maybe = fishy_maybe >> [](int x) { return x * 10; };
 
 }  // namespace dedekind::category
