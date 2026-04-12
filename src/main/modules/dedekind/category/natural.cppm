@@ -165,10 +165,10 @@ concept IsTwoMorphism =
       // In the single-species setting, we recover F(c) and G(c) by lifting
       // the identity spoke on c and reading the resulting spoke's domain.
       requires std::same_as<typename decltype(alpha(c))::Domain,
-                  typename decltype(F{}.φ(
+                            typename decltype(F{}.φ(
                                 F::Σ_cat::id_c(c)))::Domain>;
       requires std::same_as<typename decltype(alpha(c))::Codomain,
-                  typename decltype(G{}.φ(
+                            typename decltype(G{}.φ(
                                 G::Σ_cat::id_c(c)))::Domain>;
     };
 

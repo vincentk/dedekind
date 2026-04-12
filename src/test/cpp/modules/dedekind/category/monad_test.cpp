@@ -26,7 +26,21 @@ struct IdentityDuplicate {
   auto operator()(int) const { return id<int>(); }
 };
 
+static_assert(
+    IsNaturalTransformation<IdentityUnit, identity_functor<IntCat>, IdF>);
+static_assert(
+    IsNaturalTransformation<IdentityJoin, composite_functor<IdF, IdF>, IdF>);
+static_assert(
+    IsNaturalTransformation<IdentityCounit, IdF, identity_functor<IntCat>>);
+static_assert(IsNaturalTransformation<IdentityDuplicate, IdF,
+                                      composite_functor<IdF, IdF>>);
+
 }  // namespace
+
+TEST_CASE("Category: Monad and Comonad Concepts", "[category][monad]") {
+  STATIC_CHECK(IsMonad<IdF, IdentityUnit, IdentityJoin>);
+  STATIC_CHECK(IsComonad<IdF, IdentityCounit, IdentityDuplicate>);
+}
 
 TEST_CASE("Category: Monad Pipeline Operators",
           "[category][monad][operator-shift]") {
