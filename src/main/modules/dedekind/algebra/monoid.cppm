@@ -45,7 +45,7 @@ concept IsAdditiveMonoid = IsPointed<T, std::plus<T>>;
  * @brief Proposition: The species (T, *) forms a Monoid.
  */
 export template <typename T>
-concept IsMultiplicativeMonoid = IsPointed<T, std::multiplies<T>>;
+concept IsMultiplicativeMonoid = IsMonoid<T, std::multiplies<T>>;
 
 /** @section Atomic_Verification */
 static_assert(IsAdditiveMonoid<int>, "Axiom Failure: (Z, +) must have a Zero.");
