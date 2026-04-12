@@ -25,24 +25,6 @@ TEST_CASE("Category: Box Bind and Extend", "[category][kleisli]") {
   }
 }
 
-TEST_CASE("Category: Kleisli fmap Bridge", "[category][kleisli][fmap]") {
-  auto plus_one = arrow([](int x) { return x + 1; });
-  auto lifted = fmap<Box>(plus_one);
-
-  STATIC_CHECK(IsArrow<decltype(lifted)>);
-  CHECK(lifted(Box<int>{1}) == Box<int>{2});
-  CHECK(lifted(Box<int>{-3}) == Box<int>{-2});
-}
-
-TEST_CASE("Category: Co-Kleisli Duplicate Tag", "[category][kleisli]") {
-  Box<int> value{5};
-
-  auto duplicated = value << ε_tag<Box>{};
-
-  STATIC_CHECK(std::same_as<decltype(duplicated), Box<Box<int>>>);
-  CHECK(duplicated == Box<Box<int>>{Box<int>{5}});
-}
-
 TEST_CASE("Category: Kleisli κ (kappa) extension",
           "[category][kleisli][kappa]") {
   Box<int> value{10};

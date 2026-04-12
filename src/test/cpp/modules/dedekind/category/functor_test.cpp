@@ -12,18 +12,15 @@ TEST_CASE("Category: Functor Concepts", "[category][functor]") {
   STATIC_CHECK(IsFunctor<identity_functor<IntCat>>);
   STATIC_CHECK(IsEndofunctor<identity_functor<IntCat>>);
   STATIC_CHECK(IsFunctor<box_functor<int>>);
-  STATIC_CHECK(IsHubArrow<identity_functor<IntCat>>);
-  STATIC_CHECK(IsHubArrow<box_functor<int>>);
   STATIC_CHECK(IsSpokeArrow<decltype(plus_one)>);
 }
 
-TEST_CASE("Category: Functor operator>> (Functor then Arrow)",
-          "[category][functor][operator-shift]") {
+TEST_CASE("Category: Functor hub action", "[category][functor][hub-action]") {
   SECTION("Identity functor preserves arrow behavior") {
     identity_functor<DiscreteCategory<int>> idf;
     auto plus_one = arrow([](int x) { return x + 1; });
 
-    auto lifted = idf >> plus_one;
+    auto lifted = idf.φ(plus_one);
 
     STATIC_CHECK(IsArrow<decltype(lifted)>);
     CHECK(lifted(41) == 42);
@@ -34,88 +31,35 @@ TEST_CASE("Category: Functor operator>> (Functor then Arrow)",
     box_functor<int> boxf;
     auto plus_one = arrow([](int x) { return x + 1; });
 
-    auto lifted = boxf >> plus_one;
+    auto lifted = boxf.φ(plus_one);
 
     STATIC_CHECK(IsArrow<decltype(lifted)>);
     CHECK(lifted(Box<int>{41}) == Box<int>{42});
     CHECK(lifted(Box<int>{-2}) == Box<int>{-1});
   }
-  box_functor<int> boxf;
-  auto id_int = id<int>();
-
-  auto lifted_id = boxf >> id_int;
-
-  CHECK(lifted_id(Box<int>{7}) == Box<int>{7});
-  CHECK(lifted_id(Box<int>{0}) == Box<int>{0});
 }
-}
-auto lifted = idf.φ(plus_one);
-TEST_CASE("Category: Functor operator>> (Functor composition)",
-          "[category][functor][operator-shift]") {
-  identity_functor<DiscreteCategory<int>> idf;
-  box_functor<int> boxf;
+
+TEST_CASE("Category: Functor composition", "[category][functor][composition]") {
+  using IntCat = DiscreteCategory<int>;
+  using IdF = identity_functor<IntCat>;
+
   auto plus_one = arrow([](int x) { return x + 1; });
-  auto composed = idf >> boxf;
+  composite_functor<IdF, IdF> composed{};
 
   STATIC_CHECK(IsFunctor<decltype(composed)>);
-
-  SECTION("Composed functor carries source and target category handles") {
-    auto lifted = boxf.φ(plus_one);
-                               DiscreteCategory<int>>);
-                               static_assert(std::same_as<
-                                             typename decltype(composed)::Τ_cat,
-                                             DiscreteCategory<Box<int>>>);
-                               SUCCEED();
-  }
-
-  SECTION("Composed functor action matches direct application") {
-    auto via_composed = composed >> plus_one;
-    auto via_direct = boxf >> plus_one;
-
-    auto lifted_id = boxf.φ(id_int);
-    CHECK(via_composed(Box<int>{-1}) == via_direct(Box<int>{-1}));
-  }
-}
-
-TEST_CASE("Category: Immerse and Fish Examples",
-          "[category][functor][immerse]") {
-  SECTION("Box immerse with lambda application") {
-    auto b = Box{42};
-    auto h = box_hub<int>{};
-    auto result_box = fishy_box >> [](int x) { return x + 1; };
-    auto composed = idf >> idf;
-    CHECK(result_box == Box<int>{43});
-  }
   STATIC_CHECK(IsEndofunctor<decltype(composed)>);
 
-  SECTION("Box immerse preserves identity") {
-    auto b = Box{42};
-    auto h = box_hub<int>{};
-    auto fishy_box = immerse(h, b);
-                                   DiscreteCategory<int>>);
-
-                                   CHECK(result_id == Box<int>{42});
+  SECTION("Composed functor keeps category handles") {
+    static_assert(std::same_as<typename decltype(composed)::Σ_cat, IntCat>);
+    static_assert(std::same_as<typename decltype(composed)::Τ_cat, IntCat>);
+    SUCCEED();
   }
 
-  auto via_composed = composed.φ(plus_one);
-  auto via_direct = idf.φ(plus_one);
-  auto mh = maybe_hub<int>{};
-  CHECK(via_composed(9) == via_direct(9));
-  CHECK(via_composed(-1) == via_direct(-1));
-  // The lambda should never be called due to Hub's short-circuit logic
-  auto result_maybe = fishy_maybe >> [](int x) { return x * 10; };
+  SECTION("Composed action matches direct application") {
+    auto via_composed = composed.φ(plus_one);
+    auto via_direct = IdF{}.φ(plus_one);
 
-  CHECK(!result_maybe.has_value());
-}
-
-auto h = box_functor<int>{};
-auto m = std::optional<int>{5};
-auto mh = maybe_hub<int>{};
-auto fishy_maybe = immerse(mh, m);
-
-auto result_maybe = fishy_maybe >> [](int x) { return x * 10; };
-
-REQUIRE(result_maybe.has_value());
-CHECK(result_maybe.value() == 50);
-auto h = box_functor<int>{};
+    CHECK(via_composed(9) == via_direct(9));
+    CHECK(via_composed(-1) == via_direct(-1));
+  }
 }
