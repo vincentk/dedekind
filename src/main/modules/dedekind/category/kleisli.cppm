@@ -32,6 +32,7 @@ module;
 
 #include <concepts>
 #include <functional>
+#include <ios>
 
 export module dedekind.category:kleisli;
 
@@ -186,10 +187,11 @@ constexpr auto operator<<=(WA const& wa, F&& f) {
  * associativity of <<=.
  */
 export template <typename WA, typename F>
-  requires requires(WA const& wa, F&& f) {
-    { δ(wa) };
-    { φ(δ(wa), std::forward<F>(f)) };
-  }
+  requires(!std::derived_from<std::remove_cvref_t<WA>, std::ios_base>) &&
+          requires(WA const& wa, F&& f) {
+            { δ(wa) };
+            { φ(δ(wa), std::forward<F>(f)) };
+          }
 constexpr auto operator<<(WA const& wa, F&& f) {
   return σ(wa, std::forward<F>(f));
 }

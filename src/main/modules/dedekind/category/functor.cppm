@@ -59,6 +59,7 @@ module;
 
 #include <concepts>
 #include <functional>
+#include <optional>
 
 export module dedekind.category:functor;
 

@@ -40,18 +40,16 @@ TEST_CASE("Category: Functor operator>> (Functor then Arrow)",
     CHECK(lifted(Box<int>{41}) == Box<int>{42});
     CHECK(lifted(Box<int>{-2}) == Box<int>{-1});
   }
+  box_functor<int> boxf;
+  auto id_int = id<int>();
 
-  SECTION("Box functor identity case maps to boxed identity") {
-    box_functor<int> boxf;
-    auto id_int = id<int>();
+  auto lifted_id = boxf >> id_int;
 
-    auto lifted_id = boxf >> id_int;
-
-    CHECK(lifted_id(Box<int>{7}) == Box<int>{7});
-    CHECK(lifted_id(Box<int>{0}) == Box<int>{0});
-  }
+  CHECK(lifted_id(Box<int>{7}) == Box<int>{7});
+  CHECK(lifted_id(Box<int>{0}) == Box<int>{0});
 }
-
+}
+auto lifted = idf.φ(plus_one);
 TEST_CASE("Category: Functor operator>> (Functor composition)",
           "[category][functor][operator-shift]") {
   identity_functor<DiscreteCategory<int>> idf;
@@ -62,18 +60,19 @@ TEST_CASE("Category: Functor operator>> (Functor composition)",
   STATIC_CHECK(IsFunctor<decltype(composed)>);
 
   SECTION("Composed functor carries source and target category handles") {
-    static_assert(std::same_as<typename decltype(composed)::Σ_cat,
+    auto lifted = boxf.φ(plus_one);
                                DiscreteCategory<int>>);
-    static_assert(std::same_as<typename decltype(composed)::Τ_cat,
-                               DiscreteCategory<Box<int>>>);
-    SUCCEED();
+                               static_assert(std::same_as<
+                                             typename decltype(composed)::Τ_cat,
+                                             DiscreteCategory<Box<int>>>);
+                               SUCCEED();
   }
 
   SECTION("Composed functor action matches direct application") {
     auto via_composed = composed >> plus_one;
     auto via_direct = boxf >> plus_one;
 
-    CHECK(via_composed(Box<int>{9}) == via_direct(Box<int>{9}));
+    auto lifted_id = boxf.φ(id_int);
     CHECK(via_composed(Box<int>{-1}) == via_direct(Box<int>{-1}));
   }
 }
@@ -83,40 +82,40 @@ TEST_CASE("Category: Immerse and Fish Examples",
   SECTION("Box immerse with lambda application") {
     auto b = Box{42};
     auto h = box_hub<int>{};
-    auto fishy_box = immerse(h, b);
     auto result_box = fishy_box >> [](int x) { return x + 1; };
-
+    auto composed = idf >> idf;
     CHECK(result_box == Box<int>{43});
   }
+  STATIC_CHECK(IsEndofunctor<decltype(composed)>);
 
   SECTION("Box immerse preserves identity") {
     auto b = Box{42};
     auto h = box_hub<int>{};
     auto fishy_box = immerse(h, b);
-    auto result_id = fishy_box >> [](int x) { return x; };
+                                   DiscreteCategory<int>>);
 
-    CHECK(result_id == Box<int>{42});
+                                   CHECK(result_id == Box<int>{42});
   }
 
-  SECTION("Maybe immerse with short-circuit on nullopt") {
-    auto m = std::optional<int>{std::nullopt};
-    auto mh = maybe_hub<int>{};
-    auto fishy_maybe = immerse(mh, m);
+  auto via_composed = composed.φ(plus_one);
+  auto via_direct = idf.φ(plus_one);
+  auto mh = maybe_hub<int>{};
+  CHECK(via_composed(9) == via_direct(9));
+  CHECK(via_composed(-1) == via_direct(-1));
+  // The lambda should never be called due to Hub's short-circuit logic
+  auto result_maybe = fishy_maybe >> [](int x) { return x * 10; };
 
-    // The lambda should never be called due to Hub's short-circuit logic
-    auto result_maybe = fishy_maybe >> [](int x) { return x * 10; };
+  CHECK(!result_maybe.has_value());
+}
 
-    CHECK(!result_maybe.has_value());
-  }
+auto h = box_functor<int>{};
+auto m = std::optional<int>{5};
+auto mh = maybe_hub<int>{};
+auto fishy_maybe = immerse(mh, m);
 
-  SECTION("Maybe immerse applies function when value present") {
-    auto m = std::optional<int>{5};
-    auto mh = maybe_hub<int>{};
-    auto fishy_maybe = immerse(mh, m);
+auto result_maybe = fishy_maybe >> [](int x) { return x * 10; };
 
-    auto result_maybe = fishy_maybe >> [](int x) { return x * 10; };
-
-    REQUIRE(result_maybe.has_value());
-    CHECK(result_maybe.value() == 50);
-  }
+REQUIRE(result_maybe.has_value());
+CHECK(result_maybe.value() == 50);
+auto h = box_functor<int>{};
 }
