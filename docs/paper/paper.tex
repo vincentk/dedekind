@@ -1109,10 +1109,11 @@ The core innovation of this partition is the reification of the \textit{Set-Buil
 // Define a predicate: x is even and greater than 10
 auto P = [](auto x) { return (x % 2 == 0) && (x > 10); };
 
-// Materialize the set at compile-time as a structural type
-using EvenGreaterTen = dedekind::set<int, P>;
+// Materialize a categorical set object over the ambient species int
+const auto even\_greater\_ten = dedekind::category::ambient\_set<int>(P);
 
-static\_assert(EvenGreaterTen::.chi(12) == Logic::true\_val);
+static\_assert(dedekind::category::IsSet<decltype(even\_greater\_ten)>);
+static\_assert(even\_greater\_ten.\u03C7(12) == true);
 \end{lstlisting}
 
 By hoisting these mereological invariants into the type signature, we enable \textit{Symbolic Equalization}. The compiler can decompose and optimize a set based on its logical essence rather than its storage layout, allowing contradictory set-builder predicates to collapse into zero-instruction machine code. This ensures that the performance of the ``Naked Loop'' is always mathematically justified by the prior formal certification of the ETCS axioms.
@@ -1276,7 +1277,7 @@ This allows the compiler to inspect, decompose, and optimize a set based on its 
 // Verifies the "Element Of" relation (x in Y)
 template <typename T, typename S>
 concept IsElementOf = requires(T x, S s) {
-    { s.chi(x) } -> std::same_as<Logic>;
+    { s.\u03C7(x) } -> dedekind::category::LogicalValue;
 };
 
 // Verifies "Parthood" or "Subset" relation (X subset of Y)
