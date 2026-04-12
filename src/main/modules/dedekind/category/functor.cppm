@@ -84,17 +84,35 @@ concept IsFunctor = IsArrow<F> && requires {
   typename F::template Shape<int>;
 } && requires(F f, typename F::Σ_cat::Arrow f_c) {
   // 1. Morphism mapping check
-  { f.φ(f_c >> f_c) } -> std::convertible_to<typename F::Τ_cat::Arrow>;
+  { f.φ(f_c >> f_c) } -> IsArrow;
+
+  requires std::same_as<
+      typename decltype(f.φ(f_c))::Domain,
+      typename F::template Shape<typename F::Σ_cat::Arrow::Domain>>;
+
+  requires std::same_as<
+      typename decltype(f.φ(f_c))::Codomain,
+      typename F::template Shape<typename F::Σ_cat::Arrow::Codomain>>;
 
   // 2. Identity Preservation check (The Textbook Embedding)
   // We introduce 'c' to represent an arbitrary object in the source category
+  // 2. Identity Preservation check
   requires requires(typename F::Σ_cat::Arrow::Domain c) {
     /**
      * The image of the identity on object c in the source category
-     * must be exactly the identity morphism in the target category.
+     * must be an arrow in the target category.
+     *
+     * Note: We use 'f.φ' because φ is a member function.
      */
-    requires std::same_as<decltype(F::φ(F::Σ_cat::id_c(c))),
-                          typename F::Τ_cat::Id>;
+    { f.φ(F::Σ_cat::id_c(c)) } -> IsArrow;
+
+    requires std::same_as<
+        typename decltype(f.φ(F::Σ_cat::id_c(c)))::Domain,
+        typename F::template Shape<typename F::Σ_cat::Arrow::Domain>>;
+
+    requires std::same_as<
+        typename decltype(f.φ(F::Σ_cat::id_c(c)))::Codomain,
+        typename F::template Shape<typename F::Σ_cat::Arrow::Domain>>;
   };
 };
 
@@ -297,6 +315,50 @@ struct trace_hub {
   template <typename U>
   using Shape = std::string;
 };
+
+/**
+ * The "Identity Hub" for any category, which simply returns the input arrow
+ * as-is. This serves as the canonical identity functor for any category,
+ * ensuring that the identity morphism is preserved without alteration.
+ *
+ * I.e. this is presumably the only functor which is truly *generic* across all
+ * categories, since it doesn't rely on any specific structure of the category.
+ */
+template <typename Cat>
+  requires IsCategory<Cat>
+struct identity_hub {
+  using Σ_cat = Cat;
+  using Τ_cat = Cat;
+
+  using Domain = Cat;
+  using Codomain = Cat;
+
+  /**
+   * @brief Object Mapping: Id(C) = C
+   * Satisfies the IsArrow requirement for Hub Arrows.
+   */
+  constexpr Codomain operator()(const Domain& c) const noexcept { return c; }
+
+  /**
+   * @brief φ for Identity: Just return the arrow.
+   * We loosen the constraint to accept any valid arrow of the category,
+   * satisfying the "Honest" requirement that F(f) = f.
+   */
+  template <typename 𝗳>
+    requires IsArrow<std::remove_cvref_t<𝗳>> &&
+             std::same_as<typename std::remove_cvref_t<𝗳>::Domain,
+                          typename Cat::Species>
+  constexpr auto φ(𝗳&& f) const {
+    return std::forward<𝗳>(f);
+  }
+
+  // The shape is also generic: Id(A) = A
+  template <typename U>
+  using Shape = U;
+};
+
+static_assert(IsEndofunctor<identity_hub<Set<int>>>,
+              "Verification Failed: identity_hub must satisfy IsEndofunctor.");
 
 /**
  * @brief The Maybe endofunctor T, implemented via std::optional.
