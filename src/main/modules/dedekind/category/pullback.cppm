@@ -1,7 +1,7 @@
 /**
  * @file dedekind/category/pullback.cppm
  * @partition :pullback
- * @brief Level 2: Limits — Equalizers and Fiber Products (Pullbacks).
+ * @brief Limits — Equalizers and Fiber Products (Pullbacks).
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.

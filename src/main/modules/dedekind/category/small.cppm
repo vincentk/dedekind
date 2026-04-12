@@ -1,7 +1,7 @@
 /**
  * @file dedekind/category/small.cppm
  * @module dedekind.category:small
- * @brief Level 0b: Small Categories (Enumerated Morphism Sets).
+ * @brief Small Categories (Enumerated Morphism Sets).
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.

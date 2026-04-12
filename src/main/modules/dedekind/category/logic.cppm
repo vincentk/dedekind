@@ -1,7 +1,7 @@
 /**
- * @file ontology:logic.cppm
+ * @file dedekind/category/logic.cppm
  * @partition :logic
- * @brief Level -1: The Rules of Thought (Ω).
+ * @brief Level 0: The Rules of Thought (Ω).
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.

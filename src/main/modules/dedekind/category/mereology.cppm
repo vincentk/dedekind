@@ -1,5 +1,5 @@
 /**
- * @file dedekind.category:mereology
+ * @file dedekind/category/mereology.cppm
  * @partition :mereology
  * @brief Level 0c: Embryonic Mereology (The Language of Parts).
  *

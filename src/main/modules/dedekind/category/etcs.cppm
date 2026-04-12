@@ -1,77 +1,87 @@
 /**
- * @file etcs.cppm
+ * @file dedekind/category/etcs.cppm
  * @partition :etcs
- * @brief Level 0c: Elementary Theory of the Category of Sets (ETCS).
+ * @brief Level 4: Elementary Theory of the Category of Sets (ETCS) facade.
  *
  * @copyright 2026 The Dedekind Authors
- * Licensed under the Apache License, Version 2.0 (the "License");
- * you may not use this file except in compliance with the License.
+ * Licensed under the Apache License, Version 2.0.
  *
- * @section ETCS: The Categorical Axiomatization of Set Theory
+ * @quote
  * "In the mathematical development of recent decades, the notion of
  *  set has not only played a fundamental role, but it has itself
  *  passed through a long process of refinement."
  *  — F. William Lawvere, "An Elementary Theory of the Category of Sets"
  *
  * @details
- * This partition provides the axiomatic foundations of ETCS, allowing
- * the Dedekind Universe to treat "Sets" as objects within a category
- * rather than collections defined by membership (ZF).
+ * This partition lifts topoi-level subobject operations into a focused ETCS
+ * set interface. In this codebase, a "set" is represented as a subobject
+ * classified by a characteristic morphism χ: A → Ω.
  *
- * We utilize the 'Ontology Bridge' (SpeciesTraits) to ensure that
- * primitive types (int, bool, size_t) can be treated as first-class
- * categorical objects without violating their C++ nature.
+ * @section ETCS_Axiom_Mapping Lawvere's 10 Axioms mapped to dedekind
  *
- * @build_order 0
- * @dependency :species, :logic
+ * The following table maps each of the 10 axioms of Lawvere's ETCS to the
+ * corresponding C++23 implementation. Items marked (asp.) are aspirational.
  *
- * Wikipedia: Elementary Theory of the Category of Sets
+ * | ETCS Axiom                    | C++23 Implementation                 | Partition       |
+ * |:------------------------------|:-------------------------------------|:----------------|
+ * | **1. Composition**            | `operator>>` / `IsArrow`             | `:morphism`     |
+ * | **2. Identity**               | `Identity<T>` / `Cat::id_c(x)`       | `:small`        |
+ * | **3. Terminal Object (1)**    | `One` (`std::monostate`)             | `:limit`        |
+ * | **4. Well-Pointedness**       | `s.χ(x) → Ω` (global element eval)   | `:topoi`        |
+ * | **5. Cartesian Product**      | `std::pair` / `IsProduct`            | `:cartesian`    |
+ * | **6. Exponentiation (B^A)**   | `Exponential<A,B>` / `IsExponential` | `:cartesian`    |
+ * | **7. Subobject Classifier**   | `Subobject<A,χ>` / `classify<A>(p)`  | `:topoi`        |
+ * | **8. Empty Set (∅)**          | `Zero` (`std::nullptr_t`)            | `:limit`        |
+ * | **9. NNO (ℕ)**               | `SpeciesTraits<unsigned>`             | `:numeric`      |
+ * | **10. Axiom of Choice**       | `meet`/`join` lattice dispatcher     | `:etcs` (asp.)  |
+ *
+ * @see Lawvere, F.W. (1964) "An Elementary Theory of the Category of Sets"
+ * @see McLarty, C. (1993) "Numbers can be just what they have to"
  */
+
 module;
 
 #include <concepts>
-#include <functional>
+#include <utility>
 
 export module dedekind.category:etcs;
 
-import :morphism;
 import :logic;
-import :species;
+import :morphism;
 import :topoi;
 
 namespace dedekind::category {
 
 /**
  * @concept IsSetObject
- * @brief ETCS-facing alias for a subobject S ↣ A.
+ * @brief A categorical set object represented as a subobject S ↣ A.
  */
 export template <typename S, typename A>
-concept IsSetObject = IsSubobject<S, A>;
+concept IsSetObject = IsSubobject<S, A> && requires {
+  typename S::Ambient;
+  requires std::same_as<typename S::Ambient, A>;
+};
 
 /**
  * @concept HasTernarySupport
- * @brief Subobject with χ: A -> Ω_K3 (Ternary support classifier).
+ * @brief True when a set object's classifier returns ternary truth values.
  */
 export template <typename S>
-concept HasTernarySupport = requires(S s) {
-  typename S::Ambient;
-  requires IsSubobject<S, typename S::Ambient>;
-  requires std::same_as<Cod<decltype(s.χ)>, Ternary>;
-};
+concept HasTernarySupport =
+    IsSubobject<S, typename S::Ambient> &&
+    std::same_as<Cod<decltype(std::declval<S>().χ)>, Ternary>;
 
 /**
  * @concept IsCompatibleSetPair
- * @brief Two subobjects that share ambient species and Ω codomain.
+ * @brief Two set objects over the same ambient species and same Ω codomain.
  */
 export template <typename S1, typename S2>
-concept IsCompatibleSetPair = requires(S1 s1, S2 s2) {
-  typename S1::Ambient;
-  typename S2::Ambient;
-  requires IsSubobject<S1, typename S1::Ambient>;
-  requires IsSubobject<S2, typename S2::Ambient>;
-  requires std::same_as<typename S1::Ambient, typename S2::Ambient>;
-  requires std::same_as<Cod<decltype(s1.χ)>, Cod<decltype(s2.χ)>>;
-};
+concept IsCompatibleSetPair =
+    IsSubobject<S1, typename S1::Ambient> &&
+    IsSubobject<S2, typename S2::Ambient> &&
+    std::same_as<typename S1::Ambient, typename S2::Ambient> &&
+    std::same_as<Cod<decltype(std::declval<S1>().χ)>,
+           Cod<decltype(std::declval<S2>().χ)>>;
 
 /** @brief ETCS intersection: materialize A ∩ B from χ_A ∧ χ_B. */
 export template <typename S1, typename S2>
@@ -113,50 +123,14 @@ constexpr auto join(const S1& lhs, const S2& rhs) {
 
 /**
  * @concept IsSet
- * @brief The Categorical Seal of Set-hood.
- * @details A Set is a Subobject (S ↣ A) that matures into a Small Category.
- * This identifies the set not as a buffer of values, but as a position 
- * within the categorical system of relations.
- /**
- * @section ETCS_Axiom_Mapping The 10 Axioms of ETCS
- * Following the Lawvere-Tierney axiomatisation, the dedekind library maps 
- * the formal requirements of the Category of Sets directly to C++23 structural 
- * invariants. This mapping ensures that the compiler serves as a formal 
- * verification engine for mathematical truth.
+ * @brief Alias concept for set objects represented as subobjects.
  *
- * | ETCS Axiom                     | C++23 Implementation           | Categorical Role              |
- * |:-------------------------------|:-------------------------------|:------------------------------|
- * | **1. Composition**             | `operator>>` / `IsArrow`       | Morphic Associativity         |
- * | **2. Identity**                | `Cat::id_c(x)`                 | Identity Morphism             |
- * | **3. Terminal Object**         | `One` (`std::monostate`)       | Unique Sink (1)               |
- * | **4. Well-Pointedness**        | `IsSet::contains(x) -> Ω`      | Global Elements (1 → X)       |
- * | **5. Cartesian Product**       | `IsProduct` (`std::pair`)      | Product (A × B)               |
- * | **6. Exponentiation**          | `IsExponential` (Lambda NTTP)  | Internal Hom-set (B^A)        |
- * | **7. Equalizers**              | `classify<A>(p)`               | Subobject Classification      |
- * | **8. Empty Set**               | `Zero` (`std::nullptr_t`)      | Initial Object (0)            |
- * | **9. Infinity (NNO)**          | `dedekind.numeric` Grounding   | Natural Numbers Object        |
- * | **10. Axiom of Choice**        | Lattice Dispatcher             | Existential Selection         |
- *
- * @note By anchoring these axioms in Level 0, the subsequent synthesis 
- * of the `dedekind.sets` module inherits a verified, algebraic definition 
- * of Set-hood that enables aggressive structural pruning by the LLVM backend.
+ * @details
+ * IsSet intentionally models set-hood via the existing topoi interface:
+ * a carrier T is a set exactly when it is a valid subobject over its
+ * declared ambient species.
  */
 export template <typename T>
-concept IsSet = 
-  // 1. Every Set is an object in a Small Category (Level 0b)
-  IsCategory<T> && 
-  // 2. Every Set is a Subobject classified by Ω (Level 1)
-  requires(T s) {
-    typename T::Ambient;
-    requires IsSubobject<T, typename T::Ambient>;
-    
-    /**
-     * @section ETCS_Well_Pointedness
-     * Membership is the evaluation of the subobject's characteristic 
-     * morphism χ at a specific point in the ambient species.
-     */
-    { s.contains(std::declval<typename T::Ambient>()) } 
-      -> std::same_as<Cod<decltype(s.χ)>>;
-  };
+concept IsSet = IsSetObject<T, typename T::Ambient>;
 
 }  // namespace dedekind::category
