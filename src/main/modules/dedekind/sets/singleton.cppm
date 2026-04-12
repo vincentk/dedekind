@@ -10,8 +10,8 @@
  *
  * @section The_Singleton_Atom: Mereological Singularity
  * In the Dedekind universe, the Singleton is the "Unit of Presence."
- * It serves as the canonical implementation of a Pointed Set and acts
- * as the 'pure' or 'return' operation (η) for the Set Monad.
+ * It serves as the canonical implementation of a Pointed Set and provides
+ * the concrete singleton constructor used in sets-level monadic workflows.
  *
  * @details
  * This structure bridges Level 0a (Species) and Level 1 (Mereology):
@@ -20,10 +20,15 @@
  * application.
  * - It is a Comonad: It supports the Co-Kleisli Pull (<<=) via extraction (ε).
  *
+ * Category-level η/ε specializations for SingletonSet are currently deferred
+ * while dedekind.sets is being retargeted to the updated hub/spoke interfaces
+ * in dedekind.category.
+ *
  * @section Structural_Role
  * The SingletonSet provides the baseline proof for the Unified Highway Bridge.
- * By defining η and ε here, we allow fmap to be derived automatically
- * for any morphism f: T -> U lifted into the Singleton context.
+ * Its sets-layer operations (constructor, bind, extend) are available now;
+ * category-layer η/ε and derived fmap wiring is intentionally postponed to a
+ * follow-up integration pass.
  *
  * @tparam T The underlying Species of the pivot element.
  * @tparam L The Subobject Classifier (Ω) governing the set's logic.

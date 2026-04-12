@@ -14,10 +14,10 @@ TEST_CASE("Sets: Singleton Final Proof: The Highway",
 
   SECTION("2. The Pull from the Identity (ε)") {
     auto atom = singleton(42);
-    int value = atom.pivot;
+    int value = atom.origin();
 
     REQUIRE(value == 42);
-    static_assert(singleton(7).pivot == 7, "The Round-trip Axiom.");
+    static_assert(singleton(7).origin() == 7, "The Round-trip Axiom.");
   }
 }
 
