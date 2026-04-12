@@ -348,8 +348,9 @@ struct context final {
 
 /**
  * @brief 1-Argument Factory: Bind data to a specific Hub instance.
+ * Creates a @ref context that pairs a functor hub with its data spoke.
  */
-template <typename Hub, typename Spoke>
+export template <typename Hub, typename Spoke>
 constexpr auto immerse(Hub&& h, Spoke&& s) {
   return context<std::decay_t<Hub>, std::decay_t<Spoke>>{
       std::forward<Hub>(h), std::forward<Spoke>(s)};
@@ -532,6 +533,18 @@ static_assert(IsEndofunctor<identity_hub<Set<int>>>,
               "Verification Failed: identity_hub must satisfy IsEndofunctor.");
 
 /**
+ * @brief Type alias for the identity functor on a category.
+ */
+template <typename Cat>
+using identity_functor = identity_hub<Cat>;
+
+/**
+ * @brief Type alias for the Box functor.
+ */
+template <typename T>
+using box_functor = box_hub<T>;
+
+/**
  * @brief The Maybe endofunctor T, implemented via std::optional.
  */
 template <typename T>
@@ -567,24 +580,5 @@ template <typename A, typename F>
 constexpr auto φ(Box<A> const& box, F&& f) -> Box<std::invoke_result_t<F, A>> {
   return {std::invoke(std::forward<F>(f), box.value)};
 }
-
-auto b = Box{42};
-auto h = box_hub<int>{};  // The Instruction Manual
-
-// The "Click": Immerse the matter in the law
-auto fishy_box = immerse(h, b);
-
-// The "Swim": Pipe the data.
-// Note how 'h' is preserved inside the context.
-auto result_box = fishy_box >> [](int x) { return x + 1; };
-
-auto m = std::optional<int>{std::nullopt};
-auto mh = maybe_hub<int>{};
-
-auto fishy_maybe = immerse(mh, m);
-
-// This "Swim" follows the Maybe law: it won't even call the lambda
-// if m is empty, because the Hub's φ handles the short-circuit.
-auto resulb_maybe = fishy_maybe >> [](int x) { return x * 10; };
 
 }  // namespace dedekind::category

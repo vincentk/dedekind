@@ -77,3 +77,45 @@ TEST_CASE("Category: Functor operator>> (Functor composition)",
     CHECK(via_composed(Box<int>{-1}) == via_direct(Box<int>{-1}));
   }
 }
+
+TEST_CASE("Category: Immerse and Fish Examples", "[category][functor][immerse]") {
+  SECTION("Box immerse with lambda application") {
+    auto b = Box{42};
+    auto h = box_hub<int>{};
+    auto fishy_box = immerse(h, b);
+    auto result_box = fishy_box >> [](int x) { return x + 1; };
+
+    CHECK(result_box == Box<int>{43});
+  }
+
+  SECTION("Box immerse preserves identity") {
+    auto b = Box{42};
+    auto h = box_hub<int>{};
+    auto fishy_box = immerse(h, b);
+    auto result_id = fishy_box >> [](int x) { return x; };
+
+    CHECK(result_id == Box<int>{42});
+  }
+
+  SECTION("Maybe immerse with short-circuit on nullopt") {
+    auto m = std::optional<int>{std::nullopt};
+    auto mh = maybe_hub<int>{};
+    auto fishy_maybe = immerse(mh, m);
+
+    // The lambda should never be called due to Hub's short-circuit logic
+    auto result_maybe = fishy_maybe >> [](int x) { return x * 10; };
+
+    CHECK(!result_maybe.has_value());
+  }
+
+  SECTION("Maybe immerse applies function when value present") {
+    auto m = std::optional<int>{5};
+    auto mh = maybe_hub<int>{};
+    auto fishy_maybe = immerse(mh, m);
+
+    auto result_maybe = fishy_maybe >> [](int x) { return x * 10; };
+
+    REQUIRE(result_maybe.has_value());
+    CHECK(result_maybe.value() == 50);
+  }
+}
