@@ -5,6 +5,31 @@ import dedekind.category;
 
 using namespace dedekind::category;
 
+TEST_CASE("ETCS: primitive ambient species can be materialized as sets",
+          "[category][etcs][sets][primitives]") {
+  const auto int_non_negative =
+      ambient_set<int>([](const int& x) { return x >= 0; });
+  const auto uint_even =
+      ambient_set<unsigned>([](const unsigned& x) { return (x % 2u) == 0u; });
+  const auto bool_true = ambient_set<bool>([](const bool& x) { return x; });
+  const auto unit_interval =
+      ambient_set<double>([](const double& x) { return x >= 0.0 && x <= 1.0; });
+
+  STATIC_CHECK(IsSet<decltype(int_non_negative)>);
+  STATIC_CHECK(IsSet<decltype(uint_even)>);
+  STATIC_CHECK(IsSet<decltype(bool_true)>);
+  STATIC_CHECK(IsSet<decltype(unit_interval)>);
+
+  CHECK(int_non_negative.χ(0));
+  CHECK_FALSE(int_non_negative.χ(-1));
+  CHECK(uint_even.χ(2u));
+  CHECK_FALSE(uint_even.χ(3u));
+  CHECK(bool_true.χ(true));
+  CHECK_FALSE(bool_true.χ(false));
+  CHECK(unit_interval.χ(0.5));
+  CHECK_FALSE(unit_interval.χ(-0.1));
+}
+
 TEST_CASE("ETCS: set lattice operations", "[category][etcs][sets]") {
   const auto s_even = classify<int>([](const int& x) { return x % 2 == 0; });
   const auto s_positive = classify<int>([](const int& x) { return x > 0; });

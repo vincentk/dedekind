@@ -1,5 +1,5 @@
 /**
- * @file dedekind.category:monad
+ * @file dedekind/category/monad.cppm
  * @partition :monad
  * @brief Level 2.5: Monads and Comonads (Context as Algebra).
  *

@@ -1,7 +1,7 @@
 /**
  * @file dedekind/category/topoi.cppm
  * @partition :topoi
- * @brief Level 1: The Internal Logic of the Topos.
+ * @brief The Internal Logic of the Topos.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.

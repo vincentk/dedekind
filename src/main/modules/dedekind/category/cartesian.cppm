@@ -1,8 +1,7 @@
 /**
- * @file cartesian.cppm
- * @brief Level 0b: Cartesian Closed Category (CCC) Foundations.
- *
+ * @file dedekind/category/cartesian.cppm
  * @partition :cartesian
+ * @brief Cartesian Closed Category (CCC) Foundations.
  * @section Cartesian: Products, Coproducts, Exponentials, and Terminal Objects
  * This partition defines the structures required for a category to be
  * Cartesian Closed. In the Dedekind universe, this provides the "Product"

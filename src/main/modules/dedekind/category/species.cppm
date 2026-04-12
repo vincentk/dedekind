@@ -1,5 +1,6 @@
 /**
- * @file ontology:species.cppm
+ * @file dedekind/category/species.cppm
+ * @partition :species
  * @brief Level 0a: The Reified Machine (The Taxonomic Bricks).
  *
  * @section The_Taxonomy_of_Species
