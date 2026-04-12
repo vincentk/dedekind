@@ -104,14 +104,17 @@ TEST_CASE("Category: Functor composition", "[category][functor][composition]") {
   }
 }
 
-TEST_CASE("Category: verify_functor_composition",
+TEST_CASE("Category: functor composition type proof",
           "[category][functor][composition-proof]") {
   using IntCat = DiscreteCategory<int>;
   using IdF = identity_functor<IntCat>;
 
-  typename IdF::Σ_cat::Arrow f = id<int>();
-  typename IdF::Σ_cat::Arrow g = id<int>();
+  using Arrow = typename IdF::Σ_cat::Arrow;
+  using Path1 = decltype(std::declval<IdF const&>().φ(std::declval<Arrow>() >>
+                                                      std::declval<Arrow>()));
+  using Path2 = decltype(std::declval<IdF const&>().φ(std::declval<Arrow>()) >>
+                         std::declval<IdF const&>().φ(std::declval<Arrow>()));
 
-  verify_functor_composition<IdF>(f, g);
+  STATIC_CHECK(std::same_as<Path1, Path2>);
   SUCCEED();
 }
