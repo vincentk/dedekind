@@ -13,10 +13,11 @@ namespace dedekind::numbers {
 export template <typename T>
 concept IsReflectiveSpecies = std::regular<T> && requires(T a) {
   { -a } -> std::same_as<T>;
+  { T{} } -> std::same_as<T>;
 };
 
 export template <typename T>
-concept IsInteger = std::signed_integral<T>;
+concept IsInteger = std::signed_integral<T> && IsReflectiveSpecies<T>;
 
 export template <typename T>
 concept IsNaturalNumber = std::unsigned_integral<T>;
@@ -26,25 +27,28 @@ concept IsRationalLike = std::regular<T> && requires(T a, T b) {
   { a + b } -> std::same_as<T>;
   { a * b } -> std::same_as<T>;
   { a / b } -> std::same_as<T>;
+  { a - b } -> std::same_as<T>;
 };
 
 export template <typename T>
 concept IsFieldSpecies = IsRationalLike<T>;
 
 export template <typename Q, typename Z>
-concept IsRational = IsFieldSpecies<Q> && IsInteger<Z>;
+concept IsRational = IsFieldSpecies<Q> && IsInteger<Z> && requires(Q q) {
+  { q } -> std::same_as<Q>;
+};
 
 export template <typename T>
-concept IsRealLike = std::floating_point<T>;
+concept IsRealLike = std::floating_point<T> && IsReflectiveSpecies<T>;
 
 export template <typename T>
 concept IsReal = IsRealLike<T> || IsRationalLike<T>;
 
 export template <typename S>
-concept IsContinuous = std::regular<S>;
+concept IsContinuous = std::regular<S> && !std::integral<S>;
 
 export template <typename S>
-concept IsDiscrete = std::regular<S>;
+concept IsDiscrete = std::regular<S> && std::integral<S>;
 
 export template <typename C, typename R>
 concept IsComplex = requires(C z) {
@@ -53,13 +57,16 @@ concept IsComplex = requires(C z) {
 };
 
 export template <typename M, typename E = M>
-concept Group_ℤ = IsInteger<E>;
+concept Group_ℤ = IsInteger<E> && requires(E a, E b) {
+  { a + b } -> std::same_as<E>;
+  { a - b } -> std::same_as<E>;
+};
 
 export template <typename M, typename E, typename Z>
 concept Field_ℚ = IsRational<E, Z>;
 
 export template <typename M, typename E, typename Q>
-concept Continuum_ℝ = IsReal<E>;
+concept Continuum_ℝ = IsReal<E> && IsContinuous<E>;
 
 export template <typename M, typename E, typename R>
 concept Algebra_ℂ = IsComplex<E, R>;

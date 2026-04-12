@@ -21,5 +21,4 @@ TEST_CASE("Analysis: Dual Numbers and Differentiation", "[numbers][dual]") {
     // f'(3) = 2*x = 6
     REQUIRE(res.derivative() == 6.0);
   }
-
 }

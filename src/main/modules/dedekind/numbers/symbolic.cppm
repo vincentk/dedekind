@@ -12,7 +12,6 @@ export module dedekind.numbers:symbolic;
 import :real;
 import :complex;
 
-
 namespace dedekind::numbers {
 
 export template <typename Q>

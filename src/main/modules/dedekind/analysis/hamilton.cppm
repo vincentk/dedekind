@@ -63,10 +63,14 @@ constexpr R poisson_bracket(auto&& f, auto&& g, const Vector<R, N>& state) {
     return s;
   };
 
-  const R df_dq = (f(bump(0, eps)) - f(bump(0, -eps))) / (static_cast<R>(2) * eps);
-  const R df_dp = (f(bump(1, eps)) - f(bump(1, -eps))) / (static_cast<R>(2) * eps);
-  const R dg_dq = (g(bump(0, eps)) - g(bump(0, -eps))) / (static_cast<R>(2) * eps);
-  const R dg_dp = (g(bump(1, eps)) - g(bump(1, -eps))) / (static_cast<R>(2) * eps);
+  const R df_dq =
+      (f(bump(0, eps)) - f(bump(0, -eps))) / (static_cast<R>(2) * eps);
+  const R df_dp =
+      (f(bump(1, eps)) - f(bump(1, -eps))) / (static_cast<R>(2) * eps);
+  const R dg_dq =
+      (g(bump(0, eps)) - g(bump(0, -eps))) / (static_cast<R>(2) * eps);
+  const R dg_dp =
+      (g(bump(1, eps)) - g(bump(1, -eps))) / (static_cast<R>(2) * eps);
 
   return (df_dq * dg_dp) - (df_dp * dg_dq);
 }

@@ -1,7 +1,8 @@
 /**
  * @file ontology:morphologies.cppm
  * @partition :archimedean
- * @brief Level 3.5b: Convergence morphology stubs for experimental reintegration.
+ * @brief Level 3.5b: Convergence morphology stubs for experimental
+ * reintegration.
  */
 module;
 
@@ -19,19 +20,27 @@ export template <typename T>
 concept IsCyclic = requires {
   typename T::Domain;
   { T::generator() } -> std::same_as<typename T::Domain>;
+} && requires(typename T::Domain a) {
+  { T::successor(a) } -> std::same_as<typename T::Domain>;
 };
 
 export template <typename T>
-concept IsSimplyInfinite = IsCyclic<T>;
+concept IsSimplyInfinite =
+    IsCyclic<T> && requires { typename T::cardinality_type; };
 
 export template <typename T>
-concept IsCyclicRing = IsCyclic<T>;
+concept IsCyclicRing = IsCyclic<T> && requires(T a, T b) {
+  { a + b } -> std::same_as<T>;
+  { a * b } -> std::same_as<T>;
+};
 
 export template <typename T>
 concept IsOrderedField = std::regular<T> && std::totally_ordered<T>;
 
 export template <typename T>
-concept IsArchimedeanField = IsOrderedField<T>;
+concept IsArchimedeanField = IsOrderedField<T> && requires(T a) {
+  { a + T{1} } -> std::same_as<T>;
+};
 
 export template <typename T>
 concept IsDedekindCompleteField = IsArchimedeanField<T>;

@@ -30,8 +30,7 @@ class Dual {
  public:
   using value_type = F;
 
-  constexpr Dual(F val, F der = F{})
-      : val_(val), der_(der) {}
+  constexpr Dual(F val, F der = F{}) : val_(val), der_(der) {}
 
   constexpr F value() const { return val_; }
   constexpr F derivative() const { return der_; }

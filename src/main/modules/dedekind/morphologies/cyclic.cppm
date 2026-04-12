@@ -41,13 +41,4 @@ class CyclicRing {
   T value_;
 };
 
-export template <typename T>
-concept IsCyclic = requires {
-  typename T::Domain;
-  { T::generator() } -> std::same_as<typename T::Domain>;
-};
-
-export template <typename T>
-concept IsCyclicRing = IsCyclic<T>;
-
 }  // namespace dedekind::morphologies

@@ -27,8 +27,7 @@ class Rational {
 
   /** @section The_Simplification_Morphism */
   constexpr void simplify() {
-    if (den_ == Z{0})
-      throw std::domain_error("Rational: Division by zero.");
+    if (den_ == Z{0}) throw std::domain_error("Rational: Division by zero.");
 
     Z common = std::gcd(num_, den_);
     num_ = num_ / common;

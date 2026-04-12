@@ -31,11 +31,10 @@ namespace dedekind::geometry {
  *          to a scalar field S, which must be an Ordered Field (the ruler).
  */
 export template <typename T, typename S>
-concept IsMetricSpace =
-    requires(const T a, const T b) {
-      // The Distance Morphism: d(a, b)
-      { distance(a, b) } -> std::same_as<S>;
-    };
+concept IsMetricSpace = requires(const T a, const T b) {
+  // The Distance Morphism: d(a, b)
+  { distance(a, b) } -> std::same_as<S>;
+};
 
 /**
  * @concept IsEuclideanSpace
@@ -44,10 +43,9 @@ concept IsMetricSpace =
  *          In the mirror, this is the "flat" geometry of R^n.
  */
 export template <typename V, typename S>
-concept IsEuclideanSpace =
-    IsMetricSpace<V, S> && requires(const V v) {
-      // The Norm (Magnitude) of a single vector.
-      { norm(v) } -> std::same_as<S>;
-    };
+concept IsEuclideanSpace = IsMetricSpace<V, S> && requires(const V v) {
+  // The Norm (Magnitude) of a single vector.
+  { norm(v) } -> std::same_as<S>;
+};
 
 }  // namespace dedekind::geometry

@@ -49,7 +49,7 @@ concept IsPreOrdered =
  */
 export template <typename D, typename L = ClassicalLogic>
 concept IsDirectedSet =
-  IsPreOrdered<D, L> && dedekind::sets::IsJoinSemilattice<D>;
+    IsPreOrdered<D, L> && dedekind::sets::IsJoinSemilattice<D>;
 
 /**
  * @concept IsPartiallyOrdered
@@ -93,12 +93,13 @@ concept IsLinearOrder = IsTotallyOrdered<T>;
  * @brief The algebraic S: T -> T mapping via the Unit element.
  */
 export template <typename T>
-concept IsSuccessor =
-    IsMagmoid<T, std::plus<T>> && IsPointed<T, std::multiplies<T>> &&
-    requires(const T x) {
-      // The Successor Morphism: S(x) = x + 1
-      { x + identity_v<T, std::multiplies<T>> } -> std::same_as<T>;
-    };
+concept IsSuccessor = IsMagmoid<T, std::plus<T>> &&
+                      IsPointed<T, std::multiplies<T>> && requires(const T x) {
+                        // The Successor Morphism: S(x) = x + 1
+                        {
+                          x + identity_v<T, std::multiplies<T>>
+                        } -> std::same_as<T>;
+                      };
 
 /**
  * @concept IsArchimedean

@@ -91,21 +91,17 @@ concept IsConvex = is_convex_v<S>;
  * dependency on the Algebra module's Magma.
  */
 export template <typename S>
-concept IsConvexMagmoid =
-    IsConvex<S> && requires(S a, S b) {
-      { a & b } -> std::same_as<S>;
-    };
+concept IsConvexMagmoid = IsConvex<S> && requires(S a, S b) {
+  { a & b } -> std::same_as<S>;
+};
 
 /**
  * @concept IsHalfSpace
  * @brief A Convex Set defined by a single "Naked" boundary (Ray).
  */
 export template <typename S>
-concept IsHalfSpace = IsConvex<S> && requires {
-  typename S::is_ray_tag;
-} && requires(S s) {
-  s.pivot();
-};
+concept IsHalfSpace = IsConvex<S> && requires { typename S::is_ray_tag; } &&
+                      requires(S s) { s.pivot(); };
 
 /**
  * @concept IsRay

@@ -11,7 +11,6 @@ TEST_CASE("Numbers: Rational Simplification", "[numbers][rational]") {
     REQUIRE(q.num() == 2);
     REQUIRE(q.den() == 3);
   }
-
 }
 
 TEST_CASE("Numbers: The Rational Field", "[numbers][field]") {
