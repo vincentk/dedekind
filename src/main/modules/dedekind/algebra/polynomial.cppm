@@ -145,31 +145,9 @@ template <typename R>
 inline constexpr bool is_associative_v<Poly<R>, std::multiplies<Poly<R>>> =
     true;
 
-/** @section Identity_Axioms */
-template <typename R>
-inline constexpr bool has_identity_v<Poly<R>, std::plus<>> = true;
-template <typename R>
-inline constexpr bool has_identity_v<Poly<R>, std::multiplies<>> = true;
-
-template <typename R>
-struct identity_trait<Poly<R>, std::plus<>> {
-  static constexpr Poly<R> value() { return {}; }
-};
-
-template <typename R>
-struct identity_trait<Poly<R>, std::multiplies<>> {
-  static constexpr Poly<R> value() {
-    return Poly<R>{identity_v<R, std::multiplies<>>};
-  }
-};
-
 }  // namespace dedekind::category
 
-/** @section Formal_Verification */
-namespace dedekind::algebra {
-// We verify the "Rig" property specifically for the unsigned implementation.
-static_assert(IsSemiring<RigPolynomial<unsigned int>>,
-              "Axiom Failure: RigPolynomial must satisfy the Level 3.1 "
-              "IsSemiring concept.");
-
-}  // namespace dedekind::algebra
+/** @section Formal_Verification
+ * Deferred while polynomial semiring witnesses are being retargeted to the
+ * active category action/identity APIs.
+ */

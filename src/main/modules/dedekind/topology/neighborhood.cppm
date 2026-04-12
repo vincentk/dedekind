@@ -51,14 +51,16 @@ using namespace dedekind::order;
  * @note Arity: Updated to structuralist 1-arg IsSet.
  */
 export template <typename S>
-concept IsOpen = IsSet<S> && requires { typename S::is_open_tag; };
+concept IsOpen =
+    dedekind::category::IsPredicate<S> && requires { typename S::is_open_tag; };
 
 /**
  * @concept IsClosed
  * @brief A set that contains all its limit points.
  */
 export template <typename S>
-concept IsClosed = IsSet<S> && requires { typename S::is_closed_tag; };
+concept IsClosed = dedekind::category::IsPredicate<S> &&
+                   requires { typename S::is_closed_tag; };
 
 /**
  * @concept IsNeighborhood
@@ -66,8 +68,8 @@ concept IsClosed = IsSet<S> && requires { typename S::is_closed_tag; };
  * @details Synthesized from the Open set morphology.
  */
 export template <typename N, typename T>
-concept IsNeighborhood = IsSet<N> && IsOpen<N> && requires(N n, T p) {
-  { n.contains(p) } -> std::same_as<bool>;
+concept IsNeighborhood = IsOpen<N> && requires(N n, T p) {
+  { n(p) } -> LogicalValue;
 };
 
 /**
@@ -82,7 +84,7 @@ inline constexpr bool is_convex_v = false;
  * @brief A Set that satisfies the convexity theorem (no holes).
  */
 export template <typename S>
-concept IsConvex = IsSet<S> && is_convex_v<S>;
+concept IsConvex = dedekind::category::IsPredicate<S> && is_convex_v<S>;
 
 /**
  * @concept IsConvexMagmoid
@@ -91,25 +93,24 @@ concept IsConvex = IsSet<S> && is_convex_v<S>;
  * dependency on the Algebra module's Magma.
  */
 export template <typename S>
-concept IsConvexMagmoid =
-    dedekind::category::IsMagmoid<S, std::bit_and<S>> && IsConvex<S>;
+concept IsConvexMagmoid = IsConvex<S> && requires(S a, S b) {
+  { a & b } -> std::same_as<S>;
+};
 
 /**
  * @concept IsHalfSpace
  * @brief A Convex Set defined by a single "Naked" boundary (Ray).
  */
 export template <typename S>
-concept IsHalfSpace = IsConvex<S> && requires {
-  typename S::is_ray_tag;
-  S::bound;
-};
+concept IsHalfSpace = IsConvex<S> && requires { typename S::is_ray_tag; } &&
+                      requires(S s) { s.pivot(); };
 
 /**
  * @concept IsRay
  * @brief A set representing all points greater than (or less than) a pivot.
  */
 export template <typename R, typename T>
-concept IsRay = IsSet<R> && IsTotallyOrdered<T> && requires(T pivot) {
+concept IsRay = IsTotallyOrdered<T> && requires(T pivot) {
   { R::upward_from(pivot) } -> std::same_as<R>;
   { R::downward_from(pivot) } -> std::same_as<R>;
 };

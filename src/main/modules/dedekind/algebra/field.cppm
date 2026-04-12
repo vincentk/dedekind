@@ -100,14 +100,16 @@ concept IsScalableBy = requires(T x, N n) {
 
 // If T is a Ring, then '*' is legally defined.
 template <typename T>
-  requires IsSmallCategory<T, std::multiplies<T>>
+  requires requires(T a, T b) {
+    { std::multiplies<T>{}(a, b) } -> std::same_as<T>;
+  }
 constexpr T operator*(T a, T b) {
   return std::multiplies<T>{}(a, b);
 }
 
 // If T is a Boolean species, then '|' is a Categorical Join (Union).
 template <typename T>
-  requires IsAbelian<T, std::logical_or<T>>
+  requires IsCommutative<T, std::logical_or<T>>
 constexpr T operator|(T a, T b) {
   return std::logical_or<T>{}(a, b);
 }

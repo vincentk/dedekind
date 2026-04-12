@@ -1,3 +1,6 @@
+module;
+#include <concepts>
+
 /**
  * @file dedekind/numbers/symbolic.cppm
  * @partition :symbolic
@@ -8,21 +11,16 @@ export module dedekind.numbers:symbolic;
 
 import :real;
 import :complex;
-import dedekind.sets; // For expressions, var, %
+import dedekind.sets;
 
 namespace dedekind::numbers {
-
 using namespace dedekind::sets;
 
-/**
- * @section Symbolic_Set_Construction
- * We use the 'x % S | predicate' syntax to define the cuts.
- */
 export template <typename Q>
 constexpr auto Sqrt2_Symbolic() {
-  auto x = var<Q>;
-  // { x ∈ Q | x < 0 ∨ x² < 2 }
-  return DedekindCut<Q>{x % Ω<Q>{} | (x < 0.0 || (x * x < 2.0))};
+  auto x = var<Ω<Q>>;
+  // Lower Dedekind cut prototype: { q in Q | q^2 < 2 }.
+  return Set{x % Ω<Q>{} | [](const Q& q) { return q * q < static_cast<Q>(2); }};
 }
 
 /** @section Transcendental_Anchors */
@@ -39,19 +37,11 @@ inline constexpr bool is_transcendental_v = false;
  * @details { x ∈ ℝ | x is not a root of any rational polynomial }.
  */
 export template <typename R>
-  requires IsField<R>
+  requires std::regular<R>
 constexpr auto TranscendentalSet() {
-  // We bind the symbolic scout to the Universal Set of the Real Species.
-  auto x = var<R>;
-
-  /**
-   * @section The_Symbolic_Predicate
-   * We map the species-level trait into a set-level comprehension.
-   */
-  return x % Ω<R>{} | [](const R& val) {
-    // In Level 9, this resolves via trait discovery.
-    return is_transcendental_v<R>;
-  };
+  auto x = var<Ω<R>>;
+  return Set{x % Ω<R>{} |
+             [](const R&) constexpr { return is_transcendental_v<R>; }};
 }
 
 }  // namespace dedekind::numbers

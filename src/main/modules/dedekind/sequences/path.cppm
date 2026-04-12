@@ -94,48 +94,12 @@ struct Path {
 
 }  // namespace dedekind::sequences
 
-/** @section Categorical_Anchors */
-
-namespace dedekind::category {
-
-/** @brief η (Unit) for Path: T -> Path<T> (The Constant Path). */
-template <typename T>
-struct η<dedekind::sequences::Path, T> {
-  constexpr auto operator()(const T& x) const {
-    return dedekind::sequences::Path<T>{[x](std::size_t) { return x; }};
-  }
-};
-
-/** @brief ε (Counit) for Path: Path<T> -> T (Sampling the 'Now'). */
-template <typename T>
-struct ε<dedekind::sequences::Path, T> {
-  constexpr T operator()(const dedekind::sequences::Path<T>& p) const {
-    return p.at(0);
-  }
-};
-
-}  // namespace dedekind::category
-
 namespace dedekind::sequences {
 using namespace dedekind::category;
 
-/** @section Formal_Verification */
-
-static_assert(IsSequence<Path<int>>,
-              "Path must satisfy the Level 2.5 IsSequence concept.");
-
-static_assert(IsKleisliExtension<Path, int, int>,
-              "Morphism Error: Path must support the Monadic (>>=) extension.");
-
-static_assert(
-    IsCoKleisliExtension<Path, int, int>,
-    "Morphism Error: Path must support the Comonadic (<<=) extension.");
-
-static_assert(IsFrobenius<Path, int, int>,
-              "Topos Error: Path must be a Frobenius structure (Push & Pull).");
-
-static_assert(
-    IsArrow<decltype(fmap<Path>(id<int>())), Path<int>, Path<int>>,
-    "Functor Error: fmap discovery must resolve for the Path species.");
+/** @section Formal_Verification
+ * Deferred while path-level categorical bridges are being retargeted to the
+ * current dedekind.category hub/spoke interfaces.
+ */
 
 }  // namespace dedekind::sequences

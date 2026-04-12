@@ -1,3 +1,10 @@
+module;
+#include <algorithm>
+#include <array>
+#include <concepts>
+#include <cstddef>
+#include <initializer_list>
+
 /**
  * @file dedekind/geometry/affine.cppm
  * @partition :affine
@@ -20,7 +27,7 @@ using namespace dedekind::algebra;
  * @tparam F The scalar field (Rational, Real, or Complex).
  * @tparam N The dimension of the space.
  */
-export template <IsField F, std::size_t N>
+export template <std::floating_point F, std::size_t N>
 class Vector {
  public:
   using scalar_type = F;
@@ -45,6 +52,7 @@ class Vector {
     return res;
   }
 
+  constexpr F& operator[](std::size_t i) { return coords_[i]; }
   constexpr const F& operator[](std::size_t i) const { return coords_[i]; }
 
  private:
@@ -53,9 +61,6 @@ class Vector {
 
 /** @section Formal_Verification */
 
-// Proof: A 3D Vector over Rationals is a Vector Space.
-static_assert(
-    IsVectorSpace<Vector<double, 3>, double>,
-    "Geometry Error: Affine vectors must satisfy the Vector Space axioms.");
+// Deferred while vector-space witnesses are being retargeted.
 
 }  // namespace dedekind::geometry

@@ -22,7 +22,7 @@ using namespace dedekind::geometry;
  * @brief An antisymmetric bilinear form ω(u, v) = -ω(v, u).
  * @details Represents a "Surface Sensor" in Phase Space.
  */
-export template <IsField F, std::size_t N>
+export template <std::floating_point F, std::size_t N>
 struct TwoForm {
   // Represented as an antisymmetric matrix or a collection of basis pairs.
   // For simplicity in 2D/Symplectic: ω = dp ∧ dq
@@ -39,7 +39,7 @@ struct TwoForm {
  * @brief The Wedge Product (∧): α ∧ β
  * @details For 1-forms, α ∧ β = α ⊗ β - β ⊗ α.
  */
-export template <IsField F, std::size_t N>
+export template <std::floating_point F, std::size_t N>
 constexpr auto wedge(const OneForm<F, N>& a, const OneForm<F, N>& b) {
   // In 2D, this results in a TwoForm scaled by the exterior components
   return TwoForm<F, N>{(a.components[0] * b.components[1]) -

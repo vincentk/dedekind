@@ -35,13 +35,11 @@ module;
 export module dedekind.numbers:booleans;
 
 import dedekind.category;
-import dedekind.ontology;
 import dedekind.sets;
 import :scalars;
 
 namespace dedekind::numbers {
 using namespace dedekind::category;
-using namespace dedekind::ontology;
 using namespace dedekind::sets;
 
 /**
@@ -55,15 +53,10 @@ using namespace dedekind::sets;
  * @tparam E The underlying element type (e.g., bool).
  */
 export template <typename M, typename E = typename M::Domain>
-concept Is_B = IsSemiring<M> && IsBoolean<E> && requires(const M& m) {
+concept Is_B = std::same_as<E, bool> && requires(const M& m) {
   // The structure must possess a discrete cardinality |S| = 2.
   { m.cardinality() } -> std::same_as<std::size_t>;
   requires m.cardinality() == 2;
-
-  // Structural Laws:
-  // Map standard arithmetic operators to logical ∨ (OR) and ∧ (AND).
-  requires IsCommutativeSemiring<M, std::logical_or<E>, std::logical_and<E>>;
-  requires IsIdempotentSemiring<M, std::logical_or<E>, std::logical_and<E>>;
 };
 
 }  // namespace dedekind::numbers

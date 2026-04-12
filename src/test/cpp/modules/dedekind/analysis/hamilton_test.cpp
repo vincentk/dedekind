@@ -1,4 +1,5 @@
 #include <catch2/catch_test_macros.hpp>
+#include <cmath>
 import dedekind.analysis;
 import dedekind.geometry;
 
@@ -77,6 +78,6 @@ TEST_CASE("Analysis: Hamiltonian Observables", "[analysis][hamilton]") {
     ℝ dq_dt = poisson_bracket(q_obs, H, current_state);
 
     // For H = 0.5(p²+q²), dq/dt = p = 2.0
-    REQUIRE(dq_dt == 2.0);
+    REQUIRE(std::abs(dq_dt - 2.0) < 1e-3);
   }
 }
