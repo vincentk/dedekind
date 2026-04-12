@@ -6,6 +6,19 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
+ * @section Small: Categories with Set-Sized Morphisms
+ * A Small Category is defined by the property that its collections of objects
+ * and morphisms are Sets (not Classes). In the context of C++23, "Smallness"
+ * is a pragmatic guarantee: any category reifiable within the type system is
+ * inherently Small, as its inhabitants are bounded by the translation unit's
+ * finite universe of types.
+ *
+ * @details Defines a single-species category as a small category containing
+ * exactly one object type. In this setting, all morphisms are endomorphisms,
+ * causing the category to behave as a monoid where composition is the binary
+ * operation. This provides a focused foundation for species-specific logic
+ * within the C++ type system.
+ *
  * @quote
  * "Il linguaggio delle categorie è affettuosamente noto come 'nonsense
  * astratto'. Questo termine è essenzialmente accurato: le categorie si
@@ -16,12 +29,6 @@
  * are all about the "structure," and not about the "meaning," of what they
  * represent.) — Paolo Aluffi, Algebra: Chapter 0
  *
- * @section Small: Categories with Set-Sized Morphisms
- * A Small Category is defined by the property that its collections of objects
- * and morphisms are Sets (not Classes). In the context of C++23, "Smallness"
- * is a pragmatic guarantee: any category reifiable within the type system is
- * inherently Small, as its inhabitants are bounded by the translation unit's
- * finite universe of types.
  */
 
 module;
@@ -139,7 +146,11 @@ concept IsCategory = requires {
    * This is a strict requirement of the concept.
    */
   requires requires(typename Cat::Arrow f, typename Cat::Arrow g) {
-    { f >> g } -> std::same_as<typename Cat::Arrow>;
+    { f >> g } -> IsArrow;
+    requires std::same_as<typename decltype(f >> g)::Domain,
+                          typename Cat::Arrow::Domain>;
+    requires std::same_as<typename decltype(f >> g)::Codomain,
+                          typename Cat::Arrow::Codomain>;
   };
 
   /**
@@ -172,5 +183,37 @@ export template <typename T>
 constexpr auto operator>>(Identity<T> i, Identity<T>) {
   return i;
 }
+
+/**
+ * @brief An arrow that is just a label.
+ */
+struct StringArrow {
+  std::string label;
+  int domain_id;    // The "Object" it starts from
+  int codomain_id;  // The "Object" it ends at
+
+  using Domain = int;
+  using Codomain = int;
+
+  // Composition is just string concatenation
+  friend constexpr StringArrow operator>>(const StringArrow& f,
+                                          const StringArrow& g) {
+    return {f.label + " then " + g.label, f.domain_id, g.codomain_id};
+  }
+
+  // To satisfy IsArrow, it must be "invocable" in some sense
+  constexpr int operator()(int x) const { return x; }
+};
+
+/**
+ * @brief The Category of Labels.
+ */
+struct StringCategory {
+  using Species = int;
+  using Arrow = StringArrow;
+  using Id = StringArrow;
+
+  static constexpr Id id_c(int x) { return {"id", x, x}; }
+};
 
 }  // namespace dedekind::category

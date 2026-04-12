@@ -12,18 +12,17 @@ TEST_CASE("Category: Functor Concepts", "[category][functor]") {
   STATIC_CHECK(IsFunctor<identity_functor<IntCat>>);
   STATIC_CHECK(IsEndofunctor<identity_functor<IntCat>>);
   STATIC_CHECK(IsFunctor<box_functor<int>>);
-  STATIC_CHECK(IsHubArrow<identity_functor<IntCat>>);
-  STATIC_CHECK(IsHubArrow<box_functor<int>>);
+  STATIC_CHECK(IsFunctor<maybe_functor<int>>);
+  STATIC_CHECK(IsFunctor<trace_functor<int>>);
   STATIC_CHECK(IsSpokeArrow<decltype(plus_one)>);
 }
 
-TEST_CASE("Category: Functor operator>> (Functor then Arrow)",
-          "[category][functor][operator-shift]") {
+TEST_CASE("Category: Functor hub action", "[category][functor][hub-action]") {
   SECTION("Identity functor preserves arrow behavior") {
     identity_functor<DiscreteCategory<int>> idf;
     auto plus_one = arrow([](int x) { return x + 1; });
 
-    auto lifted = idf >> plus_one;
+    auto lifted = idf.φ(plus_one);
 
     STATIC_CHECK(IsArrow<decltype(lifted)>);
     CHECK(lifted(41) == 42);
@@ -34,46 +33,88 @@ TEST_CASE("Category: Functor operator>> (Functor then Arrow)",
     box_functor<int> boxf;
     auto plus_one = arrow([](int x) { return x + 1; });
 
-    auto lifted = boxf >> plus_one;
+    auto lifted = boxf.φ(plus_one);
 
     STATIC_CHECK(IsArrow<decltype(lifted)>);
     CHECK(lifted(Box<int>{41}) == Box<int>{42});
     CHECK(lifted(Box<int>{-2}) == Box<int>{-1});
   }
 
-  SECTION("Box functor identity case maps to boxed identity") {
-    box_functor<int> boxf;
-    auto id_int = id<int>();
+  SECTION("Maybe functor short-circuits empty inputs") {
+    maybe_functor<int> maybef;
+    auto plus_one = arrow([](int x) { return x + 1; });
 
-    auto lifted_id = boxf >> id_int;
+    auto lifted = maybef.φ(plus_one);
 
-    CHECK(lifted_id(Box<int>{7}) == Box<int>{7});
-    CHECK(lifted_id(Box<int>{0}) == Box<int>{0});
+    STATIC_CHECK(IsArrow<decltype(lifted)>);
+    CHECK(lifted(std::optional<int>{41}) == std::optional<int>{42});
+    CHECK(lifted(std::optional<int>{}) == std::nullopt);
+  }
+
+  SECTION("Trace functor lifts into StringCategory") {
+    trace_functor<int> tracef;
+    auto plus_one = arrow([](int x) { return x + 1; });
+
+    auto lifted = tracef.φ(plus_one);
+
+    STATIC_CHECK(IsArrow<decltype(lifted)>);
+    CHECK(lifted.label == "lifted");
+    CHECK(lifted.domain_id == 0);
+    CHECK(lifted.codomain_id == 0);
   }
 }
 
-TEST_CASE("Category: Functor operator>> (Functor composition)",
-          "[category][functor][operator-shift]") {
-  identity_functor<DiscreteCategory<int>> idf;
-  box_functor<int> boxf;
+TEST_CASE("Category: Functor composition", "[category][functor][composition]") {
+  using IntCat = DiscreteCategory<int>;
+  using IdF = identity_functor<IntCat>;
+
   auto plus_one = arrow([](int x) { return x + 1; });
-  auto composed = idf >> boxf;
+  composite_functor<IdF, IdF> composed{};
 
-  STATIC_CHECK(IsFunctor<decltype(composed)>);
-
-  SECTION("Composed functor carries source and target category handles") {
-    static_assert(std::same_as<typename decltype(composed)::Σ_cat,
-                               DiscreteCategory<int>>);
-    static_assert(std::same_as<typename decltype(composed)::Τ_cat,
-                               DiscreteCategory<Box<int>>>);
+  SECTION("Composed functor keeps category handles") {
+    static_assert(IsFunctor<decltype(composed)>);
+    static_assert(std::same_as<typename decltype(composed)::Σ_cat, IntCat>);
+    static_assert(std::same_as<typename decltype(composed)::Τ_cat, IntCat>);
     SUCCEED();
   }
 
-  SECTION("Composed functor action matches direct application") {
-    auto via_composed = composed >> plus_one;
-    auto via_direct = boxf >> plus_one;
+  SECTION("Composed object mapping matches direct application") {
+    auto mapped = composed(IntCat{});
 
-    CHECK(via_composed(Box<int>{9}) == via_direct(Box<int>{9}));
-    CHECK(via_composed(Box<int>{-1}) == via_direct(Box<int>{-1}));
+    STATIC_CHECK(std::same_as<decltype(mapped), IntCat>);
+    SUCCEED();
   }
+
+  SECTION("Composed action matches direct application") {
+    auto via_composed = composed.φ(plus_one);
+    auto via_direct = IdF{}.φ(plus_one);
+
+    CHECK(via_composed(9) == via_direct(9));
+    CHECK(via_composed(-1) == via_direct(-1));
+  }
+
+  SECTION("Fish composition instantiates to a functor") {
+    auto downstream = IdF{} >> IdF{};
+    auto upstream = IdF{} << IdF{};
+
+    STATIC_CHECK(IsFunctor<decltype(downstream)>);
+    STATIC_CHECK(IsFunctor<decltype(upstream)>);
+    CHECK(downstream.φ(plus_one)(9) == 10);
+    CHECK(upstream.φ(plus_one)(9) == 10);
+  }
+}
+
+TEST_CASE("Category: functor composition type proof",
+          "[category][functor][composition-proof]") {
+  using IntCat = DiscreteCategory<int>;
+  using IdF = identity_functor<IntCat>;
+
+  using Arrow = typename IdF::Σ_cat::Arrow;
+  using Path1 = decltype(std::declval<IdF const&>().φ(std::declval<Arrow>() >>
+                                                      std::declval<Arrow>()));
+  using Path2 = decltype(std::declval<IdF const&>().φ(std::declval<Arrow>()) >>
+                         std::declval<IdF const&>().φ(std::declval<Arrow>()));
+
+  STATIC_CHECK(std::same_as<Path1, Path2>);
+  SUCCEED();
 }

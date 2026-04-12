@@ -21,6 +21,61 @@ import :natural;
 namespace dedekind::category {
 
 /**
+ * @section Monadic_and_Comonadic_Components
+ *
+ * The concrete implementations of η (Unit), μ (Multiplication), ε (Counit),
+ * and δ (Comultiplication) are defined in the :natural partition for each
+ * supported monad/comonad type (e.g., η for Maybe, Identity, Box). These
+ * are specific overloads, not generic template-template helpers.
+ *
+ * This design leverages the hub-spoke architectural pattern established in
+ * the :functor partition, avoiding C++ limitations with template-template
+ * parameter overloading and maintaining clean partition boundaries.
+ *
+ * Textbook alignment:
+ * - η (eta): unit/pure      [defined in :natural]
+ * - μ (mu):  multiplication [defined in :natural]
+ * - ε (epsilon): counit     [defined in :natural]
+ * - δ (delta): comultiplication [defined in :natural]
+ */
+
+/**
+ * @brief Value-level alias for η (eta) with explicit hub tag dispatch.
+ * @details Example: pure(maybe_hub, x), pure(identity_hub, x), pure(box_hub,
+ * x).
+ */
+export template <typename HubTag, typename A>
+  requires IsDefaultHubTag<HubTag> &&
+           requires(HubTag tag, A&& v) { η(tag, std::forward<A>(v)); }
+constexpr auto pure(HubTag tag, A&& value) {
+  return η(tag, std::forward<A>(value));
+}
+
+/** @brief Value-level alias for μ (mu) with explicit hub tag dispatch. */
+export template <typename HubTag, typename MMA>
+  requires IsDefaultHubTag<HubTag> &&
+           requires(HubTag tag, MMA const& mma) { μ(tag, mma); }
+constexpr auto join(HubTag tag, MMA const& mma) {
+  return μ(tag, mma);
+}
+
+/** @brief Value-level alias for ε (epsilon) with explicit hub tag dispatch. */
+export template <typename HubTag, typename WA>
+  requires IsDefaultHubTag<HubTag> &&
+           requires(HubTag tag, WA const& wa) { ε(tag, wa); }
+constexpr auto extract(HubTag tag, WA const& wa) {
+  return ε(tag, wa);
+}
+
+/** @brief Value-level alias for δ (delta) with explicit hub tag dispatch. */
+export template <typename HubTag, typename WA>
+  requires IsDefaultHubTag<HubTag> &&
+           requires(HubTag tag, WA const& wa) { δ(tag, wa); }
+constexpr auto duplicate(HubTag tag, WA const& wa) {
+  return δ(tag, wa);
+}
+
+/**
  * @section Monad_as_Monoid (Explicit Definition)
  * We bridge the gap:
  *   η (Unit)           <--> identity_v (Monoid Unit)
@@ -32,6 +87,12 @@ namespace dedekind::category {
  *          endofunctor context by lifting the identity spoke `id_c(c)`. This
  *          is how the type system recovers the object witnesses `T(c)` and
  *          `T(T(c))` needed for η and μ.
+ *
+ * Textbook note: this concept intentionally requires `T` to satisfy
+ * @ref IsEndofunctor. Therefore, a functor that changes the ambient category
+ * (for example `Set<T> -> Set<std::optional<T>>`) is not admitted as an
+ * `IsMonad` witness in this formalization, even if value-level `η/μ/κ`
+ * behavior exists for its carrier.
  */
 export template <typename T, typename η_t, typename μ_t>
 concept IsMonad =
@@ -45,10 +106,10 @@ concept IsMonad =
       // `c` is the object label. The corresponding object in T and T² is
       // recovered by functorially lifting the identity spoke on c.
       // 1. Associativity Law: μ ∘ T(μ) == μ ∘ μ(T)
-      { T{}.fmap(μ(c)) >> μ(c) } -> std::same_as<decltype(μ(c) >> μ(c))>;
+      { T{}.φ(μ(c)) >> μ(c) } -> std::same_as<decltype(μ(c) >> μ(c))>;
 
       // 2. Left Unit Law: μ ∘ T(η) == id_T
-      { T{}.fmap(η(c)) >> μ(c) } -> std::same_as<typename T::Τ_cat::Id>;
+      { T{}.φ(η(c)) >> μ(c) } -> std::same_as<typename T::Τ_cat::Id>;
 
       // 3. Right Unit Law: μ ∘ η_T == id_T
       { η(c) >> μ(c) } -> std::same_as<typename T::Τ_cat::Id>;
@@ -88,11 +149,11 @@ concept IsComonad =
     requires(ε_t ε, δ_t δ, typename W::Σ_cat::Arrow::Domain w_obj) {
       // 1. Coassociativity Law: W(δ) ∘ δ == δ_W ∘ δ
       {
-        δ(w_obj) >> W{}.fmap(δ(w_obj))
+        δ(w_obj) >> W{}.φ(δ(w_obj))
       } -> std::same_as<decltype(δ(w_obj) >> δ(w_obj))>;
 
       // 2. Left Counit Law: W(ε) ∘ δ == id_W
-      { δ(w_obj) >> W{}.fmap(ε(w_obj)) } -> std::same_as<typename W::Σ_cat::Id>;
+      { δ(w_obj) >> W{}.φ(ε(w_obj)) } -> std::same_as<typename W::Σ_cat::Id>;
 
       // 3. Right Counit Law: ε_W ∘ δ == id_W
       // We move across the duplication, then extract using the component at the
@@ -121,7 +182,7 @@ constexpr auto operator>>(T&& val, η_tag<η_t>) {
   return η_t{}(val)(std::forward<T>(val));
 }
 
-// 2. Join: T<T<X>> >> join<T, μ_t>
+// 2. Join: T<T<X>> >> μ_tag<T, μ_t>
 // μ_t is the natural transformation T^2 => T, indexed by
 // typename T::Σ_cat::Arrow::Domain. NestedContext must be convertible to
 // that domain type for the component selection to be valid (e.g., for the

@@ -350,4 +350,78 @@ concept IsCartesianClosed = IsCategory<Cat> && requires {
       decltype(B)>;
 };
 
+/**
+ * @brief The Identity morphism for the category Set.
+ */
+template <typename T>
+struct SetId final {
+  using Domain = T;
+  using Codomain = T;
+
+  T species;
+
+  constexpr T operator()(const T& x) const { return x; }
+
+  /**
+   * @brief The explicit bridge to the Category's Arrow type.
+   * This satisfies the std::convertible_to constraint in IsCategory.
+   */
+  constexpr operator Morphism<T, T, std::function<T(T)>>() const {
+    return Morphism<T, T, std::function<T(T)>>{
+        std::function<T(T)>{[](T x) { return x; }}};
+  }
+};
+
+/**
+ * @brief The Category of C++ Types (Set).
+ * Formally reified as a Cartesian Closed Category.
+ */
+template <typename T>
+struct Set final {
+  using Species = T;
+  using Arrow = Morphism<T, T, std::function<T(T)>>;
+  using Id = SetId<T>;
+
+  // 1. Terminal Object: The 'one' in Set
+  using Terminal = std::monostate;
+
+  // 2. Product: A x B
+  template <typename A, typename B>
+  using Product = std::pair<A, B>;
+
+  // 3. Exponential: B^A
+  template <typename A, typename B>
+  using Exponential = std::function<B(A)>;
+
+  static constexpr Id id_c(const T& x) noexcept { return Id{x}; }
+
+  friend constexpr auto operator>>(const Arrow& f, const Arrow& g) {
+    return arrow<T, T>([f, g](T x) { return g(f(std::move(x))); });
+  }
+};
+
+// Now we can bless it right next to its definition
+static_assert(IsCartesianClosed<Set<int>>,
+              "Verification Failed: Set must be Cartesian Closed.");
+
+/**
+ * @concept IsProductCategory
+ * @brief A Category Hub where the Species is a Categorical Product (std::pair).
+ */
+export template <typename Cat>
+concept IsProductCategory = IsCategory<Cat> && requires {
+  /**
+   * The species of this category must be a Product.
+   * We extract A and B via the pair's internal aliases.
+   */
+  typename Cat::Species::first_type;
+  typename Cat::Species::second_type;
+
+  requires IsProduct<typename Cat::Species, typename Cat::Species::first_type,
+                     typename Cat::Species::second_type>;
+};
+
+// A category of integer/boolean pairs is an honest Product Category
+static_assert(IsProductCategory<Set<std::pair<int, bool>>>);
+
 }  // namespace dedekind::category

@@ -9,6 +9,12 @@
  * ephemeral blocks of logic, but as formal "Arrows" that carry their own
  * metadata (Domain and Codomain).
  *
+ * @details Implements type-level labelling to associate categorical metadata
+ * (like domain and codomain species) with C++ types. These labels exist
+ * strictly at compile-time via traits or nested aliases, allowing primitive
+ * and standard library types to be embedded directly into categorical
+ * structures with zero runtime overhead or invasive wrapping.
+ *
  * @quote
  * "A morphism is not just a function, but a function *together with* its
  *  domain and codomain... This 'bookkeeping' is exactly what allows the
@@ -44,6 +50,24 @@ export module dedekind.category:morphism;
 import :species;
 
 namespace dedekind::category {
+
+/**
+ * @brief Marker tag for ordinary object-level arrows.
+ * @details Attach as `using ArrowKind = spoke_arrow_tag;` when a type should
+ * participate in spoke-level operator routing.
+ */
+export struct spoke_arrow_tag {};
+
+/**
+ * @brief Marker tag for hub-level arrows (e.g., functor hubs).
+ * @details Attach as `using ArrowKind = hub_arrow_tag;` to opt out of
+ * spoke-level composition overloads in this partition.
+ *
+ * This keeps `:morphism` decoupled from downstream naming conventions while
+ * still allowing higher-level partitions (such as `:functor`) to route
+ * overload resolution explicitly.
+ */
+export struct hub_arrow_tag {};
 
 /**
  * @concept IsArrow
@@ -86,9 +110,16 @@ concept IsHubArrow = IsArrow<T> && IsArrow<Dom<T>> && IsArrow<Cod<T>>;
  *          categorical composition in this partition is intentionally limited
  *          to spoke arrows so higher-order composition can be owned by the
  *          appropriate bridge partitions.
+ *
+ * If a type advertises `using ArrowKind = hub_arrow_tag;`, it is excluded
+ * from `IsSpokeArrow` even if its Domain/Codomain are object-level labels.
  */
 export template <typename T>
-concept IsSpokeArrow = IsArrow<T> && !IsArrow<Dom<T>> && !IsArrow<Cod<T>>;
+concept IsSpokeArrow =
+    IsArrow<T> && !IsArrow<Dom<T>> && !IsArrow<Cod<T>> && !requires {
+      requires std::same_as<typename std::remove_cvref_t<T>::ArrowKind,
+                            hub_arrow_tag>;
+    };
 
 /**
  * @section The_Skeletal_Morphism
