@@ -296,7 +296,7 @@ concept IsPartialCommutativeSemigroup = IsPartialSemigroup<T, Op> && requires {
 
 /** @concept IsPartialGroup */
 export template <typename T, typename Op>
-concept IsPartialGroup = IsPartialMonoid<T, Op> && IsPartialLoop<T, Op>;
+concept IsPartialGroup = IsPartialLoop<T, Op>;
 
 /** @concept IsPartialAbelianGroup */
 export template <typename T, typename Op>
