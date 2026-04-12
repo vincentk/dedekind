@@ -22,12 +22,6 @@ class Real {
   constexpr Real() = default;
   constexpr explicit Real(Q value) : value_(value) {}
 
-  template <typename PathLike>
-    requires requires(PathLike p, std::size_t n) {
-      { p(n) } -> std::convertible_to<Q>;
-    }
-  constexpr explicit Real(PathLike p) : value_(static_cast<Q>(p(0))) {}
-
   constexpr Q resolve() const { return value_; }
   constexpr Q path() const { return value_; }
 
