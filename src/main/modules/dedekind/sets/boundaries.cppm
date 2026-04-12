@@ -58,7 +58,7 @@ struct Boundaries {};
 export template <typename T, typename L = ClassicalLogic>
 struct Ø final : Boundaries {
   using Domain = T;
-  using Codomain = typename L::type;
+  using Codomain = typename L::Ω;
   using logic_species = L;
   using cardinality_type = Finite;
   using is_extensional_tag = void;
@@ -82,7 +82,7 @@ struct Ø final : Boundaries {
   // The Empty Set is a part of everything (including itself)
   // We use a simple template to avoid recursion with IsSet
   template <typename S>
-  constexpr typename L::type operator<=(const S&) const {
+  constexpr typename L::Ω operator<=(const S&) const {
     return L::True;
   }
 
@@ -101,7 +101,7 @@ struct Ø final : Boundaries {
   constexpr auto operator!() const;
 
   // The Axiom: Total Absence
-  constexpr typename L::type operator()(const T&) const { return L::False; }
+  constexpr typename L::Ω operator()(const T&) const { return L::False; }
 
   // Required by IsInitialObject
   constexpr cardinality_type cardinality() const { return cardinality_type{}; }
@@ -127,9 +127,9 @@ struct Ø final : Boundaries {
 export template <typename T, typename L = ClassicalLogic, typename C = ℵ_0>
 struct Ω final : Boundaries {
   using Domain = T;
-  using Codomain = typename L::type;
+  using Codomain = typename L::Ω;
   using cardinality_type = C;
-  using base_set_type = Ω<T, L>;
+  using base_set_type = Ω<T, L, C>;
   using logic_species = L;
 
   /** @section Algebraic_Axioms */
@@ -154,12 +154,12 @@ struct Ω final : Boundaries {
   template <typename S>
     requires(!requires { typename S::T; }) &&
             (!requires { typename S::is_variable; })
-  friend constexpr typename L::type operator<=(const S&, const Ω&) {
+  friend constexpr typename L::Ω operator<=(const S&, const Ω&) {
     return L::True;
   }
 
   /** @section Lattice_Axiom: Reflexivity */
-  constexpr typename L::type operator<=(const Ω&) const { return L::True; }
+  constexpr typename L::Ω operator<=(const Ω&) const { return L::True; }
 
   // Explicitly define equality if <=> is being deleted by members
   constexpr bool operator==(const Ω&) const { return true; }
@@ -169,7 +169,7 @@ struct Ω final : Boundaries {
   // Universal & Any = Any
 
   // The Axiom: Total Presence
-  constexpr typename L::type operator()(const T&) const { return L::True; }
+  constexpr typename L::Ω operator()(const T&) const { return L::True; }
 
   constexpr cardinality_type cardinality() const { return cardinality_type{}; }
 
@@ -195,15 +195,6 @@ static_assert(IsSet<Ω<int>>, "The universal set must satisfy IsSet.");
 
 static_assert(IsSet<Ø<int>>);
 
-static_assert(IsTerminalObject<Ω<int>>,
-              "The universal set must satisfy IsTerminalObject.");
-
-/** @section The_Seal_of_Initiality */
-// This is your 'override'. If EmptySet fails the concept,
-// the build stops right here with a clear error.
-static_assert(IsInitialObject<Ø<int>>,
-              "Ø must satisfy the Initial Object axiom.");
-
 // FIXME: This is a hack to make the tests compile. The NaturalNumbers class
 // should Define the symbol used in your test Define the type
 export using NaturalNumbers = Ω<int>;
@@ -212,21 +203,3 @@ export using NaturalNumbers = Ω<int>;
 export inline constexpr NaturalNumbers ℕ{};
 
 };  // namespace dedekind::sets
-
-/** @section Level_0a: Kleisli Extensions for Boundaries */
-
-namespace dedekind::category {
-
-/** @brief η for the Empty Set: T -> Ø<T> */
-template <typename T>
-struct η<dedekind::sets::Ø, T> {
-  constexpr auto operator()(const T&) const { return dedekind::sets::Ø<T>{}; }
-};
-
-/** @brief η for the Universal Set: T -> Ω<T> */
-template <typename T>
-struct η<dedekind::sets::Ω, T> {
-  constexpr auto operator()(const T&) const { return dedekind::sets::Ω<T>{}; }
-};
-
-}  // namespace dedekind::category

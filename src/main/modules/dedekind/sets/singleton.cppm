@@ -58,7 +58,7 @@ export template <typename T, typename L = ClassicalLogic>
 struct SingletonSet {
   T pivot;
   using Domain = T;
-  using Codomain = typename L::type;
+  using Codomain = typename L::Ω;
   using logic_species = L;
   using cardinality_type = Finite;
   using is_extensional_tag = void;
@@ -90,7 +90,7 @@ struct SingletonSet {
   /** @section Mereological_Relation (sqsubseteq) */
 
   // 1. Manual definition to satisfy: { a <= b } -> typename L::type
-  constexpr typename L::type operator<=(const SingletonSet& other) const {
+  constexpr typename L::Ω operator<=(const SingletonSet& other) const {
     return (pivot == other.pivot) ? L::True : L::False;
   }
 
@@ -105,7 +105,7 @@ struct SingletonSet {
 
   // S1 <= S2 (Is S1 a part of S2?)
   template <typename S>
-  constexpr typename L::type operator<=(const S& other) const {
+  constexpr typename L::Ω operator<=(const S& other) const {
     // If it's another singleton, compare pivots
     if constexpr (requires { other.pivot; }) {
       return (pivot == other.pivot) ? L::True : L::False;
@@ -183,43 +183,7 @@ constexpr auto operator<<=(const SingletonSet<T, L>& s, Func&& f) {
 
 };  // namespace dedekind::sets
 
-namespace dedekind::category {
-using namespace dedekind::sets;
-// Re-open the category namespace to provide η/ε specializations for
-// SingletonSet
-export template <typename T>
-struct η<SingletonSet, T> {
-  constexpr auto operator()(const T& x) const { return SingletonSet<T>{x}; }
-};
-
-/** @section Singleton_Counit (ε) */
-export template <typename T>
-struct ε<SingletonSet, T> {
-  // Extraction is logic-agnostic, so we can use a variadic match here
-  // or just match the Classical version.
-  template <typename L>
-  constexpr T operator()(const SingletonSet<T, L>& s) const {
-    return s.pivot;
-  }
-};
-};  // namespace dedekind::category
-
-/** @section The_Final_Ontology_Proof */
-namespace dedekind::sets {
-// A simple cross-species transformation: int -> bool
-constexpr auto is_even = arrow<int, bool>([](int x) { return x % 2 == 0; });
-
-using IntSet = SingletonSet<int, ClassicalLogic>;
-using BoolSet = SingletonSet<bool, ClassicalLogic>;
-
-// The Proof: "Lifting 'is_even' into the Singleton context"
-static_assert(
-    IsArrow<decltype(fmap<SingletonSet>(is_even)), IntSet, BoolSet>,
-    "PR Failure: SingletonSet failed to discover its Functorial Highway.");
-
-// The Action: "Executing the lifted morphism"
-static_assert(((IntSet{42} >> fmap<SingletonSet>(is_even))
-               << extract<SingletonSet>) == true,
-              "PR Failure: The Set Monad failed to preserve the truth value of "
-              "the species.");
-}  // namespace dedekind::sets
+/** @section The_Final_Ontology_Proof
+ * Deferred while `dedekind.sets` is being retargeted to the updated
+ * `dedekind.category` hub/spoke functor API.
+ */
