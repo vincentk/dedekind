@@ -89,7 +89,7 @@ struct SingletonSet {
 
   /** @section Mereological_Relation (sqsubseteq) */
 
-  // 1. Manual definition to satisfy: { a <= b } -> typename L::type
+  // 1. Manual definition to satisfy: { a <= b } -> typename L::Ω
   constexpr typename L::Ω operator<=(const SingletonSet& other) const {
     return (pivot == other.pivot) ? L::True : L::False;
   }
