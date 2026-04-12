@@ -35,6 +35,22 @@ export inline constexpr bool numeric_uses_builtin_overflow_checks = false;
 
 namespace detail {
 
+#if defined(_MSC_VER)
+#define DEDEKIND_NOINLINE __declspec(noinline)
+#elif defined(__GNUC__) || defined(__clang__)
+#define DEDEKIND_NOINLINE __attribute__((noinline))
+#else
+#define DEDEKIND_NOINLINE
+#endif
+
+#if defined(DEDEKIND_RUNTIME_COVERAGE_BRIDGES)
+#define DEDEKIND_BRIDGE_CONSTEXPR
+#define DEDEKIND_BRIDGE_NOINLINE DEDEKIND_NOINLINE
+#else
+#define DEDEKIND_BRIDGE_CONSTEXPR constexpr
+#define DEDEKIND_BRIDGE_NOINLINE
+#endif
+
 template <std::signed_integral T>
 constexpr bool add_overflow_signed(T a, T b, T& out) {
 #if defined(__GNUC__) || defined(__clang__)
@@ -52,9 +68,16 @@ constexpr bool add_overflow_signed(T a, T b, T& out) {
     }
     out = static_cast<T>(tmp);
     return false;
+  } else {
+    // Portable fallback for signed types wider than long long.
+    if ((b > 0 && a > (std::numeric_limits<T>::max() - b)) ||
+        (b < 0 && a < (std::numeric_limits<T>::min() - b))) {
+      return true;
+    }
+    out = static_cast<T>(a + b);
+    return false;
   }
-#endif
-
+#else
   // Portable fallback
   if ((b > 0 && a > (std::numeric_limits<T>::max() - b)) ||
       (b < 0 && a < (std::numeric_limits<T>::min() - b))) {
@@ -62,6 +85,7 @@ constexpr bool add_overflow_signed(T a, T b, T& out) {
   }
   out = static_cast<T>(a + b);
   return false;
+#endif
 }
 
 template <std::signed_integral T>
@@ -81,9 +105,22 @@ constexpr bool mul_overflow_signed(T a, T b, T& out) {
     }
     out = static_cast<T>(tmp);
     return false;
+  } else {
+    // Portable fallback for signed types wider than long long.
+    if (a == 0 || b == 0) {
+      out = static_cast<T>(0);
+      return false;
+    }
+    if ((a > 0 && b > 0 && a > (std::numeric_limits<T>::max() / b)) ||
+        (a > 0 && b < 0 && b < (std::numeric_limits<T>::min() / a)) ||
+        (a < 0 && b > 0 && a < (std::numeric_limits<T>::min() / b)) ||
+        (a < 0 && b < 0 && a < (std::numeric_limits<T>::max() / b))) {
+      return true;
+    }
+    out = static_cast<T>(a * b);
+    return false;
   }
-#endif
-
+#else
   // Portable fallback
   if (a == 0 || b == 0) {
     out = static_cast<T>(0);
@@ -97,6 +134,7 @@ constexpr bool mul_overflow_signed(T a, T b, T& out) {
   }
   out = static_cast<T>(a * b);
   return false;
+#endif
 }
 
 }  // namespace detail
@@ -325,6 +363,52 @@ concept IsNumericHoleClassifier =
     IsNumericSpecies<T> && IsCharacteristic<Chi> && std::same_as<Dom<Chi>, T> &&
     std::same_as<Cod<Chi>, Ternary>;
 
+/** @section Coverage_Bridge_API
+ * @brief Non-template bridge functions for profiler-friendly attribution.
+ *
+ * These wrappers preserve the template-based public API while providing
+ * concrete entry points that coverage tools can attribute more consistently
+ * across module boundaries.
+ */
+
+export DEDEKIND_BRIDGE_NOINLINE DEDEKIND_BRIDGE_CONSTEXPR NumericWitness<int>
+certify_add_int_interval(int a, int b, IntervalBoundaryPolicy<int> policy) {
+  return certify_add<int, IntervalBoundaryPolicy<int>>(a, b, policy);
+}
+
+export DEDEKIND_BRIDGE_NOINLINE DEDEKIND_BRIDGE_CONSTEXPR
+    NumericWitness<unsigned int>
+    certify_add_uint_full(unsigned int a, unsigned int b,
+                          FullMachineBoundaryPolicy<unsigned int> policy = {}) {
+  return certify_add<unsigned int, FullMachineBoundaryPolicy<unsigned int>>(
+      a, b, policy);
+}
+
+export DEDEKIND_BRIDGE_NOINLINE DEDEKIND_BRIDGE_CONSTEXPR NumericWitness<int>
+certify_mul_int_interval(int a, int b, IntervalBoundaryPolicy<int> policy) {
+  return certify_mul<int, IntervalBoundaryPolicy<int>>(a, b, policy);
+}
+
+export DEDEKIND_BRIDGE_NOINLINE DEDEKIND_BRIDGE_CONSTEXPR NumericWitness<int>
+certify_div_int_full(int a, int b, FullMachineBoundaryPolicy<int> policy = {}) {
+  return certify_div<int, FullMachineBoundaryPolicy<int>>(a, b, policy);
+}
+
+export DEDEKIND_BRIDGE_NOINLINE DEDEKIND_BRIDGE_CONSTEXPR NumericWitness<double>
+certify_add_double_nan(double a, double b, NaNHolePolicy<double> policy = {}) {
+  return certify_add<double, NaNHolePolicy<double>>(a, b, policy);
+}
+
+export DEDEKIND_BRIDGE_NOINLINE DEDEKIND_BRIDGE_CONSTEXPR NumericWitness<double>
+certify_mul_double_nan(double a, double b, NaNHolePolicy<double> policy = {}) {
+  return certify_mul<double, NaNHolePolicy<double>>(a, b, policy);
+}
+
+export DEDEKIND_BRIDGE_NOINLINE DEDEKIND_BRIDGE_CONSTEXPR NumericWitness<double>
+certify_div_double_nan(double a, double b, NaNHolePolicy<double> policy = {}) {
+  return certify_div<double, NaNHolePolicy<double>>(a, b, policy);
+}
+
 // Honesty anchors
 static_assert(IsLipschitzBoundaryPolicy<IntervalBoundaryPolicy<int>, int>);
 static_assert(IsLipschitzBoundaryPolicy<FullMachineBoundaryPolicy<int>, int>);
@@ -332,5 +416,9 @@ static_assert(IsLipschitzBoundaryPolicy<NaNHolePolicy<double>, double>);
 static_assert(numeric_uses_builtin_overflow_checks ||
                   !numeric_uses_builtin_overflow_checks,
               "Numeric overflow strategy flag must be defined.");
+
+#undef DEDEKIND_NOINLINE
+#undef DEDEKIND_BRIDGE_CONSTEXPR
+#undef DEDEKIND_BRIDGE_NOINLINE
 
 }  // namespace dedekind::category

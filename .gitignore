@@ -8,6 +8,8 @@ dependency-reduced-pom.xml
 buildNumber.properties
 .mvn/timing.properties
 
+build-runtime-bridges**
+
 // IntelliJ
 *.iml
 **/.idea/

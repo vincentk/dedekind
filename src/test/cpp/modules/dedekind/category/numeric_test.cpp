@@ -39,31 +39,30 @@ TEST_CASE("Numeric: NaN holes and user boundaries", "[category][numeric]") {
   SECTION("Certified integer addition consults policy") {
     constexpr IntervalBoundaryPolicy<int> support{-10, 10};
 
-    const auto ok = certify_add(3, 4, support);
+    const auto ok = certify_add_int_interval(3, 4, support);
     CHECK(ok.status == Ternary::True);
     CHECK(ok.value == 7);
 
-    const auto outside = certify_add(8, 5, support);
+    const auto outside = certify_add_int_interval(8, 5, support);
     CHECK(outside.status == Ternary::Unknown);
 
-    const auto lower_overflow = certify_add(-9, -5, support);
+    const auto lower_overflow = certify_add_int_interval(-9, -5, support);
     CHECK(lower_overflow.status == Ternary::Unknown);
   }
 
   SECTION("Unsigned full-machine policy remains inside support") {
     const auto witness =
-        certify_add(std::numeric_limits<unsigned int>::max(), 1u,
-                    FullMachineBoundaryPolicy<unsigned int>{});
+        certify_add_uint_full(std::numeric_limits<unsigned int>::max(), 1u);
     CHECK(witness.status == Ternary::True);
   }
 
   SECTION("Certified multiply detects signed overflow") {
     constexpr IntervalBoundaryPolicy<int> support{-1000, 1000};
     const auto overflow =
-        certify_mul(std::numeric_limits<int>::max(), 2, support);
+        certify_mul_int_interval(std::numeric_limits<int>::max(), 2, support);
     CHECK(overflow.status == Ternary::Unknown);
 
-    const auto ok = certify_mul(20, 3, support);
+    const auto ok = certify_mul_int_interval(20, 3, support);
     CHECK(ok.status == Ternary::True);
     CHECK(ok.value == 60);
   }
@@ -71,14 +70,14 @@ TEST_CASE("Numeric: NaN holes and user boundaries", "[category][numeric]") {
   SECTION("Certified integer division surfaces false/unknown honestly") {
     constexpr FullMachineBoundaryPolicy<int> support{};
 
-    const auto by_zero = certify_div(10, 0, support);
+    const auto by_zero = certify_div_int_full(10, 0, support);
     CHECK(by_zero.status == Ternary::False);
 
     const auto min_overflow =
-        certify_div(std::numeric_limits<int>::min(), -1, support);
+        certify_div_int_full(std::numeric_limits<int>::min(), -1, support);
     CHECK(min_overflow.status == Ternary::Unknown);
 
-    const auto ok = certify_div(12, 3, support);
+    const auto ok = certify_div_int_full(12, 3, support);
     CHECK(ok.status == Ternary::True);
     CHECK(ok.value == 4);
   }
@@ -92,21 +91,24 @@ TEST_CASE("Numeric: NaN holes and user boundaries", "[category][numeric]") {
 
     const auto blocked = certify_add(13, 1, ExplicitFalsePolicy{});
     CHECK(blocked.status == Ternary::False);
+
+    const auto allowed = certify_add(12, 2, ExplicitFalsePolicy{});
+    CHECK(allowed.status == Ternary::True);
   }
 
   SECTION("Floating certifiers propagate NaN-hole as Unknown") {
     const double nan = std::numeric_limits<double>::quiet_NaN();
 
-    const auto add_nan = certify_add(nan, 1.0);
+    const auto add_nan = certify_add_double_nan(nan, 1.0);
     CHECK(add_nan.status == Ternary::Unknown);
 
-    const auto mul_nan = certify_mul(2.0, nan);
+    const auto mul_nan = certify_mul_double_nan(2.0, nan);
     CHECK(mul_nan.status == Ternary::Unknown);
 
-    const auto div_nan = certify_div(0.0, 0.0);
+    const auto div_nan = certify_div_double_nan(0.0, 0.0);
     CHECK(div_nan.status == Ternary::Unknown);
 
-    const auto div_ok = certify_div(9.0, 3.0);
+    const auto div_ok = certify_div_double_nan(9.0, 3.0);
     CHECK(div_ok.status == Ternary::True);
     CHECK(div_ok.value == 3.0);
   }
