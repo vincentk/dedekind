@@ -33,7 +33,9 @@ jobs:
       # Note: CMAKE_CXX_SCAN_FOR_MODULES is required for clang to find the module interfaces.
       # Note: Ninja is required for CMAKE_CXX_SCAN_FOR_MODULES to work.
       # Note: CMAKE_BUILD_TYPE=Release is required for the code to compile at all, due to the use of concepts and modules.
-      run: cmake -S . -B build -G Ninja -DCMAKE_CXX_COMPILER=clang++-21 -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_SCAN_FOR_MODULES=ON
+      # Note: DEDEKIND_RUNTIME_COVERAGE_BRIDGES=ON improves coverage attribution
+      # for numeric bridge wrappers during Codecov runs.
+      run: cmake -S . -B build -G Ninja -DCMAKE_CXX_COMPILER=clang++-21 -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_SCAN_FOR_MODULES=ON -DDEDEKIND_RUNTIME_COVERAGE_BRIDGES=ON
 
     - name: Build & Run Tests
       run: |
