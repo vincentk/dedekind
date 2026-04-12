@@ -50,7 +50,10 @@ concept IsHamiltonian = requires(H h, S s) {
  */
 export template <std::floating_point R, std::size_t N>
 constexpr R poisson_bracket(auto&& f, auto&& g, const Vector<R, N>& state) {
-  static_assert(N >= 2, "Poisson bracket requires at least 2 dimensions.");
+  static_assert(
+      N == 2,
+      "This poisson_bracket finite-difference overload only supports a "
+      "single canonical pair (q, p), so N must be 2.");
 
   const R eps = static_cast<R>(1e-6);
 
