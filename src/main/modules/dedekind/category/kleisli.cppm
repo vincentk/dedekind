@@ -10,17 +10,33 @@
  *
  * @subsection The_Kleisli_Triple (Monadic Push)
  * A species provides a Kleisli system if it implements:
- * - η (Unit/Return) : The 'into' operator (>>), lifting raw types into the
- * species.
+ * - η (Unit/Return): value injection into context.
  * - >>= (Bind)      : The 'extension' operator, chaining computations within
  * the context.
  *
  * @subsection The_Co_Kleisli_Triple (Comonadic Pull)
  * A species provides a Co-Kleisli system if it implements:
- * - ε (Counit/Extract) : The 'extract' operator (<<), sampling raw types from
- * the species.
+ * - ε (Counit/Extract): value extraction from context.
  * - <<= (Extend)       : The 'co-extension' operator, sampling the species into
  * a new context.
+ *
+ * @section Notation_Mapping Textbook Notation -> Implementation Surface
+ *
+ * Core monadic/comonadic symbols and their implementation names:
+ * - η : unit/pure (defined in `:natural` / used via `pure<T>(x)` in `:monad`)
+ * - μ : join/flatten (defined in `:natural` / used via `join<T>(...)` in
+ * `:monad`)
+ * - ε : counit/extract (defined in `:natural` / used via `extract<W>(...)` in
+ * `:monad`)
+ * - δ : comultiplication/duplicate (defined in `:natural` / used via
+ * `duplicate<W>(...)` in `:monad`)
+ * - κ : Kleisli extension (`κ(ma, f)`), exported in this partition
+ * - σ : co-Kleisli extension (`σ(wa, f)`), exported in this partition
+ *
+ * Operator and named aliases in this partition:
+ * - `ma >>= f` and `bind(ma, f)` are aliases for κ(ma, f)
+ * - `wa <<= f` and `extend(wa, f)` are aliases for σ(wa, f)
+ * - fish aliases: `ma >> f` (Kleisli) and `wa << f` (co-Kleisli)
  *
  * @section The_Bootstrapping_Mechanism
  * This partition is the prerequisite for the ':functorial' partition. Because
@@ -141,6 +157,24 @@ constexpr auto σ(WA const& wa, F&& f) {
   return φ(δ(wa), std::forward<F>(f));
 }
 
+/**
+ * @brief bind: named alias for monadic Kleisli extension.
+ * @details Equivalent to κ(ma, f).
+ */
+export template <template <typename> typename T, typename A, typename F>
+constexpr auto bind(T<A> const& ma, F&& f) {
+  return κ(ma, std::forward<F>(f));
+}
+
+/**
+ * @brief extend: named alias for comonadic co-Kleisli extension.
+ * @details Equivalent to σ(wa, f).
+ */
+export template <template <typename> typename W, typename A, typename F>
+constexpr auto extend(W<A> const& wa, F&& f) {
+  return σ(wa, std::forward<F>(f));
+}
+
 /** @section Kleisli_Bind_Operators */
 
 /**
@@ -149,6 +183,9 @@ constexpr auto σ(WA const& wa, F&& f) {
  * Given ma: T<A> and f: A → T<B>, produces T<B>.
  */
 export template <typename MA, typename F>
+  requires requires(MA const& ma, F&& f) {
+    { κ(ma, std::forward<F>(f)) };
+  }
 constexpr auto operator>>=(MA const& ma, F&& f) {
   return κ(ma, std::forward<F>(f));
 }
@@ -175,6 +212,9 @@ constexpr auto operator>>(MA const& ma, F&& f) {
  * Given wa: W<A> and f: W<A> → B, produces W<B>.
  */
 export template <typename WA, typename F>
+  requires requires(WA const& wa, F&& f) {
+    { σ(wa, std::forward<F>(f)) };
+  }
 constexpr auto operator<<=(WA const& wa, F&& f) {
   return σ(wa, std::forward<F>(f));
 }

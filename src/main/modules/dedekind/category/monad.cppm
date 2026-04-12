@@ -59,11 +59,6 @@ constexpr auto join(T<T<A>> const& mma) {
   return μ(mma);
 }
 
-template <template <typename> typename T, typename A, typename F>
-constexpr auto bind(T<A> const& ma, F&& f) {
-  return κ(ma, std::forward<F>(f));
-}
-
 // --- Comonad Aliases ---
 template <template <typename> typename W, typename A>
 constexpr auto extract(W<A> const& wa) {
@@ -73,11 +68,6 @@ constexpr auto extract(W<A> const& wa) {
 template <template <typename> typename W, typename A>
 constexpr auto duplicate(W<A> const& wa) {
   return δ(wa);
-}
-
-template <template <typename> typename W, typename A, typename F>
-constexpr auto extend(W<A> const& wa, F&& f) {
-  return σ(wa, std::forward<F>(f));
 }
 
 /**

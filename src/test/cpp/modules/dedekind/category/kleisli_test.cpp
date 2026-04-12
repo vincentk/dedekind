@@ -158,3 +158,26 @@ TEST_CASE("Category: Fish alias operator<< for cobind",
     CHECK(result == Box<int>{7});
   }
 }
+
+TEST_CASE("Category: Named Kleisli aliases", "[category][kleisli][aliases]") {
+  SECTION("bind aliases κ for Box") {
+    Box<int> value{6};
+    auto result = bind(value, [](int x) { return Box<int>{x + 4}; });
+    CHECK(result == Box<int>{10});
+  }
+
+  SECTION("extend aliases σ for Box") {
+    Box<int> value{6};
+    auto result = extend(value, [](Box<int> b) { return b.value * 3; });
+    CHECK(result == Box<int>{18});
+  }
+
+  SECTION("bind aliases κ for Maybe/optional") {
+    std::optional<int> present{5};
+    std::optional<int> empty{std::nullopt};
+
+    auto plus_two = [](int x) { return std::optional<int>{x + 2}; };
+    CHECK(bind(present, plus_two) == std::optional<int>{7});
+    CHECK(bind(empty, plus_two) == std::nullopt);
+  }
+}
