@@ -185,28 +185,6 @@ constexpr auto operator>>(Identity<T> i, Identity<T>) {
 }
 
 /**
- * @brief The Identity morphism for the category Set.
- */
-template <typename T>
-struct SetId final {
-  using Domain = T;
-  using Codomain = T;
-
-  T species;
-
-  constexpr T operator()(const T& x) const { return x; }
-
-  /**
-   * @brief The explicit bridge to the Category's Arrow type.
-   * This satisfies the std::convertible_to constraint in IsCategory.
-   */
-  constexpr operator Morphism<T, T, std::function<T(T)>>() const {
-    return Morphism<T, T, std::function<T(T)>>{
-        std::function<T(T)>{[](T x) { return x; }}};
-  }
-};
-
-/**
  * @brief An arrow that is just a label.
  */
 struct StringArrow {
