@@ -1101,7 +1101,7 @@ static_assert(!is_associative_v<double, std::plus<double>>);
 
 
 \subsubsection{The \texttt{:etcs} partition: The Set-Theoretic Interface}
-The final stage of the foundational build anchors Lawvere's Elementary Theory of the Category of Sets (ETCS) \cite{lawvere1964}. This partition defines a set not by its internal elements, but by its universal properties, utilizing C++23 Concepts to enforce well-pointedness and the existence of power objects.
+The final stage of the foundational build anchors Lawvere's Elementary Theory of the Category of Sets (ETCS) \cite{lawvere1964etcs}. This partition defines a set not by its internal elements, but by its universal properties, utilizing C++23 Concepts to enforce well-pointedness and the existence of power objects.
 
 The core innovation of this partition is the reification of the \textit{Set-Builder} notation. By representing a set $S = \{x \in X \mid P(x)\}$ as a \texttt{Stateless Constraint Type}, we transform the C++ translation unit into a symbolic laboratory. 
 
@@ -1112,7 +1112,7 @@ auto P = [](auto x) { return (x % 2 == 0) && (x > 10); };
 // Materialize the set at compile-time as a structural type
 using EvenGreaterTen = dedekind::set<int, P>;
 
-static_assert(dedekind::contains<EvenGreaterTen>(12));
+static\_assert(EvenGreaterTen::.chi(12) == Logic::true\_val);
 \end{lstlisting}
 
 By hoisting these mereological invariants into the type signature, we enable \textit{Symbolic Equalization}. The compiler can decompose and optimize a set based on its logical essence rather than its storage layout, allowing contradictory set-builder predicates to collapse into zero-instruction machine code. This ensures that the performance of the ``Naked Loop'' is always mathematically justified by the prior formal certification of the ETCS axioms.
@@ -1143,13 +1143,13 @@ In a sense, \texttt{dedekind} hopes to be a *compiler* for mathematical concepts
 1. Composition & \texttt{std::invoke} / \texttt{operator>>} & \texttt{IsSemigroupoid<T, Op>} \\
 2. Identity & \texttt{identity\_trait<T, Op>} & \texttt{IsSmallCategory<T, Op>} \\
 3. Terminal Object & \texttt{s(x) -> Logic::top} & \texttt{IsTerminalObject<T>} \\
-4. Well-Pointedness & \texttt{operator()} (Element access) & \texttt{IsWellPointed} \\
+4. Well-Pointedness & \texttt{operator()} (Element access) & \texttt{HasAxiom4WellPointedness} \\
 5. Cartesian Product & \texttt{std::tuple} / \texttt{std::pair} & \texttt{HasProduct<A, B>} \\
 6. Exponentiation & Lambda NTTP / \texttt{std::function} & \texttt{IsInternalHom<A, B>} \\
 7. Equalizers & \texttt{dedekind::set<T, P>} & \texttt{IsEqualizer<f, g>} \\
 8. Empty Set & \texttt{dedekind::EmptySet} & \texttt{IsInitialObject<T>} \\
 9. Infinity (NNO) & \texttt{dedekind::Naturals} & \texttt{HasNaturalNumbersObject} \\
-10. Axiom of Choice & Lattice Dispatcher & \texttt{AxiomOfChoice} \\ \hline
+10. Axiom of Choice & Lattice Dispatcher & \texttt{HasAxiom10ChoiceDispatcher} \\ \hline
 \end{tabular}
 \end{table}
 
@@ -1276,7 +1276,7 @@ This allows the compiler to inspect, decompose, and optimize a set based on its 
 // Verifies the "Element Of" relation (x in Y)
 template <typename T, typename S>
 concept IsElementOf = requires(T x, S s) {
-    { s.contains(x) } -> std::same_as<bool>;
+    { s.chi(x) } -> std::same_as<Logic>;
 };
 
 // Verifies "Parthood" or "Subset" relation (X subset of Y)
