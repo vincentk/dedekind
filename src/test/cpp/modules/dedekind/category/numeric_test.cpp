@@ -7,6 +7,22 @@ import dedekind.category;
 
 using namespace dedekind::category;
 
+TEST_CASE("Numeric: overflow strategy diagnostics",
+          "[category][numeric][diag]") {
+  SECTION("Strategy flag is available") {
+    STATIC_CHECK(numeric_uses_builtin_overflow_checks ||
+                 !numeric_uses_builtin_overflow_checks);
+  }
+
+  SECTION("Strategy flag matches compiler family expectation") {
+#if defined(__GNUC__) || defined(__clang__)
+    STATIC_CHECK(numeric_uses_builtin_overflow_checks);
+#else
+    STATIC_CHECK_FALSE(numeric_uses_builtin_overflow_checks);
+#endif
+  }
+}
+
 TEST_CASE("Numeric: NaN holes and user boundaries", "[category][numeric]") {
   SECTION("NaN hole is surfaced as Unknown") {
     const double nan = std::numeric_limits<double>::quiet_NaN();

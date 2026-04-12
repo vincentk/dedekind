@@ -25,6 +25,14 @@ import :topoi;
 
 namespace dedekind::category {
 
+#if defined(__GNUC__) || defined(__clang__)
+/** @brief Compile-time diagnostic: builtin overflow path enabled. */
+export inline constexpr bool numeric_uses_builtin_overflow_checks = true;
+#else
+/** @brief Compile-time diagnostic: portable fallback overflow path enabled. */
+export inline constexpr bool numeric_uses_builtin_overflow_checks = false;
+#endif
+
 namespace detail {
 
 template <std::signed_integral T>
@@ -317,5 +325,8 @@ concept IsNumericHoleClassifier =
 static_assert(IsLipschitzBoundaryPolicy<IntervalBoundaryPolicy<int>, int>);
 static_assert(IsLipschitzBoundaryPolicy<FullMachineBoundaryPolicy<int>, int>);
 static_assert(IsLipschitzBoundaryPolicy<NaNHolePolicy<double>, double>);
+static_assert(numeric_uses_builtin_overflow_checks ||
+                  !numeric_uses_builtin_overflow_checks,
+              "Numeric overflow strategy flag must be defined.");
 
 }  // namespace dedekind::category
