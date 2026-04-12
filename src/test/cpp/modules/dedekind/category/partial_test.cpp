@@ -7,10 +7,10 @@ import dedekind.category;
 using namespace dedekind::category;
 
 TEST_CASE("Partial: maturity mirrors total hierarchy", "[category][partial]") {
-  using UAdd =
-      BoundedAddTransform<unsigned int, FullMachineBoundaryPolicy<unsigned int>>;
-  using UMul =
-      BoundedMulTransform<unsigned int, FullMachineBoundaryPolicy<unsigned int>>;
+  using UAdd = BoundedAddTransform<unsigned int,
+                                   FullMachineBoundaryPolicy<unsigned int>>;
+  using UMul = BoundedMulTransform<unsigned int,
+                                   FullMachineBoundaryPolicy<unsigned int>>;
 
   SECTION("Unsigned bounded add matures to partial Abelian group") {
     STATIC_CHECK(IsMagmoid<unsigned int, UAdd>);

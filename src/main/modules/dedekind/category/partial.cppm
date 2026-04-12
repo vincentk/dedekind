@@ -200,22 +200,16 @@ struct BoundedAddTransform {
 };
 
 template <std::unsigned_integral T>
-inline constexpr bool
-    is_kleene_associative_v<T,
-                            BoundedAddTransform<T, FullMachineBoundaryPolicy<T>>> =
-        true;
+inline constexpr bool is_kleene_associative_v<
+    T, BoundedAddTransform<T, FullMachineBoundaryPolicy<T>>> = true;
 
 template <std::unsigned_integral T>
-inline constexpr bool
-    is_kleene_commutative_v<T,
-                            BoundedAddTransform<T, FullMachineBoundaryPolicy<T>>> =
-        true;
+inline constexpr bool is_kleene_commutative_v<
+    T, BoundedAddTransform<T, FullMachineBoundaryPolicy<T>>> = true;
 
 template <std::unsigned_integral T>
-inline constexpr bool
-    is_kleene_invertible_v<T,
-                           BoundedAddTransform<T, FullMachineBoundaryPolicy<T>>> =
-        true;
+inline constexpr bool is_kleene_invertible_v<
+    T, BoundedAddTransform<T, FullMachineBoundaryPolicy<T>>> = true;
 
 template <std::unsigned_integral T>
 inline constexpr T partial_identity_v<
@@ -238,16 +232,12 @@ struct BoundedMulTransform {
 };
 
 template <std::unsigned_integral T>
-inline constexpr bool
-    is_kleene_associative_v<T,
-                            BoundedMulTransform<T, FullMachineBoundaryPolicy<T>>> =
-        true;
+inline constexpr bool is_kleene_associative_v<
+    T, BoundedMulTransform<T, FullMachineBoundaryPolicy<T>>> = true;
 
 template <std::unsigned_integral T>
-inline constexpr bool
-    is_kleene_commutative_v<T,
-                            BoundedMulTransform<T, FullMachineBoundaryPolicy<T>>> =
-        true;
+inline constexpr bool is_kleene_commutative_v<
+    T, BoundedMulTransform<T, FullMachineBoundaryPolicy<T>>> = true;
 
 template <std::unsigned_integral T>
 inline constexpr T partial_identity_v<
@@ -295,14 +285,14 @@ concept IsPartialMonoid =
  * @brief A Partial Monoid with local invertibility on support.
  */
 export template <typename T, typename Op>
-concept IsPartialLoop =
-  IsPartialMonoid<T, Op> && requires { requires is_kleene_invertible_v<T, Op>; };
+concept IsPartialLoop = IsPartialMonoid<T, Op> &&
+                        requires { requires is_kleene_invertible_v<T, Op>; };
 
 /** @concept IsPartialCommutativeSemigroup */
 export template <typename T, typename Op>
-concept IsPartialCommutativeSemigroup =
-  IsPartialSemigroup<T, Op> &&
-  requires { requires is_kleene_commutative_v<T, Op>; };
+concept IsPartialCommutativeSemigroup = IsPartialSemigroup<T, Op> && requires {
+  requires is_kleene_commutative_v<T, Op>;
+};
 
 /** @concept IsPartialGroup */
 export template <typename T, typename Op>
@@ -310,9 +300,9 @@ concept IsPartialGroup = IsPartialMonoid<T, Op> && IsPartialLoop<T, Op>;
 
 /** @concept IsPartialAbelianGroup */
 export template <typename T, typename Op>
-concept IsPartialAbelianGroup =
-  IsPartialGroup<T, Op> &&
-  requires { requires is_kleene_commutative_v<T, Op>; };
+concept IsPartialAbelianGroup = IsPartialGroup<T, Op> && requires {
+  requires is_kleene_commutative_v<T, Op>;
+};
 
 /** @section Honesty_Anchors */
 

@@ -32,15 +32,16 @@ TEST_CASE("Numeric: NaN holes and user boundaries", "[category][numeric]") {
   }
 
   SECTION("Unsigned full-machine policy remains inside support") {
-    const auto witness = certify_add(std::numeric_limits<unsigned int>::max(),
-                                     1u,
-                                     FullMachineBoundaryPolicy<unsigned int>{});
+    const auto witness =
+        certify_add(std::numeric_limits<unsigned int>::max(), 1u,
+                    FullMachineBoundaryPolicy<unsigned int>{});
     CHECK(witness.status == Ternary::True);
   }
 
   SECTION("Certified multiply detects signed overflow") {
     constexpr IntervalBoundaryPolicy<int> support{-1000, 1000};
-    const auto overflow = certify_mul(std::numeric_limits<int>::max(), 2, support);
+    const auto overflow =
+        certify_mul(std::numeric_limits<int>::max(), 2, support);
     CHECK(overflow.status == Ternary::Unknown);
   }
 

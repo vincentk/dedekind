@@ -28,8 +28,8 @@ namespace dedekind::category {
 /** @brief A typed witness of numeric classification in Ω_K3. */
 export template <typename T>
 struct NumericWitness {
-	T value;
-	Ternary status;
+  T value;
+  Ternary status;
 };
 
 /** @concept IsNumericSpecies */
@@ -46,21 +46,21 @@ concept IsNumericSpecies = std::integral<T> || std::floating_point<T>;
  */
 export template <typename Policy, typename T>
 concept IsLipschitzBoundaryPolicy =
-		IsNumericSpecies<T> && requires(Policy p, T x) {
-			{ p(x) } -> std::same_as<Ternary>;
-		};
+    IsNumericSpecies<T> && requires(Policy p, T x) {
+      { p(x) } -> std::same_as<Ternary>;
+    };
 
 /** @brief Closed interval policy [lower, upper] for integral species. */
 export template <std::integral T>
 struct IntervalBoundaryPolicy {
-	using value_type = T;
-	T lower;
-	T upper;
+  using value_type = T;
+  T lower;
+  T upper;
 
-	constexpr Ternary operator()(T x) const noexcept {
-		if (x < lower || x > upper) return Ternary::Unknown;
-		return Ternary::True;
-	}
+  constexpr Ternary operator()(T x) const noexcept {
+    if (x < lower || x > upper) return Ternary::Unknown;
+    return Ternary::True;
+  }
 };
 
 /**
@@ -71,26 +71,26 @@ struct IntervalBoundaryPolicy {
  */
 export template <std::integral T>
 struct FullMachineBoundaryPolicy {
-	using value_type = T;
+  using value_type = T;
 
-	constexpr Ternary operator()(T) const noexcept { return Ternary::True; }
+  constexpr Ternary operator()(T) const noexcept { return Ternary::True; }
 };
 
 /** @brief IEEE-754 NaN-hole classifier policy for floating species. */
 export template <std::floating_point T>
 struct NaNHolePolicy {
-	using value_type = T;
+  using value_type = T;
 
-	constexpr Ternary operator()(T x) const noexcept {
-		return std::isnan(x) ? Ternary::Unknown : Ternary::True;
-	}
+  constexpr Ternary operator()(T x) const noexcept {
+    return std::isnan(x) ? Ternary::Unknown : Ternary::True;
+  }
 };
 
 /** @brief Classify a numeric value under a user policy. */
 export template <typename T, typename Policy>
-	requires IsLipschitzBoundaryPolicy<Policy, T>
+  requires IsLipschitzBoundaryPolicy<Policy, T>
 constexpr Ternary classify_numeric(T x, Policy policy) {
-	return policy(x);
+  return policy(x);
 }
 
 /**
@@ -99,29 +99,29 @@ constexpr Ternary classify_numeric(T x, Policy policy) {
  * Overflow or support breach is surfaced as Ω_K3::Unknown.
  */
 export template <std::integral T, typename Policy>
-	requires IsLipschitzBoundaryPolicy<Policy, T>
+  requires IsLipschitzBoundaryPolicy<Policy, T>
 constexpr NumericWitness<T> certify_add(T a, T b, Policy policy) {
-	const Ternary support_a = policy(a);
-	const Ternary support_b = policy(b);
-	const Ternary support_inputs = TernaryLogic::AND(support_a, support_b);
+  const Ternary support_a = policy(a);
+  const Ternary support_b = policy(b);
+  const Ternary support_inputs = TernaryLogic::AND(support_a, support_b);
 
-	if (support_inputs != Ternary::True) {
-		return {T{}, support_inputs};
-	}
+  if (support_inputs != Ternary::True) {
+    return {T{}, support_inputs};
+  }
 
-	if constexpr (std::is_signed_v<T>) {
-		T result{};
-		if (__builtin_add_overflow(a, b, &result)) {
-			return {T{}, Ternary::Unknown};
-		}
+  if constexpr (std::is_signed_v<T>) {
+    T result{};
+    if (__builtin_add_overflow(a, b, &result)) {
+      return {T{}, Ternary::Unknown};
+    }
 
-		const Ternary support_result = policy(result);
-		return {result, TernaryLogic::AND(support_inputs, support_result)};
-	} else {
-		const T result = static_cast<T>(a + b);
-		const Ternary support_result = policy(result);
-		return {result, TernaryLogic::AND(support_inputs, support_result)};
-	}
+    const Ternary support_result = policy(result);
+    return {result, TernaryLogic::AND(support_inputs, support_result)};
+  } else {
+    const T result = static_cast<T>(a + b);
+    const Ternary support_result = policy(result);
+    return {result, TernaryLogic::AND(support_inputs, support_result)};
+  }
 }
 
 /**
@@ -130,16 +130,16 @@ constexpr NumericWitness<T> certify_add(T a, T b, Policy policy) {
  * The default policy maps NaN to Unknown.
  */
 export template <std::floating_point T, typename Policy = NaNHolePolicy<T>>
-	requires IsLipschitzBoundaryPolicy<Policy, T>
+  requires IsLipschitzBoundaryPolicy<Policy, T>
 constexpr NumericWitness<T> certify_add(T a, T b, Policy policy = {}) {
-	const Ternary support_a = policy(a);
-	const Ternary support_b = policy(b);
-	const Ternary support_inputs = TernaryLogic::AND(support_a, support_b);
+  const Ternary support_a = policy(a);
+  const Ternary support_b = policy(b);
+  const Ternary support_inputs = TernaryLogic::AND(support_a, support_b);
 
-	const T result = static_cast<T>(a + b);
-	const Ternary support_result = policy(result);
+  const T result = static_cast<T>(a + b);
+  const Ternary support_result = policy(result);
 
-	return {result, TernaryLogic::AND(support_inputs, support_result)};
+  return {result, TernaryLogic::AND(support_inputs, support_result)};
 }
 
 /**
@@ -148,45 +148,45 @@ constexpr NumericWitness<T> certify_add(T a, T b, Policy policy = {}) {
  * Overflow or support breach is surfaced as Ω_K3::Unknown.
  */
 export template <std::integral T, typename Policy>
-	requires IsLipschitzBoundaryPolicy<Policy, T>
+  requires IsLipschitzBoundaryPolicy<Policy, T>
 constexpr NumericWitness<T> certify_mul(T a, T b, Policy policy) {
-	const Ternary support_a = policy(a);
-	const Ternary support_b = policy(b);
-	const Ternary support_inputs = TernaryLogic::AND(support_a, support_b);
+  const Ternary support_a = policy(a);
+  const Ternary support_b = policy(b);
+  const Ternary support_inputs = TernaryLogic::AND(support_a, support_b);
 
-	if (support_inputs != Ternary::True) {
-		return {T{}, support_inputs};
-	}
+  if (support_inputs != Ternary::True) {
+    return {T{}, support_inputs};
+  }
 
-	if constexpr (std::is_signed_v<T>) {
-		T result{};
-		if (__builtin_mul_overflow(a, b, &result)) {
-			return {T{}, Ternary::Unknown};
-		}
+  if constexpr (std::is_signed_v<T>) {
+    T result{};
+    if (__builtin_mul_overflow(a, b, &result)) {
+      return {T{}, Ternary::Unknown};
+    }
 
-		const Ternary support_result = policy(result);
-		return {result, TernaryLogic::AND(support_inputs, support_result)};
-	} else {
-		const T result = static_cast<T>(a * b);
-		const Ternary support_result = policy(result);
-		return {result, TernaryLogic::AND(support_inputs, support_result)};
-	}
+    const Ternary support_result = policy(result);
+    return {result, TernaryLogic::AND(support_inputs, support_result)};
+  } else {
+    const T result = static_cast<T>(a * b);
+    const Ternary support_result = policy(result);
+    return {result, TernaryLogic::AND(support_inputs, support_result)};
+  }
 }
 
 /**
  * @brief Certified floating multiplication with NaN-hole policy.
  */
 export template <std::floating_point T, typename Policy = NaNHolePolicy<T>>
-	requires IsLipschitzBoundaryPolicy<Policy, T>
+  requires IsLipschitzBoundaryPolicy<Policy, T>
 constexpr NumericWitness<T> certify_mul(T a, T b, Policy policy = {}) {
-	const Ternary support_a = policy(a);
-	const Ternary support_b = policy(b);
-	const Ternary support_inputs = TernaryLogic::AND(support_a, support_b);
+  const Ternary support_a = policy(a);
+  const Ternary support_b = policy(b);
+  const Ternary support_inputs = TernaryLogic::AND(support_a, support_b);
 
-	const T result = static_cast<T>(a * b);
-	const Ternary support_result = policy(result);
+  const T result = static_cast<T>(a * b);
+  const Ternary support_result = policy(result);
 
-	return {result, TernaryLogic::AND(support_inputs, support_result)};
+  return {result, TernaryLogic::AND(support_inputs, support_result)};
 }
 
 /**
@@ -195,45 +195,45 @@ constexpr NumericWitness<T> certify_mul(T a, T b, Policy policy = {}) {
  * Division by zero and signed MIN / -1 overflow are surfaced as False/Unknown.
  */
 export template <std::integral T, typename Policy>
-	requires IsLipschitzBoundaryPolicy<Policy, T>
+  requires IsLipschitzBoundaryPolicy<Policy, T>
 constexpr NumericWitness<T> certify_div(T a, T b, Policy policy) {
-	const Ternary support_a = policy(a);
-	const Ternary support_b = policy(b);
-	const Ternary support_inputs = TernaryLogic::AND(support_a, support_b);
+  const Ternary support_a = policy(a);
+  const Ternary support_b = policy(b);
+  const Ternary support_inputs = TernaryLogic::AND(support_a, support_b);
 
-	if (support_inputs != Ternary::True) {
-		return {T{}, support_inputs};
-	}
+  if (support_inputs != Ternary::True) {
+    return {T{}, support_inputs};
+  }
 
-	if (b == T{0}) {
-		return {T{}, Ternary::False};
-	}
+  if (b == T{0}) {
+    return {T{}, Ternary::False};
+  }
 
-	if constexpr (std::is_signed_v<T>) {
-		if (a == std::numeric_limits<T>::min() && b == T{-1}) {
-			return {T{}, Ternary::Unknown};
-		}
-	}
+  if constexpr (std::is_signed_v<T>) {
+    if (a == std::numeric_limits<T>::min() && b == T{-1}) {
+      return {T{}, Ternary::Unknown};
+    }
+  }
 
-	const T result = static_cast<T>(a / b);
-	const Ternary support_result = policy(result);
-	return {result, TernaryLogic::AND(support_inputs, support_result)};
+  const T result = static_cast<T>(a / b);
+  const Ternary support_result = policy(result);
+  return {result, TernaryLogic::AND(support_inputs, support_result)};
 }
 
 /**
  * @brief Certified floating division with NaN-hole policy.
  */
 export template <std::floating_point T, typename Policy = NaNHolePolicy<T>>
-	requires IsLipschitzBoundaryPolicy<Policy, T>
+  requires IsLipschitzBoundaryPolicy<Policy, T>
 constexpr NumericWitness<T> certify_div(T a, T b, Policy policy = {}) {
-	const Ternary support_a = policy(a);
-	const Ternary support_b = policy(b);
-	const Ternary support_inputs = TernaryLogic::AND(support_a, support_b);
+  const Ternary support_a = policy(a);
+  const Ternary support_b = policy(b);
+  const Ternary support_inputs = TernaryLogic::AND(support_a, support_b);
 
-	const T result = static_cast<T>(a / b);
-	const Ternary support_result = policy(result);
+  const T result = static_cast<T>(a / b);
+  const Ternary support_result = policy(result);
 
-	return {result, TernaryLogic::AND(support_inputs, support_result)};
+  return {result, TernaryLogic::AND(support_inputs, support_result)};
 }
 
 /**
@@ -242,8 +242,8 @@ constexpr NumericWitness<T> certify_div(T a, T b, Policy policy = {}) {
  */
 export template <typename Chi, typename T>
 concept IsNumericHoleClassifier =
-		IsNumericSpecies<T> && IsCharacteristic<Chi> &&
-		std::same_as<Dom<Chi>, T> && std::same_as<Cod<Chi>, Ternary>;
+    IsNumericSpecies<T> && IsCharacteristic<Chi> && std::same_as<Dom<Chi>, T> &&
+    std::same_as<Cod<Chi>, Ternary>;
 
 // Honesty anchors
 static_assert(IsLipschitzBoundaryPolicy<IntervalBoundaryPolicy<int>, int>);
