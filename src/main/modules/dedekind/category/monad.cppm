@@ -40,6 +40,42 @@ namespace dedekind::category {
  */
 
 /**
+ * @brief Value-level alias for η (eta) with explicit hub tag dispatch.
+ * @details Example: pure(maybe_hub, x), pure(identity_hub, x), pure(box_hub,
+ * x).
+ */
+export template <typename HubTag, typename A>
+  requires IsDefaultHubTag<HubTag> &&
+           requires(HubTag tag, A&& v) { η(tag, std::forward<A>(v)); }
+constexpr auto pure(HubTag tag, A&& value) {
+  return η(tag, std::forward<A>(value));
+}
+
+/** @brief Value-level alias for μ (mu) with explicit hub tag dispatch. */
+export template <typename HubTag, typename MMA>
+  requires IsDefaultHubTag<HubTag> &&
+           requires(HubTag tag, MMA const& mma) { μ(tag, mma); }
+constexpr auto join(HubTag tag, MMA const& mma) {
+  return μ(tag, mma);
+}
+
+/** @brief Value-level alias for ε (epsilon) with explicit hub tag dispatch. */
+export template <typename HubTag, typename WA>
+  requires IsDefaultHubTag<HubTag> &&
+           requires(HubTag tag, WA const& wa) { ε(tag, wa); }
+constexpr auto extract(HubTag tag, WA const& wa) {
+  return ε(tag, wa);
+}
+
+/** @brief Value-level alias for δ (delta) with explicit hub tag dispatch. */
+export template <typename HubTag, typename WA>
+  requires IsDefaultHubTag<HubTag> &&
+           requires(HubTag tag, WA const& wa) { δ(tag, wa); }
+constexpr auto duplicate(HubTag tag, WA const& wa) {
+  return δ(tag, wa);
+}
+
+/**
  * @section Monad_as_Monoid (Explicit Definition)
  * We bridge the gap:
  *   η (Unit)           <--> identity_v (Monoid Unit)
@@ -146,7 +182,7 @@ constexpr auto operator>>(T&& val, η_tag<η_t>) {
   return η_t{}(val)(std::forward<T>(val));
 }
 
-// 2. Join: T<T<X>> >> join<T, μ_t>
+// 2. Join: T<T<X>> >> μ_tag<T, μ_t>
 // μ_t is the natural transformation T^2 => T, indexed by
 // typename T::Σ_cat::Arrow::Domain. NestedContext must be convertible to
 // that domain type for the component selection to be valid (e.g., for the

@@ -564,12 +564,18 @@ constexpr auto φ(Maybe<A> const& ma, F&& f)
 
 /**
  * @brief φ for Identity.
- * Simply applies the function to the underlying value.
+ * Structural lift for Identity-as-arrow witnesses.
+ *
+ * Since Identity<T> in this model is the identity arrow witness (not a
+ * value container), this overload transports only the species type-level
+ * shape and returns id<invoke_result_t<F, A>>().
  */
 template <typename A, typename F>
 constexpr auto φ(Identity<A> const& id, F&& f)
     -> Identity<std::invoke_result_t<F, A>> {
-  return {std::invoke(std::forward<F>(f), id.value)};
+  (void)id;
+  (void)f;
+  return category::id<std::invoke_result_t<F, A>>();
 }
 
 /**

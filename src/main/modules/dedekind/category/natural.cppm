@@ -63,12 +63,34 @@ import :morphism;
 
 namespace dedekind::category {
 
+// Hub tags for textbook operator defaults without template-template dispatch.
+export struct maybe_hub_tag final {};
+export struct identity_hub_tag final {};
+export struct box_hub_tag final {};
+
+export inline constexpr maybe_hub_tag maybe_hub{};
+export inline constexpr identity_hub_tag identity_hub{};
+export inline constexpr box_hub_tag box_hub{};
+
+export template <typename Tag>
+concept IsDefaultHubTag =
+    std::same_as<std::remove_cvref_t<Tag>, maybe_hub_tag> ||
+    std::same_as<std::remove_cvref_t<Tag>, identity_hub_tag> ||
+    std::same_as<std::remove_cvref_t<Tag>, box_hub_tag>;
+
 /**
  * @brief The Maybe endofunctor T, implemented via std::optional.
  */
 // η (Unit): a -> Maybe a
 template <typename A>
 constexpr Maybe<std::decay_t<A>> η(A&& value) {
+  return std::make_optional(std::forward<A>(value));
+}
+
+// Tagged defaults for Maybe hub.
+export template <typename A>
+  requires IsSpecies<std::decay_t<A>>
+constexpr Maybe<std::decay_t<A>> η(maybe_hub_tag, A&& value) {
   return std::make_optional(std::forward<A>(value));
 }
 
@@ -82,6 +104,12 @@ constexpr Maybe<A> μ(Maybe<Maybe<A>> const& mma) {
   return mma.has_value() ? *mma : std::nullopt;
 }
 
+export template <typename A>
+  requires IsSpecies<A>
+constexpr Maybe<A> μ(maybe_hub_tag, Maybe<Maybe<A>> const& mma) {
+  return mma.has_value() ? *mma : std::nullopt;
+}
+
 /**
  * @brief The Identity Functor Id_C.
  * Reified 1-morphism that preserves both objects and arrows exactly.
@@ -90,7 +118,16 @@ constexpr Maybe<A> μ(Maybe<Maybe<A>> const& mma) {
 // Monadic
 template <typename A>
 constexpr Identity<std::decay_t<A>> η(A&& value) {
-  return {std::forward<A>(value)};
+  (void)value;
+  return id<std::decay_t<A>>();
+}
+
+// Tagged defaults for Identity hub.
+export template <typename A>
+  requires IsSpecies<std::decay_t<A>>
+constexpr Identity<std::decay_t<A>> η(identity_hub_tag, A&& value) {
+  (void)value;
+  return id<std::decay_t<A>>();
 }
 
 /**
@@ -100,13 +137,29 @@ constexpr Identity<std::decay_t<A>> η(A&& value) {
 template <typename A>
   requires IsSpecies<A>
 constexpr Identity<A> μ(Identity<Identity<A>> const& iia) {
-  return {iia.value.value};
+  (void)iia;
+  return id<A>();
+}
+
+export template <typename A>
+  requires IsSpecies<A>
+constexpr Identity<A> μ(identity_hub_tag, Identity<Identity<A>> const& iia) {
+  (void)iia;
+  return id<A>();
 }
 
 // Comonadic
 template <typename A>
-constexpr A ε(Identity<A> const& ia) {
-  return ia.value;
+constexpr Identity<A> ε(Identity<A> const& ia) {
+  (void)ia;
+  return id<A>();
+}
+
+export template <typename A>
+  requires IsSpecies<A>
+constexpr Identity<A> ε(identity_hub_tag, Identity<A> const& ia) {
+  (void)ia;
+  return id<A>();
 }
 
 /**
@@ -115,7 +168,15 @@ constexpr A ε(Identity<A> const& ia) {
  */
 template <typename A>
 constexpr Identity<Identity<A>> δ(Identity<A> const& ia) {
-  return {ia};
+  (void)ia;
+  return id<Identity<A>>();
+}
+
+export template <typename A>
+  requires IsSpecies<A>
+constexpr Identity<Identity<A>> δ(identity_hub_tag, Identity<A> const& ia) {
+  (void)ia;
+  return id<Identity<A>>();
 }
 
 /**
@@ -125,6 +186,13 @@ constexpr Identity<Identity<A>> δ(Identity<A> const& ia) {
 // Monadic
 template <typename A>
 constexpr Box<std::decay_t<A>> η(A&& value) {
+  return {std::forward<A>(value)};
+}
+
+// Tagged defaults for Box hub.
+export template <typename A>
+  requires IsSpecies<std::decay_t<A>>
+constexpr Box<std::decay_t<A>> η(box_hub_tag, A&& value) {
   return {std::forward<A>(value)};
 }
 
@@ -138,14 +206,32 @@ constexpr Box<A> μ(Box<Box<A>> const& bba) {
   return {bba.value.value};
 }
 
+export template <typename A>
+  requires IsSpecies<A>
+constexpr Box<A> μ(box_hub_tag, Box<Box<A>> const& bba) {
+  return {bba.value.value};
+}
+
 // Comonadic
 template <typename A>
 constexpr A ε(Box<A> const& ba) {
   return ba.value;
 }
 
+export template <typename A>
+  requires IsSpecies<A>
+constexpr A ε(box_hub_tag, Box<A> const& ba) {
+  return ba.value;
+}
+
 template <typename A>
 constexpr Box<Box<A>> δ(Box<A> const& ba) {
+  return {ba};
+}
+
+export template <typename A>
+  requires IsSpecies<A>
+constexpr Box<Box<A>> δ(box_hub_tag, Box<A> const& ba) {
   return {ba};
 }
 

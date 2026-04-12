@@ -23,13 +23,10 @@
  * @section Notation_Mapping Textbook Notation -> Implementation Surface
  *
  * Core monadic/comonadic symbols and their implementation names:
- * - η : unit/pure (defined in `:natural` / used via `pure<T>(x)` in `:monad`)
- * - μ : join/flatten (defined in `:natural` / used via `join<T>(...)` in
- * `:monad`)
- * - ε : counit/extract (defined in `:natural` / used via `extract<W>(...)` in
- * `:monad`)
- * - δ : comultiplication/duplicate (defined in `:natural` / used via
- * `duplicate<W>(...)` in `:monad`)
+ * - η : unit/pure (concrete overloads defined in `:natural`)
+ * - μ : join/flatten (concrete overloads defined in `:natural`)
+ * - ε : counit/extract (concrete overloads defined in `:natural`)
+ * - δ : comultiplication/duplicate (concrete overloads defined in `:natural`)
  * - κ : Kleisli extension (`κ(ma, f)`), exported in this partition
  * - σ : co-Kleisli extension (`σ(wa, f)`), exported in this partition
  *
@@ -134,6 +131,7 @@ concept IsFrobenius =
  * @return The result of applying μ(φ(ma, f))
  */
 export template <typename MA, typename F>
+  requires requires(MA const& ma, F&& f) { μ(φ(ma, std::forward<F>(f))); }
 constexpr auto κ(MA const& ma, F&& f) {
   return μ(φ(ma, std::forward<F>(f)));
 }
@@ -153,6 +151,7 @@ constexpr auto κ(MA const& ma, F&& f) {
  * @return The result of applying φ(δ(wa), f)
  */
 export template <typename WA, typename F>
+  requires requires(WA const& wa, F&& f) { φ(δ(wa), std::forward<F>(f)); }
 constexpr auto σ(WA const& wa, F&& f) {
   return φ(δ(wa), std::forward<F>(f));
 }
@@ -161,8 +160,9 @@ constexpr auto σ(WA const& wa, F&& f) {
  * @brief bind: named alias for monadic Kleisli extension.
  * @details Equivalent to κ(ma, f).
  */
-export template <template <typename> typename T, typename A, typename F>
-constexpr auto bind(T<A> const& ma, F&& f) {
+export template <typename MA, typename F>
+  requires requires(MA const& ma, F&& f) { κ(ma, std::forward<F>(f)); }
+constexpr auto bind(MA const& ma, F&& f) {
   return κ(ma, std::forward<F>(f));
 }
 
@@ -170,9 +170,36 @@ constexpr auto bind(T<A> const& ma, F&& f) {
  * @brief extend: named alias for comonadic co-Kleisli extension.
  * @details Equivalent to σ(wa, f).
  */
-export template <template <typename> typename W, typename A, typename F>
-constexpr auto extend(W<A> const& wa, F&& f) {
+export template <typename WA, typename F>
+  requires requires(WA const& wa, F&& f) { σ(wa, std::forward<F>(f)); }
+constexpr auto extend(WA const& wa, F&& f) {
   return σ(wa, std::forward<F>(f));
+}
+
+/**
+ * @brief bind with explicit hub-tag dispatch.
+ * @details Default route: bind(tag, ma, f) = join(tag, φ(ma, f)).
+ */
+export template <typename HubTag, typename MA, typename F>
+  requires IsDefaultHubTag<HubTag> &&
+           requires(HubTag tag, MA const& ma, F&& f) {
+             join(tag, φ(ma, std::forward<F>(f)));
+           }
+constexpr auto bind(HubTag tag, MA const& ma, F&& f) {
+  return join(tag, φ(ma, std::forward<F>(f)));
+}
+
+/**
+ * @brief extend with explicit hub-tag dispatch.
+ * @details Default route: extend(tag, wa, f) = φ(duplicate(tag, wa), f).
+ */
+export template <typename HubTag, typename WA, typename F>
+  requires IsDefaultHubTag<HubTag> &&
+           requires(HubTag tag, WA const& wa, F&& f) {
+             φ(duplicate(tag, wa), std::forward<F>(f));
+           }
+constexpr auto extend(HubTag tag, WA const& wa, F&& f) {
+  return φ(duplicate(tag, wa), std::forward<F>(f));
 }
 
 /** @section Kleisli_Bind_Operators */

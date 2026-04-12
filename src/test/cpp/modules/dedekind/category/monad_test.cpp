@@ -55,6 +55,32 @@ TEST_CASE("Category: Monad Pipeline Operators",
   }
 }
 
+TEST_CASE("Category: Monad textbook aliases", "[category][monad][aliases]") {
+  SECTION("pure and join route to η/μ for Maybe") {
+    CHECK(pure(maybe_hub, 3) == std::optional<int>{3});
+
+    std::optional<std::optional<int>> nested{std::optional<int>{8}};
+    CHECK(join(maybe_hub, nested) == std::optional<int>{8});
+  }
+
+  SECTION("pure and join route to η/μ for Identity") {
+    auto p = pure(identity_hub, 3);
+    STATIC_CHECK(std::same_as<decltype(p), Identity<int>>);
+    CHECK(p(3) == 3);
+
+    auto j = join(identity_hub, id<Identity<int>>());
+    STATIC_CHECK(std::same_as<decltype(j), Identity<int>>);
+    CHECK(j(8) == 8);
+  }
+
+  SECTION("pure, join, extract, duplicate route through Box defaults") {
+    CHECK(pure(box_hub, 2) == Box<int>{2});
+    CHECK(join(box_hub, Box<Box<int>>{{6}}) == Box<int>{6});
+    CHECK(extract(box_hub, Box<int>{9}) == 9);
+    CHECK(duplicate(box_hub, Box<int>{9}) == Box<Box<int>>{{9}});
+  }
+}
+
 TEST_CASE("Category: Maybe-style bind and join behavior",
           "[category][monad][maybe]") {
   SECTION("Bind maps present optional values") {

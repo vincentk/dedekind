@@ -180,4 +180,24 @@ TEST_CASE("Category: Named Kleisli aliases", "[category][kleisli][aliases]") {
     CHECK(bind(present, plus_two) == std::optional<int>{7});
     CHECK(bind(empty, plus_two) == std::nullopt);
   }
+
+  SECTION("bind with maybe_hub uses default join/phi route") {
+    std::optional<int> present{5};
+    std::optional<int> empty{std::nullopt};
+
+    auto plus_two = [](int x) { return std::optional<int>{x + 2}; };
+    CHECK(bind(maybe_hub, present, plus_two) == std::optional<int>{7});
+    CHECK(bind(maybe_hub, empty, plus_two) == std::nullopt);
+  }
+
+  SECTION("bind and extend with box_hub use default textbook routes") {
+    Box<int> value{6};
+
+    auto bound = bind(box_hub, value, [](int x) { return Box<int>{x + 4}; });
+    CHECK(bound == Box<int>{10});
+
+    auto extended =
+        extend(box_hub, value, [](Box<int> b) { return b.value * 3; });
+    CHECK(extended == Box<int>{18});
+  }
 }
