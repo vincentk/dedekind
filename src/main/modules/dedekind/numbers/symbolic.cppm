@@ -36,7 +36,7 @@ inline constexpr bool is_transcendental_v = false;
 export template <typename R>
   requires std::regular<R>
 constexpr auto TranscendentalSet() {
-  return is_transcendental_v<R>;
+  return [](const R&) constexpr { return is_transcendental_v<R>; };
 }
 
 }  // namespace dedekind::numbers

@@ -30,6 +30,10 @@ struct GaussianKernel {
   constexpr T at(std::size_t n) const noexcept {
     return (*this)(static_cast<T>(0), static_cast<T>(n));
   }
+
+  constexpr T operator[](T x) const noexcept {
+    return (*this)(static_cast<T>(0), x);
+  }
 };
 
 export template <typename K, typename D, typename T>
@@ -48,6 +52,14 @@ struct ReproducingKernel {
   constexpr T at(const typename DomainSet::Domain& x) const {
     const T d = static_cast<T>(x) - y_point;
     return std::exp(-(d * d));
+  }
+
+  constexpr T operator()(const typename DomainSet::Domain& x) const {
+    return at(x);
+  }
+
+  constexpr T operator[](const typename DomainSet::Domain& x) const {
+    return at(x);
   }
 };
 

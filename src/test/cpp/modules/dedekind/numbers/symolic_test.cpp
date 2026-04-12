@@ -25,6 +25,7 @@ TEST_CASE("Numbers: Symbolic Checkpoint", "[numbers][symbolic]") {
   SECTION("Constants and transcendental marker") {
     REQUIRE(Pi().resolve() > 3.14);
     REQUIRE(E().resolve() > 2.71);
-    REQUIRE(TranscendentalSet<double>() == false);
+    const auto T = TranscendentalSet<double>();
+    REQUIRE(T(0.0) == false);
   }
 }
