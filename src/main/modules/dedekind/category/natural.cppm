@@ -262,7 +262,7 @@ struct horizontal_composition {
              beta(static_cast<typename G::Σ_cat::Arrow::Domain>(c));
     } else {
       return G_prime{}.φ(alpha(c)) >>
-             beta(F_prime{}.φ(F::Σ_cat::id_c(c)).vertex);
+             beta(static_cast<typename G::Σ_cat::Arrow::Domain>(c));
     }
   }
 };
