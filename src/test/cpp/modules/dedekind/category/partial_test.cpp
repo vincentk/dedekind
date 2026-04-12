@@ -9,6 +9,8 @@ using namespace dedekind::category;
 TEST_CASE("Partial: maturity mirrors total hierarchy", "[category][partial]") {
   using UAdd =
       BoundedAddTransform<unsigned int, FullMachineBoundaryPolicy<unsigned int>>;
+  using UMul =
+      BoundedMulTransform<unsigned int, FullMachineBoundaryPolicy<unsigned int>>;
 
   SECTION("Unsigned bounded add matures to partial Abelian group") {
     STATIC_CHECK(IsMagmoid<unsigned int, UAdd>);
@@ -32,5 +34,17 @@ TEST_CASE("Partial: maturity mirrors total hierarchy", "[category][partial]") {
 
   SECTION("Honest division is not a partial semigroup") {
     STATIC_CHECK_FALSE(IsPartialSemigroup<int, HonestDivTransform<int>>);
+  }
+
+  SECTION("Unsigned bounded multiply matures to commutative partial monoid") {
+    STATIC_CHECK(IsPartialSemigroup<unsigned int, UMul>);
+    STATIC_CHECK(IsPartialCommutativeSemigroup<unsigned int, UMul>);
+    STATIC_CHECK(IsPartialMonoid<unsigned int, UMul>);
+  }
+
+  SECTION("Bounded division exposes undefined points") {
+    BoundedDivTransform<int, FullMachineBoundaryPolicy<int>> div{};
+    const auto by_zero = div({42, 0});
+    CHECK(by_zero.status == Ternary::False);
   }
 }

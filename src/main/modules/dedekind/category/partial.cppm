@@ -221,6 +221,54 @@ template <std::unsigned_integral T>
 inline constexpr T partial_identity_v<
     T, BoundedAddTransform<T, FullMachineBoundaryPolicy<T>>> = T(0);
 
+/** @brief Multiplication with user-supplied numeric boundary policy. */
+export template <std::integral T,
+                 typename BoundaryPolicy = FullMachineBoundaryPolicy<T>>
+  requires IsLipschitzBoundaryPolicy<BoundaryPolicy, T>
+struct BoundedMulTransform {
+  BoundaryPolicy boundary{};
+
+  TernaryResult<T> operator()(std::pair<T, T> p) const noexcept {
+    auto [a, b] = p;
+    const auto witness = certify_mul(a, b, boundary);
+    return {witness.status, witness.value};
+  }
+
+  using logic_species = TernaryLogic;
+};
+
+template <std::unsigned_integral T>
+inline constexpr bool
+    is_kleene_associative_v<T,
+                            BoundedMulTransform<T, FullMachineBoundaryPolicy<T>>> =
+        true;
+
+template <std::unsigned_integral T>
+inline constexpr bool
+    is_kleene_commutative_v<T,
+                            BoundedMulTransform<T, FullMachineBoundaryPolicy<T>>> =
+        true;
+
+template <std::unsigned_integral T>
+inline constexpr T partial_identity_v<
+    T, BoundedMulTransform<T, FullMachineBoundaryPolicy<T>>> = T(1);
+
+/** @brief Division with user-supplied numeric boundary policy. */
+export template <std::integral T,
+                 typename BoundaryPolicy = FullMachineBoundaryPolicy<T>>
+  requires IsLipschitzBoundaryPolicy<BoundaryPolicy, T>
+struct BoundedDivTransform {
+  BoundaryPolicy boundary{};
+
+  TernaryResult<T> operator()(std::pair<T, T> p) const noexcept {
+    auto [a, b] = p;
+    const auto witness = certify_div(a, b, boundary);
+    return {witness.status, witness.value};
+  }
+
+  using logic_species = TernaryLogic;
+};
+
 /** @brief Division with truncation-awareness (Ternary Logic). */
 export template <std::integral T>
 struct HonestDivTransform {
@@ -282,6 +330,17 @@ static_assert(!IsPartialSemigroup<int, HonestDivTransform<int>>);
 static_assert(IsPartialAbelianGroup<
               unsigned int,
               BoundedAddTransform<unsigned int,
+                                  FullMachineBoundaryPolicy<unsigned int>>>);
+
+// 5. Unsigned bounded-mul with full machine support matures to a partial
+// commutative monoid.
+static_assert(IsPartialCommutativeSemigroup<
+              unsigned int,
+              BoundedMulTransform<unsigned int,
+                                  FullMachineBoundaryPolicy<unsigned int>>>);
+static_assert(IsPartialMonoid<
+              unsigned int,
+              BoundedMulTransform<unsigned int,
                                   FullMachineBoundaryPolicy<unsigned int>>>);
 
 }  // namespace dedekind::category

@@ -37,4 +37,21 @@ TEST_CASE("Numeric: NaN holes and user boundaries", "[category][numeric]") {
                                      FullMachineBoundaryPolicy<unsigned int>{});
     CHECK(witness.status == Ternary::True);
   }
+
+  SECTION("Certified multiply detects signed overflow") {
+    constexpr IntervalBoundaryPolicy<int> support{-1000, 1000};
+    const auto overflow = certify_mul(std::numeric_limits<int>::max(), 2, support);
+    CHECK(overflow.status == Ternary::Unknown);
+  }
+
+  SECTION("Certified integer division surfaces false/unknown honestly") {
+    constexpr FullMachineBoundaryPolicy<int> support{};
+
+    const auto by_zero = certify_div(10, 0, support);
+    CHECK(by_zero.status == Ternary::False);
+
+    const auto min_overflow =
+        certify_div(std::numeric_limits<int>::min(), -1, support);
+    CHECK(min_overflow.status == Ternary::Unknown);
+  }
 }
