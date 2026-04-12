@@ -1,0 +1,40 @@
+/** @file test/cpp/modules/dedekind/category/numeric_test.cpp */
+#include <catch2/catch_test_macros.hpp>
+#include <cmath>
+#include <limits>
+
+import dedekind.category;
+
+using namespace dedekind::category;
+
+TEST_CASE("Numeric: NaN holes and user boundaries", "[category][numeric]") {
+  SECTION("NaN hole is surfaced as Unknown") {
+    const double nan = std::numeric_limits<double>::quiet_NaN();
+    const auto status = classify_numeric(nan, NaNHolePolicy<double>{});
+    CHECK(status == Ternary::Unknown);
+  }
+
+  SECTION("User-provided interval policy marks outside support") {
+    constexpr IntervalBoundaryPolicy<int> support{-10, 10};
+    CHECK(classify_numeric(4, support) == Ternary::True);
+    CHECK(classify_numeric(12, support) == Ternary::Unknown);
+  }
+
+  SECTION("Certified integer addition consults policy") {
+    constexpr IntervalBoundaryPolicy<int> support{-10, 10};
+
+    const auto ok = certify_add(3, 4, support);
+    CHECK(ok.status == Ternary::True);
+    CHECK(ok.value == 7);
+
+    const auto outside = certify_add(8, 5, support);
+    CHECK(outside.status == Ternary::Unknown);
+  }
+
+  SECTION("Unsigned full-machine policy remains inside support") {
+    const auto witness = certify_add(std::numeric_limits<unsigned int>::max(),
+                                     1u,
+                                     FullMachineBoundaryPolicy<unsigned int>{});
+    CHECK(witness.status == Ternary::True);
+  }
+}
