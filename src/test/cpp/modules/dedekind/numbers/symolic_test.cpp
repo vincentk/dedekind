@@ -1,8 +1,10 @@
 #include <catch2/catch_test_macros.hpp>
 
 import dedekind.numbers;
+import dedekind.category;
 
 using namespace dedekind::numbers;
+using namespace dedekind::category;
 
 TEST_CASE("Numbers: Symbolic Checkpoint", "[numbers][symbolic]") {
   using R = Real<double>;
@@ -10,8 +12,8 @@ TEST_CASE("Numbers: Symbolic Checkpoint", "[numbers][symbolic]") {
 
   SECTION("Sqrt2 symbolic anchor") {
     const auto root2 = Sqrt2_Symbolic<double>();
-    REQUIRE(root2.resolve() > 1.4);
-    REQUIRE(root2.resolve() < 1.5);
+    REQUIRE(root2(1.4) == Ternary::True);
+    REQUIRE(root2(1.5) == Ternary::False);
   }
 
   SECTION("Complex arithmetic over Real wrapper") {
@@ -26,6 +28,6 @@ TEST_CASE("Numbers: Symbolic Checkpoint", "[numbers][symbolic]") {
     REQUIRE(Pi().resolve() > 3.14);
     REQUIRE(E().resolve() > 2.71);
     const auto T = TranscendentalSet<double>();
-    REQUIRE(T(0.0) == false);
+    REQUIRE(T(0.0) == Ternary::False);
   }
 }
