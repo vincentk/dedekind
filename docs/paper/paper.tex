@@ -346,8 +346,7 @@ These partitions represent the maturation of mathematical species from raw mappi
 
     % --- Row 2: L1 (Left to Right) ---
     \node[partition] (total) at (0, 3.8) {:total};
-    \node[partition, right=of total] (alg_total) {:algebra\_total};
-    \node[partition, right=of alg_total] (actions) {:actions};
+    \node[partition, right=of total] (actions) {:actions};
 
     % --- Row 3: L2 (Right to Left - Reversed) ---
     \node[partition] (kleisli) at (9.0, 6.2) {:kleisli};
@@ -357,8 +356,7 @@ These partitions represent the maturation of mathematical species from raw mappi
 
     % --- Row 4: L3 (Left to Right) ---
     \node[partition] (numeric) at (0, 8.7) {:numeric};
-    \node[partition, right=of numeric] (alg_partial) {:algebra\_partial};
-    \node[partition, right=of alg_partial] (partial) {:partial};
+    \node[partition, right=of numeric] (partial) {:partial};
 
     % --- Level 4: Synthesis ---
     \node[partition] (etcs) at (4.5, 11.0) {:etcs};
@@ -377,8 +375,7 @@ These partitions represent the maturation of mathematical species from raw mappi
     \draw[dependency] (pullback) .. controls (-1.0, 2.5) and (-1.0, 3.1) .. (total); % Turn
 
     % L1 Flow
-    \draw[dependency] (total) -- (alg_total);
-    \draw[dependency] (alg_total) -- (actions);
+    \draw[dependency] (total) -- (actions);
     \draw[dependency] (actions) .. controls (10.5, 4.8) and (10.5, 5.5) .. (kleisli); % Turn
 
     % L2 Flow (The Monadic Spine)
@@ -388,8 +385,7 @@ These partitions represent the maturation of mathematical species from raw mappi
     \draw[dependency] (functor) .. controls (-1.0, 7.5) and (-1.0, 8.1) .. (numeric); % Turn
 
     % L3 Flow (The "Rescue" Refinement)
-    \draw[dependency] (numeric) -- (alg_partial);
-    \draw[dependency] (alg_partial) -- (partial);
+    \draw[dependency] (numeric) -- (partial);
     \draw[dependency] (partial) -- (etcs); % Final Decoupled Ascent
 
     % Formal Anchors (Right Gutter)
@@ -757,7 +753,7 @@ static_assert(IsSmallCategory<CPlusPlusTypeCategory>);
 
 To support multi-variable transformations and formal choice, the \texttt{:cartesian} partition reifies \texttt{std::pair} and \texttt{std::variant} through their universal properties. In the \texttt{dedekind} topos, a \textbf{Product} ($A \times B$) is not merely a passive data container, but a structural requirement for the existence of unique projections $\pi_1$ and $\pi_2$. By mapping the categorical product to \texttt{std::pair}, we establish the formal basis for binary algebraic operations—modeled as morphisms of the form $X \times X \to X$—ensuring that the ``Rules of Both'' are verified as categorical invariants.
 
-Dually, the \textbf{Coproduct} ($A + B$) is reified through \texttt{std::variant}, representing the ``Rules of Choice.'' This allows for the categorical modeling of branching logic: a morphism out of a coproduct $f: A + B \to C$ is uniquely determined by a pair of morphisms $(f_A: A \to C, f_B: B \to C)$ via the mediator. By anchoring these universal constructions in the standard library's vocabulary, the library enables the \texttt{:algebra\_total} partition to define complex signatures while maintaining the zero-overhead performance of C++ machine types.
+Dually, the \textbf{Coproduct} ($A + B$) is reified through \texttt{std::variant}, representing the ``Rules of Choice.'' This allows for the categorical modeling of branching logic: a morphism out of a coproduct $f: A + B \to C$ is uniquely determined by a pair of morphisms $(f_A: A \to C, f_B: B \to C)$ via the mediator. By anchoring these universal constructions in the standard library's vocabulary, the library enables the Level 1 \texttt{:total} layer to define complex signatures while maintaining the zero-overhead performance of C++ machine types.
 
 \begin{lstlisting}[language=C++, caption={The Universal Bridge: Mapping Products and Coproducts to C++ Primitives.}, label={lst:cartesian_bridge}]
 /** 
@@ -857,9 +853,9 @@ struct TotalMorphism : Morphism<A, B, Func> {
 };
 \end{lstlisting}
 
-\subsubsection{The \texttt{:algebra\_total} partition: The Laws of Harmony}
+\subsubsection{Total Algebraic Layer (within \texttt{:total}): The Laws of Harmony}
 
-Building upon the total mappings established in Level 1a, the \texttt{:algebra\_total} partition materializes the ``Pure Ideals'' of abstract algebra.
+Building upon the total mappings established in Level 1a, the algebraic layer within \texttt{:total} materializes the ``Pure Ideals'' of abstract algebra.
 In this partition, species ``mature'' as they gain axioms, moving from the primal \textbf{Magma} to the perfect symmetry of an \textbf{Abelian Group}.
 A key architectural decision in \texttt{dedekind} is the decoupling of \emph{associativity} from \emph{invertibility}: while a \textbf{Monoid} provides an identity to an associative Semigroup, a \textbf{Unital Magma} (or \textbf{Loop} if invertible) provides an identity even when associativity is rejected \cite{bruck1971survey}.
 A \textbf{Group} is thus reified as the perfect synthesis of these two paths, as shown in Table~\ref{tab:algebraic_hierarchy}.
@@ -922,7 +918,7 @@ static_assert(!is_distributive_v<int, std::multiplies<>, std::plus<>>,
 
 \subsubsection{Monoid Actions and Modules (\texttt{:actions})}
 
-The \texttt{:actions} partition materializes the concept of a Species being acted upon by an Algebraic Structure. This partition defines the \texttt{IsSemiModule} and \texttt{IsModule} concepts, where a \textbf{Monoid} (from \texttt{:algebra\_total}) defines a transformation rule over a target Species. 
+The \texttt{:actions} partition materializes the concept of a Species being acted upon by an Algebraic Structure. This partition defines the \texttt{IsSemiModule} and \texttt{IsModule} concepts, where a \textbf{Monoid} (from the \texttt{:total} algebraic layer) defines a transformation rule over a target Species. 
 
 Following the pedagogical tradition of Stammbach \cite{stammbach1994lineare}, we treat linear algebra not as a series of matrix operations, but as the study of structured actions.
 In this ontology, we distinguish between \textbf{Internal Composition} (operations within a species) and \textbf{External Influence} (actions upon a species).
@@ -1065,13 +1061,13 @@ auto g = partial_plus(f, INT_MAX);    // Result: Unknown (Overflow)
 auto h = partial_plus(g, 1);          // Result: Unknown (Propagation)
 \end{lstlisting}
 
-\subsubsection{The \texttt{:algebra\_partial} partition: The Generalised Reality}
+\subsubsection{Partial Algebraic Layer (within \texttt{:partial}): The Generalised Reality}
 
-Following the monadic Kleisli lift, the \texttt{:algebra\_partial} partition generalizes the algebraic laws of Level 1 to handle the ``broken'' reality of hardware. In this partition, the strict requirements of absolute closure and identity are relaxed into \textbf{Partial Monoids} and \textbf{Partial Groups}. Unlike their total counterparts, these structures are only guaranteed to hold within the specific support $S \hookrightarrow A$ provided by the \texttt{:logic} and \texttt{:partial} partitions.
+Following the monadic Kleisli lift, the algebraic layer within \texttt{:partial} generalizes the algebraic laws of Level 1 to handle the ``broken'' reality of hardware. In this layer, the strict requirements of absolute closure and identity are relaxed into \textbf{Partial Monoids} and \textbf{Partial Groups}. Unlike their total counterparts, these structures are only guaranteed to hold within the specific support $S \hookrightarrow A$ provided by the \texttt{:logic} and \texttt{:partial} partitions.
 
 The core objective of this partition is to verify that a species is ``consistently broken.'' By reifying partiality through the $\Omega$-Monad, \texttt{dedekind} ensures that if a result is defined (i.e., its presence is $\top$), it must still satisfy the required algebraic identities. For instance, a \textbf{Partial Monoid} must remain associative wherever its composition is defined. This allows the library's dispatcher to safely propagate \texttt{Unknown} or \texttt{NaN} states through the algebraic pipeline without triggering undefined behavior. By enforcing these laws within the support, we ensure that the ``Laws of Harmony'' are not discarded, but are instead localized, allowing the compiler to perform structural pruning even in the presence of indeterminate data.
 
-\begin{lstlisting}[language=C++, caption={Local Totality: Verifying the Laws of Harmony on the Support.}, label={lst:algebra_partial}]
+\begin{lstlisting}[language=C++, caption={Local Totality: Verifying the Laws of Harmony on the Support.}, label={lst:partial_algebra_layer}]
 // Verification: A Partial Monoid is associative on its support.
 export template <typename T, typename Op>
 concept IsPartialMonoid = IsPartialMagma<T, Op> && 
@@ -1084,7 +1080,7 @@ static_assert(IsPartialAbelianGroup<int, std::plus<int>>);
 
 \subsubsection{The \texttt{:numeric} partition: The Material Landing}
 
-The \texttt{:numeric} partition represents the final ``landing'' of the abstract theory back onto the hardware substrate. While the \texttt{:partial} and \texttt{:algebra\_partial} partitions establish the general laws for inconsistent structures, the \texttt{:numeric} partition provides the specific mapping for IEEE 754 floating-point types and bounded integers. 
+The \texttt{:numeric} partition represents the final ``landing'' of the abstract theory back onto the hardware substrate. While the \texttt{:partial} partition (including its internal algebraic layer) establishes the general laws for inconsistent structures, the \texttt{:numeric} partition provides the specific mapping for IEEE 754 floating-point types and bounded integers. 
 
 In this partition, the library utilizes the \texttt{Partial<T>} rescue pod to formally model the non-associative nature of \texttt{double} and the non-reflexive behavior of \texttt{NaN}. By anchoring these hardware-specific behaviors as first-class inhabitants of a partial monoid, we ensure that the ``messy reality'' of rounding errors and overflows is not an exception to the theory, but a verified and traceable component of the categorical flow. This is achieved through ``Safety Certificates'' for specific machine species, which allow the \texttt{dedekind} dispatcher to dynamically enable or disable algebraic optimizations (such as expression reordering) based on the material reality of the underlying type.
 

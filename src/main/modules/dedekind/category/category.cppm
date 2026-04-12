@@ -1,24 +1,21 @@
 /**
  * @file dedekind/category/category.cppm
  * @module dedekind.category
- * @brief The Universal Category Theory Substrate.
+ * @brief Main umbrella module for dedekind.category partitions.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
+
  *
- * @section Implementation_Philosophy
+ * @quote
  * "La structure d’une chose n’est nullement une chose qu’on puisse « saisir »
  *  si l’on n’est pas d’abord prêt à s’y fondre."
  *  (The structure of a thing is by no means something that one can "grasp"
  *  if one is not first prepared to melt into it.)
  *  — Alexander Grothendieck, Récoltes et Semailles.
  *
- * This module implements a structuralist approach based on the Elementary
- * Theory of the Category of Sets (ETCS). We use C++23 modules and concepts
- * to treat mathematical objects as positions within a system of relations
- * (morphisms) rather than traditional object-oriented hierarchies.
+ * The table of contents for the dedekind.category module is as follows:
  *
- * @section Fractal_Build_Order
  * 0.   ATOMS (:species, :morphism, :mereology, :logic): Reification of machine
  *      primitives, the Skeletal Arrow, and the grounding of Truth via Parthood.
  * 0.5  INFRASTRUCTURE (:posetal, :small, :cartesian, :limit, :pullback):
@@ -26,10 +23,9 @@
  * 1.   IDEALS (:total, :action): The pure laws of total algebra.
  * 2.   BRIDGE (:functor, :natural, :monad, :kleisli): The Functorial Spine
  *      enabling the Monadic Kleisli lift.
- * 3.   REALITY (:numeric, :algebra_partial, :partial): Reconciling theory
+ * 3.   REALITY (:numeric, :partial): Reconciling theory
  *      with hardware-level indeterminacy and IEEE 754.
  * 4.   SKELETAL SIGNATURES (:etcs): The Set-Theoretic Interface (ETCS).
-
  *
  * @see Lawvere, F.W. (1964) "An Elementary Theory of the Category of Sets"
  * @see McLarty, C. (1993) "Numbers can be just what they have to"
