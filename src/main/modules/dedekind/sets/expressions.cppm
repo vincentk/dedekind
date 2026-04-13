@@ -102,7 +102,8 @@ class Set {
 
   template <typename B>
     requires std::same_as<T, typename B::Domain> &&
-             std::same_as<Predicate, UniversalPredicate<T>>
+             std::same_as<Predicate, UniversalPredicate<T>> &&
+             requires { typename B::is_universal_boundary; }
   constexpr Set(MembershipBinding<B>) : predicate_{} {}
 
   constexpr auto operator()(const T& v) const {
@@ -146,6 +147,7 @@ Set(Comprehension<B, P>)
     -> Set<typename B::Domain, typename NaturalLogic<B>::type, P>;
 
 export template <typename S>
+  requires requires { typename S::is_universal_boundary; }
 Set(MembershipBinding<S>)
     -> Set<typename S::Domain, typename NaturalLogic<S>::type,
            UniversalPredicate<typename S::Domain>>;

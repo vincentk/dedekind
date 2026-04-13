@@ -130,6 +130,7 @@ struct Ω final : Boundaries {
   using Codomain = typename L::Ω;
   using cardinality_type = C;
   using base_set_type = Ω<T, L, C>;
+  using is_universal_boundary = void;
   using logic_species = L;
 
   /** @section Algebraic_Axioms */
