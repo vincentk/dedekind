@@ -373,8 +373,8 @@ export using ℶ_1 = ℵ<1>;  // The Continuum (assuming GCH)
 
 /** @section The_Body: The Logic of Presence */
 
-// FIXME: to be removed when migrating to full-on ETCS:
-// 1. Primary Template: The "Passive" Fallback (Blessed Types)
+// Transitional metadata bridge for lifting sets-side species into ETCS
+// `ambient_set(...)` objects.
 template <typename S, typename Enable = void>
 struct SetMetadata {
   using Domain = typename SpeciesTraits<S>::Domain;
@@ -392,20 +392,18 @@ struct SetMetadata<
   using Cardinality = typename S::cardinality_type;
 };
 
-/**
- * WORKAROUND: Shield for functional membership.
- * This allows IsMereologicalSet to evaluate to false (or be bypassed)
- * for non-functional types like 'unsigned long'.
- */
-template <typename S, typename Domain, typename Ω>
-concept IsFunctionalSet = requires(const S s, const Domain d) {
-  { s(d) } -> std::same_as<typename Ω::Ω>;
+/** @brief ETCS alignment bridge: a sets-side species can be lifted to IsSet. */
+template <typename S>
+concept IsETCSLiftedSet = requires(const S s) {
+  requires dedekind::category::IsSet<
+      decltype(dedekind::category::ambient_set<typename SetMetadata<S>::Domain>(
+          s))>;
 };
 
 /** @section The_Extent: The Logic of Realization */
 
 /**
- * @concept IsExtensional
+ * @concept IsEnumerated
  * @brief A set whose members are materialized or bounded in memory (The
  * "Bucket").
  *
@@ -417,11 +415,7 @@ concept IsFunctionalSet = requires(const S s, const Domain d) {
  * @tparam L The Subobject Classifier (Ω). Defaults to ClassicalLogic.
  */
 export template <typename S, typename L = ClassicalLogic>
-concept IsEnumerated = requires(const S s) {
-  requires dedekind::category::IsSet<
-      decltype(dedekind::category::ambient_set<typename SetMetadata<S>::Domain>(
-          s))>;
-} && requires(const S s) {
+concept IsEnumerated = IsETCSLiftedSet<S> && requires(const S s) {
   /** @section Magnitude: The Physical Proof */
   // An extensional set MUST claim a Finite cardinality type.
   requires(S::cardinality_type::is_finite == true);
@@ -450,11 +444,7 @@ concept IsEnumerated = requires(const S s) {
  * Wikipedia: Intensional definition, Indicator function, Ternary logic
  */
 export template <typename S, typename L = TernaryLogic>
-concept IsSymbolic = requires(const S s) {
-  requires dedekind::category::IsSet<
-      decltype(dedekind::category::ambient_set<typename SetMetadata<S>::Domain>(
-          s))>;
-} && !IsEnumerated<S, L>;
+concept IsSymbolic = IsETCSLiftedSet<S> && !IsEnumerated<S, L>;
 
 /**
  * @concept IsPointedSet
@@ -462,11 +452,7 @@ concept IsSymbolic = requires(const S s) {
  * Wikipedia: Pointed set
  */
 export template <typename S, typename T>
-concept IsPointedSet = requires(const S s) {
-  requires dedekind::category::IsSet<
-      decltype(dedekind::category::ambient_set<typename SetMetadata<S>::Domain>(
-          s))>;
-} && IsPointed<T, std::plus<T>>;
+concept IsPointedSet = IsETCSLiftedSet<S> && IsPointed<T, std::plus<T>>;
 
 /**
  * @section Structural_Inference: NaturalLogic

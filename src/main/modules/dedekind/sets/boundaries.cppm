@@ -196,11 +196,11 @@ static_assert(dedekind::category::IsSet<decltype(ambient_set<int>(Ω<int>{}))>,
 static_assert(dedekind::category::IsSet<decltype(ambient_set<int>(Ø<int>{}))>,
               "The empty boundary must lift to an ETCS set object.");
 
-// FIXME: This is a hack to make the tests compile. The NaturalNumbers class
-// should Define the symbol used in your test Define the type
+// Transitional alias used by tests and set-builder examples.
+// ETCS-level natural-number witnesses may replace this direct alias later.
 export using NaturalNumbers = Ω<int>;
 
-// Define the symbol used in your test
+// Canonical symbol used by the sets DSL tests.
 export inline constexpr NaturalNumbers ℕ{};
 
 };  // namespace dedekind::sets

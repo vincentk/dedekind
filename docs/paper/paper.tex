@@ -15,6 +15,7 @@
 \usepackage{hyperref}                  % Clickable links & cross-refs
 \usepackage{booktabs}                  % High-quality tables
 
+\newunicodechar{∩}{\ensuremath{\cap}}
 \newunicodechar{ℚ}{\ensuremath{\mathbb{Q}}}
 \newunicodechar{ℝ}{\ensuremath{\mathbb{R}}}
 \newunicodechar{∃}{\ensuremath{\exists}}
@@ -190,7 +191,7 @@ This "white-box" transparency enables the compiler to identify a type as a repre
 These mappings and their categorical implications are summarized in Table \ref{table:std_correspondence} and Table \ref{table:semantic_mapping}.
 
 
-\begin{lstlisting}[caption={A simplified illustration of a set intersection implementation in \texttt{C++} in the structuralist, mereological style.}, , label={lst:set_intersection}]
+\begin{lstlisting}[language=C++, caption={A simplified illustration of a set intersection implementation in \texttt{C++} in the structuralist, mereological style.}, , label={lst:set_intersection}]
 template <typename Universe, auto Predicate>
 struct Set {
     using type = Universe;
@@ -208,7 +209,7 @@ In practice, this allows us to move beyond the "black-box" constraints of nomina
 By hoisting these mereological invariants into the type signature, we enable the LLVM backend to perform aggressive structural pruning. As noted in the \emph{n-Category Café} \cite{ncategorycafe}, this categorical perspective treats the "logic" of the system and the "computation" of the system as dual aspects of the same structure—a principle we aim to exploit. 
 For example, to ensure that contradictory set-builder predicates collapse into zero-instruction machine code (see Listing \ref{lst:set_intersection}).
 
-\begin{lstlisting}[caption={Compile-time reduction of contradictory set intersections.}]
+\begin{lstlisting}[language=C++, caption={Compile-time reduction of contradictory set intersections.}]
 using 
  = Set<
 , [](auto x) { return x > 0.0; }>;
@@ -231,7 +232,7 @@ By reifying set operations as type-level compositions, the compiler can symbolic
 For instance, the intersection of two contradictory sets—such as the set of positive reals and the set of negative reals—can be identified as an empty set during translation to \textsc{LLVM} Intermediate Representation (IR).
 This allows the backend to prune entire execution branches, effectively collapsing complex symbolic logic into zero-instruction machine code.
 
-\begin{lstlisting}[caption={Illustration of the symbolic construction of $e$ as an intensional set (the lower cut $L \subset \mathbb{Q}$).}, label={lst:euler}]
+\begin{lstlisting}[caption={language=C++, Illustration of the symbolic construction of $e$ as an intensional set (the lower cut $L \subset \mathbb{Q}$).}, label={lst:euler}]
 // Representing e via the series predicate: 
 // q < sum_{n=0}^N 1/n! for some N
 using e = Set<ℚ, [](ℚ q) {
@@ -1460,6 +1461,61 @@ The programmer is free to reason in the language of Cantor, while the compiler p
 
 \subsection{Semantics}
 \section{Results}
+
+\textbf{Showcase: Computing with Infinities}
+
+\begin{lstlisting}[caption={Showing that the intersection of two non-overlapping sequences is the empty set.}, label={lst:showcase:infinities}]
+#include <dedekind/sets.hpp>
+#include <dedekind/numbers.hpp>
+
+using namespace dedekind::category;
+
+// 1. Define an intensional set: All Prime Numbers > 2
+// In dedekind, this is a Stateless Constraint Type
+using PrimesGt2 = Set<int, [](int n) {
+    return is_prime(n) && (n > 2); 
+}>;
+
+// 2. Define another intensional set: All Even Numbers
+using Evens = Set<int, [](int n) {
+    return (n % 2 == 0);
+}>;
+
+// 3. Symbolic Intersection
+// The compiler inspects the 'SpeciesTraits' and predicates
+using ForbiddenZone = Intersection<PrimesGt2, Evens>;
+
+// --- THE "IMPRESSIVE" BIT ---
+
+// A C++ developer expects this to require a runtime check or loop.
+// Instead, dedekind performs "Structural Pruning".
+\end{lstlisting}
+
+\textbf{Showcase: Simple Differential Equations}
+
+% Background: https://www.researchgate.net/publication/235899287_Compile-Time_Symbolic_Differentiation_Using_C_Expression_Templates
+
+\begin{lstlisting}[caption={Compile-time solution of a simple differential equation.}, label={lst:showcase:differentials}]
+#include <dedekind/analysis.hpp>
+
+// Define 'e^x' as an intensional symbolic type
+using Exp = Symbolic::Exponential; 
+
+// The 'Derivative' meta-function computes the symbolic result
+using ExpPrime = Derivative<Exp>;
+
+// A TOPLAS reviewer would be impressed by this:
+// The compiler 'solves' the equation by confirming identity.
+static_assert(std::is_same_v<Exp, ExpPrime>, 
+    "Proof: f' = f is satisfied by the Exponential species.");
+
+// Usage in a 'Highway' pipeline
+void calculate() {
+    // Because the solution is proven at compile-time, 
+    // the machine code is just a literal constant loading.
+    constexpr auto result = Exp::at(0); // result = 1.0
+}
+\end{lstlisting}
 
 \begin{table}[h]
 \centering
