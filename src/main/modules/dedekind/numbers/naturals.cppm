@@ -66,4 +66,18 @@ concept Monoid_ℕ = IsNatural<E> && requires(const M& m) {
   { m.cardinality() } -> std::same_as<std::size_t>;
 };
 
+/**
+ * @brief Canonical embedding 𝔹 ↪ ℕ: bool → unsigned.
+ * @details False maps to 0, True maps to 1.
+ */
+export inline constexpr auto embed_𝔹_ℕ =
+    arrow<bool, unsigned>([](const bool& b) noexcept { return b ? 1u : 0u; });
+
 };  // namespace dedekind::numbers
+
+namespace dedekind::category {
+template <>
+inline constexpr bool
+    is_monic_arrow_v<std::decay_t<decltype(dedekind::numbers::embed_𝔹_ℕ)>> =
+        true;
+}  // namespace dedekind::category

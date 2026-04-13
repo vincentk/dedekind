@@ -33,6 +33,8 @@ TEST_CASE("Numbers: starter universes construct from ambient values",
   constexpr auto n = var<ℕ>;
   constexpr auto naturals = Set{n % N};
   static_assert(naturals(7) == Ternary::True);
+  static_assert(naturals(-7) == Ternary::False);
+  static_assert(naturals(7u) == Ternary::True);
 
   constexpr auto z = var<ℤ>;
   constexpr auto integers = Set{z % Z};

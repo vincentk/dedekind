@@ -606,4 +606,32 @@ constexpr auto operator>>(T&& value, const Arrow& f) ->
   return f(std::forward<T>(value));
 }
 
+/**
+ * @brief User-declared monicity witness for an arrow type.
+ * @details Injectivity cannot be verified at compile time in general.
+ *          Users specialize this to `true` to declare that a given arrow
+ *          is injective (i.e., a monomorphism in the category of sets).
+ *          The compiler trusts the declaration; no runtime proof is required.
+ *
+ *          This mirrors `is_kleene_associative_v` in the partial algebra layer.
+ */
+export template <typename E>
+inline constexpr bool is_monic_arrow_v = false;
+
+/**
+ * @concept IsMonicArrow
+ * @brief An arrow declared to be a monomorphism (ι: A ↣ B).
+ * @details A monic arrow is injective: if e(x) == e(y) then x == y.
+ *          The user declares monicity via `is_monic_arrow_v<E> = true`.
+ */
+export template <typename E>
+concept IsMonicArrow = IsArrow<E> && is_monic_arrow_v<E>;
+
+// Identity arrows are always monic.
+template <typename T>
+inline constexpr bool is_monic_arrow_v<Identity<T>> = true;
+
+static_assert(IsMonicArrow<Identity<int>>,
+              "Identity must be recognised as a monic arrow.");
+
 }  // namespace dedekind::category

@@ -101,6 +101,10 @@ class Set {
   constexpr Set(Comprehension<B, P> cp) : predicate_(std::move(cp.predicate)) {}
 
   template <typename B>
+    requires std::same_as<T, typename B::Domain> && std::same_as<Predicate, B>
+  constexpr Set(MembershipBinding<B> b) : predicate_(b.base) {}
+
+  template <typename B>
     requires std::same_as<T, typename B::Domain> &&
              std::same_as<Predicate, UniversalPredicate<T>> &&
              requires { typename B::is_universal_boundary; }
@@ -145,6 +149,11 @@ class Set {
 export template <typename B, typename P>
 Set(Comprehension<B, P>)
     -> Set<typename B::Domain, typename NaturalLogic<B>::type, P>;
+
+export template <typename S>
+  requires(!requires { typename S::is_universal_boundary; })
+Set(MembershipBinding<S>)
+    -> Set<typename S::Domain, typename NaturalLogic<S>::type, S>;
 
 export template <typename S>
   requires requires { typename S::is_universal_boundary; }

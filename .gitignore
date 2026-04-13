@@ -44,3 +44,5 @@ docs/paper/*.out
 docs/paper/*.toc
 docs/paper/*.run.xml
 **/*.synctex.gz
+
+build_ci/**

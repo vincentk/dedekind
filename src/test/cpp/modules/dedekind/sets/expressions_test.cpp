@@ -26,14 +26,13 @@ TEST_CASE("Dedekind MVP: Basic Membership and Symbols", "[sets]") {
 TEST_CASE("Dedekind Identities: Extremal Collapse", "[sets][identities]") {
   auto x = var<ℕ>;
 
-  SECTION("Identity: Set{Ω} is Ω") {
-    // The terminal object should remain terminal
+  SECTION("Identity: Set{N} is N") {
+    // Naturals remain stable when materialized through Set{...}.
     auto U = Set{N};
 
-    // It must satisfy the 'Total Presence' axiom
     static_assert(std::is_same_v<decltype(U)::logic_species, TernaryLogic>);
     REQUIRE(U(42) == Ternary::True);
-    REQUIRE(U(-1) == Ternary::True);
+    REQUIRE(U(-1) == Ternary::False);
   }
 
   SECTION("Contradiction: {x ∈ ℕ | x > 10 ∧ x < 5} is ∅") {

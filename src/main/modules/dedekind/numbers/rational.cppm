@@ -14,16 +14,20 @@ export module dedekind.numbers:rational;
 
 import dedekind.category;
 import dedekind.sets;
+import :integer;
 
 namespace dedekind::numbers {
 using namespace dedekind::category;
 using namespace dedekind::sets;
 
+// Canonical machine realization for the integer carrier.
+export using machine_integer = int;
+
 /**
  * @class Rational
  * @brief The Field of Fractions over an Integral Domain Z.
  */
-export template <std::signed_integral Z>
+export template <IsInteger Z>
 class Rational {
  public:
   using Domain = Z;
@@ -97,15 +101,65 @@ class Rational {
 /** @section Formal_Verification */
 
 // Proof: The inverse of 2/3 is 3/2.
-static_assert((Rational<int>(2, 3).inverse().num() == 3));
+static_assert((Rational<machine_integer>(2, 3).inverse().num() == 3));
 
-export template <std::signed_integral Z = int, typename L = ClassicalLogic,
+/**
+ * @brief Characteristic morphism for ℚ: the rationals.
+ * Accepts native Rational<I> and delegates predecessor checks through ℤ.
+ */
+export template <IsInteger I = machine_integer, typename L = ClassicalLogic,
                  typename C = ℵ_0>
-using RationalSetOf = Ω<Rational<Z>, L, C>;
+struct RationalsOf {
+  using Domain = Rational<I>;
+  using Codomain = typename L::Ω;
+  using logic_species = L;
+  using cardinality_type = C;
 
-export using RationalSet = RationalSetOf<>;
+  // Native Rational<I>: always a member of ℚ
+  constexpr typename L::Ω operator()(const Rational<I>&) const {
+    return L::True;
+  }
+
+  // Direct parent: embed machine integer into ℚ.
+  constexpr typename L::Ω operator()(machine_integer z) const {
+    return operator()(Rational<I>{static_cast<I>(z), static_cast<I>(1)});
+  }
+
+  // Delegate non-parent ancestors to ambient ℤ.
+  template <typename T>
+    requires(!std::same_as<T, Rational<I>> && !std::same_as<T, machine_integer>)
+  constexpr typename L::Ω operator()(const T& x) const {
+    return dedekind::numbers::Z(x);
+  }
+};
+
+export using RationalSet = RationalsOf<>;
 export using ℚ = RationalSet;
 
 export inline constexpr ℚ Q{};
 
+/**
+ * @brief Machine realization arrow ℤ ↪ ℚ: machine_integer → Rational<I>.
+ * @details Every integer n embeds as the fraction n/1.
+ *          This is the current machine model lift of Z → Q.
+ */
+export template <IsInteger I = machine_integer>
+inline constexpr auto embed_ℤ_ℚ =
+    arrow<machine_integer, Rational<I>>([](const machine_integer& n) noexcept {
+      return Rational<I>{static_cast<I>(n), static_cast<I>(1)};
+    });
+
 }  // namespace dedekind::numbers
+
+namespace dedekind::category {
+template <dedekind::numbers::IsInteger Z>
+struct SpeciesTraits<dedekind::numbers::Rational<Z>> {
+  using Domain = dedekind::numbers::Rational<Z>;
+  using machine_type = dedekind::numbers::Rational<Z>;
+};
+
+template <>
+inline constexpr bool
+    is_monic_arrow_v<std::decay_t<decltype(dedekind::numbers::embed_ℤ_ℚ<>)>> =
+        true;
+}  // namespace dedekind::category

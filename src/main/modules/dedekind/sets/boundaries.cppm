@@ -204,7 +204,24 @@ static_assert(dedekind::category::IsSet<decltype(ambient_set<int>(Ø<int>{}))>,
 // Transitional alias used by tests and set-builder examples.
 // ETCS-level natural-number witnesses may replace this direct alias later.
 export template <typename L = ClassicalLogic, typename C = ℵ_0>
-using NaturalNumbersOf = Ω<int, L, C>;
+struct NaturalNumbersOf {
+  using Domain = int;
+  using Codomain = typename L::Ω;
+  using logic_species = L;
+  using cardinality_type = C;
+
+  constexpr typename L::Ω operator()(int x) const {
+    return x >= 0 ? L::True : L::False;
+  }
+
+  template <std::unsigned_integral U>
+  constexpr typename L::Ω operator()(U) const {
+    return L::True;
+  }
+
+  // Embedded bool (via embed_𝔹_ℕ → unsigned): landing in ℕ
+  constexpr typename L::Ω operator()(bool) const { return L::True; }
+};
 
 export using NaturalNumbers = NaturalNumbersOf<>;
 export using ℕ = NaturalNumbers;
