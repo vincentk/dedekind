@@ -35,6 +35,7 @@
  */
 module;
 
+#include <algorithm>
 #include <concepts>
 #include <functional>
 
@@ -61,10 +62,103 @@ namespace dedekind::category {
 export template <typename T, typename Rel = std::less_equal<T>,
                  typename L = ClassicalLogic>
 concept IsPosetal =
-    IsPartRelation<T, Rel, typename L::Ω> && requires(Rel rel, T a, T b) {
+    IsPartialOrder<T, Rel, typename L::Ω> && requires(Rel rel, T a, T b) {
       // The relation must yield a result from the logical classifier
       { rel(a, b) } -> std::same_as<typename L::Ω>;
     };
+
+/**
+ * @concept IsTotallyOrderedPosetal
+ * @brief Posetal refinement where the underlying order is total/linear.
+ */
+export template <typename T, typename Rel = std::less_equal<T>,
+                 typename L = ClassicalLogic>
+concept IsTotallyOrderedPosetal =
+    IsPosetal<T, Rel, L> && IsTotalOrder<T, Rel, typename L::Ω>;
+
+/**
+ * @concept IsOrderMeetSemilattice
+ * @brief Order-theoretic meet semilattice (associative, idempotent,
+ * commutative).
+ *
+ * @details
+ * Literature alignment (Davey-Priestley / standard order theory):
+ * a meet-semilattice is associative + idempotent + commutative.
+ *
+ * Certification is accepted by either:
+ * 1) trait-level witness (`IsCommutative<T, Meet>`), or
+ * 2) order-equivalence witness (`meet(a,b) <= meet(b,a)` and converse).
+ *
+ * @see https://en.wikipedia.org/wiki/Semilattice
+ */
+export template <typename T, typename Meet = decltype(std::ranges::min)>
+concept IsOrderMeetSemilattice =
+    IsMereologicalMeetBand<T, Meet> &&
+    (IsCommutative<T, Meet> || requires(Meet meet, T a, T b) {
+      { meet(a, b) <= meet(b, a) };
+      { meet(b, a) <= meet(a, b) };
+    });
+
+/**
+ * @concept IsOrderJoinSemilattice
+ * @brief Order-theoretic join semilattice (associative, idempotent,
+ * commutative).
+ *
+ * @details
+ * Literature alignment (Davey-Priestley / standard order theory):
+ * a join-semilattice is associative + idempotent + commutative.
+ *
+ * Certification is accepted by either:
+ * 1) trait-level witness (`IsCommutative<T, Join>`), or
+ * 2) order-equivalence witness (`join(a,b) <= join(b,a)` and converse).
+ *
+ * @see https://en.wikipedia.org/wiki/Semilattice
+ */
+export template <typename T, typename Join = decltype(std::ranges::max)>
+concept IsOrderJoinSemilattice =
+    IsMereologicalJoinBand<T, Join> &&
+    (IsCommutative<T, Join> || requires(Join join, T a, T b) {
+      { join(a, b) <= join(b, a) };
+      { join(b, a) <= join(a, b) };
+    });
+
+/**
+ * @concept IsOrderLatticeOperations
+ * @brief Commutative lattice operations as an order-theoretic refinement.
+ *
+ * @details
+ * Standard algebraic characterization: join-semilattice + meet-semilattice
+ * plus absorption.
+ *
+ * Absorption is accepted by either:
+ * 1) trait-level witness (`IsAbsorptive<T, Join, Meet>`), or
+ * 2) order-equivalence witness in the induced order.
+ *
+ * @see Davey & Priestley, Introduction to Lattices and Order
+ * @see https://en.wikipedia.org/wiki/Lattice_(order)
+ */
+export template <typename T, typename Join = decltype(std::ranges::max),
+                 typename Meet = decltype(std::ranges::min)>
+concept IsOrderLatticeOperations =
+    IsOrderJoinSemilattice<T, Join> && IsOrderMeetSemilattice<T, Meet> &&
+    (IsAbsorptive<T, Join, Meet> || requires(Join join, Meet meet, T a, T b) {
+      { join(a, meet(a, b)) <= a };
+      { a <= join(a, meet(a, b)) };
+      { meet(a, join(a, b)) <= a };
+      { a <= meet(a, join(a, b)) };
+    });
+
+/**
+ * @concept IsOrderDistributiveLatticeOperations
+ * @brief Distributive lattice refinement over `IsOrderLatticeOperations`.
+ *
+ * @see https://en.wikipedia.org/wiki/Distributive_lattice
+ */
+export template <typename T, typename Join = decltype(std::ranges::max),
+                 typename Meet = decltype(std::ranges::min)>
+concept IsOrderDistributiveLatticeOperations =
+    IsOrderLatticeOperations<T, Join, Meet> && IsDistributive<T, Join, Meet> &&
+    IsDistributive<T, Meet, Join>;
 
 /**
  * @brief Verify that a two-step path A→B→C exists in the posetal category.

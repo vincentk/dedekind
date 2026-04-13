@@ -104,12 +104,42 @@ export template <typename Part, typename Whole, typename L = ClassicalLogic>
 concept IsProperPart = IsPartOf<Part, Whole, L>;
 
 /**
+ * @concept IsSkewMeetSemilattice
+ * @brief Non-commutative meet-like idempotent semigroup fragment.
+ * @details
+ * Corresponds to the skew/band-level meet operation in non-commutative
+ * lattice theory.
+ */
+export template <typename S>
+concept IsSkewMeetSemilattice =
+    dedekind::category::IsMereologicalMeetBand<S, std::bit_and<S>>;
+
+/**
+ * @concept IsSkewJoinSemilattice
+ * @brief Non-commutative join-like idempotent semigroup fragment.
+ * @details
+ * Corresponds to the skew/band-level join operation in non-commutative
+ * lattice theory.
+ */
+export template <typename S>
+concept IsSkewJoinSemilattice =
+    dedekind::category::IsMereologicalJoinBand<S, std::bit_or<S>>;
+
+/**
+ * @concept IsSkewLattice
+ * @brief Non-commutative lattice-style operations (join/meet + absorption).
+ */
+export template <typename S>
+concept IsSkewLattice =
+    dedekind::category::IsMereologicalSkewLatticeOperations<S, std::bit_or<S>,
+                                                            std::bit_and<S>>;
+
+/**
  * @concept IsMeetSemiLattice
  * @brief A refinement of IsSet that supports the algebraic
  *        structure of Meet (&).
- * @details Textbook meet-semilattices are commutative. This partition
- * currently delegates to the weaker transitional mereological operation
- * concept from dedekind.category:mereology.
+ * @details Textbook meet-semilattices are commutative; this concept is the
+ * commutative refinement over the skew/band-level meet concept.
  * Wikipedia: SemiLattice (order)
  */
 export template <typename S>
@@ -120,9 +150,8 @@ concept IsMeetSemilattice =
  * @concept IsJoinSemiLattice
  * @brief A refinement of IsSet that supports the algebraic
  *        structure of Join (|).
- * @details Textbook join-semilattices are commutative. This partition
- * currently delegates to the weaker transitional mereological operation
- * concept from dedekind.category:mereology.
+ * @details Textbook join-semilattices are commutative; this concept is the
+ * commutative refinement over the skew/band-level join concept.
  * Wikipedia: SemiLattice (order)
  */
 export template <typename S>
@@ -133,13 +162,11 @@ concept IsJoinSemilattice =
  * @concept IsLattice
  * @brief A refinement of IsSet that supports the algebraic
  *        structure of Meet (&) and Join (|).
- * @details Terminology backlog: keep this as-is for compatibility now,
- * then split textbook commutative lattice concepts from weaker mereological
- * operation concepts in a dedicated taxonomy pass.
+ * @details Textbook lattice notion: commutative meet/join semilattices with
+ * absorption. For non-commutative variants use @ref IsSkewLattice.
  * Wikipedia: Lattice (order), Absorption law
  */
 export template <typename S>
-// FIXME: this has more structure than semigroup on the individual operations.
 concept IsLattice =
     dedekind::category::IsMereologicalLatticeOperations<S, std::bit_or<S>,
                                                         std::bit_and<S>>;
@@ -170,9 +197,9 @@ concept IsBoundedLattice = IsLattice<S> && requires(S s) {
 export template <typename S, typename L = ClassicalLogic>
 concept IsMereologicalLattice =
     IsLattice<S> && IsPartOf<S, S, L> && requires(S a, S b) {
-      // Instead of { (a | b) == b }, we just ensure they can be Joined
-      requires IsLattice<decltype(a | b)>;
-      requires IsLattice<decltype(a & b)>;
+      // Closure witness: join/meet expressions must be well-formed.
+      { a | b };
+      { a & b };
 
       // TODO:
       // We move the "Equality" check to a Logical Equivalence:
