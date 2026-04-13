@@ -402,7 +402,6 @@ concept IsFunctionalSet = requires(const S s, const Domain d) {
   { s(d) } -> std::same_as<typename Ω::Ω>;
 };
 
-
 /** @section The_Extent: The Logic of Realization */
 
 /**
@@ -418,7 +417,11 @@ concept IsFunctionalSet = requires(const S s, const Domain d) {
  * @tparam L The Subobject Classifier (Ω). Defaults to ClassicalLogic.
  */
 export template <typename S, typename L = ClassicalLogic>
-concept IsEnumerated = IsMereologicalSet<S, L> && requires(const S s) {
+concept IsEnumerated = requires(const S s) {
+  requires dedekind::category::IsSet<
+      decltype(dedekind::category::ambient_set<typename SetMetadata<S>::Domain>(
+          s))>;
+} && requires(const S s) {
   /** @section Magnitude: The Physical Proof */
   // An extensional set MUST claim a Finite cardinality type.
   requires(S::cardinality_type::is_finite == true);
@@ -447,7 +450,11 @@ concept IsEnumerated = IsMereologicalSet<S, L> && requires(const S s) {
  * Wikipedia: Intensional definition, Indicator function, Ternary logic
  */
 export template <typename S, typename L = TernaryLogic>
-concept IsSymbolic = IsMereologicalSet<S, L> && !IsEnumerated<S, L>;
+concept IsSymbolic = requires(const S s) {
+  requires dedekind::category::IsSet<
+      decltype(dedekind::category::ambient_set<typename SetMetadata<S>::Domain>(
+          s))>;
+} && !IsEnumerated<S, L>;
 
 /**
  * @concept IsPointedSet
@@ -455,7 +462,11 @@ concept IsSymbolic = IsMereologicalSet<S, L> && !IsEnumerated<S, L>;
  * Wikipedia: Pointed set
  */
 export template <typename S, typename T>
-concept IsPointedSet = IsMereologicalSet<S> && IsPointed<T, std::plus<T>>;
+concept IsPointedSet = requires(const S s) {
+  requires dedekind::category::IsSet<
+      decltype(dedekind::category::ambient_set<typename SetMetadata<S>::Domain>(
+          s))>;
+} && IsPointed<T, std::plus<T>>;
 
 /**
  * @section Structural_Inference: NaturalLogic

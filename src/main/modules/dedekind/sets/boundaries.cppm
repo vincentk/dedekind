@@ -191,15 +191,10 @@ constexpr auto Ø<T, L>::operator!() const {
   return Ω<T, L>{};
 }
 
-static_assert(IsMereologicalSet<Ω<int>>,
-              "The universal set must satisfy IsMereologicalSet.");
-
-static_assert(IsMereologicalSet<Ø<int>>);
-
-static_assert(IsPartiallyETCSAlignedSet<Ω<int>>,
-              "The universal set should satisfy the partial ETCS alignment.");
-static_assert(IsPartiallyETCSAlignedSet<Ø<int>>,
-              "The empty set should satisfy the partial ETCS alignment.");
+static_assert(dedekind::category::IsSet<decltype(ambient_set<int>(Ω<int>{}))>,
+              "The universal boundary must lift to an ETCS set object.");
+static_assert(dedekind::category::IsSet<decltype(ambient_set<int>(Ø<int>{}))>,
+              "The empty boundary must lift to an ETCS set object.");
 
 // FIXME: This is a hack to make the tests compile. The NaturalNumbers class
 // should Define the symbol used in your test Define the type
