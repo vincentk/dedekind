@@ -47,4 +47,65 @@ TEST_CASE("Partial: maturity mirrors total hierarchy", "[category][partial]") {
     const auto by_zero = div({42, 0});
     CHECK(by_zero.status == Ternary::False);
   }
+
+  SECTION("Unsigned bounded add success cases") {
+    using UAdd = BoundedAddTransform<unsigned int,
+                                     FullMachineBoundaryPolicy<unsigned int>>;
+    UAdd add{};
+
+    const auto result1 = add({10, 20});
+    CHECK(result1.value == 30);
+    CHECK(result1.status == Ternary::True);
+
+    const auto result2 = add({5, 5});
+    CHECK(result2.value == 10);
+    CHECK(result2.status == Ternary::True);
+  }
+
+  SECTION("Unsigned bounded multiply success cases") {
+    using UMul = BoundedMulTransform<unsigned int,
+                                     FullMachineBoundaryPolicy<unsigned int>>;
+    UMul mul{};
+
+    const auto result1 = mul({10, 20});
+    CHECK(result1.value == 200);
+    CHECK(result1.status == Ternary::True);
+
+    const auto result2 = mul({1, 1});
+    CHECK(result2.value == 1);
+    CHECK(result2.status == Ternary::True);
+  }
+
+  SECTION("SafeAdd behavior with overflow") {
+    SafeAddTransform<int> add{};
+    const auto result = add({100, 100});
+    CHECK(result.status == Ternary::True);  // 200 is within int range
+  }
+
+  SECTION("Interval boundary policy with in-range values") {
+    BoundedAddTransform<int, IntervalBoundaryPolicy<int>> add{{-10, 10}};
+    const auto result = add({3, 2});
+
+    CHECK(result.value == 5);
+    CHECK(result.status == Ternary::True);
+  }
+
+  SECTION("Interval boundary policy with out-of-range result") {
+    BoundedAddTransform<int, IntervalBoundaryPolicy<int>> add{{-10, 10}};
+    const auto overflow = add({8, 5});
+    CHECK(overflow.status == Ternary::Unknown);
+
+    const auto underflow = add({-8, -5});
+    CHECK(underflow.status == Ternary::Unknown);
+  }
+
+  SECTION("Commutativity of bounded operations") {
+    BoundedAddTransform<int, FullMachineBoundaryPolicy<int>> add{};
+
+    const auto ab = add({7, 3});
+    const auto ba = add({3, 7});
+
+    CHECK(ab.value == ba.value);
+    CHECK(ab.status == ba.status);
+  }
 }

@@ -42,6 +42,10 @@ TEST_CASE("Logic: The Binary Prime (Classical)", "[category][logic][boolean]") {
     // Verify our 'operator+' bypasses the int-promotion trap
     STATIC_CHECK(std::same_as<decltype(t + f), Boolean>);
     CHECK((t + f).value == true);
+
+    // De Morgan's laws for Boolean wrapper
+    CHECK(!(t && f) == (!t || !f));
+    CHECK(!(t || f) == (!t && !f));
   }
 }
 
@@ -85,18 +89,26 @@ TEST_CASE("Logic: The Indeterminacy (Kleene)", "[category][logic][kleene]") {
   }
 
   SECTION("Structural Identities (De Morgan's Laws)") {
+    constexpr Ternary values[] = {False, Unknown, True};
     // !(A && B) == !A || !B
-    CHECK(!(True && Unknown) == (!True || !Unknown));
-    CHECK(!(False && Unknown) == (!False || !Unknown));
+    for (auto a : values) {
+      for (auto b : values) {
+        CHECK(!(a && b) == (!a || !b));
+        CHECK(!(a || b) == (!a && !b));
+      }
+    }
   }
 
   SECTION("Morphism Lifting") {
-    // Verifying the lift_logic bridge
+    // Verifying the lift_logic bridge from Boolean to Ternary
     CHECK(lift_logic<TernaryLogic>(true) == True);
     CHECK(lift_logic<TernaryLogic>(false) == False);
 
     // Identity lifting
     CHECK(lift_logic<TernaryLogic>(Unknown) == Unknown);
+
+    // Consistency: lifting preserves order
+    CHECK(lift_logic<TernaryLogic>(false) <= lift_logic<TernaryLogic>(true));
   }
 }
 
