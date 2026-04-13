@@ -96,3 +96,39 @@ TEST_CASE("ETCS: ternary support lattice", "[category][etcs][support]") {
     CHECK(support_not_non_negative.χ(-5) == Ternary::True);
   }
 }
+
+TEST_CASE("ETCS: Boolean algebra over bool ambient",
+          "[category][etcs][boolean-algebra]") {
+  const auto p = ambient_set<bool>([](const bool& x) { return x; });
+  const auto q = ambient_set<bool>([](const bool& x) { return !x; });
+  const auto top = ambient_set<bool>([](const bool&) { return true; });
+  const auto bottom = ambient_set<bool>([](const bool&) { return false; });
+
+  STATIC_CHECK(IsSetInCanonicalCCC<decltype(p)>);
+  STATIC_CHECK(IsSetInCanonicalCCC<decltype(q)>);
+
+  const auto p_or_q = set_union(p, q);
+  const auto p_and_q = set_intersection(p, q);
+  const auto not_p = set_complement(p);
+  const auto not_q = set_complement(q);
+
+  for (bool x : {false, true}) {
+    // Complements and involution
+    CHECK(not_p.χ(x) == (!p.χ(x)));
+    CHECK(set_complement(not_p).χ(x) == p.χ(x));
+
+    // Excluded middle and non-contradiction
+    CHECK(p_or_q.χ(x) == top.χ(x));
+    CHECK(p_and_q.χ(x) == bottom.χ(x));
+
+    // De Morgan over lifted set operations
+    CHECK(set_complement(set_intersection(p, q)).χ(x) ==
+          set_union(not_p, not_q).χ(x));
+    CHECK(set_complement(set_union(p, q)).χ(x) ==
+          set_intersection(not_p, not_q).χ(x));
+
+    // Absorption
+    CHECK(set_union(p, set_intersection(p, q)).χ(x) == p.χ(x));
+    CHECK(set_intersection(p, set_union(p, q)).χ(x) == p.χ(x));
+  }
+}

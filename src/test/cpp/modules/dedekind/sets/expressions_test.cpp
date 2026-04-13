@@ -51,3 +51,40 @@ TEST_CASE("Dedekind Identities: Extremal Collapse", "[sets][identities]") {
     REQUIRE(S(7) == Ternary::True);
   }
 }
+
+TEST_CASE("Dedekind Boolean Sets: Concrete Algebraic Starter",
+          "[sets][boolean][algebra]") {
+  auto b = var<Ω<bool>>;
+
+  // Two concrete subsets of the boolean universe.
+  auto truthy = Set{b % Ω<bool>{} | (b == true)};
+  auto falsy = Set{b % Ω<bool>{} | (b == false)};
+
+  // Partition check: each value belongs to exactly one side.
+  REQUIRE(truthy(true) == Ternary::True);
+  REQUIRE(truthy(false) == Ternary::False);
+  REQUIRE(falsy(true) == Ternary::False);
+  REQUIRE(falsy(false) == Ternary::True);
+
+  // Boolean algebra laws over the concrete universe {false, true}.
+  auto top = truthy | falsy;
+  auto bottom = truthy & falsy;
+
+  REQUIRE(top(true) == Ternary::True);
+  REQUIRE(top(false) == Ternary::True);
+  REQUIRE(bottom(true) == Ternary::False);
+  REQUIRE(bottom(false) == Ternary::False);
+
+  auto not_truthy = !truthy;
+  REQUIRE(not_truthy(true) == Ternary::False);
+  REQUIRE(not_truthy(false) == Ternary::True);
+
+  // Absorption: A ∨ (A ∧ B) = A and A ∧ (A ∨ B) = A
+  auto absorb_join = truthy | (truthy & falsy);
+  auto absorb_meet = truthy & (truthy | falsy);
+
+  REQUIRE(absorb_join(true) == truthy(true));
+  REQUIRE(absorb_join(false) == truthy(false));
+  REQUIRE(absorb_meet(true) == truthy(true));
+  REQUIRE(absorb_meet(false) == truthy(false));
+}
