@@ -18,8 +18,20 @@ namespace dedekind::numbers {
 using namespace dedekind::category;
 using namespace dedekind::sets;
 
-export template <typename Q>
-  requires std::regular<Q>
+// Canonical machine realization for the real scalar carrier.
+export using machine_real_scalar = double;
+
+export template <typename S>
+concept IsRealCarrier = requires(S a, S b) {
+  S{};
+  { a + b } -> std::same_as<S>;
+  { a - b } -> std::same_as<S>;
+  { a * b } -> std::same_as<S>;
+  { a / b } -> std::same_as<S>;
+  { a < b } -> std::convertible_to<bool>;
+};
+
+export template <IsRealCarrier Q>
 class Real {
  public:
   using Domain = Q;
@@ -44,6 +56,10 @@ class Real {
     return Real{a.value_ * b.value_};
   }
 
+  friend constexpr Real operator-(const Real& a, const Real& b) {
+    return Real{a.value_ - b.value_};
+  }
+
   friend constexpr Real operator/(const Real& a, const Real& b) {
     return Real{a.value_ / b.value_};
   }
@@ -53,10 +69,22 @@ class Real {
 };
 
 /**
+ * @brief Machine realization arrow ℚ ↪ ℝ: Rational<I> → Real<S>.
+ * @details Converts a rational p/q to the closest IEEE 754 value of type S.
+ */
+export template <IsInteger I = machine_integer,
+                 IsRealCarrier S = machine_real_scalar>
+inline constexpr auto embed_ℚ_ℝ =
+    arrow<Rational<I>, Real<S>>([](const Rational<I>& q) noexcept {
+      return Real<S>{static_cast<S>(q.num()) / static_cast<S>(q.den())};
+    });
+
+/**
  * @brief Characteristic morphism for ℝ: the real numbers.
  * Accepts native Real<S> and delegates predecessor checks through ℚ.
  */
-export template <std::floating_point S = double, typename L = ClassicalLogic,
+export template <IsRealCarrier S = machine_real_scalar,
+                 IsInteger I = machine_integer, typename L = ClassicalLogic,
                  typename C = ℶ_1>
 struct RealsOf {
   using Domain = Real<S>;
@@ -64,20 +92,19 @@ struct RealsOf {
   using logic_species = L;
   using cardinality_type = C;
 
-  // Native Real<Q>: always a member of ℝ
+  // Native Real<S>: always a member of ℝ
   constexpr typename L::Ω operator()(const Real<S>&) const { return L::True; }
 
-  // Direct parent: embed Rational<int> into ℝ.
-  constexpr typename L::Ω operator()(const Rational<int>& q) const {
-    return operator()(
-        Real<S>{static_cast<S>(q.num()) / static_cast<S>(q.den())});
+  // Direct parent: embed Rational<I> into ℝ via the canonical arrow.
+  constexpr typename L::Ω operator()(const Rational<I>& q) const {
+    return operator()(embed_ℚ_ℝ<I, S>(q));
   }
 
   // Delegate non-parent ancestors to ambient ℚ.
   template <typename T>
-    requires(!std::same_as<T, Real<S>> && !std::same_as<T, Rational<int>>)
+    requires(!std::same_as<T, Real<S>> && !std::same_as<T, Rational<I>>)
   constexpr typename L::Ω operator()(const T& x) const {
-    return dedekind::numbers::Q(x);
+    return dedekind::numbers::RationalsOf<I>{}(x);
   }
 };
 
@@ -85,18 +112,6 @@ export using RealSet = RealsOf<>;
 export using ℝ = RealSet;
 
 export inline constexpr ℝ R{};
-
-/**
- * @brief Canonical embedding ℚ ↪ ℝ: Rational<int> → Real<double>.
- * @details Converts a rational p/q to the closest IEEE 754 double.
- *          The embedding is exact for rationals representable in double;
- *          rounding is acknowledged by the ℶ_1 cardinality of ℝ.
- */
-export inline constexpr auto embed_ℚ_ℝ =
-    arrow<Rational<int>, Real<double>>([](const Rational<int>& q) noexcept {
-      return Real<double>{static_cast<double>(q.num()) /
-                          static_cast<double>(q.den())};
-    });
 
 }  // namespace dedekind::numbers
 
@@ -109,6 +124,6 @@ struct SpeciesTraits<dedekind::numbers::Real<Q>> {
 
 template <>
 inline constexpr bool
-    is_monic_arrow_v<std::decay_t<decltype(dedekind::numbers::embed_ℚ_ℝ)>> =
+    is_monic_arrow_v<std::decay_t<decltype(dedekind::numbers::embed_ℚ_ℝ<>)>> =
         true;
 }  // namespace dedekind::category

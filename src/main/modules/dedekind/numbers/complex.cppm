@@ -17,8 +17,16 @@ namespace dedekind::numbers {
 using namespace dedekind::category;
 using namespace dedekind::sets;
 
+export template <typename S>
+concept IsComplexScalar = requires(S a, S b) {
+  S{};
+  { a + b } -> std::same_as<S>;
+  { a - b } -> std::same_as<S>;
+  { a * b } -> std::same_as<S>;
+};
+
 export template <typename R>
-  requires std::regular<R>
+  requires IsComplexScalar<R>
 class Complex {
  public:
   using scalar_type = R;
@@ -43,12 +51,23 @@ class Complex {
 };
 
 /**
+ * @brief Machine realization arrow ℝ ↪ ℂ: Real<R> → Complex<R>.
+ * @details Every real x embeds as the complex number (x + 0i).
+ *          This is the current machine model lift of R → C.
+ */
+export template <IsRealCarrier R = machine_real_scalar>
+inline constexpr auto embed_ℝ_ℂ = arrow<Real<R>, Complex<R>>(
+    [](const Real<R>& r) noexcept { return Complex<R>{r.resolve(), R{}}; });
+
+/**
  * @brief Characteristic morphism for ℂ: the complex numbers.
  * Accepts native Complex<R> and all embedded predecessors
- * (Real<R>, Rational<int>, int, unsigned, Ternary).
+ * (Real<R>, Rational<I>, int, unsigned, Ternary).
  */
-export template <std::floating_point R = double, typename L = ClassicalLogic,
+export template <typename R = machine_real_scalar,
+                 IsInteger I = machine_integer, typename L = ClassicalLogic,
                  typename C = ℶ_1>
+  requires IsComplexScalar<R>
 struct ComplexesOf {
   using Domain = Complex<R>;
   using Codomain = typename L::Ω;
@@ -60,17 +79,16 @@ struct ComplexesOf {
     return L::True;
   }
 
-  // Direct parent: embed Real<R> into ℂ (canonical x -> x + 0i).
+  // Direct parent: embed Real<R> into ℂ via the canonical arrow.
   constexpr typename L::Ω operator()(const Real<R>& r) const {
-    return operator()(
-        Complex<R>{static_cast<R>(r.resolve()), static_cast<R>(0)});
+    return operator()(embed_ℝ_ℂ<R>(r));
   }
 
   // Delegate non-parent ancestors to ambient ℝ.
   template <typename T>
     requires(!std::same_as<T, Complex<R>> && !std::same_as<T, Real<R>>)
   constexpr typename L::Ω operator()(const T& x) const {
-    return dedekind::numbers::R(x);
+    return dedekind::numbers::RealsOf<machine_real_scalar, I>{}(x);
   }
 };
 
@@ -78,16 +96,6 @@ export using ComplexSet = ComplexesOf<>;
 export using ℂ = ComplexSet;
 
 export inline constexpr ℂ C{};
-
-/**
- * @brief Canonical embedding ℝ ↪ ℂ: Real<double> → Complex<double>.
- * @details Every real x embeds as the complex number (x + 0i).
- *          This is the canonical ring monomorphism R → C.
- */
-export inline constexpr auto embed_ℝ_ℂ =
-    arrow<Real<double>, Complex<double>>([](const Real<double>& r) noexcept {
-      return Complex<double>{r.resolve(), 0.0};
-    });
 
 }  // namespace dedekind::numbers
 
@@ -100,6 +108,6 @@ struct SpeciesTraits<dedekind::numbers::Complex<R>> {
 
 template <>
 inline constexpr bool
-    is_monic_arrow_v<std::decay_t<decltype(dedekind::numbers::embed_ℝ_ℂ)>> =
+    is_monic_arrow_v<std::decay_t<decltype(dedekind::numbers::embed_ℝ_ℂ<>)>> =
         true;
 }  // namespace dedekind::category

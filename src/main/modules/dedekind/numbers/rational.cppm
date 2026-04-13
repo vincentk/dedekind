@@ -20,11 +20,14 @@ namespace dedekind::numbers {
 using namespace dedekind::category;
 using namespace dedekind::sets;
 
+// Canonical machine realization for the integer carrier.
+export using machine_integer = int;
+
 /**
  * @class Rational
  * @brief The Field of Fractions over an Integral Domain Z.
  */
-export template <std::signed_integral Z>
+export template <IsInteger Z>
 class Rational {
  public:
   using Domain = Z;
@@ -98,13 +101,13 @@ class Rational {
 /** @section Formal_Verification */
 
 // Proof: The inverse of 2/3 is 3/2.
-static_assert((Rational<int>(2, 3).inverse().num() == 3));
+static_assert((Rational<machine_integer>(2, 3).inverse().num() == 3));
 
 /**
  * @brief Characteristic morphism for ℚ: the rationals.
- * Accepts native Rational<int> and delegates predecessor checks through ℤ.
+ * Accepts native Rational<I> and delegates predecessor checks through ℤ.
  */
-export template <std::signed_integral I = int, typename L = ClassicalLogic,
+export template <IsInteger I = machine_integer, typename L = ClassicalLogic,
                  typename C = ℵ_0>
 struct RationalsOf {
   using Domain = Rational<I>;
@@ -112,19 +115,19 @@ struct RationalsOf {
   using logic_species = L;
   using cardinality_type = C;
 
-  // Native Rational<int>: always a member of ℚ
+  // Native Rational<I>: always a member of ℚ
   constexpr typename L::Ω operator()(const Rational<I>&) const {
     return L::True;
   }
 
-  // Direct parent: embed int into ℚ.
-  constexpr typename L::Ω operator()(int z) const {
+  // Direct parent: embed machine integer into ℚ.
+  constexpr typename L::Ω operator()(machine_integer z) const {
     return operator()(Rational<I>{static_cast<I>(z), static_cast<I>(1)});
   }
 
   // Delegate non-parent ancestors to ambient ℤ.
   template <typename T>
-    requires(!std::same_as<T, Rational<I>> && !std::same_as<T, int>)
+    requires(!std::same_as<T, Rational<I>> && !std::same_as<T, machine_integer>)
   constexpr typename L::Ω operator()(const T& x) const {
     return dedekind::numbers::Z(x);
   }
@@ -136,17 +139,20 @@ export using ℚ = RationalSet;
 export inline constexpr ℚ Q{};
 
 /**
- * @brief Canonical embedding ℤ ↪ ℚ: int → Rational<int>.
+ * @brief Machine realization arrow ℤ ↪ ℚ: machine_integer → Rational<I>.
  * @details Every integer n embeds as the fraction n/1.
- *          This is the standard ring homomorphism Z → Q.
+ *          This is the current machine model lift of Z → Q.
  */
-export inline constexpr auto embed_ℤ_ℚ = arrow<int, Rational<int>>(
-    [](const int& n) noexcept { return Rational<int>{n, 1}; });
+export template <IsInteger I = machine_integer>
+inline constexpr auto embed_ℤ_ℚ =
+    arrow<machine_integer, Rational<I>>([](const machine_integer& n) noexcept {
+      return Rational<I>{static_cast<I>(n), static_cast<I>(1)};
+    });
 
 }  // namespace dedekind::numbers
 
 namespace dedekind::category {
-template <std::signed_integral Z>
+template <dedekind::numbers::IsInteger Z>
 struct SpeciesTraits<dedekind::numbers::Rational<Z>> {
   using Domain = dedekind::numbers::Rational<Z>;
   using machine_type = dedekind::numbers::Rational<Z>;
@@ -154,6 +160,6 @@ struct SpeciesTraits<dedekind::numbers::Rational<Z>> {
 
 template <>
 inline constexpr bool
-    is_monic_arrow_v<std::decay_t<decltype(dedekind::numbers::embed_ℤ_ℚ)>> =
+    is_monic_arrow_v<std::decay_t<decltype(dedekind::numbers::embed_ℤ_ℚ<>)>> =
         true;
 }  // namespace dedekind::category

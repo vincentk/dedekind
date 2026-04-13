@@ -25,13 +25,13 @@ using namespace dedekind::sets;
 // Compile-time monicity declarations are honoured
 // ---------------------------------------------------------------------------
 
-static_assert(IsMonicArrow<Identity<int>>);
+static_assert(IsMonicArrow<Identity<machine_integer>>);
 static_assert(IsMonicArrow<std::decay_t<decltype(embed_𝔹_ℕ)>>);
 static_assert(IsMonicArrow<std::decay_t<decltype(embed_ℕ_ℤ)>>);
 static_assert(IsMonicArrow<std::decay_t<decltype(embed_K3_ℤ)>>);
-static_assert(IsMonicArrow<std::decay_t<decltype(embed_ℤ_ℚ)>>);
-static_assert(IsMonicArrow<std::decay_t<decltype(embed_ℚ_ℝ)>>);
-static_assert(IsMonicArrow<std::decay_t<decltype(embed_ℝ_ℂ)>>);
+static_assert(IsMonicArrow<std::decay_t<decltype(embed_ℤ_ℚ<>)>>);
+static_assert(IsMonicArrow<std::decay_t<decltype(embed_ℚ_ℝ<>)>>);
+static_assert(IsMonicArrow<std::decay_t<decltype(embed_ℝ_ℂ<>)>>);
 
 // ---------------------------------------------------------------------------
 // Arrow types are correct (compile-time)
@@ -41,28 +41,31 @@ static_assert(std::same_as<Dom<std::decay_t<decltype(embed_𝔹_ℕ)>>, bool>);
 static_assert(std::same_as<Cod<std::decay_t<decltype(embed_𝔹_ℕ)>>, unsigned>);
 
 static_assert(std::same_as<Dom<std::decay_t<decltype(embed_ℕ_ℤ)>>, unsigned>);
-static_assert(std::same_as<Cod<std::decay_t<decltype(embed_ℕ_ℤ)>>, int>);
+static_assert(
+    std::same_as<Cod<std::decay_t<decltype(embed_ℕ_ℤ)>>, machine_integer>);
 
 static_assert(std::same_as<Dom<std::decay_t<decltype(embed_K3_ℤ)>>, Ternary>);
-static_assert(std::same_as<Cod<std::decay_t<decltype(embed_K3_ℤ)>>, int>);
-
-static_assert(std::same_as<Dom<std::decay_t<decltype(embed_ℤ_ℚ)>>, int>);
 static_assert(
-    std::same_as<Cod<std::decay_t<decltype(embed_ℤ_ℚ)>>, Rational<int>>);
+    std::same_as<Cod<std::decay_t<decltype(embed_K3_ℤ)>>, machine_integer>);
 
 static_assert(
-    std::same_as<Dom<std::decay_t<decltype(embed_ℚ_ℝ)>>, Rational<int>>);
-static_assert(
-    std::same_as<Cod<std::decay_t<decltype(embed_ℚ_ℝ)>>, Real<double>>);
+    std::same_as<Dom<std::decay_t<decltype(embed_ℤ_ℚ<>)>>, machine_integer>);
+static_assert(std::same_as<Cod<std::decay_t<decltype(embed_ℤ_ℚ<>)>>,
+                           Rational<machine_integer>>);
 
-static_assert(
-    std::same_as<Dom<std::decay_t<decltype(embed_ℝ_ℂ)>>, Real<double>>);
-static_assert(
-    std::same_as<Cod<std::decay_t<decltype(embed_ℝ_ℂ)>>, Complex<double>>);
+static_assert(std::same_as<Dom<std::decay_t<decltype(embed_ℚ_ℝ<>)>>,
+                           Rational<machine_integer>>);
+static_assert(std::same_as<Cod<std::decay_t<decltype(embed_ℚ_ℝ<>)>>,
+                           Real<machine_real_scalar>>);
 
-static_assert(IsSpecies<Rational<int>>);
-static_assert(IsSpecies<Real<double>>);
-static_assert(IsSpecies<Complex<double>>);
+static_assert(std::same_as<Dom<std::decay_t<decltype(embed_ℝ_ℂ<>)>>,
+                           Real<machine_real_scalar>>);
+static_assert(std::same_as<Cod<std::decay_t<decltype(embed_ℝ_ℂ<>)>>,
+                           Complex<machine_real_scalar>>);
+
+static_assert(IsSpecies<Rational<machine_integer>>);
+static_assert(IsSpecies<Real<machine_real_scalar>>);
+static_assert(IsSpecies<Complex<machine_real_scalar>>);
 
 // ---------------------------------------------------------------------------
 // 𝔹 ↪ ℕ
@@ -123,9 +126,9 @@ TEST_CASE("Tower: K3 ↪ ℤ via embed_K3_ℤ", "[numbers][tower][embedding]") {
 
 TEST_CASE("Tower: ℤ ↪ ℚ via embed_ℤ_ℚ", "[numbers][tower][embedding]") {
   // Embedding preserves value: n -> n/1.
-  CHECK(embed_ℤ_ℚ(3).num() == 3);
-  CHECK(embed_ℤ_ℚ(3).den() == 1);
-  CHECK(embed_ℤ_ℚ(-5).num() == -5);
+  CHECK(embed_ℤ_ℚ<>(3).num() == 3);
+  CHECK(embed_ℤ_ℚ<>(3).den() == 1);
+  CHECK(embed_ℤ_ℚ<>(-5).num() == -5);
 }
 
 // ---------------------------------------------------------------------------
@@ -134,9 +137,9 @@ TEST_CASE("Tower: ℤ ↪ ℚ via embed_ℤ_ℚ", "[numbers][tower][embedding]")
 
 TEST_CASE("Tower: ℚ ↪ ℝ via embed_ℚ_ℝ", "[numbers][tower][embedding]") {
   // Embedding preserves value: 3/1 -> 3.0.
-  CHECK(embed_ℚ_ℝ(Rational<int>{3, 1}).resolve() == 3.0);
-  CHECK(embed_ℚ_ℝ(Rational<int>{1, 2}).resolve() == 0.5);
-  CHECK(embed_ℚ_ℝ(Rational<int>{-7, 4}).resolve() == -1.75);
+  CHECK(embed_ℚ_ℝ<>(Rational<machine_integer>{3, 1}).resolve() == 3.0);
+  CHECK(embed_ℚ_ℝ<>(Rational<machine_integer>{1, 2}).resolve() == 0.5);
+  CHECK(embed_ℚ_ℝ<>(Rational<machine_integer>{-7, 4}).resolve() == -1.75);
 }
 
 // ---------------------------------------------------------------------------
@@ -145,10 +148,10 @@ TEST_CASE("Tower: ℚ ↪ ℝ via embed_ℚ_ℝ", "[numbers][tower][embedding]")
 
 TEST_CASE("Tower: ℝ ↪ ℂ via embed_ℝ_ℂ", "[numbers][tower][embedding]") {
   // Embedding: imaginary part is always 0.
-  CHECK(embed_ℝ_ℂ(Real<double>{3.0}).real() == 3.0);
-  CHECK(embed_ℝ_ℂ(Real<double>{3.0}).imag() == 0.0);
-  CHECK(embed_ℝ_ℂ(Real<double>{-2.5}).real() == -2.5);
-  CHECK(embed_ℝ_ℂ(Real<double>{-2.5}).imag() == 0.0);
+  CHECK(embed_ℝ_ℂ<>(Real<machine_real_scalar>{3.0}).real() == 3.0);
+  CHECK(embed_ℝ_ℂ<>(Real<machine_real_scalar>{3.0}).imag() == 0.0);
+  CHECK(embed_ℝ_ℂ<>(Real<machine_real_scalar>{-2.5}).real() == -2.5);
+  CHECK(embed_ℝ_ℂ<>(Real<machine_real_scalar>{-2.5}).imag() == 0.0);
 }
 
 // ---------------------------------------------------------------------------
@@ -157,9 +160,9 @@ TEST_CASE("Tower: ℝ ↪ ℂ via embed_ℝ_ℂ", "[numbers][tower][embedding]")
 
 TEST_CASE("Tower: composed chain unsigned -> ℤ -> ℚ -> ℝ -> ℂ",
           "[numbers][tower][embedding][composition]") {
-  const auto embed_ℕ_ℚ = embed_ℕ_ℤ >> embed_ℤ_ℚ;
-  const auto embed_ℕ_ℝ = embed_ℕ_ℚ >> embed_ℚ_ℝ;
-  const auto embed_ℕ_ℂ = embed_ℕ_ℝ >> embed_ℝ_ℂ;
+  const auto embed_ℕ_ℚ = embed_ℕ_ℤ >> embed_ℤ_ℚ<>;
+  const auto embed_ℕ_ℝ = embed_ℕ_ℚ >> embed_ℚ_ℝ<>;
+  const auto embed_ℕ_ℂ = embed_ℕ_ℝ >> embed_ℝ_ℂ<>;
 
   // 3 travels the full chain and arrives in ℂ as (3 + 0i).
   const auto result = embed_ℕ_ℂ(3u);
@@ -178,13 +181,13 @@ TEST_CASE("Stress: Im(K3->ℤ) intersect positive-real ℂ",
   const int z_unknown = embed_K3_ℤ(Ternary::Unknown);
   const int z_true = embed_K3_ℤ(Ternary::True);
 
-  const auto embed_ℤ_ℂ = embed_ℤ_ℚ >> embed_ℚ_ℝ >> embed_ℝ_ℂ;
+  const auto embed_ℤ_ℂ = embed_ℤ_ℚ<> >> embed_ℚ_ℝ<> >> embed_ℝ_ℂ<>;
 
   const auto c_false = embed_ℤ_ℂ(z_false);
   const auto c_unknown = embed_ℤ_ℂ(z_unknown);
   const auto c_true = embed_ℤ_ℂ(z_true);
 
-  const auto has_positive_real = [](const Complex<double>& z) {
+  const auto has_positive_real = [](const Complex<machine_real_scalar>& z) {
     return z.real() > 0.0;
   };
 
