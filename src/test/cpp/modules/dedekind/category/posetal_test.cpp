@@ -58,12 +58,13 @@ TEST_CASE("Posetal: textbook default relation", "[category][posetal][order]") {
     const auto meet = std::ranges::min;
     const auto join = std::ranges::max;
 
-    CHECK(IsCertifiedOrderMeetSemilattice<int, decltype(meet)>);
-    CHECK(IsCertifiedOrderJoinSemilattice<int, decltype(join)>);
-    CHECK(IsOrderLatticeOperations<int, decltype(join), decltype(meet)>);
+    STATIC_CHECK(IsCertifiedOrderMeetSemilattice<int, decltype(meet)>);
+    STATIC_CHECK(IsCertifiedOrderJoinSemilattice<int, decltype(join)>);
+    STATIC_CHECK(IsOrderLatticeOperations<int, decltype(join), decltype(meet)>);
 
-    CHECK(meet(x, y) == y || meet(x, y) == x);
-    CHECK(join(x, y) == x || join(x, y) == y);
+    // Verify certified properties are correct for int
+    CHECK(meet(x, y) == std::min(x, y));
+    CHECK(join(x, y) == std::max(x, y));
 
     CHECK(meet(x, meet(y, z)) == meet(meet(x, y), z));
     CHECK(join(x, join(y, z)) == join(join(x, y), z));

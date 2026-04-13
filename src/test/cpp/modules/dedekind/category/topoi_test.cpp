@@ -121,7 +121,7 @@ TEST_CASE("Topos: Constant Truth Morphisms", "[category][topoi]") {
     auto p = arrow<int>([](int x) { return x % 2 == 0; });
 
     // true && p(x) == p(x)
-    auto result = arrow<int>([p](int x) { return t(One{}) && p(x); });
+    auto result = arrow<int>([p, t](int x) { return t(One{}) && p(x); });
     CHECK(result(2) == true);
     CHECK(result(3) == false);
   }

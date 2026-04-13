@@ -49,43 +49,39 @@ TEST_CASE("Partial: maturity mirrors total hierarchy", "[category][partial]") {
   }
 
   SECTION("Unsigned bounded add success cases") {
-    using UAdd = BoundedAddTransform<unsigned int,
-                                     FullMachineBoundaryPolicy<unsigned int>>;
     UAdd add{};
-
     const auto result1 = add({10, 20});
     CHECK(result1.value == 30);
     CHECK(result1.status == Ternary::True);
 
-    const auto result2 = add({5, 5});
-    CHECK(result2.value == 10);
-    CHECK(result2.status == Ternary::True);
+    const auto result_small = add({5, 5});
+    CHECK(result_small.value == 10);
+    CHECK(result_small.status == Ternary::True);
   }
 
   SECTION("Unsigned bounded multiply success cases") {
-    using UMul = BoundedMulTransform<unsigned int,
-                                     FullMachineBoundaryPolicy<unsigned int>>;
     UMul mul{};
+    const auto mul_large = mul({10, 20});
+    CHECK(mul_large.value == 200);
+    CHECK(mul_large.status == Ternary::True);
 
-    const auto result1 = mul({10, 20});
-    CHECK(result1.value == 200);
-    CHECK(result1.status == Ternary::True);
-
-    const auto result2 = mul({1, 1});
-    CHECK(result2.value == 1);
-    CHECK(result2.status == Ternary::True);
+    const auto mul_unit = mul({1, 1});
+    CHECK(mul_unit.value == 1);
+    CHECK(mul_unit.status == Ternary::True);
   }
 
-  SECTION("SafeAdd behavior with overflow") {
+  SECTION("SafeAdd behavior with values") {
     SafeAddTransform<int> add{};
     const auto result = add({100, 100});
-    CHECK(result.status == Ternary::True);  // 200 is within int range
+    CHECK(result.has_value());
+    if (result) {
+      CHECK(*result == 200);
+    }
   }
 
   SECTION("Interval boundary policy with in-range values") {
     BoundedAddTransform<int, IntervalBoundaryPolicy<int>> add{{-10, 10}};
     const auto result = add({3, 2});
-
     CHECK(result.value == 5);
     CHECK(result.status == Ternary::True);
   }
@@ -101,10 +97,8 @@ TEST_CASE("Partial: maturity mirrors total hierarchy", "[category][partial]") {
 
   SECTION("Commutativity of bounded operations") {
     BoundedAddTransform<int, FullMachineBoundaryPolicy<int>> add{};
-
     const auto ab = add({7, 3});
     const auto ba = add({3, 7});
-
     CHECK(ab.value == ba.value);
     CHECK(ab.status == ba.status);
   }
