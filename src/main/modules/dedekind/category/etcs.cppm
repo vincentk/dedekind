@@ -198,6 +198,14 @@ concept IsSet =
     HasAxiom9NNO<typename T::Ambient> && HasAxiom10ChoiceDispatcher<T>;
 
 /**
+ * @concept IsSetInCanonicalCCC
+ * @brief Object/category bridge: ETCS set object with canonical CCC ambient.
+ */
+export template <typename S>
+concept IsSetInCanonicalCCC =
+    IsSet<S> && HasCanonicalSetCCC<typename S::Ambient>;
+
+/**
  * @brief Construct a set object over ambient species A from a characteristic
  * predicate.
  */
@@ -207,5 +215,9 @@ export template <typename A, typename Pred>
 constexpr auto ambient_set(Pred&& predicate) {
   return classify<A>(std::forward<Pred>(predicate));
 }
+
+static_assert(
+    IsSetInCanonicalCCC<decltype(ambient_set<int>([](int) { return true; }))>,
+    "Mnemonic check: ETCS set objects live over a canonical CCC ambient.");
 
 }  // namespace dedekind::category

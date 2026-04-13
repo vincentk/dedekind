@@ -404,6 +404,17 @@ static_assert(IsCartesianClosed<Set<int>>,
               "Verification Failed: Set must be Cartesian Closed.");
 
 /**
+ * @concept HasCanonicalSetCCC
+ * @brief Mnemonic bridge: ambient species A has a canonical CCC witness.
+ *
+ * @details
+ * This keeps category-level verification explicit without forcing object-level
+ * set concepts to also be category concepts.
+ */
+export template <typename A>
+concept HasCanonicalSetCCC = IsCartesianClosed<Set<A>>;
+
+/**
  * @concept IsProductCategory
  * @brief A Category Hub where the Species is a Categorical Product (std::pair).
  */

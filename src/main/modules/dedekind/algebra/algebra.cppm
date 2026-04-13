@@ -40,6 +40,7 @@
  */
 export module dedekind.algebra;
 
+export import :boolean;
 export import :division;
 export import :field;
 export import :group;

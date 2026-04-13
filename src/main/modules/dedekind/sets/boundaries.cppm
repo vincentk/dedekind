@@ -130,6 +130,7 @@ struct Ω final : Boundaries {
   using Codomain = typename L::Ω;
   using cardinality_type = C;
   using base_set_type = Ω<T, L, C>;
+  using is_universal_boundary = void;
   using logic_species = L;
 
   /** @section Algebraic_Axioms */
@@ -191,21 +192,29 @@ constexpr auto Ø<T, L>::operator!() const {
   return Ω<T, L>{};
 }
 
-static_assert(IsMereologicalSet<Ω<int>>,
-              "The universal set must satisfy IsMereologicalSet.");
+// Cardinality metadata drives extensional classification for Ω.
+template <typename T, typename L, typename C>
+struct is_extensional<Ω<T, L, C>> : std::bool_constant<C::is_finite> {};
 
-static_assert(IsMereologicalSet<Ø<int>>);
+static_assert(dedekind::category::IsSet<decltype(ambient_set<int>(Ω<int>{}))>,
+              "The universal boundary must lift to an ETCS set object.");
+static_assert(dedekind::category::IsSet<decltype(ambient_set<int>(Ø<int>{}))>,
+              "The empty boundary must lift to an ETCS set object.");
 
-static_assert(IsPartiallyETCSAlignedSet<Ω<int>>,
-              "The universal set should satisfy the partial ETCS alignment.");
-static_assert(IsPartiallyETCSAlignedSet<Ø<int>>,
-              "The empty set should satisfy the partial ETCS alignment.");
-
-// FIXME: This is a hack to make the tests compile. The NaturalNumbers class
-// should Define the symbol used in your test Define the type
+// Transitional alias used by tests and set-builder examples.
+// ETCS-level natural-number witnesses may replace this direct alias later.
 export using NaturalNumbers = Ω<int>;
 
-// Define the symbol used in your test
+// Canonical symbol used by the sets DSL tests.
 export inline constexpr NaturalNumbers ℕ{};
 
 };  // namespace dedekind::sets
+
+namespace dedekind::category {
+
+// Cardinality metadata drives transfinite classification for Ω.
+template <typename T, typename L, typename C>
+struct is_transfinite<dedekind::sets::Ω<T, L, C>>
+    : std::bool_constant<!C::is_finite> {};
+
+}  // namespace dedekind::category

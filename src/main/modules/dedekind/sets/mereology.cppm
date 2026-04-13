@@ -373,8 +373,8 @@ export using ℶ_1 = ℵ<1>;  // The Continuum (assuming GCH)
 
 /** @section The_Body: The Logic of Presence */
 
-// FIXME: to be removed when migrating to full-on ETCS:
-// 1. Primary Template: The "Passive" Fallback (Blessed Types)
+// Transitional metadata bridge for lifting sets-side species into ETCS
+// `ambient_set(...)` objects.
 template <typename S, typename Enable = void>
 struct SetMetadata {
   using Domain = typename SpeciesTraits<S>::Domain;
@@ -392,107 +392,18 @@ struct SetMetadata<
   using Cardinality = typename S::cardinality_type;
 };
 
-/**
- * WORKAROUND: Shield for functional membership.
- * This allows IsMereologicalSet to evaluate to false (or be bypassed)
- * for non-functional types like 'unsigned long'.
- */
-template <typename S, typename Domain, typename Ω>
-concept IsFunctionalSet = requires(const S s, const Domain d) {
-  { s(d) } -> std::same_as<typename Ω::Ω>;
+/** @brief ETCS alignment bridge: a sets-side species can be lifted to IsSet. */
+template <typename S>
+concept IsETCSLiftedSet = requires(const S s) {
+  requires dedekind::category::IsSet<
+      decltype(dedekind::category::ambient_set<typename SetMetadata<S>::Domain>(
+          s))>;
 };
-
-/**
- * @concept IsMereologicalSet
- * @brief The Universal Morphism of Presence.
- * @tparam Ω The Subobject Classifier (Ω). Defaults to ClassicalLogic.
- */
-export template <typename S, typename Ω = ClassicalLogic>
-concept IsMereologicalSet =
-    IsMereologicalLattice<S, Ω> && IsPredicate<S> && requires {
-      requires IsCardinality<typename SetMetadata<S>::Cardinality>;
-      // This is now safe because we patched IsProperPart earlier:
-      requires IsProperPart<typename SetMetadata<S>::Domain, S, Ω>;
-    } && requires(const S s) {
-      { !s } -> IsLattice;
-
-      requires requires {
-        {
-          s.cardinality()
-        } -> std::same_as<typename SetMetadata<S>::Cardinality>;
-      } || !requires { s.cardinality(); };
-
-      // 4. Domain Mapping (The "Presence" check) - SHIELDED
-      // If it's an integral (like unsigned long), we skip the call check.
-      requires std::integral<S> ||
-                   IsFunctionalSet<S, typename SetMetadata<S>::Domain, Ω>;
-    } && IsLattice<S>;
-
-/**
- * @concept IsPartiallyETCSAlignedSet
- * @brief Partial ETCS alignment layer for `dedekind.sets`.
- *
- * @details
- * Full alignment with `dedekind.category:etcs::IsSet` requires representing
- * sets as subobjects with explicit ambient species and classifier arrows.
- * `dedekind.sets` currently uses a predicate/mereological representation.
- *
- * This concept captures the overlap that is already expressible in the current
- * representation by reusing ETCS axiom composites where structurally possible.
- *
- * Mapped ETCS witnesses in this partial layer:
- * - Axiom 1 (Composition): `HasAxiom1Composition<Domain>`
- * - Axiom 2 (Identity): `HasAxiom2Identity<Domain>`
- * - Axiom 3 (Terminal object): `HasAxiom3TerminalObject<Domain>`
- * - Axiom 4 (Well-pointedness-like): predicate evaluation available
- * - Axiom 5 (Cartesian product): `HasAxiom5CartesianProduct<Domain>`
- * - Axiom 6 (Exponentiation): `HasAxiom6Exponentiation<Domain>`
- * - Axiom 8 (Empty object): `HasAxiom8EmptySet<Domain>`
- * - Axiom 9 (NNO witness): `HasAxiom9NNO<Domain>`
- *
- * Axiom 7 (Subobject classifier) and Axiom 10 (choice dispatcher via
- * subobject-set operations) remain in `:etcs` and are intentionally not
- * claimed by this partial alignment layer.
- */
-export template <typename S, typename Ω = ClassicalLogic>
-concept IsPartiallyETCSAlignedSet = IsMereologicalSet<S, Ω> && requires {
-  typename SetMetadata<S>::Domain;
-  requires HasAxiom1Composition<typename SetMetadata<S>::Domain>;
-  requires HasAxiom2Identity<typename SetMetadata<S>::Domain>;
-  requires HasAxiom3TerminalObject<typename SetMetadata<S>::Domain>;
-  requires HasAxiom5CartesianProduct<typename SetMetadata<S>::Domain>;
-  requires HasAxiom6Exponentiation<typename SetMetadata<S>::Domain>;
-  requires HasAxiom8EmptySet<typename SetMetadata<S>::Domain>;
-  requires HasAxiom9NNO<typename SetMetadata<S>::Domain>;
-} && IsPredicate<S>;
-
-/**
- * @concept IsSet
- * @brief Set concept with mereological core and partial ETCS alignment.
- * @tparam Ω The Subobject Classifier (Ω). Defaults to ClassicalLogic.
- */
-export template <typename S, typename Ω = ClassicalLogic>
-concept IsSet = IsPartiallyETCSAlignedSet<S, Ω>;
-
-/**
- * Note we have two choices: a) apply the morphism to the set or
- * b) compose with the morphism. Here, we prefer a).
- **/
-export template <IsMereologicalSet S, typename F>
-  requires IsArrow<F> && std::same_as<Dom<F>, S> &&  // F accepts the Set
-           requires {
-             typename Dom<F>::Domain;
-             requires std::same_as<typename S::Domain,
-                                   typename Dom<F>::Domain>;  // Species Match
-           }
-constexpr auto operator>>(const S& s, const F& f) {
-  return f(s);
-}
 
 /** @section The_Extent: The Logic of Realization */
 
 /**
- * @concept IsExtensional
+ * @concept IsEnumerated
  * @brief A set whose members are materialized or bounded in memory (The
  * "Bucket").
  *
@@ -504,7 +415,7 @@ constexpr auto operator>>(const S& s, const F& f) {
  * @tparam L The Subobject Classifier (Ω). Defaults to ClassicalLogic.
  */
 export template <typename S, typename L = ClassicalLogic>
-concept IsEnumerated = IsMereologicalSet<S, L> && requires(const S s) {
+concept IsEnumerated = IsETCSLiftedSet<S> && requires(const S s) {
   /** @section Magnitude: The Physical Proof */
   // An extensional set MUST claim a Finite cardinality type.
   requires(S::cardinality_type::is_finite == true);
@@ -533,7 +444,7 @@ concept IsEnumerated = IsMereologicalSet<S, L> && requires(const S s) {
  * Wikipedia: Intensional definition, Indicator function, Ternary logic
  */
 export template <typename S, typename L = TernaryLogic>
-concept IsSymbolic = IsMereologicalSet<S, L> && !IsEnumerated<S, L>;
+concept IsSymbolic = IsETCSLiftedSet<S> && !IsEnumerated<S, L>;
 
 /**
  * @concept IsPointedSet
@@ -541,7 +452,7 @@ concept IsSymbolic = IsMereologicalSet<S, L> && !IsEnumerated<S, L>;
  * Wikipedia: Pointed set
  */
 export template <typename S, typename T>
-concept IsPointedSet = IsMereologicalSet<S> && IsPointed<T, std::plus<T>>;
+concept IsPointedSet = IsETCSLiftedSet<S> && IsPointed<T, std::plus<T>>;
 
 /**
  * @section Structural_Inference: NaturalLogic
