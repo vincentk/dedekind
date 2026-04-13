@@ -37,11 +37,11 @@ concept IsSemiring = IsAdditiveMonoid<T> && IsMultiplicativeMonoid<T> &&
 
 /** @concept IsRig: The "Natural" Harmony (No negatives) */
 export template <typename T>
-concept IsRig = dedekind::category::IsRig<T, std::plus<>, std::multiplies<>>;
+concept IsRig = dedekind::category::IsRig<T, std::plus<T>, std::multiplies<T>>;
 
 /** @concept IsRng: The "Identity-less" Harmony (No unit) */
 export template <typename T>
-concept IsRng = dedekind::category::IsRng<T, std::plus<>, std::multiplies<>>;
+concept IsRng = dedekind::category::IsRng<T, std::plus<T>, std::multiplies<T>>;
 
 /**
  * @concept IsRing
@@ -49,7 +49,7 @@ concept IsRng = dedekind::category::IsRng<T, std::plus<>, std::multiplies<>>;
  */
 export template <typename T>
 concept IsRing =
-    dedekind::category::IsRing<T, std::plus<>, std::multiplies<>> &&
+    dedekind::category::IsRing<T, std::plus<T>, std::multiplies<T>> &&
     IsSemiring<T> && IsAdditiveGroup<T>;
 
 /**
@@ -58,7 +58,7 @@ concept IsRing =
  */
 export template <typename T>
 concept IsCommutativeRing =
-    IsRing<T> && dedekind::category::IsCommutative<T, std::multiplies<>>;
+    IsRing<T> && dedekind::category::IsCommutative<T, std::multiplies<T>>;
 
 /** @section Atomic_Verification
  * Deferred for experimental reintegration while ring contracts are being

@@ -36,16 +36,20 @@ using namespace dedekind::category;
 /**
  * @concept IsAdditiveMonoid
  * @brief Proposition: The species (T, +) forms a Monoid.
+ * @details Textbook/operator alignment: additive monoid defaults to
+ * `std::plus<T>` (the `+` operation) to match category:total witnesses.
  */
 export template <typename T>
-concept IsAdditiveMonoid = IsMonoid<T, std::plus<>>;
+concept IsAdditiveMonoid = IsMonoid<T, std::plus<T>>;
 
 /**
  * @concept IsMultiplicativeMonoid
  * @brief Proposition: The species (T, *) forms a Monoid.
+ * @details Textbook/operator alignment: multiplicative monoid defaults to
+ * `std::multiplies<T>` (the `*` operation) to match category:total witnesses.
  */
 export template <typename T>
-concept IsMultiplicativeMonoid = IsMonoid<T, std::multiplies<>>;
+concept IsMultiplicativeMonoid = IsMonoid<T, std::multiplies<T>>;
 
 /** @section Formal_Verification */
 

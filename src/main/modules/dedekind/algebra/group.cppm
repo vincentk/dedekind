@@ -34,17 +34,19 @@ namespace dedekind::algebra {
 /**
  * @concept IsAdditiveGroup
  * @brief Proposition: The species (T, +) forms an Abelian Group (ℤ).
+ * @details Operator witness is `std::plus<T>` (the canonical `+`).
  */
 export template <typename T>
-concept IsAdditiveGroup = IsGroup<T, std::plus<>>;
+concept IsAdditiveGroup = IsGroup<T, std::plus<T>>;
 
 /**
  * @concept IsMultiplicativeGroup
  * @brief Proposition: The non-zero species (T*, *) forms a Group (ℚ*).
+ * @details Operator witness is `std::multiplies<T>` (the canonical `*`).
  */
 export template <typename T>
 concept IsMultiplicativeGroup =
-    dedekind::category::IsGroup<T, std::multiplies<>>;
+    dedekind::category::IsGroup<T, std::multiplies<T>>;
 
 /** @section Formal_Verification */
 
