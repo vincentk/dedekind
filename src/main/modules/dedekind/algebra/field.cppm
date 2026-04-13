@@ -56,12 +56,17 @@ using namespace dedekind::sets;
  * @brief The "Painless" Field: A Commutative Ring that admits Division.
  *
  * @tparam T A species already established as a Commutative Ring.
+ * @tparam Add Additive operation witness (defaults to `std::plus<T>`).
+ * @tparam Mult Multiplicative operation witness
+ * (defaults to `std::multiplies<T>`).
  * @details
  * By bootstrapping, we ensure that the multiplication is Abelian
  * before we attempt to invert it.
  */
-export template <typename T>
-concept IsField = IsCommutativeRing<T> && IsDivisionRing<T>;
+export template <typename T, typename Add = std::plus<T>,
+                 typename Mult = std::multiplies<T>>
+concept IsField =
+    IsCommutativeRing<T, Add, Mult> && IsDivisionRing<T, Add, Mult>;
 
 /**
  * @concept IsAlgebraicallyClosed
@@ -71,11 +76,15 @@ concept IsField = IsCommutativeRing<T> && IsDivisionRing<T>;
  * This represents the ultimate completion of the algebraic journey.
  * While IsField guarantees division, Closure guarantees resolution.
  *
- * @tparam F A species already established as a Field.
+ * @tparam T A species already established as a Field.
+ * @tparam Add Additive operation witness (defaults to `std::plus<T>`).
+ * @tparam Mult Multiplicative operation witness
+ * (defaults to `std::multiplies<T>`).
  */
-export template <typename T>
+export template <typename T, typename Add = std::plus<T>,
+                 typename Mult = std::multiplies<T>>
 concept IsAlgebraicallyClosed =
-    IsField<T> && true;  // Refined by its use in Algebra_ℂ
+    IsField<T, Add, Mult> && true;  // Refined by its use in Algebra_ℂ
 
 /**
  * @concept IsBounded
@@ -124,7 +133,7 @@ export template <typename Poly, typename Coeff>
 constexpr auto div_rem(const Poly& a, const Poly& b) {
   if (b.is_zero()) throw std::domain_error("Division by zero.");
 
-  Poly q({dedekind::category::identity_v<Coeff, std::plus<>>});
+  Poly q({dedekind::category::identity_v<Coeff, std::plus<Coeff>>});
   Poly r = a;
 
   while (!r.is_zero() && r.degree() >= b.degree()) {

@@ -39,11 +39,25 @@ namespace dedekind::category {
 /**
  * @concept IsAction
  * @brief An Action (S ⟳ M) where S acts on M via its mapping property.
+ * @tparam S The scalar/influencer species.
+ * @tparam M The acted-on species.
+ * @tparam Act External action witness (defaults to `std::multiplies<>`).
+ *
+ * Supports both textbook forms:
+ * 1. callable action object `s(m)`
+ * 2. binary action witness `Act{}(s, m)`
  */
-export template <typename S, typename M>
+export template <typename S, typename M, typename Act = std::multiplies<>>
 concept IsAction = requires(S s, M m) {
-  // Categorical Action: The arrow s maps an element of its domain to M.
-  { s(m) } -> std::same_as<M>;
+  requires(
+      requires {
+        // Categorical action as an arrow object.
+        { s(m) } -> std::same_as<M>;
+      } ||
+      requires {
+        // Categorical action via external binary witness.
+        { Act{}(s, m) } -> std::same_as<M>;
+      });
 };
 
 // Pass the transparent version to the assert
@@ -145,13 +159,14 @@ concept IsAdditiveMorphism = requires(const F f, const M m1, const M m2) {
  * 1. Vector Additivity: s * (m1 + m2) = s*m1 + s*m2
  * 2. Scalar Additivity: (s1 + s2) * m = s1*m + s2*m
  */
-export template <typename S, typename M>
-concept IsLinearAction =
-    IsAction<S, M> && IsAdditiveMorphism<std::multiplies<>, M> &&
-    requires(S s1, S s2, M m) {
-      // Scalar Additivity (The "Second Linearity")
-      { (s1 + s2) * m } -> std::same_as<M>;
-    };
+export template <typename S, typename M, typename Act = std::multiplies<>,
+                 typename AddS = std::plus<S>>
+concept IsLinearAction = IsAction<S, M, Act> && IsAdditiveMorphism<Act, M> &&
+                         requires(S s1, S s2, M m) {
+                           // Scalar Additivity (The "Second Linearity") via
+                           // chosen witnesses.
+                           { Act{}(AddS{}(s1, s2), m) } -> std::same_as<M>;
+                         };
 
 /**
  * @concept IsLinearMorphism
@@ -161,7 +176,7 @@ concept IsLinearAction =
 export template <typename F, typename M, typename S>
 concept IsLinearMorphism =
     IsAdditiveMorphism<F, M> && IsAction<S, M> && requires(F f, M m, S s) {
-      { f(s * m) } -> std::same_as<M>;
+      { f(std::multiplies<>{}(s, m)) } -> std::same_as<M>;
       // Semantic: f(s * m) == s * f(m)
     };
 
