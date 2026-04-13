@@ -39,7 +39,7 @@ export template <typename T, typename Add = std::plus<T>,
                  typename Mult = std::multiplies<T>>
 concept IsSemiring =
     IsAdditiveMonoid<T, Add> && IsMultiplicativeMonoid<T, Mult> &&
-    dedekind::category::IsLinearAction<T, T>;
+    dedekind::category::IsLinearAction<T, T, Mult, Add>;
 
 /** @concept IsRig: The "Natural" Harmony (No negatives) */
 export template <typename T, typename Add = std::plus<T>,
