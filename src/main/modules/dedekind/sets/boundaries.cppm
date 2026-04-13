@@ -196,6 +196,11 @@ static_assert(IsMereologicalSet<Ω<int>>,
 
 static_assert(IsMereologicalSet<Ø<int>>);
 
+static_assert(IsPartiallyETCSAlignedSet<Ω<int>>,
+              "The universal set should satisfy the partial ETCS alignment.");
+static_assert(IsPartiallyETCSAlignedSet<Ø<int>>,
+              "The empty set should satisfy the partial ETCS alignment.");
+
 // FIXME: This is a hack to make the tests compile. The NaturalNumbers class
 // should Define the symbol used in your test Define the type
 export using NaturalNumbers = Ω<int>;

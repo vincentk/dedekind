@@ -78,61 +78,61 @@ concept IsTotallyOrderedPosetal =
 
 /**
  * @concept IsOrderMeetSemilattice
- * @brief Order-theoretic meet semilattice (associative, idempotent,
- * commutative).
+ * @brief Signature-level meet-semilattice interface.
  *
  * @details
- * Literature alignment (Davey-Priestley / standard order theory):
- * a meet-semilattice is associative + idempotent + commutative.
- *
- * Certification is accepted by either:
- * 1) trait-level witness (`IsCommutative<T, Meet>`), or
- * 2) order-equivalence witness (`meet(a,b) <= meet(b,a)` and converse).
+ * This concept checks only the operation signature and closure shape.
+ * Algebraic laws are documented and validated via dedicated tests.
  *
  * @see https://en.wikipedia.org/wiki/Semilattice
  */
 export template <typename T, typename Meet = decltype(std::ranges::min)>
-concept IsOrderMeetSemilattice =
-    IsMereologicalMeetBand<T, Meet> &&
-    (IsCommutative<T, Meet> || requires(Meet meet, T a, T b) {
-      { meet(a, b) <= meet(b, a) };
-      { meet(b, a) <= meet(a, b) };
-    });
+concept IsOrderMeetSemilattice = requires(Meet meet, T a, T b) {
+  { meet(a, b) } -> std::convertible_to<T>;
+};
+
+/**
+ * @concept IsCertifiedOrderMeetSemilattice
+ * @brief Trait-certified meet-semilattice (associative + idempotent +
+ * commutative).
+ */
+export template <typename T, typename Meet = decltype(std::ranges::min)>
+concept IsCertifiedOrderMeetSemilattice =
+    IsMereologicalMeetBand<T, Meet> && IsCommutative<T, Meet>;
 
 /**
  * @concept IsOrderJoinSemilattice
- * @brief Order-theoretic join semilattice (associative, idempotent,
- * commutative).
+ * @brief Signature-level join-semilattice interface.
  *
  * @details
- * Literature alignment (Davey-Priestley / standard order theory):
- * a join-semilattice is associative + idempotent + commutative.
- *
- * Certification is accepted by either:
- * 1) trait-level witness (`IsCommutative<T, Join>`), or
- * 2) order-equivalence witness (`join(a,b) <= join(b,a)` and converse).
+ * This concept checks only the operation signature and closure shape.
+ * Algebraic laws are documented and validated via dedicated tests.
  *
  * @see https://en.wikipedia.org/wiki/Semilattice
  */
 export template <typename T, typename Join = decltype(std::ranges::max)>
-concept IsOrderJoinSemilattice =
-    IsMereologicalJoinBand<T, Join> &&
-    (IsCommutative<T, Join> || requires(Join join, T a, T b) {
-      { join(a, b) <= join(b, a) };
-      { join(b, a) <= join(a, b) };
-    });
+concept IsOrderJoinSemilattice = requires(Join join, T a, T b) {
+  { join(a, b) } -> std::convertible_to<T>;
+};
+
+/**
+ * @concept IsCertifiedOrderJoinSemilattice
+ * @brief Trait-certified join-semilattice (associative + idempotent +
+ * commutative).
+ */
+export template <typename T, typename Join = decltype(std::ranges::max)>
+concept IsCertifiedOrderJoinSemilattice =
+    IsMereologicalJoinBand<T, Join> && IsCommutative<T, Join>;
 
 /**
  * @concept IsOrderLatticeOperations
- * @brief Commutative lattice operations as an order-theoretic refinement.
+ * @brief Signature-level lattice-operation interface.
  *
  * @details
- * Standard algebraic characterization: join-semilattice + meet-semilattice
- * plus absorption.
+ * This concept checks that join/meet signatures compose in the standard
+ * lattice-shaped expressions. It does not certify the algebraic equalities.
  *
- * Absorption is accepted by either:
- * 1) trait-level witness (`IsAbsorptive<T, Join, Meet>`), or
- * 2) order-equivalence witness in the induced order.
+ * Use `IsCertifiedOrderLatticeOperations` for trait-certified laws.
  *
  * @see Davey & Priestley, Introduction to Lattices and Order
  * @see https://en.wikipedia.org/wiki/Lattice_(order)
@@ -141,12 +141,23 @@ export template <typename T, typename Join = decltype(std::ranges::max),
                  typename Meet = decltype(std::ranges::min)>
 concept IsOrderLatticeOperations =
     IsOrderJoinSemilattice<T, Join> && IsOrderMeetSemilattice<T, Meet> &&
-    (IsAbsorptive<T, Join, Meet> || requires(Join join, Meet meet, T a, T b) {
-      { join(a, meet(a, b)) <= a };
-      { a <= join(a, meet(a, b)) };
-      { meet(a, join(a, b)) <= a };
-      { a <= meet(a, join(a, b)) };
-    });
+    requires(Join join, Meet meet, T a, T b, T c) {
+      { join(a, meet(a, b)) } -> std::convertible_to<T>;
+      { meet(a, join(a, b)) } -> std::convertible_to<T>;
+      { join(a, meet(b, c)) } -> std::convertible_to<T>;
+      { meet(a, join(b, c)) } -> std::convertible_to<T>;
+    };
+
+/**
+ * @concept IsCertifiedOrderLatticeOperations
+ * @brief Trait-certified lattice operations (commutative semilattices +
+ * absorption).
+ */
+export template <typename T, typename Join = decltype(std::ranges::max),
+                 typename Meet = decltype(std::ranges::min)>
+concept IsCertifiedOrderLatticeOperations =
+    IsCertifiedOrderJoinSemilattice<T, Join> &&
+    IsCertifiedOrderMeetSemilattice<T, Meet> && IsAbsorptive<T, Join, Meet>;
 
 /**
  * @concept IsOrderDistributiveLatticeOperations
@@ -159,6 +170,30 @@ export template <typename T, typename Join = decltype(std::ranges::max),
 concept IsOrderDistributiveLatticeOperations =
     IsOrderLatticeOperations<T, Join, Meet> && IsDistributive<T, Join, Meet> &&
     IsDistributive<T, Meet, Join>;
+
+/**
+ * @concept IsCertifiedOrderDistributiveLatticeOperations
+ * @brief Trait-certified distributive lattice refinement.
+ */
+export template <typename T, typename Join = decltype(std::ranges::max),
+                 typename Meet = decltype(std::ranges::min)>
+concept IsCertifiedOrderDistributiveLatticeOperations =
+    IsCertifiedOrderLatticeOperations<T, Join, Meet> &&
+    IsDistributive<T, Join, Meet> && IsDistributive<T, Meet, Join>;
+
+using DefaultJoin = decltype(std::ranges::max);
+using DefaultMeet = decltype(std::ranges::min);
+
+static_assert(IsOrderMeetSemilattice<int, DefaultMeet>);
+static_assert(IsOrderJoinSemilattice<int, DefaultJoin>);
+static_assert(IsOrderLatticeOperations<int, DefaultJoin, DefaultMeet>);
+static_assert(
+    IsOrderDistributiveLatticeOperations<int, DefaultJoin, DefaultMeet>);
+static_assert(IsCertifiedOrderMeetSemilattice<int, DefaultMeet>);
+static_assert(IsCertifiedOrderJoinSemilattice<int, DefaultJoin>);
+static_assert(IsCertifiedOrderLatticeOperations<int, DefaultJoin, DefaultMeet>);
+static_assert(IsCertifiedOrderDistributiveLatticeOperations<int, DefaultJoin,
+                                                            DefaultMeet>);
 
 /**
  * @brief Verify that a two-step path A→B→C exists in the posetal category.

@@ -429,12 +429,50 @@ concept IsMereologicalSet =
     } && IsLattice<S>;
 
 /**
+ * @concept IsPartiallyETCSAlignedSet
+ * @brief Partial ETCS alignment layer for `dedekind.sets`.
+ *
+ * @details
+ * Full alignment with `dedekind.category:etcs::IsSet` requires representing
+ * sets as subobjects with explicit ambient species and classifier arrows.
+ * `dedekind.sets` currently uses a predicate/mereological representation.
+ *
+ * This concept captures the overlap that is already expressible in the current
+ * representation by reusing ETCS axiom composites where structurally possible.
+ *
+ * Mapped ETCS witnesses in this partial layer:
+ * - Axiom 1 (Composition): `HasAxiom1Composition<Domain>`
+ * - Axiom 2 (Identity): `HasAxiom2Identity<Domain>`
+ * - Axiom 3 (Terminal object): `HasAxiom3TerminalObject<Domain>`
+ * - Axiom 4 (Well-pointedness-like): predicate evaluation available
+ * - Axiom 5 (Cartesian product): `HasAxiom5CartesianProduct<Domain>`
+ * - Axiom 6 (Exponentiation): `HasAxiom6Exponentiation<Domain>`
+ * - Axiom 8 (Empty object): `HasAxiom8EmptySet<Domain>`
+ * - Axiom 9 (NNO witness): `HasAxiom9NNO<Domain>`
+ *
+ * Axiom 7 (Subobject classifier) and Axiom 10 (choice dispatcher via
+ * subobject-set operations) remain in `:etcs` and are intentionally not
+ * claimed by this partial alignment layer.
+ */
+export template <typename S, typename Ω = ClassicalLogic>
+concept IsPartiallyETCSAlignedSet = IsMereologicalSet<S, Ω> && requires {
+  typename SetMetadata<S>::Domain;
+  requires HasAxiom1Composition<typename SetMetadata<S>::Domain>;
+  requires HasAxiom2Identity<typename SetMetadata<S>::Domain>;
+  requires HasAxiom3TerminalObject<typename SetMetadata<S>::Domain>;
+  requires HasAxiom5CartesianProduct<typename SetMetadata<S>::Domain>;
+  requires HasAxiom6Exponentiation<typename SetMetadata<S>::Domain>;
+  requires HasAxiom8EmptySet<typename SetMetadata<S>::Domain>;
+  requires HasAxiom9NNO<typename SetMetadata<S>::Domain>;
+} && IsPredicate<S>;
+
+/**
  * @concept IsSet
- * @brief Backward-compatible alias for IsMereologicalSet.
+ * @brief Set concept with mereological core and partial ETCS alignment.
  * @tparam Ω The Subobject Classifier (Ω). Defaults to ClassicalLogic.
  */
 export template <typename S, typename Ω = ClassicalLogic>
-concept IsSet = IsMereologicalSet<S, Ω>;
+concept IsSet = IsPartiallyETCSAlignedSet<S, Ω>;
 
 /**
  * Note we have two choices: a) apply the morphism to the set or
