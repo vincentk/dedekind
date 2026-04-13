@@ -6,9 +6,14 @@ module;
 
 #include <concepts>
 
-export module dedekind.numbers:integers;
+export module dedekind.numbers:integer;
+
+import dedekind.category;
+import dedekind.sets;
 
 namespace dedekind::numbers {
+using namespace dedekind::category;
+using namespace dedekind::sets;
 
 export template <typename T>
 concept IsReflectiveSpecies = std::regular<T> && requires(T a) {
@@ -70,5 +75,13 @@ concept Continuum_ℝ = IsReal<E> && IsContinuous<E>;
 
 export template <typename M, typename E, typename R>
 concept Algebra_ℂ = IsComplex<E, R>;
+
+export template <typename L = ClassicalLogic, typename C = ℵ_0>
+using IntegerSetOf = Ω<int, L, C>;
+
+export using IntegerSet = IntegerSetOf<>;
+export using ℤ = IntegerSet;
+
+export inline constexpr ℤ Z{};
 
 }  // namespace dedekind::numbers

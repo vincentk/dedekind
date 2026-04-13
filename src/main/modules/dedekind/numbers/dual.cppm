@@ -15,10 +15,14 @@ module;
 export module dedekind.numbers:dual;
 
 import dedekind.algebra;
+import dedekind.category;
+import dedekind.sets;
 
 namespace dedekind::numbers {
 
 using namespace dedekind::algebra;
+using namespace dedekind::category;
+using namespace dedekind::sets;
 
 /**
  * @class Dual
@@ -54,5 +58,14 @@ class Dual {
  * Deferred while Dual witnesses are being retargeted to the active ring
  * contracts.
  */
+
+export template <typename F = double, typename L = ClassicalLogic,
+                 typename C = ℶ_1>
+using DualSetOf = Ω<Dual<F>, L, C>;
+
+export using DualSet = DualSetOf<>;
+export using 𝔻 = DualSet;
+
+export inline constexpr 𝔻 D{};
 
 }  // namespace dedekind::numbers

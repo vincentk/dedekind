@@ -8,8 +8,8 @@ using namespace dedekind::numbers;
 using namespace dedekind::category;
 
 TEST_CASE("Numbers: Symbolic Checkpoint", "[numbers][symbolic]") {
-  using R = Real<double>;
-  using C = Complex<R>;
+  using RealValue = Real<double>;
+  using ComplexValue = Complex<RealValue>;
 
   SECTION("Sqrt2 symbolic anchor") {
     const auto root2 = Sqrt2_Symbolic<double>();
@@ -22,9 +22,9 @@ TEST_CASE("Numbers: Symbolic Checkpoint", "[numbers][symbolic]") {
   }
 
   SECTION("Complex arithmetic over Real wrapper") {
-    const C a{R{1.0}, R{2.0}};
-    const C b{R{3.0}, R{4.0}};
-    const C s = a + b;
+    const ComplexValue a{RealValue{1.0}, RealValue{2.0}};
+    const ComplexValue b{RealValue{3.0}, RealValue{4.0}};
+    const ComplexValue s = a + b;
     REQUIRE(s.real().resolve() == 4.0);
     REQUIRE(s.imag().resolve() == 6.0);
   }

@@ -399,6 +399,16 @@ struct Set final {
   }
 };
 
+/**
+ * @brief Explicit alias for the canonical ETCS CCC witness over ambient A.
+ *
+ * @details
+ * This alias exists to reduce naming ambiguity with `dedekind::sets::Set`
+ * (the intensional set-builder DSL species).
+ */
+export template <typename A>
+using CanonicalSetCCC = Set<A>;
+
 // Now we can bless it right next to its definition
 static_assert(IsCartesianClosed<Set<int>>,
               "Verification Failed: Set must be Cartesian Closed.");
@@ -412,7 +422,7 @@ static_assert(IsCartesianClosed<Set<int>>,
  * set concepts to also be category concepts.
  */
 export template <typename A>
-concept HasCanonicalSetCCC = IsCartesianClosed<Set<A>>;
+concept HasCanonicalSetCCC = IsCartesianClosed<CanonicalSetCCC<A>>;
 
 /**
  * @concept IsProductCategory

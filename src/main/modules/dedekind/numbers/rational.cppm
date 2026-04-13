@@ -12,7 +12,12 @@ module;
 
 export module dedekind.numbers:rational;
 
+import dedekind.category;
+import dedekind.sets;
+
 namespace dedekind::numbers {
+using namespace dedekind::category;
+using namespace dedekind::sets;
 
 /**
  * @class Rational
@@ -93,5 +98,14 @@ class Rational {
 
 // Proof: The inverse of 2/3 is 3/2.
 static_assert((Rational<int>(2, 3).inverse().num() == 3));
+
+export template <std::signed_integral Z = int, typename L = ClassicalLogic,
+                 typename C = ℵ_0>
+using RationalSetOf = Ω<Rational<Z>, L, C>;
+
+export using RationalSet = RationalSetOf<>;
+export using ℚ = RationalSet;
+
+export inline constexpr ℚ Q{};
 
 }  // namespace dedekind::numbers
