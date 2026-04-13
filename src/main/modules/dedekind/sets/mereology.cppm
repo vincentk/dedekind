@@ -90,7 +90,7 @@ concept IsPartOf = requires(const S1& p, const S2& w) {
 /** @brief The Dual / Converse of the Part-Whole relation. */
 export template <typename S1, typename S2, typename L = ClassicalLogic>
   requires IsPartOf<S1, S2, L>
-constexpr bool operator>=(const S2& whole, const S1& part) {
+constexpr typename L::Ω operator>=(const S2& whole, const S1& part) {
   return part <= whole;  // The Converse Morphism
 }
 

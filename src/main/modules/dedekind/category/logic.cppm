@@ -257,9 +257,9 @@ struct Truth {
     return {L::AND(a.value, b.value)};
   }
 
-  friend constexpr bool operator<=(Truth a, Truth b) noexcept {
+  friend constexpr Truth operator<=(Truth a, Truth b) noexcept {
     // Universal Lattice Order: a <= b iff the Join of a and b is b.
-    return (a + b) == b;
+    return {lift_logic<L>((a + b) == b)};
   }
 
   /** @section Identity_Discovery */
@@ -289,6 +289,28 @@ export using Boolean = Truth<ClassicalLogic>;
 
 /** @brief The Kleene Species (The Indeterminacy). */
 export using Kleene = Truth<TernaryLogic>;
+
+/**
+ * @brief Semantic truth projection for assertion contexts.
+ * @details
+ * Textbook alignment: in an internal logic, formulas denote Ω-values.
+ * `holds` projects that Ω-value to meta-level proof truth.
+ */
+export template <typename L>
+constexpr bool holds(Truth<L> proposition) noexcept {
+  return proposition.value == L::True;
+}
+
+/**
+ * @brief Semantic falsity projection for assertion contexts.
+ * @details
+ * In non-classical logics (e.g., Kleene K3), `refutes` is distinct from
+ * `!holds`: Unknown is neither proven true nor proven false.
+ */
+export template <typename L>
+constexpr bool refutes(Truth<L> proposition) noexcept {
+  return proposition.value == L::False;
+}
 
 /** @brief Bridge the Monic Wrapper to the Logic Species Registry. */
 export template <typename L>

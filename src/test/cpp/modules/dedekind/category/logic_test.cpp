@@ -119,10 +119,10 @@ TEST_CASE("Logic: The Lattice Order (Relational Honesty)",
     B t{true}, f{false};
 
     // Axiom: a <= b iff (a + b) == b
-    CHECK((f <= t));        // (false || true) == true
-    CHECK((f <= f));        // (false || false) == false
-    CHECK((t <= t));        // (true || true) == true
-    CHECK_FALSE((t <= f));  // (true || false) != false
+    CHECK(holds(f <= t));    // (false || true) == true
+    CHECK(holds(f <= f));    // (false || false) == false, so equality holds
+    CHECK(holds(t <= t));    // (true || true) == true
+    CHECK(refutes(t <= f));  // (true || false) != false
   }
 
   SECTION("Kleene Information/Truth Order") {
@@ -131,15 +131,15 @@ TEST_CASE("Logic: The Lattice Order (Relational Honesty)",
     K T{True}, F{False}, U{Unknown};
 
     // Verifying the Linear Truth Chain: False < Unknown < True
-    CHECK((F <= U));  // (False || Unknown) == Unknown
-    CHECK((U <= T));  // (Unknown || True) == True
-    CHECK((F <= T));  // Transitivity
+    CHECK(holds(F <= U));  // (False || Unknown) == Unknown, hence <= is True
+    CHECK(holds(U <= T));  // (Unknown || True) == True
+    CHECK(holds(F <= T));  // Transitivity
 
     // Reflexivity
-    CHECK((U <= U));
+    CHECK(holds(U <= U));
 
     // Antisymmetry (Strictly different values cannot be <= each other both
     // ways)
-    CHECK_FALSE((T <= U));
+    CHECK(refutes(T <= U));
   }
 }
