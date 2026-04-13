@@ -11,6 +11,7 @@ export module dedekind.numbers:complex;
 
 import dedekind.category;
 import dedekind.sets;
+import :real;
 
 namespace dedekind::numbers {
 using namespace dedekind::category;
@@ -56,4 +57,27 @@ export using ℂ = ComplexSet;
 
 export inline constexpr ℂ C{};
 
+/**
+ * @brief Canonical embedding ℝ ↪ ℂ: Real<double> → Complex<double>.
+ * @details Every real x embeds as the complex number (x + 0i).
+ *          This is the canonical ring monomorphism R → C.
+ */
+export inline constexpr auto embed_R_C =
+    arrow<Real<double>, Complex<double>>([](const Real<double>& r) noexcept {
+      return Complex<double>{r.resolve(), 0.0};
+    });
+
 }  // namespace dedekind::numbers
+
+namespace dedekind::category {
+template <typename R>
+struct SpeciesTraits<dedekind::numbers::Complex<R>> {
+  using Domain = dedekind::numbers::Complex<R>;
+  using machine_type = dedekind::numbers::Complex<R>;
+};
+
+template <>
+inline constexpr bool
+    is_monic_arrow_v<std::decay_t<decltype(dedekind::numbers::embed_R_C)>> =
+        true;
+}  // namespace dedekind::category

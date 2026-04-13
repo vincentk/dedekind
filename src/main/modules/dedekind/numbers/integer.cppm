@@ -84,4 +84,43 @@ export using ℤ = IntegerSet;
 
 export inline constexpr ℤ Z{};
 
+/**
+ * @brief Canonical embedding ℕ ↪ ℤ: unsigned int → int.
+ * @details The natural numbers embed into the integers via the unsigned→signed
+ *          widening conversion. This is injective for values that fit in int;
+ *          large unsigned values may overflow, so the domain is conventionally
+ *          restricted to values ≤ INT_MAX when used with certified arithmetic.
+ */
+export inline constexpr auto embed_N_Z = arrow<unsigned, int>(
+    [](const unsigned& x) noexcept { return static_cast<int>(x); });
+
+/**
+ * @brief Canonical embedding K3 ↪ ℤ: Ternary → int.
+ * @details Maps False -> -1, Unknown -> 0, True -> 1.
+ */
+export inline constexpr auto embed_K3_Z =
+    arrow<Ternary, int>([](const Ternary& t) noexcept {
+      switch (t) {
+        case Ternary::False:
+          return -1;
+        case Ternary::Unknown:
+          return 0;
+        case Ternary::True:
+          return 1;
+      }
+      return 0;
+    });
+
 }  // namespace dedekind::numbers
+
+namespace dedekind::category {
+template <>
+inline constexpr bool
+    is_monic_arrow_v<std::decay_t<decltype(dedekind::numbers::embed_N_Z)>> =
+        true;
+
+template <>
+inline constexpr bool
+    is_monic_arrow_v<std::decay_t<decltype(dedekind::numbers::embed_K3_Z)>> =
+        true;
+}  // namespace dedekind::category

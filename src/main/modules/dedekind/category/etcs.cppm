@@ -112,6 +112,24 @@ constexpr auto set_complement(const S& s) {
   return classify<A>(!s.χ);
 }
 
+/** @brief ETCS membership: x ∈ S evaluated via χ_S(x). */
+export template <typename S>
+  requires IsSubobject<S, typename S::Ambient>
+constexpr auto in(const typename S::Ambient& x, const S& s) {
+  return s.χ(x);
+}
+
+/**
+ * @brief Membership through an embedding arrow e: X -> A, then χ_S.
+ * @details Evaluates x ∈_e S as χ_S(e(x)).
+ */
+export template <typename S, IsArrow E>
+  requires IsSubobject<S, typename S::Ambient> &&
+           std::same_as<Cod<E>, typename S::Ambient>
+constexpr auto in_via(const Dom<E>& x, E&& embedding, const S& s) {
+  return s.χ(std::forward<E>(embedding)(x));
+}
+
 /** @brief Lattice alias: meet = intersection. */
 export template <typename S1, typename S2>
   requires IsCompatibleSetPair<S1, S2>

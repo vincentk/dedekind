@@ -108,4 +108,25 @@ export using ℚ = RationalSet;
 
 export inline constexpr ℚ Q{};
 
+/**
+ * @brief Canonical embedding ℤ ↪ ℚ: int → Rational<int>.
+ * @details Every integer n embeds as the fraction n/1.
+ *          This is the standard ring homomorphism Z → Q.
+ */
+export inline constexpr auto embed_Z_Q = arrow<int, Rational<int>>(
+    [](const int& n) noexcept { return Rational<int>{n, 1}; });
+
 }  // namespace dedekind::numbers
+
+namespace dedekind::category {
+template <std::signed_integral Z>
+struct SpeciesTraits<dedekind::numbers::Rational<Z>> {
+  using Domain = dedekind::numbers::Rational<Z>;
+  using machine_type = dedekind::numbers::Rational<Z>;
+};
+
+template <>
+inline constexpr bool
+    is_monic_arrow_v<std::decay_t<decltype(dedekind::numbers::embed_Z_Q)>> =
+        true;
+}  // namespace dedekind::category

@@ -132,3 +132,23 @@ TEST_CASE("ETCS: Boolean algebra over bool ambient",
     CHECK(set_intersection(p, set_union(p, q)).χ(x) == p.χ(x));
   }
 }
+
+TEST_CASE("ETCS: embedding-mediated membership avoids subset claims",
+          "[category][etcs][embedding][membership]") {
+  const auto integers = ambient_set<int>([](const int&) { return true; });
+  const auto naturals = ambient_set<int>([](const int& x) { return x >= 0; });
+
+  // Identity embedding int -> int as the carrier inclusion into Z's ambient.
+  const auto embed_int_in_Z = arrow<int, int>([](const int& x) { return x; });
+
+  CHECK(in_via(7, embed_int_in_Z, integers) == true);
+  CHECK(in_via(-7, embed_int_in_Z, integers) == true);
+
+  // Canonical widening embedding unsigned -> int for N-membership checks.
+  const auto embed_unsigned_in_N = arrow<unsigned, int>(
+      [](const unsigned& x) { return static_cast<int>(x); });
+
+  CHECK(in(-1, naturals) == false);
+  CHECK(in(7, naturals) == true);
+  CHECK(in_via(7u, embed_unsigned_in_N, naturals) == true);
+}
