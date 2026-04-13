@@ -40,12 +40,20 @@ using namespace dedekind::category;
 export template <typename T>
 concept IsAdditiveMonoid = IsMonoid<T, std::plus<>>;
 
+// Textbook-style alias retained as additive naming bridge.
+export template <typename T>
+concept IsMonoidUnderAddition = IsAdditiveMonoid<T>;
+
 /**
  * @concept IsMultiplicativeMonoid
  * @brief Proposition: The species (T, *) forms a Monoid.
  */
 export template <typename T>
 concept IsMultiplicativeMonoid = IsMonoid<T, std::multiplies<>>;
+
+// Textbook-style alias retained as multiplicative naming bridge.
+export template <typename T>
+concept IsMonoidUnderMultiplication = IsMultiplicativeMonoid<T>;
 
 /** @section Formal_Verification */
 

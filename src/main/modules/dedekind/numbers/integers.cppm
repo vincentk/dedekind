@@ -31,7 +31,10 @@ concept IsRationalLike = std::regular<T> && requires(T a, T b) {
 };
 
 export template <typename T>
-concept IsFieldSpecies = IsRationalLike<T>;
+concept IsFieldLike = IsRationalLike<T>;
+
+export template <typename T>
+concept IsFieldSpecies = IsFieldLike<T>;
 
 export template <typename Q, typename Z>
 concept IsRational = IsFieldSpecies<Q> && IsInteger<Z> && requires(Q q) {

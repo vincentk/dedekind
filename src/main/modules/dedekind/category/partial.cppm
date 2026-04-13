@@ -132,6 +132,10 @@ concept IsMagmoid = requires(T a, T b) {
   { Op{}(std::make_pair(a, b)) } -> IsPotential;
 };
 
+// Textbook-aligned alias kept alongside the legacy name.
+export template <typename T, typename Op>
+concept IsPartialMagma = IsMagmoid<T, Op>;
+
 /**
  * @concept IsPartialAssociative
  * @brief The Kleene Associativity Law.
