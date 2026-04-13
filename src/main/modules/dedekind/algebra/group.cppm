@@ -38,10 +38,6 @@ namespace dedekind::algebra {
 export template <typename T>
 concept IsAdditiveGroup = IsGroup<T, std::plus<>>;
 
-// Textbook-style alias retained as additive naming bridge.
-export template <typename T>
-concept IsGroupUnderAddition = IsAdditiveGroup<T>;
-
 /**
  * @concept IsMultiplicativeGroup
  * @brief Proposition: The non-zero species (T*, *) forms a Group (ℚ*).
@@ -49,10 +45,6 @@ concept IsGroupUnderAddition = IsAdditiveGroup<T>;
 export template <typename T>
 concept IsMultiplicativeGroup =
     dedekind::category::IsGroup<T, std::multiplies<>>;
-
-// Textbook-style alias retained as multiplicative naming bridge.
-export template <typename T>
-concept IsGroupUnderMultiplication = IsMultiplicativeGroup<T>;
 
 /** @section Formal_Verification */
 

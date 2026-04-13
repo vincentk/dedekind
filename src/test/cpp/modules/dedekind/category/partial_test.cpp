@@ -13,7 +13,7 @@ TEST_CASE("Partial: maturity mirrors total hierarchy", "[category][partial]") {
                                    FullMachineBoundaryPolicy<unsigned int>>;
 
   SECTION("Unsigned bounded add matures to partial Abelian group") {
-    STATIC_CHECK(IsMagmoid<unsigned int, UAdd>);
+    STATIC_CHECK(IsPartialMagma<unsigned int, UAdd>);
     STATIC_CHECK(IsPartialSemigroup<unsigned int, UAdd>);
     STATIC_CHECK(IsPartialMonoid<unsigned int, UAdd>);
     STATIC_CHECK(IsPartialLoop<unsigned int, UAdd>);

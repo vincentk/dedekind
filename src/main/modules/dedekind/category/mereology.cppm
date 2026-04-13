@@ -30,14 +30,27 @@ namespace dedekind::category {
  * @brief Verifies that a binary operator satisfies Leśniewski's mereological
  * axioms.
  *
- * @tparam Op The parthood operator (e.g., a "sub-structure" check).
+ * @details
+ * Textbook term: this is the axiomatic core of a partial-order style
+ * parthood relation used in formal mereology.
+ *
+ * @tparam Op The parthood operator (defaults to `std::less_equal<>`).
  * @tparam T The type being reasoned about.
+ * @tparam Ω The truth-value codomain (default: classical two-valued logic).
+ *
+ * @note Textbook alignment:
+ * - Parthood/partial-order axioms: reflexive, transitive, antisymmetric.
+ * - Default comparator `std::less_equal<>` corresponds to the usual
+ *   order-theoretic relation symbol `<=`.
+ *
+ * @see Structural mereology overview (Stanford Encyclopedia):
+ * https://plato.stanford.edu/entries/mereology/
+ * @see Lambek & Scott (1988), Introduction to Higher-Order Categorical Logic.
+ * @see McLarty (1992), Elementary Categories, Elementary Toposes.
  */
-export template <typename Op, typename T, typename Omega = bool>
+export template <typename T, typename Op = std::less_equal<>, typename Ω = bool>
 concept IsPartRelation = requires(Op op, T a, T b, T c) {
-  {
-    op(a, b)
-  } -> std::same_as<Omega>;  // The operator must return a truth value
+  { op(a, b) } -> std::same_as<Ω>;  // The operator must return a truth value
 
   // Mereological Axiom 1: Reflexivity (∀x, x ≤ x)
   // Axiom 2: Transitivity (∀x,y,z: x ≤ y ∧ y ≤ z ⇒ x ≤ z)
@@ -51,22 +64,34 @@ concept IsPartRelation = requires(Op op, T a, T b, T c) {
  * @concept IsPartOfRelation
  * @brief Minimal core part-whole relation: `part <= whole` yields Omega.
  *
+ * @details
+ * Textbook term: primitive binary parthood predicate (often written
+ * `part <= whole` or `part ⊑ whole` depending on formalism).
+ *
  * Richer mereological structure (species routing, ambient checks, lattice
  * refinements) should be layered by downstream partitions.
+ *
+ * @see https://en.wikipedia.org/wiki/Mereology
  */
-export template <typename Part, typename Whole, typename Omega = bool>
+export template <typename Part, typename Whole, typename Ω = bool>
 concept IsPartOfRelation = requires(const Part& part, const Whole& whole) {
-  { part <= whole } -> std::same_as<Omega>;
+  { part <= whole } -> std::same_as<Ω>;
 };
 
 /**
  * @concept IsMereologicalMeetSemilattice
  * @brief Meet-like operation constrained by associativity and idempotence.
  *
+ * @note Textbook term:
+ * a meet-semilattice is usually the commutative-idempotent-associative
+ * operation (meet, `∧`).
+ *
  * Textbook note:
  * A meet-semilattice is usually defined as associative + commutative +
  * idempotent. This concept is intentionally weaker for current mereological
  * compatibility and should not be read as the full lattice-theory notion.
+ *
+ * @see https://en.wikipedia.org/wiki/Semilattice
  */
 export template <typename T, typename Meet>
 concept IsMereologicalMeetSemilattice =
@@ -76,10 +101,16 @@ concept IsMereologicalMeetSemilattice =
  * @concept IsMereologicalJoinSemilattice
  * @brief Join-like operation constrained by associativity and idempotence.
  *
+ * @note Textbook term:
+ * a join-semilattice is usually the commutative-idempotent-associative
+ * operation (join, `∨`).
+ *
  * Textbook note:
  * A join-semilattice is usually defined as associative + commutative +
  * idempotent. This concept is intentionally weaker for current mereological
  * compatibility and should not be read as the full lattice-theory notion.
+ *
+ * @see https://en.wikipedia.org/wiki/Semilattice
  */
 export template <typename T, typename Join>
 concept IsMereologicalJoinSemilattice =
@@ -89,11 +120,19 @@ concept IsMereologicalJoinSemilattice =
  * @concept IsMereologicalLatticeOperations
  * @brief Pair of meet/join operations under the mereological semilattice laws.
  *
+ * @details
+ * Textbook term: lattice operations are usually presented as a pair
+ * `(join, meet)` satisfying semilattice laws plus absorption. This concept
+ * currently captures only the weaker operation-level fragment used in this
+ * partition.
+ *
  * TODO(backlog): Introduce textbook-aligned aliases/refinements once the
  * sets/order/algebra partitions can be migrated without API churn.
  * Candidate naming:
  * - IsJoinSemilattice / IsMeetSemilattice (commutative variants)
  * - IsBand-like operation concepts for non-commutative idempotent operations
+ *
+ * @see https://en.wikipedia.org/wiki/Lattice_(order)
  */
 export template <typename T, typename Join, typename Meet>
 concept IsMereologicalLatticeOperations =

@@ -317,15 +317,11 @@ export template <typename C>
 // Terminology note: this concept validates cardinality metadata tags
 // (`is_finite`, `is_countable`, `power_type`) rather than proving
 // cardinal arithmetic laws. Name kept for compatibility during taxonomy pass.
-concept IsCardinalityTagged = requires {
+concept IsCardinality = requires {
   { C::is_finite } -> std::convertible_to<bool>;
   { C::is_countable } -> std::convertible_to<bool>;
   typename C::power_type;
 };
-
-// Backward-compatible alias retained during taxonomy migration.
-export template <typename C>
-concept IsCardinality = IsCardinalityTagged<C>;
 
 /** @concept IsCountable: Magnitude is at most Aleph_0. */
 export template <typename C>

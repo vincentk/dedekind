@@ -52,10 +52,11 @@ namespace dedekind::category {
  * @tparam L   The Logic Species (The Subobject Classifier).
  */
 export template <typename T, typename Rel, typename L = ClassicalLogic>
-concept IsPosetal = IsPartRelation<Rel, T> && requires(Rel rel, T a, T b) {
-  // The relation must yield a result from the logical classifier
-  { rel(a, b) } -> std::same_as<typename L::Ω>;
-};
+concept IsPosetal =
+    IsPartRelation<T, Rel, typename L::Ω> && requires(Rel rel, T a, T b) {
+      // The relation must yield a result from the logical classifier
+      { rel(a, b) } -> std::same_as<typename L::Ω>;
+    };
 
 /**
  * @section Structural_Pruning

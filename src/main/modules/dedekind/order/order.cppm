@@ -93,7 +93,7 @@ concept IsLinearOrder = IsTotallyOrdered<T>;
  * @brief The algebraic S: T -> T mapping via the Unit element.
  */
 export template <typename T>
-concept IsSuccessor = IsMagmoid<T, std::plus<T>> &&
+concept IsSuccessor = IsPartialMagma<T, std::plus<T>> &&
                       IsPointed<T, std::multiplies<T>> && requires(const T x) {
                         // The Successor Morphism: S(x) = x + 1
                         {
