@@ -173,10 +173,17 @@ concept IsLinearAction = IsAction<S, M, Act> && IsAdditiveMorphism<Act, M> &&
  * @brief Formal verification of the second law: f(s * x) = s * f(x).
  * @details Links the mapping f to an external scalar influence S.
  */
-export template <typename F, typename M, typename S>
+export template <typename F, typename M, typename S,
+                 typename Act = std::multiplies<>>
 concept IsLinearMorphism =
-    IsAdditiveMorphism<F, M> && IsAction<S, M> && requires(F f, M m, S s) {
-      { f(std::multiplies<>{}(s, m)) } -> std::same_as<M>;
+    IsAdditiveMorphism<F, M> && IsAction<S, M, Act> && requires(F f, M m, S s) {
+      requires(
+          requires {
+            { f(s(m)) } -> std::same_as<M>;
+          } ||
+          requires {
+            { f(Act{}(s, m)) } -> std::same_as<M>;
+          });
       // Semantic: f(s * m) == s * f(m)
     };
 
