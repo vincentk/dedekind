@@ -54,44 +54,33 @@ namespace dedekind::sets {
 using namespace dedekind::category;
 
 /**
- * WORKAROUND: Shield for PR 96.
- * Prevents "called object type 'unsigned long' is not a function" errors.
- */
-template <typename P, typename W, typename L>
-concept IsCallableMembership = requires(const P& p, const W& w) {
-  { w(p) } -> std::same_as<typename L::Ω>;
-};
-
-/**
  * FIXME: workaround. This signature should later be removed as
  * part of the ETCS refactor.
  *
  * @brief The Mereological Part-Whole relation (sqsubseteq).
- * @details Returns true if S1 is a symbolic part of S2.
+ * @details Returns true (in Ω) if S1 is a symbolic part of S2.
+ *          Supported encodings are aligned with category:mereology:
+ *          `p <= w`, `w(p)`, and `w[p]`.
  *          Example: Integers <= Reals.
  */
 export template <typename S1, typename S2, typename L = ClassicalLogic>
-// FIXME Use the concept definitions from the :species.
-// FIXME This is transitive, anticommutative...
-concept IsPartOf = requires(const S1& p, const S2& w) {
-  // 1. The Logic Router (Refined for Weak Entities)
-  requires std::same_as<S1, S2> ||   // Identity: Everything is part of itself
-               std::integral<S2> ||  // Primitives: The "Path" domain fix
-               IsCallableMembership<S1, S2,
-                                    L> ||  // Functional: The "Set" check
-               requires {
-                 typename SpeciesTraits<S2>::Domain;
-               };  // Structural check
-
-  // 2. Core part-whole relation (deduplicated in category:mereology)
-  requires dedekind::category::IsPartOfRelation<S1, S2, typename L::Ω>;
-};
+concept IsPartOf = dedekind::category::IsPartOfRelation<S1, S2, typename L::Ω>;
 
 /** @brief The Dual / Converse of the Part-Whole relation. */
 export template <typename S1, typename S2, typename L = ClassicalLogic>
   requires IsPartOf<S1, S2, L>
 constexpr typename L::Ω operator>=(const S2& whole, const S1& part) {
-  return part <= whole;  // The Converse Morphism
+  if constexpr (requires {
+                  { part <= whole } -> std::same_as<typename L::Ω>;
+                }) {
+    return part <= whole;  // Order-style converse
+  } else if constexpr (requires {
+                         { whole(part) } -> std::same_as<typename L::Ω>;
+                       }) {
+    return whole(part);  // Predicate-style converse
+  } else {
+    return whole[part];  // Indexer-style converse
+  }
 }
 
 /**
@@ -112,8 +101,7 @@ constexpr typename L::Ω operator>=(const S2& whole, const S1& part) {
  * @tparam L The Subobject Classifier (Ω) governing the set's logic.
  */
 export template <typename Part, typename Whole, typename L = ClassicalLogic>
-concept IsProperPart =
-    std::integral<Whole> || IsCallableMembership<Part, Whole, L>;
+concept IsProperPart = IsPartOf<Part, Whole, L>;
 
 /**
  * @concept IsMeetSemiLattice

@@ -63,11 +63,20 @@ concept IsPartRelation = requires(Op op, T a, T b, T c) {
 
 /**
  * @concept IsPartOfRelation
- * @brief Minimal core part-whole relation: `part <= whole` yields Omega.
+ * @brief Minimal core part-whole relation yielding Omega.
  *
  * @details
  * Textbook term: primitive binary parthood predicate (often written
  * `part <= whole` or `part ⊑ whole` depending on formalism).
+ *
+ * This concept accepts three equivalent encodings used across partitions:
+ * - Order-style: `part <= whole`
+ * - Predicate-style: `whole(part)`
+ * - Indexer-style: `whole[part]`
+ *
+ * The canonical default in `IsPartRelation` remains order-style (`<=`),
+ * while topoi/set layers may present parthood through characteristic
+ * predicates (`operator()`) or lookup/index syntax (`operator[]`).
  *
  * Richer mereological structure (species routing, ambient checks, lattice
  * refinements) should be layered by downstream partitions.
@@ -76,7 +85,16 @@ concept IsPartRelation = requires(Op op, T a, T b, T c) {
  */
 export template <typename Part, typename Whole, typename Ω = bool>
 concept IsPartOfRelation = requires(const Part& part, const Whole& whole) {
-  { part <= whole } -> std::same_as<Ω>;
+  requires(
+      requires {
+        { part <= whole } -> std::same_as<Ω>;
+      } ||
+      requires {
+        { whole(part) } -> std::same_as<Ω>;
+      } ||
+      requires {
+        { whole[part] } -> std::same_as<Ω>;
+      });
 };
 
 /**
