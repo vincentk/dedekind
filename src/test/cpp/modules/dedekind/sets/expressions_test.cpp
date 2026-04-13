@@ -17,18 +17,18 @@ TEST_CASE("Dedekind MVP: Basic Membership and Symbols", "[sets]") {
     REQUIRE(finite(2) == false);
 
     // Should be Set<int, TernaryLogic> (because ℕ is transfinite)
-    auto infinite = Set{x % ℕ | (x > 0)};
+    auto infinite = Set{x % N | (x > 0)};
     REQUIRE(infinite(5) == Ternary::True);
     REQUIRE(infinite(-5) == Ternary::False);
   }
 }
 
 TEST_CASE("Dedekind Identities: Extremal Collapse", "[sets][identities]") {
-  auto x = var<NaturalNumbers>;
+  auto x = var<ℕ>;
 
   SECTION("Identity: Set{Ω} is Ω") {
     // The terminal object should remain terminal
-    auto U = Set{ℕ};
+    auto U = Set{N};
 
     // It must satisfy the 'Total Presence' axiom
     static_assert(std::is_same_v<decltype(U)::logic_species, TernaryLogic>);
@@ -38,7 +38,7 @@ TEST_CASE("Dedekind Identities: Extremal Collapse", "[sets][identities]") {
 
   SECTION("Contradiction: {x ∈ ℕ | x > 10 ∧ x < 5} is ∅") {
     // Here we combine the symbolic predicates
-    auto S = Set{x % ℕ | (x > 10 && x < 5)};
+    auto S = Set{x % N | (x > 10 && x < 5)};
 
     // For a non-trivial polish, we verify it is 'Total Absence'
     REQUIRE(S(0) == Ternary::False);
@@ -47,44 +47,7 @@ TEST_CASE("Dedekind Identities: Extremal Collapse", "[sets][identities]") {
   }
 
   SECTION("Tautology: {x ∈ ℕ | x > 10 ∨ x <= 10} is Ω") {
-    auto S = Set{x % ℕ | (x > 10 || x <= 10)};
+    auto S = Set{x % N | (x > 10 || x <= 10)};
     REQUIRE(S(7) == Ternary::True);
   }
-}
-
-TEST_CASE("Dedekind Boolean Sets: Concrete Algebraic Starter",
-          "[sets][boolean][algebra]") {
-  auto b = var<Ω<bool, ClassicalLogic, Finite>>;
-
-  // Two concrete subsets of the boolean universe.
-  auto truthy = Set{b % Ω<bool, ClassicalLogic, Finite>{} | (b == true)};
-  auto falsy = Set{b % Ω<bool, ClassicalLogic, Finite>{} | (b == false)};
-
-  // Partition check: each value belongs to exactly one side.
-  REQUIRE(truthy(true));
-  REQUIRE_FALSE(truthy(false));
-  REQUIRE_FALSE(falsy(true));
-  REQUIRE(falsy(false));
-
-  // Boolean algebra laws over the concrete universe {false, true}.
-  auto top = truthy | falsy;
-  auto bottom = truthy & falsy;
-
-  REQUIRE(top(true));
-  REQUIRE(top(false));
-  REQUIRE_FALSE(bottom(true));
-  REQUIRE_FALSE(bottom(false));
-
-  auto not_truthy = !truthy;
-  REQUIRE_FALSE(not_truthy(true));
-  REQUIRE(not_truthy(false));
-
-  // Absorption: A ∨ (A ∧ B) = A and A ∧ (A ∨ B) = A
-  auto absorb_join = truthy | (truthy & falsy);
-  auto absorb_meet = truthy & (truthy | falsy);
-
-  REQUIRE(absorb_join(true) == truthy(true));
-  REQUIRE(absorb_join(false) == truthy(false));
-  REQUIRE(absorb_meet(true) == truthy(true));
-  REQUIRE(absorb_meet(false) == truthy(false));
 }

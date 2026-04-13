@@ -10,7 +10,12 @@ module;
 
 export module dedekind.numbers:real;
 
+import dedekind.category;
+import dedekind.sets;
+
 namespace dedekind::numbers {
+using namespace dedekind::category;
+using namespace dedekind::sets;
 
 export template <typename Q>
   requires std::regular<Q>
@@ -45,5 +50,14 @@ class Real {
  private:
   Q value_{};
 };
+
+export template <typename Q = double, typename L = ClassicalLogic,
+                 typename C = ℶ_1>
+using RealSetOf = Ω<Real<Q>, L, C>;
+
+export using RealSet = RealSetOf<>;
+export using ℝ = RealSet;
+
+export inline constexpr ℝ R{};
 
 }  // namespace dedekind::numbers

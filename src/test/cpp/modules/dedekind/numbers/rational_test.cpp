@@ -14,10 +14,10 @@ TEST_CASE("Numbers: Rational Simplification", "[numbers][rational]") {
 }
 
 TEST_CASE("Numbers: The Rational Field", "[numbers][field]") {
-  using ℚ = Rational<int>;
+  using RationalValue = Rational<int>;
 
   SECTION("Multiplicative Identity: (a/b) * (b/a) = 1") {
-    ℚ a(3, 4);
+    RationalValue a(3, 4);
     auto a_inv = a.inverse();  // 4/3
 
     auto identity = a * a_inv;
@@ -28,8 +28,8 @@ TEST_CASE("Numbers: The Rational Field", "[numbers][field]") {
   }
 
   SECTION("Division Morphism") {
-    ℚ a(1, 2);
-    ℚ b(1, 4);
+    RationalValue a(1, 2);
+    RationalValue b(1, 4);
 
     // (1/2) / (1/4) = 2
     auto res = a / b;
@@ -39,6 +39,6 @@ TEST_CASE("Numbers: The Rational Field", "[numbers][field]") {
 
   SECTION("Zero-Denominator Protection") {
     // Reciprocal of zero must throw
-    REQUIRE_THROWS_AS(ℚ(0, 1).inverse(), std::domain_error);
+    REQUIRE_THROWS_AS(RationalValue(0, 1).inverse(), std::domain_error);
   }
 }

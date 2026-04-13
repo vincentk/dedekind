@@ -34,9 +34,9 @@ TEST_CASE("Sets+Category: singleton and comprehension predicates satisfy ETCS",
   CHECK(atom_set.χ(42) == true);
   CHECK(atom_set.χ(7) == false);
 
-  auto x = var<NaturalNumbers>;
-  const auto positive = Set{x % ℕ | (x > 0)};
-  const auto bounded = Set{x % ℕ | (x <= 10)};
+  auto x = var<ℕ>;
+  const auto positive = Set{x % N | (x > 0)};
+  const auto bounded = Set{x % N | (x <= 10)};
 
   const auto positive_set = ambient_set<int>(positive);
   const auto bounded_set = ambient_set<int>(bounded);
@@ -50,4 +50,22 @@ TEST_CASE("Sets+Category: singleton and comprehension predicates satisfy ETCS",
   CHECK(positive_set.χ(-5) == Ternary::False);
   CHECK(support.χ(5) == Ternary::True);
   CHECK(support.χ(50) == Ternary::False);
+}
+
+TEST_CASE("Sets+Category: Set naming boundary is explicit",
+          "[sets][category][etcs][alignment]") {
+  auto x = var<ℕ>;
+  const auto positive = Set{x % N | (x > 0)};
+
+  // `sets::Set` (DSL species) and `category::Set` (CCC witness) are distinct.
+  STATIC_CHECK(!std::same_as<decltype(positive),
+                             dedekind::category::CanonicalSetCCC<int>>);
+  STATIC_CHECK(dedekind::category::HasCanonicalSetCCC<int>);
+
+  // Bridge through ETCS object construction.
+  const auto positive_set = ambient_set<int>(positive);
+  STATIC_CHECK(dedekind::category::IsSetInCanonicalCCC<decltype(positive_set)>);
+
+  CHECK(positive_set.χ(3) == Ternary::True);
+  CHECK(positive_set.χ(-3) == Ternary::False);
 }

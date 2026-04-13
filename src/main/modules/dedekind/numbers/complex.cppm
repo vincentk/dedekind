@@ -9,7 +9,12 @@ module;
 
 export module dedekind.numbers:complex;
 
+import dedekind.category;
+import dedekind.sets;
+
 namespace dedekind::numbers {
+using namespace dedekind::category;
+using namespace dedekind::sets;
 
 export template <typename C, typename R>
 concept IsComplex = requires(C z) {
@@ -41,5 +46,14 @@ class Complex {
   R re_{};
   R im_{};
 };
+
+export template <typename R = double, typename L = ClassicalLogic,
+                 typename C = ℶ_1>
+using ComplexSetOf = Ω<Complex<R>, L, C>;
+
+export using ComplexSet = ComplexSetOf<>;
+export using ℂ = ComplexSet;
+
+export inline constexpr ℂ C{};
 
 }  // namespace dedekind::numbers

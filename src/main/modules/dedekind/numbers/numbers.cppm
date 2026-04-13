@@ -25,7 +25,7 @@ export module dedekind.numbers;
 /** @section Discrete_Foundations (Level -1 & 0) */
 export import :booleans;  // Truth<L> and Ω
 export import :naturals;  // ℕ (Unsigned species)
-export import :integers;  // ℤ (Signed species)
+export import :integer;   // ℤ (Signed species)
 
 /** @section Algebraic_Extensions (Level 3 & 8) */
 export import :rational;  // ℚ (The Quotient Field)

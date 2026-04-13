@@ -392,7 +392,15 @@ struct SetMetadata<
   using Cardinality = typename S::cardinality_type;
 };
 
-/** @brief ETCS alignment bridge: a sets-side species can be lifted to IsSet. */
+/**
+ * @brief ETCS alignment bridge: lift a `dedekind::sets` species into a
+ * `dedekind::category::IsSet` object.
+ *
+ * @details
+ * This is the explicit seam between:
+ * - `dedekind::sets::Set<...>`: intensional set-builder DSL species.
+ * - `dedekind::category::Set<...>`: canonical CCC/category witness.
+ */
 template <typename S>
 concept IsETCSLiftedSet = requires(const S s) {
   requires dedekind::category::IsSet<

@@ -203,10 +203,14 @@ static_assert(dedekind::category::IsSet<decltype(ambient_set<int>(Ø<int>{}))>,
 
 // Transitional alias used by tests and set-builder examples.
 // ETCS-level natural-number witnesses may replace this direct alias later.
-export using NaturalNumbers = Ω<int>;
+export template <typename L = ClassicalLogic, typename C = ℵ_0>
+using NaturalNumbersOf = Ω<int, L, C>;
 
-// Canonical symbol used by the sets DSL tests.
-export inline constexpr NaturalNumbers ℕ{};
+export using NaturalNumbers = NaturalNumbersOf<>;
+export using ℕ = NaturalNumbers;
+
+// Canonical ambient-set value used by the sets DSL tests.
+export inline constexpr ℕ N{};
 
 };  // namespace dedekind::sets
 
