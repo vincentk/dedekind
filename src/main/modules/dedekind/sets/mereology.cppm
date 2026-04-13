@@ -414,6 +414,14 @@ concept IsMereologicalSet =
     } && IsLattice<S>;
 
 /**
+ * @concept IsSet
+ * @brief Backward-compatible alias for IsMereologicalSet.
+ * @tparam Ω The Subobject Classifier (Ω). Defaults to ClassicalLogic.
+ */
+export template <typename S, typename Ω = ClassicalLogic>
+concept IsSet = IsMereologicalSet<S, Ω>;
+
+/**
  * Note we have two choices: a) apply the morphism to the set or
  * b) compose with the morphism. Here, we prefer a).
  **/
