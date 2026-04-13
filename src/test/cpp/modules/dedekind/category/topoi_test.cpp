@@ -53,6 +53,26 @@ TEST_CASE("Topos: Point-Free Logic Composition", "[category][topoi]") {
     auto χ_res = t_true && t_unknown;
     CHECK(χ_res(0) == Ternary::Unknown);
   }
+
+  SECTION("Textbook set-operator laws via characteristic morphisms") {
+    auto p = classify<int>([](int x) { return x % 2 == 0; }).χ;
+    auto q = classify<int>([](int x) { return x > 0; }).χ;
+    auto r = classify<int>([](int x) { return x < 3; }).χ;
+
+    for (int x : {-2, -1, 0, 1, 2, 3, 4}) {
+      CHECK((p && q)(x) == (q && p)(x));
+      CHECK((p || q)(x) == (q || p)(x));
+
+      CHECK(((p && q) && r)(x) == (p && (q && r))(x));
+      CHECK(((p || q) || r)(x) == (p || (q || r))(x));
+
+      CHECK((p && (q || r))(x) == ((p && q) || (p && r))(x));
+      CHECK((p || (q && r))(x) == ((p || q) && (p || r))(x));
+
+      CHECK((p || (p && q))(x) == p(x));
+      CHECK((p && (p || q))(x) == p(x));
+    }
+  }
 }
 
 TEST_CASE("Topos: IsCharacteristic Concept", "[category][topoi]") {

@@ -34,13 +34,13 @@ namespace dedekind::category {
  * Textbook term: this is the axiomatic core of a partial-order style
  * parthood relation used in formal mereology.
  *
- * @tparam Op The parthood operator (defaults to `std::less_equal<>`).
+ * @tparam Op The parthood operator (defaults to `std::less_equal<T>`).
  * @tparam T The type being reasoned about.
  * @tparam Ω The truth-value codomain (default: classical two-valued logic).
  *
  * @note Textbook alignment:
  * - Parthood/partial-order axioms: reflexive, transitive, antisymmetric.
- * - Default comparator `std::less_equal<>` corresponds to the usual
+ * - Default comparator `std::less_equal<T>` corresponds to the usual
  *   order-theoretic relation symbol `<=`.
  *
  * @see Structural mereology overview (Stanford Encyclopedia):
@@ -48,16 +48,17 @@ namespace dedekind::category {
  * @see Lambek & Scott (1988), Introduction to Higher-Order Categorical Logic.
  * @see McLarty (1992), Elementary Categories, Elementary Toposes.
  */
-export template <typename T, typename Op = std::less_equal<>, typename Ω = bool>
+export template <typename T, typename Op = std::less_equal<T>,
+                 typename Ω = bool>
 concept IsPartRelation = requires(Op op, T a, T b, T c) {
   { op(a, b) } -> std::same_as<Ω>;  // The operator must return a truth value
 
   // Mereological Axiom 1: Reflexivity (∀x, x ≤ x)
   // Axiom 2: Transitivity (∀x,y,z: x ≤ y ∧ y ≤ z ⇒ x ≤ z)
   // Axiom 3: Antisymmetry (∀x,y: x ≤ y ∧ y ≤ x ⇒ x = y)
-  requires is_reflexive_v<Op, T>;
-  requires is_transitive_v<Op, T>;
-  requires is_antisymmetric_v<Op, T>;
+  requires is_reflexive_v<T, Op>;
+  requires is_transitive_v<T, Op>;
+  requires is_antisymmetric_v<T, Op>;
 };
 
 /**

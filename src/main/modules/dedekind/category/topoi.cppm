@@ -16,7 +16,14 @@
  * subobjects. Every elementary topos carries an internal logic which
  * generalizes standard set theory into objective categorical form.
  *
+ * Textbook defaults in this partition:
+ * - `operator&&` models meet/intersection of characteristic predicates.
+ * - `operator||` models join/union of characteristic predicates.
+ * - `operator!` models complement.
+ *
  * Wikipedia: Lawvere–Tierney topology, Subobject classifier, Topos
+ * @see Lawvere (1964), An elementary theory of the category of sets.
+ * @see Lambek & Scott (1988), Introduction to Higher-Order Categorical Logic.
  */
 
 module;
@@ -165,6 +172,7 @@ constexpr auto classify(F&& f) {
 }
 
 /** @brief Logical Conjunction (Intersection): Synthesizes a rule for A ∩ B.
+ *  @note Textbook term: meet (∧) in the internal Heyting/Boolean algebra of Ω.
  */
 export template <IsPredicate P, IsPredicate Q>
   requires std::same_as<Dom<P>, Dom<Q>> && std::same_as<Cod<P>, Cod<Q>>
@@ -177,7 +185,9 @@ auto operator&&(P&& p, Q&& q) {
                          const A& x) { return L::AND(p(x), q(x)); });
 }
 
-/** @brief Logical Disjunction (Union): Synthesizes a rule for A ∪ B. */
+/** @brief Logical Disjunction (Union): Synthesizes a rule for A ∪ B.
+ *  @note Textbook term: join (∨) in the internal Heyting/Boolean algebra of Ω.
+ */
 export template <IsPredicate P, IsPredicate Q>
   requires std::same_as<Dom<P>, Dom<Q>> && std::same_as<Cod<P>, Cod<Q>>
 auto operator||(P&& p, Q&& q) {
@@ -189,7 +199,9 @@ auto operator||(P&& p, Q&& q) {
                          const A& x) { return L::OR(p(x), q(x)); });
 }
 
-/** @brief Logical Negation (Complement): Synthesizes a rule for ¬A. */
+/** @brief Logical Negation (Complement): Synthesizes a rule for ¬A.
+ *  @note Textbook term: pseudocomplement/complement depending on Ω.
+ */
 export template <IsPredicate P>
 auto operator!(P&& p) {
   using L = typename GetLogic<Cod<P>>::type;

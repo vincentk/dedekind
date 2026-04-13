@@ -18,10 +18,17 @@
  * Preorder, a Posetal Category is skeletal, meaning isomorphic objects are
  * identical.
  *
+ * Textbook defaults in this partition:
+ * - Relation defaults to `std::less_equal<T>` (the canonical order witness).
+ * - Logic defaults to `ClassicalLogic` (Boolean Ω).
+ *
  * @quote
  * "In a sense, the most basic category is a partially ordered set;
  *  the arrows are just the instances of the order relation."
  *  — Saunders Mac Lane, *Categories for the Working Mathematician*
+ *
+ * @see https://en.wikipedia.org/wiki/Partially_ordered_set
+ * @see https://en.wikipedia.org/wiki/Preorder
  *
  * @tparam T The type of objects in the poset.
  * @tparam Rel The relation defining the order (the Morphism Generator).
@@ -51,7 +58,8 @@ namespace dedekind::category {
  * @tparam Rel The Relation (Morphisms).
  * @tparam L   The Logic Species (The Subobject Classifier).
  */
-export template <typename T, typename Rel, typename L = ClassicalLogic>
+export template <typename T, typename Rel = std::less_equal<T>,
+                 typename L = ClassicalLogic>
 concept IsPosetal =
     IsPartRelation<T, Rel, typename L::Ω> && requires(Rel rel, T a, T b) {
       // The relation must yield a result from the logical classifier
@@ -59,18 +67,27 @@ concept IsPosetal =
     };
 
 /**
- * @section Structural_Pruning
- * Utility to verify categorical transitivity at compile-time.
+ * @brief Verify that a two-step path A→B→C exists in the posetal category.
+ *
+ * @details
+ * A morphism A→C in a posetal category exists iff A≤B and B≤C; transitivity
+ * (guaranteed by `IsPosetal`) then provides A≤C for free.  The result is
+ * expressed in the truth-value codomain Ω of the chosen Logic species L, so
+ * this helper works uniformly for Classical, Ternary, or any other pluggable
+ * logical universe — no `bool` hard-codes.
+ *
+ * @tparam T   Object type.
+ * @tparam Rel Relation type (must satisfy `IsPosetal<T, Rel, L>`).
+ * @tparam L   Logic species providing `AND` and the `Ω` codomain.
  */
-export template <typename T, typename Rel>
-  requires IsPosetal<T, Rel>
-constexpr auto check_path(T a, T b, T c) {
-  if constexpr (Rel{}(a, b) && Rel{}(b, c)) {
-    // In a Poset, the path A -> C is a structural certainty.
-    static_assert(Rel{}(a, c), "Categorical Transitivity Violation!");
-    return true;
-  }
-  return false;
+export template <typename T, typename Rel = std::less_equal<T>,
+                 typename L = ClassicalLogic>
+  requires IsPosetal<T, Rel, L>
+constexpr typename L::Ω check_path(T a, T b, T c) {
+  const auto rel = Rel{};
+  // A two-step path exists iff both edges are present.
+  // Transitivity (axiom of IsPosetal) guarantees the direct edge A→C.
+  return L::AND(rel(a, b), rel(b, c));
 }
 
 }  // namespace dedekind::category
