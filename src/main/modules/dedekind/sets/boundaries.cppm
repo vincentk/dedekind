@@ -191,6 +191,10 @@ constexpr auto Ø<T, L>::operator!() const {
   return Ω<T, L>{};
 }
 
+// Cardinality metadata drives extensional classification for Ω.
+template <typename T, typename L, typename C>
+struct is_extensional<Ω<T, L, C>> : std::bool_constant<C::is_finite> {};
+
 static_assert(dedekind::category::IsSet<decltype(ambient_set<int>(Ω<int>{}))>,
               "The universal boundary must lift to an ETCS set object.");
 static_assert(dedekind::category::IsSet<decltype(ambient_set<int>(Ø<int>{}))>,
@@ -204,3 +208,12 @@ export using NaturalNumbers = Ω<int>;
 export inline constexpr NaturalNumbers ℕ{};
 
 };  // namespace dedekind::sets
+
+namespace dedekind::category {
+
+// Cardinality metadata drives transfinite classification for Ω.
+template <typename T, typename L, typename C>
+struct is_transfinite<dedekind::sets::Ω<T, L, C>>
+    : std::bool_constant<!C::is_finite> {};
+
+}  // namespace dedekind::category

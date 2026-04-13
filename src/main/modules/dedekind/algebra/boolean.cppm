@@ -33,14 +33,19 @@ module;
 
 export module dedekind.algebra:boolean;
 
+import dedekind.category;
 import dedekind.sets;
 
 namespace dedekind::algebra {
 using namespace dedekind::sets;
 
-export using BooleanSet = Ω<bool>;
+export template <typename L = dedekind::category::ClassicalLogic,
+                 typename C = Finite>
+using BooleanSetOf = Ω<bool, L, C>;
 
-export inline constexpr BooleanSet 𝔹{};
+export using BooleanSet = BooleanSetOf<>;
+export using 𝔹 = BooleanSet;
+
 export inline constexpr BooleanSet B{};
 
 }  // namespace dedekind::algebra

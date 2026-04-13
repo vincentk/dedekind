@@ -68,6 +68,12 @@ struct Variable {
 export template <typename S>
 inline constexpr Variable<S> var{};
 
+/** @brief The universal predicate: accepts every element of T. */
+export template <typename T>
+struct UniversalPredicate {
+  constexpr bool operator()(const T&) const { return true; }
+};
+
 /** @brief Convenience Alias: If S is a type, var<S> is the scout. */
 // This allows: auto x = var<int>; where int is mapped to Ω<int>
 export template <typename T>
@@ -93,6 +99,11 @@ class Set {
   template <typename B, typename P>
     requires std::same_as<Predicate, P>
   constexpr Set(Comprehension<B, P> cp) : predicate_(std::move(cp.predicate)) {}
+
+  template <typename B>
+    requires std::same_as<T, typename B::Domain> &&
+             std::same_as<Predicate, UniversalPredicate<T>>
+  constexpr Set(MembershipBinding<B>) : predicate_{} {}
 
   constexpr auto operator()(const T& v) const {
     return dedekind::category::lift_logic<L>(predicate_(v));
@@ -133,6 +144,11 @@ class Set {
 export template <typename B, typename P>
 Set(Comprehension<B, P>)
     -> Set<typename B::Domain, typename NaturalLogic<B>::type, P>;
+
+export template <typename S>
+Set(MembershipBinding<S>)
+    -> Set<typename S::Domain, typename NaturalLogic<S>::type,
+           UniversalPredicate<typename S::Domain>>;
 
 /** @section Identity_CTAD */
 template <typename Species>
