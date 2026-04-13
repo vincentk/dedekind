@@ -1,4 +1,5 @@
 module;
+#include <cmath>
 #include <concepts>
 
 /**
@@ -19,10 +20,17 @@ using namespace dedekind::category;
 
 export template <typename Q>
 constexpr auto Sqrt2_Symbolic() {
-  const dedekind::sets::Ω<Q> universe{};
+  const dedekind::sets::Ω<Q, TernaryLogic> universe{};
   // Lower-cut prototype encoded as an ETCS subobject over Q.
   return ambient_set<Q>([universe](const Q& q) {
-    return universe(q) && (q * q < static_cast<Q>(2));
+    if constexpr (std::floating_point<Q>) {
+      if (std::isnan(q)) {
+        return Ternary::Unknown;
+      }
+    }
+    const auto in_cut =
+        (q * q < static_cast<Q>(2)) ? Ternary::True : Ternary::False;
+    return TernaryLogic::AND(universe(q), in_cut);
   });
 }
 
