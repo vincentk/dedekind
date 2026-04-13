@@ -83,8 +83,8 @@ concept IsPartOf = requires(const S1& p, const S2& w) {
                  typename SpeciesTraits<S2>::Domain;
                };  // Structural check
 
-  // 2. The Subset check (Requires operator<= to be defined for WeakPart)
-  { p <= w } -> std::same_as<typename L::Ω>;
+  // 2. Core part-whole relation (deduplicated in category:mereology)
+  requires dedekind::category::IsPartOfRelation<S1, S2, typename L::Ω>;
 };
 
 /** @brief The Dual / Converse of the Part-Whole relation. */
@@ -119,31 +119,41 @@ concept IsProperPart =
  * @concept IsMeetSemiLattice
  * @brief A refinement of IsSet that supports the algebraic
  *        structure of Meet (&).
+ * @details Textbook meet-semilattices are commutative. This partition
+ * currently delegates to the weaker transitional mereological operation
+ * concept from dedekind.category:mereology.
  * Wikipedia: SemiLattice (order)
  */
 export template <typename S>
 concept IsMeetSemilattice =
-    IsAssociative<S, std::bit_and<S>> && IsIdempotent<S, std::bit_and<S>>;
+  dedekind::category::IsMereologicalMeetSemilattice<S, std::bit_and<S>>;
 
 /**
  * @concept IsJoinSemiLattice
  * @brief A refinement of IsSet that supports the algebraic
  *        structure of Join (|).
+ * @details Textbook join-semilattices are commutative. This partition
+ * currently delegates to the weaker transitional mereological operation
+ * concept from dedekind.category:mereology.
  * Wikipedia: SemiLattice (order)
  */
 export template <typename S>
 concept IsJoinSemilattice =
-    IsAssociative<S, std::bit_or<S>> && IsIdempotent<S, std::bit_or<S>>;
+  dedekind::category::IsMereologicalJoinSemilattice<S, std::bit_or<S>>;
 
 /**
  * @concept IsLattice
  * @brief A refinement of IsSet that supports the algebraic
  *        structure of Meet (&) and Join (|).
+ * @details Terminology backlog: keep this as-is for compatibility now,
+ * then split textbook commutative lattice concepts from weaker mereological
+ * operation concepts in a dedicated taxonomy pass.
  * Wikipedia: Lattice (order), Absorption law
  */
 export template <typename S>
 // FIXME: this has more structure than semigroup on the individual operations.
-concept IsLattice = IsMeetSemilattice<S> && IsJoinSemilattice<S>;
+concept IsLattice = dedekind::category::IsMereologicalLatticeOperations<
+  S, std::bit_or<S>, std::bit_and<S>>;
 
 /**
  * @concept IsBoundedLattice
@@ -303,6 +313,9 @@ concept HasExtrema = requires(S s) {
 /** @section The_Scale: The Logic of Magnitude */
 
 export template <typename C>
+// Terminology note: this concept validates cardinality metadata tags
+// (`is_finite`, `is_countable`, `power_type`) rather than proving
+// cardinal arithmetic laws. Name kept for compatibility during taxonomy pass.
 concept IsCardinality = requires {
   { C::is_finite } -> std::convertible_to<bool>;
   { C::is_countable } -> std::convertible_to<bool>;

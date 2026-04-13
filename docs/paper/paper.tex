@@ -1122,11 +1122,24 @@ By hoisting these mereological invariants into the type signature, we enable \te
 
 \subsection{\texttt{sets} Module}
 
+\paragraph{Implementation note (terminology and scope).}
+The current implementation separates \texttt{dedekind.category:mereology} from
+\texttt{dedekind.sets:mereology} on purpose. The category partition now exposes
+a minimal, shared core for parthood and lattice-like operations used by
+downstream modules, while the sets partition preserves richer compatibility
+constraints required by existing tests and clients.
 
-For the set operations, we may also want to look at:
-"Monadic Intersection Types, Relationally, and Ordered
-https://dl.acm.org/doi/10.1145/3777483
-... and references cited therein.
+In textbook order/lattice terminology, a join- or meet-semilattice is
+associative, commutative, and idempotent. Our present sets-side naming is
+therefore transitional: some operation-level concepts intentionally retain
+weaker constraints to avoid API churn during the ongoing ETCS-aligned
+refactoring. A dedicated taxonomy pass is planned to promote textbook names for
+commutative structures and reserve separate names for non-commutative
+idempotent operations.
+
+For related typing and set-operation design directions, see:
+\emph{Monadic Intersection Types, Relationally, and Ordered}
+(\url{https://dl.acm.org/doi/10.1145/3777483}) and references therein.
 
 
 \subsubsection{The \texttt{:set} partition}

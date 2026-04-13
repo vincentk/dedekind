@@ -122,6 +122,10 @@ static_assert(IsPotential<TernaryResult<int>>,
 
 /**
  * @concept IsMagmoid: (T × T) ⇸ T
+ * @brief Project alias for a partial binary algebra.
+ *
+ * Textbook note: This corresponds to what is usually called a
+ * "partial magma" (or partial groupoid in some literature).
  */
 export template <typename T, typename Op>
 concept IsMagmoid = requires(T a, T b) {

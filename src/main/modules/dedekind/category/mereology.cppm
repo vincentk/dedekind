@@ -48,6 +48,59 @@ concept IsPartRelation = requires(Op op, T a, T b, T c) {
 };
 
 /**
+ * @concept IsPartOfRelation
+ * @brief Minimal core part-whole relation: `part <= whole` yields Omega.
+ *
+ * Richer mereological structure (species routing, ambient checks, lattice
+ * refinements) should be layered by downstream partitions.
+ */
+export template <typename Part, typename Whole, typename Omega = bool>
+concept IsPartOfRelation = requires(const Part& part, const Whole& whole) {
+  { part <= whole } -> std::same_as<Omega>;
+};
+
+/**
+ * @concept IsMereologicalMeetSemilattice
+ * @brief Meet-like operation constrained by associativity and idempotence.
+ *
+ * Textbook note:
+ * A meet-semilattice is usually defined as associative + commutative +
+ * idempotent. This concept is intentionally weaker for current mereological
+ * compatibility and should not be read as the full lattice-theory notion.
+ */
+export template <typename T, typename Meet>
+concept IsMereologicalMeetSemilattice =
+  IsAssociative<T, Meet> && IsIdempotent<T, Meet>;
+
+/**
+ * @concept IsMereologicalJoinSemilattice
+ * @brief Join-like operation constrained by associativity and idempotence.
+ *
+ * Textbook note:
+ * A join-semilattice is usually defined as associative + commutative +
+ * idempotent. This concept is intentionally weaker for current mereological
+ * compatibility and should not be read as the full lattice-theory notion.
+ */
+export template <typename T, typename Join>
+concept IsMereologicalJoinSemilattice =
+  IsAssociative<T, Join> && IsIdempotent<T, Join>;
+
+/**
+ * @concept IsMereologicalLatticeOperations
+ * @brief Pair of meet/join operations under the mereological semilattice laws.
+ *
+ * TODO(backlog): Introduce textbook-aligned aliases/refinements once the
+ * sets/order/algebra partitions can be migrated without API churn.
+ * Candidate naming:
+ * - IsJoinSemilattice / IsMeetSemilattice (commutative variants)
+ * - IsBand-like operation concepts for non-commutative idempotent operations
+ */
+export template <typename T, typename Join, typename Meet>
+concept IsMereologicalLatticeOperations =
+  IsMereologicalJoinSemilattice<T, Join> &&
+  IsMereologicalMeetSemilattice<T, Meet>;
+
+/**
  * @brief Skeletal Part-Whole relation.
  * At this embryonic stage, we treat parthood as a formal arrow
  * in a category where objects are wholes and morphisms are inclusion mappings.
