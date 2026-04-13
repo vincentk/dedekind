@@ -14,6 +14,27 @@ TEST_CASE("Logic: The Binary Prime (Classical)", "[category][logic][boolean]") {
     CHECK((true || false) == true);
   }
 
+  SECTION("Textbook operator symmetries (Boolean algebra)") {
+    constexpr bool values[] = {false, true};
+    for (bool a : values) {
+      for (bool b : values) {
+        CHECK((a && b) == (b && a));
+        CHECK((a || b) == (b || a));
+      }
+    }
+
+    for (bool a : values) {
+      for (bool b : values) {
+        for (bool c : values) {
+          CHECK(((a && b) && c) == (a && (b && c)));
+          CHECK(((a || b) || c) == (a || (b || c)));
+          CHECK((a && (b || c)) == ((a && b) || (a && c)));
+          CHECK((a || (b && c)) == ((a || b) && (a || c)));
+        }
+      }
+    }
+  }
+
   SECTION("Species Promotion (Boolean Wrapper)") {
     Boolean t{true};
     Boolean f{false};
@@ -21,6 +42,10 @@ TEST_CASE("Logic: The Binary Prime (Classical)", "[category][logic][boolean]") {
     // Verify our 'operator+' bypasses the int-promotion trap
     STATIC_CHECK(std::same_as<decltype(t + f), Boolean>);
     CHECK((t + f).value == true);
+
+    // De Morgan's laws for Boolean wrapper
+    CHECK(!(t && f) == (!t || !f));
+    CHECK(!(t || f) == (!t && !f));
   }
 }
 
@@ -42,19 +67,48 @@ TEST_CASE("Logic: The Indeterminacy (Kleene)", "[category][logic][kleene]") {
     CHECK(!False == True);
   }
 
+  SECTION("Textbook operator symmetries (K3 lattice laws)") {
+    constexpr Ternary values[] = {False, Unknown, True};
+    for (auto a : values) {
+      for (auto b : values) {
+        CHECK((a && b) == (b && a));
+        CHECK((a || b) == (b || a));
+      }
+    }
+
+    for (auto a : values) {
+      for (auto b : values) {
+        for (auto c : values) {
+          CHECK(((a && b) && c) == (a && (b && c)));
+          CHECK(((a || b) || c) == (a || (b || c)));
+          CHECK((a && (b || c)) == ((a && b) || (a && c)));
+          CHECK((a || (b && c)) == ((a || b) && (a || c)));
+        }
+      }
+    }
+  }
+
   SECTION("Structural Identities (De Morgan's Laws)") {
+    constexpr Ternary values[] = {False, Unknown, True};
     // !(A && B) == !A || !B
-    CHECK(!(True && Unknown) == (!True || !Unknown));
-    CHECK(!(False && Unknown) == (!False || !Unknown));
+    for (auto a : values) {
+      for (auto b : values) {
+        CHECK(!(a && b) == (!a || !b));
+        CHECK(!(a || b) == (!a && !b));
+      }
+    }
   }
 
   SECTION("Morphism Lifting") {
-    // Verifying the lift_logic bridge
+    // Verifying the lift_logic bridge from Boolean to Ternary
     CHECK(lift_logic<TernaryLogic>(true) == True);
     CHECK(lift_logic<TernaryLogic>(false) == False);
 
     // Identity lifting
     CHECK(lift_logic<TernaryLogic>(Unknown) == Unknown);
+
+    // Consistency: lifting preserves order
+    CHECK(lift_logic<TernaryLogic>(false) <= lift_logic<TernaryLogic>(true));
   }
 }
 
@@ -77,10 +131,10 @@ TEST_CASE("Logic: The Lattice Order (Relational Honesty)",
     B t{true}, f{false};
 
     // Axiom: a <= b iff (a + b) == b
-    CHECK((f <= t));        // (false || true) == true
-    CHECK((f <= f));        // (false || false) == false
-    CHECK((t <= t));        // (true || true) == true
-    CHECK_FALSE((t <= f));  // (true || false) != false
+    CHECK(holds(f <= t));    // (false || true) == true
+    CHECK(holds(f <= f));    // (false || false) == false, so equality holds
+    CHECK(holds(t <= t));    // (true || true) == true
+    CHECK(refutes(t <= f));  // (true || false) != false
   }
 
   SECTION("Kleene Information/Truth Order") {
@@ -89,15 +143,15 @@ TEST_CASE("Logic: The Lattice Order (Relational Honesty)",
     K T{True}, F{False}, U{Unknown};
 
     // Verifying the Linear Truth Chain: False < Unknown < True
-    CHECK((F <= U));  // (False || Unknown) == Unknown
-    CHECK((U <= T));  // (Unknown || True) == True
-    CHECK((F <= T));  // Transitivity
+    CHECK(holds(F <= U));  // (False || Unknown) == Unknown, hence <= is True
+    CHECK(holds(U <= T));  // (Unknown || True) == True
+    CHECK(holds(F <= T));  // Transitivity
 
     // Reflexivity
-    CHECK((U <= U));
+    CHECK(holds(U <= U));
 
     // Antisymmetry (Strictly different values cannot be <= each other both
     // ways)
-    CHECK_FALSE((T <= U));
+    CHECK(refutes(T <= U));
   }
 }

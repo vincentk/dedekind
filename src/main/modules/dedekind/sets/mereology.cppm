@@ -54,44 +54,33 @@ namespace dedekind::sets {
 using namespace dedekind::category;
 
 /**
- * WORKAROUND: Shield for PR 96.
- * Prevents "called object type 'unsigned long' is not a function" errors.
- */
-template <typename P, typename W, typename L>
-concept IsCallableMembership = requires(const P& p, const W& w) {
-  { w(p) } -> std::same_as<typename L::Ω>;
-};
-
-/**
  * FIXME: workaround. This signature should later be removed as
  * part of the ETCS refactor.
  *
  * @brief The Mereological Part-Whole relation (sqsubseteq).
- * @details Returns true if S1 is a symbolic part of S2.
+ * @details Returns true (in Ω) if S1 is a symbolic part of S2.
+ *          Supported encodings are aligned with category:mereology:
+ *          `p <= w`, `w(p)`, and `w[p]`.
  *          Example: Integers <= Reals.
  */
 export template <typename S1, typename S2, typename L = ClassicalLogic>
-// FIXME Use the concept definitions from the :species.
-// FIXME This is transitive, anticommutative...
-concept IsPartOf = requires(const S1& p, const S2& w) {
-  // 1. The Logic Router (Refined for Weak Entities)
-  requires std::same_as<S1, S2> ||   // Identity: Everything is part of itself
-               std::integral<S2> ||  // Primitives: The "Path" domain fix
-               IsCallableMembership<S1, S2,
-                                    L> ||  // Functional: The "Set" check
-               requires {
-                 typename SpeciesTraits<S2>::Domain;
-               };  // Structural check
-
-  // 2. Core part-whole relation (deduplicated in category:mereology)
-  requires dedekind::category::IsPartOfRelation<S1, S2, typename L::Ω>;
-};
+concept IsPartOf = dedekind::category::IsPartOfRelation<S1, S2, typename L::Ω>;
 
 /** @brief The Dual / Converse of the Part-Whole relation. */
 export template <typename S1, typename S2, typename L = ClassicalLogic>
   requires IsPartOf<S1, S2, L>
-constexpr bool operator>=(const S2& whole, const S1& part) {
-  return part <= whole;  // The Converse Morphism
+constexpr typename L::Ω operator>=(const S2& whole, const S1& part) {
+  if constexpr (requires {
+                  { part <= whole } -> std::same_as<typename L::Ω>;
+                }) {
+    return part <= whole;  // Order-style converse
+  } else if constexpr (requires {
+                         { whole(part) } -> std::same_as<typename L::Ω>;
+                       }) {
+    return whole(part);  // Predicate-style converse
+  } else {
+    return whole[part];  // Indexer-style converse
+  }
 }
 
 /**
@@ -112,16 +101,45 @@ constexpr bool operator>=(const S2& whole, const S1& part) {
  * @tparam L The Subobject Classifier (Ω) governing the set's logic.
  */
 export template <typename Part, typename Whole, typename L = ClassicalLogic>
-concept IsProperPart =
-    std::integral<Whole> || IsCallableMembership<Part, Whole, L>;
+concept IsProperPart = IsPartOf<Part, Whole, L>;
+
+/**
+ * @concept IsSkewMeetSemilattice
+ * @brief Non-commutative meet-like idempotent semigroup fragment.
+ * @details
+ * Corresponds to the skew/band-level meet operation in non-commutative
+ * lattice theory.
+ */
+export template <typename S>
+concept IsSkewMeetSemilattice =
+    dedekind::category::IsMereologicalMeetBand<S, std::bit_and<S>>;
+
+/**
+ * @concept IsSkewJoinSemilattice
+ * @brief Non-commutative join-like idempotent semigroup fragment.
+ * @details
+ * Corresponds to the skew/band-level join operation in non-commutative
+ * lattice theory.
+ */
+export template <typename S>
+concept IsSkewJoinSemilattice =
+    dedekind::category::IsMereologicalJoinBand<S, std::bit_or<S>>;
+
+/**
+ * @concept IsSkewLattice
+ * @brief Non-commutative lattice-style operations (join/meet + absorption).
+ */
+export template <typename S>
+concept IsSkewLattice =
+    dedekind::category::IsMereologicalSkewLatticeOperations<S, std::bit_or<S>,
+                                                            std::bit_and<S>>;
 
 /**
  * @concept IsMeetSemiLattice
  * @brief A refinement of IsSet that supports the algebraic
  *        structure of Meet (&).
- * @details Textbook meet-semilattices are commutative. This partition
- * currently delegates to the weaker transitional mereological operation
- * concept from dedekind.category:mereology.
+ * @details Textbook meet-semilattices are commutative; this concept is the
+ * commutative refinement over the skew/band-level meet concept.
  * Wikipedia: SemiLattice (order)
  */
 export template <typename S>
@@ -132,9 +150,8 @@ concept IsMeetSemilattice =
  * @concept IsJoinSemiLattice
  * @brief A refinement of IsSet that supports the algebraic
  *        structure of Join (|).
- * @details Textbook join-semilattices are commutative. This partition
- * currently delegates to the weaker transitional mereological operation
- * concept from dedekind.category:mereology.
+ * @details Textbook join-semilattices are commutative; this concept is the
+ * commutative refinement over the skew/band-level join concept.
  * Wikipedia: SemiLattice (order)
  */
 export template <typename S>
@@ -145,13 +162,11 @@ concept IsJoinSemilattice =
  * @concept IsLattice
  * @brief A refinement of IsSet that supports the algebraic
  *        structure of Meet (&) and Join (|).
- * @details Terminology backlog: keep this as-is for compatibility now,
- * then split textbook commutative lattice concepts from weaker mereological
- * operation concepts in a dedicated taxonomy pass.
+ * @details Textbook lattice notion: commutative meet/join semilattices with
+ * absorption. For non-commutative variants use @ref IsSkewLattice.
  * Wikipedia: Lattice (order), Absorption law
  */
 export template <typename S>
-// FIXME: this has more structure than semigroup on the individual operations.
 concept IsLattice =
     dedekind::category::IsMereologicalLatticeOperations<S, std::bit_or<S>,
                                                         std::bit_and<S>>;
@@ -182,9 +197,9 @@ concept IsBoundedLattice = IsLattice<S> && requires(S s) {
 export template <typename S, typename L = ClassicalLogic>
 concept IsMereologicalLattice =
     IsLattice<S> && IsPartOf<S, S, L> && requires(S a, S b) {
-      // Instead of { (a | b) == b }, we just ensure they can be Joined
-      requires IsLattice<decltype(a | b)>;
-      requires IsLattice<decltype(a & b)>;
+      // Closure witness: join/meet expressions must be well-formed.
+      { a | b };
+      { a & b };
 
       // TODO:
       // We move the "Equality" check to a Logical Equivalence:
@@ -414,12 +429,50 @@ concept IsMereologicalSet =
     } && IsLattice<S>;
 
 /**
+ * @concept IsPartiallyETCSAlignedSet
+ * @brief Partial ETCS alignment layer for `dedekind.sets`.
+ *
+ * @details
+ * Full alignment with `dedekind.category:etcs::IsSet` requires representing
+ * sets as subobjects with explicit ambient species and classifier arrows.
+ * `dedekind.sets` currently uses a predicate/mereological representation.
+ *
+ * This concept captures the overlap that is already expressible in the current
+ * representation by reusing ETCS axiom composites where structurally possible.
+ *
+ * Mapped ETCS witnesses in this partial layer:
+ * - Axiom 1 (Composition): `HasAxiom1Composition<Domain>`
+ * - Axiom 2 (Identity): `HasAxiom2Identity<Domain>`
+ * - Axiom 3 (Terminal object): `HasAxiom3TerminalObject<Domain>`
+ * - Axiom 4 (Well-pointedness-like): predicate evaluation available
+ * - Axiom 5 (Cartesian product): `HasAxiom5CartesianProduct<Domain>`
+ * - Axiom 6 (Exponentiation): `HasAxiom6Exponentiation<Domain>`
+ * - Axiom 8 (Empty object): `HasAxiom8EmptySet<Domain>`
+ * - Axiom 9 (NNO witness): `HasAxiom9NNO<Domain>`
+ *
+ * Axiom 7 (Subobject classifier) and Axiom 10 (choice dispatcher via
+ * subobject-set operations) remain in `:etcs` and are intentionally not
+ * claimed by this partial alignment layer.
+ */
+export template <typename S, typename Ω = ClassicalLogic>
+concept IsPartiallyETCSAlignedSet = IsMereologicalSet<S, Ω> && requires {
+  typename SetMetadata<S>::Domain;
+  requires HasAxiom1Composition<typename SetMetadata<S>::Domain>;
+  requires HasAxiom2Identity<typename SetMetadata<S>::Domain>;
+  requires HasAxiom3TerminalObject<typename SetMetadata<S>::Domain>;
+  requires HasAxiom5CartesianProduct<typename SetMetadata<S>::Domain>;
+  requires HasAxiom6Exponentiation<typename SetMetadata<S>::Domain>;
+  requires HasAxiom8EmptySet<typename SetMetadata<S>::Domain>;
+  requires HasAxiom9NNO<typename SetMetadata<S>::Domain>;
+} && IsPredicate<S>;
+
+/**
  * @concept IsSet
- * @brief Backward-compatible alias for IsMereologicalSet.
+ * @brief Set concept with mereological core and partial ETCS alignment.
  * @tparam Ω The Subobject Classifier (Ω). Defaults to ClassicalLogic.
  */
 export template <typename S, typename Ω = ClassicalLogic>
-concept IsSet = IsMereologicalSet<S, Ω>;
+concept IsSet = IsPartiallyETCSAlignedSet<S, Ω>;
 
 /**
  * Note we have two choices: a) apply the morphism to the set or

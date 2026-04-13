@@ -30,35 +30,52 @@ using namespace dedekind::category;
  * @brief The Unification of Algebra and Action (The Rig).
  * @details A species where (T,+) is a Commutative Monoid and (T,*) is a Monoid.
  *          In the Dedekind topos, this is a "Semimodule over itself."
+ * @tparam T The carrier type.
+ * @tparam Add Additive operation witness (defaults to `std::plus<T>`).
+ * @tparam Mult Multiplicative operation witness
+ * (defaults to `std::multiplies<T>`).
  */
-export template <typename T>
-concept IsSemiring = IsAdditiveMonoid<T> && IsMultiplicativeMonoid<T> &&
-                     dedekind::category::IsLinearAction<T, T>;
+export template <typename T, typename Add = std::plus<T>,
+                 typename Mult = std::multiplies<T>>
+concept IsSemiring =
+    IsAdditiveMonoid<T, Add> && IsMultiplicativeMonoid<T, Mult> &&
+    dedekind::category::IsLinearAction<T, T, Mult, Add>;
 
 /** @concept IsRig: The "Natural" Harmony (No negatives) */
-export template <typename T>
-concept IsRig = dedekind::category::IsRig<T, std::plus<>, std::multiplies<>>;
+export template <typename T, typename Add = std::plus<T>,
+                 typename Mult = std::multiplies<T>>
+concept IsRig = dedekind::category::IsRig<T, Add, Mult>;
 
 /** @concept IsRng: The "Identity-less" Harmony (No unit) */
-export template <typename T>
-concept IsRng = dedekind::category::IsRng<T, std::plus<>, std::multiplies<>>;
+export template <typename T, typename Add = std::plus<T>,
+                 typename Mult = std::multiplies<T>>
+concept IsRng = dedekind::category::IsRng<T, Add, Mult>;
 
 /**
  * @concept IsRing
  * @brief A set that is both a Semiring AND an Abelian Group under addition.
+ * @tparam T The carrier type.
+ * @tparam Add Additive operation witness (defaults to `std::plus<T>`).
+ * @tparam Mult Multiplicative operation witness
+ * (defaults to `std::multiplies<T>`).
  */
-export template <typename T>
-concept IsRing =
-    dedekind::category::IsRing<T, std::plus<>, std::multiplies<>> &&
-    IsSemiring<T> && IsAdditiveGroup<T>;
+export template <typename T, typename Add = std::plus<T>,
+                 typename Mult = std::multiplies<T>>
+concept IsRing = dedekind::category::IsRing<T, Add, Mult> &&
+                 IsSemiring<T, Add, Mult> && IsAdditiveGroup<T, Add>;
 
 /**
  * @concept IsCommutativeRing
  * @brief A Ring where multiplication is also commutative.
+ * @tparam T The carrier type.
+ * @tparam Add Additive operation witness (defaults to `std::plus<T>`).
+ * @tparam Mult Multiplicative operation witness
+ * (defaults to `std::multiplies<T>`).
  */
-export template <typename T>
+export template <typename T, typename Add = std::plus<T>,
+                 typename Mult = std::multiplies<T>>
 concept IsCommutativeRing =
-    IsRing<T> && dedekind::category::IsCommutative<T, std::multiplies<>>;
+    IsRing<T, Add, Mult> && dedekind::category::IsCommutative<T, Mult>;
 
 /** @section Atomic_Verification
  * Deferred for experimental reintegration while ring contracts are being

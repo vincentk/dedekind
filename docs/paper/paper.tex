@@ -2,6 +2,7 @@
 
 \usepackage[T1]{fontenc}      % Standard font encoding
 \usepackage[utf8]{inputenc}    % Support for UTF-8 characters
+\usepackage{newunicodechar}
 \usepackage[english]{babel}    % Language support
 \usepackage{geometry}          % Adjust page margins
 \geometry{margin=1in}
@@ -13,6 +14,30 @@
 \usepackage{graphicx}                  % Support for images
 \usepackage{hyperref}                  % Clickable links & cross-refs
 \usepackage{booktabs}                  % High-quality tables
+
+\newunicodechar{ℚ}{\ensuremath{\mathbb{Q}}}
+\newunicodechar{ℝ}{\ensuremath{\mathbb{R}}}
+\newunicodechar{∃}{\ensuremath{\exists}}
+\newunicodechar{π}{\ensuremath{\pi}}
+\newunicodechar{⊂}{\ensuremath{\subset}}
+\newunicodechar{⊆}{\ensuremath{\subseteq}}
+\newunicodechar{∈}{\ensuremath{\in}}
+\newunicodechar{∉}{\ensuremath{\notin}}
+\newunicodechar{∧}{\ensuremath{\land}}
+\newunicodechar{∨}{\ensuremath{\lor}}
+\newunicodechar{≤}{\ensuremath{\leq}}
+\newunicodechar{≥}{\ensuremath{\geq}}
+\newunicodechar{→}{\ensuremath{\to}}
+\newunicodechar{×}{\ensuremath{\times}}
+\newunicodechar{μ}{\ensuremath{\mu}}
+\newunicodechar{α}{\ensuremath{\alpha}}
+\newunicodechar{β}{\ensuremath{\beta}}
+\newunicodechar{λ}{\ensuremath{\lambda}}
+\newunicodechar{Ω}{\ensuremath{\Omega}}
+\newunicodechar{χ}{\ensuremath{\chi}}
+\newunicodechar{Σ}{\ensuremath{\Sigma}}
+\newunicodechar{Τ}{\ensuremath{\mathrm{T}}}
+
 % For code listings
 \usepackage{xcolor}
 % Landscape tables:
@@ -61,6 +86,23 @@
            {∃}{{$\exists$}}1 
            {π}{{$\pi$}}1
            {⊂}{{$\subset$}}1
+           {⊆}{{$\subseteq$}}1
+           {∈}{{$\in$}}1
+           {∉}{{$\notin$}}1
+           {∧}{{$\land$}}1
+           {∨}{{$\lor$}}1
+           {≤}{{$\leq$}}1
+           {≥}{{$\geq$}}1
+           {→}{{$\to$}}1
+           {×}{{$\times$}}1
+           {μ}{{$\mu$}}1
+           {α}{{$\alpha$}}1
+           {β}{{$\beta$}}1
+           {λ}{{$\lambda$}}1
+           {Ω}{{$\Omega$}}1
+           {χ}{{$\chi$}}1
+           {Σ}{{$\Sigma$}}1
+           {Τ}{{$\mathrm{T}$}}1
 }
 
 \newcommand{\bind}{\mathbin{>\!\!>\mkern-6.7mu=}}
@@ -130,6 +172,18 @@ concept SmellsSweet = requires(T t) {
 // In dedekind, a 'Briar' is a 'Rose' if it satisfies the scent.
 static_assert(SmellsSweet<Briar>);
 \end{lstlisting}
+
+\paragraph{Two-Tier Concept Design: Bridging Signature and Semantics.}
+
+A critical architectural innovation introduced in PR \#111 is the \textbf{Two-Tier Concept Design}, which addresses a fundamental challenge in compile-time mathematical verification: the undecidability of algebraic laws. While syntactic properties (``Does this type support a \texttt{meet} operation?'') are fully decidable via C++23 Concepts, semantic properties (``Is the \texttt{meet} operation associative?'') are generally undecidable for arbitrary types. Rather than making impossible demands on the type system, \texttt{dedekind} partitions verification into two complementary tiers:
+
+\begin{enumerate}
+\item \textbf{Tier 1 (Structural Verification)}: Concepts that check only the \emph{signature}—the existence of required operations and their type compatibility. These have zero runtime cost and are suitable for generic programming where correctness follows from structure alone.
+
+\item \textbf{Tier 2 (Certified Verification)}: Extended concepts that require explicit trait witnesses for algebraic laws (e.g., commutativity, associativity). These rely on a registry of well-known species (integers, floating-point types) and allow specialization for user-defined types via trait witnesses. Crucially, final validation of laws occurs in the test suite, where properties are verified at runtime against concrete instantiations.
+\end{enumerate}
+
+This design reflects a principle we term \textit{Semantic Honesty}: the library documents and verifies which laws hold for which species, and users (via tests and CI) are responsible for validating these properties. This yields a practical balance between the theoretical rigor of category theory and the pragmatic constraints of compile-time verification.
 
 By treating mathematical structures as \textbf{combinatorial species} \cite{joyal1981species}, we allow the compiler to reason about abstract properties purely by inspecting type requirements.
 This "white-box" transparency enables the compiler to identify a type as a representation of $\mathbb{R}$ if it satisfies the requirements of a Dedekind-complete ordered field, regardless of its name.
@@ -582,19 +636,20 @@ This ``Atomic Arrow'' serves as the fundamental unit from which all higher-level
 
 The \texttt{:mereology} partition introduces the formal signature of parthood as the foundational structural primitive of the library. Following the mereological grounding of Stanisław Leśniewski, we treat parthood not as naive set membership, but as a primitive binary relation ($\leq$) that governs the structural identity of an entity. **If the Morphism is the atom of composability, then Mereology is the atom of hierarchy**, providing the skeletal vocabulary required for any downstream category to reason about sub-structures.
 
+This build order is intentional and literature-aligned: structural mereology and order theory take part-whole or preorder structure as primitive, while logical calculi classify statements \emph{about} those structures \cite{mormann2013structural}. In categorical logic, internal logic is developed from already-established categorical structure (e.g., subobjects and classifiers), not the other way around \cite{lambek1988higher, mclarty1992toposes}. Therefore, in \texttt{dedekind}, \texttt{:mereology} provides the pre-logical relational floor that \texttt{:logic} later enriches with explicit truth-value objects.
+
 By utilizing the signature discovery established in the previous section, the library reified parthood as a \textbf{Morphic Constraint}. A relation $R: A \times A \to \Omega$ is verified as a valid mereological inhabitant only if it satisfies the axioms of a \textbf{Partial Order}. As shown in Listing~\ref{lst:mereology_concept}, the \texttt{IsPartRelation} concept acts as a formal verification gate, enforcing reflexivity ($a \leq a$), transitivity ($a \leq b \land b \leq c \implies a \leq c$), and antisymmetry ($a \leq b \land b \leq a \implies a = b$). 
 
-Crucially, the library does not yet bind these axioms to specific hardware operators like \texttt{std::less\_equal}.
-This abstraction allows the \texttt{:logic} partition (\ref{dedekind.category::logic}) to address the "Reflexivity Failure" observed in IEEE 754 floating-point species, where the singularity \texttt{NaN <= NaN} evaluates to \texttt{false}. By isolating these axioms in Level 0, we ensure that the subsequent synthesis of Set Theory in Level 4 inherits a verified, algebraic definition of "part-of" relationships.
+In implementation, the authoritative default relation is ordinary order (\texttt{std::less\_equal<>}) with classical truth values; richer logical codomains are introduced downstream. This preserves a textbook-friendly dependency direction: define the relation first, then choose the logic used to classify its outcomes. The \texttt{:logic} partition (\ref{dedekind.category::logic}) then addresses non-classical cases such as IEEE 754 singularities (e.g., \texttt{NaN <= NaN}) without inverting the foundational order \cite{rasiowa1974algebraic, ieee754_2019}.
 
 \begin{lstlisting}[language=C++, caption={The Language of Parts: Verifying the Mereological Order.}, label={lst:mereology_concept}]
 /** 
  * @brief The Mereological Signature: An abstract Partial Order.
  * @tparam R The Relation f: A x A -> Omega (Subobject Classifier)
  */
-template <typename R, typename T>
-concept IsPartRelation = IsArrow<R, T, T, bool> && 
-  requires(R rel, T a, T b, T c) {
+template <typename T, typename Op = std::less_equal<>, typename Omega = bool>
+concept IsPartRelation = IsArrow<Op, T, T, Omega> &&
+    requires(Op rel, T a, T b, T c) {
     // 1. Reflexivity: Pars partis est pars totius.
     static_assert(rel(a, a), "Reflexivity failed.");
 
@@ -606,15 +661,17 @@ concept IsPartRelation = IsArrow<R, T, T, bool> &&
   };
 
 // SANITY CHECK: Integers satisfy the Mereological Signature.
-static_assert(IsPartRelation<std::less_equal<int>, int>, 
+static_assert(IsPartRelation<int, std::less_equal<>>, 
               "Verified: Integrals form a valid Mereological hierarchy.");
 
 // WARNING: Floats fail the Atomic Floor due to NaN reflexivity holes.
-// static_assert(IsPartRelation<std::less_equal<double>, double>); // Fails!
+// static_assert(IsPartRelation<double, std::less_equal<>>); // Fails!
 \end{lstlisting}
 
 \subsubsection{The \texttt{:logic} partition: The Subobject Classifier (\texorpdfstring{$\Omega$}{Omega})}
 \label{dedekind.category::logic}
+
+With the dependency \texttt{:mereology} $\rightarrow$ \texttt{:logic}, logical species are introduced as an enrichment layer over a prior relational substrate. This follows the standard categorical story: once subobjects and order-like structure are in place, one can internalize truth as a classifier object and reason algebraically about propositions \cite{lambek1988higher, mclarty1992toposes, rasiowa1974algebraic}.
 
 Before a ``Body'' (Set) or a ``Path'' (Sequence) can be reified, the \texttt{dedekind} library establishes the ``Rules of Presence'' through the \textbf{Subobject Classifier} $\Omega$. Following the algebraic logic of Rasiowa~\cite{rasiowa1974algebraic}, we treat every logical system as a specific type of abstract algebra where truth-values act as the objects of a \textbf{Topos}. By reifying these systems via the \texttt{IsLogicalSpecies} concept, we prevent the ``leaky abstractions'' inherent in machine-level \texttt{bool} types—such as implicit integral promotion—while allowing for pluggable logical universes.
 
@@ -682,6 +739,8 @@ The \texttt{:posetal} partition matures the abstract parthood defined in \texttt
 
 In this skeletal framework, the existence of a unique arrow is governed by the parthood relation $(\leq)$ as evaluated by the chosen Subobject Classifier $\Omega$. By anchoring these ``Skeletal Orders'' early, we provide the order-theoretic foundation required for the Lattices in Level 1 and the Dedekind-completeness proofs in Level 4. The \texttt{IsPosetal} concept (Listing~\ref{lst:posetal_concept}) verifies that the relation is decidable within the species' specific logic, transforming a raw type into a structured coordinate system.
 
+Furthermore, within this partition, semilattice and lattice concepts employ the \textbf{Two-Tier Architecture} (described below, Section 2.2.5) to separate structural verification from algebraic law certification. While \texttt{IsOrderMeetSemilattice<T>} checks only the syntactic interface (presence of a \texttt{meet} operation), the certified variant \texttt{IsCertifiedOrderMeetSemilattice<T>} adds trait-backed witnesses for commutativity, associativity, and idempotence, with final validation happening in the test suite.
+
 \begin{lstlisting}[language=C++, caption={The Posetal Category: Orders as Unique Morphisms.}, label={lst:posetal_concept}]
 /** 
  * @brief The Posetal Concept: A Skeletal Category.
@@ -689,7 +748,7 @@ In this skeletal framework, the existence of a unique arrow is governed by the p
  * @tparam Rel The Partial Order (the unique morphisms).
  */
 template <typename T, typename Rel>
-concept IsPosetal = IsPartRelation<Rel, T> && 
+concept IsPosetal = IsPartRelation<T, Rel, typename Classifier<T>::type> &&
   requires(Rel rel, T a, T b) {
     // The relation must return a value from the Species' Topos Omega
     { rel(a, b) } -> std::same_as<typename Classifier<T>::type>;
@@ -712,6 +771,68 @@ constexpr auto check_chain(T a, T b, T c) {
     return false;
 }
 \end{lstlisting}
+
+\paragraph{Two-Tier Concept Architecture: Signature Verification vs. Law Certification.}
+
+Following the refactoring in PR \#111, the \texttt{:posetal} partition adopts a \textbf{Two-Tier Concept Design} to address a fundamental tension in compile-time verification: while signature-level constraints (e.g., "does this type support the join operator?") are fully decidable via C++23 Concepts, algebraic law verification (e.g., "is join associative?") is undecidable for arbitrary types in the general case. 
+
+This architectural pattern partitions semilattice and lattice concepts into two complementary layers:
+
+\begin{enumerate}
+\item \textbf{Structural Concepts} (Signature-Level): These verify only the syntactic interface---e.g., that a type \texttt{T} supports binary operations \texttt{meet(a, b)} and \texttt{join(a, b)} with appropriate codomain types. Examples:
+  \begin{itemize}
+    \item \texttt{IsOrderMeetSemilattice<T>} : Checks that \texttt{meet} exists and returns a \texttt{T}.
+    \item \texttt{IsOrderLatticeOperations<T>} : Checks composition of join/meet with absorption shape.
+  \end{itemize}
+  
+  These concepts generate zero runtime overhead and are suitable for generic programming where algorithmic correctness follows from the signature alone.
+
+\item \textbf{Certified Variants} (Trait-Backed Laws): These extend structural concepts by requiring explicit trait-based legal \emph{witnesses}. For instance, \texttt{IsCertifiedOrderMeetSemilattice<T, Meet>} requires:
+  \begin{itemize}
+    \item The base \texttt{IsOrderMeetSemilattice} structural interface to hold.
+    \item Trait witness \texttt{IsCommutative<T, Meet>::value} to be true (verifying at compile-time that the operation is marked as commutative in the \texttt{:species} registry).
+    \item Trait witness \texttt{IsMereologicalMeetBand<T, Meet>} (verifying associativity and idempotence via the trait system).
+  \end{itemize}
+
+  This design shifts algebraic property verification away from undecidable \texttt{requires}-clauses toward explicit, composable trait witnesses that can be specialized by users for their custom types.
+\end{enumerate}
+
+The key insight is that \textbf{undecidable equational properties (e.g., $a \land (b \lor c) = (a \land b) \lor (a \land c)$) are validated via the test suite as the canonical statement of law}, not as compile-time concept constraints. This follows the principle of \textit{Semantic Honesty}: the library documents and validates which laws hold for which species, and users (or the CI pipeline) are responsible for verifying these properties at runtime on their concrete instantiations.
+
+\begin{lstlisting}[language=C++, caption={Two-Tier Pattern: Structural vs. Certified Semilattice Concepts.}, label={lst:two_tier_semilattice}]
+// Tier 1: Structural Interface (Signature-Only)
+export template <typename T, typename Meet = decltype(std::ranges::min)>
+concept IsOrderMeetSemilattice = requires(Meet meet, T a, T b) {
+  { meet(a, b) } -> std::convertible_to<T>;
+};
+
+// Tier 2: Certified with Trait Witnesses
+export template <typename T, typename Meet = decltype(std::ranges::min)>
+concept IsCertifiedOrderMeetSemilattice =
+    IsMereologicalMeetBand<T, Meet> &&   // Witnesses: associativity, idempotence
+    IsCommutative<T, Meet>;               // Witness: commutativity trait
+
+// Static verification using both tiers for int with std::ranges::min
+static_assert(IsOrderMeetSemilattice<int, decltype(std::ranges::min)>);
+static_assert(IsCertifiedOrderMeetSemilattice<int, decltype(std::ranges::min)>);
+
+// Runtime validation happens in dedicated test suites (e.g., posetal_test.cpp)
+TEST_CASE("Posetal: Semilattice Laws") {
+  const int a = 7, b = 3, c = 9;
+  const auto meet = std::ranges::min;
+  
+  // Commutativity
+  CHECK(meet(a, b) == meet(b, a));
+  
+  // Associativity
+  CHECK(meet(meet(a, b), c) == meet(a, meet(b, c)));
+  
+  // Idempotence
+  CHECK(meet(a, a) == a);
+}
+\end{lstlisting}
+
+This pattern is now applied uniformly across all algebraic law verification in the library, providing both the clarity of compile-time type safety and the practical flexibility of runtime law validation.
 
 \subsubsection{Small Categories (\texttt{:small})}
 
@@ -1140,6 +1261,26 @@ idempotent operations.
 For related typing and set-operation design directions, see:
 \emph{Monadic Intersection Types, Relationally, and Ordered}
 (\url{https://dl.acm.org/doi/10.1145/3777483}) and references therein.
+
+\paragraph{Partial ETCS Alignment Strategy.}
+
+Following PR \#111, the \texttt{sets} module implements a \textbf{Partial ETCS Alignment Strategy}, reifying 8 of the 10 Lawvere axioms of the Elementary Theory of the Category of Sets. This pragmatic approach acknowledges that full ETCS alignment at the type-level is achievable without sacrificing practical usability; the deferred axioms (Axiom 7: Unique Factorization through Pullbacks, and Axiom 10: Well-Pointedness) are strategically deferred to future levels of the library where higher-order categorical machinery becomes available.
+
+The 8 active axioms are reified through explicit trait witnesses in the form of axiom composites:
+
+\begin{enumerate}
+\item \textbf{Axiom 1 (Composition)}: \texttt{HasAxiom1Composition<T>} verifies that the composition of characteristic functions is associative.
+\item \textbf{Axiom 2 (Identity)}: \texttt{HasAxiom2Identity<T>} ensures that every set admits an identity morphism.
+\item \textbf{Axiom 3 (Product Existence)}: \texttt{HasAxiom3ProductExistence<T>} certifies Cartesian products of sets.
+\item \textbf{Axiom 4 (Disjoint Union)}: \texttt{HasAxiom4DisjointUnion<T>} verifies coproducts (disjoint unions).
+\item \textbf{Axiom 5 (Equalizer)}: \texttt{HasAxiom5Equalizer<T>} ensures the existence of equalizer subobjects.
+\item \textbf{Axiom 6 (Exponentiation)}: \texttt{HasAxiom6Exponentiation<T>} reifies the power object via the subobject classifier.
+\item \textbf{Axiom 8 (Choice Function)}: \texttt{HasAxiom8ChoiceFunction<T>} provides explicit choice for nonempty fibers.
+\item \textbf{Axiom 9 (Natural Numbers Object)}: \texttt{HasAxiom9NaturalNumbers<T>} ensures inductive structure on appropriate species.
+\end{enumerate}
+
+The deferred Axioms 7 and 10 depend on pullback diagrams and the global section property, respectively, which require more sophisticated higher-order categorical formalism not yet integrated into the library's architecture. By explicitly documenting this partial alignment, the library provides a clear roadmap for future extensions while maintaining mathematical honesty about the current scope of ETCS formalization.
+
 
 
 \subsubsection{The \texttt{:set} partition}

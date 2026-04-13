@@ -121,14 +121,11 @@ static_assert(IsPotential<TernaryResult<int>>,
               "TernaryResult<T> must fulfill IsPotential");
 
 /**
- * @concept IsMagmoid: (T × T) ⇸ T
- * @brief Project alias for a partial binary algebra.
- *
- * Textbook note: This corresponds to what is usually called a
- * "partial magma" (or partial groupoid in some literature).
+ * @concept IsPartialMagma: (T × T) ⇸ T
+ * @brief A textbook-aligned partial binary algebra.
  */
 export template <typename T, typename Op>
-concept IsMagmoid = requires(T a, T b) {
+concept IsPartialMagma = requires(T a, T b) {
   { Op{}(std::make_pair(a, b)) } -> IsPotential;
 };
 
@@ -138,15 +135,16 @@ concept IsMagmoid = requires(T a, T b) {
  * @details "If both sides are defined, they are equal."
  */
 export template <typename T, typename Op>
-concept IsPartialAssociative =
-    IsMagmoid<T, Op> && requires { requires is_kleene_associative_v<T, Op>; };
+concept IsPartialAssociative = IsPartialMagma<T, Op> && requires {
+  requires is_kleene_associative_v<T, Op>;
+};
 
 /**
  * @concept HasPartialIdentity
  * @brief Existence of a Neutral Element in a Partial Universe.
  */
 export template <typename T, typename Op>
-concept HasPartialIdentity = IsMagmoid<T, Op> && requires {
+concept HasPartialIdentity = IsPartialMagma<T, Op> && requires {
   { partial_identity_v<T, Op> } -> std::convertible_to<T>;
 };
 
@@ -278,7 +276,8 @@ struct HonestDivTransform {
 /** @section Concept_Maturation */
 
 export template <typename T, typename Op>
-concept IsPartialSemigroup = IsMagmoid<T, Op> && IsPartialAssociative<T, Op>;
+concept IsPartialSemigroup =
+    IsPartialMagma<T, Op> && IsPartialAssociative<T, Op>;
 
 export template <typename T, typename Op>
 concept IsPartialMonoid =
@@ -310,8 +309,8 @@ concept IsPartialAbelianGroup = IsPartialGroup<T, Op> && requires {
 
 /** @section Honesty_Anchors */
 
-// 1. HonestDiv is a Magmoid.
-static_assert(IsMagmoid<int, HonestDivTransform<int>>);
+// 1. HonestDiv is a partial magma.
+static_assert(IsPartialMagma<int, HonestDivTransform<int>>);
 
 // 2. Addition is a Partial Monoid (0 is the identity).
 static_assert(IsPartialMonoid<int, SafeAddTransform<int>>);

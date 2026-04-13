@@ -30,8 +30,15 @@
  * - Multiplication (*) is the Infimum/Meet (AND).
  * - Successor (S) is the mapping x ∨ 1 (The Archimedean Step).
  *
+ * Textbook defaults in this partition:
+ * - Classical two-valued logic uses C++ `operator&&` / `operator||`.
+ * - Kleene K3 uses lattice operations `std::ranges::min` / `std::ranges::max`
+ *   over {-1, 0, 1}.
+ *
  * Wikipedia: Subobject classifier, Topos theory, Kleene logic
  * @see Rasiowa, H. (1974). An Algebraic Approach to Non-Classical Logics.
+ * @see Lambek, J.; Scott, P. J. (1988). Introduction to Higher-Order
+ * Categorical Logic.
  */
 module;
 
@@ -88,6 +95,8 @@ concept IsLogicalSpecies = requires(typename L::Ω a, typename L::Ω b) {
  * @note This species is the "Zero-Cost" foundation for standard set operations.
  * Because it uses `bool`, the compiler can often resolve these operations
  * into single bitwise assembly instructions during DAG pruning.
+ *
+ * Textbook term: the two-element Boolean algebra.
  */
 export struct ClassicalLogic final {
   using Ω = bool;  // Renamed from 'type'
@@ -128,6 +137,8 @@ export enum class Ternary : int8_t { False = -1, Unknown = 0, True = 1 };
  *
  * The intention is to allow the type system to say that some predicate is not
  * computable.
+ *
+ * Textbook term: Kleene's strong three-valued logic (K3).
  */
 export struct TernaryLogic final {
   using Ω = Ternary;  // Renamed from 'type'
@@ -139,13 +150,13 @@ export struct TernaryLogic final {
   /** @brief Kleene Conjunction: Returns the minimum truth value. */
   static constexpr Ternary AND(Ternary a, Ternary b) {
     return static_cast<Ternary>(
-        std::min(static_cast<int8_t>(a), static_cast<int8_t>(b)));
+        std::ranges::min(static_cast<int8_t>(a), static_cast<int8_t>(b)));
   }
 
   /** @brief Kleene Disjunction: Returns the maximum truth value. */
   static constexpr Ternary OR(Ternary a, Ternary b) {
     return static_cast<Ternary>(
-        std::max(static_cast<int8_t>(a), static_cast<int8_t>(b)));
+        std::ranges::max(static_cast<int8_t>(a), static_cast<int8_t>(b)));
   }
 
   /** @brief Kleene Negation: Returns the additive inverse (rotation about
@@ -246,9 +257,9 @@ struct Truth {
     return {L::AND(a.value, b.value)};
   }
 
-  friend constexpr bool operator<=(Truth a, Truth b) noexcept {
+  friend constexpr Truth operator<=(Truth a, Truth b) noexcept {
     // Universal Lattice Order: a <= b iff the Join of a and b is b.
-    return (a + b) == b;
+    return {lift_logic<L>((a + b) == b)};
   }
 
   /** @section Identity_Discovery */
@@ -278,6 +289,28 @@ export using Boolean = Truth<ClassicalLogic>;
 
 /** @brief The Kleene Species (The Indeterminacy). */
 export using Kleene = Truth<TernaryLogic>;
+
+/**
+ * @brief Semantic truth projection for assertion contexts.
+ * @details
+ * Textbook alignment: in an internal logic, formulas denote Ω-values.
+ * `holds` projects that Ω-value to meta-level proof truth.
+ */
+export template <typename L>
+constexpr bool holds(Truth<L> proposition) noexcept {
+  return proposition.value == L::True;
+}
+
+/**
+ * @brief Semantic falsity projection for assertion contexts.
+ * @details
+ * In non-classical logics (e.g., Kleene K3), `refutes` is distinct from
+ * `!holds`: Unknown is neither proven true nor proven false.
+ */
+export template <typename L>
+constexpr bool refutes(Truth<L> proposition) noexcept {
+  return proposition.value == L::False;
+}
 
 /** @brief Bridge the Monic Wrapper to the Logic Species Registry. */
 export template <typename L>
