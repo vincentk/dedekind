@@ -191,9 +191,10 @@ constexpr auto Ø<T, L>::operator!() const {
   return Ω<T, L>{};
 }
 
-static_assert(IsSet<Ω<int>>, "The universal set must satisfy IsSet.");
+static_assert(IsMereologicalSet<Ω<int>>,
+              "The universal set must satisfy IsMereologicalSet.");
 
-static_assert(IsSet<Ø<int>>);
+static_assert(IsMereologicalSet<Ø<int>>);
 
 // FIXME: This is a hack to make the tests compile. The NaturalNumbers class
 // should Define the symbol used in your test Define the type

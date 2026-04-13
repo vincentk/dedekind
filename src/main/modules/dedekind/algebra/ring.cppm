@@ -37,22 +37,20 @@ concept IsSemiring = IsAdditiveMonoid<T> && IsMultiplicativeMonoid<T> &&
 
 /** @concept IsRig: The "Natural" Harmony (No negatives) */
 export template <typename T>
-concept IsRig =
-    IsCommutativeMonoid<T, std::plus<>> && IsMonoid<T, std::multiplies<>> &&
-    IsDistributive<T, std::plus<>, std::multiplies<>>;
+concept IsRig = dedekind::category::IsRig<T, std::plus<>, std::multiplies<>>;
 
 /** @concept IsRng: The "Identity-less" Harmony (No unit) */
 export template <typename T>
-concept IsRng =
-    IsAbelianGroup<T, std::plus<>> && IsSemigroup<T, std::multiplies<>> &&
-    IsDistributive<T, std::plus<>, std::multiplies<>>;
+concept IsRng = dedekind::category::IsRng<T, std::plus<>, std::multiplies<>>;
 
 /**
  * @concept IsRing
  * @brief A set that is both a Semiring AND an Abelian Group under addition.
  */
 export template <typename T>
-concept IsRing = IsRig<T> && IsRng<T> && IsSemiring<T> && IsAdditiveGroup<T>;
+concept IsRing =
+    dedekind::category::IsRing<T, std::plus<>, std::multiplies<>> &&
+    IsSemiring<T> && IsAdditiveGroup<T>;
 
 /**
  * @concept IsCommutativeRing

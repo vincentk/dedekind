@@ -937,6 +937,11 @@ concept IsPeriodic = is_periodic_v<T, Op>;
  * @brief The Master Safety Certificate for Level 0.
  * A morphism is total if it is either Periodic (Circular) or Idempotent
  * (Stable).
+ *
+ * Textbook note:
+ * Periodicity and idempotence are orthogonal algebraic properties. This
+ * concept is a pragmatic implementation certificate and not a canonical
+ * algebraic taxonomy boundary.
  */
 export template <typename T, typename Op>
 concept IsTotal = IsPeriodic<T, Op> || IsIdempotent<T, Op>;

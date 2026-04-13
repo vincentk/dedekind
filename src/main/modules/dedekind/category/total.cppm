@@ -201,6 +201,10 @@ static_assert(IsAbelianGroup<unsigned int, std::plus<unsigned int>>);
  * that distribute over each other. `bool` with (OR, AND) and `unsigned int`
  * with (+, *) are both Rigs. Neither has an additive inverse, so they stop
  * short of a Ring.
+ *
+ * Textbook note: In standard algebra literature, `semiring` is often used for
+ * this structure, while `rig` is the explicit mnemonic "ring without
+ * negatives".
  */
 export template <typename T, typename Add, typename Mult>
 concept IsRig = IsCommutativeMonoid<T, Add> && IsMonoid<T, Mult> &&
@@ -218,6 +222,8 @@ static_assert(IsRig<unsigned int, std::plus<unsigned int>,
  * @details Provides an Abelian Group for addition and a Semigroup for
  * multiplication, with distribution. Called "Rng" (Ring without the
  * multiplicative identity "i").
+ *
+ * Textbook note: This is also commonly described as a "ring without unity".
  */
 export template <typename T, typename Add, typename Mult>
 concept IsRng = IsAbelianGroup<T, Add> && IsSemigroup<T, Mult> &&

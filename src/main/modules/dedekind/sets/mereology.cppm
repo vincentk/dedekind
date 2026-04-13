@@ -83,8 +83,8 @@ concept IsPartOf = requires(const S1& p, const S2& w) {
                  typename SpeciesTraits<S2>::Domain;
                };  // Structural check
 
-  // 2. The Subset check (Requires operator<= to be defined for WeakPart)
-  { p <= w } -> std::same_as<typename L::Ω>;
+  // 2. Core part-whole relation (deduplicated in category:mereology)
+  requires dedekind::category::IsPartOfRelation<S1, S2, typename L::Ω>;
 };
 
 /** @brief The Dual / Converse of the Part-Whole relation. */
@@ -119,31 +119,42 @@ concept IsProperPart =
  * @concept IsMeetSemiLattice
  * @brief A refinement of IsSet that supports the algebraic
  *        structure of Meet (&).
+ * @details Textbook meet-semilattices are commutative. This partition
+ * currently delegates to the weaker transitional mereological operation
+ * concept from dedekind.category:mereology.
  * Wikipedia: SemiLattice (order)
  */
 export template <typename S>
 concept IsMeetSemilattice =
-    IsAssociative<S, std::bit_and<S>> && IsIdempotent<S, std::bit_and<S>>;
+    dedekind::category::IsMereologicalMeetSemilattice<S, std::bit_and<S>>;
 
 /**
  * @concept IsJoinSemiLattice
  * @brief A refinement of IsSet that supports the algebraic
  *        structure of Join (|).
+ * @details Textbook join-semilattices are commutative. This partition
+ * currently delegates to the weaker transitional mereological operation
+ * concept from dedekind.category:mereology.
  * Wikipedia: SemiLattice (order)
  */
 export template <typename S>
 concept IsJoinSemilattice =
-    IsAssociative<S, std::bit_or<S>> && IsIdempotent<S, std::bit_or<S>>;
+    dedekind::category::IsMereologicalJoinSemilattice<S, std::bit_or<S>>;
 
 /**
  * @concept IsLattice
  * @brief A refinement of IsSet that supports the algebraic
  *        structure of Meet (&) and Join (|).
+ * @details Terminology backlog: keep this as-is for compatibility now,
+ * then split textbook commutative lattice concepts from weaker mereological
+ * operation concepts in a dedicated taxonomy pass.
  * Wikipedia: Lattice (order), Absorption law
  */
 export template <typename S>
 // FIXME: this has more structure than semigroup on the individual operations.
-concept IsLattice = IsMeetSemilattice<S> && IsJoinSemilattice<S>;
+concept IsLattice =
+    dedekind::category::IsMereologicalLatticeOperations<S, std::bit_or<S>,
+                                                        std::bit_and<S>>;
 
 /**
  * @concept IsBoundedLattice
@@ -303,6 +314,9 @@ concept HasExtrema = requires(S s) {
 /** @section The_Scale: The Logic of Magnitude */
 
 export template <typename C>
+// Terminology note: this concept validates cardinality metadata tags
+// (`is_finite`, `is_countable`, `power_type`) rather than proving
+// cardinal arithmetic laws. Name kept for compatibility during taxonomy pass.
 concept IsCardinality = requires {
   { C::is_finite } -> std::convertible_to<bool>;
   { C::is_countable } -> std::convertible_to<bool>;
@@ -365,7 +379,7 @@ struct SetMetadata<
 
 /**
  * WORKAROUND: Shield for functional membership.
- * This allows IsSet to evaluate to false (or be bypassed)
+ * This allows IsMereologicalSet to evaluate to false (or be bypassed)
  * for non-functional types like 'unsigned long'.
  */
 template <typename S, typename Domain, typename Ω>
@@ -374,33 +388,44 @@ concept IsFunctionalSet = requires(const S s, const Domain d) {
 };
 
 /**
- * @concept IsSet
+ * @concept IsMereologicalSet
  * @brief The Universal Morphism of Presence.
  * @tparam Ω The Subobject Classifier (Ω). Defaults to ClassicalLogic.
  */
 export template <typename S, typename Ω = ClassicalLogic>
-concept IsSet = IsMereologicalLattice<S, Ω> && IsPredicate<S> && requires {
-  requires IsCardinality<typename SetMetadata<S>::Cardinality>;
-  // This is now safe because we patched IsProperPart earlier:
-  requires IsProperPart<typename SetMetadata<S>::Domain, S, Ω>;
-} && requires(const S s) {
-  { !s } -> IsLattice;
+concept IsMereologicalSet =
+    IsMereologicalLattice<S, Ω> && IsPredicate<S> && requires {
+      requires IsCardinality<typename SetMetadata<S>::Cardinality>;
+      // This is now safe because we patched IsProperPart earlier:
+      requires IsProperPart<typename SetMetadata<S>::Domain, S, Ω>;
+    } && requires(const S s) {
+      { !s } -> IsLattice;
 
-  requires requires {
-    { s.cardinality() } -> std::same_as<typename SetMetadata<S>::Cardinality>;
-  } || !requires { s.cardinality(); };
+      requires requires {
+        {
+          s.cardinality()
+        } -> std::same_as<typename SetMetadata<S>::Cardinality>;
+      } || !requires { s.cardinality(); };
 
-  // 4. Domain Mapping (The "Presence" check) - SHIELDED
-  // If it's an integral (like unsigned long), we skip the call check.
-  requires std::integral<S> ||
-               IsFunctionalSet<S, typename SetMetadata<S>::Domain, Ω>;
-} && IsLattice<S>;
+      // 4. Domain Mapping (The "Presence" check) - SHIELDED
+      // If it's an integral (like unsigned long), we skip the call check.
+      requires std::integral<S> ||
+                   IsFunctionalSet<S, typename SetMetadata<S>::Domain, Ω>;
+    } && IsLattice<S>;
+
+/**
+ * @concept IsSet
+ * @brief Backward-compatible alias for IsMereologicalSet.
+ * @tparam Ω The Subobject Classifier (Ω). Defaults to ClassicalLogic.
+ */
+export template <typename S, typename Ω = ClassicalLogic>
+concept IsSet = IsMereologicalSet<S, Ω>;
 
 /**
  * Note we have two choices: a) apply the morphism to the set or
  * b) compose with the morphism. Here, we prefer a).
  **/
-export template <IsSet S, typename F>
+export template <IsMereologicalSet S, typename F>
   requires IsArrow<F> && std::same_as<Dom<F>, S> &&  // F accepts the Set
            requires {
              typename Dom<F>::Domain;
@@ -426,7 +451,7 @@ constexpr auto operator>>(const S& s, const F& f) {
  * @tparam L The Subobject Classifier (Ω). Defaults to ClassicalLogic.
  */
 export template <typename S, typename L = ClassicalLogic>
-concept IsEnumerated = IsSet<S, L> && requires(const S s) {
+concept IsEnumerated = IsMereologicalSet<S, L> && requires(const S s) {
   /** @section Magnitude: The Physical Proof */
   // An extensional set MUST claim a Finite cardinality type.
   requires(S::cardinality_type::is_finite == true);
@@ -455,7 +480,7 @@ concept IsEnumerated = IsSet<S, L> && requires(const S s) {
  * Wikipedia: Intensional definition, Indicator function, Ternary logic
  */
 export template <typename S, typename L = TernaryLogic>
-concept IsSymbolic = IsSet<S, L> && !IsEnumerated<S, L>;
+concept IsSymbolic = IsMereologicalSet<S, L> && !IsEnumerated<S, L>;
 
 /**
  * @concept IsPointedSet
@@ -463,7 +488,7 @@ concept IsSymbolic = IsSet<S, L> && !IsEnumerated<S, L>;
  * Wikipedia: Pointed set
  */
 export template <typename S, typename T>
-concept IsPointedSet = IsSet<S> && IsPointed<T, std::plus<T>>;
+concept IsPointedSet = IsMereologicalSet<S> && IsPointed<T, std::plus<T>>;
 
 /**
  * @section Structural_Inference: NaturalLogic
