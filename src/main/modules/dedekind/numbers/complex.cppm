@@ -45,9 +45,9 @@ class Complex {
 /**
  * @brief Characteristic morphism for ℂ: the complex numbers.
  * Accepts native Complex<R> and all embedded predecessors
- * (Real<double>, Rational<int>, int, unsigned, Ternary).
+ * (Real<R>, Rational<int>, int, unsigned, Ternary).
  */
-export template <typename R = double, typename L = ClassicalLogic,
+export template <std::floating_point R = double, typename L = ClassicalLogic,
                  typename C = ℶ_1>
 struct ComplexesOf {
   using Domain = Complex<R>;
@@ -60,15 +60,15 @@ struct ComplexesOf {
     return L::True;
   }
 
-  // Embedded Real<double> (canonical x -> x + 0i)
-  constexpr typename L::Ω operator()(const Real<double>& r) const {
+  // Direct parent: embed Real<R> into ℂ (canonical x -> x + 0i).
+  constexpr typename L::Ω operator()(const Real<R>& r) const {
     return operator()(
         Complex<R>{static_cast<R>(r.resolve()), static_cast<R>(0)});
   }
 
   // Delegate non-parent ancestors to ambient ℝ.
   template <typename T>
-    requires(!std::same_as<T, Complex<R>> && !std::same_as<T, Real<double>>)
+    requires(!std::same_as<T, Complex<R>> && !std::same_as<T, Real<R>>)
   constexpr typename L::Ω operator()(const T& x) const {
     return dedekind::numbers::R(x);
   }

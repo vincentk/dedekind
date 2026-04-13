@@ -54,9 +54,9 @@ class Real {
 
 /**
  * @brief Characteristic morphism for ℝ: the real numbers.
- * Accepts native Real<double> and delegates predecessor checks through ℚ.
+ * Accepts native Real<S> and delegates predecessor checks through ℚ.
  */
-export template <typename S = double, typename L = ClassicalLogic,
+export template <std::floating_point S = double, typename L = ClassicalLogic,
                  typename C = ℶ_1>
 struct RealsOf {
   using Domain = Real<S>;
