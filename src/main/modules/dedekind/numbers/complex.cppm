@@ -17,12 +17,6 @@ namespace dedekind::numbers {
 using namespace dedekind::category;
 using namespace dedekind::sets;
 
-export template <typename C, typename R>
-concept IsComplex = requires(C z) {
-  { z.real() } -> std::same_as<R>;
-  { z.imag() } -> std::same_as<R>;
-};
-
 export template <typename R>
   requires std::regular<R>
 class Complex {
@@ -48,11 +42,39 @@ class Complex {
   R im_{};
 };
 
+/**
+ * @brief Characteristic morphism for ℂ: the complex numbers.
+ * Accepts native Complex<R> and all embedded predecessors
+ * (Real<double>, Rational<int>, int, unsigned, Ternary).
+ */
 export template <typename R = double, typename L = ClassicalLogic,
                  typename C = ℶ_1>
-using ComplexSetOf = Ω<Complex<R>, L, C>;
+struct ComplexesOf {
+  using Domain = Complex<R>;
+  using Codomain = typename L::Ω;
+  using logic_species = L;
+  using cardinality_type = C;
 
-export using ComplexSet = ComplexSetOf<>;
+  // Native Complex<R>: always a member of ℂ
+  constexpr typename L::Ω operator()(const Complex<R>&) const {
+    return L::True;
+  }
+
+  // Embedded Real<double> (canonical x -> x + 0i)
+  constexpr typename L::Ω operator()(const Real<double>& r) const {
+    return operator()(
+        Complex<R>{static_cast<R>(r.resolve()), static_cast<R>(0)});
+  }
+
+  // Delegate non-parent ancestors to ambient ℝ.
+  template <typename T>
+    requires(!std::same_as<T, Complex<R>> && !std::same_as<T, Real<double>>)
+  constexpr typename L::Ω operator()(const T& x) const {
+    return dedekind::numbers::R(x);
+  }
+};
+
+export using ComplexSet = ComplexesOf<>;
 export using ℂ = ComplexSet;
 
 export inline constexpr ℂ C{};
@@ -62,7 +84,7 @@ export inline constexpr ℂ C{};
  * @details Every real x embeds as the complex number (x + 0i).
  *          This is the canonical ring monomorphism R → C.
  */
-export inline constexpr auto embed_R_C =
+export inline constexpr auto embed_ℝ_ℂ =
     arrow<Real<double>, Complex<double>>([](const Real<double>& r) noexcept {
       return Complex<double>{r.resolve(), 0.0};
     });
@@ -78,6 +100,6 @@ struct SpeciesTraits<dedekind::numbers::Complex<R>> {
 
 template <>
 inline constexpr bool
-    is_monic_arrow_v<std::decay_t<decltype(dedekind::numbers::embed_R_C)>> =
+    is_monic_arrow_v<std::decay_t<decltype(dedekind::numbers::embed_ℝ_ℂ)>> =
         true;
 }  // namespace dedekind::category

@@ -10,6 +10,7 @@ export module dedekind.numbers:integer;
 
 import dedekind.category;
 import dedekind.sets;
+import :naturals;
 
 namespace dedekind::numbers {
 using namespace dedekind::category;
@@ -76,10 +77,45 @@ concept Continuum_ℝ = IsReal<E> && IsContinuous<E>;
 export template <typename M, typename E, typename R>
 concept Algebra_ℂ = IsComplex<E, R>;
 
+/**
+ * @brief Characteristic morphism for ℤ: the integers.
+ * Accepts native int and all embedded predecessors (unsigned, Ternary).
+ */
 export template <typename L = ClassicalLogic, typename C = ℵ_0>
-using IntegerSetOf = Ω<int, L, C>;
+struct IntegersOf {
+  using Domain = int;
+  using Codomain = typename L::Ω;
+  using logic_species = L;
+  using cardinality_type = C;
 
-export using IntegerSet = IntegerSetOf<>;
+  // Native int: always a member of ℤ
+  constexpr typename L::Ω operator()(int) const { return L::True; }
+
+  // Embedded unsigned (via embed_ℕ_ℤ)
+  constexpr typename L::Ω operator()(unsigned n) const {
+    return operator()(static_cast<int>(n));
+  }
+
+  // Embedded Ternary (via embed_K3_ℤ)
+  constexpr typename L::Ω operator()(Ternary t) const {
+    switch (t) {
+      case Ternary::False:
+        return operator()(-1);
+      case Ternary::Unknown:
+        return operator()(0);
+      case Ternary::True:
+        return operator()(1);
+    }
+    return L::False;
+  }
+
+  // Embedded bool (via embed_𝔹_ℕ → embed_ℕ_ℤ)
+  constexpr typename L::Ω operator()(bool b) const {
+    return operator()(embed_𝔹_ℕ(b));
+  }
+};
+
+export using IntegerSet = IntegersOf<>;
 export using ℤ = IntegerSet;
 
 export inline constexpr ℤ Z{};
@@ -91,14 +127,14 @@ export inline constexpr ℤ Z{};
  *          large unsigned values may overflow, so the domain is conventionally
  *          restricted to values ≤ INT_MAX when used with certified arithmetic.
  */
-export inline constexpr auto embed_N_Z = arrow<unsigned, int>(
+export inline constexpr auto embed_ℕ_ℤ = arrow<unsigned, int>(
     [](const unsigned& x) noexcept { return static_cast<int>(x); });
 
 /**
  * @brief Canonical embedding K3 ↪ ℤ: Ternary → int.
  * @details Maps False -> -1, Unknown -> 0, True -> 1.
  */
-export inline constexpr auto embed_K3_Z =
+export inline constexpr auto embed_K3_ℤ =
     arrow<Ternary, int>([](const Ternary& t) noexcept {
       switch (t) {
         case Ternary::False:
@@ -116,11 +152,11 @@ export inline constexpr auto embed_K3_Z =
 namespace dedekind::category {
 template <>
 inline constexpr bool
-    is_monic_arrow_v<std::decay_t<decltype(dedekind::numbers::embed_N_Z)>> =
+    is_monic_arrow_v<std::decay_t<decltype(dedekind::numbers::embed_ℕ_ℤ)>> =
         true;
 
 template <>
 inline constexpr bool
-    is_monic_arrow_v<std::decay_t<decltype(dedekind::numbers::embed_K3_Z)>> =
+    is_monic_arrow_v<std::decay_t<decltype(dedekind::numbers::embed_K3_ℤ)>> =
         true;
 }  // namespace dedekind::category

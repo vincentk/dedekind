@@ -14,6 +14,7 @@ export module dedekind.numbers:rational;
 
 import dedekind.category;
 import dedekind.sets;
+import :integer;
 
 namespace dedekind::numbers {
 using namespace dedekind::category;
@@ -99,11 +100,37 @@ class Rational {
 // Proof: The inverse of 2/3 is 3/2.
 static_assert((Rational<int>(2, 3).inverse().num() == 3));
 
-export template <std::signed_integral Z = int, typename L = ClassicalLogic,
+/**
+ * @brief Characteristic morphism for ℚ: the rationals.
+ * Accepts native Rational<int> and delegates predecessor checks through ℤ.
+ */
+export template <std::signed_integral I = int, typename L = ClassicalLogic,
                  typename C = ℵ_0>
-using RationalSetOf = Ω<Rational<Z>, L, C>;
+struct RationalsOf {
+  using Domain = Rational<I>;
+  using Codomain = typename L::Ω;
+  using logic_species = L;
+  using cardinality_type = C;
 
-export using RationalSet = RationalSetOf<>;
+  // Native Rational<int>: always a member of ℚ
+  constexpr typename L::Ω operator()(const Rational<I>&) const {
+    return L::True;
+  }
+
+  // Direct parent: embed int into ℚ.
+  constexpr typename L::Ω operator()(int z) const {
+    return operator()(Rational<I>{static_cast<I>(z), static_cast<I>(1)});
+  }
+
+  // Delegate non-parent ancestors to ambient ℤ.
+  template <typename T>
+    requires(!std::same_as<T, Rational<I>> && !std::same_as<T, int>)
+  constexpr typename L::Ω operator()(const T& x) const {
+    return dedekind::numbers::Z(x);
+  }
+};
+
+export using RationalSet = RationalsOf<>;
 export using ℚ = RationalSet;
 
 export inline constexpr ℚ Q{};
@@ -113,7 +140,7 @@ export inline constexpr ℚ Q{};
  * @details Every integer n embeds as the fraction n/1.
  *          This is the standard ring homomorphism Z → Q.
  */
-export inline constexpr auto embed_Z_Q = arrow<int, Rational<int>>(
+export inline constexpr auto embed_ℤ_ℚ = arrow<int, Rational<int>>(
     [](const int& n) noexcept { return Rational<int>{n, 1}; });
 
 }  // namespace dedekind::numbers
@@ -127,6 +154,6 @@ struct SpeciesTraits<dedekind::numbers::Rational<Z>> {
 
 template <>
 inline constexpr bool
-    is_monic_arrow_v<std::decay_t<decltype(dedekind::numbers::embed_Z_Q)>> =
+    is_monic_arrow_v<std::decay_t<decltype(dedekind::numbers::embed_ℤ_ℚ)>> =
         true;
 }  // namespace dedekind::category

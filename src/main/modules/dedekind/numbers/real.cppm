@@ -52,11 +52,36 @@ class Real {
   Q value_{};
 };
 
-export template <typename Q = double, typename L = ClassicalLogic,
+/**
+ * @brief Characteristic morphism for ℝ: the real numbers.
+ * Accepts native Real<double> and delegates predecessor checks through ℚ.
+ */
+export template <typename S = double, typename L = ClassicalLogic,
                  typename C = ℶ_1>
-using RealSetOf = Ω<Real<Q>, L, C>;
+struct RealsOf {
+  using Domain = Real<S>;
+  using Codomain = typename L::Ω;
+  using logic_species = L;
+  using cardinality_type = C;
 
-export using RealSet = RealSetOf<>;
+  // Native Real<Q>: always a member of ℝ
+  constexpr typename L::Ω operator()(const Real<S>&) const { return L::True; }
+
+  // Direct parent: embed Rational<int> into ℝ.
+  constexpr typename L::Ω operator()(const Rational<int>& q) const {
+    return operator()(
+        Real<S>{static_cast<S>(q.num()) / static_cast<S>(q.den())});
+  }
+
+  // Delegate non-parent ancestors to ambient ℚ.
+  template <typename T>
+    requires(!std::same_as<T, Real<S>> && !std::same_as<T, Rational<int>>)
+  constexpr typename L::Ω operator()(const T& x) const {
+    return dedekind::numbers::Q(x);
+  }
+};
+
+export using RealSet = RealsOf<>;
 export using ℝ = RealSet;
 
 export inline constexpr ℝ R{};
@@ -67,7 +92,7 @@ export inline constexpr ℝ R{};
  *          The embedding is exact for rationals representable in double;
  *          rounding is acknowledged by the ℶ_1 cardinality of ℝ.
  */
-export inline constexpr auto embed_Q_R =
+export inline constexpr auto embed_ℚ_ℝ =
     arrow<Rational<int>, Real<double>>([](const Rational<int>& q) noexcept {
       return Real<double>{static_cast<double>(q.num()) /
                           static_cast<double>(q.den())};
@@ -84,6 +109,6 @@ struct SpeciesTraits<dedekind::numbers::Real<Q>> {
 
 template <>
 inline constexpr bool
-    is_monic_arrow_v<std::decay_t<decltype(dedekind::numbers::embed_Q_R)>> =
+    is_monic_arrow_v<std::decay_t<decltype(dedekind::numbers::embed_ℚ_ℝ)>> =
         true;
 }  // namespace dedekind::category

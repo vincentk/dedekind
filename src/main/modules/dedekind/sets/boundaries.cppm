@@ -218,6 +218,9 @@ struct NaturalNumbersOf {
   constexpr typename L::Ω operator()(U) const {
     return L::True;
   }
+
+  // Embedded bool (via embed_𝔹_ℕ → unsigned): landing in ℕ
+  constexpr typename L::Ω operator()(bool) const { return L::True; }
 };
 
 export using NaturalNumbers = NaturalNumbersOf<>;
