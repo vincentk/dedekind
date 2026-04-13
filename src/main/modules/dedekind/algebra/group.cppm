@@ -34,19 +34,25 @@ namespace dedekind::algebra {
 /**
  * @concept IsAdditiveGroup
  * @brief Proposition: The species (T, +) forms an Abelian Group (ℤ).
- * @details Operator witness is `std::plus<T>` (the canonical `+`).
+ * @details Operator is configurable; default witness is `std::plus<T>`
+ * (the canonical `+`).
+ * @tparam T The carrier type.
+ * @tparam Add The additive operation witness (defaults to `std::plus<T>`).
  */
-export template <typename T>
-concept IsAdditiveGroup = IsGroup<T, std::plus<T>>;
+export template <typename T, typename Add = std::plus<T>>
+concept IsAdditiveGroup = IsGroup<T, Add>;
 
 /**
  * @concept IsMultiplicativeGroup
  * @brief Proposition: The non-zero species (T*, *) forms a Group (ℚ*).
- * @details Operator witness is `std::multiplies<T>` (the canonical `*`).
+ * @details Operator is configurable; default witness is
+ * `std::multiplies<T>` (the canonical `*`).
+ * @tparam T The carrier type.
+ * @tparam Mult The multiplicative operation witness (defaults to
+ * `std::multiplies<T>`).
  */
-export template <typename T>
-concept IsMultiplicativeGroup =
-    dedekind::category::IsGroup<T, std::multiplies<T>>;
+export template <typename T, typename Mult = std::multiplies<T>>
+concept IsMultiplicativeGroup = dedekind::category::IsGroup<T, Mult>;
 
 /** @section Formal_Verification */
 
