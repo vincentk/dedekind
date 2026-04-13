@@ -126,7 +126,7 @@ concept IsProperPart =
  */
 export template <typename S>
 concept IsMeetSemilattice =
-  dedekind::category::IsMereologicalMeetSemilattice<S, std::bit_and<S>>;
+    dedekind::category::IsMereologicalMeetSemilattice<S, std::bit_and<S>>;
 
 /**
  * @concept IsJoinSemiLattice
@@ -139,7 +139,7 @@ concept IsMeetSemilattice =
  */
 export template <typename S>
 concept IsJoinSemilattice =
-  dedekind::category::IsMereologicalJoinSemilattice<S, std::bit_or<S>>;
+    dedekind::category::IsMereologicalJoinSemilattice<S, std::bit_or<S>>;
 
 /**
  * @concept IsLattice
@@ -152,8 +152,9 @@ concept IsJoinSemilattice =
  */
 export template <typename S>
 // FIXME: this has more structure than semigroup on the individual operations.
-concept IsLattice = dedekind::category::IsMereologicalLatticeOperations<
-  S, std::bit_or<S>, std::bit_and<S>>;
+concept IsLattice =
+    dedekind::category::IsMereologicalLatticeOperations<S, std::bit_or<S>,
+                                                        std::bit_and<S>>;
 
 /**
  * @concept IsBoundedLattice
@@ -394,21 +395,23 @@ concept IsFunctionalSet = requires(const S s, const Domain d) {
 export template <typename S, typename Ω = ClassicalLogic>
 concept IsMereologicalSet =
     IsMereologicalLattice<S, Ω> && IsPredicate<S> && requires {
-  requires IsCardinality<typename SetMetadata<S>::Cardinality>;
-  // This is now safe because we patched IsProperPart earlier:
-  requires IsProperPart<typename SetMetadata<S>::Domain, S, Ω>;
-} && requires(const S s) {
-  { !s } -> IsLattice;
+      requires IsCardinality<typename SetMetadata<S>::Cardinality>;
+      // This is now safe because we patched IsProperPart earlier:
+      requires IsProperPart<typename SetMetadata<S>::Domain, S, Ω>;
+    } && requires(const S s) {
+      { !s } -> IsLattice;
 
-  requires requires {
-    { s.cardinality() } -> std::same_as<typename SetMetadata<S>::Cardinality>;
-  } || !requires { s.cardinality(); };
+      requires requires {
+        {
+          s.cardinality()
+        } -> std::same_as<typename SetMetadata<S>::Cardinality>;
+      } || !requires { s.cardinality(); };
 
-  // 4. Domain Mapping (The "Presence" check) - SHIELDED
-  // If it's an integral (like unsigned long), we skip the call check.
-  requires std::integral<S> ||
-               IsFunctionalSet<S, typename SetMetadata<S>::Domain, Ω>;
-} && IsLattice<S>;
+      // 4. Domain Mapping (The "Presence" check) - SHIELDED
+      // If it's an integral (like unsigned long), we skip the call check.
+      requires std::integral<S> ||
+                   IsFunctionalSet<S, typename SetMetadata<S>::Domain, Ω>;
+    } && IsLattice<S>;
 
 /**
  * Note we have two choices: a) apply the morphism to the set or

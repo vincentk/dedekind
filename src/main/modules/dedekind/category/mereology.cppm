@@ -70,7 +70,7 @@ concept IsPartOfRelation = requires(const Part& part, const Whole& whole) {
  */
 export template <typename T, typename Meet>
 concept IsMereologicalMeetSemilattice =
-  IsAssociative<T, Meet> && IsIdempotent<T, Meet>;
+    IsAssociative<T, Meet> && IsIdempotent<T, Meet>;
 
 /**
  * @concept IsMereologicalJoinSemilattice
@@ -83,7 +83,7 @@ concept IsMereologicalMeetSemilattice =
  */
 export template <typename T, typename Join>
 concept IsMereologicalJoinSemilattice =
-  IsAssociative<T, Join> && IsIdempotent<T, Join>;
+    IsAssociative<T, Join> && IsIdempotent<T, Join>;
 
 /**
  * @concept IsMereologicalLatticeOperations
@@ -97,8 +97,8 @@ concept IsMereologicalJoinSemilattice =
  */
 export template <typename T, typename Join, typename Meet>
 concept IsMereologicalLatticeOperations =
-  IsMereologicalJoinSemilattice<T, Join> &&
-  IsMereologicalMeetSemilattice<T, Meet>;
+    IsMereologicalJoinSemilattice<T, Join> &&
+    IsMereologicalMeetSemilattice<T, Meet>;
 
 /**
  * @brief Skeletal Part-Whole relation.

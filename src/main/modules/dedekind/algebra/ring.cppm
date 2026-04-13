@@ -48,8 +48,9 @@ concept IsRng = dedekind::category::IsRng<T, std::plus<>, std::multiplies<>>;
  * @brief A set that is both a Semiring AND an Abelian Group under addition.
  */
 export template <typename T>
-concept IsRing = dedekind::category::IsRing<T, std::plus<>, std::multiplies<>> &&
-                 IsSemiring<T> && IsAdditiveGroup<T>;
+concept IsRing =
+    dedekind::category::IsRing<T, std::plus<>, std::multiplies<>> &&
+    IsSemiring<T> && IsAdditiveGroup<T>;
 
 /**
  * @concept IsCommutativeRing
