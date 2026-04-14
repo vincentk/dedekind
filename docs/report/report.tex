@@ -890,6 +890,12 @@ concept IsSmallCategory = requires {
 static_assert(IsSmallCategory<CPlusPlusTypeCategory>);
 \end{lstlisting}
 
+\subsubsection{Discrete Categories (\texttt{:discrete})}
+
+The \texttt{:discrete} partition provides the degenerate categorical baseline where objects have identity arrows only. This is a pragmatic bridge between raw species registration and full morphic composition: it allows the compiler to treat a family of machine types as a category without forcing non-trivial arrows between them.
+
+In implementation terms, this partition is low-ceremony but high-value: it supplies a canonical ``zero-interaction'' category used by tests and by later partitions when constructing examples that must preserve object identity without introducing additional algebraic structure.
+
 
 \subsubsection{Universal Products and Coproducts (\texttt{:cartesian})}
 
@@ -1260,6 +1266,12 @@ static\_assert(even\_greater\_ten.\u03C7(12) == true);
 
 By hoisting these mereological invariants into the type signature, we enable \textit{Symbolic Equalization}. The compiler can decompose and optimize a set based on its logical essence rather than its storage layout, allowing contradictory set-builder predicates to collapse into zero-instruction machine code. This ensures that the performance of the ``Naked Loop'' is always mathematically justified by the prior formal certification of the ETCS axioms.
 
+\subsubsection{Topoi and Internal Logic (\texttt{:topoi})}
+
+The \texttt{:topoi} partition packages the categorical preconditions for internal reasoning: subobject classifiers, finite limits, and exponentials are treated as first-class structural witnesses. This partition is the conceptual hinge between pure category structure and logic-as-algebra in the implementation.
+
+Operationally, \texttt{:topoi} complements \texttt{:etcs}: while ETCS gives the user-facing set-theoretic facade, the topos partition provides the internal categorical contracts that justify that facade. Keeping both partitions explicit in the build graph prevents silent drift between foundational definitions and set-level APIs.
+
 \section{Results}
 \label{sec:category-results}
 
@@ -1337,6 +1349,30 @@ The 8 active axioms are reified through explicit trait witnesses in the form of 
 \end{enumerate}
 
 The deferred Axioms 7 and 10 depend on pullback diagrams and the global section property, respectively, which require more sophisticated higher-order categorical formalism not yet integrated into the library's architecture. By explicitly documenting this partial alignment, the library provides a clear roadmap for future extensions while maintaining mathematical honesty about the current scope of ETCS formalization.
+
+\subsection{The \texttt{:boundaries} partition}
+
+The \texttt{:boundaries} partition defines the extremal set objects for a given species and logic: the empty set $\varnothing$ and the ambient/universal set $\Omega$. These boundary objects are the neutral and absorbing anchors for set operations, and they provide the concrete entry point for ETCS-style subobject reasoning in downstream partitions.
+
+In practical terms, this partition stabilizes the API for identities used by union, intersection, and complement while keeping the carrier and classifier explicit at the type level.
+
+\subsection{The \texttt{:expressions} partition}
+
+The \texttt{:expressions} partition is the set-builder workhorse. It provides intensional sets as predicates, symbolic variable bindings, logical predicate composition, subset witnesses, Cartesian products, relations, set-functions, and power-set construction.
+
+Recent ETCS-aligned extensions in this partition include point-wise subset evidence, relation witnesses, and function single-valuedness checks, all expressed as zero-overhead compositional constraints in the type system.
+
+\subsection{The \texttt{:mereology} partition}
+
+The \texttt{:mereology} partition in \texttt{dedekind.sets} specializes part-whole operations for concrete set expressions. While category-level mereology supplies shared foundations, this partition preserves richer set-specific compatibility constraints and operation-level laws required by client code and regression tests.
+
+This split is intentional during the ongoing taxonomy alignment: it allows the project to converge toward textbook naming and law-strength classifications without destabilizing existing semantics.
+
+\subsection{The \texttt{:singleton} partition}
+
+The \texttt{:singleton} partition reifies one-element sets as first-class objects. Singletons are the minimal extensional witnesses used to bridge element-level statements with set-level morphisms, especially in tests that validate ETCS boundary behavior and comprehension syntax.
+
+Because singleton construction is trivial but semantically central, this partition acts as a low-risk anchor for onboarding examples and for validating element-membership notation against the broader intensional framework.
 
 
 
