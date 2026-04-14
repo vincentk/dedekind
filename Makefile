@@ -7,6 +7,10 @@ BUILD_DIR    := build
 LLVM_ROOT    := /usr/local/opt/llvm
 CXX          := $(LLVM_ROOT)/bin/clang++
 CC           := $(LLVM_ROOT)/bin/clang
+DOCS_DIR     := docs/report
+DOCS_MAIN    := report
+FILTER_GVPR  := $(DOCS_DIR)/figures/filter.gvpr
+DOT_FILE     := $(DOCS_DIR)/figures/dedekind_module_dependencies.dot
 
 .PHONY: all clean compile test coverage
 
@@ -47,16 +51,16 @@ doxygen: compile
 
 # Generate build dependency graph without breaking the Ninja build
 dot: $(BUILD_DIR)/CMakeCache.txt
-	@mkdir -p $(LATEX_DIR)/figures
+	@mkdir -p $(DOCS_DIR)/figures
 	#ninja -C build -t graph | \
 	#gvpr -c 'N[match(label, ".*\.cppm") < 0]{delete($$G, $$)}' | \
 	#sed -E 's|label="(.*/)?([^/]+)\.cppm"|label="\2"|g' | \
-	#> docs/paper/figures/dedekind_module_dependencies.dot
-	ninja -C build -t graph | gvpr -f filter.gvpr
-	dot -Tpdf $(LATEX_DIR)/figures/dedekind_module_dependencies.dot -o $(LATEX_DIR)/figures/dedekind_deps.pdf
+	#> $(DOT_FILE)
+	ninja -C build -t graph | gvpr -f $(FILTER_GVPR) > $(DOT_FILE)
+	dot -Tpdf $(DOT_FILE) -o $(DOCS_DIR)/figures/dedekind_deps.pdf
 
 
 doc: dot
-	pdflatex paper.tex
-	biber paper
-	pdflatex paper.tex
+	cd $(DOCS_DIR) && pdflatex $(DOCS_MAIN).tex
+	cd $(DOCS_DIR) && biber $(DOCS_MAIN)
+	cd $(DOCS_DIR) && pdflatex $(DOCS_MAIN).tex

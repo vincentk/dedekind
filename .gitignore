@@ -43,6 +43,16 @@ docs/paper/*.log
 docs/paper/*.out
 docs/paper/*.toc
 docs/paper/*.run.xml
+docs/report/*.aux
+docs/report/*.bbl
+docs/report/*.bcf
+docs/report/*.blg
+docs/report/*.log
+docs/report/*.out
+docs/report/*.toc
+docs/report/*.run.xml
+docs/report/figures/dedekind_*.dot
+docs/report/figures/dedekind_*.pdf
 **/*.synctex.gz
 
 build_ci/**
