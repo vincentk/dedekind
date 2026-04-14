@@ -71,34 +71,35 @@ constexpr auto mandelbrot_set_n(int size, int max_iter) {
   return in_grid & bounded_orbit;
 }
 
+template <typename MandelbrotSet>
+constexpr std::uint8_t pack_pbm_byte(const MandelbrotSet& mandelbrot, int y,
+                                     int x_start, int size) {
+  using Logic = typename MandelbrotSet::logic_species;
+
+  std::uint8_t acc = 0;
+  int bit_count = 0;
+
+  for (int dx = 0; dx < 8 && (x_start + dx) < size; ++dx) {
+    acc <<= 1;
+    if (mandelbrot(Pixel{x_start + dx, y}) == Logic::True) acc |= 1U;
+    ++bit_count;
+  }
+
+  // PBM rows are padded with trailing zero bits to byte alignment.
+  if (bit_count < 8) acc <<= (8 - bit_count);
+  return acc;
+}
+
 std::vector<std::uint8_t> render_mandelbrot_pbm_bits(int size, int max_iter) {
   const auto mandelbrot = mandelbrot_set_n(size, max_iter);
-  using Logic = typename decltype(mandelbrot)::logic_species;
 
   std::vector<std::uint8_t> bytes;
   bytes.reserve(static_cast<std::size_t>(size) *
                 static_cast<std::size_t>((size + 7) / 8));
 
   for (int y = 0; y < size; ++y) {
-    std::uint8_t acc = 0;
-    int bit_count = 0;
-
-    for (int x = 0; x < size; ++x) {
-      acc <<= 1;
-      if (mandelbrot(Pixel{x, y}) == Logic::True) acc |= 1U;
-      ++bit_count;
-
-      if (bit_count == 8) {
-        bytes.push_back(acc);
-        acc = 0;
-        bit_count = 0;
-      }
-    }
-
-    if (bit_count != 0) {
-      acc <<= (8 - bit_count);
-      bytes.push_back(acc);
-    }
+    for (int x = 0; x < size; x += 8)
+      bytes.push_back(pack_pbm_byte(mandelbrot, y, x, size));
   }
 
   return bytes;
