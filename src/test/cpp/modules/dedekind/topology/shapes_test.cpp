@@ -65,6 +65,48 @@ TEST_CASE("Topology: Rules of Continuity Coverage", "[topology][continuity]") {
     static_assert(IsHalfSpace<typename UnitInterval::upper_ray_type>);
   }
 
+  SECTION("HalfSpace: the general runtime-direction ray") {
+    using HS = HalfSpace<ℝ>;
+
+    // HalfSpace satisfies both IsHalfSpace and IsRay
+    static_assert(IsHalfSpace<HS>);
+    static_assert(IsRay<HS, ℝ>);
+    static_assert(IsConvex<HS>);
+
+    // Factory methods produce both orientations from a single type
+    constexpr auto up = HS::upward_from(3);
+    constexpr auto down = HS::downward_from(3);
+
+    // { x | x > 3 }
+    REQUIRE(!up(2));
+    REQUIRE(!up(3));  // Open boundary
+    REQUIRE(up(4));
+
+    // { x | x < 3 }
+    REQUIRE(down(2));
+    REQUIRE(!down(3));  // Open boundary
+    REQUIRE(!down(4));
+
+    // Construct from a compile-time Ray
+    UnitRay compile_time_ray{5};
+    HS runtime_ray{compile_time_ray};
+    REQUIRE(!runtime_ray(4));
+    REQUIRE(runtime_ray(6));
+
+    // Intersection tightens the bound
+    auto hs1 = HS::upward_from(2);
+    auto hs2 = HS::upward_from(5);
+    auto inter = hs1 & hs2;
+    REQUIRE(!inter(4));
+    REQUIRE(inter(6));
+
+    using ClosedHS = HalfSpace<ℝ, Boundary::Closed>;
+    static_assert(IsHalfSpace<ClosedHS>);
+    static_assert(IsClosed<ClosedHS>);
+    constexpr auto closed_up = ClosedHS::upward_from(3);
+    static_assert(closed_up(3) == dedekind::category::ClassicalLogic::True);
+  }
+
   SECTION("Intersection Laws: The Convex Magma") {
     static_assert(is_convex_v<UnitRay>);
     static_assert((std::same_as<decltype(std::declval<UnitRay>() &
