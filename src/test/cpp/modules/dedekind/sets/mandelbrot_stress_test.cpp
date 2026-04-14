@@ -38,8 +38,17 @@ constexpr bool mandelbrot_member(const Pixel& p, int size) {
 
 constexpr auto mandelbrot_set(int size) {
   auto pixel = var<Ω<Pixel>>;
-  return Set{pixel % Ω<Pixel>{} |
-             [size](const Pixel& p) { return mandelbrot_member(p, size); }};
+
+  const auto in_grid = Set{pixel % Ω<Pixel>{} | [size](const Pixel& p) {
+    return p.x >= 0 && p.x < size && p.y >= 0 && p.y < size;
+  }};
+
+  const auto in_mandelbrot = Set{pixel % Ω<Pixel>{} | [size](const Pixel& p) {
+    return mandelbrot_member(p, size);
+  }};
+
+  // Idiomatic set-builder composition: support set ∩ Mandelbrot predicate set.
+  return in_grid & in_mandelbrot;
 }
 
 std::vector<std::uint8_t> render_mandelbrot_pbm_bits(int size) {
