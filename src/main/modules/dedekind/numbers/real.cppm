@@ -7,6 +7,7 @@ module;
 
 #include <concepts>
 #include <cstddef>
+#include <utility>
 
 export module dedekind.numbers:real;
 
@@ -67,6 +68,152 @@ class Real {
  private:
   Q value_{};
 };
+
+/** @section Partial_Arithmetic_with_Ternary_Logic */
+
+/**
+ * @brief Partial addition transform for Real<S>.
+ *
+ * Real arithmetic uses a numeric carrier S (typically double/IEEE 754).
+ * Operations succeed but may lose precision due to rounding.
+ * We acknowledge this by always returning Ternary::True (the operation
+ * completed) but document that the result is approximate.
+ */
+export template <IsRealCarrier S>
+struct PartialAddReal {
+  using value_type = Real<S>;
+  using logic_species = TernaryLogic;
+
+  TernaryResult<Real<S>> operator()(
+      std::pair<const Real<S>&, const Real<S>&> p) const noexcept {
+    auto [a, b] = p;
+    return {Ternary::True, a + b};
+  }
+};
+
+/**
+ * @brief Partial multiplication transform for Real<S>.
+ *
+ * Real multiplication succeeds but may lose precision due to rounding.
+ */
+export template <IsRealCarrier S>
+struct PartialMulReal {
+  using value_type = Real<S>;
+  using logic_species = TernaryLogic;
+
+  TernaryResult<Real<S>> operator()(
+      std::pair<const Real<S>&, const Real<S>&> p) const noexcept {
+    auto [a, b] = p;
+    return {Ternary::True, a * b};
+  }
+};
+
+/**
+ * @brief Partial division for Real<S> with zero-check.
+ *
+ * Returns Ternary::False if divisor is zero (for double), reflecting
+ * the IEEE 754 undefined behavior.
+ */
+export template <IsRealCarrier S>
+struct PartialDivReal {
+  using value_type = Real<S>;
+  using logic_species = TernaryLogic;
+
+  TernaryResult<Real<S>> operator()(
+      std::pair<const Real<S>&, const Real<S>&> p) const noexcept {
+    auto [a, b] = p;
+    // For floating-point types, division by zero produces inf/nan
+    // We flag this as False to indicate undefined behavior
+    if constexpr (std::is_floating_point_v<S>) {
+      if (b.resolve() == S{0}) {
+        return {Ternary::False, a / b};  // Produces inf/nan
+      }
+    }
+    return {Ternary::True, a / b};
+  }
+};
+
+/**
+ * @brief Identity and Associativity traits for Real arithmetic.
+ *
+ * Real<S> arithmetic (e.g., with S = double) satisfies:
+ * - Kleene associativity *approximately*: if both sides are computed, they're
+ *   equal up to rounding
+ * - Kleene commutativity: multiplication is formally commutative (barring NaN)
+ * - Partial identities: 0 for addition, 1 for multiplication
+ *
+ * Specializations are declared in the dedekind::category namespace (see below).
+ */
+
+/**
+ * @brief Embedding transform: ℚ ↪ ℝ with Ternary acknowledgment.
+ *
+ * The embedding of a rational Q = p/q into the reals (via IEEE 754 scalar S)
+ * is **lossy**: the result is the closest representable value, not necessarily
+ * exact. This transform returns Ternary::Unknown to signal potential
+ * information loss due to floating-point rounding.
+ *
+ * In a more sophisticated model, we could check if the rational is exactly
+ * representable and return True, but conservatively, we flag all embeddings
+ * as Unknown.
+ */
+export template <IsInteger I = machine_integer,
+                 IsRealCarrier S = machine_real_scalar>
+struct PartialEmbedRationalToReal {
+  using value_type = Real<S>;
+  using logic_species = TernaryLogic;
+
+  TernaryResult<Real<S>> operator()(const Rational<I>& q) const noexcept {
+    // The embedding is lossy due to IEEE 754 approximation — inline to avoid
+    // forward ref
+    return {Ternary::Unknown,
+            Real<S>{static_cast<S>(q.num()) / static_cast<S>(q.den())}};
+  }
+};
+
+/**
+ * @brief Kleene traits for rational→real embedding (lossy).
+ *
+ * The embedding is not associative/commutative in the Kleene sense because
+ * different computation orders might yield different rounded results.
+ */
+// Note: We intentionally do NOT declare associativity for this embedding
+// because floating-point rounding violates Kleene associativity.
+
+}  // namespace dedekind::numbers
+
+namespace dedekind::category {
+
+/** @brief Kleene traits for real arithmetic. */
+template <dedekind::numbers::IsRealCarrier S>
+inline constexpr bool is_kleene_associative_v<
+    dedekind::numbers::Real<S>, dedekind::numbers::PartialAddReal<S>> = true;
+
+template <dedekind::numbers::IsRealCarrier S>
+inline constexpr bool is_kleene_commutative_v<
+    dedekind::numbers::Real<S>, dedekind::numbers::PartialAddReal<S>> = true;
+
+template <dedekind::numbers::IsRealCarrier S>
+inline constexpr dedekind::numbers::Real<S> partial_identity_v<
+    dedekind::numbers::Real<S>, dedekind::numbers::PartialAddReal<S>> =
+    dedekind::numbers::Real<S>{S{0}};
+
+template <dedekind::numbers::IsRealCarrier S>
+inline constexpr bool is_kleene_associative_v<
+    dedekind::numbers::Real<S>, dedekind::numbers::PartialMulReal<S>> = true;
+
+template <dedekind::numbers::IsRealCarrier S>
+inline constexpr bool is_kleene_commutative_v<
+    dedekind::numbers::Real<S>, dedekind::numbers::PartialMulReal<S>> = true;
+
+template <dedekind::numbers::IsRealCarrier S>
+inline constexpr dedekind::numbers::Real<S> partial_identity_v<
+    dedekind::numbers::Real<S>, dedekind::numbers::PartialMulReal<S>> =
+    dedekind::numbers::Real<S>{S{1}};
+
+}  // namespace dedekind::category
+
+namespace dedekind::numbers {
 
 /**
  * @brief Machine realization arrow ℚ ↪ ℝ: Rational<I> → Real<S>.

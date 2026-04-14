@@ -30,16 +30,16 @@ import :numeric;
 namespace dedekind::category {
 
 /** @section Forward_Declarations_of_Traits */
-template <typename T, typename Op>
+export template <typename T, typename Op>
 inline constexpr bool is_kleene_associative_v = false;
 
-template <typename T, typename Op>
+export template <typename T, typename Op>
 inline constexpr bool is_kleene_commutative_v = false;
 
-template <typename T, typename Op>
+export template <typename T, typename Op>
 inline constexpr bool is_kleene_invertible_v = false;
 
-template <typename T, typename Op>
+export template <typename T, typename Op>
 inline constexpr T partial_identity_v = T{};
 
 // Specialization for the Classical/Binary result
