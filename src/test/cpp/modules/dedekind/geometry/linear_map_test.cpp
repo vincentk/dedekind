@@ -72,3 +72,38 @@ TEST_CASE("Geometry: Linear Map MVP", "[geometry][linear-map]") {
     REQUIRE((zero_linear_map<R, 2, 2>()(v)) == Vec2{});
   }
 }
+
+TEST_CASE("Geometry: Covectors and Outer Products",
+          "[geometry][covector][outer]") {
+  using R = double;
+  using Vec2 = Vector<R, 2>;
+  using Vec3 = Vector<R, 3>;
+
+  SECTION("Covector alias is LinearMap<F,1,N>") {
+    static_assert(std::same_as<Covector<R, 2>, LinearMap<R, 1, 2>>);
+    Covector<R, 2> cov{{{3.0, -1.0}}};
+    Vec2 v{2.0, 4.0};
+    // cov(v)[0] = 3*2 + (-1)*4 = 2.0
+    REQUIRE(cov(v)[0] == 2.0);
+  }
+
+  SECTION("Outer product has rank-1 coefficient formula u[i]*v[j]") {
+    Vec3 u{1.0, 2.0, 3.0};
+    Vec2 v{4.0, 5.0};
+    auto p = outer(u, v);
+    static_assert(std::same_as<decltype(p), LinearMap<R, 3, 2>>);
+    REQUIRE(p.coefficient(0, 0) == 4.0);   // u[0]*v[0]
+    REQUIRE(p.coefficient(0, 1) == 5.0);   // u[0]*v[1]
+    REQUIRE(p.coefficient(1, 0) == 8.0);   // u[1]*v[0]
+    REQUIRE(p.coefficient(2, 1) == 15.0);  // u[2]*v[1]
+  }
+
+  SECTION("Outer product satisfies (u⊗v)(w) = dot(v,w)·u") {
+    Vec2 u{1.0, 2.0};
+    Vec2 v{3.0, 4.0};
+    Vec2 w{1.0, 1.0};
+    auto p = outer(u, v);
+    // dot(v, w) = 3 + 4 = 7; result should be 7*u
+    REQUIRE(p(w) == 7.0 * u);
+  }
+}

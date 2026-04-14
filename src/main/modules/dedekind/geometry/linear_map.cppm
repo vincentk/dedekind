@@ -159,4 +159,30 @@ constexpr LinearMap<F, Rows, Cols> zero_linear_map() {
   return LinearMap<F, Rows, Cols>{};
 }
 
+/**
+ * @brief Covector: a linear functional F^N -> F, represented as a row vector.
+ *
+ * A covector (dual vector / linear functional) is canonically a
+ * LinearMap<F, 1, N>: it maps a column vector to a length-1 column vector
+ * whose single entry is the inner product of the row with the argument.
+ */
+export template <std::floating_point F, std::size_t N>
+using Covector = LinearMap<F, 1, N>;
+
+/**
+ * @brief Outer product u ⊗ v : F^N -> F^M.
+ *
+ * Constructs the rank-1 linear map whose (i,j) coefficient is u[i]*v[j].
+ * Applied to a vector w, it yields dot(v,w) * u (the dyadic product).
+ */
+export template <std::floating_point F, std::size_t M, std::size_t N>
+constexpr LinearMap<F, M, N> outer(const Vector<F, M>& u,
+                                   const Vector<F, N>& v) {
+  LinearMap<F, M, N> result;
+  for (std::size_t i = 0; i < M; ++i)
+    for (std::size_t j = 0; j < N; ++j)
+      result.set_coefficient(i, j, u[i] * v[j]);
+  return result;
+}
+
 }  // namespace dedekind::geometry

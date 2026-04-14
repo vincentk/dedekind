@@ -40,4 +40,20 @@ struct OneForm {
   }
 };
 
+/**
+ * @brief Convert a OneForm to its Covector (row-vector) representation.
+ *
+ * A OneForm<F,N> and a Covector<F,N> (= LinearMap<F,1,N>) are two
+ * representations of the same linear functional F^N -> F.  This function
+ * constructs the Covector whose single row holds the OneForm's components,
+ * making the bijection explicit.
+ */
+export template <std::floating_point F, std::size_t N>
+constexpr Covector<F, N> to_covector(const OneForm<F, N>& w) {
+  Covector<F, N> result;
+  for (std::size_t j = 0; j < N; ++j)
+    result.set_coefficient(0, j, w.components[j]);
+  return result;
+}
+
 }  // namespace dedekind::analysis
