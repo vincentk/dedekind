@@ -30,6 +30,7 @@ module;
 export module dedekind.algebra:modules;
 
 import dedekind.category;
+import dedekind.ieee;
 import :field;
 import :group;
 import :polynomial;
@@ -107,6 +108,9 @@ struct OneDimensionalVector {
 
   constexpr OneDimensionalVector() = default;
   constexpr explicit OneDimensionalVector(S value) : x(value) {}
+  template <typename U>
+    requires std::constructible_from<S, U>
+  constexpr explicit OneDimensionalVector(U value) : x(S(value)) {}
 
   constexpr S coordinate() const noexcept { return x; }
 
@@ -155,7 +159,7 @@ struct OneDimensionalVector {
 };
 
 /** @brief Alias: reals seen as a canonical 1D vector carrier. */
-export using RealLine = OneDimensionalVector<double>;
+export using RealLine = OneDimensionalVector<dedekind::ieee::IEEE<double>>;
 export using UnsignedLine = OneDimensionalVector<unsigned int>;
 export using BoolLine = OneDimensionalVector<bool>;
 
@@ -238,6 +242,39 @@ concept IsVectorSpaceLike = requires(F a, F b, V v) {
 };
 
 /**
+ * @concept SatisfiesVectorSpaceAxioms
+ * @brief Operational witness of the core vector-space axiom signatures.
+ * @details Verifies closure and the canonical linearity/composition shapes.
+ */
+export template <typename V, typename F, typename AddV = std::plus<V>,
+                 typename AddF = std::plus<F>,
+                 typename MultF = std::multiplies<F>,
+                 typename Act = std::multiplies<>>
+concept SatisfiesVectorSpaceAxioms =
+    IsVectorSpaceLike<V, F, Act> && requires(F a, F b, V x, V y) {
+      { AddV{}(x, y) } -> std::same_as<V>;
+      { Act{}(a, AddV{}(x, y)) } -> std::same_as<V>;
+      { AddV{}(Act{}(a, x), Act{}(a, y)) } -> std::same_as<V>;
+
+      { AddF{}(a, b) } -> std::same_as<F>;
+      { Act{}(AddF{}(a, b), x) } -> std::same_as<V>;
+      { AddV{}(Act{}(a, x), Act{}(b, x)) } -> std::same_as<V>;
+
+      { MultF{}(a, b) } -> std::same_as<F>;
+      { Act{}(MultF{}(a, b), x) } -> std::same_as<V>;
+      { Act{}(a, Act{}(b, x)) } -> std::same_as<V>;
+
+      // Unit axiom is checked when a multiplicative identity witness exists.
+      requires(
+          !requires { dedekind::category::identity_v<F, MultF>; } ||
+          requires {
+            {
+              Act{}(dedekind::category::identity_v<F, MultF>, x)
+            } -> std::same_as<V>;
+          });
+    };
+
+/**
  * @struct PolynomialOperator
  * @brief The "Enhanced" Polynomial: A Formal Sum reified as a Morphic Action.
  *
@@ -265,8 +302,11 @@ struct PolynomialOperator {
   }
 };
 
-static_assert(IsVectorSpaceLike<RealLine, double>,
+using RealLineScalar = decltype(RealLine{}.coordinate());
+static_assert(IsVectorSpaceLike<RealLine, RealLineScalar>,
               "RealLine should satisfy the baseline 1D vector-space witness.");
+static_assert(SatisfiesVectorSpaceAxioms<RealLine, RealLineScalar>,
+              "RealLine should satisfy vector-space axiom signatures.");
 static_assert(
     IsSemimoduleLike<BoolLine, bool, BoolLineJoin, std::logical_or<bool>,
                      std::logical_and<bool>, BoolLineMeetAction>,
@@ -275,6 +315,12 @@ static_assert(
 }  // namespace dedekind::algebra
 
 namespace dedekind::category {
+
+template <typename S, typename Tag>
+struct SpeciesTraits<dedekind::algebra::OneDimensionalVector<S, Tag>> {
+  using Domain = dedekind::algebra::OneDimensionalVector<S, Tag>;
+  using machine_type = S;
+};
 
 template <typename S, typename Tag>
   requires requires(S s) { -s; }
