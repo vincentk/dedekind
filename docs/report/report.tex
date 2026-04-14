@@ -648,6 +648,23 @@ concept IsArrow = requires {
 
 This ``Atomic Arrow'' serves as the fundamental unit from which all higher-level categorical structures are synthesized. By elevating the function object from an opaque procedural block to a structural entity, the library enables the compiler to reason about the composition and validity of transformations before any machine instructions are emitted.
 
+\textbf{Monomorphisms and Epimorphisms:} The partition closes with two dual structural qualifiers. A \textbf{monomorphism} (\texttt{IsMonicArrow}) witnesses injectivity: $f(x) = f(y) \Rightarrow x = y$. Its dual, an \textbf{epimorphism} (\texttt{IsEpicArrow}), witnesses surjectivity: for every $b \in B$ there exists $a \in A$ with $f(a) = b$. Both concepts follow an opt-in declaration pattern via \texttt{is\_monic\_arrow\_v} and \texttt{is\_epic\_arrow\_v} respectively; the compiler trusts the specialisation as a formal proof obligation. The identity arrow is the canonical inhabitant of both concepts, confirming that every isomorphism is simultaneously monic and epic.
+
+\begin{lstlisting}[language=C++, caption={Monic and epic arrow concepts (from \texttt{morphism.cppm}).}, label={lst:monic-epic}]
+// Opt-in declaration for injective arrows.
+template <typename E>
+inline constexpr bool is_monic_arrow_v = false;
+
+template <typename E>
+concept IsMonicArrow = IsArrow<E> && is_monic_arrow_v<E>;
+
+// Identity is canonical: monic and epic simultaneously.
+template <typename T>
+inline constexpr bool is_monic_arrow_v<Identity<T>> = true;
+template <typename T>
+inline constexpr bool is_epic_arrow_v<Identity<T>>  = true;
+\end{lstlisting}
+
 
 \subsection{The \texttt{:mereology} partition: The Language of Parts}
 
@@ -2068,7 +2085,39 @@ Semimodules and modules formalise the action of a ring on an additive abelian gr
 \section{\texttt{:polynomial}}
 \label{sec:algebra-polynomial}
 
-\texttt{Polynomial<R>} encodes the free algebraic object $\sum_k a_k x^k$ over a ring $R$, providing the carrier for symbolic manipulation.
+\texttt{Polynomial<R>} (alias for \texttt{RigPolynomial<R>}) encodes the free algebraic object
+$\sum_{k=0}^{n} a_k x^k$ over a semiring $R$, providing the carrier for symbolic manipulation.
+Coefficients are stored constant-first, i.e.~$[a_0, a_1, \dotsc, a_n]$, and trailing zeroes are
+removed on construction (canonicalization).
+
+The set of operations is graded by the algebraic strength of $R$:
+
+\begin{itemize}
+  \item \textbf{Addition and multiplication} are always available (semiring $R$ suffices):
+        addition is coefficient-wise; multiplication uses the Cauchy product.
+  \item \textbf{Subtraction} (\texttt{operator-}) is available when $R$ is invertible under
+        addition (ring coefficients, e.g.~\texttt{int}, \texttt{double}).  The constraint is
+        expressed directly in the function signature via \texttt{requires
+        is\_invertible\_v<R, std::plus<R>>}.
+  \item \textbf{Formal differentiation} (\texttt{derive()}) is available over any semiring
+        because the coefficient $i \cdot a_i$ is computed by $i$-fold addition:
+        $\frac{d}{dx}\textstyle\sum a_i x^i = \sum_{i \geq 1} i\,a_i\,x^{i-1}$.
+\end{itemize}
+
+\begin{lstlisting}[language=C++, caption={Polynomial arithmetic and differentiation (from \texttt{polynomials\_test.cpp}).}, label={lst:polynomial}]
+using Z = int;
+Polynomial<Z> p({-2, 0, 1});   // -2 + 0*x + 1*x^2
+
+// Subtraction requires an invertible (ring) coefficient type.
+REQUIRE((p - p).is_zero());
+
+// Formal derivative: d/dx(-2 + x^2) = 2x
+Polynomial<Z> dp = p.derive();
+REQUIRE(dp.degree() == 1);
+
+// Derivative of a constant is zero.
+REQUIRE(Polynomial<Z>::one().derive().is_zero());
+\end{lstlisting}
 
 \section{Results}
 
