@@ -43,6 +43,8 @@ class IEEE {
     return IEEE{a.value_ - b.value_};
   }
 
+  friend constexpr IEEE operator-(const IEEE& a) { return IEEE{-a.value_}; }
+
   friend constexpr IEEE operator/(const IEEE& a, const IEEE& b) {
     return IEEE{a.value_ / b.value_};
   }

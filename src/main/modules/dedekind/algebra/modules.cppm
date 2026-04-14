@@ -23,11 +23,14 @@ module;
 
 #include <compare>     // for std::strong_ordering
 #include <concepts>    // for std::integral, std::floating_point
+#include <cstddef>     // for std::size_t
 #include <functional>  // for std::plus, std::multiplies
+#include <limits>      // for std::numeric_limits
 
 export module dedekind.algebra:modules;
 
 import dedekind.category;
+import dedekind.ieee;
 import :field;
 import :group;
 import :polynomial;
@@ -91,6 +94,189 @@ concept IsVectorSpace =
     IsModule<V, F, AddV, AddF, MultF, Act> && IsField<F, AddF, MultF>;
 
 /**
+ * @struct OneDimensionalVector
+ * @brief Reified carrier for a 1D module/vector-space coordinate.
+ * @details This is the concrete baseline for issue #125. The coordinate lives
+ *          in the scalar species S, with pointwise addition and scalar action.
+ */
+export template <typename S, typename Tag = void>
+  requires std::equality_comparable<S> && std::default_initializable<S>
+struct OneDimensionalVector {
+  using scalar_type = S;
+
+  S x{};
+
+  constexpr OneDimensionalVector() = default;
+  constexpr explicit OneDimensionalVector(S value) : x(value) {}
+  template <typename U>
+    requires std::constructible_from<S, U>
+  constexpr explicit OneDimensionalVector(U value) : x(S(value)) {}
+
+  constexpr S coordinate() const noexcept { return x; }
+
+  friend constexpr bool operator==(const OneDimensionalVector&,
+                                   const OneDimensionalVector&) = default;
+
+  friend constexpr OneDimensionalVector operator+(
+      const OneDimensionalVector& a, const OneDimensionalVector& b) {
+    return OneDimensionalVector(a.x + b.x);
+  }
+
+  friend constexpr OneDimensionalVector operator-(const OneDimensionalVector& a,
+                                                  const OneDimensionalVector& b)
+    requires requires(S s) {
+      { s - s } -> std::same_as<S>;
+    }
+  {
+    return OneDimensionalVector(a.x - b.x);
+  }
+
+  friend constexpr OneDimensionalVector operator*(
+      const S& s, const OneDimensionalVector& v) {
+    return OneDimensionalVector(s * v.x);
+  }
+
+  friend constexpr OneDimensionalVector operator*(const OneDimensionalVector& v,
+                                                  const S& s) {
+    return OneDimensionalVector(v.x * s);
+  }
+
+  template <typename Op>
+  static constexpr auto identity_v = []() {
+    if constexpr (std::same_as<Op, std::plus<OneDimensionalVector>> ||
+                  std::same_as<Op, std::plus<void>>) {
+      return OneDimensionalVector{};
+    }
+  }();
+
+  template <typename Op>
+  static constexpr bool is_associative_v =
+      std::same_as<Op, std::plus<OneDimensionalVector>> ||
+      std::same_as<Op, std::plus<void>>;
+
+  template <typename Op>
+  static constexpr bool is_commutative_v =
+      std::same_as<Op, std::plus<OneDimensionalVector>> ||
+      std::same_as<Op, std::plus<void>>;
+};
+
+/** @brief Alias: reals seen as a canonical 1D vector carrier. */
+export using RealLine = OneDimensionalVector<dedekind::ieee::IEEE<double>>;
+export using UnsignedLine = OneDimensionalVector<unsigned int>;
+export using BoolLine = OneDimensionalVector<bool>;
+
+/**
+ * @concept IsSemimoduleLike
+ * @brief Operational semimodule witness for concrete machine-level carriers.
+ * @details This concept is intentionally lightweight and checks closure and
+ *          compatibility signatures for additive/multiplicative/action laws.
+ */
+export template <typename M, typename S, typename AddM, typename AddS,
+                 typename MultS, typename Act>
+concept IsSemimoduleLike = requires(M m1, M m2, S s1, S s2) {
+  { AddM{}(m1, m2) } -> std::same_as<M>;
+  { AddS{}(s1, s2) } -> std::same_as<S>;
+  { MultS{}(s1, s2) } -> std::same_as<S>;
+  { Act{}(s1, m1) } -> std::same_as<M>;
+  { Act{}(MultS{}(s1, s2), m1) } -> std::same_as<M>;
+  { Act{}(AddS{}(s1, s2), m1) } -> std::same_as<M>;
+  { Act{}(s1, AddM{}(m1, m2)) } -> std::same_as<M>;
+};
+
+/** @brief Additive join on 1D Boolean vectors (OR). */
+export struct BoolLineJoin {
+  constexpr BoolLine operator()(BoolLine a, BoolLine b) const noexcept {
+    return BoolLine(static_cast<bool>(a.coordinate() || b.coordinate()));
+  }
+};
+
+/** @brief Scalar action on 1D Boolean vectors via meet (AND). */
+export struct BoolLineMeetAction {
+  constexpr BoolLine operator()(bool s, BoolLine v) const noexcept {
+    return BoolLine(static_cast<bool>(s && v.coordinate()));
+  }
+};
+
+/**
+ * @brief Strength-reduced scaling for unsigned 1D vectors.
+ * @details Multiplication by powers of two is lowered to left-shift when safe.
+ */
+export template <std::unsigned_integral S, typename Tag>
+constexpr OneDimensionalVector<S, Tag> scale_strength_reduced(
+    const OneDimensionalVector<S, Tag>& v, S factor) {
+  if (factor == S{0}) return OneDimensionalVector<S, Tag>(S{0});
+
+  // Power-of-two factors can be reduced to a shift.
+  if ((factor & (factor - S{1})) == S{0}) {
+    std::size_t shift = 0;
+    S tmp = factor;
+    while (tmp > S{1}) {
+      ++shift;
+      tmp >>= 1;
+    }
+
+    if (shift >= static_cast<std::size_t>(std::numeric_limits<S>::digits)) {
+      return OneDimensionalVector<S, Tag>(S{0});
+    }
+    return OneDimensionalVector<S, Tag>(
+        static_cast<S>(v.coordinate() << shift));
+  }
+
+  return OneDimensionalVector<S, Tag>(static_cast<S>(v.coordinate() * factor));
+}
+
+/**
+ * @concept IsVectorSpaceLike
+ * @brief Pragmatic vector-space check used by first reified vector carriers.
+ * @details Uses field-like scalar operations directly and does not depend on
+ *          the stronger IsField witness machinery.
+ */
+export template <typename V, typename F, typename Act = std::multiplies<>>
+concept IsVectorSpaceLike = requires(F a, F b, V v) {
+  { v + v } -> std::same_as<V>;
+  { v - v } -> std::same_as<V>;
+  { V{} } -> std::same_as<V>;
+  { a + b } -> std::same_as<F>;
+  { a - b } -> std::same_as<F>;
+  { a * b } -> std::same_as<F>;
+  { a / b } -> std::same_as<F>;
+  { Act{}(a, v) } -> std::same_as<V>;
+};
+
+/**
+ * @concept SatisfiesVectorSpaceAxioms
+ * @brief Operational witness of the core vector-space axiom signatures.
+ * @details Verifies closure and the canonical linearity/composition shapes.
+ */
+export template <typename V, typename F, typename AddV = std::plus<V>,
+                 typename AddF = std::plus<F>,
+                 typename MultF = std::multiplies<F>,
+                 typename Act = std::multiplies<>>
+concept SatisfiesVectorSpaceAxioms =
+    IsVectorSpaceLike<V, F, Act> && requires(F a, F b, V x, V y) {
+      { AddV{}(x, y) } -> std::same_as<V>;
+      { Act{}(a, AddV{}(x, y)) } -> std::same_as<V>;
+      { AddV{}(Act{}(a, x), Act{}(a, y)) } -> std::same_as<V>;
+
+      { AddF{}(a, b) } -> std::same_as<F>;
+      { Act{}(AddF{}(a, b), x) } -> std::same_as<V>;
+      { AddV{}(Act{}(a, x), Act{}(b, x)) } -> std::same_as<V>;
+
+      { MultF{}(a, b) } -> std::same_as<F>;
+      { Act{}(MultF{}(a, b), x) } -> std::same_as<V>;
+      { Act{}(a, Act{}(b, x)) } -> std::same_as<V>;
+
+      // Unit axiom is checked when a multiplicative identity witness exists.
+      requires(
+          !requires { dedekind::category::identity_v<F, MultF>; } ||
+          requires {
+            {
+              Act{}(dedekind::category::identity_v<F, MultF>, x)
+            } -> std::same_as<V>;
+          });
+    };
+
+/**
  * @struct PolynomialOperator
  * @brief The "Enhanced" Polynomial: A Formal Sum reified as a Morphic Action.
  *
@@ -118,4 +304,34 @@ struct PolynomialOperator {
   }
 };
 
+using RealLineScalar = decltype(RealLine{}.coordinate());
+static_assert(IsVectorSpaceLike<RealLine, RealLineScalar>,
+              "RealLine should satisfy the baseline 1D vector-space witness.");
+static_assert(SatisfiesVectorSpaceAxioms<RealLine, RealLineScalar>,
+              "RealLine should satisfy vector-space axiom signatures.");
+static_assert(
+    IsSemimoduleLike<BoolLine, bool, BoolLineJoin, std::logical_or<bool>,
+                     std::logical_and<bool>, BoolLineMeetAction>,
+    "BoolLine should satisfy the 1D boolean semimodule-like witness.");
+
 }  // namespace dedekind::algebra
+
+namespace dedekind::category {
+
+template <typename S, typename Tag>
+struct SpeciesTraits<dedekind::algebra::OneDimensionalVector<S, Tag>> {
+  using Domain = dedekind::algebra::OneDimensionalVector<S, Tag>;
+  using machine_type = S;
+};
+
+template <typename S, typename Tag>
+  requires requires(S s) {
+    { -s } -> std::same_as<S>;
+  }
+inline constexpr dedekind::algebra::OneDimensionalVector<S, Tag> inverse(
+    dedekind::algebra::OneDimensionalVector<S, Tag> v,
+    std::plus<dedekind::algebra::OneDimensionalVector<S, Tag>>) {
+  return dedekind::algebra::OneDimensionalVector<S, Tag>(-v.x);
+}
+
+}  // namespace dedekind::category
