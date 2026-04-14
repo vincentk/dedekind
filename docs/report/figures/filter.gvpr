@@ -1,0 +1,14 @@
+N [index(label, ".cppm") < 0 || index(label, ".o") >= 0] {
+  edge_t e, ie;
+  for (e = fstout($); e; e = nxtout(e)) {
+    for (ie = fstin($); ie; ie = nxtin(ie)) {
+      edge(ie.tail, e.head, "");
+    }
+  }
+  delete($G, $);
+}
+
+END_G {
+  write($G);
+}
+

@@ -16,10 +16,12 @@
 import dedekind.category;
 import dedekind.numbers;
 import dedekind.sets;
+import dedekind.ieee;
 
 using namespace dedekind::category;
 using namespace dedekind::numbers;
 using namespace dedekind::sets;
+using namespace dedekind::ieee;
 
 // ---------------------------------------------------------------------------
 // Compile-time monicity declarations are honoured
@@ -345,5 +347,109 @@ static_assert(is_kleene_commutative_v<Complex<machine_real_scalar>,
 
 static_assert(!is_kleene_associative_v<Complex<machine_real_scalar>,
                                        PartialMulComplex<machine_real_scalar>>);
+
+// ---------------------------------------------------------------------------
+// IEEE fast-lane: Set membership over IEEE<double> domain
+// ---------------------------------------------------------------------------
+
+TEST_CASE("Tower+IEEE: sets over IEEE<double> domain",
+          "[numbers][tower][ieee][sets]") {
+  using F = double;
+  const auto positive =
+      ambient_set<IEEE<F>>([](const IEEE<F>& v) { return v.resolve() > 0.0; });
+  const auto bounded = ambient_set<IEEE<F>>(
+      [](const IEEE<F>& v) { return v.resolve() <= 10.0; });
+  const auto support = set_intersection(positive, bounded);
+
+  // Positive and bounded
+  CHECK(support.χ(IEEE<F>{5.0}) == true);
+  // Positive but not bounded
+  CHECK(support.χ(IEEE<F>{15.0}) == false);
+  // Negative
+  CHECK(support.χ(IEEE<F>{-1.0}) == false);
+}
+
+TEST_CASE("Tower+IEEE: IEEE<double> union and complement",
+          "[numbers][tower][ieee][sets]") {
+  using F = double;
+  const auto neg =
+      ambient_set<IEEE<F>>([](const IEEE<F>& v) { return v.resolve() < 0.0; });
+  const auto pos =
+      ambient_set<IEEE<F>>([](const IEEE<F>& v) { return v.resolve() > 0.0; });
+  const auto nonzero = set_union(neg, pos);
+  const auto zero_set = set_complement(nonzero);
+
+  CHECK(nonzero.χ(IEEE<F>{3.0}) == true);
+  CHECK(nonzero.χ(IEEE<F>{-2.0}) == true);
+  CHECK(nonzero.χ(IEEE<F>{0.0}) == false);
+
+  // Complement of nonzero should contain only zero
+  CHECK(zero_set.χ(IEEE<F>{0.0}) == true);
+  CHECK(zero_set.χ(IEEE<F>{1.0}) == false);
+}
+
+// ---------------------------------------------------------------------------
+// ℂ ↪ Dual: Complex values embedded into Dual numbers (real part, zero ε)
+// ---------------------------------------------------------------------------
+
+TEST_CASE("Tower: ℂ -> Dual (forward-mode AD seed)", "[numbers][tower][dual]") {
+  // A complex number c = (a + 0i) can be seeded into Dual as (a + 0ε).
+  const auto c = Complex<machine_real_scalar>{3.0, 0.0};
+  const Dual<machine_real_scalar> d{c.real(), machine_real_scalar{}};
+
+  CHECK(d.value() == 3.0);
+  CHECK(d.derivative() == 0.0);
+
+  // Dual arithmetic: (3 + 0ε) * (2 + 1ε) = 6 + 3ε
+  const Dual<machine_real_scalar> seed{2.0, 1.0};
+  const auto product = d * seed;
+  CHECK(product.value() == 6.0);
+  CHECK(product.derivative() == 3.0);
+}
+
+TEST_CASE("Tower: Set membership over Dual<double> domain",
+          "[numbers][tower][dual][sets]") {
+  using F = machine_real_scalar;
+  // Sets over Dual: membership based on the primal value component.
+  const auto positive_pred = [](const Dual<F>& d) { return d.value() > 0.0; };
+  const Set<Dual<F>, ClassicalLogic, decltype(positive_pred)> positive_primal{
+      positive_pred};
+
+  CHECK(positive_primal(Dual<F>{1.0, 0.5}) == true);
+  CHECK(positive_primal(Dual<F>{-1.0, 0.5}) == false);
+
+  // Derivative component does not affect set membership.
+  CHECK(positive_primal(Dual<F>{0.5, -99.0}) == true);
+}
 static_assert(is_kleene_commutative_v<Complex<machine_real_scalar>,
                                       PartialMulComplex<machine_real_scalar>>);
+
+// ---------------------------------------------------------------------------
+// Inter-species set membership via embedding arrows: 𝔹 ↪ ℕ ↪ ℤ ↪ ℚ
+// Demonstrates that `in_via` composes cleanly across the numeric tower.
+// ---------------------------------------------------------------------------
+
+TEST_CASE("Tower: inter-species set membership via embeddings",
+          "[numbers][tower][embedding][sets]") {
+  const auto naturals =
+      ambient_set<unsigned>([](const unsigned&) { return true; });
+
+  // Every boolean embeds into ℕ and stays in the universal set.
+  CHECK(in_via(true, embed_𝔹_ℕ, naturals) == true);
+  CHECK(in_via(false, embed_𝔹_ℕ, naturals) == true);
+
+  // Compose 𝔹 ↪ ℕ ↪ ℤ ↪ ℚ and test against a ℚ+ predicate.
+  // Rational<> is not an ETCS species, so use Set<> directly.
+  const auto positive_pred = [](const Rational<machine_integer>& q) {
+    return q.num() > 0;
+  };
+  const Set<Rational<machine_integer>, ClassicalLogic, decltype(positive_pred)>
+      positive_rationals{positive_pred};
+
+  const auto embed_𝔹_ℚ = [](bool b) {
+    return embed_ℤ_ℚ<>(embed_ℕ_ℤ(embed_𝔹_ℕ(b)));
+  };
+
+  CHECK(positive_rationals(embed_𝔹_ℚ(true)) == true);    // 1/1 ∈ ℚ+
+  CHECK(positive_rationals(embed_𝔹_ℚ(false)) == false);  // 0/1 ∉ ℚ+
+}

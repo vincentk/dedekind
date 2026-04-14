@@ -50,3 +50,98 @@ TEST_CASE("Dedekind Identities: Extremal Collapse", "[sets][identities]") {
     REQUIRE(S(7) == Ternary::True);
   }
 }
+
+TEST_CASE("Dedekind Sets: Cartesian product and relation witnesses",
+          "[sets][relations][cartesian]") {
+  auto x = var<Ω<int>>;
+
+  const auto positive = Set{x % Ω<int>{} | (x > 0)};
+  const auto small = Set{x % Ω<int>{} | (x <= 3)};
+
+  const auto product = cartesian_product(positive, small);
+
+  CHECK(product(std::pair<int, int>{1, 2}) == Ternary::True);
+  CHECK(product(std::pair<int, int>{-1, 2}) == Ternary::False);
+  CHECK(product(std::pair<int, int>{1, 7}) == Ternary::False);
+
+  const auto graph_pred = [](const std::pair<int, int>& p) {
+    return p.second == 2 * p.first;
+  };
+  const Relation<int, int, ClassicalLogic, decltype(graph_pred)> R{graph_pred};
+
+  STATIC_CHECK(IsRelation<decltype(R), int, int>);
+  CHECK(relates(R, 3, 6) == true);
+  CHECK(relates(R, 3, 7) == false);
+
+  const SetFunction<int, int, ClassicalLogic, decltype(graph_pred)> F{
+      graph_pred};
+  CHECK(is_single_valued_at(F, 3, 6, 6) == true);
+  CHECK(is_single_valued_at(F, 3, 6, 7) == true);
+}
+
+TEST_CASE("Dedekind Sets: Power-set witness over homogeneous predicates",
+          "[sets][powerset]") {
+  auto x = var<Ω<int>>;
+
+  const auto positive = Set{x % Ω<int>{} | (x > 0)};
+
+  const auto p_positive = power_set(positive);
+
+  STATIC_CHECK(std::same_as<typename decltype(p_positive)::Domain,
+                            std::remove_cvref_t<decltype(positive)>>);
+  CHECK(p_positive(positive) == Ternary::True);
+}
+
+TEST_CASE("Dedekind Sets: Power-set preserves ambient logic",
+          "[sets][powerset][logic]") {
+  auto x = var<ℕ>;
+
+  const auto gt_zero = Set{x % N | (x > 0)};
+  const auto p_gt_zero = power_set(gt_zero);
+
+  STATIC_CHECK(
+      std::same_as<typename decltype(p_gt_zero)::logic_species, TernaryLogic>);
+  CHECK(p_gt_zero(gt_zero) == Ternary::True);
+}
+
+TEST_CASE("Dedekind Sets: Relation witnesses preserve ternary logic",
+          "[sets][relations][logic]") {
+  const auto tri_rel_pred = [](const std::pair<int, int>& p) {
+    if (p.first == 3 && p.second == 6) return Ternary::Unknown;
+    if (p.first == 3 && p.second == 7) return Ternary::True;
+    return Ternary::False;
+  };
+
+  const Relation<int, int, TernaryLogic, decltype(tri_rel_pred)> R{
+      tri_rel_pred};
+
+  CHECK(relates(R, 3, 6) == Ternary::Unknown);
+  CHECK(relates(R, 3, 7) == Ternary::True);
+
+  const SetFunction<int, int, TernaryLogic, decltype(tri_rel_pred)> F{
+      tri_rel_pred};
+  CHECK(is_single_valued_at(F, 3, 6, 7) == Ternary::Unknown);
+}
+
+TEST_CASE("Dedekind Sets: Heterogeneous subset semantics",
+          "[sets][subset][logic]") {
+  SECTION("Ternary logic yields Unknown for heterogeneous predicates") {
+    auto x = var<ℕ>;
+    const auto gt_zero = Set{x % N | (x > 0)};
+    const auto ge_zero = Set{x % N | (x >= 0)};
+
+    REQUIRE((gt_zero <= ge_zero) == Ternary::Unknown);
+  }
+
+  SECTION("Classical logic has no heterogeneous subset operator") {
+    const auto positive_pred = [](const int& v) { return v > 0; };
+    const auto small_pred = [](const int& v) { return v <= 3; };
+
+    const Set<int, ClassicalLogic, decltype(positive_pred)> positive{
+        positive_pred};
+    const Set<int, ClassicalLogic, decltype(small_pred)> small{small_pred};
+
+    CHECK(positive.is_subset_of_at(small, 5) == false);
+    CHECK(positive.is_subset_of_at(small, -1) == true);
+  }
+}
