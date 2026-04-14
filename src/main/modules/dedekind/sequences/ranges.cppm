@@ -37,6 +37,7 @@ module;
 
 #include <concepts>
 #include <cstddef>
+#include <cstdint>
 
 export module dedekind.sequences:ranges;
 
@@ -138,9 +139,14 @@ class IntegerInterval
    * @details Computes the number of integers in the interval exactly.
    */
   constexpr std::size_t size() const noexcept {
-    const T elo = (Lower == Boundary::Closed) ? lo_ : T(lo_ + T(1));
-    const T ehi = (Upper == Boundary::Open) ? T(hi_ - T(1)) : hi_;
-    return (ehi >= elo) ? static_cast<std::size_t>(ehi - elo + T(1)) : 0u;
+    // Use int64_t to avoid signed overflow / unsigned wrap when adjusting
+    // the bounds by ±1 for open boundaries.
+    using W = std::int64_t;
+    const W wlo = static_cast<W>(lo_);
+    const W whi = static_cast<W>(hi_);
+    const W elo = (Lower == Boundary::Closed) ? wlo : wlo + W(1);
+    const W ehi = (Upper == Boundary::Open) ? whi - W(1) : whi;
+    return (ehi >= elo) ? static_cast<std::size_t>(ehi - elo + W(1)) : 0u;
   }
 
   /**
@@ -154,9 +160,13 @@ class IntegerInterval
    * @return A Path<T> whose first size() elements enumerate the interval.
    */
   constexpr auto as_sequence() const {
-    const T start = (Lower == Boundary::Closed) ? lo_ : T(lo_ + T(1));
+    // Use int64_t for the same reason as size(): avoid signed overflow /
+    // unsigned wrap when the lower boundary is open.
+    using W = std::int64_t;
+    const W start = (Lower == Boundary::Closed) ? static_cast<W>(lo_)
+                                                : static_cast<W>(lo_) + W(1);
     return Path<T>{[start](std::size_t i) {
-      return static_cast<T>(start + static_cast<T>(i));
+      return static_cast<T>(start + static_cast<W>(i));
     }};
   }
 

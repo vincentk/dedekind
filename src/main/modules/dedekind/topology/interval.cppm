@@ -21,6 +21,7 @@
  * @dependency :topology, :order, :mereology
  */
 module;
+#include <cassert>
 #include <concepts>
 #include <functional>
 export module dedekind.topology:interval;
@@ -218,7 +219,7 @@ class HalfSpace : public detail::BoundaryTag<B> {
   constexpr Direction direction() const { return dir_; }
 
   /** @brief Characteristic morphism χ: T → Ω. */
-  constexpr Codomain operator()(const T& x) const noexcept {
+  constexpr Codomain operator()(const T& x) const {
     if (dir_ == Direction::Upward)
       return (B == Boundary::Open ? x > pivot_ : x >= pivot_) ? L::True
                                                               : L::False;
