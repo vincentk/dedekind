@@ -24,17 +24,13 @@ ComplexPoint parameter_of(const Pixel& p, int size) {
       (2.0 * static_cast<double>(p.y) / static_cast<double>(size)) - 1.0};
 }
 
-ComplexPoint orbit_step(const ComplexPoint& z, const ComplexPoint& c) {
-  return z * z + c;
-}
-
 bool orbit_bounded_prefix(const ComplexPoint& c, int max_iter) {
   ComplexPoint z{0.0, 0.0};
 
   for (int n = 0; n < max_iter; ++n) {
     if (std::norm(z) > 4.0) return false;
     // Recurrence: z_{n+1} = z_n^2 + c
-    z = orbit_step(z, c);
+    z = z * z + c;
   }
 
   return true;
