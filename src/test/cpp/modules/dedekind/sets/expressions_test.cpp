@@ -91,3 +91,26 @@ TEST_CASE("Dedekind Sets: Power-set witness over homogeneous predicates",
                             std::remove_cvref_t<decltype(positive)>>);
   CHECK(p_positive(positive) == true);
 }
+
+TEST_CASE("Dedekind Sets: Heterogeneous subset semantics",
+          "[sets][subset][logic]") {
+  SECTION("Ternary logic yields Unknown for heterogeneous predicates") {
+    auto x = var<ℕ>;
+    const auto gt_zero = Set{x % N | (x > 0)};
+    const auto ge_zero = Set{x % N | (x >= 0)};
+
+    REQUIRE((gt_zero <= ge_zero) == Ternary::Unknown);
+  }
+
+  SECTION("Classical logic has no heterogeneous subset operator") {
+    const auto positive_pred = [](const int& v) { return v > 0; };
+    const auto small_pred = [](const int& v) { return v <= 3; };
+
+    const Set<int, ClassicalLogic, decltype(positive_pred)> positive{
+        positive_pred};
+    const Set<int, ClassicalLogic, decltype(small_pred)> small{small_pred};
+
+    CHECK(positive.is_subset_of_at(small, 5) == false);
+    CHECK(positive.is_subset_of_at(small, -1) == true);
+  }
+}

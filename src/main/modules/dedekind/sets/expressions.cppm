@@ -146,17 +146,14 @@ class Set {
    * @brief Subset test: this ⊆ other for heterogeneous predicate types.
    *
    * For intensional sets over potentially infinite domains, the general subset
-   * question is undecidable without witnesses. If the ambient logic supports a
-   * third truth value, return Unknown; otherwise return True conservatively.
+   * question is undecidable without witnesses. This overload is only available
+   * when the ambient logic supports Unknown.
    */
   template <typename OtherPredicate>
-    requires(!std::same_as<Predicate, OtherPredicate>)
+    requires(!std::same_as<Predicate, OtherPredicate>) &&
+            requires { L::Unknown; }
   constexpr typename L::Ω operator<=(const Set<T, L, OtherPredicate>&) const {
-    if constexpr (requires { L::Unknown; }) {
-      return L::Unknown;
-    } else {
-      return L::True;
-    }
+    return L::Unknown;
   }
 
   /**
