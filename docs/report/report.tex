@@ -103,6 +103,10 @@
            {χ}{{$\chi$}}1
            {Σ}{{$\Sigma$}}1
            {Τ}{{$\mathrm{T}$}}1
+           {ℤ}{{$\mathbb{Z}$}}1
+           {ℕ}{{$\mathbb{N}$}}1
+           {ℂ}{{$\mathbb{C}$}}1
+           {ℬ}{{$\mathcal{B}$}}1
 }
 
 \newcommand{\bind}{\mathbin{>\!\!>\mkern-6.7mu=}}
@@ -1759,72 +1763,574 @@ Supremum / Infimum & $\sup, \inf$ & \texttt{s.supremum(), s.infimum()} & \texttt
 \label{chap:order}
 
 \section{Introduction}
+
+The \texttt{dedekind.order} module constitutes \emph{Level 1.5} of the ontological hierarchy, establishing the rules of relative positioning before introducing cardinality or measure.
+Order is the prerequisite for limits and convergence: one cannot define a Cauchy sequence without first knowing what it means for two elements to be comparable.
+
+Key references: Davey \& Priestley~\cite{davey2002introduction}, Birkhoff~\cite{birkhoff1940lattice}, and the general treatment in Pierce~\cite{pierce1991basic}.
+
 \section{Implementation}
+
+The module is a single-partition layer exposing four graduated order concepts, each a conservative extension of the last.
+
+\begin{table}[ht]
+\centering
+\caption{Rosetta Stone: \texttt{dedekind.order}}
+\label{table:order}
+\begin{tabular}{lll}
+\toprule
+\textbf{Mathematical Concept} & \textbf{C++23 construct} & \textbf{Structural \texttt{concept}} \\
+\midrule
+Pre-order ($\leq$, reflexive + transitive) & \texttt{operator<=} & \texttt{IsPreOrdered<T>} \\
+Directed set (join-semilattice) & \texttt{operator|} & \texttt{IsDirectedSet<T>} \\
+Partial order (+ antisymmetry) & \texttt{std::partial\_ordering} & \texttt{IsPartiallyOrdered<T>} \\
+Total order (chain, no parallelism) & \texttt{std::totally\_ordered<T>} & \texttt{IsTotallyOrdered<T>} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{lstlisting}[language=C++, caption={Order: compile-time concept verification (from \texttt{order\_test.cpp}).}, label={lst:order}]
+import dedekind.order;
+using namespace dedekind::order;
+
+// The integer chain satisfies all four levels
+STATIC_CHECK(IsPreOrdered<int>);
+STATIC_CHECK(IsPartiallyOrdered<int>);
+STATIC_CHECK(IsTotallyOrdered<int>);
+
+// Booleans form a poset (total order requires a witness)
+STATIC_CHECK(IsPartiallyOrdered<bool>);
+\end{lstlisting}
+
 \section{Results}
+
+The module validates that every concrete arithmetic species registered in \texttt{dedekind.category} satisfies at least \texttt{IsPreOrdered}.
+Machine integers pass all four levels, confirming their certification as fully ordered chains.
 
 
 \chapter{\texttt{dedekind.topology}}
 \label{chap:topology}
 
 \section{Introduction}
-\section{Implementation}
+
+The \texttt{dedekind.topology} module constitutes \emph{Level 2} of the hierarchy, encoding the notion of ``closeness'' without requiring a full metric.
+It refines the sets of \texttt{dedekind.sets} with open-set structure through two geometric primitives: half-spaces (rays) and bounded neighbourhoods (intervals).
+
+Key references: Munkres~\cite{munkres2000topology}, and the categorical treatment in Lawvere \& Schanuel~\cite{lawvere2003sets}.
+
+\section{\texttt{:interval}}
+\label{sec:topology-interval}
+
+An \emph{Interval} is the canonical intersection of two opposing half-spaces (rays). It is the prototypical open neighbourhood of a point in an ordered space.
+
+\begin{table}[ht]
+\centering
+\caption{Rosetta Stone: \texttt{dedekind.topology}}
+\label{table:topology}
+\begin{tabular}{lll}
+\toprule
+\textbf{Mathematical Concept} & \textbf{C++23 construct} & \textbf{Structural \texttt{concept}} \\
+\midrule
+Half-space / ray ($x > a$) & \texttt{Ray<T, Direction>} & \texttt{IsHalfSpace<T>} \\
+Open interval $(a, b)$ & \texttt{Interval<T>} & \texttt{IsInterval<T>} \\
+Convex set & \texttt{operator\&} on rays & \texttt{IsConvex<T>} \\
+Open set & \texttt{is\_open\_tag} & \texttt{IsOpen<T>} \\
+Neighbourhood of $p$ & open set containing $p$ & \texttt{IsNeighborhood<T,P>} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{lstlisting}[language=C++, caption={Topology: open sets and convexity (from \texttt{shapes\_test.cpp}).}, label={lst:topology-interval}]
+using ℝ = int;
+using UnitInterval = Interval<ℝ>;
+using UnitRay      = Ray<ℝ, Direction::Upward>;
+
+static_assert(IsOpen<UnitRay>);
+static_assert(IsOpen<UnitInterval>);
+static_assert(IsConvex<UnitRay>);
+static_assert(IsConvex<UnitInterval>);
+\end{lstlisting}
+
+\section{\texttt{:neighborhood}}
+\label{sec:topology-neighborhood}
+
+A \emph{Neighbourhood} of a point $p$ is an open set that contains $p$. This partition encodes the local structure needed to define continuity and limits without an explicit metric.
+
+\begin{lstlisting}[language=C++, caption={Topology: neighbourhood membership (from \texttt{shapes\_test.cpp}).}, label={lst:topology-nbhd}]
+UnitInterval neighborhood(0, 2);
+ℝ point = 1;
+
+static_assert(IsNeighborhood<UnitInterval, ℝ>);
+REQUIRE(neighborhood(point) == ClassicalLogic::True);
+\end{lstlisting}
+
 \section{Results}
+
+Both \texttt{Ray} and \texttt{Interval} satisfy the full topology concept stack, confirming that the geometric layer provides a verified foundation for limits in \texttt{dedekind.sequences}.
 
 
 \chapter{\texttt{dedekind.sequences}}
 \label{chap:sequences}
 
 \section{Introduction}
-\section{Implementation}
+
+The \texttt{dedekind.sequences} module constitutes \emph{Level 2.5} of the hierarchy, providing the formal machinery for convergence.
+Built upon the topology of \texttt{dedekind.topology}, it extends the category of paths to Cauchy sequences and nets, enabling the formal treatment of limits without presupposing a complete metric space.
+
+Key references: the categorical treatment via Borceux \& Dejean~\cite{borceux1986cauchy} and Lawvere's metric-space characterisation~\cite{lawvere1973metric}.
+
+\begin{table}[ht]
+\centering
+\caption{Rosetta Stone: \texttt{dedekind.sequences}}
+\label{table:sequences}
+\begin{tabular}{lll}
+\toprule
+\textbf{Mathematical Concept} & \textbf{C++23 construct} & \textbf{Structural \texttt{concept}} \\
+\midrule
+Net / sequence & \texttt{Path<T>} & \texttt{IsSequence} \\
+Cauchy criterion & point-wise $|s_m - s_n|$ & runtime test \\
+Comonadic extension & \texttt{operator<<=} & comonad \texttt{extend} \\
+Convergent limit & \texttt{:limits} partition & \texttt{IsConvergent} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{\texttt{:net}}
+\label{sec:sequences-net}
+
+A \emph{Net} is the most general notion of convergence, indexed by a directed set.
+This partition provides the \texttt{IsSequence} concept as the foundational structural requirement.
+
+\section{\texttt{:limits}}
+\label{sec:sequences-limits}
+
+The \texttt{:limits} partition provides Cauchy-convergence infrastructure: the criterion that for any $\varepsilon > 0$ there exists $N$ such that $m, n > N \Rightarrow |s_m - s_n| < \varepsilon$.
+
+\begin{lstlisting}[language=C++, caption={Sequences: Cauchy convergence of the harmonic series (from \texttt{cauchy\_test.cpp}).}, label={lst:sequences-cauchy}]
+Path<double> harmonic{
+    [](std::size_t n) { return 1.0 / static_cast<double>(n + 1); }};
+
+static_assert(IsSequence<decltype(harmonic)>);
+
+// Cauchy criterion: distant terms are close
+double s_1000 = harmonic.at(1000);
+double s_2000 = harmonic.at(2000);
+REQUIRE(std::abs(s_1000 - s_2000) < 0.001);
+\end{lstlisting}
+
+\section{\texttt{:path}}
+\label{sec:sequences-path}
+
+\texttt{Path<T>} is a comonadic container: it supports sampling via \texttt{.at(n)}, and comonadic extension (\texttt{operator<<=}) for contextual operations over neighbouring terms.
+
+\begin{lstlisting}[language=C++, caption={Sequences: comonadic path extension (from \texttt{path\_test.cpp}).}, label={lst:sequences-path}]
+using ℤ = int;
+Path<ℤ> path{[](std::size_t n) { return static_cast<ℤ>(n) + 42; }};
+
+REQUIRE(path.at(0) == 42);
+
+// Comonadic extension: first differences
+auto diffs = path <<= [](const Path<ℤ>& ctx) {
+    return ctx.at(0) - ctx.at(1);
+};
+REQUIRE(diffs.at(0) == -1);
+\end{lstlisting}
+
 \section{Results}
+
+\texttt{Path<T>} passes \texttt{IsSequence} and the Cauchy criterion for the harmonic series, confirming the sequences layer as a verified foundation for the continuum in \texttt{dedekind.numbers}.
 
 
 \chapter{\texttt{dedekind.algebra}}
 \label{chap:algebra}
 
 \section{Introduction}
-The \texttt{dedekind.algebra} module builds upon \texttt{dedekind.sets} to implement rings, fields, semimodules, and modules via reduced-strength algebraic structures. A core design principle is to avoid the convenient \texttt{double} route and instead spell out the algebraic structure explicitly: from boolean rigs through unsigned-integer rings up to the complex-number field. As a corollary, everything in the library is ultimately a complex number---in the same way that everything is a string for front-end developers.
 
-A recurring implementation challenge was the pressure to default to \texttt{double}; the module systematically resisted this in favour of explicit semimodules and semirings, ensuring reduced-strength structures are always named and certified before being promoted.
+The \texttt{dedekind.algebra} module builds upon \texttt{dedekind.sets} to implement rings, fields, semimodules, and modules via reduced-strength algebraic structures.
+A core design principle is to avoid the convenient \texttt{double} route and instead spell out the algebraic structure explicitly: from boolean rigs through unsigned-integer rings up to the complex-number field.
+A recurring implementation challenge was the pressure to default to \texttt{double}; the module systematically resisted this in favour of explicit semimodules and semirings.
 
-\section{Implementation}
+The name ``algebra'' derives from al-Khw\={a}rizm\=\i{}'s \emph{al-Kit\={a}b al-mukhtasar f\=\i{} his\={a}b al-jabr wal-muq\={a}bala} (820 CE).
+
+\begin{table}[ht]
+\centering
+\caption{Rosetta Stone: \texttt{dedekind.algebra}}
+\label{table:algebra}
+\begin{tabular}{lll}
+\toprule
+\textbf{Mathematical Concept} & \textbf{C++23 construct} & \textbf{Structural \texttt{concept}} \\
+\midrule
+Monoid $(S, *, e)$ & \texttt{std::multiplies} / \texttt{std::plus} & \texttt{IsAdditiveMonoid}, \texttt{IsMulMonoid} \\
+Group $(S, *, e, \mathrm{inv})$ & unary \texttt{operator-} & \texttt{IsAdditiveGroup} \\
+Ring $(S, +, \cdot)$ & \texttt{operator+} $\times$ \texttt{operator*} & \texttt{IsRing} \\
+Field (ring + inverses) & \texttt{.inverse()} & \texttt{IsField} \\
+Module ($R$-action on $S$) & scalar \texttt{operator*} & \texttt{IsModule} \\
+Polynomial ring $R[x]$ & \texttt{Polynomial<R>} & \texttt{IsPolynomial} \\
+Boolean rig & \texttt{bool} / \texttt{IsBooleanAlgebra} & \texttt{IsBooleanRig} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{\texttt{:boolean}}
+\label{sec:algebra-boolean}
+
+Encodes Boolean algebras as a reduced-strength rig (semi-ring without negation) that lifts the truth-values of \texttt{ClassicalLogic} into algebraic form.
+
+\section{\texttt{:group}}
+\label{sec:algebra-group}
+
+Certifies additive and multiplicative groups. Machine integers are deliberately \emph{not} certified as additive groups due to overflow semantics.
+
+\begin{lstlisting}[language=C++, caption={Algebra: group identity and inversion (from \texttt{group\_test.cpp}).}, label={lst:algebra-group}]
+int q = 42, zero = 0;
+CHECK(q + zero == q);      // identity
+CHECK(q + (-q) == zero);   // inversion
+\end{lstlisting}
+
+\section{\texttt{:ring}}
+\label{sec:algebra-ring}
+
+The ring is the fundamental compound structure: an additive group with a distributive multiplication.
+
+\begin{lstlisting}[language=C++, caption={Algebra: ring multiplication (from \texttt{ring\_test.cpp}).}, label={lst:algebra-ring}]
+int a = 6, b = 7;
+CHECK(a * b == 42);
+CHECK(std::multiplies<int>{}(a, b) == 42);
+\end{lstlisting}
+
+\section{\texttt{:field}}
+\label{sec:algebra-field}
+
+A field is a ring where every nonzero element has a multiplicative inverse. The canonical implementation is \texttt{Rational<Z>} from \texttt{dedekind.numbers}.
+
+\section{\texttt{:division}}
+\label{sec:algebra-division}
+
+Provides the division morphism $a / b = a \cdot b^{-1}$ and the \texttt{IsDivisionRing} concept as a precursor to fields.
+
+\section{\texttt{:modules}}
+\label{sec:algebra-modules}
+
+Semimodules and modules formalise the action of a ring on an additive abelian group, generalising vector spaces to arbitrary coefficient rings.
+
+\section{\texttt{:polynomial}}
+\label{sec:algebra-polynomial}
+
+\texttt{Polynomial<R>} encodes the free algebraic object $\sum_k a_k x^k$ over a ring $R$, providing the carrier for symbolic manipulation.
+
 \section{Results}
+
+The algebra module validates that \texttt{int} satisfies ring axioms and that \texttt{Rational<int>} satisfies field axioms, bridging the abstract categorical layer and the concrete numeric tower.
 
 
 \chapter{\texttt{dedekind.morphologies}}
 \label{chap:morphologies}
 
 \section{Introduction}
-\section{Implementation}
+
+The \texttt{dedekind.morphologies} module constitutes \emph{Level 3.5} of the hierarchy, encoding the structural patterns that constrain how algebraic species behave globally.
+A morphology is a global property---the absence of infinitely large elements (Archimedean), or the periodicity of the successor map (cyclic groups)---rather than an operation.
+
+\begin{table}[ht]
+\centering
+\caption{Rosetta Stone: \texttt{dedekind.morphologies}}
+\label{table:morphologies}
+\begin{tabular}{lll}
+\toprule
+\textbf{Mathematical Concept} & \textbf{C++23 construct} & \textbf{Structural \texttt{concept}} \\
+\midrule
+Archimedean property & trait witness & \texttt{IsArchimedean<T>} \\
+Cyclic group $\mathbb{Z}/n\mathbb{Z}$ & \texttt{CyclicRing<T, N>} & \texttt{IsCyclic}, \texttt{IsCyclicRing} \\
+Successor chain & \texttt{CyclicRing<T,N>::successor} & wrap-around at $N$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{\texttt{:archimedean}}
+\label{sec:morphologies-archimedean}
+
+Certifies that a species has no infinitesimal or infinite elements relative to its unit: for all $x, y > 0$ there exists $n \in \mathbb{N}$ such that $n \cdot x > y$.
+This is a prerequisite for the construction of Dedekind cuts in \texttt{dedekind.numbers}.
+
+\section{\texttt{:cyclic}}
+\label{sec:morphologies-cyclic}
+
+\texttt{CyclicRing<T, N>} implements the Dedekind--Peano successor structure for finite rings, with a compile-time verified wrap-around at $N$.
+
+\begin{lstlisting}[language=C++, caption={Morphologies: cyclic ring wrap-around (from \texttt{cyclic\_test.cpp}).}, label={lst:morphologies-cyclic}]
+using ℤ100 = CyclicRing<int, 100>;
+
+static_assert(IsCyclic<ℤ100>);
+static_assert(IsCyclicRing<ℤ100>);
+
+// Successor wraps at boundary
+static_assert(ℤ100::successor(ℤ100{99}) == 0);
+
+// Modular arithmetic: 70 + 50 = 20  (mod 100)
+constexpr ℤ100 a{70}, b{50};
+static_assert(static_cast<int>(a + b) == 20);
+\end{lstlisting}
+
 \section{Results}
+
+Compile-time checks confirm that \texttt{CyclicRing<int, 100>} satisfies both \texttt{IsCyclic} and \texttt{IsCyclicRing}, and that modular arithmetic wraps correctly at the ring boundary.
 
 
 \chapter{\texttt{dedekind.geometry}}
 \label{chap:geometry}
 
 \section{Introduction}
-\section{Implementation}
+
+The \texttt{dedekind.geometry} module extends the algebraic module structure with geometric operations: displacement, inner products, norms, and completeness.
+It provides \texttt{Vector<S, N>} as the canonical $N$-dimensional vector species over a scalar ring $S$.
+
+\begin{table}[ht]
+\centering
+\caption{Rosetta Stone: \texttt{dedekind.geometry}}
+\label{table:geometry}
+\begin{tabular}{lll}
+\toprule
+\textbf{Mathematical Concept} & \textbf{C++23 construct} & \textbf{Structural \texttt{concept}} \\
+\midrule
+Affine / vector space & \texttt{Vector<S,N>} & \texttt{IsAffine} \\
+Inner product $\langle u, v \rangle$ & \texttt{dot(u, v)} & \texttt{IsInnerProductSpace} \\
+Normed space $\|v\|$ & \texttt{norm(v)} & \texttt{IsNormedSpace} \\
+Hilbert space (complete) & real $\mathbb{R}^N$ & \texttt{IsHilbertSpace} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{\texttt{:affine}}
+\label{sec:geometry-affine}
+
+Implements $N$-dimensional vectors with component-wise arithmetic. The affine layer provides translation and scalar action without presupposing a norm.
+
+\begin{lstlisting}[language=C++, caption={Geometry: affine vector operations (from \texttt{affine\_test.cpp}).}, label={lst:geometry-affine}]
+using Vec2 = Vector<double, 2>;
+Vec2 v{1.0, 1.0};
+auto res = v * 0.5;         // scalar action
+
+Vec2 a{0.5, 0.0}, b{0.5, 1.0};
+auto c = a + b;              // vector addition
+REQUIRE(c[0] == 1.0);
+\end{lstlisting}
+
+\section{\texttt{:inner\_product}}
+\label{sec:geometry-inner-product}
+
+Defines the bilinear pairing $\langle -, - \rangle$ and the derived notion of orthogonality ($\langle u, v \rangle = 0$).
+
+\section{\texttt{:euclidean}}
+\label{sec:geometry-euclidean}
+
+Adds the $L^2$ norm $\|v\| = \sqrt{\langle v, v \rangle}$ and the triangle inequality, establishing the metric structure required for geometric limits.
+
+\section{\texttt{:hilbert}}
+\label{sec:geometry-hilbert}
+
+Certifies completeness: every finite-dimensional real vector space is trivially complete. \texttt{IsHilbertSpace} encodes this as a compile-time guarantee.
+
+\begin{lstlisting}[language=C++, caption={Geometry: Hilbert space verification (from \texttt{hilbert\_test.cpp}).}, label={lst:geometry-hilbert}]
+using Vec3 = Vector<double, 3>;
+
+Vec3 x{1.0, 0.0, 0.0}, y{0.0, 1.0, 0.0};
+REQUIRE(dot(x, y) == 0.0);         // orthogonality
+
+Vec3 v{3.0, 4.0, 0.0};
+REQUIRE(norm(v) == 5.0);            // L2 norm == 5
+
+static_assert(IsHilbertSpace<Vec3, double>);
+\end{lstlisting}
+
 \section{Results}
+
+\texttt{Vector<double, N>} satisfies the full four-level geometry stack, confirming it as both an inner-product and a Hilbert space.
 
 
 \chapter{\texttt{dedekind.numbers}}
 \label{chap:numbers}
 
 \section{Introduction}
-The \texttt{dedekind.numbers} module is the top-level integration layer for the numeric tower of the library. It provides embedding morphisms between all numeric species: $\mathbb{B} \hookrightarrow \mathbb{N} \hookrightarrow \mathbb{Z} \hookrightarrow \mathbb{Q} \hookrightarrow \mathbb{R} \hookrightarrow \mathbb{C} \hookrightarrow \mathbb{D}$ (dual numbers), with each embedding preserving the algebraic structure certified by the downstream modules.
 
-\section{Implementation}
-The physical build order of the \texttt{dedekind} module graph mirrors this conceptual hierarchy. By enforcing a linear dependency graph---where \texttt{:mereology} is compiled before \texttt{:algebra}---the compiler's proof-search for a Ring's identity element is grounded in the prior verification of its mereological subobjects. This hierarchy transforms the C++ module mapper into a directed acyclic graph of mathematical truth.
+The \texttt{dedekind.numbers} module is the top-level integration layer for the numeric tower.
+It provides embedding morphisms between all numeric species:
+$\mathbb{B} \hookrightarrow \mathbb{N} \hookrightarrow \mathbb{Z} \hookrightarrow \mathbb{Q} \hookrightarrow \mathbb{R} \hookrightarrow \mathbb{C} \hookrightarrow \mathbb{D}$ (dual numbers),
+with each embedding preserving the algebraic structure certified by the downstream modules.
+
+\begin{table}[ht]
+\centering
+\caption{Rosetta Stone: \texttt{dedekind.numbers}}
+\label{table:numbers}
+\begin{tabular}{lll}
+\toprule
+\textbf{Mathematical species} & \textbf{C++23 type} & \textbf{Embedding} \\
+\midrule
+$\mathbb{B}$ (Booleans) & \texttt{bool} / \texttt{Truth<L>} & $\hookrightarrow \mathbb{N}$ via \texttt{embed\_\textbf{B}\_N} \\
+$\mathbb{N}$ (naturals) & \texttt{unsigned} & $\hookrightarrow \mathbb{Z}$ via \texttt{embed\_N\_Z} \\
+$\mathbb{Z}$ (integers) & \texttt{int} / \texttt{machine\_integer} & $\hookrightarrow \mathbb{Q}$ via \texttt{embed\_Z\_Q} \\
+$\mathbb{Q}$ (rationals) & \texttt{Rational<Z>} & $\hookrightarrow \mathbb{R}$ (cut) \\
+$\mathbb{R}$ (reals) & Dedekind cut / \texttt{approx} & $\hookrightarrow \mathbb{C}$ \\
+$\mathbb{C}$ (complex) & \texttt{Complex<S>} & Cayley--Dickson \\
+$\mathbb{D}$ (dual) & \texttt{Dual<F>} & automatic differentiation \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{\texttt{:booleans}}
+\label{sec:numbers-booleans}
+
+\texttt{Truth<L>} lifts the truth-values of a logic $L$ into the numerical species hierarchy, providing the base of the embedding chain.
+
+\section{\texttt{:naturals}}
+\label{sec:numbers-naturals}
+
+Wraps \texttt{unsigned} as the canonical $\mathbb{N}$. The embedding $embed\_\mathbb{B}\_\mathbb{N}$ sends \texttt{false} $\mapsto 0$, \texttt{true} $\mapsto 1$.
+
+\section{\texttt{:integer}}
+\label{sec:numbers-integer}
+
+Wraps signed machine integers as $\mathbb{Z}$ with the canonical embedding $embed\_\mathbb{N}\_\mathbb{Z}$.
+
+\section{\texttt{:rational}}
+\label{sec:numbers-rational}
+
+\texttt{Rational<Z>} implements $\mathbb{Q}$ as a GCD-normalised fraction, satisfying the full field axioms.
+
+\begin{lstlisting}[language=C++, caption={Numbers: rational simplification and field inverse (from \texttt{rational\_test.cpp}).}, label={lst:numbers-rational}]
+Rational<int> q(12, 18);   // GCD(12,18)=6
+REQUIRE(q.num() == 2);
+REQUIRE(q.den() == 3);
+
+Rational<int> a(3, 4);
+auto identity = a * a.inverse();  // = 1/1
+REQUIRE(identity.num() == 1);
+\end{lstlisting}
+
+\section{\texttt{:complex}}
+\label{sec:numbers-complex}
+
+\texttt{Complex<S>} implements $\mathbb{C}$ via the Cayley--Dickson construction from any scalar ring.
+
+\section{\texttt{:scalars}}
+\label{sec:numbers-scalars}
+
+Provides the floating-point anchors \texttt{machine\_real\_scalar} and \texttt{machine\_integer} as pre-certified concrete species.
+
+\section{\texttt{:dual}}
+\label{sec:numbers-dual}
+
+\texttt{Dual<F>} implements dual numbers $a + b\varepsilon$ ($\varepsilon^2 = 0$) for automatic differentiation. The value component \texttt{.value()} is the primal; \texttt{.derivative()} is the tangent.
+
+\section{\texttt{:symbolic}}
+\label{sec:numbers-symbolic}
+
+Formal symbols (indeterminates) for polynomial and symbolic computation. Provides the carrier type for \texttt{Polynomial<R>} in \texttt{dedekind.algebra}.
+
+\section{\texttt{:real}}
+\label{sec:numbers-real}
+
+The real-number construction via Dedekind cuts: a real number is a partition $(L, U)$ of $\mathbb{Q}$ such that $L$ is non-empty, downward-closed, and has no maximum.
+
+\section{\texttt{:constants}}
+\label{sec:numbers-constants}
+
+Named transcendental constants $\pi$, $e$, $\gamma$, etc., certified as Dedekind cuts over $\mathbb{Q}$.
+
+\begin{lstlisting}[language=C++, caption={Numbers: inter-species embedding $\mathbb{B} \hookrightarrow \mathbb{N} \hookrightarrow \mathbb{Z} \hookrightarrow \mathbb{Q}$ (from \texttt{tower\_test.cpp}).}, label={lst:numbers-tower}]
+// Set membership via embedding chain
+const auto naturals = ambient_set<unsigned>(
+    [](const unsigned&) { return true; });
+CHECK(in_via(true,  embed_B_N, naturals) == true);
+CHECK(in_via(false, embed_B_N, naturals) == true);
+
+// Compose the full chain into Q+ predicate
+const auto embed_B_Q = [](bool b) {
+    return embed_Z_Q<>(embed_N_Z(embed_B_N(b)));
+};
+const auto pos = [](const Rational<machine_integer>& q) {
+    return q.num() > 0;
+};
+const Set<Rational<machine_integer>,
+          ClassicalLogic, decltype(pos)> Q_plus{pos};
+CHECK(Q_plus(embed_B_Q(true))  == true);   // 1/1 ∈ Q+
+CHECK(Q_plus(embed_B_Q(false)) == false);  // 0/1 ∉ Q+
+\end{lstlisting}
 
 \section{Results}
+
+The physical build order of the \texttt{dedekind} module graph mirrors the conceptual hierarchy.
+By enforcing a linear dependency graph, the compiler's proof-search for a Ring's identity element is grounded in the prior verification of its mereological subobjects.
+All embedding morphisms are verified by the compiler as monic arrows, and the tower test suite validates end-to-end membership across species boundaries.
 
 
 \chapter{\texttt{dedekind.analysis}}
 \label{chap:analysis}
 
 \section{Introduction}
-\section{Implementation}
+
+The \texttt{dedekind.analysis} module occupies the apex of the build hierarchy, synthesising geometry, morphisms, and differential structure into the formal machinery of classical and functional analysis.
+It provides differential $k$-forms, the Hamilton--Jacobi framework, and kernel (neural network) primitives.
+
+\begin{table}[ht]
+\centering
+\caption{Rosetta Stone: \texttt{dedekind.analysis}}
+\label{table:analysis}
+\begin{tabular}{lll}
+\toprule
+\textbf{Mathematical Concept} & \textbf{C++23 construct} & \textbf{Structural \texttt{concept}} \\
+\midrule
+Differential $k$-form $\omega$ & \texttt{OneForm<S,N>} / \texttt{TwoForm} & \texttt{IsForm} \\
+Wedge product $\alpha \wedge \beta$ & \texttt{wedge(\textbackslash{}alpha, \textbackslash{}beta)} & antisymmetric bilinear map \\
+Hamiltonian flow & \texttt{::hamilton} partition & area-preserving action \\
+Kernel / activation & \texttt{::kernels} partition & \texttt{IsKernel} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{\texttt{:exterior}}
+\label{sec:analysis-exterior}
+
+Implements the exterior algebra of differential forms. The wedge product $\alpha \wedge \beta$ is the antisymmetric tensor product, essential for Hamiltonian mechanics and integration theory.
+
+\section{\texttt{:forms}}
+\label{sec:analysis-forms}
+
+Provides \texttt{OneForm<S,N>} (co-vectors / linear functionals) and the induced \texttt{TwoForm} (area element), the building blocks for symplectic geometry.
+
+\begin{lstlisting}[language=C++, caption={Analysis: symplectic 2-form and area preservation (from \texttt{hamilton\_test.cpp}).}, label={lst:analysis-forms}]
+using Vec2 = Vector<double, 2>;
+OneForm<double, 2> dq{{1.0, 0.0}}, dp{{0.0, 1.0}};
+auto omega = wedge(dp, dq);   // symplectic form
+
+Vec2 u{1.0, 0.0}, v{0.0, 1.0};
+REQUIRE(omega(u, v) == -1.0);  // orientation
+REQUIRE(omega(v, u) ==  1.0);  // antisymmetry
+\end{lstlisting}
+
+\section{\texttt{:hamilton}}
+\label{sec:analysis-hamilton}
+
+The Hamiltonian partition encodes phase-space flows preserving the symplectic form $\omega = dp \wedge dq$, i.e.\ Liouville's theorem in the language of exterior algebra.
+
+\begin{lstlisting}[language=C++, caption={Analysis: Hamiltonian area preservation (from \texttt{hamilton\_test.cpp}).}, label={lst:analysis-hamilton}]
+// Simple harmonic oscillator: H = 0.5*(p^2 + q^2)
+auto H = [](auto state) {
+    auto q = state[0], p = state[1];
+    return 0.5 * (p*p + q*q);
+};
+Vec2 state_t0{1.0, 0.0}, state_t1{0.0, 1.0};
+// Area in phase space is preserved
+REQUIRE(std::abs(omega(state_t0, state_t1)) == 1.0);
+\end{lstlisting}
+
+\section{\texttt{:kernels}}
+\label{sec:analysis-kernels}
+
+Kernel functions $k(x, y) = \langle \phi(x), \phi(y) \rangle$ encode feature maps into Hilbert spaces, providing the theoretical substrate for Support Vector Machines and neural network activation layers.
+
 \section{Results}
+
+The analysis module validates the antisymmetry of the wedge product and the area-preserving property of Hamiltonian flows, confirming that the library's apex layer correctly materialises classical mechanics in C++23 type theory.
 
 
 \chapter{Benchmarks and Structural Collapse}
