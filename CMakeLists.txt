@@ -196,7 +196,9 @@ find_package(Doxygen)
 if (DOXYGEN_FOUND)
     # Define where Doxygen looks for code and where it outputs HTML
     set(DOXYGEN_INPUT_DIR ${CMAKE_CURRENT_SOURCE_DIR}/src/main/modules)
-    set(DOXYGEN_OUTPUT_DIR ${CMAKE_CURRENT_BINARY_DIR}/docs)
+    # DOXYGEN_OUTPUT_DIRECTORY is the variable consumed by doxygen_add_docs();
+    # HTML will be written to ${DOXYGEN_OUTPUT_DIRECTORY}/html = build/docs/html.
+    set(DOXYGEN_OUTPUT_DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/docs)
 
     # Customise for C++20 Modules (requires manual Doxyfile settings if needed)
     set(DOXYGEN_EXTENSION_MAPPING "cppm=C++") # Treat .cppm files as C++

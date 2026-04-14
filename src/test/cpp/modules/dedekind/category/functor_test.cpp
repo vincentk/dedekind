@@ -118,3 +118,32 @@ TEST_CASE("Category: functor composition type proof",
   STATIC_CHECK(std::same_as<Path1, Path2>);
   SUCCEED();
 }
+
+TEST_CASE("Category: Endofunctor algebras and fixed points",
+          "[category][functor][algebra]") {
+  using IntCat = DiscreteCategory<int>;
+  using IdF = identity_functor<IntCat>;
+
+  auto successor = arrow([](int x) { return x + 1; });
+  auto halve = arrow([](int x) { return x / 2; });
+  auto identity = arrow([](int x) { return x; });
+
+  STATIC_CHECK(IsFAlgebra<int, decltype(successor), IdF>);
+  STATIC_CHECK(IsFCoalgebra<int, decltype(halve), IdF>);
+  STATIC_CHECK(IsAdjunction<IdF, IdF, decltype(identity), decltype(identity)>);
+
+  auto algebra = make_f_algebra(IdF{}, successor);
+  auto coalgebra = make_f_coalgebra(IdF{}, halve);
+  auto adjunction = make_adjunction(IdF{}, IdF{}, identity, identity);
+
+  CHECK(algebra(41) == 42);
+  CHECK(coalgebra(42) == 21);
+  CHECK(adjunction.unit(7) == 7);
+  CHECK(adjunction.counit(9) == 9);
+
+  CHECK(least_fixpoint(0, [](int x) { return x < 5 ? x + 1 : x; }) == 5);
+
+  // Cover the max_iterations-exhausted fallback path in fixed_point.
+  CHECK(fixed_point(
+            0, [](int x) { return x + 1; }, std::equal_to<int>{}, 3) == 3);
+}

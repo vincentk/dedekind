@@ -51,6 +51,7 @@ docs/report/*.log
 docs/report/*.out
 docs/report/*.toc
 docs/report/*.run.xml
+docs/report/report.pdf
 docs/report/figures/dedekind_*.dot
 docs/report/figures/dedekind_*.pdf
 **/*.synctex.gz
