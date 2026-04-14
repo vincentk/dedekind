@@ -57,8 +57,8 @@ constexpr auto mandelbrot_set_n(int size, int max_iter) {
 
   const auto bounded_orbit =
       Set{p % Ω<Pixel>{} | [size, max_iter](const Pixel& px) {
-            return mandelbrot_member(px, size, max_iter);
-  }};
+        return mandelbrot_member(px, size, max_iter);
+      }};
 
   // Finite approximation M_N = {p in grid | orbit(parameter_of(p)) bounded up
   // to N iterations}.
@@ -67,6 +67,7 @@ constexpr auto mandelbrot_set_n(int size, int max_iter) {
 
 std::vector<std::uint8_t> render_mandelbrot_pbm_bits(int size, int max_iter) {
   const auto mandelbrot = mandelbrot_set_n(size, max_iter);
+  using Logic = typename decltype(mandelbrot)::logic_species;
 
   std::vector<std::uint8_t> bytes;
   bytes.reserve(static_cast<std::size_t>(size) *
@@ -78,8 +79,7 @@ std::vector<std::uint8_t> render_mandelbrot_pbm_bits(int size, int max_iter) {
 
     for (int x = 0; x < size; ++x) {
       acc <<= 1;
-      if (mandelbrot(Pixel{x, y}) == dedekind::category::Ternary::True)
-        acc |= 1U;
+      if (mandelbrot(Pixel{x, y}) == Logic::True) acc |= 1U;
       ++bit_count;
 
       if (bit_count == 8) {
@@ -109,36 +109,48 @@ std::uint64_t fnv1a64(const std::vector<std::uint8_t>& bytes) {
 
 }  // namespace
 
-TEST_CASE("Sets: Mandelbrot set-builder stress test",
-          "[sets][stress][mandelbrot]") {
+TEST_CASE("Sets: Mandelbrot set-builder stress test", "[sets][mandelbrot]") {
   SECTION("Known points agree with Mandelbrot membership") {
-    const int size = 1024;
+    const int size = 256;
     const int max_iter = 50;
     const auto mandelbrot = mandelbrot_set_n(size, max_iter);
+    using Logic = typename decltype(mandelbrot)::logic_species;
 
-    REQUIRE(mandelbrot(Pixel{size / 2, size / 2}) ==
-            dedekind::category::Ternary::True);
-    REQUIRE(mandelbrot(Pixel{0, 0}) == dedekind::category::Ternary::False);
-    REQUIRE(mandelbrot(Pixel{size - 1, size - 1}) ==
-            dedekind::category::Ternary::False);
+    REQUIRE(mandelbrot(Pixel{size / 2, size / 2}) == Logic::True);
+    REQUIRE(mandelbrot(Pixel{0, 0}) == Logic::False);
+    REQUIRE(mandelbrot(Pixel{size - 1, size - 1}) == Logic::False);
   }
 
-  SECTION("Benchmark-style rendering under load") {
-    const int size = 512;
+  SECTION("Finite approximation checksum is stable") {
+    const int size = 64;
     const int max_iter = 50;
-    const auto t0 = std::chrono::steady_clock::now();
     const auto bytes = render_mandelbrot_pbm_bits(size, max_iter);
-    const auto t1 = std::chrono::steady_clock::now();
-
-    const auto elapsed_ms =
-        std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count();
     const auto checksum = fnv1a64(bytes);
 
-    WARN("mandelbrot_size=" << size << ", elapsed_ms=" << elapsed_ms
-                            << ", checksum=" << checksum);
+    INFO("mandelbrot_size=" << size << ", checksum=" << checksum);
 
     REQUIRE(bytes.size() == static_cast<std::size_t>(size) *
                                 static_cast<std::size_t>((size + 7) / 8));
-    REQUIRE(checksum != 0ULL);
+    REQUIRE(checksum == 1850133184385998530ULL);
   }
+}
+
+TEST_CASE("Sets: Mandelbrot benchmark-style rendering",
+          "[sets][mandelbrot][.stress][.benchmark]") {
+  const int size = 512;
+  const int max_iter = 50;
+  const auto t0 = std::chrono::steady_clock::now();
+  const auto bytes = render_mandelbrot_pbm_bits(size, max_iter);
+  const auto t1 = std::chrono::steady_clock::now();
+
+  const auto elapsed_ms =
+      std::chrono::duration_cast<std::chrono::milliseconds>(t1 - t0).count();
+  const auto checksum = fnv1a64(bytes);
+
+  INFO("mandelbrot_size=" << size << ", elapsed_ms=" << elapsed_ms
+                          << ", checksum=" << checksum);
+
+  REQUIRE(bytes.size() == static_cast<std::size_t>(size) *
+                              static_cast<std::size_t>((size + 7) / 8));
+  REQUIRE(checksum == 16923083633697550095ULL);
 }
