@@ -23,6 +23,7 @@ module;
 
 #include <compare>     // for std::strong_ordering
 #include <concepts>    // for std::integral, std::floating_point
+#include <cstddef>     // for std::size_t
 #include <functional>  // for std::plus, std::multiplies
 
 export module dedekind.algebra:modules;
@@ -91,6 +92,89 @@ concept IsVectorSpace =
     IsModule<V, F, AddV, AddF, MultF, Act> && IsField<F, AddF, MultF>;
 
 /**
+ * @struct OneDimensionalVector
+ * @brief Reified carrier for a 1D module/vector-space coordinate.
+ * @details This is the concrete baseline for issue #125. The coordinate lives
+ *          in the scalar species S, with pointwise addition and scalar action.
+ */
+export template <typename S, typename Tag = void>
+  requires std::equality_comparable<S>
+struct OneDimensionalVector {
+  using scalar_type = S;
+
+  S x{};
+
+  constexpr OneDimensionalVector() = default;
+  constexpr explicit OneDimensionalVector(S value) : x(value) {}
+
+  constexpr S coordinate() const noexcept { return x; }
+
+  friend constexpr bool operator==(const OneDimensionalVector&,
+                                   const OneDimensionalVector&) = default;
+
+  friend constexpr OneDimensionalVector operator+(
+      const OneDimensionalVector& a, const OneDimensionalVector& b) {
+    return OneDimensionalVector(a.x + b.x);
+  }
+
+  friend constexpr OneDimensionalVector operator-(const OneDimensionalVector& a,
+                                                  const OneDimensionalVector& b)
+    requires requires(S s) { -s; }
+  {
+    return OneDimensionalVector(a.x - b.x);
+  }
+
+  friend constexpr OneDimensionalVector operator*(
+      const S& s, const OneDimensionalVector& v) {
+    return OneDimensionalVector(s * v.x);
+  }
+
+  friend constexpr OneDimensionalVector operator*(const OneDimensionalVector& v,
+                                                  const S& s) {
+    return OneDimensionalVector(v.x * s);
+  }
+
+  template <typename Op>
+  static constexpr auto identity_v = []() {
+    if constexpr (std::same_as<Op, std::plus<OneDimensionalVector>> ||
+                  std::same_as<Op, std::plus<void>>) {
+      return OneDimensionalVector{};
+    }
+  }();
+
+  template <typename Op>
+  static constexpr bool is_associative_v =
+      std::same_as<Op, std::plus<OneDimensionalVector>> ||
+      std::same_as<Op, std::plus<void>>;
+
+  template <typename Op>
+  static constexpr bool is_commutative_v =
+      std::same_as<Op, std::plus<OneDimensionalVector>> ||
+      std::same_as<Op, std::plus<void>>;
+};
+
+/** @brief Alias: reals seen as a canonical 1D vector carrier. */
+export using RealLine = OneDimensionalVector<double>;
+
+/**
+ * @concept IsVectorSpaceLike
+ * @brief Pragmatic vector-space check used by first reified vector carriers.
+ * @details Uses field-like scalar operations directly and does not depend on
+ *          the stronger IsField witness machinery.
+ */
+export template <typename V, typename F, typename Act = std::multiplies<>>
+concept IsVectorSpaceLike = requires(F a, F b, V v) {
+  { v + v } -> std::same_as<V>;
+  { v - v } -> std::same_as<V>;
+  { V{} } -> std::same_as<V>;
+  { a + b } -> std::same_as<F>;
+  { a - b } -> std::same_as<F>;
+  { a * b } -> std::same_as<F>;
+  { a / b } -> std::same_as<F>;
+  { Act{}(a, v) } -> std::same_as<V>;
+};
+
+/**
  * @struct PolynomialOperator
  * @brief The "Enhanced" Polynomial: A Formal Sum reified as a Morphic Action.
  *
@@ -118,4 +202,19 @@ struct PolynomialOperator {
   }
 };
 
+static_assert(IsVectorSpaceLike<RealLine, double>,
+              "RealLine should satisfy the baseline 1D vector-space witness.");
+
 }  // namespace dedekind::algebra
+
+namespace dedekind::category {
+
+template <typename S, typename Tag>
+  requires requires(S s) { -s; }
+inline constexpr dedekind::algebra::OneDimensionalVector<S, Tag> inverse(
+    dedekind::algebra::OneDimensionalVector<S, Tag> v,
+    std::plus<dedekind::algebra::OneDimensionalVector<S, Tag>>) {
+  return dedekind::algebra::OneDimensionalVector<S, Tag>(-v.x);
+}
+
+}  // namespace dedekind::category
