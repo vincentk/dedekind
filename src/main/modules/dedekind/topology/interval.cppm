@@ -164,6 +164,95 @@ inline constexpr bool is_convex_v<Ray<T, D, B, L>> = true;
 export template <typename T, Boundary Lower, Boundary Upper, typename L>
 inline constexpr bool is_convex_v<Interval<T, Lower, Upper, L>> = true;
 
+/**
+ * @class HalfSpace
+ * @brief A runtime-direction Ray — the general form of a half-space.
+ *
+ * @details
+ * While Ray<T,D,B,L> encodes direction at compile time, HalfSpace<T,B,L>
+ * stores direction at runtime. This makes it the natural witness for the
+ * IsRay<R,T> concept, which requires a single type R to produce both
+ * upward and downward half-spaces through static factory methods:
+ *
+ *   HalfSpace<T>::upward_from(pivot)   — { x | x > pivot }  (Open)
+ *   HalfSpace<T>::downward_from(pivot) — { x | x < pivot }  (Open)
+ *
+ * The two types are complementary:
+ *   - Ray<T,D,B,L>  — compile-time direction; no runtime overhead.
+ *   - HalfSpace<T,B,L> — runtime direction; satisfies IsRay<R,T>.
+ *
+ * Both satisfy IsHalfSpace.
+ *
+ * @tparam T The element species (must be totally ordered).
+ * @tparam B The boundary policy (Open or Closed).
+ * @tparam L The subobject classifier logic.
+ */
+export template <IsTotallyOrdered T, Boundary B = Boundary::Open,
+                 typename L = ClassicalLogic>
+class HalfSpace : public detail::BoundaryTag<B> {
+ public:
+  using Domain = T;
+  using Codomain = typename L::Ω;
+  using is_ray_tag = void;
+
+  template <typename Op>
+  static constexpr bool is_associative_v = true;
+  template <typename Op>
+  static constexpr bool is_idempotent_v = true;
+
+  /** @brief Factory: { x | x > pivot } or { x | x >= pivot }. */
+  static constexpr HalfSpace upward_from(T pivot) {
+    return HalfSpace{pivot, Direction::Upward};
+  }
+  /** @brief Factory: { x | x < pivot } or { x | x <= pivot }. */
+  static constexpr HalfSpace downward_from(T pivot) {
+    return HalfSpace{pivot, Direction::Downward};
+  }
+
+  /** @brief Construct from a compile-time Ray (direction preserving). */
+  template <Direction D>
+  constexpr explicit HalfSpace(const Ray<T, D, B, L>& ray)
+      : pivot_(ray.pivot()), dir_(D) {}
+
+  constexpr T pivot() const { return pivot_; }
+  constexpr Direction direction() const { return dir_; }
+
+  /** @brief Characteristic morphism χ: T → Ω. */
+  constexpr Codomain operator()(const T& x) const noexcept {
+    if (dir_ == Direction::Upward)
+      return (B == Boundary::Open ? x > pivot_ : x >= pivot_) ? L::True
+                                                              : L::False;
+    else
+      return (B == Boundary::Open ? x < pivot_ : x <= pivot_) ? L::True
+                                                              : L::False;
+  }
+
+  /** @brief Intersection: yields the stricter of two same-direction halves. */
+  friend constexpr HalfSpace operator&(const HalfSpace& a, const HalfSpace& b) {
+    if (a.dir_ == Direction::Upward)
+      return HalfSpace{std::max(a.pivot_, b.pivot_), Direction::Upward};
+    else
+      return HalfSpace{std::min(a.pivot_, b.pivot_), Direction::Downward};
+  }
+
+  /** @brief Union: yields the looser of two same-direction halves. */
+  friend constexpr HalfSpace operator|(const HalfSpace& a, const HalfSpace& b) {
+    if (a.dir_ == Direction::Upward)
+      return HalfSpace{std::min(a.pivot_, b.pivot_), Direction::Upward};
+    else
+      return HalfSpace{std::max(a.pivot_, b.pivot_), Direction::Downward};
+  }
+
+ private:
+  constexpr HalfSpace(T pivot, Direction d) : pivot_(pivot), dir_(d) {}
+
+  T pivot_;
+  Direction dir_;
+};
+
+export template <typename T, Boundary B, typename L>
+inline constexpr bool is_convex_v<HalfSpace<T, B, L>> = true;
+
 /** @section Formal_Verification
  * Deferred while topology interval contracts are being retargeted to the
  * current category/sets concept split.
@@ -212,5 +301,37 @@ template <typename T, dedekind::topology::Direction D,
           dedekind::topology::Boundary B, typename L>
 inline constexpr bool
     is_idempotent_v<dedekind::topology::Ray<T, D, B, L>, std::bit_or<>> = true;
+
+/** @section HalfSpace_Harmony */
+
+export template <typename T, dedekind::topology::Boundary B, typename L>
+struct SpeciesTraits<dedekind::topology::HalfSpace<T, B, L>> {
+  using species = ClassicalLogic;
+  using Domain = T;
+  using Codomain = T;
+
+  static constexpr auto cardinality =
+      std::integral<T> ? CardinalityTag::Countable : CardinalityTag::Continuum;
+};
+
+template <typename T, dedekind::topology::Boundary B, typename L>
+inline constexpr bool
+    is_associative_v<dedekind::topology::HalfSpace<T, B, L>, std::bit_and<>> =
+        true;
+
+template <typename T, dedekind::topology::Boundary B, typename L>
+inline constexpr bool
+    is_idempotent_v<dedekind::topology::HalfSpace<T, B, L>, std::bit_and<>> =
+        true;
+
+template <typename T, dedekind::topology::Boundary B, typename L>
+inline constexpr bool
+    is_associative_v<dedekind::topology::HalfSpace<T, B, L>, std::bit_or<>> =
+        true;
+
+template <typename T, dedekind::topology::Boundary B, typename L>
+inline constexpr bool
+    is_idempotent_v<dedekind::topology::HalfSpace<T, B, L>, std::bit_or<>> =
+        true;
 
 }  // namespace dedekind::category
