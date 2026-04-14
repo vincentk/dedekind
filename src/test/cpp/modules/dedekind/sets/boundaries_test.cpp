@@ -1,4 +1,5 @@
 #include <catch2/catch_test_macros.hpp>
+#include <limits>
 import dedekind.category;
 import dedekind.sets;
 
@@ -76,5 +77,38 @@ TEST_CASE("Boundaries: The Algebra of Extremality", "[sets][boundaries]") {
 
     CHECK(not_null(7) == true);
     CHECK(not_universe(7) == false);
+  }
+
+  SECTION("Cardinality bounds for extensional sets are computed explicitly") {
+    constexpr SingletonSet<ℤ> s1{1};
+    constexpr SingletonSet<ℤ> s2{2};
+    constexpr Ø<ℤ> empty;
+
+    CHECK(bound_meet(s1, s2) == 1);
+    CHECK(bound_join(s1, s2) == 2);
+
+    CHECK(bound_meet(empty, s1) == 0);
+    CHECK(bound_join(empty, s1) == 1);
+  }
+
+  SECTION("Cardinality bounds for intensional/transfinite sets use sentinel") {
+    constexpr ℕ naturals;
+    constexpr Ø<ℤ> empty;
+    constexpr SingletonSet<ℤ> singleton{7};
+    const auto max_v = std::numeric_limits<std::size_t>::max();
+
+    CHECK(bound_meet(universe, naturals) == max_v);
+    CHECK(bound_join(universe, naturals) == max_v);
+
+    CHECK(bound_meet(empty, naturals) == 0);
+    CHECK(bound_meet(singleton, naturals) == 1);
+  }
+
+  SECTION("Identity optimizations remain structurally valid") {
+    constexpr SingletonSet<ℤ> s{42};
+    constexpr Ø<ℤ> empty;
+
+    CHECK(std::is_same_v<decltype(empty | s), SingletonSet<ℤ>>);
+    CHECK(std::is_same_v<decltype(universe & s), SingletonSet<ℤ>>);
   }
 }
