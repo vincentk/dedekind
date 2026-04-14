@@ -294,4 +294,41 @@ export template <typename S, typename T1, typename T2>
 concept IsRelation = requires { typename S::Domain; } &&
                      std::same_as<typename S::Domain, std::pair<T1, T2>>;
 
+/**
+ * @brief Power set witness over same-predicate subsets.
+ *
+ * Membership in P(A) is decided by the subset predicate `candidate <= base`.
+ * This conservative form keeps the domain monomorphic (`Set<T,L,P>`) and is
+ * sufficient for finite / homogeneous DSL constructions.
+ */
+export template <typename T, typename L, typename P>
+constexpr auto power_set(const Set<T, L, P>& base) {
+  using Candidate = Set<T, L, P>;
+  auto pred = [base](const Candidate& candidate) {
+    return static_cast<bool>(candidate <= base);
+  };
+  return Set<Candidate, ClassicalLogic, decltype(pred)>{pred};
+}
+
+/** @brief Relation membership witness: (a,b) ∈ R. */
+export template <typename T1, typename T2, typename L, typename P>
+constexpr bool relates(const Relation<T1, T2, L, P>& r, const T1& a,
+                       const T2& b) {
+  return static_cast<bool>(r(std::pair<T1, T2>{a, b}));
+}
+
+/**
+ * @brief Point-wise single-valuedness witness for a set-function relation.
+ *
+ * If both y1 and y2 are related to x, they must be equal.
+ */
+export template <typename T1, typename T2, typename L, typename P>
+constexpr bool is_single_valued_at(const SetFunction<T1, T2, L, P>& f,
+                                   const T1& x, const T2& y1, const T2& y2) {
+  const bool m1 = relates(f, x, y1);
+  const bool m2 = relates(f, x, y2);
+  if (!(m1 && m2)) return true;
+  return y1 == y2;
+}
+
 }  // namespace dedekind::sets
