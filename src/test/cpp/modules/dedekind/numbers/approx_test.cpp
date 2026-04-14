@@ -151,3 +151,46 @@ TEST_CASE("corner case: region boundaries behave as expected",
   CHECK(classify_region(std::nextafter(huge_boundary, 0.0)) ==
         NumericRegion::Regular);
 }
+
+TEST_CASE("difficult terrain: adaptive-guided reassociation improves result",
+          "[numbers][approx][corner]") {
+  const auto a = ieee_unit(1e16);
+  const auto b = ieee_unit(-1e16);
+  const auto c = ieee_unit(1.0);
+
+  // Candidate 1: (a + b) + c  -> tends to preserve the small addend here.
+  const auto left_mid = a + b;
+  const auto left_eval = AdaptiveErrorPolicy<double>{}(left_mid + c);
+
+  // Candidate 2: a + (b + c) -> b + c can drop c, then cancel back to zero.
+  const auto right_mid = b + c;
+  const auto right_eval = AdaptiveErrorPolicy<double>{}(a + right_mid);
+
+  const auto rank = [](Ternary t) {
+    switch (t) {
+      case Ternary::False:
+        return 0;
+      case Ternary::Unknown:
+        return 1;
+      case Ternary::True:
+        return 2;
+    }
+    return 0;
+  };
+
+  const double chosen = (rank(left_eval.status) >= rank(right_eval.status))
+                            ? left_eval.value.value.resolve()
+                            : right_eval.value.value.resolve();
+  const double rejected = (rank(left_eval.status) >= rank(right_eval.status))
+                              ? right_eval.value.value.resolve()
+                              : left_eval.value.value.resolve();
+
+  // High-precision reference of the intended mathematical expression.
+  const long double reference =
+      static_cast<long double>(1e16) + static_cast<long double>(-1e16) +
+      static_cast<long double>(1.0);
+
+  CHECK(rank(left_eval.status) > rank(right_eval.status));
+  CHECK(std::fabs(chosen - static_cast<double>(reference)) <=
+        std::fabs(rejected - static_cast<double>(reference)));
+}
