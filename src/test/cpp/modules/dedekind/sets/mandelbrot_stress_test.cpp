@@ -1,5 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 #include <chrono>
+#include <complex>
 #include <cstdint>
 #include <vector>
 
@@ -15,28 +16,23 @@ struct Pixel {
   int y;
 };
 
-struct ComplexPoint {
-  double re;
-  double im;
-};
+using ComplexPoint = std::complex<double>;
 
-constexpr ComplexPoint parameter_of(const Pixel& p, int size) {
+ComplexPoint parameter_of(const Pixel& p, int size) {
   return ComplexPoint{
       (2.0 * static_cast<double>(p.x) / static_cast<double>(size)) - 1.5,
       (2.0 * static_cast<double>(p.y) / static_cast<double>(size)) - 1.0};
 }
 
-constexpr ComplexPoint orbit_step(const ComplexPoint& z,
-                                  const ComplexPoint& c) {
-  return ComplexPoint{z.re * z.re - z.im * z.im + c.re,
-                      2.0 * z.re * z.im + c.im};
+ComplexPoint orbit_step(const ComplexPoint& z, const ComplexPoint& c) {
+  return z * z + c;
 }
 
-constexpr bool orbit_bounded_prefix(const ComplexPoint& c, int max_iter) {
+bool orbit_bounded_prefix(const ComplexPoint& c, int max_iter) {
   ComplexPoint z{0.0, 0.0};
 
   for (int n = 0; n < max_iter; ++n) {
-    if (z.re * z.re + z.im * z.im > 4.0) return false;
+    if (std::norm(z) > 4.0) return false;
     // Recurrence: z_{n+1} = z_n^2 + c
     z = orbit_step(z, c);
   }
@@ -48,7 +44,7 @@ constexpr bool in_half_open_interval(int x, int lo, int hi) {
   return x >= lo && x < hi;
 }
 
-constexpr bool mandelbrot_member(const Pixel& p, int size, int max_iter) {
+bool mandelbrot_member(const Pixel& p, int size, int max_iter) {
   const auto c = parameter_of(p, size);
   return orbit_bounded_prefix(c, max_iter);
 }
