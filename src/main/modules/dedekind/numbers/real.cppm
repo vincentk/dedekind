@@ -123,8 +123,9 @@ struct PartialDivReal {
   TernaryResult<Real<S>> operator()(
       std::pair<const Real<S>&, const Real<S>&> p) const noexcept {
     auto [a, b] = p;
-    // For floating-point types, division by zero produces inf/nan
-    // We flag this as False to indicate undefined behavior
+    // For floating-point types, division by zero produces inf/nan.
+    // We flag this as False because non-finite output lies outside
+    // the intended domain of this partial operation.
     if constexpr (std::is_floating_point_v<S>) {
       if (b.resolve() == S{0}) {
         return {Ternary::False, a / b};  // Produces ±∞ or NaN per IEEE 754

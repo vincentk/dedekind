@@ -53,6 +53,8 @@ TEST_CASE("Adaptive policy marks non-finite as false", "[numbers][approx]") {
 
   CHECK(adaptive.status == Ternary::False);
   CHECK(adaptive.value.region == NumericRegion::NonFinite);
+  CHECK(std::isinf(adaptive.value.abs_error));
+  CHECK(std::isinf(adaptive.value.rel_error));
 }
 
 // --- Gaussian error propagation via sensitivity (Ku 1966) ---
@@ -108,6 +110,21 @@ TEST_CASE("corner case: division by zero is flagged as non-finite",
   CHECK_FALSE(std::isfinite(quotient.resolve()));
   CHECK(adaptive.status == Ternary::False);
   CHECK(adaptive.value.region == NumericRegion::NonFinite);
+  CHECK(std::isinf(adaptive.value.abs_error));
+  CHECK(std::isinf(adaptive.value.rel_error));
+}
+
+TEST_CASE("propagate returns explicit non-finite envelope", "[numbers][approx]") {
+  const Approx<double> finite{ieee_unit(1.0), 0.01, 0.0};
+  const Approx<double> inf{ieee_unit(std::numeric_limits<double>::infinity()),
+                           0.01,
+                           0.0};
+
+  const auto result = demo_propagate_mul(finite, inf);
+
+  CHECK(result.region == NumericRegion::NonFinite);
+  CHECK(std::isinf(result.abs_error));
+  CHECK(std::isinf(result.rel_error));
 }
 
 TEST_CASE("corner case: tiny multiplication underflow remains diagnosable",

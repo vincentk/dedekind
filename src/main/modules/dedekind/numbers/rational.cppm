@@ -155,7 +155,10 @@ struct HonestDivRational {
   TernaryResult<Rational<I>> operator()(
       std::pair<const Rational<I>&, const Rational<I>&> p) const {
     auto [a, b] = p;
-    return {Ternary::True, a / b};  // Rational division is exact by definition
+    if (b.num() == I{0}) {
+      return {Ternary::False, a};
+    }
+    return {Ternary::True, a / b};  // Rational division is exact when defined
   }
 };
 

@@ -208,6 +208,7 @@ TEST_CASE("Partial Arithmetic: Rational<I>",
           "[numbers][tower][partial][rational]") {
   const auto add_op = PartialAddRational<machine_integer>{};
   const auto mul_op = PartialMulRational<machine_integer>{};
+  const auto div_op = HonestDivRational<machine_integer>{};
 
   // Partial addition on rationals is exact (Ternary::True)
   const auto q1 = Rational<machine_integer>(1, 2);
@@ -221,6 +222,13 @@ TEST_CASE("Partial Arithmetic: Rational<I>",
   const auto mul_result = mul_op(std::make_pair(q1, q2));
   CHECK(mul_result.status == Ternary::True);
   CHECK(mul_result.value == Rational<machine_integer>(1, 6));
+
+  const auto div_result = div_op(std::make_pair(q1, q2));
+  CHECK(div_result.status == Ternary::True);
+  CHECK(div_result.value == Rational<machine_integer>(3, 2));
+
+  const auto div_zero = div_op(std::make_pair(q1, Rational<machine_integer>(0, 1)));
+  CHECK(div_zero.status == Ternary::False);
 }
 
 TEST_CASE("Partial Arithmetic: Real<S>", "[numbers][tower][partial][real]") {

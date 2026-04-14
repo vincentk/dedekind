@@ -75,6 +75,12 @@ export template <std::floating_point F = double>
 struct ReportErrorPolicy {
   constexpr Approx<F> operator()(const IEEE<F>& x) const noexcept {
     const F v = x.resolve();
+    if (!std::isfinite(v)) {
+      return Approx<F>{.value = x,
+                       .abs_error = std::numeric_limits<F>::infinity(),
+                       .rel_error = std::numeric_limits<F>::infinity(),
+                       .region = NumericRegion::NonFinite};
+    }
     const F abs = roundoff_proxy(v);
     const F denom = std::fabs(v) + std::numeric_limits<F>::min();
     return Approx<F>{.value = x,
@@ -118,10 +124,16 @@ export template <std::floating_point F, typename Op>
 constexpr Approx<F> propagate(const Approx<F>& a, const Approx<F>& b,
                               const Op& op = {}) noexcept {
   const IEEE<F> result = op({a.value, b.value});
+  const F rv = result.resolve();
+  if (!std::isfinite(rv)) {
+    return Approx<F>{.value = result,
+                     .abs_error = std::numeric_limits<F>::infinity(),
+                     .rel_error = std::numeric_limits<F>::infinity(),
+                     .region = NumericRegion::NonFinite};
+  }
   const auto [sa, sb] = Op::sensitivity(a.value, b.value);
   const F new_abs = std::fabs(sa) * a.abs_error + std::fabs(sb) * b.abs_error +
-                    roundoff_proxy(result.resolve());
-  const F rv = result.resolve();
+                    roundoff_proxy(rv);
   const F denom = std::fabs(rv) + std::numeric_limits<F>::min();
   return Approx<F>{.value = result,
                    .abs_error = new_abs,
