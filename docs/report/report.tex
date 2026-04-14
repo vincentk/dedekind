@@ -1625,7 +1625,6 @@ using Exp = Symbolic::Exponential;
 // The 'Derivative' meta-function computes the symbolic result
 using ExpPrime = Derivative<Exp>;
 
-// A TOPLAS reviewer would be impressed by this:
 // The compiler 'solves' the equation by confirming identity.
 static_assert(std::is_same_v<Exp, ExpPrime>, 
     "Proof: f' = f is satisfied by the Exponential species.");
