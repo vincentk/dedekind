@@ -39,6 +39,7 @@ using namespace dedekind::category;
  *           enforce the "non-negative" nature of a Rig.
  */
 export template <typename R = unsigned int>
+  requires std::equality_comparable<R>
 class RigPolynomial {
  public:
   using coefficient_type = R;
@@ -99,9 +100,10 @@ class RigPolynomial {
 
   /**
    * @brief Coefficient-wise subtraction: (a - b)_i = a_i - b_i.
-   * @details Requires the coefficient ring R to be invertible under addition
-   *          (i.e., R forms a group under +, e.g. int, double). Not available
-   *          for rig coefficients such as unsigned int.
+   * @details Available only when the coefficient type R satisfies
+   *          dedekind::category::is_invertible_v<R, std::plus<R>>, i.e. when
+   *          additive inverses are provided by the category machinery.
+   *          Not available for rig coefficients such as unsigned int.
    */
   friend constexpr RigPolynomial operator-(const RigPolynomial& a,
                                            const RigPolynomial& b)
@@ -138,16 +140,22 @@ class RigPolynomial {
 
   /**
    * @brief Formal derivative: d/dx Σ aᵢ xⁱ = Σ_{i≥1} i·aᵢ xⁱ⁻¹.
-   * @details The coefficient i·aᵢ is computed by i-fold addition, which is
-   *          valid over any semiring (no subtraction or division required).
+   * @details The coefficient i·aᵢ is computed via binary repeated doubling
+   *          (O(log i) additions per term, O(n log n) total), which is valid
+   *          over any semiring (no subtraction or division required).
    */
   constexpr RigPolynomial derive() const {
     if (coeffs_.size() <= 1) return RigPolynomial{};
-    std::vector<R> res(coeffs_.size() - 1,
-                       dedekind::category::identity_v<R, std::plus<R>>);
+    const R zero = dedekind::category::identity_v<R, std::plus<R>>;
+    std::vector<R> res(coeffs_.size() - 1, zero);
     for (std::size_t i = 1; i < coeffs_.size(); ++i) {
-      R coeff = dedekind::category::identity_v<R, std::plus<R>>;
-      for (std::size_t k = 0; k < i; ++k) coeff = coeff + coeffs_[i];
+      // Compute i * a_i via repeated doubling: O(log i) additions.
+      R coeff = zero;
+      R term = coeffs_[i];
+      for (std::size_t n = i; n > 0; n >>= 1) {
+        if (n & 1) coeff = coeff + term;
+        term = term + term;
+      }
       res[i - 1] = coeff;
     }
     return RigPolynomial(std::move(res));
@@ -157,6 +165,9 @@ class RigPolynomial {
     return coeffs_.empty() ? 0 : coeffs_.size() - 1;
   }
   constexpr bool is_zero() const { return coeffs_.empty(); }
+
+  /** @brief Read-only access to the coefficient vector (constant-first). */
+  constexpr const std::vector<R>& coeffs() const noexcept { return coeffs_; }
 
  private:
   std::vector<R> coeffs_;

@@ -33,6 +33,7 @@ TEST_CASE("Algebra: Polynomial Morphisms", "[algebra][polynomial]") {
     Polynomial<ℤ> q({3, 5});
     auto r = p + q;  // 1 + 5·x + x²
     REQUIRE(r.degree() == 2);
+    REQUIRE(r == Polynomial<ℤ>({1, 5, 1}));
 
     // Adding zero is the identity.
     REQUIRE((p + Polynomial<ℤ>::zero()) == p);
@@ -51,6 +52,7 @@ TEST_CASE("Algebra: Polynomial Morphisms", "[algebra][polynomial]") {
     // d/dx (-2 + 0·x + x²) = 0 + 2·x  =>  [0, 2]
     auto dp = p.derive();
     REQUIRE(dp.degree() == 1);
+    REQUIRE(dp == Polynomial<ℤ>({0, 2}));
 
     // Derivative of a constant is zero.
     REQUIRE(Polynomial<ℤ>::one().derive().is_zero());
@@ -68,5 +70,6 @@ TEST_CASE("Algebra: Polynomial Morphisms", "[algebra][polynomial]") {
     Polynomial<ℤ> one_plus_x({1, 1});
     auto sq = one_plus_x * one_plus_x;
     REQUIRE(sq.degree() == 2);
+    REQUIRE(sq == Polynomial<ℤ>({1, 2, 1}));
   }
 }

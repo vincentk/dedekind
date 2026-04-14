@@ -648,7 +648,7 @@ concept IsArrow = requires {
 
 This ``Atomic Arrow'' serves as the fundamental unit from which all higher-level categorical structures are synthesized. By elevating the function object from an opaque procedural block to a structural entity, the library enables the compiler to reason about the composition and validity of transformations before any machine instructions are emitted.
 
-\textbf{Monomorphisms and Epimorphisms:} The partition closes with two dual structural qualifiers. A \textbf{monomorphism} (\texttt{IsMonicArrow}) witnesses injectivity: $f(x) = f(y) \Rightarrow x = y$. Its dual, an \textbf{epimorphism} (\texttt{IsEpicArrow}), witnesses surjectivity: for every $b \in B$ there exists $a \in A$ with $f(a) = b$. Both concepts follow an opt-in declaration pattern via \texttt{is\_monic\_arrow\_v} and \texttt{is\_epic\_arrow\_v} respectively; the compiler trusts the specialisation as a formal proof obligation. The identity arrow is the canonical inhabitant of both concepts, confirming that every isomorphism is simultaneously monic and epic.
+\textbf{Monomorphisms and Epimorphisms:} The partition closes with two dual structural qualifiers. A \textbf{monomorphism} (\texttt{IsMonicArrow}) witnesses injectivity: $f(x) = f(y) \Rightarrow x = y$. Its dual, an \textbf{epimorphism} (\texttt{IsEpicArrow}), witnesses surjectivity: for every $b \in B$ there exists $a \in A$ with $f(a) = b$. Both concepts follow an opt-in declaration pattern via \texttt{is\_monic\_arrow\_v} and \texttt{is\_epic\_arrow\_v} respectively; the compiler trusts each specialisation as a formal proof obligation. The identity arrow is the canonical built-in inhabitant of both concepts. Categorically, every isomorphism is indeed monic and epic; however, in the current library implementation, non-identity isomorphisms are recognised as such only when the corresponding traits are explicitly specialised.
 
 \begin{lstlisting}[language=C++, caption={Monic and epic arrow concepts (from \texttt{morphism.cppm}).}, label={lst:monic-epic}]
 // Opt-in declaration for injective arrows.
@@ -2095,10 +2095,10 @@ The set of operations is graded by the algebraic strength of $R$:
 \begin{itemize}
   \item \textbf{Addition and multiplication} are always available (semiring $R$ suffices):
         addition is coefficient-wise; multiplication uses the Cauchy product.
-  \item \textbf{Subtraction} (\texttt{operator-}) is available when $R$ is invertible under
-        addition (ring coefficients, e.g.~\texttt{int}, \texttt{double}).  The constraint is
-        expressed directly in the function signature via \texttt{requires
-        is\_invertible\_v<R, std::plus<R>>}.
+  \item \textbf{Subtraction} (\texttt{operator-}) is available when $R$ satisfies the
+        library's additive-invertibility constraint, i.e.~for coefficient types with
+        \texttt{is\_invertible\_v<R, std::plus<R>>} (for example, \texttt{int}).
+        This requirement is expressed directly in the function signature.
   \item \textbf{Formal differentiation} (\texttt{derive()}) is available over any semiring
         because the coefficient $i \cdot a_i$ is computed by $i$-fold addition:
         $\frac{d}{dx}\textstyle\sum a_i x^i = \sum_{i \geq 1} i\,a_i\,x^{i-1}$.

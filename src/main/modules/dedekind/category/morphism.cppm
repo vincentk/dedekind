@@ -657,8 +657,8 @@ inline constexpr bool is_epic_arrow_v = false;
 export template <typename E>
 concept IsEpicArrow = IsArrow<E> && is_epic_arrow_v<E>;
 
-// Identity arrows are always epic (trivially: the unique element maps to
-// itself).
+// Identity arrows are always epic: for every element t in the codomain,
+// id(t) == t, so every element is hit.
 template <typename T>
 inline constexpr bool is_epic_arrow_v<Identity<T>> = true;
 
