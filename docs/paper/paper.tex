@@ -1444,6 +1444,59 @@ struct Intersection {
 By reifying a subset of the set-builder notation, dedekind turns the C++ translation unit into a symbolic laboratory.
 The programmer is free to reason in the language of Cantor, while the compiler produces the performance of a naked C++ loop.
 
+\subsubsection[IEEE Fast Lane and Approximation Policies]{The IEEE Fast Lane and Numerical Approximation Policies (\texttt{dedekind.numbers.ieee}, \texttt{dedekind.numbers.approx})}
+\label{sec:ieee-approx}
+
+Standard floating-point arithmetic pervades scientific computing, yet its algebraic contract is almost entirely implicit: associativity, commutativity, and identity are assumed by convention rather than certified by the type system.
+The \texttt{dedekind.numbers.ieee} and \texttt{dedekind.numbers.approx} modules address this gap through an \emph{effect-context} design: arithmetic may be fast by default, but every operation that enters the certified path is algebraically stamped.
+
+\paragraph{The \texttt{IEEE<F>} effect context.}
+The wrapper type \texttt{IEEE<F>} (where \texttt{F} is a \texttt{std::floating\_point} type) acts as an opt-in semantic boundary.
+Entering the context via \texttt{assume\_ieee(x)} asserts that the caller accepts IEEE~754 semantics \cite{ieee754_2019}; exiting via \texttt{discharge\_ieee(v)} recovers the raw value.
+The module-import boundary in C++23 plays a dual role: it is both a compilation unit edge and a conceptual quarantine zone that prevents unintentional widening of the certified region.
+
+\paragraph{Algebraic certification by policy fiat.}
+Rather than relying on the host language's implicit floating-point laws, the library explicitly registers algebraic structure for its operation tokens.
+\texttt{IEEEAdd<F>} and \texttt{IEEEMul<F>} are stateless tag types equipped with \texttt{SpeciesTraits} that declare Kleene-associativity and the appropriate identity element.
+These declarations are placed in the \texttt{dedekind::category} namespace so that the category-layer concept \texttt{IsAssociative<T, Op>}---defined in the \texttt{:total} partition~(\S\,\ref{sec:total-partition} if present)---can resolve for \texttt{T = IEEE<F>} without any further boilerplate at the call site.
+
+\paragraph{First-order error propagation (\texttt{dedekind.numbers.approx}).}
+The companion module supplies the \texttt{Approx<F>} envelope, which pairs a central value with a non-negative uncertainty radius.
+Given an operation token \texttt{Op}, the function
+\begin{equation}
+  \texttt{propagate<F,\,Op>(a,\,b,\,op)}
+\end{equation}
+computes the output value together with a first-order uncertainty bound derived from the Jacobian-style sensitivities provided by \texttt{Op::sensitivity(x,\,y)}.
+The propagation formula follows the classical treatment of \citet{ku1966notes}:
+\begin{equation}
+  \delta z \;\approx\; \bigl|\tfrac{\partial f}{\partial x}\bigr|\,\delta x
+                    + \bigl|\tfrac{\partial f}{\partial y}\bigr|\,\delta y ,
+\end{equation}
+with an additive machine-epsilon contribution modelled after the round-off proxy analysis of \citet{higham2002accuracy}.
+This deliberately avoids the full interval-arithmetic cost \cite{goodman1960exact} while still surfacing first-order conditioning information at run time.
+
+\paragraph{Propagation policies.}
+Three composable strategies govern how \texttt{Approx<F>} reacts when the computed uncertainty exceeds a configurable threshold:
+\begin{itemize}
+  \item \textbf{\texttt{IgnoreErrorPolicy}}: discard the uncertainty tracker and return the raw IEEE value; maximises throughput for well-conditioned call sites.
+  \item \textbf{\texttt{ReportErrorPolicy}}: surface the outcome as a \texttt{TernaryResult} (Regular / NearZero / Huge / NonFinite), providing a structured signal without aborting the pipeline.
+  \item \textbf{\texttt{AdaptiveErrorPolicy}}: inspect local cancellation diagnostics and, when the condition number indicates risk, prefer the safer association or factorisation \cite{ogita2005accurate}.
+\end{itemize}
+All three policies are zero-overhead at compile time when the uncertainty radius is statically known to be zero.
+
+\paragraph{Concept-level contract: \texttt{IsIEEEPropagationOp<Op,\,F>}.}
+The constraint exported by \texttt{dedekind.numbers.approx} is grounded in the category layer rather than ad-hoc type traits:
+\begin{lstlisting}[language=C++,caption={Concept grounding the propagation contract on categorical associativity.}]
+export template <typename Op, typename F>
+concept IsIEEEPropagationOp =
+    std::floating_point<F> && IsAssociative<IEEE<F>, Op> &&
+    requires(const Op& op, const IEEE<F>& x, const IEEE<F>& y) {
+      { op({x, y}) } -> std::same_as<IEEE<F>>;
+      { Op::sensitivity(x, y) } -> std::same_as<std::pair<F, F>>;
+    };
+\end{lstlisting}
+The \texttt{IsAssociative<IEEE<F>, Op>} clause delegates the associativity proof to the same concept that governs all algebraic structures in the library, ensuring that the numeric fast lane is not an isolated corner of the type hierarchy but a fully categorified citizen of the \texttt{dedekind} ontology.
+
 \subsection{Semantics}
 \section{Results}
 

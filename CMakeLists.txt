@@ -101,27 +101,35 @@ function(add_dedekind_layer LAYER_NAME DEPENDS_ON)
         target_link_libraries(${LIB_TARGET} PUBLIC ${DEPENDS_ON})
     endif()
 
-    add_executable(${TEST_TARGET} ${TEST_SOURCES})
-    set_target_properties(${TEST_TARGET} PROPERTIES CXX_SCAN_FOR_MODULES ON)
-    target_link_libraries(${TEST_TARGET} PRIVATE ${LIB_TARGET} Catch2::Catch2WithMain)
+    if(TEST_SOURCES)
+        add_executable(${TEST_TARGET} ${TEST_SOURCES})
+        set_target_properties(${TEST_TARGET} PROPERTIES CXX_SCAN_FOR_MODULES ON)
+        target_link_libraries(${TEST_TARGET} PRIVATE ${LIB_TARGET} Catch2::Catch2WithMain)
+    endif()
 
     # Instrumentation
     # Only apply the warnings here (Coverage is now global via add_compile_options)
     target_compile_options(${LIB_TARGET} PRIVATE ${DEDEKIND_WARNING_FLAGS})
-    target_compile_options(${TEST_TARGET} PRIVATE ${DEDEKIND_WARNING_FLAGS})
-    if(DEDEKIND_RUNTIME_COVERAGE_BRIDGES)
-        target_compile_definitions(${TEST_TARGET}
-            PRIVATE DEDEKIND_RUNTIME_COVERAGE_BRIDGES)
+    if(TEST_SOURCES)
+        target_compile_options(${TEST_TARGET} PRIVATE ${DEDEKIND_WARNING_FLAGS})
+        if(DEDEKIND_RUNTIME_COVERAGE_BRIDGES)
+            target_compile_definitions(${TEST_TARGET}
+                PRIVATE DEDEKIND_RUNTIME_COVERAGE_BRIDGES)
+        endif()
     endif()
 
     # Force whole-archive to ensure all module code is instrumented
-    if(APPLE)
-        target_link_options(${TEST_TARGET} PRIVATE "-Wl,-force_load,$<TARGET_FILE:${LIB_TARGET}>")
-    else()
-        target_link_options(${TEST_TARGET} PRIVATE "-Wl,--whole-archive" "$<TARGET_FILE:${LIB_TARGET}>" "-Wl,--no-whole-archive")
+    if(TEST_SOURCES)
+        if(APPLE)
+            target_link_options(${TEST_TARGET} PRIVATE "-Wl,-force_load,$<TARGET_FILE:${LIB_TARGET}>")
+        else()
+            target_link_options(${TEST_TARGET} PRIVATE "-Wl,--whole-archive" "$<TARGET_FILE:${LIB_TARGET}>" "-Wl,--no-whole-archive")
+        endif()
     endif()
 
-    add_test(NAME ${TEST_TARGET} COMMAND ${TEST_TARGET})
+    if(TEST_SOURCES)
+        add_test(NAME ${TEST_TARGET} COMMAND ${TEST_TARGET})
+    endif()
 
     # Use an absolute path for the profile file, utilizing GITHUB_WORKSPACE if available
     if(DEFINED ENV{GITHUB_WORKSPACE})
@@ -130,18 +138,23 @@ function(add_dedekind_layer LAYER_NAME DEPENDS_ON)
         set(PROFILE_DIR "${CMAKE_BINARY_DIR}")
     endif()
 
-    set_tests_properties(${TEST_TARGET} PROPERTIES 
-        ENVIRONMENT "LLVM_PROFILE_FILE=${PROFILE_DIR}/dedekind-${LAYER_NAME}-%m.profraw"
-    )
+    if(TEST_SOURCES)
+        set_tests_properties(${TEST_TARGET} PROPERTIES 
+            ENVIRONMENT "LLVM_PROFILE_FILE=${PROFILE_DIR}/dedekind-${LAYER_NAME}-%m.profraw"
+        )
+    endif()
 
     # Track binaries for the final coverage report
-    set_property(GLOBAL APPEND PROPERTY DEDEKIND_ALL_TEST_BINARIES $<TARGET_FILE:${TEST_TARGET}>)
+    if(TEST_SOURCES)
+        set_property(GLOBAL APPEND PROPERTY DEDEKIND_ALL_TEST_BINARIES $<TARGET_FILE:${TEST_TARGET}>)
+    endif()
     set_property(GLOBAL APPEND PROPERTY DEDEKIND_ALL_LIB_ARCHIVES $<TARGET_FILE:${LIB_TARGET}>)
 endfunction()
 
 # --- THE PROPOSITIONS (Serialized by Libraries) ---
 add_dedekind_layer(category "")
-add_dedekind_layer(sets dedekind_category)
+add_dedekind_layer(ieee dedekind_category)
+add_dedekind_layer(sets dedekind_ieee)
 add_dedekind_layer(order dedekind_sets)
 add_dedekind_layer(topology dedekind_order)
 add_dedekind_layer(sequences dedekind_topology)
@@ -159,14 +172,14 @@ add_dedekind_layer(analysis dedekind_numbers)
 # corresponds to a module interface unit.
 # The "dedekind" library is the final product
 add_library(dedekind INTERFACE)
-add_dependencies(dedekind dedekind_category dedekind_sets dedekind_order dedekind_topology dedekind_sequences dedekind_algebra dedekind_morphologies dedekind_geometry dedekind_numbers dedekind_analysis)
+add_dependencies(dedekind dedekind_category dedekind_ieee dedekind_sets dedekind_order dedekind_topology dedekind_sequences dedekind_algebra dedekind_morphologies dedekind_geometry dedekind_numbers dedekind_analysis)
 # No source files needed here; it just bundles the objects
-target_link_libraries(dedekind INTERFACE dedekind_category dedekind_sets dedekind_order dedekind_topology dedekind_sequences dedekind_algebra dedekind_morphologies dedekind_geometry dedekind_numbers dedekind_analysis)
+target_link_libraries(dedekind INTERFACE dedekind_category dedekind_ieee dedekind_sets dedekind_order dedekind_topology dedekind_sequences dedekind_algebra dedekind_morphologies dedekind_geometry dedekind_numbers dedekind_analysis)
 target_compile_features(dedekind INTERFACE cxx_std_23)
 
 target_compile_options(dedekind INTERFACE ${DEDEKIND_WARNING_FLAGS})
 
-install(TARGETS dedekind dedekind_category dedekind_sets dedekind_order dedekind_topology dedekind_sequences dedekind_algebra dedekind_morphologies dedekind_geometry dedekind_numbers dedekind_analysis
+install(TARGETS dedekind dedekind_category dedekind_ieee dedekind_sets dedekind_order dedekind_topology dedekind_sequences dedekind_algebra dedekind_morphologies dedekind_geometry dedekind_numbers dedekind_analysis
     EXPORT dedekind-targets
     # Ensure CXX_MODULES are installed for all targets
     FILE_SET CXX_MODULES DESTINATION lib/modules/dedekind
