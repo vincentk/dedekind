@@ -3,6 +3,7 @@ module;
 #include <concepts>
 #include <numeric>
 #include <stdexcept>
+#include <utility>
 
 /**
  * @file dedekind/numbers/rational.cppm
@@ -139,11 +140,12 @@ struct PartialMulRational {
 };
 
 /**
- * @brief Honest division for Rational<I>: exact only if numerator divides
- * exactly.
+ * @brief Division transform for Rational<I>.
  *
- * Returns Ternary::Unknown if the result would truncate when viewed as pure
- * integer division.
+ * Since Rational<I> models exact arithmetic in the quotient field,
+ * division does not truncate the way integer division can. Accordingly,
+ * this returns Ternary::True whenever the rational quotient is formed.
+ * Division by zero propagates via Rational::inverse(), which may throw.
  */
 export template <IsInteger I>
 struct HonestDivRational {
@@ -151,7 +153,7 @@ struct HonestDivRational {
   using logic_species = TernaryLogic;
 
   TernaryResult<Rational<I>> operator()(
-      std::pair<const Rational<I>&, const Rational<I>&> p) const noexcept {
+      std::pair<const Rational<I>&, const Rational<I>&> p) const {
     auto [a, b] = p;
     return {Ternary::True, a / b};  // Rational division is exact by definition
   }

@@ -57,7 +57,8 @@ class Complex {
  * @brief Partial addition transform for Complex<R>.
  *
  * Complex addition is component-wise on the scalar type R.
- * The partiality status is inherited from R's carrier type.
+ * The operation always completes (returns Ternary::True); any
+ * non-finite results from the carrier are observable in the value.
  */
 export template <typename R>
   requires IsComplexScalar<R>
@@ -94,11 +95,13 @@ struct PartialMulComplex {
 /**
  * @brief Identity and Associativity traits for Complex arithmetic.
  *
- * Complex<R> arithmetic satisfies:
- * - Kleene associativity: addition and multiplication form associative
- * operations
- * - Kleene commutativity: both operations are commutative
- * - Partial identities: 0+0i for addition, 1+0i for multiplication
+ * Complex<R> arithmetic is commutative (same component-wise FP operations
+ * regardless of argument order) but NOT associative when R is a floating-point
+ * type: rounding means (a+b)+c ≠ a+(b+c) in general.
+ * Commutativity holds; associativity-by-fiat belongs to the IEEE<F> opt-in
+ * wrapper only.
+ *
+ * Partial identities: 0+0i for addition, 1+0i for multiplication.
  *
  * Specializations are declared in the dedekind::category namespace (see below).
  */
@@ -124,13 +127,12 @@ struct PartialEmbedRealToComplex {
 
 namespace dedekind::category {
 
-/** @brief Kleene traits for complex arithmetic. */
-template <typename R>
-  requires dedekind::numbers::IsComplexScalar<R>
-inline constexpr bool is_kleene_associative_v<
-    dedekind::numbers::Complex<R>, dedekind::numbers::PartialAddComplex<R>> =
-    true;
-
+/** @brief Kleene traits for complex arithmetic.
+ *
+ * Commutativity holds for IEEE 754 component-wise operations.
+ * Associativity does NOT hold for floating-point carriers — that opt-in
+ * belongs exclusively to dedekind::ieee::IEEE<F>.
+ */
 template <typename R>
   requires dedekind::numbers::IsComplexScalar<R>
 inline constexpr bool is_kleene_commutative_v<
@@ -142,12 +144,6 @@ template <typename R>
 inline constexpr dedekind::numbers::Complex<R> partial_identity_v<
     dedekind::numbers::Complex<R>, dedekind::numbers::PartialAddComplex<R>> =
     dedekind::numbers::Complex<R>{R{}, R{}};
-
-template <typename R>
-  requires dedekind::numbers::IsComplexScalar<R>
-inline constexpr bool is_kleene_associative_v<
-    dedekind::numbers::Complex<R>, dedekind::numbers::PartialMulComplex<R>> =
-    true;
 
 template <typename R>
   requires dedekind::numbers::IsComplexScalar<R>

@@ -7,6 +7,7 @@ module;
 
 #include <concepts>
 #include <cstddef>
+#include <type_traits>
 #include <utility>
 
 export module dedekind.numbers:real;
@@ -112,7 +113,7 @@ struct PartialMulReal {
  * @brief Partial division for Real<S> with zero-check.
  *
  * Returns Ternary::False if divisor is zero (for double), reflecting
- * the IEEE 754 undefined behavior.
+ * the IEEE 754 behavior of producing non-finite values (±∞ or NaN).
  */
 export template <IsRealCarrier S>
 struct PartialDivReal {
@@ -126,7 +127,7 @@ struct PartialDivReal {
     // We flag this as False to indicate undefined behavior
     if constexpr (std::is_floating_point_v<S>) {
       if (b.resolve() == S{0}) {
-        return {Ternary::False, a / b};  // Produces inf/nan
+        return {Ternary::False, a / b};  // Produces ±∞ or NaN per IEEE 754
       }
     }
     return {Ternary::True, a / b};
@@ -136,11 +137,13 @@ struct PartialDivReal {
 /**
  * @brief Identity and Associativity traits for Real arithmetic.
  *
- * Real<S> arithmetic (e.g., with S = double) satisfies:
- * - Kleene associativity *approximately*: if both sides are computed, they're
- *   equal up to rounding
- * - Kleene commutativity: multiplication is formally commutative (barring NaN)
- * - Partial identities: 0 for addition, 1 for multiplication
+ * Real<S> arithmetic (e.g., with S = double) is commutative but NOT
+ * associative: floating-point rounding means (a+b)+c ≠ a+(b+c) in general.
+ * Commutativity holds for all IEEE 754 operations (barring no special cases
+ * that differ by order). Associativity-by-fiat is reserved for the
+ * explicit dedekind::ieee::IEEE<F> opt-in wrapper.
+ *
+ * Partial identities: 0 for addition, 1 for multiplication.
  *
  * Specializations are declared in the dedekind::category namespace (see below).
  */
@@ -184,11 +187,12 @@ struct PartialEmbedRationalToReal {
 
 namespace dedekind::category {
 
-/** @brief Kleene traits for real arithmetic. */
-template <dedekind::numbers::IsRealCarrier S>
-inline constexpr bool is_kleene_associative_v<
-    dedekind::numbers::Real<S>, dedekind::numbers::PartialAddReal<S>> = true;
-
+/** @brief Kleene traits for real arithmetic.
+ *
+ * Commutativity holds for IEEE 754 addition and multiplication.
+ * Associativity does NOT hold for floating-point — that opt-in belongs
+ * exclusively to dedekind::ieee::IEEE<F>.
+ */
 template <dedekind::numbers::IsRealCarrier S>
 inline constexpr bool is_kleene_commutative_v<
     dedekind::numbers::Real<S>, dedekind::numbers::PartialAddReal<S>> = true;
@@ -197,10 +201,6 @@ template <dedekind::numbers::IsRealCarrier S>
 inline constexpr dedekind::numbers::Real<S> partial_identity_v<
     dedekind::numbers::Real<S>, dedekind::numbers::PartialAddReal<S>> =
     dedekind::numbers::Real<S>{S{0}};
-
-template <dedekind::numbers::IsRealCarrier S>
-inline constexpr bool is_kleene_associative_v<
-    dedekind::numbers::Real<S>, dedekind::numbers::PartialMulReal<S>> = true;
 
 template <dedekind::numbers::IsRealCarrier S>
 inline constexpr bool is_kleene_commutative_v<

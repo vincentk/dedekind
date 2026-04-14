@@ -316,22 +316,24 @@ static_assert(partial_identity_v<Rational<machine_integer>,
                                  PartialMulRational<machine_integer>>.num() ==
               1);
 
-static_assert(is_kleene_associative_v<Real<machine_real_scalar>,
-                                      PartialAddReal<machine_real_scalar>>);
+// Floating-point is commutative but NOT associative: (a+b)+c != a+(b+c) due to rounding.
+// Associativity-by-fiat is reserved for the explicit dedekind::ieee::IEEE<F> opt-in.
+static_assert(!is_kleene_associative_v<Real<machine_real_scalar>,
+                                       PartialAddReal<machine_real_scalar>>);
 static_assert(is_kleene_commutative_v<Real<machine_real_scalar>,
                                       PartialAddReal<machine_real_scalar>>);
 
-static_assert(is_kleene_associative_v<Real<machine_real_scalar>,
-                                      PartialMulReal<machine_real_scalar>>);
+static_assert(!is_kleene_associative_v<Real<machine_real_scalar>,
+                                       PartialMulReal<machine_real_scalar>>);
 static_assert(is_kleene_commutative_v<Real<machine_real_scalar>,
                                       PartialMulReal<machine_real_scalar>>);
 
-static_assert(is_kleene_associative_v<Complex<machine_real_scalar>,
-                                      PartialAddComplex<machine_real_scalar>>);
+static_assert(!is_kleene_associative_v<Complex<machine_real_scalar>,
+                                       PartialAddComplex<machine_real_scalar>>);
 static_assert(is_kleene_commutative_v<Complex<machine_real_scalar>,
                                       PartialAddComplex<machine_real_scalar>>);
 
-static_assert(is_kleene_associative_v<Complex<machine_real_scalar>,
-                                      PartialMulComplex<machine_real_scalar>>);
+static_assert(!is_kleene_associative_v<Complex<machine_real_scalar>,
+                                       PartialMulComplex<machine_real_scalar>>);
 static_assert(is_kleene_commutative_v<Complex<machine_real_scalar>,
                                       PartialMulComplex<machine_real_scalar>>);
