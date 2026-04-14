@@ -93,8 +93,8 @@ struct IgnoreErrorPolicy {
 /** @brief Adaptive policy: respond to risky regions via ternary status. */
 export template <std::floating_point F = double>
 struct AdaptiveErrorPolicy {
-  constexpr TernaryResult<Approx<F>> operator()(const IEEE<F>& x) const
-      noexcept {
+  constexpr TernaryResult<Approx<F>> operator()(
+      const IEEE<F>& x) const noexcept {
     const auto report = ReportErrorPolicy<F>{}(x);
 
     if (report.region == NumericRegion::NonFinite) {
@@ -157,8 +157,8 @@ constexpr Approx<F> demo_add_report(const IEEE<F>& a,
 
 /** @brief Demo operation: IEEE add under adaptive policy. */
 export template <std::floating_point F = double>
-constexpr TernaryResult<Approx<F>> demo_add_adaptive(const IEEE<F>& a,
-                                                      const IEEE<F>& b) noexcept {
+constexpr TernaryResult<Approx<F>> demo_add_adaptive(
+    const IEEE<F>& a, const IEEE<F>& b) noexcept {
   return AdaptiveErrorPolicy<F>{}(a + b);
 }
 

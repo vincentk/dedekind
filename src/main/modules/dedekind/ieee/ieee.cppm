@@ -69,7 +69,8 @@ constexpr IEEE<F> ieee_bind(const IEEE<F>& x, Func&& f) {
   return f(x.resolve());
 }
 
-/** @brief Certified operation token for addition under IEEE-by-fiat semantics. */
+/** @brief Certified operation token for addition under IEEE-by-fiat semantics.
+ */
 export template <std::floating_point F>
 struct IEEEAdd {
   using value_type = IEEE<F>;
@@ -87,7 +88,8 @@ struct IEEEAdd {
   }
 };
 
-/** @brief Certified operation token for multiplication under IEEE-by-fiat semantics. */
+/** @brief Certified operation token for multiplication under IEEE-by-fiat
+ * semantics. */
 export template <std::floating_point F>
 struct IEEEMul {
   using value_type = IEEE<F>;
