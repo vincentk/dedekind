@@ -1079,6 +1079,8 @@ Following the fractal progression of the library, the \texttt{:functor} partitio
 
 The implementation centers on a high-level \texttt{fmap} dispatcher. Leveraging C++23 template-template parameters (e.g., \texttt{template <typename> typename F}), the dispatcher ensures that functorial mapping is a zero-overhead operation. This architecture shields the user from the underlying machine representation while maintaining strict categorical rigor. By verifying that $F(g \circ f) = F(g) \circ F(f)$ at compile-time, the compiler ensures that the structural integrity of the mathematical model remains invariant under transformation.
 
+The current implementation now makes explicit several constructions that previously remained only implicit in downstream partitions. First, endofunctors can be equipped with typed algebra and coalgebra witnesses, reifying the classical signatures $F(A) \to A$ and $A \to F(A)$ without abandoning the hub/spoke discipline. Second, the library exposes an adjunction witness as a typed unit/counit package, sufficient to state and test small adjoint situations directly in code. Third, the partition exports an iterative fixed-point operator, allowing monotone or stabilizing endomorphisms to be expressed in the category layer before any domain-specific recursion machinery is introduced.
+
 \begin{lstlisting}[language=C++, caption={Functorial Mapping: Mappings as zero-overhead dispatchers.}, label={lst:functor_fmap}]
 /** 
  * @brief The Functorial Dispatcher (fmap).
@@ -1092,6 +1094,22 @@ constexpr auto fmap(Arrow f) {
 // Verification: Functors must preserve the Identity Morphism.
 // Here, 'F' represents a generic skeletal functor.
 static_assert(PreservesIdentity<F, int>);
+\end{lstlisting}
+
+\begin{lstlisting}[language=C++, caption={Endofunctor algebras, adjunction witnesses, and fixed points.}, label={lst:functor_algebra_fixpoint}]
+using IntCat = DiscreteCategory<int>;
+using IdF = identity_functor<IntCat>;
+
+auto successor = arrow([](int x) { return x + 1; });
+auto identity = arrow([](int x) { return x; });
+
+static_assert(IsFAlgebra<int, decltype(successor), IdF>);
+auto algebra = make_f_algebra(IdF{}, successor);
+auto adjunction = make_adjunction(IdF{}, IdF{}, identity, identity);
+
+constexpr auto stable = least_fixpoint(0, [](int x) {
+    return x < 5 ? x + 1 : x;
+});
 \end{lstlisting}
 
 \subsection{The \texttt{:natural} partition: Natural Transformations}
@@ -1800,7 +1818,7 @@ Key references: Davey \& Priestley~\cite{davey2002introduction}, Birkhoff~\cite{
 
 \section{Implementation}
 
-The module is a single-partition layer exposing four graduated order concepts, each a conservative extension of the last.
+The module is a single-partition layer exposing a graduated chain of order concepts, each a conservative extension of the last. In the current iteration, it also reuses the certified semilattice and lattice notions already established in \texttt{dedekind.category:posetal}, so the order-facing API now aligns more closely with the categorical substrate instead of maintaining a parallel taxonomy.
 
 \begin{table}[ht]
 \centering
@@ -1814,6 +1832,9 @@ Pre-order ($\leq$, reflexive + transitive) & \texttt{operator<=} & \texttt{IsPre
 Directed set (join-semilattice) & \texttt{operator|} & \texttt{IsDirectedSet<T>} \\
 Partial order (+ antisymmetry) & \texttt{std::partial\_ordering} & \texttt{IsPartiallyOrdered<T>} \\
 Total order (chain, no parallelism) & \texttt{std::totally\_ordered<T>} & \texttt{IsTotallyOrdered<T>} \\
+Meet-semilattice (greatest lower bound) & \texttt{std::ranges::min} & \texttt{IsOrderMeetSemilattice<T>} \\
+Join-semilattice (least upper bound) & \texttt{std::ranges::max} & \texttt{IsOrderJoinSemilattice<T>} \\
+Distributive lattice & paired extrema operators & \texttt{IsOrderDistributiveLattice<T>} \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -1826,6 +1847,9 @@ using namespace dedekind::order;
 STATIC_CHECK(IsPreOrdered<int>);
 STATIC_CHECK(IsPartiallyOrdered<int>);
 STATIC_CHECK(IsTotallyOrdered<int>);
+STATIC_CHECK(IsOrderMeetSemilattice<int>);
+STATIC_CHECK(IsOrderJoinSemilattice<int>);
+STATIC_CHECK(IsOrderDistributiveLattice<int>);
 
 // Booleans form a poset (total order requires a witness)
 STATIC_CHECK(IsPartiallyOrdered<bool>);
@@ -1833,8 +1857,7 @@ STATIC_CHECK(IsPartiallyOrdered<bool>);
 
 \section{Results}
 
-The module validates that every concrete arithmetic species registered in \texttt{dedekind.category} satisfies at least \texttt{IsPreOrdered}.
-Machine integers pass all four levels, confirming their certification as fully ordered chains.
+The module validates that every concrete arithmetic species registered in \texttt{dedekind.category} satisfies at least \texttt{IsPreOrdered}. Machine integers pass the full chain together with the re-exported posetal lattice certifications, confirming that the order layer now acts as a thin, literature-aligned facade over the richer categorical order machinery rather than an independent taxonomy.
 
 
 \chapter{\texttt{dedekind.topology}}

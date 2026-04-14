@@ -19,6 +19,7 @@
  * Wikipedia: Order theory, Directed set, Partial order, Strict weak ordering
  */
 module;
+#include <algorithm>
 #include <concepts>
 #include <functional>
 
@@ -48,8 +49,8 @@ concept IsPreOrdered =
  *          This is the "Ground" for all Nets and Sequences.
  */
 export template <typename D, typename L = ClassicalLogic>
-concept IsDirectedSet =
-    IsPreOrdered<D, L> && dedekind::sets::IsJoinSemilattice<D>;
+concept IsDirectedSet = IsPreOrdered<D, L> &&
+                        dedekind::category::IsCertifiedOrderJoinSemilattice<D>;
 
 /**
  * @concept IsPartiallyOrdered
@@ -87,6 +88,41 @@ concept IsTotallyOrdered = IsPartiallyOrdered<T> && std::totally_ordered<T>;
 /** @brief Synonym for Total Order. */
 export template <typename T>
 concept IsLinearOrder = IsTotallyOrdered<T>;
+
+/**
+ * @concept IsOrderMeetSemilattice
+ * @brief Re-export the certified meet-semilattice stage from `:posetal`.
+ */
+export template <typename T, typename Meet = decltype(std::ranges::min)>
+concept IsOrderMeetSemilattice =
+    dedekind::category::IsCertifiedOrderMeetSemilattice<T, Meet>;
+
+/**
+ * @concept IsOrderJoinSemilattice
+ * @brief Re-export the certified join-semilattice stage from `:posetal`.
+ */
+export template <typename T, typename Join = decltype(std::ranges::max)>
+concept IsOrderJoinSemilattice =
+    dedekind::category::IsCertifiedOrderJoinSemilattice<T, Join>;
+
+/**
+ * @concept IsOrderLattice
+ * @brief Re-export the certified lattice stage from `:posetal`.
+ */
+export template <typename T, typename Join = decltype(std::ranges::max),
+                 typename Meet = decltype(std::ranges::min)>
+concept IsOrderLattice =
+    dedekind::category::IsCertifiedOrderLatticeOperations<T, Join, Meet>;
+
+/**
+ * @concept IsOrderDistributiveLattice
+ * @brief Re-export the certified distributive lattice stage from `:posetal`.
+ */
+export template <typename T, typename Join = decltype(std::ranges::max),
+                 typename Meet = decltype(std::ranges::min)>
+concept IsOrderDistributiveLattice =
+    dedekind::category::IsCertifiedOrderDistributiveLatticeOperations<T, Join,
+                                                                      Meet>;
 
 /**
  * @concept IsSuccessor

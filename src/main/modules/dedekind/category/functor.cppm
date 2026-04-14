@@ -74,6 +74,7 @@
 module;
 
 #include <concepts>
+#include <cstddef>
 #include <functional>
 #include <optional>
 #include <string>
@@ -464,6 +465,187 @@ export template <typename Context>
 concept IsEndofunctor =
     IsFunctor<Context> &&
     std::same_as<typename Context::Σ_cat, typename Context::Τ_cat>;
+
+/**
+ * @concept IsIterativeEndomorphism
+ * @brief A stabilizing step function on a carrier species.
+ */
+export template <typename T, typename Step>
+concept IsIterativeEndomorphism =
+    std::invocable<Step, T> && std::same_as<std::invoke_result_t<Step, T>, T>;
+
+/**
+ * @concept IsFAlgebra
+ * @brief A carrier `A` equipped with a structure map `F<A> -> A`.
+ */
+export template <typename Carrier, typename Structure, typename Functor>
+concept IsFAlgebra = IsEndofunctor<Functor> && IsArrow<Structure> &&
+                     std::same_as<typename Structure::Domain,
+                                  typename Functor::template Shape<Carrier>> &&
+                     std::same_as<typename Structure::Codomain, Carrier>;
+
+/**
+ * @concept IsFCoalgebra
+ * @brief A carrier `A` equipped with a structure map `A -> F<A>`.
+ */
+export template <typename Carrier, typename Structure, typename Functor>
+concept IsFCoalgebra = IsEndofunctor<Functor> && IsArrow<Structure> &&
+                       std::same_as<typename Structure::Domain, Carrier> &&
+                       std::same_as<typename Structure::Codomain,
+                                    typename Functor::template Shape<Carrier>>;
+
+/**
+ * @brief A concrete witness for an `F`-algebra.
+ */
+export template <typename Carrier, typename Functor, typename Structure>
+  requires IsFAlgebra<Carrier, Structure, Functor>
+struct f_algebra {
+  using carrier_type = Carrier;
+  using functor_type = Functor;
+  using structure_type = Structure;
+
+  Functor functor{};
+  Structure structure{};
+
+  constexpr auto operator()(
+      typename Functor::template Shape<Carrier> const& x) const {
+    return std::invoke(structure, x);
+  }
+};
+
+/**
+ * @brief A concrete witness for an `F`-coalgebra.
+ */
+export template <typename Carrier, typename Functor, typename Structure>
+  requires IsFCoalgebra<Carrier, Structure, Functor>
+struct f_coalgebra {
+  using carrier_type = Carrier;
+  using functor_type = Functor;
+  using structure_type = Structure;
+
+  Functor functor{};
+  Structure structure{};
+
+  constexpr auto operator()(Carrier const& x) const {
+    return std::invoke(structure, x);
+  }
+};
+
+/**
+ * @brief Factory for `F`-algebra witnesses.
+ */
+export template <typename Functor, typename Structure>
+  requires IsEndofunctor<std::remove_cvref_t<Functor>> &&
+           IsArrow<std::remove_cvref_t<Structure>>
+constexpr auto make_f_algebra(Functor&& functor, Structure&& structure) {
+  using algebra_functor = std::remove_cvref_t<Functor>;
+  using algebra_structure = std::remove_cvref_t<Structure>;
+  using carrier = typename algebra_structure::Codomain;
+
+  static_assert(IsFAlgebra<carrier, algebra_structure, algebra_functor>);
+
+  return f_algebra<carrier, algebra_functor, algebra_structure>{
+      std::forward<Functor>(functor), std::forward<Structure>(structure)};
+}
+
+/**
+ * @brief Factory for `F`-coalgebra witnesses.
+ */
+export template <typename Functor, typename Structure>
+  requires IsEndofunctor<std::remove_cvref_t<Functor>> &&
+           IsArrow<std::remove_cvref_t<Structure>>
+constexpr auto make_f_coalgebra(Functor&& functor, Structure&& structure) {
+  using coalgebra_functor = std::remove_cvref_t<Functor>;
+  using coalgebra_structure = std::remove_cvref_t<Structure>;
+  using carrier = typename coalgebra_structure::Domain;
+
+  static_assert(IsFCoalgebra<carrier, coalgebra_structure, coalgebra_functor>);
+
+  return f_coalgebra<carrier, coalgebra_functor, coalgebra_structure>{
+      std::forward<Functor>(functor), std::forward<Structure>(structure)};
+}
+
+/**
+ * @concept IsAdjunction
+ * @brief A typed unit/counit witness relating a left and right functor.
+ */
+export template <typename Left, typename Right, typename Unit, typename Counit>
+concept IsAdjunction =
+    IsFunctor<Left> && IsFunctor<Right> && IsArrow<Unit> && IsArrow<Counit> &&
+    std::same_as<typename Left::Σ_cat, typename Right::Τ_cat> &&
+    std::same_as<typename Left::Τ_cat, typename Right::Σ_cat> &&
+    std::same_as<typename Unit::Domain, typename Left::Σ_cat::Species> &&
+    std::same_as<typename Unit::Codomain,
+                 typename Right::template Shape<typename Left::template Shape<
+                     typename Left::Σ_cat::Species>>> &&
+    std::same_as<typename Counit::Domain,
+                 typename Left::template Shape<typename Right::template Shape<
+                     typename Right::Σ_cat::Species>>> &&
+    std::same_as<typename Counit::Codomain, typename Right::Σ_cat::Species>;
+
+/**
+ * @brief Typed unit/counit data for an adjunction witness.
+ */
+export template <typename Left, typename Right, typename Unit, typename Counit>
+  requires IsAdjunction<Left, Right, Unit, Counit>
+struct adjunction_witness {
+  using left_functor_type = Left;
+  using right_functor_type = Right;
+  using unit_type = Unit;
+  using counit_type = Counit;
+
+  Left left{};
+  Right right{};
+  Unit unit{};
+  Counit counit{};
+};
+
+/**
+ * @brief Factory for adjunction witnesses.
+ */
+export template <typename Left, typename Right, typename Unit, typename Counit>
+  requires IsAdjunction<std::remove_cvref_t<Left>, std::remove_cvref_t<Right>,
+                        std::remove_cvref_t<Unit>, std::remove_cvref_t<Counit>>
+constexpr auto make_adjunction(Left&& left, Right&& right, Unit&& unit,
+                               Counit&& counit) {
+  return adjunction_witness<
+      std::remove_cvref_t<Left>, std::remove_cvref_t<Right>,
+      std::remove_cvref_t<Unit>, std::remove_cvref_t<Counit>>{
+      std::forward<Left>(left), std::forward<Right>(right),
+      std::forward<Unit>(unit), std::forward<Counit>(counit)};
+}
+
+/**
+ * @brief Iteratively compute a fixed point of an endomorphism.
+ *
+ * @details The function stops when `equal(next, current)` holds or after the
+ * configured iteration budget. This gives the category layer a concrete,
+ * typed fixed-point operator without hard-coding any specific domain theory.
+ */
+export template <typename T, typename Step, typename Equal = std::equal_to<>>
+  requires IsIterativeEndomorphism<T, Step> && std::predicate<Equal, T, T>
+constexpr T fixed_point(T seed, Step step, Equal equal = {},
+                        std::size_t max_iterations = 1024) {
+  auto current = seed;
+
+  for (std::size_t i = 0; i < max_iterations; ++i) {
+    auto next = std::invoke(step, current);
+    if (std::invoke(equal, next, current)) {
+      return next;
+    }
+    current = next;
+  }
+
+  return current;
+}
+
+/** @brief Alias emphasizing order-theoretic reading of the fixed point. */
+export template <typename T, typename Step, typename Equal = std::equal_to<>>
+  requires IsIterativeEndomorphism<T, Step> && std::predicate<Equal, T, T>
+constexpr T least_fixpoint(T seed, Step step, Equal equal = {},
+                           std::size_t max_iterations = 1024) {
+  return fixed_point(seed, step, equal, max_iterations);
+}
 
 /**
  * @brief TraceFunctor: Maps Set -> StringCategory.
