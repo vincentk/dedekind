@@ -93,10 +93,15 @@ TEST_CASE("Boundaries: The Algebra of Extremality", "[sets][boundaries]") {
 
   SECTION("Cardinality bounds for intensional/transfinite sets use sentinel") {
     constexpr ℕ naturals;
+    constexpr Ø<ℤ> empty;
+    constexpr SingletonSet<ℤ> singleton{7};
     const auto max_v = std::numeric_limits<std::size_t>::max();
 
     CHECK(bound_meet(universe, naturals) == max_v);
     CHECK(bound_join(universe, naturals) == max_v);
+
+    CHECK(bound_meet(empty, naturals) == 0);
+    CHECK(bound_meet(singleton, naturals) == 1);
   }
 
   SECTION("Identity optimizations remain structurally valid") {

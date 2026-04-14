@@ -234,17 +234,28 @@ export inline constexpr ℕ N{};
 /**
  * @brief ETCS-aligned upper bound for meet/intersection cardinality.
  * @details For extensional sets with explicit `upper_bound()`, this is
- *          `min(bound(A), bound(B))`. For intensional/transfinite species,
- *          the function returns the maximal finite sentinel.
+ *          `min(bound(A), bound(B))`. If exactly one operand provides an
+ *          explicit finite bound, that bound is still a valid upper bound
+ *          for the meet. For fully intensional/transfinite pairs where
+ *          neither side exposes `upper_bound()`, the function returns the
+ *          maximal finite sentinel.
  */
 export template <typename S1, typename S2>
 constexpr std::size_t bound_meet(const S1& lhs, const S2& rhs) {
-  if constexpr (requires {
-                  { lhs.upper_bound() } -> std::convertible_to<std::size_t>;
-                  { rhs.upper_bound() } -> std::convertible_to<std::size_t>;
-                }) {
+  constexpr bool lhs_has_upper_bound = requires {
+    { lhs.upper_bound() } -> std::convertible_to<std::size_t>;
+  };
+  constexpr bool rhs_has_upper_bound = requires {
+    { rhs.upper_bound() } -> std::convertible_to<std::size_t>;
+  };
+
+  if constexpr (lhs_has_upper_bound && rhs_has_upper_bound) {
     return std::min(static_cast<std::size_t>(lhs.upper_bound()),
                     static_cast<std::size_t>(rhs.upper_bound()));
+  } else if constexpr (lhs_has_upper_bound) {
+    return static_cast<std::size_t>(lhs.upper_bound());
+  } else if constexpr (rhs_has_upper_bound) {
+    return static_cast<std::size_t>(rhs.upper_bound());
   } else {
     return std::numeric_limits<std::size_t>::max();
   }
