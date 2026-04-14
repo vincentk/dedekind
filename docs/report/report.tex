@@ -127,7 +127,6 @@ We demonstrate the utility of this approach through a formal construction of the
 
 \end{abstract}
 
-\setcounter{tocdepth}{3}
 \tableofcontents
 
 \chapter{Introduction}
@@ -376,8 +375,6 @@ The key references for this module are the categorical foundations of Lawvere~\c
 \section{Implementation}
 \label{sec:category-impl}
 
-\subsection{Level 0: The Algebraic Atlas}
-
 While the global build graph establishes the dependency between C++ modules, the \texttt{dedekind.category} module constitutes the system's "Atomic Floor."
 To maintain absolute linear order, this module is itself stratified into internal partitions.
 These partitions represent the maturation of mathematical species from raw mappings (\texttt{:morphism}) to structured universes (\texttt{:logic}).
@@ -481,7 +478,7 @@ These partitions represent the maturation of mathematical species from raw mappi
 
 
 
-\subsubsection{The \texttt{:species} partition: The Algebraic Atlas}
+\subsection{The \texttt{:species} partition: The Algebraic Atlas}
 
 The \texttt{:species} partition serves as the foundational \textit{Algebraic Atlas} of the library, providing a stratified registry of structural invariants for C++ machine types and standard library operators. Following the combinatorial species theory of Joyal~\cite{joyal1981species, joyal1986analytic}, we treat fundamental types not merely as passive sets of values, but as active rules for generating mathematical structure. By reifying categorical axioms---such as associativity and commutativity---as compile-time constants, the library transforms the C++ type system into a formal verification engine.
 
@@ -605,7 +602,7 @@ The core objective is to anchor the C++ type system as a substrate for modeling 
 
 
 
-\subsubsection{The \texttt{:morphism} partition: The Skeletal Arrow}
+\subsection{The \texttt{:morphism} partition: The Skeletal Arrow}
 
 \textbf{Type-Level Labelling:} We employ type-level labelling to associate categorical metadata---specifically domain and codomain species---with C++ types. By utilizing template traits and nested aliases, these labels exist strictly at compile-time. This mechanism enables the direct embedding of primitive and standard library types (e.g., \texttt{std::optional}) into formal categorical structures with zero runtime overhead and without the need for invasive wrappers.
 
@@ -639,8 +636,6 @@ static_assert(IsArrow<decltype(logic_gate), int>,
               "Morphism Validated: The Atom of Composability is discovered.");
 \end{lstlisting}
 
-\subsection{The \texttt{:morphism} partition: The Skeletal Arrow}
-
 Following the mapping established in Table \ref{table:dedekind_floor}, the \texttt{:morphism} partition reifies C++ callables as formal arrows $f: A \to B$. The core mechanism of this partition is \textbf{Signature Discovery}, which utilizes \texttt{std::invoke\_result\_t} and variadic template metaprogramming to extract domain and codomain metadata directly from the type system \cite{cukic2018functional, milewski2019category}.
 
 \begin{lstlisting}[language=C++, caption={The Morphic Reification Hook (Compressed).}]
@@ -654,7 +649,7 @@ concept IsArrow = requires {
 This ``Atomic Arrow'' serves as the fundamental unit from which all higher-level categorical structures are synthesized. By elevating the function object from an opaque procedural block to a structural entity, the library enables the compiler to reason about the composition and validity of transformations before any machine instructions are emitted.
 
 
-\subsubsection{The \texttt{:mereology} partition: The Language of Parts}
+\subsection{The \texttt{:mereology} partition: The Language of Parts}
 
 The \texttt{:mereology} partition introduces the formal signature of parthood as the foundational structural primitive of the library. Following the mereological grounding of Stanisław Leśniewski, we treat parthood not as naive set membership, but as a primitive binary relation ($\leq$) that governs the structural identity of an entity. **If the Morphism is the atom of composability, then Mereology is the atom of hierarchy**, providing the skeletal vocabulary required for any downstream category to reason about sub-structures.
 
@@ -690,7 +685,7 @@ static_assert(IsPartRelation<int, std::less_equal<>>,
 // static_assert(IsPartRelation<double, std::less_equal<>>); // Fails!
 \end{lstlisting}
 
-\subsubsection{The \texttt{:logic} partition: The Subobject Classifier (\texorpdfstring{$\Omega$}{Omega})}
+\subsection{The \texttt{:logic} partition: The Subobject Classifier (\texorpdfstring{$\Omega$}{Omega})}
 \label{dedekind.category::logic}
 
 With the dependency \texttt{:mereology} $\rightarrow$ \texttt{:logic}, logical species are introduced as an enrichment layer over a prior relational substrate. This follows the standard categorical story: once subobjects and order-like structure are in place, one can internalize truth as a classifier object and reason algebraically about propositions \cite{lambek1988higher, mclarty1992toposes, rasiowa1974algebraic}.
@@ -755,7 +750,7 @@ static constexpr Omega evaluate_arithmetic(T a, T b, Op op) {
 
 
 
-\subsubsection{Posetal Categories (\texttt{:posetal})}
+\subsection{Posetal Categories (\texttt{:posetal})}
 
 The \texttt{:posetal} partition matures the abstract parthood defined in \texttt{:mereology} into a formal \textbf{Posetal Category}. It is critical to note that while traditional mathematics defines a Poset over a \textit{set}, the \texttt{dedekind} build graph establishes these relations at Level 0—before the \texttt{:etcs} partition (Section 2.3.1) provides the set-theoretic axioms. Consequently, we treat posetal structures not as collections of elements, but as \textbf{Skeletal Categories} where, for any two objects $A$ and $B$, there exists \textit{at most one} morphism $f: A \to B$.
 
@@ -856,7 +851,7 @@ TEST_CASE("Posetal: Semilattice Laws") {
 
 This pattern is now applied uniformly across all algebraic law verification in the library, providing both the clarity of compile-time type safety and the practical flexibility of runtime law validation.
 
-\subsubsection{Small Categories (\texttt{:small})}
+\subsection{Small Categories (\texttt{:small})}
 
 % --- Small Partition ---
 \textbf{Single-Species Category:} A single-species category is defined as a small category $\mathcal{C}$ containing exactly one object (the species) corresponding to exactly one C++ type or template parameter \texttt{T}. 
@@ -891,14 +886,14 @@ concept IsSmallCategory = requires {
 static_assert(IsSmallCategory<CPlusPlusTypeCategory>);
 \end{lstlisting}
 
-\subsubsection{Discrete Categories (\texttt{:discrete})}
+\subsection{Discrete Categories (\texttt{:discrete})}
 
 The \texttt{:discrete} partition provides the degenerate categorical baseline where objects have identity arrows only. This is a pragmatic bridge between raw species registration and full morphic composition: it allows the compiler to treat a family of machine types as a category without forcing non-trivial arrows between them.
 
 In implementation terms, this partition is low-ceremony but high-value: it supplies a canonical ``zero-interaction'' category used by tests and by later partitions when constructing examples that must preserve object identity without introducing additional algebraic structure.
 
 
-\subsubsection{Universal Products and Coproducts (\texttt{:cartesian})}
+\subsection{Universal Products and Coproducts (\texttt{:cartesian})}
 
 To support multi-variable transformations and formal choice, the \texttt{:cartesian} partition reifies \texttt{std::pair} and \texttt{std::variant} through their universal properties. In the \texttt{dedekind} topos, a \textbf{Product} ($A \times B$) is not merely a passive data container, but a structural requirement for the existence of unique projections $\pi_1$ and $\pi_2$. By mapping the categorical product to \texttt{std::pair}, we establish the formal basis for binary algebraic operations—modeled as morphisms of the form $X \times X \to X$—ensuring that the ``Rules of Both'' are verified as categorical invariants.
 
@@ -938,7 +933,7 @@ using Addition = Morphism<std::pair<int, int>, int, std::plus<int>>;
 static_assert(IsArrow<Addition, std::pair<int, int>, int>);
 \end{lstlisting}
 
-\subsubsection{Boundary Objects (\texttt{:limit})}
+\subsection{Boundary Objects (\texttt{:limit})}
 
 The \texttt{:limit} partition defines the logical boundaries of the category: the \textbf{Initial} ($0$) and \textbf{Terminal} ($1$) objects. Following the structuralist approach advocated by Lawvere~\cite{lawvere1964etcs}, these are defined not by their internal contents, but by the existence of unique morphisms to or from these boundaries. In the C++23 context, we reify the Terminal object as \texttt{std::monostate} (or a unit type), representing a state of pure existence without information.
 
@@ -961,7 +956,7 @@ static_assert(IsInitialObject<Zero>);
 static_assert(HasUniqueMorphismTo<int, One>);
 \end{lstlisting}
 
-\subsubsection{Universal Constructions and Pullbacks (\texttt{:pullback})}
+\subsection{Universal Constructions and Pullbacks (\texttt{:pullback})}
 
 To support relational reasoning and intersections, the \texttt{:pullback} partition introduces the universal property of the **Pullback**. As noted in Pierce~\cite{pierce1991basic}, pullbacks are the categorical tool for handling constraints and fiber products. By reifying the pullback, the library enables the formal definition of \textbf{Equalizers}, which are essential for identifying the rounding-error singularities in the \texttt{:numeric} partition.
 
@@ -979,11 +974,9 @@ using Eq = Equalizer<f, g>;
 static_assert(IsLimit<Eq>);
 \end{lstlisting}
 
-\subsection{Level 1: Space and Action}
-
 The transition from Level 0 to Level 1 represents the "Maturation of Species." Following the Polish School of Logic as articulated by Ajdukiewicz \cite{ajdukiewicz1985jezyk}, we treat mathematical structures as active apparatuses—or conceptual orientations—that determine the image of the computational world. This aligns with the restriction category approach \cite{cockett2002restriction}, where totality is not a default state but a property verified against a specific subobject support.
 
-\subsubsection{The \texttt{:total} partition: The Property of Totality}
+\subsection{The \texttt{:total} partition: The Property of Totality}
 
 The \texttt{:total} partition formalizes \emph{Morphic Totality}. In our ontology, a morphism $f: A \to B$ is verified as a \texttt{TotalMorphism} only if it is defined across its entire domain without triggering a subobject exclusion (e.g., overflow or division by zero). Following the restriction category framework \cite{cockett2002restriction}, we treat totality as a property verified against a specific subobject support, ensuring that the ``active apparatus'' of the morphism is physically stable within the machine's constraints.
 
@@ -1002,7 +995,7 @@ struct TotalMorphism : Morphism<A, B, Func> {
 };
 \end{lstlisting}
 
-\subsubsection{Total Algebraic Layer (within \texttt{:total}): The Laws of Harmony}
+\subsection{Total Algebraic Layer (within \texttt{:total}): The Laws of Harmony}
 
 Building upon the total mappings established in Level 1a, the algebraic layer within \texttt{:total} materializes the ``Pure Ideals'' of abstract algebra.
 In this partition, species ``mature'' as they gain axioms, moving from the primal \textbf{Magma} to the perfect symmetry of an \textbf{Abelian Group}.
@@ -1065,7 +1058,7 @@ static_assert(!is_distributive_v<int, std::multiplies<>, std::plus<>>,
 \end{lstlisting}
 
 
-\subsubsection{Monoid Actions and Modules (\texttt{:action})}
+\subsection{Monoid Actions and Modules (\texttt{:action})}
 
 The \texttt{:action} partition materializes the concept of a Species being acted upon by an Algebraic Structure. This partition defines the \texttt{IsSemiModule} and \texttt{IsModule} concepts, where a \textbf{Monoid} (from the \texttt{:total} algebraic layer) defines a transformation rule over a target Species. 
 
@@ -1075,7 +1068,7 @@ This "coordinate-free" approach \cite{halmos1958finite} is critical for transiti
 
 
 
-\subsubsection{The \texttt{:functor} partition: Mappings between Categories}
+\subsection{The \texttt{:functor} partition: Mappings between Categories}
 
 
 % --- Functor Partition (Revised) ---
@@ -1101,7 +1094,7 @@ constexpr auto fmap(Arrow f) {
 static_assert(PreservesIdentity<F, int>);
 \end{lstlisting}
 
-\subsubsection{The \texttt{:natural} partition: Natural Transformations}
+\subsection{The \texttt{:natural} partition: Natural Transformations}
 
 % --- Natural Partition ---
 \textbf{Natural Transformations:} Natural transformations are treated as 2-cells, acting as morphisms between functors. For any two functors $F, G: \mathcal{C} \to \mathcal{D}$, a natural transformation $\alpha: F \Rightarrow G$ provides a family of morphisms in the target category $\mathcal{D}$ such that for every arrow $f: A \to B$ in $\mathcal{C}$, the naturality square commutes: $\alpha_B \circ F(f) = G(f) \circ \alpha_A$.
@@ -1128,7 +1121,7 @@ export template <template <typename> typename F>
 struct UnitTransformation;
 \end{lstlisting}
 
-\subsubsection{The \texttt{:monad} partition: The \texorpdfstring{$\Omega$}{Omega}-Monad}
+\subsection{The \texttt{:monad} partition: The \texorpdfstring{$\Omega$}{Omega}-Monad}
 
 % --- Monad Partition ---
 \textbf{Monads and Comonads as Endomorphisms:} In this library, Monads and Comonads are defined strictly over endofunctors $T: \mathcal{C} \to \mathcal{C}$. This "endo" property is a foundational requirement for the coherence of the natural transformations: the monadic multiplication $\mu: T \circ T \Rightarrow T$ and the comonadic comultiplication $\delta: W \Rightarrow W \circ W$ are only well-defined when the source category $\Sigma_{cat}$ and target category $\mathrm{T}_{cat}$ are identical. Consequently, any type satisfying the \texttt{IsMonad} or \texttt{IsComonad} concept must provide a compile-time proof that its underlying functor maps the species category back to itself.
@@ -1160,7 +1153,7 @@ constexpr auto operator>>=(const M& m, F f) {
 }
 \end{lstlisting}
 
-\subsubsection{The \texttt{:kleisli} partition: The Universal Highway}
+\subsection{The \texttt{:kleisli} partition: The Universal Highway}
 The \texttt{:kleisli} partition introduces the formal machinery for \textit{Highway composition} (operator \texttt{>>}).
 Following the functional tradition of the ``Fish Operator'' (\texttt{>=>}) \cite{milewski2018category}, \texttt{dedekind} adapts this to the C++23 context by leveraging the left-associativity of \texttt{operator>>} to model the directional vector of computation across the ontology.
 
@@ -1192,7 +1185,7 @@ auto cochained = context << [](Box<int> b) { return b.value / 2; }
 Within the verified module graph, the LLVM backend utilizes this structural transparency to perform \textit{Highway Pruning}. if a total function is composed with a partial operation statically known to return an \texttt{Unknown} or \texttt{NaN} state, the compiler identifies the unreachable path and optimizes the Highway into a branch-free instruction sequence.
 
 
-\subsubsection{The \texttt{:partial} partition: The Pragmatic Rescue}
+\subsection{The \texttt{:partial} partition: The Pragmatic Rescue}
 
 The \texttt{:partial} partition performs the ``Categorical Rescue'' of species that failed the strict requirements of the total domain. This stage formalises the transition from the \emph{Platonic} to the \emph{Pragmatic}: acknowledging that while hardware-level operations may be ``broken'' (e.g., via overflow or division by zero), they are \textbf{consistently broken}. Following the formalisations of the \emph{nLab} community~\cite{nlab_kleisli}, we treat these consistent failures not as exceptions, but as structured data.
 
@@ -1212,7 +1205,7 @@ auto g = partial_plus(f, INT_MAX);    // Result: Unknown (Overflow)
 auto h = partial_plus(g, 1);          // Result: Unknown (Propagation)
 \end{lstlisting}
 
-\subsubsection{Partial Algebraic Layer (within \texttt{:partial}): The Generalised Reality}
+\subsection{Partial Algebraic Layer (within \texttt{:partial}): The Generalised Reality}
 
 Following the monadic Kleisli lift, the algebraic layer within \texttt{:partial} generalizes the algebraic laws of Level 1 to handle the ``broken'' reality of hardware. In this layer, the strict requirements of absolute closure and identity are relaxed into \textbf{Partial Monoids} and \textbf{Partial Groups}. Unlike their total counterparts, these structures are only guaranteed to hold within the specific support $S \hookrightarrow A$ provided by the \texttt{:logic} and \texttt{:partial} partitions.
 
@@ -1229,7 +1222,7 @@ concept IsPartialMonoid = IsPartialMagma<T, Op> &&
 static_assert(IsPartialAbelianGroup<int, std::plus<int>>);
 \end{lstlisting}
 
-\subsubsection{The \texttt{:numeric} partition: The Material Landing}
+\subsection{The \texttt{:numeric} partition: The Material Landing}
 
 The \texttt{:numeric} partition represents the final ``landing'' of the abstract theory back onto the hardware substrate. While the \texttt{:partial} partition (including its internal algebraic layer) establishes the general laws for inconsistent structures, the \texttt{:numeric} partition provides the specific mapping for IEEE 754 floating-point types and bounded integers. 
 
@@ -1249,7 +1242,7 @@ static_assert(!is_associative_v<double, std::plus<double>>);
 \end{lstlisting}
 
 
-\subsubsection{The \texttt{:etcs} partition: The Set-Theoretic Interface}
+\subsection{The \texttt{:etcs} partition: The Set-Theoretic Interface}
 The final stage of the foundational build anchors Lawvere's Elementary Theory of the Category of Sets (ETCS) \cite{lawvere1964etcs}. This partition defines a set not by its internal elements, but by its universal properties, utilizing C++23 Concepts to enforce well-pointedness and the existence of power objects.
 
 The core innovation of this partition is the reification of the \textit{Set-Builder} notation. By representing a set $S = \{x \in X \mid P(x)\}$ as a \texttt{Stateless Constraint Type}, we transform the C++ translation unit into a symbolic laboratory. 
@@ -1267,7 +1260,7 @@ static\_assert(even\_greater\_ten.\u03C7(12) == true);
 
 By hoisting these mereological invariants into the type signature, we enable \textit{Symbolic Equalization}. The compiler can decompose and optimize a set based on its logical essence rather than its storage layout, allowing contradictory set-builder predicates to collapse into zero-instruction machine code. This ensures that the performance of the ``Naked Loop'' is always mathematically justified by the prior formal certification of the ETCS axioms.
 
-\subsubsection{Topoi and Internal Logic (\texttt{:topoi})}
+\subsection{Topoi and Internal Logic (\texttt{:topoi})}
 
 The \texttt{:topoi} partition packages the categorical preconditions for internal reasoning: subobject classifiers, finite limits, and exponentials are treated as first-class structural witnesses. This partition is the conceptual hinge between pure category structure and logic-as-algebra in the implementation.
 
