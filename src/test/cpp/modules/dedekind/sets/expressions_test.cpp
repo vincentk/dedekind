@@ -89,7 +89,38 @@ TEST_CASE("Dedekind Sets: Power-set witness over homogeneous predicates",
 
   STATIC_CHECK(std::same_as<typename decltype(p_positive)::Domain,
                             std::remove_cvref_t<decltype(positive)>>);
-  CHECK(p_positive(positive) == true);
+  CHECK(p_positive(positive) == Ternary::True);
+}
+
+TEST_CASE("Dedekind Sets: Power-set preserves ambient logic",
+          "[sets][powerset][logic]") {
+  auto x = var<ℕ>;
+
+  const auto gt_zero = Set{x % N | (x > 0)};
+  const auto p_gt_zero = power_set(gt_zero);
+
+  STATIC_CHECK(
+      std::same_as<typename decltype(p_gt_zero)::logic_species, TernaryLogic>);
+  CHECK(p_gt_zero(gt_zero) == Ternary::True);
+}
+
+TEST_CASE("Dedekind Sets: Relation witnesses preserve ternary logic",
+          "[sets][relations][logic]") {
+  const auto tri_rel_pred = [](const std::pair<int, int>& p) {
+    if (p.first == 3 && p.second == 6) return Ternary::Unknown;
+    if (p.first == 3 && p.second == 7) return Ternary::True;
+    return Ternary::False;
+  };
+
+  const Relation<int, int, TernaryLogic, decltype(tri_rel_pred)> R{
+      tri_rel_pred};
+
+  CHECK(relates(R, 3, 6) == Ternary::Unknown);
+  CHECK(relates(R, 3, 7) == Ternary::True);
+
+  const SetFunction<int, int, TernaryLogic, decltype(tri_rel_pred)> F{
+      tri_rel_pred};
+  CHECK(is_single_valued_at(F, 3, 6, 7) == Ternary::Unknown);
 }
 
 TEST_CASE("Dedekind Sets: Heterogeneous subset semantics",

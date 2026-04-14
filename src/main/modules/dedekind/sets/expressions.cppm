@@ -41,6 +41,7 @@ module;
 #include <compare>
 #include <concepts>
 #include <functional>
+#include <utility>
 
 export module dedekind.sets:expressions;
 
@@ -199,11 +200,12 @@ class Set {
    * other(x) at the given witness point x.
    */
   template <typename OtherPredicate>
-  constexpr bool is_subset_of_at(const Set<T, L, OtherPredicate>& other,
-                                 const T& x) const {
-    const bool in_this = static_cast<bool>(predicate_(x));
-    if (!in_this) return true;  // Vacuously true: x ∉ this.
-    return static_cast<bool>(other.predicate_(x));
+  constexpr typename L::Ω is_subset_of_at(
+      const Set<T, L, OtherPredicate>& other, const T& x) const {
+    const auto in_this = (*this)(x);
+    const auto in_other = other(x);
+    // Implication in Ω: a => b  is  (!a) OR b.
+    return L::OR(L::NOT(in_this), in_other);
   }
 
  private:
@@ -343,17 +345,15 @@ concept IsRelation = requires { typename S::Domain; } &&
 export template <typename T, typename L, typename P>
 constexpr auto power_set(const Set<T, L, P>& base) {
   using Candidate = Set<T, L, P>;
-  auto pred = [base](const Candidate& candidate) {
-    return static_cast<bool>(candidate <= base);
-  };
-  return Set<Candidate, ClassicalLogic, decltype(pred)>{pred};
+  auto pred = [base](const Candidate& candidate) { return candidate <= base; };
+  return Set<Candidate, L, decltype(pred)>{pred};
 }
 
 /** @brief Relation membership witness: (a,b) ∈ R. */
 export template <typename T1, typename T2, typename L, typename P>
-constexpr bool relates(const Relation<T1, T2, L, P>& r, const T1& a,
-                       const T2& b) {
-  return static_cast<bool>(r(std::pair<T1, T2>{a, b}));
+constexpr typename L::Ω relates(const Relation<T1, T2, L, P>& r, const T1& a,
+                                const T2& b) {
+  return r(std::pair<T1, T2>{a, b});
 }
 
 /**
@@ -362,12 +362,15 @@ constexpr bool relates(const Relation<T1, T2, L, P>& r, const T1& a,
  * If both y1 and y2 are related to x, they must be equal.
  */
 export template <typename T1, typename T2, typename L, typename P>
-constexpr bool is_single_valued_at(const SetFunction<T1, T2, L, P>& f,
-                                   const T1& x, const T2& y1, const T2& y2) {
-  const bool m1 = relates(f, x, y1);
-  const bool m2 = relates(f, x, y2);
-  if (!(m1 && m2)) return true;
-  return y1 == y2;
+constexpr typename L::Ω is_single_valued_at(const SetFunction<T1, T2, L, P>& f,
+                                            const T1& x, const T2& y1,
+                                            const T2& y2) {
+  const auto m1 = relates(f, x, y1);
+  const auto m2 = relates(f, x, y2);
+  const auto both_related = L::AND(m1, m2);
+  const auto equal_outputs = lift_logic<L>(y1 == y2);
+  // ((x,y1) ∈ f && (x,y2) ∈ f) => (y1 == y2)
+  return L::OR(L::NOT(both_related), equal_outputs);
 }
 
 }  // namespace dedekind::sets
