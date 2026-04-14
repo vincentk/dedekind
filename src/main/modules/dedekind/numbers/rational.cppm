@@ -115,7 +115,7 @@ struct PartialAddRational {
   using logic_species = TernaryLogic;
 
   TernaryResult<Rational<I>> operator()(
-      std::pair<const Rational<I>&, const Rational<I>&> p) const noexcept {
+      std::pair<const Rational<I>&, const Rational<I>&> p) const {
     auto [a, b] = p;
     return {Ternary::True, a + b};
   }
@@ -133,7 +133,7 @@ struct PartialMulRational {
   using logic_species = TernaryLogic;
 
   TernaryResult<Rational<I>> operator()(
-      std::pair<const Rational<I>&, const Rational<I>&> p) const noexcept {
+      std::pair<const Rational<I>&, const Rational<I>&> p) const {
     auto [a, b] = p;
     return {Ternary::True, a * b};
   }
@@ -182,8 +182,8 @@ struct PartialEmbedIntegerToRational {
   using value_type = Rational<I>;
   using logic_species = TernaryLogic;
 
-  TernaryResult<Rational<I>> operator()(machine_integer n) const noexcept {
-    return {Ternary::True, Rational<I>{static_cast<I>(n), static_cast<I>(1)}};
+  TernaryResult<Rational<I>> operator()(I n) const noexcept {
+    return {Ternary::True, Rational<I>{n, static_cast<I>(1)}};
   }
 };
 

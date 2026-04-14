@@ -115,12 +115,6 @@ template <std::floating_point F>
 struct SpeciesTraits<dedekind::ieee::IEEE<F>> {
   using Domain = dedekind::ieee::IEEE<F>;
   using machine_type = F;
-
-  template <typename Op>
-  static constexpr bool is_associative_v = true;
-
-  template <typename Op>
-  static constexpr bool is_commutative_v = true;
 };
 
 template <std::floating_point F>

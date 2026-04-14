@@ -1467,19 +1467,19 @@ Given an operation token \texttt{Op}, the function
   \texttt{propagate<F,\,Op>(a,\,b,\,op)}
 \end{equation}
 computes the output value together with a first-order uncertainty bound derived from the Jacobian-style sensitivities provided by \texttt{Op::sensitivity(x,\,y)}.
-The propagation formula follows the classical treatment of \citet{ku1966notes}:
+The propagation formula follows the classical treatment of \textcite{ku1966notes}:
 \begin{equation}
   \delta z \;\approx\; \bigl|\tfrac{\partial f}{\partial x}\bigr|\,\delta x
                     + \bigl|\tfrac{\partial f}{\partial y}\bigr|\,\delta y ,
 \end{equation}
-with an additive machine-epsilon contribution modelled after the round-off proxy analysis of \citet{higham2002accuracy}.
+with an additive machine-epsilon contribution modelled after the round-off proxy analysis of \textcite{higham2002accuracy}.
 This deliberately avoids the full interval-arithmetic cost \cite{goodman1960exact} while still surfacing first-order conditioning information at run time.
 
 \paragraph{Propagation policies.}
 Three composable strategies govern how \texttt{Approx<F>} reacts when the computed uncertainty exceeds a configurable threshold:
 \begin{itemize}
   \item \textbf{\texttt{IgnoreErrorPolicy}}: discard the uncertainty tracker and return the raw IEEE value; maximises throughput for well-conditioned call sites.
-  \item \textbf{\texttt{ReportErrorPolicy}}: surface the outcome as a \texttt{TernaryResult} (Regular / NearZero / Huge / NonFinite), providing a structured signal without aborting the pipeline.
+  \item \textbf{\texttt{ReportErrorPolicy}}: preserve the \texttt{Approx<F>} result, exposing the central value together with its uncertainty radius so callers can inspect conditioning information without aborting the pipeline.
   \item \textbf{\texttt{AdaptiveErrorPolicy}}: inspect local cancellation diagnostics and, when the condition number indicates risk, prefer the safer association or factorisation \cite{ogita2005accurate}.
 \end{itemize}
 All three policies are zero-overhead at compile time when the uncertainty radius is statically known to be zero.
