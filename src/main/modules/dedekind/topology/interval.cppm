@@ -37,17 +37,48 @@ using namespace dedekind::sets;
 using namespace dedekind::order;
 
 export enum class Direction { Upward, Downward };
+export enum class Boundary { Open, Closed };
+
+namespace detail {
+
+template <Boundary B>
+struct BoundaryTag {};
+
+template <>
+struct BoundaryTag<Boundary::Open> {
+  using is_open_tag = void;
+};
+
+template <>
+struct BoundaryTag<Boundary::Closed> {
+  using is_closed_tag = void;
+};
+
+template <Boundary Lower, Boundary Upper>
+struct IntervalBoundaryTag {};
+
+template <>
+struct IntervalBoundaryTag<Boundary::Open, Boundary::Open> {
+  using is_open_tag = void;
+};
+
+template <>
+struct IntervalBoundaryTag<Boundary::Closed, Boundary::Closed> {
+  using is_closed_tag = void;
+};
+
+}  // namespace detail
 
 /**
  * @class Ray
  * @brief A Half-Space satisfying the Idempotent Semigroupoid laws.
  */
-export template <IsTotallyOrdered T, Direction D, typename L = ClassicalLogic>
-class Ray {
+export template <IsTotallyOrdered T, Direction D, Boundary B = Boundary::Open,
+                 typename L = ClassicalLogic>
+class Ray : public detail::BoundaryTag<B> {
  public:
   using Domain = T;
   using Codomain = typename L::Ω;
-  using is_open_tag = void;
   using is_ray_tag = void;
 
   /** @section Algebraic_Axioms */
@@ -64,9 +95,11 @@ class Ray {
   /** @section Logic: Characteristic Function */
   constexpr auto operator()(const T& x) const {
     if constexpr (D == Direction::Upward)
-      return x > pivot_ ? L::True : L::False;
+      return (B == Boundary::Open ? x > pivot_ : x >= pivot_) ? L::True
+                                                              : L::False;
     else
-      return x < pivot_ ? L::True : L::False;
+      return (B == Boundary::Open ? x < pivot_ : x <= pivot_) ? L::True
+                                                              : L::False;
   }
 
   /** @section Algebraic_Laws: The Rhyme of the Lattice */
@@ -101,14 +134,14 @@ class Ray {
  * @class Interval
  * @brief The "Molecule" formed by the intersection of two Rays.
  */
-export template <IsTotallyOrdered T, typename L = ClassicalLogic>
-class Interval {
+export template <IsTotallyOrdered T, Boundary Lower = Boundary::Open,
+                 Boundary Upper = Boundary::Open, typename L = ClassicalLogic>
+class Interval : public detail::IntervalBoundaryTag<Lower, Upper> {
  public:
   using Domain = T;
   using Codomain = typename L::Ω;
-  using is_open_tag = void;
-  using lower_ray_type = Ray<T, Direction::Upward, L>;
-  using upper_ray_type = Ray<T, Direction::Downward, L>;
+  using lower_ray_type = Ray<T, Direction::Upward, Lower, L>;
+  using upper_ray_type = Ray<T, Direction::Downward, Upper, L>;
 
   constexpr Interval(T low, T high) : lower_(low), upper_(high) {}
 
@@ -116,6 +149,8 @@ class Interval {
 
   constexpr T lower_bound() const { return lower_.pivot(); }
   constexpr T upper_bound() const { return upper_.pivot(); }
+  static constexpr Boundary lower_boundary = Lower;
+  static constexpr Boundary upper_boundary = Upper;
 
  private:
   lower_ray_type lower_;
@@ -123,11 +158,11 @@ class Interval {
 };
 
 /** @section Trait_Registration */
-export template <typename T, Direction D, typename L>
-inline constexpr bool is_convex_v<Ray<T, D, L>> = true;
+export template <typename T, Direction D, Boundary B, typename L>
+inline constexpr bool is_convex_v<Ray<T, D, B, L>> = true;
 
-export template <typename T, typename L>
-inline constexpr bool is_convex_v<Interval<T, L>> = true;
+export template <typename T, Boundary Lower, Boundary Upper, typename L>
+inline constexpr bool is_convex_v<Interval<T, Lower, Upper, L>> = true;
 
 /** @section Formal_Verification
  * Deferred while topology interval contracts are being retargeted to the
@@ -143,8 +178,9 @@ inline constexpr bool is_convex_v<Interval<T, L>> = true;
  */
 namespace dedekind::category {
 
-export template <typename T, dedekind::topology::Direction D>
-struct SpeciesTraits<dedekind::topology::Ray<T, D>> {
+export template <typename T, dedekind::topology::Direction D,
+                 dedekind::topology::Boundary B, typename L>
+struct SpeciesTraits<dedekind::topology::Ray<T, D, B, L>> {
   using species = ClassicalLogic;
   using Domain = T;
   using Codomain = T;
@@ -156,20 +192,25 @@ struct SpeciesTraits<dedekind::topology::Ray<T, D>> {
 /** @section Mereological_Harmony */
 
 // We must explicitly register the Lattice Axioms for IsSet to resolve.
-template <typename T, dedekind::topology::Direction D>
+template <typename T, dedekind::topology::Direction D,
+          dedekind::topology::Boundary B, typename L>
 inline constexpr bool
-    is_associative_v<dedekind::topology::Ray<T, D>, std::bit_and<>> = true;
+    is_associative_v<dedekind::topology::Ray<T, D, B, L>, std::bit_and<>> =
+        true;
 
-template <typename T, dedekind::topology::Direction D>
+template <typename T, dedekind::topology::Direction D,
+          dedekind::topology::Boundary B, typename L>
 inline constexpr bool
-    is_idempotent_v<dedekind::topology::Ray<T, D>, std::bit_and<>> = true;
+    is_idempotent_v<dedekind::topology::Ray<T, D, B, L>, std::bit_and<>> = true;
 
-template <typename T, dedekind::topology::Direction D>
+template <typename T, dedekind::topology::Direction D,
+          dedekind::topology::Boundary B, typename L>
 inline constexpr bool
-    is_associative_v<dedekind::topology::Ray<T, D>, std::bit_or<>> = true;
+    is_associative_v<dedekind::topology::Ray<T, D, B, L>, std::bit_or<>> = true;
 
-template <typename T, dedekind::topology::Direction D>
+template <typename T, dedekind::topology::Direction D,
+          dedekind::topology::Boundary B, typename L>
 inline constexpr bool
-    is_idempotent_v<dedekind::topology::Ray<T, D>, std::bit_or<>> = true;
+    is_idempotent_v<dedekind::topology::Ray<T, D, B, L>, std::bit_or<>> = true;
 
 }  // namespace dedekind::category

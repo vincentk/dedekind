@@ -13,16 +13,26 @@ TEST_CASE("Topology: Rules of Continuity Coverage", "[topology][continuity]") {
   using ℝ = int;
   using UnitRay = Ray<ℝ, Direction::Upward>;
   using UnitInterval = Interval<ℝ>;
+  using ClosedUnitRay = Ray<ℝ, Direction::Upward, Boundary::Closed>;
+  using ClosedUnitInterval = Interval<ℝ, Boundary::Closed, Boundary::Closed>;
+  using LeftClosedInterval = Interval<ℝ, Boundary::Closed, Boundary::Open>;
 
   SECTION("The Skin and Body: IsOpen Verification") {
     // Rays and Open Intervals must carry the is_open_tag
     static_assert(IsOpen<UnitRay>, "Topology: Ray must be an Open set.");
     static_assert(IsOpen<UnitInterval>,
                   "Topology: Interval must be an Open set.");
+    static_assert(IsClosed<ClosedUnitRay>,
+                  "Topology: closed ray must satisfy IsClosed.");
+    static_assert(IsClosed<ClosedUnitInterval>,
+                  "Topology: closed interval must satisfy IsClosed.");
+    static_assert(!IsOpen<ClosedUnitInterval>,
+                  "Topology: closed interval should not satisfy IsOpen.");
 
     // Verify they are recognized as Convex (No holes)
     static_assert(IsConvex<UnitRay>);
     static_assert(IsConvex<UnitInterval>);
+    static_assert(IsConvex<ClosedUnitInterval>);
   }
 
   SECTION("Neighborhoods: The Space Around a Point") {
@@ -60,5 +70,46 @@ TEST_CASE("Topology: Rules of Continuity Coverage", "[topology][continuity]") {
     static_assert((std::same_as<decltype(std::declval<UnitRay>() &
                                          std::declval<UnitRay>()),
                                 UnitRay>));
+  }
+
+  SECTION("Boundary semantics for open and closed intervals") {
+    UnitInterval open_interval(0, 3);
+    ClosedUnitInterval closed_interval(0, 3);
+    LeftClosedInterval left_closed_interval(0, 3);
+
+    CHECK(open_interval(0) == dedekind::category::ClassicalLogic::False);
+    CHECK(open_interval(1) == dedekind::category::ClassicalLogic::True);
+    CHECK(open_interval(3) == dedekind::category::ClassicalLogic::False);
+
+    CHECK(closed_interval(0) == dedekind::category::ClassicalLogic::True);
+    CHECK(closed_interval(3) == dedekind::category::ClassicalLogic::True);
+    CHECK(closed_interval(4) == dedekind::category::ClassicalLogic::False);
+
+    CHECK(left_closed_interval(0) == dedekind::category::ClassicalLogic::True);
+    CHECK(left_closed_interval(3) == dedekind::category::ClassicalLogic::False);
+
+    constexpr ClosedUnitInterval constexpr_closed(0, 2);
+    static_assert(constexpr_closed(0) ==
+                  dedekind::category::ClassicalLogic::True);
+    static_assert(constexpr_closed(2) ==
+                  dedekind::category::ClassicalLogic::True);
+    static_assert(constexpr_closed(3) ==
+                  dedekind::category::ClassicalLogic::False);
+  }
+
+  SECTION("Intervals compose as predicates in set-builder notation") {
+    using namespace dedekind::category;
+    using namespace dedekind::sets;
+
+    auto x = var<Ω<int>>;
+    UnitInterval open_mid(0, 3);
+
+    auto in_open_mid = Set{x % Ω<int>{} | [open_mid](const int& value) {
+      return open_mid(value);
+    }};
+
+    CHECK(in_open_mid(1) == Ternary::True);
+    CHECK(in_open_mid(0) == Ternary::False);
+    CHECK(in_open_mid(3) == Ternary::False);
   }
 }
