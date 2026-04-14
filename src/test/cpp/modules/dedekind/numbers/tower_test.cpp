@@ -199,3 +199,151 @@ TEST_CASE("Stress: Im(K3->ℤ) intersect positive-real ℂ",
   CHECK(c_true.real() == 1.0);
   CHECK(c_true.imag() == 0.0);
 }
+
+// ---------------------------------------------------------------------------
+// Partial Arithmetic and Ternary Logic Integration
+// ---------------------------------------------------------------------------
+
+TEST_CASE("Partial Arithmetic: Rational<I>",
+          "[numbers][tower][partial][rational]") {
+  const auto add_op = PartialAddRational<machine_integer>{};
+  const auto mul_op = PartialMulRational<machine_integer>{};
+  const auto div_op = HonestDivRational<machine_integer>{};
+
+  // Partial addition on rationals is exact (Ternary::True)
+  const auto q1 = Rational<machine_integer>(1, 2);
+  const auto q2 = Rational<machine_integer>(1, 3);
+
+  const auto add_result = add_op(std::make_pair(q1, q2));
+  CHECK(add_result.status == Ternary::True);  // Exact arithmetic
+  CHECK(add_result.value == Rational<machine_integer>(5, 6));
+
+  // Partial multiplication is also exact
+  const auto mul_result = mul_op(std::make_pair(q1, q2));
+  CHECK(mul_result.status == Ternary::True);
+  CHECK(mul_result.value == Rational<machine_integer>(1, 6));
+
+  const auto div_result = div_op(std::make_pair(q1, q2));
+  CHECK(div_result.status == Ternary::True);
+  CHECK(div_result.value == Rational<machine_integer>(3, 2));
+
+  const auto div_zero =
+      div_op(std::make_pair(q1, Rational<machine_integer>(0, 1)));
+  CHECK(div_zero.status == Ternary::False);
+}
+
+TEST_CASE("Partial Arithmetic: Real<S>", "[numbers][tower][partial][real]") {
+  const auto add_op = PartialAddReal<machine_real_scalar>{};
+  const auto mul_op = PartialMulReal<machine_real_scalar>{};
+  const auto div_op = PartialDivReal<machine_real_scalar>{};
+
+  const auto r1 = Real<machine_real_scalar>{1.5};
+  const auto r2 = Real<machine_real_scalar>{2.0};
+
+  // Partial addition on reals always succeeds
+  const auto add_result = add_op(std::make_pair(r1, r2));
+  CHECK(add_result.status == Ternary::True);
+  CHECK(add_result.value.resolve() == 3.5);
+
+  // Partial multiplication succeeds
+  const auto mul_result = mul_op(std::make_pair(r1, r2));
+  CHECK(mul_result.status == Ternary::True);
+  CHECK(mul_result.value.resolve() == 3.0);
+
+  // Division by non-zero succeeds
+  const auto div_result = div_op(std::make_pair(r1, r2));
+  CHECK(div_result.status == Ternary::True);
+
+  // Division by zero fails (returns False status)
+  const auto div_zero =
+      div_op(std::make_pair(r1, Real<machine_real_scalar>{0}));
+  CHECK(div_zero.status == Ternary::False);
+}
+
+TEST_CASE("Partial Arithmetic: Complex<R>",
+          "[numbers][tower][partial][complex]") {
+  const auto add_op = PartialAddComplex<machine_real_scalar>{};
+  const auto mul_op = PartialMulComplex<machine_real_scalar>{};
+
+  const auto c1 = Complex<machine_real_scalar>{1.0, 2.0};
+  const auto c2 = Complex<machine_real_scalar>{3.0, 4.0};
+
+  // Partial addition: (1+2i) + (3+4i) = (4+6i)
+  const auto add_result = add_op(std::make_pair(c1, c2));
+  CHECK(add_result.status == Ternary::True);
+  CHECK(add_result.value.real() == 4.0);
+  CHECK(add_result.value.imag() == 6.0);
+
+  // Partial multiplication: (1+2i)(3+4i) = 3+4i+6i+8i^2 = -5+10i
+  const auto mul_result = mul_op(std::make_pair(c1, c2));
+  CHECK(mul_result.status == Ternary::True);
+  CHECK(mul_result.value.real() == -5.0);
+  CHECK(mul_result.value.imag() == 10.0);
+}
+
+TEST_CASE("Partial Embeddings with Ternary Status",
+          "[numbers][tower][partial][embeddings]") {
+  // ℤ ↪ ℚ: exact embedding (Ternary::True)
+  const auto embed_z_to_q = PartialEmbedIntegerToRational<machine_integer>{};
+  const auto z_result = embed_z_to_q(42);
+  CHECK(z_result.status == Ternary::True);
+  CHECK(z_result.value.num() == 42);
+  CHECK(z_result.value.den() == 1);
+
+  // ℚ ↪ ℝ: lossy embedding (Ternary::Unknown)
+  const auto embed_q_to_r =
+      PartialEmbedRationalToReal<machine_integer, machine_real_scalar>{};
+  const auto q = Rational<machine_integer>(1, 3);
+  const auto q_result = embed_q_to_r(q);
+  CHECK(q_result.status == Ternary::Unknown);  // Flagged as potentially lossy
+  CHECK(q_result.value.resolve() ==
+        static_cast<machine_real_scalar>(1.0 / 3.0));
+
+  // ℝ ↪ ℂ: exact embedding (Ternary::True)
+  const auto embed_r_to_c = PartialEmbedRealToComplex<machine_real_scalar>{};
+  const auto r = Real<machine_real_scalar>{2.5};
+  const auto r_result = embed_r_to_c(r);
+  CHECK(r_result.status == Ternary::True);
+  CHECK(r_result.value.real() == 2.5);
+  CHECK(r_result.value.imag() == 0.0);
+}
+
+// Static asserts for Kleene traits
+static_assert(is_kleene_associative_v<Rational<machine_integer>,
+                                      PartialAddRational<machine_integer>>);
+static_assert(is_kleene_commutative_v<Rational<machine_integer>,
+                                      PartialAddRational<machine_integer>>);
+static_assert(partial_identity_v<Rational<machine_integer>,
+                                 PartialAddRational<machine_integer>>.num() ==
+              0);
+
+static_assert(is_kleene_associative_v<Rational<machine_integer>,
+                                      PartialMulRational<machine_integer>>);
+static_assert(is_kleene_commutative_v<Rational<machine_integer>,
+                                      PartialMulRational<machine_integer>>);
+static_assert(partial_identity_v<Rational<machine_integer>,
+                                 PartialMulRational<machine_integer>>.num() ==
+              1);
+
+// Floating-point is commutative but NOT associative: (a+b)+c != a+(b+c) due to
+// rounding. Associativity-by-fiat is reserved for the explicit
+// dedekind::ieee::IEEE<F> opt-in.
+static_assert(!is_kleene_associative_v<Real<machine_real_scalar>,
+                                       PartialAddReal<machine_real_scalar>>);
+static_assert(is_kleene_commutative_v<Real<machine_real_scalar>,
+                                      PartialAddReal<machine_real_scalar>>);
+
+static_assert(!is_kleene_associative_v<Real<machine_real_scalar>,
+                                       PartialMulReal<machine_real_scalar>>);
+static_assert(is_kleene_commutative_v<Real<machine_real_scalar>,
+                                      PartialMulReal<machine_real_scalar>>);
+
+static_assert(!is_kleene_associative_v<Complex<machine_real_scalar>,
+                                       PartialAddComplex<machine_real_scalar>>);
+static_assert(is_kleene_commutative_v<Complex<machine_real_scalar>,
+                                      PartialAddComplex<machine_real_scalar>>);
+
+static_assert(!is_kleene_associative_v<Complex<machine_real_scalar>,
+                                       PartialMulComplex<machine_real_scalar>>);
+static_assert(is_kleene_commutative_v<Complex<machine_real_scalar>,
+                                      PartialMulComplex<machine_real_scalar>>);

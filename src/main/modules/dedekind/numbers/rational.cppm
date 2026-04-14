@@ -3,6 +3,7 @@ module;
 #include <concepts>
 #include <numeric>
 #include <stdexcept>
+#include <utility>
 
 /**
  * @file dedekind/numbers/rational.cppm
@@ -97,6 +98,149 @@ class Rational {
  private:
   Z num_, den_;
 };
+
+/** @section Partial_Arithmetic_with_Ternary_Logic */
+
+/**
+ * @brief Partial addition transform for Rational<I>.
+ *
+ * Since rational arithmetic is mathematically exact (no rounding loss),
+ * this always returns Ternary::True. The status could be Unknown
+ * if we wanted to check for integer overflow, but we delegate that
+ * responsibility to I's overflow predicates.
+ */
+export template <IsInteger I>
+struct PartialAddRational {
+  using value_type = Rational<I>;
+  using logic_species = TernaryLogic;
+
+  TernaryResult<Rational<I>> operator()(
+      std::pair<const Rational<I>&, const Rational<I>&> p) const {
+    auto [a, b] = p;
+    return {Ternary::True, a + b};
+  }
+};
+
+/**
+ * @brief Partial multiplication transform for Rational<I>.
+ *
+ * Since rational arithmetic is mathematically exact (no rounding loss),
+ * this always returns Ternary::True.
+ */
+export template <IsInteger I>
+struct PartialMulRational {
+  using value_type = Rational<I>;
+  using logic_species = TernaryLogic;
+
+  TernaryResult<Rational<I>> operator()(
+      std::pair<const Rational<I>&, const Rational<I>&> p) const {
+    auto [a, b] = p;
+    return {Ternary::True, a * b};
+  }
+};
+
+/**
+ * @brief Division transform for Rational<I>.
+ *
+ * Since Rational<I> models exact arithmetic in the quotient field,
+ * division does not truncate the way integer division can. Accordingly,
+ * this returns Ternary::True whenever the rational quotient is formed.
+ * Division by zero propagates via Rational::inverse(), which may throw.
+ */
+export template <IsInteger I>
+struct HonestDivRational {
+  using value_type = Rational<I>;
+  using logic_species = TernaryLogic;
+
+  TernaryResult<Rational<I>> operator()(
+      std::pair<const Rational<I>&, const Rational<I>&> p) const {
+    auto [a, b] = p;
+    if (b.num() == I{0}) {
+      return {Ternary::False, a};
+    }
+    return {Ternary::True, a / b};  // Rational division is exact when defined
+  }
+};
+
+/**
+ * @brief Identity and Associativity traits for Rational arithmetic.
+ *
+ * Rational<I> arithmetic over exact field operations satisfies:
+ * - Kleene associativity: if both sides are defined, they are equal
+ * - Kleene commutativity (for addition/multiplication)
+ * - Partial identities: 0 for addition, 1 for multiplication
+ *
+ * Specializations are declared in the dedekind::category namespace (see below).
+ */
+
+/**
+ * @brief Embedding transform: ℤ ↪ ℚ with Ternary acknowledgment.
+ *
+ * The embedding of an integer Z into the rationals is **exact**:
+ * every integer n corresponds uniquely to n/1.
+ * This transform returns Ternary::True to signal no information loss.
+ */
+export template <IsInteger I>
+struct PartialEmbedIntegerToRational {
+  using value_type = Rational<I>;
+  using logic_species = TernaryLogic;
+
+  TernaryResult<Rational<I>> operator()(I n) const noexcept {
+    return {Ternary::True, Rational<I>{n, static_cast<I>(1)}};
+  }
+};
+
+}  // namespace dedekind::numbers
+
+/**
+ * @section Kleene_Traits_in_Category_Namespace
+ *
+ * Specializations of Kleene traits for Rational<I> types.
+ * These must be in the dedekind::category namespace where the traits
+ * template variables are declared.
+ */
+namespace dedekind::category {
+
+/** @brief Kleene traits for rational arithmetic. */
+template <dedekind::numbers::IsInteger I>
+inline constexpr bool is_kleene_associative_v<
+    dedekind::numbers::Rational<I>, dedekind::numbers::PartialAddRational<I>> =
+    true;
+
+template <dedekind::numbers::IsInteger I>
+inline constexpr bool is_kleene_commutative_v<
+    dedekind::numbers::Rational<I>, dedekind::numbers::PartialAddRational<I>> =
+    true;
+
+template <dedekind::numbers::IsInteger I>
+inline constexpr dedekind::numbers::Rational<I> partial_identity_v<
+    dedekind::numbers::Rational<I>, dedekind::numbers::PartialAddRational<I>> =
+    dedekind::numbers::Rational<I>(I{0}, I{1});
+
+template <dedekind::numbers::IsInteger I>
+inline constexpr bool is_kleene_associative_v<
+    dedekind::numbers::Rational<I>, dedekind::numbers::PartialMulRational<I>> =
+    true;
+
+template <dedekind::numbers::IsInteger I>
+inline constexpr bool is_kleene_commutative_v<
+    dedekind::numbers::Rational<I>, dedekind::numbers::PartialMulRational<I>> =
+    true;
+
+template <dedekind::numbers::IsInteger I>
+inline constexpr dedekind::numbers::Rational<I> partial_identity_v<
+    dedekind::numbers::Rational<I>, dedekind::numbers::PartialMulRational<I>> =
+    dedekind::numbers::Rational<I>(I{1}, I{1});
+
+/** @brief Kleene traits for integer→rational embedding (exact). */
+template <dedekind::numbers::IsInteger I>
+inline constexpr bool is_kleene_associative_v<
+    dedekind::numbers::Rational<I>,
+    dedekind::numbers::PartialEmbedIntegerToRational<I>> = true;
+
+}  // namespace dedekind::category
+
+namespace dedekind::numbers {
 
 /** @section Formal_Verification */
 

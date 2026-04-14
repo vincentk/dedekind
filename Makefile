@@ -31,6 +31,7 @@ test: compile
 
 coverage: compile
 	@echo "Running tests with profile environment..."
+	rm -f $(BUILD_DIR)/*.profraw
 	# Set the variable for the duration of the ctest command
 	ctest --test-dir $(BUILD_DIR) --output-on-failure
 	

@@ -6,6 +6,7 @@
 module;
 
 #include <concepts>
+#include <utility>
 
 export module dedekind.numbers:complex;
 
@@ -49,6 +50,123 @@ class Complex {
   R re_{};
   R im_{};
 };
+
+/** @section Partial_Arithmetic_with_Ternary_Logic */
+
+/**
+ * @brief Partial addition transform for Complex<R>.
+ *
+ * Complex addition is component-wise on the scalar type R.
+ * The operation always completes (returns Ternary::True); any
+ * non-finite results from the carrier are observable in the value.
+ */
+export template <typename R>
+  requires IsComplexScalar<R>
+struct PartialAddComplex {
+  using value_type = Complex<R>;
+  using logic_species = TernaryLogic;
+
+  TernaryResult<Complex<R>> operator()(
+      std::pair<const Complex<R>&, const Complex<R>&> p) const noexcept {
+    auto [a, b] = p;
+    return {Ternary::True, a + b};
+  }
+};
+
+/**
+ * @brief Partial multiplication transform for Complex<R>.
+ *
+ * Complex multiplication (a+bi)(c+di) = (ac-bd) + (ad+bc)i
+ * inherits the partiality of R's arithmetic.
+ */
+export template <typename R>
+  requires IsComplexScalar<R>
+struct PartialMulComplex {
+  using value_type = Complex<R>;
+  using logic_species = TernaryLogic;
+
+  TernaryResult<Complex<R>> operator()(
+      std::pair<const Complex<R>&, const Complex<R>&> p) const noexcept {
+    auto [a, b] = p;
+    return {Ternary::True, a * b};
+  }
+};
+
+/**
+ * @brief Identity and Associativity traits for Complex arithmetic.
+ *
+ * Complex<R> arithmetic is commutative (same component-wise FP operations
+ * regardless of argument order) but NOT associative when R is a floating-point
+ * type: rounding means (a+b)+c ≠ a+(b+c) in general.
+ * Commutativity holds; associativity-by-fiat belongs to the IEEE<F> opt-in
+ * wrapper only.
+ *
+ * Partial identities: 0+0i for addition, 1+0i for multiplication.
+ *
+ * Specializations are declared in the dedekind::category namespace (see below).
+ */
+
+/**
+ * @brief Embedding transform: ℝ ↪ ℂ with Ternary acknowledgment.
+ *
+ * The embedding of a real R into the complex numbers is **exact**:
+ * every real x corresponds uniquely to (x + 0i).
+ * This transform returns Ternary::True to signal no information loss.
+ */
+export template <IsRealCarrier R = machine_real_scalar>
+struct PartialEmbedRealToComplex {
+  using value_type = Complex<R>;
+  using logic_species = TernaryLogic;
+
+  TernaryResult<Complex<R>> operator()(const Real<R>& r) const noexcept {
+    return {Ternary::True, Complex<R>{r.resolve(), R{}}};
+  }
+};
+
+}  // namespace dedekind::numbers
+
+namespace dedekind::category {
+
+/** @brief Kleene traits for complex arithmetic.
+ *
+ * Commutativity holds for IEEE 754 component-wise operations.
+ * Associativity does NOT hold for floating-point carriers — that opt-in
+ * belongs exclusively to dedekind::ieee::IEEE<F>.
+ */
+template <typename R>
+  requires dedekind::numbers::IsComplexScalar<R>
+inline constexpr bool is_kleene_commutative_v<
+    dedekind::numbers::Complex<R>, dedekind::numbers::PartialAddComplex<R>> =
+    true;
+
+template <typename R>
+  requires dedekind::numbers::IsComplexScalar<R>
+inline constexpr dedekind::numbers::Complex<R> partial_identity_v<
+    dedekind::numbers::Complex<R>, dedekind::numbers::PartialAddComplex<R>> =
+    dedekind::numbers::Complex<R>{R{}, R{}};
+
+template <typename R>
+  requires dedekind::numbers::IsComplexScalar<R>
+inline constexpr bool is_kleene_commutative_v<
+    dedekind::numbers::Complex<R>, dedekind::numbers::PartialMulComplex<R>> =
+    true;
+
+template <typename R>
+  requires dedekind::numbers::IsComplexScalar<R>
+inline constexpr dedekind::numbers::Complex<R> partial_identity_v<
+    dedekind::numbers::Complex<R>, dedekind::numbers::PartialMulComplex<R>> =
+    dedekind::numbers::Complex<R>{R{1}, R{}};
+
+/** @brief Kleene traits for real→complex embedding (exact). */
+template <dedekind::numbers::IsRealCarrier R>
+inline constexpr bool
+    is_kleene_associative_v<dedekind::numbers::Complex<R>,
+                            dedekind::numbers::PartialEmbedRealToComplex<R>> =
+        true;
+
+}  // namespace dedekind::category
+
+namespace dedekind::numbers {
 
 /**
  * @brief Machine realization arrow ℝ ↪ ℂ: Real<R> → Complex<R>.
