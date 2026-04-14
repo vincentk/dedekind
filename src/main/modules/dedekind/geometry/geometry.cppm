@@ -38,6 +38,7 @@ export module dedekind.geometry;
 
 /** @section Level_9.1: The Relational Foundation */
 export import :affine;         // The Point-Vector Duality
+export import :linear_map;     // Concrete finite-dimensional linear maps
 export import :inner_product;  // The Bilinear Mapping ⟨-, -⟩
 
 /** @section Level_9.2: The Metric Completion */
