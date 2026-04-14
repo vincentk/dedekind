@@ -23,7 +23,12 @@ jobs:
         wget https://apt.llvm.org/llvm.sh
         chmod +x llvm.sh
         sudo ./llvm.sh 21
-        sudo apt-get install -y clang-21 ninja-build clang-format-21 doxygen graphviz biber texlive-latex-base texlive-latex-extra texlive-pictures texlive-plain-generic texlive-fonts-recommended
+        sudo apt-get install -y clang-21 ninja-build clang-format-21
+
+    - name: Install docs toolchain
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      run: |
+        sudo apt-get install -y doxygen graphviz biber texlive-latex-base texlive-latex-extra texlive-pictures texlive-plain-generic texlive-fonts-recommended
 
     - name: Check Code Formatting
       run: find src -name "*.cpp" -o -name "*.cppm" | xargs clang-format-21 --dry-run --Werror
@@ -73,7 +78,7 @@ jobs:
       if: github.ref == 'refs/heads/main' && github.event_name == 'push'
       run: |
         mkdir -p build/pages
-        cp -R build/html/. build/pages/
+        cp -R build/docs/html/. build/pages/
         cp docs/report/report.pdf build/pages/report.pdf
 
     - name: Upload artifact

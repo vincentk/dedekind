@@ -45,7 +45,9 @@ concept IsPreOrdered =
  * @concept IsDirectedSet
  * @brief A Pre-ordered structure where any two elements have a common
  * successor.
- * @details Synthesized via the Join-Semilattice (|) from Mereology.
+ * @details Synthesized via the order Join-Semilattice (posetal
+ *          `IsCertifiedOrderJoinSemilattice`), using `std::ranges::max`
+ *          as the default join witness.
  *          This is the "Ground" for all Nets and Sequences.
  */
 export template <typename D, typename L = ClassicalLogic>
