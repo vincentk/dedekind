@@ -247,7 +247,7 @@ add_custom_target(generate_coverage
     COMMAND ${LLVM_COV_TOOL} export 
         -instr-profile=${CMAKE_BINARY_DIR}/dedekind.profdata 
         -format=lcov 
-        -ignore-filename-regex=".*_deps/.*|.*test/.*"
+        -ignore-filename-regex=".*_deps/.*|.*catch2.*|.*src/test/.*|.*test/.*"
         ${ALL_TESTS} 
         ${OBJ_ARGS} > ${CMAKE_BINARY_DIR}/coverage.info
     

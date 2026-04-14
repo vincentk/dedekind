@@ -10,6 +10,12 @@ import dedekind.numbers.approx;
 using namespace dedekind::category;
 using namespace dedekind::numbers;
 
+template <typename Op>
+constexpr bool can_propagate_double_v =
+    requires(const Approx<double>& a, const Approx<double>& b) {
+      { propagate<double, Op>(a, b) } -> std::same_as<Approx<double>>;
+    };
+
 TEST_CASE("Approx policy demos: ignore/report/adaptive", "[numbers][approx]") {
   const auto a = ieee_unit(0.1);
   const auto b = ieee_unit(0.2);
@@ -193,4 +199,17 @@ TEST_CASE("difficult terrain: adaptive-guided reassociation improves result",
   CHECK(rank(left_eval.status) > rank(right_eval.status));
   CHECK(std::fabs(chosen - static_cast<double>(reference)) <=
         std::fabs(rejected - static_cast<double>(reference)));
+}
+
+TEST_CASE("propagate enforces operation token contract at compile time",
+          "[numbers][approx][api]") {
+  struct MissingSensitivity {
+    constexpr IEEE<double> operator()(
+        const std::pair<IEEE<double>, IEEE<double>>& p) const noexcept {
+      return p.first + p.second;
+    }
+  };
+
+  CHECK_FALSE(can_propagate_double_v<MissingSensitivity>);
+  CHECK(can_propagate_double_v<IEEEAdd<double>>);
 }

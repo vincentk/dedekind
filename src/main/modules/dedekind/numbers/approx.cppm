@@ -8,6 +8,7 @@ module;
 #include <cmath>
 #include <concepts>
 #include <limits>
+#include <utility>
 
 export module dedekind.numbers.approx;
 
@@ -103,6 +104,21 @@ constexpr F roundoff_proxy(F x) noexcept {
   return std::numeric_limits<F>::epsilon() * std::fabs(x);
 }
 
+/**
+ * @brief Category-grounded contract for propagation operation tokens.
+ *
+ * The operation must be certified in the category layer as associative on
+ * the IEEE carrier and must expose the local sensitivity pair used by the
+ * Gaussian propagation rule.
+ */
+export template <typename Op, typename F>
+concept IsIEEEPropagationOp =
+    std::floating_point<F> && IsAssociative<IEEE<F>, Op> &&
+    requires(const Op& op, const IEEE<F>& x, const IEEE<F>& y) {
+      { op({x, y}) } -> std::same_as<IEEE<F>>;
+      { Op::sensitivity(x, y) } -> std::same_as<std::pair<F, F>>;
+    };
+
 /** @brief Report policy: keep value and attach an error envelope. */
 export template <std::floating_point F = machine_real_scalar>
 struct ReportErrorPolicy {
@@ -183,6 +199,7 @@ struct AdaptiveErrorPolicy {
  *      J. Amer. Statist. Assoc. 55(292):708–713. doi:10.2307/2281592
  */
 export template <std::floating_point F, typename Op>
+  requires IsIEEEPropagationOp<Op, F>
 constexpr Approx<F> propagate(const Approx<F>& a, const Approx<F>& b,
                               const Op& op = {}) noexcept {
   const IEEE<F> result = op({a.value, b.value});
