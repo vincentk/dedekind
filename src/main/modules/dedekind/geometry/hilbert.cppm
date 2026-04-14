@@ -12,11 +12,14 @@ export module dedekind.geometry:hilbert;
 import :inner_product;
 import dedekind.order;
 import dedekind.sequences;
+import dedekind.morphologies;
 
 namespace dedekind::geometry {
 
 using namespace dedekind::order;
 using namespace dedekind::sequences;
+
+using namespace dedekind::morphologies;
 
 /**
  * @concept IsEuclideanSpace
@@ -30,8 +33,16 @@ concept IsEuclideanSpace = IsInnerProductSpace<V, R> &&
  * @concept IsHilbertSpace
  * @brief An Inner Product Space where every Cauchy sequence converges.
  * @details A Hilbert space is the "Seamless" limit of geometric intuition.
+ *          Completeness of the scalar field is certified via
+ *          IsDedekindCompleteField<F> (from dedekind.morphologies:archimedean),
+ *          which requires the scalar to be an Archimedean ordered field.
+ *          This links the metric-space completeness of H to the order-theoretic
+ *          completeness (IsDedekindComplete) of its scalar domain.
+ * @see IsDedekindCompleteField
+ * @see IsDedekindComplete (dedekind.order)
  */
 export template <typename V, typename F>
-concept IsHilbertSpace = IsInnerProductSpace<V, F>;
+concept IsHilbertSpace =
+    IsInnerProductSpace<V, F> && IsDedekindCompleteField<F>;
 
 }  // namespace dedekind::geometry

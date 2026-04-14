@@ -63,6 +63,13 @@ TEST_CASE("Topology: Rules of Continuity Coverage", "[topology][continuity]") {
     // Check structural requirements for Interval components
     static_assert(IsHalfSpace<typename UnitInterval::lower_ray_type>);
     static_assert(IsHalfSpace<typename UnitInterval::upper_ray_type>);
+
+    // Interval exposes supremum()/infimum() — satisfies HasExtrema.
+    // This links topology::Interval to the order-theoretic completeness
+    // concept IsDedekindComplete = IsTotallyOrdered && IsDense && HasExtrema.
+    static_assert(dedekind::sets::HasExtrema<ClosedUnitInterval>);
+    static_assert(dedekind::sets::HasExtrema<UnitInterval>);
+    static_assert(dedekind::sets::HasExtrema<LeftClosedInterval>);
   }
 
   SECTION("HalfSpace: the general runtime-direction ray") {

@@ -173,6 +173,11 @@ class IntegerInterval
   constexpr T lower_bound() const noexcept { return lo_; }
   constexpr T upper_bound() const noexcept { return hi_; }
 
+  /** @brief Greatest lower bound (infimum) — satisfies HasExtrema. */
+  constexpr T infimum() const noexcept { return lo_; }
+  /** @brief Least upper bound (supremum) — satisfies HasExtrema. */
+  constexpr T supremum() const noexcept { return hi_; }
+
  private:
   T lo_, hi_;
 };

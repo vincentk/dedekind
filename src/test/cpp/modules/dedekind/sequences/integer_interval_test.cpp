@@ -3,6 +3,7 @@
 import dedekind.sequences;
 import dedekind.topology;
 import dedekind.category;
+import dedekind.sets;
 
 using namespace dedekind::sequences;
 using namespace dedekind::topology;
@@ -33,6 +34,12 @@ TEST_CASE("IntegerInterval: the serendipitous bridge",
 
     // Closed variant satisfies the same triple
     static_assert(IsConvexEnumerable<CI>);
+
+    // IntegerInterval exposes supremum()/infimum() as its stored bounds,
+    // satisfying HasExtrema — the order-theoretic prerequisite for
+    // IsDedekindComplete (IsTotallyOrdered && IsDense && HasExtrema).
+    static_assert(dedekind::sets::HasExtrema<II>);
+    static_assert(dedekind::sets::HasExtrema<CI>);
   }
 
   SECTION("Predicate view: set membership χ: ℤ → bool") {

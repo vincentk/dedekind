@@ -1,5 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 import dedekind.geometry;
+import dedekind.morphologies;
 
 using namespace dedekind::geometry;
 
@@ -27,7 +28,14 @@ TEST_CASE("Geometry: The Hilbert Horizon", "[geometry][hilbert]") {
   SECTION("Hilbert Completeness Proof") {
     /**
      * @proof Any finite-dimensional real vector space is a Hilbert space.
+     * The scalar field ℝ (= double) satisfies IsDedekindCompleteField:
+     *   IsArchimedeanField<double> = IsOrderedField && { a + double{1} } -> double.
+     * IsHilbertSpace now requires IsDedekindCompleteField<F>, linking
+     * metric completeness of the space to the order-completeness of ℝ.
      */
+    static_assert(
+      dedekind::morphologies::IsDedekindCompleteField<ℝ>,
+      "Axiom: The scalar field ℝ must be a Dedekind-complete (Archimedean) field.");
     static_assert(
         IsHilbertSpace<Vec3, ℝ>,
         "Axiom Failure: Finite real spaces must satisfy Hilbert completeness.");

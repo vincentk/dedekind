@@ -150,6 +150,11 @@ class Interval : public detail::IntervalBoundaryTag<Lower, Upper> {
 
   constexpr T lower_bound() const { return lower_.pivot(); }
   constexpr T upper_bound() const { return upper_.pivot(); }
+
+  /** @brief Greatest lower bound (infimum) — satisfies HasExtrema. */
+  constexpr T infimum() const { return lower_.pivot(); }
+  /** @brief Least upper bound (supremum) — satisfies HasExtrema. */
+  constexpr T supremum() const { return upper_.pivot(); }
   static constexpr Boundary lower_boundary = Lower;
   static constexpr Boundary upper_boundary = Upper;
 
