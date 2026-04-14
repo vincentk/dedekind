@@ -29,7 +29,23 @@ import :numeric;
 
 namespace dedekind::category {
 
-/** @section Forward_Declarations_of_Traits */
+/**
+ * @section Forward_Declarations_of_Traits
+ *
+ * Kleene-style partial algebra traits. Specializations declare whether a
+ * binary operation on a type possesses associativity, commutativity, or
+ * invertibility under strong Kleene three-valued logic, where Unknown
+ * propagates unless dominated by False.
+ *
+ * Strong Kleene logic is used (rather than weak Kleene / Priest logic) so
+ * that False \u2227 Unknown = False still holds -- a defined-and-false input
+ * can short-circuit regardless of an undefined sibling.
+ *
+ * @ref Kleene, S.C. (1952). "Introduction to Metamathematics". Van Nostrand.
+ *      \u00a764 (three-valued logic tables).
+ * @ref Fitting, M. (1985). "A Kripke-Kleene Semantics for Logic Programs".
+ *      J. Logic Programming 2(4):295\u2013312.
+ */
 export template <typename T, typename Op>
 inline constexpr bool is_kleene_associative_v = false;
 

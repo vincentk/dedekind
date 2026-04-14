@@ -20,8 +20,20 @@ using namespace dedekind::category;
 /**
  * @brief IEEE effect wrapper: values interpreted under machine IEEE semantics.
  *
- * This wrapper is intentionally explicit. Importing this partition is a local,
- * compile-time opt-in for fast-lane algebraic certifications.
+ * This wrapper is intentionally explicit. Importing this module is a
+ * compile-time opt-in: algebraic properties (associativity, commutativity)
+ * are certified by policy (fiat) rather than derived. The module boundary
+ * is the semantic boundary — outside this import, IEEE<F> is unknown.
+ *
+ * The design follows the "effect context" or monad pattern: @c assume_ieee
+ * and @c discharge_ieee are the unit and counit of the IEEE effect, and
+ * @c ieee_map / @c ieee_bind are the functor/monad combinators.
+ *
+ * @ref IEEE Std 754-2019. "IEEE Standard for Floating-Point Arithmetic".
+ *      IEEE, New York. doi:10.1109/IEEESTD.2019.8766229
+ * @ref Higham, N.J. (2002). "Accuracy and Stability of Numerical Algorithms"
+ *      (2nd ed.). SIAM. ISBN 978-0-89871-521-7. §2.2 (model of floating-point
+ *      arithmetic and rounding).
  */
 export template <std::floating_point F = machine_real_scalar>
 class IEEE {
@@ -93,7 +105,22 @@ constexpr Real<F> discharge_ieee(const IEEE<F>& x) noexcept {
   return Real<F>{x.resolve()};
 }
 
-/** @brief Certified operation token for addition under IEEE-by-fiat semantics.
+/**
+ * @brief Certified operation token for addition under IEEE-by-fiat semantics.
+ *
+ * Algebraic properties (associativity, commutativity) are declared by policy
+ * (fiat), not derived — the same opt-in certification used for IEEE<F> itself.
+ *
+ * The @c sensitivity() method returns the exact partial derivatives
+ * ∂(a+b)/∂a = 1, ∂(a+b)/∂b = 1. These are compile-time constants and
+ * require no floating-point arithmetic, making them safe to use as the
+ * ground level of a Gaussian error propagation chain without circularity.
+ *
+ * @ref Ku, H.H. (1966). "Notes on the use of propagation of error formulas".
+ *      J. Research NBS 70C(4):262–263. doi:10.6028/jres.070C.025
+ * @ref Ogita, T.; Rump, S.M.; Oishi, S. (2005). "Accurate Sum and Dot
+ *      Product". SIAM J. Sci. Comput. 26(6):1955–1988.
+ *      doi:10.1137/030601818
  */
 export template <std::floating_point F = machine_real_scalar>
 struct IEEEAdd {
@@ -105,10 +132,32 @@ struct IEEEAdd {
     auto [a, b] = p;
     return a + b;
   }
+
+  /**
+   * @brief Exact local sensitivities: ∂(a+b)/∂a = 1, ∂(a+b)/∂b = 1.
+   *
+   * Both partial derivatives are identically 1 regardless of operand values.
+   * Declared as a compile-time constant pair — no IEEE arithmetic involved.
+   */
+  static constexpr std::pair<F, F> sensitivity(const IEEE<F>&,
+                                               const IEEE<F>&) noexcept {
+    return {F{1}, F{1}};
+  }
 };
 
-/** @brief Certified operation token for multiplication under IEEE-by-fiat
- * semantics. */
+/**
+ * @brief Certified operation token for multiplication under IEEE-by-fiat
+ * semantics.
+ *
+ * @c sensitivity() returns ∂(a·b)/∂a = b, ∂(a·b)/∂b = a by reading the
+ * already-computed operand values. This is a direct lookup, not a new
+ * arithmetic chain, so there is no bootstrapping circularity.
+ *
+ * @ref Ku, H.H. (1966). "Notes on the use of propagation of error formulas".
+ *      J. Research NBS 70C(4):262–263. doi:10.6028/jres.070C.025
+ * @ref Goodman, L.A. (1960). "On the Exact Variance of Products".
+ *      J. Amer. Statist. Assoc. 55(292):708–713. doi:10.2307/2281592
+ */
 export template <std::floating_point F = machine_real_scalar>
 struct IEEEMul {
   using value_type = IEEE<F>;
@@ -118,6 +167,17 @@ struct IEEEMul {
       std::pair<const IEEE<F>&, const IEEE<F>&> p) const noexcept {
     auto [a, b] = p;
     return a * b;
+  }
+
+  /**
+   * @brief Exact local sensitivities: ∂(a·b)/∂a = b, ∂(a·b)/∂b = a.
+   *
+   * Returns the operand values, swapped. No new arithmetic — just a read
+   * of already-resolved floats. Safe to call at the base of an error chain.
+   */
+  static constexpr std::pair<F, F> sensitivity(const IEEE<F>& a,
+                                               const IEEE<F>& b) noexcept {
+    return {b.resolve(), a.resolve()};
   }
 };
 
