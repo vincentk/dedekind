@@ -265,6 +265,8 @@ constexpr auto cartesian_product(const Set<T1, L1, P1>& a,
 
 /**
  * @brief A Relation from A to B is a set of pairs: a subset of A × B.
+ * @details ETCS reading: relations are subobjects of products.
+ * @see Lambek and Scott @cite lambek1988higher
  *
  * @tparam T1  Element type of domain set A.
  * @tparam T2  Element type of codomain set B.
@@ -279,6 +281,7 @@ using Relation = Set<std::pair<T1, T2>, L, P>;
  * to exactly one codomain element.  The type alias admits the same structure
  * as a Relation; functional totality and single-valuedness are enforced at the
  * call-site via witness elements.
+ * @see Pierce @cite pierce1991basic
  */
 export template <typename T1, typename T2, typename L, typename P>
 using SetFunction = Relation<T1, T2, L, P>;
@@ -297,6 +300,7 @@ concept IsRelation = requires { typename S::Domain; } &&
  * Membership in P(A) is decided by the subset predicate `candidate <= base`.
  * This conservative form keeps the domain monomorphic (`Set<T,L,P>`) and is
  * sufficient for finite / homogeneous DSL constructions.
+ * @see Lambek and Scott @cite lambek1988higher
  */
 export template <typename T, typename L, typename P>
 constexpr auto power_set(const Set<T, L, P>& base) {

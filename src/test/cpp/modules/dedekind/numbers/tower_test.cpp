@@ -423,3 +423,33 @@ TEST_CASE("Tower: Set membership over Dual<double> domain",
 }
 static_assert(is_kleene_commutative_v<Complex<machine_real_scalar>,
                                       PartialMulComplex<machine_real_scalar>>);
+
+// ---------------------------------------------------------------------------
+// Inter-species set membership via embedding arrows: 𝔹 ↪ ℕ ↪ ℤ ↪ ℚ
+// Demonstrates that `in_via` composes cleanly across the numeric tower.
+// ---------------------------------------------------------------------------
+
+TEST_CASE("Tower: inter-species set membership via embeddings",
+          "[numbers][tower][embedding][sets]") {
+  const auto naturals =
+      ambient_set<unsigned>([](const unsigned&) { return true; });
+
+  // Every boolean embeds into ℕ and stays in the universal set.
+  CHECK(in_via(true, embed_𝔹_ℕ, naturals) == true);
+  CHECK(in_via(false, embed_𝔹_ℕ, naturals) == true);
+
+  // Compose 𝔹 ↪ ℕ ↪ ℤ ↪ ℚ and test against a ℚ+ predicate.
+  // Rational<> is not an ETCS species, so use Set<> directly.
+  const auto positive_pred = [](const Rational<machine_integer>& q) {
+    return q.num() > 0;
+  };
+  const Set<Rational<machine_integer>, ClassicalLogic, decltype(positive_pred)>
+      positive_rationals{positive_pred};
+
+  const auto embed_𝔹_ℚ = [](bool b) {
+    return embed_ℤ_ℚ<>(embed_ℕ_ℤ(embed_𝔹_ℕ(b)));
+  };
+
+  CHECK(positive_rationals(embed_𝔹_ℚ(true)) == true);    // 1/1 ∈ ℚ+
+  CHECK(positive_rationals(embed_𝔹_ℚ(false)) == false);  // 0/1 ∉ ℚ+
+}
