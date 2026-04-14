@@ -142,4 +142,8 @@ TEST_CASE("Category: Endofunctor algebras and fixed points",
   CHECK(adjunction.counit(9) == 9);
 
   CHECK(least_fixpoint(0, [](int x) { return x < 5 ? x + 1 : x; }) == 5);
+
+  // Cover the max_iterations-exhausted fallback path in fixed_point.
+  CHECK(fixed_point(
+            0, [](int x) { return x + 1; }, std::equal_to<int>{}, 3) == 3);
 }
