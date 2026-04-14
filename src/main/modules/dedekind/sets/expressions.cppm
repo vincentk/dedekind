@@ -1,3 +1,41 @@
+/**
+ * @file dedekind/sets/expressions.cppm
+ * @partition :expressions
+ * @brief Level 1.2: Set-Builder DSL -- comprehension, membership, Boolean
+ * connectives, subsets, relations, functions and the power set.
+ *
+ * @copyright 2026 The Dedekind Authors
+ * Licensed under the Apache License, Version 2.0.
+ *
+ * @section Description
+ * This partition provides the principal "set-builder" abstraction:
+ * Set<T, L, Predicate> -- an intensional set whose membership test is a
+ * compile-time callable predicate ranging into a subobject classifier L::Omega.
+ *
+ * Key constructs exported:
+ *  - Set<T,L,P>           -- ETCS-compatible intensional set.
+ *  - Variable<S> / var<S> -- symbolic scouts for comprehension syntax.
+ *  - Boolean connectives &&, ||, ! lifted to predicate combinators.
+ *  - operator<=           -- subset relation (same-predicate -> True;
+ *                            heterogeneous -> Unknown via TernaryLogic).
+ *  - cartesian_product    -- A x B as a Set of pairs.
+ *  - Relation, SetFunction -- subobjects of products.
+ *  - power_set            -- P(A) encoded as a Set of sets.
+ *  - relates, is_single_valued_at -- point-wise witnesses.
+ *
+ * @section References
+ * - Lawvere, F.W. (1964) -- ETCS axioms @cite lawvere1964etcs
+ * - Lambek & Scott (1988) -- higher-order categorical logic @cite
+ * lambek1988higher
+ * - Pierce (1991) -- basic category theory @cite pierce1991basic
+ *
+ * @quote
+ * "Dans la logique categorielle, un ensemble n'est pas une collection
+ *  d'elements, mais un objet defini par ses fleches."
+ * ("In categorical logic, a set is not a collection of elements,
+ *  but an object defined by its arrows.")
+ * -- F.W. Lawvere, paraphrase of the ETCS programme
+ */
 module;
 
 #include <compare>
