@@ -15,44 +15,58 @@ struct Pixel {
   int y;
 };
 
-constexpr bool mandelbrot_member(const Pixel& p, int size) {
-  const double cr =
-      (2.0 * static_cast<double>(p.x) / static_cast<double>(size)) - 1.5;
-  const double ci =
-      (2.0 * static_cast<double>(p.y) / static_cast<double>(size)) - 1.0;
+struct ComplexPoint {
+  double re;
+  double im;
+};
 
+constexpr ComplexPoint parameter_of(const Pixel& p, int size) {
+  return ComplexPoint{
+      (2.0 * static_cast<double>(p.x) / static_cast<double>(size)) - 1.5,
+      (2.0 * static_cast<double>(p.y) / static_cast<double>(size)) - 1.0};
+}
+
+constexpr bool orbit_is_bounded(const ComplexPoint& c, int max_iter) {
   double zr = 0.0;
   double zi = 0.0;
 
-  for (int iter = 0; iter < 50; ++iter) {
+  for (int n = 0; n < max_iter; ++n) {
     const double zr2 = zr * zr;
     const double zi2 = zi * zi;
     if (zr2 + zi2 > 4.0) return false;
 
-    zi = 2.0 * zr * zi + ci;
-    zr = zr2 - zi2 + cr;
+    // z_{n+1} = z_n^2 + c
+    zi = 2.0 * zr * zi + c.im;
+    zr = zr2 - zi2 + c.re;
   }
 
   return true;
 }
 
-constexpr auto mandelbrot_set(int size) {
-  auto pixel = var<Ω<Pixel>>;
-
-  const auto in_grid = Set{pixel % Ω<Pixel>{} | [size](const Pixel& p) {
-    return p.x >= 0 && p.x < size && p.y >= 0 && p.y < size;
-  }};
-
-  const auto in_mandelbrot = Set{pixel % Ω<Pixel>{} | [size](const Pixel& p) {
-    return mandelbrot_member(p, size);
-  }};
-
-  // Idiomatic set-builder composition: support set ∩ Mandelbrot predicate set.
-  return in_grid & in_mandelbrot;
+constexpr bool mandelbrot_member(const Pixel& p, int size, int max_iter) {
+  const auto c = parameter_of(p, size);
+  return orbit_is_bounded(c, max_iter);
 }
 
-std::vector<std::uint8_t> render_mandelbrot_pbm_bits(int size) {
-  const auto mandelbrot = mandelbrot_set(size);
+constexpr auto mandelbrot_set_n(int size, int max_iter) {
+  auto p = var<Ω<Pixel>>;
+
+  const auto in_grid = Set{p % Ω<Pixel>{} | [size](const Pixel& px) {
+    return px.x >= 0 && px.x < size && px.y >= 0 && px.y < size;
+  }};
+
+  const auto bounded_orbit =
+      Set{p % Ω<Pixel>{} | [size, max_iter](const Pixel& px) {
+            return mandelbrot_member(px, size, max_iter);
+  }};
+
+  // Finite approximation M_N = {p in grid | orbit(parameter_of(p)) bounded up
+  // to N iterations}.
+  return in_grid & bounded_orbit;
+}
+
+std::vector<std::uint8_t> render_mandelbrot_pbm_bits(int size, int max_iter) {
+  const auto mandelbrot = mandelbrot_set_n(size, max_iter);
 
   std::vector<std::uint8_t> bytes;
   bytes.reserve(static_cast<std::size_t>(size) *
@@ -99,7 +113,8 @@ TEST_CASE("Sets: Mandelbrot set-builder stress test",
           "[sets][stress][mandelbrot]") {
   SECTION("Known points agree with Mandelbrot membership") {
     const int size = 1024;
-    const auto mandelbrot = mandelbrot_set(size);
+    const int max_iter = 50;
+    const auto mandelbrot = mandelbrot_set_n(size, max_iter);
 
     REQUIRE(mandelbrot(Pixel{size / 2, size / 2}) ==
             dedekind::category::Ternary::True);
@@ -110,8 +125,9 @@ TEST_CASE("Sets: Mandelbrot set-builder stress test",
 
   SECTION("Benchmark-style rendering under load") {
     const int size = 512;
+    const int max_iter = 50;
     const auto t0 = std::chrono::steady_clock::now();
-    const auto bytes = render_mandelbrot_pbm_bits(size);
+    const auto bytes = render_mandelbrot_pbm_bits(size, max_iter);
     const auto t1 = std::chrono::steady_clock::now();
 
     const auto elapsed_ms =

@@ -1547,6 +1547,20 @@ The programmer is free to reason in the language of Cantor, while the compiler p
 
 The \texttt{dedekind.sets} module is verified through the \texttt{sets\_test} and \texttt{category\_integration\_test} suites. Table~\ref{table:etcs_complete} maps the 10 ETCS axioms to their C++23 structural invariants. The module currently implements 8 of the 10 Lawvere axioms; Axioms 7 (unique factorisation through pullbacks) and 10 (well-pointedness) are deferred to future work as they require higher-order categorical machinery not yet integrated into the library.
 
+\subsection*{Mandelbrot: Mathematical Target Form for Set-Builder Stress}
+
+For the stress-test listing, the target specification is the classical set-builder definition of the Mandelbrot set over the complex plane:
+\begin{equation}
+\mathcal{M} = \left\{c \in \mathbb{C} \;\middle|\; z_0 = 0,\; z_{n+1} = z_n^2 + c,\; (z_n)_{n \ge 0}\ \text{is bounded}\right\}.
+\end{equation}
+
+Because a benchmark implementation must terminate with deterministic cost, the practical test target is the finite approximation:
+\begin{equation}
+\mathcal{M}_N = \left\{c \in \mathbb{C} \;\middle|\; z_0 = 0,\; z_{n+1} = z_n^2 + c,\; \forall n \in \{0,\ldots,N\}: |z_n| \le 2\right\}.
+\end{equation}
+
+The code listing in this report should be read as a structural realization of $\mathcal{M}_N$: the set expression captures the mathematical predicate, while the output packing step remains a conventional imperative loop to follow the benchmark-game output contract.
+
 
 \chapter{\texttt{dedekind.ieee} and \texttt{dedekind.numbers}}
 \label{chap:ieee}
