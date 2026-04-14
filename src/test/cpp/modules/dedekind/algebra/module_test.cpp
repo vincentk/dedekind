@@ -39,4 +39,25 @@ TEST_CASE("Modules: Integer Polynomial Action", "[algebra][modules]") {
     CHECK(IsSemimodule<unsigned int, unsigned int>);
     CHECK(IsVectorSpaceLike<RealLine, double>);
   }
+
+  SECTION("Boolean 1D vectors behave like a semimodule over the Boolean rig") {
+    BoolLine a(true);
+    BoolLine b(false);
+
+    CHECK(BoolLineJoin{}(a, b).coordinate());
+    CHECK_FALSE(BoolLineJoin{}(b, b).coordinate());
+    CHECK(BoolLineMeetAction{}(true, a).coordinate());
+    CHECK_FALSE(BoolLineMeetAction{}(false, a).coordinate());
+
+    CHECK(IsSemimoduleLike<BoolLine, bool, BoolLineJoin, std::logical_or<bool>,
+                           std::logical_and<bool>, BoolLineMeetAction>);
+  }
+
+  SECTION("Unsigned 1D scaling supports strength reduction") {
+    UnsignedLine u(7u);
+
+    CHECK(scale_strength_reduced(u, 8u).coordinate() == 56u);
+    CHECK(scale_strength_reduced(u, 3u).coordinate() == 21u);
+    CHECK(scale_strength_reduced(u, 0u).coordinate() == 0u);
+  }
 }
