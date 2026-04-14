@@ -72,4 +72,10 @@ TEST_CASE("Category: Algebraic Proofs (Runtime Witnesses)",
     CHECK(identity_v<bool, std::logical_and<bool>> == true);
     CHECK(identity_v<bool, std::logical_or<bool>> == false);
   }
+
+  SECTION("Monic and Epic Arrow concepts on Identity") {
+    // Identity is both monic and epic (it is an isomorphism).
+    STATIC_CHECK(IsMonicArrow<Identity<int>>);
+    STATIC_CHECK(IsEpicArrow<Identity<int>>);
+  }
 }

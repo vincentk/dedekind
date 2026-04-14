@@ -634,4 +634,35 @@ inline constexpr bool is_monic_arrow_v<Identity<T>> = true;
 static_assert(IsMonicArrow<Identity<int>>,
               "Identity must be recognised as a monic arrow.");
 
+/**
+ * @brief User-declared epicity witness for an arrow type.
+ * @details Surjectivity cannot be verified at compile time in general.
+ *          Users specialize this to `true` to declare that a given arrow
+ *          is surjective (i.e., an epimorphism in the category of sets).
+ *          The compiler trusts the declaration; no runtime proof is required.
+ *
+ *          This mirrors `is_monic_arrow_v` and follows the same opt-in
+ *          declaration pattern.
+ */
+export template <typename E>
+inline constexpr bool is_epic_arrow_v = false;
+
+/**
+ * @concept IsEpicArrow
+ * @brief An arrow declared to be an epimorphism (π: A ↠ B).
+ * @details An epic arrow is surjective: for every b in B there exists a in A
+ *          with e(a) == b. The user declares epicity via
+ *          `is_epic_arrow_v<E> = true`.
+ */
+export template <typename E>
+concept IsEpicArrow = IsArrow<E> && is_epic_arrow_v<E>;
+
+// Identity arrows are always epic: for every element t in the codomain,
+// id(t) == t, so every element is hit.
+template <typename T>
+inline constexpr bool is_epic_arrow_v<Identity<T>> = true;
+
+static_assert(IsEpicArrow<Identity<int>>,
+              "Identity must be recognised as an epic arrow.");
+
 }  // namespace dedekind::category
