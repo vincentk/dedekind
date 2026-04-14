@@ -81,12 +81,41 @@ class RigPolynomial {
   }
 
   /** @section Algebraic_Morphisms */
+  friend constexpr bool operator==(const RigPolynomial& a,
+                                   const RigPolynomial& b) = default;
+
   friend constexpr RigPolynomial operator+(const RigPolynomial& a,
                                            const RigPolynomial& b) {
-    std::vector<R> res(std::max(a.degree(), b.degree()) + 1,
+    if (a.is_zero()) return b;
+    if (b.is_zero()) return a;
+    std::vector<R> res(std::max(a.coeffs_.size(), b.coeffs_.size()),
                        dedekind::category::identity_v<R, std::plus<R>>);
-    // ... (Implementation: Coefficient-wise addition)
-    return RigPolynomial(res);
+    for (std::size_t i = 0; i < a.coeffs_.size(); ++i)
+      res[i] = res[i] + a.coeffs_[i];
+    for (std::size_t i = 0; i < b.coeffs_.size(); ++i)
+      res[i] = res[i] + b.coeffs_[i];
+    return RigPolynomial(std::move(res));
+  }
+
+  /**
+   * @brief Coefficient-wise subtraction: (a - b)_i = a_i - b_i.
+   * @details Requires the coefficient ring R to be invertible under addition
+   *          (i.e., R forms a group under +, e.g. int, double). Not available
+   *          for rig coefficients such as unsigned int.
+   */
+  friend constexpr RigPolynomial operator-(const RigPolynomial& a,
+                                           const RigPolynomial& b)
+    requires dedekind::category::is_invertible_v<R, std::plus<R>>
+  {
+    if (b.is_zero()) return a;
+    std::vector<R> res(std::max(a.coeffs_.size(), b.coeffs_.size()),
+                       dedekind::category::identity_v<R, std::plus<R>>);
+    for (std::size_t i = 0; i < a.coeffs_.size(); ++i)
+      res[i] = res[i] + a.coeffs_[i];
+    for (std::size_t i = 0; i < b.coeffs_.size(); ++i)
+      res[i] =
+          res[i] + dedekind::category::inverse_v<R, std::plus<R>>(b.coeffs_[i]);
+    return RigPolynomial(std::move(res));
   }
 
   /** @brief Cauchy Product: (a * b)_n = Σ (a_i * b_{n-i}) */
@@ -107,6 +136,23 @@ class RigPolynomial {
     return RigPolynomial(std::move(res));
   }
 
+  /**
+   * @brief Formal derivative: d/dx Σ aᵢ xⁱ = Σ_{i≥1} i·aᵢ xⁱ⁻¹.
+   * @details The coefficient i·aᵢ is computed by i-fold addition, which is
+   *          valid over any semiring (no subtraction or division required).
+   */
+  constexpr RigPolynomial derive() const {
+    if (coeffs_.size() <= 1) return RigPolynomial{};
+    std::vector<R> res(coeffs_.size() - 1,
+                       dedekind::category::identity_v<R, std::plus<R>>);
+    for (std::size_t i = 1; i < coeffs_.size(); ++i) {
+      R coeff = dedekind::category::identity_v<R, std::plus<R>>;
+      for (std::size_t k = 0; k < i; ++k) coeff = coeff + coeffs_[i];
+      res[i - 1] = coeff;
+    }
+    return RigPolynomial(std::move(res));
+  }
+
   constexpr std::size_t degree() const {
     return coeffs_.empty() ? 0 : coeffs_.size() - 1;
   }
@@ -114,7 +160,11 @@ class RigPolynomial {
 
  private:
   std::vector<R> coeffs_;
-  void canonicalize() { /* Remove trailing zeros */ }
+
+  void canonicalize() {
+    const R zero = dedekind::category::identity_v<R, std::plus<R>>;
+    while (!coeffs_.empty() && coeffs_.back() == zero) coeffs_.pop_back();
+  }
 };
 
 /**
@@ -143,6 +193,23 @@ template <typename R>
 inline constexpr bool is_associative_v<Poly<R>, std::multiplies<>> = true;
 template <typename R>
 inline constexpr bool is_associative_v<Poly<R>, std::multiplies<Poly<R>>> =
+    true;
+
+// Polynomial addition is commutative whenever its coefficient ring is.
+template <typename R>
+  requires is_commutative_v<R, std::plus<R>>
+inline constexpr bool is_commutative_v<Poly<R>, std::plus<>> = true;
+template <typename R>
+  requires is_commutative_v<R, std::plus<R>>
+inline constexpr bool is_commutative_v<Poly<R>, std::plus<Poly<R>>> = true;
+
+// Polynomial multiplication is commutative whenever the coefficient ring is.
+template <typename R>
+  requires is_commutative_v<R, std::multiplies<R>>
+inline constexpr bool is_commutative_v<Poly<R>, std::multiplies<>> = true;
+template <typename R>
+  requires is_commutative_v<R, std::multiplies<R>>
+inline constexpr bool is_commutative_v<Poly<R>, std::multiplies<Poly<R>>> =
     true;
 
 }  // namespace dedekind::category
