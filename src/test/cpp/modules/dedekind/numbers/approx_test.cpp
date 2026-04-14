@@ -143,8 +143,8 @@ TEST_CASE("corner case: region boundaries behave as expected",
   const double huge_boundary = 0.5 * maxv;
 
   CHECK(classify_region(near_zero_boundary) == NumericRegion::NearZero);
-  CHECK(classify_region(std::nextafter(near_zero_boundary,
-                                       std::numeric_limits<double>::infinity())) ==
+  CHECK(classify_region(std::nextafter(
+            near_zero_boundary, std::numeric_limits<double>::infinity())) ==
         NumericRegion::Regular);
 
   CHECK(classify_region(huge_boundary) == NumericRegion::Huge);
@@ -186,9 +186,9 @@ TEST_CASE("difficult terrain: adaptive-guided reassociation improves result",
                               : left_eval.value.value.resolve();
 
   // High-precision reference of the intended mathematical expression.
-  const long double reference =
-      static_cast<long double>(1e16) + static_cast<long double>(-1e16) +
-      static_cast<long double>(1.0);
+  const long double reference = static_cast<long double>(1e16) +
+                                static_cast<long double>(-1e16) +
+                                static_cast<long double>(1.0);
 
   CHECK(rank(left_eval.status) > rank(right_eval.status));
   CHECK(std::fabs(chosen - static_cast<double>(reference)) <=
