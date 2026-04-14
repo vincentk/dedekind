@@ -100,7 +100,7 @@ concept IsVectorSpace =
  *          in the scalar species S, with pointwise addition and scalar action.
  */
 export template <typename S, typename Tag = void>
-  requires std::equality_comparable<S>
+  requires std::equality_comparable<S> && std::default_initializable<S>
 struct OneDimensionalVector {
   using scalar_type = S;
 
@@ -124,7 +124,9 @@ struct OneDimensionalVector {
 
   friend constexpr OneDimensionalVector operator-(const OneDimensionalVector& a,
                                                   const OneDimensionalVector& b)
-    requires requires(S s) { -s; }
+    requires requires(S s) {
+      { s - s } -> std::same_as<S>;
+    }
   {
     return OneDimensionalVector(a.x - b.x);
   }
@@ -323,7 +325,9 @@ struct SpeciesTraits<dedekind::algebra::OneDimensionalVector<S, Tag>> {
 };
 
 template <typename S, typename Tag>
-  requires requires(S s) { -s; }
+  requires requires(S s) {
+    { -s } -> std::same_as<S>;
+  }
 inline constexpr dedekind::algebra::OneDimensionalVector<S, Tag> inverse(
     dedekind::algebra::OneDimensionalVector<S, Tag> v,
     std::plus<dedekind::algebra::OneDimensionalVector<S, Tag>>) {

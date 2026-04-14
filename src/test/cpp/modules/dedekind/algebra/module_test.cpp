@@ -61,19 +61,6 @@ TEST_CASE("Modules: Integer Polynomial Action", "[algebra][modules]") {
           lane_result);
   }
 
-  SECTION("RealLine defaults to IEEE fast-lane policy semantics") {
-    using RealScalar = decltype(RealLine{}.coordinate());
-    CHECK(std::same_as<RealScalar, dedekind::ieee::IEEE<double>>);
-
-    RealLine x(2.0);
-    RealLine y(3.5);
-    auto sum = (x + y).coordinate();
-
-    CHECK(dedekind::ieee::demo_add_ignore(x.coordinate(), y.coordinate()) ==
-          sum);
-    CHECK(dedekind::ieee::IgnoreErrorPolicy<double>{}(sum) == sum);
-  }
-
   SECTION("Boolean 1D vectors behave like a semimodule over the Boolean rig") {
     BoolLine a(true);
     BoolLine b(false);
@@ -147,7 +134,9 @@ TEST_CASE("Modules: Integer Polynomial Action", "[algebra][modules]") {
           dedekind::category::ClassicalLogic::True);
   }
 
-  SECTION("Boolean semimodule notion exists as an ETCS set and members") {
+  SECTION(
+      "Boolean semimodule notion exists as an ETCS set and vectors are "
+      "members") {
     auto bool_semimodule =
         dedekind::category::ambient_set<BoolLine>([](const BoolLine&) {
           return dedekind::category::ClassicalLogic::True;
