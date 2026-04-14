@@ -137,7 +137,39 @@ class Set {
     return Set<T, L, decltype(predicate)>{predicate};
   }
 
-  constexpr typename L::Ω operator<=(const Set&) const { return L::True; }
+  /** @brief Same-predicate subset: always True (identity). */
+  constexpr typename L::Ω operator<=(const Set& /*other*/) const {
+    return L::True;
+  }
+
+  /**
+   * @brief Subset test: this ⊆ other for heterogeneous predicate types.
+   *
+   * For intensional sets over potentially infinite domains, the general subset
+   * question is undecidable without witnesses. If the ambient logic supports a
+   * third truth value, return Unknown; otherwise return True conservatively.
+   */
+  template <typename OtherPredicate>
+    requires(!std::same_as<Predicate, OtherPredicate>)
+  constexpr typename L::Ω operator<=(const Set<T, L, OtherPredicate>&) const {
+    if constexpr (requires { L::Unknown; }) {
+      return L::Unknown;
+    } else {
+      return L::True;
+    }
+  }
+
+  /**
+   * @brief Point-wise subset evidence: returns true iff this(x) implies
+   * other(x) at the given witness point x.
+   */
+  template <typename OtherPredicate>
+  constexpr bool is_subset_of_at(const Set<T, L, OtherPredicate>& other,
+                                 const T& x) const {
+    const bool in_this = static_cast<bool>(predicate_(x));
+    if (!in_this) return true;  // Vacuously true: x ∉ this.
+    return static_cast<bool>(other.predicate_(x));
+  }
 
  private:
   template <typename, typename, typename>
@@ -211,5 +243,55 @@ constexpr auto operator||(P1&& p1, P2&& p2) {
     return p1(v) || p2(v);
   };
 }
+
+}  // namespace dedekind::sets
+
+namespace dedekind::sets {
+
+/**
+ * @brief Cartesian product of two sets: {(a,b) | a ∈ A, b ∈ B}.
+ *
+ * Constructs a Set whose domain is std::pair<T1,T2> and whose membership
+ * predicate checks element-wise membership in both component sets.
+ */
+export template <typename T1, typename L1, typename P1, typename T2,
+                 typename L2, typename P2>
+  requires std::same_as<L1, L2>
+constexpr auto cartesian_product(const Set<T1, L1, P1>& a,
+                                 const Set<T2, L2, P2>& b) {
+  using Pair = std::pair<T1, T2>;
+  auto pred = [pa = a, pb = b](const Pair& p) {
+    return pa(p.first) && pb(p.second);
+  };
+  return Set<Pair, L1, decltype(pred)>{pred};
+}
+
+/**
+ * @brief A Relation from A to B is a set of pairs: a subset of A × B.
+ *
+ * @tparam T1  Element type of domain set A.
+ * @tparam T2  Element type of codomain set B.
+ * @tparam L   Logic species shared by both component sets.
+ * @tparam P   Predicate on std::pair<T1,T2>.
+ */
+export template <typename T1, typename T2, typename L, typename P>
+using Relation = Set<std::pair<T1, T2>, L, P>;
+
+/**
+ * @brief A (set-level) Function is a Relation where each domain element maps
+ * to exactly one codomain element.  The type alias admits the same structure
+ * as a Relation; functional totality and single-valuedness are enforced at the
+ * call-site via witness elements.
+ */
+export template <typename T1, typename T2, typename L, typename P>
+using SetFunction = Relation<T1, T2, L, P>;
+
+/**
+ * @brief Concept: a set S whose ambient type is std::pair<T1,T2> is a
+ * valid binary relation on T1 and T2.
+ */
+export template <typename S, typename T1, typename T2>
+concept IsRelation = requires { typename S::Domain; } &&
+                     std::same_as<typename S::Domain, std::pair<T1, T2>>;
 
 }  // namespace dedekind::sets

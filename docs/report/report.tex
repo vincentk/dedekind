@@ -125,8 +125,8 @@ We demonstrate the utility of this approach through a formal construction of the
 
 \tableofcontents
 
-\section{Introduction}
-\label{sec:introduction}
+\chapter{Introduction}
+\label{chap:introduction}
 
 The development of modern computational science, particularly in data science and Large Language Model (LLM) engineering, is constrained by a persistent performance-productivity gap known as the \emph{two-language problem}.
 In this paradigm, researchers utilize high-level symbolic environments like \texttt{Python} for rapid prototyping and expressive reasoning, while relying on low-level languages like C++ to handle execution backends.
@@ -266,7 +266,8 @@ static_assert(e < π);
 Together, these features bridge the gap between the declarative ease of symbolic algebra and the mechanical sympathy required for modern high-performance computing \cite{thompson2011mechanical}. By allowing the C++ compiler itself to understand the symbolic logic of the Continuum, \texttt{dedekind} ensures that high-level mathematical invariants are preserved from specification to machine code, effectively treating the compiler as a formal proof assistant for systems-level performance.
 
 
-\section{Implementation}
+\chapter{Design and Methodology}
+\label{chap:methodology}
 
 The methodology of \texttt{dedekind} is predicated on the translation of formal mathematical structures into a stratified registry of C++23 modules. This stratification allows for a "bottom-up" synthesis of complex mathematical objects, where each level serves as a verified foundation for the next.
 By design, the flow of compilation mirrors a pedagogical progression: foundational, general-purpose modules are verified first, providing an immutable basis for the specialized and practical abstractions that follow.
@@ -295,7 +296,7 @@ Coproduct ($A + B$) & \texttt{std::variant} & \texttt{IsCoproduct} \\
 \end{tabular}
 \end{table}
 
-\subsection{Instrumented Model Validation: The CI Pipeline as an Independent Auditor}
+\section{Instrumented Model Validation: The CI Pipeline as an Independent Auditor}
 While formal verification in languages like Agda or Coq typically relies on static type-level proofs that are erased during compilation, the \texttt{dedekind} framework adopts a methodology of \emph{Instrumented Model Validation}. By leveraging the LLVM profiling infrastructure, we provide an empirical \emph{Runtime Witness} for our categorical primitives.
 
 
@@ -309,12 +310,12 @@ Here, the reviewer is instructed to compare the logic of both the code and the t
 This methodology is physically enforced by a strictly layered directed acyclic graph (DAG) of the system's build order.
 By carefully selecting C++ module partitions and build-step boundaries, we translate the dependencies of formal mathematics into a sequence of verified compilation units. This architecture mimics the pedagogical progression of a mathematical textbook, where the ontology matures from foundational axioms to complex theorems through a series of verified proofs. By isolating these prerequisites into a `category` module, we leverage what Wadler termed "Theorems for Free!" \cite{wadler1989theorems}: once a structural identity is established and cached as a Binary Module Interface (BMI), its properties are inherited by all downstream partitions as an immutable "cached truth." This ensures that the compiler's proof-search is grounded in a physical hierarchy, preventing circular reasoning and ensuring that the structural integrity of the model is a prerequisite for successful linking. Crucially, the CI/CD methodology provides an independent, physical verification of this progression; by requiring every node in the build graph to pass its respective model validation before the pipeline can proceed, we ensure that the "textbook" derivation is not merely a logical possibility, but a materialized reality across the entire module graph.
 
-\subsubsection{The Compiler as a Verification and Optimization Engine}
+\subsection{The Compiler as a Verification and Optimization Engine}
 While functional languages like Haskell are often viewed as the natural home for Category Theory, Milewski \cite{milewski2019category} demonstrated that C++ is equally capable of modeling complex categorical morphisms. \texttt{dedekind} builds upon this bridge by utilizing C++23 features to move from mere simulation to compile-time verification. 
 
 By applying \texttt{static\_assert} against structural concepts, we transform the compilation process into a formal verification phase. This provides the \texttt{LLVM} toolchain with the semantic context required for ``structural pruning'': by hoisting mereological relations into the type signature, the backend can identify logical contradictions—such as an empty set defined by contradictory predicates—and prune them into zero-overhead machine instructions. This ``correctness-by-construction'' methodology ensures that the structural integrity of the mathematical model is verified and optimized before the final binary is generated.
 
-\subsubsection{Ontological Decidability and the Build Graph}
+\subsection{Ontological Decidability and the Build Graph}
 To mitigate the ``template tax'' and ensure the practical decidability of the ontology, we utilize a directed acyclic build graph (see Figure \ref{fig:dedekind_module_dependencies}).
 This directed acyclic graph mirrors the formal structure of a mathematical proof: \textit{Axiom} $\rightarrow$ \textit{Theorem} $\rightarrow$ \textit{Proof}.
 While the underlying mathematical nature of certain propositions remains inherently undecidable, \texttt{dedekind} provides structural guardrails by isolating foundational axioms into up-stream module partitions.
@@ -357,7 +358,20 @@ In this approach, the structure of the paper is intended to be isomorphic to the
 By the time the reader reaches the final sections, the library's 'textbook' derivation will have been fully materialized as a verified C++ library object traversed by the underlying hardware.
 
 
-\subsection{Level 0: The Algebraic Atlas (\texttt{dedekind.category})}
+\chapter{\texttt{dedekind.category}}
+\label{chap:category}
+
+\section{Introduction}
+\label{sec:category-intro}
+
+The \texttt{dedekind.category} module constitutes the system's ``Atomic Floor,'' providing the foundational categorical primitives upon which the entire library rests. Following the pedagogical progression of a formal mathematical textbook, its internal build graph generates a rigid lattice of verified structural invariants---morphisms, mereology, logic, actions, monads, and an ETCS set-theoretic interface---before any numeric or domain-specific module is compiled. Every downstream partition imports from \texttt{dedekind.category} and can therefore rely on its axioms as immutable, cached Binary Module Interface (BMI) lemmata.
+
+The key references for this module are the categorical foundations of Lawvere~\cite{lawvere1964etcs}, the monadic calculus of Moggi~\cite{moggi1991notions}, the Kleisli construction~\cite{kleisli1965every}, and the species theory of Joyal~\cite{joyal1981species}.
+
+\section{Implementation}
+\label{sec:category-impl}
+
+\subsection{Level 0: The Algebraic Atlas}
 
 While the global build graph establishes the dependency between C++ modules, the \texttt{dedekind.category} module constitutes the system's "Atomic Floor."
 To maintain absolute linear order, this module is itself stratified into internal partitions.
@@ -954,7 +968,7 @@ using Eq = Equalizer<f, g>;
 static_assert(IsLimit<Eq>);
 \end{lstlisting}
 
-\subsection{Level 1: Space and Action (\texttt{dedekind.category})}
+\subsection{Level 1: Space and Action}
 
 The transition from Level 0 to Level 1 represents the "Maturation of Species." Following the Polish School of Logic as articulated by Ajdukiewicz \cite{ajdukiewicz1985jezyk}, we treat mathematical structures as active apparatuses—or conceptual orientations—that determine the image of the computational world. This aligns with the restriction category approach \cite{cockett2002restriction}, where totality is not a default state but a property verified against a specific subobject support.
 
@@ -1242,9 +1256,24 @@ static\_assert(even\_greater\_ten.\u03C7(12) == true);
 
 By hoisting these mereological invariants into the type signature, we enable \textit{Symbolic Equalization}. The compiler can decompose and optimize a set based on its logical essence rather than its storage layout, allowing contradictory set-builder predicates to collapse into zero-instruction machine code. This ensures that the performance of the ``Naked Loop'' is always mathematically justified by the prior formal certification of the ETCS axioms.
 
+\section{Results}
+\label{sec:category-results}
+
+The \texttt{dedekind.category} module is verified in the CI pipeline through the \texttt{category\_test} and \texttt{kleisli\_test} suites. Key verified properties are summarised in Table~\ref{table:dedekind_floor} (primary formal correspondences), Table~\ref{tab:feature_cube_final} (Feature Cube of algebraic species), and Table~\ref{tab:algebraic_hierarchy} (algebraic hierarchy). The module dependency graph is shown in Figure~\ref{category_partitions_dependencies}. All 15 partitions compile and link without errors, and coverage for the module is at or above the project baseline.
 
 
-\subsection{\texttt{sets} Module}
+\chapter{\texttt{dedekind.sets}}
+\label{chap:sets}
+
+\section{Introduction}
+\label{sec:sets-intro}
+
+The \texttt{dedekind.sets} module implements the Elementary Theory of the Category of Sets (ETCS)~\cite{lawvere1964etcs, lawvere2003sets} through a structural, mereological approach. Set objects are defined by their membership predicates rather than by extensional storage, enabling the C++ compiler to reason symbolically about union, intersection, complement, and subset operations. The module occupies the second position in the build graph, immediately downstream of \texttt{dedekind.category}, and provides the set-theoretic substrate for all subsequent modules.
+
+Key references are Lawvere and Rosebrugh~\cite{lawvere2003sets}, structural mereology~\cite{mormann2013structural}, and Cartesian closed categories~\cite{lambek1988introduction}.
+
+\section{Implementation}
+\label{sec:sets-impl}
 
 \paragraph{Implementation note (terminology and scope).}
 The current implementation separates \texttt{dedekind.category:mereology} from
@@ -1307,7 +1336,7 @@ The deferred Axioms 7 and 10 depend on pullback diagrams and the global section 
 
 
 
-\subsubsection{The \texttt{:set} partition}
+\subsection{The \texttt{:set} partition}
 To ground this theoretical approach, Table 1 maps the fundamental axioms of the Elementary Theory of the Category of Sets (ETCS) -- as codified in the pedagogical treatment by Lawvere and Rosebrugh \cite{lawvere2003sets} -- to their structural equivalents in \texttt{dedekind}.
 This mapping ensures that the library is not merely a numerical simulation, but a direct implementation of algebraic laws within the host language's type system.
 In a sense, \texttt{dedekind} hopes to be a *compiler* for mathematical concepts.
@@ -1338,7 +1367,7 @@ For finite collections, such as the \texttt{Booleans}, the system performs \emph
 Conversely, for infinite or transcendental structures like the \texttt{Complex Numbers}, the library utilizes \emph{intensional} symbolic expressions to maintain structural integrity.
 By embedding these categorical definitions in the \texttt{C++} host language, the programmer—and crucially the \emph{compiler}—can examine the algebraic properties of a field even when the underlying elements cannot be fully materialized as discrete machine data.
 
-\subsubsection{Intensional Sets and Computational Undecidability}
+\subsection{Intensional Sets and Computational Undecidability}
 The utility of the categorical approach is most evident when defining sets whose membership conditions are conceptually clear but computationally undecidable.
 Consider the set of \emph{Normal Numbers} $\mathscr N$, defined as those real numbers whose infinite digit expansion follows a uniform distribution.
 Formally, a real number $x$ is normal in base $b$ if for every finite sequence of digits $s$, the limiting frequency of $s$ appearing in the expansion of $x$ satisfies:
@@ -1365,7 +1394,7 @@ For example, the Gaussian integral $e^{-t^2}$ defines the \emph{Error Function} 
 While traditional backends rely on lossy polynomial approximations to evaluate this integral, the \texttt{dedekind} ontology reifies $\text{erf}(x)$ as a set of symbolic properties.
 This allows the \texttt{C++} compiler to resolve identities—such as the symmetry $\text{erf}(-x) = -\text{erf}(x)$—as zero-overhead type transformations, delaying numerical approximation until the final realization of the continuum.
 
-\subsubsection{Categorification of Sequences and the Continuum}
+\subsection{Categorification of Sequences and the Continuum}
 
 While \textsc{ETCS} provides the axioms for discrete collections, the representation of sequences and the analytic continuum requires a transition from set-theoretic membership to functorial structures.
 In the \texttt{dedekind} library, we avoid the imperative indexing of terms by treating sequences as \emph{Combinatorial Species} \cite{joyal1981species}.
@@ -1444,11 +1473,26 @@ struct Intersection {
 By reifying a subset of the set-builder notation, dedekind turns the C++ translation unit into a symbolic laboratory.
 The programmer is free to reason in the language of Cantor, while the compiler produces the performance of a naked C++ loop.
 
-\subsubsection[IEEE Fast Lane and Approximation Policies]{The IEEE Fast Lane and Numerical Approximation Policies (\texttt{dedekind.numbers.ieee}, \texttt{dedekind.numbers.approx})}
-\label{sec:ieee-approx}
+\section{Results}
+\label{sec:sets-results}
 
-Standard floating-point arithmetic pervades scientific computing, yet its algebraic contract is almost entirely implicit: associativity, commutativity, and identity are assumed by convention rather than certified by the type system.
-The \texttt{dedekind.numbers.ieee} and \texttt{dedekind.numbers.approx} modules address this gap through an \emph{effect-context} design: arithmetic may be fast by default, but every operation that enters the certified path is algebraically stamped.
+The \texttt{dedekind.sets} module is verified through the \texttt{sets\_test} and \texttt{category\_integration\_test} suites. Table~\ref{table:etcs_complete} maps the 10 ETCS axioms to their C++23 structural invariants. The module currently implements 8 of the 10 Lawvere axioms; Axioms 7 (unique factorisation through pullbacks) and 10 (well-pointedness) are deferred to future work as they require higher-order categorical machinery not yet integrated into the library.
+
+
+\chapter{\texttt{dedekind.ieee} and \texttt{dedekind.numbers}}
+\label{chap:ieee}
+
+\section{Introduction}
+\label{sec:ieee-intro}
+
+The \texttt{dedekind.ieee} and \texttt{dedekind.numbers.approx} modules provide an algebraically-stamped IEEE~754 fast lane and a first-order error propagation framework. Standard floating-point arithmetic pervades scientific computing, yet its algebraic contract---associativity, commutativity, identity---is almost entirely implicit. These modules address this gap through an \emph{effect-context} design: arithmetic remains fast by default, but every operation on the certified path is algebraically stamped and carries local sensitivity information.
+
+Key references are the IEEE~754 standard~\cite{ieee754_2019}, Higham's numerical stability guide~\cite{higham2002accuracy}, and error propagation literature~\cite{ku1966notes, ogita2005accurate}.
+
+\section{Implementation}
+\label{sec:ieee-impl}
+
+\subsection{The IEEE Fast Lane and Approximation Policies}
 
 \paragraph{The \texttt{IEEE<F>} effect context.}
 The wrapper type \texttt{IEEE<F>} (where \texttt{F} is a \texttt{std::floating\_point} type) acts as an opt-in semantic boundary.
@@ -1497,8 +1541,8 @@ concept IsIEEEPropagationOp =
 \end{lstlisting}
 The \texttt{IsAssociative<IEEE<F>, Op>} clause delegates the associativity proof to the same concept that governs all algebraic structures in the library, ensuring that the numeric fast lane is not an isolated corner of the type hierarchy but a fully categorified citizen of the \texttt{dedekind} ontology.
 
-\subsection{Semantics}
 \section{Results}
+\label{sec:ieee-results}
 
 \subsection{Fast Lane vs. Improved Numerics}
 
@@ -1711,21 +1755,82 @@ Supremum / Infimum & $\sup, \inf$ & \texttt{s.supremum(), s.infimum()} & \texttt
 \end{small}
 \end{sidewaystable}
 
-\subsection{\texttt{order} Module}
-\subsection{\texttt{topology} Module}
-\subsection{\texttt{sequences} Module}
-\subsection{\texttt{algebra} Module}
+\chapter{\texttt{dedekind.order}}
+\label{chap:order}
 
-Needed to push back repeatedly on attempts to go the convenient `double` route instead of spelling things out as semi-modules, semi-rings etc. i.e. reduced-strength algebraic structures. Of course, ultimately everything is a complex number from this perspective just like everything is a string for front-end developers.
+\section{Introduction}
+\section{Implementation}
+\section{Results}
 
-\subsection{\texttt{morphologies} Module}
-\subsection{\texttt{geometry} Module}
-\subsection{\texttt{numbers} Module}
-\subsection{\texttt{analysis} Module}
 
-The physical build order of the \texttt{dedekind.ontology} module mirrors this conceptual hierarchy. By enforcing a linear dependency graph—where \texttt{:mereology} is compiled before \texttt{:algebra}—we ensure that the compiler's proof-search for a Ring's identity element is grounded in the prior verification of its mereological subobjects. This hierarchy transforms the C++ module mapper into a directed acyclic graph of mathematical truth.
+\chapter{\texttt{dedekind.topology}}
+\label{chap:topology}
 
-\subsection{Performance}
+\section{Introduction}
+\section{Implementation}
+\section{Results}
+
+
+\chapter{\texttt{dedekind.sequences}}
+\label{chap:sequences}
+
+\section{Introduction}
+\section{Implementation}
+\section{Results}
+
+
+\chapter{\texttt{dedekind.algebra}}
+\label{chap:algebra}
+
+\section{Introduction}
+The \texttt{dedekind.algebra} module builds upon \texttt{dedekind.sets} to implement rings, fields, semimodules, and modules via reduced-strength algebraic structures. A core design principle is to avoid the convenient \texttt{double} route and instead spell out the algebraic structure explicitly: from boolean rigs through unsigned-integer rings up to the complex-number field. As a corollary, everything in the library is ultimately a complex number---in the same way that everything is a string for front-end developers.
+
+A recurring implementation challenge was the pressure to default to \texttt{double}; the module systematically resisted this in favour of explicit semimodules and semirings, ensuring reduced-strength structures are always named and certified before being promoted.
+
+\section{Implementation}
+\section{Results}
+
+
+\chapter{\texttt{dedekind.morphologies}}
+\label{chap:morphologies}
+
+\section{Introduction}
+\section{Implementation}
+\section{Results}
+
+
+\chapter{\texttt{dedekind.geometry}}
+\label{chap:geometry}
+
+\section{Introduction}
+\section{Implementation}
+\section{Results}
+
+
+\chapter{\texttt{dedekind.numbers}}
+\label{chap:numbers}
+
+\section{Introduction}
+The \texttt{dedekind.numbers} module is the top-level integration layer for the numeric tower of the library. It provides embedding morphisms between all numeric species: $\mathbb{B} \hookrightarrow \mathbb{N} \hookrightarrow \mathbb{Z} \hookrightarrow \mathbb{Q} \hookrightarrow \mathbb{R} \hookrightarrow \mathbb{C} \hookrightarrow \mathbb{D}$ (dual numbers), with each embedding preserving the algebraic structure certified by the downstream modules.
+
+\section{Implementation}
+The physical build order of the \texttt{dedekind} module graph mirrors this conceptual hierarchy. By enforcing a linear dependency graph---where \texttt{:mereology} is compiled before \texttt{:algebra}---the compiler's proof-search for a Ring's identity element is grounded in the prior verification of its mereological subobjects. This hierarchy transforms the C++ module mapper into a directed acyclic graph of mathematical truth.
+
+\section{Results}
+
+
+\chapter{\texttt{dedekind.analysis}}
+\label{chap:analysis}
+
+\section{Introduction}
+\section{Implementation}
+\section{Results}
+
+
+\chapter{Benchmarks and Structural Collapse}
+\label{chap:benchmarks}
+
+\section{Performance}
 
 \textbf{Computational Complexity of the Build Graph:} While template metaprogramming is Turing-complete and prone to pathological instantiation depth, the \texttt{dedekind} library utilizes C++23 Module Partitions to enforce a strict Directed Acyclic Graph (DAG) of truth. 
 In practice, we observe that build times follow an $O(L)$ complexity, where $L$ is the depth of the partition in the ontological hierarchy. 
@@ -1745,7 +1850,7 @@ We evaluate \texttt{dedekind} against standard implementations from the Computer
     \item \textbf{spectral-norm:} We reify the infinite matrix $A$ as a combinatorial species. This benchmark serves as a stress test for the LLVM backend's ability to perform structural pruning across Highway-composed operator chains, targeting bit-perfect parity with hand-tuned assembly.
 \end{itemize}
 
-\subsection{The Sieve of Dedekind: Existential Proof of Structural Collapse}
+\section{The Sieve of Dedekind: Existential Proof of Structural Collapse}
 
 To bridge the semantic gap between high-level mathematical intent and machine execution, we provide an existential proof of \textit{Structural Collapse}. While general predicates can lead to computational undecidability at compile-time, \texttt{dedekind} implements a pragmatic "Winning Move" by geometrizing the type system through the use of \textbf{Half-Spaces} and \textbf{Intervals}.
 
@@ -1760,7 +1865,7 @@ In this architecture, sets are reified as canonical geometric primitives. For "w
 }
 \end{lstlisting}
 
-\subsubsection{Pragmatic Auditing via the CI Pipeline}
+\subsection{Pragmatic Auditing via the CI Pipeline}
 
 As a prerequisite for publication, we leverage the \texttt{dedekind} CI pipeline as an \textbf{Independent Auditor} to verify this "all-or-nothing" optimization. Unlike traditional runtime benchmarks, our methodology focuses on \textbf{IR-Level Verification}:
 
@@ -1773,7 +1878,8 @@ As a prerequisite for publication, we leverage the \texttt{dedekind} CI pipeline
 By restricting the initial implementation to exact number systems, we provide an airtight proof of concept for structuralist optimization, establishing the foundation for handling more complex transcendental continuums in future work.
 
 
-\section{Discussion}
+\chapter{Discussion}
+\label{chap:discussion}
 
 \textbf{Symmetry with Standard Ranges:} While the use of \texttt{operator>>} for Kleisli composition may appear novel, it serves as a direct conceptual mirror to the C++20 Ranges \texttt{operator|}. Where Ranges utilize the pipe to model the directional flow of data through non-owning views, \texttt{dedekind} utilizes the Highway to model the flow of monadic and comonadic context through morphisms. This "syntactic scent" aligns with the modern C++ idiom of declarative pipelines, transforming the "callback hell" of nested monadic binds into a linear, scannable vector of computation. By adopting a precedence and associativity model that echoes the Standard Library's approach to data streams, we ensure that categorical errors become visually discordant, significantly reducing the cognitive load for developers accustomed to the Ranges API.
 
@@ -1797,7 +1903,8 @@ Rather than yielding to this syntactic prejudice, \texttt{dedekind} introduces t
 
 \end{itemize}
 
-\section{Conclusion}
+\chapter{Conclusion}
+\label{chap:conclusion}
 This paper has demonstrated the feasibility of embedding formal mathematical structuralism within the \texttt{C++23} type system through the \texttt{dedekind} library. By transitioning from the traditional object-oriented paradigm of nominal inheritance toward a model of \textit{structural transparency}, we have illustrated how the modern compiler can be utilized as a deterministic constraint satisfaction engine. This approach allows for the high-level representation of complex mathematical species---such as intensional set-builder notation and the Dedekind-complete continuum---without the runtime performance penalties historically associated with abstract symbolic modeling.
 
 Our investigation suggests that the \texttt{Clang/LLVM} toolchain, while not a dedicated theorem prover, is capable of implementing a ``rethought'' set theory where categorical axioms provide the semantic context for aggressive machine-level optimization. By hoisting mereological relations into the type signature, we enable the backend to perform \textit{structural pruning}: collapsing logical contradictions and optimizing intersections into zero-instruction sequences that maintain the efficiency of hand-tuned assembly. 
