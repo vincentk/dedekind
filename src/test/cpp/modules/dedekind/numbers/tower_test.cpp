@@ -316,8 +316,9 @@ static_assert(partial_identity_v<Rational<machine_integer>,
                                  PartialMulRational<machine_integer>>.num() ==
               1);
 
-// Floating-point is commutative but NOT associative: (a+b)+c != a+(b+c) due to rounding.
-// Associativity-by-fiat is reserved for the explicit dedekind::ieee::IEEE<F> opt-in.
+// Floating-point is commutative but NOT associative: (a+b)+c != a+(b+c) due to
+// rounding. Associativity-by-fiat is reserved for the explicit
+// dedekind::ieee::IEEE<F> opt-in.
 static_assert(!is_kleene_associative_v<Real<machine_real_scalar>,
                                        PartialAddReal<machine_real_scalar>>);
 static_assert(is_kleene_commutative_v<Real<machine_real_scalar>,
