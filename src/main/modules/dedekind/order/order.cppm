@@ -46,13 +46,16 @@ concept IsPreOrdered =
  * @brief A Pre-ordered structure where any two elements have a common
  * successor.
  * @details Synthesized via the order Join-Semilattice (posetal
- *          `IsCertifiedOrderJoinSemilattice`), using `std::ranges::max`
- *          as the default join witness.
+ *          `IsCertifiedOrderJoinSemilattice<D, Join>`). The `Join` parameter
+ *          defaults to `std::ranges::max` but can be overridden to model
+ *          directed sets under a different certified join operation.
  *          This is the "Ground" for all Nets and Sequences.
  */
-export template <typename D, typename L = ClassicalLogic>
-concept IsDirectedSet = IsPreOrdered<D, L> &&
-                        dedekind::category::IsCertifiedOrderJoinSemilattice<D>;
+export template <typename D, typename L = ClassicalLogic,
+                 typename Join = decltype(std::ranges::max)>
+concept IsDirectedSet =
+    IsPreOrdered<D, L> &&
+    dedekind::category::IsCertifiedOrderJoinSemilattice<D, Join>;
 
 /**
  * @concept IsPartiallyOrdered
