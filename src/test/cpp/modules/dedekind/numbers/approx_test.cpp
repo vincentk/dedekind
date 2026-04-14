@@ -114,11 +114,11 @@ TEST_CASE("corner case: division by zero is flagged as non-finite",
   CHECK(std::isinf(adaptive.value.rel_error));
 }
 
-TEST_CASE("propagate returns explicit non-finite envelope", "[numbers][approx]") {
+TEST_CASE("propagate returns explicit non-finite envelope",
+          "[numbers][approx]") {
   const Approx<double> finite{ieee_unit(1.0), 0.01, 0.0};
   const Approx<double> inf{ieee_unit(std::numeric_limits<double>::infinity()),
-                           0.01,
-                           0.0};
+                           0.01, 0.0};
 
   const auto result = demo_propagate_mul(finite, inf);
 

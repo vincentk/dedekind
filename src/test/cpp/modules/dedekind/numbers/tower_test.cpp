@@ -227,7 +227,8 @@ TEST_CASE("Partial Arithmetic: Rational<I>",
   CHECK(div_result.status == Ternary::True);
   CHECK(div_result.value == Rational<machine_integer>(3, 2));
 
-  const auto div_zero = div_op(std::make_pair(q1, Rational<machine_integer>(0, 1)));
+  const auto div_zero =
+      div_op(std::make_pair(q1, Rational<machine_integer>(0, 1)));
   CHECK(div_zero.status == Ternary::False);
 }
 
