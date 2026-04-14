@@ -26,33 +26,39 @@ constexpr ComplexPoint parameter_of(const Pixel& p, int size) {
       (2.0 * static_cast<double>(p.y) / static_cast<double>(size)) - 1.0};
 }
 
-constexpr bool orbit_is_bounded(const ComplexPoint& c, int max_iter) {
-  double zr = 0.0;
-  double zi = 0.0;
+constexpr ComplexPoint orbit_step(const ComplexPoint& z,
+                                  const ComplexPoint& c) {
+  return ComplexPoint{z.re * z.re - z.im * z.im + c.re,
+                      2.0 * z.re * z.im + c.im};
+}
+
+constexpr bool orbit_bounded_prefix(const ComplexPoint& c, int max_iter) {
+  ComplexPoint z{0.0, 0.0};
 
   for (int n = 0; n < max_iter; ++n) {
-    const double zr2 = zr * zr;
-    const double zi2 = zi * zi;
-    if (zr2 + zi2 > 4.0) return false;
-
-    // z_{n+1} = z_n^2 + c
-    zi = 2.0 * zr * zi + c.im;
-    zr = zr2 - zi2 + c.re;
+    if (z.re * z.re + z.im * z.im > 4.0) return false;
+    // Recurrence: z_{n+1} = z_n^2 + c
+    z = orbit_step(z, c);
   }
 
   return true;
 }
 
+constexpr bool in_half_open_interval(int x, int lo, int hi) {
+  return x >= lo && x < hi;
+}
+
 constexpr bool mandelbrot_member(const Pixel& p, int size, int max_iter) {
   const auto c = parameter_of(p, size);
-  return orbit_is_bounded(c, max_iter);
+  return orbit_bounded_prefix(c, max_iter);
 }
 
 constexpr auto mandelbrot_set_n(int size, int max_iter) {
   auto p = var<Ω<Pixel>>;
 
   const auto in_grid = Set{p % Ω<Pixel>{} | [size](const Pixel& px) {
-    return px.x >= 0 && px.x < size && px.y >= 0 && px.y < size;
+    return in_half_open_interval(px.x, 0, size) &&
+           in_half_open_interval(px.y, 0, size);
   }};
 
   const auto bounded_orbit =
