@@ -6,8 +6,12 @@
 
 import dedekind.sets;
 import dedekind.category;
+import dedekind.sequences;
+import dedekind.topology;
+import dedekind.numbers;
 
 using namespace dedekind::sets;
+using namespace dedekind::sequences;
 
 namespace {
 
@@ -36,10 +40,6 @@ bool orbit_bounded_prefix(const ComplexPoint& c, int max_iter) {
   return true;
 }
 
-constexpr bool in_half_open_interval(int x, int lo, int hi) {
-  return x >= lo && x < hi;
-}
-
 bool mandelbrot_member(const Pixel& p, int size, int max_iter) {
   const auto c = parameter_of(p, size);
   return orbit_bounded_prefix(c, max_iter);
@@ -47,11 +47,13 @@ bool mandelbrot_member(const Pixel& p, int size, int max_iter) {
 
 constexpr auto mandelbrot_set_n(int size, int max_iter) {
   auto p = var<Ω<Pixel>>;
+  const IntegerInterval<int> x_range{0, size};
+  const IntegerInterval<int> y_range{0, size};
 
-  const auto in_grid = Set{p % Ω<Pixel>{} | [size](const Pixel& px) {
-    return in_half_open_interval(px.x, 0, size) &&
-           in_half_open_interval(px.y, 0, size);
-  }};
+  const auto in_grid =
+      Set{p % Ω<Pixel>{} | [x_range, y_range](const Pixel& px) {
+        return x_range(px.x) && y_range(px.y);
+      }};
 
   const auto bounded_orbit =
       Set{p % Ω<Pixel>{} | [size, max_iter](const Pixel& px) {
