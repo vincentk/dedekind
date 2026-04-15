@@ -20,8 +20,8 @@ module;
  * sequences) are tracked separately as follow-up work.
  *
  * @quote
- * "Les constantes ne sont pas des nombres morts; elles sont des procedes
- *  condenses."
+ * "Les constantes ne sont pas des nombres morts; elles sont des procédés
+ *  condensés, façonnés à l'usage."
  * ("Constants are not dead numbers; they are condensed procedures.")
  * -- Charles Hermite, paraphrase
  */
