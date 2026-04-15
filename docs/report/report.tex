@@ -2207,9 +2207,10 @@ It provides \texttt{Vector<S, N>} as the canonical $N$-dimensional vector specie
 \toprule
 \textbf{Mathematical Concept} & \textbf{C++23 construct} & \textbf{Structural \texttt{concept}} \\
 \midrule
-Affine / vector space & \texttt{Vector<S,N>} & \texttt{IsAffine} \\
+Affine / vector space & \texttt{Vector<S,N>} & --- \\
 Inner product $\langle u, v \rangle$ & \texttt{dot(u, v)} & \texttt{IsInnerProductSpace} \\
-Normed space $\|v\|$ & \texttt{norm(v)} & \texttt{IsNormedSpace} \\
+Metric space $(X,d)$ & \texttt{distance(a,b)} & \texttt{IsMetricSpace} \\
+Euclidean space & \texttt{norm(v)} / \texttt{distance(a,b)} & \texttt{IsEuclideanSpace} \\
 Hilbert space (complete) & real $\mathbb{R}^N$ & \texttt{IsHilbertSpace} \\
 \bottomrule
 \end{tabular}
