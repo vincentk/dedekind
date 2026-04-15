@@ -172,8 +172,8 @@ inline constexpr bool
 namespace dedekind::numbers {
 
 namespace detail {
-constexpr bool to_lattice_coordinate(double x,
-                                     dedekind::geometry::IntegerLatticeScalar& out) {
+constexpr bool to_lattice_coordinate(
+    double x, dedekind::geometry::IntegerLatticeScalar& out) {
   using Scalar = dedekind::geometry::IntegerLatticeScalar;
   constexpr double lo = static_cast<double>(std::numeric_limits<Scalar>::min());
   constexpr double hi = static_cast<double>(std::numeric_limits<Scalar>::max());
@@ -292,9 +292,9 @@ constexpr auto embed_grid_ℂ(
     const double re = z.real();
     const double im = z.imag();
     dedekind::geometry::IntegerLatticeScalar x =
-      dedekind::geometry::IntegerLatticeScalar{0};
+        dedekind::geometry::IntegerLatticeScalar{0};
     dedekind::geometry::IntegerLatticeScalar y =
-      dedekind::geometry::IntegerLatticeScalar{0};
+        dedekind::geometry::IntegerLatticeScalar{0};
     if (!detail::to_lattice_coordinate(re, x) ||
         !detail::to_lattice_coordinate(im, y))
       return false;
