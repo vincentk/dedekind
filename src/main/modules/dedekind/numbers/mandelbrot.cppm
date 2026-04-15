@@ -39,17 +39,29 @@ constexpr auto mandelbrot_orbits() {
 }
 
 /**
- * Abstract Mandelbrot set constructor: keeps the mathematical definition
- * separate from the chosen orbit criterion.
+ * Compose an orbit-criterion as a boundedness predicate.
+ * The returned callable has shape:
+ *   bounded(orbit(c)).
  */
 export template <IsComplexScalar R, typename OrbitCriterion>
   requires std::predicate<const OrbitCriterion&, const Path<Complex<R>>&>
-constexpr auto mandelbrot_set(OrbitCriterion criterion) {
+constexpr auto bounded(OrbitCriterion criterion) {
+  return [criterion = std::move(criterion)](const Complex<R>& c) {
+    return std::invoke(criterion, mandelbrot_orbit(c));
+  };
+}
+
+/**
+ * M = { c in C | bounded(orbit(c)) }.
+ */
+export template <IsComplexScalar R, typename BoundedPredicate>
+  requires std::predicate<const BoundedPredicate&, const Complex<R>&>
+constexpr auto M(BoundedPredicate is_bounded) {
   using Species = ComplexesOf<R>;
   auto c = var<Species>;
   return Set{c % Species{} |
-             [criterion = std::move(criterion)](const Complex<R>& parameter) {
-               return std::invoke(criterion, mandelbrot_orbit(parameter));
+             [is_bounded = std::move(is_bounded)](const Complex<R>& parameter) {
+               return std::invoke(is_bounded, parameter);
              }};
 }
 
@@ -71,13 +83,29 @@ constexpr auto prefix_bounded_N(std::size_t max_iter,
 }
 
 /**
- * Alias for M_N = { c in C | prefix_bounded_N(orbit(c)) }.
+ * M_N = { c in C | prefix_bounded_N(orbit(c)) }.
+ */
+export template <IsComplexScalar R>
+constexpr auto M_N(std::size_t max_iter, R escape_radius_squared = R{4}) {
+  return M<R>(bounded<R>(prefix_bounded_N<R>(max_iter, escape_radius_squared)));
+}
+
+/**
+ * Backward-compatible alias for criterion-based Mandelbrot set construction.
+ */
+export template <IsComplexScalar R, typename OrbitCriterion>
+  requires std::predicate<const OrbitCriterion&, const Path<Complex<R>>&>
+constexpr auto mandelbrot_set(OrbitCriterion criterion) {
+  return M<R>(bounded<R>(std::move(criterion)));
+}
+
+/**
+ * Backward-compatible alias for M_N.
  */
 export template <IsComplexScalar R>
 constexpr auto mandelbrot_set_prefix_bounded_N(std::size_t max_iter,
                                                R escape_radius_squared = R{4}) {
-  return mandelbrot_set<R>(
-      prefix_bounded_N<R>(max_iter, escape_radius_squared));
+  return M_N<R>(max_iter, escape_radius_squared);
 }
 
 /**
