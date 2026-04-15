@@ -20,6 +20,14 @@ namespace dedekind::numbers {
 using namespace dedekind::sequences;
 using namespace dedekind::sets;
 
+namespace detail {
+template <typename Outer, typename Inner>
+constexpr auto compose(Outer outer, Inner inner) {
+  return [outer = std::move(outer), inner = std::move(inner)](
+             const auto& x) { return outer(inner(x)); };
+}
+}  // namespace detail
+
 export template <IsComplexScalar R>
 using OrbitPath = Path<Complex<R>>;
 
@@ -48,13 +56,12 @@ constexpr auto mandelbrot_orbits() {
 export template <IsComplexScalar R, typename OrbitCriterion>
   requires std::predicate<const OrbitCriterion&, const OrbitPath<R>&>
 constexpr auto bounded(OrbitCriterion criterion) {
-  return [criterion = std::move(criterion)](const Complex<R>& c) {
-    return criterion(mandelbrot_orbit(c));
-  };
+  return detail::compose(std::move(criterion), mandelbrot_orbits<R>());
 }
 
 /**
- * M = { c in C | bounded(orbit(c)) }.
+ * Subobject view:
+ *   M = { c in C | bounded(orbit(c)) }.
  */
 export template <IsComplexScalar R, typename BoundedPredicate>
   requires std::predicate<const BoundedPredicate&, const Complex<R>&>
@@ -89,9 +96,8 @@ constexpr auto prefix_bounded_N(std::size_t max_iter,
  */
 export template <IsComplexScalar R>
 constexpr auto M_N(std::size_t max_iter, R escape_radius_squared = R{4}) {
-  const auto orbit_is_prefix_bounded =
-      bounded<R>(prefix_bounded_N<R>(max_iter, escape_radius_squared));
-  return M<R>(orbit_is_prefix_bounded);
+  return M<R>(
+      bounded<R>(prefix_bounded_N<R>(max_iter, escape_radius_squared)));
 }
 
 /**
