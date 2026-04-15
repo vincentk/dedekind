@@ -665,4 +665,19 @@ inline constexpr bool is_epic_arrow_v<Identity<T>> = true;
 static_assert(IsEpicArrow<Identity<int>>,
               "Identity must be recognised as an epic arrow.");
 
+/**
+ * @concept IsBijectiveArrow
+ * @brief An arrow declared to be both a monomorphism (ι: A ↣ B) and an
+ *        epimorphism (π: A ↠ B), i.e. an isomorphism of sets (A ≅ B).
+ * @details A bijective arrow is both injective and surjective. The user
+ *          declares this by specialising both `is_monic_arrow_v<E> = true`
+ *          and `is_epic_arrow_v<E> = true`. Identity arrows are always
+ *          bijective.
+ */
+export template <typename E>
+concept IsBijectiveArrow = IsMonicArrow<E> && IsEpicArrow<E>;
+
+static_assert(IsBijectiveArrow<Identity<int>>,
+              "Identity must be recognised as a bijective arrow.");
+
 }  // namespace dedekind::category
