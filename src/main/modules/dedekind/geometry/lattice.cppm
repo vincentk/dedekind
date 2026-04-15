@@ -161,7 +161,8 @@ export constexpr auto square_natural_grid(int n) {
  * @details Uses the ambient integer lattice species and explicit bounds,
  *          so negative coordinates are admitted when lower < 0.
  */
-export constexpr auto square_integer_grid(int lower, int upper) {
+export constexpr auto square_integer_grid(IntegerLatticeScalar lower,
+                                          IntegerLatticeScalar upper) {
   auto p = var_for_type<IntegerLatticePoint2D>;
   const auto unbounded = integer_lattice_2d();
   return Set{p % unbounded | [lower, upper](const IntegerLatticePoint2D& q) {
@@ -174,7 +175,8 @@ export constexpr auto square_integer_grid(int lower, int upper) {
  * @brief Convenience overload matching the natural-window convention [0, n).
  */
 export constexpr auto square_integer_grid(int n) {
-  return square_integer_grid(0, n);
+  return square_integer_grid(IntegerLatticeScalar{0},
+                             IntegerLatticeScalar{n});
 }
 
 /**
