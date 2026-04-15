@@ -29,4 +29,23 @@ TEST_CASE("Sequences: The Path to Continuity",
 
     REQUIRE(diffs.at(0) == -1);
   }
+
+  SECTION("Finite prefixes are first-class sequences") {
+    const auto first_four = prefix(path, 4);
+
+    static_assert(IsFiniteSequence<decltype(first_four)>);
+    REQUIRE(first_four.size() == 4u);
+    REQUIRE(first_four.at(0) == 42);
+    REQUIRE(first_four.at(3) == 45);
+  }
+
+  SECTION("Iterative rules support finite orbit counting") {
+    const auto orbit = iterate(1, [](int x) { return x + 1; }, 5);
+
+    static_assert(IsFiniteSequence<decltype(orbit)>);
+    REQUIRE(orbit.size() == 5u);
+    REQUIRE(orbit.at(0) == 1);
+    REQUIRE(orbit.at(4) == 5);
+    REQUIRE(count_if(orbit, [](int x) { return x > 3; }) == 2u);
+  }
 }

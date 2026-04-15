@@ -22,6 +22,7 @@ module;
 
 #include <concepts>
 #include <cstddef>
+#include <type_traits>
 
 export module dedekind.sequences:net;
 
@@ -58,7 +59,8 @@ concept IsSequence = IsNet<Seq> && requires {
  */
 export template <typename Seq>
 concept IsFiniteSequence = IsSequence<Seq> && requires(Seq s) {
-  requires IsFinite<typename Seq::Domain>;
+  typename Seq::cardinality_type;
+  requires IsFiniteMagnitude<typename Seq::cardinality_type>;
   { s.size() } -> std::convertible_to<std::size_t>;
 };
 

@@ -1554,12 +1554,12 @@ For the stress-test listing, the target specification is the classical set-build
 \mathcal{M} = \left\{c \in \mathbb{C} \;\middle|\; z_0 = 0,\; z_{n+1} = z_n^2 + c,\; (z_n)_{n \ge 0}\ \text{is bounded}\right\}.
 \end{equation}
 
-Because a benchmark implementation must terminate with deterministic cost, the practical test target is the finite approximation:
+Because a benchmark implementation must terminate with deterministic cost, the executable benchmark target is an adapted finite surrogate rather than the bona fide Mandelbrot set:
 \begin{equation}
-\mathcal{M}_N = \left\{c \in \mathbb{C} \;\middle|\; z_0 = 0,\; z_{n+1} = z_n^2 + c,\; \forall n \in \{0,\ldots,N\}: |z_n| \le 2\right\}.
+\widetilde{\mathcal{M}}_N = \left\{c \in \mathbb{C} \;\middle|\; z_0 = 0,\; z_{n+1} = z_n^2 + c,\; \sum_{n=0}^{N} [|z_n| > 2] \le 1\right\}.
 \end{equation}
 
-The code listing in this report should be read as a structural realization of $\mathcal{M}_N$: the set expression captures the mathematical predicate, while the output packing step remains a conventional imperative loop to follow the benchmark-game output contract.
+The code listing in this report should be read as a structural realization of $\widetilde{\mathcal{M}}_N$: the set expression captures the truncated orbit predicate, while the final ASCII rendering step remains a conventional imperative loop.
 
 
 \chapter{\texttt{dedekind.ieee} and \texttt{dedekind.numbers}}
