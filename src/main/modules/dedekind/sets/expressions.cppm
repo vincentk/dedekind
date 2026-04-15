@@ -27,7 +27,7 @@
  * ```cpp
  * auto n = var<ℕ>;
  * const int size = 512;
- * const auto xs = Set{n % N | (n < size)};
+ * const auto xs = Set{in<N>(n) | (n < size)};
  * const auto grid = cartesian_product(xs, xs);  // xs x xs
  * ```
  *
@@ -114,6 +114,28 @@ struct Variable {
 /** @brief Global factory for symbolic scouts. */
 export template <typename S>
 inline constexpr Variable<S> var{};
+
+/**
+ * @brief Membership helper: in<S>(x) is equivalent to x % S.
+ *
+ * This reduces DSL punctuation while preserving the existing comprehension
+ * machinery.
+ */
+export template <typename Species>
+constexpr auto in(const Variable<Species>& x) {
+  return x % Species{};
+}
+
+/**
+ * @brief Membership helper bound to a named ambient value.
+ *
+ * Example: in<N>(x) is equivalent to x % N.
+ */
+export template <auto& Ambient,
+                 typename Species = std::remove_cvref_t<decltype(Ambient)>>
+constexpr auto in(const Variable<Species>& x) {
+  return x % Ambient;
+}
 
 /** @brief The universal predicate: accepts every element of T. */
 export template <typename T>

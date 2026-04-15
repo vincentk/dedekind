@@ -48,7 +48,9 @@
  */
 module;
 
+#include <functional>
 #include <tuple>
+#include <type_traits>
 #include <utility>
 
 export module dedekind.sets:relational;
@@ -65,9 +67,9 @@ using namespace dedekind::category;
  * σ_f(S) = {x ∈ S | f(x)}
  *
  * Constructs a new Set whose membership is the conjunction of membership in
- * @p s and satisfaction of @p pred.  The predicate @p pred must be callable
- * with a const reference to the element type and return a value convertible
- * to bool.
+ * @p s and satisfaction of @p pred. Predicate outputs are normalized through
+ * @c dedekind::category::lift_logic<L>, so both native logical witnesses
+ * (@c L::Ω) and bool-valued predicates are accepted.
  *
  * @tparam T  Element type.
  * @tparam L  Logic species.
@@ -75,8 +77,19 @@ using namespace dedekind::category;
  * @tparam Pred  Additional filter predicate type.
  */
 export template <typename T, typename L, typename P, typename Pred>
+  requires std::invocable<std::decay_t<Pred>, const T&> &&
+           requires(std::invoke_result_t<std::decay_t<Pred>, const T&> v) {
+             {
+               dedekind::category::lift_logic<L>(v)
+             } -> std::same_as<typename L::Ω>;
+           }
 constexpr auto select(const Set<T, L, P>& s, Pred&& pred) {
-  return s & Set<T, L, std::decay_t<Pred>>{std::forward<Pred>(pred)};
+  auto lifted = [p = std::forward<Pred>(pred)](const T& v) -> typename L::Ω {
+    return dedekind::category::lift_logic<L>(std::invoke(p, v));
+  };
+  auto combined = [base = s, f = std::move(lifted)](const T& v) ->
+      typename L::Ω { return L::AND(base(v), f(v)); };
+  return Set<T, L, decltype(combined)>{std::move(combined)};
 }
 
 /**

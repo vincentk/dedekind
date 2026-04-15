@@ -14,14 +14,14 @@ namespace {
 // Even integers in [0, 10)
 constexpr auto evens_0_10 = [] {
   auto x = var<ℕ>;
-  return Set{x % N |
+  return Set{in<N>(x) |
              [](int v) { return (v >= 0) && (v < 10) && (v % 2 == 0); }};
 }();
 
 // Multiples of 3 in [0, 10)
 constexpr auto threes_0_10 = [] {
   auto x = var<ℕ>;
-  return Set{x % N |
+  return Set{in<N>(x) |
              [](int v) { return (v >= 0) && (v < 10) && (v % 3 == 0); }};
 }();
 
@@ -48,6 +48,16 @@ TEST_CASE("Relational Algebra: Selection (σ)", "[sets][relational]") {
   SECTION("Odd numbers are excluded regardless of bound") {
     REQUIRE(small_evens(3) == Ternary::False);
     REQUIRE(small_evens(5) == Ternary::False);
+  }
+
+  SECTION("Logical-valued predicates preserve Ω semantics") {
+    const auto flagged = select(evens_0_10, [](int v) {
+      return (v == 2) ? Ternary::Unknown : Ternary::True;
+    });
+
+    REQUIRE(flagged(0) == Ternary::True);
+    REQUIRE(flagged(2) == Ternary::Unknown);
+    REQUIRE(flagged(3) == Ternary::False);
   }
 }
 
