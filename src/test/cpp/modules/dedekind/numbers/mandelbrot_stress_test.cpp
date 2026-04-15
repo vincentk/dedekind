@@ -47,18 +47,12 @@ constexpr auto mandelbrot_set_n(int size, int max_iter) {
 
   // Roadmap note: PR #144 partially fulfills #143; lattice API follow-up is
   // tracked in #145.
-  // First-class discretization of ℂ: c_lattice = lattice<C>.
-  const auto c_lattice = lattice<C>;
-  // Restrict to the finite window 0 <= Re(z), Im(z) < size.
-  const auto grid = Set{c % c_lattice | [size](const Complex<double>& z) {
-    const double re = z.real();
-    const double im = z.imag();
-    return (re >= 0.0) && (re < static_cast<double>(size)) && (im >= 0.0) &&
-           (im < static_cast<double>(size));
-  }};
+  const auto grid = complex_lattice(size);
+  using GridLogic = typename std::decay_t<decltype(grid)>::logic_species;
 
-  // M_N = {c in grid | orbit(c) bounded}
-  return Set{c % grid | [size, max_iter](const Complex<double>& z) {
+  // M_N = {c in C | c in grid and orbit(c) bounded}
+  return Set{c % C | [grid, size, max_iter](const Complex<double>& z) {
+    if (grid(z) != GridLogic::True) return false;
     int x = static_cast<int>(z.real());
     int y = static_cast<int>(z.imag());
     return mandelbrot_member(LatticePoint{x, y}, size, max_iter);

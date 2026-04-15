@@ -44,7 +44,8 @@ module;
 
 export module dedekind.geometry:lattice;
 
-import :affine;       // for Vector<F, N>
+import :affine;  // for Vector<F, N>
+import dedekind.category;
 import dedekind.sets; // for Set, var, Ω, ℕ, N, cartesian_product
 
 namespace dedekind::geometry {

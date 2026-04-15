@@ -3,6 +3,7 @@ module;
 #include <array>
 #include <cmath>
 #include <cstddef>
+#include <limits>
 #include <utility>
 
 /**
@@ -45,8 +46,10 @@ using namespace dedekind::sets;
 
 namespace detail {
 constexpr bool is_integral_coordinate(double x) {
-  const int k = static_cast<int>(x);
-  return static_cast<double>(k) == x;
+  constexpr double lo = static_cast<double>(std::numeric_limits<int>::min());
+  constexpr double hi = static_cast<double>(std::numeric_limits<int>::max());
+  if ((x < lo) || (x > hi)) return false;
+  return std::trunc(x) == x;
 }
 }  // namespace detail
 

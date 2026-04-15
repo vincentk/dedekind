@@ -5,7 +5,9 @@
  */
 module;
 
+#include <cmath>
 #include <concepts>
+#include <limits>
 #include <utility>
 
 export module dedekind.numbers:complex;
@@ -169,6 +171,17 @@ inline constexpr bool
 
 namespace dedekind::numbers {
 
+namespace detail {
+constexpr bool to_lattice_coordinate(double x, int& out) {
+  constexpr double lo = static_cast<double>(std::numeric_limits<int>::min());
+  constexpr double hi = static_cast<double>(std::numeric_limits<int>::max());
+  if ((x < lo) || (x > hi)) return false;
+  if (std::trunc(x) != x) return false;
+  out = static_cast<int>(x);
+  return true;
+}
+}  // namespace detail
+
 /**
  * @brief Machine realization arrow ℝ ↪ ℂ: Real<R> → Complex<R>.
  * @details Every real x embeds as the complex number (x + 0i).
@@ -273,9 +286,10 @@ constexpr auto embed_grid_ℂ(
   return Set{c % C | [grid](const Complex<double>& z) {
     const double re = z.real();
     const double im = z.imag();
-    const int x = static_cast<int>(re);
-    const int y = static_cast<int>(im);
-    if (static_cast<double>(x) != re || static_cast<double>(y) != im)
+    int x = 0;
+    int y = 0;
+    if (!detail::to_lattice_coordinate(re, x) ||
+        !detail::to_lattice_coordinate(im, y))
       return false;
     using GridLogic = typename std::decay_t<decltype(grid)>::logic_species;
     return grid(std::pair<int, int>{x, y}) == GridLogic::True;
