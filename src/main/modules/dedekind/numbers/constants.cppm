@@ -18,6 +18,12 @@ module;
  *
  * Exact constructive encodings (e.g. via cuts or convergent symbolic
  * sequences) are tracked separately as follow-up work.
+ *
+ * @quote
+ * "Les constantes ne sont pas des nombres morts; elles sont des procedes
+ *  condenses."
+ * ("Constants are not dead numbers; they are condensed procedures.")
+ * -- Charles Hermite, paraphrase
  */
 export module dedekind.numbers:constants;
 
