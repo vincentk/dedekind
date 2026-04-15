@@ -12,20 +12,17 @@ import dedekind.numbers;
 
 using namespace dedekind::sets;
 using namespace dedekind::sequences;
+using namespace dedekind::numbers;
 
 namespace {
 
-struct Pixel {
-  int x;
-  int y;
-};
-
+using LatticePoint = std::complex<int>;
 using ComplexPoint = std::complex<double>;
 
-ComplexPoint parameter_of(const Pixel& p, int size) {
+ComplexPoint parameter_of(const LatticePoint& p, int size) {
   return ComplexPoint{
-      (2.0 * static_cast<double>(p.x) / static_cast<double>(size)) - 1.5,
-      (2.0 * static_cast<double>(p.y) / static_cast<double>(size)) - 1.0};
+      (2.0 * static_cast<double>(p.real()) / static_cast<double>(size)) - 1.5,
+      (2.0 * static_cast<double>(p.imag()) / static_cast<double>(size)) - 1.0};
 }
 
 bool orbit_bounded_prefix(const ComplexPoint& c, int max_iter) {
@@ -40,29 +37,28 @@ bool orbit_bounded_prefix(const ComplexPoint& c, int max_iter) {
   return true;
 }
 
-bool mandelbrot_member(const Pixel& p, int size, int max_iter) {
+bool mandelbrot_member(const LatticePoint& p, int size, int max_iter) {
   const auto c = parameter_of(p, size);
   return orbit_bounded_prefix(c, max_iter);
 }
 
 constexpr auto mandelbrot_set_n(int size, int max_iter) {
-  auto p = var<Ω<Pixel>>;
-  const IntegerInterval<int> x_range{0, size};
-  const IntegerInterval<int> y_range{0, size};
+  auto c = var<ℂ>;
 
-  const auto in_grid =
-      Set{p % Ω<Pixel>{} | [x_range, y_range](const Pixel& px) {
-        return x_range(px.x) && y_range(px.y);
-      }};
+  // Embed pairs (x, y) from the natural grid into ℂ: (x, y) ↦ x + iy
+  // Restrict to {(x, y) | 0 ≤ x, y < size}
+  const auto grid = Set{c % C | [size](const Complex<double>& z) {
+    int x = static_cast<int>(z.real());
+    int y = static_cast<int>(z.imag());
+    return x >= 0 && x < size && y >= 0 && y < size;
+  }};
 
-  const auto bounded_orbit =
-      Set{p % Ω<Pixel>{} | [size, max_iter](const Pixel& px) {
-        return mandelbrot_member(px, size, max_iter);
-      }};
-
-  // Finite approximation M_N = {p in grid | orbit(parameter_of(p)) bounded up
-  // to N iterations}.
-  return in_grid & bounded_orbit;
+  // M_N = {c in grid | orbit(c) bounded}
+  return Set{c % grid | [size, max_iter](const Complex<double>& z) {
+    int x = static_cast<int>(z.real());
+    int y = static_cast<int>(z.imag());
+    return mandelbrot_member(LatticePoint{x, y}, size, max_iter);
+  }};
 }
 
 template <typename MandelbrotSet>
@@ -75,7 +71,9 @@ constexpr std::uint8_t pack_pbm_byte(const MandelbrotSet& mandelbrot, int y,
 
   for (int dx = 0; dx < 8 && (x_start + dx) < size; ++dx) {
     acc <<= 1;
-    if (mandelbrot(Pixel{x_start + dx, y}) == Logic::True) acc |= 1U;
+    if (mandelbrot(Complex<double>{static_cast<double>(x_start + dx),
+                                    static_cast<double>(y)}) == Logic::True)
+      acc |= 1U;
     ++bit_count;
   }
 
@@ -117,9 +115,9 @@ TEST_CASE("Sets: Mandelbrot set-builder stress test", "[sets][mandelbrot]") {
     const auto mandelbrot = mandelbrot_set_n(size, max_iter);
     using Logic = typename decltype(mandelbrot)::logic_species;
 
-    REQUIRE(mandelbrot(Pixel{size / 2, size / 2}) == Logic::True);
-    REQUIRE(mandelbrot(Pixel{0, 0}) == Logic::False);
-    REQUIRE(mandelbrot(Pixel{size - 1, size - 1}) == Logic::False);
+    REQUIRE(mandelbrot(Complex<double>{size / 2, size / 2}) == Logic::True);
+    REQUIRE(mandelbrot(Complex<double>{0, 0}) == Logic::False);
+    REQUIRE(mandelbrot(Complex<double>{size - 1, size - 1}) == Logic::False);
   }
 
   SECTION("Finite approximation checksum is stable") {
