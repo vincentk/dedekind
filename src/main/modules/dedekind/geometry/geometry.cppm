@@ -45,6 +45,9 @@ export import :inner_product;  // The Bilinear Mapping ⟨-, -⟩
 export import :euclidean;  // The Normed Space (L2-Topology)
 export import :hilbert;    // The Complete Unitary Space (L2-Convergence)
 
+/** @section Level_9.3: Geometric Lattices */
+export import :lattice;  // Discretizations of continuous spaces (ℤⁿ ↪ ℝⁿ)
+
 /**
  * @note The build order is critical:
  * :affine must be scanned before :euclidean, as an Euclidean space

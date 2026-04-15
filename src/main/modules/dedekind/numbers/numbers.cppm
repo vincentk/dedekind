@@ -31,6 +31,7 @@ export import :integer;   // ℤ (Signed species)
 export import :rational;  // ℚ (The Quotient Field)
 export import :complex;   // ℂ (The Cayley-Dickson construction)
 export import :scalars;   // Floating-point anchors
+export import :lattice;   // Lattices over ℝ and ℂ
 
 /** @section Non_Standard_Analysis */
 export import :dual;      // Automatic Differentiation / Infinitesimals

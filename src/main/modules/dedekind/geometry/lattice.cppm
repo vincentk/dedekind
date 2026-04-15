@@ -144,8 +144,7 @@ export constexpr auto square_natural_grid(int n) {
   auto p = var_for_type<std::pair<int, int>>;
   const auto unbounded = natural_lattice_2d();
   return Set{p % unbounded | [n](const std::pair<int, int>& q) {
-    return (q.first >= 0) && (q.first < n) && (q.second >= 0) &&
-           (q.second < n);
+    return (q.first >= 0) && (q.first < n) && (q.second >= 0) && (q.second < n);
   }};
 }
 
@@ -183,8 +182,7 @@ export constexpr auto square_integer_grid(int n) {
 export inline constexpr auto embed_z2_r2 =
     arrow<std::pair<int, int>, Vector<double, 2>>(
         [](const std::pair<int, int>& p) noexcept -> Vector<double, 2> {
-          return {static_cast<double>(p.first),
-                  static_cast<double>(p.second)};
+          return {static_cast<double>(p.first), static_cast<double>(p.second)};
         });
 
 }  // namespace dedekind::geometry
@@ -192,10 +190,12 @@ export inline constexpr auto embed_z2_r2 =
 namespace dedekind::category {
 
 template <>
-inline constexpr bool is_monic_arrow_v<
-  std::decay_t<decltype(dedekind::geometry::embed_z2_r2)>> = true;
+inline constexpr bool
+    is_monic_arrow_v<std::decay_t<decltype(dedekind::geometry::embed_z2_r2)>> =
+        true;
 
-static_assert(IsMonicArrow<std::decay_t<decltype(dedekind::geometry::embed_z2_r2)>>,
-        "embed_z2_r2 must be recognised as a monic arrow.");
+static_assert(
+    IsMonicArrow<std::decay_t<decltype(dedekind::geometry::embed_z2_r2)>>,
+    "embed_z2_r2 must be recognised as a monic arrow.");
 
 }  // namespace dedekind::category

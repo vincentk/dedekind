@@ -76,7 +76,7 @@ constexpr std::uint8_t pack_pbm_byte(const MandelbrotSet& mandelbrot, int y,
   for (int dx = 0; dx < 8 && (x_start + dx) < size; ++dx) {
     acc <<= 1;
     if (mandelbrot(Complex<double>{static_cast<double>(x_start + dx),
-                                    static_cast<double>(y)}) == Logic::True)
+                                   static_cast<double>(y)}) == Logic::True)
       acc |= 1U;
     ++bit_count;
   }

@@ -11,6 +11,7 @@ module;
 export module dedekind.numbers:complex;
 
 import dedekind.category;
+import dedekind.geometry;
 import dedekind.sets;
 import :real;
 
@@ -228,4 +229,86 @@ template <>
 inline constexpr bool
     is_monic_arrow_v<std::decay_t<decltype(dedekind::numbers::embed_ℝ_ℂ<>)>> =
         true;
+}  // namespace dedekind::category
+
+namespace dedekind::numbers {
+
+/**
+ * @brief Canonical embedding ℤ² ↪ ℂ: (x, y) ↦ x + iy.
+ *
+ * @details The Gaussian integers ℤ[i] embed into ℂ via (a, b) ↦ a + bi.
+ *          This is the standard lattice injection identifying the square
+ *          integer grid ℤ² with ℤ[i] ⊂ ℂ.
+ *          Declared monic below: distinct integer pairs yield distinct
+ *          complex numbers since real() and imag() recover a and b exactly.
+ */
+export inline constexpr auto embed_z2_c =
+    arrow<std::pair<int, int>, Complex<double>>(
+        [](const std::pair<int, int>& p) noexcept {
+          return Complex<double>{static_cast<double>(p.first),
+                                 static_cast<double>(p.second)};
+        });
+
+/**
+ * @brief Lift a Set<pair<int,int>> (a lattice grid) to Set<Complex<double>>
+ *        via the embedding embed_z2_c.
+ *
+ * @details A complex number z belongs to the image if and only if:
+ *          (1) z has integral real and imaginary parts, and
+ *          (2) the corresponding integer pair (int(re), int(im)) is in grid.
+ *
+ *          This is the canonical preimage characterisation of the image of a
+ *          monic (injective) map: z ∈ embed_z2_c(grid) ↔ embed_z2_c⁻¹(z) ∈
+ * grid.
+ *
+ * @param grid  A Set<std::pair<int,int>, ClassicalLogic, P> (e.g. from
+ *              dedekind::geometry::square_integer_grid).
+ * @return A Set<Complex<double>, ClassicalLogic, ...>.
+ */
+export template <typename L, typename P>
+constexpr auto embed_grid_ℂ(
+    const dedekind::sets::Set<std::pair<int, int>, L, P>& grid) {
+  using namespace dedekind::sets;
+  auto c = var<ℂ>;
+  return Set{c % C | [grid](const Complex<double>& z) {
+    const double re = z.real();
+    const double im = z.imag();
+    const int x = static_cast<int>(re);
+    const int y = static_cast<int>(im);
+    if (static_cast<double>(x) != re || static_cast<double>(y) != im)
+      return false;
+    using GridLogic = typename std::decay_t<decltype(grid)>::logic_species;
+    return grid(std::pair<int, int>{x, y}) == GridLogic::True;
+  }};
+}
+
+/**
+ * @brief The canonical N×N square Gaussian-integer grid as a Set<ℂ>.
+ *
+ * @details Combines dedekind::geometry::square_integer_grid with
+ *          embed_grid_ℂ to produce the set:
+ *            Λ_N = { x + iy ∈ ℂ | 0 ≤ x < n, 0 ≤ y < n, x,y ∈ ℤ }.
+ *          This is the default discretization of ℂ used in numerical
+ *          algorithms such as the Mandelbrot set approximation.
+ *
+ * @param n  Side length of the grid (number of lattice points per axis).
+ * @return A Set<Complex<double>, ClassicalLogic, ...>.
+ */
+export constexpr auto complex_lattice(int n) {
+  return embed_grid_ℂ(dedekind::geometry::square_integer_grid(n));
+}
+
+}  // namespace dedekind::numbers
+
+namespace dedekind::category {
+
+template <>
+inline constexpr bool
+    is_monic_arrow_v<std::decay_t<decltype(dedekind::numbers::embed_z2_c)>> =
+        true;
+
+static_assert(
+    IsMonicArrow<std::decay_t<decltype(dedekind::numbers::embed_z2_c)>>,
+    "embed_z2_c must be recognised as a monic arrow.");
+
 }  // namespace dedekind::category

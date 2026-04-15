@@ -23,6 +23,14 @@
  *  - power_set            -- P(A) encoded as a Set of sets.
  *  - relates, is_single_valued_at -- point-wise witnesses.
  *
+ * @section Canonical_Examples
+ * ```cpp
+ * auto n = var<ℕ>;
+ * const int size = 512;
+ * const auto xs = Set{n % N | (n < size)};
+ * const auto grid = cartesian_product(xs, xs);  // xs x xs
+ * ```
+ *
  * @section References
  * - Lawvere, F.W. (1964) -- ETCS axioms @cite lawvere1964etcs
  * - Lambek & Scott (1988) -- higher-order categorical logic @cite
