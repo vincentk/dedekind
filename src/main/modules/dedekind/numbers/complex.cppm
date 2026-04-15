@@ -256,8 +256,8 @@ namespace dedekind::numbers {
  *          complex numbers since real() and imag() recover a and b exactly.
  */
 export inline constexpr auto embed_z2_c =
-  arrow<dedekind::geometry::IntegerLatticePoint2D, Complex<double>>(
-    [](const dedekind::geometry::IntegerLatticePoint2D& p) noexcept {
+    arrow<dedekind::geometry::IntegerLatticePoint2D, Complex<double>>(
+        [](const dedekind::geometry::IntegerLatticePoint2D& p) noexcept {
           return Complex<double>{static_cast<double>(p.first),
                                  static_cast<double>(p.second)};
         });
@@ -280,8 +280,8 @@ export inline constexpr auto embed_z2_c =
  */
 export template <typename L, typename P>
 constexpr auto embed_grid_ℂ(
-    const dedekind::sets::Set<dedekind::geometry::IntegerLatticePoint2D, L,
-                              P>& grid) {
+    const dedekind::sets::Set<dedekind::geometry::IntegerLatticePoint2D, L, P>&
+        grid) {
   using namespace dedekind::sets;
   auto c = var<ℂ>;
   return Set{c % C | [grid](const Complex<double>& z) {

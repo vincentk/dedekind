@@ -60,7 +60,7 @@ export using NaturalLatticeSet = ℕ;
 export using IntegerLatticeSet = Ω<int>;
 export using IntegerLatticeScalar = typename IntegerLatticeSet::Domain;
 export using IntegerLatticePoint2D =
-  std::pair<IntegerLatticeScalar, IntegerLatticeScalar>;
+    std::pair<IntegerLatticeScalar, IntegerLatticeScalar>;
 
 /**
  * @concept IsGeometricLattice

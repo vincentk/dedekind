@@ -116,9 +116,9 @@ TEST_CASE("Geometry: unbounded lattice relations", "[geometry][lattice]") {
     auto p = var_for_type<IntegerLatticePoint2D>;
     const auto half_space =
         Set{p % integer_lattice_2d() |
-        [](const IntegerLatticePoint2D& q) { return q.first >= 0; }};
+            [](const IntegerLatticePoint2D& q) { return q.first >= 0; }};
     const auto interval_box =
-      Set{p % integer_lattice_2d() | [](const IntegerLatticePoint2D& q) {
+        Set{p % integer_lattice_2d() | [](const IntegerLatticePoint2D& q) {
           return (q.first >= -2) && (q.first < 2) && (q.second >= -2) &&
                  (q.second < 2);
         }};
