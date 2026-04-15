@@ -14,14 +14,14 @@ namespace {
 // Even integers in [0, 10)
 constexpr auto evens_0_10 = [] {
   auto x = var<ℕ>;
-  return Set{in<N>(x) |
+  return Set{x % N |
              [](int v) { return (v >= 0) && (v < 10) && (v % 2 == 0); }};
 }();
 
 // Multiples of 3 in [0, 10)
 constexpr auto threes_0_10 = [] {
   auto x = var<ℕ>;
-  return Set{in<N>(x) |
+  return Set{x % N |
              [](int v) { return (v >= 0) && (v < 10) && (v % 3 == 0); }};
 }();
 

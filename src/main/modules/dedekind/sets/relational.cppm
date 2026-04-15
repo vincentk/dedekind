@@ -77,8 +77,9 @@ using namespace dedekind::category;
  * @tparam Pred  Additional filter predicate type.
  */
 export template <typename T, typename L, typename P, typename Pred>
-  requires std::invocable<std::decay_t<Pred>, const T&> &&
-           requires(std::invoke_result_t<std::decay_t<Pred>, const T&> v) {
+  requires std::invocable<const std::decay_t<Pred>&, const T&> &&
+           requires(
+               std::invoke_result_t<const std::decay_t<Pred>&, const T&> v) {
              {
                dedekind::category::lift_logic<L>(v)
              } -> std::same_as<typename L::Ω>;
