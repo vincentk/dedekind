@@ -154,25 +154,39 @@ constexpr std::size_t count_if(const Path<T, Cardinality>& path, Pred&& pred) {
 }
 
 export template <typename T, typename Cardinality, typename Pred>
-  requires IsFiniteMagnitude<Cardinality> &&
-           std::predicate<const std::decay_t<Pred>&, const T&>
-constexpr bool exists(const Path<T, Cardinality>& path, Pred&& pred) {
+  requires LogicalMap<Pred, T>
+constexpr auto exists(const Path<T, Cardinality>& path, Pred&& pred) {
+  using Omega = OmegaOf<Pred, T>;
+  using Logic = LogicOf<Omega>;
+
   auto predicate = std::forward<Pred>(pred);
-  for (std::size_t i = 0; i < path.size(); ++i) {
-    if (std::invoke(predicate, path.at(i))) return true;
+  Omega witness = Logic::False;
+  for (std::size_t i = 0;; ++i) {
+    if constexpr (IsFiniteMagnitude<Cardinality>) {
+      if (i >= path.size()) break;
+    }
+    witness = Logic::OR(witness, std::invoke(predicate, path.at(i)));
+    if (witness == Logic::True) break;  // short-circuit: absorbing element found
   }
-  return false;
+  return witness;
 }
 
 export template <typename T, typename Cardinality, typename Pred>
-  requires IsFiniteMagnitude<Cardinality> &&
-           std::predicate<const std::decay_t<Pred>&, const T&>
-constexpr bool forall(const Path<T, Cardinality>& path, Pred&& pred) {
+  requires LogicalMap<Pred, T>
+constexpr auto forall(const Path<T, Cardinality>& path, Pred&& pred) {
+  using Omega = OmegaOf<Pred, T>;
+  using Logic = LogicOf<Omega>;
+
   auto predicate = std::forward<Pred>(pred);
-  for (std::size_t i = 0; i < path.size(); ++i) {
-    if (!std::invoke(predicate, path.at(i))) return false;
+  Omega witness = Logic::True;
+  for (std::size_t i = 0;; ++i) {
+    if constexpr (IsFiniteMagnitude<Cardinality>) {
+      if (i >= path.size()) break;
+    }
+    witness = Logic::AND(witness, std::invoke(predicate, path.at(i)));
+    if (witness == Logic::False) break;  // short-circuit: absorbing element found
   }
-  return true;
+  return witness;
 }
 
 }  // namespace dedekind::sequences

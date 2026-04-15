@@ -64,6 +64,7 @@ namespace dedekind::category {
  */
 export template <typename P>
 concept IsPredicate = IsArrow<P> && LogicalValue<Cod<P>> &&
+                      LogicalMap<P, Dom<P>> &&
                       !std::same_as<std::remove_cvref_t<P>, bool>;
 
 /**
