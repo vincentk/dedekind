@@ -99,15 +99,6 @@ constexpr auto mandelbrot_set(OrbitCriterion criterion) {
 }
 
 /**
- * Backward-compatible alias for M_N.
- */
-export template <IsComplexScalar R>
-constexpr auto mandelbrot_set_prefix_bounded_N(std::size_t max_iter,
-                                               R escape_radius_squared = R{4}) {
-  return M_N<R>(max_iter, escape_radius_squared);
-}
-
-/**
  * Executable approximation of Mandelbrot membership over a finite prefix.
  * If no point in the first max_iter states escapes radius 2 (squared radius
  * 4), c is treated as a member.
@@ -115,7 +106,7 @@ constexpr auto mandelbrot_set_prefix_bounded_N(std::size_t max_iter,
 export template <IsComplexScalar R>
 constexpr auto mandelbrot_set_prefix_bounded(std::size_t max_iter,
                                              R escape_radius_squared = R{4}) {
-  return mandelbrot_set_prefix_bounded_N<R>(max_iter, escape_radius_squared);
+  return M_N<R>(max_iter, escape_radius_squared);
 }
 
 }  // namespace dedekind::numbers
