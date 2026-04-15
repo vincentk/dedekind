@@ -99,9 +99,9 @@ TEST_CASE("Geometry: unbounded lattice relations", "[geometry][lattice]") {
 
   SECTION(
       "Bounded natural grid can be derived from unbounded natural lattice") {
-    auto p = var_for_type<std::pair<int, int>>;
+    auto p = var_for_type<IntegerLatticePoint2D>;
     const auto bounded =
-        Set{p % natural_lattice_2d() | [](const std::pair<int, int>& q) {
+        Set{p % natural_lattice_2d() | [](const IntegerLatticePoint2D& q) {
           return (q.first >= 0) && (q.first < 4) && (q.second >= 0) &&
                  (q.second < 4);
         }};
@@ -113,12 +113,12 @@ TEST_CASE("Geometry: unbounded lattice relations", "[geometry][lattice]") {
   }
 
   SECTION("Half-space and interval restrictions from integer lattice") {
-    auto p = var_for_type<std::pair<int, int>>;
+    auto p = var_for_type<IntegerLatticePoint2D>;
     const auto half_space =
         Set{p % integer_lattice_2d() |
-            [](const std::pair<int, int>& q) { return q.first >= 0; }};
+        [](const IntegerLatticePoint2D& q) { return q.first >= 0; }};
     const auto interval_box =
-        Set{p % integer_lattice_2d() | [](const std::pair<int, int>& q) {
+      Set{p % integer_lattice_2d() | [](const IntegerLatticePoint2D& q) {
           return (q.first >= -2) && (q.first < 2) && (q.second >= -2) &&
                  (q.second < 2);
         }};
