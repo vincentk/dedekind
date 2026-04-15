@@ -21,6 +21,9 @@ using namespace dedekind::sequences;
 using namespace dedekind::sets;
 
 export template <IsComplexScalar R>
+using OrbitPath = Path<Complex<R>>;
+
+export template <IsComplexScalar R>
 constexpr auto mandelbrot_step(const Complex<R>& c) {
   return [c](const Complex<R>& z) { return (z * z) + c; };
 }
@@ -39,15 +42,14 @@ constexpr auto mandelbrot_orbits() {
 }
 
 /**
- * Compose an orbit-criterion as a boundedness predicate.
- * The returned callable has shape:
- *   bounded(orbit(c)).
+ * Lift an orbit-level criterion to a point-level predicate:
+ *   c -> criterion(orbit(c)).
  */
 export template <IsComplexScalar R, typename OrbitCriterion>
-  requires std::predicate<const OrbitCriterion&, const Path<Complex<R>>&>
+  requires std::predicate<const OrbitCriterion&, const OrbitPath<R>&>
 constexpr auto bounded(OrbitCriterion criterion) {
   return [criterion = std::move(criterion)](const Complex<R>& c) {
-    return std::invoke(criterion, mandelbrot_orbit(c));
+    return criterion(mandelbrot_orbit(c));
   };
 }
 
@@ -61,7 +63,7 @@ constexpr auto M(BoundedPredicate is_bounded) {
   auto c = var<Species>;
   return Set{c % Species{} |
              [is_bounded = std::move(is_bounded)](const Complex<R>& parameter) {
-               return std::invoke(is_bounded, parameter);
+               return is_bounded(parameter);
              }};
 }
 
@@ -72,7 +74,7 @@ constexpr auto M(BoundedPredicate is_bounded) {
 export template <IsComplexScalar R>
 constexpr auto prefix_bounded_N(std::size_t max_iter,
                                 R escape_radius_squared = R{4}) {
-  return [max_iter, escape_radius_squared](const Path<Complex<R>>& orbit) {
+  return [max_iter, escape_radius_squared](const OrbitPath<R>& orbit) {
     const auto window = prefix(orbit, max_iter);
     return count_if(window, [escape_radius_squared](const Complex<R>& z) {
              const R re = z.real();
@@ -87,16 +89,19 @@ constexpr auto prefix_bounded_N(std::size_t max_iter,
  */
 export template <IsComplexScalar R>
 constexpr auto M_N(std::size_t max_iter, R escape_radius_squared = R{4}) {
-  return M<R>(bounded<R>(prefix_bounded_N<R>(max_iter, escape_radius_squared)));
+  const auto orbit_is_prefix_bounded =
+      bounded<R>(prefix_bounded_N<R>(max_iter, escape_radius_squared));
+  return M<R>(orbit_is_prefix_bounded);
 }
 
 /**
  * Backward-compatible alias for criterion-based Mandelbrot set construction.
  */
 export template <IsComplexScalar R, typename OrbitCriterion>
-  requires std::predicate<const OrbitCriterion&, const Path<Complex<R>>&>
+  requires std::predicate<const OrbitCriterion&, const OrbitPath<R>&>
 constexpr auto mandelbrot_set(OrbitCriterion criterion) {
-  return M<R>(bounded<R>(std::move(criterion)));
+  const auto orbit_is_bounded = bounded<R>(std::move(criterion));
+  return M<R>(orbit_is_bounded);
 }
 
 /**
