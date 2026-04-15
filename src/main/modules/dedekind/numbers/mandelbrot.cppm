@@ -36,7 +36,7 @@ constexpr auto mandelbrot_orbit(const Complex<R>& c) {
 }
 
 /**
- * The complete orbit for every point in the complex plane.
+ * The complete orbit for any point in the complex plane.
  */
 export template <IsComplexScalar R>
 constexpr auto mandelbrot_orbits() {
@@ -50,7 +50,7 @@ constexpr auto mandelbrot_orbits() {
 export template <IsComplexScalar R, typename OrbitCriterion>
 constexpr auto bounded(OrbitCriterion criterion) {
   auto orbit = arrow(mandelbrot_orbits<R>());
-  auto classify = arrow(std::move(criterion));
+  auto classify = arrow(criterion);
   return orbit >> classify;
 }
 
@@ -60,11 +60,8 @@ constexpr auto bounded(OrbitCriterion criterion) {
  */
 export template <IsComplexScalar R, typename BoundedPredicate>
 constexpr auto M(BoundedPredicate is_bounded) {
-  using Species = ComplexesOf<R>;
-  auto c = var<Species>;
-  const auto chi = classify(std::move(is_bounded)).χ;
-  return Set{c % Species{} |
-             [chi](const Complex<R>& parameter) { return chi(parameter); }};
+  auto c = var<ComplexesOf<R>>;
+  return Set{c % ComplexesOf<R>{} | classify(is_bounded).χ};
 }
 
 /**
