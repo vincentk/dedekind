@@ -1,7 +1,25 @@
 /**
- * @file ontology:analysis:kernels.cppm
+ * @file dedekind/analysis/kernels.cppm
  * @partition :kernels
- * @brief Level 3 Analysis: Minimal kernel morphisms for reintegration.
+ * @brief Level 11.4: Kernel primitives -- Gaussian and reproducing kernels.
+ *
+ * @copyright 2026 The Dedekind Authors
+ * Licensed under the Apache License, Version 2.0.
+ *
+ * @section Description
+ * This partition currently provides a compact kernel toolkit used to anchor
+ * analysis terminology in code:
+ *
+ * - GaussianKernel<T>     -- symmetric radial kernel on a scalar carrier.
+ * - ReproducingKernel<S>  -- unary representer view over a domain species.
+ * - IsKernel              -- concept witness for binary kernels.
+ *
+ * @quote
+ * "Die Theorie reproduzierender Kerne verbindet Geometrie und Rechnung auf
+ *  eine Weise, die den Operator erst wirklich sichtbar macht."
+ * ("The theory of reproducing kernels links geometry and computation in a way
+ *  that makes the operator truly visible.")
+ * -- Stefan Bergman, paraphrase
  */
 module;
 

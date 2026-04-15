@@ -25,8 +25,10 @@ module;
  * - @ref lattice — factory of unbounded 1D/2D discretizations by set species.
  * - @ref natural_lattice_2d — unbounded natural lattice in ℕ².
  * - @ref integer_lattice_2d — unbounded integer lattice in ℤ².
- * - @ref square_natural_grid — finite N×N natural grid as Set<pair<int,int>>.
- * - @ref square_integer_grid — bounded integer grid as Set<pair<int,int>>.
+ * - @ref square_natural_grid — finite N×N natural grid over
+ *   @ref IntegerLatticePoint2D.
+ * - @ref square_integer_grid — bounded integer grid over
+ *   @ref IntegerLatticePoint2D.
  * - @ref embed_z2_r2 — the canonical monic embedding ℤ² ↪ ℝ².
  *
  * @note Roadmap status: PR #144 is a partial implementation under issue #143.
@@ -56,6 +58,9 @@ using namespace dedekind::category;
 // Canonical lattice species in the geometry layer.
 export using NaturalLatticeSet = ℕ;
 export using IntegerLatticeSet = Ω<int>;
+export using IntegerLatticeScalar = typename IntegerLatticeSet::Domain;
+export using IntegerLatticePoint2D =
+    std::pair<IntegerLatticeScalar, IntegerLatticeScalar>;
 
 /**
  * @concept IsGeometricLattice
@@ -139,12 +144,12 @@ export constexpr auto integer_lattice_2d() {
  *          continuous embedding.
  *
  * @param n  Side length of the grid (number of points per axis).
- * @return A Set<std::pair<int,int>, ClassicalLogic, ...>.
+ * @return A Set<IntegerLatticePoint2D, ClassicalLogic, ...>.
  */
 export constexpr auto square_natural_grid(int n) {
-  auto p = var_for_type<std::pair<int, int>>;
+  auto p = var_for_type<IntegerLatticePoint2D>;
   const auto unbounded = natural_lattice_2d();
-  return Set{p % unbounded | [n](const std::pair<int, int>& q) {
+  return Set{p % unbounded | [n](const IntegerLatticePoint2D& q) {
     return (q.first >= 0) && (q.first < n) && (q.second >= 0) && (q.second < n);
   }};
 }
@@ -153,13 +158,14 @@ export constexpr auto square_natural_grid(int n) {
  * @brief Bounded square integer grid:
  *        G_Z = { (x, y) ∈ ℤ² | lower ≤ x < upper, lower ≤ y < upper }.
  *
- * @details Uses the ambient integer species Ω<int> and explicit bounds,
+ * @details Uses the ambient integer lattice species and explicit bounds,
  *          so negative coordinates are admitted when lower < 0.
  */
-export constexpr auto square_integer_grid(int lower, int upper) {
-  auto p = var_for_type<std::pair<int, int>>;
+export constexpr auto square_integer_grid(IntegerLatticeScalar lower,
+                                          IntegerLatticeScalar upper) {
+  auto p = var_for_type<IntegerLatticePoint2D>;
   const auto unbounded = integer_lattice_2d();
-  return Set{p % unbounded | [lower, upper](const std::pair<int, int>& q) {
+  return Set{p % unbounded | [lower, upper](const IntegerLatticePoint2D& q) {
     return (q.first >= lower) && (q.first < upper) && (q.second >= lower) &&
            (q.second < upper);
   }};
@@ -169,7 +175,7 @@ export constexpr auto square_integer_grid(int lower, int upper) {
  * @brief Convenience overload matching the natural-window convention [0, n).
  */
 export constexpr auto square_integer_grid(int n) {
-  return square_integer_grid(0, n);
+  return square_integer_grid(IntegerLatticeScalar{0}, IntegerLatticeScalar{n});
 }
 
 /**
@@ -181,8 +187,8 @@ export constexpr auto square_integer_grid(int n) {
  *          vectors since component equality implies coordinate equality.
  */
 export inline constexpr auto embed_z2_r2 =
-    arrow<std::pair<int, int>, Vector<double, 2>>(
-        [](const std::pair<int, int>& p) noexcept -> Vector<double, 2> {
+    arrow<IntegerLatticePoint2D, Vector<double, 2>>(
+        [](const IntegerLatticePoint2D& p) noexcept -> Vector<double, 2> {
           return {static_cast<double>(p.first), static_cast<double>(p.second)};
         });
 

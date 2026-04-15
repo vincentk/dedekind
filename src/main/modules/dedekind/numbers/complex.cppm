@@ -172,12 +172,14 @@ inline constexpr bool
 namespace dedekind::numbers {
 
 namespace detail {
-constexpr bool to_lattice_coordinate(double x, int& out) {
-  constexpr double lo = static_cast<double>(std::numeric_limits<int>::min());
-  constexpr double hi = static_cast<double>(std::numeric_limits<int>::max());
+constexpr bool to_lattice_coordinate(
+    double x, dedekind::geometry::IntegerLatticeScalar& out) {
+  using Scalar = dedekind::geometry::IntegerLatticeScalar;
+  constexpr double lo = static_cast<double>(std::numeric_limits<Scalar>::min());
+  constexpr double hi = static_cast<double>(std::numeric_limits<Scalar>::max());
   if ((x < lo) || (x > hi)) return false;
   if (std::trunc(x) != x) return false;
-  out = static_cast<int>(x);
+  out = static_cast<Scalar>(x);
   return true;
 }
 }  // namespace detail
@@ -256,43 +258,49 @@ namespace dedekind::numbers {
  *          complex numbers since real() and imag() recover a and b exactly.
  */
 export inline constexpr auto embed_z2_c =
-    arrow<std::pair<int, int>, Complex<double>>(
-        [](const std::pair<int, int>& p) noexcept {
+    arrow<dedekind::geometry::IntegerLatticePoint2D, Complex<double>>(
+        [](const dedekind::geometry::IntegerLatticePoint2D& p) noexcept {
           return Complex<double>{static_cast<double>(p.first),
                                  static_cast<double>(p.second)};
         });
 
 /**
- * @brief Lift a Set<pair<int,int>> (a lattice grid) to Set<Complex<double>>
+ * @brief Lift a Set<IntegerLatticePoint2D> (a lattice grid) to
+ *        Set<Complex<double>>
  *        via the embedding embed_z2_c.
  *
  * @details A complex number z belongs to the image if and only if:
  *          (1) z has integral real and imaginary parts, and
- *          (2) the corresponding integer pair (int(re), int(im)) is in grid.
+ *          (2) the corresponding lattice point is in grid.
  *
  *          This is the canonical preimage characterisation of the image of a
  *          monic (injective) map: z ∈ embed_z2_c(grid) ↔ embed_z2_c⁻¹(z) ∈
  * grid.
  *
- * @param grid  A Set<std::pair<int,int>, ClassicalLogic, P> (e.g. from
+ * @param grid  A Set<dedekind::geometry::IntegerLatticePoint2D,
+ *              ClassicalLogic, P> (e.g. from
  *              dedekind::geometry::square_integer_grid).
  * @return A Set<Complex<double>, ClassicalLogic, ...>.
  */
 export template <typename L, typename P>
 constexpr auto embed_grid_ℂ(
-    const dedekind::sets::Set<std::pair<int, int>, L, P>& grid) {
+    const dedekind::sets::Set<dedekind::geometry::IntegerLatticePoint2D, L, P>&
+        grid) {
   using namespace dedekind::sets;
   auto c = var<ℂ>;
   return Set{c % C | [grid](const Complex<double>& z) {
     const double re = z.real();
     const double im = z.imag();
-    int x = 0;
-    int y = 0;
+    dedekind::geometry::IntegerLatticeScalar x =
+        dedekind::geometry::IntegerLatticeScalar{0};
+    dedekind::geometry::IntegerLatticeScalar y =
+        dedekind::geometry::IntegerLatticeScalar{0};
     if (!detail::to_lattice_coordinate(re, x) ||
         !detail::to_lattice_coordinate(im, y))
       return false;
     using GridLogic = typename std::decay_t<decltype(grid)>::logic_species;
-    return grid(std::pair<int, int>{x, y}) == GridLogic::True;
+    return grid(dedekind::geometry::IntegerLatticePoint2D{x, y}) ==
+           GridLogic::True;
   }};
 }
 
