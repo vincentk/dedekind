@@ -13,12 +13,14 @@ module;
 export module dedekind.numbers:mandelbrot;
 
 import dedekind.category;
+import dedekind.geometry;
 import dedekind.sequences;
 import dedekind.sets;
 import :complex;
 
 namespace dedekind::numbers {
 using namespace dedekind::category;
+using namespace dedekind::geometry;
 using namespace dedekind::sequences;
 using namespace dedekind::sets;
 
@@ -32,15 +34,8 @@ constexpr auto mandelbrot_step(const Complex<R>& c) {
 
 export template <IsComplexScalar R>
 constexpr auto mandelbrot_orbit(const Complex<R>& c) {
-  return iterate(Complex<R>{}, mandelbrot_step(c));
-}
-
-/**
- * The complete orbit for any point in the complex plane.
- */
-export template <IsComplexScalar R>
-constexpr auto mandelbrot_orbits() {
-  return [](const Complex<R>& c) { return mandelbrot_orbit(c); };
+  const auto zero = partial_identity_v<Complex<R>, PartialAddComplex<R>>;
+  return iterate(zero, mandelbrot_step(c));
 }
 
 /**
@@ -49,7 +44,7 @@ constexpr auto mandelbrot_orbits() {
  */
 export template <IsComplexScalar R, typename OrbitCriterion>
 constexpr auto bounded(OrbitCriterion criterion) {
-  auto orbit = arrow(mandelbrot_orbits<R>());
+  auto orbit = arrow(mandelbrot_orbit<R>);
   auto classify = arrow(criterion);
   return orbit >> classify;
 }
@@ -73,11 +68,8 @@ constexpr auto prefix_bounded_N(std::size_t max_iter,
                                 R escape_radius_squared = R{4}) {
   return [max_iter, escape_radius_squared](const OrbitPath<R>& orbit) {
     const auto window = prefix(orbit, max_iter);
-    return count_if(window, [escape_radius_squared](const Complex<R>& z) {
-             const R re = z.real();
-             const R im = z.imag();
-             return ((re * re) + (im * im)) > escape_radius_squared;
-           }) == 0;
+    return !exists(window,
+                   outside_closed_euclidean_ball_squared(escape_radius_squared));
   };
 }
 
@@ -87,26 +79,6 @@ constexpr auto prefix_bounded_N(std::size_t max_iter,
 export template <IsComplexScalar R>
 constexpr auto M_N(std::size_t max_iter, R escape_radius_squared = R{4}) {
   return M<R>(bounded<R>(prefix_bounded_N<R>(max_iter, escape_radius_squared)));
-}
-
-/**
- * Backward-compatible alias for criterion-based Mandelbrot set construction.
- */
-export template <IsComplexScalar R, typename OrbitCriterion>
-constexpr auto mandelbrot_set(OrbitCriterion criterion) {
-  const auto orbit_is_bounded = bounded<R>(std::move(criterion));
-  return M<R>(orbit_is_bounded);
-}
-
-/**
- * Executable approximation of Mandelbrot membership over a finite prefix.
- * If no point in the first max_iter states escapes radius 2 (squared radius
- * 4), c is treated as a member.
- */
-export template <IsComplexScalar R>
-constexpr auto mandelbrot_set_prefix_bounded(std::size_t max_iter,
-                                             R escape_radius_squared = R{4}) {
-  return M_N<R>(max_iter, escape_radius_squared);
 }
 
 }  // namespace dedekind::numbers

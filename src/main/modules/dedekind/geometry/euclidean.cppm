@@ -46,6 +46,36 @@ export template <typename V, typename S>
 concept IsEuclideanSpace = IsMetricSpace<V, S> && requires(const V v) {
   // The Norm (Magnitude) of a single vector.
   { norm(v) } -> std::same_as<S>;
+  // Squared norm keeps Euclidean magnitude in polynomial form.
+  { euclidean_norm_squared(v) } -> std::same_as<S>;
 };
+
+/**
+ * @brief Predicate factory over squared Euclidean norm.
+ * @details Returns x |-> compare(euclidean_norm_squared(x), threshold).
+ * Works for any carrier providing euclidean_norm_squared(x) via ADL.
+ */
+export template <typename Threshold, typename Compare = std::greater<>>
+constexpr auto compare_euclidean_norm_squared(Threshold threshold,
+                                              Compare compare = {}) {
+  return [threshold, compare](const auto& x)
+    requires requires {
+      { euclidean_norm_squared(x) };
+      { std::invoke(compare, euclidean_norm_squared(x), threshold) };
+    }
+  {
+    return std::invoke(compare, euclidean_norm_squared(x), threshold);
+  };
+}
+
+/**
+ * @brief Predicate factory for points outside the closed Euclidean ball,
+ *        using squared radius to avoid square roots.
+ */
+export template <typename RadiusSquared>
+constexpr auto outside_closed_euclidean_ball_squared(
+    RadiusSquared radius_squared) {
+  return compare_euclidean_norm_squared(radius_squared, std::greater<>{});
+}
 
 }  // namespace dedekind::geometry
