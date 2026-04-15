@@ -153,6 +153,28 @@ constexpr std::size_t count_if(const Path<T, Cardinality>& path, Pred&& pred) {
   return count;
 }
 
+export template <typename T, typename Cardinality, typename Pred>
+  requires IsFiniteMagnitude<Cardinality> &&
+           std::predicate<const std::decay_t<Pred>&, const T&>
+constexpr bool exists(const Path<T, Cardinality>& path, Pred&& pred) {
+  auto predicate = std::forward<Pred>(pred);
+  for (std::size_t i = 0; i < path.size(); ++i) {
+    if (std::invoke(predicate, path.at(i))) return true;
+  }
+  return false;
+}
+
+export template <typename T, typename Cardinality, typename Pred>
+  requires IsFiniteMagnitude<Cardinality> &&
+           std::predicate<const std::decay_t<Pred>&, const T&>
+constexpr bool forall(const Path<T, Cardinality>& path, Pred&& pred) {
+  auto predicate = std::forward<Pred>(pred);
+  for (std::size_t i = 0; i < path.size(); ++i) {
+    if (!std::invoke(predicate, path.at(i))) return false;
+  }
+  return true;
+}
+
 }  // namespace dedekind::sequences
 
 namespace dedekind::sequences {
