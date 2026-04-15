@@ -8,7 +8,7 @@ using namespace dedekind::numbers;
 
 TEST_CASE("Numbers: Construction of Transcendental Constants",
           "[numbers][reals]") {
-  SECTION("Archimedean Resolution: Sqrt(2)") {
+  SECTION("Literal Approximation: Sqrt(2)") {
     auto root2 = Sqrt2();
     double val = root2.resolve();
 
@@ -16,7 +16,7 @@ TEST_CASE("Numbers: Construction of Transcendental Constants",
     REQUIRE_THAT(val, Catch::Matchers::WithinRel(1.41421356, 0.00001));
   }
 
-  SECTION("Taylor Convergence: Euler's Number (e)") {
+  SECTION("Literal Approximation: Euler's Number (e)") {
     auto e = E();
     double val = e.resolve();
 
@@ -24,7 +24,7 @@ TEST_CASE("Numbers: Construction of Transcendental Constants",
     REQUIRE_THAT(val, Catch::Matchers::WithinRel(2.71828182, 0.00001));
   }
 
-  SECTION("Nilakantha Convergence: Pi (π)") {
+  SECTION("Literal Approximation: Pi (π)") {
     auto pi = Pi();
     double val = pi.resolve();
 
