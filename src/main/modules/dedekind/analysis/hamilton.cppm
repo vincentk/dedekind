@@ -1,5 +1,5 @@
 /**
- * @file ontology:analysis:hamilton.cppm
+ * @file dedekind/analysis/hamilton.cppm
  * @partition :hamilton
  * @brief Level 4: The Principle of Least Action (Hamiltonian Dynamics).
  *
