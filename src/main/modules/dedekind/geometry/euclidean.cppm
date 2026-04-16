@@ -22,6 +22,7 @@ module;
 export module dedekind.geometry:euclidean;
 
 import :inner_product;
+import dedekind.algebra;
 
 namespace dedekind::geometry {
 
@@ -52,7 +53,7 @@ concept IsEuclideanSpace = IsMetricSpace<V, S> && requires(const V v) {
 /**
  * @brief Canonical Euclidean distance induced by the norm.
  */
-export template <std::floating_point F, std::size_t N>
+export template <dedekind::algebra::IsFloatingScalar F, std::size_t N>
 constexpr F distance(const Vector<F, N>& a, const Vector<F, N>& b) {
   return norm(a - b);
 }

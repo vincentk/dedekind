@@ -10,6 +10,7 @@ module;
 export module dedekind.geometry:hilbert;
 
 import :inner_product;
+import dedekind.algebra;
 import dedekind.order;
 import dedekind.sequences;
 import dedekind.morphologies;
@@ -27,7 +28,7 @@ using namespace dedekind::morphologies;
  */
 export template <typename V, typename R>
 concept IsFiniteDimensionalInnerProductSpace =
-    IsInnerProductSpace<V, R> && std::floating_point<R> &&
+    IsInnerProductSpace<V, R> && dedekind::algebra::IsFloatingScalar<R> &&
     requires { V::dimension; };
 
 /**

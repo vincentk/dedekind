@@ -46,6 +46,28 @@ using namespace dedekind::category;
 using namespace dedekind::sets;
 
 /**
+ * @concept IsIntegralScalar
+ * @brief Numbers-layer alias for the algebra scalar bridge concept.
+ */
+export template <typename S>
+concept IsIntegralScalar = dedekind::algebra::IsIntegralScalar<S>;
+
+/**
+ * @concept IsUnsignedIntegralScalar
+ * @brief Numbers-layer alias for the algebra scalar bridge concept.
+ */
+export template <typename S>
+concept IsUnsignedIntegralScalar =
+    dedekind::algebra::IsUnsignedIntegralScalar<S>;
+
+/**
+ * @concept IsFloatingScalar
+ * @brief Numbers-layer alias for the algebra scalar bridge concept.
+ */
+export template <typename S>
+concept IsFloatingScalar = dedekind::algebra::IsFloatingScalar<S>;
+
+/**
  * @concept IsNumbers
  * @brief The Root Category for all Numerical Structures.
  *
