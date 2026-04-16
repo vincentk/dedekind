@@ -17,7 +17,6 @@ module;
 
 #include <concepts>
 #include <cstddef>
-#include <functional>
 
 export module dedekind.geometry:euclidean;
 

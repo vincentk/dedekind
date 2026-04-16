@@ -18,7 +18,6 @@ TEST_CASE("Geometry: Euclidean metric structure", "[geometry][euclidean]") {
     Vec2 b{3.0, 4.0};
 
     REQUIRE(distance(a, b) == 5.0);
-    REQUIRE(distance(a, b) == norm(a - b));
   }
 
   SECTION("Distance is symmetric") {

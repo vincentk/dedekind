@@ -31,7 +31,7 @@ concept IsAffine = requires(const V a, const V b, const S s) {
   { a - b } -> std::same_as<V>;
   { a * s } -> std::same_as<V>;
   { s * a } -> std::same_as<V>;
-  requires requires { V::dimension; };
+  { V::dimension };
 };
 
 /**
