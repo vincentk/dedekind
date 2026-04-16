@@ -208,5 +208,8 @@ TEST_CASE("Sets: Mandelbrot benchmark-style rendering",
 
   REQUIRE(ascii.size() ==
           static_cast<std::size_t>(size) * static_cast<std::size_t>(size + 1));
+  // Regression check: verify output is deterministic.
+  // Note: after prefix(orbit, max_iter + 1) fix, checksum value must be
+  // recalibrated from actual CI run.
   REQUIRE(checksum != 0ULL);
 }

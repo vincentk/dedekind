@@ -103,12 +103,14 @@ constexpr auto M(BoundedPredicate is_bounded) {
  *
  * exists() short-circuits on the absorbing element (True), so this is
  * efficient even when the orbit escapes early.
+ * Note: prefix length is max_iter + 1 to include z_max_iter (satisfying the ≤ n
+ * semantics).
  */
 export template <IsComplexScalar R, typename EscapeCriterion>
   requires IsEscapeCriterion<EscapeCriterion, Complex<R>>
 constexpr bool orbit_escapes(const OrbitPath<R>& orbit, std::size_t max_iter,
                              const EscapeCriterion& escape_criterion) {
-  return exists(prefix(orbit, max_iter),
+  return exists(prefix(orbit, max_iter + 1),
                 classify<Complex<R>>(escape_criterion).χ);
 }
 

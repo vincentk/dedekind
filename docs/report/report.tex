@@ -1602,29 +1602,29 @@ Because a benchmark implementation must terminate with deterministic cost, the e
 The code listing in this report should be read as a structural realization of $\widetilde{\mathcal{M}}_N$: the set expression captures the truncated orbit predicate, while the final ASCII rendering step remains a conventional imperative loop.
 
 \paragraph{Review findings (Mandelbrot in light of classifier and sequence layers, PR \#157 scope).}
-The current \texttt{dedekind.numbers:mandelbrot} partition exhibits clean separation of concerns: the recurrence is fixed once (\texttt{mandelbrot\_orbit}), orbit-level criteria are lifted to parameter-level predicates (\texttt{bounded}), and stage-indexed computable approximations are exposed explicitly through \texttt{M\_tower}.
-The windowed boundedness path uses finite sequence truncation and classifier-style lifting, matching the sequence quantifier machinery reviewed above.
+The current \texttt{dedekind.numbers:mandelbrot} partition exhibits clean separation of concerns: the recurrence is fixed once (\texttt{mandelbrot\_orbit}), orbit-level escape criteria are exposed via \texttt{orbit\_escapes}, finite-stage parameter predicates are exposed via \texttt{prefix\_bounded\_N} and \texttt{M\_N}, and stage-indexed computable approximations are organized explicitly through \texttt{M\_tower}.
+The finite-stage boundedness path uses orbit prefixes and classifier-style lifting, matching the sequence quantifier machinery reviewed above.
 
 A deliberate limitation remains: executable stages are Boolean approximations, while the full intensional target can remain logically richer.
 For benchmarking and rendering, this preserves a clean distinction between the denotational target $\mathcal{M}$ and the computable tower $\{M_n\}_{n\ge 0}$.
 
 \textit{Architectural strengths and gaps:} The three-level lifting (recurrence $\to$ orbit criterion $\to$ parameter predicate) is well-structured and aligns with the topos-theoretic notion of characteristic morphisms.
-However, the current implementation uses hardcoded numerical heuristics (escape radius and iteration bound) rather than formal divergence criteria.
-The escape detection loop in \texttt{divergence\_count\_in\_window} and the windowed boundedness test in \texttt{bounded\_in\_window} could be refactored to use the \texttt{exists}/\texttt{forall} quantifiers from the sequences DSL, making the escape condition explicit and composable.
+However, the current implementation still relies on fixed numerical parameters (escape radius and iteration bound) inside the executable escape/boundedness criteria rather than abstracting them as first-class divergence data.
+The current \texttt{orbit\_escapes} predicate and the finite-stage boundedness predicates \texttt{prefix\_bounded\_N}/\texttt{M\_N} can be viewed as instances of \texttt{exists}/\texttt{forall} over orbit prefixes from the sequences DSL, making the escape condition explicit and composable without introducing separate window-specific APIs.
 
 \textit{Proposed improvements (follow-up work):}
 \begin{enumerate}
-  \item \textbf{Parametrize escape criteria} \textcolor{gray}{\textit{(Phase 2 — implemented)}}: Extract the hardcoded radius $R = 2$ and iteration limit into an ``escape criterion'' object, allowing alternative convergence theories (e.g., real dynamics in restricted domains).
-  \item \textbf{Express escape via quantifiers} \textcolor{gray}{\textit{(Phase 1 — implemented)}}: Replace hand-rolled loops with declarative quantifier composition: $\text{escaped} \equiv \exists n \le N : |z_n| > R$, enabling composition with \texttt{exists(prefix(\ldots))$ from the sequences layer.
+  \item \textbf{Parametrize escape criteria} \textcolor{gray}{\textit{(Phase 2 --- implemented)}}: Factor the fixed radius $R = 2$ and iteration bound used by \texttt{orbit\_escapes}/\texttt{prefix\_bounded\_N} into an explicit ``escape criterion'' object, allowing alternative convergence theories (e.g., real dynamics in restricted domains).
+  \item \textbf{Express escape via quantifiers} \textcolor{gray}{\textit{(Phase 1 --- implemented)}}: Present \texttt{orbit\_escapes} and \texttt{prefix\_bounded\_N} as declarative quantifier compositions on orbit prefixes, e.g.\ $\text{escaped} \equiv \exists n \le N : |z_n| > R$, enabling direct composition with the sequences layer.
   \item \textbf{Support non-Boolean logics}: Extend \texttt{M\_N} to support K3 (Ternary) logic, returning \texttt{Unknown} for marginal cases near the boundary when evidence is insufficient.
   \item \textbf{Bridge polynomial evaluation}: Express Mandelbrot recurrence steps as a special case of Horner evaluation or iterated polynomial application, unifying the polynomial and dynamical-systems layers.
 \end{enumerate}
 
 \paragraph{Implementation note (Phase 1 complete).}
-The first recommended improvement—refactoring divergence detection to use quantifiers—has been implemented.
-The hand-rolled absorbing recurrence in \texttt{divergence\_count\_in\_window} has been replaced with a call to the \texttt{exists} quantifier from the sequences DSL.
-The escape condition is now expressed as $\exists n : |z_n|^2 > r^2$ using the mathematical operators available in the category and sequences layers.
-This change improves clarity (making the mathematical intent explicit), enables composition (via quantifier machinery), and maintains backward compatibility (the count return value is preserved).
+The first recommended improvement—expressing escape and finite-stage boundedness through the implemented \texttt{orbit\_escapes}, \texttt{prefix\_bounded\_N}, and \texttt{M\_N} interfaces in a quantifier-friendly way—has been implemented.
+The \texttt{orbit\_escapes} predicate uses \texttt{exists} from the sequences DSL, checking whether any point in the orbit prefix satisfies the escape criterion.
+The escape condition is expressed via \texttt{classify<Complex<R>>(escape\_criterion).χ}, which lifts the escape predicate to a characteristic morphism from the category layer.
+This change improves clarity (making the mathematical intent explicit), enables composition (via quantifier machinery), and maintains backward compatibility.
 The refactoring does not change the public API surface or the behavior of the Mandelbrot approximation tower; only the implementation path is improved.
 
 \paragraph{Implementation note (Phase 2 complete — Parametrized Escape Criterion).}
@@ -1662,12 +1662,12 @@ constexpr auto euclidean_escape_radius_squared(R escape_radius_squared = R{4}) {
 }
 
 // Usage: custom radius = 3
-auto custom_criterion = euclidean_escape_radius_squared<double>(9.0);  // 3^2
+auto custom_criterion = euclidean_escape_radius_squared<double>(9.0);  // 3^2 = 9
 
-// Application to divergence detection
-const auto count = divergence_count_in_window<double>(window, custom_criterion);
+// Application to orbit escape detection
+const bool any_escaped = orbit_escapes(window, 256u, custom_criterion);
 \end{lstlisting}
-The generic overload of \texttt{divergence\_count\_in\_window} applies the criterion within the \texttt{exists} quantifier:
+The \texttt{orbit\_escapes} query applies the criterion within the \texttt{exists} quantifier:
 \begin{equation}
   \texttt{any\_escaped} \;=\; \bigvee_{z \in \text{window}} \texttt{escape\_fn}(z)
 \end{equation}
