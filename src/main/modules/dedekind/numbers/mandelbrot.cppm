@@ -92,88 +92,60 @@ constexpr auto M(BoundedPredicate is_bounded) {
 }
 
 /**
- * Windowed escape existence check via quantifier:
- *   exists(window, escaped_criterion) checks if any orbit point escapes.
- *
- * This refactors the hand-rolled divergence counter to use the sequences DSL
- * quantifier machinery, making the escape condition explicit, composable, and
- * aligned with the exists/forall quantifier interface.
- *
- * The escape criterion is now parametrized, allowing alternative divergence
- * theories and custom escape detection strategies.
+ * Test whether any point in the first max_iter steps of an orbit escapes.
  *
  * Mathematical intent:
- *   "orbit escapes" ≡ ∃ n : escaped_criterion(z_n)
+ *   orbit_escapes(orbit, n, p) ≡ ∃ k ≤ n : p(z_k)
  *
- * @param window A function that selects a finite subsequence from the orbit
- * @param escape_criterion A callable that returns true when divergence is detected
+ * The finiteness bound lives here — at the single place where we decide how
+ * much evidence to inspect — rather than being threaded through every
+ * intermediate function as a polymorphic Window functor.
+ *
+ * exists() short-circuits on the absorbing element (True), so this is
+ * efficient even when the orbit escapes early.
  */
-export template <IsComplexScalar R, typename Window, typename EscapeCriterion>
-  requires std::invocable<const std::decay_t<Window>&, const OrbitPath<R>&> &&
-           IsFiniteSequence<std::remove_cvref_t<std::invoke_result_t<
-               const std::decay_t<Window>&, const OrbitPath<R>&>>> &&
-           std::invocable<const std::decay_t<EscapeCriterion>&, const Complex<R>&> &&
-           std::same_as<std::invoke_result_t<const std::decay_t<EscapeCriterion>&, const Complex<R>&>, bool>
-constexpr auto divergence_count_in_window(Window&& window,
-                                          EscapeCriterion&& escape_criterion) {
-  return [window_fn = std::forward<Window>(window),
-          escape_fn = std::forward<EscapeCriterion>(escape_criterion)](const OrbitPath<R>& orbit) {
-    const auto selected_window = std::invoke(window_fn, orbit);
+export template <IsComplexScalar R, typename EscapeCriterion>
+  requires IsEscapeCriterion<EscapeCriterion, Complex<R>>
+constexpr bool orbit_escapes(const OrbitPath<R>& orbit,
+                              std::size_t max_iter,
+                              const EscapeCriterion& escape_criterion) {
+  return exists(prefix(orbit, max_iter),
+                classify<Complex<R>>(escape_criterion).χ);
+}
 
-    // Use exists quantifier: "does any point in the window escape?"
-    // Lifting escape predicate to logical map via classify().
-    // Explicitly specify the domain type Complex<R> to help template deduction.
-    const bool any_escaped = exists(selected_window, classify<Complex<R>>(escape_fn).χ);
+/**
+ * @overload with default Euclidean escape radius (radius² = 4, i.e. |z| > 2).
+ */
+export template <IsComplexScalar R>
+constexpr bool orbit_escapes(const OrbitPath<R>& orbit, std::size_t max_iter,
+                              R escape_radius_squared = R{4}) {
+  return orbit_escapes(orbit, max_iter,
+                        euclidean_escape_radius_squared(escape_radius_squared));
+}
 
-    // Return count for backward compatibility:
-    //   count = 1 if any_escaped, 0 otherwise.
-    return any_escaped ? std::size_t{1} : std::size_t{0};
+/**
+ * Finite-prefix orbit criterion used in executable approximations.
+ *
+ * Returns true iff the orbit does NOT escape within the first max_iter steps.
+ *   prefix_bounded_N(orbit) ≡ ¬ ∃ k ≤ N : |z_k|² > r²
+ */
+export template <IsComplexScalar R, typename EscapeCriterion>
+  requires IsEscapeCriterion<EscapeCriterion, Complex<R>>
+constexpr auto prefix_bounded_N(std::size_t max_iter,
+                                EscapeCriterion escape_criterion) {
+  return [max_iter, escape_criterion](const OrbitPath<R>& orbit) {
+    return !orbit_escapes(orbit, max_iter, escape_criterion);
   };
 }
 
 /**
- * @overload with default Euclidean escape radius
- * Backward-compatible overload: uses the standard radius-squared = 4 criterion.
- */
-export template <IsComplexScalar R, typename Window>
-  requires std::invocable<const std::decay_t<Window>&, const OrbitPath<R>&> &&
-           IsFiniteSequence<std::remove_cvref_t<std::invoke_result_t<
-               const std::decay_t<Window>&, const OrbitPath<R>&>>>
-constexpr auto divergence_count_in_window(Window&& window,
-                                          R escape_radius_squared) {
-  return divergence_count_in_window<R>(std::forward<Window>(window),
-                                       euclidean_escape_radius_squared(escape_radius_squared));
-}
-
-/**
- * Windowed orbit criterion:
- *   bounded iff the divergence counter over that window is zero.
- */
-export template <IsComplexScalar R, typename Window>
-  requires std::invocable<const std::decay_t<Window>&, const OrbitPath<R>&> &&
-           IsFiniteSequence<std::remove_cvref_t<std::invoke_result_t<
-               const std::decay_t<Window>&, const OrbitPath<R>&>>>
-constexpr auto bounded_in_window(Window&& window,
-                                 R escape_radius_squared = R{4}) {
-  auto divergence_count =
-      divergence_count_in_window<R>(std::forward<Window>(window),
-                                    escape_radius_squared);
-  return [divergence_count](const OrbitPath<R>& orbit) {
-    return divergence_count(orbit) == 0;
-  };
-}
-
-/**
- * Finite-prefix orbit criterion used in executable approximations:
- * prefix_bounded_N(orbit(c)).
+ * @overload with default Euclidean escape radius.
  */
 export template <IsComplexScalar R>
 constexpr auto prefix_bounded_N(std::size_t max_iter,
                                 R escape_radius_squared = R{4}) {
-  auto prefix_window = [max_iter](const OrbitPath<R>& orbit) {
-    return prefix(orbit, max_iter);
-  };
-  return bounded_in_window<R>(prefix_window, escape_radius_squared);
+  return prefix_bounded_N<R>(max_iter,
+                              euclidean_escape_radius_squared(escape_radius_squared));
 }
 
 /**
@@ -192,14 +164,15 @@ export template <IsComplexScalar R>
 constexpr auto M_tower(R escape_radius_squared = R{4}) {
   // Fix the Mandelbrot recurrence once as c |-> orbit(c).
   auto phi = mandelbrot_orbit<R>;
+  const auto criterion = euclidean_escape_radius_squared(escape_radius_squared);
   // Return a stage builder indexed by truncation budget n.
-  return [phi, escape_radius_squared](std::size_t n) {
+  return [phi, criterion](std::size_t n) {
     // Bind the ambient parameter variable for set comprehension.
     auto c = var<ComplexesOf<R>>;
-    // Select the first n orbit points as the finite evidence window.
-    auto window = [n](const OrbitPath<R>& orbit) { return prefix(orbit, n); };
-    // Build the orbit-level boundedness criterion on that window.
-    auto orbit_bounded = bounded_in_window<R>(window, escape_radius_squared);
+    // Build the orbit-level boundedness criterion: ¬∃k≤n : |z_k|²>r²
+    auto orbit_bounded = [n, criterion](const OrbitPath<R>& orbit) {
+      return !orbit_escapes(orbit, n, criterion);
+    };
     // Lift the orbit-level predicate to a parameter-level predicate.
     auto parameter_bounded = bounded<R>(orbit_bounded);
     // Form the nth computable approximation set M_n.

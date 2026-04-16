@@ -171,22 +171,22 @@ TEST_CASE("Sets: adapted Mandelbrot set-builder stress test",
     REQUIRE(large_radius_criterion(test_point) == false);
   }
 
-  SECTION("Divergence count with custom escape criterion") {
-    // Use a larger escape radius
-    auto custom_criterion = euclidean_escape_radius_squared<double>(16.0);  // 4^2
-    auto window = [](const auto& orbit) { return prefix(orbit, 10u); };
-    
+  SECTION("orbit_escapes with custom escape criterion") {
+    // Use a larger escape radius (4^2 = 16)
+    auto custom_criterion = euclidean_escape_radius_squared<double>(16.0);
+
     const ComplexPoint c{0.25, 0.0};  // A point in the Mandelbrot set
     const auto orbit = mandelbrot_orbit(c);
-    
-    // With radius 4, orbit should not escape in first 10 iterations
-    const auto count_with_large_radius = divergence_count_in_window<double>(window, custom_criterion)(orbit);
-    REQUIRE(count_with_large_radius == 0u);
-    
-    // With standard radius 2
-    const auto count_with_default = divergence_count_in_window<double>(window, 4.0)(orbit);
-    // Orbit at c=0.25 should be stable enough to not escape immediately
-    REQUIRE(count_with_default == 0u);
+
+    // With radius 4, orbit at c=0.25 should not escape in first 10 iterations
+    REQUIRE(orbit_escapes(orbit, 10u, custom_criterion) == false);
+
+    // With standard radius (2^2 = 4), orbit at c=0.25 is also bounded
+    REQUIRE(orbit_escapes(orbit, 10u, 4.0) == false);
+
+    // A point clearly outside the set should escape quickly
+    const auto orbit_outside = mandelbrot_orbit(ComplexPoint{2.0, 0.0});
+    REQUIRE(orbit_escapes(orbit_outside, 10u, 4.0) == true);
   }
 }
 
