@@ -141,6 +141,12 @@ class Vector {
     return res;
   }
 
+  friend constexpr Vector operator-(const Vector& v) {
+    Vector res = v;
+    for (auto& c : res.coords_) c = -c;
+    return res;
+  }
+
   constexpr F& operator[](std::size_t i) { return coords_[i]; }
   constexpr const F& operator[](std::size_t i) const { return coords_[i]; }
 

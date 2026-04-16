@@ -27,6 +27,7 @@ TEST_CASE("Modules: Integer Polynomial Action", "[algebra][modules]") {
     CHECK((RealScalar{2.0} * x).coordinate().resolve() == 4.0);
     CHECK((x * RealScalar{2.0}).coordinate().resolve() == 4.0);
     CHECK((y - x).coordinate().resolve() == 1.5);
+    CHECK((-x).coordinate().resolve() == -2.0);
   }
 
   SECTION("Other 1D spaces: complex line") {

@@ -139,8 +139,12 @@ struct OneDimensionalVector {
   friend constexpr bool operator==(const OneDimensionalVector&,
                                    const OneDimensionalVector&) = default;
 
-  friend constexpr OneDimensionalVector operator+(
-      const OneDimensionalVector& a, const OneDimensionalVector& b) {
+  friend constexpr OneDimensionalVector operator+(const OneDimensionalVector& a,
+                                                  const OneDimensionalVector& b)
+    requires requires(S s) {
+      { s + s } -> std::same_as<S>;
+    }
+  {
     return OneDimensionalVector(a.x + b.x);
   }
 
@@ -153,13 +157,29 @@ struct OneDimensionalVector {
     return OneDimensionalVector(a.x - b.x);
   }
 
-  friend constexpr OneDimensionalVector operator*(
-      const S& s, const OneDimensionalVector& v) {
+  friend constexpr OneDimensionalVector operator-(const OneDimensionalVector& v)
+    requires requires(S s) {
+      { -s } -> std::same_as<S>;
+    }
+  {
+    return OneDimensionalVector(-v.x);
+  }
+
+  friend constexpr OneDimensionalVector operator*(const S& s,
+                                                  const OneDimensionalVector& v)
+    requires requires(S scalar) {
+      { scalar * scalar } -> std::same_as<S>;
+    }
+  {
     return OneDimensionalVector(s * v.x);
   }
 
   friend constexpr OneDimensionalVector operator*(const OneDimensionalVector& v,
-                                                  const S& s) {
+                                                  const S& s)
+    requires requires(S scalar) {
+      { scalar * scalar } -> std::same_as<S>;
+    }
+  {
     return OneDimensionalVector(v.x * s);
   }
 

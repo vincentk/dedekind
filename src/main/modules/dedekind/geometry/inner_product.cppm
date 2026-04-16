@@ -32,16 +32,41 @@ namespace dedekind::geometry {
 using namespace dedekind::algebra;
 
 /**
- * @concept IsInnerProductSpace
- * @brief A vector space equipped with an inner product morphism.
+ * @concept HasInnerProduct
+ * @brief Carrier exposing a scalar-valued inner-product form and norm.
  */
 export template <typename V, typename F>
-concept IsInnerProductSpace = requires(V u, V v) {
+concept HasInnerProduct = requires(V u, V v) {
   /** @brief The Inner Product: Maps two vectors to a scalar. */
   { dot(u, v) } -> std::same_as<F>;
   /** @brief The Norm: Induced by the inner product ||v|| = sqrt(<v, v>). */
   { norm(u) } -> std::convertible_to<F>;
 };
+
+/**
+ * @concept IsInnerProductSemimodule
+ * @brief A semimodule equipped with an inner-product-like scalar form.
+ */
+export template <typename M, typename S>
+concept IsInnerProductSemimodule = IsSemimodule<M, S> && HasInnerProduct<M, S>;
+
+/**
+ * @concept IsInnerProductModule
+ * @brief A module equipped with an inner-product-like scalar form.
+ */
+export template <typename M, typename R>
+concept IsInnerProductModule = IsModule<M, R> && HasInnerProduct<M, R>;
+
+/**
+ * @concept IsInnerProductSpace
+ * @brief A field-like vector carrier equipped with an inner product morphism.
+ * @details Uses the operational `IsVectorSpaceLike` witness so IEEE-backed
+ *          floating carriers can participate under the active numerical
+ *          policy, even when the stricter categorical `IsVectorSpace` proof is
+ *          intentionally withheld.
+ */
+export template <typename V, typename F>
+concept IsInnerProductSpace = IsVectorSpaceLike<V, F> && HasInnerProduct<V, F>;
 
 /** @section The_Standard_Dot_Product */
 

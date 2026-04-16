@@ -6,11 +6,11 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @note "Meine Methoden sind wirklich Methoden des Arbeitens und Denkens;
- * deshalb sind sie uberall anonym eingedrungen."
- *       ("My methods are really methods of working and thinking; this is why
- * they have crept in everywhere anonymously.")
- *       -- Emmy Noether, letter to Helmut Hasse (1931)
+ * @note "Musica est exercitium arithmeticae occultum nescientis se numerare
+ * animi."
+ *       ("Music is the pleasure the human mind experiences from counting
+ * without being aware that it is counting.")
+ *       -- Gottfried Wilhelm Leibniz, letter to Christian Goldbach (1712)
  */
 
 module;
