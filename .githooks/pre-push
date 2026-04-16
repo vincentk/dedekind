@@ -17,8 +17,9 @@ fi
 echo "pre-push: formatting check passed"
 
 echo "pre-push: building LaTeX report"
-make -C "$repo_root/docs/report" ci-check
+cd $repo_root/docs/report && make ci-check
 echo "pre-push: report build passed"
+cd -
 
 echo "pre-push: building doxygen docs"
 make -C "$repo_root" doxygen

@@ -61,6 +61,24 @@ export template <typename S>
 concept IsFloatingScalar = std::floating_point<S>;
 
 /**
+ * @concept IsFieldLikeScalar
+ * @brief Operational scalar witness for field-like arithmetic under policy.
+ * @details This concept captures the permissive path used for machine-backed
+ *          arithmetic carriers such as `dedekind::ieee::IEEE<double>`, where
+ *          addition, subtraction, multiplication, division, and unary negation
+ *          are available and closed in the carrier, even if the stricter
+ *          categorical `IsField` proof is intentionally withheld.
+ */
+export template <typename S>
+concept IsFieldLikeScalar = requires(S a, S b) {
+  { a + b } -> std::same_as<S>;
+  { a - b } -> std::same_as<S>;
+  { -a } -> std::same_as<S>;
+  { a * b } -> std::same_as<S>;
+  { a / b } -> std::same_as<S>;
+};
+
+/**
  * @concept IsSemimodule
  * @brief A commutative additive monoid participating in a Linear Action.
  * @tparam M The module carrier.
@@ -270,17 +288,13 @@ constexpr OneDimensionalVector<S, Tag> scale_strength_reduced(
 /**
  * @concept IsVectorSpaceLike
  * @brief Pragmatic vector-space check used by first reified vector carriers.
- * @details Uses field-like scalar operations directly and does not depend on
- *          the stronger IsField witness machinery.
+ * @details Uses the operational `IsFieldLikeScalar` witness and does not
+ *          depend on the stronger `IsField` proof machinery.
  */
 export template <typename V, typename F, typename Act = std::multiplies<>>
-concept IsVectorSpaceLike = requires(F a, F b, V v) {
+concept IsVectorSpaceLike = IsFieldLikeScalar<F> && requires(F a, F b, V v) {
   { v + v } -> std::same_as<V>;
   { -v } -> std::same_as<V>;
-  { a + b } -> std::same_as<F>;
-  { a - b } -> std::same_as<F>;
-  { a * b } -> std::same_as<F>;
-  { a / b } -> std::same_as<F>;
   { Act{}(a, v) } -> std::same_as<V>;
 };
 
