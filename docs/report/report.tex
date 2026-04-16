@@ -1602,12 +1602,23 @@ Because a benchmark implementation must terminate with deterministic cost, the e
 The code listing in this report should be read as a structural realization of $\widetilde{\mathcal{M}}_N$: the set expression captures the truncated orbit predicate, while the final ASCII rendering step remains a conventional imperative loop.
 
 \paragraph{Review findings (Mandelbrot in light of classifier and sequence layers, PR \#157 scope).}
-The current \texttt{dedekind.numbers:mandelbrot} partition now exhibits the desired separation of concerns.
-The recurrence is fixed once (\texttt{mandelbrot\_orbit}), orbit-level criteria are lifted to parameter-level predicates (\texttt{bounded}), and stage-indexed computable approximations are exposed explicitly through \texttt{M\_tower}.
+The current \texttt{dedekind.numbers:mandelbrot} partition exhibits clean separation of concerns: the recurrence is fixed once (\texttt{mandelbrot\_orbit}), orbit-level criteria are lifted to parameter-level predicates (\texttt{bounded}), and stage-indexed computable approximations are exposed explicitly through \texttt{M\_tower}.
 The windowed boundedness path uses finite sequence truncation and classifier-style lifting, matching the sequence quantifier machinery reviewed above.
 
 A deliberate limitation remains: executable stages are Boolean approximations, while the full intensional target can remain logically richer.
 For benchmarking and rendering, this preserves a clean distinction between the denotational target $\mathcal{M}$ and the computable tower $\{M_n\}_{n\ge 0}$.
+
+\textit{Architectural strengths and gaps:} The three-level lifting (recurrence $\to$ orbit criterion $\to$ parameter predicate) is well-structured and aligns with the topos-theoretic notion of characteristic morphisms.
+However, the current implementation uses hardcoded numerical heuristics (escape radius and iteration bound) rather than formal divergence criteria.
+The escape detection loop in \texttt{divergence\_count\_in\_window} and the windowed boundedness test in \texttt{bounded\_in\_window} could be refactored to use the \texttt{exists}/\texttt{forall} quantifiers from the sequences DSL, making the escape condition explicit and composable.
+
+\textit{Proposed improvements (follow-up work):}
+\begin{enumerate}
+  \item \textbf{Parametrize escape criteria}: Extract the hardcoded radius $R = 2$ and iteration limit into an ``escape criterion'' object, allowing alternative convergence theories (e.g., real dynamics in restricted domains).
+  \item \textbf{Express escape via quantifiers}: Replace hand-rolled loops with declarative quantifier composition: $\text{escaped} \equiv \exists n \le N : |z_n| > R$, enabling composition with \texttt{exists(prefix(\ldots))$ from the sequences layer.
+  \item \textbf{Support non-Boolean logics}: Extend \texttt{M\_N} to support K3 (Ternary) logic, returning \texttt{Unknown} for marginal cases near the boundary when evidence is insufficient.
+  \item \textbf{Bridge polynomial evaluation}: Express Mandelbrot recurrence steps as a special case of Horner evaluation or iterated polynomial application, unifying the polynomial and dynamical-systems layers.
+\end{enumerate}
 
 
 \chapter{\texttt{dedekind.ieee} and \texttt{dedekind.numbers}}
@@ -2080,6 +2091,27 @@ Recurrence relations are represented directly by \texttt{iterate(seed, step)}, a
 The main operational boundary is also clear: quantification over infinite paths remains intentionally open-ended, and guaranteed termination arises from finite cardinality or explicit truncation.
 This is consistent with the project posture of semantic honesty for intensional objects.
 
+\paragraph{Extended findings (Cauchy, convergence, and divergence as first-class concerns).}
+The sequences module provides Cauchy verification and convergence machinery, but significant opportunities remain to formalize divergence and convergence as semantic properties rather than numerical heuristics.
+
+\textit{Current state of Cauchy and limits:} The \texttt{IsCauchy} concept is a type-level requirement (subtraction and absolute value operations), but the codebase lacks constructive $\varepsilon$-$N$ verification. The \texttt{HasLimit} concept exists but delegates convergence to test-at-magic-index (e.g., index 10000 for floating-point sequences), without formal evidence that the sequence has actually converged to a specified precision. This design choice favours pragmatism (test in CI) over proof (formal convergence witness).
+
+\textit{Mandelbrot recurrence and divergence:} The Mandelbrot set is naturally expressed as $M = \{ c \in \mathbb{C} \mid \text{orbit of } 0 \text{ under } z \mapsto z^2 + c \text{ is bounded} \}$. The current implementation detects divergence via hardcoded escape-radius criterion (typically $|z_n| > 2$) and a bounded iteration counter. While effective numerically, the formalization conflates two distinct mathematical facts:
+\begin{enumerate}
+  \item \textit{Escape theorem}: $|z_n| > 2 \Rightarrow |z_{n+1}| > 2$ (monotone divergence witness).
+  \item \textit{Executability}: For practical computation, we truncate to $N$ iterations and report ``possibly unbounded'' or ``appears bounded''.
+\end{enumerate}
+The current API returns a numerical count (\texttt{divergence\_count\_in\_window}) rather than a formal divergence criterion, and the binding between ``$|z_n|$ exceeds threshold after $N$ steps'' and ``the orbit diverges to infinity'' is in comments, not in code structure.
+
+\textit{Sequence quantifiers and predicates:} The \texttt{exists} and \texttt{forall} quantifiers are available and support arbitrary \texttt{LogicalMap} codomains (including Ternary/K3 logic), yet the Mandelbrot API reimplements escape detection with hand-rolled loops rather than composing quantifiers (e.g., $\neg \exists({\tt prefix}({\tt orbit}(c), N), {\tt escaped})$). Reframing escape detection as a quantifier would bring the Mandelbrot recurrence into alignment with the sequences DSL and enable future composition with other predicates.
+
+\textit{Recommendations for mathematical clarity:}
+\begin{enumerate}
+  \item Make divergence explicit: express ``orbit diverges'' as a formal property (either a witness $(N, n)$ such that $|z_n| > R$, or a proof that supremum$(\|z_n\|) = \infty$).
+  \item Introduce escape codomains: parametrize the escape radius $R$ and threshold count $N$ as properties of an ``escape criterion'' object, not hardcoded constants.
+  \item Replace hand-rolled escape loops with quantifier expressions: use $\neg \exists({\tt prefix}({\tt orbit}, N), {\tt escaped})$ in place of manual counters, bridging the mathematical definition with the DSL.
+  \item (Future) Layer convergence proofs: add optional proof-carrying variants of \texttt{HasLimit} that return constructive $\varepsilon$-$N$ pairs, enabling downstream theorems to cite convergence evidence.
+\end{enumerate}
 
 \chapter{\texttt{dedekind.algebra}}
 \label{chap:algebra}
