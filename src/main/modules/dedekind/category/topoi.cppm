@@ -40,6 +40,32 @@ import :cartesian;
 
 namespace dedekind::category {
 
+template <typename>
+inline constexpr bool always_false_v = false;
+
+template <typename C>
+concept IsClassifierConstant =
+    std::same_as<std::remove_cvref_t<C>, bool> ||
+    std::same_as<std::remove_cvref_t<C>, Ternary> ||
+    requires {
+      typename std::remove_cvref_t<C>::logic_species;
+      typename std::remove_cvref_t<C>::machine_type;
+    };
+
+template <typename OmegaTarget, typename Constant>
+constexpr auto lift_classifier_constant(Constant&& value) {
+  using C = std::remove_cvref_t<Constant>;
+  if constexpr (std::same_as<C, OmegaTarget>) {
+    return value;
+  } else if constexpr (std::same_as<OmegaTarget, Ternary> &&
+                       std::same_as<C, bool>) {
+    return value ? Ternary::True : Ternary::False;
+  } else {
+    static_assert(always_false_v<OmegaTarget>,
+                  "Unsupported classifier constant lift between logic species");
+  }
+}
+
 /** @section The Point-Free Composition Engine */
 
 /**
@@ -186,6 +212,33 @@ auto operator&&(P&& p, Q&& q) {
                          const A& x) { return L::AND(p(x), q(x)); });
 }
 
+/** @brief Conjunction of a constant logical value with a predicate. */
+export template <IsClassifierConstant C, IsPredicate P>
+  requires(!IsPredicate<std::remove_cvref_t<C>>) &&
+           requires(C c) {
+    lift_classifier_constant<Cod<P>>(c);
+  }
+auto operator&&(C&& constant, P&& p) {
+  using L = typename GetLogic<Cod<P>>::type;
+  using A = Dom<P>;
+  using Ω = Cod<P>;
+
+  const Ω lifted = lift_classifier_constant<Ω>(std::forward<C>(constant));
+  return arrow<A, Ω>([lifted, p = std::forward<P>(p)](const A& x) {
+    return L::AND(lifted, p(x));
+  });
+}
+
+/** @brief Conjunction of a predicate with a constant logical value. */
+export template <IsPredicate P, IsClassifierConstant C>
+  requires(!IsPredicate<std::remove_cvref_t<C>>) &&
+           requires(C c) {
+    lift_classifier_constant<Cod<P>>(c);
+  }
+auto operator&&(P&& p, C&& constant) {
+  return std::forward<C>(constant) && std::forward<P>(p);
+}
+
 /** @brief Logical Disjunction (Union): Synthesizes a rule for A ∪ B.
  *  @note Textbook term: join (∨) in the internal Heyting/Boolean algebra of Ω.
  */
@@ -200,6 +253,33 @@ auto operator||(P&& p, Q&& q) {
                          const A& x) { return L::OR(p(x), q(x)); });
 }
 
+/** @brief Disjunction of a constant logical value with a predicate. */
+export template <IsClassifierConstant C, IsPredicate P>
+  requires(!IsPredicate<std::remove_cvref_t<C>>) &&
+           requires(C c) {
+    lift_classifier_constant<Cod<P>>(c);
+  }
+auto operator||(C&& constant, P&& p) {
+  using L = typename GetLogic<Cod<P>>::type;
+  using A = Dom<P>;
+  using Ω = Cod<P>;
+
+  const Ω lifted = lift_classifier_constant<Ω>(std::forward<C>(constant));
+  return arrow<A, Ω>([lifted, p = std::forward<P>(p)](const A& x) {
+    return L::OR(lifted, p(x));
+  });
+}
+
+/** @brief Disjunction of a predicate with a constant logical value. */
+export template <IsPredicate P, IsClassifierConstant C>
+  requires(!IsPredicate<std::remove_cvref_t<C>>) &&
+           requires(C c) {
+    lift_classifier_constant<Cod<P>>(c);
+  }
+auto operator||(P&& p, C&& constant) {
+  return std::forward<C>(constant) || std::forward<P>(p);
+}
+
 /** @brief Logical Negation (Complement): Synthesizes a rule for ¬A.
  *  @note Textbook term: pseudocomplement/complement depending on Ω.
  */
@@ -211,6 +291,93 @@ auto operator!(P&& p) {
   // Return a formal Morphism A -> Ω
   return arrow<A>(
       [p = std::forward<P>(p)](const A& x) { return L::NOT(p(x)); });
+}
+
+/**
+ * @brief Compose two plain callable predicates over a declared domain A.
+ * @details
+ * This is a practical bridge for std::predicate-style lambdas/functions that
+ * have not been lifted to Arrow/Predicate objects yet.
+ */
+export template <typename A, typename P, typename Q>
+  requires std::invocable<const std::decay_t<P>&, const A&> &&
+           std::invocable<const std::decay_t<Q>&, const A&> &&
+           LogicalValue<std::remove_cvref_t<std::invoke_result_t<
+               const std::decay_t<P>&, const A&>>> &&
+           std::same_as<std::remove_cvref_t<std::invoke_result_t<
+                            const std::decay_t<P>&, const A&>>,
+                        std::remove_cvref_t<std::invoke_result_t<
+                            const std::decay_t<Q>&, const A&>>>
+constexpr auto predicate_and(P&& p, Q&& q) {
+  return classify<A>(std::forward<P>(p)).χ &&
+         classify<A>(std::forward<Q>(q)).χ;
+}
+
+/** @brief Disjunction bridge for plain callable predicates over domain A. */
+export template <typename A, typename P, typename Q>
+  requires std::invocable<const std::decay_t<P>&, const A&> &&
+           std::invocable<const std::decay_t<Q>&, const A&> &&
+           LogicalValue<std::remove_cvref_t<std::invoke_result_t<
+               const std::decay_t<P>&, const A&>>> &&
+           std::same_as<std::remove_cvref_t<std::invoke_result_t<
+                            const std::decay_t<P>&, const A&>>,
+                        std::remove_cvref_t<std::invoke_result_t<
+                            const std::decay_t<Q>&, const A&>>>
+constexpr auto predicate_or(P&& p, Q&& q) {
+  return classify<A>(std::forward<P>(p)).χ ||
+         classify<A>(std::forward<Q>(q)).χ;
+}
+
+/** @brief Negation bridge for plain callable predicates over domain A. */
+export template <typename A, typename P>
+  requires std::invocable<const std::decay_t<P>&, const A&> &&
+           LogicalValue<std::remove_cvref_t<std::invoke_result_t<
+               const std::decay_t<P>&, const A&>>>
+constexpr auto predicate_not(P&& p) {
+  return !classify<A>(std::forward<P>(p)).χ;
+}
+
+/**
+ * @brief Constant classifier factory over domain A: A -> Ω.
+ */
+export template <typename A, typename L = ClassicalLogic>
+  requires IsLogicalSpecies<L>
+constexpr auto constant_classifier(typename L::Ω value) {
+  return arrow<A, typename L::Ω>([value](const A&) { return value; });
+}
+
+/** @brief Default true classifier over domain A. */
+export template <typename A, typename L = ClassicalLogic>
+  requires IsLogicalSpecies<L>
+constexpr auto classifier_true() {
+  return constant_classifier<A, L>(L::True);
+}
+
+/** @brief Default false classifier over domain A. */
+export template <typename A, typename L = ClassicalLogic>
+  requires IsLogicalSpecies<L>
+constexpr auto classifier_false() {
+  return constant_classifier<A, L>(L::False);
+}
+
+/** @brief Default unknown classifier over domain A (only for logics with Unknown). */
+export template <typename A, typename L = TernaryLogic>
+  requires IsLogicalSpecies<L> && requires { L::Unknown; }
+constexpr auto classifier_unknown() {
+  return constant_classifier<A, L>(L::Unknown);
+}
+
+/**
+ * @brief Constant-to-predicate composition via the Highway notation.
+ * @details Interpreted as conjunction with the constant classifier.
+ */
+export template <IsClassifierConstant C, IsPredicate P>
+  requires(!IsPredicate<std::remove_cvref_t<C>>) &&
+           requires(C c) {
+    lift_classifier_constant<Cod<P>>(c);
+  }
+auto operator>>(C&& constant, P&& p) {
+  return std::forward<C>(constant) && std::forward<P>(p);
 }
 
 /**

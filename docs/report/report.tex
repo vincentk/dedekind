@@ -1301,6 +1301,46 @@ The \texttt{:topoi} partition packages the categorical preconditions for interna
 
 Operationally, \texttt{:topoi} complements \texttt{:etcs}: while ETCS gives the user-facing set-theoretic facade, the topos partition provides the internal categorical contracts that justify that facade. Keeping both partitions explicit in the build graph prevents silent drift between foundational definitions and set-level APIs.
 
+\paragraph{Review findings (classifier support, PR \#157 scope).}
+From a code-level review of \texttt{dedekind.category:logic} and \texttt{dedekind.category:topoi}, ordinary C++ predicates are already supported as the primary practical realization of characteristic maps.
+The \texttt{LogicalMap<Pred, T>} concept in \texttt{:logic} accepts invocables returning a registered logical value, and \texttt{GetLogic<bool>} defaults to \texttt{ClassicalLogic}; this gives standard Boolean predicates a canonical classifier codomain.
+In \texttt{:topoi}, \texttt{classify} lifts such callables into subobjects by constructing the characteristic morphism $\chi : A \to \Omega$.
+The \texttt{IsPredicate} concept now explicitly requires \texttt{LogicalMap<P, Dom<P>>} in addition to \texttt{IsArrow<P>} and \texttt{LogicalValue<Cod<P>>}, which tightens alignment between callable-level and categorical contracts.
+
+\paragraph{Constant classifiers and mixed composition (PR \#157, Issue \#143).}
+The \texttt{:topoi} partition now provides explicit support for constant classifiers and their composition with standard predicates.
+This addresses ergonomic requirements for embedding logical constants into composite classifier chains, particularly in K3 (Kleene three-valued) logic.
+
+\textit{Classifier factory functions:} The API provides factory functions to construct constant classifiers over domain $A$ with target logic $L$:
+\begin{itemize}
+  \item \texttt{constant\_classifier<A, L>(value)} — generic constant classifier factory,
+  \item \texttt{classifier\_true<A, L>()} — specialization for $L::True$,
+  \item \texttt{classifier\_false<A, L>()} — specialization for $L::False$,
+  \item \texttt{classifier\_unknown<A, L>()} — specialization for $L::Unknown$ (K3 only).
+\end{itemize}
+All default to \texttt{ClassicalLogic} for $L$ if omitted.
+
+\textit{Mixed composition operators:} Constants may be composed with predicates using the logical operators $\land$ (written \texttt{\&\&}), $\lor$ (written \texttt{||}), and the \emph{pipeline operator} \texttt{>>} (which semantically denotes conjunction, gating the predicate by the constant):
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+\textbf{Form} & \textbf{Example} & \textbf{Semantics} \\
+\midrule
+Conjunction & \texttt{True \&\& pred} or \texttt{pred \&\& True} & $\text{True} \land p(x)$ \\
+Disjunction & \texttt{UNKNOWN || pred} or \texttt{pred || UNKNOWN} & $\text{UNKNOWN} \lor p(x)$ \\
+Pipeline & \texttt{True >> pred} & $\text{True} \land p(x)$ (conjunction gate) \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textit{Design note on lifting:} When a constant $c : \mathbf{1} \to \Omega_{\text{src}}$ is composed with a predicate $p : A \to \Omega_{\text{tgt}}$, the constant is automatically lifted via \texttt{lift\_classifier\_constant<Ω\_tgt>(c)} to match the target logic.
+This ensures seamless composition even when source and target logics differ (e.g., Boolean constant lifted into K3 context).
+The mixed operators require that the constant be recognized as \texttt{IsClassifierConstant} to avoid accidental matches with general arrow composition.
+
+Two limits remain explicit.
+First, raw \texttt{std::predicate} lambdas still require explicit lifting via \texttt{classify} before composition with operators.
+Second, \texttt{std::predicate} is inherently Boolean; the library intentionally supports richer codomains (e.g.\ K3), so \texttt{std::predicate} should be treated as the dominant concrete interface in the classical fragment, not the full abstraction.
+
 \section{Results}
 \label{sec:category-results}
 
@@ -1560,6 +1600,14 @@ Because a benchmark implementation must terminate with deterministic cost, the e
 \end{equation}
 
 The code listing in this report should be read as a structural realization of $\widetilde{\mathcal{M}}_N$: the set expression captures the truncated orbit predicate, while the final ASCII rendering step remains a conventional imperative loop.
+
+\paragraph{Review findings (Mandelbrot in light of classifier and sequence layers, PR \#157 scope).}
+The current \texttt{dedekind.numbers:mandelbrot} partition now exhibits the desired separation of concerns.
+The recurrence is fixed once (\texttt{mandelbrot\_orbit}), orbit-level criteria are lifted to parameter-level predicates (\texttt{bounded}), and stage-indexed computable approximations are exposed explicitly through \texttt{M\_tower}.
+The windowed boundedness path uses finite sequence truncation and classifier-style lifting, matching the sequence quantifier machinery reviewed above.
+
+A deliberate limitation remains: executable stages are Boolean approximations, while the full intensional target can remain logically richer.
+For benchmarking and rendering, this preserves a clean distinction between the denotational target $\mathcal{M}$ and the computable tower $\{M_n\}_{n\ge 0}$.
 
 
 \chapter{\texttt{dedekind.ieee} and \texttt{dedekind.numbers}}
@@ -2022,6 +2070,15 @@ REQUIRE(diffs.at(0) == -1);
 \section{Results}
 
 \texttt{Path<T>} passes \texttt{IsSequence} and the Cauchy criterion for the harmonic series, confirming the sequences layer as a verified foundation for the continuum in \texttt{dedekind.numbers}.
+
+\paragraph{Review findings (sequences and recurrences, PR \#157 scope).}
+The current DSL supports classifier application at both levels requested in the review plan.
+Element-wise classification is covered by \texttt{count\_if}, which uses \texttt{std::predicate} over sequence elements.
+Sequence-as-a-whole classification is covered by \texttt{exists} and \texttt{forall}, both defined over \texttt{LogicalMap} so they work beyond pure Boolean codomains.
+Recurrence relations are represented directly by \texttt{iterate(seed, step)}, and computable approximations are made explicit via \texttt{prefix}.
+
+The main operational boundary is also clear: quantification over infinite paths remains intentionally open-ended, and guaranteed termination arises from finite cardinality or explicit truncation.
+This is consistent with the project posture of semantic honesty for intensional objects.
 
 
 \chapter{\texttt{dedekind.algebra}}
