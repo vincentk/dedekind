@@ -7,7 +7,8 @@
 
 ### Computational Structuralism in Modern C++23
 
-The `dedekind` library is a faithful translation of mathematical concepts into modern `C++`. It defines an embedded domain-specific language (eDSL) for mathematics with the following goals:
+The `dedekind` library intends to be a faithful translation of mathematical concepts into modern `C++`. 
+It defines an embedded domain-specific language (eDSL) for mathematics with the following goals:
 
 - **Recognizability:** Code should be intuitive to both mathematicians and `C++` programmers.
 - **Versatility:** The DSL expresses both infinite (intensional, symbolic) and finite (extensional, data) structures.
@@ -34,7 +35,7 @@ ctest --test-dir build --output-on-failure
 
 The project rests on two pillars: **C++23** and **Category Theory**.
 
- - **Why C++?** Its flexible type system and status as a mainstream systems language allow for the simulation of functional concepts—such as higher-kinded and dependent types—via template metaprogramming, concepts, and traits.
+ - **Why C++?** It is a mainstream language with many features which is suitable for performance-optimized code. Its flexible type system allows for the simulation of functional concepts—such as higher-kinded and dependent types—via template metaprogramming, concepts, and traits.
  - **Why Category Theory?** It bridges the gap from the mathematical end: typed λ-calculus can be expressed directly in the terminology of established mathematical textbooks.
 
 In this approach;
