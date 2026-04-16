@@ -61,11 +61,15 @@ constexpr auto M(BoundedPredicate is_bounded) {
 }
 
 /**
- * Windowed divergence counter:
- *   absorbing recurrence over indicators 1_{|z_n|^2 > r^2}.
+ * Windowed escape existence check via quantifier:
+ *   exists(window, escaped) checks if any orbit point exceeds escape radius.
  *
- * If divergence is seen at index n, the state stays divergent for all n+k,
- * reflecting the monotone "escaped" witness used by the boundedness test.
+ * This refactors the hand-rolled divergence counter to use the sequences DSL
+ * quantifier machinery, making the escape condition explicit, composable, and
+ * aligned with the exists/forall quantifier interface.
+ *
+ * Mathematical intent:
+ *   "orbit escapes" ≡ ∃ n : |z_n|² > r²
  */
 export template <IsComplexScalar R, typename Window>
   requires std::invocable<const std::decay_t<Window>&, const OrbitPath<R>&> &&
@@ -79,16 +83,13 @@ constexpr auto divergence_count_in_window(Window&& window,
     const auto escaped =
         outside_closed_euclidean_ball_squared(escape_radius_squared);
 
-    // Recurrence: s_{n+1} = s_n + (1 - min(1, s_n)) * I_n
-    // This makes divergence an absorbing state once any witness is found.
-    std::size_t running_sum = 0;
-    for (std::size_t i = 0; i < selected_window.size(); ++i) {
-      if (running_sum > 0) break;
-      const auto indicator =
-          static_cast<std::size_t>(std::invoke(escaped, selected_window.at(i)));
-      running_sum = running_sum + indicator;
-    }
-    return running_sum;
+    // Use exists quantifier: "does any point in the window escape?"
+    // Lifting escape predicate to logical map via classify().
+    const bool any_escaped = exists(selected_window, classify(escaped).χ);
+
+    // Return count for backward compatibility:
+    //   count = 1 if any_escaped, 0 otherwise.
+    return any_escaped ? std::size_t{1} : std::size_t{0};
   };
 }
 
