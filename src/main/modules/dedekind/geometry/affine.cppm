@@ -22,12 +22,25 @@ using namespace dedekind::category;
 using namespace dedekind::algebra;
 
 /**
+ * @concept IsAffine
+ * @brief Affine-space witness over scalar carrier S.
+ */
+export template <typename V, typename S>
+concept IsAffine = requires(const V a, const V b, const S s) {
+  { a + b } -> std::same_as<V>;
+  { a - b } -> std::same_as<V>;
+  { a * s } -> std::same_as<V>;
+  { s * a } -> std::same_as<V>;
+  { V::dimension };
+};
+
+/**
  * @class Vector
  * @brief An element of a Coordinate Space over a Field F.
  * @tparam F The scalar field (Rational, Real, or Complex).
  * @tparam N The dimension of the space.
  */
-export template <std::floating_point F, std::size_t N>
+export template <IsFloatingScalar F, std::size_t N>
 class Vector {
  public:
   using scalar_type = F;

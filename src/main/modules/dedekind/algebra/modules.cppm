@@ -39,6 +39,27 @@ namespace dedekind::algebra {
 using namespace dedekind::category;
 
 /**
+ * @concept IsIntegralScalar
+ * @brief Internal bridge for std::integral scalar carriers.
+ */
+export template <typename S>
+concept IsIntegralScalar = std::integral<S>;
+
+/**
+ * @concept IsUnsignedIntegralScalar
+ * @brief Internal bridge for std::unsigned_integral scalar carriers.
+ */
+export template <typename S>
+concept IsUnsignedIntegralScalar = std::unsigned_integral<S>;
+
+/**
+ * @concept IsFloatingScalar
+ * @brief Internal bridge for std::floating_point scalar carriers.
+ */
+export template <typename S>
+concept IsFloatingScalar = std::floating_point<S>;
+
+/**
  * @concept IsSemimodule
  * @brief A commutative additive monoid participating in a Linear Action.
  * @tparam M The module carrier.
@@ -201,7 +222,7 @@ export struct BoolLineMeetAction {
  * @brief Strength-reduced scaling for unsigned 1D vectors.
  * @details Multiplication by powers of two is lowered to left-shift when safe.
  */
-export template <std::unsigned_integral S, typename Tag>
+export template <IsUnsignedIntegralScalar S, typename Tag>
 constexpr OneDimensionalVector<S, Tag> scale_strength_reduced(
     const OneDimensionalVector<S, Tag>& v, S factor) {
   if (factor == S{0}) return OneDimensionalVector<S, Tag>(S{0});

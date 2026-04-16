@@ -2351,8 +2351,10 @@ It provides \texttt{Vector<S, N>} as the canonical $N$-dimensional vector specie
 \midrule
 Affine / vector space & \texttt{Vector<S,N>} & \texttt{IsAffine} \\
 Inner product $\langle u, v \rangle$ & \texttt{dot(u, v)} & \texttt{IsInnerProductSpace} \\
-Normed space $\|v\|$ & \texttt{norm(v)} & \texttt{IsNormedSpace} \\
-Hilbert space (complete) & real $\mathbb{R}^N$ & \texttt{IsHilbertSpace} \\
+Metric space $(X,d)$ & \texttt{distance(a,b)} & \texttt{IsMetricSpace} \\
+Euclidean space & \texttt{norm(v)} / \texttt{distance(a,b)} & \texttt{IsEuclideanSpace} \\
+Finite-dimensional inner-product space & real $\mathbb{R}^N$ & \texttt{IsFiniteDimensionalInnerProductSpace} \\
+Hilbert space (complete) & complete real inner-product space & \texttt{IsHilbertSpace} \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -2360,7 +2362,7 @@ Hilbert space (complete) & real $\mathbb{R}^N$ & \texttt{IsHilbertSpace} \\
 \section{\texttt{:affine}}
 \label{sec:geometry-affine}
 
-Implements $N$-dimensional vectors with component-wise arithmetic. The affine layer provides translation and scalar action without presupposing a norm.
+Implements $N$-dimensional vectors with component-wise arithmetic. The affine layer provides translation and scalar action without presupposing a norm, and is captured explicitly by \texttt{IsAffine<V,S>}.
 
 \begin{lstlisting}[language=C++, caption={Geometry: affine vector operations (from \texttt{affine\_test.cpp}).}, label={lst:geometry-affine}]
 using Vec2 = Vector<double, 2>;
@@ -2381,6 +2383,7 @@ Defines the bilinear pairing $\langle -, - \rangle$ and the derived notion of or
 \label{sec:geometry-euclidean}
 
 Adds the $L^2$ norm $\|v\| = \sqrt{\langle v, v \rangle}$ and the triangle inequality, establishing the metric structure required for geometric limits.
+The partition exports canonical distance as \texttt{distance(a,b) = norm(a-b)} for \texttt{Vector<F,N>} and also provides squared-norm predicate factories (\texttt{compare\_euclidean\_norm\_squared}, \texttt{outside\_closed\_euclidean\_ball\_squared}) used by the Mandelbrot escape criteria without introducing square roots.
 
 \section{\texttt{:hilbert}}
 \label{sec:geometry-hilbert}
@@ -2471,7 +2474,7 @@ REQUIRE(identity.num() == 1);
 \section{\texttt{:scalars}}
 \label{sec:numbers-scalars}
 
-Provides the floating-point anchors \texttt{machine\_real\_scalar} and \texttt{machine\_integer} as pre-certified concrete species.
+Provides the floating-point anchors \texttt{machine\_real\_scalar} and \texttt{machine\_integer} as pre-certified concrete species. It also defines the bridge concepts \texttt{IsFloatingScalar}, \texttt{IsIntegralScalar}, and \texttt{IsUnsignedIntegralScalar} to connect concrete machine scalars with the structural ontology.
 
 \section{\texttt{:dual}}
 \label{sec:numbers-dual}
