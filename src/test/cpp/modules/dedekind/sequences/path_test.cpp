@@ -43,6 +43,7 @@ TEST_CASE("Sequences: The Path to Continuity",
     const auto tail = drop(path, 5);
 
     static_assert(IsSequence<decltype(tail)>);
+    static_assert(!IsFiniteSequence<decltype(tail)>);
     REQUIRE(tail.at(0) == path.at(5));
     REQUIRE(tail.at(3) == path.at(8));
   }
