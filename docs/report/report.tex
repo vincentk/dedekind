@@ -2362,6 +2362,20 @@ Hilbert space (complete) & complete real inner-product space & \texttt{IsHilbert
 \label{sec:geometry-affine}
 
 Implements $N$-dimensional vectors with component-wise arithmetic. The affine layer provides translation and scalar action without presupposing a norm, and is captured explicitly by \texttt{IsAffine<V,S>}.
+The current implementation also exposes a functional view of countably infinite vectors:
+\texttt{FunctionalVector<F,Fn>} with aliases \texttt{InfiniteVector<F,Fn>} and
+\texttt{SequenceVector<F,Fn>}. This allows intensional sequence definitions
+($i \mapsto f(i)$) while preserving geometric terminology in the type system.
+
+Dimension metadata is now explicit at compile time via
+\texttt{HasFiniteDimension<V>}, \texttt{HasCountableDimension<V>}, and
+\texttt{HasDimension<V,N>}, with cardinality tags distinguishing finite and
+countably-infinite coordinate index sets.
+
+Finally, scalar embeddings are made concrete as one-dimensional vectors:
+\texttt{as\_vector(F)} maps machine scalars into \texttt{Vector<F,1>}, enabling
+uniform APIs where booleans, naturals, and floating scalars can participate in
+vector-centric constructions through canonical one-coordinate representations.
 
 \begin{lstlisting}[language=C++, caption={Geometry: affine vector operations (from \texttt{affine\_test.cpp}).}, label={lst:geometry-affine}]
 using Vec2 = Vector<double, 2>;
@@ -2413,7 +2427,7 @@ static_assert(IsHilbertSpace<Vec3, double>);
 
 The \texttt{dedekind.numbers} module is the top-level integration layer for the numeric tower.
 It provides embedding morphisms between all numeric species:
-$\mathbb{B} \hookrightarrow \mathbb{N} \hookrightarrow \mathbb{Z} \hookrightarrow \mathbb{Q} \hookrightarrow \mathbb{R} \hookrightarrow \mathbb{C} \hookrightarrow \mathbb{D}$ (dual numbers),
+$\mathbb{B} \hookrightarrow \mathbb{N} \hookrightarrow \mathbb{Z} \hookrightarrow \mathbb{Q} \hookrightarrow \mathbb{R} \hookrightarrow \mathbb{C} \hookrightarrow \mathbb{H} \hookrightarrow \mathbb{D}$,
 with each embedding preserving the algebraic structure certified by the downstream modules.
 
 \begin{table}[ht]
@@ -2430,6 +2444,7 @@ $\mathbb{Z}$ (integers) & \texttt{int} / \texttt{machine\_integer} & $\hookright
 $\mathbb{Q}$ (rationals) & \texttt{Rational<Z>} & $\hookrightarrow \mathbb{R}$ (cut) \\
 $\mathbb{R}$ (reals) & Dedekind cut / \texttt{approx} & $\hookrightarrow \mathbb{C}$ \\
 $\mathbb{C}$ (complex) & \texttt{Complex<S>} & Cayley--Dickson \\
+$\mathbb{H}$ (quaternion) & \texttt{Quaternion<F>} & left-regular matrix representation \\
 $\mathbb{D}$ (dual) & \texttt{Dual<F>} & automatic differentiation \\
 \bottomrule
 \end{tabular}
@@ -2469,6 +2484,33 @@ REQUIRE(identity.num() == 1);
 \label{sec:numbers-complex}
 
 \texttt{Complex<S>} implements $\mathbb{C}$ via the Cayley--Dickson construction from any scalar ring.
+This layer now exposes two canonical geometric embeddings:
+\texttt{as\_vector(Complex<R>)} maps $a+bi$ to $(a,b) \in \mathbb{R}^2$, and
+\texttt{as\_matrix(Complex<R>)} maps $a+bi$ to the $2\times2$ real matrix
+\[
+\begin{bmatrix}
+a & -b \\
+b & \phantom{-}a
+\end{bmatrix},
+\]
+so that matrix action agrees with complex multiplication:
+$M(z)\,v(w)=v(zw)$.
+
+\section{\texttt{:quaternion}}
+\label{sec:numbers-quaternion}
+
+\texttt{Quaternion<F>} implements Hamilton's skew-field
+$\mathbb{H}=\{a+bi+cj+dk\mid a,b,c,d\in\mathbb{R}\}$ with the defining rules
+$i^2=j^2=k^2=ijk=-1$ and non-commutative multiplication.
+
+Two structure-preserving embeddings are provided:
+\texttt{as\_vector(Quaternion<R>)} identifies $\mathbb{H}\cong\mathbb{R}^4$, and
+\texttt{as\_matrix(Quaternion<R>)} gives the left-regular $4\times4$ real matrix
+representation $L_q$ satisfying
+\[
+L_q\,v(p)=v(qp),
+\]
+which is verified in the module test suite.
 
 \section{\texttt{:scalars}}
 \label{sec:numbers-scalars}

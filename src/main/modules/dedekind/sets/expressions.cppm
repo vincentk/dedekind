@@ -43,6 +43,11 @@
  * ("In categorical logic, a set is not a collection of elements,
  *  but an object defined by its arrows.")
  * -- F.W. Lawvere, paraphrase of the ETCS programme
+ *
+ * @note "Нельзя быть математиком, не будучи в то же время поэтом в душе."
+ *       ("It is impossible to be a mathematician without being a poet in
+ * soul.")
+ *       -- Софья Ковалевская (Sofya Kovalevskaya)
  */
 module;
 

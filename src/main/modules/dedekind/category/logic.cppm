@@ -39,6 +39,11 @@
  * @see Rasiowa, H. (1974). An Algebraic Approach to Non-Classical Logics.
  * @see Lambek, J.; Scott, P. J. (1988). Introduction to Higher-Order
  * Categorical Logic.
+ *
+ * @note "Нельзя быть математиком, не будучи в то же время поэтом в душе."
+ *       ("It is impossible to be a mathematician without being a poet in
+ * soul.")
+ *       -- Софья Ковалевская (Sofya Kovalevskaya)
  */
 module;
 

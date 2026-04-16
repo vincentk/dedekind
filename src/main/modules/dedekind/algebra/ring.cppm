@@ -9,6 +9,11 @@
  * „Was beweisbar ist, soll in der Wissenschaft nicht ohne Beweis
  *  geglaubt werden.“ (What is provable should not be believed without proof.)
  *  — Richard Dedekind
+ *
+ * @note "Нельзя быть математиком, не будучи в то же время поэтом в душе."
+ *       ("It is impossible to be a mathematician without being a poet in
+ * soul.")
+ *       -- Софья Ковалевская (Sofya Kovalevskaya)
  */
 module;
 

@@ -1,5 +1,6 @@
 /**
  * @file dedekind/category/natural.cppm
+ * @partition :natural
  * @module dedekind.category:natural
  * @brief Level 2.2: Natural Transformations (The Slide between Functors).
  *
@@ -48,6 +49,10 @@
  * the identity spoke `id_c(x)`. As a result, component arrows such as `η_x`
  * are checked by lifting identity arrows and reading off the resulting domain
  * object, rather than by ranging over a separate textbook object class.
+ *
+ * @note "शून्यं शून्येन गुणितं शून्यम्।"
+ *       ("Zero multiplied by zero is zero.")
+ *       -- ब्रह्मगुप्त (Brahmagupta), ब्रह्मस्फुटसिद्धान्त
  */
 module;
 

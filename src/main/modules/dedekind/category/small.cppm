@@ -1,5 +1,6 @@
 /**
  * @file dedekind/category/small.cppm
+ * @partition :small
  * @module dedekind.category:small
  * @brief Small Categories (Enumerated Morphism Sets).
  *
@@ -29,6 +30,10 @@
  * are all about the "structure," and not about the "meaning," of what they
  * represent.) — Paolo Aluffi, Algebra: Chapter 0
  *
+ *
+ * @note "शून्यं शून्येन गुणितं शून्यम्।"
+ *       ("Zero multiplied by zero is zero.")
+ *       -- ब्रह्मगुप्त (Brahmagupta), ब्रह्मस्फुटसिद्धान्त
  */
 
 module;

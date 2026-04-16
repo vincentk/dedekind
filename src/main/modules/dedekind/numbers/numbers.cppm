@@ -18,6 +18,11 @@
  * objects. Following the Dedekind tradition, we do not treat numbers as
  * "built-in" primitives, but as specific positions within an algebraic
  * and order-theoretic hierarchy.
+ *
+ * @note "Нельзя быть математиком, не будучи в то же время поэтом в душе."
+ *       ("It is impossible to be a mathematician without being a poet in
+ * soul.")
+ *       -- Софья Ковалевская (Sofya Kovalevskaya)
  */
 
 export module dedekind.numbers;

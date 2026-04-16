@@ -1,5 +1,6 @@
 /**
  * @file dedekind/sets/boundaries.cppm
+ * @partition :boundaries
  * @brief The Extremal Identities: Universal (V) and Empty (∅) Sets.
  *
  * Copyright 2026 The Dedekind Authors
@@ -31,6 +32,13 @@
  * @tparam L The Subobject Classifier (Ω) governing the truth logic.
  *
  * Wikipedia: Universal set, Empty set, Bounded lattice, Identity element
+ *
+ * @copyright 2026 The Dedekind Authors
+ * Licensed under the Apache License, Version 2.0.
+ *
+ * @note "शून्यं शून्येन गुणितं शून्यम्।"
+ *       ("Zero multiplied by zero is zero.")
+ *       -- ब्रह्मगुप्त (Brahmagupta), ब्रह्मस्फुटसिद्धान्त
  */
 module;
 

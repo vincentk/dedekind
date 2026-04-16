@@ -26,7 +26,6 @@ jobs:
         sudo apt-get install -y clang-21 ninja-build clang-format-21
 
     - name: Install docs toolchain
-      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
       run: |
         sudo apt-get install -y doxygen graphviz biber texlive-latex-base texlive-latex-extra texlive-pictures texlive-plain-generic texlive-fonts-recommended
 
@@ -61,12 +60,10 @@ jobs:
     # --- CONDITIONAL DEPLOYMENT STEPS ---
     
     - name: Build Doxygen Documentation
-      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
       run: |
         cmake --build build --target docs
 
     - name: Build Report PDF
-      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
       working-directory: docs/report
       run: |
         pdflatex -interaction=nonstopmode report.tex

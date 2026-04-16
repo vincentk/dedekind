@@ -41,6 +41,13 @@
  * 'fmap' is an epi-phenomenon in this ontology, the presence of either a
  * Kleisli or Co-Kleisli structure allows the automatic derivation of functorial
  * mapping via the Highway Bridge.
+ *
+ * @copyright 2026 The Dedekind Authors
+ * Licensed under the Apache License, Version 2.0.
+ *
+ * @note "शून्यं शून्येन गुणितं शून्यम्।"
+ *       ("Zero multiplied by zero is zero.")
+ *       -- ब्रह्मगुप्त (Brahmagupta), ब्रह्मस्फुटसिद्धान्त
  */
 module;
 

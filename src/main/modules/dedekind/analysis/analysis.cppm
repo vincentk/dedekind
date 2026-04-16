@@ -21,6 +21,11 @@
  * ("Analysis is not only about calculating; it is about organizing the
  *  structures that make calculation intelligible.")
  * -- Laurent Schwartz, paraphrase
+ *
+ * @note "Нельзя быть математиком, не будучи в то же время поэтом в душе."
+ *       ("It is impossible to be a mathematician without being a poet in
+ * soul.")
+ *       -- Софья Ковалевская (Sofya Kovalevskaya)
  */
 
 export module dedekind.analysis;

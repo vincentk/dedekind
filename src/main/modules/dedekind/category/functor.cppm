@@ -1,5 +1,6 @@
 /**
  * @file dedekind/category/functor.cppm
+ * @partition :functor
  * @module dedekind.category:functor
  * @brief Level 2: The Functorial Spine (Structure Preservation).
  *
@@ -69,6 +70,10 @@
  * - Value-level overloads of φ for Maybe/Identity/Box at the end of this file
  *   are lifting utilities, not IsFunctor hub models by themselves.
  *
+ *
+ * @note "शून्यं शून्येन गुणितं शून्यम्।"
+ *       ("Zero multiplied by zero is zero.")
+ *       -- ब्रह्मगुप्त (Brahmagupta), ब्रह्मस्फुटसिद्धान्त
  */
 
 module;

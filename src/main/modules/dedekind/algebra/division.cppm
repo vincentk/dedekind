@@ -19,6 +19,10 @@
  * IsEuclidean, we enable the recursive balancing of magnitudes—the
  * foundational GCD algorithm that allows for the 'restoration' of
  * simpler algebraic forms through the Euclidean algorithm.
+ *
+ * @note "शून्यं शून्येन गुणितं शून्यम्।"
+ *       ("Zero multiplied by zero is zero.")
+ *       -- ब्रह्मगुप्त (Brahmagupta), ब्रह्मस्फुटसिद्धान्त
  */
 module;
 

@@ -1,3 +1,17 @@
+/**
+ * @file dedekind/numbers/rational.cppm
+ * @partition :rational
+ * @brief Module interface in the dedekind hierarchy.
+ *
+ * @copyright 2026 The Dedekind Authors
+ * Licensed under the Apache License, Version 2.0.
+ *
+ * @note "Нельзя быть математиком, не будучи в то же время поэтом в душе."
+ *       ("It is impossible to be a mathematician without being a poet in
+ * soul.")
+ *       -- Софья Ковалевская (Sofya Kovalevskaya)
+ */
+
 module;
 #include <compare>
 #include <concepts>

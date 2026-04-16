@@ -37,6 +37,11 @@
  * - **Modules (@ref modules)**: Linear actions of Rings on additive Groups.
  * - **Polynomials (@ref polynomials)**: Formal power series R[x] and
  * extensions.
+ *
+ * @note "Нельзя быть математиком, не будучи в то же время поэтом в душе."
+ *       ("It is impossible to be a mathematician without being a poet in
+ * soul.")
+ *       -- Софья Ковалевская (Sofya Kovalevskaya)
  */
 export module dedekind.algebra;
 

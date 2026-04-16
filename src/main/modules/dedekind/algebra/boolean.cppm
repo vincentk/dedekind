@@ -1,5 +1,6 @@
 /**
  * @file boolean.cppm
+ * @partition :boolean
  * @module dedekind.algebra:boolean
  * @brief Boolean Starter Package: canonical Boolean ambient species aliases.
  *
@@ -28,6 +29,11 @@
  * "La matematica non e una collezione di trucchi: e grammatica delle forme."
  * (Mathematics is not a bag of tricks; it is a grammar of forms.)
  * — Emma Castelnuovo
+ *
+ * @note "Нельзя быть математиком, не будучи в то же время поэтом в душе."
+ *       ("It is impossible to be a mathematician without being a poet in
+ * soul.")
+ *       -- Софья Ковалевская (Sofya Kovalevskaya)
  */
 module;
 

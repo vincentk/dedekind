@@ -18,6 +18,10 @@
  * It promotes Monoids to Groups by verifying the existence of
  * symmetric elements: the negative (-x) for addition and the
  * reciprocal (1/x) for multiplication.
+ *
+ * @note "शून्यं शून्येन गुणितं शून्यम्।"
+ *       ("Zero multiplied by zero is zero.")
+ *       -- ब्रह्मगुप्त (Brahmagupta), ब्रह्मस्फुटसिद्धान्त
  */
 module;
 

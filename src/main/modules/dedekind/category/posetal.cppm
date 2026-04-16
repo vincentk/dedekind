@@ -1,4 +1,6 @@
 /**
+ * @file dedekind/category/posetal.cppm
+ * @partition :posetal
  * @concept IsPosetal
  * @brief Represents a Posetal Category (A Category derived from a Partially
  * Ordered Set).
@@ -32,6 +34,14 @@
  *
  * @tparam T The type of objects in the poset.
  * @tparam Rel The relation defining the order (the Morphism Generator).
+ *
+ * @copyright 2026 The Dedekind Authors
+ * Licensed under the Apache License, Version 2.0.
+ *
+ * @note "Нельзя быть математиком, не будучи в то же время поэтом в душе."
+ *       ("It is impossible to be a mathematician without being a poet in
+ * soul.")
+ *       -- Софья Ковалевская (Sofya Kovalevskaya)
  */
 module;
 

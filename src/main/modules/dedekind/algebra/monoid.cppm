@@ -20,6 +20,11 @@
  * "Rules of Neutrality" for Addition (0) and Multiplication (1),
  * establishing the skeletal foundation for all higher-order
  * Ring and Field structures.
+ *
+ * @note "Нельзя быть математиком, не будучи в то же время поэтом в душе."
+ *       ("It is impossible to be a mathematician without being a poet in
+ * soul.")
+ *       -- Софья Ковалевская (Sofya Kovalevskaya)
  */
 module;
 

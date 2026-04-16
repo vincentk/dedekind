@@ -2,6 +2,13 @@
  * @file dedekind/analysis/forms.cppm
  * @partition :forms
  * @brief Level 11.5: The Exterior Algebra (Differential Forms).
+ *
+ * @copyright 2026 The Dedekind Authors
+ * Licensed under the Apache License, Version 2.0.
+ *
+ * @note "शून्यं शून्येन गुणितं शून्यम्।"
+ *       ("Zero multiplied by zero is zero.")
+ *       -- ब्रह्मगुप्त (Brahmagupta), ब्रह्मस्फुटसिद्धान्त
  */
 
 module;

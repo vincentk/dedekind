@@ -45,6 +45,11 @@
  * ("Le modèle relationnel n'est pas qu'un modèle de données — c'est une
  *  branche de la logique mathématique appliquée à la gestion des données.")
  * -- E.F. Codd, paraphrase
+ *
+ * @note "Нельзя быть математиком, не будучи в то же время поэтом в душе."
+ *       ("It is impossible to be a mathematician without being a poet in
+ * soul.")
+ *       -- Софья Ковалевская (Sofya Kovalevskaya)
  */
 module;
 

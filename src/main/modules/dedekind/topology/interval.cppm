@@ -19,6 +19,11 @@
  *
  * @build_order 6.1
  * @dependency :topology, :order, :mereology
+ *
+ * @note "Нельзя быть математиком, не будучи в то же время поэтом в душе."
+ *       ("It is impossible to be a mathematician without being a poet in
+ * soul.")
+ *       -- Софья Ковалевская (Sofya Kovalevskaya)
  */
 module;
 #include <cassert>

@@ -12,6 +12,13 @@
  * This partition bridges Algebraic Species with their governing Logic Species
  * (Ω). We distinguish between 'True' (Exact), 'False' (Undefined), and
  * 'Unknown' (Truncated/Lossy) results using the Ternary Topos.
+ *
+ * @copyright 2026 The Dedekind Authors
+ * Licensed under the Apache License, Version 2.0.
+ *
+ * @note "शून्यं शून्येन गुणितं शून्यम्।"
+ *       ("Zero multiplied by zero is zero.")
+ *       -- ब्रह्मगुप्त (Brahmagupta), ब्रह्मस्फुटसिद्धान्त
  */
 module;
 

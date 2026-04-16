@@ -8,6 +8,13 @@
  * single `Species` type, the object witness used by the laws is always
  * recovered through the identity spoke `id_c(x)` rather than through a
  * separate textbook object universe.
+ *
+ * @copyright 2026 The Dedekind Authors
+ * Licensed under the Apache License, Version 2.0.
+ *
+ * @note "शून्यं शून्येन गुणितं शून्यम्।"
+ *       ("Zero multiplied by zero is zero.")
+ *       -- ब्रह्मगुप्त (Brahmagupta), ब्रह्मस्फुटसिद्धान्त
  */
 module;
 

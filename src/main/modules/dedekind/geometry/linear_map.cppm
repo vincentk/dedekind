@@ -42,6 +42,14 @@
  * The semimodule axioms are independent of storage representation, so any
  * alternative matrix type implementing the same arithmetic operations will
  * automatically satisfy the same algebraic structure (if F is a semiring).
+ *
+ * @copyright 2026 The Dedekind Authors
+ * Licensed under the Apache License, Version 2.0.
+ *
+ * @note "Нельзя быть математиком, не будучи в то же время поэтом в душе."
+ *       ("It is impossible to be a mathematician without being a poet in
+ * soul.")
+ *       -- Софья Ковалевская (Sofya Kovalevskaya)
  */
 
 module;

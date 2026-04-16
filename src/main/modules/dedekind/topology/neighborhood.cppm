@@ -29,6 +29,13 @@
  * @anchors C++ Concepts: std::floating_point (The Machine Approximation of R).
  *
  * Wikipedia: Topology, Dedekind cut, Metric space, Limit of a sequence
+ *
+ * @copyright 2026 The Dedekind Authors
+ * Licensed under the Apache License, Version 2.0.
+ *
+ * @note "शून्यं शून्येन गुणितं शून्यम्।"
+ *       ("Zero multiplied by zero is zero.")
+ *       -- ब्रह्मगुप्त (Brahmagupta), ब्रह्मस्फुटसिद्धान्त
  */
 module;
 #include <concepts>

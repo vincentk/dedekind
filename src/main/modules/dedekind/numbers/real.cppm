@@ -1,7 +1,16 @@
 /**
  * @file dedekind/numbers/real.cppm
+ * @partition :real
  * @module dedekind.numbers:real
  * @brief Level 9: Minimal real wrapper for experimental reintegration.
+ *
+ * @copyright 2026 The Dedekind Authors
+ * Licensed under the Apache License, Version 2.0.
+ *
+ * @note "Нельзя быть математиком, не будучи в то же время поэтом в душе."
+ *       ("It is impossible to be a mathematician without being a poet in
+ * soul.")
+ *       -- Софья Ковалевская (Sofya Kovalevskaya)
  */
 module;
 

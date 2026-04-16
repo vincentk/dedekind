@@ -18,6 +18,10 @@
  * a Ring (the Scalar) acts upon an Additive Group (the Vector),
  * creating the 'Linear Action' that serves as the engine for all
  * Vector Spaces and Metric Geometry in the Dedekind topos.
+ *
+ * @note "शून्यं शून्येन गुणितं शून्यम्।"
+ *       ("Zero multiplied by zero is zero.")
+ *       -- ब्रह्मगुप्त (Brahmagupta), ब्रह्मस्फुटसिद्धान्त
  */
 module;
 
