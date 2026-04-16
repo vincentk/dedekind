@@ -4,6 +4,9 @@ module;
 #include <concepts>
 #include <cstddef>
 #include <initializer_list>
+#include <limits>
+#include <type_traits>
+#include <utility>
 
 /**
  * @file dedekind/geometry/affine.cppm
@@ -20,6 +23,48 @@ namespace dedekind::geometry {
 
 using namespace dedekind::category;
 using namespace dedekind::algebra;
+
+/**
+ * @section Dimension_Cardinality
+ * Tags for the cardinality of a vector's index set (its dimension).
+ * Mirrors dedekind::sets::Finite / ℵ_0 semantics in a geometry-local form,
+ * avoiding a cross-layer import while keeping terminology consistent.
+ */
+export struct FiniteDim {
+  static constexpr bool is_finite = true;
+  static constexpr bool is_countable = true;
+};
+
+export struct CountablyInfiniteDim {
+  static constexpr bool is_finite = false;
+  static constexpr bool is_countable = true;
+};
+
+/**
+ * @concept HasFiniteDimension
+ * @brief A vector type whose coordinate index set is finite.
+ */
+export template <typename V>
+concept HasFiniteDimension = requires {
+  { V::dimension } -> std::convertible_to<std::size_t>;
+} && (V::dimension != std::numeric_limits<std::size_t>::max());
+
+/**
+ * @concept HasCountableDimension
+ * @brief A vector type whose coordinate index set is at most countably
+ * infinite.
+ */
+export template <typename V>
+concept HasCountableDimension = requires {
+  { V::dimension } -> std::convertible_to<std::size_t>;
+};
+
+/**
+ * @concept HasDimension
+ * @brief A vector type with a specific compile-time dimension N.
+ */
+export template <typename V, std::size_t N>
+concept HasDimension = HasFiniteDimension<V> && (V::dimension == N);
 
 /**
  * @concept IsAffine
@@ -45,6 +90,7 @@ class Vector {
  public:
   using scalar_type = F;
   static constexpr std::size_t dimension = N;
+  using dimension_cardinality = FiniteDim;
 
   constexpr Vector() = default;
 
@@ -88,6 +134,86 @@ class Vector {
  private:
   std::array<F, N> coords_{};
 };
+
+/**
+ * @class FunctionalVector
+ * @brief A vector-like object defined by coordinate evaluation x[i].
+ *
+ * This supports function-based vectors, including potentially
+ * infinite-dimensional vectors where coordinates are computed lazily.
+ *
+ * The only required operation is indexed evaluation.
+ */
+export template <IsFloatingScalar F, typename Fn>
+  requires requires(const Fn& fn, std::size_t i) {
+    { fn(i) } -> std::convertible_to<F>;
+  }
+class FunctionalVector {
+ public:
+  using scalar_type = F;
+  static constexpr std::size_t dimension =
+      std::numeric_limits<std::size_t>::max();
+  using dimension_cardinality = CountablyInfiniteDim;
+
+  constexpr explicit FunctionalVector(Fn fn) : fn_(std::move(fn)) {}
+
+  constexpr F operator[](std::size_t i) const { return static_cast<F>(fn_(i)); }
+
+ private:
+  Fn fn_;
+};
+
+/**
+ * @brief Factory helper for function-based vectors.
+ */
+export template <IsFloatingScalar F, typename Fn>
+  requires requires(const Fn& fn, std::size_t i) {
+    { fn(i) } -> std::convertible_to<F>;
+  }
+constexpr auto functional_vector(Fn&& fn) {
+  using FnType = std::decay_t<Fn>;
+  return FunctionalVector<F, FnType>{std::forward<Fn>(fn)};
+}
+
+/**
+ * @brief Alias highlighting intent for potentially infinite-dimensional
+ * vectors.
+ */
+export template <IsFloatingScalar F, typename Fn>
+using InfiniteVector = FunctionalVector<F, Fn>;
+
+/**
+ * @brief Alias for well-behaved infinite sequences viewed as vectors.
+ *
+ * A sequence (x_n) with coordinate access x[n] is treated as an
+ * infinite-dimensional vector in the same carrier.
+ */
+export template <IsFloatingScalar F, typename Fn>
+using SequenceVector = FunctionalVector<F, Fn>;
+
+/**
+ * @brief Factory helper emphasizing sequence semantics.
+ */
+export template <IsFloatingScalar F, typename Fn>
+  requires requires(const Fn& fn, std::size_t i) {
+    { fn(i) } -> std::convertible_to<F>;
+  }
+constexpr auto sequence_vector(Fn&& fn) {
+  return functional_vector<F>(std::forward<Fn>(fn));
+}
+
+/**
+ * @brief Embed a scalar as a 1-dimensional vector.
+ *
+ * Formalises the view that ℝ (or any floating scalar) is a
+ * 1-dimensional vector space over itself.  Combined with the tower
+ * embeddings (bool → ℕ → ℤ → ℚ → ℝ), any number in the tower can
+ * be lifted to a Vector<F,1>.
+ */
+export template <IsFloatingScalar F>
+constexpr Vector<F, 1> as_vector(const F& x) {
+  return {x};
+}
 
 /** @section Formal_Verification */
 

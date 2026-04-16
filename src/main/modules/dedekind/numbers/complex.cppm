@@ -331,6 +331,42 @@ export constexpr auto complex_lattice(int n) {
   return embed_grid_ℂ(dedekind::geometry::square_integer_grid(n));
 }
 
+/**
+ * @brief Embed a complex number into a 2-dimensional real vector.
+ *
+ * Formalises the identification ℂ ≅ ℝ² via z = a + bi ↦ (a, b).
+ * The dimension matches HasDimension<Vector<R,2>, 2>.
+ *
+ * @tparam R  A floating scalar type satisfying both IsComplexScalar and
+ *            IsFloatingScalar (e.g. double).
+ */
+export template <typename R>
+  requires IsComplexScalar<R> && std::floating_point<R>
+constexpr dedekind::geometry::Vector<R, 2> as_vector(const Complex<R>& z) {
+  return {z.real(), z.imag()};
+}
+
+/**
+ * @brief Embed a complex number into its 2×2 rotation matrix representation.
+ *
+ * The standard regular representation of ℂ inside M₂(ℝ) sends
+ *   a + bi  ↦  [[a, -b], [b, a]]
+ *
+ * This matrix is orthogonal (when |z|=1) and satisfies:
+ *   as_matrix(z) * as_vector(w) == as_vector(z * w)
+ *
+ * The map is an injective ring homomorphism ℂ → M₂(ℝ).
+ *
+ * @tparam R  A floating scalar type satisfying both IsComplexScalar and
+ *            IsFloatingScalar (e.g. double).
+ */
+export template <typename R>
+  requires IsComplexScalar<R> && std::floating_point<R>
+constexpr dedekind::geometry::LinearMap<R, 2, 2> as_matrix(
+    const Complex<R>& z) {
+  return {{{z.real(), -z.imag()}, {z.imag(), z.real()}}};
+}
+
 }  // namespace dedekind::numbers
 
 namespace dedekind::category {

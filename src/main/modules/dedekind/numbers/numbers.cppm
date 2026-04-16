@@ -30,6 +30,7 @@ export import :integer;   // ℤ (Signed species)
 /** @section Algebraic_Extensions (Level 3 & 8) */
 export import :rational;    // ℚ (The Quotient Field)
 export import :complex;     // ℂ (The Cayley-Dickson construction)
+export import :quaternion;  // ℍ (Hamilton's division ring)
 export import :scalars;     // Floating-point anchors
 export import :lattice;     // Lattices over ℝ and ℂ
 export import :mandelbrot;  // Mandelbrot recurrence/orbit helpers
