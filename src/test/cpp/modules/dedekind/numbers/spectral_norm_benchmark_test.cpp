@@ -1,10 +1,10 @@
+#include <cassert>
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
 #include <chrono>
 #include <cmath>
 #include <concepts>
 #include <cstddef>
-#include <type_traits>
 #include <vector>
 
 import dedekind.numbers;
@@ -14,6 +14,9 @@ using namespace dedekind::numbers;
 using namespace dedekind::sequences;
 
 namespace {
+
+template <typename>
+inline constexpr bool dependent_false_v = false;
 
 template <typename S>
 using DenseVector = std::vector<S>;
@@ -36,6 +39,11 @@ constexpr auto lift_real(double x) {
                        }) {
     using R = typename S::scalar_type;
     return S{static_cast<R>(x), R{}};
+  } else {
+    static_assert(dependent_false_v<S>,
+                  "lift_real<S> requires either a floating-point scalar or a"
+                  " complex-like scalar with `scalar_type` and two-argument"
+                  " construction");
   }
 }
 
@@ -95,6 +103,7 @@ constexpr auto spectral_entry(std::size_t i, std::size_t j) {
 template <typename S>
 void apply_A(const FinitePath<S>& in, DenseVector<S>& out) {
   const std::size_t n = in.size();
+  assert(out.size() == n && "apply_A: output vector size must match input");
   for (std::size_t i = 0; i < n; ++i) {
     auto sum = scalar_zero<S>();
     for (std::size_t j = 0; j < n; ++j) {
@@ -107,6 +116,7 @@ void apply_A(const FinitePath<S>& in, DenseVector<S>& out) {
 template <typename S>
 void apply_At(const FinitePath<S>& in, DenseVector<S>& out) {
   const std::size_t n = in.size();
+  assert(out.size() == n && "apply_At: output vector size must match input");
   for (std::size_t i = 0; i < n; ++i) {
     auto sum = scalar_zero<S>();
     for (std::size_t j = 0; j < n; ++j) {
@@ -121,6 +131,10 @@ void apply_At(const FinitePath<S>& in, DenseVector<S>& out) {
 template <typename S>
 void apply_AtA(const DenseVector<S>& in, DenseVector<S>& out,
                DenseVector<S>& workspace) {
+  assert(out.size() == in.size() &&
+         "apply_AtA: output vector size must match input");
+  assert(workspace.size() == in.size() &&
+         "apply_AtA: workspace vector size must match input");
   apply_A(as_sequence(in), workspace);
   apply_At(as_sequence(workspace), out);
 }
@@ -128,6 +142,8 @@ void apply_AtA(const DenseVector<S>& in, DenseVector<S>& out,
 template <typename S>
 double inner_product_energy(const DenseVector<S>& lhs,
                             const DenseVector<S>& rhs) {
+  assert(lhs.size() == rhs.size() &&
+         "inner_product_energy: input vector sizes must match");
   const std::size_t n = lhs.size();
   double sum = 0.0;
   for (std::size_t i = 0; i < n; ++i) {
@@ -139,6 +155,7 @@ double inner_product_energy(const DenseVector<S>& lhs,
 template <typename S>
 double spectral_norm(std::size_t n, std::size_t power_iterations = 10u) {
   if (n == 0u) return 0.0;
+  if (power_iterations == 0u) return 0.0;
 
   DenseVector<S> u(n, scalar_one<S>());
   DenseVector<S> v(n, scalar_zero<S>());
@@ -158,10 +175,14 @@ double spectral_norm(std::size_t n, std::size_t power_iterations = 10u) {
 
 TEST_CASE("Numbers: spectral norm benchmark kernels", "[numbers][spectral]") {
   SECTION("Matrix entry formula matches canonical values") {
-    REQUIRE(project_real(spectral_entry<double>(0u, 0u)) == 1.0);
-    REQUIRE(project_real(spectral_entry<double>(0u, 1u)) == 0.5);
-    REQUIRE(project_real(spectral_entry<double>(1u, 0u)) == (1.0 / 3.0));
-    REQUIRE(project_real(spectral_entry<double>(1u, 1u)) == 0.2);
+    REQUIRE_THAT(project_real(spectral_entry<double>(0u, 0u)),
+                 Catch::Matchers::WithinRel(1.0, 1e-12));
+    REQUIRE_THAT(project_real(spectral_entry<double>(0u, 1u)),
+                 Catch::Matchers::WithinRel(0.5, 1e-12));
+    REQUIRE_THAT(project_real(spectral_entry<double>(1u, 0u)),
+                 Catch::Matchers::WithinRel(1.0 / 3.0, 1e-12));
+    REQUIRE_THAT(project_real(spectral_entry<double>(1u, 1u)),
+                 Catch::Matchers::WithinRel(0.2, 1e-12));
   }
 
   SECTION("Power iteration tracks known benchmark values") {
