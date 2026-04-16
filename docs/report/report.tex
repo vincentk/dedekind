@@ -1620,6 +1620,12 @@ The escape detection loop in \texttt{divergence\_count\_in\_window} and the wind
   \item \textbf{Bridge polynomial evaluation}: Express Mandelbrot recurrence steps as a special case of Horner evaluation or iterated polynomial application, unifying the polynomial and dynamical-systems layers.
 \end{enumerate}
 
+\paragraph{Implementation note (Phase 1 complete).}
+The first recommended improvement—refactoring divergence detection to use quantifiers—has been implemented.
+The hand-rolled absorbing recurrence in \texttt{divergence\_count\_in\_window} has been replaced with a call to the \texttt{exists} quantifier from the sequences DSL.
+The escape condition is now expressed as $\exists n : |z_n|^2 > r^2$ using the mathematical operators available in the category and sequences layers.
+This change improves clarity (making the mathematical intent explicit), enables composition (via quantifier machinery), and maintains backward compatibility (the count return value is preserved).
+The refactoring does not change the public API surface or the behavior of the Mandelbrot approximation tower; only the implementation path is improved.
 
 \chapter{\texttt{dedekind.ieee} and \texttt{dedekind.numbers}}
 \label{chap:ieee}
