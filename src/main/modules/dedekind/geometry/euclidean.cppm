@@ -1,5 +1,5 @@
 /**
- * @file ontology:geometry.cppm
+ * @file dedekind/geometry/euclidean.cppm
  * @brief The Study of Distance, Metrics, and Curvature.
  *
  * Copyright 2026 The Dedekind Authors
@@ -16,11 +16,12 @@
 module;
 
 #include <concepts>
-#include <functional>
+#include <cstddef>
 
 export module dedekind.geometry:euclidean;
 
-import dedekind.morphologies; // For Vector Spaces and Norms
+import :inner_product;
+import dedekind.algebra;
 
 namespace dedekind::geometry {
 
@@ -47,5 +48,13 @@ concept IsEuclideanSpace = IsMetricSpace<V, S> && requires(const V v) {
   // The Norm (Magnitude) of a single vector.
   { norm(v) } -> std::same_as<S>;
 };
+
+/**
+ * @brief Canonical Euclidean distance induced by the norm.
+ */
+export template <dedekind::algebra::IsFloatingScalar F, std::size_t N>
+constexpr F distance(const Vector<F, N>& a, const Vector<F, N>& b) {
+  return norm(a - b);
+}
 
 }  // namespace dedekind::geometry

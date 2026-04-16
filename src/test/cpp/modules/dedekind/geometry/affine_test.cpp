@@ -7,6 +7,8 @@ TEST_CASE("Geometry: Affine Rational Space", "[geometry][affine]") {
   using R = double;
   using Vec2 = Vector<R, 2>;
 
+  SECTION("Affine concept witness") { static_assert(IsAffine<Vec2, R>); }
+
   SECTION("Rational Scaling") {
     Vec2 v{1.0, 1.0};
     R scale = 0.5;
