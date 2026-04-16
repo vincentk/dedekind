@@ -1,10 +1,9 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
-
 #include <chrono>
 #include <cmath>
-#include <cstddef>
 #include <concepts>
+#include <cstddef>
 #include <type_traits>
 #include <vector>
 
@@ -30,7 +29,11 @@ template <typename S>
 constexpr auto lift_real(double x) {
   if constexpr (std::floating_point<S>) {
     return static_cast<S>(x);
-  } else if constexpr (requires { typename S::scalar_type; S{typename S::scalar_type{}, typename S::scalar_type{}}; }) {
+  } else if constexpr (requires {
+                         typename S::scalar_type;
+                         S{typename S::scalar_type{},
+                           typename S::scalar_type{}};
+                       }) {
     using R = typename S::scalar_type;
     return S{static_cast<R>(x), R{}};
   }
