@@ -1,6 +1,5 @@
 #include <catch2/catch_test_macros.hpp>
 #include <catch2/matchers/catch_matchers_floating_point.hpp>
-
 #include <chrono>
 #include <cmath>
 #include <cstddef>
@@ -84,7 +83,8 @@ TEST_CASE("Numbers: spectral norm benchmark kernels", "[numbers][spectral]") {
   }
 
   SECTION("Power iteration tracks known benchmark values") {
-    REQUIRE_THAT(spectral_norm(10u), Catch::Matchers::WithinAbs(1.271844019, 1e-9));
+    REQUIRE_THAT(spectral_norm(10u),
+                 Catch::Matchers::WithinAbs(1.271844019, 1e-9));
     REQUIRE_THAT(spectral_norm(100u),
                  Catch::Matchers::WithinAbs(1.274219991, 1e-9));
   }
