@@ -2,11 +2,7 @@
  * @file dedekind/algebra/polynomials.cppm
  * @partition :polynomials
  * @brief Level 3.1: The Algebra of Formal Sums (R[x]).
- *
- * @section Polynomial_Species: The Basis of Extension
- * "A Rig is a Ring without negatives. Naturally, a Polynomial Rig is a
- * construction where we forget how to subtract, but remember how to count."
- * — Fragment of the structuralist tradition.
+
  *
  * @details
  * This implementation follows the "Honest" approach: by default, we
@@ -17,10 +13,9 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @note "In dedekind.algebra:polynomial, structure is clarified by explicit
- * composition and typed interfaces." (Module-specific documentation note for
- * maintainers.)
- *       -- dedekind maintainers
+ * @note "A Rig is a Ring without negatives. Naturally, a Polynomial Rig is a
+ * construction where we forget how to subtract, but remember how to count."
+ * — Fragment of the structuralist tradition.
  */
 module;
 

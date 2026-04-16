@@ -3,9 +3,6 @@
  * @partition :hamilton
  * @brief Level 4: The Principle of Least Action (Hamiltonian Dynamics).
  *
- * @quote "The variation of the definite integral of the difference between
- * the kinetic and potential energies is zero." — Sir William Rowan Hamilton
- *
  * @section Hamiltonian: The Flow of the Species
  * This partition defines the generator of motion \( \mathcal{H} \). In the
  * Dedekind Category, the Hamiltonian is the Morphism that maps the Phase
@@ -23,10 +20,9 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @note "In dedekind.analysis:hamilton, structure is clarified by explicit
- * composition and typed interfaces." (Module-specific documentation note for
- * maintainers.)
- *       -- dedekind maintainers
+ * @note "The variation of the definite integral of the difference between
+ * the kinetic and potential energies is zero." — Sir William Rowan Hamilton
+ *
  */
 module;
 

@@ -5,13 +5,7 @@
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
- *
- * @section The_Noetherian_Influence
- * „Die Arithmetik, Algebra und Analysis sind nur eine einzige Wissenschaft,
- *  die Wissenschaft der Zahlen.“
- *  (Arithmetic, algebra, and analysis are but a single science,
- *   the science of numbers.)
- *  — Emmy Noether
+
  *
  * @section Taxonomy_of_Influence
  * A Module is the reification of 'Structural Action'. It defines how
@@ -19,10 +13,11 @@
  * creating the 'Linear Action' that serves as the engine for all
  * Vector Spaces and Metric Geometry in the Dedekind topos.
  *
- * @note "In dedekind.algebra:modules, structure is clarified by explicit
- * composition and typed interfaces." (Module-specific documentation note for
- * maintainers.)
- *       -- dedekind maintainers
+ * @note „Die Arithmetik, Algebra und Analysis sind nur eine einzige Wissenschaft,
+ *  die Wissenschaft der Zahlen.“
+ *  (Arithmetic, algebra, and analysis are but a single science,
+ *   the science of numbers.)
+ *  — Emmy Noether
  */
 module;
 

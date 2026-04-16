@@ -14,17 +14,13 @@
  * - :exterior -- wedge products and alternating two-forms.
  * - :hamilton -- Poisson brackets and Hamiltonian witnesses.
  * - :kernels  -- Gaussian and reproducing-kernel primitives.
+
  *
- * @quote
- * "L'analyse, ce n'est pas seulement calculer; c'est organiser les structures
+ * @note "L'analyse, ce n'est pas seulement calculer; c'est organiser les structures
  *  qui rendent le calcul intelligible."
  * ("Analysis is not only about calculating; it is about organizing the
  *  structures that make calculation intelligible.")
  * -- Laurent Schwartz, paraphrase
- *
- * @note "In dedekind.analysis, structure is clarified by explicit composition
- * and typed interfaces." (Module-specific documentation note for maintainers.)
- *       -- dedekind maintainers
  */
 
 export module dedekind.analysis;
