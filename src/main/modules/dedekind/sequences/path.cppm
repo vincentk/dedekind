@@ -31,6 +31,7 @@ module;
 export module dedekind.sequences:path;
 
 import dedekind.category;
+import dedekind.sets;
 import :net;
 
 namespace dedekind::sequences {

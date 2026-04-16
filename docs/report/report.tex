@@ -1625,7 +1625,7 @@ The first recommended improvement—expressing escape and finite-stage boundedne
 The \texttt{orbit\_escapes} predicate uses \texttt{exists} from the sequences DSL, checking whether any point in the orbit prefix satisfies the escape criterion.
 The escape condition is expressed via \texttt{classify<Complex<R>>(escape\_criterion).χ}, which lifts the escape predicate to a characteristic morphism from the category layer.
 This change improves clarity (making the mathematical intent explicit), enables composition (via quantifier machinery), and maintains backward compatibility.
-The refactoring does not change the public API surface or the behavior of the Mandelbrot approximation tower; only the implementation path is improved.
+The refactoring preserves the behavior of the Mandelbrot approximation tower and improves the implementation path, while introducing compositional helpers that make the formulation more explicit.
 
 \paragraph{Implementation note (Phase 2 complete — Parametrized Escape Criterion).}
 The second architectural improvement—parametrizing escape criteria—has been implemented as a follow-up.
@@ -1633,10 +1633,10 @@ The hardcoded Euclidean radius $R = 2$ (or $R^2 = 4$ in squared form) is now ext
 \begin{itemize}
   \item \textbf{Concept}: \texttt{IsEscapeCriterion<EscapeCriterion, ComplexType>}, a callable constraint capturing the escape detection signature: $\text{Complex} \to \mathbb{B}$.
   \item \textbf{Factory}: \texttt{euclidean\_escape\_radius\_squared<R>(r\_squared)}, which produces a parametrized escape criterion based on the standard Euclidean norm: $|z|^2 > r^2 \mapsto \text{True}$.
-  \item \textbf{Overloads}: \texttt{divergence\_count\_in\_window} now accepts both:
+  \item \textbf{Overloads}: existing escape-analysis entry points such as \texttt{orbit\_escapes} and \texttt{prefix\_bounded\_N} now accept both:
     \begin{enumerate}
-      \item Generic form: \texttt{(window, escape\_criterion)} for arbitrary criteria (e.g., alternative norms, adaptive thresholds).
-      \item Specialized form: \texttt{(window, radius\_squared)} for backward compatibility with existing code.
+      \item Generic form: an escape criterion argument for arbitrary criteria (e.g., alternative norms, adaptive thresholds).
+      \item Specialized form: a numeric \texttt{radius\_squared} argument for backward compatibility with existing code.
     \end{enumerate}
 \end{itemize}
 This refactoring improves \emph{extensibility} (users can inject custom escape theories), maintains \emph{backward compatibility} (existing calls via numeric radius still compile and behave identically), and aligns the Mandelbrot layer with the generic abstraction pattern established in the classifier and topoi layers.
