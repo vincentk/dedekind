@@ -1716,11 +1716,13 @@ Supremum / Infimum & $\sup, \inf$ & \texttt{s.supremum(), s.infimum()} & \texttt
 \subsection{\texttt{sequences} Module}
 \subsection{\texttt{algebra} Module}
 
-Needed to push back repeatedly on attempts to go the convenient `double` route instead of spelling things out as semi-modules, semi-rings etc. i.e. reduced-strength algebraic structures. Of course, ultimately everything is a complex number from this perspective just like everything is a string for front-end developers.
+During implementation, a recurring tension is the temptation to collapse generic scalar abstractions to \texttt{double}. The current code base intentionally keeps reduced-strength algebraic structure explicit (for example, semimodule-style or ring-level interfaces) and only projects to machine reals at clearly marked boundaries.
 
 \subsection{\texttt{morphologies} Module}
 \subsection{\texttt{geometry} Module}
+The geometry layer now includes a concrete finite-dimensional linear-map partition (\texttt{dedekind.geometry:linear\_map}) with dense coefficient storage, composition, scalar and additive operations, identity/zero constructors, and outer products. This serves as the current matrix-core MVP.
 \subsection{\texttt{numbers} Module}
+The numbers layer currently hosts a spectral-norm benchmark prototype in the test suite. The implementation is intentionally written with explicit operator seams ($A$, $A^T$, $A^T A$) so that reusable matrix/operator abstractions can migrate into production APIs incrementally.
 \subsection{\texttt{analysis} Module}
 
 The physical build order of the \texttt{dedekind.ontology} module mirrors this conceptual hierarchy. By enforcing a linear dependency graph—where \texttt{:mereology} is compiled before \texttt{:algebra}—we ensure that the compiler's proof-search for a Ring's identity element is grounded in the prior verification of its mereological subobjects. This hierarchy transforms the C++ module mapper into a directed acyclic graph of mathematical truth.
@@ -1742,7 +1744,7 @@ We evaluate \texttt{dedekind} against standard implementations from the Computer
 
 \begin{itemize}
     \item \textbf{pidigits:} By modeling $\pi$ as a formal limit of a rational sequence, we compare the resolution of transcendental numbers against the CPython \texttt{gmpy2} wrapper. We demonstrate that symbolic lazy evaluation in \texttt{dedekind} maintains a zero-overhead profile relative to raw C/GMP.
-    \item \textbf{spectral-norm:} We reify the infinite matrix $A$ as a combinatorial species. This benchmark serves as a stress test for the LLVM backend's ability to perform structural pruning across Highway-composed operator chains, targeting bit-perfect parity with hand-tuned assembly.
+    \item \textbf{spectral-norm:} The current implementation is a benchmark-style test prototype that evaluates a matrix-free operator formulation of the Benchmarks Game kernel. At present, this is used as a validation harness and extraction seam for the matrix-core work, rather than as a claim of fully productized linear-operator infrastructure.
 \end{itemize}
 
 \subsection{The Sieve of Dedekind: Existential Proof of Structural Collapse}

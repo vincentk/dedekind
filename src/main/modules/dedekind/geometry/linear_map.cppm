@@ -89,6 +89,9 @@ class LinearMap {
 export template <std::floating_point F, std::size_t Rows, std::size_t Cols>
 using Matrix = LinearMap<F, Rows, Cols>;
 
+// FIXME(https://github.com/vincentk/dedekind/issues/174): Extend the MVP with
+// post-core matrix operators (transpose/trace/Hadamard/Kronecker/concat).
+
 export template <std::floating_point F, std::size_t Rows, std::size_t Cols>
 constexpr LinearMap<F, Rows, Cols> operator+(
     const LinearMap<F, Rows, Cols>& a, const LinearMap<F, Rows, Cols>& b) {
