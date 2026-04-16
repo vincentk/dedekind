@@ -1614,8 +1614,8 @@ The escape detection loop in \texttt{divergence\_count\_in\_window} and the wind
 
 \textit{Proposed improvements (follow-up work):}
 \begin{enumerate}
-  \item \textbf{Parametrize escape criteria}: Extract the hardcoded radius $R = 2$ and iteration limit into an ``escape criterion'' object, allowing alternative convergence theories (e.g., real dynamics in restricted domains).
-  \item \textbf{Express escape via quantifiers}: Replace hand-rolled loops with declarative quantifier composition: $\text{escaped} \equiv \exists n \le N : |z_n| > R$, enabling composition with \texttt{exists(prefix(\ldots))$ from the sequences layer.
+  \item \textbf{Parametrize escape criteria} \textcolor{gray}{\textit{(Phase 2 — implemented)}}: Extract the hardcoded radius $R = 2$ and iteration limit into an ``escape criterion'' object, allowing alternative convergence theories (e.g., real dynamics in restricted domains).
+  \item \textbf{Express escape via quantifiers} \textcolor{gray}{\textit{(Phase 1 — implemented)}}: Replace hand-rolled loops with declarative quantifier composition: $\text{escaped} \equiv \exists n \le N : |z_n| > R$, enabling composition with \texttt{exists(prefix(\ldots))$ from the sequences layer.
   \item \textbf{Support non-Boolean logics}: Extend \texttt{M\_N} to support K3 (Ternary) logic, returning \texttt{Unknown} for marginal cases near the boundary when evidence is insufficient.
   \item \textbf{Bridge polynomial evaluation}: Express Mandelbrot recurrence steps as a special case of Horner evaluation or iterated polynomial application, unifying the polynomial and dynamical-systems layers.
 \end{enumerate}
@@ -1626,6 +1626,53 @@ The hand-rolled absorbing recurrence in \texttt{divergence\_count\_in\_window} h
 The escape condition is now expressed as $\exists n : |z_n|^2 > r^2$ using the mathematical operators available in the category and sequences layers.
 This change improves clarity (making the mathematical intent explicit), enables composition (via quantifier machinery), and maintains backward compatibility (the count return value is preserved).
 The refactoring does not change the public API surface or the behavior of the Mandelbrot approximation tower; only the implementation path is improved.
+
+\paragraph{Implementation note (Phase 2 complete — Parametrized Escape Criterion).}
+The second architectural improvement—parametrizing escape criteria—has been implemented as a follow-up.
+The hardcoded Euclidean radius $R = 2$ (or $R^2 = 4$ in squared form) is now extracted as a pluggable trait through the introduction of:
+\begin{itemize}
+  \item \textbf{Concept}: \texttt{IsEscapeCriterion<EscapeCriterion, ComplexType>}, a callable constraint capturing the escape detection signature: $\text{Complex} \to \mathbb{B}$.
+  \item \textbf{Factory}: \texttt{euclidean\_escape\_radius\_squared<R>(r\_squared)}, which produces a parametrized escape criterion based on the standard Euclidean norm: $|z|^2 > r^2 \mapsto \text{True}$.
+  \item \textbf{Overloads}: \texttt{divergence\_count\_in\_window} now accepts both:
+    \begin{enumerate}
+      \item Generic form: \texttt{(window, escape\_criterion)} for arbitrary criteria (e.g., alternative norms, adaptive thresholds).
+      \item Specialized form: \texttt{(window, radius\_squared)} for backward compatibility with existing code.
+    \end{enumerate}
+\end{itemize}
+This refactoring improves \emph{extensibility} (users can inject custom escape theories), maintains \emph{backward compatibility} (existing calls via numeric radius still compile and behave identically), and aligns the Mandelbrot layer with the generic abstraction pattern established in the classifier and topoi layers.
+New test cases validate both standard (radius~2) and custom (radius~3, radius~4) escape criteria, ensuring the parametrization is effective and compositions are composable.
+
+\paragraph{Technical detail (Escape Criterion Implementation).}
+The \texttt{IsEscapeCriterion<C, Z>} concept is defined as:
+\begin{equation}
+\begin{aligned}
+\texttt{IsEscapeCriterion}\,\langle C, Z \rangle \;:\!=\;
+  &\text{std::invocable}\langle \text{const} \; C \&, \text{const} \; Z \& \rangle \\
+  &\;\land\; \text{std::same\_as}\langle \text{invoke\_result\_t}\langle C, Z \rangle, \mathbb{B} \rangle
+\end{aligned}
+\end{equation}
+where $\mathbb{B} = \{\texttt{true}, \texttt{false}\}$ is the classical Boolean codomain.
+The factory function $\texttt{euclidean\_escape\_radius\_squared}$ returns a lambda closure:
+\begin{lstlisting}[language=C++, caption={Escape criterion factory and usage pattern.}, label={lst:escape_criterion}]
+export template <IsComplexScalar R>
+constexpr auto euclidean_escape_radius_squared(R escape_radius_squared = R{4}) {
+  return [escape_radius_squared](const Complex<R>& z) {
+    return outside_closed_euclidean_ball_squared(escape_radius_squared)(z);
+  };
+}
+
+// Usage: custom radius = 3
+auto custom_criterion = euclidean_escape_radius_squared<double>(9.0);  // 3^2
+
+// Application to divergence detection
+const auto count = divergence_count_in_window<double>(window, custom_criterion);
+\end{lstlisting}
+The generic overload of \texttt{divergence\_count\_in\_window} applies the criterion within the \texttt{exists} quantifier:
+\begin{equation}
+  \texttt{any\_escaped} \;=\; \bigvee_{z \in \text{window}} \texttt{escape\_fn}(z)
+\end{equation}
+via the call \texttt{exists(selected\_window, classify<Complex<R>>(escape\_fn).χ)}, where \texttt{classify<Complex<R>>(escape\_fn)} lifts the escape predicate to a categorical characteristic morphism \texttt{Complex<R> -> Ω}.
+The explicit template argument \texttt{Complex<R>} guides the compiler's type inference when resolving the domain of the escape criterion.
 
 \chapter{\texttt{dedekind.ieee} and \texttt{dedekind.numbers}}
 \label{chap:ieee}
