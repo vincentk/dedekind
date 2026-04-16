@@ -20,8 +20,38 @@ Thank you for your interest in contributing!
    ```bash
    make format   # runs clang-format-21 on all *.cpp / *.cppm files
    ```
+   To enforce this automatically before each push, install the repo-managed hook once:
+   ```bash
+   make install-hooks
+   ```
+   The `pre-push` hook runs `make format` and aborts the push if it had to rewrite files,
+   so you can review and commit the formatting changes explicitly.
 6. **Open a pull request** against `main` from your fork branch.  Draft PRs are welcome
    early; mark it ready for review once CI is green.
+
+## Development workflow
+
+- Treat the GitHub CI build as the reference build for the project.  Local builds are useful,
+   but merge readiness is determined by the PR checks.
+- Before starting new work, check that the most recent `main` branch CI run is green.
+- Keep the README small and stable.  Only update it when something is plainly wrong or deeply
+   misleading; routine progress belongs in the report and inline documentation.
+- Prefer plain `gh` CLI commands when working with issues, pull requests, and CI.
+- Open a draft PR early, even before the implementation is complete, so the work is visible and
+   the reference CI starts running immediately.
+- Before pushing, run `make format` or install the managed hook with `make install-hooks`.
+- Poll PR checks regularly during development.  If a check fails, inspect the failed workflow
+   logs before making further changes.
+- After a green CI run, also check the Codecov report for regressions before marking the PR ready.
+- Once CI is green and coverage looks acceptable, mark the PR ready for review.
+
+## Review workflow
+
+- Resolve review comments and threads explicitly; do not leave unresolved conversations behind
+   when preparing a PR for merge.
+- For low-risk mechanical fixes, batching routine changes is acceptable; for semantic or API
+   changes, prefer manual edits so the trade-offs remain explicit.
+- After pushing follow-up commits, re-request review so the latest state is reviewed.
 
 ## Alignment with the codebase
 

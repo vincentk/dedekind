@@ -12,7 +12,7 @@ DOCS_MAIN    := report
 FILTER_GVPR  := $(DOCS_DIR)/figures/filter.gvpr
 DOT_FILE     := $(DOCS_DIR)/figures/dedekind_module_dependencies.dot
 
-.PHONY: all clean compile test coverage
+.PHONY: all clean compile test coverage format install-hooks
 
 all: compile
 
@@ -45,6 +45,11 @@ coverage: compile
 
 format:
 	find src -name "*.cpp" -o -name "*.cppm" | xargs $(LLVM_ROOT)/bin/clang-format -i
+
+install-hooks:
+	git config core.hooksPath .githooks
+	chmod +x .githooks/pre-push
+	@echo "Installed repo hooks from .githooks/"
 
 doxygen: compile
 	cmake --build $(BUILD_DIR) --target docs
