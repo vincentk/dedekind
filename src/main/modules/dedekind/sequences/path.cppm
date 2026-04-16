@@ -24,9 +24,11 @@
 module;
 
 #include <algorithm>
+#include <cassert>
 #include <concepts>
 #include <cstddef>
 #include <functional>
+#include <limits>
 #include <type_traits>
 #include <utility>
 
@@ -132,6 +134,31 @@ constexpr auto prefix(const Path<T, Cardinality>& path, std::size_t length) {
   } else {
     return FinitePath<T>{[path](std::size_t i) { return path.at(i); }, length};
   }
+}
+
+/**
+ * Return the infinite tail of a path, shifted by n indices.
+ *
+ * drop(path, n) = λi. path(n + i)
+ *
+ * @tparam T The element type.
+ * @tparam Cardinality The cardinality of the input path (must be infinite).
+ * @param path The input path (must have infinite cardinality).
+ * @param n The offset to drop (precondition: n + i must not overflow for all
+ *           accessed indices i).
+ * @return An infinite path with the same cardinality, representing the shifted
+ *         tail.
+ */
+export template <typename T, typename Cardinality>
+  requires(!IsFiniteMagnitude<Cardinality>)
+constexpr auto drop(const Path<T, Cardinality>& path, std::size_t n) {
+  // Precondition: n + i must not overflow std::size_t for accessed indices.
+  // For safety in finite scenarios, assert n is reasonable (e.g., <
+  // SIZE_MAX/2).
+  assert(n < std::numeric_limits<std::size_t>::max() / 2 &&
+         "drop offset too large; risk of overflow in n + i");
+  return Path<T, Cardinality>{
+      [path, n](std::size_t i) { return path.at(n + i); }};
 }
 
 export template <typename T, typename Step>
