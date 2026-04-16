@@ -11,12 +11,6 @@ module;
 #include <cmath>
 #include <concepts>
 
-/**
- * @file dedekind/numbers/symbolic.cppm
- * @partition :symbolic
- * @brief Level 9.2: The Language of the Continuum.
- */
-
 export module dedekind.numbers:symbolic;
 
 import :real;
