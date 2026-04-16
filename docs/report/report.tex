@@ -1301,6 +1301,45 @@ The \texttt{:topoi} partition packages the categorical preconditions for interna
 
 Operationally, \texttt{:topoi} complements \texttt{:etcs}: while ETCS gives the user-facing set-theoretic facade, the topos partition provides the internal categorical contracts that justify that facade. Keeping both partitions explicit in the build graph prevents silent drift between foundational definitions and set-level APIs.
 
+\paragraph{Review findings (classifier support, PR \#157 scope).}
+From a code-level review of \texttt{dedekind.category:logic} and \texttt{dedekind.category:topoi}, ordinary C++ predicates are already supported as the primary practical realization of characteristic maps.
+The \texttt{LogicalMap<Pred, T>} concept in \texttt{:logic} accepts invocables returning a registered logical value, and \texttt{GetLogic<bool>} defaults to \texttt{ClassicalLogic}; this gives standard Boolean predicates a canonical classifier codomain.
+In \texttt{:topoi}, \texttt{classify} lifts such callables into subobjects by constructing the characteristic morphism $\chi : A \to \Omega$.
+The \texttt{IsPredicate} concept now explicitly requires \texttt{LogicalMap<P, Dom<P>>} in addition to \texttt{IsArrow<P>} and \texttt{LogicalValue<Cod<P>>}, which tightens alignment between callable-level and categorical contracts.
+
+\paragraph{Constant classifiers and mixed composition (PR \#157, Issue \#143).}
+The \texttt{:topoi} partition now provides explicit support for constant classifiers and their composition with standard predicates.
+This addresses ergonomic requirements for embedding logical constants into composite classifier chains, particularly in K3 (Kleene three-valued) logic.
+
+\textit{Classifier factory functions:} The API provides factory functions to construct constant classifiers over domain $A$ with target logic $L$:
+\begin{itemize}
+  \item \texttt{constant\_classifier<A, L>(value)} — generic constant classifier factory,
+  \item \texttt{classifier\_true<A, L>()} — specialization for $L::True$,
+  \item \texttt{classifier\_false<A, L>()} — specialization for $L::False$,
+  \item \texttt{classifier\_unknown<A, L>()} — specialization for $L::Unknown$ (K3 only).
+\end{itemize}
+All default to \texttt{ClassicalLogic} for $L$ if omitted.
+
+\textit{Mixed composition operators:} Constants may be composed with predicates using the logical operators $\land$ (written \texttt{\&\&}), $\lor$ (written \texttt{||}), and the \emph{pipeline operator} \texttt{>>} (which semantically denotes conjunction, gating the predicate by the constant):
+\begin{center}
+\begin{tabular}{lll}
+\toprule
+\textbf{Form} & \textbf{Example} & \textbf{Semantics} \\
+\midrule
+Conjunction & \texttt{True \&\& pred} or \texttt{pred \&\& True} & $\text{True} \land p(x)$ \\
+Disjunction & \texttt{UNKNOWN || pred} or \texttt{pred || UNKNOWN} & $\text{UNKNOWN} \lor p(x)$ \\
+\bottomrule
+\end{tabular}
+\end{center}
+
+\textit{Design note on lifting:} When a constant $c : \mathbf{1} \to \Omega_{\text{src}}$ is composed with a predicate $p : A \to \Omega_{\text{tgt}}$, the constant is automatically lifted via \texttt{lift\_classifier\_constant<Ω\_tgt>(c)} to match the target logic.
+This ensures seamless composition even when source and target logics differ (e.g., Boolean constant lifted into K3 context).
+The mixed operators require that the constant be recognized as \texttt{IsClassifierConstant} to avoid accidental matches with general arrow composition.
+
+Two limits remain explicit.
+First, raw \texttt{std::predicate} lambdas still require explicit lifting via \texttt{classify} before composition with operators.
+Second, \texttt{std::predicate} is inherently Boolean; the library intentionally supports richer codomains (e.g.\ K3), so \texttt{std::predicate} should be treated as the dominant concrete interface in the classical fragment, not the full abstraction.
+
 \section{Results}
 \label{sec:category-results}
 
@@ -1554,13 +1593,85 @@ For the stress-test listing, the target specification is the classical set-build
 \mathcal{M} = \left\{c \in \mathbb{C} \;\middle|\; z_0 = 0,\; z_{n+1} = z_n^2 + c,\; (z_n)_{n \ge 0}\ \text{is bounded}\right\}.
 \end{equation}
 
-Because a benchmark implementation must terminate with deterministic cost, the practical test target is the finite approximation:
+Because a benchmark implementation must terminate with deterministic cost, the executable benchmark target is an adapted finite surrogate rather than the bona fide Mandelbrot set:
 \begin{equation}
-\mathcal{M}_N = \left\{c \in \mathbb{C} \;\middle|\; z_0 = 0,\; z_{n+1} = z_n^2 + c,\; \forall n \in \{0,\ldots,N\}: |z_n| \le 2\right\}.
+\widetilde{\mathcal{M}}_N = \left\{c \in \mathbb{C} \;\middle|\; z_0 = 0,\; z_{n+1} = z_n^2 + c,\; \sum_{n=0}^{N} [|z_n| > 2] \le 1\right\}.
 \end{equation}
 
-The code listing in this report should be read as a structural realization of $\mathcal{M}_N$: the set expression captures the mathematical predicate, while the output packing step remains a conventional imperative loop to follow the benchmark-game output contract.
+The code listing in this report should be read as a structural realization of $\widetilde{\mathcal{M}}_N$: the set expression captures the truncated orbit predicate, while the final ASCII rendering step remains a conventional imperative loop.
 
+\paragraph{Review findings (Mandelbrot in light of classifier and sequence layers, PR \#157 scope).}
+The current \texttt{dedekind.numbers:mandelbrot} partition exhibits clean separation of concerns: the recurrence is fixed once (\texttt{mandelbrot\_orbit}), orbit-level escape criteria are exposed via \texttt{orbit\_escapes}, finite-stage parameter predicates are exposed via \texttt{prefix\_bounded\_N} and \texttt{M\_N}, and stage-indexed computable approximations are organized explicitly through \texttt{M\_tower}.
+The finite-stage boundedness path uses orbit prefixes and classifier-style lifting, matching the sequence quantifier machinery reviewed above.
+
+A deliberate limitation remains: executable stages are Boolean approximations, while the full intensional target can remain logically richer.
+For benchmarking and rendering, this preserves a clean distinction between the denotational target $\mathcal{M}$ and the computable tower $\{M_n\}_{n\ge 0}$.
+
+\textit{Architectural strengths and gaps:} The three-level lifting (recurrence $\to$ orbit criterion $\to$ parameter predicate) is well-structured and aligns with the topos-theoretic notion of characteristic morphisms.
+However, the current implementation still relies on fixed numerical parameters (escape radius and iteration bound) inside the executable escape/boundedness criteria rather than abstracting them as first-class divergence data.
+The current \texttt{orbit\_escapes} predicate and the finite-stage boundedness predicates \texttt{prefix\_bounded\_N}/\texttt{M\_N} can be viewed as instances of \texttt{exists}/\texttt{forall} over orbit prefixes from the sequences DSL, making the escape condition explicit and composable without introducing separate window-specific APIs.
+
+\textit{Proposed improvements (follow-up work):}
+\begin{enumerate}
+  \item \textbf{Parametrize escape criteria} \textcolor{gray}{\textit{(Phase 2 --- implemented)}}: Factor the fixed radius $R = 2$ and iteration bound used by \texttt{orbit\_escapes}/\texttt{prefix\_bounded\_N} into an explicit ``escape criterion'' object, allowing alternative convergence theories (e.g., real dynamics in restricted domains).
+  \item \textbf{Express escape via quantifiers} \textcolor{gray}{\textit{(Phase 1 --- implemented)}}: Present \texttt{orbit\_escapes} and \texttt{prefix\_bounded\_N} as declarative quantifier compositions on orbit prefixes, e.g.\ $\text{escaped} \equiv \exists n \le N : |z_n| > R$, enabling direct composition with the sequences layer.
+  \item \textbf{Support non-Boolean logics}: Extend \texttt{M\_N} to support K3 (Ternary) logic, returning \texttt{Unknown} for marginal cases near the boundary when evidence is insufficient.
+  \item \textbf{Bridge polynomial evaluation}: Express Mandelbrot recurrence steps as a special case of Horner evaluation or iterated polynomial application, unifying the polynomial and dynamical-systems layers.
+\end{enumerate}
+
+\paragraph{Implementation note (Phase 1 complete).}
+The first recommended improvement—expressing escape and finite-stage boundedness through the implemented \texttt{orbit\_escapes}, \texttt{prefix\_bounded\_N}, and \texttt{M\_N} interfaces in a quantifier-friendly way—has been implemented.
+The \texttt{orbit\_escapes} predicate uses \texttt{exists} from the sequences DSL, checking whether any point in the orbit prefix satisfies the escape criterion.
+The escape condition is expressed via \texttt{classify<Complex<R>>(escape\_criterion).χ}, which lifts the escape predicate to a characteristic morphism from the category layer.
+This change improves clarity (making the mathematical intent explicit), enables composition (via quantifier machinery), and maintains backward compatibility.
+The refactoring preserves the behavior of the Mandelbrot approximation tower and improves the implementation path, while introducing compositional helpers that make the formulation more explicit.
+
+\paragraph{Implementation note (Phase 2 complete — Parametrized Escape Criterion).}
+The second architectural improvement—parametrizing escape criteria—has been implemented as a follow-up.
+The hardcoded Euclidean radius $R = 2$ (or $R^2 = 4$ in squared form) is now extracted as a pluggable trait through the introduction of:
+\begin{itemize}
+  \item \textbf{Concept}: \texttt{IsEscapeCriterion<EscapeCriterion, ComplexType>}, a callable constraint capturing the escape detection signature: $\text{Complex} \to \mathbb{B}$.
+  \item \textbf{Factory}: \texttt{euclidean\_escape\_radius\_squared<R>(r\_squared)}, which produces a parametrized escape criterion based on the standard Euclidean norm: $|z|^2 > r^2 \mapsto \text{True}$.
+  \item \textbf{Overloads}: existing escape-analysis entry points such as \texttt{orbit\_escapes} and \texttt{prefix\_bounded\_N} now accept both:
+    \begin{enumerate}
+      \item Generic form: an escape criterion argument for arbitrary criteria (e.g., alternative norms, adaptive thresholds).
+      \item Specialized form: a numeric \texttt{radius\_squared} argument for backward compatibility with existing code.
+    \end{enumerate}
+\end{itemize}
+This refactoring improves \emph{extensibility} (users can inject custom escape theories), maintains \emph{backward compatibility} (existing calls via numeric radius still compile and behave identically), and aligns the Mandelbrot layer with the generic abstraction pattern established in the classifier and topoi layers.
+New test cases validate both standard (radius~2) and custom (radius~3, radius~4) escape criteria, ensuring the parametrization is effective and compositions are composable.
+
+\paragraph{Technical detail (Escape Criterion Implementation).}
+The \texttt{IsEscapeCriterion<C, Z>} concept is defined as:
+\begin{equation}
+\begin{aligned}
+\texttt{IsEscapeCriterion}\,\langle C, Z \rangle \;:\!=\;
+  &\text{std::invocable}\langle \text{const} \; C \&, \text{const} \; Z \& \rangle \\
+  &\;\land\; \text{std::same\_as}\langle \text{invoke\_result\_t}\langle C, Z \rangle, \mathbb{B} \rangle
+\end{aligned}
+\end{equation}
+where $\mathbb{B} = \{\texttt{true}, \texttt{false}\}$ is the classical Boolean codomain.
+The factory function $\texttt{euclidean\_escape\_radius\_squared}$ returns a lambda closure:
+\begin{lstlisting}[language=C++, caption={Escape criterion factory and usage pattern.}, label={lst:escape_criterion}]
+export template <IsComplexScalar R>
+constexpr auto euclidean_escape_radius_squared(R escape_radius_squared = R{4}) {
+  return [escape_radius_squared](const Complex<R>& z) {
+    return outside_closed_euclidean_ball_squared(escape_radius_squared)(z);
+  };
+}
+
+// Usage: custom radius = 3
+auto custom_criterion = euclidean_escape_radius_squared<double>(9.0);  // 3^2 = 9
+
+// Application to orbit escape detection
+const bool any_escaped = orbit_escapes(window, 256u, custom_criterion);
+\end{lstlisting}
+The \texttt{orbit\_escapes} query applies the criterion within the \texttt{exists} quantifier:
+\begin{equation}
+  \texttt{any\_escaped} \;=\; \bigvee_{z \in \text{window}} \texttt{escape\_fn}(z)
+\end{equation}
+via the call \texttt{exists(selected\_window, classify<Complex<R>>(escape\_fn).χ)}, where \texttt{classify<Complex<R>>(escape\_fn)} lifts the escape predicate to a categorical characteristic morphism \texttt{Complex<R> -> Ω}.
+The explicit template argument \texttt{Complex<R>} guides the compiler's type inference when resolving the domain of the escape criterion.
 
 \chapter{\texttt{dedekind.ieee} and \texttt{dedekind.numbers}}
 \label{chap:ieee}
@@ -2023,6 +2134,36 @@ REQUIRE(diffs.at(0) == -1);
 
 \texttt{Path<T>} passes \texttt{IsSequence} and the Cauchy criterion for the harmonic series, confirming the sequences layer as a verified foundation for the continuum in \texttt{dedekind.numbers}.
 
+\paragraph{Review findings (sequences and recurrences, PR \#157 scope).}
+The current DSL supports classifier application at both levels requested in the review plan.
+Element-wise classification is covered by \texttt{count\_if}, which uses \texttt{std::predicate} over sequence elements.
+Sequence-as-a-whole classification is covered by \texttt{exists} and \texttt{forall}, both defined over \texttt{LogicalMap} so they work beyond pure Boolean codomains.
+Recurrence relations are represented directly by \texttt{iterate(seed, step)}, and computable approximations are made explicit via \texttt{prefix}.
+
+The main operational boundary is also clear: quantification over infinite paths remains intentionally open-ended, and guaranteed termination arises from finite cardinality or explicit truncation.
+This is consistent with the project posture of semantic honesty for intensional objects.
+
+\paragraph{Extended findings (Cauchy, convergence, and divergence as first-class concerns).}
+The sequences module provides Cauchy verification and convergence machinery, but significant opportunities remain to formalize divergence and convergence as semantic properties rather than numerical heuristics.
+
+\textit{Current state of Cauchy and limits:} The \texttt{IsCauchy} concept is a type-level requirement (subtraction and absolute value operations), but the codebase lacks constructive $\varepsilon$-$N$ verification. The \texttt{HasLimit} concept exists but delegates convergence to test-at-magic-index (e.g., index 10000 for floating-point sequences), without formal evidence that the sequence has actually converged to a specified precision. This design choice favours pragmatism (test in CI) over proof (formal convergence witness).
+
+\textit{Mandelbrot recurrence and divergence:} The Mandelbrot set is naturally expressed as $M = \{ c \in \mathbb{C} \mid \text{orbit of } 0 \text{ under } z \mapsto z^2 + c \text{ is bounded} \}$. The current implementation detects divergence via hardcoded escape-radius criterion (typically $|z_n| > 2$) and a bounded iteration counter. While effective numerically, the formalization conflates two distinct mathematical facts:
+\begin{enumerate}
+  \item \textit{Escape theorem}: $|z_n| > 2 \Rightarrow |z_{n+1}| > 2$ (monotone divergence witness).
+  \item \textit{Executability}: For practical computation, we truncate to $N$ iterations and report ``possibly unbounded'' or ``appears bounded''.
+\end{enumerate}
+The current API returns a numerical count (\texttt{divergence\_count\_in\_window}) rather than a formal divergence criterion, and the binding between ``$|z_n|$ exceeds threshold after $N$ steps'' and ``the orbit diverges to infinity'' is in comments, not in code structure.
+
+\textit{Sequence quantifiers and predicates:} The \texttt{exists} and \texttt{forall} quantifiers are available and support arbitrary \texttt{LogicalMap} codomains (including Ternary/K3 logic), yet the Mandelbrot API reimplements escape detection with hand-rolled loops rather than composing quantifiers (e.g., $\neg \exists({\tt prefix}({\tt orbit}(c), N), {\tt escaped})$). Reframing escape detection as a quantifier would bring the Mandelbrot recurrence into alignment with the sequences DSL and enable future composition with other predicates.
+
+\textit{Recommendations for mathematical clarity:}
+\begin{enumerate}
+  \item Make divergence explicit: express ``orbit diverges'' as a formal property (either a witness $(N, n)$ such that $|z_n| > R$, or a proof that supremum$(\|z_n\|) = \infty$).
+  \item Introduce escape codomains: parametrize the escape radius $R$ and threshold count $N$ as properties of an ``escape criterion'' object, not hardcoded constants.
+  \item Replace hand-rolled escape loops with quantifier expressions: use $\neg \exists({\tt prefix}({\tt orbit}, N), {\tt escaped})$ in place of manual counters, bridging the mathematical definition with the DSL.
+  \item (Future) Layer convergence proofs: add optional proof-carrying variants of \texttt{HasLimit} that return constructive $\varepsilon$-$N$ pairs, enabling downstream theorems to cite convergence evidence.
+\end{enumerate}
 
 \chapter{\texttt{dedekind.algebra}}
 \label{chap:algebra}
@@ -2241,6 +2382,7 @@ Defines the bilinear pairing $\langle -, - \rangle$ and the derived notion of or
 \label{sec:geometry-euclidean}
 
 Adds the $L^2$ norm $\|v\| = \sqrt{\langle v, v \rangle}$ and the triangle inequality, establishing the metric structure required for geometric limits.
+The partition exports canonical distance as \texttt{distance(a,b) = norm(a-b)} for \texttt{Vector<F,N>} and also provides squared-norm predicate factories (\texttt{compare\_euclidean\_norm\_squared}, \texttt{outside\_closed\_euclidean\_ball\_squared}) used by the Mandelbrot escape criteria without introducing square roots.
 
 \section{\texttt{:hilbert}}
 \label{sec:geometry-hilbert}

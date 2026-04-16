@@ -209,6 +209,23 @@ concept LogicalValue = requires {
   requires IsLogicalSpecies<typename GetLogic<T>::type>;
 };
 
+/**
+ * @concept LogicalMap
+ * @brief A callable Pred that maps T -> Ω for some LogicalValue Ω.
+ * Captures the notion of a predicate valued in an arbitrary logic species.
+ */
+export template <typename Pred, typename T>
+concept LogicalMap =
+    std::invocable<const std::decay_t<Pred>&, const T&> &&
+    LogicalValue<std::remove_cvref_t<
+        std::invoke_result_t<const std::decay_t<Pred>&, const T&>>>;
+
+/** @brief Extract the Ω-type of a LogicalMap. */
+export template <typename Pred, typename T>
+  requires LogicalMap<Pred, T>
+using OmegaOf = std::remove_cvref_t<
+    std::invoke_result_t<const std::decay_t<Pred>&, const T&>>;
+
 /** @section Cardinality_Ontology_Tokens */
 export enum class CardinalityTag { Finite, Countable, Continuum };
 

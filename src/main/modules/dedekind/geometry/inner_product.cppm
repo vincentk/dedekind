@@ -39,6 +39,15 @@ constexpr F dot(const Vector<F, N>& u, const Vector<F, N>& v) {
   return res;
 }
 
+/**
+ * @brief Squared Euclidean norm induced by the inner product: <v, v>.
+ */
+export template <typename V>
+  requires requires(const V& v) { dot(v, v); }
+constexpr auto euclidean_norm_squared(const V& v) {
+  return dot(v, v);
+}
+
 /** @brief Induced Norm for Real Species. */
 export template <std::floating_point F, std::size_t N>
 constexpr F norm(const Vector<F, N>& v) {

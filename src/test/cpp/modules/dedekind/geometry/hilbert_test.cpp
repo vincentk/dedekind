@@ -21,6 +21,9 @@ TEST_CASE("Geometry: The Hilbert Horizon", "[geometry][hilbert]") {
   SECTION("Euclidean Metrics: Distance and Norm") {
     Vec3 v{3.0, 4.0, 0.0};
 
+    // Squared norm: <v,v> = 3^2 + 4^2 + 0^2 = 25
+    REQUIRE(euclidean_norm_squared(v) == 25.0);
+
     // The induced norm: ||(3,4,0)|| = sqrt(3^2 + 4^2) = 5
     REQUIRE(norm(v) == 5.0);
   }

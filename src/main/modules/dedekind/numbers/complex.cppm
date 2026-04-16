@@ -54,6 +54,17 @@ class Complex {
   R im_{};
 };
 
+/**
+ * @brief Squared Euclidean norm on Complex<R>: |z|^2 = re^2 + im^2.
+ * @details Kept squared to avoid introducing a square root in hot paths.
+ */
+export template <IsComplexScalar R>
+constexpr R euclidean_norm_squared(const Complex<R>& z) {
+  const R re = z.real();
+  const R im = z.imag();
+  return (re * re) + (im * im);
+}
+
 /** @section Partial_Arithmetic_with_Ternary_Logic */
 
 /**

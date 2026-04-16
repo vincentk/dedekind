@@ -1,0 +1,17 @@
+#!/bin/sh
+
+set -eu
+
+repo_root=$(git rev-parse --show-toplevel)
+
+echo "pre-push: running make format"
+make -C "$repo_root" format
+
+if ! git -C "$repo_root" diff --quiet -- src; then
+  echo "pre-push: formatting changed tracked files under src/." >&2
+  echo "pre-push: review the changes, stage them, and create a new commit before pushing." >&2
+  git -C "$repo_root" --no-pager diff --stat -- src >&2
+  exit 1
+fi
+
+echo "pre-push: formatting check passed"

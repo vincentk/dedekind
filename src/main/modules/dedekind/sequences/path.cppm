@@ -23,17 +23,23 @@
 
 module;
 
+#include <algorithm>
 #include <concepts>
+#include <cstddef>
 #include <functional>
+#include <type_traits>
+#include <utility>
 
 export module dedekind.sequences:path;
 
 import dedekind.category;
+import dedekind.sets;
 import :net;
 
 namespace dedekind::sequences {
 
 using namespace dedekind::category;
+using namespace dedekind::sets;
 
 /**
  * @class Path
@@ -41,13 +47,15 @@ using namespace dedekind::category;
  *
  * @tparam T The Species being enumerated.
  */
-export template <typename T>
+export template <typename T, typename Cardinality = ℵ_0>
 struct Path {
   using Domain = std::size_t;
   using Codomain = T;
+  using cardinality_type = Cardinality;
 
   /** @brief The underlying mapping f(n). */
   std::function<T(std::size_t)> generator;
+  std::size_t extent = 0;
 
   constexpr Codomain operator()(Domain i) const { return generator(i); }
 
@@ -63,9 +71,15 @@ struct Path {
     using ResultPath = std::invoke_result_t<F, T>;
     using U = typename ResultPath::Codomain;
 
-    return Path<U>{[m, f = std::forward<F>(f)](std::size_t n) {
+    auto bound_generator = [m, f = std::forward<F>(f)](std::size_t n) {
       return f(m.at(n)).at(n);
-    }};
+    };
+
+    if constexpr (IsFiniteMagnitude<Cardinality>) {
+      return Path<U, Cardinality>{bound_generator, m.size()};
+    } else {
+      return Path<U, Cardinality>{bound_generator};
+    }
   }
 
   /**
@@ -78,19 +92,119 @@ struct Path {
     // We wrap that U back into a Path<U>.
     using U = std::invoke_result_t<F, Path<T>>;
 
-    return Path<U>{[w, f = std::forward<F>(f)](std::size_t n) {
-      // Create the "sub-path" (suffix) starting at n, then apply f
-      return f(Path<T>{[w, n](std::size_t i) { return w.at(n + i); }});
-    }};
+    auto extended_generator = [w, f = std::forward<F>(f)](std::size_t n) {
+      // Create the "sub-path" (suffix) starting at n, preserving cardinality.
+      if constexpr (IsFiniteMagnitude<Cardinality>) {
+        const std::size_t suffix_size = (n < w.size()) ? w.size() - n : 0;
+        return f(Path<T, Cardinality>{
+            [w, n](std::size_t i) { return w.at(n + i); }, suffix_size});
+      } else {
+        return f(Path<T, Cardinality>{
+            [w, n](std::size_t i) { return w.at(n + i); }});
+      }
+    };
+
+    if constexpr (IsFiniteMagnitude<Cardinality>) {
+      return Path<U, Cardinality>{extended_generator, w.size()};
+    } else {
+      return Path<U, Cardinality>{extended_generator};
+    }
+  }
+
+  constexpr std::size_t size() const noexcept
+    requires IsFiniteMagnitude<Cardinality>
+  {
+    return extent;
   }
 
   /** @brief The Path is generally viewed as a mapping from N. */
-  constexpr auto cardinality() const noexcept {
-    // Return ℵ_0 for infinite paths,
-    // or a Finite(n) wrapper if Path tracks its own length.
-    return ℵ_0{};
-  }
+  constexpr auto cardinality() const noexcept { return Cardinality{}; }
 };
+
+export template <typename T>
+using FinitePath = Path<T, Finite>;
+
+export template <typename T, typename Cardinality>
+constexpr auto prefix(const Path<T, Cardinality>& path, std::size_t length) {
+  if constexpr (IsFiniteMagnitude<Cardinality>) {
+    const std::size_t clamped = std::min(length, path.size());
+    return FinitePath<T>{[path](std::size_t i) { return path.at(i); }, clamped};
+  } else {
+    return FinitePath<T>{[path](std::size_t i) { return path.at(i); }, length};
+  }
+}
+
+export template <typename T, typename Step>
+  requires std::invocable<const std::decay_t<Step>&, const T&> &&
+           std::same_as<
+               std::invoke_result_t<const std::decay_t<Step>&, const T&>, T>
+constexpr auto iterate(T seed, Step&& step) {
+  return Path<T>{[seed, f = std::forward<Step>(step)](std::size_t n) {
+    T value = seed;
+    for (std::size_t i = 0; i < n; ++i) value = std::invoke(f, value);
+    return value;
+  }};
+}
+
+export template <typename T, typename Step>
+  requires std::invocable<const std::decay_t<Step>&, const T&> &&
+           std::same_as<
+               std::invoke_result_t<const std::decay_t<Step>&, const T&>, T>
+constexpr auto iterate(T seed, Step&& step, std::size_t length) {
+  return prefix(iterate(std::move(seed), std::forward<Step>(step)), length);
+}
+
+export template <typename T, typename Cardinality, typename Pred>
+  requires IsFiniteMagnitude<Cardinality> &&
+           std::predicate<const std::decay_t<Pred>&, const T&>
+constexpr std::size_t count_if(const Path<T, Cardinality>& path, Pred&& pred) {
+  auto predicate = std::forward<Pred>(pred);
+  std::size_t count = 0;
+
+  for (std::size_t i = 0; i < path.size(); ++i) {
+    if (std::invoke(predicate, path.at(i))) ++count;
+  }
+
+  return count;
+}
+
+export template <typename T, typename Cardinality, typename Pred>
+  requires LogicalMap<Pred, T>
+constexpr auto exists(const Path<T, Cardinality>& path, Pred&& pred) {
+  using Omega = OmegaOf<Pred, T>;
+  using Logic = LogicOf<Omega>;
+
+  auto predicate = std::forward<Pred>(pred);
+  Omega witness = Logic::False;
+  for (std::size_t i = 0;; ++i) {
+    if constexpr (IsFiniteMagnitude<Cardinality>) {
+      if (i >= path.size()) break;
+    }
+    witness = Logic::OR(witness, std::invoke(predicate, path.at(i)));
+    if (witness == Logic::True)
+      break;  // short-circuit: absorbing element found
+  }
+  return witness;
+}
+
+export template <typename T, typename Cardinality, typename Pred>
+  requires LogicalMap<Pred, T>
+constexpr auto forall(const Path<T, Cardinality>& path, Pred&& pred) {
+  using Omega = OmegaOf<Pred, T>;
+  using Logic = LogicOf<Omega>;
+
+  auto predicate = std::forward<Pred>(pred);
+  Omega witness = Logic::True;
+  for (std::size_t i = 0;; ++i) {
+    if constexpr (IsFiniteMagnitude<Cardinality>) {
+      if (i >= path.size()) break;
+    }
+    witness = Logic::AND(witness, std::invoke(predicate, path.at(i)));
+    if (witness == Logic::False)
+      break;  // short-circuit: absorbing element found
+  }
+  return witness;
+}
 
 }  // namespace dedekind::sequences
 

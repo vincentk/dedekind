@@ -125,6 +125,34 @@ TEST_CASE("Topos: Constant Truth Morphisms", "[category][topoi]") {
     CHECK(result(2) == true);
     CHECK(result(3) == false);
   }
+
+  SECTION("Default constant classifiers over a domain") {
+    auto t = classifier_true<int>();
+    auto f = classifier_false<int>();
+    auto u = classifier_unknown<int>();
+
+    CHECK(t(42) == true);
+    CHECK(f(42) == false);
+    CHECK(u(42) == Ternary::Unknown);
+  }
+
+  SECTION("Boolean constants embed into K3 when composed") {
+    auto unknown_pred = arrow<int>([](int) { return Ternary::Unknown; });
+
+    auto lhs_true = true || unknown_pred;
+    auto lhs_false = false && unknown_pred;
+
+    CHECK(lhs_true(0) == Ternary::True);
+    CHECK(lhs_false(0) == Ternary::False);
+  }
+
+  SECTION("Constant conjunction gate (true && predicate)") {
+    auto even = arrow<int>([](int x) { return x % 2 == 0; });
+    auto gated = true && even;
+
+    CHECK(gated(2) == true);
+    CHECK(gated(3) == false);
+  }
 }
 
 TEST_CASE("Topos: Arrow Operations Closure", "[category][topoi]") {

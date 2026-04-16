@@ -28,10 +28,11 @@ export import :naturals;  // ℕ (Unsigned species)
 export import :integer;   // ℤ (Signed species)
 
 /** @section Algebraic_Extensions (Level 3 & 8) */
-export import :rational;  // ℚ (The Quotient Field)
-export import :complex;   // ℂ (The Cayley-Dickson construction)
-export import :scalars;   // Floating-point anchors
-export import :lattice;   // Lattices over ℝ and ℂ
+export import :rational;    // ℚ (The Quotient Field)
+export import :complex;     // ℂ (The Cayley-Dickson construction)
+export import :scalars;     // Floating-point anchors
+export import :lattice;     // Lattices over ℝ and ℂ
+export import :mandelbrot;  // Mandelbrot recurrence/orbit helpers
 
 /** @section Non_Standard_Analysis */
 export import :dual;      // Automatic Differentiation / Infinitesimals
