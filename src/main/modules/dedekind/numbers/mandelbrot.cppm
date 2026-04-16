@@ -38,9 +38,9 @@ using namespace dedekind::sets;
 template <typename EscapeCriterion, typename ComplexType>
 concept IsEscapeCriterion =
     std::invocable<const std::decay_t<EscapeCriterion>&, const ComplexType&> &&
-    std::same_as<
-        std::invoke_result_t<const std::decay_t<EscapeCriterion>&, const ComplexType&>,
-        bool>;
+    std::same_as<std::invoke_result_t<const std::decay_t<EscapeCriterion>&,
+                                      const ComplexType&>,
+                 bool>;
 
 /**
  * @brief Default escape criterion: Euclidean closed ball.
@@ -106,9 +106,8 @@ constexpr auto M(BoundedPredicate is_bounded) {
  */
 export template <IsComplexScalar R, typename EscapeCriterion>
   requires IsEscapeCriterion<EscapeCriterion, Complex<R>>
-constexpr bool orbit_escapes(const OrbitPath<R>& orbit,
-                              std::size_t max_iter,
-                              const EscapeCriterion& escape_criterion) {
+constexpr bool orbit_escapes(const OrbitPath<R>& orbit, std::size_t max_iter,
+                             const EscapeCriterion& escape_criterion) {
   return exists(prefix(orbit, max_iter),
                 classify<Complex<R>>(escape_criterion).χ);
 }
@@ -118,9 +117,9 @@ constexpr bool orbit_escapes(const OrbitPath<R>& orbit,
  */
 export template <IsComplexScalar R>
 constexpr bool orbit_escapes(const OrbitPath<R>& orbit, std::size_t max_iter,
-                              R escape_radius_squared = R{4}) {
+                             R escape_radius_squared = R{4}) {
   return orbit_escapes(orbit, max_iter,
-                        euclidean_escape_radius_squared(escape_radius_squared));
+                       euclidean_escape_radius_squared(escape_radius_squared));
 }
 
 /**
@@ -144,8 +143,8 @@ constexpr auto prefix_bounded_N(std::size_t max_iter,
 export template <IsComplexScalar R>
 constexpr auto prefix_bounded_N(std::size_t max_iter,
                                 R escape_radius_squared = R{4}) {
-  return prefix_bounded_N<R>(max_iter,
-                              euclidean_escape_radius_squared(escape_radius_squared));
+  return prefix_bounded_N<R>(
+      max_iter, euclidean_escape_radius_squared(escape_radius_squared));
 }
 
 /**

@@ -46,8 +46,7 @@ inline constexpr bool always_false_v = false;
 template <typename C>
 concept IsClassifierConstant =
     std::same_as<std::remove_cvref_t<C>, bool> ||
-    std::same_as<std::remove_cvref_t<C>, Ternary> ||
-    requires {
+    std::same_as<std::remove_cvref_t<C>, Ternary> || requires {
       typename std::remove_cvref_t<C>::logic_species;
       typename std::remove_cvref_t<C>::machine_type;
     };
@@ -89,9 +88,9 @@ constexpr auto lift_classifier_constant(Constant&& value) {
  * mathematical foundation.
  */
 export template <typename P>
-concept IsPredicate = IsArrow<P> && LogicalValue<Cod<P>> &&
-                      LogicalMap<P, Dom<P>> &&
-                      !std::same_as<std::remove_cvref_t<P>, bool>;
+concept IsPredicate =
+    IsArrow<P> && LogicalValue<Cod<P>> && LogicalMap<P, Dom<P>> &&
+    !std::same_as<std::remove_cvref_t<P>, bool>;
 
 /**
  * @concept IsCharacteristic
@@ -215,9 +214,7 @@ auto operator&&(P&& p, Q&& q) {
 /** @brief Conjunction of a constant logical value with a predicate. */
 export template <IsClassifierConstant C, IsPredicate P>
   requires(!IsPredicate<std::remove_cvref_t<C>>) &&
-           requires(C c) {
-    lift_classifier_constant<Cod<P>>(c);
-  }
+          requires(C c) { lift_classifier_constant<Cod<P>>(c); }
 auto operator&&(C&& constant, P&& p) {
   using L = typename GetLogic<Cod<P>>::type;
   using A = Dom<P>;
@@ -232,9 +229,7 @@ auto operator&&(C&& constant, P&& p) {
 /** @brief Conjunction of a predicate with a constant logical value. */
 export template <IsPredicate P, IsClassifierConstant C>
   requires(!IsPredicate<std::remove_cvref_t<C>>) &&
-           requires(C c) {
-    lift_classifier_constant<Cod<P>>(c);
-  }
+          requires(C c) { lift_classifier_constant<Cod<P>>(c); }
 auto operator&&(P&& p, C&& constant) {
   return std::forward<C>(constant) && std::forward<P>(p);
 }
@@ -256,9 +251,7 @@ auto operator||(P&& p, Q&& q) {
 /** @brief Disjunction of a constant logical value with a predicate. */
 export template <IsClassifierConstant C, IsPredicate P>
   requires(!IsPredicate<std::remove_cvref_t<C>>) &&
-           requires(C c) {
-    lift_classifier_constant<Cod<P>>(c);
-  }
+          requires(C c) { lift_classifier_constant<Cod<P>>(c); }
 auto operator||(C&& constant, P&& p) {
   using L = typename GetLogic<Cod<P>>::type;
   using A = Dom<P>;
@@ -273,9 +266,7 @@ auto operator||(C&& constant, P&& p) {
 /** @brief Disjunction of a predicate with a constant logical value. */
 export template <IsPredicate P, IsClassifierConstant C>
   requires(!IsPredicate<std::remove_cvref_t<C>>) &&
-           requires(C c) {
-    lift_classifier_constant<Cod<P>>(c);
-  }
+          requires(C c) { lift_classifier_constant<Cod<P>>(c); }
 auto operator||(P&& p, C&& constant) {
   return std::forward<C>(constant) || std::forward<P>(p);
 }
@@ -302,37 +293,37 @@ auto operator!(P&& p) {
 export template <typename A, typename P, typename Q>
   requires std::invocable<const std::decay_t<P>&, const A&> &&
            std::invocable<const std::decay_t<Q>&, const A&> &&
-           LogicalValue<std::remove_cvref_t<std::invoke_result_t<
-               const std::decay_t<P>&, const A&>>> &&
-           std::same_as<std::remove_cvref_t<std::invoke_result_t<
-                            const std::decay_t<P>&, const A&>>,
-                        std::remove_cvref_t<std::invoke_result_t<
-                            const std::decay_t<Q>&, const A&>>>
+           LogicalValue<std::remove_cvref_t<
+               std::invoke_result_t<const std::decay_t<P>&, const A&>>> &&
+           std::same_as<
+               std::remove_cvref_t<
+                   std::invoke_result_t<const std::decay_t<P>&, const A&>>,
+               std::remove_cvref_t<
+                   std::invoke_result_t<const std::decay_t<Q>&, const A&>>>
 constexpr auto predicate_and(P&& p, Q&& q) {
-  return classify<A>(std::forward<P>(p)).χ &&
-         classify<A>(std::forward<Q>(q)).χ;
+  return classify<A>(std::forward<P>(p)).χ && classify<A>(std::forward<Q>(q)).χ;
 }
 
 /** @brief Disjunction bridge for plain callable predicates over domain A. */
 export template <typename A, typename P, typename Q>
   requires std::invocable<const std::decay_t<P>&, const A&> &&
            std::invocable<const std::decay_t<Q>&, const A&> &&
-           LogicalValue<std::remove_cvref_t<std::invoke_result_t<
-               const std::decay_t<P>&, const A&>>> &&
-           std::same_as<std::remove_cvref_t<std::invoke_result_t<
-                            const std::decay_t<P>&, const A&>>,
-                        std::remove_cvref_t<std::invoke_result_t<
-                            const std::decay_t<Q>&, const A&>>>
+           LogicalValue<std::remove_cvref_t<
+               std::invoke_result_t<const std::decay_t<P>&, const A&>>> &&
+           std::same_as<
+               std::remove_cvref_t<
+                   std::invoke_result_t<const std::decay_t<P>&, const A&>>,
+               std::remove_cvref_t<
+                   std::invoke_result_t<const std::decay_t<Q>&, const A&>>>
 constexpr auto predicate_or(P&& p, Q&& q) {
-  return classify<A>(std::forward<P>(p)).χ ||
-         classify<A>(std::forward<Q>(q)).χ;
+  return classify<A>(std::forward<P>(p)).χ || classify<A>(std::forward<Q>(q)).χ;
 }
 
 /** @brief Negation bridge for plain callable predicates over domain A. */
 export template <typename A, typename P>
   requires std::invocable<const std::decay_t<P>&, const A&> &&
-           LogicalValue<std::remove_cvref_t<std::invoke_result_t<
-               const std::decay_t<P>&, const A&>>>
+           LogicalValue<std::remove_cvref_t<
+               std::invoke_result_t<const std::decay_t<P>&, const A&>>>
 constexpr auto predicate_not(P&& p) {
   return !classify<A>(std::forward<P>(p)).χ;
 }
@@ -360,7 +351,8 @@ constexpr auto classifier_false() {
   return constant_classifier<A, L>(L::False);
 }
 
-/** @brief Default unknown classifier over domain A (only for logics with Unknown). */
+/** @brief Default unknown classifier over domain A (only for logics with
+ * Unknown). */
 export template <typename A, typename L = TernaryLogic>
   requires IsLogicalSpecies<L> && requires { L::Unknown; }
 constexpr auto classifier_unknown() {
@@ -373,9 +365,7 @@ constexpr auto classifier_unknown() {
  */
 export template <IsClassifierConstant C, IsPredicate P>
   requires(!IsPredicate<std::remove_cvref_t<C>>) &&
-           requires(C c) {
-    lift_classifier_constant<Cod<P>>(c);
-  }
+          requires(C c) { lift_classifier_constant<Cod<P>>(c); }
 auto operator>>(C&& constant, P&& p) {
   return std::forward<C>(constant) && std::forward<P>(p);
 }

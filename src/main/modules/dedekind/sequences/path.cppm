@@ -166,7 +166,8 @@ constexpr auto exists(const Path<T, Cardinality>& path, Pred&& pred) {
       if (i >= path.size()) break;
     }
     witness = Logic::OR(witness, std::invoke(predicate, path.at(i)));
-    if (witness == Logic::True) break;  // short-circuit: absorbing element found
+    if (witness == Logic::True)
+      break;  // short-circuit: absorbing element found
   }
   return witness;
 }
@@ -184,7 +185,8 @@ constexpr auto forall(const Path<T, Cardinality>& path, Pred&& pred) {
       if (i >= path.size()) break;
     }
     witness = Logic::AND(witness, std::invoke(predicate, path.at(i)));
-    if (witness == Logic::False) break;  // short-circuit: absorbing element found
+    if (witness == Logic::False)
+      break;  // short-circuit: absorbing element found
   }
   return witness;
 }

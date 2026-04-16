@@ -63,9 +63,7 @@ constexpr auto compare_euclidean_norm_squared(Threshold threshold,
       { euclidean_norm_squared(x) };
       { std::invoke(compare, euclidean_norm_squared(x), threshold) };
     }
-  {
-    return std::invoke(compare, euclidean_norm_squared(x), threshold);
-  };
+  { return std::invoke(compare, euclidean_norm_squared(x), threshold); };
 }
 
 /**
