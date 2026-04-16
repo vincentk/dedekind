@@ -33,10 +33,8 @@
  *
  * Wikipedia: Integer lattice, Convex set, Injective function
  *
- * @note "In dedekind.sequences:ranges, structure is clarified by explicit
- * composition and typed interfaces." (Module-specific documentation note for
- * maintainers.)
- *       -- dedekind maintainers
+ * @note "This procedure is the demonstration by recurrence."
+ *       -- Henri Poincare, Science and Hypothesis (1901)
  */
 module;
 

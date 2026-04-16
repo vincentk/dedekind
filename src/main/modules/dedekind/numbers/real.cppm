@@ -7,10 +7,9 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @note "In dedekind.numbers:real, structure is clarified by explicit
- * composition and typed interfaces." (Module-specific documentation note for
- * maintainers.)
- *       -- dedekind maintainers
+ * @note "Die Zahlen sind freie Schöpfungen des menschlichen Geistes."
+ *       ("Numbers are free creations of the human mind.")
+ *       -- Richard Dedekind, Was sind und was sollen die Zahlen? (1888)
  */
 module;
 

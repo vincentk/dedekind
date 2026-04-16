@@ -40,10 +40,9 @@
  * @see Lambek, J.; Scott, P. J. (1988). Introduction to Higher-Order
  * Categorical Logic.
  *
- * @note "In dedekind.category:logic, structure is clarified by explicit
- * composition and typed interfaces." (Module-specific documentation note for
- * maintainers.)
- *       -- dedekind maintainers
+ * @note "Every kind of science, if it has only reached a certain degree of
+ * maturity, automatically becomes a part of mathematics."
+ *       -- David Hilbert, Axiomatic Thought (1918)
  */
 module;
 

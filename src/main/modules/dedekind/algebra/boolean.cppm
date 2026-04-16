@@ -30,10 +30,8 @@
  * (Mathematics is not a bag of tricks; it is a grammar of forms.)
  * — Emma Castelnuovo
  *
- * @note "In dedekind.algebra:boolean, structure is clarified by explicit
- * composition and typed interfaces." (Module-specific documentation note for
- * maintainers.)
- *       -- dedekind maintainers
+ * @note "The mathematician is born, not made."
+ *       -- Henri Poincare, The Value of Science (1905)
  */
 module;
 

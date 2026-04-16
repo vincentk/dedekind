@@ -26,10 +26,10 @@
  * | `One` (Terminal)    | `std::monostate`      | Unique sink (1)      |
  * | `Zero` (Initial)    | `std::nullptr_t`      | Unique source (0)    |
  *
- * @note "In dedekind.category:limit, structure is clarified by explicit
- * composition and typed interfaces." (Module-specific documentation note for
- * maintainers.)
- *       -- dedekind maintainers
+ * @note "This conviction of the solvability of every mathematical problem is a
+ * powerful incentive to the worker. We hear within us the perpetual call:
+ * There is the problem. Seek its solution."
+ *       -- David Hilbert, Mathematical Problems (1900)
  */
 module;
 

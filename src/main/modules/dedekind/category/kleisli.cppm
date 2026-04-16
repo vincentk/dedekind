@@ -45,10 +45,12 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @note "In dedekind.category:kleisli, structure is clarified by explicit
- * composition and typed interfaces." (Module-specific documentation note for
- * maintainers.)
- *       -- dedekind maintainers
+ * @note "Important though the general concepts and propositions may be with
+ * which the modern industrious passion for axiomatizing and generalizing has
+ * presented us, in algebra perhaps more than anywhere else, nevertheless I am
+ * convinced that the special problems in all their complexity constitute the
+ * stock and core of mathematics."
+ *       -- Hermann Weyl, The Classical Groups (1939)
  */
 module;
 

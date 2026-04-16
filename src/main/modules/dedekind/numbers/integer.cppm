@@ -6,10 +6,10 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @note "In dedekind.numbers:integer, structure is clarified by explicit
- * composition and typed interfaces." (Module-specific documentation note for
- * maintainers.)
- *       -- dedekind maintainers
+ * @note "Die ganzen Zahlen hat der liebe Gott gemacht, alles andere ist
+ * Menschenwerk."
+ *       ("God made the integers; all else is the work of man.")
+ *       -- Leopold Kronecker, Jahresbericht der DMV 2 (1891, reported)
  */
 module;
 

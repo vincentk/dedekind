@@ -6,10 +6,9 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @note "In dedekind.numbers:mandelbrot, structure is clarified by explicit
- * composition and typed interfaces." (Module-specific documentation note for
- * maintainers.)
- *       -- dedekind maintainers
+ * @note "Man muss immer umkehren."
+ *       ("One must always invert.")
+ *       -- Carl Gustav Jacob Jacobi
  */
 module;
 

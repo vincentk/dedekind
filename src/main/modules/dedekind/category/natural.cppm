@@ -50,10 +50,10 @@
  * are checked by lifting identity arrows and reading off the resulting domain
  * object, rather than by ranging over a separate textbook object class.
  *
- * @note "In dedekind.category:natural, structure is clarified by explicit
- * composition and typed interfaces." (Module-specific documentation note for
- * maintainers.)
- *       -- dedekind maintainers
+ * @note "Logic teaches us that on such and such a road we are sure of not
+ * meeting an obstacle; it does not tell us which is the road that leads to the
+ * desired end."
+ *       -- Henri Poincare, Science and Method (1908)
  */
 module;
 

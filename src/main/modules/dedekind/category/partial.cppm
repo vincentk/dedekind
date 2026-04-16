@@ -16,10 +16,9 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @note "In dedekind.category:partial, structure is clarified by explicit
- * composition and typed interfaces." (Module-specific documentation note for
- * maintainers.)
- *       -- dedekind maintainers
+ * @note "To doubt everything or to believe everything are two equally
+ * convenient solutions; both dispense with the necessity of reflection."
+ *       -- Henri Poincare, Science and Hypothesis (1901)
  */
 module;
 

@@ -29,10 +29,11 @@
  *
  * @copyright 2026 The Dedekind Authors
  *
- * @note "In dedekind.category:total, structure is clarified by explicit
- * composition and typed interfaces." (Module-specific documentation note for
- * maintainers.)
- *       -- dedekind maintainers
+ * @note "I obtained scientific guidance and stimulation mainly through
+ * personal mathematical contacts in Erlangen and in Gottingen. Above all I am
+ * indebted to E. Fischer, from whom I received the decisive impulse to study
+ * abstract algebra from an arithmetical viewpoint."
+ *       -- Emmy Noether, Habilitation curriculum vitae (1919)
  */
 module;
 

@@ -2,14 +2,7 @@
  * @file dedekind/category/action.cppm
  * @partition :action
  * @brief Level 1: The Morphisms of Influence (Actions and Representations).
- *
- * @section The_Action_Axiom
- * « Качественные методы позволяют исследовать структуру пространства
- *   через инвариантные множества и их преобразования. »
- *  (Qualitative methods allow the study of the structure of space
- *   through invariant sets and their transformations.)
- *  — V. V. Stepanov (В. В. Степанов), 'Курс дифференциальных уравнений'
- *
+
  * @section Structural_Influence
  * While Level 0 (:morphism) defines mapping between species,
  * Level 1 defines the "Action" of a Species S upon a Species M (S ⟳ M).
@@ -25,10 +18,12 @@
  *
  * @copyright 2026 The Dedekind Authors
  *
- * @note "In dedekind.category:action, structure is clarified by explicit
- * composition and typed interfaces." (Module-specific documentation note for
- * maintainers.)
- *       -- dedekind maintainers
+ * @note « Качественные методы позволяют исследовать структуру пространства
+ *   через инвариантные множества и их преобразования. »
+ *  (Qualitative methods allow the study of the structure of space
+ *   through invariant sets and their transformations.)
+ *  — V. V. Stepanov (В. В. Степанов), 'Курс дифференциальных уравнений'
+ *
  */
 module;
 

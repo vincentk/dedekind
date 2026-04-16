@@ -38,10 +38,8 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @note "In dedekind.category:posetal, structure is clarified by explicit
- * composition and typed interfaces." (Module-specific documentation note for
- * maintainers.)
- *       -- dedekind maintainers
+ * @note "Science, in other words, is a system of relations."
+ *       -- Henri Poincare, The Value of Science (1905)
  */
 module;
 

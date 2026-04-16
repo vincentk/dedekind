@@ -21,10 +21,9 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @note "In dedekind.sequences:net, structure is clarified by explicit
- * composition and typed interfaces." (Module-specific documentation note for
- * maintainers.)
- *       -- dedekind maintainers
+ * @note "La duda es uno de los nombres de la inteligencia."
+ *       — Jorge Luis Borges (Argentina), Spanish Wikiquote.
+ *       [Trans: "Doubt is one of the names of intelligence."]
  */
 module;
 

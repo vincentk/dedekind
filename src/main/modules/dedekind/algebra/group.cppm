@@ -13,11 +13,11 @@
  * symmetric elements: the negative (-x) for addition and the
  * reciprocal (1/x) for multiplication.
  *
- * @note  * « Det er utvilsomt at gruppeteorien er den mest fundamentale del av
- *   den moderne matematikken. »
- *  (It is beyond doubt that group theory is the most fundamental part
- *   of modern mathematics.)
- *  — Sophus Lie, 'Gesammelte Abhandlungen'
+ * @note "Det er utvilsomt at gruppeteorien er den mest fundamentale del av
+ *       den moderne matematikken."
+ *       ("It is beyond doubt that group theory is the most fundamental part
+ *       of modern mathematics.")
+ *       -- Sophus Lie, Gesammelte Abhandlungen
  */
 module;
 

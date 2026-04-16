@@ -27,10 +27,9 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @note "Die ganzen Zahlen hat der liebe Gott gemacht, alles andere ist
- *  Menschenwerk." (God made the integers; all else is the work of man.)
- *  — Leopold Kronecker (paraphrased); but Kronecker would have disapproved
- *  of non-commutative multiplication — Hamilton was braver.
+ * @note "I think I have already said somewhere that mathematics is the art of
+ * giving the same name to different things."
+ *       -- Henri Poincare, Science and Method (1908)
  */
 module;
 #include <concepts>

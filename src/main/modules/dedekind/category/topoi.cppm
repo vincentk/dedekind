@@ -25,10 +25,9 @@
  * @see Lawvere (1964), An elementary theory of the category of sets.
  * @see Lambek & Scott (1988), Introduction to Higher-Order Categorical Logic.
  *
- * @note "In dedekind.category:topoi, structure is clarified by explicit
- * composition and typed interfaces." (Module-specific documentation note for
- * maintainers.)
- *       -- dedekind maintainers
+ * @note "BUDOWANE JEST MNIEJ DOSKONALE OD BUDUJACEGO."
+ *       ("What is built is less perfect than what builds it.")
+ *       -- Stanislaw Lem, GOLEM XIV
  */
 
 module;

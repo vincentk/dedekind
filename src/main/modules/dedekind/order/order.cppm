@@ -18,9 +18,9 @@
  *
  * Wikipedia: Order theory, Directed set, Partial order, Strict weak ordering
  *
- * @note "In dedekind.order, structure is clarified by explicit composition and
- * typed interfaces." (Module-specific documentation note for maintainers.)
- *       -- dedekind maintainers
+ * @note "כל עגול אין לו ראשית, רק כרצון איש ואיש."
+ *       — אברהם אבן עזרא, Hebrew Wikiquote.
+ *       [Trans: "A circle has no beginning, except as each person chooses."]
  */
 module;
 #include <algorithm>

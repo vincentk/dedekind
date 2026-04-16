@@ -12,10 +12,10 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @note "In dedekind.category:monad, structure is clarified by explicit
- * composition and typed interfaces." (Module-specific documentation note for
- * maintainers.)
- *       -- dedekind maintainers
+ * @note "The introduction of the digit 0 or the group concept was general
+ * nonsense too, and mathematics was more or less stagnating for thousands of
+ * years because nobody was around to take such childish steps."
+ *       -- Alexander Grothendieck, letter to Ronald Brown (5 May 1982)
  */
 module;
 

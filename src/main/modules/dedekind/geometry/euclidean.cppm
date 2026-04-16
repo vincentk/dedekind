@@ -16,10 +16,10 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @note "In dedekind.geometry:euclidean, structure is clarified by explicit
- * composition and typed interfaces." (Module-specific documentation note for
- * maintainers.)
- *       -- dedekind maintainers
+ * @note "With the aid of visual imagination we can illuminate the manifold
+ * facts and problems."
+ *       -- David Hilbert and S. Cohn-Vossen, Geometry and the Imagination
+ *          (1932)
  */
 
 module;

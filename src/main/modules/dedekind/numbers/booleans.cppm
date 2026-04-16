@@ -30,10 +30,9 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @note "In dedekind.numbers:booleans, structure is clarified by explicit
- * composition and typed interfaces." (Module-specific documentation note for
- * maintainers.)
- *       -- dedekind maintainers
+ * @note "It is not of the essence of mathematics to be conversant with the
+ * ideas of number and quantity."
+ *       -- George Boole, An Investigation of the Laws of Thought (1854)
  */
 module;
 

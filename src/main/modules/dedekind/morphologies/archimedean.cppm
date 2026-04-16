@@ -7,10 +7,11 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @note "In dedekind.morphologies:archimedean, structure is clarified by
- * explicit composition and typed interfaces." (Module-specific documentation
- * note for maintainers.)
- *       -- dedekind maintainers
+ * @note चतुराधिकं शतमष्टगुणं द्वा षष्ठीस्तथा सहस्रद्वयम्। — Aryabhata,
+ * *Aryabhatiya*, Ganitapada 10 (499 CE). [Sanskrit original; Trans: "Add four
+ * to 100, multiply by eight, and then add 62,000. This is the measure of the
+ * circumference of a circle whose diameter is 20,000." Yields π ≈ 3.1416,
+ * accurate to 4 decimal places.]
  */
 module;
 

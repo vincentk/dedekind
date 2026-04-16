@@ -40,10 +40,9 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @note "In dedekind.sets:singleton, structure is clarified by explicit
- * composition and typed interfaces." (Module-specific documentation note for
- * maintainers.)
- *       -- dedekind maintainers
+ * @note "What is clear and easily comprehended attracts, the complicated
+ * repels us."
+ *       -- David Hilbert, Mathematical Problems (1900)
  */
 module;
 

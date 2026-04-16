@@ -6,10 +6,8 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @note "In dedekind.analysis:forms, structure is clarified by explicit
- * composition and typed interfaces." (Module-specific documentation note for
- * maintainers.)
- *       -- dedekind maintainers
+ * @note "To new concepts correspond, necessarily, new signs."
+ *       -- David Hilbert, Mathematical Problems (1900)
  */
 
 module;

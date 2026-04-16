@@ -19,9 +19,11 @@
  * "built-in" primitives, but as specific positions within an algebraic
  * and order-theoretic hierarchy.
  *
- * @note "In dedekind.numbers, structure is clarified by explicit composition
- * and typed interfaces." (Module-specific documentation note for maintainers.)
- *       -- dedekind maintainers
+ * @note "Meine Methoden sind wirklich Methoden des Arbeitens und Denkens;
+ * deshalb sind sie überall anonym eingedrungen." — Emmy Noether, letter to
+ * Helmut Hasse (1931), cited in Auguste Dick, *Emmy Noether, 1882-1935* (1981).
+ * [Trans: "My methods are really methods of working and thinking; this is why
+ * they have crept in everywhere anonymously."]
  */
 
 export module dedekind.numbers;

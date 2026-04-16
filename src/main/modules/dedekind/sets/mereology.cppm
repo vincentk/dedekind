@@ -38,10 +38,9 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @note "In dedekind.sets:mereology, structure is clarified by explicit
- * composition and typed interfaces." (Module-specific documentation note for
- * maintainers.)
- *       -- dedekind maintainers
+ * @note "It is this bond, and this bond alone, which is the object in itself,
+ * and this bond is a relation."
+ *       -- Henri Poincare, The Value of Science (1905)
  */
 module;
 

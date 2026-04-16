@@ -71,10 +71,11 @@
  *   are lifting utilities, not IsFunctor hub models by themselves.
  *
  *
- * @note "In dedekind.category:functor, structure is clarified by explicit
- * composition and typed interfaces." (Module-specific documentation note for
- * maintainers.)
- *       -- dedekind maintainers
+ * @note "If we do not succeed in solving a mathematical problem, the reason
+ * frequently consists in our failure to recognize the more general standpoint
+ * from which the problem before us appears only as a single link in a chain of
+ * related problems."
+ *       -- David Hilbert, Mathematical Problems (1900)
  */
 
 module;

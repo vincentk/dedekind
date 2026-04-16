@@ -6,10 +6,9 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @note "In dedekind.geometry:inner_product, structure is clarified by explicit
- * composition and typed interfaces." (Module-specific documentation note for
- * maintainers.)
- *       -- dedekind maintainers
+ * @note "The principal aim of mathematical education is to develop certain
+ * faculties of the mind, and among these intuition is not the least precious."
+ *       -- Henri Poincare, Science and Method (1908)
  */
 
 module;

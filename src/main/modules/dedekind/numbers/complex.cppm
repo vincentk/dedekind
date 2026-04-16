@@ -6,10 +6,11 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @note "In dedekind.numbers:complex, structure is clarified by explicit
- * composition and typed interfaces." (Module-specific documentation note for
- * maintainers.)
- *       -- dedekind maintainers
+ * @note "Les mathematiciens n'etudient pas des objets, mais des relations
+ * entre des objets."
+ *       ("Mathematicians do not study objects, but the relations between
+ * objects.")
+ *       -- Henri Poincare, La Science et l'hypothese (1902)
  */
 module;
 

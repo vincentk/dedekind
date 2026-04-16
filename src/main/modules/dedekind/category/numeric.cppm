@@ -14,10 +14,10 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @note "In dedekind.category:numeric, structure is clarified by explicit
- * composition and typed interfaces." (Module-specific documentation note for
- * maintainers.)
- *       -- dedekind maintainers
+ * @note "If one proves the equality of two numbers a and b by showing first
+ * that a <= b and then that a >= b, it is unfair; one should instead show that
+ * they are really equal by disclosing the inner ground for their equality."
+ *       -- Emmy Noether, as quoted by Hermann Weyl (1935)
  */
 module;
 

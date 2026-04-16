@@ -36,10 +36,8 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @note "In dedekind.sets:boundaries, structure is clarified by explicit
- * composition and typed interfaces." (Module-specific documentation note for
- * maintainers.)
- *       -- dedekind maintainers
+ * @note "For us there is no ignorabimus."
+ *       -- David Hilbert, Konigsberg address (1930)
  */
 module;
 

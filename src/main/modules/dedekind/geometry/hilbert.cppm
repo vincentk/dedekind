@@ -6,10 +6,9 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @note "In dedekind.geometry:hilbert, structure is clarified by explicit
- * composition and typed interfaces." (Module-specific documentation note for
- * maintainers.)
- *       -- dedekind maintainers
+ * @note "Symmetry is a vast subject, significant in art and nature.
+ * Mathematics lies at its root."
+ *       -- Hermann Weyl, Symmetry (1952)
  */
 
 module;

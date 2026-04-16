@@ -13,7 +13,8 @@
  * creating the 'Linear Action' that serves as the engine for all
  * Vector Spaces and Metric Geometry in the Dedekind topos.
  *
- * @note „Die Arithmetik, Algebra und Analysis sind nur eine einzige Wissenschaft,
+ * @note „Die Arithmetik, Algebra und Analysis sind nur eine einzige
+ Wissenschaft,
  *  die Wissenschaft der Zahlen.“
  *  (Arithmetic, algebra, and analysis are but a single science,
  *   the science of numbers.)
@@ -255,8 +256,7 @@ constexpr OneDimensionalVector<S, Tag> scale_strength_reduced(
 export template <typename V, typename F, typename Act = std::multiplies<>>
 concept IsVectorSpaceLike = requires(F a, F b, V v) {
   { v + v } -> std::same_as<V>;
-  { v - v } -> std::same_as<V>;
-  { V{} } -> std::same_as<V>;
+  { -v } -> std::same_as<V>;
   { a + b } -> std::same_as<F>;
   { a - b } -> std::same_as<F>;
   { a * b } -> std::same_as<F>;

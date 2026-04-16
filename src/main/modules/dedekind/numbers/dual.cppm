@@ -6,10 +6,11 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @note "In dedekind.numbers:dual, structure is clarified by explicit
- * composition and typed interfaces." (Module-specific documentation note for
- * maintainers.)
- *       -- dedekind maintainers
+ * @note "Meine Methoden sind wirklich Methoden des Arbeitens und Denkens;
+ * deshalb sind sie uberall anonym eingedrungen."
+ *       ("My methods are really methods of working and thinking; this is why
+ * they have crept in everywhere anonymously.")
+ *       -- Emmy Noether, letter to Helmut Hasse (1931)
  */
 
 module;

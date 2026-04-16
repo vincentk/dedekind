@@ -37,10 +37,9 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @note "In dedekind.sets:family, structure is clarified by explicit
- * composition and typed interfaces." (Module-specific documentation note for
- * maintainers.)
- *       -- dedekind maintainers
+ * @note "The art of doing mathematics consists in finding that special case
+ * which contains all the germs of generality."
+ *       -- David Hilbert, quoted in Constance Reid, Hilbert (1970)
  */
 module;
 

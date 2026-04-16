@@ -38,16 +38,13 @@
  * - Pierce (1991) -- basic category theory @cite pierce1991basic
  *
  * @quote
- * "Dans la logique categorielle, un ensemble n'est pas une collection
- *  d'elements, mais un objet defini par ses fleches."
- * ("In categorical logic, a set is not a collection of elements,
- *  but an object defined by its arrows.")
- * -- F.W. Lawvere, paraphrase of the ETCS programme
+ * "Future users of large data banks must be protected from having to know how
+ * the data is organized in the machine."
+ * -- E. F. Codd, A Relational Model of Data for Large Shared Data Banks (1970)
  *
- * @note "In dedekind.sets:expressions, structure is clarified by explicit
- * composition and typed interfaces." (Module-specific documentation note for
- * maintainers.)
- *       -- dedekind maintainers
+ * @note "What is objective must be common to many minds and consequently
+ * transmissible from one to the other."
+ *       -- Henri Poincare, The Value of Science (1905)
  */
 module;
 

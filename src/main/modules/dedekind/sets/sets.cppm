@@ -30,9 +30,9 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @note "In dedekind.sets, structure is clarified by explicit composition and
- * typed interfaces." (Module-specific documentation note for maintainers.)
- *       -- dedekind maintainers
+ * @note "Das Wesen der Mathematik liegt in ihrer Freiheit." — Georg Cantor,
+ * *Grundlagen einer allgemeinen Mannigfaltigkeitslehre* (1883).
+ * [Trans: "The essence of mathematics lies entirely in its freedom."]
  */
 export module dedekind.sets;
 

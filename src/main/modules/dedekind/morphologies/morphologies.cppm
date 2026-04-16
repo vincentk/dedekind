@@ -28,10 +28,9 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @note "In dedekind.morphologies, structure is clarified by explicit
- * composition and typed interfaces." (Module-specific documentation note for
- * maintainers.)
- *       -- dedekind maintainers
+ * @note "Mathematics knows no races or geographic boundaries; for
+ * mathematics, the cultural world is one country."
+ *       -- David Hilbert, quoted in Mathematical Circles Revisited (1971)
  */
 module;
 

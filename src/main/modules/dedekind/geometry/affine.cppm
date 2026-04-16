@@ -6,10 +6,9 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @note "In dedekind.geometry:affine, structure is clarified by explicit
- * composition and typed interfaces." (Module-specific documentation note for
- * maintainers.)
- *       -- dedekind maintainers
+ * @note "Space and time are commonly regarded as the forms of existence of the
+ * real world, matter as its substance."
+ *       -- Hermann Weyl, Space-Time-Matter (1918)
  */
 
 module;

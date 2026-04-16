@@ -32,10 +32,9 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @note "In dedekind.numbers:scalars, structure is clarified by explicit
- * composition and typed interfaces." (Module-specific documentation note for
- * maintainers.)
- *       -- dedekind maintainers
+ * @note "Das Wesen der Mathematik liegt gerade in ihrer Freiheit."
+ *       ("The essence of mathematics lies precisely in its freedom.")
+ *       -- Georg Cantor
  */
 module;
 

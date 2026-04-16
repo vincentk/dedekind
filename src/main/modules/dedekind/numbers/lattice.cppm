@@ -6,10 +6,9 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @note "In dedekind.numbers:lattice, structure is clarified by explicit
- * composition and typed interfaces." (Module-specific documentation note for
- * maintainers.)
- *       -- dedekind maintainers
+ * @note "Wir mussen wissen, wir werden wissen."
+ *       ("We must know, we will know.")
+ *       -- David Hilbert (1930)
  */
 
 module;

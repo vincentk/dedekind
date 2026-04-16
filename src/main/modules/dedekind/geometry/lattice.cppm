@@ -6,10 +6,9 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @note "In dedekind.geometry:lattice, structure is clarified by explicit
- * composition and typed interfaces." (Module-specific documentation note for
- * maintainers.)
- *       -- dedekind maintainers
+ * @note "The Greeks made Space the subject-matter of a science of supreme
+ * simplicity and certainty."
+ *       -- Hermann Weyl, Space-Time-Matter (1918)
  */
 
 module;

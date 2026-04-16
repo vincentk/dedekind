@@ -27,10 +27,9 @@
  *
  * Wikipedia: Pullback (category theory), Equaliser (mathematics)
  *
- * @note "In dedekind.category:pullback, structure is clarified by explicit
- * composition and typed interfaces." (Module-specific documentation note for
- * maintainers.)
- *       -- dedekind maintainers
+ * @note "In these days the angel of topology and the devil of abstract algebra
+ * fight for the soul of each individual mathematical domain."
+ *       -- Hermann Weyl, Invariants (1939)
  */
 module;
 

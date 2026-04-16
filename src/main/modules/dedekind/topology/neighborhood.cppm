@@ -33,10 +33,9 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @note "In dedekind.topology:neighborhood, structure is clarified by explicit
- * composition and typed interfaces." (Module-specific documentation note for
- * maintainers.)
- *       -- dedekind maintainers
+ * @note "I am superior, sir, in many ways. But I would gladly give it up, to be
+ * Human."
+ *       -- Data, Star Trek: The Next Generation, "Encounter at Farpoint" (1987)
  */
 module;
 #include <concepts>

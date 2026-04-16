@@ -31,10 +31,11 @@
  * represent.) — Paolo Aluffi, Algebra: Chapter 0
  *
  *
- * @note "In dedekind.category:small, structure is clarified by explicit
- * composition and typed interfaces." (Module-specific documentation note for
- * maintainers.)
- *       -- dedekind maintainers
+ * @note "With all the variety of mathematical knowledge, we are still clearly
+ * conscious of the similarity of the logical devices, the relationship of the
+ * ideas in mathematics as a whole and the numerous analogies in its different
+ * departments."
+ *       -- David Hilbert, Mathematical Problems (1900)
  */
 
 module;

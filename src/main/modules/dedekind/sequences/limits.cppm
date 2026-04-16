@@ -17,10 +17,9 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @note "In dedekind.sequences:limits, structure is clarified by explicit
- * composition and typed interfaces." (Module-specific documentation note for
- * maintainers.)
- *       -- dedekind maintainers
+ * @note "A mathematical problem should be difficult in order to entice us, yet
+ * not completely inaccessible, lest it mock at our efforts."
+ *       -- David Hilbert, Mathematical Problems (1900)
  */
 
 module;

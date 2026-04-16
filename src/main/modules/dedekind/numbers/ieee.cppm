@@ -6,10 +6,11 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @note "In dedekind.numbers.ieee, structure is clarified by explicit
- * composition and typed interfaces." (Module-specific documentation note for
- * maintainers.)
- *       -- dedekind maintainers
+ * @note "La mathematique est l'art de donner le meme nom a des choses
+ * differentes."
+ *       ("Mathematics is the art of giving the same name to different
+ * things.")
+ *       -- Henri Poincare
  */
 module;
 

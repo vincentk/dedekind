@@ -6,9 +6,9 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @note "In dedekind.ieee, structure is clarified by explicit composition and
- * typed interfaces." (Module-specific documentation note for maintainers.)
- *       -- dedekind maintainers
+ * @note "One can measure the importance of a scientific work by the number of
+ * earlier publications rendered superfluous by it."
+ *       -- David Hilbert, quoted in Mathematical Circles Revisited (1971)
  */
 module;
 

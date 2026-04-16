@@ -23,10 +23,8 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @note "In dedekind.sequences:path, structure is clarified by explicit
- * composition and typed interfaces." (Module-specific documentation note for
- * maintainers.)
- *       -- dedekind maintainers
+ * @note "I am striking out a new path for myself."
+ *       -- Srinivasa Ramanujan, letter to G. H. Hardy (16 January 1913)
  */
 
 module;

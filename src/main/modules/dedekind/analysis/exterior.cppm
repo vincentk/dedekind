@@ -6,10 +6,8 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @note "In dedekind.analysis:exterior, structure is clarified by explicit
- * composition and typed interfaces." (Module-specific documentation note for
- * maintainers.)
- *       -- dedekind maintainers
+ * @note "It is by logic that we prove, but by intuition that we discover."
+ *       -- Henri Poincare, Science and Method (1908)
  */
 module;
 

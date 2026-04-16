@@ -46,9 +46,11 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @note "الجبر ميزان المعاني قبل ميزان المقادير."
- *       ("Algebra balances meanings before it balances magnitudes.")
- *       -- inspired by al-Khwarizmi, paraphrase
+ * @note "أشدُّ ما يحتاج إليه من يُعنى بعلم الحساب أن يعرف ما يحتاج الناس إليه في
+ * معاملاتهم من المقادير، إذ بذلك يقاس العدل في القضاء." — محمد بن موسى
+ * الخوارزمي، منسوب في ويكي الاقتباس العربي. [Trans: "What one most needs in the
+ * science of computation is to know the quantities people need in their
+ * dealings, for by that, justice in judgment is measured."]
  */
 
 module;

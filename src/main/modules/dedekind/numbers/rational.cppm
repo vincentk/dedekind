@@ -6,10 +6,11 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @note "In dedekind.numbers:rational, structure is clarified by explicit
- * composition and typed interfaces." (Module-specific documentation note for
- * maintainers.)
- *       -- dedekind maintainers
+ * @note "Etudiez la nature, aimez la nature, approchez-vous de la nature.
+ * Elle ne vous trompera jamais."
+ *       ("Study nature, love nature, stay close to nature. It will never
+ * fail you.")
+ *       -- Jean-Baptiste Fourier
  */
 
 module;

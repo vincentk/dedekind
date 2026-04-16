@@ -6,10 +6,10 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @note "In dedekind.morphologies:cyclic, structure is clarified by explicit
- * composition and typed interfaces." (Module-specific documentation note for
- * maintainers.)
- *       -- dedekind maintainers
+ * @note "Matematik esas olarak sabır olayıdır. Belleyerek değil keşfederek
+ * anlamak gerekir." — Cahit Arf, Turkish Wikiquote. [Trans: "Mathematics is
+ * essentially a matter of patience. One must understand by discovering, not by
+ * memorizing."]
  */
 module;
 
