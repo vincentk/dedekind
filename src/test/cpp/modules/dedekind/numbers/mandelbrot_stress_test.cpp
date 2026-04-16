@@ -156,6 +156,38 @@ TEST_CASE("Sets: adapted Mandelbrot set-builder stress test",
                                 static_cast<std::size_t>(size + 1));
     REQUIRE(ascii == expected);
   }
+
+  SECTION("Parametrized escape criterion: custom radius") {
+    // Test with a custom escape radius (3 instead of 2)
+    const auto large_radius_criterion =
+        euclidean_escape_radius_squared<double>(9.0);  // 3^2 = 9
+    
+    const ComplexPoint test_point{2.5, 0.0};
+    
+    // Point with magnitude 2.5 > 2 (default) but < 3
+    // With default criterion (radius 2): should escape
+    // With custom criterion (radius 3): should not escape
+    REQUIRE(euclidean_escape_radius_squared<double>()(test_point) == true);
+    REQUIRE(large_radius_criterion(test_point) == false);
+  }
+
+  SECTION("Divergence count with custom escape criterion") {
+    // Use a larger escape radius
+    auto custom_criterion = euclidean_escape_radius_squared<double>(16.0);  // 4^2
+    auto window = [](const auto& orbit) { return prefix(orbit, 10u); };
+    
+    const ComplexPoint c{0.25, 0.0};  // A point in the Mandelbrot set
+    const auto orbit = mandelbrot_orbit(c);
+    
+    // With radius 4, orbit should not escape in first 10 iterations
+    const auto count_with_large_radius = divergence_count_in_window<double>(window, custom_criterion)(orbit);
+    REQUIRE(count_with_large_radius == 0u);
+    
+    // With standard radius 2
+    const auto count_with_default = divergence_count_in_window<double>(window, 4.0)(orbit);
+    // Orbit at c=0.25 should be stable enough to not escape immediately
+    REQUIRE(count_with_default == 0u);
+  }
 }
 
 TEST_CASE("Sets: Mandelbrot benchmark-style rendering",

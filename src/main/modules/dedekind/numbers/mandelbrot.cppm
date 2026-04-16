@@ -25,6 +25,37 @@ using namespace dedekind::geometry;
 using namespace dedekind::sequences;
 using namespace dedekind::sets;
 
+/**
+ * @concept IsEscapeCriterion
+ * @brief Abstractly specifies when an orbit point has "escaped" to infinity.
+ *
+ * An escape criterion is a callable that maps a complex number to a boolean:
+ * true if the point exceeds the escape radius, false otherwise.
+ *
+ * Formally, it encodes a predicate P : C -> {true, false} such that
+ * P(z) = true when the magnitude condition signals eventual divergence.
+ */
+template <typename EscapeCriterion, typename ComplexType>
+concept IsEscapeCriterion =
+    std::invocable<const std::decay_t<EscapeCriterion>&, const ComplexType&> &&
+    std::same_as<
+        std::invoke_result_t<const std::decay_t<EscapeCriterion>&, const ComplexType&>,
+        bool>;
+
+/**
+ * @brief Default escape criterion: Euclidean closed ball.
+ *
+ * Returns a predicate that is true when |z|^2 > escape_radius_squared.
+ * This is the standard criterion for Mandelbrot dynamics: if |z| > 2,
+ * the orbit escapes to infinity monotonically.
+ */
+export template <IsComplexScalar R>
+constexpr auto euclidean_escape_radius_squared(R escape_radius_squared = R{4}) {
+  return [escape_radius_squared](const Complex<R>& z) {
+    return outside_closed_euclidean_ball_squared(escape_radius_squared)(z);
+  };
+}
+
 export template <IsComplexScalar R>
 using OrbitPath = Path<Complex<R>>;
 
@@ -62,35 +93,56 @@ constexpr auto M(BoundedPredicate is_bounded) {
 
 /**
  * Windowed escape existence check via quantifier:
- *   exists(window, escaped) checks if any orbit point exceeds escape radius.
+ *   exists(window, escaped_criterion) checks if any orbit point escapes.
  *
  * This refactors the hand-rolled divergence counter to use the sequences DSL
  * quantifier machinery, making the escape condition explicit, composable, and
  * aligned with the exists/forall quantifier interface.
  *
+ * The escape criterion is now parametrized, allowing alternative divergence
+ * theories and custom escape detection strategies.
+ *
  * Mathematical intent:
- *   "orbit escapes" ≡ ∃ n : |z_n|² > r²
+ *   "orbit escapes" ≡ ∃ n : escaped_criterion(z_n)
+ *
+ * @param window A function that selects a finite subsequence from the orbit
+ * @param escape_criterion A callable that returns true when divergence is detected
+ */
+export template <IsComplexScalar R, typename Window, typename EscapeCriterion>
+  requires std::invocable<const std::decay_t<Window>&, const OrbitPath<R>&> &&
+           IsFiniteSequence<std::remove_cvref_t<std::invoke_result_t<
+               const std::decay_t<Window>&, const OrbitPath<R>&>>> &&
+           std::invocable<const std::decay_t<EscapeCriterion>&, const Complex<R>&> &&
+           std::same_as<std::invoke_result_t<const std::decay_t<EscapeCriterion>&, const Complex<R>&>, bool>
+constexpr auto divergence_count_in_window(Window&& window,
+                                          EscapeCriterion&& escape_criterion) {
+  return [window_fn = std::forward<Window>(window),
+          escape_fn = std::forward<EscapeCriterion>(escape_criterion)](const OrbitPath<R>& orbit) {
+    const auto selected_window = std::invoke(window_fn, orbit);
+
+    // Use exists quantifier: "does any point in the window escape?"
+    // Lifting escape predicate to logical map via classify().
+    // Explicitly specify the domain type Complex<R> to help template deduction.
+    const bool any_escaped = exists(selected_window, classify<Complex<R>>(escape_fn).χ);
+
+    // Return count for backward compatibility:
+    //   count = 1 if any_escaped, 0 otherwise.
+    return any_escaped ? std::size_t{1} : std::size_t{0};
+  };
+}
+
+/**
+ * @overload with default Euclidean escape radius
+ * Backward-compatible overload: uses the standard radius-squared = 4 criterion.
  */
 export template <IsComplexScalar R, typename Window>
   requires std::invocable<const std::decay_t<Window>&, const OrbitPath<R>&> &&
            IsFiniteSequence<std::remove_cvref_t<std::invoke_result_t<
                const std::decay_t<Window>&, const OrbitPath<R>&>>>
 constexpr auto divergence_count_in_window(Window&& window,
-                                          R escape_radius_squared = R{4}) {
-  return [window_fn = std::forward<Window>(window),
-          escape_radius_squared](const OrbitPath<R>& orbit) {
-    const auto selected_window = std::invoke(window_fn, orbit);
-    const auto escaped =
-        outside_closed_euclidean_ball_squared(escape_radius_squared);
-
-    // Use exists quantifier: "does any point in the window escape?"
-    // Lifting escape predicate to logical map via classify().
-    const bool any_escaped = exists(selected_window, classify(escaped).χ);
-
-    // Return count for backward compatibility:
-    //   count = 1 if any_escaped, 0 otherwise.
-    return any_escaped ? std::size_t{1} : std::size_t{0};
-  };
+                                          R escape_radius_squared) {
+  return divergence_count_in_window<R>(std::forward<Window>(window),
+                                       euclidean_escape_radius_squared(escape_radius_squared));
 }
 
 /**
