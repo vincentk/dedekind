@@ -39,6 +39,30 @@ TEST_CASE("Sequences: The Path to Continuity",
     REQUIRE(first_four.at(3) == 45);
   }
 
+  SECTION("Drop yields an infinite shifted tail") {
+    const auto tail = drop(path, 5);
+
+    static_assert(IsSequence<decltype(tail)>);
+    REQUIRE(tail.at(0) == path.at(5));
+    REQUIRE(tail.at(3) == path.at(8));
+  }
+
+  SECTION("Drop identity at zero offset") {
+    const auto same = drop(path, 0);
+
+    REQUIRE(same.at(0) == path.at(0));
+    REQUIRE(same.at(7) == path.at(7));
+  }
+
+  SECTION("Prefix of drop forms a shifted finite window") {
+    const auto window = prefix(drop(path, 2), 4);
+
+    static_assert(IsFiniteSequence<decltype(window)>);
+    REQUIRE(window.size() == 4u);
+    REQUIRE(window.at(0) == 44);
+    REQUIRE(window.at(3) == 47);
+  }
+
   SECTION("Iterative rules support finite orbit counting") {
     const auto orbit = iterate(1, [](int x) { return x + 1; }, 5);
 

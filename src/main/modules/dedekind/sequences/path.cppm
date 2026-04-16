@@ -134,6 +134,16 @@ constexpr auto prefix(const Path<T, Cardinality>& path, std::size_t length) {
   }
 }
 
+/**
+ * Return the infinite tail of a path, shifted by n indices.
+ *
+ * drop(path, n) = λi. path(n + i)
+ */
+export template <typename T>
+constexpr auto drop(const Path<T>& path, std::size_t n) {
+  return Path<T>{[path, n](std::size_t i) { return path.at(n + i); }};
+}
+
 export template <typename T, typename Step>
   requires std::invocable<const std::decay_t<Step>&, const T&> &&
            std::same_as<
