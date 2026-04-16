@@ -27,7 +27,7 @@ jobs:
 
     - name: Install docs toolchain
       run: |
-        sudo apt-get install -y doxygen graphviz biber texlive-latex-base texlive-latex-extra texlive-pictures texlive-plain-generic texlive-fonts-recommended
+        sudo apt-get install -y doxygen graphviz texlive-latex-base texlive-latex-extra texlive-pictures texlive-plain-generic texlive-fonts-recommended
 
     - name: Check Code Formatting
       run: find src -name "*.cpp" -o -name "*.cppm" | xargs clang-format-21 --dry-run --Werror
@@ -63,13 +63,9 @@ jobs:
       run: |
         cmake --build build --target docs
 
-    - name: Build Report PDF
-      working-directory: docs/report
+    - name: Check Report Compilation
       run: |
-        pdflatex -interaction=nonstopmode report.tex
-        biber report
-        pdflatex -interaction=nonstopmode report.tex
-        pdflatex -interaction=nonstopmode report.tex
+        make -C docs/report ci-check
 
     - name: Stage Pages content
       if: github.ref == 'refs/heads/main' && github.event_name == 'push'
