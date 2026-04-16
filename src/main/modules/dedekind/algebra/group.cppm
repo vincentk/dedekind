@@ -19,9 +19,10 @@
  * symmetric elements: the negative (-x) for addition and the
  * reciprocal (1/x) for multiplication.
  *
- * @note "शून्यं शून्येन गुणितं शून्यम्।"
- *       ("Zero multiplied by zero is zero.")
- *       -- ब्रह्मगुप्त (Brahmagupta), ब्रह्मस्फुटसिद्धान्त
+ * @note "In dedekind.algebra:group, structure is clarified by explicit
+ * composition and typed interfaces." (Module-specific documentation note for
+ * maintainers.)
+ *       -- dedekind maintainers
  */
 module;
 

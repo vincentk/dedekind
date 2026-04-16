@@ -38,9 +38,10 @@
  * @see Lawvere, F.W. (1964) "An Elementary Theory of the Category of Sets"
  * @see McLarty, C. (1993) "Numbers can be just what they have to"
  *
- * @note "शून्यं शून्येन गुणितं शून्यम्।"
- *       ("Zero multiplied by zero is zero.")
- *       -- ब्रह्मगुप्त (Brahmagupta), ब्रह्मस्फुटसिद्धान्त
+ * @note "In dedekind.category:etcs, structure is clarified by explicit
+ * composition and typed interfaces." (Module-specific documentation note for
+ * maintainers.)
+ *       -- dedekind maintainers
  */
 
 module;

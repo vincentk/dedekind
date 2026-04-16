@@ -5,10 +5,9 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @note "Нельзя быть математиком, не будучи в то же время поэтом в душе."
- *       ("It is impossible to be a mathematician without being a poet in
- * soul.")
- *       -- Софья Ковалевская (Sofya Kovalevskaya)
+ * @note "In dedekind.topology, structure is clarified by explicit composition
+ * and typed interfaces." (Module-specific documentation note for maintainers.)
+ *       -- dedekind maintainers
  */
 
 export module dedekind.topology;

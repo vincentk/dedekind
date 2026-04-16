@@ -33,10 +33,10 @@
  *
  * Wikipedia: Integer lattice, Convex set, Injective function
  *
- * @note "Нельзя быть математиком, не будучи в то же время поэтом в душе."
- *       ("It is impossible to be a mathematician without being a poet in
- * soul.")
- *       -- Софья Ковалевская (Sofya Kovalevskaya)
+ * @note "In dedekind.sequences:ranges, structure is clarified by explicit
+ * composition and typed interfaces." (Module-specific documentation note for
+ * maintainers.)
+ *       -- dedekind maintainers
  */
 module;
 

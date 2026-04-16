@@ -30,10 +30,10 @@
  * @see Lawvere, F.W. (1964) "An Elementary Theory of the Category of Sets"
  * @see McLarty, C. (1993) "Numbers can be just what they have to"
  *
- * @note "Нельзя быть математиком, не будучи в то же время поэтом в душе."
- *       ("It is impossible to be a mathematician without being a poet in
- soul.")
- *       -- Софья Ковалевская (Sofya Kovalevskaya)
+ * @note "In dedekind.category, structure is clarified by explicit composition
+ and typed interfaces."
+ *       (Module-specific documentation note for maintainers.)
+ *       -- dedekind maintainers
  */
 
 export module dedekind.category;

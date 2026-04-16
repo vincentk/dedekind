@@ -19,10 +19,9 @@
  * "built-in" primitives, but as specific positions within an algebraic
  * and order-theoretic hierarchy.
  *
- * @note "Нельзя быть математиком, не будучи в то же время поэтом в душе."
- *       ("It is impossible to be a mathematician without being a poet in
- * soul.")
- *       -- Софья Ковалевская (Sofya Kovalevskaya)
+ * @note "In dedekind.numbers, structure is clarified by explicit composition
+ * and typed interfaces." (Module-specific documentation note for maintainers.)
+ *       -- dedekind maintainers
  */
 
 export module dedekind.numbers;

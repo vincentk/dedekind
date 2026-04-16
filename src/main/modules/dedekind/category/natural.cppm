@@ -50,9 +50,10 @@
  * are checked by lifting identity arrows and reading off the resulting domain
  * object, rather than by ranging over a separate textbook object class.
  *
- * @note "शून्यं शून्येन गुणितं शून्यम्।"
- *       ("Zero multiplied by zero is zero.")
- *       -- ब्रह्मगुप्त (Brahmagupta), ब्रह्मस्फुटसिद्धान्त
+ * @note "In dedekind.category:natural, structure is clarified by explicit
+ * composition and typed interfaces." (Module-specific documentation note for
+ * maintainers.)
+ *       -- dedekind maintainers
  */
 module;
 

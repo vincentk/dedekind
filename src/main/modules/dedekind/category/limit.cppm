@@ -26,9 +26,10 @@
  * | `One` (Terminal)    | `std::monostate`      | Unique sink (1)      |
  * | `Zero` (Initial)    | `std::nullptr_t`      | Unique source (0)    |
  *
- * @note "शून्यं शून्येन गुणितं शून्यम्।"
- *       ("Zero multiplied by zero is zero.")
- *       -- ब्रह्मगुप्त (Brahmagupta), ब्रह्मस्फुटसिद्धान्त
+ * @note "In dedekind.category:limit, structure is clarified by explicit
+ * composition and typed interfaces." (Module-specific documentation note for
+ * maintainers.)
+ *       -- dedekind maintainers
  */
 module;
 
