@@ -360,17 +360,6 @@ constexpr auto classifier_unknown() {
 }
 
 /**
- * @brief Constant-to-predicate composition via the Highway notation.
- * @details Interpreted as conjunction with the constant classifier.
- */
-export template <IsClassifierConstant C, IsPredicate P>
-  requires(!IsPredicate<std::remove_cvref_t<C>>) &&
-          requires(C c) { lift_classifier_constant<Cod<P>>(c); }
-auto operator>>(C&& constant, P&& p) {
-  return std::forward<C>(constant) && std::forward<P>(p);
-}
-
-/**
  * @brief The 'true' morphism: 1 → Ω.
  */
 export template <typename L = ClassicalLogic>

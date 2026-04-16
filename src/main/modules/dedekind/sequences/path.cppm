@@ -23,9 +23,11 @@
 
 module;
 
+#include <algorithm>
 #include <concepts>
 #include <cstddef>
 #include <functional>
+#include <type_traits>
 #include <utility>
 
 export module dedekind.sequences:path;
@@ -91,8 +93,15 @@ struct Path {
     using U = std::invoke_result_t<F, Path<T>>;
 
     auto extended_generator = [w, f = std::forward<F>(f)](std::size_t n) {
-      // Create the "sub-path" (suffix) starting at n, then apply f
-      return f(Path<T>{[w, n](std::size_t i) { return w.at(n + i); }});
+      // Create the "sub-path" (suffix) starting at n, preserving cardinality.
+      if constexpr (IsFiniteMagnitude<Cardinality>) {
+        const std::size_t suffix_size = (n < w.size()) ? w.size() - n : 0;
+        return f(Path<T, Cardinality>{
+            [w, n](std::size_t i) { return w.at(n + i); }, suffix_size});
+      } else {
+        return f(Path<T, Cardinality>{
+            [w, n](std::size_t i) { return w.at(n + i); }});
+      }
     };
 
     if constexpr (IsFiniteMagnitude<Cardinality>) {
@@ -117,7 +126,12 @@ using FinitePath = Path<T, Finite>;
 
 export template <typename T, typename Cardinality>
 constexpr auto prefix(const Path<T, Cardinality>& path, std::size_t length) {
-  return FinitePath<T>{[path](std::size_t i) { return path.at(i); }, length};
+  if constexpr (IsFiniteMagnitude<Cardinality>) {
+    const std::size_t clamped = std::min(length, path.size());
+    return FinitePath<T>{[path](std::size_t i) { return path.at(i); }, clamped};
+  } else {
+    return FinitePath<T>{[path](std::size_t i) { return path.at(i); }, length};
+  }
 }
 
 export template <typename T, typename Step>

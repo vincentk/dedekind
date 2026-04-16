@@ -146,9 +146,9 @@ TEST_CASE("Topos: Constant Truth Morphisms", "[category][topoi]") {
     CHECK(lhs_false(0) == Ternary::False);
   }
 
-  SECTION("Constant Highway composition (True >> predicate)") {
+  SECTION("Constant conjunction gate (true && predicate)") {
     auto even = arrow<int>([](int x) { return x % 2 == 0; });
-    auto gated = true >> even;
+    auto gated = true && even;
 
     CHECK(gated(2) == true);
     CHECK(gated(3) == false);

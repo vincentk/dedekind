@@ -163,11 +163,9 @@ constexpr auto M_N(std::size_t max_iter, R escape_radius_squared = R{4}) {
  */
 export template <IsComplexScalar R>
 constexpr auto M_tower(R escape_radius_squared = R{4}) {
-  // Fix the Mandelbrot recurrence once as c |-> orbit(c).
-  auto phi = mandelbrot_orbit<R>;
   const auto criterion = euclidean_escape_radius_squared(escape_radius_squared);
   // Return a stage builder indexed by truncation budget n.
-  return [phi, criterion](std::size_t n) {
+  return [criterion](std::size_t n) {
     // Bind the ambient parameter variable for set comprehension.
     auto c = var<ComplexesOf<R>>;
     // Build the orbit-level boundedness criterion: ¬∃k≤n : |z_k|²>r²
