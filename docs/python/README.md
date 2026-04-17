@@ -69,6 +69,23 @@ The repository includes a Python smoke test integrated into CTest:
 ctest --test-dir build --output-on-failure -R test_python_bindings
 ```
 
+## Reviewer Verification (CI Artifacts)
+
+For pull requests, wheel/sdist and Python-native docs are expected to be
+published as GitHub Actions artifacts from the `C++ CI with Cmake` workflow.
+
+Review path:
+
+1. Open the PR checks and select the `C++ CI with Cmake` run.
+2. Open the run's `Artifacts` section.
+3. Download `python-dist` and confirm it includes:
+	- wheel/sdist files from `dist/`
+	- generated pydoc output (`pydoc-dedekind.txt`)
+4. Confirm the workflow step `Verify Installed Wheel Smoke Test` is green.
+
+This provides reviewer-visible evidence that packaging and runtime smoke checks
+worked in CI for the PR changeset.
+
 ## Related Work
 
 - Python bindings MVP: #234
