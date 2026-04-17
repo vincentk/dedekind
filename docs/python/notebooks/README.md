@@ -14,6 +14,49 @@ This directory contains demo notebooks for the Python MVP facade.
    - Shows representative failing payloads
    - Confirms `TypeError` behavior at the Python boundary
 
+## Payload Definition
+
+These notebooks intentionally exercise only the current Python MVP facade:
+
+- `ordered_set_roundtrip(values)`
+- `unordered_set_roundtrip(values)`
+- `path_from_range(values)`
+
+### Notebook 1: Happy-path payload
+
+Inputs:
+
+- ordered roundtrip: `[3, 1, 2, 2]`
+- unordered roundtrip: `[4, 2, 4, 1]`
+- path from range: `[2, 4, 6, 8]`
+
+Expected outputs:
+
+- ordered roundtrip: `[1, 2, 3]`
+- unordered roundtrip: `[1, 2, 4]`
+- path from range: `[2, 4, 6, 8]`
+
+### Notebook 2: Failure-path payload
+
+Inputs:
+
+- valid control call: `[10, 20, 30]`
+- ordered invalid payload: `[1, "x", 3]`
+- unordered invalid payload: `42`
+- path invalid payload: `[1, None, 3]`
+
+Expected outputs:
+
+- valid control call succeeds and prints the preserved path
+- each invalid payload raises `TypeError`
+- the notebook prints per-case confirmation and ends with a success marker
+
+## Non-goals
+
+- No broader symbolic API coverage yet
+- No performance benchmarking yet
+- No publication workflow yet; release publication stays deferred to #240
+
 ## How to run
 
 From repository root:
