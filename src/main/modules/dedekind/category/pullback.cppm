@@ -26,6 +26,10 @@
  * characteristic morphism χ encodes the membership predicate.
  *
  * Wikipedia: Pullback (category theory), Equaliser (mathematics)
+ *
+ * @note "In these days the angel of topology and the devil of abstract algebra
+ * fight for the soul of each individual mathematical domain."
+ *       -- Hermann Weyl, Invariants (1939)
  */
 module;
 

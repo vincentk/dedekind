@@ -1,3 +1,16 @@
+/**
+ * @file dedekind/numbers/lattice.cppm
+ * @partition :lattice
+ * @brief Module interface in the dedekind hierarchy.
+ *
+ * @copyright 2026 The Dedekind Authors
+ * Licensed under the Apache License, Version 2.0.
+ *
+ * @note "Wir mussen wissen, wir werden wissen."
+ *       ("We must know, we will know.")
+ *       -- David Hilbert (1930)
+ */
+
 module;
 
 #include <array>

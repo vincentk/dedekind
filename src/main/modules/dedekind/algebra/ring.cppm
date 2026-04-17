@@ -4,9 +4,9 @@
  * @brief Level 3.2: The Rules of Harmony (The Semiring Synthesis).
  *
  * @copyright 2026 The Dedekind Authors
+
  *
- * @section The_Structuralist_Unity
- * „Was beweisbar ist, soll in der Wissenschaft nicht ohne Beweis
+ * @note „Was beweisbar ist, soll in der Wissenschaft nicht ohne Beweis
  *  geglaubt werden.“ (What is provable should not be believed without proof.)
  *  — Richard Dedekind
  */

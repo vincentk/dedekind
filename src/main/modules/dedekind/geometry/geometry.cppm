@@ -32,6 +32,11 @@
  * @see Wikipedia: [Erlangen Program](https://wikipedia.org),
  *                 [Hilbert Space](https://wikipedia.org)
  * @see Kanitscheider, B. (1971). Geometrie und Wirklichkeit.
+ *
+ * @note "Throughout my whole life as a mathematician, the possibility of making
+ * explicit, elegant computations has always come out by itself, as a byproduct
+ * of a thorough conceptual understanding of what was going on." — Alexander
+ * Grothendieck, letter to Ronald Brown (April 12, 1983).
  */
 
 export module dedekind.geometry;

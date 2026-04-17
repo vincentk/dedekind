@@ -2,6 +2,13 @@
  * @file dedekind/ieee/ieee.cppm
  * @module dedekind.ieee
  * @brief Core IEEE fast lane as explicit physical plumbing.
+ *
+ * @copyright 2026 The Dedekind Authors
+ * Licensed under the Apache License, Version 2.0.
+ *
+ * @note "One can measure the importance of a scientific work by the number of
+ * earlier publications rendered superfluous by it."
+ *       -- David Hilbert, quoted in Mathematical Circles Revisited (1971)
  */
 module;
 

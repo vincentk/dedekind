@@ -17,6 +17,13 @@
  * - IsCountableSet: A Set (Lattice) that can be projected into a Path via an
  *   as_sequence() morphism (Enumerability).
  * - IsTerminalSet: An Enumerable set with a provable size_t limit.
+ *
+ * @copyright 2026 The Dedekind Authors
+ * Licensed under the Apache License, Version 2.0.
+ *
+ * @note "La duda es uno de los nombres de la inteligencia."
+ *       — Jorge Luis Borges (Argentina), Spanish Wikiquote.
+ *       [Trans: "Doubt is one of the names of intelligence."]
  */
 module;
 

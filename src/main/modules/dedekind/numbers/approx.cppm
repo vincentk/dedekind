@@ -2,6 +2,18 @@
  * @file dedekind/numbers/approx.cppm
  * @module dedekind.numbers.approx
  * @brief Compatibility bridge for IEEE approximation policies.
+ *
+ * @copyright 2026 The Dedekind Authors
+ * Licensed under the Apache License, Version 2.0.
+ *
+ * @note "Lorsque les valeurs successivement attribuees a une meme variable
+ * s'approchent indefiniment d'une valeur fixe, de maniere a finir par en
+ * differer aussi peu qu'on voudra, cette derniere est appelee la limite de
+ * toutes les autres."
+ *       ("When the values successively assigned to the same variable approach
+ * a fixed value indefinitely, so as to differ from it by as little as one
+ * wishes, this latter is called the limit of all the others.")
+ *       -- Augustin-Louis Cauchy, Cours d'Analyse (1821)
  */
 module;
 

@@ -5,12 +5,7 @@
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
- *
- * @quote
- * "In the mathematical development of recent decades, the notion of
- *  set has not only played a fundamental role, but it has itself
- *  passed through a long process of refinement."
- *  — F. William Lawvere, "An Elementary Theory of the Category of Sets"
+
  *
  * @details
  * This partition lifts topoi-level subobject operations into a focused ETCS
@@ -37,6 +32,11 @@
  *
  * @see Lawvere, F.W. (1964) "An Elementary Theory of the Category of Sets"
  * @see McLarty, C. (1993) "Numbers can be just what they have to"
+ *
+ * @note "In the mathematical development of recent decades, the notion of
+ *  set has not only played a fundamental role, but it has itself
+ *  passed through a long process of refinement."
+ *  — F. William Lawvere, "An Elementary Theory of the Category of Sets"
  */
 
 module;

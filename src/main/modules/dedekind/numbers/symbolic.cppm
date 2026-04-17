@@ -1,12 +1,15 @@
-module;
-#include <cmath>
-#include <concepts>
-
 /**
  * @file dedekind/numbers/symbolic.cppm
  * @partition :symbolic
- * @brief Level 9.2: The Language of the Continuum.
+ * @brief Module interface in the dedekind hierarchy.
+ *
+ * @copyright 2026 The Dedekind Authors
+ * Licensed under the Apache License, Version 2.0.
  */
+
+module;
+#include <cmath>
+#include <concepts>
 
 export module dedekind.numbers:symbolic;
 

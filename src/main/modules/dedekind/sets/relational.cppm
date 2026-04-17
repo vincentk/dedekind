@@ -40,11 +40,13 @@
  *   https://en.wikipedia.org/wiki/Relational_algebra
  *
  * @quote
- * "The relational model is not just a data model — it is a branch of
- *  mathematical logic applied to data management."
- * ("Le modèle relationnel n'est pas qu'un modèle de données — c'est une
- *  branche de la logique mathématique appliquée à la gestion des données.")
- * -- E.F. Codd, paraphrase
+ * "Matter does not engage their attention, they are interested in form
+ * alone."
+ * -- Henri Poincare, Science and Hypothesis (1901)
+ *
+ * @note "All laws are deduced from experiment; but to enunciate them, a
+ * special language is needful."
+ *       -- Henri Poincare, The Value of Science (1905)
  */
 module;
 

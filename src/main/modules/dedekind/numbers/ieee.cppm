@@ -2,6 +2,15 @@
  * @file dedekind/numbers/ieee.cppm
  * @module dedekind.numbers.ieee
  * @brief Bridge from numerical carriers into the upstream IEEE core module.
+ *
+ * @copyright 2026 The Dedekind Authors
+ * Licensed under the Apache License, Version 2.0.
+ *
+ * @note "La mathematique est l'art de donner le meme nom a des choses
+ * differentes."
+ *       ("Mathematics is the art of giving the same name to different
+ * things.")
+ *       -- Henri Poincare
  */
 module;
 

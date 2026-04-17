@@ -1,5 +1,6 @@
 /**
  * @file boolean.cppm
+ * @partition :boolean
  * @module dedekind.algebra:boolean
  * @brief Boolean Starter Package: canonical Boolean ambient species aliases.
  *
@@ -28,6 +29,9 @@
  * "La matematica non e una collezione di trucchi: e grammatica delle forme."
  * (Mathematics is not a bag of tricks; it is a grammar of forms.)
  * — Emma Castelnuovo
+ *
+ * @note "The mathematician is born, not made."
+ *       -- Henri Poincare, The Value of Science (1905)
  */
 module;
 

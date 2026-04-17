@@ -2,6 +2,12 @@
  * @file dedekind/analysis/exterior.cppm
  * @partition :exterior
  * @brief Level 11.6: The Wedge Product and Symplectic Geometry.
+ *
+ * @copyright 2026 The Dedekind Authors
+ * Licensed under the Apache License, Version 2.0.
+ *
+ * @note "It is by logic that we prove, but by intuition that we discover."
+ *       -- Henri Poincare, Science and Method (1908)
  */
 module;
 

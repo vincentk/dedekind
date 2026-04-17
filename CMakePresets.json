@@ -6,7 +6,10 @@
       "displayName": "Default Ninja Config",
       "generator": "Ninja",
       "binaryDir": "${sourceDir}/build",
-      "cacheVariables": { "CMAKE_CXX_STANDARD": "23" }
+      "cacheVariables": {
+        "CMAKE_CXX_STANDARD": "23",
+        "DEDEKIND_ENABLE_DOUBLE_REAL_PROXY": "ON"
+      }
     }
   ],
   "buildPresets": [

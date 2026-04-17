@@ -26,9 +26,8 @@ jobs:
         sudo apt-get install -y clang-21 ninja-build clang-format-21
 
     - name: Install docs toolchain
-      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
       run: |
-        sudo apt-get install -y doxygen graphviz biber texlive-latex-base texlive-latex-extra texlive-pictures texlive-plain-generic texlive-fonts-recommended
+        sudo apt-get install -y biber doxygen graphviz texlive-latex-base texlive-latex-extra texlive-bibtex-extra texlive-pictures texlive-plain-generic texlive-fonts-recommended
 
     - name: Check Code Formatting
       run: find src -name "*.cpp" -o -name "*.cppm" | xargs clang-format-21 --dry-run --Werror
@@ -40,7 +39,7 @@ jobs:
       # Note: CMAKE_BUILD_TYPE=Release is required for the code to compile at all, due to the use of concepts and modules.
       # Note: DEDEKIND_RUNTIME_COVERAGE_BRIDGES=ON improves coverage attribution
       # for numeric bridge wrappers during Codecov runs.
-      run: cmake -S . -B build -G Ninja -DCMAKE_CXX_COMPILER=clang++-21 -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_SCAN_FOR_MODULES=ON -DDEDEKIND_RUNTIME_COVERAGE_BRIDGES=ON
+      run: cmake -S . -B build -G Ninja -DCMAKE_CXX_COMPILER=clang++-21 -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_SCAN_FOR_MODULES=ON -DDEDEKIND_RUNTIME_COVERAGE_BRIDGES=ON -DDEDEKIND_ENABLE_DOUBLE_REAL_PROXY=ON
 
     - name: Build & Run Tests
       run: |
@@ -61,18 +60,17 @@ jobs:
     # --- CONDITIONAL DEPLOYMENT STEPS ---
     
     - name: Build Doxygen Documentation
-      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
       run: |
         cmake --build build --target docs
 
-    - name: Build Report PDF
-      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-      working-directory: docs/report
+    - name: Check Report Compilation
       run: |
-        pdflatex -interaction=nonstopmode report.tex
-        biber report
-        pdflatex -interaction=nonstopmode report.tex
-        pdflatex -interaction=nonstopmode report.tex
+        make -C docs/report ci-check
+
+    - name: Build Publishable Report
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      run: |
+        make -C docs/report doc
 
     - name: Stage Pages content
       if: github.ref == 'refs/heads/main' && github.event_name == 'push'

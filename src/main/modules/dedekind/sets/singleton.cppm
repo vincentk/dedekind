@@ -1,5 +1,6 @@
 /**
  * @file dedekind/sets/singleton.cppm
+ * @partition :singleton
  * @brief The Atomic Body: Implementation of the Singleton Species {x}.
  *
  * Copyright 2026 The Dedekind Authors
@@ -35,6 +36,13 @@
  *           Defaults to ClassicalLogic {True, False}.
  *
  * Wikipedia: Singleton (mathematics), Unit element, Monad (category theory)
+ *
+ * @copyright 2026 The Dedekind Authors
+ * Licensed under the Apache License, Version 2.0.
+ *
+ * @note "What is clear and easily comprehended attracts, the complicated
+ * repels us."
+ *       -- David Hilbert, Mathematical Problems (1900)
  */
 module;
 

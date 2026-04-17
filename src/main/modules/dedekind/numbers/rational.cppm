@@ -1,3 +1,18 @@
+/**
+ * @file dedekind/numbers/rational.cppm
+ * @partition :rational
+ * @brief Module interface in the dedekind hierarchy.
+ *
+ * @copyright 2026 The Dedekind Authors
+ * Licensed under the Apache License, Version 2.0.
+ *
+ * @note "Etudiez la nature, aimez la nature, approchez-vous de la nature.
+ * Elle ne vous trompera jamais."
+ *       ("Study nature, love nature, stay close to nature. It will never
+ * fail you.")
+ *       -- Jean-Baptiste Fourier
+ */
+
 module;
 #include <compare>
 #include <concepts>

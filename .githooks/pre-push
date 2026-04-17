@@ -15,3 +15,23 @@ if ! git -C "$repo_root" diff --quiet -- src; then
 fi
 
 echo "pre-push: formatting check passed"
+
+if [ "${PRE_PUSH_DOCS_CHECKS:-0}" = "1" ]; then
+  if command -v latexmk >/dev/null 2>&1 || command -v pdflatex >/dev/null 2>&1; then
+    echo "pre-push: building LaTeX report"
+    (cd "$repo_root/docs/report" && make ci-check)
+    echo "pre-push: report build passed"
+  else
+    echo "pre-push: skipping LaTeX report build (latexmk/pdflatex not available)"
+  fi
+
+  if command -v doxygen >/dev/null 2>&1 && command -v cmake >/dev/null 2>&1; then
+    echo "pre-push: building doxygen docs"
+    make -C "$repo_root" doxygen
+    echo "pre-push: doxygen build passed"
+  else
+    echo "pre-push: skipping doxygen build (doxygen/cmake not available)"
+  fi
+else
+  echo "pre-push: skipping docs builds (set PRE_PUSH_DOCS_CHECKS=1 to enable)"
+fi

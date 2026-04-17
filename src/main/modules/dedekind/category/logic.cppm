@@ -39,6 +39,10 @@
  * @see Rasiowa, H. (1974). An Algebraic Approach to Non-Classical Logics.
  * @see Lambek, J.; Scott, P. J. (1988). Introduction to Higher-Order
  * Categorical Logic.
+ *
+ * @note "Every kind of science, if it has only reached a certain degree of
+ * maturity, automatically becomes a part of mathematics."
+ *       -- David Hilbert, Axiomatic Thought (1918)
  */
 module;
 

@@ -19,6 +19,11 @@
  *
  * @build_order 6.1
  * @dependency :topology, :order, :mereology
+ *
+ * @note "Ang hindi marunong lumingon sa pinanggalingan ay hindi makakarating sa
+ * kanyang paroroonan." — Jose Rizal, Tagalog Wikiquote. [Trans: "One who does
+ * not know how to look back to where one came from will never reach one's
+ * destination."]
  */
 module;
 #include <cassert>

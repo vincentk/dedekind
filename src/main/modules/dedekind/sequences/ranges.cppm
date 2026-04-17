@@ -32,6 +32,9 @@
  * and standard C++ iterator practice.
  *
  * Wikipedia: Integer lattice, Convex set, Injective function
+ *
+ * @note "This procedure is the demonstration by recurrence."
+ *       -- Henri Poincare, Science and Hypothesis (1901)
  */
 module;
 

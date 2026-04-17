@@ -26,6 +26,13 @@
  * additive properties of ℕ or ℝ.
  *
  * Wikipedia: Boolean algebra, Semiring, Idempotency
+ *
+ * @copyright 2026 The Dedekind Authors
+ * Licensed under the Apache License, Version 2.0.
+ *
+ * @note "It is not of the essence of mathematics to be conversant with the
+ * ideas of number and quantity."
+ *       -- George Boole, An Investigation of the Laws of Thought (1854)
  */
 module;
 

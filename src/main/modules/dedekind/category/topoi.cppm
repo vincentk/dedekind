@@ -24,6 +24,10 @@
  * Wikipedia: Lawvere–Tierney topology, Subobject classifier, Topos
  * @see Lawvere (1964), An elementary theory of the category of sets.
  * @see Lambek & Scott (1988), Introduction to Higher-Order Categorical Logic.
+ *
+ * @note "BUDOWANE JEST MNIEJ DOSKONALE OD BUDUJACEGO."
+ *       ("What is built is less perfect than what builds it.")
+ *       -- Stanislaw Lem, GOLEM XIV
  */
 
 module;

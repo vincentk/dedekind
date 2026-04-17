@@ -2,6 +2,13 @@
  * @file dedekind/numbers/mandelbrot.cppm
  * @partition :mandelbrot
  * @brief Core Mandelbrot recurrence helpers over complex carriers.
+ *
+ * @copyright 2026 The Dedekind Authors
+ * Licensed under the Apache License, Version 2.0.
+ *
+ * @note "Man muss immer umkehren."
+ *       ("One must always invert.")
+ *       -- Carl Gustav Jacob Jacobi
  */
 module;
 

@@ -17,6 +17,10 @@
  * - Total Order: A Poset with no "Parallelism" (The Chain).
  *
  * Wikipedia: Order theory, Directed set, Partial order, Strict weak ordering
+ *
+ * @note "כל עגול אין לו ראשית, רק כרצון איש ואיש."
+ *       — אברהם אבן עזרא, Hebrew Wikiquote.
+ *       [Trans: "A circle has no beginning, except as each person chooses."]
  */
 module;
 #include <algorithm>

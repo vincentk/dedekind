@@ -5,19 +5,19 @@
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
- *
- * @section The_Symmetry_Axiom
- * « Det er utvilsomt at gruppeteorien er den mest fundamentale del av
- *   den moderne matematikken. »
- *  (It is beyond doubt that group theory is the most fundamental part
- *   of modern mathematics.)
- *  — Sophus Lie, 'Gesammelte Abhandlungen'
+
  *
  * @section Taxonomy_of_Symmetry
  * This partition establishes the "Rules of Reflection" (Inverses).
  * It promotes Monoids to Groups by verifying the existence of
  * symmetric elements: the negative (-x) for addition and the
  * reciprocal (1/x) for multiplication.
+ *
+ * @note "Det er utvilsomt at gruppeteorien er den mest fundamentale del av
+ *       den moderne matematikken."
+ *       ("It is beyond doubt that group theory is the most fundamental part
+ *       of modern mathematics.")
+ *       -- Sophus Lie, Gesammelte Abhandlungen
  */
 module;
 

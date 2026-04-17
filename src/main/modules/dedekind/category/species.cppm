@@ -30,6 +30,13 @@
  * discovery in Level 0b (:category).
  *
  * Wikipedia: Combinatorial species, Type theory, Generic programming
+ *
+ * @copyright 2026 The Dedekind Authors
+ * Licensed under the Apache License, Version 2.0.
+ *
+ * @note "We now come to a decisive step of mathematical abstraction: we forget
+ * about what the symbols stand for."
+ *       -- Hermann Weyl, The Mathematical Way of Thinking (1941)
  */
 
 module;

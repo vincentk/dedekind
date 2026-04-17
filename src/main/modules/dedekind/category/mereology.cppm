@@ -21,6 +21,15 @@
  * https://plato.stanford.edu/entries/mereology/
  * @see Skew lattice background (non-commutative generalization):
  * https://en.wikipedia.org/wiki/Skew_lattice
+ *
+ * @copyright 2026 The Dedekind Authors
+ * Licensed under the Apache License, Version 2.0.
+ *
+ * @note "It remains to discuss briefly what general requirements may be justly
+ * laid down for the solution of a mathematical problem. I should say first of
+ * all, this: that it shall be possible to establish the correctness of the
+ * solution by means of a finite number of steps."
+ *       -- David Hilbert, Mathematical Problems (1900)
  */
 module;
 

@@ -18,6 +18,13 @@
  * | `IsExponential`  | `std::function<B(A)>`, lambdas                |
  *
  * Wikipedia: Cartesian closed category, Exponential object
+ *
+ * @copyright 2026 The Dedekind Authors
+ * Licensed under the Apache License, Version 2.0.
+ *
+ * @note "Mathematical science is in my opinion an indivisible whole, an
+ * organism whose vitality is conditioned upon the connection of its parts."
+ *       -- David Hilbert, Mathematical Problems (1900)
  */
 module;
 

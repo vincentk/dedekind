@@ -1,3 +1,18 @@
+/**
+ * @file dedekind/numbers/constants.cppm
+ * @partition :constants
+ * @brief Module interface in the dedekind hierarchy.
+ *
+ * @copyright 2026 The Dedekind Authors
+ * Licensed under the Apache License, Version 2.0.
+ *
+ * @note "Aus dem Paradies, das Cantor uns geschaffen, soll uns niemand
+ * vertreiben konnen."
+ *       ("No one shall expel us from the paradise that Cantor has created
+ * for us.")
+ *       -- David Hilbert, Ueber das Unendliche (1926)
+ */
+
 module;
 
 /**
@@ -20,10 +35,10 @@ module;
  * sequences) are tracked separately as follow-up work.
  *
  * @quote
- * "Les constantes ne sont pas des nombres morts; elles sont des procédés
- *  condensés, façonnés à l'usage."
- * ("Constants are not dead numbers; they are condensed procedures.")
- * -- Charles Hermite, paraphrase
+ * "Ce que nous connaissons est peu de chose; ce que nous ignorons est
+ * immense."
+ * ("What we know is little; what we do not know is immense.")
+ * -- Pierre-Simon Laplace
  */
 export module dedekind.numbers:constants;
 

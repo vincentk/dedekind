@@ -13,6 +13,13 @@
  * species supports the notion of "stepping" toward an asymptotic horizon.
  *
  * Wikipedia: Limit of a sequence, Archimedean property, Convergence
+ *
+ * @copyright 2026 The Dedekind Authors
+ * Licensed under the Apache License, Version 2.0.
+ *
+ * @note "A mathematical problem should be difficult in order to entice us, yet
+ * not completely inaccessible, lest it mock at our efforts."
+ *       -- David Hilbert, Mathematical Problems (1900)
  */
 
 module;

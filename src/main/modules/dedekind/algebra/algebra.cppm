@@ -7,11 +7,6 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @section The_Etymology_of_Balance
- * "الكتاب المختصر في حساب الجبر والمقابلة"
- * (The Compendious Book on Calculation by Completion and Balancing)
- * — Muḥammad ibn Mūsā al-Khwārizmī
- *
  * @subsection The_Restoration
  * "...قصدت به الجبر والمقابلة، ومسائل من الحساب يحتاج الناس إليها في مواريثهم
  * ووصاياهم..."
@@ -37,6 +32,10 @@
  * - **Modules (@ref modules)**: Linear actions of Rings on additive Groups.
  * - **Polynomials (@ref polynomials)**: Formal power series R[x] and
  * extensions.
+ *
+ * @note * "الكتاب المختصر في حساب الجبر والمقابلة"
+ * (The Compendious Book on Calculation by Completion and Balancing)
+ * — Muḥammad ibn Mūsā al-Khwārizmī
  */
 export module dedekind.algebra;
 

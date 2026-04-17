@@ -5,19 +5,20 @@
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
- *
- * @section The_Noetherian_Influence
- * „Die Arithmetik, Algebra und Analysis sind nur eine einzige Wissenschaft,
- *  die Wissenschaft der Zahlen.“
- *  (Arithmetic, algebra, and analysis are but a single science,
- *   the science of numbers.)
- *  — Emmy Noether
+
  *
  * @section Taxonomy_of_Influence
  * A Module is the reification of 'Structural Action'. It defines how
  * a Ring (the Scalar) acts upon an Additive Group (the Vector),
  * creating the 'Linear Action' that serves as the engine for all
  * Vector Spaces and Metric Geometry in the Dedekind topos.
+ *
+ * @note „Die Arithmetik, Algebra und Analysis sind nur eine einzige
+ Wissenschaft,
+ *  die Wissenschaft der Zahlen.“
+ *  (Arithmetic, algebra, and analysis are but a single science,
+ *   the science of numbers.)
+ *  — Emmy Noether
  */
 module;
 
@@ -58,6 +59,24 @@ concept IsUnsignedIntegralScalar = std::unsigned_integral<S>;
  */
 export template <typename S>
 concept IsFloatingScalar = std::floating_point<S>;
+
+/**
+ * @concept IsFieldLikeScalar
+ * @brief Operational scalar witness for field-like arithmetic under policy.
+ * @details This concept captures the permissive path used for machine-backed
+ *          arithmetic carriers such as `dedekind::ieee::IEEE<double>`, where
+ *          addition, subtraction, multiplication, division, and unary negation
+ *          are available and closed in the carrier, even if the stricter
+ *          categorical `IsField` proof is intentionally withheld.
+ */
+export template <typename S>
+concept IsFieldLikeScalar = requires(S a, S b) {
+  { a + b } -> std::same_as<S>;
+  { a - b } -> std::same_as<S>;
+  { -a } -> std::same_as<S>;
+  { a * b } -> std::same_as<S>;
+  { a / b } -> std::same_as<S>;
+};
 
 /**
  * @concept IsSemimodule
@@ -138,8 +157,12 @@ struct OneDimensionalVector {
   friend constexpr bool operator==(const OneDimensionalVector&,
                                    const OneDimensionalVector&) = default;
 
-  friend constexpr OneDimensionalVector operator+(
-      const OneDimensionalVector& a, const OneDimensionalVector& b) {
+  friend constexpr OneDimensionalVector operator+(const OneDimensionalVector& a,
+                                                  const OneDimensionalVector& b)
+    requires requires(S s) {
+      { s + s } -> std::same_as<S>;
+    }
+  {
     return OneDimensionalVector(a.x + b.x);
   }
 
@@ -152,13 +175,29 @@ struct OneDimensionalVector {
     return OneDimensionalVector(a.x - b.x);
   }
 
-  friend constexpr OneDimensionalVector operator*(
-      const S& s, const OneDimensionalVector& v) {
+  friend constexpr OneDimensionalVector operator-(const OneDimensionalVector& v)
+    requires requires(S s) {
+      { -s } -> std::same_as<S>;
+    }
+  {
+    return OneDimensionalVector(-v.x);
+  }
+
+  friend constexpr OneDimensionalVector operator*(const S& s,
+                                                  const OneDimensionalVector& v)
+    requires requires(S scalar) {
+      { scalar * scalar } -> std::same_as<S>;
+    }
+  {
     return OneDimensionalVector(s * v.x);
   }
 
   friend constexpr OneDimensionalVector operator*(const OneDimensionalVector& v,
-                                                  const S& s) {
+                                                  const S& s)
+    requires requires(S scalar) {
+      { scalar * scalar } -> std::same_as<S>;
+    }
+  {
     return OneDimensionalVector(v.x * s);
   }
 
@@ -249,18 +288,13 @@ constexpr OneDimensionalVector<S, Tag> scale_strength_reduced(
 /**
  * @concept IsVectorSpaceLike
  * @brief Pragmatic vector-space check used by first reified vector carriers.
- * @details Uses field-like scalar operations directly and does not depend on
- *          the stronger IsField witness machinery.
+ * @details Uses the operational `IsFieldLikeScalar` witness and does not
+ *          depend on the stronger `IsField` proof machinery.
  */
 export template <typename V, typename F, typename Act = std::multiplies<>>
-concept IsVectorSpaceLike = requires(F a, F b, V v) {
+concept IsVectorSpaceLike = IsFieldLikeScalar<F> && requires(F a, F b, V v) {
   { v + v } -> std::same_as<V>;
-  { v - v } -> std::same_as<V>;
-  { V{} } -> std::same_as<V>;
-  { a + b } -> std::same_as<F>;
-  { a - b } -> std::same_as<F>;
-  { a * b } -> std::same_as<F>;
-  { a / b } -> std::same_as<F>;
+  { -v } -> std::same_as<V>;
   { Act{}(a, v) } -> std::same_as<V>;
 };
 

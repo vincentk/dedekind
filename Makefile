@@ -51,7 +51,7 @@ install-hooks:
 	chmod +x .githooks/pre-push
 	@echo "Installed repo hooks from .githooks/"
 
-doxygen: compile
+doxygen: $(BUILD_DIR)/CMakeCache.txt
 	cmake --build $(BUILD_DIR) --target docs
 
 # Generate build dependency graph without breaking the Ninja build

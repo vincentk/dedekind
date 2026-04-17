@@ -18,6 +18,12 @@
  * objects. Following the Dedekind tradition, we do not treat numbers as
  * "built-in" primitives, but as specific positions within an algebraic
  * and order-theoretic hierarchy.
+ *
+ * @note "Meine Methoden sind wirklich Methoden des Arbeitens und Denkens;
+ * deshalb sind sie überall anonym eingedrungen." — Emmy Noether, letter to
+ * Helmut Hasse (1931), cited in Auguste Dick, *Emmy Noether, 1882-1935* (1981).
+ * [Trans: "My methods are really methods of working and thinking; this is why
+ * they have crept in everywhere anonymously."]
  */
 
 export module dedekind.numbers;
@@ -30,6 +36,7 @@ export import :integer;   // ℤ (Signed species)
 /** @section Algebraic_Extensions (Level 3 & 8) */
 export import :rational;    // ℚ (The Quotient Field)
 export import :complex;     // ℂ (The Cayley-Dickson construction)
+export import :quaternion;  // ℍ (Hamilton's division ring)
 export import :scalars;     // Floating-point anchors
 export import :lattice;     // Lattices over ℝ and ℂ
 export import :mandelbrot;  // Mandelbrot recurrence/orbit helpers

@@ -1,7 +1,15 @@
 /**
  * @file dedekind/numbers/real.cppm
+ * @partition :real
  * @module dedekind.numbers:real
  * @brief Level 9: Minimal real wrapper for experimental reintegration.
+ *
+ * @copyright 2026 The Dedekind Authors
+ * Licensed under the Apache License, Version 2.0.
+ *
+ * @note "Die Zahlen sind freie Schöpfungen des menschlichen Geistes."
+ *       ("Numbers are free creations of the human mind.")
+ *       -- Richard Dedekind, Was sind und was sollen die Zahlen? (1888)
  */
 module;
 

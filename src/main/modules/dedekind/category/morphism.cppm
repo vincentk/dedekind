@@ -38,6 +38,9 @@
  * @note Universal constructions (Initial, Terminal, Zero Morphism) are
  *       deferred to Level 0.5 (:limit) and Level 1 (:total), as they
  *       rely on specific algebraic properties of the species.
+ *
+ * @copyright 2026 The Dedekind Authors
+ * Licensed under the Apache License, Version 2.0.
  */
 
 module;

@@ -13,9 +13,10 @@
  * - GaussianKernel<T>     -- symmetric radial kernel on a scalar carrier.
  * - ReproducingKernel<S>  -- unary representer view over a domain species.
  * - IsKernel              -- concept witness for binary kernels.
+
  *
- * @quote
- * "Die Theorie reproduzierender Kerne verbindet Geometrie und Rechnung auf
+ * @note "Die Theorie reproduzierender Kerne verbindet Geometrie und Rechnung
+ *  auf
  *  eine Weise, die den Operator erst wirklich sichtbar macht."
  * ("The theory of reproducing kernels links geometry and computation in a way
  *  that makes the operator truly visible.")

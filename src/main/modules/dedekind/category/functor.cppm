@@ -1,5 +1,6 @@
 /**
  * @file dedekind/category/functor.cppm
+ * @partition :functor
  * @module dedekind.category:functor
  * @brief Level 2: The Functorial Spine (Structure Preservation).
  *
@@ -69,6 +70,12 @@
  * - Value-level overloads of φ for Maybe/Identity/Box at the end of this file
  *   are lifting utilities, not IsFunctor hub models by themselves.
  *
+ *
+ * @note "If we do not succeed in solving a mathematical problem, the reason
+ * frequently consists in our failure to recognize the more general standpoint
+ * from which the problem before us appears only as a single link in a chain of
+ * related problems."
+ *       -- David Hilbert, Mathematical Problems (1900)
  */
 
 module;

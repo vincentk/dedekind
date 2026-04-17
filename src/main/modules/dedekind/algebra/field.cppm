@@ -28,6 +28,13 @@
  *
  * Wikipedia: Abstract algebra, Group theory, Ring (mathematics), Field
  * (physics)
+ *
+ * @copyright 2026 The Dedekind Authors
+ * Licensed under the Apache License, Version 2.0.
+ *
+ * @note "Es steht alles schon bei Dedekind."
+ *       ("It is already all in Dedekind.")
+ *       -- Emmy Noether, as quoted by B. L. van der Waerden (1975)
  */
 module;
 

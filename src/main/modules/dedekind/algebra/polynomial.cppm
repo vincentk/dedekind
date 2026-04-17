@@ -1,18 +1,21 @@
 /**
- * @file dedekind/algebra/polynomials.cppm
- * @partition :polynomials
+ * @file dedekind/algebra/polynomial.cppm
+ * @partition :polynomial
  * @brief Level 3.1: The Algebra of Formal Sums (R[x]).
- *
- * @section Polynomial_Species: The Basis of Extension
- * "A Rig is a Ring without negatives. Naturally, a Polynomial Rig is a
- * construction where we forget how to subtract, but remember how to count."
- * — Fragment of the structuralist tradition.
+
  *
  * @details
  * This implementation follows the "Honest" approach: by default, we
  * parameterize over unsigned int to anchor the species as a Semiring (Rig).
  *
  * Wikipedia: Polynomial semiring, Monoid ring, Rig (algebra)
+ *
+ * @copyright 2026 The Dedekind Authors
+ * Licensed under the Apache License, Version 2.0.
+ *
+ * @note "A Rig is a Ring without negatives. Naturally, a Polynomial Rig is a
+ * construction where we forget how to subtract, but remember how to count."
+ * — Fragment of the structuralist tradition.
  */
 module;
 

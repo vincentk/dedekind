@@ -29,6 +29,12 @@
  *
  * @see Lawvere, F.W. (1964) "An Elementary Theory of the Category of Sets"
  * @see McLarty, C. (1993) "Numbers can be just what they have to"
+ *
+ * @note "It is less than four years since cohomological methods were
+ * introduced into algebraic geometry, and it seems certain that they are to
+ * overflow the part of mathematics in the coming years, from the foundations up
+ * to the most advanced parts."
+ *       -- Alexander Grothendieck, ICM Edinburgh lecture (1958)
  */
 
 export module dedekind.category;

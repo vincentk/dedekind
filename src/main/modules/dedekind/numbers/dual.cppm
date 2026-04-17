@@ -1,3 +1,18 @@
+/**
+ * @file dedekind/numbers/dual.cppm
+ * @partition :dual
+ * @brief Module interface in the dedekind hierarchy.
+ *
+ * @copyright 2026 The Dedekind Authors
+ * Licensed under the Apache License, Version 2.0.
+ *
+ * @note "Musica est exercitium arithmeticae occultum nescientis se numerare
+ * animi."
+ *       ("Music is the pleasure the human mind experiences from counting
+ * without being aware that it is counting.")
+ *       -- Gottfried Wilhelm Leibniz, letter to Christian Goldbach (1712)
+ */
+
 module;
 #include <concepts>
 

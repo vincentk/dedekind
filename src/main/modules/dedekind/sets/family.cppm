@@ -1,5 +1,6 @@
 /**
  * @file dedekind/sets/family.cppm
+ * @partition :family
  * @brief The Collective Body: Realized Families of Sets (Systems of Parts).
  *
  * Copyright 2026 The Dedekind Authors
@@ -32,6 +33,13 @@
  * @tparam L The Subobject Classifier (Ω) governing the internal logic.
  *
  * Wikipedia: Family of sets, Power set, System of sets, Bounded lattice
+ *
+ * @copyright 2026 The Dedekind Authors
+ * Licensed under the Apache License, Version 2.0.
+ *
+ * @note "The art of doing mathematics consists in finding that special case
+ * which contains all the germs of generality."
+ *       -- David Hilbert, quoted in Constance Reid, Hilbert (1970)
  */
 module;
 

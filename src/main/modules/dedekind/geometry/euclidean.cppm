@@ -1,5 +1,6 @@
 /**
  * @file dedekind/geometry/euclidean.cppm
+ * @partition :euclidean
  * @brief The Study of Distance, Metrics, and Curvature.
  *
  * Copyright 2026 The Dedekind Authors
@@ -11,6 +12,14 @@
  *          can be measured not just as sets or fields, but as physical
  * points on a 1D, 2D, or n-dimensional manifold. Wikipedia: Geometry,
  * Metric space, Euclidean space
+ *
+ * @copyright 2026 The Dedekind Authors
+ * Licensed under the Apache License, Version 2.0.
+ *
+ * @note "With the aid of visual imagination we can illuminate the manifold
+ * facts and problems."
+ *       -- David Hilbert and S. Cohn-Vossen, Geometry and the Imagination
+ *          (1932)
  */
 
 module;

@@ -12,6 +12,13 @@
  * This partition bridges Algebraic Species with their governing Logic Species
  * (Ω). We distinguish between 'True' (Exact), 'False' (Undefined), and
  * 'Unknown' (Truncated/Lossy) results using the Ternary Topos.
+ *
+ * @copyright 2026 The Dedekind Authors
+ * Licensed under the Apache License, Version 2.0.
+ *
+ * @note "To doubt everything or to believe everything are two equally
+ * convenient solutions; both dispense with the necessity of reflection."
+ *       -- Henri Poincare, Science and Hypothesis (1901)
  */
 module;
 

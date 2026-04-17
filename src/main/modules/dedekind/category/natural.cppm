@@ -1,5 +1,6 @@
 /**
  * @file dedekind/category/natural.cppm
+ * @partition :natural
  * @module dedekind.category:natural
  * @brief Level 2.2: Natural Transformations (The Slide between Functors).
  *
@@ -48,6 +49,11 @@
  * the identity spoke `id_c(x)`. As a result, component arrows such as `η_x`
  * are checked by lifting identity arrows and reading off the resulting domain
  * object, rather than by ranging over a separate textbook object class.
+ *
+ * @note "Logic teaches us that on such and such a road we are sure of not
+ * meeting an obstacle; it does not tell us which is the road that leads to the
+ * desired end."
+ *       -- Henri Poincare, Science and Method (1908)
  */
 module;
 

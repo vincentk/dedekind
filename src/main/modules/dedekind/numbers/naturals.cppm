@@ -28,6 +28,16 @@
  * @anchors C++ Fundamental Types: bool, char, int, long, float, double.
  *
  * Wikipedia: Number, Natural number, Integer, Rational number, Real number
+ *
+ * @copyright 2026 The Dedekind Authors
+ * Licensed under the Apache License, Version 2.0.
+ *
+ * @note "Having been introduced there to this art with an amazing method of
+ * teaching by means of the nine figures of the Indians, I loved the knowledge
+ * of such an art to such an extent above all other arts...that I learned with
+ * very earnest application...anything to be studied concerning it and its
+ * various methods used in Egypt, in Syria, in Greece, in Sicily, and in
+ * Provence." — Leonardo Fibonacci, *Liber Abaci*, Prologus (~1202).
  */
 module;
 

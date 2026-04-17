@@ -1,6 +1,15 @@
 /**
- * @file ontology:numbers.cppm
+ * @file dedekind/numbers/integer.cppm
+ * @partition :integer
  * @brief Minimal number taxonomy concepts for reintegration.
+ *
+ * @copyright 2026 The Dedekind Authors
+ * Licensed under the Apache License, Version 2.0.
+ *
+ * @note "Die ganzen Zahlen hat der liebe Gott gemacht, alles andere ist
+ * Menschenwerk."
+ *       ("God made the integers; all else is the work of man.")
+ *       -- Leopold Kronecker, Jahresbericht der DMV 2 (1891, reported)
  */
 module;
 

@@ -6,13 +6,7 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
- *
- * @section The_Identity_Axiom
- * « Wprowadzenie pojęcia kategorii pozwala na jednolite traktowanie
- *   różnych struktur matematycznych. »
- *  (The introduction of the concept of a category allows for a uniform
- *   treatment of various mathematical structures.)
- *  — Samuel Eilenberg, 'Algebraic Topology'
+
  *
  * @section Taxonomy_of_Identity
  * This partition grounds the abstract categorical Monoid into the
@@ -20,6 +14,12 @@
  * "Rules of Neutrality" for Addition (0) and Multiplication (1),
  * establishing the skeletal foundation for all higher-order
  * Ring and Field structures.
+ *
+ * @note « Wprowadzenie pojęcia kategorii pozwala na jednolite traktowanie
+ *   różnych struktur matematycznych. »
+ *  (The introduction of the concept of a category allows for a uniform
+ *   treatment of various mathematical structures.)
+ *  — Samuel Eilenberg, 'Algebraic Topology'
  */
 module;
 

@@ -2,6 +2,12 @@
  * @file dedekind/ieee/approx.cppm
  * @module dedekind.ieee.approx
  * @brief Approximation policies for the IEEE effect context.
+ *
+ * @copyright 2026 The Dedekind Authors
+ * Licensed under the Apache License, Version 2.0.
+ *
+ * @note "Begin with the simplest examples."
+ *       -- David Hilbert, quoted in Hilbert-Courant (1984)
  */
 module;
 

@@ -1,4 +1,6 @@
 /**
+ * @file dedekind/category/posetal.cppm
+ * @partition :posetal
  * @concept IsPosetal
  * @brief Represents a Posetal Category (A Category derived from a Partially
  * Ordered Set).
@@ -32,6 +34,12 @@
  *
  * @tparam T The type of objects in the poset.
  * @tparam Rel The relation defining the order (the Morphism Generator).
+ *
+ * @copyright 2026 The Dedekind Authors
+ * Licensed under the Apache License, Version 2.0.
+ *
+ * @note "Science, in other words, is a system of relations."
+ *       -- Henri Poincare, The Value of Science (1905)
  */
 module;
 
