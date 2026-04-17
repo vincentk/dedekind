@@ -40,7 +40,8 @@ Thank you for your interest in contributing!
 
 - The `Makefile` is the **preferred** build interface; use `make <target>` rather than
    raw `cmake`/`ninja`/`ctest` commands whenever an equivalent target exists.
-   Available targets: `compile`, `test`, `format`, `coverage`, `doxygen`, `clean`, `install-hooks`.
+   Available targets: `compile`, `test`, `format`, `coverage`, `doxygen`, `clean`, `install-hooks`,
+   `ci-main`, `pr-status`, `pr-checks`, `pr-watch`, `pr-sync`.
 - Treat the GitHub CI build as the reference build for the project.  Local builds are useful,
    but merge readiness is determined by the PR checks.
 - Workflow model note: this project intentionally uses an optimistic concurrency
@@ -66,6 +67,8 @@ Thank you for your interest in contributing!
    push small checkpoints, but verify the reference build state first so failures do not
    compound into large divergences. If a check fails, read the workflow logs and address
    the failure before continuing with unrelated work.
+   Suggested command flow:
+   `make pr-sync` (refresh branch + current PR state), then push, then `make pr-watch`.
 - After a green CI run, also check the Codecov report for regressions before marking the PR ready.
 - Mark the PR **Ready for Review** only once **all CI checks show green**.  A draft PR
    with failing CI should never be marked ready.

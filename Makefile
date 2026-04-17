@@ -12,7 +12,8 @@ DOCS_MAIN    := report
 FILTER_GVPR  := $(DOCS_DIR)/figures/filter.gvpr
 DOT_FILE     := $(DOCS_DIR)/figures/dedekind_module_dependencies.dot
 
-.PHONY: all clean compile test coverage format install-hooks
+.PHONY: all clean compile test coverage format install-hooks doxygen dot doc \
+	ci-main pr-status pr-checks pr-watch pr-sync
 
 all: compile
 
@@ -52,6 +53,25 @@ install-hooks:
 	git config core.hooksPath .githooks
 	chmod +x .githooks/pre-push
 	@echo "Installed repo hooks from .githooks/"
+
+# CI/PR workflow helpers (optimistic concurrency loop)
+ci-main:
+	gh run list --branch main --limit 5
+
+pr-status:
+	gh pr view --json number,title,state,isDraft,url
+
+pr-checks:
+	gh pr checks || true
+
+pr-watch:
+	gh pr checks --watch || true
+
+pr-sync:
+	git fetch --prune
+	git status -sb
+	gh pr view --json number,title,state,isDraft,url
+	gh pr checks || true
 
 doxygen: $(BUILD_DIR)/CMakeCache.txt
 	cmake --build $(BUILD_DIR) --target docs
