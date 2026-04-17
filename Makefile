@@ -14,7 +14,7 @@ DOCS_MAIN    := report
 FILTER_GVPR  := $(DOCS_DIR)/figures/filter.gvpr
 DOT_FILE     := $(DOCS_DIR)/figures/dedekind_module_dependencies.dot
 
-.PHONY: all clean compile test coverage format format-check install-hooks doxygen dot doc report \
+.PHONY: all clean compile test coverage format format-check install-hooks ci-install-doxygen-deps ci-install-report-deps doxygen dot doc report \
 	ci-main pr-status pr-checks pr-watch pr-sync pr-review-comments pr-review-unresolved pr-resolve-thread pr-resolve-threads
 
 all: compile
@@ -60,6 +60,24 @@ install-hooks:
 	git config core.hooksPath .githooks
 	chmod +x .githooks/pre-push
 	@echo "Installed repo hooks from .githooks/"
+
+# CI-only helper: install packages required for Doxygen generation.
+ci-install-doxygen-deps:
+	@if ! command -v apt-get >/dev/null 2>&1; then \
+		echo "ERROR: ci-install-doxygen-deps requires apt-get (intended for Ubuntu CI runners)."; \
+		exit 2; \
+	fi
+	sudo apt-get update
+	sudo apt-get install -y doxygen graphviz
+
+# CI-only helper: install packages required for report/LaTeX generation.
+ci-install-report-deps:
+	@if ! command -v apt-get >/dev/null 2>&1; then \
+		echo "ERROR: ci-install-report-deps requires apt-get (intended for Ubuntu CI runners)."; \
+		exit 2; \
+	fi
+	sudo apt-get update
+	sudo apt-get install -y biber texlive-latex-base texlive-latex-extra texlive-bibtex-extra texlive-pictures texlive-plain-generic texlive-fonts-recommended
 
 # CI/PR workflow helpers (optimistic concurrency loop)
 ci-main:
