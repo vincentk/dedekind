@@ -70,16 +70,47 @@ namespace dedekind::geometry {
 using namespace dedekind::algebra;
 using namespace dedekind::category;
 
+#ifndef DEDEKIND_ENABLE_DOUBLE_REAL_PROXY
+#define DEDEKIND_ENABLE_DOUBLE_REAL_PROXY 0
+#endif
+
 /**
  * @concept IsMatrixScalar
  * @brief A scalar type that can serve as coefficients in a LinearMap.
  *
- * The current concrete Vector and LinearMap MVP is intentionally restricted to
- * floating-point carriers. This keeps the executable interface aligned with the
- * operations used by Vector<F, N> and the surrounding geometry layer.
+ * The current concrete Vector/LinearMap MVP is restricted to floating-point
+ * carriers.
+ *
+ * Policy hardening: using `double` as a proxy for the real line requires
+ * explicit build opt-in via DEDEKIND_ENABLE_DOUBLE_REAL_PROXY=1. This keeps the
+ * machine-real approximation path explicit rather than ambient.
  */
 export template <typename S>
-concept IsMatrixScalar = std::floating_point<S>;
+concept IsMatrixScalar =
+  std::floating_point<S> &&
+  (!std::same_as<S, double> || (DEDEKIND_ENABLE_DOUBLE_REAL_PROXY == 1));
+
+/**
+ * @brief Explicit embedding witness from floating carriers into matrix scalars.
+ *
+ * This is the policy gate for admitting machine floating carriers into the
+ * matrix layer. In particular, `double` is only embeddable when
+ * DEDEKIND_ENABLE_DOUBLE_REAL_PROXY=1.
+ */
+export template <typename F>
+  requires std::floating_point<F> && IsMatrixScalar<F>
+constexpr F embed_matrix_scalar(F value) noexcept {
+  return value;
+}
+
+/**
+ * @concept HasMatrixScalarEmbedding
+ * @brief Floating carrier that is admissible as a matrix scalar by policy.
+ */
+export template <typename F>
+concept HasMatrixScalarEmbedding = std::floating_point<F> && requires(F x) {
+  { embed_matrix_scalar(x) } -> std::same_as<F>;
+};
 
 /**
  * @class LinearMap
@@ -100,9 +131,9 @@ concept IsMatrixScalar = std::floating_point<S>;
  * @tparam Rows The number of output dimensions.
  * @tparam Cols The number of input dimensions.
  *
- * Supports floating-point scalars meeting IsMatrixScalar. The surrounding
- * documentation treats these carriers as field-like under the active numeric
- * policy, rather than as a categorical field proof.
+ * Supports scalars meeting IsMatrixScalar. The surrounding documentation treats
+ * these carriers as field-like under the active numeric policy, rather than as
+ * a categorical field proof.
  */
 export template <IsMatrixScalar F, std::size_t Rows, std::size_t Cols>
 class LinearMap {
@@ -149,19 +180,19 @@ class LinearMap {
   }
 
  private:
-  template <std::floating_point G, std::size_t R, std::size_t C>
+  template <IsMatrixScalar G, std::size_t R, std::size_t C>
   friend constexpr LinearMap<G, R, C> operator+(const LinearMap<G, R, C>&,
                                                 const LinearMap<G, R, C>&);
-  template <std::floating_point G, std::size_t R, std::size_t C>
+  template <IsMatrixScalar G, std::size_t R, std::size_t C>
   friend constexpr LinearMap<G, R, C> operator-(const LinearMap<G, R, C>&,
                                                 const LinearMap<G, R, C>&);
-  template <std::floating_point G, std::size_t R, std::size_t C>
+  template <IsMatrixScalar G, std::size_t R, std::size_t C>
   friend constexpr LinearMap<G, R, C> operator*(const G&,
                                                 const LinearMap<G, R, C>&);
-  template <std::floating_point G, std::size_t R, std::size_t C>
+  template <IsMatrixScalar G, std::size_t R, std::size_t C>
   friend constexpr LinearMap<G, R, C> operator*(const LinearMap<G, R, C>&,
                                                 const G&);
-  template <std::floating_point G, std::size_t R, std::size_t Inner,
+  template <IsMatrixScalar G, std::size_t R, std::size_t Inner,
             std::size_t C>
   friend constexpr LinearMap<G, R, C> operator*(const LinearMap<G, R, Inner>&,
                                                 const LinearMap<G, Inner, C>&);
@@ -169,13 +200,13 @@ class LinearMap {
   std::array<std::array<F, Cols>, Rows> coeffs_{};
 };
 
-export template <std::floating_point F, std::size_t Rows, std::size_t Cols>
+export template <IsMatrixScalar F, std::size_t Rows, std::size_t Cols>
 using Matrix = LinearMap<F, Rows, Cols>;
 
 // FIXME(https://github.com/vincentk/dedekind/issues/174): Extend the MVP with
 // post-core matrix operators (transpose/trace/Hadamard/Kronecker/concat).
 
-export template <std::floating_point F, std::size_t Rows, std::size_t Cols>
+export template <IsMatrixScalar F, std::size_t Rows, std::size_t Cols>
 constexpr LinearMap<F, Rows, Cols> operator+(
     const LinearMap<F, Rows, Cols>& a, const LinearMap<F, Rows, Cols>& b) {
   LinearMap<F, Rows, Cols> result;
@@ -185,7 +216,7 @@ constexpr LinearMap<F, Rows, Cols> operator+(
   return result;
 }
 
-export template <std::floating_point F, std::size_t Rows, std::size_t Cols>
+export template <IsMatrixScalar F, std::size_t Rows, std::size_t Cols>
 constexpr LinearMap<F, Rows, Cols> operator-(
     const LinearMap<F, Rows, Cols>& a, const LinearMap<F, Rows, Cols>& b) {
   LinearMap<F, Rows, Cols> result;
@@ -195,7 +226,7 @@ constexpr LinearMap<F, Rows, Cols> operator-(
   return result;
 }
 
-export template <std::floating_point F, std::size_t Rows, std::size_t Cols>
+export template <IsMatrixScalar F, std::size_t Rows, std::size_t Cols>
 constexpr LinearMap<F, Rows, Cols> operator*(
     const F& scalar, const LinearMap<F, Rows, Cols>& a) {
   LinearMap<F, Rows, Cols> result;
@@ -205,19 +236,19 @@ constexpr LinearMap<F, Rows, Cols> operator*(
   return result;
 }
 
-export template <std::floating_point F, std::size_t Rows, std::size_t Cols>
+export template <IsMatrixScalar F, std::size_t Rows, std::size_t Cols>
 constexpr LinearMap<F, Rows, Cols> operator*(const LinearMap<F, Rows, Cols>& a,
                                              const F& scalar) {
   return scalar * a;
 }
 
-export template <std::floating_point F, std::size_t Rows, std::size_t Cols>
+export template <IsMatrixScalar F, std::size_t Rows, std::size_t Cols>
 constexpr Vector<F, Rows> operator*(const LinearMap<F, Rows, Cols>& a,
                                     const Vector<F, Cols>& v) {
   return a(v);
 }
 
-export template <std::floating_point F, std::size_t Rows, std::size_t Inner,
+export template <IsMatrixScalar F, std::size_t Rows, std::size_t Inner,
                  std::size_t Cols>
 constexpr LinearMap<F, Rows, Cols> operator*(
     const LinearMap<F, Rows, Inner>& a, const LinearMap<F, Inner, Cols>& b) {
@@ -233,29 +264,29 @@ constexpr LinearMap<F, Rows, Cols> operator*(
   return result;
 }
 
-export template <std::floating_point F, std::size_t N>
+export template <IsMatrixScalar F, std::size_t N>
 constexpr LinearMap<F, N, N> identity_linear_map() {
   LinearMap<F, N, N> result;
   for (std::size_t i = 0; i < N; ++i) result.set_coefficient(i, i, F{1});
   return result;
 }
 
-export template <std::floating_point F, std::size_t Rows, std::size_t Cols>
+export template <IsMatrixScalar F, std::size_t Rows, std::size_t Cols>
 constexpr LinearMap<F, Rows, Cols> zero_linear_map() {
   return LinearMap<F, Rows, Cols>{};
 }
 
 /**
- * @section Algebraic_Verification_for_Floating_Point_Scalars
+ * @section Algebraic_Verification_for_Matrix_Scalars
  *
- * When F is std::floating_point (e.g., double, float):
+ * When F satisfies IsMatrixScalar:
  * - the implementation provides the operations needed by this MVP
  * - those operations behave like a field only under idealized exact arithmetic
  * - in actual IEEE arithmetic, this is a field-like policy witness rather than
  *   a categorical field proof
  *
- * Consequence: LinearMap<F, R, C> for floating_point F is a **Vector Space**
- * over F in the same operational sense used by IsFieldLikeScalar.
+ * Consequence: LinearMap<F, R, C> behaves as a vector-space-like carrier over
+ * F in the same operational sense used by IsFieldLikeScalar.
  *
  * This means LinearMap satisfies the **four axioms of linear action**:
  * 1. Vector Additivity: s * (m1 + m2) = s*m1 + s*m2
@@ -270,7 +301,7 @@ constexpr LinearMap<F, Rows, Cols> zero_linear_map() {
  * @concept IsLinearMapModule
  * @brief Verify that LinearMap<F, R, C> behaves as a module over scalar F.
  *
- * For floating_point F, this verifies:
+ * For IsMatrixScalar F, this verifies:
  * - F satisfies the operational scalar contract used by the geometry layer
  * - LinearMap supports the external linear action
  * - Addition and scalar multiplication are properly closed
@@ -305,8 +336,8 @@ constexpr LinearMap<F, Rows, Cols> zero_linear_map() {
  *   (Additionally has scalar negation)
  * - When F is a field: LinearMap<F, R, C> is a **Vector Space** over F
  *   (Additionally has scalar division)
- * - When F is ℝ (double/float): LinearMap<F, R, C> is a **Vector Space**
- *   (with practical floating-point semantics)
+ * - When F is a machine floating scalar admitted by IsMatrixScalar:
+ *   LinearMap<F, R, C> is vector-space-like with practical IEEE semantics
  *
  * **Note on Matrix Multiplication (Non-Commutativity):**
  * Square matrices M^{n×n} form a ring under matrix addition and composition,
@@ -325,7 +356,7 @@ constexpr LinearMap<F, Rows, Cols> zero_linear_map() {
  * Covectors form the **dual module** Hom_F(V, F), where V = F^N.
  * When F is a field, the dual module is isomorphic to V itself.
  */
-export template <std::floating_point F, std::size_t N>
+export template <IsMatrixScalar F, std::size_t N>
 using Covector = LinearMap<F, 1, N>;
 
 /**
@@ -340,7 +371,7 @@ using Covector = LinearMap<F, 1, N>;
  *                               u ⊗ (v1+v2) = (u⊗v1) + (u⊗v2)
  * - Rank 1: The image of u ⊗ v is the 1-dimensional subspace span(u)
  */
-export template <std::floating_point F, std::size_t M, std::size_t N>
+export template <IsMatrixScalar F, std::size_t M, std::size_t N>
 constexpr LinearMap<F, M, N> outer(const Vector<F, M>& u,
                                    const Vector<F, N>& v) {
   LinearMap<F, M, N> result;
@@ -357,28 +388,29 @@ constexpr LinearMap<F, M, N> outer(const Vector<F, M>& u,
  * specific algebraic structures. Each specialization documents the algebraic
  * guarantees of the linear map as a module/vector space.
  *
- * **Naming Convention:**
- * - RealMatrix<R, C>: Vector Space over ℝ (double)
- * - ComplexMatrix<R, C>: Vector Space over ℂ (Complex<double>)
- * - RationalMatrix<R, C>: Vector Space over ℚ (Rational<int>)
+ * **Provided Alias:**
+ * - RealMatrix<R, C>: machine-real matrix alias (double) with explicit opt-in
+ *   requirement via DEDEKIND_ENABLE_DOUBLE_REAL_PROXY=1.
  *
  * All specializations are **Semimodules** at minimum (over the semiring
  * formed by their scalar type). When the scalar forms a ring or field,
  * the matrix carries the corresponding module or vector space structure.
  *
- * **Usage Note for ComplexMatrix and RationalMatrix:**
- * These aliases require dedekind.numbers to be imported for the full type
- * definitions. They are provided here for semantic clarity and forward
- * reference.
+ * Additional aliases (for complex/rational carriers) are planned and should be
+ * introduced only once their scalar/vector contracts are implemented in this
+ * partition.
  */
 
 /**
- * @brief RealMatrix: A vector space of real-valued matrices over the field ℝ.
+ * @brief RealMatrix: machine-real matrix alias behind explicit opt-in.
  *
- * **Algebraic Structure:** LinearMap<double, R, C> is a **Vector Space** over
- * ℝ.
+ * **Policy:** This alias is only available when
+ * DEDEKIND_ENABLE_DOUBLE_REAL_PROXY=1 is set at build time.
  *
- * Satisfies all four linear action axioms:
+ * **Algebraic Interpretation:** treated as vector-space-like under the active
+ * numeric policy (not as a strict field proof).
+ *
+ * Satisfies the linear action laws operationally:
  * 1. Vector Additivity: s * (m1 + m2) = s*m1 + s*m2
  * 2. Scalar Additivity: (s1 + s2) * m = s1*m + s2*m
  * 3. Associativity: (s1 * s2) * m = s1 * (s2 * m)

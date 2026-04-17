@@ -4,6 +4,15 @@ import dedekind.geometry;
 
 using namespace dedekind::geometry;
 
+static_assert(IsMatrixScalar<float>);
+static_assert(HasMatrixScalarEmbedding<float>);
+#if DEDEKIND_ENABLE_DOUBLE_REAL_PROXY
+static_assert(IsMatrixScalar<double>);
+static_assert(HasMatrixScalarEmbedding<double>);
+#else
+static_assert(!IsMatrixScalar<double>);
+#endif
+
 TEST_CASE("Geometry: Linear Map MVP", "[geometry][linear-map]") {
   using R = double;
   using Vec2 = Vector<R, 2>;
@@ -77,7 +86,7 @@ TEST_CASE("Geometry: Linear Map MVP", "[geometry][linear-map]") {
  * @test Linear Action Axioms: The Four Laws of Module Harmony
  *
  * This test suite verifies that LinearMap<double, R, C> satisfies the
- * complete algebraic structure of a Vector Space over the field ℝ (double).
+ * operational vector-space-like laws under explicit machine-real proxy opt-in.
  *
  * The four axioms are:
  * 1. **Vector Additivity**: s * (m1 + m2) = s*m1 + s*m2

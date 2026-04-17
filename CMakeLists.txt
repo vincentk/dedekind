@@ -51,6 +51,12 @@ option(DEDEKIND_RUNTIME_COVERAGE_BRIDGES
     "Use runtime/noinline numeric bridge wrappers for coverage attribution"
     OFF)
 
+# Explicit policy switch: allow raw double as a machine-real proxy in geometry.
+# OFF by default to keep machine-real semantics opt-in.
+option(DEDEKIND_ENABLE_DOUBLE_REAL_PROXY
+    "Allow double as explicit proxy for real scalars in geometry"
+    OFF)
+
 # Enable testing with Catch2:
 include(FetchContent)
 FetchContent_Declare(
@@ -96,6 +102,10 @@ function(add_dedekind_layer LAYER_NAME DEPENDS_ON)
         target_compile_definitions(${LIB_TARGET}
             PRIVATE DEDEKIND_RUNTIME_COVERAGE_BRIDGES)
     endif()
+    if(DEDEKIND_ENABLE_DOUBLE_REAL_PROXY)
+        target_compile_definitions(${LIB_TARGET}
+            PRIVATE DEDEKIND_ENABLE_DOUBLE_REAL_PROXY=1)
+    endif()
     
     if(DEPENDS_ON)
         target_link_libraries(${LIB_TARGET} PUBLIC ${DEPENDS_ON})
@@ -115,6 +125,10 @@ function(add_dedekind_layer LAYER_NAME DEPENDS_ON)
         if(DEDEKIND_RUNTIME_COVERAGE_BRIDGES)
             target_compile_definitions(${TEST_TARGET}
                 PRIVATE DEDEKIND_RUNTIME_COVERAGE_BRIDGES)
+        endif()
+        if(DEDEKIND_ENABLE_DOUBLE_REAL_PROXY)
+            target_compile_definitions(${TEST_TARGET}
+                PRIVATE DEDEKIND_ENABLE_DOUBLE_REAL_PROXY=1)
         endif()
     endif()
 
