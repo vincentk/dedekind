@@ -49,6 +49,7 @@ make test
 The project rests on two pillars: **C++23** and **Category Theory**.
 
  - **Why C++?** It is a mainstream language with many features which is suitable for performance-optimized code. Its flexible type system allows for the simulation of functional concepts—such as higher-kinded and dependent types—via template metaprogramming, concepts, and traits.
+- **Clarification:** The project's structural use of C++ `concept`s (the "Juliet Posture") is not equivalent to Python-style duck typing. Duck typing validates behavior at runtime; `dedekind` concepts enforce explicit structural contracts at compile time.
  - **Why Category Theory?** It bridges the gap from the mathematical end: typed λ-calculus can be expressed directly in the terminology of established mathematical textbooks.
 
 In this approach;
