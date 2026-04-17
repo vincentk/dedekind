@@ -12,9 +12,24 @@ DOCS_MAIN    := report
 FILTER_GVPR  := $(DOCS_DIR)/figures/filter.gvpr
 DOT_FILE     := $(DOCS_DIR)/figures/dedekind_module_dependencies.dot
 
-.PHONY: all clean compile test coverage format install-hooks
+.PHONY: all clean compile test coverage format install-hooks help pr-review-unresolved pr-hygiene
 
 all: compile
+
+help:
+	@echo "Available targets:"
+	@echo "  make all                  - Build project (default)"
+	@echo "  make clean                - Remove build artifacts"
+	@echo "  make compile              - Configure/build via CMake + Ninja"
+	@echo "  make test                 - Run CTest suite"
+	@echo "  make coverage             - Run tests and coverage target"
+	@echo "  make format               - Run clang-format on C++ sources"
+	@echo "  make doxygen              - Build API documentation"
+	@echo "  make dot                  - Generate dependency graph PDF"
+	@echo "  make doc                  - Build report PDF"
+	@echo "  make pr-review-unresolved [PR=<n>]"
+	@echo "                           - Check unresolved PR review threads"
+	@echo "  make pr-hygiene [PR=<n>]  - Run PR checks + unresolved-thread check"
 
 clean:
 	rm -rf $(BUILD_DIR)
@@ -73,3 +88,31 @@ doc: dot
 	cd $(DOCS_DIR) && pdflatex $(DOCS_MAIN).tex
 	cd $(DOCS_DIR) && biber $(DOCS_MAIN)
 	cd $(DOCS_DIR) && pdflatex $(DOCS_MAIN).tex
+
+pr-review-unresolved:
+	@set -eu; \
+	PR_NUM="$${PR:-$$(gh pr view --json number --jq '.number')}"; \
+	OWNER="$$(gh repo view --json owner --jq '.owner.login')"; \
+	REPO="$$(gh repo view --json name --jq '.name')"; \
+	echo "Checking unresolved review threads for PR #$$PR_NUM in $$OWNER/$$REPO..."; \
+	UNRESOLVED="$$(gh api graphql \
+		-f query='query($$owner:String!,$$repo:String!,$$number:Int!){repository(owner:$$owner,name:$$repo){pullRequest(number:$$number){reviewThreads(first:100){nodes{id path isResolved}}}}}' \
+		-f owner="$$OWNER" -f repo="$$REPO" -F number="$$PR_NUM" \
+		--jq '.data.repository.pullRequest.reviewThreads.nodes | map(select(.isResolved == false)) | length')"; \
+	if [ "$$UNRESOLVED" -eq 0 ]; then \
+		echo "OK: no unresolved review threads"; \
+	else \
+		echo "Found $$UNRESOLVED unresolved review thread(s):"; \
+		gh api graphql \
+			-f query='query($$owner:String!,$$repo:String!,$$number:Int!){repository(owner:$$owner,name:$$repo){pullRequest(number:$$number){reviewThreads(first:100){nodes{id path isResolved}}}}}' \
+			-f owner="$$OWNER" -f repo="$$REPO" -F number="$$PR_NUM" \
+			--jq '.data.repository.pullRequest.reviewThreads.nodes[] | select(.isResolved == false) | "  - " + .id + "\t" + .path'; \
+		exit 1; \
+	fi
+
+pr-hygiene:
+	@set -eu; \
+	PR_NUM="$${PR:-$$(gh pr view --json number --jq '.number')}"; \
+	echo "Running PR hygiene checks for PR #$$PR_NUM..."; \
+	gh pr checks "$$PR_NUM"; \
+	$(MAKE) pr-review-unresolved PR="$$PR_NUM"
