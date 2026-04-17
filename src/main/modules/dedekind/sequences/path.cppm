@@ -35,8 +35,10 @@ module;
 #include <cstddef>
 #include <functional>
 #include <limits>
+#include <memory>
 #include <type_traits>
 #include <utility>
+#include <vector>
 
 export module dedekind.sequences:path;
 
@@ -182,7 +184,20 @@ export template <typename T, typename Step>
            std::same_as<
                std::invoke_result_t<const std::decay_t<Step>&, const T&>, T>
 constexpr auto iterate(T seed, Step&& step, std::size_t length) {
-  return prefix(iterate(std::move(seed), std::forward<Step>(step)), length);
+  if (length == 0) {
+    return FinitePath<T>{[seed](std::size_t) { return seed; }, 0};
+  }
+
+  auto values = std::make_shared<std::vector<T>>();
+  values->reserve(length);
+  values->push_back(seed);
+
+  auto f = std::forward<Step>(step);
+  for (std::size_t i = 1; i < length; ++i)
+    values->push_back(std::invoke(f, values->back()));
+
+  return FinitePath<T>{[values](std::size_t i) { return (*values)[i]; },
+                       length};
 }
 
 export template <typename T, typename Cardinality, typename Pred>

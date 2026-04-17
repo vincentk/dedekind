@@ -89,6 +89,10 @@ on build management.
    "works on my laptop" failures by treating CI as the reproducible baseline
    and local environments as potentially non-reproducible.
 - Before starting new work, check that the most recent `main` branch CI run is green.
+- For backlog grooming, run a short preflight in this order: check `main` CI health, then list
+   open issues, then list open fork PRs, then classify each item as actionable / ambiguous /
+   already resolved.
+- If the latest `main` CI run is red, prioritize stabilization before starting unrelated new work.
 - Keep the README small and stable.  Only update it when something is plainly wrong or deeply
    misleading; routine progress belongs in the report and inline documentation.
 - Prefer plain `gh` CLI commands when working with issues, pull requests, and CI.
@@ -109,6 +113,21 @@ on build management.
 - After a green CI run, also check the Codecov report for regressions before marking the PR ready.
 - Mark the PR **Ready for Review** only once **all CI checks show green**.  A draft PR
    with failing CI should never be marked ready.
+
+### Backlog Grooming And CI Health Quick Loop
+
+1. Check CI health for `main`:
+   - `gh run list --branch main --limit 3`
+2. Collect backlog inputs:
+   - `gh issue list --state open --limit 50 --json number,title,body,labels,comments`
+   - `gh pr list --state open --json number,title,body,headRepositoryOwner --jq '.[] | select(.headRepositoryOwner.login != "vincentk")'`
+3. Classify each item:
+   - Actionable: clear scope and no blocking ambiguity; include in current plan.
+   - Ambiguous: add a clarifying issue/PR comment and defer implementation.
+   - Already resolved: close with a note referencing the resolving PR.
+   - Exact duplicate: keep one canonical issue open and close duplicates with a cross-reference comment.
+4. Pick a focused batch:
+   - Prefer exactly two actionable items in parallel when feasible.
 
 ## Review workflow
 
