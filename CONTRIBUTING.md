@@ -36,6 +36,28 @@ Thank you for your interest in contributing!
    Push incremental checkpoints freely; the draft status signals work-in-progress.
    Mark the PR **Ready for Review** only once **all CI checks are green**.
 
+## Workflow at a glance
+
+The intended UX is:
+
+1. **Edit** source files locally — no local build required.
+2. **Format** with `make format` (or let the pre-push hook do it).
+3. **Push** — `git push` is the only command you strictly need to run.
+4. **CI takes over** — GitHub Actions compiles with clang-21, runs all tests,
+   collects coverage, builds Doxygen docs, and checks the LaTeX report.
+   Your workstation stays idle and cool.
+5. **Check progress** with `make pr-checks` or `make pr-watch` while CI runs.
+6. **Iterate** — if CI flags a failure, read the workflow logs, fix locally,
+   push again.  Repeat until green.
+7. **Mark ready** — once all CI checks are green, mark the PR ready for review.
+
+**When local builds are needed:** non-trivial build failures or toolchain-specific
+issues that cannot be diagnosed from CI logs alone warrant a local `make compile`
+or `make test`.  This should be the exception, not the routine.
+
+The goal is to keep the contributor's focus on the mathematics and the code, not
+on build management.
+
 ## Development workflow
 
 - The `Makefile` is the **preferred** build interface; use `make <target>` rather than
