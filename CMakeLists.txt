@@ -203,6 +203,7 @@ if(DEDEKIND_BUILD_PYTHON_BINDINGS)
         LIBRARY_OUTPUT_DIRECTORY "${DEDEKIND_PYTHON_PACKAGE_DIR}"
         RUNTIME_OUTPUT_DIRECTORY "${DEDEKIND_PYTHON_PACKAGE_DIR}")
     target_compile_options(_dedekind PRIVATE ${DEDEKIND_WARNING_FLAGS})
+    target_compile_options(_dedekind PRIVATE -Wno-sign-conversion)
     target_link_libraries(_dedekind PRIVATE dedekind_python)
 
     install(TARGETS _dedekind LIBRARY DESTINATION dedekind)

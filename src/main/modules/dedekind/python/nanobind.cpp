@@ -15,8 +15,6 @@
  *       [Trans: "Science is built from facts as a house is built from stones."]
  */
 
-module;
-
 #include <nanobind/nanobind.h>
 #include <nanobind/stl/vector.h>
 
