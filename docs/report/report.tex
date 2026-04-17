@@ -308,6 +308,25 @@ The \texttt{dedekind.python} module is the current end-of-chain facade for wrapp
 
 For the MVP, the exposed surface is intentionally limited to explicit set-interop boundaries and sequence/range adapters: conversion from and to standard set-like carriers, plus finite-path range materialization and view adaptation. This scope is large enough to support notebook-first demos (for example, selecting and plotting subsets of a Mandelbrot orbit trace) while remaining small enough for stable review and low-risk evolution.
 
+Concretely, the current \texttt{dedekind::interop} boundary provides explicit adapters between Dedekind extensional sets and standard set containers:
+\begin{itemize}
+  \item \texttt{from\_std(std::set<T>)} and \texttt{from\_std(std::unordered\_set<T>)};
+  \item \texttt{to\_std<std::set<T>>(ext)} and \texttt{to\_std<std::unordered\_set<T>>(ext)}.
+\end{itemize}
+
+The intended usage is an auditable round-trip at the value boundary rather than an implicit carrier coercion:
+\begin{lstlisting}[language=C++, caption={Explicit interop round-trip through the current wrapper-facing facade.}, label={lst:python_interop_roundtrip}]
+import dedekind.sets;
+
+std::set<int> ordered{1, 2, 3};
+auto ext = dedekind::interop::from_std(ordered);
+auto back = dedekind::interop::to_std<std::set<int>>(ext);
+\end{lstlisting}
+
+This boundary is intentionally constrained. Conversions are explicit on purpose; there are no implicit container bridges. Interop materializes a finite runtime carrier (\texttt{FiniteExtensionalSet<T>}), so the conversion step is visible in code review and does not silently reinterpret intensional set expressions as extensional data. Membership meaning is preserved when container equivalence agrees with ordinary value equality, including the currently supported MVP paths through \texttt{std::set<T>} with the default comparator and \texttt{std::unordered\_set<T, Hash, Equal>}. Custom \texttt{std::set<T, Compare>} comparators are intentionally excluded at this stage because they may encode a different notion of uniqueness than the extensional equality contract the library is prepared to audit.
+
+The current implementation therefore optimizes for reviewability over breadth: extensional equality is checked through round-trip tests on the supported carriers, and the complexity profile remains straightforward, with \texttt{from\_std} and \texttt{to\_std} operating in linear time $O(n)$, while the destination container continues to determine lookup behaviour ($O(1)$ expected for \texttt{std::unordered\_set}, $O(\log n)$ for \texttt{std::set}).
+
 By constraining the facade to value-level bridges and deferring broad symbolic expression builders, the project keeps binding semantics reviewable and reduces drift between implementation, Doxygen headers, and report-level claims.
 
 \section{Instrumented Model Validation: The CI Pipeline as an Independent Auditor}

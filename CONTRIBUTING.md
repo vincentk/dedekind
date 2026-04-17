@@ -63,10 +63,11 @@ on build management.
 - The `Makefile` is the **preferred** build interface; use `make <target>` rather than
    raw `cmake`/`ninja`/`ctest` commands whenever an equivalent target exists.
    Available targets: `compile`, `test`, `format`, `format-check`, `coverage`, `doxygen`, `report`,
-   `clean`, `install-hooks`, `ci-history`, `ci-main`, `pr-status`, `pr-checks`, `pr-watch`, `pr-sync`, `pr-review-comments`, `pr-review-unresolved`.
+   `clean`, `install-hooks`, `ci-history`, `ci-main`, `pr-init`, `pr-status`, `pr-checks`, `pr-watch`, `pr-sync`, `pr-review-comments`, `pr-review-unresolved`.
 - Contributor workflow helper targets:
   `make ci-history BRANCH=<name> [LIMIT=<n>]` checks recent CI runs for a specific branch.
   `make ci-main` checks recent `main` branch CI runs.
+  `make pr-init ISSUES="234 236" [TYPE=feat] [BASE=main]` creates the issue-scoped branch, makes an empty initialization commit, pushes it, and opens the draft PR.
   `make pr-status` shows PR metadata for the current branch.
   `make pr-checks` snapshots current PR check state.
   `make pr-watch` blocks until PR checks complete.

@@ -66,43 +66,6 @@ In this approach;
 
 _AI assistance is used during the development of this project._
 
-### Interoperability Notes (MVP)
-
-`dedekind::interop` provides explicit type-boundary adapters between
-Dedekind extensional sets and standard set containers:
-
-- `from_std(std::set<T>)` / `from_std(std::unordered_set<T>)`
-- `to_std<std::set<T>>(ext)` / `to_std<std::unordered_set<T>>(ext)`
-
-Example:
-
-```cpp
-import dedekind.sets;
-
-std::set<int> ordered{1, 2, 3};
-auto ext = dedekind::interop::from_std(ordered);
-auto back = dedekind::interop::to_std<std::set<int>>(ext);
-```
-
-Semantic caveats:
-
-- Conversions are explicit on purpose; there are no implicit container bridges.
-- Interop materializes a finite runtime carrier (`FiniteExtensionalSet<T>`), so
-	the conversion boundary is auditable and does not silently reinterpret
-	intensional expressions.
-- Membership meaning is preserved when container equivalence agrees with
-	ordinary value equality, including the supported MVP paths through
-	`std::set<T>` with the default comparator and `std::unordered_set<T, Hash, Equal>`.
-	Custom `std::set<T, Compare>` comparators are intentionally rejected in this
-	phase because they may encode a different notion of uniqueness.
-- Extensional equality is checked via round-trip tests within those limits.
-
-Performance notes:
-
-- `from_std` and `to_std` are linear in the number of elements (`O(n)`).
-- `std::unordered_set` targets generally provide expected `O(1)` lookup,
-	while `std::set` targets provide `O(log n)` lookup.
-
 ### Further reading:
 
 * **Build**: the build instructions are available through the [CMakeLists.txt](CMakeLists.txt) and controlled through the [build action](.github/workflows/cmake.yml).

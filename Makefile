@@ -15,7 +15,7 @@ FILTER_GVPR  := $(DOCS_DIR)/figures/filter.gvpr
 DOT_FILE     := $(DOCS_DIR)/figures/dedekind_module_dependencies.dot
 
 .PHONY: all clean compile test coverage format format-check install-hooks ci-install-doxygen-deps ci-install-report-deps doxygen dot doc report \
-	ci-history ci-main pr-status pr-checks pr-watch pr-sync pr-review-comments pr-review-unresolved pr-resolve-thread pr-resolve-threads
+	ci-history ci-main pr-init pr-status pr-checks pr-watch pr-sync pr-review-comments pr-review-unresolved pr-resolve-thread pr-resolve-threads
 
 all: compile
 
@@ -94,6 +94,68 @@ ci-history:
 
 ci-main:
 	@$(MAKE) ci-history BRANCH=main LIMIT=5
+
+# Initialize an issue-scoped branch, empty checkpoint commit, remote push, and draft PR.
+# Usage:
+#   make pr-init ISSUES="234 236"
+# Optional:
+#   TYPE=feat|fix|docs|chore   (default: feat)
+#   BASE=main                  (default: main)
+pr-init:
+	@ISSUE_LIST_RAW="$(ISSUES)"; \
+	TYPE_VAL="$(TYPE)"; \
+	BASE_BRANCH="$(BASE)"; \
+	if [ -z "$$ISSUE_LIST_RAW" ]; then \
+		echo "ERROR: ISSUES is required."; \
+		echo "Usage: make pr-init ISSUES=\"234 236\" [TYPE=feat] [BASE=main]"; \
+		exit 2; \
+	fi; \
+	if [ -z "$$TYPE_VAL" ]; then \
+		TYPE_VAL="feat"; \
+	fi; \
+	if [ -z "$$BASE_BRANCH" ]; then \
+		BASE_BRANCH="main"; \
+	fi; \
+	if [ -n "$$(git status --porcelain)" ]; then \
+		echo "ERROR: working tree must be clean before pr-init."; \
+		echo "Commit, stash, or discard current changes before running this target."; \
+		exit 2; \
+	fi; \
+	ISSUE_NUMBERS="$$(printf '%s\n' "$$ISSUE_LIST_RAW" | tr ' ,' '\n\n' | sed '/^$$/d')"; \
+	ISSUE_SLUG="$$(printf '%s\n' "$$ISSUE_NUMBERS" | paste -sd- -)"; \
+	ISSUE_REFS="$$(printf '%s\n' "$$ISSUE_NUMBERS" | sed 's/^/#/' | paste -sd'/' -)"; \
+	BRANCH_NAME="$$TYPE_VAL/issues-$$ISSUE_SLUG"; \
+	COMMIT_MSG="$$TYPE_VAL: initialize $$ISSUE_REFS scope"; \
+	PR_TITLE="stub: initialize CI for issues $$ISSUE_REFS"; \
+	PR_BODY="$$(cat <<EOF
+## Summary
+- initialize a draft PR and CI lane for issues $$ISSUE_REFS
+- create the issue-scoped branch and an empty checkpoint commit for follow-up work
+
+## Scope
+- branch setup for the selected issue batch
+- initial empty checkpoint commit for auditable PR initialization
+- draft PR creation against $$BASE_BRANCH
+
+## Notes
+This is an initialization PR intended to start CI and collect subsequent commits for the selected issue scope.
+EOF
+	)"; \
+	CURRENT_BRANCH="$$(git branch --show-current)"; \
+	if [ "$$CURRENT_BRANCH" != "$$BRANCH_NAME" ]; then \
+		if git show-ref --verify --quiet refs/heads/$$BRANCH_NAME; then \
+			git switch "$$BRANCH_NAME"; \
+		else \
+			git switch -c "$$BRANCH_NAME"; \
+		fi; \
+	fi; \
+	git commit --allow-empty -m "$$COMMIT_MSG"; \
+	git push -u origin "$$BRANCH_NAME"; \
+	if gh pr list --head "$$BRANCH_NAME" --state open --json number --jq 'length' | grep -qx '0'; then \
+		gh pr create --draft --base "$$BASE_BRANCH" --head "$$BRANCH_NAME" --title "$$PR_TITLE" --body "$$PR_BODY"; \
+	else \
+		echo "Open PR already exists for $$BRANCH_NAME; skipping PR creation."; \
+	fi
 
 pr-status:
 	gh pr view --json number,title,state,isDraft,url
