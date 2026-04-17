@@ -11,6 +11,12 @@
  * (e.g. Python bindings) can expose without importing the full internal
  * module graph directly.
  *
+ * MVP exposure contract:
+ * - Include explicit set interop boundaries (`from_std` / `to_std`).
+ * - Include sequence/range adapters (`from_range` / `as_range`).
+ * - Keep the surface small and deterministic for notebook-facing demos.
+ * - Defer broad symbolic expression builders and deep internal abstractions.
+ *
  * @note "Le vrai n'est pas le tout, mais le tout dans sa structure."
  *       -- Gaston Bachelard, paraphrase
  *       [Trans: "Truth is not the whole, but the whole in its structure."]
