@@ -3,7 +3,6 @@
 This guide covers the current Python MVP surface built on top of the C++ `dedekind.python` facade.
 
 Design slogan: Write it like Python. Reason about it like math. Realize it when you mean it.
-
 ## Scope
 
 Current Python bindings intentionally expose a small, reviewable API:
@@ -90,7 +89,6 @@ The MVP notebook demos live in `docs/python/notebooks/`:
 
 These notebooks are intentionally small, deterministic, and suitable for CI
 execution as integration checks.
-
 ## Reviewer Verification (CI Artifacts)
 
 For pull requests, wheel/sdist and Python-native docs are expected to be
