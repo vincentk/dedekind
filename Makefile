@@ -127,20 +127,18 @@ pr-init:
 	BRANCH_NAME="$$TYPE_VAL/issues-$$ISSUE_SLUG"; \
 	COMMIT_MSG="$$TYPE_VAL: initialize $$ISSUE_REFS scope"; \
 	PR_TITLE="stub: initialize CI for issues $$ISSUE_REFS"; \
-	PR_BODY="$$(cat <<EOF
-## Summary
-- initialize a draft PR and CI lane for issues $$ISSUE_REFS
-- create the issue-scoped branch and an empty checkpoint commit for follow-up work
-
-## Scope
-- branch setup for the selected issue batch
-- initial empty checkpoint commit for auditable PR initialization
-- draft PR creation against $$BASE_BRANCH
-
-## Notes
-This is an initialization PR intended to start CI and collect subsequent commits for the selected issue scope.
-EOF
-	)"; \
+	PR_BODY="$$(printf '%s\n' \
+		'## Summary' \
+		"- initialize a draft PR and CI lane for issues $$ISSUE_REFS" \
+		'- create the issue-scoped branch and an empty checkpoint commit for follow-up work' \
+		'' \
+		'## Scope' \
+		'- branch setup for the selected issue batch' \
+		'- initial empty checkpoint commit for auditable PR initialization' \
+		"- draft PR creation against $$BASE_BRANCH" \
+		'' \
+		'## Notes' \
+		'This is an initialization PR intended to start CI and collect subsequent commits for the selected issue scope.')"; \
 	CURRENT_BRANCH="$$(git branch --show-current)"; \
 	if [ "$$CURRENT_BRANCH" != "$$BRANCH_NAME" ]; then \
 		if git show-ref --verify --quiet refs/heads/$$BRANCH_NAME; then \

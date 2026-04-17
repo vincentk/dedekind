@@ -17,13 +17,13 @@
 
 module;
 
+#include <nanobind/nanobind.h>
+#include <nanobind/stl/vector.h>
+
 #include <algorithm>
 #include <set>
 #include <unordered_set>
 #include <vector>
-
-#include <nanobind/nanobind.h>
-#include <nanobind/stl/vector.h>
 
 import dedekind.python;
 
@@ -42,8 +42,7 @@ auto unordered_set_roundtrip(const std::vector<int>& values)
     -> std::vector<int> {
   const std::unordered_set<int> unordered(values.begin(), values.end());
   const auto ext = dedekind::python::from_std(unordered);
-  const auto back =
-      dedekind::python::to_std<std::unordered_set<int>>(ext);
+  const auto back = dedekind::python::to_std<std::unordered_set<int>>(ext);
   std::vector<int> materialized(back.begin(), back.end());
   std::ranges::sort(materialized);
   return materialized;
@@ -66,7 +65,7 @@ NB_MODULE(_dedekind, module) {
   module.def(
       "unordered_set_roundtrip", &unordered_set_roundtrip,
       "Round-trip a Python sequence through the unordered finite-set facade.");
-  module.def(
-      "path_from_range", &path_from_range,
-      "Materialize a finite path from a Python sequence and expose it back as a list.");
+  module.def("path_from_range", &path_from_range,
+             "Materialize a finite path from a Python sequence and expose it "
+             "back as a list.");
 }
