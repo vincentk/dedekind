@@ -10,12 +10,18 @@ Thank you for your interest in contributing!
    you invest time in an implementation.
 3. **Create a branch** named after the issue(s) you are addressing, e.g.
    `feat/issues-40-121`.
-4. **Implement and test** your changes.  The project builds with CMake + Ninja:
+4. **Implement your changes** and push to a draft PR early and often — you do not need
+   to verify that the code compiles or tests pass locally before each push.  The CI build
+   is the reference build; offloading compilation and test execution to CI is explicitly
+   encouraged so local development is not blocked by slow or unavailable toolchains.
+   Use the `Makefile` targets when a local build is convenient:
    ```bash
-   cmake -B build -G Ninja
-   cmake --build build
-   ctest --test-dir build --output-on-failure
+   make compile   # configure (first run) and build everything
+   make test      # build then run the full CTest suite
    ```
+   The `Makefile` selects the correct compiler (`clang++` from LLVM) and passes
+   all required CMake flags automatically, including `DEDEKIND_ENABLE_DOUBLE_REAL_PROXY=ON`
+   which is needed for tests that use `double` as the scalar type.
 5. **Format** before committing — the CI will reject unformatted code:
    ```bash
    make format   # runs clang-format-21 on all *.cpp / *.cppm files
@@ -26,29 +32,90 @@ Thank you for your interest in contributing!
    ```
    The `pre-push` hook runs `make format` and aborts the push if it had to rewrite files,
    so you can review and commit the formatting changes explicitly.
-6. **Open a pull request** against `main` from your fork branch.  Draft PRs are welcome
-   early; mark it ready for review once CI is green.
+6. **Open a draft PR** against `main` early — even before the implementation is complete.
+   Push incremental checkpoints freely; the draft status signals work-in-progress.
+   Mark the PR **Ready for Review** only once **all CI checks are green**.
+
+## Workflow at a glance
+
+The intended UX is:
+
+1. **Edit** source files locally — no local build required.
+2. **Format** with `make format` (or let the pre-push hook do it).
+3. **Push** — `git push` is the only command you strictly need to run.
+4. **CI takes over** — GitHub Actions compiles with clang-21, runs all tests,
+   collects coverage, builds Doxygen docs, and checks the LaTeX report.
+   Your workstation stays idle and cool.
+5. **Check progress** with `make pr-checks` or `make pr-watch` while CI runs.
+6. **Iterate** — if CI flags a failure, read the workflow logs, fix locally,
+   push again.  Repeat until green.
+7. **Mark ready** — once all CI checks are green, mark the PR ready for review.
+
+**When local builds are needed:** non-trivial build failures or toolchain-specific
+issues that cannot be diagnosed from CI logs alone warrant a local `make compile`
+or `make test`.  This should be the exception, not the routine.
+
+The goal is to keep the contributor's focus on the mathematics and the code, not
+on build management.
 
 ## Development workflow
 
+- The `Makefile` is the **preferred** build interface; use `make <target>` rather than
+   raw `cmake`/`ninja`/`ctest` commands whenever an equivalent target exists.
+   Available targets: `compile`, `test`, `format`, `format-check`, `coverage`, `doxygen`, `report`,
+   `clean`, `install-hooks`, `ci-main`, `pr-status`, `pr-checks`, `pr-watch`, `pr-sync`, `pr-review-comments`, `pr-review-unresolved`.
+- Contributor workflow helper targets:
+  `make ci-main` checks recent `main` branch CI runs.
+  `make pr-status` shows PR metadata for the current branch.
+  `make pr-checks` snapshots current PR check state.
+  `make pr-watch` blocks until PR checks complete.
+  `make pr-sync` runs fetch/status/PR-check snapshot before a push.
+  `make pr-review-comments` lists inline review comments on the current PR (or `PR=<number>`).
+  `make pr-review-unresolved` scans unresolved review threads on the current PR (or `make pr-review-unresolved PR=<number>`).
 - Treat the GitHub CI build as the reference build for the project.  Local builds are useful,
    but merge readiness is determined by the PR checks.
+- **Net result:** the CI pipeline uses the same `make` targets as contributors do locally
+   (`make test`, `make coverage`, `make doxygen`, `make report`).  For routine development,
+   the only thing a contributor strictly needs to run locally is `git push`; GitHub Actions
+   handles the heavy compilation, test execution, coverage processing, and documentation
+   builds on every push.  Local builds remain necessary when debugging non-trivial build
+   failures or investigating toolchain-specific issues that cannot be diagnosed from CI logs
+   alone.
+- Workflow model note: this project intentionally uses an optimistic concurrency
+   model rather than a pessimistic one. In practice, CI is more authoritative
+   than local builds, and a small temporary divergence between local and CI
+   status is acceptable while iterating on draft PR checkpoints.
+- Motivation: this model is not only about throughput; it also mitigates
+   "works on my laptop" failures by treating CI as the reproducible baseline
+   and local environments as potentially non-reproducible.
 - Before starting new work, check that the most recent `main` branch CI run is green.
 - Keep the README small and stable.  Only update it when something is plainly wrong or deeply
    misleading; routine progress belongs in the report and inline documentation.
 - Prefer plain `gh` CLI commands when working with issues, pull requests, and CI.
-- Open a draft PR early, even before the implementation is complete, so the work is visible and
-   the reference CI starts running immediately.
+- Open a draft PR early, even before the implementation is complete.  Push checkpoints
+   freely — you do not need to confirm that the code compiles or tests pass locally before
+   pushing.  The CI build is the authoritative reference; use it to offload compilation and
+   test validation so local development stays unblocked.
+- This project intentionally follows an optimistic concurrency model: contributors can
+   continue shipping small draft-PR checkpoints while CI validates correctness in parallel,
+   which improves overall throughput and reduces workstation idle/blocking time.
 - Before pushing, run `make format` or install the managed hook with `make install-hooks`.
-- Poll PR checks regularly during development.  If a check fails, inspect the failed workflow
-   logs before making further changes.
+- Check the PR's CI status before each push to keep optimistic concurrency tight:
+   push small checkpoints, but verify the reference build state first so failures do not
+   compound into large divergences. If a check fails, read the workflow logs and address
+   the failure before continuing with unrelated work.
+   Suggested command flow:
+   `make pr-sync` (refresh branch + current PR state), then push, then `make pr-watch`.
 - After a green CI run, also check the Codecov report for regressions before marking the PR ready.
-- Once CI is green and coverage looks acceptable, mark the PR ready for review.
+- Mark the PR **Ready for Review** only once **all CI checks show green**.  A draft PR
+   with failing CI should never be marked ready.
 
 ## Review workflow
 
 - Resolve review comments and threads explicitly; do not leave unresolved conversations behind
    when preparing a PR for merge.
+- Run `make pr-review-unresolved` before marking a PR ready; this target exits non-zero when unresolved
+  review threads are found.
 - For low-risk mechanical fixes, batching routine changes is acceptable; for semantic or API
    changes, prefer manual edits so the trade-offs remain explicit.
 - After pushing follow-up commits, re-request review so the latest state is reviewed.

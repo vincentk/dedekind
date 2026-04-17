@@ -26,10 +26,28 @@ static_assert( SmellsLike<ℝ, DedekindCompleteField> );
 git clone https://github.com/vincentk/dedekind && cd dedekind
 
 # Build and run the formal verification (test) suite
-cmake -B build -G Ninja
-cmake --build build
-ctest --test-dir build --output-on-failure
+make compile
+make test
 ```
+
+> **Note:** The `Makefile` wraps CMake/Ninja and selects the correct compiler and flags automatically.
+> It is the **preferred** interface for local development and is also used in CI.
+> Run `make` (or `make all`) to see available targets:
+>
+> | Target | Description |
+> |---|---|
+> | `make compile` | Configure (if needed) and build all targets |
+> | `make test` | Build then run the full test suite via CTest |
+> | `make format` | Auto-format all `*.cpp` / `*.cppm` sources with `clang-format` |
+> | `make format-check` | Verify formatting without modifying files |
+> | `make coverage` | Build, run tests, and produce an LLVM coverage report |
+> | `make doxygen` | Build Doxygen API docs into `build/docs/` |
+> | `make report` | Fast report compile check (`docs/report` `ci-check`) |
+> | `make clean` | Remove the `build/` directory |
+> | `make install-hooks` | Install the pre-push git hook |
+>
+> For contributor workflow helpers (`make ci-main`, `make pr-status`,
+> `make pr-checks`, `make pr-watch`, `make pr-sync`), see `CONTRIBUTING.md`.
 
 ### Architecture
 
