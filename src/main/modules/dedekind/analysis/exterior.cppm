@@ -6,8 +6,12 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @note "It is by logic that we prove, but by intuition that we discover."
- *       -- Henri Poincare, Science and Method (1908)
+ * @note "C'est par la logique qu'on prouve, c'est par l'intuition qu'on
+ * invente."
+ *       -- Henri Poincaré, *Science et méthode* (1908), Livre I, Chapitre I
+ *
+ *       English translation: "It is by logic that we prove, but by intuition
+ *       that we discover."
  */
 module;
 

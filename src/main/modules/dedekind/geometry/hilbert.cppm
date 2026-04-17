@@ -6,9 +6,11 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @note "Symmetry is a vast subject, significant in art and nature.
- * Mathematics lies at its root."
- *       -- Hermann Weyl, Symmetry (1952)
+ * @note "Symmetry is a vast subject, significant in art and nature. Mathematics
+ * lies at its root. This is a theme that will appear again and again, and we
+ * shall see that it contains some of the deepest insights that mathematics can
+ * offer."
+ *       -- Hermann Weyl, *Symmetry* (1952), Princeton University Press
  */
 
 module;

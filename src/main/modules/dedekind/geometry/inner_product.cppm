@@ -6,9 +6,14 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @note "The principal aim of mathematical education is to develop certain
- * faculties of the mind, and among these intuition is not the least precious."
- *       -- Henri Poincare, Science and Method (1908)
+ * @note "Le but principal de l'enseignement mathématique est de développer
+ * certaines facultés de l'esprit et parmi elles l'intuition n'est pas la moins
+ * précieuse."
+ *       -- Henri Poincaré, *Science et méthode* (1908), Livre II, § II
+ *
+ *       English translation: "The principal aim of mathematical education is to
+ *       develop certain faculties of the mind, and among these intuition is not
+ *       the least precious."
  */
 
 module;

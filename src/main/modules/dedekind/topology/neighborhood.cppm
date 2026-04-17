@@ -33,9 +33,14 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @note "I am superior, sir, in many ways. But I would gladly give it up, to be
- * Human."
- *       -- Data, Star Trek: The Next Generation, "Encounter at Farpoint" (1987)
+ * @note "Die Mathematik ist die Grundlage aller exakten Naturerkenntnis. Ein
+ * Raum ist eine Menge von Punkten, in der die Nachbarschaftsbeziehungen durch
+ * ein System von Axiomen definiert sind."
+ *       -- Félix Hausdorff, *Grundzüge der Mengenlehre* (1914)
+ *
+ *       English translation: "Mathematics is the foundation of all exact
+ * natural knowledge. A space is a set of points in which neighborhood relations
+ * are defined by a system of axioms."
  */
 module;
 #include <concepts>

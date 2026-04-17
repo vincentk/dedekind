@@ -19,7 +19,7 @@ echo "pre-push: formatting check passed"
 if [ "${PRE_PUSH_DOCS_CHECKS:-0}" = "1" ]; then
   if command -v latexmk >/dev/null 2>&1 || command -v pdflatex >/dev/null 2>&1; then
     echo "pre-push: building LaTeX report"
-    (cd "$repo_root/docs/report" && make ci-check)
+    make -C "$repo_root" report
     echo "pre-push: report build passed"
   else
     echo "pre-push: skipping LaTeX report build (latexmk/pdflatex not available)"
