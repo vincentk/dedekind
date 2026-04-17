@@ -136,13 +136,14 @@ The resulting methodology is practical rather than absolutist: enforce what can 
 
 The development of modern computational science, particularly in data science and Large Language Model (LLM) engineering, is constrained by a persistent performance-productivity gap known as the \emph{two-language problem}.
 In this paradigm, researchers utilize high-level symbolic environments like \texttt{Python} for rapid prototyping and expressive reasoning, while relying on low-level languages like C++ to handle execution backends.
+\texttt{dedekind} does not claim to eliminate this split. Rather, it makes the systems programming language the primary semantic locus: mathematical invariants, performance-sensitive representations, and compiler-visible structure are defined first in \texttt{C++23}, while notebook-oriented and scripting-oriented interfaces can be layered on top.
 While tools such as \texttt{PyTorch} \cite{paszke2019pytorch} and \texttt{NumPy} \cite{harris2020numpy} offer elegant interfaces, they typically treat mathematical logic as a runtime implementation detail.
-This decoupling forces a manual translation layer between the high-level mathematical intent and the underlying hardware execution, leading to significant overhead in both developer time and system latency.
+This decoupling forces a manual translation layer between the high-level mathematical intent and the underlying hardware execution, leading to significant overhead in both developer time and system latency. In contrast, \texttt{dedekind} prioritizes preserving that intent inside the systems layer first, so any higher-level interface is downstream of the verified implementation rather than its semantic source.
 
 This duality is especially relevant in the context of LLM development and large-scale symbolic computing.
 In these fields, the ability to maintain the structural integrity of a mathematical model—such as the exactness of a tensor operation or the logical consistency of a set-builder predicate—is often lost during the transition to the C++ backend.
 Traditional integration methods, such as \texttt{ctypes} or even modern binding tools like \texttt{nanobind} \cite{jakob2022nanobind}, bridge the binary gap but do not bridge the \emph{semantic} gap.
-They allow Python to call C++ functions, but they do not allow the C++ compiler to reason about the high-level mathematical invariants defined in the symbolic layer.
+They allow Python to call C++ functions, but they do not allow the C++ compiler to reason about the high-level mathematical invariants defined in the symbolic layer. For \texttt{dedekind}, this is precisely why the implementation posture is inverted: the semantics live in the systems language, and Python-facing layers are treated as consumers of that compiled structure rather than as the place where mathematical meaning originates.
 
 Recent advances in systems programming have begun to challenge the historical divide between low-level performance and high-level abstraction.
 The \texttt{Rust} programming language, for instance, has gained significant traction by providing a "safety-first" approach through its affine type system and trait-based polymorphism.
