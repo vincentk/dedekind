@@ -200,11 +200,12 @@ constexpr auto iterate(T seed, Step&& step, std::size_t length) {
   for (std::size_t i = 1; i < length; ++i)
     values->push_back(std::invoke(f, values->back()));
 
-  return FinitePath<T>{[values, length](std::size_t i) {
-                         assert(i < length && "iterate: index out of range");
-                         return (*values)[i];
-                       },
-                       length};
+  return FinitePath<T>{
+      [values](std::size_t i) {
+        assert(i < values->size() && "iterate: index out of range");
+        return (*values)[i];
+      },
+      length};
 }
 
 export template <typename T, typename Cardinality, typename Pred>
