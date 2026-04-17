@@ -73,4 +73,24 @@ TEST_CASE("Sequences: The Path to Continuity",
     REQUIRE(orbit.at(4) == 5);
     REQUIRE(count_if(orbit, [](int x) { return x > 3; }) == 2u);
   }
+
+  SECTION("Finite iterate materializes once and avoids replayed stepping") {
+    std::size_t step_calls = 0;
+    const auto orbit = iterate(
+        1,
+        [&step_calls](int x) {
+          ++step_calls;
+          return x + 1;
+        },
+        6);
+
+    // Finite iterate should precompute exactly length-1 transitions.
+    REQUIRE(step_calls == 5u);
+
+    // Accessing/counted scans over the finite path must not trigger new steps.
+    REQUIRE(orbit.at(0) == 1);
+    REQUIRE(orbit.at(5) == 6);
+    REQUIRE(count_if(orbit, [](int x) { return x >= 4; }) == 3u);
+    REQUIRE(step_calls == 5u);
+  }
 }

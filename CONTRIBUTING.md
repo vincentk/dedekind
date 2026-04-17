@@ -63,15 +63,17 @@ on build management.
 - The `Makefile` is the **preferred** build interface; use `make <target>` rather than
    raw `cmake`/`ninja`/`ctest` commands whenever an equivalent target exists.
    Available targets: `compile`, `test`, `format`, `format-check`, `coverage`, `doxygen`, `report`,
-   `clean`, `install-hooks`, `ci-main`, `pr-status`, `pr-checks`, `pr-watch`, `pr-sync`, `pr-review-comments`, `pr-review-unresolved`.
+   `clean`, `install-hooks`, `ci-history`, `ci-main`, `pr-status`, `pr-checks`, `pr-watch`, `pr-sync`, `pr-review-comments`, `pr-review-unresolved`.
 - Contributor workflow helper targets:
+  `make ci-history BRANCH=<name> [LIMIT=<n>]` checks recent CI runs for a specific branch.
   `make ci-main` checks recent `main` branch CI runs.
   `make pr-status` shows PR metadata for the current branch.
   `make pr-checks` snapshots current PR check state.
   `make pr-watch` blocks until PR checks complete.
   `make pr-sync` runs fetch/status/PR-check snapshot before a push.
-  `make pr-review-comments` lists inline review comments on the current PR (or `PR=<number>`).
-  `make pr-review-unresolved` scans unresolved review threads on the current PR (or `make pr-review-unresolved PR=<number>`).
+   `make pr-review-comments` lists inline review comments on the current PR (or `PR=<number>`).
+   `make pr-review-unresolved` scans unresolved review threads on the current PR (or `make pr-review-unresolved PR=<number>`) and prints thread IDs.
+   `make pr-resolve-thread THREAD_ID=<thread_id> REASON="<resolution note>"` resolves exactly one review thread and requires a reason.
 - Treat the GitHub CI build as the reference build for the project.  Local builds are useful,
    but merge readiness is determined by the PR checks.
 - **Net result:** the CI pipeline uses the same `make` targets as contributors do locally
@@ -89,6 +91,10 @@ on build management.
    "works on my laptop" failures by treating CI as the reproducible baseline
    and local environments as potentially non-reproducible.
 - Before starting new work, check that the most recent `main` branch CI run is green.
+- For backlog grooming, run a short preflight in this order: check `main` CI health, then list
+   open issues, then list open fork PRs, then classify each item as actionable / ambiguous /
+   already resolved / exact duplicate.
+- If the latest `main` CI run is red, prioritize stabilization before starting unrelated new work.
 - Keep the README small and stable.  Only update it when something is plainly wrong or deeply
    misleading; routine progress belongs in the report and inline documentation.
 - Prefer plain `gh` CLI commands when working with issues, pull requests, and CI.
@@ -109,6 +115,21 @@ on build management.
 - After a green CI run, also check the Codecov report for regressions before marking the PR ready.
 - Mark the PR **Ready for Review** only once **all CI checks show green**.  A draft PR
    with failing CI should never be marked ready.
+
+### Backlog Grooming And CI Health Quick Loop
+
+1. Check CI health for `main`:
+   - `make ci-history BRANCH=main LIMIT=3`
+2. Collect backlog inputs:
+   - `gh issue list --state open --limit 50 --json number,title,body,labels,comments`
+   - `gh pr list --state open --json number,title,body,headRepositoryOwner --jq '.[] | select(.headRepositoryOwner.login != "vincentk")'`
+3. Classify each item:
+   - Actionable: clear scope and no blocking ambiguity; include in current plan.
+   - Ambiguous: add a clarifying issue/PR comment and defer implementation.
+   - Already resolved: close with a note referencing the resolving PR.
+   - Exact duplicate: keep one canonical issue open and close duplicates with a cross-reference comment.
+4. Pick a focused batch:
+   - Prefer exactly two actionable items in parallel when feasible.
 
 ## Review workflow
 

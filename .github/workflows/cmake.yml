@@ -25,10 +25,6 @@ jobs:
         sudo ./llvm.sh 21
         sudo apt-get install -y clang-21 ninja-build clang-format-21
 
-    - name: Install docs toolchain
-      run: |
-        sudo apt-get install -y biber doxygen graphviz texlive-latex-base texlive-latex-extra texlive-bibtex-extra texlive-pictures texlive-plain-generic texlive-fonts-recommended
-
     - name: Check Code Formatting
       run: make format-check CLANG_FORMAT=clang-format-21
 
@@ -47,9 +43,15 @@ jobs:
         verbose: true
 
     # --- CONDITIONAL DEPLOYMENT STEPS ---
+
+    - name: Install Doxygen toolchain
+      run: make ci-install-doxygen-deps
     
     - name: Build Doxygen Documentation
       run: make doxygen CXX=clang++-21 CC=clang-21 CMAKE_EXTRA_ARGS="-DDEDEKIND_RUNTIME_COVERAGE_BRIDGES=ON"
+
+    - name: Install report toolchain
+      run: make ci-install-report-deps
 
     - name: Check Report Compilation
       run: make report
