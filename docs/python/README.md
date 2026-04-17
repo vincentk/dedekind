@@ -82,6 +82,9 @@ Review path:
 2. Open the run's `Artifacts` section.
 3. Download `python-dist` and confirm it includes:
 	- wheel/sdist files from `dist/`
+	- distribution manifest (`dist-manifest.txt`)
+	- distribution checksums (`dist-sha256.txt`)
+	- installed wheel report (`install-report.txt`)
 	- generated pydoc output (`pydoc-dedekind.txt`)
 4. Confirm the workflow step `Verify Installed Wheel Smoke Test` is green.
 

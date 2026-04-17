@@ -45,6 +45,9 @@ jobs:
         python -m pip install --upgrade pip build twine
         python -m build
         python -m twine check dist/*
+        mkdir -p build/python-docs
+        ls -lh dist | tee build/python-docs/dist-manifest.txt
+        sha256sum dist/* | tee build/python-docs/dist-sha256.txt
 
     - name: Verify Installed Wheel Smoke Test
       run: |
@@ -53,6 +56,7 @@ jobs:
         python -m pip install --upgrade pip
         python -m pip install dist/*.whl
         mkdir -p build/python-docs
+        python -m pip show dedekind > build/python-docs/install-report.txt
         python -m pydoc dedekind > build/python-docs/pydoc-dedekind.txt
         python - <<'PY'
         import dedekind
@@ -69,6 +73,9 @@ jobs:
         name: python-dist
         path: |
           dist/*
+          build/python-docs/dist-manifest.txt
+          build/python-docs/dist-sha256.txt
+          build/python-docs/install-report.txt
           build/python-docs/pydoc-dedekind.txt
 
     - name: Process Coverage Data
