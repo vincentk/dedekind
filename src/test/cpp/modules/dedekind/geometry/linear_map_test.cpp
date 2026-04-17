@@ -416,6 +416,52 @@ TEST_CASE("Geometry: Finite-Dimensional Jacobian Contract",
     REQUIRE(cov.coefficient(0, 1) == 3.0);
     REQUIRE(cov(direction)[0] == 8.0);
   }
+
+  SECTION("Piecewise constant Heaviside map is differentiable away from 0") {
+    const auto heaviside = make_differentiable_map<R, 1, 1>(
+        [](const Vector<R, 1>& x) { return Vec1{x[0] < 0.0 ? 0.0 : 1.0}; },
+        [](const Vector<R, 1>& x) {
+          Covector<R, 1> cov;
+          // Classical derivative is 0 for x != 0; x = 0 is a non-smooth point.
+          cov.set_coefficient(0, 0, x[0] == 0.0 ? 0.0 : 0.0);
+          return cov;
+        });
+
+    const Vector<R, 1> left_point{-2.0};
+    const Vector<R, 1> right_point{3.0};
+
+    REQUIRE(heaviside(left_point)[0] == 0.0);
+    REQUIRE(heaviside(right_point)[0] == 1.0);
+    REQUIRE(differential_at(heaviside, left_point).coefficient(0, 0) == 0.0);
+    REQUIRE(differential_at(heaviside, right_point).coefficient(0, 0) == 0.0);
+  }
+
+  SECTION("Option payoff (max(S-K,0)) is piecewise linear") {
+    const R strike = 100.0;
+    const auto call_payoff = make_differentiable_map<R, 1, 1>(
+        [strike](const Vector<R, 1>& x) {
+          const R intrinsic = x[0] - strike;
+          return Vec1{intrinsic > 0.0 ? intrinsic : 0.0};
+        },
+        [strike](const Vector<R, 1>& x) {
+          Covector<R, 1> cov;
+          // Classical derivative: 0 below strike, 1 above strike.
+          // At-the-money (x = strike) is non-differentiable and left for
+          // future generalized-derivative abstractions.
+          cov.set_coefficient(0, 0, x[0] > strike ? 1.0 : 0.0);
+          return cov;
+        });
+
+    const Vector<R, 1> out_of_money{80.0};
+    const Vector<R, 1> in_the_money{130.0};
+
+    REQUIRE(call_payoff(out_of_money)[0] == 0.0);
+    REQUIRE(call_payoff(in_the_money)[0] == 30.0);
+    REQUIRE(differential_at(call_payoff, out_of_money).coefficient(0, 0) ==
+            0.0);
+    REQUIRE(differential_at(call_payoff, in_the_money).coefficient(0, 0) ==
+            1.0);
+  }
 }
 
 TEST_CASE("Geometry: Flat-Space Tangent/Cotangent Bundle Structures",
