@@ -34,9 +34,11 @@ jobs:
       run: make integration-test CXX=clang++-21 CC=clang-21 CMAKE_EXTRA_ARGS="-DDEDEKIND_RUNTIME_COVERAGE_BRIDGES=ON"
 
     - name: Upload Notebook Integration Artifacts
+      if: ${{ always() }}
       uses: actions/upload-artifact@v4
       with:
         name: python-notebooks
+        if-no-files-found: warn
         path: |
           build/python-notebooks/*.ipynb
           build/python-notebooks/integration-summary.txt
