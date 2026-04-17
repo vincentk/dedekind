@@ -43,7 +43,7 @@ test: compile
 integration-test: test
 	ctest --test-dir $(BUILD_DIR) --output-on-failure -R test_python_bindings
 	python -m pip install --upgrade pip jupyter
-	python -m pip install --no-build-isolation -e .
+	python -m pip install -e .
 	mkdir -p $(BUILD_DIR)/python-notebooks
 	@NOTEBOOK_DIR="docs/python/notebooks"; \
 	NOTEBOOKS="$$(find $$NOTEBOOK_DIR -maxdepth 1 -type f -name '*.ipynb' | sort)"; \
