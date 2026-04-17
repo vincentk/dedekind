@@ -33,6 +33,14 @@ jobs:
     - name: Build & Run Integration Tests
       run: make integration-test CXX=clang++-21 CC=clang-21 CMAKE_EXTRA_ARGS="-DDEDEKIND_RUNTIME_COVERAGE_BRIDGES=ON"
 
+    - name: Upload Notebook Integration Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: python-notebooks
+        path: |
+          build/python-notebooks/*.ipynb
+          build/python-notebooks/integration-summary.txt
+
     - name: Build Python Distribution Artifacts
       env:
         CC: clang-21
