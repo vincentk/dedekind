@@ -29,6 +29,10 @@ Thank you for your interest in contributing!
 6. **Open a pull request** against `main` from your fork branch.  Draft PRs are welcome
    early; mark it ready for review once CI is green.
 
+> `main` is a protected branch.
+> Direct pushes to `main` are blocked. A merge (or any push path that targets protected branches)
+> requires a PR, a passing build, at least one review, and resolution of review conversations.
+
 ## Development workflow
 
 - Treat the GitHub CI build as the reference build for the project.  Local builds are useful,
@@ -44,6 +48,8 @@ Thank you for your interest in contributing!
    logs before making further changes.
 - After a green CI run, also check the Codecov report for regressions before marking the PR ready.
 - Once CI is green and coverage looks acceptable, mark the PR ready for review.
+- Remember that protected-branch rules are enforced server-side: PR + green CI + review +
+   resolved conversations are mandatory before merge to `main`.
 
 ## Review workflow
 
