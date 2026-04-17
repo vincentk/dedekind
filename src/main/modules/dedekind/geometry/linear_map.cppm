@@ -59,6 +59,7 @@ module;
 #include <concepts>
 #include <cstddef>
 #include <initializer_list>
+#include <utility>
 
 export module dedekind.geometry:linear_map;
 
@@ -359,6 +360,104 @@ export template <IsMatrixScalar F, std::size_t N>
 using Covector = LinearMap<F, 1, N>;
 
 /**
+ * @class DifferentiableMap
+ * @brief A finite-dimensional map paired with an exact Jacobian witness.
+ *
+ * This is the first differentiation contract in Dedekind's finite-dimensional
+ * geometry layer. It packages:
+ * - a primal map F^DomainDim -> F^CodomainDim
+ * - an exact Jacobian oracle returning LinearMap<F, CodomainDim, DomainDim>
+ *
+ * The Jacobian is therefore a concrete Fr\'echet derivative witness in the
+ * existing LinearMap carrier.
+ */
+export template <IsMatrixScalar F, std::size_t DomainDim,
+                 std::size_t CodomainDim, typename ValueFn, typename JacobianFn>
+  requires requires(const ValueFn& value, const JacobianFn& jacobian,
+                    const Vector<F, DomainDim>& x) {
+    { value(x) } -> std::same_as<Vector<F, CodomainDim>>;
+    { jacobian(x) } -> std::same_as<LinearMap<F, CodomainDim, DomainDim>>;
+  }
+class DifferentiableMap {
+ public:
+  using scalar_type = F;
+  using Domain = Vector<F, DomainDim>;
+  using Codomain = Vector<F, CodomainDim>;
+  using Jacobian = LinearMap<F, CodomainDim, DomainDim>;
+
+  static constexpr std::size_t domain_dimension = DomainDim;
+  static constexpr std::size_t codomain_dimension = CodomainDim;
+
+  constexpr DifferentiableMap(ValueFn value, JacobianFn jacobian)
+      : value_(std::move(value)), jacobian_(std::move(jacobian)) {}
+
+  constexpr Codomain operator()(const Domain& x) const { return value_(x); }
+
+  constexpr Jacobian jacobian_at(const Domain& x) const { return jacobian_(x); }
+
+ private:
+  [[no_unique_address]] ValueFn value_;
+  [[no_unique_address]] JacobianFn jacobian_;
+};
+
+/**
+ * @concept HasJacobianAt
+ * @brief Map-like object exposing an exact finite-dimensional Jacobian.
+ */
+export template <typename Map>
+concept HasJacobianAt =
+    requires(const Map& map, const typename Map::Domain& x) {
+      typename Map::scalar_type;
+      typename Map::Domain;
+      typename Map::Codomain;
+      typename Map::Jacobian;
+      { map(x) } -> std::same_as<typename Map::Codomain>;
+      { map.jacobian_at(x) } -> std::same_as<typename Map::Jacobian>;
+    };
+
+/**
+ * @brief Construct a finite-dimensional differentiable map from primal and
+ * Jacobian callables.
+ */
+export template <IsMatrixScalar F, std::size_t DomainDim,
+                 std::size_t CodomainDim, typename ValueFn, typename JacobianFn>
+constexpr auto make_differentiable_map(ValueFn value, JacobianFn jacobian) {
+  return DifferentiableMap<F, DomainDim, CodomainDim, ValueFn, JacobianFn>{
+      std::move(value), std::move(jacobian)};
+}
+
+/**
+ * @brief Return the Jacobian of a finite-dimensional differentiable map.
+ */
+export template <HasJacobianAt Map>
+constexpr auto jacobian_at(const Map& map, const typename Map::Domain& x) ->
+    typename Map::Jacobian {
+  return map.jacobian_at(x);
+}
+
+/**
+ * @brief Return the Fr\'echet derivative of a finite-dimensional map.
+ *
+ * In the current finite-dimensional slice, this coincides with the Jacobian.
+ */
+export template <HasJacobianAt Map>
+constexpr auto frechet_derivative_at(const Map& map,
+                                     const typename Map::Domain& x) ->
+    typename Map::Jacobian {
+  return jacobian_at(map, x);
+}
+
+/**
+ * @brief Return the scalar-valued differential as a covector.
+ */
+export template <HasJacobianAt Map>
+  requires(Map::codomain_dimension == 1)
+constexpr Covector<typename Map::scalar_type, Map::domain_dimension>
+differential_at(const Map& map, const typename Map::Domain& x) {
+  return jacobian_at(map, x);
+}
+
+/**
  * @brief Outer product u ⊗ v : F^N -> F^M.
  *
  * Constructs the rank-1 linear map whose (i,j) coefficient is u[i]*v[j].
@@ -419,5 +518,77 @@ constexpr LinearMap<F, M, N> outer(const Vector<F, M>& u,
  */
 export template <std::size_t Rows, std::size_t Cols>
 using RealMatrix = LinearMap<double, Rows, Cols>;
+
+// ============================================================================
+// Tangent and Cotangent Space Aliases (flat ℝ^N case)
+// ============================================================================
+//
+// For the Euclidean space F^N (a flat manifold), the tangent space at every
+// point is canonically isomorphic to F^N itself (the tangent bundle is
+// trivial).  Similarly, the cotangent space at every point is (F^N)* ≅ F^N.
+//
+// These aliases give semantic names to those canonical identifications.
+// They serve as preparation for a future non-flat manifold abstraction
+// (see FIXME below) where the tangent/cotangent spaces are no longer globally
+// trivialized but depend on the base-point and atlas chart.
+//
+// FIXME(https://github.com/vincentk/dedekind/issues/185): Replace these
+// flat-space aliases with proper manifold/atlas/chart concepts once
+// non-trivial manifold structure is introduced.
+
+/**
+ * @brief TangentVector at a point in F^N.
+ *
+ * For the flat manifold F^N, the tangent space T_p(F^N) ≅ F^N for every
+ * base-point p.  The alias makes the geometric role explicit without
+ * introducing any new data.
+ */
+export template <IsMatrixScalar F, std::size_t N>
+using TangentVector = Vector<F, N>;
+
+/**
+ * @brief CotangentVector at a point in F^N.
+ *
+ * The cotangent space T*_p(F^N) ≅ (F^N)* is the dual of the tangent space.
+ * In the finite-dimensional flat case this is canonically represented as a
+ * row vector (Covector), i.e. a LinearMap<F, 1, N>.
+ */
+export template <IsMatrixScalar F, std::size_t N>
+using CotangentVector = Covector<F, N>;
+
+/**
+ * @struct TangentBundlePoint
+ * @brief A point in the tangent bundle T(F^N) = F^N × F^N.
+ *
+ * Packages a base-point with a tangent vector at that point.  For the flat
+ * manifold F^N the bundle is trivially the product; in a non-flat setting
+ * (future issue) this struct would generalise to an atlas-chart-local section.
+ */
+export template <IsMatrixScalar F, std::size_t N>
+struct TangentBundlePoint {
+  Vector<F, N> base;          ///< Base point p ∈ F^N
+  TangentVector<F, N> fiber;  ///< Tangent vector v ∈ T_p(F^N) ≅ F^N
+
+  friend constexpr bool operator==(const TangentBundlePoint&,
+                                   const TangentBundlePoint&) = default;
+};
+
+/**
+ * @struct CotangentBundlePoint
+ * @brief A point in the cotangent bundle T*(F^N) = F^N × (F^N)*.
+ *
+ * Packages a base-point with a cotangent vector (covector) at that point.
+ * The cotangent bundle is dual to the tangent bundle; sections of T*M
+ * are exactly the differential 1-forms (see analysis:forms for the OneForm
+ * view of these objects).
+ */
+export template <IsMatrixScalar F, std::size_t N>
+struct CotangentBundlePoint {
+  Vector<F, N> base;            ///< Base point p ∈ F^N
+  CotangentVector<F, N> fiber;  ///< Cotangent vector ω ∈ T*_p(F^N) ≅ (F^N)*
+
+  friend constexpr bool operator==(const CotangentBundlePoint&,
+                                   const CotangentBundlePoint&) = default;
+};
 
 }  // namespace dedekind::geometry

@@ -36,7 +36,7 @@ concept IsDifferentialForm = requires(W w, V v) {
  * @class OneForm
  * @brief The cotangent vector (The 'Gradient' components).
  */
-export template <std::floating_point F, std::size_t N>
+export template <IsMatrixScalar F, std::size_t N>
 struct OneForm {
   Vector<F, N> components;
 
@@ -54,11 +54,25 @@ struct OneForm {
  * constructs the Covector whose single row holds the OneForm's components,
  * making the bijection explicit.
  */
-export template <std::floating_point F, std::size_t N>
+export template <IsMatrixScalar F, std::size_t N>
 constexpr Covector<F, N> to_covector(const OneForm<F, N>& w) {
   Covector<F, N> result;
   for (std::size_t j = 0; j < N; ++j)
     result.set_coefficient(0, j, w.components[j]);
+  return result;
+}
+
+/**
+ * @brief Convert a Covector to its OneForm representation.
+ *
+ * This is the inverse view of to_covector for the current dense row-vector
+ * representation of linear functionals.
+ */
+export template <IsMatrixScalar F, std::size_t N>
+constexpr OneForm<F, N> from_covector(const Covector<F, N>& cov) {
+  OneForm<F, N> result{};
+  for (std::size_t j = 0; j < N; ++j)
+    result.components[j] = cov.coefficient(0, j);
   return result;
 }
 

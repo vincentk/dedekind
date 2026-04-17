@@ -369,3 +369,99 @@ TEST_CASE("Geometry: Covectors and Outer Products",
     }
   }
 }
+
+TEST_CASE("Geometry: Finite-Dimensional Jacobian Contract",
+          "[geometry][jacobian][derivative]") {
+  using R = double;
+  using Vec2 = Vector<R, 2>;
+  using Vec1 = Vector<R, 1>;
+  using Map22 = LinearMap<R, 2, 2>;
+
+  SECTION("Affine maps carry a constant Jacobian witness") {
+    const Map22 linear_part{{{2.0, 1.0}, {0.0, 3.0}}};
+    const Vec2 translation{1.0, -2.0};
+
+    const auto affine = make_differentiable_map<R, 2, 2>(
+        [linear_part, translation](const Vec2& x) {
+          return linear_part(x) + translation;
+        },
+        [linear_part](const Vec2&) { return linear_part; });
+
+    static_assert(HasJacobianAt<decltype(affine)>);
+
+    const Vec2 point_a{1.0, 2.0};
+    const Vec2 point_b{-3.0, 0.5};
+
+    REQUIRE(affine(point_a) == (linear_part(point_a) + translation));
+    REQUIRE(jacobian_at(affine, point_a) == linear_part);
+    REQUIRE(frechet_derivative_at(affine, point_b) == linear_part);
+  }
+
+  SECTION("Scalar-valued maps expose their differential as a covector") {
+    const auto quadratic = make_differentiable_map<R, 2, 1>(
+        [](const Vec2& x) { return Vec1{x[0] * x[0] + 3.0 * x[1]}; },
+        [](const Vec2& x) {
+          Covector<R, 2> cov;
+          cov.set_coefficient(0, 0, 2.0 * x[0]);
+          cov.set_coefficient(0, 1, 3.0);
+          return cov;
+        });
+
+    const Vec2 point{2.0, -1.0};
+    const Vec2 direction{0.5, 2.0};
+    const auto cov = differential_at(quadratic, point);
+
+    REQUIRE(quadratic(point)[0] == 1.0);
+    REQUIRE(cov.coefficient(0, 0) == 4.0);
+    REQUIRE(cov.coefficient(0, 1) == 3.0);
+    REQUIRE(cov(direction)[0] == 8.0);
+  }
+}
+
+TEST_CASE("Geometry: Flat-Space Tangent/Cotangent Bundle Structures",
+          "[geometry][tangent][cotangent][bundle]") {
+  using R = double;
+  using Vec3 = Vector<R, 3>;
+
+  // Static alias checks — TangentVector and CotangentVector are the expected
+  // types for the flat manifold ℝ^3.
+  static_assert(std::same_as<TangentVector<R, 3>, Vector<R, 3>>);
+  static_assert(std::same_as<CotangentVector<R, 3>, Covector<R, 3>>);
+
+  SECTION("TangentBundlePoint stores base and fiber independently") {
+    const Vec3 base{1.0, 2.0, 3.0};
+    const TangentVector<R, 3> fiber{0.1, 0.2, 0.3};
+    const TangentBundlePoint<R, 3> pt{base, fiber};
+
+    REQUIRE(pt.base == base);
+    REQUIRE(pt.fiber == fiber);
+  }
+
+  SECTION("CotangentBundlePoint stores base and covector fiber") {
+    const Vec3 base{-1.0, 0.0, 1.0};
+    CotangentVector<R, 3> fiber;
+    fiber.set_coefficient(0, 0, 1.0);
+    fiber.set_coefficient(0, 1, 2.0);
+    fiber.set_coefficient(0, 2, 3.0);
+    const CotangentBundlePoint<R, 3> pt{base, fiber};
+
+    REQUIRE(pt.base == base);
+    REQUIRE(pt.fiber == fiber);
+  }
+
+  SECTION(
+      "Jacobian of differentiable map maps TangentVector to TangentVector") {
+    // The Jacobian J at p maps tangent vectors at p to tangent vectors at f(p).
+    // For the identity map, J = Id.
+    const auto identity = make_differentiable_map<R, 3, 3>(
+        [](const Vec3& x) { return x; },
+        [](const Vec3&) { return identity_linear_map<R, 3>(); });
+
+    const TangentBundlePoint<R, 3> source{Vec3{1.0, 2.0, 3.0},
+                                          TangentVector<R, 3>{1.0, 0.0, 0.0}};
+    const auto jac = jacobian_at(identity, source.base);
+    const TangentVector<R, 3> pushed = jac(source.fiber);
+
+    REQUIRE(pushed == source.fiber);  // identity pushforward
+  }
+}

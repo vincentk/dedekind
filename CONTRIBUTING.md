@@ -10,12 +10,15 @@ Thank you for your interest in contributing!
    you invest time in an implementation.
 3. **Create a branch** named after the issue(s) you are addressing, e.g.
    `feat/issues-40-121`.
-4. **Implement and test** your changes.  The project builds with CMake + Ninja:
+4. **Implement and test** your changes.  Use the `Makefile` targets — they are the
+   canonical interface for both local development and CI:
    ```bash
-   cmake -B build -G Ninja
-   cmake --build build
-   ctest --test-dir build --output-on-failure
+   make compile   # configure (first run) and build everything
+   make test      # build then run the full CTest suite
    ```
+   The `Makefile` selects the correct compiler (`clang++` from LLVM) and passes
+   all required CMake flags automatically, including `DEDEKIND_ENABLE_DOUBLE_REAL_PROXY=ON`
+   which is needed for tests that use `double` as the scalar type.
 5. **Format** before committing — the CI will reject unformatted code:
    ```bash
    make format   # runs clang-format-21 on all *.cpp / *.cppm files
@@ -31,6 +34,9 @@ Thank you for your interest in contributing!
 
 ## Development workflow
 
+- The `Makefile` is the **preferred** build interface; use `make <target>` rather than
+   raw `cmake`/`ninja`/`ctest` commands whenever an equivalent target exists.
+   Available targets: `compile`, `test`, `format`, `coverage`, `doxygen`, `clean`, `install-hooks`.
 - Treat the GitHub CI build as the reference build for the project.  Local builds are useful,
    but merge readiness is determined by the PR checks.
 - Before starting new work, check that the most recent `main` branch CI run is green.
