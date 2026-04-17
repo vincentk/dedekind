@@ -2,6 +2,8 @@
 
 This guide covers the current Python MVP surface built on top of the C++ `dedekind.python` facade.
 
+Design slogan: Write it like Python. Reason about it like math. Realize it when you mean it.
+
 ## Scope
 
 Current Python bindings intentionally expose a small, reviewable API:
