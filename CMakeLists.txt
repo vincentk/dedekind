@@ -57,6 +57,10 @@ option(DEDEKIND_ENABLE_DOUBLE_REAL_PROXY
     "Allow double as explicit proxy for real scalars in geometry"
     OFF)
 
+option(DEDEKIND_BUILD_PYTHON_BINDINGS
+    "Build the nanobind-based Python MVP facade"
+    ON)
+
 # Enable testing with Catch2:
 include(FetchContent)
 FetchContent_Declare(
@@ -178,6 +182,40 @@ add_dedekind_layer(geometry dedekind_morphologies)
 add_dedekind_layer(numbers dedekind_geometry)
 add_dedekind_layer(analysis dedekind_numbers)
 add_dedekind_layer(python dedekind_analysis)
+
+if(DEDEKIND_BUILD_PYTHON_BINDINGS)
+    find_package(Python 3.9 REQUIRED COMPONENTS Interpreter Development.Module)
+    add_subdirectory(ext/nanobind EXCLUDE_FROM_ALL)
+
+    set(DEDEKIND_PYTHON_PACKAGE_ROOT "${CMAKE_BINARY_DIR}/python")
+    set(DEDEKIND_PYTHON_PACKAGE_DIR "${DEDEKIND_PYTHON_PACKAGE_ROOT}/dedekind")
+
+    file(MAKE_DIRECTORY "${DEDEKIND_PYTHON_PACKAGE_DIR}")
+    configure_file(
+        ${CMAKE_CURRENT_SOURCE_DIR}/python/dedekind/__init__.py
+        ${DEDEKIND_PYTHON_PACKAGE_DIR}/__init__.py
+        COPYONLY)
+
+    nanobind_add_module(_dedekind
+        src/main/modules/dedekind/python/nanobind.cpp)
+    set_target_properties(_dedekind PROPERTIES
+        CXX_SCAN_FOR_MODULES ON
+        LIBRARY_OUTPUT_DIRECTORY "${DEDEKIND_PYTHON_PACKAGE_DIR}"
+        RUNTIME_OUTPUT_DIRECTORY "${DEDEKIND_PYTHON_PACKAGE_DIR}")
+    target_compile_options(_dedekind PRIVATE ${DEDEKIND_WARNING_FLAGS})
+    target_compile_options(_dedekind PRIVATE -Wno-sign-conversion)
+    target_link_libraries(_dedekind PRIVATE dedekind_python)
+
+    install(TARGETS _dedekind LIBRARY DESTINATION dedekind)
+
+    add_test(
+        NAME test_python_bindings
+        COMMAND ${Python_EXECUTABLE} -m unittest discover
+                -s ${CMAKE_SOURCE_DIR}/src/test/python
+                -p test_*.py)
+    set_tests_properties(test_python_bindings PROPERTIES
+        ENVIRONMENT "PYTHONPATH=${DEDEKIND_PYTHON_PACKAGE_ROOT}")
+endif()
 
 
 # --- 3. THE FINAL ASSEMBLY (The Public Interface) ---

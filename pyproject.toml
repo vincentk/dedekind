@@ -1,0 +1,37 @@
+[build-system]
+requires = ["scikit-build-core>=0.10"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "dedekind"
+version = "0.1.0a0"
+description = "Python MVP bindings for the dedekind C++23 module library"
+readme = "README.md"
+requires-python = ">=3.9"
+authors = [
+  { name = "Dedekind Authors" },
+]
+classifiers = [
+  "Development Status :: 3 - Alpha",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: Apache Software License",
+  "Programming Language :: C++",
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Topic :: Scientific/Engineering :: Mathematics",
+]
+
+[project.urls]
+Homepage = "https://github.com/vincentk/dedekind"
+
+[tool.scikit-build]
+minimum-version = "build-system.requires"
+build-dir = "build-python/{wheel_tag}"
+wheel.packages = ["python/dedekind"]
+
+[tool.scikit-build.cmake.define]
+DEDEKIND_BUILD_PYTHON_BINDINGS = "ON"
+DEDEKIND_ENABLE_DOUBLE_REAL_PROXY = "ON"

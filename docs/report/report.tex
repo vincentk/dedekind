@@ -136,13 +136,14 @@ The resulting methodology is practical rather than absolutist: enforce what can 
 
 The development of modern computational science, particularly in data science and Large Language Model (LLM) engineering, is constrained by a persistent performance-productivity gap known as the \emph{two-language problem}.
 In this paradigm, researchers utilize high-level symbolic environments like \texttt{Python} for rapid prototyping and expressive reasoning, while relying on low-level languages like C++ to handle execution backends.
+\texttt{dedekind} does not claim to eliminate this split. Rather, it makes the systems programming language the primary semantic locus: mathematical invariants, performance-sensitive representations, and compiler-visible structure are defined first in \texttt{C++23}, while notebook-oriented and scripting-oriented interfaces can be layered on top.
 While tools such as \texttt{PyTorch} \cite{paszke2019pytorch} and \texttt{NumPy} \cite{harris2020numpy} offer elegant interfaces, they typically treat mathematical logic as a runtime implementation detail.
-This decoupling forces a manual translation layer between the high-level mathematical intent and the underlying hardware execution, leading to significant overhead in both developer time and system latency.
+This decoupling forces a manual translation layer between the high-level mathematical intent and the underlying hardware execution, leading to significant overhead in both developer time and system latency. In contrast, \texttt{dedekind} prioritizes preserving that intent inside the systems layer first, so any higher-level interface is downstream of the verified implementation rather than its semantic source.
 
 This duality is especially relevant in the context of LLM development and large-scale symbolic computing.
 In these fields, the ability to maintain the structural integrity of a mathematical model—such as the exactness of a tensor operation or the logical consistency of a set-builder predicate—is often lost during the transition to the C++ backend.
 Traditional integration methods, such as \texttt{ctypes} or even modern binding tools like \texttt{nanobind} \cite{jakob2022nanobind}, bridge the binary gap but do not bridge the \emph{semantic} gap.
-They allow Python to call C++ functions, but they do not allow the C++ compiler to reason about the high-level mathematical invariants defined in the symbolic layer.
+They allow Python to call C++ functions, but they do not allow the C++ compiler to reason about the high-level mathematical invariants defined in the symbolic layer. For \texttt{dedekind}, this is precisely why the implementation posture is inverted: the semantics live in the systems language, and Python-facing layers are treated as consumers of that compiled structure rather than as the place where mathematical meaning originates.
 
 Recent advances in systems programming have begun to challenge the historical divide between low-level performance and high-level abstraction.
 The \texttt{Rust} programming language, for instance, has gained significant traction by providing a "safety-first" approach through its affine type system and trait-based polymorphism.
@@ -306,6 +307,27 @@ Coproduct ($A + B$) & \texttt{std::variant} & \texttt{IsCoproduct} \\
 The \texttt{dedekind.python} module is the current end-of-chain facade for wrapper-facing integration. Its purpose is to expose a narrow, auditable, and deterministic API surface while preserving the internal partition hierarchy and keeping categorical internals out of first-contact runtime bindings.
 
 For the MVP, the exposed surface is intentionally limited to explicit set-interop boundaries and sequence/range adapters: conversion from and to standard set-like carriers, plus finite-path range materialization and view adaptation. This scope is large enough to support notebook-first demos (for example, selecting and plotting subsets of a Mandelbrot orbit trace) while remaining small enough for stable review and low-risk evolution.
+
+Concretely, the current \texttt{dedekind::interop} boundary provides explicit adapters between Dedekind extensional sets and standard set containers:
+\begin{itemize}
+  \item \texttt{from\_std(std::set<T>)} and \texttt{from\_std(std::unordered\_set<T>)};
+  \item \texttt{to\_std<std::set<T>>(ext)} and \texttt{to\_std<std::unordered\_set<T>>(ext)}.
+\end{itemize}
+
+The intended usage is an auditable round-trip at the value boundary rather than an implicit carrier coercion:
+\begin{lstlisting}[language=C++, caption={Explicit interop round-trip through the current wrapper-facing facade.}, label={lst:python_interop_roundtrip}]
+import dedekind.sets;
+
+std::set<int> ordered{1, 2, 3};
+auto ext = dedekind::interop::from_std(ordered);
+auto back = dedekind::interop::to_std<std::set<int>>(ext);
+\end{lstlisting}
+
+This boundary is intentionally constrained. Conversions are explicit on purpose; there are no implicit container bridges. Interop materializes a finite runtime carrier (\texttt{FiniteExtensionalSet<T>}), so the conversion step is visible in code review and does not silently reinterpret intensional set expressions as extensional data. Membership meaning is preserved when container equivalence agrees with ordinary value equality, including the currently supported MVP paths through \texttt{std::set<T>} with the default comparator and \texttt{std::unordered\_set<T, Hash, Equal>}. Custom \texttt{std::set<T, Compare>} comparators are intentionally excluded at this stage because they may encode a different notion of uniqueness than the extensional equality contract the library is prepared to audit.
+
+The current implementation therefore optimizes for reviewability over breadth: extensional equality is checked through round-trip tests on the supported carriers, and the complexity profile remains straightforward, with \texttt{from\_std} and \texttt{to\_std} operating in linear time $O(n)$, while the destination container continues to determine lookup behaviour ($O(1)$ expected for \texttt{std::unordered\_set}, $O(\log n)$ for \texttt{std::set}).
+
+At runtime, the Python boundary follows an explicit fail-fast contract for invalid payloads. The current MVP binding accepts integer sequences for its exposed round-trip and path adapters; non-iterable inputs (where a sequence is required) and non-integral sequence members are rejected with Python \texttt{TypeError} exceptions. This contract is intentionally narrow and reviewable, and is verified in CI through dedicated unhappy-path smoke tests so reviewers can inspect both expected and observed failure behaviour directly in pull-request checks.
 
 By constraining the facade to value-level bridges and deferring broad symbolic expression builders, the project keeps binding semantics reviewable and reduces drift between implementation, Doxygen headers, and report-level claims.
 

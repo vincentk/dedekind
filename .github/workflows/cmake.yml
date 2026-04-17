@@ -17,6 +17,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
+      with:
+        submodules: recursive
 
     - name: Install clang build chain
       run: |
@@ -30,6 +32,47 @@ jobs:
 
     - name: Build & Run Tests
       run: make test CXX=clang++-21 CC=clang-21 CMAKE_EXTRA_ARGS="-DDEDEKIND_RUNTIME_COVERAGE_BRIDGES=ON"
+
+    - name: Run Python Smoke Test
+      run: ctest --test-dir build --output-on-failure -R test_python_bindings
+
+    - name: Build Python Distribution Artifacts
+      env:
+        CC: clang-21
+        CXX: clang++-21
+        CMAKE_ARGS: >-
+          -DCMAKE_C_COMPILER=clang-21
+          -DCMAKE_CXX_COMPILER=clang++-21
+          -DCMAKE_CXX_SCAN_FOR_MODULES=ON
+      run: |
+        python -m pip install --upgrade pip build twine
+        python -m build
+        python -m twine check dist/*
+
+    - name: Verify Installed Wheel Smoke Test
+      run: |
+        python -m venv .venv-wheel-smoke
+        . .venv-wheel-smoke/bin/activate
+        python -m pip install --upgrade pip
+        python -m pip install dist/*.whl
+        mkdir -p build/python-docs
+        python -m pydoc dedekind > build/python-docs/pydoc-dedekind.txt
+        python - <<'PY'
+        import dedekind
+
+        assert dedekind.ordered_set_roundtrip([3, 1, 2, 2]) == [1, 2, 3]
+        assert dedekind.unordered_set_roundtrip([4, 2, 4, 1]) == [1, 2, 4]
+        assert dedekind.path_from_range([2, 4, 6, 8]) == [2, 4, 6, 8]
+        print("python-wheel-smoke-ok")
+        PY
+
+    - name: Upload Python Dist Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: python-dist
+        path: |
+          dist/*
+          build/python-docs/pydoc-dedekind.txt
 
     - name: Process Coverage Data
       run: make coverage CXX=clang++-21 CC=clang-21 CMAKE_EXTRA_ARGS="-DDEDEKIND_RUNTIME_COVERAGE_BRIDGES=ON"
