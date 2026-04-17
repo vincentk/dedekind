@@ -418,29 +418,27 @@ class DifferentiableMap {
  * @brief Map-like object exposing a finite-dimensional LinearMap Jacobian.
  */
 export template <typename Map>
-concept HasJacobianAt =
-  requires {
-      typename Map::scalar_type;
-      typename Map::Domain;
-      typename Map::Codomain;
-      typename Map::Jacobian;
-    { Map::domain_dimension } -> std::convertible_to<std::size_t>;
-    { Map::codomain_dimension } -> std::convertible_to<std::size_t>;
-    requires IsMatrixScalar<typename Map::scalar_type>;
-    requires std::same_as<
-      typename Map::Domain,
-      Vector<typename Map::scalar_type, Map::domain_dimension>>;
-    requires std::same_as<
+concept HasJacobianAt = requires {
+  typename Map::scalar_type;
+  typename Map::Domain;
+  typename Map::Codomain;
+  typename Map::Jacobian;
+  { Map::domain_dimension } -> std::convertible_to<std::size_t>;
+  { Map::codomain_dimension } -> std::convertible_to<std::size_t>;
+  requires IsMatrixScalar<typename Map::scalar_type>;
+  requires std::same_as<typename Map::Domain, Vector<typename Map::scalar_type,
+                                                     Map::domain_dimension>>;
+  requires std::same_as<
       typename Map::Codomain,
       Vector<typename Map::scalar_type, Map::codomain_dimension>>;
-    requires std::same_as<
+  requires std::same_as<
       typename Map::Jacobian,
       LinearMap<typename Map::scalar_type, Map::codomain_dimension,
-          Map::domain_dimension>>;
-  } && requires(const Map& map, const typename Map::Domain& x) {
-      { map(x) } -> std::same_as<typename Map::Codomain>;
-      { map.jacobian_at(x) } -> std::same_as<typename Map::Jacobian>;
-    };
+                Map::domain_dimension>>;
+} && requires(const Map& map, const typename Map::Domain& x) {
+  { map(x) } -> std::same_as<typename Map::Codomain>;
+  { map.jacobian_at(x) } -> std::same_as<typename Map::Jacobian>;
+};
 
 /**
  * @brief Construct a finite-dimensional differentiable map from primal and
@@ -479,9 +477,9 @@ constexpr auto frechet_derivative_at(const Map& map,
  */
 export template <HasJacobianAt Map>
   requires(Map::codomain_dimension == 1) &&
-          std::same_as<typename Map::Jacobian,
-                       Covector<typename Map::scalar_type,
-                                Map::domain_dimension>>
+          std::same_as<
+              typename Map::Jacobian,
+              Covector<typename Map::scalar_type, Map::domain_dimension>>
 constexpr Covector<typename Map::scalar_type, Map::domain_dimension>
 differential_at(const Map& map, const typename Map::Domain& x) {
   return jacobian_at(map, x);
