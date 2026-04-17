@@ -73,4 +73,10 @@ constexpr const FinitePath<T>& as_range(const FinitePath<T>& path) {
   return dedekind::sequences::as_range(path);
 }
 
+/** @brief Rvalue-safe finite-path adapter for std::ranges APIs. */
+template <typename T>
+constexpr FinitePath<T> as_range(FinitePath<T>&& path) {
+  return std::move(path);
+}
+
 }  // namespace dedekind::python
