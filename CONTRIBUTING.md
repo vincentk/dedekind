@@ -70,9 +70,9 @@ on build management.
   `make pr-checks` snapshots current PR check state.
   `make pr-watch` blocks until PR checks complete.
   `make pr-sync` runs fetch/status/PR-check snapshot before a push.
-  `make pr-review-comments` lists inline review comments on the current PR (or `PR=<number>`).
-   `make pr-review-unresolved` scans unresolved review threads on the current PR (or `make pr-review-unresolved PR=<number>`).
-   `make pr-resolve-threads` resolves all open review threads on the current PR (or `PR=<number>`) after they have been addressed.
+   `make pr-review-comments` lists inline review comments on the current PR (or `PR=<number>`).
+   `make pr-review-unresolved` scans unresolved review threads on the current PR (or `make pr-review-unresolved PR=<number>`) and prints thread IDs.
+   `make pr-resolve-thread THREAD_ID=<thread_id> REASON="<resolution note>"` resolves exactly one review thread and requires a reason.
 - Treat the GitHub CI build as the reference build for the project.  Local builds are useful,
    but merge readiness is determined by the PR checks.
 - **Net result:** the CI pipeline uses the same `make` targets as contributors do locally
