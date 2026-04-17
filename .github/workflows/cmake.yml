@@ -30,11 +30,8 @@ jobs:
     - name: Check Code Formatting
       run: make format-check CLANG_FORMAT=clang-format-21
 
-    - name: Build & Run Tests
-      run: make test CXX=clang++-21 CC=clang-21 CMAKE_EXTRA_ARGS="-DDEDEKIND_RUNTIME_COVERAGE_BRIDGES=ON"
-
-    - name: Run Python Smoke Test
-      run: ctest --test-dir build --output-on-failure -R test_python_bindings
+    - name: Build & Run Integration Tests
+      run: make integration-test CXX=clang++-21 CC=clang-21 CMAKE_EXTRA_ARGS="-DDEDEKIND_RUNTIME_COVERAGE_BRIDGES=ON"
 
     - name: Build Python Distribution Artifacts
       env:

@@ -14,7 +14,7 @@ DOCS_MAIN    := report
 FILTER_GVPR  := $(DOCS_DIR)/figures/filter.gvpr
 DOT_FILE     := $(DOCS_DIR)/figures/dedekind_module_dependencies.dot
 
-.PHONY: all clean compile test coverage format format-check install-hooks ci-install-doxygen-deps ci-install-report-deps doxygen dot doc report \
+.PHONY: all clean compile test integration-test coverage format format-check install-hooks ci-install-doxygen-deps ci-install-report-deps doxygen dot doc report \
 	ci-history ci-main pr-init pr-status pr-checks pr-watch pr-sync pr-review-comments pr-review-unresolved pr-resolve-thread pr-resolve-threads
 
 all: compile
@@ -39,6 +39,9 @@ compile: $(BUILD_DIR)/CMakeCache.txt
 
 test: compile
 	ctest --test-dir $(BUILD_DIR) --output-on-failure
+
+integration-test: test
+	ctest --test-dir $(BUILD_DIR) --output-on-failure -R test_python_bindings
 
 coverage: compile
 	@echo "Running tests with profile environment..."
