@@ -67,6 +67,12 @@ namespace detail {
 template <typename...>
 inline constexpr bool always_false_v = false;
 
+template <typename T>
+concept DefaultHashable = requires(const T& value) {
+  { std::hash<T>{}(value) } -> std::convertible_to<std::size_t>;
+  { std::equal_to<T>{}(value, value) } -> std::convertible_to<bool>;
+};
+
 template <typename C>
 concept StdSetLike = requires(C c, const typename C::value_type& value) {
   typename C::value_type;
@@ -91,7 +97,7 @@ constexpr auto to_std(
     const dedekind::sets::FiniteExtensionalSet<T, L, Hash, Equal>& source)
     -> StdSetLike {
   StdSetLike out;
-  out.insert(source.begin(), source.end());
+  for (const auto& value : source) out.insert(value);
   return out;
 }
 
@@ -103,12 +109,35 @@ constexpr auto to_std(const ExtSet&) -> StdSetLike {
                 "source and a std set-like target with matching value_type.");
 }
 
-export template <typename T, typename Compare, typename Alloc>
-constexpr auto from_std(const std::set<T, Compare, Alloc>& source)
+export template <typename T, typename Alloc>
+  requires detail::DefaultHashable<T>
+constexpr auto from_std(const std::set<T, std::less<T>, Alloc>& source)
     -> dedekind::sets::FiniteExtensionalSet<T> {
   dedekind::sets::FiniteExtensionalSet<T> out;
-  out.elements.insert(source.begin(), source.end());
+  for (const auto& value : source) out.elements.insert(value);
   return out;
+}
+
+export template <typename T, typename Alloc>
+  requires(!detail::DefaultHashable<T>)
+constexpr auto from_std(const std::set<T, std::less<T>, Alloc>&)
+    -> dedekind::sets::FiniteExtensionalSet<T> {
+  static_assert(detail::always_false_v<T, Alloc>,
+                "dedekind::interop::from_std(std::set<T>) requires T to be "
+                "hashable by std::hash<T> and comparable by std::equal_to<T> "
+                "because the MVP finite extensional carrier is hash-based.");
+}
+
+export template <typename T, typename Compare, typename Alloc>
+  requires(!std::same_as<Compare, std::less<T>>)
+constexpr auto from_std(const std::set<T, Compare, Alloc>&)
+    -> dedekind::sets::FiniteExtensionalSet<T> {
+  static_assert(detail::always_false_v<T, Compare, Alloc>,
+                "dedekind::interop::from_std currently supports only "
+                "std::set<T> with the default std::less<T> comparator. "
+                "Custom comparators may encode a different notion of "
+                "membership/uniqueness than the MVP hash-based extensional "
+                "carrier preserves.");
 }
 
 export template <typename T, typename Hash, typename Equal, typename Alloc>
@@ -118,18 +147,19 @@ constexpr auto from_std(const std::unordered_set<T, Hash, Equal, Alloc>& source)
   dedekind::sets::FiniteExtensionalSet<T, dedekind::category::ClassicalLogic,
                                        Hash, Equal>
       out;
-  out.elements.insert(source.begin(), source.end());
+  for (const auto& value : source) out.elements.insert(value);
   return out;
 }
 
 export template <typename StdSetLike>
   requires detail::StdSetLike<StdSetLike>
-constexpr auto from_std(const StdSetLike& source)
+constexpr auto from_std(const StdSetLike&)
     -> dedekind::sets::FiniteExtensionalSet<typename StdSetLike::value_type> {
-  using T = typename StdSetLike::value_type;
-  dedekind::sets::FiniteExtensionalSet<T> out;
-  out.elements.insert(source.begin(), source.end());
-  return out;
+  static_assert(detail::always_false_v<StdSetLike>,
+                "dedekind::interop::from_std currently supports only "
+                "std::set<T> with the default comparator and "
+                "std::unordered_set<T, Hash, Equal>. Other set-like types are "
+                "reserved for a follow-up interop phase.");
 }
 
 export template <typename ExtSet, typename StdSetLike>

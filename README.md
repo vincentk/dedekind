@@ -6,7 +6,7 @@
 [ 🌸 Don't panic. ]
 
 > **Project status:** pre-release research prototype.
-> Public APIs and module boundaries may change until `v1.0.0`.
+> Public APIs and module boundaries may change until a stable `v1.0.0` release tag.
 
 ### Computational Structuralism in Modern C++23
 
@@ -90,8 +90,12 @@ Semantic caveats:
 - Interop materializes a finite runtime carrier (`FiniteExtensionalSet<T>`), so
 	the conversion boundary is auditable and does not silently reinterpret
 	intensional expressions.
-- Membership meaning is preserved (`x ∈ S` before/after conversion), and
-	extensional equality is checked via round-trip tests.
+- Membership meaning is preserved when container equivalence agrees with
+	ordinary value equality, including the supported MVP paths through
+	`std::set<T>` with the default comparator and `std::unordered_set<T, Hash, Equal>`.
+	Custom `std::set<T, Compare>` comparators are intentionally rejected in this
+	phase because they may encode a different notion of uniqueness.
+- Extensional equality is checked via round-trip tests within those limits.
 
 Performance notes:
 

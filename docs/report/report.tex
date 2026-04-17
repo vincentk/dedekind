@@ -55,7 +55,7 @@
 \usetikzlibrary{shapes.geometric, arrows.meta, positioning, calc, backgrounds}
 
 \usepackage{draftwatermark}
-\SetWatermarkScale{5}
+\SetWatermarkScale{2}
 
 \usepackage[style=numeric, sorting=none]{biblatex}
 \addbibresource{references.bib}     % Points to your .bib file (include the extension)
@@ -112,7 +112,7 @@
 \newcommand{\bind}{\mathbin{>\!\!>\mkern-6.7mu=}}
 
 % --- Document Metadata ---
-\title{Axiomatic Systems Programming: Structural Type Theory and Exact Arithmetic in C++23}
+\title{Axiomatic Systems Programming in C++23: Structural Type Theory, Verified Set Interfaces, and Accuracy-Latency Tradeoffs}
 \author{The \texttt{dedekind} Authors}
 \date{\today} % Automatically inserts current date
 
@@ -121,9 +121,11 @@
 \maketitle
 
 \begin{abstract}
-This paper introduces \texttt{dedekind}, a \texttt{C++23} library designed to embed formal mathematical structures directly within the language's type system as first-class, verified specifications. We address the performance-productivity gap in computational science---often characterized as the ``two-language problem''---by leveraging modern \texttt{C++} features, including modules, concepts, and non-type template parameters (NTTP), to implement a structural type theory. Unlike traditional object-oriented frameworks that rely on nominal inheritance, \texttt{dedekind} reifies mathematical entities as positions within a categorical system of relations. 
+This report presents \texttt{dedekind}, a \texttt{C++23} research library for embedding mathematical structure directly into compile-time interfaces through modules, concepts, and constrained species traits. Rather than treating algebraic intent as runtime convention, \texttt{dedekind} reifies categorical and mereological invariants as type-level contracts that can be audited by the compiler and validated by tests.
 
-We demonstrate the utility of this approach through a formal construction of the continuum $\mathbb{R}$ via Dedekind cuts, enabling the exact resolution of transcendental numbers without floating-point overhead. Furthermore, we show how hoisting mereological and algebraic invariants into type signatures allows the \texttt{LLVM} backend to perform aggressive structural pruning, such as collapsing contradictory set-builder predicates into zero-instruction machine code. By addressing language-level constraints through the introduction of the ``Highway Notation'' for Kleisli composition, this work illustrates that integrating formal mathematical rigor into systems programming can yield zero-overhead abstractions suitable for high-performance symbolic computing. We propose this methodology as a nascent paradigm for \textit{Axiomatic Systems Programming}, where the compiler serves as a formal verification engine for mathematical truth.
+The project demonstrates three complementary goals. First, it supports symbolic and exact constructions (including Dedekind-cut style reasoning) where compile-time pruning can collapse contradictory structures to near-zero runtime cost. Second, it acknowledges the accuracy-latency paradox in numeric systems programming: exactness and hardware throughput are not globally maximizable at once. To make this tradeoff explicit, \texttt{dedekind} exposes policy-guided IEEE workflows ranging from pass-through machine arithmetic to monitored and actively managed execution paths. Third, it lowers adoption cost through explicit interoperability boundaries, including finite sequence integration with standard ranges and controlled set-container bridges for standard library set types.
+
+The resulting methodology is practical rather than absolutist: enforce what can be guaranteed in the current type/concept layer, document limitations where theory or machinery is still maturing, and preserve mechanical sympathy with modern compiler backends. We position this as Axiomatic Systems Programming: a workflow in which formal structure, performance constraints, and developer-facing interoperability are co-designed instead of treated as separate phases.
 
 \end{abstract}
 
@@ -598,6 +600,23 @@ The core objective is to anchor the C++ type system as a substrate for modeling 
 \textasteriskcentered \textit{Fails bit-perfect associativity due to rounding/NaN.}
 \end{flushleft}
 \end{table}
+
+
+\subsection{The Accuracy-Latency Paradox: Transcendental Reality vs. Silicon Speed}
+
+A central tension in Axiomatic Systems Programming is what we term the "Accuracy-Latency Paradox." As demonstrated in our formal construction of the continuum $\mathbb{R}$ via Dedekind cuts, achieving a definitive accuracy gain over the IEEE 754 standard necessitates a departure from the hardware-accelerated floating-point units (FPUs) baked into modern silicon. While \texttt{dedekind} can resolve the predicate $e < \pi$ as a zero-instruction compile-time proof, any runtime evaluation of transcendental logic that seeks to surpass standard bit-widths inevitably incurs a performance penalty. Software-defined exact arithmetic simply cannot compete with the gigahertz-scale throughput of dedicated hardware circuits designed for the IEEE standard.
+
+To reconcile the requirements of mathematical rigor with the necessity of systems-level performance, the library does not enforce a singular, global mode of computation. Instead, we acknowledge that the definition of "optimal" varies by domain. Consequently, \texttt{dedekind} introduces three distinct \textbf{Approximation Policies} within the \texttt{dedekind.ieee} and \texttt{dedekind.numbers} modules, allowing the developer to calibrate the position of their species on the accuracy-latency spectrum:
+
+\begin{enumerate}
+  \item \textbf{Classic IEEE (Pass-Through):} This policy treats machine types like \texttt{double} as primal atoms. The library performs no active monitoring, allowing the LLVM backend to emit standard FPU instructions. In this mode, the categorical layer serves primarily as a documentation and signature-matching tool, accepting the inherent risks of numerical non-associativity and $NaN$ singularities in exchange for maximum hardware throughput.
+
+  \item \textbf{IEEE with Monitoring (The Auditor):} This policy utilizes the \texttt{SubobjectClassifier} to perform passive auditing. By leveraging compiler built-ins (e.g., \texttt{\_\_builtin\_add\_overflow}), the library identifies when a calculation breaches the Lipschitz boundary or enters a $NaN$ "truth-hole." While the computation proceeds at near-native speed, the result is "tagged" within the \texttt{Partial<T>} rescue pod, enabling downstream verification of the structural integrity of the execution path.
+
+  \item \textbf{IEEE with Active Management (The Rescue):} This is the most rigorous policy, where the library actively intervenes in the algebraic flow. It explicitly disables hazardous compiler optimizations---such as \texttt{-ffast-math} reassociations---that violate the species' axioms. If a singularity is detected, the $\Omega$-Monad propagates the \texttt{Unknown} state through the Kleisli chain, ensuring that hardware-level "noise" never contaminates the symbolic logic of the broader model.
+\end{enumerate}
+
+By providing these levels of engagement, \texttt{dedekind} shifts the paradigm from an unattainable "universal speed-accuracy win" toward \textbf{Informed Trade-offs}. This ensures that the developer can maintain mechanical sympathy for the hardware while remaining semantically honest about the mathematical validity of their results.
 
 
 

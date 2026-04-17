@@ -266,6 +266,10 @@ constexpr auto from_range(R&& range) {
   using U = std::ranges::range_value_t<R>;
 
   auto values = std::make_shared<std::vector<U>>();
+  if constexpr (std::ranges::sized_range<R>) {
+    values->reserve(
+        static_cast<typename std::vector<U>::size_type>(std::ranges::size(range)));
+  }
   for (auto&& value : range) values->push_back(static_cast<U>(value));
 
   return FinitePath<U>{
