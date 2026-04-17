@@ -302,6 +302,13 @@ Coproduct ($A + B$) & \texttt{std::variant} & \texttt{IsCoproduct} \\
 \end{tabular}
 \end{table}
 
+\subsection{The \texttt{dedekind.python} facade module}
+The \texttt{dedekind.python} module is the current end-of-chain facade for wrapper-facing integration. Its purpose is to expose a narrow, auditable, and deterministic API surface while preserving the internal partition hierarchy and keeping categorical internals out of first-contact runtime bindings.
+
+For the MVP, the exposed surface is intentionally limited to explicit set-interop boundaries and sequence/range adapters: conversion from and to standard set-like carriers, plus finite-path range materialization and view adaptation. This scope is large enough to support notebook-first demos (for example, selecting and plotting subsets of a Mandelbrot orbit trace) while remaining small enough for stable review and low-risk evolution.
+
+By constraining the facade to value-level bridges and deferring broad symbolic expression builders, the project keeps binding semantics reviewable and reduces drift between implementation, Doxygen headers, and report-level claims.
+
 \section{Instrumented Model Validation: The CI Pipeline as an Independent Auditor}
 While formal verification in languages like Agda or Coq typically relies on static type-level proofs that are erased during compilation, the \texttt{dedekind} framework adopts a methodology of \emph{Instrumented Model Validation}. By leveraging the LLVM profiling infrastructure, we provide an empirical \emph{Runtime Witness} for our categorical primitives.
 
