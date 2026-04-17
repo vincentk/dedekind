@@ -71,6 +71,26 @@ The repository includes a Python smoke test integrated into CTest:
 ctest --test-dir build --output-on-failure -R test_python_bindings
 ```
 
+For the broader Python integration lane, run:
+
+```bash
+make integration-test
+```
+
+This target runs the standard test suite, then discovers and executes every
+notebook in `docs/python/notebooks/` headlessly. Each integration notebook is
+required to import `dedekind` explicitly.
+
+## Notebook Demos
+
+The MVP notebook demos live in `docs/python/notebooks/`:
+
+- `01_facade_roundtrip_basics.ipynb`
+- `02_facade_error_contract.ipynb`
+
+These notebooks are intentionally small, deterministic, and suitable for CI
+execution as integration checks.
+
 ## Reviewer Verification (CI Artifacts)
 
 For pull requests, wheel/sdist and Python-native docs are expected to be
@@ -87,6 +107,7 @@ Review path:
 	- installed wheel report (`install-report.txt`)
 	- generated pydoc output (`pydoc-dedekind.txt`)
 4. Confirm the workflow step `Verify Installed Wheel Smoke Test` is green.
+5. Confirm the workflow step `Build & Run Integration Tests` is green.
 
 This provides reviewer-visible evidence that packaging and runtime smoke checks
 worked in CI for the PR changeset.

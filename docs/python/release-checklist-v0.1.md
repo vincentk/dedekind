@@ -10,11 +10,14 @@ This checklist defines a repeatable publication path for the Python MVP package.
 4. Confirm docs are up to date:
    - `docs/python/README.md`
    - `docs/python/release-checklist-v0.1.md`
+   - `docs/python/notebooks/README.md`
 5. Confirm package metadata in `pyproject.toml`:
    - version
    - description
    - Python requirement
    - classifiers
+6. Confirm notebook integration checks pass:
+   - `make integration-test`
 
 ## Build
 
@@ -36,6 +39,7 @@ Expected artifacts:
 python -m twine check dist/*
 python -m pip install --force-reinstall dist/*.whl
 python -c "import dedekind; print(dedekind.path_from_range([1, 2, 3]))"
+make integration-test
 ```
 
 ## TestPyPI Publish (recommended)
@@ -66,9 +70,11 @@ python -m twine upload dist/*
    - `unordered_set_roundtrip`
    - `path_from_range`
 4. Confirm CI remains green after release tagging.
-5. Post release note linking:
+5. Confirm notebook demos still execute successfully against the published package expectations.
+6. Post release note linking:
    - issue #234 scope delivered for MVP surface
    - issue #236 docs/checklist maintenance
+   - issue #239 notebook demos and integration coverage
 
 ## Rollback / Recovery
 
