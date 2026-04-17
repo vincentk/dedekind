@@ -51,6 +51,9 @@ Thank you for your interest in contributing!
    freely — you do not need to confirm that the code compiles or tests pass locally before
    pushing.  The CI build is the authoritative reference; use it to offload compilation and
    test validation so local development stays unblocked.
+- This project intentionally follows an optimistic concurrency model: contributors can
+   continue shipping small draft-PR checkpoints while CI validates correctness in parallel,
+   which improves overall throughput and reduces workstation idle/blocking time.
 - Before pushing, run `make format` or install the managed hook with `make install-hooks`.
 - Check the PR's CI status regularly while iterating — not necessarily before every push,
    but frequently enough to catch failures early before they compound.  Large divergences
