@@ -42,6 +42,37 @@ test: compile
 
 integration-test: test
 	ctest --test-dir $(BUILD_DIR) --output-on-failure -R test_python_bindings
+	python -m pip install --upgrade pip jupyter
+	python -m pip install --no-build-isolation -e .
+	mkdir -p $(BUILD_DIR)/python-notebooks
+	@NOTEBOOK_DIR="docs/python/notebooks"; \
+	NOTEBOOKS="$$(find $$NOTEBOOK_DIR -maxdepth 1 -type f -name '*.ipynb' | sort)"; \
+	if [ -z "$$NOTEBOOKS" ]; then \
+		echo "ERROR: no notebooks found in $$NOTEBOOK_DIR"; \
+		exit 2; \
+	fi; \
+	echo "Running notebook integration tests from $$NOTEBOOK_DIR"; \
+	FAILURES=0; \
+	TOTAL=0; \
+	for nb in $$NOTEBOOKS; do \
+		TOTAL=$$((TOTAL + 1)); \
+		name="$$(basename $$nb)"; \
+		if ! grep -q 'import dedekind' "$$nb"; then \
+			echo "FAILED: $$name does not import dedekind"; \
+			FAILURES=$$((FAILURES + 1)); \
+			continue; \
+		fi; \
+		echo "Executing $$name"; \
+		if ! python -m jupyter nbconvert --to notebook --execute "$$nb" --output "$$name" --output-dir $(BUILD_DIR)/python-notebooks; then \
+			echo "FAILED: $$name"; \
+			FAILURES=$$((FAILURES + 1)); \
+		fi; \
+	done; \
+	if [ "$$FAILURES" -ne 0 ]; then \
+		echo "Notebook integration failures: $$FAILURES/$$TOTAL"; \
+		exit 1; \
+	fi; \
+	echo "Notebook integration tests passed: $$TOTAL notebook(s)."
 
 coverage: compile
 	@echo "Running tests with profile environment..."
