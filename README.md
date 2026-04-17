@@ -5,6 +5,9 @@
 
 [ 🌸 Don't panic. ]
 
+> **Project status:** pre-release research prototype.
+> Public APIs and module boundaries may change until a stable `v1.0.0` release tag.
+
 ### Computational Structuralism in Modern C++23
 
 The `dedekind` library intends to be a faithful translation of mathematical concepts into modern `C++`. 
@@ -62,6 +65,43 @@ In this approach;
 3. **Bi-directional Fidelity**: Once a concept compiles, its fidelity is verified by checking that `C++` invariants map correctly back to their mathematical counterparts within the test suite.
 
 _AI assistance is used during the development of this project._
+
+### Interoperability Notes (MVP)
+
+`dedekind::interop` provides explicit type-boundary adapters between
+Dedekind extensional sets and standard set containers:
+
+- `from_std(std::set<T>)` / `from_std(std::unordered_set<T>)`
+- `to_std<std::set<T>>(ext)` / `to_std<std::unordered_set<T>>(ext)`
+
+Example:
+
+```cpp
+import dedekind.sets;
+
+std::set<int> ordered{1, 2, 3};
+auto ext = dedekind::interop::from_std(ordered);
+auto back = dedekind::interop::to_std<std::set<int>>(ext);
+```
+
+Semantic caveats:
+
+- Conversions are explicit on purpose; there are no implicit container bridges.
+- Interop materializes a finite runtime carrier (`FiniteExtensionalSet<T>`), so
+	the conversion boundary is auditable and does not silently reinterpret
+	intensional expressions.
+- Membership meaning is preserved when container equivalence agrees with
+	ordinary value equality, including the supported MVP paths through
+	`std::set<T>` with the default comparator and `std::unordered_set<T, Hash, Equal>`.
+	Custom `std::set<T, Compare>` comparators are intentionally rejected in this
+	phase because they may encode a different notion of uniqueness.
+- Extensional equality is checked via round-trip tests within those limits.
+
+Performance notes:
+
+- `from_std` and `to_std` are linear in the number of elements (`O(n)`).
+- `std::unordered_set` targets generally provide expected `O(1)` lookup,
+	while `std::set` targets provide `O(log n)` lookup.
 
 ### Further reading:
 

@@ -26,6 +26,7 @@
  */
 module;
 
+#include <cmath>
 #include <concepts>
 #include <cstddef>
 
@@ -34,10 +35,12 @@ export module dedekind.analysis:hamilton;
 import dedekind.category;
 import dedekind.algebra;
 import dedekind.geometry;
+import dedekind.sequences;
 
 namespace dedekind::analysis {
 using namespace dedekind::algebra;
 using namespace dedekind::geometry;
+using namespace dedekind::sequences;
 
 /**
  * @concept IsHamiltonian
@@ -87,5 +90,83 @@ export template <typename A>
 concept IsPoissonAlgebra = IsRing<A> && requires(A f, A g) {
   { bracket(f, g) } -> std::same_as<A>;
 };
+
+/** @brief Canonical 1D phase-space state (q, p). */
+export template <std::floating_point R>
+using PhasePoint = Vector<R, 2>;
+
+/**
+ * @brief Closed-form harmonic-oscillator flow at time t.
+ * @details
+ * For H(q,p) = 1/2 (p^2 + ω^2 q^2) with unit mass:
+ *   q(t) = q0 cos(ωt) + (p0/ω) sin(ωt)
+ *   p(t) = p0 cos(ωt) - ω q0 sin(ωt)
+ */
+export template <std::floating_point R>
+constexpr PhasePoint<R> harmonic_oscillator_closed_form(R q0, R p0, R t,
+                                                        R omega = R{1}) {
+  const R wt = omega * t;
+  const R c = std::cos(wt);
+  const R s = std::sin(wt);
+  return PhasePoint<R>{q0 * c + (p0 / omega) * s, p0 * c - (omega * q0) * s};
+}
+
+/**
+ * @brief Continuum-indexed Hamiltonian trajectory as a Curve.
+ */
+export template <std::floating_point R>
+constexpr auto harmonic_oscillator_curve(R q0, R p0, R omega = R{1}) {
+  auto flow = [q0, p0, omega](R t) {
+    return harmonic_oscillator_closed_form<R>(q0, p0, t, omega);
+  };
+  return Curve<R, PhasePoint<R>>{flow};
+}
+
+/**
+ * @brief Discrete Hamiltonian trajectory via leapfrog/Verlet (infinite path).
+ * @details
+ * The update is the symplectic kick-drift-kick form used in N-body style
+ * benchmark loops: preserve qualitative energy behavior over long horizons.
+ */
+export template <std::floating_point R>
+constexpr auto harmonic_oscillator_leapfrog_path(R q0, R p0, R dt,
+                                                 R omega = R{1}) {
+  auto trajectory = [q0, p0, dt, omega](std::size_t n) {
+    R q = q0;
+    R p = p0;
+    const R half = R{0.5};
+    const R k = omega * omega;
+
+    for (std::size_t i = 0; i < n; ++i) {
+      const R p_half = p - half * dt * (k * q);
+      q += dt * p_half;
+      p = p_half - half * dt * (k * q);
+    }
+    return PhasePoint<R>{q, p};
+  };
+
+  return Path<PhasePoint<R>>{trajectory};
+}
+
+export template <std::floating_point R>
+constexpr auto harmonic_oscillator_leapfrog_finite_path(R q0, R p0, R dt,
+                                                        std::size_t steps,
+                                                        R omega = R{1}) {
+  auto infinite = harmonic_oscillator_leapfrog_path<R>(q0, p0, dt, omega);
+  return prefix(infinite, steps);
+}
+
+/** @section Formal_Verification */
+static_assert(IsCurve<decltype(harmonic_oscillator_curve<double>(1.0, 0.0))>,
+              "Closed-form harmonic trajectory must be a curve.");
+
+static_assert(IsSequence<decltype(harmonic_oscillator_leapfrog_path<double>(
+                  1.0, 0.0, 0.01))>,
+              "Leapfrog trajectory must be a discrete sequence path.");
+
+static_assert(
+    IsFiniteSequence<decltype(harmonic_oscillator_leapfrog_finite_path<double>(
+        1.0, 0.0, 0.01, 32))>,
+    "Dedicated finite-horizon leapfrog trajectory must be finite.");
 
 }  // namespace dedekind::analysis
