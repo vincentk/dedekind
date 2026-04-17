@@ -432,8 +432,7 @@ namespace dedekind::sequences {
 using namespace dedekind::category;
 
 /** @section Formal_Verification */
-static_assert(IsSequence<Path<int>>,
-              "Path must satisfy the sequence concept.");
+static_assert(IsSequence<Path<int>>, "Path must satisfy the sequence concept.");
 
 static_assert(IsFiniteSequence<FinitePath<int>>,
               "FinitePath must satisfy the finite sequence concept.");
@@ -444,7 +443,8 @@ static_assert(IsKleisliExtension<Path, int, long>,
 static_assert(IsCoKleisliExtension<Path, int, long>,
               "Path must satisfy the co-Kleisli extension witness.");
 
-static_assert(IsFrobenius<Path, int, long>,
-              "Path must satisfy the Frobenius witness (Kleisli + co-Kleisli).");
+static_assert(
+    IsFrobenius<Path, int, long>,
+    "Path must satisfy the Frobenius witness (Kleisli + co-Kleisli).");
 
 }  // namespace dedekind::sequences

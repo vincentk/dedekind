@@ -82,9 +82,7 @@ concept IsSequence = IsNet<Seq> && IsCountablyIndexedFamily<Seq> && requires {
   // Refactored: value_type -> Codomain
   typename Seq::Codomain;
   typename Seq::Domain;
-} && requires(const Seq s) {
-  requires IsSpecies<typename Seq::Domain>;
-};
+} && requires(const Seq s) { requires IsSpecies<typename Seq::Domain>; };
 
 /**
  * @concept IsFiniteSequence

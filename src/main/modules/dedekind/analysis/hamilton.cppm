@@ -160,14 +160,13 @@ constexpr auto harmonic_oscillator_leapfrog_finite_path(R q0, R p0, R dt,
 static_assert(IsCurve<decltype(harmonic_oscillator_curve<double>(1.0, 0.0))>,
               "Closed-form harmonic trajectory must be a curve.");
 
-static_assert(
-    IsSequence<decltype(harmonic_oscillator_leapfrog_path<double>(1.0, 0.0,
-                                                                  0.01))>,
-    "Leapfrog trajectory must be a discrete sequence path.");
+static_assert(IsSequence<decltype(harmonic_oscillator_leapfrog_path<double>(
+                  1.0, 0.0, 0.01))>,
+              "Leapfrog trajectory must be a discrete sequence path.");
 
-static_assert(IsFiniteSequence<decltype(
-          harmonic_oscillator_leapfrog_finite_path<double>(
-            1.0, 0.0, 0.01, 32))>,
-        "Dedicated finite-horizon leapfrog trajectory must be finite.");
+static_assert(
+    IsFiniteSequence<decltype(harmonic_oscillator_leapfrog_finite_path<double>(
+        1.0, 0.0, 0.01, 32))>,
+    "Dedicated finite-horizon leapfrog trajectory must be finite.");
 
 }  // namespace dedekind::analysis
