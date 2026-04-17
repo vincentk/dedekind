@@ -205,6 +205,13 @@ pr-resolve-threads:
 	exit 2
 
 doxygen: $(BUILD_DIR)/CMakeCache.txt
+	cmake -S . -B $(BUILD_DIR) -G Ninja \
+		-DCMAKE_CXX_COMPILER=$(CXX) \
+		-DCMAKE_C_COMPILER=$(CC) \
+		-DCMAKE_CXX_SCAN_FOR_MODULES=ON \
+		-DCMAKE_BUILD_TYPE=Release \
+		-DDEDEKIND_ENABLE_DOUBLE_REAL_PROXY=ON \
+		$(CMAKE_EXTRA_ARGS)
 	cmake --build $(BUILD_DIR) --target docs
 
 report:
