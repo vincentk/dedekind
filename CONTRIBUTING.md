@@ -55,11 +55,10 @@ Thank you for your interest in contributing!
    continue shipping small draft-PR checkpoints while CI validates correctness in parallel,
    which improves overall throughput and reduces workstation idle/blocking time.
 - Before pushing, run `make format` or install the managed hook with `make install-hooks`.
-- Check the PR's CI status regularly while iterating — not necessarily before every push,
-   but frequently enough to catch failures early before they compound.  Large divergences
-   between the local state and the reference build are harder to diagnose and fix.
-   If a check fails, read the workflow logs and address the failure before continuing with
-   unrelated work.
+- Check the PR's CI status before each push to keep optimistic concurrency tight:
+   push small checkpoints, but verify the reference build state first so failures do not
+   compound into large divergences. If a check fails, read the workflow logs and address
+   the failure before continuing with unrelated work.
 - After a green CI run, also check the Codecov report for regressions before marking the PR ready.
 - Mark the PR **Ready for Review** only once **all CI checks show green**.  A draft PR
    with failing CI should never be marked ready.
