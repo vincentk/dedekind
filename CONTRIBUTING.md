@@ -63,13 +63,14 @@ on build management.
 - The `Makefile` is the **preferred** build interface; use `make <target>` rather than
    raw `cmake`/`ninja`/`ctest` commands whenever an equivalent target exists.
    Available targets: `compile`, `test`, `format`, `format-check`, `coverage`, `doxygen`, `report`,
-   `clean`, `install-hooks`, `ci-main`, `pr-status`, `pr-checks`, `pr-watch`, `pr-sync`, `pr-review-unresolved`.
+   `clean`, `install-hooks`, `ci-main`, `pr-status`, `pr-checks`, `pr-watch`, `pr-sync`, `pr-review-comments`, `pr-review-unresolved`.
 - Contributor workflow helper targets:
   `make ci-main` checks recent `main` branch CI runs.
   `make pr-status` shows PR metadata for the current branch.
   `make pr-checks` snapshots current PR check state.
   `make pr-watch` blocks until PR checks complete.
   `make pr-sync` runs fetch/status/PR-check snapshot before a push.
+  `make pr-review-comments` lists inline review comments on the current PR (or `PR=<number>`).
   `make pr-review-unresolved` scans unresolved review threads on the current PR (or `make pr-review-unresolved PR=<number>`).
 - Treat the GitHub CI build as the reference build for the project.  Local builds are useful,
    but merge readiness is determined by the PR checks.

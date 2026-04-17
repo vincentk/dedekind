@@ -15,7 +15,7 @@ FILTER_GVPR  := $(DOCS_DIR)/figures/filter.gvpr
 DOT_FILE     := $(DOCS_DIR)/figures/dedekind_module_dependencies.dot
 
 .PHONY: all clean compile test coverage format format-check install-hooks doxygen dot doc report \
-	ci-main pr-status pr-checks pr-watch pr-sync pr-review-unresolved
+	ci-main pr-status pr-checks pr-watch pr-sync pr-review-comments pr-review-unresolved
 
 all: compile
 
@@ -78,6 +78,17 @@ pr-sync:
 	git status -sb
 	gh pr view --json number,title,state,isDraft,url
 	gh pr checks || true
+
+# List inline PR review comments for the current PR (or PR=<number>).
+pr-review-comments:
+	@PR_NUM="$(PR)"; \
+	if [ -z "$$PR_NUM" ]; then \
+		PR_NUM="$$(gh pr view --json number --jq .number)"; \
+	fi; \
+	REPO="$$(gh repo view --json nameWithOwner --jq .nameWithOwner)"; \
+	echo "Listing review comments for PR #$$PR_NUM ($$REPO)..."; \
+	gh api repos/$$REPO/pulls/$$PR_NUM/comments \
+		--jq '.[] | "- " + .path + ":" + (.line|tostring) + " :: " + (.body | gsub("\\n"; " "))'
 
 # Scan unresolved review threads on the current PR (or PR=<number>).
 pr-review-unresolved:
