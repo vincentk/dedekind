@@ -30,24 +30,13 @@ jobs:
         sudo apt-get install -y biber doxygen graphviz texlive-latex-base texlive-latex-extra texlive-bibtex-extra texlive-pictures texlive-plain-generic texlive-fonts-recommended
 
     - name: Check Code Formatting
-      run: find src -name "*.cpp" -o -name "*.cppm" | xargs clang-format-21 --dry-run --Werror
-
-    - name: Configure CMake
-      # Note: CMAKE_CXX_COMPILER is required to use a recent clang.
-      # Note: CMAKE_CXX_SCAN_FOR_MODULES is required for clang to find the module interfaces.
-      # Note: Ninja is required for CMAKE_CXX_SCAN_FOR_MODULES to work.
-      # Note: CMAKE_BUILD_TYPE=Release is required for the code to compile at all, due to the use of concepts and modules.
-      # Note: DEDEKIND_RUNTIME_COVERAGE_BRIDGES=ON improves coverage attribution
-      # for numeric bridge wrappers during Codecov runs.
-      run: cmake -S . -B build -G Ninja -DCMAKE_CXX_COMPILER=clang++-21 -DCMAKE_BUILD_TYPE=Release -DCMAKE_CXX_SCAN_FOR_MODULES=ON -DDEDEKIND_RUNTIME_COVERAGE_BRIDGES=ON -DDEDEKIND_ENABLE_DOUBLE_REAL_PROXY=ON
+      run: make format-check CLANG_FORMAT=clang-format-21
 
     - name: Build & Run Tests
-      run: |
-        cmake --build build
-        ctest --test-dir build --output-on-failure -V
+      run: make test CXX=clang++-21 CC=clang-21 CMAKE_EXTRA_ARGS="-DDEDEKIND_RUNTIME_COVERAGE_BRIDGES=ON"
 
     - name: Process Coverage Data
-      run: cmake --build build --target generate_coverage
+      run: make coverage CXX=clang++-21 CC=clang-21 CMAKE_EXTRA_ARGS="-DDEDEKIND_RUNTIME_COVERAGE_BRIDGES=ON"
 
     - name: Upload to Codecov
       uses: codecov/codecov-action@v5
@@ -60,12 +49,10 @@ jobs:
     # --- CONDITIONAL DEPLOYMENT STEPS ---
     
     - name: Build Doxygen Documentation
-      run: |
-        cmake --build build --target docs
+      run: make doxygen CXX=clang++-21 CC=clang-21 CMAKE_EXTRA_ARGS="-DDEDEKIND_RUNTIME_COVERAGE_BRIDGES=ON"
 
     - name: Check Report Compilation
-      run: |
-        make -C docs/report ci-check
+      run: make report
 
     - name: Build Publishable Report
       if: github.ref == 'refs/heads/main' && github.event_name == 'push'

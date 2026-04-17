@@ -4,15 +4,17 @@
 
 # Project Variables
 BUILD_DIR    := build
-LLVM_ROOT    := /usr/local/opt/llvm
-CXX          := $(LLVM_ROOT)/bin/clang++
-CC           := $(LLVM_ROOT)/bin/clang
+LLVM_ROOT    ?= /usr/local/opt/llvm
+CXX          ?= $(LLVM_ROOT)/bin/clang++
+CC           ?= $(LLVM_ROOT)/bin/clang
+CLANG_FORMAT ?= $(LLVM_ROOT)/bin/clang-format
+CMAKE_EXTRA_ARGS ?=
 DOCS_DIR     := docs/report
 DOCS_MAIN    := report
 FILTER_GVPR  := $(DOCS_DIR)/figures/filter.gvpr
 DOT_FILE     := $(DOCS_DIR)/figures/dedekind_module_dependencies.dot
 
-.PHONY: all clean compile test coverage format install-hooks doxygen dot doc \
+.PHONY: all clean compile test coverage format format-check install-hooks doxygen dot doc report \
 	ci-main pr-status pr-checks pr-watch pr-sync
 
 all: compile
@@ -28,7 +30,8 @@ $(BUILD_DIR)/CMakeCache.txt:
 		-DCMAKE_C_COMPILER=$(CC) \
 		-DCMAKE_CXX_SCAN_FOR_MODULES=ON \
 		-DCMAKE_BUILD_TYPE=Release \
-		-DDEDEKIND_ENABLE_DOUBLE_REAL_PROXY=ON
+		-DDEDEKIND_ENABLE_DOUBLE_REAL_PROXY=ON \
+		$(CMAKE_EXTRA_ARGS)
 
 compile: $(BUILD_DIR)/CMakeCache.txt
 	cmake --build $(BUILD_DIR)
@@ -47,7 +50,10 @@ coverage: compile
 
 
 format:
-	find src -name "*.cpp" -o -name "*.cppm" | xargs $(LLVM_ROOT)/bin/clang-format -i
+	find src -name "*.cpp" -o -name "*.cppm" | xargs $(CLANG_FORMAT) -i
+
+format-check:
+	find src -name "*.cpp" -o -name "*.cppm" | xargs $(CLANG_FORMAT) --dry-run --Werror
 
 install-hooks:
 	git config core.hooksPath .githooks
@@ -75,6 +81,9 @@ pr-sync:
 
 doxygen: $(BUILD_DIR)/CMakeCache.txt
 	cmake --build $(BUILD_DIR) --target docs
+
+report:
+	$(MAKE) -C $(DOCS_DIR) ci-check
 
 # Generate build dependency graph without breaking the Ninja build
 dot: $(BUILD_DIR)/CMakeCache.txt

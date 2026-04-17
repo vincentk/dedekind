@@ -40,8 +40,8 @@ Thank you for your interest in contributing!
 
 - The `Makefile` is the **preferred** build interface; use `make <target>` rather than
    raw `cmake`/`ninja`/`ctest` commands whenever an equivalent target exists.
-   Available targets: `compile`, `test`, `format`, `coverage`, `doxygen`, `clean`, `install-hooks`,
-   `ci-main`, `pr-status`, `pr-checks`, `pr-watch`, `pr-sync`.
+   Available targets: `compile`, `test`, `format`, `format-check`, `coverage`, `doxygen`, `report`,
+   `clean`, `install-hooks`, `ci-main`, `pr-status`, `pr-checks`, `pr-watch`, `pr-sync`.
 - Contributor workflow helper targets:
   `make ci-main` checks recent `main` branch CI runs.
   `make pr-status` shows PR metadata for the current branch.

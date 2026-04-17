@@ -39,8 +39,10 @@ make test
 > | `make compile` | Configure (if needed) and build all targets |
 > | `make test` | Build then run the full test suite via CTest |
 > | `make format` | Auto-format all `*.cpp` / `*.cppm` sources with `clang-format` |
+> | `make format-check` | Verify formatting without modifying files |
 > | `make coverage` | Build, run tests, and produce an LLVM coverage report |
 > | `make doxygen` | Build Doxygen API docs into `build/docs/` |
+> | `make report` | Fast report compile check (`docs/report` `ci-check`) |
 > | `make clean` | Remove the `build/` directory |
 > | `make install-hooks` | Install the pre-push git hook |
 >
