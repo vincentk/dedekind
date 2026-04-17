@@ -43,11 +43,9 @@ make test
 > | `make doxygen` | Build Doxygen API docs into `build/docs/` |
 > | `make clean` | Remove the `build/` directory |
 > | `make install-hooks` | Install the pre-push git hook |
-> | `make ci-main` | Show recent CI runs for `main` |
-> | `make pr-status` | Show PR metadata for the current branch |
-> | `make pr-checks` | Show check status for the current branch PR |
-> | `make pr-watch` | Watch PR checks until completion |
-> | `make pr-sync` | Refresh git/PR status snapshot before a push |
+>
+> For contributor workflow helpers (`make ci-main`, `make pr-status`,
+> `make pr-checks`, `make pr-watch`, `make pr-sync`), see `CONTRIBUTING.md`.
 
 ### Architecture
 

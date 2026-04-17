@@ -42,6 +42,12 @@ Thank you for your interest in contributing!
    raw `cmake`/`ninja`/`ctest` commands whenever an equivalent target exists.
    Available targets: `compile`, `test`, `format`, `coverage`, `doxygen`, `clean`, `install-hooks`,
    `ci-main`, `pr-status`, `pr-checks`, `pr-watch`, `pr-sync`.
+- Contributor workflow helper targets:
+  `make ci-main` checks recent `main` branch CI runs.
+  `make pr-status` shows PR metadata for the current branch.
+  `make pr-checks` snapshots current PR check state.
+  `make pr-watch` blocks until PR checks complete.
+  `make pr-sync` runs fetch/status/PR-check snapshot before a push.
 - Treat the GitHub CI build as the reference build for the project.  Local builds are useful,
    but merge readiness is determined by the PR checks.
 - Workflow model note: this project intentionally uses an optimistic concurrency
