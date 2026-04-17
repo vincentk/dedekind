@@ -37,6 +37,13 @@ jobs:
       run: ctest --test-dir build --output-on-failure -R test_python_bindings
 
     - name: Build Python Distribution Artifacts
+      env:
+        CC: clang-21
+        CXX: clang++-21
+        CMAKE_ARGS: >-
+          -DCMAKE_C_COMPILER=clang-21
+          -DCMAKE_CXX_COMPILER=clang++-21
+          -DCMAKE_CXX_SCAN_FOR_MODULES=ON
       run: |
         python -m pip install --upgrade pip build twine
         python -m build
