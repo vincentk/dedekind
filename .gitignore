@@ -57,3 +57,7 @@ docs/report/figures/dedekind_*.pdf
 **/*.synctex.gz
 
 build_ci/**
+
+# Root-level scratch artifacts
+/issue*.md
+/*.profraw
