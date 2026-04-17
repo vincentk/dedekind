@@ -43,6 +43,10 @@ Thank you for your interest in contributing!
    Available targets: `compile`, `test`, `format`, `coverage`, `doxygen`, `clean`, `install-hooks`.
 - Treat the GitHub CI build as the reference build for the project.  Local builds are useful,
    but merge readiness is determined by the PR checks.
+- Workflow model note: this project intentionally uses an optimistic concurrency
+   model rather than a pessimistic one. In practice, CI is more authoritative
+   than local builds, and a small temporary divergence between local and CI
+   status is acceptable while iterating on draft PR checkpoints.
 - Before starting new work, check that the most recent `main` branch CI run is green.
 - Keep the README small and stable.  Only update it when something is plainly wrong or deeply
    misleading; routine progress belongs in the report and inline documentation.
