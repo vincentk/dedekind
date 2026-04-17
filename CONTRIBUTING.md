@@ -50,6 +50,10 @@ Thank you for your interest in contributing!
   `make pr-sync` runs fetch/status/PR-check snapshot before a push.
 - Treat the GitHub CI build as the reference build for the project.  Local builds are useful,
    but merge readiness is determined by the PR checks.
+- **Net result:** the CI pipeline now uses the same `make` targets as contributors do locally
+   (`make test`, `make coverage`, `make doxygen`, `make report`).  The only thing a contributor
+   strictly needs to run locally is `git push`; GitHub Actions handles the heavy compilation,
+   test execution, coverage processing, and documentation builds on every push.
 - Workflow model note: this project intentionally uses an optimistic concurrency
    model rather than a pessimistic one. In practice, CI is more authoritative
    than local builds, and a small temporary divergence between local and CI
