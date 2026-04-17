@@ -42,6 +42,33 @@ using namespace dedekind::category;
 using namespace dedekind::sets;
 using namespace dedekind::order;
 
+/**
+ * @concept IsIndexedMorphismFamily
+ * @brief A category arrow equipped with explicit index cardinality metadata.
+ *
+ * @details
+ * This concept captures families F: I -> X as first-class morphisms whose
+ * index species I and codomain species X are represented by Domain/Codomain,
+ * while cardinality metadata remains inspectable at compile time.
+ */
+export template <typename F>
+concept IsIndexedMorphismFamily = IsArrow<F> && requires(const F f) {
+  typename F::Domain;
+  typename F::Codomain;
+  typename F::cardinality_type;
+  requires IsCardinality<typename F::cardinality_type>;
+  { f.cardinality() } -> std::same_as<typename F::cardinality_type>;
+};
+
+/**
+ * @concept IsCountablyIndexedFamily
+ * @brief An indexed family whose index magnitude is finite or countably
+ * infinite.
+ */
+export template <typename F>
+concept IsCountablyIndexedFamily =
+    IsIndexedMorphismFamily<F> && IsCountable<typename F::cardinality_type>;
+
 /** @concept IsNet: A Morphism from a Directed Set. */
 export template <typename N>
 concept IsNet = IsArrow<N> && IsDirectedSet<typename N::Domain>;
@@ -51,13 +78,12 @@ concept IsNet = IsArrow<N> && IsDirectedSet<typename N::Domain>;
  * @brief The fundamental mapping from a Domain Set to a Value Type.
  */
 export template <typename Seq>
-concept IsSequence = IsNet<Seq> && requires {
+concept IsSequence = IsNet<Seq> && IsCountablyIndexedFamily<Seq> && requires {
   // Refactored: value_type -> Codomain
   typename Seq::Codomain;
   typename Seq::Domain;
-} && requires(Seq s) {
+} && requires(const Seq s) {
   requires IsSpecies<typename Seq::Domain>;
-  { s.cardinality() } -> IsCardinality;
 };
 
 /**
@@ -88,5 +114,24 @@ export template <typename S>
 concept IsTerminalSet = IsCountableSet<S> && requires(S s) {
   { s.size() } -> std::integral;
 };
+
+namespace detail {
+template <typename T>
+struct toy_countable_family {
+  using Domain = std::size_t;
+  using Codomain = T;
+  using cardinality_type = ℵ_0;
+
+  constexpr T operator()(Domain) const { return T{}; }
+  static consteval cardinality_type cardinality() { return {}; }
+};
+}  // namespace detail
+
+/** @section Formal_Verification */
+static_assert(IsIndexedMorphismFamily<detail::toy_countable_family<int>>,
+              "Countable toy family must satisfy indexed family concept.");
+
+static_assert(IsCountablyIndexedFamily<detail::toy_countable_family<int>>,
+              "Countable toy family must satisfy countable-index concept.");
 
 }  // namespace dedekind::sequences

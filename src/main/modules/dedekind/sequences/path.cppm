@@ -408,12 +408,43 @@ constexpr auto forall(const Path<T, Cardinality>& path, Pred&& pred) {
 
 }  // namespace dedekind::sequences
 
+namespace dedekind::category {
+
+// Path participates in the Kleisli witness framework as an infinite constant
+// path for η and head sampling for ε.
+export template <typename T>
+struct unit_witness<dedekind::sequences::Path, T> final {
+  constexpr auto operator()(T x) const {
+    return dedekind::sequences::Path<T>{[x](std::size_t) { return x; }};
+  }
+};
+
+export template <typename T>
+struct counit_witness<dedekind::sequences::Path, T> final {
+  constexpr T operator()(const dedekind::sequences::Path<T>& p) const {
+    return p.at(0);
+  }
+};
+
+}  // namespace dedekind::category
+
 namespace dedekind::sequences {
 using namespace dedekind::category;
 
-/** @section Formal_Verification
- * Deferred while path-level categorical bridges are being retargeted to the
- * current dedekind.category hub/spoke interfaces.
- */
+/** @section Formal_Verification */
+static_assert(IsSequence<Path<int>>,
+              "Path must satisfy the sequence concept.");
+
+static_assert(IsFiniteSequence<FinitePath<int>>,
+              "FinitePath must satisfy the finite sequence concept.");
+
+static_assert(IsKleisliExtension<Path, int, long>,
+              "Path must satisfy the Kleisli extension witness.");
+
+static_assert(IsCoKleisliExtension<Path, int, long>,
+              "Path must satisfy the co-Kleisli extension witness.");
+
+static_assert(IsFrobenius<Path, int, long>,
+              "Path must satisfy the Frobenius witness (Kleisli + co-Kleisli).");
 
 }  // namespace dedekind::sequences

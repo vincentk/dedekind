@@ -1,5 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 #include <cmath>
+#include <numbers>
 import dedekind.analysis;
 import dedekind.geometry;
 
@@ -79,5 +80,41 @@ TEST_CASE("Analysis: Hamiltonian Observables", "[analysis][hamilton]") {
 
     // For H = 0.5(p²+q²), dq/dt = p = 2.0
     REQUIRE(std::abs(dq_dt - 2.0) < 1e-3);
+  }
+
+  SECTION("Closed-form curve: quarter period rotation") {
+    const auto gamma = harmonic_oscillator_curve<ℝ>(1.0, 0.0);
+    const auto at_quarter_turn = gamma.at(std::numbers::pi_v<ℝ> / 2.0);
+
+    REQUIRE(std::abs(at_quarter_turn[0]) < 1e-12);
+    REQUIRE(std::abs(at_quarter_turn[1] + 1.0) < 1e-12);
+  }
+
+  SECTION("Leapfrog path: matches closed-form over short horizon") {
+    constexpr ℝ dt = 0.001;
+    const auto path = harmonic_oscillator_leapfrog_path<ℝ>(1.0, 0.0, dt);
+
+    const auto numeric = path.at(1000);  // t = 1.0
+    const auto exact = harmonic_oscillator_closed_form<ℝ>(1.0, 0.0, 1.0);
+
+    REQUIRE(std::abs(numeric[0] - exact[0]) < 1e-3);
+    REQUIRE(std::abs(numeric[1] - exact[1]) < 1e-3);
+  }
+
+  SECTION("Finite leapfrog path: approximate energy conservation") {
+    constexpr ℝ dt = 0.01;
+    const auto states =
+        harmonic_oscillator_leapfrog_finite_path<ℝ>(1.0, 0.0, dt, 500);
+
+    const auto energy = [](const Vec2& s) {
+      const ℝ q = s[0];
+      const ℝ p = s[1];
+      return 0.5 * (p * p + q * q);
+    };
+
+    const ℝ e0 = energy(states.at(0));
+    const ℝ eN = energy(states.at(states.size() - 1));
+
+    REQUIRE(std::abs(eN - e0) < 2e-2);
   }
 }
