@@ -22,8 +22,9 @@ all: compile
 clean:
 	rm -rf $(BUILD_DIR)
 
-# Minimal config: Only tell CMake which compiler to use.
-# Note: DEDEKIND_ENABLE_DOUBLE_REAL_PROXY=ON is required for tests that use double as the scalar type.
+# Project configure step: select the LLVM toolchain, enable C++ module
+# scanning, use a Release build, and opt into the double-as-real proxy needed
+# by the current finite-dimensional test suite.
 $(BUILD_DIR)/CMakeCache.txt:
 	cmake -S . -B $(BUILD_DIR) -G Ninja \
 		-DCMAKE_CXX_COMPILER=$(CXX) \

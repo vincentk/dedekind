@@ -423,7 +423,8 @@ TEST_CASE("Geometry: Finite-Dimensional Jacobian Contract",
         [](const Vector<R, 1>& x) {
           Covector<R, 1> cov;
           // Classical derivative is 0 for x != 0; x = 0 is a non-smooth point.
-          cov.set_coefficient(0, 0, x[0] == 0.0 ? 0.0 : 0.0);
+          (void)x;
+          cov.set_coefficient(0, 0, 0.0);
           return cov;
         });
 

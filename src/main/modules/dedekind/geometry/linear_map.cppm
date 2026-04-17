@@ -360,21 +360,29 @@ constexpr LinearMap<F, Rows, Cols> zero_linear_map() {
  *
  * Covectors form the **dual module** Hom_F(V, F), where V = F^N.
  * When F is a field, the dual module is isomorphic to V itself.
+ *
+ * FIXME(https://github.com/vincentk/dedekind/issues/185): Generalize this
+ * alias from the current extensional finite-dimensional carrier to a
+ * first-class dimension/cardinality witness once the geometry layer is lifted
+ * beyond `LinearMap<F, 1, N>`.
  */
 export template <IsMatrixScalar F, std::size_t N>
 using Covector = LinearMap<F, 1, N>;
 
 /**
  * @class DifferentiableMap
- * @brief A finite-dimensional map paired with an exact Jacobian witness.
+ * @brief A finite-dimensional map paired with a user-supplied Jacobian
+ * witness.
  *
  * This is the first differentiation contract in Dedekind's finite-dimensional
  * geometry layer. It packages:
  * - a primal map F^DomainDim -> F^CodomainDim
- * - an exact Jacobian oracle returning LinearMap<F, CodomainDim, DomainDim>
+ * - a user-supplied callable returning LinearMap<F, CodomainDim, DomainDim>
  *
- * The Jacobian is therefore a concrete Fr\'echet derivative witness in the
- * existing LinearMap carrier.
+ * Compile time checks only that `value(x)` and `jacobian(x)` have the
+ * prescribed result types in the existing `LinearMap` carrier. It does not
+ * verify that the returned linear map is the actual Fr\'echet derivative of
+ * `value` at `x`; that correctness remains a caller-side contract.
  */
 export template <IsMatrixScalar F, std::size_t DomainDim,
                  std::size_t CodomainDim, typename ValueFn, typename JacobianFn>
@@ -407,15 +415,29 @@ class DifferentiableMap {
 
 /**
  * @concept HasJacobianAt
- * @brief Map-like object exposing an exact finite-dimensional Jacobian.
+ * @brief Map-like object exposing a finite-dimensional LinearMap Jacobian.
  */
 export template <typename Map>
 concept HasJacobianAt =
-    requires(const Map& map, const typename Map::Domain& x) {
+  requires {
       typename Map::scalar_type;
       typename Map::Domain;
       typename Map::Codomain;
       typename Map::Jacobian;
+    { Map::domain_dimension } -> std::convertible_to<std::size_t>;
+    { Map::codomain_dimension } -> std::convertible_to<std::size_t>;
+    requires IsMatrixScalar<typename Map::scalar_type>;
+    requires std::same_as<
+      typename Map::Domain,
+      Vector<typename Map::scalar_type, Map::domain_dimension>>;
+    requires std::same_as<
+      typename Map::Codomain,
+      Vector<typename Map::scalar_type, Map::codomain_dimension>>;
+    requires std::same_as<
+      typename Map::Jacobian,
+      LinearMap<typename Map::scalar_type, Map::codomain_dimension,
+          Map::domain_dimension>>;
+  } && requires(const Map& map, const typename Map::Domain& x) {
       { map(x) } -> std::same_as<typename Map::Codomain>;
       { map.jacobian_at(x) } -> std::same_as<typename Map::Jacobian>;
     };
@@ -456,7 +478,10 @@ constexpr auto frechet_derivative_at(const Map& map,
  * @brief Return the scalar-valued differential as a covector.
  */
 export template <HasJacobianAt Map>
-  requires(Map::codomain_dimension == 1)
+  requires(Map::codomain_dimension == 1) &&
+          std::same_as<typename Map::Jacobian,
+                       Covector<typename Map::scalar_type,
+                                Map::domain_dimension>>
 constexpr Covector<typename Map::scalar_type, Map::domain_dimension>
 differential_at(const Map& map, const typename Map::Domain& x) {
   return jacobian_at(map, x);
@@ -519,6 +544,13 @@ constexpr LinearMap<F, M, N> outer(const Vector<F, M>& u,
  * 3. Associativity: (s1 * s2) * m = s1 * (s2 * m)
  * 4. Identity: 1.0 * m = m
  *
+ * This alias is the explicit machine-real lift into the current finite
+ * matrix carrier. It remains intentionally extensional for this PR.
+ *
+ * FIXME(https://github.com/vincentk/dedekind/issues/185): Generalize the
+ * geometry layer from fixed extensional dimensions to first-class dimension
+ * witnesses where the surrounding carrier supports it.
+ *
  * For square matrices (R == C), composition forms a non-commutative ring.
  */
 export template <std::size_t Rows, std::size_t Cols>
@@ -557,6 +589,10 @@ using TangentVector = Vector<F, N>;
  * The cotangent space T*_p(F^N) ≅ (F^N)* is the dual of the tangent space.
  * In the finite-dimensional flat case this is canonically represented as a
  * row vector (Covector), i.e. a LinearMap<F, 1, N>.
+ *
+ * FIXME(https://github.com/vincentk/dedekind/issues/185): Replace the
+ * extensional dimension parameter with a first-class dimension witness once
+ * the flat geometry carrier is widened accordingly.
  */
 export template <IsMatrixScalar F, std::size_t N>
 using CotangentVector = Covector<F, N>;
@@ -568,6 +604,10 @@ using CotangentVector = Covector<F, N>;
  * Packages a base-point with a tangent vector at that point.  For the flat
  * manifold F^N the bundle is trivially the product; in a non-flat setting
  * (future issue) this struct would generalise to an atlas-chart-local section.
+ *
+ * FIXME(https://github.com/vincentk/dedekind/issues/185): Lift the bundle
+ * point carriers from extensional `N` to first-class dimension/cardinality
+ * witnesses when manifold-local geometry is introduced.
  */
 export template <IsMatrixScalar F, std::size_t N>
 struct TangentBundlePoint {
