@@ -55,6 +55,12 @@ Expected output:
 - Semantics: this package is a consumer of system-language semantics defined in C++ modules; Python is not the source of core invariants.
 - Performance: set conversion roundtrips are linear in collection size. Container lookup properties still follow destination container behavior.
 
+## Error Handling Contract (MVP)
+
+- The current bound functions accept integer sequences for this MVP.
+- Invalid payloads are rejected at the Python boundary with `TypeError` (for example, non-iterables where a sequence is required, or non-integral elements in an otherwise iterable payload).
+- This behavior is covered by unhappy-path smoke tests in `src/test/python/test_dedekind.py` and surfaced in CI logs.
+
 ## Smoke Test
 
 The repository includes a Python smoke test integrated into CTest:
