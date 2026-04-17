@@ -15,7 +15,7 @@ FILTER_GVPR  := $(DOCS_DIR)/figures/filter.gvpr
 DOT_FILE     := $(DOCS_DIR)/figures/dedekind_module_dependencies.dot
 
 .PHONY: all clean compile test coverage format format-check install-hooks doxygen dot doc report \
-	ci-main pr-status pr-checks pr-watch pr-sync pr-review-comments pr-review-unresolved
+	ci-main pr-status pr-checks pr-watch pr-sync pr-review-comments pr-review-unresolved pr-resolve-threads
 
 all: compile
 
@@ -118,6 +118,36 @@ pr-review-unresolved:
 			-f query='query($$owner:String!, $$name:String!, $$number:Int!) { repository(owner: $$owner, name: $$name) { pullRequest(number: $$number) { reviewThreads(first: 100) { nodes { isResolved path line comments(first: 1) { nodes { author { login } } } } } } } }' \
 			--jq '.data.repository.pullRequest.reviewThreads.nodes | map(select(.isResolved == false)) | .[] | "- " + (.path // "<unknown>") + ":" + ((.line // 0) | tostring) + " by @" + (.comments.nodes[0].author.login // "unknown")'; \
 		exit 1; \
+	fi
+
+# Resolve all open review threads on the current PR (or PR=<number>).
+# Requires write access to the repository.
+pr-resolve-threads:
+	@PR_NUM="$(PR)"; \
+	if [ -z "$$PR_NUM" ]; then \
+		PR_NUM="$$(gh pr view --json number --jq .number)"; \
+	fi; \
+	REPO="$$(gh repo view --json nameWithOwner --jq .nameWithOwner)"; \
+	OWNER="$${REPO%/*}"; \
+	NAME="$${REPO#*/}"; \
+	echo "Resolving open review threads for PR #$$PR_NUM ($$REPO)..."; \
+	THREAD_IDS="$$(gh api graphql \
+		-F owner="$$OWNER" \
+		-F name="$$NAME" \
+		-F number="$$PR_NUM" \
+		-f query='query($$owner:String!, $$name:String!, $$number:Int!) { repository(owner: $$owner, name: $$name) { pullRequest(number: $$number) { reviewThreads(first: 100) { nodes { id isResolved } } } } }' \
+		--jq '.data.repository.pullRequest.reviewThreads.nodes | map(select(.isResolved == false)) | .[].id')"; \
+	if [ -z "$$THREAD_IDS" ]; then \
+		echo "No unresolved threads found."; \
+	else \
+		for ID in $$THREAD_IDS; do \
+			echo "  Resolving $$ID"; \
+			gh api graphql \
+				-F threadId="$$ID" \
+				-f query='mutation($$threadId:ID!) { resolveReviewThread(input:{threadId:$$threadId}) { thread { isResolved } } }' \
+				--jq '.data.resolveReviewThread.thread.isResolved' > /dev/null; \
+		done; \
+		echo "Done."; \
 	fi
 
 doxygen: $(BUILD_DIR)/CMakeCache.txt
