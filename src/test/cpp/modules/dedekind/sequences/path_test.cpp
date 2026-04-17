@@ -1,4 +1,7 @@
+#include <algorithm>
 #include <catch2/catch_test_macros.hpp>
+#include <ranges>
+#include <vector>
 
 import dedekind.sequences;
 import dedekind.topology;
@@ -92,5 +95,27 @@ TEST_CASE("Sequences: The Path to Continuity",
     REQUIRE(orbit.at(5) == 6);
     REQUIRE(count_if(orbit, [](int x) { return x >= 4; }) == 3u);
     REQUIRE(step_calls == 5u);
+  }
+
+  SECTION("Finite paths interoperate with std::ranges algorithms") {
+    const auto orbit = iterate(2, [](int x) { return x + 2; }, 5);
+
+    static_assert(std::ranges::random_access_range<decltype(orbit)>);
+
+    std::vector<int> visited;
+    for (const int value : orbit) visited.push_back(value);
+
+    REQUIRE(visited == std::vector<int>{2, 4, 6, 8, 10});
+    REQUIRE(std::ranges::count_if(orbit, [](int x) { return x >= 6; }) == 3);
+  }
+
+  SECTION("from_range and as_range adapt finite paths") {
+    const std::vector<int> source{1, 2, 3, 4};
+    const auto doubled =
+        from_range(source | std::views::transform([](int x) { return x * 2; }));
+
+    REQUIRE(doubled.size() == source.size());
+    REQUIRE(
+        std::ranges::equal(as_range(doubled), std::vector<int>{2, 4, 6, 8}));
   }
 }

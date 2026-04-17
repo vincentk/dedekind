@@ -38,6 +38,7 @@ export module dedekind.sets;
 
 export import :boundaries;
 export import :expressions;
+export import :interop;
 export import :mereology;
 export import :singleton;
 export import :relational;

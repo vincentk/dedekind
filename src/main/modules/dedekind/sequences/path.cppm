@@ -31,11 +31,14 @@ module;
 
 #include <algorithm>
 #include <cassert>
+#include <compare>
 #include <concepts>
 #include <cstddef>
 #include <functional>
+#include <iterator>
 #include <limits>
 #include <memory>
+#include <ranges>
 #include <type_traits>
 #include <utility>
 #include <vector>
@@ -62,6 +65,112 @@ struct Path {
   using Domain = std::size_t;
   using Codomain = T;
   using cardinality_type = Cardinality;
+
+  struct const_iterator {
+    using iterator_concept = std::random_access_iterator_tag;
+    using iterator_category = std::random_access_iterator_tag;
+    using value_type = T;
+    using difference_type = std::ptrdiff_t;
+    using reference = T;
+
+    const Path* owner = nullptr;
+    std::size_t index = 0;
+
+    constexpr reference operator*() const {
+      assert(owner != nullptr && "path iterator requires owner");
+      return owner->at(index);
+    }
+
+    constexpr reference operator[](difference_type n) const {
+      assert(owner != nullptr && "path iterator requires owner");
+      return owner->at(
+          static_cast<std::size_t>(static_cast<difference_type>(index) + n));
+    }
+
+    constexpr const_iterator& operator++() {
+      ++index;
+      return *this;
+    }
+
+    constexpr const_iterator operator++(int) {
+      auto tmp = *this;
+      ++(*this);
+      return tmp;
+    }
+
+    constexpr const_iterator& operator--() {
+      --index;
+      return *this;
+    }
+
+    constexpr const_iterator operator--(int) {
+      auto tmp = *this;
+      --(*this);
+      return tmp;
+    }
+
+    constexpr const_iterator& operator+=(difference_type n) {
+      index = static_cast<std::size_t>(static_cast<difference_type>(index) + n);
+      return *this;
+    }
+
+    constexpr const_iterator& operator-=(difference_type n) {
+      return (*this += -n);
+    }
+
+    friend constexpr const_iterator operator+(const const_iterator& it,
+                                              difference_type n) {
+      auto copy = it;
+      copy += n;
+      return copy;
+    }
+
+    friend constexpr const_iterator operator+(difference_type n,
+                                              const const_iterator& it) {
+      return it + n;
+    }
+
+    friend constexpr const_iterator operator-(const const_iterator& it,
+                                              difference_type n) {
+      auto copy = it;
+      copy -= n;
+      return copy;
+    }
+
+    friend constexpr difference_type operator-(const const_iterator& lhs,
+                                               const const_iterator& rhs) {
+      assert(lhs.owner == rhs.owner && "cannot diff iterators from two paths");
+      return static_cast<difference_type>(lhs.index) -
+             static_cast<difference_type>(rhs.index);
+    }
+
+    friend constexpr bool operator==(const const_iterator& lhs,
+                                     const const_iterator& rhs) {
+      return lhs.owner == rhs.owner && lhs.index == rhs.index;
+    }
+
+    friend constexpr bool operator<(const const_iterator& lhs,
+                                    const const_iterator& rhs) {
+      assert(lhs.owner == rhs.owner &&
+             "cannot compare iterators from two paths");
+      return lhs.index < rhs.index;
+    }
+
+    friend constexpr bool operator>(const const_iterator& lhs,
+                                    const const_iterator& rhs) {
+      return rhs < lhs;
+    }
+
+    friend constexpr bool operator<=(const const_iterator& lhs,
+                                     const const_iterator& rhs) {
+      return !(rhs < lhs);
+    }
+
+    friend constexpr bool operator>=(const const_iterator& lhs,
+                                     const const_iterator& rhs) {
+      return !(lhs < rhs);
+    }
+  };
 
   /** @brief The underlying mapping f(n). */
   std::function<T(std::size_t)> generator;
@@ -127,12 +236,45 @@ struct Path {
     return extent;
   }
 
+  constexpr auto begin() const noexcept
+    requires IsFiniteMagnitude<Cardinality>
+  {
+    return const_iterator{.owner = this, .index = 0};
+  }
+
+  constexpr auto end() const noexcept
+    requires IsFiniteMagnitude<Cardinality>
+  {
+    return const_iterator{.owner = this, .index = size()};
+  }
+
   /** @brief The Path is generally viewed as a mapping from N. */
   constexpr auto cardinality() const noexcept { return Cardinality{}; }
 };
 
 export template <typename T>
 using FinitePath = Path<T, Finite>;
+
+export template <typename T>
+constexpr const FinitePath<T>& as_range(const FinitePath<T>& path) {
+  return path;
+}
+
+export template <typename R>
+  requires std::ranges::input_range<R>
+constexpr auto from_range(R&& range) {
+  using U = std::ranges::range_value_t<R>;
+
+  auto values = std::make_shared<std::vector<U>>();
+  for (auto&& value : range) values->push_back(static_cast<U>(value));
+
+  return FinitePath<U>{
+      [values](std::size_t i) {
+        assert(i < values->size() && "from_range: index out of range");
+        return (*values)[i];
+      },
+      values->size()};
+}
 
 export template <typename T, typename Cardinality>
 constexpr auto prefix(const Path<T, Cardinality>& path, std::size_t length) {
