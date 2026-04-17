@@ -87,8 +87,8 @@ using namespace dedekind::category;
  */
 export template <typename S>
 concept IsMatrixScalar =
-  std::floating_point<S> &&
-  (!std::same_as<S, double> || (DEDEKIND_ENABLE_DOUBLE_REAL_PROXY == 1));
+    std::floating_point<S> &&
+    (!std::same_as<S, double> || (DEDEKIND_ENABLE_DOUBLE_REAL_PROXY == 1));
 
 /**
  * @brief Explicit embedding witness from floating carriers into matrix scalars.
@@ -192,8 +192,7 @@ class LinearMap {
   template <IsMatrixScalar G, std::size_t R, std::size_t C>
   friend constexpr LinearMap<G, R, C> operator*(const LinearMap<G, R, C>&,
                                                 const G&);
-  template <IsMatrixScalar G, std::size_t R, std::size_t Inner,
-            std::size_t C>
+  template <IsMatrixScalar G, std::size_t R, std::size_t Inner, std::size_t C>
   friend constexpr LinearMap<G, R, C> operator*(const LinearMap<G, R, Inner>&,
                                                 const LinearMap<G, Inner, C>&);
 
