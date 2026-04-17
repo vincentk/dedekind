@@ -47,10 +47,15 @@
  * Licensed under the Apache License, Version 2.0.
  *
  * @note "أشدُّ ما يحتاج إليه من يُعنى بعلم الحساب أن يعرف ما يحتاج الناس إليه في
- * معاملاتهم من المقادير، إذ بذلك يقاس العدل في القضاء." — محمد بن موسى
- * الخوارزمي، منسوب في ويكي الاقتباس العربي. [Trans: "What one most needs in the
- * science of computation is to know the quantities people need in their
- * dealings, for by that, justice in judgment is measured."]
+ * معاملاتهم من المقادير، إذ بذلك يقاس العدل في القضاء."
+ * — Muḥammad ibn Mūsā al-Khwārizmī (c. 780–850 CE), mathematician of the
+ * Islamic Golden Age, House of Wisdom, Baghdad. Author of *Al-Kitāb
+ * al-mukhtaṣar fī ḥisāb al-jabr wal-muqābala* (Al-Jabr, ~820 CE), the
+ * foundational treatise on algebra. The quote is attributed to al-Khwārizmī
+ * on Arabic Wikiquote; the specific primary source within his corpus has not
+ * been independently verified. [Trans: "What one most needs in the science of
+ * computation is to know the quantities people need in their dealings, for by
+ * that, justice in judgment is measured."]
  */
 
 module;
