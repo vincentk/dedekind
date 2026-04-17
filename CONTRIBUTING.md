@@ -47,6 +47,9 @@ Thank you for your interest in contributing!
    model rather than a pessimistic one. In practice, CI is more authoritative
    than local builds, and a small temporary divergence between local and CI
    status is acceptable while iterating on draft PR checkpoints.
+- Motivation: this model is not only about throughput; it also mitigates
+   "works on my laptop" failures by treating CI as the reproducible baseline
+   and local environments as potentially non-reproducible.
 - Before starting new work, check that the most recent `main` branch CI run is green.
 - Keep the README small and stable.  Only update it when something is plainly wrong or deeply
    misleading; routine progress belongs in the report and inline documentation.
