@@ -69,5 +69,6 @@ _AI assistance is used during the development of this project._
 ### Further reading:
 
 * **Build**: the build instructions are available through the [CMakeLists.txt](CMakeLists.txt) and controlled through the [build action](.github/workflows/cmake.yml).
+* **Python (MVP)**: see [docs/python/README.md](docs/python/README.md) and [docs/python/release-checklist-v0.1.md](docs/python/release-checklist-v0.1.md).
 * **Documentation**: [Doxygen API Reference](https://vincentk.github.io/dedekind/)
 * **Theory**: See the [Draft Report](https://vincentk.github.io/dedekind/report.pdf) for the theoretical foundations. _Note: Just like much of the code base, this is a work-in-progress document._
