@@ -21,12 +21,6 @@ module;
 #include <type_traits>
 #include <utility>
 
-/**
- * @file dedekind/geometry/affine.cppm
- * @partition :affine
- * @brief Level 10: The Synthesis of Space and Magnitude.
- */
-
 export module dedekind.geometry:affine;
 
 import dedekind.category;

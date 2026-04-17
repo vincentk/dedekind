@@ -17,7 +17,7 @@
 
  *
  * @note "L'analyse, ce n'est pas seulement calculer; c'est organiser les
- structures
+ *  structures
  *  qui rendent le calcul intelligible."
  * ("Analysis is not only about calculating; it is about organizing the
  *  structures that make calculation intelligible.")

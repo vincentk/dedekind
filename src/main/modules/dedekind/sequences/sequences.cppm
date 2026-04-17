@@ -1,5 +1,5 @@
 /**
- * @file category.cppm
+ * @file dedekind/sequences/sequences.cppm
  * @brief Module interface in the dedekind hierarchy.
  *
  * @copyright 2026 The Dedekind Authors

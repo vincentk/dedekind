@@ -74,16 +74,12 @@ using namespace dedekind::category;
  * @concept IsMatrixScalar
  * @brief A scalar type that can serve as coefficients in a LinearMap.
  *
- * At minimum, the scalar must support:
- * - Construction and equality checking (default + equality_comparable)
- * - Addition and scalar multiplication
- *
- * In practice, this is satisfied by any type meeting std::floating_point,
- * std::integral, or a custom scalar meeting the above requirements.
+ * The current concrete Vector and LinearMap MVP is intentionally restricted to
+ * floating-point carriers. This keeps the executable interface aligned with the
+ * operations used by Vector<F, N> and the surrounding geometry layer.
  */
 export template <typename S>
-concept IsMatrixScalar =
-    std::equality_comparable<S> && std::default_initializable<S>;
+concept IsMatrixScalar = std::floating_point<S>;
 
 /**
  * @class LinearMap
@@ -104,9 +100,9 @@ concept IsMatrixScalar =
  * @tparam Rows The number of output dimensions.
  * @tparam Cols The number of input dimensions.
  *
- * Supports any scalar type meeting IsMatrixScalar. The algebraic structure
- * (Semimodule, Module, or VectorSpace) depends on the scalar type's algebraic
- * properties.
+ * Supports floating-point scalars meeting IsMatrixScalar. The surrounding
+ * documentation treats these carriers as field-like under the active numeric
+ * policy, rather than as a categorical field proof.
  */
 export template <IsMatrixScalar F, std::size_t Rows, std::size_t Cols>
 class LinearMap {
@@ -253,13 +249,13 @@ constexpr LinearMap<F, Rows, Cols> zero_linear_map() {
  * @section Algebraic_Verification_for_Floating_Point_Scalars
  *
  * When F is std::floating_point (e.g., double, float):
- * - (F, +) forms an Abelian Group
- * - (F, *) forms a monoid with identity 1.0 (note: not a group for all x)
- * - (F, +, *) satisfies the distributive law: a*(b+c) = a*b + a*c
- * - Therefore, F is a Field
+ * - the implementation provides the operations needed by this MVP
+ * - those operations behave like a field only under idealized exact arithmetic
+ * - in actual IEEE arithmetic, this is a field-like policy witness rather than
+ *   a categorical field proof
  *
  * Consequence: LinearMap<F, R, C> for floating_point F is a **Vector Space**
- * over F.
+ * over F in the same operational sense used by IsFieldLikeScalar.
  *
  * This means LinearMap satisfies the **four axioms of linear action**:
  * 1. Vector Additivity: s * (m1 + m2) = s*m1 + s*m2
@@ -275,7 +271,7 @@ constexpr LinearMap<F, Rows, Cols> zero_linear_map() {
  * @brief Verify that LinearMap<F, R, C> behaves as a module over scalar F.
  *
  * For floating_point F, this verifies:
- * - F satisfies IsField (required for VectorSpace)
+ * - F satisfies the operational scalar contract used by the geometry layer
  * - LinearMap supports the external linear action
  * - Addition and scalar multiplication are properly closed
  */

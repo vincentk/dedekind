@@ -25,7 +25,7 @@
  * define universal properties (Initiality/Terminality) and Level 1 (:total)
  * to define algebraic identities (Zero/Unit) without circular dependencies.
  *
- * @note  *「三十輻，共一轂，當其無，有車之用。」
+ * @note 「三十輻，共一轂，當其無，有車之用。」
  * (Thirty spokes meet at a single hub; it is the empty space (the relation)
  * that makes the wheel useful.) — 老子 (Laozi)
  */

@@ -16,7 +16,7 @@
 
  *
  * @note "Die Theorie reproduzierender Kerne verbindet Geometrie und Rechnung
- auf
+ *  auf
  *  eine Weise, die den Operator erst wirklich sichtbar macht."
  * ("The theory of reproducing kernels links geometry and computation in a way
  *  that makes the operator truly visible.")

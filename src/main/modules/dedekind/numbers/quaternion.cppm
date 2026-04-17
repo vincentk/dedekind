@@ -54,7 +54,7 @@ concept IsQuaternionScalar = requires(R a, R b) {
   { a - b } -> std::same_as<R>;
   { a * b } -> std::same_as<R>;
   { -a } -> std::same_as<R>;
-};
+} && std::equality_comparable<R>;
 
 /**
  * @class Quaternion

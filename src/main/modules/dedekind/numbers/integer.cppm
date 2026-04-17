@@ -1,5 +1,5 @@
 /**
- * @file ontology:numbers.cppm
+ * @file dedekind/numbers/integer.cppm
  * @partition :integer
  * @brief Minimal number taxonomy concepts for reintegration.
  *

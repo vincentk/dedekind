@@ -1,6 +1,6 @@
 /**
- * @file dedekind/algebra/polynomials.cppm
- * @partition :polynomials
+ * @file dedekind/algebra/polynomial.cppm
+ * @partition :polynomial
  * @brief Level 3.1: The Algebra of Formal Sums (R[x]).
 
  *
