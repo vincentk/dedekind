@@ -185,18 +185,25 @@ export template <typename T, typename Step>
                std::invoke_result_t<const std::decay_t<Step>&, const T&>, T>
 constexpr auto iterate(T seed, Step&& step, std::size_t length) {
   if (length == 0) {
-    return FinitePath<T>{[seed](std::size_t) { return seed; }, 0};
+    return FinitePath<T>{[](std::size_t) -> T {
+                           assert(false && "at() on empty iterate path");
+                           std::unreachable();
+                         },
+                         0};
   }
 
   auto values = std::make_shared<std::vector<T>>();
   values->reserve(length);
-  values->push_back(seed);
+  values->push_back(std::move(seed));
 
   auto f = std::forward<Step>(step);
   for (std::size_t i = 1; i < length; ++i)
     values->push_back(std::invoke(f, values->back()));
 
-  return FinitePath<T>{[values](std::size_t i) { return (*values)[i]; },
+  return FinitePath<T>{[values, length](std::size_t i) {
+                         assert(i < length && "iterate: index out of range");
+                         return (*values)[i];
+                       },
                        length};
 }
 

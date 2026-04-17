@@ -91,7 +91,7 @@ on build management.
 - Before starting new work, check that the most recent `main` branch CI run is green.
 - For backlog grooming, run a short preflight in this order: check `main` CI health, then list
    open issues, then list open fork PRs, then classify each item as actionable / ambiguous /
-   already resolved.
+   already resolved / exact duplicate.
 - If the latest `main` CI run is red, prioritize stabilization before starting unrelated new work.
 - Keep the README small and stable.  Only update it when something is plainly wrong or deeply
    misleading; routine progress belongs in the report and inline documentation.
