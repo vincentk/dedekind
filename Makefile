@@ -15,7 +15,7 @@ FILTER_GVPR  := $(DOCS_DIR)/figures/filter.gvpr
 DOT_FILE     := $(DOCS_DIR)/figures/dedekind_module_dependencies.dot
 
 .PHONY: all clean compile test coverage format format-check install-hooks doxygen dot doc report \
-	ci-main pr-status pr-checks pr-watch pr-sync
+	ci-main pr-status pr-checks pr-watch pr-sync pr-review-unresolved
 
 all: compile
 
@@ -78,6 +78,35 @@ pr-sync:
 	git status -sb
 	gh pr view --json number,title,state,isDraft,url
 	gh pr checks || true
+
+# Scan unresolved review threads on the current PR (or PR=<number>).
+pr-review-unresolved:
+	@PR_NUM="$(PR)"; \
+	if [ -z "$$PR_NUM" ]; then \
+		PR_NUM="$$(gh pr view --json number --jq .number)"; \
+	fi; \
+	REPO="$$(gh repo view --json nameWithOwner --jq .nameWithOwner)"; \
+	OWNER="$${REPO%/*}"; \
+	NAME="$${REPO#*/}"; \
+	echo "Scanning unresolved review threads for PR #$$PR_NUM ($$REPO)..."; \
+	COUNT="$$(gh api graphql \
+		-F owner="$$OWNER" \
+		-F name="$$NAME" \
+		-F number="$$PR_NUM" \
+		-f query='query($$owner:String!, $$name:String!, $$number:Int!) { repository(owner: $$owner, name: $$name) { pullRequest(number: $$number) { reviewThreads(first: 100) { nodes { isResolved path line comments(first: 1) { nodes { author { login } } } } } } } }' \
+		--jq '.data.repository.pullRequest.reviewThreads.nodes | map(select(.isResolved == false)) | length')"; \
+	if [ "$$COUNT" -eq 0 ]; then \
+		echo "OK: no unresolved review threads."; \
+	else \
+		echo "Found $$COUNT unresolved review thread(s):"; \
+		gh api graphql \
+			-F owner="$$OWNER" \
+			-F name="$$NAME" \
+			-F number="$$PR_NUM" \
+			-f query='query($$owner:String!, $$name:String!, $$number:Int!) { repository(owner: $$owner, name: $$name) { pullRequest(number: $$number) { reviewThreads(first: 100) { nodes { isResolved path line comments(first: 1) { nodes { author { login } } } } } } } }' \
+			--jq '.data.repository.pullRequest.reviewThreads.nodes | map(select(.isResolved == false)) | .[] | "- " + (.path // "<unknown>") + ":" + ((.line // 0) | tostring) + " by @" + (.comments.nodes[0].author.login // "unknown")'; \
+		exit 1; \
+	fi
 
 doxygen: $(BUILD_DIR)/CMakeCache.txt
 	cmake --build $(BUILD_DIR) --target docs

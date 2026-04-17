@@ -63,13 +63,14 @@ on build management.
 - The `Makefile` is the **preferred** build interface; use `make <target>` rather than
    raw `cmake`/`ninja`/`ctest` commands whenever an equivalent target exists.
    Available targets: `compile`, `test`, `format`, `format-check`, `coverage`, `doxygen`, `report`,
-   `clean`, `install-hooks`, `ci-main`, `pr-status`, `pr-checks`, `pr-watch`, `pr-sync`.
+   `clean`, `install-hooks`, `ci-main`, `pr-status`, `pr-checks`, `pr-watch`, `pr-sync`, `pr-review-unresolved`.
 - Contributor workflow helper targets:
   `make ci-main` checks recent `main` branch CI runs.
   `make pr-status` shows PR metadata for the current branch.
   `make pr-checks` snapshots current PR check state.
   `make pr-watch` blocks until PR checks complete.
   `make pr-sync` runs fetch/status/PR-check snapshot before a push.
+  `make pr-review-unresolved` scans unresolved review threads on the current PR (or `make pr-review-unresolved PR=<number>`).
 - Treat the GitHub CI build as the reference build for the project.  Local builds are useful,
    but merge readiness is determined by the PR checks.
 - **Net result:** the CI pipeline uses the same `make` targets as contributors do locally
@@ -112,6 +113,8 @@ on build management.
 
 - Resolve review comments and threads explicitly; do not leave unresolved conversations behind
    when preparing a PR for merge.
+- Run `make pr-review-unresolved` before marking a PR ready; this target exits non-zero when unresolved
+  review threads are found.
 - For low-risk mechanical fixes, batching routine changes is acceptable; for semantic or API
    changes, prefer manual edits so the trade-offs remain explicit.
 - After pushing follow-up commits, re-request review so the latest state is reviewed.
