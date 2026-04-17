@@ -63,8 +63,9 @@ on build management.
 - The `Makefile` is the **preferred** build interface; use `make <target>` rather than
    raw `cmake`/`ninja`/`ctest` commands whenever an equivalent target exists.
    Available targets: `compile`, `test`, `format`, `format-check`, `coverage`, `doxygen`, `report`,
-   `clean`, `install-hooks`, `ci-main`, `pr-status`, `pr-checks`, `pr-watch`, `pr-sync`, `pr-review-comments`, `pr-review-unresolved`.
+   `clean`, `install-hooks`, `ci-history`, `ci-main`, `pr-status`, `pr-checks`, `pr-watch`, `pr-sync`, `pr-review-comments`, `pr-review-unresolved`.
 - Contributor workflow helper targets:
+  `make ci-history BRANCH=<name> [LIMIT=<n>]` checks recent CI runs for a specific branch.
   `make ci-main` checks recent `main` branch CI runs.
   `make pr-status` shows PR metadata for the current branch.
   `make pr-checks` snapshots current PR check state.
@@ -118,7 +119,7 @@ on build management.
 ### Backlog Grooming And CI Health Quick Loop
 
 1. Check CI health for `main`:
-   - `gh run list --branch main --limit 3`
+   - `make ci-history BRANCH=main LIMIT=3`
 2. Collect backlog inputs:
    - `gh issue list --state open --limit 50 --json number,title,body,labels,comments`
    - `gh pr list --state open --json number,title,body,headRepositoryOwner --jq '.[] | select(.headRepositoryOwner.login != "vincentk")'`

@@ -15,7 +15,7 @@ FILTER_GVPR  := $(DOCS_DIR)/figures/filter.gvpr
 DOT_FILE     := $(DOCS_DIR)/figures/dedekind_module_dependencies.dot
 
 .PHONY: all clean compile test coverage format format-check install-hooks ci-install-doxygen-deps ci-install-report-deps doxygen dot doc report \
-	ci-main pr-status pr-checks pr-watch pr-sync pr-review-comments pr-review-unresolved pr-resolve-thread pr-resolve-threads
+	ci-history ci-main pr-status pr-checks pr-watch pr-sync pr-review-comments pr-review-unresolved pr-resolve-thread pr-resolve-threads
 
 all: compile
 
@@ -80,8 +80,20 @@ ci-install-report-deps:
 	sudo apt-get install -y biber texlive-latex-base texlive-latex-extra texlive-bibtex-extra texlive-pictures texlive-plain-generic texlive-fonts-recommended
 
 # CI/PR workflow helpers (optimistic concurrency loop)
+ci-history:
+	@BRANCH_NAME="$(BRANCH)"; \
+	LIMIT_VAL="$(LIMIT)"; \
+	if [ -z "$$BRANCH_NAME" ]; then \
+		BRANCH_NAME="$$(git rev-parse --abbrev-ref HEAD)"; \
+	fi; \
+	if [ -z "$$LIMIT_VAL" ]; then \
+		LIMIT_VAL=5; \
+	fi; \
+	echo "Recent CI runs for branch '$$BRANCH_NAME' (limit=$$LIMIT_VAL):"; \
+	gh run list --branch "$$BRANCH_NAME" --limit "$$LIMIT_VAL"
+
 ci-main:
-	gh run list --branch main --limit 5
+	@$(MAKE) ci-history BRANCH=main LIMIT=5
 
 pr-status:
 	gh pr view --json number,title,state,isDraft,url
