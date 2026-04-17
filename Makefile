@@ -167,7 +167,13 @@ pr-watch:
 pr-sync:
 	git fetch --prune
 	git status -sb
-	gh pr view --json number,title,state,isDraft,url
+	gh pr view --json number,title,state,isDraft,url,mergeStateStatus
+	@MERGE_STATE="$$(gh pr view --json mergeStateStatus --jq .mergeStateStatus)"; \
+	if [ "$$MERGE_STATE" = "DIRTY" ] || [ "$$MERGE_STATE" = "CONFLICTING" ]; then \
+		echo "ERROR: PR has merge conflicts (mergeStateStatus=$$MERGE_STATE)."; \
+		echo "Resolve conflicts before continuing with PR health checks."; \
+		exit 2; \
+	fi
 	gh pr checks || true
 
 # List inline PR review comments for the current PR (or PR=<number>).

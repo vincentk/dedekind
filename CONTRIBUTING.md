@@ -71,7 +71,7 @@ on build management.
   `make pr-status` shows PR metadata for the current branch.
   `make pr-checks` snapshots current PR check state.
   `make pr-watch` blocks until PR checks complete.
-  `make pr-sync` runs fetch/status/PR-check snapshot before a push.
+   `make pr-sync` runs fetch/status/PR-check snapshot before a push and fails fast if the PR has merge conflicts (`mergeStateStatus` is `DIRTY`/`CONFLICTING`).
    `make pr-review-comments` lists inline review comments on the current PR (or `PR=<number>`).
    `make pr-review-unresolved` scans unresolved review threads on the current PR (or `make pr-review-unresolved PR=<number>`) and prints thread IDs.
    `make pr-resolve-thread THREAD_ID=<thread_id> REASON="<resolution note>"` resolves exactly one review thread and requires a reason.
