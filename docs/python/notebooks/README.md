@@ -2,6 +2,10 @@
 
 This directory contains demo notebooks for the Python MVP facade.
 
+For this iteration, notebooks are the top-level UX layer: they define and
+demonstrate the desired input style, execute in CI, and produce reviewable
+output.
+
 ## Notebooks
 
 1. `01_facade_roundtrip_basics.ipynb`

@@ -3,6 +3,22 @@
 This guide covers the current Python MVP surface built on top of the C++ `dedekind.python` facade.
 
 Design slogan: Write it like Python. Reason about it like math. Realize it when you mean it.
+
+## Iteration Architecture (Current)
+
+This iteration uses a three-tier architecture:
+
+1. Top-level: notebooks
+   - Define the look-and-feel and user interaction model.
+   - Must execute in CI and produce visible output for review.
+2. Middle tier: Python bindings/library surface
+   - Model the DSL surface and interop behavior.
+   - May include temporary shims while semantics are being refined.
+   - Long-term goal: keep this layer as thin and transparent as possible.
+3. Lower tier: C++ core logic
+   - Owns the core mathematical invariants and implementation semantics.
+   - Python and notebook layers are consumers of this source of truth.
+
 ## Scope
 
 Current Python bindings intentionally expose a small, reviewable API:
