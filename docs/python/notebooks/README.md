@@ -20,7 +20,7 @@ output.
 
 3. `03_dsl_analyst_tier.ipynb`
    - First executable DSL sketch for analyst-style users (issue #241)
-   - Uses SQL/Python-like syntax: `where()`, `select()`, method chaining
+   - Uses combinator-style analyst pipeline: `table()`, `join()`, `group_by()`, `summarize()`, `pivot()`
    - Demonstrates intensional (symbolic) → extensional (realized) progression
    - Prototype shim for API ergonomics discussion
 
