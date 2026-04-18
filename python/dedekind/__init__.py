@@ -12,12 +12,19 @@ except ModuleNotFoundError:
             raise TypeError(f"{function_name} expects an iterable") from exc
         return items
 
+    def _is_integral(val):
+        """Check if value is an integral number (not bool)."""
+        from numbers import Integral
+        return isinstance(val, Integral) and not isinstance(val, bool)
+
     def _ordered_unique(items):
-        try:
-            return sorted(set(items))
-        except TypeError:
-            # Fall back to insertion order when values are not mutually comparable.
-            return list(dict.fromkeys(items))
+        # Validate all items are integral (match C++ API contract)
+        for item in items:
+            if not _is_integral(item):
+                raise TypeError(
+                    f"ordered_set_roundtrip expects integral items; got {type(item).__name__}"
+                )
+        return sorted(set(items))
 
     def ordered_set_roundtrip(values):
         items = _require_iterable(values, function_name="ordered_set_roundtrip")

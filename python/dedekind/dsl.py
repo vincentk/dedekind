@@ -518,6 +518,11 @@ class AnalystFrame:
                 left_keys = _as_column_list(on)
                 right_keys = _as_column_list(on)
             else:
+                if left_on is None or right_on is None:
+                    raise ValueError(
+                        "join(..., cardinality=...) requires join keys. "
+                        "Provide either on=... or both left_on=... and right_on=..."
+                    )
                 left_keys = _as_column_list(left_on)
                 right_keys = _as_column_list(right_on)
 
@@ -556,28 +561,29 @@ class AnalystFrame:
         """Automatically infer join keys and perform normalized matching.
 
         No key arguments are required; keys are inferred from shared columns.
-                Optional trust guidance will be introduced in this surface to bias
-                matching decisions for specific columns/ranges when the user provides
-                confidence hints. Without explicit hints, smart_join runs best-effort
-                inference from observed overlap and normalization evidence.
 
-                As a default posture, more data generally improves match quality:
-                even rows that are not preserved directly in downstream outputs can
-                still improve inferred key quality through scaffold statistics.
+        Optional trust guidance will be introduced in this surface to bias
+        matching decisions for specific columns/ranges when the user provides
+        confidence hints. Without explicit hints, smart_join runs best-effort
+        inference from observed overlap and normalization evidence.
 
-                Trusted-target semantics (planned):
-                    A trusted table expresses a structural prior about what records
-                    *should* exist.  For example, if the analyst knows that data must
-                    contain exactly one record per day per region, that skeleton can be
-                    supplied as the right-hand side of a smart_join.  The join then:
-                    - identifies *gaps*: rows present in the trusted target but absent
-                      in the source (missing records / nulls after the left-join);
-                    - surfaces *duplicates*: source rows that match more than once;
-                    - bootstraps error estimates from the known structural prior rather
-                      than purely from observed data statistics.
-                    This connects to the broader error-propagation model: a trusted
-                    target acts as a ground-truth skeleton that anchors quality labels
-                    and constrains the uncertainty interval on downstream aggregates.
+        As a default posture, more data generally improves match quality:
+        even rows that are not preserved directly in downstream outputs can
+        still improve inferred key quality through scaffold statistics.
+
+        Trusted-target semantics (planned):
+        A trusted table expresses a structural prior about what records
+        *should* exist.  For example, if the analyst knows that data must
+        contain exactly one record per day per region, that skeleton can be
+        supplied as the right-hand side of a smart_join.  The join then:
+        - identifies *gaps*: rows present in the trusted target but absent
+          in the source (missing records / nulls after the left-join);
+        - surfaces *duplicates*: source rows that match more than once;
+        - bootstraps error estimates from the known structural prior rather
+          than purely from observed data statistics.
+        This connects to the broader error-propagation model: a trusted
+        target acts as a ground-truth skeleton that anchors quality labels
+        and constrains the uncertainty interval on downstream aggregates.
 
         Adds match diagnostics columns:
           - _dedekind_match_type: exact | normalized | unmatched
