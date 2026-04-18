@@ -200,7 +200,7 @@ if(DEDEKIND_BUILD_PYTHON_BINDINGS)
         ${DEDEKIND_PYTHON_PACKAGE_DIR}/dsl.py
         COPYONLY)
 
-    nanobind_add_module(_dedekind
+    nanobind_add_module(_dedekind PROTECT_STACK
         src/main/modules/dedekind/python/nanobind.cpp)
     set_target_properties(_dedekind PROPERTIES
         CXX_SCAN_FOR_MODULES ON

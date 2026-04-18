@@ -144,6 +144,25 @@ The MVP notebook demos live in `docs/python/notebooks/`:
 These notebooks are intentionally small, deterministic, and suitable for CI
 execution as integration checks.
 
+Analyst facade behavior notes:
+
+- `smart_join` is designed for best-effort operation out of the box.
+   Planned optional trust hints can bias matching toward user-trusted
+   columns/ranges; when no hints are provided it infers from observed overlap.
+- `smart_pivot` is also best-effort by default and uses sensible inferred axes.
+   Planned optional interest hints can bias what gets emphasized in wide reports.
+- In both cases, rows not directly preserved in a final pivot can still improve
+   scaffolding/inference quality (for example via correlation and aggregate
+   evidence), so larger samples often improve outcomes ceteris paribus.
+- **Trusted-target semantics:** a trusted table encodes a structural prior about
+   what records *should* exist (e.g. exactly one record per day per region).
+   Joining messy source data against such a skeleton surfaces *gaps* (expected
+   records absent from the source) and *duplicates* (source rows matching the
+   same skeleton slot more than once), and bootstraps error estimates from the
+   known prior rather than from observed-data statistics alone.  This is the
+   mechanism by which additional high-quality reference tables improve quality
+   labels relative to a vanilla pipeline.
+
 Notebook outputs are committed to version control so that GitHub renders them
 without executing code. To refresh outputs locally:
 

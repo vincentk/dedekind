@@ -5,6 +5,9 @@ ergonomics for end-user set manipulation. These are executable shims for
 UX validation (issue #241); output correctness refinement is a follow-up.
 """
 
+from dataclasses import dataclass
+from itertools import product
+
 from . import ordered_set_roundtrip, unordered_set_roundtrip
 
 try:
@@ -329,6 +332,19 @@ class AnalystFrame:
             derived[name] = expr(derived) if callable(expr) else expr
         return self._spawn(derived, f"derive({list(new_columns.keys())})")
 
+    def derive_period(self, source_column, *, target_column="period", freq="M"):
+        """Derive a period label from a timestamp-like column.
+
+        FIXME #250: when panel primitives land, period derivation should bind to
+            explicit time-index metadata rather than ad-hoc string columns.
+        """
+        derived = self._df.copy()
+        derived[target_column] = pd.to_datetime(derived[source_column]).dt.to_period(freq).astype(str)
+        return self._spawn(
+            derived,
+            f"derive_period(source={source_column}, target={target_column}, freq={freq})",
+        )
+
     def normalize_text(
         self,
         columns,
@@ -511,6 +527,29 @@ class AnalystFrame:
         """Automatically infer join keys and perform normalized matching.
 
         No key arguments are required; keys are inferred from shared columns.
+                Optional trust guidance will be introduced in this surface to bias
+                matching decisions for specific columns/ranges when the user provides
+                confidence hints. Without explicit hints, smart_join runs best-effort
+                inference from observed overlap and normalization evidence.
+
+                As a default posture, more data generally improves match quality:
+                even rows that are not preserved directly in downstream outputs can
+                still improve inferred key quality through scaffold statistics.
+
+                Trusted-target semantics (planned):
+                    A trusted table expresses a structural prior about what records
+                    *should* exist.  For example, if the analyst knows that data must
+                    contain exactly one record per day per region, that skeleton can be
+                    supplied as the right-hand side of a smart_join.  The join then:
+                    - identifies *gaps*: rows present in the trusted target but absent
+                      in the source (missing records / nulls after the left-join);
+                    - surfaces *duplicates*: source rows that match more than once;
+                    - bootstraps error estimates from the known structural prior rather
+                      than purely from observed data statistics.
+                    This connects to the broader error-propagation model: a trusted
+                    target acts as a ground-truth skeleton that anchors quality labels
+                    and constrains the uncertainty interval on downstream aggregates.
+
         Adds match diagnostics columns:
           - _dedekind_match_type: exact | normalized | unmatched
           - _dedekind_match_score: 1.0 | 0.85 | 0.0
@@ -533,22 +572,30 @@ class AnalystFrame:
 
         left_on = []
         right_on = []
+        left_raw_key_cols = []
         right_raw_key_cols = []
         for key in keys:
             ltmp = f"__dedekind_left_key_{key}"
+            lraw = f"__dedekind_left_raw_{key}"
             rtmp = f"__dedekind_right_key_{key}"
             rraw = f"__dedekind_right_raw_{key}"
 
             left_work[ltmp] = _normalize_join_value(left_work[key])
+            left_work[lraw] = left_work[key]
             right_work[rtmp] = _normalize_join_value(right_work[key])
             right_work[rraw] = right_work[key]
 
             left_on.append(ltmp)
             right_on.append(rtmp)
+            left_raw_key_cols.append(lraw)
             right_raw_key_cols.append(rraw)
 
+        # Preserve a single canonical copy of inferred join keys so chained
+        # smart_join calls can continue to infer the same keys cleanly.
+        right_payload = right_work.drop(columns=keys, errors="ignore")
+
         joined = left_work.merge(
-            right_work,
+            right_payload,
             how="left",
             left_on=left_on,
             right_on=right_on,
@@ -557,9 +604,9 @@ class AnalystFrame:
         )
 
         exact_mask = joined["_merge"].eq("both")
-        for key, raw_col in zip(keys, right_raw_key_cols):
-            left_raw = joined[key].astype("string").fillna("")
-            right_raw = joined[raw_col].astype("string").fillna("")
+        for left_raw_col, right_raw_col in zip(left_raw_key_cols, right_raw_key_cols):
+            left_raw = joined[left_raw_col].astype("string").fillna("")
+            right_raw = joined[right_raw_col].astype("string").fillna("")
             exact_mask = exact_mask & left_raw.eq(right_raw)
 
         joined["_dedekind_match_type"] = "unmatched"
@@ -571,7 +618,7 @@ class AnalystFrame:
         joined.loc[joined["_dedekind_match_type"].eq("exact"), "_dedekind_match_score"] = 1.0
         joined["_dedekind_join_key"] = ",".join(keys)
 
-        drop_cols = left_on + right_on + ["_merge"] + right_raw_key_cols
+        drop_cols = left_on + right_on + left_raw_key_cols + ["_merge"] + right_raw_key_cols
         joined = joined.drop(columns=drop_cols, errors="ignore")
 
         step = f"smart_join(inferred_keys={keys})"
@@ -642,6 +689,11 @@ class AnalystFrame:
         The method attempts to infer `index`, `columns`, and `values` when omitted,
         then compresses high-cardinality column values into an `other_label` bucket
         to keep the output matrix compact while preserving most signal.
+
+        Optional user-interest hints are planned for this surface so analysts can
+        prioritize specific dimensions/measures. Without explicit guidance,
+        smart_pivot falls back to sensible defaults based on observed schema and
+        distributional structure.
         """
         _require_pandas()
         if max_columns is not None and max_columns < 2:
@@ -856,6 +908,611 @@ def unpivot_table(
         var_name=var_name,
         value_name=value_name,
     )
+
+
+def _coerce_frame(frame):
+    return frame if isinstance(frame, AnalystFrame) else table(frame)
+
+
+def monthly_category_report(
+    frame,
+    *,
+    date_column="date",
+    period_column="month",
+    category_column="category",
+    measures=None,
+    freq="M",
+):
+    """Build a compact period x category summary from a relation.
+
+    FIXME #250: route through first-class panel metadata once available.
+    FIXME #251: delegate grouped aggregation to the core relational layer.
+    """
+    base = _coerce_frame(frame)
+    resolved_measures = measures or {
+        "revenue": ("revenue", "sum"),
+        "units": ("units", "sum"),
+    }
+    return (
+        base
+        .derive_period(date_column, target_column=period_column, freq=freq)
+        .group_by([period_column, category_column])
+        .summarize(**resolved_measures)
+        .order_by([period_column, category_column])
+    )
+
+
+def repair_missing_by_group_ratio(
+    frame,
+    *,
+    value_column,
+    basis_column,
+    group_column,
+    target_column=None,
+    min_basis=0,
+    fill_value=0,
+):
+    """Impute missing values using per-group value/basis ratios.
+
+    FIXME #253: replace this heuristic with a principled probabilistic repair
+        layer once the smart-join kernel grows richer match evidence.
+    """
+    base = _coerce_frame(frame)
+    repaired = base._df.copy()
+    resolved_target = target_column or value_column
+
+    valid = repaired[
+        (repaired[basis_column] > min_basis) & repaired[resolved_target].notna()
+    ].copy()
+    ratio_by_group = valid.groupby(group_column).apply(
+        lambda group: group[resolved_target].sum() / group[basis_column].sum()
+        if group[basis_column].sum()
+        else 0.0
+    ).to_dict()
+
+    total_basis = float(valid[basis_column].sum())
+    global_ratio = float(valid[resolved_target].sum()) / total_basis if total_basis else 0.0
+
+    repaired[resolved_target] = repaired[resolved_target].fillna(
+        repaired[basis_column] * repaired[group_column].map(ratio_by_group).fillna(global_ratio)
+    )
+    repaired[resolved_target] = repaired[resolved_target].fillna(fill_value)
+
+    result = base._spawn(
+        repaired,
+        (
+            f"repair_missing_by_group_ratio(value={value_column}, basis={basis_column}, "
+            f"group={group_column})"
+        ),
+    )
+    result._repair_diagnostics = {
+        "strategy": "group_ratio",
+        "value_column": resolved_target,
+        "basis_column": basis_column,
+        "group_column": group_column,
+        "groups": len(ratio_by_group),
+        "global_ratio": global_ratio,
+    }
+    return result
+
+
+def repair_missing_by_product(
+    frame,
+    *,
+    value_column,
+    factor_columns,
+    target_column=None,
+    fill_value=0,
+):
+    """Impute missing values as the product of trusted factors.
+
+    FIXME #231: expose this as one constraint family inside a broader
+        optimization/reconciliation toolkit rather than a standalone heuristic.
+    """
+    base = _coerce_frame(frame)
+    repaired = base._df.copy()
+    resolved_target = target_column or value_column
+
+    product_value = 1
+    for factor in factor_columns:
+        product_value = product_value * repaired[factor]
+
+    repaired[resolved_target] = repaired[resolved_target].fillna(product_value)
+    repaired[resolved_target] = repaired[resolved_target].fillna(fill_value)
+
+    result = base._spawn(
+        repaired,
+        f"repair_missing_by_product(value={value_column}, factors={list(factor_columns)})",
+    )
+    result._repair_diagnostics = {
+        "strategy": "product",
+        "value_column": resolved_target,
+        "factor_columns": list(factor_columns),
+    }
+    return result
+
+
+def align_pivot_table(df, *, index_column="month", value_columns=None, fill_value=0.0):
+    """Align a pivot-like DataFrame to a stable ordered set of value columns.
+
+    FIXME #170: replace manual alignment with a first-class relational wide-table
+        witness once pivot/crosstab support matures beyond the MVP shim.
+    """
+    _require_pandas()
+    resolved_columns = list(value_columns or [col for col in df.columns if col != index_column])
+    aligned = df.copy()
+    for column in resolved_columns:
+        if column not in aligned.columns:
+            aligned[column] = fill_value
+    return aligned[[index_column, *resolved_columns]].sort_values(index_column).reset_index(drop=True)
+
+
+def pivot_mean_absolute_error(
+    candidate,
+    reference,
+    *,
+    index_column="month",
+    value_columns=None,
+):
+    """Compute MAE between two pivot-like DataFrames after alignment."""
+    candidate_aligned = align_pivot_table(
+        candidate,
+        index_column=index_column,
+        value_columns=value_columns,
+    ).set_index(index_column)
+    reference_aligned = align_pivot_table(
+        reference,
+        index_column=index_column,
+        value_columns=value_columns,
+    ).set_index(index_column)
+    return float((candidate_aligned - reference_aligned).abs().stack().mean())
+
+
+def pivot_quality_report(reference, *, index_column="month", value_columns=None, **candidates):
+    """Compare multiple candidate pivots against a reference pivot."""
+    _require_pandas()
+    rows = []
+    for stage, candidate in candidates.items():
+        rows.append(
+            {
+                "stage": stage,
+                "pivot_mae": pivot_mean_absolute_error(
+                    candidate,
+                    reference,
+                    index_column=index_column,
+                    value_columns=value_columns,
+                ),
+            }
+        )
+    return pd.DataFrame(rows)
+
+
+def _quality_issue_count(frame):
+    """Return the total tracked quality issue count for an AnalystFrame."""
+    issues = frame.quality_report()
+    if issues.empty:
+        return 0
+    return int(issues["count"].sum())
+
+
+def table_quality_metrics(
+    frame,
+    *,
+    label,
+    key_columns=None,
+    numeric_columns=None,
+):
+    """Compute quality metrics and lightweight certifications for one table."""
+    _require_pandas()
+    base = _coerce_frame(frame)
+    data = base._df
+
+    resolved_keys = [col for col in _as_column_list(key_columns or []) if col in data.columns]
+    resolved_numeric = [col for col in _as_column_list(numeric_columns or []) if col in data.columns]
+
+    row_count = int(len(data))
+    missing_cells = int(data.isna().sum().sum())
+    duplicate_rows = int(data.duplicated(subset=resolved_keys, keep=False).sum()) if resolved_keys else 0
+
+    numeric_parse_losses = 0
+    for column in resolved_numeric:
+        before_non_null = int(data[column].notna().sum())
+        after_non_null = int(pd.to_numeric(data[column], errors="coerce").notna().sum())
+        numeric_parse_losses += max(0, before_non_null - after_non_null)
+
+    return pd.DataFrame(
+        [
+            {
+                "table": str(label),
+                "rows": row_count,
+                "missing_cells": missing_cells,
+                "duplicate_rows": duplicate_rows,
+                "numeric_parse_losses": int(numeric_parse_losses),
+                "cert_no_duplicates": bool(duplicate_rows == 0),
+                "cert_numeric_parse_clean": bool(numeric_parse_losses == 0),
+            }
+        ]
+    )
+
+
+def analyst_sales_quality_lift_report(
+    sales,
+    products,
+    regions,
+    *,
+    reference_pivot,
+    product_price_hq=None,
+    date_column="date",
+    product_key="product_id",
+    region_key="region",
+    category_column="category",
+    units_column="units",
+    revenue_column="revenue",
+):
+    """Build a compact analyst-tier quality-lift report for sales-style tables.
+
+    The report intentionally keeps notebook code thin by returning consumable
+    data products (tables suitable for display/charting).
+    """
+    _require_pandas()
+
+    sales_frame = _coerce_frame(sales)
+    products_frame = _coerce_frame(products)
+    regions_frame = _coerce_frame(regions)
+
+    if isinstance(reference_pivot, AnalystFrame):
+        reference_df = reference_pivot.realize()
+    else:
+        reference_df = reference_pivot.copy()
+
+    input_quality = pd.concat(
+        [
+            table_quality_metrics(
+                sales_frame,
+                label="table_a_sales",
+                key_columns=[date_column, product_key, region_key],
+                numeric_columns=[units_column, revenue_column],
+            ),
+            table_quality_metrics(
+                products_frame,
+                label="table_b_products",
+                key_columns=[product_key],
+            ),
+            table_quality_metrics(
+                regions_frame,
+                label="table_regions",
+                key_columns=[region_key],
+            ),
+        ],
+        ignore_index=True,
+    )
+
+    vanilla_plan = (
+        sales_frame
+        .join(products_frame, on=product_key, how="left")
+        .join(regions_frame, on=region_key, how="left")
+        .derive(revenue_num=lambda table_df: pd.to_numeric(table_df[revenue_column], errors="coerce"))
+        .fill_missing(revenue_num=0)
+    )
+    vanilla_pivot = monthly_category_report(
+        vanilla_plan,
+        date_column=date_column,
+        category_column=category_column,
+        measures={"revenue": ("revenue_num", "sum")},
+    ).pivot(
+        index="month",
+        columns=category_column,
+        values="revenue",
+        aggfunc="sum",
+        fill_value=0,
+    ).order_by("month").realize()
+
+    regions_clean = regions_frame.normalize_text([region_key], lower=True, strip=True)
+    region_domain = sorted(set(regions_clean.realize()[region_key].dropna().astype(str)))
+
+    sales_clean = (
+        sales_frame
+        .normalize_text([product_key, region_key], lower=True, strip=True)
+        .coerce_numeric([units_column, revenue_column], strip_symbols=True)
+        .fill_missing(**{units_column: 0})
+        .expect_domain(region_key, region_domain, on_fail="report")
+    )
+    products_clean = products_frame.normalize_text([product_key, category_column], lower=True, strip=True)
+
+    smart_joined = smart_join(sales_clean, products_clean).smart_join(regions_clean)
+    smart_plan = smart_joined
+    if product_price_hq is not None:
+        hq_frame = _coerce_frame(product_price_hq)
+        smart_plan = repair_missing_by_product(
+            smart_join(smart_plan, hq_frame),
+            value_column=revenue_column,
+            factor_columns=[units_column, "unit_price_hq"],
+        )
+
+    smart_pivot_df = monthly_category_report(
+        smart_plan,
+        date_column=date_column,
+        category_column=category_column,
+        measures={"revenue": (revenue_column, "sum")},
+    ).pivot(
+        index="month",
+        columns=category_column,
+        values="revenue",
+        aggfunc="sum",
+        fill_value=0,
+    ).order_by("month").realize()
+
+    value_columns = sorted(set([column for column in reference_df.columns if column != "month"]))
+    vanilla_check = align_pivot_table(
+        vanilla_pivot,
+        index_column="month",
+        value_columns=value_columns,
+    )
+    smart_check = align_pivot_table(
+        smart_pivot_df,
+        index_column="month",
+        value_columns=value_columns,
+    )
+
+    error_report = pivot_quality_report(
+        reference_df,
+        value_columns=value_columns,
+        vanilla=vanilla_check,
+        smart=smart_check,
+    )
+
+    vanilla_mae = float(error_report.loc[error_report["stage"] == "vanilla", "pivot_mae"].iloc[0])
+    smart_mae = float(error_report.loc[error_report["stage"] == "smart", "pivot_mae"].iloc[0])
+    quality_delta = pd.DataFrame(
+        [
+            {
+                "metric": "pivot_mae",
+                "vanilla": vanilla_mae,
+                "smart": smart_mae,
+                "improvement": vanilla_mae - smart_mae,
+            },
+            {
+                "metric": "quality_issue_count",
+                "vanilla": float(_quality_issue_count(vanilla_plan)),
+                "smart": float(_quality_issue_count(sales_clean)),
+                "improvement": float(_quality_issue_count(vanilla_plan) - _quality_issue_count(sales_clean)),
+            },
+        ]
+    )
+
+    quality_labels = pd.DataFrame(
+        [
+            {
+                "stage": "vanilla",
+                "quality_issue_count": _quality_issue_count(vanilla_plan),
+                "estimated_pivot_error_mae": vanilla_mae,
+            },
+            {
+                "stage": "smart",
+                "quality_issue_count": _quality_issue_count(sales_clean),
+                "estimated_pivot_error_mae": smart_mae,
+            },
+        ]
+    )
+
+    return {
+        "input_quality": input_quality,
+        "vanilla_pivot": vanilla_check,
+        "smart_pivot": smart_check,
+        "error_report": error_report,
+        "quality_labels": quality_labels,
+        "quality_delta": quality_delta,
+        "sales_quality_issues": sales_clean.quality_report(),
+        "region_values": regions_clean.to_set(region_key).realize(),
+    }
+
+
+@dataclass(frozen=True)
+class Dual:
+    """Minimal dual number for first-order automatic differentiation.
+
+    FIXME #177: promote scalar derivative objects into the denotational linear-map
+        API rather than keeping them as a local numeric convenience.
+    FIXME #272: unify this with the broader dual-number roadmap once the AD epic
+        lands in the core ontology.
+    """
+
+    real: float
+    dual: float = 0.0
+
+    def __add__(self, other):
+        other = other if isinstance(other, Dual) else Dual(float(other), 0.0)
+        return Dual(self.real + other.real, self.dual + other.dual)
+
+    def __radd__(self, other):
+        return self.__add__(other)
+
+    def __sub__(self, other):
+        other = other if isinstance(other, Dual) else Dual(float(other), 0.0)
+        return Dual(self.real - other.real, self.dual - other.dual)
+
+    def __rsub__(self, other):
+        other = other if isinstance(other, Dual) else Dual(float(other), 0.0)
+        return other.__sub__(self)
+
+    def __mul__(self, other):
+        other = other if isinstance(other, Dual) else Dual(float(other), 0.0)
+        return Dual(
+            self.real * other.real,
+            self.real * other.dual + self.dual * other.real,
+        )
+
+    def __rmul__(self, other):
+        return self.__mul__(other)
+
+    def __truediv__(self, other):
+        other = other if isinstance(other, Dual) else Dual(float(other), 0.0)
+        denominator = other.real * other.real
+        return Dual(
+            self.real / other.real,
+            (self.dual * other.real - self.real * other.dual) / denominator,
+        )
+
+    def __rtruediv__(self, other):
+        other = other if isinstance(other, Dual) else Dual(float(other), 0.0)
+        return other.__truediv__(self)
+
+    def __neg__(self):
+        return Dual(-self.real, -self.dual)
+
+    def __pow__(self, power):
+        if isinstance(power, Dual):
+            raise TypeError("Dual exponentiation only supports scalar exponents in this MVP")
+        exponent = float(power)
+        return Dual(
+            self.real ** exponent,
+            exponent * (self.real ** (exponent - 1.0)) * self.dual,
+        )
+
+
+def dual_derivative(function, x):
+    """Evaluate a scalar function and its derivative at x using Dual numbers."""
+    result = function(Dual(float(x), 1.0))
+    if not isinstance(result, Dual):
+        return float(result), 0.0
+    return result.real, result.dual
+
+
+@dataclass(frozen=True)
+class LinearChoice:
+    """Small mixed-integer choice primitive for constrained planning."""
+
+    name: str
+    value: float
+    cost: float
+    max_units: int = 1
+    min_units: int = 0
+
+
+def solve_mixed_integer_plan(choices, *, budget):
+    """Solve a tiny mixed-integer linear selection problem by exhaustive search.
+
+    This is intentionally small-scale and notebook-friendly.
+
+    FIXME #231: replace exhaustive enumeration with a proper constrained
+        optimization toolkit (Lagrange multipliers / LP-MIP bridge).
+    """
+    _require_pandas()
+    resolved = [choice if isinstance(choice, LinearChoice) else LinearChoice(**choice) for choice in choices]
+    best_decision = None
+    best_value = float("-inf")
+
+    ranges = [range(choice.min_units, choice.max_units + 1) for choice in resolved]
+    for quantities in product(*ranges):
+        total_cost = sum(choice.cost * quantity for choice, quantity in zip(resolved, quantities))
+        if total_cost > budget:
+            continue
+        total_value = sum(choice.value * quantity for choice, quantity in zip(resolved, quantities))
+        if total_value > best_value:
+            best_value = total_value
+            best_decision = quantities
+
+    if best_decision is None:
+        raise ValueError("No feasible mixed-integer plan satisfies the budget")
+
+    decision_rows = []
+    total_cost = 0.0
+    total_value = 0.0
+    for choice, quantity in zip(resolved, best_decision):
+        cost = float(choice.cost * quantity)
+        value = float(choice.value * quantity)
+        total_cost += cost
+        total_value += value
+        decision_rows.append(
+            {
+                "name": choice.name,
+                "quantity": int(quantity),
+                "unit_cost": float(choice.cost),
+                "unit_value": float(choice.value),
+                "cost": cost,
+                "value": value,
+            }
+        )
+
+    return {
+        "objective": total_value,
+        "budget": float(budget),
+        "cost": total_cost,
+        "decision_table": pd.DataFrame(decision_rows),
+    }
+
+
+@dataclass(frozen=True)
+class Activity:
+    """A small DAG activity for critical-path style planning."""
+
+    name: str
+    duration: float
+    depends_on: tuple = ()
+
+
+def critical_path_schedule(activities):
+    """Compute earliest starts/finishes and a critical path for a DAG.
+
+    FIXME #329: replace with a graph-theoretic core once max-flow/min-cut and
+        related graph kernels are available in the ontology.
+    FIXME #339: align with the graph-algorithms backlog once topological and
+        shortest/longest path primitives become first-class.
+    """
+    _require_pandas()
+    resolved = [activity if isinstance(activity, Activity) else Activity(**activity) for activity in activities]
+    by_name = {activity.name: activity for activity in resolved}
+    earliest_start = {}
+    earliest_finish = {}
+    predecessor = {}
+    remaining = set(by_name)
+
+    while remaining:
+        progressed = False
+        for name in list(remaining):
+            activity = by_name[name]
+            deps = tuple(activity.depends_on)
+            if any(dep not in earliest_finish for dep in deps):
+                continue
+            if deps:
+                best_dep = max(deps, key=lambda dep: earliest_finish[dep])
+                start = earliest_finish[best_dep]
+                predecessor[name] = best_dep
+            else:
+                best_dep = None
+                start = 0.0
+                predecessor[name] = best_dep
+            earliest_start[name] = float(start)
+            earliest_finish[name] = float(start + activity.duration)
+            remaining.remove(name)
+            progressed = True
+        if not progressed:
+            raise ValueError("critical_path_schedule requires an acyclic dependency graph")
+
+    terminal = max(earliest_finish, key=earliest_finish.get)
+    critical_path = []
+    cursor = terminal
+    while cursor is not None:
+        critical_path.append(cursor)
+        cursor = predecessor.get(cursor)
+    critical_path.reverse()
+
+    rows = []
+    for activity in resolved:
+        rows.append(
+            {
+                "activity": activity.name,
+                "duration": float(activity.duration),
+                "earliest_start": earliest_start[activity.name],
+                "earliest_finish": earliest_finish[activity.name],
+                "is_critical": activity.name in critical_path,
+            }
+        )
+    return {
+        "project_duration": earliest_finish[terminal],
+        "critical_path": critical_path,
+        "schedule": pd.DataFrame(rows).sort_values(["earliest_start", "activity"]),
+    }
 
 
 class SetDef:
@@ -1098,8 +1755,23 @@ __all__ = [
     "SetDef",
     "Ensemble",
     "AnalystFrame",
+    "Dual",
+    "LinearChoice",
+    "Activity",
     "table",
     "smart_join",
+    "smart_pivot",
     "pivot_table",
     "unpivot_table",
+    "monthly_category_report",
+    "repair_missing_by_group_ratio",
+    "repair_missing_by_product",
+    "table_quality_metrics",
+    "analyst_sales_quality_lift_report",
+    "align_pivot_table",
+    "pivot_mean_absolute_error",
+    "pivot_quality_report",
+    "dual_derivative",
+    "solve_mixed_integer_plan",
+    "critical_path_schedule",
 ]
