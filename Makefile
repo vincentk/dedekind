@@ -66,8 +66,8 @@ integration-test: test
 	for nb in $$NOTEBOOKS; do \
 		TOTAL=$$((TOTAL + 1)); \
 		name="$$(basename $$nb)"; \
-		if ! grep -q 'import dedekind' "$$nb"; then \
-			echo "FAILED: $$name does not import dedekind" | tee -a "$$REPORT"; \
+		if ! python -c 'import json,sys; nb=json.load(open(sys.argv[1], encoding="utf-8")); to_text=lambda s: "".join(s) if isinstance(s, list) else (s if isinstance(s, str) else ""); ok=any(c.get("cell_type") == "code" and ("import dedekind" in to_text(c.get("source", "")) or "from dedekind import" in to_text(c.get("source", ""))) for c in nb.get("cells", [])); sys.exit(0 if ok else 1)' "$$nb"; then \
+			echo "FAILED: $$name does not import dedekind in any code cell" | tee -a "$$REPORT"; \
 			FAILURES=$$((FAILURES + 1)); \
 			continue; \
 		fi; \
