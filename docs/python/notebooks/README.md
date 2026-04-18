@@ -14,14 +14,14 @@ This directory contains demo notebooks for the Python MVP facade.
    - Shows representative failing payloads
    - Confirms `TypeError` behavior at the Python boundary
 
-3. `03_dsl_beginner_tier.ipynb`
-   - First executable DSL sketch for beginner users (issue #241)
+3. `03_dsl_analyst_tier.ipynb`
+   - First executable DSL sketch for analyst-style users (issue #241)
    - Uses SQL/Python-like syntax: `where()`, `select()`, method chaining
    - Demonstrates intensional (symbolic) → extensional (realized) progression
    - Prototype shim for API ergonomics discussion
 
-4. `04_dsl_expert_tier.ipynb`
-   - Second executable DSL sketch for expert users (issue #241)
+4. `04_dsl_formal_tier.ipynb`
+   - Second executable DSL sketch for formal-notation users (issue #241)
    - Uses mathematical terminology: `comprehension()`, `restrict()`, `map_to()`
    - Demonstrates same intensional → extensional progression with formal notation
    - Prototype shim for mathematical API surface
@@ -63,7 +63,7 @@ Expected outputs:
 - each invalid payload raises `TypeError`
 - the notebook prints per-case confirmation and ends with a success marker
 
-### Notebook 3: Beginner-tier DSL
+### Notebook 3: Analyst-tier DSL
 
 Demonstrates accessible set operations with SQL/Python terminology.
 
@@ -83,7 +83,7 @@ Expected outputs (intensional → extensional progression):
 - Squares: `[4, 16, 36, 64, 100]`
 - Notebook ends with success marker `notebook-03-ok`
 
-### Notebook 4: Expert-tier DSL
+### Notebook 4: Formal-tier DSL
 
 Demonstrates mathematical notation and formal set-theoretic operations.
 

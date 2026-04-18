@@ -1,4 +1,4 @@
-"""Beginner and expert tier DSL shim classes for set operations.
+"""Analyst and formal DSL shim classes for set operations.
 
 This module provides prototype DSL interfaces demonstrating the intended
 ergonomics for end-user set manipulation. These are executable shims for
@@ -9,7 +9,7 @@ from . import ordered_set_roundtrip, unordered_set_roundtrip
 
 
 class SetDef:
-    """Beginner-tier set definition: intensional (symbolic) representation.
+    """Analyst-tier set definition: intensional (symbolic) representation.
 
     Uses SQL/Python-like syntax familiar to users without mathematical training.
     Supports both extensional (concrete values) and intensional (predicate-based)
@@ -97,7 +97,7 @@ class SetDef:
 
 
 class Ensemble:
-    """Expert-tier set representation using mathematical terminology.
+    """Formal-tier set representation using mathematical terminology.
 
     'Ensemble' emphasizes that this is a formal mathematical object.
     Supports set-theoretic operations with mathematically precise names.
@@ -122,7 +122,7 @@ class Ensemble:
     def restrict(self, predicate):
         """Restrict to elements satisfying a property: {x ∈ S | Q(x)}.
 
-        Corresponds to beginner 'where' but with mathematical naming.
+        Corresponds to analyst 'where' but with mathematical naming.
         """
         if self._members is not None:
             restricted = [v for v in self._members if predicate(v)]

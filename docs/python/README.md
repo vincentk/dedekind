@@ -119,7 +119,8 @@ The MVP notebook demos live in `docs/python/notebooks/`:
 
 - `01_facade_roundtrip_basics.ipynb` — happy-path facade demo
 - `02_facade_error_contract.ipynb` — error contract / unhappy-path demo
-- `03_dsl_design_sketch_demo.ipynb` — first executable DSL design sketch (issue #241, prototype shim)
+- `03_dsl_analyst_tier.ipynb` — analyst-style DSL sketch (issue #241, prototype shim)
+- `04_dsl_formal_tier.ipynb` — formal-notation DSL sketch (issue #241, prototype shim)
 
 These notebooks are intentionally small, deterministic, and suitable for CI
 execution as integration checks.
