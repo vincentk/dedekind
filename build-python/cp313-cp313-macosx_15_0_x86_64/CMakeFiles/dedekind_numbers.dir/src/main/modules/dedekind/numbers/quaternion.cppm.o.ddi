@@ -1,0 +1,24 @@
+{
+  "revision": 0,
+  "rules": [
+    {
+      "primary-output": "CMakeFiles/dedekind_numbers.dir/src/main/modules/dedekind/numbers/quaternion.cppm.o",
+      "provides": [
+        {
+          "is-interface": true,
+          "logical-name": "dedekind.numbers:quaternion",
+          "source-path": "/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/numbers/quaternion.cppm"
+        }
+      ],
+      "requires": [
+        {
+          "logical-name": "dedekind.category"
+        },
+        {
+          "logical-name": "dedekind.geometry"
+        }
+      ]
+    }
+  ],
+  "version": 1
+}

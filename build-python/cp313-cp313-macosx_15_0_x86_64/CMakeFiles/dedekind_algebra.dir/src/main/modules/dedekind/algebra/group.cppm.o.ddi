@@ -1,0 +1,24 @@
+{
+  "revision": 0,
+  "rules": [
+    {
+      "primary-output": "CMakeFiles/dedekind_algebra.dir/src/main/modules/dedekind/algebra/group.cppm.o",
+      "provides": [
+        {
+          "is-interface": true,
+          "logical-name": "dedekind.algebra:group",
+          "source-path": "/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/algebra/group.cppm"
+        }
+      ],
+      "requires": [
+        {
+          "logical-name": "dedekind.algebra:monoid"
+        },
+        {
+          "logical-name": "dedekind.category"
+        }
+      ]
+    }
+  ],
+  "version": 1
+}

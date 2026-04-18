@@ -1,0 +1,24 @@
+{
+  "revision": 0,
+  "rules": [
+    {
+      "primary-output": "CMakeFiles/dedekind_ieee.dir/src/main/modules/dedekind/ieee/approx.cppm.o",
+      "provides": [
+        {
+          "is-interface": true,
+          "logical-name": "dedekind.ieee.approx",
+          "source-path": "/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/ieee/approx.cppm"
+        }
+      ],
+      "requires": [
+        {
+          "logical-name": "dedekind.category"
+        },
+        {
+          "logical-name": "dedekind.ieee"
+        }
+      ]
+    }
+  ],
+  "version": 1
+}

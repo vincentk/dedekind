@@ -1,0 +1,36 @@
+{
+  "revision": 0,
+  "rules": [
+    {
+      "primary-output": "CMakeFiles/dedekind_geometry.dir/src/main/modules/dedekind/geometry/geometry.cppm.o",
+      "provides": [
+        {
+          "is-interface": true,
+          "logical-name": "dedekind.geometry",
+          "source-path": "/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/geometry/geometry.cppm"
+        }
+      ],
+      "requires": [
+        {
+          "logical-name": "dedekind.geometry:affine"
+        },
+        {
+          "logical-name": "dedekind.geometry:linear_map"
+        },
+        {
+          "logical-name": "dedekind.geometry:inner_product"
+        },
+        {
+          "logical-name": "dedekind.geometry:euclidean"
+        },
+        {
+          "logical-name": "dedekind.geometry:hilbert"
+        },
+        {
+          "logical-name": "dedekind.geometry:lattice"
+        }
+      ]
+    }
+  ],
+  "version": 1
+}

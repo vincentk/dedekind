@@ -1,0 +1,30 @@
+{
+  "revision": 0,
+  "rules": [
+    {
+      "primary-output": "CMakeFiles/dedekind_numbers.dir/src/main/modules/dedekind/numbers/naturals.cppm.o",
+      "provides": [
+        {
+          "is-interface": true,
+          "logical-name": "dedekind.numbers:naturals",
+          "source-path": "/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/numbers/naturals.cppm"
+        }
+      ],
+      "requires": [
+        {
+          "logical-name": "dedekind.category"
+        },
+        {
+          "logical-name": "dedekind.sets"
+        },
+        {
+          "logical-name": "dedekind.numbers:scalars"
+        },
+        {
+          "logical-name": "dedekind.numbers:booleans"
+        }
+      ]
+    }
+  ],
+  "version": 1
+}

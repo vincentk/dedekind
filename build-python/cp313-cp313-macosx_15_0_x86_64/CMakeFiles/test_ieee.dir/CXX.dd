@@ -1,0 +1,5 @@
+ninja_dyndep_version = 1.0
+build CMakeFiles/test_ieee.dir/src/test/cpp/modules/dedekind/ieee/approx_test.cpp.o: dyndep | CMakeFiles/dedekind_ieee.dir/dedekind.ieee.pcm CMakeFiles/dedekind_ieee.dir/dedekind.ieee.approx.pcm
+
+build CMakeFiles/test_ieee.dir/src/test/cpp/modules/dedekind/ieee/ieee_test.cpp.o: dyndep | CMakeFiles/dedekind_ieee.dir/dedekind.ieee.pcm
+

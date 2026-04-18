@@ -1,0 +1,21 @@
+{
+  "revision": 0,
+  "rules": [
+    {
+      "primary-output": "CMakeFiles/dedekind_ieee.dir/src/main/modules/dedekind/ieee/ieee.cppm.o",
+      "provides": [
+        {
+          "is-interface": true,
+          "logical-name": "dedekind.ieee",
+          "source-path": "/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/ieee/ieee.cppm"
+        }
+      ],
+      "requires": [
+        {
+          "logical-name": "dedekind.category"
+        }
+      ]
+    }
+  ],
+  "version": 1
+}

@@ -1,0 +1,103 @@
+{
+	"bmi-installation" : null,
+	"compiler-frontend-variant" : "GNU",
+	"compiler-id" : "Clang",
+	"compiler-simulate-id" : "",
+	"config" : "Release",
+	"cxx-modules" : {},
+	"database-info" : null,
+	"dir-cur-bld" : "/Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64",
+	"dir-cur-src" : "/Users/vincent/git/github.com/vincentk/dedekind",
+	"dir-top-bld" : "/Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64",
+	"dir-top-src" : "/Users/vincent/git/github.com/vincentk/dedekind",
+	"exports" : [],
+	"forward-modules-from-target-dirs" : [],
+	"include-dirs" : 
+	[
+		"_deps/catch2-src/src/catch2/..",
+		"_deps/catch2-build/generated-includes"
+	],
+	"language" : "CXX",
+	"linked-target-dirs" : 
+	[
+		"/Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64/CMakeFiles/dedekind_numbers.dir",
+		"/Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64/CMakeFiles/dedekind_geometry.dir",
+		"/Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64/CMakeFiles/dedekind_morphologies.dir",
+		"/Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64/CMakeFiles/dedekind_algebra.dir",
+		"/Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64/CMakeFiles/dedekind_sequences.dir",
+		"/Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64/CMakeFiles/dedekind_topology.dir",
+		"/Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64/CMakeFiles/dedekind_order.dir",
+		"/Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64/CMakeFiles/dedekind_sets.dir",
+		"/Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64/CMakeFiles/dedekind_ieee.dir",
+		"/Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64/CMakeFiles/dedekind_category.dir"
+	],
+	"module-dir" : "/Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64/CMakeFiles/test_numbers.dir",
+	"sources" : 
+	{
+		"CMakeFiles/test_numbers.dir/src/test/cpp/modules/dedekind/numbers/approx_test.cpp.o" : 
+		{
+			"language" : "CXX",
+			"source" : "/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/numbers/approx_test.cpp"
+		},
+		"CMakeFiles/test_numbers.dir/src/test/cpp/modules/dedekind/numbers/constants_test.cpp.o" : 
+		{
+			"language" : "CXX",
+			"source" : "/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/numbers/constants_test.cpp"
+		},
+		"CMakeFiles/test_numbers.dir/src/test/cpp/modules/dedekind/numbers/dual_test.cpp.o" : 
+		{
+			"language" : "CXX",
+			"source" : "/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/numbers/dual_test.cpp"
+		},
+		"CMakeFiles/test_numbers.dir/src/test/cpp/modules/dedekind/numbers/ieee_test.cpp.o" : 
+		{
+			"language" : "CXX",
+			"source" : "/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/numbers/ieee_test.cpp"
+		},
+		"CMakeFiles/test_numbers.dir/src/test/cpp/modules/dedekind/numbers/lattice_test.cpp.o" : 
+		{
+			"language" : "CXX",
+			"source" : "/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/numbers/lattice_test.cpp"
+		},
+		"CMakeFiles/test_numbers.dir/src/test/cpp/modules/dedekind/numbers/mandelbrot_stress_test.cpp.o" : 
+		{
+			"language" : "CXX",
+			"source" : "/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/numbers/mandelbrot_stress_test.cpp"
+		},
+		"CMakeFiles/test_numbers.dir/src/test/cpp/modules/dedekind/numbers/naturals_test.cpp.o" : 
+		{
+			"language" : "CXX",
+			"source" : "/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/numbers/naturals_test.cpp"
+		},
+		"CMakeFiles/test_numbers.dir/src/test/cpp/modules/dedekind/numbers/quaternion_test.cpp.o" : 
+		{
+			"language" : "CXX",
+			"source" : "/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/numbers/quaternion_test.cpp"
+		},
+		"CMakeFiles/test_numbers.dir/src/test/cpp/modules/dedekind/numbers/rational_test.cpp.o" : 
+		{
+			"language" : "CXX",
+			"source" : "/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/numbers/rational_test.cpp"
+		},
+		"CMakeFiles/test_numbers.dir/src/test/cpp/modules/dedekind/numbers/spectral_norm_benchmark_test.cpp.o" : 
+		{
+			"language" : "CXX",
+			"source" : "/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/numbers/spectral_norm_benchmark_test.cpp"
+		},
+		"CMakeFiles/test_numbers.dir/src/test/cpp/modules/dedekind/numbers/starters_test.cpp.o" : 
+		{
+			"language" : "CXX",
+			"source" : "/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/numbers/starters_test.cpp"
+		},
+		"CMakeFiles/test_numbers.dir/src/test/cpp/modules/dedekind/numbers/symolic_test.cpp.o" : 
+		{
+			"language" : "CXX",
+			"source" : "/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/numbers/symolic_test.cpp"
+		},
+		"CMakeFiles/test_numbers.dir/src/test/cpp/modules/dedekind/numbers/tower_test.cpp.o" : 
+		{
+			"language" : "CXX",
+			"source" : "/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/numbers/tower_test.cpp"
+		}
+	}
+}

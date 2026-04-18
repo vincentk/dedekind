@@ -1,0 +1,30 @@
+{
+  "revision": 0,
+  "rules": [
+    {
+      "primary-output": "CMakeFiles/dedekind_sequences.dir/src/main/modules/dedekind/sequences/limits.cppm.o",
+      "provides": [
+        {
+          "is-interface": true,
+          "logical-name": "dedekind.sequences:limits",
+          "source-path": "/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/sequences/limits.cppm"
+        }
+      ],
+      "requires": [
+        {
+          "logical-name": "dedekind.category"
+        },
+        {
+          "logical-name": "dedekind.topology"
+        },
+        {
+          "logical-name": "dedekind.order"
+        },
+        {
+          "logical-name": "dedekind.sequences:path"
+        }
+      ]
+    }
+  ],
+  "version": 1
+}

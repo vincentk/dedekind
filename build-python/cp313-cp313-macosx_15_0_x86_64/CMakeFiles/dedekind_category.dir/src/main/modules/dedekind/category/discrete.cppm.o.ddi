@@ -1,0 +1,27 @@
+{
+  "revision": 0,
+  "rules": [
+    {
+      "primary-output": "CMakeFiles/dedekind_category.dir/src/main/modules/dedekind/category/discrete.cppm.o",
+      "provides": [
+        {
+          "is-interface": true,
+          "logical-name": "dedekind.category:discrete",
+          "source-path": "/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/category/discrete.cppm"
+        }
+      ],
+      "requires": [
+        {
+          "logical-name": "dedekind.category:morphism"
+        },
+        {
+          "logical-name": "dedekind.category:small"
+        },
+        {
+          "logical-name": "dedekind.category:species"
+        }
+      ]
+    }
+  ],
+  "version": 1
+}

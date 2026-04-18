@@ -1,0 +1,68 @@
+{
+	"kind" : "toolchains",
+	"toolchains" : 
+	[
+		{
+			"compiler" : 
+			{
+				"id" : "Clang",
+				"implicit" : 
+				{
+					"includeDirectories" : 
+					[
+						"/usr/local/Cellar/llvm/21.1.8_1/include/c++/v1",
+						"/usr/local/Cellar/llvm/21.1.8_1/lib/clang/21/include",
+						"/Library/Developer/CommandLineTools/SDKs/MacOSX15.sdk/usr/include"
+					],
+					"linkDirectories" : 
+					[
+						"/usr/local/opt/llvm/lib",
+						"/Library/Developer/CommandLineTools/SDKs/MacOSX15.sdk/usr/lib",
+						"/Library/Developer/CommandLineTools/SDKs/MacOSX15.sdk/usr/lib/swift"
+					],
+					"linkFrameworkDirectories" : 
+					[
+						"/Library/Developer/CommandLineTools/SDKs/MacOSX15.sdk/System/Library/Frameworks"
+					],
+					"linkLibraries" : 
+					[
+						"c++"
+					]
+				},
+				"path" : "/usr/local/opt/llvm/bin/clang++",
+				"version" : "21.1.8"
+			},
+			"language" : "CXX",
+			"sourceFileExtensions" : 
+			[
+				"C",
+				"M",
+				"c++",
+				"cc",
+				"cpp",
+				"cxx",
+				"m",
+				"mm",
+				"mpp",
+				"CPP",
+				"ixx",
+				"cppm",
+				"ccm",
+				"cxxm",
+				"c++m"
+			]
+		},
+		{
+			"compiler" : 
+			{
+				"implicit" : {}
+			},
+			"language" : "NONE"
+		}
+	],
+	"version" : 
+	{
+		"major" : 1,
+		"minor" : 0
+	}
+}

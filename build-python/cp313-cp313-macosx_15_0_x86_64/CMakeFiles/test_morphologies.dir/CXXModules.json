@@ -1,0 +1,1492 @@
+{
+	"modules" : {},
+	"references" : 
+	{
+		"dedekind.algebra" : 
+		{
+			"lookup-method" : "by-name",
+			"path" : "CMakeFiles/dedekind_algebra.dir/dedekind.algebra.pcm"
+		},
+		"dedekind.algebra:boolean" : 
+		{
+			"lookup-method" : "by-name",
+			"path" : "CMakeFiles/dedekind_algebra.dir/dedekind.algebra-boolean.pcm"
+		},
+		"dedekind.algebra:division" : 
+		{
+			"lookup-method" : "by-name",
+			"path" : "CMakeFiles/dedekind_algebra.dir/dedekind.algebra-division.pcm"
+		},
+		"dedekind.algebra:field" : 
+		{
+			"lookup-method" : "by-name",
+			"path" : "CMakeFiles/dedekind_algebra.dir/dedekind.algebra-field.pcm"
+		},
+		"dedekind.algebra:group" : 
+		{
+			"lookup-method" : "by-name",
+			"path" : "CMakeFiles/dedekind_algebra.dir/dedekind.algebra-group.pcm"
+		},
+		"dedekind.algebra:modules" : 
+		{
+			"lookup-method" : "by-name",
+			"path" : "CMakeFiles/dedekind_algebra.dir/dedekind.algebra-modules.pcm"
+		},
+		"dedekind.algebra:monoid" : 
+		{
+			"lookup-method" : "by-name",
+			"path" : "CMakeFiles/dedekind_algebra.dir/dedekind.algebra-monoid.pcm"
+		},
+		"dedekind.algebra:polynomial" : 
+		{
+			"lookup-method" : "by-name",
+			"path" : "CMakeFiles/dedekind_algebra.dir/dedekind.algebra-polynomial.pcm"
+		},
+		"dedekind.algebra:ring" : 
+		{
+			"lookup-method" : "by-name",
+			"path" : "CMakeFiles/dedekind_algebra.dir/dedekind.algebra-ring.pcm"
+		},
+		"dedekind.category" : 
+		{
+			"lookup-method" : "by-name",
+			"path" : "CMakeFiles/dedekind_category.dir/dedekind.category.pcm"
+		},
+		"dedekind.category:action" : 
+		{
+			"lookup-method" : "by-name",
+			"path" : "CMakeFiles/dedekind_category.dir/dedekind.category-action.pcm"
+		},
+		"dedekind.category:cartesian" : 
+		{
+			"lookup-method" : "by-name",
+			"path" : "CMakeFiles/dedekind_category.dir/dedekind.category-cartesian.pcm"
+		},
+		"dedekind.category:discrete" : 
+		{
+			"lookup-method" : "by-name",
+			"path" : "CMakeFiles/dedekind_category.dir/dedekind.category-discrete.pcm"
+		},
+		"dedekind.category:etcs" : 
+		{
+			"lookup-method" : "by-name",
+			"path" : "CMakeFiles/dedekind_category.dir/dedekind.category-etcs.pcm"
+		},
+		"dedekind.category:functor" : 
+		{
+			"lookup-method" : "by-name",
+			"path" : "CMakeFiles/dedekind_category.dir/dedekind.category-functor.pcm"
+		},
+		"dedekind.category:kleisli" : 
+		{
+			"lookup-method" : "by-name",
+			"path" : "CMakeFiles/dedekind_category.dir/dedekind.category-kleisli.pcm"
+		},
+		"dedekind.category:limit" : 
+		{
+			"lookup-method" : "by-name",
+			"path" : "CMakeFiles/dedekind_category.dir/dedekind.category-limit.pcm"
+		},
+		"dedekind.category:logic" : 
+		{
+			"lookup-method" : "by-name",
+			"path" : "CMakeFiles/dedekind_category.dir/dedekind.category-logic.pcm"
+		},
+		"dedekind.category:mereology" : 
+		{
+			"lookup-method" : "by-name",
+			"path" : "CMakeFiles/dedekind_category.dir/dedekind.category-mereology.pcm"
+		},
+		"dedekind.category:monad" : 
+		{
+			"lookup-method" : "by-name",
+			"path" : "CMakeFiles/dedekind_category.dir/dedekind.category-monad.pcm"
+		},
+		"dedekind.category:morphism" : 
+		{
+			"lookup-method" : "by-name",
+			"path" : "CMakeFiles/dedekind_category.dir/dedekind.category-morphism.pcm"
+		},
+		"dedekind.category:natural" : 
+		{
+			"lookup-method" : "by-name",
+			"path" : "CMakeFiles/dedekind_category.dir/dedekind.category-natural.pcm"
+		},
+		"dedekind.category:numeric" : 
+		{
+			"lookup-method" : "by-name",
+			"path" : "CMakeFiles/dedekind_category.dir/dedekind.category-numeric.pcm"
+		},
+		"dedekind.category:partial" : 
+		{
+			"lookup-method" : "by-name",
+			"path" : "CMakeFiles/dedekind_category.dir/dedekind.category-partial.pcm"
+		},
+		"dedekind.category:posetal" : 
+		{
+			"lookup-method" : "by-name",
+			"path" : "CMakeFiles/dedekind_category.dir/dedekind.category-posetal.pcm"
+		},
+		"dedekind.category:pullback" : 
+		{
+			"lookup-method" : "by-name",
+			"path" : "CMakeFiles/dedekind_category.dir/dedekind.category-pullback.pcm"
+		},
+		"dedekind.category:small" : 
+		{
+			"lookup-method" : "by-name",
+			"path" : "CMakeFiles/dedekind_category.dir/dedekind.category-small.pcm"
+		},
+		"dedekind.category:species" : 
+		{
+			"lookup-method" : "by-name",
+			"path" : "CMakeFiles/dedekind_category.dir/dedekind.category-species.pcm"
+		},
+		"dedekind.category:topoi" : 
+		{
+			"lookup-method" : "by-name",
+			"path" : "CMakeFiles/dedekind_category.dir/dedekind.category-topoi.pcm"
+		},
+		"dedekind.category:total" : 
+		{
+			"lookup-method" : "by-name",
+			"path" : "CMakeFiles/dedekind_category.dir/dedekind.category-total.pcm"
+		},
+		"dedekind.ieee" : 
+		{
+			"lookup-method" : "by-name",
+			"path" : "CMakeFiles/dedekind_ieee.dir/dedekind.ieee.pcm"
+		},
+		"dedekind.ieee.approx" : 
+		{
+			"lookup-method" : "by-name",
+			"path" : "CMakeFiles/dedekind_ieee.dir/dedekind.ieee.approx.pcm"
+		},
+		"dedekind.morphologies" : 
+		{
+			"lookup-method" : "by-name",
+			"path" : "CMakeFiles/dedekind_morphologies.dir/dedekind.morphologies.pcm"
+		},
+		"dedekind.morphologies:archimedean" : 
+		{
+			"lookup-method" : "by-name",
+			"path" : "CMakeFiles/dedekind_morphologies.dir/dedekind.morphologies-archimedean.pcm"
+		},
+		"dedekind.morphologies:cyclic" : 
+		{
+			"lookup-method" : "by-name",
+			"path" : "CMakeFiles/dedekind_morphologies.dir/dedekind.morphologies-cyclic.pcm"
+		},
+		"dedekind.order" : 
+		{
+			"lookup-method" : "by-name",
+			"path" : "CMakeFiles/dedekind_order.dir/dedekind.order.pcm"
+		},
+		"dedekind.sequences" : 
+		{
+			"lookup-method" : "by-name",
+			"path" : "CMakeFiles/dedekind_sequences.dir/dedekind.sequences.pcm"
+		},
+		"dedekind.sequences:curve" : 
+		{
+			"lookup-method" : "by-name",
+			"path" : "CMakeFiles/dedekind_sequences.dir/dedekind.sequences-curve.pcm"
+		},
+		"dedekind.sequences:limits" : 
+		{
+			"lookup-method" : "by-name",
+			"path" : "CMakeFiles/dedekind_sequences.dir/dedekind.sequences-limits.pcm"
+		},
+		"dedekind.sequences:net" : 
+		{
+			"lookup-method" : "by-name",
+			"path" : "CMakeFiles/dedekind_sequences.dir/dedekind.sequences-net.pcm"
+		},
+		"dedekind.sequences:path" : 
+		{
+			"lookup-method" : "by-name",
+			"path" : "CMakeFiles/dedekind_sequences.dir/dedekind.sequences-path.pcm"
+		},
+		"dedekind.sequences:ranges" : 
+		{
+			"lookup-method" : "by-name",
+			"path" : "CMakeFiles/dedekind_sequences.dir/dedekind.sequences-ranges.pcm"
+		},
+		"dedekind.sets" : 
+		{
+			"lookup-method" : "by-name",
+			"path" : "CMakeFiles/dedekind_sets.dir/dedekind.sets.pcm"
+		},
+		"dedekind.sets:boundaries" : 
+		{
+			"lookup-method" : "by-name",
+			"path" : "CMakeFiles/dedekind_sets.dir/dedekind.sets-boundaries.pcm"
+		},
+		"dedekind.sets:expressions" : 
+		{
+			"lookup-method" : "by-name",
+			"path" : "CMakeFiles/dedekind_sets.dir/dedekind.sets-expressions.pcm"
+		},
+		"dedekind.sets:family" : 
+		{
+			"lookup-method" : "by-name",
+			"path" : "CMakeFiles/dedekind_sets.dir/dedekind.sets-family.pcm"
+		},
+		"dedekind.sets:interop" : 
+		{
+			"lookup-method" : "by-name",
+			"path" : "CMakeFiles/dedekind_sets.dir/dedekind.sets-interop.pcm"
+		},
+		"dedekind.sets:mereology" : 
+		{
+			"lookup-method" : "by-name",
+			"path" : "CMakeFiles/dedekind_sets.dir/dedekind.sets-mereology.pcm"
+		},
+		"dedekind.sets:relational" : 
+		{
+			"lookup-method" : "by-name",
+			"path" : "CMakeFiles/dedekind_sets.dir/dedekind.sets-relational.pcm"
+		},
+		"dedekind.sets:singleton" : 
+		{
+			"lookup-method" : "by-name",
+			"path" : "CMakeFiles/dedekind_sets.dir/dedekind.sets-singleton.pcm"
+		},
+		"dedekind.topology" : 
+		{
+			"lookup-method" : "by-name",
+			"path" : "CMakeFiles/dedekind_topology.dir/dedekind.topology.pcm"
+		},
+		"dedekind.topology:interval" : 
+		{
+			"lookup-method" : "by-name",
+			"path" : "CMakeFiles/dedekind_topology.dir/dedekind.topology-interval.pcm"
+		},
+		"dedekind.topology:neighborhood" : 
+		{
+			"lookup-method" : "by-name",
+			"path" : "CMakeFiles/dedekind_topology.dir/dedekind.topology-neighborhood.pcm"
+		}
+	},
+	"usages" : 
+	{
+		"dedekind.algebra" : 
+		[
+			"dedekind.algebra:boolean",
+			"dedekind.algebra:division",
+			"dedekind.algebra:field",
+			"dedekind.algebra:group",
+			"dedekind.algebra:modules",
+			"dedekind.algebra:monoid",
+			"dedekind.algebra:polynomial",
+			"dedekind.algebra:ring",
+			"dedekind.category",
+			"dedekind.category:action",
+			"dedekind.category:cartesian",
+			"dedekind.category:discrete",
+			"dedekind.category:etcs",
+			"dedekind.category:functor",
+			"dedekind.category:kleisli",
+			"dedekind.category:limit",
+			"dedekind.category:logic",
+			"dedekind.category:mereology",
+			"dedekind.category:monad",
+			"dedekind.category:morphism",
+			"dedekind.category:natural",
+			"dedekind.category:numeric",
+			"dedekind.category:partial",
+			"dedekind.category:posetal",
+			"dedekind.category:pullback",
+			"dedekind.category:small",
+			"dedekind.category:species",
+			"dedekind.category:topoi",
+			"dedekind.category:total",
+			"dedekind.ieee",
+			"dedekind.order",
+			"dedekind.sets",
+			"dedekind.sets:boundaries",
+			"dedekind.sets:expressions",
+			"dedekind.sets:interop",
+			"dedekind.sets:mereology",
+			"dedekind.sets:relational",
+			"dedekind.sets:singleton"
+		],
+		"dedekind.algebra:boolean" : 
+		[
+			"dedekind.category",
+			"dedekind.category:action",
+			"dedekind.category:cartesian",
+			"dedekind.category:discrete",
+			"dedekind.category:etcs",
+			"dedekind.category:functor",
+			"dedekind.category:kleisli",
+			"dedekind.category:limit",
+			"dedekind.category:logic",
+			"dedekind.category:mereology",
+			"dedekind.category:monad",
+			"dedekind.category:morphism",
+			"dedekind.category:natural",
+			"dedekind.category:numeric",
+			"dedekind.category:partial",
+			"dedekind.category:posetal",
+			"dedekind.category:pullback",
+			"dedekind.category:small",
+			"dedekind.category:species",
+			"dedekind.category:topoi",
+			"dedekind.category:total",
+			"dedekind.sets",
+			"dedekind.sets:boundaries",
+			"dedekind.sets:expressions",
+			"dedekind.sets:interop",
+			"dedekind.sets:mereology",
+			"dedekind.sets:relational",
+			"dedekind.sets:singleton"
+		],
+		"dedekind.algebra:division" : 
+		[
+			"dedekind.algebra:group",
+			"dedekind.algebra:monoid",
+			"dedekind.algebra:ring",
+			"dedekind.category",
+			"dedekind.category:action",
+			"dedekind.category:cartesian",
+			"dedekind.category:discrete",
+			"dedekind.category:etcs",
+			"dedekind.category:functor",
+			"dedekind.category:kleisli",
+			"dedekind.category:limit",
+			"dedekind.category:logic",
+			"dedekind.category:mereology",
+			"dedekind.category:monad",
+			"dedekind.category:morphism",
+			"dedekind.category:natural",
+			"dedekind.category:numeric",
+			"dedekind.category:partial",
+			"dedekind.category:posetal",
+			"dedekind.category:pullback",
+			"dedekind.category:small",
+			"dedekind.category:species",
+			"dedekind.category:topoi",
+			"dedekind.category:total",
+			"dedekind.order",
+			"dedekind.sets",
+			"dedekind.sets:boundaries",
+			"dedekind.sets:expressions",
+			"dedekind.sets:interop",
+			"dedekind.sets:mereology",
+			"dedekind.sets:relational",
+			"dedekind.sets:singleton"
+		],
+		"dedekind.algebra:field" : 
+		[
+			"dedekind.algebra:division",
+			"dedekind.algebra:group",
+			"dedekind.algebra:monoid",
+			"dedekind.algebra:ring",
+			"dedekind.category",
+			"dedekind.category:action",
+			"dedekind.category:cartesian",
+			"dedekind.category:discrete",
+			"dedekind.category:etcs",
+			"dedekind.category:functor",
+			"dedekind.category:kleisli",
+			"dedekind.category:limit",
+			"dedekind.category:logic",
+			"dedekind.category:mereology",
+			"dedekind.category:monad",
+			"dedekind.category:morphism",
+			"dedekind.category:natural",
+			"dedekind.category:numeric",
+			"dedekind.category:partial",
+			"dedekind.category:posetal",
+			"dedekind.category:pullback",
+			"dedekind.category:small",
+			"dedekind.category:species",
+			"dedekind.category:topoi",
+			"dedekind.category:total",
+			"dedekind.order",
+			"dedekind.sets",
+			"dedekind.sets:boundaries",
+			"dedekind.sets:expressions",
+			"dedekind.sets:interop",
+			"dedekind.sets:mereology",
+			"dedekind.sets:relational",
+			"dedekind.sets:singleton"
+		],
+		"dedekind.algebra:group" : 
+		[
+			"dedekind.algebra:monoid",
+			"dedekind.category",
+			"dedekind.category:action",
+			"dedekind.category:cartesian",
+			"dedekind.category:discrete",
+			"dedekind.category:etcs",
+			"dedekind.category:functor",
+			"dedekind.category:kleisli",
+			"dedekind.category:limit",
+			"dedekind.category:logic",
+			"dedekind.category:mereology",
+			"dedekind.category:monad",
+			"dedekind.category:morphism",
+			"dedekind.category:natural",
+			"dedekind.category:numeric",
+			"dedekind.category:partial",
+			"dedekind.category:posetal",
+			"dedekind.category:pullback",
+			"dedekind.category:small",
+			"dedekind.category:species",
+			"dedekind.category:topoi",
+			"dedekind.category:total"
+		],
+		"dedekind.algebra:modules" : 
+		[
+			"dedekind.algebra:division",
+			"dedekind.algebra:field",
+			"dedekind.algebra:group",
+			"dedekind.algebra:monoid",
+			"dedekind.algebra:polynomial",
+			"dedekind.algebra:ring",
+			"dedekind.category",
+			"dedekind.category:action",
+			"dedekind.category:cartesian",
+			"dedekind.category:discrete",
+			"dedekind.category:etcs",
+			"dedekind.category:functor",
+			"dedekind.category:kleisli",
+			"dedekind.category:limit",
+			"dedekind.category:logic",
+			"dedekind.category:mereology",
+			"dedekind.category:monad",
+			"dedekind.category:morphism",
+			"dedekind.category:natural",
+			"dedekind.category:numeric",
+			"dedekind.category:partial",
+			"dedekind.category:posetal",
+			"dedekind.category:pullback",
+			"dedekind.category:small",
+			"dedekind.category:species",
+			"dedekind.category:topoi",
+			"dedekind.category:total",
+			"dedekind.ieee",
+			"dedekind.order",
+			"dedekind.sets",
+			"dedekind.sets:boundaries",
+			"dedekind.sets:expressions",
+			"dedekind.sets:interop",
+			"dedekind.sets:mereology",
+			"dedekind.sets:relational",
+			"dedekind.sets:singleton"
+		],
+		"dedekind.algebra:monoid" : 
+		[
+			"dedekind.category",
+			"dedekind.category:action",
+			"dedekind.category:cartesian",
+			"dedekind.category:discrete",
+			"dedekind.category:etcs",
+			"dedekind.category:functor",
+			"dedekind.category:kleisli",
+			"dedekind.category:limit",
+			"dedekind.category:logic",
+			"dedekind.category:mereology",
+			"dedekind.category:monad",
+			"dedekind.category:morphism",
+			"dedekind.category:natural",
+			"dedekind.category:numeric",
+			"dedekind.category:partial",
+			"dedekind.category:posetal",
+			"dedekind.category:pullback",
+			"dedekind.category:small",
+			"dedekind.category:species",
+			"dedekind.category:topoi",
+			"dedekind.category:total"
+		],
+		"dedekind.algebra:polynomial" : 
+		[
+			"dedekind.algebra:group",
+			"dedekind.algebra:monoid",
+			"dedekind.algebra:ring",
+			"dedekind.category",
+			"dedekind.category:action",
+			"dedekind.category:cartesian",
+			"dedekind.category:discrete",
+			"dedekind.category:etcs",
+			"dedekind.category:functor",
+			"dedekind.category:kleisli",
+			"dedekind.category:limit",
+			"dedekind.category:logic",
+			"dedekind.category:mereology",
+			"dedekind.category:monad",
+			"dedekind.category:morphism",
+			"dedekind.category:natural",
+			"dedekind.category:numeric",
+			"dedekind.category:partial",
+			"dedekind.category:posetal",
+			"dedekind.category:pullback",
+			"dedekind.category:small",
+			"dedekind.category:species",
+			"dedekind.category:topoi",
+			"dedekind.category:total"
+		],
+		"dedekind.algebra:ring" : 
+		[
+			"dedekind.algebra:group",
+			"dedekind.algebra:monoid",
+			"dedekind.category",
+			"dedekind.category:action",
+			"dedekind.category:cartesian",
+			"dedekind.category:discrete",
+			"dedekind.category:etcs",
+			"dedekind.category:functor",
+			"dedekind.category:kleisli",
+			"dedekind.category:limit",
+			"dedekind.category:logic",
+			"dedekind.category:mereology",
+			"dedekind.category:monad",
+			"dedekind.category:morphism",
+			"dedekind.category:natural",
+			"dedekind.category:numeric",
+			"dedekind.category:partial",
+			"dedekind.category:posetal",
+			"dedekind.category:pullback",
+			"dedekind.category:small",
+			"dedekind.category:species",
+			"dedekind.category:topoi",
+			"dedekind.category:total"
+		],
+		"dedekind.category" : 
+		[
+			"dedekind.category:action",
+			"dedekind.category:cartesian",
+			"dedekind.category:discrete",
+			"dedekind.category:etcs",
+			"dedekind.category:functor",
+			"dedekind.category:kleisli",
+			"dedekind.category:limit",
+			"dedekind.category:logic",
+			"dedekind.category:mereology",
+			"dedekind.category:monad",
+			"dedekind.category:morphism",
+			"dedekind.category:natural",
+			"dedekind.category:numeric",
+			"dedekind.category:partial",
+			"dedekind.category:posetal",
+			"dedekind.category:pullback",
+			"dedekind.category:small",
+			"dedekind.category:species",
+			"dedekind.category:topoi",
+			"dedekind.category:total"
+		],
+		"dedekind.category:action" : 
+		[
+			"dedekind.category:cartesian",
+			"dedekind.category:discrete",
+			"dedekind.category:limit",
+			"dedekind.category:logic",
+			"dedekind.category:mereology",
+			"dedekind.category:morphism",
+			"dedekind.category:posetal",
+			"dedekind.category:pullback",
+			"dedekind.category:small",
+			"dedekind.category:species",
+			"dedekind.category:topoi",
+			"dedekind.category:total"
+		],
+		"dedekind.category:cartesian" : 
+		[
+			"dedekind.category:discrete",
+			"dedekind.category:limit",
+			"dedekind.category:logic",
+			"dedekind.category:mereology",
+			"dedekind.category:morphism",
+			"dedekind.category:posetal",
+			"dedekind.category:small",
+			"dedekind.category:species"
+		],
+		"dedekind.category:discrete" : 
+		[
+			"dedekind.category:logic",
+			"dedekind.category:mereology",
+			"dedekind.category:morphism",
+			"dedekind.category:posetal",
+			"dedekind.category:small",
+			"dedekind.category:species"
+		],
+		"dedekind.category:etcs" : 
+		[
+			"dedekind.category:cartesian",
+			"dedekind.category:discrete",
+			"dedekind.category:limit",
+			"dedekind.category:logic",
+			"dedekind.category:mereology",
+			"dedekind.category:morphism",
+			"dedekind.category:posetal",
+			"dedekind.category:small",
+			"dedekind.category:species",
+			"dedekind.category:topoi"
+		],
+		"dedekind.category:functor" : 
+		[
+			"dedekind.category:action",
+			"dedekind.category:cartesian",
+			"dedekind.category:discrete",
+			"dedekind.category:limit",
+			"dedekind.category:logic",
+			"dedekind.category:mereology",
+			"dedekind.category:morphism",
+			"dedekind.category:posetal",
+			"dedekind.category:pullback",
+			"dedekind.category:small",
+			"dedekind.category:species",
+			"dedekind.category:topoi",
+			"dedekind.category:total"
+		],
+		"dedekind.category:kleisli" : 
+		[
+			"dedekind.category:action",
+			"dedekind.category:cartesian",
+			"dedekind.category:discrete",
+			"dedekind.category:functor",
+			"dedekind.category:limit",
+			"dedekind.category:logic",
+			"dedekind.category:mereology",
+			"dedekind.category:monad",
+			"dedekind.category:morphism",
+			"dedekind.category:natural",
+			"dedekind.category:posetal",
+			"dedekind.category:pullback",
+			"dedekind.category:small",
+			"dedekind.category:species",
+			"dedekind.category:topoi",
+			"dedekind.category:total"
+		],
+		"dedekind.category:limit" : 
+		[
+			"dedekind.category:discrete",
+			"dedekind.category:logic",
+			"dedekind.category:mereology",
+			"dedekind.category:morphism",
+			"dedekind.category:posetal",
+			"dedekind.category:small",
+			"dedekind.category:species"
+		],
+		"dedekind.category:logic" : 
+		[
+			"dedekind.category:mereology",
+			"dedekind.category:morphism",
+			"dedekind.category:species"
+		],
+		"dedekind.category:mereology" : 
+		[
+			"dedekind.category:morphism",
+			"dedekind.category:species"
+		],
+		"dedekind.category:monad" : 
+		[
+			"dedekind.category:action",
+			"dedekind.category:cartesian",
+			"dedekind.category:discrete",
+			"dedekind.category:functor",
+			"dedekind.category:limit",
+			"dedekind.category:logic",
+			"dedekind.category:mereology",
+			"dedekind.category:morphism",
+			"dedekind.category:natural",
+			"dedekind.category:posetal",
+			"dedekind.category:pullback",
+			"dedekind.category:small",
+			"dedekind.category:species",
+			"dedekind.category:topoi",
+			"dedekind.category:total"
+		],
+		"dedekind.category:morphism" : 
+		[
+			"dedekind.category:species"
+		],
+		"dedekind.category:natural" : 
+		[
+			"dedekind.category:action",
+			"dedekind.category:cartesian",
+			"dedekind.category:discrete",
+			"dedekind.category:functor",
+			"dedekind.category:limit",
+			"dedekind.category:logic",
+			"dedekind.category:mereology",
+			"dedekind.category:morphism",
+			"dedekind.category:posetal",
+			"dedekind.category:pullback",
+			"dedekind.category:small",
+			"dedekind.category:species",
+			"dedekind.category:topoi",
+			"dedekind.category:total"
+		],
+		"dedekind.category:numeric" : 
+		[
+			"dedekind.category:cartesian",
+			"dedekind.category:discrete",
+			"dedekind.category:limit",
+			"dedekind.category:logic",
+			"dedekind.category:mereology",
+			"dedekind.category:morphism",
+			"dedekind.category:posetal",
+			"dedekind.category:small",
+			"dedekind.category:species",
+			"dedekind.category:topoi"
+		],
+		"dedekind.category:partial" : 
+		[
+			"dedekind.category:cartesian",
+			"dedekind.category:discrete",
+			"dedekind.category:limit",
+			"dedekind.category:logic",
+			"dedekind.category:mereology",
+			"dedekind.category:morphism",
+			"dedekind.category:numeric",
+			"dedekind.category:posetal",
+			"dedekind.category:small",
+			"dedekind.category:species",
+			"dedekind.category:topoi"
+		],
+		"dedekind.category:posetal" : 
+		[
+			"dedekind.category:logic",
+			"dedekind.category:mereology",
+			"dedekind.category:morphism",
+			"dedekind.category:species"
+		],
+		"dedekind.category:pullback" : 
+		[
+			"dedekind.category:cartesian",
+			"dedekind.category:discrete",
+			"dedekind.category:limit",
+			"dedekind.category:logic",
+			"dedekind.category:mereology",
+			"dedekind.category:morphism",
+			"dedekind.category:posetal",
+			"dedekind.category:small",
+			"dedekind.category:species",
+			"dedekind.category:topoi"
+		],
+		"dedekind.category:small" : 
+		[
+			"dedekind.category:logic",
+			"dedekind.category:mereology",
+			"dedekind.category:morphism",
+			"dedekind.category:posetal",
+			"dedekind.category:species"
+		],
+		"dedekind.category:topoi" : 
+		[
+			"dedekind.category:cartesian",
+			"dedekind.category:discrete",
+			"dedekind.category:limit",
+			"dedekind.category:logic",
+			"dedekind.category:mereology",
+			"dedekind.category:morphism",
+			"dedekind.category:posetal",
+			"dedekind.category:small",
+			"dedekind.category:species"
+		],
+		"dedekind.category:total" : 
+		[
+			"dedekind.category:cartesian",
+			"dedekind.category:discrete",
+			"dedekind.category:limit",
+			"dedekind.category:logic",
+			"dedekind.category:mereology",
+			"dedekind.category:morphism",
+			"dedekind.category:posetal",
+			"dedekind.category:pullback",
+			"dedekind.category:small",
+			"dedekind.category:species",
+			"dedekind.category:topoi"
+		],
+		"dedekind.ieee" : 
+		[
+			"dedekind.category",
+			"dedekind.category:action",
+			"dedekind.category:cartesian",
+			"dedekind.category:discrete",
+			"dedekind.category:etcs",
+			"dedekind.category:functor",
+			"dedekind.category:kleisli",
+			"dedekind.category:limit",
+			"dedekind.category:logic",
+			"dedekind.category:mereology",
+			"dedekind.category:monad",
+			"dedekind.category:morphism",
+			"dedekind.category:natural",
+			"dedekind.category:numeric",
+			"dedekind.category:partial",
+			"dedekind.category:posetal",
+			"dedekind.category:pullback",
+			"dedekind.category:small",
+			"dedekind.category:species",
+			"dedekind.category:topoi",
+			"dedekind.category:total"
+		],
+		"dedekind.ieee.approx" : 
+		[
+			"dedekind.category",
+			"dedekind.category:action",
+			"dedekind.category:cartesian",
+			"dedekind.category:discrete",
+			"dedekind.category:etcs",
+			"dedekind.category:functor",
+			"dedekind.category:kleisli",
+			"dedekind.category:limit",
+			"dedekind.category:logic",
+			"dedekind.category:mereology",
+			"dedekind.category:monad",
+			"dedekind.category:morphism",
+			"dedekind.category:natural",
+			"dedekind.category:numeric",
+			"dedekind.category:partial",
+			"dedekind.category:posetal",
+			"dedekind.category:pullback",
+			"dedekind.category:small",
+			"dedekind.category:species",
+			"dedekind.category:topoi",
+			"dedekind.category:total",
+			"dedekind.ieee"
+		],
+		"dedekind.morphologies" : 
+		[
+			"dedekind.category",
+			"dedekind.category:action",
+			"dedekind.category:cartesian",
+			"dedekind.category:discrete",
+			"dedekind.category:etcs",
+			"dedekind.category:functor",
+			"dedekind.category:kleisli",
+			"dedekind.category:limit",
+			"dedekind.category:logic",
+			"dedekind.category:mereology",
+			"dedekind.category:monad",
+			"dedekind.category:morphism",
+			"dedekind.category:natural",
+			"dedekind.category:numeric",
+			"dedekind.category:partial",
+			"dedekind.category:posetal",
+			"dedekind.category:pullback",
+			"dedekind.category:small",
+			"dedekind.category:species",
+			"dedekind.category:topoi",
+			"dedekind.category:total",
+			"dedekind.morphologies:archimedean",
+			"dedekind.morphologies:cyclic",
+			"dedekind.order",
+			"dedekind.sequences",
+			"dedekind.sequences:curve",
+			"dedekind.sequences:limits",
+			"dedekind.sequences:net",
+			"dedekind.sequences:path",
+			"dedekind.sequences:ranges",
+			"dedekind.sets",
+			"dedekind.sets:boundaries",
+			"dedekind.sets:expressions",
+			"dedekind.sets:interop",
+			"dedekind.sets:mereology",
+			"dedekind.sets:relational",
+			"dedekind.sets:singleton",
+			"dedekind.topology",
+			"dedekind.topology:interval",
+			"dedekind.topology:neighborhood"
+		],
+		"dedekind.morphologies:archimedean" : 
+		[
+			"dedekind.category",
+			"dedekind.category:action",
+			"dedekind.category:cartesian",
+			"dedekind.category:discrete",
+			"dedekind.category:etcs",
+			"dedekind.category:functor",
+			"dedekind.category:kleisli",
+			"dedekind.category:limit",
+			"dedekind.category:logic",
+			"dedekind.category:mereology",
+			"dedekind.category:monad",
+			"dedekind.category:morphism",
+			"dedekind.category:natural",
+			"dedekind.category:numeric",
+			"dedekind.category:partial",
+			"dedekind.category:posetal",
+			"dedekind.category:pullback",
+			"dedekind.category:small",
+			"dedekind.category:species",
+			"dedekind.category:topoi",
+			"dedekind.category:total",
+			"dedekind.order",
+			"dedekind.sequences",
+			"dedekind.sequences:curve",
+			"dedekind.sequences:limits",
+			"dedekind.sequences:net",
+			"dedekind.sequences:path",
+			"dedekind.sequences:ranges",
+			"dedekind.sets",
+			"dedekind.sets:boundaries",
+			"dedekind.sets:expressions",
+			"dedekind.sets:interop",
+			"dedekind.sets:mereology",
+			"dedekind.sets:relational",
+			"dedekind.sets:singleton",
+			"dedekind.topology",
+			"dedekind.topology:interval",
+			"dedekind.topology:neighborhood"
+		],
+		"dedekind.order" : 
+		[
+			"dedekind.category",
+			"dedekind.category:action",
+			"dedekind.category:cartesian",
+			"dedekind.category:discrete",
+			"dedekind.category:etcs",
+			"dedekind.category:functor",
+			"dedekind.category:kleisli",
+			"dedekind.category:limit",
+			"dedekind.category:logic",
+			"dedekind.category:mereology",
+			"dedekind.category:monad",
+			"dedekind.category:morphism",
+			"dedekind.category:natural",
+			"dedekind.category:numeric",
+			"dedekind.category:partial",
+			"dedekind.category:posetal",
+			"dedekind.category:pullback",
+			"dedekind.category:small",
+			"dedekind.category:species",
+			"dedekind.category:topoi",
+			"dedekind.category:total",
+			"dedekind.sets",
+			"dedekind.sets:boundaries",
+			"dedekind.sets:expressions",
+			"dedekind.sets:interop",
+			"dedekind.sets:mereology",
+			"dedekind.sets:relational",
+			"dedekind.sets:singleton"
+		],
+		"dedekind.sequences" : 
+		[
+			"dedekind.category",
+			"dedekind.category:action",
+			"dedekind.category:cartesian",
+			"dedekind.category:discrete",
+			"dedekind.category:etcs",
+			"dedekind.category:functor",
+			"dedekind.category:kleisli",
+			"dedekind.category:limit",
+			"dedekind.category:logic",
+			"dedekind.category:mereology",
+			"dedekind.category:monad",
+			"dedekind.category:morphism",
+			"dedekind.category:natural",
+			"dedekind.category:numeric",
+			"dedekind.category:partial",
+			"dedekind.category:posetal",
+			"dedekind.category:pullback",
+			"dedekind.category:small",
+			"dedekind.category:species",
+			"dedekind.category:topoi",
+			"dedekind.category:total",
+			"dedekind.order",
+			"dedekind.sequences:curve",
+			"dedekind.sequences:limits",
+			"dedekind.sequences:net",
+			"dedekind.sequences:path",
+			"dedekind.sequences:ranges",
+			"dedekind.sets",
+			"dedekind.sets:boundaries",
+			"dedekind.sets:expressions",
+			"dedekind.sets:interop",
+			"dedekind.sets:mereology",
+			"dedekind.sets:relational",
+			"dedekind.sets:singleton",
+			"dedekind.topology",
+			"dedekind.topology:interval",
+			"dedekind.topology:neighborhood"
+		],
+		"dedekind.sequences:curve" : 
+		[
+			"dedekind.category",
+			"dedekind.category:action",
+			"dedekind.category:cartesian",
+			"dedekind.category:discrete",
+			"dedekind.category:etcs",
+			"dedekind.category:functor",
+			"dedekind.category:kleisli",
+			"dedekind.category:limit",
+			"dedekind.category:logic",
+			"dedekind.category:mereology",
+			"dedekind.category:monad",
+			"dedekind.category:morphism",
+			"dedekind.category:natural",
+			"dedekind.category:numeric",
+			"dedekind.category:partial",
+			"dedekind.category:posetal",
+			"dedekind.category:pullback",
+			"dedekind.category:small",
+			"dedekind.category:species",
+			"dedekind.category:topoi",
+			"dedekind.category:total",
+			"dedekind.order",
+			"dedekind.sequences:net",
+			"dedekind.sets",
+			"dedekind.sets:boundaries",
+			"dedekind.sets:expressions",
+			"dedekind.sets:interop",
+			"dedekind.sets:mereology",
+			"dedekind.sets:relational",
+			"dedekind.sets:singleton"
+		],
+		"dedekind.sequences:limits" : 
+		[
+			"dedekind.category",
+			"dedekind.category:action",
+			"dedekind.category:cartesian",
+			"dedekind.category:discrete",
+			"dedekind.category:etcs",
+			"dedekind.category:functor",
+			"dedekind.category:kleisli",
+			"dedekind.category:limit",
+			"dedekind.category:logic",
+			"dedekind.category:mereology",
+			"dedekind.category:monad",
+			"dedekind.category:morphism",
+			"dedekind.category:natural",
+			"dedekind.category:numeric",
+			"dedekind.category:partial",
+			"dedekind.category:posetal",
+			"dedekind.category:pullback",
+			"dedekind.category:small",
+			"dedekind.category:species",
+			"dedekind.category:topoi",
+			"dedekind.category:total",
+			"dedekind.order",
+			"dedekind.sequences:net",
+			"dedekind.sequences:path",
+			"dedekind.sets",
+			"dedekind.sets:boundaries",
+			"dedekind.sets:expressions",
+			"dedekind.sets:interop",
+			"dedekind.sets:mereology",
+			"dedekind.sets:relational",
+			"dedekind.sets:singleton",
+			"dedekind.topology",
+			"dedekind.topology:interval",
+			"dedekind.topology:neighborhood"
+		],
+		"dedekind.sequences:net" : 
+		[
+			"dedekind.category",
+			"dedekind.category:action",
+			"dedekind.category:cartesian",
+			"dedekind.category:discrete",
+			"dedekind.category:etcs",
+			"dedekind.category:functor",
+			"dedekind.category:kleisli",
+			"dedekind.category:limit",
+			"dedekind.category:logic",
+			"dedekind.category:mereology",
+			"dedekind.category:monad",
+			"dedekind.category:morphism",
+			"dedekind.category:natural",
+			"dedekind.category:numeric",
+			"dedekind.category:partial",
+			"dedekind.category:posetal",
+			"dedekind.category:pullback",
+			"dedekind.category:small",
+			"dedekind.category:species",
+			"dedekind.category:topoi",
+			"dedekind.category:total",
+			"dedekind.order",
+			"dedekind.sets",
+			"dedekind.sets:boundaries",
+			"dedekind.sets:expressions",
+			"dedekind.sets:interop",
+			"dedekind.sets:mereology",
+			"dedekind.sets:relational",
+			"dedekind.sets:singleton"
+		],
+		"dedekind.sequences:path" : 
+		[
+			"dedekind.category",
+			"dedekind.category:action",
+			"dedekind.category:cartesian",
+			"dedekind.category:discrete",
+			"dedekind.category:etcs",
+			"dedekind.category:functor",
+			"dedekind.category:kleisli",
+			"dedekind.category:limit",
+			"dedekind.category:logic",
+			"dedekind.category:mereology",
+			"dedekind.category:monad",
+			"dedekind.category:morphism",
+			"dedekind.category:natural",
+			"dedekind.category:numeric",
+			"dedekind.category:partial",
+			"dedekind.category:posetal",
+			"dedekind.category:pullback",
+			"dedekind.category:small",
+			"dedekind.category:species",
+			"dedekind.category:topoi",
+			"dedekind.category:total",
+			"dedekind.order",
+			"dedekind.sequences:net",
+			"dedekind.sets",
+			"dedekind.sets:boundaries",
+			"dedekind.sets:expressions",
+			"dedekind.sets:interop",
+			"dedekind.sets:mereology",
+			"dedekind.sets:relational",
+			"dedekind.sets:singleton"
+		],
+		"dedekind.sequences:ranges" : 
+		[
+			"dedekind.category",
+			"dedekind.category:action",
+			"dedekind.category:cartesian",
+			"dedekind.category:discrete",
+			"dedekind.category:etcs",
+			"dedekind.category:functor",
+			"dedekind.category:kleisli",
+			"dedekind.category:limit",
+			"dedekind.category:logic",
+			"dedekind.category:mereology",
+			"dedekind.category:monad",
+			"dedekind.category:morphism",
+			"dedekind.category:natural",
+			"dedekind.category:numeric",
+			"dedekind.category:partial",
+			"dedekind.category:posetal",
+			"dedekind.category:pullback",
+			"dedekind.category:small",
+			"dedekind.category:species",
+			"dedekind.category:topoi",
+			"dedekind.category:total",
+			"dedekind.order",
+			"dedekind.sequences:net",
+			"dedekind.sequences:path",
+			"dedekind.sets",
+			"dedekind.sets:boundaries",
+			"dedekind.sets:expressions",
+			"dedekind.sets:interop",
+			"dedekind.sets:mereology",
+			"dedekind.sets:relational",
+			"dedekind.sets:singleton",
+			"dedekind.topology",
+			"dedekind.topology:interval",
+			"dedekind.topology:neighborhood"
+		],
+		"dedekind.sets" : 
+		[
+			"dedekind.category",
+			"dedekind.category:action",
+			"dedekind.category:cartesian",
+			"dedekind.category:discrete",
+			"dedekind.category:etcs",
+			"dedekind.category:functor",
+			"dedekind.category:kleisli",
+			"dedekind.category:limit",
+			"dedekind.category:logic",
+			"dedekind.category:mereology",
+			"dedekind.category:monad",
+			"dedekind.category:morphism",
+			"dedekind.category:natural",
+			"dedekind.category:numeric",
+			"dedekind.category:partial",
+			"dedekind.category:posetal",
+			"dedekind.category:pullback",
+			"dedekind.category:small",
+			"dedekind.category:species",
+			"dedekind.category:topoi",
+			"dedekind.category:total",
+			"dedekind.sets:boundaries",
+			"dedekind.sets:expressions",
+			"dedekind.sets:interop",
+			"dedekind.sets:mereology",
+			"dedekind.sets:relational",
+			"dedekind.sets:singleton"
+		],
+		"dedekind.sets:boundaries" : 
+		[
+			"dedekind.category",
+			"dedekind.category:action",
+			"dedekind.category:cartesian",
+			"dedekind.category:discrete",
+			"dedekind.category:etcs",
+			"dedekind.category:functor",
+			"dedekind.category:kleisli",
+			"dedekind.category:limit",
+			"dedekind.category:logic",
+			"dedekind.category:mereology",
+			"dedekind.category:monad",
+			"dedekind.category:morphism",
+			"dedekind.category:natural",
+			"dedekind.category:numeric",
+			"dedekind.category:partial",
+			"dedekind.category:posetal",
+			"dedekind.category:pullback",
+			"dedekind.category:small",
+			"dedekind.category:species",
+			"dedekind.category:topoi",
+			"dedekind.category:total",
+			"dedekind.sets:mereology"
+		],
+		"dedekind.sets:expressions" : 
+		[
+			"dedekind.category",
+			"dedekind.category:action",
+			"dedekind.category:cartesian",
+			"dedekind.category:discrete",
+			"dedekind.category:etcs",
+			"dedekind.category:functor",
+			"dedekind.category:kleisli",
+			"dedekind.category:limit",
+			"dedekind.category:logic",
+			"dedekind.category:mereology",
+			"dedekind.category:monad",
+			"dedekind.category:morphism",
+			"dedekind.category:natural",
+			"dedekind.category:numeric",
+			"dedekind.category:partial",
+			"dedekind.category:posetal",
+			"dedekind.category:pullback",
+			"dedekind.category:small",
+			"dedekind.category:species",
+			"dedekind.category:topoi",
+			"dedekind.category:total",
+			"dedekind.sets:boundaries",
+			"dedekind.sets:mereology"
+		],
+		"dedekind.sets:family" : 
+		[
+			"dedekind.category",
+			"dedekind.category:action",
+			"dedekind.category:cartesian",
+			"dedekind.category:discrete",
+			"dedekind.category:etcs",
+			"dedekind.category:functor",
+			"dedekind.category:kleisli",
+			"dedekind.category:limit",
+			"dedekind.category:logic",
+			"dedekind.category:mereology",
+			"dedekind.category:monad",
+			"dedekind.category:morphism",
+			"dedekind.category:natural",
+			"dedekind.category:numeric",
+			"dedekind.category:partial",
+			"dedekind.category:posetal",
+			"dedekind.category:pullback",
+			"dedekind.category:small",
+			"dedekind.category:species",
+			"dedekind.category:topoi",
+			"dedekind.category:total",
+			"dedekind.sets:boundaries",
+			"dedekind.sets:expressions",
+			"dedekind.sets:mereology",
+			"dedekind.sets:singleton"
+		],
+		"dedekind.sets:interop" : 
+		[
+			"dedekind.category",
+			"dedekind.category:action",
+			"dedekind.category:cartesian",
+			"dedekind.category:discrete",
+			"dedekind.category:etcs",
+			"dedekind.category:functor",
+			"dedekind.category:kleisli",
+			"dedekind.category:limit",
+			"dedekind.category:logic",
+			"dedekind.category:mereology",
+			"dedekind.category:monad",
+			"dedekind.category:morphism",
+			"dedekind.category:natural",
+			"dedekind.category:numeric",
+			"dedekind.category:partial",
+			"dedekind.category:posetal",
+			"dedekind.category:pullback",
+			"dedekind.category:small",
+			"dedekind.category:species",
+			"dedekind.category:topoi",
+			"dedekind.category:total",
+			"dedekind.sets:mereology"
+		],
+		"dedekind.sets:mereology" : 
+		[
+			"dedekind.category",
+			"dedekind.category:action",
+			"dedekind.category:cartesian",
+			"dedekind.category:discrete",
+			"dedekind.category:etcs",
+			"dedekind.category:functor",
+			"dedekind.category:kleisli",
+			"dedekind.category:limit",
+			"dedekind.category:logic",
+			"dedekind.category:mereology",
+			"dedekind.category:monad",
+			"dedekind.category:morphism",
+			"dedekind.category:natural",
+			"dedekind.category:numeric",
+			"dedekind.category:partial",
+			"dedekind.category:posetal",
+			"dedekind.category:pullback",
+			"dedekind.category:small",
+			"dedekind.category:species",
+			"dedekind.category:topoi",
+			"dedekind.category:total"
+		],
+		"dedekind.sets:relational" : 
+		[
+			"dedekind.category",
+			"dedekind.category:action",
+			"dedekind.category:cartesian",
+			"dedekind.category:discrete",
+			"dedekind.category:etcs",
+			"dedekind.category:functor",
+			"dedekind.category:kleisli",
+			"dedekind.category:limit",
+			"dedekind.category:logic",
+			"dedekind.category:mereology",
+			"dedekind.category:monad",
+			"dedekind.category:morphism",
+			"dedekind.category:natural",
+			"dedekind.category:numeric",
+			"dedekind.category:partial",
+			"dedekind.category:posetal",
+			"dedekind.category:pullback",
+			"dedekind.category:small",
+			"dedekind.category:species",
+			"dedekind.category:topoi",
+			"dedekind.category:total",
+			"dedekind.sets:boundaries",
+			"dedekind.sets:expressions",
+			"dedekind.sets:mereology"
+		],
+		"dedekind.sets:singleton" : 
+		[
+			"dedekind.category",
+			"dedekind.category:action",
+			"dedekind.category:cartesian",
+			"dedekind.category:discrete",
+			"dedekind.category:etcs",
+			"dedekind.category:functor",
+			"dedekind.category:kleisli",
+			"dedekind.category:limit",
+			"dedekind.category:logic",
+			"dedekind.category:mereology",
+			"dedekind.category:monad",
+			"dedekind.category:morphism",
+			"dedekind.category:natural",
+			"dedekind.category:numeric",
+			"dedekind.category:partial",
+			"dedekind.category:posetal",
+			"dedekind.category:pullback",
+			"dedekind.category:small",
+			"dedekind.category:species",
+			"dedekind.category:topoi",
+			"dedekind.category:total",
+			"dedekind.sets:boundaries",
+			"dedekind.sets:expressions",
+			"dedekind.sets:mereology"
+		],
+		"dedekind.topology" : 
+		[
+			"dedekind.category",
+			"dedekind.category:action",
+			"dedekind.category:cartesian",
+			"dedekind.category:discrete",
+			"dedekind.category:etcs",
+			"dedekind.category:functor",
+			"dedekind.category:kleisli",
+			"dedekind.category:limit",
+			"dedekind.category:logic",
+			"dedekind.category:mereology",
+			"dedekind.category:monad",
+			"dedekind.category:morphism",
+			"dedekind.category:natural",
+			"dedekind.category:numeric",
+			"dedekind.category:partial",
+			"dedekind.category:posetal",
+			"dedekind.category:pullback",
+			"dedekind.category:small",
+			"dedekind.category:species",
+			"dedekind.category:topoi",
+			"dedekind.category:total",
+			"dedekind.order",
+			"dedekind.sets",
+			"dedekind.sets:boundaries",
+			"dedekind.sets:expressions",
+			"dedekind.sets:interop",
+			"dedekind.sets:mereology",
+			"dedekind.sets:relational",
+			"dedekind.sets:singleton",
+			"dedekind.topology:interval",
+			"dedekind.topology:neighborhood"
+		],
+		"dedekind.topology:interval" : 
+		[
+			"dedekind.category",
+			"dedekind.category:action",
+			"dedekind.category:cartesian",
+			"dedekind.category:discrete",
+			"dedekind.category:etcs",
+			"dedekind.category:functor",
+			"dedekind.category:kleisli",
+			"dedekind.category:limit",
+			"dedekind.category:logic",
+			"dedekind.category:mereology",
+			"dedekind.category:monad",
+			"dedekind.category:morphism",
+			"dedekind.category:natural",
+			"dedekind.category:numeric",
+			"dedekind.category:partial",
+			"dedekind.category:posetal",
+			"dedekind.category:pullback",
+			"dedekind.category:small",
+			"dedekind.category:species",
+			"dedekind.category:topoi",
+			"dedekind.category:total",
+			"dedekind.order",
+			"dedekind.sets",
+			"dedekind.sets:boundaries",
+			"dedekind.sets:expressions",
+			"dedekind.sets:interop",
+			"dedekind.sets:mereology",
+			"dedekind.sets:relational",
+			"dedekind.sets:singleton",
+			"dedekind.topology:neighborhood"
+		],
+		"dedekind.topology:neighborhood" : 
+		[
+			"dedekind.category",
+			"dedekind.category:action",
+			"dedekind.category:cartesian",
+			"dedekind.category:discrete",
+			"dedekind.category:etcs",
+			"dedekind.category:functor",
+			"dedekind.category:kleisli",
+			"dedekind.category:limit",
+			"dedekind.category:logic",
+			"dedekind.category:mereology",
+			"dedekind.category:monad",
+			"dedekind.category:morphism",
+			"dedekind.category:natural",
+			"dedekind.category:numeric",
+			"dedekind.category:partial",
+			"dedekind.category:posetal",
+			"dedekind.category:pullback",
+			"dedekind.category:small",
+			"dedekind.category:species",
+			"dedekind.category:topoi",
+			"dedekind.category:total",
+			"dedekind.order",
+			"dedekind.sets",
+			"dedekind.sets:boundaries",
+			"dedekind.sets:expressions",
+			"dedekind.sets:interop",
+			"dedekind.sets:mereology",
+			"dedekind.sets:relational",
+			"dedekind.sets:singleton"
+		]
+	}
+}

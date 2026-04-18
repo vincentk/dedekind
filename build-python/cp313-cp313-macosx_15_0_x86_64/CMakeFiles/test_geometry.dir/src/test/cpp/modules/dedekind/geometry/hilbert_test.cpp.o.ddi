@@ -1,0 +1,17 @@
+{
+  "revision": 0,
+  "rules": [
+    {
+      "primary-output": "CMakeFiles/test_geometry.dir/src/test/cpp/modules/dedekind/geometry/hilbert_test.cpp.o",
+      "requires": [
+        {
+          "logical-name": "dedekind.geometry"
+        },
+        {
+          "logical-name": "dedekind.morphologies"
+        }
+      ]
+    }
+  ],
+  "version": 1
+}

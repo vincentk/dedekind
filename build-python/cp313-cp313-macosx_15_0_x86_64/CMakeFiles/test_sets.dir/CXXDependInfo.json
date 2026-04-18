@@ -1,0 +1,66 @@
+{
+	"bmi-installation" : null,
+	"compiler-frontend-variant" : "GNU",
+	"compiler-id" : "Clang",
+	"compiler-simulate-id" : "",
+	"config" : "Release",
+	"cxx-modules" : {},
+	"database-info" : null,
+	"dir-cur-bld" : "/Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64",
+	"dir-cur-src" : "/Users/vincent/git/github.com/vincentk/dedekind",
+	"dir-top-bld" : "/Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64",
+	"dir-top-src" : "/Users/vincent/git/github.com/vincentk/dedekind",
+	"exports" : [],
+	"forward-modules-from-target-dirs" : [],
+	"include-dirs" : 
+	[
+		"_deps/catch2-src/src/catch2/..",
+		"_deps/catch2-build/generated-includes"
+	],
+	"language" : "CXX",
+	"linked-target-dirs" : 
+	[
+		"/Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64/CMakeFiles/dedekind_sets.dir",
+		"/Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64/CMakeFiles/dedekind_ieee.dir",
+		"/Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64/CMakeFiles/dedekind_category.dir"
+	],
+	"module-dir" : "/Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64/CMakeFiles/test_sets.dir",
+	"sources" : 
+	{
+		"CMakeFiles/test_sets.dir/src/test/cpp/modules/dedekind/sets/boundaries_test.cpp.o" : 
+		{
+			"language" : "CXX",
+			"source" : "/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/sets/boundaries_test.cpp"
+		},
+		"CMakeFiles/test_sets.dir/src/test/cpp/modules/dedekind/sets/category_integration_test.cpp.o" : 
+		{
+			"language" : "CXX",
+			"source" : "/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/sets/category_integration_test.cpp"
+		},
+		"CMakeFiles/test_sets.dir/src/test/cpp/modules/dedekind/sets/expressions_test.cpp.o" : 
+		{
+			"language" : "CXX",
+			"source" : "/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/sets/expressions_test.cpp"
+		},
+		"CMakeFiles/test_sets.dir/src/test/cpp/modules/dedekind/sets/interop_test.cpp.o" : 
+		{
+			"language" : "CXX",
+			"source" : "/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/sets/interop_test.cpp"
+		},
+		"CMakeFiles/test_sets.dir/src/test/cpp/modules/dedekind/sets/mereology_test.cpp.o" : 
+		{
+			"language" : "CXX",
+			"source" : "/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/sets/mereology_test.cpp"
+		},
+		"CMakeFiles/test_sets.dir/src/test/cpp/modules/dedekind/sets/relational_test.cpp.o" : 
+		{
+			"language" : "CXX",
+			"source" : "/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/sets/relational_test.cpp"
+		},
+		"CMakeFiles/test_sets.dir/src/test/cpp/modules/dedekind/sets/singleton_test.cpp.o" : 
+		{
+			"language" : "CXX",
+			"source" : "/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/sets/singleton_test.cpp"
+		}
+	}
+}

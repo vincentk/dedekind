@@ -1,0 +1,131 @@
+{
+	"bmi-installation" : null,
+	"compiler-frontend-variant" : "GNU",
+	"compiler-id" : "Clang",
+	"compiler-simulate-id" : "",
+	"config" : "Release",
+	"cxx-modules" : 
+	{
+		"CMakeFiles/dedekind_algebra.dir/src/main/modules/dedekind/algebra/algebra.cppm.o" : 
+		{
+			"bmi-only" : false,
+			"destination" : "lib/modules/dedekind",
+			"name" : "CXX_MODULES",
+			"relative-directory" : "dedekind/algebra",
+			"source" : "/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/algebra/algebra.cppm",
+			"type" : "CXX_MODULES",
+			"visibility" : "PUBLIC"
+		},
+		"CMakeFiles/dedekind_algebra.dir/src/main/modules/dedekind/algebra/boolean.cppm.o" : 
+		{
+			"bmi-only" : false,
+			"destination" : "lib/modules/dedekind",
+			"name" : "CXX_MODULES",
+			"relative-directory" : "dedekind/algebra",
+			"source" : "/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/algebra/boolean.cppm",
+			"type" : "CXX_MODULES",
+			"visibility" : "PUBLIC"
+		},
+		"CMakeFiles/dedekind_algebra.dir/src/main/modules/dedekind/algebra/division.cppm.o" : 
+		{
+			"bmi-only" : false,
+			"destination" : "lib/modules/dedekind",
+			"name" : "CXX_MODULES",
+			"relative-directory" : "dedekind/algebra",
+			"source" : "/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/algebra/division.cppm",
+			"type" : "CXX_MODULES",
+			"visibility" : "PUBLIC"
+		},
+		"CMakeFiles/dedekind_algebra.dir/src/main/modules/dedekind/algebra/field.cppm.o" : 
+		{
+			"bmi-only" : false,
+			"destination" : "lib/modules/dedekind",
+			"name" : "CXX_MODULES",
+			"relative-directory" : "dedekind/algebra",
+			"source" : "/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/algebra/field.cppm",
+			"type" : "CXX_MODULES",
+			"visibility" : "PUBLIC"
+		},
+		"CMakeFiles/dedekind_algebra.dir/src/main/modules/dedekind/algebra/group.cppm.o" : 
+		{
+			"bmi-only" : false,
+			"destination" : "lib/modules/dedekind",
+			"name" : "CXX_MODULES",
+			"relative-directory" : "dedekind/algebra",
+			"source" : "/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/algebra/group.cppm",
+			"type" : "CXX_MODULES",
+			"visibility" : "PUBLIC"
+		},
+		"CMakeFiles/dedekind_algebra.dir/src/main/modules/dedekind/algebra/modules.cppm.o" : 
+		{
+			"bmi-only" : false,
+			"destination" : "lib/modules/dedekind",
+			"name" : "CXX_MODULES",
+			"relative-directory" : "dedekind/algebra",
+			"source" : "/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/algebra/modules.cppm",
+			"type" : "CXX_MODULES",
+			"visibility" : "PUBLIC"
+		},
+		"CMakeFiles/dedekind_algebra.dir/src/main/modules/dedekind/algebra/monoid.cppm.o" : 
+		{
+			"bmi-only" : false,
+			"destination" : "lib/modules/dedekind",
+			"name" : "CXX_MODULES",
+			"relative-directory" : "dedekind/algebra",
+			"source" : "/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/algebra/monoid.cppm",
+			"type" : "CXX_MODULES",
+			"visibility" : "PUBLIC"
+		},
+		"CMakeFiles/dedekind_algebra.dir/src/main/modules/dedekind/algebra/polynomial.cppm.o" : 
+		{
+			"bmi-only" : false,
+			"destination" : "lib/modules/dedekind",
+			"name" : "CXX_MODULES",
+			"relative-directory" : "dedekind/algebra",
+			"source" : "/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/algebra/polynomial.cppm",
+			"type" : "CXX_MODULES",
+			"visibility" : "PUBLIC"
+		},
+		"CMakeFiles/dedekind_algebra.dir/src/main/modules/dedekind/algebra/ring.cppm.o" : 
+		{
+			"bmi-only" : false,
+			"destination" : "lib/modules/dedekind",
+			"name" : "CXX_MODULES",
+			"relative-directory" : "dedekind/algebra",
+			"source" : "/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/algebra/ring.cppm",
+			"type" : "CXX_MODULES",
+			"visibility" : "PUBLIC"
+		}
+	},
+	"database-info" : null,
+	"dir-cur-bld" : "/Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64",
+	"dir-cur-src" : "/Users/vincent/git/github.com/vincentk/dedekind",
+	"dir-top-bld" : "/Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64",
+	"dir-top-src" : "/Users/vincent/git/github.com/vincentk/dedekind",
+	"exports" : 
+	[
+		{
+			"cxx-module-info-dir" : "",
+			"destination" : "lib/cmake/dedekind",
+			"export-name" : "dedekind_algebra",
+			"export-prefix" : "/Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64/CMakeFiles/Export/c5f9e0e933ccec5e7c33f03ece73c2ce",
+			"filesystem-export-name" : "dedekind__algebra",
+			"install" : true,
+			"namespace" : "dedekind::"
+		}
+	],
+	"forward-modules-from-target-dirs" : [],
+	"include-dirs" : [],
+	"language" : "CXX",
+	"linked-target-dirs" : 
+	[
+		"/Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64/CMakeFiles/dedekind_sequences.dir",
+		"/Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64/CMakeFiles/dedekind_topology.dir",
+		"/Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64/CMakeFiles/dedekind_order.dir",
+		"/Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64/CMakeFiles/dedekind_sets.dir",
+		"/Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64/CMakeFiles/dedekind_ieee.dir",
+		"/Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64/CMakeFiles/dedekind_category.dir"
+	],
+	"module-dir" : "/Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64/CMakeFiles/dedekind_algebra.dir",
+	"sources" : {}
+}

@@ -1,0 +1,616 @@
+{
+	"globsDependent" : 
+	[
+		{
+			"expression" : "/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/algebra/*.cppm",
+			"listDirectories" : true,
+			"paths" : 
+			[
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/algebra/algebra.cppm",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/algebra/boolean.cppm",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/algebra/division.cppm",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/algebra/field.cppm",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/algebra/group.cppm",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/algebra/modules.cppm",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/algebra/monoid.cppm",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/algebra/polynomial.cppm",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/algebra/ring.cppm"
+			]
+		},
+		{
+			"expression" : "/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/analysis/*.cppm",
+			"listDirectories" : true,
+			"paths" : 
+			[
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/analysis/analysis.cppm",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/analysis/exterior.cppm",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/analysis/forms.cppm",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/analysis/hamilton.cppm",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/analysis/kernels.cppm"
+			]
+		},
+		{
+			"expression" : "/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/category/*.cppm",
+			"listDirectories" : true,
+			"paths" : 
+			[
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/category/action.cppm",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/category/cartesian.cppm",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/category/category.cppm",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/category/discrete.cppm",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/category/etcs.cppm",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/category/functor.cppm",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/category/kleisli.cppm",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/category/limit.cppm",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/category/logic.cppm",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/category/mereology.cppm",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/category/monad.cppm",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/category/morphism.cppm",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/category/natural.cppm",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/category/numeric.cppm",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/category/partial.cppm",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/category/posetal.cppm",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/category/pullback.cppm",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/category/small.cppm",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/category/species.cppm",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/category/topoi.cppm",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/category/total.cppm"
+			]
+		},
+		{
+			"expression" : "/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/geometry/*.cppm",
+			"listDirectories" : true,
+			"paths" : 
+			[
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/geometry/affine.cppm",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/geometry/euclidean.cppm",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/geometry/geometry.cppm",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/geometry/hilbert.cppm",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/geometry/inner_product.cppm",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/geometry/lattice.cppm",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/geometry/linear_map.cppm"
+			]
+		},
+		{
+			"expression" : "/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/ieee/*.cppm",
+			"listDirectories" : true,
+			"paths" : 
+			[
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/ieee/approx.cppm",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/ieee/ieee.cppm"
+			]
+		},
+		{
+			"expression" : "/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/morphologies/*.cppm",
+			"listDirectories" : true,
+			"paths" : 
+			[
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/morphologies/archimedean.cppm",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/morphologies/cyclic.cppm",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/morphologies/morphologies.cppm"
+			]
+		},
+		{
+			"expression" : "/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/numbers/*.cppm",
+			"listDirectories" : true,
+			"paths" : 
+			[
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/numbers/approx.cppm",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/numbers/booleans.cppm",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/numbers/complex.cppm",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/numbers/constants.cppm",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/numbers/dual.cppm",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/numbers/ieee.cppm",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/numbers/integer.cppm",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/numbers/lattice.cppm",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/numbers/mandelbrot.cppm",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/numbers/naturals.cppm",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/numbers/numbers.cppm",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/numbers/quaternion.cppm",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/numbers/rational.cppm",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/numbers/real.cppm",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/numbers/scalars.cppm",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/numbers/symbolic.cppm"
+			]
+		},
+		{
+			"expression" : "/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/order/*.cppm",
+			"listDirectories" : true,
+			"paths" : 
+			[
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/order/order.cppm"
+			]
+		},
+		{
+			"expression" : "/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/python/*.cppm",
+			"listDirectories" : true,
+			"paths" : 
+			[
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/python/python.cppm"
+			]
+		},
+		{
+			"expression" : "/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/sequences/*.cppm",
+			"listDirectories" : true,
+			"paths" : 
+			[
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/sequences/curve.cppm",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/sequences/limits.cppm",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/sequences/net.cppm",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/sequences/path.cppm",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/sequences/ranges.cppm",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/sequences/sequences.cppm"
+			]
+		},
+		{
+			"expression" : "/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/sets/*.cppm",
+			"listDirectories" : true,
+			"paths" : 
+			[
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/sets/boundaries.cppm",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/sets/expressions.cppm",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/sets/family.cppm",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/sets/interop.cppm",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/sets/mereology.cppm",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/sets/relational.cppm",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/sets/sets.cppm",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/sets/singleton.cppm"
+			]
+		},
+		{
+			"expression" : "/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/topology/*.cppm",
+			"listDirectories" : true,
+			"paths" : 
+			[
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/topology/interval.cppm",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/topology/neighborhood.cppm",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/topology/topology.cppm"
+			]
+		},
+		{
+			"expression" : "/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/algebra/*_test.cpp",
+			"listDirectories" : true,
+			"paths" : 
+			[
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/algebra/boolean_test.cpp",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/algebra/group_test.cpp",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/algebra/module_test.cpp",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/algebra/monoid_test.cpp",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/algebra/polynomials_test.cpp",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/algebra/ring_test.cpp"
+			]
+		},
+		{
+			"expression" : "/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/analysis/*_test.cpp",
+			"listDirectories" : true,
+			"paths" : 
+			[
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/analysis/forms_test.cpp",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/analysis/hamilton_test.cpp",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/analysis/kernels_test.cpp"
+			]
+		},
+		{
+			"expression" : "/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/category/*_test.cpp",
+			"listDirectories" : true,
+			"paths" : 
+			[
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/category/cartesian_test.cpp",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/category/etcs_axioms_test.cpp",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/category/etcs_test.cpp",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/category/functor_test.cpp",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/category/kleisli_test.cpp",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/category/limit_test.cpp",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/category/logic_test.cpp",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/category/monad_test.cpp",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/category/morphism_test.cpp",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/category/natural_test.cpp",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/category/numeric_test.cpp",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/category/partial_test.cpp",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/category/posetal_test.cpp",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/category/pullback_test.cpp",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/category/species_test.cpp",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/category/topoi_test.cpp",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/category/total_test.cpp"
+			]
+		},
+		{
+			"expression" : "/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/geometry/*_test.cpp",
+			"listDirectories" : true,
+			"paths" : 
+			[
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/geometry/affine_test.cpp",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/geometry/euclidean_test.cpp",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/geometry/hilbert_test.cpp",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/geometry/lattice_test.cpp",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/geometry/linear_map_test.cpp"
+			]
+		},
+		{
+			"expression" : "/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/ieee/*_test.cpp",
+			"listDirectories" : true,
+			"paths" : 
+			[
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/ieee/approx_test.cpp",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/ieee/ieee_test.cpp"
+			]
+		},
+		{
+			"expression" : "/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/morphologies/*_test.cpp",
+			"listDirectories" : true,
+			"paths" : 
+			[
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/morphologies/cyclic_test.cpp"
+			]
+		},
+		{
+			"expression" : "/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/numbers/*_test.cpp",
+			"listDirectories" : true,
+			"paths" : 
+			[
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/numbers/approx_test.cpp",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/numbers/constants_test.cpp",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/numbers/dual_test.cpp",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/numbers/ieee_test.cpp",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/numbers/lattice_test.cpp",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/numbers/mandelbrot_stress_test.cpp",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/numbers/naturals_test.cpp",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/numbers/quaternion_test.cpp",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/numbers/rational_test.cpp",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/numbers/spectral_norm_benchmark_test.cpp",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/numbers/starters_test.cpp",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/numbers/symolic_test.cpp",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/numbers/tower_test.cpp"
+			]
+		},
+		{
+			"expression" : "/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/order/*_test.cpp",
+			"listDirectories" : true,
+			"paths" : 
+			[
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/order/order_test.cpp"
+			]
+		},
+		{
+			"expression" : "/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/python/*_test.cpp",
+			"listDirectories" : true,
+			"paths" : 
+			[
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/python/python_test.cpp"
+			]
+		},
+		{
+			"expression" : "/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/sequences/*_test.cpp",
+			"listDirectories" : true,
+			"paths" : 
+			[
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/sequences/cauchy_test.cpp",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/sequences/integer_interval_test.cpp",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/sequences/path_test.cpp"
+			]
+		},
+		{
+			"expression" : "/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/sets/*_test.cpp",
+			"listDirectories" : true,
+			"paths" : 
+			[
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/sets/boundaries_test.cpp",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/sets/category_integration_test.cpp",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/sets/expressions_test.cpp",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/sets/interop_test.cpp",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/sets/mereology_test.cpp",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/sets/relational_test.cpp",
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/sets/singleton_test.cpp"
+			]
+		},
+		{
+			"expression" : "/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/topology/*_test.cpp",
+			"listDirectories" : true,
+			"paths" : 
+			[
+				"/Users/vincent/git/github.com/vincentk/dedekind/src/test/cpp/modules/dedekind/topology/shapes_test.cpp"
+			]
+		}
+	],
+	"inputs" : 
+	[
+		{
+			"path" : "CMakeLists.txt"
+		},
+		{
+			"isGenerated" : true,
+			"path" : "build-python/cp313-cp313-macosx_15_0_x86_64/CMakeFiles/4.2.3/CMakeSystem.cmake"
+		},
+		{
+			"isCMake" : true,
+			"isExternal" : true,
+			"path" : "/usr/local/share/cmake/Modules/CMakeSystemSpecificInitialize.cmake"
+		},
+		{
+			"isCMake" : true,
+			"isExternal" : true,
+			"path" : "/usr/local/share/cmake/Modules/Platform/Darwin-Initialize.cmake"
+		},
+		{
+			"isGenerated" : true,
+			"path" : "build-python/cp313-cp313-macosx_15_0_x86_64/CMakeFiles/4.2.3/CMakeCXXCompiler.cmake"
+		},
+		{
+			"isCMake" : true,
+			"isExternal" : true,
+			"path" : "/usr/local/share/cmake/Modules/CMakeSystemSpecificInformation.cmake"
+		},
+		{
+			"isCMake" : true,
+			"isExternal" : true,
+			"path" : "/usr/local/share/cmake/Modules/CMakeGenericSystem.cmake"
+		},
+		{
+			"isCMake" : true,
+			"isExternal" : true,
+			"path" : "/usr/local/share/cmake/Modules/CMakeInitializeConfigs.cmake"
+		},
+		{
+			"isCMake" : true,
+			"isExternal" : true,
+			"path" : "/usr/local/share/cmake/Modules/Platform/Darwin.cmake"
+		},
+		{
+			"isCMake" : true,
+			"isExternal" : true,
+			"path" : "/usr/local/share/cmake/Modules/Platform/UnixPaths.cmake"
+		},
+		{
+			"isCMake" : true,
+			"isExternal" : true,
+			"path" : "/usr/local/share/cmake/Modules/CMakeCXXInformation.cmake"
+		},
+		{
+			"isCMake" : true,
+			"isExternal" : true,
+			"path" : "/usr/local/share/cmake/Modules/CMakeLanguageInformation.cmake"
+		},
+		{
+			"isCMake" : true,
+			"isExternal" : true,
+			"path" : "/usr/local/share/cmake/Modules/Compiler/Clang-CXX.cmake"
+		},
+		{
+			"isCMake" : true,
+			"isExternal" : true,
+			"path" : "/usr/local/share/cmake/Modules/Compiler/Clang.cmake"
+		},
+		{
+			"isCMake" : true,
+			"isExternal" : true,
+			"path" : "/usr/local/share/cmake/Modules/Compiler/CMakeCommonCompilerMacros.cmake"
+		},
+		{
+			"isCMake" : true,
+			"isExternal" : true,
+			"path" : "/usr/local/share/cmake/Modules/Compiler/GNU.cmake"
+		},
+		{
+			"isCMake" : true,
+			"isExternal" : true,
+			"path" : "/usr/local/share/cmake/Modules/Compiler/CMakeCommonCompilerMacros.cmake"
+		},
+		{
+			"isCMake" : true,
+			"isExternal" : true,
+			"path" : "/usr/local/share/cmake/Modules/Platform/Apple-Clang-CXX.cmake"
+		},
+		{
+			"isCMake" : true,
+			"isExternal" : true,
+			"path" : "/usr/local/share/cmake/Modules/Platform/Apple-Clang.cmake"
+		},
+		{
+			"isCMake" : true,
+			"isExternal" : true,
+			"path" : "/usr/local/share/cmake/Modules/CMakeCommonLanguageInclude.cmake"
+		},
+		{
+			"isCMake" : true,
+			"isExternal" : true,
+			"path" : "/usr/local/share/cmake/Modules/Internal/CMakeCXXLinkerInformation.cmake"
+		},
+		{
+			"isCMake" : true,
+			"isExternal" : true,
+			"path" : "/usr/local/share/cmake/Modules/Internal/CMakeCommonLinkerInformation.cmake"
+		},
+		{
+			"isCMake" : true,
+			"isExternal" : true,
+			"path" : "/usr/local/share/cmake/Modules/Linker/AppleClang-CXX.cmake"
+		},
+		{
+			"isCMake" : true,
+			"isExternal" : true,
+			"path" : "/usr/local/share/cmake/Modules/Linker/AppleClang.cmake"
+		},
+		{
+			"isCMake" : true,
+			"isExternal" : true,
+			"path" : "/usr/local/share/cmake/Modules/Platform/Linker/Apple-AppleClang-CXX.cmake"
+		},
+		{
+			"isCMake" : true,
+			"isExternal" : true,
+			"path" : "/usr/local/share/cmake/Modules/Platform/Linker/Apple-AppleClang.cmake"
+		},
+		{
+			"isCMake" : true,
+			"isExternal" : true,
+			"path" : "/usr/local/share/cmake/Modules/FetchContent.cmake"
+		},
+		{
+			"isCMake" : true,
+			"isExternal" : true,
+			"path" : "/usr/local/share/cmake/Modules/ExternalProject/shared_internal_commands.cmake"
+		},
+		{
+			"isCMake" : true,
+			"isExternal" : true,
+			"path" : "/usr/local/share/cmake/Modules/FindGit.cmake"
+		},
+		{
+			"isCMake" : true,
+			"isExternal" : true,
+			"path" : "/usr/local/share/cmake/Modules/FindPackageHandleStandardArgs.cmake"
+		},
+		{
+			"isCMake" : true,
+			"isExternal" : true,
+			"path" : "/usr/local/share/cmake/Modules/FindPackageMessage.cmake"
+		},
+		{
+			"isCMake" : true,
+			"isExternal" : true,
+			"path" : "/usr/local/share/cmake/Modules/FetchContent/CMakeLists.cmake.in"
+		},
+		{
+			"isGenerated" : true,
+			"path" : "build-python/cp313-cp313-macosx_15_0_x86_64/_deps/catch2-src/extras/Catch.cmake"
+		},
+		{
+			"isCMake" : true,
+			"isExternal" : true,
+			"path" : "/usr/local/share/cmake/Modules/FindPython.cmake"
+		},
+		{
+			"isCMake" : true,
+			"isExternal" : true,
+			"path" : "/usr/local/share/cmake/Modules/FindPython/Support.cmake"
+		},
+		{
+			"isCMake" : true,
+			"isExternal" : true,
+			"path" : "/usr/local/share/cmake/Modules/FindPackageHandleStandardArgs.cmake"
+		},
+		{
+			"isCMake" : true,
+			"isExternal" : true,
+			"path" : "/usr/local/share/cmake/Modules/FindPackageMessage.cmake"
+		},
+		{
+			"path" : "python/dedekind/__init__.py"
+		},
+		{
+			"isCMake" : true,
+			"isExternal" : true,
+			"path" : "/usr/local/share/cmake/Modules/FindDoxygen.cmake"
+		},
+		{
+			"isCMake" : true,
+			"isExternal" : true,
+			"path" : "/usr/local/share/cmake/Modules/FindPackageHandleStandardArgs.cmake"
+		},
+		{
+			"isCMake" : true,
+			"isExternal" : true,
+			"path" : "/usr/local/share/cmake/Modules/FindPackageMessage.cmake"
+		},
+		{
+			"isGenerated" : true,
+			"path" : "build-python/cp313-cp313-macosx_15_0_x86_64/CMakeDoxygenDefaults.cmake"
+		},
+		{
+			"isGenerated" : true,
+			"path" : "build-python/cp313-cp313-macosx_15_0_x86_64/CMakeDoxyfile.in"
+		},
+		{
+			"isGenerated" : true,
+			"path" : "build-python/cp313-cp313-macosx_15_0_x86_64/_deps/catch2-src/CMakeLists.txt"
+		},
+		{
+			"isCMake" : true,
+			"isExternal" : true,
+			"path" : "/usr/local/share/cmake/Modules/CMakeDependentOption.cmake"
+		},
+		{
+			"isCMake" : true,
+			"isExternal" : true,
+			"path" : "/usr/local/share/cmake/Modules/GNUInstallDirs.cmake"
+		},
+		{
+			"isCMake" : true,
+			"isExternal" : true,
+			"path" : "/usr/local/share/cmake/Modules/CMakePackageConfigHelpers.cmake"
+		},
+		{
+			"isCMake" : true,
+			"isExternal" : true,
+			"path" : "/usr/local/share/cmake/Modules/WriteBasicConfigVersionFile.cmake"
+		},
+		{
+			"isGenerated" : true,
+			"path" : "build-python/cp313-cp313-macosx_15_0_x86_64/_deps/catch2-src/CMake/CatchConfigOptions.cmake"
+		},
+		{
+			"isGenerated" : true,
+			"path" : "build-python/cp313-cp313-macosx_15_0_x86_64/_deps/catch2-src/src/CMakeLists.txt"
+		},
+		{
+			"isGenerated" : true,
+			"path" : "build-python/cp313-cp313-macosx_15_0_x86_64/_deps/catch2-src/CMake/CatchMiscFunctions.cmake"
+		},
+		{
+			"isCMake" : true,
+			"isExternal" : true,
+			"path" : "/usr/local/share/cmake/Modules/CheckCXXCompilerFlag.cmake"
+		},
+		{
+			"isCMake" : true,
+			"isExternal" : true,
+			"path" : "/usr/local/share/cmake/Modules/Internal/CheckCompilerFlag.cmake"
+		},
+		{
+			"isCMake" : true,
+			"isExternal" : true,
+			"path" : "/usr/local/share/cmake/Modules/Internal/CheckFlagCommonConfig.cmake"
+		},
+		{
+			"isCMake" : true,
+			"isExternal" : true,
+			"path" : "/usr/local/share/cmake/Modules/Internal/CheckSourceCompiles.cmake"
+		},
+		{
+			"isCMake" : true,
+			"isExternal" : true,
+			"path" : "/usr/local/share/cmake/Modules/CMakeCheckCompilerFlagCommonPatterns.cmake"
+		},
+		{
+			"isCMake" : true,
+			"isExternal" : true,
+			"path" : "/usr/local/share/cmake/Modules/CheckCXXSourceCompiles.cmake"
+		},
+		{
+			"isCMake" : true,
+			"isExternal" : true,
+			"path" : "/usr/local/share/cmake/Modules/Internal/CheckSourceCompiles.cmake"
+		},
+		{
+			"isGenerated" : true,
+			"path" : "build-python/cp313-cp313-macosx_15_0_x86_64/_deps/catch2-src/src/catch2/catch_user_config.hpp.in"
+		},
+		{
+			"path" : "ext/nanobind/CMakeLists.txt"
+		},
+		{
+			"path" : "ext/nanobind/cmake/nanobind-config.cmake"
+		}
+	],
+	"kind" : "cmakeFiles",
+	"paths" : 
+	{
+		"build" : "/Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64",
+		"source" : "/Users/vincent/git/github.com/vincentk/dedekind"
+	},
+	"version" : 
+	{
+		"major" : 1,
+		"minor" : 1
+	}
+}

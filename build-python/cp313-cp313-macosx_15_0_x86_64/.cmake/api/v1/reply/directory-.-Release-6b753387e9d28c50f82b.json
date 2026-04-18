@@ -1,0 +1,840 @@
+{
+	"backtraceGraph" : 
+	{
+		"commands" : 
+		[
+			"install"
+		],
+		"files" : 
+		[
+			"CMakeLists.txt"
+		],
+		"nodes" : 
+		[
+			{
+				"file" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 209,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 235,
+				"parent" : 0
+			},
+			{
+				"command" : 0,
+				"file" : 0,
+				"line" : 241,
+				"parent" : 0
+			}
+		]
+	},
+	"codemodelVersion" : 
+	{
+		"major" : 2,
+		"minor" : 9
+	},
+	"installers" : 
+	[
+		{
+			"backtrace" : 1,
+			"component" : "Unspecified",
+			"destination" : "dedekind",
+			"paths" : 
+			[
+				"python/dedekind/_dedekind.cpython-313-darwin.so"
+			],
+			"targetId" : "_dedekind::@6890427a1f51a3e7e1df",
+			"targetIndex" : 2,
+			"type" : "target"
+		},
+		{
+			"backtrace" : 2,
+			"component" : "Unspecified",
+			"destination" : "lib",
+			"paths" : 
+			[
+				"libdedekind_category.a"
+			],
+			"targetId" : "dedekind_category::@6890427a1f51a3e7e1df",
+			"targetIndex" : 5,
+			"type" : "target"
+		},
+		{
+			"backtrace" : 2,
+			"component" : "Unspecified",
+			"destination" : "lib/modules/dedekind",
+			"fileSetDirectories" : 
+			[
+				"src/main/modules"
+			],
+			"fileSetName" : "CXX_MODULES",
+			"fileSetTarget" : 
+			{
+				"id" : "dedekind_category::@6890427a1f51a3e7e1df",
+				"index" : 5
+			},
+			"fileSetType" : "CXX_MODULES",
+			"paths" : 
+			[
+				{
+					"from" : "src/main/modules/dedekind/category/action.cppm",
+					"to" : "dedekind/category/action.cppm"
+				},
+				{
+					"from" : "src/main/modules/dedekind/category/cartesian.cppm",
+					"to" : "dedekind/category/cartesian.cppm"
+				},
+				{
+					"from" : "src/main/modules/dedekind/category/category.cppm",
+					"to" : "dedekind/category/category.cppm"
+				},
+				{
+					"from" : "src/main/modules/dedekind/category/discrete.cppm",
+					"to" : "dedekind/category/discrete.cppm"
+				},
+				{
+					"from" : "src/main/modules/dedekind/category/etcs.cppm",
+					"to" : "dedekind/category/etcs.cppm"
+				},
+				{
+					"from" : "src/main/modules/dedekind/category/functor.cppm",
+					"to" : "dedekind/category/functor.cppm"
+				},
+				{
+					"from" : "src/main/modules/dedekind/category/kleisli.cppm",
+					"to" : "dedekind/category/kleisli.cppm"
+				},
+				{
+					"from" : "src/main/modules/dedekind/category/limit.cppm",
+					"to" : "dedekind/category/limit.cppm"
+				},
+				{
+					"from" : "src/main/modules/dedekind/category/logic.cppm",
+					"to" : "dedekind/category/logic.cppm"
+				},
+				{
+					"from" : "src/main/modules/dedekind/category/mereology.cppm",
+					"to" : "dedekind/category/mereology.cppm"
+				},
+				{
+					"from" : "src/main/modules/dedekind/category/monad.cppm",
+					"to" : "dedekind/category/monad.cppm"
+				},
+				{
+					"from" : "src/main/modules/dedekind/category/morphism.cppm",
+					"to" : "dedekind/category/morphism.cppm"
+				},
+				{
+					"from" : "src/main/modules/dedekind/category/natural.cppm",
+					"to" : "dedekind/category/natural.cppm"
+				},
+				{
+					"from" : "src/main/modules/dedekind/category/numeric.cppm",
+					"to" : "dedekind/category/numeric.cppm"
+				},
+				{
+					"from" : "src/main/modules/dedekind/category/partial.cppm",
+					"to" : "dedekind/category/partial.cppm"
+				},
+				{
+					"from" : "src/main/modules/dedekind/category/posetal.cppm",
+					"to" : "dedekind/category/posetal.cppm"
+				},
+				{
+					"from" : "src/main/modules/dedekind/category/pullback.cppm",
+					"to" : "dedekind/category/pullback.cppm"
+				},
+				{
+					"from" : "src/main/modules/dedekind/category/small.cppm",
+					"to" : "dedekind/category/small.cppm"
+				},
+				{
+					"from" : "src/main/modules/dedekind/category/species.cppm",
+					"to" : "dedekind/category/species.cppm"
+				},
+				{
+					"from" : "src/main/modules/dedekind/category/topoi.cppm",
+					"to" : "dedekind/category/topoi.cppm"
+				},
+				{
+					"from" : "src/main/modules/dedekind/category/total.cppm",
+					"to" : "dedekind/category/total.cppm"
+				}
+			],
+			"type" : "fileSet"
+		},
+		{
+			"backtrace" : 2,
+			"component" : "Unspecified",
+			"destination" : "lib",
+			"paths" : 
+			[
+				"libdedekind_ieee.a"
+			],
+			"targetId" : "dedekind_ieee::@6890427a1f51a3e7e1df",
+			"targetIndex" : 7,
+			"type" : "target"
+		},
+		{
+			"backtrace" : 2,
+			"component" : "Unspecified",
+			"destination" : "lib/modules/dedekind",
+			"fileSetDirectories" : 
+			[
+				"src/main/modules"
+			],
+			"fileSetName" : "CXX_MODULES",
+			"fileSetTarget" : 
+			{
+				"id" : "dedekind_ieee::@6890427a1f51a3e7e1df",
+				"index" : 7
+			},
+			"fileSetType" : "CXX_MODULES",
+			"paths" : 
+			[
+				{
+					"from" : "src/main/modules/dedekind/ieee/approx.cppm",
+					"to" : "dedekind/ieee/approx.cppm"
+				},
+				{
+					"from" : "src/main/modules/dedekind/ieee/ieee.cppm",
+					"to" : "dedekind/ieee/ieee.cppm"
+				}
+			],
+			"type" : "fileSet"
+		},
+		{
+			"backtrace" : 2,
+			"component" : "Unspecified",
+			"destination" : "lib",
+			"paths" : 
+			[
+				"libdedekind_sets.a"
+			],
+			"targetId" : "dedekind_sets::@6890427a1f51a3e7e1df",
+			"targetIndex" : 13,
+			"type" : "target"
+		},
+		{
+			"backtrace" : 2,
+			"component" : "Unspecified",
+			"destination" : "lib/modules/dedekind",
+			"fileSetDirectories" : 
+			[
+				"src/main/modules"
+			],
+			"fileSetName" : "CXX_MODULES",
+			"fileSetTarget" : 
+			{
+				"id" : "dedekind_sets::@6890427a1f51a3e7e1df",
+				"index" : 13
+			},
+			"fileSetType" : "CXX_MODULES",
+			"paths" : 
+			[
+				{
+					"from" : "src/main/modules/dedekind/sets/boundaries.cppm",
+					"to" : "dedekind/sets/boundaries.cppm"
+				},
+				{
+					"from" : "src/main/modules/dedekind/sets/expressions.cppm",
+					"to" : "dedekind/sets/expressions.cppm"
+				},
+				{
+					"from" : "src/main/modules/dedekind/sets/family.cppm",
+					"to" : "dedekind/sets/family.cppm"
+				},
+				{
+					"from" : "src/main/modules/dedekind/sets/interop.cppm",
+					"to" : "dedekind/sets/interop.cppm"
+				},
+				{
+					"from" : "src/main/modules/dedekind/sets/mereology.cppm",
+					"to" : "dedekind/sets/mereology.cppm"
+				},
+				{
+					"from" : "src/main/modules/dedekind/sets/relational.cppm",
+					"to" : "dedekind/sets/relational.cppm"
+				},
+				{
+					"from" : "src/main/modules/dedekind/sets/sets.cppm",
+					"to" : "dedekind/sets/sets.cppm"
+				},
+				{
+					"from" : "src/main/modules/dedekind/sets/singleton.cppm",
+					"to" : "dedekind/sets/singleton.cppm"
+				}
+			],
+			"type" : "fileSet"
+		},
+		{
+			"backtrace" : 2,
+			"component" : "Unspecified",
+			"destination" : "lib",
+			"paths" : 
+			[
+				"libdedekind_order.a"
+			],
+			"targetId" : "dedekind_order::@6890427a1f51a3e7e1df",
+			"targetIndex" : 10,
+			"type" : "target"
+		},
+		{
+			"backtrace" : 2,
+			"component" : "Unspecified",
+			"destination" : "lib/modules/dedekind",
+			"fileSetDirectories" : 
+			[
+				"src/main/modules"
+			],
+			"fileSetName" : "CXX_MODULES",
+			"fileSetTarget" : 
+			{
+				"id" : "dedekind_order::@6890427a1f51a3e7e1df",
+				"index" : 10
+			},
+			"fileSetType" : "CXX_MODULES",
+			"paths" : 
+			[
+				{
+					"from" : "src/main/modules/dedekind/order/order.cppm",
+					"to" : "dedekind/order/order.cppm"
+				}
+			],
+			"type" : "fileSet"
+		},
+		{
+			"backtrace" : 2,
+			"component" : "Unspecified",
+			"destination" : "lib",
+			"paths" : 
+			[
+				"libdedekind_topology.a"
+			],
+			"targetId" : "dedekind_topology::@6890427a1f51a3e7e1df",
+			"targetIndex" : 14,
+			"type" : "target"
+		},
+		{
+			"backtrace" : 2,
+			"component" : "Unspecified",
+			"destination" : "lib/modules/dedekind",
+			"fileSetDirectories" : 
+			[
+				"src/main/modules"
+			],
+			"fileSetName" : "CXX_MODULES",
+			"fileSetTarget" : 
+			{
+				"id" : "dedekind_topology::@6890427a1f51a3e7e1df",
+				"index" : 14
+			},
+			"fileSetType" : "CXX_MODULES",
+			"paths" : 
+			[
+				{
+					"from" : "src/main/modules/dedekind/topology/interval.cppm",
+					"to" : "dedekind/topology/interval.cppm"
+				},
+				{
+					"from" : "src/main/modules/dedekind/topology/neighborhood.cppm",
+					"to" : "dedekind/topology/neighborhood.cppm"
+				},
+				{
+					"from" : "src/main/modules/dedekind/topology/topology.cppm",
+					"to" : "dedekind/topology/topology.cppm"
+				}
+			],
+			"type" : "fileSet"
+		},
+		{
+			"backtrace" : 2,
+			"component" : "Unspecified",
+			"destination" : "lib",
+			"paths" : 
+			[
+				"libdedekind_sequences.a"
+			],
+			"targetId" : "dedekind_sequences::@6890427a1f51a3e7e1df",
+			"targetIndex" : 12,
+			"type" : "target"
+		},
+		{
+			"backtrace" : 2,
+			"component" : "Unspecified",
+			"destination" : "lib/modules/dedekind",
+			"fileSetDirectories" : 
+			[
+				"src/main/modules"
+			],
+			"fileSetName" : "CXX_MODULES",
+			"fileSetTarget" : 
+			{
+				"id" : "dedekind_sequences::@6890427a1f51a3e7e1df",
+				"index" : 12
+			},
+			"fileSetType" : "CXX_MODULES",
+			"paths" : 
+			[
+				{
+					"from" : "src/main/modules/dedekind/sequences/curve.cppm",
+					"to" : "dedekind/sequences/curve.cppm"
+				},
+				{
+					"from" : "src/main/modules/dedekind/sequences/limits.cppm",
+					"to" : "dedekind/sequences/limits.cppm"
+				},
+				{
+					"from" : "src/main/modules/dedekind/sequences/net.cppm",
+					"to" : "dedekind/sequences/net.cppm"
+				},
+				{
+					"from" : "src/main/modules/dedekind/sequences/path.cppm",
+					"to" : "dedekind/sequences/path.cppm"
+				},
+				{
+					"from" : "src/main/modules/dedekind/sequences/ranges.cppm",
+					"to" : "dedekind/sequences/ranges.cppm"
+				},
+				{
+					"from" : "src/main/modules/dedekind/sequences/sequences.cppm",
+					"to" : "dedekind/sequences/sequences.cppm"
+				}
+			],
+			"type" : "fileSet"
+		},
+		{
+			"backtrace" : 2,
+			"component" : "Unspecified",
+			"destination" : "lib",
+			"paths" : 
+			[
+				"libdedekind_algebra.a"
+			],
+			"targetId" : "dedekind_algebra::@6890427a1f51a3e7e1df",
+			"targetIndex" : 3,
+			"type" : "target"
+		},
+		{
+			"backtrace" : 2,
+			"component" : "Unspecified",
+			"destination" : "lib/modules/dedekind",
+			"fileSetDirectories" : 
+			[
+				"src/main/modules"
+			],
+			"fileSetName" : "CXX_MODULES",
+			"fileSetTarget" : 
+			{
+				"id" : "dedekind_algebra::@6890427a1f51a3e7e1df",
+				"index" : 3
+			},
+			"fileSetType" : "CXX_MODULES",
+			"paths" : 
+			[
+				{
+					"from" : "src/main/modules/dedekind/algebra/algebra.cppm",
+					"to" : "dedekind/algebra/algebra.cppm"
+				},
+				{
+					"from" : "src/main/modules/dedekind/algebra/boolean.cppm",
+					"to" : "dedekind/algebra/boolean.cppm"
+				},
+				{
+					"from" : "src/main/modules/dedekind/algebra/division.cppm",
+					"to" : "dedekind/algebra/division.cppm"
+				},
+				{
+					"from" : "src/main/modules/dedekind/algebra/field.cppm",
+					"to" : "dedekind/algebra/field.cppm"
+				},
+				{
+					"from" : "src/main/modules/dedekind/algebra/group.cppm",
+					"to" : "dedekind/algebra/group.cppm"
+				},
+				{
+					"from" : "src/main/modules/dedekind/algebra/modules.cppm",
+					"to" : "dedekind/algebra/modules.cppm"
+				},
+				{
+					"from" : "src/main/modules/dedekind/algebra/monoid.cppm",
+					"to" : "dedekind/algebra/monoid.cppm"
+				},
+				{
+					"from" : "src/main/modules/dedekind/algebra/polynomial.cppm",
+					"to" : "dedekind/algebra/polynomial.cppm"
+				},
+				{
+					"from" : "src/main/modules/dedekind/algebra/ring.cppm",
+					"to" : "dedekind/algebra/ring.cppm"
+				}
+			],
+			"type" : "fileSet"
+		},
+		{
+			"backtrace" : 2,
+			"component" : "Unspecified",
+			"destination" : "lib",
+			"paths" : 
+			[
+				"libdedekind_morphologies.a"
+			],
+			"targetId" : "dedekind_morphologies::@6890427a1f51a3e7e1df",
+			"targetIndex" : 8,
+			"type" : "target"
+		},
+		{
+			"backtrace" : 2,
+			"component" : "Unspecified",
+			"destination" : "lib/modules/dedekind",
+			"fileSetDirectories" : 
+			[
+				"src/main/modules"
+			],
+			"fileSetName" : "CXX_MODULES",
+			"fileSetTarget" : 
+			{
+				"id" : "dedekind_morphologies::@6890427a1f51a3e7e1df",
+				"index" : 8
+			},
+			"fileSetType" : "CXX_MODULES",
+			"paths" : 
+			[
+				{
+					"from" : "src/main/modules/dedekind/morphologies/archimedean.cppm",
+					"to" : "dedekind/morphologies/archimedean.cppm"
+				},
+				{
+					"from" : "src/main/modules/dedekind/morphologies/cyclic.cppm",
+					"to" : "dedekind/morphologies/cyclic.cppm"
+				},
+				{
+					"from" : "src/main/modules/dedekind/morphologies/morphologies.cppm",
+					"to" : "dedekind/morphologies/morphologies.cppm"
+				}
+			],
+			"type" : "fileSet"
+		},
+		{
+			"backtrace" : 2,
+			"component" : "Unspecified",
+			"destination" : "lib",
+			"paths" : 
+			[
+				"libdedekind_geometry.a"
+			],
+			"targetId" : "dedekind_geometry::@6890427a1f51a3e7e1df",
+			"targetIndex" : 6,
+			"type" : "target"
+		},
+		{
+			"backtrace" : 2,
+			"component" : "Unspecified",
+			"destination" : "lib/modules/dedekind",
+			"fileSetDirectories" : 
+			[
+				"src/main/modules"
+			],
+			"fileSetName" : "CXX_MODULES",
+			"fileSetTarget" : 
+			{
+				"id" : "dedekind_geometry::@6890427a1f51a3e7e1df",
+				"index" : 6
+			},
+			"fileSetType" : "CXX_MODULES",
+			"paths" : 
+			[
+				{
+					"from" : "src/main/modules/dedekind/geometry/affine.cppm",
+					"to" : "dedekind/geometry/affine.cppm"
+				},
+				{
+					"from" : "src/main/modules/dedekind/geometry/euclidean.cppm",
+					"to" : "dedekind/geometry/euclidean.cppm"
+				},
+				{
+					"from" : "src/main/modules/dedekind/geometry/geometry.cppm",
+					"to" : "dedekind/geometry/geometry.cppm"
+				},
+				{
+					"from" : "src/main/modules/dedekind/geometry/hilbert.cppm",
+					"to" : "dedekind/geometry/hilbert.cppm"
+				},
+				{
+					"from" : "src/main/modules/dedekind/geometry/inner_product.cppm",
+					"to" : "dedekind/geometry/inner_product.cppm"
+				},
+				{
+					"from" : "src/main/modules/dedekind/geometry/lattice.cppm",
+					"to" : "dedekind/geometry/lattice.cppm"
+				},
+				{
+					"from" : "src/main/modules/dedekind/geometry/linear_map.cppm",
+					"to" : "dedekind/geometry/linear_map.cppm"
+				}
+			],
+			"type" : "fileSet"
+		},
+		{
+			"backtrace" : 2,
+			"component" : "Unspecified",
+			"destination" : "lib",
+			"paths" : 
+			[
+				"libdedekind_numbers.a"
+			],
+			"targetId" : "dedekind_numbers::@6890427a1f51a3e7e1df",
+			"targetIndex" : 9,
+			"type" : "target"
+		},
+		{
+			"backtrace" : 2,
+			"component" : "Unspecified",
+			"destination" : "lib/modules/dedekind",
+			"fileSetDirectories" : 
+			[
+				"src/main/modules"
+			],
+			"fileSetName" : "CXX_MODULES",
+			"fileSetTarget" : 
+			{
+				"id" : "dedekind_numbers::@6890427a1f51a3e7e1df",
+				"index" : 9
+			},
+			"fileSetType" : "CXX_MODULES",
+			"paths" : 
+			[
+				{
+					"from" : "src/main/modules/dedekind/numbers/approx.cppm",
+					"to" : "dedekind/numbers/approx.cppm"
+				},
+				{
+					"from" : "src/main/modules/dedekind/numbers/booleans.cppm",
+					"to" : "dedekind/numbers/booleans.cppm"
+				},
+				{
+					"from" : "src/main/modules/dedekind/numbers/complex.cppm",
+					"to" : "dedekind/numbers/complex.cppm"
+				},
+				{
+					"from" : "src/main/modules/dedekind/numbers/constants.cppm",
+					"to" : "dedekind/numbers/constants.cppm"
+				},
+				{
+					"from" : "src/main/modules/dedekind/numbers/dual.cppm",
+					"to" : "dedekind/numbers/dual.cppm"
+				},
+				{
+					"from" : "src/main/modules/dedekind/numbers/ieee.cppm",
+					"to" : "dedekind/numbers/ieee.cppm"
+				},
+				{
+					"from" : "src/main/modules/dedekind/numbers/integer.cppm",
+					"to" : "dedekind/numbers/integer.cppm"
+				},
+				{
+					"from" : "src/main/modules/dedekind/numbers/lattice.cppm",
+					"to" : "dedekind/numbers/lattice.cppm"
+				},
+				{
+					"from" : "src/main/modules/dedekind/numbers/mandelbrot.cppm",
+					"to" : "dedekind/numbers/mandelbrot.cppm"
+				},
+				{
+					"from" : "src/main/modules/dedekind/numbers/naturals.cppm",
+					"to" : "dedekind/numbers/naturals.cppm"
+				},
+				{
+					"from" : "src/main/modules/dedekind/numbers/numbers.cppm",
+					"to" : "dedekind/numbers/numbers.cppm"
+				},
+				{
+					"from" : "src/main/modules/dedekind/numbers/quaternion.cppm",
+					"to" : "dedekind/numbers/quaternion.cppm"
+				},
+				{
+					"from" : "src/main/modules/dedekind/numbers/rational.cppm",
+					"to" : "dedekind/numbers/rational.cppm"
+				},
+				{
+					"from" : "src/main/modules/dedekind/numbers/real.cppm",
+					"to" : "dedekind/numbers/real.cppm"
+				},
+				{
+					"from" : "src/main/modules/dedekind/numbers/scalars.cppm",
+					"to" : "dedekind/numbers/scalars.cppm"
+				},
+				{
+					"from" : "src/main/modules/dedekind/numbers/symbolic.cppm",
+					"to" : "dedekind/numbers/symbolic.cppm"
+				}
+			],
+			"type" : "fileSet"
+		},
+		{
+			"backtrace" : 2,
+			"component" : "Unspecified",
+			"destination" : "lib",
+			"paths" : 
+			[
+				"libdedekind_analysis.a"
+			],
+			"targetId" : "dedekind_analysis::@6890427a1f51a3e7e1df",
+			"targetIndex" : 4,
+			"type" : "target"
+		},
+		{
+			"backtrace" : 2,
+			"component" : "Unspecified",
+			"destination" : "lib/modules/dedekind",
+			"fileSetDirectories" : 
+			[
+				"src/main/modules"
+			],
+			"fileSetName" : "CXX_MODULES",
+			"fileSetTarget" : 
+			{
+				"id" : "dedekind_analysis::@6890427a1f51a3e7e1df",
+				"index" : 4
+			},
+			"fileSetType" : "CXX_MODULES",
+			"paths" : 
+			[
+				{
+					"from" : "src/main/modules/dedekind/analysis/analysis.cppm",
+					"to" : "dedekind/analysis/analysis.cppm"
+				},
+				{
+					"from" : "src/main/modules/dedekind/analysis/exterior.cppm",
+					"to" : "dedekind/analysis/exterior.cppm"
+				},
+				{
+					"from" : "src/main/modules/dedekind/analysis/forms.cppm",
+					"to" : "dedekind/analysis/forms.cppm"
+				},
+				{
+					"from" : "src/main/modules/dedekind/analysis/hamilton.cppm",
+					"to" : "dedekind/analysis/hamilton.cppm"
+				},
+				{
+					"from" : "src/main/modules/dedekind/analysis/kernels.cppm",
+					"to" : "dedekind/analysis/kernels.cppm"
+				}
+			],
+			"type" : "fileSet"
+		},
+		{
+			"backtrace" : 2,
+			"component" : "Unspecified",
+			"destination" : "lib",
+			"paths" : 
+			[
+				"libdedekind_python.a"
+			],
+			"targetId" : "dedekind_python::@6890427a1f51a3e7e1df",
+			"targetIndex" : 11,
+			"type" : "target"
+		},
+		{
+			"backtrace" : 2,
+			"component" : "Unspecified",
+			"destination" : "lib/modules/dedekind",
+			"fileSetDirectories" : 
+			[
+				"src/main/modules"
+			],
+			"fileSetName" : "CXX_MODULES",
+			"fileSetTarget" : 
+			{
+				"id" : "dedekind_python::@6890427a1f51a3e7e1df",
+				"index" : 11
+			},
+			"fileSetType" : "CXX_MODULES",
+			"paths" : 
+			[
+				{
+					"from" : "src/main/modules/dedekind/python/python.cppm",
+					"to" : "dedekind/python/python.cppm"
+				}
+			],
+			"type" : "fileSet"
+		},
+		{
+			"backtrace" : 3,
+			"component" : "Unspecified",
+			"destination" : "lib/cmake/dedekind",
+			"exportName" : "dedekind-targets",
+			"exportTargets" : 
+			[
+				{
+					"id" : "dedekind::@6890427a1f51a3e7e1df",
+					"index" : 6
+				},
+				{
+					"id" : "dedekind_category::@6890427a1f51a3e7e1df",
+					"index" : 5
+				},
+				{
+					"id" : "dedekind_ieee::@6890427a1f51a3e7e1df",
+					"index" : 7
+				},
+				{
+					"id" : "dedekind_sets::@6890427a1f51a3e7e1df",
+					"index" : 13
+				},
+				{
+					"id" : "dedekind_order::@6890427a1f51a3e7e1df",
+					"index" : 10
+				},
+				{
+					"id" : "dedekind_topology::@6890427a1f51a3e7e1df",
+					"index" : 14
+				},
+				{
+					"id" : "dedekind_sequences::@6890427a1f51a3e7e1df",
+					"index" : 12
+				},
+				{
+					"id" : "dedekind_algebra::@6890427a1f51a3e7e1df",
+					"index" : 3
+				},
+				{
+					"id" : "dedekind_morphologies::@6890427a1f51a3e7e1df",
+					"index" : 8
+				},
+				{
+					"id" : "dedekind_geometry::@6890427a1f51a3e7e1df",
+					"index" : 6
+				},
+				{
+					"id" : "dedekind_numbers::@6890427a1f51a3e7e1df",
+					"index" : 9
+				},
+				{
+					"id" : "dedekind_analysis::@6890427a1f51a3e7e1df",
+					"index" : 4
+				},
+				{
+					"id" : "dedekind_python::@6890427a1f51a3e7e1df",
+					"index" : 11
+				}
+			],
+			"paths" : 
+			[
+				"CMakeFiles/Export/c5f9e0e933ccec5e7c33f03ece73c2ce/dedekindConfig.cmake"
+			],
+			"type" : "export"
+		}
+	],
+	"paths" : 
+	{
+		"build" : ".",
+		"source" : "."
+	}
+}

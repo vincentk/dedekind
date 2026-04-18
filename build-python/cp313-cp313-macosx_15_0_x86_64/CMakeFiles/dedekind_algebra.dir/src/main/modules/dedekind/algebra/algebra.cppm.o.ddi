@@ -1,0 +1,39 @@
+{
+  "revision": 0,
+  "rules": [
+    {
+      "primary-output": "CMakeFiles/dedekind_algebra.dir/src/main/modules/dedekind/algebra/algebra.cppm.o",
+      "provides": [
+        {
+          "is-interface": true,
+          "logical-name": "dedekind.algebra",
+          "source-path": "/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/algebra/algebra.cppm"
+        }
+      ],
+      "requires": [
+        {
+          "logical-name": "dedekind.algebra:boolean"
+        },
+        {
+          "logical-name": "dedekind.algebra:division"
+        },
+        {
+          "logical-name": "dedekind.algebra:field"
+        },
+        {
+          "logical-name": "dedekind.algebra:group"
+        },
+        {
+          "logical-name": "dedekind.algebra:modules"
+        },
+        {
+          "logical-name": "dedekind.algebra:polynomial"
+        },
+        {
+          "logical-name": "dedekind.algebra:ring"
+        }
+      ]
+    }
+  ],
+  "version": 1
+}

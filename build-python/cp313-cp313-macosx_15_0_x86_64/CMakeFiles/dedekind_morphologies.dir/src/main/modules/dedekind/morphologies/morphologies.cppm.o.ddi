@@ -1,0 +1,24 @@
+{
+  "revision": 0,
+  "rules": [
+    {
+      "primary-output": "CMakeFiles/dedekind_morphologies.dir/src/main/modules/dedekind/morphologies/morphologies.cppm.o",
+      "provides": [
+        {
+          "is-interface": true,
+          "logical-name": "dedekind.morphologies",
+          "source-path": "/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/morphologies/morphologies.cppm"
+        }
+      ],
+      "requires": [
+        {
+          "logical-name": "dedekind.morphologies:archimedean"
+        },
+        {
+          "logical-name": "dedekind.morphologies:cyclic"
+        }
+      ]
+    }
+  ],
+  "version": 1
+}

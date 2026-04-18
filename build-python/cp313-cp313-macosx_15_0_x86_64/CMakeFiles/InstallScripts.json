@@ -1,0 +1,10 @@
+{
+	"InstallScripts" : 
+	[
+		"/Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64/cmake_install.cmake",
+		"/Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64/_deps/catch2-build/cmake_install.cmake",
+		"/Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64/_deps/catch2-build/src/cmake_install.cmake",
+		"/Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64/ext/nanobind/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

@@ -1,0 +1,26 @@
+{
+  "revision": 0,
+  "rules": [
+    {
+      "primary-output": "CMakeFiles/test_algebra.dir/src/test/cpp/modules/dedekind/algebra/module_test.cpp.o",
+      "requires": [
+        {
+          "logical-name": "dedekind.algebra"
+        },
+        {
+          "logical-name": "dedekind.category"
+        },
+        {
+          "logical-name": "dedekind.ieee"
+        },
+        {
+          "logical-name": "dedekind.ieee.approx"
+        },
+        {
+          "logical-name": "dedekind.sets"
+        }
+      ]
+    }
+  ],
+  "version": 1
+}

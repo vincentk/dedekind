@@ -1,0 +1,20 @@
+{
+  "revision": 0,
+  "rules": [
+    {
+      "primary-output": "CMakeFiles/test_sequences.dir/src/test/cpp/modules/dedekind/sequences/path_test.cpp.o",
+      "requires": [
+        {
+          "logical-name": "dedekind.sequences"
+        },
+        {
+          "logical-name": "dedekind.topology"
+        },
+        {
+          "logical-name": "dedekind.category"
+        }
+      ]
+    }
+  ],
+  "version": 1
+}

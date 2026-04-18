@@ -1,0 +1,15 @@
+ninja_dyndep_version = 1.0
+build CMakeFiles/test_sets.dir/src/test/cpp/modules/dedekind/sets/boundaries_test.cpp.o: dyndep | CMakeFiles/dedekind_category.dir/dedekind.category.pcm CMakeFiles/dedekind_sets.dir/dedekind.sets.pcm
+
+build CMakeFiles/test_sets.dir/src/test/cpp/modules/dedekind/sets/category_integration_test.cpp.o: dyndep | CMakeFiles/dedekind_category.dir/dedekind.category.pcm CMakeFiles/dedekind_sets.dir/dedekind.sets.pcm
+
+build CMakeFiles/test_sets.dir/src/test/cpp/modules/dedekind/sets/expressions_test.cpp.o: dyndep | CMakeFiles/dedekind_category.dir/dedekind.category.pcm CMakeFiles/dedekind_sets.dir/dedekind.sets.pcm
+
+build CMakeFiles/test_sets.dir/src/test/cpp/modules/dedekind/sets/interop_test.cpp.o: dyndep | CMakeFiles/dedekind_sets.dir/dedekind.sets.pcm
+
+build CMakeFiles/test_sets.dir/src/test/cpp/modules/dedekind/sets/mereology_test.cpp.o: dyndep | CMakeFiles/dedekind_category.dir/dedekind.category.pcm CMakeFiles/dedekind_sets.dir/dedekind.sets.pcm
+
+build CMakeFiles/test_sets.dir/src/test/cpp/modules/dedekind/sets/relational_test.cpp.o: dyndep | CMakeFiles/dedekind_category.dir/dedekind.category.pcm CMakeFiles/dedekind_sets.dir/dedekind.sets.pcm
+
+build CMakeFiles/test_sets.dir/src/test/cpp/modules/dedekind/sets/singleton_test.cpp.o: dyndep | CMakeFiles/dedekind_category.dir/dedekind.category.pcm CMakeFiles/dedekind_sets.dir/dedekind.sets.pcm
+

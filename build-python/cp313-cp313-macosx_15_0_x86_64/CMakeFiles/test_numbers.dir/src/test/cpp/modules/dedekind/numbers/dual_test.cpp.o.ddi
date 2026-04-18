@@ -1,0 +1,14 @@
+{
+  "revision": 0,
+  "rules": [
+    {
+      "primary-output": "CMakeFiles/test_numbers.dir/src/test/cpp/modules/dedekind/numbers/dual_test.cpp.o",
+      "requires": [
+        {
+          "logical-name": "dedekind.numbers"
+        }
+      ]
+    }
+  ],
+  "version": 1
+}

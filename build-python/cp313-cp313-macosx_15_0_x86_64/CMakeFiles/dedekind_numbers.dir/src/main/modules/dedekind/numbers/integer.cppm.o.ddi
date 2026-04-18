@@ -1,0 +1,27 @@
+{
+  "revision": 0,
+  "rules": [
+    {
+      "primary-output": "CMakeFiles/dedekind_numbers.dir/src/main/modules/dedekind/numbers/integer.cppm.o",
+      "provides": [
+        {
+          "is-interface": true,
+          "logical-name": "dedekind.numbers:integer",
+          "source-path": "/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/numbers/integer.cppm"
+        }
+      ],
+      "requires": [
+        {
+          "logical-name": "dedekind.category"
+        },
+        {
+          "logical-name": "dedekind.sets"
+        },
+        {
+          "logical-name": "dedekind.numbers:naturals"
+        }
+      ]
+    }
+  ],
+  "version": 1
+}

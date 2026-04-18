@@ -1,0 +1,33 @@
+{
+  "revision": 0,
+  "rules": [
+    {
+      "primary-output": "CMakeFiles/dedekind_geometry.dir/src/main/modules/dedekind/geometry/hilbert.cppm.o",
+      "provides": [
+        {
+          "is-interface": true,
+          "logical-name": "dedekind.geometry:hilbert",
+          "source-path": "/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/geometry/hilbert.cppm"
+        }
+      ],
+      "requires": [
+        {
+          "logical-name": "dedekind.geometry:inner_product"
+        },
+        {
+          "logical-name": "dedekind.algebra"
+        },
+        {
+          "logical-name": "dedekind.order"
+        },
+        {
+          "logical-name": "dedekind.sequences"
+        },
+        {
+          "logical-name": "dedekind.morphologies"
+        }
+      ]
+    }
+  ],
+  "version": 1
+}

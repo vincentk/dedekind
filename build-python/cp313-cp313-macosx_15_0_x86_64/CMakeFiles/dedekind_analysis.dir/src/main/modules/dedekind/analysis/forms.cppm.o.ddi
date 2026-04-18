@@ -1,0 +1,21 @@
+{
+  "revision": 0,
+  "rules": [
+    {
+      "primary-output": "CMakeFiles/dedekind_analysis.dir/src/main/modules/dedekind/analysis/forms.cppm.o",
+      "provides": [
+        {
+          "is-interface": true,
+          "logical-name": "dedekind.analysis:forms",
+          "source-path": "/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/analysis/forms.cppm"
+        }
+      ],
+      "requires": [
+        {
+          "logical-name": "dedekind.geometry"
+        }
+      ]
+    }
+  ],
+  "version": 1
+}

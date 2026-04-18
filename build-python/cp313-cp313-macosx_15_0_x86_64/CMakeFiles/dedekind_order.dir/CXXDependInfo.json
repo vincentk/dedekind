@@ -1,0 +1,48 @@
+{
+	"bmi-installation" : null,
+	"compiler-frontend-variant" : "GNU",
+	"compiler-id" : "Clang",
+	"compiler-simulate-id" : "",
+	"config" : "Release",
+	"cxx-modules" : 
+	{
+		"CMakeFiles/dedekind_order.dir/src/main/modules/dedekind/order/order.cppm.o" : 
+		{
+			"bmi-only" : false,
+			"destination" : "lib/modules/dedekind",
+			"name" : "CXX_MODULES",
+			"relative-directory" : "dedekind/order",
+			"source" : "/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/order/order.cppm",
+			"type" : "CXX_MODULES",
+			"visibility" : "PUBLIC"
+		}
+	},
+	"database-info" : null,
+	"dir-cur-bld" : "/Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64",
+	"dir-cur-src" : "/Users/vincent/git/github.com/vincentk/dedekind",
+	"dir-top-bld" : "/Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64",
+	"dir-top-src" : "/Users/vincent/git/github.com/vincentk/dedekind",
+	"exports" : 
+	[
+		{
+			"cxx-module-info-dir" : "",
+			"destination" : "lib/cmake/dedekind",
+			"export-name" : "dedekind_order",
+			"export-prefix" : "/Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64/CMakeFiles/Export/c5f9e0e933ccec5e7c33f03ece73c2ce",
+			"filesystem-export-name" : "dedekind__order",
+			"install" : true,
+			"namespace" : "dedekind::"
+		}
+	],
+	"forward-modules-from-target-dirs" : [],
+	"include-dirs" : [],
+	"language" : "CXX",
+	"linked-target-dirs" : 
+	[
+		"/Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64/CMakeFiles/dedekind_sets.dir",
+		"/Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64/CMakeFiles/dedekind_ieee.dir",
+		"/Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64/CMakeFiles/dedekind_category.dir"
+	],
+	"module-dir" : "/Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64/CMakeFiles/dedekind_order.dir",
+	"sources" : {}
+}

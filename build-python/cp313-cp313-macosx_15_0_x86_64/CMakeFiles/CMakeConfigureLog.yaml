@@ -1,0 +1,2094 @@
+
+---
+events:
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/usr/local/share/cmake/Modules/CMakeDetermineSystem.cmake:12 (find_program)"
+      - "CMakeLists.txt:2 (project)"
+    mode: "program"
+    variable: "CMAKE_UNAME"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "FIRST"
+      SearchAppBundle: "FIRST"
+      CMAKE_FIND_USE_CMAKE_PATH: true
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "uname"
+    candidate_directories:
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/lib/python3.13/site-packages/bin/"
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/lib/python3.13/site-packages/sbin/"
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/lib/python3.13/site-packages/"
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/bin/"
+      - "/usr/local/opt/llvm/bin/"
+      - "/Users/vincent/miniconda3/bin/"
+      - "/usr/local/bin/"
+      - "/System/Cryptexes/App/usr/bin/"
+      - "/usr/bin/"
+      - "/bin/"
+      - "/usr/sbin/"
+      - "/sbin/"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin/"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin/"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin/"
+      - "/Library/TeX/texbin/"
+    searched_directories:
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/lib/python3.13/site-packages/bin/uname"
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/lib/python3.13/site-packages/sbin/uname"
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/lib/python3.13/site-packages/uname"
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/bin/uname"
+      - "/usr/local/opt/llvm/bin/uname"
+      - "/Users/vincent/miniconda3/bin/uname"
+      - "/usr/local/bin/uname"
+      - "/System/Cryptexes/App/usr/bin/uname"
+    found: "/usr/bin/uname"
+    search_context:
+      CMAKE_PREFIX_PATH:
+        - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/lib/python3.13/site-packages"
+      ENV{PATH}:
+        - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/bin"
+        - "/usr/local/opt/llvm/bin"
+        - "/Users/vincent/miniconda3/bin"
+        - "/usr/local/bin"
+        - "/System/Cryptexes/App/usr/bin"
+        - "/usr/bin"
+        - "/bin"
+        - "/usr/sbin"
+        - "/sbin"
+        - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin"
+        - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin"
+        - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin"
+        - "/Library/TeX/texbin"
+      CMAKE_INSTALL_PREFIX: "/var/folders/6h/wy8nq2q14jg7pgtzy16hhk840000gn/T/tmp8d4y4jo3/wheel/platlib"
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/share/cmake/Modules/CMakeDetermineSystem.cmake:212 (message)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      The system is: Darwin - 24.6.0 - x86_64
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/usr/local/share/cmake/Modules/CMakeDetermineCompiler.cmake:73 (find_program)"
+      - "/usr/local/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:69 (_cmake_find_compiler)"
+      - "CMakeLists.txt:2 (project)"
+    mode: "program"
+    variable: "CMAKE_CXX_COMPILER"
+    description: "CXX compiler"
+    settings:
+      SearchFramework: "FIRST"
+      SearchAppBundle: "FIRST"
+      CMAKE_FIND_USE_CMAKE_PATH: true
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "/usr/local/opt/llvm/bin/clang++"
+    candidate_directories:
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/lib/python3.13/site-packages/bin/"
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/lib/python3.13/site-packages/sbin/"
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/lib/python3.13/site-packages/"
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/bin/"
+      - "/usr/local/opt/llvm/bin/"
+      - "/Users/vincent/miniconda3/bin/"
+      - "/usr/local/bin/"
+      - "/System/Cryptexes/App/usr/bin/"
+      - "/usr/bin/"
+      - "/bin/"
+      - "/usr/sbin/"
+      - "/sbin/"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin/"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin/"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin/"
+      - "/Library/TeX/texbin/"
+    found: "/usr/local/opt/llvm/bin/clang++"
+    search_context:
+      CMAKE_PREFIX_PATH:
+        - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/lib/python3.13/site-packages"
+      ENV{PATH}:
+        - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/bin"
+        - "/usr/local/opt/llvm/bin"
+        - "/Users/vincent/miniconda3/bin"
+        - "/usr/local/bin"
+        - "/System/Cryptexes/App/usr/bin"
+        - "/usr/bin"
+        - "/bin"
+        - "/usr/sbin"
+        - "/sbin"
+        - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin"
+        - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin"
+        - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin"
+        - "/Library/TeX/texbin"
+      CMAKE_INSTALL_PREFIX: "/var/folders/6h/wy8nq2q14jg7pgtzy16hhk840000gn/T/tmp8d4y4jo3/wheel/platlib"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/usr/local/share/cmake/Modules/CMakeDetermineCompilerId.cmake:462 (find_file)"
+      - "/usr/local/share/cmake/Modules/CMakeDetermineCompilerId.cmake:500 (CMAKE_DETERMINE_COMPILER_ID_WRITE)"
+      - "/usr/local/share/cmake/Modules/CMakeDetermineCompilerId.cmake:8 (CMAKE_DETERMINE_COMPILER_ID_BUILD)"
+      - "/usr/local/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/usr/local/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:125 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    mode: "file"
+    variable: "src_in"
+    description: "Path to a file."
+    settings:
+      SearchFramework: "FIRST"
+      SearchAppBundle: "FIRST"
+      CMAKE_FIND_USE_CMAKE_PATH: true
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "CMakeCXXCompilerId.cpp.in"
+    candidate_directories:
+      - "/usr/local/share/cmake/Modules/"
+    found: "/usr/local/share/cmake/Modules/CMakeCXXCompilerId.cpp.in"
+    search_context:
+      CMAKE_PREFIX_PATH:
+        - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/lib/python3.13/site-packages"
+      ENV{PATH}:
+        - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/bin"
+        - "/usr/local/opt/llvm/bin"
+        - "/Users/vincent/miniconda3/bin"
+        - "/usr/local/bin"
+        - "/System/Cryptexes/App/usr/bin"
+        - "/usr/bin"
+        - "/bin"
+        - "/usr/sbin"
+        - "/sbin"
+        - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin"
+        - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin"
+        - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin"
+        - "/Library/TeX/texbin"
+      CMAKE_INSTALL_PREFIX: "/var/folders/6h/wy8nq2q14jg7pgtzy16hhk840000gn/T/tmp8d4y4jo3/wheel/platlib"
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/share/cmake/Modules/CMakeDetermineCompilerId.cmake:17 (message)"
+      - "/usr/local/share/cmake/Modules/CMakeDetermineCompilerId.cmake:64 (__determine_compiler_id_test)"
+      - "/usr/local/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:125 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Compiling the CXX compiler identification source file "CMakeCXXCompilerId.cpp" succeeded.
+      Compiler: /usr/local/opt/llvm/bin/clang++ 
+      Build flags: 
+      Id flags:  
+      
+      The output was:
+      0
+      
+      
+      Compilation of the CXX compiler identification source "CMakeCXXCompilerId.cpp" produced "a.out"
+      
+      The CXX compiler identification is Clang, found in:
+        /Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64/CMakeFiles/4.2.3/CompilerIdCXX/a.out
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/share/cmake/Modules/CMakeDetermineCompilerId.cmake:290 (message)"
+      - "/usr/local/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:125 (CMAKE_DETERMINE_COMPILER_ID)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Detecting CXX compiler apple sysroot: "/usr/local/opt/llvm/bin/clang++" "-E" "apple-sdk.cpp"
+        # 1 "apple-sdk.cpp"
+        # 1 "<built-in>" 1
+        # 1 "<built-in>" 3
+        # 506 "<built-in>" 3
+        # 1 "<command line>" 1
+        # 1 "<built-in>" 2
+        # 1 "apple-sdk.cpp" 2
+        # 1 "/Library/Developer/CommandLineTools/SDKs/MacOSX15.sdk/usr/include/AvailabilityMacros.h" 1 3 4
+        # 89 "/Library/Developer/CommandLineTools/SDKs/MacOSX15.sdk/usr/include/AvailabilityMacros.h" 3 4
+        # 1 "/Library/Developer/CommandLineTools/SDKs/MacOSX15.sdk/usr/include/AvailabilityVersions.h" 1 3 4
+        # 90 "/Library/Developer/CommandLineTools/SDKs/MacOSX15.sdk/usr/include/AvailabilityMacros.h" 2 3 4
+        # 1 "/Library/Developer/CommandLineTools/SDKs/MacOSX15.sdk/usr/include/TargetConditionals.h" 1 3 4
+        # 91 "/Library/Developer/CommandLineTools/SDKs/MacOSX15.sdk/usr/include/AvailabilityMacros.h" 2 3 4
+        # 207 "/Library/Developer/CommandLineTools/SDKs/MacOSX15.sdk/usr/include/AvailabilityMacros.h" 3 4
+        # 1 "/Library/Developer/CommandLineTools/SDKs/MacOSX15.sdk/usr/include/Availability.h" 1 3 4
+        # 196 "/Library/Developer/CommandLineTools/SDKs/MacOSX15.sdk/usr/include/Availability.h" 3 4
+        # 1 "/Library/Developer/CommandLineTools/SDKs/MacOSX15.sdk/usr/include/AvailabilityVersions.h" 1 3 4
+        # 197 "/Library/Developer/CommandLineTools/SDKs/MacOSX15.sdk/usr/include/Availability.h" 2 3 4
+        # 1 "/Library/Developer/CommandLineTools/SDKs/MacOSX15.sdk/usr/include/AvailabilityInternal.h" 1 3 4
+        # 33 "/Library/Developer/CommandLineTools/SDKs/MacOSX15.sdk/usr/include/AvailabilityInternal.h" 3 4
+        # 1 "/Library/Developer/CommandLineTools/SDKs/MacOSX15.sdk/usr/include/AvailabilityVersions.h" 1 3 4
+        # 34 "/Library/Developer/CommandLineTools/SDKs/MacOSX15.sdk/usr/include/AvailabilityInternal.h" 2 3 4
+        # 198 "/Library/Developer/CommandLineTools/SDKs/MacOSX15.sdk/usr/include/Availability.h" 2 3 4
+        # 1 "/Library/Developer/CommandLineTools/SDKs/MacOSX15.sdk/usr/include/AvailabilityInternalLegacy.h" 1 3 4
+        # 34 "/Library/Developer/CommandLineTools/SDKs/MacOSX15.sdk/usr/include/AvailabilityInternalLegacy.h" 3 4
+        # 1 "/Library/Developer/CommandLineTools/SDKs/MacOSX15.sdk/usr/include/AvailabilityInternal.h" 1 3 4
+        # 35 "/Library/Developer/CommandLineTools/SDKs/MacOSX15.sdk/usr/include/AvailabilityInternalLegacy.h" 2 3 4
+        # 199 "/Library/Developer/CommandLineTools/SDKs/MacOSX15.sdk/usr/include/Availability.h" 2 3 4
+        # 208 "/Library/Developer/CommandLineTools/SDKs/MacOSX15.sdk/usr/include/AvailabilityMacros.h" 2 3 4
+        # 2 "apple-sdk.cpp" 2
+        
+        
+      Found apple sysroot: /Library/Developer/CommandLineTools/SDKs/MacOSX15.sdk
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/usr/local/share/cmake/Modules/CMakeFindBinUtils.cmake:243 (find_program)"
+      - "/usr/local/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:206 (include)"
+      - "CMakeLists.txt:2 (project)"
+    mode: "program"
+    variable: "CMAKE_AR"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "FIRST"
+      SearchAppBundle: "FIRST"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "ar"
+    candidate_directories:
+      - "/usr/local/opt/llvm/bin/"
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/bin/"
+      - "/Users/vincent/miniconda3/bin/"
+      - "/usr/local/bin/"
+      - "/System/Cryptexes/App/usr/bin/"
+      - "/usr/bin/"
+      - "/bin/"
+      - "/usr/sbin/"
+      - "/sbin/"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin/"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin/"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin/"
+      - "/Library/TeX/texbin/"
+    searched_directories:
+      - "/usr/local/opt/llvm/bin/ar"
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/bin/ar"
+      - "/Users/vincent/miniconda3/bin/ar"
+      - "/usr/local/bin/ar"
+      - "/System/Cryptexes/App/usr/bin/ar"
+    found: "/usr/bin/ar"
+    search_context:
+      CMAKE_PREFIX_PATH:
+        - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/lib/python3.13/site-packages"
+      ENV{PATH}:
+        - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/bin"
+        - "/usr/local/opt/llvm/bin"
+        - "/Users/vincent/miniconda3/bin"
+        - "/usr/local/bin"
+        - "/System/Cryptexes/App/usr/bin"
+        - "/usr/bin"
+        - "/bin"
+        - "/usr/sbin"
+        - "/sbin"
+        - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin"
+        - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin"
+        - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin"
+        - "/Library/TeX/texbin"
+      CMAKE_INSTALL_PREFIX: "/var/folders/6h/wy8nq2q14jg7pgtzy16hhk840000gn/T/tmp8d4y4jo3/wheel/platlib"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/usr/local/share/cmake/Modules/CMakeFindBinUtils.cmake:243 (find_program)"
+      - "/usr/local/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:206 (include)"
+      - "CMakeLists.txt:2 (project)"
+    mode: "program"
+    variable: "CMAKE_RANLIB"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "FIRST"
+      SearchAppBundle: "FIRST"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "llvm-ranlib"
+      - "ranlib"
+    candidate_directories:
+      - "/usr/local/opt/llvm/bin/"
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/bin/"
+      - "/Users/vincent/miniconda3/bin/"
+      - "/usr/local/bin/"
+      - "/System/Cryptexes/App/usr/bin/"
+      - "/usr/bin/"
+      - "/bin/"
+      - "/usr/sbin/"
+      - "/sbin/"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin/"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin/"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin/"
+      - "/Library/TeX/texbin/"
+    found: "/usr/local/opt/llvm/bin/llvm-ranlib"
+    search_context:
+      CMAKE_PREFIX_PATH:
+        - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/lib/python3.13/site-packages"
+      ENV{PATH}:
+        - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/bin"
+        - "/usr/local/opt/llvm/bin"
+        - "/Users/vincent/miniconda3/bin"
+        - "/usr/local/bin"
+        - "/System/Cryptexes/App/usr/bin"
+        - "/usr/bin"
+        - "/bin"
+        - "/usr/sbin"
+        - "/sbin"
+        - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin"
+        - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin"
+        - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin"
+        - "/Library/TeX/texbin"
+      CMAKE_INSTALL_PREFIX: "/var/folders/6h/wy8nq2q14jg7pgtzy16hhk840000gn/T/tmp8d4y4jo3/wheel/platlib"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/usr/local/share/cmake/Modules/CMakeFindBinUtils.cmake:243 (find_program)"
+      - "/usr/local/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:206 (include)"
+      - "CMakeLists.txt:2 (project)"
+    mode: "program"
+    variable: "CMAKE_STRIP"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "FIRST"
+      SearchAppBundle: "FIRST"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "strip"
+    candidate_directories:
+      - "/usr/local/opt/llvm/bin/"
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/bin/"
+      - "/Users/vincent/miniconda3/bin/"
+      - "/usr/local/bin/"
+      - "/System/Cryptexes/App/usr/bin/"
+      - "/usr/bin/"
+      - "/bin/"
+      - "/usr/sbin/"
+      - "/sbin/"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin/"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin/"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin/"
+      - "/Library/TeX/texbin/"
+    searched_directories:
+      - "/usr/local/opt/llvm/bin/strip"
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/bin/strip"
+      - "/Users/vincent/miniconda3/bin/strip"
+      - "/usr/local/bin/strip"
+      - "/System/Cryptexes/App/usr/bin/strip"
+    found: "/usr/bin/strip"
+    search_context:
+      CMAKE_PREFIX_PATH:
+        - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/lib/python3.13/site-packages"
+      ENV{PATH}:
+        - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/bin"
+        - "/usr/local/opt/llvm/bin"
+        - "/Users/vincent/miniconda3/bin"
+        - "/usr/local/bin"
+        - "/System/Cryptexes/App/usr/bin"
+        - "/usr/bin"
+        - "/bin"
+        - "/usr/sbin"
+        - "/sbin"
+        - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin"
+        - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin"
+        - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin"
+        - "/Library/TeX/texbin"
+      CMAKE_INSTALL_PREFIX: "/var/folders/6h/wy8nq2q14jg7pgtzy16hhk840000gn/T/tmp8d4y4jo3/wheel/platlib"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/usr/local/share/cmake/Modules/CMakeFindBinUtils.cmake:243 (find_program)"
+      - "/usr/local/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:206 (include)"
+      - "CMakeLists.txt:2 (project)"
+    mode: "program"
+    variable: "CMAKE_LINKER"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "FIRST"
+      SearchAppBundle: "FIRST"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "ld"
+    candidate_directories:
+      - "/usr/local/opt/llvm/bin/"
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/bin/"
+      - "/Users/vincent/miniconda3/bin/"
+      - "/usr/local/bin/"
+      - "/System/Cryptexes/App/usr/bin/"
+      - "/usr/bin/"
+      - "/bin/"
+      - "/usr/sbin/"
+      - "/sbin/"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin/"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin/"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin/"
+      - "/Library/TeX/texbin/"
+    searched_directories:
+      - "/usr/local/opt/llvm/bin/ld"
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/bin/ld"
+      - "/Users/vincent/miniconda3/bin/ld"
+      - "/usr/local/bin/ld"
+      - "/System/Cryptexes/App/usr/bin/ld"
+    found: "/usr/bin/ld"
+    search_context:
+      CMAKE_PREFIX_PATH:
+        - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/lib/python3.13/site-packages"
+      ENV{PATH}:
+        - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/bin"
+        - "/usr/local/opt/llvm/bin"
+        - "/Users/vincent/miniconda3/bin"
+        - "/usr/local/bin"
+        - "/System/Cryptexes/App/usr/bin"
+        - "/usr/bin"
+        - "/bin"
+        - "/usr/sbin"
+        - "/sbin"
+        - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin"
+        - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin"
+        - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin"
+        - "/Library/TeX/texbin"
+      CMAKE_INSTALL_PREFIX: "/var/folders/6h/wy8nq2q14jg7pgtzy16hhk840000gn/T/tmp8d4y4jo3/wheel/platlib"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/usr/local/share/cmake/Modules/CMakeFindBinUtils.cmake:243 (find_program)"
+      - "/usr/local/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:206 (include)"
+      - "CMakeLists.txt:2 (project)"
+    mode: "program"
+    variable: "CMAKE_NM"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "FIRST"
+      SearchAppBundle: "FIRST"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "llvm-nm"
+      - "nm"
+    candidate_directories:
+      - "/usr/local/opt/llvm/bin/"
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/bin/"
+      - "/Users/vincent/miniconda3/bin/"
+      - "/usr/local/bin/"
+      - "/System/Cryptexes/App/usr/bin/"
+      - "/usr/bin/"
+      - "/bin/"
+      - "/usr/sbin/"
+      - "/sbin/"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin/"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin/"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin/"
+      - "/Library/TeX/texbin/"
+    found: "/usr/local/opt/llvm/bin/llvm-nm"
+    search_context:
+      CMAKE_PREFIX_PATH:
+        - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/lib/python3.13/site-packages"
+      ENV{PATH}:
+        - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/bin"
+        - "/usr/local/opt/llvm/bin"
+        - "/Users/vincent/miniconda3/bin"
+        - "/usr/local/bin"
+        - "/System/Cryptexes/App/usr/bin"
+        - "/usr/bin"
+        - "/bin"
+        - "/usr/sbin"
+        - "/sbin"
+        - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin"
+        - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin"
+        - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin"
+        - "/Library/TeX/texbin"
+      CMAKE_INSTALL_PREFIX: "/var/folders/6h/wy8nq2q14jg7pgtzy16hhk840000gn/T/tmp8d4y4jo3/wheel/platlib"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/usr/local/share/cmake/Modules/CMakeFindBinUtils.cmake:243 (find_program)"
+      - "/usr/local/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:206 (include)"
+      - "CMakeLists.txt:2 (project)"
+    mode: "program"
+    variable: "CMAKE_OBJDUMP"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "FIRST"
+      SearchAppBundle: "FIRST"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "llvm-objdump"
+      - "objdump"
+    candidate_directories:
+      - "/usr/local/opt/llvm/bin/"
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/bin/"
+      - "/Users/vincent/miniconda3/bin/"
+      - "/usr/local/bin/"
+      - "/System/Cryptexes/App/usr/bin/"
+      - "/usr/bin/"
+      - "/bin/"
+      - "/usr/sbin/"
+      - "/sbin/"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin/"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin/"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin/"
+      - "/Library/TeX/texbin/"
+    found: "/usr/local/opt/llvm/bin/llvm-objdump"
+    search_context:
+      CMAKE_PREFIX_PATH:
+        - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/lib/python3.13/site-packages"
+      ENV{PATH}:
+        - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/bin"
+        - "/usr/local/opt/llvm/bin"
+        - "/Users/vincent/miniconda3/bin"
+        - "/usr/local/bin"
+        - "/System/Cryptexes/App/usr/bin"
+        - "/usr/bin"
+        - "/bin"
+        - "/usr/sbin"
+        - "/sbin"
+        - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin"
+        - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin"
+        - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin"
+        - "/Library/TeX/texbin"
+      CMAKE_INSTALL_PREFIX: "/var/folders/6h/wy8nq2q14jg7pgtzy16hhk840000gn/T/tmp8d4y4jo3/wheel/platlib"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/usr/local/share/cmake/Modules/CMakeFindBinUtils.cmake:243 (find_program)"
+      - "/usr/local/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:206 (include)"
+      - "CMakeLists.txt:2 (project)"
+    mode: "program"
+    variable: "CMAKE_OBJCOPY"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "FIRST"
+      SearchAppBundle: "FIRST"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "llvm-objcopy"
+      - "objcopy"
+    candidate_directories:
+      - "/usr/local/opt/llvm/bin/"
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/bin/"
+      - "/Users/vincent/miniconda3/bin/"
+      - "/usr/local/bin/"
+      - "/System/Cryptexes/App/usr/bin/"
+      - "/usr/bin/"
+      - "/bin/"
+      - "/usr/sbin/"
+      - "/sbin/"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin/"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin/"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin/"
+      - "/Library/TeX/texbin/"
+    found: "/usr/local/opt/llvm/bin/llvm-objcopy"
+    search_context:
+      CMAKE_PREFIX_PATH:
+        - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/lib/python3.13/site-packages"
+      ENV{PATH}:
+        - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/bin"
+        - "/usr/local/opt/llvm/bin"
+        - "/Users/vincent/miniconda3/bin"
+        - "/usr/local/bin"
+        - "/System/Cryptexes/App/usr/bin"
+        - "/usr/bin"
+        - "/bin"
+        - "/usr/sbin"
+        - "/sbin"
+        - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin"
+        - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin"
+        - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin"
+        - "/Library/TeX/texbin"
+      CMAKE_INSTALL_PREFIX: "/var/folders/6h/wy8nq2q14jg7pgtzy16hhk840000gn/T/tmp8d4y4jo3/wheel/platlib"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/usr/local/share/cmake/Modules/CMakeFindBinUtils.cmake:243 (find_program)"
+      - "/usr/local/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:206 (include)"
+      - "CMakeLists.txt:2 (project)"
+    mode: "program"
+    variable: "CMAKE_READELF"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "FIRST"
+      SearchAppBundle: "FIRST"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "llvm-readelf"
+      - "readelf"
+    candidate_directories:
+      - "/usr/local/opt/llvm/bin/"
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/bin/"
+      - "/Users/vincent/miniconda3/bin/"
+      - "/usr/local/bin/"
+      - "/System/Cryptexes/App/usr/bin/"
+      - "/usr/bin/"
+      - "/bin/"
+      - "/usr/sbin/"
+      - "/sbin/"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin/"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin/"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin/"
+      - "/Library/TeX/texbin/"
+    found: "/usr/local/opt/llvm/bin/llvm-readelf"
+    search_context:
+      CMAKE_PREFIX_PATH:
+        - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/lib/python3.13/site-packages"
+      ENV{PATH}:
+        - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/bin"
+        - "/usr/local/opt/llvm/bin"
+        - "/Users/vincent/miniconda3/bin"
+        - "/usr/local/bin"
+        - "/System/Cryptexes/App/usr/bin"
+        - "/usr/bin"
+        - "/bin"
+        - "/usr/sbin"
+        - "/sbin"
+        - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin"
+        - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin"
+        - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin"
+        - "/Library/TeX/texbin"
+      CMAKE_INSTALL_PREFIX: "/var/folders/6h/wy8nq2q14jg7pgtzy16hhk840000gn/T/tmp8d4y4jo3/wheel/platlib"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/usr/local/share/cmake/Modules/CMakeFindBinUtils.cmake:243 (find_program)"
+      - "/usr/local/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:206 (include)"
+      - "CMakeLists.txt:2 (project)"
+    mode: "program"
+    variable: "CMAKE_DLLTOOL"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "FIRST"
+      SearchAppBundle: "FIRST"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "llvm-dlltool"
+      - "dlltool"
+    candidate_directories:
+      - "/usr/local/opt/llvm/bin/"
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/bin/"
+      - "/Users/vincent/miniconda3/bin/"
+      - "/usr/local/bin/"
+      - "/System/Cryptexes/App/usr/bin/"
+      - "/usr/bin/"
+      - "/bin/"
+      - "/usr/sbin/"
+      - "/sbin/"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin/"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin/"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin/"
+      - "/Library/TeX/texbin/"
+    found: "/usr/local/opt/llvm/bin/llvm-dlltool"
+    search_context:
+      CMAKE_PREFIX_PATH:
+        - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/lib/python3.13/site-packages"
+      ENV{PATH}:
+        - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/bin"
+        - "/usr/local/opt/llvm/bin"
+        - "/Users/vincent/miniconda3/bin"
+        - "/usr/local/bin"
+        - "/System/Cryptexes/App/usr/bin"
+        - "/usr/bin"
+        - "/bin"
+        - "/usr/sbin"
+        - "/sbin"
+        - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin"
+        - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin"
+        - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin"
+        - "/Library/TeX/texbin"
+      CMAKE_INSTALL_PREFIX: "/var/folders/6h/wy8nq2q14jg7pgtzy16hhk840000gn/T/tmp8d4y4jo3/wheel/platlib"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/usr/local/share/cmake/Modules/CMakeFindBinUtils.cmake:243 (find_program)"
+      - "/usr/local/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:206 (include)"
+      - "CMakeLists.txt:2 (project)"
+    mode: "program"
+    variable: "CMAKE_ADDR2LINE"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "FIRST"
+      SearchAppBundle: "FIRST"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "llvm-addr2line"
+      - "addr2line"
+    candidate_directories:
+      - "/usr/local/opt/llvm/bin/"
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/bin/"
+      - "/Users/vincent/miniconda3/bin/"
+      - "/usr/local/bin/"
+      - "/System/Cryptexes/App/usr/bin/"
+      - "/usr/bin/"
+      - "/bin/"
+      - "/usr/sbin/"
+      - "/sbin/"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin/"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin/"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin/"
+      - "/Library/TeX/texbin/"
+    found: "/usr/local/opt/llvm/bin/llvm-addr2line"
+    search_context:
+      CMAKE_PREFIX_PATH:
+        - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/lib/python3.13/site-packages"
+      ENV{PATH}:
+        - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/bin"
+        - "/usr/local/opt/llvm/bin"
+        - "/Users/vincent/miniconda3/bin"
+        - "/usr/local/bin"
+        - "/System/Cryptexes/App/usr/bin"
+        - "/usr/bin"
+        - "/bin"
+        - "/usr/sbin"
+        - "/sbin"
+        - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin"
+        - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin"
+        - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin"
+        - "/Library/TeX/texbin"
+      CMAKE_INSTALL_PREFIX: "/var/folders/6h/wy8nq2q14jg7pgtzy16hhk840000gn/T/tmp8d4y4jo3/wheel/platlib"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/usr/local/share/cmake/Modules/CMakeFindBinUtils.cmake:243 (find_program)"
+      - "/usr/local/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:206 (include)"
+      - "CMakeLists.txt:2 (project)"
+    mode: "program"
+    variable: "CMAKE_TAPI"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "FIRST"
+      SearchAppBundle: "FIRST"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "tapi"
+    candidate_directories:
+      - "/usr/local/opt/llvm/bin/"
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/bin/"
+      - "/Users/vincent/miniconda3/bin/"
+      - "/usr/local/bin/"
+      - "/System/Cryptexes/App/usr/bin/"
+      - "/usr/bin/"
+      - "/bin/"
+      - "/usr/sbin/"
+      - "/sbin/"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin/"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin/"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin/"
+      - "/Library/TeX/texbin/"
+    searched_directories:
+      - "/usr/local/opt/llvm/bin/tapi"
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/bin/tapi"
+      - "/Users/vincent/miniconda3/bin/tapi"
+      - "/usr/local/bin/tapi"
+      - "/System/Cryptexes/App/usr/bin/tapi"
+      - "/usr/bin/tapi"
+      - "/bin/tapi"
+      - "/usr/sbin/tapi"
+      - "/sbin/tapi"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin/tapi"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin/tapi"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin/tapi"
+      - "/Library/TeX/texbin/tapi"
+    found: false
+    search_context:
+      CMAKE_PREFIX_PATH:
+        - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/lib/python3.13/site-packages"
+      ENV{PATH}:
+        - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/bin"
+        - "/usr/local/opt/llvm/bin"
+        - "/Users/vincent/miniconda3/bin"
+        - "/usr/local/bin"
+        - "/System/Cryptexes/App/usr/bin"
+        - "/usr/bin"
+        - "/bin"
+        - "/usr/sbin"
+        - "/sbin"
+        - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin"
+        - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin"
+        - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin"
+        - "/Library/TeX/texbin"
+      CMAKE_INSTALL_PREFIX: "/var/folders/6h/wy8nq2q14jg7pgtzy16hhk840000gn/T/tmp8d4y4jo3/wheel/platlib"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/usr/local/share/cmake/Modules/Compiler/Clang-FindBinUtils.cmake:26 (find_program)"
+      - "/usr/local/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:207 (include)"
+      - "CMakeLists.txt:2 (project)"
+    mode: "program"
+    variable: "CMAKE_CXX_COMPILER_AR"
+    description: "LLVM archiver"
+    settings:
+      SearchFramework: "FIRST"
+      SearchAppBundle: "FIRST"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "llvm-ar-21.1"
+      - "llvm-ar-21"
+      - "llvm-ar21"
+      - "llvm-ar"
+    candidate_directories:
+      - "/usr/local/Cellar/llvm/21.1.8_1/bin/"
+      - "/usr/local/opt/llvm/bin/"
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/bin/"
+      - "/Users/vincent/miniconda3/bin/"
+      - "/usr/local/bin/"
+      - "/System/Cryptexes/App/usr/bin/"
+      - "/usr/bin/"
+      - "/bin/"
+      - "/usr/sbin/"
+      - "/sbin/"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin/"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin/"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin/"
+      - "/Library/TeX/texbin/"
+    searched_directories:
+      - "/usr/local/Cellar/llvm/21.1.8_1/bin/llvm-ar-21.1"
+      - "/usr/local/opt/llvm/bin/llvm-ar-21.1"
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/bin/llvm-ar-21.1"
+      - "/Users/vincent/miniconda3/bin/llvm-ar-21.1"
+      - "/usr/local/bin/llvm-ar-21.1"
+      - "/System/Cryptexes/App/usr/bin/llvm-ar-21.1"
+      - "/usr/bin/llvm-ar-21.1"
+      - "/bin/llvm-ar-21.1"
+      - "/usr/sbin/llvm-ar-21.1"
+      - "/sbin/llvm-ar-21.1"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin/llvm-ar-21.1"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin/llvm-ar-21.1"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin/llvm-ar-21.1"
+      - "/Library/TeX/texbin/llvm-ar-21.1"
+      - "/usr/local/Cellar/llvm/21.1.8_1/bin/llvm-ar-21"
+      - "/usr/local/opt/llvm/bin/llvm-ar-21"
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/bin/llvm-ar-21"
+      - "/Users/vincent/miniconda3/bin/llvm-ar-21"
+      - "/usr/local/bin/llvm-ar-21"
+      - "/System/Cryptexes/App/usr/bin/llvm-ar-21"
+      - "/usr/bin/llvm-ar-21"
+      - "/bin/llvm-ar-21"
+      - "/usr/sbin/llvm-ar-21"
+      - "/sbin/llvm-ar-21"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin/llvm-ar-21"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin/llvm-ar-21"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin/llvm-ar-21"
+      - "/Library/TeX/texbin/llvm-ar-21"
+      - "/usr/local/Cellar/llvm/21.1.8_1/bin/llvm-ar21"
+      - "/usr/local/opt/llvm/bin/llvm-ar21"
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/bin/llvm-ar21"
+      - "/Users/vincent/miniconda3/bin/llvm-ar21"
+      - "/usr/local/bin/llvm-ar21"
+      - "/System/Cryptexes/App/usr/bin/llvm-ar21"
+      - "/usr/bin/llvm-ar21"
+      - "/bin/llvm-ar21"
+      - "/usr/sbin/llvm-ar21"
+      - "/sbin/llvm-ar21"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin/llvm-ar21"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin/llvm-ar21"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin/llvm-ar21"
+      - "/Library/TeX/texbin/llvm-ar21"
+    found: "/usr/local/Cellar/llvm/21.1.8_1/bin/llvm-ar"
+    search_context:
+      CMAKE_PREFIX_PATH:
+        - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/lib/python3.13/site-packages"
+      ENV{PATH}:
+        - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/bin"
+        - "/usr/local/opt/llvm/bin"
+        - "/Users/vincent/miniconda3/bin"
+        - "/usr/local/bin"
+        - "/System/Cryptexes/App/usr/bin"
+        - "/usr/bin"
+        - "/bin"
+        - "/usr/sbin"
+        - "/sbin"
+        - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin"
+        - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin"
+        - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin"
+        - "/Library/TeX/texbin"
+      CMAKE_INSTALL_PREFIX: "/var/folders/6h/wy8nq2q14jg7pgtzy16hhk840000gn/T/tmp8d4y4jo3/wheel/platlib"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/usr/local/share/cmake/Modules/Compiler/Clang-FindBinUtils.cmake:38 (find_program)"
+      - "/usr/local/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:207 (include)"
+      - "CMakeLists.txt:2 (project)"
+    mode: "program"
+    variable: "CMAKE_CXX_COMPILER_RANLIB"
+    description: "Generate index for LLVM archive"
+    settings:
+      SearchFramework: "FIRST"
+      SearchAppBundle: "FIRST"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "llvm-ranlib-21.1"
+      - "llvm-ranlib-21"
+      - "llvm-ranlib21"
+      - "llvm-ranlib"
+    candidate_directories:
+      - "/usr/local/Cellar/llvm/21.1.8_1/bin/"
+      - "/usr/local/opt/llvm/bin/"
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/bin/"
+      - "/Users/vincent/miniconda3/bin/"
+      - "/usr/local/bin/"
+      - "/System/Cryptexes/App/usr/bin/"
+      - "/usr/bin/"
+      - "/bin/"
+      - "/usr/sbin/"
+      - "/sbin/"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin/"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin/"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin/"
+      - "/Library/TeX/texbin/"
+    searched_directories:
+      - "/usr/local/Cellar/llvm/21.1.8_1/bin/llvm-ranlib-21.1"
+      - "/usr/local/opt/llvm/bin/llvm-ranlib-21.1"
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/bin/llvm-ranlib-21.1"
+      - "/Users/vincent/miniconda3/bin/llvm-ranlib-21.1"
+      - "/usr/local/bin/llvm-ranlib-21.1"
+      - "/System/Cryptexes/App/usr/bin/llvm-ranlib-21.1"
+      - "/usr/bin/llvm-ranlib-21.1"
+      - "/bin/llvm-ranlib-21.1"
+      - "/usr/sbin/llvm-ranlib-21.1"
+      - "/sbin/llvm-ranlib-21.1"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin/llvm-ranlib-21.1"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin/llvm-ranlib-21.1"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin/llvm-ranlib-21.1"
+      - "/Library/TeX/texbin/llvm-ranlib-21.1"
+      - "/usr/local/Cellar/llvm/21.1.8_1/bin/llvm-ranlib-21"
+      - "/usr/local/opt/llvm/bin/llvm-ranlib-21"
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/bin/llvm-ranlib-21"
+      - "/Users/vincent/miniconda3/bin/llvm-ranlib-21"
+      - "/usr/local/bin/llvm-ranlib-21"
+      - "/System/Cryptexes/App/usr/bin/llvm-ranlib-21"
+      - "/usr/bin/llvm-ranlib-21"
+      - "/bin/llvm-ranlib-21"
+      - "/usr/sbin/llvm-ranlib-21"
+      - "/sbin/llvm-ranlib-21"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin/llvm-ranlib-21"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin/llvm-ranlib-21"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin/llvm-ranlib-21"
+      - "/Library/TeX/texbin/llvm-ranlib-21"
+      - "/usr/local/Cellar/llvm/21.1.8_1/bin/llvm-ranlib21"
+      - "/usr/local/opt/llvm/bin/llvm-ranlib21"
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/bin/llvm-ranlib21"
+      - "/Users/vincent/miniconda3/bin/llvm-ranlib21"
+      - "/usr/local/bin/llvm-ranlib21"
+      - "/System/Cryptexes/App/usr/bin/llvm-ranlib21"
+      - "/usr/bin/llvm-ranlib21"
+      - "/bin/llvm-ranlib21"
+      - "/usr/sbin/llvm-ranlib21"
+      - "/sbin/llvm-ranlib21"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin/llvm-ranlib21"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin/llvm-ranlib21"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin/llvm-ranlib21"
+      - "/Library/TeX/texbin/llvm-ranlib21"
+    found: "/usr/local/Cellar/llvm/21.1.8_1/bin/llvm-ranlib"
+    search_context:
+      CMAKE_PREFIX_PATH:
+        - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/lib/python3.13/site-packages"
+      ENV{PATH}:
+        - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/bin"
+        - "/usr/local/opt/llvm/bin"
+        - "/Users/vincent/miniconda3/bin"
+        - "/usr/local/bin"
+        - "/System/Cryptexes/App/usr/bin"
+        - "/usr/bin"
+        - "/bin"
+        - "/usr/sbin"
+        - "/sbin"
+        - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin"
+        - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin"
+        - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin"
+        - "/Library/TeX/texbin"
+      CMAKE_INSTALL_PREFIX: "/var/folders/6h/wy8nq2q14jg7pgtzy16hhk840000gn/T/tmp8d4y4jo3/wheel/platlib"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/usr/local/share/cmake/Modules/Compiler/Clang-FindBinUtils.cmake:50 (find_program)"
+      - "/usr/local/share/cmake/Modules/CMakeDetermineCXXCompiler.cmake:207 (include)"
+      - "CMakeLists.txt:2 (project)"
+    mode: "program"
+    variable: "CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS"
+    description: "`clang-scan-deps` dependency scanner"
+    settings:
+      SearchFramework: "FIRST"
+      SearchAppBundle: "FIRST"
+      CMAKE_FIND_USE_CMAKE_PATH: false
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: false
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "clang-scan-deps-21.1"
+      - "clang-scan-deps-21"
+      - "clang-scan-deps21"
+      - "clang-scan-deps"
+    candidate_directories:
+      - "/usr/local/Cellar/llvm/21.1.8_1/bin/"
+      - "/usr/local/opt/llvm/bin/"
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/bin/"
+      - "/Users/vincent/miniconda3/bin/"
+      - "/usr/local/bin/"
+      - "/System/Cryptexes/App/usr/bin/"
+      - "/usr/bin/"
+      - "/bin/"
+      - "/usr/sbin/"
+      - "/sbin/"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin/"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin/"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin/"
+      - "/Library/TeX/texbin/"
+    searched_directories:
+      - "/usr/local/Cellar/llvm/21.1.8_1/bin/clang-scan-deps-21.1"
+      - "/usr/local/opt/llvm/bin/clang-scan-deps-21.1"
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/bin/clang-scan-deps-21.1"
+      - "/Users/vincent/miniconda3/bin/clang-scan-deps-21.1"
+      - "/usr/local/bin/clang-scan-deps-21.1"
+      - "/System/Cryptexes/App/usr/bin/clang-scan-deps-21.1"
+      - "/usr/bin/clang-scan-deps-21.1"
+      - "/bin/clang-scan-deps-21.1"
+      - "/usr/sbin/clang-scan-deps-21.1"
+      - "/sbin/clang-scan-deps-21.1"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin/clang-scan-deps-21.1"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin/clang-scan-deps-21.1"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin/clang-scan-deps-21.1"
+      - "/Library/TeX/texbin/clang-scan-deps-21.1"
+      - "/usr/local/Cellar/llvm/21.1.8_1/bin/clang-scan-deps-21"
+      - "/usr/local/opt/llvm/bin/clang-scan-deps-21"
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/bin/clang-scan-deps-21"
+      - "/Users/vincent/miniconda3/bin/clang-scan-deps-21"
+      - "/usr/local/bin/clang-scan-deps-21"
+      - "/System/Cryptexes/App/usr/bin/clang-scan-deps-21"
+      - "/usr/bin/clang-scan-deps-21"
+      - "/bin/clang-scan-deps-21"
+      - "/usr/sbin/clang-scan-deps-21"
+      - "/sbin/clang-scan-deps-21"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin/clang-scan-deps-21"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin/clang-scan-deps-21"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin/clang-scan-deps-21"
+      - "/Library/TeX/texbin/clang-scan-deps-21"
+      - "/usr/local/Cellar/llvm/21.1.8_1/bin/clang-scan-deps21"
+      - "/usr/local/opt/llvm/bin/clang-scan-deps21"
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/bin/clang-scan-deps21"
+      - "/Users/vincent/miniconda3/bin/clang-scan-deps21"
+      - "/usr/local/bin/clang-scan-deps21"
+      - "/System/Cryptexes/App/usr/bin/clang-scan-deps21"
+      - "/usr/bin/clang-scan-deps21"
+      - "/bin/clang-scan-deps21"
+      - "/usr/sbin/clang-scan-deps21"
+      - "/sbin/clang-scan-deps21"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin/clang-scan-deps21"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin/clang-scan-deps21"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin/clang-scan-deps21"
+      - "/Library/TeX/texbin/clang-scan-deps21"
+    found: "/usr/local/Cellar/llvm/21.1.8_1/bin/clang-scan-deps"
+    search_context:
+      CMAKE_PREFIX_PATH:
+        - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/lib/python3.13/site-packages"
+      ENV{PATH}:
+        - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/bin"
+        - "/usr/local/opt/llvm/bin"
+        - "/Users/vincent/miniconda3/bin"
+        - "/usr/local/bin"
+        - "/System/Cryptexes/App/usr/bin"
+        - "/usr/bin"
+        - "/bin"
+        - "/usr/sbin"
+        - "/sbin"
+        - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin"
+        - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin"
+        - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin"
+        - "/Library/TeX/texbin"
+      CMAKE_INSTALL_PREFIX: "/var/folders/6h/wy8nq2q14jg7pgtzy16hhk840000gn/T/tmp8d4y4jo3/wheel/platlib"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/usr/local/share/cmake/Modules/Platform/Darwin.cmake:76 (find_program)"
+      - "/usr/local/share/cmake/Modules/CMakeSystemSpecificInformation.cmake:32 (include)"
+      - "CMakeLists.txt:2 (project)"
+    mode: "program"
+    variable: "CMAKE_INSTALL_NAME_TOOL"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "FIRST"
+      SearchAppBundle: "FIRST"
+      CMAKE_FIND_USE_CMAKE_PATH: true
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "install_name_tool"
+    candidate_directories:
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/lib/python3.13/site-packages/bin/"
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/lib/python3.13/site-packages/sbin/"
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/lib/python3.13/site-packages/"
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/bin/"
+      - "/usr/local/opt/llvm/bin/"
+      - "/Users/vincent/miniconda3/bin/"
+      - "/usr/local/bin/"
+      - "/System/Cryptexes/App/usr/bin/"
+      - "/usr/bin/"
+      - "/bin/"
+      - "/usr/sbin/"
+      - "/sbin/"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin/"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin/"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin/"
+      - "/Library/TeX/texbin/"
+    searched_directories:
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/lib/python3.13/site-packages/bin/install_name_tool"
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/lib/python3.13/site-packages/sbin/install_name_tool"
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/lib/python3.13/site-packages/install_name_tool"
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/bin/install_name_tool"
+      - "/usr/local/opt/llvm/bin/install_name_tool"
+      - "/Users/vincent/miniconda3/bin/install_name_tool"
+      - "/usr/local/bin/install_name_tool"
+      - "/System/Cryptexes/App/usr/bin/install_name_tool"
+    found: "/usr/bin/install_name_tool"
+    search_context:
+      CMAKE_PREFIX_PATH:
+        - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/lib/python3.13/site-packages"
+      ENV{PATH}:
+        - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/bin"
+        - "/usr/local/opt/llvm/bin"
+        - "/Users/vincent/miniconda3/bin"
+        - "/usr/local/bin"
+        - "/System/Cryptexes/App/usr/bin"
+        - "/usr/bin"
+        - "/bin"
+        - "/usr/sbin"
+        - "/sbin"
+        - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin"
+        - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin"
+        - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin"
+        - "/Library/TeX/texbin"
+      CMAKE_INSTALL_PREFIX: "/var/folders/6h/wy8nq2q14jg7pgtzy16hhk840000gn/T/tmp8d4y4jo3/wheel/platlib"
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/usr/local/share/cmake/Modules/CMakeDetermineCompilerABI.cmake:83 (try_compile)"
+      - "/usr/local/share/cmake/Modules/CMakeTestCXXCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:2 (project)"
+    checks:
+      - "Detecting CXX compiler ABI info"
+    directories:
+      source: "/Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64/CMakeFiles/CMakeScratch/TryCompile-WqwVV0"
+      binary: "/Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64/CMakeFiles/CMakeScratch/TryCompile-WqwVV0"
+    cmakeVariables:
+      CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS: "/usr/local/Cellar/llvm/21.1.8_1/bin/clang-scan-deps"
+      CMAKE_CXX_FLAGS: ""
+      CMAKE_CXX_FLAGS_DEBUG: "-g"
+      CMAKE_CXX_SCAN_FOR_MODULES: "OFF"
+      CMAKE_EXE_LINKER_FLAGS: "-L/usr/local/opt/llvm/lib"
+      CMAKE_OSX_ARCHITECTURES: ""
+      CMAKE_OSX_DEPLOYMENT_TARGET: ""
+      CMAKE_OSX_SYSROOT: ""
+    buildResult:
+      variable: "CMAKE_CXX_ABI_COMPILED"
+      cached: true
+      stdout: |
+        Change Dir: '/Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64/CMakeFiles/CMakeScratch/TryCompile-WqwVV0'
+        
+        Run Build Command(s): /Users/vincent/git/github.com/vincentk/dedekind/.venv/bin/ninja -v cmTC_9be6c
+        [1/2] /usr/local/opt/llvm/bin/clang++   -v -Wl,-v -MD -MT CMakeFiles/cmTC_9be6c.dir/CMakeCXXCompilerABI.cpp.o -MF CMakeFiles/cmTC_9be6c.dir/CMakeCXXCompilerABI.cpp.o.d -o CMakeFiles/cmTC_9be6c.dir/CMakeCXXCompilerABI.cpp.o -c /usr/local/share/cmake/Modules/CMakeCXXCompilerABI.cpp
+        Homebrew clang version 21.1.8
+        Target: x86_64-apple-darwin24.6.0
+        Thread model: posix
+        InstalledDir: /usr/local/Cellar/llvm/21.1.8_1/bin
+        Configuration file: /usr/local/etc/clang/x86_64-apple-darwin24.cfg
+        System configuration file directory: /usr/local/etc/clang
+        User configuration file directory: /Users/vincent/.config/clang
+        clang++: warning: -Wl,-v: 'linker' input unused [-Wunused-command-line-argument]
+         (in-process)
+         "/usr/local/Cellar/llvm/21.1.8_1/bin/clang-21" -cc1 -triple x86_64-apple-macosx15.0.0 -Wundef-prefix=TARGET_OS_ -Werror=undef-prefix -Wdeprecated-objc-isa-usage -Werror=deprecated-objc-isa-usage -emit-obj -disable-free -clear-ast-before-backend -disable-llvm-verifier -discard-value-names -main-file-name CMakeCXXCompilerABI.cpp -mrelocation-model pic -pic-level 2 -mframe-pointer=all -ffp-contract=on -fno-rounding-math -funwind-tables=2 -target-sdk-version=15.4 -fcompatibility-qualified-id-block-type-checking -fvisibility-inlines-hidden-static-local-var -fdefine-target-os-macros -fno-modulemap-allow-subdirectory-search -target-cpu penryn -tune-cpu generic -debugger-tuning=lldb -fdebug-compilation-dir=/Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64/CMakeFiles/CMakeScratch/TryCompile-WqwVV0 -target-linker-version 1115.7.3 -v -fcoverage-compilation-dir=/Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64/CMakeFiles/CMakeScratch/TryCompile-WqwVV0 -resource-dir /usr/local/Cellar/llvm/21.1.8_1/lib/clang/21 -dependency-file CMakeFiles/cmTC_9be6c.dir/CMakeCXXCompilerABI.cpp.o.d -MT CMakeFiles/cmTC_9be6c.dir/CMakeCXXCompilerABI.cpp.o -sys-header-deps -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX15.sdk -internal-isystem /usr/local/Cellar/llvm/21.1.8_1/bin/../include/c++/v1 -internal-isystem /Library/Developer/CommandLineTools/SDKs/MacOSX15.sdk/usr/local/include -internal-isystem /usr/local/Cellar/llvm/21.1.8_1/lib/clang/21/include -internal-externc-isystem /Library/Developer/CommandLineTools/SDKs/MacOSX15.sdk/usr/include -internal-iframework /Library/Developer/CommandLineTools/SDKs/MacOSX15.sdk/System/Library/Frameworks -internal-iframework /Library/Developer/CommandLineTools/SDKs/MacOSX15.sdk/System/Library/SubFrameworks -internal-iframework /Library/Developer/CommandLineTools/SDKs/MacOSX15.sdk/Library/Frameworks -fdeprecated-macro -ferror-limit 19 -stack-protector 1 -fblocks -fencode-extended-block-signature -fregister-global-dtors-with-atexit -fgnuc-version=4.2.1 -fskip-odr-check-in-gmf -fcxx-exceptions -fexceptions -fmax-type-align=16 -D__GCC_HAVE_DWARF2_CFI_ASM=1 -o CMakeFiles/cmTC_9be6c.dir/CMakeCXXCompilerABI.cpp.o -x c++ /usr/local/share/cmake/Modules/CMakeCXXCompilerABI.cpp
+        clang -cc1 version 21.1.8 based upon LLVM 21.1.8 default target x86_64-apple-darwin24.6.0
+        ignoring nonexistent directory "/Library/Developer/CommandLineTools/SDKs/MacOSX15.sdk/usr/local/include"
+        ignoring nonexistent directory "/Library/Developer/CommandLineTools/SDKs/MacOSX15.sdk/System/Library/SubFrameworks"
+        ignoring nonexistent directory "/Library/Developer/CommandLineTools/SDKs/MacOSX15.sdk/Library/Frameworks"
+        #include "..." search starts here:
+        #include <...> search starts here:
+         /usr/local/Cellar/llvm/21.1.8_1/bin/../include/c++/v1
+         /usr/local/Cellar/llvm/21.1.8_1/lib/clang/21/include
+         /Library/Developer/CommandLineTools/SDKs/MacOSX15.sdk/usr/include
+         /Library/Developer/CommandLineTools/SDKs/MacOSX15.sdk/System/Library/Frameworks (framework directory)
+        End of search list.
+        [2/2] : && /usr/local/opt/llvm/bin/clang++  -Wl,-search_paths_first -Wl,-headerpad_max_install_names -L/usr/local/opt/llvm/lib -v -Wl,-v CMakeFiles/cmTC_9be6c.dir/CMakeCXXCompilerABI.cpp.o -o cmTC_9be6c   && :
+        Homebrew clang version 21.1.8
+        Target: x86_64-apple-darwin24.6.0
+        Thread model: posix
+        InstalledDir: /usr/local/Cellar/llvm/21.1.8_1/bin
+        Configuration file: /usr/local/etc/clang/x86_64-apple-darwin24.cfg
+        System configuration file directory: /usr/local/etc/clang
+        User configuration file directory: /Users/vincent/.config/clang
+         "/usr/bin/ld" -demangle -lto_library /usr/local/Cellar/llvm/21.1.8_1/lib/libLTO.dylib -dynamic -arch x86_64 -platform_version macos 15.0.0 15.4 -syslibroot /Library/Developer/CommandLineTools/SDKs/MacOSX15.sdk -mllvm -enable-linkonceodr-outlining -o cmTC_9be6c -L/usr/local/opt/llvm/lib -search_paths_first -headerpad_max_install_names -v CMakeFiles/cmTC_9be6c.dir/CMakeCXXCompilerABI.cpp.o -lc++ -lSystem /usr/local/Cellar/llvm/21.1.8_1/lib/clang/21/lib/darwin/libclang_rt.osx.a
+        @(#)PROGRAM:ld PROJECT:ld-1230.1
+        BUILD 16:17:14 Oct 17 2025
+        configured to support archs: armv6 armv7 armv7s arm64 arm64e arm64_32 i386 x86_64 x86_64h armv6m armv7k armv7m armv7em armv8m.main armv8.1m.main
+        will use ld-classic for: armv6 armv7 armv7s i386 armv6m armv7k armv7m armv7em
+        LTO support using: LLVM version 21.1.8 (static support for 29, runtime is 30)
+        TAPI support using: Apple TAPI version 17.0.0 (tapi-1700.3.8)
+        Library search paths:
+        	/usr/local/opt/llvm/lib
+        	/Library/Developer/CommandLineTools/SDKs/MacOSX15.sdk/usr/lib
+        	/Library/Developer/CommandLineTools/SDKs/MacOSX15.sdk/usr/lib/swift
+        Framework search paths:
+        	/Library/Developer/CommandLineTools/SDKs/MacOSX15.sdk/System/Library/Frameworks
+        
+      exitCode: 0
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/share/cmake/Modules/CMakeDetermineCompilerABI.cmake:122 (message)"
+      - "/usr/local/share/cmake/Modules/CMakeTestCXXCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Effective list of requested architectures (possibly empty)  : ""
+      Effective list of architectures found in the ABI info binary: "x86_64"
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/share/cmake/Modules/CMakeDetermineCompilerABI.cmake:217 (message)"
+      - "/usr/local/share/cmake/Modules/CMakeTestCXXCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Parsed CXX implicit include dir info: rv=done
+        found start of include info
+        found start of implicit include info
+          add: [/usr/local/Cellar/llvm/21.1.8_1/bin/../include/c++/v1]
+          add: [/usr/local/Cellar/llvm/21.1.8_1/lib/clang/21/include]
+          add: [/Library/Developer/CommandLineTools/SDKs/MacOSX15.sdk/usr/include]
+        end of search list found
+        collapse include dir [/usr/local/Cellar/llvm/21.1.8_1/bin/../include/c++/v1] ==> [/usr/local/Cellar/llvm/21.1.8_1/include/c++/v1]
+        collapse include dir [/usr/local/Cellar/llvm/21.1.8_1/lib/clang/21/include] ==> [/usr/local/Cellar/llvm/21.1.8_1/lib/clang/21/include]
+        collapse include dir [/Library/Developer/CommandLineTools/SDKs/MacOSX15.sdk/usr/include] ==> [/Library/Developer/CommandLineTools/SDKs/MacOSX15.sdk/usr/include]
+        implicit include dirs: [/usr/local/Cellar/llvm/21.1.8_1/include/c++/v1;/usr/local/Cellar/llvm/21.1.8_1/lib/clang/21/include;/Library/Developer/CommandLineTools/SDKs/MacOSX15.sdk/usr/include]
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/share/cmake/Modules/CMakeDetermineCompilerABI.cmake:253 (message)"
+      - "/usr/local/share/cmake/Modules/CMakeTestCXXCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Parsed CXX implicit link information:
+        link line regex: [^( *|.*[/\\])(ld[0-9]*(|\\.[a-rt-z][a-z]*|\\.s[a-np-z][a-z]*|\\.so[a-z]+)|CMAKE_LINK_STARTFILE-NOTFOUND|([^/\\]+-)?ld|collect2)[^/\\]*( |$)]
+        linker tool regex: [^[ 	]*(->|"|[0-9]+>[ 	-]*Build:[ 	0-9]+ ms[ 	]*)?[ 	]*(([^"]*[/\\])?(ld[0-9]*(|\\.[a-rt-z][a-z]*|\\.s[a-np-z][a-z]*|\\.so[a-z]+)))("|,| |$)]
+        ignore line: [Change Dir: '/Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64/CMakeFiles/CMakeScratch/TryCompile-WqwVV0']
+        ignore line: []
+        ignore line: [Run Build Command(s): /Users/vincent/git/github.com/vincentk/dedekind/.venv/bin/ninja -v cmTC_9be6c]
+        ignore line: [[1/2] /usr/local/opt/llvm/bin/clang++   -v -Wl -v -MD -MT CMakeFiles/cmTC_9be6c.dir/CMakeCXXCompilerABI.cpp.o -MF CMakeFiles/cmTC_9be6c.dir/CMakeCXXCompilerABI.cpp.o.d -o CMakeFiles/cmTC_9be6c.dir/CMakeCXXCompilerABI.cpp.o -c /usr/local/share/cmake/Modules/CMakeCXXCompilerABI.cpp]
+        ignore line: [Homebrew clang version 21.1.8]
+        ignore line: [Target: x86_64-apple-darwin24.6.0]
+        ignore line: [Thread model: posix]
+        ignore line: [InstalledDir: /usr/local/Cellar/llvm/21.1.8_1/bin]
+        ignore line: [Configuration file: /usr/local/etc/clang/x86_64-apple-darwin24.cfg]
+        ignore line: [System configuration file directory: /usr/local/etc/clang]
+        ignore line: [User configuration file directory: /Users/vincent/.config/clang]
+        ignore line: [clang++: warning: -Wl -v: 'linker' input unused [-Wunused-command-line-argument]]
+        ignore line: [ (in-process)]
+        ignore line: [ "/usr/local/Cellar/llvm/21.1.8_1/bin/clang-21" -cc1 -triple x86_64-apple-macosx15.0.0 -Wundef-prefix=TARGET_OS_ -Werror=undef-prefix -Wdeprecated-objc-isa-usage -Werror=deprecated-objc-isa-usage -emit-obj -disable-free -clear-ast-before-backend -disable-llvm-verifier -discard-value-names -main-file-name CMakeCXXCompilerABI.cpp -mrelocation-model pic -pic-level 2 -mframe-pointer=all -ffp-contract=on -fno-rounding-math -funwind-tables=2 -target-sdk-version=15.4 -fcompatibility-qualified-id-block-type-checking -fvisibility-inlines-hidden-static-local-var -fdefine-target-os-macros -fno-modulemap-allow-subdirectory-search -target-cpu penryn -tune-cpu generic -debugger-tuning=lldb -fdebug-compilation-dir=/Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64/CMakeFiles/CMakeScratch/TryCompile-WqwVV0 -target-linker-version 1115.7.3 -v -fcoverage-compilation-dir=/Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64/CMakeFiles/CMakeScratch/TryCompile-WqwVV0 -resource-dir /usr/local/Cellar/llvm/21.1.8_1/lib/clang/21 -dependency-file CMakeFiles/cmTC_9be6c.dir/CMakeCXXCompilerABI.cpp.o.d -MT CMakeFiles/cmTC_9be6c.dir/CMakeCXXCompilerABI.cpp.o -sys-header-deps -isysroot /Library/Developer/CommandLineTools/SDKs/MacOSX15.sdk -internal-isystem /usr/local/Cellar/llvm/21.1.8_1/bin/../include/c++/v1 -internal-isystem /Library/Developer/CommandLineTools/SDKs/MacOSX15.sdk/usr/local/include -internal-isystem /usr/local/Cellar/llvm/21.1.8_1/lib/clang/21/include -internal-externc-isystem /Library/Developer/CommandLineTools/SDKs/MacOSX15.sdk/usr/include -internal-iframework /Library/Developer/CommandLineTools/SDKs/MacOSX15.sdk/System/Library/Frameworks -internal-iframework /Library/Developer/CommandLineTools/SDKs/MacOSX15.sdk/System/Library/SubFrameworks -internal-iframework /Library/Developer/CommandLineTools/SDKs/MacOSX15.sdk/Library/Frameworks -fdeprecated-macro -ferror-limit 19 -stack-protector 1 -fblocks -fencode-extended-block-signature -fregister-global-dtors-with-atexit -fgnuc-version=4.2.1 -fskip-odr-check-in-gmf -fcxx-exceptions -fexceptions -fmax-type-align=16 -D__GCC_HAVE_DWARF2_CFI_ASM=1 -o CMakeFiles/cmTC_9be6c.dir/CMakeCXXCompilerABI.cpp.o -x c++ /usr/local/share/cmake/Modules/CMakeCXXCompilerABI.cpp]
+        ignore line: [clang -cc1 version 21.1.8 based upon LLVM 21.1.8 default target x86_64-apple-darwin24.6.0]
+        ignore line: [ignoring nonexistent directory "/Library/Developer/CommandLineTools/SDKs/MacOSX15.sdk/usr/local/include"]
+        ignore line: [ignoring nonexistent directory "/Library/Developer/CommandLineTools/SDKs/MacOSX15.sdk/System/Library/SubFrameworks"]
+        ignore line: [ignoring nonexistent directory "/Library/Developer/CommandLineTools/SDKs/MacOSX15.sdk/Library/Frameworks"]
+        ignore line: [#include "..." search starts here:]
+        ignore line: [#include <...> search starts here:]
+        ignore line: [ /usr/local/Cellar/llvm/21.1.8_1/bin/../include/c++/v1]
+        ignore line: [ /usr/local/Cellar/llvm/21.1.8_1/lib/clang/21/include]
+        ignore line: [ /Library/Developer/CommandLineTools/SDKs/MacOSX15.sdk/usr/include]
+        ignore line: [ /Library/Developer/CommandLineTools/SDKs/MacOSX15.sdk/System/Library/Frameworks (framework directory)]
+        ignore line: [End of search list.]
+        ignore line: [[2/2] : && /usr/local/opt/llvm/bin/clang++  -Wl -search_paths_first -Wl -headerpad_max_install_names -L/usr/local/opt/llvm/lib -v -Wl -v CMakeFiles/cmTC_9be6c.dir/CMakeCXXCompilerABI.cpp.o -o cmTC_9be6c   && :]
+        ignore line: [Homebrew clang version 21.1.8]
+        ignore line: [Target: x86_64-apple-darwin24.6.0]
+        ignore line: [Thread model: posix]
+        ignore line: [InstalledDir: /usr/local/Cellar/llvm/21.1.8_1/bin]
+        ignore line: [Configuration file: /usr/local/etc/clang/x86_64-apple-darwin24.cfg]
+        ignore line: [System configuration file directory: /usr/local/etc/clang]
+        ignore line: [User configuration file directory: /Users/vincent/.config/clang]
+        link line: [ "/usr/bin/ld" -demangle -lto_library /usr/local/Cellar/llvm/21.1.8_1/lib/libLTO.dylib -dynamic -arch x86_64 -platform_version macos 15.0.0 15.4 -syslibroot /Library/Developer/CommandLineTools/SDKs/MacOSX15.sdk -mllvm -enable-linkonceodr-outlining -o cmTC_9be6c -L/usr/local/opt/llvm/lib -search_paths_first -headerpad_max_install_names -v CMakeFiles/cmTC_9be6c.dir/CMakeCXXCompilerABI.cpp.o -lc++ -lSystem /usr/local/Cellar/llvm/21.1.8_1/lib/clang/21/lib/darwin/libclang_rt.osx.a]
+          arg [/usr/bin/ld] ==> ignore
+          arg [-demangle] ==> ignore
+          arg [-lto_library] ==> ignore, skip following value
+          arg [/usr/local/Cellar/llvm/21.1.8_1/lib/libLTO.dylib] ==> skip value of -lto_library
+          arg [-dynamic] ==> ignore
+          arg [-arch] ==> ignore
+          arg [x86_64] ==> ignore
+          arg [-platform_version] ==> ignore
+          arg [macos] ==> ignore
+          arg [15.0.0] ==> ignore
+          arg [15.4] ==> ignore
+          arg [-syslibroot] ==> ignore
+          arg [/Library/Developer/CommandLineTools/SDKs/MacOSX15.sdk] ==> ignore
+          arg [-mllvm] ==> ignore
+          arg [-enable-linkonceodr-outlining] ==> ignore
+          arg [-o] ==> ignore
+          arg [cmTC_9be6c] ==> ignore
+          arg [-L/usr/local/opt/llvm/lib] ==> dir [/usr/local/opt/llvm/lib]
+          arg [-search_paths_first] ==> ignore
+          arg [-headerpad_max_install_names] ==> ignore
+          arg [-v] ==> ignore
+          arg [CMakeFiles/cmTC_9be6c.dir/CMakeCXXCompilerABI.cpp.o] ==> ignore
+          arg [-lc++] ==> lib [c++]
+          arg [-lSystem] ==> lib [System]
+          arg [/usr/local/Cellar/llvm/21.1.8_1/lib/clang/21/lib/darwin/libclang_rt.osx.a] ==> lib [/usr/local/Cellar/llvm/21.1.8_1/lib/clang/21/lib/darwin/libclang_rt.osx.a]
+        linker tool for 'CXX': /usr/bin/ld
+        Library search paths: [;/usr/local/opt/llvm/lib;/Library/Developer/CommandLineTools/SDKs/MacOSX15.sdk/usr/lib;/Library/Developer/CommandLineTools/SDKs/MacOSX15.sdk/usr/lib/swift]
+        Framework search paths: [;/Library/Developer/CommandLineTools/SDKs/MacOSX15.sdk/System/Library/Frameworks]
+        remove lib [System]
+        remove lib [/usr/local/Cellar/llvm/21.1.8_1/lib/clang/21/lib/darwin/libclang_rt.osx.a]
+        collapse library dir [/usr/local/opt/llvm/lib] ==> [/usr/local/opt/llvm/lib]
+        collapse library dir [/usr/local/opt/llvm/lib] ==> [/usr/local/opt/llvm/lib]
+        collapse library dir [/Library/Developer/CommandLineTools/SDKs/MacOSX15.sdk/usr/lib] ==> [/Library/Developer/CommandLineTools/SDKs/MacOSX15.sdk/usr/lib]
+        collapse library dir [/Library/Developer/CommandLineTools/SDKs/MacOSX15.sdk/usr/lib/swift] ==> [/Library/Developer/CommandLineTools/SDKs/MacOSX15.sdk/usr/lib/swift]
+        collapse framework dir [/Library/Developer/CommandLineTools/SDKs/MacOSX15.sdk/System/Library/Frameworks] ==> [/Library/Developer/CommandLineTools/SDKs/MacOSX15.sdk/System/Library/Frameworks]
+        implicit libs: [c++]
+        implicit objs: []
+        implicit dirs: [/usr/local/opt/llvm/lib;/Library/Developer/CommandLineTools/SDKs/MacOSX15.sdk/usr/lib;/Library/Developer/CommandLineTools/SDKs/MacOSX15.sdk/usr/lib/swift]
+        implicit fwks: [/Library/Developer/CommandLineTools/SDKs/MacOSX15.sdk/System/Library/Frameworks]
+      
+      
+  -
+    kind: "message-v1"
+    backtrace:
+      - "/usr/local/share/cmake/Modules/Internal/CMakeDetermineLinkerId.cmake:38 (message)"
+      - "/usr/local/share/cmake/Modules/CMakeDetermineCompilerABI.cmake:299 (cmake_determine_linker_id)"
+      - "/usr/local/share/cmake/Modules/CMakeTestCXXCompiler.cmake:26 (CMAKE_DETERMINE_COMPILER_ABI)"
+      - "CMakeLists.txt:2 (project)"
+    message: |
+      Running the CXX compiler's linker: "/usr/bin/ld" "-v"
+      @(#)PROGRAM:ld PROJECT:ld-1230.1
+      BUILD 16:17:14 Oct 17 2025
+      configured to support archs: armv6 armv7 armv7s arm64 arm64e arm64_32 i386 x86_64 x86_64h armv6m armv7k armv7m armv7em armv8m.main armv8.1m.main
+      will use ld-classic for: armv6 armv7 armv7s i386 armv6m armv7k armv7m armv7em
+      LTO support using: LLVM version 17.0.0 (static support for 29, runtime is 29)
+      TAPI support using: Apple TAPI version 17.0.0 (tapi-1700.3.8)
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/usr/local/share/cmake/Modules/FindGit.cmake:111 (find_program)"
+      - "/usr/local/share/cmake/Modules/FetchContent.cmake:1884 (find_package)"
+      - "/usr/local/share/cmake/Modules/FetchContent.cmake:1619 (__FetchContent_populateSubbuild)"
+      - "/usr/local/share/cmake/Modules/FetchContent.cmake:2155:EVAL:2 (__FetchContent_doPopulation)"
+      - "/usr/local/share/cmake/Modules/FetchContent.cmake:2155 (cmake_language)"
+      - "/usr/local/share/cmake/Modules/FetchContent.cmake:2394 (__FetchContent_Populate)"
+      - "CMakeLists.txt:73 (FetchContent_MakeAvailable)"
+    mode: "program"
+    variable: "GIT_EXECUTABLE"
+    description: "Git command line client"
+    settings:
+      SearchFramework: "FIRST"
+      SearchAppBundle: "FIRST"
+      CMAKE_FIND_USE_CMAKE_PATH: true
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "git"
+    candidate_directories:
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/lib/python3.13/site-packages/bin/"
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/lib/python3.13/site-packages/sbin/"
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/lib/python3.13/site-packages/"
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/bin/"
+      - "/usr/local/opt/llvm/bin/"
+      - "/Users/vincent/miniconda3/bin/"
+      - "/usr/local/bin/"
+      - "/System/Cryptexes/App/usr/bin/"
+      - "/usr/bin/"
+      - "/bin/"
+      - "/usr/sbin/"
+      - "/sbin/"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin/"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin/"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin/"
+      - "/Library/TeX/texbin/"
+      - "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/bin/"
+      - "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/sbin/"
+      - "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/"
+      - "/usr/local/bin/"
+      - "/usr/local/sbin/"
+      - "/usr/local/"
+      - "/usr/bin/"
+      - "/usr/sbin/"
+      - "/usr/"
+      - "/bin/"
+      - "/sbin/"
+      - "/var/folders/6h/wy8nq2q14jg7pgtzy16hhk840000gn/T/tmp8d4y4jo3/wheel/platlib/bin/"
+      - "/var/folders/6h/wy8nq2q14jg7pgtzy16hhk840000gn/T/tmp8d4y4jo3/wheel/platlib/sbin/"
+      - "/var/folders/6h/wy8nq2q14jg7pgtzy16hhk840000gn/T/tmp8d4y4jo3/wheel/platlib/"
+      - "/usr/X11R6/bin/"
+      - "/usr/X11R6/sbin/"
+      - "/usr/X11R6/"
+      - "/usr/pkg/bin/"
+      - "/usr/pkg/sbin/"
+      - "/usr/pkg/"
+      - "/opt/bin/"
+      - "/opt/sbin/"
+      - "/opt/"
+      - "/sw/bin/"
+      - "/sw/sbin/"
+      - "/sw/"
+      - "/opt/local/bin/"
+      - "/opt/local/sbin/"
+      - "/opt/local/"
+      - "/Users/vincent/Applications/"
+      - "/Applications/"
+    searched_directories:
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/lib/python3.13/site-packages/bin/git"
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/lib/python3.13/site-packages/sbin/git"
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/lib/python3.13/site-packages/git"
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/bin/git"
+      - "/usr/local/opt/llvm/bin/git"
+      - "/Users/vincent/miniconda3/bin/git"
+      - "/usr/local/bin/git"
+      - "/System/Cryptexes/App/usr/bin/git"
+    found: "/usr/bin/git"
+    search_context:
+      CMAKE_PREFIX_PATH:
+        - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/lib/python3.13/site-packages"
+      ENV{PATH}:
+        - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/bin"
+        - "/usr/local/opt/llvm/bin"
+        - "/Users/vincent/miniconda3/bin"
+        - "/usr/local/bin"
+        - "/System/Cryptexes/App/usr/bin"
+        - "/usr/bin"
+        - "/bin"
+        - "/usr/sbin"
+        - "/sbin"
+        - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin"
+        - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin"
+        - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin"
+        - "/Library/TeX/texbin"
+      CMAKE_INSTALL_PREFIX: "/var/folders/6h/wy8nq2q14jg7pgtzy16hhk840000gn/T/tmp8d4y4jo3/wheel/platlib"
+      CMAKE_SYSTEM_PREFIX_PATH:
+        - "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr"
+        - "/usr/local"
+        - "/usr/local"
+        - "/usr"
+        - "/"
+        - "/usr/local"
+        - "/var/folders/6h/wy8nq2q14jg7pgtzy16hhk840000gn/T/tmp8d4y4jo3/wheel/platlib"
+        - "/usr/X11R6"
+        - "/usr/pkg"
+        - "/opt"
+        - "/sw"
+        - "/opt/local"
+      CMAKE_SYSTEM_APPBUNDLE_PATH:
+        - "/Users/vincent/Applications"
+        - "/Applications"
+  -
+    kind: "try_compile-v1"
+    backtrace:
+      - "/usr/local/share/cmake/Modules/Internal/CheckSourceCompiles.cmake:104 (try_compile)"
+      - "/usr/local/share/cmake/Modules/Internal/CheckCompilerFlag.cmake:18 (cmake_check_source_compiles)"
+      - "/usr/local/share/cmake/Modules/CheckCXXCompilerFlag.cmake:103 (cmake_check_compiler_flag)"
+      - "build-python/cp313-cp313-macosx_15_0_x86_64/_deps/catch2-src/CMake/CatchMiscFunctions.cmake:12 (check_cxx_compiler_flag)"
+      - "build-python/cp313-cp313-macosx_15_0_x86_64/_deps/catch2-src/CMake/CatchMiscFunctions.cmake:119 (add_cxx_flag_if_supported_to_targets)"
+      - "build-python/cp313-cp313-macosx_15_0_x86_64/_deps/catch2-src/src/CMakeLists.txt:342 (add_build_reproducibility_settings)"
+    checks:
+      - "Performing Test HAVE_FLAG__ffile_prefix_map__Users_vincent_git_github_com_vincentk_dedekind_build_python_cp313_cp313_macosx_15_0_x86_64__deps_catch2_src__"
+    directories:
+      source: "/Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64/CMakeFiles/CMakeScratch/TryCompile-U6KCmw"
+      binary: "/Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64/CMakeFiles/CMakeScratch/TryCompile-U6KCmw"
+    cmakeVariables:
+      CMAKE_CXX_COMPILER_CLANG_SCAN_DEPS: "/usr/local/Cellar/llvm/21.1.8_1/bin/clang-scan-deps"
+      CMAKE_CXX_FLAGS: ""
+      CMAKE_CXX_FLAGS_DEBUG: "-g"
+      CMAKE_CXX_SCAN_FOR_MODULES: "OFF"
+      CMAKE_EXE_LINKER_FLAGS: "-L/usr/local/opt/llvm/lib"
+      CMAKE_MODULE_PATH: "/Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64/_deps/catch2-src/extras;/Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64/_deps/catch2-src/CMake"
+      CMAKE_OSX_ARCHITECTURES: ""
+      CMAKE_OSX_DEPLOYMENT_TARGET: ""
+      CMAKE_OSX_SYSROOT: ""
+    buildResult:
+      variable: "HAVE_FLAG__ffile_prefix_map__Users_vincent_git_github_com_vincentk_dedekind_build_python_cp313_cp313_macosx_15_0_x86_64__deps_catch2_src__"
+      cached: true
+      stdout: |
+        Change Dir: '/Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64/CMakeFiles/CMakeScratch/TryCompile-U6KCmw'
+        
+        Run Build Command(s): /Users/vincent/git/github.com/vincentk/dedekind/.venv/bin/ninja -v cmTC_ebdfd
+        [1/2] /usr/local/opt/llvm/bin/clang++ -DHAVE_FLAG__ffile_prefix_map__Users_vincent_git_github_com_vincentk_dedekind_build_python_cp313_cp313_macosx_15_0_x86_64__deps_catch2_src__  -std=c++23   -ffile-prefix-map=/Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64/_deps/catch2-src/= -MD -MT CMakeFiles/cmTC_ebdfd.dir/src.cxx.o -MF CMakeFiles/cmTC_ebdfd.dir/src.cxx.o.d -o CMakeFiles/cmTC_ebdfd.dir/src.cxx.o -c /Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64/CMakeFiles/CMakeScratch/TryCompile-U6KCmw/src.cxx
+        [2/2] : && /usr/local/opt/llvm/bin/clang++  -Wl,-search_paths_first -Wl,-headerpad_max_install_names -L/usr/local/opt/llvm/lib CMakeFiles/cmTC_ebdfd.dir/src.cxx.o -o cmTC_ebdfd   && :
+        
+      exitCode: 0
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/usr/local/share/cmake/Modules/FindDoxygen.cmake:770 (find_program)"
+      - "/usr/local/share/cmake/Modules/FindDoxygen.cmake:955 (_Doxygen_find_doxygen)"
+      - "CMakeLists.txt:248 (find_package)"
+    mode: "program"
+    variable: "DOXYGEN_EXECUTABLE"
+    description: "Doxygen documentation generation tool (https://www.doxygen.nl)"
+    settings:
+      SearchFramework: "FIRST"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: true
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "doxygen"
+    candidate_directories:
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/lib/python3.13/site-packages/bin/"
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/lib/python3.13/site-packages/sbin/"
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/lib/python3.13/site-packages/"
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/bin/"
+      - "/usr/local/opt/llvm/bin/"
+      - "/Users/vincent/miniconda3/bin/"
+      - "/usr/local/bin/"
+      - "/System/Cryptexes/App/usr/bin/"
+      - "/usr/bin/"
+      - "/bin/"
+      - "/usr/sbin/"
+      - "/sbin/"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin/"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin/"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin/"
+      - "/Library/TeX/texbin/"
+      - "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/bin/"
+      - "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/sbin/"
+      - "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/"
+      - "/usr/local/bin/"
+      - "/usr/local/sbin/"
+      - "/usr/local/"
+      - "/usr/bin/"
+      - "/usr/sbin/"
+      - "/usr/"
+      - "/bin/"
+      - "/sbin/"
+      - "/var/folders/6h/wy8nq2q14jg7pgtzy16hhk840000gn/T/tmp8d4y4jo3/wheel/platlib/bin/"
+      - "/var/folders/6h/wy8nq2q14jg7pgtzy16hhk840000gn/T/tmp8d4y4jo3/wheel/platlib/sbin/"
+      - "/var/folders/6h/wy8nq2q14jg7pgtzy16hhk840000gn/T/tmp8d4y4jo3/wheel/platlib/"
+      - "/usr/X11R6/bin/"
+      - "/usr/X11R6/sbin/"
+      - "/usr/X11R6/"
+      - "/usr/pkg/bin/"
+      - "/usr/pkg/sbin/"
+      - "/usr/pkg/"
+      - "/opt/bin/"
+      - "/opt/sbin/"
+      - "/opt/"
+      - "/sw/bin/"
+      - "/sw/sbin/"
+      - "/sw/"
+      - "/opt/local/bin/"
+      - "/opt/local/sbin/"
+      - "/opt/local/"
+      - "/Users/vincent/Applications/"
+      - "/Applications/"
+      - "/Applications/Doxygen.app/Contents/Resources/"
+      - "/Applications/Doxygen.app/Contents/MacOS/"
+      - "/Applications/Utilities/Doxygen.app/Contents/Resources/"
+      - "/Applications/Utilities/Doxygen.app/Contents/MacOS/"
+    searched_directories:
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/lib/python3.13/site-packages/bin/doxygen"
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/lib/python3.13/site-packages/sbin/doxygen"
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/lib/python3.13/site-packages/doxygen"
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/bin/doxygen"
+      - "/usr/local/opt/llvm/bin/doxygen"
+      - "/Users/vincent/miniconda3/bin/doxygen"
+    found: "/usr/local/bin/doxygen"
+    search_context:
+      CMAKE_PREFIX_PATH:
+        - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/lib/python3.13/site-packages"
+      ENV{PATH}:
+        - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/bin"
+        - "/usr/local/opt/llvm/bin"
+        - "/Users/vincent/miniconda3/bin"
+        - "/usr/local/bin"
+        - "/System/Cryptexes/App/usr/bin"
+        - "/usr/bin"
+        - "/bin"
+        - "/usr/sbin"
+        - "/sbin"
+        - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin"
+        - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin"
+        - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin"
+        - "/Library/TeX/texbin"
+      CMAKE_INSTALL_PREFIX: "/var/folders/6h/wy8nq2q14jg7pgtzy16hhk840000gn/T/tmp8d4y4jo3/wheel/platlib"
+      CMAKE_SYSTEM_PREFIX_PATH:
+        - "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr"
+        - "/usr/local"
+        - "/usr/local"
+        - "/usr"
+        - "/"
+        - "/usr/local"
+        - "/var/folders/6h/wy8nq2q14jg7pgtzy16hhk840000gn/T/tmp8d4y4jo3/wheel/platlib"
+        - "/usr/X11R6"
+        - "/usr/pkg"
+        - "/opt"
+        - "/sw"
+        - "/opt/local"
+      CMAKE_SYSTEM_APPBUNDLE_PATH:
+        - "/Users/vincent/Applications"
+        - "/Applications"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "/usr/local/share/cmake/Modules/FindDoxygen.cmake:858 (find_program)"
+      - "/usr/local/share/cmake/Modules/FindDoxygen.cmake:959 (_Doxygen_find_dot)"
+      - "CMakeLists.txt:248 (find_package)"
+    mode: "program"
+    variable: "DOXYGEN_DOT_EXECUTABLE"
+    description: "Dot tool for use with Doxygen"
+    settings:
+      SearchFramework: "FIRST"
+      SearchAppBundle: "NEVER"
+      CMAKE_FIND_USE_CMAKE_PATH: true
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "dot"
+    candidate_directories:
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/lib/python3.13/site-packages/bin/"
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/lib/python3.13/site-packages/sbin/"
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/lib/python3.13/site-packages/"
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/bin/"
+      - "/usr/local/opt/llvm/bin/"
+      - "/Users/vincent/miniconda3/bin/"
+      - "/usr/local/bin/"
+      - "/System/Cryptexes/App/usr/bin/"
+      - "/usr/bin/"
+      - "/bin/"
+      - "/usr/sbin/"
+      - "/sbin/"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin/"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin/"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin/"
+      - "/Library/TeX/texbin/"
+      - "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/bin/"
+      - "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/sbin/"
+      - "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/"
+      - "/usr/local/bin/"
+      - "/usr/local/sbin/"
+      - "/usr/local/"
+      - "/usr/bin/"
+      - "/usr/sbin/"
+      - "/usr/"
+      - "/bin/"
+      - "/sbin/"
+      - "/var/folders/6h/wy8nq2q14jg7pgtzy16hhk840000gn/T/tmp8d4y4jo3/wheel/platlib/bin/"
+      - "/var/folders/6h/wy8nq2q14jg7pgtzy16hhk840000gn/T/tmp8d4y4jo3/wheel/platlib/sbin/"
+      - "/var/folders/6h/wy8nq2q14jg7pgtzy16hhk840000gn/T/tmp8d4y4jo3/wheel/platlib/"
+      - "/usr/X11R6/bin/"
+      - "/usr/X11R6/sbin/"
+      - "/usr/X11R6/"
+      - "/usr/pkg/bin/"
+      - "/usr/pkg/sbin/"
+      - "/usr/pkg/"
+      - "/opt/bin/"
+      - "/opt/sbin/"
+      - "/opt/"
+      - "/sw/bin/"
+      - "/sw/sbin/"
+      - "/sw/"
+      - "/opt/local/bin/"
+      - "/opt/local/sbin/"
+      - "/opt/local/"
+      - "/Users/vincent/Applications/"
+      - "/Applications/"
+      - "/ATT/Graphviz/bin/"
+      - "C:/Program Files/ATT/Graphviz/bin/"
+      - "/Applications/Graphviz.app/Contents/MacOS/"
+      - "/Applications/Utilities/Graphviz.app/Contents/MacOS/"
+      - "/Applications/Doxygen.app/Contents/Resources/"
+      - "/Applications/Doxygen.app/Contents/MacOS/"
+      - "/Applications/Utilities/Doxygen.app/Contents/Resources/"
+      - "/Applications/Utilities/Doxygen.app/Contents/MacOS/"
+    searched_directories:
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/lib/python3.13/site-packages/bin/dot"
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/lib/python3.13/site-packages/sbin/dot"
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/lib/python3.13/site-packages/dot"
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/bin/dot"
+      - "/usr/local/opt/llvm/bin/dot"
+      - "/Users/vincent/miniconda3/bin/dot"
+    found: "/usr/local/bin/dot"
+    search_context:
+      CMAKE_PREFIX_PATH:
+        - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/lib/python3.13/site-packages"
+      ENV{PATH}:
+        - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/bin"
+        - "/usr/local/opt/llvm/bin"
+        - "/Users/vincent/miniconda3/bin"
+        - "/usr/local/bin"
+        - "/System/Cryptexes/App/usr/bin"
+        - "/usr/bin"
+        - "/bin"
+        - "/usr/sbin"
+        - "/sbin"
+        - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin"
+        - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin"
+        - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin"
+        - "/Library/TeX/texbin"
+      CMAKE_INSTALL_PREFIX: "/var/folders/6h/wy8nq2q14jg7pgtzy16hhk840000gn/T/tmp8d4y4jo3/wheel/platlib"
+      CMAKE_SYSTEM_PREFIX_PATH:
+        - "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr"
+        - "/usr/local"
+        - "/usr/local"
+        - "/usr"
+        - "/"
+        - "/usr/local"
+        - "/var/folders/6h/wy8nq2q14jg7pgtzy16hhk840000gn/T/tmp8d4y4jo3/wheel/platlib"
+        - "/usr/X11R6"
+        - "/usr/pkg"
+        - "/opt"
+        - "/sw"
+        - "/opt/local"
+      CMAKE_SYSTEM_APPBUNDLE_PATH:
+        - "/Users/vincent/Applications"
+        - "/Applications"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "CMakeLists.txt:294 (find_program)"
+    mode: "program"
+    variable: "LLVM_PROFDATA_TOOL"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "FIRST"
+      SearchAppBundle: "FIRST"
+      CMAKE_FIND_USE_CMAKE_PATH: true
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "llvm-profdata-21"
+      - "llvm-profdata"
+    candidate_directories:
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/lib/python3.13/site-packages/bin/"
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/lib/python3.13/site-packages/sbin/"
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/lib/python3.13/site-packages/"
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/bin/"
+      - "/usr/local/opt/llvm/bin/"
+      - "/Users/vincent/miniconda3/bin/"
+      - "/usr/local/bin/"
+      - "/System/Cryptexes/App/usr/bin/"
+      - "/usr/bin/"
+      - "/bin/"
+      - "/usr/sbin/"
+      - "/sbin/"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin/"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin/"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin/"
+      - "/Library/TeX/texbin/"
+      - "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/bin/"
+      - "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/sbin/"
+      - "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/"
+      - "/usr/local/bin/"
+      - "/usr/local/sbin/"
+      - "/usr/local/"
+      - "/usr/bin/"
+      - "/usr/sbin/"
+      - "/usr/"
+      - "/bin/"
+      - "/sbin/"
+      - "/var/folders/6h/wy8nq2q14jg7pgtzy16hhk840000gn/T/tmp8d4y4jo3/wheel/platlib/bin/"
+      - "/var/folders/6h/wy8nq2q14jg7pgtzy16hhk840000gn/T/tmp8d4y4jo3/wheel/platlib/sbin/"
+      - "/var/folders/6h/wy8nq2q14jg7pgtzy16hhk840000gn/T/tmp8d4y4jo3/wheel/platlib/"
+      - "/usr/X11R6/bin/"
+      - "/usr/X11R6/sbin/"
+      - "/usr/X11R6/"
+      - "/usr/pkg/bin/"
+      - "/usr/pkg/sbin/"
+      - "/usr/pkg/"
+      - "/opt/bin/"
+      - "/opt/sbin/"
+      - "/opt/"
+      - "/sw/bin/"
+      - "/sw/sbin/"
+      - "/sw/"
+      - "/opt/local/bin/"
+      - "/opt/local/sbin/"
+      - "/opt/local/"
+      - "/Users/vincent/Applications/"
+      - "/Applications/"
+    searched_directories:
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/lib/python3.13/site-packages/bin/llvm-profdata-21"
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/lib/python3.13/site-packages/sbin/llvm-profdata-21"
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/lib/python3.13/site-packages/llvm-profdata-21"
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/bin/llvm-profdata-21"
+      - "/usr/local/opt/llvm/bin/llvm-profdata-21"
+      - "/Users/vincent/miniconda3/bin/llvm-profdata-21"
+      - "/usr/local/bin/llvm-profdata-21"
+      - "/System/Cryptexes/App/usr/bin/llvm-profdata-21"
+      - "/usr/bin/llvm-profdata-21"
+      - "/bin/llvm-profdata-21"
+      - "/usr/sbin/llvm-profdata-21"
+      - "/sbin/llvm-profdata-21"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin/llvm-profdata-21"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin/llvm-profdata-21"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin/llvm-profdata-21"
+      - "/Library/TeX/texbin/llvm-profdata-21"
+      - "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/bin/llvm-profdata-21"
+      - "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/sbin/llvm-profdata-21"
+      - "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/llvm-profdata-21"
+      - "/usr/local/bin/llvm-profdata-21"
+      - "/usr/local/sbin/llvm-profdata-21"
+      - "/usr/local/llvm-profdata-21"
+      - "/usr/bin/llvm-profdata-21"
+      - "/usr/sbin/llvm-profdata-21"
+      - "/usr/llvm-profdata-21"
+      - "/bin/llvm-profdata-21"
+      - "/sbin/llvm-profdata-21"
+      - "/var/folders/6h/wy8nq2q14jg7pgtzy16hhk840000gn/T/tmp8d4y4jo3/wheel/platlib/bin/llvm-profdata-21"
+      - "/var/folders/6h/wy8nq2q14jg7pgtzy16hhk840000gn/T/tmp8d4y4jo3/wheel/platlib/sbin/llvm-profdata-21"
+      - "/var/folders/6h/wy8nq2q14jg7pgtzy16hhk840000gn/T/tmp8d4y4jo3/wheel/platlib/llvm-profdata-21"
+      - "/usr/X11R6/bin/llvm-profdata-21"
+      - "/usr/X11R6/sbin/llvm-profdata-21"
+      - "/usr/X11R6/llvm-profdata-21"
+      - "/usr/pkg/bin/llvm-profdata-21"
+      - "/usr/pkg/sbin/llvm-profdata-21"
+      - "/usr/pkg/llvm-profdata-21"
+      - "/opt/bin/llvm-profdata-21"
+      - "/opt/sbin/llvm-profdata-21"
+      - "/opt/llvm-profdata-21"
+      - "/sw/bin/llvm-profdata-21"
+      - "/sw/sbin/llvm-profdata-21"
+      - "/sw/llvm-profdata-21"
+      - "/opt/local/bin/llvm-profdata-21"
+      - "/opt/local/sbin/llvm-profdata-21"
+      - "/opt/local/llvm-profdata-21"
+      - "/Users/vincent/Applications/llvm-profdata-21"
+      - "/Applications/llvm-profdata-21"
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/lib/python3.13/site-packages/bin/llvm-profdata"
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/lib/python3.13/site-packages/sbin/llvm-profdata"
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/lib/python3.13/site-packages/llvm-profdata"
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/bin/llvm-profdata"
+    found: "/usr/local/opt/llvm/bin/llvm-profdata"
+    search_context:
+      CMAKE_PREFIX_PATH:
+        - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/lib/python3.13/site-packages"
+      ENV{PATH}:
+        - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/bin"
+        - "/usr/local/opt/llvm/bin"
+        - "/Users/vincent/miniconda3/bin"
+        - "/usr/local/bin"
+        - "/System/Cryptexes/App/usr/bin"
+        - "/usr/bin"
+        - "/bin"
+        - "/usr/sbin"
+        - "/sbin"
+        - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin"
+        - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin"
+        - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin"
+        - "/Library/TeX/texbin"
+      CMAKE_INSTALL_PREFIX: "/var/folders/6h/wy8nq2q14jg7pgtzy16hhk840000gn/T/tmp8d4y4jo3/wheel/platlib"
+      CMAKE_SYSTEM_PREFIX_PATH:
+        - "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr"
+        - "/usr/local"
+        - "/usr/local"
+        - "/usr"
+        - "/"
+        - "/usr/local"
+        - "/var/folders/6h/wy8nq2q14jg7pgtzy16hhk840000gn/T/tmp8d4y4jo3/wheel/platlib"
+        - "/usr/X11R6"
+        - "/usr/pkg"
+        - "/opt"
+        - "/sw"
+        - "/opt/local"
+      CMAKE_SYSTEM_APPBUNDLE_PATH:
+        - "/Users/vincent/Applications"
+        - "/Applications"
+  -
+    kind: "find-v1"
+    backtrace:
+      - "CMakeLists.txt:295 (find_program)"
+    mode: "program"
+    variable: "LLVM_COV_TOOL"
+    description: "Path to a program."
+    settings:
+      SearchFramework: "FIRST"
+      SearchAppBundle: "FIRST"
+      CMAKE_FIND_USE_CMAKE_PATH: true
+      CMAKE_FIND_USE_CMAKE_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_SYSTEM_ENVIRONMENT_PATH: true
+      CMAKE_FIND_USE_CMAKE_SYSTEM_PATH: true
+      CMAKE_FIND_USE_INSTALL_PREFIX: true
+    names:
+      - "llvm-cov-21"
+      - "llvm-cov"
+    candidate_directories:
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/lib/python3.13/site-packages/bin/"
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/lib/python3.13/site-packages/sbin/"
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/lib/python3.13/site-packages/"
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/bin/"
+      - "/usr/local/opt/llvm/bin/"
+      - "/Users/vincent/miniconda3/bin/"
+      - "/usr/local/bin/"
+      - "/System/Cryptexes/App/usr/bin/"
+      - "/usr/bin/"
+      - "/bin/"
+      - "/usr/sbin/"
+      - "/sbin/"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin/"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin/"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin/"
+      - "/Library/TeX/texbin/"
+      - "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/bin/"
+      - "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/sbin/"
+      - "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/"
+      - "/usr/local/bin/"
+      - "/usr/local/sbin/"
+      - "/usr/local/"
+      - "/usr/bin/"
+      - "/usr/sbin/"
+      - "/usr/"
+      - "/bin/"
+      - "/sbin/"
+      - "/var/folders/6h/wy8nq2q14jg7pgtzy16hhk840000gn/T/tmp8d4y4jo3/wheel/platlib/bin/"
+      - "/var/folders/6h/wy8nq2q14jg7pgtzy16hhk840000gn/T/tmp8d4y4jo3/wheel/platlib/sbin/"
+      - "/var/folders/6h/wy8nq2q14jg7pgtzy16hhk840000gn/T/tmp8d4y4jo3/wheel/platlib/"
+      - "/usr/X11R6/bin/"
+      - "/usr/X11R6/sbin/"
+      - "/usr/X11R6/"
+      - "/usr/pkg/bin/"
+      - "/usr/pkg/sbin/"
+      - "/usr/pkg/"
+      - "/opt/bin/"
+      - "/opt/sbin/"
+      - "/opt/"
+      - "/sw/bin/"
+      - "/sw/sbin/"
+      - "/sw/"
+      - "/opt/local/bin/"
+      - "/opt/local/sbin/"
+      - "/opt/local/"
+      - "/Users/vincent/Applications/"
+      - "/Applications/"
+    searched_directories:
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/lib/python3.13/site-packages/bin/llvm-cov-21"
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/lib/python3.13/site-packages/sbin/llvm-cov-21"
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/lib/python3.13/site-packages/llvm-cov-21"
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/bin/llvm-cov-21"
+      - "/usr/local/opt/llvm/bin/llvm-cov-21"
+      - "/Users/vincent/miniconda3/bin/llvm-cov-21"
+      - "/usr/local/bin/llvm-cov-21"
+      - "/System/Cryptexes/App/usr/bin/llvm-cov-21"
+      - "/usr/bin/llvm-cov-21"
+      - "/bin/llvm-cov-21"
+      - "/usr/sbin/llvm-cov-21"
+      - "/sbin/llvm-cov-21"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin/llvm-cov-21"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin/llvm-cov-21"
+      - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin/llvm-cov-21"
+      - "/Library/TeX/texbin/llvm-cov-21"
+      - "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/bin/llvm-cov-21"
+      - "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/sbin/llvm-cov-21"
+      - "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr/llvm-cov-21"
+      - "/usr/local/bin/llvm-cov-21"
+      - "/usr/local/sbin/llvm-cov-21"
+      - "/usr/local/llvm-cov-21"
+      - "/usr/bin/llvm-cov-21"
+      - "/usr/sbin/llvm-cov-21"
+      - "/usr/llvm-cov-21"
+      - "/bin/llvm-cov-21"
+      - "/sbin/llvm-cov-21"
+      - "/var/folders/6h/wy8nq2q14jg7pgtzy16hhk840000gn/T/tmp8d4y4jo3/wheel/platlib/bin/llvm-cov-21"
+      - "/var/folders/6h/wy8nq2q14jg7pgtzy16hhk840000gn/T/tmp8d4y4jo3/wheel/platlib/sbin/llvm-cov-21"
+      - "/var/folders/6h/wy8nq2q14jg7pgtzy16hhk840000gn/T/tmp8d4y4jo3/wheel/platlib/llvm-cov-21"
+      - "/usr/X11R6/bin/llvm-cov-21"
+      - "/usr/X11R6/sbin/llvm-cov-21"
+      - "/usr/X11R6/llvm-cov-21"
+      - "/usr/pkg/bin/llvm-cov-21"
+      - "/usr/pkg/sbin/llvm-cov-21"
+      - "/usr/pkg/llvm-cov-21"
+      - "/opt/bin/llvm-cov-21"
+      - "/opt/sbin/llvm-cov-21"
+      - "/opt/llvm-cov-21"
+      - "/sw/bin/llvm-cov-21"
+      - "/sw/sbin/llvm-cov-21"
+      - "/sw/llvm-cov-21"
+      - "/opt/local/bin/llvm-cov-21"
+      - "/opt/local/sbin/llvm-cov-21"
+      - "/opt/local/llvm-cov-21"
+      - "/Users/vincent/Applications/llvm-cov-21"
+      - "/Applications/llvm-cov-21"
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/lib/python3.13/site-packages/bin/llvm-cov"
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/lib/python3.13/site-packages/sbin/llvm-cov"
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/lib/python3.13/site-packages/llvm-cov"
+      - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/bin/llvm-cov"
+    found: "/usr/local/opt/llvm/bin/llvm-cov"
+    search_context:
+      CMAKE_PREFIX_PATH:
+        - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/lib/python3.13/site-packages"
+      ENV{PATH}:
+        - "/Users/vincent/git/github.com/vincentk/dedekind/.venv/bin"
+        - "/usr/local/opt/llvm/bin"
+        - "/Users/vincent/miniconda3/bin"
+        - "/usr/local/bin"
+        - "/System/Cryptexes/App/usr/bin"
+        - "/usr/bin"
+        - "/bin"
+        - "/usr/sbin"
+        - "/sbin"
+        - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/local/bin"
+        - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/bin"
+        - "/var/run/com.apple.security.cryptexd/codex.system/bootstrap/usr/appleinternal/bin"
+        - "/Library/TeX/texbin"
+      CMAKE_INSTALL_PREFIX: "/var/folders/6h/wy8nq2q14jg7pgtzy16hhk840000gn/T/tmp8d4y4jo3/wheel/platlib"
+      CMAKE_SYSTEM_PREFIX_PATH:
+        - "/Library/Developer/CommandLineTools/SDKs/MacOSX.sdk/usr"
+        - "/usr/local"
+        - "/usr/local"
+        - "/usr"
+        - "/"
+        - "/usr/local"
+        - "/var/folders/6h/wy8nq2q14jg7pgtzy16hhk840000gn/T/tmp8d4y4jo3/wheel/platlib"
+        - "/usr/X11R6"
+        - "/usr/pkg"
+        - "/opt"
+        - "/sw"
+        - "/opt/local"
+      CMAKE_SYSTEM_APPBUNDLE_PATH:
+        - "/Users/vincent/Applications"
+        - "/Applications"
+...

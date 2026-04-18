@@ -1,0 +1,23 @@
+{
+  "revision": 0,
+  "rules": [
+    {
+      "primary-output": "CMakeFiles/test_topology.dir/src/test/cpp/modules/dedekind/topology/shapes_test.cpp.o",
+      "requires": [
+        {
+          "logical-name": "dedekind.category"
+        },
+        {
+          "logical-name": "dedekind.sets"
+        },
+        {
+          "logical-name": "dedekind.order"
+        },
+        {
+          "logical-name": "dedekind.topology"
+        }
+      ]
+    }
+  ],
+  "version": 1
+}

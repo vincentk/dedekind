@@ -1,0 +1,17 @@
+{
+  "revision": 0,
+  "rules": [
+    {
+      "primary-output": "CMakeFiles/test_sets.dir/src/test/cpp/modules/dedekind/sets/boundaries_test.cpp.o",
+      "requires": [
+        {
+          "logical-name": "dedekind.category"
+        },
+        {
+          "logical-name": "dedekind.sets"
+        }
+      ]
+    }
+  ],
+  "version": 1
+}

@@ -1,0 +1,20 @@
+{
+  "revision": 0,
+  "rules": [
+    {
+      "primary-output": "CMakeFiles/test_numbers.dir/src/test/cpp/modules/dedekind/numbers/ieee_test.cpp.o",
+      "requires": [
+        {
+          "logical-name": "dedekind.category"
+        },
+        {
+          "logical-name": "dedekind.numbers"
+        },
+        {
+          "logical-name": "dedekind.numbers.ieee"
+        }
+      ]
+    }
+  ],
+  "version": 1
+}

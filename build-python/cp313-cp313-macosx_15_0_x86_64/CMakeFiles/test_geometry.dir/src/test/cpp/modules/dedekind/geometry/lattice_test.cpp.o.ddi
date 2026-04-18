@@ -1,0 +1,20 @@
+{
+  "revision": 0,
+  "rules": [
+    {
+      "primary-output": "CMakeFiles/test_geometry.dir/src/test/cpp/modules/dedekind/geometry/lattice_test.cpp.o",
+      "requires": [
+        {
+          "logical-name": "dedekind.category"
+        },
+        {
+          "logical-name": "dedekind.geometry"
+        },
+        {
+          "logical-name": "dedekind.sets"
+        }
+      ]
+    }
+  ],
+  "version": 1
+}

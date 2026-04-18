@@ -1,0 +1,7 @@
+ninja_dyndep_version = 1.0
+build CMakeFiles/dedekind_ieee.dir/src/main/modules/dedekind/ieee/approx.cppm.o | CMakeFiles/dedekind_ieee.dir/dedekind.ieee.approx.pcm: dyndep | CMakeFiles/dedekind_category.dir/dedekind.category.pcm CMakeFiles/dedekind_ieee.dir/dedekind.ieee.pcm
+  restat = 1
+
+build CMakeFiles/dedekind_ieee.dir/src/main/modules/dedekind/ieee/ieee.cppm.o | CMakeFiles/dedekind_ieee.dir/dedekind.ieee.pcm: dyndep | CMakeFiles/dedekind_category.dir/dedekind.category.pcm
+  restat = 1
+

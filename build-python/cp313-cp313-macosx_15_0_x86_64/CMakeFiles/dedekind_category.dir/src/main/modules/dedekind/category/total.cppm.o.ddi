@@ -1,0 +1,30 @@
+{
+  "revision": 0,
+  "rules": [
+    {
+      "primary-output": "CMakeFiles/dedekind_category.dir/src/main/modules/dedekind/category/total.cppm.o",
+      "provides": [
+        {
+          "is-interface": true,
+          "logical-name": "dedekind.category:total",
+          "source-path": "/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/category/total.cppm"
+        }
+      ],
+      "requires": [
+        {
+          "logical-name": "dedekind.category:discrete"
+        },
+        {
+          "logical-name": "dedekind.category:pullback"
+        },
+        {
+          "logical-name": "dedekind.category:morphism"
+        },
+        {
+          "logical-name": "dedekind.category:species"
+        }
+      ]
+    }
+  ],
+  "version": 1
+}

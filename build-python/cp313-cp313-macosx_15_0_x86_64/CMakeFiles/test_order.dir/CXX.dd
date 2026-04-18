@@ -1,0 +1,3 @@
+ninja_dyndep_version = 1.0
+build CMakeFiles/test_order.dir/src/test/cpp/modules/dedekind/order/order_test.cpp.o: dyndep | CMakeFiles/dedekind_order.dir/dedekind.order.pcm CMakeFiles/dedekind_category.dir/dedekind.category.pcm
+

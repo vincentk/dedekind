@@ -1,0 +1,14 @@
+{
+  "revision": 0,
+  "rules": [
+    {
+      "primary-output": "CMakeFiles/test_category.dir/src/test/cpp/modules/dedekind/category/numeric_test.cpp.o",
+      "requires": [
+        {
+          "logical-name": "dedekind.category"
+        }
+      ]
+    }
+  ],
+  "version": 1
+}

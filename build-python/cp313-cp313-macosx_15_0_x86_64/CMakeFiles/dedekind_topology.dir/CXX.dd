@@ -1,0 +1,10 @@
+ninja_dyndep_version = 1.0
+build CMakeFiles/dedekind_topology.dir/src/main/modules/dedekind/topology/interval.cppm.o | CMakeFiles/dedekind_topology.dir/dedekind.topology-interval.pcm: dyndep | CMakeFiles/dedekind_category.dir/dedekind.category.pcm CMakeFiles/dedekind_order.dir/dedekind.order.pcm CMakeFiles/dedekind_sets.dir/dedekind.sets.pcm CMakeFiles/dedekind_topology.dir/dedekind.topology-neighborhood.pcm
+  restat = 1
+
+build CMakeFiles/dedekind_topology.dir/src/main/modules/dedekind/topology/neighborhood.cppm.o | CMakeFiles/dedekind_topology.dir/dedekind.topology-neighborhood.pcm: dyndep | CMakeFiles/dedekind_category.dir/dedekind.category.pcm CMakeFiles/dedekind_sets.dir/dedekind.sets.pcm CMakeFiles/dedekind_order.dir/dedekind.order.pcm
+  restat = 1
+
+build CMakeFiles/dedekind_topology.dir/src/main/modules/dedekind/topology/topology.cppm.o | CMakeFiles/dedekind_topology.dir/dedekind.topology.pcm: dyndep | CMakeFiles/dedekind_topology.dir/dedekind.topology-interval.pcm CMakeFiles/dedekind_topology.dir/dedekind.topology-neighborhood.pcm
+  restat = 1
+

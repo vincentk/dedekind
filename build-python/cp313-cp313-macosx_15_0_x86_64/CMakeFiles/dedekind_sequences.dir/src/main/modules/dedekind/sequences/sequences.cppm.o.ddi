@@ -1,0 +1,33 @@
+{
+  "revision": 0,
+  "rules": [
+    {
+      "primary-output": "CMakeFiles/dedekind_sequences.dir/src/main/modules/dedekind/sequences/sequences.cppm.o",
+      "provides": [
+        {
+          "is-interface": true,
+          "logical-name": "dedekind.sequences",
+          "source-path": "/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/sequences/sequences.cppm"
+        }
+      ],
+      "requires": [
+        {
+          "logical-name": "dedekind.sequences:net"
+        },
+        {
+          "logical-name": "dedekind.sequences:limits"
+        },
+        {
+          "logical-name": "dedekind.sequences:path"
+        },
+        {
+          "logical-name": "dedekind.sequences:curve"
+        },
+        {
+          "logical-name": "dedekind.sequences:ranges"
+        }
+      ]
+    }
+  ],
+  "version": 1
+}

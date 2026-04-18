@@ -1,0 +1,28 @@
+ninja_dyndep_version = 1.0
+build CMakeFiles/dedekind_algebra.dir/src/main/modules/dedekind/algebra/algebra.cppm.o | CMakeFiles/dedekind_algebra.dir/dedekind.algebra.pcm: dyndep | CMakeFiles/dedekind_algebra.dir/dedekind.algebra-boolean.pcm CMakeFiles/dedekind_algebra.dir/dedekind.algebra-division.pcm CMakeFiles/dedekind_algebra.dir/dedekind.algebra-field.pcm CMakeFiles/dedekind_algebra.dir/dedekind.algebra-group.pcm CMakeFiles/dedekind_algebra.dir/dedekind.algebra-modules.pcm CMakeFiles/dedekind_algebra.dir/dedekind.algebra-polynomial.pcm CMakeFiles/dedekind_algebra.dir/dedekind.algebra-ring.pcm
+  restat = 1
+
+build CMakeFiles/dedekind_algebra.dir/src/main/modules/dedekind/algebra/boolean.cppm.o | CMakeFiles/dedekind_algebra.dir/dedekind.algebra-boolean.pcm: dyndep | CMakeFiles/dedekind_category.dir/dedekind.category.pcm CMakeFiles/dedekind_sets.dir/dedekind.sets.pcm
+  restat = 1
+
+build CMakeFiles/dedekind_algebra.dir/src/main/modules/dedekind/algebra/division.cppm.o | CMakeFiles/dedekind_algebra.dir/dedekind.algebra-division.pcm: dyndep | CMakeFiles/dedekind_algebra.dir/dedekind.algebra-ring.pcm CMakeFiles/dedekind_category.dir/dedekind.category.pcm CMakeFiles/dedekind_order.dir/dedekind.order.pcm
+  restat = 1
+
+build CMakeFiles/dedekind_algebra.dir/src/main/modules/dedekind/algebra/field.cppm.o | CMakeFiles/dedekind_algebra.dir/dedekind.algebra-field.pcm: dyndep | CMakeFiles/dedekind_category.dir/dedekind.category.pcm CMakeFiles/dedekind_order.dir/dedekind.order.pcm CMakeFiles/dedekind_sets.dir/dedekind.sets.pcm CMakeFiles/dedekind_algebra.dir/dedekind.algebra-ring.pcm CMakeFiles/dedekind_algebra.dir/dedekind.algebra-division.pcm
+  restat = 1
+
+build CMakeFiles/dedekind_algebra.dir/src/main/modules/dedekind/algebra/group.cppm.o | CMakeFiles/dedekind_algebra.dir/dedekind.algebra-group.pcm: dyndep | CMakeFiles/dedekind_algebra.dir/dedekind.algebra-monoid.pcm CMakeFiles/dedekind_category.dir/dedekind.category.pcm
+  restat = 1
+
+build CMakeFiles/dedekind_algebra.dir/src/main/modules/dedekind/algebra/modules.cppm.o | CMakeFiles/dedekind_algebra.dir/dedekind.algebra-modules.pcm: dyndep | CMakeFiles/dedekind_category.dir/dedekind.category.pcm CMakeFiles/dedekind_ieee.dir/dedekind.ieee.pcm CMakeFiles/dedekind_algebra.dir/dedekind.algebra-field.pcm CMakeFiles/dedekind_algebra.dir/dedekind.algebra-group.pcm CMakeFiles/dedekind_algebra.dir/dedekind.algebra-polynomial.pcm
+  restat = 1
+
+build CMakeFiles/dedekind_algebra.dir/src/main/modules/dedekind/algebra/monoid.cppm.o | CMakeFiles/dedekind_algebra.dir/dedekind.algebra-monoid.pcm: dyndep | CMakeFiles/dedekind_category.dir/dedekind.category.pcm
+  restat = 1
+
+build CMakeFiles/dedekind_algebra.dir/src/main/modules/dedekind/algebra/polynomial.cppm.o | CMakeFiles/dedekind_algebra.dir/dedekind.algebra-polynomial.pcm: dyndep | CMakeFiles/dedekind_category.dir/dedekind.category.pcm CMakeFiles/dedekind_algebra.dir/dedekind.algebra-ring.pcm
+  restat = 1
+
+build CMakeFiles/dedekind_algebra.dir/src/main/modules/dedekind/algebra/ring.cppm.o | CMakeFiles/dedekind_algebra.dir/dedekind.algebra-ring.pcm: dyndep | CMakeFiles/dedekind_algebra.dir/dedekind.algebra-monoid.pcm CMakeFiles/dedekind_algebra.dir/dedekind.algebra-group.pcm CMakeFiles/dedekind_category.dir/dedekind.category.pcm
+  restat = 1
+

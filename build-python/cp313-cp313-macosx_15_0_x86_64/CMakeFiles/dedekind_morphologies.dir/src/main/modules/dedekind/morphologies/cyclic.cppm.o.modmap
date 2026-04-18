@@ -1,0 +1,2 @@
+-x c++-module
+-fmodule-output=CMakeFiles/dedekind_morphologies.dir/dedekind.morphologies-cyclic.pcm

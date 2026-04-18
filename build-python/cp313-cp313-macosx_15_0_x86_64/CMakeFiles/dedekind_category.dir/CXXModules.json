@@ -1,0 +1,468 @@
+{
+	"modules" : 
+	{
+		"dedekind.category" : 
+		{
+			"bmi" : "/Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64/CMakeFiles/dedekind_category.dir/dedekind.category.pcm",
+			"is-private" : false
+		},
+		"dedekind.category:action" : 
+		{
+			"bmi" : "/Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64/CMakeFiles/dedekind_category.dir/dedekind.category-action.pcm",
+			"is-private" : false
+		},
+		"dedekind.category:cartesian" : 
+		{
+			"bmi" : "/Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64/CMakeFiles/dedekind_category.dir/dedekind.category-cartesian.pcm",
+			"is-private" : false
+		},
+		"dedekind.category:discrete" : 
+		{
+			"bmi" : "/Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64/CMakeFiles/dedekind_category.dir/dedekind.category-discrete.pcm",
+			"is-private" : false
+		},
+		"dedekind.category:etcs" : 
+		{
+			"bmi" : "/Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64/CMakeFiles/dedekind_category.dir/dedekind.category-etcs.pcm",
+			"is-private" : false
+		},
+		"dedekind.category:functor" : 
+		{
+			"bmi" : "/Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64/CMakeFiles/dedekind_category.dir/dedekind.category-functor.pcm",
+			"is-private" : false
+		},
+		"dedekind.category:kleisli" : 
+		{
+			"bmi" : "/Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64/CMakeFiles/dedekind_category.dir/dedekind.category-kleisli.pcm",
+			"is-private" : false
+		},
+		"dedekind.category:limit" : 
+		{
+			"bmi" : "/Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64/CMakeFiles/dedekind_category.dir/dedekind.category-limit.pcm",
+			"is-private" : false
+		},
+		"dedekind.category:logic" : 
+		{
+			"bmi" : "/Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64/CMakeFiles/dedekind_category.dir/dedekind.category-logic.pcm",
+			"is-private" : false
+		},
+		"dedekind.category:mereology" : 
+		{
+			"bmi" : "/Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64/CMakeFiles/dedekind_category.dir/dedekind.category-mereology.pcm",
+			"is-private" : false
+		},
+		"dedekind.category:monad" : 
+		{
+			"bmi" : "/Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64/CMakeFiles/dedekind_category.dir/dedekind.category-monad.pcm",
+			"is-private" : false
+		},
+		"dedekind.category:morphism" : 
+		{
+			"bmi" : "/Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64/CMakeFiles/dedekind_category.dir/dedekind.category-morphism.pcm",
+			"is-private" : false
+		},
+		"dedekind.category:natural" : 
+		{
+			"bmi" : "/Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64/CMakeFiles/dedekind_category.dir/dedekind.category-natural.pcm",
+			"is-private" : false
+		},
+		"dedekind.category:numeric" : 
+		{
+			"bmi" : "/Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64/CMakeFiles/dedekind_category.dir/dedekind.category-numeric.pcm",
+			"is-private" : false
+		},
+		"dedekind.category:partial" : 
+		{
+			"bmi" : "/Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64/CMakeFiles/dedekind_category.dir/dedekind.category-partial.pcm",
+			"is-private" : false
+		},
+		"dedekind.category:posetal" : 
+		{
+			"bmi" : "/Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64/CMakeFiles/dedekind_category.dir/dedekind.category-posetal.pcm",
+			"is-private" : false
+		},
+		"dedekind.category:pullback" : 
+		{
+			"bmi" : "/Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64/CMakeFiles/dedekind_category.dir/dedekind.category-pullback.pcm",
+			"is-private" : false
+		},
+		"dedekind.category:small" : 
+		{
+			"bmi" : "/Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64/CMakeFiles/dedekind_category.dir/dedekind.category-small.pcm",
+			"is-private" : false
+		},
+		"dedekind.category:species" : 
+		{
+			"bmi" : "/Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64/CMakeFiles/dedekind_category.dir/dedekind.category-species.pcm",
+			"is-private" : false
+		},
+		"dedekind.category:topoi" : 
+		{
+			"bmi" : "/Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64/CMakeFiles/dedekind_category.dir/dedekind.category-topoi.pcm",
+			"is-private" : false
+		},
+		"dedekind.category:total" : 
+		{
+			"bmi" : "/Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64/CMakeFiles/dedekind_category.dir/dedekind.category-total.pcm",
+			"is-private" : false
+		}
+	},
+	"references" : 
+	{
+		"dedekind.category" : 
+		{
+			"lookup-method" : "by-name",
+			"path" : "CMakeFiles/dedekind_category.dir/dedekind.category.pcm"
+		},
+		"dedekind.category:action" : 
+		{
+			"lookup-method" : "by-name",
+			"path" : "CMakeFiles/dedekind_category.dir/dedekind.category-action.pcm"
+		},
+		"dedekind.category:cartesian" : 
+		{
+			"lookup-method" : "by-name",
+			"path" : "CMakeFiles/dedekind_category.dir/dedekind.category-cartesian.pcm"
+		},
+		"dedekind.category:discrete" : 
+		{
+			"lookup-method" : "by-name",
+			"path" : "CMakeFiles/dedekind_category.dir/dedekind.category-discrete.pcm"
+		},
+		"dedekind.category:etcs" : 
+		{
+			"lookup-method" : "by-name",
+			"path" : "CMakeFiles/dedekind_category.dir/dedekind.category-etcs.pcm"
+		},
+		"dedekind.category:functor" : 
+		{
+			"lookup-method" : "by-name",
+			"path" : "CMakeFiles/dedekind_category.dir/dedekind.category-functor.pcm"
+		},
+		"dedekind.category:kleisli" : 
+		{
+			"lookup-method" : "by-name",
+			"path" : "CMakeFiles/dedekind_category.dir/dedekind.category-kleisli.pcm"
+		},
+		"dedekind.category:limit" : 
+		{
+			"lookup-method" : "by-name",
+			"path" : "CMakeFiles/dedekind_category.dir/dedekind.category-limit.pcm"
+		},
+		"dedekind.category:logic" : 
+		{
+			"lookup-method" : "by-name",
+			"path" : "CMakeFiles/dedekind_category.dir/dedekind.category-logic.pcm"
+		},
+		"dedekind.category:mereology" : 
+		{
+			"lookup-method" : "by-name",
+			"path" : "CMakeFiles/dedekind_category.dir/dedekind.category-mereology.pcm"
+		},
+		"dedekind.category:monad" : 
+		{
+			"lookup-method" : "by-name",
+			"path" : "CMakeFiles/dedekind_category.dir/dedekind.category-monad.pcm"
+		},
+		"dedekind.category:morphism" : 
+		{
+			"lookup-method" : "by-name",
+			"path" : "CMakeFiles/dedekind_category.dir/dedekind.category-morphism.pcm"
+		},
+		"dedekind.category:natural" : 
+		{
+			"lookup-method" : "by-name",
+			"path" : "CMakeFiles/dedekind_category.dir/dedekind.category-natural.pcm"
+		},
+		"dedekind.category:numeric" : 
+		{
+			"lookup-method" : "by-name",
+			"path" : "CMakeFiles/dedekind_category.dir/dedekind.category-numeric.pcm"
+		},
+		"dedekind.category:partial" : 
+		{
+			"lookup-method" : "by-name",
+			"path" : "CMakeFiles/dedekind_category.dir/dedekind.category-partial.pcm"
+		},
+		"dedekind.category:posetal" : 
+		{
+			"lookup-method" : "by-name",
+			"path" : "CMakeFiles/dedekind_category.dir/dedekind.category-posetal.pcm"
+		},
+		"dedekind.category:pullback" : 
+		{
+			"lookup-method" : "by-name",
+			"path" : "CMakeFiles/dedekind_category.dir/dedekind.category-pullback.pcm"
+		},
+		"dedekind.category:small" : 
+		{
+			"lookup-method" : "by-name",
+			"path" : "CMakeFiles/dedekind_category.dir/dedekind.category-small.pcm"
+		},
+		"dedekind.category:species" : 
+		{
+			"lookup-method" : "by-name",
+			"path" : "CMakeFiles/dedekind_category.dir/dedekind.category-species.pcm"
+		},
+		"dedekind.category:topoi" : 
+		{
+			"lookup-method" : "by-name",
+			"path" : "CMakeFiles/dedekind_category.dir/dedekind.category-topoi.pcm"
+		},
+		"dedekind.category:total" : 
+		{
+			"lookup-method" : "by-name",
+			"path" : "CMakeFiles/dedekind_category.dir/dedekind.category-total.pcm"
+		}
+	},
+	"usages" : 
+	{
+		"dedekind.category" : 
+		[
+			"dedekind.category:action",
+			"dedekind.category:cartesian",
+			"dedekind.category:discrete",
+			"dedekind.category:etcs",
+			"dedekind.category:functor",
+			"dedekind.category:kleisli",
+			"dedekind.category:limit",
+			"dedekind.category:logic",
+			"dedekind.category:mereology",
+			"dedekind.category:monad",
+			"dedekind.category:morphism",
+			"dedekind.category:natural",
+			"dedekind.category:numeric",
+			"dedekind.category:partial",
+			"dedekind.category:posetal",
+			"dedekind.category:pullback",
+			"dedekind.category:small",
+			"dedekind.category:species",
+			"dedekind.category:topoi",
+			"dedekind.category:total"
+		],
+		"dedekind.category:action" : 
+		[
+			"dedekind.category:cartesian",
+			"dedekind.category:discrete",
+			"dedekind.category:limit",
+			"dedekind.category:logic",
+			"dedekind.category:mereology",
+			"dedekind.category:morphism",
+			"dedekind.category:posetal",
+			"dedekind.category:pullback",
+			"dedekind.category:small",
+			"dedekind.category:species",
+			"dedekind.category:topoi",
+			"dedekind.category:total"
+		],
+		"dedekind.category:cartesian" : 
+		[
+			"dedekind.category:discrete",
+			"dedekind.category:limit",
+			"dedekind.category:logic",
+			"dedekind.category:mereology",
+			"dedekind.category:morphism",
+			"dedekind.category:posetal",
+			"dedekind.category:small",
+			"dedekind.category:species"
+		],
+		"dedekind.category:discrete" : 
+		[
+			"dedekind.category:logic",
+			"dedekind.category:mereology",
+			"dedekind.category:morphism",
+			"dedekind.category:posetal",
+			"dedekind.category:small",
+			"dedekind.category:species"
+		],
+		"dedekind.category:etcs" : 
+		[
+			"dedekind.category:cartesian",
+			"dedekind.category:discrete",
+			"dedekind.category:limit",
+			"dedekind.category:logic",
+			"dedekind.category:mereology",
+			"dedekind.category:morphism",
+			"dedekind.category:posetal",
+			"dedekind.category:small",
+			"dedekind.category:species",
+			"dedekind.category:topoi"
+		],
+		"dedekind.category:functor" : 
+		[
+			"dedekind.category:action",
+			"dedekind.category:cartesian",
+			"dedekind.category:discrete",
+			"dedekind.category:limit",
+			"dedekind.category:logic",
+			"dedekind.category:mereology",
+			"dedekind.category:morphism",
+			"dedekind.category:posetal",
+			"dedekind.category:pullback",
+			"dedekind.category:small",
+			"dedekind.category:species",
+			"dedekind.category:topoi",
+			"dedekind.category:total"
+		],
+		"dedekind.category:kleisli" : 
+		[
+			"dedekind.category:action",
+			"dedekind.category:cartesian",
+			"dedekind.category:discrete",
+			"dedekind.category:functor",
+			"dedekind.category:limit",
+			"dedekind.category:logic",
+			"dedekind.category:mereology",
+			"dedekind.category:monad",
+			"dedekind.category:morphism",
+			"dedekind.category:natural",
+			"dedekind.category:posetal",
+			"dedekind.category:pullback",
+			"dedekind.category:small",
+			"dedekind.category:species",
+			"dedekind.category:topoi",
+			"dedekind.category:total"
+		],
+		"dedekind.category:limit" : 
+		[
+			"dedekind.category:discrete",
+			"dedekind.category:logic",
+			"dedekind.category:mereology",
+			"dedekind.category:morphism",
+			"dedekind.category:posetal",
+			"dedekind.category:small",
+			"dedekind.category:species"
+		],
+		"dedekind.category:logic" : 
+		[
+			"dedekind.category:mereology",
+			"dedekind.category:morphism",
+			"dedekind.category:species"
+		],
+		"dedekind.category:mereology" : 
+		[
+			"dedekind.category:morphism",
+			"dedekind.category:species"
+		],
+		"dedekind.category:monad" : 
+		[
+			"dedekind.category:action",
+			"dedekind.category:cartesian",
+			"dedekind.category:discrete",
+			"dedekind.category:functor",
+			"dedekind.category:limit",
+			"dedekind.category:logic",
+			"dedekind.category:mereology",
+			"dedekind.category:morphism",
+			"dedekind.category:natural",
+			"dedekind.category:posetal",
+			"dedekind.category:pullback",
+			"dedekind.category:small",
+			"dedekind.category:species",
+			"dedekind.category:topoi",
+			"dedekind.category:total"
+		],
+		"dedekind.category:morphism" : 
+		[
+			"dedekind.category:species"
+		],
+		"dedekind.category:natural" : 
+		[
+			"dedekind.category:action",
+			"dedekind.category:cartesian",
+			"dedekind.category:discrete",
+			"dedekind.category:functor",
+			"dedekind.category:limit",
+			"dedekind.category:logic",
+			"dedekind.category:mereology",
+			"dedekind.category:morphism",
+			"dedekind.category:posetal",
+			"dedekind.category:pullback",
+			"dedekind.category:small",
+			"dedekind.category:species",
+			"dedekind.category:topoi",
+			"dedekind.category:total"
+		],
+		"dedekind.category:numeric" : 
+		[
+			"dedekind.category:cartesian",
+			"dedekind.category:discrete",
+			"dedekind.category:limit",
+			"dedekind.category:logic",
+			"dedekind.category:mereology",
+			"dedekind.category:morphism",
+			"dedekind.category:posetal",
+			"dedekind.category:small",
+			"dedekind.category:species",
+			"dedekind.category:topoi"
+		],
+		"dedekind.category:partial" : 
+		[
+			"dedekind.category:cartesian",
+			"dedekind.category:discrete",
+			"dedekind.category:limit",
+			"dedekind.category:logic",
+			"dedekind.category:mereology",
+			"dedekind.category:morphism",
+			"dedekind.category:numeric",
+			"dedekind.category:posetal",
+			"dedekind.category:small",
+			"dedekind.category:species",
+			"dedekind.category:topoi"
+		],
+		"dedekind.category:posetal" : 
+		[
+			"dedekind.category:logic",
+			"dedekind.category:mereology",
+			"dedekind.category:morphism",
+			"dedekind.category:species"
+		],
+		"dedekind.category:pullback" : 
+		[
+			"dedekind.category:cartesian",
+			"dedekind.category:discrete",
+			"dedekind.category:limit",
+			"dedekind.category:logic",
+			"dedekind.category:mereology",
+			"dedekind.category:morphism",
+			"dedekind.category:posetal",
+			"dedekind.category:small",
+			"dedekind.category:species",
+			"dedekind.category:topoi"
+		],
+		"dedekind.category:small" : 
+		[
+			"dedekind.category:logic",
+			"dedekind.category:mereology",
+			"dedekind.category:morphism",
+			"dedekind.category:posetal",
+			"dedekind.category:species"
+		],
+		"dedekind.category:topoi" : 
+		[
+			"dedekind.category:cartesian",
+			"dedekind.category:discrete",
+			"dedekind.category:limit",
+			"dedekind.category:logic",
+			"dedekind.category:mereology",
+			"dedekind.category:morphism",
+			"dedekind.category:posetal",
+			"dedekind.category:small",
+			"dedekind.category:species"
+		],
+		"dedekind.category:total" : 
+		[
+			"dedekind.category:cartesian",
+			"dedekind.category:discrete",
+			"dedekind.category:limit",
+			"dedekind.category:logic",
+			"dedekind.category:mereology",
+			"dedekind.category:morphism",
+			"dedekind.category:posetal",
+			"dedekind.category:pullback",
+			"dedekind.category:small",
+			"dedekind.category:species",
+			"dedekind.category:topoi"
+		]
+	}
+}

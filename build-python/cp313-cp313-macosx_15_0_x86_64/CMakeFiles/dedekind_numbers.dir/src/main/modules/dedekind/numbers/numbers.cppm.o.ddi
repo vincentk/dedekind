@@ -1,0 +1,57 @@
+{
+  "revision": 0,
+  "rules": [
+    {
+      "primary-output": "CMakeFiles/dedekind_numbers.dir/src/main/modules/dedekind/numbers/numbers.cppm.o",
+      "provides": [
+        {
+          "is-interface": true,
+          "logical-name": "dedekind.numbers",
+          "source-path": "/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/numbers/numbers.cppm"
+        }
+      ],
+      "requires": [
+        {
+          "logical-name": "dedekind.numbers:booleans"
+        },
+        {
+          "logical-name": "dedekind.numbers:naturals"
+        },
+        {
+          "logical-name": "dedekind.numbers:integer"
+        },
+        {
+          "logical-name": "dedekind.numbers:rational"
+        },
+        {
+          "logical-name": "dedekind.numbers:complex"
+        },
+        {
+          "logical-name": "dedekind.numbers:quaternion"
+        },
+        {
+          "logical-name": "dedekind.numbers:scalars"
+        },
+        {
+          "logical-name": "dedekind.numbers:lattice"
+        },
+        {
+          "logical-name": "dedekind.numbers:mandelbrot"
+        },
+        {
+          "logical-name": "dedekind.numbers:dual"
+        },
+        {
+          "logical-name": "dedekind.numbers:symbolic"
+        },
+        {
+          "logical-name": "dedekind.numbers:real"
+        },
+        {
+          "logical-name": "dedekind.numbers:constants"
+        }
+      ]
+    }
+  ],
+  "version": 1
+}

@@ -1,0 +1,243 @@
+{
+	"bmi-installation" : null,
+	"compiler-frontend-variant" : "GNU",
+	"compiler-id" : "Clang",
+	"compiler-simulate-id" : "",
+	"config" : "Release",
+	"cxx-modules" : 
+	{
+		"CMakeFiles/dedekind_category.dir/src/main/modules/dedekind/category/action.cppm.o" : 
+		{
+			"bmi-only" : false,
+			"destination" : "lib/modules/dedekind",
+			"name" : "CXX_MODULES",
+			"relative-directory" : "dedekind/category",
+			"source" : "/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/category/action.cppm",
+			"type" : "CXX_MODULES",
+			"visibility" : "PUBLIC"
+		},
+		"CMakeFiles/dedekind_category.dir/src/main/modules/dedekind/category/cartesian.cppm.o" : 
+		{
+			"bmi-only" : false,
+			"destination" : "lib/modules/dedekind",
+			"name" : "CXX_MODULES",
+			"relative-directory" : "dedekind/category",
+			"source" : "/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/category/cartesian.cppm",
+			"type" : "CXX_MODULES",
+			"visibility" : "PUBLIC"
+		},
+		"CMakeFiles/dedekind_category.dir/src/main/modules/dedekind/category/category.cppm.o" : 
+		{
+			"bmi-only" : false,
+			"destination" : "lib/modules/dedekind",
+			"name" : "CXX_MODULES",
+			"relative-directory" : "dedekind/category",
+			"source" : "/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/category/category.cppm",
+			"type" : "CXX_MODULES",
+			"visibility" : "PUBLIC"
+		},
+		"CMakeFiles/dedekind_category.dir/src/main/modules/dedekind/category/discrete.cppm.o" : 
+		{
+			"bmi-only" : false,
+			"destination" : "lib/modules/dedekind",
+			"name" : "CXX_MODULES",
+			"relative-directory" : "dedekind/category",
+			"source" : "/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/category/discrete.cppm",
+			"type" : "CXX_MODULES",
+			"visibility" : "PUBLIC"
+		},
+		"CMakeFiles/dedekind_category.dir/src/main/modules/dedekind/category/etcs.cppm.o" : 
+		{
+			"bmi-only" : false,
+			"destination" : "lib/modules/dedekind",
+			"name" : "CXX_MODULES",
+			"relative-directory" : "dedekind/category",
+			"source" : "/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/category/etcs.cppm",
+			"type" : "CXX_MODULES",
+			"visibility" : "PUBLIC"
+		},
+		"CMakeFiles/dedekind_category.dir/src/main/modules/dedekind/category/functor.cppm.o" : 
+		{
+			"bmi-only" : false,
+			"destination" : "lib/modules/dedekind",
+			"name" : "CXX_MODULES",
+			"relative-directory" : "dedekind/category",
+			"source" : "/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/category/functor.cppm",
+			"type" : "CXX_MODULES",
+			"visibility" : "PUBLIC"
+		},
+		"CMakeFiles/dedekind_category.dir/src/main/modules/dedekind/category/kleisli.cppm.o" : 
+		{
+			"bmi-only" : false,
+			"destination" : "lib/modules/dedekind",
+			"name" : "CXX_MODULES",
+			"relative-directory" : "dedekind/category",
+			"source" : "/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/category/kleisli.cppm",
+			"type" : "CXX_MODULES",
+			"visibility" : "PUBLIC"
+		},
+		"CMakeFiles/dedekind_category.dir/src/main/modules/dedekind/category/limit.cppm.o" : 
+		{
+			"bmi-only" : false,
+			"destination" : "lib/modules/dedekind",
+			"name" : "CXX_MODULES",
+			"relative-directory" : "dedekind/category",
+			"source" : "/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/category/limit.cppm",
+			"type" : "CXX_MODULES",
+			"visibility" : "PUBLIC"
+		},
+		"CMakeFiles/dedekind_category.dir/src/main/modules/dedekind/category/logic.cppm.o" : 
+		{
+			"bmi-only" : false,
+			"destination" : "lib/modules/dedekind",
+			"name" : "CXX_MODULES",
+			"relative-directory" : "dedekind/category",
+			"source" : "/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/category/logic.cppm",
+			"type" : "CXX_MODULES",
+			"visibility" : "PUBLIC"
+		},
+		"CMakeFiles/dedekind_category.dir/src/main/modules/dedekind/category/mereology.cppm.o" : 
+		{
+			"bmi-only" : false,
+			"destination" : "lib/modules/dedekind",
+			"name" : "CXX_MODULES",
+			"relative-directory" : "dedekind/category",
+			"source" : "/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/category/mereology.cppm",
+			"type" : "CXX_MODULES",
+			"visibility" : "PUBLIC"
+		},
+		"CMakeFiles/dedekind_category.dir/src/main/modules/dedekind/category/monad.cppm.o" : 
+		{
+			"bmi-only" : false,
+			"destination" : "lib/modules/dedekind",
+			"name" : "CXX_MODULES",
+			"relative-directory" : "dedekind/category",
+			"source" : "/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/category/monad.cppm",
+			"type" : "CXX_MODULES",
+			"visibility" : "PUBLIC"
+		},
+		"CMakeFiles/dedekind_category.dir/src/main/modules/dedekind/category/morphism.cppm.o" : 
+		{
+			"bmi-only" : false,
+			"destination" : "lib/modules/dedekind",
+			"name" : "CXX_MODULES",
+			"relative-directory" : "dedekind/category",
+			"source" : "/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/category/morphism.cppm",
+			"type" : "CXX_MODULES",
+			"visibility" : "PUBLIC"
+		},
+		"CMakeFiles/dedekind_category.dir/src/main/modules/dedekind/category/natural.cppm.o" : 
+		{
+			"bmi-only" : false,
+			"destination" : "lib/modules/dedekind",
+			"name" : "CXX_MODULES",
+			"relative-directory" : "dedekind/category",
+			"source" : "/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/category/natural.cppm",
+			"type" : "CXX_MODULES",
+			"visibility" : "PUBLIC"
+		},
+		"CMakeFiles/dedekind_category.dir/src/main/modules/dedekind/category/numeric.cppm.o" : 
+		{
+			"bmi-only" : false,
+			"destination" : "lib/modules/dedekind",
+			"name" : "CXX_MODULES",
+			"relative-directory" : "dedekind/category",
+			"source" : "/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/category/numeric.cppm",
+			"type" : "CXX_MODULES",
+			"visibility" : "PUBLIC"
+		},
+		"CMakeFiles/dedekind_category.dir/src/main/modules/dedekind/category/partial.cppm.o" : 
+		{
+			"bmi-only" : false,
+			"destination" : "lib/modules/dedekind",
+			"name" : "CXX_MODULES",
+			"relative-directory" : "dedekind/category",
+			"source" : "/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/category/partial.cppm",
+			"type" : "CXX_MODULES",
+			"visibility" : "PUBLIC"
+		},
+		"CMakeFiles/dedekind_category.dir/src/main/modules/dedekind/category/posetal.cppm.o" : 
+		{
+			"bmi-only" : false,
+			"destination" : "lib/modules/dedekind",
+			"name" : "CXX_MODULES",
+			"relative-directory" : "dedekind/category",
+			"source" : "/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/category/posetal.cppm",
+			"type" : "CXX_MODULES",
+			"visibility" : "PUBLIC"
+		},
+		"CMakeFiles/dedekind_category.dir/src/main/modules/dedekind/category/pullback.cppm.o" : 
+		{
+			"bmi-only" : false,
+			"destination" : "lib/modules/dedekind",
+			"name" : "CXX_MODULES",
+			"relative-directory" : "dedekind/category",
+			"source" : "/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/category/pullback.cppm",
+			"type" : "CXX_MODULES",
+			"visibility" : "PUBLIC"
+		},
+		"CMakeFiles/dedekind_category.dir/src/main/modules/dedekind/category/small.cppm.o" : 
+		{
+			"bmi-only" : false,
+			"destination" : "lib/modules/dedekind",
+			"name" : "CXX_MODULES",
+			"relative-directory" : "dedekind/category",
+			"source" : "/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/category/small.cppm",
+			"type" : "CXX_MODULES",
+			"visibility" : "PUBLIC"
+		},
+		"CMakeFiles/dedekind_category.dir/src/main/modules/dedekind/category/species.cppm.o" : 
+		{
+			"bmi-only" : false,
+			"destination" : "lib/modules/dedekind",
+			"name" : "CXX_MODULES",
+			"relative-directory" : "dedekind/category",
+			"source" : "/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/category/species.cppm",
+			"type" : "CXX_MODULES",
+			"visibility" : "PUBLIC"
+		},
+		"CMakeFiles/dedekind_category.dir/src/main/modules/dedekind/category/topoi.cppm.o" : 
+		{
+			"bmi-only" : false,
+			"destination" : "lib/modules/dedekind",
+			"name" : "CXX_MODULES",
+			"relative-directory" : "dedekind/category",
+			"source" : "/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/category/topoi.cppm",
+			"type" : "CXX_MODULES",
+			"visibility" : "PUBLIC"
+		},
+		"CMakeFiles/dedekind_category.dir/src/main/modules/dedekind/category/total.cppm.o" : 
+		{
+			"bmi-only" : false,
+			"destination" : "lib/modules/dedekind",
+			"name" : "CXX_MODULES",
+			"relative-directory" : "dedekind/category",
+			"source" : "/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/category/total.cppm",
+			"type" : "CXX_MODULES",
+			"visibility" : "PUBLIC"
+		}
+	},
+	"database-info" : null,
+	"dir-cur-bld" : "/Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64",
+	"dir-cur-src" : "/Users/vincent/git/github.com/vincentk/dedekind",
+	"dir-top-bld" : "/Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64",
+	"dir-top-src" : "/Users/vincent/git/github.com/vincentk/dedekind",
+	"exports" : 
+	[
+		{
+			"cxx-module-info-dir" : "",
+			"destination" : "lib/cmake/dedekind",
+			"export-name" : "dedekind_category",
+			"export-prefix" : "/Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64/CMakeFiles/Export/c5f9e0e933ccec5e7c33f03ece73c2ce",
+			"filesystem-export-name" : "dedekind__category",
+			"install" : true,
+			"namespace" : "dedekind::"
+		}
+	],
+	"forward-modules-from-target-dirs" : [],
+	"include-dirs" : [],
+	"language" : "CXX",
+	"linked-target-dirs" : [],
+	"module-dir" : "/Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64/CMakeFiles/dedekind_category.dir",
+	"sources" : {}
+}

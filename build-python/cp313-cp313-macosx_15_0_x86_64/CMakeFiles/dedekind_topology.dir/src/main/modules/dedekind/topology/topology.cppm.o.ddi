@@ -1,0 +1,24 @@
+{
+  "revision": 0,
+  "rules": [
+    {
+      "primary-output": "CMakeFiles/dedekind_topology.dir/src/main/modules/dedekind/topology/topology.cppm.o",
+      "provides": [
+        {
+          "is-interface": true,
+          "logical-name": "dedekind.topology",
+          "source-path": "/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/topology/topology.cppm"
+        }
+      ],
+      "requires": [
+        {
+          "logical-name": "dedekind.topology:interval"
+        },
+        {
+          "logical-name": "dedekind.topology:neighborhood"
+        }
+      ]
+    }
+  ],
+  "version": 1
+}

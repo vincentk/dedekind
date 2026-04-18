@@ -1,0 +1,17 @@
+{
+  "revision": 0,
+  "rules": [
+    {
+      "primary-output": "CMakeFiles/test_order.dir/src/test/cpp/modules/dedekind/order/order_test.cpp.o",
+      "requires": [
+        {
+          "logical-name": "dedekind.order"
+        },
+        {
+          "logical-name": "dedekind.category"
+        }
+      ]
+    }
+  ],
+  "version": 1
+}

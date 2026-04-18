@@ -1,0 +1,27 @@
+ninja_dyndep_version = 1.0
+build CMakeFiles/test_numbers.dir/src/test/cpp/modules/dedekind/numbers/approx_test.cpp.o: dyndep | CMakeFiles/dedekind_category.dir/dedekind.category.pcm CMakeFiles/dedekind_numbers.dir/dedekind.numbers.pcm CMakeFiles/dedekind_numbers.dir/dedekind.numbers.ieee.pcm CMakeFiles/dedekind_numbers.dir/dedekind.numbers.approx.pcm
+
+build CMakeFiles/test_numbers.dir/src/test/cpp/modules/dedekind/numbers/constants_test.cpp.o: dyndep | CMakeFiles/dedekind_numbers.dir/dedekind.numbers.pcm CMakeFiles/dedekind_sequences.dir/dedekind.sequences.pcm
+
+build CMakeFiles/test_numbers.dir/src/test/cpp/modules/dedekind/numbers/dual_test.cpp.o: dyndep | CMakeFiles/dedekind_numbers.dir/dedekind.numbers.pcm
+
+build CMakeFiles/test_numbers.dir/src/test/cpp/modules/dedekind/numbers/ieee_test.cpp.o: dyndep | CMakeFiles/dedekind_category.dir/dedekind.category.pcm CMakeFiles/dedekind_numbers.dir/dedekind.numbers.pcm CMakeFiles/dedekind_numbers.dir/dedekind.numbers.ieee.pcm
+
+build CMakeFiles/test_numbers.dir/src/test/cpp/modules/dedekind/numbers/lattice_test.cpp.o: dyndep | CMakeFiles/dedekind_category.dir/dedekind.category.pcm CMakeFiles/dedekind_numbers.dir/dedekind.numbers.pcm
+
+build CMakeFiles/test_numbers.dir/src/test/cpp/modules/dedekind/numbers/mandelbrot_stress_test.cpp.o: dyndep | CMakeFiles/dedekind_sets.dir/dedekind.sets.pcm CMakeFiles/dedekind_category.dir/dedekind.category.pcm CMakeFiles/dedekind_sequences.dir/dedekind.sequences.pcm CMakeFiles/dedekind_topology.dir/dedekind.topology.pcm CMakeFiles/dedekind_numbers.dir/dedekind.numbers.pcm
+
+build CMakeFiles/test_numbers.dir/src/test/cpp/modules/dedekind/numbers/naturals_test.cpp.o: dyndep | CMakeFiles/dedekind_category.dir/dedekind.category.pcm
+
+build CMakeFiles/test_numbers.dir/src/test/cpp/modules/dedekind/numbers/quaternion_test.cpp.o: dyndep | CMakeFiles/dedekind_numbers.dir/dedekind.numbers.pcm CMakeFiles/dedekind_geometry.dir/dedekind.geometry.pcm
+
+build CMakeFiles/test_numbers.dir/src/test/cpp/modules/dedekind/numbers/rational_test.cpp.o: dyndep | CMakeFiles/dedekind_numbers.dir/dedekind.numbers.pcm
+
+build CMakeFiles/test_numbers.dir/src/test/cpp/modules/dedekind/numbers/spectral_norm_benchmark_test.cpp.o: dyndep | CMakeFiles/dedekind_numbers.dir/dedekind.numbers.pcm CMakeFiles/dedekind_sequences.dir/dedekind.sequences.pcm
+
+build CMakeFiles/test_numbers.dir/src/test/cpp/modules/dedekind/numbers/starters_test.cpp.o: dyndep | CMakeFiles/dedekind_category.dir/dedekind.category.pcm CMakeFiles/dedekind_numbers.dir/dedekind.numbers.pcm CMakeFiles/dedekind_sets.dir/dedekind.sets.pcm
+
+build CMakeFiles/test_numbers.dir/src/test/cpp/modules/dedekind/numbers/symolic_test.cpp.o: dyndep | CMakeFiles/dedekind_numbers.dir/dedekind.numbers.pcm CMakeFiles/dedekind_category.dir/dedekind.category.pcm
+
+build CMakeFiles/test_numbers.dir/src/test/cpp/modules/dedekind/numbers/tower_test.cpp.o: dyndep | CMakeFiles/dedekind_category.dir/dedekind.category.pcm CMakeFiles/dedekind_numbers.dir/dedekind.numbers.pcm CMakeFiles/dedekind_sets.dir/dedekind.sets.pcm CMakeFiles/dedekind_ieee.dir/dedekind.ieee.pcm
+

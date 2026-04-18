@@ -1,0 +1,16 @@
+ninja_dyndep_version = 1.0
+build CMakeFiles/dedekind_analysis.dir/src/main/modules/dedekind/analysis/analysis.cppm.o | CMakeFiles/dedekind_analysis.dir/dedekind.analysis.pcm: dyndep | CMakeFiles/dedekind_analysis.dir/dedekind.analysis-exterior.pcm CMakeFiles/dedekind_analysis.dir/dedekind.analysis-forms.pcm CMakeFiles/dedekind_analysis.dir/dedekind.analysis-hamilton.pcm CMakeFiles/dedekind_analysis.dir/dedekind.analysis-kernels.pcm
+  restat = 1
+
+build CMakeFiles/dedekind_analysis.dir/src/main/modules/dedekind/analysis/exterior.cppm.o | CMakeFiles/dedekind_analysis.dir/dedekind.analysis-exterior.pcm: dyndep | CMakeFiles/dedekind_analysis.dir/dedekind.analysis-forms.pcm CMakeFiles/dedekind_geometry.dir/dedekind.geometry.pcm
+  restat = 1
+
+build CMakeFiles/dedekind_analysis.dir/src/main/modules/dedekind/analysis/forms.cppm.o | CMakeFiles/dedekind_analysis.dir/dedekind.analysis-forms.pcm: dyndep | CMakeFiles/dedekind_geometry.dir/dedekind.geometry.pcm
+  restat = 1
+
+build CMakeFiles/dedekind_analysis.dir/src/main/modules/dedekind/analysis/hamilton.cppm.o | CMakeFiles/dedekind_analysis.dir/dedekind.analysis-hamilton.pcm: dyndep | CMakeFiles/dedekind_category.dir/dedekind.category.pcm CMakeFiles/dedekind_algebra.dir/dedekind.algebra.pcm CMakeFiles/dedekind_geometry.dir/dedekind.geometry.pcm CMakeFiles/dedekind_sequences.dir/dedekind.sequences.pcm
+  restat = 1
+
+build CMakeFiles/dedekind_analysis.dir/src/main/modules/dedekind/analysis/kernels.cppm.o | CMakeFiles/dedekind_analysis.dir/dedekind.analysis-kernels.pcm: dyndep | CMakeFiles/dedekind_sequences.dir/dedekind.sequences.pcm
+  restat = 1
+

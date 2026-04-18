@@ -1,0 +1,17 @@
+{
+  "revision": 0,
+  "rules": [
+    {
+      "primary-output": "CMakeFiles/test_numbers.dir/src/test/cpp/modules/dedekind/numbers/symolic_test.cpp.o",
+      "requires": [
+        {
+          "logical-name": "dedekind.numbers"
+        },
+        {
+          "logical-name": "dedekind.category"
+        }
+      ]
+    }
+  ],
+  "version": 1
+}

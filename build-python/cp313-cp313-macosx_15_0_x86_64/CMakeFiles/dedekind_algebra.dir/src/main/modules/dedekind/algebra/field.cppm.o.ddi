@@ -1,0 +1,33 @@
+{
+  "revision": 0,
+  "rules": [
+    {
+      "primary-output": "CMakeFiles/dedekind_algebra.dir/src/main/modules/dedekind/algebra/field.cppm.o",
+      "provides": [
+        {
+          "is-interface": true,
+          "logical-name": "dedekind.algebra:field",
+          "source-path": "/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/algebra/field.cppm"
+        }
+      ],
+      "requires": [
+        {
+          "logical-name": "dedekind.category"
+        },
+        {
+          "logical-name": "dedekind.order"
+        },
+        {
+          "logical-name": "dedekind.sets"
+        },
+        {
+          "logical-name": "dedekind.algebra:ring"
+        },
+        {
+          "logical-name": "dedekind.algebra:division"
+        }
+      ]
+    }
+  ],
+  "version": 1
+}

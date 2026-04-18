@@ -1,0 +1,21 @@
+{
+  "revision": 0,
+  "rules": [
+    {
+      "primary-output": "CMakeFiles/dedekind_analysis.dir/src/main/modules/dedekind/analysis/kernels.cppm.o",
+      "provides": [
+        {
+          "is-interface": true,
+          "logical-name": "dedekind.analysis:kernels",
+          "source-path": "/Users/vincent/git/github.com/vincentk/dedekind/src/main/modules/dedekind/analysis/kernels.cppm"
+        }
+      ],
+      "requires": [
+        {
+          "logical-name": "dedekind.sequences"
+        }
+      ]
+    }
+  ],
+  "version": 1
+}
