@@ -736,8 +736,17 @@ class Ensemble:
 
     @staticmethod
     def comprehension(universe, predicate):
-        """Create intensional ensemble via set-builder: {x ∈ U | P(x)}."""
-        return Ensemble(predicate=predicate)
+        """Create intensional ensemble via set-builder: {x ∈ U | P(x)}.
+
+        Universe must be iterable (e.g. range, list).  The predicate is kept
+        symbolically until realize() is called, at which point it is applied to
+        every element of the universe.
+
+        FIXME: once the core symbolic domain layer lands, universe should be a
+        typed domain object (ℕ, ℤ, ℝ, …) rather than a plain iterable.
+        """
+        members = [x for x in universe if predicate(x)]
+        return Ensemble(members=members)
 
     @staticmethod
     def from_dataframe(df, column=None):
@@ -788,6 +797,31 @@ class Ensemble:
             result = list(set(self._members) - set(other._members))
             return Ensemble(members=result)
         return self
+
+    # --- Python operator aliases (issue #241: operator/method parity) ---
+
+    def __or__(self, other):
+        """A | B  ≡  A.union(B)"""
+        return self.union(other)
+
+    def __and__(self, other):
+        """A & B  ≡  A.intersection(B)"""
+        return self.intersection(other)
+
+    def __sub__(self, other):
+        """A - B  ≡  A.difference(B)"""
+        return self.difference(other)
+
+    def __le__(self, other):
+        """A <= B  ≡  A.is_subset_of(B)"""
+        if self._members is not None and other._members is not None:
+            return set(self._members) <= set(other._members)
+        return NotImplemented
+
+    def __len__(self):
+        if self._members is not None:
+            return len(self._members)
+        return NotImplemented
 
     def realize(self, *, ordered=True):
         """Realize intensional definition to extensional members.
