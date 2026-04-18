@@ -7,6 +7,7 @@ UX validation (issue #241); output correctness refinement is a follow-up.
 
 from dataclasses import dataclass
 from itertools import product
+from numbers import Integral
 
 from . import ordered_set_roundtrip, unordered_set_roundtrip
 
@@ -44,6 +45,34 @@ def _normalize_join_value(series):
 def _is_text_column(series):
     dtype_name = str(series.dtype)
     return dtype_name == "string" or dtype_name == "object"
+
+
+def _realize_extensional_values(values, *, ordered=True):
+    """Realize extensional set members with integer fast-path + generic fallback.
+
+    The C++ facade roundtrip functions currently accept integral sequences.
+    For non-integral element domains (e.g. region labels), fall back to
+    Python set semantics so formal/analyst shims remain executable.
+    """
+    if values is None:
+        return []
+
+    normalized = list(values)
+    int_like = all(isinstance(v, Integral) and not isinstance(v, bool) for v in normalized)
+
+    if int_like:
+        int_values = [int(v) for v in normalized]
+        if ordered:
+            return ordered_set_roundtrip(int_values)
+        return unordered_set_roundtrip(int_values)
+
+    unique = set(normalized)
+    if ordered:
+        try:
+            return sorted(unique)
+        except TypeError:
+            return sorted(unique, key=lambda v: str(v))
+    return list(unique)
 
 
 def _infer_join_keys(left_df, right_df):
@@ -1603,10 +1632,7 @@ class SetDef:
         Uses the dedekind facade functions for final normalization.
         """
         if self._values is not None:
-            if ordered:
-                return ordered_set_roundtrip(self._values)
-            else:
-                return unordered_set_roundtrip(self._values)
+            return _realize_extensional_values(self._values, ordered=ordered)
         raise NotImplementedError("Symbolic set realization not yet implemented")
 
     def to_dataframe(self, column_name="value"):
@@ -1734,10 +1760,7 @@ class Ensemble:
         Uses the dedekind facade functions for final normalization.
         """
         if self._members is not None:
-            if ordered:
-                return ordered_set_roundtrip(self._members)
-            else:
-                return unordered_set_roundtrip(self._members)
+            return _realize_extensional_values(self._members, ordered=ordered)
         raise NotImplementedError("Symbolic ensemble realization not yet implemented")
 
     def to_dataframe(self, column_name="element"):
