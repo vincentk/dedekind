@@ -3,7 +3,9 @@
 # The reference build is the GitHub build action.
 
 # Project Variables
-BUILD_DIR    := build
+BUILD_DIR     := build
+VENV_DIR      := .venv
+NOTEBOOKS_DIR := docs/python/notebooks
 LLVM_ROOT    ?= /usr/local/opt/llvm
 CXX          ?= $(LLVM_ROOT)/bin/clang++
 CC           ?= $(LLVM_ROOT)/bin/clang
@@ -15,7 +17,8 @@ FILTER_GVPR  := $(DOCS_DIR)/figures/filter.gvpr
 DOT_FILE     := $(DOCS_DIR)/figures/dedekind_module_dependencies.dot
 
 .PHONY: all clean compile test integration-test coverage format format-check install-hooks ci-install-doxygen-deps ci-install-report-deps doxygen dot doc report \
-	ci-history ci-main pr-init pr-status pr-checks pr-watch pr-sync pr-review-comments pr-review-unresolved pr-resolve-thread pr-resolve-threads
+	ci-history ci-main pr-init pr-status pr-checks pr-watch pr-sync pr-review-comments pr-review-unresolved pr-resolve-thread pr-resolve-threads \
+	jupyter
 
 all: compile
 
@@ -42,6 +45,7 @@ test: compile
 
 integration-test: test
 	python -m pip install --upgrade pip jupyter
+	rm -rf $(BUILD_DIR)/python-editable
 	CC="$(CC)" CXX="$(CXX)" \
 	CMAKE_ARGS="-DCMAKE_C_COMPILER=$(CC) -DCMAKE_CXX_COMPILER=$(CXX) -DCMAKE_CXX_SCAN_FOR_MODULES=ON -DCMAKE_BUILD_TYPE=Release -DDEDEKIND_ENABLE_DOUBLE_REAL_PROXY=ON $(CMAKE_EXTRA_ARGS)" \
 	SKBUILD_BUILD_DIR="$(BUILD_DIR)/python-editable" \
@@ -80,6 +84,34 @@ integration-test: test
 		exit 1; \
 	fi; \
 	echo "Notebook integration tests passed: $$TOTAL notebook(s)." | tee -a "$$REPORT"
+
+# Create a local virtual environment at $(VENV_DIR) if it does not yet exist.
+$(VENV_DIR)/bin/python:
+	python3 -m venv $(VENV_DIR)
+
+# Install dedekind into .venv and launch an interactive Jupyter server.
+#
+# This target:
+#   1. Builds the C++ library (reuses an incremental build if already current).
+#   2. Creates a local .venv if it does not exist.
+#   3. Installs pip, jupyter, and the dedekind editable package into .venv.
+#   4. Opens a Jupyter Notebook server pointing at $(NOTEBOOKS_DIR).
+#
+# Usage:
+#   make jupyter            # first-time or after C++ source changes
+#   make jupyter            # subsequent runs reuse the compiled artifacts
+#
+# Note: the dedicated $(BUILD_DIR)/python-jupyter build tree is wiped on each
+# invocation to prevent stale module-map files from causing compile errors.
+# This makes the editable install reliable at the cost of a one-time C++ relink.
+jupyter: compile $(VENV_DIR)/bin/python
+	$(VENV_DIR)/bin/pip install --quiet --upgrade pip jupyter
+	rm -rf $(BUILD_DIR)/python-jupyter
+	CC="$(CC)" CXX="$(CXX)" \
+	CMAKE_ARGS="-DCMAKE_C_COMPILER=$(CC) -DCMAKE_CXX_COMPILER=$(CXX) -DCMAKE_CXX_SCAN_FOR_MODULES=ON -DCMAKE_BUILD_TYPE=Release -DDEDEKIND_ENABLE_DOUBLE_REAL_PROXY=ON $(CMAKE_EXTRA_ARGS)" \
+	SKBUILD_BUILD_DIR="$(BUILD_DIR)/python-jupyter" \
+	$(VENV_DIR)/bin/pip install -e .
+	$(VENV_DIR)/bin/jupyter notebook $(NOTEBOOKS_DIR)
 
 coverage: compile
 	@echo "Running tests with profile environment..."

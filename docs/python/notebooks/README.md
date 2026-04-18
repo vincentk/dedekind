@@ -14,6 +14,11 @@ This directory contains demo notebooks for the Python MVP facade.
    - Shows representative failing payloads
    - Confirms `TypeError` behavior at the Python boundary
 
+3. `03_dsl_design_sketch_demo.ipynb`
+   - First executable iteration of the issue #241 DSL sketch
+   - Demonstrates easy-tier and symbolic-flavored usage in a prototype shim
+   - Uses `dedekind` MVP facade functions at the realization boundary
+
 ## Payload Definition
 
 These notebooks intentionally exercise only the current Python MVP facade:
@@ -51,9 +56,24 @@ Expected outputs:
 - each invalid payload raises `TypeError`
 - the notebook prints per-case confirmation and ends with a success marker
 
+### Notebook 3: DSL design sketch payload
+
+Inputs:
+
+- easy-tier demo sets: `[1, 2, 3]`, `[2, 3, 4]`
+- symbolic-flavored demo set: finite prefix of ℕ
+
+Expected outputs:
+
+- easy-tier union/intersection/difference behave deterministically
+- projection-style image call shows square mapping output
+- symbolic-flavored even/odd partition prints expected prefixes
+- notebook ends with success marker `notebook-03-ok`
+
 ## Non-goals
 
 - No broader symbolic API coverage yet
+- Notebook 3 is explicitly a prototype shim for API discussion, not final package surface
 - No performance benchmarking yet
 - No publication workflow yet; release publication stays deferred to #240
 

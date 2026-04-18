@@ -15,16 +15,28 @@ These functions validate the initial interop and sequence/path boundaries for no
 
 ## Install
 
-### From source (recommended for MVP)
+### Using make jupyter (recommended for notebooks)
 
 From the repository root:
+
+```bash
+make jupyter
+```
+
+This creates a `.venv` if needed, builds the C++ library, installs the
+`dedekind` package into `.venv`, and opens a Jupyter Notebook server in
+`docs/python/notebooks/`.
+
+### From source (packaging / wheel)
+
+For wheel/sdist builds and non-notebook use:
 
 ```bash
 python -m pip install --upgrade pip
 python -m pip install .
 ```
 
-For iterative local work:
+For iterative local work without Jupyter:
 
 ```bash
 python -m pip install --upgrade pip
@@ -105,11 +117,30 @@ dropping end-to-end checks required by staged publication (issue #240).
 
 The MVP notebook demos live in `docs/python/notebooks/`:
 
-- `01_facade_roundtrip_basics.ipynb`
-- `02_facade_error_contract.ipynb`
+- `01_facade_roundtrip_basics.ipynb` — happy-path facade demo
+- `02_facade_error_contract.ipynb` — error contract / unhappy-path demo
+- `03_dsl_design_sketch_demo.ipynb` — first executable DSL design sketch (issue #241, prototype shim)
 
 These notebooks are intentionally small, deterministic, and suitable for CI
 execution as integration checks.
+
+Notebook outputs are committed to version control so that GitHub renders them
+without executing code. To refresh outputs locally:
+
+```bash
+make jupyter
+# execute each notebook in the Jupyter UI, then save and commit the outputs
+```
+
+CI independently verifies execution via `make integration-test`; rendered copies
+of executed notebooks are uploaded as the `python-notebooks` artifact on every
+CI run.
+
+To run the notebooks interactively, use:
+
+```bash
+make jupyter
+```
 ## Reviewer Verification (CI Artifacts)
 
 For pull requests, wheel/sdist and Python-native docs are expected to be
@@ -139,3 +170,4 @@ worked in CI for the PR changeset.
 - Python bindings MVP: #234
 - User docs and release checklist: #236
 - Notebook demos: #239
+- DSL design sketch: #241
