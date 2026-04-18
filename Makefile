@@ -14,7 +14,7 @@ DOCS_MAIN    := report
 FILTER_GVPR  := $(DOCS_DIR)/figures/filter.gvpr
 DOT_FILE     := $(DOCS_DIR)/figures/dedekind_module_dependencies.dot
 
-.PHONY: all clean compile test coverage format format-check install-hooks ci-install-doxygen-deps ci-install-report-deps doxygen dot doc report \
+.PHONY: all clean compile test integration-test coverage format format-check install-hooks ci-install-doxygen-deps ci-install-report-deps doxygen dot doc report \
 	ci-history ci-main pr-init pr-status pr-checks pr-watch pr-sync pr-review-comments pr-review-unresolved pr-resolve-thread pr-resolve-threads
 
 all: compile
@@ -39,6 +39,47 @@ compile: $(BUILD_DIR)/CMakeCache.txt
 
 test: compile
 	ctest --test-dir $(BUILD_DIR) --output-on-failure
+
+integration-test: test
+	python -m pip install --upgrade pip jupyter
+	CC="$(CC)" CXX="$(CXX)" \
+	CMAKE_ARGS="-DCMAKE_C_COMPILER=$(CC) -DCMAKE_CXX_COMPILER=$(CXX) -DCMAKE_CXX_SCAN_FOR_MODULES=ON -DCMAKE_BUILD_TYPE=Release -DDEDEKIND_ENABLE_DOUBLE_REAL_PROXY=ON $(CMAKE_EXTRA_ARGS)" \
+	SKBUILD_BUILD_DIR="$(BUILD_DIR)/python-editable" \
+	python -m pip install -e .
+	mkdir -p $(BUILD_DIR)/python-notebooks
+	@NOTEBOOK_DIR="docs/python/notebooks"; \
+	NOTEBOOKS="$$(find $$NOTEBOOK_DIR -maxdepth 1 -type f -name '*.ipynb' | sort)"; \
+	REPORT="$(BUILD_DIR)/python-notebooks/integration-summary.txt"; \
+	: > "$$REPORT"; \
+	if [ -z "$$NOTEBOOKS" ]; then \
+		echo "ERROR: no notebooks found in $$NOTEBOOK_DIR"; \
+		echo "ERROR: no notebooks found in $$NOTEBOOK_DIR" >> "$$REPORT"; \
+		exit 2; \
+	fi; \
+	echo "Running notebook integration tests from $$NOTEBOOK_DIR" | tee -a "$$REPORT"; \
+	FAILURES=0; \
+	TOTAL=0; \
+	for nb in $$NOTEBOOKS; do \
+		TOTAL=$$((TOTAL + 1)); \
+		name="$$(basename $$nb)"; \
+		if ! grep -q 'import dedekind' "$$nb"; then \
+			echo "FAILED: $$name does not import dedekind" | tee -a "$$REPORT"; \
+			FAILURES=$$((FAILURES + 1)); \
+			continue; \
+		fi; \
+		echo "Executing $$name" | tee -a "$$REPORT"; \
+		if ! python -m jupyter nbconvert --to notebook --execute "$$nb" --output "$$name" --output-dir $(BUILD_DIR)/python-notebooks; then \
+			echo "FAILED: $$name" | tee -a "$$REPORT"; \
+			FAILURES=$$((FAILURES + 1)); \
+		else \
+			echo "PASSED: $$name" >> "$$REPORT"; \
+		fi; \
+	done; \
+	if [ "$$FAILURES" -ne 0 ]; then \
+		echo "Notebook integration failures: $$FAILURES/$$TOTAL" | tee -a "$$REPORT"; \
+		exit 1; \
+	fi; \
+	echo "Notebook integration tests passed: $$TOTAL notebook(s)." | tee -a "$$REPORT"
 
 coverage: compile
 	@echo "Running tests with profile environment..."

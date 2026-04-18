@@ -30,11 +30,18 @@ jobs:
     - name: Check Code Formatting
       run: make format-check CLANG_FORMAT=clang-format-21
 
-    - name: Build & Run Tests
-      run: make test CXX=clang++-21 CC=clang-21 CMAKE_EXTRA_ARGS="-DDEDEKIND_RUNTIME_COVERAGE_BRIDGES=ON"
+    - name: Build & Run Integration Tests
+      run: make integration-test CXX=clang++-21 CC=clang-21 CMAKE_EXTRA_ARGS="-DDEDEKIND_RUNTIME_COVERAGE_BRIDGES=ON"
 
-    - name: Run Python Smoke Test
-      run: ctest --test-dir build --output-on-failure -R test_python_bindings
+    - name: Upload Notebook Integration Artifacts
+      if: ${{ always() }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: python-notebooks
+        if-no-files-found: warn
+        path: |
+          build/python-notebooks/*.ipynb
+          build/python-notebooks/integration-summary.txt
 
     - name: Build Python Distribution Artifacts
       env:
@@ -48,6 +55,9 @@ jobs:
         python -m pip install --upgrade pip build twine
         python -m build
         python -m twine check dist/*
+        mkdir -p build/python-docs
+        ls -lh dist | tee build/python-docs/dist-manifest.txt
+        sha256sum dist/* | tee build/python-docs/dist-sha256.txt
 
     - name: Verify Installed Wheel Smoke Test
       run: |
@@ -56,6 +66,7 @@ jobs:
         python -m pip install --upgrade pip
         python -m pip install dist/*.whl
         mkdir -p build/python-docs
+        python -m pip show dedekind > build/python-docs/install-report.txt
         python -m pydoc dedekind > build/python-docs/pydoc-dedekind.txt
         python - <<'PY'
         import dedekind
@@ -72,6 +83,9 @@ jobs:
         name: python-dist
         path: |
           dist/*
+          build/python-docs/dist-manifest.txt
+          build/python-docs/dist-sha256.txt
+          build/python-docs/install-report.txt
           build/python-docs/pydoc-dedekind.txt
 
     - name: Process Coverage Data

@@ -2,6 +2,7 @@
 
 This guide covers the current Python MVP surface built on top of the C++ `dedekind.python` facade.
 
+Design slogan: Write it like Python. Reason about it like math. Realize it when you mean it.
 ## Scope
 
 Current Python bindings intentionally expose a small, reviewable API:
@@ -69,6 +70,25 @@ The repository includes a Python smoke test integrated into CTest:
 ctest --test-dir build --output-on-failure -R test_python_bindings
 ```
 
+For the broader Python integration lane, run:
+
+```bash
+make integration-test
+```
+
+This target runs the standard test suite, then discovers and executes every
+notebook in `docs/python/notebooks/` headlessly. Each integration notebook is
+required to import `dedekind` explicitly.
+
+## Notebook Demos
+
+The MVP notebook demos live in `docs/python/notebooks/`:
+
+- `01_facade_roundtrip_basics.ipynb`
+- `02_facade_error_contract.ipynb`
+
+These notebooks are intentionally small, deterministic, and suitable for CI
+execution as integration checks.
 ## Reviewer Verification (CI Artifacts)
 
 For pull requests, wheel/sdist and Python-native docs are expected to be
@@ -78,10 +98,17 @@ Review path:
 
 1. Open the PR checks and select the `C++ CI with Cmake` run.
 2. Open the run's `Artifacts` section.
-3. Download `python-dist` and confirm it includes:
-	- wheel/sdist files from `dist/`
-	- generated pydoc output (`pydoc-dedekind.txt`)
-4. Confirm the workflow step `Verify Installed Wheel Smoke Test` is green.
+3. Download `python-notebooks` and confirm it includes:
+   - executed notebook outputs from `docs/python/notebooks/`
+   - `integration-summary.txt` with per-notebook pass/fail status
+4. Download `python-dist` and confirm it includes:
+   - wheel/sdist files from `dist/`
+   - distribution manifest (`dist-manifest.txt`)
+   - distribution checksums (`dist-sha256.txt`)
+   - installed wheel report (`install-report.txt`)
+   - generated pydoc output (`pydoc-dedekind.txt`)
+5. Confirm the workflow step `Verify Installed Wheel Smoke Test` is green.
+6. Confirm the workflow step `Build & Run Integration Tests` is green.
 
 This provides reviewer-visible evidence that packaging and runtime smoke checks
 worked in CI for the PR changeset.
