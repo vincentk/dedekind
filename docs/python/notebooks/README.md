@@ -73,15 +73,18 @@ Demonstrates analyst-style table operations with SQL/Python terminology.
 
 Inputs:
 
-- Sales fact table: `(date, product_id, region, units, revenue)`
+- Noisy sales fact table: mixed case strings, numeric symbols, malformed values
 - Product dimension table: `(product_id, category)`
 - Region dimension table: `(region, segment)`
 
 Expected outputs:
 
+- Quality cleanup via combinators (`normalize_text`, `coerce_numeric`, `fill_missing`, `expect_domain`)
 - Join + aggregation by `(month, category)`
+- In econometrics terms, the workflow builds a panel by aligning entities across time periods
 - Pivoted revenue matrix with category columns
 - Unpivot back to long form through the middle-layer shim
+- Quality intervention report showing recovered data issues
 - DataFrame-to-set realization demo via `SetDef.from_dataframe(...).realize()`
 - Notebook ends with success marker `notebook-03-ok`
 
