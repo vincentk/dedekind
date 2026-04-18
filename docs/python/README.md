@@ -99,14 +99,14 @@ Review path:
 1. Open the PR checks and select the `C++ CI with Cmake` run.
 2. Open the run's `Artifacts` section.
 3. Download `python-notebooks` and confirm it includes:
-	- executed notebook outputs from `docs/python/notebooks/`
-	- `integration-summary.txt` with per-notebook pass/fail status
+   - executed notebook outputs from `docs/python/notebooks/`
+   - `integration-summary.txt` with per-notebook pass/fail status
 4. Download `python-dist` and confirm it includes:
-	- wheel/sdist files from `dist/`
-	- distribution manifest (`dist-manifest.txt`)
-	- distribution checksums (`dist-sha256.txt`)
-	- installed wheel report (`install-report.txt`)
-	- generated pydoc output (`pydoc-dedekind.txt`)
+   - wheel/sdist files from `dist/`
+   - distribution manifest (`dist-manifest.txt`)
+   - distribution checksums (`dist-sha256.txt`)
+   - installed wheel report (`install-report.txt`)
+   - generated pydoc output (`pydoc-dedekind.txt`)
 5. Confirm the workflow step `Verify Installed Wheel Smoke Test` is green.
 6. Confirm the workflow step `Build & Run Integration Tests` is green.
 
