@@ -3,7 +3,7 @@
 from ._dedekind import ordered_set_roundtrip
 from ._dedekind import path_from_range
 from ._dedekind import unordered_set_roundtrip
-from .dsl import AnalystFrame, Ensemble, SetDef, pivot_table, table, unpivot_table
+from .dsl import AnalystFrame, Ensemble, SetDef, pivot_table, smart_join, table, unpivot_table
 
 __all__ = [
     "ordered_set_roundtrip",
@@ -13,6 +13,7 @@ __all__ = [
     "Ensemble",
     "AnalystFrame",
     "table",
+    "smart_join",
     "pivot_table",
     "unpivot_table",
 ]
