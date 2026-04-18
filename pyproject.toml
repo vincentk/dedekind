@@ -8,6 +8,9 @@ version = "0.1.0a0"
 description = "Python MVP bindings for the dedekind C++23 module library"
 readme = "README.md"
 requires-python = ">=3.9"
+dependencies = [
+  "pandas>=2.0",
+]
 authors = [
   { name = "Dedekind Authors" },
 ]

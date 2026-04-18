@@ -29,6 +29,9 @@ Current Python bindings intentionally expose a small, reviewable API:
 
 These functions validate the initial interop and sequence/path boundaries for notebook and scripting workflows.
 
+Pandas is an official runtime dependency of the Python layer for DataFrame
+interop and pivot/unpivot shims used by the Analyst-tier workflow.
+
 ## Install
 
 ### Using make jupyter (recommended for notebooks)
