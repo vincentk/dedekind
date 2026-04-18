@@ -3,6 +3,22 @@
 This guide covers the current Python MVP surface built on top of the C++ `dedekind.python` facade.
 
 Design slogan: Write it like Python. Reason about it like math. Realize it when you mean it.
+
+## Iteration Architecture (Current)
+
+This iteration uses a three-tier architecture:
+
+1. Top-level: notebooks
+   - Define the look-and-feel and user interaction model.
+   - Must execute in CI and produce visible output for review.
+2. Middle tier: Python bindings/library surface
+   - Model the DSL surface and interop behavior.
+   - May include temporary shims while semantics are being refined.
+   - Long-term goal: keep this layer as thin and transparent as possible.
+3. Lower tier: C++ core logic
+   - Owns the core mathematical invariants and implementation semantics.
+   - Python and notebook layers are consumers of this source of truth.
+
 ## Scope
 
 Current Python bindings intentionally expose a small, reviewable API:
@@ -13,18 +29,33 @@ Current Python bindings intentionally expose a small, reviewable API:
 
 These functions validate the initial interop and sequence/path boundaries for notebook and scripting workflows.
 
+Pandas is an official runtime dependency of the Python layer for DataFrame
+interop and pivot/unpivot shims used by the Analyst-tier workflow.
+
 ## Install
 
-### From source (recommended for MVP)
+### Using make jupyter (recommended for notebooks)
 
 From the repository root:
+
+```bash
+make jupyter
+```
+
+This creates a `.venv` if needed, builds the C++ library, installs the
+`dedekind` package into `.venv`, and opens a Jupyter Notebook server in
+`docs/python/notebooks/`.
+
+### From source (packaging / wheel)
+
+For wheel/sdist builds and non-notebook use:
 
 ```bash
 python -m pip install --upgrade pip
 python -m pip install .
 ```
 
-For iterative local work:
+For iterative local work without Jupyter:
 
 ```bash
 python -m pip install --upgrade pip
@@ -80,15 +111,75 @@ This target runs the standard test suite, then discovers and executes every
 notebook in `docs/python/notebooks/` headlessly. Each integration notebook is
 required to import `dedekind` explicitly.
 
+## CI Modes (Current Decision Boundary)
+
+The current workflow effectively has two execution depths:
+
+- CI mode (fast path): compile + test signal for PR iteration speed.
+- Integration mode (full path): packaging + notebook execution + artifact
+  verification, used when validating end-to-end delivery readiness.
+
+Practical guidance:
+
+1. Use `make test` during rapid local/PR iteration when the question is core C++
+   build-and-test correctness.
+2. Use `make integration-test` before review/merge when Python facade,
+   notebooks, and packaging assumptions must be validated together.
+3. Treat integration evidence (`python-notebooks`, `python-dist`) as required
+   for staged publication decisions.
+
+This split is intentionally conservative for now: it preserves release confidence
+while giving us a clear place to optimize CI runtime (issue #243) without
+dropping end-to-end checks required by staged publication (issue #240).
+
 ## Notebook Demos
 
 The MVP notebook demos live in `docs/python/notebooks/`:
 
-- `01_facade_roundtrip_basics.ipynb`
-- `02_facade_error_contract.ipynb`
+- `01_facade_roundtrip_basics.ipynb` — happy-path facade demo
+- `02_facade_error_contract.ipynb` — error contract / unhappy-path demo
+- `03_dsl_analyst_tier.ipynb` — analyst-style DSL sketch (issue #241, prototype shim)
+- `04_dsl_formal_tier.ipynb` — formal-notation DSL sketch (issue #241, prototype shim)
 
 These notebooks are intentionally small, deterministic, and suitable for CI
 execution as integration checks.
+
+Analyst facade behavior notes:
+
+- `smart_join` is designed for best-effort operation out of the box.
+   Planned optional trust hints can bias matching toward user-trusted
+   columns/ranges; when no hints are provided it infers from observed overlap.
+- `smart_pivot` is also best-effort by default and uses sensible inferred axes.
+   Planned optional interest hints can bias what gets emphasized in wide reports.
+- In both cases, rows not directly preserved in a final pivot can still improve
+   scaffolding/inference quality (for example via correlation and aggregate
+   evidence), so larger samples often improve outcomes ceteris paribus.
+- **Trusted-target semantics:** a trusted table encodes a structural prior about
+   what records *should* exist (e.g. exactly one record per day per region).
+   Joining messy source data against such a skeleton surfaces *gaps* (expected
+   records absent from the source) and *duplicates* (source rows matching the
+   same skeleton slot more than once), and bootstraps error estimates from the
+   known prior rather than from observed-data statistics alone.  This is the
+   mechanism by which additional high-quality reference tables improve quality
+   labels relative to a vanilla pipeline.
+
+Notebook outputs are committed to version control so that GitHub renders them
+without executing code. To refresh outputs locally:
+
+```bash
+make jupyter
+# execute each notebook in the Jupyter UI, then save and commit the outputs
+```
+
+CI independently verifies execution via `make integration-test`; rendered copies
+of executed notebooks are uploaded as the `python-notebooks` artifact on every
+CI run.
+
+To run the notebooks interactively, use:
+
+```bash
+make jupyter
+```
 ## Reviewer Verification (CI Artifacts)
 
 For pull requests, wheel/sdist and Python-native docs are expected to be
@@ -118,3 +209,4 @@ worked in CI for the PR changeset.
 - Python bindings MVP: #234
 - User docs and release checklist: #236
 - Notebook demos: #239
+- DSL design sketch: #241

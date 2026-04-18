@@ -2,6 +2,10 @@
 
 This directory contains demo notebooks for the Python MVP facade.
 
+For this iteration, notebooks are the top-level UX layer: they define and
+demonstrate the desired input style, execute in CI, and produce reviewable
+output.
+
 ## Notebooks
 
 1. `01_facade_roundtrip_basics.ipynb`
@@ -13,6 +17,18 @@ This directory contains demo notebooks for the Python MVP facade.
    - Demonstrates the accepted input contract
    - Shows representative failing payloads
    - Confirms `TypeError` behavior at the Python boundary
+
+3. `03_dsl_analyst_tier.ipynb`
+   - First executable DSL sketch for analyst-style users (issue #241)
+   - Uses combinator-style analyst pipeline: `table()`, `join()`, `group_by()`, `summarize()`, `pivot()`
+   - Demonstrates intensional (symbolic) → extensional (realized) progression
+   - Prototype shim for API ergonomics discussion
+
+4. `04_dsl_formal_tier.ipynb`
+   - Second executable DSL sketch for formal-notation users (issue #241)
+   - Uses mathematical terminology: `comprehension()`, `restrict()`, `map_to()`
+   - Demonstrates same intensional → extensional progression with formal notation
+   - Prototype shim for mathematical API surface
 
 ## Payload Definition
 
@@ -51,9 +67,57 @@ Expected outputs:
 - each invalid payload raises `TypeError`
 - the notebook prints per-case confirmation and ends with a success marker
 
+### Notebook 3: Analyst-tier DSL
+
+Demonstrates analyst-style table operations with SQL/Python terminology.
+
+Inputs:
+
+- Noisy sales fact table: mixed case strings, numeric symbols, malformed values
+- Product dimension table: `(product_id, category)`
+- Region dimension table: `(region, segment)`
+
+Expected outputs:
+
+- Quality cleanup via combinators (`normalize_text`, `coerce_numeric`, `fill_missing`, `expect_domain`)
+- Join + aggregation by `(month, category)`
+- In econometrics terms, the workflow builds a panel by aligning entities across time periods
+- Pivoted revenue matrix with category columns
+- Unpivot back to long form through the middle-layer shim
+- Quality intervention report showing recovered data issues
+- DataFrame-to-set realization demo via `SetDef.from_dataframe(...).realize()`
+- Notebook ends with success marker `notebook-03-ok`
+
+Pivot/unpivot in this notebook uses the pandas-backed middle-layer shim while
+core relational pivot support is tracked in issue #170.
+
+### Notebook 4: Formal-tier DSL
+
+Demonstrates mathematical notation and formal set-theoretic operations.
+
+Inputs:
+
+- Ensemble A: `{1, 2, 3, 4, 5}`
+- Ensemble B: `{3, 4, 5, 6, 7}`
+- Comprehension E: `{n ∈ [1..30] | n ≡ 0 (mod 2)}`
+- Comprehension O: `{n ∈ [1..30] | n ≡ 1 (mod 2)}`
+- Morphism image Q: `{n² | n ∈ E}`
+
+Expected outputs (intensional → extensional progression):
+
+- Union A ∪ B = `[1, 2, 3, 4, 5, 6, 7]`
+- Intersection A ∩ B = `[3, 4, 5]`
+- Difference A \ B = `[1, 2]`
+- Evens: `[2, 4, 6, ..., 28, 30]` (15 elements)
+- Odds: `[1, 3, 5, ..., 27, 29]` (15 elements)
+- Squares image: `[4, 16, 36, ..., 900]` (15 elements)
+- Notebook ends with success marker `notebook-04-ok`
+
 ## Non-goals
 
-- No broader symbolic API coverage yet
+- No complete symbolic API yet; notebooks are UX prototypes for discussion
+- Notebooks 03 and 04 are prototype shims, not the final package surface
+- Output correctness is a follow-up; the shims demonstrate desired input/execution patterns
 - No performance benchmarking yet
 - No publication workflow yet; release publication stays deferred to #240
 

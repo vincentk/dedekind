@@ -42,6 +42,17 @@ python -c "import dedekind; print(dedekind.path_from_range([1, 2, 3]))"
 make integration-test
 ```
 
+## Stage Gates (Before TestPyPI)
+
+Only proceed to TestPyPI once all of the following are true:
+
+1. CI mode signal is green (`make test` equivalent checks on the release PR).
+2. Integration mode signal is green (`make integration-test` and notebook lane).
+3. Reviewer-facing artifacts are present and inspectable from CI:
+   - `python-notebooks` (executed notebooks + `integration-summary.txt`)
+   - `python-dist` (wheel/sdist + manifest + checksums + install report)
+4. Open review threads are resolved on the release PR.
+
 ## TestPyPI Publish (recommended)
 
 ```bash
@@ -54,6 +65,15 @@ Then verify in a clean environment:
 python -m pip install --index-url https://test.pypi.org/simple/ dedekind
 python -c "import dedekind; print(dedekind.ordered_set_roundtrip([2, 1, 2]))"
 ```
+
+## Promotion Gates (Before Production PyPI)
+
+Only promote from TestPyPI to PyPI once all of the following are true:
+
+1. TestPyPI install/usage smoke checks pass in a clean environment.
+2. No regressions are reported in CI after the release-candidate finalization.
+3. Release metadata and docs are finalized for the target version.
+4. Publication decision is explicitly confirmed by the maintainer.
 
 ## Production PyPI Publish
 
