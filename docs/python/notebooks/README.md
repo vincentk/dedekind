@@ -69,23 +69,24 @@ Expected outputs:
 
 ### Notebook 3: Analyst-tier DSL
 
-Demonstrates accessible set operations with SQL/Python terminology.
+Demonstrates analyst-style table operations with SQL/Python terminology.
 
 Inputs:
 
-- Set A: `{1, 2, 3, 4, 5}`
-- Set B: `{3, 4, 5, 6, 7}`
-- Filtered set E: `{x ∈ [1..20] | x % 2 == 0}`
-- Mapped set S: `{x² | x ∈ [1..10], x % 2 == 0}`
+- Sales fact table: `(date, product_id, region, units, revenue)`
+- Product dimension table: `(product_id, category)`
+- Region dimension table: `(region, segment)`
 
-Expected outputs (intensional → extensional progression):
+Expected outputs:
 
-- Union A ∪ B = `[1, 2, 3, 4, 5, 6, 7]`
-- Intersection A ∩ B = `[3, 4, 5]`
-- Difference A \ B = `[1, 2]`
-- Evens: `[2, 4, 6, 8, 10, 12, 14, 16, 18, 20]`
-- Squares: `[4, 16, 36, 64, 100]`
+- Join + aggregation by `(month, category)`
+- Pivoted revenue matrix with category columns
+- Unpivot back to long form through the middle-layer shim
+- DataFrame-to-set realization demo via `SetDef.from_dataframe(...).realize()`
 - Notebook ends with success marker `notebook-03-ok`
+
+Pivot/unpivot in this notebook uses the pandas-backed middle-layer shim while
+core relational pivot support is tracked in issue #170.
 
 ### Notebook 4: Formal-tier DSL
 
