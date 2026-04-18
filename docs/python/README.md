@@ -80,6 +80,27 @@ This target runs the standard test suite, then discovers and executes every
 notebook in `docs/python/notebooks/` headlessly. Each integration notebook is
 required to import `dedekind` explicitly.
 
+## CI Modes (Current Decision Boundary)
+
+The current workflow effectively has two execution depths:
+
+- CI mode (fast path): compile + test signal for PR iteration speed.
+- Integration mode (full path): packaging + notebook execution + artifact
+  verification, used when validating end-to-end delivery readiness.
+
+Practical guidance:
+
+1. Use `make test` during rapid local/PR iteration when the question is core C++
+   build-and-test correctness.
+2. Use `make integration-test` before review/merge when Python facade,
+   notebooks, and packaging assumptions must be validated together.
+3. Treat integration evidence (`python-notebooks`, `python-dist`) as required
+   for staged publication decisions.
+
+This split is intentionally conservative for now: it preserves release confidence
+while giving us a clear place to optimize CI runtime (issue #243) without
+dropping end-to-end checks required by staged publication (issue #240).
+
 ## Notebook Demos
 
 The MVP notebook demos live in `docs/python/notebooks/`:

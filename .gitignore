@@ -62,4 +62,11 @@ build_ci/**
 /issue*.md
 /*.profraw
 
-build-python/
+# Root-level generated build artifacts (local and CI scratch trees)
+/build-python/
+/build/
+/build2/
+/build3/
+/build_ci/
+/build-runtime-bridges/
+/build-runtime-bridges-ninja/
