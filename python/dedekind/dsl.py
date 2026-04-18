@@ -79,6 +79,149 @@ def _infer_join_keys(left_df, right_df):
     return [scored[0][1]]
 
 
+def _is_numeric_column(series):
+    return bool(pd.api.types.is_numeric_dtype(series))
+
+
+def _looks_like_time_axis(column_name, series):
+    lowered = str(column_name).lower()
+    if any(token in lowered for token in ("date", "month", "time", "year", "week", "day")):
+        return True
+    if pd.api.types.is_datetime64_any_dtype(series):
+        return True
+    return False
+
+
+def _infer_smart_pivot_axes(df, *, index=None, columns=None, values=None):
+    resolved_index = index
+    resolved_columns = columns
+    resolved_values = values
+
+    if resolved_values is None:
+        numeric_candidates = [
+            col for col in df.columns
+            if _is_numeric_column(df[col]) and col not in {resolved_index, resolved_columns}
+        ]
+        if not numeric_candidates:
+            raise ValueError(
+                "smart_pivot could not infer values column: provide values=... or include a numeric column"
+            )
+        resolved_values = numeric_candidates[0]
+
+    if resolved_index is None:
+        time_candidates = [col for col in df.columns if _looks_like_time_axis(col, df[col])]
+        if time_candidates:
+            resolved_index = time_candidates[0]
+        else:
+            fallback = [
+                col for col in df.columns
+                if col != resolved_values and not _is_numeric_column(df[col])
+            ]
+            if not fallback:
+                raise ValueError(
+                    "smart_pivot could not infer index column: provide index=..."
+                )
+            resolved_index = fallback[0]
+
+    if resolved_columns is None:
+        candidates = [
+            col for col in df.columns
+            if col not in {resolved_index, resolved_values}
+        ]
+        if not candidates:
+            raise ValueError(
+                "smart_pivot could not infer columns axis: provide columns=..."
+            )
+
+        scored = []
+        for col in candidates:
+            series = df[col]
+            non_null = max(1, int(series.notna().sum()))
+            cardinality_ratio = float(series.nunique(dropna=True)) / non_null
+            text_bonus = 0.4 if _is_text_column(series) else 0.0
+            name_bonus = 0.0
+            lowered = col.lower()
+            for token in ("category", "segment", "region", "type", "class", "group"):
+                if token in lowered:
+                    name_bonus += 0.2
+            score = cardinality_ratio + text_bonus + name_bonus
+            scored.append((score, col))
+
+        scored.sort(reverse=True)
+        resolved_columns = scored[0][1]
+
+    return resolved_index, resolved_columns, resolved_values
+
+
+def _compress_pivot_categories(
+    df,
+    *,
+    columns,
+    values,
+    max_columns,
+    min_coverage,
+    other_label,
+):
+    if max_columns is None:
+        return df, {
+            "compressed": False,
+            "columns_before": int(df[columns].nunique(dropna=True)),
+            "columns_after": int(df[columns].nunique(dropna=True)),
+            "value_coverage": 1.0,
+            "other_rows": 0,
+        }
+
+    unique_columns = int(df[columns].nunique(dropna=True))
+    if unique_columns <= max_columns:
+        return df, {
+            "compressed": False,
+            "columns_before": unique_columns,
+            "columns_after": unique_columns,
+            "value_coverage": 1.0,
+            "other_rows": 0,
+        }
+
+    by_value = (
+        df.groupby(columns, dropna=False)[values]
+        .apply(lambda s: s.abs().sum(skipna=True))
+        .sort_values(ascending=False)
+    )
+    total = float(by_value.sum())
+
+    if total <= 0:
+        keep_count = max(1, max_columns - 1)
+        keep_labels = set(by_value.head(keep_count).index.tolist())
+        coverage = float(len(keep_labels)) / max(1.0, float(len(by_value)))
+    else:
+        keep_labels = set()
+        running = 0.0
+        for label, amount in by_value.items():
+            if len(keep_labels) >= max_columns - 1:
+                break
+            keep_labels.add(label)
+            running += float(amount)
+            if running / total >= min_coverage:
+                break
+        if not keep_labels:
+            keep_labels.add(by_value.index[0])
+            running = float(by_value.iloc[0])
+        coverage = running / total
+
+    compressed_df = df.copy()
+    keep_mask = compressed_df[columns].isin(keep_labels)
+    other_rows = int((~keep_mask).sum())
+    compressed_df.loc[~keep_mask, columns] = other_label
+
+    columns_after = int(compressed_df[columns].nunique(dropna=True))
+    return compressed_df, {
+        "compressed": True,
+        "columns_before": unique_columns,
+        "columns_after": columns_after,
+        "value_coverage": float(coverage),
+        "other_rows": other_rows,
+    }
+
+
 class AnalystGrouped:
     """Grouped analyst relation with named aggregation combinators."""
 
@@ -481,6 +624,81 @@ class AnalystFrame:
         )
         return self._spawn(pivoted, step)
 
+    def smart_pivot(
+        self,
+        *,
+        index=None,
+        columns=None,
+        values=None,
+        aggfunc="sum",
+        fill_value=0,
+        max_columns=12,
+        min_coverage=0.9,
+        other_label="__other__",
+        sort=True,
+    ):
+        """Pivot with inferred axes and optional category compression.
+
+        The method attempts to infer `index`, `columns`, and `values` when omitted,
+        then compresses high-cardinality column values into an `other_label` bucket
+        to keep the output matrix compact while preserving most signal.
+        """
+        _require_pandas()
+        if max_columns is not None and max_columns < 2:
+            raise ValueError("smart_pivot requires max_columns >= 2 when set")
+        if not (0 < float(min_coverage) <= 1):
+            raise ValueError("smart_pivot requires 0 < min_coverage <= 1")
+
+        resolved_index, resolved_columns, resolved_values = _infer_smart_pivot_axes(
+            self._df,
+            index=index,
+            columns=columns,
+            values=values,
+        )
+
+        compressed_df, compression = _compress_pivot_categories(
+            self._df,
+            columns=resolved_columns,
+            values=resolved_values,
+            max_columns=max_columns,
+            min_coverage=float(min_coverage),
+            other_label=other_label,
+        )
+
+        pivoted = pivot_table(
+            compressed_df,
+            index=resolved_index,
+            columns=resolved_columns,
+            values=resolved_values,
+            aggfunc=aggfunc,
+            fill_value=fill_value,
+            sort=sort,
+        )
+
+        output_rows = int(len(pivoted))
+        output_columns = max(0, int(len(pivoted.columns) - 1))
+        dense_cells = output_rows * output_columns
+        input_rows = int(len(self._df))
+        cell_compression_ratio = float(input_rows) / float(max(1, dense_cells))
+
+        step = (
+            f"smart_pivot(index={resolved_index}, columns={resolved_columns}, "
+            f"values={resolved_values}, compressed={compression['compressed']})"
+        )
+        result = self._spawn(pivoted, step)
+        result._smart_pivot_diagnostics = {
+            "index": resolved_index,
+            "columns": resolved_columns,
+            "values": resolved_values,
+            "input_rows": input_rows,
+            "output_rows": output_rows,
+            "output_columns": output_columns,
+            "dense_cells": dense_cells,
+            "cell_compression_ratio": cell_compression_ratio,
+            **compression,
+        }
+        return result
+
     def unpivot(
         self,
         *,
@@ -565,6 +783,35 @@ def smart_join(left, right):
     left_frame = left if isinstance(left, AnalystFrame) else table(left)
     right_frame = right if isinstance(right, AnalystFrame) else table(right)
     return left_frame.smart_join(right_frame)
+
+
+def smart_pivot(
+    df,
+    *,
+    index=None,
+    columns=None,
+    values=None,
+    aggfunc="sum",
+    fill_value=0,
+    max_columns=12,
+    min_coverage=0.9,
+    other_label="__other__",
+    sort=True,
+):
+    """Top-level convenience wrapper around AnalystFrame.smart_pivot(...)."""
+    _require_pandas()
+    frame = df if isinstance(df, AnalystFrame) else table(df)
+    return frame.smart_pivot(
+        index=index,
+        columns=columns,
+        values=values,
+        aggfunc=aggfunc,
+        fill_value=fill_value,
+        max_columns=max_columns,
+        min_coverage=min_coverage,
+        other_label=other_label,
+        sort=sort,
+    )
 
 
 def pivot_table(

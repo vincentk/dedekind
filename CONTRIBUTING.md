@@ -132,6 +132,32 @@ on build management.
 4. Pick a focused batch:
    - Prefer exactly two actionable items in parallel when feasible.
 
+### Backlog Prioritization Matrix (Correlation x Causality)
+
+When selecting from the backlog, use the quadrant labels to separate broad thematic correlation from likely enabling/causal force:
+
+- `priority:q1-high-corr-high-causal`:
+   High cross-cluster leverage and likely enabling effect. Default first-pick lane.
+- `priority:q2-high-corr-low-causal`:
+   Strong bridge/correlation, but usually not a strict prerequisite.
+- `priority:q3-low-corr-high-causal`:
+   Narrow scope, but locally blocking/enabling for a concrete chain.
+- `priority:q4-low-corr-low-causal`:
+   Exploratory or lower immediate leverage.
+
+Selection heuristic:
+
+1. Prefer Q1 issues for primary execution.
+2. Pull one Q2 issue in parallel when bridge visibility is useful.
+3. Use Q3 issues to unblock local chains when blocked.
+4. Batch or defer Q4 unless it unlocks a near-term objective.
+
+Operational note:
+
+- Treat quadrant labels as best-effort, revisable metadata rather than permanent truth.
+- When new evidence appears, relabel and add a short rationale comment on the issue.
+- Keep native parent-child links for causal decomposition; use cross-references/comments for correlation edges.
+
 ## Review workflow
 
 - Resolve review comments and threads explicitly; do not leave unresolved conversations behind

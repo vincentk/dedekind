@@ -195,6 +195,10 @@ if(DEDEKIND_BUILD_PYTHON_BINDINGS)
         ${CMAKE_CURRENT_SOURCE_DIR}/python/dedekind/__init__.py
         ${DEDEKIND_PYTHON_PACKAGE_DIR}/__init__.py
         COPYONLY)
+    configure_file(
+        ${CMAKE_CURRENT_SOURCE_DIR}/python/dedekind/dsl.py
+        ${DEDEKIND_PYTHON_PACKAGE_DIR}/dsl.py
+        COPYONLY)
 
     nanobind_add_module(_dedekind
         src/main/modules/dedekind/python/nanobind.cpp)
@@ -207,6 +211,10 @@ if(DEDEKIND_BUILD_PYTHON_BINDINGS)
     target_link_libraries(_dedekind PRIVATE dedekind_python)
 
     install(TARGETS _dedekind LIBRARY DESTINATION dedekind)
+    install(FILES
+        ${CMAKE_CURRENT_SOURCE_DIR}/python/dedekind/__init__.py
+        ${CMAKE_CURRENT_SOURCE_DIR}/python/dedekind/dsl.py
+        DESTINATION dedekind)
 
     add_test(
         NAME test_python_bindings
