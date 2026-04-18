@@ -1,3 +1,0 @@
-ninja_dyndep_version = 1.0
-build CMakeFiles/test_morphologies.dir/src/test/cpp/modules/dedekind/morphologies/cyclic_test.cpp.o: dyndep | CMakeFiles/dedekind_category.dir/dedekind.category.pcm CMakeFiles/dedekind_algebra.dir/dedekind.algebra.pcm CMakeFiles/dedekind_sets.dir/dedekind.sets.pcm CMakeFiles/dedekind_morphologies.dir/dedekind.morphologies.pcm
-

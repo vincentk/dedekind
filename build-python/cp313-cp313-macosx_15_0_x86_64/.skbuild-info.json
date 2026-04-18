@@ -1,8 +1,0 @@
-{
-  "source_dir": "/Users/vincent/git/github.com/vincentk/dedekind",
-  "build_dir": "/Users/vincent/git/github.com/vincentk/dedekind/build-python/cp313-cp313-macosx_15_0_x86_64",
-  "cmake_path": "/usr/local/bin/cmake",
-  "skbuild_path": "/Users/vincent/git/github.com/vincentk/dedekind/.venv/lib/python3.13/site-packages/scikit_build_core",
-  "skbuild_version": "0.12.2",
-  "python_executable": "/Users/vincent/git/github.com/vincentk/dedekind/.venv/bin/python"
-}

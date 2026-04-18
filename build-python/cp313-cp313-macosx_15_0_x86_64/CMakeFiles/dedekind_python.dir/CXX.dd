@@ -1,4 +1,0 @@
-ninja_dyndep_version = 1.0
-build CMakeFiles/dedekind_python.dir/src/main/modules/dedekind/python/python.cppm.o | CMakeFiles/dedekind_python.dir/dedekind.python.pcm: dyndep | CMakeFiles/dedekind_category.dir/dedekind.category.pcm CMakeFiles/dedekind_sequences.dir/dedekind.sequences.pcm CMakeFiles/dedekind_sets.dir/dedekind.sets.pcm
-  restat = 1
-

@@ -61,3 +61,5 @@ build_ci/**
 # Root-level scratch artifacts
 /issue*.md
 /*.profraw
+
+build-python/

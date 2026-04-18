@@ -1,7 +1,0 @@
-ninja_dyndep_version = 1.0
-build CMakeFiles/test_analysis.dir/src/test/cpp/modules/dedekind/analysis/forms_test.cpp.o: dyndep | CMakeFiles/dedekind_analysis.dir/dedekind.analysis.pcm CMakeFiles/dedekind_geometry.dir/dedekind.geometry.pcm
-
-build CMakeFiles/test_analysis.dir/src/test/cpp/modules/dedekind/analysis/hamilton_test.cpp.o: dyndep | CMakeFiles/dedekind_analysis.dir/dedekind.analysis.pcm CMakeFiles/dedekind_geometry.dir/dedekind.geometry.pcm CMakeFiles/dedekind_analysis.dir/dedekind.analysis.pcm CMakeFiles/dedekind_geometry.dir/dedekind.geometry.pcm
-
-build CMakeFiles/test_analysis.dir/src/test/cpp/modules/dedekind/analysis/kernels_test.cpp.o: dyndep | CMakeFiles/dedekind_analysis.dir/dedekind.analysis.pcm
-
