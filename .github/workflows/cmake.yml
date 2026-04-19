@@ -44,6 +44,7 @@ jobs:
           build/python-notebooks/integration-summary.txt
 
     - name: Build Python Distribution Artifacts
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
       env:
         CC: clang-21
         CXX: clang++-21
@@ -60,6 +61,7 @@ jobs:
         sha256sum dist/* | tee build/python-docs/dist-sha256.txt
 
     - name: Verify Installed Wheel Smoke Test
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
       run: |
         python -m venv .venv-wheel-smoke
         . .venv-wheel-smoke/bin/activate
@@ -78,6 +80,7 @@ jobs:
         PY
 
     - name: Upload Python Dist Artifacts
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
       uses: actions/upload-artifact@v4
       with:
         name: python-dist
@@ -102,15 +105,19 @@ jobs:
     # --- CONDITIONAL DEPLOYMENT STEPS ---
 
     - name: Install Doxygen toolchain
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
       run: make ci-install-doxygen-deps
     
     - name: Build Doxygen Documentation
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
       run: make doxygen CXX=clang++-21 CC=clang-21 CMAKE_EXTRA_ARGS="-DDEDEKIND_RUNTIME_COVERAGE_BRIDGES=ON"
 
     - name: Install report toolchain
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
       run: make ci-install-report-deps
 
     - name: Check Report Compilation
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
       run: make report
 
     - name: Build Publishable Report
