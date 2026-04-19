@@ -18,7 +18,7 @@ DOT_FILE     := $(DOCS_DIR)/figures/dedekind_module_dependencies.dot
 
 .PHONY: all clean compile test integration-test coverage format format-check install-hooks ci-install-doxygen-deps ci-install-report-deps doxygen dot doc report \
 	ci-history ci-main pr-init pr-status pr-checks pr-watch pr-sync pr-review-comments pr-review-unresolved pr-resolve-thread pr-resolve-threads \
-	issue-list jupyter
+	check-review-comments resolve-review-comment issue-list jupyter
 
 all: compile
 
@@ -317,6 +317,11 @@ pr-review-unresolved:
 		exit 1; \
 	fi
 
+# Friendly alias: check unresolved review threads on the current PR (or PR=<number>).
+# Usage: make check-review-comments [PR=<number>]
+check-review-comments:
+	@$(MAKE) pr-review-unresolved PR="$(PR)"
+
 # Resolve one review thread on the current PR (or PR=<number>) and reply with a reason.
 # Usage: make pr-resolve-thread THREAD_ID=<thread_id> REASON="<resolution note>" [PR=<number>]
 pr-resolve-thread:
@@ -361,6 +366,22 @@ pr-resolve-thread:
 		-f query='mutation($$threadId:ID!) { resolveReviewThread(input:{threadId:$$threadId}) { thread { isResolved } } }' \
 		--jq '.data.resolveReviewThread.thread.isResolved' > /dev/null; \
 	echo "Resolved $$THREAD_ID"
+
+# Friendly alias: resolve one review thread with an explicit reason.
+# Usage:
+#   make resolve-review-comment THREAD_ID=<thread_id> REASON="<resolution note>" [PR=<number>]
+# For convenience, REVIEW_THREAD_ID is accepted as an alternative to THREAD_ID.
+resolve-review-comment:
+	@THREAD_VAL="$(THREAD_ID)"; \
+	if [ -z "$$THREAD_VAL" ]; then \
+		THREAD_VAL="$(REVIEW_THREAD_ID)"; \
+	fi; \
+	if [ -z "$$THREAD_VAL" ]; then \
+		echo "ERROR: THREAD_ID (or REVIEW_THREAD_ID) is required."; \
+		echo "Usage: make resolve-review-comment THREAD_ID=<thread_id> REASON=\"<resolution note>\" [PR=<number>]"; \
+		exit 2; \
+	fi; \
+	$(MAKE) pr-resolve-thread THREAD_ID="$$THREAD_VAL" REASON="$(REASON)" PR="$(PR)"
 
 # Deprecated: bulk resolution is intentionally disabled.
 # Resolve threads one by one with a reason via pr-resolve-thread.
