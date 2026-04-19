@@ -10,6 +10,8 @@ Thank you for your interest in contributing!
    you invest time in an implementation.
 3. **Create a branch** named after the issue(s) you are addressing, e.g.
    `feat/issues-40-121`.
+   When work on a new branch is begun, all local edits SHOULD be triaged and
+   either pushed to a draft branch PR or discarded to prevent divergence.
 4. **Implement your changes** and push to a draft PR early and often — you do not need
    to verify that the code compiles or tests pass locally before each push.  The CI build
    is the reference build; offloading compilation and test execution to CI is explicitly
@@ -35,6 +37,9 @@ Thank you for your interest in contributing!
 6. **Open a draft PR** against `main` early — even before the implementation is complete.
    Push incremental checkpoints freely; the draft status signals work-in-progress.
    Mark the PR **Ready for Review** only once **all CI checks are green**.
+   Before flagging a PR as ready, contributors SHOULD compare and contrast the
+   updated modules and the corresponding chapters in the report, and verify the
+   report documentation is up to date.
 
 ## Workflow at a glance
 

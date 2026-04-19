@@ -13,6 +13,7 @@
 export module dedekind.sequences;
 
 export import :net;
+export import :convergence;
 export import :limits;
 export import :path;
 export import :curve;
