@@ -87,6 +87,9 @@ constexpr auto magnitude(const R& x) {
 
 template <IsNumericalBridgeScalar R>
 constexpr bool close_enough(const R& lhs, const R& rhs, const R& tolerance) {
+  // FIXME: Metric policy abstraction. Currently uses raw abs(lhs-rhs) <= tol.
+  // Should defer to topology/geometry layer for closeness semantics when available.
+  // See Maintenance Sweep (#123) and Denotational AD roadmap (#177).
   return magnitude(lhs - rhs) <= resolved_value(tolerance);
 }
 
@@ -97,7 +100,7 @@ constexpr bool close_enough(const R& lhs, const R& rhs, const R& tolerance) {
  */
 export template <detail::IsNumericalBridgeScalar R, typename F>
   requires std::invocable<F, R>
-constexpr R derivative_at(F&& f, R x, R h = static_cast<R>(1e-5)) {
+constexpr R derivative_at(F&& f, R x, R h = static_cast<R>(1e-5)) {  // FIXME #123: magic constant step size; pending numeric stability analysis
   return (f(x + h) - f(x - h)) / (detail::two<R>() * h);
 }
 
@@ -106,7 +109,10 @@ constexpr R derivative_at(F&& f, R x, R h = static_cast<R>(1e-5)) {
  */
 export template <detail::IsNumericalBridgeScalar R, typename F>
   requires std::invocable<F, R>
-constexpr R integral_over(F&& f, R a, R b, std::size_t slices = 4096) {
+constexpr R integral_over(F&& f, R a, R b, std::size_t slices = 4096) {  // FIXME #123: magic constant slices; pending adaptive refinement
+  // FIXME: Sequence-adapter layer. Numeric loop uses raw std::size_t indexing.
+  // Should abstract via Path<R, Cardinality> when monadic/comonadic composition
+  // fully supports recursive decomposition of integration bounds.
   if (a == b) {
     return detail::zero<R>();
   }
@@ -133,7 +139,7 @@ constexpr R integral_over(F&& f, R a, R b, std::size_t slices = 4096) {
 export template <detail::IsNumericalBridgeScalar R, typename F>
   requires std::invocable<F, R>
 constexpr bool ftc_part_i_hypotheses(F&& f, R a, R b,
-                                     std::size_t samples = 32) {
+                                     std::size_t samples = 32) {  // FIXME #123: magic constant samples; pending formal discretization bounds
   if (a == b) {
     return detail::finite_value(f(a));
   }
@@ -160,8 +166,11 @@ export template <detail::IsNumericalBridgeScalar R, typename F,
                  typename Antiderivative>
   requires std::invocable<F, R> && std::invocable<Antiderivative, R>
 constexpr bool ftc_part_ii_hypotheses(F&& f, Antiderivative&& antiderivative,
-                                      R a, R b, std::size_t samples = 32,
-                                      R tolerance = static_cast<R>(1e-4)) {
+                                      R a, R b, std::size_t samples = 32,  // FIXME #123: magic constant samples; pending formal discretization bounds
+                                      R tolerance = static_cast<R>(1e-4)) {  // FIXME #123: magic constant tolerance; pending adaptive scaling strategy
+  // FIXME: Sequence-adapter layer. Sampled hypothesis validation uses raw std::size_t loop.
+  // When full Path composition semantics mature, replace with recursive sampling
+  // to align with denotational AD framework (#177).
   if (a == b) {
     return detail::close_enough(derivative_at<R>(antiderivative, a), f(a),
                                 tolerance);
@@ -190,7 +199,7 @@ constexpr bool ftc_part_ii_hypotheses(F&& f, Antiderivative&& antiderivative,
 export template <detail::IsNumericalBridgeScalar R, typename F>
   requires std::invocable<F, R>
 constexpr bool ftc_part_i_bridge(F&& f, R a, R x,
-                                 R tolerance = static_cast<R>(1e-4)) {
+                                 R tolerance = static_cast<R>(1e-4)) {  // FIXME #123: magic constant tolerance; pending adaptive scaling strategy
   auto accumulation = [&f, a](R y) { return integral_over<R>(f, a, y); };
 
   const R lhs = derivative_at<R>(accumulation, x);
