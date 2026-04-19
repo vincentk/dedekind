@@ -33,13 +33,19 @@ import dedekind.sequences;
 
 namespace dedekind::analysis {
 
+/**
+ * @brief Gaussian radial basis function (RBF) kernel.
+ * @details Computes K(a,b) = exp(-(a-b)²/(2σ²)).
+ *          Default σ=1 is a heuristic; optimal value depends on data scale.
+ *          FIXME #123: pending adaptive bandwidth selection strategy.
+ */
 export template <typename T = double>
 struct GaussianKernel {
   using value_type = T;
   using Domain = T;
   using Codomain = T;
 
-  T sigma = static_cast<T>(1);
+  T sigma = static_cast<T>(1);  // FIXME #123: magic default bandwidth
 
   constexpr T operator()(T a, T b) const noexcept {
     const T diff = a - b;
