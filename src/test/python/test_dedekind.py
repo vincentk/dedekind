@@ -1,4 +1,5 @@
 import unittest
+from unittest import mock
 
 import dedekind
 
@@ -179,6 +180,30 @@ class DedekindFramePathsTest(unittest.TestCase):
         self.assertEqual(paths["x"], [42])
         self.assertEqual(paths["y"], [3.14])
 
+    def test_frame_to_paths_bool_fallback_when_array_binding_missing(self) -> None:
+        import dedekind.sequences as sequences
+
+        df = pd.DataFrame({"b": [True, False, True]})
+        with mock.patch.object(sequences, "path_from_array", None):
+            paths = dedekind.frame_to_paths(df)
+        self.assertEqual(paths["b"], [True, False, True])
+
+    def test_frame_to_paths_int_fallback_when_array_binding_missing(self) -> None:
+        import dedekind.sequences as sequences
+
+        df = pd.DataFrame({"i": [1, 2, 3]})
+        with mock.patch.object(sequences, "path_from_array", None):
+            paths = dedekind.frame_to_paths(df)
+        self.assertEqual(paths["i"], [1, 2, 3])
+
+    def test_frame_to_paths_float_fallback_when_array_binding_missing(self) -> None:
+        import dedekind.sequences as sequences
+
+        df = pd.DataFrame({"f": [1.25, 2.5, 5.0]})
+        with mock.patch.object(sequences, "path_from_array", None):
+            paths = dedekind.frame_to_paths(df)
+        self.assertEqual(paths["f"], [1.25, 2.5, 5.0])
+
 
 class DedekindPackageExportsTest(unittest.TestCase):
     """Test package-level exports and lazy submodule loading."""
@@ -192,6 +217,24 @@ class DedekindPackageExportsTest(unittest.TestCase):
     def test_unknown_lazy_attribute_raises(self) -> None:
         with self.assertRaises(AttributeError):
             _ = dedekind.not_a_real_attribute
+
+    def test_lazy_submodule_missing_maps_to_attribute_error(self) -> None:
+        with mock.patch("importlib.import_module") as import_module:
+            import_module.side_effect = ModuleNotFoundError(
+                "No module named 'dedekind.sequences'"
+            )
+            import_module.side_effect.name = "dedekind.sequences"
+            with self.assertRaises(AttributeError):
+                _ = dedekind.sequences
+
+    def test_lazy_submodule_transitive_import_error_is_not_swallowed(self) -> None:
+        with mock.patch("importlib.import_module") as import_module:
+            import_module.side_effect = ModuleNotFoundError(
+                "No module named 'numpy'"
+            )
+            import_module.side_effect.name = "numpy"
+            with self.assertRaises(ModuleNotFoundError):
+                _ = dedekind.sequences
 
     @unittest.skipUnless(_HAS_NUMPY, "numpy required for path_from_array export test")
     def test_path_from_array_exported_at_top_level(self) -> None:
