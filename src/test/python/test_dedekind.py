@@ -1,6 +1,7 @@
 import unittest
 import builtins
 import importlib
+import sys
 from unittest import mock
 
 import dedekind
@@ -237,6 +238,38 @@ class DedekindFramePathsTest(unittest.TestCase):
 
         importlib.reload(sequences)
 
+    def test_sequences_reload_without_numpy_marks_numpy_unavailable(self) -> None:
+        import dedekind.sequences as sequences
+
+        original_import = builtins.__import__
+
+        def selective_import(name, globals=None, locals=None, fromlist=(), level=0):
+            if name == "numpy":
+                raise ImportError("simulated missing numpy")
+            return original_import(name, globals, locals, fromlist, level)
+
+        with mock.patch("builtins.__import__", side_effect=selective_import):
+            reloaded = importlib.reload(sequences)
+            self.assertFalse(reloaded._HAS_NUMPY)
+
+        importlib.reload(sequences)
+
+    def test_sequences_reload_without_pandas_marks_pandas_unavailable(self) -> None:
+        import dedekind.sequences as sequences
+
+        original_import = builtins.__import__
+
+        def selective_import(name, globals=None, locals=None, fromlist=(), level=0):
+            if name == "pandas":
+                raise ImportError("simulated missing pandas")
+            return original_import(name, globals, locals, fromlist, level)
+
+        with mock.patch("builtins.__import__", side_effect=selective_import):
+            reloaded = importlib.reload(sequences)
+            self.assertFalse(reloaded._HAS_PANDAS)
+
+        importlib.reload(sequences)
+
 
 class DedekindPackageExportsTest(unittest.TestCase):
     """Test package-level exports and lazy submodule loading."""
@@ -286,6 +319,27 @@ class DedekindPackageExportsTest(unittest.TestCase):
             self.assertIsNone(reloaded.frame_to_paths)
 
         importlib.reload(dedekind)
+
+    def test_init_reload_without_extension_raises_import_error(self) -> None:
+        original_import = builtins.__import__
+        original_module = sys.modules.get("dedekind")
+
+        def selective_import(name, globals=None, locals=None, fromlist=(), level=0):
+            if name.endswith("_dedekind"):
+                exc = ModuleNotFoundError("simulated missing extension")
+                exc.name = "dedekind._dedekind"
+                raise exc
+            return original_import(name, globals, locals, fromlist, level)
+
+        try:
+            sys.modules.pop("dedekind", None)
+            with mock.patch("builtins.__import__", side_effect=selective_import):
+                with self.assertRaises(ImportError):
+                    importlib.import_module("dedekind")
+        finally:
+            if original_module is not None:
+                sys.modules["dedekind"] = original_module
+            importlib.reload(dedekind)
 
     @unittest.skipUnless(_HAS_NUMPY, "numpy required for path_from_array export test")
     def test_path_from_array_exported_at_top_level(self) -> None:
