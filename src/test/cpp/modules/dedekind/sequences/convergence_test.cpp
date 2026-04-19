@@ -30,9 +30,20 @@ TEST_CASE("Sequences: Convergence Tests", "[sequences][convergence]") {
     REQUIRE(root_test_converges(geometric));
   }
 
+  SECTION("Root test rejects divergent geometric series") {
+    const auto geometric = geometric_series_terms<Real>(1.1);
+    REQUIRE_FALSE(root_test_converges(geometric));
+  }
+
   SECTION("Comparison test validates bounded non-negative candidate") {
     const auto candidate = geometric_series_terms<Real>(0.25);
     const auto upper_bound = geometric_series_terms<Real>(0.5);
     REQUIRE(comparison_test_converges(candidate, upper_bound, 3000, 1e-3));
+  }
+
+  SECTION("Comparison test rejects invalid ordering") {
+    const auto candidate = geometric_series_terms<Real>(0.5);
+    const auto upper_bound = geometric_series_terms<Real>(0.25);
+    REQUIRE_FALSE(comparison_test_converges(candidate, upper_bound, 3000, 1e-3));
   }
 }
