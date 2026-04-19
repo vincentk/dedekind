@@ -84,4 +84,19 @@ constexpr bool ftc_part_ii_bridge(F&& f, Antiderivative&& antiderivative, R a,
   return std::abs(lhs - rhs) <= tolerance;
 }
 
+/**
+ * @brief Worked theorem chain combining both FTC directions.
+ * @details Checks that a numerical accumulation differentiates back to the
+ * integrand at x, and that the same integrand integrates to the provided
+ * antiderivative delta over [a,b].
+ */
+export template <std::floating_point R, typename F, typename Antiderivative>
+  requires std::invocable<F, R> && std::invocable<Antiderivative, R>
+constexpr bool ftc_worked_theorem_chain(F&& f, Antiderivative&& antiderivative,
+                                        R a, R x, R b,
+                                        R tolerance = static_cast<R>(1e-4)) {
+  return ftc_part_i_bridge<R>(f, a, x, tolerance) &&
+         ftc_part_ii_bridge<R>(f, antiderivative, a, b, tolerance);
+}
+
 }  // namespace dedekind::analysis

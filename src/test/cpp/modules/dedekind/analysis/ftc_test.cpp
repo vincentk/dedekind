@@ -53,4 +53,12 @@ TEST_CASE("Analysis: Fundamental Theorem of Calculus Bridges",
     REQUIRE(
         ftc_part_ii_bridge<Real>(integrand, antiderivative, -2.0, 4.0, 1e-4));
   }
+
+  SECTION("Worked theorem chain combines derivative and integral witnesses") {
+    const auto integrand = [](Real x) { return 2.0 * x; };
+    const auto antiderivative = [](Real x) { return x * x; };
+
+    REQUIRE(ftc_worked_theorem_chain<Real>(integrand, antiderivative, -1.0,
+                                           1.5, 3.0, 1e-3));
+  }
 }
