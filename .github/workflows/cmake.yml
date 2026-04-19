@@ -28,7 +28,7 @@ jobs:
         wget https://apt.llvm.org/llvm.sh
         chmod +x llvm.sh
         sudo ./llvm.sh 22
-        sudo apt-get install -y clang-22 ninja-build clang-format-22
+        sudo apt-get install -y clang-22 ninja-build clang-format-22 llvm-22
 
     - name: Check Code Formatting
       run: make format-check CLANG_FORMAT=clang-format-22

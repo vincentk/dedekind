@@ -301,8 +301,8 @@ endif()
 get_property(ALL_TESTS GLOBAL PROPERTY DEDEKIND_ALL_TEST_BINARIES)
 get_property(ALL_LIBS GLOBAL PROPERTY DEDEKIND_ALL_LIB_ARCHIVES)
 # --- Find LLVM Tools (Cross-Platform) ---
-find_program(LLVM_PROFDATA_TOOL NAMES llvm-profdata-21 llvm-profdata REQUIRED)
-find_program(LLVM_COV_TOOL      NAMES llvm-cov-21 llvm-cov REQUIRED)
+find_program(LLVM_PROFDATA_TOOL NAMES llvm-profdata-22 llvm-profdata-21 llvm-profdata REQUIRED)
+find_program(LLVM_COV_TOOL      NAMES llvm-cov-22 llvm-cov-21 llvm-cov REQUIRED)
 
 # Prepare the -object list for the command line
 set(OBJ_ARGS "")
