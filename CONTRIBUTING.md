@@ -37,10 +37,10 @@ Thank you for your interest in contributing!
 6. **Open a draft PR** against `main` early — even before the implementation is complete.
    Push incremental checkpoints freely; the draft status signals work-in-progress.
    Priority by PR state:
-   Draft PR: the primary objective is to narrow the gap between the current
-   implementation and the issue acceptance criteria, checkpoint by checkpoint.
-   Near-Ready/Ready PR: prioritize polishing work (clarity improvements,
-   documentation/report alignment, and low-risk quality refinements).
+   Draft PR: prioritize closing acceptance-criteria gaps checkpoint by checkpoint.
+   Near-Ready/Ready PR: prioritize polishing (clarity improvements,
+   documentation/report alignment, low-risk quality refinements, and review
+   thread closure).
    Mark the PR **Ready for Review** only once **all CI checks are green**.
    Before flagging a PR as ready, contributors SHOULD compare and contrast the
    updated modules and the corresponding chapters in the report, and verify the
