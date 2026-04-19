@@ -93,9 +93,15 @@ on build management.
    model rather than a pessimistic one. In practice, CI is more authoritative
    than local builds, and a small temporary divergence between local and CI
    status is acceptable while iterating on draft PR checkpoints.
+- Operational consistency note: this workflow is intentionally asynchronous and
+   eventually consistent. Contributors should ship small checkpoints promptly,
+   let CI validate in parallel, and converge based on CI feedback.
 - Motivation: this model is not only about throughput; it also mitigates
    "works on my laptop" failures by treating CI as the reproducible baseline
    and local environments as potentially non-reproducible.
+- RFC 2119 usage note (Section 6): use imperative terms proportionally.
+   Reserve `MUST` / `MUST NOT` for hard governance or safety constraints,
+   and prefer `SHOULD` / `SHOULD NOT` for routine workflow guidance.
 - Before starting new work, check that the most recent `main` branch CI run is green.
 - For backlog grooming, run a short preflight in this order: check `main` CI health, then list
    open issues, then list open fork PRs, then classify each item as actionable / ambiguous /
