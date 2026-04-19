@@ -148,6 +148,8 @@ TEST_CASE("Numbers: Cardinality witnesses and composition",
       "partition)") {
     using C1 = ExtensionalCardinal<1>;
     STATIC_CHECK(IsRing<C1, std::plus<C1>, std::multiplies<C1>>);
+    STATIC_CHECK(IsNatural<C1>);
+    STATIC_CHECK(IsTotallyOrdered<C1>);
   }
 
   SECTION("Writer-like bind respects left identity") {
