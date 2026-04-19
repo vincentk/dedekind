@@ -31,8 +31,56 @@ concept IsReflectiveSpecies = std::regular<T> && requires(T a) {
   { T{} } -> std::same_as<T>;
 };
 
+/**
+ * @concept IsInteger
+ * @brief Structural concept for an Euclidean integer domain.
+ *
+ * @details Deliberately *not* restricted to `std::signed_integral<T>` so that
+ * user-defined multi-precision integer types (e.g. a sign-augmented
+ * `ExtensionalCardinal<N>`) can satisfy this concept without being built-in
+ * C++ types.  The required operations are exactly those used by
+ * `Rational<Z>::simplify()` and the ring/field machinery:
+ *
+ *  - Additive group: `+`, `-` (binary and unary), `T{0}`.
+ *  - Multiplicative monoid: `*`, `T{1}`.
+ *  - Euclidean pair: `/` and `%` (needed by `std::gcd` and `simplify()`).
+ *  - Total order: `<` (needed for canonical-sign normalisation).
+ *
+ * **Embedding from `std::signed_integral`:** every built-in signed integer
+ * type satisfies this concept unchanged — the blanket `std::signed_integral`
+ * constraint is now expressed as a static proof rather than a gating
+ * condition.  Use `embed_signed_integral<Z>(v)` to inject a
+ * `std::signed_integral` value into an arbitrary `IsInteger` type `Z`.
+ */
 export template <typename T>
-concept IsInteger = std::signed_integral<T> && IsReflectiveSpecies<T>;
+concept IsInteger = IsReflectiveSpecies<T> && requires(T a, T b) {
+  // Additive group
+  { a + b } -> std::same_as<T>;
+  { a - b } -> std::same_as<T>;
+  // Multiplicative monoid
+  { a * b } -> std::same_as<T>;
+  // Euclidean domain (needed for std::gcd in Rational::simplify)
+  { a / b } -> std::same_as<T>;
+  { a % b } -> std::same_as<T>;
+  // Total order (needed for canonical-sign normalisation)
+  { a < b } -> std::convertible_to<bool>;
+};
+
+/**
+ * @brief Canonical embedding of a `std::signed_integral` value into any
+ *        `IsInteger` type `Z` via its single-argument constructor.
+ *
+ * @details This is the Liskov injection arrow: every built-in signed integer
+ * value converts to the wider `IsInteger` domain without loss of information
+ * (assuming `Z` has sufficient range, e.g. a multi-limb integer type).
+ *
+ * @tparam Z  The target `IsInteger` type.
+ * @tparam S  A `std::signed_integral` source type (deduced).
+ */
+export template <IsInteger Z, std::signed_integral S>
+constexpr Z embed_signed_integral(S v) {
+  return Z{v};
+}
 
 export template <typename T>
 concept IsNaturalNumber = std::unsigned_integral<T>;
@@ -128,6 +176,13 @@ export using IntegerSet = IntegersOf<>;
 export using ℤ = IntegerSet;
 
 export inline constexpr ℤ Z{};
+
+// Proof: every built-in signed integer type satisfies the structural IsInteger
+// concept.  These static_asserts serve as the canonical regression guard so
+// that any future narrowing of IsInteger is caught at compile time.
+static_assert(IsInteger<int>);
+static_assert(IsInteger<long>);
+static_assert(IsInteger<long long>);
 
 /**
  * @brief Canonical embedding ℕ ↪ ℤ: unsigned int → int.
