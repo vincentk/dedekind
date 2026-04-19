@@ -57,12 +57,46 @@ using namespace dedekind::sets;
 
 /**
  * @concept IsNatural
- * @brief N is a Pointed, Closed, Archimedean, Commutative Monoid
- *        under BOTH Addition and Multiplication.
+ * @brief Structural concept for a commutative semiring with total order
+ *        (the intensional ℕ).
+ *
+ * @details Deliberately *not* restricted to `std::unsigned_integral<N>` so
+ * that user-defined certified natural-number types (e.g.
+ * `ExtensionalCardinal<N>`) can satisfy the concept without being built-in C++
+ * types.  The required operations are exactly those that characterise ℕ as a
+ * commutative semiring with a total order:
+ *
+ *  - Additive monoid: `+`.
+ *  - Multiplicative monoid: `*`.
+ *  - Total order: `<=`.
+ *  - No subtraction required — that is what distinguishes ℕ from ℤ.
+ *
+ * **Embedding from `std::unsigned_integral`:** machine unsigned types are the
+ * extensional/IEEE-policy approximation of ℕ.  Use
+ * `embed_unsigned_integral<N>(v)` to inject a machine value into a certified
+ * `IsNatural` domain, and `realize_to_size_t(sentinel)` to project back.
+ *
  * Wikipedia: Semiring, Peano axioms
  */
 export template <typename N>
-concept IsNatural = std::unsigned_integral<N>;
+concept IsNatural = std::regular<N> && requires(N a, N b) {
+  { a + b } -> std::same_as<N>;
+  { a * b } -> std::same_as<N>;
+  { a <= b } -> std::convertible_to<bool>;
+};
+
+/**
+ * @concept IsNaturalNumber
+ * @brief Alias for the machine/extensional natural-number species.
+ *
+ * @details `std::unsigned_integral` types are the IEEE-policy realisation of
+ * ℕ — they satisfy `IsNatural` structurally (unsigned arithmetic wraps, so
+ * the semiring laws hold), but they are identified separately here because
+ * they are the *output* of `realize_to_size_t` and the *input* of
+ * `embed_unsigned_integral`, not the preferred certified domain for new code.
+ */
+export template <typename T>
+concept IsNaturalNumber = std::unsigned_integral<T>;
 
 /**
  * @concept Monoid_ℕ
@@ -82,6 +116,24 @@ concept Monoid_ℕ = IsNatural<E> && requires(const M& m) {
  */
 export inline constexpr auto embed_𝔹_ℕ =
     arrow<bool, unsigned>([](const bool& b) noexcept { return b ? 1u : 0u; });
+
+/**
+ * @brief Canonical injection from `std::unsigned_integral` into any
+ *        `IsNatural` domain `N` via its single-argument constructor.
+ *
+ * @details `std::unsigned_integral` types are the machine/extensional
+ * approximation of ℕ.  This arrow is the Liskov injection into a certified
+ * `IsNatural` domain (e.g. `ExtensionalCardinal<K>`).  The reverse direction —
+ * projecting a certified natural back to a machine width — is
+ * `realize_to_size_t(sentinel)`.
+ *
+ * @tparam N  The target `IsNatural` type.
+ * @tparam U  A `std::unsigned_integral` source type (deduced).
+ */
+export template <IsNatural N, std::unsigned_integral U>
+constexpr N embed_unsigned_integral(U v) {
+  return N{v};
+}
 
 };  // namespace dedekind::numbers
 

@@ -67,12 +67,16 @@ concept IsInteger = IsReflectiveSpecies<T> && requires(T a, T b) {
 };
 
 /**
- * @brief Canonical embedding of a `std::signed_integral` value into any
- *        `IsInteger` type `Z` via its single-argument constructor.
+ * @brief Canonical injection from `std::signed_integral` into any `IsInteger`
+ *        domain `Z` via its single-argument constructor.
  *
- * @details This is the Liskov injection arrow: every built-in signed integer
- * value converts to the wider `IsInteger` domain without loss of information
- * (assuming `Z` has sufficient range, e.g. a multi-limb integer type).
+ * @details `std::signed_integral` types (e.g. `int`) are *not* certified as
+ * `IsInteger` because their addition has undefined-behaviour overflow (see the
+ * `!IsMagma<int, std::plus<int>>` rejection in `dedekind.category:total`).
+ * This function is the *embedding arrow* that injects a built-in signed value
+ * into a well-behaved `IsInteger` domain (e.g. a future
+ * `SignedExtensionalCardinal<N>`), without claiming `int` itself is such a
+ * domain.
  *
  * @tparam Z  The target `IsInteger` type.
  * @tparam S  A `std::signed_integral` source type (deduced).
@@ -176,13 +180,6 @@ export using IntegerSet = IntegersOf<>;
 export using ℤ = IntegerSet;
 
 export inline constexpr ℤ Z{};
-
-// Proof: every built-in signed integer type satisfies the structural IsInteger
-// concept.  These static_asserts serve as the canonical regression guard so
-// that any future narrowing of IsInteger is caught at compile time.
-static_assert(IsInteger<int>);
-static_assert(IsInteger<long>);
-static_assert(IsInteger<long long>);
 
 /**
  * @brief Canonical embedding ℕ ↪ ℤ: unsigned int → int.
