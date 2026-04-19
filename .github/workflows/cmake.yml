@@ -106,26 +106,33 @@ jobs:
 
     # --- CONDITIONAL DEPLOYMENT STEPS ---
 
-    - name: Install Doxygen toolchain
-      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-      run: make ci-install-doxygen-deps
-    
-    - name: Build Doxygen Documentation
-      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-      run: make doxygen CXX=clang++-21 CC=clang-21 CMAKE_EXTRA_ARGS="-DDEDEKIND_RUNTIME_COVERAGE_BRIDGES=ON"
-
-    - name: Install report toolchain
-      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-      run: make ci-install-report-deps
-
-    - name: Check Report Compilation
-      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
-      run: make report
-
-    - name: Build Publishable Report
+    - name: Install docs toolchains in parallel
       if: github.ref == 'refs/heads/main' && github.event_name == 'push'
       run: |
-        make -C docs/report doc
+        make ci-install-doxygen-deps &
+        DOXYGEN_DEPS_PID=$!
+        make ci-install-report-deps &
+        REPORT_DEPS_PID=$!
+
+        wait "$DOXYGEN_DEPS_PID"
+        wait "$REPORT_DEPS_PID"
+
+    - name: Build Doxygen and report in parallel
+      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+      run: |
+        (
+          make doxygen CXX=clang++-21 CC=clang-21 CMAKE_EXTRA_ARGS="-DDEDEKIND_RUNTIME_COVERAGE_BRIDGES=ON"
+        ) &
+        DOXYGEN_BUILD_PID=$!
+
+        (
+          make report
+          make -C docs/report doc
+        ) &
+        REPORT_BUILD_PID=$!
+
+        wait "$DOXYGEN_BUILD_PID"
+        wait "$REPORT_BUILD_PID"
 
     - name: Stage Pages content
       if: github.ref == 'refs/heads/main' && github.event_name == 'push'
