@@ -7,10 +7,14 @@ Sequence operations are zero-copy where possible (NumPy arrays via buffer
 protocol). String sequences fall back to Python iteration.
 """
 
-from . import ordered_set_roundtrip, path_from_range, unordered_set_roundtrip
+from ._dedekind import (
+    ordered_set_roundtrip,
+    path_from_range,
+    unordered_set_roundtrip,
+)
 
 try:
-    from . import path_from_array
+    from ._dedekind import path_from_array
 except ImportError:
     # Fallback for incomplete builds
     path_from_array = None

@@ -9,8 +9,14 @@ from dataclasses import dataclass
 from itertools import product
 from numbers import Integral
 
-from . import ordered_set_roundtrip, unordered_set_roundtrip
-from . import set_union, set_intersection, set_difference, set_cardinality
+from ._dedekind import (
+    ordered_set_roundtrip,
+    unordered_set_roundtrip,
+    set_union,
+    set_intersection,
+    set_difference,
+    set_cardinality,
+)
 
 try:
     import pandas as pd
