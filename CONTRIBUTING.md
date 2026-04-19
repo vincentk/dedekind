@@ -140,6 +140,22 @@ where concrete evaluation is intentionally required.
 - Mark the PR **Ready for Review** only once **all CI checks show green**.  A draft PR
    with failing CI should never be marked ready.
 
+### Make Target Quick Reference
+
+| Target | Description |
+|---|---|
+| `make clean` | Remove the `build/` directory |
+| `make compile` | Configure (if needed) and build all targets |
+| `make test` | Build then run the full test suite via CTest |
+| `make clean compile test` | Clean, rebuild, and run the verification suite |
+| `make format` | Auto-format all `*.cpp` / `*.cppm` sources with `clang-format` |
+| `make format-check` | Verify formatting without modifying files |
+| `make coverage` | Build, run tests, and produce an LLVM coverage report |
+| `make python-coverage` | Run Python tests and generate `build/python-coverage.xml` |
+| `make doxygen` | Build Doxygen API docs into `build/docs/` |
+| `make report` | Fast report compile check (`docs/report` `ci-check`) |
+| `make install-hooks` | Install the pre-push git hook |
+
 ### Backlog Grooming And CI Health Quick Loop
 
 1. Check CI health for `main`:
@@ -180,6 +196,32 @@ Operational note:
 - Treat quadrant labels as best-effort, revisable metadata rather than permanent truth.
 - When new evidence appears, relabel and add a short rationale comment on the issue.
 - Keep native parent-child links for causal decomposition; use cross-references/comments for correlation edges.
+
+### Coverage Verification
+
+The project collects both C++ (via LCOV) and Python (via pytest-cov) coverage on every CI run.
+Both reports are uploaded to Codecov for centralized visibility.
+
+**Verifying Python coverage presence (for reviewers):**
+
+1. Open the PR's Codecov report link (available in PR checks or at `https://app.codecov.io/gh/vincentk/dedekind`).
+2. In the "Files" tab, verify that Python source files are listed alongside C++ files:
+   - Look for entries like `python/dedekind/__init__.py`, `python/dedekind/sequences.py`, etc.
+   - These indicate Python code is being tracked for coverage.
+3. Each file shows line-by-line coverage: green for covered, red for uncovered, gray for non-executable.
+
+**Collecting coverage locally (for contributors):**
+
+- **C++ coverage**: `make coverage` generates `build/coverage.info` (LCOV format).
+- **Python coverage**: `make python-coverage` generates `build/python-coverage.xml` (pytest-cov XML).
+- Both can be run and inspected before pushing to verify coverage baseline.
+
+**Why both C++ and Python coverage matter:**
+
+- C++ modules define the core mathematical operations and data structures.
+- Python bindings (via nanobind) provide the public API and integration points.
+- Full project coverage requires both layers; Python-only or C++-only coverage leaves integration
+  blind spots.
 
 ## Review workflow
 

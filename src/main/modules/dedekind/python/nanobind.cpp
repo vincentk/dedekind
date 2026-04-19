@@ -10,24 +10,46 @@
  * wrapper-facing `dedekind.python` facade for Python smoke tests and notebook
  * oriented experiments.
  *
+ * Binding design:
+ *  - `dedekind.sets`      (extensional, finite) ↔ Python `set`  (std::set<T>)
+ *  - `dedekind.sequences` (finite paths)         ↔ Python `list`
+ * (std::vector<T>)
+ *
+ * Set operations (`set_union`, `set_intersection`, `set_difference`,
+ * `set_cardinality`) are overloaded for Python's standard scalar types:
+ * `bool`, `int`, `float` (C++ `double`), and `str` (C++ `std::string`).
+ * Nanobind performs overload resolution at call time; passing a set of mixed
+ * or unsupported element types raises `TypeError` automatically.
+ *
  * @note "La science est faite de données comme une maison de pierres."
  *       -- Henri Poincare, paraphrase
  *       [Trans: "Science is built from facts as a house is built from stones."]
  */
 
 #include <nanobind/nanobind.h>
+#include <nanobind/ndarray.h>
+#include <nanobind/stl/set.h>
+#include <nanobind/stl/string.h>
 #include <nanobind/stl/vector.h>
 
 #include <algorithm>
+#include <cstddef>
+#include <cstdint>
 #include <set>
+#include <string>
 #include <unordered_set>
 #include <vector>
 
+import dedekind.numbers;
 import dedekind.python;
 
 namespace nb = nanobind;
 
 namespace {
+
+// ── sequences: Python list ↔ dedekind.sequences ──────────────────────────
+// These functions accept and return std::vector<int> (Python list) because
+// they exercise the FinitePath / range adapters in dedekind.sequences.
 
 auto ordered_set_roundtrip(const std::vector<int>& values) -> std::vector<int> {
   const std::set<int> ordered(values.begin(), values.end());
@@ -42,7 +64,7 @@ auto unordered_set_roundtrip(const std::vector<int>& values)
   const auto ext = dedekind::python::from_std(unordered);
   const auto back = dedekind::python::to_std<std::unordered_set<int>>(ext);
   std::vector<int> materialized(back.begin(), back.end());
-  std::ranges::sort(materialized);
+  std::sort(materialized.begin(), materialized.end());
   return materialized;
 }
 
@@ -52,18 +74,184 @@ auto path_from_range(const std::vector<int>& values) -> std::vector<int> {
   return {view.begin(), view.end()};
 }
 
+// ── arrays: NumPy ndarray ↔ dedekind.sequences ──────────────────────────
+// Typed bindings for NumPy arrays to std::vector via the buffer protocol.
+// Supports bool, int64, double; falls back to Python sequence for str.
+
+template <typename T>
+auto path_from_array(nb::ndarray<T, nb::ndim<1>, nb::c_contig> arr)
+    -> std::vector<T> {
+  const T* data = arr.data();
+  return std::vector<T>(data, data + arr.shape(0));
+}
+
+auto path_from_str_seq(nb::sequence seq) -> std::vector<std::string> {
+  std::vector<std::string> result;
+  for (nb::handle h : seq) result.push_back(nb::cast<std::string>(h));
+  return result;
+}
+
+// ── extensional sets: Python set ↔ dedekind.sets ─────────────────────────
+// These functions accept and return std::set<T> (Python set) and route
+// through FiniteExtensionalSet<T> via the dedekind.python facade.
+// Overloaded for bool, int, double (float), std::string (str).
+
+template <typename T>
+auto ext_union(const std::set<T>& a, const std::set<T>& b) -> std::set<T> {
+  std::set<T> merged(a);
+  merged.insert(b.begin(), b.end());
+  const auto ext = dedekind::python::from_std(merged);
+  return dedekind::python::to_std<std::set<T>>(ext);
+}
+
+template <typename T>
+auto ext_intersection(const std::set<T>& a, const std::set<T>& b)
+    -> std::set<T> {
+  const auto ext_a = dedekind::python::from_std(a);
+  const auto ext_b = dedekind::python::from_std(b);
+  std::set<T> result;
+  for (const auto& v : ext_a) {
+    if (ext_b.contains(v)) result.insert(v);
+  }
+  return result;
+}
+
+template <typename T>
+auto ext_difference(const std::set<T>& a, const std::set<T>& b) -> std::set<T> {
+  const auto ext_a = dedekind::python::from_std(a);
+  const auto ext_b = dedekind::python::from_std(b);
+  std::set<T> result;
+  for (const auto& v : ext_a) {
+    if (!ext_b.contains(v)) result.insert(v);
+  }
+  return result;
+}
+
+template <typename T>
+auto ext_cardinality(const std::set<T>& s) -> std::size_t {
+  return dedekind::python::from_std(s).size();
+}
+
+// Convenience: register all four set-algebra overloads for one element type.
+template <typename T>
+void register_set_ops(nb::module_& m) {
+  m.def(
+      "set_union",
+      [](const std::set<T>& a, const std::set<T>& b) {
+        return ext_union(a, b);
+      },
+      "A ∪ B — union of two sets (dedekind.sets).");
+  m.def(
+      "set_intersection",
+      [](const std::set<T>& a, const std::set<T>& b) {
+        return ext_intersection(a, b);
+      },
+      "A ∩ B — intersection of two sets (dedekind.sets).");
+  m.def(
+      "set_difference",
+      [](const std::set<T>& a, const std::set<T>& b) {
+        return ext_difference(a, b);
+      },
+      "A ∖ B — set difference (dedekind.sets).");
+  m.def(
+      "set_cardinality",
+      [](const std::set<T>& s) { return ext_cardinality(s); },
+      "|S| — cardinality of a finite extensional set (dedekind.sets).");
+}
+
 }  // namespace
+
+// ── Complex and Dual number bindings ──────────────────────────────────────
+// These bindings expose algebraic extensions (Complex<double>, Dual<double>)
+// for experimental numeric computations from Python.
+
+void bind_complex(nb::module_& m) {
+  using Complex = dedekind::numbers::Complex<double>;
+  nb::class_<Complex>(m, "Complex",
+                      "Represents a complex number z = re + im*i.")
+      .def(nb::init<double, double>(), nb::arg("re") = 0.0, nb::arg("im") = 0.0,
+           "Construct a complex number from real and imaginary parts.")
+      .def("real", &Complex::real, "Extract the real part.")
+      .def("imag", &Complex::imag, "Extract the imaginary part.")
+      .def(
+          "__add__", [](const Complex& a, const Complex& b) { return a + b; },
+          "Addition of complex numbers.")
+      .def(
+          "__mul__", [](const Complex& a, const Complex& b) { return a * b; },
+          "Multiplication of complex numbers.")
+      .def("__repr__", [](const Complex& z) {
+        return std::string("Complex(") + std::to_string(z.real()) + "+" +
+               std::to_string(z.imag()) + "i)";
+      });
+}
+
+void bind_dual(nb::module_& m) {
+  using Dual = dedekind::numbers::Dual<double>;
+  nb::class_<Dual>(m, "Dual",
+                   "Represents a dual number d = val + der*ε (ε² = 0).")
+      .def(nb::init<double, double>(), nb::arg("val") = 0.0,
+           nb::arg("der") = 0.0,
+           "Construct a dual number from value and derivative parts.")
+      .def("value", &Dual::value, "Extract the function value f(x).")
+      .def("derivative", &Dual::derivative,
+           "Extract the derivative f'(x) (forward-mode AD).")
+      .def(
+          "__add__", [](const Dual& a, const Dual& b) { return a + b; },
+          "Addition of dual numbers.")
+      .def(
+          "__mul__", [](const Dual& a, const Dual& b) { return a * b; },
+          "Multiplication of dual numbers (respects ε² = 0).")
+      .def("__repr__", [](const Dual& d) {
+        return std::string("Dual(") + std::to_string(d.value()) + "+" +
+               std::to_string(d.derivative()) + "ε)";
+      });
+}
 
 NB_MODULE(_dedekind, module) {
   module.doc() = "Dedekind Python MVP facade";
 
-  module.def(
-      "ordered_set_roundtrip", &ordered_set_roundtrip,
-      "Round-trip a Python sequence through the ordered finite-set facade.");
-  module.def(
-      "unordered_set_roundtrip", &unordered_set_roundtrip,
-      "Round-trip a Python sequence through the unordered finite-set facade.");
+  // ── sequences (Python list ↔ dedekind.sequences) ─────────────────────
+  module.def("ordered_set_roundtrip", &ordered_set_roundtrip,
+             "Round-trip a Python list through the ordered finite-set facade "
+             "(dedekind.sets).");
+  module.def("unordered_set_roundtrip", &unordered_set_roundtrip,
+             "Round-trip a Python list through the unordered finite-set facade "
+             "(dedekind.sets).");
   module.def("path_from_range", &path_from_range,
-             "Materialize a finite path from a Python sequence and expose it "
-             "back as a list.");
+             "Materialize a finite path from a Python list "
+             "(dedekind.sequences).");
+
+  // ── arrays (NumPy ndarray ↔ dedekind.sequences) ─────────────────────────
+  // Typed NumPy array bindings (bool, int64, double) + sequence fallback.
+  module.def("path_from_array", &path_from_array<bool>,
+             "Materialize a finite path from a NumPy bool array "
+             "(via buffer protocol).");
+  module.def("path_from_array", &path_from_array<int64_t>,
+             "Materialize a finite path from a NumPy int64 array "
+             "(via buffer protocol).");
+  module.def("path_from_array", &path_from_array<double>,
+             "Materialize a finite path from a NumPy float64 array "
+             "(via buffer protocol).");
+  module.def("path_from_str_seq", &path_from_str_seq,
+             "Materialize a finite path from a Python sequence of strings.");
+  module.def("path_from_bool_array", &path_from_array<bool>,
+             "Materialize a finite path from a NumPy bool array "
+             "(typed helper).");
+  module.def("path_from_int64_array", &path_from_array<int64_t>,
+             "Materialize a finite path from a NumPy int64 array "
+             "(typed helper).");
+  module.def("path_from_float64_array", &path_from_array<double>,
+             "Materialize a finite path from a NumPy float64 array "
+             "(typed helper).");
+
+  // ── extensional set algebra (Python set ↔ dedekind.sets) ─────────────
+  // Overloads are tried in registration order: bool, int, double, str.
+  register_set_ops<bool>(module);
+  register_set_ops<int>(module);
+  register_set_ops<double>(module);
+  register_set_ops<std::string>(module);
+
+  // ── algebraic extensions (dedekind.numbers) ─────────────────────────────
+  bind_complex(module);
+  bind_dual(module);
 }

@@ -12,11 +12,12 @@ permissions:
   id-token: write
   pull-requests: write
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   build-and-deploy:
     runs-on: ubuntu-latest
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
     - uses: actions/checkout@v4
       with:
@@ -48,10 +49,15 @@ jobs:
     - name: Process Coverage Data
       run: make coverage CXX=clang++-21 CC=clang-21 CMAKE_EXTRA_ARGS="-DDEDEKIND_RUNTIME_COVERAGE_BRIDGES=ON"
 
+    - name: Collect Python Coverage
+      run: |
+        make python-coverage
+        grep -q "python/dedekind/" build/python-coverage.xml
+
     - name: Upload to Codecov
       uses: codecov/codecov-action@v5
       with:
-        files: build/coverage.info
+        files: build/coverage.info,build/python-coverage.xml
         token: ${{ secrets.CODECOV_TOKEN }}
         fail_ci_if_error: true
         verbose: true
@@ -60,8 +66,6 @@ jobs:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     needs: build-and-deploy
     runs-on: ubuntu-latest
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
     - uses: actions/checkout@v4
       with:
@@ -123,8 +127,6 @@ jobs:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
     needs: build-and-deploy
     runs-on: ubuntu-latest
-    env:
-      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
     steps:
     - uses: actions/checkout@v4
       with:
@@ -137,15 +139,10 @@ jobs:
         sudo ./llvm.sh 21
         sudo apt-get install -y clang-21 ninja-build clang-format-21
 
-    - name: Install docs toolchains in parallel
+    - name: Install docs toolchains
       run: |
-        make ci-install-doxygen-deps &
-        DOXYGEN_DEPS_PID=$!
-        make ci-install-report-deps &
-        REPORT_DEPS_PID=$!
-
-        wait "$DOXYGEN_DEPS_PID"
-        wait "$REPORT_DEPS_PID"
+        make ci-install-doxygen-deps
+        make ci-install-report-deps
 
     - name: Build Doxygen and report in parallel
       run: |

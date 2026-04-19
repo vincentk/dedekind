@@ -229,5 +229,41 @@ class DedekindDslOptimizationTest(unittest.TestCase):
         self.assertEqual(result["critical_path"], ["spec", "kernel", "tests"])
 
 
+class DedekindDslSetAlgebraBridgeTest(unittest.TestCase):
+    def test_setdef_union_intersect_minus(self) -> None:
+        left = dedekind.SetDef(values=[1, 2, 2, 3])
+        right = dedekind.SetDef(values=[3, 4, 4])
+
+        union_vals = sorted(left.union(right).realize())
+        inter_vals = sorted(left.intersect(right).realize())
+        minus_vals = sorted(left.minus(right).realize())
+
+        self.assertEqual(union_vals, [1, 2, 3, 4])
+        self.assertEqual(inter_vals, [3])
+        self.assertEqual(minus_vals, [1, 2])
+
+    def test_setdef_len_extensional_and_intensional(self) -> None:
+        extensional = dedekind.SetDef(values=[1, 1, 2, 3])
+        self.assertEqual(len(extensional), 3)
+
+        intensional = dedekind.SetDef(predicate=lambda x: x > 0)
+        with self.assertRaises(NotImplementedError):
+            _ = len(intensional)
+
+    def test_ensemble_set_ops_and_len(self) -> None:
+        left = dedekind.Ensemble(members=["a", "b", "b"])
+        right = dedekind.Ensemble(members=["b", "c"])
+
+        self.assertEqual(sorted(left.union(right).realize()), ["a", "b", "c"])
+        self.assertEqual(sorted(left.intersection(right).realize()), ["b"])
+        self.assertEqual(sorted(left.difference(right).realize()), ["a"])
+        self.assertEqual(len(left), 2)
+
+    def test_ensemble_len_intensional_raises(self) -> None:
+        intensional = dedekind.Ensemble(predicate=lambda x: x % 2 == 0)
+        with self.assertRaises(NotImplementedError):
+            _ = len(intensional)
+
+
 if __name__ == "__main__":
     unittest.main()

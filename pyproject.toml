@@ -38,3 +38,23 @@ wheel.packages = ["python/dedekind"]
 [tool.scikit-build.cmake.define]
 DEDEKIND_BUILD_PYTHON_BINDINGS = "ON"
 DEDEKIND_ENABLE_DOUBLE_REAL_PROXY = "ON"
+
+[project.optional-dependencies]
+test = [
+  "pytest>=7.0",
+  "pytest-cov>=4.0",
+  "numpy>=1.21",
+]
+
+[tool.pytest.ini_options]
+testpaths = ["src/test/python"]
+
+[tool.coverage.run]
+source = ["python/dedekind"]
+omit = ["*/__pycache__/*"]
+
+[tool.coverage.report]
+show_missing = true
+
+[tool.coverage.xml]
+output = "build/python-coverage.xml"

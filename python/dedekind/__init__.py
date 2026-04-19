@@ -2,44 +2,52 @@
 
 try:
     from ._dedekind import ordered_set_roundtrip
+    from ._dedekind import path_from_array
     from ._dedekind import path_from_range
     from ._dedekind import unordered_set_roundtrip
-except ModuleNotFoundError:
-    def _require_iterable(values, *, function_name):
+    from ._dedekind import set_union
+    from ._dedekind import set_intersection
+    from ._dedekind import set_difference
+    from ._dedekind import set_cardinality
+    from ._dedekind import Complex
+    from ._dedekind import Dual as CppDual
+except ModuleNotFoundError as _exc:
+    raise ImportError(
+        "The dedekind C++ extension (_dedekind) is not available. "
+        "Build it with `cmake --build build` (or `make`) from the repository "
+        "root, then install with `pip install -e .`."
+    ) from _exc
+
+# Lazy-load submodules on first access to avoid circular imports
+def __getattr__(name):
+    """Lazy-load submodules (sequences, sets) on demand."""
+    import importlib
+
+    if name in {"sequences", "sets"}:
+        module_name = f"{__name__}.{name}"
         try:
-            items = list(values)
-        except TypeError as exc:
-            raise TypeError(f"{function_name} expects an iterable") from exc
-        return items
+            return importlib.import_module(f".{name}", __name__)
+        except ModuleNotFoundError as exc:
+            # Keep hasattr/getattr semantics: missing optional submodules
+            # should surface as AttributeError, not ModuleNotFoundError.
+            if exc.name == module_name:
+                raise AttributeError(
+                    f"module {__name__!r} has no attribute {name!r}"
+                ) from None
+            raise
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
-    def _is_integral(val):
-        """Check if value is an integral number (not bool)."""
-        from numbers import Integral
-        return isinstance(val, Integral) and not isinstance(val, bool)
+# Top-level utility: frame_to_paths convenience alias
+# (imported after dsl to avoid circular dependency with frame_to_paths)
+try:
+    from .sequences import frame_to_paths
+except ImportError:
+    frame_to_paths = None
 
-    def _ordered_unique(items):
-        # Validate all items are integral (match C++ API contract)
-        for item in items:
-            if not _is_integral(item):
-                raise TypeError(
-                    f"ordered_set_roundtrip expects integral items; got {type(item).__name__}"
-                )
-        return sorted(set(items))
-
-    def ordered_set_roundtrip(values):
-        items = _require_iterable(values, function_name="ordered_set_roundtrip")
-        return _ordered_unique(items)
-
-    def unordered_set_roundtrip(values):
-        items = _require_iterable(values, function_name="unordered_set_roundtrip")
-        return _ordered_unique(items)
-
-    def path_from_range(values):
-        return _require_iterable(values, function_name="path_from_range")
 from .dsl import (
     Activity,
     AnalystFrame,
-    Dual,
+    Dual as DSLDual,
     Ensemble,
     LinearChoice,
     SetDef,
@@ -61,14 +69,32 @@ from .dsl import (
     unpivot_table,
 )
 
+# Backward-compatible alias for the C++ dual binding at top level.
+Dual = CppDual
+
 __all__ = [
+    # C++ bindings (backward compat)
     "ordered_set_roundtrip",
+    "path_from_array",
     "path_from_range",
     "unordered_set_roundtrip",
+    "set_union",
+    "set_intersection",
+    "set_difference",
+    "set_cardinality",
+    "Complex",
+    "CppDual",
+    "DSLDual",
+    "Dual",
+    # Submodules
+    "sets",
+    "sequences",
+    # Top-level convenience
+    "frame_to_paths",
+    # DSL classes
     "SetDef",
     "Ensemble",
     "AnalystFrame",
-    "Dual",
     "LinearChoice",
     "Activity",
     "table",

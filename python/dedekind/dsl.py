@@ -9,7 +9,14 @@ from dataclasses import dataclass
 from itertools import product
 from numbers import Integral
 
-from . import ordered_set_roundtrip, unordered_set_roundtrip
+from ._dedekind import (
+    ordered_set_roundtrip,
+    unordered_set_roundtrip,
+    set_union,
+    set_intersection,
+    set_difference,
+    set_cardinality,
+)
 
 try:
     import pandas as pd
@@ -1611,25 +1618,30 @@ class SetDef:
         return self
 
     def union(self, other):
-        """Set union: A ∪ B."""
+        """Set union: A ∪ B (dedekind.sets)."""
         if self._values is not None and other._values is not None:
-            result = list(set(self._values) | set(other._values))
-            return SetDef(values=result)
+            result = set_union(set(self._values), set(other._values))
+            return SetDef(values=list(result))
         return self
 
     def intersect(self, other):
-        """Set intersection: A ∩ B."""
+        """Set intersection: A ∩ B (dedekind.sets)."""
         if self._values is not None and other._values is not None:
-            result = list(set(self._values) & set(other._values))
-            return SetDef(values=result)
+            result = set_intersection(set(self._values), set(other._values))
+            return SetDef(values=list(result))
         return self
 
     def minus(self, other):
-        """Set difference: A \\ B."""
+        """Set difference: A \\ B (dedekind.sets)."""
         if self._values is not None and other._values is not None:
-            result = list(set(self._values) - set(other._values))
-            return SetDef(values=result)
+            result = set_difference(set(self._values), set(other._values))
+            return SetDef(values=list(result))
         return self
+
+    def __len__(self):
+        if self._values is not None:
+            return set_cardinality(set(self._values))
+        raise NotImplementedError("Cardinality of intensional SetDef is not yet supported")
 
     def realize(self, *, ordered=True):
         """Extensional (concrete) realization: evaluate to get actual values.
@@ -1714,24 +1726,24 @@ class Ensemble:
         return self
 
     def union(self, other):
-        """Ensemble union: A ∪ B."""
+        """Ensemble union: A ∪ B (dedekind.sets)."""
         if self._members is not None and other._members is not None:
-            result = list(set(self._members) | set(other._members))
-            return Ensemble(members=result)
+            result = set_union(set(self._members), set(other._members))
+            return Ensemble(members=list(result))
         return self
 
     def intersection(self, other):
-        """Ensemble intersection: A ∩ B."""
+        """Ensemble intersection: A ∩ B (dedekind.sets)."""
         if self._members is not None and other._members is not None:
-            result = list(set(self._members) & set(other._members))
-            return Ensemble(members=result)
+            result = set_intersection(set(self._members), set(other._members))
+            return Ensemble(members=list(result))
         return self
 
     def difference(self, other):
-        """Ensemble difference (relative complement): A \\ B."""
+        """Ensemble difference (relative complement): A \\ B (dedekind.sets)."""
         if self._members is not None and other._members is not None:
-            result = list(set(self._members) - set(other._members))
-            return Ensemble(members=result)
+            result = set_difference(set(self._members), set(other._members))
+            return Ensemble(members=list(result))
         return self
 
     # --- Python operator aliases (issue #241: operator/method parity) ---
@@ -1756,8 +1768,8 @@ class Ensemble:
 
     def __len__(self):
         if self._members is not None:
-            return len(self._members)
-        return NotImplemented
+            return set_cardinality(set(self._members))
+        raise NotImplementedError("Cardinality of intensional Ensemble is not yet supported")
 
     def realize(self, *, ordered=True):
         """Realize intensional definition to extensional members.

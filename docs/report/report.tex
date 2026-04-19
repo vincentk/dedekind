@@ -329,7 +329,7 @@ This boundary is intentionally constrained. Conversions are explicit on purpose;
 
 The current implementation therefore optimizes for reviewability over breadth: extensional equality is checked through round-trip tests on the supported carriers, and the complexity profile remains straightforward, with \texttt{from\_std} and \texttt{to\_std} operating in linear time $O(n)$, while the destination container continues to determine lookup behaviour ($O(1)$ expected for \texttt{std::unordered\_set}, $O(\log n)$ for \texttt{std::set}).
 
-At runtime, the Python boundary follows an explicit fail-fast contract for invalid payloads. The current MVP binding accepts integer sequences for its exposed round-trip and path adapters; non-iterable inputs (where a sequence is required) and non-integral sequence members are rejected with Python \texttt{TypeError} exceptions. This contract is intentionally narrow and reviewable, and is verified in CI through dedicated unhappy-path smoke tests so reviewers can inspect both expected and observed failure behaviour directly in pull-request checks.
+At runtime, the Python boundary follows an explicit fail-fast contract for invalid payloads. In the current MVP, sequence adapters cover typed NumPy-backed paths (\texttt{bool}, \texttt{int64}, \texttt{float64}) and string-sequence materialization, while extensional set operations are exposed for standard scalar carriers (\texttt{bool}, \texttt{int}, \texttt{float}, \texttt{str}). Invalid argument shapes and unsupported mixed-type payloads surface as Python \texttt{TypeError} exceptions via explicit tests and binding-level overload constraints. This contract remains intentionally reviewable and is continuously verified in CI through unhappy-path smoke tests.
 
 By constraining the facade to value-level bridges and deferring broad symbolic expression builders, the project keeps binding semantics reviewable and reduces drift between implementation, Doxygen headers, and report-level claims.
 
@@ -2722,6 +2722,35 @@ Kernel functions $k(x, y) = \langle \phi(x), \phi(y) \rangle$ encode feature map
 \section{Results}
 
 The analysis module validates the antisymmetry of the wedge product and the area-preserving property of Hamiltonian flows, confirming that the library's apex layer correctly materialises classical mechanics in C++23 type theory.
+
+
+\chapter{\texttt{dedekind.python}}
+\label{chap:python}
+
+\section{Introduction}
+
+The \texttt{dedekind.python} layer is the terminal middleware boundary of the module DAG. It is intentionally placed at the end of the build chain so that Python-facing APIs consume already-verified categorical and algebraic structure rather than re-defining mathematical meaning in the wrapper layer.
+
+The current design posture is explicit and conservative: expose small, auditable adapter surfaces for notebook and scripting workflows while keeping symbolic/intensional semantics anchored in C++23 module partitions.
+
+\section{Implementation}
+
+The implementation currently spans three coordinated surfaces:
+\begin{itemize}
+  \item a C++ facade module (\texttt{dedekind.python}) exporting explicit interop bridges such as \texttt{from\_std}/\texttt{to\_std} and finite-path range adapters;
+  \item a nanobind entrypoint exposing wrapper functions for sequence/path conversion, extensional set algebra, and numeric extensions;
+  \item a pure-Python package facade that re-exports bindings, lazy-loads optional submodules via \texttt{\_\_getattr\_\_}, and provides convenience adapters such as \texttt{frame\_to\_paths}.
+\end{itemize}
+
+For sequences, the binding surface includes \texttt{path\_from\_range}, overloaded \texttt{path\_from\_array} for typed 1D ndarrays, typed helper entrypoints (\texttt{path\_from\_bool\_array}, \texttt{path\_from\_int64\_array}, \texttt{path\_from\_float64\_array}), and \texttt{path\_from\_str\_seq}. The Python \texttt{frame\_to\_paths} adapter dispatches by dtype and normalizes payloads before crossing the C++ boundary.
+
+For sets, \texttt{set\_union}, \texttt{set\_intersection}, \texttt{set\_difference}, and \texttt{set\_cardinality} are exposed through overloaded finite extensional carriers for \texttt{bool}/\texttt{int}/\texttt{double}/\texttt{std::string}. Complex and dual numbers are additionally surfaced for numerical prototyping.
+
+\section{Results}
+
+Current CI exercises both success and failure paths for the Python middleware boundary, including lazy-import semantics, ndarray dispatch, DataFrame conversion, extensional set algebra behavior, and fallback paths for missing optional submodules/imports.
+
+This keeps the Python surface aligned with the project rule \enquote{intensional first, realize at explicit boundaries}: semantics are established in module code, while wrappers expose auditable realization points suitable for rapid experimentation.
 
 
 \chapter{Benchmarks and Structural Collapse}
