@@ -84,7 +84,7 @@ auto path_from_array(nb::ndarray<T, nb::ndim<1>, nb::c_contig> arr)
   return std::vector<T>(data, data + arr.shape(0));
 }
 
-auto path_from_seq(nb::sequence seq) -> std::vector<std::string> {
+auto path_from_str_seq(nb::sequence seq) -> std::vector<std::string> {
   std::vector<std::string> result;
   for (nb::handle h : seq) result.push_back(nb::cast<std::string>(h));
   return result;
@@ -231,9 +231,17 @@ NB_MODULE(_dedekind, module) {
   module.def("path_from_array", &path_from_array<double>,
              "Materialize a finite path from a NumPy float64 array "
              "(zero-copy via buffer protocol).");
-  module.def("path_from_array", &path_from_seq,
-             "Materialize a finite path from a Python sequence of strings "
-             "(fallback for object dtype).");
+  module.def("path_from_str_seq", &path_from_str_seq,
+             "Materialize a finite path from a Python sequence of strings.");
+  module.def("path_from_bool_array", &path_from_array<bool>,
+             "Materialize a finite path from a NumPy bool array "
+             "(typed helper).");
+  module.def("path_from_int64_array", &path_from_array<int64_t>,
+             "Materialize a finite path from a NumPy int64 array "
+             "(typed helper).");
+  module.def("path_from_float64_array", &path_from_array<double>,
+             "Materialize a finite path from a NumPy float64 array "
+             "(typed helper).");
 
   // ── extensional set algebra (Python set ↔ dedekind.sets) ─────────────
   // Overloads are tried in registration order: bool, int, double, str.

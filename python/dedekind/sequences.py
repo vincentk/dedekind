@@ -9,7 +9,11 @@ protocol). String sequences fall back to Python iteration.
 
 from ._dedekind import (
     ordered_set_roundtrip,
+    path_from_bool_array,
+    path_from_float64_array,
+    path_from_int64_array,
     path_from_range,
+    path_from_str_seq,
     unordered_set_roundtrip,
 )
 
@@ -38,6 +42,10 @@ __all__ = [
     "unordered_set_roundtrip",
     "path_from_range",
     "path_from_array",
+    "path_from_bool_array",
+    "path_from_int64_array",
+    "path_from_float64_array",
+    "path_from_str_seq",
     "frame_to_paths",
 ]
 
@@ -73,22 +81,22 @@ def frame_to_paths(df):
             # BooleanDtype (nullable) → bool array with NA fill
             arr = series.to_numpy(dtype=bool, na_value=False)
             arr = np.ascontiguousarray(arr)
-            result[col] = path_from_array(arr) if path_from_array else path_from_range(arr.tolist())
+            result[col] = path_from_bool_array(arr) if path_from_array else path_from_range(arr.tolist())
 
         elif pd.api.types.is_integer_dtype(series):
             # Integer dtype → int64 array (zero-copy)
             arr = series.to_numpy(dtype="int64")
             arr = np.ascontiguousarray(arr)
-            result[col] = path_from_array(arr) if path_from_array else path_from_range(arr.tolist())
+            result[col] = path_from_int64_array(arr) if path_from_array else path_from_range(arr.tolist())
 
         elif pd.api.types.is_float_dtype(series):
             # Float dtype → float64 array (zero-copy)
             arr = series.to_numpy(dtype="float64")
             arr = np.ascontiguousarray(arr)
-            result[col] = path_from_array(arr) if path_from_array else path_from_range(arr.tolist())
+            result[col] = path_from_float64_array(arr) if path_from_array else path_from_range(arr.tolist())
 
         else:
             # String / object dtype → Python sequence fallback
-            result[col] = path_from_array(series.tolist())
+            result[col] = path_from_str_seq(series.tolist())
 
     return result

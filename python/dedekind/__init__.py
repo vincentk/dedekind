@@ -2,6 +2,7 @@
 
 try:
     from ._dedekind import ordered_set_roundtrip
+    from ._dedekind import path_from_array
     from ._dedekind import path_from_range
     from ._dedekind import unordered_set_roundtrip
     from ._dedekind import set_union
@@ -62,6 +63,7 @@ from .dsl import (
 __all__ = [
     # C++ bindings (backward compat)
     "ordered_set_roundtrip",
+    "path_from_array",
     "path_from_range",
     "unordered_set_roundtrip",
     "set_union",
