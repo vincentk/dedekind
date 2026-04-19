@@ -31,6 +31,7 @@
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/vector.h>
 
+#include <algorithm>
 #include <cstddef>
 #include <set>
 #include <string>
@@ -60,7 +61,7 @@ auto unordered_set_roundtrip(const std::vector<int>& values)
   const auto ext = dedekind::python::from_std(unordered);
   const auto back = dedekind::python::to_std<std::unordered_set<int>>(ext);
   std::vector<int> materialized(back.begin(), back.end());
-  std::ranges::sort(materialized);
+  std::sort(materialized.begin(), materialized.end());
   return materialized;
 }
 
