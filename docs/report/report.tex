@@ -121,7 +121,9 @@
 \maketitle
 
 \begin{abstract}
-This report presents \texttt{dedekind}, a \texttt{C++23} research library for embedding mathematical structure directly into compile-time interfaces through modules, concepts, and constrained species traits \cite{dedekind2026}. The implementation discussed throughout this report is available as open-source software under the Apache-2.0 license in the public project repository \cite{dedekind2026}. Rather than treating algebraic intent as runtime convention, \texttt{dedekind} reifies categorical and mereological invariants as type-level contracts that can be audited by the compiler and validated by tests.
+This report presents \texttt{dedekind}, a \texttt{C++23} research library for embedding mathematical structure directly into compile-time interfaces through modules, concepts, and constrained species traits \cite{dedekind2026}. 
+Rather than treating algebraic intent as runtime convention, \texttt{dedekind} reifies categorical and mereological invariants as type-level contracts that can be audited by the compiler and validated by tests.
+The implementation discussed throughout this report is available as open-source software under the Apache-2.0 license in the public project repository \cite{dedekind2026}. 
 
 The project demonstrates four complementary goals. First, it supports symbolic and exact constructions (including Dedekind-cut style reasoning) where compile-time pruning can collapse contradictory structures to near-zero runtime cost. Second, it acknowledges the accuracy-latency paradox in numeric systems programming: exactness and hardware throughput are not globally maximizable at once. To make this tradeoff explicit, \texttt{dedekind} exposes policy-guided IEEE workflows ranging from pass-through machine arithmetic to monitored and actively managed execution paths. Third, it lowers adoption cost through explicit interoperability boundaries, including finite sequence integration with standard ranges and controlled set-container bridges for standard library set types. Fourth, it introduces a backend-agnostic linear algebra layer in which the rank-nullity theorem is enforced as a compile-time concept rather than a runtime assertion, providing a contract-stable foundation for sparse and GraphBLAS-backed computation.
 
@@ -142,6 +144,7 @@ While tools such as \texttt{PyTorch} \cite{paszke2019pytorch} and \texttt{NumPy}
 This decoupling forces a manual translation layer between the high-level mathematical intent and the underlying hardware execution, leading to significant overhead in both developer time and system latency. In contrast, \texttt{dedekind} prioritizes preserving that intent inside the systems layer first, so any higher-level interface is downstream of the verified implementation rather than its semantic source.
 Operationally, this report separates a symbolic/intensional phase from a realization phase: mathematical construction proceeds without committing to a runtime numeric policy, and policy selection is deferred to explicit execution boundaries (Section~\ref{sec:symbolic-realization-boundary}).
 In implementation terms, we use a single rule across core modules and Python-facing boundaries: \enquote{intensional first, realize it when you mean it}.
+The thrust of this rule is to leverage \emph{lazy evaluation}---both at the type level (compile-time symbolic substitution) and at the value level (deferred numeric approximation)---as a principled defence against \emph{Premature Materialization}: the loss of mathematical structure that occurs when a computation is forced to a concrete representation earlier than necessary.
 
 This duality is especially relevant in the context of LLM development and large-scale symbolic computing.
 In these fields, the ability to maintain the structural integrity of a mathematical model—such as the exactness of a tensor operation or the logical consistency of a set-builder predicate—is often lost during the transition to the C++ backend.
@@ -1425,6 +1428,8 @@ The \texttt{dedekind.category} module is verified in the CI pipeline through the
 \label{sec:sets-intro}
 
 The \texttt{dedekind.sets} module implements the Elementary Theory of the Category of Sets (ETCS)~\cite{lawvere1964etcs, lawvere2003sets} through a structural, mereological approach. Set objects are defined by their membership predicates rather than by extensional storage, enabling the C++ compiler to reason symbolically about union, intersection, complement, and subset operations. The module occupies the second position in the build graph, immediately downstream of \texttt{dedekind.category}, and provides the set-theoretic substrate for all subsequent modules.
+
+Concretely, a set in \texttt{dedekind} is not a \emph{bucket}---a heap-allocated container holding a finite list of values---but a \emph{rule}: a predicate $P : A \to \Omega$ over an ambient species $A$, where $\Omega$ is a subobject classifier (classical \texttt{bool}, K3, or another registered logic). The set $\{x \in A \mid P(x)\}$ exists as a compile-time type; no elements are stored or enumerated until the programmer explicitly requests materialization. This set-builder, or \emph{comprehension}, representation is the primary modelling tool throughout \texttt{dedekind}.
 
 Key references are Lawvere and Rosebrugh~\cite{lawvere2003sets}, structural mereology~\cite{mormann2013structural}, and Cartesian closed categories~\cite{lambek1988introduction}.
 
