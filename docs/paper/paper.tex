@@ -198,6 +198,36 @@ Three distinct \emph{kinds} of set structure appear in this single pipeline:
         interval, and range-based pruning must be replaced by modular arithmetic.
 \end{description}
 
+\paragraph{Bootstrapping data quality from guaranteed structural patterns.}
+The three set kinds are not independent.
+A real-world sales dataset combines all three simultaneously: a country column drawn from a
+finite ISO~3166-1 roster, a date column inhabiting an intensional time axis, and a period
+column cycling through fiscal quarters.
+Their \emph{cross-product} defines a structural skeleton---a lattice of expected cells---against
+which the actual data can be validated immediately, without any domain-specific business logic.
+
+For example, if a country reports sales data with a known \emph{publication periodicity}
+(say, Germany publishes monthly, France publishes quarterly), that periodicity is a structural
+fact expressible as a predicate over the product of the country set and the cyclic period set:
+\[
+  \mathrm{Periodicity} = \bigl\{(c, p) \in \mathrm{ISO3166} \times \mathbb{Z}/n\mathbb{Z}
+    \;\big|\; \mathrm{period\_ok}(c, p)\bigr\}.
+\]
+A row missing from the expected $(c, p)$ skeleton is a \emph{gap}; a row present outside it
+is an \emph{anomaly}.
+Both are detectable as structural violations---set-membership failures---\emph{before} any
+numeric or business-logic computation is performed.
+
+This turns the three \lstinline{expect\_*} declarations into a \emph{data quality contract}:
+the pipeline guarantees, at the boundary of \lstinline{.realize()}, that every surviving row
+belongs to the structurally valid region of the joint ambient space.
+The quality lift reported by the notebook (the delta between the vanilla and smart pivot in
+the analyst tier) is an empirical measure of how much of the input data falls outside that
+guaranteed region.
+Framed this way, data quality improvement is a process of progressively tightening the
+structural contract---adding more precise predicates---until the residual anomaly rate meets
+the analyst's tolerance.
+
 \noindent
 The call \lstinline{.realize()} is an \emph{explicit materialization boundary}:
 prior to that call, \lstinline{report_plan} is an intensional description---a recipe
