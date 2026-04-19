@@ -23,6 +23,29 @@ import :path;
 
 namespace dedekind::sequences {
 
+namespace detail {
+
+constexpr auto natural_indices(std::size_t count) {
+  return iterate(std::size_t{0}, [](std::size_t n) { return n + 1; }, count);
+}
+
+template <std::floating_point R>
+constexpr R euclidean_distance(R a, R b) {
+  return std::abs(a - b);
+}
+
+template <std::floating_point R>
+constexpr R metric_norm(R point, R origin = static_cast<R>(0)) {
+  return euclidean_distance(point, origin);
+}
+
+template <std::floating_point R>
+constexpr bool in_closed_euclidean_ball(R center, R point, R radius) {
+  return euclidean_distance(point, center) <= radius;
+}
+
+}  // namespace detail
+
 /**
  * @brief Build a geometric-series term path: a_n = r^n.
  */
@@ -50,16 +73,20 @@ constexpr bool converges_sequence_cauchy(const Path<R>& sequence,
                                          R epsilon = static_cast<R>(1e-6),
                                          std::size_t tail_start = 5000,
                                          std::size_t tail_span = 64) {
-  for (std::size_t i = 0; i < tail_span; ++i) {
-    const R a = sequence.at(tail_start + i);
-    for (std::size_t j = i + 1; j < tail_span; ++j) {
-      const R b = sequence.at(tail_start + j);
-      if (std::abs(a - b) > epsilon) {
-        return false;
-      }
-    }
-  }
-  return true;
+  const auto tail = prefix(drop(sequence, tail_start), tail_span);
+  const auto ixs = detail::natural_indices(tail_span);
+
+  return count_if(ixs, [&](std::size_t i) {
+           const R a = tail.at(i);
+           const auto js = detail::natural_indices(tail_span - (i + 1));
+           return count_if(js, [&](std::size_t j_offset) {
+                    const std::size_t j = i + 1 + j_offset;
+                    const R b = tail.at(j);
+                    // Cauchy criterion: all sampled tail values must lie in
+                    // the same closed epsilon-ball under the Euclidean metric.
+                    return !detail::in_closed_euclidean_ball(a, b, epsilon);
+                  }) == 0;
+         }) == tail_span;
 }
 
 /**
@@ -85,18 +112,22 @@ constexpr bool converges_series_partial_sums(const Path<R>& terms,
     }
   }
 
-  // Check Cauchy criterion on cached tail partial sums
-  for (std::size_t i = 0; i < tail_span; ++i) {
-    const R si = tail_sums[i];
-    for (std::size_t j = i + 1; j < tail_span; ++j) {
-      const R sj = tail_sums[j];
-      if (std::abs(si - sj) > epsilon) {
-        return false;
-      }
-    }
-  }
+  // Check Cauchy criterion on cached tail partial sums as finite-path
+  // quantification over index sequences.
+  const auto tail = from_range(tail_sums);
+  const auto ixs = detail::natural_indices(tail_span);
 
-  return true;
+  return count_if(ixs, [&](std::size_t i) {
+           const R si = tail.at(i);
+           const auto js = detail::natural_indices(tail_span - (i + 1));
+           return count_if(js, [&](std::size_t j_offset) {
+                    const std::size_t j = i + 1 + j_offset;
+                    const R sj = tail.at(j);
+                    // Cauchy-tail validation phrased as epsilon-ball
+                    // membership.
+                    return !detail::in_closed_euclidean_ball(si, sj, epsilon);
+                  }) == 0;
+         }) == tail_span;
 }
 
 /**
@@ -109,20 +140,21 @@ constexpr bool ratio_test_converges(const Path<R>& terms,
                                     std::size_t samples = 128,
                                     R margin = static_cast<R>(1e-3)) {
   R worst_ratio = static_cast<R>(0);
+  const auto ixs = detail::natural_indices(samples);
 
-  for (std::size_t i = 0; i < samples; ++i) {
-    const R an = std::abs(terms.at(tail_start + i));
-    const R an1 = std::abs(terms.at(tail_start + i + 1));
-
+  (void)count_if(ixs, [&](std::size_t i) {
+    const R an = detail::metric_norm(terms.at(tail_start + i));
+    const R an1 = detail::metric_norm(terms.at(tail_start + i + 1));
     if (an <= static_cast<R>(1e-14)) {
-      continue;
+      return false;
     }
 
     const R ratio = an1 / an;
     if (ratio > worst_ratio) {
       worst_ratio = ratio;
     }
-  }
+    return false;
+  });
 
   return worst_ratio < (static_cast<R>(1) - margin);
 }
@@ -137,19 +169,21 @@ constexpr bool root_test_converges(const Path<R>& terms,
                                    std::size_t samples = 128,
                                    R margin = static_cast<R>(1e-3)) {
   R worst_root = static_cast<R>(0);
+  const auto ixs = detail::natural_indices(samples);
 
-  for (std::size_t i = 0; i < samples; ++i) {
+  (void)count_if(ixs, [&](std::size_t i) {
     const std::size_t n = tail_start + i + 1;
-    const R an = std::abs(terms.at(n));
+    const R an = detail::metric_norm(terms.at(n));
     if (an <= static_cast<R>(1e-14)) {
-      continue;
+      return false;
     }
 
     const R root = std::pow(an, static_cast<R>(1) / static_cast<R>(n));
     if (root > worst_root) {
       worst_root = root;
     }
-  }
+    return false;
+  });
 
   return worst_root < (static_cast<R>(1) - margin);
 }
@@ -162,12 +196,16 @@ constexpr bool comparison_test_converges(const Path<R>& candidate,
                                          const Path<R>& upper_bound,
                                          std::size_t check_terms = 6000,
                                          R epsilon = static_cast<R>(1e-5)) {
-  for (std::size_t n = 0; n < check_terms; ++n) {
-    const R a = candidate.at(n);
-    const R b = upper_bound.at(n);
-    if (a < static_cast<R>(0) || b < static_cast<R>(0) || a > b) {
-      return false;
-    }
+  const auto ixs = detail::natural_indices(check_terms);
+  const bool admissible =
+      count_if(ixs, [&](std::size_t n) {
+        const R a = candidate.at(n);
+        const R b = upper_bound.at(n);
+        return (a < static_cast<R>(0) || b < static_cast<R>(0) || a > b);
+      }) == 0;
+
+  if (!admissible) {
+    return false;
   }
 
   return converges_series_partial_sums(upper_bound, epsilon);
