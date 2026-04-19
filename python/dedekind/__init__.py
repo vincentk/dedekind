@@ -21,12 +21,12 @@ except ModuleNotFoundError as _exc:
 # Lazy-load submodules on first access to avoid circular imports
 def __getattr__(name):
     """Lazy-load submodules (sequences, sets) on demand."""
+    import importlib
+
     if name == "sequences":
-        from . import sequences
-        return sequences
+        return importlib.import_module(".sequences", __name__)
     elif name == "sets":
-        from . import sets
-        return sets
+        return importlib.import_module(".sets", __name__)
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 # Top-level utility: frame_to_paths convenience alias
