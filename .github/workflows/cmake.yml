@@ -48,10 +48,18 @@ jobs:
     - name: Process Coverage Data
       run: make coverage CXX=clang++-21 CC=clang-21 CMAKE_EXTRA_ARGS="-DDEDEKIND_RUNTIME_COVERAGE_BRIDGES=ON"
 
+    - name: Collect Python Coverage
+      run: |
+        python -m pip install --quiet pytest pytest-cov
+        pytest src/test/python \
+          --cov=dedekind \
+          --cov-report=xml:build/python-coverage.xml \
+          --cov-report=term-missing
+
     - name: Upload to Codecov
       uses: codecov/codecov-action@v5
       with:
-        files: build/coverage.info
+        files: build/coverage.info,build/python-coverage.xml
         token: ${{ secrets.CODECOV_TOKEN }}
         fail_ci_if_error: true
         verbose: true
