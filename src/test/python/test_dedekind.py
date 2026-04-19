@@ -200,7 +200,7 @@ class DedekindFramePathsTest(unittest.TestCase):
         import dedekind.sequences as sequences
 
         df = pd.DataFrame({"f": [1.25, 2.5, 5.0]})
-        with mock.patch.object(sequences, "path_from_array", None):
+        with mock.patch.object(sequences, "path_from_float64_array", side_effect=lambda a: list(a)):
             paths = dedekind.frame_to_paths(df)
         self.assertEqual(paths["f"], [1.25, 2.5, 5.0])
 
@@ -225,7 +225,7 @@ class DedekindPackageExportsTest(unittest.TestCase):
             )
             import_module.side_effect.name = "dedekind.sequences"
             with self.assertRaises(AttributeError):
-                _ = dedekind.sequences
+                dedekind.__getattr__("sequences")
 
     def test_lazy_submodule_transitive_import_error_is_not_swallowed(self) -> None:
         with mock.patch("importlib.import_module") as import_module:
@@ -234,7 +234,7 @@ class DedekindPackageExportsTest(unittest.TestCase):
             )
             import_module.side_effect.name = "numpy"
             with self.assertRaises(ModuleNotFoundError):
-                _ = dedekind.sequences
+                dedekind.__getattr__("sequences")
 
     @unittest.skipUnless(_HAS_NUMPY, "numpy required for path_from_array export test")
     def test_path_from_array_exported_at_top_level(self) -> None:
