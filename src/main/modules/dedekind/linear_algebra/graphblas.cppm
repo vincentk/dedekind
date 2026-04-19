@@ -24,7 +24,7 @@ import :contracts;
 export namespace dedekind::linear_algebra {
 
 /** @brief Contract-only GraphBLAS backend witness for Phase 1 integration. */
-export struct GraphBLASBackendStub {
+struct GraphBLASBackendStub {
   static constexpr BackendKind kind = BackendKind::graphblas;
   static constexpr std::string_view name = "graphblas-stub";
   static constexpr bool supports_sparse_linear_operators = true;
@@ -36,8 +36,8 @@ static_assert(LinearAlgebraBackend<GraphBLASBackendStub>);
  * @struct SparseLinearOperatorStub
  * @brief Minimal operator carrier that binds contracts to a backend witness.
  */
-export template <typename Scalar, std::size_t AmbientDimension,
-                 std::size_t Rank, typename Backend = GraphBLASBackendStub>
+template <typename Scalar, std::size_t AmbientDimension, std::size_t Rank,
+          typename Backend = GraphBLASBackendStub>
   requires LinearAlgebraBackend<Backend>
 struct SparseLinearOperatorStub {
   using scalar_type = Scalar;
@@ -49,7 +49,7 @@ struct SparseLinearOperatorStub {
  * @concept BackendConformantLinearOperator
  * @brief Linear operator contract with explicit backend capability witness.
  */
-export template <typename Op>
+template <typename Op>
 concept BackendConformantLinearOperator =
     LinearOperatorContract<Op> &&
     LinearAlgebraBackend<typename Op::backend_type>;
