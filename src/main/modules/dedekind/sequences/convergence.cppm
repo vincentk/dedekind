@@ -140,21 +140,18 @@ constexpr bool ratio_test_converges(const Path<R>& terms,
                                     std::size_t samples = 128,
                                     R margin = static_cast<R>(1e-3)) {
   R worst_ratio = static_cast<R>(0);
-  const auto ixs = detail::natural_indices(samples);
-
-  (void)count_if(ixs, [&](std::size_t i) {
+  for (std::size_t i = 0; i < samples; ++i) {
     const R an = detail::metric_norm(terms.at(tail_start + i));
     const R an1 = detail::metric_norm(terms.at(tail_start + i + 1));
     if (an <= static_cast<R>(1e-14)) {
-      return false;
+      continue;
     }
 
     const R ratio = an1 / an;
     if (ratio > worst_ratio) {
       worst_ratio = ratio;
     }
-    return false;
-  });
+  }
 
   return worst_ratio < (static_cast<R>(1) - margin);
 }
@@ -169,21 +166,18 @@ constexpr bool root_test_converges(const Path<R>& terms,
                                    std::size_t samples = 128,
                                    R margin = static_cast<R>(1e-3)) {
   R worst_root = static_cast<R>(0);
-  const auto ixs = detail::natural_indices(samples);
-
-  (void)count_if(ixs, [&](std::size_t i) {
+  for (std::size_t i = 0; i < samples; ++i) {
     const std::size_t n = tail_start + i + 1;
     const R an = detail::metric_norm(terms.at(n));
     if (an <= static_cast<R>(1e-14)) {
-      return false;
+      continue;
     }
 
     const R root = std::pow(an, static_cast<R>(1) / static_cast<R>(n));
     if (root > worst_root) {
       worst_root = root;
     }
-    return false;
-  });
+  }
 
   return worst_root < (static_cast<R>(1) - margin);
 }
