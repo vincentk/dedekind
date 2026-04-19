@@ -14,6 +14,7 @@
 module;
 
 #include <concepts>
+#include <numeric>
 
 export module dedekind.numbers:integer;
 
@@ -87,18 +88,65 @@ constexpr Z embed_signed_integral(S v) {
 }
 
 /**
- * @brief Default certified integer carrier used by downstream numeric layers.
+ * @brief Absolute value in the integer spine.
+ * @details This lives upstream of `:rational` so Euclidean normalization does
+ * not need to depend on machine-only facilities.
+ */
+export template <IsInteger Z>
+constexpr Z integer_abs(Z value) {
+  return value < Z{0} ? -value : value;
+}
+
+/**
+ * @brief Euclidean greatest common divisor over an `IsInteger` carrier.
+ *
+ * @details Uses `std::gcd` when the carrier is natively supported, otherwise
+ * falls back to the Euclidean algorithm in terms of `%`, comparison, and
+ * additive inversion. This is the upstream normalization primitive that
+ * `Rational<Z>` should use instead of depending on `std::gcd` directly.
+ */
+export template <IsInteger Z>
+constexpr Z euclidean_gcd(Z lhs, Z rhs) {
+  if constexpr (requires(Z a, Z b) {
+                  { std::gcd(a, b) } -> std::same_as<Z>;
+                }) {
+    return std::gcd(lhs, rhs);
+  } else {
+    lhs = integer_abs(lhs);
+    rhs = integer_abs(rhs);
+    while (rhs != Z{0}) {
+      const Z remainder = lhs % rhs;
+      lhs = rhs;
+      rhs = remainder;
+    }
+    return lhs;
+  }
+}
+
+export template <typename Z>
+concept HasEuclideanGcd = IsInteger<Z> && requires(Z a, Z b) {
+  { euclidean_gcd(a, b) } -> std::same_as<Z>;
+};
+
+/**
+ * @brief Current extensional machine integer carrier.
+ *
+ * @details This names the concrete machine-level entry point explicitly so
+ * embeddings into the integer spine can refer to an extensional source type
+ * without hard-coding `int` everywhere downstream.
+ */
+export using extensional_integer = int;
+
+/**
+ * @brief Default integer carrier used by downstream numeric layers.
  *
  * @details This is intentionally an alias rather than a hard-coded choice in
  * `:rational`, `:real`, or `:complex`, so the default integer infrastructure
  * can later be retargeted in one place (for example to a future
- * `SignedExtensionalCardinal<N>`).
- *
- * Today this remains `int`, which is treated as the current machine
- * realisation/default input carrier rather than as the ideal certified
- * intensional integer domain.
+ * `SignedExtensionalCardinal<N>`). For now it still resolves to the current
+ * extensional machine carrier.
  */
-export using default_integer = int;
+export using default_integer = extensional_integer;
 
 export template <typename T>
 concept IsNaturalNumber = std::unsigned_integral<T>;

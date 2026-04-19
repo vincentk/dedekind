@@ -169,7 +169,7 @@ struct PartialDivReal {
  * representable and return True, but conservatively, we flag all embeddings
  * as Unknown.
  */
-export template <IsInteger I = machine_integer,
+export template <IsInteger I = default_integer,
                  IsRealCarrier S = machine_real_scalar>
 struct PartialEmbedRationalToReal {
   using value_type = Real<S>;
@@ -228,7 +228,7 @@ namespace dedekind::numbers {
  * @brief Machine realization arrow ℚ ↪ ℝ: Rational<I> → Real<S>.
  * @details Converts a rational p/q to the closest IEEE 754 value of type S.
  */
-export template <IsInteger I = machine_integer,
+export template <IsInteger I = default_integer,
                  IsRealCarrier S = machine_real_scalar>
 inline constexpr auto embed_ℚ_ℝ =
     arrow<Rational<I>, Real<S>>([](const Rational<I>& q) noexcept {
@@ -240,7 +240,7 @@ inline constexpr auto embed_ℚ_ℝ =
  * Accepts native Real<S> and delegates predecessor checks through ℚ.
  */
 export template <IsRealCarrier S = machine_real_scalar,
-                 IsInteger I = machine_integer, typename L = ClassicalLogic,
+                 IsInteger I = default_integer, typename L = ClassicalLogic,
                  typename C = ℶ_1>
 struct RealsOf {
   using Domain = Real<S>;
