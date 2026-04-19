@@ -7,6 +7,22 @@ using namespace dedekind::sequences;
 TEST_CASE("Sequences: Convergence Tests", "[sequences][convergence]") {
   using Real = double;
 
+  SECTION("Sequence Cauchy predicate accepts convergent reciprocal sequence") {
+    const Path<Real> reciprocal_sequence{
+        [](std::size_t n) { return 1.0 / static_cast<Real>(n + 1); }};
+
+    REQUIRE(converges_sequence_cauchy(reciprocal_sequence, 1e-3, 5000, 64));
+  }
+
+  SECTION("Sequence Cauchy predicate rejects oscillating sequence") {
+    const Path<Real> oscillating_sequence{[](std::size_t n) {
+      return (n % 2 == 0) ? 1.0 : -1.0;
+    }};
+
+    REQUIRE_FALSE(
+        converges_sequence_cauchy(oscillating_sequence, 1e-3, 5000, 64));
+  }
+
   SECTION("Partial-sum convergence predicate distinguishes p-series") {
     const auto p2 = p_series_terms<Real>(2.0);
     const auto p1 = p_series_terms<Real>(1.0);
