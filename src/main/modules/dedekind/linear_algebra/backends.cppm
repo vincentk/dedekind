@@ -5,6 +5,21 @@
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
+ *
+ * @details
+ * Defines the `LinearAlgebraBackend` concept and its companion `GenericBackend`
+ * witness, providing a backend-agnostic dispatch vocabulary for downstream
+ * operator layers (GraphBLAS, BLAS, etc.).
+ *
+ * Partitions:
+ * - `BackendKind` — stable enum discriminating concrete backend families.
+ * - `LinearAlgebraBackend` — concept requiring kind, name, and sparse-op flag.
+ * - `GenericBackend` — portable baseline satisfying the concept for
+ *   contract-only workflows that do not require a real execution engine.
+ *
+ * @note "L'outil ne doit pas dicter la structure."
+ *       -- Paraphrase of a common sentiment in numerical software design
+ *       [Trans: "The tool must not dictate the structure."]
  */
 module;
 
