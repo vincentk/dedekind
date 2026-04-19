@@ -39,13 +39,13 @@ TEST_CASE("Numbers: Cardinality draft policy", "[numbers][cardinality]") {
   }
 }
 
-TEST_CASE("Numbers: Cardinal<N> multi-limb semantics",
+TEST_CASE("Numbers: ExtensionalCardinal<N> multi-limb semantics",
           "[numbers][cardinality][cardinal]") {
-  using C1 = Cardinal<1>;
-  using C2 = Cardinal<2>;
+  using C1 = ExtensionalCardinal<1>;
+  using C2 = ExtensionalCardinal<2>;
 
   SECTION("size_t is a Liskov subtype: implicit embedding") {
-    // size_t constructs Cardinal<N> without explicit cast
+    // size_t constructs ExtensionalCardinal<N> without explicit cast
     const C1 a = std::size_t{42};
     CHECK(a.limbs[0] == 42);
 
@@ -54,7 +54,7 @@ TEST_CASE("Numbers: Cardinal<N> multi-limb semantics",
     CHECK(b.limbs[1] == 0);
   }
 
-  SECTION("Operator results are Cardinal<N>, not size_t") {
+  SECTION("Operator results are ExtensionalCardinal<N>, not size_t") {
     const C1 x = std::size_t{3};
     const C1 y = std::size_t{4};
     const C1 sum = x + y;
@@ -62,7 +62,7 @@ TEST_CASE("Numbers: Cardinal<N> multi-limb semantics",
     CHECK(sum.limbs[0] == 7);
   }
 
-  SECTION("Carry propagates across limbs in Cardinal<2>") {
+  SECTION("Carry propagates across limbs in ExtensionalCardinal<2>") {
     const std::size_t max = std::numeric_limits<std::size_t>::max();
     // limb[0] = SIZE_MAX, limb[1] = 0
     C2 hi{};
@@ -99,7 +99,8 @@ TEST_CASE("Numbers: Cardinal<N> multi-limb semantics",
     REQUIRE(std::holds_alternative<Aleph0>(result));
   }
 
-  SECTION("Cardinal<2> addition overflow into variant-level Aleph0") {
+  SECTION(
+      "ExtensionalCardinal<2> addition overflow into variant-level Aleph0") {
     const std::size_t max = std::numeric_limits<std::size_t>::max();
     C2 big{};
     big.limbs[0] = max;
@@ -109,7 +110,7 @@ TEST_CASE("Numbers: Cardinal<N> multi-limb semantics",
     REQUIRE(std::holds_alternative<Aleph0>(result));
   }
 
-  SECTION("realize_to_size_t on Cardinal<2> with high limb") {
+  SECTION("realize_to_size_t on ExtensionalCardinal<2> with high limb") {
     const std::size_t sentinel = 0xDEAD;
     C2 big{};
     big.limbs[0] = 99;
@@ -142,8 +143,10 @@ TEST_CASE("Numbers: Cardinality witnesses and composition",
     STATIC_CHECK(IsProduct<LipschitzBoundaryWitness, Cardinality, Cardinality>);
   }
 
-  SECTION("Cardinal<1> is ring-certified (static_assert also in partition)") {
-    using C1 = Cardinal<1>;
+  SECTION(
+      "ExtensionalCardinal<1> is ring-certified (static_assert also in "
+      "partition)") {
+    using C1 = ExtensionalCardinal<1>;
     STATIC_CHECK(IsRing<C1, std::plus<C1>, std::multiplies<C1>>);
   }
 
