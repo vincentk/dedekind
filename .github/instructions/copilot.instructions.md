@@ -45,6 +45,14 @@ RFC 2119 policy note (normative language):
 - Per RFC 2119 terminology, while waiting between CI builds agents SHOULD use that time to check documentation consistency (report/paper/readme/doxygen), validate test coverage, or groom the backlog, for the reasons described in `CONTRIBUTING.md` (reduced drift, earlier quality-signal detection, and better review quality).
 - Per RFC 2119 terminology, a PR MUST pass pull request review before merge; agents MUST wait for a human review signal (approval or explicit owner instruction) prior to invoking merge operations.
 - Per RFC 2119 terminology, agents MUST NOT attempt to push to protected branches (including `main`); all updates MUST flow through a feature branch and PR.
+**Backlog grooming completed on April 19, 2026:**
+- ✅ Main build verified green (3 recent CI runs all success)
+- ✅ README checked for severe divergence (none found)
+- ✅ 50+ issues triaged, organized by priority
+- ✅ PR #341 (Quick-Win Gaps & Bidirectional Backlog Links) marked READY for review
+- ✅ Architectural gaps prioritized: Derivative Abstraction (HIGH) → Forms Integration (MEDIUM-HIGH)
+- ✅ Parallel work streams identified: Derivative unification + Epic #286 Phase 1 (partial fractions)
+
 Before backlog triage, agents SHOULD run the following checks (typically at session start and after merges to `main`):
 
 1. **Verify the `main` build is green.** Check `gh run list --branch main --limit 3` and confirm the most recent CI run passed. If it is failing, address that before any new work.

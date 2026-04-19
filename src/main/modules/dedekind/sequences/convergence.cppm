@@ -15,6 +15,7 @@ module;
 #include <cmath>
 #include <concepts>
 #include <cstddef>
+#include <vector>
 
 export module dedekind.sequences:convergence;
 
@@ -63,24 +64,32 @@ constexpr bool converges_sequence_cauchy(const Path<R>& sequence,
 
 /**
  * @brief Convergence of a series by Cauchy-tail check on partial sums.
+ *
+ * @details Optimized to cache partial sums once (avoiding O(n^2)
+ * recomputation). Computes running sum up to warmup + tail_span - 1, stores
+ * tail partial sums in a vector, then validates Cauchy criterion on the tail.
  */
 export template <std::floating_point R>
 constexpr bool converges_series_partial_sums(const Path<R>& terms,
                                              R epsilon = static_cast<R>(1e-5),
                                              std::size_t warmup = 4096,
                                              std::size_t tail_span = 128) {
-  for (std::size_t i = 0; i < tail_span; ++i) {
-    R si = static_cast<R>(0);
-    for (std::size_t n = 0; n <= warmup + i; ++n) {
-      si += terms.at(n);
+  // Pre-compute partial sums for tail window using a single pass
+  std::vector<R> tail_sums(tail_span);
+  R running_sum = static_cast<R>(0);
+
+  for (std::size_t n = 0; n <= warmup + tail_span - 1; ++n) {
+    running_sum += terms.at(n);
+    if (n >= warmup) {
+      tail_sums[n - warmup] = running_sum;
     }
+  }
 
+  // Check Cauchy criterion on cached tail partial sums
+  for (std::size_t i = 0; i < tail_span; ++i) {
+    const R si = tail_sums[i];
     for (std::size_t j = i + 1; j < tail_span; ++j) {
-      R sj = static_cast<R>(0);
-      for (std::size_t n = 0; n <= warmup + j; ++n) {
-        sj += terms.at(n);
-      }
-
+      const R sj = tail_sums[j];
       if (std::abs(si - sj) > epsilon) {
         return false;
       }

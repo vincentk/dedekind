@@ -339,7 +339,7 @@ constexpr std::pair<R, R> suggest_derivative_step_size(
 
   for (std::size_t i = 1; i < num_tests; ++i) {
     const R curr_deriv = derivative_at<R>(f, x, h_values[i]);
-    const R drift = detail::magnitude(curr_deriv - prev_deriv);
+    const R drift = detail::lift<R>(detail::magnitude(curr_deriv - prev_deriv));
 
     if (detail::less_than(drift, tolerance) ||
         detail::close_enough(drift, tolerance, tolerance)) {
@@ -395,7 +395,8 @@ constexpr std::pair<std::size_t, R> diagnose_integral_convergence(
 
   for (std::size_t i = 1; i < num_tests; ++i) {
     const R curr_integral = integral_over<R>(f, a, b, slice_counts[i]);
-    const R drift = detail::magnitude(curr_integral - prev_integral);
+    const R drift =
+        detail::lift<R>(detail::magnitude(curr_integral - prev_integral));
 
     if (detail::less_than(drift, convergence_threshold) ||
         detail::close_enough(drift, detail::zero<R>(), convergence_threshold)) {
