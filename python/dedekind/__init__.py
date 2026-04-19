@@ -9,7 +9,7 @@ try:
     from ._dedekind import set_difference
     from ._dedekind import set_cardinality
     from ._dedekind import Complex
-    # Note: Dual is also defined in dsl.py; we use the DSL version
+    from ._dedekind import Dual
 except ModuleNotFoundError as _exc:
     raise ImportError(
         "The dedekind C++ extension (_dedekind) is not available. "
@@ -38,7 +38,6 @@ except ImportError:
 from .dsl import (
     Activity,
     AnalystFrame,
-    Dual,
     Ensemble,
     LinearChoice,
     SetDef,
@@ -70,6 +69,7 @@ __all__ = [
     "set_difference",
     "set_cardinality",
     "Complex",
+    "Dual",
     # Submodules
     "sets",
     "sequences",
@@ -79,7 +79,6 @@ __all__ = [
     "SetDef",
     "Ensemble",
     "AnalystFrame",
-    "Dual",
     "LinearChoice",
     "Activity",
     "table",
