@@ -23,10 +23,18 @@ def __getattr__(name):
     """Lazy-load submodules (sequences, sets) on demand."""
     import importlib
 
-    if name == "sequences":
-        return importlib.import_module(".sequences", __name__)
-    elif name == "sets":
-        return importlib.import_module(".sets", __name__)
+    if name in {"sequences", "sets"}:
+        module_name = f"{__name__}.{name}"
+        try:
+            return importlib.import_module(f".{name}", __name__)
+        except ModuleNotFoundError as exc:
+            # Keep hasattr/getattr semantics: missing optional submodules
+            # should surface as AttributeError, not ModuleNotFoundError.
+            if exc.name == module_name:
+                raise AttributeError(
+                    f"module {__name__!r} has no attribute {name!r}"
+                ) from None
+            raise
     raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
 
 # Top-level utility: frame_to_paths convenience alias
