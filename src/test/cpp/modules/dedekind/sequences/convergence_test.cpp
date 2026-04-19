@@ -44,6 +44,7 @@ TEST_CASE("Sequences: Convergence Tests", "[sequences][convergence]") {
   SECTION("Comparison test rejects invalid ordering") {
     const auto candidate = geometric_series_terms<Real>(0.5);
     const auto upper_bound = geometric_series_terms<Real>(0.25);
-    REQUIRE_FALSE(comparison_test_converges(candidate, upper_bound, 3000, 1e-3));
+    REQUIRE_FALSE(
+        comparison_test_converges(candidate, upper_bound, 3000, 1e-3));
   }
 }
