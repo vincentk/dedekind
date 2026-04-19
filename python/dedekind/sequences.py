@@ -79,20 +79,32 @@ def frame_to_paths(df):
         # Normalize and dispatch based on dtype
         if dtype_name == "bool" or dtype_name == "boolean":
             # BooleanDtype (nullable) → bool array with NA fill
-            arr = series.to_numpy(dtype=bool, na_value=False)
-            arr = np.ascontiguousarray(arr)
+            arr = np.array(
+                series.to_numpy(dtype=np.bool_, na_value=False, copy=True),
+                dtype=np.bool_,
+                order="C",
+                copy=True,
+            ).reshape(-1)
             result[col] = path_from_bool_array(arr) if path_from_array else path_from_range(arr.tolist())
 
         elif pd.api.types.is_integer_dtype(series):
             # Integer dtype → int64 array (zero-copy)
-            arr = series.to_numpy(dtype="int64")
-            arr = np.ascontiguousarray(arr)
+            arr = np.array(
+                series.to_numpy(dtype=np.int64, copy=True),
+                dtype=np.int64,
+                order="C",
+                copy=True,
+            ).reshape(-1)
             result[col] = path_from_int64_array(arr) if path_from_array else path_from_range(arr.tolist())
 
         elif pd.api.types.is_float_dtype(series):
             # Float dtype → float64 array (zero-copy)
-            arr = series.to_numpy(dtype="float64")
-            arr = np.ascontiguousarray(arr)
+            arr = np.array(
+                series.to_numpy(dtype=np.float64, copy=True),
+                dtype=np.float64,
+                order="C",
+                copy=True,
+            ).reshape(-1)
             result[col] = path_from_float64_array(arr) if path_from_array else path_from_range(arr.tolist())
 
         else:
