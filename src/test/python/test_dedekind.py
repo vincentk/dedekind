@@ -2,6 +2,18 @@ import unittest
 
 import dedekind
 
+try:
+    import numpy as np
+    _HAS_NUMPY = True
+except ImportError:
+    _HAS_NUMPY = False
+
+try:
+    import pandas as pd
+    _HAS_PANDAS = True
+except ImportError:
+    _HAS_PANDAS = False
+
 
 class DedekindPythonSmokeTest(unittest.TestCase):
     def test_ordered_set_roundtrip(self) -> None:
@@ -98,6 +110,74 @@ class DedekindSetAlgebraTest(unittest.TestCase):
 
     def test_cardinality_empty(self) -> None:
         self.assertEqual(dedekind.set_cardinality(set()), 0)
+
+
+@unittest.skipUnless(_HAS_NUMPY, "numpy required for path_from_array tests")
+class DedekindArrayBindingsTest(unittest.TestCase):
+    """Test zero-copy NumPy ndarray path_from_array bindings."""
+
+    def test_path_from_array_bool(self) -> None:
+        arr = np.array([True, False, True], dtype=bool)
+        result = dedekind.path_from_array(arr)
+        self.assertEqual(result, [True, False, True])
+
+    def test_path_from_array_int64(self) -> None:
+        arr = np.array([10, 20, 30], dtype=np.int64)
+        result = dedekind.path_from_array(arr)
+        self.assertEqual(result, [10, 20, 30])
+
+    def test_path_from_array_float64(self) -> None:
+        arr = np.array([1.5, 2.5, 3.5], dtype=np.float64)
+        result = dedekind.path_from_array(arr)
+        self.assertEqual(result, [1.5, 2.5, 3.5])
+
+    def test_path_from_array_empty(self) -> None:
+        arr = np.array([], dtype=np.int64)
+        result = dedekind.path_from_array(arr)
+        self.assertEqual(result, [])
+
+    def test_path_from_array_preserves_order(self) -> None:
+        arr = np.array([5, 3, 9, 1], dtype=np.int64)
+        result = dedekind.path_from_array(arr)
+        self.assertEqual(result, [5, 3, 9, 1])
+
+
+@unittest.skipUnless(_HAS_PANDAS, "pandas required for frame_to_paths tests")
+class DedekindFramePathsTest(unittest.TestCase):
+    """Test pandas DataFrame → product-of-sequences conversion."""
+
+    def test_frame_to_paths_int_columns(self) -> None:
+        df = pd.DataFrame({"a": [1, 2, 3], "b": [10, 20, 30]})
+        paths = dedekind.frame_to_paths(df)
+        self.assertEqual(paths["a"], [1, 2, 3])
+        self.assertEqual(paths["b"], [10, 20, 30])
+
+    def test_frame_to_paths_mixed_types(self) -> None:
+        df = pd.DataFrame({
+            "ints": [1, 2, 3],
+            "floats": [1.1, 2.2, 3.3],
+            "bools": [True, False, True],
+        })
+        paths = dedekind.frame_to_paths(df)
+        self.assertEqual(paths["ints"], [1, 2, 3])
+        self.assertEqual(paths["floats"], [1.1, 2.2, 3.3])
+        self.assertEqual(paths["bools"], [True, False, True])
+
+    def test_frame_to_paths_string_column(self) -> None:
+        df = pd.DataFrame({"labels": ["a", "b", "c"]})
+        paths = dedekind.frame_to_paths(df)
+        self.assertEqual(paths["labels"], ["a", "b", "c"])
+
+    def test_frame_to_paths_empty_dataframe(self) -> None:
+        df = pd.DataFrame()
+        paths = dedekind.frame_to_paths(df)
+        self.assertEqual(paths, {})
+
+    def test_frame_to_paths_single_row(self) -> None:
+        df = pd.DataFrame({"x": [42], "y": [3.14]})
+        paths = dedekind.frame_to_paths(df)
+        self.assertEqual(paths["x"], [42])
+        self.assertEqual(paths["y"], [3.14])
 
 
 if __name__ == "__main__":

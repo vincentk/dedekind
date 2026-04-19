@@ -27,6 +27,7 @@
  */
 
 #include <nanobind/nanobind.h>
+#include <nanobind/ndarray.h>
 #include <nanobind/stl/set.h>
 #include <nanobind/stl/string.h>
 #include <nanobind/stl/vector.h>
@@ -69,6 +70,24 @@ auto path_from_range(const std::vector<int>& values) -> std::vector<int> {
   const auto path = dedekind::python::from_range(values);
   const auto& view = dedekind::python::as_range(path);
   return {view.begin(), view.end()};
+}
+
+// ── arrays: NumPy ndarray ↔ dedekind.sequences ──────────────────────────
+// Zero-copy bindings for NumPy arrays to std::vector via the buffer protocol.
+// Supports bool, int64, double; falls back to Python sequence for str.
+
+template <typename T>
+auto path_from_array(nb::ndarray<T, nb::ndim<1>, nb::c_contig> arr)
+    -> std::vector<T> {
+  const T* data = arr.data();
+  return std::vector<T>(data, data + arr.shape(0));
+}
+
+auto path_from_seq(nb::sequence seq) -> std::vector<std::string> {
+  std::vector<std::string> result;
+  for (nb::handle h : seq)
+    result.push_back(nb::cast<std::string>(h));
+  return result;
 }
 
 // ── extensional sets: Python set ↔ dedekind.sets ─────────────────────────
@@ -154,6 +173,21 @@ NB_MODULE(_dedekind, module) {
   module.def("path_from_range", &path_from_range,
              "Materialize a finite path from a Python list "
              "(dedekind.sequences).");
+
+  // ── arrays (NumPy ndarray ↔ dedekind.sequences) ─────────────────────────
+  // Zero-copy NumPy array bindings (bool, int64, double) + sequence fallback.
+  module.def("path_from_array", &path_from_array<bool>,
+             "Materialize a finite path from a NumPy bool array "
+             "(zero-copy via buffer protocol).");
+  module.def("path_from_array", &path_from_array<int64_t>,
+             "Materialize a finite path from a NumPy int64 array "
+             "(zero-copy via buffer protocol).");
+  module.def("path_from_array", &path_from_array<double>,
+             "Materialize a finite path from a NumPy float64 array "
+             "(zero-copy via buffer protocol).");
+  module.def("path_from_array", &path_from_seq,
+             "Materialize a finite path from a Python sequence of strings "
+             "(fallback for object dtype).");
 
   // ── extensional set algebra (Python set ↔ dedekind.sets) ─────────────
   // Overloads are tried in registration order: bool, int, double, str.

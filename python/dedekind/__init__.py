@@ -14,6 +14,12 @@ except ModuleNotFoundError as _exc:
         "Build it with `cmake --build build` (or `make`) from the repository "
         "root, then install with `pip install -e .`."
     ) from _exc
+
+# Import submodules for namespaced access (e.g., dedekind.sets.set_union)
+from . import sequences, sets
+# Top-level utility (convenience alias)
+from .sequences import frame_to_paths
+
 from .dsl import (
     Activity,
     AnalystFrame,
@@ -40,6 +46,7 @@ from .dsl import (
 )
 
 __all__ = [
+    # C++ bindings (backward compat)
     "ordered_set_roundtrip",
     "path_from_range",
     "unordered_set_roundtrip",
@@ -47,6 +54,12 @@ __all__ = [
     "set_intersection",
     "set_difference",
     "set_cardinality",
+    # Submodules
+    "sets",
+    "sequences",
+    # Top-level convenience
+    "frame_to_paths",
+    # DSL classes
     "SetDef",
     "Ensemble",
     "AnalystFrame",

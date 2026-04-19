@@ -43,6 +43,7 @@ DEDEKIND_ENABLE_DOUBLE_REAL_PROXY = "ON"
 test = [
   "pytest>=7.0",
   "pytest-cov>=4.0",
+  "numpy>=1.21",
 ]
 
 [tool.pytest.ini_options]
