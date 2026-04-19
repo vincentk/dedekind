@@ -12,7 +12,8 @@
  *
  * Binding design:
  *  - `dedekind.sets`      (extensional, finite) ↔ Python `set`  (std::set<T>)
- *  - `dedekind.sequences` (finite paths)         ↔ Python `list` (std::vector<T>)
+ *  - `dedekind.sequences` (finite paths)         ↔ Python `list`
+ * (std::vector<T>)
  *
  * Set operations (`set_union`, `set_intersection`, `set_difference`,
  * `set_cardinality`) are overloaded for Python's standard scalar types:
@@ -83,8 +84,8 @@ auto ext_union(const std::set<T>& a, const std::set<T>& b) -> std::set<T> {
 }
 
 template <typename T>
-auto ext_intersection(const std::set<T>& a,
-                      const std::set<T>& b) -> std::set<T> {
+auto ext_intersection(const std::set<T>& a, const std::set<T>& b)
+    -> std::set<T> {
   const auto ext_a = dedekind::python::from_std(a);
   const auto ext_b = dedekind::python::from_std(b);
   std::set<T> result;
@@ -95,8 +96,7 @@ auto ext_intersection(const std::set<T>& a,
 }
 
 template <typename T>
-auto ext_difference(const std::set<T>& a,
-                    const std::set<T>& b) -> std::set<T> {
+auto ext_difference(const std::set<T>& a, const std::set<T>& b) -> std::set<T> {
   const auto ext_a = dedekind::python::from_std(a);
   const auto ext_b = dedekind::python::from_std(b);
   std::set<T> result;
@@ -114,24 +114,28 @@ auto ext_cardinality(const std::set<T>& s) -> std::size_t {
 // Convenience: register all four set-algebra overloads for one element type.
 template <typename T>
 void register_set_ops(nb::module_& m) {
-  m.def("set_union",
-        [](const std::set<T>& a, const std::set<T>& b) {
-          return ext_union(a, b);
-        },
-        "A ∪ B — union of two sets (dedekind.sets).");
-  m.def("set_intersection",
-        [](const std::set<T>& a, const std::set<T>& b) {
-          return ext_intersection(a, b);
-        },
-        "A ∩ B — intersection of two sets (dedekind.sets).");
-  m.def("set_difference",
-        [](const std::set<T>& a, const std::set<T>& b) {
-          return ext_difference(a, b);
-        },
-        "A ∖ B — set difference (dedekind.sets).");
-  m.def("set_cardinality",
-        [](const std::set<T>& s) { return ext_cardinality(s); },
-        "|S| — cardinality of a finite extensional set (dedekind.sets).");
+  m.def(
+      "set_union",
+      [](const std::set<T>& a, const std::set<T>& b) {
+        return ext_union(a, b);
+      },
+      "A ∪ B — union of two sets (dedekind.sets).");
+  m.def(
+      "set_intersection",
+      [](const std::set<T>& a, const std::set<T>& b) {
+        return ext_intersection(a, b);
+      },
+      "A ∩ B — intersection of two sets (dedekind.sets).");
+  m.def(
+      "set_difference",
+      [](const std::set<T>& a, const std::set<T>& b) {
+        return ext_difference(a, b);
+      },
+      "A ∖ B — set difference (dedekind.sets).");
+  m.def(
+      "set_cardinality",
+      [](const std::set<T>& s) { return ext_cardinality(s); },
+      "|S| — cardinality of a finite extensional set (dedekind.sets).");
 }
 
 }  // namespace
