@@ -175,7 +175,7 @@ class RigPolynomial {
  private:
   std::vector<R> coeffs_;
 
-  void canonicalize() {
+  constexpr void canonicalize() {
     const R zero = dedekind::category::identity_v<R, std::plus<R>>;
     while (!coeffs_.empty() && coeffs_.back() == zero) coeffs_.pop_back();
   }

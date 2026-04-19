@@ -2308,6 +2308,9 @@ The set of operations is graded by the algebraic strength of $R$:
   \item \textbf{Formal differentiation} (\texttt{derive()}) is available over any semiring
         because the coefficient $i \cdot a_i$ is computed by $i$-fold addition:
         $\frac{d}{dx}\textstyle\sum a_i x^i = \sum_{i \geq 1} i\,a_i\,x^{i-1}$.
+    \item \textbf{Compile-time quick win}: constructor canonicalization is now
+      \texttt{constexpr}, and tests now include \texttt{static\_assert}-based
+      checks for polynomial law metadata and calculus interface signatures.
 \end{itemize}
 
 \begin{lstlisting}[language=C++, caption={Polynomial arithmetic and differentiation (from \texttt{polynomials\_test.cpp}).}, label={lst:polynomial}]
@@ -2323,6 +2326,15 @@ REQUIRE(dp.degree() == 1);
 
 // Derivative of a constant is zero.
 REQUIRE(Polynomial<Z>::one().derive().is_zero());
+
+// Compile-time quick wins: law metadata + calculus interface checks.
+using P = Polynomial<Z>;
+static_assert(dedekind::category::is_associative_v<P, std::plus<>>);
+static_assert(requires(P a, P b) {
+  { a + b } -> std::same_as<P>;
+  { a * b } -> std::same_as<P>;
+  { a.derive() } -> std::same_as<P>;
+});
 \end{lstlisting}
 
 \section{Results}

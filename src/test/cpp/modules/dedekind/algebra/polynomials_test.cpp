@@ -1,5 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 import dedekind.algebra;
+import dedekind.category;
 
 using namespace dedekind::algebra;
 
@@ -71,5 +72,33 @@ TEST_CASE("Algebra: Polynomial Morphisms", "[algebra][polynomial]") {
     auto sq = one_plus_x * one_plus_x;
     REQUIRE(sq.degree() == 2);
     REQUIRE(sq == Polynomial<ℤ>({1, 2, 1}));
+  }
+
+  SECTION("Compile-time polynomial law metadata") {
+    using P = Polynomial<ℤ>;
+
+    static_assert(dedekind::category::is_associative_v<P, std::plus<>>);
+    static_assert(dedekind::category::is_associative_v<P, std::multiplies<>>);
+    static_assert(dedekind::category::is_commutative_v<P, std::plus<>>);
+
+    static_assert(requires(P a, P b) {
+      { a + b } -> std::same_as<P>;
+      { a * b } -> std::same_as<P>;
+      { a - b } -> std::same_as<P>;
+    });
+  }
+
+  SECTION("Compile-time polynomial calculus interface checks") {
+    using P = Polynomial<ℤ>;
+
+    static_assert(P{}.is_zero());
+    static_assert(P{}.degree() == 0);
+
+    static_assert(requires(P a, P b) {
+      { a + b } -> std::same_as<P>;
+      { a - b } -> std::same_as<P>;
+      { a * b } -> std::same_as<P>;
+      { a.derive() } -> std::same_as<P>;
+    });
   }
 }
