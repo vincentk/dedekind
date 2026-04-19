@@ -33,4 +33,24 @@ TEST_CASE("Analysis: Fundamental Theorem of Calculus Bridges",
     const Real area = integral_over<Real>(quadratic, 0.0, 1.0);
     REQUIRE(std::abs(area - (1.0 / 3.0)) < 1e-4);
   }
+
+  SECTION("Integral witness handles orientation and degenerate intervals") {
+    const auto quadratic = [](Real x) { return x * x; };
+
+    const Real forward = integral_over<Real>(quadratic, 0.0, 1.0);
+    const Real reverse = integral_over<Real>(quadratic, 1.0, 0.0);
+    REQUIRE(std::abs(forward + reverse) < 1e-8);
+
+    const Real degenerate = integral_over<Real>(quadratic, 2.0, 2.0);
+    REQUIRE(std::abs(degenerate) < 1e-12);
+  }
+
+  SECTION("Part I and Part II bridges hold for constant integrand") {
+    const auto integrand = [](Real) { return 3.0; };
+    const auto antiderivative = [](Real x) { return 3.0 * x; };
+
+    REQUIRE(ftc_part_i_bridge<Real>(integrand, -2.0, 0.75, 1e-4));
+    REQUIRE(
+        ftc_part_ii_bridge<Real>(integrand, antiderivative, -2.0, 4.0, 1e-4));
+  }
 }
