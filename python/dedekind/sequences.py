@@ -20,6 +20,12 @@ except ImportError:
     path_from_array = None
 
 try:
+    import numpy as np
+    _HAS_NUMPY = True
+except ImportError:
+    _HAS_NUMPY = False
+
+try:
     import pandas as pd
 
     _HAS_PANDAS = True
@@ -54,6 +60,8 @@ def frame_to_paths(df):
     """
     if not _HAS_PANDAS:
         raise ImportError("pandas is required for frame_to_paths")
+    if not _HAS_NUMPY:
+        raise ImportError("numpy is required for frame_to_paths (should be auto-installed with pandas)")
 
     result = {}
     for col in df.columns:
@@ -64,16 +72,19 @@ def frame_to_paths(df):
         if dtype_name == "bool" or dtype_name == "boolean":
             # BooleanDtype (nullable) → bool array with NA fill
             arr = series.to_numpy(dtype=bool, na_value=False)
+            arr = np.ascontiguousarray(arr)
             result[col] = path_from_array(arr) if path_from_array else path_from_range(arr.tolist())
 
         elif pd.api.types.is_integer_dtype(series):
             # Integer dtype → int64 array (zero-copy)
             arr = series.to_numpy(dtype="int64")
+            arr = np.ascontiguousarray(arr)
             result[col] = path_from_array(arr) if path_from_array else path_from_range(arr.tolist())
 
         elif pd.api.types.is_float_dtype(series):
             # Float dtype → float64 array (zero-copy)
             arr = series.to_numpy(dtype="float64")
+            arr = np.ascontiguousarray(arr)
             result[col] = path_from_array(arr) if path_from_array else path_from_range(arr.tolist())
 
         else:
