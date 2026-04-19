@@ -1,4 +1,6 @@
 import unittest
+import builtins
+import importlib
 from unittest import mock
 
 import dedekind
@@ -204,6 +206,37 @@ class DedekindFramePathsTest(unittest.TestCase):
             paths = dedekind.frame_to_paths(df)
         self.assertEqual(paths["f"], [1.25, 2.5, 5.0])
 
+    def test_frame_to_paths_requires_pandas(self) -> None:
+        import dedekind.sequences as sequences
+
+        with mock.patch.object(sequences, "_HAS_PANDAS", False):
+            with self.assertRaises(ImportError):
+                sequences.frame_to_paths(object())
+
+    def test_frame_to_paths_requires_numpy(self) -> None:
+        import dedekind.sequences as sequences
+
+        df = pd.DataFrame({"x": [1]})
+        with mock.patch.object(sequences, "_HAS_NUMPY", False):
+            with self.assertRaises(ImportError):
+                sequences.frame_to_paths(df)
+
+    def test_sequences_reload_path_from_array_fallback(self) -> None:
+        import dedekind.sequences as sequences
+
+        original_import = builtins.__import__
+
+        def selective_import(name, globals=None, locals=None, fromlist=(), level=0):
+            if name.endswith("_dedekind") and "path_from_array" in tuple(fromlist):
+                raise ImportError("simulated missing path_from_array")
+            return original_import(name, globals, locals, fromlist, level)
+
+        with mock.patch("builtins.__import__", side_effect=selective_import):
+            reloaded = importlib.reload(sequences)
+            self.assertIsNone(reloaded.path_from_array)
+
+        importlib.reload(sequences)
+
 
 class DedekindPackageExportsTest(unittest.TestCase):
     """Test package-level exports and lazy submodule loading."""
@@ -235,6 +268,20 @@ class DedekindPackageExportsTest(unittest.TestCase):
             import_module.side_effect.name = "numpy"
             with self.assertRaises(ModuleNotFoundError):
                 dedekind.__getattr__("sequences")
+
+    def test_init_reload_frame_to_paths_import_fallback(self) -> None:
+        original_import = builtins.__import__
+
+        def selective_import(name, globals=None, locals=None, fromlist=(), level=0):
+            if name.endswith("dedekind.sequences") and "frame_to_paths" in tuple(fromlist):
+                raise ImportError("simulated missing sequences module")
+            return original_import(name, globals, locals, fromlist, level)
+
+        with mock.patch("builtins.__import__", side_effect=selective_import):
+            reloaded = importlib.reload(dedekind)
+            self.assertIsNone(reloaded.frame_to_paths)
+
+        importlib.reload(dedekind)
 
     @unittest.skipUnless(_HAS_NUMPY, "numpy required for path_from_array export test")
     def test_path_from_array_exported_at_top_level(self) -> None:
