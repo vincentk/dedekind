@@ -62,8 +62,9 @@ constexpr R poisson_bracket(auto&& f, auto&& g, const Vector<R, N>& state) {
       "This poisson_bracket finite-difference overload only supports a "
       "single canonical pair (q, p), so N must be 2.");
 
-  const R eps = static_cast<R>(1e-6);  // FIXME #123: magic constant for finite-difference;
-                                        // pending numeric stability analysis
+  const R eps = static_cast<R>(
+      1e-6);  // FIXME #123: magic constant for finite-difference;
+              // pending numeric stability analysis
 
   auto bump = [&](std::size_t idx, R delta) {
     Vector<R, N> s = state;
