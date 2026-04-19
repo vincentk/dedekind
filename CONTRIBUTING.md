@@ -140,6 +140,22 @@ where concrete evaluation is intentionally required.
 - Mark the PR **Ready for Review** only once **all CI checks show green**.  A draft PR
    with failing CI should never be marked ready.
 
+### Make Target Quick Reference
+
+| Target | Description |
+|---|---|
+| `make clean` | Remove the `build/` directory |
+| `make compile` | Configure (if needed) and build all targets |
+| `make test` | Build then run the full test suite via CTest |
+| `make clean compile test` | Clean, rebuild, and run the verification suite |
+| `make format` | Auto-format all `*.cpp` / `*.cppm` sources with `clang-format` |
+| `make format-check` | Verify formatting without modifying files |
+| `make coverage` | Build, run tests, and produce an LLVM coverage report |
+| `make python-coverage` | Run Python tests and generate `build/python-coverage.xml` |
+| `make doxygen` | Build Doxygen API docs into `build/docs/` |
+| `make report` | Fast report compile check (`docs/report` `ci-check`) |
+| `make install-hooks` | Install the pre-push git hook |
+
 ### Backlog Grooming And CI Health Quick Loop
 
 1. Check CI health for `main`:
