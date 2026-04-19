@@ -2503,7 +2503,7 @@ with each embedding preserving the algebraic structure certified by the downstre
 \midrule
 $\mathbb{B}$ (Booleans) & \texttt{bool} / \texttt{Truth<L>} & $\hookrightarrow \mathbb{N}$ via \texttt{embed\_\textbf{B}\_N} \\
 $\mathbb{N}$ (naturals) & \texttt{unsigned} & $\hookrightarrow \mathbb{Z}$ via \texttt{embed\_N\_Z} \\
-$\mathbb{Z}$ (integers) & \texttt{int} / \texttt{machine\_integer} & $\hookrightarrow \mathbb{Q}$ via \texttt{embed\_Z\_Q} \\
+$\mathbb{Z}$ (integers) & \texttt{default\_integer} / \texttt{machine\_integer} & $\hookrightarrow \mathbb{Q}$ via \texttt{embed\_Z\_Q} \\
 $\mathbb{Q}$ (rationals) & \texttt{Rational<Z>} & $\hookrightarrow \mathbb{R}$ (cut) \\
 $\mathbb{R}$ (reals) & Dedekind cut / \texttt{approx} & $\hookrightarrow \mathbb{C}$ \\
 $\mathbb{C}$ (complex) & \texttt{Complex<S>} & Cayley--Dickson \\
@@ -2526,22 +2526,46 @@ Wraps \texttt{unsigned} as the canonical $\mathbb{N}$. The embedding $embed\_\ma
 \section{\texttt{:integer}}
 \label{sec:numbers-integer}
 
-Wraps signed machine integers as $\mathbb{Z}$ with the canonical embedding $embed\_\mathbb{N}\_\mathbb{Z}$.
+The integer layer now distinguishes the extensional machine boundary from the
+default carrier seam. In particular, \texttt{extensional\_integer} names the
+machine realization (currently \texttt{int}) while \texttt{default\_integer}
+is the architectural alias consumed downstream by \texttt{:rational},
+\texttt{:real}, and \texttt{:complex}. This keeps intensional retargeting
+localized to one alias.
+
+The partition also exports \texttt{euclidean\_gcd} as an integer-spine
+normalization primitive: for built-ins it routes through \texttt{std::gcd}, and
+for structural \texttt{IsInteger} carriers it falls back to the Euclidean
+algorithm over \texttt{\%}.
 
 \section{\texttt{:rational}}
 \label{sec:numbers-rational}
 
-\texttt{Rational<Z>} implements $\mathbb{Q}$ as a GCD-normalised fraction, satisfying the full field axioms.
+\texttt{Rational<Z>} implements $\mathbb{Q}$ as a GCD-normalised fraction,
+now normalized through \texttt{euclidean\_gcd} from \texttt{:integer} rather
+than a direct dependency on \texttt{std::gcd}. This removes a machine-only
+assumption from the fraction simplifier and keeps the integer/rational boundary
+structural.
 
 \begin{lstlisting}[language=C++, caption={Numbers: rational simplification and field inverse (from \texttt{rational\_test.cpp}).}, label={lst:numbers-rational}]
-Rational<int> q(12, 18);   // GCD(12,18)=6
+Rational<default_integer> q(12, 18);   // euclidean_gcd(12,18)=6
 REQUIRE(q.num() == 2);
 REQUIRE(q.den() == 3);
 
-Rational<int> a(3, 4);
+Rational<default_integer> a(3, 4);
 auto identity = a * a.inverse();  // = 1/1
 REQUIRE(identity.num() == 1);
 \end{lstlisting}
+
+\section{\texttt{:cardinality}}
+\label{sec:numbers-cardinality}
+
+\texttt{ExtensionalCardinal<N>} provides an explicit finite extensional
+cardinality carrier with checked arithmetic and an overflow policy that lifts
+to \texttt{Aleph0} at the variant layer. The partition now carries its own
+compile-time lock-in proofs for ring, natural, and order semantics directly in
+module source (rather than mirroring those as duplicate test-only static
+assertions), tightening compile-time validation feedback.
 
 \section{\texttt{:complex}}
 \label{sec:numbers-complex}
