@@ -139,6 +139,8 @@ In this paradigm, researchers utilize high-level symbolic environments like \tex
 \texttt{dedekind} does not claim to eliminate this split. Rather, it makes the systems programming language the primary semantic locus: mathematical invariants, performance-sensitive representations, and compiler-visible structure are defined first in \texttt{C++23}, while notebook-oriented and scripting-oriented interfaces can be layered on top.
 While tools such as \texttt{PyTorch} \cite{paszke2019pytorch} and \texttt{NumPy} \cite{harris2020numpy} offer elegant interfaces, they typically treat mathematical logic as a runtime implementation detail.
 This decoupling forces a manual translation layer between the high-level mathematical intent and the underlying hardware execution, leading to significant overhead in both developer time and system latency. In contrast, \texttt{dedekind} prioritizes preserving that intent inside the systems layer first, so any higher-level interface is downstream of the verified implementation rather than its semantic source.
+Operationally, this report separates a symbolic/intensional phase from a realization phase: mathematical construction proceeds without committing to a runtime numeric policy, and policy selection is deferred to explicit execution boundaries (Section~\ref{sec:symbolic-realization-boundary}).
+In implementation terms, we use a single rule across core modules and Python-facing boundaries: \enquote{intensional first, realize it when you mean it}.
 
 This duality is especially relevant in the context of LLM development and large-scale symbolic computing.
 In these fields, the ability to maintain the structural integrity of a mathematical model—such as the exactness of a tensor operation or the logical consistency of a set-builder predicate—is often lost during the transition to the C++ backend.
@@ -1539,9 +1541,6 @@ This enables the \texttt{C++} compiler to verify the structural validity of a fu
 By hoisting the predicate into a \texttt{Stateless Constraint Type}, we decouple the logical requirement of the set from the necessity of materializing its elements.
 This allows the compiler to treat $\mathscr{N}$ as a valid algebraic object, facilitating symbolic reasoning about digit distribution without requiring a prior numerical proof of normality, thereby avoiding the runtime overhead of high-precision digit evaluation.
 
-
-This allows the compiler to treat $\mathscr{N}$ as a valid algebraic object, facilitating symbolic reasoning about digit distribution without requiring a prior numerical proof of normality, thereby avoiding the runtime overhead of high-precision digit evaluation.
-
 This intensional logic extends to non-elementary functions where the antiderivative cannot be expressed in a finite combination of elementary terms.
 For example, the Gaussian integral $e^{-t^2}$ defines the \emph{Error Function} ($\text{erf}$) as a structural rule for area rather than a simple algebraic formula:
 \begin{equation}
@@ -1562,6 +1561,12 @@ This methodology ensures that the \emph{Dedekind cut}—defining real numbers $\
 This allows the \texttt{LLVM} backend to treat transcendental constants like $e$ and $\pi$ as symbolic invariants rather than opaque numeric variables.
 
 The library addresses the representation of transcendental constants by distinguishing between their algebraic \emph{definition} and their numerical \emph{realization}.
+\paragraph{Operational boundary: symbolic phase vs. realization phase.}\label{sec:symbolic-realization-boundary}
+In the symbolic (intensional) phase, we reason over abstract carriers, predicates, and morphisms, and we do \emph{not} commit to any concrete numerical implementation.
+In the realization phase, once the intensional construction is fixed and executable evaluation is desired, we choose an explicit runtime numeric policy (for example IEEE fast-lane execution, monitored approximation, or another realization strategy).
+This boundary exists to separate mathematical validity from hardware policy choices: proofs and structural rewrites remain representation-agnostic, while throughput/accuracy trade-offs are deferred to execution time.
+For consistency with the wrapper-facing MVP policy, we state the boundary as an explicit engineering directive: \enquote{intensional first, realize it when you mean it}. In this report, 
+\emph{realize} always denotes an intentional boundary crossing from structural/species-level objects to concrete runtime carriers.
 While the machine may be unable to \emph{compute} the final digit of $\pi$, the \texttt{dedekind} ontology can lazily \emph{define} it as a formal limit of a rational sequence.
 By encoding the \textsc{Leibniz} series for $\pi$ or the \textsc{Taylor} expansion for $e$, the library treats these constants as symbolic \emph{intensional} types.
 \begin{equation}
@@ -1728,6 +1733,7 @@ The explicit template argument \texttt{Complex<R>} guides the compiler's type in
 \label{sec:ieee-intro}
 
 The \texttt{dedekind.ieee} and \texttt{dedekind.numbers.approx} modules provide an algebraically-stamped IEEE~754 fast lane and a first-order error propagation framework. Standard floating-point arithmetic pervades scientific computing, yet its algebraic contract---associativity, commutativity, identity---is almost entirely implicit. These modules address this gap through an \emph{effect-context} design: arithmetic remains fast by default, but every operation on the certified path is algebraically stamped and carries local sensitivity information.
+This chapter focuses on the realization phase introduced in Section~\ref{sec:symbolic-realization-boundary}: policy selection happens at the execution boundary, not during symbolic construction.
 
 Key references are the IEEE~754 standard~\cite{ieee754_2019}, Higham's numerical stability guide~\cite{higham2002accuracy}, and error propagation literature~\cite{ku1966notes, ogita2005accurate}.
 
@@ -2305,6 +2311,9 @@ The set of operations is graded by the algebraic strength of $R$:
   \item \textbf{Formal differentiation} (\texttt{derive()}) is available over any semiring
         because the coefficient $i \cdot a_i$ is computed by $i$-fold addition:
         $\frac{d}{dx}\textstyle\sum a_i x^i = \sum_{i \geq 1} i\,a_i\,x^{i-1}$.
+    \item \textbf{Compile-time quick win}: constructor canonicalization is now
+      \texttt{constexpr}, and tests now include \texttt{static\_assert}-based
+      checks for polynomial law metadata and calculus interface signatures.
 \end{itemize}
 
 \begin{lstlisting}[language=C++, caption={Polynomial arithmetic and differentiation (from \texttt{polynomials\_test.cpp}).}, label={lst:polynomial}]
@@ -2320,6 +2329,15 @@ REQUIRE(dp.degree() == 1);
 
 // Derivative of a constant is zero.
 REQUIRE(Polynomial<Z>::one().derive().is_zero());
+
+// Compile-time quick wins: law metadata + calculus interface checks.
+using P = Polynomial<Z>;
+static_assert(dedekind::category::is_associative_v<P, std::plus<>>);
+static_assert(requires(P a, P b) {
+  { a + b } -> std::same_as<P>;
+  { a * b } -> std::same_as<P>;
+  { a.derive() } -> std::same_as<P>;
+});
 \end{lstlisting}
 
 \section{Results}
@@ -2488,7 +2506,7 @@ with each embedding preserving the algebraic structure certified by the downstre
 \midrule
 $\mathbb{B}$ (Booleans) & \texttt{bool} / \texttt{Truth<L>} & $\hookrightarrow \mathbb{N}$ via \texttt{embed\_\textbf{B}\_N} \\
 $\mathbb{N}$ (naturals) & \texttt{unsigned} & $\hookrightarrow \mathbb{Z}$ via \texttt{embed\_N\_Z} \\
-$\mathbb{Z}$ (integers) & \texttt{int} / \texttt{machine\_integer} & $\hookrightarrow \mathbb{Q}$ via \texttt{embed\_Z\_Q} \\
+$\mathbb{Z}$ (integers) & \texttt{default\_integer} / \texttt{machine\_integer} & $\hookrightarrow \mathbb{Q}$ via \texttt{embed\_Z\_Q} \\
 $\mathbb{Q}$ (rationals) & \texttt{Rational<Z>} & $\hookrightarrow \mathbb{R}$ (cut) \\
 $\mathbb{R}$ (reals) & Dedekind cut / \texttt{approx} & $\hookrightarrow \mathbb{C}$ \\
 $\mathbb{C}$ (complex) & \texttt{Complex<S>} & Cayley--Dickson \\
@@ -2511,22 +2529,46 @@ Wraps \texttt{unsigned} as the canonical $\mathbb{N}$. The embedding $embed\_\ma
 \section{\texttt{:integer}}
 \label{sec:numbers-integer}
 
-Wraps signed machine integers as $\mathbb{Z}$ with the canonical embedding $embed\_\mathbb{N}\_\mathbb{Z}$.
+The integer layer now distinguishes the extensional machine boundary from the
+default carrier seam. In particular, \texttt{extensional\_integer} names the
+machine realization (currently \texttt{int}) while \texttt{default\_integer}
+is the architectural alias consumed downstream by \texttt{:rational},
+\texttt{:real}, and \texttt{:complex}. This keeps intensional retargeting
+localized to one alias.
+
+The partition also exports \texttt{euclidean\_gcd} as an integer-spine
+normalization primitive: for built-ins it routes through \texttt{std::gcd}, and
+for structural \texttt{IsInteger} carriers it falls back to the Euclidean
+algorithm over \texttt{\%}.
 
 \section{\texttt{:rational}}
 \label{sec:numbers-rational}
 
-\texttt{Rational<Z>} implements $\mathbb{Q}$ as a GCD-normalised fraction, satisfying the full field axioms.
+\texttt{Rational<Z>} implements $\mathbb{Q}$ as a GCD-normalised fraction,
+now normalized through \texttt{euclidean\_gcd} from \texttt{:integer} rather
+than a direct dependency on \texttt{std::gcd}. This removes a machine-only
+assumption from the fraction simplifier and keeps the integer/rational boundary
+structural.
 
 \begin{lstlisting}[language=C++, caption={Numbers: rational simplification and field inverse (from \texttt{rational\_test.cpp}).}, label={lst:numbers-rational}]
-Rational<int> q(12, 18);   // GCD(12,18)=6
+Rational<default_integer> q(12, 18);   // euclidean_gcd(12,18)=6
 REQUIRE(q.num() == 2);
 REQUIRE(q.den() == 3);
 
-Rational<int> a(3, 4);
+Rational<default_integer> a(3, 4);
 auto identity = a * a.inverse();  // = 1/1
 REQUIRE(identity.num() == 1);
 \end{lstlisting}
+
+\section{\texttt{:cardinality}}
+\label{sec:numbers-cardinality}
+
+\texttt{ExtensionalCardinal<N>} provides an explicit finite extensional
+cardinality carrier with checked arithmetic and an overflow policy that lifts
+to \texttt{Aleph0} at the variant layer. The partition now carries its own
+compile-time lock-in proofs for ring, natural, and order semantics directly in
+module source (rather than mirroring those as duplicate test-only static
+assertions), tightening compile-time validation feedback.
 
 \section{\texttt{:complex}}
 \label{sec:numbers-complex}

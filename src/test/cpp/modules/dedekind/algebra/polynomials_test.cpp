@@ -1,7 +1,41 @@
 #include <catch2/catch_test_macros.hpp>
+#include <cmath>
+#include <complex>
+#include <concepts>
 import dedekind.algebra;
+import dedekind.category;
 
 using namespace dedekind::algebra;
+
+namespace {
+
+template <typename Coeff, typename Target, typename Embed>
+constexpr Target evaluate_polynomial_in(const Polynomial<Coeff>& p,
+                                        const Target& x, Embed&& embed) {
+  Target acc = embed(Coeff{0});
+  for (auto it = p.coeffs().rbegin(); it != p.coeffs().rend(); ++it) {
+    acc = (acc * x) + embed(*it);
+  }
+  return acc;
+}
+
+struct DualWitness {
+  double primal{};
+  double tangent{};
+
+  friend constexpr DualWitness operator+(const DualWitness& a,
+                                         const DualWitness& b) {
+    return {a.primal + b.primal, a.tangent + b.tangent};
+  }
+
+  friend constexpr DualWitness operator*(const DualWitness& a,
+                                         const DualWitness& b) {
+    return {a.primal * b.primal,
+            (a.primal * b.tangent) + (a.tangent * b.primal)};
+  }
+};
+
+}  // namespace
 
 TEST_CASE("Algebra: Polynomial Morphisms", "[algebra][polynomial]") {
   using ℤ = int;
@@ -71,5 +105,68 @@ TEST_CASE("Algebra: Polynomial Morphisms", "[algebra][polynomial]") {
     auto sq = one_plus_x * one_plus_x;
     REQUIRE(sq.degree() == 2);
     REQUIRE(sq == Polynomial<ℤ>({1, 2, 1}));
+  }
+
+  SECTION("Compile-time polynomial law metadata") {
+    using P = Polynomial<ℤ>;
+
+    static_assert(dedekind::category::is_associative_v<P, std::plus<>>);
+    static_assert(dedekind::category::is_associative_v<P, std::multiplies<>>);
+    static_assert(dedekind::category::is_commutative_v<P, std::plus<>>);
+
+    static_assert(requires(P a, P b) {
+      { a + b } -> std::same_as<P>;
+      { a * b } -> std::same_as<P>;
+      { a - b } -> std::same_as<P>;
+    });
+  }
+
+  SECTION("Compile-time polynomial calculus interface checks") {
+    using P = Polynomial<ℤ>;
+
+    static_assert(P{}.is_zero());
+    static_assert(P{}.degree() == 0);
+
+    static_assert(requires(P a, P b) {
+      { a + b } -> std::same_as<P>;
+      { a - b } -> std::same_as<P>;
+      { a * b } -> std::same_as<P>;
+      { a.derive() } -> std::same_as<P>;
+    });
+  }
+
+  SECTION("Coefficient species can evaluate into richer codomains") {
+    // Boolean coefficients: p(x) = 1 + x^2, evaluated in Complex<double>.
+    const Polynomial<bool> p_bool({true, false, true});
+    const std::complex<double> z{2.0, 1.0};
+    const auto as_complex = [](bool b) {
+      return std::complex<double>{b ? 1.0 : 0.0, 0.0};
+    };
+    const auto pz = evaluate_polynomial_in<bool>(p_bool, z, as_complex);
+    REQUIRE(pz.real() == 4.0);
+    REQUIRE(pz.imag() == 4.0);
+
+    // Natural coefficients: p(x) = x^2 + 3x + 2, evaluated in a dual witness.
+    const Polynomial<unsigned int> p_nat({2u, 3u, 1u});
+    const DualWitness seed{5.0, 1.0};
+    const auto as_dual = [](unsigned int n) {
+      return DualWitness{static_cast<double>(n), 0.0};
+    };
+    const auto pd = evaluate_polynomial_in<unsigned int>(p_nat, seed, as_dual);
+    REQUIRE(pd.primal == 42.0);
+    REQUIRE(pd.tangent == 13.0);
+  }
+
+  SECTION("Finite Taylor truncations are expressible as polynomials") {
+    // exp(x) around 0 truncated at order 3: 1 + x + x^2/2 + x^3/6
+    const Polynomial<double> exp_t3({1.0, 1.0, 0.5, 1.0 / 6.0});
+    const double approx_at_1 =
+        evaluate_polynomial_in<double>(exp_t3, 1.0, [](double c) { return c; });
+    REQUIRE(std::abs(approx_at_1 - (8.0 / 3.0)) < 1e-12);
+  }
+
+  SECTION("Polynomial model currently indexes only non-negative exponents") {
+    using P = Polynomial<ℤ>;
+    static_assert(std::unsigned_integral<decltype(P{}.degree())>);
   }
 }

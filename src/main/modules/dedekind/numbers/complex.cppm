@@ -219,7 +219,7 @@ inline constexpr auto embed_ℝ_ℂ = arrow<Real<R>, Complex<R>>(
  * (Real<R>, Rational<I>, int, unsigned, Ternary).
  */
 export template <typename R = machine_real_scalar,
-                 IsInteger I = machine_integer, typename L = ClassicalLogic,
+                 IsInteger I = default_integer, typename L = ClassicalLogic,
                  typename C = ℶ_1>
   requires IsComplexScalar<R>
 struct ComplexesOf {

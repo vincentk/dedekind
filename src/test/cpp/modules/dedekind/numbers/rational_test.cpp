@@ -4,8 +4,15 @@ import dedekind.numbers;
 using namespace dedekind::numbers;
 
 TEST_CASE("Numbers: Rational Simplification", "[numbers][rational]") {
+  SECTION("Euclidean GCD Lives In The Integer Spine") {
+    REQUIRE(euclidean_gcd(default_integer{12}, default_integer{18}) ==
+            default_integer{6});
+    REQUIRE(euclidean_gcd(default_integer{-12}, default_integer{18}) ==
+            default_integer{6});
+  }
+
   SECTION("Integer Fractions") {
-    Rational<int> q(12, 18);
+    Rational<default_integer> q(12, 18);
 
     // 12/18 simplified via GCD(12, 18)=6 -> 2/3
     REQUIRE(q.num() == 2);
@@ -14,7 +21,7 @@ TEST_CASE("Numbers: Rational Simplification", "[numbers][rational]") {
 }
 
 TEST_CASE("Numbers: The Rational Field", "[numbers][field]") {
-  using RationalValue = Rational<int>;
+  using RationalValue = Rational<default_integer>;
 
   SECTION("Multiplicative Identity: (a/b) * (b/a) = 1") {
     RationalValue a(3, 4);

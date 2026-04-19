@@ -4,6 +4,12 @@ This guide covers the current Python MVP surface built on top of the C++ `dedeki
 
 Design slogan: Write it like Python. Reason about it like math. Realize it when you mean it.
 
+Operational policy: for intensional/symbolic work, use abstract mathematical and
+symbolic types; pick a concrete runtime numeric representation only when you
+explicitly realize a definition for numerical computation.
+In other words, symbolic construction and proof-shaping do not require committing
+to a numerical backend; backend policy selection happens at realization time.
+
 ## Iteration Architecture (Current)
 
 This iteration uses a three-tier architecture:

@@ -42,9 +42,10 @@ export import :lattice;     // Lattices over ℝ and ℂ
 export import :mandelbrot;  // Mandelbrot recurrence/orbit helpers
 
 /** @section Non_Standard_Analysis */
-export import :dual;      // Automatic Differentiation / Infinitesimals
-export import :symbolic;  // Formal symbols / Indeterminates
-export import :real;      // ℝ (The Dedekind Cut / Cauchy continuum)
+export import :dual;         // Automatic Differentiation / Infinitesimals
+export import :symbolic;     // Formal symbols / Indeterminates
+export import :real;         // ℝ (The Dedekind Cut / Cauchy continuum)
+export import :cardinality;  // Draft finite/aleph0 carrier and policies
 
 /** @section Metadata */
 export import :constants;  // π, e, γ, etc.

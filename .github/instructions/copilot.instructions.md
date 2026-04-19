@@ -12,28 +12,48 @@ For the doxygen headers, please check that they follow common formats which usua
 For build checks, it's OK to use the CI build on a draft PR as opposed to building locally. Commits are squashed before a merge to `main` is executed so it does not have to look or perfect prior to pushing to a draft PR. Quite the contrary: the CI build is the authoritative reference build, so check the PR build status on a regular basis.
 
 Consult `CONTRIBUTING.md` for the repository's contributor workflow before planning or delivering work. Keep the instructions file focused on agent-specific constraints; keep generally useful contributor process in `CONTRIBUTING.md`.
+All agents MUST be aware of the contributor guide lines in `CONTRIBUTING.md` while working on this code base.
 
 Session-start requirement:
-- Read `CONTRIBUTING.md` at the beginning of each new chat/session before planning, triage, or implementation work.
-- Read `README.md` at the beginning of each new chat/session and perform the severe-divergence check described below.
-- Read the core project documentation references at the beginning of each new chat/session: `docs/report/references.bib` and `docs/paper/references.bib`.
+- Agents SHOULD read `CONTRIBUTING.md` at the beginning of each new chat/session before planning, triage, or implementation work.
+- Agents SHOULD read `README.md` at the beginning of each new chat/session and perform the severe-divergence check described below.
+- Agents SHOULD read the core project documentation references at the beginning of each new chat/session: `docs/report/references.bib` and `docs/paper/references.bib`.
 
 Execution policy for routine work in this repository:
 - Operate autonomously for vanilla workloads so the user does not need to babysit the session.
 - Use approved `make` targets and approved command inventory paths by default.
+- PR workload protocol:
+  - `Draft` protocol: leverage CI aggressively and prioritize narrowing the gap between the current implementation and the ticket acceptance criteria. Assess criteria coverage, implement the highest-impact missing criteria, add or adjust tests, and push small checkpoints without over-investing in polish.
+  - `Preparing Ready` protocol: once the implementation gap is narrow, shift priority toward polish. Tighten documentation and report alignment, review clarity and naming, check test coverage quality, and reduce low-risk rough edges before crossing the Ready gate.
+  - `Ready / Review` protocol: once the PR is ready or under review, prioritize reviewer response and merge readiness. Address review commentary to the best of your abilities, resolve review threads explicitly, preserve CI green status, and focus work on achieving a clean path to merge. Before final ready/merge passes, check `git stash list` and triage entries explicitly: apply+commit anything relevant to the active PR branch, and drop clearly irrelevant artifacts (for example temporary profiling outputs) so hidden local state does not linger.
+- All agents SHOULD remain aware of the available repository `make` targets while working on this code base.
+- At session start (or before a new workflow path), agents SHOULD load the relevant `Makefile` target context (for example via `make`/`make all` output or the documented target list).
+- Agents SHOULD add `.github/copilot/housekeeping` to `${PATH}` for the current session before invoking approved helper scripts from that directory.
+- Agents SHOULD avoid prefixing routine commands with temporary environment overrides (for example `TERM=...`, `FOO=... cmd`) unless explicitly requested, because such prefixes can interfere with approval flow behavior in this environment; prefer running repository `make` targets directly (for example `make pr-status`, `make pr-checks`, `make pr-watch`) since direct target invocation has proven to work reliably with approvals.
 - Keep actions auditable: prefer workflows that are easy to review and report the exact commands and outcomes.
 - Bias toward provably safe operation: perform read/check steps first, then minimal writes; avoid risky/destructive operations unless explicitly requested.
 - If a task requires manual-approval command paths, stop using that path and add a clean helper script or `make` target instead.
 
 RFC 2119 policy note (normative language):
+- Per RFC 2119 Section 6 guidance, use imperative strength sparingly: reserve `MUST` / `MUST NOT` for hard governance and safety constraints, and prefer `SHOULD` / `SHOULD NOT` for routine workflow guidance.
 - Per RFC 2119 terminology, agents SHOULD NOT compile locally as a default workflow; they SHOULD push checkpoints and rely on the CI reference build, for the reasons stated in `CONTRIBUTING.md` (authoritative build parity, reduced local toolchain drift, and faster contributor throughput).
 - Per RFC 2119 terminology, agents SHOULD NOT use ad hoc scripts for routine repo operations; they SHOULD use standardized commands and repository `make` targets, for the reasons stated in `CONTRIBUTING.md` (auditability, approval clarity, and repeatability across sessions).
+- Per RFC 2119 terminology, agents SHOULD use repository `make` targets or other standardized command paths for routine work so activity is auditable and can be pre-approved in this environment.
 - Per RFC 2119 terminology, agents SHOULD push reasonable, reviewable changes to CI without undue delay, as stated in `CONTRIBUTING.md`, so integration feedback is timely and branch divergence stays small.
 - Per RFC 2119 terminology, agents SHOULD keep implementation flow asynchronous and non-blocking where practical (small commits, immediate CI push, then continue parallel review/planning), for the reasons described in `CONTRIBUTING.md` (faster feedback loops, less idle wait time, and clearer progress checkpoints).
+- Per RFC 2119 terminology, agents SHOULD treat CI-driven development as eventually consistent: push small checkpoints, continue useful parallel work while checks run, and reconcile promptly when CI feedback arrives.
 - Per RFC 2119 terminology, while waiting between CI builds agents SHOULD use that time to check documentation consistency (report/paper/readme/doxygen), validate test coverage, or groom the backlog, for the reasons described in `CONTRIBUTING.md` (reduced drift, earlier quality-signal detection, and better review quality).
 - Per RFC 2119 terminology, a PR MUST pass pull request review before merge; agents MUST wait for a human review signal (approval or explicit owner instruction) prior to invoking merge operations.
 - Per RFC 2119 terminology, agents MUST NOT attempt to push to protected branches (including `main`); all updates MUST flow through a feature branch and PR.
-At the start of each session (and after every merge to `main`), run the following checks before triaging the backlog:
+**Backlog grooming completed on April 19, 2026:**
+- ✅ Main build verified green (3 recent CI runs all success)
+- ✅ README checked for severe divergence (none found)
+- ✅ 50+ issues triaged, organized by priority
+- ✅ PR #341 (Quick-Win Gaps & Bidirectional Backlog Links) marked READY for review
+- ✅ Architectural gaps prioritized: Derivative Abstraction (HIGH) → Forms Integration (MEDIUM-HIGH)
+- ✅ Parallel work streams identified: Derivative unification + Epic #286 Phase 1 (partial fractions)
+
+Before backlog triage, agents SHOULD run the following checks (typically at session start and after merges to `main`):
 
 1. **Verify the `main` build is green.** Check `gh run list --branch main --limit 3` and confirm the most recent CI run passed. If it is failing, address that before any new work.
 

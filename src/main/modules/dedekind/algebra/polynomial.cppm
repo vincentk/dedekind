@@ -165,6 +165,9 @@ class RigPolynomial {
   }
 
   constexpr std::size_t degree() const {
+    // FIXME #286: Laurent exponents. Currently only non-negative (Rig
+    // discipline). Support negative exponents via separate Laurent<R> type or
+    // exponent field.
     return coeffs_.empty() ? 0 : coeffs_.size() - 1;
   }
   constexpr bool is_zero() const { return coeffs_.empty(); }
@@ -175,7 +178,7 @@ class RigPolynomial {
  private:
   std::vector<R> coeffs_;
 
-  void canonicalize() {
+  constexpr void canonicalize() {
     const R zero = dedekind::category::identity_v<R, std::plus<R>>;
     while (!coeffs_.empty() && coeffs_.back() == zero) coeffs_.pop_back();
   }

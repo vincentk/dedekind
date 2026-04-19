@@ -18,7 +18,7 @@ DOT_FILE     := $(DOCS_DIR)/figures/dedekind_module_dependencies.dot
 
 .PHONY: all clean compile test integration-test coverage format format-check install-hooks ci-install-doxygen-deps ci-install-report-deps doxygen dot doc report \
 	ci-history ci-main pr-init pr-status pr-checks pr-watch pr-sync pr-review-comments pr-review-unresolved pr-resolve-thread pr-resolve-threads \
-	jupyter
+	check-review-comments resolve-review-comment issue-list jupyter
 
 all: compile
 
@@ -153,6 +153,34 @@ ci-install-report-deps:
 	sudo apt-get install -y biber texlive-latex-base texlive-latex-extra texlive-bibtex-extra texlive-pictures texlive-plain-generic texlive-fonts-recommended
 
 # CI/PR workflow helpers (optimistic concurrency loop)
+
+# Standardized backlog issue query helper.
+# Usage examples:
+#   make issue-list
+#   make issue-list LIMIT=50
+#   make issue-list STATE=all SEARCH="linear algebra"
+#   make issue-list FIELDS="number,title,labels,comments,body"
+issue-list:
+	@STATE_VAL="$(STATE)"; \
+	LIMIT_VAL="$(LIMIT)"; \
+	SEARCH_VAL="$(SEARCH)"; \
+	FIELDS_VAL="$(FIELDS)"; \
+	if [ -z "$$STATE_VAL" ]; then \
+		STATE_VAL="open"; \
+	fi; \
+	if [ -z "$$LIMIT_VAL" ]; then \
+		LIMIT_VAL=50; \
+	fi; \
+	if [ -z "$$FIELDS_VAL" ]; then \
+		FIELDS_VAL="number,title,body,labels,comments"; \
+	fi; \
+	echo "Listing issues: state=$$STATE_VAL limit=$$LIMIT_VAL fields=$$FIELDS_VAL"; \
+	if [ -n "$$SEARCH_VAL" ]; then \
+		gh issue list --state "$$STATE_VAL" --limit "$$LIMIT_VAL" --search "$$SEARCH_VAL" --json "$$FIELDS_VAL"; \
+	else \
+		gh issue list --state "$$STATE_VAL" --limit "$$LIMIT_VAL" --json "$$FIELDS_VAL"; \
+	fi
+
 ci-history:
 	@BRANCH_NAME="$(BRANCH)"; \
 	LIMIT_VAL="$(LIMIT)"; \
@@ -289,6 +317,11 @@ pr-review-unresolved:
 		exit 1; \
 	fi
 
+# Friendly alias: check unresolved review threads on the current PR (or PR=<number>).
+# Usage: make check-review-comments [PR=<number>]
+check-review-comments:
+	@$(MAKE) pr-review-unresolved PR="$(PR)"
+
 # Resolve one review thread on the current PR (or PR=<number>) and reply with a reason.
 # Usage: make pr-resolve-thread THREAD_ID=<thread_id> REASON="<resolution note>" [PR=<number>]
 pr-resolve-thread:
@@ -333,6 +366,22 @@ pr-resolve-thread:
 		-f query='mutation($$threadId:ID!) { resolveReviewThread(input:{threadId:$$threadId}) { thread { isResolved } } }' \
 		--jq '.data.resolveReviewThread.thread.isResolved' > /dev/null; \
 	echo "Resolved $$THREAD_ID"
+
+# Friendly alias: resolve one review thread with an explicit reason.
+# Usage:
+#   make resolve-review-comment THREAD_ID=<thread_id> REASON="<resolution note>" [PR=<number>]
+# For convenience, REVIEW_THREAD_ID is accepted as an alternative to THREAD_ID.
+resolve-review-comment:
+	@THREAD_VAL="$(THREAD_ID)"; \
+	if [ -z "$$THREAD_VAL" ]; then \
+		THREAD_VAL="$(REVIEW_THREAD_ID)"; \
+	fi; \
+	if [ -z "$$THREAD_VAL" ]; then \
+		echo "ERROR: THREAD_ID (or REVIEW_THREAD_ID) is required."; \
+		echo "Usage: make resolve-review-comment THREAD_ID=<thread_id> REASON=\"<resolution note>\" [PR=<number>]"; \
+		exit 2; \
+	fi; \
+	$(MAKE) pr-resolve-thread THREAD_ID="$$THREAD_VAL" REASON="$(REASON)" PR="$(PR)"
 
 # Deprecated: bulk resolution is intentionally disabled.
 # Resolve threads one by one with a reason via pr-resolve-thread.

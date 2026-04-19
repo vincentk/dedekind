@@ -10,6 +10,8 @@ Thank you for your interest in contributing!
    you invest time in an implementation.
 3. **Create a branch** named after the issue(s) you are addressing, e.g.
    `feat/issues-40-121`.
+   When work on a new branch is begun, all local edits SHOULD be triaged and
+   either pushed to a draft branch PR or discarded to prevent divergence.
 4. **Implement your changes** and push to a draft PR early and often — you do not need
    to verify that the code compiles or tests pass locally before each push.  The CI build
    is the reference build; offloading compilation and test execution to CI is explicitly
@@ -34,7 +36,15 @@ Thank you for your interest in contributing!
    so you can review and commit the formatting changes explicitly.
 6. **Open a draft PR** against `main` early — even before the implementation is complete.
    Push incremental checkpoints freely; the draft status signals work-in-progress.
+   Priority by PR state:
+   Draft PR: prioritize closing acceptance-criteria gaps checkpoint by checkpoint.
+   Near-Ready/Ready PR: prioritize polishing (clarity improvements,
+   documentation/report alignment, low-risk quality refinements, and review
+   thread closure).
    Mark the PR **Ready for Review** only once **all CI checks are green**.
+   Before flagging a PR as ready, contributors SHOULD compare and contrast the
+   updated modules and the corresponding chapters in the report, and verify the
+   report documentation is up to date.
 
 ## Workflow at a glance
 
@@ -57,6 +67,10 @@ or `make test`.  This should be the exception, not the routine.
 
 The goal is to keep the contributor's focus on the mathematics and the code, not
 on build management.
+
+For modeling decisions, prefer abstract/intensional carriers and symbolic types by
+default; choose a concrete runtime numeric representation only at realization points
+where concrete evaluation is intentionally required.
 
 ## Development workflow
 
@@ -88,9 +102,18 @@ on build management.
    model rather than a pessimistic one. In practice, CI is more authoritative
    than local builds, and a small temporary divergence between local and CI
    status is acceptable while iterating on draft PR checkpoints.
+- Operational consistency note: this workflow is intentionally asynchronous and
+   eventually consistent. Contributors should ship small checkpoints promptly,
+   let CI validate in parallel, and converge based on CI feedback.
+- Practical intent: during active PR development, temporary local/remote status
+   skew is expected; the team should optimize for fast convergence back to green
+   CI rather than for lock-step local synchronization at every step.
 - Motivation: this model is not only about throughput; it also mitigates
    "works on my laptop" failures by treating CI as the reproducible baseline
    and local environments as potentially non-reproducible.
+- RFC 2119 usage note (Section 6): use imperative terms proportionally.
+   Reserve `MUST` / `MUST NOT` for hard governance or safety constraints,
+   and prefer `SHOULD` / `SHOULD NOT` for routine workflow guidance.
 - Before starting new work, check that the most recent `main` branch CI run is green.
 - For backlog grooming, run a short preflight in this order: check `main` CI health, then list
    open issues, then list open fork PRs, then classify each item as actionable / ambiguous /

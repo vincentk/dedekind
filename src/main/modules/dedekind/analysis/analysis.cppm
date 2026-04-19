@@ -14,6 +14,7 @@
  * - :exterior -- wedge products and alternating two-forms.
  * - :hamilton -- Poisson brackets and Hamiltonian witnesses.
  * - :kernels  -- Gaussian and reproducing-kernel primitives.
+ * - :ftc      -- Fundamental Theorem of Calculus bridge hooks.
 
  *
  * @note "L'analyse, ce n'est pas seulement calculer; c'est organiser les
@@ -27,6 +28,7 @@
 export module dedekind.analysis;
 
 export import :exterior;
+export import :ftc;
 export import :forms;
 export import :hamilton;
 export import :kernels;

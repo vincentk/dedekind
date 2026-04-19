@@ -36,8 +36,8 @@ namespace dedekind::numbers {
 using namespace dedekind::category;
 using namespace dedekind::sets;
 
-// Canonical machine realization for the integer carrier.
-export using machine_integer = int;
+// Canonical extensional/machine realization for the integer carrier.
+export using machine_integer = extensional_integer;
 
 /**
  * @class Rational
@@ -54,7 +54,7 @@ class Rational {
   constexpr void simplify() {
     if (den_ == Z{0}) throw std::domain_error("Rational: Division by zero.");
 
-    Z common = std::gcd(num_, den_);
+    Z common = euclidean_gcd(num_, den_);
     num_ = num_ / common;
     den_ = den_ / common;
 
@@ -260,13 +260,13 @@ namespace dedekind::numbers {
 /** @section Formal_Verification */
 
 // Proof: The inverse of 2/3 is 3/2.
-static_assert((Rational<machine_integer>(2, 3).inverse().num() == 3));
+static_assert((Rational<default_integer>(2, 3).inverse().num() == 3));
 
 /**
  * @brief Characteristic morphism for ℚ: the rationals.
  * Accepts native Rational<I> and delegates predecessor checks through ℤ.
  */
-export template <IsInteger I = machine_integer, typename L = ClassicalLogic,
+export template <IsInteger I = default_integer, typename L = ClassicalLogic,
                  typename C = ℵ_0>
 struct RationalsOf {
   using Domain = Rational<I>;
@@ -279,7 +279,7 @@ struct RationalsOf {
     return L::True;
   }
 
-  // Direct parent: embed machine integer into ℚ.
+  // Direct parent: embed extensional integer into ℚ.
   constexpr typename L::Ω operator()(machine_integer z) const {
     return operator()(Rational<I>{static_cast<I>(z), static_cast<I>(1)});
   }
@@ -302,7 +302,7 @@ export inline constexpr ℚ Q{};
  * @details Every integer n embeds as the fraction n/1.
  *          This is the current machine model lift of Z → Q.
  */
-export template <IsInteger I = machine_integer>
+export template <IsInteger I = default_integer>
 inline constexpr auto embed_ℤ_ℚ =
     arrow<machine_integer, Rational<I>>([](const machine_integer& n) noexcept {
       return Rational<I>{static_cast<I>(n), static_cast<I>(1)};

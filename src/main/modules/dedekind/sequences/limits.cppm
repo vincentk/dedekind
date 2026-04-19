@@ -69,7 +69,8 @@ constexpr T limit(const Path<T>& s) {
    * In a machine context, we sample the path at the 'asymptotic'
    * horizon of the species.
    */
-  // FIXME: Magic constant.
+  // FIXME #293: Heuristic sampling index for limit evaluation. Proper fix
+  // requires ε-stabilization mechanism and formal convergence test coverage.
   return s.at(10000);
 }
 
