@@ -3,8 +3,8 @@
 This module re-exports the C++ `dedekind.sequences` bindings and provides
 utilities for converting pandas DataFrames to products of sequences.
 
-Sequence operations are zero-copy where possible (NumPy arrays via buffer
-protocol). String sequences fall back to Python iteration.
+Sequence operations prefer contiguous typed arrays for efficient transfer to
+the C++ bindings. String sequences fall back to Python iteration.
 """
 
 from ._dedekind import (
@@ -79,31 +79,25 @@ def frame_to_paths(df):
         # Normalize and dispatch based on dtype
         if dtype_name == "bool" or dtype_name == "boolean":
             # BooleanDtype (nullable) → bool array with NA fill
-            arr = np.array(
-                series.to_numpy(dtype=np.bool_, na_value=False, copy=True),
+            arr = np.ascontiguousarray(
+                series.to_numpy(dtype=np.bool_, na_value=False, copy=False),
                 dtype=np.bool_,
-                order="C",
-                copy=True,
             ).reshape(-1)
             result[col] = path_from_bool_array(arr) if path_from_array else path_from_range(arr.tolist())
 
         elif pd.api.types.is_integer_dtype(series):
-            # Integer dtype → int64 array (zero-copy)
-            arr = np.array(
-                series.to_numpy(dtype=np.int64, copy=True),
+            # Integer dtype → int64 array (contiguous where needed)
+            arr = np.ascontiguousarray(
+                series.to_numpy(dtype=np.int64, copy=False),
                 dtype=np.int64,
-                order="C",
-                copy=True,
             ).reshape(-1)
             result[col] = path_from_int64_array(arr) if path_from_array else path_from_range(arr.tolist())
 
         elif pd.api.types.is_float_dtype(series):
-            # Float dtype → float64 array (zero-copy)
-            arr = np.array(
-                series.to_numpy(dtype=np.float64, copy=True),
+            # Float dtype → float64 array (contiguous where needed)
+            arr = np.ascontiguousarray(
+                series.to_numpy(dtype=np.float64, copy=False),
                 dtype=np.float64,
-                order="C",
-                copy=True,
             ).reshape(-1)
             result[col] = path_from_float64_array(arr) if path_from_array else path_from_range(arr.tolist())
 

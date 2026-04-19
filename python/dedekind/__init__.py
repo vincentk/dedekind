@@ -10,7 +10,7 @@ try:
     from ._dedekind import set_difference
     from ._dedekind import set_cardinality
     from ._dedekind import Complex
-    from ._dedekind import Dual
+    from ._dedekind import Dual as CppDual
 except ModuleNotFoundError as _exc:
     raise ImportError(
         "The dedekind C++ extension (_dedekind) is not available. "
@@ -47,6 +47,7 @@ except ImportError:
 from .dsl import (
     Activity,
     AnalystFrame,
+    Dual as DSLDual,
     Ensemble,
     LinearChoice,
     SetDef,
@@ -68,6 +69,9 @@ from .dsl import (
     unpivot_table,
 )
 
+# Backward-compatible alias for the C++ dual binding at top level.
+Dual = CppDual
+
 __all__ = [
     # C++ bindings (backward compat)
     "ordered_set_roundtrip",
@@ -79,6 +83,8 @@ __all__ = [
     "set_difference",
     "set_cardinality",
     "Complex",
+    "CppDual",
+    "DSLDual",
     "Dual",
     # Submodules
     "sets",

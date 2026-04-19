@@ -34,6 +34,7 @@
 
 #include <algorithm>
 #include <cstddef>
+#include <cstdint>
 #include <set>
 #include <string>
 #include <unordered_set>
@@ -74,7 +75,7 @@ auto path_from_range(const std::vector<int>& values) -> std::vector<int> {
 }
 
 // ── arrays: NumPy ndarray ↔ dedekind.sequences ──────────────────────────
-// Zero-copy bindings for NumPy arrays to std::vector via the buffer protocol.
+// Typed bindings for NumPy arrays to std::vector via the buffer protocol.
 // Supports bool, int64, double; falls back to Python sequence for str.
 
 template <typename T>
@@ -212,25 +213,25 @@ NB_MODULE(_dedekind, module) {
   // ── sequences (Python list ↔ dedekind.sequences) ─────────────────────
   module.def("ordered_set_roundtrip", &ordered_set_roundtrip,
              "Round-trip a Python list through the ordered finite-set facade "
-             "(dedekind.sequences).");
+             "(dedekind.sets).");
   module.def("unordered_set_roundtrip", &unordered_set_roundtrip,
              "Round-trip a Python list through the unordered finite-set facade "
-             "(dedekind.sequences).");
+             "(dedekind.sets).");
   module.def("path_from_range", &path_from_range,
              "Materialize a finite path from a Python list "
              "(dedekind.sequences).");
 
   // ── arrays (NumPy ndarray ↔ dedekind.sequences) ─────────────────────────
-  // Zero-copy NumPy array bindings (bool, int64, double) + sequence fallback.
+  // Typed NumPy array bindings (bool, int64, double) + sequence fallback.
   module.def("path_from_array", &path_from_array<bool>,
              "Materialize a finite path from a NumPy bool array "
-             "(zero-copy via buffer protocol).");
+             "(via buffer protocol).");
   module.def("path_from_array", &path_from_array<int64_t>,
              "Materialize a finite path from a NumPy int64 array "
-             "(zero-copy via buffer protocol).");
+             "(via buffer protocol).");
   module.def("path_from_array", &path_from_array<double>,
              "Materialize a finite path from a NumPy float64 array "
-             "(zero-copy via buffer protocol).");
+             "(via buffer protocol).");
   module.def("path_from_str_seq", &path_from_str_seq,
              "Materialize a finite path from a Python sequence of strings.");
   module.def("path_from_bool_array", &path_from_array<bool>,

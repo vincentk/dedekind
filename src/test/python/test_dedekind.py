@@ -118,7 +118,7 @@ class DedekindSetAlgebraTest(unittest.TestCase):
 
 @unittest.skipUnless(_HAS_NUMPY, "numpy required for path_from_array tests")
 class DedekindArrayBindingsTest(unittest.TestCase):
-    """Test zero-copy NumPy ndarray path_from_array bindings."""
+    """Test NumPy ndarray path_from_array bindings."""
 
     def test_path_from_array_bool(self) -> None:
         arr = np.array([True, False, True], dtype=bool)
@@ -346,6 +346,14 @@ class DedekindPackageExportsTest(unittest.TestCase):
         arr = np.array([1, 2, 3], dtype=np.int64)
         result = dedekind.path_from_array(arr)
         self.assertEqual(result, [1, 2, 3])
+
+    def test_dual_aliases_are_disambiguated(self) -> None:
+        self.assertIs(dedekind.Dual, dedekind.CppDual)
+        self.assertIsNot(dedekind.Dual, dedekind.DSLDual)
+
+    def test_dsl_dual_alias_works_with_dual_derivative(self) -> None:
+        value, derivative = dedekind.dual_derivative(lambda x: x * x + x, 3.0)
+        self.assertEqual((value, derivative), (12.0, 7.0))
 
 
 class DedekindComplexTest(unittest.TestCase):

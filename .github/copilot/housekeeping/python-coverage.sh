@@ -12,6 +12,8 @@ fi
 
 python -m pip install --quiet pytest pytest-cov
 
+mkdir -p build
+
 pytest src/test/python \
   --cov=dedekind \
   --cov-report=xml:build/python-coverage.xml \
