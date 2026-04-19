@@ -90,3 +90,73 @@ TEST_CASE("Analysis: Fundamental Theorem of Calculus Bridges",
                                                IEEEReal{3.0}, IEEEReal{1e-3}));
   }
 }
+
+TEST_CASE("Analysis: Derivative and Integral Diagnostics",
+          "[analysis][ftc][diagnostics]") {
+  using Real = double;
+
+  SECTION("suggest_derivative_step_size validates h=1e-5 default") {
+    // Test cubic polynomial: f(x) = x^3, f'(x) = 3x^2
+    const auto cubic = [](Real x) { return x * x * x; };
+
+    const auto [suggested_h, drift] =
+        suggest_derivative_step_size<Real>(cubic, 2.0, 1e-6);
+
+    // For a smooth cubic, h should stabilize at a fine scale (1e-6 or 1e-7)
+    // and the drift should be very small
+    REQUIRE(suggested_h > 0);
+    REQUIRE(drift >= 0);
+    REQUIRE(drift < 1e-4);  // Convergence should be tight for smooth function
+  }
+
+  SECTION("suggest_derivative_step_size finds step size quickly") {
+    // Simple quadratic: f(x) = x^2, f'(x) = 2x
+    const auto quadratic = [](Real x) { return x * x; };
+
+    const auto [suggested_h, drift] =
+        suggest_derivative_step_size<Real>(quadratic, 1.0, 1e-6);
+
+    // h should be finite and positive
+    REQUIRE(suggested_h > 1e-8);
+    REQUIRE(suggested_h <= 1e-3);
+  }
+
+  SECTION("diagnose_integral_convergence validates slice count heuristic") {
+    // Simple quadratic: ∫_0^1 x^2 dx = 1/3
+    const auto quadratic = [](Real x) { return x * x; };
+
+    const auto [recommended_slices, max_drift] =
+        diagnose_integral_convergence<Real>(quadratic, 0.0, 1.0, 1e-5);
+
+    // For a smooth quadratic, 500 or 2500 slices should suffice;
+    // drift between refinements should be tiny
+    REQUIRE(recommended_slices >= 100);
+    REQUIRE(recommended_slices <= 4096);
+    REQUIRE(max_drift >= 0);
+    REQUIRE(max_drift < 1e-3);
+  }
+
+  SECTION("diagnose_integral_convergence shows convergence pattern") {
+    // Linear: ∫_0^2 x dx = 2
+    const auto linear = [](Real x) { return x; };
+
+    const auto [recommended_slices, max_drift] =
+        diagnose_integral_convergence<Real>(linear, 0.0, 2.0, 1e-6);
+
+    // Linear function should converge very quickly
+    REQUIRE(recommended_slices <= 500);
+    REQUIRE(max_drift < 1e-4);
+  }
+
+  SECTION("diagnose_integral_convergence handles constant function") {
+    // Constant: ∫_0^3 5 dx = 15
+    const auto constant = [](Real) { return 5.0; };
+
+    const auto [recommended_slices, max_drift] =
+        diagnose_integral_convergence<Real>(constant, 0.0, 3.0, 1e-8);
+
+    // Constant should be nearly exact at any scale
+    REQUIRE(recommended_slices >= 100);
+    REQUIRE(max_drift < 1e-7);
+  }
+}

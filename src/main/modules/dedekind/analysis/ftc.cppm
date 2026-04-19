@@ -151,7 +151,8 @@ constexpr R derivative_at(
  *          - Raw std::size_t loop should eventually use Path monad (see
  *            backlog: Sequence-Adapter Layer).
  *          - No integration methods (by parts, substitution) or symbolic
- *            simplification (see Epic #286: Undergraduate Calculus Foundations).
+ *            simplification (see Epic #286: Undergraduate Calculus
+ * Foundations).
  *
  * @see analysis::OneForm, TwoForm for differential forms (currently separate).
  * @see backlog: Integral Abstraction, Forms Integration, Epic #286.
@@ -328,8 +329,8 @@ constexpr std::pair<R, R> suggest_derivative_step_size(
   // Test h values at logarithmic scales: 1e-3, 1e-4, ..., 1e-8
   constexpr std::size_t num_tests = 6;
   const R h_values[num_tests] = {
-      detail::lift<R>(1e-3),  detail::lift<R>(1e-4),  detail::lift<R>(1e-5),
-      detail::lift<R>(1e-6),  detail::lift<R>(1e-7),  detail::lift<R>(1e-8),
+      detail::lift<R>(1e-3), detail::lift<R>(1e-4), detail::lift<R>(1e-5),
+      detail::lift<R>(1e-6), detail::lift<R>(1e-7), detail::lift<R>(1e-8),
   };
 
   R prev_deriv = derivative_at<R>(f, x, h_values[0]);
@@ -362,8 +363,9 @@ constexpr std::pair<R, R> suggest_derivative_step_size(
  *
  * @details Computes integral_over() at increasing slice counts
  *          (100, 500, 2500, 4096) and monitors convergence drift.
- *          Returns the smallest slice count where drift ≤ convergence_threshold,
- *          plus the maximum drift observed across all refinement steps.
+ *          Returns the smallest slice count where drift ≤
+ * convergence_threshold, plus the maximum drift observed across all refinement
+ * steps.
  *
  * @param f The function to integrate.
  * @param a Left endpoint.
