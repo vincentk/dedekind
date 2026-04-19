@@ -18,12 +18,14 @@ version: "1.0.0"
 date-released: "2026-04-19"
 keywords:
   - C++23
-  - modules
-  - concepts
+  - python
+  - intensional programming
+  - compile-time programming
   - category theory
   - type theory
   - axiomatic systems programming
-  - linear algebra
+  - abstract algebra
+  - exact real arithmetic
+  - sparse linear algebra
   - GraphBLAS
-  - rank-nullity
-  - Dedekind cuts
+  - numpy
