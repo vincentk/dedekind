@@ -12,7 +12,8 @@
  *
  * @note "La matematica e l'arte di dare lo stesso nome a cose diverse."
  *       -- Henri Poincare, paraphrase
- *       [Trans: "Mathematics is the art of giving the same name to different things."]
+ *       [Trans: "Mathematics is the art of giving the same name to different
+ * things."]
  */
 export module dedekind.linear_algebra;
 

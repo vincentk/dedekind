@@ -37,8 +37,7 @@ static_assert(LinearAlgebraBackend<GraphBLASBackendStub>);
  * @brief Minimal operator carrier that binds contracts to a backend witness.
  */
 export template <typename Scalar, std::size_t AmbientDimension,
-                 std::size_t Rank,
-                 typename Backend = GraphBLASBackendStub>
+                 std::size_t Rank, typename Backend = GraphBLASBackendStub>
   requires LinearAlgebraBackend<Backend>
 struct SparseLinearOperatorStub {
   using scalar_type = Scalar;
@@ -52,6 +51,7 @@ struct SparseLinearOperatorStub {
  */
 export template <typename Op>
 concept BackendConformantLinearOperator =
-    LinearOperatorContract<Op> && LinearAlgebraBackend<typename Op::backend_type>;
+    LinearOperatorContract<Op> &&
+    LinearAlgebraBackend<typename Op::backend_type>;
 
 }  // namespace dedekind::linear_algebra

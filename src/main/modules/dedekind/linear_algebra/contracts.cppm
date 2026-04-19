@@ -24,9 +24,9 @@ concept RankNullityWitness = requires {
   { W::ambient_dimension } -> std::convertible_to<std::size_t>;
   { W::rank } -> std::convertible_to<std::size_t>;
   { W::nullity } -> std::convertible_to<std::size_t>;
-  requires (W::rank <= W::ambient_dimension);
-  requires (W::nullity <= W::ambient_dimension);
-  requires (W::rank + W::nullity == W::ambient_dimension);
+  requires(W::rank <= W::ambient_dimension);
+  requires(W::nullity <= W::ambient_dimension);
+  requires(W::rank + W::nullity == W::ambient_dimension);
 };
 
 /**
@@ -34,7 +34,7 @@ concept RankNullityWitness = requires {
  * @brief Convenience compile-time carrier for finite-dimensional witnesses.
  */
 export template <std::size_t AmbientDimension, std::size_t Rank>
-  requires (Rank <= AmbientDimension)
+  requires(Rank <= AmbientDimension)
 struct StaticRankNullity {
   static constexpr std::size_t ambient_dimension = AmbientDimension;
   static constexpr std::size_t rank = Rank;
