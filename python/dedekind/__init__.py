@@ -8,6 +8,8 @@ try:
     from ._dedekind import set_intersection
     from ._dedekind import set_difference
     from ._dedekind import set_cardinality
+    from ._dedekind import Complex
+    from ._dedekind import Dual
 except ModuleNotFoundError as _exc:
     raise ImportError(
         "The dedekind C++ extension (_dedekind) is not available. "
@@ -54,6 +56,8 @@ __all__ = [
     "set_intersection",
     "set_difference",
     "set_cardinality",
+    "Complex",
+    "Dual",
     # Submodules
     "sets",
     "sequences",

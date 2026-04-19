@@ -180,5 +180,97 @@ class DedekindFramePathsTest(unittest.TestCase):
         self.assertEqual(paths["y"], [3.14])
 
 
+class DedekindComplexTest(unittest.TestCase):
+    """Test Complex<double> bindings."""
+
+    def test_complex_construction(self) -> None:
+        z = dedekind.Complex(3.0, 4.0)
+        self.assertEqual(z.real(), 3.0)
+        self.assertEqual(z.imag(), 4.0)
+
+    def test_complex_default_construction(self) -> None:
+        z = dedekind.Complex()
+        self.assertEqual(z.real(), 0.0)
+        self.assertEqual(z.imag(), 0.0)
+
+    def test_complex_addition(self) -> None:
+        z1 = dedekind.Complex(1.0, 2.0)
+        z2 = dedekind.Complex(3.0, 4.0)
+        z3 = z1 + z2
+        self.assertEqual(z3.real(), 4.0)
+        self.assertEqual(z3.imag(), 6.0)
+
+    def test_complex_multiplication(self) -> None:
+        z1 = dedekind.Complex(1.0, 1.0)
+        z2 = dedekind.Complex(2.0, 3.0)
+        z3 = z1 * z2
+        # (1+i)(2+3i) = 2 + 3i + 2i + 3i² = 2 + 5i - 3 = -1 + 5i
+        self.assertEqual(z3.real(), -1.0)
+        self.assertEqual(z3.imag(), 5.0)
+
+    def test_complex_multiplication_i_squared(self) -> None:
+        i = dedekind.Complex(0.0, 1.0)
+        i_sq = i * i
+        # i² = -1
+        self.assertEqual(i_sq.real(), -1.0)
+        self.assertAlmostEqual(i_sq.imag(), 0.0, places=10)
+
+    def test_complex_repr(self) -> None:
+        z = dedekind.Complex(2.5, 3.5)
+        repr_str = repr(z)
+        self.assertIn("Complex", repr_str)
+        self.assertIn("2.5", repr_str)
+        self.assertIn("3.5", repr_str)
+
+
+class DedekindDualTest(unittest.TestCase):
+    """Test Dual<double> bindings (forward-mode automatic differentiation)."""
+
+    def test_dual_construction(self) -> None:
+        d = dedekind.Dual(5.0, 2.0)
+        self.assertEqual(d.value(), 5.0)
+        self.assertEqual(d.derivative(), 2.0)
+
+    def test_dual_default_construction(self) -> None:
+        d = dedekind.Dual()
+        self.assertEqual(d.value(), 0.0)
+        self.assertEqual(d.derivative(), 0.0)
+
+    def test_dual_addition(self) -> None:
+        # (u + u'ε) + (v + v'ε) = (u + v) + (u' + v')ε
+        d1 = dedekind.Dual(3.0, 1.0)
+        d2 = dedekind.Dual(4.0, 2.0)
+        d3 = d1 + d2
+        self.assertEqual(d3.value(), 7.0)
+        self.assertEqual(d3.derivative(), 3.0)
+
+    def test_dual_multiplication(self) -> None:
+        # (u + u'ε)(v + v'ε) = uv + (uv' + u'v)ε (since ε² = 0)
+        d1 = dedekind.Dual(2.0, 1.0)
+        d2 = dedekind.Dual(3.0, 2.0)
+        d3 = d1 * d2
+        # value: 2 * 3 = 6
+        # derivative: 2 * 2 + 1 * 3 = 4 + 3 = 7
+        self.assertEqual(d3.value(), 6.0)
+        self.assertEqual(d3.derivative(), 7.0)
+
+    def test_dual_forward_mode_ad(self) -> None:
+        # f(x) = x² + 2x, f'(x) = 2x + 2
+        # At x = 3: f(3) = 9 + 6 = 15, f'(3) = 6 + 2 = 8
+        x = dedekind.Dual(3.0, 1.0)  # value=3, derivative=1 (for df/dx)
+        x_sq = x * x  # x²
+        two_x = dedekind.Dual(2.0, 0.0) * x  # 2x
+        result = x_sq + two_x  # x² + 2x
+        self.assertEqual(result.value(), 15.0)
+        self.assertEqual(result.derivative(), 8.0)
+
+    def test_dual_repr(self) -> None:
+        d = dedekind.Dual(1.5, 2.5)
+        repr_str = repr(d)
+        self.assertIn("Dual", repr_str)
+        self.assertIn("1.5", repr_str)
+        self.assertIn("2.5", repr_str)
+
+
 if __name__ == "__main__":
     unittest.main()

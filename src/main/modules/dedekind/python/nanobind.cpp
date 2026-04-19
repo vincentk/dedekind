@@ -39,6 +39,7 @@
 #include <unordered_set>
 #include <vector>
 
+import dedekind.numbers;
 import dedekind.python;
 
 namespace nb = nanobind;
@@ -159,6 +160,54 @@ void register_set_ops(nb::module_& m) {
 
 }  // namespace
 
+// ── Complex and Dual number bindings ──────────────────────────────────────
+// These bindings expose algebraic extensions (Complex<double>, Dual<double>)
+// for experimental numeric computations from Python.
+
+void bind_complex(nb::module_& m) {
+  using Complex = dedekind::numbers::Complex<double>;
+  nb::class_<Complex>(m, "Complex",
+                      "Represents a complex number z = re + im*i.")
+      .def(nb::init<double, double>(), nb::arg("re") = 0.0,
+           nb::arg("im") = 0.0,
+           "Construct a complex number from real and imaginary parts.")
+      .def("real", &Complex::real, "Extract the real part.")
+      .def("imag", &Complex::imag, "Extract the imaginary part.")
+      .def("__add__",
+           [](const Complex& a, const Complex& b) { return a + b; },
+           "Addition of complex numbers.")
+      .def("__mul__",
+           [](const Complex& a, const Complex& b) { return a * b; },
+           "Multiplication of complex numbers.")
+      .def("__repr__", [](const Complex& z) {
+        return std::string("Complex(") + std::to_string(z.real()) + "+" +
+               std::to_string(z.imag()) + "i)";
+      });
+}
+
+void bind_dual(nb::module_& m) {
+  using Dual = dedekind::numbers::Dual<double>;
+  nb::class_<Dual>(m, "Dual",
+                   "Represents a dual number d = val + der*ε (ε² = 0).")
+      .def(nb::init<double, double>(), nb::arg("val") = 0.0,
+           nb::arg("der") = 0.0,
+           "Construct a dual number from value and derivative parts.")
+      .def("value", &Dual::value,
+           "Extract the function value f(x).")
+      .def("derivative", &Dual::derivative,
+           "Extract the derivative f'(x) (forward-mode AD).")
+      .def("__add__",
+           [](const Dual& a, const Dual& b) { return a + b; },
+           "Addition of dual numbers.")
+      .def("__mul__",
+           [](const Dual& a, const Dual& b) { return a * b; },
+           "Multiplication of dual numbers (respects ε² = 0).")
+      .def("__repr__", [](const Dual& d) {
+        return std::string("Dual(") + std::to_string(d.value()) + "+" +
+               std::to_string(d.derivative()) + "ε)";
+      });
+}
+
 NB_MODULE(_dedekind, module) {
   module.doc() = "Dedekind Python MVP facade";
 
@@ -194,4 +243,8 @@ NB_MODULE(_dedekind, module) {
   register_set_ops<int>(module);
   register_set_ops<double>(module);
   register_set_ops<std::string>(module);
+
+  // ── algebraic extensions (dedekind.numbers) ─────────────────────────────
+  bind_complex(module);
+  bind_dual(module);
 }
