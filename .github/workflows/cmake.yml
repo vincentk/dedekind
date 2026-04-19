@@ -45,8 +45,36 @@ jobs:
           build/python-notebooks/*.ipynb
           build/python-notebooks/integration-summary.txt
 
+    - name: Process Coverage Data
+      run: make coverage CXX=clang++-21 CC=clang-21 CMAKE_EXTRA_ARGS="-DDEDEKIND_RUNTIME_COVERAGE_BRIDGES=ON"
+
+    - name: Upload to Codecov
+      uses: codecov/codecov-action@v5
+      with:
+        files: build/coverage.info
+        token: ${{ secrets.CODECOV_TOKEN }}
+        fail_ci_if_error: true
+        verbose: true
+
+  python-dist:
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: build-and-deploy
+    runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+
+    - name: Install clang build chain
+      run: |
+        wget https://apt.llvm.org/llvm.sh
+        chmod +x llvm.sh
+        sudo ./llvm.sh 21
+        sudo apt-get install -y clang-21 ninja-build clang-format-21
+
     - name: Build Python Distribution Artifacts
-      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
       env:
         CC: clang-21
         CXX: clang++-21
@@ -63,7 +91,6 @@ jobs:
         sha256sum dist/* | tee build/python-docs/dist-sha256.txt
 
     - name: Verify Installed Wheel Smoke Test
-      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
       run: |
         python -m venv .venv-wheel-smoke
         . .venv-wheel-smoke/bin/activate
@@ -82,7 +109,6 @@ jobs:
         PY
 
     - name: Upload Python Dist Artifacts
-      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
       uses: actions/upload-artifact@v4
       with:
         name: python-dist
@@ -93,21 +119,25 @@ jobs:
           build/python-docs/install-report.txt
           build/python-docs/pydoc-dedekind.txt
 
-    - name: Process Coverage Data
-      run: make coverage CXX=clang++-21 CC=clang-21 CMAKE_EXTRA_ARGS="-DDEDEKIND_RUNTIME_COVERAGE_BRIDGES=ON"
-
-    - name: Upload to Codecov
-      uses: codecov/codecov-action@v5
+  docs-and-pages:
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: build-and-deploy
+    runs-on: ubuntu-latest
+    env:
+      FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+    steps:
+    - uses: actions/checkout@v4
       with:
-        files: build/coverage.info
-        token: ${{ secrets.CODECOV_TOKEN }}
-        fail_ci_if_error: true
-        verbose: true
+        submodules: recursive
 
-    # --- CONDITIONAL DEPLOYMENT STEPS ---
+    - name: Install clang build chain
+      run: |
+        wget https://apt.llvm.org/llvm.sh
+        chmod +x llvm.sh
+        sudo ./llvm.sh 21
+        sudo apt-get install -y clang-21 ninja-build clang-format-21
 
     - name: Install docs toolchains in parallel
-      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
       run: |
         make ci-install-doxygen-deps &
         DOXYGEN_DEPS_PID=$!
@@ -118,7 +148,6 @@ jobs:
         wait "$REPORT_DEPS_PID"
 
     - name: Build Doxygen and report in parallel
-      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
       run: |
         (
           make doxygen CXX=clang++-21 CC=clang-21 CMAKE_EXTRA_ARGS="-DDEDEKIND_RUNTIME_COVERAGE_BRIDGES=ON"
@@ -135,19 +164,16 @@ jobs:
         wait "$REPORT_BUILD_PID"
 
     - name: Stage Pages content
-      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
       run: |
         mkdir -p build/pages
         cp -R build/docs/html/. build/pages/
         cp docs/report/report.pdf build/pages/report.pdf
 
     - name: Upload artifact
-      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
       uses: actions/upload-pages-artifact@v4
       with:
         path: 'build/pages'
 
     - name: Deploy to GitHub Pages
-      if: github.ref == 'refs/heads/main' && github.event_name == 'push'
       id: deployment
       uses: actions/deploy-pages@v4
