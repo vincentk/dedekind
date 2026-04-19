@@ -154,27 +154,56 @@ A data analyst working in Python writes:
 \begin{lstlisting}[language=Python, caption={A declarative analyst pipeline (from the \texttt{dedekind} notebook).}, label={lst:analyst}]
 sales_clean = (
     sales
-    .normalize_text(["product_id", "region"], lower=True, strip=True)
+    .normalize_text(["product_id", "country"], lower=True, strip=True)
     .coerce_numeric(["units", "revenue"], strip_symbols=True)
     .fill_missing(units=0, revenue=0)
-    .expect_domain("region", ["north", "south"], on_fail="raise")
+    # country is a finite extensional set: ISO 3166-1 alpha-3 codes
+    .expect_domain("country", ["DEU", "FRA", "GBR"], on_fail="raise")
+    # date is intensional: a point on the real line modelled by ISO 8601
+    .expect_iso8601("sale_date")
+    # period is a cyclic structure: fiscal quarters repeat annually
+    .expect_period("fiscal_quarter", cycle=4)
 )
 
 report_plan = monthly_category_report(
-    smart_join(sales_clean, products_clean).smart_join(regions_clean)
+    smart_join(sales_clean, products_clean).smart_join(country_meta)
 )
 
 summary = report_plan.realize()
 \end{lstlisting}
 
-The call \lstinline{expect_domain("region", ["north", "south"])} encodes a structural fact:
-the column \texttt{region} is a member of a \emph{finite ambient set}
-$\{\mathtt{north}, \mathtt{south}\}$.
+Three distinct \emph{kinds} of set structure appear in this single pipeline:
+
+\begin{description}
+  \item[Finite extensional.]  The call
+        \lstinline{expect_domain("country", ["DEU", "FRA", "GBR"])} encodes that
+        the \texttt{country} column is a member of a known, enumerable set drawn from
+        ISO~3166-1 alpha-3 country codes~\cite{iso3166}.  The ambient set is finite and
+        fully listed; membership is decidable by equality.
+
+  \item[Intensional / infinite.] The call \lstinline{expect_iso8601("sale\_date")}
+        encodes that \texttt{sale\_date} is a point on a \emph{totally ordered,
+        continuous} ambient structure---the real line $\mathbb{R}$, restricted to the
+        rational subset that ISO~8601~\cite{iso8601} dates inhabit.  The ambient set is
+        not enumerated; membership is decided by a parsing predicate.
+        This is the characteristic form of an \emph{intensional} set: defined by a rule
+        rather than a roster.
+
+  \item[Cyclic / periodic.] The call \lstinline{expect_period("fiscal\_quarter", cycle=4)}
+        encodes a \emph{cyclic} structure: fiscal quarters are elements of
+        $\mathbb{Z}/4\mathbb{Z}$, a quotient group where quarter~5 wraps back to
+        quarter~1.  The ISO~8601 calendar itself exhibits the same periodicity at the
+        week level (52 or 53 ISO weeks per year).  Cyclic dimensions are neither
+        purely finite nor purely continuous; their ambient set is a circle, not an
+        interval, and range-based pruning must be replaced by modular arithmetic.
+\end{description}
+
+\noindent
 The call \lstinline{.realize()} is an \emph{explicit materialization boundary}:
 prior to that call, \lstinline{report_plan} is an intensional description---a recipe
-without evaluated results.  The symmetry between these two calls is not accidental;
-it is the central design rule of the \texttt{dedekind} library made visible at the
-Python-facing API tier.
+without evaluated results.  The symmetry between \lstinline{expect\_*} declarations
+and \lstinline{.realize()} is not accidental; it is the central design rule of the
+\texttt{dedekind} library made visible at the Python-facing API tier.
 
 Underneath the Python facade, the library is implemented in C++23.
 The analyst's pipeline is \emph{not} novel in its high-level form---declarative
@@ -546,11 +575,12 @@ the simpler set at compile time.
 
 The analyst pipeline of Section~\ref{sec:introduction} is the concrete motivating
 instance.
-The domain \lstinline{["north", "south"]} has cardinality 2.
-If the analyst declares two disjoint domain constraints---say, northern and southern
-regions with non-overlapping enumeration sets---the compiler should be able to
-determine statically that any row satisfying both constraints is impossible, and elide
-the corresponding runtime membership check entirely.
+The ISO~3166-1 country-code domain \lstinline{["DEU", "FRA", "GBR"]} has cardinality~3.
+If the analyst declares two disjoint domain constraints over the same column---say, a
+``European Union member'' predicate and a ``non-EU member'' predicate applied to the
+same finite set of codes---the compiler should be able to determine statically that any
+row satisfying both constraints simultaneously is impossible, and elide the corresponding
+runtime membership check entirely.
 
 \medskip
 The machinery required exists in parts:
