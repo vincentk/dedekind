@@ -15,6 +15,7 @@ It defines an embedded domain-specific language (eDSL) for mathematics with the 
 
 - **Recognizability:** Code should be intuitive to both mathematicians and `C++` programmers.
 - **Versatility:** The DSL expresses both infinite (intensional, symbolic) and finite (extensional, data) structures.
+- **Abstraction First:** Intensional and symbolic development should stay in abstract mathematical carriers; choose a concrete runtime representation only when explicitly realizing or evaluating numerically.
 - **Optimization:** The library performs *mathematically motivated* optimizations (e.g., identity laws) at compile-time.
 
 ```cpp

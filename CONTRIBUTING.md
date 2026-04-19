@@ -68,6 +68,10 @@ or `make test`.  This should be the exception, not the routine.
 The goal is to keep the contributor's focus on the mathematics and the code, not
 on build management.
 
+For modeling decisions, prefer abstract/intensional carriers and symbolic types by
+default; choose a concrete runtime numeric representation only at realization points
+where concrete evaluation is intentionally required.
+
 ## Development workflow
 
 - The `Makefile` is the **preferred** build interface; use `make <target>` rather than

@@ -6,6 +6,9 @@ For this iteration, notebooks are the top-level UX layer: they define and
 demonstrate the desired input style, execute in CI, and produce reviewable
 output.
 
+Policy note: the intensional/symbolic stages are kept abstract; a concrete
+numerical runtime policy is selected only at explicit realization boundaries.
+
 ## Notebooks
 
 1. `01_facade_roundtrip_basics.ipynb`

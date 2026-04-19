@@ -139,6 +139,7 @@ In this paradigm, researchers utilize high-level symbolic environments like \tex
 \texttt{dedekind} does not claim to eliminate this split. Rather, it makes the systems programming language the primary semantic locus: mathematical invariants, performance-sensitive representations, and compiler-visible structure are defined first in \texttt{C++23}, while notebook-oriented and scripting-oriented interfaces can be layered on top.
 While tools such as \texttt{PyTorch} \cite{paszke2019pytorch} and \texttt{NumPy} \cite{harris2020numpy} offer elegant interfaces, they typically treat mathematical logic as a runtime implementation detail.
 This decoupling forces a manual translation layer between the high-level mathematical intent and the underlying hardware execution, leading to significant overhead in both developer time and system latency. In contrast, \texttt{dedekind} prioritizes preserving that intent inside the systems layer first, so any higher-level interface is downstream of the verified implementation rather than its semantic source.
+Operationally, this report separates a symbolic/intensional phase from a realization phase: mathematical construction proceeds without committing to a runtime numeric policy, and policy selection is deferred to explicit execution boundaries (Section~\ref{sec:symbolic-realization-boundary}).
 
 This duality is especially relevant in the context of LLM development and large-scale symbolic computing.
 In these fields, the ability to maintain the structural integrity of a mathematical model—such as the exactness of a tensor operation or the logical consistency of a set-builder predicate—is often lost during the transition to the C++ backend.
@@ -1539,9 +1540,6 @@ This enables the \texttt{C++} compiler to verify the structural validity of a fu
 By hoisting the predicate into a \texttt{Stateless Constraint Type}, we decouple the logical requirement of the set from the necessity of materializing its elements.
 This allows the compiler to treat $\mathscr{N}$ as a valid algebraic object, facilitating symbolic reasoning about digit distribution without requiring a prior numerical proof of normality, thereby avoiding the runtime overhead of high-precision digit evaluation.
 
-
-This allows the compiler to treat $\mathscr{N}$ as a valid algebraic object, facilitating symbolic reasoning about digit distribution without requiring a prior numerical proof of normality, thereby avoiding the runtime overhead of high-precision digit evaluation.
-
 This intensional logic extends to non-elementary functions where the antiderivative cannot be expressed in a finite combination of elementary terms.
 For example, the Gaussian integral $e^{-t^2}$ defines the \emph{Error Function} ($\text{erf}$) as a structural rule for area rather than a simple algebraic formula:
 \begin{equation}
@@ -1562,6 +1560,10 @@ This methodology ensures that the \emph{Dedekind cut}—defining real numbers $\
 This allows the \texttt{LLVM} backend to treat transcendental constants like $e$ and $\pi$ as symbolic invariants rather than opaque numeric variables.
 
 The library addresses the representation of transcendental constants by distinguishing between their algebraic \emph{definition} and their numerical \emph{realization}.
+\paragraph{Operational boundary: symbolic phase vs. realization phase.}\label{sec:symbolic-realization-boundary}
+In the symbolic (intensional) phase, we reason over abstract carriers, predicates, and morphisms, and we do \emph{not} commit to any concrete numerical implementation.
+In the realization phase, once the intensional construction is fixed and executable evaluation is desired, we choose an explicit runtime numeric policy (for example IEEE fast-lane execution, monitored approximation, or another realization strategy).
+This boundary exists to separate mathematical validity from hardware policy choices: proofs and structural rewrites remain representation-agnostic, while throughput/accuracy trade-offs are deferred to execution time.
 While the machine may be unable to \emph{compute} the final digit of $\pi$, the \texttt{dedekind} ontology can lazily \emph{define} it as a formal limit of a rational sequence.
 By encoding the \textsc{Leibniz} series for $\pi$ or the \textsc{Taylor} expansion for $e$, the library treats these constants as symbolic \emph{intensional} types.
 \begin{equation}
@@ -1728,6 +1730,7 @@ The explicit template argument \texttt{Complex<R>} guides the compiler's type in
 \label{sec:ieee-intro}
 
 The \texttt{dedekind.ieee} and \texttt{dedekind.numbers.approx} modules provide an algebraically-stamped IEEE~754 fast lane and a first-order error propagation framework. Standard floating-point arithmetic pervades scientific computing, yet its algebraic contract---associativity, commutativity, identity---is almost entirely implicit. These modules address this gap through an \emph{effect-context} design: arithmetic remains fast by default, but every operation on the certified path is algebraically stamped and carries local sensitivity information.
+This chapter focuses on the realization phase introduced in Section~\ref{sec:symbolic-realization-boundary}: policy selection happens at the execution boundary, not during symbolic construction.
 
 Key references are the IEEE~754 standard~\cite{ieee754_2019}, Higham's numerical stability guide~\cite{higham2002accuracy}, and error propagation literature~\cite{ku1966notes, ogita2005accurate}.
 
