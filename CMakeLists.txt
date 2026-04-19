@@ -15,10 +15,11 @@ if(APPLE)
 endif()
 
 # --- Instrumentation and Warnings ---
-# Hard-coded for Clang 21 as used in the CI pipeline
+# Hard-coded for Clang 22 as used in the CI pipeline
 set(DEDEKIND_WARNING_FLAGS
     -Wall -Wextra -Wpedantic -Wshadow -Wunused 
     -Wunreachable-code -Wconversion -Werror
+    -Wno-c2y-extensions
 )
 
 # --- Instrumentation (Shared by CI and Local) ---
@@ -66,7 +67,7 @@ include(FetchContent)
 FetchContent_Declare(
   Catch2
   GIT_REPOSITORY https://github.com/catchorg/Catch2.git
-  GIT_TAG        v3.4.0
+  GIT_TAG        v3.14.0
 )
 
 # This populates the 'catch2_SOURCE_DIR' variable

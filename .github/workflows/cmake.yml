@@ -27,14 +27,14 @@ jobs:
       run: |
         wget https://apt.llvm.org/llvm.sh
         chmod +x llvm.sh
-        sudo ./llvm.sh 21
-        sudo apt-get install -y clang-21 ninja-build clang-format-21
+        sudo ./llvm.sh 22
+        sudo apt-get install -y clang-22 ninja-build clang-format-22
 
     - name: Check Code Formatting
-      run: make format-check CLANG_FORMAT=clang-format-21
+      run: make format-check CLANG_FORMAT=clang-format-22
 
     - name: Build & Run Integration Tests
-      run: make integration-test CXX=clang++-21 CC=clang-21 CMAKE_EXTRA_ARGS="-DDEDEKIND_RUNTIME_COVERAGE_BRIDGES=ON"
+      run: make integration-test CXX=clang++-22 CC=clang-22 CMAKE_EXTRA_ARGS="-DDEDEKIND_RUNTIME_COVERAGE_BRIDGES=ON"
 
     - name: Upload Notebook Integration Artifacts
       if: ${{ always() }}
@@ -47,7 +47,7 @@ jobs:
           build/python-notebooks/integration-summary.txt
 
     - name: Process Coverage Data
-      run: make coverage CXX=clang++-21 CC=clang-21 CMAKE_EXTRA_ARGS="-DDEDEKIND_RUNTIME_COVERAGE_BRIDGES=ON"
+      run: make coverage CXX=clang++-22 CC=clang-22 CMAKE_EXTRA_ARGS="-DDEDEKIND_RUNTIME_COVERAGE_BRIDGES=ON"
 
     - name: Collect Python Coverage
       run: |
@@ -75,16 +75,16 @@ jobs:
       run: |
         wget https://apt.llvm.org/llvm.sh
         chmod +x llvm.sh
-        sudo ./llvm.sh 21
-        sudo apt-get install -y clang-21 ninja-build clang-format-21
+        sudo ./llvm.sh 22
+        sudo apt-get install -y clang-22 ninja-build clang-format-22
 
     - name: Build Python Distribution Artifacts
       env:
-        CC: clang-21
-        CXX: clang++-21
+        CC: clang-22
+        CXX: clang++-22
         CMAKE_ARGS: >-
-          -DCMAKE_C_COMPILER=clang-21
-          -DCMAKE_CXX_COMPILER=clang++-21
+          -DCMAKE_C_COMPILER=clang-22
+          -DCMAKE_CXX_COMPILER=clang++-22
           -DCMAKE_CXX_SCAN_FOR_MODULES=ON
       run: |
         python -m pip install --upgrade pip build twine
@@ -136,8 +136,8 @@ jobs:
       run: |
         wget https://apt.llvm.org/llvm.sh
         chmod +x llvm.sh
-        sudo ./llvm.sh 21
-        sudo apt-get install -y clang-21 ninja-build clang-format-21
+        sudo ./llvm.sh 22
+        sudo apt-get install -y clang-22 ninja-build clang-format-22
 
     - name: Install docs toolchains
       run: |
@@ -147,7 +147,7 @@ jobs:
     - name: Build Doxygen and report in parallel
       run: |
         (
-          make doxygen CXX=clang++-21 CC=clang-21 CMAKE_EXTRA_ARGS="-DDEDEKIND_RUNTIME_COVERAGE_BRIDGES=ON"
+          make doxygen CXX=clang++-22 CC=clang-22 CMAKE_EXTRA_ARGS="-DDEDEKIND_RUNTIME_COVERAGE_BRIDGES=ON"
         ) &
         DOXYGEN_BUILD_PID=$!
 

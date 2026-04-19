@@ -53,7 +53,7 @@ The intended UX is:
 1. **Edit** source files locally — no local build required.
 2. **Format** with `make format` (or let the pre-push hook do it).
 3. **Push** — `git push` is the only command you strictly need to run.
-4. **CI takes over** — GitHub Actions compiles with clang-21, runs all tests,
+4. **CI takes over** — GitHub Actions compiles with clang-22, runs all tests,
    collects coverage, builds Doxygen docs, and checks the LaTeX report.
    Your workstation stays idle and cool.
 5. **Check progress** with `make pr-checks` or `make pr-watch` while CI runs.
