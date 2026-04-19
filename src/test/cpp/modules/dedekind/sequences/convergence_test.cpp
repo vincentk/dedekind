@@ -15,9 +15,8 @@ TEST_CASE("Sequences: Convergence Tests", "[sequences][convergence]") {
   }
 
   SECTION("Sequence Cauchy predicate rejects oscillating sequence") {
-    const Path<Real> oscillating_sequence{[](std::size_t n) {
-      return (n % 2 == 0) ? 1.0 : -1.0;
-    }};
+    const Path<Real> oscillating_sequence{
+        [](std::size_t n) { return (n % 2 == 0) ? 1.0 : -1.0; }};
 
     REQUIRE_FALSE(
         converges_sequence_cauchy(oscillating_sequence, 1e-3, 5000, 64));
