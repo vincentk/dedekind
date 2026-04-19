@@ -1,0 +1,44 @@
+/**
+ * @file linear_algebra:backends.cppm
+ * @partition :backends
+ * @brief Backend capability contracts for linear algebra realization layers.
+ *
+ * @copyright 2026 The Dedekind Authors
+ * Licensed under the Apache License, Version 2.0.
+ */
+module;
+
+#include <concepts>
+#include <string_view>
+
+export module dedekind.linear_algebra:backends;
+
+export namespace dedekind::linear_algebra {
+
+/** @brief Stable backend discriminator tags. */
+export enum class BackendKind {
+  generic,
+  graphblas,
+};
+
+/**
+ * @concept LinearAlgebraBackend
+ * @brief Backend capability witness used by contract-level dispatch.
+ */
+export template <typename Backend>
+concept LinearAlgebraBackend = requires {
+  { Backend::kind } -> std::same_as<const BackendKind&>;
+  { Backend::name } -> std::same_as<const std::string_view&>;
+  { Backend::supports_sparse_linear_operators } -> std::same_as<const bool&>;
+};
+
+/** @brief Portable baseline backend for contract-only workflows. */
+export struct GenericBackend {
+  static constexpr BackendKind kind = BackendKind::generic;
+  static constexpr std::string_view name = "generic-contract-backend";
+  static constexpr bool supports_sparse_linear_operators = false;
+};
+
+static_assert(LinearAlgebraBackend<GenericBackend>);
+
+}  // namespace dedekind::linear_algebra
