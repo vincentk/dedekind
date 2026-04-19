@@ -4,38 +4,16 @@ try:
     from ._dedekind import ordered_set_roundtrip
     from ._dedekind import path_from_range
     from ._dedekind import unordered_set_roundtrip
-except ModuleNotFoundError:
-    def _require_iterable(values, *, function_name):
-        try:
-            items = list(values)
-        except TypeError as exc:
-            raise TypeError(f"{function_name} expects an iterable") from exc
-        return items
-
-    def _is_integral(val):
-        """Check if value is an integral number (not bool)."""
-        from numbers import Integral
-        return isinstance(val, Integral) and not isinstance(val, bool)
-
-    def _ordered_unique(items):
-        # Validate all items are integral (match C++ API contract)
-        for item in items:
-            if not _is_integral(item):
-                raise TypeError(
-                    f"ordered_set_roundtrip expects integral items; got {type(item).__name__}"
-                )
-        return sorted(set(items))
-
-    def ordered_set_roundtrip(values):
-        items = _require_iterable(values, function_name="ordered_set_roundtrip")
-        return _ordered_unique(items)
-
-    def unordered_set_roundtrip(values):
-        items = _require_iterable(values, function_name="unordered_set_roundtrip")
-        return _ordered_unique(items)
-
-    def path_from_range(values):
-        return _require_iterable(values, function_name="path_from_range")
+    from ._dedekind import set_union
+    from ._dedekind import set_intersection
+    from ._dedekind import set_difference
+    from ._dedekind import set_cardinality
+except ModuleNotFoundError as _exc:
+    raise ImportError(
+        "The dedekind C++ extension (_dedekind) is not available. "
+        "Build it with `cmake --build build` (or `make`) from the repository "
+        "root, then install with `pip install -e .`."
+    ) from _exc
 from .dsl import (
     Activity,
     AnalystFrame,
@@ -65,6 +43,10 @@ __all__ = [
     "ordered_set_roundtrip",
     "path_from_range",
     "unordered_set_roundtrip",
+    "set_union",
+    "set_intersection",
+    "set_difference",
+    "set_cardinality",
     "SetDef",
     "Ensemble",
     "AnalystFrame",
