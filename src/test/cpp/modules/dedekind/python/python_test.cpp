@@ -2,6 +2,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <ranges>
 #include <set>
+#include <type_traits>
 #include <vector>
 
 import dedekind.python;
@@ -23,4 +24,13 @@ TEST_CASE("Python facade: finite path range adapters", "[python][ranges]") {
 
   REQUIRE(path.size() == source.size());
   REQUIRE(std::ranges::equal(python::as_range(path), source));
+}
+
+TEST_CASE("Python facade: explicit linear algebra backend dependency",
+          "[python][linear_algebra]") {
+  REQUIRE(python::graphblas_backend_stub_available());
+  STATIC_REQUIRE(
+      std::same_as<
+          python::LinearAlgebraBackendKind,
+          std::remove_cvref_t<decltype(python::GraphBLASBackend::kind)>>);
 }
