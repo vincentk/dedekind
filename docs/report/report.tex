@@ -140,6 +140,7 @@ In this paradigm, researchers utilize high-level symbolic environments like \tex
 While tools such as \texttt{PyTorch} \cite{paszke2019pytorch} and \texttt{NumPy} \cite{harris2020numpy} offer elegant interfaces, they typically treat mathematical logic as a runtime implementation detail.
 This decoupling forces a manual translation layer between the high-level mathematical intent and the underlying hardware execution, leading to significant overhead in both developer time and system latency. In contrast, \texttt{dedekind} prioritizes preserving that intent inside the systems layer first, so any higher-level interface is downstream of the verified implementation rather than its semantic source.
 Operationally, this report separates a symbolic/intensional phase from a realization phase: mathematical construction proceeds without committing to a runtime numeric policy, and policy selection is deferred to explicit execution boundaries (Section~\ref{sec:symbolic-realization-boundary}).
+In implementation terms, we use a single rule across core modules and Python-facing boundaries: \enquote{intensional first, realize it when you mean it}.
 
 This duality is especially relevant in the context of LLM development and large-scale symbolic computing.
 In these fields, the ability to maintain the structural integrity of a mathematical model—such as the exactness of a tensor operation or the logical consistency of a set-builder predicate—is often lost during the transition to the C++ backend.
@@ -1564,6 +1565,8 @@ The library addresses the representation of transcendental constants by distingu
 In the symbolic (intensional) phase, we reason over abstract carriers, predicates, and morphisms, and we do \emph{not} commit to any concrete numerical implementation.
 In the realization phase, once the intensional construction is fixed and executable evaluation is desired, we choose an explicit runtime numeric policy (for example IEEE fast-lane execution, monitored approximation, or another realization strategy).
 This boundary exists to separate mathematical validity from hardware policy choices: proofs and structural rewrites remain representation-agnostic, while throughput/accuracy trade-offs are deferred to execution time.
+For consistency with the wrapper-facing MVP policy, we state the boundary as an explicit engineering directive: \enquote{intensional first, realize it when you mean it}. In this report, 
+\emph{realize} always denotes an intentional boundary crossing from structural/species-level objects to concrete runtime carriers.
 While the machine may be unable to \emph{compute} the final digit of $\pi$, the \texttt{dedekind} ontology can lazily \emph{define} it as a formal limit of a rational sequence.
 By encoding the \textsc{Leibniz} series for $\pi$ or the \textsc{Taylor} expansion for $e$, the library treats these constants as symbolic \emph{intensional} types.
 \begin{equation}
