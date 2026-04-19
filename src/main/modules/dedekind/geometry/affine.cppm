@@ -107,7 +107,14 @@ class Vector {
     for (std::size_t i = 0; i < N && it != l.end(); ++i, ++it) coords_[i] = *it;
   }
 
-  friend constexpr bool operator==(const Vector&, const Vector&) = default;
+  friend constexpr bool operator==(const Vector& lhs, const Vector& rhs) {
+    for (std::size_t i = 0; i < N; ++i) {
+      if (!(lhs.coords_[i] == rhs.coords_[i])) {
+        return false;
+      }
+    }
+    return true;
+  }
 
   /** @section The_Scaling_Morphism: Vector * Scalar */
   friend constexpr Vector operator*(const Vector& v, const F& s) {
