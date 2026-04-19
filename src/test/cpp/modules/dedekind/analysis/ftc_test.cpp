@@ -2,6 +2,7 @@
 #include <cmath>
 
 import dedekind.analysis;
+import dedekind.ieee;
 
 using namespace dedekind::analysis;
 
@@ -54,11 +55,38 @@ TEST_CASE("Analysis: Fundamental Theorem of Calculus Bridges",
         ftc_part_ii_bridge<Real>(integrand, antiderivative, -2.0, 4.0, 1e-4));
   }
 
+  SECTION("Explicit FTC hypotheses hold for matching polynomial data") {
+    const auto integrand = [](Real x) { return 2.0 * x; };
+    const auto antiderivative = [](Real x) { return x * x; };
+
+    REQUIRE(ftc_part_i_hypotheses<Real>(integrand, -1.0, 3.0));
+    REQUIRE(ftc_part_ii_hypotheses<Real>(integrand, antiderivative, -1.0, 3.0,
+                                         32, 1e-3));
+  }
+
+  SECTION("Part II hypotheses reject mismatched antiderivative") {
+    const auto integrand = [](Real x) { return 2.0 * x; };
+    const auto wrong_antiderivative = [](Real x) { return x * x + x; };
+
+    REQUIRE_FALSE(ftc_part_ii_hypotheses<Real>(integrand, wrong_antiderivative,
+                                               -1.0, 3.0, 32, 1e-3));
+  }
+
   SECTION("Worked theorem chain combines derivative and integral witnesses") {
     const auto integrand = [](Real x) { return 2.0 * x; };
     const auto antiderivative = [](Real x) { return x * x; };
 
     REQUIRE(ftc_worked_theorem_chain<Real>(integrand, antiderivative, -1.0, 1.5,
                                            3.0, 1e-3));
+  }
+
+  SECTION("Worked theorem chain accepts IEEE realization carriers") {
+    using IEEEReal = dedekind::ieee::IEEE<double>;
+    const auto integrand = [](IEEEReal x) { return IEEEReal{2.0} * x; };
+    const auto antiderivative = [](IEEEReal x) { return x * x; };
+
+    REQUIRE(ftc_worked_theorem_chain<IEEEReal>(integrand, antiderivative,
+                                               IEEEReal{-1.0}, IEEEReal{1.5},
+                                               IEEEReal{3.0}, IEEEReal{1e-3}));
   }
 }
