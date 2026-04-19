@@ -39,6 +39,7 @@ module;
 export module dedekind.numbers:cardinality;
 
 import dedekind.category;
+import dedekind.order;
 import dedekind.sets;
 import :naturals;
 
@@ -309,6 +310,11 @@ constexpr CardinalityEffect bind_effect(const CardinalityEffect& effect,
   return CardinalityEffect{next.value, add(effect.trace, next.trace)};
 }
 
+constexpr ExtensionalCardinal<> inverse(ExtensionalCardinal<> value,
+                                        std::plus<ExtensionalCardinal<>>) {
+  return -value;
+}
+
 }  // namespace dedekind::numbers
 
 namespace dedekind::category {
@@ -361,15 +367,13 @@ template <std::size_t N>
 inline constexpr bool is_antisymmetric_v<
     dedekind::numbers::ExtensionalCardinal<N>, std::less_equal<>> = true;
 
-constexpr C1 inverse(C1 value, std::plus<C1>) { return -value; }
-
 static_assert(IsRing<C1, std::plus<C1>, std::multiplies<C1>>,
               "ExtensionalCardinal<1> must certify as a total ring.");
 
 static_assert(dedekind::numbers::IsNatural<C1>,
               "ExtensionalCardinal<1> must satisfy IsNatural.");
 
-static_assert(IsTotallyOrdered<C1>,
+static_assert(dedekind::order::IsTotallyOrdered<C1>,
               "ExtensionalCardinal<1> must satisfy IsTotallyOrdered.");
 
 }  // namespace dedekind::category

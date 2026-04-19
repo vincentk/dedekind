@@ -255,7 +255,9 @@ struct identity_registry<bool, Op> {
 };
 
 // --- THE LIBRARIAN (Discovery Logic) ---
-template <typename T, typename Op, typename = void>
+// Exported so that types defined in other modules (e.g. dedekind.numbers)
+// can provide explicit specializations to register their identity elements.
+export template <typename T, typename Op, typename = void>
 struct identity_trait : identity_registry<T, Op> {};
 
 // Special "Discovery" track for types that define their own identity internally

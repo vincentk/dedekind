@@ -149,9 +149,6 @@ export using extensional_integer = int;
 export using default_integer = extensional_integer;
 
 export template <typename T>
-concept IsNaturalNumber = std::unsigned_integral<T>;
-
-export template <typename T>
 concept IsRationalLike = std::regular<T> && requires(T a, T b) {
   { a + b } -> std::same_as<T>;
   { a * b } -> std::same_as<T>;

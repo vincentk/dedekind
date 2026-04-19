@@ -7,6 +7,7 @@
 
 import dedekind.category;
 import dedekind.numbers;
+import dedekind.order;
 
 using namespace dedekind::category;
 using namespace dedekind::numbers;
@@ -149,7 +150,7 @@ TEST_CASE("Numbers: Cardinality witnesses and composition",
     using C1 = ExtensionalCardinal<1>;
     STATIC_CHECK(IsRing<C1, std::plus<C1>, std::multiplies<C1>>);
     STATIC_CHECK(IsNatural<C1>);
-    STATIC_CHECK(IsTotallyOrdered<C1>);
+    STATIC_CHECK(dedekind::order::IsTotallyOrdered<C1>);
   }
 
   SECTION("Writer-like bind respects left identity") {
