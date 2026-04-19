@@ -180,6 +180,25 @@ class DedekindFramePathsTest(unittest.TestCase):
         self.assertEqual(paths["y"], [3.14])
 
 
+class DedekindPackageExportsTest(unittest.TestCase):
+    """Test package-level exports and lazy submodule loading."""
+
+    def test_lazy_submodule_access(self) -> None:
+        self.assertTrue(hasattr(dedekind, "sequences"))
+        self.assertTrue(hasattr(dedekind, "sets"))
+        self.assertTrue(callable(dedekind.sequences.path_from_range))
+
+    def test_unknown_lazy_attribute_raises(self) -> None:
+        with self.assertRaises(AttributeError):
+            _ = dedekind.not_a_real_attribute
+
+    @unittest.skipUnless(_HAS_NUMPY, "numpy required for path_from_array export test")
+    def test_path_from_array_exported_at_top_level(self) -> None:
+        arr = np.array([1, 2, 3], dtype=np.int64)
+        result = dedekind.path_from_array(arr)
+        self.assertEqual(result, [1, 2, 3])
+
+
 class DedekindComplexTest(unittest.TestCase):
     """Test Complex<double> bindings."""
 
