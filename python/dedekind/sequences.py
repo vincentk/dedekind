@@ -107,7 +107,15 @@ def frame_to_paths(df):
                 series.to_numpy(dtype=np.float64, copy=False),
                 dtype=np.float64,
             ).reshape(-1)
-            result[col] = path_from_float64_array(arr) if path_from_array else path_from_range(arr.tolist())
+            if path_from_array:
+                try:
+                    result[col] = path_from_float64_array(arr)
+                except TypeError:
+                    # Keep parity with int64 handling across platform-specific
+                    # nanobind ndarray signature matching behavior.
+                    result[col] = path_from_range(arr.tolist())
+            else:
+                result[col] = path_from_range(arr.tolist())
 
         else:
             # String / object dtype → Python sequence fallback
