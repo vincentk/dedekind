@@ -62,6 +62,11 @@ build_ci/**
 /issue*.md
 /*.profraw
 
+# Python bytecode and cache artifacts
+**/__pycache__/
+**/*.pyc
+**/*.pyo
+
 # Root-level generated build artifacts (local and CI scratch trees)
 /build-python/
 /build/
