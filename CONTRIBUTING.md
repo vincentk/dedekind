@@ -181,6 +181,32 @@ Operational note:
 - When new evidence appears, relabel and add a short rationale comment on the issue.
 - Keep native parent-child links for causal decomposition; use cross-references/comments for correlation edges.
 
+### Coverage Verification
+
+The project collects both C++ (via LCOV) and Python (via pytest-cov) coverage on every CI run.
+Both reports are uploaded to Codecov for centralized visibility.
+
+**Verifying Python coverage presence (for reviewers):**
+
+1. Open the PR's Codecov report link (available in PR checks or at `https://app.codecov.io/gh/vincentk/dedekind`).
+2. In the "Files" tab, verify that Python source files are listed alongside C++ files:
+   - Look for entries like `python/dedekind/__init__.py`, `python/dedekind/sequences.py`, etc.
+   - These indicate Python code is being tracked for coverage.
+3. Each file shows line-by-line coverage: green for covered, red for uncovered, gray for non-executable.
+
+**Collecting coverage locally (for contributors):**
+
+- **C++ coverage**: `make coverage` generates `build/coverage.info` (LCOV format).
+- **Python coverage**: `make python-coverage` generates `build/python-coverage.xml` (pytest-cov XML).
+- Both can be run and inspected before pushing to verify coverage baseline.
+
+**Why both C++ and Python coverage matter:**
+
+- C++ modules define the core mathematical operations and data structures.
+- Python bindings (via nanobind) provide the public API and integration points.
+- Full project coverage requires both layers; Python-only or C++-only coverage leaves integration
+  blind spots.
+
 ## Review workflow
 
 - Resolve review comments and threads explicitly; do not leave unresolved conversations behind
