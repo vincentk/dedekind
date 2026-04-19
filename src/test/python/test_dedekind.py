@@ -273,7 +273,11 @@ class DedekindPackageExportsTest(unittest.TestCase):
         original_import = builtins.__import__
 
         def selective_import(name, globals=None, locals=None, fromlist=(), level=0):
-            if name.endswith("dedekind.sequences") and "frame_to_paths" in tuple(fromlist):
+            if (
+                name in {"sequences", "dedekind.sequences"}
+                and "frame_to_paths" in tuple(fromlist)
+                and level == 1
+            ):
                 raise ImportError("simulated missing sequences module")
             return original_import(name, globals, locals, fromlist, level)
 
