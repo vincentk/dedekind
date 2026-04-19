@@ -7,6 +7,29 @@
  * Provides small numerical bridge lemmas between derivative and integral
  * interfaces so downstream formalization can target a stable API.
  *
+ * **CURRENT LIMITATIONS (see backlog for actionable follow-ups):**
+ *
+ * 1. **Riemann Sum Only**: integral_over() implements trapezoidal rule, a
+ *    Riemann sum approximation. No Lebesgue measure, dominated convergence,
+ *    or measure-theoretic abstraction. (See backlog: Integral Abstraction)
+ *
+ * 2. **Finite Difference vs. Fréchet**: derivative_at() uses raw central
+ *    difference, decoupled from geometry::frechet_derivative_at(). No formal
+ *    directional/Gâteaux derivatives or inverse theorems. (See backlog:
+ *    Derivative Abstraction)
+ *
+ * 3. **No Differential Forms Integration**: OneForm and TwoForm exist in
+ *    :forms and :exterior, but integral_over() does not support pullback,
+ *    Stokes theorem, or exterior calculus. (See backlog: Forms Integration)
+ *
+ * 4. **No Cauchy Derivative**: Complex analysis and quaternion derivatives
+ *    not yet formalized. (See backlog: Cauchy-Riemann Framework)
+ *
+ * 5. **Sequence Loop Indexing**: Both integral_over() and hypothesis
+ *    functions use raw std::size_t loops. Should abstract via Path<R,
+ *    Cardinality> monadic composition when mature. (See backlog:
+ *    Sequence-Adapter Layer)
+ *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
@@ -97,6 +120,15 @@ constexpr bool close_enough(const R& lhs, const R& rhs, const R& tolerance) {
 
 /**
  * @brief Numerical derivative witness via central difference.
+ *
+ * @details Implements a basic finite-difference approximation without formal
+ *          connection to geometry::frechet_derivative_at(). For scalar
+ *          functions, this is a Fréchet approximation in the classical sense,
+ *          but should eventually bridge to the formal derivative abstraction.
+ *          Consider mapping through OneForm/Covector for differential geometry.
+ *
+ * @see geometry::frechet_derivative_at() for formal Fréchet derivative.
+ * @see backlog: Derivative Abstraction (linking code to geometry).
  */
 export template <detail::IsNumericalBridgeScalar R, typename F>
   requires std::invocable<F, R>
@@ -108,7 +140,19 @@ constexpr R derivative_at(
 }
 
 /**
- * @brief Numerical integral witness via trapezoidal rule.
+ * @brief Numerical integral witness via trapezoidal rule (Riemann sum).
+ *
+ * @details Implements a Riemann sum using the trapezoidal rule, NOT a formal
+ *          Lebesgue integral. Does not compose with differential forms
+ *          (OneForm/TwoForm) or support Stokes' theorem. Limitations:
+ *          - No measure-theoretic semantics (Lebesgue, Borel).
+ *          - No form pullback or exterior calculus integration.
+ *          - No dominated/monotone convergence theorems.
+ *          - Raw std::size_t loop should eventually use Path monad (see
+ *            backlog: Sequence-Adapter Layer).
+ *
+ * @see analysis::OneForm, TwoForm for differential forms (currently separate).
+ * @see backlog: Integral Abstraction, Forms Integration, Sequence-Adapter.
  */
 export template <detail::IsNumericalBridgeScalar R, typename F>
   requires std::invocable<F, R>
