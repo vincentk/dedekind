@@ -10,6 +10,7 @@ readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [
   "pandas>=2.0",
+  "python-graphblas[default]>=2025.2.0",
 ]
 authors = [
   { name = "Dedekind Authors" },
