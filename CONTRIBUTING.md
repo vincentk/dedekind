@@ -36,6 +36,8 @@ Thank you for your interest in contributing!
    so you can review and commit the formatting changes explicitly.
 6. **Open a draft PR** against `main` early — even before the implementation is complete.
    Push incremental checkpoints freely; the draft status signals work-in-progress.
+   While the PR is draft, the primary objective is to narrow the gap between the
+   current implementation and the issue acceptance criteria, checkpoint by checkpoint.
    Mark the PR **Ready for Review** only once **all CI checks are green**.
    Before flagging a PR as ready, contributors SHOULD compare and contrast the
    updated modules and the corresponding chapters in the report, and verify the
@@ -96,6 +98,9 @@ on build management.
 - Operational consistency note: this workflow is intentionally asynchronous and
    eventually consistent. Contributors should ship small checkpoints promptly,
    let CI validate in parallel, and converge based on CI feedback.
+- Practical intent: during active PR development, temporary local/remote status
+   skew is expected; the team should optimize for fast convergence back to green
+   CI rather than for lock-step local synchronization at every step.
 - Motivation: this model is not only about throughput; it also mitigates
    "works on my laptop" failures by treating CI as the reproducible baseline
    and local environments as potentially non-reproducible.
