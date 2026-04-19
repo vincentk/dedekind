@@ -18,7 +18,7 @@ DOT_FILE     := $(DOCS_DIR)/figures/dedekind_module_dependencies.dot
 
 .PHONY: all clean compile test integration-test coverage format format-check install-hooks ci-install-doxygen-deps ci-install-report-deps doxygen dot doc report \
 	ci-history ci-main pr-init pr-status pr-checks pr-watch pr-sync pr-review-comments pr-review-unresolved pr-resolve-thread pr-resolve-threads \
-	jupyter
+	issue-list jupyter
 
 all: compile
 
@@ -153,6 +153,34 @@ ci-install-report-deps:
 	sudo apt-get install -y biber texlive-latex-base texlive-latex-extra texlive-bibtex-extra texlive-pictures texlive-plain-generic texlive-fonts-recommended
 
 # CI/PR workflow helpers (optimistic concurrency loop)
+
+# Standardized backlog issue query helper.
+# Usage examples:
+#   make issue-list
+#   make issue-list LIMIT=50
+#   make issue-list STATE=all SEARCH="linear algebra"
+#   make issue-list FIELDS="number,title,labels,comments,body"
+issue-list:
+	@STATE_VAL="$(STATE)"; \
+	LIMIT_VAL="$(LIMIT)"; \
+	SEARCH_VAL="$(SEARCH)"; \
+	FIELDS_VAL="$(FIELDS)"; \
+	if [ -z "$$STATE_VAL" ]; then \
+		STATE_VAL="open"; \
+	fi; \
+	if [ -z "$$LIMIT_VAL" ]; then \
+		LIMIT_VAL=50; \
+	fi; \
+	if [ -z "$$FIELDS_VAL" ]; then \
+		FIELDS_VAL="number,title,body,labels,comments"; \
+	fi; \
+	echo "Listing issues: state=$$STATE_VAL limit=$$LIMIT_VAL fields=$$FIELDS_VAL"; \
+	if [ -n "$$SEARCH_VAL" ]; then \
+		gh issue list --state "$$STATE_VAL" --limit "$$LIMIT_VAL" --search "$$SEARCH_VAL" --json "$$FIELDS_VAL"; \
+	else \
+		gh issue list --state "$$STATE_VAL" --limit "$$LIMIT_VAL" --json "$$FIELDS_VAL"; \
+	fi
+
 ci-history:
 	@BRANCH_NAME="$(BRANCH)"; \
 	LIMIT_VAL="$(LIMIT)"; \
