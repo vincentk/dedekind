@@ -86,6 +86,20 @@ constexpr Z embed_signed_integral(S v) {
   return Z{v};
 }
 
+/**
+ * @brief Default certified integer carrier used by downstream numeric layers.
+ *
+ * @details This is intentionally an alias rather than a hard-coded choice in
+ * `:rational`, `:real`, or `:complex`, so the default integer infrastructure
+ * can later be retargeted in one place (for example to a future
+ * `SignedExtensionalCardinal<N>`).
+ *
+ * Today this remains `int`, which is treated as the current machine
+ * realisation/default input carrier rather than as the ideal certified
+ * intensional integer domain.
+ */
+export using default_integer = int;
+
 export template <typename T>
 concept IsNaturalNumber = std::unsigned_integral<T>;
 

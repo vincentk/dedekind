@@ -36,8 +36,10 @@ namespace dedekind::numbers {
 using namespace dedekind::category;
 using namespace dedekind::sets;
 
-// Canonical machine realization for the integer carrier.
-export using machine_integer = int;
+// Canonical default realization for the integer carrier.
+// Centralised in :integer so downstream numeric layers can be retargeted
+// together when the signed extensional infrastructure lands.
+export using machine_integer = default_integer;
 
 /**
  * @class Rational
