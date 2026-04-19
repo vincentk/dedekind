@@ -58,7 +58,7 @@ TEST_CASE("Analysis: Fundamental Theorem of Calculus Bridges",
     const auto integrand = [](Real x) { return 2.0 * x; };
     const auto antiderivative = [](Real x) { return x * x; };
 
-    REQUIRE(ftc_worked_theorem_chain<Real>(integrand, antiderivative, -1.0,
-                                           1.5, 3.0, 1e-3));
+    REQUIRE(ftc_worked_theorem_chain<Real>(integrand, antiderivative, -1.0, 1.5,
+                                           3.0, 1e-3));
   }
 }
