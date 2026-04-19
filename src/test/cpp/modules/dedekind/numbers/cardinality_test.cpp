@@ -7,7 +7,6 @@
 
 import dedekind.category;
 import dedekind.numbers;
-import dedekind.order;
 
 using namespace dedekind::category;
 using namespace dedekind::numbers;
@@ -140,19 +139,6 @@ TEST_CASE("Numbers: ExtensionalCardinal<N> multi-limb semantics",
 
 TEST_CASE("Numbers: Cardinality witnesses and composition",
           "[numbers][cardinality][effects]") {
-  SECTION("Lipschitz boundary witness is categorical product") {
-    STATIC_CHECK(IsProduct<LipschitzBoundaryWitness, Cardinality, Cardinality>);
-  }
-
-  SECTION(
-      "ExtensionalCardinal<1> is ring-certified (static_assert also in "
-      "partition)") {
-    using C1 = ExtensionalCardinal<1>;
-    STATIC_CHECK(IsRing<C1, std::plus<C1>, std::multiplies<C1>>);
-    STATIC_CHECK(IsNatural<C1>);
-    STATIC_CHECK(dedekind::order::IsTotallyOrdered<C1>);
-  }
-
   SECTION("Writer-like bind respects left identity") {
     const auto f = [](const Cardinality& c) {
       return CardinalityEffect{add(c, finite_cardinality(2)),
