@@ -17,10 +17,23 @@ except ModuleNotFoundError as _exc:
         "root, then install with `pip install -e .`."
     ) from _exc
 
-# Import submodules for namespaced access (e.g., dedekind.sets.set_union)
-from . import sequences, sets
-# Top-level utility (convenience alias)
-from .sequences import frame_to_paths
+# Lazy-load submodules on first access to avoid circular imports
+def __getattr__(name):
+    """Lazy-load submodules (sequences, sets) on demand."""
+    if name == "sequences":
+        from . import sequences
+        return sequences
+    elif name == "sets":
+        from . import sets
+        return sets
+    raise AttributeError(f"module {__name__!r} has no attribute {name!r}")
+
+# Top-level utility: frame_to_paths convenience alias
+# (imported after dsl to avoid circular dependency with frame_to_paths)
+try:
+    from .sequences import frame_to_paths
+except ImportError:
+    frame_to_paths = None
 
 from .dsl import (
     Activity,
