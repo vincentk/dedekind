@@ -123,7 +123,7 @@
 \begin{abstract}
 This report presents \texttt{dedekind}, a \texttt{C++23} research library for embedding mathematical structure directly into compile-time interfaces through modules, concepts, and constrained species traits. Rather than treating algebraic intent as runtime convention, \texttt{dedekind} reifies categorical and mereological invariants as type-level contracts that can be audited by the compiler and validated by tests.
 
-The project demonstrates three complementary goals. First, it supports symbolic and exact constructions (including Dedekind-cut style reasoning) where compile-time pruning can collapse contradictory structures to near-zero runtime cost. Second, it acknowledges the accuracy-latency paradox in numeric systems programming: exactness and hardware throughput are not globally maximizable at once. To make this tradeoff explicit, \texttt{dedekind} exposes policy-guided IEEE workflows ranging from pass-through machine arithmetic to monitored and actively managed execution paths. Third, it lowers adoption cost through explicit interoperability boundaries, including finite sequence integration with standard ranges and controlled set-container bridges for standard library set types.
+The project demonstrates four complementary goals. First, it supports symbolic and exact constructions (including Dedekind-cut style reasoning) where compile-time pruning can collapse contradictory structures to near-zero runtime cost. Second, it acknowledges the accuracy-latency paradox in numeric systems programming: exactness and hardware throughput are not globally maximizable at once. To make this tradeoff explicit, \texttt{dedekind} exposes policy-guided IEEE workflows ranging from pass-through machine arithmetic to monitored and actively managed execution paths. Third, it lowers adoption cost through explicit interoperability boundaries, including finite sequence integration with standard ranges and controlled set-container bridges for standard library set types. Fourth, it introduces a backend-agnostic linear algebra layer in which the rank-nullity theorem is enforced as a compile-time concept rather than a runtime assertion, providing a contract-stable foundation for sparse and GraphBLAS-backed computation.
 
 The resulting methodology is practical rather than absolutist: enforce what can be guaranteed in the current type/concept layer, document limitations where theory or machinery is still maturing, and preserve mechanical sympathy with modern compiler backends. We position this as Axiomatic Systems Programming: a workflow in which formal structure, performance constraints, and developer-facing interoperability are co-designed instead of treated as separate phases.
 
@@ -366,27 +366,48 @@ While the module graph serves as an external meta-logical constraint ensuring bu
 \label{fig:dedekind_module_dependencies}
 \centering
 \begin{tikzpicture}[
-    node distance=1.2cm and 1.8cm,
-    module/.style={rectangle, draw=black, fill=blue!5, thick, minimum width=3.2cm, minimum height=0.8cm, font=\ttfamily},
+    node distance=0.55cm and 3.8cm,
+    module/.style={rectangle, draw=black, fill=blue!5, thick, minimum width=3.6cm, minimum height=0.65cm, font=\ttfamily\small},
     arrow/.style={-Stealth, thick}
 ]
-    % Global Module Hierarchy
-    \node[module] (cat) {dedekind.category};
-    \node[module, right=of cat] (sets) {dedekind.sets};
-    \node[module, right=of sets] (seq) {dedekind.sequences};
-    \node[module, below=of sets] (alg) {dedekind.algebra};
+    % Left column: foundational layers
+    \node[module] (cat)  {dedekind.category};
+    \node[module, below=of cat]  (ieee) {dedekind.ieee};
+    \node[module, below=of ieee] (sets) {dedekind.sets};
+    \node[module, below=of sets] (ord)  {dedekind.order};
+    \node[module, below=of ord]  (topo) {dedekind.topology};
+    \node[module, below=of topo] (seq)  {dedekind.sequences};
+    \node[module, below=of seq]  (alg)  {dedekind.algebra};
 
-    % Dependencies
-    \draw[arrow] (cat) -- (sets);
-    \draw[arrow] (sets) -- (seq);
-    \draw[arrow] (cat) |- (alg);
-    \draw[arrow] (sets) -- (alg);
+    % Right column: domain layers
+    \node[module, right=of cat]  (morph)  {dedekind.morphologies};
+    \node[module, below=of morph] (geom)  {dedekind.geometry};
+    \node[module, below=of geom]  (num)   {dedekind.numbers};
+    \node[module, below=of num]   (anal)  {dedekind.analysis};
+    \node[module, below=of anal]  (linalg){dedekind.linear\_algebra};
+    \node[module, below=of linalg](py)    {dedekind.python};
 
-    \node[below=0.1cm of cat, font=\scriptsize\itshape] {Axiomatic Primitives};
-    \node[below=0.1cm of sets, font=\scriptsize\itshape] {ETCS / Set-Builder};
-    \node[below=0.1cm of seq, font=\scriptsize\itshape] {Continuum / Limits};
+    % Left chain
+    \draw[arrow] (cat)  -- (ieee);
+    \draw[arrow] (ieee) -- (sets);
+    \draw[arrow] (sets) -- (ord);
+    \draw[arrow] (ord)  -- (topo);
+    \draw[arrow] (topo) -- (seq);
+    \draw[arrow] (seq)  -- (alg);
+
+    % Bridge: algebra -> morphologies (left to right)
+    \draw[arrow] (alg) -| (morph);
+
+    % Right chain
+    \draw[arrow] (morph)  -- (geom);
+    \draw[arrow] (geom)   -- (num);
+    \draw[arrow] (num)    -- (anal);
+    \draw[arrow] (anal)   -- (linalg);
+    \draw[arrow] (linalg) -- (py);
 \end{tikzpicture}
-\caption{Module build dependencies in the \texttt{dedekind} library.}
+\caption{Complete module build DAG (transitive reduction): arrows show direct dependencies only.
+  The left column covers axiomatic and numeric foundations; the right column covers domain layers
+  from \texttt{morphologies} to the terminal \texttt{python} facade.}
 \end{figure}
 
 For the remainder of the implementation section, we simply follow build order of the system. We will annotate and document the specific modules and partitions as they are defined and validated, beginning with the foundational internal partitions of the \texttt{dedekind.category} module.
