@@ -235,20 +235,52 @@ Three C++23 features are central:
 
 \noindent Together, these features enable the compiler to act as a formal verification engine.
 
-\subsection{Structural vs.\ Nominal Typing}
+\subsection{Structural vs.\ Nominal Typing: The Juliet Posture}
 
-Traditional object-oriented frameworks use \emph{nominal typing}: an object belongs to a category
-because of its declared inheritance.
-\texttt{dedekind} uses \emph{structural typing}: a type $T$ is a ring if it satisfies the
-\texttt{IsRing<T>} concept, which checks associativity, the existence of an identity element, and
-distributivity---regardless of whether \texttt{T} carries the label ``ring.''
+Three distinct schools of structural identification appear in the history of programming
+languages.  Understanding their differences clarifies why C++23 concepts represent a
+genuine advance.
 
-\begin{lstlisting}[language=C++, caption={Structural recognition: a type is a ring by its properties, not its name.}, label={lst:structural}]
-// Nominal: recognised by lineage
+\paragraph{Nominal typing.}
+Traditional object-oriented frameworks require a type to \emph{declare} its membership.
+A class is a \texttt{Ring} because it inherits from a base class named \texttt{Ring},
+or implements an interface so named.
+The \emph{name} is the proof of membership.
+The compiler checks lineage, not behaviour.
+A type that provides every ring operation but neglects to inherit the right base class
+is silently excluded; a type that inherits the right class but provides broken operations
+is silently accepted.
+
+\paragraph{Duck typing.}
+Dynamic languages (Python, Ruby, early JavaScript) use a runtime structural check
+colloquially known as \emph{duck typing}: ``if it walks like a duck and quacks like a
+duck, it is a duck.''
+Membership is determined at the call site by testing whether the required method exists
+and can be invoked.
+This is genuinely structural---it cares about behaviour, not name---but the check
+happens \emph{at runtime}, too late to drive compile-time optimization, and errors
+surface only when a missing method is actually called.
+Python's \texttt{expect\_domain} constraint in Listing~\ref{lst:analyst} is duck-typed
+in this sense: the domain set is a runtime \texttt{list}, membership is tested by
+\lstinline{in}, and a violation raises an exception at the point of evaluation.
+
+\paragraph{Static structural typing---the Juliet Posture.}
+C++23 concepts combine the structural insight of duck typing with the static,
+compile-time guarantees of nominal typing---without requiring a declaration of intent.
+We call this the \emph{Juliet Posture}, after the observation that a rose by any other
+name would smell as sweet~\cite{shakespeare1597romeo}: the library cares about the
+\emph{scent} (structural invariants), not the \emph{lineage} (declared name).
+
+\begin{lstlisting}[language=C++, caption={The Juliet Posture: structural recognition checked statically, without requiring declared lineage.}, label={lst:structural}]
+// Nominal: recognised by declared lineage
 struct Ring { virtual T operator+(T) const = 0; ... };
-struct MyInt : Ring { ... };
+struct MyInt : Ring { ... };   // must opt in explicitly
 
-// Structural (C++23): recognised by behaviour
+// Duck typing: recognised at runtime by the call site
+def generic_sum(a, b):         # Python: fails only when called
+    return a + b               # no compile-time guarantee
+
+// Juliet Posture (C++23): recognised statically by behaviour
 template <typename T>
 concept IsRing = requires(T a, T b) {
     { a + b } -> std::same_as<T>;
@@ -257,9 +289,18 @@ concept IsRing = requires(T a, T b) {
     requires SpeciesTraits<T, std::plus<T>>::is_associative;
 };
 
-// int satisfies IsRing without any base class.
-static_assert(IsRing<int>);
+// int satisfies IsRing without any base class, checked at compile time.
+static_assert(IsRing<int>);    // proof obligation discharged at translation
 \end{lstlisting}
+
+\noindent The Juliet Posture delivers the best properties of both predecessors:
+structural sensitivity (behaviour, not name) and static verification (compile time,
+not runtime).
+Crucially, because the concept check is a compile-time proof obligation, the compiler
+can \emph{act on it}: it can specialize code paths, infer additional algebraic
+properties from the trait registry, and ultimately prune logically empty set
+expressions to zero machine instructions---none of which is possible with runtime duck
+typing.
 
 \subsection{The Compiler as Verification and Optimization Engine}
 
