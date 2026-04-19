@@ -14,6 +14,14 @@
  * - Poisson Bracket: The Lie Algebra structure defining the flow.
  * - Conservation: The proof that \(\{f, \mathcal{H}\} = 0\) for invariants.
  *
+ * @note **Transcendental Functions (Intensional Use):**
+ * Current use of std::cos/std::sin in harmonic_oscillator_closed_form() is
+ * intentional and serves as a guide post for future IsTranscendental<>
+ * abstraction (see GitHub issue #344). We preserve explicit std:: prefix to
+ * highlight the extensional-to-intensional bridging needed for symbolic
+ * calculus. Do not refactor these calls until the transcendental abstraction
+ * is formalized. See harmonic_oscillator_closed_form() docstring (line ~104).
+ *
  * @build_order 9
  * @dependency :algebra, :geometry, :sequences
  *
@@ -103,6 +111,12 @@ using PhasePoint = Vector<R, 2>;
  * For H(q,p) = 1/2 (p^2 + ω^2 q^2) with unit mass:
  *   q(t) = q0 cos(ωt) + (p0/ω) sin(ωt)
  *   p(t) = p0 cos(ωt) - ω q0 sin(ωt)
+ *
+ * @note The direct use of std::cos() and std::sin() here is intentional—it
+ * marks the boundary between extensional (runtime) and intensional (symbolic)
+ * computation. Once transcendental function abstraction (GitHub #344) is
+ * formalized, this function will serve as a template for integrating the
+ * IsTranscendental<> concept. Do not refactor before that design is complete.
  */
 export template <std::floating_point R>
 constexpr PhasePoint<R> harmonic_oscillator_closed_form(R q0, R p0, R t,
