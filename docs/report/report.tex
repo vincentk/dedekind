@@ -2724,6 +2724,79 @@ Kernel functions $k(x, y) = \langle \phi(x), \phi(y) \rangle$ encode feature map
 The analysis module validates the antisymmetry of the wedge product and the area-preserving property of Hamiltonian flows, confirming that the library's apex layer correctly materialises classical mechanics in C++23 type theory.
 
 
+\chapter{\texttt{dedekind.linear\_algebra}}
+\label{chap:linear_algebra}
+
+\section{Introduction}
+
+The \texttt{dedekind.linear\_algebra} module introduces compile-time contracts for finite-dimensional linear operators, positioned between \texttt{dedekind.analysis} and \texttt{dedekind.python} in the build DAG.
+Its design posture is deliberately backend-agnostic: the module establishes the algebraic API surface and capability vocabulary for linear operators without committing to a concrete execution engine.
+This follows the project's ``intensional first, realize at explicit boundaries'' discipline---the rank-nullity invariant is enforced as a compile-time concept rather than a runtime assertion.
+
+The primary motivation is Phase~1 of the GraphBLAS rollout (issue~\#342): before introducing a concrete sparse-linear-algebra backend, the contract layer must be stable enough to serve as a dependency gate for sparse systems (\#300) and later graph leverage (\#319, \#324).
+
+\begin{table}[ht]
+\centering
+\caption{Rosetta Stone: \texttt{dedekind.linear\_algebra}}
+\label{table:linear_algebra}
+\begin{tabular}{lll}
+\toprule
+\textbf{Mathematical Concept} & \textbf{C++23 construct} & \textbf{Structural \texttt{concept}} \\
+\midrule
+Rank-nullity identity $r + n = d$ & \texttt{StaticRankNullity<D,R>} & \texttt{RankNullityWitness} \\
+Linear operator carrier & \texttt{SparseLinearOperatorStub<S,D,R>} & \texttt{LinearOperatorContract} \\
+Backend capability witness & \texttt{GenericBackend}, \texttt{GraphBLASBackendStub} & \texttt{LinearAlgebraBackend} \\
+Backend-conformant operator & \texttt{BackendConformantLinearOperator} & compound concept \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\section{\texttt{:contracts}}
+\label{sec:linear_algebra-contracts}
+
+The \texttt{:contracts} partition encodes the rank-nullity theorem as a static concept.
+For a finite-dimensional linear operator $T : V \to W$ with $\dim V = d$, we have
+\[
+  \operatorname{rank}(T) + \operatorname{nullity}(T) = d.
+\]
+\texttt{RankNullityWitness} requires this identity to hold at compile time via a \texttt{requires} clause; no runtime check is needed.
+
+\begin{lstlisting}[language=C++, caption={\texttt{:contracts}: compile-time rank-nullity identity (from \texttt{contracts\_test.cpp}).}, label={lst:contracts}]
+using Witness = StaticRankNullity<7, 4>;
+static_assert(RankNullityWitness<Witness>);
+static_assert(Witness::rank + Witness::nullity == Witness::ambient_dimension);
+// 4 + 3 == 7 -- enforced at compile time, not at runtime.
+\end{lstlisting}
+
+The \texttt{LinearOperatorContract} concept requires a \texttt{scalar\_type} and a conformant \texttt{rank\_nullity} witness, providing the minimal surface needed by downstream operator carriers.
+
+\section{\texttt{:backends}}
+\label{sec:linear_algebra-backends}
+
+The \texttt{:backends} partition defines the \texttt{LinearAlgebraBackend} concept and the \texttt{GenericBackend} witness.
+A backend is characterised by a stable \texttt{BackendKind} discriminator, a human-readable \texttt{name}, and a \texttt{supports\_sparse\_linear\_operators} capability flag.
+\texttt{GenericBackend} is the portable baseline for contract-only workflows that do not require a concrete execution engine.
+
+\section{\texttt{:graphblas}}
+\label{sec:linear_algebra-graphblas}
+
+The \texttt{:graphblas} partition provides a compile-time adapter stub for GraphBLAS-style backends.
+\texttt{GraphBLASBackendStub} satisfies \texttt{LinearAlgebraBackend} with \texttt{kind = BackendKind::graphblas} and \texttt{supports\_sparse\_linear\_operators = true}.
+\texttt{SparseLinearOperatorStub} composes the contracts and backend witness into a concrete carrier, and \texttt{BackendConformantLinearOperator} is the compound concept that requires both \texttt{LinearOperatorContract} and \texttt{LinearAlgebraBackend} on the operator's \texttt{backend\_type}.
+
+This stub is intentionally link-free: it validates the Phase~1 contract API without introducing a dependency on a real GraphBLAS library, keeping the CI build self-contained.
+
+\section{Results}
+
+The test suite for this module exercises all three acceptance criteria of issue~\#342 using \texttt{STATIC\_REQUIRE}:
+\begin{enumerate}
+  \item Rank is exposed at compile time (\texttt{StaticRankNullity::rank}).
+  \item Number of columns (ambient dimension) is exposed at compile time (\texttt{StaticRankNullity::ambient\_dimension}).
+  \item The compile-time identity $\text{rank} + \text{nullity} = \text{ambient\_dimension}$ is enforced via \texttt{RankNullityWitness}.
+\end{enumerate}
+Backend conformance of the GraphBLAS stub is also verified statically via \texttt{LinearOperatorContract} and \texttt{BackendConformantLinearOperator}.
+
+
 \chapter{\texttt{dedekind.python}}
 \label{chap:python}
 
