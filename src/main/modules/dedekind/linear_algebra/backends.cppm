@@ -16,7 +16,7 @@ export module dedekind.linear_algebra:backends;
 export namespace dedekind::linear_algebra {
 
 /** @brief Stable backend discriminator tags. */
-export enum class BackendKind {
+enum class BackendKind {
   generic,
   graphblas,
 };
@@ -25,7 +25,7 @@ export enum class BackendKind {
  * @concept LinearAlgebraBackend
  * @brief Backend capability witness used by contract-level dispatch.
  */
-export template <typename Backend>
+template <typename Backend>
 concept LinearAlgebraBackend = requires {
   { Backend::kind } -> std::same_as<const BackendKind&>;
   { Backend::name } -> std::same_as<const std::string_view&>;
@@ -33,7 +33,7 @@ concept LinearAlgebraBackend = requires {
 };
 
 /** @brief Portable baseline backend for contract-only workflows. */
-export struct GenericBackend {
+struct GenericBackend {
   static constexpr BackendKind kind = BackendKind::generic;
   static constexpr std::string_view name = "generic-contract-backend";
   static constexpr bool supports_sparse_linear_operators = false;

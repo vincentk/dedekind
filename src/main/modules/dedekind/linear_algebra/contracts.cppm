@@ -19,7 +19,7 @@ export namespace dedekind::linear_algebra {
  * @concept RankNullityWitness
  * @brief Static witness for the rank-nullity identity.
  */
-export template <typename W>
+template <typename W>
 concept RankNullityWitness = requires {
   { W::ambient_dimension } -> std::convertible_to<std::size_t>;
   { W::rank } -> std::convertible_to<std::size_t>;
@@ -33,7 +33,7 @@ concept RankNullityWitness = requires {
  * @struct StaticRankNullity
  * @brief Convenience compile-time carrier for finite-dimensional witnesses.
  */
-export template <std::size_t AmbientDimension, std::size_t Rank>
+template <std::size_t AmbientDimension, std::size_t Rank>
   requires(Rank <= AmbientDimension)
 struct StaticRankNullity {
   static constexpr std::size_t ambient_dimension = AmbientDimension;
@@ -45,7 +45,7 @@ struct StaticRankNullity {
  * @concept LinearOperatorContract
  * @brief Minimal contract for finite-dimensional linear operator carriers.
  */
-export template <typename Op>
+template <typename Op>
 concept LinearOperatorContract = requires {
   typename Op::scalar_type;
   typename Op::rank_nullity;
