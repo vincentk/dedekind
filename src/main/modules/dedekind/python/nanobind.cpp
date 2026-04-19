@@ -85,8 +85,7 @@ auto path_from_array(nb::ndarray<T, nb::ndim<1>, nb::c_contig> arr)
 
 auto path_from_seq(nb::sequence seq) -> std::vector<std::string> {
   std::vector<std::string> result;
-  for (nb::handle h : seq)
-    result.push_back(nb::cast<std::string>(h));
+  for (nb::handle h : seq) result.push_back(nb::cast<std::string>(h));
   return result;
 }
 
