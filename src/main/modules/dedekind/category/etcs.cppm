@@ -52,6 +52,7 @@ import :cartesian;
 import :limit;
 import :logic;
 import :morphism;
+import :natural;
 import :pullback;
 import :species;
 import :topoi;
@@ -191,6 +192,19 @@ concept HasAxiom7SubobjectClassifier =
               id<typename S::Ambient>(), id<typename S::Ambient>())),
           Identity<typename S::Ambient>, Identity<typename S::Ambient>>;
     };
+
+/**
+ * @concept HasAxiom7ClassifierNaturalityWitness
+ * @brief Optional naturality witness for Axiom 7 classifier behavior.
+ * @details Encodes that classifier-level structure for ambient species A can
+ * be paired with a natural-transformation witness over functors rooted in A.
+ * This strengthens the proof surface for pullback/reindexing narratives while
+ * keeping `IsSet` backward compatible.
+ */
+export template <typename S, typename Alpha, typename F, typename G>
+concept HasAxiom7ClassifierNaturalityWitness =
+    HasAxiom7SubobjectClassifier<S> && IsNaturalTransformation<Alpha, F, G> &&
+    std::same_as<typename F::Σ_cat::Species, typename S::Ambient>;
 
 /** @brief ETCS axiom 8 witness: initial object 0 is present. */
 export template <typename A>

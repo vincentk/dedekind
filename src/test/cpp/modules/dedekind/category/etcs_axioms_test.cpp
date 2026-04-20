@@ -120,3 +120,19 @@ TEST_CASE("ETCS axiom 10: split-epi witness surface is explicit",
       HasAxiom10ChoiceSplitEpicWitness<decltype(s), decltype(plus_one),
                                        Identity<int>>);
 }
+
+TEST_CASE("ETCS axiom 7: naturality witness can be attached explicitly",
+          "[category][etcs][axioms][naturality]") {
+  using IntCat = DiscreteCategory<int>;
+  using IdF = identity_functor<IntCat>;
+
+  struct IdentityComponent {
+    auto operator()(int) const { return id<int>(); }
+  };
+
+  const auto s = ambient_set<int>([](const int& x) { return x >= 0; });
+
+  STATIC_CHECK(
+      HasAxiom7ClassifierNaturalityWitness<decltype(s), IdentityComponent, IdF,
+                                           IdF>);
+}
