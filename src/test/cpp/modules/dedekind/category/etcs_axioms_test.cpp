@@ -54,6 +54,13 @@ TEST_CASE("ETCS axioms: 4, 7, 10 (well-pointed eval, classifier, lattice)",
   CHECK_FALSE(m.χ(-4));
   CHECK(j.χ(-4));
   CHECK_FALSE(j.χ(-3));
+
+  // Axiom 7 includes classifier constants and pullback-backed stability.
+  STATIC_CHECK(HasAxiom7SubobjectClassifier<decltype(s_even)>);
+
+  // Axiom 10 (choice) currently has an explicit split-epi witness surface.
+  STATIC_CHECK(HasAxiom10ChoiceSplitEpicWitness<decltype(s_even), Identity<int>,
+                                                Identity<int>>);
 }
 
 TEST_CASE("ETCS axioms: 5 and 6 (product and exponentials)",

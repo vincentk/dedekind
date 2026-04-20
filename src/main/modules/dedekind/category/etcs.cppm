@@ -52,6 +52,7 @@ import :cartesian;
 import :limit;
 import :logic;
 import :morphism;
+import :pullback;
 import :species;
 import :topoi;
 
@@ -176,7 +177,20 @@ concept HasAxiom6Exponentiation =
 
 /** @brief ETCS axiom 7 witness: every set is represented by a subobject. */
 export template <typename S>
-concept HasAxiom7SubobjectClassifier = IsSubobject<S, typename S::Ambient>;
+concept HasAxiom7SubobjectClassifier =
+    IsSubobject<S, typename S::Ambient> && requires {
+      requires IsSetObject<decltype(classify<typename S::Ambient>(
+                               classifier_true<typename S::Ambient>())),
+                           typename S::Ambient>;
+      requires IsSetObject<decltype(classify<typename S::Ambient>(
+                               classifier_false<typename S::Ambient>())),
+                           typename S::Ambient>;
+      requires IsPullback<
+          decltype(pullback<ClassicalLogic, std::pair<typename S::Ambient,
+                                                      typename S::Ambient>>(
+              id<typename S::Ambient>(), id<typename S::Ambient>())),
+          Identity<typename S::Ambient>, Identity<typename S::Ambient>>;
+    };
 
 /** @brief ETCS axiom 8 witness: initial object 0 is present. */
 export template <typename A>
@@ -185,6 +199,29 @@ concept HasAxiom8EmptySet = IsInitialObject<Zero>;
 /** @brief ETCS axiom 9 witness: arithmetic species atlas exposes ℕ witness. */
 export template <typename A>
 concept HasAxiom9NNO = IsSpecies<unsigned>;
+
+/**
+ * @concept IsSplitEpicPair
+ * @brief Structural witness of a split epimorphism e with section s.
+ * @details This concept captures the textbook shape e: A ↠ B and s: B → A.
+ * Semantic equations (e ∘ s = id_B) remain a proof obligation supplied by
+ * tests or user-declared witnesses.
+ */
+export template <typename Epi, typename Section>
+concept IsSplitEpicPair = IsEpicArrow<Epi> && IsArrow<Section> &&
+                          std::same_as<Dom<Section>, Cod<Epi>> &&
+                          std::same_as<Cod<Section>, Dom<Epi>>;
+
+/**
+ * @concept HasAxiom10ChoiceSplitEpicWitness
+ * @brief Axiom 10 (choice) support via an explicit split-epi witness shape.
+ * @details This is an opt-in structural contract that exposes where choice-like
+ * splitting witnesses exist today.
+ */
+export template <typename S, typename Epi, typename Section>
+concept HasAxiom10ChoiceSplitEpicWitness =
+    IsSetObject<S, typename S::Ambient> && IsSplitEpicPair<Epi, Section> &&
+    std::same_as<Cod<Epi>, typename S::Ambient>;
 
 /**
  * @brief ETCS axiom 10 witness: power-object lattice completeness.
