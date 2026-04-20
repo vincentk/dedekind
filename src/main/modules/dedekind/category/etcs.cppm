@@ -269,8 +269,9 @@ export template <typename S, IsArrow E>
   requires IsSubobject<S, typename S::Ambient> &&
            std::same_as<Cod<E>, typename S::Ambient> &&
            std::equality_comparable<Cod<decltype(std::declval<S>().χ)>>
-constexpr bool classifier_reindexing_definitional_witness_at(
-    const S& s, const E& embedding, const Dom<E>& x) {
+constexpr bool classifier_reindexing_definitional_witness_at(const S& s,
+                                                             const E& embedding,
+                                                             const Dom<E>& x) {
   return in_via(x, embedding, s) == s.χ(embedding(x));
 }
 

@@ -184,16 +184,14 @@ TEST_CASE("ETCS axiom 7: naturality witness can be attached explicitly",
 }
 
 TEST_CASE("ETCS axiom 7: pullback reindexing definitional witness surface",
-                  "[category][etcs][axioms][reindexing][definitional]") {
+          "[category][etcs][axioms][reindexing][definitional]") {
   const auto s = ambient_set<int>([](const int& x) { return x % 2 == 0; });
   auto embed = arrow<bool, int>([](const bool b) { return b ? 2 : 3; });
-  const auto pulled_back = ambient_set<bool>([&](const bool& b) {
-        return s.χ(embed(b));
-  });
+  const auto pulled_back =
+      ambient_set<bool>([&](const bool& b) { return s.χ(embed(b)); });
 
-  STATIC_CHECK(
-          HasAxiom7PullbackReindexingDefinitionalSurface<decltype(s),
-                                                                                                         decltype(embed)>);
+  STATIC_CHECK(HasAxiom7PullbackReindexingDefinitionalSurface<decltype(s),
+                                                              decltype(embed)>);
 
   CHECK(pulled_back.χ(true));
   CHECK_FALSE(pulled_back.χ(false));
@@ -206,51 +204,55 @@ TEST_CASE("ETCS axiom 7: pullback reindexing definitional witness surface",
   auto bad_embed =
       arrow<int, double>([](const int x) { return static_cast<double>(x); });
   STATIC_CHECK_FALSE(
-          HasAxiom7PullbackReindexingDefinitionalSurface<decltype(s),
-                                                                                                         decltype(bad_embed)>);
+      HasAxiom7PullbackReindexingDefinitionalSurface<decltype(s),
+                                                     decltype(bad_embed)>);
 }
 
 TEST_CASE("ETCS axiom 7: definitional surface with composite predicates",
-                  "[category][etcs][axioms][reindexing][definitional][composite]") {
+          "[category][etcs][axioms][reindexing][definitional][composite]") {
   // Composite predicate: x > 0 AND x % 3 == 0
   const auto s_composite =
       ambient_set<int>([](const int& x) { return x > 0 && x % 3 == 0; });
   auto scale = arrow<int, int>([](const int x) { return x * 2; });
 
-        STATIC_CHECK(HasAxiom7PullbackReindexingDefinitionalSurface<
-                                                         decltype(s_composite), decltype(scale)>);
+  STATIC_CHECK(
+      HasAxiom7PullbackReindexingDefinitionalSurface<decltype(s_composite),
+                                                     decltype(scale)>);
 
-        CHECK(in_via(2, scale, s_composite) == false);  // 4 is not div 3
-        CHECK(in_via(3, scale, s_composite));           // 6 is div 3
-        CHECK_FALSE(in_via(-1, scale, s_composite));    // negative
+  CHECK(in_via(2, scale, s_composite) == false);  // 4 is not div 3
+  CHECK(in_via(3, scale, s_composite));           // 6 is div 3
+  CHECK_FALSE(in_via(-1, scale, s_composite));    // negative
 
-        CHECK(classifier_reindexing_definitional_witness_at(s_composite, scale, 2));
-        CHECK(classifier_reindexing_definitional_witness_at(s_composite, scale, 3));
-        CHECK(classifier_reindexing_definitional_witness_at(s_composite, scale, -1));
+  CHECK(classifier_reindexing_definitional_witness_at(s_composite, scale, 2));
+  CHECK(classifier_reindexing_definitional_witness_at(s_composite, scale, 3));
+  CHECK(classifier_reindexing_definitional_witness_at(s_composite, scale, -1));
 }
 
-TEST_CASE("ETCS axiom 7: definitional surface across different source types",
-                                        "[category][etcs][axioms][reindexing][definitional][type-variation]") {
+TEST_CASE(
+    "ETCS axiom 7: definitional surface across different source types",
+    "[category][etcs][axioms][reindexing][definitional][type-variation]") {
   const auto s_bool = ambient_set<int>([](const int& x) { return x > 0; });
 
   // Embed from double domain
   auto from_double =
       arrow<double, int>([](const double d) { return static_cast<int>(d); });
-        STATIC_CHECK(HasAxiom7PullbackReindexingDefinitionalSurface<
-                                                         decltype(s_bool), decltype(from_double)>);
-        CHECK(in_via(1.5, from_double, s_bool));
-        CHECK_FALSE(in_via(-2.7, from_double, s_bool));
-        CHECK(classifier_reindexing_definitional_witness_at(s_bool, from_double,
-                                                                                                                                                                                                                        1.5));
-        CHECK(classifier_reindexing_definitional_witness_at(s_bool, from_double,
-                                                                                                                                                                                                                        -2.7));
+  STATIC_CHECK(
+      HasAxiom7PullbackReindexingDefinitionalSurface<decltype(s_bool),
+                                                     decltype(from_double)>);
+  CHECK(in_via(1.5, from_double, s_bool));
+  CHECK_FALSE(in_via(-2.7, from_double, s_bool));
+  CHECK(
+      classifier_reindexing_definitional_witness_at(s_bool, from_double, 1.5));
+  CHECK(
+      classifier_reindexing_definitional_witness_at(s_bool, from_double, -2.7));
 
   // Embed from unsigned domain
   auto from_unsigned = arrow<unsigned, int>(
       [](const unsigned u) { return static_cast<int>(u); });
-        STATIC_CHECK(HasAxiom7PullbackReindexingDefinitionalSurface<
-                                                         decltype(s_bool), decltype(from_unsigned)>);
-        CHECK(in_via(5U, from_unsigned, s_bool));
-        CHECK(classifier_reindexing_definitional_witness_at(s_bool, from_unsigned,
-                                                                                                                                                                                                                        5U));
+  STATIC_CHECK(
+      HasAxiom7PullbackReindexingDefinitionalSurface<decltype(s_bool),
+                                                     decltype(from_unsigned)>);
+  CHECK(in_via(5U, from_unsigned, s_bool));
+  CHECK(
+      classifier_reindexing_definitional_witness_at(s_bool, from_unsigned, 5U));
 }
