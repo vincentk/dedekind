@@ -79,8 +79,7 @@ auto path_from_range(const std::vector<int>& values) -> std::vector<int> {
 // Supports bool, int64, double; falls back to Python sequence for str.
 
 template <typename T>
-auto path_from_array(nb::ndarray<T, nb::ndim<1>, nb::c_contig> arr)
-    -> std::vector<T> {
+auto path_from_array(nb::ndarray<T, nb::ndim<1>> arr) -> std::vector<T> {
   const T* data = arr.data();
   return std::vector<T>(data, data + arr.shape(0));
 }
@@ -254,4 +253,10 @@ NB_MODULE(_dedekind, module) {
   // ── algebraic extensions (dedekind.numbers) ─────────────────────────────
   bind_complex(module);
   bind_dual(module);
+
+  // ── linear_algebra / graphblas middleware ────────────────────────────────
+  module.def("graphblas_backend_stub_available",
+             &dedekind::python::graphblas_backend_stub_available,
+             "Return whether the middleware advertises GraphBLAS backend "
+             "capability for future validation/prototyping.");
 }

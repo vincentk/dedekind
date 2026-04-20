@@ -15,10 +15,11 @@ if(APPLE)
 endif()
 
 # --- Instrumentation and Warnings ---
-# Hard-coded for Clang 21 as used in the CI pipeline
+# Hard-coded for Clang 22 as used in the CI pipeline
 set(DEDEKIND_WARNING_FLAGS
     -Wall -Wextra -Wpedantic -Wshadow -Wunused 
     -Wunreachable-code -Wconversion -Werror
+    -Wno-c2y-extensions
 )
 
 # --- Instrumentation (Shared by CI and Local) ---
@@ -66,7 +67,7 @@ include(FetchContent)
 FetchContent_Declare(
   Catch2
   GIT_REPOSITORY https://github.com/catchorg/Catch2.git
-  GIT_TAG        v3.4.0
+  GIT_TAG        v3.14.0
 )
 
 # This populates the 'catch2_SOURCE_DIR' variable
@@ -181,10 +182,26 @@ add_dedekind_layer(morphologies dedekind_algebra)
 add_dedekind_layer(geometry dedekind_morphologies)
 add_dedekind_layer(numbers dedekind_geometry)
 add_dedekind_layer(analysis dedekind_numbers)
-add_dedekind_layer(python dedekind_analysis)
+add_dedekind_layer(linear_algebra dedekind_analysis)
+add_dedekind_layer(python dedekind_linear_algebra)
 
 if(DEDEKIND_BUILD_PYTHON_BINDINGS)
-    find_package(Python 3.9 REQUIRED COMPONENTS Interpreter Development.Module)
+    # Temporary policy: pin bindings/integration to Python 3.12 until
+    # python-graphblas/llvmlite availability is stable on newer interpreters.
+    find_package(Python 3.12 EXACT QUIET COMPONENTS Interpreter Development.Module)
+    if(NOT Python_FOUND)
+        find_package(Python COMPONENTS Interpreter QUIET)
+        if(Python_Interpreter_FOUND)
+            message(FATAL_ERROR
+                "Python 3.12 is currently required for Dedekind Python bindings/integration tests. "
+                "Found ${Python_VERSION} at ${Python_EXECUTABLE}. "
+                "Activate a Python 3.12 environment (for example: python3.12 -m venv .venv312 && source .venv312/bin/activate) "
+                "or configure CMake with a 3.12 interpreter.")
+        else()
+            message(FATAL_ERROR
+                "Python 3.12 is currently required for Dedekind Python bindings/integration tests, but no Python interpreter was found.")
+        endif()
+    endif()
     add_subdirectory(ext/nanobind EXCLUDE_FROM_ALL)
 
     set(DEDEKIND_PYTHON_PACKAGE_ROOT "${CMAKE_BINARY_DIR}/python")
@@ -233,14 +250,14 @@ endif()
 # corresponds to a module interface unit.
 # The "dedekind" library is the final product
 add_library(dedekind INTERFACE)
-add_dependencies(dedekind dedekind_category dedekind_ieee dedekind_sets dedekind_order dedekind_topology dedekind_sequences dedekind_algebra dedekind_morphologies dedekind_geometry dedekind_numbers dedekind_analysis dedekind_python)
+add_dependencies(dedekind dedekind_category dedekind_ieee dedekind_sets dedekind_order dedekind_topology dedekind_sequences dedekind_algebra dedekind_morphologies dedekind_geometry dedekind_numbers dedekind_analysis dedekind_linear_algebra dedekind_python)
 # No source files needed here; it just bundles the objects
-target_link_libraries(dedekind INTERFACE dedekind_category dedekind_ieee dedekind_sets dedekind_order dedekind_topology dedekind_sequences dedekind_algebra dedekind_morphologies dedekind_geometry dedekind_numbers dedekind_analysis dedekind_python)
+target_link_libraries(dedekind INTERFACE dedekind_category dedekind_ieee dedekind_sets dedekind_order dedekind_topology dedekind_sequences dedekind_algebra dedekind_morphologies dedekind_geometry dedekind_numbers dedekind_analysis dedekind_linear_algebra dedekind_python)
 target_compile_features(dedekind INTERFACE cxx_std_23)
 
 target_compile_options(dedekind INTERFACE ${DEDEKIND_WARNING_FLAGS})
 
-install(TARGETS dedekind dedekind_category dedekind_ieee dedekind_sets dedekind_order dedekind_topology dedekind_sequences dedekind_algebra dedekind_morphologies dedekind_geometry dedekind_numbers dedekind_analysis dedekind_python
+install(TARGETS dedekind dedekind_category dedekind_ieee dedekind_sets dedekind_order dedekind_topology dedekind_sequences dedekind_algebra dedekind_morphologies dedekind_geometry dedekind_numbers dedekind_analysis dedekind_linear_algebra dedekind_python
     EXPORT dedekind-targets
     # Ensure CXX_MODULES are installed for all targets
     FILE_SET CXX_MODULES DESTINATION lib/modules/dedekind
@@ -299,8 +316,8 @@ endif()
 get_property(ALL_TESTS GLOBAL PROPERTY DEDEKIND_ALL_TEST_BINARIES)
 get_property(ALL_LIBS GLOBAL PROPERTY DEDEKIND_ALL_LIB_ARCHIVES)
 # --- Find LLVM Tools (Cross-Platform) ---
-find_program(LLVM_PROFDATA_TOOL NAMES llvm-profdata-21 llvm-profdata REQUIRED)
-find_program(LLVM_COV_TOOL      NAMES llvm-cov-21 llvm-cov REQUIRED)
+find_program(LLVM_PROFDATA_TOOL NAMES llvm-profdata-22 llvm-profdata-21 llvm-profdata REQUIRED)
+find_program(LLVM_COV_TOOL      NAMES llvm-cov-22 llvm-cov-21 llvm-cov REQUIRED)
 
 # Prepare the -object list for the command line
 set(OBJ_ARGS "")

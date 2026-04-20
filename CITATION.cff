@@ -1,0 +1,31 @@
+cff-version: 1.2.0
+message: "If you use this software, please cite it using the metadata below."
+type: software
+title: "dedekind"
+abstract: >
+  A C++23 research library for Axiomatic Systems Programming: embedding mathematical
+  structure directly into compile-time interfaces through modules, concepts, and
+  constrained species traits. Across all layers a single design rule applies —
+  intensional first, realize at explicit boundaries — so that categorical and
+  mereological invariants are reified as type-level contracts audited by the
+  compiler and validated by the CI pipeline.
+authors:
+  - name: "The dedekind Authors"
+    website: "https://github.com/vincentk/dedekind"
+repository-code: "https://github.com/vincentk/dedekind"
+license: Apache-2.0
+version: "1.0.0"
+date-released: "2026-04-19"
+keywords:
+  - C++23
+  - python
+  - intensional programming
+  - compile-time programming
+  - category theory
+  - type theory
+  - axiomatic systems programming
+  - abstract algebra
+  - exact real arithmetic
+  - sparse linear algebra
+  - GraphBLAS
+  - numpy

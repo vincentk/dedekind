@@ -31,6 +31,7 @@ module;
 export module dedekind.python;
 
 import dedekind.category;
+import dedekind.linear_algebra;
 import dedekind.sequences;
 import dedekind.sets;
 
@@ -44,6 +45,12 @@ using FiniteSet = dedekind::sets::FiniteExtensionalSet<T, L, Hash, Equal>;
 /** @brief Alias for finite path values intended for range-friendly adapters. */
 template <typename T>
 using FinitePath = dedekind::sequences::FinitePath<T>;
+
+/** @brief Backend-kind alias surfaced for runtime wrapper routing. */
+using LinearAlgebraBackendKind = dedekind::linear_algebra::BackendKind;
+
+/** @brief GraphBLAS-stub backend alias for validation and prototyping hooks. */
+using GraphBLASBackend = dedekind::linear_algebra::GraphBLASBackendStub;
 
 /** @brief Explicit std-container materialization bridge. */
 template <typename StdSetLike, typename T, typename L, typename Hash,
@@ -77,6 +84,11 @@ constexpr const FinitePath<T>& as_range(const FinitePath<T>& path) {
 template <typename T>
 constexpr FinitePath<T> as_range(FinitePath<T>&& path) {
   return std::move(path);
+}
+
+/** @brief Expose GraphBLAS-stub capability for wrapper-level smoke tests. */
+constexpr bool graphblas_backend_stub_available() {
+  return GraphBLASBackend::supports_sparse_linear_operators;
 }
 
 }  // namespace dedekind::python
