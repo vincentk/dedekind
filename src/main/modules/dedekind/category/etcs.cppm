@@ -28,7 +28,7 @@
  * | **7. Subobject Classifier**   | `Subobject<A,χ>` / `classify<A>(p)`  |
  * | **8. Empty Set (∅)**          | `Zero` (`std::nullptr_t`)            |
  * | **9. NNO (ℕ)**               | `SpeciesTraits<unsigned>`             |
- * | **10. Axiom of Choice**       | `meet` / `join` lattice dispatcher   |
+ * | **10. Axiom of Choice** (asp.) | `meet` / `join` power-object lattice |
  *
  * @see Lawvere, F.W. (1964) "An Elementary Theory of the Category of Sets"
  * @see McLarty, C. (1993) "Numbers can be just what they have to"
@@ -186,9 +186,14 @@ concept HasAxiom8EmptySet = IsInitialObject<Zero>;
 export template <typename A>
 concept HasAxiom9NNO = IsSpecies<unsigned>;
 
-/** @brief ETCS axiom 10 witness: meet/join lattice operators are available. */
+/**
+ * @brief ETCS axiom 10 witness: power-object lattice completeness.
+ * @details meet/join on subobjects follows from the subobject classifier
+ * (Axiom 7) inducing a Heyting algebra on Sub(A). The Axiom of Choice proper
+ * (every epimorphism splits) is aspirational and not yet encoded here.
+ */
 export template <typename S>
-concept HasAxiom10ChoiceDispatcher =
+concept HasAxiom10PowerObjectLattice =
     IsSetObject<S, typename S::Ambient> && IsCompatibleSetPair<S, S> &&
     requires(S lhs, S rhs) {
       requires IsSetObject<decltype(meet(lhs, rhs)), typename S::Ambient>;
@@ -213,7 +218,7 @@ concept IsSet =
     HasAxiom5CartesianProduct<typename T::Ambient> &&
     HasAxiom6Exponentiation<typename T::Ambient> &&
     HasAxiom7SubobjectClassifier<T> && HasAxiom8EmptySet<typename T::Ambient> &&
-    HasAxiom9NNO<typename T::Ambient> && HasAxiom10ChoiceDispatcher<T>;
+    HasAxiom9NNO<typename T::Ambient> && HasAxiom10PowerObjectLattice<T>;
 
 /**
  * @concept IsSetInCanonicalCCC

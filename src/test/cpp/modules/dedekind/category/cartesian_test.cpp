@@ -119,8 +119,10 @@ TEST_CASE("Cartesian: Product Projection Semantics",
           "[category][cartesian][projection]") {
   SECTION("Canonical product projections are type-checked") {
     using P = std::pair<int, bool>;
-    STATIC_CHECK(IsProductProjection<detail::PairFirstProjection<P>, P, int>);
-    STATIC_CHECK(IsProductProjection<detail::PairSecondProjection<P>, P, bool>);
+    auto pi1 = [](const P& p) { return p.first; };
+    auto pi2 = [](const P& p) { return p.second; };
+    STATIC_CHECK(IsProductProjection<decltype(pi1), P, int>);
+    STATIC_CHECK(IsProductProjection<decltype(pi2), P, bool>);
     STATIC_CHECK(IsProjectedProduct<P, int, bool>);
   }
 
@@ -132,7 +134,8 @@ TEST_CASE("Cartesian: Product Projection Semantics",
       }
     };
 
-    using Drill = detail::ArrowDrillDown<ProductEnvelope>;
-    STATIC_CHECK(IsProjectedProduct<ProductEnvelope, int, bool, Drill>);
+    STATIC_CHECK(
+        IsProjectedProduct<ProductEnvelope, int, bool,
+                           decltype(&arrow_drill_down<ProductEnvelope>)>);
   }
 }

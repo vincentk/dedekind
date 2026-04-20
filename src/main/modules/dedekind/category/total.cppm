@@ -44,8 +44,8 @@ module;
 export module dedekind.category:total;
 
 import :discrete;
-import :pullback;
 import :morphism;
+import :posetal;
 import :species;
 
 namespace dedekind::category {
@@ -167,8 +167,8 @@ concept IsCommutativeMonoid = IsMonoid<T, Op> && IsCommutative<T, Op>;
 static_assert(IsCommutativeMonoid<bool, std::logical_or<bool>>);
 static_assert(IsCommutativeMonoid<bool, std::logical_and<bool>>);
 
-// Strictly True: Multiplication on integers is a Total Commutative Monoid.
-// It is NOT a group (no integer inverse for 2).
+// Strictly False: Multiplication on integers is NOT a Total Commutative Monoid
+// (integer overflow). It is also NOT a group (no integer inverse for 2).
 static_assert(!IsCommutativeMonoid<int, std::multiplies<int>>);
 static_assert(IsCommutativeMonoid<unsigned int, std::multiplies<unsigned int>>);
 
@@ -266,14 +266,18 @@ static_assert(IsRing<Modular<256>, std::plus<Modular<256>>,
 
 /**
  * @concept IsSemilattice
- * @brief Level 3.1: A commutative, idempotent Semigroup.
+ * @brief Level 3.1 compatibility alias for order semilattice refinement.
  * @details An operation is idempotent when a ⊕ a = a. Combined with
  * commutativity and associativity, this gives the structure of a semilattice.
  * `bool` with OR (or AND), and `int`/`double` with `max` (or `min`) are
  * canonical examples.
+ *
+ * This alias now delegates the algebraic law shape to `:posetal`
+ * (`IsOrderMeetSemilattice`) while keeping the `:total` partition's
+ * totality guard explicit.
  */
 export template <typename T, typename Op>
-concept IsSemilattice = IsCommutativeSemigroup<T, Op> && IsIdempotent<T, Op>;
+concept IsSemilattice = IsTotal<T, Op> && IsOrderMeetSemilattice<T, Op>;
 
 /**
  * @concept IsJoinSemilattice
@@ -281,7 +285,7 @@ concept IsSemilattice = IsCommutativeSemigroup<T, Op> && IsIdempotent<T, Op>;
  * Lattice. In `bool` this is `logical_or`; in `int`/`double` it is `max`.
  */
 export template <typename T, typename Op>
-concept IsJoinSemilattice = IsSemilattice<T, Op>;
+concept IsJoinSemilattice = IsTotal<T, Op> && IsOrderJoinSemilattice<T, Op>;
 
 /**
  * @concept IsMeetSemilattice
@@ -289,22 +293,26 @@ concept IsJoinSemilattice = IsSemilattice<T, Op>;
  * Lattice. In `bool` this is `logical_and`; in `int`/`double` it is `min`.
  */
 export template <typename T, typename Op>
-concept IsMeetSemilattice = IsSemilattice<T, Op>;
+concept IsMeetSemilattice = IsTotal<T, Op> && IsOrderMeetSemilattice<T, Op>;
 
 /**
  * @concept IsLattice
- * @brief Level 3.2: A pair of semilattices satisfying the Absorption Laws.
+ * @brief Level 3.2 compatibility alias for order-lattice refinement.
  * @details Combines a JoinSemilattice and a MeetSemilattice with the
  * absorption identities: a ∨ (a ∧ b) = a and a ∧ (a ∨ b) = a.
  * `bool` with (OR, AND) and `int`/`double` with (max, min) are Lattices.
+ *
+ * This alias now delegates order laws to `:posetal`
+ * (`IsOrderLatticeOperations`) and keeps `:total` totality guards on the
+ * selected operators.
  */
 export template <typename T, typename Join, typename Meet>
-concept IsLattice = IsJoinSemilattice<T, Join> && IsMeetSemilattice<T, Meet> &&
-                    IsAbsorptive<T, Join, Meet>;
+concept IsLattice = IsTotal<T, Join> && IsTotal<T, Meet> &&
+                    IsOrderLatticeOperations<T, Join, Meet>;
 
 /**
  * @concept IsDistributiveLattice
- * @brief Level 3.3: A Lattice where Join and Meet mutually distribute.
+ * @brief Level 3.3 compatibility alias for distributive order lattices.
  * @details
  * Formal Laws:
  * 1. a ∨ (b ∧ c) = (a ∨ b) ∧ (a ∨ c)  [Join over Meet]
@@ -324,8 +332,34 @@ concept IsLattice = IsJoinSemilattice<T, Join> && IsMeetSemilattice<T, Meet> &&
  */
 export template <typename T, typename Join, typename Meet>
 concept IsDistributiveLattice =
-    IsLattice<T, Join, Meet> && IsDistributive<T, Join, Meet> &&
-    IsDistributive<T, Meet, Join>;
+    IsLattice<T, Join, Meet> &&
+    IsOrderDistributiveLatticeOperations<T, Join, Meet>;
+
+// Upstream ownership locks: :total aliases must track :posetal refinements.
+static_assert(IsSemilattice<int, decltype(std::ranges::min)> ==
+              (IsTotal<int, decltype(std::ranges::min)> &&
+               IsOrderMeetSemilattice<int, decltype(std::ranges::min)>));
+static_assert(IsJoinSemilattice<int, decltype(std::ranges::max)> ==
+              (IsTotal<int, decltype(std::ranges::max)> &&
+               IsOrderJoinSemilattice<int, decltype(std::ranges::max)>));
+static_assert(IsMeetSemilattice<int, decltype(std::ranges::min)> ==
+              (IsTotal<int, decltype(std::ranges::min)> &&
+               IsOrderMeetSemilattice<int, decltype(std::ranges::min)>));
+static_assert(
+    IsLattice<int, decltype(std::ranges::max), decltype(std::ranges::min)> ==
+    (IsTotal<int, decltype(std::ranges::max)> &&
+     IsTotal<int, decltype(std::ranges::min)> &&
+     IsOrderLatticeOperations<int, decltype(std::ranges::max),
+                              decltype(std::ranges::min)>));
+static_assert(
+    IsDistributiveLattice<int, decltype(std::ranges::max),
+                          decltype(std::ranges::min)> ==
+    (IsTotal<int, decltype(std::ranges::max)> &&
+     IsTotal<int, decltype(std::ranges::min)> &&
+     IsOrderLatticeOperations<int, decltype(std::ranges::max),
+                              decltype(std::ranges::min)> &&
+     IsOrderDistributiveLatticeOperations<int, decltype(std::ranges::max),
+                                          decltype(std::ranges::min)>));
 
 // bool is a Distributive Lattice (AND/OR are both idempotent)
 static_assert(

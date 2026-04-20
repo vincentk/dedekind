@@ -39,37 +39,9 @@ export module dedekind.category:cartesian;
 
 import :logic;
 import :limit;
+import :mereology;
 
 namespace dedekind::category {
-
-namespace detail {
-template <typename P>
-struct PairFirstProjection {
-  constexpr decltype(auto) operator()(const P& p) const
-    requires requires { p.first; }
-  {
-    return p.first;
-  }
-};
-
-template <typename P>
-struct PairSecondProjection {
-  constexpr decltype(auto) operator()(const P& p) const
-    requires requires { p.second; }
-  {
-    return p.second;
-  }
-};
-
-template <typename Whole>
-struct ArrowDrillDown {
-  constexpr decltype(auto) operator()(const Whole& whole) const
-    requires requires { whole.operator->(); }
-  {
-    return *whole.operator->();
-  }
-};
-}  // namespace detail
 
 /**
  * @concept IsProduct
@@ -138,29 +110,18 @@ concept IsProjectedProduct =
                   std::declval<const P&>()))>,
               A, B>;
 
-namespace detail {
-struct ProductEnvelope {
-  using Wrapped = std::pair<int, bool>;
-  Wrapped value{42, true};
-
-  constexpr const Wrapped* operator->() const { return &value; }
-};
-}  // namespace detail
-
-static_assert(
-    IsProductProjection<detail::PairFirstProjection<std::pair<int, bool>>,
-                        std::pair<int, bool>, int>,
-    "π1 must project Product -> LeftPart.");
-static_assert(
-    IsProductProjection<detail::PairSecondProjection<std::pair<int, bool>>,
-                        std::pair<int, bool>, bool>,
-    "π2 must project Product -> RightPart.");
+static_assert(IsProductProjection<decltype([](const std::pair<int, bool>& p) {
+                                    return p.first;
+                                  }),
+                                  std::pair<int, bool>, int>,
+              "π1 must project Product -> LeftPart.");
+static_assert(IsProductProjection<decltype([](const std::pair<int, bool>& p) {
+                                    return p.second;
+                                  }),
+                                  std::pair<int, bool>, bool>,
+              "π2 must project Product -> RightPart.");
 static_assert(IsProjectedProduct<std::pair<int, bool>, int, bool>,
               "Identity projection must certify direct products.");
-static_assert(
-    IsProjectedProduct<detail::ProductEnvelope, int, bool,
-                       detail::ArrowDrillDown<detail::ProductEnvelope>>,
-    "Opt-in operator-> projection must expose Product parts.");
 
 /**
  * @brief Mediating morphism for Products: ⟨f, g⟩: X -> (A × B)
