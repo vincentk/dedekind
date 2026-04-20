@@ -147,6 +147,48 @@ concept IsGrothendieckTopology =
     };
 
 /**
+ * @concept IsBundleProjection
+ * @brief A projection morphism π : E -> B for a bundle candidate.
+ *
+ * @details
+ * This is a structural contract for the projection map in a fiber bundle.
+ * It keeps the proof surface explicit without forcing a concrete atlas model
+ * yet.
+ */
+export template <typename Pi, typename E, typename B>
+concept IsBundleProjection =
+    IsArrow<Pi> && std::same_as<Dom<Pi>, E> && std::same_as<Cod<Pi>, B>;
+
+/**
+ * @concept IsFiberBundle
+ * @brief Signature-level witness for a fiber bundle over a base species.
+ *
+ * @details
+ * This concept checks for the standard structural ingredients:
+ * - Total space E,
+ * - Base space B,
+ * - Fiber species F,
+ * - Projection map π : E -> B,
+ * - Local trivialization witness.
+ *
+ * It intentionally verifies API shape only; stronger geometric laws can be
+ * layered later.
+ */
+export template <typename Bundle>
+concept IsFiberBundle = requires(Bundle bundle) {
+  typename Bundle::TotalSpace;
+  typename Bundle::BaseSpace;
+  typename Bundle::Fiber;
+  typename Bundle::Projection;
+
+  requires IsBundleProjection<typename Bundle::Projection,
+                              typename Bundle::TotalSpace,
+                              typename Bundle::BaseSpace>;
+
+  { bundle.trivializes_locally() } -> std::convertible_to<bool>;
+};
+
+/**
  * @concept IsSubobject
  * @brief The categorical witness of a monomorphism ι: S ↣ A.
  *

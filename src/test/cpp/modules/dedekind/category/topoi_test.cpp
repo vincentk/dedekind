@@ -48,6 +48,37 @@ struct BadTopologyMissingTransitivity {
   }
 };
 
+struct ProjectionArrow {
+  using Domain = std::pair<int, int>;
+  using Codomain = int;
+  constexpr int operator()(const Domain& e) const { return e.first; }
+};
+
+struct FiberBundleWitness {
+  using TotalSpace = std::pair<int, int>;
+  using BaseSpace = int;
+  using Fiber = int;
+  using Projection = ProjectionArrow;
+
+  constexpr bool trivializes_locally() const { return true; }
+};
+
+struct BadFiberBundleMissingProjection {
+  using TotalSpace = std::pair<int, int>;
+  using BaseSpace = int;
+  using Fiber = int;
+  using Projection = DemoArrow;
+
+  constexpr bool trivializes_locally() const { return true; }
+};
+
+struct BadFiberBundleMissingTrivialization {
+  using TotalSpace = std::pair<int, int>;
+  using BaseSpace = int;
+  using Fiber = int;
+  using Projection = ProjectionArrow;
+};
+
 }  // namespace
 
 TEST_CASE("Topos: Sieve and Grothendieck topology contracts",
@@ -58,6 +89,17 @@ TEST_CASE("Topos: Sieve and Grothendieck topology contracts",
   STATIC_CHECK(IsGrothendieckTopology<DemoTopology, DemoSieve>);
   STATIC_CHECK_FALSE(
       IsGrothendieckTopology<BadTopologyMissingTransitivity, DemoSieve>);
+}
+
+TEST_CASE("Topos: fiber bundle structural contracts",
+          "[category][topoi][fiber-bundle]") {
+  STATIC_CHECK(
+      IsBundleProjection<ProjectionArrow, std::pair<int, int>, int>);
+  STATIC_CHECK_FALSE(IsBundleProjection<DemoArrow, std::pair<int, int>, int>);
+
+  STATIC_CHECK(IsFiberBundle<FiberBundleWitness>);
+  STATIC_CHECK_FALSE(IsFiberBundle<BadFiberBundleMissingProjection>);
+  STATIC_CHECK_FALSE(IsFiberBundle<BadFiberBundleMissingTrivialization>);
 }
 
 TEST_CASE("Topos: Point-Free Logic Composition", "[category][topoi]") {
