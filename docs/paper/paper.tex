@@ -396,6 +396,12 @@ An \emph{extensional} representation enumerates its members or computes its valu
 The analyst's \lstinline{report_plan} in Listing~\ref{lst:analyst} is intensional;
 the returned \lstinline{summary} data frame is extensional.
 The \lstinline{.realize()} call is the auditable crossing of that boundary.
+This framing is close in spirit to intensional database semantics (for example,
+Majki\'c's intensional FOL treatment for peer-to-peer data integration
+\cite{majkic2009intensional}), but our engineering contrast with mainstream SQL
+is explicit: SQL evaluation is typically defined over already-realized relations,
+while \texttt{dedekind} preserves predicate-level structure in the type system and
+defers materialization to an explicit realization boundary.
 
 \subsection{The Tension: Abstract Naturals vs.\ IEEE Numerics}
 

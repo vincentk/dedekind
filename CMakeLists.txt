@@ -186,7 +186,22 @@ add_dedekind_layer(linear_algebra dedekind_analysis)
 add_dedekind_layer(python dedekind_linear_algebra)
 
 if(DEDEKIND_BUILD_PYTHON_BINDINGS)
-    find_package(Python 3.9 REQUIRED COMPONENTS Interpreter Development.Module)
+    # Temporary policy: pin bindings/integration to Python 3.12 until
+    # python-graphblas/llvmlite availability is stable on newer interpreters.
+    find_package(Python 3.12 EXACT QUIET COMPONENTS Interpreter Development.Module)
+    if(NOT Python_FOUND)
+        find_package(Python COMPONENTS Interpreter QUIET)
+        if(Python_Interpreter_FOUND)
+            message(FATAL_ERROR
+                "Python 3.12 is currently required for Dedekind Python bindings/integration tests. "
+                "Found ${Python_VERSION} at ${Python_EXECUTABLE}. "
+                "Activate a Python 3.12 environment (for example: python3.12 -m venv .venv312 && source .venv312/bin/activate) "
+                "or configure CMake with a 3.12 interpreter.")
+        else()
+            message(FATAL_ERROR
+                "Python 3.12 is currently required for Dedekind Python bindings/integration tests, but no Python interpreter was found.")
+        endif()
+    endif()
     add_subdirectory(ext/nanobind EXCLUDE_FROM_ALL)
 
     set(DEDEKIND_PYTHON_PACKAGE_ROOT "${CMAKE_BINARY_DIR}/python")

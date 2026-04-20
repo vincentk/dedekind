@@ -207,6 +207,14 @@ class DedekindFramePathsTest(unittest.TestCase):
             paths = dedekind.frame_to_paths(df)
         self.assertEqual(paths["f"], [1.25, 2.5, 5.0])
 
+    def test_frame_to_paths_float_fallback_when_typed_binding_rejects_array(self) -> None:
+        import dedekind.sequences as sequences
+
+        df = pd.DataFrame({"f": [1.1, 2.2, 3.3]})
+        with mock.patch.object(sequences, "path_from_float64_array", side_effect=TypeError):
+            paths = dedekind.frame_to_paths(df)
+        self.assertEqual(paths["f"], [1.1, 2.2, 3.3])
+
     def test_frame_to_paths_requires_pandas(self) -> None:
         import dedekind.sequences as sequences
 

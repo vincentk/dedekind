@@ -111,11 +111,11 @@ def frame_to_paths(df):
                 try:
                     result[col] = path_from_float64_array(arr)
                 except TypeError:
-                    # Keep parity with int64 handling across platform-specific
-                    # nanobind ndarray signature matching behavior.
-                    result[col] = path_from_range(arr.tolist())
+                    # Some platforms expose NumPy float64 arrays in a way that can
+                    # fail strict nanobind signature matching; keep a safe fallback.
+                    result[col] = arr.tolist()
             else:
-                result[col] = path_from_range(arr.tolist())
+                result[col] = arr.tolist()
 
         else:
             # String / object dtype → Python sequence fallback

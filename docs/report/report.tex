@@ -145,6 +145,12 @@ This decoupling forces a manual translation layer between the high-level mathema
 Operationally, this report separates a symbolic/intensional phase from a realization phase: mathematical construction proceeds without committing to a runtime numeric policy, and policy selection is deferred to explicit execution boundaries (Section~\ref{sec:symbolic-realization-boundary}).
 In implementation terms, we use a single rule across core modules and Python-facing boundaries: \enquote{intensional first, realize it when you mean it}.
 The thrust of this rule is to leverage \emph{lazy evaluation}---both at the type level (compile-time symbolic substitution) and at the value level (deferred numeric approximation)---as a principled defence against \emph{Premature Materialization}: the loss of mathematical structure that occurs when a computation is forced to a concrete representation earlier than necessary.
+This posture is compatible with intensional database-semantics research (e.g.,
+Majki\'c's intensional FOL account for peer-to-peer database systems
+\cite{majkic2009intensional}), while remaining deliberately distinct from
+mainstream SQL execution semantics: SQL generally evaluates expressions over
+extensional, already-materialized relations, whereas \texttt{dedekind} keeps
+predicate structure intensional until an explicit realization boundary is crossed.
 
 This duality is especially relevant in the context of LLM development and large-scale symbolic computing.
 In these fields, the ability to maintain the structural integrity of a mathematical model—such as the exactness of a tensor operation or the logical consistency of a set-builder predicate—is often lost during the transition to the C++ backend.

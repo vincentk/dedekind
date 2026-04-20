@@ -52,12 +52,12 @@ test: compile
 	ctest --test-dir $(BUILD_DIR) --output-on-failure
 
 integration-test: test
-	python -m pip install --upgrade pip jupyter
+	python -m pip install --upgrade pip jupyter pandas numpy
 	rm -rf $(BUILD_DIR)/python-editable
 	CC="$(CC)" CXX="$(CXX)" \
 	CMAKE_ARGS="-DCMAKE_C_COMPILER=$(CC) -DCMAKE_CXX_COMPILER=$(CXX) -DCMAKE_CXX_SCAN_FOR_MODULES=ON -DCMAKE_BUILD_TYPE=Release -DDEDEKIND_ENABLE_DOUBLE_REAL_PROXY=ON $(CMAKE_EXTRA_ARGS)" \
 	SKBUILD_BUILD_DIR="$(BUILD_DIR)/python-editable" \
-	python -m pip install -e .
+	python -m pip install -e . --no-deps
 	mkdir -p $(BUILD_DIR)/python-notebooks
 	@NOTEBOOK_DIR="docs/python/notebooks"; \
 	NOTEBOOKS="$$(find $$NOTEBOOK_DIR -maxdepth 1 -type f -name '*.ipynb' | sort)"; \

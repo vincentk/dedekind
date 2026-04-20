@@ -75,3 +75,5 @@ build_ci/**
 /build_ci/
 /build-runtime-bridges/
 /build-runtime-bridges-ninja/
+
+.venv*/**
