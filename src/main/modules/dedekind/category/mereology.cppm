@@ -448,12 +448,39 @@ concept IsMereologicalCutCandidate = requires(Shell s, Manifold m) {
 export template <typename T>
 concept Parthood = IsPartOfRelation<T, T, bool>;
 
+/**
+ * @brief Generic opt-in drill-down projector for part-whole wrappers.
+ *
+ * @details
+ * This is the upstream projector primitive used by downstream partitions
+ * (`:posetal`, `:limit`, and others) to express functional part access via
+ * `operator->` while preserving explicit opt-in semantics.
+ *
+ * Overloads support both wrapper types exposing a member `operator->` and
+ * raw pointers.
+ */
+export template <typename Whole>
+constexpr decltype(auto) arrow_drill_down(const Whole& whole)
+  requires requires { whole.operator->(); }
+{
+  return *whole.operator->();
+}
+
+/** @brief Pointer overload for generic drill-down projection. */
+export template <typename T>
+constexpr const T& arrow_drill_down(const T* whole) {
+  return *whole;
+}
+
 // Compiler-validated documentation witnesses for the mereological ladder.
 static_assert(
     IsPartRelation<int>,
     "Parthood axioms must hold for the canonical integer order witness.");
 static_assert(Parthood<int>,
               "Parthood concept must hold for the canonical integer witness.");
+static_assert(arrow_drill_down(&std::declval<const int&>()) ==
+                  std::declval<const int&>(),
+              "Pointer drill-down overload must preserve referential value.");
 static_assert(IsPartialOrder<int>,
               "Partial-order stage must refine the parthood axioms.");
 static_assert(IsTotalOrder<int>,

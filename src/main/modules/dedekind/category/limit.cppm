@@ -44,21 +44,11 @@ module;
 export module dedekind.category:limit;
 
 import :discrete;
+import :mereology;
 import :morphism;
 import :species;
 
 namespace dedekind::category {
-
-namespace detail {
-template <typename Whole>
-struct ArrowDrillDown {
-  constexpr decltype(auto) operator()(const Whole& whole) const
-    requires requires { whole.operator->(); }
-  {
-    return *whole.operator->();
-  }
-};
-}  // namespace detail
 
 /**
  * @brief The Terminal Object (1): the unique sink of every morphism.
@@ -252,12 +242,14 @@ static_assert(IsBoundaryProjection<std::identity, Zero, Zero>);
 static_assert(IsProjectedTerminalObject<One>);
 static_assert(IsProjectedInitialObject<Zero>);
 static_assert(
-    IsProjectedTerminalObject<detail::TerminalEnvelope,
-                              detail::ArrowDrillDown<detail::TerminalEnvelope>>,
+    IsProjectedTerminalObject<
+        detail::TerminalEnvelope,
+        decltype(arrow_drill_down<detail::TerminalEnvelope>)>,
     "Opt-in operator-> drill-down must expose a Terminal object witness.");
 static_assert(
-    IsProjectedInitialObject<detail::InitialEnvelope,
-                             detail::ArrowDrillDown<detail::InitialEnvelope>>,
+    IsProjectedInitialObject<
+        detail::InitialEnvelope,
+        decltype(arrow_drill_down<detail::InitialEnvelope>)>,
     "Opt-in operator-> drill-down must expose an Initial object witness.");
 
 }  // namespace dedekind::category

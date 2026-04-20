@@ -305,34 +305,38 @@ static_assert(check_path<int, std::less_equal<int>>(1, 2, 3));
 static_assert(!check_path<int, std::less_equal<int>>(3, 2, 1));
 
 /**
- * @brief Opt-in `operator->` drill-down projector for min/max result carriers.
+ * @brief Opt-in drill-down projector for min/max result carriers.
  *
  * @details
- * This helper exists as an explicit API witness for semantic clarity:
- * object-level order relations can be projected through pointer-style access
- * (`operator->`) without hard-coding product/cartesian structures.
+ * This helper specializes the upstream `arrow_drill_down` projector from
+ * `:mereology` to extract the `min` component used as an order witness.
  *
- * @tparam T Carrier element type used by `std::ranges::min_max_result<T>`.
- * @param whole Pointer to the projected carrier.
+ * @tparam Whole Carrier type accepted by `arrow_drill_down(whole)` where the
+ *         projected object exposes a `min` field.
+ * @param whole The projected carrier.
  * @return Reference to the `min` component used as the relation witness.
  */
-export template <typename T>
-constexpr const T& arrow_drill_down_min(
-    const std::ranges::min_max_result<T>* whole) {
-  return whole->min;
+export template <typename Whole>
+constexpr decltype(auto) arrow_drill_down_min(const Whole& whole)
+  requires requires { arrow_drill_down(whole).min; }
+{
+  return arrow_drill_down(whole).min;
 }
 
 constexpr std::ranges::min_max_result<int> p1{1, 0};
 constexpr std::ranges::min_max_result<int> p2{2, 0};
 constexpr std::ranges::min_max_result<int> p3{3, 0};
 
-static_assert(IsPathProjection<decltype(arrow_drill_down_min<int>),
-                               const std::ranges::min_max_result<int>*,
-                               std::less_equal<int>, bool>);
+static_assert(
+    IsPathProjection<
+        decltype(arrow_drill_down_min<const std::ranges::min_max_result<int>*>),
+        const std::ranges::min_max_result<int>*, std::less_equal<int>, bool>);
 
 static_assert(
     check_path<const std::ranges::min_max_result<int>*, std::less_equal<int>,
-               ClassicalLogic>(&p1, &p2, &p3, arrow_drill_down_min<int>),
+               ClassicalLogic>(
+        &p1, &p2, &p3,
+        arrow_drill_down_min<const std::ranges::min_max_result<int>*>),
     "Opt-in operator-> drill-down must preserve posetal path semantics.");
 
 }  // namespace dedekind::category
