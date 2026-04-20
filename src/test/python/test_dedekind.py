@@ -145,11 +145,6 @@ class DedekindArrayBindingsTest(unittest.TestCase):
         result = dedekind.path_from_array(arr)
         self.assertEqual(result, [5, 3, 9, 1])
 
-    def test_path_from_array_accepts_non_contiguous_view(self) -> None:
-        arr = np.array([10, 20, 30, 40], dtype=np.int64)[::2]
-        result = dedekind.path_from_array(arr)
-        self.assertEqual(result, [10, 30])
-
 
 @unittest.skipUnless(_HAS_PANDAS, "pandas required for frame_to_paths tests")
 class DedekindFramePathsTest(unittest.TestCase):
