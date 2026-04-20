@@ -199,7 +199,8 @@ concept HasAxiom7SubobjectClassifier =
  * @details Encodes that classifier-level structure for ambient species A can
  * be paired with a natural-transformation witness over functors rooted in A.
  * This strengthens the proof surface for pullback/reindexing narratives while
- * keeping `IsSet` backward compatible.
+ * keeping `IsSet` backward compatible. This witness is intentionally additive
+ * and is not required by `IsSet`.
  */
 export template <typename S, typename Alpha, typename F, typename G>
 concept HasAxiom7ClassifierNaturalityWitness =

@@ -1380,9 +1380,9 @@ This contract keeps terminology aligned between implementation, tests, and manus
 \toprule
 \textbf{Axiom band} & \textbf{Contract status} & \textbf{Primary tracker links} \\
 \midrule
-A1--A6 & Partial / implementation-backed by partition-level surfaces & \#195, \#152, \#167 \\
-A7 (NNO / power-object-adjacent proof surface) & Deferred-to-partial transition in progress & \#195, \#152, \#167 \\
-A10 (choice semantics) & Deferred (explicitly scoped, not implied complete) & \#195 \\
+A1--A6 & Implemented (named surfaces + executable tests) & \#195 \\
+A7 (subobject classifier / pullback / naturality surface) & Partial (implemented contracts + tests; stronger law closure pending) & \#195, \#351 \\
+A10 (choice semantics) & Partial (split-epi witness shape implemented; full choice semantics deferred) & \#195, \#352 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -1412,11 +1412,11 @@ Deferred & Planned work only (no complete evidence bundle yet). & Do not imply c
 \toprule
 \textbf{Axiom band} & \textbf{Current claim label} & \textbf{Issue links} \\
 \midrule
-A1--A3 (composition/identity/products) & Partial & \#195, \#152 \\
-A4--A5 (equalizers/classifier-adjacent structure) & Partial & \#195, \#152, \#167 \\
-A6 (exponential/cartesian-closed surface) & Partial & \#195, \#167 \\
-A7 (NNO/proof-surface maturation) & Deferred $\rightarrow$ Partial (in progress) & \#195, \#152, \#267 \\
-A10 (choice/well-pointed semantics posture) & Deferred & \#195, \#267 \\
+A1--A3 (composition/identity/products) & Implemented & \#195 \\
+A4--A5 (well-pointed/classifier-adjacent structure) & Implemented & \#195 \\
+A6 (exponential/cartesian-closed surface) & Implemented & \#195 \\
+A7 (classifier stability and naturality closure) & Partial & \#195, \#351 \\
+A10 (choice / split-epi semantics) & Partial (shape implemented, semantics deferred) & \#195, \#352 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -1555,23 +1555,23 @@ classifier-level exceptions rather than hidden runtime accidents
 \cite{ieee754_2019, higham2002accuracy}.
 
 \paragraph{Partial ETCS Alignment Strategy.}
+Current ETCS status is tracked in \texttt{dedekind.category:etcs} and validated in
+\texttt{etcs\_axioms\_test.cpp}. For review and migration purposes, we use the
+following auditable checklist:
+\begin{itemize}
+  \item \textbf{Axiom 7 (Subobject Classifier)}: implemented at contract level via
+  \texttt{HasAxiom7SubobjectClassifier} (classifier constants + pullback witness shape),
+  with an optional additive naturality witness
+  \texttt{HasAxiom7ClassifierNaturalityWitness}. Full law-level closure remains tracked
+  in Issue \#351 (parent: \#195).
+  \item \textbf{Axiom 10 (Choice semantics)}: split-epimorphism witness shape is
+  implemented via \texttt{IsSplitEpicPair} and
+  \texttt{HasAxiom10ChoiceSplitEpicWitness}. Full choice semantics (beyond shape-level
+  contracts) remains tracked in Issue \#352 (parent: \#195).
+\end{itemize}
 
-Following PR \#111, the \texttt{sets} module implements a \textbf{Partial ETCS Alignment Strategy}, reifying 8 of the 10 Lawvere axioms of the Elementary Theory of the Category of Sets. This pragmatic approach acknowledges that full ETCS alignment at the type-level is achievable without sacrificing practical usability; the deferred axioms (Axiom 7: Unique Factorization through Pullbacks, and Axiom 10: Well-Pointedness) are strategically deferred to future levels of the library where higher-order categorical machinery becomes available.
-
-The 8 active axioms are reified through explicit trait witnesses in the form of axiom composites:
-
-\begin{enumerate}
-\item \textbf{Axiom 1 (Composition)}: \texttt{HasAxiom1Composition<T>} verifies that the composition of characteristic functions is associative.
-\item \textbf{Axiom 2 (Identity)}: \texttt{HasAxiom2Identity<T>} ensures that every set admits an identity morphism.
-\item \textbf{Axiom 3 (Product Existence)}: \texttt{HasAxiom3ProductExistence<T>} certifies Cartesian products of sets.
-\item \textbf{Axiom 4 (Disjoint Union)}: \texttt{HasAxiom4DisjointUnion<T>} verifies coproducts (disjoint unions).
-\item \textbf{Axiom 5 (Equalizer)}: \texttt{HasAxiom5Equalizer<T>} ensures the existence of equalizer subobjects.
-\item \textbf{Axiom 6 (Exponentiation)}: \texttt{HasAxiom6Exponentiation<T>} reifies the power object via the subobject classifier.
-\item \textbf{Axiom 8 (Choice Function)}: \texttt{HasAxiom8ChoiceFunction<T>} provides explicit choice for nonempty fibers.
-\item \textbf{Axiom 9 (Natural Numbers Object)}: \texttt{HasAxiom9NaturalNumbers<T>} ensures inductive structure on appropriate species.
-\end{enumerate}
-
-The deferred Axioms 7 and 10 depend on pullback diagrams and the global section property, respectively, which require more sophisticated higher-order categorical formalism not yet integrated into the library's architecture. By explicitly documenting this partial alignment, the library provides a clear roadmap for future extensions while maintaining mathematical honesty about the current scope of ETCS formalization.
+This framing keeps implementation claims synchronized with executable tests and
+explicitly scoped roadmap work.
 
 \subsection{The \texttt{:boundaries} partition}
 
@@ -1606,21 +1606,21 @@ In a sense, \texttt{dedekind} hopes to be a *compiler* for mathematical concepts
 
 \begin{table}[ht]
 \centering
-\caption{Complete Mapping of ETCS Axioms to C++23 Structural Invariants}
+\caption{ETCS Rosetta Mapping (Category Theory $\leftrightarrow$ dedekind $\leftrightarrow$ C++/\texttt{std})}
 \label{table:etcs_complete}
-\begin{tabular}{lll}
+\begin{tabular}{p{0.14\linewidth}p{0.25\linewidth}p{0.33\linewidth}p{0.2\linewidth}}
 \hline
-\textbf{ETCS Axiom} & \textbf{C++ Language Feature} & \textbf{Structural Invariant} \\ \hline
-1. Composition & \texttt{std::invoke} / \texttt{operator>>} & \texttt{IsSemigroupoid<T, Op>} \\
-2. Identity & \texttt{identity\_trait<T, Op>} & \texttt{IsSmallCategory<T, Op>} \\
-3. Terminal Object & \texttt{s(x) -> Logic::top} & \texttt{IsTerminalObject<T>} \\
-4. Well-Pointedness & \texttt{operator()} (Element access) & \texttt{HasAxiom4WellPointedness} \\
-5. Cartesian Product & \texttt{std::tuple} / \texttt{std::pair} & \texttt{HasProduct<A, B>} \\
-6. Exponentiation & Lambda NTTP / \texttt{std::function} & \texttt{IsInternalHom<A, B>} \\
-7. Equalizers & \texttt{dedekind::set<T, P>} & \texttt{IsEqualizer<f, g>} \\
-8. Empty Set & \texttt{dedekind::EmptySet} & \texttt{IsInitialObject<T>} \\
-9. Infinity (NNO) & \texttt{dedekind::Naturals} & \texttt{HasNaturalNumbersObject} \\
-10. Axiom of Choice & Lattice Dispatcher & \texttt{HasAxiom10ChoiceDispatcher} \\ \hline
+\textbf{Axiom} & \textbf{CT concept} & \textbf{dedekind ETCS surface} & \textbf{C++ / std proxy} \\ \hline
+1 & Composition ($g \circ f$) & \texttt{HasAxiom1Composition}, \texttt{operator>>} & \texttt{std::invoke} + composed callables \\
+2 & Identity ($id_A$) & \texttt{HasAxiom2Identity}, \texttt{id<T>()} & \texttt{std::identity} \\
+3 & Terminal object ($1$) & \texttt{HasAxiom3TerminalObject}, \texttt{One} & \texttt{std::monostate} \\
+4 & Well-pointed membership & \texttt{HasAxiom4WellPointedness}, \texttt{in}/\texttt{in\_via} & predicate call $\chi(x)$ \\
+5 & Cartesian products ($A \times B$) & \texttt{HasAxiom5CartesianProduct}, \texttt{IsProduct} & \texttt{std::pair} \\
+6 & Exponentials ($B^A$) & \texttt{HasAxiom6Exponentiation}, \texttt{Exponential<A,B>} & callable wrappers (e.g. \texttt{std::function}) \\
+7 & Subobject classifier ($\chi: A \to \Omega$) & \texttt{HasAxiom7SubobjectClassifier}, optional \texttt{HasAxiom7ClassifierNaturalityWitness} & classifier predicates (\texttt{bool}/\texttt{Ternary}), \texttt{classifier\_true/false} \\
+8 & Initial object ($0$) & \texttt{HasAxiom8EmptySet}, \texttt{Zero} & \texttt{std::nullptr\_t} \\
+9 & NNO ($\mathbb{N}$) & \texttt{HasAxiom9NNO} & \texttt{unsigned} species witness \\
+10 & Choice / split epis & \texttt{IsSplitEpicPair}, \texttt{HasAxiom10ChoiceSplitEpicWitness}, \texttt{HasAxiom10PowerObjectLattice} & explicit epi/section witnesses (identity as canonical base case) \\ \hline
 \end{tabular}
 \end{table}
 
