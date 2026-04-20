@@ -186,6 +186,7 @@ concept IsDividableChain = IsTotallyOrdered<T> && requires(T a, T b) {
  * @brief The topological "Soul" of the Continuum (LUB property).
  */
 export template <typename S>
-concept IsDedekindComplete = IsTotallyOrdered<S> && IsDense<S> && HasExtrema<S>;
+concept IsDedekindComplete =
+  IsTotallyOrdered<S> && IsDense<S> && dedekind::category::HasExtrema<S>;
 
 }  // namespace dedekind::order

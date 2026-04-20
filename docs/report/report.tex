@@ -475,11 +475,14 @@ These partitions represent the maturation of mathematical species from raw mappi
     \node[partition, right=of morphism] (mereology) {:mereology};
     \node[partition, right=of mereology] (logic) {:logic};
 
-    % --- Row 1: L0 (Right to Left - Reversed) ---
+    % --- Row 1: L0.5 (Right to Left - Reversed) ---
     \node[partition] (posetal) at (9.0, 1.8) {:posetal};
-    \node[partition, left=of posetal] (small) {:small};
-    \node[partition, left=of small] (limit) {:limit};
-    \node[partition, left=of limit] (pullback) {:pullback};
+    \node[partition] (small) at (7.3, 1.8) {:small};
+    \node[partition] (discrete) at (5.6, 1.8) {:discrete};
+    \node[partition] (limit) at (3.9, 1.8) {:limit};
+    \node[partition] (cartesian) at (2.2, 1.8) {:cartesian};
+    \node[partition] (topoi) at (0.5, 1.8) {:topoi};
+    \node[partition] (pullback) at (-1.2, 1.8) {:pullback};
 
     % --- Row 2: L1 (Left to Right) ---
     \node[partition] (total) at (0, 3.8) {:total};
@@ -507,8 +510,11 @@ These partitions represent the maturation of mathematical species from raw mappi
     \draw[dependency] (logic) .. controls (10.5, 1.2) and (10.5, 1.8) .. (posetal); % Turn
 
     \draw[dependency] (posetal) -- (small);
-    \draw[dependency] (small) -- (limit);
-    \draw[dependency] (limit) -- (pullback);
+    \draw[dependency] (small) -- (discrete);
+    \draw[dependency] (discrete) -- (limit);
+    \draw[dependency] (limit) -- (cartesian);
+    \draw[dependency] (cartesian) -- (topoi);
+    \draw[dependency] (topoi) -- (pullback);
     \draw[dependency] (pullback) .. controls (-1.0, 2.5) and (-1.0, 3.1) .. (total); % Turn
 
     % L1 Flow

@@ -266,16 +266,6 @@ concept IsSystem = IsBoundedLattice<S> && requires {
   requires std::same_as<typename S::Domain::ambient_species, Species>;
 };
 
-/**
- * @concept HasExtrema
- * @brief Re-export of the category-level Dedekind completeness prerequisite.
- * @details Canonical definition lives in `dedekind.category:mereology`.
- * This alias preserves the `dedekind::sets::HasExtrema` qualified name for
- * existing call sites (order partition, tests).
- */
-export template <typename S>
-concept HasExtrema = dedekind::category::HasExtrema<S>;
-
 /** @section The_Scale: The Logic of Magnitude */
 
 export template <typename C>
