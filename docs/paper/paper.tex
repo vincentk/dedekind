@@ -496,41 +496,6 @@ This is the set-builder, or \emph{comprehension}, representation advocated by La
 framework~\cite{lawvere1964etcs, lawvere2003sets}: set objects are defined by their membership
 predicates and universal properties, not by extensional storage.
 
-\paragraph{ETCS closure contract (Issue \#195).}
-To keep claim strength synchronized with implementation reality, we use a strict closure contract
-for ETCS statements in this paper. We mark an axiom-level capability as \emph{implemented} only when
-three artifacts are simultaneously present: (i) a named code surface (concept/trait/API),
-(ii) executable tests for the intended semantics, and (iii) issue-linked documentation that states
-scope and residual limits. If any artifact is missing, the claim remains \emph{partial} or
-\emph{deferred}. Under this contract, current A7/A10 language is intentionally conservative:
-both are tracked explicitly as in-progress proof-surface work rather than treated as closed.
-
-\paragraph{Axiom claim rubric and issue map.}
-For reviewer consistency, we use the following claim labels:
-\emph{Implemented} (code surface + tests + issue-linked scope note present),
-\emph{Partial} (some but not all required artifacts present), and
-\emph{Deferred} (planned but not yet evidenced by the full artifact bundle).
-
-\begin{center}
-\begin{tabular}{lll}
-\toprule
-\textbf{Axiom band} & \textbf{Current label} & \textbf{Issue links} \\
-\midrule
-A1--A3 & Partial & \#195, \#152 \\
-A4--A5 & Partial & \#195, \#152, \#167 \\
-A6 & Partial & \#195, \#167 \\
-A7 & Deferred $\rightarrow$ Partial (in progress) & \#195, \#152, \#267 \\
-A10 & Deferred & \#195, \#267 \\
-\bottomrule
-\end{tabular}
-\end{center}
-
-Underlying the closure contract is a categorical infrastructure layer that formalizes \emph{coverage}
-(Grothendieck topologies), \emph{dense sieves} (collections of arrows that are pullback-stable),
-and \emph{fiber bundles} (families of objects organized by transition maps). While full formalization
-of these structures is deferred to future work on Issue \#195, they are implicit presuppositions:
-the closure contract is meaningful only once these categorical contracts are available and validated.
-
 \begin{lstlisting}[language=C++, caption={A set as a compile-time predicate type.}, label={lst:settype}]
 // ambient_set<T>(P) creates the intensional set {x in T | P(x)}.
 // No values are stored; the predicate IS the set.
@@ -571,7 +536,6 @@ using PrimesAndEvens = Intersection<Primes, Evens>;
 \end{lstlisting}
 
 \subsection{The Subobject Classifier $\Omega$}
-
 The ambient logic $\Omega$ is a pluggable type parameter.
 Classical Boolean logic ($\Omega = \{\top, \bot\}$) is the default.
 For floating-point domains, \texttt{dedekind} provides a Kleene K3 logic
@@ -669,7 +633,6 @@ the ambient set, evaluates both predicates, and confirms disjointness.
 For small finite domains (bounded enumerations, flag sets, small integers) this
 procedure is computationally feasible at compile time and would directly benefit the
 analyst API tier.
-
 % ============================================================
 \section{Related Work}
 \label{sec:related}
@@ -701,7 +664,6 @@ Liquid Haskell~\cite{vazou2014refinement} extends Haskell with SMT-backed
 refinement predicates.
 \texttt{dedekind} achieves a subset of this functionality in standard C++23 without
 a custom type checker, using NTTP-embedded lambdas as the predicate carrier.
-
 \paragraph{Data-pipeline DSLs.}
 Apache Spark, Flink, and the Python \texttt{pandas}/\texttt{polars} ecosystem
 provide declarative data pipelines.
@@ -716,7 +678,6 @@ compile-time data structure manipulation.
 \texttt{dedekind} builds on these ideas but targets algebraic \emph{semantic} content
 (associativity, commutativity, cardinality) rather than purely syntactic structure
 manipulation.
-
 % ============================================================
 \section{Conclusion}
 \label{sec:conclusion}

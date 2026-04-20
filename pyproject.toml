@@ -41,6 +41,10 @@ DEDEKIND_BUILD_PYTHON_BINDINGS = "ON"
 DEDEKIND_ENABLE_DOUBLE_REAL_PROXY = "ON"
 
 [project.optional-dependencies]
+graphblas = [
+  "python-graphblas[default]>=2025.2.0",
+]
+
 test = [
   "pytest>=7.0",
   "pytest-cov>=4.0",
