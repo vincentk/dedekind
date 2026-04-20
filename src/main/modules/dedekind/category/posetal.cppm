@@ -281,14 +281,16 @@ static_assert(
  * @brief Verify that a two-step path A→B→C exists in the posetal category.
  *
  * @details
- * A morphism A→C in a posetal category exists iff A≤B and B≤C; transitivity
- * (guaranteed by `IsPosetal`) then provides A≤C for free.  The result is
- * expressed in the truth-value codomain Ω of the chosen Logic species L, so
- * this helper works uniformly for Classical, Ternary, or any other pluggable
- * logical universe — no `bool` hard-codes.
+ * This helper checks a two-edge witness `A→B` and `B→C` using the supplied
+ * relation and projector. The result is expressed in the truth-value codomain
+ * Ω of the chosen Logic species L, so it works uniformly for Classical,
+ * Ternary, or any other pluggable logical universe — no `bool` hard-codes.
+ *
+ * If `Rel` also models a posetal relation for the projected carrier,
+ * transitivity gives the direct edge `A→C` as a derived fact.
  *
  * @tparam T   Object type.
- * @tparam Rel Relation type (must satisfy `IsPosetal<T, Rel, L>`).
+ * @tparam Rel Relation type used to witness each edge.
  * @tparam L   Logic species providing `AND` and the `Ω` codomain.
  */
 export template <typename T, typename Rel = std::less_equal<T>,

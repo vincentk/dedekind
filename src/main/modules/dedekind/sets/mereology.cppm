@@ -113,9 +113,14 @@ concept IsProperPart = IsPartOf<Part, Whole, L>;
 // The six lattice-name aliases (IsSkewMeetSemilattice, IsSkewJoinSemilattice,
 // IsSkewLattice, IsSetMeetSemilattice, IsSetJoinSemilattice, IsSetLattice)
 // are defined in dedekind.category:mereology with set-theoretic
-// (std::bit_and/bit_or) default operators. They are available here via
-// `using namespace
-// dedekind::category` and do not need to be re-declared.
+// (std::bit_and/bit_or) default operators. Re-export them here to preserve
+// qualified lookup through dedekind::sets.
+export using dedekind::category::IsSkewMeetSemilattice;
+export using dedekind::category::IsSkewJoinSemilattice;
+export using dedekind::category::IsSkewLattice;
+export using dedekind::category::IsSetMeetSemilattice;
+export using dedekind::category::IsSetJoinSemilattice;
+export using dedekind::category::IsSetLattice;
 
 /**
  * @concept IsBoundedLattice

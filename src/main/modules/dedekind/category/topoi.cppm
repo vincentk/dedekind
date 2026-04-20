@@ -110,9 +110,12 @@ concept IsCharacteristic = IsPredicate<P>;
  * @details
  * A sieve over an object X is represented as a collection of incoming arrows
  * together with closure under precomposition (modeled here by
- * `pullback_along`). This concept is intentionally lightweight: it verifies
- * shape/signature only, while semantic laws are exercised in tests and can be
- * strengthened by later issue work.
+ * `pullback_along`). This concept is intentionally lightweight and currently
+ * models a single-arrow-type approximation: `S::Arrow` is fixed and
+ * `pullback_along` returns the same sieve type `S`.
+ *
+ * It verifies shape/signature only for this narrowed surface; semantic laws
+ * are exercised in tests and can be strengthened by later issue work.
  */
 export template <typename S>
 concept IsSieve = requires(S s, typename S::Arrow f) {
