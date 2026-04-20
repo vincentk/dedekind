@@ -31,6 +31,7 @@ module;
 #include <concepts>
 #include <functional>
 #include <memory>
+#include <type_traits>
 #include <utility>
 #include <variant>
 
@@ -40,6 +41,35 @@ import :logic;
 import :limit;
 
 namespace dedekind::category {
+
+namespace detail {
+template <typename P>
+struct PairFirstProjection {
+  constexpr decltype(auto) operator()(const P& p) const
+    requires requires { p.first; }
+  {
+    return p.first;
+  }
+};
+
+template <typename P>
+struct PairSecondProjection {
+  constexpr decltype(auto) operator()(const P& p) const
+    requires requires { p.second; }
+  {
+    return p.second;
+  }
+};
+
+template <typename Whole>
+struct ArrowDrillDown {
+  constexpr decltype(auto) operator()(const Whole& whole) const
+    requires requires { whole.operator->(); }
+  {
+    return *whole.operator->();
+  }
+};
+}  // namespace detail
 
 /**
  * @concept IsProduct
@@ -73,6 +103,64 @@ concept IsProduct = requires(P p) {
 static_assert(
     IsProduct<std::pair<int, bool>, int, bool>,
     "Verification Failed: std::pair<int, bool> must satisfy IsProduct.");
+
+/**
+ * @concept IsProductProjection
+ * @brief Functional-part projection witness from a product whole to one part.
+ *
+ * @details
+ * A projection is a morphism-like accessor from a whole `P` to one component
+ * type (`A` for left, `B` for right). In categorical terms these correspond to
+ * canonical product projections π₁ and π₂.
+ */
+export template <typename Projection, typename Whole, typename Part>
+concept IsProductProjection = requires(Projection projection, Whole whole) {
+  { projection(whole) } -> std::convertible_to<Part>;
+};
+
+/**
+ * @concept IsProjectedProduct
+ * @brief Product witness through an optional whole-projection policy.
+ *
+ * @details
+ * By default (`WholeProject = std::identity`), this reduces to a direct
+ * `IsProduct<P, A, B>` check. With an opt-in projector (for example an
+ * `operator->` drill-down policy), this concept certifies that a wrapper type
+ * exposes a product whole whose canonical parts are still discoverable.
+ */
+export template <typename P, typename A, typename B,
+                 typename WholeProject = std::identity>
+concept IsProjectedProduct =
+    requires(WholeProject project, const P& p) {
+      { project(p) };
+    } &&
+    IsProduct<std::remove_cvref_t<decltype(std::declval<WholeProject>()(
+                  std::declval<const P&>()))>,
+              A, B>;
+
+namespace detail {
+struct ProductEnvelope {
+  using Wrapped = std::pair<int, bool>;
+  Wrapped value{42, true};
+
+  constexpr const Wrapped* operator->() const { return &value; }
+};
+}  // namespace detail
+
+static_assert(
+    IsProductProjection<detail::PairFirstProjection<std::pair<int, bool>>,
+                        std::pair<int, bool>, int>,
+    "π1 must project Product -> LeftPart.");
+static_assert(
+    IsProductProjection<detail::PairSecondProjection<std::pair<int, bool>>,
+                        std::pair<int, bool>, bool>,
+    "π2 must project Product -> RightPart.");
+static_assert(IsProjectedProduct<std::pair<int, bool>, int, bool>,
+              "Identity projection must certify direct products.");
+static_assert(
+    IsProjectedProduct<detail::ProductEnvelope, int, bool,
+                       detail::ArrowDrillDown<detail::ProductEnvelope>>,
+    "Opt-in operator-> projection must expose Product parts.");
 
 /**
  * @brief Mediating morphism for Products: ⟨f, g⟩: X -> (A × B)

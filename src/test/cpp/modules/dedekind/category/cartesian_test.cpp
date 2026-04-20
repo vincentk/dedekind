@@ -114,3 +114,25 @@ TEST_CASE("Cartesian: Product Mediation", "[category][cartesian][labeled]") {
     CHECK(result_zero.second == false);
   }
 }
+
+TEST_CASE("Cartesian: Product Projection Semantics",
+          "[category][cartesian][projection]") {
+  SECTION("Canonical product projections are type-checked") {
+    using P = std::pair<int, bool>;
+    STATIC_CHECK(IsProductProjection<detail::PairFirstProjection<P>, P, int>);
+    STATIC_CHECK(IsProductProjection<detail::PairSecondProjection<P>, P, bool>);
+    STATIC_CHECK(IsProjectedProduct<P, int, bool>);
+  }
+
+  SECTION("Opt-in operator-> projection exposes functional parts") {
+    struct ProductEnvelope {
+      std::pair<int, bool> value{7, true};
+      constexpr const std::pair<int, bool>* operator->() const {
+        return &value;
+      }
+    };
+
+    using Drill = detail::ArrowDrillDown<ProductEnvelope>;
+    STATIC_CHECK(IsProjectedProduct<ProductEnvelope, int, bool, Drill>);
+  }
+}
