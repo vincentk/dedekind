@@ -191,6 +191,14 @@ class DedekindFramePathsTest(unittest.TestCase):
             paths = dedekind.frame_to_paths(df)
         self.assertEqual(paths["b"], [True, False, True])
 
+    def test_frame_to_paths_bool_fallback_when_typed_binding_rejects_array(self) -> None:
+        import dedekind.sequences as sequences
+
+        df = pd.DataFrame({"b": [True, False, True]})
+        with mock.patch.object(sequences, "path_from_bool_array", side_effect=TypeError):
+            paths = dedekind.frame_to_paths(df)
+        self.assertEqual(paths["b"], [True, False, True])
+
     def test_frame_to_paths_int_fallback_when_array_binding_missing(self) -> None:
         import dedekind.sequences as sequences
 
