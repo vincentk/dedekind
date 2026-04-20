@@ -28,7 +28,7 @@
  * | **7. Subobject Classifier**   | `Subobject<A,χ>` / `classify<A>(p)`  |
  * | **8. Empty Set (∅)**          | `Zero` (`std::nullptr_t`)            |
  * | **9. NNO (ℕ)**               | `SpeciesTraits<unsigned>`             |
- * | **10. Axiom of Choice**       | `meet` / `join` lattice dispatcher   |
+ * | **10. Axiom of Choice** (asp.) | `meet` / `join` power-object lattice |
  *
  * @see Lawvere, F.W. (1964) "An Elementary Theory of the Category of Sets"
  * @see McLarty, C. (1993) "Numbers can be just what they have to"
@@ -52,6 +52,8 @@ import :cartesian;
 import :limit;
 import :logic;
 import :morphism;
+import :natural;
+import :pullback;
 import :species;
 import :topoi;
 
@@ -176,7 +178,34 @@ concept HasAxiom6Exponentiation =
 
 /** @brief ETCS axiom 7 witness: every set is represented by a subobject. */
 export template <typename S>
-concept HasAxiom7SubobjectClassifier = IsSubobject<S, typename S::Ambient>;
+concept HasAxiom7SubobjectClassifier =
+    IsSubobject<S, typename S::Ambient> && requires {
+      requires IsSetObject<decltype(classify<typename S::Ambient>(
+                               classifier_true<typename S::Ambient>())),
+                           typename S::Ambient>;
+      requires IsSetObject<decltype(classify<typename S::Ambient>(
+                               classifier_false<typename S::Ambient>())),
+                           typename S::Ambient>;
+      requires IsPullback<
+          decltype(pullback<ClassicalLogic, std::pair<typename S::Ambient,
+                                                      typename S::Ambient>>(
+              id<typename S::Ambient>(), id<typename S::Ambient>())),
+          Identity<typename S::Ambient>, Identity<typename S::Ambient>>;
+    };
+
+/**
+ * @concept HasAxiom7ClassifierNaturalityWitness
+ * @brief Optional naturality witness for Axiom 7 classifier behavior.
+ * @details Encodes that classifier-level structure for ambient species A can
+ * be paired with a natural-transformation witness over functors rooted in A.
+ * This strengthens the proof surface for pullback/reindexing narratives while
+ * keeping `IsSet` backward compatible. This witness is intentionally additive
+ * and is not required by `IsSet`.
+ */
+export template <typename S, typename Alpha, typename F, typename G>
+concept HasAxiom7ClassifierNaturalityWitness =
+    HasAxiom7SubobjectClassifier<S> && IsNaturalTransformation<Alpha, F, G> &&
+    std::same_as<typename F::Σ_cat::Species, typename S::Ambient>;
 
 /** @brief ETCS axiom 8 witness: initial object 0 is present. */
 export template <typename A>
@@ -186,9 +215,37 @@ concept HasAxiom8EmptySet = IsInitialObject<Zero>;
 export template <typename A>
 concept HasAxiom9NNO = IsSpecies<unsigned>;
 
-/** @brief ETCS axiom 10 witness: meet/join lattice operators are available. */
+/**
+ * @concept IsSplitEpicPair
+ * @brief Structural witness of a split epimorphism e with section s.
+ * @details This concept captures the textbook shape e: A ↠ B and s: B → A.
+ * Semantic equations (e ∘ s = id_B) remain a proof obligation supplied by
+ * tests or user-declared witnesses.
+ */
+export template <typename Epi, typename Section>
+concept IsSplitEpicPair = IsEpicArrow<Epi> && IsArrow<Section> &&
+                          std::same_as<Dom<Section>, Cod<Epi>> &&
+                          std::same_as<Cod<Section>, Dom<Epi>>;
+
+/**
+ * @concept HasAxiom10ChoiceSplitEpicWitness
+ * @brief Axiom 10 (choice) support via an explicit split-epi witness shape.
+ * @details This is an opt-in structural contract that exposes where choice-like
+ * splitting witnesses exist today.
+ */
+export template <typename S, typename Epi, typename Section>
+concept HasAxiom10ChoiceSplitEpicWitness =
+    IsSetObject<S, typename S::Ambient> && IsSplitEpicPair<Epi, Section> &&
+    std::same_as<Cod<Epi>, typename S::Ambient>;
+
+/**
+ * @brief ETCS axiom 10 witness: power-object lattice completeness.
+ * @details meet/join on subobjects follows from the subobject classifier
+ * (Axiom 7) inducing a Heyting algebra on Sub(A). The Axiom of Choice proper
+ * (every epimorphism splits) is aspirational and not yet encoded here.
+ */
 export template <typename S>
-concept HasAxiom10ChoiceDispatcher =
+concept HasAxiom10PowerObjectLattice =
     IsSetObject<S, typename S::Ambient> && IsCompatibleSetPair<S, S> &&
     requires(S lhs, S rhs) {
       requires IsSetObject<decltype(meet(lhs, rhs)), typename S::Ambient>;
@@ -213,7 +270,7 @@ concept IsSet =
     HasAxiom5CartesianProduct<typename T::Ambient> &&
     HasAxiom6Exponentiation<typename T::Ambient> &&
     HasAxiom7SubobjectClassifier<T> && HasAxiom8EmptySet<typename T::Ambient> &&
-    HasAxiom9NNO<typename T::Ambient> && HasAxiom10ChoiceDispatcher<T>;
+    HasAxiom9NNO<typename T::Ambient> && HasAxiom10PowerObjectLattice<T>;
 
 /**
  * @concept IsSetInCanonicalCCC

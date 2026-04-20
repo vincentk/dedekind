@@ -67,9 +67,9 @@ TEST_CASE("Topology: Rules of Continuity Coverage", "[topology][continuity]") {
     // Interval exposes supremum()/infimum() — satisfies HasExtrema.
     // This links topology::Interval to the order-theoretic completeness
     // concept IsDedekindComplete = IsTotallyOrdered && IsDense && HasExtrema.
-    static_assert(dedekind::sets::HasExtrema<ClosedUnitInterval>);
-    static_assert(dedekind::sets::HasExtrema<UnitInterval>);
-    static_assert(dedekind::sets::HasExtrema<LeftClosedInterval>);
+    static_assert(dedekind::category::HasExtrema<ClosedUnitInterval>);
+    static_assert(dedekind::category::HasExtrema<UnitInterval>);
+    static_assert(dedekind::category::HasExtrema<LeftClosedInterval>);
   }
 
   SECTION("HalfSpace: the general runtime-direction ray") {

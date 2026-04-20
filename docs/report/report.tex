@@ -475,11 +475,14 @@ These partitions represent the maturation of mathematical species from raw mappi
     \node[partition, right=of morphism] (mereology) {:mereology};
     \node[partition, right=of mereology] (logic) {:logic};
 
-    % --- Row 1: L0 (Right to Left - Reversed) ---
+    % --- Row 1: L0.5 (Right to Left - Reversed) ---
     \node[partition] (posetal) at (9.0, 1.8) {:posetal};
-    \node[partition, left=of posetal] (small) {:small};
-    \node[partition, left=of small] (limit) {:limit};
-    \node[partition, left=of limit] (pullback) {:pullback};
+    \node[partition] (small) at (7.3, 1.8) {:small};
+    \node[partition] (discrete) at (5.6, 1.8) {:discrete};
+    \node[partition] (limit) at (3.9, 1.8) {:limit};
+    \node[partition] (cartesian) at (2.2, 1.8) {:cartesian};
+    \node[partition] (topoi) at (0.5, 1.8) {:topoi};
+    \node[partition] (pullback) at (-1.2, 1.8) {:pullback};
 
     % --- Row 2: L1 (Left to Right) ---
     \node[partition] (total) at (0, 3.8) {:total};
@@ -507,8 +510,11 @@ These partitions represent the maturation of mathematical species from raw mappi
     \draw[dependency] (logic) .. controls (10.5, 1.2) and (10.5, 1.8) .. (posetal); % Turn
 
     \draw[dependency] (posetal) -- (small);
-    \draw[dependency] (small) -- (limit);
-    \draw[dependency] (limit) -- (pullback);
+    \draw[dependency] (small) -- (discrete);
+    \draw[dependency] (discrete) -- (limit);
+    \draw[dependency] (limit) -- (cartesian);
+    \draw[dependency] (cartesian) -- (topoi);
+    \draw[dependency] (topoi) -- (pullback);
     \draw[dependency] (pullback) .. controls (-1.0, 2.5) and (-1.0, 3.1) .. (total); % Turn
 
     % L1 Flow
@@ -1361,6 +1367,78 @@ static_assert(!is_associative_v<double, std::plus<double>>);
 \subsection{The \texttt{:etcs} partition: The Set-Theoretic Interface}
 The final stage of the foundational build anchors Lawvere's Elementary Theory of the Category of Sets (ETCS) \cite{lawvere1964etcs}. This partition defines a set not by its internal elements, but by its universal properties, utilizing C++23 Concepts to enforce well-pointedness and the existence of power objects.
 
+\paragraph{ETCS closure contract (Issue \#195).}
+To prevent proof-surface overclaiming, this report adopts an explicit closure contract for ETCS statements.
+An axiom-level claim is considered \emph{implemented} only when all three artifacts exist simultaneously:
+\begin{enumerate}
+  \item a named code surface (concept/trait/API) that realizes the claim,
+  \item executable tests that validate the intended semantics on representative species,
+  \item an issue-linked documentation statement that records scope and residual limits.
+\end{enumerate}
+If any of the three artifacts is missing, the claim remains \emph{partial} (or \emph{deferred}).
+This contract keeps terminology aligned between implementation, tests, and manuscript language while Axiom 7/Axiom 10 work is still in flight.
+
+\begin{table}[ht]
+\centering
+\caption{ETCS closure contract status (tracking-level summary).}
+\label{table:etcs-closure-contract}
+\begin{tabular}{lll}
+\toprule
+\textbf{Axiom band} & \textbf{Contract status} & \textbf{Primary tracker links} \\
+\midrule
+A1--A6 & Implemented (named surfaces + executable tests) & \#195 \\
+A7 (subobject classifier / pullback / naturality surface) & Partial (implemented contracts + tests; stronger law closure pending) & \#195, \#351 \\
+A10 (choice semantics) & Partial (split-epi witness shape implemented; full choice semantics deferred) & \#195, \#352 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Axiom claim rubric (review checklist).}
+The following rubric is the review gate for ETCS wording in this report and in PR discussions.
+\begin{table}[ht]
+\centering
+\caption{Axiom claim-strength rubric used by reviewers.}
+\label{table:etcs-claim-rubric}
+\begin{tabular}{p{0.16\linewidth}p{0.52\linewidth}p{0.24\linewidth}}
+\toprule
+\textbf{Label} & \textbf{Required evidence} & \textbf{Reviewer action} \\
+\midrule
+Implemented & Named code surface + executable semantics tests + issue-linked scope note. & May be stated as implemented. \\
+Partial & At least one artifact exists, but one or more required artifacts are missing. & Keep language conditional and bounded. \\
+Deferred & Planned work only (no complete evidence bundle yet). & Do not imply closure; keep explicit tracker links. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[ht]
+\centering
+\caption{Issue-linked ETCS claim map for review threads.}
+\label{table:etcs-claim-map}
+\begin{tabular}{lll}
+\toprule
+\textbf{Axiom band} & \textbf{Current claim label} & \textbf{Issue links} \\
+\midrule
+A1--A3 (composition/identity/products) & Implemented & \#195 \\
+A4--A5 (well-pointed/classifier-adjacent structure) & Implemented & \#195 \\
+A6 (exponential/cartesian-closed surface) & Implemented & \#195 \\
+A7 (classifier stability and naturality closure) & Partial & \#195, \#351 \\
+A10 (choice / split-epi semantics) & Partial (shape implemented, semantics deferred) & \#195, \#352 \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Categorical infrastructure layer (foundational presuppositions).}
+ETCS presupposes several categorical and topological structures that organize the proof surface and enable the set-theoretic interface. While implementation of these structures is deferred to future work (tracked under Issue \#195 and related epics), their conceptual role is central to understanding the closure contract's scope.
+
+\begin{description}
+  \item[\textbf{Grothendieck topologies}] A categorical formalization of ``coverage'' that abstracts the notion of a ``cover.'' Instead of asking whether a union of subsets equals the whole, Grothendieck topologies ask whether a collection of morphisms is ``dense'' in a categorical sense. This generalizes open covers in topology to arbitrary categories, enabling the ETCS axioms to reason about when a collection of subobjects is sufficient to determine properties of the whole. Concept anchor: \texttt{dedekind::category::IsGrothendieckTopology<J, Category>}.
+  \item[\textbf{Sieves and pullback-stability}] A sieve is a collection of arrows into an object, ordered by a ``contains'' relation. Sieves that are pullback-stable form the basis of a Grothendieck topology. In ETCS terms, the axiom bands A1--A3 (composition, identity, products) presuppose that covers are stable under pullback---that ``the perspective shift of a cover is still a cover.'' Concept anchor: \texttt{dedekind::category::IsSieve<S>}.
+  \item[\textbf{Fiber bundles and transition maps}] A fiber bundle $\pi : E \to B$ over a base space $B$ organizes a family of fibers into a coherent whole via transition maps on overlaps. In ETCS, the existence of exponential objects (Axiom A6) is analogous to bundle sections: morphisms that ``lift'' from the base to the total space. The fiber bundle concept ensures that logical structure is preserved as we change perspective. Concept anchor: \texttt{dedekind::category::IsFiberBundle<Bundle>}.
+  \item[\textbf{Limits and dense covers}] A limit captures the compatible structure shared by a family of objects and morphisms. In ETCS, Axiom A4 (equalizer existence) and the closure contract's implicit requirement for ``sufficient'' test objects rely on limit-style reasoning about how local data coheres into a global constraint. Relevant documented surface: \texttt{dedekind.category:limit}; this infrastructure is discussed alongside \texttt{dedekind::category::IsSieve<S>}.
+\end{description}
+
+These structural layers are already anticipated in the \texttt{dedekind.category} module as concepts (see \texttt{dedekind.category:topoi}, \texttt{dedekind.category:limit}), but their full formalization is deferred. The closure contract treats these as \textbf{implicit presuppositions}: a claim about ETCS axioms is only meaningful once these categorical infrastructure contracts are available and validated. Future work on Issues \#195 and related epics will lift these presuppositions from implicit to explicit.
+
 The core innovation of this partition is the reification of the \textit{Set-Builder} notation. By representing a set $S = \{x \in X \mid P(x)\}$ as a \texttt{Stateless Constraint Type}, we transform the C++ translation unit into a symbolic laboratory. 
 
 \begin{lstlisting}[language=C++, caption={Reifying the Set-Builder via Stateless Constraints.}]
@@ -1483,23 +1561,23 @@ classifier-level exceptions rather than hidden runtime accidents
 \cite{ieee754_2019, higham2002accuracy}.
 
 \paragraph{Partial ETCS Alignment Strategy.}
+Current ETCS status is tracked in \texttt{dedekind.category:etcs} and validated in
+\texttt{etcs\_axioms\_test.cpp}. For review and migration purposes, we use the
+following auditable checklist:
+\begin{itemize}
+  \item \textbf{Axiom 7 (Subobject Classifier)}: implemented at contract level via
+  \texttt{HasAxiom7SubobjectClassifier} (classifier constants + pullback witness shape),
+  with an optional additive naturality witness
+  \texttt{HasAxiom7ClassifierNaturalityWitness}. Full law-level closure remains tracked
+  in Issue \#351 (parent: \#195).
+  \item \textbf{Axiom 10 (Choice semantics)}: split-epimorphism witness shape is
+  implemented via \texttt{IsSplitEpicPair} and
+  \texttt{HasAxiom10ChoiceSplitEpicWitness}. Full choice semantics (beyond shape-level
+  contracts) remains tracked in Issue \#352 (parent: \#195).
+\end{itemize}
 
-Following PR \#111, the \texttt{sets} module implements a \textbf{Partial ETCS Alignment Strategy}, reifying 8 of the 10 Lawvere axioms of the Elementary Theory of the Category of Sets. This pragmatic approach acknowledges that full ETCS alignment at the type-level is achievable without sacrificing practical usability; the deferred axioms (Axiom 7: Unique Factorization through Pullbacks, and Axiom 10: Well-Pointedness) are strategically deferred to future levels of the library where higher-order categorical machinery becomes available.
-
-The 8 active axioms are reified through explicit trait witnesses in the form of axiom composites:
-
-\begin{enumerate}
-\item \textbf{Axiom 1 (Composition)}: \texttt{HasAxiom1Composition<T>} verifies that the composition of characteristic functions is associative.
-\item \textbf{Axiom 2 (Identity)}: \texttt{HasAxiom2Identity<T>} ensures that every set admits an identity morphism.
-\item \textbf{Axiom 3 (Product Existence)}: \texttt{HasAxiom3ProductExistence<T>} certifies Cartesian products of sets.
-\item \textbf{Axiom 4 (Disjoint Union)}: \texttt{HasAxiom4DisjointUnion<T>} verifies coproducts (disjoint unions).
-\item \textbf{Axiom 5 (Equalizer)}: \texttt{HasAxiom5Equalizer<T>} ensures the existence of equalizer subobjects.
-\item \textbf{Axiom 6 (Exponentiation)}: \texttt{HasAxiom6Exponentiation<T>} reifies the power object via the subobject classifier.
-\item \textbf{Axiom 8 (Choice Function)}: \texttt{HasAxiom8ChoiceFunction<T>} provides explicit choice for nonempty fibers.
-\item \textbf{Axiom 9 (Natural Numbers Object)}: \texttt{HasAxiom9NaturalNumbers<T>} ensures inductive structure on appropriate species.
-\end{enumerate}
-
-The deferred Axioms 7 and 10 depend on pullback diagrams and the global section property, respectively, which require more sophisticated higher-order categorical formalism not yet integrated into the library's architecture. By explicitly documenting this partial alignment, the library provides a clear roadmap for future extensions while maintaining mathematical honesty about the current scope of ETCS formalization.
+This framing keeps implementation claims synchronized with executable tests and
+explicitly scoped roadmap work.
 
 \subsection{The \texttt{:boundaries} partition}
 
@@ -1534,21 +1612,21 @@ In a sense, \texttt{dedekind} hopes to be a *compiler* for mathematical concepts
 
 \begin{table}[ht]
 \centering
-\caption{Complete Mapping of ETCS Axioms to C++23 Structural Invariants}
+\caption{ETCS Rosetta Mapping (Category Theory $\leftrightarrow$ dedekind $\leftrightarrow$ C++/\texttt{std})}
 \label{table:etcs_complete}
-\begin{tabular}{lll}
+\begin{tabular}{p{0.14\linewidth}p{0.25\linewidth}p{0.33\linewidth}p{0.2\linewidth}}
 \hline
-\textbf{ETCS Axiom} & \textbf{C++ Language Feature} & \textbf{Structural Invariant} \\ \hline
-1. Composition & \texttt{std::invoke} / \texttt{operator>>} & \texttt{IsSemigroupoid<T, Op>} \\
-2. Identity & \texttt{identity\_trait<T, Op>} & \texttt{IsSmallCategory<T, Op>} \\
-3. Terminal Object & \texttt{s(x) -> Logic::top} & \texttt{IsTerminalObject<T>} \\
-4. Well-Pointedness & \texttt{operator()} (Element access) & \texttt{HasAxiom4WellPointedness} \\
-5. Cartesian Product & \texttt{std::tuple} / \texttt{std::pair} & \texttt{HasProduct<A, B>} \\
-6. Exponentiation & Lambda NTTP / \texttt{std::function} & \texttt{IsInternalHom<A, B>} \\
-7. Equalizers & \texttt{dedekind::set<T, P>} & \texttt{IsEqualizer<f, g>} \\
-8. Empty Set & \texttt{dedekind::EmptySet} & \texttt{IsInitialObject<T>} \\
-9. Infinity (NNO) & \texttt{dedekind::Naturals} & \texttt{HasNaturalNumbersObject} \\
-10. Axiom of Choice & Lattice Dispatcher & \texttt{HasAxiom10ChoiceDispatcher} \\ \hline
+\textbf{Axiom} & \textbf{CT concept} & \textbf{dedekind ETCS surface} & \textbf{C++ / std proxy} \\ \hline
+1 & Composition ($g \circ f$) & \texttt{HasAxiom1Composition}, \texttt{operator>>} & \texttt{std::invoke} + composed callables \\
+2 & Identity ($id_A$) & \texttt{HasAxiom2Identity}, \texttt{id<T>()} & \texttt{std::identity} \\
+3 & Terminal object ($1$) & \texttt{HasAxiom3TerminalObject}, \texttt{One} & \texttt{std::monostate} \\
+4 & Well-pointed membership & \texttt{HasAxiom4WellPointedness}, \texttt{in}/\texttt{in\_via} & predicate call $\chi(x)$ \\
+5 & Cartesian products ($A \times B$) & \texttt{HasAxiom5CartesianProduct}, \texttt{IsProduct} & \texttt{std::pair} \\
+6 & Exponentials ($B^A$) & \texttt{HasAxiom6Exponentiation}, \texttt{Exponential<A,B>} & callable wrappers (e.g. \texttt{std::function}) \\
+7 & Subobject classifier ($\chi: A \to \Omega$) & \texttt{HasAxiom7SubobjectClassifier}, optional \texttt{HasAxiom7ClassifierNaturalityWitness} & classifier predicates (\texttt{bool}/\texttt{Ternary}), \texttt{classifier\_true/false} \\
+8 & Initial object ($0$) & \texttt{HasAxiom8EmptySet}, \texttt{Zero} & \texttt{std::nullptr\_t} \\
+9 & NNO ($\mathbb{N}$) & \texttt{HasAxiom9NNO} & \texttt{unsigned} species witness \\
+10 & Choice / split epis & \texttt{IsSplitEpicPair}, \texttt{HasAxiom10ChoiceSplitEpicWitness}, \texttt{HasAxiom10PowerObjectLattice} & explicit epi/section witnesses (identity as canonical base case) \\ \hline
 \end{tabular}
 \end{table}
 

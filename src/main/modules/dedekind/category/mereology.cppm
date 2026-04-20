@@ -290,20 +290,228 @@ concept IsMereologicalDistributiveLatticeOperations =
     IsDistributive<T, Join, Meet> && IsDistributive<T, Meet, Join>;
 
 /**
- * @brief Skeletal Part-Whole relation.
- * At this embryonic stage, we treat parthood as a formal arrow
- * in a category where objects are wholes and morphisms are inclusion mappings.
+ * @concept IsSkewMeetSemilattice
+ * @brief Non-commutative meet-like idempotent semigroup with set-theoretic
+ * default operator (`std::bit_and`).
+ *
+ * @details
+ * This is the canonical set-theoretic naming of the meet-band stage, binding
+ * the bit-AND operator as the conventional "intersection" for set-like types.
+ * The general algebraic concept is `IsMereologicalMeetBand`; this alias fixes
+ * the set-theoretic default.
+ *
+ * @tparam S   The set-like carrier type.
+ * @tparam Meet The meet operator (default: `std::bit_and<S>` for sets).
+ */
+export template <typename S, typename Meet = std::bit_and<S>>
+concept IsSkewMeetSemilattice = IsMereologicalMeetBand<S, Meet>;
+
+/**
+ * @concept IsSkewJoinSemilattice
+ * @brief Non-commutative join-like idempotent semigroup with set-theoretic
+ * default operator (`std::bit_or`).
+ *
+ * @details
+ * Set-theoretic naming of the join-band stage, binding bit-OR as the
+ * conventional "union" for set-like types.
+ *
+ * @tparam S   The set-like carrier type.
+ * @tparam Join The join operator (default: `std::bit_or<S>` for sets).
+ */
+export template <typename S, typename Join = std::bit_or<S>>
+concept IsSkewJoinSemilattice = IsMereologicalJoinBand<S, Join>;
+
+/**
+ * @concept IsSkewLattice
+ * @brief Non-commutative lattice with set-theoretic default operators.
+ *
+ * @details
+ * Set-theoretic naming alias that fixes `bit_or`/`bit_and` as the canonical
+ * join/meet operators, reflecting the convention that union = OR and
+ * intersection = AND for bit-representable set-like types.
+ *
+ * @tparam S    The set-like carrier type.
+ * @tparam Join The join operator (default: `std::bit_or<S>`).
+ * @tparam Meet The meet operator (default: `std::bit_and<S>`).
+ */
+export template <typename S, typename Join = std::bit_or<S>,
+                 typename Meet = std::bit_and<S>>
+concept IsSkewLattice = IsMereologicalSkewLatticeOperations<S, Join, Meet>;
+
+/**
+ * @concept IsSetMeetSemilattice
+ * @brief Commutative meet-semilattice with set-theoretic default operator.
+ *
+ * @tparam S    The set-like carrier type.
+ * @tparam Meet The meet operator (default: `std::bit_and<S>`).
+ */
+export template <typename S, typename Meet = std::bit_and<S>>
+concept IsSetMeetSemilattice = IsMereologicalMeetSemilattice<S, Meet>;
+
+/**
+ * @concept IsSetJoinSemilattice
+ * @brief Commutative join-semilattice with set-theoretic default operator.
+ *
+ * @tparam S    The set-like carrier type.
+ * @tparam Join The join operator (default: `std::bit_or<S>`).
+ */
+export template <typename S, typename Join = std::bit_or<S>>
+concept IsSetJoinSemilattice = IsMereologicalJoinSemilattice<S, Join>;
+
+/**
+ * @concept IsSetLattice
+ * @brief Paired commutative join/meet semilattice with set-theoretic defaults.
+ *
+ * @details
+ * Set-theoretic naming alias: binds `bit_or` as join (union) and `bit_and`
+ * as meet (intersection). The general algebraic concept is
+ * `IsMereologicalLatticeOperations`.
+ *
+ * @tparam S    The set-like carrier type.
+ * @tparam Join The join operator (default: `std::bit_or<S>`).
+ * @tparam Meet The meet operator (default: `std::bit_and<S>`).
+ */
+export template <typename S, typename Join = std::bit_or<S>,
+                 typename Meet = std::bit_and<S>>
+concept IsSetLattice = IsMereologicalLatticeOperations<S, Join, Meet>;
+
+/**
+ * @concept HasExtrema
+ * @brief Structural requirement for Dedekind completeness witnesses.
+ *
+ * @details
+ * A type satisfies `HasExtrema` when it exposes both a supremum (least upper
+ * bound) and an infimum (greatest lower bound) operation. This is the
+ * structural prerequisite for `IsDedekindComplete` in the order partition.
+ *
+ * @tparam S A carrier type (set or interval species).
+ *
+ * @see Dedekind (1872), Stetigkeit und irrationale Zahlen.
+ * @see McLarty (1992), Elementary Categories, Elementary Toposes, ch. 4.
+ */
+export template <typename S>
+concept HasExtrema = requires(S s) {
+  /** @brief Computes the least upper bound of a bounded subset. */
+  { s.supremum() };
+  /** @brief Computes the greatest lower bound of a bounded subset. */
+  { s.infimum() };
+};
+
+/**
+ * @concept IsMereologicalCutCandidate
+ * @brief Transitional bridge contract for the soft-to-hard structural cut.
+ *
+ * @details
+ * Models the structural pruning semantics of Leśniewski-style mereological
+ * cuts: a `Shell` filters a `Manifold` to a `FilteredSpace` that is a
+ * mereological part of the manifold (verified via `IsPartOfRelation`). This
+ * concept captures the "soft" half of the full `IsMereologicalCut` described
+ * in `nn_notes/mereological_cut.cppm`, without introducing a dependency on
+ * `:pullback`.
+ *
+ * The full `IsMereologicalCut` additionally requires the filtered inclusion to
+ * be a pullback limit (unique factorization). That Axiom 7 / Issue #195
+ * constraint is intentionally deferred here.
+ *
+ * @note TODO(Issue #195): strengthen to `IsSubobject<FilteredSpace, Manifold>`
+ *       and add `IsPullbackLimit` uniqueness once the `:pullback` partition
+ *       naming is stable.
+ *
+ * @tparam Shell    The filtering agent (e.g. a learned sieve or pruning mask).
+ * @tparam Manifold The ambient space being partitioned.
+ * @tparam Ω        The truth-value codomain (default: `bool`).
+ *
+ * @see https://plato.stanford.edu/entries/mereology/
+ * @see Lawvere & Schanuel (2009), Conceptual Mathematics, ch. 4 (subobjects).
+ */
+export template <typename Shell, typename Manifold, typename Ω = bool>
+concept IsMereologicalCutCandidate = requires(Shell s, Manifold m) {
+  // The filtered subspace must be a declared type alias.
+  typename Shell::FilteredSpace;
+
+  // The filtered subspace must be a mereological part of the manifold.
+  requires IsPartOfRelation<typename Shell::FilteredSpace, Manifold, Ω>;
+
+  // The shell must expose a filter operation producing the FilteredSpace.
+  { s.filter(m) } -> std::same_as<typename Shell::FilteredSpace>;
+};
+
+/**
+ * @concept Parthood
+ * @brief Skeletal part-whole contract at the concept level.
+ *
+ * @details
+ * This concept is the concept-only replacement for the former `Parthood`
+ * witness struct. At this embryonic stage, we encode parthood directly as the
+ * self-carrier primitive relation contract (`T` as both part and whole).
  */
 export template <typename T>
-struct Parthood {
-  using species = T;
+concept Parthood = IsPartOfRelation<T, T, bool>;
 
-  static constexpr bool check(const T& part, const T& whole) {
-    (void)part;
-    (void)whole;
-    return true;  // The "Trivial Universe" where everything is part of
-                  // everything
-  }
+/**
+ * @brief Generic opt-in drill-down projector for part-whole wrappers.
+ *
+ * @details
+ * This is the upstream projector primitive used by downstream partitions
+ * (`:posetal`, `:limit`, and others) to express functional part access via
+ * `operator->` while preserving explicit opt-in semantics.
+ *
+ * Overloads support both wrapper types exposing a member `operator->` and
+ * raw pointers.
+ */
+export template <typename Whole>
+constexpr decltype(auto) arrow_drill_down(const Whole& whole)
+  requires requires { whole.operator->(); }
+{
+  return *whole.operator->();
+}
+
+/** @brief Pointer overload for generic drill-down projection. */
+export template <typename T>
+constexpr const T& arrow_drill_down(const T* whole) {
+  return *whole;
+}
+
+// Compiler-validated documentation witnesses for the mereological ladder.
+static_assert(
+    IsPartRelation<int>,
+    "Parthood axioms must hold for the canonical integer order witness.");
+static_assert(Parthood<int>,
+              "Parthood concept must hold for the canonical integer witness.");
+static_assert(
+    requires(const int* p) {
+      { arrow_drill_down(p) } -> std::same_as<const int&>;
+    },
+    "Pointer drill-down overload must return a const reference to the "
+    "pointed-to value.");
+static_assert(IsPartialOrder<int>,
+              "Partial-order stage must refine the parthood axioms.");
+static_assert(IsTotalOrder<int>,
+              "Total-order stage must refine partial-order parthood.");
+
+static_assert(IsMereologicalMeetMagma<int, decltype(std::ranges::min)>);
+static_assert(IsMereologicalJoinMagma<int, decltype(std::ranges::max)>);
+static_assert(IsMereologicalMeetSemigroup<int, decltype(std::ranges::min)>);
+static_assert(IsMereologicalJoinSemigroup<int, decltype(std::ranges::max)>);
+static_assert(IsMereologicalMeetBand<int, decltype(std::ranges::min)>);
+static_assert(IsMereologicalJoinBand<int, decltype(std::ranges::max)>);
+static_assert(IsMereologicalSkewLatticeOperations<
+              int, decltype(std::ranges::max), decltype(std::ranges::min)>);
+
+namespace detail {
+// Minimal positive witness for IsMereologicalCutCandidate.
+struct merc_filtered {
+  constexpr bool operator<=(const int&) const { return true; }
 };
+struct merc_shell {
+  using FilteredSpace = merc_filtered;
+  constexpr merc_filtered filter(const int&) const { return {}; }
+};
+}  // namespace detail
+
+static_assert(
+    IsMereologicalCutCandidate<detail::merc_shell, int>,
+    "Transitional cut candidate must hold for the canonical demo witness "
+    "(Issue #195).");
 
 }  // namespace dedekind::category

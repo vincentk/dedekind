@@ -104,6 +104,179 @@ export template <typename P>
 concept IsCharacteristic = IsPredicate<P>;
 
 /**
+ * @concept IsSieve
+ * @brief Signature-level witness for a sieve of arrows into an object.
+ *
+ * @details
+ * A sieve over an object X is represented as a collection of incoming arrows
+ * together with closure under precomposition (modeled here by
+ * `pullback_along`). This concept is intentionally lightweight and currently
+ * models a single-arrow-type approximation: `S::Arrow` is fixed and
+ * `pullback_along` returns the same sieve type `S`.
+ *
+ * It verifies shape/signature only for this narrowed surface; semantic laws
+ * are exercised in tests and can be strengthened by later issue work.
+ */
+export template <typename S>
+concept IsSieve = requires(S s, typename S::Arrow f) {
+  typename S::Object;
+  typename S::Arrow;
+  requires IsArrow<typename S::Arrow>;
+  requires std::same_as<Cod<typename S::Arrow>, typename S::Object>;
+  { s.target() } -> std::same_as<typename S::Object>;
+  { s.contains(f) } -> std::convertible_to<bool>;
+  { s.pullback_along(f) } -> std::same_as<S>;
+};
+
+/**
+ * @concept IsGrothendieckTopology
+ * @brief Signature-level witness for Grothendieck coverage rules over sieves.
+ *
+ * @details
+ * This concept encodes the three textbook shape obligations used by this
+ * project's ETCS narrative:
+ * 1. Identity cover witness,
+ * 2. Pullback-stability witness,
+ * 3. Transitivity witness.
+ *
+ * It is a proof-surface contract: implementations may use stronger internal
+ * laws, but these witnesses keep API-level claims reviewable and testable.
+ */
+export template <typename J, typename S>
+concept IsGrothendieckTopology =
+    IsSieve<S> && requires(S s, typename S::Arrow f) {
+      { J::is_cover(s) } -> std::convertible_to<bool>;
+      { J::identity_cover(s.target()) } -> std::convertible_to<bool>;
+      { J::is_cover(s.pullback_along(f)) } -> std::convertible_to<bool>;
+      { J::pullback_stable(s, f) } -> std::convertible_to<bool>;
+      { J::transitive(s) } -> std::convertible_to<bool>;
+    };
+
+/**
+ * @concept IsBundleProjection
+ * @brief A projection morphism π : E -> B for a bundle candidate.
+ *
+ * @details
+ * This is a structural contract for the projection map in a fiber bundle.
+ * It keeps the proof surface explicit without forcing a concrete atlas model
+ * yet.
+ */
+export template <typename Pi, typename E, typename B>
+concept IsBundleProjection =
+    IsArrow<Pi> && std::same_as<Dom<Pi>, E> && std::same_as<Cod<Pi>, B>;
+
+/**
+ * @concept IsFiberBundle
+ * @brief Signature-level witness for a fiber bundle over a base species.
+ *
+ * @details
+ * This concept checks for the standard structural ingredients:
+ * - Total space E,
+ * - Base space B,
+ * - Fiber species F,
+ * - Projection map π : E -> B,
+ * - Local trivialization witness.
+ *
+ * It intentionally verifies API shape only; stronger geometric laws can be
+ * layered later.
+ */
+export template <typename Bundle>
+concept IsFiberBundle = requires(Bundle bundle) {
+  typename Bundle::TotalSpace;
+  typename Bundle::BaseSpace;
+  typename Bundle::Fiber;
+  typename Bundle::Projection;
+
+  requires IsBundleProjection<typename Bundle::Projection,
+                              typename Bundle::TotalSpace,
+                              typename Bundle::BaseSpace>;
+
+  { bundle.projection() } -> std::same_as<typename Bundle::Projection>;
+  requires IsBundleProjection<decltype(bundle.projection()),
+                              typename Bundle::TotalSpace,
+                              typename Bundle::BaseSpace>;
+
+  { bundle.trivializes_locally() } -> std::convertible_to<bool>;
+};
+
+namespace detail {
+
+// Compiler-validated documentation witnesses for the infrastructure concepts.
+struct topo_demo_arrow {
+  using Domain = int;
+  using Codomain = int;
+  constexpr int operator()(const int& x) const { return x; }
+};
+
+struct topo_demo_bool_arrow {
+  using Domain = int;
+  using Codomain = bool;
+  constexpr bool operator()(const int& x) const { return x % 2 == 0; }
+};
+
+struct topo_demo_sieve {
+  using Object = int;
+  using Arrow = topo_demo_arrow;
+
+  constexpr Object target() const { return 0; }
+  constexpr bool contains(Arrow) const { return true; }
+  constexpr topo_demo_sieve pullback_along(Arrow) const { return {}; }
+};
+
+struct topo_bad_sieve_codomain_mismatch {
+  using Object = int;
+  using Arrow = topo_demo_bool_arrow;
+
+  constexpr Object target() const { return 0; }
+  constexpr bool contains(Arrow) const { return true; }
+  constexpr topo_bad_sieve_codomain_mismatch pullback_along(Arrow) const {
+    return {};
+  }
+};
+
+struct topo_demo_topology {
+  static constexpr bool is_cover(const topo_demo_sieve&) { return true; }
+  static constexpr bool identity_cover(int) { return true; }
+  static constexpr bool pullback_stable(const topo_demo_sieve&,
+                                        topo_demo_arrow) {
+    return true;
+  }
+  static constexpr bool transitive(const topo_demo_sieve&) { return true; }
+};
+
+struct topo_projection_arrow {
+  using Domain = std::pair<int, int>;
+  using Codomain = int;
+  constexpr int operator()(const Domain& e) const { return e.first; }
+};
+
+struct topo_bundle_witness {
+  using TotalSpace = std::pair<int, int>;
+  using BaseSpace = int;
+  using Fiber = int;
+  using Projection = topo_projection_arrow;
+
+  constexpr Projection projection() const { return {}; }
+  constexpr bool trivializes_locally() const { return true; }
+};
+
+}  // namespace detail
+
+static_assert(IsSieve<detail::topo_demo_sieve>,
+              "Sieve witness must satisfy the infrastructure contract.");
+static_assert(!IsSieve<detail::topo_bad_sieve_codomain_mismatch>,
+              "Sieve codomain must match target object.");
+static_assert(
+    IsGrothendieckTopology<detail::topo_demo_topology, detail::topo_demo_sieve>,
+    "Topology witness must satisfy coverage contract over a sieve.");
+static_assert(
+    IsBundleProjection<detail::topo_projection_arrow, std::pair<int, int>, int>,
+    "Bundle projection witness must type-check as E -> B.");
+static_assert(
+    IsFiberBundle<detail::topo_bundle_witness>,
+    "Fiber bundle witness must expose projection and local trivialization.");
+
+/**
  * @concept IsSubobject
  * @brief The categorical witness of a monomorphism ι: S ↣ A.
  *

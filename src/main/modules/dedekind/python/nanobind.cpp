@@ -81,8 +81,14 @@ auto path_from_range(const std::vector<int>& values) -> std::vector<int> {
 template <typename T>
 auto path_from_array(nb::ndarray<T, nb::ndim<1>, nb::c_contig> arr)
     -> std::vector<T> {
-  const T* data = arr.data();
-  return std::vector<T>(data, data + arr.shape(0));
+  const auto size = static_cast<std::size_t>(arr.shape(0));
+  std::vector<T> result;
+  result.reserve(size);
+  for (std::size_t i = 0; i < size; ++i) {
+    result.push_back(arr(static_cast<int64_t>(i)));
+  }
+
+  return result;
 }
 
 auto path_from_str_seq(nb::sequence seq) -> std::vector<std::string> {

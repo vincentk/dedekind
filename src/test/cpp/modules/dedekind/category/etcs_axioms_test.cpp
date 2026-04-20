@@ -54,6 +54,13 @@ TEST_CASE("ETCS axioms: 4, 7, 10 (well-pointed eval, classifier, lattice)",
   CHECK_FALSE(m.χ(-4));
   CHECK(j.χ(-4));
   CHECK_FALSE(j.χ(-3));
+
+  // Axiom 7 includes classifier constants and pullback-backed stability.
+  STATIC_CHECK(HasAxiom7SubobjectClassifier<decltype(s_even)>);
+
+  // Axiom 10 (choice) currently has an explicit split-epi witness surface.
+  STATIC_CHECK(HasAxiom10ChoiceSplitEpicWitness<decltype(s_even), Identity<int>,
+                                                Identity<int>>);
 }
 
 TEST_CASE("ETCS axioms: 5 and 6 (product and exponentials)",
@@ -92,7 +99,40 @@ TEST_CASE("ETCS: IsSet exposes the grouped axiom witnesses",
   STATIC_CHECK(HasAxiom7SubobjectClassifier<decltype(s)>);
   STATIC_CHECK(HasAxiom8EmptySet<int>);
   STATIC_CHECK(HasAxiom9NNO<int>);
-  STATIC_CHECK(HasAxiom10ChoiceDispatcher<decltype(s)>);
+  STATIC_CHECK(HasAxiom10PowerObjectLattice<decltype(s)>);
 
   STATIC_CHECK(IsSet<decltype(s)>);
+}
+
+TEST_CASE("ETCS axiom 10: split-epi witness surface is explicit",
+          "[category][etcs][axioms][choice]") {
+  const auto s = ambient_set<int>([](const int& x) { return x >= 0; });
+
+  // Positive witness: identity is epic and provides its own section.
+  STATIC_CHECK(IsSplitEpicPair<Identity<int>, Identity<int>>);
+  STATIC_CHECK(HasAxiom10ChoiceSplitEpicWitness<decltype(s), Identity<int>,
+                                                Identity<int>>);
+
+  // Negative witness: plain arrows are not epic unless explicitly declared.
+  auto plus_one = arrow<int, int>([](const int& x) { return x + 1; });
+  STATIC_CHECK_FALSE(IsSplitEpicPair<decltype(plus_one), Identity<int>>);
+  STATIC_CHECK_FALSE(
+      HasAxiom10ChoiceSplitEpicWitness<decltype(s), decltype(plus_one),
+                                       Identity<int>>);
+}
+
+TEST_CASE("ETCS axiom 7: naturality witness can be attached explicitly",
+          "[category][etcs][axioms][naturality]") {
+  using IntCat = DiscreteCategory<int>;
+  using IdF = identity_functor<IntCat>;
+
+  struct IdentityComponent {
+    auto operator()(int) const { return id<int>(); }
+  };
+
+  const auto s = ambient_set<int>([](const int& x) { return x >= 0; });
+
+  STATIC_CHECK(
+      HasAxiom7ClassifierNaturalityWitness<decltype(s), IdentityComponent, IdF,
+                                           IdF>);
 }

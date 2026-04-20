@@ -114,3 +114,31 @@ TEST_CASE("Cartesian: Product Mediation", "[category][cartesian][labeled]") {
     CHECK(result_zero.second == false);
   }
 }
+
+TEST_CASE("Cartesian: Product Projection Semantics",
+          "[category][cartesian][projection]") {
+  SECTION("Canonical product projections are type-checked") {
+    using P = std::pair<int, bool>;
+    auto pi1 = [](const P& p) { return p.first; };
+    auto pi2 = [](const P& p) { return p.second; };
+    STATIC_CHECK(IsProductProjection<decltype(pi1), P, int>);
+    STATIC_CHECK(IsProductProjection<decltype(pi2), P, bool>);
+    STATIC_CHECK(IsProjectedProduct<P, int, bool>);
+  }
+
+  SECTION("Opt-in operator-> projection exposes functional parts") {
+    struct ProductEnvelope {
+      std::pair<int, bool> value{7, true};
+      constexpr const std::pair<int, bool>* operator->() const {
+        return &value;
+      }
+    };
+
+    STATIC_CHECK(IsProjectedProduct<
+                 ProductEnvelope, int, bool,
+                 decltype([](const ProductEnvelope& envelope) constexpr
+                              -> const std::pair<int, bool>& {
+                   return arrow_drill_down(envelope);
+                 })>);
+  }
+}

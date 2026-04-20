@@ -38,8 +38,8 @@ TEST_CASE("IntegerInterval: the serendipitous bridge",
     // IntegerInterval exposes supremum()/infimum() as its stored bounds,
     // satisfying HasExtrema — the order-theoretic prerequisite for
     // IsDedekindComplete (IsTotallyOrdered && IsDense && HasExtrema).
-    static_assert(dedekind::sets::HasExtrema<II>);
-    static_assert(dedekind::sets::HasExtrema<CI>);
+    static_assert(dedekind::category::HasExtrema<II>);
+    static_assert(dedekind::category::HasExtrema<CI>);
   }
 
   SECTION("Predicate view: set membership χ: ℤ → bool") {

@@ -68,3 +68,31 @@ TEST_CASE("Mereology: Ontological Concept Verification",
   STATIC_REQUIRE(IsPartOf<WeakPart, WeakPart>);
   STATIC_REQUIRE(WeakPart{} >= WeakPart{});
 }
+
+TEST_CASE("Mereology: IsMereologicalCutCandidate structural contract",
+          "[ontology][mereology][cut]") {
+  // Minimal positive witness: a shell that filters an int manifold to a
+  // mereological part (order-style encoding).
+  struct WitnessFilteredSpace {
+    constexpr bool operator<=(const int&) const { return true; }
+  };
+  struct CutShell {
+    using FilteredSpace = WitnessFilteredSpace;
+    constexpr WitnessFilteredSpace filter(const int&) const { return {}; }
+  };
+  STATIC_REQUIRE(IsMereologicalCutCandidate<CutShell, int>);
+
+  // Negative witness: missing FilteredSpace alias — must NOT satisfy concept.
+  struct NoAlias {
+    constexpr int filter(const int& m) const { return m; }
+  };
+  STATIC_REQUIRE_FALSE(IsMereologicalCutCandidate<NoAlias, int>);
+
+  // Negative witness: FilteredSpace not a mereological part — must NOT satisfy.
+  struct BadFilteredSpace {};  // no operator<= or call/index for int
+  struct BadShell {
+    using FilteredSpace = BadFilteredSpace;
+    constexpr BadFilteredSpace filter(const int&) const { return {}; }
+  };
+  STATIC_REQUIRE_FALSE(IsMereologicalCutCandidate<BadShell, int>);
+}

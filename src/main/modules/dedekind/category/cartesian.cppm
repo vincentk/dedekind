@@ -31,6 +31,7 @@ module;
 #include <concepts>
 #include <functional>
 #include <memory>
+#include <type_traits>
 #include <utility>
 #include <variant>
 
@@ -38,6 +39,7 @@ export module dedekind.category:cartesian;
 
 import :logic;
 import :limit;
+import :mereology;
 
 namespace dedekind::category {
 
@@ -73,6 +75,53 @@ concept IsProduct = requires(P p) {
 static_assert(
     IsProduct<std::pair<int, bool>, int, bool>,
     "Verification Failed: std::pair<int, bool> must satisfy IsProduct.");
+
+/**
+ * @concept IsProductProjection
+ * @brief Functional-part projection witness from a product whole to one part.
+ *
+ * @details
+ * A projection is a morphism-like accessor from a whole `P` to one component
+ * type (`A` for left, `B` for right). In categorical terms these correspond to
+ * canonical product projections π₁ and π₂.
+ */
+export template <typename Projection, typename Whole, typename Part>
+concept IsProductProjection = requires(Projection projection, Whole whole) {
+  { projection(whole) } -> std::convertible_to<Part>;
+};
+
+/**
+ * @concept IsProjectedProduct
+ * @brief Product witness through an optional whole-projection policy.
+ *
+ * @details
+ * By default (`WholeProject = std::identity`), this reduces to a direct
+ * `IsProduct<P, A, B>` check. With an opt-in projector (for example an
+ * `operator->` drill-down policy), this concept certifies that a wrapper type
+ * exposes a product whole whose canonical parts are still discoverable.
+ */
+export template <typename P, typename A, typename B,
+                 typename WholeProject = std::identity>
+concept IsProjectedProduct =
+    requires(WholeProject project, const P& p) {
+      { project(p) };
+    } &&
+    IsProduct<std::remove_cvref_t<decltype(std::declval<WholeProject>()(
+                  std::declval<const P&>()))>,
+              A, B>;
+
+static_assert(IsProductProjection<decltype([](const std::pair<int, bool>& p) {
+                                    return p.first;
+                                  }),
+                                  std::pair<int, bool>, int>,
+              "π1 must project Product -> LeftPart.");
+static_assert(IsProductProjection<decltype([](const std::pair<int, bool>& p) {
+                                    return p.second;
+                                  }),
+                                  std::pair<int, bool>, bool>,
+              "π2 must project Product -> RightPart.");
+static_assert(IsProjectedProduct<std::pair<int, bool>, int, bool>,
+              "Identity projection must certify direct products.");
 
 /**
  * @brief Mediating morphism for Products: ⟨f, g⟩: X -> (A × B)
