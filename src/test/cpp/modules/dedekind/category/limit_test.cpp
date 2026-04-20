@@ -2,6 +2,7 @@
 #include <catch2/catch_test_macros.hpp>
 #include <concepts>
 #include <exception>
+#include <functional>
 #include <variant>
 
 import dedekind.category;
@@ -48,5 +49,40 @@ TEST_CASE("Discrete: Initial Object (0) - The Annihilator",
     });
 
     STATIC_CHECK(IsArrow<decltype(unreachable)>);
+  }
+}
+
+TEST_CASE("Discrete: Projected Boundary Semantics",
+          "[category][discrete][boundary][projection]") {
+  SECTION("Projected terminal object witnesses") {
+    STATIC_CHECK(IsBoundaryProjection<std::identity, One, One>);
+    STATIC_CHECK(IsProjectedTerminalObject<One>);
+
+    struct TerminalEnvelope {
+      One value{};
+      constexpr const One* operator->() const { return &value; }
+    };
+    struct Drill {
+      constexpr const One& operator()(const TerminalEnvelope& whole) const {
+        return *whole.operator->();
+      }
+    };
+    STATIC_CHECK(IsProjectedTerminalObject<TerminalEnvelope, Drill>);
+  }
+
+  SECTION("Projected initial object witnesses") {
+    STATIC_CHECK(IsBoundaryProjection<std::identity, Zero, Zero>);
+    STATIC_CHECK(IsProjectedInitialObject<Zero>);
+
+    struct InitialEnvelope {
+      Zero value{nullptr};
+      constexpr const Zero* operator->() const { return &value; }
+    };
+    struct Drill {
+      constexpr Zero operator()(const InitialEnvelope& whole) const {
+        return *whole.operator->();
+      }
+    };
+    STATIC_CHECK(IsProjectedInitialObject<InitialEnvelope, Drill>);
   }
 }

@@ -36,6 +36,9 @@ module;
 #include <concepts>
 #include <cstddef>
 #include <exception>
+#include <functional>
+#include <type_traits>
+#include <utility>
 #include <variant>  // Required for std::monostate
 
 export module dedekind.category:limit;
@@ -45,6 +48,17 @@ import :morphism;
 import :species;
 
 namespace dedekind::category {
+
+namespace detail {
+template <typename Whole>
+struct ArrowDrillDown {
+  constexpr decltype(auto) operator()(const Whole& whole) const
+    requires requires { whole.operator->(); }
+  {
+    return *whole.operator->();
+  }
+};
+}  // namespace detail
 
 /**
  * @brief The Terminal Object (1): the unique sink of every morphism.
@@ -119,6 +133,38 @@ export template <typename T>
 concept IsTerminalObject = std::same_as<T, One>;
 
 /**
+ * @concept IsBoundaryProjection
+ * @brief Projection witness from an owning/wrapper whole to a boundary object.
+ *
+ * @details
+ * This concept captures the functional-part interpretation for limit objects:
+ * a wrapper may expose a boundary object (`One` or `Zero`) through a
+ * projection policy. It is intentionally structural and policy-driven.
+ */
+export template <typename Projection, typename Whole, typename Boundary>
+concept IsBoundaryProjection = requires(Projection projection, Whole whole) {
+  { projection(whole) } -> std::convertible_to<Boundary>;
+};
+
+/**
+ * @concept IsProjectedTerminalObject
+ * @brief Terminal-object witness through an optional projection policy.
+ *
+ * @details
+ * With the default projector (`std::identity`), this reduces to
+ * `IsTerminalObject<T>`. With an opt-in projector (for example an
+ * `operator->` drill-down policy), wrappers can expose a terminal object while
+ * keeping ownership/lifetime semantics explicit.
+ */
+export template <typename T, typename Project = std::identity>
+concept IsProjectedTerminalObject =
+    requires(Project project, const T& t) {
+      { project(t) };
+    } &&
+    IsTerminalObject<std::remove_cvref_t<decltype(std::declval<Project>()(
+        std::declval<const T&>()))>>;
+
+/**
  * @brief The zero morphism factory: produces the unique (unreachable) arrow
  *        ?: Zero → T.
  * @details From the Initial Object `Zero` (`std::nullptr_t`) there is exactly
@@ -167,8 +213,51 @@ concept HasUniqueMorphismFrom = std::same_as<Z, Zero> && requires {
 export template <typename T>
 concept IsInitialObject = std::same_as<T, Zero>;
 
+/**
+ * @concept IsProjectedInitialObject
+ * @brief Initial-object witness through an optional projection policy.
+ *
+ * @details
+ * With the default projector (`std::identity`), this reduces to
+ * `IsInitialObject<T>`. With an opt-in projector, wrappers can expose the
+ * canonical initial object (`Zero`) without changing default semantics.
+ */
+export template <typename T, typename Project = std::identity>
+concept IsProjectedInitialObject =
+    requires(Project project, const T& t) {
+      { project(t) };
+    } &&
+    IsInitialObject<std::remove_cvref_t<decltype(std::declval<Project>()(
+        std::declval<const T&>()))>>;
+
 /** @section Realizations */
 export using TerminalCategory = DiscreteCategory<One>;
 export using InitialCategory = DiscreteCategory<Zero>;
+
+namespace detail {
+struct TerminalEnvelope {
+  One value{};
+  constexpr const One* operator->() const { return &value; }
+};
+
+struct InitialEnvelope {
+  Zero value{nullptr};
+  constexpr const Zero* operator->() const { return &value; }
+};
+}  // namespace detail
+
+// Compiler-validated documentation witnesses for projected boundary semantics.
+static_assert(IsBoundaryProjection<std::identity, One, One>);
+static_assert(IsBoundaryProjection<std::identity, Zero, Zero>);
+static_assert(IsProjectedTerminalObject<One>);
+static_assert(IsProjectedInitialObject<Zero>);
+static_assert(
+    IsProjectedTerminalObject<detail::TerminalEnvelope,
+                              detail::ArrowDrillDown<detail::TerminalEnvelope>>,
+    "Opt-in operator-> drill-down must expose a Terminal object witness.");
+static_assert(
+    IsProjectedInitialObject<detail::InitialEnvelope,
+                             detail::ArrowDrillDown<detail::InitialEnvelope>>,
+    "Opt-in operator-> drill-down must expose an Initial object witness.");
 
 }  // namespace dedekind::category
