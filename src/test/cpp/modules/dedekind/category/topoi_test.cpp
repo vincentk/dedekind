@@ -6,6 +6,60 @@ import dedekind.category;
 
 using namespace dedekind::category;
 
+namespace {
+
+struct DemoArrow {
+  using Domain = int;
+  using Codomain = int;
+  constexpr int operator()(const int& x) const { return x; }
+};
+
+struct DemoSieve {
+  using Object = int;
+  using Arrow = DemoArrow;
+
+  constexpr Object target() const { return 0; }
+  constexpr bool contains(Arrow) const { return true; }
+  constexpr DemoSieve pullback_along(Arrow) const { return {}; }
+};
+
+struct BadSieveMissingPullback {
+  using Object = int;
+  using Arrow = DemoArrow;
+
+  constexpr Object target() const { return 0; }
+  constexpr bool contains(Arrow) const { return true; }
+};
+
+struct DemoTopology {
+  static constexpr bool is_cover(const DemoSieve&) { return true; }
+  static constexpr bool identity_cover(int) { return true; }
+  static constexpr bool pullback_stable(const DemoSieve&, DemoArrow) {
+    return true;
+  }
+  static constexpr bool transitive(const DemoSieve&) { return true; }
+};
+
+struct BadTopologyMissingTransitivity {
+  static constexpr bool is_cover(const DemoSieve&) { return true; }
+  static constexpr bool identity_cover(int) { return true; }
+  static constexpr bool pullback_stable(const DemoSieve&, DemoArrow) {
+    return true;
+  }
+};
+
+}  // namespace
+
+TEST_CASE("Topos: Sieve and Grothendieck topology contracts",
+          "[category][topoi][sieve][grothendieck]") {
+  STATIC_CHECK(IsSieve<DemoSieve>);
+  STATIC_CHECK_FALSE(IsSieve<BadSieveMissingPullback>);
+
+  STATIC_CHECK(IsGrothendieckTopology<DemoTopology, DemoSieve>);
+  STATIC_CHECK_FALSE(
+      IsGrothendieckTopology<BadTopologyMissingTransitivity, DemoSieve>);
+}
+
 TEST_CASE("Topos: Point-Free Logic Composition", "[category][topoi]") {
   // 1. Materialise Subobjects (Bodies)
   auto s_even = classify<int>([](int x) { return x % 2 == 0; });

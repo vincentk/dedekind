@@ -104,6 +104,49 @@ export template <typename P>
 concept IsCharacteristic = IsPredicate<P>;
 
 /**
+ * @concept IsSieve
+ * @brief Signature-level witness for a sieve of arrows into an object.
+ *
+ * @details
+ * A sieve over an object X is represented as a collection of incoming arrows
+ * together with closure under precomposition (modeled here by
+ * `pullback_along`). This concept is intentionally lightweight: it verifies
+ * shape/signature only, while semantic laws are exercised in tests and can be
+ * strengthened by later issue work.
+ */
+export template <typename S>
+concept IsSieve = requires(S s, typename S::Arrow f) {
+  typename S::Object;
+  typename S::Arrow;
+  { s.target() } -> std::same_as<typename S::Object>;
+  { s.contains(f) } -> std::convertible_to<bool>;
+  { s.pullback_along(f) } -> std::same_as<S>;
+};
+
+/**
+ * @concept IsGrothendieckTopology
+ * @brief Signature-level witness for Grothendieck coverage rules over sieves.
+ *
+ * @details
+ * This concept encodes the three textbook shape obligations used by this
+ * project's ETCS narrative:
+ * 1. Identity cover witness,
+ * 2. Pullback-stability witness,
+ * 3. Transitivity witness.
+ *
+ * It is a proof-surface contract: implementations may use stronger internal
+ * laws, but these witnesses keep API-level claims reviewable and testable.
+ */
+export template <typename J, typename S>
+concept IsGrothendieckTopology =
+    IsSieve<S> && requires(S s, typename S::Arrow f) {
+      { J::is_cover(s) } -> std::convertible_to<bool>;
+      { J::identity_cover(s.target()) } -> std::convertible_to<bool>;
+      { J::pullback_stable(s, f) } -> std::convertible_to<bool>;
+      { J::transitive(s) } -> std::convertible_to<bool>;
+    };
+
+/**
  * @concept IsSubobject
  * @brief The categorical witness of a monomorphism ι: S ↣ A.
  *
