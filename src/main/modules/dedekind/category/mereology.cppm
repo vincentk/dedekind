@@ -306,4 +306,22 @@ struct Parthood {
   }
 };
 
+// Compiler-validated documentation witnesses for the mereological ladder.
+static_assert(
+    IsPartRelation<int>,
+    "Parthood axioms must hold for the canonical integer order witness.");
+static_assert(IsPartialOrder<int>,
+              "Partial-order stage must refine the parthood axioms.");
+static_assert(IsTotalOrder<int>,
+              "Total-order stage must refine partial-order parthood.");
+
+static_assert(IsMereologicalMeetMagma<int, decltype(std::ranges::min)>);
+static_assert(IsMereologicalJoinMagma<int, decltype(std::ranges::max)>);
+static_assert(IsMereologicalMeetSemigroup<int, decltype(std::ranges::min)>);
+static_assert(IsMereologicalJoinSemigroup<int, decltype(std::ranges::max)>);
+static_assert(IsMereologicalMeetBand<int, decltype(std::ranges::min)>);
+static_assert(IsMereologicalJoinBand<int, decltype(std::ranges::max)>);
+static_assert(IsMereologicalSkewLatticeOperations<
+              int, decltype(std::ranges::max), decltype(std::ranges::min)>);
+
 }  // namespace dedekind::category

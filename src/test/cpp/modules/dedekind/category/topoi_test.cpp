@@ -14,6 +14,12 @@ struct DemoArrow {
   constexpr int operator()(const int& x) const { return x; }
 };
 
+struct BadArrowToBool {
+  using Domain = int;
+  using Codomain = bool;
+  constexpr bool operator()(const int& x) const { return x % 2 == 0; }
+};
+
 struct DemoSieve {
   using Object = int;
   using Arrow = DemoArrow;
@@ -29,6 +35,17 @@ struct BadSieveMissingPullback {
 
   constexpr Object target() const { return 0; }
   constexpr bool contains(Arrow) const { return true; }
+};
+
+struct BadSieveArrowCodomainMismatch {
+  using Object = int;
+  using Arrow = BadArrowToBool;
+
+  constexpr Object target() const { return 0; }
+  constexpr bool contains(Arrow) const { return true; }
+  constexpr BadSieveArrowCodomainMismatch pullback_along(Arrow) const {
+    return {};
+  }
 };
 
 struct DemoTopology {
@@ -60,6 +77,7 @@ struct FiberBundleWitness {
   using Fiber = int;
   using Projection = ProjectionArrow;
 
+  constexpr Projection projection() const { return {}; }
   constexpr bool trivializes_locally() const { return true; }
 };
 
@@ -69,6 +87,7 @@ struct BadFiberBundleMissingProjection {
   using Fiber = int;
   using Projection = DemoArrow;
 
+  constexpr Projection projection() const { return {}; }
   constexpr bool trivializes_locally() const { return true; }
 };
 
@@ -77,6 +96,8 @@ struct BadFiberBundleMissingTrivialization {
   using BaseSpace = int;
   using Fiber = int;
   using Projection = ProjectionArrow;
+
+  constexpr Projection projection() const { return {}; }
 };
 
 }  // namespace
@@ -85,6 +106,7 @@ TEST_CASE("Topos: Sieve and Grothendieck topology contracts",
           "[category][topoi][sieve][grothendieck]") {
   STATIC_CHECK(IsSieve<DemoSieve>);
   STATIC_CHECK_FALSE(IsSieve<BadSieveMissingPullback>);
+  STATIC_CHECK_FALSE(IsSieve<BadSieveArrowCodomainMismatch>);
 
   STATIC_CHECK(IsGrothendieckTopology<DemoTopology, DemoSieve>);
   STATIC_CHECK_FALSE(
@@ -93,8 +115,7 @@ TEST_CASE("Topos: Sieve and Grothendieck topology contracts",
 
 TEST_CASE("Topos: fiber bundle structural contracts",
           "[category][topoi][fiber-bundle]") {
-  STATIC_CHECK(
-      IsBundleProjection<ProjectionArrow, std::pair<int, int>, int>);
+  STATIC_CHECK(IsBundleProjection<ProjectionArrow, std::pair<int, int>, int>);
   STATIC_CHECK_FALSE(IsBundleProjection<DemoArrow, std::pair<int, int>, int>);
 
   STATIC_CHECK(IsFiberBundle<FiberBundleWitness>);

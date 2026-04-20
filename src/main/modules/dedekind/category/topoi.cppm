@@ -118,6 +118,8 @@ export template <typename S>
 concept IsSieve = requires(S s, typename S::Arrow f) {
   typename S::Object;
   typename S::Arrow;
+  requires IsArrow<typename S::Arrow>;
+  requires std::same_as<Cod<typename S::Arrow>, typename S::Object>;
   { s.target() } -> std::same_as<typename S::Object>;
   { s.contains(f) } -> std::convertible_to<bool>;
   { s.pullback_along(f) } -> std::same_as<S>;
@@ -142,6 +144,7 @@ concept IsGrothendieckTopology =
     IsSieve<S> && requires(S s, typename S::Arrow f) {
       { J::is_cover(s) } -> std::convertible_to<bool>;
       { J::identity_cover(s.target()) } -> std::convertible_to<bool>;
+      { J::is_cover(s.pullback_along(f)) } -> std::convertible_to<bool>;
       { J::pullback_stable(s, f) } -> std::convertible_to<bool>;
       { J::transitive(s) } -> std::convertible_to<bool>;
     };
@@ -185,8 +188,90 @@ concept IsFiberBundle = requires(Bundle bundle) {
                               typename Bundle::TotalSpace,
                               typename Bundle::BaseSpace>;
 
+  { bundle.projection() } -> std::same_as<typename Bundle::Projection>;
+  requires IsBundleProjection<decltype(bundle.projection()),
+                              typename Bundle::TotalSpace,
+                              typename Bundle::BaseSpace>;
+
   { bundle.trivializes_locally() } -> std::convertible_to<bool>;
 };
+
+namespace detail {
+
+// Compiler-validated documentation witnesses for the infrastructure concepts.
+struct topo_demo_arrow {
+  using Domain = int;
+  using Codomain = int;
+  constexpr int operator()(const int& x) const { return x; }
+};
+
+struct topo_demo_bool_arrow {
+  using Domain = int;
+  using Codomain = bool;
+  constexpr bool operator()(const int& x) const { return x % 2 == 0; }
+};
+
+struct topo_demo_sieve {
+  using Object = int;
+  using Arrow = topo_demo_arrow;
+
+  constexpr Object target() const { return 0; }
+  constexpr bool contains(Arrow) const { return true; }
+  constexpr topo_demo_sieve pullback_along(Arrow) const { return {}; }
+};
+
+struct topo_bad_sieve_codomain_mismatch {
+  using Object = int;
+  using Arrow = topo_demo_bool_arrow;
+
+  constexpr Object target() const { return 0; }
+  constexpr bool contains(Arrow) const { return true; }
+  constexpr topo_bad_sieve_codomain_mismatch pullback_along(Arrow) const {
+    return {};
+  }
+};
+
+struct topo_demo_topology {
+  static constexpr bool is_cover(const topo_demo_sieve&) { return true; }
+  static constexpr bool identity_cover(int) { return true; }
+  static constexpr bool pullback_stable(const topo_demo_sieve&,
+                                        topo_demo_arrow) {
+    return true;
+  }
+  static constexpr bool transitive(const topo_demo_sieve&) { return true; }
+};
+
+struct topo_projection_arrow {
+  using Domain = std::pair<int, int>;
+  using Codomain = int;
+  constexpr int operator()(const Domain& e) const { return e.first; }
+};
+
+struct topo_bundle_witness {
+  using TotalSpace = std::pair<int, int>;
+  using BaseSpace = int;
+  using Fiber = int;
+  using Projection = topo_projection_arrow;
+
+  constexpr Projection projection() const { return {}; }
+  constexpr bool trivializes_locally() const { return true; }
+};
+
+}  // namespace detail
+
+static_assert(IsSieve<detail::topo_demo_sieve>,
+              "Sieve witness must satisfy the infrastructure contract.");
+static_assert(!IsSieve<detail::topo_bad_sieve_codomain_mismatch>,
+              "Sieve codomain must match target object.");
+static_assert(
+    IsGrothendieckTopology<detail::topo_demo_topology, detail::topo_demo_sieve>,
+    "Topology witness must satisfy coverage contract over a sieve.");
+static_assert(
+    IsBundleProjection<detail::topo_projection_arrow, std::pair<int, int>, int>,
+    "Bundle projection witness must type-check as E -> B.");
+static_assert(
+    IsFiberBundle<detail::topo_bundle_witness>,
+    "Fiber bundle witness must expose projection and local trivialization.");
 
 /**
  * @concept IsSubobject
