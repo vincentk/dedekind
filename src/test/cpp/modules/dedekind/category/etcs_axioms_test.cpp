@@ -92,7 +92,7 @@ TEST_CASE("ETCS: IsSet exposes the grouped axiom witnesses",
   STATIC_CHECK(HasAxiom7SubobjectClassifier<decltype(s)>);
   STATIC_CHECK(HasAxiom8EmptySet<int>);
   STATIC_CHECK(HasAxiom9NNO<int>);
-  STATIC_CHECK(HasAxiom10ChoiceDispatcher<decltype(s)>);
+  STATIC_CHECK(HasAxiom10PowerObjectLattice<decltype(s)>);
 
   STATIC_CHECK(IsSet<decltype(s)>);
 }

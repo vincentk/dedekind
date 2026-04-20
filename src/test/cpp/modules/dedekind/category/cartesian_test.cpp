@@ -134,8 +134,11 @@ TEST_CASE("Cartesian: Product Projection Semantics",
       }
     };
 
-    STATIC_CHECK(
-        IsProjectedProduct<ProductEnvelope, int, bool,
-                           decltype(&arrow_drill_down<ProductEnvelope>)>);
+    STATIC_CHECK(IsProjectedProduct<
+                 ProductEnvelope, int, bool,
+                 decltype([](const ProductEnvelope& envelope) constexpr
+                              -> const std::pair<int, bool>& {
+                   return arrow_drill_down(envelope);
+                 })>);
   }
 }

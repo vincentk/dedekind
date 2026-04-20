@@ -339,27 +339,27 @@ export template <typename S, typename Join = std::bit_or<S>,
 concept IsSkewLattice = IsMereologicalSkewLatticeOperations<S, Join, Meet>;
 
 /**
- * @concept IsMeetSemilattice
+ * @concept IsSetMeetSemilattice
  * @brief Commutative meet-semilattice with set-theoretic default operator.
  *
  * @tparam S    The set-like carrier type.
  * @tparam Meet The meet operator (default: `std::bit_and<S>`).
  */
 export template <typename S, typename Meet = std::bit_and<S>>
-concept IsMeetSemilattice = IsMereologicalMeetSemilattice<S, Meet>;
+concept IsSetMeetSemilattice = IsMereologicalMeetSemilattice<S, Meet>;
 
 /**
- * @concept IsJoinSemilattice
+ * @concept IsSetJoinSemilattice
  * @brief Commutative join-semilattice with set-theoretic default operator.
  *
  * @tparam S    The set-like carrier type.
  * @tparam Join The join operator (default: `std::bit_or<S>`).
  */
 export template <typename S, typename Join = std::bit_or<S>>
-concept IsJoinSemilattice = IsMereologicalJoinSemilattice<S, Join>;
+concept IsSetJoinSemilattice = IsMereologicalJoinSemilattice<S, Join>;
 
 /**
- * @concept IsLattice
+ * @concept IsSetLattice
  * @brief Paired commutative join/meet semilattice with set-theoretic defaults.
  *
  * @details
@@ -373,7 +373,7 @@ concept IsJoinSemilattice = IsMereologicalJoinSemilattice<S, Join>;
  */
 export template <typename S, typename Join = std::bit_or<S>,
                  typename Meet = std::bit_and<S>>
-concept IsLattice = IsMereologicalLatticeOperations<S, Join, Meet>;
+concept IsSetLattice = IsMereologicalLatticeOperations<S, Join, Meet>;
 
 /**
  * @concept HasExtrema
@@ -478,9 +478,12 @@ static_assert(
     "Parthood axioms must hold for the canonical integer order witness.");
 static_assert(Parthood<int>,
               "Parthood concept must hold for the canonical integer witness.");
-static_assert(arrow_drill_down(&std::declval<const int&>()) ==
-                  std::declval<const int&>(),
-              "Pointer drill-down overload must preserve referential value.");
+static_assert(
+    requires(const int* p) {
+      { arrow_drill_down(p) } -> std::same_as<const int&>;
+    },
+    "Pointer drill-down overload must return a const reference to the "
+    "pointed-to value.");
 static_assert(IsPartialOrder<int>,
               "Partial-order stage must refine the parthood axioms.");
 static_assert(IsTotalOrder<int>,

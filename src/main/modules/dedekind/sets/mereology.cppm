@@ -111,9 +111,10 @@ export template <typename Part, typename Whole, typename L = ClassicalLogic>
 concept IsProperPart = IsPartOf<Part, Whole, L>;
 
 // The six lattice-name aliases (IsSkewMeetSemilattice, IsSkewJoinSemilattice,
-// IsSkewLattice, IsMeetSemilattice, IsJoinSemilattice, IsLattice) are defined
-// in dedekind.category:mereology with set-theoretic (std::bit_and/bit_or)
-// default operators. They are available here via `using namespace
+// IsSkewLattice, IsSetMeetSemilattice, IsSetJoinSemilattice, IsSetLattice)
+// are defined in dedekind.category:mereology with set-theoretic
+// (std::bit_and/bit_or) default operators. They are available here via
+// `using namespace
 // dedekind::category` and do not need to be re-declared.
 
 /**
@@ -125,10 +126,11 @@ concept IsProperPart = IsPartOf<Part, Whole, L>;
  * Wikipedia: Bounded lattice
  */
 export template <typename S>
-concept IsBoundedLattice = dedekind::category::IsLattice<S> && requires(S s) {
-  { s.lower_bound() } -> std::same_as<typename S::Domain>;  // The Bottom
-  { s.upper_bound() } -> std::same_as<typename S::Domain>;  // The Top
-};
+concept IsBoundedLattice =
+    dedekind::category::IsSetLattice<S> && requires(S s) {
+      { s.lower_bound() } -> std::same_as<typename S::Domain>;  // The Bottom
+      { s.upper_bound() } -> std::same_as<typename S::Domain>;  // The Top
+    };
 
 /**
  * @concept IsMereologicalLattice
@@ -140,7 +142,7 @@ concept IsBoundedLattice = dedekind::category::IsLattice<S> && requires(S s) {
  * determine if two parts share a common 'Individual'.
  */
 export template <typename S, typename L = ClassicalLogic>
-concept IsMereologicalLattice = dedekind::category::IsLattice<S> &&
+concept IsMereologicalLattice = dedekind::category::IsSetLattice<S> &&
                                 IsPartOf<S, S, L> && requires(S a, S b) {
                                   // Closure witness: join/meet expressions must
                                   // be well-formed.
