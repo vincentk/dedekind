@@ -1421,6 +1421,18 @@ A10 (choice/well-pointed semantics posture) & Deferred & \#195, \#267 \\
 \end{tabular}
 \end{table}
 
+\paragraph{Categorical infrastructure layer (foundational presuppositions).}
+ETCS presupposes several categorical and topological structures that organize the proof surface and enable the set-theoretic interface. While implementation of these structures is deferred to future work (tracked under Issue \#195 and related epics), their conceptual role is central to understanding the closure contract's scope.
+
+\begin{description}
+  \item[\textbf{Grothendieck topologies}] A categorical formalization of ``coverage'' that abstracts the notion of a ``cover.'' Instead of asking whether a union of subsets equals the whole, Grothendieck topologies ask whether a collection of morphisms is ``dense'' in a categorical sense. This generalizes open covers in topology to arbitrary categories, enabling the ETCS axioms to reason about when a collection of subobjects is sufficient to determine properties of the whole. Concept anchor: \texttt{nn\_notes:IsGrothendieckTopology<J, Category>}.
+  \item[\textbf{Sieves and pullback-stability}] A sieve is a collection of arrows into an object, ordered by a ``contains'' relation. Sieves that are pullback-stable form the basis of a Grothendieck topology. In ETCS terms, the axiom bands A1--A3 (composition, identity, products) presuppose that covers are stable under pullback---that ``the perspective shift of a cover is still a cover.'' Concept anchor: \texttt{nn\_notes:IsSieve<S, Manifold>}.
+  \item[\textbf{Fiber bundles and transition maps}] A fiber bundle $\pi : E \to B$ over a base space $B$ organizes a family of fibers into a coherent whole via transition maps on overlaps. In ETCS, the existence of exponential objects (Axiom A6) is analogous to bundle sections: morphisms that ``lift'' from the base to the total space. The holomorphic fiber bundle concept ensures that logical structure is preserved as we change perspective. Concept anchor: \texttt{nn\_notes:IsHolomorphicBundle<Bundle, \mathbb{C}>}.
+  \item[\textbf{Colimits and dense covers}] A colimit is the categorical dual of a limit, capturing the notion of ``gluing together'' a family of objects. In ETCS, Axiom A4 (equalizer existence) and the closure contract's implicit requirement for ``sufficient'' test objects rely on colimit-like reasoning: if a collection of covering morphisms is rich enough, their colimit recovers the whole object. Concept anchor: \texttt{nn\_notes:IsSieve<S, M>} requires \texttt{IsColimit<M, S>}.
+\end{description}
+
+These structural layers are already anticipated in the \texttt{dedekind.category} module as concepts (see \texttt{category:topoi}, \texttt{category:limits}, \texttt{category:colimits}), but their full formalization is deferred. The closure contract treats these as **implicit presuppositions**: a claim about ETCS axioms is only meaningful once these categorical infrastructure contracts are available and validated. Future work on Issues \#195 and related epics will lift these presuppositions from implicit to explicit.
+
 The core innovation of this partition is the reification of the \textit{Set-Builder} notation. By representing a set $S = \{x \in X \mid P(x)\}$ as a \texttt{Stateless Constraint Type}, we transform the C++ translation unit into a symbolic laboratory. 
 
 \begin{lstlisting}[language=C++, caption={Reifying the Set-Builder via Stateless Constraints.}]

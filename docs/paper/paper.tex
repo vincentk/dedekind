@@ -525,6 +525,12 @@ A10 & Deferred & \#195, \#267 \\
 \end{tabular}
 \end{center}
 
+Underlying the closure contract is a categorical infrastructure layer that formalizes \emph{coverage}
+(Grothendieck topologies), \emph{dense sieves} (collections of arrows that are pullback-stable),
+and \emph{fiber bundles} (families of objects organized by transition maps). While full formalization
+of these structures is deferred to future work on Issue \#195, they are implicit presuppositions:
+the closure contract is meaningful only once these categorical contracts are available and validated.
+
 \begin{lstlisting}[language=C++, caption={A set as a compile-time predicate type.}, label={lst:settype}]
 // ambient_set<T>(P) creates the intensional set {x in T | P(x)}.
 // No values are stored; the predicate IS the set.
