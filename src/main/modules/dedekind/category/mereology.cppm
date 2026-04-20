@@ -437,26 +437,23 @@ concept IsMereologicalCutCandidate = requires(Shell s, Manifold m) {
 };
 
 /**
- * @brief Skeletal Part-Whole relation.
- * At this embryonic stage, we treat parthood as a formal arrow
- * in a category where objects are wholes and morphisms are inclusion mappings.
+ * @concept Parthood
+ * @brief Skeletal part-whole contract at the concept level.
+ *
+ * @details
+ * This concept is the concept-only replacement for the former `Parthood`
+ * witness struct. At this embryonic stage, we encode parthood directly as the
+ * self-carrier primitive relation contract (`T` as both part and whole).
  */
 export template <typename T>
-struct Parthood {
-  using species = T;
-
-  static constexpr bool check(const T& part, const T& whole) {
-    (void)part;
-    (void)whole;
-    return true;  // The "Trivial Universe" where everything is part of
-                  // everything
-  }
-};
+concept Parthood = IsPartOfRelation<T, T, bool>;
 
 // Compiler-validated documentation witnesses for the mereological ladder.
 static_assert(
     IsPartRelation<int>,
     "Parthood axioms must hold for the canonical integer order witness.");
+static_assert(Parthood<int>,
+              "Parthood concept must hold for the canonical integer witness.");
 static_assert(IsPartialOrder<int>,
               "Partial-order stage must refine the parthood axioms.");
 static_assert(IsTotalOrder<int>,
