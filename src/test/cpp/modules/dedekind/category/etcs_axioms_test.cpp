@@ -121,6 +121,20 @@ TEST_CASE("ETCS axiom 10: split-epi witness surface is explicit",
                                        Identity<int>>);
 }
 
+TEST_CASE("ETCS axiom 10: split-epi semantic law is checked explicitly",
+          "[category][etcs][axioms][choice][law]") {
+  const auto s = ambient_set<int>([](const int& x) { return x >= 0; });
+
+  STATIC_CHECK(HasAxiom10ChoiceSplitEpicLawSurface<decltype(s), Identity<int>,
+                                                   Identity<int>>);
+  CHECK(split_epi_section_law_at(Identity<int>{}, Identity<int>{}, 0));
+  CHECK(split_epi_section_law_at(Identity<int>{}, Identity<int>{}, 7));
+
+  auto bad_section = arrow<int, int>([](const int& x) { return x + 1; });
+  STATIC_CHECK(IsSplitEpicPair<Identity<int>, decltype(bad_section)>);
+  CHECK_FALSE(split_epi_section_law_at(Identity<int>{}, bad_section, 0));
+}
+
 TEST_CASE("ETCS axiom 7: naturality witness can be attached explicitly",
           "[category][etcs][axioms][naturality]") {
   using IntCat = DiscreteCategory<int>;
@@ -135,4 +149,20 @@ TEST_CASE("ETCS axiom 7: naturality witness can be attached explicitly",
   STATIC_CHECK(
       HasAxiom7ClassifierNaturalityWitness<decltype(s), IdentityComponent, IdF,
                                            IdF>);
+}
+
+TEST_CASE("ETCS axiom 7: pullback reindexing semantic law surface",
+          "[category][etcs][axioms][reindexing][law]") {
+  const auto s = ambient_set<int>([](const int& x) { return x % 2 == 0; });
+  auto embed = arrow<bool, int>([](const bool b) { return b ? 2 : 3; });
+
+  STATIC_CHECK(
+      HasAxiom7PullbackReindexingLawSurface<decltype(s), decltype(embed)>);
+  CHECK(classifier_reindexing_law_at(s, embed, true));
+  CHECK(classifier_reindexing_law_at(s, embed, false));
+
+  auto bad_embed =
+      arrow<int, double>([](const int x) { return static_cast<double>(x); });
+  STATIC_CHECK_FALSE(
+      HasAxiom7PullbackReindexingLawSurface<decltype(s), decltype(bad_embed)>);
 }
