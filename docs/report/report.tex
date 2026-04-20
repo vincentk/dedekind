@@ -1387,8 +1387,8 @@ This contract keeps terminology aligned between implementation, tests, and manus
 \textbf{Axiom band} & \textbf{Contract status} & \textbf{Primary tracker links} \\
 \midrule
 A1--A6 & Implemented (named surfaces + executable tests) & \#195 \\
-A7 (subobject classifier / pullback / naturality surface) & Partial (witness shape + law-surface checks; full naturality closure pending) & \#195, \#351 \\
-A10 (choice semantics) & Partial (split-epi witness shape + law-surface checks; full choice deferred) & \#195, \#352 \\
+A7 (subobject classifier / pullback / naturality surface) & Partial (witness shape + definitional reindexing checks; full naturality closure pending) & \#195, \#351 \\
+A10 (choice semantics) & Partial (split-epi witness shape + pointwise law helper checks; full choice deferred) & \#195, \#352 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -1421,8 +1421,8 @@ Deferred & Planned work only (no complete evidence bundle yet). & Do not imply c
 A1--A3 (composition/identity/products) & Implemented & \#195 \\
 A4--A5 (well-pointed/classifier-adjacent structure) & Implemented & \#195 \\
 A6 (exponential/cartesian-closed surface) & Implemented & \#195 \\
-A7 (classifier stability and naturality closure) & Partial (reindexing law surface added) & \#195, \#351 \\
-A10 (choice / split-epi semantics) & Partial (shape + law surface implemented) & \#195, \#352 \\
+A7 (classifier stability and naturality closure) & Partial (reindexing definitional witness surface added) & \#195, \#351 \\
+A10 (choice / split-epi semantics) & Partial (shape + pointwise law helper implemented) & \#195, \#352 \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -1569,7 +1569,7 @@ following auditable checklist:
   \texttt{HasAxiom7SubobjectClassifier} (classifier constants + pullback witness shape),
   with optional additive witnesses:
   \texttt{HasAxiom7ClassifierNaturalityWitness} (naturality) and
-  \texttt{HasAxiom7PullbackReindexingLawSurface} (reindexing law via \texttt{classifier\_reindexing\_law\_at}).
+  \texttt{HasAxiom7PullbackReindexingDefinitionalSurface} (definitional reindexing witness via \texttt{classifier\_reindexing\_definitional\_witness\_at}).
   Full law-level closure remains tracked in Issue \#351 (parent: \#195).
   \item \textbf{Axiom 10 (Choice semantics)}: split-epimorphism witness shape is
   implemented via \texttt{IsSplitEpicPair},
@@ -1625,7 +1625,7 @@ In a sense, \texttt{dedekind} hopes to be a *compiler* for mathematical concepts
 4 & Well-pointed membership & \texttt{HasAxiom4WellPointedness}, \texttt{in}/\texttt{in\_via} & predicate call $\chi(x)$ \\
 5 & Cartesian products ($A \times B$) & \texttt{HasAxiom5CartesianProduct}, \texttt{IsProduct} & \texttt{std::pair} \\
 6 & Exponentials ($B^A$) & \texttt{HasAxiom6Exponentiation}, \texttt{Exponential<A,B>} & callable wrappers (e.g. \texttt{std::function}) \\
-7 & Subobject classifier ($\chi: A \to \Omega$) & \texttt{HasAxiom7SubobjectClassifier}, optional \texttt{HasAxiom7ClassifierNaturalityWitness} and \texttt{HasAxiom7PullbackReindexingLawSurface} & classifier predicates (\texttt{bool}/\texttt{Ternary}), \texttt{classifier\_true/false}, \texttt{classifier\_reindexing\_law\_at} \\
+7 & Subobject classifier ($\chi: A \to \Omega$) & \texttt{HasAxiom7SubobjectClassifier}, optional \texttt{HasAxiom7ClassifierNaturalityWitness} and \texttt{HasAxiom7PullbackReindexingDefinitionalSurface} & classifier predicates (\texttt{bool}/\texttt{Ternary}), \texttt{classifier\_true/false}, \texttt{classifier\_reindexing\_definitional\_witness\_at} \\
 8 & Initial object ($0$) & \texttt{HasAxiom8EmptySet}, \texttt{Zero} & \texttt{std::nullptr\_t} \\
 9 & NNO ($\mathbb{N}$) & \texttt{HasAxiom9NNO} & \texttt{unsigned} species witness \\
 10 & Choice / split epis & \texttt{IsSplitEpicPair}, \texttt{HasAxiom10ChoiceSplitEpicWitness}, \texttt{HasAxiom10ChoiceSplitEpicLawSurface}, \texttt{HasAxiom10PowerObjectLattice} & explicit epi/section witnesses (identity as canonical), \texttt{split\_epi\_section\_law\_at} \\ \hline

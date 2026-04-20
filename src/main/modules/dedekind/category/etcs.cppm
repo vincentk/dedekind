@@ -261,27 +261,27 @@ concept HasAxiom10ChoiceSplitEpicLawSurface =
     std::equality_comparable<Cod<Epi>>;
 
 /**
- * @brief Law check for Axiom 7 reindexing through an embedding.
- * @details Encodes the classifier reindexing equation
+ * @brief Definitional witness check for Axiom 7 reindexing through embedding.
+ * @details Verifies the definitional equality
  * `χ_S(e(x)) = in_via(x, e, S)` at value `x`.
  */
 export template <typename S, IsArrow E>
   requires IsSubobject<S, typename S::Ambient> &&
            std::same_as<Cod<E>, typename S::Ambient> &&
            std::equality_comparable<Cod<decltype(std::declval<S>().χ)>>
-constexpr bool classifier_reindexing_law_at(const S& s, const E& embedding,
-                                            const Dom<E>& x) {
+constexpr bool classifier_reindexing_definitional_witness_at(
+    const S& s, const E& embedding, const Dom<E>& x) {
   return in_via(x, embedding, s) == s.χ(embedding(x));
 }
 
 /**
- * @concept HasAxiom7PullbackReindexingLawSurface
- * @brief Axiom 7 semantic-law surface (classifier + pullback reindexing).
- * @details Law truth itself is established by tests via
- * `classifier_reindexing_law_at` on concrete witnesses.
+ * @concept HasAxiom7PullbackReindexingDefinitionalSurface
+ * @brief Axiom 7 definitional reindexing witness surface.
+ * @details This surface encodes well-typed availability of the definitional
+ * reindexing identity and does not by itself prove full naturality closure.
  */
 export template <typename S, typename E>
-concept HasAxiom7PullbackReindexingLawSurface =
+concept HasAxiom7PullbackReindexingDefinitionalSurface =
     HasAxiom7SubobjectClassifier<S> && IsArrow<E> &&
     std::same_as<Cod<E>, typename S::Ambient> &&
     std::equality_comparable<Cod<decltype(std::declval<S>().χ)>>;
