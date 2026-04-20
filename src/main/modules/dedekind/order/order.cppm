@@ -187,6 +187,6 @@ concept IsDividableChain = IsTotallyOrdered<T> && requires(T a, T b) {
  */
 export template <typename S>
 concept IsDedekindComplete =
-  IsTotallyOrdered<S> && IsDense<S> && dedekind::category::HasExtrema<S>;
+    IsTotallyOrdered<S> && IsDense<S> && dedekind::category::HasExtrema<S>;
 
 }  // namespace dedekind::order
