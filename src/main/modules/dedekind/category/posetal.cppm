@@ -46,6 +46,7 @@ module;
 #include <algorithm>
 #include <concepts>
 #include <functional>
+#include <optional>
 #include <utility>
 
 export module dedekind.category:posetal;
@@ -304,16 +305,16 @@ constexpr typename L::Ω check_path(T a, T b, T c, Project project = {}) {
 static_assert(check_path<int, std::less_equal<int>>(1, 2, 3));
 static_assert(!check_path<int, std::less_equal<int>>(3, 2, 1));
 
-constexpr auto arrow_drill_down_first = [](const std::pair<int, int>* whole) {
-  return whole->first;
+constexpr auto arrow_drill_down_value = [](const std::optional<int>& whole) {
+  return *whole.operator->();
 };
-constexpr std::pair<int, int> p1{1, 0};
-constexpr std::pair<int, int> p2{2, 0};
-constexpr std::pair<int, int> p3{3, 0};
+constexpr std::optional<int> p1{1};
+constexpr std::optional<int> p2{2};
+constexpr std::optional<int> p3{3};
 
 static_assert(
-    check_path<const std::pair<int, int>*, std::less_equal<int>,
-               ClassicalLogic>(&p1, &p2, &p3, arrow_drill_down_first),
+    check_path<std::optional<int>, std::less_equal<int>, ClassicalLogic>(
+        p1, p2, p3, arrow_drill_down_value),
     "Opt-in operator-> drill-down must preserve posetal path semantics.");
 
 }  // namespace dedekind::category
