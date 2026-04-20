@@ -10,7 +10,6 @@ readme = "README.md"
 requires-python = ">=3.9"
 dependencies = [
   "pandas>=2.0",
-  "python-graphblas[default]>=2025.2.0",
 ]
 authors = [
   { name = "Dedekind Authors" },
@@ -41,6 +40,10 @@ DEDEKIND_BUILD_PYTHON_BINDINGS = "ON"
 DEDEKIND_ENABLE_DOUBLE_REAL_PROXY = "ON"
 
 [project.optional-dependencies]
+graphblas = [
+  "python-graphblas[default]>=2025.2.0",
+]
+
 test = [
   "pytest>=7.0",
   "pytest-cov>=4.0",
