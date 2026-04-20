@@ -63,7 +63,7 @@ build_ci/**
 /*.profraw
 
 # Python bytecode and cache artifacts
-**/__pycache__/
+**/__pycache__/**
 **/*.pyc
 **/*.pyo
 
