@@ -135,6 +135,38 @@ TEST_CASE("ETCS axiom 10: split-epi semantic law is checked explicitly",
   CHECK_FALSE(split_epi_section_law_at(Identity<int>{}, bad_section, 0));
 }
 
+TEST_CASE("ETCS axiom 10: law surface with custom epi and section",
+          "[category][etcs][axioms][choice][law][custom]") {
+  // Double identity should preserve the law
+  CHECK(split_epi_section_law_at(Identity<double>{}, Identity<double>{}, 1.5));
+  CHECK(split_epi_section_law_at(Identity<double>{}, Identity<double>{}, -3.2));
+
+  // Bool identity
+  CHECK(split_epi_section_law_at(Identity<bool>{}, Identity<bool>{}, true));
+  CHECK(split_epi_section_law_at(Identity<bool>{}, Identity<bool>{}, false));
+}
+
+TEST_CASE("ETCS axiom 10: law surface concept strictness",
+          "[category][etcs][axioms][choice][law][strictness]") {
+  const auto s = ambient_set<int>([](const int& x) { return x % 2 == 0; });
+
+  // HasAxiom10ChoiceSplitEpicLawSurface requires both the witness shape
+  // AND std::equality_comparable codomain
+  STATIC_CHECK(HasAxiom10ChoiceSplitEpicLawSurface<decltype(s), Identity<int>,
+                                                   Identity<int>>);
+
+  // This should still be true even though the section would violate the law
+  // (the concept only checks shape + equality, not law truth itself)
+  auto bad_section = arrow<int, int>([](const int x) { return x + 1; });
+  STATIC_CHECK(IsSplitEpicPair<Identity<int>, decltype(bad_section)>);
+  STATIC_CHECK(HasAxiom10ChoiceSplitEpicLawSurface<decltype(s), Identity<int>,
+                                                   decltype(bad_section)>);
+
+  // But the law itself fails:
+  CHECK_FALSE(split_epi_section_law_at(Identity<int>{}, bad_section, 0));
+  CHECK_FALSE(split_epi_section_law_at(Identity<int>{}, bad_section, 5));
+}
+
 TEST_CASE("ETCS axiom 7: naturality witness can be attached explicitly",
           "[category][etcs][axioms][naturality]") {
   using IntCat = DiscreteCategory<int>;
@@ -165,4 +197,38 @@ TEST_CASE("ETCS axiom 7: pullback reindexing semantic law surface",
       arrow<int, double>([](const int x) { return static_cast<double>(x); });
   STATIC_CHECK_FALSE(
       HasAxiom7PullbackReindexingLawSurface<decltype(s), decltype(bad_embed)>);
+}
+
+TEST_CASE("ETCS axiom 7: law surface with composite predicates",
+          "[category][etcs][axioms][reindexing][law][composite]") {
+  // Composite predicate: x > 0 AND x % 3 == 0
+  const auto s_composite =
+      ambient_set<int>([](const int& x) { return x > 0 && x % 3 == 0; });
+  auto scale = arrow<int, int>([](const int x) { return x * 2; });
+
+  STATIC_CHECK(HasAxiom7PullbackReindexingLawSurface<decltype(s_composite),
+                                                     decltype(scale)>);
+  CHECK(classifier_reindexing_law_at(s_composite, scale, 2));  // 4 is not div 3
+  CHECK(classifier_reindexing_law_at(s_composite, scale, 3));  // 6 is div 3
+  CHECK(classifier_reindexing_law_at(s_composite, scale, -1));  // negative
+}
+
+TEST_CASE("ETCS axiom 7: law surface across different source types",
+          "[category][etcs][axioms][reindexing][law][type-variation]") {
+  const auto s_bool = ambient_set<int>([](const int& x) { return x > 0; });
+
+  // Embed from double domain
+  auto from_double =
+      arrow<double, int>([](const double d) { return static_cast<int>(d); });
+  STATIC_CHECK(HasAxiom7PullbackReindexingLawSurface<decltype(s_bool),
+                                                     decltype(from_double)>);
+  CHECK(classifier_reindexing_law_at(s_bool, from_double, 1.5));
+  CHECK(classifier_reindexing_law_at(s_bool, from_double, -2.7));
+
+  // Embed from unsigned domain
+  auto from_unsigned = arrow<unsigned, int>(
+      [](const unsigned u) { return static_cast<int>(u); });
+  STATIC_CHECK(HasAxiom7PullbackReindexingLawSurface<decltype(s_bool),
+                                                     decltype(from_unsigned)>);
+  CHECK(classifier_reindexing_law_at(s_bool, from_unsigned, 5U));
 }
