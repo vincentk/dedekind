@@ -272,7 +272,8 @@ export template <typename S, IsArrow E>
 constexpr bool classifier_reindexing_definitional_witness_at(const S& s,
                                                              const E& embedding,
                                                              const Dom<E>& x) {
-  return in_via(x, embedding, s) == s.χ(embedding(x));
+  const auto embedded = embedding(x);
+  return in_via(x, embedding, s) == s.χ(embedded);
 }
 
 /**
