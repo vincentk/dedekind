@@ -233,21 +233,16 @@ concept IsCertifiedOrderDistributiveLatticeOperations =
 using DefaultJoin = decltype(std::ranges::max);
 using DefaultMeet = decltype(std::ranges::min);
 
-namespace detail {
-template <typename Whole>
-struct ArrowDrillDown {
-  constexpr decltype(auto) operator()(const Whole& whole) const
-    requires requires { whole.operator->(); }
-  {
-    return *whole.operator->();
-  }
+/**
+ * @concept IsPathProjection
+ * @brief Projection contract used by `check_path` to map objects into an
+ * orderable relation carrier.
+ */
+export template <typename Project, typename T, typename Rel, typename Ω>
+concept IsPathProjection = requires(Project project, T x, Rel rel) {
+  { project(x) };
+  { rel(project(x), project(x)) } -> std::same_as<Ω>;
 };
-
-struct ArrowOrderedInt {
-  int value{};
-  constexpr const int* operator->() const { return &value; }
-};
-}  // namespace detail
 
 // Shape-level witnesses.
 static_assert(IsOrderMeetSemilatticeSignature<int, DefaultMeet>);
@@ -298,10 +293,7 @@ static_assert(
  */
 export template <typename T, typename Rel = std::less_equal<T>,
                  typename L = ClassicalLogic, typename Project = std::identity>
-  requires requires(Project project, T x, Rel rel) {
-    { project(x) };
-    { rel(project(x), project(x)) } -> std::same_as<typename L::Ω>;
-  }
+  requires IsPathProjection<Project, T, Rel, typename L::Ω>
 constexpr typename L::Ω check_path(T a, T b, T c, Project project = {}) {
   const auto rel = Rel{};
   // A two-step path exists iff both edges are present.
@@ -311,9 +303,17 @@ constexpr typename L::Ω check_path(T a, T b, T c, Project project = {}) {
 
 static_assert(check_path<int, std::less_equal<int>>(1, 2, 3));
 static_assert(!check_path<int, std::less_equal<int>>(3, 2, 1));
+
+constexpr auto arrow_drill_down_first = [](const std::pair<int, int>* whole) {
+  return whole->first;
+};
+constexpr std::pair<int, int> p1{1, 0};
+constexpr std::pair<int, int> p2{2, 0};
+constexpr std::pair<int, int> p3{3, 0};
+
 static_assert(
-    check_path<detail::ArrowOrderedInt, std::less_equal<int>, ClassicalLogic,
-               detail::ArrowDrillDown<detail::ArrowOrderedInt>>({1}, {2}, {3}),
+    check_path<const std::pair<int, int>*, std::less_equal<int>,
+               ClassicalLogic>(&p1, &p2, &p3, arrow_drill_down_first),
     "Opt-in operator-> drill-down must preserve posetal path semantics.");
 
 }  // namespace dedekind::category
