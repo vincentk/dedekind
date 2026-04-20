@@ -46,6 +46,7 @@ module;
 #include <algorithm>
 #include <concepts>
 #include <functional>
+#include <utility>
 
 export module dedekind.category:posetal;
 
@@ -85,19 +86,34 @@ concept IsTotallyOrderedPosetal =
     IsPosetal<T, Rel, L> && IsTotalOrder<T, Rel, typename L::Ω>;
 
 /**
- * @concept IsOrderMeetSemilattice
- * @brief Signature-level meet-semilattice interface.
+ * @concept IsOrderMeetSemilatticeSignature
+ * @brief Signature-level meet operation witness.
  *
  * @details
- * This concept checks only the operation signature and closure shape.
- * Algebraic laws are documented and validated via dedicated tests.
+ * This concept is intentionally shape-only. It is paired with
+ * `IsOrderMeetSemilattice`, which enforces order-theoretic law refinement
+ * over upstream mereological structure.
  *
  * @see https://en.wikipedia.org/wiki/Semilattice
  */
 export template <typename T, typename Meet = decltype(std::ranges::min)>
-concept IsOrderMeetSemilattice = requires(Meet meet, T a, T b) {
+concept IsOrderMeetSemilatticeSignature = requires(Meet meet, T a, T b) {
   { meet(a, b) } -> std::convertible_to<T>;
 };
+
+/**
+ * @concept IsOrderMeetSemilattice
+ * @brief Order-theoretic meet-semilattice as a commutative refinement.
+ *
+ * @details
+ * In the module hierarchy, `:mereology` provides the upstream associative +
+ * idempotent meet band. `:posetal` refines that structure with commutativity,
+ * yielding the order-theoretic meet-semilattice notion.
+ */
+export template <typename T, typename Meet = decltype(std::ranges::min)>
+concept IsOrderMeetSemilattice =
+    IsOrderMeetSemilatticeSignature<T, Meet> &&
+    IsMereologicalMeetSemilattice<T, Meet> && IsCommutative<T, Meet>;
 
 /**
  * @concept IsCertifiedOrderMeetSemilattice
@@ -105,23 +121,37 @@ concept IsOrderMeetSemilattice = requires(Meet meet, T a, T b) {
  * commutative).
  */
 export template <typename T, typename Meet = decltype(std::ranges::min)>
-concept IsCertifiedOrderMeetSemilattice =
-    IsMereologicalMeetBand<T, Meet> && IsCommutative<T, Meet>;
+concept IsCertifiedOrderMeetSemilattice = IsOrderMeetSemilattice<T, Meet>;
 
 /**
- * @concept IsOrderJoinSemilattice
- * @brief Signature-level join-semilattice interface.
+ * @concept IsOrderJoinSemilatticeSignature
+ * @brief Signature-level join operation witness.
  *
  * @details
- * This concept checks only the operation signature and closure shape.
- * Algebraic laws are documented and validated via dedicated tests.
+ * This concept is intentionally shape-only. It is paired with
+ * `IsOrderJoinSemilattice`, which enforces order-theoretic law refinement
+ * over upstream mereological structure.
  *
  * @see https://en.wikipedia.org/wiki/Semilattice
  */
 export template <typename T, typename Join = decltype(std::ranges::max)>
-concept IsOrderJoinSemilattice = requires(Join join, T a, T b) {
+concept IsOrderJoinSemilatticeSignature = requires(Join join, T a, T b) {
   { join(a, b) } -> std::convertible_to<T>;
 };
+
+/**
+ * @concept IsOrderJoinSemilattice
+ * @brief Order-theoretic join-semilattice as a commutative refinement.
+ *
+ * @details
+ * In the module hierarchy, `:mereology` provides the upstream associative +
+ * idempotent join band. `:posetal` refines that structure with commutativity,
+ * yielding the order-theoretic join-semilattice notion.
+ */
+export template <typename T, typename Join = decltype(std::ranges::max)>
+concept IsOrderJoinSemilattice =
+    IsOrderJoinSemilatticeSignature<T, Join> &&
+    IsMereologicalJoinSemilattice<T, Join> && IsCommutative<T, Join>;
 
 /**
  * @concept IsCertifiedOrderJoinSemilattice
@@ -129,32 +159,44 @@ concept IsOrderJoinSemilattice = requires(Join join, T a, T b) {
  * commutative).
  */
 export template <typename T, typename Join = decltype(std::ranges::max)>
-concept IsCertifiedOrderJoinSemilattice =
-    IsMereologicalJoinBand<T, Join> && IsCommutative<T, Join>;
+concept IsCertifiedOrderJoinSemilattice = IsOrderJoinSemilattice<T, Join>;
 
 /**
- * @concept IsOrderLatticeOperations
- * @brief Signature-level lattice-operation interface.
+ * @concept IsOrderLatticeOperationsSignature
+ * @brief Signature-level join/meet composition witness.
  *
  * @details
- * This concept checks that join/meet signatures compose in the standard
- * lattice-shaped expressions. It does not certify the algebraic equalities.
- *
- * Use `IsCertifiedOrderLatticeOperations` for trait-certified laws.
+ * This concept validates only expression shape. `IsOrderLatticeOperations`
+ * adds the law-level refinement that situates the concept downstream of the
+ * upstream mereological lattice core.
  *
  * @see Davey & Priestley, Introduction to Lattices and Order
  * @see https://en.wikipedia.org/wiki/Lattice_(order)
  */
 export template <typename T, typename Join = decltype(std::ranges::max),
                  typename Meet = decltype(std::ranges::min)>
-concept IsOrderLatticeOperations =
-    IsOrderJoinSemilattice<T, Join> && IsOrderMeetSemilattice<T, Meet> &&
+concept IsOrderLatticeOperationsSignature =
+    IsOrderJoinSemilatticeSignature<T, Join> &&
+    IsOrderMeetSemilatticeSignature<T, Meet> &&
     requires(Join join, Meet meet, T a, T b, T c) {
       { join(a, meet(a, b)) } -> std::convertible_to<T>;
       { meet(a, join(a, b)) } -> std::convertible_to<T>;
       { join(a, meet(b, c)) } -> std::convertible_to<T>;
       { meet(a, join(b, c)) } -> std::convertible_to<T>;
     };
+
+/**
+ * @concept IsOrderLatticeOperations
+ * @brief Order-theoretic lattice operations as commutative + absorptive
+ * refinement over upstream mereological lattice operations.
+ */
+export template <typename T, typename Join = decltype(std::ranges::max),
+                 typename Meet = decltype(std::ranges::min)>
+concept IsOrderLatticeOperations =
+    IsOrderLatticeOperationsSignature<T, Join, Meet> &&
+    IsMereologicalLatticeOperations<T, Join, Meet> &&
+    IsOrderJoinSemilattice<T, Join> && IsOrderMeetSemilattice<T, Meet> &&
+    IsAbsorptive<T, Join, Meet>;
 
 /**
  * @concept IsCertifiedOrderLatticeOperations
@@ -164,8 +206,7 @@ concept IsOrderLatticeOperations =
 export template <typename T, typename Join = decltype(std::ranges::max),
                  typename Meet = decltype(std::ranges::min)>
 concept IsCertifiedOrderLatticeOperations =
-    IsCertifiedOrderJoinSemilattice<T, Join> &&
-    IsCertifiedOrderMeetSemilattice<T, Meet> && IsAbsorptive<T, Join, Meet>;
+    IsOrderLatticeOperations<T, Join, Meet>;
 
 /**
  * @concept IsOrderDistributiveLatticeOperations
@@ -186,22 +227,60 @@ concept IsOrderDistributiveLatticeOperations =
 export template <typename T, typename Join = decltype(std::ranges::max),
                  typename Meet = decltype(std::ranges::min)>
 concept IsCertifiedOrderDistributiveLatticeOperations =
-    IsCertifiedOrderLatticeOperations<T, Join, Meet> &&
+    IsOrderDistributiveLatticeOperations<T, Join, Meet> &&
     IsDistributive<T, Join, Meet> && IsDistributive<T, Meet, Join>;
 
 using DefaultJoin = decltype(std::ranges::max);
 using DefaultMeet = decltype(std::ranges::min);
 
+namespace detail {
+template <typename Whole>
+struct ArrowDrillDown {
+  constexpr decltype(auto) operator()(const Whole& whole) const
+    requires requires { whole.operator->(); }
+  {
+    return *whole.operator->();
+  }
+};
+
+struct ArrowOrderedInt {
+  int value{};
+  constexpr const int* operator->() const { return &value; }
+};
+}  // namespace detail
+
+// Shape-level witnesses.
+static_assert(IsOrderMeetSemilatticeSignature<int, DefaultMeet>);
+static_assert(IsOrderJoinSemilatticeSignature<int, DefaultJoin>);
+static_assert(IsOrderLatticeOperationsSignature<int, DefaultJoin, DefaultMeet>);
+
+// Upstream/downstream alignment: posetal concepts refine mereological ones.
 static_assert(IsOrderMeetSemilattice<int, DefaultMeet>);
+static_assert(IsMereologicalMeetSemilattice<int, DefaultMeet>);
 static_assert(IsOrderJoinSemilattice<int, DefaultJoin>);
+static_assert(IsMereologicalJoinSemilattice<int, DefaultJoin>);
 static_assert(IsOrderLatticeOperations<int, DefaultJoin, DefaultMeet>);
+static_assert(IsMereologicalLatticeOperations<int, DefaultJoin, DefaultMeet>);
 static_assert(
     IsOrderDistributiveLatticeOperations<int, DefaultJoin, DefaultMeet>);
+
+// Compatibility aliases are intentionally locked to the refined concepts.
 static_assert(IsCertifiedOrderMeetSemilattice<int, DefaultMeet>);
+static_assert(IsCertifiedOrderMeetSemilattice<int, DefaultMeet> ==
+              IsOrderMeetSemilattice<int, DefaultMeet>);
 static_assert(IsCertifiedOrderJoinSemilattice<int, DefaultJoin>);
+static_assert(IsCertifiedOrderJoinSemilattice<int, DefaultJoin> ==
+              IsOrderJoinSemilattice<int, DefaultJoin>);
 static_assert(IsCertifiedOrderLatticeOperations<int, DefaultJoin, DefaultMeet>);
+static_assert(
+    IsCertifiedOrderLatticeOperations<int, DefaultJoin, DefaultMeet> ==
+    IsOrderLatticeOperations<int, DefaultJoin, DefaultMeet>);
 static_assert(IsCertifiedOrderDistributiveLatticeOperations<int, DefaultJoin,
                                                             DefaultMeet>);
+static_assert(
+    IsCertifiedOrderDistributiveLatticeOperations<int, DefaultJoin,
+                                                  DefaultMeet> ==
+    IsOrderDistributiveLatticeOperations<int, DefaultJoin, DefaultMeet>);
 
 /**
  * @brief Verify that a two-step path A→B→C exists in the posetal category.
@@ -218,13 +297,23 @@ static_assert(IsCertifiedOrderDistributiveLatticeOperations<int, DefaultJoin,
  * @tparam L   Logic species providing `AND` and the `Ω` codomain.
  */
 export template <typename T, typename Rel = std::less_equal<T>,
-                 typename L = ClassicalLogic>
-  requires IsPosetal<T, Rel, L>
-constexpr typename L::Ω check_path(T a, T b, T c) {
+                 typename L = ClassicalLogic, typename Project = std::identity>
+  requires requires(Project project, T x, Rel rel) {
+    { project(x) };
+    { rel(project(x), project(x)) } -> std::same_as<typename L::Ω>;
+  }
+constexpr typename L::Ω check_path(T a, T b, T c, Project project = {}) {
   const auto rel = Rel{};
   // A two-step path exists iff both edges are present.
   // Transitivity (axiom of IsPosetal) guarantees the direct edge A→C.
-  return L::AND(rel(a, b), rel(b, c));
+  return L::AND(rel(project(a), project(b)), rel(project(b), project(c)));
 }
+
+static_assert(check_path<int, std::less_equal<int>>(1, 2, 3));
+static_assert(!check_path<int, std::less_equal<int>>(3, 2, 1));
+static_assert(
+    check_path<detail::ArrowOrderedInt, std::less_equal<int>, ClassicalLogic,
+               detail::ArrowDrillDown<detail::ArrowOrderedInt>>({1}, {2}, {3}),
+    "Opt-in operator-> drill-down must preserve posetal path semantics.");
 
 }  // namespace dedekind::category
