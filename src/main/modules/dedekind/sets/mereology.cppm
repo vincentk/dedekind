@@ -110,73 +110,11 @@ constexpr typename L::Ω operator>=(const S2& whole, const S1& part) {
 export template <typename Part, typename Whole, typename L = ClassicalLogic>
 concept IsProperPart = IsPartOf<Part, Whole, L>;
 
-/**
- * @concept IsSkewMeetSemilattice
- * @brief Non-commutative meet-like idempotent semigroup fragment.
- * @details
- * Corresponds to the skew/band-level meet operation in non-commutative
- * lattice theory.
- */
-export template <typename S>
-concept IsSkewMeetSemilattice =
-    dedekind::category::IsMereologicalMeetBand<S, std::bit_and<S>>;
-
-/**
- * @concept IsSkewJoinSemilattice
- * @brief Non-commutative join-like idempotent semigroup fragment.
- * @details
- * Corresponds to the skew/band-level join operation in non-commutative
- * lattice theory.
- */
-export template <typename S>
-concept IsSkewJoinSemilattice =
-    dedekind::category::IsMereologicalJoinBand<S, std::bit_or<S>>;
-
-/**
- * @concept IsSkewLattice
- * @brief Non-commutative lattice-style operations (join/meet + absorption).
- */
-export template <typename S>
-concept IsSkewLattice =
-    dedekind::category::IsMereologicalSkewLatticeOperations<S, std::bit_or<S>,
-                                                            std::bit_and<S>>;
-
-/**
- * @concept IsMeetSemiLattice
- * @brief A refinement of IsSet that supports the algebraic
- *        structure of Meet (&).
- * @details Textbook meet-semilattices are commutative; this concept is the
- * commutative refinement over the skew/band-level meet concept.
- * Wikipedia: SemiLattice (order)
- */
-export template <typename S>
-concept IsMeetSemilattice =
-    dedekind::category::IsMereologicalMeetSemilattice<S, std::bit_and<S>>;
-
-/**
- * @concept IsJoinSemiLattice
- * @brief A refinement of IsSet that supports the algebraic
- *        structure of Join (|).
- * @details Textbook join-semilattices are commutative; this concept is the
- * commutative refinement over the skew/band-level join concept.
- * Wikipedia: SemiLattice (order)
- */
-export template <typename S>
-concept IsJoinSemilattice =
-    dedekind::category::IsMereologicalJoinSemilattice<S, std::bit_or<S>>;
-
-/**
- * @concept IsLattice
- * @brief A refinement of IsSet that supports the algebraic
- *        structure of Meet (&) and Join (|).
- * @details Textbook lattice notion: commutative meet/join semilattices with
- * absorption. For non-commutative variants use @ref IsSkewLattice.
- * Wikipedia: Lattice (order), Absorption law
- */
-export template <typename S>
-concept IsLattice =
-    dedekind::category::IsMereologicalLatticeOperations<S, std::bit_or<S>,
-                                                        std::bit_and<S>>;
+// The six lattice-name aliases (IsSkewMeetSemilattice, IsSkewJoinSemilattice,
+// IsSkewLattice, IsMeetSemilattice, IsJoinSemilattice, IsLattice) are defined
+// in dedekind.category:mereology with set-theoretic (std::bit_and/bit_or)
+// default operators. They are available here via `using namespace
+// dedekind::category` and do not need to be re-declared.
 
 /**
  * @concept IsBoundedLattice
@@ -187,7 +125,7 @@ concept IsLattice =
  * Wikipedia: Bounded lattice
  */
 export template <typename S>
-concept IsBoundedLattice = IsLattice<S> && requires(S s) {
+concept IsBoundedLattice = dedekind::category::IsLattice<S> && requires(S s) {
   { s.lower_bound() } -> std::same_as<typename S::Domain>;  // The Bottom
   { s.upper_bound() } -> std::same_as<typename S::Domain>;  // The Top
 };
@@ -202,36 +140,46 @@ concept IsBoundedLattice = IsLattice<S> && requires(S s) {
  * determine if two parts share a common 'Individual'.
  */
 export template <typename S, typename L = ClassicalLogic>
-concept IsMereologicalLattice =
-    IsLattice<S> && IsPartOf<S, S, L> && requires(S a, S b) {
-      // Closure witness: join/meet expressions must be well-formed.
-      { a | b };
-      { a & b };
+concept IsMereologicalLattice = dedekind::category::IsLattice<S> &&
+                                IsPartOf<S, S, L> && requires(S a, S b) {
+                                  // Closure witness: join/meet expressions must
+                                  // be well-formed.
+                                  { a | b };
+                                  { a & b };
 
-      // TODO:
-      // We move the "Equality" check to a Logical Equivalence:
-      // Does (a | b) represent the same subobject as b if a <= b?
-      // (This is handled by your internal logic, not the C++ grammar).
-      //
-      // 1. Consistency Axiom: (a <= b) <=> (a | b == b)
-      //{ (a | b) == b } -> std::convertible_to<typename L::type>;
+                                  // TODO:
+                                  // We move the "Equality" check to a Logical
+                                  // Equivalence: Does (a | b) represent the
+                                  // same subobject as b if a <= b? (This is
+                                  // handled by your internal logic, not the C++
+                                  // grammar).
+                                  //
+                                  // 1. Consistency Axiom: (a <= b) <=> (a | b
+                                  // == b)
+                                  //{ (a | b) == b } ->
+                                  // std::convertible_to<typename L::type>;
 
-      // 2. Overlap Axiom: Meet with an empty set is detectable.
-      // If the intersection (a & b) results in an empty set,
-      // it must be equivalent to the Initial Object Ø.
-      //{ (a & b) == a } -> std::convertible_to<typename L::type>;
+                                  // 2. Overlap Axiom: Meet with an empty set is
+                                  // detectable. If the intersection (a & b)
+                                  // results in an empty set, it must be
+                                  // equivalent to the Initial Object Ø.
+                                  //{ (a & b) == a } ->
+                                  // std::convertible_to<typename L::type>;
 
-      /**
-       * @section The_Absorption_Proofs
-       * These laws anchor the duality of the Monadic Push (|)
-       * and the Comonadic Pull (&).
-       */
-      // Axiom 1: a ∪ (a ∩ b) = a
-      //{ (a | (a & b)) == a } -> std::convertible_to<typename L::type>;
+                                  /**
+                                   * @section The_Absorption_Proofs
+                                   * These laws anchor the duality of the
+                                   * Monadic Push (|) and the Comonadic Pull
+                                   * (&).
+                                   */
+                                  // Axiom 1: a ∪ (a ∩ b) = a
+                                  //{ (a | (a & b)) == a } ->
+                                  // std::convertible_to<typename L::type>;
 
-      // Axiom 2: a ∩ (a ∪ b) = a
-      //{ (a & (a | b)) == a } -> std::convertible_to<typename L::type>;
-    };
+                                  // Axiom 2: a ∩ (a ∪ b) = a
+                                  //{ (a & (a | b)) == a } ->
+                                  // std::convertible_to<typename L::type>;
+                                };
 
 /** @brief Primary trait: Is a species defined by its members? */
 export template <typename T>

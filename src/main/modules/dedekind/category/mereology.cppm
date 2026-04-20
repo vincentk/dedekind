@@ -290,6 +290,92 @@ concept IsMereologicalDistributiveLatticeOperations =
     IsDistributive<T, Join, Meet> && IsDistributive<T, Meet, Join>;
 
 /**
+ * @concept IsSkewMeetSemilattice
+ * @brief Non-commutative meet-like idempotent semigroup with set-theoretic
+ * default operator (`std::bit_and`).
+ *
+ * @details
+ * This is the canonical set-theoretic naming of the meet-band stage, binding
+ * the bit-AND operator as the conventional "intersection" for set-like types.
+ * The general algebraic concept is `IsMereologicalMeetBand`; this alias fixes
+ * the set-theoretic default.
+ *
+ * @tparam S   The set-like carrier type.
+ * @tparam Meet The meet operator (default: `std::bit_and<S>` for sets).
+ */
+export template <typename S, typename Meet = std::bit_and<S>>
+concept IsSkewMeetSemilattice = IsMereologicalMeetBand<S, Meet>;
+
+/**
+ * @concept IsSkewJoinSemilattice
+ * @brief Non-commutative join-like idempotent semigroup with set-theoretic
+ * default operator (`std::bit_or`).
+ *
+ * @details
+ * Set-theoretic naming of the join-band stage, binding bit-OR as the
+ * conventional "union" for set-like types.
+ *
+ * @tparam S   The set-like carrier type.
+ * @tparam Join The join operator (default: `std::bit_or<S>` for sets).
+ */
+export template <typename S, typename Join = std::bit_or<S>>
+concept IsSkewJoinSemilattice = IsMereologicalJoinBand<S, Join>;
+
+/**
+ * @concept IsSkewLattice
+ * @brief Non-commutative lattice with set-theoretic default operators.
+ *
+ * @details
+ * Set-theoretic naming alias that fixes `bit_or`/`bit_and` as the canonical
+ * join/meet operators, reflecting the convention that union = OR and
+ * intersection = AND for bit-representable set-like types.
+ *
+ * @tparam S    The set-like carrier type.
+ * @tparam Join The join operator (default: `std::bit_or<S>`).
+ * @tparam Meet The meet operator (default: `std::bit_and<S>`).
+ */
+export template <typename S, typename Join = std::bit_or<S>,
+                 typename Meet = std::bit_and<S>>
+concept IsSkewLattice = IsMereologicalSkewLatticeOperations<S, Join, Meet>;
+
+/**
+ * @concept IsMeetSemilattice
+ * @brief Commutative meet-semilattice with set-theoretic default operator.
+ *
+ * @tparam S    The set-like carrier type.
+ * @tparam Meet The meet operator (default: `std::bit_and<S>`).
+ */
+export template <typename S, typename Meet = std::bit_and<S>>
+concept IsMeetSemilattice = IsMereologicalMeetSemilattice<S, Meet>;
+
+/**
+ * @concept IsJoinSemilattice
+ * @brief Commutative join-semilattice with set-theoretic default operator.
+ *
+ * @tparam S    The set-like carrier type.
+ * @tparam Join The join operator (default: `std::bit_or<S>`).
+ */
+export template <typename S, typename Join = std::bit_or<S>>
+concept IsJoinSemilattice = IsMereologicalJoinSemilattice<S, Join>;
+
+/**
+ * @concept IsLattice
+ * @brief Paired commutative join/meet semilattice with set-theoretic defaults.
+ *
+ * @details
+ * Set-theoretic naming alias: binds `bit_or` as join (union) and `bit_and`
+ * as meet (intersection). The general algebraic concept is
+ * `IsMereologicalLatticeOperations`.
+ *
+ * @tparam S    The set-like carrier type.
+ * @tparam Join The join operator (default: `std::bit_or<S>`).
+ * @tparam Meet The meet operator (default: `std::bit_and<S>`).
+ */
+export template <typename S, typename Join = std::bit_or<S>,
+                 typename Meet = std::bit_and<S>>
+concept IsLattice = IsMereologicalLatticeOperations<S, Join, Meet>;
+
+/**
  * @concept HasExtrema
  * @brief Structural requirement for Dedekind completeness witnesses.
  *
