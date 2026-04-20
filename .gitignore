@@ -60,10 +60,10 @@ build_ci/**
 
 # Root-level scratch artifacts
 /issue*.md
-/*.profraw
+**/*.profraw
 
 # Python bytecode and cache artifacts
-**/__pycache__/
+**/__pycache__/**
 **/*.pyc
 **/*.pyo
 

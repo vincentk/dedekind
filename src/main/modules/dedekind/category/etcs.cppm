@@ -239,6 +239,56 @@ concept HasAxiom10ChoiceSplitEpicWitness =
     std::same_as<Cod<Epi>, typename S::Ambient>;
 
 /**
+ * @brief Law check for split epimorphisms at a concrete codomain element.
+ * @details Encodes the semantic Axiom 10 equation `e ∘ s = id` at value `b`.
+ */
+export template <typename Epi, typename Section>
+  requires IsSplitEpicPair<Epi, Section> && std::equality_comparable<Cod<Epi>>
+constexpr bool split_epi_section_law_at(const Epi& epi, const Section& section,
+                                        const Cod<Epi>& b) {
+  return epi(section(b)) == b;
+}
+
+/**
+ * @concept HasAxiom10ChoiceSplitEpicLawSurface
+ * @brief Axiom 10 semantic-law surface (split-epi shape + equality codomain).
+ * @details Law truth itself is established by tests via
+ * `split_epi_section_law_at` on concrete witnesses.
+ */
+export template <typename S, typename Epi, typename Section>
+concept HasAxiom10ChoiceSplitEpicLawSurface =
+    HasAxiom10ChoiceSplitEpicWitness<S, Epi, Section> &&
+    std::equality_comparable<Cod<Epi>>;
+
+/**
+ * @brief Definitional witness check for Axiom 7 reindexing through embedding.
+ * @details Verifies the definitional equality
+ * `χ_S(e(x)) = in_via(x, e, S)` at value `x`.
+ */
+export template <typename S, IsArrow E>
+  requires IsSubobject<S, typename S::Ambient> &&
+           std::same_as<Cod<E>, typename S::Ambient> &&
+           std::equality_comparable<Cod<decltype(std::declval<S>().χ)>>
+constexpr bool classifier_reindexing_definitional_witness_at(const S& s,
+                                                             const E& embedding,
+                                                             const Dom<E>& x) {
+  const auto embedded = embedding(x);
+  return in_via(x, embedding, s) == s.χ(embedded);
+}
+
+/**
+ * @concept HasAxiom7PullbackReindexingDefinitionalSurface
+ * @brief Axiom 7 definitional reindexing witness surface.
+ * @details This surface encodes well-typed availability of the definitional
+ * reindexing identity and does not by itself prove full naturality closure.
+ */
+export template <typename S, typename E>
+concept HasAxiom7PullbackReindexingDefinitionalSurface =
+    HasAxiom7SubobjectClassifier<S> && IsArrow<E> &&
+    std::same_as<Cod<E>, typename S::Ambient> &&
+    std::equality_comparable<Cod<decltype(std::declval<S>().χ)>>;
+
+/**
  * @brief ETCS axiom 10 witness: power-object lattice completeness.
  * @details meet/join on subobjects follows from the subobject classifier
  * (Axiom 7) inducing a Heyting algebra on Sub(A). The Axiom of Choice proper

@@ -121,6 +121,52 @@ TEST_CASE("ETCS axiom 10: split-epi witness surface is explicit",
                                        Identity<int>>);
 }
 
+TEST_CASE("ETCS axiom 10: split-epi semantic law is checked explicitly",
+          "[category][etcs][axioms][choice][law]") {
+  const auto s = ambient_set<int>([](const int& x) { return x >= 0; });
+
+  STATIC_CHECK(HasAxiom10ChoiceSplitEpicLawSurface<decltype(s), Identity<int>,
+                                                   Identity<int>>);
+  CHECK(split_epi_section_law_at(Identity<int>{}, Identity<int>{}, 0));
+  CHECK(split_epi_section_law_at(Identity<int>{}, Identity<int>{}, 7));
+
+  auto bad_section = arrow<int, int>([](const int& x) { return x + 1; });
+  STATIC_CHECK(IsSplitEpicPair<Identity<int>, decltype(bad_section)>);
+  CHECK_FALSE(split_epi_section_law_at(Identity<int>{}, bad_section, 0));
+}
+
+TEST_CASE("ETCS axiom 10: law surface with custom epi and section",
+          "[category][etcs][axioms][choice][law][custom]") {
+  // Double identity should preserve the law
+  CHECK(split_epi_section_law_at(Identity<double>{}, Identity<double>{}, 1.5));
+  CHECK(split_epi_section_law_at(Identity<double>{}, Identity<double>{}, -3.2));
+
+  // Bool identity
+  CHECK(split_epi_section_law_at(Identity<bool>{}, Identity<bool>{}, true));
+  CHECK(split_epi_section_law_at(Identity<bool>{}, Identity<bool>{}, false));
+}
+
+TEST_CASE("ETCS axiom 10: law surface concept strictness",
+          "[category][etcs][axioms][choice][law][strictness]") {
+  const auto s = ambient_set<int>([](const int& x) { return x % 2 == 0; });
+
+  // HasAxiom10ChoiceSplitEpicLawSurface requires both the witness shape
+  // AND std::equality_comparable codomain
+  STATIC_CHECK(HasAxiom10ChoiceSplitEpicLawSurface<decltype(s), Identity<int>,
+                                                   Identity<int>>);
+
+  // This should still be true even though the section would violate the law
+  // (the concept only checks shape + equality, not law truth itself)
+  auto bad_section = arrow<int, int>([](const int x) { return x + 1; });
+  STATIC_CHECK(IsSplitEpicPair<Identity<int>, decltype(bad_section)>);
+  STATIC_CHECK(HasAxiom10ChoiceSplitEpicLawSurface<decltype(s), Identity<int>,
+                                                   decltype(bad_section)>);
+
+  // But the law itself fails:
+  CHECK_FALSE(split_epi_section_law_at(Identity<int>{}, bad_section, 0));
+  CHECK_FALSE(split_epi_section_law_at(Identity<int>{}, bad_section, 5));
+}
+
 TEST_CASE("ETCS axiom 7: naturality witness can be attached explicitly",
           "[category][etcs][axioms][naturality]") {
   using IntCat = DiscreteCategory<int>;
@@ -135,4 +181,78 @@ TEST_CASE("ETCS axiom 7: naturality witness can be attached explicitly",
   STATIC_CHECK(
       HasAxiom7ClassifierNaturalityWitness<decltype(s), IdentityComponent, IdF,
                                            IdF>);
+}
+
+TEST_CASE("ETCS axiom 7: pullback reindexing definitional witness surface",
+          "[category][etcs][axioms][reindexing][definitional]") {
+  const auto s = ambient_set<int>([](const int& x) { return x % 2 == 0; });
+  auto embed = arrow<bool, int>([](const bool b) { return b ? 2 : 3; });
+  const auto pulled_back =
+      ambient_set<bool>([&](const bool& b) { return s.χ(embed(b)); });
+
+  STATIC_CHECK(HasAxiom7PullbackReindexingDefinitionalSurface<decltype(s),
+                                                              decltype(embed)>);
+
+  CHECK(pulled_back.χ(true));
+  CHECK_FALSE(pulled_back.χ(false));
+  CHECK(in_via(true, embed, s) == pulled_back.χ(true));
+  CHECK(in_via(false, embed, s) == pulled_back.χ(false));
+
+  CHECK(classifier_reindexing_definitional_witness_at(s, embed, true));
+  CHECK(classifier_reindexing_definitional_witness_at(s, embed, false));
+
+  auto bad_embed =
+      arrow<int, double>([](const int x) { return static_cast<double>(x); });
+  STATIC_CHECK_FALSE(
+      HasAxiom7PullbackReindexingDefinitionalSurface<decltype(s),
+                                                     decltype(bad_embed)>);
+}
+
+TEST_CASE("ETCS axiom 7: definitional surface with composite predicates",
+          "[category][etcs][axioms][reindexing][definitional][composite]") {
+  // Composite predicate: x > 0 AND x % 3 == 0
+  const auto s_composite =
+      ambient_set<int>([](const int& x) { return x > 0 && x % 3 == 0; });
+  auto scale = arrow<int, int>([](const int x) { return x * 2; });
+
+  STATIC_CHECK(
+      HasAxiom7PullbackReindexingDefinitionalSurface<decltype(s_composite),
+                                                     decltype(scale)>);
+
+  CHECK(in_via(2, scale, s_composite) == false);  // 4 is not div 3
+  CHECK(in_via(3, scale, s_composite));           // 6 is div 3
+  CHECK_FALSE(in_via(-1, scale, s_composite));    // negative
+
+  CHECK(classifier_reindexing_definitional_witness_at(s_composite, scale, 2));
+  CHECK(classifier_reindexing_definitional_witness_at(s_composite, scale, 3));
+  CHECK(classifier_reindexing_definitional_witness_at(s_composite, scale, -1));
+}
+
+TEST_CASE(
+    "ETCS axiom 7: definitional surface across different source types",
+    "[category][etcs][axioms][reindexing][definitional][type-variation]") {
+  const auto s_bool = ambient_set<int>([](const int& x) { return x > 0; });
+
+  // Embed from double domain
+  auto from_double =
+      arrow<double, int>([](const double d) { return static_cast<int>(d); });
+  STATIC_CHECK(
+      HasAxiom7PullbackReindexingDefinitionalSurface<decltype(s_bool),
+                                                     decltype(from_double)>);
+  CHECK(in_via(1.5, from_double, s_bool));
+  CHECK_FALSE(in_via(-2.7, from_double, s_bool));
+  CHECK(
+      classifier_reindexing_definitional_witness_at(s_bool, from_double, 1.5));
+  CHECK(
+      classifier_reindexing_definitional_witness_at(s_bool, from_double, -2.7));
+
+  // Embed from unsigned domain
+  auto from_unsigned = arrow<unsigned, int>(
+      [](const unsigned u) { return static_cast<int>(u); });
+  STATIC_CHECK(
+      HasAxiom7PullbackReindexingDefinitionalSurface<decltype(s_bool),
+                                                     decltype(from_unsigned)>);
+  CHECK(in_via(5U, from_unsigned, s_bool));
+  CHECK(
+      classifier_reindexing_definitional_witness_at(s_bool, from_unsigned, 5U));
 }
