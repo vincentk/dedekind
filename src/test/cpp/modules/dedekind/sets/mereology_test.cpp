@@ -73,12 +73,12 @@ TEST_CASE("Mereology: IsMereologicalCutCandidate structural contract",
           "[ontology][mereology][cut]") {
   // Minimal positive witness: a shell that filters an int manifold to a
   // mereological part (order-style encoding).
-  struct FilteredSpace {
+  struct WitnessFilteredSpace {
     constexpr bool operator<=(const int&) const { return true; }
   };
   struct CutShell {
-    using FilteredSpace = ::FilteredSpace;
-    constexpr ::FilteredSpace filter(const int&) const { return {}; }
+    using FilteredSpace = WitnessFilteredSpace;
+    constexpr WitnessFilteredSpace filter(const int&) const { return {}; }
   };
   STATIC_REQUIRE(IsMereologicalCutCandidate<CutShell, int>);
 
