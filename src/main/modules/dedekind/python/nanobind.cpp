@@ -254,4 +254,10 @@ NB_MODULE(_dedekind, module) {
   // ── algebraic extensions (dedekind.numbers) ─────────────────────────────
   bind_complex(module);
   bind_dual(module);
+
+  // ── linear_algebra / graphblas middleware ────────────────────────────────
+  module.def("graphblas_backend_stub_available",
+             &dedekind::python::graphblas_backend_stub_available,
+             "Return whether the middleware advertises GraphBLAS backend "
+             "capability for future validation/prototyping.");
 }

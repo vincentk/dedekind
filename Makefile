@@ -7,14 +7,22 @@ BUILD_DIR     := build
 VENV_DIR      := .venv
 NOTEBOOKS_DIR := docs/python/notebooks
 LLVM_ROOT    ?= /usr/local/opt/llvm
-CXX          ?= $(LLVM_ROOT)/bin/clang++
-CC           ?= $(LLVM_ROOT)/bin/clang
 CLANG_FORMAT ?= $(LLVM_ROOT)/bin/clang-format
 CMAKE_EXTRA_ARGS ?=
 DOCS_DIR     := docs/report
 DOCS_MAIN    := report
 FILTER_GVPR  := $(DOCS_DIR)/figures/filter.gvpr
 DOT_FILE     := $(DOCS_DIR)/figures/dedekind_module_dependencies.dot
+
+# GNU make provides built-in defaults (CXX=c++, CC=cc). Override only those
+# built-in defaults so Homebrew LLVM is used by default, while preserving any
+# explicit command-line or environment overrides from the user.
+ifeq ($(origin CXX), default)
+CXX := $(LLVM_ROOT)/bin/clang++
+endif
+ifeq ($(origin CC), default)
+CC := $(LLVM_ROOT)/bin/clang
+endif
 
 .PHONY: all clean compile test integration-test coverage python-coverage python-coverage-local format format-check install-hooks ci-install-doxygen-deps ci-install-report-deps doxygen dot doc report \
 	ci-history ci-main pr-init pr-status pr-checks pr-watch pr-sync pr-review-comments pr-review-unresolved pr-resolve-thread pr-resolve-threads \
@@ -44,12 +52,12 @@ test: compile
 	ctest --test-dir $(BUILD_DIR) --output-on-failure
 
 integration-test: test
-	python -m pip install --upgrade pip jupyter
+	python -m pip install --upgrade pip jupyter pandas numpy
 	rm -rf $(BUILD_DIR)/python-editable
 	CC="$(CC)" CXX="$(CXX)" \
 	CMAKE_ARGS="-DCMAKE_C_COMPILER=$(CC) -DCMAKE_CXX_COMPILER=$(CXX) -DCMAKE_CXX_SCAN_FOR_MODULES=ON -DCMAKE_BUILD_TYPE=Release -DDEDEKIND_ENABLE_DOUBLE_REAL_PROXY=ON $(CMAKE_EXTRA_ARGS)" \
 	SKBUILD_BUILD_DIR="$(BUILD_DIR)/python-editable" \
-	python -m pip install -e .
+	python -m pip install -e . --no-deps
 	mkdir -p $(BUILD_DIR)/python-notebooks
 	@NOTEBOOK_DIR="docs/python/notebooks"; \
 	NOTEBOOKS="$$(find $$NOTEBOOK_DIR -maxdepth 1 -type f -name '*.ipynb' | sort)"; \

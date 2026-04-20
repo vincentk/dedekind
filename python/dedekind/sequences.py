@@ -83,7 +83,15 @@ def frame_to_paths(df):
                 series.to_numpy(dtype=np.bool_, na_value=False, copy=False),
                 dtype=np.bool_,
             ).reshape(-1)
-            result[col] = path_from_bool_array(arr) if path_from_array else path_from_range(arr.tolist())
+            if path_from_array:
+                try:
+                    result[col] = path_from_bool_array(arr)
+                except TypeError:
+                    # Some platforms expose NumPy bool arrays in a way that can
+                    # fail strict nanobind signature matching; keep a safe fallback.
+                    result[col] = arr.tolist()
+            else:
+                result[col] = arr.tolist()
 
         elif pd.api.types.is_integer_dtype(series):
             # Integer dtype → int64 array (contiguous where needed)
@@ -91,7 +99,15 @@ def frame_to_paths(df):
                 series.to_numpy(dtype=np.int64, copy=False),
                 dtype=np.int64,
             ).reshape(-1)
-            result[col] = path_from_int64_array(arr) if path_from_array else path_from_range(arr.tolist())
+            if path_from_array:
+                try:
+                    result[col] = path_from_int64_array(arr)
+                except TypeError:
+                    # Some platforms expose NumPy int64 arrays in a way that can
+                    # fail strict nanobind signature matching; keep a safe fallback.
+                    result[col] = path_from_range(arr.tolist())
+            else:
+                result[col] = path_from_range(arr.tolist())
 
         elif pd.api.types.is_float_dtype(series):
             # Float dtype → float64 array (contiguous where needed)
@@ -99,7 +115,15 @@ def frame_to_paths(df):
                 series.to_numpy(dtype=np.float64, copy=False),
                 dtype=np.float64,
             ).reshape(-1)
-            result[col] = path_from_float64_array(arr) if path_from_array else path_from_range(arr.tolist())
+            if path_from_array:
+                try:
+                    result[col] = path_from_float64_array(arr)
+                except TypeError:
+                    # Some platforms expose NumPy float64 arrays in a way that can
+                    # fail strict nanobind signature matching; keep a safe fallback.
+                    result[col] = arr.tolist()
+            else:
+                result[col] = arr.tolist()
 
         else:
             # String / object dtype → Python sequence fallback

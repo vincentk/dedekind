@@ -42,7 +42,7 @@ RFC 2119 policy note (normative language):
 - Per RFC 2119 terminology, agents SHOULD push reasonable, reviewable changes to CI without undue delay, as stated in `CONTRIBUTING.md`, so integration feedback is timely and branch divergence stays small.
 - Per RFC 2119 terminology, agents SHOULD keep implementation flow asynchronous and non-blocking where practical (small commits, immediate CI push, then continue parallel review/planning), for the reasons described in `CONTRIBUTING.md` (faster feedback loops, less idle wait time, and clearer progress checkpoints).
 - Per RFC 2119 terminology, agents SHOULD treat CI-driven development as eventually consistent: push small checkpoints, continue useful parallel work while checks run, and reconcile promptly when CI feedback arrives.
-- Per RFC 2119 terminology, while waiting between CI builds agents SHOULD use that time to check documentation consistency (report/paper/readme/doxygen), validate test coverage, or groom the backlog, for the reasons described in `CONTRIBUTING.md` (reduced drift, earlier quality-signal detection, and better review quality).
+- Per RFC 2119 terminology, while waiting between CI builds agents SHOULD use that time to check documentation consistency (report/paper/readme/doxygen), validate test coverage, groom the backlog, or review the Python shim (`python/dedekind/dsl.py`) for complexity that could be pushed down into the C++ layer — particularly any logic that duplicates or approximates operations already available in `dedekind.sets` (e.g. `set_union`, `set_intersection`, `set_difference`) or planned for `relational.cppm`, and open issues or FIXMEs that should become first-class C++ bindings exposed via `nanobind.cpp`, for the reasons described in `CONTRIBUTING.md` (reduced drift, earlier quality-signal detection, and better review quality).
 - Per RFC 2119 terminology, a PR MUST pass pull request review before merge; agents MUST wait for a human review signal (approval or explicit owner instruction) prior to invoking merge operations.
 - Per RFC 2119 terminology, agents MUST NOT attempt to push to protected branches (including `main`); all updates MUST flow through a feature branch and PR.
 **Backlog grooming completed on April 19, 2026:**
@@ -79,6 +79,7 @@ Then triage the backlog:
   - **Already resolved**: close with `gh issue close <number> --comment "..."` citing the PR that addressed it.
   - **Exact duplicate**: keep one canonical issue open and close duplicate issues with a cross-reference comment.
 - Name the branch after the selected issue numbers, e.g. `feat/issues-40-121`.
+- Use `make pr-init ISSUES="40 121"` to initialize the branch, empty checkpoint commit, remote push, and draft PR. The script (`.github/copilot/housekeeping/pr-init.sh`) fetches each issue's title and body via `gh issue view` and uses them to populate the PR title and description automatically; no stub titles or placeholder bodies are needed.
 
 **Never push directly to `main`.** All work must go through a feature branch and a PR. Direct pushes to `main` are not permitted.
 **PRs MUST pass review before merge.** Do not merge solely on CI green; wait for review or explicit owner instruction.
