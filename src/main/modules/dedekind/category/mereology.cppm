@@ -290,6 +290,67 @@ concept IsMereologicalDistributiveLatticeOperations =
     IsDistributive<T, Join, Meet> && IsDistributive<T, Meet, Join>;
 
 /**
+ * @concept HasExtrema
+ * @brief Structural requirement for Dedekind completeness witnesses.
+ *
+ * @details
+ * A type satisfies `HasExtrema` when it exposes both a supremum (least upper
+ * bound) and an infimum (greatest lower bound) operation. This is the
+ * structural prerequisite for `IsDedekindComplete` in the order partition.
+ *
+ * @tparam S A carrier type (set or interval species).
+ *
+ * @see Dedekind (1872), Stetigkeit und irrationale Zahlen.
+ * @see McLarty (1992), Elementary Categories, Elementary Toposes, ch. 4.
+ */
+export template <typename S>
+concept HasExtrema = requires(S s) {
+  /** @brief Computes the least upper bound of a bounded subset. */
+  { s.supremum() };
+  /** @brief Computes the greatest lower bound of a bounded subset. */
+  { s.infimum() };
+};
+
+/**
+ * @concept IsMereologicalCutCandidate
+ * @brief Transitional bridge contract for the soft-to-hard structural cut.
+ *
+ * @details
+ * Models the structural pruning semantics of Leśniewski-style mereological
+ * cuts: a `Shell` filters a `Manifold` to a `FilteredSpace` that is a
+ * mereological part of the manifold (verified via `IsPartOfRelation`). This
+ * concept captures the "soft" half of the full `IsMereologicalCut` described
+ * in `nn_notes/mereological_cut.cppm`, without introducing a dependency on
+ * `:pullback`.
+ *
+ * The full `IsMereologicalCut` additionally requires the filtered inclusion to
+ * be a pullback limit (unique factorization). That Axiom 7 / Issue #195
+ * constraint is intentionally deferred here.
+ *
+ * @note TODO(Issue #195): strengthen to `IsSubobject<FilteredSpace, Manifold>`
+ *       and add `IsPullbackLimit` uniqueness once the `:pullback` partition
+ *       naming is stable.
+ *
+ * @tparam Shell    The filtering agent (e.g. a learned sieve or pruning mask).
+ * @tparam Manifold The ambient space being partitioned.
+ * @tparam Ω        The truth-value codomain (default: `bool`).
+ *
+ * @see https://plato.stanford.edu/entries/mereology/
+ * @see Lawvere & Schanuel (2009), Conceptual Mathematics, ch. 4 (subobjects).
+ */
+export template <typename Shell, typename Manifold, typename Ω = bool>
+concept IsMereologicalCutCandidate = requires(Shell s, Manifold m) {
+  // The filtered subspace must be a declared type alias.
+  typename Shell::FilteredSpace;
+
+  // The filtered subspace must be a mereological part of the manifold.
+  requires IsPartOfRelation<typename Shell::FilteredSpace, Manifold, Ω>;
+
+  // The shell must expose a filter operation producing the FilteredSpace.
+  { s.filter(m) } -> std::same_as<typename Shell::FilteredSpace>;
+};
+
+/**
  * @brief Skeletal Part-Whole relation.
  * At this embryonic stage, we treat parthood as a formal arrow
  * in a category where objects are wholes and morphisms are inclusion mappings.
@@ -323,5 +384,21 @@ static_assert(IsMereologicalMeetBand<int, decltype(std::ranges::min)>);
 static_assert(IsMereologicalJoinBand<int, decltype(std::ranges::max)>);
 static_assert(IsMereologicalSkewLatticeOperations<
               int, decltype(std::ranges::max), decltype(std::ranges::min)>);
+
+namespace detail {
+// Minimal positive witness for IsMereologicalCutCandidate.
+struct merc_filtered {
+  constexpr bool operator<=(const int&) const { return true; }
+};
+struct merc_shell {
+  using FilteredSpace = merc_filtered;
+  constexpr merc_filtered filter(const int&) const { return {}; }
+};
+}  // namespace detail
+
+static_assert(
+    IsMereologicalCutCandidate<detail::merc_shell, int>,
+    "Transitional cut candidate must hold for the canonical demo witness "
+    "(Issue #195).");
 
 }  // namespace dedekind::category

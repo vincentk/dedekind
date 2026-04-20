@@ -266,45 +266,6 @@ concept IsExtensionalLattice =
     };
 
 /**
- * @concept IsMereologicalCutCandidate
- * @brief Transitional bridge contract for the soft-to-hard structural cut.
- *
- * @details
- * Models the structural pruning semantics of Leśniewski-style mereological
- * cuts: a `Shell` filters a `Manifold` to a `FilteredSpace` that is a
- * mereological part of the manifold. This concept captures the "soft" half of
- * the full `IsMereologicalCut` (described in `nn_notes/mereological_cut.cppm`)
- * without introducing a dependency on `:pullback`.
- *
- * The full `IsMereologicalCut` additionally requires the filtered inclusion to
- * be a pullback limit (unique factorization). That Axiom 7 / Issue #195
- * constraint is intentionally deferred here.
- *
- * @note TODO(Issue #195): strengthen to `IsSubobject<FilteredSpace, Manifold>`
- *       and add `IsPullbackLimit` uniqueness once the `:pullback` partition
- *       naming is stable.
- *
- * @tparam Shell    The filtering agent (e.g. a learned sieve or pruning mask).
- * @tparam Manifold The ambient space being partitioned.
- * @tparam L        The logic governing the part-of predicate (default:
- * classical).
- *
- * @see https://plato.stanford.edu/entries/mereology/
- * @see Lawvere & Schanuel (2009), Conceptual Mathematics, ch. 4 (subobjects).
- */
-export template <typename Shell, typename Manifold, typename L = ClassicalLogic>
-concept IsMereologicalCutCandidate = requires(Shell s, Manifold m) {
-  // The filtered subspace must be a declared type alias.
-  typename Shell::FilteredSpace;
-
-  // The filtered subspace must be a mereological part of the manifold.
-  requires IsPartOf<typename Shell::FilteredSpace, Manifold, L>;
-
-  // The shell must expose a filter operation producing the FilteredSpace.
-  { s.filter(m) } -> std::same_as<typename Shell::FilteredSpace>;
-};
-
-/**
  * @concept IsAtom
  * @brief An Individual that possesses no proper parts.
  *
@@ -356,21 +317,14 @@ concept IsSystem = IsBoundedLattice<S> && requires {
 };
 
 /**
- * @brief The Existence of Extreme Bounds.
- *
- * This concept governs the species' ability to find a Supremum (Least Upper
- * Bound) or Infimum (Greatest Lower Bound). This is the functional
- * requirement for Dedekind Completeness.
- *
- * @tparam S A set species.
+ * @concept HasExtrema
+ * @brief Re-export of the category-level Dedekind completeness prerequisite.
+ * @details Canonical definition lives in `dedekind.category:mereology`.
+ * This alias preserves the `dedekind::sets::HasExtrema` qualified name for
+ * existing call sites (order partition, tests).
  */
 export template <typename S>
-concept HasExtrema = requires(S s) {
-  /** @brief Computes the least upper bound of a bounded subset. */
-  { s.supremum() };
-  /** @brief Computes the greatest lower bound of a bounded subset. */
-  { s.infimum() };
-};
+concept HasExtrema = dedekind::category::HasExtrema<S>;
 
 /** @section The_Scale: The Logic of Magnitude */
 
@@ -526,24 +480,5 @@ struct NaturalLogic {
                                      ClassicalLogic, TernaryLogic>;
   using type = species;
 };
-
-// Compiler-validated documentation witness for IsMereologicalCutCandidate.
-// These witnesses are intentionally minimal: they prove the concept is
-// satisfiable at the structural level while staying free of `:pullback`
-// dependencies.  See TODO(Issue #195) for the full IsMereologicalCut.
-namespace detail {
-struct sets_cut_demo_filtered {
-  // Mereological part-of: filtered <= manifold (order-style encoding).
-  constexpr bool operator<=(const int&) const { return true; }
-};
-struct sets_cut_demo_shell {
-  using FilteredSpace = sets_cut_demo_filtered;
-  constexpr FilteredSpace filter(const int&) const { return {}; }
-};
-}  // namespace detail
-
-static_assert(IsMereologicalCutCandidate<detail::sets_cut_demo_shell, int>,
-              "Transitional cut candidate must hold for the demo shell witness "
-              "(Issue #195).");
 
 }  // namespace dedekind::sets
