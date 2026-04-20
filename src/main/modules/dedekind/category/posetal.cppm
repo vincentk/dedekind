@@ -46,7 +46,6 @@ module;
 #include <algorithm>
 #include <concepts>
 #include <functional>
-#include <optional>
 #include <utility>
 
 export module dedekind.category:posetal;
@@ -305,16 +304,19 @@ constexpr typename L::Ω check_path(T a, T b, T c, Project project = {}) {
 static_assert(check_path<int, std::less_equal<int>>(1, 2, 3));
 static_assert(!check_path<int, std::less_equal<int>>(3, 2, 1));
 
-constexpr auto arrow_drill_down_value = [](const std::optional<int>& whole) {
-  return *whole.operator->();
-};
-constexpr std::optional<int> p1{1};
-constexpr std::optional<int> p2{2};
-constexpr std::optional<int> p3{3};
+constexpr auto arrow_drill_down_min =
+    [](const std::ranges::min_max_result<int>* whole) { return whole->min; };
+constexpr std::ranges::min_max_result<int> p1{1, 0};
+constexpr std::ranges::min_max_result<int> p2{2, 0};
+constexpr std::ranges::min_max_result<int> p3{3, 0};
+
+static_assert(IsPathProjection<decltype(arrow_drill_down_min),
+                               const std::ranges::min_max_result<int>*,
+                               std::less_equal<int>, bool>);
 
 static_assert(
-    check_path<std::optional<int>, std::less_equal<int>, ClassicalLogic>(
-        p1, p2, p3, arrow_drill_down_value),
+    check_path<const std::ranges::min_max_result<int>*, std::less_equal<int>,
+               ClassicalLogic>(&p1, &p2, &p3, arrow_drill_down_min),
     "Opt-in operator-> drill-down must preserve posetal path semantics.");
 
 }  // namespace dedekind::category
