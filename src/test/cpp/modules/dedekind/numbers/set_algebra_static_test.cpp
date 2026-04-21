@@ -36,25 +36,20 @@ constexpr auto complex_first_quadrant =
 constexpr auto complex_not_third_quadrant =
     complex_re_positive || complex_im_nonnegative;
 
-constexpr auto ℝ_plus = Set{r % R | [](const Real<double>& x) {
-  return x.resolve() > 0.0;
-}};
+constexpr auto ℝ_plus =
+    Set{r % R | [](const Real<double>& x) { return x.resolve() > 0.0; }};
 
-constexpr auto ℝ_small = Set{r % R | [](const Real<double>& x) {
-  return x.resolve() < 3.0;
-}};
+constexpr auto ℝ_small =
+    Set{r % R | [](const Real<double>& x) { return x.resolve() < 3.0; }};
 
-constexpr auto ℝ_nonzero = Set{r % R | [](const Real<double>& x) {
-  return x.resolve() != 0.0;
-}};
+constexpr auto ℝ_nonzero =
+    Set{r % R | [](const Real<double>& x) { return x.resolve() != 0.0; }};
 
-constexpr auto ℂ_right_half = Set{c % C | [](const Complex<double>& z) {
-  return z.real() > 0.0;
-}};
+constexpr auto ℂ_right_half =
+    Set{c % C | [](const Complex<double>& z) { return z.real() > 0.0; }};
 
-constexpr auto ℂ_upper_half = Set{c % C | [](const Complex<double>& z) {
-  return z.imag() >= 0.0;
-}};
+constexpr auto ℂ_upper_half =
+    Set{c % C | [](const Complex<double>& z) { return z.imag() >= 0.0; }};
 
 constexpr auto ℂ_outside_unit_ball = Set{c % C | [](const Complex<double>& z) {
   return euclidean_norm_squared(z) > 1.0;
@@ -73,11 +68,9 @@ constexpr Ω<RDomain, TernaryLogic> R_ambient{};
 constexpr Ø<CDomain, TernaryLogic> C_empty{};
 constexpr Ω<CDomain, TernaryLogic> C_ambient{};
 
-constexpr auto real_mix =
-  !((ℝ_plus & ℝ_nonzero) |
-  (ℝ_small | !ℝ_plus));
+constexpr auto real_mix = !((ℝ_plus & ℝ_nonzero) | (ℝ_small | !ℝ_plus));
 constexpr auto complex_mix =
-  (ℂ_right_half & ℂ_outside_unit_ball) | !ℂ_upper_half;
+    (ℂ_right_half & ℂ_outside_unit_ball) | !ℂ_upper_half;
 
 static_assert(R_empty == (ℝ_plus & !ℝ_plus));
 static_assert(R_ambient == (ℝ_plus | !ℝ_plus));
@@ -100,13 +93,12 @@ static_assert(complex_mix(Complex<double>{0.2, 0.4}) == Ternary::False);
 static_assert(first_quadrant(Complex<double>{1.0, 1.0}) == Ternary::True);
 static_assert(first_quadrant(Complex<double>{1.0, -1.0}) == Ternary::False);
 static_assert(not_third_quadrant(Complex<double>{-1.0, -1.0}) ==
-        Ternary::False);
+              Ternary::False);
 
 static_assert(((between_reals | !between_reals)(Real<double>{5.0})) ==
-        Ternary::True);
-static_assert(
-  ((first_quadrant & !first_quadrant)(Complex<double>{1.0, 1.0})) ==
-  Ternary::False);
+              Ternary::True);
+static_assert(((first_quadrant & !first_quadrant)(Complex<double>{1.0, 1.0})) ==
+              Ternary::False);
 
 }  // namespace
 

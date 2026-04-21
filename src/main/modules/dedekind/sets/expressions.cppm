@@ -124,7 +124,8 @@ struct UniversalPredicate {
   constexpr bool operator()(const T&) const { return true; }
 };
 
-/** @brief Predicate-level complement wrapper used for set-collapse detection. */
+/** @brief Predicate-level complement wrapper used for set-collapse detection.
+ */
 export template <typename Predicate>
 struct NegatedPredicate {
   Predicate base;
@@ -290,8 +291,8 @@ class Set {
     if constexpr (IsComplementPair_v<Predicate, OtherPredicate>) {
       return Ω<T, L>{};
     } else if constexpr (std::same_as<T, bool> &&
-                  std::same_as<Predicate, BooleanEqPredicate> &&
-                  std::same_as<OtherPredicate, BooleanEqPredicate>) {
+                         std::same_as<Predicate, BooleanEqPredicate> &&
+                         std::same_as<OtherPredicate, BooleanEqPredicate>) {
       return FiniteBooleanSet<L>{
           L::OR((*this)(false), other(false)),
           L::OR((*this)(true), other(true)),
@@ -309,8 +310,8 @@ class Set {
     if constexpr (IsComplementPair_v<Predicate, OtherPredicate>) {
       return Ø<T, L>{};
     } else if constexpr (std::same_as<T, bool> &&
-                  std::same_as<Predicate, BooleanEqPredicate> &&
-                  std::same_as<OtherPredicate, BooleanEqPredicate>) {
+                         std::same_as<Predicate, BooleanEqPredicate> &&
+                         std::same_as<OtherPredicate, BooleanEqPredicate>) {
       return FiniteBooleanSet<L>{
           L::AND((*this)(false), other(false)),
           L::AND((*this)(true), other(true)),
@@ -362,7 +363,8 @@ class Set {
   Predicate predicate_;
 };
 
-/** @brief Explicit set complement overload to avoid picking category morphism `!`. */
+/** @brief Explicit set complement overload to avoid picking category morphism
+ * `!`. */
 export template <typename T, typename L, typename Predicate>
 constexpr auto operator!(const Set<T, L, Predicate>& s) {
   return s.operator!();
@@ -457,20 +459,20 @@ constexpr auto operator==(const Variable<Species>&, bool rhs) {
  * that overload. Otherwise it falls back to an opaque lambda composition.
  */
 template <typename P1, typename P2>
-concept HasStructuredAnd = requires(const std::decay_t<P1>& p1,
-                                    const std::decay_t<P2>& p2) {
-  { structured_and(p1, p2) };
-};
+concept HasStructuredAnd =
+    requires(const std::decay_t<P1>& p1, const std::decay_t<P2>& p2) {
+      { structured_and(p1, p2) };
+    };
 
 /**
  * @brief Downstream specialization hook for structured predicate disjunction.
  * @details Mirrors `HasStructuredAnd` through `structured_or(p1, p2)`.
  */
 template <typename P1, typename P2>
-concept HasStructuredOr = requires(const std::decay_t<P1>& p1,
-                                   const std::decay_t<P2>& p2) {
-  { structured_or(p1, p2) };
-};
+concept HasStructuredOr =
+    requires(const std::decay_t<P1>& p1, const std::decay_t<P2>& p2) {
+      { structured_or(p1, p2) };
+    };
 
 export template <typename P1, typename P2>
 constexpr auto operator&&(P1&& p1, P2&& p2) {
