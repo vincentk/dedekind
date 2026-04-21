@@ -24,7 +24,7 @@ ifeq ($(origin CC), default)
 CC := $(LLVM_ROOT)/bin/clang
 endif
 
-.PHONY: all clean compile test integration-test coverage python-coverage python-coverage-local format format-check install-hooks ci-install-doxygen-deps ci-install-report-deps doxygen dot doc report \
+.PHONY: all clean compile test integration-test coverage python-coverage python-coverage-local ir-fixture-refresh ir-fixture-check format format-check install-hooks ci-install-doxygen-deps ci-install-report-deps doxygen dot doc report \
 	ci-history ci-main pr-init pr-status pr-checks pr-watch pr-sync pr-review-comments pr-review-unresolved pr-resolve-thread pr-resolve-threads \
 	check-review-comments resolve-review-comment issue-list jupyter
 
@@ -137,6 +137,12 @@ python-coverage:
 
 # Local convenience alias (same behavior as python-coverage).
 python-coverage-local: python-coverage
+
+ir-fixture-refresh:
+	python .github/copilot/housekeeping/pruning-ir-fixture.py refresh
+
+ir-fixture-check:
+	python .github/copilot/housekeeping/pruning-ir-fixture.py check
 
 
 format:

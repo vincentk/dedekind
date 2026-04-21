@@ -42,6 +42,9 @@ jobs:
     - name: Build & Run Integration Tests
       run: make integration-test CXX=clang++-22 CC=clang-22 CMAKE_EXTRA_ARGS="-DDEDEKIND_RUNTIME_COVERAGE_BRIDGES=ON"
 
+    - name: Validate Checked-In LLVM IR Fixture
+      run: make ir-fixture-check CXX=clang++-22
+
     - name: Upload Notebook Integration Artifacts
       if: ${{ always() }}
       uses: actions/upload-artifact@v4
