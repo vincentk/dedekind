@@ -318,25 +318,6 @@ export using ℶ_1 = ℵ<1>;  // The Continuum (assuming GCH)
 
 /** @section The_Body: The Logic of Presence */
 
-// Transitional metadata bridge for lifting sets-side species into ETCS
-// `ambient_set(...)` objects.
-template <typename S, typename Enable = void>
-struct SetMetadata {
-  using Domain = typename SpeciesTraits<S>::Domain;
-
-  // Translate the Ontology Token into the Mereological Type
-  using Cardinality = std::conditional_t<
-      SpeciesTraits<S>::cardinality == CardinalityTag::Finite, Finite, ℵ_0>;
-};
-
-// 2. Specialization: Only for types with internal members (Custom Species)
-template <typename S>
-struct SetMetadata<
-    S, std::void_t<typename S::Domain, typename S::cardinality_type>> {
-  using Domain = typename S::Domain;
-  using Cardinality = typename S::cardinality_type;
-};
-
 /** @section The_Extent: The Logic of Realization */
 
 /**
@@ -353,9 +334,9 @@ struct SetMetadata<
  */
 export template <typename S, typename L = ClassicalLogic>
 concept IsEnumerated = requires(const S s) {
-  requires dedekind::category::IsSet<
-      decltype(dedekind::category::ambient_set<typename SetMetadata<S>::Domain>(
-          s))>;
+  typename S::Domain;
+  requires dedekind::category::IsSet<decltype(
+      dedekind::category::ambient_set<typename S::Domain>(s))>;
 
   /** @section Magnitude: The Physical Proof */
   // An extensional set MUST claim a Finite cardinality type.
@@ -386,9 +367,9 @@ concept IsEnumerated = requires(const S s) {
  */
 export template <typename S, typename L = TernaryLogic>
 concept IsSymbolic = requires(const S s) {
-  requires dedekind::category::IsSet<
-      decltype(dedekind::category::ambient_set<typename SetMetadata<S>::Domain>(
-          s))>;
+  typename S::Domain;
+  requires dedekind::category::IsSet<decltype(
+      dedekind::category::ambient_set<typename S::Domain>(s))>;
 } && !IsEnumerated<S, L>;
 
 /**
@@ -398,9 +379,9 @@ concept IsSymbolic = requires(const S s) {
  */
 export template <typename S, typename T>
 concept IsPointedSet = requires(const S s) {
-  requires dedekind::category::IsSet<
-      decltype(dedekind::category::ambient_set<typename SetMetadata<S>::Domain>(
-          s))>;
+  typename S::Domain;
+  requires dedekind::category::IsSet<decltype(
+      dedekind::category::ambient_set<typename S::Domain>(s))>;
 } && IsPointed<T, std::plus<T>>;
 
 /**
