@@ -1593,6 +1593,18 @@ The \texttt{:expressions} partition is the set-builder workhorse. It provides in
 
 Recent ETCS-aligned extensions in this partition include point-wise subset evidence, relation witnesses, and function single-valuedness checks, all expressed as zero-overhead compositional constraints in the type system.
 
+For the current PR scope, the intended feature baseline in \texttt{:expressions} is:
+\begin{itemize}
+  \item set-level complement with prefix notation (\texttt{!S}) as the default expression form;
+  \item predicate composition in comprehensions via \texttt{p\_1 \&\& p\_2} and \texttt{p\_1 || p\_2};
+  \item complement-pair collapse rules for structural set algebra,
+  \[
+    S \cap \neg S = \varnothing, \qquad S \cup \neg S = \Omega,
+  \]
+  with compile-time witness checks aligned to boundary equality tests;
+  \item downstream static coverage in \texttt{dedekind.numbers} over $\mathbb{R}$ and $\mathbb{C}$ using composed predicates and nested set operations.
+\end{itemize}
+
 \subsection{The \texttt{:mereology} partition}
 
 The \texttt{:mereology} partition in \texttt{dedekind.sets} specializes part-whole operations for concrete set expressions. While category-level mereology supplies shared foundations, this partition preserves richer set-specific compatibility constraints and operation-level laws required by client code and regression tests.

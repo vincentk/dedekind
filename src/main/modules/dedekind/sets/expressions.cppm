@@ -124,6 +124,32 @@ struct UniversalPredicate {
   constexpr bool operator()(const T&) const { return true; }
 };
 
+/** @brief Predicate-level complement wrapper used for set-collapse detection. */
+export template <typename Predicate>
+struct NegatedPredicate {
+  Predicate base;
+
+  template <typename T>
+  constexpr auto operator()(const T& v) const {
+    return !base(v);
+  }
+};
+
+template <typename P1, typename P2>
+struct IsComplementPair : std::false_type {};
+
+template <typename P, typename Q>
+struct IsComplementPair<NegatedPredicate<P>, Q>
+    : std::bool_constant<std::same_as<std::decay_t<P>, std::decay_t<Q>>> {};
+
+template <typename P, typename Q>
+struct IsComplementPair<P, NegatedPredicate<Q>>
+    : std::bool_constant<std::same_as<std::decay_t<P>, std::decay_t<Q>>> {};
+
+template <typename P1, typename P2>
+inline constexpr bool IsComplementPair_v =
+    IsComplementPair<std::decay_t<P1>, std::decay_t<P2>>::value;
+
 export template <typename T, typename L, typename Predicate>
 class Set;
 
@@ -255,13 +281,15 @@ class Set {
   constexpr cardinality_type cardinality() const { return {}; }
 
   constexpr auto operator!() const {
-    auto predicate = [base = predicate_](const T& v) { return !base(v); };
-    return Set<T, L, decltype(predicate)>{predicate};
+    return Set<T, L, NegatedPredicate<Predicate>>{
+        NegatedPredicate<Predicate>{predicate_}};
   }
 
   template <typename OtherPredicate>
   constexpr auto operator|(const Set<T, L, OtherPredicate>& other) const {
-    if constexpr (std::same_as<T, bool> &&
+    if constexpr (IsComplementPair_v<Predicate, OtherPredicate>) {
+      return Ω<T, L>{};
+    } else if constexpr (std::same_as<T, bool> &&
                   std::same_as<Predicate, BooleanEqPredicate> &&
                   std::same_as<OtherPredicate, BooleanEqPredicate>) {
       return FiniteBooleanSet<L>{
@@ -278,7 +306,9 @@ class Set {
 
   template <typename OtherPredicate>
   constexpr auto operator&(const Set<T, L, OtherPredicate>& other) const {
-    if constexpr (std::same_as<T, bool> &&
+    if constexpr (IsComplementPair_v<Predicate, OtherPredicate>) {
+      return Ø<T, L>{};
+    } else if constexpr (std::same_as<T, bool> &&
                   std::same_as<Predicate, BooleanEqPredicate> &&
                   std::same_as<OtherPredicate, BooleanEqPredicate>) {
       return FiniteBooleanSet<L>{
@@ -331,6 +361,24 @@ class Set {
 
   Predicate predicate_;
 };
+
+/** @brief Explicit set complement overload to avoid picking category morphism `!`. */
+export template <typename T, typename L, typename Predicate>
+constexpr auto operator!(const Set<T, L, Predicate>& s) {
+  return s.operator!();
+}
+
+/** @brief lvalue set complement overload for stable prefix `!` resolution. */
+export template <typename T, typename L, typename Predicate>
+constexpr auto operator!(Set<T, L, Predicate>& s) {
+  return s.operator!();
+}
+
+/** @brief rvalue set complement overload for composed temporary expressions. */
+export template <typename T, typename L, typename Predicate>
+constexpr auto operator!(Set<T, L, Predicate>&& s) {
+  return s.operator!();
+}
 
 export template <typename B, typename P>
 Set(Comprehension<B, P>)
@@ -401,18 +449,47 @@ constexpr auto operator==(const Variable<Species>&, bool rhs) {
 
 /** @section Logical_Lifting */
 
+/**
+ * @brief Downstream specialization hook for structured predicate conjunction.
+ * @details
+ * If a downstream module defines a free `structured_and(p1, p2)` overload
+ * discoverable via ADL for the predicate types, `operator&&` will dispatch to
+ * that overload. Otherwise it falls back to an opaque lambda composition.
+ */
+template <typename P1, typename P2>
+concept HasStructuredAnd = requires(const std::decay_t<P1>& p1,
+                                    const std::decay_t<P2>& p2) {
+  { structured_and(p1, p2) };
+};
+
+/**
+ * @brief Downstream specialization hook for structured predicate disjunction.
+ * @details Mirrors `HasStructuredAnd` through `structured_or(p1, p2)`.
+ */
+template <typename P1, typename P2>
+concept HasStructuredOr = requires(const std::decay_t<P1>& p1,
+                                   const std::decay_t<P2>& p2) {
+  { structured_or(p1, p2) };
+};
+
 export template <typename P1, typename P2>
 constexpr auto operator&&(P1&& p1, P2&& p2) {
-  return [p1 = std::forward<P1>(p1), p2 = std::forward<P2>(p2)](const auto& v) {
-    return p1(v) && p2(v);
-  };
+  if constexpr (HasStructuredAnd<P1, P2>) {
+    return structured_and(std::forward<P1>(p1), std::forward<P2>(p2));
+  } else {
+    return [p1 = std::forward<P1>(p1), p2 = std::forward<P2>(p2)](
+               const auto& v) { return p1(v) && p2(v); };
+  }
 }
 
 export template <typename P1, typename P2>
 constexpr auto operator||(P1&& p1, P2&& p2) {
-  return [p1 = std::forward<P1>(p1), p2 = std::forward<P2>(p2)](const auto& v) {
-    return p1(v) || p2(v);
-  };
+  if constexpr (HasStructuredOr<P1, P2>) {
+    return structured_or(std::forward<P1>(p1), std::forward<P2>(p2));
+  } else {
+    return [p1 = std::forward<P1>(p1), p2 = std::forward<P2>(p2)](
+               const auto& v) { return p1(v) || p2(v); };
+  }
 }
 
 }  // namespace dedekind::sets
