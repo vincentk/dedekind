@@ -48,6 +48,18 @@ jobs:
       continue-on-error: true
       run: make ir-fixture-check CXX=clang++-22
 
+    - name: Generate & Upload LLVM IR Fixtures
+      if: ${{ always() }}
+      run: make ir-fixture-refresh CXX=clang++-22
+      continue-on-error: true
+    - name: Upload LLVM IR Fixtures
+      if: ${{ always() }}
+      uses: actions/upload-artifact@v4
+      with:
+        name: llvm-ir-fixtures
+        if-no-files-found: warn
+        path: src/test/cpp/modules/dedekind/python/*.ll
+
     - name: Upload Notebook Integration Artifacts
       if: ${{ always() }}
       uses: actions/upload-artifact@v4
