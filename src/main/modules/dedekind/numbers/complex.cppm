@@ -251,6 +251,11 @@ export using ℂ = ComplexSet;
 
 export inline constexpr ℂ C{};
 
+static_assert(
+  dedekind::category::IsSet<decltype(dedekind::category::ambient_set<
+    Complex<machine_real_scalar>>(C))>,
+  "ComplexesOf must be the canonical IsSet anchor for dedekind.numbers:complex.");
+
 }  // namespace dedekind::numbers
 
 namespace dedekind::category {

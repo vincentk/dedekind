@@ -59,6 +59,12 @@ TEST_CASE("Dedekind Sets: Cartesian product and relation witnesses",
   const auto small = Set{x % Ω<int>{} | (x <= 3)};
 
   const auto product = cartesian_product(positive, small);
+  const auto product_set = ambient_set<std::pair<int, int>>(product);
+
+  STATIC_CHECK(std::same_as<typename decltype(product)::Domain,
+                            std::pair<int, int>>);
+  STATIC_CHECK(IsProduct<typename decltype(product)::Domain, int, int>);
+  STATIC_CHECK(IsSet<decltype(product_set)>);
 
   CHECK(product(std::pair<int, int>{1, 2}) == Ternary::True);
   CHECK(product(std::pair<int, int>{-1, 2}) == Ternary::False);

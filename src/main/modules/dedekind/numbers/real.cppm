@@ -269,6 +269,11 @@ export using ℝ = RealSet;
 
 export inline constexpr ℝ R{};
 
+static_assert(
+  dedekind::category::IsSet<decltype(dedekind::category::ambient_set<
+    Real<machine_real_scalar>>(R))>,
+  "RealsOf must be the canonical IsSet anchor for dedekind.numbers:real.");
+
 }  // namespace dedekind::numbers
 
 namespace dedekind::category {

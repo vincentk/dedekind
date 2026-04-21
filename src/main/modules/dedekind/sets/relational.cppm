@@ -63,6 +63,27 @@ import :expressions;
 namespace dedekind::sets {
 using namespace dedekind::category;
 
+struct CanonicalPairPredicate {
+  constexpr bool operator()(const std::pair<int, int>&) const { return true; }
+};
+
+using CanonicalIntRelation =
+  Relation<int, int, ClassicalLogic, CanonicalPairPredicate>;
+
+static_assert(
+  dedekind::category::IsSet<decltype(
+    dedekind::category::ambient_set<std::pair<int, int>>(
+      CanonicalIntRelation{CanonicalPairPredicate{}}))>,
+  "Relation aliases must lift to ETCS set objects.");
+static_assert(
+  dedekind::category::IsSet<decltype(dedekind::category::ambient_set<
+    std::tuple<int, int, int>>(natural_join(
+    CanonicalIntRelation{CanonicalPairPredicate{}},
+    CanonicalIntRelation{CanonicalPairPredicate{}})))>,
+  "natural_join output must lift to an ETCS set object.");
+static_assert(dedekind::category::HasCanonicalSetCCC<std::pair<int, int>>,
+        "Breadcrumb to :cartesian: relation ambient product has canonical CCC witness.");
+
 /**
  * @brief Selection (σ): filter elements of a set by an additional predicate.
  *

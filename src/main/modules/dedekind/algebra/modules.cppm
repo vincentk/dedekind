@@ -365,9 +365,17 @@ static_assert(IsVectorSpaceLike<RealLine, RealLineScalar>,
 static_assert(SatisfiesVectorSpaceAxioms<RealLine, RealLineScalar>,
               "RealLine should satisfy vector-space axiom signatures.");
 static_assert(
+  dedekind::category::IsSet<decltype(dedekind::category::ambient_set<RealLine>(
+    [](const RealLine&) { return true; }))>,
+  "RealLine must admit a canonical ETCS IsSet object in dedekind.algebra:modules.");
+static_assert(
     IsSemimoduleLike<BoolLine, bool, BoolLineJoin, std::logical_or<bool>,
                      std::logical_and<bool>, BoolLineMeetAction>,
     "BoolLine should satisfy the 1D boolean semimodule-like witness.");
+static_assert(
+  dedekind::category::IsSet<decltype(dedekind::category::ambient_set<BoolLine>(
+    [](const BoolLine&) { return true; }))>,
+  "BoolLine must admit a canonical ETCS IsSet object in dedekind.algebra:modules.");
 
 }  // namespace dedekind::algebra
 
