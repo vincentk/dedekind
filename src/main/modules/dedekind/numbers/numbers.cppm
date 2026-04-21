@@ -29,7 +29,7 @@
 export module dedekind.numbers;
 
 /** @section Ordered_And_Convex_Structures */
-export import dedekind.order;     // Ordered predicate concepts for numeric species
+export import dedekind.order;  // Ordered predicate concepts for numeric species
 export import dedekind.topology;  // Rays, half-spaces, intervals, convex shapes
 
 /** @section Discrete_Foundations (Level -1 & 0) */
