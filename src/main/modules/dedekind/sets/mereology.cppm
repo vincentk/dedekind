@@ -335,8 +335,8 @@ export using ℶ_1 = ℵ<1>;  // The Continuum (assuming GCH)
 export template <typename S, typename L = ClassicalLogic>
 concept IsEnumerated = requires(const S s) {
   typename S::Domain;
-  requires dedekind::category::IsSet<decltype(
-      dedekind::category::ambient_set<typename S::Domain>(s))>;
+  requires dedekind::category::IsSet<
+      decltype(dedekind::category::ambient_set<typename S::Domain>(s))>;
 
   /** @section Magnitude: The Physical Proof */
   // An extensional set MUST claim a Finite cardinality type.
@@ -368,8 +368,8 @@ concept IsEnumerated = requires(const S s) {
 export template <typename S, typename L = TernaryLogic>
 concept IsSymbolic = requires(const S s) {
   typename S::Domain;
-  requires dedekind::category::IsSet<decltype(
-      dedekind::category::ambient_set<typename S::Domain>(s))>;
+  requires dedekind::category::IsSet<
+      decltype(dedekind::category::ambient_set<typename S::Domain>(s))>;
 } && !IsEnumerated<S, L>;
 
 /**
@@ -380,8 +380,8 @@ concept IsSymbolic = requires(const S s) {
 export template <typename S, typename T>
 concept IsPointedSet = requires(const S s) {
   typename S::Domain;
-  requires dedekind::category::IsSet<decltype(
-      dedekind::category::ambient_set<typename S::Domain>(s))>;
+  requires dedekind::category::IsSet<
+      decltype(dedekind::category::ambient_set<typename S::Domain>(s))>;
 } && IsPointed<T, std::plus<T>>;
 
 /**
