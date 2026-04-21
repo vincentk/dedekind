@@ -51,6 +51,25 @@ TEST_CASE("Dedekind Identities: Extremal Collapse", "[sets][identities]") {
   }
 }
 
+TEST_CASE("Dedekind Identities: Boolean literals collapse over 𝔹",
+          "[sets][identities][boolean]") {
+  using BoolAmbient = Ω<bool, ClassicalLogic, Finite>;
+  constexpr BoolAmbient B_bool{};
+
+  constexpr auto b = var<BoolAmbient>;
+
+  constexpr auto b_false = Set{b % B_bool | (b == false)};
+  constexpr auto b_true = Set{b % B_bool | (b == true)};
+
+  STATIC_CHECK(Ø<bool, ClassicalLogic>{} == (b_false & b_true));
+  STATIC_CHECK(B_bool == (b_false | b_true));
+
+  CHECK((b_false & b_true)(false) == false);
+  CHECK((b_false & b_true)(true) == false);
+  CHECK((b_false | b_true)(false) == true);
+  CHECK((b_false | b_true)(true) == true);
+}
+
 TEST_CASE("Dedekind Sets: Cartesian product and relation witnesses",
           "[sets][relations][cartesian]") {
   auto x = var<Ω<int>>;

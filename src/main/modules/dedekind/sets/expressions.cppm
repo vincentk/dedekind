@@ -124,6 +124,94 @@ struct UniversalPredicate {
   constexpr bool operator()(const T&) const { return true; }
 };
 
+export template <typename T, typename L, typename Predicate>
+class Set;
+
+/** @brief Boolean equality predicate for compile-time pruning over 𝔹. */
+export struct BooleanEqPredicate {
+  bool expected;
+
+  constexpr bool operator()(bool v) const { return v == expected; }
+};
+
+/** @brief Extensional finite bool-domain result for collapsed 𝔹 operations. */
+export template <typename L>
+struct FiniteBooleanSet {
+  using Domain = bool;
+  using Codomain = typename L::Ω;
+  using logic_species = L;
+  using cardinality_type = Finite;
+
+  typename L::Ω at_false;
+  typename L::Ω at_true;
+
+  constexpr typename L::Ω operator()(bool v) const {
+    return v ? at_true : at_false;
+  }
+
+  constexpr bool operator==(const Ø<bool, L>&) const {
+    return at_false == L::False && at_true == L::False;
+  }
+
+  constexpr bool operator==(const Ω<bool, L, Finite>&) const {
+    return at_false == L::True && at_true == L::True;
+  }
+
+  friend constexpr bool operator==(const Ø<bool, L>& empty,
+                                   const FiniteBooleanSet& s) {
+    return s == empty;
+  }
+
+  friend constexpr bool operator==(const Ω<bool, L, Finite>& universe,
+                                   const FiniteBooleanSet& s) {
+    return s == universe;
+  }
+
+  constexpr auto operator|(const FiniteBooleanSet& other) const {
+    return FiniteBooleanSet{
+        L::OR(at_false, other.at_false),
+        L::OR(at_true, other.at_true),
+    };
+  }
+
+  constexpr auto operator&(const FiniteBooleanSet& other) const {
+    return FiniteBooleanSet{
+        L::AND(at_false, other.at_false),
+        L::AND(at_true, other.at_true),
+    };
+  }
+};
+
+export template <typename L>
+constexpr auto operator|(const Set<bool, L, BooleanEqPredicate>& lhs,
+                         const FiniteBooleanSet<L>& rhs) {
+  return FiniteBooleanSet<L>{
+      L::OR(lhs(false), rhs(false)),
+      L::OR(lhs(true), rhs(true)),
+  };
+}
+
+export template <typename L>
+constexpr auto operator|(const FiniteBooleanSet<L>& lhs,
+                         const Set<bool, L, BooleanEqPredicate>& rhs) {
+  return rhs | lhs;
+}
+
+export template <typename L>
+constexpr auto operator&(const Set<bool, L, BooleanEqPredicate>& lhs,
+                         const FiniteBooleanSet<L>& rhs) {
+  return FiniteBooleanSet<L>{
+      L::AND(lhs(false), rhs(false)),
+      L::AND(lhs(true), rhs(true)),
+  };
+}
+
+export template <typename L>
+constexpr auto operator&(const FiniteBooleanSet<L>& lhs,
+                         const Set<bool, L, BooleanEqPredicate>& rhs) {
+  return rhs & lhs;
+}
+
 /** @brief Convenience Alias: If S is a type, var<S> is the scout. */
 // This allows: auto x = var<int>; where int is mapped to Ω<int>
 export template <typename T>
@@ -173,18 +261,36 @@ class Set {
 
   template <typename OtherPredicate>
   constexpr auto operator|(const Set<T, L, OtherPredicate>& other) const {
-    auto predicate = [lhs = predicate_, rhs = other.predicate_](const T& v) {
-      return lhs(v) || rhs(v);
-    };
-    return Set<T, L, decltype(predicate)>{predicate};
+    if constexpr (std::same_as<T, bool> &&
+                  std::same_as<Predicate, BooleanEqPredicate> &&
+                  std::same_as<OtherPredicate, BooleanEqPredicate>) {
+      return FiniteBooleanSet<L>{
+          L::OR((*this)(false), other(false)),
+          L::OR((*this)(true), other(true)),
+      };
+    } else {
+      auto predicate = [lhs = predicate_, rhs = other.predicate_](const T& v) {
+        return lhs(v) || rhs(v);
+      };
+      return Set<T, L, decltype(predicate)>{predicate};
+    }
   }
 
   template <typename OtherPredicate>
   constexpr auto operator&(const Set<T, L, OtherPredicate>& other) const {
-    auto predicate = [lhs = predicate_, rhs = other.predicate_](const T& v) {
-      return lhs(v) && rhs(v);
-    };
-    return Set<T, L, decltype(predicate)>{predicate};
+    if constexpr (std::same_as<T, bool> &&
+                  std::same_as<Predicate, BooleanEqPredicate> &&
+                  std::same_as<OtherPredicate, BooleanEqPredicate>) {
+      return FiniteBooleanSet<L>{
+          L::AND((*this)(false), other(false)),
+          L::AND((*this)(true), other(true)),
+      };
+    } else {
+      auto predicate = [lhs = predicate_, rhs = other.predicate_](const T& v) {
+        return lhs(v) && rhs(v);
+      };
+      return Set<T, L, decltype(predicate)>{predicate};
+    }
   }
 
   /** @brief Same-predicate subset: always True (identity). */
@@ -285,6 +391,12 @@ constexpr auto operator>=(const Variable<Species>&, const Rhs& rhs) {
 export template <typename Species, typename Rhs>
 constexpr auto operator==(const Variable<Species>&, const Rhs& rhs) {
   return [rhs](const typename Species::Domain& v) { return v == rhs; };
+}
+
+export template <typename Species>
+  requires std::same_as<typename Species::Domain, bool>
+constexpr auto operator==(const Variable<Species>&, bool rhs) {
+  return BooleanEqPredicate{rhs};
 }
 
 /** @section Logical_Lifting */

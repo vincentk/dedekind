@@ -20,6 +20,7 @@
  * Licensed under the Apache License, Version 2.0.
  */
 
+import dedekind.category;
 import dedekind.sets;
 import dedekind.algebra;
 
@@ -37,10 +38,12 @@ inline constexpr auto b_false = Set{b % B | (b == false)};
 inline constexpr auto b_true  = Set{b % B | (b == true)};
 
 // {false} and {true} partition 𝔹: their intersection is ∅ ...
+static_assert(Ø<bool, ClassicalLogic>{} == (b_false & b_true));
 static_assert((b_false & b_true)(false) == false);
 static_assert((b_false & b_true)(true)  == false);
 
 // ... and their union covers 𝔹 entirely.
+static_assert(B == (b_false | b_true));
 static_assert((b_false | b_true)(false) == true);
 static_assert((b_false | b_true)(true)  == true);
 

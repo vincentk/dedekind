@@ -8,8 +8,9 @@ add_executable(set-pruning-ir-demo
     set-pruning-ir-demo/iso3166_countries.cpp)
 
 # IR fixture: compile-time pruning witness via dedekind.sets + 𝔹
-# Links against the full dedekind library so module BMIs are available.
-add_executable(set-pruning-ir-fixture
+# Built as a static library because the IR checker only needs the compile
+# command and module BMI graph, not a runnable binary with `main`.
+add_library(set-pruning-ir-fixture STATIC
     set-pruning-ir-demo/pruning_noop_vs_runtime_fixture.cpp)
 
 set_target_properties(set-pruning-ir-fixture PROPERTIES
