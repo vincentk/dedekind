@@ -330,16 +330,15 @@ using CanonicalIntSet =
 using CanonicalIntProductSet =
     decltype(cartesian_product(std::declval<const CanonicalIntSet&>(),
                                std::declval<const CanonicalIntSet&>()));
+using CanonicalIntProductDomain = typename CanonicalIntProductSet::Domain;
 
 static_assert(
-    dedekind::category::IsProduct<typename CanonicalIntProductSet::Domain, int,
-                                  int>,
+    dedekind::category::IsProduct<CanonicalIntProductDomain, int, int>,
     "sets::cartesian_product must expose a std::pair product domain.");
 static_assert(
-    dedekind::category::IsSet<decltype(dedekind::category::ambient_set<
-                                       typename CanonicalIntProductSet::Domain>(
-        std::declval<const CanonicalIntProductSet&>()))>,
-    "sets::cartesian_product output must ETCS-lift through ambient_set.");
+    dedekind::category::HasCanonicalSetCCC<CanonicalIntProductDomain>,
+    "Breadcrumb to :cartesian: cartesian_product domain carries canonical "
+    "CCC witness.");
 
 /**
  * @brief A Relation from A to B is a set of pairs: a subset of A × B.

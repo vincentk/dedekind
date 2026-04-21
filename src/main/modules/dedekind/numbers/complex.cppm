@@ -49,6 +49,8 @@ class Complex {
   constexpr R real() const { return re_; }
   constexpr R imag() const { return im_; }
 
+  friend constexpr bool operator==(const Complex&, const Complex&) = default;
+
   friend constexpr Complex operator+(const Complex& a, const Complex& b) {
     return {a.re_ + b.re_, a.im_ + b.im_};
   }
@@ -251,12 +253,6 @@ export using ℂ = ComplexSet;
 
 export inline constexpr ℂ C{};
 
-static_assert(
-    dedekind::category::IsSet<decltype(dedekind::category::ambient_set<
-                                       Complex<machine_real_scalar>>(C))>,
-    "ComplexesOf must be the canonical IsSet anchor for "
-    "dedekind.numbers:complex.");
-
 }  // namespace dedekind::numbers
 
 namespace dedekind::category {
@@ -271,6 +267,16 @@ inline constexpr bool
     is_monic_arrow_v<std::decay_t<decltype(dedekind::numbers::embed_ℝ_ℂ<>)>> =
         true;
 }  // namespace dedekind::category
+
+namespace dedekind::numbers {
+
+static_assert(
+    dedekind::category::IsSet<decltype(dedekind::category::ambient_set<
+                                       Complex<machine_real_scalar>>(C))>,
+    "ComplexesOf must be the canonical IsSet anchor for "
+    "dedekind.numbers:complex.");
+
+}  // namespace dedekind::numbers
 
 namespace dedekind::numbers {
 

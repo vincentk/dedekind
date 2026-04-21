@@ -269,11 +269,6 @@ export using ℝ = RealSet;
 
 export inline constexpr ℝ R{};
 
-static_assert(
-    dedekind::category::IsSet<decltype(dedekind::category::ambient_set<
-                                       Real<machine_real_scalar>>(R))>,
-    "RealsOf must be the canonical IsSet anchor for dedekind.numbers:real.");
-
 }  // namespace dedekind::numbers
 
 namespace dedekind::category {
@@ -288,3 +283,12 @@ inline constexpr bool
     is_monic_arrow_v<std::decay_t<decltype(dedekind::numbers::embed_ℚ_ℝ<>)>> =
         true;
 }  // namespace dedekind::category
+
+namespace dedekind::numbers {
+
+static_assert(
+    dedekind::category::IsSet<decltype(dedekind::category::ambient_set<
+                                       Real<machine_real_scalar>>(R))>,
+    "RealsOf must be the canonical IsSet anchor for dedekind.numbers:real.");
+
+}  // namespace dedekind::numbers

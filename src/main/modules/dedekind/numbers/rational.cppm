@@ -297,12 +297,6 @@ export using ℚ = RationalSet;
 
 export inline constexpr ℚ Q{};
 
-static_assert(
-    dedekind::category::IsSet<decltype(dedekind::category::ambient_set<
-                                       Rational<default_integer>>(Q))>,
-    "RationalsOf must be the canonical IsSet anchor for "
-    "dedekind.numbers:rational.");
-
 /**
  * @brief Machine realization arrow ℤ ↪ ℚ: machine_integer → Rational<I>.
  * @details Every integer n embeds as the fraction n/1.
@@ -328,3 +322,13 @@ inline constexpr bool
     is_monic_arrow_v<std::decay_t<decltype(dedekind::numbers::embed_ℤ_ℚ<>)>> =
         true;
 }  // namespace dedekind::category
+
+namespace dedekind::numbers {
+
+static_assert(
+    dedekind::category::IsSet<decltype(dedekind::category::ambient_set<
+                                       Rational<default_integer>>(Q))>,
+    "RationalsOf must be the canonical IsSet anchor for "
+    "dedekind.numbers:rational.");
+
+}  // namespace dedekind::numbers

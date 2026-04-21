@@ -69,20 +69,20 @@ struct CanonicalPairPredicate {
 
 using CanonicalIntRelation =
     Relation<int, int, ClassicalLogic, CanonicalPairPredicate>;
+using CanonicalIntRelationDomain = typename CanonicalIntRelation::Domain;
 
-static_assert(dedekind::category::IsSet<
-                  decltype(dedekind::category::ambient_set<std::pair<int, int>>(
-                      CanonicalIntRelation{CanonicalPairPredicate{}}))>,
-              "Relation aliases must lift to ETCS set objects.");
 static_assert(
     dedekind::category::IsSet<
-        decltype(dedekind::category::ambient_set<std::tuple<int, int, int>>(
-            natural_join(CanonicalIntRelation{CanonicalPairPredicate{}},
-                         CanonicalIntRelation{CanonicalPairPredicate{}})))>,
-    "natural_join output must lift to an ETCS set object.");
-static_assert(dedekind::category::HasCanonicalSetCCC<std::pair<int, int>>,
-              "Breadcrumb to :cartesian: relation ambient product has "
-              "canonical CCC witness.");
+        decltype(dedekind::category::ambient_set<CanonicalIntRelationDomain>(
+            CanonicalIntRelation{CanonicalPairPredicate{}}))>,
+    "Relation aliases must lift to ETCS set objects.");
+static_assert(
+    dedekind::category::IsProduct<CanonicalIntRelationDomain, int, int>,
+    "Relation domain must satisfy categorical IsProduct.");
+static_assert(
+    dedekind::category::HasCanonicalSetCCC<CanonicalIntRelationDomain>,
+    "Breadcrumb to :cartesian: relation ambient product has "
+    "canonical CCC witness.");
 
 /**
  * @brief Selection (σ): filter elements of a set by an additional predicate.
@@ -185,5 +185,16 @@ constexpr auto natural_join(const Relation<T1, T2, L, P1>& r1,
   };
   return Set<Triple, L, decltype(pred)>{pred};
 }
+
+using CanonicalNaturalJoin =
+    decltype(natural_join(CanonicalIntRelation{CanonicalPairPredicate{}},
+                          CanonicalIntRelation{CanonicalPairPredicate{}}));
+using CanonicalNaturalJoinDomain = typename CanonicalNaturalJoin::Domain;
+
+static_assert(
+    dedekind::category::IsSet<
+        decltype(dedekind::category::ambient_set<CanonicalNaturalJoinDomain>(
+            std::declval<const CanonicalNaturalJoin&>()))>,
+    "natural_join output must lift to an ETCS set object.");
 
 }  // namespace dedekind::sets
