@@ -44,10 +44,12 @@ inline constexpr auto lattice_square_intersection =
 using CLogic = typename decltype(lattice_square_intersection)::logic_species;
 
 // Representative test points
-inline constexpr Complex<double> c3{1.0, 1.0};      // 1 + i  → in intersection
-inline constexpr Complex<double> c_left{0.0, 1.0};   // i      → outside square (Re < 0.5)
-inline constexpr Complex<double> c_bottom{1.0, 0.0}; // 1      → outside square (Im < 0.5)
-inline constexpr Complex<double> c_diag{2.0, 2.0};   // 2 + 2i → outside square
+inline constexpr Complex<double> c3{1.0, 1.0};  // 1 + i  → in intersection
+inline constexpr Complex<double> c_left{
+    0.0, 1.0};  // i      → outside square (Re < 0.5)
+inline constexpr Complex<double> c_bottom{
+    1.0, 0.0};  // 1      → outside square (Im < 0.5)
+inline constexpr Complex<double> c_diag{2.0, 2.0};  // 2 + 2i → outside square
 
 // Compile-time witnesses.
 static_assert(lattice_square_intersection(c3) == CLogic::True);

@@ -44,10 +44,10 @@ inline constexpr auto empty_diagonal_cut = diagonal_in_r2 & gt5_lt3_strip;
 using R2Logic = typename decltype(empty_diagonal_cut)::logic_species;
 
 // Compile-time witnesses confirming emptiness at two representative points.
-static_assert(empty_diagonal_cut(R2Point{Real<double>{6.0}, Real<double>{6.0}}) ==
-              R2Logic::False);
-static_assert(empty_diagonal_cut(R2Point{Real<double>{2.0}, Real<double>{2.0}}) ==
-              R2Logic::False);
+static_assert(empty_diagonal_cut(R2Point{Real<double>{6.0},
+                                         Real<double>{6.0}}) == R2Logic::False);
+static_assert(empty_diagonal_cut(R2Point{Real<double>{2.0},
+                                         Real<double>{2.0}}) == R2Logic::False);
 
 /**
  * @brief Showcase 1: contradiction on the diagonal in R².
