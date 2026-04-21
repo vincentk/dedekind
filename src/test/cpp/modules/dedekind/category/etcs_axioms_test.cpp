@@ -265,7 +265,8 @@ TEST_CASE(
     "[category][etcs][axioms][reindexing][composed][issue354]") {
   // f: bool -> int,  g: int -> long
   auto f = arrow<bool, int>([](const bool b) { return b ? 2 : 3; });
-  auto g = arrow<int, long>([](const int x) { return static_cast<long>(x * 10); });
+  auto g =
+      arrow<int, long>([](const int x) { return static_cast<long>(x * 10); });
   auto h = compose_embedding(f, g);
 
   STATIC_CHECK(IsArrow<decltype(h)>);
@@ -274,8 +275,8 @@ TEST_CASE(
 
   const auto s = ambient_set<long>([](const long& v) { return v > 0; });
 
-  STATIC_CHECK(HasAxiom7PullbackReindexingDefinitionalSurface<decltype(s),
-                                                              decltype(h)>);
+  STATIC_CHECK(
+      HasAxiom7PullbackReindexingDefinitionalSurface<decltype(s), decltype(h)>);
 
   CHECK(in_via(true, h, s));   // h(true) = 20 > 0
   CHECK(in_via(false, h, s));  // h(false) = 30 > 0
@@ -304,10 +305,11 @@ TEST_CASE(
   STATIC_CHECK(IsArrow<decltype(composed)>);
 
   const auto s = ambient_set<bool>([](const bool& b) { return b; });
-  STATIC_CHECK(HasAxiom7PullbackReindexingDefinitionalSurface<decltype(s),
-                                                              decltype(composed)>);
+  STATIC_CHECK(
+      HasAxiom7PullbackReindexingDefinitionalSurface<decltype(s),
+                                                     decltype(composed)>);
 
-  CHECK(in_via(10U, composed, s));   // 10 - 5 = 5 >= 0 → true ∈ s
+  CHECK(in_via(10U, composed, s));       // 10 - 5 = 5 >= 0 → true ∈ s
   CHECK_FALSE(in_via(3U, composed, s));  // 3 - 5 = -2 < 0 → false ∉ s
 
   CHECK(classifier_reindexing_definitional_witness_at(s, composed, 10U));
@@ -339,9 +341,8 @@ struct SplitEpiLawFixture {
   }
 };
 
-TEST_CASE(
-    "ETCS axiom 10: SplitEpiLawFixture — positive witness with identity",
-    "[category][etcs][axioms][choice][fixture][issue355]") {
+TEST_CASE("ETCS axiom 10: SplitEpiLawFixture — positive witness with identity",
+          "[category][etcs][axioms][choice][fixture][issue355]") {
   SplitEpiLawFixture<Identity<int>, Identity<int>> fix{Identity<int>{},
                                                        Identity<int>{}};
   CHECK(fix.law_holds_at(0));
@@ -355,13 +356,12 @@ TEST_CASE(
   auto bad_section = arrow<int, int>([](const int x) { return x + 1; });
   SplitEpiLawFixture<Identity<int>, decltype(bad_section)> fix{Identity<int>{},
                                                                bad_section};
-  CHECK(fix.law_fails_at(0));   // id(bad(0)) = 1 ≠ 0
-  CHECK(fix.law_fails_at(5));   // id(bad(5)) = 6 ≠ 5
+  CHECK(fix.law_fails_at(0));  // id(bad(0)) = 1 ≠ 0
+  CHECK(fix.law_fails_at(5));  // id(bad(5)) = 6 ≠ 5
 }
 
-TEST_CASE(
-    "ETCS axiom 10: SplitEpiLawFixture — fixture reused across types",
-    "[category][etcs][axioms][choice][fixture][issue355]") {
+TEST_CASE("ETCS axiom 10: SplitEpiLawFixture — fixture reused across types",
+          "[category][etcs][axioms][choice][fixture][issue355]") {
   SplitEpiLawFixture<Identity<double>, Identity<double>> fix_d{
       Identity<double>{}, Identity<double>{}};
   CHECK(fix_d.law_holds_at(1.5));
