@@ -42,4 +42,3 @@ export import :interop;
 export import :mereology;
 export import :singleton;
 export import :relational;
-export import :pruning;

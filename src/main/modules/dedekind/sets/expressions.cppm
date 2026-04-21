@@ -241,6 +241,13 @@ Set(MembershipBinding<S>)
     -> Set<typename S::Domain, typename NaturalLogic<S>::type,
            UniversalPredicate<typename S::Domain>>;
 
+static_assert(
+  dedekind::category::IsSet<
+    decltype(dedekind::category::ambient_set<int>(
+      Set<int, dedekind::category::ClassicalLogic,
+        UniversalPredicate<int>>{UniversalPredicate<int>{}}))>,
+  "The canonical intensional Set<T, L, Predicate> must lift to an ETCS set object.");
+
 /** @section Identity_CTAD */
 template <typename Species>
 Set(Species) -> Set<typename Species::Domain,

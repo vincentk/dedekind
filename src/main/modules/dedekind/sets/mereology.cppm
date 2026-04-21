@@ -337,22 +337,6 @@ struct SetMetadata<
   using Cardinality = typename S::cardinality_type;
 };
 
-/**
- * @brief ETCS alignment bridge: lift a `dedekind::sets` species into a
- * `dedekind::category::IsSet` object.
- *
- * @details
- * This is the explicit seam between:
- * - `dedekind::sets::Set<...>`: intensional set-builder DSL species.
- * - `dedekind::category::Set<...>`: canonical CCC/category witness.
- */
-template <typename S>
-concept IsETCSLiftedSet = requires(const S s) {
-  requires dedekind::category::IsSet<
-      decltype(dedekind::category::ambient_set<typename SetMetadata<S>::Domain>(
-          s))>;
-};
-
 /** @section The_Extent: The Logic of Realization */
 
 /**
@@ -368,7 +352,11 @@ concept IsETCSLiftedSet = requires(const S s) {
  * @tparam L The Subobject Classifier (Ω). Defaults to ClassicalLogic.
  */
 export template <typename S, typename L = ClassicalLogic>
-concept IsEnumerated = IsETCSLiftedSet<S> && requires(const S s) {
+concept IsEnumerated = requires(const S s) {
+  requires dedekind::category::IsSet<
+      decltype(dedekind::category::ambient_set<typename SetMetadata<S>::Domain>(
+          s))>;
+
   /** @section Magnitude: The Physical Proof */
   // An extensional set MUST claim a Finite cardinality type.
   requires(S::cardinality_type::is_finite == true);
@@ -397,7 +385,11 @@ concept IsEnumerated = IsETCSLiftedSet<S> && requires(const S s) {
  * Wikipedia: Intensional definition, Indicator function, Ternary logic
  */
 export template <typename S, typename L = TernaryLogic>
-concept IsSymbolic = IsETCSLiftedSet<S> && !IsEnumerated<S, L>;
+concept IsSymbolic = requires(const S s) {
+  requires dedekind::category::IsSet<
+      decltype(dedekind::category::ambient_set<typename SetMetadata<S>::Domain>(
+          s))>;
+} && !IsEnumerated<S, L>;
 
 /**
  * @concept IsPointedSet
@@ -405,7 +397,11 @@ concept IsSymbolic = IsETCSLiftedSet<S> && !IsEnumerated<S, L>;
  * Wikipedia: Pointed set
  */
 export template <typename S, typename T>
-concept IsPointedSet = IsETCSLiftedSet<S> && IsPointed<T, std::plus<T>>;
+concept IsPointedSet = requires(const S s) {
+  requires dedekind::category::IsSet<
+      decltype(dedekind::category::ambient_set<typename SetMetadata<S>::Domain>(
+          s))>;
+} && IsPointed<T, std::plus<T>>;
 
 /**
  * @section Structural_Inference: NaturalLogic
