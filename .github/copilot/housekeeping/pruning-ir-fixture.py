@@ -17,8 +17,8 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
-SOURCE = ROOT / "examples" / "set-pruning-ir-demo" / "pruning_noop_vs_runtime_fixture.cpp"
-FIXTURE = ROOT / "examples" / "set-pruning-ir-demo" / "pruning_noop_vs_runtime_fixture.ll"
+SOURCE = ROOT / "src" / "test" / "cpp" / "modules" / "dedekind" / "python" / "pruning_noop_vs_runtime_fixture.cpp"
+FIXTURE = ROOT / "src" / "test" / "cpp" / "modules" / "dedekind" / "python" / "pruning_noop_vs_runtime_fixture.ll"
 BUILD_DIR = ROOT / "build"
 
 TARGET_TRIPLE = "x86_64-unknown-linux-gnu"
@@ -76,7 +76,15 @@ def generate_ir() -> str:
         adapted.append(tok)
     adapted += ["-S", "-emit-llvm", "-o", "-"]
 
-    proc = subprocess.run(adapted, check=True, capture_output=True, text=True)
+    # Compile from the recorded build directory so relative @response-file
+    # paths (module maps) resolve exactly as in compile_commands.json.
+    proc = subprocess.run(
+        adapted,
+        check=True,
+        capture_output=True,
+        text=True,
+        cwd=entry["directory"],
+    )
     return normalize_ir(proc.stdout)
 
 

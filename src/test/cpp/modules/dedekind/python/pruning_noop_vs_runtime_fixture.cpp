@@ -1,5 +1,5 @@
 /**
- * @file examples/set-pruning-ir-demo/pruning_noop_vs_runtime_fixture.cpp
+ * @file src/test/cpp/modules/dedekind/python/pruning_noop_vs_runtime_fixture.cpp
  * @brief Compile-time pruning witness via the dedekind.sets intensional Set DSL.
  *
  * The library under test is dedekind.sets; in particular Set::operator& and
