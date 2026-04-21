@@ -132,6 +132,21 @@ constexpr auto in_via(const Dom<E>& x, E&& embedding, const S& s) {
   return s.χ(std::forward<E>(embedding)(x));
 }
 
+/**
+ * @brief Compose two embedding arrows for pullback naturality path checks.
+ * @details Produces h = f >> g : A -> C, preserving `IsArrow` compatibility.
+ * Use instead of an ad-hoc lambda when building composed-path witnesses for
+ * `HasAxiom7PullbackReindexingDefinitionalSurface`. Raw lambdas do not carry
+ * `Domain`/`Codomain` typedefs, so they fail the `IsArrow` concept; this
+ * wrapper delegates to `operator>>` which returns a properly typed `Morphism`.
+ */
+export template <IsArrow F, IsArrow G>
+  requires IsSpokeArrow<std::decay_t<F>> && IsSpokeArrow<std::decay_t<G>> &&
+           std::same_as<Cod<std::decay_t<F>>, Dom<std::decay_t<G>>>
+constexpr auto compose_embedding(F&& f, G&& g) {
+  return std::forward<F>(f) >> std::forward<G>(g);
+}
+
 /** @brief Lattice alias: meet = intersection. */
 export template <typename S1, typename S2>
   requires IsCompatibleSetPair<S1, S2>
