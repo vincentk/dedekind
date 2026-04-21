@@ -114,6 +114,35 @@ where concrete evaluation is intentionally required.
 - RFC 2119 usage note (Section 6): use imperative terms proportionally.
    Reserve `MUST` / `MUST NOT` for hard governance or safety constraints,
    and prefer `SHOULD` / `SHOULD NOT` for routine workflow guidance.
+
+## Module placement and build-order discipline
+
+The build DAG is not merely a compilation convenience — it is a semantic
+constraint.  The partial order "is defined in terms of" on the library's
+mathematical concepts MUST be a refinement of the partial order "is downstream
+of" on its module graph.  When a new definition is placed correctly, its
+module-level position acts as a proof certificate: the fact that it compiles at
+all witnesses that all its dependencies were already established.
+
+Concretely, when introducing a new concept or definition, contributors MUST
+place it in the earliest module (furthest upstream) that its mathematical
+dependencies permit.  If a concept can be expressed using only `category`
+primitives, it belongs in `category`, not in `sets` or `algebra`.  If it
+requires `order` but nothing from `algebra`, it belongs in `order`.  Pulling a
+definition downstream beyond its natural position is not merely a style issue
+— it severs the compile-time proof that the definition is independent of the
+downstream context.
+
+If a concept that would greatly facilitate a new definition exists only in a
+downstream module, contributors SHOULD treat this as a signal that either (a)
+the facilitating concept should itself be refactored upstream, or (b) the new
+definition should be expressed in more primitive terms without relying on the
+downstream concept.  Introducing a circular or inverted dependency to work
+around this is not permitted.
+
+This discipline mirrors the pedagogical progression described in the report
+(§2): foundational axioms reside upstream; theorems and derived constructions
+appear downstream, in the same order a textbook would present them.
 - Before starting new work, check that the most recent `main` branch CI run is green.
 - For backlog grooming, run a short preflight in this order: check `main` CI health, then list
    open issues, then list open fork PRs, then classify each item as actionable / ambiguous /
