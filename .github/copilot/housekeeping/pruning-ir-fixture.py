@@ -9,8 +9,9 @@ from __future__ import annotations
 
 import argparse
 import difflib
-import os
+import json
 import re
+import shlex
 import subprocess
 import sys
 from pathlib import Path
@@ -18,42 +19,64 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[3]
 SOURCE = ROOT / "examples" / "set-pruning-ir-demo" / "pruning_noop_vs_runtime_fixture.cpp"
 FIXTURE = ROOT / "examples" / "set-pruning-ir-demo" / "pruning_noop_vs_runtime_fixture.ll"
+BUILD_DIR = ROOT / "build"
 
 TARGET_TRIPLE = "x86_64-unknown-linux-gnu"
 
 
-def find_compiler() -> str:
-    candidates = [
-        os.environ.get("CXX"),
-        os.environ.get("CLANGXX"),
-        "clang++-22",
-        "clang++",
-    ]
-    for c in candidates:
-        if not c:
-            continue
-        try:
-            subprocess.run([c, "--version"], check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            return c
-        except (OSError, subprocess.CalledProcessError):
-            continue
-    raise RuntimeError("No usable clang++ compiler found (tried CXX/CLANGXX/clang++-22/clang++).")
+def ensure_cmake_target() -> None:
+    """Build the IR fixture cmake target so module BMIs are up-to-date."""
+    if not BUILD_DIR.exists():
+        raise RuntimeError(
+            f"Build directory not found: {BUILD_DIR}\n"
+            "Configure first: cmake -B build ..."
+        )
+    subprocess.run(
+        ["cmake", "--build", str(BUILD_DIR), "--target", "set-pruning-ir-fixture"],
+        check=True,
+        stdout=subprocess.DEVNULL,
+    )
 
 
-def generate_ir(compiler: str) -> str:
-    cmd = [
-        compiler,
-        "-std=c++23",
-        "-O2",
-        "-S",
-        "-emit-llvm",
-        "-target",
-        TARGET_TRIPLE,
-        str(SOURCE),
-        "-o",
-        "-",
-    ]
-    proc = subprocess.run(cmd, check=True, capture_output=True, text=True)
+def generate_ir() -> str:
+    """Re-compile the fixture with -S -emit-llvm using the cmake-recorded flags."""
+    db_path = BUILD_DIR / "compile_commands.json"
+    if not db_path.exists():
+        raise RuntimeError(
+            f"compile_commands.json not found at {db_path}.\n"
+            "Run cmake --build build/ first."
+        )
+
+    db = json.loads(db_path.read_text(encoding="utf-8"))
+    entry = next(
+        (e for e in db if Path(e["file"]).name == SOURCE.name),
+        None,
+    )
+    if entry is None:
+        raise RuntimeError(
+            f"No compile command for {SOURCE.name} in compile_commands.json.\n"
+            "Ensure set-pruning-ir-fixture has been built."
+        )
+
+    # Parse the recorded command and adapt it for IR emission.
+    raw_cmd = shlex.split(entry["command"])
+    adapted: list[str] = []
+    skip_next = False
+    for tok in raw_cmd:
+        if skip_next:
+            skip_next = False
+            continue
+        if tok == "-o":
+            skip_next = True
+            continue
+        if tok.startswith("-o"):
+            continue
+        if tok == "-c":
+            continue
+        adapted.append(tok)
+    adapted += ["-S", "-emit-llvm", "-o", "-"]
+
+    proc = subprocess.run(adapted, check=True, capture_output=True, text=True)
     return normalize_ir(proc.stdout)
 
 
@@ -79,25 +102,30 @@ def semantic_sanity(ir_text: str) -> None:
     if "@pruning_runtime_guard" not in ir_text:
         raise AssertionError("IR missing pruning_runtime_guard symbol.")
     if "ret i1 false" not in ir_text:
-        raise AssertionError("Expected compile-time no-op path to return constant false in IR.")
-    if "@pruning_runtime_guard" in ir_text and "and i1" not in ir_text:
-        raise AssertionError("Expected runtime guard path to retain runtime conjunction in IR.")
+        raise AssertionError(
+            "Expected compile-time pruned intersection {false}∩{true}≡∅ "
+            "to reduce to a constant `ret i1 false` in IR."
+        )
+    # The runtime guard must retain an indirect call through the function pointer.
+    if "call" not in ir_text:
+        raise AssertionError(
+            "Expected runtime guard to retain an indirect call instruction in IR."
+        )
 
 
 def refresh() -> int:
-    compiler = find_compiler()
-    ir_text = generate_ir(compiler)
+    ensure_cmake_target()
+    ir_text = generate_ir()
     semantic_sanity(ir_text)
     FIXTURE.write_text(ir_text, encoding="utf-8")
     print(f"Refreshed fixture: {FIXTURE}")
-    print(f"Compiler: {compiler}")
     print(f"Target triple: {TARGET_TRIPLE}")
     return 0
 
 
 def check() -> int:
-    compiler = find_compiler()
-    actual = generate_ir(compiler)
+    ensure_cmake_target()
+    actual = generate_ir()
     semantic_sanity(actual)
 
     if not FIXTURE.exists():
@@ -108,12 +136,10 @@ def check() -> int:
     expected = FIXTURE.read_text(encoding="utf-8")
     if actual == expected:
         print("IR fixture check passed.")
-        print(f"Compiler: {compiler}")
         print(f"Target triple: {TARGET_TRIPLE}")
         return 0
 
     print("IR fixture mismatch detected.", file=sys.stderr)
-    print(f"Compiler: {compiler}", file=sys.stderr)
     print(f"Target triple: {TARGET_TRIPLE}", file=sys.stderr)
     diff = difflib.unified_diff(
         expected.splitlines(),

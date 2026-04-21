@@ -1,90 +1,74 @@
 /**
  * @file examples/set-pruning-ir-demo/pruning_noop_vs_runtime_fixture.cpp
- * @brief Deterministic assembly fixture for compile-time pruning vs runtime path.
+ * @brief Compile-time pruning witness via the dedekind.sets intensional Set DSL.
  *
- * This fixture intentionally avoids standard-library dependencies so it can be
- * compiled for a fixed target triple in CI and compared against a checked-in
- * assembly baseline for auditability.
+ * The library under test is dedekind.sets; in particular Set::operator& and
+ * Set::operator| which compose predicates transparently so that the compiler
+ * back-end can perform constant-folding across set operations.
+ *
+ * Two exported functions contrast the two paths:
+ *
+ *  1. pruning_compile_time_noop: both operands carry compile-time-constant
+ *     predicates.  The intersection {false} ∩ {true} ≡ ∅ is visible to the
+ *     optimiser, which collapses the body to a single `ret false`.
+ *
+ *  2. pruning_runtime_guard: the second operand arrives as a runtime function
+ *     pointer (e.g. a Python-side callback).  The optimiser cannot eliminate
+ *     the branch; the generated IR retains an indirect call.
+ *
+ * @copyright 2026 The Dedekind Authors
+ * Licensed under the Apache License, Version 2.0.
  */
 
-namespace fixture {
+import dedekind.sets;
+import dedekind.algebra;
 
-constexpr const char* EU_MEMBERS[] = {
-    "AT", "BE", "BG", "HR", "CY", "CZ", "DK", "EE", "FI", "FR", "DE", "GR",
-    "HU", "IE", "IT", "LV", "LT", "LU", "MT", "NL", "PL", "PT", "RO", "SK",
-    "SI", "ES", "SE",
-};
+using namespace dedekind::category;
+using namespace dedekind::sets;
+using namespace dedekind::algebra;
 
-constexpr const char* NON_EU_COUNTRIES[] = {
-    "US", "CN", "IN", "BR", "RU", "JP", "AU", "CA", "MX", "NG",
-};
+// Symbolic variable ranging over 𝔹 = Ω<bool, ClassicalLogic, Finite>
+inline constexpr auto b = var<𝔹>;
 
-constexpr unsigned EU_COUNT = sizeof(EU_MEMBERS) / sizeof(EU_MEMBERS[0]);
-constexpr unsigned NON_EU_COUNT =
-    sizeof(NON_EU_COUNTRIES) / sizeof(NON_EU_COUNTRIES[0]);
+// { x ∈ 𝔹 | x == false }  =  the singleton {false} ⊂ 𝔹
+inline constexpr auto b_false = Set{b % B | (b == false)};
 
-constexpr bool code_eq2(const char* a, const char* b) {
-  return a[0] == b[0] && a[1] == b[1] && a[2] == '\0' && b[2] == '\0';
-}
+// { x ∈ 𝔹 | x == true }   =  the singleton {true}  ⊂ 𝔹
+inline constexpr auto b_true  = Set{b % B | (b == true)};
 
-consteval bool in_list_consteval(const char* code, const char* const* list,
-                                 unsigned count) {
-  for (unsigned i = 0; i < count; ++i) {
-    if (code_eq2(code, list[i])) {
-      return true;
-    }
-  }
-  return false;
-}
+// {false} and {true} partition 𝔹: their intersection is ∅ ...
+static_assert((b_false & b_true)(false) == false);
+static_assert((b_false & b_true)(true)  == false);
 
-constexpr bool in_list_runtime(const char* code, const char* const* list,
-                               unsigned count) {
-  for (unsigned i = 0; i < count; ++i) {
-    if (code_eq2(code, list[i])) {
-      return true;
-    }
-  }
-  return false;
-}
+// ... and their union covers 𝔹 entirely.
+static_assert((b_false | b_true)(false) == true);
+static_assert((b_false | b_true)(true)  == true);
 
-consteval bool sets_are_disjoint() {
-  for (unsigned i = 0; i < EU_COUNT; ++i) {
-    if (in_list_consteval(EU_MEMBERS[i], NON_EU_COUNTRIES, NON_EU_COUNT)) {
-      return false;
-    }
-  }
-
-  for (unsigned i = 0; i < NON_EU_COUNT; ++i) {
-    if (in_list_consteval(NON_EU_COUNTRIES[i], EU_MEMBERS, EU_COUNT)) {
-      return false;
-    }
-  }
-
-  return true;
-}
-
-static_assert(sets_are_disjoint(), "Fixture sets must remain disjoint.");
-
-}  // namespace fixture
-
+/**
+ * @brief Compile-time pruned path.
+ *
+ * Both b_false and b_true have statically-known predicates.  operator&
+ * composes them inline; the optimiser reduces (x==false)&&(x==true) to the
+ * constant false.
+ *
+ * Expected IR: a single `ret i1 false`.
+ */
 extern "C" __attribute__((noinline)) bool
-pruning_compile_time_noop(const char* code) {
-  (void)code;
-  if constexpr (fixture::sets_are_disjoint()) {
-    return false;
-  }
-
-  return fixture::in_list_runtime(code, fixture::EU_MEMBERS, fixture::EU_COUNT) &&
-         fixture::in_list_runtime(code, fixture::NON_EU_COUNTRIES,
-                                  fixture::NON_EU_COUNT);
+pruning_compile_time_noop(bool x) {
+  return (b_false & b_true)(x);
 }
 
+/**
+ * @brief Runtime path -- optimiser cannot prune.
+ *
+ * The second predicate is a function pointer supplied at call-time
+ * (e.g. via the Python bindings).  The optimiser must retain the call.
+ *
+ * Expected IR: an indirect call through the function pointer.
+ */
 extern "C" __attribute__((noinline)) bool
-pruning_runtime_guard(const char* code, const char* const* runtime_codes,
-                      unsigned runtime_count) {
-  const bool in_eu =
-      fixture::in_list_runtime(code, fixture::EU_MEMBERS, fixture::EU_COUNT);
-  const bool in_dynamic =
-      fixture::in_list_runtime(code, runtime_codes, runtime_count);
-  return in_eu && in_dynamic;
+pruning_runtime_guard(bool x, bool (*runtime_pred)(bool)) {
+  const auto dynamic =
+      Set<bool, ClassicalLogic, bool (*)(bool)>{runtime_pred};
+  return (b_false & dynamic)(x);
 }

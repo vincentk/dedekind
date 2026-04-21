@@ -4,8 +4,26 @@
 cmake_minimum_required(VERSION 3.28)
 
 # Example: ISO-3166 country code disjoint set intersection
-add_executable(set-pruning-ir-demo 
+add_executable(set-pruning-ir-demo
     set-pruning-ir-demo/iso3166_countries.cpp)
+
+# IR fixture: compile-time pruning witness via dedekind.sets + 𝔹
+# Links against the full dedekind library so module BMIs are available.
+add_executable(set-pruning-ir-fixture
+    set-pruning-ir-demo/pruning_noop_vs_runtime_fixture.cpp)
+
+set_target_properties(set-pruning-ir-fixture PROPERTIES
+    CXX_STANDARD 23
+    CXX_STANDARD_REQUIRED ON
+    CXX_EXTENSIONS OFF
+    CXX_SCAN_FOR_MODULES ON)
+
+target_compile_options(set-pruning-ir-fixture PRIVATE
+    -Wall -Wextra -Wpedantic -Werror
+    -Wno-c2y-extensions
+    -O2)
+
+target_link_libraries(set-pruning-ir-fixture PRIVATE dedekind)
 
 set_target_properties(set-pruning-ir-demo PROPERTIES
     CXX_STANDARD 23
