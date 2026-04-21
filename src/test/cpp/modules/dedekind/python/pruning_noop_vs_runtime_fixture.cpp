@@ -11,12 +11,14 @@
  * Two exported functions contrast the two paths:
  *
  *  1. pruning_compile_time_noop: both operands carry compile-time-constant
- *     predicates.  The intersection {false} ∩ {true} ≡ ∅ is visible to the
- *     optimiser, which collapses the body to a single `ret false`.
+ *     predicates. The contradiction {false} ∩ {true} ≡ ∅ is proven directly by
+ *     static_assert. Emitted IR is kept for review/report listings and should
+ *     show collapse to a constant false return.
  *
  *  2. pruning_runtime_guard: the second operand arrives as a runtime function
- *     pointer (e.g. a Python-side callback).  The optimiser cannot eliminate
- *     the branch; the generated IR retains an indirect call.
+ *     pointer (e.g. a Python-side callback). One predicate argument is unknown
+ *     at compile time, so the optimiser cannot inline an equivalent constant
+ *     function; the generated IR must retain a runtime call.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
@@ -29,6 +31,7 @@ import dedekind.algebra;
 using namespace dedekind::category;
 using namespace dedekind::sets;
 using namespace dedekind::algebra;
+using namespace dedekind::numbers;
 
 // Symbolic variable ranging over 𝔹 = Ω<bool, ClassicalLogic, Finite>
 inline constexpr auto b = var<𝔹>;
@@ -66,7 +69,9 @@ extern "C" __attribute__((noinline)) bool pruning_compile_time_noop(bool x) {
  * @brief Runtime path -- optimiser cannot prune.
  *
  * The second predicate is a function pointer supplied at call-time
- * (e.g. via the Python bindings).  The optimiser must retain the call.
+ * (e.g. via the Python bindings). With one predicate still unknown at compile
+ * time, the optimiser cannot inline an equivalent constant function and must
+ * retain a runtime call.
  *
  * Expected IR: an indirect call through the function pointer.
  */

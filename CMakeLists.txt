@@ -190,7 +190,9 @@ add_dedekind_layer(python dedekind_linear_algebra)
 # for compile-command capture and LLVM IR generation by the helper script.
 # Placed in the python test tree so it can resolve all module dependencies.
 add_library(set-pruning-ir-fixture STATIC
-    src/test/cpp/modules/dedekind/python/pruning_noop_vs_runtime_fixture.cpp)
+    src/test/cpp/modules/dedekind/python/pruning_noop_vs_runtime_fixture.cpp
+    src/test/cpp/modules/dedekind/python/showcase_01_diagonal_contradiction.cpp
+    src/test/cpp/modules/dedekind/python/showcase_02_lattice_singleton.cpp)
 
 set_target_properties(set-pruning-ir-fixture PROPERTIES
     CXX_STANDARD 23

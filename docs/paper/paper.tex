@@ -575,6 +575,85 @@ call \lstinline{set_is_empty<Impossible>} at compile time.
 The generated binary contains no membership-test code for \texttt{Impossible}:
 it is structurally pruned by the type checker before code generation.
 
+\subsubsection*{Showcase witnesses}
+
+Two concrete witnesses from the test suite demonstrate this in the actual
+\texttt{dedekind} API.
+
+\textbf{Showcase 1 — Diagonal contradiction in $\mathbb{R}^2$.}
+On the diagonal $\{(x,y) \mid x = y\}$, the strip predicate $x > 5 \land y < 3$
+is contradictory (since $x = y > 5$ forces $y > 5$, violating $y < 3$).
+The intersection is proven empty by \lstinline{static_assert}; the exported
+function compiles to a single \lstinline{ret i1 false}.
+
+\begin{lstlisting}[language=C++, caption={Showcase 1 source: diagonal contradiction in $\mathbb{R}^2$.}, label={lst:showcase01_src}]
+inline constexpr auto r2 = cartesian_product(R, R);
+using R2Point = typename decltype(r2)::Domain;
+inline constexpr auto xy = var<decltype(r2)>;
+
+inline constexpr auto diagonal_in_r2 = Set{xy % r2 | [](const R2Point& p) {
+  return p.first.resolve() == p.second.resolve();
+}};
+inline constexpr auto gt5_lt3_strip = Set{xy % r2 | [](const R2Point& p) {
+  return (p.first.resolve() > 5.0) && (p.second.resolve() < 3.0);
+}};
+inline constexpr auto empty_diagonal_cut = diagonal_in_r2 & gt5_lt3_strip;
+using R2Logic = typename decltype(empty_diagonal_cut)::logic_species;
+
+static_assert(empty_diagonal_cut(R2Point{Real<double>{6.0}, Real<double>{6.0}})
+              == R2Logic::False);
+
+extern "C" __attribute__((noinline)) bool impress_empty_diagonal_cut() {
+  return empty_diagonal_cut(R2Point{Real<double>{6.0}, Real<double>{6.0}})
+         == R2Logic::True;
+}
+\end{lstlisting}
+
+\begin{lstlisting}[caption={Showcase 1 LLVM IR (\texttt{clang++-22 -O2}): constant false return.}, label={lst:showcase01_ir}]
+define dso_local noundef zeroext i1 @impress_empty_diagonal_cut() #0 {
+entry:
+  ret i1 false
+}
+\end{lstlisting}
+
+\textbf{Showcase 2 — Lattice/square singleton in $\mathbb{C}$.}
+The natural-number lattice (Gaussian integers, $|\mathrm{Re}|,|\mathrm{Im}| \leq 3$)
+intersected with the square $[0.5,1.5]^2$ contains exactly $c_3 = 1+i$.
+The compiler proves all four membership assertions at translation time and folds the
+exported function to a single \lstinline{ret i1 true}.
+
+\begin{lstlisting}[language=C++, caption={Showcase 2 source: lattice/square singleton in $\mathbb{C}$.}, label={lst:showcase02_src}]
+inline constexpr auto c = var<C>;
+inline constexpr auto natural_lattice_in_c = lattice<C>.bounded(3);
+inline constexpr auto square_c1_c2 = Set{c % C | [](const Complex<double>& z) {
+  return (z.real() >= 0.5) && (z.real() <= 1.5)
+      && (z.imag() >= 0.5) && (z.imag() <= 1.5);
+}};
+inline constexpr auto lattice_square_intersection =
+    natural_lattice_in_c & square_c1_c2;
+using CLogic = typename decltype(lattice_square_intersection)::logic_species;
+
+static_assert(lattice_square_intersection(Complex<double>{1.0, 1.0}) == CLogic::True);
+static_assert(lattice_square_intersection(Complex<double>{0.0, 1.0}) == CLogic::False);
+
+extern "C" __attribute__((noinline)) bool impress_lattice_square_singleton() {
+  return (lattice_square_intersection(Complex<double>{1.0, 1.0}) == CLogic::True)
+      && (lattice_square_intersection(Complex<double>{0.0, 1.0}) == CLogic::False)
+      && (lattice_square_intersection(Complex<double>{1.0, 0.0}) == CLogic::False)
+      && (lattice_square_intersection(Complex<double>{2.0, 2.0}) == CLogic::False);
+}
+\end{lstlisting}
+
+\begin{lstlisting}[caption={Showcase 2 LLVM IR (\texttt{clang++-22 -O2}): constant true return.}, label={lst:showcase02_ir}]
+define dso_local noundef zeroext i1 @impress_lattice_square_singleton() #0 {
+entry:
+  ret i1 true
+}
+\end{lstlisting}
+
+Both showcases are checked into the repository as LLVM IR fixtures and validated
+in CI (\texttt{make ir-fixture-check}).
+
 \subsection{Algebraic Properties Enable Stronger Pruning}
 
 Beyond interval arithmetic, \emph{algebraic} properties of the predicates provide

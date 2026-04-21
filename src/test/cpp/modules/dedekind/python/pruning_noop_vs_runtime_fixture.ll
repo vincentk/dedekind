@@ -10,4 +10,10 @@ target triple = "x86_64-unknown-linux-gnu"
 ; @pruning_runtime_guard - Runtime path with function pointer
 ; Expected: indirect call through the function pointer
 
+; @impress_empty_diagonal_cut - Contradiction on diagonal in R^2
+; Expected: compile-time constant false
+
+; @impress_lattice_square_singleton - Lattice/square singleton witness
+; Expected: compile-time constant true
+
 attributes #0 = { noinline uwtable }

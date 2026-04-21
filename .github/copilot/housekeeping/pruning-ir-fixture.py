@@ -17,8 +17,28 @@ import sys
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[3]
-SOURCE = ROOT / "src" / "test" / "cpp" / "modules" / "dedekind" / "python" / "pruning_noop_vs_runtime_fixture.cpp"
-FIXTURE = ROOT / "src" / "test" / "cpp" / "modules" / "dedekind" / "python" / "pruning_noop_vs_runtime_fixture.ll"
+_PYTHON_DIR = ROOT / "src" / "test" / "cpp" / "modules" / "dedekind" / "python"
+
+# Each entry: (source file, checked-in fixture file, semantic checker)
+SOURCES = [
+    (
+        _PYTHON_DIR / "pruning_noop_vs_runtime_fixture.cpp",
+        _PYTHON_DIR / "pruning_noop_vs_runtime_fixture.ll",
+    ),
+    (
+        _PYTHON_DIR / "showcase_01_diagonal_contradiction.cpp",
+        _PYTHON_DIR / "showcase_01_diagonal_contradiction.ll",
+    ),
+    (
+        _PYTHON_DIR / "showcase_02_lattice_singleton.cpp",
+        _PYTHON_DIR / "showcase_02_lattice_singleton.ll",
+    ),
+]
+
+# Keep single-source aliases for backward compatibility with any callers.
+SOURCE = SOURCES[0][0]
+FIXTURE = SOURCES[0][1]
+
 BUILD_DIR = ROOT / "build"
 
 TARGET_TRIPLE = "x86_64-unknown-linux-gnu"
@@ -38,8 +58,8 @@ def ensure_cmake_target() -> None:
     )
 
 
-def generate_ir() -> str:
-    """Re-compile the fixture with -S -emit-llvm using the cmake-recorded flags."""
+def generate_ir(source: Path) -> str:
+    """Re-compile *source* with -S -emit-llvm using the cmake-recorded flags."""
     db_path = BUILD_DIR / "compile_commands.json"
     if not db_path.exists():
         raise RuntimeError(
@@ -49,12 +69,12 @@ def generate_ir() -> str:
 
     db = json.loads(db_path.read_text(encoding="utf-8"))
     entry = next(
-        (e for e in db if Path(e["file"]).name == SOURCE.name),
+        (e for e in db if Path(e["file"]).name == source.name),
         None,
     )
     if entry is None:
         raise RuntimeError(
-            f"No compile command for {SOURCE.name} in compile_commands.json.\n"
+            f"No compile command for {source.name} in compile_commands.json.\n"
             "Ensure set-pruning-ir-fixture has been built."
         )
 
@@ -104,63 +124,93 @@ def normalize_ir(ir_text: str) -> str:
     return "\n".join(normalized).rstrip() + "\n"
 
 
-def semantic_sanity(ir_text: str) -> None:
-    if "@pruning_compile_time_noop" not in ir_text:
-        raise AssertionError("IR missing pruning_compile_time_noop symbol.")
-    if "@pruning_runtime_guard" not in ir_text:
-        raise AssertionError("IR missing pruning_runtime_guard symbol.")
-    if "ret i1 false" not in ir_text:
-        raise AssertionError(
-            "Expected compile-time pruned intersection {false}∩{true}≡∅ "
-            "to reduce to a constant `ret i1 false` in IR."
-        )
-    # The runtime guard must retain an indirect call through the function pointer.
-    if "call" not in ir_text:
-        raise AssertionError(
-            "Expected runtime guard to retain an indirect call instruction in IR."
-        )
+def semantic_sanity(ir_text: str, source: Path) -> None:
+    name = source.name
+    if "pruning_noop_vs_runtime_fixture" in name:
+        if "@pruning_compile_time_noop" not in ir_text:
+            raise AssertionError("IR missing pruning_compile_time_noop symbol.")
+        if "@pruning_runtime_guard" not in ir_text:
+            raise AssertionError("IR missing pruning_runtime_guard symbol.")
+        if "ret i1 false" not in ir_text:
+            raise AssertionError(
+                "Expected contradictory compile-time predicates {false}∩{true}≡∅ "
+                "to collapse to a constant `ret i1 false` in IR "
+                "(semantic proof is also covered by static_assert in source)."
+            )
+        # One predicate remains unknown at compile time, so the runtime path must
+        # retain a call rather than collapsing to an inlined constant function.
+        if "call" not in ir_text:
+            raise AssertionError(
+                "Expected runtime guard to retain a runtime call instruction in IR."
+            )
+    elif "showcase_01_diagonal_contradiction" in name:
+        if "@impress_empty_diagonal_cut" not in ir_text:
+            raise AssertionError("IR missing impress_empty_diagonal_cut symbol.")
+        if "ret i1 false" not in ir_text:
+            raise AssertionError(
+                "Expected diagonal contradiction to collapse to `ret i1 false` in IR."
+            )
+    elif "showcase_02_lattice_singleton" in name:
+        if "@impress_lattice_square_singleton" not in ir_text:
+            raise AssertionError(
+                "IR missing impress_lattice_square_singleton symbol."
+            )
+        if "ret i1 true" not in ir_text:
+            raise AssertionError(
+                "Expected lattice singleton witness to collapse to `ret i1 true` in IR."
+            )
+    else:
+        raise AssertionError(f"No semantic checks defined for {name}.")
 
 
 def refresh() -> int:
     ensure_cmake_target()
-    ir_text = generate_ir()
-    semantic_sanity(ir_text)
-    FIXTURE.write_text(ir_text, encoding="utf-8")
-    print(f"Refreshed fixture: {FIXTURE}")
+    for source, fixture in SOURCES:
+        ir_text = generate_ir(source)
+        semantic_sanity(ir_text, source)
+        fixture.write_text(ir_text, encoding="utf-8")
+        print(f"Refreshed fixture: {fixture}")
     print(f"Target triple: {TARGET_TRIPLE}")
     return 0
 
 
 def check() -> int:
     ensure_cmake_target()
-    actual = generate_ir()
-    semantic_sanity(actual)
+    failed = False
+    for source, fixture in SOURCES:
+        actual = generate_ir(source)
+        semantic_sanity(actual, source)
 
-    if not FIXTURE.exists():
-        print(f"Missing fixture file: {FIXTURE}", file=sys.stderr)
-        print("Run: make ir-fixture-refresh", file=sys.stderr)
-        return 2
+        if not fixture.exists():
+            print(f"Missing fixture file: {fixture}", file=sys.stderr)
+            print("Run: make ir-fixture-refresh", file=sys.stderr)
+            failed = True
+            continue
 
-    expected = FIXTURE.read_text(encoding="utf-8")
-    if actual == expected:
-        print("IR fixture check passed.")
-        print(f"Target triple: {TARGET_TRIPLE}")
-        return 0
+        expected = fixture.read_text(encoding="utf-8")
+        if actual == expected:
+            print(f"IR fixture check passed: {fixture.name}")
+            continue
 
-    print("IR fixture mismatch detected.", file=sys.stderr)
-    print(f"Target triple: {TARGET_TRIPLE}", file=sys.stderr)
-    diff = difflib.unified_diff(
-        expected.splitlines(),
-        actual.splitlines(),
-        fromfile=str(FIXTURE),
-        tofile="<generated>",
-        n=3,
-        lineterm="",
-    )
-    for line in diff:
-        print(line, file=sys.stderr)
-    print("\nRun: make ir-fixture-refresh", file=sys.stderr)
-    return 1
+        print(f"IR fixture mismatch detected: {fixture.name}", file=sys.stderr)
+        diff = difflib.unified_diff(
+            expected.splitlines(),
+            actual.splitlines(),
+            fromfile=str(fixture),
+            tofile="<generated>",
+            n=3,
+            lineterm="",
+        )
+        for line in diff:
+            print(line, file=sys.stderr)
+        failed = True
+
+    if failed:
+        print(f"Target triple: {TARGET_TRIPLE}", file=sys.stderr)
+        print("\nRun: make ir-fixture-refresh", file=sys.stderr)
+        return 1
+    print(f"Target triple: {TARGET_TRIPLE}")
+    return 0
 
 
 def parse_args() -> argparse.Namespace:
