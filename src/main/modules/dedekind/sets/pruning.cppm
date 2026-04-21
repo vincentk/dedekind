@@ -46,6 +46,7 @@
 module;
 
 #include <concepts>
+#include <iterator>
 #include <type_traits>
 #include <utility>
 
