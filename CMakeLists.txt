@@ -243,7 +243,9 @@ if(DEDEKIND_BUILD_PYTHON_BINDINGS)
 endif()
 
 
-# --- 3. THE FINAL ASSEMBLY (The Public Interface) ---
+# --- 2. EXAMPLE DEMONSTRATIONS ---
+# Standalone examples showcasing compiler optimizations and set algebra semantics
+add_subdirectory(examples)
 
 # The book of math according to the dedekind project.
 # Each chapter corresponds the book to an object file which in turn
