@@ -74,22 +74,12 @@ concept IsPairLikeProduct = requires(P p) {
   { p.second } -> std::convertible_to<B>;
 };
 
-template <typename P, typename A, typename B>
-concept IsTupleLikeProduct = requires(P p) {
-  requires std::tuple_size_v<std::remove_cvref_t<P>> == 2;
-  { std::get<0>(p) } -> std::convertible_to<A>;
-  { std::get<1>(p) } -> std::convertible_to<B>;
-};
-
 export template <typename P, typename A, typename B>
-concept IsProduct = IsPairLikeProduct<P, A, B> || IsTupleLikeProduct<P, A, B>;
+concept IsProduct = IsPairLikeProduct<P, A, B>;
 
 static_assert(
     IsProduct<std::pair<int, bool>, int, bool>,
     "Verification Failed: std::pair<int, bool> must satisfy IsProduct.");
-static_assert(
-    IsProduct<std::tuple<int, bool>, int, bool>,
-    "Verification Failed: std::tuple<int, bool> must satisfy IsProduct.");
 
 template <typename A, typename B>
 struct SpeciesTraits<std::pair<A, B>> {

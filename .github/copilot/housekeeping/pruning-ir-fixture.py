@@ -112,50 +112,70 @@ def normalize_ir(ir_text: str) -> str:
     lines = ir_text.splitlines()
     normalized: list[str] = []
     for line in lines:
-      if line.startswith("; ModuleID ="):
-          continue
-      if line.startswith("source_filename ="):
-          continue
-      if line.startswith("!llvm.ident ="):
-          continue
-      if re.match(r"^!\d+ = !\{!\".*clang version.*\"\}$", line):
-          continue
-      normalized.append(line)
+        if line.startswith("; ModuleID ="):
+            continue
+        if line.startswith("source_filename ="):
+            continue
+        if line.startswith("target datalayout ="):
+            continue
+        if line.startswith("target triple ="):
+            continue
+        if line.startswith("!llvm.ident ="):
+            continue
+        if re.match(r"^!\d+ = !\{!\".*clang version.*\"\}$", line):
+            continue
+        normalized.append(line)
     return "\n".join(normalized).rstrip() + "\n"
+
+
+def extract_function_block(ir_text: str, symbol: str) -> str | None:
+    pattern = re.compile(
+        rf"(?ms)^define\b.*@{re.escape(symbol)}\b.*?\n\}}"
+    )
+    match = pattern.search(ir_text)
+    return match.group(0) if match else None
+
+
+def has_indirect_call(function_ir: str) -> bool:
+    return re.search(r"(?m)\bcall\b[^\n@]*%[-a-zA-Z$._0-9]+", function_ir) is not None
 
 
 def semantic_sanity(ir_text: str, source: Path) -> None:
     name = source.name
     if "pruning_noop_vs_runtime_fixture" in name:
-        if "@pruning_compile_time_noop" not in ir_text:
+        noop_block = extract_function_block(ir_text, "pruning_compile_time_noop")
+        if noop_block is None:
             raise AssertionError("IR missing pruning_compile_time_noop symbol.")
-        if "@pruning_runtime_guard" not in ir_text:
+        runtime_block = extract_function_block(ir_text, "pruning_runtime_guard")
+        if runtime_block is None:
             raise AssertionError("IR missing pruning_runtime_guard symbol.")
-        if "ret i1 false" not in ir_text:
+        if "ret i1 false" not in noop_block:
             raise AssertionError(
                 "Expected contradictory compile-time predicates {false}∩{true}≡∅ "
                 "to collapse to a constant `ret i1 false` in IR "
                 "(semantic proof is also covered by static_assert in source)."
             )
         # One predicate remains unknown at compile time, so the runtime path must
-        # retain a call rather than collapsing to an inlined constant function.
-        if "call" not in ir_text:
+        # retain an indirect call through the function pointer.
+        if not has_indirect_call(runtime_block):
             raise AssertionError(
-                "Expected runtime guard to retain a runtime call instruction in IR."
+                "Expected runtime guard to retain an indirect call instruction in IR."
             )
     elif "showcase_01_diagonal_contradiction" in name:
-        if "@impress_empty_diagonal_cut" not in ir_text:
+        block = extract_function_block(ir_text, "impress_empty_diagonal_cut")
+        if block is None:
             raise AssertionError("IR missing impress_empty_diagonal_cut symbol.")
-        if "ret i1 false" not in ir_text:
+        if "ret i1 false" not in block:
             raise AssertionError(
                 "Expected diagonal contradiction to collapse to `ret i1 false` in IR."
             )
     elif "showcase_02_lattice_singleton" in name:
-        if "@impress_lattice_square_singleton" not in ir_text:
+        block = extract_function_block(ir_text, "impress_lattice_square_singleton")
+        if block is None:
             raise AssertionError(
                 "IR missing impress_lattice_square_singleton symbol."
             )
-        if "ret i1 true" not in ir_text:
+        if "ret i1 true" not in block:
             raise AssertionError(
                 "Expected lattice singleton witness to collapse to `ret i1 true` in IR."
             )

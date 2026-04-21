@@ -29,8 +29,15 @@ constexpr auto complex_im_nonnegative = [](const Complex<double>& z) {
   return z.imag() >= 0.0;
 };
 
+constexpr auto real_le_zero = [](const Real<double>& x) {
+  return x.resolve() <= 0.0;
+};
+constexpr auto real_ge_three = [](const Real<double>& x) {
+  return x.resolve() >= 3.0;
+};
+
 constexpr auto real_between = real_gt_zero && real_lt_three;
-constexpr auto real_outside_band = real_gt_zero || real_lt_three;
+constexpr auto real_outside_band = real_le_zero || real_ge_three;
 constexpr auto complex_first_quadrant =
     complex_re_positive && complex_im_nonnegative;
 constexpr auto complex_not_third_quadrant =

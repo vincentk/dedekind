@@ -141,11 +141,13 @@ struct IsComplementPair : std::false_type {};
 
 template <typename P, typename Q>
 struct IsComplementPair<NegatedPredicate<P>, Q>
-    : std::bool_constant<std::same_as<std::decay_t<P>, std::decay_t<Q>>> {};
+    : std::bool_constant<std::is_empty_v<P> &&
+                         std::same_as<std::decay_t<P>, std::decay_t<Q>>> {};
 
 template <typename P, typename Q>
 struct IsComplementPair<P, NegatedPredicate<Q>>
-    : std::bool_constant<std::same_as<std::decay_t<P>, std::decay_t<Q>>> {};
+    : std::bool_constant<std::is_empty_v<Q> &&
+                         std::same_as<std::decay_t<P>, std::decay_t<Q>>> {};
 
 template <typename P1, typename P2>
 inline constexpr bool IsComplementPair_v =

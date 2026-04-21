@@ -276,10 +276,6 @@ static_assert(
     "ComplexesOf must be the canonical IsSet anchor for "
     "dedekind.numbers:complex.");
 
-}  // namespace dedekind::numbers
-
-namespace dedekind::numbers {
-
 /**
  * @brief Canonical embedding ℤ² ↪ ℂ: (x, y) ↦ x + iy.
  *
