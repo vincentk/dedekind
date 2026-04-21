@@ -327,8 +327,7 @@ TEST_CASE(
  * criteria. Construct with a concrete epi/section pair and call the helpers.
  */
 template <typename Epi, typename Section>
-  requires IsSplitEpicPair<Epi, Section> &&
-           std::equality_comparable<Cod<Epi>>
+  requires IsSplitEpicPair<Epi, Section> && std::equality_comparable<Cod<Epi>>
 struct SplitEpiLawFixture {
   Epi epi;
   Section section;
