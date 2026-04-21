@@ -1,6 +1,8 @@
 /**
- * @file src/test/cpp/modules/dedekind/python/pruning_noop_vs_runtime_fixture.cpp
- * @brief Compile-time pruning witness via the dedekind.sets intensional Set DSL.
+ * @file
+ * src/test/cpp/modules/dedekind/python/pruning_noop_vs_runtime_fixture.cpp
+ * @brief Compile-time pruning witness via the dedekind.sets intensional Set
+ * DSL.
  *
  * The library under test is dedekind.sets; in particular Set::operator& and
  * Set::operator| which compose predicates transparently so that the compiler
@@ -35,17 +37,17 @@ inline constexpr auto b = var<𝔹>;
 inline constexpr auto b_false = Set{b % B | (b == false)};
 
 // { x ∈ 𝔹 | x == true }   =  the singleton {true}  ⊂ 𝔹
-inline constexpr auto b_true  = Set{b % B | (b == true)};
+inline constexpr auto b_true = Set{b % B | (b == true)};
 
 // {false} and {true} partition 𝔹: their intersection is ∅ ...
 static_assert(Ø<bool, ClassicalLogic>{} == (b_false & b_true));
 static_assert((b_false & b_true)(false) == false);
-static_assert((b_false & b_true)(true)  == false);
+static_assert((b_false & b_true)(true) == false);
 
 // ... and their union covers 𝔹 entirely.
 static_assert(B == (b_false | b_true));
 static_assert((b_false | b_true)(false) == true);
-static_assert((b_false | b_true)(true)  == true);
+static_assert((b_false | b_true)(true) == true);
 
 /**
  * @brief Compile-time pruned path.
@@ -56,8 +58,7 @@ static_assert((b_false | b_true)(true)  == true);
  *
  * Expected IR: a single `ret i1 false`.
  */
-extern "C" __attribute__((noinline)) bool
-pruning_compile_time_noop(bool x) {
+extern "C" __attribute__((noinline)) bool pruning_compile_time_noop(bool x) {
   return (b_false & b_true)(x);
 }
 
@@ -69,9 +70,8 @@ pruning_compile_time_noop(bool x) {
  *
  * Expected IR: an indirect call through the function pointer.
  */
-extern "C" __attribute__((noinline)) bool
-pruning_runtime_guard(bool x, bool (*runtime_pred)(bool)) {
-  const auto dynamic =
-      Set<bool, ClassicalLogic, bool (*)(bool)>{runtime_pred};
+extern "C" __attribute__((noinline)) bool pruning_runtime_guard(
+    bool x, bool (*runtime_pred)(bool)) {
+  const auto dynamic = Set<bool, ClassicalLogic, bool (*)(bool)>{runtime_pred};
   return (b_false & dynamic)(x);
 }
