@@ -110,8 +110,10 @@ TEST_CASE("ETCS: IsSet alignment with :cartesian witnesses is explicit",
       decltype(ambient_set<int>([](const int&) { return true; }));
 
   STATIC_CHECK(IsSet<CanonicalIntSetObject>);
-  STATIC_CHECK(HasAxiom5CartesianProduct<typename CanonicalIntSetObject::Ambient>);
-  STATIC_CHECK(HasAxiom6Exponentiation<typename CanonicalIntSetObject::Ambient>);
+  STATIC_CHECK(
+      HasAxiom5CartesianProduct<typename CanonicalIntSetObject::Ambient>);
+  STATIC_CHECK(
+      HasAxiom6Exponentiation<typename CanonicalIntSetObject::Ambient>);
 }
 
 TEST_CASE("ETCS axiom 10: split-epi witness surface is explicit",

@@ -37,8 +37,9 @@ using namespace dedekind::sets;
 using namespace dedekind::category;
 
 static_assert(dedekind::category::IsSet<
-          decltype(dedekind::category::ambient_set<int>(Ω<int>{}))>,
-        "dedekind.order is grounded on canonical ETCS set objects imported from dedekind.sets.");
+                  decltype(dedekind::category::ambient_set<int>(Ω<int>{}))>,
+              "dedekind.order is grounded on canonical ETCS set objects "
+              "imported from dedekind.sets.");
 
 /**
  * @concept IsPreOrdered

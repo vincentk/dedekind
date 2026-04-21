@@ -241,8 +241,9 @@ export using ℤ = IntegerSet;
 export inline constexpr ℤ Z{};
 
 static_assert(dedekind::category::IsSet<
-          decltype(dedekind::category::ambient_set<int>(Z))>,
-        "IntegersOf must be the canonical IsSet anchor for dedekind.numbers:integer.");
+                  decltype(dedekind::category::ambient_set<int>(Z))>,
+              "IntegersOf must be the canonical IsSet anchor for "
+              "dedekind.numbers:integer.");
 
 /**
  * @brief Canonical embedding ℕ ↪ ℤ: unsigned int → int.

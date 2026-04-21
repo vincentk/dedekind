@@ -158,11 +158,12 @@ static_assert(IsPointedSet<SingletonSet<int>, int> &&
                   IsExtensional<SingletonSet<int>>,
               "Mereology: SingletonSet must satisfy the Singleton axiom.");
 static_assert(
-  dedekind::category::IsSet<decltype(dedekind::category::ambient_set<int>(
-    SingletonSet<int>{0}))>,
-  "SingletonSet must lift to an ETCS set object.");
+    dedekind::category::IsSet<
+        decltype(dedekind::category::ambient_set<int>(SingletonSet<int>{0}))>,
+    "SingletonSet must lift to an ETCS set object.");
 static_assert(dedekind::category::HasCanonicalSetCCC<int>,
-        "Breadcrumb to :cartesian: singleton ambient int has canonical CCC witness.");
+              "Breadcrumb to :cartesian: singleton ambient int has canonical "
+              "CCC witness.");
 
 /** @section The_Set_Monad_Realization */
 

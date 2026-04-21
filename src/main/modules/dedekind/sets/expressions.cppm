@@ -249,8 +249,8 @@ static_assert(
     "object.");
 
 static_assert(
-  dedekind::category::HasCanonicalSetCCC<int>,
-  "Breadcrumb to :cartesian: ambient int carries canonical CCC witness.");
+    dedekind::category::HasCanonicalSetCCC<int>,
+    "Breadcrumb to :cartesian: ambient int carries canonical CCC witness.");
 
 /** @section Identity_CTAD */
 template <typename Species>
@@ -326,17 +326,20 @@ constexpr auto cartesian_product(const Set<T1, L1, P1>& a,
 }
 
 using CanonicalIntSet =
-  Set<int, dedekind::category::ClassicalLogic, UniversalPredicate<int>>;
-using CanonicalIntProductSet = decltype(cartesian_product(
-  std::declval<const CanonicalIntSet&>(), std::declval<const CanonicalIntSet&>()));
+    Set<int, dedekind::category::ClassicalLogic, UniversalPredicate<int>>;
+using CanonicalIntProductSet =
+    decltype(cartesian_product(std::declval<const CanonicalIntSet&>(),
+                               std::declval<const CanonicalIntSet&>()));
 
-static_assert(dedekind::category::IsProduct<typename CanonicalIntProductSet::Domain,
-                      int, int>,
-        "sets::cartesian_product must expose a std::pair product domain.");
 static_assert(
-  dedekind::category::IsSet<decltype(dedekind::category::ambient_set<
-    typename CanonicalIntProductSet::Domain>(std::declval<const CanonicalIntProductSet&>()))>,
-  "sets::cartesian_product output must ETCS-lift through ambient_set.");
+    dedekind::category::IsProduct<typename CanonicalIntProductSet::Domain, int,
+                                  int>,
+    "sets::cartesian_product must expose a std::pair product domain.");
+static_assert(
+    dedekind::category::IsSet<decltype(dedekind::category::ambient_set<
+                                       typename CanonicalIntProductSet::Domain>(
+        std::declval<const CanonicalIntProductSet&>()))>,
+    "sets::cartesian_product output must ETCS-lift through ambient_set.");
 
 /**
  * @brief A Relation from A to B is a set of pairs: a subset of A × B.

@@ -298,9 +298,10 @@ export using ℚ = RationalSet;
 export inline constexpr ℚ Q{};
 
 static_assert(
-  dedekind::category::IsSet<decltype(dedekind::category::ambient_set<
-    Rational<default_integer>>(Q))>,
-  "RationalsOf must be the canonical IsSet anchor for dedekind.numbers:rational.");
+    dedekind::category::IsSet<decltype(dedekind::category::ambient_set<
+                                       Rational<default_integer>>(Q))>,
+    "RationalsOf must be the canonical IsSet anchor for "
+    "dedekind.numbers:rational.");
 
 /**
  * @brief Machine realization arrow ℤ ↪ ℚ: machine_integer → Rational<I>.
