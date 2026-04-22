@@ -15,6 +15,7 @@ module;
 #include <concepts>
 #include <cstddef>
 #include <functional>
+#include <optional>
 #include <type_traits>
 #include <utility>
 
@@ -34,13 +35,9 @@ using namespace dedekind::sets;
 
 /**
  * @concept IsEscapeCriterion
- * @brief Abstractly specifies when an orbit point has "escaped" to infinity.
+ * @brief Classical (Boolean) escape predicate: Complex<R> → bool.
  *
- * An escape criterion is a callable that maps a complex number to a boolean:
- * true if the point exceeds the escape radius, false otherwise.
- *
- * Formally, it encodes a predicate P : C -> {true, false} such that
- * P(z) = true when the magnitude condition signals eventual divergence.
+ * True when the magnitude condition signals eventual divergence.
  */
 template <typename EscapeCriterion, typename ComplexType>
 concept IsEscapeCriterion =
@@ -50,15 +47,42 @@ concept IsEscapeCriterion =
                  bool>;
 
 /**
- * @brief Default escape criterion: Euclidean closed ball.
+ * @concept IsKleeneEscapeCriterion
+ * @brief Kleene escape predicate: Complex<R> → Ternary.
  *
- * Returns a predicate that is true when |z|^2 > escape_radius_squared.
- * This is the standard criterion for Mandelbrot dynamics: if |z| > 2,
- * the orbit escapes to infinity monotonically.
+ * True  = escape witnessed.
+ * Unknown = not yet escaped (open question).
+ * False = provably bounded (unreachable by finite computation alone).
+ */
+template <typename KleeneCriterion, typename ComplexType>
+concept IsKleeneEscapeCriterion =
+    std::copy_constructible<std::decay_t<KleeneCriterion>> &&
+    std::invocable<const std::decay_t<KleeneCriterion>&, const ComplexType&> &&
+    std::same_as<std::invoke_result_t<const std::decay_t<KleeneCriterion>&,
+                                      const ComplexType&>,
+                 Ternary>;
+
+/**
+ * Classical escape criterion: |z|² > r².
  */
 export template <IsComplexScalar R>
 constexpr auto euclidean_escape_radius_squared(R escape_radius_squared = R{4}) {
   return outside_closed_euclidean_ball_squared(escape_radius_squared);
+}
+
+/**
+ * Kleene escape criterion: True if |z|² > r², Unknown otherwise.
+ *
+ * The asymmetry is epistemic: we can witness divergence (True) but
+ * cannot prove boundedness from a finite prefix (so never False).
+ */
+export template <IsComplexScalar R>
+constexpr auto kleene_escape_radius_squared(R escape_radius_squared = R{4}) {
+  return [escape_radius_squared](const Complex<R>& z) -> Ternary {
+    return outside_closed_euclidean_ball_squared(escape_radius_squared)(z)
+               ? Ternary::True
+               : Ternary::Unknown;
+  };
 }
 
 export template <IsComplexScalar R>
@@ -73,6 +97,87 @@ export template <IsComplexScalar R>
 constexpr auto mandelbrot_orbit(const Complex<R>& c) {
   const auto zero = partial_identity_v<Complex<R>, PartialAddComplex<R>>;
   return iterate(zero, mandelbrot_step(c));
+}
+
+/**
+ * The divergence spectrum of an orbit: a monotone Path<Ternary>.
+ *
+ *   orbit_divergence_path(orbit, p)(n)
+ *     = exists(prefix(orbit, n+1), p)
+ *     = True    if ∃ k ≤ n : p(z_k) = True   (escape witnessed)
+ *     = Unknown if ∀ k ≤ n : p(z_k) = Unknown (no escape yet)
+ *
+ * Monotonicity: True is the absorbing element of Kleene OR, so once the
+ * path reaches True it stays there.  A monotone {Unknown,True}-valued path
+ * is isomorphic to ℕ∞ — its information content is exactly the escape time.
+ *
+ * This is the intensional form; orbit_escape_time() is the materialization.
+ */
+export template <IsComplexScalar R, typename KleeneCriterion>
+  requires IsKleeneEscapeCriterion<KleeneCriterion, Complex<R>>
+constexpr auto orbit_divergence_path(const OrbitPath<R>& orbit,
+                                     KleeneCriterion criterion)
+    -> Path<Ternary> {
+  return scan(
+      [criterion](const FinitePath<Complex<R>>& p) -> Ternary {
+        return exists(p, classify<Complex<R>>(criterion).χ);
+      },
+      orbit);
+}
+
+/**
+ * The escape time: the first index k ≤ max_iter at which the orbit escapes,
+ * or nullopt if no escape is witnessed within the budget.
+ *
+ *   orbit_escape_time(orbit, n, p) = min { k ≤ n | p(z_k) }  or  nullopt
+ *
+ * This is the canonical materialization of the divergence spectrum:
+ *   orbit_divergence_path(orbit, kleene(p)).at(n) = True
+ *     iff orbit_escape_time(orbit, n, p).has_value()
+ *
+ * Escape time is strictly more informative than orbit_escapes() — it carries
+ * the depth at which divergence was witnessed, enabling escape-time colouring
+ * of the tower approximation.
+ */
+export template <IsComplexScalar R, typename EscapeCriterion>
+  requires IsEscapeCriterion<EscapeCriterion, Complex<R>>
+constexpr std::optional<std::size_t> orbit_escape_time(
+    const OrbitPath<R>& orbit, std::size_t max_iter,
+    const EscapeCriterion& criterion) {
+  return first_where(orbit, criterion, max_iter);
+}
+
+/**
+ * @overload with default Euclidean escape radius.
+ */
+export template <IsComplexScalar R>
+constexpr std::optional<std::size_t> orbit_escape_time(
+    const OrbitPath<R>& orbit, std::size_t max_iter,
+    R escape_radius_squared = R{4}) {
+  return orbit_escape_time(orbit, max_iter,
+                           euclidean_escape_radius_squared(escape_radius_squared));
+}
+
+/**
+ * Boolean collapse: did the orbit escape within max_iter steps?
+ *
+ *   orbit_escapes(orbit, n, p) ≡ orbit_escape_time(orbit, n, p).has_value()
+ */
+export template <IsComplexScalar R, typename EscapeCriterion>
+  requires IsEscapeCriterion<EscapeCriterion, Complex<R>>
+constexpr bool orbit_escapes(const OrbitPath<R>& orbit, std::size_t max_iter,
+                             const EscapeCriterion& escape_criterion) {
+  return orbit_escape_time(orbit, max_iter, escape_criterion).has_value();
+}
+
+/**
+ * @overload with default Euclidean escape radius.
+ */
+export template <IsComplexScalar R>
+constexpr bool orbit_escapes(const OrbitPath<R>& orbit, std::size_t max_iter,
+                             R escape_radius_squared = R{4}) {
+  return orbit_escapes(orbit, max_iter,
+                       euclidean_escape_radius_squared(escape_radius_squared));
 }
 
 /**
@@ -97,50 +202,15 @@ constexpr auto M(BoundedPredicate is_bounded) {
 }
 
 /**
- * Test whether any point in the first max_iter steps of an orbit escapes.
- *
- * Mathematical intent:
- *   orbit_escapes(orbit, n, p) ≡ ∃ k ≤ n : p(z_k)
- *
- * The finiteness bound lives here — at the single place where we decide how
- * much evidence to inspect — rather than being threaded through every
- * intermediate function as a polymorphic Window functor.
- *
- * exists() short-circuits on the absorbing element (True), so this is
- * efficient even when the orbit escapes early.
- * Note: prefix length is max_iter + 1 to include z_max_iter (satisfying the ≤ n
- * semantics).
- */
-export template <IsComplexScalar R, typename EscapeCriterion>
-  requires IsEscapeCriterion<EscapeCriterion, Complex<R>>
-constexpr bool orbit_escapes(const OrbitPath<R>& orbit, std::size_t max_iter,
-                             const EscapeCriterion& escape_criterion) {
-  return exists(prefix(orbit, max_iter + 1),
-                classify<Complex<R>>(escape_criterion).χ);
-}
-
-/**
- * @overload with default Euclidean escape radius (radius² = 4, i.e. |z| > 2).
- */
-export template <IsComplexScalar R>
-constexpr bool orbit_escapes(const OrbitPath<R>& orbit, std::size_t max_iter,
-                             R escape_radius_squared = R{4}) {
-  return orbit_escapes(orbit, max_iter,
-                       euclidean_escape_radius_squared(escape_radius_squared));
-}
-
-/**
- * Finite-prefix orbit criterion used in executable approximations.
- *
- * Returns true iff the orbit does NOT escape within the first max_iter steps.
- *   prefix_bounded_N(orbit) ≡ ¬ ∃ k ≤ N : |z_k|² > r²
+ * Finite-prefix orbit criterion: true iff orbit does not escape within N steps.
+ *   prefix_bounded_N(orbit) ≡ ¬ orbit_escape_time(orbit, N).has_value()
  */
 export template <IsComplexScalar R, typename EscapeCriterion>
   requires IsEscapeCriterion<EscapeCriterion, Complex<R>>
 constexpr auto prefix_bounded_N(std::size_t max_iter,
                                 EscapeCriterion escape_criterion) {
   return [max_iter, escape_criterion](const OrbitPath<R>& orbit) {
-    return !orbit_escapes(orbit, max_iter, escape_criterion);
+    return !orbit_escape_time(orbit, max_iter, escape_criterion).has_value();
   };
 }
 

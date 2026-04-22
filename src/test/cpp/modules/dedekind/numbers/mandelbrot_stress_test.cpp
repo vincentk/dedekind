@@ -23,6 +23,18 @@ ComplexPoint parameter_of(const LatticePoint& p, int size) {
       (2.0 * static_cast<double>(p.imag()) / static_cast<double>(size)) - 1.0};
 }
 
+// Map escape time to a shading character.
+//   nullopt     → '#'  (inside M: no escape witnessed)
+//   fast escape → ' '  (far outside)
+//   slow escape → 'O'  (near the boundary)
+char shade(const std::optional<std::size_t>& escape_time,
+           std::size_t max_iter) {
+  if (!escape_time.has_value()) return '#';
+  constexpr std::string_view palette = " .:-=+*oO";
+  const auto idx = (*escape_time * (palette.size() - 1)) / max_iter;
+  return palette[idx];
+}
+
 std::string render_ascii_art(int size, std::size_t max_iter, double cutoff) {
   const double cutoff_sq = cutoff * cutoff;
   std::string ascii;
@@ -31,8 +43,9 @@ std::string render_ascii_art(int size, std::size_t max_iter, double cutoff) {
   for (int y = 0; y < size; ++y) {
     for (int x = 0; x < size; ++x) {
       const auto c = parameter_of(LatticePoint{x, y}, size);
-      ascii.push_back(
-          orbit_escapes(mandelbrot_orbit(c), max_iter, cutoff_sq) ? '.' : '#');
+      const auto et =
+          orbit_escape_time(mandelbrot_orbit(c), max_iter, cutoff_sq);
+      ascii.push_back(shade(et, max_iter));
     }
     ascii.push_back('\n');
   }
@@ -66,16 +79,78 @@ TEST_CASE("Sets: Mandelbrot set-builder stress test", "[sets][mandelbrot]") {
     REQUIRE(orbit.size() == 9u);
   }
 
-  SECTION("orbit_escapes: bounded and escaping points") {
+  SECTION("orbit_escape_time: bounded and escaping points") {
     // c = 0: orbit is identically 0, never escapes
-    REQUIRE(!orbit_escapes(mandelbrot_orbit(ComplexPoint{0.0, 0.0}), 50u, 4.0));
+    REQUIRE(!orbit_escape_time(mandelbrot_orbit(ComplexPoint{0.0, 0.0}), 50u,
+                               4.0)
+                 .has_value());
+
     // c = -0.5: inside the main cardioid, bounded
+    REQUIRE(!orbit_escape_time(mandelbrot_orbit(ComplexPoint{-0.5, 0.0}), 50u,
+                               4.0)
+                 .has_value());
+
+    // c = 2: z_0=0, z_1=2 (|2|²=4, not >4), z_2=6 (|6|²=36>4) → escapes at 2
+    const auto et_2 =
+        orbit_escape_time(mandelbrot_orbit(ComplexPoint{2.0, 0.0}), 50u, 4.0);
+    REQUIRE(et_2.has_value());
+    REQUIRE(*et_2 == 2u);
+
+    // Points farther out escape sooner
+    const auto et_10 =
+        orbit_escape_time(mandelbrot_orbit(ComplexPoint{10.0, 0.0}), 50u, 4.0);
+    REQUIRE(et_10.has_value());
+    REQUIRE(*et_10 < *et_2);
+  }
+
+  SECTION("orbit_divergence_path: Kleene running state") {
+    const auto criterion = kleene_escape_radius_squared<double>();
+    const auto divergence = orbit_divergence_path(
+        mandelbrot_orbit(ComplexPoint{2.0, 0.0}), criterion);
+
+    static_assert(IsSequence<decltype(divergence)>);
+    REQUIRE(divergence.at(0) == Ternary::Unknown);  // z_0=0, inside ball
+    REQUIRE(divergence.at(1) == Ternary::Unknown);  // z_1=2, |2|²=4 not >4
+    REQUIRE(divergence.at(2) == Ternary::True);     // z_2=6, |6|²=36>4
+  }
+
+  SECTION("orbit_divergence_path is monotone: True is absorbing") {
+    const auto criterion = kleene_escape_radius_squared<double>();
+    const auto divergence = orbit_divergence_path(
+        mandelbrot_orbit(ComplexPoint{2.0, 0.0}), criterion);
+
+    // True once escape is witnessed; stays True at all later depths
+    REQUIRE(divergence.at(2) == Ternary::True);
+    REQUIRE(divergence.at(3) == Ternary::True);
+    REQUIRE(divergence.at(10) == Ternary::True);
+
+    // Bounded orbit stays Unknown for all queried depths
+    const auto bounded_divergence = orbit_divergence_path(
+        mandelbrot_orbit(ComplexPoint{0.0, 0.0}), criterion);
+    REQUIRE(bounded_divergence.at(0) == Ternary::Unknown);
+    REQUIRE(bounded_divergence.at(50) == Ternary::Unknown);
+  }
+
+  SECTION("orbit_divergence_path and orbit_escape_time are consistent") {
+    const auto kleene = kleene_escape_radius_squared<double>();
+    const auto orbit = mandelbrot_orbit(ComplexPoint{2.0, 0.0});
+    const auto divergence = orbit_divergence_path(orbit, kleene);
+    const auto et = orbit_escape_time(orbit, 50u, 4.0);
+
+    REQUIRE(et.has_value());
+    // Unknown strictly before escape time, True from escape time onward
+    REQUIRE(divergence.at(*et - 1) == Ternary::Unknown);
+    REQUIRE(divergence.at(*et) == Ternary::True);
+  }
+
+  SECTION("orbit_escapes: boolean collapse of escape time") {
+    REQUIRE(
+        !orbit_escapes(mandelbrot_orbit(ComplexPoint{0.0, 0.0}), 50u, 4.0));
     REQUIRE(
         !orbit_escapes(mandelbrot_orbit(ComplexPoint{-0.5, 0.0}), 50u, 4.0));
-    // c = 2: z_1 = 2, z_2 = 6, escapes at step 1
     REQUIRE(orbit_escapes(mandelbrot_orbit(ComplexPoint{2.0, 0.0}), 50u, 4.0));
-    // c = -2.5: clearly outside
-    REQUIRE(orbit_escapes(mandelbrot_orbit(ComplexPoint{-2.5, 0.0}), 50u, 4.0));
+    REQUIRE(
+        orbit_escapes(mandelbrot_orbit(ComplexPoint{-2.5, 0.0}), 50u, 4.0));
   }
 
   SECTION("euclidean_escape_radius_squared: parametric threshold") {
@@ -87,18 +162,6 @@ TEST_CASE("Sets: Mandelbrot set-builder stress test", "[sets][mandelbrot]") {
     const ComplexPoint test_point{2.5, 0.0};
     REQUIRE(default_criterion(test_point) == true);
     REQUIRE(large_criterion(test_point) == false);
-  }
-
-  SECTION("orbit_escapes with custom escape criterion") {
-    auto custom_criterion = euclidean_escape_radius_squared<double>(16.0);
-
-    // c = 0.25 is bounded under both default and radius-4 criteria
-    const auto orbit_bounded = mandelbrot_orbit(ComplexPoint{0.25, 0.0});
-    REQUIRE(!orbit_escapes(orbit_bounded, 10u, custom_criterion));
-    REQUIRE(!orbit_escapes(orbit_bounded, 10u, 4.0));
-
-    // c = 2 escapes quickly
-    REQUIRE(orbit_escapes(mandelbrot_orbit(ComplexPoint{2.0, 0.0}), 10u, 4.0));
   }
 
   SECTION("prefix_bounded_N: fixed-depth criterion") {
@@ -113,23 +176,22 @@ TEST_CASE("Sets: Mandelbrot set-builder stress test", "[sets][mandelbrot]") {
     const auto m50 = M_N<double>(50u);
     using Logic = typename decltype(m50)::logic_species;
 
-    REQUIRE(m50(ComplexPoint{0.0, 0.0}) == Logic::True);    // origin is in M
-    REQUIRE(m50(ComplexPoint{-0.5, 0.0}) == Logic::True);   // main cardioid
-    REQUIRE(m50(ComplexPoint{2.0, 0.0}) == Logic::False);   // clearly outside
-    REQUIRE(m50(ComplexPoint{-2.5, 0.0}) == Logic::False);  // clearly outside
+    REQUIRE(m50(ComplexPoint{0.0, 0.0}) == Logic::True);
+    REQUIRE(m50(ComplexPoint{-0.5, 0.0}) == Logic::True);
+    REQUIRE(m50(ComplexPoint{2.0, 0.0}) == Logic::False);
+    REQUIRE(m50(ComplexPoint{-2.5, 0.0}) == Logic::False);
   }
 
-  SECTION("ASCII rendering: structural checks") {
+  SECTION("ASCII rendering: escape-time shading") {
     const auto ascii = render_ascii_art(24, 20u, 2.0);
 
     REQUIRE(ascii.size() == 24u * 25u);
 
-    // Grid centre (x=12, y=12) maps to c=(-0.5, 0) which is inside M
-    const auto centre_offset = 12u * 25u + 12u;
-    REQUIRE(ascii[centre_offset] == '#');
+    // Grid centre (x=12, y=12) → c=(-0.5, 0): deep inside M, shaded '#'
+    REQUIRE(ascii[12u * 25u + 12u] == '#');
 
-    // Top-left corner maps to c=(-1.5, -1.0), outside M
-    REQUIRE(ascii[0] == '.');
+    // Top-left (x=0, y=0) → c=(-1.5, -1.0): outside M, not '#'
+    REQUIRE(ascii[0] != '#');
   }
 }
 

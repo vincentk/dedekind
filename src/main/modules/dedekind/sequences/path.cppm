@@ -38,6 +38,7 @@ module;
 #include <iterator>
 #include <limits>
 #include <memory>
+#include <optional>
 #include <ranges>
 #include <type_traits>
 #include <utility>
@@ -366,6 +367,36 @@ constexpr std::size_t count_if(const Path<T, Cardinality>& path, Pred&& pred) {
   }
 
   return count;
+}
+
+/**
+ * Find the first index where a predicate holds, up to an inclusive budget.
+ *
+ * first_where(path, pred, n) ≡ min { k ≤ n | pred(path(k)) }, or nullopt.
+ *
+ * Two overloads: infinite path with explicit budget, finite path self-bounded.
+ */
+export template <typename T, typename Pred>
+  requires std::copy_constructible<std::decay_t<Pred>> &&
+           std::predicate<const std::decay_t<Pred>&, const T&>
+constexpr std::optional<std::size_t> first_where(const Path<T>& path,
+                                                  Pred&& pred,
+                                                  std::size_t budget) {
+  for (std::size_t i = 0; i <= budget; ++i) {
+    if (std::invoke(pred, path.at(i))) return i;
+  }
+  return std::nullopt;
+}
+
+export template <typename T, typename Pred>
+  requires std::copy_constructible<std::decay_t<Pred>> &&
+           std::predicate<const std::decay_t<Pred>&, const T&>
+constexpr std::optional<std::size_t> first_where(const FinitePath<T>& path,
+                                                  Pred&& pred) {
+  for (std::size_t i = 0; i < path.size(); ++i) {
+    if (std::invoke(pred, path.at(i))) return i;
+  }
+  return std::nullopt;
 }
 
 export template <typename T, typename Cardinality, typename Pred>
