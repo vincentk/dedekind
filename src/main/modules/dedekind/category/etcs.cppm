@@ -280,8 +280,9 @@ concept HasAxiom10ChoiceSplitEpicLawSurface =
  * @details Confirms that χ_S(e(x)) is evaluable at value x. The equality
  * χ_S(e(x)) = in_via(x, e, S) holds by definition of in_via; this function
  * evaluates the common expression once and checks reflexivity, serving as a
- * concrete evaluability witness for HasAxiom7PullbackReindexingDefinitionalSurface.
- * Assumes referential transparency of the embedding arrow.
+ * concrete evaluability witness for
+ * HasAxiom7PullbackReindexingDefinitionalSurface. Assumes referential
+ * transparency of the embedding arrow.
  */
 export template <typename S, IsArrow E>
   requires IsSubobject<S, typename S::Ambient> &&
