@@ -405,12 +405,16 @@ constexpr auto exists(const Path<T, Cardinality>& path, Pred&& pred) {
  * @return     Infinite Path<U> where element i == f(prefix(path, i+1)).
  */
 export template <typename T, typename F>
-  requires std::invocable<F, const FinitePath<T>&>
+  requires std::copy_constructible<std::decay_t<F>> &&
+           std::invocable<const std::decay_t<F>&, const FinitePath<T>&>
 constexpr auto scan(F&& f, const Path<T>& path)
-    -> Path<std::invoke_result_t<F, const FinitePath<T>&>> {
-  using U = std::invoke_result_t<F, const FinitePath<T>&>;
-  return Path<U>{[f = std::forward<F>(f), path](std::size_t i) {
-    return f(prefix(path, i + 1));
+    -> Path<std::invoke_result_t<const std::decay_t<F>&, const FinitePath<T>&>> {
+  using Fn = std::decay_t<F>;
+  using U = std::invoke_result_t<const Fn&, const FinitePath<T>&>;
+  return Path<U>{[f = Fn(std::forward<F>(f)), path](std::size_t i) {
+    assert(i < std::numeric_limits<std::size_t>::max() &&
+           "scan index overflow: i+1 exceeds size_t");
+    return std::invoke(f, prefix(path, i + 1));
   }};
 }
 
