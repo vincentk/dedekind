@@ -200,11 +200,11 @@ TEST_CASE("Sets: Mandelbrot set-builder stress test", "[sets][mandelbrot]") {
 
   SECTION("M_N: Exclusive policy (inner approximation, M_N ⊆ M_true)") {
     const auto criterion = euclidean_escape_radius_squared<double>();
-    const auto m50_excl =
-        M_N<double>(50u, criterion, KleenePolicy::Exclusive);
+    const auto m50_excl = M_N<double>(50u, criterion, KleenePolicy::Exclusive);
     using Logic = typename decltype(m50_excl)::logic_species;
 
-    // Unknown (undecided) → False: finite computation cannot witness boundedness
+    // Unknown (undecided) → False: finite computation cannot witness
+    // boundedness
     REQUIRE(m50_excl(ComplexPoint{0.0, 0.0}) == Logic::False);
     REQUIRE(m50_excl(ComplexPoint{-0.5, 0.0}) == Logic::False);
     // Escaped → also False (not in M)

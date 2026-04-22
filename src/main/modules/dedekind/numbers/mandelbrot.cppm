@@ -13,14 +13,14 @@
  *   Layer 2 (N-step Kleene approximation, computable):
  *     M_kleene_N(max_iter, criterion)(c) : Ternary
  *       True    = escape witnessed within max_iter steps (c is outside M)
- *       Unknown = no escape yet (open question: c might be in M or escape later)
- *       False   = provably bounded (unreachable by finite computation alone)
+ *       Unknown = no escape yet (open question: c might be in M or escape
+ * later) False   = provably bounded (unreachable by finite computation alone)
  *
  *   Layer 3 (Boolean collapse, classical set):
  *     M_N(max_iter, criterion, policy)(c) : Set<..., Bool>
- *     KleenePolicy::Inclusive  =>  Unknown → in M   (outer approx, M_N ⊇ M_true)
- *     KleenePolicy::Exclusive  =>  Unknown → not in M (inner approx, M_N ⊆ M_true;
- *                                  ≡ ∅ under finite computation)
+ *     KleenePolicy::Inclusive  =>  Unknown → in M   (outer approx, M_N ⊇
+ * M_true) KleenePolicy::Exclusive  =>  Unknown → not in M (inner approx, M_N ⊆
+ * M_true; ≡ ∅ under finite computation)
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
@@ -68,7 +68,8 @@ concept IsEscapeCriterion =
                                       const ComplexType&>,
                  bool>;
 
-// ─── Escape criterion ─────────────────────────────────────────────────────────
+// ─── Escape criterion
+// ─────────────────────────────────────────────────────────
 
 /**
  * Classical escape criterion: |z|² > r².
@@ -78,7 +79,8 @@ constexpr auto euclidean_escape_radius_squared(R escape_radius_squared = R{4}) {
   return outside_closed_euclidean_ball_squared(escape_radius_squared);
 }
 
-// ─── Orbit primitives ─────────────────────────────────────────────────────────
+// ─── Orbit primitives
+// ─────────────────────────────────────────────────────────
 
 export template <IsComplexScalar R>
 using OrbitPath = Path<Complex<R>>;
@@ -94,7 +96,8 @@ constexpr auto mandelbrot_orbit(const Complex<R>& c) {
   return iterate(zero, mandelbrot_step(c));
 }
 
-// ─── Layer 1: intensional divergence path ─────────────────────────────────────
+// ─── Layer 1: intensional divergence path
+// ─────────────────────────────────────
 
 /**
  * The divergence spectrum of an orbit: a monotone Path<Ternary>.
@@ -152,7 +155,8 @@ constexpr std::optional<std::size_t> orbit_escape_time(
       orbit, max_iter, euclidean_escape_radius_squared(escape_radius_squared));
 }
 
-// ─── Collapse policy ──────────────────────────────────────────────────────────
+// ─── Collapse policy
+// ──────────────────────────────────────────────────────────
 
 /**
  * How Unknown (undecided within budget) maps to Boolean set membership.
@@ -175,7 +179,8 @@ constexpr bool collapse_ternary(Ternary t, KleenePolicy policy) noexcept {
          (t == Ternary::False || policy == KleenePolicy::Inclusive);
 }
 
-// ─── Layer 2: N-step Kleene membership ────────────────────────────────────────
+// ─── Layer 2: N-step Kleene membership
+// ────────────────────────────────────────
 
 /**
  * Point-level N-step Kleene membership:
@@ -197,7 +202,8 @@ constexpr auto M_kleene_N(std::size_t max_iter, EscapeCriterion criterion) {
   };
 }
 
-// ─── Layer 3: Boolean set ─────────────────────────────────────────────────────
+// ─── Layer 3: Boolean set
+// ─────────────────────────────────────────────────────
 
 /**
  * M_N: { c in C | M_kleene_N(n, p)(c) is not True, under policy }.
@@ -226,7 +232,7 @@ constexpr auto M_N(std::size_t max_iter, EscapeCriterion criterion,
 export template <IsComplexScalar R, typename EscapeCriterion>
   requires IsEscapeCriterion<EscapeCriterion, Complex<R>>
 constexpr auto M_tower(EscapeCriterion criterion,
-                        KleenePolicy policy = KleenePolicy::Inclusive) {
+                       KleenePolicy policy = KleenePolicy::Inclusive) {
   return [criterion, policy](std::size_t n) {
     return M_N<R>(n, criterion, policy);
   };
