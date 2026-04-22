@@ -82,6 +82,7 @@ struct Ø final : Boundaries {
   using logic_species = L;
   using cardinality_type = Finite;
   using is_extensional_tag = void;
+  using is_compile_time_extensional_tag = void;
   using base_set_type = Ø<T, L>;
 
   /** @section Algebraic_Axioms */

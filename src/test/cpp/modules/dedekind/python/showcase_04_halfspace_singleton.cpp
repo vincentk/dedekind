@@ -42,15 +42,17 @@ constexpr auto lt_five = Set{n % N | (n < bound<5>)};
 constexpr Singleton<4> in_between = gt_three & lt_five;
 static_assert(in_between == Singleton<4>{});
 
-// Logic species tightens at the reduction boundary.
-//   ℕ is transfinite → NaturalLogic picks TernaryLogic for the parent Sets.
-//   The meet reduces to a finite extensional object with decidable membership,
-//   so the reduced type carries ClassicalLogic — Unknown is no longer
-//   reachable.
-using ParentLogic = typename decltype(gt_three)::logic_species;
-using ReducedLogic = typename decltype(in_between)::logic_species;
-static_assert(std::same_as<ParentLogic, TernaryLogic>);
-static_assert(std::same_as<ReducedLogic, ClassicalLogic>);
+// Computability made a compile-time observable: the parent Sets carry NONE
+// of the three tiers; the reduced Singleton carries ALL THREE. Compile-time
+// reduction from an intensional description over a transfinite carrier to a
+// named extensional object restores decidable, finite, type-level semantics.
+static_assert(!HasDecidableMembership<decltype(gt_three)>);
+static_assert(!IsFiniteSet<decltype(gt_three)>);
+static_assert(!IsCompileTimeEnumerable<decltype(gt_three)>);
+
+static_assert(HasDecidableMembership<decltype(in_between)>);
+static_assert(IsFiniteSet<decltype(in_between)>);
+static_assert(IsCompileTimeEnumerable<decltype(in_between)>);
 
 /**
  * @brief Showcase 4: cardinality-1 reduction to the singleton {4}.

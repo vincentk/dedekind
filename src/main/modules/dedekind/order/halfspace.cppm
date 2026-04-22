@@ -98,6 +98,7 @@ struct Singleton {
   using logic_species = L;
   using cardinality_type = Finite;
   using is_extensional_tag = void;
+  using is_compile_time_extensional_tag = void;
   using is_static_singleton_tag =
       void;  // For Set::operator& collapse detection
 
