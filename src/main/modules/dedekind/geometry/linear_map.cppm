@@ -190,6 +190,8 @@ class LinearMap {
   friend constexpr LinearMap<G, R, C> operator+(const LinearMap<G, R, C>&,
                                                 const LinearMap<G, R, C>&);
   template <IsMatrixScalar G, std::size_t R, std::size_t C>
+  friend constexpr LinearMap<G, R, C> operator-(const LinearMap<G, R, C>&);
+  template <IsMatrixScalar G, std::size_t R, std::size_t C>
   friend constexpr LinearMap<G, R, C> operator-(const LinearMap<G, R, C>&,
                                                 const LinearMap<G, R, C>&);
   template <IsMatrixScalar G, std::size_t R, std::size_t C>
@@ -228,6 +230,15 @@ constexpr LinearMap<F, Rows, Cols> operator-(
   for (std::size_t i = 0; i < Rows; ++i)
     for (std::size_t j = 0; j < Cols; ++j)
       result.coeffs_[i][j] = a.coeffs_[i][j] - b.coeffs_[i][j];
+  return result;
+}
+
+export template <IsMatrixScalar F, std::size_t Rows, std::size_t Cols>
+constexpr LinearMap<F, Rows, Cols> operator-(const LinearMap<F, Rows, Cols>& a) {
+  LinearMap<F, Rows, Cols> result;
+  for (std::size_t i = 0; i < Rows; ++i)
+    for (std::size_t j = 0; j < Cols; ++j)
+      result.coeffs_[i][j] = -a.coeffs_[i][j];
   return result;
 }
 
@@ -633,5 +644,12 @@ struct CotangentBundlePoint {
   friend constexpr bool operator==(const CotangentBundlePoint&,
                                    const CotangentBundlePoint&) = default;
 };
+
+/** @section Formal_Verification */
+
+// LinearMap<F, R, C> over a field-like scalar forms a vector-space-like carrier.
+static_assert(
+    IsVectorSpaceLike<LinearMap<double, 2, 3>, double>,
+    "LinearMap<double,2,3> must be vector-space-like over double.");
 
 }  // namespace dedekind::geometry

@@ -28,6 +28,7 @@ module;
 
 export module dedekind.numbers:rational;
 
+import dedekind.algebra;
 import dedekind.category;
 import dedekind.sets;
 import :integer;
@@ -330,5 +331,23 @@ static_assert(
                                        Rational<default_integer>>(Q))>,
     "RationalsOf must be the canonical IsSet anchor for "
     "dedekind.numbers:rational.");
+
+/**
+ * @section Formal_Verification
+ *
+ * Rational<I> satisfies the operational field-like witness (IsFieldLikeScalar):
+ * all four arithmetic operations are available and closed.
+ *
+ * @note The stronger categorical proof IsField<Rational<I>> is architecturally
+ * blocked: IsField requires IsRing which requires IsMonoid which requires
+ * IsTotal (IsPeriodic || IsIdempotent). Rational arithmetic is neither periodic
+ * nor idempotent, so it lives in the Kleene/partial-function stratum instead.
+ * The Kleene traits (is_kleene_associative_v etc.) are the appropriate anchors
+ * for the algebraic properties of Rational<I>.
+ */
+static_assert(
+    dedekind::algebra::IsFieldLikeScalar<Rational<default_integer>>,
+    "Rational<I> must satisfy the operational field-like witness (ℚ is a "
+    "field).");
 
 }  // namespace dedekind::numbers

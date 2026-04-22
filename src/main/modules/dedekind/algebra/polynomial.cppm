@@ -229,9 +229,40 @@ template <typename R>
 inline constexpr bool is_commutative_v<Poly<R>, std::multiplies<Poly<R>>> =
     true;
 
+// Identity elements: the zero polynomial for addition, the unit polynomial
+// for multiplication. These lift the class-level identity_v member into the
+// global category trait, enabling IsMonoid / IsSemiring concept checks.
+template <typename R>
+inline constexpr Poly<R> identity_v<Poly<R>, std::plus<>> = Poly<R>{};
+template <typename R>
+inline constexpr Poly<R> identity_v<Poly<R>, std::plus<Poly<R>>> = Poly<R>{};
+template <typename R>
+inline constexpr Poly<R> identity_v<Poly<R>, std::multiplies<>> =
+    Poly<R>{R{1}};
+template <typename R>
+inline constexpr Poly<R> identity_v<Poly<R>, std::multiplies<Poly<R>>> =
+    Poly<R>{R{1}};
+
 }  // namespace dedekind::category
 
-/** @section Formal_Verification
- * Deferred while polynomial semiring witnesses are being retargeted to the
- * active category action/identity APIs.
- */
+namespace dedekind::algebra {
+
+/** @section Formal_Verification */
+
+// Anchor: RigPolynomial over a rig coefficient type is itself a semiring.
+// The proof uses the identity and associativity trait registrations above.
+static_assert(
+    IsSemiring<RigPolynomial<unsigned int>>,
+    "Polynomial over a rig is a semiring (Rig[x] is a Rig).");
+
+// The polynomial ring over integers admits subtraction (IsRing).
+static_assert(
+    IsRing<RigPolynomial<int>>,
+    "Polynomial over a ring is a ring (ℤ[x] is a ring).");
+
+// Commutativity of ℤ[x] lifts from the commutativity of ℤ.
+static_assert(
+    IsCommutativeRing<RigPolynomial<int>>,
+    "Polynomial over a commutative ring is commutative (ℤ[x] is commutative).");
+
+}  // namespace dedekind::algebra

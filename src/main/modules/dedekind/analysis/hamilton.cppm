@@ -44,6 +44,7 @@ import dedekind.category;
 import dedekind.algebra;
 import dedekind.geometry;
 import dedekind.sequences;
+import :ftc;
 
 namespace dedekind::analysis {
 using namespace dedekind::algebra;
@@ -80,14 +81,17 @@ constexpr R poisson_bracket(auto&& f, auto&& g, const Vector<R, N>& state) {
     return s;
   };
 
+  // Partial derivatives via derivative_at (from :ftc), which implements the
+  // central-difference formula (f(x+h)-f(x-h))/(2h). Each coordinate is
+  // treated as a scalar perturbation around zero displacement.
   const R df_dq =
-      (f(bump(0, eps)) - f(bump(0, -eps))) / (static_cast<R>(2) * eps);
+      derivative_at<R>([&](R d) { return f(bump(0, d)); }, R{0}, eps);
   const R df_dp =
-      (f(bump(1, eps)) - f(bump(1, -eps))) / (static_cast<R>(2) * eps);
+      derivative_at<R>([&](R d) { return f(bump(1, d)); }, R{0}, eps);
   const R dg_dq =
-      (g(bump(0, eps)) - g(bump(0, -eps))) / (static_cast<R>(2) * eps);
+      derivative_at<R>([&](R d) { return g(bump(0, d)); }, R{0}, eps);
   const R dg_dp =
-      (g(bump(1, eps)) - g(bump(1, -eps))) / (static_cast<R>(2) * eps);
+      derivative_at<R>([&](R d) { return g(bump(1, d)); }, R{0}, eps);
 
   return (df_dq * dg_dp) - (df_dp * dg_dq);
 }
