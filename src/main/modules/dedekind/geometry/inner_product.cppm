@@ -97,12 +97,10 @@ constexpr F norm(const Vector<F, N>& v) {
 
 // Vector<F,N> with the standard Euclidean inner product forms an inner product
 // space over the scalar field F.
-static_assert(
-    HasInnerProduct<Vector<double, 3>, double>,
-    "Vector<double,3> must satisfy HasInnerProduct (dot + norm).");
+static_assert(HasInnerProduct<Vector<double, 3>, double>,
+              "Vector<double,3> must satisfy HasInnerProduct (dot + norm).");
 
-static_assert(
-    IsInnerProductSpace<Vector<double, 3>, double>,
-    "Vector<double,3> must be an inner product space over double.");
+static_assert(IsInnerProductSpace<Vector<double, 3>, double>,
+              "Vector<double,3> must be an inner product space over double.");
 
 }  // namespace dedekind::geometry

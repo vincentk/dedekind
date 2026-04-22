@@ -234,7 +234,8 @@ constexpr LinearMap<F, Rows, Cols> operator-(
 }
 
 export template <IsMatrixScalar F, std::size_t Rows, std::size_t Cols>
-constexpr LinearMap<F, Rows, Cols> operator-(const LinearMap<F, Rows, Cols>& a) {
+constexpr LinearMap<F, Rows, Cols> operator-(
+    const LinearMap<F, Rows, Cols>& a) {
   LinearMap<F, Rows, Cols> result;
   for (std::size_t i = 0; i < Rows; ++i)
     for (std::size_t j = 0; j < Cols; ++j)
@@ -647,9 +648,9 @@ struct CotangentBundlePoint {
 
 /** @section Formal_Verification */
 
-// LinearMap<F, R, C> over a field-like scalar forms a vector-space-like carrier.
-static_assert(
-    IsVectorSpaceLike<LinearMap<double, 2, 3>, double>,
-    "LinearMap<double,2,3> must be vector-space-like over double.");
+// LinearMap<F, R, C> over a field-like scalar forms a vector-space-like
+// carrier.
+static_assert(IsVectorSpaceLike<LinearMap<double, 2, 3>, double>,
+              "LinearMap<double,2,3> must be vector-space-like over double.");
 
 }  // namespace dedekind::geometry

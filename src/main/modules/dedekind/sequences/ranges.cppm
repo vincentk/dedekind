@@ -221,9 +221,8 @@ namespace dedekind::sequences {
 
 // Anchor: IntegerInterval<int> satisfies IsConvex (the trait registration above
 // is the proof; this assert makes it machine-checkable from the use site).
-static_assert(
-    dedekind::topology::IsConvex<IntegerInterval<int>>,
-    "IntegerInterval must satisfy IsConvex (contiguous, no holes).");
+static_assert(dedekind::topology::IsConvex<IntegerInterval<int>>,
+              "IntegerInterval must satisfy IsConvex (contiguous, no holes).");
 
 // Anchor: IsConvexEnumerable is the combined witness for the triple nature.
 static_assert(
