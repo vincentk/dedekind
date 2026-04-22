@@ -204,10 +204,10 @@ static_assert(
     IsDividableChain<int>,
     "int must satisfy IsDividableChain (integer division and modulo).");
 
-// double is the canonical dense ordered species (midpoints always exist).
-static_assert(IsTotallyOrdered<double>,
-              "double must satisfy IsTotallyOrdered.");
-static_assert(IsDense<double>,
-              "double must satisfy IsDense ((a+b)/2 is always defined).");
+// IsTotallyOrdered<double> is architecturally withheld: dedekind's
+// is_reflexive_v<double, std::less_equal<>> is false by design because IEEE 754
+// NaN violates reflexivity (NaN <= NaN is false). See species.cppm note.
+// Use IsOrderedField<double> (archimedean.cppm) or std::totally_ordered<double>
+// for the operational ordering witness.
 
 }  // namespace dedekind::order

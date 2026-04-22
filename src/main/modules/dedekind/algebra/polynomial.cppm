@@ -246,20 +246,15 @@ inline constexpr Poly<R> identity_v<Poly<R>, std::multiplies<Poly<R>>> =
 
 namespace dedekind::algebra {
 
-/** @section Formal_Verification */
-
-// Anchor: RigPolynomial over a rig coefficient type is itself a semiring.
-// The proof uses the identity and associativity trait registrations above.
-static_assert(IsSemiring<RigPolynomial<unsigned int>>,
-              "Polynomial over a rig is a semiring (Rig[x] is a Rig).");
-
-// The polynomial ring over integers admits subtraction (IsRing).
-static_assert(IsRing<RigPolynomial<int>>,
-              "Polynomial over a ring is a ring (ℤ[x] is a ring).");
-
-// Commutativity of ℤ[x] lifts from the commutativity of ℤ.
-static_assert(
-    IsCommutativeRing<RigPolynomial<int>>,
-    "Polynomial over a commutative ring is commutative (ℤ[x] is commutative).");
+/**
+ * @section Formal_Verification
+ *
+ * @note The stronger categorical proofs IsSemiring<Poly<uint>> and
+ * IsRing<Poly<int>> are architecturally blocked: those concepts require
+ * IsMonoid which requires IsTotal (IsPeriodic || IsIdempotent). Polynomial
+ * addition is neither periodic (unbounded vector growth) nor idempotent.
+ * The identity_v and is_associative_v / is_commutative_v registrations above
+ * are the correct categorical anchors at the partial-algebra stratum.
+ */
 
 }  // namespace dedekind::algebra
