@@ -20,7 +20,9 @@
  * Licensed under the Apache License, Version 2.0.
  */
 module;
+#include <algorithm>
 #include <concepts>
+#include <cstddef>
 
 export module dedekind.order:halfspace;
 
@@ -77,6 +79,43 @@ struct Halfspace {
   }
 };
 
+/**
+ * @brief Compile-time singleton predicate: `{x : decltype(Value) | x == Value}`.
+ *
+ * Emitted when a halfspace meet on a discrete (integral) carrier is reduced
+ * by cardinality analysis to exactly one inhabitant. The value lives in the
+ * TYPE, so `Singleton<4>` and `Singleton<7>` are distinct types — the
+ * compiler proves `{n | 3<n<5} = {4}` by structural pattern matching.
+ *
+ * L defaults to `ClassicalLogic` because a cardinality-1 extensional set
+ * has decidable membership regardless of ambient logic species.
+ */
+export template <auto Value, typename L = ClassicalLogic>
+struct Singleton {
+  using Domain = decltype(Value);
+  using Codomain = typename L::Ω;
+  using logic_species = L;
+  using cardinality_type = Finite;
+  using is_extensional_tag = void;
+  using is_static_singleton_tag = void;  // For Set::operator& collapse detection
+
+  static constexpr Domain value = Value;
+
+  constexpr Codomain operator()(const Domain& x) const {
+    return (x == Value) ? L::True : L::False;
+  }
+
+  constexpr std::size_t size() const { return 1; }
+
+  // Cross-logic identity: `Singleton<V, L1>` and `Singleton<V, L2>` represent
+  // the same singleton; enables the reveal `s == Singleton<V>{}` when s's
+  // logic species was inherited from a Set (e.g. TernaryLogic over ℕ).
+  template <typename OtherL>
+  constexpr bool operator==(const Singleton<Value, OtherL>&) const {
+    return true;
+  }
+};
+
 /** @brief Meet of two opposing halfspaces — an order-theoretic interval. */
 export template <typename T, T Lo, T Hi, Strictness SL, Strictness SU,
                  typename L = ClassicalLogic>
@@ -130,19 +169,42 @@ constexpr auto operator<=(const Variable<Species>&, Bound<V>) {
 /**
  * @brief Intersection of an upward and a downward halfspace.
  *
- * If the pivots are compatible (Lo < Hi, or Lo <= Hi with at least one
- * inclusive boundary), the meet is an `OrderInterval`. Otherwise it's
- * structurally empty.
+ * Three-way reduction, evaluated at compile time on the NTTP pivots:
+ *   1. disjoint       → `EmptyPredicate<T>` (Lo, Hi straddle no T)
+ *   2. exactly one T  → `Singleton<unique, L>` (only for integral T)
+ *   3. otherwise      → `OrderInterval<T, Lo, Hi, SL, SU, L>`
+ *
+ * The cardinality formula over integral T, by strictness pair:
+ *   strict/strict         : Hi - Lo - 1
+ *   strict/non-strict     : Hi - Lo
+ *   non-strict/strict     : Hi - Lo
+ *   non-strict/non-strict : Hi - Lo + 1
+ *
+ * …clamped at 0. Cardinality 0 is the empty case; cardinality 1 picks out
+ * the unique inhabitant and elevates the meet to a `Singleton`.
  */
 export template <typename T, T Lo, T Hi, Strictness SL, Strictness SU,
                  typename L>
 constexpr auto structured_and(Halfspace<T, Lo, Direction::Upward, SL, L>,
                               Halfspace<T, Hi, Direction::Downward, SU, L>) {
-  constexpr bool both_strict =
+  constexpr bool either_strict =
       (SL == Strictness::Strict) || (SU == Strictness::Strict);
-  constexpr bool disjoint = both_strict ? (Lo >= Hi) : (Lo > Hi);
+  constexpr bool disjoint = either_strict ? (Lo >= Hi) : (Lo > Hi);
   if constexpr (disjoint) {
     return EmptyPredicate<T>{};
+  } else if constexpr (std::integral<T>) {
+    // Cardinality of {x : T | Lo ⋈ x ⋈ Hi} over integral T.
+    constexpr bool lo_open = (SL == Strictness::Strict);
+    constexpr bool hi_open = (SU == Strictness::Strict);
+    constexpr T span = Hi - Lo + (lo_open ? T{0} : T{1}) +
+                       (hi_open ? T{-1} : T{0});
+    if constexpr (span == T{1}) {
+      // Unique inhabitant: the smallest x admitted by the lower boundary.
+      constexpr T unique = lo_open ? T{Lo + 1} : Lo;
+      return Singleton<unique, L>{};
+    } else {
+      return OrderInterval<T, Lo, Hi, SL, SU, L>{};
+    }
   } else {
     return OrderInterval<T, Lo, Hi, SL, SU, L>{};
   }

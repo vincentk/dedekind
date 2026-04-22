@@ -36,6 +36,10 @@ SOURCES = [
         _PYTHON_DIR / "showcase_03_halfspace_contradiction.cpp",
         _PYTHON_DIR / "showcase_03_halfspace_contradiction.ll",
     ),
+    (
+        _PYTHON_DIR / "showcase_04_halfspace_singleton.cpp",
+        _PYTHON_DIR / "showcase_04_halfspace_singleton.ll",
+    ),
 ]
 
 # Keep single-source aliases for backward compatibility with any callers.
@@ -197,6 +201,15 @@ def semantic_sanity(ir_text: str, source: Path) -> None:
             raise AssertionError(
                 "Expected halfspace contradiction (x > 5) ∧ (x < 3) on ℕ to "
                 "collapse to `ret i1 false` in IR."
+            )
+    elif "showcase_04_halfspace_singleton" in name:
+        block = extract_function_block(ir_text, "impress_halfspace_singleton")
+        if block is None:
+            raise AssertionError("IR missing impress_halfspace_singleton symbol.")
+        if "ret i1 true" not in block:
+            raise AssertionError(
+                "Expected halfspace cardinality-1 meet (3 < n < 5) on ℕ to "
+                "collapse to `ret i1 true` at the unique inhabitant."
             )
     else:
         raise AssertionError(f"No semantic checks defined for {name}.")

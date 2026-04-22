@@ -339,6 +339,12 @@ class Set {
           std::decay_t<decltype(structured_and(predicate_, other.predicate_))>;
       if constexpr (std::same_as<Result, EmptyPredicate<T>>) {
         return Ø<T, L>{};
+      } else if constexpr (requires {
+                             typename Result::is_static_singleton_tag;
+                           }) {
+        // Cardinality-1 reduction (e.g. integer halfspace meet): elevate to a
+        // bare Singleton-typed value, paralleling the Ø collapse for empty.
+        return Result{};
       } else {
         return Set<T, L, Result>{structured_and(predicate_, other.predicate_)};
       }
