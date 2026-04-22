@@ -58,9 +58,7 @@ concept IsEscapeCriterion =
  */
 export template <IsComplexScalar R>
 constexpr auto euclidean_escape_radius_squared(R escape_radius_squared = R{4}) {
-  return [escape_radius_squared](const Complex<R>& z) {
-    return outside_closed_euclidean_ball_squared(escape_radius_squared)(z);
-  };
+  return outside_closed_euclidean_ball_squared(escape_radius_squared);
 }
 
 export template <IsComplexScalar R>
@@ -84,8 +82,8 @@ constexpr auto mandelbrot_orbit(const Complex<R>& c) {
 export template <IsComplexScalar R, typename OrbitCriterion>
 constexpr auto bounded(OrbitCriterion criterion) {
   auto orbit = arrow(mandelbrot_orbit<R>);
-  auto classify = arrow(criterion);
-  return orbit >> classify;
+  auto classify_orbit = arrow(criterion);
+  return orbit >> classify_orbit;
 }
 
 /**
@@ -170,19 +168,8 @@ constexpr auto M_N(std::size_t max_iter, R escape_radius_squared = R{4}) {
  */
 export template <IsComplexScalar R>
 constexpr auto M_tower(R escape_radius_squared = R{4}) {
-  const auto criterion = euclidean_escape_radius_squared(escape_radius_squared);
-  // Return a stage builder indexed by truncation budget n.
-  return [criterion](std::size_t n) {
-    // Bind the ambient parameter variable for set comprehension.
-    auto c = var<ComplexesOf<R>>;
-    // Build the orbit-level boundedness criterion: ¬∃k≤n : |z_k|²>r²
-    auto orbit_bounded = [n, criterion](const OrbitPath<R>& orbit) {
-      return !orbit_escapes(orbit, n, criterion);
-    };
-    // Lift the orbit-level predicate to a parameter-level predicate.
-    auto parameter_bounded = bounded<R>(orbit_bounded);
-    // Form the nth computable approximation set M_n.
-    return Set{c % ComplexesOf<R>{} | classify(parameter_bounded).χ};
+  return [escape_radius_squared](std::size_t n) {
+    return M_N<R>(n, escape_radius_squared);
   };
 }
 
