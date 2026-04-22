@@ -387,6 +387,33 @@ constexpr auto exists(const Path<T, Cardinality>& path, Pred&& pred) {
   return witness;
 }
 
+/**
+ * @brief Co-Kleisli scan: apply a prefix aggregate to each initial segment.
+ * @details Produces an infinite path where element i is f(prefix(path, i+1)).
+ *
+ * This is the canonical SQL window-function pattern over an ordered sequence:
+ *   scan(sum,           path)(i) == sum of path[0..i]
+ *   scan(exists(pred),  path)(i) == exists(prefix(path, i+1), pred)
+ *
+ * Relation to operator<<=: scan(f, path) is the co-Kleisli extension of
+ * [f](ctx) { return f(prefix(ctx, 1)); }, expressed without the suffix-path
+ * construction. Note that operator<<= passes a suffix (drop) as context,
+ * while scan passes a prefix — these are the two canonical window shapes.
+ *
+ * @param f    Aggregate: FinitePath<T> → U (e.g. exists, forall, count_if).
+ * @param path Source infinite path.
+ * @return     Infinite Path<U> where element i == f(prefix(path, i+1)).
+ */
+export template <typename T, typename F>
+  requires std::invocable<F, const FinitePath<T>&>
+constexpr auto scan(F&& f, const Path<T>& path)
+    -> Path<std::invoke_result_t<F, const FinitePath<T>&>> {
+  using U = std::invoke_result_t<F, const FinitePath<T>&>;
+  return Path<U>{[f = std::forward<F>(f), path](std::size_t i) {
+    return f(prefix(path, i + 1));
+  }};
+}
+
 export template <typename T, typename Cardinality, typename Pred>
   requires LogicalMap<Pred, T>
 constexpr auto forall(const Path<T, Cardinality>& path, Pred&& pred) {
