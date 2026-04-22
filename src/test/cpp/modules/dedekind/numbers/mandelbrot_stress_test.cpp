@@ -144,18 +144,18 @@ TEST_CASE("Sets: Mandelbrot set-builder stress test", "[sets][mandelbrot]") {
   }
 
   SECTION("orbit_escape_time: boolean collapse via has_value()") {
-    REQUIRE(!orbit_escape_time(mandelbrot_orbit(ComplexPoint{0.0, 0.0}), 50u,
-                               4.0)
-                 .has_value());
-    REQUIRE(!orbit_escape_time(mandelbrot_orbit(ComplexPoint{-0.5, 0.0}), 50u,
-                               4.0)
-                 .has_value());
-    REQUIRE(orbit_escape_time(mandelbrot_orbit(ComplexPoint{2.0, 0.0}), 50u,
-                              4.0)
-                .has_value());
-    REQUIRE(orbit_escape_time(mandelbrot_orbit(ComplexPoint{-2.5, 0.0}), 50u,
-                              4.0)
-                .has_value());
+    REQUIRE(
+        !orbit_escape_time(mandelbrot_orbit(ComplexPoint{0.0, 0.0}), 50u, 4.0)
+             .has_value());
+    REQUIRE(
+        !orbit_escape_time(mandelbrot_orbit(ComplexPoint{-0.5, 0.0}), 50u, 4.0)
+             .has_value());
+    REQUIRE(
+        orbit_escape_time(mandelbrot_orbit(ComplexPoint{2.0, 0.0}), 50u, 4.0)
+            .has_value());
+    REQUIRE(
+        orbit_escape_time(mandelbrot_orbit(ComplexPoint{-2.5, 0.0}), 50u, 4.0)
+            .has_value());
   }
 
   SECTION("euclidean_escape_radius_squared: parametric threshold") {
