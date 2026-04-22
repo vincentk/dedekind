@@ -80,25 +80,27 @@ TEST_CASE("Sets: Mandelbrot set-builder stress test", "[sets][mandelbrot]") {
   }
 
   SECTION("orbit_escape_time: bounded and escaping points") {
+    const auto criterion = euclidean_escape_radius_squared<double>();
+
     // c = 0: orbit is identically 0, never escapes
-    REQUIRE(
-        !orbit_escape_time(mandelbrot_orbit(ComplexPoint{0.0, 0.0}), 50u, 4.0)
-             .has_value());
+    REQUIRE(!orbit_escape_time(mandelbrot_orbit(ComplexPoint{0.0, 0.0}), 50u,
+                               criterion)
+                 .has_value());
 
     // c = -0.5: inside the main cardioid, bounded
-    REQUIRE(
-        !orbit_escape_time(mandelbrot_orbit(ComplexPoint{-0.5, 0.0}), 50u, 4.0)
-             .has_value());
+    REQUIRE(!orbit_escape_time(mandelbrot_orbit(ComplexPoint{-0.5, 0.0}), 50u,
+                               criterion)
+                 .has_value());
 
     // c = 2: z_0=0, z_1=2 (|2|²=4, not >4), z_2=6 (|6|²=36>4) → escapes at 2
-    const auto et_2 =
-        orbit_escape_time(mandelbrot_orbit(ComplexPoint{2.0, 0.0}), 50u, 4.0);
+    const auto et_2 = orbit_escape_time(
+        mandelbrot_orbit(ComplexPoint{2.0, 0.0}), 50u, criterion);
     REQUIRE(et_2.has_value());
     REQUIRE(*et_2 == 2u);
 
     // Points farther out escape sooner
-    const auto et_10 =
-        orbit_escape_time(mandelbrot_orbit(ComplexPoint{10.0, 0.0}), 50u, 4.0);
+    const auto et_10 = orbit_escape_time(
+        mandelbrot_orbit(ComplexPoint{10.0, 0.0}), 50u, criterion);
     REQUIRE(et_10.has_value());
     REQUIRE(*et_10 < *et_2);
   }
@@ -135,7 +137,7 @@ TEST_CASE("Sets: Mandelbrot set-builder stress test", "[sets][mandelbrot]") {
     const auto criterion = euclidean_escape_radius_squared<double>();
     const auto orbit = mandelbrot_orbit(ComplexPoint{2.0, 0.0});
     const auto divergence = orbit_divergence_path(orbit, criterion);
-    const auto et = orbit_escape_time(orbit, 50u, 4.0);
+    const auto et = orbit_escape_time(orbit, 50u, criterion);
 
     REQUIRE(et.has_value());
     // Unknown strictly before escape time, True from escape time onward
@@ -144,18 +146,19 @@ TEST_CASE("Sets: Mandelbrot set-builder stress test", "[sets][mandelbrot]") {
   }
 
   SECTION("orbit_escape_time: boolean collapse via has_value()") {
-    REQUIRE(
-        !orbit_escape_time(mandelbrot_orbit(ComplexPoint{0.0, 0.0}), 50u, 4.0)
-             .has_value());
-    REQUIRE(
-        !orbit_escape_time(mandelbrot_orbit(ComplexPoint{-0.5, 0.0}), 50u, 4.0)
-             .has_value());
-    REQUIRE(
-        orbit_escape_time(mandelbrot_orbit(ComplexPoint{2.0, 0.0}), 50u, 4.0)
-            .has_value());
-    REQUIRE(
-        orbit_escape_time(mandelbrot_orbit(ComplexPoint{-2.5, 0.0}), 50u, 4.0)
-            .has_value());
+    const auto criterion = euclidean_escape_radius_squared<double>();
+    REQUIRE(!orbit_escape_time(mandelbrot_orbit(ComplexPoint{0.0, 0.0}), 50u,
+                               criterion)
+                 .has_value());
+    REQUIRE(!orbit_escape_time(mandelbrot_orbit(ComplexPoint{-0.5, 0.0}), 50u,
+                               criterion)
+                 .has_value());
+    REQUIRE(orbit_escape_time(mandelbrot_orbit(ComplexPoint{2.0, 0.0}), 50u,
+                              criterion)
+                .has_value());
+    REQUIRE(orbit_escape_time(mandelbrot_orbit(ComplexPoint{-2.5, 0.0}), 50u,
+                              criterion)
+                .has_value());
   }
 
   SECTION("euclidean_escape_radius_squared: parametric threshold") {
@@ -169,22 +172,44 @@ TEST_CASE("Sets: Mandelbrot set-builder stress test", "[sets][mandelbrot]") {
     REQUIRE(large_criterion(test_point) == false);
   }
 
-  SECTION("prefix_bounded_N: fixed-depth criterion") {
-    const auto in_50 = prefix_bounded_N<double>(50u);
+  SECTION("M_kleene_N: Layer 2 Ternary membership before Boolean collapse") {
+    const auto criterion = euclidean_escape_radius_squared<double>();
+    const auto kleene = M_kleene_N<double>(50u, criterion);
 
-    REQUIRE(in_50(mandelbrot_orbit(ComplexPoint{0.0, 0.0})));
-    REQUIRE(in_50(mandelbrot_orbit(ComplexPoint{-0.5, 0.0})));
-    REQUIRE(!in_50(mandelbrot_orbit(ComplexPoint{2.0, 0.0})));
+    // In-set points: orbit never escapes → Unknown (open question)
+    REQUIRE(kleene(ComplexPoint{0.0, 0.0}) == Ternary::Unknown);
+    REQUIRE(kleene(ComplexPoint{-0.5, 0.0}) == Ternary::Unknown);
+
+    // Out-of-set points: escape witnessed → True
+    REQUIRE(kleene(ComplexPoint{2.0, 0.0}) == Ternary::True);
+    REQUIRE(kleene(ComplexPoint{-2.5, 0.0}) == Ternary::True);
   }
 
-  SECTION("M_N: set membership for known interior and exterior points") {
-    const auto m50 = M_N<double>(50u);
+  SECTION("M_N: Inclusive policy (outer approximation, M_N ⊇ M_true)") {
+    const auto criterion = euclidean_escape_radius_squared<double>();
+    const auto m50 = M_N<double>(50u, criterion);
     using Logic = typename decltype(m50)::logic_species;
 
+    // Unknown (undecided) → True (in M): standard Mandelbrot rendering
     REQUIRE(m50(ComplexPoint{0.0, 0.0}) == Logic::True);
     REQUIRE(m50(ComplexPoint{-0.5, 0.0}) == Logic::True);
+    // Escaped → False (not in M)
     REQUIRE(m50(ComplexPoint{2.0, 0.0}) == Logic::False);
     REQUIRE(m50(ComplexPoint{-2.5, 0.0}) == Logic::False);
+  }
+
+  SECTION("M_N: Exclusive policy (inner approximation, M_N ⊆ M_true)") {
+    const auto criterion = euclidean_escape_radius_squared<double>();
+    const auto m50_excl =
+        M_N<double>(50u, criterion, KleenePolicy::Exclusive);
+    using Logic = typename decltype(m50_excl)::logic_species;
+
+    // Unknown (undecided) → False: finite computation cannot witness boundedness
+    REQUIRE(m50_excl(ComplexPoint{0.0, 0.0}) == Logic::False);
+    REQUIRE(m50_excl(ComplexPoint{-0.5, 0.0}) == Logic::False);
+    // Escaped → also False (not in M)
+    REQUIRE(m50_excl(ComplexPoint{2.0, 0.0}) == Logic::False);
+    REQUIRE(m50_excl(ComplexPoint{-2.5, 0.0}) == Logic::False);
   }
 
   SECTION("ASCII rendering: escape-time shading") {

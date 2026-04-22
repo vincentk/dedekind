@@ -3,6 +3,25 @@
  * @partition :mandelbrot
  * @brief Core Mandelbrot recurrence helpers over complex carriers.
  *
+ * Architecture — three layers of the "intensional first" strategy:
+ *
+ *   Layer 1 (intensional, Kleene, infinite):
+ *     orbit_divergence_path(orbit(c), criterion) : Path<Ternary>
+ *     The exact epistemic state at each depth — not fully computable for
+ *     in-set points, but expressible as a lazy infinite sequence.
+ *
+ *   Layer 2 (N-step Kleene approximation, computable):
+ *     M_kleene_N(max_iter, criterion)(c) : Ternary
+ *       True    = escape witnessed within max_iter steps (c is outside M)
+ *       Unknown = no escape yet (open question: c might be in M or escape later)
+ *       False   = provably bounded (unreachable by finite computation alone)
+ *
+ *   Layer 3 (Boolean collapse, classical set):
+ *     M_N(max_iter, criterion, policy)(c) : Set<..., Bool>
+ *     KleenePolicy::Inclusive  =>  Unknown → in M   (outer approx, M_N ⊇ M_true)
+ *     KleenePolicy::Exclusive  =>  Unknown → not in M (inner approx, M_N ⊆ M_true;
+ *                                  ≡ ∅ under finite computation)
+ *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
@@ -35,21 +54,21 @@ using namespace dedekind::sets;
 
 /**
  * @concept IsEscapeCriterion
- * @brief Escape predicate: ComplexType → L (a LogicalValue).
+ * @brief Escape predicate: ComplexType → bool.
  *
- * Default L = bool gives the classical criterion.
- * L = Ternary gives the Kleene criterion:
- *   True    = escape witnessed
- *   Unknown = not yet escaped (open question)
- *   False   = provably bounded (unreachable by finite computation alone)
+ * Returns true when the orbit point has definitively left the bounded region.
+ * The Kleene lifting (bool → Ternary) is performed internally by the layer
+ * machinery; callers supply a classical Boolean criterion.
  */
-template <typename EscapeCriterion, typename ComplexType, typename L = bool>
+template <typename EscapeCriterion, typename ComplexType>
 concept IsEscapeCriterion =
     std::copy_constructible<std::decay_t<EscapeCriterion>> &&
     std::invocable<const std::decay_t<EscapeCriterion>&, const ComplexType&> &&
     std::same_as<std::invoke_result_t<const std::decay_t<EscapeCriterion>&,
                                       const ComplexType&>,
-                 L>;
+                 bool>;
+
+// ─── Escape criterion ─────────────────────────────────────────────────────────
 
 /**
  * Classical escape criterion: |z|² > r².
@@ -59,20 +78,7 @@ constexpr auto euclidean_escape_radius_squared(R escape_radius_squared = R{4}) {
   return outside_closed_euclidean_ball_squared(escape_radius_squared);
 }
 
-/**
- * Kleene escape criterion: True if |z|² > r², Unknown otherwise.
- *
- * The asymmetry is epistemic: we can witness divergence (True) but
- * cannot prove boundedness from a finite prefix (so never False).
- */
-export template <IsComplexScalar R>
-constexpr auto kleene_escape_radius_squared(R escape_radius_squared = R{4}) {
-  return [escape_radius_squared](const Complex<R>& z) -> Ternary {
-    return outside_closed_euclidean_ball_squared(escape_radius_squared)(z)
-               ? Ternary::True
-               : Ternary::Unknown;
-  };
-}
+// ─── Orbit primitives ─────────────────────────────────────────────────────────
 
 export template <IsComplexScalar R>
 using OrbitPath = Path<Complex<R>>;
@@ -88,19 +94,21 @@ constexpr auto mandelbrot_orbit(const Complex<R>& c) {
   return iterate(zero, mandelbrot_step(c));
 }
 
+// ─── Layer 1: intensional divergence path ─────────────────────────────────────
+
 /**
  * The divergence spectrum of an orbit: a monotone Path<Ternary>.
  *
  *   orbit_divergence_path(orbit, p)(n)
- *     = exists(prefix(orbit, n+1), p)
- *     = True    if ∃ k ≤ n : p(z_k) = True   (escape witnessed)
- *     = Unknown if ∀ k ≤ n : p(z_k) = Unknown (no escape yet)
+ *     = True    if ∃ k ≤ n : p(z_k)   (escape witnessed)
+ *     = Unknown if ∀ k ≤ n : ¬p(z_k)  (no escape yet)
  *
  * Monotonicity: True is the absorbing element of Kleene OR, so once the
  * path reaches True it stays there.  A monotone {Unknown,True}-valued path
  * is isomorphic to ℕ∞ — its information content is exactly the escape time.
  *
- * This is the intensional form; orbit_escape_time() is the materialization.
+ * This is the Layer 1 intensional object; orbit_escape_time() is the
+ * efficient materialization.
  */
 export template <IsComplexScalar R, typename EscapeCriterion>
   requires IsEscapeCriterion<EscapeCriterion, Complex<R>>
@@ -121,13 +129,9 @@ constexpr auto orbit_divergence_path(const OrbitPath<R>& orbit,
  *
  *   orbit_escape_time(orbit, n, p) = min { k ≤ n | p(z_k) }  or  nullopt
  *
- * This is the canonical materialization of the divergence spectrum:
- *   orbit_divergence_path(orbit, kleene(p)).at(n) = True
+ * Equivalently:
+ *   orbit_divergence_path(orbit, p).at(n) = True
  *     iff orbit_escape_time(orbit, n, p).has_value()
- *
- * Escape time is strictly more informative than orbit_escapes() — it carries
- * the depth at which divergence was witnessed, enabling escape-time colouring
- * of the tower approximation.
  */
 export template <IsComplexScalar R, typename EscapeCriterion>
   requires IsEscapeCriterion<EscapeCriterion, Complex<R>>
@@ -148,66 +152,83 @@ constexpr std::optional<std::size_t> orbit_escape_time(
       orbit, max_iter, euclidean_escape_radius_squared(escape_radius_squared));
 }
 
-/**
- * Lift an orbit-level criterion to a point-level predicate:
- *   c -> criterion(orbit(c)).
- */
-export template <IsComplexScalar R, typename OrbitCriterion>
-constexpr auto bounded(OrbitCriterion criterion) {
-  auto orbit = arrow(mandelbrot_orbit<R>);
-  auto classify_orbit = arrow(criterion);
-  return orbit >> classify_orbit;
-}
+// ─── Collapse policy ──────────────────────────────────────────────────────────
 
 /**
- * Subobject view:
- *   M = { c in C | bounded(orbit(c)) }.
+ * How Unknown (undecided within budget) maps to Boolean set membership.
+ *
+ *   Inclusive: Unknown → in M  (outer approximation, M_N ⊇ M_true)
+ *   Exclusive: Unknown → not in M  (inner approximation, M_N ⊆ M_true;
+ *              with finite computation this is effectively ∅, since no
+ *              finite prefix can witness orbit boundedness)
  */
-export template <IsComplexScalar R, typename BoundedPredicate>
-constexpr auto M(BoundedPredicate is_bounded) {
-  auto c = var<ComplexesOf<R>>;
-  return Set{c % ComplexesOf<R>{} | classify(is_bounded).χ};
-}
+export enum class KleenePolicy { Inclusive, Exclusive };
 
 /**
- * Finite-prefix orbit criterion: true iff orbit does not escape within N steps.
- *   prefix_bounded_N(orbit) ≡ ¬ orbit_escape_time(orbit, N).has_value()
+ * Collapse a Ternary escape signal to Boolean set membership under policy.
+ *   True  = escaped → false (not in M)
+ *   False = proven bounded → true (in M; unreachable by finite computation)
+ *   Unknown → policy-dependent
+ */
+constexpr bool collapse_ternary(Ternary t, KleenePolicy policy) noexcept {
+  return t != Ternary::True &&
+         (t == Ternary::False || policy == KleenePolicy::Inclusive);
+}
+
+// ─── Layer 2: N-step Kleene membership ────────────────────────────────────────
+
+/**
+ * Point-level N-step Kleene membership:
+ *   M_kleene_N(n, p)(c)
+ *     = True    if orbit(c) escapes within n steps under p
+ *     = Unknown if no escape witnessed within n steps
+ *
+ * The epistemic Layer 2 object: captures what we know at depth n, before any
+ * Boolean collapse.
  */
 export template <IsComplexScalar R, typename EscapeCriterion>
   requires IsEscapeCriterion<EscapeCriterion, Complex<R>>
-constexpr auto prefix_bounded_N(std::size_t max_iter,
-                                EscapeCriterion escape_criterion) {
-  return [max_iter, escape_criterion](const OrbitPath<R>& orbit) {
-    return !orbit_escape_time(orbit, max_iter, escape_criterion).has_value();
+constexpr auto M_kleene_N(std::size_t max_iter, EscapeCriterion criterion) {
+  return [max_iter, criterion](const Complex<R>& c) -> Ternary {
+    return orbit_escape_time(mandelbrot_orbit(c), max_iter, criterion)
+                   .has_value()
+               ? Ternary::True
+               : Ternary::Unknown;
   };
 }
 
-/**
- * @overload with default Euclidean escape radius.
- */
-export template <IsComplexScalar R>
-constexpr auto prefix_bounded_N(std::size_t max_iter,
-                                R escape_radius_squared = R{4}) {
-  return prefix_bounded_N<R>(
-      max_iter, euclidean_escape_radius_squared(escape_radius_squared));
-}
+// ─── Layer 3: Boolean set ─────────────────────────────────────────────────────
 
 /**
- * M_N = { c in C | prefix_bounded_N(orbit(c)) }.
+ * M_N: { c in C | M_kleene_N(n, p)(c) is not True, under policy }.
+ *
+ *   KleenePolicy::Inclusive (default, outer approximation):
+ *     M_N ⊇ M_true — includes all undecided points; the standard rendering.
+ *   KleenePolicy::Exclusive (inner approximation):
+ *     M_N ⊆ M_true — only confirmed members; ≡ ∅ under finite computation.
  */
-export template <IsComplexScalar R>
-constexpr auto M_N(std::size_t max_iter, R escape_radius_squared = R{4}) {
-  return M<R>(bounded<R>(prefix_bounded_N<R>(max_iter, escape_radius_squared)));
+export template <IsComplexScalar R, typename EscapeCriterion>
+  requires IsEscapeCriterion<EscapeCriterion, Complex<R>>
+constexpr auto M_N(std::size_t max_iter, EscapeCriterion criterion,
+                   KleenePolicy policy = KleenePolicy::Inclusive) {
+  const auto kleene = M_kleene_N<R>(max_iter, criterion);
+  auto c = var<ComplexesOf<R>>;
+  return Set{c % ComplexesOf<R>{} |
+             classify([kleene, policy](const Complex<R>& x) {
+               return collapse_ternary(kleene(x), policy);
+             }).χ};
 }
 
 /**
  * Tower constructor:
- *   n |-> M_n where each stage is a computable finite-prefix approximation.
+ *   n |-> M_N(n, criterion, policy)
  */
-export template <IsComplexScalar R>
-constexpr auto M_tower(R escape_radius_squared = R{4}) {
-  return [escape_radius_squared](std::size_t n) {
-    return M_N<R>(n, escape_radius_squared);
+export template <IsComplexScalar R, typename EscapeCriterion>
+  requires IsEscapeCriterion<EscapeCriterion, Complex<R>>
+constexpr auto M_tower(EscapeCriterion criterion,
+                        KleenePolicy policy = KleenePolicy::Inclusive) {
+  return [criterion, policy](std::size_t n) {
+    return M_N<R>(n, criterion, policy);
   };
 }
 
