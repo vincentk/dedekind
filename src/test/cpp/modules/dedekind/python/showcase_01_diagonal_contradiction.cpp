@@ -30,14 +30,12 @@ constexpr auto xy = var<decltype(R2)>;
 using R2Point = typename decltype(R2)::Domain;
 
 // Diagonal: { (x, y) ∈ ℝ² | x = y }
-constexpr auto diagonal = Set{xy % R2 | [](R2Point p) {
-  return p.first == p.second;
-}};
+constexpr auto diagonal =
+    Set{xy % R2 | [](R2Point p) { return p.first == p.second; }};
 
 // Strip: { (x, y) ∈ ℝ² | x > 5 ∧ y < 3 }
-constexpr auto strip = Set{xy % R2 | [](R2Point p) {
-  return (p.first > 5.0) && (p.second < 3.0);
-}};
+constexpr auto strip = Set{
+    xy % R2 | [](R2Point p) { return (p.first > 5.0) && (p.second < 3.0); }};
 
 // Intersection is empty: no point lies on the diagonal AND in the strip.
 constexpr auto empty_diagonal_cut = diagonal & strip;
