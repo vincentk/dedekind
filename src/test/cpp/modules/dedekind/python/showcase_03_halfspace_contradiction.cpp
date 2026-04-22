@@ -36,11 +36,8 @@ constexpr auto n = var<ℕ>;
 constexpr auto gt_five = Set{n % N | (n > bound<5>)};
 constexpr auto lt_three = Set{n % N | (n < bound<3>)};
 
-// Set-level `&` dispatches through `structured_and` on the halfspace types;
-// the contradiction collapses the result to `Ø<int, TernaryLogic>`.
-constexpr auto empty_meet = gt_five & lt_three;
-
-// Compile-time theorem: the meet IS the empty set.
+// Compile-time theorem: the meet IS the empty set on ℕ.
+constexpr Ø<int, TernaryLogic> empty_meet = gt_five & lt_three;
 static_assert(empty_meet == Ø{});
 
 /**
