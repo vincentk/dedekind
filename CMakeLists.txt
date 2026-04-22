@@ -62,12 +62,13 @@ option(DEDEKIND_BUILD_PYTHON_BINDINGS
     "Build the nanobind-based Python MVP facade"
     ON)
 
-# Enable testing with Catch2:
+# Enable testing with Catch2 (pinned release tag; no tracking of main).
 include(FetchContent)
 FetchContent_Declare(
   Catch2
-  GIT_REPOSITORY https://github.com/catchorg/Catch2.git
-  GIT_TAG        v3.14.0
+    GIT_REPOSITORY https://github.com/catchorg/Catch2.git
+    GIT_TAG        v3.14.0
+    GIT_SHALLOW    TRUE
 )
 
 # This populates the 'catch2_SOURCE_DIR' variable
@@ -185,6 +186,27 @@ add_dedekind_layer(analysis dedekind_numbers)
 add_dedekind_layer(linear_algebra dedekind_analysis)
 add_dedekind_layer(python dedekind_linear_algebra)
 
+# --- IR FIXTURE FOR COMPILER OPTIMIZATION WITNESS ---
+# Compile-time pruning witness for dedekind.sets: built as a static library
+# for compile-command capture and LLVM IR generation by the helper script.
+# Placed in the python test tree so it can resolve all module dependencies.
+add_library(set-pruning-ir-fixture STATIC EXCLUDE_FROM_ALL
+    src/test/cpp/modules/dedekind/python/pruning_noop_vs_runtime_fixture.cpp
+    src/test/cpp/modules/dedekind/python/showcase_01_diagonal_contradiction.cpp
+    src/test/cpp/modules/dedekind/python/showcase_02_lattice_singleton.cpp)
+
+set_target_properties(set-pruning-ir-fixture PROPERTIES
+    CXX_STANDARD 23
+    CXX_STANDARD_REQUIRED ON
+    CXX_EXTENSIONS OFF
+    CXX_SCAN_FOR_MODULES ON)
+
+target_compile_options(set-pruning-ir-fixture PRIVATE
+    ${DEDEKIND_WARNING_FLAGS}
+    -O2)
+
+target_link_libraries(set-pruning-ir-fixture PRIVATE dedekind_python)
+
 if(DEDEKIND_BUILD_PYTHON_BINDINGS)
     # Temporary policy: pin bindings/integration to Python 3.12 until
     # python-graphblas/llvmlite availability is stable on newer interpreters.
@@ -242,8 +264,6 @@ if(DEDEKIND_BUILD_PYTHON_BINDINGS)
         ENVIRONMENT "PYTHONPATH=${DEDEKIND_PYTHON_PACKAGE_ROOT}")
 endif()
 
-
-# --- 3. THE FINAL ASSEMBLY (The Public Interface) ---
 
 # The book of math according to the dedekind project.
 # Each chapter corresponds the book to an object file which in turn

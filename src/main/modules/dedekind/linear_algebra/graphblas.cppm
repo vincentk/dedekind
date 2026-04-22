@@ -54,4 +54,14 @@ concept BackendConformantLinearOperator =
     LinearOperatorContract<Op> &&
     LinearAlgebraBackend<typename Op::backend_type>;
 
+/** @section Formal_Verification */
+
+// SparseLinearOperatorStub satisfies the minimal linear operator contract
+// (rank-nullity witness + scalar type) and the backend-aware extension.
+static_assert(LinearOperatorContract<SparseLinearOperatorStub<double, 4, 2>>,
+              "SparseLinearOperatorStub must satisfy LinearOperatorContract.");
+static_assert(
+    BackendConformantLinearOperator<SparseLinearOperatorStub<double, 4, 2>>,
+    "SparseLinearOperatorStub must satisfy BackendConformantLinearOperator.");
+
 }  // namespace dedekind::linear_algebra

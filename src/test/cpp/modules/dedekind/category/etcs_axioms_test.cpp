@@ -104,6 +104,18 @@ TEST_CASE("ETCS: IsSet exposes the grouped axiom witnesses",
   STATIC_CHECK(IsSet<decltype(s)>);
 }
 
+TEST_CASE("ETCS: IsSet alignment with :cartesian witnesses is explicit",
+          "[category][etcs][axioms][cartesian][alignment]") {
+  using CanonicalIntSetObject =
+      decltype(ambient_set<int>([](const int&) { return true; }));
+
+  STATIC_CHECK(IsSet<CanonicalIntSetObject>);
+  STATIC_CHECK(
+      HasAxiom5CartesianProduct<typename CanonicalIntSetObject::Ambient>);
+  STATIC_CHECK(
+      HasAxiom6Exponentiation<typename CanonicalIntSetObject::Ambient>);
+}
+
 TEST_CASE("ETCS axiom 10: split-epi witness surface is explicit",
           "[category][etcs][axioms][choice]") {
   const auto s = ambient_set<int>([](const int& x) { return x >= 0; });
@@ -255,4 +267,120 @@ TEST_CASE(
   CHECK(in_via(5U, from_unsigned, s_bool));
   CHECK(
       classifier_reindexing_definitional_witness_at(s_bool, from_unsigned, 5U));
+}
+// ---------------------------------------------------------------------------
+// Issue #354: composed-embedding arrow wrapper
+// ---------------------------------------------------------------------------
+
+TEST_CASE(
+    "ETCS axiom 7: compose_embedding produces IsArrow-compatible composed path",
+    "[category][etcs][axioms][reindexing][composed][issue354]") {
+  // f: bool -> int,  g: int -> long
+  auto f = arrow<bool, int>([](const bool b) { return b ? 2 : 3; });
+  auto g =
+      arrow<int, long>([](const int x) { return static_cast<long>(x * 10); });
+  auto h = compose_embedding(f, g);
+
+  STATIC_CHECK(IsArrow<decltype(h)>);
+  STATIC_CHECK(std::same_as<Dom<decltype(h)>, bool>);
+  STATIC_CHECK(std::same_as<Cod<decltype(h)>, long>);
+
+  const auto s = ambient_set<long>([](const long& v) { return v > 0; });
+
+  STATIC_CHECK(
+      HasAxiom7PullbackReindexingDefinitionalSurface<decltype(s), decltype(h)>);
+
+  CHECK(in_via(true, h, s));   // h(true) = 20 > 0
+  CHECK(in_via(false, h, s));  // h(false) = 30 > 0
+
+  CHECK(classifier_reindexing_definitional_witness_at(s, h, true));
+  CHECK(classifier_reindexing_definitional_witness_at(s, h, false));
+}
+
+TEST_CASE(
+    "ETCS axiom 7: compose_embedding negative — ad-hoc lambda fails IsArrow",
+    "[category][etcs][axioms][reindexing][composed][issue354][negative]") {
+  // A raw lambda does NOT satisfy IsArrow (no Domain/Codomain typedefs).
+  auto raw_lambda = [](const bool b) { return b ? 2 : 3; };
+  STATIC_CHECK_FALSE(IsArrow<decltype(raw_lambda)>);
+}
+
+TEST_CASE(
+    "ETCS axiom 7: compose_embedding naturality check across multiple points",
+    "[category][etcs][axioms][reindexing][composed][issue354]") {
+  // Chain: unsigned -> int -> bool (via sign check)
+  auto to_int = arrow<unsigned, int>(
+      [](const unsigned u) { return static_cast<int>(u) - 5; });
+  auto sign_bit = arrow<int, bool>([](const int x) { return x >= 0; });
+  auto composed = compose_embedding(to_int, sign_bit);
+
+  STATIC_CHECK(IsArrow<decltype(composed)>);
+
+  const auto s = ambient_set<bool>([](const bool& b) { return b; });
+  STATIC_CHECK(
+      HasAxiom7PullbackReindexingDefinitionalSurface<decltype(s),
+                                                     decltype(composed)>);
+
+  CHECK(in_via(10U, composed, s));       // 10 - 5 = 5 >= 0 → true ∈ s
+  CHECK_FALSE(in_via(3U, composed, s));  // 3 - 5 = -2 < 0 → false ∉ s
+
+  CHECK(classifier_reindexing_definitional_witness_at(s, composed, 10U));
+  CHECK(classifier_reindexing_definitional_witness_at(s, composed, 3U));
+}
+
+// ---------------------------------------------------------------------------
+// Issue #355: reusable split-epi law witness fixture
+// ---------------------------------------------------------------------------
+
+/**
+ * @brief Reusable fixture for split-epi law validation.
+ * @details Separates shape checks (IsSplitEpicPair concept) from law checks
+ * (split_epi_section_law_at evaluation), following issue #355 acceptance
+ * criteria. Construct with a concrete epi/section pair and call the helpers.
+ */
+template <typename Epi, typename Section>
+  requires IsSplitEpicPair<Epi, Section> && std::equality_comparable<Cod<Epi>>
+struct SplitEpiLawFixture {
+  Epi epi;
+  Section section;
+
+  [[nodiscard]] bool law_holds_at(const Cod<Epi>& b) const {
+    return split_epi_section_law_at(epi, section, b);
+  }
+
+  [[nodiscard]] bool law_fails_at(const Cod<Epi>& b) const {
+    return !split_epi_section_law_at(epi, section, b);
+  }
+};
+
+TEST_CASE("ETCS axiom 10: SplitEpiLawFixture — positive witness with identity",
+          "[category][etcs][axioms][choice][fixture][issue355]") {
+  SplitEpiLawFixture<Identity<int>, Identity<int>> fix{Identity<int>{},
+                                                       Identity<int>{}};
+  CHECK(fix.law_holds_at(0));
+  CHECK(fix.law_holds_at(7));
+  CHECK(fix.law_holds_at(-42));
+}
+
+TEST_CASE(
+    "ETCS axiom 10: SplitEpiLawFixture — negative witness with bad section",
+    "[category][etcs][axioms][choice][fixture][issue355][negative]") {
+  auto bad_section = arrow<int, int>([](const int x) { return x + 1; });
+  SplitEpiLawFixture<Identity<int>, decltype(bad_section)> fix{Identity<int>{},
+                                                               bad_section};
+  CHECK(fix.law_fails_at(0));  // id(bad(0)) = 1 ≠ 0
+  CHECK(fix.law_fails_at(5));  // id(bad(5)) = 6 ≠ 5
+}
+
+TEST_CASE("ETCS axiom 10: SplitEpiLawFixture — fixture reused across types",
+          "[category][etcs][axioms][choice][fixture][issue355]") {
+  SplitEpiLawFixture<Identity<double>, Identity<double>> fix_d{
+      Identity<double>{}, Identity<double>{}};
+  CHECK(fix_d.law_holds_at(1.5));
+  CHECK(fix_d.law_holds_at(-3.2));
+
+  SplitEpiLawFixture<Identity<bool>, Identity<bool>> fix_b{Identity<bool>{},
+                                                           Identity<bool>{}};
+  CHECK(fix_b.law_holds_at(true));
+  CHECK(fix_b.law_holds_at(false));
 }

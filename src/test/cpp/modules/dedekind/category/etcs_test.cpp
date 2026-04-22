@@ -30,6 +30,20 @@ TEST_CASE("ETCS: primitive ambient species can be materialized as sets",
   CHECK_FALSE(unit_interval.χ(-0.1));
 }
 
+TEST_CASE("ETCS: canonical int ambient satisfies ETCS witnesses",
+          "[category][etcs][axioms]") {
+  using CanonicalIntSetObject =
+      decltype(ambient_set<int>([](int) { return true; }));
+
+  STATIC_CHECK(IsSet<CanonicalIntSetObject>);
+  STATIC_CHECK(
+      HasAxiom5CartesianProduct<typename CanonicalIntSetObject::Ambient>);
+  STATIC_CHECK(
+      HasAxiom6Exponentiation<typename CanonicalIntSetObject::Ambient>);
+
+  CHECK(true);
+}
+
 TEST_CASE("ETCS: set lattice operations", "[category][etcs][sets]") {
   const auto s_even = classify<int>([](const int& x) { return x % 2 == 0; });
   const auto s_positive = classify<int>([](const int& x) { return x > 0; });

@@ -56,23 +56,54 @@ class Dual {
 
   /** @section Dual_Arithmetic: ε² = 0 */
 
+  friend constexpr bool operator==(const Dual&, const Dual&) = default;
+
   friend constexpr Dual operator+(const Dual& a, const Dual& b) {
     return {a.val_ + b.val_, a.der_ + b.der_};
   }
+
+  friend constexpr Dual operator-(const Dual& a, const Dual& b) {
+    return {a.val_ - b.val_, a.der_ - b.der_};
+  }
+
+  constexpr Dual operator-() const { return {-val_, -der_}; }
 
   friend constexpr Dual operator*(const Dual& a, const Dual& b) {
     // (a + be)(c + de) = ac + (ad + bc)e + bde²(->0)
     return {a.val_ * b.val_, (a.val_ * b.der_) + (a.der_ * b.val_)};
   }
 
+  /**
+   * @brief Multiplicative inverse: (a + bε)⁻¹ = (1/a) - (b/a²)ε.
+   * Valid when a ≠ 0.
+   */
+  constexpr Dual inverse() const {
+    return {F{1} / val_, -der_ / (val_ * val_)};
+  }
+
+  friend constexpr Dual operator/(const Dual& a, const Dual& b) {
+    return a * b.inverse();
+  }
+
  private:
   F val_, der_;
 };
 
-/** @section Formal_Verification
- * Deferred while Dual witnesses are being retargeted to the active ring
- * contracts.
- */
+/** @section Formal_Verification */
+
+// Basis element ε = Dual(0, 1); the nilpotent axiom ε² = 0.
+inline constexpr Dual<double> eps{0.0, 1.0};
+static_assert(eps * eps == Dual<double>{0.0, 0.0}, "Nilpotent axiom: ε² = 0.");
+
+// Forward-mode AD correctness: d/dx(x²)|_{x=3} = 6.
+// Dual(3, 1) seeds x with derivative 1; squaring gives value 9, derivative 6.
+inline constexpr Dual<double> x_seed{3.0, 1.0};
+static_assert(x_seed * x_seed == Dual<double>{9.0, 6.0},
+              "AD rule: d/dx(x²)|_{x=3} = 6.");
+
+// Dual<double> is field-like: +, -, unary -, *, / are all defined and closed.
+static_assert(dedekind::algebra::IsFieldLikeScalar<Dual<double>>,
+              "Dual<double> must satisfy the operational field-like witness.");
 
 export template <typename F = double, typename L = ClassicalLogic,
                  typename C = ℶ_1>

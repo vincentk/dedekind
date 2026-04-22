@@ -319,6 +319,9 @@ struct maybe_functor {
   constexpr Τ_cat operator()(const Σ_cat&) const noexcept { return {}; }
 };
 
+static_assert(IsFunctor<box_functor<int>>,
+              "Verification Failed: box_functor must satisfy IsFunctor.");
+
 static_assert(IsFunctor<maybe_functor<int>>,
               "Verification Failed: maybe_functor must satisfy IsFunctor.");
 

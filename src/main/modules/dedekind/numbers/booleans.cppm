@@ -49,6 +49,9 @@ namespace dedekind::numbers {
 using namespace dedekind::category;
 using namespace dedekind::sets;
 
+export template <typename L = ClassicalLogic>
+using FiniteBooleanSetOf = dedekind::sets::FiniteBooleanSet<L>;
+
 /**
  * @concept Is_B
  * @brief Identifies a structure as a formal Boolean Semiring (𝔹).
@@ -65,5 +68,14 @@ concept Is_B = std::same_as<E, bool> && requires(const M& m) {
   { m.cardinality() } -> std::same_as<std::size_t>;
   requires m.cardinality() == 2;
 };
+
+/** @section Formal_Verification */
+
+// FiniteBooleanSetOf<> is the canonical characteristic function for 𝔹.
+// It is a set (membership morphism: bool → Ω), not a ring carrier directly.
+static_assert(
+    dedekind::category::IsSet<decltype(dedekind::category::ambient_set<bool>(
+        FiniteBooleanSetOf<>{}))>,
+    "FiniteBooleanSetOf must be the canonical IsSet anchor for bool.");
 
 }  // namespace dedekind::numbers

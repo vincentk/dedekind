@@ -10,32 +10,35 @@ import dedekind.numbers;
 
 using namespace dedekind::category;
 using namespace dedekind::numbers;
+using namespace dedekind::sets;
 
 TEST_CASE("Numbers: Cardinality draft policy", "[numbers][cardinality]") {
-  SECTION("Finite and aleph0 comparison policy") {
+  SECTION("Finite and ℵ_0 comparison policy") {
     const Cardinality finite_three = finite_cardinality(3);
+    const Cardinality inf = ℵ_0{};
 
-    CHECK(compare(finite_three, aleph0) == std::strong_ordering::less);
-    CHECK(compare(aleph0, finite_three) == std::strong_ordering::greater);
-    CHECK(compare(aleph0, aleph0) == std::strong_ordering::equal);
+    CHECK(compare(finite_three, inf) == std::strong_ordering::less);
+    CHECK(compare(inf, finite_three) == std::strong_ordering::greater);
+    CHECK(compare(inf, inf) == std::strong_ordering::equal);
   }
 
-  SECTION("Addition and multiplication absorb to aleph0") {
+  SECTION("Addition and multiplication absorb to ℵ_0") {
     const Cardinality finite_five = finite_cardinality(5);
     const Cardinality finite_six = finite_cardinality(6);
+    const Cardinality inf = ℵ_0{};
 
     CHECK(add(finite_five, finite_six) == finite_cardinality(11));
-    CHECK(add(finite_five, aleph0) == Cardinality{aleph0});
+    CHECK(add(finite_five, inf) == Cardinality{ℵ_0{}});
 
     CHECK(mul(finite_five, finite_six) == finite_cardinality(30));
-    CHECK(mul(finite_five, aleph0) == Cardinality{aleph0});
+    CHECK(mul(finite_five, inf) == Cardinality{ℵ_0{}});
   }
 
   SECTION("Realization to size_t remains explicit") {
     const std::size_t sentinel = std::numeric_limits<std::size_t>::max() - 17;
 
     CHECK(realize_to_size_t(finite_cardinality(42), sentinel) == 42);
-    CHECK(realize_to_size_t(aleph0, sentinel) == sentinel);
+    CHECK(realize_to_size_t(Cardinality{ℵ_0{}}, sentinel) == sentinel);
   }
 }
 
@@ -83,31 +86,30 @@ TEST_CASE("Numbers: ExtensionalCardinal<N> multi-limb semantics",
     CHECK(res.value.limbs[0] == 0);  // wraps to zero
   }
 
-  SECTION("add_or_aleph0 converts 1-limb overflow to Aleph0") {
+  SECTION("add_or_ℵ_0 converts 1-limb overflow to ℵ_0") {
     const std::size_t max = std::numeric_limits<std::size_t>::max();
     const C1 a = max;
     const C1 b = std::size_t{1};
-    const auto result = add_or_aleph0(a, b);
-    REQUIRE(std::holds_alternative<Aleph0>(result));
+    const auto result = add_or_ℵ_0(a, b);
+    REQUIRE(std::holds_alternative<ℵ_0>(result));
   }
 
-  SECTION("mul_or_aleph0 converts large-product overflow to Aleph0") {
+  SECTION("mul_or_ℵ_0 converts large-product overflow to ℵ_0") {
     const std::size_t max = std::numeric_limits<std::size_t>::max();
     const C1 a = max;
     const C1 b = std::size_t{2};
-    const auto result = mul_or_aleph0(a, b);
-    REQUIRE(std::holds_alternative<Aleph0>(result));
+    const auto result = mul_or_ℵ_0(a, b);
+    REQUIRE(std::holds_alternative<ℵ_0>(result));
   }
 
-  SECTION(
-      "ExtensionalCardinal<2> addition overflow into variant-level Aleph0") {
+  SECTION("ExtensionalCardinal<2> addition overflow into variant-level ℵ_0") {
     const std::size_t max = std::numeric_limits<std::size_t>::max();
     C2 big{};
     big.limbs[0] = max;
     big.limbs[1] = max;
     const C2 one = std::size_t{1};
-    const auto result = add_or_aleph0(big, one);
-    REQUIRE(std::holds_alternative<Aleph0>(result));
+    const auto result = add_or_ℵ_0(big, one);
+    REQUIRE(std::holds_alternative<ℵ_0>(result));
   }
 
   SECTION("realize_to_size_t on ExtensionalCardinal<2> with high limb") {
@@ -151,5 +153,22 @@ TEST_CASE("Numbers: Cardinality witnesses and composition",
 
     CHECK(lhs.value == rhs.value);
     CHECK(lhs.trace == rhs.trace);
+  }
+}
+
+TEST_CASE("Numbers: ExtensionalCardinal additive inverse",
+          "[numbers][cardinality][inverse]") {
+  using C1 = ExtensionalCardinal<>;
+
+  SECTION("inverse() free function returns additive inverse") {
+    const C1 three{3};
+    const C1 neg_three = inverse(three, std::plus<C1>{});
+    // In two's-complement wrapping arithmetic: 3 + (-3) == 0
+    CHECK((three + neg_three) == C1{0});
+  }
+
+  SECTION("Additive inverse of zero is zero") {
+    const C1 zero{0};
+    CHECK(inverse(zero, std::plus<C1>{}) == C1{0});
   }
 }

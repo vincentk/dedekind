@@ -52,4 +52,11 @@ export using 𝔹 = BooleanSet;
 
 export inline constexpr BooleanSet B{};
 
+/** @section Formal_Verification */
+
+// BooleanSet is the canonical IsSet witness for the Boolean ambient universe.
+static_assert(dedekind::category::IsSet<
+                  decltype(dedekind::category::ambient_set<bool>(B))>,
+              "BooleanSet must be the canonical IsSet anchor for bool.");
+
 }  // namespace dedekind::algebra

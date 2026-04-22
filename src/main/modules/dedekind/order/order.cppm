@@ -36,6 +36,11 @@ namespace dedekind::order {
 using namespace dedekind::sets;
 using namespace dedekind::category;
 
+static_assert(dedekind::category::IsSet<
+                  decltype(dedekind::category::ambient_set<int>(Ω<int>{}))>,
+              "dedekind.order is grounded on canonical ETCS set objects "
+              "imported from dedekind.sets.");
+
 /**
  * @concept IsPreOrdered
  * @brief The most basic relation: Reflexive and Transitive.
@@ -188,5 +193,26 @@ concept IsDividableChain = IsTotallyOrdered<T> && requires(T a, T b) {
 export template <typename S>
 concept IsDedekindComplete =
     IsTotallyOrdered<S> && IsDense<S> && dedekind::category::HasExtrema<S>;
+
+/** @section Formal_Verification */
+
+// int is the canonical totally ordered chain with integer division.
+static_assert(IsTotallyOrdered<int>, "int must satisfy IsTotallyOrdered.");
+static_assert(
+    IsDividableChain<int>,
+    "int must satisfy IsDividableChain (integer division and modulo).");
+
+// IsDiscrete<int> is architecturally withheld: IsDiscrete requires
+// IsArchimedean which requires IsSuccessor which requires IsPartialMagma<int,
+// std::plus<int>>. IsPartialMagma expects Op{}(std::pair<T,T>), but
+// std::plus<int> takes two separate arguments. Signed addition is also not a
+// Magma (no IsTotal: signed overflow is UB). See total.cppm: !IsMagma<int,
+// std::plus<int>>.
+
+// IsTotallyOrdered<double> is architecturally withheld: dedekind's
+// is_reflexive_v<double, std::less_equal<>> is false by design because IEEE 754
+// NaN violates reflexivity (NaN <= NaN is false). See species.cppm note.
+// Use IsOrderedField<double> (archimedean.cppm) or std::totally_ordered<double>
+// for the operational ordering witness.
 
 }  // namespace dedekind::order

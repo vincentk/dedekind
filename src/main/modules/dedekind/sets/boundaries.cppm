@@ -51,6 +51,7 @@ export module dedekind.sets:boundaries;
 
 import dedekind.category;
 
+import :cardinality;
 import :mereology;
 
 using namespace dedekind::category;
@@ -209,6 +210,9 @@ static_assert(dedekind::category::IsSet<decltype(ambient_set<int>(Ω<int>{}))>,
               "The universal boundary must lift to an ETCS set object.");
 static_assert(dedekind::category::IsSet<decltype(ambient_set<int>(Ø<int>{}))>,
               "The empty boundary must lift to an ETCS set object.");
+static_assert(dedekind::category::HasCanonicalSetCCC<int>,
+              "Breadcrumb to :cartesian: boundary ambient int has canonical "
+              "CCC witness.");
 
 // Transitional alias used by tests and set-builder examples.
 // ETCS-level natural-number witnesses may replace this direct alias later.

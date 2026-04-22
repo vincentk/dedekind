@@ -14,6 +14,8 @@
  * MVP exposure contract:
  * - Include explicit set interop boundaries (`from_std` / `to_std`).
  * - Include sequence/range adapters (`from_range` / `as_range`).
+ * - Pull in downstream numeric/order/topology specializations transitively via
+ *   `dedekind.numbers`, so wrappers need not manage fine-grained ownership.
  * - Keep the surface small and deterministic for notebook-facing demos.
  * - Defer broad symbolic expression builders and deep internal abstractions.
  *
@@ -32,6 +34,7 @@ export module dedekind.python;
 
 import dedekind.category;
 import dedekind.linear_algebra;
+import dedekind.numbers;
 import dedekind.sequences;
 import dedekind.sets;
 

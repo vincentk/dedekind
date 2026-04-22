@@ -28,6 +28,7 @@ module;
 export module dedekind.algebra:polynomial;
 
 import dedekind.category;
+import dedekind.sets;
 import :ring;
 
 namespace dedekind::algebra {
@@ -229,9 +230,85 @@ template <typename R>
 inline constexpr bool is_commutative_v<Poly<R>, std::multiplies<Poly<R>>> =
     true;
 
+// Identity elements: the zero polynomial for addition, the unit polynomial
+// for multiplication. These lift the class-level identity_v member into the
+// global category trait, enabling IsMonoid / IsSemiring concept checks.
+template <typename R>
+inline constexpr Poly<R> identity_v<Poly<R>, std::plus<>> = Poly<R>{};
+template <typename R>
+inline constexpr Poly<R> identity_v<Poly<R>, std::plus<Poly<R>>> = Poly<R>{};
+template <typename R>
+inline constexpr Poly<R> identity_v<Poly<R>, std::multiplies<>> = Poly<R>{R{1}};
+template <typename R>
+inline constexpr Poly<R> identity_v<Poly<R>, std::multiplies<Poly<R>>> =
+    Poly<R>{R{1}};
+
+// Totality: Poly<R> inherits periodicity coefficient-wise from R.
+// All polynomial arithmetic (addition, multiplication) is applied term-by-term
+// on the coefficient vector; if R's operation wraps (periodic), so does
+// Poly<R>.
+template <typename R>
+  requires is_periodic_v<R, std::plus<R>>
+struct is_periodic<Poly<R>, std::plus<Poly<R>>> : std::true_type {};
+
+template <typename R>
+  requires is_periodic_v<R, std::multiplies<R>>
+struct is_periodic<Poly<R>, std::multiplies<Poly<R>>> : std::true_type {};
+
+// Distributivity: Cauchy multiplication distributes over coefficient-wise
+// addition whenever R distributes — the standard polynomial ring argument.
+template <typename R>
+  requires is_distributive_v<R, std::multiplies<R>, std::plus<R>>
+inline constexpr bool
+    is_distributive_v<Poly<R>, std::multiplies<Poly<R>>, std::plus<Poly<R>>> =
+        true;
+
+// Invertibility: coefficient-wise additive inverses lift when R has them.
+// This also enables the constrained operator- in RigPolynomial.
+template <typename R>
+  requires is_invertible_v<R, std::plus<R>>
+inline constexpr bool is_invertible_v<Poly<R>, std::plus<Poly<R>>> = true;
+
 }  // namespace dedekind::category
 
-/** @section Formal_Verification
- * Deferred while polynomial semiring witnesses are being retargeted to the
- * active category action/identity APIs.
+namespace dedekind::algebra {
+
+/**
+ * @section Formal_Verification
+ *
+ * @note Algebraic inheritance: RigPolynomial<R> inherits the algebraic
+ * structure of its coefficient type R:
+ *
+ *  - R is a Monoid  ⟹  Poly<R> is a Monoid  (under Cauchy product + addition)
+ *  - R is a Ring    ⟹  Poly<R> is a Ring     (subtraction lifts when R has
+ * additive inverses)
+ *  - R is a Field   ⟹  Poly<R> is a Euclidean Domain (NOT a Field: X has no
+ * inverse)
+ *
+ * The last point is classical: K[x] over a field K is a principal ideal domain
+ * with Euclidean function deg(f), but it is not a field because the
+ * indeterminate x is not invertible. Polynomial division (with remainder) gives
+ * K[x] the IsEuclidean structure (deg(f) < deg(g) after remainder), enabling
+ * GCD.
+ *
+ * Proof: RigPolynomial<unsigned int> is a total commutative ring.
+ * unsigned int satisfies IsRing (wrapping arithmetic in Z/2^N Z), and the
+ * lifted is_periodic / is_distributive / is_invertible registrations above
+ * lift that certification to Poly<unsigned int>.
+ *
+ * Proof: RigPolynomial<ExtensionalCardinal<>> is a total commutative ring.
+ * ExtensionalCardinal<> (extensional ℕ, two's-complement wrapping) satisfies
+ * IsRing. Its periodicity and distributivity lift to the polynomial ring.
  */
+
+using PolyUInt = RigPolynomial<unsigned int>;
+static_assert(IsCommutativeRing<PolyUInt>,
+              "RigPolynomial<unsigned int> must satisfy IsCommutativeRing "
+              "(coefficient wrapping lifts to the polynomial level).");
+
+using PolyEC = RigPolynomial<dedekind::sets::ExtensionalCardinal<>>;
+static_assert(
+    IsCommutativeRing<PolyEC>,
+    "RigPolynomial<ExtensionalCardinal<>> must satisfy IsCommutativeRing.");
+
+}  // namespace dedekind::algebra

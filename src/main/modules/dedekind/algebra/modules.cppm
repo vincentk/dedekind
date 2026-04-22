@@ -390,3 +390,5 @@ inline constexpr dedekind::algebra::OneDimensionalVector<S, Tag> inverse(
 }
 
 }  // namespace dedekind::category
+
+namespace dedekind::algebra {}  // namespace dedekind::algebra

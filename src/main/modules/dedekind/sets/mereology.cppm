@@ -295,63 +295,9 @@ concept IsUncountable = IsCardinality<C> && !IsCountable<C>;
 export template <typename C>
 concept IsFiniteMagnitude = IsCountable<C> && (C::is_finite == true);
 
-/** @struct Finite: Hardware-bound magnitude. */
-export struct Finite {
-  static constexpr bool is_finite = true;
-  static constexpr bool is_countable = true;
-
-  auto operator<=>(const Finite&) const = default;
-
-  using power_type = Finite;  // Finite sets always jump to other Finite sets.
-};
-
-/** @struct ℵ: The Transfinite Ladder. */
-export template <std::size_t N>
-struct ℵ {
-  static constexpr bool is_finite = false;
-  static constexpr bool is_countable = (N == 0);
-  using power_type = ℵ<N + 1>;
-};
-
-export using ℵ_0 = ℵ<0>;  // Countable Infinity
-export using ℶ_1 = ℵ<1>;  // The Continuum (assuming GCH)
+// Finite, ℵ<N>, ℵ_0, ℶ_1 are defined in :cardinality (same module).
 
 /** @section The_Body: The Logic of Presence */
-
-// Transitional metadata bridge for lifting sets-side species into ETCS
-// `ambient_set(...)` objects.
-template <typename S, typename Enable = void>
-struct SetMetadata {
-  using Domain = typename SpeciesTraits<S>::Domain;
-
-  // Translate the Ontology Token into the Mereological Type
-  using Cardinality = std::conditional_t<
-      SpeciesTraits<S>::cardinality == CardinalityTag::Finite, Finite, ℵ_0>;
-};
-
-// 2. Specialization: Only for types with internal members (Custom Species)
-template <typename S>
-struct SetMetadata<
-    S, std::void_t<typename S::Domain, typename S::cardinality_type>> {
-  using Domain = typename S::Domain;
-  using Cardinality = typename S::cardinality_type;
-};
-
-/**
- * @brief ETCS alignment bridge: lift a `dedekind::sets` species into a
- * `dedekind::category::IsSet` object.
- *
- * @details
- * This is the explicit seam between:
- * - `dedekind::sets::Set<...>`: intensional set-builder DSL species.
- * - `dedekind::category::Set<...>`: canonical CCC/category witness.
- */
-template <typename S>
-concept IsETCSLiftedSet = requires(const S s) {
-  requires dedekind::category::IsSet<
-      decltype(dedekind::category::ambient_set<typename SetMetadata<S>::Domain>(
-          s))>;
-};
 
 /** @section The_Extent: The Logic of Realization */
 
@@ -368,7 +314,11 @@ concept IsETCSLiftedSet = requires(const S s) {
  * @tparam L The Subobject Classifier (Ω). Defaults to ClassicalLogic.
  */
 export template <typename S, typename L = ClassicalLogic>
-concept IsEnumerated = IsETCSLiftedSet<S> && requires(const S s) {
+concept IsEnumerated = requires(const S s) {
+  typename S::Domain;
+  requires dedekind::category::IsSet<
+      decltype(dedekind::category::ambient_set<typename S::Domain>(s))>;
+
   /** @section Magnitude: The Physical Proof */
   // An extensional set MUST claim a Finite cardinality type.
   requires(S::cardinality_type::is_finite == true);
@@ -397,7 +347,11 @@ concept IsEnumerated = IsETCSLiftedSet<S> && requires(const S s) {
  * Wikipedia: Intensional definition, Indicator function, Ternary logic
  */
 export template <typename S, typename L = TernaryLogic>
-concept IsSymbolic = IsETCSLiftedSet<S> && !IsEnumerated<S, L>;
+concept IsSymbolic = requires(const S s) {
+  typename S::Domain;
+  requires dedekind::category::IsSet<
+      decltype(dedekind::category::ambient_set<typename S::Domain>(s))>;
+} && !IsEnumerated<S, L>;
 
 /**
  * @concept IsPointedSet
@@ -405,7 +359,11 @@ concept IsSymbolic = IsETCSLiftedSet<S> && !IsEnumerated<S, L>;
  * Wikipedia: Pointed set
  */
 export template <typename S, typename T>
-concept IsPointedSet = IsETCSLiftedSet<S> && IsPointed<T, std::plus<T>>;
+concept IsPointedSet = requires(const S s) {
+  typename S::Domain;
+  requires dedekind::category::IsSet<
+      decltype(dedekind::category::ambient_set<typename S::Domain>(s))>;
+} && IsPointed<T, std::plus<T>>;
 
 /**
  * @section Structural_Inference: NaturalLogic

@@ -20,6 +20,7 @@ module;
 export module dedekind.sets:interop;
 
 import dedekind.category;
+import :cardinality;
 import :mereology;
 
 namespace dedekind::sets {

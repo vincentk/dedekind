@@ -1,4 +1,5 @@
 #include <catch2/catch_test_macros.hpp>
+#include <compare>
 import dedekind.numbers;
 
 using namespace dedekind::numbers;
@@ -17,6 +18,22 @@ TEST_CASE("Numbers: Rational Simplification", "[numbers][rational]") {
     // 12/18 simplified via GCD(12, 18)=6 -> 2/3
     REQUIRE(q.num() == 2);
     REQUIRE(q.den() == 3);
+  }
+}
+
+TEST_CASE("Numbers: Rational Ordering", "[numbers][rational][ordering]") {
+  using Q = Rational<default_integer>;
+
+  SECTION("Less-than comparison") {
+    CHECK((Q{1, 3} <=> Q{1, 2}) == std::strong_ordering::less);
+  }
+
+  SECTION("Greater-than comparison") {
+    CHECK((Q{3, 4} <=> Q{1, 2}) == std::strong_ordering::greater);
+  }
+
+  SECTION("Equal comparison") {
+    CHECK((Q{2, 4} <=> Q{1, 2}) == std::strong_ordering::equal);
   }
 }
 
