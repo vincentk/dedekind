@@ -526,13 +526,12 @@ constexpr auto cartesian_product(const Set<T1, L1, P1>& a,
  */
 export template <typename A, typename B>
   requires requires {
-             typename std::remove_cvref_t<A>::Domain;
-             typename std::remove_cvref_t<B>::Domain;
-             typename NaturalLogic<std::remove_cvref_t<A>>::type;
-             typename NaturalLogic<std::remove_cvref_t<B>>::type;
-           } &&
-           std::same_as<typename NaturalLogic<std::remove_cvref_t<A>>::type,
-                        typename NaturalLogic<std::remove_cvref_t<B>>::type>
+    typename std::remove_cvref_t<A>::Domain;
+    typename std::remove_cvref_t<B>::Domain;
+    typename NaturalLogic<std::remove_cvref_t<A>>::type;
+    typename NaturalLogic<std::remove_cvref_t<B>>::type;
+  } && std::same_as<typename NaturalLogic<std::remove_cvref_t<A>>::type,
+                    typename NaturalLogic<std::remove_cvref_t<B>>::type>
 constexpr auto cartesian_product(const A& a, const B& b) {
   auto xa = var<std::remove_cvref_t<A>>;
   auto xb = var<std::remove_cvref_t<B>>;
@@ -545,21 +544,19 @@ constexpr auto cartesian_product(const A& a, const B& b) {
 export template <typename T1, typename L1, typename P1, typename T2,
                  typename L2, typename P2>
   requires std::same_as<L1, L2>
-constexpr auto operator*(const Set<T1, L1, P1>& a,
-                         const Set<T2, L2, P2>& b) {
+constexpr auto operator*(const Set<T1, L1, P1>& a, const Set<T2, L2, P2>& b) {
   return cartesian_product(a, b);
 }
 
 /** @brief Infix sugar for cartesian product over ambient species values. */
 export template <typename A, typename B>
   requires requires {
-             typename std::remove_cvref_t<A>::Domain;
-             typename std::remove_cvref_t<B>::Domain;
-             typename NaturalLogic<std::remove_cvref_t<A>>::type;
-             typename NaturalLogic<std::remove_cvref_t<B>>::type;
-           } &&
-           std::same_as<typename NaturalLogic<std::remove_cvref_t<A>>::type,
-                        typename NaturalLogic<std::remove_cvref_t<B>>::type>
+    typename std::remove_cvref_t<A>::Domain;
+    typename std::remove_cvref_t<B>::Domain;
+    typename NaturalLogic<std::remove_cvref_t<A>>::type;
+    typename NaturalLogic<std::remove_cvref_t<B>>::type;
+  } && std::same_as<typename NaturalLogic<std::remove_cvref_t<A>>::type,
+                    typename NaturalLogic<std::remove_cvref_t<B>>::type>
 constexpr auto operator*(const A& a, const B& b) {
   return cartesian_product(a, b);
 }

@@ -104,7 +104,7 @@ TEST_CASE("Dedekind Sets: Cartesian product and relation witnesses",
 }
 
 TEST_CASE("Dedekind Sets: Ambient cartesian product ergonomics",
-    "[sets][relations][cartesian][ambient]") {
+          "[sets][relations][cartesian][ambient]") {
   constexpr auto ambient = Ω<int>{};
   constexpr auto p_via_function = cartesian_product(ambient, ambient);
   constexpr auto p_via_operator = ambient * ambient;
