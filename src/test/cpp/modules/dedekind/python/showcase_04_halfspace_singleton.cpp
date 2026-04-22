@@ -17,6 +17,8 @@
  * Licensed under the Apache License, Version 2.0.
  */
 
+#include <concepts>
+
 import dedekind.category;
 import dedekind.sets;
 import dedekind.algebra;
@@ -39,6 +41,15 @@ constexpr auto lt_five = Set{n % N | (n < bound<5>)};
 // Compile-time theorem: the meet IS the singleton {4} on ℕ.
 constexpr Singleton<4> in_between = gt_three & lt_five;
 static_assert(in_between == Singleton<4>{});
+
+// Logic species tightens at the reduction boundary.
+//   ℕ is transfinite → NaturalLogic picks TernaryLogic for the parent Sets.
+//   The meet reduces to a finite extensional object with decidable membership,
+//   so the reduced type carries ClassicalLogic — Unknown is no longer reachable.
+using ParentLogic  = typename decltype(gt_three)::logic_species;
+using ReducedLogic = typename decltype(in_between)::logic_species;
+static_assert(std::same_as<ParentLogic, TernaryLogic>);
+static_assert(std::same_as<ReducedLogic, ClassicalLogic>);
 
 /**
  * @brief Showcase 4: cardinality-1 reduction to the singleton {4}.
