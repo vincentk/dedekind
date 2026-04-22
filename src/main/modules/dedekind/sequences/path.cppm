@@ -38,6 +38,7 @@ module;
 #include <iterator>
 #include <limits>
 #include <memory>
+#include <optional>
 #include <ranges>
 #include <type_traits>
 #include <utility>
@@ -368,6 +369,36 @@ constexpr std::size_t count_if(const Path<T, Cardinality>& path, Pred&& pred) {
   return count;
 }
 
+/**
+ * Find the first index where a predicate holds, up to an inclusive budget.
+ *
+ * first_where(path, pred, n) ≡ min { k ≤ n | pred(path(k)) }, or nullopt.
+ *
+ * Two overloads: infinite path with explicit budget, finite path self-bounded.
+ */
+export template <typename T, typename Pred>
+  requires std::copy_constructible<std::decay_t<Pred>> &&
+           std::predicate<const std::decay_t<Pred>&, const T&>
+constexpr std::optional<std::size_t> first_where(const Path<T>& path,
+                                                 Pred&& pred,
+                                                 std::size_t budget) {
+  for (std::size_t i = 0; i <= budget; ++i) {
+    if (std::invoke(pred, path.at(i))) return i;
+  }
+  return std::nullopt;
+}
+
+export template <typename T, typename Pred>
+  requires std::copy_constructible<std::decay_t<Pred>> &&
+           std::predicate<const std::decay_t<Pred>&, const T&>
+constexpr std::optional<std::size_t> first_where(const FinitePath<T>& path,
+                                                 Pred&& pred) {
+  for (std::size_t i = 0; i < path.size(); ++i) {
+    if (std::invoke(pred, path.at(i))) return i;
+  }
+  return std::nullopt;
+}
+
 export template <typename T, typename Cardinality, typename Pred>
   requires LogicalMap<Pred, T>
 constexpr auto exists(const Path<T, Cardinality>& path, Pred&& pred) {
@@ -385,6 +416,37 @@ constexpr auto exists(const Path<T, Cardinality>& path, Pred&& pred) {
       break;  // short-circuit: absorbing element found
   }
   return witness;
+}
+
+/**
+ * @brief Co-Kleisli scan: apply a prefix aggregate to each initial segment.
+ * @details Produces an infinite path where element i is f(prefix(path, i+1)).
+ *
+ * This is the canonical SQL window-function pattern over an ordered sequence:
+ *   scan(sum,           path)(i) == sum of path[0..i]
+ *   scan(exists(pred),  path)(i) == exists(prefix(path, i+1), pred)
+ *
+ * Relation to operator<<=: scan(f, path) is the co-Kleisli extension of
+ * [f](ctx) { return f(prefix(ctx, 1)); }, expressed without the suffix-path
+ * construction. Note that operator<<= passes a suffix (drop) as context,
+ * while scan passes a prefix — these are the two canonical window shapes.
+ *
+ * @param f    Aggregate: FinitePath<T> → U (e.g. exists, forall, count_if).
+ * @param path Source infinite path.
+ * @return     Infinite Path<U> where element i == f(prefix(path, i+1)).
+ */
+export template <typename T, typename F>
+  requires std::copy_constructible<std::decay_t<F>> &&
+           std::invocable<const std::decay_t<F>&, const FinitePath<T>&>
+constexpr auto scan(F&& f, const Path<T>& path) -> Path<
+    std::invoke_result_t<const std::decay_t<F>&, const FinitePath<T>&>> {
+  using Fn = std::decay_t<F>;
+  using U = std::invoke_result_t<const Fn&, const FinitePath<T>&>;
+  return Path<U>{[f = Fn(std::forward<F>(f)), path](std::size_t i) {
+    assert(i < std::numeric_limits<std::size_t>::max() &&
+           "scan index overflow: i+1 exceeds size_t");
+    return std::invoke(f, prefix(path, i + 1));
+  }};
 }
 
 export template <typename T, typename Cardinality, typename Pred>

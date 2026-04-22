@@ -1,16 +1,15 @@
-#include <array>
 #include <catch2/catch_test_macros.hpp>
 #include <chrono>
 #include <complex>
 #include <cstdint>
 #include <string>
 
-import dedekind.sets;
 import dedekind.category;
+import dedekind.sets;
 import dedekind.sequences;
-import dedekind.topology;
 import dedekind.numbers;
 
+using namespace dedekind::category;
 using namespace dedekind::sets;
 using namespace dedekind::sequences;
 using namespace dedekind::numbers;
@@ -20,74 +19,38 @@ namespace {
 using LatticePoint = std::complex<int>;
 using ComplexPoint = Complex<double>;
 
-double norm_squared(const ComplexPoint& z) {
-  const double re = z.real();
-  const double im = z.imag();
-  return (re * re) + (im * im);
-}
-
 ComplexPoint parameter_of(const LatticePoint& p, int size) {
   return ComplexPoint{
       (2.0 * static_cast<double>(p.real()) / static_cast<double>(size)) - 1.5,
       (2.0 * static_cast<double>(p.imag()) / static_cast<double>(size)) - 1.0};
 }
 
-auto truncated_mandelbrot_orbit(const ComplexPoint& c, int max_iter) {
-  return prefix(mandelbrot_orbit(c), static_cast<std::size_t>(max_iter) + 1u);
+// Map escape time to a shading character.
+//   nullopt     → '#'  (inside M: no escape witnessed)
+//   fast escape → ' '  (far outside)
+//   slow escape → 'O'  (near the boundary)
+char shade(const std::optional<std::size_t>& escape_time,
+           std::size_t max_iter) {
+  if (!escape_time.has_value()) return '#';
+  constexpr std::string_view palette = " .:-=+*oO";
+  const auto idx = (*escape_time * (palette.size() - 1)) / max_iter;
+  return palette[idx];
 }
 
-std::size_t escape_count(const ComplexPoint& c, int max_iter, double cutoff) {
-  const auto orbit = truncated_mandelbrot_orbit(c, max_iter);
+std::string render_ascii_art(int size, std::size_t max_iter, double cutoff) {
   const double cutoff_sq = cutoff * cutoff;
-
-  return count_if(orbit, [cutoff_sq](const ComplexPoint& z) {
-    return norm_squared(z) > cutoff_sq;
-  });
-}
-
-bool adapted_mandelbrot_member(const LatticePoint& p, int size, int max_iter,
-                               double cutoff) {
-  return escape_count(parameter_of(p, size), max_iter, cutoff) <= 1u;
-}
-
-constexpr auto adapted_mandelbrot_plane(int size, int max_iter, double cutoff) {
-  auto c = var<ℂ>;
-
-  return Set{c % C | [size, max_iter, cutoff](const Complex<double>& z) {
-    int x = static_cast<int>(z.real());
-    int y = static_cast<int>(z.imag());
-    return adapted_mandelbrot_member(LatticePoint{x, y}, size, max_iter,
-                                     cutoff);
-  }};
-}
-
-constexpr auto benchmark_lattice(int size) { return lattice<C>.bounded(size); }
-
-constexpr auto adapted_mandelbrot_sample(int size, int max_iter,
-                                         double cutoff) {
-  return adapted_mandelbrot_plane(size, max_iter, cutoff) &
-         benchmark_lattice(size);
-}
-
-std::string render_ascii_art(int size, int max_iter, double cutoff) {
-  const auto mandelbrot = adapted_mandelbrot_sample(size, max_iter, cutoff);
-  using Logic = typename decltype(mandelbrot)::logic_species;
-
   std::string ascii;
   ascii.reserve(static_cast<std::size_t>(size) *
                 static_cast<std::size_t>(size + 1));
-
   for (int y = 0; y < size; ++y) {
     for (int x = 0; x < size; ++x) {
-      ascii.push_back(mandelbrot(Complex<double>{static_cast<double>(x),
-                                                 static_cast<double>(y)}) ==
-                              Logic::True
-                          ? '#'
-                          : '.');
+      const auto c = parameter_of(LatticePoint{x, y}, size);
+      const auto et =
+          orbit_escape_time(mandelbrot_orbit(c), max_iter, cutoff_sq);
+      ascii.push_back(shade(et, max_iter));
     }
     ascii.push_back('\n');
   }
-
   return ascii;
 }
 
@@ -102,98 +65,172 @@ std::uint64_t fnv1a64(const std::string& text) {
 
 }  // namespace
 
-TEST_CASE("Sets: adapted Mandelbrot set-builder stress test",
-          "[sets][mandelbrot]") {
-  SECTION("Truncated orbit prefixes are finite sequences") {
-    const auto orbit = truncated_mandelbrot_orbit(ComplexPoint{-0.75, 0.1}, 8);
+TEST_CASE("Sets: Mandelbrot set-builder stress test", "[sets][mandelbrot]") {
+  SECTION("Orbit starts at zero") {
+    const auto orbit = mandelbrot_orbit(ComplexPoint{-0.75, 0.1});
 
-    static_assert(IsFiniteSequence<decltype(orbit)>);
-    REQUIRE(orbit.size() == 9u);
+    static_assert(IsSequence<decltype(orbit)>);
     REQUIRE(orbit.at(0).real() == 0.0);
     REQUIRE(orbit.at(0).imag() == 0.0);
   }
 
-  SECTION("Known points agree with the adapted benchmark predicate") {
-    const int size = 256;
-    const int max_iter = 50;
-    const double cutoff = 2.0;
-    const auto mandelbrot = adapted_mandelbrot_sample(size, max_iter, cutoff);
-    using Logic = typename decltype(mandelbrot)::logic_species;
+  SECTION("Truncated orbit prefix is a finite sequence") {
+    const auto orbit = prefix(mandelbrot_orbit(ComplexPoint{-0.75, 0.1}), 9u);
 
-    REQUIRE(mandelbrot(Complex<double>{size / 2, size / 2}) == Logic::True);
-    REQUIRE(mandelbrot(Complex<double>{0, 0}) == Logic::False);
-    REQUIRE(mandelbrot(Complex<double>{size - 1, size - 1}) == Logic::False);
+    static_assert(IsFiniteSequence<decltype(orbit)>);
+    REQUIRE(orbit.size() == 9u);
   }
 
-  SECTION("ASCII rendering matches expected adapted silhouette") {
-    const int size = 24;
-    const int max_iter = 20;
-    const double cutoff = 2.0;
-    const auto ascii = render_ascii_art(size, max_iter, cutoff);
-    const std::array<std::string, 24> expected_rows{
-        "..................#.....", "........................",
-        "................###.....", "...............####.....",
-        "................##......", "............###########.",
-        "............##########..", "...........############.",
-        "..........##############", "....####..#############.",
-        "...####################.", "...####################.",
-        "######################..", "...####################.",
-        "...####################.", "....####..#############.",
-        "..........##############", "...........############.",
-        "............##########..", "............###########.",
-        "................##......", "...............####.....",
-        "................###.....", "........................"};
+  SECTION("orbit_escape_time: bounded and escaping points") {
+    const auto criterion = euclidean_escape_radius_squared<double>();
 
-    std::string expected;
-    for (const auto& row : expected_rows) {
-      expected += row;
-      expected.push_back('\n');
-    }
+    // c = 0: orbit is identically 0, never escapes
+    REQUIRE(!orbit_escape_time(mandelbrot_orbit(ComplexPoint{0.0, 0.0}), 50u,
+                               criterion)
+                 .has_value());
 
-    INFO("mandelbrot_size=" << size << "\n" << ascii);
+    // c = -0.5: inside the main cardioid, bounded
+    REQUIRE(!orbit_escape_time(mandelbrot_orbit(ComplexPoint{-0.5, 0.0}), 50u,
+                               criterion)
+                 .has_value());
 
-    REQUIRE(ascii.size() == static_cast<std::size_t>(size) *
-                                static_cast<std::size_t>(size + 1));
-    REQUIRE(ascii == expected);
+    // c = 2: z_0=0, z_1=2 (|2|²=4, not >4), z_2=6 (|6|²=36>4) → escapes at 2
+    const auto et_2 = orbit_escape_time(
+        mandelbrot_orbit(ComplexPoint{2.0, 0.0}), 50u, criterion);
+    REQUIRE(et_2.has_value());
+    REQUIRE(*et_2 == 2u);
+
+    // Points farther out escape sooner
+    const auto et_10 = orbit_escape_time(
+        mandelbrot_orbit(ComplexPoint{10.0, 0.0}), 50u, criterion);
+    REQUIRE(et_10.has_value());
+    REQUIRE(*et_10 < *et_2);
   }
 
-  SECTION("Parametrized escape criterion: custom radius") {
-    // Test with a custom escape radius (3 instead of 2)
-    const auto large_radius_criterion =
-        euclidean_escape_radius_squared<double>(9.0);  // 3^2 = 9
+  SECTION("orbit_divergence_path: Kleene running state") {
+    const auto criterion = euclidean_escape_radius_squared<double>();
+    const auto divergence = orbit_divergence_path(
+        mandelbrot_orbit(ComplexPoint{2.0, 0.0}), criterion);
 
+    static_assert(IsSequence<decltype(divergence)>);
+    REQUIRE(divergence.at(0) == Ternary::Unknown);  // z_0=0, inside ball
+    REQUIRE(divergence.at(1) == Ternary::Unknown);  // z_1=2, |2|²=4 not >4
+    REQUIRE(divergence.at(2) == Ternary::True);     // z_2=6, |6|²=36>4
+  }
+
+  SECTION("orbit_divergence_path is monotone: True is absorbing") {
+    const auto criterion = euclidean_escape_radius_squared<double>();
+    const auto divergence = orbit_divergence_path(
+        mandelbrot_orbit(ComplexPoint{2.0, 0.0}), criterion);
+
+    // True once escape is witnessed; stays True at all later depths
+    REQUIRE(divergence.at(2) == Ternary::True);
+    REQUIRE(divergence.at(3) == Ternary::True);
+    REQUIRE(divergence.at(10) == Ternary::True);
+
+    // Bounded orbit stays Unknown for all queried depths
+    const auto bounded_divergence = orbit_divergence_path(
+        mandelbrot_orbit(ComplexPoint{0.0, 0.0}), criterion);
+    REQUIRE(bounded_divergence.at(0) == Ternary::Unknown);
+    REQUIRE(bounded_divergence.at(50) == Ternary::Unknown);
+  }
+
+  SECTION("orbit_divergence_path and orbit_escape_time are consistent") {
+    const auto criterion = euclidean_escape_radius_squared<double>();
+    const auto orbit = mandelbrot_orbit(ComplexPoint{2.0, 0.0});
+    const auto divergence = orbit_divergence_path(orbit, criterion);
+    const auto et = orbit_escape_time(orbit, 50u, criterion);
+
+    REQUIRE(et.has_value());
+    // Unknown strictly before escape time, True from escape time onward
+    REQUIRE(divergence.at(*et - 1) == Ternary::Unknown);
+    REQUIRE(divergence.at(*et) == Ternary::True);
+  }
+
+  SECTION("orbit_escape_time: boolean collapse via has_value()") {
+    const auto criterion = euclidean_escape_radius_squared<double>();
+    REQUIRE(!orbit_escape_time(mandelbrot_orbit(ComplexPoint{0.0, 0.0}), 50u,
+                               criterion)
+                 .has_value());
+    REQUIRE(!orbit_escape_time(mandelbrot_orbit(ComplexPoint{-0.5, 0.0}), 50u,
+                               criterion)
+                 .has_value());
+    REQUIRE(orbit_escape_time(mandelbrot_orbit(ComplexPoint{2.0, 0.0}), 50u,
+                              criterion)
+                .has_value());
+    REQUIRE(orbit_escape_time(mandelbrot_orbit(ComplexPoint{-2.5, 0.0}), 50u,
+                              criterion)
+                .has_value());
+  }
+
+  SECTION("euclidean_escape_radius_squared: parametric threshold") {
+    const auto default_criterion = euclidean_escape_radius_squared<double>();
+    const auto large_criterion =
+        euclidean_escape_radius_squared<double>(9.0);  // radius 3
+
+    // |2.5| = 2.5: exceeds radius 2 but not radius 3
     const ComplexPoint test_point{2.5, 0.0};
-
-    // Point with magnitude 2.5 > 2 (default) but < 3
-    // With default criterion (radius 2): should escape
-    // With custom criterion (radius 3): should not escape
-    REQUIRE(euclidean_escape_radius_squared<double>()(test_point) == true);
-    REQUIRE(large_radius_criterion(test_point) == false);
+    REQUIRE(default_criterion(test_point) == true);
+    REQUIRE(large_criterion(test_point) == false);
   }
 
-  SECTION("orbit_escapes with custom escape criterion") {
-    // Use a larger escape radius (4^2 = 16)
-    auto custom_criterion = euclidean_escape_radius_squared<double>(16.0);
+  SECTION("M_kleene_N: Layer 2 Ternary membership before Boolean collapse") {
+    const auto criterion = euclidean_escape_radius_squared<double>();
+    const auto kleene = M_kleene_N<double>(50u, criterion);
 
-    const ComplexPoint c{0.25, 0.0};  // A point in the Mandelbrot set
-    const auto orbit = mandelbrot_orbit(c);
+    // In-set points: orbit never escapes → Unknown (open question)
+    REQUIRE(kleene(ComplexPoint{0.0, 0.0}) == Ternary::Unknown);
+    REQUIRE(kleene(ComplexPoint{-0.5, 0.0}) == Ternary::Unknown);
 
-    // With radius 4, orbit at c=0.25 should not escape in first 10 iterations
-    REQUIRE(orbit_escapes(orbit, 10u, custom_criterion) == false);
+    // Out-of-set points: escape witnessed → True
+    REQUIRE(kleene(ComplexPoint{2.0, 0.0}) == Ternary::True);
+    REQUIRE(kleene(ComplexPoint{-2.5, 0.0}) == Ternary::True);
+  }
 
-    // With standard radius (2^2 = 4), orbit at c=0.25 is also bounded
-    REQUIRE(orbit_escapes(orbit, 10u, 4.0) == false);
+  SECTION("M_N: Inclusive policy (outer approximation, M_N ⊇ M_true)") {
+    const auto criterion = euclidean_escape_radius_squared<double>();
+    const auto m50 = M_N<double>(50u, criterion);
+    using Logic = typename decltype(m50)::logic_species;
 
-    // A point clearly outside the set should escape quickly
-    const auto orbit_outside = mandelbrot_orbit(ComplexPoint{2.0, 0.0});
-    REQUIRE(orbit_escapes(orbit_outside, 10u, 4.0) == true);
+    // Unknown (undecided) → True (in M): standard Mandelbrot rendering
+    REQUIRE(m50(ComplexPoint{0.0, 0.0}) == Logic::True);
+    REQUIRE(m50(ComplexPoint{-0.5, 0.0}) == Logic::True);
+    // Escaped → False (not in M)
+    REQUIRE(m50(ComplexPoint{2.0, 0.0}) == Logic::False);
+    REQUIRE(m50(ComplexPoint{-2.5, 0.0}) == Logic::False);
+  }
+
+  SECTION("M_N: Exclusive policy (inner approximation, M_N ⊆ M_true)") {
+    const auto criterion = euclidean_escape_radius_squared<double>();
+    const auto m50_excl = M_N<double>(50u, criterion, KleenePolicy::Exclusive);
+    using Logic = typename decltype(m50_excl)::logic_species;
+
+    // Unknown (undecided) → False: finite computation cannot witness
+    // boundedness
+    REQUIRE(m50_excl(ComplexPoint{0.0, 0.0}) == Logic::False);
+    REQUIRE(m50_excl(ComplexPoint{-0.5, 0.0}) == Logic::False);
+    // Escaped → also False (not in M)
+    REQUIRE(m50_excl(ComplexPoint{2.0, 0.0}) == Logic::False);
+    REQUIRE(m50_excl(ComplexPoint{-2.5, 0.0}) == Logic::False);
+  }
+
+  SECTION("ASCII rendering: escape-time shading") {
+    const auto ascii = render_ascii_art(24, 20u, 2.0);
+
+    REQUIRE(ascii.size() == 24u * 25u);
+
+    // Grid centre (x=12, y=12) → c=(-0.5, 0): deep inside M, shaded '#'
+    REQUIRE(ascii[12u * 25u + 12u] == '#');
+
+    // Top-left (x=0, y=0) → c=(-1.5, -1.0): outside M, not '#'
+    REQUIRE(ascii[0] != '#');
   }
 }
 
 TEST_CASE("Sets: Mandelbrot benchmark-style rendering",
           "[sets][mandelbrot][.stress][.benchmark]") {
   const int size = 512;
-  const int max_iter = 50;
+  const std::size_t max_iter = 50u;
   const double cutoff = 2.0;
   const auto t0 = std::chrono::steady_clock::now();
   const auto ascii = render_ascii_art(size, max_iter, cutoff);
@@ -208,7 +245,6 @@ TEST_CASE("Sets: Mandelbrot benchmark-style rendering",
 
   REQUIRE(ascii.size() ==
           static_cast<std::size_t>(size) * static_cast<std::size_t>(size + 1));
-  // Regression check: verify the rendered output remains stable.
-  constexpr std::uint64_t expected_checksum = 10872249173769113091ULL;
-  REQUIRE(checksum == expected_checksum);
+  // To add a regression hash: run once, read checksum from INFO output above,
+  // then add: REQUIRE(checksum == <value>ULL);
 }

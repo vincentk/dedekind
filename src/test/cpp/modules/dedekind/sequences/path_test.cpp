@@ -118,4 +118,44 @@ TEST_CASE("Sequences: The Path to Continuity",
     REQUIRE(
         std::ranges::equal(as_range(doubled), std::vector<int>{2, 4, 6, 8}));
   }
+
+  SECTION("scan: running size equals index + 1") {
+    // scan(size, path)(i) == prefix(path, i+1).size() == i+1
+    const auto sizes =
+        scan([](const FinitePath<ℤ>& p) { return p.size(); }, path);
+
+    static_assert(IsSequence<decltype(sizes)>);
+    REQUIRE(sizes.at(0) == 1u);
+    REQUIRE(sizes.at(4) == 5u);
+    REQUIRE(sizes.at(9) == 10u);
+  }
+
+  SECTION("scan: running sum of natural numbers") {
+    // path(i) = i  =>  scan(sum)(i) = 0 + 1 + ... + i = i*(i+1)/2
+    Path<ℤ> naturals{[](std::size_t n) { return static_cast<ℤ>(n); }};
+    const auto running_sum = scan(
+        [](const FinitePath<ℤ>& p) {
+          ℤ s = 0;
+          for (std::size_t k = 0; k < p.size(); ++k) s += p.at(k);
+          return s;
+        },
+        naturals);
+
+    REQUIRE(running_sum.at(0) == 0);   // prefix [0]: sum = 0
+    REQUIRE(running_sum.at(3) == 6);   // prefix [0,1,2,3]: sum = 6
+    REQUIRE(running_sum.at(4) == 10);  // prefix [0..4]: sum = 10
+  }
+
+  SECTION("scan: exists() over a threshold — finds absorbing element") {
+    // path(i) = i+42; threshold > 45 first holds at i=4 (path(4)=46)
+    const auto hit = scan(
+        [](const FinitePath<ℤ>& p) {
+          return exists(p, [](ℤ x) { return x > 45; });
+        },
+        path);
+
+    REQUIRE(hit.at(3) == false);  // prefix [42,43,44,45]: none > 45
+    REQUIRE(hit.at(4) == true);   // prefix [42..46]: 46 > 45
+    REQUIRE(hit.at(9) == true);   // absorbing: remains true
+  }
 }
