@@ -56,6 +56,9 @@ class Rational {
   // Public to satisfy IsProduct<Rational<Z>, Z, Z> (ℚ ≅ ℤ × ℤ / ~).
   Z first, second;
 
+  /** @brief Default: 0/1. Required so Rational<Z> satisfies IsRealCarrier. */
+  constexpr Rational() : first(Z{}), second(Z{1}) {}
+
   constexpr Rational(Z num, Z den) : first(num), second(den) { simplify(); }
 
   /** @brief Embedding of an integer as a rational n/1.

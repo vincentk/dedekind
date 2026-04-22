@@ -13,19 +13,23 @@
  */
 module;
 
+#include <compare>
 #include <concepts>
 #include <cstddef>
+#include <functional>
 #include <type_traits>
 #include <utility>
 
 export module dedekind.numbers:real;
 
 import dedekind.category;
+import dedekind.order;
 import dedekind.sets;
 import :rational;
 
 namespace dedekind::numbers {
 using namespace dedekind::category;
+using namespace dedekind::order;
 using namespace dedekind::sets;
 
 // Canonical machine realization for the real scalar carrier.
@@ -48,7 +52,13 @@ class Real {
   using path_type = Q;
 
   constexpr Real() = default;
-  constexpr explicit Real(Q value) : value_(value) {}
+  /** @brief Implicit to allow `(a + b) / Q{2}` in IsDense checks. */
+  constexpr Real(Q value) : value_(value) {}  // NOLINT(google-explicit-constructor)
+  /** @brief Single-step implicit conversion from any V → Q.
+   *  Allows `(a + b) / 2` in IsDense: int → Rational → Real in one UDC. */
+  template <typename V>
+    requires(!std::same_as<V, Q> && std::convertible_to<V, Q>)
+  constexpr Real(V v) : value_(v) {}  // NOLINT(google-explicit-constructor)
 
   constexpr Q resolve() const { return value_; }
   constexpr Q path() const { return value_; }
@@ -56,7 +66,21 @@ class Real {
   // Compatibility with prior symbolic-cut style usage.
   constexpr bool operator()(const Q& x) const { return x < value_; }
 
+  // Three-way comparison delegates to the scalar carrier.
+  // For Q = Rational<I>: strong_ordering; for Q = double: partial_ordering.
+  friend constexpr auto operator<=>(const Real& a, const Real& b) {
+    return a.value_ <=> b.value_;
+  }
+
   friend constexpr bool operator==(const Real&, const Real&) = default;
+
+  /** @brief Supremum and infimum of the singleton {value_}.
+   *  Satisfies HasExtrema — required by IsDedekindComplete. */
+  constexpr Q infimum() const { return value_; }
+  constexpr Q supremum() const { return value_; }
+
+  // Additive inverse: -(a) = Real{-value_}
+  constexpr Real operator-() const { return Real{-value_}; }
 
   friend constexpr Real operator+(const Real& a, const Real& b) {
     return Real{a.value_ + b.value_};
@@ -220,6 +244,26 @@ inline constexpr dedekind::numbers::Real<S> partial_identity_v<
     dedekind::numbers::Real<S>, dedekind::numbers::PartialMulReal<S>> =
     dedekind::numbers::Real<S>{S{1}};
 
+/** @brief Ordering traits: Real<Rational<I>> inherits ℚ's total order.
+ *
+ * Real<double> is intentionally withheld (NaN breaks reflexivity).
+ * Real<Rational<I>> is totally ordered because Rational<I> is.
+ */
+template <dedekind::numbers::IsInteger I>
+inline constexpr bool is_reflexive_v<
+    dedekind::numbers::Real<dedekind::numbers::Rational<I>>,
+    std::less_equal<>> = true;
+
+template <dedekind::numbers::IsInteger I>
+inline constexpr bool is_transitive_v<
+    dedekind::numbers::Real<dedekind::numbers::Rational<I>>,
+    std::less_equal<>> = true;
+
+template <dedekind::numbers::IsInteger I>
+inline constexpr bool is_antisymmetric_v<
+    dedekind::numbers::Real<dedekind::numbers::Rational<I>>,
+    std::less_equal<>> = true;
+
 }  // namespace dedekind::category
 
 namespace dedekind::numbers {
@@ -234,6 +278,22 @@ inline constexpr auto embed_ℚ_ℝ =
     arrow<Rational<I>, Real<S>>([](const Rational<I>& q) noexcept {
       return Real<S>{static_cast<S>(q.num()) / static_cast<S>(q.den())};
     });
+
+/**
+ * @brief Canonical embedding of any std::floating_point type into ℝ.
+ *
+ * @details Wraps any floating-point value in Real<machine_real_scalar>
+ * (= Real<double>). For float → Real<double> this is a widening conversion;
+ * for double it is an identity wrap. The embedding is approximate because
+ * IEEE 754 does not represent all reals exactly (cf. PartialEmbedRationalToReal
+ * for the lossy-flagged variant).
+ *
+ * @tparam F Any std::floating_point source type.
+ */
+export template <std::floating_point F>
+constexpr Real<machine_real_scalar> embed_floating_ℝ(F v) {
+  return Real<machine_real_scalar>{static_cast<machine_real_scalar>(v)};
+}
 
 /**
  * @brief Characteristic morphism for ℝ: the real numbers.
@@ -290,5 +350,31 @@ static_assert(
     dedekind::category::IsSet<decltype(dedekind::category::ambient_set<
                                        Real<machine_real_scalar>>(R))>,
     "RealsOf must be the canonical IsSet anchor for dedekind.numbers:real.");
+
+/**
+ * @brief Canonical exact real: ℝ defined over ℚ by the Dedekind cut
+ * construction.
+ *
+ * Real<Rational<I>> uses exact rational arithmetic as its scalar carrier.
+ * Unlike Real<double>, it satisfies IsDedekindComplete: the ordering is total
+ * (inherited from ℚ), the density holds (midpoint (a+b)/2 always exists in
+ * ℚ), and HasExtrema holds trivially (infimum = supremum = the point itself).
+ *
+ * The name "ExactReal" reflects that this is the formally honest ℝ:
+ * every value is a ratio of integers with no rounding loss.
+ */
+export template <IsInteger I = default_integer>
+using ExactReal = Real<Rational<I>>;
+
+// Proof: ExactReal<> satisfies the Dedekind-completeness axioms.
+static_assert(
+    IsDedekindComplete<ExactReal<>>,
+    "ExactReal<> (= Real<Rational<Z>>) must satisfy IsDedekindComplete — "
+    "ℝ defined over ℚ via the Dedekind cut construction.");
+
+// Proof: ExactReal<> satisfies the operational field-like witness.
+static_assert(
+    dedekind::algebra::IsFieldLikeScalar<ExactReal<>>,
+    "ExactReal<> must satisfy IsFieldLikeScalar (ℝ is a field).");
 
 }  // namespace dedekind::numbers

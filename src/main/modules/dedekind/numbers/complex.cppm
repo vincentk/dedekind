@@ -44,25 +44,26 @@ class Complex {
  public:
   using scalar_type = R;
 
-  constexpr Complex(R re = R{}, R im = R{}) : re_(re), im_(im) {}
+  // Real and imaginary parts as a public pair.
+  // Public to satisfy IsProduct<Complex<R>, R, R> (ℂ ≅ ℝ × ℝ).
+  R first;   // real part
+  R second;  // imaginary part
 
-  constexpr R real() const { return re_; }
-  constexpr R imag() const { return im_; }
+  constexpr Complex(R re = R{}, R im = R{}) : first(re), second(im) {}
+
+  constexpr R real() const { return first; }
+  constexpr R imag() const { return second; }
 
   friend constexpr bool operator==(const Complex&, const Complex&) = default;
 
   friend constexpr Complex operator+(const Complex& a, const Complex& b) {
-    return {a.re_ + b.re_, a.im_ + b.im_};
+    return {a.first + b.first, a.second + b.second};
   }
 
   friend constexpr Complex operator*(const Complex& a, const Complex& b) {
-    return {(a.re_ * b.re_) - (a.im_ * b.im_),
-            (a.re_ * b.im_) + (a.im_ * b.re_)};
+    return {(a.first * b.first) - (a.second * b.second),
+            (a.first * b.second) + (a.second * b.first)};
   }
-
- private:
-  R re_{};
-  R im_{};
 };
 
 /**
@@ -390,5 +391,19 @@ inline constexpr bool
 static_assert(
     IsMonicArrow<std::decay_t<decltype(dedekind::numbers::embed_z2_c)>>,
     "embed_z2_c must be recognised as a monic arrow.");
+
+// Structural product proof: ℂ ≅ ℝ × ℝ (or more generally S × S for any carrier).
+static_assert(
+    dedekind::category::IsProduct<dedekind::numbers::Complex<double>, double,
+                                  double>,
+    "Complex<double> must satisfy IsProduct<Complex<R>, R, R> (ℂ ≅ ℝ × ℝ).");
+
+// Proof over the exact real: ℂ over ExactReal is also a product.
+static_assert(
+    dedekind::category::IsProduct<
+        dedekind::numbers::Complex<
+            dedekind::numbers::ExactReal<>>,
+        dedekind::numbers::ExactReal<>, dedekind::numbers::ExactReal<>>,
+    "Complex<ExactReal<>> must satisfy IsProduct (ℂ ≅ ℝ × ℝ over ℚ-based ℝ).");
 
 }  // namespace dedekind::category

@@ -282,6 +282,52 @@ export inline constexpr auto embed_K3_ℤ =
       return 0;
     });
 
+/**
+ * @brief Canonical embedding of any std::unsigned_integral into formal ℕ.
+ *
+ * @details Every std::unsigned_integral type is a machine-width representative
+ * of ℕ. ExtensionalCardinal<> is the "by fiat" unbounded ℕ. This template
+ * covers any unsigned width; the concrete arrow embed_unsigned_ℕ handles the
+ * canonical machine-width (unsigned) case.
+ *
+ * @tparam U Any std::unsigned_integral source type.
+ */
+export template <std::unsigned_integral U>
+constexpr ExtensionalCardinal<> embed_to_ℕ(U v) {
+  return ExtensionalCardinal<>{
+      static_cast<ExtensionalCardinal<>::limb_type>(v)};
+}
+
+/**
+ * @brief Concrete monic arrow: unsigned ↪ ℕ (ExtensionalCardinal<>).
+ *
+ * @details Injects the canonical machine-width unsigned into the extensional
+ * natural-number carrier. unsigned is the machine representative of
+ * std::unsigned_integral; for other widths use embed_to_ℕ<U>(v).
+ * Declared monic: distinct machine unsigned values yield distinct
+ * ExtensionalCardinal<> values within the 64-bit limb.
+ */
+export inline constexpr auto embed_unsigned_ℕ =
+    arrow<unsigned, ExtensionalCardinal<>>(
+        [](const unsigned& u) noexcept -> ExtensionalCardinal<> {
+          return ExtensionalCardinal<>{
+              static_cast<ExtensionalCardinal<>::limb_type>(u)};
+        });
+
+/**
+ * @brief Canonical embedding of any std::signed_integral into ℤ.
+ *
+ * @details The extensional integer carrier (extensional_integer = int) is the
+ * default target. For injecting into a general IsInteger domain Z, use
+ * embed_signed_integral<Z>(v).
+ *
+ * @tparam S Any std::signed_integral source type.
+ */
+export template <std::signed_integral S>
+constexpr extensional_integer embed_signed_to_ℤ(S v) {
+  return static_cast<extensional_integer>(v);
+}
+
 }  // namespace dedekind::numbers
 
 namespace dedekind::category {
@@ -294,4 +340,8 @@ template <>
 inline constexpr bool
     is_monic_arrow_v<std::decay_t<decltype(dedekind::numbers::embed_K3_ℤ)>> =
         true;
+
+template <>
+inline constexpr bool is_monic_arrow_v<
+    std::decay_t<decltype(dedekind::numbers::embed_unsigned_ℕ)>> = true;
 }  // namespace dedekind::category
