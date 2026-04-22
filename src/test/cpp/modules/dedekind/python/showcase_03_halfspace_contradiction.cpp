@@ -37,7 +37,7 @@ constexpr auto gt_five = Set{n % N | (n > bound<5>)};
 constexpr auto lt_three = Set{n % N | (n < bound<3>)};
 
 // Compile-time theorem: the meet IS the empty set on ℕ.
-constexpr Ø<int, TernaryLogic> empty_meet = gt_five & lt_three;
+constexpr Ø<int> empty_meet = gt_five & lt_three;
 static_assert(empty_meet == Ø{});
 
 /**

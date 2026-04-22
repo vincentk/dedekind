@@ -95,6 +95,18 @@ struct Ø final : Boundaries {
       std::is_same_v<Op, std::bit_and<base_set_type>> ||
       std::is_same_v<Op, std::bit_or<base_set_type>>;
 
+  constexpr Ø() = default;
+
+  /**
+   * @brief Cross-logic identity: the empty set under any logic species is the
+   * empty set. Enables writing `Ø<int>` (L defaults to ClassicalLogic) even
+   * when the RHS was produced by a Set whose NaturalLogic selected
+   * TernaryLogic — mathematically ∅ = ∅ regardless of logic species.
+   */
+  template <typename OtherL>
+    requires(!std::same_as<OtherL, L>)
+  constexpr Ø(const Ø<T, OtherL>&) {}
+
   /** @section Extensionality_Proof */
   constexpr std::size_t size() const { return 0; }
 
