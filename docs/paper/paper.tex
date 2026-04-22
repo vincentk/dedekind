@@ -617,13 +617,13 @@ entry:
 \end{lstlisting}
 
 \textbf{Showcase 2 — Lattice/square singleton in $\mathbb{C}$.}
-The natural-number lattice (Gaussian integers, $|\mathrm{Re}|,|\mathrm{Im}| \leq 3$)
+The natural-number lattice (Gaussian integers, $0 \leq \mathrm{Re}, \mathrm{Im} \leq 3$)
 intersected with the square $[0.5,1.5]^2$ contains exactly $c_3 = 1+i$.
 The compiler proves all four membership assertions at translation time and folds the
 exported function to a single \lstinline{ret i1 true}.
 
 \begin{lstlisting}[language=C++, caption={Showcase 2 source: lattice/square singleton in $\mathbb{C}$.}, label={lst:showcase02_src}]
-inline constexpr auto c = var<C>;
+inline constexpr auto c = var<ℂ>;
 inline constexpr auto natural_lattice_in_c = lattice<C>.bounded(3);
 inline constexpr auto square_c1_c2 = Set{c % C | [](const Complex<double>& z) {
   return (z.real() >= 0.5) && (z.real() <= 1.5)

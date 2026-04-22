@@ -293,14 +293,14 @@ entry:
 \end{lstlisting}
 
 \textbf{Showcase 2 — Lattice/square singleton in $\mathbb{C}$.}
-The lifted natural-number lattice (Gaussian integers with $|\mathrm{Re}|, |\mathrm{Im}| \leq 3$)
+The lifted natural-number lattice (Gaussian integers with $0 \leq \mathrm{Re}, \mathrm{Im} \leq 3$)
 intersected with the square $[0.5, 1.5] \times [0.5, 1.5]$ contains exactly
 $c_3 = 1 + i$.
 All four membership checks are resolved at compile time; the exported function
 folds to a single constant-true return.
 
 \begin{lstlisting}[language=C++, caption={Showcase 2: Lattice/square singleton in $\mathbb{C}$ collapses to constant true.}, label={lst:showcase02_src}]
-inline constexpr auto c = var<C>;
+inline constexpr auto c = var<ℂ>;
 inline constexpr auto natural_lattice_in_c = lattice<C>.bounded(3);
 inline constexpr auto square_c1_c2 = Set{c % C | [](const Complex<double>& z) {
   return (z.real() >= 0.5) && (z.real() <= 1.5)

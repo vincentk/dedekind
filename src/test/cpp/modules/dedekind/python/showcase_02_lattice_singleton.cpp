@@ -4,7 +4,7 @@
  * @brief Showcase 2 — Compile-time proof of a lattice/square singleton in ℂ.
  *
  * The 2D natural-number lattice ℕ² lifted into ℂ (Gaussian integers with
- * |Re|, |Im| ≤ 3) intersected with the open square [0.5, 1.5] × [0.5, 1.5]
+ * 0 ≤ Re, Im ≤ 3) intersected with the closed square [0.5, 1.5] × [0.5, 1.5]
  * contains exactly one point: c₃ = 1 + i.
  *
  * The compiler proves membership and non-membership for four representative
