@@ -250,6 +250,93 @@ By reifying set operations as type-level compositions, the compiler can symbolic
 For instance, the intersection of two contradictory sets—such as the set of positive reals and the set of negative reals—can be identified as an empty set during translation to \textsc{LLVM} Intermediate Representation (IR).
 This allows the backend to prune entire execution branches, effectively collapsing complex symbolic logic into zero-instruction machine code.
 
+Two concrete showcase witnesses from the test suite illustrate this in practice.
+
+\textbf{Showcase 1 — Diagonal contradiction in $\mathbb{R}^2$.}
+The diagonal $\{(x,y) \mid x = y\}$ in $\mathbb{R}^2$ and the strip
+$\{(x,y) \mid x > 5 \land y < 3\}$ are logically disjoint: on the diagonal $x = y$,
+so $x > 5$ forces $y > 5$, contradicting $y < 3$.
+The compiler verifies this at translation time and reduces the exported function to a
+single constant-false return.
+
+\begin{lstlisting}[language=C++, caption={Showcase 1: Diagonal contradiction in $\mathbb{R}^2$ collapses to constant false.}, label={lst:showcase01_src}]
+inline constexpr auto r2 = cartesian_product(R, R);
+using R2Point = typename decltype(r2)::Domain;
+inline constexpr auto xy = var<decltype(r2)>;
+
+inline constexpr auto diagonal_in_r2 = Set{xy % r2 | [](const R2Point& p) {
+  return p.first.resolve() == p.second.resolve();
+}};
+inline constexpr auto gt5_lt3_strip = Set{xy % r2 | [](const R2Point& p) {
+  return (p.first.resolve() > 5.0) && (p.second.resolve() < 3.0);
+}};
+inline constexpr auto empty_diagonal_cut = diagonal_in_r2 & gt5_lt3_strip;
+using R2Logic = typename decltype(empty_diagonal_cut)::logic_species;
+
+static_assert(empty_diagonal_cut(R2Point{Real<double>{6.0}, Real<double>{6.0}})
+              == R2Logic::False);
+
+extern "C" __attribute__((noinline)) bool impress_empty_diagonal_cut() {
+  return empty_diagonal_cut(R2Point{Real<double>{6.0}, Real<double>{6.0}})
+         == R2Logic::True;
+}
+\end{lstlisting}
+
+The corresponding LLVM IR produced by \texttt{clang++-22 -O2 -S -emit-llvm}
+reduces the body to a single instruction:
+
+\begin{lstlisting}[caption={Showcase 1 LLVM IR: constant false return.}, label={lst:showcase01_ir}]
+define dso_local noundef zeroext i1 @impress_empty_diagonal_cut() #0 {
+entry:
+  ret i1 false
+}
+\end{lstlisting}
+
+\textbf{Showcase 2 — Lattice/square singleton in $\mathbb{C}$.}
+The lifted natural-number lattice (Gaussian integers with $0 \leq \mathrm{Re}, \mathrm{Im} \leq 3$)
+intersected with the square $[0.5, 1.5] \times [0.5, 1.5]$ contains exactly
+$c_3 = 1 + i$.
+All four membership checks are resolved at compile time; the exported function
+folds to a single constant-true return.
+
+\begin{lstlisting}[language=C++, caption={Showcase 2: Lattice/square singleton in $\mathbb{C}$ collapses to constant true.}, label={lst:showcase02_src}]
+inline constexpr auto c = var<ℂ>;
+inline constexpr auto natural_lattice_in_c = lattice<C>.bounded(3);
+inline constexpr auto square_c1_c2 = Set{c % C | [](const Complex<double>& z) {
+  return (z.real() >= 0.5) && (z.real() <= 1.5)
+      && (z.imag() >= 0.5) && (z.imag() <= 1.5);
+}};
+inline constexpr auto lattice_square_intersection =
+    natural_lattice_in_c & square_c1_c2;
+using CLogic = typename decltype(lattice_square_intersection)::logic_species;
+
+inline constexpr Complex<double> c3{1.0, 1.0};
+inline constexpr Complex<double> c_left{0.0, 1.0};
+inline constexpr Complex<double> c_bottom{1.0, 0.0};
+inline constexpr Complex<double> c_diag{2.0, 2.0};
+
+static_assert(lattice_square_intersection(c3)     == CLogic::True);
+static_assert(lattice_square_intersection(c_left)  == CLogic::False);
+
+extern "C" __attribute__((noinline)) bool impress_lattice_square_singleton() {
+  return (lattice_square_intersection(c3)     == CLogic::True)
+      && (lattice_square_intersection(c_left)  == CLogic::False)
+      && (lattice_square_intersection(c_bottom) == CLogic::False)
+      && (lattice_square_intersection(c_diag)   == CLogic::False);
+}
+\end{lstlisting}
+
+\begin{lstlisting}[caption={Showcase 2 LLVM IR: constant true return.}, label={lst:showcase02_ir}]
+define dso_local noundef zeroext i1 @impress_lattice_square_singleton() #0 {
+entry:
+  ret i1 true
+}
+\end{lstlisting}
+
+Both showcases are checked-in as LLVM IR fixtures under
+\texttt{src/test/cpp/modules/dedekind/python/} and validated in CI via
+\texttt{make ir-fixture-check}.
+
 \begin{lstlisting}[language=C++, caption={Illustration of the symbolic construction of $e$ as an intensional set (the lower cut $L \subset \mathbb{Q}$).}, label={lst:euler}]
 // Representing e via the series predicate: 
 // q < sum_{n=0}^N 1/n! for some N
@@ -685,6 +772,8 @@ To reconcile the requirements of mathematical rigor with the necessity of system
 \end{enumerate}
 
 By providing these levels of engagement, \texttt{dedekind} shifts the paradigm from an unattainable "universal speed-accuracy win" toward \textbf{Informed Trade-offs}. This ensures that the developer can maintain mechanical sympathy for the hardware while remaining semantically honest about the mathematical validity of their results.
+
+\noindent \emph{Status (April 2026):} Phase 1 uses pragmatic direct \texttt{std::} calls (e.g., \texttt{hamilton.cppm} lines 104-112). Formal abstraction via \texttt{IsTranscendental<F>} concept is tracked in GitHub issue \#344 as Phase 2 work; see also issue \#177 (Denotational AD Roadmap) for related infrastructure.
 
 
 
@@ -1592,6 +1681,18 @@ In practical terms, this partition stabilizes the API for identities used by uni
 The \texttt{:expressions} partition is the set-builder workhorse. It provides intensional sets as predicates, symbolic variable bindings, logical predicate composition, subset witnesses, Cartesian products, relations, set-functions, and power-set construction.
 
 Recent ETCS-aligned extensions in this partition include point-wise subset evidence, relation witnesses, and function single-valuedness checks, all expressed as zero-overhead compositional constraints in the type system.
+
+For the current PR scope, the intended feature baseline in \texttt{:expressions} is:
+\begin{itemize}
+  \item set-level complement with prefix notation (\texttt{!S}) as the default expression form;
+  \item predicate composition in comprehensions via \texttt{p\_1 \&\& p\_2} and \texttt{p\_1 || p\_2};
+  \item complement-pair collapse rules for structural set algebra,
+  \[
+    S \cap \neg S = \varnothing, \qquad S \cup \neg S = \Omega,
+  \]
+  with compile-time witness checks aligned to boundary equality tests;
+  \item downstream static coverage in \texttt{dedekind.numbers} over $\mathbb{R}$ and $\mathbb{C}$ using composed predicates and nested set operations.
+\end{itemize}
 
 \subsection{The \texttt{:mereology} partition}
 

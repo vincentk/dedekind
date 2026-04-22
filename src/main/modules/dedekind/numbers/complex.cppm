@@ -49,6 +49,8 @@ class Complex {
   constexpr R real() const { return re_; }
   constexpr R imag() const { return im_; }
 
+  friend constexpr bool operator==(const Complex&, const Complex&) = default;
+
   friend constexpr Complex operator+(const Complex& a, const Complex& b) {
     return {a.re_ + b.re_, a.im_ + b.im_};
   }

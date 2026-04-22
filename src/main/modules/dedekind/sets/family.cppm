@@ -83,7 +83,7 @@ using element_of_t = typename resolve_species<T>::type;
 
 export template <typename Species, typename L = ClassicalLogic>
 using AnySetOver = std::variant<Ø<Species, L>, Ω<Species, L>,
-                                SingletonSet<element_of_t<Species>, L> >;
+                                SingletonSet<element_of_t<Species>, L>>;
 /**
  * @class Family
  * @brief A realized collection of sets (A "Set of Sets") over a common Species.
@@ -122,6 +122,18 @@ struct Family {
 
   // ... Implementation of Lattice operators ...
 };
+
+static_assert(
+    dedekind::category::IsSet<
+        decltype(dedekind::category::ambient_set<int>(Family<int>::bottom()))>,
+    "Family::bottom() must lift to an ETCS set object.");
+static_assert(
+    dedekind::category::IsSet<
+        decltype(dedekind::category::ambient_set<int>(Family<int>::top()))>,
+    "Family::top() must lift to an ETCS set object.");
+static_assert(dedekind::category::HasCanonicalSetCCC<AnySetOver<int>>,
+              "Breadcrumb to :cartesian: family ambient variant has canonical "
+              "CCC witness.");
 
 // FIXME:
 // static_assert(IsSystem<Family<int>, int>, "Family must satisfy IsSystem.");

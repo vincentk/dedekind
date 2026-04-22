@@ -51,6 +51,25 @@ TEST_CASE("Dedekind Identities: Extremal Collapse", "[sets][identities]") {
   }
 }
 
+TEST_CASE("Dedekind Identities: Boolean literals collapse over 𝔹",
+          "[sets][identities][boolean]") {
+  using BoolAmbient = Ω<bool, ClassicalLogic, Finite>;
+  constexpr BoolAmbient B_bool{};
+
+  constexpr auto b = var<BoolAmbient>;
+
+  constexpr auto b_false = Set{b % B_bool | (b == false)};
+  constexpr auto b_true = Set{b % B_bool | (b == true)};
+
+  STATIC_CHECK(Ø<bool, ClassicalLogic>{} == (b_false & b_true));
+  STATIC_CHECK(B_bool == (b_false | b_true));
+
+  CHECK((b_false & b_true)(false) == false);
+  CHECK((b_false & b_true)(true) == false);
+  CHECK((b_false | b_true)(false) == true);
+  CHECK((b_false | b_true)(true) == true);
+}
+
 TEST_CASE("Dedekind Sets: Cartesian product and relation witnesses",
           "[sets][relations][cartesian]") {
   auto x = var<Ω<int>>;
@@ -59,10 +78,15 @@ TEST_CASE("Dedekind Sets: Cartesian product and relation witnesses",
   const auto small = Set{x % Ω<int>{} | (x <= 3)};
 
   const auto product = cartesian_product(positive, small);
+  using ProductDomain = typename decltype(product)::Domain;
+  const auto product_set = ambient_set<ProductDomain>(product);
 
-  CHECK(product(std::pair<int, int>{1, 2}) == Ternary::True);
-  CHECK(product(std::pair<int, int>{-1, 2}) == Ternary::False);
-  CHECK(product(std::pair<int, int>{1, 7}) == Ternary::False);
+  STATIC_CHECK(IsProduct<ProductDomain, int, int>);
+  STATIC_CHECK(IsSet<decltype(product_set)>);
+
+  CHECK(product(ProductDomain{1, 2}) == Ternary::True);
+  CHECK(product(ProductDomain{-1, 2}) == Ternary::False);
+  CHECK(product(ProductDomain{1, 7}) == Ternary::False);
 
   const auto graph_pred = [](const std::pair<int, int>& p) {
     return p.second == 2 * p.first;
@@ -77,6 +101,19 @@ TEST_CASE("Dedekind Sets: Cartesian product and relation witnesses",
       graph_pred};
   CHECK(is_single_valued_at(F, 3, 6, 6) == true);
   CHECK(is_single_valued_at(F, 3, 6, 7) == true);
+}
+
+TEST_CASE("Dedekind Sets: Ambient cartesian product ergonomics",
+          "[sets][relations][cartesian][ambient]") {
+  constexpr auto ambient = Ω<int>{};
+  constexpr auto p_via_function = cartesian_product(ambient, ambient);
+  constexpr auto p_via_operator = ambient * ambient;
+
+  using PDomain = typename decltype(p_via_operator)::Domain;
+
+  STATIC_CHECK(IsProduct<PDomain, int, int>);
+  STATIC_CHECK(p_via_function(PDomain{1, 2}) == Ternary::True);
+  STATIC_CHECK(p_via_operator(PDomain{3, 4}) == Ternary::True);
 }
 
 TEST_CASE("Dedekind Sets: Power-set witness over homogeneous predicates",

@@ -322,3 +322,13 @@ inline constexpr bool
     is_monic_arrow_v<std::decay_t<decltype(dedekind::numbers::embed_ℤ_ℚ<>)>> =
         true;
 }  // namespace dedekind::category
+
+namespace dedekind::numbers {
+
+static_assert(
+    dedekind::category::IsSet<decltype(dedekind::category::ambient_set<
+                                       Rational<default_integer>>(Q))>,
+    "RationalsOf must be the canonical IsSet anchor for "
+    "dedekind.numbers:rational.");
+
+}  // namespace dedekind::numbers

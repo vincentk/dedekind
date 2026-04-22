@@ -92,6 +92,7 @@ Expected output:
 - Coverage: only a narrow interop/path surface is bound in this phase.
 - Semantics: this package is a consumer of system-language semantics defined in C++ modules; Python is not the source of core invariants.
 - Performance: set conversion roundtrips are linear in collection size. Container lookup properties still follow destination container behavior.
+- **Design-in-review**: The symbolic/formal DSL tier (easy vs. expert API sketched in notebooks) is undergoing design review (GitHub issue #241). Current prototype shims are proof-of-concept; full implementation awaits API consensus.
 
 ## Error Handling Contract (MVP)
 
@@ -144,8 +145,8 @@ The MVP notebook demos live in `docs/python/notebooks/`:
 
 - `01_facade_roundtrip_basics.ipynb` — happy-path facade demo
 - `02_facade_error_contract.ipynb` — error contract / unhappy-path demo
-- `03_dsl_analyst_tier.ipynb` — analyst-style DSL sketch (issue #241, prototype shim)
-- `04_dsl_formal_tier.ipynb` — formal-notation DSL sketch (issue #241, prototype shim)
+- `03_dsl_analyst_tier.ipynb` — analyst-style DSL sketch (issue #241, **design-under-review**)
+- `04_dsl_formal_tier.ipynb` — formal-notation DSL sketch (issue #241, **design-under-review**)
 
 These notebooks are intentionally small, deterministic, and suitable for CI
 execution as integration checks.

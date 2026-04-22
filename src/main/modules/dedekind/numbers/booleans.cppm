@@ -49,6 +49,9 @@ namespace dedekind::numbers {
 using namespace dedekind::category;
 using namespace dedekind::sets;
 
+export template <typename L = ClassicalLogic>
+using FiniteBooleanSetOf = dedekind::sets::FiniteBooleanSet<L>;
+
 /**
  * @concept Is_B
  * @brief Identifies a structure as a formal Boolean Semiring (𝔹).

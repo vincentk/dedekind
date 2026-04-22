@@ -124,6 +124,123 @@ struct UniversalPredicate {
   constexpr bool operator()(const T&) const { return true; }
 };
 
+/** @brief Predicate-level complement wrapper used for set-collapse detection.
+ */
+export template <typename Predicate>
+struct NegatedPredicate {
+  Predicate base;
+
+  template <typename T>
+  constexpr auto operator()(const T& v) const {
+    return !base(v);
+  }
+};
+
+template <typename P1, typename P2>
+struct IsComplementPair : std::false_type {};
+
+template <typename P, typename Q>
+struct IsComplementPair<NegatedPredicate<P>, Q>
+    : std::bool_constant<std::is_empty_v<P> &&
+                         std::same_as<std::decay_t<P>, std::decay_t<Q>>> {};
+
+template <typename P, typename Q>
+struct IsComplementPair<P, NegatedPredicate<Q>>
+    : std::bool_constant<std::is_empty_v<Q> &&
+                         std::same_as<std::decay_t<P>, std::decay_t<Q>>> {};
+
+template <typename P1, typename P2>
+inline constexpr bool IsComplementPair_v =
+    IsComplementPair<std::decay_t<P1>, std::decay_t<P2>>::value;
+
+export template <typename T, typename L, typename Predicate>
+class Set;
+
+/** @brief Boolean equality predicate for compile-time pruning over 𝔹. */
+export struct BooleanEqPredicate {
+  bool expected;
+
+  constexpr bool operator()(bool v) const { return v == expected; }
+};
+
+/** @brief Extensional finite bool-domain result for collapsed 𝔹 operations. */
+export template <typename L>
+struct FiniteBooleanSet {
+  using Domain = bool;
+  using Codomain = typename L::Ω;
+  using logic_species = L;
+  using cardinality_type = Finite;
+
+  typename L::Ω at_false;
+  typename L::Ω at_true;
+
+  constexpr typename L::Ω operator()(bool v) const {
+    return v ? at_true : at_false;
+  }
+
+  constexpr bool operator==(const Ø<bool, L>&) const {
+    return at_false == L::False && at_true == L::False;
+  }
+
+  constexpr bool operator==(const Ω<bool, L, Finite>&) const {
+    return at_false == L::True && at_true == L::True;
+  }
+
+  friend constexpr bool operator==(const Ø<bool, L>& empty,
+                                   const FiniteBooleanSet& s) {
+    return s == empty;
+  }
+
+  friend constexpr bool operator==(const Ω<bool, L, Finite>& universe,
+                                   const FiniteBooleanSet& s) {
+    return s == universe;
+  }
+
+  constexpr auto operator|(const FiniteBooleanSet& other) const {
+    return FiniteBooleanSet{
+        L::OR(at_false, other.at_false),
+        L::OR(at_true, other.at_true),
+    };
+  }
+
+  constexpr auto operator&(const FiniteBooleanSet& other) const {
+    return FiniteBooleanSet{
+        L::AND(at_false, other.at_false),
+        L::AND(at_true, other.at_true),
+    };
+  }
+};
+
+export template <typename L>
+constexpr auto operator|(const Set<bool, L, BooleanEqPredicate>& lhs,
+                         const FiniteBooleanSet<L>& rhs) {
+  return FiniteBooleanSet<L>{
+      L::OR(lhs(false), rhs(false)),
+      L::OR(lhs(true), rhs(true)),
+  };
+}
+
+export template <typename L>
+constexpr auto operator|(const FiniteBooleanSet<L>& lhs,
+                         const Set<bool, L, BooleanEqPredicate>& rhs) {
+  return rhs | lhs;
+}
+
+export template <typename L>
+constexpr auto operator&(const Set<bool, L, BooleanEqPredicate>& lhs,
+                         const FiniteBooleanSet<L>& rhs) {
+  return FiniteBooleanSet<L>{
+      L::AND(lhs(false), rhs(false)),
+      L::AND(lhs(true), rhs(true)),
+  };
+}
+
+export template <typename L>
+constexpr auto operator&(const FiniteBooleanSet<L>& lhs,
+                         const Set<bool, L, BooleanEqPredicate>& rhs) {
+  return rhs & lhs;
+}
+
 /** @brief Convenience Alias: If S is a type, var<S> is the scout. */
 // This allows: auto x = var<int>; where int is mapped to Ω<int>
 export template <typename T>
@@ -167,24 +284,46 @@ class Set {
   constexpr cardinality_type cardinality() const { return {}; }
 
   constexpr auto operator!() const {
-    auto predicate = [base = predicate_](const T& v) { return !base(v); };
-    return Set<T, L, decltype(predicate)>{predicate};
+    return Set<T, L, NegatedPredicate<Predicate>>{
+        NegatedPredicate<Predicate>{predicate_}};
   }
 
   template <typename OtherPredicate>
   constexpr auto operator|(const Set<T, L, OtherPredicate>& other) const {
-    auto predicate = [lhs = predicate_, rhs = other.predicate_](const T& v) {
-      return lhs(v) || rhs(v);
-    };
-    return Set<T, L, decltype(predicate)>{predicate};
+    if constexpr (IsComplementPair_v<Predicate, OtherPredicate>) {
+      return Ω<T, L>{};
+    } else if constexpr (std::same_as<T, bool> &&
+                         std::same_as<Predicate, BooleanEqPredicate> &&
+                         std::same_as<OtherPredicate, BooleanEqPredicate>) {
+      return FiniteBooleanSet<L>{
+          L::OR((*this)(false), other(false)),
+          L::OR((*this)(true), other(true)),
+      };
+    } else {
+      auto predicate = [lhs = predicate_, rhs = other.predicate_](const T& v) {
+        return lhs(v) || rhs(v);
+      };
+      return Set<T, L, decltype(predicate)>{predicate};
+    }
   }
 
   template <typename OtherPredicate>
   constexpr auto operator&(const Set<T, L, OtherPredicate>& other) const {
-    auto predicate = [lhs = predicate_, rhs = other.predicate_](const T& v) {
-      return lhs(v) && rhs(v);
-    };
-    return Set<T, L, decltype(predicate)>{predicate};
+    if constexpr (IsComplementPair_v<Predicate, OtherPredicate>) {
+      return Ø<T, L>{};
+    } else if constexpr (std::same_as<T, bool> &&
+                         std::same_as<Predicate, BooleanEqPredicate> &&
+                         std::same_as<OtherPredicate, BooleanEqPredicate>) {
+      return FiniteBooleanSet<L>{
+          L::AND((*this)(false), other(false)),
+          L::AND((*this)(true), other(true)),
+      };
+    } else {
+      auto predicate = [lhs = predicate_, rhs = other.predicate_](const T& v) {
+        return lhs(v) && rhs(v);
+      };
+      return Set<T, L, decltype(predicate)>{predicate};
+    }
   }
 
   /** @brief Same-predicate subset: always True (identity). */
@@ -226,6 +365,25 @@ class Set {
   Predicate predicate_;
 };
 
+/** @brief Explicit set complement overload to avoid picking category morphism
+ * `!`. */
+export template <typename T, typename L, typename Predicate>
+constexpr auto operator!(const Set<T, L, Predicate>& s) {
+  return s.operator!();
+}
+
+/** @brief lvalue set complement overload for stable prefix `!` resolution. */
+export template <typename T, typename L, typename Predicate>
+constexpr auto operator!(Set<T, L, Predicate>& s) {
+  return s.operator!();
+}
+
+/** @brief rvalue set complement overload for composed temporary expressions. */
+export template <typename T, typename L, typename Predicate>
+constexpr auto operator!(Set<T, L, Predicate>&& s) {
+  return s.operator!();
+}
+
 export template <typename B, typename P>
 Set(Comprehension<B, P>)
     -> Set<typename B::Domain, typename NaturalLogic<B>::type, P>;
@@ -240,6 +398,17 @@ export template <typename S>
 Set(MembershipBinding<S>)
     -> Set<typename S::Domain, typename NaturalLogic<S>::type,
            UniversalPredicate<typename S::Domain>>;
+
+static_assert(
+    dedekind::category::IsSet<decltype(dedekind::category::ambient_set<int>(
+        Set<int, dedekind::category::ClassicalLogic, UniversalPredicate<int>>{
+            UniversalPredicate<int>{}}))>,
+    "The canonical intensional Set<T, L, Predicate> must lift to an ETCS set "
+    "object.");
+
+static_assert(
+    dedekind::category::HasCanonicalSetCCC<int>,
+    "Breadcrumb to :cartesian: ambient int carries canonical CCC witness.");
 
 /** @section Identity_CTAD */
 template <typename Species>
@@ -276,20 +445,55 @@ constexpr auto operator==(const Variable<Species>&, const Rhs& rhs) {
   return [rhs](const typename Species::Domain& v) { return v == rhs; };
 }
 
+export template <typename Species>
+  requires std::same_as<typename Species::Domain, bool>
+constexpr auto operator==(const Variable<Species>&, bool rhs) {
+  return BooleanEqPredicate{rhs};
+}
+
 /** @section Logical_Lifting */
+
+/**
+ * @brief Downstream specialization hook for structured predicate conjunction.
+ * @details
+ * If a downstream module defines a free `structured_and(p1, p2)` overload
+ * discoverable via ADL for the predicate types, `operator&&` will dispatch to
+ * that overload. Otherwise it falls back to an opaque lambda composition.
+ */
+template <typename P1, typename P2>
+concept HasStructuredAnd =
+    requires(const std::decay_t<P1>& p1, const std::decay_t<P2>& p2) {
+      { structured_and(p1, p2) };
+    };
+
+/**
+ * @brief Downstream specialization hook for structured predicate disjunction.
+ * @details Mirrors `HasStructuredAnd` through `structured_or(p1, p2)`.
+ */
+template <typename P1, typename P2>
+concept HasStructuredOr =
+    requires(const std::decay_t<P1>& p1, const std::decay_t<P2>& p2) {
+      { structured_or(p1, p2) };
+    };
 
 export template <typename P1, typename P2>
 constexpr auto operator&&(P1&& p1, P2&& p2) {
-  return [p1 = std::forward<P1>(p1), p2 = std::forward<P2>(p2)](const auto& v) {
-    return p1(v) && p2(v);
-  };
+  if constexpr (HasStructuredAnd<P1, P2>) {
+    return structured_and(std::forward<P1>(p1), std::forward<P2>(p2));
+  } else {
+    return [p1 = std::forward<P1>(p1), p2 = std::forward<P2>(p2)](
+               const auto& v) { return p1(v) && p2(v); };
+  }
 }
 
 export template <typename P1, typename P2>
 constexpr auto operator||(P1&& p1, P2&& p2) {
-  return [p1 = std::forward<P1>(p1), p2 = std::forward<P2>(p2)](const auto& v) {
-    return p1(v) || p2(v);
-  };
+  if constexpr (HasStructuredOr<P1, P2>) {
+    return structured_or(std::forward<P1>(p1), std::forward<P2>(p2));
+  } else {
+    return [p1 = std::forward<P1>(p1), p2 = std::forward<P2>(p2)](
+               const auto& v) { return p1(v) || p2(v); };
+  }
 }
 
 }  // namespace dedekind::sets
@@ -313,6 +517,64 @@ constexpr auto cartesian_product(const Set<T1, L1, P1>& a,
   };
   return Set<Pair, L1, decltype(pred)>{pred};
 }
+
+/**
+ * @brief Cartesian product over ambient species values.
+ *
+ * Lifts each ambient species to its full carrier set and delegates to the
+ * Set×Set cartesian product.
+ */
+export template <typename A, typename B>
+  requires requires {
+    typename std::remove_cvref_t<A>::Domain;
+    typename std::remove_cvref_t<B>::Domain;
+    typename NaturalLogic<std::remove_cvref_t<A>>::type;
+    typename NaturalLogic<std::remove_cvref_t<B>>::type;
+  } && std::same_as<typename NaturalLogic<std::remove_cvref_t<A>>::type,
+                    typename NaturalLogic<std::remove_cvref_t<B>>::type>
+constexpr auto cartesian_product(const A& a, const B& b) {
+  auto xa = var<std::remove_cvref_t<A>>;
+  auto xb = var<std::remove_cvref_t<B>>;
+  const auto left = Set{xa % a};
+  const auto right = Set{xb % b};
+  return cartesian_product(left, right);
+}
+
+/** @brief Infix sugar for cartesian product over sets. */
+export template <typename T1, typename L1, typename P1, typename T2,
+                 typename L2, typename P2>
+  requires std::same_as<L1, L2>
+constexpr auto operator*(const Set<T1, L1, P1>& a, const Set<T2, L2, P2>& b) {
+  return cartesian_product(a, b);
+}
+
+/** @brief Infix sugar for cartesian product over ambient species values. */
+export template <typename A, typename B>
+  requires requires {
+    typename std::remove_cvref_t<A>::Domain;
+    typename std::remove_cvref_t<B>::Domain;
+    typename NaturalLogic<std::remove_cvref_t<A>>::type;
+    typename NaturalLogic<std::remove_cvref_t<B>>::type;
+  } && std::same_as<typename NaturalLogic<std::remove_cvref_t<A>>::type,
+                    typename NaturalLogic<std::remove_cvref_t<B>>::type>
+constexpr auto operator*(const A& a, const B& b) {
+  return cartesian_product(a, b);
+}
+
+using CanonicalIntSet =
+    Set<int, dedekind::category::ClassicalLogic, UniversalPredicate<int>>;
+using CanonicalIntProductSet =
+    decltype(cartesian_product(std::declval<const CanonicalIntSet&>(),
+                               std::declval<const CanonicalIntSet&>()));
+using CanonicalIntProductDomain = typename CanonicalIntProductSet::Domain;
+
+static_assert(
+    dedekind::category::IsProduct<CanonicalIntProductDomain, int, int>,
+    "sets::cartesian_product must expose a std::pair product domain.");
+static_assert(
+    dedekind::category::HasCanonicalSetCCC<CanonicalIntProductDomain>,
+    "Breadcrumb to :cartesian: cartesian_product domain carries canonical "
+    "CCC witness.");
 
 /**
  * @brief A Relation from A to B is a set of pairs: a subset of A × B.
