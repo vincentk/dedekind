@@ -28,6 +28,7 @@ module;
 export module dedekind.algebra:polynomial;
 
 import dedekind.category;
+import dedekind.sets;
 import :ring;
 
 namespace dedekind::algebra {
@@ -242,6 +243,31 @@ template <typename R>
 inline constexpr Poly<R> identity_v<Poly<R>, std::multiplies<Poly<R>>> =
     Poly<R>{R{1}};
 
+// Totality: Poly<R> inherits periodicity coefficient-wise from R.
+// All polynomial arithmetic (addition, multiplication) is applied term-by-term
+// on the coefficient vector; if R's operation wraps (periodic), so does Poly<R>.
+template <typename R>
+  requires is_periodic_v<R, std::plus<R>>
+struct is_periodic<Poly<R>, std::plus<Poly<R>>> : std::true_type {};
+
+template <typename R>
+  requires is_periodic_v<R, std::multiplies<R>>
+struct is_periodic<Poly<R>, std::multiplies<Poly<R>>> : std::true_type {};
+
+// Distributivity: Cauchy multiplication distributes over coefficient-wise
+// addition whenever R distributes — the standard polynomial ring argument.
+template <typename R>
+  requires is_distributive_v<R, std::multiplies<R>, std::plus<R>>
+inline constexpr bool
+    is_distributive_v<Poly<R>, std::multiplies<Poly<R>>, std::plus<Poly<R>>> =
+        true;
+
+// Invertibility: coefficient-wise additive inverses lift when R has them.
+// This also enables the constrained operator- in RigPolynomial.
+template <typename R>
+  requires is_invertible_v<R, std::plus<R>>
+inline constexpr bool is_invertible_v<Poly<R>, std::plus<Poly<R>>> = true;
+
 }  // namespace dedekind::category
 
 namespace dedekind::algebra {
@@ -264,12 +290,25 @@ namespace dedekind::algebra {
  * K[x] the IsEuclidean structure (deg(f) < deg(g) after remainder), enabling
  * GCD.
  *
- * @note The stronger categorical proofs IsSemiring<Poly<uint>> and
- * IsRing<Poly<int>> are architecturally blocked: those concepts require
- * IsMonoid which requires IsTotal (IsPeriodic || IsIdempotent). Polynomial
- * addition is neither periodic (unbounded vector growth) nor idempotent.
- * The identity_v and is_associative_v / is_commutative_v registrations above
- * are the correct categorical anchors at the partial-algebra stratum.
+ * Proof: RigPolynomial<unsigned int> is a total commutative ring.
+ * unsigned int satisfies IsRing (wrapping arithmetic in Z/2^N Z), and the
+ * lifted is_periodic / is_distributive / is_invertible registrations above
+ * lift that certification to Poly<unsigned int>.
+ *
+ * Proof: RigPolynomial<ExtensionalCardinal<>> is a total commutative ring.
+ * ExtensionalCardinal<> (extensional ℕ, two's-complement wrapping) satisfies
+ * IsRing. Its periodicity and distributivity lift to the polynomial ring.
  */
+
+using PolyUInt = RigPolynomial<unsigned int>;
+static_assert(
+    IsCommutativeRing<PolyUInt>,
+    "RigPolynomial<unsigned int> must satisfy IsCommutativeRing "
+    "(coefficient wrapping lifts to the polynomial level).");
+
+using PolyEC = RigPolynomial<dedekind::numbers::ExtensionalCardinal<>>;
+static_assert(
+    IsCommutativeRing<PolyEC>,
+    "RigPolynomial<ExtensionalCardinal<>> must satisfy IsCommutativeRing.");
 
 }  // namespace dedekind::algebra
