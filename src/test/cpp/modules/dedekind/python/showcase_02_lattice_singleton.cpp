@@ -27,19 +27,20 @@ using namespace dedekind::algebra;
 using namespace dedekind::numbers;
 
 constexpr bool is_integral_coordinate(double x) {
-    const int xi = static_cast<int>(x);
-    return static_cast<double>(xi) == x;
+  const int xi = static_cast<int>(x);
+  return static_cast<double>(xi) == x;
 }
 
 // Symbolic variable ranging over ℂ
 inline constexpr auto c = var<ℂ>;
 
 // Lifted natural-number lattice: Gaussian integers with 0 ≤ Re, Im ≤ 3
-inline constexpr auto natural_lattice_in_c = Set{c % C | [](const Complex<double>& z) {
-    return is_integral_coordinate(z.real()) && is_integral_coordinate(z.imag()) &&
-                 (z.real() >= 0.0) && (z.real() <= 3.0) && (z.imag() >= 0.0) &&
-                 (z.imag() <= 3.0);
-}};
+inline constexpr auto natural_lattice_in_c =
+    Set{c % C | [](const Complex<double>& z) {
+      return is_integral_coordinate(z.real()) &&
+             is_integral_coordinate(z.imag()) && (z.real() >= 0.0) &&
+             (z.real() <= 3.0) && (z.imag() >= 0.0) && (z.imag() <= 3.0);
+    }};
 
 // Square region [0.5, 1.5] × [0.5, 1.5] inside ℂ
 inline constexpr auto square_c1_c2 = Set{c % C | [](const Complex<double>& z) {
