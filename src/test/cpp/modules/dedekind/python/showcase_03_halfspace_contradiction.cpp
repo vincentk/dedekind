@@ -33,7 +33,7 @@ using namespace dedekind::order;
 inline constexpr auto n = var<ℕ>;
 
 // Opposing halfspaces with compile-time pivots carried in the predicate type.
-inline constexpr auto gt_five  = Set{n % N | (n > bound<5>)};
+inline constexpr auto gt_five = Set{n % N | (n > bound<5>)};
 inline constexpr auto lt_three = Set{n % N | (n < bound<3>)};
 
 // Set-level `&` dispatches through `structured_and` on the halfspace types;
