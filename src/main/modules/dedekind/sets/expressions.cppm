@@ -121,7 +121,21 @@ inline constexpr Variable<S> var{};
 /** @brief The universal predicate: accepts every element of T. */
 export template <typename T>
 struct UniversalPredicate {
+  using Domain = T;
   constexpr bool operator()(const T&) const { return true; }
+};
+
+/**
+ * @brief The empty predicate: rejects every element of T.
+ *
+ * Used as the structural witness of a contradiction proven at compile time
+ * (e.g. `(x > 5) && (x < 3)` collapsing via `structured_and`). When a `Set`'s
+ * predicate is `EmptyPredicate<T>`, the set equals `Ø<T, L>`.
+ */
+export template <typename T>
+struct EmptyPredicate {
+  using Domain = T;
+  constexpr bool operator()(const T&) const { return false; }
 };
 
 /** @brief Predicate-level complement wrapper used for set-collapse detection.
@@ -318,6 +332,17 @@ class Set {
           L::AND((*this)(false), other(false)),
           L::AND((*this)(true), other(true)),
       };
+    } else if constexpr (requires {
+                           structured_and(predicate_, other.predicate_);
+                         }) {
+      using Result = std::decay_t<
+          decltype(structured_and(predicate_, other.predicate_))>;
+      if constexpr (std::same_as<Result, EmptyPredicate<T>>) {
+        return Ø<T, L>{};
+      } else {
+        return Set<T, L, Result>{
+            structured_and(predicate_, other.predicate_)};
+      }
     } else {
       auto predicate = [lhs = predicate_, rhs = other.predicate_](const T& v) {
         return lhs(v) && rhs(v);
