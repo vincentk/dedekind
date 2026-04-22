@@ -49,6 +49,7 @@ compile: $(BUILD_DIR)/CMakeCache.txt
 	cmake --build $(BUILD_DIR)
 
 test: compile
+	cmake --build $(BUILD_DIR) --target set-pruning-ir-fixture
 	ctest --test-dir $(BUILD_DIR) --output-on-failure
 
 integration-test: test

@@ -518,6 +518,52 @@ constexpr auto cartesian_product(const Set<T1, L1, P1>& a,
   return Set<Pair, L1, decltype(pred)>{pred};
 }
 
+/**
+ * @brief Cartesian product over ambient species values.
+ *
+ * Lifts each ambient species to its full carrier set and delegates to the
+ * Set×Set cartesian product.
+ */
+export template <typename A, typename B>
+  requires requires {
+             typename std::remove_cvref_t<A>::Domain;
+             typename std::remove_cvref_t<B>::Domain;
+             typename NaturalLogic<std::remove_cvref_t<A>>::type;
+             typename NaturalLogic<std::remove_cvref_t<B>>::type;
+           } &&
+           std::same_as<typename NaturalLogic<std::remove_cvref_t<A>>::type,
+                        typename NaturalLogic<std::remove_cvref_t<B>>::type>
+constexpr auto cartesian_product(const A& a, const B& b) {
+  auto xa = var<std::remove_cvref_t<A>>;
+  auto xb = var<std::remove_cvref_t<B>>;
+  const auto left = Set{xa % a};
+  const auto right = Set{xb % b};
+  return cartesian_product(left, right);
+}
+
+/** @brief Infix sugar for cartesian product over sets. */
+export template <typename T1, typename L1, typename P1, typename T2,
+                 typename L2, typename P2>
+  requires std::same_as<L1, L2>
+constexpr auto operator*(const Set<T1, L1, P1>& a,
+                         const Set<T2, L2, P2>& b) {
+  return cartesian_product(a, b);
+}
+
+/** @brief Infix sugar for cartesian product over ambient species values. */
+export template <typename A, typename B>
+  requires requires {
+             typename std::remove_cvref_t<A>::Domain;
+             typename std::remove_cvref_t<B>::Domain;
+             typename NaturalLogic<std::remove_cvref_t<A>>::type;
+             typename NaturalLogic<std::remove_cvref_t<B>>::type;
+           } &&
+           std::same_as<typename NaturalLogic<std::remove_cvref_t<A>>::type,
+                        typename NaturalLogic<std::remove_cvref_t<B>>::type>
+constexpr auto operator*(const A& a, const B& b) {
+  return cartesian_product(a, b);
+}
+
 using CanonicalIntSet =
     Set<int, dedekind::category::ClassicalLogic, UniversalPredicate<int>>;
 using CanonicalIntProductSet =

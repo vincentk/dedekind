@@ -24,11 +24,13 @@ using namespace dedekind::sets;
 using namespace dedekind::algebra;
 using namespace dedekind::numbers;
 
+// Define a symbol in the canonical real numbers.
 inline constexpr auto r = var<ℝ>;
-inline constexpr auto all_reals = Set{r % R};
 
 // Ambient product set R × R
-inline constexpr auto r2 = cartesian_product(all_reals, all_reals);
+inline constexpr auto ℝ2_old = cartesian_product(R, R);
+inline constexpr auto ℝ2_sugar = R * R;
+inline constexpr auto r2 = ℝ2_sugar;
 using R2Point = typename decltype(r2)::Domain;
 inline constexpr auto xy = var<decltype(r2)>;
 

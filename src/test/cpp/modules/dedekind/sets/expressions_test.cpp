@@ -103,6 +103,19 @@ TEST_CASE("Dedekind Sets: Cartesian product and relation witnesses",
   CHECK(is_single_valued_at(F, 3, 6, 7) == true);
 }
 
+TEST_CASE("Dedekind Sets: Ambient cartesian product ergonomics",
+    "[sets][relations][cartesian][ambient]") {
+  constexpr auto ambient = Ω<int>{};
+  constexpr auto p_via_function = cartesian_product(ambient, ambient);
+  constexpr auto p_via_operator = ambient * ambient;
+
+  using PDomain = typename decltype(p_via_operator)::Domain;
+
+  STATIC_CHECK(IsProduct<PDomain, int, int>);
+  STATIC_CHECK(p_via_function(PDomain{1, 2}) == Ternary::True);
+  STATIC_CHECK(p_via_operator(PDomain{3, 4}) == Ternary::True);
+}
+
 TEST_CASE("Dedekind Sets: Power-set witness over homogeneous predicates",
           "[sets][powerset]") {
   auto x = var<Ω<int>>;

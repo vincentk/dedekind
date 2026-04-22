@@ -63,11 +63,13 @@ option(DEDEKIND_BUILD_PYTHON_BINDINGS
     ON)
 
 # Enable testing with Catch2:
+# Use the release tarball rather than a git clone to avoid intermittent
+# partial-clone corruption in local FetchContent checkouts.
 include(FetchContent)
 FetchContent_Declare(
   Catch2
-  GIT_REPOSITORY https://github.com/catchorg/Catch2.git
-  GIT_TAG        v3.14.0
+  URL      https://github.com/catchorg/Catch2/archive/refs/tags/v3.14.0.tar.gz
+  URL_HASH SHA256=ba2a939efead3c833c499cf487e185762f419a71d30158cd1b43c6079c586490
 )
 
 # This populates the 'catch2_SOURCE_DIR' variable
@@ -189,7 +191,7 @@ add_dedekind_layer(python dedekind_linear_algebra)
 # Compile-time pruning witness for dedekind.sets: built as a static library
 # for compile-command capture and LLVM IR generation by the helper script.
 # Placed in the python test tree so it can resolve all module dependencies.
-add_library(set-pruning-ir-fixture STATIC
+add_library(set-pruning-ir-fixture STATIC EXCLUDE_FROM_ALL
     src/test/cpp/modules/dedekind/python/pruning_noop_vs_runtime_fixture.cpp
     src/test/cpp/modules/dedekind/python/showcase_01_diagonal_contradiction.cpp
     src/test/cpp/modules/dedekind/python/showcase_02_lattice_singleton.cpp)
