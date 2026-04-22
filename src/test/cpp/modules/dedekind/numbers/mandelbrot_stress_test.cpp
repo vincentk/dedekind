@@ -60,8 +60,7 @@ TEST_CASE("Sets: Mandelbrot set-builder stress test", "[sets][mandelbrot]") {
   }
 
   SECTION("Truncated orbit prefix is a finite sequence") {
-    const auto orbit =
-        prefix(mandelbrot_orbit(ComplexPoint{-0.75, 0.1}), 9u);
+    const auto orbit = prefix(mandelbrot_orbit(ComplexPoint{-0.75, 0.1}), 9u);
 
     static_assert(IsFiniteSequence<decltype(orbit)>);
     REQUIRE(orbit.size() == 9u);
@@ -76,8 +75,7 @@ TEST_CASE("Sets: Mandelbrot set-builder stress test", "[sets][mandelbrot]") {
     // c = 2: z_1 = 2, z_2 = 6, escapes at step 1
     REQUIRE(orbit_escapes(mandelbrot_orbit(ComplexPoint{2.0, 0.0}), 50u, 4.0));
     // c = -2.5: clearly outside
-    REQUIRE(
-        orbit_escapes(mandelbrot_orbit(ComplexPoint{-2.5, 0.0}), 50u, 4.0));
+    REQUIRE(orbit_escapes(mandelbrot_orbit(ComplexPoint{-2.5, 0.0}), 50u, 4.0));
   }
 
   SECTION("euclidean_escape_radius_squared: parametric threshold") {
