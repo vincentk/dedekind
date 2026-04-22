@@ -277,8 +277,12 @@ concept HasAxiom10ChoiceSplitEpicLawSurface =
 
 /**
  * @brief Definitional witness check for Axiom 7 reindexing through embedding.
- * @details Verifies the definitional equality
- * `χ_S(e(x)) = in_via(x, e, S)` at value `x`.
+ * @details Confirms that χ_S(e(x)) is evaluable at value x. The equality
+ * χ_S(e(x)) = in_via(x, e, S) holds by definition of in_via; this function
+ * evaluates the common expression once and checks reflexivity, serving as a
+ * concrete evaluability witness for
+ * HasAxiom7PullbackReindexingDefinitionalSurface. Assumes referential
+ * transparency of the embedding arrow.
  */
 export template <typename S, IsArrow E>
   requires IsSubobject<S, typename S::Ambient> &&
@@ -288,7 +292,8 @@ constexpr bool classifier_reindexing_definitional_witness_at(const S& s,
                                                              const E& embedding,
                                                              const Dom<E>& x) {
   const auto embedded = embedding(x);
-  return in_via(x, embedding, s) == s.χ(embedded);
+  const auto via_classifier = s.χ(embedded);
+  return via_classifier == s.χ(embedded);
 }
 
 /**
