@@ -77,7 +77,9 @@ class Dual {
    * @brief Multiplicative inverse: (a + bε)⁻¹ = (1/a) - (b/a²)ε.
    * Valid when a ≠ 0.
    */
-  constexpr Dual inverse() const { return {F{1} / val_, -der_ / (val_ * val_)}; }
+  constexpr Dual inverse() const {
+    return {F{1} / val_, -der_ / (val_ * val_)};
+  }
 
   friend constexpr Dual operator/(const Dual& a, const Dual& b) {
     return a * b.inverse();
@@ -91,8 +93,7 @@ class Dual {
 
 // Basis element ε = Dual(0, 1); the nilpotent axiom ε² = 0.
 inline constexpr Dual<double> eps{0.0, 1.0};
-static_assert(eps * eps == Dual<double>{0.0, 0.0},
-              "Nilpotent axiom: ε² = 0.");
+static_assert(eps * eps == Dual<double>{0.0, 0.0}, "Nilpotent axiom: ε² = 0.");
 
 // Forward-mode AD correctness: d/dx(x²)|_{x=3} = 6.
 // Dual(3, 1) seeds x with derivative 1; squaring gives value 9, derivative 6.
@@ -103,7 +104,6 @@ static_assert(x_seed * x_seed == Dual<double>{9.0, 6.0},
 // Dual<double> is field-like: +, -, unary -, *, / are all defined and closed.
 static_assert(dedekind::algebra::IsFieldLikeScalar<Dual<double>>,
               "Dual<double> must satisfy the operational field-like witness.");
-
 
 export template <typename F = double, typename L = ClassicalLogic,
                  typename C = ℶ_1>

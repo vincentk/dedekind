@@ -79,8 +79,9 @@ struct CauchyPath : public Path<T> {
 /** @section Formal_Verification */
 
 // double is the canonical ordered Archimedean field under machine semantics.
-static_assert(IsOrderedField<double>,
-              "double must satisfy IsOrderedField (regular + totally ordered).");
+static_assert(
+    IsOrderedField<double>,
+    "double must satisfy IsOrderedField (regular + totally ordered).");
 static_assert(IsArchimedeanField<double>,
               "double must satisfy IsArchimedeanField (x + 1 is defined).");
 
