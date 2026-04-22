@@ -340,8 +340,8 @@ constexpr CardinalityEffect bind_effect(const CardinalityEffect& effect,
   return CardinalityEffect{next.value, add(effect.trace, next.trace)};
 }
 
-export constexpr ExtensionalCardinal<> inverse(ExtensionalCardinal<> value,
-                                               std::plus<ExtensionalCardinal<>>) {
+export constexpr ExtensionalCardinal<> inverse(
+    ExtensionalCardinal<> value, std::plus<ExtensionalCardinal<>>) {
   return -value;
 }
 

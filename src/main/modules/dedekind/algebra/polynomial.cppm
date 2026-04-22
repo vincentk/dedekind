@@ -245,7 +245,8 @@ inline constexpr Poly<R> identity_v<Poly<R>, std::multiplies<Poly<R>>> =
 
 // Totality: Poly<R> inherits periodicity coefficient-wise from R.
 // All polynomial arithmetic (addition, multiplication) is applied term-by-term
-// on the coefficient vector; if R's operation wraps (periodic), so does Poly<R>.
+// on the coefficient vector; if R's operation wraps (periodic), so does
+// Poly<R>.
 template <typename R>
   requires is_periodic_v<R, std::plus<R>>
 struct is_periodic<Poly<R>, std::plus<Poly<R>>> : std::true_type {};
@@ -301,10 +302,9 @@ namespace dedekind::algebra {
  */
 
 using PolyUInt = RigPolynomial<unsigned int>;
-static_assert(
-    IsCommutativeRing<PolyUInt>,
-    "RigPolynomial<unsigned int> must satisfy IsCommutativeRing "
-    "(coefficient wrapping lifts to the polynomial level).");
+static_assert(IsCommutativeRing<PolyUInt>,
+              "RigPolynomial<unsigned int> must satisfy IsCommutativeRing "
+              "(coefficient wrapping lifts to the polynomial level).");
 
 using PolyEC = RigPolynomial<dedekind::numbers::ExtensionalCardinal<>>;
 static_assert(
