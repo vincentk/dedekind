@@ -95,9 +95,8 @@ concept IsFiniteSet =
  * but which `SingletonSet<T>{x}` does not (its pivot is a runtime field).
  */
 export template <typename S>
-concept IsCompileTimeEnumerable =
-    IsFiniteSet<S> && requires {
-      typename std::remove_cvref_t<S>::is_compile_time_extensional_tag;
-    };
+concept IsCompileTimeEnumerable = IsFiniteSet<S> && requires {
+  typename std::remove_cvref_t<S>::is_compile_time_extensional_tag;
+};
 
 }  // namespace dedekind::sets
