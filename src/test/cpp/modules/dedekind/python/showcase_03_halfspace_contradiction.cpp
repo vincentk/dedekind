@@ -1,7 +1,8 @@
 /**
  * @file
  * src/test/cpp/modules/dedekind/python/showcase_03_halfspace_contradiction.cpp
- * @brief Showcase 3 — Compile-time proof of an empty halfspace intersection on ℕ.
+ * @brief Showcase 3 — Compile-time proof of an empty halfspace intersection on
+ * ℕ.
  *
  * Two opposing halfspaces on the naturals with pivots that cannot be bridged:
  *   { n ∈ ℕ | n > 5 }   ∩   { n ∈ ℕ | n < 3 }   ≡   ∅
@@ -35,7 +36,7 @@ using namespace dedekind::order;
 inline constexpr auto n = var<ℕ>;
 
 // Opposing halfspaces with compile-time pivots carried in the predicate type.
-inline constexpr auto gt_five  = Set{n % N | (n > bound<5>)};
+inline constexpr auto gt_five = Set{n % N | (n > bound<5>)};
 inline constexpr auto lt_three = Set{n % N | (n < bound<3>)};
 
 // Set-level intersection dispatches through structured_and; the contradiction
@@ -43,9 +44,8 @@ inline constexpr auto lt_three = Set{n % N | (n < bound<3>)};
 inline constexpr auto empty_meet = gt_five & lt_three;
 
 // Compile-time witness: the meet IS the empty set on ℕ.
-static_assert(
-    std::same_as<std::decay_t<decltype(empty_meet)>,
-                 Ø<int, typename decltype(gt_five)::logic_species>>);
+static_assert(std::same_as<std::decay_t<decltype(empty_meet)>,
+                           Ø<int, typename decltype(gt_five)::logic_species>>);
 
 /**
  * @brief Showcase 3: halfspace contradiction on ℕ.

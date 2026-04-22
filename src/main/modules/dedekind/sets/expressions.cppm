@@ -335,13 +335,12 @@ class Set {
     } else if constexpr (requires {
                            structured_and(predicate_, other.predicate_);
                          }) {
-      using Result = std::decay_t<
-          decltype(structured_and(predicate_, other.predicate_))>;
+      using Result =
+          std::decay_t<decltype(structured_and(predicate_, other.predicate_))>;
       if constexpr (std::same_as<Result, EmptyPredicate<T>>) {
         return Ø<T, L>{};
       } else {
-        return Set<T, L, Result>{
-            structured_and(predicate_, other.predicate_)};
+        return Set<T, L, Result>{structured_and(predicate_, other.predicate_)};
       }
     } else {
       auto predicate = [lhs = predicate_, rhs = other.predicate_](const T& v) {

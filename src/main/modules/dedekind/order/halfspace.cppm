@@ -34,7 +34,8 @@ using namespace dedekind::category;
 /** @brief Orientation of a halfspace along the chain (internal). */
 enum class Direction { Upward, Downward };
 
-/** @brief Whether the boundary is strict (`>`, `<`) or inclusive (`>=`, `<=`). */
+/** @brief Whether the boundary is strict (`>`, `<`) or inclusive (`>=`, `<=`).
+ */
 enum class Strictness { Strict, NonStrict };
 
 /** @brief Compile-time bound tag: `bound<5>` carries `5` in its type. */
@@ -49,7 +50,8 @@ export template <auto V>
 inline constexpr Bound<V> bound{};
 
 /**
- * @brief Halfspace predicate { x ∈ T | x ⋈ Pivot } with Pivot at the type level.
+ * @brief Halfspace predicate { x ∈ T | x ⋈ Pivot } with Pivot at the type
+ * level.
  *
  * `⋈` ∈ { >, >=, <, <= }, selected by `D` (direction) and `S` (strictness).
  */
@@ -128,14 +130,14 @@ constexpr auto operator<=(const Variable<Species>&, Bound<V>) {
 /**
  * @brief Intersection of an upward and a downward halfspace.
  *
- * If the pivots are compatible (Lo < Hi, or Lo <= Hi with at least one inclusive
- * boundary), the meet is an `OrderInterval`. Otherwise it's structurally empty.
+ * If the pivots are compatible (Lo < Hi, or Lo <= Hi with at least one
+ * inclusive boundary), the meet is an `OrderInterval`. Otherwise it's
+ * structurally empty.
  */
 export template <typename T, T Lo, T Hi, Strictness SL, Strictness SU,
                  typename L>
-constexpr auto structured_and(
-    Halfspace<T, Lo, Direction::Upward, SL, L>,
-    Halfspace<T, Hi, Direction::Downward, SU, L>) {
+constexpr auto structured_and(Halfspace<T, Lo, Direction::Upward, SL, L>,
+                              Halfspace<T, Hi, Direction::Downward, SU, L>) {
   constexpr bool both_strict =
       (SL == Strictness::Strict) || (SU == Strictness::Strict);
   constexpr bool disjoint = both_strict ? (Lo >= Hi) : (Lo > Hi);
@@ -146,12 +148,12 @@ constexpr auto structured_and(
   }
 }
 
-/** @brief Symmetric case: downward ∩ upward → delegate to the canonical order. */
+/** @brief Symmetric case: downward ∩ upward → delegate to the canonical order.
+ */
 export template <typename T, T Hi, T Lo, Strictness SU, Strictness SL,
                  typename L>
-constexpr auto structured_and(
-    Halfspace<T, Hi, Direction::Downward, SU, L>,
-    Halfspace<T, Lo, Direction::Upward, SL, L>) {
+constexpr auto structured_and(Halfspace<T, Hi, Direction::Downward, SU, L>,
+                              Halfspace<T, Lo, Direction::Upward, SL, L>) {
   return structured_and(Halfspace<T, Lo, Direction::Upward, SL, L>{},
                         Halfspace<T, Hi, Direction::Downward, SU, L>{});
 }
@@ -159,9 +161,8 @@ constexpr auto structured_and(
 /** @brief Same-direction upward meet: the stricter pivot wins. */
 export template <typename T, T P1, T P2, Strictness S1, Strictness S2,
                  typename L>
-constexpr auto structured_and(
-    Halfspace<T, P1, Direction::Upward, S1, L>,
-    Halfspace<T, P2, Direction::Upward, S2, L>) {
+constexpr auto structured_and(Halfspace<T, P1, Direction::Upward, S1, L>,
+                              Halfspace<T, P2, Direction::Upward, S2, L>) {
   if constexpr (P1 > P2) {
     return Halfspace<T, P1, Direction::Upward, S1, L>{};
   } else if constexpr (P2 > P1) {
@@ -179,9 +180,8 @@ constexpr auto structured_and(
 /** @brief Same-direction downward meet: the stricter pivot wins. */
 export template <typename T, T P1, T P2, Strictness S1, Strictness S2,
                  typename L>
-constexpr auto structured_and(
-    Halfspace<T, P1, Direction::Downward, S1, L>,
-    Halfspace<T, P2, Direction::Downward, S2, L>) {
+constexpr auto structured_and(Halfspace<T, P1, Direction::Downward, S1, L>,
+                              Halfspace<T, P2, Direction::Downward, S2, L>) {
   if constexpr (P1 < P2) {
     return Halfspace<T, P1, Direction::Downward, S1, L>{};
   } else if constexpr (P2 < P1) {
