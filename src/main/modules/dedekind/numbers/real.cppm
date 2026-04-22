@@ -53,7 +53,8 @@ class Real {
 
   constexpr Real() = default;
   /** @brief Implicit to allow `(a + b) / Q{2}` in IsDense checks. */
-  constexpr Real(Q value) : value_(value) {}  // NOLINT(google-explicit-constructor)
+  constexpr Real(Q value)
+      : value_(value) {}  // NOLINT(google-explicit-constructor)
   /** @brief Single-step implicit conversion from any V → Q.
    *  Allows `(a + b) / 2` in IsDense: int → Rational → Real in one UDC. */
   template <typename V>
@@ -250,19 +251,19 @@ inline constexpr dedekind::numbers::Real<S> partial_identity_v<
  * Real<Rational<I>> is totally ordered because Rational<I> is.
  */
 template <dedekind::numbers::IsInteger I>
-inline constexpr bool is_reflexive_v<
-    dedekind::numbers::Real<dedekind::numbers::Rational<I>>,
-    std::less_equal<>> = true;
+inline constexpr bool
+    is_reflexive_v<dedekind::numbers::Real<dedekind::numbers::Rational<I>>,
+                   std::less_equal<>> = true;
 
 template <dedekind::numbers::IsInteger I>
-inline constexpr bool is_transitive_v<
-    dedekind::numbers::Real<dedekind::numbers::Rational<I>>,
-    std::less_equal<>> = true;
+inline constexpr bool
+    is_transitive_v<dedekind::numbers::Real<dedekind::numbers::Rational<I>>,
+                    std::less_equal<>> = true;
 
 template <dedekind::numbers::IsInteger I>
-inline constexpr bool is_antisymmetric_v<
-    dedekind::numbers::Real<dedekind::numbers::Rational<I>>,
-    std::less_equal<>> = true;
+inline constexpr bool
+    is_antisymmetric_v<dedekind::numbers::Real<dedekind::numbers::Rational<I>>,
+                       std::less_equal<>> = true;
 
 }  // namespace dedekind::category
 
@@ -373,8 +374,7 @@ static_assert(
     "ℝ defined over ℚ via the Dedekind cut construction.");
 
 // Proof: ExactReal<> satisfies the operational field-like witness.
-static_assert(
-    dedekind::algebra::IsFieldLikeScalar<ExactReal<>>,
-    "ExactReal<> must satisfy IsFieldLikeScalar (ℝ is a field).");
+static_assert(dedekind::algebra::IsFieldLikeScalar<ExactReal<>>,
+              "ExactReal<> must satisfy IsFieldLikeScalar (ℝ is a field).");
 
 }  // namespace dedekind::numbers

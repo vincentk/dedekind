@@ -392,7 +392,8 @@ static_assert(
     IsMonicArrow<std::decay_t<decltype(dedekind::numbers::embed_z2_c)>>,
     "embed_z2_c must be recognised as a monic arrow.");
 
-// Structural product proof: ℂ ≅ ℝ × ℝ (or more generally S × S for any carrier).
+// Structural product proof: ℂ ≅ ℝ × ℝ (or more generally S × S for any
+// carrier).
 static_assert(
     dedekind::category::IsProduct<dedekind::numbers::Complex<double>, double,
                                   double>,
@@ -401,8 +402,7 @@ static_assert(
 // Proof over the exact real: ℂ over ExactReal is also a product.
 static_assert(
     dedekind::category::IsProduct<
-        dedekind::numbers::Complex<
-            dedekind::numbers::ExactReal<>>,
+        dedekind::numbers::Complex<dedekind::numbers::ExactReal<>>,
         dedekind::numbers::ExactReal<>, dedekind::numbers::ExactReal<>>,
     "Complex<ExactReal<>> must satisfy IsProduct (ℂ ≅ ℝ × ℝ over ℚ-based ℝ).");
 
