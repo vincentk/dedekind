@@ -380,8 +380,8 @@ export template <typename T, typename Pred>
   requires std::copy_constructible<std::decay_t<Pred>> &&
            std::predicate<const std::decay_t<Pred>&, const T&>
 constexpr std::optional<std::size_t> first_where(const Path<T>& path,
-                                                  Pred&& pred,
-                                                  std::size_t budget) {
+                                                 Pred&& pred,
+                                                 std::size_t budget) {
   for (std::size_t i = 0; i <= budget; ++i) {
     if (std::invoke(pred, path.at(i))) return i;
   }
@@ -392,7 +392,7 @@ export template <typename T, typename Pred>
   requires std::copy_constructible<std::decay_t<Pred>> &&
            std::predicate<const std::decay_t<Pred>&, const T&>
 constexpr std::optional<std::size_t> first_where(const FinitePath<T>& path,
-                                                  Pred&& pred) {
+                                                 Pred&& pred) {
   for (std::size_t i = 0; i < path.size(); ++i) {
     if (std::invoke(pred, path.at(i))) return i;
   }

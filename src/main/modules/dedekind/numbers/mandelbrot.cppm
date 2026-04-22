@@ -154,8 +154,8 @@ export template <IsComplexScalar R>
 constexpr std::optional<std::size_t> orbit_escape_time(
     const OrbitPath<R>& orbit, std::size_t max_iter,
     R escape_radius_squared = R{4}) {
-  return orbit_escape_time(orbit, max_iter,
-                           euclidean_escape_radius_squared(escape_radius_squared));
+  return orbit_escape_time(
+      orbit, max_iter, euclidean_escape_radius_squared(escape_radius_squared));
 }
 
 /**

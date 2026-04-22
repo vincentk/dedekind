@@ -81,14 +81,14 @@ TEST_CASE("Sets: Mandelbrot set-builder stress test", "[sets][mandelbrot]") {
 
   SECTION("orbit_escape_time: bounded and escaping points") {
     // c = 0: orbit is identically 0, never escapes
-    REQUIRE(!orbit_escape_time(mandelbrot_orbit(ComplexPoint{0.0, 0.0}), 50u,
-                               4.0)
-                 .has_value());
+    REQUIRE(
+        !orbit_escape_time(mandelbrot_orbit(ComplexPoint{0.0, 0.0}), 50u, 4.0)
+             .has_value());
 
     // c = -0.5: inside the main cardioid, bounded
-    REQUIRE(!orbit_escape_time(mandelbrot_orbit(ComplexPoint{-0.5, 0.0}), 50u,
-                               4.0)
-                 .has_value());
+    REQUIRE(
+        !orbit_escape_time(mandelbrot_orbit(ComplexPoint{-0.5, 0.0}), 50u, 4.0)
+             .has_value());
 
     // c = 2: z_0=0, z_1=2 (|2|²=4, not >4), z_2=6 (|6|²=36>4) → escapes at 2
     const auto et_2 =
@@ -144,13 +144,11 @@ TEST_CASE("Sets: Mandelbrot set-builder stress test", "[sets][mandelbrot]") {
   }
 
   SECTION("orbit_escapes: boolean collapse of escape time") {
-    REQUIRE(
-        !orbit_escapes(mandelbrot_orbit(ComplexPoint{0.0, 0.0}), 50u, 4.0));
+    REQUIRE(!orbit_escapes(mandelbrot_orbit(ComplexPoint{0.0, 0.0}), 50u, 4.0));
     REQUIRE(
         !orbit_escapes(mandelbrot_orbit(ComplexPoint{-0.5, 0.0}), 50u, 4.0));
     REQUIRE(orbit_escapes(mandelbrot_orbit(ComplexPoint{2.0, 0.0}), 50u, 4.0));
-    REQUIRE(
-        orbit_escapes(mandelbrot_orbit(ComplexPoint{-2.5, 0.0}), 50u, 4.0));
+    REQUIRE(orbit_escapes(mandelbrot_orbit(ComplexPoint{-2.5, 0.0}), 50u, 4.0));
   }
 
   SECTION("euclidean_escape_radius_squared: parametric threshold") {
