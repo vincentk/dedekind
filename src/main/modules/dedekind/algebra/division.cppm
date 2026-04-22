@@ -83,7 +83,8 @@ concept IsEuclidean = IsCommutativeRing<T, Add, Mult> && IsDividableChain<T> &&
 /** @section Formal_Verification */
 
 // unsigned int supports integer division and modulo: it is a Euclidean ring.
-static_assert(IsEuclidean<unsigned int>,
-              "unsigned int must satisfy IsEuclidean (integer division/modulo).");
+static_assert(
+    IsEuclidean<unsigned int>,
+    "unsigned int must satisfy IsEuclidean (integer division/modulo).");
 
 }  // namespace dedekind::algebra

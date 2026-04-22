@@ -60,7 +60,8 @@ class Rational {
 
   /** @brief Embedding of an integer as a rational n/1.
    *  Implicit to allow `(a + b) / Z{2}` in IsDense checks. */
-  constexpr Rational(Z n) : first(n), second(Z{1}) {}  // NOLINT(google-explicit-constructor)
+  constexpr Rational(Z n)
+      : first(n), second(Z{1}) {}  // NOLINT(google-explicit-constructor)
 
   /** @section The_Simplification_Morphism */
   constexpr void simplify() {

@@ -79,8 +79,9 @@ concept IsCommutativeRing =
 
 /** @section Formal_Verification */
 
-// unsigned int with wrapping arithmetic is the canonical total commutative ring:
-// IsPeriodic (wraps at 2^N) satisfies IsTotal → IsMagma → IsMonoid → IsGroup.
+// unsigned int with wrapping arithmetic is the canonical total commutative
+// ring: IsPeriodic (wraps at 2^N) satisfies IsTotal → IsMagma → IsMonoid →
+// IsGroup.
 static_assert(IsRing<unsigned int>,
               "unsigned int must satisfy IsRing (wrapping arithmetic).");
 static_assert(IsCommutativeRing<unsigned int>,
