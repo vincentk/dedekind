@@ -267,11 +267,13 @@ inline constexpr bool is_convex_v<HalfSpace<T, B, L>> = true;
 /** @section Formal_Verification */
 
 // Every Ray and Interval is a convex set (no holes).
+// Note: int (not double) because IsTotallyOrdered<double> is withheld in
+// dedekind (NaN violates reflexivity). See order.cppm.
 static_assert(IsConvex<Ray<int, Direction::Upward>>,
               "An upward ray must satisfy IsConvex.");
-static_assert(IsConvex<Interval<double>>,
+static_assert(IsConvex<Interval<int>>,
               "An open interval must satisfy IsConvex.");
-static_assert(IsConvex<HalfSpace<double>>,
+static_assert(IsConvex<HalfSpace<int>>,
               "A half-space must satisfy IsConvex.");
 
 }  // namespace dedekind::topology

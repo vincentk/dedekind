@@ -196,13 +196,17 @@ concept IsDedekindComplete =
 
 /** @section Formal_Verification */
 
-// int is the canonical discrete totally ordered species (a chain with steps).
+// int is the canonical totally ordered chain with integer division.
 static_assert(IsTotallyOrdered<int>, "int must satisfy IsTotallyOrdered.");
-static_assert(IsDiscrete<int>,
-              "int must satisfy IsDiscrete (successor exists, no midpoint).");
 static_assert(
     IsDividableChain<int>,
     "int must satisfy IsDividableChain (integer division and modulo).");
+
+// IsDiscrete<int> is architecturally withheld: IsDiscrete requires IsArchimedean
+// which requires IsSuccessor which requires IsPartialMagma<int, std::plus<int>>.
+// IsPartialMagma expects Op{}(std::pair<T,T>), but std::plus<int> takes two
+// separate arguments. Signed addition is also not a Magma (no IsTotal: signed
+// overflow is UB). See total.cppm: !IsMagma<int, std::plus<int>>.
 
 // IsTotallyOrdered<double> is architecturally withheld: dedekind's
 // is_reflexive_v<double, std::less_equal<>> is false by design because IEEE 754
