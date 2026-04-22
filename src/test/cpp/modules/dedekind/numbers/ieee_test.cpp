@@ -33,6 +33,16 @@ TEST_CASE("IEEE map/bind and lane conversions", "[numbers][ieee][unsafe]") {
   CHECK(back.resolve() == 4.0);
 }
 
+TEST_CASE("Complex ambient set is a canonical IsSet anchor",
+          "[numbers][complex][etcs]") {
+  using ComplexAmbient =
+      decltype(dedekind::category::ambient_set<Complex<machine_real_scalar>>(
+          C));
+
+  STATIC_CHECK(IsSet<ComplexAmbient>);
+  CHECK(true);
+}
+
 static_assert(is_associative_v<IEEE<double>, IEEEAdd<double>>,
               "IEEE fast lane should certify associativity by explicit policy");
 

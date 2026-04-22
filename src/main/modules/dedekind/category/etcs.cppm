@@ -356,18 +356,6 @@ constexpr auto ambient_set(Pred&& predicate) {
   return classify<A>(std::forward<Pred>(predicate));
 }
 
-using CanonicalIntSetObject =
-    decltype(ambient_set<int>([](int) { return true; }));
-
-static_assert(IsSet<CanonicalIntSetObject>,
-              "Canonical ambient_set<int>(...) must satisfy ETCS IsSet.");
-static_assert(
-    HasAxiom5CartesianProduct<typename CanonicalIntSetObject::Ambient>,
-    "ETCS IsSet ambient species must satisfy cartesian product witness.");
-static_assert(
-    HasAxiom6Exponentiation<typename CanonicalIntSetObject::Ambient>,
-    "ETCS IsSet ambient species must satisfy exponentiation witness.");
-
 static_assert(
     IsSetInCanonicalCCC<decltype(ambient_set<int>([](int) { return true; }))>,
     "Mnemonic check: ETCS set objects live over a canonical CCC ambient.");

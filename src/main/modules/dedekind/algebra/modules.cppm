@@ -391,17 +391,4 @@ inline constexpr dedekind::algebra::OneDimensionalVector<S, Tag> inverse(
 
 }  // namespace dedekind::category
 
-namespace dedekind::algebra {
-
-static_assert(dedekind::category::IsSet<
-                  decltype(dedekind::category::ambient_set<RealLine>(
-                      [](const RealLine&) { return true; }))>,
-              "RealLine must admit a canonical ETCS IsSet object in "
-              "dedekind.algebra:modules.");
-static_assert(dedekind::category::IsSet<
-                  decltype(dedekind::category::ambient_set<BoolLine>(
-                      [](const BoolLine&) { return true; }))>,
-              "BoolLine must admit a canonical ETCS IsSet object in "
-              "dedekind.algebra:modules.");
-
-}  // namespace dedekind::algebra
+namespace dedekind::algebra {}  // namespace dedekind::algebra

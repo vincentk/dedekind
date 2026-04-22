@@ -62,14 +62,13 @@ option(DEDEKIND_BUILD_PYTHON_BINDINGS
     "Build the nanobind-based Python MVP facade"
     ON)
 
-# Enable testing with Catch2:
-# Use the release tarball rather than a git clone to avoid intermittent
-# partial-clone corruption in local FetchContent checkouts.
+# Enable testing with Catch2 (pinned release tag; no tracking of main).
 include(FetchContent)
 FetchContent_Declare(
   Catch2
-  URL      https://github.com/catchorg/Catch2/archive/refs/tags/v3.14.0.tar.gz
-  URL_HASH SHA256=ba2a939efead3c833c499cf487e185762f419a71d30158cd1b43c6079c586490
+    GIT_REPOSITORY https://github.com/catchorg/Catch2.git
+    GIT_TAG        v3.14.0
+    GIT_SHALLOW    TRUE
 )
 
 # This populates the 'catch2_SOURCE_DIR' variable

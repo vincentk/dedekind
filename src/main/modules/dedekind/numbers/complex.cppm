@@ -270,12 +270,6 @@ inline constexpr bool
 
 namespace dedekind::numbers {
 
-static_assert(
-    dedekind::category::IsSet<decltype(dedekind::category::ambient_set<
-                                       Complex<machine_real_scalar>>(C))>,
-    "ComplexesOf must be the canonical IsSet anchor for "
-    "dedekind.numbers:complex.");
-
 /**
  * @brief Canonical embedding ℤ² ↪ ℂ: (x, y) ↦ x + iy.
  *
