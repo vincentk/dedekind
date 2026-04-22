@@ -17,9 +17,6 @@
  * Licensed under the Apache License, Version 2.0.
  */
 
-#include <concepts>
-#include <type_traits>
-
 import dedekind.category;
 import dedekind.sets;
 import dedekind.algebra;
@@ -36,23 +33,21 @@ using namespace dedekind::order;
 inline constexpr auto n = var<ℕ>;
 
 // Opposing halfspaces with compile-time pivots carried in the predicate type.
-inline constexpr auto gt_five = Set{n % N | (n > bound<5>)};
+inline constexpr auto gt_five  = Set{n % N | (n > bound<5>)};
 inline constexpr auto lt_three = Set{n % N | (n < bound<3>)};
 
-// Set-level intersection dispatches through structured_and; the contradiction
-// collapses the result type to Ø<int, TernaryLogic>.
+// Set-level `&` dispatches through `structured_and` on the halfspace types;
+// the contradiction collapses the result to `Ø<int, TernaryLogic>`.
 inline constexpr auto empty_meet = gt_five & lt_three;
 
-// Compile-time witness: the meet IS the empty set on ℕ.
-static_assert(std::same_as<std::decay_t<decltype(empty_meet)>,
-                           Ø<int, typename decltype(gt_five)::logic_species>>);
+// Compile-time theorem: the meet IS the empty set.
+static_assert(empty_meet == Ø{});
 
 /**
  * @brief Showcase 3: halfspace contradiction on ℕ.
  *
- * Returns whether a sample natural sits in the (empty) meet. The meet is
- * typed as `Ø<int, L>`, so the membership call is statically `L::False` and
- * the comparison against `L::True` folds to constant false.
+ * The empty meet's membership call is statically `L::False`, so comparing
+ * against `L::True` folds to constant false at compile time.
  *
  * Expected IR: `ret i1 false`
  */

@@ -64,8 +64,18 @@ namespace dedekind::sets {
 
 struct Boundaries {};
 
+/**
+ * @brief Sentinel carrier for the parameter-free form `Ø{}`.
+ *
+ * Enables a deduction guide that lets listings write `Ø{}` (no type args)
+ * and have it compare equal to any `Ø<T, L>`, regardless of carrier and
+ * logic species. This is purely for paper-listing readability; a typed
+ * empty set `Ø<int, TernaryLogic>{}` is still the underlying object of record.
+ */
+struct AnyDomain {};
+
 /** @brief ∅: The Initial Object. Extensional (Size 0). */
-export template <typename T, typename L = ClassicalLogic>
+export template <typename T = AnyDomain, typename L = ClassicalLogic>
 struct Ø final : Boundaries {
   using Domain = T;
   using Codomain = typename L::Ω;
@@ -99,6 +109,14 @@ struct Ø final : Boundaries {
   // Theorem: Two empty sets of the same species are identical.
   constexpr bool operator==(const Ø&) const { return true; }
 
+  // Two empty sets are equal regardless of carrier / logic species.
+  // Models the mathematical identity ∅ = ∅, independent of ambient type.
+  template <typename T2, typename L2>
+    requires(!std::same_as<T, T2> || !std::same_as<L, L2>)
+  constexpr bool operator==(const Ø<T2, L2>&) const {
+    return true;
+  }
+
   // Necessary for (a | b) == b where b might be Ø
   template <typename S>
   constexpr bool operator==(const S&) const {
@@ -128,6 +146,16 @@ struct Ø final : Boundaries {
     return *this;
   }
 };
+
+/**
+ * @brief Deduction guide: `Ø{}` (no template args) resolves to `Ø<>`.
+ *
+ * Enables paper-quality listings like `static_assert(s == Ø{});` without
+ * forcing the reader to spell out carrier / logic species. The cross-type
+ * `operator==` on `Ø` makes `Ø<AnyDomain, ClassicalLogic>` equal to any
+ * other `Ø<T2, L2>`, so the comparison is semantically "is s the empty set?"
+ */
+Ø() -> Ø<>;
 
 /**
  * @struct UniversalSet
