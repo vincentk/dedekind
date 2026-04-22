@@ -202,11 +202,12 @@ static_assert(
     IsDividableChain<int>,
     "int must satisfy IsDividableChain (integer division and modulo).");
 
-// IsDiscrete<int> is architecturally withheld: IsDiscrete requires IsArchimedean
-// which requires IsSuccessor which requires IsPartialMagma<int, std::plus<int>>.
-// IsPartialMagma expects Op{}(std::pair<T,T>), but std::plus<int> takes two
-// separate arguments. Signed addition is also not a Magma (no IsTotal: signed
-// overflow is UB). See total.cppm: !IsMagma<int, std::plus<int>>.
+// IsDiscrete<int> is architecturally withheld: IsDiscrete requires
+// IsArchimedean which requires IsSuccessor which requires IsPartialMagma<int,
+// std::plus<int>>. IsPartialMagma expects Op{}(std::pair<T,T>), but
+// std::plus<int> takes two separate arguments. Signed addition is also not a
+// Magma (no IsTotal: signed overflow is UB). See total.cppm: !IsMagma<int,
+// std::plus<int>>.
 
 // IsTotallyOrdered<double> is architecturally withheld: dedekind's
 // is_reflexive_v<double, std::less_equal<>> is false by design because IEEE 754

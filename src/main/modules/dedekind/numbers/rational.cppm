@@ -375,8 +375,7 @@ static_assert(
 export template <IsInteger I = default_integer>
 using RationalPolynomial = dedekind::algebra::RigPolynomial<Rational<I>>;
 
-static_assert(
-    dedekind::algebra::IsFieldLikeScalar<Rational<default_integer>>,
-    "RationalPolynomial coefficient type must be field-like.");
+static_assert(dedekind::algebra::IsFieldLikeScalar<Rational<default_integer>>,
+              "RationalPolynomial coefficient type must be field-like.");
 
 }  // namespace dedekind::numbers

@@ -108,7 +108,8 @@ constexpr Z integer_abs(Z value) {
  */
 export template <IsInteger Z>
 constexpr Z euclidean_gcd(Z lhs, Z rhs) {
-  // std::gcd only works for builtin integral types (it static_asserts otherwise).
+  // std::gcd only works for builtin integral types (it static_asserts
+  // otherwise).
   if constexpr (std::is_integral_v<Z>) {
     return std::gcd(lhs, rhs);
   } else {
@@ -138,7 +139,8 @@ concept HasEuclideanGcd = IsInteger<Z> && requires(Z a, Z b) {
  * @note `int` satisfies IsInteger syntactically (all required operations are
  * present) but is NOT a total algebra: signed overflow is UB, so it is not
  * IsMagma. For total-algebra contexts prefer `ExtensionalCardinal<>` (natural
- * numbers by fiat) or a future `SignedExtensionalCardinal<N>` (integers by fiat).
+ * numbers by fiat) or a future `SignedExtensionalCardinal<N>` (integers by
+ * fiat).
  */
 export using extensional_integer = int;
 

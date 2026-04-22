@@ -273,8 +273,7 @@ static_assert(IsConvex<Ray<int, Direction::Upward>>,
               "An upward ray must satisfy IsConvex.");
 static_assert(IsConvex<Interval<int>>,
               "An open interval must satisfy IsConvex.");
-static_assert(IsConvex<HalfSpace<int>>,
-              "A half-space must satisfy IsConvex.");
+static_assert(IsConvex<HalfSpace<int>>, "A half-space must satisfy IsConvex.");
 
 }  // namespace dedekind::topology
 
