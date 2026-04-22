@@ -70,6 +70,40 @@ static_assert(IsSpecies<Real<machine_real_scalar>>);
 static_assert(IsSpecies<Complex<machine_real_scalar>>);
 
 // ---------------------------------------------------------------------------
+// Generic unsigned / signed / floating-point embeddings
+// ---------------------------------------------------------------------------
+
+TEST_CASE("Tower: embed_to_ℕ<U> covers any unsigned_integral",
+          "[numbers][tower][embedding]") {
+  // unsigned long is distinct from unsigned — exercises the template overload
+  CHECK(embed_to_ℕ(42UL).limbs[0] == 42UL);
+  CHECK(embed_to_ℕ(0UL).limbs[0] == 0UL);
+  CHECK(embed_to_ℕ(static_cast<unsigned char>(7)).limbs[0] == 7UL);
+}
+
+TEST_CASE("Tower: embed_unsigned_ℕ (concrete monic arrow)",
+          "[numbers][tower][embedding]") {
+  CHECK(embed_unsigned_ℕ(0u).limbs[0] == 0UL);
+  CHECK(embed_unsigned_ℕ(42u).limbs[0] == 42UL);
+  CHECK(embed_unsigned_ℕ(1000u).limbs[0] == 1000UL);
+}
+
+TEST_CASE("Tower: embed_signed_to_ℤ<S> covers any signed_integral",
+          "[numbers][tower][embedding]") {
+  CHECK(embed_signed_to_ℤ(static_cast<short>(5)) == 5);
+  CHECK(embed_signed_to_ℤ(-3) == -3);
+  CHECK(embed_signed_to_ℤ(static_cast<long long>(100LL)) == 100);
+}
+
+TEST_CASE("Tower: embed_floating_ℝ<F> covers any floating_point",
+          "[numbers][tower][embedding]") {
+  // float → Real<double>: widening conversion
+  CHECK(embed_floating_ℝ(1.0f).resolve() == static_cast<double>(1.0f));
+  // double → Real<double>: identity wrap
+  CHECK(embed_floating_ℝ(2.5).resolve() == 2.5);
+}
+
+// ---------------------------------------------------------------------------
 // 𝔹 ↪ ℕ
 // ---------------------------------------------------------------------------
 

@@ -15,6 +15,7 @@ module;
 
 #include <concepts>
 #include <numeric>
+#include <type_traits>
 
 export module dedekind.numbers:integer;
 

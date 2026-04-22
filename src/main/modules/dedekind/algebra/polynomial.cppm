@@ -306,7 +306,7 @@ static_assert(IsCommutativeRing<PolyUInt>,
               "RigPolynomial<unsigned int> must satisfy IsCommutativeRing "
               "(coefficient wrapping lifts to the polynomial level).");
 
-using PolyEC = RigPolynomial<dedekind::numbers::ExtensionalCardinal<>>;
+using PolyEC = RigPolynomial<dedekind::sets::ExtensionalCardinal<>>;
 static_assert(
     IsCommutativeRing<PolyEC>,
     "RigPolynomial<ExtensionalCardinal<>> must satisfy IsCommutativeRing.");

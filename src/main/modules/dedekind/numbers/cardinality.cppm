@@ -30,7 +30,7 @@ import :naturals;
 
 namespace dedekind::numbers {
 
-using C1 = ExtensionalCardinal<>;
+using C1 = dedekind::sets::ExtensionalCardinal<>;
 
 static_assert(dedekind::numbers::IsNatural<C1>,
               "ExtensionalCardinal<1> must satisfy IsNatural.");

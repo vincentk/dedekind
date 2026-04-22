@@ -1,14 +1,15 @@
 /**
  * @file sets/cardinality.cppm
  * @partition :cardinality
- * @brief Extensional N-limb cardinality carrier with explicit overflow into
- *        `Aleph0`.
+ * @brief Cardinality types and the Extensional N-limb cardinal carrier.
  *
  * @details
- * `ExtensionalCardinal<N>` is the machine-total, finite, extensional carrier
- * for cardinal quantities. Values are represented as `N` little-endian
- * `std::size_t` limbs with wrapping arithmetic, so the carrier is compatible
- * with the total-algebra checks in `dedekind.category:total`.
+ * This partition owns all concrete cardinality types:
+ *   - `Finite`, `ℵ<N>`, `ℵ_0`, `ℶ_1` — the cardinality ladder (moved from
+ *     `:mereology`, where only the structural concepts now remain).
+ *   - `ExtensionalCardinal<N>` — the machine-total finite cardinal carrier
+ *     with wrapping arithmetic, compatible with `dedekind.category:total`.
+ *   - `Cardinality` — the `finite | ℵ_0` sum type and its utility functions.
  *
  * Cardinality is a property of sets — how many elements a set contains —
  * so it belongs in the `sets` layer, below `numbers` and `algebra`.
@@ -29,6 +30,7 @@ module;
 #include <array>
 #include <climits>
 #include <compare>
+#include <concepts>
 #include <cstddef>
 #include <functional>
 #include <limits>
@@ -38,22 +40,41 @@ module;
 export module dedekind.sets:cardinality;
 
 import dedekind.category;
-import :mereology;
 
-namespace dedekind::numbers {
+namespace dedekind::sets {
 
 using namespace dedekind::category;
-using namespace dedekind::sets;
 
-/** @brief Canonical draft witness for countable infinity. */
-export struct Aleph0 {
-  using cardinality_type = ℵ_0;
+// ---------------------------------------------------------------------------
+// Cardinality ladder (moved from :mereology)
+// ---------------------------------------------------------------------------
 
-  constexpr friend bool operator==(Aleph0, Aleph0) = default;
+/** @struct Finite: Hardware-bound magnitude. */
+export struct Finite {
+  static constexpr bool is_finite = true;
+  static constexpr bool is_countable = true;
+
+  auto operator<=>(const Finite&) const = default;
+
+  using power_type = Finite;  // Finite sets always jump to other Finite sets.
 };
 
-/** @brief Public singleton witness for countable infinity. */
-export inline constexpr Aleph0 aleph0{};
+/** @struct ℵ: The Transfinite Ladder. */
+export template <std::size_t N>
+struct ℵ {
+  static constexpr bool is_finite = false;
+  static constexpr bool is_countable = (N == 0);
+  using power_type = ℵ<N + 1>;
+
+  constexpr friend bool operator==(const ℵ&, const ℵ&) = default;
+};
+
+export using ℵ_0 = ℵ<0>;  ///< Countable Infinity
+export using ℶ_1 = ℵ<1>;  ///< The Continuum (assuming GCH)
+
+// ---------------------------------------------------------------------------
+// Extensional cardinal carrier
+// ---------------------------------------------------------------------------
 
 /**
  * @brief Finite extensional cardinality carrier using `N` machine limbs.
@@ -88,8 +109,9 @@ struct ExtensionalCardinal {
   }
 
   /** @brief Explicit conversion to floating-point (single-limb only).
-   *  Interprets the stored value as a natural number (unsigned). */
+   *  Constrained to N==1 to prevent silent truncation of multi-limb values. */
   template <std::floating_point F>
+    requires(N == 1)
   constexpr explicit operator F() const noexcept {
     return static_cast<F>(limbs[0]);
   }
@@ -223,28 +245,32 @@ struct ExtensionalCardinal {
   }
 };
 
+// ---------------------------------------------------------------------------
+// Overflow-aware arithmetic returning ℵ_0 on overflow
+// ---------------------------------------------------------------------------
+
 export template <std::size_t N>
-constexpr std::variant<ExtensionalCardinal<N>, Aleph0> add_or_aleph0(
+constexpr std::variant<ExtensionalCardinal<N>, ℵ_0> add_or_ℵ_0(
     const ExtensionalCardinal<N>& lhs, const ExtensionalCardinal<N>& rhs) {
   const auto checked = ExtensionalCardinal<N>::checked_add(lhs, rhs);
   if (checked.overflowed) {
-    return std::variant<ExtensionalCardinal<N>, Aleph0>{aleph0};
+    return std::variant<ExtensionalCardinal<N>, ℵ_0>{ℵ_0{}};
   }
-  return std::variant<ExtensionalCardinal<N>, Aleph0>{checked.value};
+  return std::variant<ExtensionalCardinal<N>, ℵ_0>{checked.value};
 }
 
 export template <std::size_t N>
-constexpr std::variant<ExtensionalCardinal<N>, Aleph0> mul_or_aleph0(
+constexpr std::variant<ExtensionalCardinal<N>, ℵ_0> mul_or_ℵ_0(
     const ExtensionalCardinal<N>& lhs, const ExtensionalCardinal<N>& rhs) {
   const auto checked = ExtensionalCardinal<N>::checked_mul(lhs, rhs);
   if (checked.overflowed) {
-    return std::variant<ExtensionalCardinal<N>, Aleph0>{aleph0};
+    return std::variant<ExtensionalCardinal<N>, ℵ_0>{ℵ_0{}};
   }
-  return std::variant<ExtensionalCardinal<N>, Aleph0>{checked.value};
+  return std::variant<ExtensionalCardinal<N>, ℵ_0>{checked.value};
 }
 
 /** @brief Draft sum type for finite vs countably infinite cardinalities. */
-export using Cardinality = std::variant<ExtensionalCardinal<>, Aleph0>;
+export using Cardinality = std::variant<ExtensionalCardinal<>, ℵ_0>;
 
 /** @brief Convenience constructor for finite cardinal values. */
 export constexpr Cardinality finite_cardinality(std::size_t n) {
@@ -257,51 +283,41 @@ export constexpr Cardinality finite_cardinality(std::size_t n) {
  */
 export using LipschitzBoundaryWitness = std::pair<Cardinality, Cardinality>;
 
-/** @brief Cardinal addition under the draft finite/aleph0 policy. */
+/** @brief Cardinal addition under the finite/ℵ_0 policy. */
 export constexpr Cardinality add(const Cardinality& lhs,
                                  const Cardinality& rhs) {
-  if (std::holds_alternative<Aleph0>(lhs) ||
-      std::holds_alternative<Aleph0>(rhs)) {
-    return Cardinality{aleph0};
+  if (std::holds_alternative<ℵ_0>(lhs) || std::holds_alternative<ℵ_0>(rhs)) {
+    return Cardinality{ℵ_0{}};
   }
-
-  return add_or_aleph0(std::get<ExtensionalCardinal<>>(lhs),
-                       std::get<ExtensionalCardinal<>>(rhs));
+  return add_or_ℵ_0(std::get<ExtensionalCardinal<>>(lhs),
+                    std::get<ExtensionalCardinal<>>(rhs));
 }
 
 /**
- * @brief Cardinal multiplication under the draft finite/aleph0 policy.
- * @details This intentionally follows the issue policy: `x * aleph0 = aleph0`.
+ * @brief Cardinal multiplication under the finite/ℵ_0 policy.
+ * @details `x * ℵ_0 = ℵ_0` for any x.
  */
 export constexpr Cardinality mul(const Cardinality& lhs,
                                  const Cardinality& rhs) {
-  if (std::holds_alternative<Aleph0>(lhs) ||
-      std::holds_alternative<Aleph0>(rhs)) {
-    return Cardinality{aleph0};
+  if (std::holds_alternative<ℵ_0>(lhs) || std::holds_alternative<ℵ_0>(rhs)) {
+    return Cardinality{ℵ_0{}};
   }
-
-  return mul_or_aleph0(std::get<ExtensionalCardinal<>>(lhs),
-                       std::get<ExtensionalCardinal<>>(rhs));
+  return mul_or_ℵ_0(std::get<ExtensionalCardinal<>>(lhs),
+                    std::get<ExtensionalCardinal<>>(rhs));
 }
 
 /**
- * @brief Total comparison over the draft finite/aleph0 fragment.
- * @details finite `<` aleph0 and aleph0 `==` aleph0.
+ * @brief Total comparison over the finite/ℵ_0 fragment.
+ * @details finite < ℵ_0, and ℵ_0 == ℵ_0.
  */
 export constexpr std::strong_ordering compare(const Cardinality& lhs,
                                               const Cardinality& rhs) {
-  const bool lhs_aleph0 = std::holds_alternative<Aleph0>(lhs);
-  const bool rhs_aleph0 = std::holds_alternative<Aleph0>(rhs);
+  const bool lhs_inf = std::holds_alternative<ℵ_0>(lhs);
+  const bool rhs_inf = std::holds_alternative<ℵ_0>(rhs);
 
-  if (lhs_aleph0 && rhs_aleph0) {
-    return std::strong_ordering::equal;
-  }
-  if (lhs_aleph0) {
-    return std::strong_ordering::greater;
-  }
-  if (rhs_aleph0) {
-    return std::strong_ordering::less;
-  }
+  if (lhs_inf && rhs_inf) return std::strong_ordering::equal;
+  if (lhs_inf) return std::strong_ordering::greater;
+  if (rhs_inf) return std::strong_ordering::less;
 
   return std::get<ExtensionalCardinal<>>(lhs) <=>
          std::get<ExtensionalCardinal<>>(rhs);
@@ -340,16 +356,21 @@ constexpr CardinalityEffect bind_effect(const CardinalityEffect& effect,
   return CardinalityEffect{next.value, add(effect.trace, next.trace)};
 }
 
+/** @brief Additive inverse of ExtensionalCardinal<> (two's-complement). */
 export constexpr ExtensionalCardinal<> inverse(
     ExtensionalCardinal<> value, std::plus<ExtensionalCardinal<>>) {
   return -value;
 }
 
-}  // namespace dedekind::numbers
+}  // namespace dedekind::sets
+
+// ---------------------------------------------------------------------------
+// Category trait registrations for ExtensionalCardinal<1>
+// ---------------------------------------------------------------------------
 
 namespace dedekind::category {
 
-using C1 = dedekind::numbers::ExtensionalCardinal<>;
+using C1 = dedekind::sets::ExtensionalCardinal<>;
 
 template <>
 struct identity_trait<C1, std::plus<C1>> {
@@ -386,23 +407,25 @@ template <>
 struct is_periodic<C1, std::multiplies<C1>> : std::true_type {};
 
 template <std::size_t N>
-inline constexpr bool is_reflexive_v<dedekind::numbers::ExtensionalCardinal<N>,
-                                     std::less_equal<>> = true;
+inline constexpr bool
+    is_reflexive_v<dedekind::sets::ExtensionalCardinal<N>, std::less_equal<>> =
+        true;
 
 template <std::size_t N>
-inline constexpr bool is_transitive_v<dedekind::numbers::ExtensionalCardinal<N>,
-                                      std::less_equal<>> = true;
+inline constexpr bool
+    is_transitive_v<dedekind::sets::ExtensionalCardinal<N>, std::less_equal<>> =
+        true;
 
 template <std::size_t N>
-inline constexpr bool is_antisymmetric_v<
-    dedekind::numbers::ExtensionalCardinal<N>, std::less_equal<>> = true;
+inline constexpr bool is_antisymmetric_v<dedekind::sets::ExtensionalCardinal<N>,
+                                         std::less_equal<>> = true;
 
 static_assert(IsRing<C1, std::plus<C1>, std::multiplies<C1>>,
               "ExtensionalCardinal<1> must certify as a total ring.");
 
 static_assert(
-    IsProduct<dedekind::numbers::LipschitzBoundaryWitness,
-              dedekind::numbers::Cardinality, dedekind::numbers::Cardinality>,
+    IsProduct<dedekind::sets::LipschitzBoundaryWitness,
+              dedekind::sets::Cardinality, dedekind::sets::Cardinality>,
     "Cardinality boundary witness must realize a categorical product.");
 
 }  // namespace dedekind::category
