@@ -80,4 +80,16 @@ concept IsEuclidean = IsCommutativeRing<T, Add, Mult> && IsDividableChain<T> &&
                         { Rem{}(a, b) } -> std::same_as<T>;
                       };
 
+/** @section Formal_Verification */
+
+// unsigned int carries integer division and modulo, so the structural
+// IsEuclidean concept holds. However, unsigned int is NOT an infinite Euclidean
+// domain: it is a cyclic ring with a Lipschitz boundary (wraps at 2^N).
+// It can be embedded in ℕ (ExtensionalCardinal<>) — the unbounded canonical ℕ.
+// The proper infinite Euclidean carrier in the tower is ExtensionalCardinal<>.
+static_assert(
+    IsEuclidean<unsigned int>,
+    "unsigned int must satisfy IsEuclidean (cyclic integer division/modulo; "
+    "embeds in ℕ).");
+
 }  // namespace dedekind::algebra

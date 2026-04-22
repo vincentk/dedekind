@@ -216,3 +216,17 @@ struct SpeciesTraits<dedekind::sequences::IntegerInterval<T, Lower, Upper, L>> {
 };
 
 }  // namespace dedekind::category
+
+namespace dedekind::sequences {
+
+// Anchor: IntegerInterval<int> satisfies IsConvex (the trait registration above
+// is the proof; this assert makes it machine-checkable from the use site).
+static_assert(dedekind::topology::IsConvex<IntegerInterval<int>>,
+              "IntegerInterval must satisfy IsConvex (contiguous, no holes).");
+
+// Anchor: IsConvexEnumerable is the combined witness for the triple nature.
+static_assert(
+    IsConvexEnumerable<IntegerInterval<int>>,
+    "IntegerInterval must satisfy IsConvexEnumerable (convex + terminal set).");
+
+}  // namespace dedekind::sequences

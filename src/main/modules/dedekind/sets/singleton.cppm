@@ -54,6 +54,7 @@ export module dedekind.sets:singleton;
 
 import dedekind.category;
 
+import :cardinality;
 import :mereology;
 import :boundaries;
 import :expressions;

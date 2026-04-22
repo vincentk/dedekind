@@ -69,4 +69,13 @@ concept Is_B = std::same_as<E, bool> && requires(const M& m) {
   requires m.cardinality() == 2;
 };
 
+/** @section Formal_Verification */
+
+// FiniteBooleanSetOf<> is the canonical characteristic function for 𝔹.
+// It is a set (membership morphism: bool → Ω), not a ring carrier directly.
+static_assert(
+    dedekind::category::IsSet<decltype(dedekind::category::ambient_set<bool>(
+        FiniteBooleanSetOf<>{}))>,
+    "FiniteBooleanSetOf must be the canonical IsSet anchor for bool.");
+
 }  // namespace dedekind::numbers

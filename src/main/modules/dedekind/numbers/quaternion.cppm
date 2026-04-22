@@ -178,4 +178,36 @@ constexpr LinearMap<R, 4, 4> as_matrix(const Quaternion<R>& q) {
            {z, -y, x, w}}};  // row 3
 }
 
+/** @section Formal_Verification
+ *
+ * The Hamilton relations i²=j²=k²=ijk=-1 and non-commutativity ij≠ji
+ * are not just documentation — they are compile-time proofs that the
+ * Quaternion multiplication table is correct.
+ */
+
+// Basis quaternions
+inline constexpr Quaternion<double> q_i{0, 1, 0, 0};
+inline constexpr Quaternion<double> q_j{0, 0, 1, 0};
+inline constexpr Quaternion<double> q_k{0, 0, 0, 1};
+inline constexpr Quaternion<double> q_neg1{-1, 0, 0, 0};
+
+// i² = j² = k² = -1
+static_assert(q_i * q_i == q_neg1, "i² = -1");
+static_assert(q_j * q_j == q_neg1, "j² = -1");
+static_assert(q_k * q_k == q_neg1, "k² = -1");
+
+// ij = k,  jk = i,  ki = j
+static_assert(q_i * q_j == q_k, "ij = k");
+static_assert(q_j * q_k == q_i, "jk = i");
+static_assert(q_k * q_i == q_j, "ki = j");
+
+// ji = -k,  kj = -i,  ik = -j  (non-commutativity: the sign flips)
+static_assert(q_j * q_i == -q_k, "ji = -k");
+static_assert(q_k * q_j == -q_i, "kj = -i");
+static_assert(q_i * q_k == -q_j, "ik = -j");
+
+// Anchor: multiplication is non-commutative.
+static_assert(q_i * q_j != q_j * q_i,
+              "Quaternion multiplication is non-commutative: ij ≠ ji.");
+
 }  // namespace dedekind::numbers

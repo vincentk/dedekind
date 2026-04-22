@@ -51,6 +51,7 @@ export module dedekind.sets:boundaries;
 
 import dedekind.category;
 
+import :cardinality;
 import :mereology;
 
 using namespace dedekind::category;

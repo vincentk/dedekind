@@ -295,26 +295,7 @@ concept IsUncountable = IsCardinality<C> && !IsCountable<C>;
 export template <typename C>
 concept IsFiniteMagnitude = IsCountable<C> && (C::is_finite == true);
 
-/** @struct Finite: Hardware-bound magnitude. */
-export struct Finite {
-  static constexpr bool is_finite = true;
-  static constexpr bool is_countable = true;
-
-  auto operator<=>(const Finite&) const = default;
-
-  using power_type = Finite;  // Finite sets always jump to other Finite sets.
-};
-
-/** @struct ℵ: The Transfinite Ladder. */
-export template <std::size_t N>
-struct ℵ {
-  static constexpr bool is_finite = false;
-  static constexpr bool is_countable = (N == 0);
-  using power_type = ℵ<N + 1>;
-};
-
-export using ℵ_0 = ℵ<0>;  // Countable Infinity
-export using ℶ_1 = ℵ<1>;  // The Continuum (assuming GCH)
+// Finite, ℵ<N>, ℵ_0, ℶ_1 are defined in :cardinality (same module).
 
 /** @section The_Body: The Logic of Presence */
 

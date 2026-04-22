@@ -52,4 +52,25 @@ constexpr auto wedge(const OneForm<F, N>& a, const OneForm<F, N>& b) {
                        (a.components[1] * b.components[0])};
 }
 
+/** @section Formal_Verification
+ *
+ * Antisymmetry ω(u,v) = -ω(v,u) is the defining property of a 2-form.
+ * The 2D case is exact (no floating-point rounding on integer inputs).
+ *
+ * FIXME: TwoForm is currently hard-coded to use components [0] and [1],
+ * making it correct only when N=2. For N>2 the symplectic pairing needs
+ * a full antisymmetric matrix representation.
+ */
+
+namespace {
+inline constexpr Vector<double, 2> v_x{1.0, 0.0};
+inline constexpr Vector<double, 2> v_y{0.0, 1.0};
+inline constexpr TwoForm<double, 2> omega{1.0};
+}  // namespace
+
+static_assert(omega(v_x, v_y) == -omega(v_y, v_x),
+              "TwoForm must be antisymmetric: ω(u,v) = -ω(v,u).");
+static_assert(omega(v_x, v_x) == 0.0,
+              "TwoForm must vanish on the diagonal: ω(u,u) = 0.");
+
 }  // namespace dedekind::analysis

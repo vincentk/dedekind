@@ -36,6 +36,7 @@
  */
 export module dedekind.sets;
 
+export import :cardinality;
 export import :boundaries;
 export import :expressions;
 export import :interop;
