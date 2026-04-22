@@ -45,8 +45,9 @@ static_assert(in_between == Singleton<4>{});
 // Logic species tightens at the reduction boundary.
 //   ℕ is transfinite → NaturalLogic picks TernaryLogic for the parent Sets.
 //   The meet reduces to a finite extensional object with decidable membership,
-//   so the reduced type carries ClassicalLogic — Unknown is no longer reachable.
-using ParentLogic  = typename decltype(gt_three)::logic_species;
+//   so the reduced type carries ClassicalLogic — Unknown is no longer
+//   reachable.
+using ParentLogic = typename decltype(gt_three)::logic_species;
 using ReducedLogic = typename decltype(in_between)::logic_species;
 static_assert(std::same_as<ParentLogic, TernaryLogic>);
 static_assert(std::same_as<ReducedLogic, ClassicalLogic>);

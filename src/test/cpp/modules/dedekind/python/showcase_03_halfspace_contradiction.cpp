@@ -46,7 +46,7 @@ static_assert(empty_meet == Ø{});
 //   ℕ is transfinite → NaturalLogic picks TernaryLogic for the parent Sets.
 //   The meet reduces to the finite extensional empty set with decidable
 //   (vacuously false) membership, so the reduced type carries ClassicalLogic.
-using ParentLogic  = typename decltype(gt_five)::logic_species;
+using ParentLogic = typename decltype(gt_five)::logic_species;
 using ReducedLogic = typename decltype(empty_meet)::logic_species;
 static_assert(std::same_as<ParentLogic, TernaryLogic>);
 static_assert(std::same_as<ReducedLogic, ClassicalLogic>);
