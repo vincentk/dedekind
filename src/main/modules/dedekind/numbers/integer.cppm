@@ -21,6 +21,7 @@ export module dedekind.numbers:integer;
 import dedekind.category;
 import dedekind.sets;
 import :naturals;
+export import :cardinality;
 
 namespace dedekind::numbers {
 using namespace dedekind::category;
@@ -107,9 +108,8 @@ constexpr Z integer_abs(Z value) {
  */
 export template <IsInteger Z>
 constexpr Z euclidean_gcd(Z lhs, Z rhs) {
-  if constexpr (requires(Z a, Z b) {
-                  { std::gcd(a, b) } -> std::same_as<Z>;
-                }) {
+  // std::gcd only works for builtin integral types (it static_asserts otherwise).
+  if constexpr (std::is_integral_v<Z>) {
     return std::gcd(lhs, rhs);
   } else {
     lhs = integer_abs(lhs);
@@ -134,17 +134,25 @@ concept HasEuclideanGcd = IsInteger<Z> && requires(Z a, Z b) {
  * @details This names the concrete machine-level entry point explicitly so
  * embeddings into the integer spine can refer to an extensional source type
  * without hard-coding `int` everywhere downstream.
+ *
+ * @note `int` satisfies IsInteger syntactically (all required operations are
+ * present) but is NOT a total algebra: signed overflow is UB, so it is not
+ * IsMagma. For total-algebra contexts prefer `ExtensionalCardinal<>` (natural
+ * numbers by fiat) or a future `SignedExtensionalCardinal<N>` (integers by fiat).
  */
 export using extensional_integer = int;
 
 /**
  * @brief Default integer carrier used by downstream numeric layers.
  *
- * @details This is intentionally an alias rather than a hard-coded choice in
- * `:rational`, `:real`, or `:complex`, so the default integer infrastructure
- * can later be retargeted in one place (for example to a future
- * `SignedExtensionalCardinal<N>`). For now it still resolves to the current
- * extensional machine carrier.
+ * @details Intentionally an alias so the default can be retargeted in one
+ * place. Current choice is the machine signed integer (syntactically IsInteger,
+ * operationally correct for arithmetic that stays in range).
+ *
+ * @note The natural-number carrier `ExtensionalCardinal<>` satisfies IsInteger
+ * and forms a total ring (IsRing), but is unsigned — negative rationals need
+ * a signed carrier. A future `SignedExtensionalCardinal<N>` is the intended
+ * long-term retarget. See rational.cppm for `RationalPolynomial` (Q[x]).
  */
 export using default_integer = extensional_integer;
 

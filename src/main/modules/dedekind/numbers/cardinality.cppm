@@ -82,6 +82,21 @@ struct ExtensionalCardinal {
 
   constexpr ExtensionalCardinal(limb_type value) noexcept { limbs[0] = value; }
 
+  /** @brief Construction from any integral type via two's-complement wrapping.
+   *  The explicit static_cast suppresses -Wsign-conversion at the call site. */
+  template <std::integral S>
+    requires(!std::same_as<S, limb_type>)
+  constexpr explicit ExtensionalCardinal(S value) noexcept {
+    limbs[0] = static_cast<limb_type>(value);
+  }
+
+  /** @brief Explicit conversion to floating-point (single-limb only).
+   *  Interprets the stored value as a natural number (unsigned). */
+  template <std::floating_point F>
+  constexpr explicit operator F() const noexcept {
+    return static_cast<F>(limbs[0]);
+  }
+
   constexpr friend bool operator==(const ExtensionalCardinal&,
                                    const ExtensionalCardinal&) = default;
 
@@ -111,6 +126,28 @@ struct ExtensionalCardinal {
   constexpr friend ExtensionalCardinal operator-(
       const ExtensionalCardinal& lhs, const ExtensionalCardinal& rhs) noexcept {
     return lhs + (-rhs);
+  }
+
+  /**
+   * @brief Euclidean division (single-limb exact; multi-limb truncates to
+   *        first limb). Division by zero yields zero by convention (total).
+   */
+  constexpr friend ExtensionalCardinal operator/(
+      const ExtensionalCardinal& lhs, const ExtensionalCardinal& rhs) noexcept {
+    if (rhs.limbs[0] == 0) return ExtensionalCardinal{};
+    ExtensionalCardinal result{};
+    result.limbs[0] = lhs.limbs[0] / rhs.limbs[0];
+    return result;
+  }
+
+  /** @brief Euclidean modulo (single-limb exact). Division by zero yields
+   *         lhs by convention (total). */
+  constexpr friend ExtensionalCardinal operator%(
+      const ExtensionalCardinal& lhs, const ExtensionalCardinal& rhs) noexcept {
+    if (rhs.limbs[0] == 0) return lhs;
+    ExtensionalCardinal result{};
+    result.limbs[0] = lhs.limbs[0] % rhs.limbs[0];
+    return result;
   }
 
   constexpr ExtensionalCardinal operator-() const noexcept {
@@ -375,5 +412,8 @@ static_assert(dedekind::numbers::IsNatural<C1>,
 
 static_assert(dedekind::order::IsTotallyOrdered<C1>,
               "ExtensionalCardinal<1> must satisfy IsTotallyOrdered.");
+
+// IsInteger<C1> is verified in rational.cppm (which imports both
+// :cardinality and :integer) to avoid a circular import chain.
 
 }  // namespace dedekind::category

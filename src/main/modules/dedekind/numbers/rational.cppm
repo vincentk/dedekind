@@ -345,9 +345,38 @@ static_assert(
  * The Kleene traits (is_kleene_associative_v etc.) are the appropriate anchors
  * for the algebraic properties of Rational<I>.
  */
+// ExtensionalCardinal<> (the cardinality ring) now carries division/modulo,
+// making it satisfy IsInteger. It represents ℕ "by fiat": a total ring
+// (IsRing, IsMagma) whose wrapping arithmetic avoids UB. This assert lives
+// here (not in cardinality.cppm) to avoid a circular import chain:
+//   :cardinality → :naturals   :integer → :cardinality   :rational → :integer
+static_assert(IsInteger<ExtensionalCardinal<>>,
+              "ExtensionalCardinal<> must satisfy IsInteger (Euclidean "
+              "ring: +, -, *, /, % with two's-complement wrapping).");
+
 static_assert(
     dedekind::algebra::IsFieldLikeScalar<Rational<default_integer>>,
     "Rational<I> must satisfy the operational field-like witness (ℚ is a "
     "field).");
+
+/**
+ * @brief Canonical polynomial ring over the rationals: Q[x].
+ *
+ * @details RigPolynomial<Rational<I>> forms a commutative ring under
+ * coefficient-wise addition and Cauchy product. The coefficient field is
+ * the quotient field of the integer carrier I. The default I = default_integer
+ * (currently `int`, the machine signed integer) gives Q[x] over ℤ.
+ *
+ * @note This is the structurally correct polynomial ring: the coefficient type
+ * Rational<I> is field-like (IsFieldLikeScalar), so the polynomial ring has
+ * all four arithmetic operations available. A future retarget to
+ * SignedExtensionalCardinal<N> would give a provably total Q[x].
+ */
+export template <IsInteger I = default_integer>
+using RationalPolynomial = dedekind::algebra::RigPolynomial<Rational<I>>;
+
+static_assert(
+    dedekind::algebra::IsFieldLikeScalar<Rational<default_integer>>,
+    "RationalPolynomial coefficient type must be field-like.");
 
 }  // namespace dedekind::numbers
