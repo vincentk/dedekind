@@ -149,28 +149,6 @@ constexpr std::optional<std::size_t> orbit_escape_time(
 }
 
 /**
- * Boolean collapse: did the orbit escape within max_iter steps?
- *
- *   orbit_escapes(orbit, n, p) ≡ orbit_escape_time(orbit, n, p).has_value()
- */
-export template <IsComplexScalar R, typename EscapeCriterion>
-  requires IsEscapeCriterion<EscapeCriterion, Complex<R>>
-constexpr bool orbit_escapes(const OrbitPath<R>& orbit, std::size_t max_iter,
-                             const EscapeCriterion& escape_criterion) {
-  return orbit_escape_time(orbit, max_iter, escape_criterion).has_value();
-}
-
-/**
- * @overload with default Euclidean escape radius.
- */
-export template <IsComplexScalar R>
-constexpr bool orbit_escapes(const OrbitPath<R>& orbit, std::size_t max_iter,
-                             R escape_radius_squared = R{4}) {
-  return orbit_escapes(orbit, max_iter,
-                       euclidean_escape_radius_squared(escape_radius_squared));
-}
-
-/**
  * Lift an orbit-level criterion to a point-level predicate:
  *   c -> criterion(orbit(c)).
  */
