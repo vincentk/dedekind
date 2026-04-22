@@ -121,7 +121,8 @@ TEST_CASE("Sequences: The Path to Continuity",
 
   SECTION("scan: running size equals index + 1") {
     // scan(size, path)(i) == prefix(path, i+1).size() == i+1
-    const auto sizes = scan([](const FinitePath<ℤ>& p) { return p.size(); }, path);
+    const auto sizes =
+        scan([](const FinitePath<ℤ>& p) { return p.size(); }, path);
 
     static_assert(IsSequence<decltype(sizes)>);
     REQUIRE(sizes.at(0) == 1u);
