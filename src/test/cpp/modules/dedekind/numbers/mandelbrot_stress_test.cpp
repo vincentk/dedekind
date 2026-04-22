@@ -4,10 +4,12 @@
 #include <cstdint>
 #include <string>
 
+import dedekind.category;
 import dedekind.sets;
 import dedekind.sequences;
 import dedekind.numbers;
 
+using namespace dedekind::category;
 using namespace dedekind::sets;
 using namespace dedekind::sequences;
 using namespace dedekind::numbers;
