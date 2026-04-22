@@ -104,7 +104,7 @@ TEST_CASE("Sets: Mandelbrot set-builder stress test", "[sets][mandelbrot]") {
   }
 
   SECTION("orbit_divergence_path: Kleene running state") {
-    const auto criterion = kleene_escape_radius_squared<double>();
+    const auto criterion = euclidean_escape_radius_squared<double>();
     const auto divergence = orbit_divergence_path(
         mandelbrot_orbit(ComplexPoint{2.0, 0.0}), criterion);
 
@@ -115,7 +115,7 @@ TEST_CASE("Sets: Mandelbrot set-builder stress test", "[sets][mandelbrot]") {
   }
 
   SECTION("orbit_divergence_path is monotone: True is absorbing") {
-    const auto criterion = kleene_escape_radius_squared<double>();
+    const auto criterion = euclidean_escape_radius_squared<double>();
     const auto divergence = orbit_divergence_path(
         mandelbrot_orbit(ComplexPoint{2.0, 0.0}), criterion);
 
@@ -132,9 +132,9 @@ TEST_CASE("Sets: Mandelbrot set-builder stress test", "[sets][mandelbrot]") {
   }
 
   SECTION("orbit_divergence_path and orbit_escape_time are consistent") {
-    const auto kleene = kleene_escape_radius_squared<double>();
+    const auto criterion = euclidean_escape_radius_squared<double>();
     const auto orbit = mandelbrot_orbit(ComplexPoint{2.0, 0.0});
-    const auto divergence = orbit_divergence_path(orbit, kleene);
+    const auto divergence = orbit_divergence_path(orbit, criterion);
     const auto et = orbit_escape_time(orbit, 50u, 4.0);
 
     REQUIRE(et.has_value());

@@ -102,14 +102,15 @@ constexpr auto mandelbrot_orbit(const Complex<R>& c) {
  *
  * This is the intensional form; orbit_escape_time() is the materialization.
  */
-export template <IsComplexScalar R, typename KleeneCriterion>
-  requires IsEscapeCriterion<KleeneCriterion, Complex<R>, Ternary>
+export template <IsComplexScalar R, typename EscapeCriterion>
+  requires IsEscapeCriterion<EscapeCriterion, Complex<R>>
 constexpr auto orbit_divergence_path(const OrbitPath<R>& orbit,
-                                     KleeneCriterion criterion)
+                                     EscapeCriterion criterion)
     -> Path<Ternary> {
   return scan(
       [criterion](const FinitePath<Complex<R>>& p) -> Ternary {
-        return exists(p, classify<Complex<R>>(criterion).χ);
+        return exists(p, classify<Complex<R>>(criterion).χ) ? Ternary::True
+                                                            : Ternary::Unknown;
       },
       orbit);
 }
