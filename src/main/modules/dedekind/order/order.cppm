@@ -197,12 +197,12 @@ concept IsDedekindComplete =
 /** @section Formal_Verification */
 
 // int is the canonical discrete totally ordered species (a chain with steps).
-static_assert(IsTotallyOrdered<int>,
-              "int must satisfy IsTotallyOrdered.");
+static_assert(IsTotallyOrdered<int>, "int must satisfy IsTotallyOrdered.");
 static_assert(IsDiscrete<int>,
               "int must satisfy IsDiscrete (successor exists, no midpoint).");
-static_assert(IsDividableChain<int>,
-              "int must satisfy IsDividableChain (integer division and modulo).");
+static_assert(
+    IsDividableChain<int>,
+    "int must satisfy IsDividableChain (integer division and modulo).");
 
 // double is the canonical dense ordered species (midpoints always exist).
 static_assert(IsTotallyOrdered<double>,
