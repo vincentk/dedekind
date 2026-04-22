@@ -35,32 +35,21 @@ using namespace dedekind::sets;
 
 /**
  * @concept IsEscapeCriterion
- * @brief Classical (Boolean) escape predicate: Complex<R> → bool.
+ * @brief Escape predicate: ComplexType → L (a LogicalValue).
  *
- * True when the magnitude condition signals eventual divergence.
+ * Default L = bool gives the classical criterion.
+ * L = Ternary gives the Kleene criterion:
+ *   True    = escape witnessed
+ *   Unknown = not yet escaped (open question)
+ *   False   = provably bounded (unreachable by finite computation alone)
  */
-template <typename EscapeCriterion, typename ComplexType>
+template <typename EscapeCriterion, typename ComplexType, typename L = bool>
 concept IsEscapeCriterion =
+    std::copy_constructible<std::decay_t<EscapeCriterion>> &&
     std::invocable<const std::decay_t<EscapeCriterion>&, const ComplexType&> &&
     std::same_as<std::invoke_result_t<const std::decay_t<EscapeCriterion>&,
                                       const ComplexType&>,
-                 bool>;
-
-/**
- * @concept IsKleeneEscapeCriterion
- * @brief Kleene escape predicate: Complex<R> → Ternary.
- *
- * True  = escape witnessed.
- * Unknown = not yet escaped (open question).
- * False = provably bounded (unreachable by finite computation alone).
- */
-template <typename KleeneCriterion, typename ComplexType>
-concept IsKleeneEscapeCriterion =
-    std::copy_constructible<std::decay_t<KleeneCriterion>> &&
-    std::invocable<const std::decay_t<KleeneCriterion>&, const ComplexType&> &&
-    std::same_as<std::invoke_result_t<const std::decay_t<KleeneCriterion>&,
-                                      const ComplexType&>,
-                 Ternary>;
+                 L>;
 
 /**
  * Classical escape criterion: |z|² > r².
@@ -114,7 +103,7 @@ constexpr auto mandelbrot_orbit(const Complex<R>& c) {
  * This is the intensional form; orbit_escape_time() is the materialization.
  */
 export template <IsComplexScalar R, typename KleeneCriterion>
-  requires IsKleeneEscapeCriterion<KleeneCriterion, Complex<R>>
+  requires IsEscapeCriterion<KleeneCriterion, Complex<R>, Ternary>
 constexpr auto orbit_divergence_path(const OrbitPath<R>& orbit,
                                      KleeneCriterion criterion)
     -> Path<Ternary> {
