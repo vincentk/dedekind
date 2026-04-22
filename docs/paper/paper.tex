@@ -712,6 +712,12 @@ the ambient set, evaluates both predicates, and confirms disjointness.
 For small finite domains (bounded enumerations, flag sets, small integers) this
 procedure is computationally feasible at compile time and would directly benefit the
 analyst API tier.
+
+\noindent \emph{Status (April 2026):} This gap is tracked as GitHub issue \#348
+(\texttt{feat(sets): consteval cardinality pruning for disjoint intersection}).
+The foundation (boundaries, mereology, species registry) is complete; the decision
+procedure awaits implementation. See also issue \#349 for validation via LLVM IR
+showcase examples.
 % ============================================================
 \section{Related Work}
 \label{sec:related}
