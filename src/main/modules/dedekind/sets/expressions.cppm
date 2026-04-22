@@ -451,6 +451,13 @@ constexpr auto operator==(const Variable<Species>&, bool rhs) {
   return BooleanEqPredicate{rhs};
 }
 
+/** @brief Unary negation of a boolean variable: `!b` ≡ `b == false`. */
+export template <typename Species>
+  requires std::same_as<typename Species::Domain, bool>
+constexpr auto operator!(const Variable<Species>&) {
+  return BooleanEqPredicate{false};
+}
+
 /** @section Logical_Lifting */
 
 /**

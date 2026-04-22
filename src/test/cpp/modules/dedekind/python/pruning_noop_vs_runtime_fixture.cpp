@@ -35,10 +35,10 @@ using namespace dedekind::algebra;
 // Symbolic variable ranging over 𝔹 = Ω<bool, ClassicalLogic, Finite>
 inline constexpr auto b = var<𝔹>;
 
-// { x ∈ 𝔹 | x == false }  =  the singleton {false} ⊂ 𝔹
-inline constexpr auto b_false = Set{b % B | (b == false)};
+// { b ∈ 𝔹 | ¬b } = the singleton {false} ⊂ 𝔹
+inline constexpr auto b_false = Set{b % B | !b};
 
-// { x ∈ 𝔹 | x == true }   =  the singleton {true}  ⊂ 𝔹
+// { b ∈ 𝔹 | b == true } = the singleton {true} ⊂ 𝔹
 inline constexpr auto b_true = Set{b % B | (b == true)};
 
 // {false} and {true} partition 𝔹: their intersection is ∅ ...
