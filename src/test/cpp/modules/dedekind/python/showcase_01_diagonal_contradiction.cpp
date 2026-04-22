@@ -24,8 +24,11 @@ using namespace dedekind::sets;
 using namespace dedekind::algebra;
 using namespace dedekind::numbers;
 
+inline constexpr auto r = var<ℝ>;
+inline constexpr auto all_reals = Set{r % R};
+
 // Ambient product set R × R
-inline constexpr auto r2 = cartesian_product(R, R);
+inline constexpr auto r2 = cartesian_product(all_reals, all_reals);
 using R2Point = typename decltype(r2)::Domain;
 inline constexpr auto xy = var<decltype(r2)>;
 

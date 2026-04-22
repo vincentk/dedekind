@@ -31,7 +31,6 @@ import dedekind.algebra;
 using namespace dedekind::category;
 using namespace dedekind::sets;
 using namespace dedekind::algebra;
-using namespace dedekind::numbers;
 
 // Symbolic variable ranging over 𝔹 = Ω<bool, ClassicalLogic, Finite>
 inline constexpr auto b = var<𝔹>;
