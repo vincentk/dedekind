@@ -30,15 +30,15 @@ using namespace dedekind::numbers;
 using namespace dedekind::order;
 
 // Symbolic variable ranging over ℕ; N is the canonical ambient-set witness.
-inline constexpr auto n = var<ℕ>;
+constexpr auto n = var<ℕ>;
 
 // Opposing halfspaces with compile-time pivots carried in the predicate type.
-inline constexpr auto gt_five = Set{n % N | (n > bound<5>)};
-inline constexpr auto lt_three = Set{n % N | (n < bound<3>)};
+constexpr auto gt_five = Set{n % N | (n > bound<5>)};
+constexpr auto lt_three = Set{n % N | (n < bound<3>)};
 
 // Set-level `&` dispatches through `structured_and` on the halfspace types;
 // the contradiction collapses the result to `Ø<int, TernaryLogic>`.
-inline constexpr auto empty_meet = gt_five & lt_three;
+constexpr auto empty_meet = gt_five & lt_three;
 
 // Compile-time theorem: the meet IS the empty set.
 static_assert(empty_meet == Ø{});

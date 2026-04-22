@@ -24,35 +24,28 @@ using namespace dedekind::sets;
 using namespace dedekind::algebra;
 using namespace dedekind::numbers;
 
-// Define a symbol in the canonical real numbers.
-inline constexpr auto r = var<ℝ>;
+// Ambient product set ℝ × ℝ and its symbolic scout.
+constexpr auto R2 = R * R;
+constexpr auto xy = var<decltype(R2)>;
+using R2Point = typename decltype(R2)::Domain;
 
-// Ambient product set R × R
-inline constexpr auto ℝ2_old = cartesian_product(R, R);
-inline constexpr auto ℝ2_sugar = R * R;
-inline constexpr auto r2 = ℝ2_sugar;
-using R2Point = typename decltype(r2)::Domain;
-inline constexpr auto xy = var<decltype(r2)>;
-
-// Diagonal: { (x, y) ∈ R² | x = y }
-inline constexpr auto diagonal_in_r2 = Set{xy % r2 | [](const R2Point& p) {
-  return p.first.resolve() == p.second.resolve();
+// Diagonal: { (x, y) ∈ ℝ² | x = y }
+constexpr auto diagonal = Set{xy % R2 | [](R2Point p) {
+  return p.first == p.second;
 }};
 
-// Strip: { (x, y) ∈ R² | x > 5 ∧ y < 3 }
-inline constexpr auto gt5_lt3_strip = Set{xy % r2 | [](const R2Point& p) {
-  return (p.first.resolve() > 5.0) && (p.second.resolve() < 3.0);
+// Strip: { (x, y) ∈ ℝ² | x > 5 ∧ y < 3 }
+constexpr auto strip = Set{xy % R2 | [](R2Point p) {
+  return (p.first > 5.0) && (p.second < 3.0);
 }};
 
 // Intersection is empty: no point lies on the diagonal AND in the strip.
-inline constexpr auto empty_diagonal_cut = diagonal_in_r2 & gt5_lt3_strip;
+constexpr auto empty_diagonal_cut = diagonal & strip;
 using R2Logic = typename decltype(empty_diagonal_cut)::logic_species;
 
 // Compile-time witnesses confirming emptiness at two representative points.
-static_assert(empty_diagonal_cut(R2Point{Real<double>{6.0},
-                                         Real<double>{6.0}}) == R2Logic::False);
-static_assert(empty_diagonal_cut(R2Point{Real<double>{2.0},
-                                         Real<double>{2.0}}) == R2Logic::False);
+static_assert(empty_diagonal_cut(R2Point{6.0, 6.0}) == R2Logic::False);
+static_assert(empty_diagonal_cut(R2Point{2.0, 2.0}) == R2Logic::False);
 
 /**
  * @brief Showcase 1: contradiction on the diagonal in R².
@@ -64,6 +57,5 @@ static_assert(empty_diagonal_cut(R2Point{Real<double>{2.0},
  * Expected IR: `ret i1 false`
  */
 extern "C" __attribute__((noinline)) bool impress_empty_diagonal_cut() {
-  return empty_diagonal_cut(R2Point{Real<double>{6.0}, Real<double>{6.0}}) ==
-         R2Logic::True;
+  return empty_diagonal_cut(R2Point{6.0, 6.0}) == R2Logic::True;
 }

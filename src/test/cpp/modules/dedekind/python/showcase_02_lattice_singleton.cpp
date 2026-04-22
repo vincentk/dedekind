@@ -32,10 +32,10 @@ constexpr bool is_integral_coordinate(double x) {
 }
 
 // Symbolic variable ranging over ℂ
-inline constexpr auto c = var<ℂ>;
+constexpr auto c = var<ℂ>;
 
 // Lifted natural-number lattice: Gaussian integers with 0 ≤ Re, Im ≤ 3
-inline constexpr auto natural_lattice_in_c =
+constexpr auto natural_lattice_in_c =
     Set{c % C | [](const Complex<double>& z) {
       return is_integral_coordinate(z.real()) &&
              is_integral_coordinate(z.imag()) && (z.real() >= 0.0) &&
@@ -43,23 +43,23 @@ inline constexpr auto natural_lattice_in_c =
     }};
 
 // Square region [0.5, 1.5] × [0.5, 1.5] inside ℂ
-inline constexpr auto square_c1_c2 = Set{c % C | [](const Complex<double>& z) {
+constexpr auto square_c1_c2 = Set{c % C | [](const Complex<double>& z) {
   return (z.real() >= 0.5) && (z.real() <= 1.5) && (z.imag() >= 0.5) &&
          (z.imag() <= 1.5);
 }};
 
 // Intersection contains exactly c₃ = 1 + i
-inline constexpr auto lattice_square_intersection =
+constexpr auto lattice_square_intersection =
     natural_lattice_in_c & square_c1_c2;
 using CLogic = typename decltype(lattice_square_intersection)::logic_species;
 
 // Representative test points
-inline constexpr Complex<double> c3{1.0, 1.0};  // 1 + i  → in intersection
-inline constexpr Complex<double> c_left{
+constexpr Complex<double> c3{1.0, 1.0};  // 1 + i  → in intersection
+constexpr Complex<double> c_left{
     0.0, 1.0};  // i      → outside square (Re < 0.5)
-inline constexpr Complex<double> c_bottom{
+constexpr Complex<double> c_bottom{
     1.0, 0.0};  // 1      → outside square (Im < 0.5)
-inline constexpr Complex<double> c_diag{2.0, 2.0};  // 2 + 2i → outside square
+constexpr Complex<double> c_diag{2.0, 2.0};  // 2 + 2i → outside square
 
 // Compile-time witnesses.
 static_assert(lattice_square_intersection(c3) == CLogic::True);
