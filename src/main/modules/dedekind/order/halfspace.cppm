@@ -80,7 +80,8 @@ struct Halfspace {
 };
 
 /**
- * @brief Compile-time singleton predicate: `{x : decltype(Value) | x == Value}`.
+ * @brief Compile-time singleton predicate: `{x : decltype(Value) | x ==
+ * Value}`.
  *
  * Emitted when a halfspace meet on a discrete (integral) carrier is reduced
  * by cardinality analysis to exactly one inhabitant. The value lives in the
@@ -97,7 +98,8 @@ struct Singleton {
   using logic_species = L;
   using cardinality_type = Finite;
   using is_extensional_tag = void;
-  using is_static_singleton_tag = void;  // For Set::operator& collapse detection
+  using is_static_singleton_tag =
+      void;  // For Set::operator& collapse detection
 
   static constexpr Domain value = Value;
 
@@ -196,8 +198,8 @@ constexpr auto structured_and(Halfspace<T, Lo, Direction::Upward, SL, L>,
     // Cardinality of {x : T | Lo ⋈ x ⋈ Hi} over integral T.
     constexpr bool lo_open = (SL == Strictness::Strict);
     constexpr bool hi_open = (SU == Strictness::Strict);
-    constexpr T span = Hi - Lo + (lo_open ? T{0} : T{1}) +
-                       (hi_open ? T{-1} : T{0});
+    constexpr T span =
+        Hi - Lo + (lo_open ? T{0} : T{1}) + (hi_open ? T{-1} : T{0});
     if constexpr (span == T{1}) {
       // Unique inhabitant: the smallest x admitted by the lower boundary.
       constexpr T unique = lo_open ? T{Lo + 1} : Lo;

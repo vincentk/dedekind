@@ -34,7 +34,7 @@ constexpr auto n = var<ℕ>;
 
 // Opposing halfspaces with compile-time pivots separated by exactly two.
 constexpr auto gt_three = Set{n % N | (n > bound<3>)};
-constexpr auto lt_five  = Set{n % N | (n < bound<5>)};
+constexpr auto lt_five = Set{n % N | (n < bound<5>)};
 
 // Compile-time theorem: the meet IS the singleton {4} on ℕ.
 constexpr Singleton<4> in_between = gt_three & lt_five;
