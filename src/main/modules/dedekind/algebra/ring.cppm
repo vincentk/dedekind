@@ -77,9 +77,24 @@ export template <typename T, typename Add = std::plus<T>,
 concept IsCommutativeRing =
     IsRing<T, Add, Mult> && dedekind::category::IsCommutative<T, Mult>;
 
-/** @section Atomic_Verification
- * Deferred for experimental reintegration while ring contracts are being
- * retargeted to the active category algebra layer.
- */
+/** @section Formal_Verification */
+
+// unsigned int with wrapping arithmetic is the canonical total commutative ring:
+// IsPeriodic (wraps at 2^N) satisfies IsTotal → IsMagma → IsMonoid → IsGroup.
+static_assert(IsRing<unsigned int>,
+              "unsigned int must satisfy IsRing (wrapping arithmetic).");
+static_assert(IsCommutativeRing<unsigned int>,
+              "unsigned int must satisfy IsCommutativeRing.");
+
+// Modular<N> is the archetypal finite commutative ring Z/NZ.
+static_assert(IsRing<Modular<256>>,
+              "Modular<256> must satisfy IsRing (Z/256Z).");
+static_assert(IsCommutativeRing<Modular<256>>,
+              "Modular<256> must satisfy IsCommutativeRing.");
+
+// bool with OR/AND is an idempotent commutative semiring (the Boolean rig).
+// It is not a Ring: there is no additive inverse for True (True + x != False).
+static_assert(IsRig<bool, std::logical_or<bool>, std::logical_and<bool>>,
+              "bool must satisfy IsRig (Boolean semiring under OR/AND).");
 
 }  // namespace dedekind::algebra

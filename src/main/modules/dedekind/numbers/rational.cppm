@@ -16,6 +16,7 @@
 module;
 #include <compare>
 #include <concepts>
+#include <functional>
 #include <numeric>
 #include <stdexcept>
 #include <utility>
@@ -30,11 +31,13 @@ export module dedekind.numbers:rational;
 
 import dedekind.algebra;
 import dedekind.category;
+import dedekind.order;
 import dedekind.sets;
 import :integer;
 
 namespace dedekind::numbers {
 using namespace dedekind::category;
+using namespace dedekind::order;
 using namespace dedekind::sets;
 
 // Canonical extensional/machine realization for the integer carrier.
@@ -49,54 +52,68 @@ class Rational {
  public:
   using Domain = Z;
 
-  constexpr Rational(Z num, Z den) : num_(num), den_(den) { simplify(); }
+  // Numerator and denominator as a canonical pair (second always positive).
+  // Public to satisfy IsProduct<Rational<Z>, Z, Z> (ℚ ≅ ℤ × ℤ / ~).
+  Z first, second;
+
+  constexpr Rational(Z num, Z den) : first(num), second(den) { simplify(); }
+
+  /** @brief Embedding of an integer as a rational n/1.
+   *  Implicit to allow `(a + b) / Z{2}` in IsDense checks. */
+  constexpr Rational(Z n) : first(n), second(Z{1}) {}  // NOLINT(google-explicit-constructor)
 
   /** @section The_Simplification_Morphism */
   constexpr void simplify() {
-    if (den_ == Z{0}) throw std::domain_error("Rational: Division by zero.");
+    if (second == Z{0}) throw std::domain_error("Rational: Division by zero.");
 
-    Z common = euclidean_gcd(num_, den_);
-    num_ = num_ / common;
-    den_ = den_ / common;
+    Z common = euclidean_gcd(first, second);
+    first = first / common;
+    second = second / common;
 
     // Canonical sign: denominator is always positive
-    if (den_ < Z{0}) {
-      num_ = -num_;
-      den_ = -den_;
+    if (second < Z{0}) {
+      first = -first;
+      second = -second;
     }
   }
 
   /** @section Relational_Morphisms */
 
-  // (a/b) <= (c/d) <=> ad <= cb (assuming positive denominators)
-  friend constexpr bool operator<=(const Rational& a, const Rational& b) {
-    return (a.num_ * b.den_) <= (b.num_ * a.den_);
+  // Three-way comparison: a/b <=> c/d iff a*d <=> c*b (positive denominators).
+  // Providing <=> gives <, <=, >, >= automatically (C++20).
+  friend constexpr std::strong_ordering operator<=>(const Rational& a,
+                                                    const Rational& b) {
+    const auto lhs = a.first * b.second;
+    const auto rhs = b.first * a.second;
+    if (lhs < rhs) return std::strong_ordering::less;
+    if (rhs < lhs) return std::strong_ordering::greater;
+    return std::strong_ordering::equal;
   }
 
   friend constexpr bool operator==(const Rational&, const Rational&) = default;
 
-  constexpr Z num() const { return num_; }
-  constexpr Z den() const { return den_; }
+  constexpr Z num() const { return first; }
+  constexpr Z den() const { return second; }
 
- public:
   /** @section Multiplicative_Inverse: The Reciprocal */
   constexpr Rational inverse() const {
-    if (num_ == Z{0}) {
+    if (first == Z{0}) {
       throw std::domain_error("Rational: Zero has no multiplicative inverse.");
     }
     // To invert (a/b), we return (b/a)
-    return Rational(den_, num_);
+    return Rational(second, first);
   }
 
   /** @section Field_Operators */
 
   // Multiplication: (a/b) * (c/d) = (ac / bd)
   friend constexpr Rational operator*(const Rational& a, const Rational& b) {
-    return Rational(a.num_ * b.num_, a.den_ * b.den_);
+    return Rational(a.first * b.first, a.second * b.second);
   }
 
   friend constexpr Rational operator+(const Rational& a, const Rational& b) {
-    return Rational((a.num_ * b.den_) + (b.num_ * a.den_), a.den_ * b.den_);
+    return Rational((a.first * b.second) + (b.first * a.second),
+                    a.second * b.second);
   }
 
   friend constexpr Rational operator-(const Rational& a, const Rational& b) {
@@ -109,10 +126,7 @@ class Rational {
   }
 
   // Additive Inverse: -(a/b) = (-a/b)
-  constexpr Rational operator-() const { return Rational(-num_, den_); }
-
- private:
-  Z num_, den_;
+  constexpr Rational operator-() const { return Rational(-first, second); }
 };
 
 /** @section Partial_Arithmetic_with_Ternary_Logic */
@@ -254,6 +268,20 @@ inline constexpr bool is_kleene_associative_v<
     dedekind::numbers::Rational<I>,
     dedekind::numbers::PartialEmbedIntegerToRational<I>> = true;
 
+/** @brief Ordering traits: Rational<I> is a total order (ℚ ≤ is a chain). */
+template <dedekind::numbers::IsInteger I>
+inline constexpr bool
+    is_reflexive_v<dedekind::numbers::Rational<I>, std::less_equal<>> = true;
+
+template <dedekind::numbers::IsInteger I>
+inline constexpr bool
+    is_transitive_v<dedekind::numbers::Rational<I>, std::less_equal<>> = true;
+
+template <dedekind::numbers::IsInteger I>
+inline constexpr bool
+    is_antisymmetric_v<dedekind::numbers::Rational<I>, std::less_equal<>> =
+        true;
+
 }  // namespace dedekind::category
 
 namespace dedekind::numbers {
@@ -377,5 +405,19 @@ using RationalPolynomial = dedekind::algebra::RigPolynomial<Rational<I>>;
 
 static_assert(dedekind::algebra::IsFieldLikeScalar<Rational<default_integer>>,
               "RationalPolynomial coefficient type must be field-like.");
+
+// Ordering and density proofs for ℚ.
+static_assert(IsTotallyOrdered<Rational<default_integer>>,
+              "Rational<Z> must satisfy IsTotallyOrdered (ℚ is a total "
+              "order).");
+static_assert(IsDense<Rational<default_integer>>,
+              "Rational<Z> must satisfy IsDense (ℚ is dense in itself: "
+              "between any two rationals lies another).");
+
+// Structural product proof: ℚ is constructed as pairs (num, den) from ℤ × ℤ.
+static_assert(
+    dedekind::category::IsProduct<Rational<default_integer>, default_integer,
+                                  default_integer>,
+    "Rational<Z> must satisfy IsProduct<Rational<Z>, Z, Z> (ℚ ≅ ℤ × ℤ / ~).");
 
 }  // namespace dedekind::numbers
