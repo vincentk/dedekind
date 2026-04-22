@@ -366,6 +366,24 @@ constexpr auto classify(F&& f) {
 }
 
 /**
+ * @brief Domain-inferring classify: deduces A from the callable's signature.
+ *
+ * Allows classify(f) when f is a lambda with a strongly-typed operator(),
+ * e.g. [](const Complex<R>& x) -> bool { ... }.  The domain A is extracted
+ * via arrow's signature_extractor, so no explicit template argument is needed.
+ */
+export template <typename F>
+  requires(!IsArrow<std::remove_cvref_t<F>>) &&
+          requires { typename signature_extractor<std::decay_t<F>>::type; } &&
+          LogicalValue<codomain_t<std::decay_t<F>>>
+constexpr auto classify(F&& f) {
+  using Fn = std::decay_t<F>;
+  using A = domain_t<Fn>;
+  auto rule = arrow<A>(std::forward<F>(f));
+  return Subobject<A, decltype(rule)>{std::move(rule)};
+}
+
+/**
  * @brief Idempotent classify: Passthrough for existing Arrows.
  */
 export template <typename A, IsArrow F>
