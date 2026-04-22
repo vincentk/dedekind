@@ -1376,7 +1376,7 @@ An axiom-level claim is considered \emph{implemented} only when all three artifa
   \item an issue-linked documentation statement that records scope and residual limits.
 \end{enumerate}
 If any of the three artifacts is missing, the claim remains \emph{partial} (or \emph{deferred}).
-This contract keeps terminology aligned between implementation, tests, and manuscript language while Axiom 7/Axiom 10 work is still in flight.
+This contract keeps terminology aligned between implementation, tests, and manuscript language. The closure contract is reviewed and updated with each axiom-facing PR.
 
 \begin{table}[ht]
 \centering
@@ -1502,7 +1502,7 @@ Second, \texttt{std::predicate} is inherently Boolean; the library intentionally
 \section{Results}
 \label{sec:category-results}
 
-The \texttt{dedekind.category} module is verified in the CI pipeline through the \texttt{category\_test} and \texttt{kleisli\_test} suites. Key verified properties are summarised in Table~\ref{table:dedekind_floor} (primary formal correspondences), Table~\ref{tab:feature_cube_final} (Feature Cube of algebraic species), and Table~\ref{tab:algebraic_hierarchy} (algebraic hierarchy). The module dependency graph is shown in Figure~\ref{category_partitions_dependencies}. All 15 partitions compile and link without errors, and coverage for the module is at or above the project baseline.
+The \texttt{dedekind.category} module is verified in the CI pipeline through the \texttt{category\_test} and \texttt{kleisli\_test} suites. Key verified properties are summarised in Table~\ref{table:dedekind_floor} (primary formal correspondences), Table~\ref{tab:feature_cube_final} (Feature Cube of algebraic species), and Table~\ref{tab:algebraic_hierarchy} (algebraic hierarchy). The module dependency graph is shown in Figure~\ref{category_partitions_dependencies}. All 20 partitions compile and link without errors, and coverage for the module is at or above the project baseline.
 
 
 \chapter{\texttt{dedekind.sets}}
@@ -1605,7 +1605,79 @@ The \texttt{:singleton} partition reifies one-element sets as first-class object
 
 Because singleton construction is trivial but semantically central, this partition acts as a low-risk anchor for onboarding examples and for validating element-membership notation against the broader intensional framework.
 
+\subsection{The \texttt{:cardinality} partition}
+\label{sec:sets-cardinality}
 
+The \texttt{:cardinality} partition provides the concrete cardinality hierarchy and the machine-total finite cardinal carrier, placed in the \texttt{sets} layer so that downstream modules (\texttt{algebra}, \texttt{numbers}) can depend on it without circular imports.
+
+\paragraph{The cardinality ladder.}
+Three type-level sentinels mark the principal cardinality levels:
+\begin{itemize}
+  \item \texttt{Finite} --- hardware-bound magnitude; \texttt{is\_finite = true}, \texttt{is\_countable = true}.
+  \item $\aleph\texttt{<N>}$ --- the transfinite ladder; $\aleph_0$ (\texttt{N=0}) is countably infinite, $\aleph_k$ for \texttt{k > 0} is the $k$-th uncountable level.
+  \item $\aleph_0 = \aleph\texttt{<0>}$ and $\beth_1 = \aleph\texttt{<1>}$ are provided as named aliases (the continuum, assuming GCH).
+\end{itemize}
+These are concepts in the duck-typing sense: downstream code checks structural members (\texttt{is\_finite}, \texttt{is\_countable}) via the \texttt{IsCardinality}, \texttt{IsCountable}, and \texttt{IsFiniteMagnitude} concepts defined in \texttt{dedekind.sets:mereology}.
+
+\paragraph{The extensional cardinal carrier.}
+\texttt{ExtensionalCardinal<N>} is a machine-total, fixed-precision integer stored in \texttt{N} \texttt{size\_t} limbs in little-endian order. It wraps on overflow (two's-complement) and carries checked arithmetic helpers that return a result together with an overflow flag:
+
+\begin{lstlisting}[language=C++, caption={Cardinality: overflow-aware addition (from \texttt{cardinality\_test.cpp}).}, label={lst:cardinality-overflow}]
+using C1 = ExtensionalCardinal<1>;
+const C1 max = std::numeric_limits<std::size_t>::max();
+const auto res = C1::checked_add(max, C1{1});
+REQUIRE(res.overflowed == true);   // wraps to zero
+REQUIRE(res.value == C1{0});
+\end{lstlisting}
+
+\paragraph{The \texttt{Cardinality} sum type and overflow policy.}
+\texttt{Cardinality = std::variant<ExtensionalCardinal<>, $\aleph_0$>} is the user-facing cardinality value. Overflow promotion is explicit:
+\texttt{add\_or\_}$\aleph_0$ and \texttt{mul\_or\_}$\aleph_0$ return a \texttt{variant} that holds $\aleph_0\{\}$ whenever the checked arithmetic overflows, making the transition from finite to transfinite arithmetic a type-visible event rather than silent wraparound.
+
+Utility functions \texttt{add}, \texttt{mul}, \texttt{compare}, and \texttt{realize\_to\_size\_t} operate on the full \texttt{Cardinality} type.
+The ring, natural, and total-order proofs for \texttt{ExtensionalCardinal<>} are co-located in the same partition as static assertions, so compilation failure is the earliest possible signal of a regression.
+
+\subsection{The \texttt{:relational} partition}
+\label{sec:sets-relational}
+
+The \texttt{:relational} partition lifts Codd's five primitive relational-algebra operators into the intensional set model. All five are expressed as predicate combinators; no elements are stored or enumerated:
+
+\begin{table}[ht]
+\centering
+\caption{Relational algebra primitives in \texttt{dedekind.sets:relational}.}
+\label{table:relational}
+\begin{tabular}{lll}
+\toprule
+\textbf{Operator} & \textbf{Symbol} & \textbf{Function} \\
+\midrule
+Selection & $\sigma$ & \texttt{select(S, pred)} \\
+Union & $\cup$ & \texttt{set\_union(A, B)} \\
+Difference & $\setminus$ & \texttt{set\_difference(A, B)} \\
+Intersection & $\cap$ & \texttt{set\_intersection(A, B)} (derived) \\
+Natural join & $\bowtie$ & \texttt{natural\_join(R, S)} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Cross-product ($\times$) is already provided by \texttt{:expressions} as \texttt{cartesian\_product}.
+Projection ($\pi$) requires existential quantification over an infinite domain and is intentionally deferred. Rename ($\rho$) reduces to a type alias in C++.
+
+\subsection{The \texttt{:family} partition}
+\label{sec:sets-family}
+
+A \emph{family} is a ``set of sets'': a collection of subsets of a common ambient species $A$, organized as a bounded lattice with the empty set as bottom and the universal set as top. The \texttt{:family} partition provides this higher-order layer for assembling atlases, covers, and topological systems from individually certified set objects.
+
+\subsection{The \texttt{:interop} partition}
+\label{sec:sets-interop}
+
+The \texttt{:interop} partition bridges the intensional \texttt{dedekind.sets} model with standard-library hash-based containers. \texttt{FiniteExtensionalSet<T>} is a thin wrapper over \texttt{std::unordered\_set<T>} that satisfies the \texttt{IsSet} concept: it carries a characteristic morphism $\chi : T \to \Omega$, reports \texttt{cardinality\_type = Finite}, and exposes standard begin/end iteration.
+
+Two symmetric conversion functions handle the boundary crossing:
+\begin{itemize}
+  \item \texttt{from\_std(std::set<T>)} and \texttt{from\_std(std::unordered\_set<T>)} --- materialise a standard container into a \texttt{FiniteExtensionalSet<T>}.
+  \item \texttt{to\_std<StdSetLike>(ext\_set)} --- project back into any \texttt{StdSetLike} target whose \texttt{value\_type} matches.
+\end{itemize}
+Conversions that would silently discard structural information (e.g.\ non-default comparators) are blocked at compile time via \texttt{static\_assert}, keeping the interop surface explicit and auditable.
 
 \subsection{The \texttt{:set} partition}
 To ground this theoretical approach, Table 1 maps the fundamental axioms of the Elementary Theory of the Category of Sets (ETCS) -- as codified in the pedagogical treatment by Lawvere and Rosebrugh \cite{lawvere2003sets} -- to their structural equivalents in \texttt{dedekind}.
@@ -1750,7 +1822,7 @@ The programmer is free to reason in the language of Cantor, while the compiler p
 \section{Results}
 \label{sec:sets-results}
 
-The \texttt{dedekind.sets} module is verified through the \texttt{sets\_test} and \texttt{category\_integration\_test} suites. Table~\ref{table:etcs_complete} maps the 10 ETCS axioms to their C++23 structural invariants. The module currently implements 8 of the 10 Lawvere axioms; Axioms 7 (unique factorisation through pullbacks) and 10 (well-pointedness) are deferred to future work as they require higher-order categorical machinery not yet integrated into the library.
+The \texttt{dedekind.sets} module is verified through the \texttt{sets\_test} and \texttt{etcs\_axioms\_test} suites. Table~\ref{table:etcs_complete} maps the 10 ETCS axioms to their C++23 structural invariants and Table~\ref{table:etcs-closure-contract} records the current closure-contract status. Axioms A1--A6, A8, and A9 are fully implemented (named surfaces and executable tests). Axiom~7 (subobject classifier, pullback stability, and naturality) and Axiom~10 (choice / split epimorphisms) are at \emph{Partial} status: law-level surfaces exist and are test-validated, while full naturality closure and full choice semantics are tracked as future work in Issues~\#351 and~\#352 respectively.
 
 \subsection*{Mandelbrot: Mathematical Target Form for Set-Builder Stress}
 
@@ -2676,12 +2748,14 @@ REQUIRE(identity.num() == 1);
 \section{\texttt{:cardinality}}
 \label{sec:numbers-cardinality}
 
-\texttt{ExtensionalCardinal<N>} provides an explicit finite extensional
-cardinality carrier with checked arithmetic and an overflow policy that lifts
-to \texttt{Aleph0} at the variant layer. The partition now carries its own
-compile-time lock-in proofs for ring, natural, and order semantics directly in
-module source (rather than mirroring those as duplicate test-only static
-assertions), tightening compile-time validation feedback.
+This partition re-exports \texttt{dedekind.sets} and adds the two proofs that
+require the \texttt{numbers} and \texttt{order} layers:
+\texttt{IsNatural<ExtensionalCardinal<>>} and
+\texttt{IsTotallyOrdered<ExtensionalCardinal<>>}.
+The concrete cardinality types themselves---\texttt{Finite}, $\aleph\texttt{<N>}$,
+$\aleph_0$, $\beth_1$, \texttt{ExtensionalCardinal<N>}, and the
+\texttt{Cardinality} sum type---are defined one layer below in
+\texttt{dedekind.sets:cardinality} (see Section~\ref{sec:sets-cardinality}).
 
 \section{\texttt{:complex}}
 \label{sec:numbers-complex}
