@@ -407,8 +407,8 @@ constexpr auto exists(const Path<T, Cardinality>& path, Pred&& pred) {
 export template <typename T, typename F>
   requires std::copy_constructible<std::decay_t<F>> &&
            std::invocable<const std::decay_t<F>&, const FinitePath<T>&>
-constexpr auto scan(F&& f, const Path<T>& path)
-    -> Path<std::invoke_result_t<const std::decay_t<F>&, const FinitePath<T>&>> {
+constexpr auto scan(F&& f, const Path<T>& path) -> Path<
+    std::invoke_result_t<const std::decay_t<F>&, const FinitePath<T>&>> {
   using Fn = std::decay_t<F>;
   using U = std::invoke_result_t<const Fn&, const FinitePath<T>&>;
   return Path<U>{[f = Fn(std::forward<F>(f)), path](std::size_t i) {
