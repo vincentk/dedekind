@@ -249,6 +249,18 @@ namespace dedekind::algebra {
 /**
  * @section Formal_Verification
  *
+ * @note Algebraic inheritance: RigPolynomial<R> inherits the algebraic
+ * structure of its coefficient type R:
+ *
+ *  - R is a Monoid  ⟹  Poly<R> is a Monoid  (under Cauchy product + addition)
+ *  - R is a Ring    ⟹  Poly<R> is a Ring     (subtraction lifts when R has additive inverses)
+ *  - R is a Field   ⟹  Poly<R> is a Euclidean Domain (NOT a Field: X has no inverse)
+ *
+ * The last point is classical: K[x] over a field K is a principal ideal domain
+ * with Euclidean function deg(f), but it is not a field because the indeterminate
+ * x is not invertible. Polynomial division (with remainder) gives K[x] the
+ * IsEuclidean structure (deg(f) < deg(g) after remainder), enabling GCD.
+ *
  * @note The stronger categorical proofs IsSemiring<Poly<uint>> and
  * IsRing<Poly<int>> are architecturally blocked: those concepts require
  * IsMonoid which requires IsTotal (IsPeriodic || IsIdempotent). Polynomial
