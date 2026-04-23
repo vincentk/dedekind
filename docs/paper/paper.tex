@@ -156,9 +156,19 @@ notebook, and progressively lifting the underlying abstractions to show how rece
 systems language.  We identify \emph{Axiomatic Systems Programming} as a nascent paradigm in which
 the compiler---explicitly \emph{not} a theorem prover, but a structural gate---rules
 out whole classes of algebraic-law violations at translation time and enables whole
-classes of structural optimizations that exploit the ruled-out failure modes; we
-leave a precise gap for a cardinality-driven no-op intersection theorem that we
-conjecture is achievable within the existing type machinery.
+classes of structural optimizations that exploit the ruled-out failure modes.
+As the centrepiece existential proof, we show that a textbook linear-programming
+instance reduces at compile time to its optimal vertex as a typed constant---the
+six candidate solves, six feasibility checks, and six objective comparisons all
+vanish in the emitted IR, which contains only the literal return of the
+optimum's coordinates. Running the same reduction over the dual-number ring
+$\mathbb{Q}[\varepsilon]/(\varepsilon^2)$ additionally recovers exact sensitivity
+analysis with no separate derivative pass, recognising forward-mode automatic
+differentiation as a sibling compile-time reduction in the sense of
+Elliott~\cite{elliott2018simple}. Both reductions share a single mechanism:
+the feasible polytope is a set-as-predicate, finite vertex candidates enumerate
+as pairs of binding constraints, and objective-directed argmax collapses the
+candidate set to a singleton.
 \end{abstract}
 
 \tableofcontents
@@ -808,6 +818,145 @@ integer lattice intersected with real-valued bounds (showcase~7), and
 2D rectangles via structural cartesian product (showcase~8: $42 \times 11 =
 462$). All are IR-verified.
 
+\subsection{Linear Programming: The Optimum as a Typed Constant}
+\label{sec:lp-centrepiece}
+
+Set-comprehension pruning reduces a compound set \emph{to} a simpler set;
+the same compile-time machinery, applied under an ordering, reduces a
+set \emph{to a singleton}. The canonical instance is linear programming:
+the polytope is an intersection of halfspace predicates (already a set in
+the comprehension view); the objective is a linear functional; the
+optimum is the vertex that maximises the objective over the feasible
+region. When the problem instance is named at the type level, the
+optimum becomes a typed constant at translation time---the solver is the
+compiler.
+
+\paragraph{Showcase~9 (centrepiece).} Consider a textbook LP:
+\begin{align*}
+  \text{maximise} \quad & 3x + 2y \\
+  \text{subject to} \quad & x + y \leq 4 \\
+                          & 2x + y \leq 6 \\
+                          & x, y \geq 0
+\end{align*}
+The feasible region is a polygon in $\mathbb{Q}^2$; the optimum is the
+vertex $(2, 2)$ where the non-axis-aligned constraints $x + y = 4$ and
+$2x + y = 6$ are simultaneously binding (objective value $10$). In
+\texttt{dedekind.optimization:lp}, constraints are NTTPs and the
+reduction is a variadic template whose output carries the vertex at the
+type level:
+
+\begin{lstlisting}[language=C++, caption={Compile-time LP: the optimum IS a type. From \texttt{showcase\_09\_lp\_vertex\_typed\_constant.cpp}.}, label={lst:lp-centrepiece}]
+using Rat = Rational<long>;
+using H1 = Halfspace2D<Rat, Rat{1L}, Rat{1L}, Rat{4L}>;    //  x +  y <= 4
+using H2 = Halfspace2D<Rat, Rat{2L}, Rat{1L}, Rat{6L}>;    // 2x +  y <= 6
+using H3 = Halfspace2D<Rat, Rat{-1L}, Rat{0L}, Rat{0L}>;   //  x      >= 0
+using H4 = Halfspace2D<Rat, Rat{0L}, Rat{-1L}, Rat{0L}>;   //       y >= 0
+
+using Optimum = decltype(maximize<Rat, Rat{3L}, Rat{2L}, H1, H2, H3, H4>());
+static_assert(std::same_as<Optimum, Vec2<Rat, Rat{2L}, Rat{2L}>>);
+\end{lstlisting}
+
+The reduction enumerates vertex candidates at compile time (all
+$\binom{4}{2} = 6$ pairs of binding constraints), solves each $2 \times 2$
+active-set system via \texttt{Invertible2x2}'s closed-form Cramer
+inverse (exact over $\mathbb{Q}$), filters by feasibility against the
+non-active constraints, and picks the objective-maximising feasible
+vertex. Every step is a template specialisation; no runtime iteration
+survives.
+
+\paragraph{IR witness.} The paper's claim is not prose; it is
+translation-time mechanics. Two \texttt{extern "C"} functions in the
+fixture return the numerator of the optimum's $x$- and $y$-coordinates.
+At \texttt{-O2}, \texttt{clang}'s optimiser folds the entire LP
+reduction to literal integers:
+
+\begin{lstlisting}[caption={Emitted LLVM IR for Showcase~9. The six candidate solves, six feasibility checks, and six objective comparisons collapse to constant returns.}, label={lst:lp-ir}]
+define noundef i64 @impress_lp_optimum_x() ... {
+  ret i64 2
+}
+
+define noundef i64 @impress_lp_optimum_y() ... {
+  ret i64 2
+}
+\end{lstlisting}
+
+The IR is checked into the repository as a fixture
+(\texttt{showcase\_09\_lp\_vertex\_typed\_constant.ll}); a build-time
+gate (\texttt{make ir-fixture-check}) fails CI if optimiser drift ever
+loses the collapse. The binary contains no LP solver; no simplex
+tableau; no active-set machinery. The vertex \emph{is} a type, and
+returning its coordinate \emph{is} a literal.
+
+This closes one of the type-directed-collapse axes listed in
+Section~\ref{sec:gap} (issue~\#364) in a worked form: the LP solver is
+the C++ compiler, for every instance whose size and coefficients are
+compile-time data.
+
+\subsection{Forward-Mode AD as a Sibling Realisation of Compile-Time Derivatives}
+\label{sec:ad-elliott}
+
+Running the same LP reduction over the \emph{dual numbers}
+$\mathbb{Q}[\varepsilon]/(\varepsilon^2)$ instead of $\mathbb{Q}$
+produces the optimum and its sensitivity to a perturbed parameter as
+one typed constant---no separate derivative pass, no re-solve of the
+LP, no finite-difference approximation. The chain rule has already run
+as the ring arithmetic during the Cramer solve.
+
+We follow Elliott's framing~\cite{elliott2018simple}: forward-mode
+automatic differentiation is the product $(f, f')$ with chain-rule
+composition, not the ``dual number'' object \emph{per se}. Dual numbers
+are one realisation of the $(\text{value}, \text{tangent})$ product in
+which $\varepsilon^2 = 0$ makes the chain rule a theorem of the ring
+structure. The \texttt{dedekind} library already ships two other
+realisations of the same abstract derivative:
+\texttt{dedekind.analysis:ftc::derivative\_at} (numerical central
+difference) and
+\texttt{dedekind.algebra:polynomial::RigPolynomial::derive} (exact
+formal polynomial derivative). \texttt{Dual<F>} is the representation
+that lives at the type level: its primal and tangent are structural
+fields, so \texttt{Dual<Rational<long>>} can appear as \texttt{T} in
+any NTTP-parameterised carrier, including the LP's
+\texttt{Halfspace2D<T, a, b, c>}.
+
+\paragraph{Showcase: parametric LP sensitivity.} Perturb $H_1$'s bound
+by $\varepsilon$---replace $x + y \leq 4$ with $x + y \leq 4 +
+\varepsilon$. The active set at the optimum is unchanged for
+infinitesimal perturbation; the Cramer solve now runs over dual
+numbers:
+
+\begin{lstlisting}[language=C++, caption={Parametric LP over \texttt{Dual<Rat>}: optimum + sensitivity as one typed constant. From \texttt{lp\_test.cpp}.}, label={lst:lp-dual}]
+using D = Dual<Rat>;
+using H1P = Halfspace2D<D, D{Rat{1L}}, D{Rat{1L}},
+                        D{Rat{4L}, Rat{1L}}>;  // bound = 4 + epsilon
+using H2D = Halfspace2D<D, D{Rat{2L}}, D{Rat{1L}}, D{Rat{6L}}>;
+using H3D = Halfspace2D<D, D{Rat{-1L}}, D{Rat{0L}}, D{Rat{0L}}>;
+using H4D = Halfspace2D<D, D{Rat{0L}}, D{Rat{-1L}}, D{Rat{0L}}>;
+
+constexpr auto v = maximize_value<D, D{Rat{3L}}, D{Rat{2L}},
+                                  H1P, H2D, H3D, H4D>();
+static_assert(v.x.val == Rat{2L}  && v.x.der == Rat{-1L});
+static_assert(v.y.val == Rat{2L}  && v.y.der == Rat{2L});
+\end{lstlisting}
+
+The primal is the original optimum $(2, 2)$; the tangents $(-1, +2)$
+are the partial derivatives of $x^*$ and $y^*$ with respect to the
+perturbation parameter. A hand derivation confirms: with the active set
+$\{x + y = 4 + t, \; 2x + y = 6\}$, the solution is
+$x^*(t) = 2 - t$, $y^*(t) = 2 + 2t$, so the sensitivities are $-1$ and
+$+2$. The point of this showcase is not the hand derivation---it is
+that the library's LP reduction, written once over an unconstrained
+ring-like carrier, yields exact sensitivity analysis when instantiated
+over the right ring.
+
+The same $\mathtt{Dual}\circ\mathtt{Rational}$ layering composes further.
+Over \texttt{Dual<Complex<Rational<long>>>}, the reduction would
+compute optima and sensitivities over the Gaussian rationals
+$\mathbb{Q}(i)$; the ring tower is closed under these layerings by
+construction (every intermediate carrier satisfies the
+\texttt{IsRingLike} concept documented in the companion report).
+Holomorphic automatic differentiation at compile time is a direct
+consequence; we leave its application to a follow-up work.
+
 \subsection{Algebraic Properties Enable Stronger Pruning}
 
 Beyond interval arithmetic, \emph{algebraic} properties of the predicates provide
@@ -868,10 +1017,12 @@ completed general framework.
     $\{x \mid \nabla f(x) = 0\}$ for a quadratic $f$ collapses to a
     \lstinline{Singleton<x*>} with the minimizer in the template parameter.
     Same reduction pattern, applied at the extremum operator.
-  \item \textbf{Linear programming} (issue~\#364).
+  \item \textbf{Linear programming} (issue~\#364, demonstrated in
+    Section~\ref{sec:lp-centrepiece} and Section~\ref{sec:ad-elliott}).
     \lstinline{maximize(c, polytope)} reduces, for compile-time-sized LPs, to
-    a \lstinline{Singleton<vertex>} via type-level vertex enumeration: the
-    solver is the compiler.
+    a typed vertex via type-level active-set enumeration, and the same
+    reduction over a dual-number carrier yields sensitivity analysis
+    with no extra code path: the solver is the compiler.
   \item \textbf{Lattice-law rewriting} (issue~\#365). Distributivity and
     absorption applied at the type level rewrite
     $(A \cup B) \cap \lnot A$ to $B \cap \lnot A$ \emph{before} local
