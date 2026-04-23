@@ -93,15 +93,13 @@ TEST_CASE(
   constexpr DirectSum<decltype(block_M), decltype(block_rot)> ds{};
   constexpr auto ds_inv = ds.inverse();
 
-  using IdentityDirectSum =
-      DirectSum<Identity2x2<Rat>, Identity2x2<Rat>>;
+  using IdentityDirectSum = DirectSum<Identity2x2<Rat>, Identity2x2<Rat>>;
   STATIC_CHECK(ds * ds_inv == IdentityDirectSum{});
   STATIC_CHECK(ds_inv * ds == IdentityDirectSum{});
 }
 
-TEST_CASE(
-    "linear_algebra:invertible2x2 — Tier 1: DirectSum composes blockwise",
-    "[linear_algebra][invertible2x2][direct_sum]") {
+TEST_CASE("linear_algebra:invertible2x2 — Tier 1: DirectSum composes blockwise",
+          "[linear_algebra][invertible2x2][direct_sum]") {
   // `(A ⊕ B) · (A' ⊕ B') = (A·A') ⊕ (B·B')`.
   constexpr Invertible2x2<int, 1, 1, 0, 1> A{};
   constexpr Invertible2x2<int, 1, 0, 1, 1> B{};
