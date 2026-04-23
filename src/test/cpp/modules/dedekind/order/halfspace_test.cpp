@@ -67,29 +67,33 @@ TEST_CASE("order:halfspace — Variable DSL constructs Halfspace from bound<V>",
   SECTION("> constructs Upward/Strict") {
     constexpr auto h = n > bound<7>;
     using H = std::decay_t<decltype(h)>;
-    STATIC_CHECK(std::same_as<H, Halfspace<int, 7, Direction::Upward,
-                                            Strictness::Strict>>);
+    STATIC_CHECK(
+        std::same_as<H,
+                     Halfspace<int, 7, Direction::Upward, Strictness::Strict>>);
   }
 
   SECTION(">= constructs Upward/NonStrict") {
     constexpr auto h = n >= bound<7>;
     using H = std::decay_t<decltype(h)>;
-    STATIC_CHECK(std::same_as<H, Halfspace<int, 7, Direction::Upward,
-                                            Strictness::NonStrict>>);
+    STATIC_CHECK(
+        std::same_as<
+            H, Halfspace<int, 7, Direction::Upward, Strictness::NonStrict>>);
   }
 
   SECTION("< constructs Downward/Strict") {
     constexpr auto h = n < bound<7>;
     using H = std::decay_t<decltype(h)>;
-    STATIC_CHECK(std::same_as<H, Halfspace<int, 7, Direction::Downward,
-                                            Strictness::Strict>>);
+    STATIC_CHECK(
+        std::same_as<
+            H, Halfspace<int, 7, Direction::Downward, Strictness::Strict>>);
   }
 
   SECTION("<= constructs Downward/NonStrict") {
     constexpr auto h = n <= bound<7>;
     using H = std::decay_t<decltype(h)>;
-    STATIC_CHECK(std::same_as<H, Halfspace<int, 7, Direction::Downward,
-                                            Strictness::NonStrict>>);
+    STATIC_CHECK(
+        std::same_as<
+            H, Halfspace<int, 7, Direction::Downward, Strictness::NonStrict>>);
   }
 }
 
@@ -145,27 +149,27 @@ TEST_CASE("order:halfspace — structured_and on same-direction halfspaces",
     constexpr Halfspace<int, 5, Direction::Upward, Strictness::Strict> a{};
     constexpr Halfspace<int, 7, Direction::Upward, Strictness::Strict> b{};
     using Result = std::decay_t<decltype(structured_and(a, b))>;
-    STATIC_CHECK(std::same_as<Result,
-                              Halfspace<int, 7, Direction::Upward,
-                                        Strictness::Strict, ClassicalLogic>>);
+    STATIC_CHECK(
+        std::same_as<Result, Halfspace<int, 7, Direction::Upward,
+                                       Strictness::Strict, ClassicalLogic>>);
   }
 
   SECTION("Upward same pivot, mixed strictness: stricter wins") {
     constexpr Halfspace<int, 5, Direction::Upward, Strictness::Strict> a{};
     constexpr Halfspace<int, 5, Direction::Upward, Strictness::NonStrict> b{};
     using Result = std::decay_t<decltype(structured_and(a, b))>;
-    STATIC_CHECK(std::same_as<Result,
-                              Halfspace<int, 5, Direction::Upward,
-                                        Strictness::Strict, ClassicalLogic>>);
+    STATIC_CHECK(
+        std::same_as<Result, Halfspace<int, 5, Direction::Upward,
+                                       Strictness::Strict, ClassicalLogic>>);
   }
 
   SECTION("Downward ∩ Downward: smaller pivot wins (stricter)") {
     constexpr Halfspace<int, 5, Direction::Downward, Strictness::Strict> a{};
     constexpr Halfspace<int, 3, Direction::Downward, Strictness::Strict> b{};
     using Result = std::decay_t<decltype(structured_and(a, b))>;
-    STATIC_CHECK(std::same_as<Result,
-                              Halfspace<int, 3, Direction::Downward,
-                                        Strictness::Strict, ClassicalLogic>>);
+    STATIC_CHECK(
+        std::same_as<Result, Halfspace<int, 3, Direction::Downward,
+                                       Strictness::Strict, ClassicalLogic>>);
   }
 }
 
@@ -219,15 +223,17 @@ TEST_CASE("order:halfspace — OrderInterval size across strictness pairs",
 
     STATIC_CHECK(iv(1) == Logic::False);  // strict lower: 1 excluded
     STATIC_CHECK(iv(2) == Logic::True);
-    STATIC_CHECK(iv(4) == Logic::True);   // non-strict upper: 4 included
+    STATIC_CHECK(iv(4) == Logic::True);  // non-strict upper: 4 included
     STATIC_CHECK(iv(5) == Logic::False);
   }
 }
 
 TEST_CASE("order:halfspace — IntervalProduct preserves cardinality",
           "[order][halfspace][product]") {
-  constexpr OrderInterval<int, 0, 5, Strictness::Strict, Strictness::Strict> a{};
-  constexpr OrderInterval<int, 0, 3, Strictness::Strict, Strictness::Strict> b{};
+  constexpr OrderInterval<int, 0, 5, Strictness::Strict, Strictness::Strict>
+      a{};
+  constexpr OrderInterval<int, 0, 3, Strictness::Strict, Strictness::Strict>
+      b{};
   // a = {1,2,3,4} (size 4), b = {1,2} (size 2)
   constexpr auto box = a * b;
 

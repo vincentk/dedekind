@@ -47,8 +47,7 @@ TEST_CASE("sets:computability — IsFiniteSet", "[sets][computability]") {
   }
 
   SECTION("Integer OrderInterval is finite with correct size") {
-    constexpr OrderInterval<int, 1, 10, Strictness::Strict,
-                            Strictness::Strict>
+    constexpr OrderInterval<int, 1, 10, Strictness::Strict, Strictness::Strict>
         iv{};
     STATIC_CHECK(IsFiniteSet<decltype(iv)>);
     STATIC_CHECK(iv.size() == 8u);  // {2,3,4,5,6,7,8,9}
@@ -71,8 +70,7 @@ TEST_CASE("sets:computability — IsCompileTimeEnumerable",
   SECTION("OrderInterval is finite but NOT compile-time-enumerable") {
     // The 8 inhabitants are not individually present in the type; the
     // interval is observable as a whole but not element-by-element.
-    constexpr OrderInterval<int, 1, 10, Strictness::Strict,
-                            Strictness::Strict>
+    constexpr OrderInterval<int, 1, 10, Strictness::Strict, Strictness::Strict>
         iv{};
     STATIC_CHECK(IsFiniteSet<decltype(iv)>);
     STATIC_CHECK_FALSE(IsCompileTimeEnumerable<decltype(iv)>);
