@@ -228,6 +228,65 @@ TEST_CASE("order:halfspace — OrderInterval size across strictness pairs",
   }
 }
 
+TEST_CASE("order:halfspace — Singleton satisfies all three computability tiers",
+          "[order][halfspace][singleton][computability]") {
+  // Sets-level concepts from dedekind.sets:computability, instantiated on
+  // order-level types. The sets test target cannot import dedekind.order,
+  // so these downstream conformance checks live here.
+  STATIC_CHECK(HasDecidableMembership<Singleton<42>>);
+  STATIC_CHECK(IsFiniteSet<Singleton<42>>);
+  STATIC_CHECK(IsCompileTimeEnumerable<Singleton<42>>);
+
+  SECTION("TernaryLogic variant: finite + compile-time-enumerable but not decidable") {
+    STATIC_CHECK_FALSE(HasDecidableMembership<Singleton<42, TernaryLogic>>);
+    STATIC_CHECK(IsFiniteSet<Singleton<42, TernaryLogic>>);
+    STATIC_CHECK(IsCompileTimeEnumerable<Singleton<42, TernaryLogic>>);
+  }
+}
+
+TEST_CASE("order:halfspace — OrderInterval on ℤ is finite but not enumerable",
+          "[order][halfspace][order_interval][computability]") {
+  constexpr OrderInterval<int, 1, 10, Strictness::Strict, Strictness::Strict>
+      iv{};
+
+  STATIC_CHECK(HasDecidableMembership<decltype(iv)>);
+  STATIC_CHECK(IsFiniteSet<decltype(iv)>);
+  // The 8 inhabitants live at the value level, not in the type.
+  STATIC_CHECK_FALSE(IsCompileTimeEnumerable<decltype(iv)>);
+  STATIC_CHECK(iv.size() == 8u);
+}
+
+TEST_CASE("order:halfspace — reduction boundary tightens all three tiers",
+          "[order][halfspace][computability][reduction]") {
+  // Mirrored from analysis/pruning_showcases_test.cpp at the unit level:
+  // the reduction boundary IS the computability boundary.
+  constexpr auto n = var<ℕ>;
+
+  SECTION("Empty-meet reduction") {
+    constexpr auto gt5 = Set{n % N | (n > bound<5>)};
+    constexpr auto lt3 = Set{n % N | (n < bound<3>)};
+    constexpr Ø<int> meet = gt5 & lt3;
+
+    STATIC_CHECK_FALSE(HasDecidableMembership<decltype(gt5)>);
+    STATIC_CHECK_FALSE(IsFiniteSet<decltype(gt5)>);
+    STATIC_CHECK_FALSE(IsCompileTimeEnumerable<decltype(gt5)>);
+
+    STATIC_CHECK(HasDecidableMembership<decltype(meet)>);
+    STATIC_CHECK(IsFiniteSet<decltype(meet)>);
+    STATIC_CHECK(IsCompileTimeEnumerable<decltype(meet)>);
+  }
+
+  SECTION("Singleton reduction") {
+    constexpr auto gt3 = Set{n % N | (n > bound<3>)};
+    constexpr auto lt5 = Set{n % N | (n < bound<5>)};
+    constexpr Singleton<4> s = gt3 & lt5;
+
+    STATIC_CHECK_FALSE(HasDecidableMembership<decltype(gt3)>);
+    STATIC_CHECK(HasDecidableMembership<decltype(s)>);
+    STATIC_CHECK(IsCompileTimeEnumerable<decltype(s)>);
+  }
+}
+
 TEST_CASE("order:halfspace — IntervalProduct preserves cardinality",
           "[order][halfspace][product]") {
   constexpr OrderInterval<int, 0, 5, Strictness::Strict, Strictness::Strict>
