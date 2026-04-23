@@ -1,7 +1,9 @@
 \documentclass[11pt, a4paper]{report}
 
-\usepackage[T1]{fontenc}      % Standard font encoding
-\usepackage[utf8]{inputenc}    % Support for UTF-8 characters
+% LuaLaTeX handles UTF-8 natively; fontspec picks up Unicode glyphs from the
+% default font (ℕ, ℤ, ℚ, ℝ, ℂ, Ø, and similar) so code listings can carry
+% mathematical notation without a per-character literate-table entry.
+\usepackage{fontspec}
 \usepackage{newunicodechar}
 \usepackage[english]{babel}    % Language support
 \usepackage{geometry}          % Adjust page margins
@@ -107,6 +109,8 @@
            {ℕ}{{$\mathbb{N}$}}1
            {ℂ}{{$\mathbb{C}$}}1
            {ℬ}{{$\mathcal{B}$}}1
+           {²}{{$^2$}}1
+           {Ø}{{$\varnothing$}}1
 }
 
 \newcommand{\bind}{\mathbin{>\!\!>\mkern-6.7mu=}}
@@ -260,25 +264,25 @@ The compiler verifies this at translation time and reduces the exported function
 single constant-false return.
 
 \begin{lstlisting}[language=C++, caption={Showcase 1: Diagonal contradiction in $\mathbb{R}^2$ collapses to constant false.}, label={lst:showcase01_src}]
-inline constexpr auto r2 = cartesian_product(R, R);
-using R2Point = typename decltype(r2)::Domain;
-inline constexpr auto xy = var<decltype(r2)>;
+constexpr auto R2 = R * R;
+constexpr auto xy = var<decltype(R2)>;
+using R2Point = typename decltype(R2)::Domain;
 
-inline constexpr auto diagonal_in_r2 = Set{xy % r2 | [](const R2Point& p) {
-  return p.first.resolve() == p.second.resolve();
-}};
-inline constexpr auto gt5_lt3_strip = Set{xy % r2 | [](const R2Point& p) {
-  return (p.first.resolve() > 5.0) && (p.second.resolve() < 3.0);
-}};
-inline constexpr auto empty_diagonal_cut = diagonal_in_r2 & gt5_lt3_strip;
+// Diagonal: { (x, y) ∈ ℝ² | x = y }
+constexpr auto diagonal =
+    Set{xy % R2 | [](R2Point p) { return p.first == p.second; }};
+
+// Strip: { (x, y) ∈ ℝ² | x > 5 ∧ y < 3 }
+constexpr auto strip = Set{
+    xy % R2 | [](R2Point p) { return (p.first > 5.0) && (p.second < 3.0); }};
+
+constexpr auto empty_diagonal_cut = diagonal & strip;
 using R2Logic = typename decltype(empty_diagonal_cut)::logic_species;
 
-static_assert(empty_diagonal_cut(R2Point{Real<double>{6.0}, Real<double>{6.0}})
-              == R2Logic::False);
+static_assert(empty_diagonal_cut(R2Point{6.0, 6.0}) == R2Logic::False);
 
 extern "C" __attribute__((noinline)) bool impress_empty_diagonal_cut() {
-  return empty_diagonal_cut(R2Point{Real<double>{6.0}, Real<double>{6.0}})
-         == R2Logic::True;
+  return empty_diagonal_cut(R2Point{6.0, 6.0}) == R2Logic::True;
 }
 \end{lstlisting}
 
@@ -337,6 +341,67 @@ Both showcases are checked-in as LLVM IR fixtures under
 \texttt{src/test/cpp/modules/dedekind/python/} and validated in CI via
 \texttt{make ir-fixture-check}.
 
+\paragraph{Halfspace DSL and the computability boundary.}
+Lambda predicates let the optimiser fold at specific call sites, but they
+erase the structure of the constraint. A richer pattern emerges when
+halfspace bounds live in the \emph{type}: $\{n \in \mathbb{N} \mid n > 5\}$ is
+represented as \lstinline{Halfspace<int, 5, Up, Strict>}, with the pivot as a
+non-type template parameter. Contradiction and cardinality analysis then run
+in the type system itself.
+
+\textbf{Showcase 3 — Halfspace contradiction on $\mathbb{N}$.}
+
+\begin{lstlisting}[language=C++, caption={Showcase 3: halfspace contradiction on $\mathbb{N}$ collapses to $\varnothing$.}, label={lst:showcase03_src}]
+constexpr auto n = var<ℕ>;
+constexpr auto gt_five  = Set{n % N | (n > bound<5>)};
+constexpr auto lt_three = Set{n % N | (n < bound<3>)};
+
+// Set-level `&` dispatches through `structured_and` on the halfspace types;
+// the contradiction collapses the result's type to Ø<int>.
+constexpr Ø<int> empty_meet = gt_five & lt_three;
+static_assert(empty_meet == Ø{});
+
+// Computability made a compile-time observable: the parent Sets carry NONE
+// of the three tiers; the reduced Ø carries ALL THREE.
+static_assert(!HasDecidableMembership<decltype(gt_five)>);
+static_assert(!IsFiniteSet<decltype(gt_five)>);
+static_assert(!IsCompileTimeEnumerable<decltype(gt_five)>);
+static_assert( HasDecidableMembership<decltype(empty_meet)>);
+static_assert( IsFiniteSet<decltype(empty_meet)>);
+static_assert( IsCompileTimeEnumerable<decltype(empty_meet)>);
+\end{lstlisting}
+
+\textbf{Showcase 4 — Cardinality-1 reduction on $\mathbb{N}$.}
+The same meet operator, now applied to halfspaces whose bounds pin exactly
+one integer: the type \emph{is} \lstinline{Singleton<4>}, with the unique
+inhabitant in the template parameter.
+
+\begin{lstlisting}[language=C++, caption={Showcase 4: cardinality-1 meet collapses to $\{4\}$.}, label={lst:showcase04_src}]
+constexpr auto n = var<ℕ>;
+constexpr auto gt_three = Set{n % N | (n > bound<3>)};
+constexpr auto lt_five  = Set{n % N | (n < bound<5>)};
+
+// Cardinality 1 elevates the reduction from OrderInterval to Singleton.
+constexpr Singleton<4> in_between = gt_three & lt_five;
+static_assert(in_between == Singleton<4>{});
+
+static_assert(!IsCompileTimeEnumerable<decltype(gt_three)>);
+static_assert( IsCompileTimeEnumerable<decltype(in_between)>);
+\end{lstlisting}
+
+Showcases 3 and 4 make the central claim mechanically observable: compile-time
+reduction of an intensional description over a transfinite carrier to a named
+extensional object (either $\varnothing$ or a \lstinline{Singleton})
+monotonically restores decidability, finiteness, and type-level knowledge of
+elements. The \emph{reduction boundary} is the \emph{computability boundary}.
+
+Further fixtures in the same directory exercise the same machinery on
+$\mathbb{R}$ ambient carriers (showcase~5), non-point intervals with
+observable cardinality (showcase~6: $-21 < n \leq 21$ on $\mathbb{Z}$,
+$|\cdot|=42$), integer lattice intersected with real-valued bounds
+(showcase~7), and 2D rectangles via structural cartesian product
+(showcase~8: $42 \times 11 = 462$).
+
 \begin{lstlisting}[language=C++, caption={Illustration of the symbolic construction of $e$ as an intensional set (the lower cut $L \subset \mathbb{Q}$).}, label={lst:euler}]
 // Representing e via the series predicate: 
 // q < sum_{n=0}^N 1/n! for some N
@@ -369,7 +434,9 @@ using π   = Set<ℚ, [](auto q) { return ∃_lower_bound(q, π_series); }>;
 static_assert(e < π); 
 \end{lstlisting}
 
-Together, these features bridge the gap between the declarative ease of symbolic algebra and the mechanical sympathy required for modern high-performance computing \cite{thompson2011mechanical}. By allowing the C++ compiler itself to understand the symbolic logic of the Continuum, \texttt{dedekind} ensures that high-level mathematical invariants are preserved from specification to machine code, effectively treating the compiler as a formal proof assistant for systems-level performance.
+Together, these features bridge the gap between the declarative ease of symbolic algebra and the mechanical sympathy required for modern high-performance computing \cite{thompson2011mechanical}. By allowing the C++ compiler itself to understand the symbolic logic of the Continuum, \texttt{dedekind} preserves high-level mathematical invariants from specification to machine code. We are careful about the framing: clang's type checker is \emph{not} a theorem prover (no dependent types, no proof search), but it reliably performs two things that matter for systems-level performance --- ruling out entire classes of algebraic-law violations at translation time, and enabling entire classes of structural optimizations that exploit the ruled-out failure modes. Both halves are bounded, both are mechanical, and together they cover the paper's central claim without requiring the stronger apparatus of a dedicated proof assistant.
+
+The paradigm has a productive open-endedness worth naming in passing: every class of errors ruled out, and every class of optimizations enabled, tends to expose a next class almost naturally --- a class the current type machinery does not handle but which the library's structural vocabulary names clearly enough to become a tracked, narrowly-scoped follow-on. Penrose makes a related observation about G\"{o}del's incompleteness theorem in \emph{The Road to Reality}~\cite{penrose2004roadtoreality}: formal closure at one level motivates a next level as a natural successor rather than an exhaustion. Our setting is more benign than the philosophical one Penrose navigates --- the issue tracker plays the role he reserves for the mind's eye --- but the pattern is the same, and it has a technical echo in Turing's ordinal logics~\cite{turing1939ordinals}, where consistency of each stage feeds the formation rule of the next. We do not need the full apparatus; for a systems-programming paradigm, the operational point is that closure at stage $n$ is a generative signal for stage $n{+}1$ rather than a terminal achievement.
 
 
 \chapter{Design and Methodology}
@@ -637,7 +704,7 @@ These partitions represent the maturation of mathematical species from raw mappi
 
 \subsection{The \texttt{:species} partition: The Algebraic Atlas}
 
-The \texttt{:species} partition serves as the foundational \textit{Algebraic Atlas} of the library, providing a stratified registry of structural invariants for C++ machine types and standard library operators. Following the combinatorial species theory of Joyal~\cite{joyal1981species, joyal1986analytic}, we treat fundamental types not merely as passive sets of values, but as active rules for generating mathematical structure. By reifying categorical axioms---such as associativity and commutativity---as compile-time constants, the library transforms the C++ type system into a formal verification engine.
+The \texttt{:species} partition serves as the foundational \textit{Algebraic Atlas} of the library, providing a stratified registry of structural invariants for C++ machine types and standard library operators. Following the combinatorial species theory of Joyal~\cite{joyal1981species, joyal1986analytic}, we treat fundamental types not merely as passive sets of values, but as active rules for generating mathematical structure. By reifying categorical axioms---such as associativity and commutativity---as compile-time constants, the library lets the C++ type checker act as a \emph{structural gate}: a device that rules out whole classes of algebraic-law violations at translation time and that feeds its discharged obligations downstream to the optimizer. The checker is not a theorem prover --- it does not search for or generate proofs --- but for the class of failures the programmer names as concept requirements, it is a reliable filter, and the structural knowledge so admitted is what the optimizer then exploits.
 
 As illustrated in Table~\ref{tab:feature_cube_final}, the \textbf{Feature Cube} acts as a formal ledger mapping algebraic properties to the language's fundamental atoms. This explicit mapping allows the \texttt{dedekind} dispatcher to distinguish between idealized algebraic structures (e.g., \texttt{unsigned int} modular addition) and the messy inhabitants of the hardware, such as floating-point operations which exhibit numerical non-associativity under the IEEE 754 standard~\cite{ieee754_2019}.
 By anchoring these operators as first-class categorical entities, we enable the compiler to act as a physical guardrail, ensuring that structural integrity is verified before the final binary is generated. 

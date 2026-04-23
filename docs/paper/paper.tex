@@ -1,7 +1,12 @@
 \documentclass[11pt, a4paper]{article}
 
-\usepackage[T1]{fontenc}      % Standard font encoding
-\usepackage[utf8]{inputenc}    % Support for UTF-8 characters
+% LuaLaTeX handles UTF-8 natively; fontspec lets the document pick up any
+% Unicode glyphs present in the default font, including mathematical script
+% characters used in listings (ℕ, ℤ, ℚ, ℝ, ℂ, Ø, and similar). We keep the
+% `newunicodechar` fallbacks for body text so amsmath glyphs (\mathbb) are
+% used in paragraphs, and extend the lstlisting literate table below for
+% code blocks.
+\usepackage{fontspec}
 \usepackage{newunicodechar}
 \usepackage[english]{babel}    % Language support
 \usepackage{geometry}          % Adjust page margins
@@ -81,9 +86,14 @@
   float=htbp,      % <--- This prevents internal page breaks
   captionpos=b,
   extendedchars=true,
-  literate={ℚ}{{$\mathbb{Q}$}}1 
-           {ℝ}{{$\mathbb{R}$}}1 
-           {∃}{{$\exists$}}1 
+  literate={ℚ}{{$\mathbb{Q}$}}1
+           {ℝ}{{$\mathbb{R}$}}1
+           {ℕ}{{$\mathbb{N}$}}1
+           {ℂ}{{$\mathbb{C}$}}1
+           {ℤ}{{$\mathbb{Z}$}}1
+           {²}{{$^2$}}1
+           {Ø}{{$\varnothing$}}1
+           {∃}{{$\exists$}}1
            {π}{{$\pi$}}1
            {⊂}{{$\subset$}}1
            {⊆}{{$\subseteq$}}1
@@ -136,8 +146,11 @@ We motivate the design from the practitioner's perspective, beginning with an an
 notebook, and progressively lifting the underlying abstractions to show how recent C++23 advances
 (concepts, non-type template parameters, named modules) make this approach viable in a mainstream
 systems language.  We identify \emph{Axiomatic Systems Programming} as a nascent paradigm in which
-the compiler acts as a formal verification engine, and we leave a precise gap for a cardinality-driven
-no-op intersection theorem that we conjecture is achievable within the existing type machinery.
+the compiler---explicitly \emph{not} a theorem prover, but a structural gate---rules
+out whole classes of algebraic-law violations at translation time and enables whole
+classes of structural optimizations that exploit the ruled-out failure modes; we
+leave a precise gap for a cardinality-driven no-op intersection theorem that we
+conjecture is achievable within the existing type machinery.
 \end{abstract}
 
 \tableofcontents
@@ -292,7 +305,11 @@ Three C++23 features are central:
         Binary Module Interface (BMI) files.
 \end{description}
 
-\noindent Together, these features enable the compiler to act as a formal verification engine.
+\noindent Together, these features let the compiler rule out whole classes of
+algebraic-law violations at translation time and exploit the resulting structural
+knowledge for optimization. This is \emph{distinct} from theorem-proving: the
+compiler discharges the proof obligations it is given, it does not search for
+new ones.
 
 \subsection{Structural vs.\ Nominal Typing: The Juliet Posture}
 
@@ -361,18 +378,62 @@ properties from the trait registry, and ultimately prune logically empty set
 expressions to zero machine instructions---none of which is possible with runtime duck
 typing.
 
-\subsection{The Compiler as Verification and Optimization Engine}
+\subsection{The Compiler as Structural Gate and Optimization Engine}
 
-By encoding algebraic laws as concept requirements, every instantiation of a generic
-template becomes an implicit proof obligation discharged at compile time.
-Failed proofs are type errors, not runtime exceptions.
+Two durable uses of a compile-time type system underlie this paradigm, neither
+of which requires the compiler to be a theorem prover:
 
-The LLVM backend then exploits this structural knowledge for optimization.
-When a set is defined as a predicate, and two predicates are logically contradictory,
-the compiler can determine---at translation time---that the resulting intersection
-is the empty set, and emit no machine instructions for it.
-This is what we term \emph{structural pruning}, and it is the subject of
-Section~\ref{sec:pruning}.
+\begin{enumerate}
+  \item \textbf{Ruling out entire classes of errors.}  Encoding algebraic laws as
+        concept requirements makes every instantiation of a generic template an
+        implicit proof obligation discharged at translation time.  Failed
+        obligations are type errors, not runtime exceptions.  The obligation
+        itself is finite, decidable, and mechanical---the compiler \emph{checks}
+        it, but does not \emph{search for} it.
+  \item \textbf{Enabling entire classes of optimizations.}  The LLVM backend
+        exploits the structural knowledge inherited from discharged obligations.
+        When a set is defined by a predicate and two predicates are logically
+        contradictory, the compiler determines at translation time that the
+        resulting intersection is empty and emits no machine instructions for
+        it.  This is what we term \emph{structural pruning}, and it is the
+        subject of Section~\ref{sec:pruning}.
+\end{enumerate}
+
+Both uses are bounded.  clang's type checker is not a theorem prover: it has
+no dependent types, no universal-quantification inference, no proof-search
+engine.  What it does have is \lstinline{static_assert},
+\lstinline{requires}-clauses, and \lstinline{constexpr} evaluation---enough to
+verify a predetermined proof sketch, not enough to generate one.  The paradigm
+claims the reliable half: ruling out, and optimizing under, the classes of
+structural failures the programmer has named in the type system.  The
+Curry--Howard correspondence between propositions and types is suggestive
+here, but its full force (dependent products, inductive proofs, universe
+hierarchies) is not available in C++23; what \emph{is} available is enough
+to anchor the two uses above.
+
+\subsubsection*{Bounded yet open-ended}
+
+Each use is bounded \emph{individually}, but the paradigm as a whole exhibits
+a productive open-endedness worth naming.  Every class of errors ruled out,
+and every class of optimizations enabled, tends to expose a next class that
+the current type machinery does not handle but that the library's structural
+vocabulary names clearly enough to become a tracked, narrowly-scoped
+follow-on.  In our setting the four axes listed in Section~\ref{sec:gap} are
+each discovered rather than engineered: they fall out of the halfspace
+reductions of Section~\ref{sec:pruning} almost by construction.
+
+Penrose offers a related observation about {G\"{o}del}'s incompleteness theorem
+in \emph{The Road to Reality}~\cite{penrose2004roadtoreality}: a formal system
+that closes at one level thereby motivates a next level, not as an exhaustion
+but as a natural successor.  Our setting is more benign than Penrose's
+philosophical one---the issue tracker plays the role he reserves for the
+mind's eye, and the successor steps are ordinary software work rather than
+exits from formal systems---but the pattern is the same.  The closest formal
+analogue in the mathematical-logic literature is Turing's ordinal
+logics~\cite{turing1939ordinals}, where each stage's consistency feeds the
+next stage's formation rule.  We do not need the full apparatus: the point
+for a systems-programming paradigm is that closure-at-stage-\(n\) is a
+generative signal for stage-\(n{+}1\), rather than a terminal achievement.
 
 % ============================================================
 \section{Intensional First, Realize When You Mean It}
@@ -587,25 +648,25 @@ The intersection is proven empty by \lstinline{static_assert}; the exported
 function compiles to a single \lstinline{ret i1 false}.
 
 \begin{lstlisting}[language=C++, caption={Showcase 1 source: diagonal contradiction in $\mathbb{R}^2$.}, label={lst:showcase01_src}]
-inline constexpr auto r2 = cartesian_product(R, R);
-using R2Point = typename decltype(r2)::Domain;
-inline constexpr auto xy = var<decltype(r2)>;
+constexpr auto R2 = R * R;
+constexpr auto xy = var<decltype(R2)>;
+using R2Point = typename decltype(R2)::Domain;
 
-inline constexpr auto diagonal_in_r2 = Set{xy % r2 | [](const R2Point& p) {
-  return p.first.resolve() == p.second.resolve();
-}};
-inline constexpr auto gt5_lt3_strip = Set{xy % r2 | [](const R2Point& p) {
-  return (p.first.resolve() > 5.0) && (p.second.resolve() < 3.0);
-}};
-inline constexpr auto empty_diagonal_cut = diagonal_in_r2 & gt5_lt3_strip;
+// Diagonal: { (x, y) ∈ ℝ² | x = y }
+constexpr auto diagonal =
+    Set{xy % R2 | [](R2Point p) { return p.first == p.second; }};
+
+// Strip: { (x, y) ∈ ℝ² | x > 5 ∧ y < 3 }
+constexpr auto strip = Set{
+    xy % R2 | [](R2Point p) { return (p.first > 5.0) && (p.second < 3.0); }};
+
+constexpr auto empty_diagonal_cut = diagonal & strip;
 using R2Logic = typename decltype(empty_diagonal_cut)::logic_species;
 
-static_assert(empty_diagonal_cut(R2Point{Real<double>{6.0}, Real<double>{6.0}})
-              == R2Logic::False);
+static_assert(empty_diagonal_cut(R2Point{6.0, 6.0}) == R2Logic::False);
 
 extern "C" __attribute__((noinline)) bool impress_empty_diagonal_cut() {
-  return empty_diagonal_cut(R2Point{Real<double>{6.0}, Real<double>{6.0}})
-         == R2Logic::True;
+  return empty_diagonal_cut(R2Point{6.0, 6.0}) == R2Logic::True;
 }
 \end{lstlisting}
 
@@ -623,25 +684,26 @@ The compiler proves all four membership assertions at translation time and folds
 exported function to a single \lstinline{ret i1 true}.
 
 \begin{lstlisting}[language=C++, caption={Showcase 2 source: lattice/square singleton in $\mathbb{C}$.}, label={lst:showcase02_src}]
-inline constexpr auto c = var<ℂ>;
-inline constexpr auto natural_lattice_in_c = lattice<C>.bounded(3);
-inline constexpr auto square_c1_c2 = Set{c % C | [](const Complex<double>& z) {
-  return (z.real() >= 0.5) && (z.real() <= 1.5)
-      && (z.imag() >= 0.5) && (z.imag() <= 1.5);
+constexpr auto c = var<ℂ>;
+
+constexpr auto natural_lattice_in_c =
+    Set{c % C | [](const Complex<double>& z) {
+      return is_integral_coordinate(z.real()) &&
+             is_integral_coordinate(z.imag()) &&
+             (z.real() >= 0.0) && (z.real() <= 3.0) &&
+             (z.imag() >= 0.0) && (z.imag() <= 3.0);
+    }};
+constexpr auto square_c1_c2 = Set{c % C | [](const Complex<double>& z) {
+  return (z.real() >= 0.5) && (z.real() <= 1.5) &&
+         (z.imag() >= 0.5) && (z.imag() <= 1.5);
 }};
-inline constexpr auto lattice_square_intersection =
-    natural_lattice_in_c & square_c1_c2;
+constexpr auto lattice_square_intersection = natural_lattice_in_c & square_c1_c2;
 using CLogic = typename decltype(lattice_square_intersection)::logic_species;
 
 static_assert(lattice_square_intersection(Complex<double>{1.0, 1.0}) == CLogic::True);
 static_assert(lattice_square_intersection(Complex<double>{0.0, 1.0}) == CLogic::False);
 
-extern "C" __attribute__((noinline)) bool impress_lattice_square_singleton() {
-  return (lattice_square_intersection(Complex<double>{1.0, 1.0}) == CLogic::True)
-      && (lattice_square_intersection(Complex<double>{0.0, 1.0}) == CLogic::False)
-      && (lattice_square_intersection(Complex<double>{1.0, 0.0}) == CLogic::False)
-      && (lattice_square_intersection(Complex<double>{2.0, 2.0}) == CLogic::False);
-}
+extern "C" __attribute__((noinline)) bool impress_lattice_square_singleton() { /* ... */ }
 \end{lstlisting}
 
 \begin{lstlisting}[caption={Showcase 2 LLVM IR (\texttt{clang++-22 -O2}): constant true return.}, label={lst:showcase02_ir}]
@@ -651,8 +713,92 @@ entry:
 }
 \end{lstlisting}
 
-Both showcases are checked into the repository as LLVM IR fixtures and validated
-in CI (\texttt{make ir-fixture-check}).
+Showcases 1 and 2 are checked in as LLVM IR fixtures and validated in CI
+(\texttt{make ir-fixture-check}). They exemplify the base case: pair-level
+predicate composition where constant-folding does the work.
+
+\subsubsection*{From lambdas to structured predicates: the halfspace DSL}
+
+Lambda-based predicates let the optimiser fold at specific call sites, but they
+erase the \emph{structure} of the constraint. A richer pattern emerges when
+halfspace bounds live in the \emph{type}: $\{n \in \mathbb{N} \mid n > 5\}$ is
+represented as \lstinline{Halfspace<int, 5, Up, Strict>}, with the pivot as a
+non-type template parameter. Contradiction and cardinality analysis then run
+in the type system itself, and the reductions are \emph{structural}: no appeal
+to runtime values is needed.
+
+\textbf{Showcase 3 — Halfspace contradiction on $\mathbb{N}$.}
+Two opposing halfspaces with non-bridging pivots; the meet reduces to $\varnothing$
+by the type-level contradiction rule.
+
+\begin{lstlisting}[language=C++, caption={Showcase 3 source: halfspace contradiction on $\mathbb{N}$ collapses to $\varnothing$.}, label={lst:showcase03_src}]
+constexpr auto n = var<ℕ>;
+
+constexpr auto gt_five  = Set{n % N | (n > bound<5>)};
+constexpr auto lt_three = Set{n % N | (n < bound<3>)};
+
+// Set-level `&` dispatches through `structured_and` on the halfspace types;
+// the contradiction collapses the result's type to Ø<int>.
+constexpr Ø<int> empty_meet = gt_five & lt_three;
+static_assert(empty_meet == Ø{});
+
+// Computability as a compile-time observable: the parent Sets carry NONE of
+// the three tiers; the reduced Ø carries ALL THREE.
+static_assert(!HasDecidableMembership<decltype(gt_five)>);
+static_assert(!IsFiniteSet<decltype(gt_five)>);
+static_assert(!IsCompileTimeEnumerable<decltype(gt_five)>);
+static_assert( HasDecidableMembership<decltype(empty_meet)>);
+static_assert( IsFiniteSet<decltype(empty_meet)>);
+static_assert( IsCompileTimeEnumerable<decltype(empty_meet)>);
+\end{lstlisting}
+
+\begin{lstlisting}[caption={Showcase 3 LLVM IR: constant false return.}, label={lst:showcase03_ir}]
+define noundef zeroext i1 @impress_empty_halfspace_meet() local_unnamed_addr #0 {
+  ret i1 false
+}
+\end{lstlisting}
+
+\textbf{Showcase 4 — Cardinality-1 reduction on $\mathbb{N}$.}
+The same meet operator, applied to two halfspaces whose bounds pin exactly one
+integer: the result's type \emph{is} \lstinline{Singleton<4>}, with the unique
+inhabitant in the template parameter.
+
+\begin{lstlisting}[language=C++, caption={Showcase 4 source: cardinality-1 meet collapses to $\{4\}$.}, label={lst:showcase04_src}]
+constexpr auto n = var<ℕ>;
+
+constexpr auto gt_three = Set{n % N | (n > bound<3>)};
+constexpr auto lt_five  = Set{n % N | (n < bound<5>)};
+
+// On an integral carrier the meet's cardinality is compile-time-decidable.
+// Cardinality 1 elevates the reduction from OrderInterval to Singleton.
+constexpr Singleton<4> in_between = gt_three & lt_five;
+static_assert(in_between == Singleton<4>{});
+
+// Same computability tightening as Showcase 3, with the element now in the type.
+static_assert(!IsCompileTimeEnumerable<decltype(gt_three)>);
+static_assert( IsCompileTimeEnumerable<decltype(in_between)>);
+\end{lstlisting}
+
+\begin{lstlisting}[caption={Showcase 4 LLVM IR: constant true return at the unique inhabitant.}, label={lst:showcase04_ir}]
+define noundef zeroext i1 @impress_halfspace_singleton() local_unnamed_addr #0 {
+  ret i1 true
+}
+\end{lstlisting}
+
+The two halfspace showcases make the central claim of the paper mechanically
+observable: compile-time reduction of an intensional description over a
+transfinite carrier to a named extensional object (either $\varnothing$ or a
+\lstinline{Singleton}) monotonically restores decidability, finiteness, and
+type-level knowledge of elements. The \emph{reduction boundary} is the
+\emph{computability boundary}, and the six \lstinline{static_assert}s flanking
+each reduction are its mechanical witness.
+
+Further showcases in the source tree exercise the same machinery on
+$\mathbb{R}$ ambient carriers (showcase~5), non-point intervals with observable
+cardinality (showcase~6: $-21 < n \leq 21$ on $\mathbb{Z}$, $|\cdot|=42$),
+integer lattice intersected with real-valued bounds (showcase~7), and
+2D rectangles via structural cartesian product (showcase~8: $42 \times 11 =
+462$). All are IR-verified.
 
 \subsection{Algebraic Properties Enable Stronger Pruning}
 
@@ -672,52 +818,63 @@ Each of these equalities can be discharged as a \lstinline{static_assert} once t
 relevant algebraic witnesses are in the trait registry, reducing the intersection to
 the simpler set at compile time.
 
-\subsection{Open Gap: Cardinality-Driven No-Op Intersection}
+\subsection{From Cardinality Pruning to Type-Directed Collapse}
 \label{sec:gap}
 
+Earlier drafts of this section recorded cardinality-driven pruning (issue~\#348)
+as an open contribution target.
+The halfspace showcases of Section~\ref{sec:pruning} discharge that target:
+for halfspace-structured predicates over an ordered carrier, the library
+reduces $S_1 \cap S_2$ to $\varnothing$, to a \lstinline{Singleton}, or to a
+typed \lstinline{OrderInterval} with compile-time-observable cardinality, at
+translation time and without runtime support.
+
+The resolved form is sharper than the cardinality-count version:
+
 \begin{quote}
-  \textbf{Conjecture (Cardinality Pruning).}
-  Let $A$ be a finite ambient set with known compile-time cardinality
-  $|A| = n$, and let $S_1, S_2 \subseteq A$ be intensional sets represented as
-  type-level predicates $P_1, P_2 : A \to \Omega$.
-  If $|S_1| + |S_2| \leq n$---i.e.\ their combined cardinality cannot exceed the
-  ambient space---then a symbolic constraint solver operating over the ETCS axioms
-  can determine $S_1 \cap S_2 = \varnothing$ at compile time and reduce the
-  intersection type to the empty-set boundary object, generating zero machine
-  instructions.
+  \textbf{Theorem (Type-Directed Collapse, halfspace case).}
+  Let $T$ be an ordered carrier and let $P, Q$ be halfspace predicates over
+  $T$ with pivots carried at the type level as non-type template parameters.
+  The meet $\{x \mid P(x)\} \cap \{x \mid Q(x)\}$ is resolved at compile time
+  to $\varnothing$, a \lstinline{Singleton<v>}, or an \lstinline{OrderInterval}
+  whose cardinality (when $T$ is integral) is a compile-time constant.
+  The computability classification of the result is strictly tighter than
+  that of either operand: intensional $\to$ extensional, Ternary $\to$
+  Classical, opaque $\to$ element-in-type.
 \end{quote}
 
-The analyst pipeline of Section~\ref{sec:introduction} is the concrete motivating
-instance.
-The ISO~3166-1 country-code domain \lstinline{["DEU", "FRA", "GBR"]} has cardinality~3.
-If the analyst declares two disjoint domain constraints over the same column---say, a
-``European Union member'' predicate and a ``non-EU member'' predicate applied to the
-same finite set of codes---the compiler should be able to determine statically that any
-row satisfying both constraints simultaneously is impossible, and elide the corresponding
-runtime membership check entirely.
+This is not just a decision procedure; it is a type-level rewrite rule. The
+pattern generalizes beyond halfspaces to four independently presentable axes
+of \emph{type-directed collapse}, each tracked on the issue tracker as
+follow-on work. For each axis the paper relies on a narrow existential proof
+(one worked instance + IR fixture + compile-time witness) rather than a
+completed general framework.
 
-\medskip
-The machinery required exists in parts:
-the \texttt{:boundaries} partition provides the empty-set and ambient-set objects;
-the \texttt{:mereology} partition provides subset witnesses;
-the \texttt{:species} trait registry provides cardinality annotations for finite types.
-What is missing is a \emph{decision procedure} that combines these three ingredients:
-given two predicate types and a finite ambient type with known cardinality, determine
-at compile time whether their intersection is empty.
+\begin{itemize}
+  \item \textbf{Carrier tightening} (issue~\#362). Intersecting a subset of
+    $\mathbb{N}$ with a subset of $\mathbb{R}$ should land in $\mathbb{N}$:
+    the carrier lattice contributes its own structural reduction via the
+    existing canonical embeddings (\lstinline{embed_ℕ_ℤ},
+    \lstinline{embed_ℚ_ℝ}, \ldots).
+  \item \textbf{Smooth optimization} (issue~\#363). The stationary set
+    $\{x \mid \nabla f(x) = 0\}$ for a quadratic $f$ collapses to a
+    \lstinline{Singleton<x*>} with the minimizer in the template parameter.
+    Same reduction pattern, applied at the extremum operator.
+  \item \textbf{Linear programming} (issue~\#364).
+    \lstinline{maximize(c, polytope)} reduces, for compile-time-sized LPs, to
+    a \lstinline{Singleton<vertex>} via type-level vertex enumeration: the
+    solver is the compiler.
+  \item \textbf{Lattice-law rewriting} (issue~\#365). Distributivity and
+    absorption applied at the type level rewrite
+    $(A \cup B) \cap \lnot A$ to $B \cap \lnot A$ \emph{before} local
+    reduction rules fire, exposing collapses that a purely local analysis
+    would miss.
+\end{itemize}
 
-We leave this as an explicitly open contribution target for future work.
-The implementation gap is narrow: the required semantic content is already in the
-library; the missing piece is a \lstinline{consteval} procedure that traverses
-the ambient set, evaluates both predicates, and confirms disjointness.
-For small finite domains (bounded enumerations, flag sets, small integers) this
-procedure is computationally feasible at compile time and would directly benefit the
-analyst API tier.
-
-\noindent \emph{Status (April 2026):} This gap is tracked as GitHub issue \#348
-(\texttt{feat(sets): consteval cardinality pruning for disjoint intersection}).
-The foundation (boundaries, mereology, species registry) is complete; the decision
-procedure awaits implementation. See also issue \#349 for validation via LLVM IR
-showcase examples.
+Each axis sits on the foundation shared with Section~\ref{sec:pruning}: NTTP
+predicates, structured \lstinline{operator&} dispatch, and the computability
+tiers visible in the showcases. Taken together they sketch a program of
+which the current halfspace reductions are the first installment.
 % ============================================================
 \section{Related Work}
 \label{sec:related}
@@ -783,8 +940,10 @@ optimization.
 Three themes recur throughout:
 \begin{enumerate}
   \item \textbf{Axiomatic Systems Programming.}  C++23 concepts, named modules, and
-        NTTP-embedded predicates make it possible to use the compiler as a formal
-        verification engine for algebraic laws, without a separate proof assistant.
+        NTTP-embedded predicates make it possible to use the compiler---though
+        explicitly not as a theorem prover---to rule out whole classes of
+        algebraic-law violations and to exploit the resulting structural
+        knowledge for optimization, without a separate proof assistant.
   \item \textbf{Intensional first.}  The tension between abstract number theory and
         IEEE~754 hardware semantics is resolved by encoding the divergence in the
         \texttt{:species} trait registry and deferring arithmetic policy choice to the

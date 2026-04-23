@@ -1,4 +1,11 @@
+.PHONY: doc ci-check
+
 doc: #dot
-	pdflatex paper.tex
+	lualatex paper.tex
 	biber paper
-	pdflatex paper.tex
+	lualatex paper.tex
+
+# Fast CI/local gate: detect TeX compile errors without bibliography pass.
+# Mirrors the pattern in docs/report/Makefile.
+ci-check:
+	lualatex -interaction=nonstopmode -halt-on-error paper.tex

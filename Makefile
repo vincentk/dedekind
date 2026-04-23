@@ -24,7 +24,24 @@ ifeq ($(origin CC), default)
 CC := $(LLVM_ROOT)/bin/clang
 endif
 
-.PHONY: all clean compile test integration-test coverage python-coverage python-coverage-local ir-fixture-refresh ir-fixture-check format format-check install-hooks ci-install-doxygen-deps ci-install-report-deps doxygen dot doc report \
+# Build parallelism. Keep it a bit on the slim side: most module / test
+# workloads have I/O- or memory-bound phases, so pinning to `nproc` (let
+# alone Ninja's default of `nproc + 2`) tends to cause thrashing rather
+# than measurable speedup. Default to `max(2, nproc - 2)`:
+#   - The `-2` leaves headroom for the IDE / browser locally, and for
+#     I/O / GC concurrency on CI runners alike.
+#   - The floor of 2 reflects that any sensible host has more than one
+#     component (CPU, memory bus, disk bus, …); even on a 1- or 2-core
+#     machine, two concurrent jobs let one block on I/O while the other
+#     makes CPU progress.
+# Override with `make JOBS=N ...` to pin a specific count (e.g. for
+# micro-benchmarks or constrained environments). Passed through to
+# `cmake --build` and `ctest` via CMake's `--parallel` flag, which is
+# the portable knob that dispatches to the underlying generator.
+_HOST_CORES := $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4)
+JOBS ?= $(shell j=$$(( $(_HOST_CORES) - 2 )); [ $$j -lt 2 ] && j=2; echo $$j)
+
+.PHONY: all clean compile test-compile test integration-test coverage python-coverage python-coverage-local ir-fixture-refresh ir-fixture-check format format-check install-hooks ci-install-doxygen-deps ci-install-report-deps doxygen dot doc report paper \
 	ci-history ci-main pr-init pr-status pr-checks pr-watch pr-sync pr-review-comments pr-review-unresolved pr-resolve-thread pr-resolve-threads \
 	check-review-comments resolve-review-comment issue-list jupyter
 
@@ -46,11 +63,19 @@ $(BUILD_DIR)/CMakeCache.txt:
 		$(CMAKE_EXTRA_ARGS)
 
 compile: $(BUILD_DIR)/CMakeCache.txt
-	cmake --build $(BUILD_DIR)
+	cmake --build $(BUILD_DIR) --parallel $(JOBS)
 
-test: compile
-	cmake --build $(BUILD_DIR) --target set-pruning-ir-fixture
-	ctest --test-dir $(BUILD_DIR) --output-on-failure
+# Build + type-check every C++ translation unit in the repo (library
+# modules, test executables, IR fixture showcases) without running any
+# tests. Useful as a fast local sanity gate — catches module-DAG
+# violations, Unicode/species-visibility issues, and template
+# instantiation errors without paying the cost of ctest, Python
+# bindings, or Jupyter integration runs.
+test-compile: compile
+	cmake --build $(BUILD_DIR) --target set-pruning-ir-fixture --parallel $(JOBS)
+
+test: test-compile
+	ctest --test-dir $(BUILD_DIR) --output-on-failure --parallel $(JOBS)
 
 integration-test: test
 	python -m pip install --upgrade pip jupyter pandas numpy
@@ -126,10 +151,10 @@ coverage: compile
 	@echo "Running tests with profile environment..."
 	rm -f $(BUILD_DIR)/*.profraw
 	# Set the variable for the duration of the ctest command
-	ctest --test-dir $(BUILD_DIR) --output-on-failure
-	
+	ctest --test-dir $(BUILD_DIR) --output-on-failure --parallel $(JOBS)
+
 	@echo "Processing coverage..."
-	cmake --build $(BUILD_DIR) --target generate_coverage
+	cmake --build $(BUILD_DIR) --target generate_coverage --parallel $(JOBS)
 
 # Run Python tests with coverage collection and produce an XML report for Codecov.
 # Uses the repo-managed housekeeping helper for auditable approvals.
@@ -167,13 +192,15 @@ ci-install-doxygen-deps:
 	sudo apt-get install -y doxygen graphviz
 
 # CI-only helper: install packages required for report/LaTeX generation.
+# Includes texlive-luatex since both docs/report and docs/paper now build with
+# LuaLaTeX for native UTF-8 support.
 ci-install-report-deps:
 	@if ! command -v apt-get >/dev/null 2>&1; then \
 		echo "ERROR: ci-install-report-deps requires apt-get (intended for Ubuntu CI runners)."; \
 		exit 2; \
 	fi
 	sudo apt-get update
-	sudo apt-get install -y biber texlive-latex-base texlive-latex-extra texlive-bibtex-extra texlive-pictures texlive-plain-generic texlive-fonts-recommended
+	sudo apt-get install -y biber texlive-latex-base texlive-latex-extra texlive-bibtex-extra texlive-pictures texlive-plain-generic texlive-fonts-recommended texlive-luatex
 
 # CI/PR workflow helpers (optimistic concurrency loop)
 
@@ -374,10 +401,13 @@ doxygen: $(BUILD_DIR)/CMakeCache.txt
 		-DCMAKE_BUILD_TYPE=Release \
 		-DDEDEKIND_ENABLE_DOUBLE_REAL_PROXY=ON \
 		$(CMAKE_EXTRA_ARGS)
-	cmake --build $(BUILD_DIR) --target docs
+	cmake --build $(BUILD_DIR) --target docs --parallel $(JOBS)
 
 report:
 	$(MAKE) -C $(DOCS_DIR) ci-check
+
+paper:
+	$(MAKE) -C docs/paper ci-check
 
 # Generate build dependency graph without breaking the Ninja build
 dot: $(BUILD_DIR)/CMakeCache.txt

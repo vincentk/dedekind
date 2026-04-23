@@ -45,28 +45,6 @@ jobs:
     - name: Validate Checked-In LLVM IR Fixture
       run: make ir-fixture-check CXX=clang++-22
 
-    - name: Generate & Upload LLVM IR Fixtures
-      if: ${{ always() }}
-      run: make ir-fixture-refresh CXX=clang++-22
-      continue-on-error: true
-    - name: Upload LLVM IR Fixtures
-      if: ${{ always() }}
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
-      with:
-        name: llvm-ir-fixtures
-        if-no-files-found: warn
-        path: src/test/cpp/modules/dedekind/python/*.ll
-
-    - name: Upload Notebook Integration Artifacts
-      if: ${{ always() }}
-      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
-      with:
-        name: python-notebooks
-        if-no-files-found: warn
-        path: |
-          build/python-notebooks/*.ipynb
-          build/python-notebooks/integration-summary.txt
-
     - name: Process Coverage Data
       run: make coverage CXX=clang++-22 CC=clang-22 CMAKE_EXTRA_ARGS="-DDEDEKIND_RUNTIME_COVERAGE_BRIDGES=ON"
 
@@ -82,6 +60,20 @@ jobs:
         token: ${{ secrets.CODECOV_TOKEN }}
         fail_ci_if_error: true
         verbose: true
+
+    # Diagnostic artifact upload — runs regardless of earlier-step outcome so
+    # the rendered notebooks are available for offline inspection even when a
+    # critical-path step (coverage, Codecov upload) fails. Placed at the tail
+    # so the critical path reads top-to-bottom without diagnostic noise.
+    - name: Upload Notebook Integration Artifacts
+      if: ${{ always() }}
+      uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4
+      with:
+        name: python-notebooks
+        if-no-files-found: warn
+        path: |
+          build/python-notebooks/*.ipynb
+          build/python-notebooks/integration-summary.txt
 
   python-dist:
     if: github.ref == 'refs/heads/main' && github.event_name == 'push'
@@ -181,7 +173,7 @@ jobs:
         make ci-install-doxygen-deps
         make ci-install-report-deps
 
-    - name: Build Doxygen and report in parallel
+    - name: Build Doxygen, report, and paper in parallel
       run: |
         (
           make doxygen CXX=clang++-22 CC=clang-22 CMAKE_EXTRA_ARGS="-DDEDEKIND_RUNTIME_COVERAGE_BRIDGES=ON"
@@ -194,14 +186,22 @@ jobs:
         ) &
         REPORT_BUILD_PID=$!
 
+        (
+          make paper
+          make -C docs/paper doc
+        ) &
+        PAPER_BUILD_PID=$!
+
         wait "$DOXYGEN_BUILD_PID"
         wait "$REPORT_BUILD_PID"
+        wait "$PAPER_BUILD_PID"
 
     - name: Stage Pages content
       run: |
         mkdir -p build/pages
         cp -R build/docs/html/. build/pages/
         cp docs/report/report.pdf build/pages/report.pdf
+        cp docs/paper/paper.pdf build/pages/paper.pdf
 
     - name: Upload artifact
       uses: actions/upload-pages-artifact@7b1f4a764d45c48632c6b24a0339c27f5614fb0b  # v4

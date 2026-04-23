@@ -72,11 +72,79 @@ For modeling decisions, prefer abstract/intensional carriers and symbolic types 
 default; choose a concrete runtime numeric representation only at realization points
 where concrete evaluation is intentionally required.
 
+## Operating principles
+
+Two rules of thumb that shape how PRs are prepared and shipped in this repo. They
+interact: the second justifies the first.
+
+### Boy-scout the surface you touch
+
+> Leave the place in better shape than you encountered it.
+
+When preparing a PR, compare its acceptance criteria against the set of open issues
+that touch the same module / API / surface. Where the current PR can make
+incremental progress toward one or more of those adjacent issues without widening
+scope unreasonably, it **SHOULD** do so — tiny quality improvements, dead-variable
+cleanups, deduplicated helpers, better doxygen, corrected comments, test-coverage
+fills, `// FIXME(#NNN)` breadcrumbs at newly-visible scope boundaries, Makefile
+ergonomics, etc. The objective is **eventual consistency with the broader backlog**,
+achieved one PR at a time rather than with dedicated sweeps.
+
+The lens is _"what's one or two sizes up from the minimum acceptance bar?"_, not
+_"how much can I refactor while I'm here?"_.
+
+### Under-promise and over-deliver
+
+> Some scope creep on the PR is desirable to enable boy-scouting.
+
+Quote the PR's stated acceptance criteria modestly — aim to land exactly what the
+issue asked for in the initial commit — and then use the draft-PR flywheel to
+deliver more than quoted where the additional scope is:
+
+1. **Directly improves the in-scope deliverable** (cleaner code, better tests,
+   richer docs for what already landed), or
+2. **Makes the next PR smaller** (a breadcrumb, a tiny upstream prep, a moved
+   helper), or
+3. **Costs essentially zero review time** (formatter runs, target renames,
+   comment fixes, typos).
+
+The key boundary: additional scope **SHOULD** be bounded by _directly improving
+the landing deliverable or the adjacent issues' reach_. It is **NOT** an
+invitation to open-ended expansion. When in doubt, leave a `// FIXME(#NNN)`
+breadcrumb and move on — that is itself boy-scouting without scope-creeping.
+
+Paired together, these rules pull the backlog toward consistency PR-by-PR rather
+than via dedicated refactor-burn sprints, at the cost of modest PR-body creep
+that is easy to justify to the reviewer.
+
+### The computational analogues
+
+Both rules are concrete instances of two distributed-systems concepts that
+already appear throughout this guide — spelling out the connection makes the
+underlying reasoning reusable:
+
+- **Eventual consistency** — the backlog does not need to be globally
+  consistent at every moment. It needs to *converge*. Boy-scouting accepts
+  temporary inconsistency (adjacent issues stay open while unrelated PRs
+  land) and commits to narrowing it one PR at a time. The alternative —
+  strong consistency, where every PR either leaves the backlog perfectly
+  aligned or doesn't ship — requires coordination we can't afford.
+- **Optimistic concurrency control** — proceed without pessimistic locking
+  against every possible conflict; detect and reconcile when they appear.
+  Under-promise/over-deliver is its contributor-level analogue: take on a
+  bit more than the minimum because the cost of over-delivery is
+  amortized by the speed of continued progress, and the cost of
+  under-delivery compounds into coordination debt.
+
+The CI workflow (`Development workflow` below) runs on the same two
+principles for the same reasons; the operating-principles layer just
+projects them onto PR content rather than build mechanics.
+
 ## Development workflow
 
 - The `Makefile` is the **preferred** build interface; use `make <target>` rather than
    raw `cmake`/`ninja`/`ctest` commands whenever an equivalent target exists.
-   Available targets: `compile`, `test`, `format`, `format-check`, `coverage`, `doxygen`, `report`,
+   Available targets: `compile`, `test-compile`, `test`, `format`, `format-check`, `coverage`, `doxygen`, `report`, `paper`,
    `clean`, `install-hooks`, `ci-history`, `ci-main`, `pr-init`, `pr-status`, `pr-checks`, `pr-watch`, `pr-sync`, `pr-review-comments`, `pr-review-unresolved`.
 - Contributor workflow helper targets:
   `make ci-history BRANCH=<name> [LIMIT=<n>]` checks recent CI runs for a specific branch.
@@ -175,6 +243,7 @@ appear downstream, in the same order a textbook would present them.
 |---|---|
 | `make clean` | Remove the `build/` directory |
 | `make compile` | Configure (if needed) and build all targets |
+| `make test-compile` | `make compile` + build IR-fixture showcases; type-checks every C++ TU without running tests (fast local sanity gate) |
 | `make test` | Build then run the full test suite via CTest |
 | `make clean compile test` | Clean, rebuild, and run the verification suite |
 | `make format` | Auto-format all `*.cpp` / `*.cppm` sources with `clang-format` |
@@ -266,12 +335,44 @@ Both reports are uploaded to Codecov for centralized visibility.
 
 - Follow the module/partition layout described in `CMakeLists.txt` and the existing
   `main` partitions.
-- Mirror the doxygen header style used in neighbouring files (brief, partition summary,
-  copyright notice, a quote).
+- Mirror the doxygen header style used in neighbouring files — see
+  `Doxygen header convention` below for the full shape.
 - Keep concepts and naming aligned with the textbook literature cited in
   `docs/report/references.bib`.  UTF-8 mathematical symbols (ℤ, ℝ, …) are preferred
   over verbose ASCII alternatives.
 - Add or extend tests in the corresponding `src/test/cpp/modules/…` file.
+
+### Doxygen header convention
+
+Every `src/main/modules/dedekind/**/*.cppm` file SHOULD open with a doxygen
+comment block whose elements, in order, are:
+
+1. `@file` — path-qualified, matching the actual file location.
+2. `@partition :NAME` — when the file defines a module partition; omit for
+   umbrella / aggregator files.
+3. `@brief` — one line, sentence-case, terminating in a period.
+4. `@copyright 2026 The Dedekind Authors / Licensed under the Apache License,
+   Version 2.0.`
+5. One or more `@section` blocks summarising the partition's contents and
+   its mathematical intent. Cross-reference the textbook literature in
+   `docs/report/references.bib` and `docs/paper/references.bib` when a
+   concept has a canonical attested source.
+6. A `Wikipedia: ...` line enumerating two or three articles a reader might
+   consult to place the partition in the broader literature.
+7. A `@note` containing a **pertinent or serendipitous quote from a not
+   very famous practitioner in the field**, in the practitioner's native
+   language, with an English translation under `[Trans: ...]` on a
+   subsequent line. Attribution SHOULD include author, work, year, and
+   section / page where available. "Not very famous" means: avoid the
+   obvious top-five names of the century (Einstein, Euler, Gauss, von
+   Neumann, …); prefer a working mathematician / computer scientist /
+   logician whose contribution is recognised within the subfield.
+
+The practitioner-quote line is a social-embedding convention: it weaves the
+code into the broader mathematical tradition and signals the care taken in
+the work's intellectual lineage. New files SHOULD adopt it; existing files
+missing it SHOULD acquire one as part of the touching PR (boy-scouting
+applies).
 
 ## Questions
 

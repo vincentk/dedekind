@@ -32,6 +32,30 @@ SOURCES = [
         _PYTHON_DIR / "showcase_02_lattice_singleton.cpp",
         _PYTHON_DIR / "showcase_02_lattice_singleton.ll",
     ),
+    (
+        _PYTHON_DIR / "showcase_03_halfspace_contradiction.cpp",
+        _PYTHON_DIR / "showcase_03_halfspace_contradiction.ll",
+    ),
+    (
+        _PYTHON_DIR / "showcase_04_halfspace_singleton.cpp",
+        _PYTHON_DIR / "showcase_04_halfspace_singleton.ll",
+    ),
+    (
+        _PYTHON_DIR / "showcase_05_halfspace_real_ambient.cpp",
+        _PYTHON_DIR / "showcase_05_halfspace_real_ambient.ll",
+    ),
+    (
+        _PYTHON_DIR / "showcase_06_halfspace_interval_42.cpp",
+        _PYTHON_DIR / "showcase_06_halfspace_interval_42.ll",
+    ),
+    (
+        _PYTHON_DIR / "showcase_07_lattice_real_interval.cpp",
+        _PYTHON_DIR / "showcase_07_lattice_real_interval.ll",
+    ),
+    (
+        _PYTHON_DIR / "showcase_08_halfspace_2d_product.cpp",
+        _PYTHON_DIR / "showcase_08_halfspace_2d_product.ll",
+    ),
 ]
 
 # Keep single-source aliases for backward compatibility with any callers.
@@ -184,6 +208,60 @@ def semantic_sanity(ir_text: str, source: Path) -> None:
         if "ret i1 true" not in block:
             raise AssertionError(
                 "Expected lattice singleton witness to collapse to `ret i1 true` in IR."
+            )
+    elif "showcase_03_halfspace_contradiction" in name:
+        block = extract_function_block(ir_text, "impress_empty_halfspace_meet")
+        if block is None:
+            raise AssertionError("IR missing impress_empty_halfspace_meet symbol.")
+        if "ret i1 false" not in block:
+            raise AssertionError(
+                "Expected halfspace contradiction (x > 5) ∧ (x < 3) on ℕ to "
+                "collapse to `ret i1 false` in IR."
+            )
+    elif "showcase_04_halfspace_singleton" in name:
+        block = extract_function_block(ir_text, "impress_halfspace_singleton")
+        if block is None:
+            raise AssertionError("IR missing impress_halfspace_singleton symbol.")
+        if "ret i1 true" not in block:
+            raise AssertionError(
+                "Expected halfspace cardinality-1 meet (3 < n < 5) on ℕ to "
+                "collapse to `ret i1 true` at the unique inhabitant."
+            )
+    elif "showcase_05_halfspace_real_ambient" in name:
+        block = extract_function_block(ir_text, "impress_real_halfspace_empty")
+        if block is None:
+            raise AssertionError("IR missing impress_real_halfspace_empty symbol.")
+        if "ret i1 false" not in block:
+            raise AssertionError(
+                "Expected halfspace contradiction on ℝ to collapse to "
+                "`ret i1 false` in IR."
+            )
+    elif "showcase_06_halfspace_interval_42" in name:
+        block = extract_function_block(ir_text, "impress_interval_42_member")
+        if block is None:
+            raise AssertionError("IR missing impress_interval_42_member symbol.")
+        if "ret i1 true" not in block:
+            raise AssertionError(
+                "Expected membership query at 0 in (-21, 21] on ℤ to collapse "
+                "to `ret i1 true` in IR."
+            )
+    elif "showcase_07_lattice_real_interval" in name:
+        block = extract_function_block(ir_text, "impress_lattice_real_interval")
+        if block is None:
+            raise AssertionError("IR missing impress_lattice_real_interval symbol.")
+        if "ret i1 true" not in block:
+            raise AssertionError(
+                "Expected ℤ lattice ∩ real interval (-21.0, 21.0] at 0 to "
+                "collapse to `ret i1 true` in IR."
+            )
+    elif "showcase_08_halfspace_2d_product" in name:
+        block = extract_function_block(ir_text, "impress_2d_box_member")
+        if block is None:
+            raise AssertionError("IR missing impress_2d_box_member symbol.")
+        if "ret i1 true" not in block:
+            raise AssertionError(
+                "Expected 2D box membership at (0, 5) to collapse to "
+                "`ret i1 true` in IR."
             )
     else:
         raise AssertionError(f"No semantic checks defined for {name}.")

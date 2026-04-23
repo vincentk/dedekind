@@ -121,7 +121,21 @@ inline constexpr Variable<S> var{};
 /** @brief The universal predicate: accepts every element of T. */
 export template <typename T>
 struct UniversalPredicate {
+  using Domain = T;
   constexpr bool operator()(const T&) const { return true; }
+};
+
+/**
+ * @brief The empty predicate: rejects every element of T.
+ *
+ * Used as the structural witness of a contradiction proven at compile time
+ * (e.g. `(x > 5) && (x < 3)` collapsing via `structured_and`). When a `Set`'s
+ * predicate is `EmptyPredicate<T>`, the set equals `Ø<T, L>`.
+ */
+export template <typename T>
+struct EmptyPredicate {
+  using Domain = T;
+  constexpr bool operator()(const T&) const { return false; }
 };
 
 /** @brief Predicate-level complement wrapper used for set-collapse detection.
@@ -288,6 +302,10 @@ class Set {
         NegatedPredicate<Predicate>{predicate_}};
   }
 
+  // FIXME(#362): operator| / operator& currently require the same carrier
+  // type `T`. Heterogeneous meets (`Set<ℕ> & Set<ℝ>`) should dispatch through
+  // the canonical-embedding lattice (`embed_ℕ_ℝ`, …) so the result tightens
+  // to the sharper of the two carriers; same applies below for operator&.
   template <typename OtherPredicate>
   constexpr auto operator|(const Set<T, L, OtherPredicate>& other) const {
     if constexpr (IsComplementPair_v<Predicate, OtherPredicate>) {
@@ -300,6 +318,9 @@ class Set {
           L::OR((*this)(true), other(true)),
       };
     } else {
+      // FIXME(#365): symmetric of the operator& fallback below — lattice-law
+      // rewriting (dually: absorption, De Morgan) could collapse `A ∪ B`
+      // structurally before falling through to this opaque lambda.
       auto predicate = [lhs = predicate_, rhs = other.predicate_](const T& v) {
         return lhs(v) || rhs(v);
       };
@@ -318,7 +339,40 @@ class Set {
           L::AND((*this)(false), other(false)),
           L::AND((*this)(true), other(true)),
       };
+    } else if constexpr (requires {
+                           structured_and(predicate_, other.predicate_);
+                         }) {
+      // Evaluate the reduction once. Calling `structured_and` multiple times
+      // inflates compile time (each call is a fresh template instantiation)
+      // and would risk inconsistency if a future overload produced a value-
+      // carrying (non-empty) result whose default-construction differs from
+      // the original call's result.
+      auto reduced = structured_and(predicate_, other.predicate_);
+      using Result = std::decay_t<decltype(reduced)>;
+      if constexpr (std::same_as<Result, EmptyPredicate<T>>) {
+        return Ø<T, L>{};
+      } else if constexpr (requires {
+                             typename Result::is_static_singleton_tag;
+                           }) {
+        // Cardinality-1 reduction (e.g. integer halfspace meet): elevate to a
+        // bare Singleton-typed value, paralleling the Ø collapse for empty.
+        return reduced;
+      } else if constexpr (requires { typename Result::cardinality_type; } &&
+                           std::same_as<typename Result::cardinality_type,
+                                        Finite>) {
+        // Structured reduction to a named finite object (e.g. an integer
+        // OrderInterval with compile-time-computed size): elevate it out of
+        // the Set wrapper so downstream code can observe size() / bounds /
+        // computability classification directly on the reduced type.
+        return reduced;
+      } else {
+        return Set<T, L, Result>{std::move(reduced)};
+      }
     } else {
+      // FIXME(#365): lambda fallback erases predicate structure. Lattice-law
+      // rewriting (distributivity / absorption / De Morgan) could expose
+      // collapses here that the local structured_and branches miss — e.g.
+      // `(A ∪ B) ∩ ¬A` normalising to `B ∩ ¬A` before this fallback fires.
       auto predicate = [lhs = predicate_, rhs = other.predicate_](const T& v) {
         return lhs(v) && rhs(v);
       };
@@ -449,6 +503,18 @@ export template <typename Species>
   requires std::same_as<typename Species::Domain, bool>
 constexpr auto operator==(const Variable<Species>&, bool rhs) {
   return BooleanEqPredicate{rhs};
+}
+
+/** @brief Unary negation of a boolean variable: `!b` ≡ `b == false`.
+ *
+ *  Delegates to the `operator==` overload above so the bool-domain encoding
+ *  lives in exactly one place: a future change to the predicate type or
+ *  pruning hooks only needs to be made once.
+ */
+export template <typename Species>
+  requires std::same_as<typename Species::Domain, bool>
+constexpr auto operator!(const Variable<Species>& v) {
+  return v == false;
 }
 
 /** @section Logical_Lifting */
