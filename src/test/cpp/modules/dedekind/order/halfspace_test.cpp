@@ -62,7 +62,11 @@ TEST_CASE("order:halfspace — Halfspace operator() on integral carrier",
 
 TEST_CASE("order:halfspace — Variable DSL constructs Halfspace from bound<V>",
           "[order][halfspace][dsl]") {
-  constexpr auto n = var<ℤ>;
+  // ℕ rather than ℤ so the order-test target stays upstream of numbers: ℤ
+  // lives in `dedekind.numbers`, which is downstream of `dedekind.order` in
+  // the build DAG. ℕ has the same underlying Domain (`int`), so the test
+  // exercises identical `Halfspace<int, ...>` instantiations.
+  constexpr auto n = var<ℕ>;
 
   SECTION("> constructs Upward/Strict") {
     constexpr auto h = n > bound<7>;
