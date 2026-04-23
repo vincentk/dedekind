@@ -23,6 +23,7 @@ module;
 #include <algorithm>
 #include <concepts>
 #include <cstddef>
+#include <utility>
 
 export module dedekind.order:halfspace;
 
@@ -33,12 +34,12 @@ namespace dedekind::order {
 using namespace dedekind::sets;
 using namespace dedekind::category;
 
-/** @brief Orientation of a halfspace along the chain (internal). */
-enum class Direction { Upward, Downward };
+/** @brief Orientation of a halfspace along the chain. */
+export enum class Direction { Upward, Downward };
 
 /** @brief Whether the boundary is strict (`>`, `<`) or inclusive (`>=`, `<=`).
  */
-enum class Strictness { Strict, NonStrict };
+export enum class Strictness { Strict, NonStrict };
 
 /** @brief Compile-time bound tag: `bound<5>` carries `5` in its type. */
 template <auto V>
@@ -57,17 +58,20 @@ inline constexpr Bound<V> bound{};
  *
  * `⋈` ∈ { >, >=, <, <= }, selected by `D` (direction) and `S` (strictness).
  */
-export template <typename T, T Pivot, Direction D, Strictness S,
+export template <typename T, auto Pivot, Direction D, Strictness S,
                  typename L = ClassicalLogic>
 struct Halfspace {
   using Domain = T;
   using Codomain = typename L::Ω;
   using logic_species = L;
 
-  static constexpr T pivot = Pivot;
+  static constexpr auto pivot = Pivot;
   static constexpr Direction direction = D;
   static constexpr Strictness strictness = S;
 
+  // `Pivot` may be a different structural type than `T` (e.g., pivot = 5.0 as
+  // double, T = Real<double>). The carrier's converting ctor / overload set
+  // handles the comparison; we only assume `T` is comparable with the pivot.
   constexpr Codomain operator()(const T& x) const {
     if constexpr (D == Direction::Upward) {
       const bool hit = (S == Strictness::Strict) ? (x > Pivot) : (x >= Pivot);
@@ -120,48 +124,68 @@ struct Singleton {
 };
 
 /** @brief Meet of two opposing halfspaces — an order-theoretic interval. */
-export template <typename T, T Lo, T Hi, Strictness SL, Strictness SU,
+export template <typename T, auto Lo, auto Hi, Strictness SL, Strictness SU,
                  typename L = ClassicalLogic>
 struct OrderInterval {
   using Domain = T;
   using Codomain = typename L::Ω;
   using logic_species = L;
 
-  static constexpr T lower_pivot = Lo;
-  static constexpr T upper_pivot = Hi;
+  static constexpr auto lower_pivot = Lo;
+  static constexpr auto upper_pivot = Hi;
+  static constexpr Strictness lower_strictness = SL;
+  static constexpr Strictness upper_strictness = SU;
 
   constexpr Codomain operator()(const T& x) const {
     const bool lo_ok = (SL == Strictness::Strict) ? (x > Lo) : (x >= Lo);
     const bool hi_ok = (SU == Strictness::Strict) ? (x < Hi) : (x <= Hi);
     return (lo_ok && hi_ok) ? L::True : L::False;
   }
+
+  // For integral carriers, cardinality is compile-time-decidable from the
+  // bounds and strictness pair. Gate the size()/cardinality_type surface so
+  // that continuous carriers (like Real<double>) correctly fail `IsFiniteSet`.
+  static constexpr bool is_integer_range = std::integral<T>;
+
+  constexpr std::size_t size() const
+    requires is_integer_range
+  {
+    constexpr bool lo_open = (SL == Strictness::Strict);
+    constexpr bool hi_open = (SU == Strictness::Strict);
+    constexpr auto span =
+        Hi - Lo + (lo_open ? 0 : 1) + (hi_open ? -1 : 0);
+    return span > 0 ? static_cast<std::size_t>(span) : 0u;
+  }
+
+  // Advertise Finite only when the cardinality is computable.
+  using cardinality_type = std::conditional_t<is_integer_range, Finite, ℵ_0>;
 };
 
 /** @section Halfspace_Variable_DSL — Variable<S> × Bound<V> → Halfspace. */
 
 export template <typename Species, auto V>
-  requires std::same_as<typename Species::Domain, decltype(V)>
+  requires std::convertible_to<decltype(V), typename Species::Domain>
 constexpr auto operator>(const Variable<Species>&, Bound<V>) {
   using T = typename Species::Domain;
   return Halfspace<T, V, Direction::Upward, Strictness::Strict>{};
 }
 
 export template <typename Species, auto V>
-  requires std::same_as<typename Species::Domain, decltype(V)>
+  requires std::convertible_to<decltype(V), typename Species::Domain>
 constexpr auto operator>=(const Variable<Species>&, Bound<V>) {
   using T = typename Species::Domain;
   return Halfspace<T, V, Direction::Upward, Strictness::NonStrict>{};
 }
 
 export template <typename Species, auto V>
-  requires std::same_as<typename Species::Domain, decltype(V)>
+  requires std::convertible_to<decltype(V), typename Species::Domain>
 constexpr auto operator<(const Variable<Species>&, Bound<V>) {
   using T = typename Species::Domain;
   return Halfspace<T, V, Direction::Downward, Strictness::Strict>{};
 }
 
 export template <typename Species, auto V>
-  requires std::same_as<typename Species::Domain, decltype(V)>
+  requires std::convertible_to<decltype(V), typename Species::Domain>
 constexpr auto operator<=(const Variable<Species>&, Bound<V>) {
   using T = typename Species::Domain;
   return Halfspace<T, V, Direction::Downward, Strictness::NonStrict>{};
@@ -186,7 +210,7 @@ constexpr auto operator<=(const Variable<Species>&, Bound<V>) {
  * …clamped at 0. Cardinality 0 is the empty case; cardinality 1 picks out
  * the unique inhabitant and elevates the meet to a `Singleton`.
  */
-export template <typename T, T Lo, T Hi, Strictness SL, Strictness SU,
+export template <typename T, auto Lo, auto Hi, Strictness SL, Strictness SU,
                  typename L>
 constexpr auto structured_and(Halfspace<T, Lo, Direction::Upward, SL, L>,
                               Halfspace<T, Hi, Direction::Downward, SU, L>) {
@@ -199,11 +223,13 @@ constexpr auto structured_and(Halfspace<T, Lo, Direction::Upward, SL, L>,
     // Cardinality of {x : T | Lo ⋈ x ⋈ Hi} over integral T.
     constexpr bool lo_open = (SL == Strictness::Strict);
     constexpr bool hi_open = (SU == Strictness::Strict);
-    constexpr T span =
-        Hi - Lo + (lo_open ? T{0} : T{1}) + (hi_open ? T{-1} : T{0});
-    if constexpr (span == T{1}) {
+    constexpr auto span = Hi - Lo + (lo_open ? 0 : 1) + (hi_open ? -1 : 0);
+    if constexpr (span == 1) {
       // Unique inhabitant: the smallest x admitted by the lower boundary.
-      constexpr T unique = lo_open ? T{Lo + 1} : Lo;
+      // static_cast rather than brace-init to permit real-valued bounds on an
+      // integer carrier (e.g. `bound<-21.0>` on `var<ℤ>`).
+      constexpr T unique =
+          lo_open ? static_cast<T>(Lo + 1) : static_cast<T>(Lo);
       return Singleton<unique, L>{};
     } else {
       return OrderInterval<T, Lo, Hi, SL, SU, L>{};
@@ -215,7 +241,7 @@ constexpr auto structured_and(Halfspace<T, Lo, Direction::Upward, SL, L>,
 
 /** @brief Symmetric case: downward ∩ upward → delegate to the canonical order.
  */
-export template <typename T, T Hi, T Lo, Strictness SU, Strictness SL,
+export template <typename T, auto Hi, auto Lo, Strictness SU, Strictness SL,
                  typename L>
 constexpr auto structured_and(Halfspace<T, Hi, Direction::Downward, SU, L>,
                               Halfspace<T, Lo, Direction::Upward, SL, L>) {
@@ -224,7 +250,7 @@ constexpr auto structured_and(Halfspace<T, Hi, Direction::Downward, SU, L>,
 }
 
 /** @brief Same-direction upward meet: the stricter pivot wins. */
-export template <typename T, T P1, T P2, Strictness S1, Strictness S2,
+export template <typename T, auto P1, auto P2, Strictness S1, Strictness S2,
                  typename L>
 constexpr auto structured_and(Halfspace<T, P1, Direction::Upward, S1, L>,
                               Halfspace<T, P2, Direction::Upward, S2, L>) {
@@ -243,7 +269,7 @@ constexpr auto structured_and(Halfspace<T, P1, Direction::Upward, S1, L>,
 }
 
 /** @brief Same-direction downward meet: the stricter pivot wins. */
-export template <typename T, T P1, T P2, Strictness S1, Strictness S2,
+export template <typename T, auto P1, auto P2, Strictness S1, Strictness S2,
                  typename L>
 constexpr auto structured_and(Halfspace<T, P1, Direction::Downward, S1, L>,
                               Halfspace<T, P2, Direction::Downward, S2, L>) {
@@ -258,6 +284,44 @@ constexpr auto structured_and(Halfspace<T, P1, Direction::Downward, S1, L>,
             : Strictness::NonStrict;
     return Halfspace<T, P1, Direction::Downward, S, L>{};
   }
+}
+
+/** @section Interval_Cartesian_Product — 2D structural products. */
+
+/**
+ * @brief Cartesian product of two reduced extensional structures (typically
+ * `OrderInterval`s on integer carriers). Preserves size / logic / tags so the
+ * 2D product participates in the same computability classification as the
+ * 1D factors: `IsFiniteSet<IntervalProduct<I1, I2>>` holds whenever each
+ * factor satisfies `IsFiniteSet`.
+ */
+export template <typename A, typename B>
+struct IntervalProduct {
+  A a;
+  B b;
+
+  using Domain = std::pair<typename A::Domain, typename B::Domain>;
+  using Codomain = typename A::Codomain;
+  using logic_species = typename A::logic_species;
+  using cardinality_type = Finite;
+  using is_extensional_tag = void;
+
+  constexpr Codomain operator()(const Domain& p) const {
+    using L = logic_species;
+    return (a(p.first) == L::True && b(p.second) == L::True) ? L::True
+                                                             : L::False;
+  }
+
+  constexpr std::size_t size() const { return a.size() * b.size(); }
+};
+
+/** @brief Infix `*` on two `OrderInterval`s → structural `IntervalProduct`. */
+export template <typename T1, auto Lo1, auto Hi1, Strictness SL1, Strictness SU1,
+                 typename L1, typename T2, auto Lo2, auto Hi2, Strictness SL2,
+                 Strictness SU2, typename L2>
+constexpr auto operator*(OrderInterval<T1, Lo1, Hi1, SL1, SU1, L1> a,
+                         OrderInterval<T2, Lo2, Hi2, SL2, SU2, L2> b) {
+  return IntervalProduct<decltype(a), decltype(b)>{a, b};
 }
 
 }  // namespace dedekind::order

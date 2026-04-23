@@ -195,7 +195,11 @@ add_library(set-pruning-ir-fixture STATIC EXCLUDE_FROM_ALL
     src/test/cpp/modules/dedekind/python/showcase_01_diagonal_contradiction.cpp
     src/test/cpp/modules/dedekind/python/showcase_02_lattice_singleton.cpp
     src/test/cpp/modules/dedekind/python/showcase_03_halfspace_contradiction.cpp
-    src/test/cpp/modules/dedekind/python/showcase_04_halfspace_singleton.cpp)
+    src/test/cpp/modules/dedekind/python/showcase_04_halfspace_singleton.cpp
+    src/test/cpp/modules/dedekind/python/showcase_05_halfspace_real_ambient.cpp
+    src/test/cpp/modules/dedekind/python/showcase_06_halfspace_interval_42.cpp
+    src/test/cpp/modules/dedekind/python/showcase_07_lattice_real_interval.cpp
+    src/test/cpp/modules/dedekind/python/showcase_08_halfspace_2d_product.cpp)
 
 set_target_properties(set-pruning-ir-fixture PROPERTIES
     CXX_STANDARD 23

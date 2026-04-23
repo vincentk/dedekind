@@ -345,6 +345,15 @@ class Set {
         // Cardinality-1 reduction (e.g. integer halfspace meet): elevate to a
         // bare Singleton-typed value, paralleling the Ø collapse for empty.
         return Result{};
+      } else if constexpr (requires {
+                             typename Result::cardinality_type;
+                           } && std::same_as<typename Result::cardinality_type,
+                                             Finite>) {
+        // Structured reduction to a named finite object (e.g. an integer
+        // OrderInterval with compile-time-computed size): elevate it out of
+        // the Set wrapper so downstream code can observe size() / bounds /
+        // computability classification directly on the reduced type.
+        return structured_and(predicate_, other.predicate_);
       } else {
         return Set<T, L, Result>{structured_and(predicate_, other.predicate_)};
       }
