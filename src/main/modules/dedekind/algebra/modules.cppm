@@ -134,6 +134,28 @@ concept IsVectorSpace =
     IsModule<V, F, AddV, AddF, MultF, Act> && IsField<F, AddF, MultF>;
 
 /**
+ * @concept IsScalar
+ * @brief A bona fide scalar is a 1D semi-module over itself.
+ * @details The scalar carrier S acts on itself by its own multiplication,
+ *          forming the canonical 1D semi-module S over S. This is the
+ *          minimal structural claim a type earns by being called a "scalar":
+ *          it participates in its own linear action.
+ */
+export template <typename S>
+concept IsScalar = IsSemimodule<S, S>;
+
+/**
+ * @concept IsFieldElement
+ * @brief A bona fide element of a field is a 1D vector space over itself.
+ * @details Tightening `IsScalar` when division is available: F is its own
+ *          1D vector space, with F as the scalar field. Categorically
+ *          equivalent to `IsField<F>` but phrased in the linear-algebraic
+ *          vocabulary the paper and downstream layers use.
+ */
+export template <typename F>
+concept IsFieldElement = IsVectorSpace<F, F>;
+
+/**
  * @struct OneDimensionalVector
  * @brief Reified carrier for a 1D module/vector-space coordinate.
  * @details This is the concrete baseline for issue #125. The coordinate lives
@@ -299,6 +321,29 @@ concept IsVectorSpaceLike = IsFieldLikeScalar<F> && requires(F a, F b, V v) {
 };
 
 /**
+ * @concept IsScalarLike
+ * @brief Operational counterpart of `IsScalar` for machine-backed carriers.
+ * @details Reads "S is a 1D semimodule-like over itself" using the pragmatic
+ *          closure signatures rather than the strict categorical proof. This
+ *          is the concept a type like `Rational<long>` or `IEEE<double>` can
+ *          carry under the active numeric policy (cf. `IsFieldLikeScalar`).
+ */
+export template <typename S>
+concept IsScalarLike = IsSemimoduleLike<S, S, std::plus<S>, std::plus<S>,
+                                        std::multiplies<S>, std::multiplies<>>;
+
+/**
+ * @concept IsFieldElementLike
+ * @brief Operational counterpart of `IsFieldElement`.
+ * @details "F is a 1D vector-space-like over itself" under the operational
+ *          `IsFieldLikeScalar` witness. Intentionally decoupled from the
+ *          categorical `IsField` proof, which is architecturally withheld
+ *          for machine-backed carriers (see `:field`).
+ */
+export template <typename F>
+concept IsFieldElementLike = IsVectorSpaceLike<F, F>;
+
+/**
  * @concept SatisfiesVectorSpaceAxioms
  * @brief Operational witness of the core vector-space axiom signatures.
  * @details Verifies closure and the canonical linearity/composition shapes.
@@ -368,6 +413,17 @@ static_assert(
     IsSemimoduleLike<BoolLine, bool, BoolLineJoin, std::logical_or<bool>,
                      std::logical_and<bool>, BoolLineMeetAction>,
     "BoolLine should satisfy the 1D boolean semimodule-like witness.");
+
+/** @section Bona_Fide_Scalar_and_Field_Element_Witnesses
+ *
+ *  "A scalar is a 1D semi-module over itself; an element of a field is a 1D
+ *   vector space over itself." These operational witnesses anchor the slogan
+ *   for concrete carriers under the active numeric policy.
+ */
+static_assert(IsScalarLike<unsigned int>,
+              "unsigned int is a bona fide scalar (1D semi-module over self).");
+static_assert(IsScalarLike<int>,
+              "int is a bona fide scalar (1D semi-module over self).");
 
 }  // namespace dedekind::algebra
 

@@ -2629,6 +2629,21 @@ CHECK(a * b == 42);
 CHECK(std::multiplies<int>{}(a, b) == 42);
 \end{lstlisting}
 
+\subsection{Operational witnesses: \texttt{IsRingLike}, \texttt{IsSemiringLike}, \texttt{IsRingLikeHomomorphism}}
+\label{subsec:algebra-ring-operational}
+
+The strict \texttt{IsRing} and \texttt{IsSemiring} concepts above depend on the axiom variable templates (\texttt{identity\_v}, \texttt{is\_associative\_v}, \texttt{is\_commutative\_v}, \texttt{inverse\_v}) being specialised per carrier. Machine-backed carriers such as \texttt{Rational<long>} deliberately do not carry those proofs under the active numeric policy---the same pattern that gives \texttt{IsField} vs.\ \texttt{IsFieldLikeScalar} in \texttt{:modules}.
+
+\texttt{:ring} therefore also exports operational concepts that check closure of the arithmetic operators only:
+
+\begin{itemize}
+  \item \texttt{IsRingLike<T>} --- closed $+$, binary $-$, unary $-$, $*$. Parallel to \texttt{IsFieldLikeScalar} but without the $/$ requirement (rings don't in general support division). Fires on \texttt{Rational<long>}, \texttt{int}, \texttt{unsigned int}, \texttt{Complex<R>} (for any \texttt{IsRingLike R}), \texttt{Dual<F>}, and \texttt{Matrix2x2V<R>} over any \texttt{IsRingLike R}---operationally witnessing ``matrices over a ring form a (non-commutative) ring''.
+  \item \texttt{IsSemiringLike<T>} --- closed $+$, $*$, structural identities \texttt{T\{\}} and \texttt{T\{1\}}, without subtraction or unary negation. The ``no additive inverse'' carriers: booleans under OR/AND, naturals, tropical semirings.
+  \item \texttt{IsRingLikeHomomorphism<Phi, Source, Target>} --- a callable $\phi$ that sends \texttt{Source} to \texttt{Target} with $+$ and $\cdot$ preservation. The structural concept asks that both carriers are ring-like, $\phi(a)$ is well-typed and returns \texttt{Target}, and the two preservation expressions $\phi(a + b) \mathrel{=\!=} \phi(a) + \phi(b)$ and $\phi(a \cdot b) \mathrel{=\!=} \phi(a) \cdot \phi(b)$ are well-formed. Whether each \texttt{==} returns \texttt{true} for all inputs is a value-level claim, witnessed per-instance via \texttt{static\_assert} on concrete probes (cf.\ the $\mathbb{C} \hookrightarrow M_2(\mathbb{Q})$ and $\mathbb{D} \hookrightarrow M_2(\mathbb{Q})$ witnesses in \texttt{dedekind.linear\_algebra:embeddings}).
+\end{itemize}
+
+Preservation of distinguished identities ($\phi(0) = 0$, $\phi(1) = 1$) is \emph{not} encoded structurally here: \texttt{IsRingLikeHomomorphism} checks only additive and multiplicative preservation on ring-like carriers and does not require or validate identity preservation, matching the absence of \texttt{T\{\}} / \texttt{T\{1\}} from \texttt{IsRingLike}. Unital laws, when needed, must be witnessed by stricter concepts or on concrete probe values.
+
 \section{\texttt{:field}}
 \label{sec:algebra-field}
 
@@ -2643,6 +2658,32 @@ Provides the division morphism $a / b = a \cdot b^{-1}$ and the \texttt{IsDivisi
 \label{sec:algebra-modules}
 
 Semimodules and modules formalise the action of a ring on an additive abelian group, generalising vector spaces to arbitrary coefficient rings.
+
+The strict concepts \texttt{IsSemimodule<M, S>} and \texttt{IsModule<M, S>} compose from \texttt{IsCommutativeMonoid} / \texttt{IsAdditiveGroup} (on the carrier \texttt{M}), \texttt{IsSemiring} / \texttt{IsRing} (on the scalar \texttt{S}), and \texttt{IsLinearAction<S, M>}. \texttt{IsVectorSpace<V, F>} adds \texttt{IsField<F>} on the scalar side.
+
+\subsection{Operational scalar / module witnesses}
+
+For machine-backed carriers that are deliberately blocked from the strict tower, \texttt{:modules} exports an operational parallel:
+
+\begin{itemize}
+  \item \texttt{IsFieldLikeScalar<S>} --- closed $+$, $-$, unary $-$, $*$, $/$. The canonical operational witness for scalars under the active numeric policy.
+  \item \texttt{IsSemimoduleLike<M, S, AddM, AddS, MultS, Act>} --- closure of the additive, multiplicative, and action operations together with the four compatibility signatures (distributivity of action over $+$ on both sides, action through scalar $*$).
+  \item \texttt{IsVectorSpaceLike<V, F>} --- \texttt{IsFieldLikeScalar<F>} plus \texttt{v + v}, unary $-v$, and the scalar action \texttt{F * V} $\to$ \texttt{V}.
+  \item \texttt{SatisfiesVectorSpaceAxioms<V, F, ...>} --- the full axiom-signature battery (distributivity, action composition, unit axiom when a multiplicative identity witness exists).
+\end{itemize}
+
+\subsection{Bona fide scalar / field element}
+\label{subsec:algebra-modules-bona-fide}
+
+A slogan of the project is that ``a scalar is a 1D semi-module over itself; an element of a field is a 1D vector space over itself''. Encoded as concepts:
+
+\begin{itemize}
+  \item \texttt{IsScalar<S>} $= $ \texttt{IsSemimodule<S, S>} (strict).
+  \item \texttt{IsFieldElement<F>} $= $ \texttt{IsVectorSpace<F, F>} (strict).
+  \item \texttt{IsScalarLike<S>} / \texttt{IsFieldElementLike<F>} --- operational counterparts using \texttt{IsSemimoduleLike} / \texttt{IsVectorSpaceLike}. These fire on machine-backed carriers such as \texttt{int}, \texttt{unsigned int}, \texttt{Rational<long>}.
+\end{itemize}
+
+The reified 1D carrier \texttt{OneDimensionalVector<S, Tag>} demonstrates the slogan concretely: a coordinate in the scalar species \texttt{S} with pointwise addition and scalar action, witnessed via \texttt{IsVectorSpaceLike<RealLine, RealLineScalar>} and \texttt{SatisfiesVectorSpaceAxioms} on the same carrier.
 
 \section{\texttt{:polynomial}}
 \label{sec:algebra-polynomial}
@@ -2941,6 +2982,8 @@ b & \phantom{-}a
 so that matrix action agrees with complex multiplication:
 $M(z)\,v(w)=v(zw)$.
 
+The arithmetic surface now includes binary and unary \texttt{operator-} alongside $+$ and $\cdot$, so \texttt{Complex<R>} satisfies \texttt{dedekind::algebra::IsRingLike} for any \texttt{IsRingLike R}. Unary negation is expressed via \texttt{R\{\} - x} rather than \texttt{-x}, matching \texttt{IsComplexScalar<R>}'s requirement set exactly (which has \texttt{R\{\}} and binary $-$ but does not mandate unary $-$ on the scalar carrier). The ring-like surface is what lets the regular representation $\mathbb{C} \hookrightarrow M_2(T)$ in \texttt{dedekind.linear\_algebra:embeddings} carry the \texttt{IsRingLikeHomomorphism} witness structurally rather than just as prose.
+
 \section{\texttt{:quaternion}}
 \label{sec:numbers-quaternion}
 
@@ -3143,13 +3186,114 @@ This stub is intentionally link-free: it validates the Phase~1 contract API with
 
 \section{Results}
 
-The test suite for this module exercises all three acceptance criteria of issue~\#342 using \texttt{STATIC\_REQUIRE}:
+The test suite exercises the following at build time:
 \begin{enumerate}
-  \item Rank is exposed at compile time (\texttt{StaticRankNullity::rank}).
-  \item Number of columns (ambient dimension) is exposed at compile time (\texttt{StaticRankNullity::ambient\_dimension}).
-  \item The compile-time identity $\text{rank} + \text{nullity} = \text{ambient\_dimension}$ is enforced via \texttt{RankNullityWitness}.
+  \item Phase~1 rank-nullity (issue~\#342): \texttt{StaticRankNullity::rank} and \texttt{::ambient\_dimension} exposed at compile time; the identity $\text{rank} + \text{nullity} = \text{ambient\_dimension}$ enforced via \texttt{RankNullityWitness}; backend conformance of the GraphBLAS stub via \texttt{LinearOperatorContract} and \texttt{BackendConformantLinearOperator}.
+  \item Tiers~0--2 of the block-Schur recursion (issue~\#366): Cramer's inverse over $\mathbb{Q}$, \texttt{DirectSum} composition, \texttt{BlockUpperTriangular} inverse via the degenerate-Schur closed form.
+  \item The nine matrix slogans witnessed on \texttt{(Matrix2x2V<Rat>, Vec2V<Rat>, Covec2V<Rat>)}: column/row as vector/covector, dimension as cardinality, decomposition $\leftrightarrow$ concatenation round-trip, row and column counts, submodule-like, ring-like-plus-transpose, non-commutative multiplication, matrix algebra.
+  \item $\mathrm{O}(2, \mathbb{Q})$ group closure and the linear action on $\mathbb{Q}^2$.
+  \item $\mathbb{C}$ and $\mathbb{D}$ as injective ring homomorphisms into $M_2(\mathbb{Q})$ via the \texttt{IsRingLikeHomomorphism} concept, plus $\varepsilon^2 = 0$ lifting to the zero matrix.
 \end{enumerate}
-Backend conformance of the GraphBLAS stub is also verified statically via \texttt{LinearOperatorContract} and \texttt{BackendConformantLinearOperator}.
+Current totals: $127$ assertions / $26$ cases in the linear-algebra suite.
+
+\section{Tuples, matrices, embeddings (\texttt{:tuple} / \texttt{:matrix} / \texttt{:embeddings})}
+\label{sec:linear_algebra-tuple-matrix-embeddings}
+
+Beyond the Phase~1 rank-nullity and backend stubs, the module grew three partitions carrying concrete tuple and matrix carriers plus the canonical embeddings of $\mathbb{C}$ and $\mathbb{D}$ into the $2 \times 2$ matrix algebra. The partition ontology follows Stammbach's \emph{Lineare Algebra}: tuples first, then matrices-as-linear-maps on tuple spaces, then embeddings of algebraic structures.
+
+\subsection{\texttt{:tuple}}
+
+\texttt{Vec2<T, x, y>} is a structural $2$-tuple with coordinates at the type level, used as the target of the NTTP matrix family's left action. \texttt{Vec2V<T>} is the value-level column vector---equivalently a $2 \times 1$ matrix, carrying \texttt{orientation = ColumnOrientation}, \texttt{row\_count = 2}, \texttt{column\_count = 1}, and \texttt{dimension\_type = dedekind::sets::Finite} (the cardinality tag linking dimension to the \texttt{dedekind.sets:cardinality} ladder). \texttt{Covec2V<T>} is its row-oriented dual ($1 \times 2$). Template bound: \texttt{dedekind::algebra::IsRingLike<T>}.
+
+Transpose exchanges the two carriers: \texttt{Vec2V::transpose()} $\to$ \texttt{Covec2V} and vice versa, with $(a^{\mathsf{T}})^{\mathsf{T}} = a$ pinned at both type level (\texttt{HasInvolutiveTranspose}) and value level. Together they form an \texttt{IsTransposeDualPair}.
+
+\subsection{\texttt{:matrix}}
+
+Two parallel families: NTTP (entries at the type level) and value-level.
+
+\textbf{NTTP family} (Tiers~0--2 of issue~\#366):
+\begin{itemize}
+  \item \texttt{Invertible2x2<T, a, b, c, d>} with instantiation-time full-rank witness \texttt{a*d - b*c != 0} and closed-form Cramer \texttt{inverse\_type = Invertible2x2<T, d/det, -b/det, -c/det, a/det>}; exact over \texttt{Rational<Z>}. Bound: \texttt{IsFieldLikeScalar<T>} (Cramer needs division).
+  \item \texttt{Matrix2x2<T, a, b, c, d>} (possibly-singular NTTP peer, bound: \texttt{IsRingLike<T>}), \texttt{Identity2x2<T>}, \texttt{Zero2x2<T>}.
+  \item \texttt{DirectSum<A, B>} with $(A \oplus B)^{-1} = A^{-1} \oplus B^{-1}$ and blockwise composition (Tier~1, invertibility-preserving combinator).
+  \item \texttt{BlockUpperTriangular<A, B, D>} for $M = \begin{pmatrix} A & B \\ 0 & D \end{pmatrix}$ using the degenerate-Schur closed form---the non-trivial recurrence beyond direct sum (Tier~2).
+\end{itemize}
+
+\begin{lstlisting}[language=C++, caption={\texttt{:matrix}: paper-facing existential proof, Tier~2 over $\mathbb{Q}$.}, label={lst:matrix-tier2}]
+using A_t = Invertible2x2<Rat, Rat{1L}, Rat{2L}, Rat{3L}, Rat{4L}>;  // det -2
+using D_t = Invertible2x2<Rat, Rat{2L}, Rat{1L}, Rat{1L}, Rat{1L}>;  // det  1
+using B_t = Matrix2x2<Rat, Rat{1L}, Rat{0L}, Rat{0L}, Rat{1L}>;
+using M_t = BlockUpperTriangular<A_t, B_t, D_t>;
+
+constexpr M_t M{};
+STATIC_CHECK(M * M.inverse() == BlockUpperTriangular<Identity2x2<Rat>,
+                                                     Zero2x2<Rat>,
+                                                     Identity2x2<Rat>>{});
+\end{lstlisting}
+
+\textbf{Value-level family.} \texttt{Matrix2x2V<T>} is the runtime companion to NTTP \texttt{Matrix2x2} (bound: \texttt{IsRingLike<T>}) with the full \texttt{IsMatrixAlgebra} surface: $+$, $-$ (binary and unary), $*$ (scalar and matrix), \texttt{column(i)}, \texttt{row(i)}, \texttt{transpose()}. The constants \texttt{identity\_matrix2x2\_v<T>} and \texttt{zero\_matrix2x2\_v<T>} are \texttt{inline constexpr} variable templates.
+
+Shape-conforming linear actions realise matrices as linear maps on tuples: \texttt{Matrix2x2V * Vec2V} $\to$ \texttt{Vec2V} (left action; inner dim $2 = 2$) and \texttt{Covec2V * Matrix2x2V} $\to$ \texttt{Covec2V} (right action). The symmetric pairings are deliberately \emph{not} overloaded---they are structurally ill-typed, witnessed by \texttt{!MatchesMultiplicativeShape}.
+
+Concatenation is the inverse of decomposition: \texttt{Vec2V | Vec2V} $\to$ \texttt{Matrix2x2V} (horizontal, $[A \mid B]$ notation) and \texttt{Covec2V / Covec2V} $\to$ \texttt{Matrix2x2V} (vertical). The round-trip $(M.\texttt{column}(0) \mid M.\texttt{column}(1)) = M$ and its row-dual are both \texttt{static\_assert}ed. (The operators \texttt{>>} and \texttt{<<} are deliberately \emph{not} reused for concatenation: they already carry categorical composition / Kleisli bind throughout \texttt{dedekind.category}.)
+
+$\mathrm{O}(2, \mathbb{Q})$ as a multiplicative group: concrete rational orthogonal matrices witness the group. Over $\mathbb{Q}$ not every rotation is spellable (e.g.\ $30^\circ$ needs $\sqrt{3}/2$), but the identity, $R_{90}$, $R_{180} = -I$, and axis reflections all live in the subgroup and are explicitly witnessed via $M^{\mathsf{T}} M = I$ and group closure under composition.
+
+\begin{lstlisting}[language=C++, caption={\texttt{:matrix}: $R_{90}$ as an orthogonal matrix acting on $\mathbb{Q}^2$.}, label={lst:matrix-orthogonal}]
+constexpr auto I = identity_matrix2x2_v<Rat>;
+constexpr Matrix2x2V<Rat> R90{Rat{0L}, Rat{-1L}, Rat{1L}, Rat{0L}};
+
+STATIC_CHECK(R90.transpose() * R90 == I);       // orthogonality law
+constexpr auto R180 = R90 * R90;                 // group closure
+STATIC_CHECK(R180.transpose() * R180 == I);
+
+constexpr Vec2V<Rat> e1{Rat{1L}, Rat{0L}};       // linear action on Q^2
+STATIC_CHECK(R90 * e1 == Vec2V<Rat>{Rat{0L}, Rat{1L}});
+\end{lstlisting}
+
+\subsection{\texttt{:embeddings}}
+
+Canonical regular representations of $\mathbb{C}$ and $\mathbb{D}$ (dual numbers) into $M_2(T)$:
+\[
+  \mathbb{C} \hookrightarrow M_2(T): \quad a + b\,i \mapsto \begin{pmatrix} a & -b \\ b & a \end{pmatrix}, \qquad
+  \mathbb{D} \hookrightarrow M_2(T): \quad a + b\,\varepsilon \mapsto \begin{pmatrix} a & b \\ 0 & a \end{pmatrix}.
+\]
+Both are injective ring homomorphisms witnessed over $\mathbb{Q}$ at compile time. The \texttt{IsRingLikeHomomorphism} concept from \texttt{dedekind.algebra:ring} pins the structural shape of the claim; per-value preservation of $0$, $1$, $+$, $\cdot$ is asserted on concrete probes. The nilpotency relation $\varepsilon^2 = 0$ in $\mathbb{D}$ lifts exactly to $\begin{pmatrix} 0 & 1 \\ 0 & 0 \end{pmatrix}^2 = 0$. Left-inverse extractors \texttt{complex\_from\_matrix2x2} and \texttt{dual\_from\_matrix2x2} complete the round-trip on the image.
+
+\begin{lstlisting}[language=C++, caption={\texttt{:embeddings}: $\mathbb{C} \hookrightarrow M_2(\mathbb{Q})$ as a ring homomorphism.}, label={lst:embeddings-complex}]
+struct ComplexToMatrix2x2Hom {
+  constexpr Matrix2x2V<Rat> operator()(const Complex<Rat>& z) const {
+    return as_matrix2x2(z);
+  }
+};
+
+static_assert(dedekind::algebra::IsRingLikeHomomorphism<
+                  ComplexToMatrix2x2Hom, Complex<Rat>, Matrix2x2V<Rat>>);
+
+// Per-value preservation on a non-symmetric probe pair.
+constexpr Complex<Rat> z{Rat{1L}, Rat{2L}};
+constexpr Complex<Rat> w{Rat{3L}, Rat{-5L}};
+static_assert(as_matrix2x2(z * w) == as_matrix2x2(z) * as_matrix2x2(w));
+static_assert(as_matrix2x2(z + w) == as_matrix2x2(z) + as_matrix2x2(w));
+\end{lstlisting}
+
+\section{Matrix-structural concepts (extended \texttt{:contracts})}
+\label{sec:linear_algebra-matrix-contracts}
+
+\texttt{:contracts} was extended alongside the tuple/matrix/embeddings work with a vocabulary encoding the nine matrix slogans. The hierarchy follows the project's strict/operational pattern (c.f.\ \texttt{IsField} vs.\ \texttt{IsFieldLikeScalar}):
+
+\begin{itemize}
+  \item \textbf{Dimension and orientation.} \texttt{HasDimensionCount<V>} (compile-time axis count, parallel to \texttt{dedekind.sets:cardinality}), \texttt{ColumnOrientation} / \texttt{RowOrientation} tag types, \texttt{HasOrientation<V>}.
+  \item \textbf{Vectors and covectors.} \texttt{IsVectorLike<V>} with additive and scalar-action closure, orientation, and dimension; \texttt{IsColumnVector} / \texttt{IsCovector} specialise by orientation.
+  \item \textbf{Matrix shape and decomposition.} \texttt{HasMatrixShape<M>} (row and column counts), \texttt{HasColumnType} / \texttt{HasRowType} (typed accessors), \texttt{HasColumnDecomposition} / \texttt{HasRowDecomposition} (indexed slices). \texttt{IsMatrix<M>} bundles them.
+  \item \textbf{Algebraic surface.} \texttt{IsMatrixSubmoduleLike<M, R>}, \texttt{IsMatrixAsModule<M, R>} (delegates to strict \texttt{dedekind::algebra::IsModule}), \texttt{HasMatrixMultiplication<M>} (closed, non-commutative in general), \texttt{HasTranspose<M>}, \texttt{HasInvolutiveTranspose<M>} ($(M^{\mathsf{T}})^{\mathsf{T}} \equiv M$ at the type level), \texttt{IsTransposeDualPair<V, Covec>} (column/row duality), \texttt{IsMatrixOverFieldRingLike<M, F>}, \texttt{HasMultiplicativeInverse<M>}, \texttt{IsInvertibleMatrixOverField<M, F>}, \texttt{IsOrthogonalMatrixCarrier<M>} (multiplication + involutive transpose; orthogonality itself witnessed per-value), \texttt{IsMatrixAlgebra<M, F>} (umbrella).
+  \item \textbf{Shape conformance.} \texttt{MatchesAdditiveShape<A, B>}, \texttt{MatchesMultiplicativeShape<A, B>} and the compound \texttt{HasConforming*} variants encode the ideal type-checking rule: mismatched shapes are structurally ill-typed.
+\end{itemize}
+
+\section{\texttt{:backends} and \texttt{:graphblas}}
+\label{sec:linear_algebra-backends-graphblas}
+
+The \texttt{:backends} partition defines \texttt{LinearAlgebraBackend} and \texttt{GenericBackend}. A backend carries a \texttt{BackendKind} discriminator, a \texttt{name}, and a \texttt{supports\_sparse\_linear\_operators} capability flag. \texttt{:graphblas} provides \texttt{GraphBLASBackendStub} with \texttt{kind = graphblas}; \texttt{SparseLinearOperatorStub} composes contracts and backend witness, gated by the compound \texttt{BackendConformantLinearOperator} concept. The stub is intentionally link-free---it validates the Phase~1 contract API without introducing a dependency on a real GraphBLAS library.
 
 
 \chapter{\texttt{dedekind.python}}

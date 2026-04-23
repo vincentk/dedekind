@@ -60,6 +60,21 @@ class Complex {
     return {a.first + b.first, a.second + b.second};
   }
 
+  // Binary and unary negation — complex numbers form an additive group
+  // so both ops must exist. Relied on by `dedekind.algebra::IsRingLike`
+  // witness in `:linear_algebra::embeddings`, which asserts the canonical
+  // regular representation ℂ → M₂(R) is a ring homomorphism.
+  friend constexpr Complex operator-(const Complex& a, const Complex& b) {
+    return {a.first - b.first, a.second - b.second};
+  }
+
+  // Unary negation expressed via `R{} - x` rather than `-x`, so the op's
+  // requirement set matches `IsComplexScalar<R>` exactly (which has `R{}`
+  // and binary `-` but does not mandate unary `-` on R).
+  friend constexpr Complex operator-(const Complex& a) {
+    return {R{} - a.first, R{} - a.second};
+  }
+
   friend constexpr Complex operator*(const Complex& a, const Complex& b) {
     return {(a.first * b.first) - (a.second * b.second),
             (a.first * b.second) + (a.second * b.first)};

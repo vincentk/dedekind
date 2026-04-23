@@ -77,7 +77,130 @@ export template <typename T, typename Add = std::plus<T>,
 concept IsCommutativeRing =
     IsRing<T, Add, Mult> && dedekind::category::IsCommutative<T, Mult>;
 
+/** @section Operational_Witnesses
+ *
+ *  `IsRing` and `IsSemiring` above are the strict categorical proofs and
+ *  depend on the axiom variable templates (`identity_v`, `is_associative_v`,
+ *  `is_commutative_v`, `inverse_v`) being specialised per carrier. Machine-
+ *  backed carriers such as `Rational<long>` deliberately do NOT carry those
+ *  proofs under the active numeric policy — the same pattern that gives
+ *  `IsField` vs `IsFieldLikeScalar` (see `:modules`).
+ *
+ *  The operational witnesses below are the analogous shortcut for
+ *  ring-shaped carriers: they check closure of the arithmetic operators
+ *  only. Identity elements (`0` and `1`) belong to the strict tower and
+ *  are not encoded here, matching `IsFieldLikeScalar`'s shape.
+ */
+
+/**
+ * @concept IsRingLike
+ * @brief Operational ring witness: +, unary -, binary -, * are closed in T.
+ *
+ *  Parallel to `IsFieldLikeScalar` from `:modules` but without the `/`
+ *  requirement: rings don't in general support division. Shape is
+ *  deliberately symmetric with `IsFieldLikeScalar` — operator closure
+ *  only, no structural identity witnesses (they live behind the strict
+ *  categorical axiom-hook tower).
+ *
+ *  Fires on `Rational<long>`, `int`, `unsigned int`, `Complex<R>` (for
+ *  any `IsRingLike R`), `Dual<F>`, and — crucially — on `Matrix2x2V<R>`
+ *  for any `IsRingLike R`, witnessing the slogan "matrices over a ring
+ *  form a (non-commutative) ring".
+ */
+export template <typename T>
+concept IsRingLike = requires(T a, T b) {
+  { a + b } -> std::same_as<T>;
+  { a - b } -> std::same_as<T>;
+  { -a } -> std::same_as<T>;
+  { a * b } -> std::same_as<T>;
+};
+
+/**
+ * @concept IsSemiringLike
+ * @brief Operational semiring witness: +, *, `T{}`, `T{1}` — NO subtraction
+ *        or unary negation required.
+ *
+ *  The "no additive inverse" carriers: booleans (under OR/AND), naturals,
+ *  tropical and other exotic semirings. Parallel to `IsRingLike` but
+ *  without the subtraction and unary-minus clauses.
+ */
+export template <typename T>
+concept IsSemiringLike = requires(T a, T b) {
+  { a + b } -> std::same_as<T>;
+  { a * b } -> std::same_as<T>;
+  T{};
+  T{1};
+};
+
+// FIXME: unify IsRingLike with the strict IsRing once an axiom-hook auto-
+// lifter exists (see the rejected-concepts summary on PR #367 — item #4
+// "Axiom-hook auto-lifter"). Then operational and strict can collapse for
+// value-level carriers without per-type boilerplate.
+
+/**
+ * @concept IsRingLikeHomomorphism
+ * @brief A callable φ that sends `Source` to `Target` with additive and
+ *        multiplicative preservation:
+ *
+ *   φ(a + b) == φ(a) + φ(b)      additive preservation
+ *   φ(a · b) == φ(a) · φ(b)      multiplicative preservation
+ *
+ *  The concept checks the STRUCTURAL shape of the claim:
+ *   - `Source` and `Target` are both operationally ring-like,
+ *   - `φ(a)` is well-typed and returns `Target`,
+ *   - both preservation expressions are well-formed (yield `bool`).
+ *
+ *  Preservation of distinguished identities (φ(0) = 0, φ(1) = 1) is NOT
+ *  encoded structurally here: `IsRingLike` does not expose identity
+ *  elements, so the concept cannot reach them. Unital / identity laws,
+ *  when needed, must be checked by stricter concepts or on concrete
+ *  probe values (cf. `dedekind.linear_algebra:embeddings` for the
+ *  ℂ ↪ M₂(ℚ) and 𝔻 ↪ M₂(ℚ) cases where `zero_matrix2x2_v` and
+ *  `identity_matrix2x2_v` are asserted at specific instances).
+ *
+ *  The semantic LAW — that each `==` returns `true` for all inputs — is
+ *  a value-level claim, witnessed per instance via `static_assert` on
+ *  concrete probes. A concept cannot encode a universally-quantified
+ *  runtime property directly; this is the conventional operational
+ *  witness.
+ *
+ *  Parallel to how `IsRingLike` is the operational half of `IsRing`: a
+ *  strict categorical `IsRingHomomorphism` would additionally witness
+ *  identity preservation and require the strict axiom-hook tower. No
+ *  such strict version is exported yet because the carrier-level hooks
+ *  are not generally populated on machine-backed carriers.
+ */
+// FIXME: add `IsGroupHomomorphism`, `IsMonoidHomomorphism`, and
+// `IsSemiringLikeHomomorphism` specialisations alongside once there are
+// concrete call sites that need them (e.g. embedding modular groups into
+// symmetric groups, or tropical-semiring homomorphisms).
+export template <typename Phi, typename Source, typename Target>
+concept IsRingLikeHomomorphism = IsRingLike<Source> && IsRingLike<Target> &&
+                                 requires(const Phi& phi, Source a, Source b) {
+                                   { phi(a) } -> std::same_as<Target>;
+                                   {
+                                     phi(a + b) == (phi(a) + phi(b))
+                                   } -> std::same_as<bool>;
+                                   {
+                                     phi(a * b) == (phi(a) * phi(b))
+                                   } -> std::same_as<bool>;
+                                 };
+// This concept encodes additive and multiplicative preservation only.
+// It does not structurally require or witness preservation of identities
+// (0 or 1), because `IsRingLike` does not expose identity elements.
+// Unital / identity laws, when needed, must be witnessed by stricter
+// concepts or on concrete probe values.
+
 /** @section Formal_Verification */
+
+// Operational witnesses on primitive carriers.
+static_assert(IsRingLike<int>,
+              "int satisfies IsRingLike (wrapping / two's-complement).");
+static_assert(IsRingLike<unsigned int>,
+              "unsigned int satisfies IsRingLike (modular arithmetic).");
+static_assert(IsSemiringLike<unsigned int>,
+              "unsigned int also satisfies IsSemiringLike "
+              "(without needing unary negation).");
 
 // unsigned int with wrapping arithmetic is the canonical total commutative
 // ring: IsPeriodic (wraps at 2^N) satisfies IsTotal → IsMagma → IsMonoid →
