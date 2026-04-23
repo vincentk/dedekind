@@ -69,11 +69,11 @@ module;
 
 export module dedekind.linear_algebra:matrix;
 
-import dedekind.algebra;  // IsRingLike, IsFieldLikeScalar, IsVectorSpaceLike
-import dedekind.numbers;  // Rational<Z> for the ℚ carrier
-import dedekind.sets;  // Finite cardinality tag (for dimension_type)
-import :contracts;  // matrix / vector / orientation concepts
-import :tuple;  // Vec2 (NTTP), Vec2V / Covec2V (value-level)
+import dedekind.algebra; // IsRingLike, IsFieldLikeScalar, IsVectorSpaceLike
+import dedekind.numbers; // Rational<Z> for the ℚ carrier
+import dedekind.sets;    // Finite cardinality tag (for dimension_type)
+import :contracts;       // matrix / vector / orientation concepts
+import :tuple;           // Vec2 (NTTP), Vec2V / Covec2V (value-level)
 
 namespace dedekind::linear_algebra {
 

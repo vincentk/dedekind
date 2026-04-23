@@ -32,9 +32,9 @@ module;
 
 export module dedekind.linear_algebra:tuple;
 
-import dedekind.algebra;  // IsRingLike, IsVectorSpaceLike (upstream)
-import dedekind.sets;  // Finite tag — the cardinal the tuple dimension lives in
-import :contracts;  // ColumnOrientation, RowOrientation tags
+import dedekind.algebra; // IsRingLike, IsVectorSpaceLike (upstream)
+import dedekind.sets; // Finite tag — the cardinal the tuple dimension lives in
+import :contracts;    // ColumnOrientation, RowOrientation tags
 
 namespace dedekind::linear_algebra {
 
