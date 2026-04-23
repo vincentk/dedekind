@@ -289,8 +289,10 @@ Section~\ref{sec:intensional} explains the intensional-first design rule and the
 abstract algebraic numerics and IEEE~754 hardware floating point.
 Section~\ref{sec:sets-rules} develops the view of sets as predicates over ambient species and shows
 how set operations compose symbolically.
-Section~\ref{sec:pruning} presents compile-time structural pruning, including the open gap for a
-cardinality-driven no-op intersection.
+Section~\ref{sec:pruning} presents compile-time structural reductions:
+halfspace pruning, linear programming as a reduction to a typed vertex, and
+forward-mode automatic differentiation as a sibling reduction over the
+dual-number ring.
 Section~\ref{sec:related} surveys related work.
 Section~\ref{sec:conclusion} concludes.
 
@@ -627,7 +629,7 @@ exact integer domains (classical logic) and floating-point approximation domains
 (Kleene logic) without changing the API surface.
 
 % ============================================================
-\section{Compile-Time Structural Pruning}
+\section{Compile-Time Reductions: From Set Pruning to Linear Programming}
 \label{sec:pruning}
 % ============================================================
 
@@ -1065,6 +1067,43 @@ Liquid Haskell~\cite{vazou2014refinement} extends Haskell with SMT-backed
 refinement predicates.
 \texttt{dedekind} achieves a subset of this functionality in standard C++23 without
 a custom type checker, using NTTP-embedded lambdas as the predicate carrier.
+
+\paragraph{Linear programming.}
+The standard LP toolchain---simplex~\cite{dantzig1963simplex} and
+interior-point methods~\cite{karmarkar1984interior} as implemented in
+Gurobi, CPLEX, GLPK, and related solvers---treats the problem instance
+as runtime data: the objective vector, constraint matrix, and right-hand
+side are passed to a solver that iterates to a vertex. \texttt{dedekind}
+sits orthogonally: problem instances whose size and coefficients are
+\emph{compile-time data} reduce via type-level vertex enumeration to
+the optimum as a typed constant (Section~\ref{sec:lp-centrepiece}), with
+the entire solver collapsing out of the emitted binary. This is not a
+replacement for runtime LP---for large, data-dependent instances the
+classical pipeline remains indispensable---but a complement for
+instances that appear during code generation (problem-shape metadata,
+compile-time configuration polytopes, template-parametric optimizer
+settings). Exact-rational arithmetic over $\mathbb{Q}$ connects the
+approach to the exact-LP literature~\cite{gleixner2016exact}; the novel
+claim is the realisation at translation time with zero runtime
+overhead, witnessed in the emitted LLVM~IR fixtures.
+
+\paragraph{Automatic differentiation.}
+Runtime AD libraries such as Ceres~\cite{ceres-solver},
+Adept~\cite{hogan2014adept}, Sacado, dco/c++, and
+CasADi~\cite{andersson2019casadi} provide forward- and reverse-mode AD
+via expression templates or operator overloading on a specialised
+arithmetic type. The theoretical view taken by
+Elliott~\cite{elliott2018simple}---that forward-mode AD is the
+$(\text{value}, \text{tangent})$ product with chain-rule composition,
+not the dual-number object \emph{per se}---clarifies why the same
+reduction that solves the LP also computes its sensitivities when
+instantiated over the right ring (Section~\ref{sec:ad-elliott}).
+\texttt{dedekind}'s contribution is not a new AD algorithm but the
+observation that a single compile-time reduction, written once over an
+\texttt{IsRingLike} carrier, serves as LP solver over $\mathbb{Q}$ and
+as forward-mode AD engine over $\mathbb{Q}[\varepsilon]/(\varepsilon^2)$
+with no extra code path.
+
 \paragraph{Data-pipeline DSLs.}
 Apache Spark, Flink, and the Python \texttt{pandas}/\texttt{polars} ecosystem
 provide declarative data pipelines.
@@ -1086,34 +1125,63 @@ manipulation.
 
 We have presented \texttt{dedekind}, a C++23 library that treats sets as
 \emph{rules over ambient species} rather than containers of values.
-The intensional-first design rule---defer materialization to explicit boundaries---has
-two direct payoffs: algebraic reasoning is preserved across the abstract/hardware
-boundary, and the LLVM backend can prune logically empty set expressions to zero
-machine instructions.
+The intensional-first design rule---defer materialization to explicit
+boundaries---has two direct payoffs: algebraic reasoning is preserved
+across the abstract/hardware boundary, and the LLVM backend can prune
+logically empty set expressions to zero machine instructions.
 
-These ideas are motivated from the bottom up, starting with an analyst data pipeline
-notebook where \lstinline{.realize()} is the visible realization boundary, and
-ascending to the formal set-theoretic and categorical foundations that justify the
-optimization.
+The centrepiece existential proof (Section~\ref{sec:lp-centrepiece})
+demonstrates both payoffs at once. A textbook 2D linear-programming
+instance reduces at compile time to its optimal vertex as a typed
+constant; the six candidate solves, six feasibility checks, and six
+objective comparisons vanish in the emitted IR, which contains only
+the literal return of the optimum's coordinates. Running the same
+reduction over the dual-number ring
+$\mathbb{Q}[\varepsilon]/(\varepsilon^2)$ additionally recovers exact
+sensitivity analysis (Section~\ref{sec:ad-elliott})---forward-mode
+automatic differentiation as a sibling compile-time reduction in the
+sense of Elliott~\cite{elliott2018simple}, with the chain rule absorbed
+into the ring arithmetic during the Cramer solve.
 
 Three themes recur throughout:
 \begin{enumerate}
-  \item \textbf{Axiomatic Systems Programming.}  C++23 concepts, named modules, and
-        NTTP-embedded predicates make it possible to use the compiler---though
-        explicitly not as a theorem prover---to rule out whole classes of
-        algebraic-law violations and to exploit the resulting structural
-        knowledge for optimization, without a separate proof assistant.
-  \item \textbf{Intensional first.}  The tension between abstract number theory and
-        IEEE~754 hardware semantics is resolved by encoding the divergence in the
-        \texttt{:species} trait registry and deferring arithmetic policy choice to the
-        realization boundary.
-  \item \textbf{Sets are rules.}  A set defined by a type-level predicate supports
-        compile-time symbolic manipulation that a runtime container cannot.
+  \item \textbf{Axiomatic Systems Programming.}  C++23 concepts, named
+        modules, and NTTP-embedded predicates make it possible to use
+        the compiler---though explicitly not as a theorem prover---to
+        rule out whole classes of algebraic-law violations and to
+        exploit the resulting structural knowledge for optimization,
+        without a separate proof assistant. The LP reduction exercises
+        all three features: halfspace constraints are NTTPs, the
+        reduction is guarded by concepts naming the ring-like carrier,
+        and the module boundary caches the verified reduction as a
+        Binary Module Interface file for downstream consumers.
+  \item \textbf{Intensional first.}  The tension between abstract
+        number theory and IEEE~754 hardware semantics is resolved by
+        encoding the divergence in the \texttt{:species} trait registry
+        and deferring arithmetic policy choice to the realization
+        boundary. The LP's exact-$\mathbb{Q}$ path and the AD's
+        dual-ring path are two realizations of the same intensional
+        reduction; the carrier is chosen by the user, not baked into
+        the algorithm.
+  \item \textbf{Sets are rules.}  A set defined by a type-level
+        predicate supports compile-time symbolic manipulation that a
+        runtime container cannot. The LP's feasible polytope is such a
+        set; its reduction to a singleton optimum is the sharpest
+        instance of the paper's thesis.
 \end{enumerate}
 
-The open gap of Section~\ref{sec:gap}---cardinality-driven no-op intersection for
-finite ambient sets---represents the next milestone toward making structural pruning
-a general-purpose optimization pass available to any \texttt{dedekind} user.
+Three axes of type-directed collapse remain open
+(Section~\ref{sec:gap}): carrier tightening (\#362), smooth
+optimization (\#363), and lattice-law rewriting (\#365). Each sits on
+the same foundation---NTTP predicates, structured \texttt{operator\&}
+dispatch, computability tiers---as the halfspace and LP reductions
+demonstrated here, and each extends the paradigm to a new collapse
+pattern: carrier lattices, extrema of differentiable functions, and
+distributive rewriting, respectively. The present paper's contribution
+is the worked existential proof that compile-time reduction to a typed
+optimum is achievable in standard C++23, for problem classes large
+enough to matter, with a mechanical IR witness that survives the
+optimiser.
 
 \printbibliography
 
