@@ -157,3 +157,89 @@ TEST_CASE("linear_algebra:contracts — matrix multiplication is non-commutative
   constexpr Matrix2x2V<Rat> nilpotent_rhs{Rat{0L}, Rat{0L}, Rat{1L}, Rat{0L}};
   STATIC_CHECK(nilpotent_lhs * nilpotent_rhs != nilpotent_rhs * nilpotent_lhs);
 }
+
+TEST_CASE(
+    "linear_algebra:contracts — vectors and covectors as 2×1 / 1×2 matrices "
+    "with transpose duality",
+    "[linear_algebra][contracts][vector][transpose]") {
+  // Vec2V and Covec2V carry matrix shapes that encode the column / row
+  // interpretation as 2×1 and 1×2 matrices respectively.
+  STATIC_CHECK(Vec2V<Rat>::row_count == 2u);
+  STATIC_CHECK(Vec2V<Rat>::column_count == 1u);
+  STATIC_CHECK(Covec2V<Rat>::row_count == 1u);
+  STATIC_CHECK(Covec2V<Rat>::column_count == 2u);
+
+  // Transpose exchanges the two carriers (column ↔ row), forming a dual pair.
+  STATIC_CHECK(IsTransposeDualPair<Vec2V<Rat>, Covec2V<Rat>>);
+
+  // Type-level involution: double-transpose returns the original carrier.
+  STATIC_CHECK(HasInvolutiveTranspose<Vec2V<Rat>>);
+  STATIC_CHECK(HasInvolutiveTranspose<Covec2V<Rat>>);
+  STATIC_CHECK(HasInvolutiveTranspose<Matrix2x2V<Rat>>);
+
+  // Value-level: (aᵀ)ᵀ = a on each carrier — the ℤ/2 action of transpose.
+  constexpr Vec2V<Rat> v{Rat{7L}, Rat{-3L}};
+  constexpr Covec2V<Rat> c{Rat{2L}, Rat{5L}};
+  STATIC_CHECK(v.transpose().transpose() == v);
+  STATIC_CHECK(c.transpose().transpose() == c);
+  // Column-to-row exchange preserves entries.
+  STATIC_CHECK(v.transpose() == Covec2V<Rat>{Rat{7L}, Rat{-3L}});
+  STATIC_CHECK(c.transpose() == Vec2V<Rat>{Rat{2L}, Rat{5L}});
+}
+
+TEST_CASE(
+    "linear_algebra:contracts — shape-conformant addition and multiplication",
+    "[linear_algebra][contracts][shape]") {
+  // Addition only between matching shape + scalar; mismatches are ill-typed.
+  STATIC_CHECK(MatchesAdditiveShape<Matrix2x2V<Rat>, Matrix2x2V<Rat>>);
+  STATIC_CHECK_FALSE(MatchesAdditiveShape<Matrix2x2V<Rat>, Vec2V<Rat>>);
+  STATIC_CHECK_FALSE(MatchesAdditiveShape<Vec2V<Rat>, Covec2V<Rat>>);
+
+  // Multiplication requires inner dimensions to agree.
+  STATIC_CHECK(MatchesMultiplicativeShape<Matrix2x2V<Rat>, Matrix2x2V<Rat>>);
+  STATIC_CHECK(MatchesMultiplicativeShape<Matrix2x2V<Rat>, Vec2V<Rat>>);
+  STATIC_CHECK(MatchesMultiplicativeShape<Covec2V<Rat>, Matrix2x2V<Rat>>);
+  STATIC_CHECK_FALSE(
+      MatchesMultiplicativeShape<Vec2V<Rat>, Matrix2x2V<Rat>>);  // 1 ≠ 2
+  STATIC_CHECK_FALSE(
+      MatchesMultiplicativeShape<Matrix2x2V<Rat>, Covec2V<Rat>>);  // 2 ≠ 1
+
+  STATIC_CHECK(HasConformingMatrixAddition<Matrix2x2V<Rat>, Matrix2x2V<Rat>>);
+  STATIC_CHECK(
+      HasConformingMatrixMultiplication<Matrix2x2V<Rat>, Matrix2x2V<Rat>>);
+  STATIC_CHECK(HasConformingMatrixMultiplication<Matrix2x2V<Rat>, Vec2V<Rat>>);
+  STATIC_CHECK(
+      HasConformingMatrixMultiplication<Covec2V<Rat>, Matrix2x2V<Rat>>);
+}
+
+TEST_CASE(
+    "linear_algebra:contracts — O(2, ℚ) as a multiplicative group of "
+    "orthogonal matrices",
+    "[linear_algebra][contracts][orthogonal][group]") {
+  // Carrier: Matrix2x2V is structurally an orthogonal-matrix carrier
+  // (has multiplication + involutive transpose). Orthogonality itself is
+  // a per-value predicate, witnessed below on concrete instances.
+  STATIC_CHECK(IsOrthogonalMatrixCarrier<Matrix2x2V<Rat>>);
+
+  constexpr auto I = identity_matrix2x2_v<Rat>;
+  constexpr Matrix2x2V<Rat> R90{Rat{0L}, Rat{-1L}, Rat{1L}, Rat{0L}};
+  constexpr Matrix2x2V<Rat> Rx{Rat{1L}, Rat{0L}, Rat{0L}, Rat{-1L}};
+
+  // Orthogonality law Mᵀ·M = M·Mᵀ = I on each concrete orthogonal.
+  STATIC_CHECK(I.transpose() * I == I);
+  STATIC_CHECK(R90.transpose() * R90 == I);
+  STATIC_CHECK(R90 * R90.transpose() == I);
+  STATIC_CHECK(Rx.transpose() * Rx == I);
+  STATIC_CHECK(Rx * Rx.transpose() == I);
+
+  // Group closure and inverse law.
+  constexpr auto R180 = R90 * R90;
+  STATIC_CHECK(R180.transpose() * R180 == I);
+  STATIC_CHECK(R180 == Matrix2x2V<Rat>{Rat{-1L}, Rat{0L}, Rat{0L}, Rat{-1L}});
+
+  // Linear action on ℚ² via the shape-conforming matrix-vector product.
+  constexpr Vec2V<Rat> e1{Rat{1L}, Rat{0L}};
+  constexpr Vec2V<Rat> e2{Rat{0L}, Rat{1L}};
+  STATIC_CHECK(R90 * e1 == e2);
+  STATIC_CHECK(R90 * e2 == -e1);
+}
