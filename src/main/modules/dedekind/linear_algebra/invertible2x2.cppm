@@ -177,6 +177,73 @@ export template <typename T = int>
 using Identity2x2 = Invertible2x2<T, T{1}, T{0}, T{0}, T{1}>;
 
 /**
+ * @brief General (possibly-singular) 2×2 matrix with NTTP entries.
+ *
+ * Companion to `Invertible2x2` without the full-rank `static_assert`.
+ * Used for off-diagonal blocks in `BlockUpperTriangular` where the block
+ * matrix's invertibility does not require the off-diagonal blocks to be
+ * invertible themselves.
+ *
+ * Supports the arithmetic needed for Tier 2 of #366: composition, unary
+ * negation, and mixed composition with `Invertible2x2`. Does not advertise
+ * an inverse — singular `Matrix2x2`s are valid inhabitants of the type.
+ */
+export template <typename T, T a, T b, T c, T d>
+struct Matrix2x2 {
+  using Domain = T;
+
+  static constexpr T m11 = a;
+  static constexpr T m12 = b;
+  static constexpr T m21 = c;
+  static constexpr T m22 = d;
+
+  template <T a2, T b2, T c2, T d2>
+  constexpr auto operator*(Matrix2x2<T, a2, b2, c2, d2>) const {
+    return Matrix2x2<T, a * a2 + b * c2, a * b2 + b * d2, c * a2 + d * c2,
+                     c * b2 + d * d2>{};
+  }
+
+  template <T a2, T b2, T c2, T d2>
+  constexpr auto operator*(Invertible2x2<T, a2, b2, c2, d2>) const {
+    return Matrix2x2<T, a * a2 + b * c2, a * b2 + b * d2, c * a2 + d * c2,
+                     c * b2 + d * d2>{};
+  }
+
+  constexpr auto operator-() const {
+    return Matrix2x2<T, -a, -b, -c, -d>{};
+  }
+
+  template <T a2, T b2, T c2, T d2>
+  constexpr auto operator+(Matrix2x2<T, a2, b2, c2, d2>) const {
+    return Matrix2x2<T, a + a2, b + b2, c + c2, d + d2>{};
+  }
+
+  template <T a2, T b2, T c2, T d2>
+  constexpr bool operator==(Matrix2x2<T, a2, b2, c2, d2>) const {
+    return a == a2 && b == b2 && c == c2 && d == d2;
+  }
+};
+
+/**
+ * @brief Mixed composition: `Invertible2x2 · Matrix2x2 → Matrix2x2`.
+ *
+ * Product of an invertible matrix with a possibly-singular one is in general
+ * singular, so the result is typed as `Matrix2x2`. Defined as a free
+ * function since it can't live as an `Invertible2x2` member — that member
+ * already specialises to `Invertible2x2` return type.
+ */
+export template <typename T, T a, T b, T c, T d, T a2, T b2, T c2, T d2>
+constexpr auto operator*(Invertible2x2<T, a, b, c, d>,
+                         Matrix2x2<T, a2, b2, c2, d2>) {
+  return Matrix2x2<T, a * a2 + b * c2, a * b2 + b * d2, c * a2 + d * c2,
+                   c * b2 + d * d2>{};
+}
+
+/** @brief The 2×2 zero matrix — the additive identity in the ring of matrices. */
+export template <typename T = int>
+using Zero2x2 = Matrix2x2<T, T{0}, T{0}, T{0}, T{0}>;
+
+/**
  * @brief Direct sum of two invertibles — the trivial compositional preserver.
  *
  *   (A ⊕ B) is the block-diagonal operator
@@ -230,6 +297,71 @@ struct DirectSum {
   template <typename A2, typename B2>
   constexpr bool operator==(DirectSum<A2, B2>) const {
     return std::same_as<A, A2> && std::same_as<B, B2>;
+  }
+};
+
+/**
+ * @brief Block-upper-triangular matrix — Tier 2 of #366, the degenerate-Schur
+ *        case where the lower-left block is zero.
+ *
+ *   M = [[ A, B ],
+ *        [ 0, D ]]
+ *
+ *   with `A`, `D` invertible; `B` arbitrary (possibly singular); lower-left
+ *   block the zero matrix.
+ *
+ *   Inverse (closed form, no Schur complement needed since `C = 0` makes the
+ *   Schur complement `S = D - C·A^{-1}·B = D`):
+ *
+ *     M^{-1} = [[ A^{-1},  -A^{-1}·B·D^{-1} ],
+ *               [     0,         D^{-1}     ]]
+ *
+ * This is the slice of the block-Schur recurrence that does not require
+ * matrix subtraction — a cheap-but-non-trivial advance past `DirectSum`,
+ * already demonstrating the recurrence: invertibility of an assembled block
+ * matrix emerges from invertibility of its diagonal blocks.
+ */
+export template <typename A, typename B, typename D>
+struct BlockUpperTriangular {
+  using top_left = A;
+  using top_right = B;
+  using bottom_right = D;
+
+  /**
+   * @brief Inverse via the degenerate-Schur closed form.
+   *
+   * The top-right entry is `-A^{-1}·B·D^{-1}`, computed at the type level by
+   * chained `operator*` on matrix types.
+   */
+  using inverse_type = BlockUpperTriangular<
+      typename A::inverse_type,
+      decltype(-(typename A::inverse_type{} * B{} *
+                 typename D::inverse_type{})),
+      typename D::inverse_type>;
+
+  constexpr auto inverse() const { return inverse_type{}; }
+
+  /**
+   * @brief Block-matrix composition: preserves the upper-triangular shape.
+   *
+   *     [[A1, B1], [0, D1]] · [[A2, B2], [0, D2]]
+   *     = [[ A1·A2,  A1·B2 + B1·D2 ],
+   *        [    0,        D1·D2    ]]
+   *
+   * All three resulting blocks are derived at the type level; the top-right
+   * block uses the `Matrix2x2`'s `operator+` for the cross-term sum.
+   */
+  template <typename A2, typename B2, typename D2>
+  constexpr auto operator*(BlockUpperTriangular<A2, B2, D2>) const {
+    using NewA = decltype(A{} * A2{});
+    using NewB = decltype(A{} * B2{} + B{} * D2{});
+    using NewD = decltype(D{} * D2{});
+    return BlockUpperTriangular<NewA, NewB, NewD>{};
+  }
+
+  template <typename A2, typename B2, typename D2>
+  constexpr bool operator==(BlockUpperTriangular<A2, B2, D2>) const {
+    return std::same_as<A, A2> && std::same_as<B, B2> && std::same_as<D, D2>;
   }
 };
 
