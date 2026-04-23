@@ -87,10 +87,9 @@ concept IsCommutativeRing =
  *  `IsField` vs `IsFieldLikeScalar` (see `:modules`).
  *
  *  The operational witnesses below are the analogous shortcut for
- *  ring-shaped carriers: they check closure of +, -, unary -, *, and the
- *  structural identities `T{}` (additive) and `T{1}` (multiplicative). They
- *  fire on any carrier that supports the arithmetic, without demanding the
- *  full axiom-hook tower.
+ *  ring-shaped carriers: they check closure of the arithmetic operators
+ *  only. Identity elements (`0` and `1`) belong to the strict tower and
+ *  are not encoded here, matching `IsFieldLikeScalar`'s shape.
  */
 
 /**
@@ -170,13 +169,16 @@ concept IsSemiringLike = requires(T a, T b) {
 // concrete call sites that need them (e.g. embedding modular groups into
 // symmetric groups, or tropical-semiring homomorphisms).
 export template <typename Phi, typename Source, typename Target>
-concept IsRingLikeHomomorphism =
-    IsRingLike<Source> && IsRingLike<Target> &&
-    requires(const Phi& phi, Source a, Source b) {
-      { phi(a) } -> std::same_as<Target>;
-      { phi(a + b) == (phi(a) + phi(b)) } -> std::same_as<bool>;
-      { phi(a * b) == (phi(a) * phi(b)) } -> std::same_as<bool>;
-    };
+concept IsRingLikeHomomorphism = IsRingLike<Source> && IsRingLike<Target> &&
+                                 requires(const Phi& phi, Source a, Source b) {
+                                   { phi(a) } -> std::same_as<Target>;
+                                   {
+                                     phi(a + b) == (phi(a) + phi(b))
+                                   } -> std::same_as<bool>;
+                                   {
+                                     phi(a * b) == (phi(a) * phi(b))
+                                   } -> std::same_as<bool>;
+                                 };
 // Identity preservation (φ(0) = 0, φ(1) = 1) is derivable from additive
 // preservation + existence of unary negation: φ(0) = φ(x - x) = φ(x) - φ(x)
 // = 0. It is not encoded structurally here for the same reason the `T{}`
