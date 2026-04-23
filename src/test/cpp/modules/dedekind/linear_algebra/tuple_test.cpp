@@ -41,9 +41,8 @@ TEST_CASE(
   STATIC_CHECK(Covec2V<Rat>::dimension == 2u);
 }
 
-TEST_CASE(
-    "linear_algebra:tuple — Vec2V / Covec2V are a transpose dual pair",
-    "[linear_algebra][tuple][transpose][duality]") {
+TEST_CASE("linear_algebra:tuple — Vec2V / Covec2V are a transpose dual pair",
+          "[linear_algebra][tuple][transpose][duality]") {
   // Type-level duality: transpose sends column → row and row → column.
   STATIC_CHECK(IsTransposeDualPair<Vec2V<Rat>, Covec2V<Rat>>);
 
@@ -63,9 +62,8 @@ TEST_CASE(
   STATIC_CHECK(c.transpose() == Vec2V<Rat>{Rat{2L}, Rat{5L}});
 }
 
-TEST_CASE(
-    "linear_algebra:tuple — Vec2V and Covec2V are column / row vectors",
-    "[linear_algebra][tuple][orientation]") {
+TEST_CASE("linear_algebra:tuple — Vec2V and Covec2V are column / row vectors",
+          "[linear_algebra][tuple][orientation]") {
   STATIC_CHECK(IsColumnVector<Vec2V<Rat>>);
   STATIC_CHECK(IsCovector<Covec2V<Rat>>);
   STATIC_CHECK(!IsColumnVector<Covec2V<Rat>>);

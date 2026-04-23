@@ -37,7 +37,7 @@ module;
 
 export module dedekind.linear_algebra:embeddings;
 
-import dedekind.numbers;  // Complex<T>, Dual<T>, Rational<Z>
+import dedekind.numbers; // Complex<T>, Dual<T>, Rational<Z>
 import :matrix;  // Matrix2x2V<T>, identity / zero constants for the target
 
 namespace dedekind::linear_algebra {
@@ -134,7 +134,7 @@ static_assert(as_matrix2x2(Complex<Rat>{Rat{1L}, Rat{0L}}) ==
 static_assert(as_matrix2x2(z_probe + w_probe) ==
                   as_matrix2x2(z_probe) + as_matrix2x2(w_probe),
               "ℂ ↪ M₂(ℚ) preserves addition.");
-static_assert(as_matrix2x2(z_probe * w_probe) ==
+static_assert(as_matrix2x2(z_probe* w_probe) ==
                   as_matrix2x2(z_probe) * as_matrix2x2(w_probe),
               "ℂ ↪ M₂(ℚ) preserves multiplication.");
 static_assert(complex_from_matrix2x2(as_matrix2x2(z_probe)) == z_probe,
@@ -155,7 +155,7 @@ static_assert(as_matrix2x2(Dual<Rat>{Rat{1L}, Rat{0L}}) ==
 static_assert(as_matrix2x2(d_probe + e_probe) ==
                   as_matrix2x2(d_probe) + as_matrix2x2(e_probe),
               "𝔻 ↪ M₂(ℚ) preserves addition.");
-static_assert(as_matrix2x2(d_probe * e_probe) ==
+static_assert(as_matrix2x2(d_probe* e_probe) ==
                   as_matrix2x2(d_probe) * as_matrix2x2(e_probe),
               "𝔻 ↪ M₂(ℚ) preserves multiplication.");
 static_assert(dual_from_matrix2x2(as_matrix2x2(d_probe)) == d_probe,
@@ -163,7 +163,7 @@ static_assert(dual_from_matrix2x2(as_matrix2x2(d_probe)) == d_probe,
 
 // Nilpotency of ε lifts exactly to the matrix world.
 inline constexpr Dual<Rat> eps_q{Rat{0L}, Rat{1L}};
-static_assert(as_matrix2x2(eps_q * eps_q) == zero_matrix2x2_v<Rat>,
+static_assert(as_matrix2x2(eps_q* eps_q) == zero_matrix2x2_v<Rat>,
               "ε² = 0 in 𝔻 lifts to the zero matrix under the embedding.");
 
 }  // namespace detail

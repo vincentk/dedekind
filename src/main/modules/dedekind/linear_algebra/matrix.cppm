@@ -1,16 +1,23 @@
 /**
- * @file dedekind/linear_algebra/matrix_nttp.cppm
- * @partition :matrix_nttp
- * @brief Level 12.5a: Type-level (NTTP) matrix family — compile-time
- *        full-rank 2×2 matrices over a structural carrier, plus peer
- *        Matrix2x2 / Vec2 / DirectSum / BlockUpperTriangular carriers.
+ * @file dedekind/linear_algebra/matrix.cppm
+ * @partition :matrix
+ * @brief Level 12.5a: Matrices as rectangular linear maps between tuple
+ *        spaces. Hosts both the NTTP (type-level) and value-level matrix
+ *        families, plus the concept witnesses that tie them to `:contracts`.
  *
  * @details
- * All carriers in this partition carry their entries as non-type template
- * parameters (NTTPs), so equality is type equality and algebraic identities
- * like `M * M.inverse() == Identity2x2<T>{}` are decidable as
- * `static_assert`s. The value-level runtime companion lives in
- * `:matrix_value` (`Matrix2x2V<T>`, `Vec2V<T>`, `Covec2V<T>`).
+ * Following Stammbach's "Lineare Algebra", matrices are interpreted as
+ * linear maps on the tuple carriers from `:tuple`. This partition carries
+ * two parallel families:
+ *
+ *   - NTTP family: `Invertible2x2`, `Matrix2x2`, `Identity2x2`, `Zero2x2`,
+ *     `DirectSum`, `BlockUpperTriangular`. Entries live in the type, so
+ *     algebraic identities like `M * M.inverse() == Identity2x2<T>{}`
+ *     reduce to type equalities and are decidable as `static_assert`s.
+ *   - Value family: `Matrix2x2V<T>` with identity / zero constants plus
+ *     shape-conforming linear actions `Matrix2x2V × Vec2V → Vec2V` and
+ *     `Covec2V × Matrix2x2V → Covec2V`. This is the carrier the ℂ/𝔻 →
+ *     M₂ regular representations in `:embeddings` target.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
@@ -61,9 +68,9 @@ module;
 
 export module dedekind.linear_algebra:matrix;
 
-import dedekind.numbers;  // Rational<Z> for the ℚ carrier
-import :contracts;  // matrix / vector / orientation concepts
-import :tuple;      // Vec2 (NTTP), Vec2V / Covec2V (value-level)
+import dedekind.numbers; // Rational<Z> for the ℚ carrier
+import :contracts;       // matrix / vector / orientation concepts
+import :tuple;           // Vec2 (NTTP), Vec2V / Covec2V (value-level)
 
 namespace dedekind::linear_algebra {
 
@@ -555,14 +562,14 @@ static_assert(!MatchesMultiplicativeShape<Matrix2x2V<Rat>, Covec2V<Rat>>,
 static_assert(
     HasConformingMatrixMultiplication<Matrix2x2V<Rat>, Matrix2x2V<Rat>>);
 static_assert(HasConformingMatrixMultiplication<Matrix2x2V<Rat>, Vec2V<Rat>>);
-static_assert(
-    HasConformingMatrixMultiplication<Covec2V<Rat>, Matrix2x2V<Rat>>);
+static_assert(HasConformingMatrixMultiplication<Covec2V<Rat>, Matrix2x2V<Rat>>);
 
 /** @subsection Transpose_Duality_and_Involution */
 
 // Vec2V / Covec2V carry the 2×1 and 1×2 shapes respectively.
 static_assert(Vec2V<Rat>::row_count == 2u && Vec2V<Rat>::column_count == 1u);
-static_assert(Covec2V<Rat>::row_count == 1u && Covec2V<Rat>::column_count == 2u);
+static_assert(Covec2V<Rat>::row_count == 1u &&
+              Covec2V<Rat>::column_count == 2u);
 
 // Vec2V ↔ Covec2V is a transpose dual pair.
 static_assert(IsTransposeDualPair<Vec2V<Rat>, Covec2V<Rat>>);

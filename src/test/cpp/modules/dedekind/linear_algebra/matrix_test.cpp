@@ -83,9 +83,8 @@ TEST_CASE("linear_algebra:matrix — composition is associative",
                shear * (transpose_shear * rot));
 }
 
-TEST_CASE(
-    "linear_algebra:matrix — Tier 1: DirectSum preserves invertibility",
-    "[linear_algebra][matrix][direct_sum]") {
+TEST_CASE("linear_algebra:matrix — Tier 1: DirectSum preserves invertibility",
+          "[linear_algebra][matrix][direct_sum]") {
   // Two independently-invertible 2×2 blocks over ℚ, direct-summed into a
   // block-diagonal 4×4 operator. Invertibility is preserved structurally:
   // (A ⊕ B)^{-1} = A^{-1} ⊕ B^{-1}, and (A ⊕ B) · (A ⊕ B)^{-1} is the
