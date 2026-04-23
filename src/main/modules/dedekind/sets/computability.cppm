@@ -13,7 +13,8 @@
  *                                ↓  (definitionally, via `IsFiniteSet<S> && …`)
  *                         IsFiniteSet
  *
- *                    HasDecidableMembership    (orthogonal — logic-species axis)
+ *                    HasDecidableMembership    (orthogonal — logic-species
+ * axis)
  *
  * - `HasDecidableMembership<S>` — membership `x ∈ S` is answered in
  *   two-valued logic (i.e. no Unknown). Equivalent to `logic_species` being

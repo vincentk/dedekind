@@ -295,8 +295,7 @@ constexpr auto structured_and(Halfspace<T, P1, Direction::Downward, S1, L>,
  * factor satisfies `IsFiniteSet`.
  */
 export template <typename A, typename B>
-  requires std::same_as<typename A::logic_species,
-                        typename B::logic_species>
+  requires std::same_as<typename A::logic_species, typename B::logic_species>
 struct IntervalProduct {
   A a;
   B b;
@@ -309,14 +308,12 @@ struct IntervalProduct {
   // Cardinality is only finite when both factors are — for a product whose
   // factors include a non-integral `OrderInterval` (cardinality ℵ_0), the
   // product is likewise transfinite.
-  using cardinality_type = std::conditional_t<
-      requires {
-        typename A::cardinality_type;
-        typename B::cardinality_type;
-        requires std::same_as<typename A::cardinality_type, Finite>;
-        requires std::same_as<typename B::cardinality_type, Finite>;
-      },
-      Finite, ℵ_0>;
+  using cardinality_type = std::conditional_t<requires {
+    typename A::cardinality_type;
+    typename B::cardinality_type;
+    requires std::same_as<typename A::cardinality_type, Finite>;
+    requires std::same_as<typename B::cardinality_type, Finite>;
+  }, Finite, ℵ_0>;
 
   constexpr Codomain operator()(const Domain& p) const {
     using L = logic_species;
