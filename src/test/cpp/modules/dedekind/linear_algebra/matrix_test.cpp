@@ -292,3 +292,16 @@ TEST_CASE(
   STATIC_CHECK(R90 * e1 == e2);
   STATIC_CHECK(R90 * e2 == -e1);
 }
+
+// Runtime coverage: `constexpr` matrix operators only reached via
+// `STATIC_CHECK` are elided from the instrumented binary. A small set of
+// runtime `CHECK`s forces the coverage tool to see these paths.
+TEST_CASE("linear_algebra:matrix — runtime-exercised Matrix2x2V operators",
+          "[linear_algebra][matrix][runtime_coverage]") {
+  Matrix2x2V<int> A{1, 2, 3, 4};
+  Matrix2x2V<int> B{5, 6, 7, 8};
+
+  CHECK(A == Matrix2x2V<int>{1, 2, 3, 4});       // default operator==
+  CHECK_FALSE(A == B);                            // negative case
+  CHECK(A + B == Matrix2x2V<int>{6, 8, 10, 12});  // operator+ body
+}

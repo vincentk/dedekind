@@ -69,3 +69,18 @@ TEST_CASE("linear_algebra:tuple — Vec2V and Covec2V are column / row vectors",
   STATIC_CHECK(!IsColumnVector<Covec2V<Rat>>);
   STATIC_CHECK(!IsCovector<Vec2V<Rat>>);
 }
+
+// Runtime coverage: `constexpr` operators only reached via `static_assert`
+// / `STATIC_CHECK` are elided from the instrumented binary. A small set of
+// runtime `CHECK`s forces the coverage tool to see these paths.
+TEST_CASE("linear_algebra:tuple — runtime-exercised Vec2V / Covec2V operators",
+          "[linear_algebra][tuple][runtime_coverage]") {
+  Vec2V<int> v{1, 2};
+  CHECK(v == Vec2V<int>{1, 2});         // default operator==
+  CHECK_FALSE(v == Vec2V<int>{3, 4});    // negative case
+  CHECK(-v == Vec2V<int>{-1, -2});       // unary operator-
+
+  Covec2V<int> c{3, 5};
+  CHECK(c == Covec2V<int>{3, 5});        // default operator== on Covec2V
+  CHECK_FALSE(c == Covec2V<int>{0, 0});  // negative case
+}
