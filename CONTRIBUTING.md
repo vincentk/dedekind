@@ -76,7 +76,7 @@ where concrete evaluation is intentionally required.
 
 - The `Makefile` is the **preferred** build interface; use `make <target>` rather than
    raw `cmake`/`ninja`/`ctest` commands whenever an equivalent target exists.
-   Available targets: `compile`, `test`, `format`, `format-check`, `coverage`, `doxygen`, `report`,
+   Available targets: `compile`, `test-compile`, `test`, `format`, `format-check`, `coverage`, `doxygen`, `report`, `paper`,
    `clean`, `install-hooks`, `ci-history`, `ci-main`, `pr-init`, `pr-status`, `pr-checks`, `pr-watch`, `pr-sync`, `pr-review-comments`, `pr-review-unresolved`.
 - Contributor workflow helper targets:
   `make ci-history BRANCH=<name> [LIMIT=<n>]` checks recent CI runs for a specific branch.
@@ -175,6 +175,7 @@ appear downstream, in the same order a textbook would present them.
 |---|---|
 | `make clean` | Remove the `build/` directory |
 | `make compile` | Configure (if needed) and build all targets |
+| `make test-compile` | `make compile` + build IR-fixture showcases; type-checks every C++ TU without running tests (fast local sanity gate) |
 | `make test` | Build then run the full test suite via CTest |
 | `make clean compile test` | Clean, rebuild, and run the verification suite |
 | `make format` | Auto-format all `*.cpp` / `*.cppm` sources with `clang-format` |

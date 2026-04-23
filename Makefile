@@ -24,7 +24,7 @@ ifeq ($(origin CC), default)
 CC := $(LLVM_ROOT)/bin/clang
 endif
 
-.PHONY: all clean compile test integration-test coverage python-coverage python-coverage-local ir-fixture-refresh ir-fixture-check format format-check install-hooks ci-install-doxygen-deps ci-install-report-deps doxygen dot doc report paper \
+.PHONY: all clean compile test-compile test integration-test coverage python-coverage python-coverage-local ir-fixture-refresh ir-fixture-check format format-check install-hooks ci-install-doxygen-deps ci-install-report-deps doxygen dot doc report paper \
 	ci-history ci-main pr-init pr-status pr-checks pr-watch pr-sync pr-review-comments pr-review-unresolved pr-resolve-thread pr-resolve-threads \
 	check-review-comments resolve-review-comment issue-list jupyter
 
@@ -48,8 +48,16 @@ $(BUILD_DIR)/CMakeCache.txt:
 compile: $(BUILD_DIR)/CMakeCache.txt
 	cmake --build $(BUILD_DIR)
 
-test: compile
+# Build + type-check every C++ translation unit in the repo (library
+# modules, test executables, IR fixture showcases) without running any
+# tests. Useful as a fast local sanity gate — catches module-DAG
+# violations, Unicode/species-visibility issues, and template
+# instantiation errors without paying the cost of ctest, Python
+# bindings, or Jupyter integration runs.
+test-compile: compile
 	cmake --build $(BUILD_DIR) --target set-pruning-ir-fixture
+
+test: test-compile
 	ctest --test-dir $(BUILD_DIR) --output-on-failure
 
 integration-test: test
