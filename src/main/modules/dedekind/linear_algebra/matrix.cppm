@@ -407,11 +407,15 @@ struct BlockUpperTriangular {
  * transpose surface. Columns are `Vec2V<T>` (a 2×1 matrix from `:tuple`);
  * rows are `Covec2V<T>` (a 1×2 matrix).
  */
-// `IsRingLike<T>` is sufficient: value-level matrix ops use +, -, unary -,
-// and *. Division is not required — `Invertible2x2` (NTTP, uses Cramer's
-// rule) is where `/` enters, and it stays at `IsFieldLikeScalar<T>`.
+// Bound: `IsRingLike<T>` for the arithmetic surface (+, -, unary -, *;
+// division is not used here — `Invertible2x2`'s Cramer inverse stays at
+// `IsFieldLikeScalar<T>`). `std::regular<T>` for the value-semantics
+// surface: members use `T x{}` default-init, `column(i)` / `row(i)`
+// return `{}` out-of-range, `operator==` is defaulted (needs
+// equality-comparable T), and struct copies require copyable T. The two
+// constraints are orthogonal and both are load-bearing.
 export template <typename T>
-  requires dedekind::algebra::IsRingLike<T>
+  requires std::regular<T> && dedekind::algebra::IsRingLike<T>
 struct Matrix2x2V {
   using scalar_type = T;
   using column_type = Vec2V<T>;

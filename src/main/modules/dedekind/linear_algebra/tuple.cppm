@@ -67,7 +67,7 @@ struct Vec2 {
 // Forward declaration so `Vec2V::transpose()` can name `Covec2V` at the
 // point of definition. The bound matches the full declaration below.
 export template <typename T>
-  requires dedekind::algebra::IsRingLike<T>
+  requires std::regular<T> && dedekind::algebra::IsRingLike<T>
 struct Covec2V;
 
 /**
@@ -86,7 +86,7 @@ struct Covec2V;
  * `:contracts`.
  */
 export template <typename T>
-  requires dedekind::algebra::IsRingLike<T>
+  requires std::regular<T> && dedekind::algebra::IsRingLike<T>
 struct Vec2V {
   using scalar_type = T;
   using orientation = ColumnOrientation;
@@ -134,7 +134,7 @@ struct Vec2V {
  * views share the same underlying scalar layout.
  */
 export template <typename T>
-  requires dedekind::algebra::IsRingLike<T>
+  requires std::regular<T> && dedekind::algebra::IsRingLike<T>
 struct Covec2V {
   using scalar_type = T;
   using orientation = RowOrientation;
@@ -167,7 +167,7 @@ struct Covec2V {
 };
 
 template <typename T>
-  requires dedekind::algebra::IsRingLike<T>
+  requires std::regular<T> && dedekind::algebra::IsRingLike<T>
 constexpr Covec2V<T> Vec2V<T>::transpose() const {
   return {x, y};
 }

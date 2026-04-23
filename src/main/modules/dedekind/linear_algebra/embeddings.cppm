@@ -37,8 +37,8 @@ module;
 
 export module dedekind.linear_algebra:embeddings;
 
-import dedekind.algebra; // IsFieldLikeScalar for constraint on carrier T
-import dedekind.numbers; // Complex<T>, Dual<T>, Rational<Z>, IsComplexScalar
+import dedekind.algebra;  // IsRingLike + IsRingLikeHomomorphism (constraint / witness)
+import dedekind.numbers;  // Complex<T>, Dual<T>, Rational<Z>, IsComplexScalar
 import :matrix;  // Matrix2x2V<T>, identity / zero constants for the target
 
 namespace dedekind::linear_algebra {
@@ -65,11 +65,10 @@ export template <typename T>
   requires dedekind::numbers::IsComplexScalar<T> &&
            dedekind::algebra::IsRingLike<T>
 constexpr Matrix2x2V<T> as_matrix2x2(const Complex<T>& z) {
-  // Express `-z.imag()` via `T{} - z.imag()` so the function's requirement set
-  // matches `IsComplexScalar` (T{}, binary -, binary +, binary *) without
-  // silently demanding unary negation. `IsFieldLikeScalar<T>` is additionally
-  // required because the Matrix2x2V<T> target is itself bounded on it.
-  return {z.real(), T{} - z.imag(), z.imag(), z.real()};
+  // `IsRingLike<T>` guarantees unary negation on `T`, and the target
+  // `Matrix2x2V<T>` is itself bounded on `IsRingLike<T>`, so the natural
+  // spelling `-z.imag()` is exactly in the required surface.
+  return {z.real(), -z.imag(), z.imag(), z.real()};
 }
 
 /**
@@ -106,8 +105,9 @@ constexpr Complex<T> complex_from_matrix2x2(const Matrix2x2V<T>& M) {
 export template <typename T>
   requires std::regular<T> && dedekind::algebra::IsRingLike<T>
 constexpr Matrix2x2V<T> as_matrix2x2(const Dual<T>& d) {
-  // `std::regular<T>` matches `Dual<F>`'s own constraint; `IsFieldLikeScalar`
-  // is additionally required because the Matrix2x2V<T> target demands it.
+  // `std::regular<T>` matches `Dual<F>`'s own constraint; `IsRingLike<T>`
+  // is additionally required because the target `Matrix2x2V<T>` carries
+  // that bound.
   return {d.value(), d.derivative(), T{0}, d.value()};
 }
 

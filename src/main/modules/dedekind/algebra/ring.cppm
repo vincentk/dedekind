@@ -139,30 +139,36 @@ concept IsSemiringLike = requires(T a, T b) {
 
 /**
  * @concept IsRingLikeHomomorphism
- * @brief A callable φ that sends `Source` to `Target` with the ring-like
- *        structure (+, ·, 0, 1) preserved.
+ * @brief A callable φ that sends `Source` to `Target` with additive and
+ *        multiplicative preservation:
  *
  *   φ(a + b) == φ(a) + φ(b)      additive preservation
  *   φ(a · b) == φ(a) · φ(b)      multiplicative preservation
- *   φ(Source{}) == Target{}      additive identity preservation
- *   φ(Source{1}) == Target{1}    multiplicative identity preservation
  *
- *  The concept checks the STRUCTURAL shape of the homomorphism claim:
- *   - `Source` and `Target` both operationally ring-like,
+ *  The concept checks the STRUCTURAL shape of the claim:
+ *   - `Source` and `Target` are both operationally ring-like,
  *   - `φ(a)` is well-typed and returns `Target`,
- *   - each of the four law expressions is well-formed (yields `bool`).
+ *   - both preservation expressions are well-formed (yield `bool`).
  *
- *  The semantic LAW — that each `==` returns `true` for all inputs — is a
- *  value-level claim, witnessed per instance via `static_assert` on concrete
- *  probes (cf. `dedekind.linear_algebra:embeddings` for ℂ ↪ M₂(ℚ) and
- *  𝔻 ↪ M₂(ℚ)). A concept cannot encode a universally-quantified runtime
- *  property directly; this is the conventional operational witness.
+ *  Preservation of distinguished identities (φ(0) = 0, φ(1) = 1) is NOT
+ *  encoded structurally here: `IsRingLike` does not expose identity
+ *  elements, so the concept cannot reach them. Unital / identity laws,
+ *  when needed, must be checked by stricter concepts or on concrete
+ *  probe values (cf. `dedekind.linear_algebra:embeddings` for the
+ *  ℂ ↪ M₂(ℚ) and 𝔻 ↪ M₂(ℚ) cases where `zero_matrix2x2_v` and
+ *  `identity_matrix2x2_v` are asserted at specific instances).
  *
- *  Parallel to how `IsRingLike` is the operational half of `IsRing`: no
- *  strict categorical `IsRingHomomorphism` is exported yet because the
- *  carrier-level axiom hooks are not generally populated on machine-backed
- *  carriers. Adding the strict version becomes cheap once an axiom-hook
- *  auto-lifter lands.
+ *  The semantic LAW — that each `==` returns `true` for all inputs — is
+ *  a value-level claim, witnessed per instance via `static_assert` on
+ *  concrete probes. A concept cannot encode a universally-quantified
+ *  runtime property directly; this is the conventional operational
+ *  witness.
+ *
+ *  Parallel to how `IsRingLike` is the operational half of `IsRing`: a
+ *  strict categorical `IsRingHomomorphism` would additionally witness
+ *  identity preservation and require the strict axiom-hook tower. No
+ *  such strict version is exported yet because the carrier-level hooks
+ *  are not generally populated on machine-backed carriers.
  */
 // FIXME: add `IsGroupHomomorphism`, `IsMonoidHomomorphism`, and
 // `IsSemiringLikeHomomorphism` specialisations alongside once there are
@@ -179,11 +185,11 @@ concept IsRingLikeHomomorphism = IsRingLike<Source> && IsRingLike<Target> &&
                                      phi(a * b) == (phi(a) * phi(b))
                                    } -> std::same_as<bool>;
                                  };
-// Identity preservation (φ(0) = 0, φ(1) = 1) is derivable from additive
-// preservation + existence of unary negation: φ(0) = φ(x - x) = φ(x) - φ(x)
-// = 0. It is not encoded structurally here for the same reason the `T{}`
-// and `T{1}` hooks are absent from `IsRingLike` — identities belong to the
-// strict categorical tower, witnessed on concrete probes separately.
+// This concept encodes additive and multiplicative preservation only.
+// It does not structurally require or witness preservation of identities
+// (0 or 1), because `IsRingLike` does not expose identity elements.
+// Unital / identity laws, when needed, must be witnessed by stricter
+// concepts or on concrete probe values.
 
 /** @section Formal_Verification */
 
