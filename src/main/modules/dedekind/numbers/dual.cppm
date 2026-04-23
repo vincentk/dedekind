@@ -101,9 +101,7 @@ struct Dual {
    * @brief Multiplicative inverse: (a + bε)⁻¹ = (1/a) - (b/a²)ε.
    * Valid when a ≠ 0.
    */
-  constexpr Dual inverse() const {
-    return {F{1} / val, -der / (val * val)};
-  }
+  constexpr Dual inverse() const { return {F{1} / val, -der / (val * val)}; }
 
   friend constexpr Dual operator/(const Dual& a, const Dual& b) {
     return a * b.inverse();
