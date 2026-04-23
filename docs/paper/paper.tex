@@ -411,6 +411,30 @@ here, but its full force (dependent products, inductive proofs, universe
 hierarchies) is not available in C++23; what \emph{is} available is enough
 to anchor the two uses above.
 
+\subsubsection*{Bounded yet open-ended}
+
+Each use is bounded \emph{individually}, but the paradigm as a whole exhibits
+a productive open-endedness worth naming.  Every class of errors ruled out,
+and every class of optimizations enabled, tends to expose a next class that
+the current type machinery does not handle but that the library's structural
+vocabulary names clearly enough to become a tracked, narrowly-scoped
+follow-on.  In our setting the four axes listed in Section~\ref{sec:gap} are
+each discovered rather than engineered: they fall out of the halfspace
+reductions of Section~\ref{sec:pruning} almost by construction.
+
+Penrose offers a related observation about {G\"{o}del}'s incompleteness theorem
+in \emph{The Road to Reality}~\cite{penrose2004roadtoreality}: a formal system
+that closes at one level thereby motivates a next level, not as an exhaustion
+but as a natural successor.  Our setting is more benign than Penrose's
+philosophical one---the issue tracker plays the role he reserves for the
+mind's eye, and the successor steps are ordinary software work rather than
+exits from formal systems---but the pattern is the same.  The closest formal
+analogue in the mathematical-logic literature is Turing's ordinal
+logics~\cite{turing1939ordinals}, where each stage's consistency feeds the
+next stage's formation rule.  We do not need the full apparatus: the point
+for a systems-programming paradigm is that closure-at-stage-\(n\) is a
+generative signal for stage-\(n{+}1\), rather than a terminal achievement.
+
 % ============================================================
 \section{Intensional First, Realize When You Mean It}
 \label{sec:intensional}
