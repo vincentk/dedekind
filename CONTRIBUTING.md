@@ -72,6 +72,51 @@ For modeling decisions, prefer abstract/intensional carriers and symbolic types 
 default; choose a concrete runtime numeric representation only at realization points
 where concrete evaluation is intentionally required.
 
+## Operating principles
+
+Two rules of thumb that shape how PRs are prepared and shipped in this repo. They
+interact: the second justifies the first.
+
+### Boy-scout the surface you touch
+
+> Leave the place in better shape than you encountered it.
+
+When preparing a PR, compare its acceptance criteria against the set of open issues
+that touch the same module / API / surface. Where the current PR can make
+incremental progress toward one or more of those adjacent issues without widening
+scope unreasonably, it **SHOULD** do so — tiny quality improvements, dead-variable
+cleanups, deduplicated helpers, better doxygen, corrected comments, test-coverage
+fills, `// FIXME(#NNN)` breadcrumbs at newly-visible scope boundaries, Makefile
+ergonomics, etc. The objective is **eventual consistency with the broader backlog**,
+achieved one PR at a time rather than with dedicated sweeps.
+
+The lens is _"what's one or two sizes up from the minimum acceptance bar?"_, not
+_"how much can I refactor while I'm here?"_.
+
+### Under-promise and over-deliver
+
+> Some scope creep on the PR is desirable to enable boy-scouting.
+
+Quote the PR's stated acceptance criteria modestly — aim to land exactly what the
+issue asked for in the initial commit — and then use the draft-PR flywheel to
+deliver more than quoted where the additional scope is:
+
+1. **Directly improves the in-scope deliverable** (cleaner code, better tests,
+   richer docs for what already landed), or
+2. **Makes the next PR smaller** (a breadcrumb, a tiny upstream prep, a moved
+   helper), or
+3. **Costs essentially zero review time** (formatter runs, target renames,
+   comment fixes, typos).
+
+The key boundary: additional scope **SHOULD** be bounded by _directly improving
+the landing deliverable or the adjacent issues' reach_. It is **NOT** an
+invitation to open-ended expansion. When in doubt, leave a `// FIXME(#NNN)`
+breadcrumb and move on — that is itself boy-scouting without scope-creeping.
+
+Paired together, these rules pull the backlog toward consistency PR-by-PR rather
+than via dedicated refactor-burn sprints, at the cost of modest PR-body creep
+that is easy to justify to the reviewer.
+
 ## Development workflow
 
 - The `Makefile` is the **preferred** build interface; use `make <target>` rather than
