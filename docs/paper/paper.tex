@@ -146,8 +146,11 @@ We motivate the design from the practitioner's perspective, beginning with an an
 notebook, and progressively lifting the underlying abstractions to show how recent C++23 advances
 (concepts, non-type template parameters, named modules) make this approach viable in a mainstream
 systems language.  We identify \emph{Axiomatic Systems Programming} as a nascent paradigm in which
-the compiler acts as a formal verification engine, and we leave a precise gap for a cardinality-driven
-no-op intersection theorem that we conjecture is achievable within the existing type machinery.
+the compiler---explicitly \emph{not} a theorem prover, but a structural gate---rules
+out whole classes of algebraic-law violations at translation time and enables whole
+classes of structural optimizations that exploit the ruled-out failure modes; we
+leave a precise gap for a cardinality-driven no-op intersection theorem that we
+conjecture is achievable within the existing type machinery.
 \end{abstract}
 
 \tableofcontents
@@ -302,7 +305,11 @@ Three C++23 features are central:
         Binary Module Interface (BMI) files.
 \end{description}
 
-\noindent Together, these features enable the compiler to act as a formal verification engine.
+\noindent Together, these features let the compiler rule out whole classes of
+algebraic-law violations at translation time and exploit the resulting structural
+knowledge for optimization. This is \emph{distinct} from theorem-proving: the
+compiler discharges the proof obligations it is given, it does not search for
+new ones.
 
 \subsection{Structural vs.\ Nominal Typing: The Juliet Posture}
 
@@ -371,18 +378,38 @@ properties from the trait registry, and ultimately prune logically empty set
 expressions to zero machine instructions---none of which is possible with runtime duck
 typing.
 
-\subsection{The Compiler as Verification and Optimization Engine}
+\subsection{The Compiler as Structural Gate and Optimization Engine}
 
-By encoding algebraic laws as concept requirements, every instantiation of a generic
-template becomes an implicit proof obligation discharged at compile time.
-Failed proofs are type errors, not runtime exceptions.
+Two durable uses of a compile-time type system underlie this paradigm, neither
+of which requires the compiler to be a theorem prover:
 
-The LLVM backend then exploits this structural knowledge for optimization.
-When a set is defined as a predicate, and two predicates are logically contradictory,
-the compiler can determine---at translation time---that the resulting intersection
-is the empty set, and emit no machine instructions for it.
-This is what we term \emph{structural pruning}, and it is the subject of
-Section~\ref{sec:pruning}.
+\begin{enumerate}
+  \item \textbf{Ruling out entire classes of errors.}  Encoding algebraic laws as
+        concept requirements makes every instantiation of a generic template an
+        implicit proof obligation discharged at translation time.  Failed
+        obligations are type errors, not runtime exceptions.  The obligation
+        itself is finite, decidable, and mechanical---the compiler \emph{checks}
+        it, but does not \emph{search for} it.
+  \item \textbf{Enabling entire classes of optimizations.}  The LLVM backend
+        exploits the structural knowledge inherited from discharged obligations.
+        When a set is defined by a predicate and two predicates are logically
+        contradictory, the compiler determines at translation time that the
+        resulting intersection is empty and emits no machine instructions for
+        it.  This is what we term \emph{structural pruning}, and it is the
+        subject of Section~\ref{sec:pruning}.
+\end{enumerate}
+
+Both uses are bounded.  clang's type checker is not a theorem prover: it has
+no dependent types, no universal-quantification inference, no proof-search
+engine.  What it does have is \lstinline{static_assert},
+\lstinline{requires}-clauses, and \lstinline{constexpr} evaluation---enough to
+verify a predetermined proof sketch, not enough to generate one.  The paradigm
+claims the reliable half: ruling out, and optimizing under, the classes of
+structural failures the programmer has named in the type system.  The
+Curry--Howard correspondence between propositions and types is suggestive
+here, but its full force (dependent products, inductive proofs, universe
+hierarchies) is not available in C++23; what \emph{is} available is enough
+to anchor the two uses above.
 
 % ============================================================
 \section{Intensional First, Realize When You Mean It}
@@ -889,8 +916,10 @@ optimization.
 Three themes recur throughout:
 \begin{enumerate}
   \item \textbf{Axiomatic Systems Programming.}  C++23 concepts, named modules, and
-        NTTP-embedded predicates make it possible to use the compiler as a formal
-        verification engine for algebraic laws, without a separate proof assistant.
+        NTTP-embedded predicates make it possible to use the compiler---though
+        explicitly not as a theorem prover---to rule out whole classes of
+        algebraic-law violations and to exploit the resulting structural
+        knowledge for optimization, without a separate proof assistant.
   \item \textbf{Intensional first.}  The tension between abstract number theory and
         IEEE~754 hardware semantics is resolved by encoding the divergence in the
         \texttt{:species} trait registry and deferring arithmetic policy choice to the
