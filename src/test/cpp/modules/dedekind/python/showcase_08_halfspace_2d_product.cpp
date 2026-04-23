@@ -37,7 +37,7 @@ constexpr auto n = var<ℤ>;
 constexpr auto I_wide =
     Set{n % Z | (n > bound<-21>)} & Set{n % Z | (n <= bound<21>)};  // 42 elts
 constexpr auto I_tall =
-    Set{n % Z | (n >= bound<0>)} & Set{n % Z | (n <= bound<10>)};   // 11 elts
+    Set{n % Z | (n >= bound<0>)} & Set{n % Z | (n <= bound<10>)};  // 11 elts
 
 // Structural 2D cartesian product.
 constexpr auto box = I_wide * I_tall;

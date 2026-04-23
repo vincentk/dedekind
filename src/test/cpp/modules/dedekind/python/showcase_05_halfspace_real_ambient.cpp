@@ -31,11 +31,12 @@ using namespace dedekind::algebra;
 using namespace dedekind::numbers;
 using namespace dedekind::order;
 
-// Symbolic variable ranging over ℝ (ambient real numbers, carrier Real<double>).
+// Symbolic variable ranging over ℝ (ambient real numbers, carrier
+// Real<double>).
 constexpr auto x = var<ℝ>;
 
 // Opposing halfspaces with compile-time double-valued pivots.
-constexpr auto gt_five  = Set{x % R | (x > bound<5.0>)};
+constexpr auto gt_five = Set{x % R | (x > bound<5.0>)};
 constexpr auto lt_three = Set{x % R | (x < bound<3.0>)};
 
 // Compile-time theorem: the meet IS the empty set on ℝ.

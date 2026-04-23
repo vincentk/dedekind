@@ -152,8 +152,7 @@ struct OrderInterval {
   {
     constexpr bool lo_open = (SL == Strictness::Strict);
     constexpr bool hi_open = (SU == Strictness::Strict);
-    constexpr auto span =
-        Hi - Lo + (lo_open ? 0 : 1) + (hi_open ? -1 : 0);
+    constexpr auto span = Hi - Lo + (lo_open ? 0 : 1) + (hi_open ? -1 : 0);
     return span > 0 ? static_cast<std::size_t>(span) : 0u;
   }
 
@@ -316,9 +315,9 @@ struct IntervalProduct {
 };
 
 /** @brief Infix `*` on two `OrderInterval`s → structural `IntervalProduct`. */
-export template <typename T1, auto Lo1, auto Hi1, Strictness SL1, Strictness SU1,
-                 typename L1, typename T2, auto Lo2, auto Hi2, Strictness SL2,
-                 Strictness SU2, typename L2>
+export template <typename T1, auto Lo1, auto Hi1, Strictness SL1,
+                 Strictness SU1, typename L1, typename T2, auto Lo2, auto Hi2,
+                 Strictness SL2, Strictness SU2, typename L2>
 constexpr auto operator*(OrderInterval<T1, Lo1, Hi1, SL1, SU1, L1> a,
                          OrderInterval<T2, Lo2, Hi2, SL2, SU2, L2> b) {
   return IntervalProduct<decltype(a), decltype(b)>{a, b};
