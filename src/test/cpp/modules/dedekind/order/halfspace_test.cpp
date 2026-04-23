@@ -237,7 +237,9 @@ TEST_CASE("order:halfspace — Singleton satisfies all three computability tiers
   STATIC_CHECK(IsFiniteSet<Singleton<42>>);
   STATIC_CHECK(IsCompileTimeEnumerable<Singleton<42>>);
 
-  SECTION("TernaryLogic variant: finite + compile-time-enumerable but not decidable") {
+  SECTION(
+      "TernaryLogic variant: finite + compile-time-enumerable but not "
+      "decidable") {
     STATIC_CHECK_FALSE(HasDecidableMembership<Singleton<42, TernaryLogic>>);
     STATIC_CHECK(IsFiniteSet<Singleton<42, TernaryLogic>>);
     STATIC_CHECK(IsCompileTimeEnumerable<Singleton<42, TernaryLogic>>);

@@ -59,8 +59,7 @@ TEST_CASE("sets:computability — IsCompileTimeEnumerable on Ø",
     STATIC_CHECK(IsCompileTimeEnumerable<Ø<int, TernaryLogic>>);
   }
 
-  SECTION(
-      "An intensional Set is neither finite nor compile-time-enumerable") {
+  SECTION("An intensional Set is neither finite nor compile-time-enumerable") {
     constexpr auto x = var<Ω<int>>;
     constexpr auto s = Set{x % N | [](int v) { return v > 5; }};
     STATIC_CHECK_FALSE(IsFiniteSet<decltype(s)>);
