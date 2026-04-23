@@ -65,9 +65,9 @@ module;
 
 export module dedekind.optimization:lp;
 
-import dedekind.algebra;  // IsRingLike constraint
-import dedekind.numbers;  // Rational<Z>
-import dedekind.linear_algebra;  // Invertible2x2, Vec2
+import dedekind.algebra;        // IsRingLike constraint
+import dedekind.numbers;        // Rational<Z>
+import dedekind.linear_algebra; // Invertible2x2, Vec2
 
 namespace dedekind::optimization {
 
@@ -136,7 +136,8 @@ constexpr VertexCandidate<T> solve_active_set(const HalfspaceTriple<T>& h1,
                                               const HalfspaceTriple<T>& h2) {
   // Determinant of the active-set matrix [[a1 b1] [a2 b2]].
   const T det = h1.a * h2.b - h1.b * h2.a;
-  if (det == T{0}) return {T{0}, T{0}, false};  // singular — parallel halfspaces
+  if (det == T{0})
+    return {T{0}, T{0}, false};  // singular — parallel halfspaces
 
   // Cramer's rule.
   const T x = (h1.c * h2.b - h1.b * h2.c) / det;

@@ -36,8 +36,8 @@ using H4 = Halfspace2D<Rat, Rat{0L}, Rat{-1L}, Rat{0L}>;
 TEST_CASE("optimization:lp — Halfspace2D membership at the type level",
           "[optimization][lp][halfspace]") {
   // x + y ≤ 4
-  STATIC_CHECK(H1::template contains<Rat{2L}, Rat{2L}>());    // boundary
-  STATIC_CHECK(H1::template contains<Rat{1L}, Rat{1L}>());    // interior
+  STATIC_CHECK(H1::template contains<Rat{2L}, Rat{2L}>());        // boundary
+  STATIC_CHECK(H1::template contains<Rat{1L}, Rat{1L}>());        // interior
   STATIC_CHECK_FALSE(H1::template contains<Rat{3L}, Rat{3L}>());  // exterior
 }
 
@@ -85,7 +85,8 @@ TEST_CASE("optimization:lp — infeasible polytope reports no optimum",
   using InfX2 = Halfspace2D<Rat, Rat{-1L}, Rat{0L}, Rat{-3L}>;  // -x ≤ -3
   using InfY = Halfspace2D<Rat, Rat{0L}, Rat{1L}, Rat{5L}>;     //  y ≤ 5
 
-  constexpr auto v = maximize_value<Rat, Rat{1L}, Rat{1L}, InfX1, InfX2, InfY>();
+  constexpr auto v =
+      maximize_value<Rat, Rat{1L}, Rat{1L}, InfX1, InfX2, InfY>();
   STATIC_CHECK_FALSE(v.feasible);
   // Note: the NTTP `maximize<...>()` form would fire a static_assert at
   // instantiation; we exercise the value-level `maximize_value<...>` here
