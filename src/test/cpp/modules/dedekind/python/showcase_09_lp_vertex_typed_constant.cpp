@@ -43,10 +43,10 @@ using namespace dedekind::optimization;
 using Rat = Rational<long>;
 
 // Constraints of the paper-facing LP instance.
-using H1 = Halfspace2D<Rat, Rat{1L}, Rat{1L}, Rat{4L}>;    //  x +  y ≤ 4
-using H2 = Halfspace2D<Rat, Rat{2L}, Rat{1L}, Rat{6L}>;    // 2x +  y ≤ 6
-using H3 = Halfspace2D<Rat, Rat{-1L}, Rat{0L}, Rat{0L}>;   //  x      ≥ 0
-using H4 = Halfspace2D<Rat, Rat{0L}, Rat{-1L}, Rat{0L}>;   //       y ≥ 0
+using H1 = Halfspace2D<Rat, Rat{1L}, Rat{1L}, Rat{4L}>;   //  x +  y ≤ 4
+using H2 = Halfspace2D<Rat, Rat{2L}, Rat{1L}, Rat{6L}>;   // 2x +  y ≤ 6
+using H3 = Halfspace2D<Rat, Rat{-1L}, Rat{0L}, Rat{0L}>;  //  x      ≥ 0
+using H4 = Halfspace2D<Rat, Rat{0L}, Rat{-1L}, Rat{0L}>;  //       y ≥ 0
 
 // The optimum at the type level: `Vec2<Rat, Rat{2L}, Rat{2L}>`.
 using Optimum = decltype(maximize<Rat, Rat{3L}, Rat{2L}, H1, H2, H3, H4>());
