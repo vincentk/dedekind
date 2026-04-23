@@ -342,8 +342,13 @@ class Set {
     } else if constexpr (requires {
                            structured_and(predicate_, other.predicate_);
                          }) {
-      using Result =
-          std::decay_t<decltype(structured_and(predicate_, other.predicate_))>;
+      // Evaluate the reduction once. Calling `structured_and` multiple times
+      // inflates compile time (each call is a fresh template instantiation)
+      // and would risk inconsistency if a future overload produced a value-
+      // carrying (non-empty) result whose default-construction differs from
+      // the original call's result.
+      auto reduced = structured_and(predicate_, other.predicate_);
+      using Result = std::decay_t<decltype(reduced)>;
       if constexpr (std::same_as<Result, EmptyPredicate<T>>) {
         return Ø<T, L>{};
       } else if constexpr (requires {
@@ -351,7 +356,7 @@ class Set {
                            }) {
         // Cardinality-1 reduction (e.g. integer halfspace meet): elevate to a
         // bare Singleton-typed value, paralleling the Ø collapse for empty.
-        return Result{};
+        return reduced;
       } else if constexpr (requires { typename Result::cardinality_type; } &&
                            std::same_as<typename Result::cardinality_type,
                                         Finite>) {
@@ -359,9 +364,9 @@ class Set {
         // OrderInterval with compile-time-computed size): elevate it out of
         // the Set wrapper so downstream code can observe size() / bounds /
         // computability classification directly on the reduced type.
-        return structured_and(predicate_, other.predicate_);
+        return reduced;
       } else {
-        return Set<T, L, Result>{structured_and(predicate_, other.predicate_)};
+        return Set<T, L, Result>{std::move(reduced)};
       }
     } else {
       // FIXME(#365): lambda fallback erases predicate structure. Lattice-law

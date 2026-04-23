@@ -295,6 +295,8 @@ constexpr auto structured_and(Halfspace<T, P1, Direction::Downward, S1, L>,
  * factor satisfies `IsFiniteSet`.
  */
 export template <typename A, typename B>
+  requires std::same_as<typename A::logic_species,
+                        typename B::logic_species>
 struct IntervalProduct {
   A a;
   B b;
@@ -302,8 +304,19 @@ struct IntervalProduct {
   using Domain = std::pair<typename A::Domain, typename B::Domain>;
   using Codomain = typename A::Codomain;
   using logic_species = typename A::logic_species;
-  using cardinality_type = Finite;
   using is_extensional_tag = void;
+
+  // Cardinality is only finite when both factors are — for a product whose
+  // factors include a non-integral `OrderInterval` (cardinality ℵ_0), the
+  // product is likewise transfinite.
+  using cardinality_type = std::conditional_t<
+      requires {
+        typename A::cardinality_type;
+        typename B::cardinality_type;
+        requires std::same_as<typename A::cardinality_type, Finite>;
+        requires std::same_as<typename B::cardinality_type, Finite>;
+      },
+      Finite, ℵ_0>;
 
   constexpr Codomain operator()(const Domain& p) const {
     using L = logic_species;
@@ -311,13 +324,25 @@ struct IntervalProduct {
                                                              : L::False;
   }
 
-  constexpr std::size_t size() const { return a.size() * b.size(); }
+  // `size()` is only available when both factors expose a `size()` returning
+  // convertible-to-`std::size_t`. This keeps the API honest for continuous
+  // factors (attempting `.size()` on a product of real-valued intervals is a
+  // compile error, not a silent nonsense).
+  constexpr std::size_t size() const
+    requires requires(const A& factor_a, const B& factor_b) {
+      { factor_a.size() } -> std::convertible_to<std::size_t>;
+      { factor_b.size() } -> std::convertible_to<std::size_t>;
+    }
+  {
+    return a.size() * b.size();
+  }
 };
 
 /** @brief Infix `*` on two `OrderInterval`s → structural `IntervalProduct`. */
 export template <typename T1, auto Lo1, auto Hi1, Strictness SL1,
                  Strictness SU1, typename L1, typename T2, auto Lo2, auto Hi2,
                  Strictness SL2, Strictness SU2, typename L2>
+  requires std::same_as<L1, L2>
 constexpr auto operator*(OrderInterval<T1, Lo1, Hi1, SL1, SU1, L1> a,
                          OrderInterval<T2, Lo2, Hi2, SL2, SU2, L2> b) {
   return IntervalProduct<decltype(a), decltype(b)>{a, b};

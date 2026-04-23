@@ -149,12 +149,18 @@ struct Ø final : Boundaries {
   constexpr std::size_t upper_bound() const { return 0; }
 
   // Ø | S = S
+  // Note: blocked for the parameter-free form `Ø<AnyDomain>` (i.e. `Ø{}`) —
+  // that form is a comparison-only tag; using it in a meet/join would
+  // silently propagate `AnyDomain` as the result carrier, which is almost
+  // never what the caller meant. Spell the carrier explicitly instead.
   template <typename S>
+    requires(!std::same_as<T, AnyDomain>)
   constexpr auto operator|(const S& s) const {
     return s;
   }
   // Ø & S = Ø
   template <typename S>
+    requires(!std::same_as<T, AnyDomain>)
   constexpr auto operator&(const S&) const {
     return *this;
   }

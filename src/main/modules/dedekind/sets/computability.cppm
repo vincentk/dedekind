@@ -5,27 +5,31 @@
  *
  * @section Computability_Tiers
  *
- * Three nested concepts expose how much of a set's computational content is
- * available to the compiler, forming a refinement hierarchy:
+ * Three concepts expose how much of a set's computational content is
+ * available to the compiler. Two of them are strictly nested by their
+ * definitions; the third is orthogonal.
  *
  *                     IsCompileTimeEnumerable
- *                                ↓
+ *                                ↓  (definitionally, via `IsFiniteSet<S> && …`)
  *                         IsFiniteSet
- *                                ↓
- *                  HasDecidableMembership
+ *
+ *                    HasDecidableMembership    (orthogonal — logic-species axis)
  *
  * - `HasDecidableMembership<S>` — membership `x ∈ S` is answered in
  *   two-valued logic (i.e. no Unknown). Equivalent to `logic_species` being
- *   `ClassicalLogic`. The conservative Ternary default over transfinite or
- *   intensional domains is exactly the *absence* of this property.
+ *   `ClassicalLogic`. This is independent of finiteness: a finite extensional
+ *   object can be declared with `TernaryLogic` (e.g. `Ø<int, TernaryLogic>`,
+ *   `Singleton<42, TernaryLogic>`), in which case it satisfies `IsFiniteSet`
+ *   but NOT `HasDecidableMembership`.
  *
  * - `IsFiniteSet<S>` — the set has a finite cardinality and an observable
- *   `size()`. Implies `HasDecidableMembership`.
+ *   `size()`. Does not by itself imply decidable membership.
  *
  * - `IsCompileTimeEnumerable<S>` — the set's elements are known to the
  *   *compiler*, not merely to the runtime. In practice: the values live in
  *   the type system (NTTPs), so the compiler can reason about individual
- *   elements without ever running the program. Implies `IsFiniteSet`.
+ *   elements without ever running the program. Definitionally implies
+ *   `IsFiniteSet` (it is spelled as a refinement of it).
  *
  * @section Reduction_Restores_Computability
  *
