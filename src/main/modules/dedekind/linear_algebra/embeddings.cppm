@@ -62,7 +62,10 @@ using dedekind::numbers::Dual;
  */
 export template <typename T>
 constexpr Matrix2x2V<T> as_matrix2x2(const Complex<T>& z) {
-  return {z.real(), -z.imag(), z.imag(), z.real()};
+  // Express `-z.imag()` via `T{} - z.imag()` so the function's requirement set
+  // matches `IsComplexScalar` exactly (T{}, binary -, binary +, binary *) and
+  // does NOT silently demand unary negation on T.
+  return {z.real(), T{} - z.imag(), z.imag(), z.real()};
 }
 
 /**
