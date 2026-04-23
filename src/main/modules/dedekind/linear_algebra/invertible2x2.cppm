@@ -53,7 +53,7 @@ module;
 
 export module dedekind.linear_algebra:invertible2x2;
 
-import dedekind.numbers;  // Rational<Z> for the ℚ carrier
+import dedekind.numbers; // Rational<Z> for the ℚ carrier
 
 namespace dedekind::linear_algebra {
 
