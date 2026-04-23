@@ -302,6 +302,10 @@ class Set {
         NegatedPredicate<Predicate>{predicate_}};
   }
 
+  // FIXME(#362): operator| / operator& currently require the same carrier
+  // type `T`. Heterogeneous meets (`Set<ℕ> & Set<ℝ>`) should dispatch through
+  // the canonical-embedding lattice (`embed_ℕ_ℝ`, …) so the result tightens
+  // to the sharper of the two carriers; same applies below for operator&.
   template <typename OtherPredicate>
   constexpr auto operator|(const Set<T, L, OtherPredicate>& other) const {
     if constexpr (IsComplementPair_v<Predicate, OtherPredicate>) {
@@ -314,6 +318,9 @@ class Set {
           L::OR((*this)(true), other(true)),
       };
     } else {
+      // FIXME(#365): symmetric of the operator& fallback below — lattice-law
+      // rewriting (dually: absorption, De Morgan) could collapse `A ∪ B`
+      // structurally before falling through to this opaque lambda.
       auto predicate = [lhs = predicate_, rhs = other.predicate_](const T& v) {
         return lhs(v) || rhs(v);
       };
@@ -357,6 +364,10 @@ class Set {
         return Set<T, L, Result>{structured_and(predicate_, other.predicate_)};
       }
     } else {
+      // FIXME(#365): lambda fallback erases predicate structure. Lattice-law
+      // rewriting (distributivity / absorption / De Morgan) could expose
+      // collapses here that the local structured_and branches miss — e.g.
+      // `(A ∪ B) ∩ ¬A` normalising to `B ∩ ¬A` before this fallback fires.
       auto predicate = [lhs = predicate_, rhs = other.predicate_](const T& v) {
         return lhs(v) && rhs(v);
       };
