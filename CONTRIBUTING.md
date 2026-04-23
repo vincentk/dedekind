@@ -335,12 +335,44 @@ Both reports are uploaded to Codecov for centralized visibility.
 
 - Follow the module/partition layout described in `CMakeLists.txt` and the existing
   `main` partitions.
-- Mirror the doxygen header style used in neighbouring files (brief, partition summary,
-  copyright notice, a quote).
+- Mirror the doxygen header style used in neighbouring files — see
+  `Doxygen header convention` below for the full shape.
 - Keep concepts and naming aligned with the textbook literature cited in
   `docs/report/references.bib`.  UTF-8 mathematical symbols (ℤ, ℝ, …) are preferred
   over verbose ASCII alternatives.
 - Add or extend tests in the corresponding `src/test/cpp/modules/…` file.
+
+### Doxygen header convention
+
+Every `src/main/modules/dedekind/**/*.cppm` file SHOULD open with a doxygen
+comment block whose elements, in order, are:
+
+1. `@file` — path-qualified, matching the actual file location.
+2. `@partition :NAME` — when the file defines a module partition; omit for
+   umbrella / aggregator files.
+3. `@brief` — one line, sentence-case, terminating in a period.
+4. `@copyright 2026 The Dedekind Authors / Licensed under the Apache License,
+   Version 2.0.`
+5. One or more `@section` blocks summarising the partition's contents and
+   its mathematical intent. Cross-reference the textbook literature in
+   `docs/report/references.bib` and `docs/paper/references.bib` when a
+   concept has a canonical attested source.
+6. A `Wikipedia: ...` line enumerating two or three articles a reader might
+   consult to place the partition in the broader literature.
+7. A `@note` containing a **pertinent or serendipitous quote from a not
+   very famous practitioner in the field**, in the practitioner's native
+   language, with an English translation under `[Trans: ...]` on a
+   subsequent line. Attribution SHOULD include author, work, year, and
+   section / page where available. "Not very famous" means: avoid the
+   obvious top-five names of the century (Einstein, Euler, Gauss, von
+   Neumann, …); prefer a working mathematician / computer scientist /
+   logician whose contribution is recognised within the subfield.
+
+The practitioner-quote line is a social-embedding convention: it weaves the
+code into the broader mathematical tradition and signals the care taken in
+the work's intellectual lineage. New files SHOULD adopt it; existing files
+missing it SHOULD acquire one as part of the touching PR (boy-scouting
+applies).
 
 ## Questions
 

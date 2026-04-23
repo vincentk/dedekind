@@ -43,8 +43,15 @@
  * A paper-facing `static_assert` at each tier witnesses the lift in the type
  * system itself — no runtime test needed, and no explanatory prose either.
  *
+ * Wikipedia: Computability theory, Decidability (logic), Concepts (C++20)
+ *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
+ *
+ * @note "We can only see a short distance ahead, but we can see plenty
+ *       there that needs to be done."
+ *       — Alan Turing, *Computing Machinery and Intelligence*,
+ *         Mind LIX, 236 (October 1950), closing line.
  */
 module;
 #include <concepts>

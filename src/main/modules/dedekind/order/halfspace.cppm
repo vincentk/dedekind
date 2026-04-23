@@ -3,21 +3,32 @@
  * @partition :halfspace
  * @brief Level 1.5b: Compile-time halfspace predicates on ordered carriers.
  *
+ * @copyright 2026 The Dedekind Authors
+ * Licensed under the Apache License, Version 2.0.
+ *
+ * @section Halfspaces_As_Types
  * Structured compile-time halfspace predicates over an ordered carrier. The
  * pivot is carried in the predicate's TYPE as a non-type template parameter,
  * which is what lets `(n > bound<5>) && (n < bound<3>)` collapse structurally
  * to an empty predicate at compile time. Contrast with the lambda-returning
  * variable operators in `dedekind.sets`, which erase the pivot into a closure.
  *
- * DSL surface (paper-facing):
+ * @section DSL_Surface (paper-facing)
  *
- *   inline constexpr auto n = var<ℕ>;
- *   inline constexpr auto big   = Set{n % N | (n > bound<5>)};
- *   inline constexpr auto small = Set{n % N | (n < bound<3>)};
- *   // (big ∩ small) = ∅  — witnessed at compile time via structured_and
+ *     inline constexpr auto n = var<ℕ>;
+ *     inline constexpr auto big   = Set{n % N | (n > bound<5>)};
+ *     inline constexpr auto small = Set{n % N | (n < bound<3>)};
+ *     // (big ∩ small) = ∅  — witnessed at compile time via structured_and
  *
- * @copyright 2026 The Dedekind Authors
- * Licensed under the Apache License, Version 2.0.
+ * Wikipedia: Half-space (geometry), Separating hyperplane theorem,
+ * Non-type template parameter
+ *
+ * @note "Was beweisbar ist, soll in der Wissenschaft nicht ohne Beweis
+ *       geglaubt werden."
+ *       — Richard Dedekind, *Was sind und was sollen die Zahlen?* (1888),
+ *         Vorwort.
+ *       [Trans: "What is provable should not be believed without proof
+ *       in science."]
  */
 module;
 #include <algorithm>
