@@ -32,8 +32,8 @@ module;
 
 export module dedekind.linear_algebra:tuple;
 
-import dedekind.algebra;  // IsFieldLikeScalar, IsVectorSpaceLike (upstream)
-import :contracts;  // ColumnOrientation, RowOrientation tags
+import dedekind.algebra; // IsFieldLikeScalar, IsVectorSpaceLike (upstream)
+import :contracts;       // ColumnOrientation, RowOrientation tags
 
 namespace dedekind::linear_algebra {
 
