@@ -95,15 +95,18 @@ concept IsCommutativeRing =
 
 /**
  * @concept IsRingLike
- * @brief Operational ring witness: addition, subtraction (binary + unary),
- *        multiplication are closed in `T`, and the structural identities
- *        `T{}` (additive) and `T{1}` (multiplicative) exist.
+ * @brief Operational ring witness: +, unary -, binary -, * are closed in T.
  *
  *  Parallel to `IsFieldLikeScalar` from `:modules` but without the `/`
- *  requirement: rings don't in general support division. Fires on
- *  `Rational<long>`, `int`, `unsigned int`, and — crucially — on
- *  `Matrix2x2V<R>` for any `IsRingLike R`, which witnesses the slogan
- *  "matrices over a ring form a (non-commutative) ring".
+ *  requirement: rings don't in general support division. Shape is
+ *  deliberately symmetric with `IsFieldLikeScalar` — operator closure
+ *  only, no structural identity witnesses (they live behind the strict
+ *  categorical axiom-hook tower).
+ *
+ *  Fires on `Rational<long>`, `int`, `unsigned int`, `Complex<R>` (for
+ *  any `IsRingLike R`), `Dual<F>`, and — crucially — on `Matrix2x2V<R>`
+ *  for any `IsRingLike R`, witnessing the slogan "matrices over a ring
+ *  form a (non-commutative) ring".
  */
 export template <typename T>
 concept IsRingLike = requires(T a, T b) {
@@ -111,8 +114,6 @@ concept IsRingLike = requires(T a, T b) {
   { a - b } -> std::same_as<T>;
   { -a } -> std::same_as<T>;
   { a * b } -> std::same_as<T>;
-  T{};   // additive identity witness
-  T{1};  // multiplicative identity witness
 };
 
 /**
@@ -136,6 +137,51 @@ concept IsSemiringLike = requires(T a, T b) {
 // lifter exists (see the rejected-concepts summary on PR #367 — item #4
 // "Axiom-hook auto-lifter"). Then operational and strict can collapse for
 // value-level carriers without per-type boilerplate.
+
+/**
+ * @concept IsRingLikeHomomorphism
+ * @brief A callable φ that sends `Source` to `Target` with the ring-like
+ *        structure (+, ·, 0, 1) preserved.
+ *
+ *   φ(a + b) == φ(a) + φ(b)      additive preservation
+ *   φ(a · b) == φ(a) · φ(b)      multiplicative preservation
+ *   φ(Source{}) == Target{}      additive identity preservation
+ *   φ(Source{1}) == Target{1}    multiplicative identity preservation
+ *
+ *  The concept checks the STRUCTURAL shape of the homomorphism claim:
+ *   - `Source` and `Target` both operationally ring-like,
+ *   - `φ(a)` is well-typed and returns `Target`,
+ *   - each of the four law expressions is well-formed (yields `bool`).
+ *
+ *  The semantic LAW — that each `==` returns `true` for all inputs — is a
+ *  value-level claim, witnessed per instance via `static_assert` on concrete
+ *  probes (cf. `dedekind.linear_algebra:embeddings` for ℂ ↪ M₂(ℚ) and
+ *  𝔻 ↪ M₂(ℚ)). A concept cannot encode a universally-quantified runtime
+ *  property directly; this is the conventional operational witness.
+ *
+ *  Parallel to how `IsRingLike` is the operational half of `IsRing`: no
+ *  strict categorical `IsRingHomomorphism` is exported yet because the
+ *  carrier-level axiom hooks are not generally populated on machine-backed
+ *  carriers. Adding the strict version becomes cheap once an axiom-hook
+ *  auto-lifter lands.
+ */
+// FIXME: add `IsGroupHomomorphism`, `IsMonoidHomomorphism`, and
+// `IsSemiringLikeHomomorphism` specialisations alongside once there are
+// concrete call sites that need them (e.g. embedding modular groups into
+// symmetric groups, or tropical-semiring homomorphisms).
+export template <typename Phi, typename Source, typename Target>
+concept IsRingLikeHomomorphism =
+    IsRingLike<Source> && IsRingLike<Target> &&
+    requires(const Phi& phi, Source a, Source b) {
+      { phi(a) } -> std::same_as<Target>;
+      { phi(a + b) == (phi(a) + phi(b)) } -> std::same_as<bool>;
+      { phi(a * b) == (phi(a) * phi(b)) } -> std::same_as<bool>;
+    };
+// Identity preservation (φ(0) = 0, φ(1) = 1) is derivable from additive
+// preservation + existence of unary negation: φ(0) = φ(x - x) = φ(x) - φ(x)
+// = 0. It is not encoded structurally here for the same reason the `T{}`
+// and `T{1}` hooks are absent from `IsRingLike` — identities belong to the
+// strict categorical tower, witnessed on concrete probes separately.
 
 /** @section Formal_Verification */
 

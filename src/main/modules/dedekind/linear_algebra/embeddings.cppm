@@ -179,6 +179,37 @@ inline constexpr Dual<Rat> eps_q{Rat{0L}, Rat{1L}};
 static_assert(as_matrix2x2(eps_q* eps_q) == zero_matrix2x2_v<Rat>,
               "ε² = 0 in 𝔻 lifts to the zero matrix under the embedding.");
 
+/** @section Ring_Homomorphism_Concept_Witnesses
+ *
+ *  The two embeddings witness `dedekind.algebra::IsRingLikeHomomorphism`
+ *  at the type level, folding the four preservation static_asserts above
+ *  (0, 1, +, ·) into a single structural claim. Each wrapper struct
+ *  promotes the function template to a callable object so the concept can
+ *  bind `Phi` to a concrete type.
+ */
+
+struct ComplexToMatrix2x2Hom {
+  constexpr Matrix2x2V<Rat> operator()(const Complex<Rat>& z) const {
+    return as_matrix2x2(z);
+  }
+};
+
+struct DualToMatrix2x2Hom {
+  constexpr Matrix2x2V<Rat> operator()(const Dual<Rat>& d) const {
+    return as_matrix2x2(d);
+  }
+};
+
+static_assert(dedekind::algebra::IsRingLikeHomomorphism<
+                  ComplexToMatrix2x2Hom, Complex<Rat>, Matrix2x2V<Rat>>,
+              "ℂ ↪ M₂(ℚ) is structurally a ring-like homomorphism — the "
+              "four preservation laws above pin its value-level content.");
+
+static_assert(dedekind::algebra::IsRingLikeHomomorphism<
+                  DualToMatrix2x2Hom, Dual<Rat>, Matrix2x2V<Rat>>,
+              "𝔻 ↪ M₂(ℚ) is structurally a ring-like homomorphism — the "
+              "four preservation laws above pin its value-level content.");
+
 }  // namespace detail
 
 }  // namespace dedekind::linear_algebra
