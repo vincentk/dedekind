@@ -330,9 +330,9 @@ concept HasTranspose = requires(const M& a) {
 template <typename M>
 concept HasInvolutiveTranspose =
     HasTranspose<M> &&
-    std::same_as<
-        std::remove_cvref_t<decltype(std::declval<M>().transpose().transpose())>,
-        std::remove_cvref_t<M>>;
+    std::same_as<std::remove_cvref_t<
+                     decltype(std::declval<M>().transpose().transpose())>,
+                 std::remove_cvref_t<M>>;
 
 /**
  * @concept IsTransposeDualPair

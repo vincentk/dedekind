@@ -486,8 +486,7 @@ static_assert(!MatchesMultiplicativeShape<Matrix2x2V<Rat>, Covec2V<Rat>>,
 static_assert(
     HasConformingMatrixMultiplication<Matrix2x2V<Rat>, Matrix2x2V<Rat>>);
 static_assert(HasConformingMatrixMultiplication<Matrix2x2V<Rat>, Vec2V<Rat>>);
-static_assert(
-    HasConformingMatrixMultiplication<Covec2V<Rat>, Matrix2x2V<Rat>>);
+static_assert(HasConformingMatrixMultiplication<Covec2V<Rat>, Matrix2x2V<Rat>>);
 
 /** @section Transpose_Duality_and_Involution_Witnesses */
 
@@ -553,7 +552,8 @@ static_assert(orth_Rx * orth_Rx.transpose() == identity_matrix2x2_v<Rat>);
 inline constexpr Matrix2x2V<Rat> orth_R180 = orth_R90 * orth_R90;
 static_assert(orth_R180.transpose() * orth_R180 == identity_matrix2x2_v<Rat>,
               "R180 = R90·R90 is orthogonal (group closure in O(2, ℚ)).");
-static_assert(orth_R180 == Matrix2x2V<Rat>{Rat{-1L}, Rat{0L}, Rat{0L}, Rat{-1L}},
+static_assert(orth_R180 ==
+                  Matrix2x2V<Rat>{Rat{-1L}, Rat{0L}, Rat{0L}, Rat{-1L}},
               "R180 = -I on ℚ².");
 
 // Group inverse law: for orthogonal M, M⁻¹ = Mᵀ.
