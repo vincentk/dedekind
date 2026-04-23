@@ -329,9 +329,8 @@ concept IsVectorSpaceLike = IsFieldLikeScalar<F> && requires(F a, F b, V v) {
  *          carry under the active numeric policy (cf. `IsFieldLikeScalar`).
  */
 export template <typename S>
-concept IsScalarLike =
-    IsSemimoduleLike<S, S, std::plus<S>, std::plus<S>, std::multiplies<S>,
-                     std::multiplies<>>;
+concept IsScalarLike = IsSemimoduleLike<S, S, std::plus<S>, std::plus<S>,
+                                        std::multiplies<S>, std::multiplies<>>;
 
 /**
  * @concept IsFieldElementLike
