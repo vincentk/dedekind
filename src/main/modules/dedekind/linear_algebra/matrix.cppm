@@ -340,12 +340,13 @@ struct BlockUpperTriangular {
    * type composition does not silently demand that `A::inverse_type`, `B`,
    * and `D::inverse_type` be default-constructible.
    */
-  using inverse_type = BlockUpperTriangular<
-      typename A::inverse_type,
-      decltype(-(std::declval<typename A::inverse_type>() *
-                 std::declval<const B&>() *
-                 std::declval<typename D::inverse_type>())),
-      typename D::inverse_type>;
+  using inverse_type =
+      BlockUpperTriangular<typename A::inverse_type,
+                           decltype(-(
+                               std::declval<typename A::inverse_type>() *
+                               std::declval<const B&>() *
+                               std::declval<typename D::inverse_type>())),
+                           typename D::inverse_type>;
 
   constexpr auto inverse() const { return inverse_type{}; }
 
@@ -363,13 +364,10 @@ struct BlockUpperTriangular {
    */
   template <typename A2, typename B2, typename D2>
   constexpr auto operator*(BlockUpperTriangular<A2, B2, D2>) const {
-    using NewA =
-        decltype(std::declval<const A&>() * std::declval<const A2&>());
+    using NewA = decltype(std::declval<const A&>() * std::declval<const A2&>());
     using NewB = decltype(std::declval<const A&>() * std::declval<const B2&>() +
-                          std::declval<const B&>() *
-                              std::declval<const D2&>());
-    using NewD =
-        decltype(std::declval<const D&>() * std::declval<const D2&>());
+                          std::declval<const B&>() * std::declval<const D2&>());
+    using NewD = decltype(std::declval<const D&>() * std::declval<const D2&>());
     return BlockUpperTriangular<NewA, NewB, NewD>{};
   }
 
