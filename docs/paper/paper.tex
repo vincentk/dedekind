@@ -150,10 +150,11 @@ values.  This comprehension view, rooted in Lawvere's Elementary Theory of the C
         algebraic reasoning (e.g.\ over the naturals $\mathbb{N}$) from hardware-constrained
         IEEE~754 floating-point~\cite{ieee754_2019} semantics.
 \end{itemize}
-We motivate the design from the practitioner's perspective, beginning with an analyst data-pipeline
-notebook, and progressively lifting the underlying abstractions to show how recent C++23 advances
-(concepts, non-type template parameters, named modules) make this approach viable in a mainstream
-systems language.  We identify \emph{Axiomatic Systems Programming} as a nascent paradigm in which
+We motivate the design from the library-implementer's perspective: mathematically faithful
+libraries in compiled languages have traditionally paid for algebraic invariants either in
+silent bugs or in runtime checks, and we argue that recent C++23 advances (concepts,
+non-type template parameters, named modules) let those invariants live at the type level
+instead. We identify \emph{Axiomatic Systems Programming} as a nascent paradigm in which
 the compiler---explicitly \emph{not} a theorem prover, but a structural gate---rules
 out whole classes of algebraic-law violations at translation time and enables whole
 classes of structural optimizations that exploit the ruled-out failure modes.
@@ -178,108 +179,73 @@ candidate set to a singleton.
 \label{sec:introduction}
 % ============================================================
 
-\subsection{The Two-Language Problem---From the Analyst's Angle}
+\subsection{Motivation: Mathematical Faithfulness in a Compiled Library}
 
-A data analyst working in Python writes:
+A library implementer who wants to expose mathematical abstractions in a
+compiled language faces a recurring tension. Algebraic structures---groups,
+rings, fields, vector spaces---are defined by laws: associativity,
+commutativity, identities, inverses. But the concrete carriers a compiled
+language offers violate those laws conditionally: a 32-bit signed
+\texttt{int} is not an additive group (overflow, \texttt{INT\_MIN} has no
+negation), and IEEE~754 \texttt{double}~\cite{ieee754_2019} is not
+associative under addition. The library author's options are to ignore the
+divergence (silent bugs on specific inputs), police it at runtime (hot
+paths pay), or encode it in the type system so the compiler can police and
+exploit it. This paper is about what happens when a library takes the third
+option seriously, in standard C++23.
 
-\begin{lstlisting}[language=Python, caption={A declarative analyst pipeline (from the \texttt{dedekind} notebook).}, label={lst:analyst}]
-sales_clean = (
-    sales
-    .normalize_text(["product_id", "country"], lower=True, strip=True)
-    .coerce_numeric(["units", "revenue"], strip_symbols=True)
-    .fill_missing(units=0, revenue=0)
-    # country is a finite extensional set: ISO 3166-1 alpha-3 codes
-    .expect_domain("country", ["DEU", "FRA", "GBR"], on_fail="raise")
-    # date is intensional: a point on the real line modelled by ISO 8601
-    .expect_iso8601("sale_date")
-    # period is a cyclic structure: fiscal quarters repeat annually
-    .expect_period("fiscal_quarter", cycle=4)
-)
+The third option requires a type system strong enough to name algebraic
+structure and to discriminate between carriers that satisfy a law and
+those that do not. Haskell type classes~\cite{GHC2024} and
+dependently-typed languages such as Coq and Agda~\cite{norell2007towards}
+demonstrate the expressiveness; both impose runtime or toolchain costs
+that are hard to justify when the library's consumers are writing systems
+code. C++23 now offers a pragmatic middle ground: concepts check
+structural membership at compile time without nominal declarations,
+non-type template parameters let lambdas appear in type signatures, and
+named modules enforce a strict directed-acyclic build graph. The compiler
+becomes both a \emph{verification gate}---violating an algebraic law is a
+type error, not a runtime exception---and an \emph{optimization
+engine}---the LLVM backend exploits the structural knowledge inherited
+from the discharged proof obligations.
 
-report_plan = monthly_category_report(
-    smart_join(sales_clean, products_clean).smart_join(country_meta)
-)
+Our posture is explicit: \texttt{dedekind} is a systems-programming
+library that treats mathematical concepts as first-class compile-time
+objects. The library is implemented in C++23, and the compile-time
+concept machinery is its primary interface, not a Python or notebook
+layer grafted on top. Python bindings exist as an optional facade, but
+they are not what the library is for; the consumer we design for is
+another C++ author who would otherwise bolt ad-hoc structure onto
+unverified numeric types. Choosing to land the semantics at the
+compile-time layer---rather than as runtime abstractions, or as a DSL
+lowered to a runtime solver---is a design commitment that shapes what
+the compiler can do for the user and what it cannot.
 
-summary = report_plan.realize()
-\end{lstlisting}
+\paragraph{A worked example in advance.}
+Section~\ref{sec:lp-centrepiece} presents the paper's centrepiece: a
+textbook linear-programming instance whose objective vector and
+constraint polytope are named at the type level reduces at compile time
+to its optimal vertex as a typed constant. The six candidate solves,
+six feasibility checks, and six objective comparisons vanish in the
+emitted IR, which contains only the literal return of the optimum's
+coordinates. No LP solver runs; the compiler has already performed the
+active-set enumeration. Running the same reduction over the dual-number
+ring (Section~\ref{sec:ad-elliott}) additionally recovers exact
+sensitivity analysis, recognising forward-mode automatic differentiation
+as a sibling compile-time reduction in the sense of
+Elliott~\cite{elliott2018simple}. Both reductions are witnessed by
+\lstinline{static_assert} at instantiation and by checked-in LLVM~IR
+fixtures that fail CI on optimiser drift.
 
-Three distinct \emph{kinds} of set structure appear in this single pipeline:
-
-\begin{description}
-  \item[Finite extensional.]  The call
-        \lstinline{expect_domain("country", ["DEU", "FRA", "GBR"])} encodes that
-        the \texttt{country} column is a member of a known, enumerable set drawn from
-        ISO~3166-1 alpha-3 country codes~\cite{iso3166}.  The ambient set is finite and
-        fully listed; membership is decidable by equality.
-
-  \item[Intensional / infinite.] The call \lstinline{expect_iso8601("sale\_date")}
-        encodes that \texttt{sale\_date} is a point on a \emph{totally ordered,
-        continuous} ambient structure---the real line $\mathbb{R}$, restricted to the
-        rational subset that ISO~8601~\cite{iso8601} dates inhabit.  The ambient set is
-        not enumerated; membership is decided by a parsing predicate.
-        This is the characteristic form of an \emph{intensional} set: defined by a rule
-        rather than a roster.
-
-  \item[Cyclic / periodic.] The call \lstinline{expect_period("fiscal\_quarter", cycle=4)}
-        encodes a \emph{cyclic} structure: fiscal quarters are elements of
-        $\mathbb{Z}/4\mathbb{Z}$, a quotient group where quarter~5 wraps back to
-        quarter~1.  The ISO~8601 calendar itself exhibits the same periodicity at the
-        week level (52 or 53 ISO weeks per year).  Cyclic dimensions are neither
-        purely finite nor purely continuous; their ambient set is a circle, not an
-        interval, and range-based pruning must be replaced by modular arithmetic.
-\end{description}
-
-\paragraph{Bootstrapping data quality from guaranteed structural patterns.}
-The three set kinds are not independent.
-A real-world sales dataset combines all three simultaneously: a country column drawn from a
-finite ISO~3166-1 roster, a date column inhabiting an intensional time axis, and a period
-column cycling through fiscal quarters.
-Their \emph{cross-product} defines a structural skeleton---a lattice of expected cells---against
-which the actual data can be validated immediately, without any domain-specific business logic.
-
-For example, if a country reports sales data with a known \emph{publication periodicity}
-(say, Germany publishes monthly, France publishes quarterly), that periodicity is a structural
-fact expressible as a predicate over the product of the country set and the cyclic period set:
-\[
-  \mathrm{Periodicity} = \bigl\{(c, p) \in \mathrm{ISO3166} \times \mathbb{Z}/n\mathbb{Z}
-    \;\big|\; \mathrm{period\_ok}(c, p)\bigr\}.
-\]
-A row missing from the expected $(c, p)$ skeleton is a \emph{gap}; a row present outside it
-is an \emph{anomaly}.
-Both are detectable as structural violations---set-membership failures---\emph{before} any
-numeric or business-logic computation is performed.
-
-This turns the three \lstinline{expect\_*} declarations into a \emph{data quality contract}:
-the pipeline guarantees, at the boundary of \lstinline{.realize()}, that every surviving row
-belongs to the structurally valid region of the joint ambient space.
-The quality lift reported by the notebook (the delta between the vanilla and smart pivot in
-the analyst tier) is an empirical measure of how much of the input data falls outside that
-guaranteed region.
-Framed this way, data quality improvement is a process of progressively tightening the
-structural contract---adding more precise predicates---until the residual anomaly rate meets
-the analyst's tolerance.
-
-\noindent
-The call \lstinline{.realize()} is an \emph{explicit materialization boundary}:
-prior to that call, \lstinline{report_plan} is an intensional description---a recipe
-without evaluated results.  The symmetry between \lstinline{expect\_*} declarations
-and \lstinline{.realize()} is not accidental; it is the central design rule of the
-\texttt{dedekind} library made visible at the Python-facing API tier.
-
-Underneath the Python facade, the library is implemented in C++23.
-The analyst's pipeline is \emph{not} novel in its high-level form---declarative
-data-frame APIs are widespread.  What is novel is the semantic model that the C++
-layer enforces:
-
+\paragraph{The three claims this paper substantiates.}
 \begin{enumerate}
   \item Sets are \emph{rules} (predicates), not \emph{buckets} (containers).
   \item Computation is \emph{intensional until explicitly realized}.
   \item The compiler is used as a \emph{verification and optimization engine}
         for algebraic invariants.
 \end{enumerate}
-
-The rest of this paper unpacks these three claims and their consequences for both
-programmer experience and generated code quality.
+The remainder of the paper develops these three claims and demonstrates
+each by a reduction that compiles to a constant.
 
 \subsection{Paper Structure}
 
@@ -356,9 +322,10 @@ and can be invoked.
 This is genuinely structural---it cares about behaviour, not name---but the check
 happens \emph{at runtime}, too late to drive compile-time optimization, and errors
 surface only when a missing method is actually called.
-Python's \texttt{expect\_domain} constraint in Listing~\ref{lst:analyst} is duck-typed
-in this sense: the domain set is a runtime \texttt{list}, membership is tested by
-\lstinline{in}, and a violation raises an exception at the point of evaluation.
+A set represented as a Python \texttt{list} and tested by \lstinline{in} is duck-typed
+in this sense: the membership check succeeds or fails at the point of evaluation, with
+no opportunity for the compiler to discover that the set is empty or that two conjoined
+predicates are contradictory.
 
 \paragraph{Static structural typing---the Juliet Posture.}
 C++23 concepts combine the structural insight of duck typing with the static,
@@ -474,9 +441,12 @@ necessary.
 
 An \emph{intensional} description specifies a mathematical object by its defining properties.
 An \emph{extensional} representation enumerates its members or computes its value.
-The analyst's \lstinline{report_plan} in Listing~\ref{lst:analyst} is intensional;
-the returned \lstinline{summary} data frame is extensional.
-The \lstinline{.realize()} call is the auditable crossing of that boundary.
+A halfspace \(\{x \in \mathbb{Q} \mid x \leq 4\}\) is intensional; the list of its
+rational points between $0$ and $4$ is extensional; and a function that materialises
+the former into the latter is the auditable crossing of that boundary. The Dedekind cuts
+of Section~\ref{sec:dedekind-cuts}---where a real number is named by the pair of rational
+sets below and above it---push the same distinction to its limit: the real is
+intensional forever, and only bounded-precision queries cross the boundary.
 This framing is close in spirit to intensional database semantics (for example,
 Majki\'c's intensional FOL treatment for peer-to-peer data integration
 \cite{majkic2009intensional}), but our engineering contrast with mainstream SQL
@@ -530,6 +500,7 @@ wrapper) is supplied.  The realization boundary is the point at which the progra
 chooses which policy to apply.
 
 \subsection{Dedekind Cuts as the Canonical Example}
+\label{sec:dedekind-cuts}
 
 The library's namesake---Dedekind cuts---is the canonical illustration.
 A real number $r \in \mathbb{R}$ is represented as a pair of intensional sets
@@ -1106,11 +1077,12 @@ with no extra code path.
 
 \paragraph{Data-pipeline DSLs.}
 Apache Spark, Flink, and the Python \texttt{pandas}/\texttt{polars} ecosystem
-provide declarative data pipelines.
-None of these ground their APIs in formal set theory; domain constraints such as
-\lstinline{expect_domain} are runtime assertions, not compile-time type invariants.
-\texttt{dedekind}'s Python facade inherits structural guarantees from the C++ layer
-while preserving the familiar data-frame programming model.
+provide declarative data pipelines with runtime domain checks. None of these
+ground their APIs in formal set theory, so intersections and filters are
+runtime pipeline operations rather than compile-time type invariants.
+\texttt{dedekind} is positioned one layer down: it is a systems-programming
+library that could in principle back such pipelines, but the contribution
+we demonstrate here is the compile-time reduction at the C++ layer itself.
 
 \paragraph{C++ template metaprogramming libraries.}
 Boost.Hana~\cite{chagnon2016hana} and \texttt{mp11}~\cite{pdimov2017mp11} provide
