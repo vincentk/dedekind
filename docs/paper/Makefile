@@ -1,4 +1,4 @@
 doc: #dot
-	pdflatex paper.tex
+	lualatex paper.tex
 	biber paper
-	pdflatex paper.tex
+	lualatex paper.tex
