@@ -500,11 +500,16 @@ constexpr auto operator==(const Variable<Species>&, bool rhs) {
   return BooleanEqPredicate{rhs};
 }
 
-/** @brief Unary negation of a boolean variable: `!b` ≡ `b == false`. */
+/** @brief Unary negation of a boolean variable: `!b` ≡ `b == false`.
+ *
+ *  Delegates to the `operator==` overload above so the bool-domain encoding
+ *  lives in exactly one place: a future change to the predicate type or
+ *  pruning hooks only needs to be made once.
+ */
 export template <typename Species>
   requires std::same_as<typename Species::Domain, bool>
-constexpr auto operator!(const Variable<Species>&) {
-  return BooleanEqPredicate{false};
+constexpr auto operator!(const Variable<Species>& v) {
+  return v == false;
 }
 
 /** @section Logical_Lifting */
