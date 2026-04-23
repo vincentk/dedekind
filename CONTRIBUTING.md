@@ -117,6 +117,29 @@ Paired together, these rules pull the backlog toward consistency PR-by-PR rather
 than via dedicated refactor-burn sprints, at the cost of modest PR-body creep
 that is easy to justify to the reviewer.
 
+### The computational analogues
+
+Both rules are concrete instances of two distributed-systems concepts that
+already appear throughout this guide — spelling out the connection makes the
+underlying reasoning reusable:
+
+- **Eventual consistency** — the backlog does not need to be globally
+  consistent at every moment. It needs to *converge*. Boy-scouting accepts
+  temporary inconsistency (adjacent issues stay open while unrelated PRs
+  land) and commits to narrowing it one PR at a time. The alternative —
+  strong consistency, where every PR either leaves the backlog perfectly
+  aligned or doesn't ship — requires coordination we can't afford.
+- **Optimistic concurrency control** — proceed without pessimistic locking
+  against every possible conflict; detect and reconcile when they appear.
+  Under-promise/over-deliver is its contributor-level analogue: take on a
+  bit more than the minimum because the cost of over-delivery is
+  amortized by the speed of continued progress, and the cost of
+  under-delivery compounds into coordination debt.
+
+The CI workflow (`Development workflow` below) runs on the same two
+principles for the same reasons; the operating-principles layer just
+projects them onto PR content rather than build mechanics.
+
 ## Development workflow
 
 - The `Makefile` is the **preferred** build interface; use `make <target>` rather than
