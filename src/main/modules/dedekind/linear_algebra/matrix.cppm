@@ -69,9 +69,10 @@ module;
 
 export module dedekind.linear_algebra:matrix;
 
-import dedekind.numbers; // Rational<Z> for the ℚ carrier
-import :contracts;       // matrix / vector / orientation concepts
-import :tuple;           // Vec2 (NTTP), Vec2V / Covec2V (value-level)
+import dedekind.algebra;  // IsFieldLikeScalar, IsVectorSpaceLike (upstream)
+import dedekind.numbers;  // Rational<Z> for the ℚ carrier
+import :contracts;        // matrix / vector / orientation concepts
+import :tuple;  // Vec2 (NTTP), Vec2V / Covec2V (value-level)
 
 namespace dedekind::linear_algebra {
 
@@ -98,6 +99,7 @@ namespace dedekind::linear_algebra {
  * @tparam a,b,c,d Entries as NTTPs of type `T`.
  */
 export template <typename T, T a, T b, T c, T d>
+  requires dedekind::algebra::IsFieldLikeScalar<T>
 struct Invertible2x2 {
   using Domain = T;
 
@@ -191,6 +193,7 @@ using Identity2x2 = Invertible2x2<T, T{1}, T{0}, T{0}, T{1}>;
  * an inverse — singular `Matrix2x2`s are valid inhabitants of the type.
  */
 export template <typename T, T a, T b, T c, T d>
+  requires dedekind::algebra::IsFieldLikeScalar<T>
 struct Matrix2x2 {
   using Domain = T;
 
@@ -398,6 +401,7 @@ struct BlockUpperTriangular {
  * rows are `Covec2V<T>` (a 1×2 matrix).
  */
 export template <typename T>
+  requires dedekind::algebra::IsFieldLikeScalar<T>
 struct Matrix2x2V {
   using scalar_type = T;
   using column_type = Vec2V<T>;
@@ -551,6 +555,28 @@ constexpr Matrix2x2V<T> operator/(const Covec2V<T>& a, const Covec2V<T>& b) {
 namespace detail {
 
 using Rat = dedekind::numbers::Rational<long>;
+
+/** @subsection Upstream_Concept_Witnesses — algebra concepts on ℚ carriers.
+ *
+ *  Rather than redefine the vector-space / module content, witness that the
+ *  value-level tuple and matrix carriers satisfy the operational concepts
+ *  already in `dedekind.algebra:modules` (`IsVectorSpaceLike`,
+ *  `IsSemimoduleLike`, `IsFieldLikeScalar`). This anchors the new tuple /
+ *  matrix types to the upstream algebraic hierarchy.
+ */
+
+static_assert(dedekind::algebra::IsFieldLikeScalar<Rat>,
+              "Rational<long> is the operational field-like scalar under "
+              "the active numeric policy.");
+
+static_assert(dedekind::algebra::IsVectorSpaceLike<Vec2V<Rat>, Rat>,
+              "Vec2V<ℚ> is an operational vector-space-like over ℚ.");
+static_assert(dedekind::algebra::IsVectorSpaceLike<Covec2V<Rat>, Rat>,
+              "Covec2V<ℚ> is an operational vector-space-like over ℚ.");
+static_assert(dedekind::algebra::IsVectorSpaceLike<Matrix2x2V<Rat>, Rat>,
+              "Matrix2x2V<ℚ> is an operational vector-space-like over ℚ "
+              "(matrices over a field are themselves a vector space under "
+              "entry-wise + and scalar *).");
 
 /** @subsection The_Nine_Matrix_Slogans */
 

@@ -37,7 +37,8 @@ module;
 
 export module dedekind.linear_algebra:embeddings;
 
-import dedekind.numbers; // Complex<T>, Dual<T>, Rational<Z>
+import dedekind.algebra;  // IsFieldLikeScalar for constraint on carrier T
+import dedekind.numbers;  // Complex<T>, Dual<T>, Rational<Z>, IsComplexScalar
 import :matrix;  // Matrix2x2V<T>, identity / zero constants for the target
 
 namespace dedekind::linear_algebra {
@@ -61,10 +62,13 @@ using dedekind::numbers::Dual;
  *           sense of `IsComplexScalar`.
  */
 export template <typename T>
+  requires dedekind::numbers::IsComplexScalar<T> &&
+           dedekind::algebra::IsFieldLikeScalar<T>
 constexpr Matrix2x2V<T> as_matrix2x2(const Complex<T>& z) {
   // Express `-z.imag()` via `T{} - z.imag()` so the function's requirement set
-  // matches `IsComplexScalar` exactly (T{}, binary -, binary +, binary *) and
-  // does NOT silently demand unary negation on T.
+  // matches `IsComplexScalar` (T{}, binary -, binary +, binary *) without
+  // silently demanding unary negation. `IsFieldLikeScalar<T>` is additionally
+  // required because the Matrix2x2V<T> target is itself bounded on it.
   return {z.real(), T{} - z.imag(), z.imag(), z.real()};
 }
 
@@ -76,6 +80,8 @@ constexpr Matrix2x2V<T> as_matrix2x2(const Complex<T>& z) {
  *          of ℂ ↪ M₂(T). The caller is responsible for that precondition.
  */
 export template <typename T>
+  requires dedekind::numbers::IsComplexScalar<T> &&
+           dedekind::algebra::IsFieldLikeScalar<T>
 constexpr Complex<T> complex_from_matrix2x2(const Matrix2x2V<T>& M) {
   return Complex<T>{M.m11, M.m21};
 }
@@ -98,7 +104,10 @@ constexpr Complex<T> complex_from_matrix2x2(const Matrix2x2V<T>& M) {
  * @tparam T A carrier with ring-like arithmetic compatible with `Dual<T>`.
  */
 export template <typename T>
+  requires std::regular<T> && dedekind::algebra::IsFieldLikeScalar<T>
 constexpr Matrix2x2V<T> as_matrix2x2(const Dual<T>& d) {
+  // `std::regular<T>` matches `Dual<F>`'s own constraint; `IsFieldLikeScalar`
+  // is additionally required because the Matrix2x2V<T> target demands it.
   return {d.value(), d.derivative(), T{0}, d.value()};
 }
 
@@ -109,6 +118,7 @@ constexpr Matrix2x2V<T> as_matrix2x2(const Dual<T>& d) {
  *          Not enforced; see the `complex_from_matrix2x2` note.
  */
 export template <typename T>
+  requires std::regular<T> && dedekind::algebra::IsFieldLikeScalar<T>
 constexpr Dual<T> dual_from_matrix2x2(const Matrix2x2V<T>& M) {
   return Dual<T>{M.m11, M.m12};
 }

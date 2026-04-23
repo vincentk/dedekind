@@ -32,6 +32,7 @@ module;
 
 export module dedekind.linear_algebra:tuple;
 
+import dedekind.algebra;  // IsFieldLikeScalar, IsVectorSpaceLike (upstream)
 import :contracts;  // ColumnOrientation, RowOrientation tags
 
 namespace dedekind::linear_algebra {
@@ -47,6 +48,7 @@ namespace dedekind::linear_algebra {
  * `:matrix`.
  */
 export template <typename T, T x, T y>
+  requires std::equality_comparable<T>
 struct Vec2 {
   using Domain = T;
 
@@ -62,8 +64,9 @@ struct Vec2 {
 /** @section Value_Level_Tuples — column / row vectors as 2×1 / 1×2 matrices. */
 
 // Forward declaration so `Vec2V::transpose()` can name `Covec2V` at the
-// point of definition.
+// point of definition. The bound matches the full declaration below.
 export template <typename T>
+  requires dedekind::algebra::IsFieldLikeScalar<T>
 struct Covec2V;
 
 /**
@@ -82,6 +85,7 @@ struct Covec2V;
  * `:contracts`.
  */
 export template <typename T>
+  requires dedekind::algebra::IsFieldLikeScalar<T>
 struct Vec2V {
   using scalar_type = T;
   using orientation = ColumnOrientation;
@@ -122,6 +126,7 @@ struct Vec2V {
  * views share the same underlying scalar layout.
  */
 export template <typename T>
+  requires dedekind::algebra::IsFieldLikeScalar<T>
 struct Covec2V {
   using scalar_type = T;
   using orientation = RowOrientation;
@@ -153,6 +158,7 @@ struct Covec2V {
 };
 
 template <typename T>
+  requires dedekind::algebra::IsFieldLikeScalar<T>
 constexpr Covec2V<T> Vec2V<T>::transpose() const {
   return {x, y};
 }
