@@ -176,4 +176,61 @@ struct Invertible2x2 {
 export template <typename T = int>
 using Identity2x2 = Invertible2x2<T, T{1}, T{0}, T{0}, T{1}>;
 
+/**
+ * @brief Direct sum of two invertibles — the trivial compositional preserver.
+ *
+ *   (A ⊕ B) is the block-diagonal operator
+ *
+ *       [[ A,  0 ],
+ *        [ 0,  B ]]
+ *
+ *   with `(A ⊕ B)^{-1} = A^{-1} ⊕ B^{-1}` and
+ *        `(A ⊕ B) · (A' ⊕ B') = (A·A') ⊕ (B·B')`.
+ *
+ * This is Tier 1 of #366: invertibility of a block-diagonal sum is a
+ * consequence of invertibility of the blocks, with no Schur-complement
+ * recurrence needed. Cheapest move on the block-composition ladder, and
+ * the one that builds arbitrarily-large well-behaved matrices from 2×2
+ * bases "for free" by iteration.
+ *
+ * The factors `A` and `B` are expected to be types that participate in
+ * composition (`operator*` returning a value of the same structural shape)
+ * and expose `inverse()` returning an `inverse_type`; `Invertible2x2<T, …>`
+ * is the canonical instance today.
+ */
+export template <typename A, typename B>
+struct DirectSum {
+  using first_factor = A;
+  using second_factor = B;
+
+  /**
+   * @brief Inverse: block-diagonal of the factor inverses.
+   *
+   * The closed form `(A ⊕ B)^{-1} = A^{-1} ⊕ B^{-1}` is exact whenever
+   * each factor's inverse is exact — here, inherited from `Invertible2x2`
+   * over `Rational<Z>`.
+   */
+  using inverse_type =
+      DirectSum<typename A::inverse_type, typename B::inverse_type>;
+
+  constexpr auto inverse() const { return inverse_type{}; }
+
+  /**
+   * @brief Composition: `(A ⊕ B) · (A' ⊕ B') = (A·A') ⊕ (B·B')`.
+   *
+   * The two blocks compose independently; the output is again a DirectSum.
+   */
+  template <typename A2, typename B2>
+  constexpr auto operator*(DirectSum<A2, B2>) const {
+    using ProdA = decltype(A{} * A2{});
+    using ProdB = decltype(B{} * B2{});
+    return DirectSum<ProdA, ProdB>{};
+  }
+
+  template <typename A2, typename B2>
+  constexpr bool operator==(DirectSum<A2, B2>) const {
+    return std::same_as<A, A2> && std::same_as<B, B2>;
+  }
+};
+
 }  // namespace dedekind::linear_algebra

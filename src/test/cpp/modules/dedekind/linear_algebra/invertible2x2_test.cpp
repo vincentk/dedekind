@@ -78,3 +78,40 @@ TEST_CASE("linear_algebra:invertible2x2 — composition is associative",
   STATIC_CHECK((shear * transpose_shear) * rot ==
                shear * (transpose_shear * rot));
 }
+
+TEST_CASE(
+    "linear_algebra:invertible2x2 — Tier 1: DirectSum preserves invertibility",
+    "[linear_algebra][invertible2x2][direct_sum]") {
+  // Two independently-invertible 2×2 blocks over ℚ, direct-summed into a
+  // block-diagonal 4×4 operator. Invertibility is preserved structurally:
+  // (A ⊕ B)^{-1} = A^{-1} ⊕ B^{-1}, and (A ⊕ B) · (A ⊕ B)^{-1} is the
+  // identity direct sum.
+  constexpr Invertible2x2<Rat, Rat{1L}, Rat{2L}, Rat{3L}, Rat{4L}> block_M{};
+  // 90° rotation over ℚ. Naming avoids collisions with ℝ / `R`.
+  constexpr Invertible2x2<Rat, Rat{0L}, Rat{-1L}, Rat{1L}, Rat{0L}> block_rot{};
+
+  constexpr DirectSum<decltype(block_M), decltype(block_rot)> ds{};
+  constexpr auto ds_inv = ds.inverse();
+
+  using IdentityDirectSum =
+      DirectSum<Identity2x2<Rat>, Identity2x2<Rat>>;
+  STATIC_CHECK(ds * ds_inv == IdentityDirectSum{});
+  STATIC_CHECK(ds_inv * ds == IdentityDirectSum{});
+}
+
+TEST_CASE(
+    "linear_algebra:invertible2x2 — Tier 1: DirectSum composes blockwise",
+    "[linear_algebra][invertible2x2][direct_sum]") {
+  // `(A ⊕ B) · (A' ⊕ B') = (A·A') ⊕ (B·B')`.
+  constexpr Invertible2x2<int, 1, 1, 0, 1> A{};
+  constexpr Invertible2x2<int, 1, 0, 1, 1> B{};
+  constexpr Invertible2x2<int, 1, 2, 0, 1> A2{};
+  constexpr Invertible2x2<int, 1, 0, 2, 1> B2{};
+
+  constexpr DirectSum<decltype(A), decltype(B)> AB{};
+  constexpr DirectSum<decltype(A2), decltype(B2)> AB2{};
+
+  constexpr auto lhs = AB * AB2;
+  constexpr DirectSum<decltype(A * A2), decltype(B * B2)> rhs{};
+  STATIC_CHECK(lhs == rhs);
+}
