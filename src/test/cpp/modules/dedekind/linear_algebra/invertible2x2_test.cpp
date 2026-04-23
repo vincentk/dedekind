@@ -1,0 +1,80 @@
+/** @file dedekind/linear_algebra/invertible2x2_test.cpp
+ *
+ * Unit coverage for `Invertible2x2<T, a, b, c, d>` (Tier 0 of issue #366).
+ * Exercises: full-rank enforcement, closed-form Cramer's inverse, matrix-
+ * matrix composition, matrix-vector action on `Vec2<T, x, y>`, and the
+ * existential proof `M * M.inverse() == Identity2x2<T>` over ℚ.
+ */
+
+#include <catch2/catch_test_macros.hpp>
+
+import dedekind.category;
+import dedekind.numbers;
+import dedekind.linear_algebra;
+
+using namespace dedekind::numbers;
+using namespace dedekind::linear_algebra;
+
+namespace {
+// Canonical paper-facing carrier: ℚ as a proxy for ℝ (exact arithmetic).
+using Rat = Rational<long>;
+}  // namespace
+
+TEST_CASE("linear_algebra:invertible2x2 — identity at the type level",
+          "[linear_algebra][invertible2x2][identity]") {
+  constexpr Identity2x2<Rat> I{};
+  STATIC_CHECK(I.m11 == Rat{1L});
+  STATIC_CHECK(I.m12 == Rat{0L});
+  STATIC_CHECK(I.m21 == Rat{0L});
+  STATIC_CHECK(I.m22 == Rat{1L});
+  STATIC_CHECK(I.det == Rat{1L});
+}
+
+TEST_CASE("linear_algebra:invertible2x2 — Cramer's inverse on ℚ",
+          "[linear_algebra][invertible2x2][inverse]") {
+  // M = [[1, 2], [3, 4]],  det = -2,
+  // M^{-1} = (-1/2) * [[4, -2], [-3, 1]] = [[-2, 1], [3/2, -1/2]]
+  constexpr Invertible2x2<Rat, Rat{1L}, Rat{2L}, Rat{3L}, Rat{4L}> M{};
+  STATIC_CHECK(M.det == Rat{-2L});
+
+  // Existential proof: the closed-form inverse is the honest two-sided
+  // inverse, not just a left- or right-inverse by luck.
+  STATIC_CHECK(M * M.inverse() == Identity2x2<Rat>{});
+  STATIC_CHECK(M.inverse() * M == Identity2x2<Rat>{});
+}
+
+TEST_CASE("linear_algebra:invertible2x2 — shear matrix on ℤ (det = 1)",
+          "[linear_algebra][invertible2x2][integer]") {
+  // M = [[1, 1], [0, 1]],  det = 1;  M^{-1} = [[1, -1], [0, 1]] over ℤ.
+  constexpr Invertible2x2<int, 1, 1, 0, 1> shear{};
+  STATIC_CHECK(shear.det == 1);
+  STATIC_CHECK(shear * shear.inverse() == Identity2x2<int>{});
+}
+
+TEST_CASE("linear_algebra:invertible2x2 — matrix-vector action",
+          "[linear_algebra][invertible2x2][action]") {
+  // Identity on ℤ² acts trivially.
+  constexpr Identity2x2<int> I{};
+  constexpr Vec2<int, 3, 7> v{};
+  STATIC_CHECK(I * v == Vec2<int, 3, 7>{});
+
+  // Shear M = [[1, 1], [0, 1]] sends (x, y) to (x + y, y).
+  constexpr Invertible2x2<int, 1, 1, 0, 1> shear{};
+  STATIC_CHECK(shear * Vec2<int, 3, 7>{} == Vec2<int, 10, 7>{});
+
+  // M * M^{-1} acts as identity on any vector.
+  STATIC_CHECK((shear * shear.inverse()) * Vec2<int, 3, 7>{} ==
+               Vec2<int, 3, 7>{});
+}
+
+TEST_CASE("linear_algebra:invertible2x2 — composition is associative",
+          "[linear_algebra][invertible2x2][composition]") {
+  // Basic group-axiom sanity: (A·B)·C == A·(B·C) over ℤ with det = 1 factors.
+  constexpr Invertible2x2<int, 1, 1, 0, 1> shear{};
+  constexpr Invertible2x2<int, 1, 0, 1, 1> transpose_shear{};
+  // 90° rotation (det = 1); avoid naming it `C` — collides with ℂ / `C`.
+  constexpr Invertible2x2<int, 0, -1, 1, 0> rot{};
+
+  STATIC_CHECK((shear * transpose_shear) * rot ==
+               shear * (transpose_shear * rot));
+}
