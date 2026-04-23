@@ -37,8 +37,8 @@ module;
 
 export module dedekind.linear_algebra:embeddings;
 
-import dedekind.algebra;  // IsRingLike + IsRingLikeHomomorphism (constraint / witness)
-import dedekind.numbers;  // Complex<T>, Dual<T>, Rational<Z>, IsComplexScalar
+import dedekind.algebra; // IsRingLike + IsRingLikeHomomorphism (constraint / witness)
+import dedekind.numbers; // Complex<T>, Dual<T>, Rational<Z>, IsComplexScalar
 import :matrix;  // Matrix2x2V<T>, identity / zero constants for the target
 
 namespace dedekind::linear_algebra {
