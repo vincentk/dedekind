@@ -24,13 +24,18 @@ ifeq ($(origin CC), default)
 CC := $(LLVM_ROOT)/bin/clang
 endif
 
-# Build parallelism. Defaults to the host's logical-core count so the user
-# does not need to pass `-j` on every invocation. Override with
-# `make JOBS=N ...` to pin a specific count (useful for constrained
-# environments). Passed through to `cmake --build` and `ctest` via CMake's
-# standard `--parallel` flag — per CMake's design this is the right knob
-# and it dispatches to the underlying generator (Ninja / Make / …).
-JOBS ?= $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4)
+# Build parallelism. Keep it a bit on the slim side: most module / test
+# workloads have I/O- or memory-bound phases, so pinning to `nproc` (let
+# alone Ninja's default of `nproc + 2`) tends to cause thrashing rather
+# than measurable speedup. Default to `max(1, nproc - 2)` so there is
+# always headroom for the IDE / browser locally, and for I/O / GC
+# concurrency on CI runners alike.
+# Override with `make JOBS=N ...` to pin a specific count (e.g. for
+# micro-benchmarks or constrained environments). Passed through to
+# `cmake --build` and `ctest` via CMake's `--parallel` flag, which is
+# the portable knob that dispatches to the underlying generator.
+_HOST_CORES := $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4)
+JOBS ?= $(shell j=$$(( $(_HOST_CORES) - 2 )); [ $$j -lt 1 ] && j=1; echo $$j)
 
 .PHONY: all clean compile test-compile test integration-test coverage python-coverage python-coverage-local ir-fixture-refresh ir-fixture-check format format-check install-hooks ci-install-doxygen-deps ci-install-report-deps doxygen dot doc report paper \
 	ci-history ci-main pr-init pr-status pr-checks pr-watch pr-sync pr-review-comments pr-review-unresolved pr-resolve-thread pr-resolve-threads \
