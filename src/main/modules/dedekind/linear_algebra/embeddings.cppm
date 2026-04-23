@@ -1,0 +1,221 @@
+/**
+ * @file dedekind/linear_algebra/embeddings.cppm
+ * @partition :embeddings
+ * @brief Level 12.5b: Canonical regular representations ℂ ↪ M₂, 𝔻 ↪ M₂.
+ *
+ * @copyright 2026 The Dedekind Authors
+ * Licensed under the Apache License, Version 2.0.
+ *
+ * @section Overview
+ * Two faithful ring homomorphisms, both spelled over the same 2×2 carrier:
+ *
+ *   ℂ ↪ M₂(T):   a + b·i  ↦  [[ a, -b ],
+ *                              [ b,  a ]]
+ *
+ *   𝔻 ↪ M₂(T):   a + b·ε  ↦  [[ a,  b ],
+ *                              [ 0,  a ]]
+ *
+ * The complex embedding is the classical regular representation of ℂ as
+ * rotation-and-scaling matrices; the dual embedding is the upper-triangular
+ * regular representation of 𝔻 = T[ε]/(ε²), with the nilpotent ε ↦ strict
+ * upper-triangular block.
+ *
+ * Paper-facing carrier is `T = Rational<long>` (ℚ as an exact proxy for ℝ
+ * per the #364 / #366 narrowing). The two embeddings are witnessed by
+ * `static_assert`s that they preserve the additive and multiplicative units
+ * and commute with + and ·. This is the "canonical mappings between ℂ/𝔻 over
+ * ℚ and the 2×2 rational matrices" asked for alongside #366.
+ *
+ * @section Value_Level_vs_Type_Level
+ * `Matrix2x2<T, a, b, c, d>` (in `:invertible2x2`) carries entries as NTTPs
+ * — it is a type-level object whose equality is type equality. `Matrix2x2V<T>`
+ * here is its value-level companion: a plain aggregate with four fields. The
+ * embeddings live at the value level because `Complex<T>` and `Dual<T>` are
+ * runtime (value) objects; the witnesses below use `constexpr` instances so
+ * the verdict is still a compile-time static_assert.
+ *
+ * Wikipedia: Regular representation, Dual numbers, Automatic differentiation
+ *
+ * @note "Tout est nombre." — Pythagoras (attrib., via Aristotle, Metaphysics A.5)
+ *       [Trans: "All is number."]
+ */
+module;
+
+#include <concepts>
+
+export module dedekind.linear_algebra:embeddings;
+
+import dedekind.numbers;  // Complex<T>, Dual<T>, Rational<Z>
+import :invertible2x2;    // shared namespace + doc references
+
+namespace dedekind::linear_algebra {
+
+using dedekind::numbers::Complex;
+using dedekind::numbers::Dual;
+
+/**
+ * @brief Value-level 2×2 matrix: the runtime companion to NTTP `Matrix2x2`.
+ *
+ * Stores entries as ordinary constexpr-friendly fields. Provided so that
+ * value-carrying maps (e.g. from a `Complex<T>` value) have a natural target
+ * without forcing NTTP promotion. Row-major layout matching `Matrix2x2`:
+ *
+ *     [[ m11, m12 ],
+ *      [ m21, m22 ]]
+ */
+export template <typename T>
+struct Matrix2x2V {
+  T m11{};
+  T m12{};
+  T m21{};
+  T m22{};
+
+  friend constexpr bool operator==(const Matrix2x2V&,
+                                   const Matrix2x2V&) = default;
+
+  friend constexpr Matrix2x2V operator+(const Matrix2x2V& A,
+                                        const Matrix2x2V& B) {
+    return {A.m11 + B.m11, A.m12 + B.m12, A.m21 + B.m21, A.m22 + B.m22};
+  }
+
+  friend constexpr Matrix2x2V operator*(const Matrix2x2V& A,
+                                        const Matrix2x2V& B) {
+    return {A.m11 * B.m11 + A.m12 * B.m21, A.m11 * B.m12 + A.m12 * B.m22,
+            A.m21 * B.m11 + A.m22 * B.m21, A.m21 * B.m12 + A.m22 * B.m22};
+  }
+};
+
+/** @brief Value-level identity: `[[1, 0], [0, 1]]`. */
+export template <typename T>
+inline constexpr Matrix2x2V<T> identity_matrix2x2_v{T{1}, T{0}, T{0}, T{1}};
+
+/** @brief Value-level zero: `[[0, 0], [0, 0]]`. */
+export template <typename T>
+inline constexpr Matrix2x2V<T> zero_matrix2x2_v{T{0}, T{0}, T{0}, T{0}};
+
+/** @section Canonical_Embedding_ℂ_↪_M₂ */
+
+/**
+ * @brief Regular representation of ℂ inside M₂(T):
+ *        `a + b·i ↦ [[a, -b], [b, a]]`.
+ *
+ * This is an injective ring homomorphism: preserves +, ·, 0, and 1. The image
+ * is exactly the subring of `rotation-and-scaling` 2×2 matrices — matrices
+ * commuting with the canonical `J = [[0, -1], [1, 0]]` and closed under
+ * matrix addition and multiplication. Over `T = Rational<Z>` the map is
+ * exact and invertible on its image via `complex_from_matrix2x2`.
+ *
+ * @tparam T A carrier supporting `+`, `-` (unary and binary), and `*` in the
+ *           sense of `IsComplexScalar`.
+ */
+export template <typename T>
+constexpr Matrix2x2V<T> as_matrix2x2(const Complex<T>& z) {
+  return {z.real(), -z.imag(), z.imag(), z.real()};
+}
+
+/**
+ * @brief Left inverse of `as_matrix2x2` on matrices of complex form.
+ * @details Recovers `(a, b)` from `[[a, -b], [b, a]]` by reading the first
+ *          column. Called a "left inverse" because
+ *          `complex_from_matrix2x2(as_matrix2x2(z)) == z` for every `z`, but
+ *          the opposite direction is only true for M in the image of ℂ ↪
+ *          M₂(T). The caller is responsible for that precondition; no
+ *          runtime check is issued.
+ */
+export template <typename T>
+constexpr Complex<T> complex_from_matrix2x2(const Matrix2x2V<T>& M) {
+  return Complex<T>{M.m11, M.m21};
+}
+
+/** @section Canonical_Embedding_𝔻_↪_M₂ */
+
+/**
+ * @brief Regular representation of 𝔻 inside M₂(T):
+ *        `a + b·ε ↦ [[a, b], [0, a]]`.
+ *
+ * This is an injective ring homomorphism from the dual numbers 𝔻 = T[ε]/(ε²)
+ * into upper-triangular 2×2 matrices with equal diagonal. The nilpotent
+ * relation `ε² = 0` lifts exactly to `[[0, 1], [0, 0]]² = [[0, 0], [0, 0]]`.
+ * Preserves +, ·, 0, and 1; witnessed below.
+ *
+ * Forward-mode automatic differentiation (already reified on `Dual<F>`) is
+ * structurally the action of this embedding: applying a polynomial to `Dual`
+ * equals applying the polynomial to its matrix image.
+ *
+ * @tparam T A carrier with ring-like arithmetic compatible with `Dual<T>`.
+ */
+export template <typename T>
+constexpr Matrix2x2V<T> as_matrix2x2(const Dual<T>& d) {
+  return {d.value(), d.derivative(), T{0}, d.value()};
+}
+
+/**
+ * @brief Left inverse of `as_matrix2x2` on matrices of dual form.
+ * @details Recovers `(a, b)` from `[[a, b], [0, a]]`. Precondition: M is in
+ *          the image of 𝔻 ↪ M₂(T) — i.e. `m11 == m22` and `m21 == 0`. Not
+ *          enforced; see the `complex_from_matrix2x2` note.
+ */
+export template <typename T>
+constexpr Dual<T> dual_from_matrix2x2(const Matrix2x2V<T>& M) {
+  return Dual<T>{M.m11, M.m12};
+}
+
+/** @section Ring_Homomorphism_Witnesses_over_ℚ
+ *
+ *  The paper-facing existential proofs that both embeddings are ring
+ *  homomorphisms — exact at compile time over `Rational<long>`.
+ */
+namespace detail {
+
+using Rat = dedekind::numbers::Rational<long>;
+
+// Two concrete ℚ-valued complex numbers with non-trivial real and imaginary
+// parts, chosen so that z*w has distinct real and imaginary components and
+// the homomorphism property is not satisfied by a symmetry coincidence.
+inline constexpr Complex<Rat> z_probe{Rat{1L}, Rat{2L}};
+inline constexpr Complex<Rat> w_probe{Rat{3L}, Rat{-5L}};
+
+static_assert(as_matrix2x2(Complex<Rat>{Rat{0L}, Rat{0L}}) ==
+                  zero_matrix2x2_v<Rat>,
+              "ℂ ↪ M₂(ℚ): the complex zero maps to the matrix zero.");
+static_assert(as_matrix2x2(Complex<Rat>{Rat{1L}, Rat{0L}}) ==
+                  identity_matrix2x2_v<Rat>,
+              "ℂ ↪ M₂(ℚ): the complex unit maps to the matrix identity.");
+static_assert(as_matrix2x2(z_probe + w_probe) ==
+                  as_matrix2x2(z_probe) + as_matrix2x2(w_probe),
+              "ℂ ↪ M₂(ℚ) preserves addition.");
+static_assert(as_matrix2x2(z_probe * w_probe) ==
+                  as_matrix2x2(z_probe) * as_matrix2x2(w_probe),
+              "ℂ ↪ M₂(ℚ) preserves multiplication.");
+static_assert(complex_from_matrix2x2(as_matrix2x2(z_probe)) == z_probe,
+              "ℂ ↪ M₂(ℚ) admits a left inverse on its image.");
+
+// Two concrete ℚ-valued dual numbers. `d_probe` has a non-zero derivative so
+// the matrix is strictly upper-triangular (not diagonal), and the product
+// mixes the nilpotent part non-trivially.
+inline constexpr Dual<Rat> d_probe{Rat{2L}, Rat{3L}};
+inline constexpr Dual<Rat> e_probe{Rat{-1L}, Rat{5L}};
+
+static_assert(as_matrix2x2(Dual<Rat>{Rat{0L}, Rat{0L}}) ==
+                  zero_matrix2x2_v<Rat>,
+              "𝔻 ↪ M₂(ℚ): the dual zero maps to the matrix zero.");
+static_assert(as_matrix2x2(Dual<Rat>{Rat{1L}, Rat{0L}}) ==
+                  identity_matrix2x2_v<Rat>,
+              "𝔻 ↪ M₂(ℚ): the dual unit maps to the matrix identity.");
+static_assert(as_matrix2x2(d_probe + e_probe) ==
+                  as_matrix2x2(d_probe) + as_matrix2x2(e_probe),
+              "𝔻 ↪ M₂(ℚ) preserves addition.");
+static_assert(as_matrix2x2(d_probe * e_probe) ==
+                  as_matrix2x2(d_probe) * as_matrix2x2(e_probe),
+              "𝔻 ↪ M₂(ℚ) preserves multiplication.");
+static_assert(dual_from_matrix2x2(as_matrix2x2(d_probe)) == d_probe,
+              "𝔻 ↪ M₂(ℚ) admits a left inverse on its image.");
+
+// Nilpotency of ε lifts exactly to the matrix world.
+inline constexpr Dual<Rat> eps_q{Rat{0L}, Rat{1L}};
+static_assert(as_matrix2x2(eps_q * eps_q) == zero_matrix2x2_v<Rat>,
+              "ε² = 0 in 𝔻 lifts to the zero matrix under the embedding.");
+
+}  // namespace detail
+
+}  // namespace dedekind::linear_algebra

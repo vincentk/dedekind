@@ -21,3 +21,4 @@ export import :backends;
 export import :contracts;
 export import :graphblas;
 export import :invertible2x2;
+export import :embeddings;
