@@ -1,9 +1,16 @@
 /**
- * @file dedekind/linear_algebra/invertible2x2.cppm
- * @partition :invertible2x2
- * @brief Level 12.5a: Compile-time full-rank 2×2 matrices over a structural
- *        carrier, with a closed-form Cramer's-rule inverse at the type level
- *        and a left action on an NTTP-carried 2-vector.
+ * @file dedekind/linear_algebra/matrix_nttp.cppm
+ * @partition :matrix_nttp
+ * @brief Level 12.5a: Type-level (NTTP) matrix family — compile-time
+ *        full-rank 2×2 matrices over a structural carrier, plus peer
+ *        Matrix2x2 / Vec2 / DirectSum / BlockUpperTriangular carriers.
+ *
+ * @details
+ * All carriers in this partition carry their entries as non-type template
+ * parameters (NTTPs), so equality is type equality and algebraic identities
+ * like `M * M.inverse() == Identity2x2<T>{}` are decidable as
+ * `static_assert`s. The value-level runtime companion lives in
+ * `:matrix_value` (`Matrix2x2V<T>`, `Vec2V<T>`, `Covec2V<T>`).
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
@@ -49,33 +56,20 @@
 module;
 
 #include <concepts>
+#include <cstddef>
 #include <type_traits>
 
-export module dedekind.linear_algebra:invertible2x2;
+export module dedekind.linear_algebra:matrix;
 
-import dedekind.numbers; // Rational<Z> for the ℚ carrier
+import dedekind.numbers;  // Rational<Z> for the ℚ carrier
+import :contracts;  // matrix / vector / orientation concepts
+import :tuple;      // Vec2 (NTTP), Vec2V / Covec2V (value-level)
 
 namespace dedekind::linear_algebra {
 
-/**
- * @brief Structural 2-vector with coordinates at the type level.
- *
- * `Vec2<T, x, y>` carries the module element `(x, y) ∈ T²` as NTTPs. The
- * type is the element; `Vec2<T, 1, 2>` and `Vec2<T, 3, 4>` are distinct
- * types. Used here as the target of `Invertible2x2`'s left action.
+/** @section NTTP_Matrix_Family — compile-time 2×2 matrices used for the
+ *  block-Schur invertibility program (#366). Entries live in the type.
  */
-export template <typename T, T x, T y>
-struct Vec2 {
-  using Domain = T;
-
-  static constexpr T first = x;
-  static constexpr T second = y;
-
-  template <T x2, T y2>
-  constexpr bool operator==(Vec2<T, x2, y2>) const {
-    return x == x2 && y == y2;
-  }
-};
 
 /**
  * @brief Full-rank 2×2 matrix with entries as non-type template parameters.
@@ -363,5 +357,267 @@ struct BlockUpperTriangular {
     return std::same_as<A, A2> && std::same_as<B, B2> && std::same_as<D, D2>;
   }
 };
+
+/** @section Value_Level_Matrix_Family — the runtime companion to the NTTP
+ *  carriers above. Entries are ordinary constexpr fields; equality is
+ *  value equality. `Matrix2x2V` is the paper-facing target of the ℂ/𝔻
+ *  regular representations in `:embeddings`.
+ */
+
+/**
+ * @brief Value-level 2×2 matrix — the runtime companion to NTTP `Matrix2x2`.
+ *
+ * Stores entries as ordinary constexpr-friendly fields. Row-major layout:
+ *
+ *     [[ m11, m12 ],
+ *      [ m21, m22 ]]
+ *
+ * Satisfies `IsMatrix<M>` and `IsMatrixOverFieldRingLike<M, T>` from
+ * `:contracts`: exposes `row_count`/`column_count`, `column_type`/`row_type`,
+ * both decompositions (via `column(i)` / `row(i)`), and the full ring-plus-
+ * transpose surface. Columns are `Vec2V<T>` (a 2×1 matrix from `:tuple`);
+ * rows are `Covec2V<T>` (a 1×2 matrix).
+ */
+export template <typename T>
+struct Matrix2x2V {
+  using scalar_type = T;
+  using column_type = Vec2V<T>;
+  using row_type = Covec2V<T>;
+  static constexpr std::size_t row_count = 2;
+  static constexpr std::size_t column_count = 2;
+
+  T m11{};
+  T m12{};
+  T m21{};
+  T m22{};
+
+  friend constexpr bool operator==(const Matrix2x2V&,
+                                   const Matrix2x2V&) = default;
+
+  friend constexpr Matrix2x2V operator+(const Matrix2x2V& A,
+                                        const Matrix2x2V& B) {
+    return {A.m11 + B.m11, A.m12 + B.m12, A.m21 + B.m21, A.m22 + B.m22};
+  }
+
+  friend constexpr Matrix2x2V operator-(const Matrix2x2V& A,
+                                        const Matrix2x2V& B) {
+    return {A.m11 - B.m11, A.m12 - B.m12, A.m21 - B.m21, A.m22 - B.m22};
+  }
+
+  friend constexpr Matrix2x2V operator-(const Matrix2x2V& A) {
+    return {-A.m11, -A.m12, -A.m21, -A.m22};
+  }
+
+  friend constexpr Matrix2x2V operator*(const T& s, const Matrix2x2V& A) {
+    return {s * A.m11, s * A.m12, s * A.m21, s * A.m22};
+  }
+
+  friend constexpr Matrix2x2V operator*(const Matrix2x2V& A, const T& s) {
+    return {A.m11 * s, A.m12 * s, A.m21 * s, A.m22 * s};
+  }
+
+  friend constexpr Matrix2x2V operator*(const Matrix2x2V& A,
+                                        const Matrix2x2V& B) {
+    return {A.m11 * B.m11 + A.m12 * B.m21, A.m11 * B.m12 + A.m12 * B.m22,
+            A.m21 * B.m11 + A.m22 * B.m21, A.m21 * B.m12 + A.m22 * B.m22};
+  }
+
+  /** @brief The i-th column (0-based). Out-of-range yields the zero column. */
+  constexpr column_type column(std::size_t i) const {
+    if (i == 0) return {m11, m21};
+    if (i == 1) return {m12, m22};
+    return {};
+  }
+
+  /** @brief The i-th row (0-based). Out-of-range yields the zero row. */
+  constexpr row_type row(std::size_t i) const {
+    if (i == 0) return {m11, m12};
+    if (i == 1) return {m21, m22};
+    return {};
+  }
+
+  /** @brief Matrix transpose: reflect across the main diagonal. */
+  constexpr Matrix2x2V transpose() const { return {m11, m21, m12, m22}; }
+};
+
+/** @brief Value-level identity: `[[1, 0], [0, 1]]`. */
+export template <typename T>
+inline constexpr Matrix2x2V<T> identity_matrix2x2_v{T{1}, T{0}, T{0}, T{1}};
+
+/** @brief Value-level zero: `[[0, 0], [0, 0]]`. */
+export template <typename T>
+inline constexpr Matrix2x2V<T> zero_matrix2x2_v{T{0}, T{0}, T{0}, T{0}};
+
+/** @section Shape_Conforming_Linear_Actions
+ *
+ *  `Matrix2x2V × Vec2V → Vec2V` (left action on column vectors, 2×2 · 2×1)
+ *  and `Covec2V × Matrix2x2V → Covec2V` (right action on row vectors,
+ *  1×2 · 2×2). The inner dimension `2 = column_count(M) = row_count(v)`
+ *  lines up; the outer shape of the result is determined by the outer
+ *  dimensions. Mismatched shapes would be structurally ill-typed — no
+ *  overload exists for `Matrix2x2V × Covec2V` or `Vec2V × Matrix2x2V`.
+ */
+
+/** @brief Matrix-column-vector product: `(2×2) · (2×1) → (2×1)`. */
+export template <typename T>
+constexpr Vec2V<T> operator*(const Matrix2x2V<T>& A, const Vec2V<T>& v) {
+  return {A.m11 * v.x + A.m12 * v.y, A.m21 * v.x + A.m22 * v.y};
+}
+
+/** @brief Row-vector-matrix product: `(1×2) · (2×2) → (1×2)`. */
+export template <typename T>
+constexpr Covec2V<T> operator*(const Covec2V<T>& v, const Matrix2x2V<T>& A) {
+  return {v.x * A.m11 + v.y * A.m21, v.x * A.m12 + v.y * A.m22};
+}
+
+/** @section Concept_Witnesses_over_ℚ — the `:contracts` slogan-pack witnessed
+ *  on the concrete Matrix2x2V / Vec2V / Covec2V triple.
+ *
+ *  The nine structural claims, shape-conformance, transpose involution /
+ *  duality, and the orthogonal group O(2, ℚ) — each pinned by
+ *  `static_assert`. If a `:contracts` concept is tightened in a way the
+ *  concrete carriers fail, the build breaks here.
+ */
+namespace detail {
+
+using Rat = dedekind::numbers::Rational<long>;
+
+/** @subsection The_Nine_Matrix_Slogans */
+
+// (1) A matrix column is a vector.
+static_assert(IsColumnVector<Vec2V<Rat>>,
+              "Matrix2x2V's column_type must be a bona fide column vector.");
+
+// (2) A matrix row is a row vector.
+static_assert(IsCovector<Covec2V<Rat>>,
+              "Matrix2x2V's row_type must be a bona fide row vector.");
+
+// (3) Vectors and covectors carry a dimension (cardinality-flavoured).
+static_assert(HasDimensionCount<Vec2V<Rat>>);
+static_assert(HasDimensionCount<Covec2V<Rat>>);
+
+// (4) Both horizontal (column) and vertical (row) decompositions.
+static_assert(HasColumnDecomposition<Matrix2x2V<Rat>>);
+static_assert(HasRowDecomposition<Matrix2x2V<Rat>>);
+
+// (5) Two dimensionalities: row count and column count.
+static_assert(HasMatrixShape<Matrix2x2V<Rat>>);
+
+// (6) Matrix over a ring: at least a submodule-like carrier.
+static_assert(IsMatrixSubmoduleLike<Matrix2x2V<Rat>, Rat>);
+
+// (7) Matrix over a field: at least a ring (ring ops + transpose).
+static_assert(IsMatrixOverFieldRingLike<Matrix2x2V<Rat>, Rat>);
+
+// (8) Matrix multiplication is closed (non-commutative — see (*) below).
+static_assert(HasMatrixMultiplication<Matrix2x2V<Rat>>);
+
+// (9) Umbrella: ring ops + transpose, bundled.
+static_assert(IsMatrixAlgebra<Matrix2x2V<Rat>, Rat>);
+
+// (*) Non-commutativity witnessed explicitly over ℚ.
+inline constexpr Matrix2x2V<Rat> nc_a{Rat{0L}, Rat{1L}, Rat{0L}, Rat{0L}};
+inline constexpr Matrix2x2V<Rat> nc_b{Rat{0L}, Rat{0L}, Rat{1L}, Rat{0L}};
+static_assert(nc_a * nc_b != nc_b * nc_a,
+              "Matrix multiplication is non-commutative: AB ≠ BA for "
+              "nilpotent A, B over ℚ.");
+
+// Decomposition witness: the first column of M = [[1,2],[3,4]] is (1,3)^T,
+// and the second row is (3,4). Exercises the runtime accessors.
+inline constexpr Matrix2x2V<Rat> decomp_probe{Rat{1L}, Rat{2L}, Rat{3L},
+                                              Rat{4L}};
+static_assert(decomp_probe.column(0) == Vec2V<Rat>{Rat{1L}, Rat{3L}});
+static_assert(decomp_probe.column(1) == Vec2V<Rat>{Rat{2L}, Rat{4L}});
+static_assert(decomp_probe.row(1) == Covec2V<Rat>{Rat{3L}, Rat{4L}});
+
+// Transpose on matrices: entries swap across the diagonal, involution law.
+static_assert(decomp_probe.transpose() ==
+              Matrix2x2V<Rat>{Rat{1L}, Rat{3L}, Rat{2L}, Rat{4L}});
+static_assert(decomp_probe.transpose().transpose() == decomp_probe);
+
+/** @subsection Shape_Conformance — type-level ill-typing of mismatched shapes.
+ */
+
+static_assert(MatchesAdditiveShape<Matrix2x2V<Rat>, Matrix2x2V<Rat>>);
+static_assert(!MatchesAdditiveShape<Matrix2x2V<Rat>, Vec2V<Rat>>,
+              "Addition of a 2×2 and a 2×1 must be structurally ill-typed.");
+static_assert(!MatchesAdditiveShape<Vec2V<Rat>, Covec2V<Rat>>,
+              "Addition of a 2×1 and a 1×2 must be structurally ill-typed.");
+static_assert(HasConformingMatrixAddition<Matrix2x2V<Rat>, Matrix2x2V<Rat>>);
+
+static_assert(MatchesMultiplicativeShape<Matrix2x2V<Rat>, Matrix2x2V<Rat>>);
+static_assert(MatchesMultiplicativeShape<Matrix2x2V<Rat>, Vec2V<Rat>>);
+static_assert(MatchesMultiplicativeShape<Covec2V<Rat>, Matrix2x2V<Rat>>);
+static_assert(!MatchesMultiplicativeShape<Vec2V<Rat>, Matrix2x2V<Rat>>,
+              "Vec2V × Matrix2x2V has inner 1 ≠ 2 — must be ill-typed.");
+static_assert(!MatchesMultiplicativeShape<Matrix2x2V<Rat>, Covec2V<Rat>>,
+              "Matrix2x2V × Covec2V has inner 2 ≠ 1 — must be ill-typed.");
+static_assert(
+    HasConformingMatrixMultiplication<Matrix2x2V<Rat>, Matrix2x2V<Rat>>);
+static_assert(HasConformingMatrixMultiplication<Matrix2x2V<Rat>, Vec2V<Rat>>);
+static_assert(
+    HasConformingMatrixMultiplication<Covec2V<Rat>, Matrix2x2V<Rat>>);
+
+/** @subsection Transpose_Duality_and_Involution */
+
+// Vec2V / Covec2V carry the 2×1 and 1×2 shapes respectively.
+static_assert(Vec2V<Rat>::row_count == 2u && Vec2V<Rat>::column_count == 1u);
+static_assert(Covec2V<Rat>::row_count == 1u && Covec2V<Rat>::column_count == 2u);
+
+// Vec2V ↔ Covec2V is a transpose dual pair.
+static_assert(IsTransposeDualPair<Vec2V<Rat>, Covec2V<Rat>>);
+
+// Double-transpose is identity at the type level on all three carriers.
+static_assert(HasInvolutiveTranspose<Matrix2x2V<Rat>>);
+static_assert(HasInvolutiveTranspose<Vec2V<Rat>>);
+static_assert(HasInvolutiveTranspose<Covec2V<Rat>>);
+
+// Value-level: (aᵀ)ᵀ = a on column and row vectors.
+inline constexpr Vec2V<Rat> tr_vec{Rat{7L}, Rat{-3L}};
+inline constexpr Covec2V<Rat> tr_covec{Rat{2L}, Rat{5L}};
+static_assert(tr_vec.transpose().transpose() == tr_vec);
+static_assert(tr_covec.transpose().transpose() == tr_covec);
+static_assert(tr_vec.transpose() == Covec2V<Rat>{Rat{7L}, Rat{-3L}});
+
+/** @subsection O(2,_ℚ) — the multiplicative group of orthogonal matrices.
+ *
+ *  Concrete rational orthogonal matrices. For each one we check
+ *  `MᵀM = M·Mᵀ = I`. Composition of orthogonals is orthogonal (group
+ *  closure); transpose is the inverse (group inverse law).
+ */
+
+static_assert(IsOrthogonalMatrixCarrier<Matrix2x2V<Rat>>);
+
+// Identity, 90° rotation, reflection across the x-axis.
+inline constexpr Matrix2x2V<Rat> orth_I = identity_matrix2x2_v<Rat>;
+inline constexpr Matrix2x2V<Rat> orth_R90{Rat{0L}, Rat{-1L}, Rat{1L}, Rat{0L}};
+inline constexpr Matrix2x2V<Rat> orth_Rx{Rat{1L}, Rat{0L}, Rat{0L}, Rat{-1L}};
+
+// Orthogonality law Mᵀ·M = M·Mᵀ = I, per concrete matrix.
+static_assert(orth_I.transpose() * orth_I == identity_matrix2x2_v<Rat>);
+static_assert(orth_I * orth_I.transpose() == identity_matrix2x2_v<Rat>);
+static_assert(orth_R90.transpose() * orth_R90 == identity_matrix2x2_v<Rat>);
+static_assert(orth_R90 * orth_R90.transpose() == identity_matrix2x2_v<Rat>);
+static_assert(orth_Rx.transpose() * orth_Rx == identity_matrix2x2_v<Rat>);
+static_assert(orth_Rx * orth_Rx.transpose() == identity_matrix2x2_v<Rat>);
+
+// Group closure: composition of two orthogonals is orthogonal.
+inline constexpr Matrix2x2V<Rat> orth_R180 = orth_R90 * orth_R90;
+static_assert(orth_R180.transpose() * orth_R180 == identity_matrix2x2_v<Rat>,
+              "Group closure in O(2, ℚ).");
+static_assert(orth_R180 ==
+                  Matrix2x2V<Rat>{Rat{-1L}, Rat{0L}, Rat{0L}, Rat{-1L}},
+              "R180 = -I on ℚ².");
+
+// Group inverse law: for orthogonal M, M⁻¹ = Mᵀ.
+static_assert(orth_R90 * orth_R90.transpose() == orth_I);
+
+// Matrix–vector linear action on ℚ² via the shape-conforming product.
+inline constexpr Vec2V<Rat> col_e1{Rat{1L}, Rat{0L}};
+inline constexpr Vec2V<Rat> col_e2{Rat{0L}, Rat{1L}};
+static_assert(orth_R90 * col_e1 == col_e2);
+static_assert(orth_R90 * col_e2 == -col_e1);
+
+}  // namespace detail
 
 }  // namespace dedekind::linear_algebra
