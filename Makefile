@@ -24,6 +24,14 @@ ifeq ($(origin CC), default)
 CC := $(LLVM_ROOT)/bin/clang
 endif
 
+# Build parallelism. Defaults to the host's logical-core count so the user
+# does not need to pass `-j` on every invocation. Override with
+# `make JOBS=N ...` to pin a specific count (useful for constrained
+# environments). Passed through to `cmake --build` and `ctest` via CMake's
+# standard `--parallel` flag — per CMake's design this is the right knob
+# and it dispatches to the underlying generator (Ninja / Make / …).
+JOBS ?= $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4)
+
 .PHONY: all clean compile test-compile test integration-test coverage python-coverage python-coverage-local ir-fixture-refresh ir-fixture-check format format-check install-hooks ci-install-doxygen-deps ci-install-report-deps doxygen dot doc report paper \
 	ci-history ci-main pr-init pr-status pr-checks pr-watch pr-sync pr-review-comments pr-review-unresolved pr-resolve-thread pr-resolve-threads \
 	check-review-comments resolve-review-comment issue-list jupyter
@@ -46,7 +54,7 @@ $(BUILD_DIR)/CMakeCache.txt:
 		$(CMAKE_EXTRA_ARGS)
 
 compile: $(BUILD_DIR)/CMakeCache.txt
-	cmake --build $(BUILD_DIR)
+	cmake --build $(BUILD_DIR) --parallel $(JOBS)
 
 # Build + type-check every C++ translation unit in the repo (library
 # modules, test executables, IR fixture showcases) without running any
@@ -55,10 +63,10 @@ compile: $(BUILD_DIR)/CMakeCache.txt
 # instantiation errors without paying the cost of ctest, Python
 # bindings, or Jupyter integration runs.
 test-compile: compile
-	cmake --build $(BUILD_DIR) --target set-pruning-ir-fixture
+	cmake --build $(BUILD_DIR) --target set-pruning-ir-fixture --parallel $(JOBS)
 
 test: test-compile
-	ctest --test-dir $(BUILD_DIR) --output-on-failure
+	ctest --test-dir $(BUILD_DIR) --output-on-failure --parallel $(JOBS)
 
 integration-test: test
 	python -m pip install --upgrade pip jupyter pandas numpy
@@ -134,10 +142,10 @@ coverage: compile
 	@echo "Running tests with profile environment..."
 	rm -f $(BUILD_DIR)/*.profraw
 	# Set the variable for the duration of the ctest command
-	ctest --test-dir $(BUILD_DIR) --output-on-failure
-	
+	ctest --test-dir $(BUILD_DIR) --output-on-failure --parallel $(JOBS)
+
 	@echo "Processing coverage..."
-	cmake --build $(BUILD_DIR) --target generate_coverage
+	cmake --build $(BUILD_DIR) --target generate_coverage --parallel $(JOBS)
 
 # Run Python tests with coverage collection and produce an XML report for Codecov.
 # Uses the repo-managed housekeeping helper for auditable approvals.
@@ -384,7 +392,7 @@ doxygen: $(BUILD_DIR)/CMakeCache.txt
 		-DCMAKE_BUILD_TYPE=Release \
 		-DDEDEKIND_ENABLE_DOUBLE_REAL_PROXY=ON \
 		$(CMAKE_EXTRA_ARGS)
-	cmake --build $(BUILD_DIR) --target docs
+	cmake --build $(BUILD_DIR) --target docs --parallel $(JOBS)
 
 report:
 	$(MAKE) -C $(DOCS_DIR) ci-check
