@@ -46,9 +46,9 @@ module;
 
 export module dedekind.linear_algebra:embeddings;
 
-import dedekind.numbers;  // Complex<T>, Dual<T>, Rational<Z>
-import :invertible2x2;    // shared namespace + doc references
-import :contracts;  // ColumnOrientation, RowOrientation, matrix concepts
+import dedekind.numbers; // Complex<T>, Dual<T>, Rational<Z>
+import :invertible2x2;   // shared namespace + doc references
+import :contracts;       // ColumnOrientation, RowOrientation, matrix concepts
 
 namespace dedekind::linear_algebra {
 
@@ -407,7 +407,7 @@ static_assert(decomp_probe.transpose() ==
 // witnessing it keeps the documentation honest.
 inline constexpr Matrix2x2V<Rat> nc_a{Rat{0L}, Rat{1L}, Rat{0L}, Rat{0L}};
 inline constexpr Matrix2x2V<Rat> nc_b{Rat{0L}, Rat{0L}, Rat{1L}, Rat{0L}};
-static_assert(nc_a* nc_b != nc_b* nc_a,
+static_assert(nc_a * nc_b != nc_b * nc_a,
               "Matrix multiplication is non-commutative in general "
               "(witness over ℚ: AB ≠ BA for nilpotent A, B).");
 

@@ -118,10 +118,10 @@ struct RowOrientation {};
  * @brief A carrier that declares whether it is a column or a row.
  */
 template <typename V>
-concept HasOrientation = requires {
-  typename V::orientation;
-} && (std::same_as<typename V::orientation, ColumnOrientation> ||
-      std::same_as<typename V::orientation, RowOrientation>);
+concept HasOrientation =
+    requires { typename V::orientation; } &&
+    (std::same_as<typename V::orientation, ColumnOrientation> ||
+     std::same_as<typename V::orientation, RowOrientation>);
 
 /** @section Vectors and covectors.
  *
@@ -155,8 +155,7 @@ concept IsVectorLike = HasDimensionCount<V> && HasOrientation<V> && requires {
  */
 template <typename V>
 concept IsColumnVector =
-    IsVectorLike<V> &&
-    std::same_as<typename V::orientation, ColumnOrientation>;
+    IsVectorLike<V> && std::same_as<typename V::orientation, ColumnOrientation>;
 
 /**
  * @concept IsCovector
@@ -248,9 +247,8 @@ concept HasRowDecomposition =
  *    - admits both the horizontal and the vertical decompositions.
  */
 template <typename M>
-concept IsMatrix = requires {
-  typename M::scalar_type;
-} && HasMatrixShape<M> && HasColumnDecomposition<M> && HasRowDecomposition<M>;
+concept IsMatrix = requires { typename M::scalar_type; } && HasMatrixShape<M> &&
+                   HasColumnDecomposition<M> && HasRowDecomposition<M>;
 
 /** @section Algebraic_Contracts — ring, module, field structure on matrices. */
 
