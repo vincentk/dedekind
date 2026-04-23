@@ -56,6 +56,10 @@ SOURCES = [
         _PYTHON_DIR / "showcase_08_halfspace_2d_product.cpp",
         _PYTHON_DIR / "showcase_08_halfspace_2d_product.ll",
     ),
+    (
+        _PYTHON_DIR / "showcase_09_lp_vertex_typed_constant.cpp",
+        _PYTHON_DIR / "showcase_09_lp_vertex_typed_constant.ll",
+    ),
 ]
 
 # Keep single-source aliases for backward compatibility with any callers.
@@ -263,6 +267,21 @@ def semantic_sanity(ir_text: str, source: Path) -> None:
                 "Expected 2D box membership at (0, 5) to collapse to "
                 "`ret i1 true` in IR."
             )
+    elif "showcase_09_lp_vertex_typed_constant" in name:
+        # LP `maximize(3x + 2y, {x+y≤4, 2x+y≤6, x,y≥0})` reduces to the
+        # vertex (2, 2) at compile time. The two impress_ symbols should
+        # fold to `ret i64 2` — the numerator of each coordinate as a
+        # literal in the emitted IR, with no LP solver / no active-set
+        # iteration surviving the optimizer.
+        for symbol in ("impress_lp_optimum_x", "impress_lp_optimum_y"):
+            block = extract_function_block(ir_text, symbol)
+            if block is None:
+                raise AssertionError(f"IR missing {symbol} symbol.")
+            if "ret i64 2" not in block:
+                raise AssertionError(
+                    f"Expected {symbol} to collapse to `ret i64 2` in IR "
+                    "(the optimum is the typed constant Vec2<Rat, 2, 2>)."
+                )
     else:
         raise AssertionError(f"No semantic checks defined for {name}.")
 
