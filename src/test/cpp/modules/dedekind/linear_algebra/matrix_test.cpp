@@ -182,9 +182,8 @@ TEST_CASE(
   STATIC_CHECK(IsMatrixAlgebra<Matrix2x2V<Rat>, Rat>);
 }
 
-TEST_CASE(
-    "linear_algebra:matrix — concatenation builds matrices from tuples",
-    "[linear_algebra][matrix][value][concatenation]") {
+TEST_CASE("linear_algebra:matrix — concatenation builds matrices from tuples",
+          "[linear_algebra][matrix][value][concatenation]") {
   constexpr Matrix2x2V<Rat> M{Rat{1L}, Rat{2L}, Rat{3L}, Rat{4L}};
 
   // Horizontal: two columns concatenate to the matrix. Inverse of

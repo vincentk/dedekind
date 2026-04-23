@@ -596,9 +596,8 @@ static_assert(decomp_probe.transpose().transpose() == decomp_probe);
 // Concatenation is the inverse of decomposition — the slogan
 // "matrix = horizontal concat of columns = vertical concat of rows" made
 // operationally precise. Witnesses the round-trip on a concrete probe.
-static_assert(
-    (decomp_probe.column(0) | decomp_probe.column(1)) == decomp_probe,
-    "Horizontal concat of columns reassembles the matrix.");
+static_assert((decomp_probe.column(0) | decomp_probe.column(1)) == decomp_probe,
+              "Horizontal concat of columns reassembles the matrix.");
 static_assert((decomp_probe.row(0) / decomp_probe.row(1)) == decomp_probe,
               "Vertical concat of rows reassembles the matrix.");
 
