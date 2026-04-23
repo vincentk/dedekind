@@ -77,7 +77,76 @@ export template <typename T, typename Add = std::plus<T>,
 concept IsCommutativeRing =
     IsRing<T, Add, Mult> && dedekind::category::IsCommutative<T, Mult>;
 
+/** @section Operational_Witnesses
+ *
+ *  `IsRing` and `IsSemiring` above are the strict categorical proofs and
+ *  depend on the axiom variable templates (`identity_v`, `is_associative_v`,
+ *  `is_commutative_v`, `inverse_v`) being specialised per carrier. Machine-
+ *  backed carriers such as `Rational<long>` deliberately do NOT carry those
+ *  proofs under the active numeric policy — the same pattern that gives
+ *  `IsField` vs `IsFieldLikeScalar` (see `:modules`).
+ *
+ *  The operational witnesses below are the analogous shortcut for
+ *  ring-shaped carriers: they check closure of +, -, unary -, *, and the
+ *  structural identities `T{}` (additive) and `T{1}` (multiplicative). They
+ *  fire on any carrier that supports the arithmetic, without demanding the
+ *  full axiom-hook tower.
+ */
+
+/**
+ * @concept IsRingLike
+ * @brief Operational ring witness: addition, subtraction (binary + unary),
+ *        multiplication are closed in `T`, and the structural identities
+ *        `T{}` (additive) and `T{1}` (multiplicative) exist.
+ *
+ *  Parallel to `IsFieldLikeScalar` from `:modules` but without the `/`
+ *  requirement: rings don't in general support division. Fires on
+ *  `Rational<long>`, `int`, `unsigned int`, and — crucially — on
+ *  `Matrix2x2V<R>` for any `IsRingLike R`, which witnesses the slogan
+ *  "matrices over a ring form a (non-commutative) ring".
+ */
+export template <typename T>
+concept IsRingLike = requires(T a, T b) {
+  { a + b } -> std::same_as<T>;
+  { a - b } -> std::same_as<T>;
+  { -a } -> std::same_as<T>;
+  { a * b } -> std::same_as<T>;
+  T{};   // additive identity witness
+  T{1};  // multiplicative identity witness
+};
+
+/**
+ * @concept IsSemiringLike
+ * @brief Operational semiring witness: +, *, `T{}`, `T{1}` — NO subtraction
+ *        or unary negation required.
+ *
+ *  The "no additive inverse" carriers: booleans (under OR/AND), naturals,
+ *  tropical and other exotic semirings. Parallel to `IsRingLike` but
+ *  without the subtraction and unary-minus clauses.
+ */
+export template <typename T>
+concept IsSemiringLike = requires(T a, T b) {
+  { a + b } -> std::same_as<T>;
+  { a * b } -> std::same_as<T>;
+  T{};
+  T{1};
+};
+
+// FIXME: unify IsRingLike with the strict IsRing once an axiom-hook auto-
+// lifter exists (see the rejected-concepts summary on PR #367 — item #4
+// "Axiom-hook auto-lifter"). Then operational and strict can collapse for
+// value-level carriers without per-type boilerplate.
+
 /** @section Formal_Verification */
+
+// Operational witnesses on primitive carriers.
+static_assert(IsRingLike<int>,
+              "int satisfies IsRingLike (wrapping / two's-complement).");
+static_assert(IsRingLike<unsigned int>,
+              "unsigned int satisfies IsRingLike (modular arithmetic).");
+static_assert(IsSemiringLike<unsigned int>,
+              "unsigned int also satisfies IsSemiringLike "
+              "(without needing unary negation).");
 
 // unsigned int with wrapping arithmetic is the canonical total commutative
 // ring: IsPeriodic (wraps at 2^N) satisfies IsTotal → IsMagma → IsMonoid →

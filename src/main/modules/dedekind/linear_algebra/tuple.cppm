@@ -32,8 +32,9 @@ module;
 
 export module dedekind.linear_algebra:tuple;
 
-import dedekind.algebra; // IsFieldLikeScalar, IsVectorSpaceLike (upstream)
-import :contracts;       // ColumnOrientation, RowOrientation tags
+import dedekind.algebra;  // IsRingLike, IsVectorSpaceLike (upstream)
+import dedekind.sets;  // Finite tag — the cardinal the tuple dimension lives in
+import :contracts;  // ColumnOrientation, RowOrientation tags
 
 namespace dedekind::linear_algebra {
 
@@ -66,7 +67,7 @@ struct Vec2 {
 // Forward declaration so `Vec2V::transpose()` can name `Covec2V` at the
 // point of definition. The bound matches the full declaration below.
 export template <typename T>
-  requires dedekind::algebra::IsFieldLikeScalar<T>
+  requires dedekind::algebra::IsRingLike<T>
 struct Covec2V;
 
 /**
@@ -85,10 +86,17 @@ struct Covec2V;
  * `:contracts`.
  */
 export template <typename T>
-  requires dedekind::algebra::IsFieldLikeScalar<T>
+  requires dedekind::algebra::IsRingLike<T>
 struct Vec2V {
   using scalar_type = T;
   using orientation = ColumnOrientation;
+  // Dimension carried both as an integer (convenient for size arithmetic)
+  // and as a `Finite` cardinality tag — the linear-algebraic reading of
+  // the `dedekind.sets:cardinality` ladder: a tuple's index set is always
+  // extensionally finite.
+  // FIXME: promote `dimension_type` to a full `Cardinality` value if / when
+  // infinite-dimensional tuple carriers land — for now `Finite` is a tag.
+  using dimension_type = dedekind::sets::Finite;
   static constexpr std::size_t dimension = 2;
   static constexpr std::size_t row_count = 2;
   static constexpr std::size_t column_count = 1;
@@ -126,10 +134,11 @@ struct Vec2V {
  * views share the same underlying scalar layout.
  */
 export template <typename T>
-  requires dedekind::algebra::IsFieldLikeScalar<T>
+  requires dedekind::algebra::IsRingLike<T>
 struct Covec2V {
   using scalar_type = T;
   using orientation = RowOrientation;
+  using dimension_type = dedekind::sets::Finite;  // cardinality tag
   static constexpr std::size_t dimension = 2;
   static constexpr std::size_t row_count = 1;
   static constexpr std::size_t column_count = 2;
@@ -158,7 +167,7 @@ struct Covec2V {
 };
 
 template <typename T>
-  requires dedekind::algebra::IsFieldLikeScalar<T>
+  requires dedekind::algebra::IsRingLike<T>
 constexpr Covec2V<T> Vec2V<T>::transpose() const {
   return {x, y};
 }

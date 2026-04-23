@@ -69,10 +69,11 @@ module;
 
 export module dedekind.linear_algebra:matrix;
 
-import dedekind.algebra; // IsFieldLikeScalar, IsVectorSpaceLike (upstream)
-import dedekind.numbers; // Rational<Z> for the ℚ carrier
-import :contracts;       // matrix / vector / orientation concepts
-import :tuple;           // Vec2 (NTTP), Vec2V / Covec2V (value-level)
+import dedekind.algebra;  // IsRingLike, IsFieldLikeScalar, IsVectorSpaceLike
+import dedekind.numbers;  // Rational<Z> for the ℚ carrier
+import dedekind.sets;  // Finite cardinality tag (for dimension_type)
+import :contracts;  // matrix / vector / orientation concepts
+import :tuple;  // Vec2 (NTTP), Vec2V / Covec2V (value-level)
 
 namespace dedekind::linear_algebra {
 
@@ -98,6 +99,10 @@ namespace dedekind::linear_algebra {
  *           canonical choice for the paper-facing ℚ proof.
  * @tparam a,b,c,d Entries as NTTPs of type `T`.
  */
+// FIXME: bound stays at `IsFieldLikeScalar<T>` (not `IsRingLike<T>`) because
+// `inverse_type` divides by `det` — rings in general do not admit division,
+// so the closed-form Cramer inverse genuinely needs a field-like scalar.
+// Over `T = Rational<Z>` with integer `Z`, the constraint is tight.
 export template <typename T, T a, T b, T c, T d>
   requires dedekind::algebra::IsFieldLikeScalar<T>
 struct Invertible2x2 {
@@ -192,8 +197,10 @@ using Identity2x2 = Invertible2x2<T, T{1}, T{0}, T{0}, T{1}>;
  * negation, and mixed composition with `Invertible2x2`. Does not advertise
  * an inverse — singular `Matrix2x2`s are valid inhabitants of the type.
  */
+// `IsRingLike<T>` is sufficient: `Matrix2x2` uses +, -, unary -, *, but
+// never divides. Tighter than `IsFieldLikeScalar<T>`.
 export template <typename T, T a, T b, T c, T d>
-  requires dedekind::algebra::IsFieldLikeScalar<T>
+  requires dedekind::algebra::IsRingLike<T>
 struct Matrix2x2 {
   using Domain = T;
 
@@ -400,12 +407,18 @@ struct BlockUpperTriangular {
  * transpose surface. Columns are `Vec2V<T>` (a 2×1 matrix from `:tuple`);
  * rows are `Covec2V<T>` (a 1×2 matrix).
  */
+// `IsRingLike<T>` is sufficient: value-level matrix ops use +, -, unary -,
+// and *. Division is not required — `Invertible2x2` (NTTP, uses Cramer's
+// rule) is where `/` enters, and it stays at `IsFieldLikeScalar<T>`.
 export template <typename T>
-  requires dedekind::algebra::IsFieldLikeScalar<T>
+  requires dedekind::algebra::IsRingLike<T>
 struct Matrix2x2V {
   using scalar_type = T;
   using column_type = Vec2V<T>;
   using row_type = Covec2V<T>;
+  // Both row and column dimensions are finite; the cardinality tag unifies
+  // the shape-dimension story with `dedekind.sets:cardinality`.
+  using dimension_type = dedekind::sets::Finite;
   static constexpr std::size_t row_count = 2;
   static constexpr std::size_t column_count = 2;
 
@@ -568,6 +581,9 @@ using Rat = dedekind::numbers::Rational<long>;
 static_assert(dedekind::algebra::IsFieldLikeScalar<Rat>,
               "Rational<long> is the operational field-like scalar under "
               "the active numeric policy.");
+static_assert(dedekind::algebra::IsRingLike<Rat>,
+              "Rational<long> is also operationally ring-like (the subset "
+              "of field-like that ignores the / requirement).");
 
 static_assert(dedekind::algebra::IsVectorSpaceLike<Vec2V<Rat>, Rat>,
               "Vec2V<ℚ> is an operational vector-space-like over ℚ.");
@@ -577,6 +593,26 @@ static_assert(dedekind::algebra::IsVectorSpaceLike<Matrix2x2V<Rat>, Rat>,
               "Matrix2x2V<ℚ> is an operational vector-space-like over ℚ "
               "(matrices over a field are themselves a vector space under "
               "entry-wise + and scalar *).");
+
+// `Matrix2x2V<ℚ>` under its own +, unary -, * is operationally a ring —
+// the load-bearing reuse of the new `IsRingLike` concept. This is the
+// precise form of the slogan "matrix over a field is at least a ring".
+static_assert(dedekind::algebra::IsRingLike<Matrix2x2V<Rat>>,
+              "Matrix2x2V<ℚ> is operationally a ring (non-commutative in "
+              "general — see the AB ≠ BA witness below).");
+
+// Dimension-as-cardinality: the tuple / matrix carriers expose a
+// `dimension_type` tag drawn from `dedekind.sets:cardinality`. This wires
+// the documented slogan "dimension resembles cardinality" into the type
+// system.
+static_assert(std::same_as<Vec2V<Rat>::dimension_type, dedekind::sets::Finite>,
+              "Vec2V's dimension lives in the `Finite` cardinality.");
+static_assert(
+    std::same_as<Covec2V<Rat>::dimension_type, dedekind::sets::Finite>,
+    "Covec2V's dimension lives in the `Finite` cardinality.");
+static_assert(
+    std::same_as<Matrix2x2V<Rat>::dimension_type, dedekind::sets::Finite>,
+    "Matrix2x2V's row/column dimensions live in the `Finite` cardinality.");
 
 /** @subsection The_Nine_Matrix_Slogans */
 

@@ -63,7 +63,7 @@ using dedekind::numbers::Dual;
  */
 export template <typename T>
   requires dedekind::numbers::IsComplexScalar<T> &&
-           dedekind::algebra::IsFieldLikeScalar<T>
+           dedekind::algebra::IsRingLike<T>
 constexpr Matrix2x2V<T> as_matrix2x2(const Complex<T>& z) {
   // Express `-z.imag()` via `T{} - z.imag()` so the function's requirement set
   // matches `IsComplexScalar` (T{}, binary -, binary +, binary *) without
@@ -81,7 +81,7 @@ constexpr Matrix2x2V<T> as_matrix2x2(const Complex<T>& z) {
  */
 export template <typename T>
   requires dedekind::numbers::IsComplexScalar<T> &&
-           dedekind::algebra::IsFieldLikeScalar<T>
+           dedekind::algebra::IsRingLike<T>
 constexpr Complex<T> complex_from_matrix2x2(const Matrix2x2V<T>& M) {
   return Complex<T>{M.m11, M.m21};
 }
@@ -104,7 +104,7 @@ constexpr Complex<T> complex_from_matrix2x2(const Matrix2x2V<T>& M) {
  * @tparam T A carrier with ring-like arithmetic compatible with `Dual<T>`.
  */
 export template <typename T>
-  requires std::regular<T> && dedekind::algebra::IsFieldLikeScalar<T>
+  requires std::regular<T> && dedekind::algebra::IsRingLike<T>
 constexpr Matrix2x2V<T> as_matrix2x2(const Dual<T>& d) {
   // `std::regular<T>` matches `Dual<F>`'s own constraint; `IsFieldLikeScalar`
   // is additionally required because the Matrix2x2V<T> target demands it.
@@ -118,7 +118,7 @@ constexpr Matrix2x2V<T> as_matrix2x2(const Dual<T>& d) {
  *          Not enforced; see the `complex_from_matrix2x2` note.
  */
 export template <typename T>
-  requires std::regular<T> && dedekind::algebra::IsFieldLikeScalar<T>
+  requires std::regular<T> && dedekind::algebra::IsRingLike<T>
 constexpr Dual<T> dual_from_matrix2x2(const Matrix2x2V<T>& M) {
   return Dual<T>{M.m11, M.m12};
 }
