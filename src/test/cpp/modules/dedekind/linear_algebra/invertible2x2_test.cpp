@@ -114,9 +114,8 @@ TEST_CASE("linear_algebra:invertible2x2 — Tier 1: DirectSum composes blockwise
   STATIC_CHECK(lhs == rhs);
 }
 
-TEST_CASE(
-    "linear_algebra:invertible2x2 — Tier 2: BlockUpperTriangular inverse",
-    "[linear_algebra][invertible2x2][block_upper_triangular]") {
+TEST_CASE("linear_algebra:invertible2x2 — Tier 2: BlockUpperTriangular inverse",
+          "[linear_algebra][invertible2x2][block_upper_triangular]") {
   // Build a block-upper-triangular 4×4 over ℚ with A, D invertible and B
   // non-singular. The closed-form inverse requires no Schur complement
   // (since C = 0) but IS the non-trivial recurrence beyond DirectSum:
@@ -124,8 +123,8 @@ TEST_CASE(
   using A_t = Invertible2x2<Rat, Rat{1L}, Rat{2L}, Rat{3L}, Rat{4L}>;  // det -2
   using D_t = Invertible2x2<Rat, Rat{2L}, Rat{1L}, Rat{1L}, Rat{1L}>;  // det  1
   using B_t = Matrix2x2<Rat, Rat{1L}, Rat{0L}, Rat{0L}, Rat{1L}>;  // identity-
-                                                                     // shaped but
-                                                                     // lives in B
+                                                                   // shaped but
+                                                                   // lives in B
   using M_t = BlockUpperTriangular<A_t, B_t, D_t>;
 
   constexpr M_t M{};

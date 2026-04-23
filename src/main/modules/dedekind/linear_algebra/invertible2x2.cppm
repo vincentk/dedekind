@@ -209,9 +209,7 @@ struct Matrix2x2 {
                      c * b2 + d * d2>{};
   }
 
-  constexpr auto operator-() const {
-    return Matrix2x2<T, -a, -b, -c, -d>{};
-  }
+  constexpr auto operator-() const { return Matrix2x2<T, -a, -b, -c, -d>{}; }
 
   template <T a2, T b2, T c2, T d2>
   constexpr auto operator+(Matrix2x2<T, a2, b2, c2, d2>) const {
@@ -239,7 +237,8 @@ constexpr auto operator*(Invertible2x2<T, a, b, c, d>,
                    c * b2 + d * d2>{};
 }
 
-/** @brief The 2×2 zero matrix — the additive identity in the ring of matrices. */
+/** @brief The 2×2 zero matrix — the additive identity in the ring of matrices.
+ */
 export template <typename T = int>
 using Zero2x2 = Matrix2x2<T, T{0}, T{0}, T{0}, T{0}>;
 
@@ -333,11 +332,11 @@ struct BlockUpperTriangular {
    * The top-right entry is `-A^{-1}·B·D^{-1}`, computed at the type level by
    * chained `operator*` on matrix types.
    */
-  using inverse_type = BlockUpperTriangular<
-      typename A::inverse_type,
-      decltype(-(typename A::inverse_type{} * B{} *
-                 typename D::inverse_type{})),
-      typename D::inverse_type>;
+  using inverse_type =
+      BlockUpperTriangular<typename A::inverse_type,
+                           decltype(-(typename A::inverse_type{} * B{} *
+                                      typename D::inverse_type{})),
+                           typename D::inverse_type>;
 
   constexpr auto inverse() const { return inverse_type{}; }
 
