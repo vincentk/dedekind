@@ -65,12 +65,11 @@ constexpr bool is_integral_coordinate(double x) {
   return static_cast<double>(xi) == x;
 }
 
-constexpr auto natural_lattice_in_c = Set{
-    c % C | [](const Complex<double>& z) {
-      return is_integral_coordinate(z.real()) &&
-             is_integral_coordinate(z.imag()) && (z.real() >= 0.0) &&
-             (z.real() <= 3.0) && (z.imag() >= 0.0) && (z.imag() <= 3.0);
-    }};
+constexpr auto natural_lattice_in_c = Set{c % C | [](const Complex<double>& z) {
+  return is_integral_coordinate(z.real()) && is_integral_coordinate(z.imag()) &&
+         (z.real() >= 0.0) && (z.real() <= 3.0) && (z.imag() >= 0.0) &&
+         (z.imag() <= 3.0);
+}};
 constexpr auto square_c1_c2 = Set{c % C | [](const Complex<double>& z) {
   return (z.real() >= 0.5) && (z.real() <= 1.5) && (z.imag() >= 0.5) &&
          (z.imag() <= 1.5);
