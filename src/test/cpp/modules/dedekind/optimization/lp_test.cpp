@@ -94,9 +94,53 @@ TEST_CASE("optimization:lp — infeasible polytope reports no optimum",
   // to compile.
 }
 
-// The Dual<ℚ> parametric-LP showcase (compile-time sensitivity analysis)
-// is deferred until Dual<F> is made structural (NTTP-compatible) in a
-// follow-on commit. The concept is clean — "ℚ → 𝔻(ℚ)" layering makes the
-// optimum's sensitivity to a perturbed bound fall out as the dual part —
-// but `Dual<F>` currently has private members and can't serve as `T` in
-// `Halfspace2D<T, a, b, c>`. Surgical upstream change to come.
+/**
+ * Parametric LP over `Dual<ℚ>`: compile-time sensitivity analysis.
+ *
+ * Framing (after Elliott, *The Simple Essence of Automatic
+ * Differentiation*, ICFP 2018): forward-mode AD is the product `(f, f')`
+ * with chain-rule composition, not the "dual number" object per se.
+ * `Dual<F>` is one realization of that product; `ftc::derivative_at` is
+ * another (numerical, central difference); `RigPolynomial::derive()` is
+ * a third (exact formal, polynomial coefficient vectors). Here we use
+ * `Dual<Rat>` because we need the product available at compile time
+ * inside an NTTP context — `Dual<F>` became structural in the same PR
+ * that adds this test.
+ *
+ * The LP reduction is generic over any `IsRingLike` carrier with a
+ * total order on the primal part; `Dual<Rat>` provides both (primal is
+ * `Rat`, ordered; tangent rides along through the chain rule). Running
+ * the same reduction over `Dual<Rat>` instead of plain `Rat` gives us
+ * the optimum AND its sensitivity to a perturbed parameter, packaged as
+ * the NTTP `Vec2<Dual<Rat>, x*, y*>` — no separate derivative pass.
+ *
+ * Showcase: perturb H1's bound by ε. The active set {H1', H2} gives
+ *   x_opt = 2 - ε,   y_opt = 2 + 2ε
+ * so the tangent of x_opt is -1 and the tangent of y_opt is +2 for the
+ * perturbation parameter — the chain rule has already run, compile-time,
+ * during the Cramer solve.
+ */
+TEST_CASE(
+    "optimization:lp — parametric LP over Dual<ℚ>: "
+    "optimum + sensitivity as one typed constant",
+    "[optimization][lp][dual][sensitivity]") {
+  using D = Dual<Rat>;
+
+  // Perturbed H1: x + y ≤ 4 + ε.
+  using H1P = Halfspace2D<D, D{Rat{1L}}, D{Rat{1L}}, D{Rat{4L}, Rat{1L}}>;
+  using H2D = Halfspace2D<D, D{Rat{2L}}, D{Rat{1L}}, D{Rat{6L}}>;
+  using H3D = Halfspace2D<D, D{Rat{-1L}}, D{Rat{0L}}, D{Rat{0L}}>;
+  using H4D = Halfspace2D<D, D{Rat{0L}}, D{Rat{-1L}}, D{Rat{0L}}>;
+
+  constexpr auto v =
+      maximize_value<D, D{Rat{3L}}, D{Rat{2L}}, H1P, H2D, H3D, H4D>();
+  STATIC_CHECK(v.feasible);
+
+  // x* = 2 - ε  →  primal 2, tangent -1.
+  STATIC_CHECK(v.x.val == Rat{2L});
+  STATIC_CHECK(v.x.der == Rat{-1L});
+
+  // y* = 2 + 2ε → primal 2, tangent +2.
+  STATIC_CHECK(v.y.val == Rat{2L});
+  STATIC_CHECK(v.y.der == Rat{2L});
+}

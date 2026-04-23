@@ -42,35 +42,59 @@ using namespace dedekind::sets;
 /**
  * @class Dual
  * @brief Represents f(x) + f'(x)ε.
+ *
+ * @details Structural C++20 NTTP-compatible layout: primal / tangent fields
+ *          are public so the type can be used as a non-type template
+ *          parameter (e.g. `Halfspace2D<Dual<Rat>, …>` for parametric LP).
+ *          Backward-compatible accessors `value()` / `derivative()` are
+ *          kept for existing call sites.
  */
 export template <typename F>
   requires std::regular<F>
-class Dual {
- public:
+struct Dual {
   using value_type = F;
 
-  constexpr Dual(F val, F der = F{}) : val_(val), der_(der) {}
+  F val{};  ///< Primal   f(x). Public so the type is NTTP-structural.
+  F der{};  ///< Tangent  f'(x). Public so the type is NTTP-structural.
 
-  constexpr F value() const { return val_; }
-  constexpr F derivative() const { return der_; }
+  constexpr Dual() = default;
+  constexpr Dual(F v, F d = F{}) : val(v), der(d) {}
+
+  constexpr F value() const { return val; }
+  constexpr F derivative() const { return der; }
 
   /** @section Dual_Arithmetic: ε² = 0 */
 
   friend constexpr bool operator==(const Dual&, const Dual&) = default;
 
+  /**
+   * @brief Primal-lex ordering: `a < b` iff `a.val < b.val`.
+   *
+   *  This is a partial order on `Dual<F>` (ties under primal equality
+   *  are incomparable — we return `false`), projecting to the natural
+   *  total order on the primal component `F`. Used by downstream
+   *  reductions (e.g. argmax in `dedekind.optimization:lp`) whose
+   *  ordering semantics are defined on the primal part only. Tangents
+   *  are not part of the ordering — they ride along via the chain rule
+   *  on arithmetic.
+   */
+  friend constexpr bool operator<(const Dual& a, const Dual& b) {
+    return a.val < b.val;
+  }
+
   friend constexpr Dual operator+(const Dual& a, const Dual& b) {
-    return {a.val_ + b.val_, a.der_ + b.der_};
+    return {a.val + b.val, a.der + b.der};
   }
 
   friend constexpr Dual operator-(const Dual& a, const Dual& b) {
-    return {a.val_ - b.val_, a.der_ - b.der_};
+    return {a.val - b.val, a.der - b.der};
   }
 
-  constexpr Dual operator-() const { return {-val_, -der_}; }
+  constexpr Dual operator-() const { return {-val, -der}; }
 
   friend constexpr Dual operator*(const Dual& a, const Dual& b) {
-    // (a + be)(c + de) = ac + (ad + bc)e + bde²(->0)
-    return {a.val_ * b.val_, (a.val_ * b.der_) + (a.der_ * b.val_)};
+    // (a + bε)(c + dε) = ac + (ad + bc)ε + bdε²(→0)
+    return {a.val * b.val, (a.val * b.der) + (a.der * b.val)};
   }
 
   /**
@@ -78,15 +102,12 @@ class Dual {
    * Valid when a ≠ 0.
    */
   constexpr Dual inverse() const {
-    return {F{1} / val_, -der_ / (val_ * val_)};
+    return {F{1} / val, -der / (val * val)};
   }
 
   friend constexpr Dual operator/(const Dual& a, const Dual& b) {
     return a * b.inverse();
   }
-
- private:
-  F val_, der_;
 };
 
 /** @section Formal_Verification */

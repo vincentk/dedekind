@@ -79,6 +79,26 @@ class Complex {
     return {(a.first * b.first) - (a.second * b.second),
             (a.first * b.second) + (a.second * b.first)};
   }
+
+  /**
+   * @brief Division via the conjugate identity: `z / w = z · w̄ / |w|²`.
+   *
+   *   (a + bi) / (c + di) = [(ac + bd) + (bc − ad)i] / (c² + d²).
+   *
+   * Requires `operator/` on the scalar `R`. Defined when `|w|² ≠ 0`; for
+   * the zero-division case the behaviour is inherited from `R / R` (e.g.
+   * `Rational<Z>` throws / asserts).
+   *
+   * Lifts `Complex<R>` from `IsRingLike` into `IsFieldLikeScalar` (the
+   * `a/b → S` clause), which in turn lets `Dual<Complex<R>>` admit
+   * `operator/` for holomorphic forward-mode automatic differentiation
+   * at compile time.
+   */
+  friend constexpr Complex operator/(const Complex& a, const Complex& b) {
+    const R denom = b.first * b.first + b.second * b.second;
+    return {(a.first * b.first + a.second * b.second) / denom,
+            (a.second * b.first - a.first * b.second) / denom};
+  }
 };
 
 /**
