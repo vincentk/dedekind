@@ -183,6 +183,35 @@ TEST_CASE(
 }
 
 TEST_CASE(
+    "linear_algebra:matrix — concatenation builds matrices from tuples",
+    "[linear_algebra][matrix][value][concatenation]") {
+  constexpr Matrix2x2V<Rat> M{Rat{1L}, Rat{2L}, Rat{3L}, Rat{4L}};
+
+  // Horizontal: two columns concatenate to the matrix. Inverse of
+  // column decomposition.
+  STATIC_CHECK((M.column(0) | M.column(1)) == M);
+
+  // Vertical: two rows concatenate to the matrix. Inverse of row
+  // decomposition.
+  STATIC_CHECK((M.row(0) / M.row(1)) == M);
+
+  // Scalar → tuple: aggregate init IS concatenation; the matrix can be
+  // built bottom-up from explicit scalar pairs via tuples.
+  constexpr Vec2V<Rat> c1{Rat{1L}, Rat{3L}};
+  constexpr Vec2V<Rat> c2{Rat{2L}, Rat{4L}};
+  STATIC_CHECK((c1 | c2) == M);
+
+  constexpr Covec2V<Rat> r1{Rat{1L}, Rat{2L}};
+  constexpr Covec2V<Rat> r2{Rat{3L}, Rat{4L}};
+  STATIC_CHECK((r1 / r2) == M);
+
+  // The two builders agree on the same matrix, as they should: two
+  // distinct routes (columns via |, rows via /) to the same underlying
+  // value.
+  STATIC_CHECK((c1 | c2) == (r1 / r2));
+}
+
+TEST_CASE(
     "linear_algebra:matrix — decomposition and transpose agree on a probe",
     "[linear_algebra][matrix][value][decomposition][transpose]") {
   constexpr Matrix2x2V<Rat> M{Rat{1L}, Rat{2L}, Rat{3L}, Rat{4L}};

@@ -477,6 +477,57 @@ constexpr Covec2V<T> operator*(const Covec2V<T>& v, const Matrix2x2V<T>& A) {
   return {v.x * A.m11 + v.y * A.m21, v.x * A.m12 + v.y * A.m22};
 }
 
+/** @section Concatenation_Builders — tuples into matrices.
+ *
+ *  Concatenation is the inverse of decomposition: the column view of a
+ *  matrix `M.column(0)` and `M.column(1)` reassembles to `M` under `|`;
+ *  similarly the row view reassembles under `/`. This makes the slogan
+ *  "a matrix is both a horizontal concatenation of its columns and a
+ *  vertical concatenation of its rows" operationally meaningful — the
+ *  decomposition and the concatenation are mutual inverses at the value
+ *  level, witnessed by `static_assert` below.
+ *
+ *  @b Operator_choice
+ *   - `|` echoes the classical augmented-matrix notation `[A | B]` and is
+ *     read as horizontal concatenation (append columns).
+ *   - `/` mirrors the LaTeX vertical-split convention `[A / B]`; reads as
+ *     vertical concatenation (stack rows).
+ *   - `>>` was deliberately avoided: it is already wired throughout
+ *     `dedekind.category` as categorical composition / Kleisli bind, and
+ *     reusing it for the coproduct-side concatenation operation would
+ *     overload the symbol across two distinct categorical ideas.
+ *
+ *  @b Scalar_→_tuple concatenation is already handled by aggregate
+ *  initialisation: `Vec2V<T>{a, b}` and `Covec2V<T>{a, b}` literally
+ *  concatenate two scalars into the respective 2×1 / 1×2 tuple.
+ */
+
+/**
+ * @brief Horizontal concatenation of two column vectors into a 2×2 matrix.
+ *
+ *     (a.x, a.y)ᵀ | (b.x, b.y)ᵀ = [[a.x, b.x],
+ *                                  [a.y, b.y]]
+ *
+ * Inverse of `Matrix2x2V::column`: `(M.column(0) | M.column(1)) == M`.
+ */
+export template <typename T>
+constexpr Matrix2x2V<T> operator|(const Vec2V<T>& a, const Vec2V<T>& b) {
+  return {a.x, b.x, a.y, b.y};
+}
+
+/**
+ * @brief Vertical concatenation of two row vectors into a 2×2 matrix.
+ *
+ *     (a.x, a.y) / (b.x, b.y) = [[a.x, a.y],
+ *                                [b.x, b.y]]
+ *
+ * Inverse of `Matrix2x2V::row`: `(M.row(0) / M.row(1)) == M`.
+ */
+export template <typename T>
+constexpr Matrix2x2V<T> operator/(const Covec2V<T>& a, const Covec2V<T>& b) {
+  return {a.x, a.y, b.x, b.y};
+}
+
 /** @section Concept_Witnesses_over_ℚ — the `:contracts` slogan-pack witnessed
  *  on the concrete Matrix2x2V / Vec2V / Covec2V triple.
  *
@@ -541,6 +592,15 @@ static_assert(decomp_probe.row(1) == Covec2V<Rat>{Rat{3L}, Rat{4L}});
 static_assert(decomp_probe.transpose() ==
               Matrix2x2V<Rat>{Rat{1L}, Rat{3L}, Rat{2L}, Rat{4L}});
 static_assert(decomp_probe.transpose().transpose() == decomp_probe);
+
+// Concatenation is the inverse of decomposition — the slogan
+// "matrix = horizontal concat of columns = vertical concat of rows" made
+// operationally precise. Witnesses the round-trip on a concrete probe.
+static_assert(
+    (decomp_probe.column(0) | decomp_probe.column(1)) == decomp_probe,
+    "Horizontal concat of columns reassembles the matrix.");
+static_assert((decomp_probe.row(0) / decomp_probe.row(1)) == decomp_probe,
+              "Vertical concat of rows reassembles the matrix.");
 
 /** @subsection Shape_Conformance — type-level ill-typing of mismatched shapes.
  */
