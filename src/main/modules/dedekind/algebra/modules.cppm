@@ -116,44 +116,18 @@ concept IsModule = IsAdditiveGroup<M, AddM> && IsRing<S, AddS, MultS> &&
                    IsSemimodule<M, S, AddM, AddS, MultS, Act>;
 
 /**
- * @concept IsVectorSpace
- * @brief The Gold Standard: A Module where the Scalar is a Field.
- * @tparam V The vector carrier.
- * @tparam F The scalar field carrier.
- * @tparam AddV Additive law on V (defaults to `std::plus<V>`).
- * @tparam AddF Additive law on F (defaults to `std::plus<F>`).
- * @tparam MultF Multiplicative law on F (defaults to `std::multiplies<F>`).
- * @tparam Act External action witness F x V -> V
- * (defaults to `std::multiplies<>`).
- */
-export template <typename V, typename F, typename AddV = std::plus<V>,
-                 typename AddF = std::plus<F>,
-                 typename MultF = std::multiplies<F>,
-                 typename Act = std::multiplies<>>
-concept IsVectorSpace =
-    IsModule<V, F, AddV, AddF, MultF, Act> && IsField<F, AddF, MultF>;
-
-/**
  * @concept IsScalar
  * @brief A bona fide scalar is a 1D semi-module over itself.
  * @details The scalar carrier S acts on itself by its own multiplication,
  *          forming the canonical 1D semi-module S over S. This is the
  *          minimal structural claim a type earns by being called a "scalar":
  *          it participates in its own linear action.
+ *
+ *          The field-level strengthening `IsFieldElement<F> = IsVectorSpace<F,
+ * F>` lives in `algebra:vectorspace`, alongside `IsVectorSpace` itself.
  */
 export template <typename S>
 concept IsScalar = IsSemimodule<S, S>;
-
-/**
- * @concept IsFieldElement
- * @brief A bona fide element of a field is a 1D vector space over itself.
- * @details Tightening `IsScalar` when division is available: F is its own
- *          1D vector space, with F as the scalar field. Categorically
- *          equivalent to `IsField<F>` but phrased in the linear-algebraic
- *          vocabulary the paper and downstream layers use.
- */
-export template <typename F>
-concept IsFieldElement = IsVectorSpace<F, F>;
 
 /**
  * @struct OneDimensionalVector
@@ -308,73 +282,21 @@ constexpr OneDimensionalVector<S, Tag> scale_strength_reduced(
 }
 
 /**
- * @concept IsVectorSpaceLike
- * @brief Pragmatic vector-space check used by first reified vector carriers.
- * @details Uses the operational `IsFieldLikeScalar` witness and does not
- *          depend on the stronger `IsField` proof machinery.
- */
-export template <typename V, typename F, typename Act = std::multiplies<>>
-concept IsVectorSpaceLike = IsFieldLikeScalar<F> && requires(F a, F b, V v) {
-  { v + v } -> std::same_as<V>;
-  { -v } -> std::same_as<V>;
-  { Act{}(a, v) } -> std::same_as<V>;
-};
-
-/**
  * @concept IsScalarLike
  * @brief Operational counterpart of `IsScalar` for machine-backed carriers.
  * @details Reads "S is a 1D semimodule-like over itself" using the pragmatic
  *          closure signatures rather than the strict categorical proof. This
  *          is the concept a type like `Rational<long>` or `IEEE<double>` can
  *          carry under the active numeric policy (cf. `IsFieldLikeScalar`).
+ *
+ *          The vector-space-level operational witnesses
+ *          (`IsVectorSpaceLike`, `IsFieldElementLike`,
+ *          `SatisfiesVectorSpaceAxioms`) live in
+ *          `algebra:vectorspace`, alongside the strict `IsVectorSpace`.
  */
 export template <typename S>
 concept IsScalarLike = IsSemimoduleLike<S, S, std::plus<S>, std::plus<S>,
                                         std::multiplies<S>, std::multiplies<>>;
-
-/**
- * @concept IsFieldElementLike
- * @brief Operational counterpart of `IsFieldElement`.
- * @details "F is a 1D vector-space-like over itself" under the operational
- *          `IsFieldLikeScalar` witness. Intentionally decoupled from the
- *          categorical `IsField` proof, which is architecturally withheld
- *          for machine-backed carriers (see `:field`).
- */
-export template <typename F>
-concept IsFieldElementLike = IsVectorSpaceLike<F, F>;
-
-/**
- * @concept SatisfiesVectorSpaceAxioms
- * @brief Operational witness of the core vector-space axiom signatures.
- * @details Verifies closure and the canonical linearity/composition shapes.
- */
-export template <typename V, typename F, typename AddV = std::plus<V>,
-                 typename AddF = std::plus<F>,
-                 typename MultF = std::multiplies<F>,
-                 typename Act = std::multiplies<>>
-concept SatisfiesVectorSpaceAxioms =
-    IsVectorSpaceLike<V, F, Act> && requires(F a, F b, V x, V y) {
-      { AddV{}(x, y) } -> std::same_as<V>;
-      { Act{}(a, AddV{}(x, y)) } -> std::same_as<V>;
-      { AddV{}(Act{}(a, x), Act{}(a, y)) } -> std::same_as<V>;
-
-      { AddF{}(a, b) } -> std::same_as<F>;
-      { Act{}(AddF{}(a, b), x) } -> std::same_as<V>;
-      { AddV{}(Act{}(a, x), Act{}(b, x)) } -> std::same_as<V>;
-
-      { MultF{}(a, b) } -> std::same_as<F>;
-      { Act{}(MultF{}(a, b), x) } -> std::same_as<V>;
-      { Act{}(a, Act{}(b, x)) } -> std::same_as<V>;
-
-      // Unit axiom is checked when a multiplicative identity witness exists.
-      requires(
-          !requires { dedekind::category::identity_v<F, MultF>; } ||
-          requires {
-            {
-              Act{}(dedekind::category::identity_v<F, MultF>, x)
-            } -> std::same_as<V>;
-          });
-    };
 
 /**
  * @struct PolynomialOperator
@@ -404,11 +326,11 @@ struct PolynomialOperator {
   }
 };
 
-using RealLineScalar = decltype(RealLine{}.coordinate());
-static_assert(IsVectorSpaceLike<RealLine, RealLineScalar>,
-              "RealLine should satisfy the baseline 1D vector-space witness.");
-static_assert(SatisfiesVectorSpaceAxioms<RealLine, RealLineScalar>,
-              "RealLine should satisfy vector-space axiom signatures.");
+export using RealLineScalar = decltype(RealLine{}.coordinate());
+
+// RealLine's vector-space witnesses live in `:vectorspace` (they use
+// `IsVectorSpaceLike` / `SatisfiesVectorSpaceAxioms`, which moved
+// there along with the rest of the field-level concept surface).
 static_assert(
     IsSemimoduleLike<BoolLine, bool, BoolLineJoin, std::logical_or<bool>,
                      std::logical_and<bool>, BoolLineMeetAction>,

@@ -784,7 +784,9 @@ satisfied, not approximated.}
 \textbf{Role} & \textbf{Exact carrier} & \textbf{Concept satisfied} \\
 \midrule
 $\mathbb{B}$ & \lstinline|bool| under $\land, \lor$ & \lstinline|IsBoolean| \\
-$\mathbb{F}_2$ & \texttt{𝔽2} (\lstinline|bool|-backed, $\oplus$ as $+$, $\land$ as $\cdot$) & \lstinline|IsField<T,+,*>| \\
+$\mathbb{F}_2$ & \lstinline|bool| under $(\oplus, \land)$ & \lstinline|IsGaloisField<bool,^,&>| (order 2) \\
+$\mathbb{F}_{64}$ & \texttt{𝔽64} ($\mathbb{F}_2[x]/(x^6{+}x{+}1)$, 6-bit in \lstinline|uint8_t|) & \lstinline|IsGaloisField<T,+,*>| (order 64) \\
+$\mathbb{F}_2^{64}$ & \lstinline|uint64_t| under $\oplus$, scalar action \lstinline|Bit2U64Action| & \lstinline|IsVectorSpace<uint64_t, bool>| \\
 $\mathbb{N}$ bounded & \lstinline|ExtensionalCardinal<N>| & \lstinline|IsCyclicGroup|$^{\dagger}$, \lstinline|IsAbelianGroup<T,+>| \\
 $\mathbb{N}$ unbounded & \lstinline|Cardinality|$^{\ddagger}$ (variant over ℵ$_0$) & \lstinline|Monoid_|$\mathbb{N}$ \\
 $\mathbb{Z}$ bounded & \lstinline|SignedExtensionalCardinal<N>| & \lstinline|IsAbelianGroup<T,+>|, \lstinline|IsRing| \\
