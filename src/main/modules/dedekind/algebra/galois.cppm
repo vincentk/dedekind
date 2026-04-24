@@ -42,11 +42,13 @@ module;
 #include <cstdint>  // for std::uint8_t / std::uint16_t (𝔽64 storage)
 #include <functional>  // for std::plus, std::multiplies, std::bit_xor, std::bit_and
 #include <stdexcept>  // for std::domain_error (𝔽64 division-by-zero)
+#include <type_traits>  // for std::false_type, std::bool_constant, std::integral_constant
 
 export module dedekind.algebra:galois;
 
 import dedekind.category;
 import :field;
+import :registration;
 
 namespace dedekind::algebra {
 using namespace dedekind::category;
@@ -56,31 +58,53 @@ using namespace dedekind::category;
  *        witnesses) a Galois field, i.e.\ a field of finite
  *        cardinality?
  *
- * @details Default @c false.  Carrier authors specialise this
- *          alongside the rest of the field-trait chain to lift a
- *          generic @c IsField claim to @c IsGaloisField.  The opt-in
- *          is required because finiteness is not structurally
- *          derivable from a C++ type signature (integer types are
- *          bounded on a machine but unbounded mathematically, dually
- *          for symbolic carriers); the author declares the
- *          mathematical claim.
+ * @details Default @c false.  The trait has a struct backing
+ * (@c is_galois_field) so that cross-module SpeciesTraits-based
+ * discovery works (struct partial specs fire reliably across
+ * module boundaries where variable-template partial specs do not).
+ * The public API remains the variable template
+ * @c is_galois_field_v<T, Add, Mult>.
  */
+template <typename T, typename Add = std::plus<T>,
+          typename Mult = std::multiplies<T>>
+struct is_galois_field : std::false_type {};
+
+// SpeciesTraits-based discovery: if SpeciesTraits<T> exposes a
+// member template `is_galois_field_v<Add, Mult>`, lift that value.
+template <typename T, typename Add, typename Mult>
+  requires requires {
+    dedekind::category::SpeciesTraits<T>::template is_galois_field_v<Add, Mult>;
+  }
+struct is_galois_field<T, Add, Mult>
+    : std::bool_constant<dedekind::category::SpeciesTraits<
+          T>::template is_galois_field_v<Add, Mult>> {};
+
 export template <typename T, typename Add = std::plus<T>,
                  typename Mult = std::multiplies<T>>
-inline constexpr bool is_galois_field_v = false;
+inline constexpr bool is_galois_field_v = is_galois_field<T, Add, Mult>::value;
 
 /**
  * @brief The order @f$q@f$ of a Galois field: the cardinality
  *        @f$|T|@f$ (always a prime power @f$p^n@f$).  Zero signals
- *        "not a Galois field" (the default).
- *
- * @details Useful downstream for algorithms keyed on the order,
- *          e.g.\ Fermat's @f$a^{-1} = a^{q-2}@f$ on the cyclic
- *          multiplicative group.
+ *        "not a Galois field" (the default).  Struct-backed for the
+ *        same reason as @c is_galois_field above.
  */
+template <typename T, typename Add = std::plus<T>,
+          typename Mult = std::multiplies<T>>
+struct galois_order : std::integral_constant<std::size_t, 0> {};
+
+template <typename T, typename Add, typename Mult>
+  requires requires {
+    dedekind::category::SpeciesTraits<T>::template galois_order_v<Add, Mult>;
+  }
+struct galois_order<T, Add, Mult>
+    : std::integral_constant<std::size_t,
+                             dedekind::category::SpeciesTraits<
+                                 T>::template galois_order_v<Add, Mult>> {};
+
 export template <typename T, typename Add = std::plus<T>,
                  typename Mult = std::multiplies<T>>
-inline constexpr std::size_t galois_order_v = 0;
+inline constexpr std::size_t galois_order_v = galois_order<T, Add, Mult>::value;
 
 /**
  * @concept IsGaloisField
@@ -226,73 +250,25 @@ export constexpr 𝔽64 operator*(bool s, 𝔽64 v) noexcept { return s ? v : �
 namespace dedekind::category {
 
 // --- 𝔽64 atlas registration ---
-// FIXME(#382): every trait spec below is written per-(carrier, op).  A
-// library helper `FieldRegistration<T, Zero, One>` would collapse the
-// whole block into a single base-class inheritance on
-// `SpeciesTraits<𝔽64>`.
-
+// The entire trait block (identities, associativity, commutativity,
+// distributivity, periodicity, invertibility on each operation, and
+// the Galois-field opt-ins) is provided by a single base-class
+// inheritance on `GaloisFieldRegistration`, as per #382.  The
+// SpeciesTraits-based discovery specs in `algebra:registration` lift
+// these member templates into the free-standing traits
+// (`is_associative<T, Op>::value`, `identity_trait<T, Op>::value`,
+// etc.); the Galois-specific variable-template discovery
+// (`is_galois_field_v` / `galois_order_v`) lives below in the
+// `dedekind::algebra` block to avoid a `:galois` ↔ `:registration`
+// import cycle.
 template <>
-struct SpeciesTraits<dedekind::algebra::𝔽64> {
+struct SpeciesTraits<dedekind::algebra::𝔽64>
+    : dedekind::algebra::GaloisFieldRegistration<
+          dedekind::algebra::𝔽64, dedekind::algebra::𝔽64{},
+          dedekind::algebra::𝔽64{static_cast<std::uint8_t>(1)}, 64> {
   using Domain = dedekind::algebra::𝔽64;
   using machine_type = std::uint8_t;
 };
-
-// --- Identities ---
-template <>
-struct identity_trait<dedekind::algebra::𝔽64,
-                      std::plus<dedekind::algebra::𝔽64>> {
-  using value_type = dedekind::algebra::𝔽64;
-  static constexpr value_type value{};  // 𝔽64(0)
-};
-
-template <>
-struct identity_trait<dedekind::algebra::𝔽64,
-                      std::multiplies<dedekind::algebra::𝔽64>> {
-  using value_type = dedekind::algebra::𝔽64;
-  static constexpr value_type value{static_cast<std::uint8_t>(1)};
-};
-
-// --- Algebraic facts ---
-template <>
-inline constexpr bool is_associative_v<dedekind::algebra::𝔽64,
-                                       std::plus<dedekind::algebra::𝔽64>> =
-    true;
-template <>
-inline constexpr bool is_associative_v<
-    dedekind::algebra::𝔽64, std::multiplies<dedekind::algebra::𝔽64>> = true;
-
-template <>
-inline constexpr bool is_commutative_v<dedekind::algebra::𝔽64,
-                                       std::plus<dedekind::algebra::𝔽64>> =
-    true;
-template <>
-inline constexpr bool is_commutative_v<
-    dedekind::algebra::𝔽64, std::multiplies<dedekind::algebra::𝔽64>> = true;
-
-template <>
-inline constexpr bool is_distributive_v<dedekind::algebra::𝔽64,
-                                        std::multiplies<dedekind::algebra::𝔽64>,
-                                        std::plus<dedekind::algebra::𝔽64>> =
-    true;
-
-// Totality via periodicity: 𝔽64 wraps modulo the irreducible f(x)
-// under both operations.
-template <>
-struct is_periodic<dedekind::algebra::𝔽64, std::plus<dedekind::algebra::𝔽64>>
-    : std::true_type {};
-template <>
-struct is_periodic<dedekind::algebra::𝔽64,
-                   std::multiplies<dedekind::algebra::𝔽64>> : std::true_type {};
-
-// --- Inverses ---
-template <>
-inline constexpr bool
-    is_invertible_v<dedekind::algebra::𝔽64, std::plus<dedekind::algebra::𝔽64>> =
-        true;
-template <>
-inline constexpr bool is_invertible_v<dedekind::algebra::𝔽64,
-                                      std::multiplies<dedekind::algebra::𝔽64>> =
-    true;
 
 }  // namespace dedekind::category
 
@@ -300,24 +276,19 @@ namespace dedekind::algebra {
 
 // --- Galois-field opt-ins ---
 
-// bool under (XOR, AND) is the Galois field 𝔽2 (order 2).  Ring-,
-// field-, and distributivity-trait specialisations for the bitwise
-// operators on bool live in :species; the Galois-specific claim is
-// the finite-cardinality opt-in below.
+// bool under (XOR, AND) is the Galois field 𝔽2 (order 2).  bool's
+// ring / field / distributivity trait specialisations for the
+// bitwise operators live in :species; the Galois-specific claim is
+// the finite-cardinality opt-in below, spelled out at the struct
+// level (since the variable templates are now struct-backed).
+// 𝔽64's opt-ins are provided automatically by its
+// @c GaloisFieldRegistration base (see its @c SpeciesTraits above).
 template <>
-inline constexpr bool
-    is_galois_field_v<bool, std::bit_xor<bool>, std::bit_and<bool>> = true;
+struct is_galois_field<bool, std::bit_xor<bool>, std::bit_and<bool>>
+    : std::true_type {};
 template <>
-inline constexpr std::size_t
-    galois_order_v<bool, std::bit_xor<bool>, std::bit_and<bool>> = 2;
-
-// 𝔽64 is the Galois field of order 64 = 2^6.
-template <>
-inline constexpr bool
-    is_galois_field_v<𝔽64, std::plus<𝔽64>, std::multiplies<𝔽64>> = true;
-template <>
-inline constexpr std::size_t
-    galois_order_v<𝔽64, std::plus<𝔽64>, std::multiplies<𝔽64>> = 64;
+struct galois_order<bool, std::bit_xor<bool>, std::bit_and<bool>>
+    : std::integral_constant<std::size_t, 2> {};
 
 /** @section Formal_Verification */
 
