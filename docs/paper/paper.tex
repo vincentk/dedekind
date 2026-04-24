@@ -1717,19 +1717,52 @@ the cap is a compile-time cost; the more principled answer---and the
 one we prefer---is to stop at the boundary and hand off to a runtime
 solver, which is exactly the case our centrepiece is \emph{not}.
 
-\paragraph{Combinatorial blowup is the real wall.}
-Compile-time vertex enumeration over $n$ halfspaces is $\binom{n}{2}$
-active-set solves. For $n = 4$ (the paper's LP) that is six solves,
-trivially tractable. For $n = 20$ it is $190$; for $n = 100$, $4950$;
-for $n = 1000$, nearly half a million. Template instantiation cost
-per solve is roughly constant, so the method remains tractable for LPs
-whose constraint count is a handful to perhaps a few dozen---the
-regime of textbook instances, parametric sensitivity studies, and
-embedded-system sizing problems. It is \emph{not} the regime of
-industrial LP. The intended partition: compile-time reduction for
-instances that are fixed in type, runtime simplex/interior-point
-solvers (and the attendant numerical compromises) for instances whose
-size or coefficients are only known at execution.
+\paragraph{Combinatorial blowup is the pessimistic bound.}
+Compile-time vertex enumeration over $n$ halfspaces is, in the worst
+case, $\binom{n}{d}$ active-set solves for a $d$-dimensional LP; in
+the 2D case this paper demonstrates, $\binom{n}{2}$. For $n = 4$
+that is six solves; for $n = 20$, 190; for $n = 1000$, nearly half a
+million. Taken at face value the figure looks alarming. Two facts
+about real constraint lists soften it substantially.
+
+First, by the fundamental theorem of linear programming, the optimum
+of a $d$-dimensional LP is attained at a vertex with at most $d$
+binding constraints. In practice the active set is often
+significantly smaller than $d$---many vertices of a handwritten
+polytope bind only one or two of the stated constraints, and most
+of the syntactic constraint list is either slack at the optimum or
+logically redundant. The $\binom{n}{d}$ figure is the enumeration
+cost, not a measure of what any vertex actually witnesses.
+
+Second, many redundancies are \emph{statically} removable when
+constraints live at the type level. Two halfspaces with the same
+normal reduce at compile time to the tighter bound:
+\lstinline|x > 5 && x > 7| collapses to \lstinline|x > 7| (stricter
+pivot wins), \lstinline|x > 5 && x < 2| collapses to $\varnothing$
+(contradiction), and \lstinline|x > 3 && x < 5| over an integral
+carrier collapses to \lstinline{Singleton<4>}. The library's
+\lstinline{structured_and}
+dispatch already performs exactly these reductions for 1D halfspaces
+(Showcases~3 and~4 are the empty-meet and cardinality-1 witnesses);
+the same dispatch pattern extends naturally to 2D halfspaces whose
+normals are linearly dependent. A structurally pruned constraint
+list is typically much smaller than its syntactic form, and the
+combinatorial term tracks the pruned count, not the raw one.
+
+For the embedded regime this paper targets---MPC steps with a handful
+of physical constraints, sensor-fusion guards with a few axis-aligned
+bounds, parametric configuration LPs---the raw constraint count
+rarely exceeds a few dozen, and compile-time pruning typically drops
+it further. The method remains tractable for the instance regime
+it was built for. The intended partition is unchanged: compile-time
+reduction for problems whose structure is fixed in the type, runtime
+simplex or interior-point solvers (and the attendant numerical
+compromises) for problems whose size or coefficients are only known
+at execution. Industrial-scale LP is emphatically the latter; we do
+not claim it is the former. A genuine pathological case would require
+a constraint list that the author was \emph{unable} to prune
+structurally---an unlikely shape for the use cases this library is
+written against.
 
 \paragraph{Numeric overflow in the carrier.}
 The paper's code listings use \lstinline{Rational<long>} throughout.
