@@ -1806,8 +1806,8 @@ steps, parametric optimisation) a robotics, automotive, or
 instrumentation engineer writes directly in their control loop. For
 these, a fixed-topology LP, a compile-specialised Kalman update
 (Section~\ref{sec:kalman-showcase}), or an exact-rational sensor-fusion
-step expressed against \texttt{IsRingLike} concepts delivers
-three things the model-runtime path does not: a binary with no
+step expressed against \texttt{IsRingLike} concepts exhibits three
+properties the model-runtime path does not aim at: a binary with no
 interpreter, a dependency graph no heavier than the system's
 \texttt{clang++}, and bit-for-bit deterministic arithmetic across
 platforms when the carrier is $\mathbb{Q}$. We see this as a
