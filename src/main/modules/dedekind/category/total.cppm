@@ -277,68 +277,50 @@ export template <typename T, typename Add, typename Mult>
 concept IsCommutativeRing = IsRing<T, Add, Mult> && IsCommutative<T, Mult>;
 
 /**
- * @brief Carrier-declared field witness for @ref IsField.
- *
- * @details Defaults to @c false; specialise to @c true for types whose
- * multiplication is genuinely a group on the non-zero subset. This
- * mirrors the opt-in idiom used by @c is_monic_arrow_v elsewhere in
- * the library: we cannot detect "every non-zero element is
- * invertible" from a type signature alone, so the carrier author
- * declares it.
- *
- * @code
- *   // Example opt-in (not declared here; lives on the carrier's file):
- *   template <typename Z>
- *     requires IsInteger<Z>
- *   inline constexpr bool is_field_v<
- *       Rational<Z>,
- *       std::plus<Rational<Z>>,
- *       std::multiplies<Rational<Z>>> = true;
- * @endcode
- */
-export template <typename T, typename Add, typename Mult>
-inline constexpr bool is_field_v = false;
-
-/**
  * @concept IsField
- * @brief Level 2.5: The Perfect Species (commutative ring with a
- *        multiplicative group on non-zero elements).
+ * @brief Level 2.5: The axiomatic field witness --- a commutative ring
+ *        whose multiplicative structure is an abelian group (zero
+ *        excluded, by convention on @c is_invertible_v).
  *
  * @details A field is a commutative ring in which every non-zero
  * element has a multiplicative inverse. Canonical examples: @c ℚ,
  * @c ℝ, @c ℂ, and the Gaussian rationals @c ℚ(i).
  *
- * The mathematical definition --- "every non-zero element is
- * invertible under multiplication" --- cannot be expressed directly
- * in a C++ concept: concepts reason about types, not about the values
- * that inhabit them. We therefore triangulate:
+ * The concept composes two existing pieces of the category tower:
  *
- *   1. @c IsCommutativeRing (structural: the ring laws hold).
- *   2. @c is_field_v<T, Add, Mult> is explicitly specialised to
- *      @c true by the carrier author (moral: "I assert this type is
- *      a field").
- *   3. A syntactic check that binary @c operator/ returns @c T
- *      (sanity: field division is spelled out).
+ *   1. @c IsCommutativeRing<T, Add, Mult> --- ring laws plus
+ *      commutativity of multiplication.
+ *   2. @c IsAbelianGroup<T, Mult> --- the multiplicative structure
+ *      is itself an abelian group.
  *
- * Point (2) is the load-bearing opt-in that prevents false positives
- * on non-field commutative rings (e.g. @c Modular<256> would pass
- * points (1) and (3) but must not declare itself a field).
+ * The strict mathematical definition --- "every \emph{non-zero}
+ * element is multiplicatively invertible" --- cannot be stated in a
+ * C++ concept (concepts reason about types, not values). A carrier
+ * opts into the multiplicative-group witness by specialising
+ * @c is_invertible_v<T, Mult> / @c inverse_trait<T, Mult> to assert
+ * the field-level claim; zero is understood excluded.  This is the
+ * same mechanism the library already uses for additive inverses
+ * (e.g. @c is_invertible_v<Modular<N>, std::plus> = true).
+ *
+ * @note The concept is deliberately \emph{axiomatic}: no operator
+ *       requirements, consistent with the @c category:total layer's
+ *       convention that structural concepts check species traits
+ *       rather than operator syntax. The operator-bearing witness
+ *       --- which additionally requires @c operator/, @c .inverse(),
+ *       and @c std::divides --- is @c dedekind::algebra::IsField,
+ *       which \emph{builds on} this concept by composing it with
+ *       @c IsDivisionRing.
  *
  * Downstream call sites that currently reach for
  * @c dedekind::algebra::IsFieldLikeScalar will retarget to
  * @c IsField<T, Add, Mult> once carriers such as @c Rational<Z>,
- * @c Complex<R>, and the relevant composites specialise
- * @c is_field_v and gain the Rational-side trait specialisations
- * they need to satisfy @c IsCommutativeRing. That work is tracked
- * under epic #374 (algebraic concept vocabulary alignment) and in
- * particular #371 (axiom-hook auto-lifter).
+ * @c Complex<R>, and the relevant composites register the full
+ * ring- plus multiplicative-group-trait specialisations. That work
+ * is tracked under epic #374 and in particular #371 (axiom-hook
+ * auto-lifter).
  */
 export template <typename T, typename Add, typename Mult>
-concept IsField =
-    IsCommutativeRing<T, Add, Mult> && is_field_v<T, Add, Mult> &&
-    requires(T a, T b) {
-      { a / b } -> std::same_as<T>;
-    };
+concept IsField = IsCommutativeRing<T, Add, Mult> && IsAbelianGroup<T, Mult>;
 
 /**
  * @concept IsSemilattice

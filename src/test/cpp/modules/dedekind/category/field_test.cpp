@@ -1,15 +1,26 @@
 /** @file dedekind/category/field_test.cpp
  *
  * Tests for @c IsField and @c IsCommutativeRing in
- * @c dedekind.category:total.  Exercises the opt-in trait
- * @c is_field_v<T, Add, Mult> that gates the concept: default-false
- * carriers must fail the concept even when they structurally look
- * field-shaped, and carriers that explicitly specialise the trait
- * must pass.
+ * @c dedekind.category:total.  The category-layer concepts here are
+ * purely axiomatic (species-trait based, no operator requirements);
+ * the operator-level witness @c dedekind::algebra::IsField builds on
+ * this concept by additionally requiring the division surface via
+ * @c IsDivisionRing.
  *
- * The actual paper-facing retargeting of @c IsFieldLikeScalar call
- * sites to @c IsField happens once @c Rational<Z>, @c Complex<R>,
- * etc. gain their trait specialisations (tracked under epic #374,
+ * @c IsField composes @c IsCommutativeRing<T, Add, Mult> with
+ * @c IsAbelianGroup<T, Mult>.  The multiplicative-inverse witness
+ * the latter requires is the library's standard opt-in pair:
+ * @c is_invertible_v<T, Mult> / @c inverse_trait<T, Mult>.  A
+ * carrier asserts the field-level claim by specialising the same
+ * trait the additive side already uses (e.g.
+ * @c is_invertible_v<Modular<N>, std::plus> = true); zero is
+ * understood excluded by convention, since concepts cannot quantify
+ * over values.  Default-false carriers must fail the concept even
+ * when their ring-trait chain otherwise looks field-shaped.
+ *
+ * The paper-facing retargeting of @c IsFieldLikeScalar call sites
+ * to @c IsField happens once @c Rational<Z>, @c Complex<R>, etc.
+ * gain their trait specialisations (tracked under epic #374,
  * children #371 axiom-hook auto-lifter and #379 paper sweep).
  */
 
@@ -20,19 +31,20 @@ import dedekind.category;
 
 using dedekind::category::IsCommutativeRing;
 using dedekind::category::IsField;
-using dedekind::category::IsRing;
 
 namespace {
 
-// A tiny field-shaped mock: a single-element carrier that we declare
-// a commutative ring with division by opting into every structural
-// trait plus the @c is_field_v opt-in.  This keeps the test hermetic
-// (no dependency on real number carriers) while exercising the
-// concept's positive path.
+// A tiny field-shaped mock: a single-element carrier we opt in as a
+// commutative-ring field at the species-trait level.  The category-
+// layer concept is axiomatic --- no operator requirements --- so
+// this test type exposes only the minimum surface the underlying
+// category concepts (@c IsMagma, @c IsAssociative, @c IsCommutative,
+// etc.) reach through.
 struct TrivialField {
   // Operators are referenced only inside `requires` expressions in
-  // the concept checks below; mark them [[maybe_unused]] so
-  // -Werror=unused-function on the test build does not reject them.
+  // the category-layer concept bodies (e.g. IsMagma's operator
+  // closure); mark them [[maybe_unused]] so -Werror=unused-function
+  // does not reject them.
   [[maybe_unused]] constexpr friend bool operator==(
       const TrivialField&, const TrivialField&) = default;
   [[maybe_unused]] constexpr friend TrivialField operator+(
@@ -48,10 +60,6 @@ struct TrivialField {
     return {};
   }
   [[maybe_unused]] constexpr friend TrivialField operator*(
-      TrivialField, TrivialField) noexcept {
-    return {};
-  }
-  [[maybe_unused]] constexpr friend TrivialField operator/(
       TrivialField, TrivialField) noexcept {
     return {};
   }
@@ -97,10 +105,14 @@ template <>
 inline constexpr bool is_invertible_v<TrivialField, std::plus<TrivialField>> =
     true;
 
-// THE CRITICAL OPT-IN: declare TrivialField as a field.
+// THE CRITICAL OPT-IN: the multiplicative structure is an abelian group.
+// This is what lifts TrivialField from IsCommutativeRing to IsField: every
+// (non-zero) element admits a multiplicative inverse.  The trivial carrier
+// has a single element that is simultaneously additive zero and
+// multiplicative one, so the inverse claim holds vacuously.
 template <>
-inline constexpr bool is_field_v<TrivialField, std::plus<TrivialField>,
-                                 std::multiplies<TrivialField>> = true;
+inline constexpr bool
+    is_invertible_v<TrivialField, std::multiplies<TrivialField>> = true;
 
 }  // namespace dedekind::category
 
@@ -115,24 +127,30 @@ TEST_CASE("IsCommutativeRing — baseline existing carriers",
 }
 
 TEST_CASE("IsField — opt-in gates the concept", "[category][field]") {
-  // TrivialField has declared is_field_v = true and carries the
-  // required arithmetic surface (including operator/).  Must pass.
+  // TrivialField registers the full species-trait chain and specialises
+  // is_invertible_v<_, std::multiplies<_>> = true, so the multiplicative
+  // side is an abelian group.  The axiomatic category-layer concept
+  // passes.
   STATIC_CHECK(IsField<TrivialField, std::plus<TrivialField>,
                        std::multiplies<TrivialField>>);
 }
 
 TEST_CASE("IsField — rejects non-field commutative rings without opt-in",
           "[category][field]") {
-  // unsigned int under (+, *) is a commutative ring and C++ even
-  // defines `a / b` on it.  Without an is_field_v opt-in, the concept
-  // must still reject it (unsigned int is ℤ/2^Nℤ, not a field).
+  // unsigned int under (+, *) is a commutative ring.  The library does
+  // not specialise is_invertible_v<unsigned int, std::multiplies> (and
+  // no ADL inverse(x, std::multiplies<>{}) exists), so the multiplicative
+  // side fails IsAbelianGroup and IsField must reject: unsigned int is
+  // ℤ/2^Nℤ, a ring but not a field (non-units lack multiplicative
+  // inverses).  This is precisely the false-positive the opt-in
+  // prevents.
   STATIC_CHECK_FALSE(IsField<unsigned int, std::plus<unsigned int>,
                              std::multiplies<unsigned int>>);
 
-  // Same for the library's own Modular<256>: commutative ring, not a
-  // field (non-units lack multiplicative inverses).  Modular<256>
-  // happens to lack operator/ as well, so IsField fails for *two*
-  // reasons; either is sufficient.
+  // Same for the library's own Modular<256>: structurally a
+  // commutative ring, but not a field (only units coprime to 256
+  // are invertible).  Without an is_invertible_v specialisation on
+  // the multiplicative operation, the concept rejects it.
   using M = dedekind::category::Modular<256>;
   STATIC_CHECK_FALSE(IsField<M, std::plus<M>, std::multiplies<M>>);
 }

@@ -21,6 +21,7 @@
 \newunicodechar{∩}{\ensuremath{\cap}}
 \newunicodechar{ℚ}{\ensuremath{\mathbb{Q}}}
 \newunicodechar{ℝ}{\ensuremath{\mathbb{R}}}
+\newunicodechar{𝔽}{\ensuremath{\mathbb{F}}}
 \newunicodechar{∃}{\ensuremath{\exists}}
 \newunicodechar{π}{\ensuremath{\pi}}
 \newunicodechar{⊂}{\ensuremath{\subset}}
@@ -1317,6 +1318,9 @@ static_assert(!is_distributive_v<int, std::multiplies<>, std::plus<>>,
               "Honesty Check: Distributivity rejected for signed hazards.");
 \end{lstlisting}
 
+\paragraph{Compound species: Rings, Commutative Rings, Fields.}
+The one-operation path of Table~\ref{tab:algebraic_hierarchy} composes into two-operation species by pairing an additive witness with a multiplicative one, glued by the \texttt{is\_distributive\_v} trait. \texttt{IsRing<T, Add, Mult>} requires the additive side to be an Abelian Group and the multiplicative side to be a Monoid with distributivity. \texttt{IsCommutativeRing<T, Add, Mult>} adds commutativity of multiplication. \texttt{IsField<T, Add, Mult>} further requires the multiplicative structure to be an Abelian Group, reusing the library's existing inversion mechanism: a carrier asserts the field-level claim by specialising \texttt{is\_invertible\_v<T, Mult>} (the same trait the additive side uses, e.g.\ \texttt{is\_invertible\_v<Modular<N>, std::plus>}); zero is excluded by convention, since C++ concepts reason about types rather than values.
+These three concepts live in \texttt{category:total} and are purely axiomatic---no operator requirements. The operator-bearing counterparts (\texttt{operator/}, \texttt{.inverse()}, \texttt{std::divides}) are added on top in \texttt{dedekind.algebra:field}, which composes the axiomatic witness with \texttt{IsDivisionRing}. \texttt{unsigned int} and \texttt{Modular<N>} pass \texttt{IsCommutativeRing} but are correctly rejected by \texttt{IsField} unless a carrier explicitly registers multiplicative invertibility---the opt-in prevents the false positives that would arise from pure structural inspection.
 
 \subsection{Monoid Actions and Modules (\texttt{:action})}
 
@@ -2647,7 +2651,17 @@ Preservation of distinguished identities ($\phi(0) = 0$, $\phi(1) = 1$) is \emph
 \section{\texttt{:field}}
 \label{sec:algebra-field}
 
-A field is a ring where every nonzero element has a multiplicative inverse. The canonical implementation is \texttt{Rational<Z>} from \texttt{dedekind.numbers}.
+A field is a ring where every nonzero element has a multiplicative inverse. The library splits the witness across two layers, mirroring the strict/operational division used elsewhere. The axiomatic witness---species-trait based, no operator requirements---lives in \texttt{category:total} as \texttt{IsField<T, Add, Mult>} = \texttt{IsCommutativeRing<T, Add, Mult>} $\wedge$ \texttt{IsAbelianGroup<T, Mult>}. The operator-bearing witness in \texttt{algebra:field} composes it with the division surface:
+\[
+  \texttt{algebra::IsField} \;=\; \texttt{category::IsField} \,\wedge\, \texttt{IsDivisionRing}
+\]
+where \texttt{IsDivisionRing} requires \texttt{operator/}, a \texttt{.inverse()} method, and the \texttt{std::divides} functor. A carrier that satisfies the algebra-layer concept is a proper field in both senses simultaneously: the laws hold via traits, and the operations are spelled out in C++.
+
+\subsection{The prototypical carrier: \texorpdfstring{$\mathbb{F}_2$}{F2}}
+
+\texttt{algebra:field} exports \texttt{𝔽2}, the Galois field of order two $\mathbb{F}_2 = \{0, 1\}$, as the prototypical concrete witness. The carrier is a single \texttt{bool} ($\mathtt{false} \mapsto 0$, $\mathtt{true} \mapsto 1$), with $+$ defined as XOR ($\hat{\phantom{}}$) and $\cdot$ as AND (\&\&). This literalises the textbook identification $\mathbb{F}_2 = (\text{bool}, \oplus, \wedge)$ at the type level; no modular reduction is needed because \texttt{bool} is already canonical-to-$\{0, 1\}$. Characteristic two gives $-x = x$; the multiplicative group $\mathbb{F}_2^{\times} = \{1\}$ is trivial, so $1^{-1} = 1$ and $a / 1 = a$. The struct registers the full species-trait chain---\texttt{identity\_trait} for $0$ and $1$, \texttt{is\_associative\_v} and \texttt{is\_commutative\_v} for both operations, \texttt{is\_distributive\_v} linking them, \texttt{is\_periodic} for totality, and \texttt{is\_invertible\_v} on both additive and multiplicative sides. The carrier passes \texttt{IsCommutativeRing}, \texttt{category::IsField}, and \texttt{algebra::IsField}, witnessed at compile time by \texttt{static\_assert}s alongside the struct and exhaustively at run time by \texttt{f2\_test.cpp}, which enumerates every pair $(a, b) \in \mathbb{F}_2^2$ against each field axiom (group laws for $+$ and $\cdot$, distributivity, division surface, inverse-of-zero throws).
+
+The carrier is deliberately small: $|\mathbb{F}_2| = 2$ lets the whole Cayley table fit in a handful of \texttt{CHECK}s, so the axioms can be verified by exhaustion rather than by probe. Paper-facing carriers---\texttt{Rational<Z>}, \texttt{Complex<R>}, the Gaussian rationals---adopt the same registration pattern once their ring-trait chains and multiplicative-invertibility claims are registered (tracked under epic \#374, children \#371 axiom-hook auto-lifter and the new \#382 \texttt{FieldRegistration} helper).
 
 \section{\texttt{:division}}
 \label{sec:algebra-division}

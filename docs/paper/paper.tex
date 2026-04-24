@@ -30,6 +30,7 @@
 \newunicodechar{∩}{\ensuremath{\cap}}
 \newunicodechar{ℚ}{\ensuremath{\mathbb{Q}}}
 \newunicodechar{ℝ}{\ensuremath{\mathbb{R}}}
+\newunicodechar{𝔽}{\ensuremath{\mathbb{F}}}
 \newunicodechar{∃}{\ensuremath{\exists}}
 \newunicodechar{π}{\ensuremath{\pi}}
 \newunicodechar{⊂}{\ensuremath{\subset}}
@@ -783,6 +784,7 @@ satisfied, not approximated.}
 \textbf{Role} & \textbf{Exact carrier} & \textbf{Concept satisfied} \\
 \midrule
 $\mathbb{B}$ & \lstinline|bool| under $\land, \lor$ & \lstinline|IsBoolean| \\
+$\mathbb{F}_2$ & \texttt{𝔽2} (\lstinline|bool|-backed, $\oplus$ as $+$, $\land$ as $\cdot$) & \lstinline|IsField<T,+,*>| \\
 $\mathbb{N}$ bounded & \lstinline|ExtensionalCardinal<N>| & \lstinline|IsCyclicGroup|$^{\dagger}$, \lstinline|IsAbelianGroup<T,+>| \\
 $\mathbb{N}$ unbounded & \lstinline|Cardinality|$^{\ddagger}$ (variant over ℵ$_0$) & \lstinline|Monoid_|$\mathbb{N}$ \\
 $\mathbb{Z}$ bounded & \lstinline|SignedExtensionalCardinal<N>| & \lstinline|IsAbelianGroup<T,+>|, \lstinline|IsRing| \\
