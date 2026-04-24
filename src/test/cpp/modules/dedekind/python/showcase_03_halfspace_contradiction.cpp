@@ -11,7 +11,7 @@
  * Halfspace predicate), so `structured_and` collapses the meet to an
  * `EmptyPredicate` at compile time and the wrapping Set compares equal to `Ø`.
  *
- * Expected LLVM IR: `ret i1 false` for `impress_empty_halfspace_meet`.
+ * Expected LLVM IR: `ret i1 false` for `witness_empty_halfspace_meet`.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
@@ -62,7 +62,7 @@ static_assert(IsCompileTimeEnumerable<decltype(empty_meet)>);
  *
  * Expected IR: `ret i1 false`
  */
-extern "C" __attribute__((noinline)) bool impress_empty_halfspace_meet() {
+extern "C" __attribute__((noinline)) bool witness_empty_halfspace_meet() {
   using Logic = typename decltype(empty_meet)::logic_species;
   return empty_meet(42) == Logic::True;
 }

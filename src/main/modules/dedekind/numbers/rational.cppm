@@ -386,10 +386,57 @@ static_assert(IsInteger<ExtensionalCardinal<>>,
               "ExtensionalCardinal<> must satisfy IsInteger (Euclidean "
               "ring: +, -, *, /, % with two's-complement wrapping).");
 
+static_assert(IsInteger<SignedExtensionalCardinal<>>,
+              "SignedExtensionalCardinal<> must satisfy IsInteger (Euclidean "
+              "signed ring: sign-magnitude arithmetic, overflow-free up to "
+              "2^{N*64 - 1}).");
+
 static_assert(
     dedekind::algebra::IsFieldLikeScalar<Rational<default_integer>>,
     "Rational<I> must satisfy the operational field-like witness (ℚ is a "
     "field).");
+
+static_assert(
+    dedekind::algebra::IsFieldLikeScalar<Rational<SignedExtensionalCardinal<>>>,
+    "Rational<SignedExtensionalCardinal<>> must satisfy IsFieldLikeScalar: "
+    "the intended arbitrary-precision signed-rational carrier for ℚ.");
+
+// ---------------------------------------------------------------------------
+// Algebraic-soul concept certifications (dogfood the library's own concepts)
+// ---------------------------------------------------------------------------
+//
+// These assertions are the library's contract with itself: the carriers the
+// paper and downstream code instantiate must satisfy the algebraic-soul
+// concepts they *claim* to realize. When a future certification fails to
+// hold (e.g. because a downstream change breaks a species-trait), the build
+// breaks here, at the point of the claim, rather than silently downstream.
+
+// ℕ as a commutative monoid under +: the canonical arbitrary-precision
+// natural carrier.
+static_assert(Monoid_ℕ<ExtensionalCardinal<>>,
+              "ExtensionalCardinal<> must realize ℕ as a commutative monoid "
+              "under std::plus.");
+
+// ℤ as an abelian group under +: the canonical arbitrary-precision signed
+// integer carrier. The species-trait registry supplies associativity,
+// commutativity, identity, and inverse; the concept gate enforces them.
+static_assert(Group_ℤ<SignedExtensionalCardinal<>>,
+              "SignedExtensionalCardinal<> must realize ℤ as an abelian "
+              "group under std::plus.");
+
+// ℚ as the field of rationals: the canonical arbitrary-precision rational
+// carrier that the paper-facing showcases instantiate on.
+//
+// FIXME: Field_ℚ currently fails to certify on this carrier because the
+// concept's body transitively depends on IsFieldLikeScalar (the ad-hoc
+// operational concept) and IsRational (which chains through IsFieldLike ->
+// IsRationalLike). The right repair is part of a broader cleanup:
+// introduce `IsField<T, Add, Mult>` in dedekind.category:total, retire the
+// ad-hoc IsRingLike/IsFieldLike/IsFieldLikeScalar names, and rebind
+// Field_ℚ to the proper algebraic concept. Tracked under the concept-
+// dogfooding issue sweep (see backlog issues to be created). Until then
+// the operational witnesses (IsFieldLikeScalar<Rational<SignedEC<>>>
+// asserted above) are the load-bearing guarantees.
 
 /**
  * @brief Canonical polynomial ring over the rationals: Q[x].

@@ -75,7 +75,7 @@ static_assert(lattice_square_intersection(c_diag) == CLogic::False);
  *
  * Expected IR: `ret i1 true`
  */
-extern "C" __attribute__((noinline)) bool impress_lattice_square_singleton() {
+extern "C" __attribute__((noinline)) bool witness_lattice_square_singleton() {
   return (lattice_square_intersection(c3) == CLogic::True) &&
          (lattice_square_intersection(c_left) == CLogic::False) &&
          (lattice_square_intersection(c_bottom) == CLogic::False) &&

@@ -89,6 +89,16 @@ TEST_CASE("Analysis: Fundamental Theorem of Calculus Bridges",
                                                IEEEReal{-1.0}, IEEEReal{1.5},
                                                IEEEReal{3.0}, IEEEReal{1e-3}));
   }
+
+  SECTION("Showcase~11: FTC Part II, discharged at translation time") {
+    // f(x) = 3x^2; F(x) = x^3.  \int_0^2 f = 8 = F(2) - F(0).
+    // ftc_part_ii_bridge is constexpr, so the entire numerical witness
+    // (trapezoidal quadrature + antiderivative delta + tolerance compare)
+    // runs inside the static_assert during translation.
+    constexpr auto f = [](double x) { return 3.0 * x * x; };
+    constexpr auto F = [](double x) { return x * x * x; };
+    static_assert(ftc_part_ii_bridge<double>(f, F, 0.0, 2.0, 1e-3));
+  }
 }
 
 TEST_CASE("Analysis: Derivative and Integral Diagnostics",

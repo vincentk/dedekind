@@ -100,15 +100,29 @@ concept IsNaturalNumber = std::unsigned_integral<T>;
 
 /**
  * @concept Monoid_ℕ
- * @brief The Parametric Algebraic Soul of the Natural Numbers.
+ * @brief ℕ as the commutative monoid of naturals under addition.
  *
- * @tparam M The Monoid structure.
- * @tparam E The underlying Element species.
+ * @details A carrier @c T satisfies @c Monoid_ℕ iff
+ *   - it is @c IsNatural (the structural commutative-semiring-with-order
+ *     witness for ℕ), and
+ *   - @c (T, +, 0) is certified as an @c IsCommutativeMonoid by the species-
+ *     trait registry (associativity, identity, commutativity of @c
+ *     std::plus<T>).
+ *
+ * This is the concept the downstream library is meant to program against:
+ * writing @c template @c <Monoid_ℕ T> binds the generic code to *any* carrier
+ * that can prove itself a natural-number monoid, so a concrete choice
+ * (@c ExtensionalCardinal<>, @c unsigned @c int, or a user-supplied carrier
+ * carrying a species-trait proof) plugs in without rewriting the algorithm.
+ *
+ * The safety side-effect is deliberate: carriers whose @c + is *not* a
+ * law-abiding monoid (signed @c int under @c std::plus, because overflow is
+ * UB) fail this concept at the gate, so generic code that depends on the
+ * monoid laws never instantiates on an unsafe carrier in the first place.
  */
-export template <typename M, typename E = typename M::Domain>
-concept Monoid_ℕ = IsNatural<E> && requires(const M& m) {
-  { m.cardinality() } -> std::same_as<std::size_t>;
-};
+export template <typename T>
+concept Monoid_ℕ =
+    IsNatural<T> && dedekind::category::IsCommutativeMonoid<T, std::plus<T>>;
 
 /**
  * @brief Canonical embedding 𝔹 ↪ ℕ: bool → unsigned.

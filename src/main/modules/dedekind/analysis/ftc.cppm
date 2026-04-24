@@ -105,7 +105,10 @@ constexpr bool finite_value(const R& x) {
 
 template <IsNumericalBridgeScalar R>
 constexpr auto magnitude(const R& x) {
-  return std::abs(resolved_value(x));
+  // Hand-rolled abs: libc++'s std::abs(double) is not constexpr, which would
+  // block the whole close_enough chain from static_assert evaluation.
+  const auto v = resolved_value(x);
+  return v < 0 ? -v : v;
 }
 
 template <IsNumericalBridgeScalar R>

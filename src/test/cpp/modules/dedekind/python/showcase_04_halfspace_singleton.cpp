@@ -10,7 +10,7 @@
  * one, `structured_and` elevates the meet to a `Singleton<value>` with the
  * unique inhabitant in the type — no lambdas, no predicate erasure.
  *
- * Expected LLVM IR: `ret i1 true` for `impress_halfspace_singleton` (the
+ * Expected LLVM IR: `ret i1 true` for `witness_halfspace_singleton` (the
  * unique inhabitant 4 is in the set).
  *
  * @copyright 2026 The Dedekind Authors
@@ -62,7 +62,7 @@ static_assert(IsCompileTimeEnumerable<decltype(in_between)>);
  *
  * Expected IR: `ret i1 true`
  */
-extern "C" __attribute__((noinline)) bool impress_halfspace_singleton() {
+extern "C" __attribute__((noinline)) bool witness_halfspace_singleton() {
   using Logic = typename decltype(in_between)::logic_species;
   return in_between(4) == Logic::True;
 }

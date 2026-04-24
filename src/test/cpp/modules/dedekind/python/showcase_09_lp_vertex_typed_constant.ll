@@ -1,28 +1,30 @@
 
-@llvm.global_ctors = appending global [1 x { i32, ptr, ptr }] [{ i32, ptr, ptr } { i32 65535, ptr @_GLOBAL__sub_I_showcase_03_halfspace_contradiction.cpp, ptr null }]
+@llvm.global_ctors = appending global [1 x { i32, ptr, ptr }] [{ i32, ptr, ptr } { i32 65535, ptr @_GLOBAL__sub_I_showcase_09_lp_vertex_typed_constant.cpp, ptr null }]
 
 ; Function Attrs: mustprogress nofree noinline norecurse nosync nounwind ssp willreturn memory(none) uwtable
-define noundef zeroext i1 @witness_empty_halfspace_meet() local_unnamed_addr #0 {
-  ret i1 false
+define noundef i64 @witness_lp_optimum_x() local_unnamed_addr #0 {
+  ret i64 2
 }
 
-declare void @_ZGIW8dedekindW8category() local_unnamed_addr
+; Function Attrs: mustprogress nofree noinline norecurse nosync nounwind ssp willreturn memory(none) uwtable
+define noundef i64 @witness_lp_optimum_y() local_unnamed_addr #0 {
+  ret i64 2
+}
 
-declare void @_ZGIW8dedekindW4sets() local_unnamed_addr
-
-declare void @_ZGIW8dedekindW7algebra() local_unnamed_addr
+declare void @_ZGIW8dedekindW14linear_algebra() local_unnamed_addr
 
 declare void @_ZGIW8dedekindW7numbers() local_unnamed_addr
 
-declare void @_ZGIW8dedekindW5order() local_unnamed_addr
+declare void @_ZGIW8dedekindW12optimization() local_unnamed_addr
+
+declare void @_ZGIW8dedekindW4sets() local_unnamed_addr
 
 ; Function Attrs: ssp uwtable
-define internal void @_GLOBAL__sub_I_showcase_03_halfspace_contradiction.cpp() #1 section "__TEXT,__StaticInit,regular,pure_instructions" {
-  tail call void @_ZGIW8dedekindW8category()
-  tail call void @_ZGIW8dedekindW4sets()
-  tail call void @_ZGIW8dedekindW7algebra()
+define internal void @_GLOBAL__sub_I_showcase_09_lp_vertex_typed_constant.cpp() #1 section "__TEXT,__StaticInit,regular,pure_instructions" {
+  tail call void @_ZGIW8dedekindW14linear_algebra()
   tail call void @_ZGIW8dedekindW7numbers()
-  tail call void @_ZGIW8dedekindW5order()
+  tail call void @_ZGIW8dedekindW12optimization()
+  tail call void @_ZGIW8dedekindW4sets()
   ret void
 }
 

@@ -63,7 +63,7 @@ static_assert(!IsCompileTimeEnumerable<decltype(lattice_cut)>);
  *
  * Expected IR: `ret i1 true` — inhabitant 0 is a member.
  */
-extern "C" __attribute__((noinline)) bool impress_lattice_real_interval() {
+extern "C" __attribute__((noinline)) bool witness_lattice_real_interval() {
   using Logic = typename decltype(lattice_cut)::logic_species;
   return lattice_cut(0) == Logic::True;
 }

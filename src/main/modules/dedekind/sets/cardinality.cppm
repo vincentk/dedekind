@@ -362,6 +362,174 @@ export constexpr ExtensionalCardinal<> inverse(
   return -value;
 }
 
+/**
+ * @brief Signed arbitrary-precision integer with a sign-magnitude layout.
+ *
+ * @details Two structural fields — @ref negative (the sign bit) and @ref
+ * magnitude (an N-limb unsigned natural delegated to ExtensionalCardinal<N>).
+ * Canonical zero has `negative == false` and `magnitude == 0`; the
+ * arithmetic operators preserve that canonical form, so `+0` and `-0` compare
+ * equal and never appear in results of operators on this type.
+ *
+ * Satisfies IsInteger (see registrations after the numbers:integer module
+ * pulls this file), making it the intended signed backing carrier for
+ * `Rational<Z>` when arbitrary-precision rationals with negative coefficients
+ * are required — overflow happens at 2^{N*64-1} and not before.
+ *
+ * Structural on purpose: the two public fields make the type usable as a
+ * non-type template parameter wherever `Rational<Z>` is.
+ */
+export template <std::size_t N = 1>
+struct SignedExtensionalCardinal {
+  static_assert(N > 0, "SignedExtensionalCardinal<N> requires N >= 1.");
+
+  using magnitude_type = ExtensionalCardinal<N>;
+
+  bool negative;
+  magnitude_type magnitude;
+
+  constexpr SignedExtensionalCardinal() noexcept
+      : negative(false), magnitude() {}
+
+  /** @brief Construction from any integral source, sign-correctly. */
+  template <std::integral S>
+  constexpr SignedExtensionalCardinal(S value) noexcept  // NOLINT
+      : negative(false), magnitude() {
+    if constexpr (std::signed_integral<S>) {
+      if (value < 0) {
+        negative = true;
+        using U = std::make_unsigned_t<S>;
+        // `0u - static_cast<U>(value)` in unsigned arithmetic yields the
+        // magnitude without overflow even at the minimum value of S.
+        const U magnitude_bits = static_cast<U>(0) - static_cast<U>(value);
+        magnitude = magnitude_type{
+            static_cast<typename magnitude_type::limb_type>(magnitude_bits)};
+        return;
+      }
+    }
+    magnitude =
+        magnitude_type{static_cast<typename magnitude_type::limb_type>(value)};
+  }
+
+  constexpr friend bool operator==(
+      const SignedExtensionalCardinal& lhs,
+      const SignedExtensionalCardinal& rhs) noexcept {
+    // Zero is canonical: ignore sign when magnitude is zero.
+    const bool lhs_zero = lhs.magnitude == magnitude_type{};
+    const bool rhs_zero = rhs.magnitude == magnitude_type{};
+    if (lhs_zero && rhs_zero) return true;
+    return lhs.negative == rhs.negative && lhs.magnitude == rhs.magnitude;
+  }
+
+  constexpr friend std::strong_ordering operator<=>(
+      const SignedExtensionalCardinal& lhs,
+      const SignedExtensionalCardinal& rhs) noexcept {
+    const bool lhs_zero = lhs.magnitude == magnitude_type{};
+    const bool rhs_zero = rhs.magnitude == magnitude_type{};
+    if (lhs_zero && rhs_zero) return std::strong_ordering::equal;
+    if (lhs.negative && !rhs.negative) return std::strong_ordering::less;
+    if (!lhs.negative && rhs.negative) return std::strong_ordering::greater;
+    // Same sign (non-zero on at least one side).
+    if (lhs.negative) {
+      // Both negative: larger magnitude is the smaller value.
+      return rhs.magnitude <=> lhs.magnitude;
+    }
+    return lhs.magnitude <=> rhs.magnitude;
+  }
+
+  constexpr SignedExtensionalCardinal operator-() const noexcept {
+    // Canonicalise zero: if the magnitude is zero we always return +0,
+    // regardless of the input sign. The public-field layout means
+    // callers can construct non-canonical {negative = true, magnitude = 0}
+    // values directly; this operator normalises them on the way out.
+    if (magnitude == magnitude_type{}) {
+      return SignedExtensionalCardinal{};  // canonical +0
+    }
+    SignedExtensionalCardinal result{*this};
+    result.negative = !negative;
+    return result;
+  }
+
+  constexpr friend SignedExtensionalCardinal operator+(
+      const SignedExtensionalCardinal& lhs,
+      const SignedExtensionalCardinal& rhs) noexcept {
+    SignedExtensionalCardinal result;
+    if (lhs.negative == rhs.negative) {
+      // Same sign: magnitudes add, sign preserved.
+      result.negative = lhs.negative;
+      result.magnitude = lhs.magnitude + rhs.magnitude;
+    } else if (lhs.magnitude >= rhs.magnitude) {
+      // Opposite signs, |lhs| >= |rhs|: result takes sign of lhs.
+      result.magnitude = lhs.magnitude - rhs.magnitude;
+      result.negative = lhs.negative;
+    } else {
+      // Opposite signs, |lhs| <  |rhs|: result takes sign of rhs.
+      result.magnitude = rhs.magnitude - lhs.magnitude;
+      result.negative = rhs.negative;
+    }
+    if (result.magnitude == magnitude_type{}) result.negative = false;
+    return result;
+  }
+
+  constexpr friend SignedExtensionalCardinal operator-(
+      const SignedExtensionalCardinal& lhs,
+      const SignedExtensionalCardinal& rhs) noexcept {
+    return lhs + (-rhs);
+  }
+
+  constexpr friend SignedExtensionalCardinal operator*(
+      const SignedExtensionalCardinal& lhs,
+      const SignedExtensionalCardinal& rhs) noexcept {
+    SignedExtensionalCardinal result;
+    result.magnitude = lhs.magnitude * rhs.magnitude;
+    result.negative = (lhs.negative != rhs.negative) &&
+                      (result.magnitude != magnitude_type{});
+    return result;
+  }
+
+  /** @brief Euclidean division; result truncates toward zero (C++ semantics).
+   */
+  constexpr friend SignedExtensionalCardinal operator/(
+      const SignedExtensionalCardinal& lhs,
+      const SignedExtensionalCardinal& rhs) noexcept {
+    SignedExtensionalCardinal result;
+    result.magnitude = lhs.magnitude / rhs.magnitude;
+    result.negative = (lhs.negative != rhs.negative) &&
+                      (result.magnitude != magnitude_type{});
+    return result;
+  }
+
+  /** @brief Euclidean remainder; result takes the sign of the dividend
+   *         (C++ semantics: `a == (a / b) * b + a % b`). */
+  constexpr friend SignedExtensionalCardinal operator%(
+      const SignedExtensionalCardinal& lhs,
+      const SignedExtensionalCardinal& rhs) noexcept {
+    SignedExtensionalCardinal result;
+    result.magnitude = lhs.magnitude % rhs.magnitude;
+    result.negative = lhs.negative && (result.magnitude != magnitude_type{});
+    return result;
+  }
+
+  /** @brief Explicit conversion to a signed integral type (single-limb only).
+   *  Constrained to N == 1 to prevent silent truncation of multi-limb values.
+   *  Used by the IR-fixture showcases to extract a compile-time-known
+   *  rational's numerator as a concrete machine integer for the emitted
+   *  `ret i64 ...` witness. */
+  template <std::signed_integral S>
+    requires(N == 1)
+  constexpr explicit operator S() const noexcept {
+    // Negate in unsigned space: `-signed_min` is UB in the target type
+    // when magnitude equals |signed_min|.  Casting the unsigned magnitude
+    // back to the signed type after modular negation yields the correct
+    // two's-complement value (including the signed-min edge case).
+    using U = std::make_unsigned_t<S>;
+    const U u_mag = static_cast<U>(magnitude.limbs[0]);
+    const U u_signed =
+        negative ? static_cast<U>(static_cast<U>(0) - u_mag) : u_mag;
+    return static_cast<S>(u_signed);
+  }
+};
+
 }  // namespace dedekind::sets
 
 // ---------------------------------------------------------------------------
@@ -427,5 +595,86 @@ static_assert(
     IsProduct<dedekind::sets::LipschitzBoundaryWitness,
               dedekind::sets::Cardinality, dedekind::sets::Cardinality>,
     "Cardinality boundary witness must realize a categorical product.");
+
+// ---------------------------------------------------------------------------
+// Category trait registrations for SignedExtensionalCardinal<1>
+// ---------------------------------------------------------------------------
+//
+// Mirrors the ExtensionalCardinal<1> registrations above, with the crucial
+// addition of `is_invertible_v` under + (every integer has an additive
+// inverse — this is what lifts ℤ from a monoid to a group, and is the
+// semantic difference between `Monoid_ℕ` and `Group_ℤ`).
+
+using Z1 = dedekind::sets::SignedExtensionalCardinal<>;
+
+template <>
+struct identity_trait<Z1, std::plus<Z1>> {
+  using value_type = Z1;
+  static constexpr value_type value = value_type{0};
+};
+
+template <>
+struct identity_trait<Z1, std::multiplies<Z1>> {
+  using value_type = Z1;
+  static constexpr value_type value = value_type{1};
+};
+
+template <>
+inline constexpr bool is_associative_v<Z1, std::plus<Z1>> = true;
+
+template <>
+inline constexpr bool is_associative_v<Z1, std::multiplies<Z1>> = true;
+
+template <>
+inline constexpr bool is_commutative_v<Z1, std::plus<Z1>> = true;
+
+template <>
+inline constexpr bool is_commutative_v<Z1, std::multiplies<Z1>> = true;
+
+template <>
+inline constexpr bool
+    is_distributive_v<Z1, std::multiplies<Z1>, std::plus<Z1>> = true;
+
+// Periodicity: the operation is total on the finite carrier, wrapping at
+// the N-limb capacity boundary. Required for IsTotal / IsMagma dispatch.
+template <>
+struct is_periodic<Z1, std::plus<Z1>> : std::true_type {};
+
+template <>
+struct is_periodic<Z1, std::multiplies<Z1>> : std::true_type {};
+
+// The defining trait of ℤ over ℕ: every element has an additive inverse
+// (unary minus is total on SignedExtensionalCardinal, canonical zero is
+// preserved under negation).
+template <>
+inline constexpr bool is_invertible_v<Z1, std::plus<Z1>> = true;
+
+template <>
+struct inverse_trait<Z1, std::plus<Z1>> {
+  static constexpr bool exists = true;
+  using value_type = Z1;
+  static constexpr value_type compute(const Z1& value) noexcept {
+    return -value;
+  }
+};
+
+template <std::size_t N>
+inline constexpr bool is_reflexive_v<
+    dedekind::sets::SignedExtensionalCardinal<N>, std::less_equal<>> = true;
+
+template <std::size_t N>
+inline constexpr bool is_transitive_v<
+    dedekind::sets::SignedExtensionalCardinal<N>, std::less_equal<>> = true;
+
+template <std::size_t N>
+inline constexpr bool is_antisymmetric_v<
+    dedekind::sets::SignedExtensionalCardinal<N>, std::less_equal<>> = true;
+
+static_assert(IsRing<Z1, std::plus<Z1>, std::multiplies<Z1>>,
+              "SignedExtensionalCardinal<1> must certify as a total ring.");
+
+static_assert(IsAbelianGroup<Z1, std::plus<Z1>>,
+              "SignedExtensionalCardinal<1> must certify as an abelian group "
+              "under addition (the defining ℤ-versus-ℕ distinction).");
 
 }  // namespace dedekind::category

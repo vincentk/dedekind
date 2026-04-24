@@ -56,6 +56,10 @@ SOURCES = [
         _PYTHON_DIR / "showcase_08_halfspace_2d_product.cpp",
         _PYTHON_DIR / "showcase_08_halfspace_2d_product.ll",
     ),
+    (
+        _PYTHON_DIR / "showcase_09_lp_vertex_typed_constant.cpp",
+        _PYTHON_DIR / "showcase_09_lp_vertex_typed_constant.ll",
+    ),
 ]
 
 # Keep single-source aliases for backward compatibility with any callers.
@@ -192,77 +196,92 @@ def semantic_sanity(ir_text: str, source: Path) -> None:
                 "Expected runtime guard to retain an indirect call instruction in IR."
             )
     elif "showcase_01_diagonal_contradiction" in name:
-        block = extract_function_block(ir_text, "impress_empty_diagonal_cut")
+        block = extract_function_block(ir_text, "witness_empty_diagonal_cut")
         if block is None:
-            raise AssertionError("IR missing impress_empty_diagonal_cut symbol.")
+            raise AssertionError("IR missing witness_empty_diagonal_cut symbol.")
         if "ret i1 false" not in block:
             raise AssertionError(
                 "Expected diagonal contradiction to collapse to `ret i1 false` in IR."
             )
     elif "showcase_02_lattice_singleton" in name:
-        block = extract_function_block(ir_text, "impress_lattice_square_singleton")
+        block = extract_function_block(ir_text, "witness_lattice_square_singleton")
         if block is None:
             raise AssertionError(
-                "IR missing impress_lattice_square_singleton symbol."
+                "IR missing witness_lattice_square_singleton symbol."
             )
         if "ret i1 true" not in block:
             raise AssertionError(
                 "Expected lattice singleton witness to collapse to `ret i1 true` in IR."
             )
     elif "showcase_03_halfspace_contradiction" in name:
-        block = extract_function_block(ir_text, "impress_empty_halfspace_meet")
+        block = extract_function_block(ir_text, "witness_empty_halfspace_meet")
         if block is None:
-            raise AssertionError("IR missing impress_empty_halfspace_meet symbol.")
+            raise AssertionError("IR missing witness_empty_halfspace_meet symbol.")
         if "ret i1 false" not in block:
             raise AssertionError(
                 "Expected halfspace contradiction (x > 5) ∧ (x < 3) on ℕ to "
                 "collapse to `ret i1 false` in IR."
             )
     elif "showcase_04_halfspace_singleton" in name:
-        block = extract_function_block(ir_text, "impress_halfspace_singleton")
+        block = extract_function_block(ir_text, "witness_halfspace_singleton")
         if block is None:
-            raise AssertionError("IR missing impress_halfspace_singleton symbol.")
+            raise AssertionError("IR missing witness_halfspace_singleton symbol.")
         if "ret i1 true" not in block:
             raise AssertionError(
                 "Expected halfspace cardinality-1 meet (3 < n < 5) on ℕ to "
                 "collapse to `ret i1 true` at the unique inhabitant."
             )
     elif "showcase_05_halfspace_real_ambient" in name:
-        block = extract_function_block(ir_text, "impress_real_halfspace_empty")
+        block = extract_function_block(ir_text, "witness_real_halfspace_empty")
         if block is None:
-            raise AssertionError("IR missing impress_real_halfspace_empty symbol.")
+            raise AssertionError("IR missing witness_real_halfspace_empty symbol.")
         if "ret i1 false" not in block:
             raise AssertionError(
                 "Expected halfspace contradiction on ℝ to collapse to "
                 "`ret i1 false` in IR."
             )
     elif "showcase_06_halfspace_interval_42" in name:
-        block = extract_function_block(ir_text, "impress_interval_42_member")
+        block = extract_function_block(ir_text, "witness_interval_42_member")
         if block is None:
-            raise AssertionError("IR missing impress_interval_42_member symbol.")
+            raise AssertionError("IR missing witness_interval_42_member symbol.")
         if "ret i1 true" not in block:
             raise AssertionError(
                 "Expected membership query at 0 in (-21, 21] on ℤ to collapse "
                 "to `ret i1 true` in IR."
             )
     elif "showcase_07_lattice_real_interval" in name:
-        block = extract_function_block(ir_text, "impress_lattice_real_interval")
+        block = extract_function_block(ir_text, "witness_lattice_real_interval")
         if block is None:
-            raise AssertionError("IR missing impress_lattice_real_interval symbol.")
+            raise AssertionError("IR missing witness_lattice_real_interval symbol.")
         if "ret i1 true" not in block:
             raise AssertionError(
                 "Expected ℤ lattice ∩ real interval (-21.0, 21.0] at 0 to "
                 "collapse to `ret i1 true` in IR."
             )
     elif "showcase_08_halfspace_2d_product" in name:
-        block = extract_function_block(ir_text, "impress_2d_box_member")
+        block = extract_function_block(ir_text, "witness_2d_box_member")
         if block is None:
-            raise AssertionError("IR missing impress_2d_box_member symbol.")
+            raise AssertionError("IR missing witness_2d_box_member symbol.")
         if "ret i1 true" not in block:
             raise AssertionError(
                 "Expected 2D box membership at (0, 5) to collapse to "
                 "`ret i1 true` in IR."
             )
+    elif "showcase_09_lp_vertex_typed_constant" in name:
+        # LP `maximize(3x + 2y, {x+y≤4, 2x+y≤6, x,y≥0})` reduces to the
+        # vertex (2, 2) at compile time. The two witness_ symbols should
+        # fold to `ret i64 2` — the numerator of each coordinate as a
+        # literal in the emitted IR, with no LP solver / no active-set
+        # iteration surviving the optimizer.
+        for symbol in ("witness_lp_optimum_x", "witness_lp_optimum_y"):
+            block = extract_function_block(ir_text, symbol)
+            if block is None:
+                raise AssertionError(f"IR missing {symbol} symbol.")
+            if "ret i64 2" not in block:
+                raise AssertionError(
+                    f"Expected {symbol} to collapse to `ret i64 2` in IR "
+                    "(the optimum is the typed constant Vec2<Rat, 2, 2>)."
+                )
     else:
         raise AssertionError(f"No semantic checks defined for {name}.")
 

@@ -184,7 +184,8 @@ add_dedekind_layer(geometry dedekind_morphologies)
 add_dedekind_layer(numbers dedekind_geometry)
 add_dedekind_layer(analysis dedekind_numbers)
 add_dedekind_layer(linear_algebra dedekind_analysis)
-add_dedekind_layer(python dedekind_linear_algebra)
+add_dedekind_layer(optimization dedekind_linear_algebra)
+add_dedekind_layer(python dedekind_optimization)
 
 # --- IR FIXTURE FOR COMPILER OPTIMIZATION WITNESS ---
 # Compile-time pruning witness for dedekind.sets: built as a static library
@@ -199,7 +200,8 @@ add_library(set-pruning-ir-fixture STATIC EXCLUDE_FROM_ALL
     src/test/cpp/modules/dedekind/python/showcase_05_halfspace_real_ambient.cpp
     src/test/cpp/modules/dedekind/python/showcase_06_halfspace_interval_42.cpp
     src/test/cpp/modules/dedekind/python/showcase_07_lattice_real_interval.cpp
-    src/test/cpp/modules/dedekind/python/showcase_08_halfspace_2d_product.cpp)
+    src/test/cpp/modules/dedekind/python/showcase_08_halfspace_2d_product.cpp
+    src/test/cpp/modules/dedekind/python/showcase_09_lp_vertex_typed_constant.cpp)
 
 set_target_properties(set-pruning-ir-fixture PROPERTIES
     CXX_STANDARD 23
@@ -283,7 +285,7 @@ target_compile_features(dedekind INTERFACE cxx_std_23)
 
 target_compile_options(dedekind INTERFACE ${DEDEKIND_WARNING_FLAGS})
 
-install(TARGETS dedekind dedekind_category dedekind_ieee dedekind_sets dedekind_order dedekind_topology dedekind_sequences dedekind_algebra dedekind_morphologies dedekind_geometry dedekind_numbers dedekind_analysis dedekind_linear_algebra dedekind_python
+install(TARGETS dedekind dedekind_category dedekind_ieee dedekind_sets dedekind_order dedekind_topology dedekind_sequences dedekind_algebra dedekind_morphologies dedekind_geometry dedekind_numbers dedekind_analysis dedekind_linear_algebra dedekind_optimization dedekind_python
     EXPORT dedekind-targets
     # Ensure CXX_MODULES are installed for all targets
     FILE_SET CXX_MODULES DESTINATION lib/modules/dedekind

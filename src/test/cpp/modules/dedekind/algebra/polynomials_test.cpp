@@ -135,6 +135,15 @@ TEST_CASE("Algebra: Polynomial Morphisms", "[algebra][polynomial]") {
     });
   }
 
+  SECTION("Showcase~10: polynomial derivative as a compile-time identity") {
+    // p(x) = 3x^3 + 2x^2 + x + 1 (coefficients constant-first);
+    // p'(x) = 9x^2 + 4x + 1. Exact, at translation time.
+    using P = Polynomial<ℤ>;
+    static_assert(P({1, 1, 2, 3}).derive() == P({1, 4, 9}));
+    static_assert(P({0, 1}).derive() == P::one());
+    static_assert(P::one().derive().is_zero());
+  }
+
   SECTION("Coefficient species can evaluate into richer codomains") {
     // Boolean coefficients: p(x) = 1 + x^2, evaluated in Complex<double>.
     const Polynomial<bool> p_bool({true, false, true});

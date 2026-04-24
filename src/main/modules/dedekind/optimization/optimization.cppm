@@ -1,0 +1,31 @@
+/**
+ * @file optimization.cppm
+ * @module dedekind.optimization
+ * @brief Level 13: Mathematical-programming problem classes as type-level
+ *        reductions — the optimum becomes a typed constant at compile time.
+ *
+ * @copyright 2026 The Dedekind Authors
+ * Licensed under the Apache License, Version 2.0.
+ *
+ * @section Description
+ * This module hosts compile-time problem classes from mathematical
+ * programming: linear programming (`:lp`), later quadratic programming
+ * (`:qp`) and beyond. The umbrella claim: for problem instances whose
+ * structure can be named at the type level — objective, constraints,
+ * active sets — the optimum is reducible to a typed constant (`Singleton`
+ * of the witnessing vertex / point) by the compiler, without runtime
+ * iteration.
+ *
+ * This realises the paper's thesis in a sharpened form: the feasible
+ * polytope is a set-as-predicate, its finite vertex set is enumerated
+ * structurally, and the objective's ordering collapses the candidate set
+ * to a singleton optimum. "Sets are rules, not buckets" specialised to
+ * convex programming.
+ *
+ * @note "Modellbildung ist die halbe Miete."
+ *       (Modelling is half the battle.)
+ *       — Operations-research folk wisdom.
+ */
+export module dedekind.optimization;
+
+export import :lp;

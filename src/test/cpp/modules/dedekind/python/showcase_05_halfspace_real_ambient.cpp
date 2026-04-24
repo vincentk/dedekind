@@ -60,7 +60,7 @@ static_assert(IsCompileTimeEnumerable<decltype(empty_meet)>);
  *
  * Expected IR: `ret i1 false`
  */
-extern "C" __attribute__((noinline)) bool impress_real_halfspace_empty() {
+extern "C" __attribute__((noinline)) bool witness_real_halfspace_empty() {
   using Logic = typename decltype(empty_meet)::logic_species;
   return empty_meet(Real<double>{42.0}) == Logic::True;
 }
