@@ -111,5 +111,6 @@ TEST_CASE(
   // rationals, so the ordering is a compile-time fact.
   static_assert(after_two.P < after_one.P);
 
-  SUCCEED("Showcase 13: two-step covariance contraction as a compile-time fact.");
+  SUCCEED(
+      "Showcase 13: two-step covariance contraction as a compile-time fact.");
 }
