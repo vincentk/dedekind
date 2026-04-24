@@ -2657,11 +2657,31 @@ A field is a ring where every nonzero element has a multiplicative inverse. The 
 \]
 where \texttt{IsDivisionRing} requires \texttt{operator/}, a \texttt{.inverse()} method, and the \texttt{std::divides} functor. A carrier that satisfies the algebra-layer concept is a proper field in both senses simultaneously: the laws hold via traits, and the operations are spelled out in C++.
 
-\subsection{The prototypical carrier: \texorpdfstring{$\mathbb{F}_2$}{F2}}
+\subsection{\texorpdfstring{$\mathbb{F}_2$}{F2} without a wrapper: \texttt{bool} under $(\oplus, \wedge)$}
 
-\texttt{algebra:field} exports \texttt{𝔽2}, the Galois field of order two $\mathbb{F}_2 = \{0, 1\}$, as the prototypical concrete witness. The carrier is a single \texttt{bool} ($\mathtt{false} \mapsto 0$, $\mathtt{true} \mapsto 1$), with $+$ defined as XOR ($\hat{\phantom{}}$) and $\cdot$ as AND (\&\&). This literalises the textbook identification $\mathbb{F}_2 = (\text{bool}, \oplus, \wedge)$ at the type level; no modular reduction is needed because \texttt{bool} is already canonical-to-$\{0, 1\}$. Characteristic two gives $-x = x$; the multiplicative group $\mathbb{F}_2^{\times} = \{1\}$ is trivial, so $1^{-1} = 1$ and $a / 1 = a$. The struct registers the full species-trait chain---\texttt{identity\_trait} for $0$ and $1$, \texttt{is\_associative\_v} and \texttt{is\_commutative\_v} for both operations, \texttt{is\_distributive\_v} linking them, \texttt{is\_periodic} for totality, and \texttt{is\_invertible\_v} on both additive and multiplicative sides. The carrier passes \texttt{IsCommutativeRing}, \texttt{category::IsField}, and \texttt{algebra::IsField}, witnessed at compile time by \texttt{static\_assert}s alongside the struct and exhaustively at run time by \texttt{f2\_test.cpp}, which enumerates every pair $(a, b) \in \mathbb{F}_2^2$ against each field axiom (group laws for $+$ and $\cdot$, distributivity, division surface, inverse-of-zero throws).
+Rather than wrap \texttt{bool} in a dedicated carrier struct, the library witnesses $\mathbb{F}_2$ directly on the primitive type under its natural bitwise operators: the additive group is $(\texttt{bool}, \oplus)$ via \texttt{std::bit\_xor<bool>} and the multiplicative monoid is $(\texttt{bool}, \wedge)$ via \texttt{std::bit\_and<bool>}. The \texttt{is\_associative\_v} / \texttt{is\_commutative\_v} / \texttt{is\_invertible\_v} / \texttt{identity\_trait} / \texttt{is\_distributive\_v} specialisations live in \texttt{dedekind.category:species} alongside the other \texttt{bool}-operator facts; they compose to witness \texttt{category::IsField<bool, std::bit\_xor<bool>, std::bit\_and<bool>>} --- the full axiomatic field claim on \texttt{bool}.
 
-The carrier is deliberately small: $|\mathbb{F}_2| = 2$ lets the whole Cayley table fit in a handful of \texttt{CHECK}s, so the axioms can be verified by exhaustion rather than by probe. Paper-facing carriers---\texttt{Rational<Z>}, \texttt{Complex<R>}, the Gaussian rationals---adopt the same registration pattern once their ring-trait chains and multiplicative-invertibility claims are registered (tracked under epic \#374, children \#371 axiom-hook auto-lifter and the new \#382 \texttt{FieldRegistration} helper).
+The claim is literally that \texttt{bool} \emph{is} the Galois field $\mathbb{F}_2$ under the right operator choice; no wrapper struct is needed. The exhaustive Cayley-table verification in \texttt{f2\_test.cpp} enumerates every pair $(a, b) \in \mathbb{F}_2^2$ against each field axiom via \texttt{std::bit\_xor} / \texttt{std::bit\_and} functor calls.
+
+The operator-level \texttt{algebra::IsField} --- which additionally requires \texttt{operator/}, \texttt{.inverse()}, and \texttt{std::divides} --- is not asserted on \texttt{bool}: the division surface is absent at the primitive-type level. Downstream carriers that need the division surface (e.g.\ a division-based templated algorithm) can wrap \texttt{bool} in a struct with \texttt{operator/} and \texttt{.inverse()} members, but the abstract-algebraic claim itself does not require that.
+
+\section{\texttt{:galois}}
+\label{sec:algebra-galois}
+
+A Galois field is a field of finite cardinality. Every such field has order $q = p^n$ for some prime $p$ and positive integer $n$; the prime $p$ is the field's characteristic and the field is an $n$-dimensional vector space over its prime subfield $\mathbb{F}_p$. The partition hosts the concept, opt-in traits, and concrete Galois-field carriers:
+
+\begin{itemize}
+  \item \texttt{IsGaloisField<T, Add, Mult>} = \texttt{category::IsField<T, Add, Mult>} $\wedge$ \texttt{is\_galois\_field\_v<T, Add, Mult>}. Uses the axiomatic category-layer field so bool-as-$\mathbb{F}_2$ qualifies without needing a division surface.
+  \item \texttt{is\_galois\_field\_v<T, Add, Mult>} --- opt-in trait, default \texttt{false}; the carrier author declares finiteness (C++ concepts cannot infer it from a type signature alone).
+  \item \texttt{galois\_order\_v<T, Add, Mult>} --- the order $q = |T|$ (a prime power); zero means ``not a Galois field''. Useful downstream for algorithms keyed on the order (e.g.\ Fermat's $a^{-1} = a^{q-2}$).
+\end{itemize}
+
+Two carriers are registered:
+
+\begin{itemize}
+  \item \texttt{bool} under $(\oplus, \wedge)$ as $\mathbb{F}_2$ (order 2).
+  \item \texttt{𝔽64} as $\mathrm{GF}(2^6) = \mathbb{F}_2[x]/(x^6 + x + 1)$ (order 64). The struct wrapper exists for value-range canonicalisation to $\{0, \ldots, 63\}$ (C++ concepts cannot restrict a type to a subset of \texttt{uint8\_t} values); addition is XOR, multiplication is polynomial product modulo the irreducible $f(x) = x^6 + x + 1$ (which is primitive over $\mathbb{F}_2$), and the multiplicative inverse is computed by Fermat's little theorem $a^{-1} = a^{62}$ via square-and-multiply. The tests in \texttt{galois\_test.cpp} verify the field axioms, exhaust multiplicative-inverse round-trips over $\mathbb{F}_{64}^{\times}$ (the 63 non-zero elements), confirm Fermat ($a^{63} = 1$ for every non-zero $a$), and witness that $\alpha = x$ is primitive (its 63 powers enumerate $\mathbb{F}_{64}^{\times}$).
+\end{itemize}
 
 \section{\texttt{:division}}
 \label{sec:algebra-division}
@@ -2673,7 +2693,7 @@ Provides the division morphism $a / b = a \cdot b^{-1}$ and the \texttt{IsDivisi
 
 Semimodules and modules formalise the action of a ring on an additive abelian group, generalising vector spaces to arbitrary coefficient rings.
 
-The strict concepts \texttt{IsSemimodule<M, S>} and \texttt{IsModule<M, S>} compose from \texttt{IsCommutativeMonoid} / \texttt{IsAdditiveGroup} (on the carrier \texttt{M}), \texttt{IsSemiring} / \texttt{IsRing} (on the scalar \texttt{S}), and \texttt{IsLinearAction<S, M>}. \texttt{IsVectorSpace<V, F>} adds \texttt{IsField<F>} on the scalar side.
+The strict concepts \texttt{IsSemimodule<M, S>} and \texttt{IsModule<M, S>} compose from \texttt{IsCommutativeMonoid} / \texttt{IsAdditiveGroup} (on the carrier \texttt{M}), \texttt{IsSemiring} / \texttt{IsRing} (on the scalar \texttt{S}), and \texttt{IsLinearAction<S, M>}. The strictly higher vector-space layer --- \texttt{IsVectorSpace<V, F>} (a module whose scalar ring is a field) and \texttt{IsFieldElement<F>} --- lives in \texttt{algebra:vectorspace}; \texttt{:modules} keeps the module-level concepts (scalar $=$ ring) plus the reified 1D carrier \texttt{OneDimensionalVector}.
 
 \subsection{Operational scalar / module witnesses}
 
@@ -2686,18 +2706,36 @@ For machine-backed carriers that are deliberately blocked from the strict tower,
   \item \texttt{SatisfiesVectorSpaceAxioms<V, F, ...>} --- the full axiom-signature battery (distributivity, action composition, unit axiom when a multiplicative identity witness exists).
 \end{itemize}
 
-\subsection{Bona fide scalar / field element}
+\subsection{Bona fide scalar}
 \label{subsec:algebra-modules-bona-fide}
 
-A slogan of the project is that ``a scalar is a 1D semi-module over itself; an element of a field is a 1D vector space over itself''. Encoded as concepts:
+A slogan of the project is that ``a scalar is a 1D semi-module over itself''; the field-level counterpart (``a field element is a 1D vector space over itself'') lives in \texttt{:vectorspace}. Encoded as concepts:
 
 \begin{itemize}
   \item \texttt{IsScalar<S>} $= $ \texttt{IsSemimodule<S, S>} (strict).
-  \item \texttt{IsFieldElement<F>} $= $ \texttt{IsVectorSpace<F, F>} (strict).
-  \item \texttt{IsScalarLike<S>} / \texttt{IsFieldElementLike<F>} --- operational counterparts using \texttt{IsSemimoduleLike} / \texttt{IsVectorSpaceLike}. These fire on machine-backed carriers such as \texttt{int}, \texttt{unsigned int}, \texttt{Rational<long>}.
+  \item \texttt{IsScalarLike<S>} --- operational counterpart using \texttt{IsSemimoduleLike}. Fires on machine-backed carriers such as \texttt{int}, \texttt{unsigned int}, \texttt{Rational<long>}.
 \end{itemize}
 
-The reified 1D carrier \texttt{OneDimensionalVector<S, Tag>} demonstrates the slogan concretely: a coordinate in the scalar species \texttt{S} with pointwise addition and scalar action, witnessed via \texttt{IsVectorSpaceLike<RealLine, RealLineScalar>} and \texttt{SatisfiesVectorSpaceAxioms} on the same carrier.
+The reified 1D carrier \texttt{OneDimensionalVector<S, Tag>} demonstrates the slogan concretely: a coordinate in the scalar species \texttt{S} with pointwise addition and scalar action.
+
+\section{\texttt{:vectorspace}}
+\label{sec:algebra-vectorspace}
+
+A vector space is a module whose scalar ring is additionally a field. The partition hosts the strictly higher concepts and vector-space witnesses on concrete carriers:
+
+\begin{itemize}
+  \item \texttt{IsVectorSpace<V, F>} $= $ \texttt{IsModule<V, F>} $\wedge$ \texttt{category::IsField<F>}. The axiomatic witness uses the category-layer \texttt{IsField} so that primitive scalar carriers like \texttt{bool} under $(\oplus, \wedge)$ qualify without needing a division-operator surface.
+  \item \texttt{IsFieldElement<F>} $= $ \texttt{IsVectorSpace<F, F>} --- ``a field element is a 1D vector space over itself''.
+  \item \texttt{IsVectorSpaceLike<V, F>}, \texttt{IsFieldElementLike<F>}, \texttt{SatisfiesVectorSpaceAxioms<V, F, \ldots>} --- operational counterparts using \texttt{IsFieldLikeScalar} (from \texttt{:modules}). These fire on machine-backed carriers like \texttt{RealLine} where the strict categorical field tower is architecturally withheld.
+\end{itemize}
+
+Three vector-space witnesses are registered:
+
+\begin{itemize}
+  \item \texttt{RealLine} as \texttt{IsVectorSpaceLike<RealLine, RealLineScalar>} and \texttt{SatisfiesVectorSpaceAxioms<RealLine, RealLineScalar>} (operational).
+  \item \texttt{𝔽64} (from \texttt{:galois}) as \texttt{IsVectorSpace<𝔽64, bool>} --- a 6-dimensional vector space over $\mathbb{F}_2$. The scalar action \texttt{operator*(bool, 𝔽64)} uses the natural embedding $\mathbb{F}_2 \hookrightarrow \mathbb{F}_{64}$.
+  \item \texttt{uint64\_t} as \texttt{IsVectorSpace<uint64\_t, bool, \ldots>} --- $\mathbb{F}_2^{64}$, the 64-dimensional vector space over $\mathbb{F}_2$. Not a field: \texttt{uint64\_t} has zero divisors under bitwise AND. No wrapper struct: \texttt{uint64\_t} already \emph{is} the carrier; XOR is the additive group, and the scalar action \texttt{Bit2U64Action} reads as ``multiply every bit of \texttt{v} by the scalar bit'' ($\texttt{false}\cdot v = 0$, $\texttt{true}\cdot v = v$). The vector-space axioms are verified value-level in \texttt{vectorspace\_test.cpp} (scalar additivity, vector additivity, action composition, unit) with the two-valued scalar side exhausted.
+\end{itemize}
 
 \section{\texttt{:polynomial}}
 \label{sec:algebra-polynomial}

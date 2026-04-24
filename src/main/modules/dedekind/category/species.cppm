@@ -609,6 +609,25 @@ struct identity_trait<bool, std::bit_and<bool>> {
   static constexpr bool value = true;
 };
 
+/**
+ * @brief On the multiplicative group @f$\mathbb{F}_2^\times =
+ * \{\mathtt{true}\}@f$, the only non-zero element is self-inverse: @c true @c
+ * & @c true @c = @c true (the registered operator is @c std::bit_and<bool>,
+ * the bitwise AND).  Zero (i.e.\ @c false) is excluded by convention on
+ * @c is_invertible_v, so the trait can be declared at the type level without
+ * quantifying over values. Together with the XOR additive group, this witnesses
+ * @c dedekind::category::IsField<bool, std::bit_xor<bool>, std::bit_and<bool>>:
+ * @c bool @em is the Galois field @f$\mathbb{F}_2@f$ under its natural bitwise
+ * operators.
+ */
+template <>
+inline constexpr bool is_invertible_v<bool, std::bit_and<bool>> = true;
+
+/** @brief AND distributes over XOR on bool: the field distributivity axiom. */
+template <>
+inline constexpr bool
+    is_distributive_v<bool, std::bit_and<bool>, std::bit_xor<bool>> = true;
+
 /** @section Transparent_Bridges */
 
 // 1. Bitwise OR (|)

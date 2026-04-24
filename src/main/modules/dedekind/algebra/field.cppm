@@ -38,9 +38,7 @@
  */
 module;
 
-#include <functional>   // for std::plus, std::multiplies
-#include <stdexcept>    // for std::domain_error (𝔽2 division-by-zero)
-#include <type_traits>  // for std::true_type (is_periodic specialisations)
+#include <functional>  // for std::plus, std::multiplies, std::bit_xor, std::bit_and
 
 export module dedekind.algebra:field;
 
@@ -87,175 +85,44 @@ export template <typename T, typename Add = std::plus<T>,
 concept IsField =
     dedekind::category::IsField<T, Add, Mult> && IsDivisionRing<T, Add, Mult>;
 
-/**
- * @struct 𝔽2
- * @brief The Galois field of order 2, @f$\mathbb{F}_2 = \{0, 1\}@f$.
+/** @section Formal_Verification: bool is the Galois field 𝔽2
  *
- * @details
- * The smallest field. Addition is XOR (characteristic two: @f$x + x = 0@f$,
- * so subtraction coincides with addition and @f$-x = x@f$); multiplication
- * is AND. The multiplicative group @f$\mathbb{F}_2^\times = \{1\}@f$ is
- * the trivial group, so @f$1^{-1} = 1@f$ and division @f$a / 1 = a@f$ is
- * total on non-zero divisors.
+ * Rather than wrap @c bool in a dedicated carrier struct, the library
+ * witnesses @f$\mathbb{F}_2@f$ directly on the primitive type under
+ * its natural bitwise operators:
  *
- * 𝔽2 is the prototypical concrete carrier for `algebra::IsField` in the
- * library: it is small enough to enumerate every axiom by hand yet
- * exercises the full concept chain --- from `IsMagma` / `IsMonoid` /
- * `IsGroup` on each operation through `IsCommutativeRing` up to the
- * axiomatic `category::IsField` and the operator-level
- * `algebra::IsField` (which additionally requires `operator/` and
- * `.inverse()`).
+ *   - additive group @f$(\mathbb{F}_2, +) = (\text{bool}, \oplus)@f$,
+ *     via @c std::bit_xor<bool>;
+ *   - multiplicative monoid @f$(\mathbb{F}_2, \cdot) = (\text{bool},
+ * \wedge)@f$, via @c std::bit_and<bool>.
+ *
+ * The @c is_associative_v / @c is_commutative_v / @c is_invertible_v
+ * / @c identity_trait / @c is_distributive_v specialisations live in
+ * @c dedekind.category:species alongside the other @c bool operator
+ * facts; they compose here to witness
+ * @c dedekind::category::IsField<bool, std::bit_xor<bool>,
+ * std::bit_and<bool>>.  This is the full axiomatic field claim on
+ * @c bool; concepts do not quantify over values, so zero is excluded
+ * from the multiplicative-invertibility clause by convention (the
+ * only non-zero element is @c true, which is self-inverse under AND).
+ *
+ * The operator-level @c algebra::IsField (which additionally requires
+ * @c operator/, @c .inverse(), and @c std::divides) is \emph{not}
+ * asserted on @c bool: the division surface is absent at the
+ * primitive-type level.  Downstream carriers that need the division
+ * surface (e.g.\ a division-based templated algorithm) can wrap
+ * @c bool in a struct with @c operator/ and @c .inverse() members,
+ * but the abstract-algebraic claim itself does not require that.
  */
-export struct 𝔽2 {
-  // 𝔽2 is the Boolean ring: {false, true} with XOR as + and AND as ·.
-  // The underlying storage is a single bool, so the carrier is
-  // canonical-to-{0, 1} by construction --- no modular reduction
-  // needed.  This literalises the textbook identification
-  // 𝔽2 = (bool, ⊕, ∧) at the type level and matches the library's
-  // existing treatment of `bool` under `std::bit_xor`
-  // (`is_invertible_v<bool, std::bit_xor<bool>> = true`).
-  bool value;
-
-  constexpr 𝔽2() noexcept : value(false) {}
-  explicit constexpr 𝔽2(bool v) noexcept : value(v) {}
-
-  // Characteristic two: addition and subtraction coincide (a XOR b).
-  constexpr friend 𝔽2 operator+(𝔽2 a, 𝔽2 b) noexcept {
-    return 𝔽2(a.value ^ b.value);
-  }
-  constexpr friend 𝔽2 operator-(𝔽2 a, 𝔽2 b) noexcept {
-    return 𝔽2(a.value ^ b.value);
-  }
-  // Unary negation: -x = x, since 2x = 0 in 𝔽2.
-  constexpr friend 𝔽2 operator-(𝔽2 a) noexcept { return a; }
-
-  // Multiplication: AND. {false, true} is closed under conjunction.
-  constexpr friend 𝔽2 operator*(𝔽2 a, 𝔽2 b) noexcept {
-    return 𝔽2(a.value && b.value);
-  }
-
-  // Division: 𝔽2^times = {1}, so `a / 1 == a`. Division by zero is
-  // undefined in any field; we raise at runtime to mirror the rest
-  // of the library's division-by-zero handling.
-  constexpr friend 𝔽2 operator/(𝔽2 a, 𝔽2 b) {
-    if (!b.value) throw std::domain_error("𝔽2: division by zero.");
-    return a;
-  }
-
-  // Multiplicative inverse: the only non-zero element is 1, and 1^-1 = 1.
-  constexpr 𝔽2 inverse() const {
-    if (!value) throw std::domain_error("𝔽2: inverse of zero.");
-    return 𝔽2(true);
-  }
-
-  constexpr friend bool operator==(𝔽2 a, 𝔽2 b) noexcept {
-    return a.value == b.value;
-  }
-};
-
-}  // namespace dedekind::algebra
-
-namespace dedekind::category {
-
-// --- Atlas registration ---
-// FIXME(#382): every trait spec below is written per-(carrier, op).  A
-// library helper `FieldRegistration<T, Zero, One>` would collapse this
-// whole block into a single base-class inheritance on
-// `SpeciesTraits<𝔽2>`.  The existing `T::template is_foo_v<Op>`
-// discovery idiom (for is_associative / is_commutative / is_idempotent)
-// does not help here: it keys on the carrier type, not on
-// `SpeciesTraits<T>`, so adopting it would push trait metadata onto
-// 𝔽2's struct body.
-
-template <>
-struct SpeciesTraits<dedekind::algebra::𝔽2> {
-  using Domain = dedekind::algebra::𝔽2;
-  using machine_type = bool;
-};
-
-// --- Identities ---
-template <>
-struct identity_trait<dedekind::algebra::𝔽2, std::plus<dedekind::algebra::𝔽2>> {
-  using value_type = dedekind::algebra::𝔽2;
-  static constexpr value_type value{};  // 𝔽2(false)
-};
-
-template <>
-struct identity_trait<dedekind::algebra::𝔽2,
-                      std::multiplies<dedekind::algebra::𝔽2>> {
-  using value_type = dedekind::algebra::𝔽2;
-  static constexpr value_type value{true};
-};
-
-// --- Algebraic facts ---
-template <>
-inline constexpr bool
-    is_associative_v<dedekind::algebra::𝔽2, std::plus<dedekind::algebra::𝔽2>> =
-        true;
-template <>
-inline constexpr bool is_associative_v<dedekind::algebra::𝔽2,
-                                       std::multiplies<dedekind::algebra::𝔽2>> =
-    true;
-
-template <>
-inline constexpr bool
-    is_commutative_v<dedekind::algebra::𝔽2, std::plus<dedekind::algebra::𝔽2>> =
-        true;
-template <>
-inline constexpr bool is_commutative_v<dedekind::algebra::𝔽2,
-                                       std::multiplies<dedekind::algebra::𝔽2>> =
-    true;
-
-template <>
-inline constexpr bool is_distributive_v<dedekind::algebra::𝔽2,
-                                        std::multiplies<dedekind::algebra::𝔽2>,
-                                        std::plus<dedekind::algebra::𝔽2>> =
-    true;
-
-// Totality via periodicity: 𝔽2 wraps modulo 2 under both + and *
-// (the multiplicative monoid is periodic because it is idempotent on
-// {0, 1}, but the library's `IsTotal` consumes periodicity directly).
-template <>
-struct is_periodic<dedekind::algebra::𝔽2, std::plus<dedekind::algebra::𝔽2>>
-    : std::true_type {};
-template <>
-struct is_periodic<dedekind::algebra::𝔽2,
-                   std::multiplies<dedekind::algebra::𝔽2>> : std::true_type {};
-
-// --- Inverses ---
-// Additive: every element is self-inverse (x + x = 0).
-template <>
-inline constexpr bool
-    is_invertible_v<dedekind::algebra::𝔽2, std::plus<dedekind::algebra::𝔽2>> =
-        true;
-// Multiplicative: every non-zero element is self-inverse (1 * 1 = 1).
-// Zero is excluded by convention on `is_invertible_v`; the trait
-// declares the claim at the type level, not over values.
-template <>
-inline constexpr bool is_invertible_v<dedekind::algebra::𝔽2,
-                                      std::multiplies<dedekind::algebra::𝔽2>> =
-    true;
-
-}  // namespace dedekind::category
-
-namespace dedekind::algebra {
-
-/** @section Formal_Verification: 𝔽2 is a field */
-
-// Axiomatic (species-trait) witness from the category layer.
-static_assert(dedekind::category::IsCommutativeRing<𝔽2, std::plus<𝔽2>,
-                                                    std::multiplies<𝔽2>>,
-              "𝔽2 must be a commutative ring (Z/2Z).");
+static_assert(dedekind::category::IsCommutativeRing<bool, std::bit_xor<bool>,
+                                                    std::bit_and<bool>>,
+              "bool must be a commutative ring under (XOR, AND): "
+              "the Boolean ring.");
 
 static_assert(
-    dedekind::category::IsField<𝔽2, std::plus<𝔽2>, std::multiplies<𝔽2>>,
-    "𝔽2 must satisfy the axiomatic category::IsField "
-    "(multiplicative structure is an abelian group).");
-
-// Operator-level witness with the division surface.
-static_assert(IsField<𝔽2, std::plus<𝔽2>, std::multiplies<𝔽2>>,
-              "𝔽2 must satisfy algebra::IsField (division ring + "
-              "axiomatic field).");
+    dedekind::category::IsField<bool, std::bit_xor<bool>, std::bit_and<bool>>,
+    "bool under (XOR, AND) must satisfy the axiomatic "
+    "category::IsField: it is literally the Galois field 𝔽2.");
 
 /**
  * @concept IsAlgebraicallyClosed
