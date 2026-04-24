@@ -185,6 +185,14 @@ The thesis this paper argues, in a single sentence:
 \emph{named algebraic structure at the type level, discharged by the
 compiler, narrows the gap between abstract mathematics and machine
 code without a separate proof assistant.}
+
+\vspace{0.75em}
+\noindent\textbf{Keywords:} C++23; concepts; non-type template
+parameters; compile-time verification; Axiomatic Systems Programming;
+type-directed collapse; linear programming; forward-mode automatic
+differentiation; edge computing; extreme edge computing (XEC);
+green edge computing; embedded machine learning; sustainable
+computing.
 \end{abstract}
 
 \tableofcontents
@@ -271,6 +279,31 @@ Java/C\#, strictly-typed Python, the relevant parts of Rust). The
 contribution of this paper is the first rigorous articulation of that
 discipline, together with a worked library that discharges its claims
 mechanically.
+
+\paragraph{Intended target: CPU-first and embedded machine learning.}
+One concrete application domain motivates the discipline and runs
+through the showcases of Section~\ref{sec:pruning}: computation that
+leaves the data centre and moves to the edge. In CPU-first and
+embedded machine-learning deployments---vehicles, robotics,
+scientific instruments, industrial controllers, the wider edge
+computing~\cite{shi2016edge} landscape---the operating point is
+precisely the one our Compiler Wall
+(Section~\ref{sec:compiler-wall}) is tuned for: small fixed-topology
+problems, hard constraints on runtime footprint, a strong preference
+for deterministic arithmetic, and a toolchain no heavier than the
+system's \texttt{clang++} already is. Model Predictive Control,
+Kalman-style sensor fusion, quaternion-based pose math, small-model
+inference with gradients---these are fixed-shape computations whose
+coefficients and dimensions are known at compile time; existing
+embedded ML runtimes (TFLite Micro~\cite{david2021tflm}, ONNX
+Runtime, microTVM) schedule them on top of a heavyweight interpreter
+or a code-generator with its own dependency closure.
+\texttt{dedekind} sits one layer down: it is the \emph{compile-time
+substrate} against which such primitives can be written directly in
+standard C++23, with the structural discipline this paper
+articulates, and with no runtime at all. The Kalman filter of
+Section~\ref{sec:kalman-showcase} is the paper's worked embedded
+primitive; MPC and micro-inference are the natural successors.
 
 \paragraph{The compiler as a poor man's theorem prover.}
 A pedagogical framing that runs through this paper: we are using
@@ -1339,6 +1372,112 @@ faithful at the level its carrier allows, and each a
 \lstinline{static_assert}-witnessed compile-time reduction in the
 sense of the present paper.
 
+\subsection{Embedded Sensor Fusion: A Kalman Filter as a Compile-Time Primitive}
+\label{sec:kalman-showcase}
+
+The previous subsections demonstrate the discipline on the
+mathematician's favourite objects: LP vertices, derivatives,
+homomorphisms, FTC. This subsection runs the same discipline on the
+embedded engineer's favourite object. A scalar Kalman filter is the
+canonical building block of sensor fusion---used in spacecraft
+navigation from Apollo onward, in every modern IMU-based pose
+estimator, in essentially every robotics control stack. The runtime
+cost of a single scalar update step is modest; the cumulative cost,
+at $\text{kHz}$-scale loops on embedded targets with battery budgets,
+is emphatically not. If the filter's coefficients are known at
+compile time---and in a deployed embedded system they very nearly
+always are, because they encode sensor characteristics---then every
+arithmetic operation the filter performs at run time is a candidate
+for compile-time specialisation.
+
+\paragraph{The filter, in five lines.} Given process noise $Q$ and
+measurement noise $R$ (both known at compile time), state estimate
+$\hat{x}$ and covariance $P$ (carried at run time as \lstinline{Rational<long>}),
+and a measurement $z$, one stationary-model update is:
+\begin{align*}
+  P        &\leftarrow P + Q                          & \text{(predict)}\\
+  y        &= z - \hat{x}                             & \text{(innovation)}\\
+  S        &= P + R                                   & \text{(innovation covariance)}\\
+  K        &= P / S                                   & \text{(Kalman gain)}\\
+  \hat{x}  &\leftarrow \hat{x} + K \cdot y            & \text{(state update)}\\
+  P        &\leftarrow (1 - K) \cdot P                & \text{(covariance update)}\\
+\end{align*}
+Five arithmetic operations: one division, three multiplications, two
+additions and two subtractions, over the underlying ring. No matrix
+inverse (state is one-dimensional), no square roots (stationary
+linear model), nothing that blocks exact-rational evaluation.
+
+\paragraph{Showcase~13 — one-step update, compile-time trajectory.}
+The filter is a template parameterised by the two noise constants;
+\lstinline{predict} and \lstinline{update} are \lstinline{constexpr}:
+
+\begin{lstlisting}[language=C++, caption={A scalar Kalman filter as a compile-time specialised primitive. Filter coefficients are NTTPs; the trajectory is verified by \lstinline{static_assert} over exact rationals. From \texttt{kalman\_showcase\_test.cpp}.}, label={lst:kalman-showcase}]
+using Rat = Rational<long>;
+
+template <typename R, R Q, R Rnoise>
+struct KalmanFilter1D {
+  R x_hat;
+  R P;
+
+  constexpr void predict()       { P = P + Q; }         // F = 1
+  constexpr void update(R z) {
+    const R innovation = z - x_hat;
+    const R S          = P + Rnoise;
+    const R K          = P / S;
+    x_hat = x_hat + K * innovation;
+    P     = (R{1L} - K) * P;
+  }
+};
+
+// Q = 1/100, R = 1/10, initial estimate 0, initial covariance 1,
+// single measurement z = 1.
+constexpr auto filtered = [] {
+  KalmanFilter1D<Rat, Rat{1L, 100L}, Rat{1L, 10L}> f{Rat{0L}, Rat{1L}};
+  f.predict();
+  f.update(Rat{1L});
+  return f;
+}();
+
+static_assert(filtered.x_hat == Rat{101L, 111L});
+static_assert(filtered.P     == Rat{101L, 1110L});
+\end{lstlisting}
+
+The arithmetic checks by hand: after \lstinline{predict},
+$P = 1 + \tfrac{1}{100} = \tfrac{101}{100}$; the innovation is
+$y = 1$; $S = \tfrac{101}{100} + \tfrac{1}{10} = \tfrac{111}{100}$;
+$K = \tfrac{101}{111}$; $\hat{x}' = \tfrac{101}{111}$;
+$P' = \tfrac{10}{111} \cdot \tfrac{101}{100} = \tfrac{101}{1110}$.
+The compiler verifies this exact sequence at translation time, and a
+companion two-step test asserts covariance contraction,
+$P_{\text{after two updates}} < P_{\text{after one update}}$, as a
+compile-time fact.
+
+\paragraph{Why this matters for embedded deployment.} The showcase's
+value is not the one-step numerical result but the \emph{shape} of
+the code it represents. In a production embedded system, $Q$ and
+$R$ are sensor-characterisation constants written into firmware;
+$\hat{x}$ and $P$ are runtime state; $z$ is a runtime sample. The
+\lstinline{constexpr} structure specialises once at build time to
+the specific filter a given sensor requires, and the run-time update
+is an allocation-free, dispatch-free, branch-free sequence of
+primitive arithmetic that any mainstream embedded toolchain will
+schedule tightly. On carriers where exact rationals are not wanted
+(\lstinline{float} on an MCU), the same template instantiates with
+the carrier-appropriate arithmetic; on carriers where they are
+(safety-critical replay, bit-exact cross-platform determinism),
+\lstinline{Rational<long>} or \lstinline{Rational<ExtensionalCardinal<>>}
+gives the reproducibility guarantee built in.
+
+What this showcase does \emph{not} demonstrate: a multi-dimensional
+state (would require the linear-algebra layer's matrix inversion
+beyond $2 \times 2$); a steady-state solve via the discrete algebraic
+Riccati equation (the square root blocks exact rationals); or
+benchmarks against an embedded ML runtime (a follow-up paper's
+territory). It demonstrates the primitive and the pattern. The rest,
+where Axiomatic Systems Programming succeeds or fails for embedded
+ML, is an engineering program we name and invite, not one this paper
+discharges on its own.
+
 \subsection{Algebraic Properties Enable Stronger Pruning}
 
 Beyond interval arithmetic, \emph{algebraic} properties of the predicates provide
@@ -1650,6 +1789,34 @@ observation that a single compile-time reduction, written once over an
 as forward-mode AD engine over $\mathbb{Q}[\varepsilon]/(\varepsilon^2)$
 with no extra code path.
 
+\paragraph{Embedded machine-learning runtimes and edge computing.}
+The embedded / edge-computing~\cite{shi2016edge} landscape has a
+mature runtime ecosystem that \texttt{dedekind} deliberately sits
+\emph{beside} rather than competes with. TensorFlow Lite
+Micro~\cite{david2021tflm} compiles models to a small-footprint
+interpreter targeted at microcontroller-class devices; ONNX Runtime
+and microTVM generate target-specific code from a model graph; the
+Eigen linear-algebra library is the de facto substrate for embedded
+numerics. These runtimes take the model as input and the target as
+fixed; they do not treat the hosting application's algebraic
+invariants as proof obligations for the C++ compiler to discharge.
+\texttt{dedekind} addresses a different surface: the \emph{inline}
+numerical primitives (Kalman filters, pose-estimation math, MPC
+steps, parametric optimisation) a robotics, automotive, or
+instrumentation engineer writes directly in their control loop. For
+these, a fixed-topology LP, a compile-specialised Kalman update
+(Section~\ref{sec:kalman-showcase}), or an exact-rational sensor-fusion
+step expressed against \texttt{IsRingLike} concepts delivers
+three things the model-runtime path does not: a binary with no
+interpreter, a dependency graph no heavier than the system's
+\texttt{clang++}, and bit-for-bit deterministic arithmetic across
+platforms when the carrier is $\mathbb{Q}$. We see this as a
+complement to the runtime ecosystem, not a replacement: model-driven
+inference continues to belong to TFLite Micro and its siblings, while
+the numerical glue around such inference---the Kalman front-end, the
+control-loop LP, the gradient for online adaptation---is where
+Axiomatic Systems Programming is strongest.
+
 \paragraph{Data-pipeline DSLs.}
 Apache Spark, Flink, and the Python \texttt{pandas}/\texttt{polars} ecosystem
 provide declarative data pipelines with runtime domain checks. None of these
@@ -1734,17 +1901,30 @@ the same discipline.
 As numerical workloads saturate available hardware, the marginal
 returns of brute-force optimisation are diminishing, and the lever
 with a different cost curve is specialisation at translation time
-rather than run time. We do not prove here that axiomatic
-discipline applied at library scale yields a meaningful fraction of
-data-centre cycles back; we claim only that the ingredients---compile-time
-verification, structural optimisation, ring-aware code generation,
-exact arithmetic carriers---are now assembled in mainstream C++23,
-and that the discipline is worth practising precisely because its
+rather than run time. That lever also has a sustainability
+dimension: cycles not spent at run time are watt-hours not drawn
+from the grid, and the machine-learning research community has begun
+to measure its compute footprint in exactly those
+terms~\cite{schwartz2020greenai}. The operating point at which the
+lever compounds most visibly is not the data centre but the edge:
+CPU-first and embedded machine-learning
+deployments~\cite{shi2016edge, david2021tflm}, where the problem
+topology is fixed, the runtime footprint is under hard constraint,
+and the toolchain of least resistance is the system's
+\texttt{clang++}. We do not prove here
+that axiomatic discipline applied at library scale yields a
+meaningful fraction of cycles back at either end of the spectrum;
+we claim only that the ingredients---compile-time verification,
+structural optimisation, ring-aware code generation, exact
+arithmetic carriers---are now assembled in mainstream C++23, and
+that the discipline is worth practising precisely because its
 payoffs accrue at scales larger than any single library. If even a
-small fraction of the arithmetic done in contemporary numerical
-workloads ran against libraries whose algebraic invariants had
-been discharged upstream, the compounded effect would be difficult
-to dismiss. The shape of that opportunity is what Axiomatic Systems
+small fraction of the arithmetic done in contemporary edge
+deployments---model-predictive control in vehicles, Kalman-style
+sensor fusion in robotics, gradient evaluations in micro-inference
+loops---ran against libraries whose algebraic invariants had been
+discharged upstream, the compounded effect would be difficult to
+dismiss. The shape of that opportunity is what Axiomatic Systems
 Programming claims. Whether the shape materialises into the numbers
 it suggests is an engineering question, and one the next decade of
 library authors will answer.
