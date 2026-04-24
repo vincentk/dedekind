@@ -1279,14 +1279,14 @@ emitted binary contains only the literal coordinates of $(2,2)$.}
 
 % Source: src/test/cpp/modules/dedekind/python/showcase_09_lp_vertex_typed_constant.cpp
 \begin{lstlisting}[language=C++, caption={Compile-time LP: the optimum IS a type. From \texttt{showcase\_09\_lp\_vertex\_typed\_constant.cpp}.}, label={lst:lp-centrepiece}]
-using Rat = Rational<long>;
-using H1 = Halfspace2D<Rat, Rat{1L}, Rat{1L}, Rat{4L}>;    //  x +  y <= 4
-using H2 = Halfspace2D<Rat, Rat{2L}, Rat{1L}, Rat{6L}>;    // 2x +  y <= 6
-using H3 = Halfspace2D<Rat, Rat{-1L}, Rat{0L}, Rat{0L}>;   //  x      >= 0
-using H4 = Halfspace2D<Rat, Rat{0L}, Rat{-1L}, Rat{0L}>;   //       y >= 0
+using Rat = Rational<SignedExtensionalCardinal<>>;  // canonical exact ℚ
+using H1 = Halfspace2D<Rat, Rat{1}, Rat{1}, Rat{4}>;     //  x +  y <= 4
+using H2 = Halfspace2D<Rat, Rat{2}, Rat{1}, Rat{6}>;     // 2x +  y <= 6
+using H3 = Halfspace2D<Rat, Rat{-1}, Rat{0}, Rat{0}>;    //  x      >= 0
+using H4 = Halfspace2D<Rat, Rat{0}, Rat{-1}, Rat{0}>;    //       y >= 0
 
-using Optimum = decltype(maximize<Rat, Rat{3L}, Rat{2L}, H1, H2, H3, H4>());
-static_assert(std::same_as<Optimum, Vec2<Rat, Rat{2L}, Rat{2L}>>);
+using Optimum = decltype(maximize<Rat, Rat{3}, Rat{2}, H1, H2, H3, H4>());
+static_assert(std::same_as<Optimum, Vec2<Rat, Rat{2}, Rat{2}>>);
 \end{lstlisting}
 
 The reduction enumerates vertex candidates at compile time (all
@@ -1423,27 +1423,27 @@ The library claims these identities at the type level, and the
 compiler discharges them.
 
 \paragraph{Showcase~12 --- both homomorphisms, both over $\mathbb{Q}$.}
-The exact carrier is \lstinline{Rational<long>}, so all the identities
-are bit-perfect; no tolerance, no rounding:
+The exact carrier is \lstinline{Rational<SignedExtensionalCardinal<>>},
+so all the identities are bit-perfect; no tolerance, no rounding:
 
 % Source: src/test/cpp/modules/dedekind/linear_algebra/embeddings_test.cpp
 \begin{lstlisting}[language=C++, caption={Ring-homomorphism identities for $\mathbb{C}$ and $\mathbb{D}$ into $M_2(\mathbb{Q})$, both discharged as \lstinline{static_assert}s. From \texttt{embeddings\_test.cpp}.}, label={lst:lin-alg-embeddings}]
-using Rat = Rational<long>;
+using Rat = Rational<SignedExtensionalCardinal<>>;  // canonical exact ℚ
 
 // Complex numbers as 2x2 rotation-scaling matrices.
-constexpr Complex<Rat> z{Rat{1L}, Rat{2L}};
-constexpr Complex<Rat> w{Rat{3L}, Rat{-5L}};
+constexpr Complex<Rat> z{Rat{1}, Rat{2}};
+constexpr Complex<Rat> w{Rat{3}, Rat{-5}};
 static_assert(as_matrix2x2(z + w) == as_matrix2x2(z) + as_matrix2x2(w));
 static_assert(as_matrix2x2(z * w) == as_matrix2x2(z) * as_matrix2x2(w));
 
 // Dual numbers as 2x2 shear matrices.
-constexpr Dual<Rat> d{Rat{2L}, Rat{3L}};
-constexpr Dual<Rat> e{Rat{-1L}, Rat{5L}};
+constexpr Dual<Rat> d{Rat{2}, Rat{3}};
+constexpr Dual<Rat> e{Rat{-1}, Rat{5}};
 static_assert(as_matrix2x2(d + e) == as_matrix2x2(d) + as_matrix2x2(e));
 static_assert(as_matrix2x2(d * e) == as_matrix2x2(d) * as_matrix2x2(e));
 
 // The defining relation \epsilon^2 = 0 lifts cleanly.
-constexpr Dual<Rat> eps{Rat{0L}, Rat{1L}};
+constexpr Dual<Rat> eps{Rat{0}, Rat{1}};
 static_assert(as_matrix2x2(eps) * as_matrix2x2(eps) == zero_matrix2x2_v<Rat>);
 \end{lstlisting}
 
@@ -1479,7 +1479,8 @@ identity is a type-level assertion:
 
 % Source: src/test/cpp/modules/dedekind/algebra/polynomials_test.cpp
 \begin{lstlisting}[language=C++, caption={Polynomial derivative: an exact identity, discharged by the compiler. From \texttt{polynomials\_test.cpp}.}, label={lst:poly-derive}]
-using P = Polynomial<int>;
+using ℤ = int;                 // the integer coefficient ring
+using P = Polynomial<ℤ>;
 
 // p(x)  = 3x^3 + 2x^2 + x + 1  (coefficients constant-first)
 // p'(x) = 9x^2 + 4x + 1
@@ -1584,8 +1585,9 @@ for compile-time specialisation.
 
 \paragraph{The filter, in five lines.} Given process noise $Q$ and
 measurement noise $R$ (both known at compile time), state estimate
-$\hat{x}$ and covariance $P$ (carried at run time as \lstinline{Rational<long>}),
-and a measurement $z$, one stationary-model update is:
+$\hat{x}$ and covariance $P$ (carried at run time as
+\lstinline{Rational<SignedExtensionalCardinal<>>}), and a measurement
+$z$, one stationary-model update is:
 \begin{align*}
   P        &\leftarrow P + Q                          & \text{(predict)}\\
   y        &= z - \hat{x}                             & \text{(innovation)}\\
@@ -1605,7 +1607,7 @@ The filter is a template parameterised by the two noise constants;
 
 % Source: src/test/cpp/modules/dedekind/linear_algebra/kalman_showcase_test.cpp
 \begin{lstlisting}[language=C++, caption={A scalar Kalman filter as a compile-time specialised primitive. Filter coefficients are NTTPs; the trajectory is verified by \lstinline{static_assert} over exact rationals. From \texttt{kalman\_showcase\_test.cpp}.}, label={lst:kalman-showcase}]
-using Rat = Rational<long>;
+using Rat = Rational<SignedExtensionalCardinal<>>;  // canonical exact ℚ
 
 template <typename R, R Q, R Rnoise>
 struct KalmanFilter1D {
@@ -1618,21 +1620,21 @@ struct KalmanFilter1D {
     const R S          = P + Rnoise;
     const R K          = P / S;
     x_hat = x_hat + K * innovation;
-    P     = (R{1L} - K) * P;
+    P     = (R{1} - K) * P;
   }
 };
 
 // Q = 1/100, R = 1/10, initial estimate 0, initial covariance 1,
 // single measurement z = 1.
 constexpr auto filtered = [] {
-  KalmanFilter1D<Rat, Rat{1L, 100L}, Rat{1L, 10L}> f{Rat{0L}, Rat{1L}};
+  KalmanFilter1D<Rat, Rat{1, 100}, Rat{1, 10}> f{Rat{0}, Rat{1}};
   f.predict();
-  f.update(Rat{1L});
+  f.update(Rat{1});
   return f;
 }();
 
-static_assert(filtered.x_hat == Rat{101L, 111L});
-static_assert(filtered.P     == Rat{101L, 1110L});
+static_assert(filtered.x_hat == Rat{101, 111});
+static_assert(filtered.P     == Rat{101, 1110});
 \end{lstlisting}
 
 The arithmetic checks by hand: after \lstinline{predict},
@@ -1910,29 +1912,28 @@ structurally---an unlikely shape for the use cases this library is
 written against.
 
 \paragraph{Numeric overflow in the carrier.}
-The paper's code listings use \lstinline{Rational<long>} throughout.
-Cramer's rule over $\mathbb{Q}$ is exact, but determinants of integer
-matrices can grow quickly, and \lstinline{long} will overflow silently
-before the \texttt{constexpr} evaluator notices (overflow of a signed
-integer in a constant-expression context is implementation-defined on
-this front). The \lstinline{long} choice is deliberately
-\emph{pedagogical}: it is the carrier every reader understands at a
-glance, and its failure mode---silent overflow on large
-instances---is a canonical systems-programming hazard that makes the
-wall visible where the theory is clean.
+The paper's code listings ship with
+\lstinline{Rational<SignedExtensionalCardinal<>>}: an
+arbitrary-precision signed rational whose exact range easily
+accommodates every arithmetic operation the showcases exercise.
+Cramer's rule over $\mathbb{Q}$ is exact, and on this carrier no
+determinant --- however fat --- ever overflows silently; escalation
+to $\aleph_0$ is tracked in Section~\ref{sec:carrier-rosetta}'s
+Rosetta table.
 
-The library itself already offers the well-behaved alternative. The
-\lstinline{dedekind.numbers:cardinality} partition exports
-\lstinline{ExtensionalCardinal<N>}: a compile-time multi-limb natural
-backed by \lstinline{std::array<std::size_t, N>}, structurally usable
-as an NTTP, and certified as \lstinline{IsInteger}. Consequently
-\lstinline{Rational<ExtensionalCardinal<>>} is already a valid
-arbitrary-precision exact rational, and the \lstinline{IsRingLike}
-concept tolerates the substitution for free---every combinator in
-Section~\ref{sec:pruning} is written against the concept, not the
-carrier. The \lstinline{long}~$\to$~\lstinline{ExtensionalCardinal<>}
-swap is a one-typedef change that trades a line of pedagogical
-legibility for full bit-range safety.
+A programmer who trades the exact carrier for a native one
+(\lstinline{Rational<long>}, or \lstinline{double}, per
+Table~\ref{tab:carriers-crossings}) inherits the corresponding
+failure mode: signed-integer overflow is undefined behaviour on the
+former, rounding is non-associative on the latter. That trade is
+deliberate and the Rosetta table spells out the named arrow for
+making it. The crucial property the showcases demonstrate ---
+compile-time reduction to a typed constant --- does not depend on
+carrier choice; it survives every row of the table. Every combinator
+in Section~\ref{sec:pruning} is written against the
+\lstinline{IsRingLike} concept, not against any particular carrier,
+so the swap between exact and native is a one-line change at the
+\lstinline{using} declaration.
 
 \paragraph{Error messages and the readability tax.}
 A failed \texttt{static\_assert} in a deep reduction produces, by
