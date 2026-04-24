@@ -764,7 +764,8 @@ the concept binds to \emph{either} side of the row, so the migration
 between exact and primitive is a one-line substitution at the type
 level --- the algorithm code is untouched.
 
-\begin{table}[htbp]
+\begin{landscape}
+\begin{table}
 \centering
 \caption{The carrier Rosetta. Left column: the \textbf{exact} carrier
 ---the library's own intensional type that carries the algebraic
@@ -778,8 +779,7 @@ introduced under the concept-cleanup follow-up work; rows marked
 with $^{\ddagger}$ point at carriers whose ℵ$_0$-escalating variant
 is planned but not yet shipped.}
 \label{tab:carrier-rosetta}
-\small
-\begin{tabular}{@{}p{0.9cm} p{3.8cm} p{3.0cm} p{2.6cm} p{2.5cm}@{}}
+\begin{tabular}{@{}p{1.5cm} p{5.8cm} p{5.0cm} p{4.0cm} p{4.2cm}@{}}
 \toprule
 \textbf{Role} & \textbf{Exact (library)} & \textbf{Crossing} & \textbf{Primitive (std)} & \textbf{Concept} \\
 \midrule
@@ -796,6 +796,7 @@ SIMD-$\mathbb{Z}$ & \textit{(future)} & carrier swap + overflow proof & \lstinli
 \bottomrule
 \end{tabular}
 \end{table}
+\end{landscape}
 
 The table is also a migration map. The disciplined path is top-down
 on the exact side, then one hop across, and the workflow looks like
