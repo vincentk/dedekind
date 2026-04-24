@@ -136,8 +136,8 @@ constexpr VertexCandidate<T> solve_active_set(const HalfspaceTriple<T>& h1,
                                               const HalfspaceTriple<T>& h2) {
   // Determinant of the active-set matrix [[a1 b1] [a2 b2]].
   const T det = h1.a * h2.b - h1.b * h2.a;
-  if (det == T{0})
-    return {T{0}, T{0}, false};  // singular — parallel halfspaces
+  if (det == T{})
+    return {T{}, T{}, false};  // singular — parallel halfspaces
 
   // Cramer's rule.
   const T x = (h1.c * h2.b - h1.b * h2.c) / det;
@@ -178,7 +178,7 @@ constexpr VertexCandidate<T> maximize_impl(
     flat[3 * i + 2] = constraints[i].c;
   }
 
-  VertexCandidate<T> best{T{0}, T{0}, false};
+  VertexCandidate<T> best{T{}, T{}, false};
   T best_obj{};
   bool best_set = false;
 

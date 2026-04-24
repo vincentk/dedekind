@@ -15,12 +15,17 @@
 #include <catch2/catch_test_macros.hpp>
 
 import dedekind.numbers;
+import dedekind.sets;
 
 using dedekind::numbers::Rational;
+using dedekind::sets::SignedExtensionalCardinal;
 
 namespace {
 
-using Rat = Rational<long>;
+// Arbitrary-precision signed rational — the canonical ℚ carrier; embedded
+// sensor-fusion showcases get bit-for-bit determinism with no signed-long
+// overflow hazard.
+using Rat = Rational<SignedExtensionalCardinal<>>;
 
 /**
  * @brief A stationary scalar Kalman filter with compile-time-fixed

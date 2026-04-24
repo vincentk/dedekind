@@ -18,13 +18,16 @@
 import dedekind.algebra;
 import dedekind.linear_algebra;
 import dedekind.numbers;
+import dedekind.sets;
 
 using namespace dedekind::algebra;
 using namespace dedekind::linear_algebra;
 using namespace dedekind::numbers;
+using dedekind::sets::SignedExtensionalCardinal;
 
 namespace {
-using Rat = Rational<long>;
+// Arbitrary-precision signed rational — the canonical ℚ carrier.
+using Rat = Rational<SignedExtensionalCardinal<>>;
 }  // namespace
 
 TEST_CASE(

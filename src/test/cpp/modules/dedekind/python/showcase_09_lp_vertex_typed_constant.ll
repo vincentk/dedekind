@@ -17,11 +17,14 @@ declare void @_ZGIW8dedekindW7numbers() local_unnamed_addr
 
 declare void @_ZGIW8dedekindW12optimization() local_unnamed_addr
 
+declare void @_ZGIW8dedekindW4sets() local_unnamed_addr
+
 ; Function Attrs: ssp uwtable
 define internal void @_GLOBAL__sub_I_showcase_09_lp_vertex_typed_constant.cpp() #1 section "__TEXT,__StaticInit,regular,pure_instructions" {
   tail call void @_ZGIW8dedekindW14linear_algebra()
   tail call void @_ZGIW8dedekindW7numbers()
   tail call void @_ZGIW8dedekindW12optimization()
+  tail call void @_ZGIW8dedekindW4sets()
   ret void
 }
 

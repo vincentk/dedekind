@@ -35,26 +35,30 @@
 import dedekind.linear_algebra;
 import dedekind.numbers;
 import dedekind.optimization;
+import dedekind.sets;
 
 using namespace dedekind::linear_algebra;
 using namespace dedekind::numbers;
 using namespace dedekind::optimization;
+using dedekind::sets::SignedExtensionalCardinal;
 
-using Rat = Rational<long>;
+// Arbitrary-precision signed rational: the canonical ℚ. Overflow-safe
+// to 2^{64·N−1} in a single limb, eliminating the signed-long hazard.
+using Rat = Rational<SignedExtensionalCardinal<>>;
 
 // Constraints of the paper-facing LP instance.
-using H1 = Halfspace2D<Rat, Rat{1L}, Rat{1L}, Rat{4L}>;   //  x +  y ≤ 4
-using H2 = Halfspace2D<Rat, Rat{2L}, Rat{1L}, Rat{6L}>;   // 2x +  y ≤ 6
-using H3 = Halfspace2D<Rat, Rat{-1L}, Rat{0L}, Rat{0L}>;  //  x      ≥ 0
-using H4 = Halfspace2D<Rat, Rat{0L}, Rat{-1L}, Rat{0L}>;  //       y ≥ 0
+using H1 = Halfspace2D<Rat, Rat{1}, Rat{1}, Rat{4}>;    //  x +  y ≤ 4
+using H2 = Halfspace2D<Rat, Rat{2}, Rat{1}, Rat{6}>;    // 2x +  y ≤ 6
+using H3 = Halfspace2D<Rat, Rat{-1}, Rat{0}, Rat{0}>;   //  x      ≥ 0
+using H4 = Halfspace2D<Rat, Rat{0}, Rat{-1}, Rat{0}>;   //       y ≥ 0
 
-// The optimum at the type level: `Vec2<Rat, Rat{2L}, Rat{2L}>`.
-using Optimum = decltype(maximize<Rat, Rat{3L}, Rat{2L}, H1, H2, H3, H4>());
+// The optimum at the type level: `Vec2<Rat, Rat{2}, Rat{2}>`.
+using Optimum = decltype(maximize<Rat, Rat{3}, Rat{2}, H1, H2, H3, H4>());
 
 // Type-level witnesses: the optimum IS the vertex (2, 2).
-static_assert(std::same_as<Optimum, Vec2<Rat, Rat{2L}, Rat{2L}>>);
-static_assert(Optimum::first == Rat{2L});
-static_assert(Optimum::second == Rat{2L});
+static_assert(std::same_as<Optimum, Vec2<Rat, Rat{2}, Rat{2}>>);
+static_assert(Optimum::first == Rat{2});
+static_assert(Optimum::second == Rat{2});
 
 /**
  * @brief Showcase 9a: the optimum's x-coordinate as a compile-time

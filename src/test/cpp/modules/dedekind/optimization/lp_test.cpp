@@ -11,13 +11,16 @@
 import dedekind.linear_algebra;
 import dedekind.numbers;
 import dedekind.optimization;
+import dedekind.sets;
 
 using namespace dedekind::linear_algebra;
 using namespace dedekind::numbers;
 using namespace dedekind::optimization;
+using dedekind::sets::SignedExtensionalCardinal;
 
 namespace {
-using Rat = Rational<long>;
+// Arbitrary-precision signed rational — the canonical ℚ for these tests.
+using Rat = Rational<SignedExtensionalCardinal<>>;
 
 // The paper-facing LP instance (§5 candidate centrepiece):
 //   maximize 3x + 2y

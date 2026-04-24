@@ -19,6 +19,7 @@ module;
 
 export module dedekind.numbers:integer;
 
+import dedekind.algebra;
 import dedekind.category;
 import dedekind.sets;
 import :naturals;
@@ -193,20 +194,77 @@ concept IsComplex = requires(C z) {
   { z.imag() } -> std::same_as<R>;
 };
 
-export template <typename M, typename E = M>
-concept Group_ℤ = IsInteger<E> && requires(E a, E b) {
-  { a + b } -> std::same_as<E>;
-  { a - b } -> std::same_as<E>;
-};
+/**
+ * @concept Group_ℤ
+ * @brief ℤ as the abelian group of integers under addition.
+ *
+ * @details A carrier @c T satisfies @c Group_ℤ iff
+ *   - it is @c IsInteger (structural integer syntax: +, -, *, /, %, <), and
+ *   - @c (T, +, 0) is certified as an @c IsAbelianGroup by the species-trait
+ *     registry (associative, commutative, has an identity, has an inverse).
+ *
+ * Downstream code that writes `template <Group_ℤ T>` gets a contract that is
+ * simultaneously *intensional* (the carrier is named by its algebraic role,
+ * not by a concrete C++ type) and *safe* (carriers whose addition is UB, like
+ * signed @c int, are rejected at the concept gate rather than trusted).
+ * Realisation to a concrete carrier (@c ExtensionalCardinal, @c
+ * SignedExtensionalCardinal, @c std::signed_integral where the user has
+ * furnished the trait proof) happens at the call site, not in the concept
+ * body.
+ */
+export template <typename T>
+concept Group_ℤ =
+    IsInteger<T> &&
+    dedekind::category::IsAbelianGroup<T, std::plus<T>>;
 
-export template <typename M, typename E, typename Z>
-concept Field_ℚ = IsRational<E, Z>;
+/**
+ * @concept Field_ℚ
+ * @brief ℚ as the field of rationals.
+ *
+ * @details A carrier @c Q satisfies @c Field_ℚ iff it is @c IsRational over
+ * some integer domain @c Z *and* @c (Q, +, *) carries the operational
+ * field-like witness. Writing `template <Field_ℚ Q>` in a generic function
+ * asserts both the rational-structure shape and the field arithmetic
+ * without naming a concrete @c Rational<Z>.
+ *
+ * @note The field-side requirement is currently expressed via
+ * @c dedekind::algebra::IsFieldLikeScalar, which is an *operational*
+ * (syntactic) witness rather than a law-abiding algebraic concept. A proper
+ * @c IsField in @c dedekind.category:total is intended and will replace
+ * this dependency once the design for ``multiplicative group on nonzero
+ * elements'' lands in the category layer. Until then, carriers that pass
+ * this concept are guaranteed the *arithmetic* of a field but not every
+ * law mechanically --- the species-trait registry supplies the laws
+ * separately.
+ * @see FIXME: retarget to `dedekind::category::IsField<Q, std::plus<Q>,
+ *             std::multiplies<Q>>` once the latter is defined.
+ */
+export template <typename Q, typename Z = int>
+concept Field_ℚ =
+    IsRational<Q, Z> && dedekind::algebra::IsFieldLikeScalar<Q>;
 
-export template <typename M, typename E, typename Q>
-concept Continuum_ℝ = IsReal<E> && IsContinuous<E>;
+/**
+ * @concept Continuum_ℝ
+ * @brief ℝ as a continuum-valued field carrier.
+ *
+ * @details Bundles the structural @c IsReal witness with @c IsContinuous and
+ * the operational field-like arithmetic discipline.
+ *
+ * @see FIXME: same retargeting as @ref Field_ℚ once @c IsField lands.
+ */
+export template <typename T>
+concept Continuum_ℝ =
+    IsReal<T> && IsContinuous<T> && dedekind::algebra::IsFieldLikeScalar<T>;
 
-export template <typename M, typename E, typename R>
-concept Algebra_ℂ = IsComplex<E, R>;
+/**
+ * @concept Algebra_ℂ
+ * @brief ℂ as an algebra over an underlying real-like field @c R.
+ *
+ * @see FIXME: same retargeting as @ref Field_ℚ once @c IsField lands.
+ */
+export template <typename C, typename R>
+concept Algebra_ℂ =
+    IsComplex<C, R> && dedekind::algebra::IsFieldLikeScalar<C>;
 
 /**
  * @brief Characteristic morphism for ℤ: the integers.
