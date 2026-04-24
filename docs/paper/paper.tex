@@ -755,52 +755,101 @@ reason about it.
 \label{sec:carrier-rosetta}
 
 The intensional-first rule applied to \emph{every} numeric role at
-once looks like Table~\ref{tab:carrier-rosetta}. Each row names a
-mathematical role (ℕ, ℤ, ℚ, ℝ, ℂ, …) and pairs the library's
-intensional (law-abiding, exact) carrier with the native machine
-carrier a programmer might ultimately drop to for performance. The
-concept column is the shared vocabulary: generic code written against
-the concept binds to \emph{either} side of the row, so the migration
-between exact and primitive is a one-line substitution at the type
-level --- the algorithm code is untouched.
+once is spelled out in three tables. Table~\ref{tab:carriers-exact}
+catalogs the \emph{exact} side: the library's own intensional
+carriers for each mathematical role, and the algebraic concept each
+realises. Table~\ref{tab:carriers-primitive} catalogs the
+\emph{primitive} side: the \lstinline|std|-library types the hardware
+runs natively, and the concept each of them carries (with the usual
+IEEE / overflow caveats). Table~\ref{tab:carriers-crossings} is the
+state-machine that connects the two: given a role, which named
+embedding or realisation arrow moves you from exact to primitive, and
+which moves you back. Rows or cells marked with $^{\dagger}$ point at
+concepts introduced under the concept-cleanup follow-up work; rows or
+cells marked with $^{\ddagger}$ point at carriers whose
+ℵ$_0$-escalating variant is planned but not yet shipped.
 
-\begin{landscape}
-\begin{table}
+\begin{table}[htbp]
 \centering
-\caption{The carrier Rosetta. Left column: the \textbf{exact} carrier
----the library's own intensional type that carries the algebraic
-laws of the named role. Right column: the \textbf{primitive} carrier
----the \lstinline|std|-library type the hardware runs natively.
-Middle column: the named morphism the library provides to cross
-between them (embeddings, realization projections, policy gates).
-Generic code writes against the concept in the last column and binds
-to either side. Rows marked with $^{\dagger}$ point at concepts
-introduced under the concept-cleanup follow-up work; rows marked
-with $^{\ddagger}$ point at carriers whose ℵ$_0$-escalating variant
-is planned but not yet shipped.}
-\label{tab:carrier-rosetta}
-\begin{tabular}{@{}p{1.5cm} p{5.8cm} p{5.0cm} p{4.0cm} p{4.2cm}@{}}
+\caption{\textbf{Exact carriers.} The library's intensional types, one
+per mathematical role, together with the algebraic concept each
+satisfies. These are the carriers a disciplined engineer writes the
+\emph{reference implementation} against --- laws are provably
+satisfied, not approximated.}
+\label{tab:carriers-exact}
+\small
+\begin{tabular}{@{}l l l@{}}
 \toprule
-\textbf{Role} & \textbf{Exact (library)} & \textbf{Crossing} & \textbf{Primitive (std)} & \textbf{Concept} \\
+\textbf{Role} & \textbf{Exact carrier} & \textbf{Concept satisfied} \\
 \midrule
-$\mathbb{B}$ & \lstinline|bool| under $\land, \lor$ & (identity) & \lstinline|bool| & \lstinline|IsBoolean| \\[2pt]
-$\mathbb{N}$ & \lstinline|Cardinality|$^{\ddagger}$, \lstinline|ExtensionalCardinal<N>| & \lstinline|realize_to_size_t|, \lstinline|embed_unsigned_integral| & \lstinline|unsigned long|, \lstinline|size_t| & \lstinline|Monoid_|$\mathbb{N}$ \\[2pt]
-$\mathbb{Z}$ & \lstinline|SignedCardinality|$^{\ddagger}$, \lstinline|SignedExtensionalCardinal<N>| & \lstinline|static_cast<int64_t>|, \lstinline|embed_signed_integral| & \lstinline|long|, \lstinline|int| & \lstinline|Group_|$\mathbb{Z}$ \\[2pt]
-$\mathbb{Z}$ partial & \textit{(not expressible)} & \textit{(direct)} & \lstinline|int|, \lstinline|long| (UB on overflow) & \lstinline|IsPartialAbelianGroup|$^{\dagger}$ \\[2pt]
-$\mathbb{Q}$ & \lstinline|Rational<SignedExtensionalCardinal<>>| & \lstinline|.resolve()|, IEEE policy gate & \lstinline|double|, \lstinline|float| & \lstinline|Field_|$\mathbb{Q}$ \\[2pt]
-$\mathbb{R}$ symbolic & \lstinline|LowerCut<Rational>| (Dedekind cut, predicate-only) & evaluate predicate at rational bound & \lstinline|double| & \lstinline|Continuum_|$\mathbb{R}$ \\[2pt]
-$\mathbb{R}$ policy & \lstinline|IEEE<double>| (policy-wrapped) & unwrap & \lstinline|double| & \lstinline|Continuum_|$\mathbb{R}$ (non-assoc.\ \lstinline|+|) \\[2pt]
-$\mathbb{C}$ & \lstinline|Complex<Rational<SignedEC<>>>| (Gaussian rationals) & per-component \lstinline|.resolve()| & \lstinline|std::complex<double>| & \lstinline|Algebra_|$\mathbb{C}$ \\[2pt]
-$\mathbb{D}$ (dual) & \lstinline|Dual<Rational<SignedEC<>>>| & \lstinline|.val| (primal) & \textit{(no native)} & \lstinline|IsRing<T,+,*>| + $\varepsilon^2 = 0$ \\[2pt]
-SIMD-$\mathbb{Z}$ & \textit{(future)} & carrier swap + overflow proof & \lstinline|int8_t|, \lstinline|int16_t| & \lstinline|IsPartialCyclicGroup|$^{\dagger}$ \\
+$\mathbb{B}$ & \lstinline|bool| under $\land, \lor$ & \lstinline|IsBoolean| \\
+$\mathbb{N}$ bounded & \lstinline|ExtensionalCardinal<N>| & \lstinline|IsCyclicGroup|$^{\dagger}$, \lstinline|IsAbelianGroup<T,+>| \\
+$\mathbb{N}$ unbounded & \lstinline|Cardinality|$^{\ddagger}$ (variant over ℵ$_0$) & \lstinline|Monoid_|$\mathbb{N}$ \\
+$\mathbb{Z}$ bounded & \lstinline|SignedExtensionalCardinal<N>| & \lstinline|IsAbelianGroup<T,+>|, \lstinline|IsRing| \\
+$\mathbb{Z}$ unbounded & \lstinline|SignedCardinality|$^{\ddagger}$ & \lstinline|Group_|$\mathbb{Z}$ \\
+$\mathbb{Q}$ & \lstinline|Rational<SignedExtensionalCardinal<>>| & \lstinline|Field_|$\mathbb{Q}$ \\
+$\mathbb{R}$ symbolic & \lstinline|LowerCut<Rational>| (Dedekind cut) & \lstinline|Continuum_|$\mathbb{R}$ (predicate-only) \\
+$\mathbb{C}$ & \lstinline|Complex<Rational<SignedEC<>>>| & \lstinline|Algebra_|$\mathbb{C}$ \\
+$\mathbb{D}$ (dual) & \lstinline|Dual<Rational<SignedEC<>>>| & \lstinline|IsRing<T,+,*>|, $\varepsilon^2 = 0$ \\
 \bottomrule
 \end{tabular}
 \end{table}
-\end{landscape}
 
-The table is also a migration map. The disciplined path is top-down
-on the exact side, then one hop across, and the workflow looks like
-this:
+\begin{table}[htbp]
+\centering
+\caption{\textbf{Primitive carriers.} The \lstinline|std|-library types
+the hardware runs natively, with the algebraic concept each carries
+under its C++-standard arithmetic semantics. These are the carriers a
+disciplined engineer drops to for performance, \emph{after} verifying
+the reference implementation on the exact side.}
+\label{tab:carriers-primitive}
+\small
+\begin{tabular}{@{}l l l@{}}
+\toprule
+\textbf{Primitive type} & \textbf{Arithmetic semantics} & \textbf{Concept satisfied} \\
+\midrule
+\lstinline|bool| & Boolean algebra under $\land, \lor, \lnot$ & \lstinline|IsBoolean| \\
+\lstinline|unsigned long|, \lstinline|size_t| & Modular, wraps at $2^{N}$ & \lstinline|IsCyclicGroup|$^{\dagger}$, \lstinline|IsAbelianGroup<T,+>| \\
+\lstinline|int|, \lstinline|long| & Partial (UB on signed overflow) & \lstinline|IsPartialAbelianGroup|$^{\dagger}$ \\
+\lstinline|int8_t|, \lstinline|int16_t| & Partial + SIMD-vectorisable & \lstinline|IsPartialCyclicGroup|$^{\dagger}$ \\
+\lstinline|float|, \lstinline|double| & IEEE 754, rounded, non-associative & \lstinline|Continuum_|$\mathbb{R}$ (non-assoc.\ \lstinline|+|) \\
+\lstinline|std::complex<double>| & Cartesian pair over IEEE \lstinline|double| & \lstinline|Algebra_|$\mathbb{C}$ (non-assoc.) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\caption{\textbf{Crossings state-machine.} The named morphisms that
+move between exact and primitive sides, per role. Each row shows
+\emph{realise} (exact $\to$ primitive: drop exactness for speed) and
+\emph{embed} (primitive $\to$ exact: lift a machine value into the
+certified carrier). A dash marks a direction that requires going
+through an intermediate role.}
+\label{tab:carriers-crossings}
+\small
+\begin{tabular}{@{}l l l@{}}
+\toprule
+\textbf{Role} & \textbf{Realise: exact $\to$ primitive} & \textbf{Embed: primitive $\to$ exact} \\
+\midrule
+$\mathbb{B}$ & (identity) & (identity) \\
+$\mathbb{N}$ & \lstinline|.realize_to_size_t(sentinel)| & \lstinline|embed_unsigned_integral<N>(v)| \\
+$\mathbb{Z}$ & \lstinline|static_cast<int64_t>(x)| & \lstinline|embed_signed_integral<Z>(v)| \\
+$\mathbb{Q}$ & \lstinline|.resolve()| $\to$ \lstinline|double| & \lstinline|Rational<Z>(num, den)| \\
+$\mathbb{R}$ symbolic & evaluate cut at a rational bound & (intensional; no simple lift) \\
+$\mathbb{R}$ policy & unwrap \lstinline|IEEE<double>| & wrap in \lstinline|IEEE<double>| \\
+$\mathbb{C}$ & per-component \lstinline|.resolve()| & \lstinline|Complex<R>(re, im)| \\
+$\mathbb{D}$ (dual) & \lstinline|.val| (primal only; tangent discarded) & \lstinline|Dual<F>(v, d)| \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The three tables together are a migration map. The disciplined path
+is: stay on Table~\ref{tab:carriers-exact} for the reference
+implementation, use Table~\ref{tab:carriers-crossings} to cross over
+where performance demands, and land in
+Table~\ref{tab:carriers-primitive} with an honest, named set of
+caveats. The workflow looks like this:
 
 \begin{enumerate}
 \item \textbf{Start correct.} Write the algorithm against the
@@ -836,14 +885,16 @@ that binds the generic code through this hop is
 that the operation is partial.
 \end{enumerate}
 
-The rule behind the table: \textbf{you start correct, you finish
-fast, and the type system enforces that the laws your code relies on
-are the laws the carrier actually provides --- or fails to compile.}
-The reviewer who points out that \lstinline|Rational<long>| cannot
-scale to industrial problem sizes and the reviewer who points out
-that \lstinline|double| is not $\mathbb{Q}$ are both right; the
-library's answer is that both live in Table~\ref{tab:carrier-rosetta},
-and moving between them is a deliberate, type-level choice.
+The rule behind the three tables: \textbf{you start correct, you
+finish fast, and the type system enforces that the laws your code
+relies on are the laws the carrier actually provides --- or fails to
+compile.} The reviewer who points out that \lstinline|Rational<long>|
+cannot scale to industrial problem sizes and the reviewer who points
+out that \lstinline|double| is not $\mathbb{Q}$ are both right; the
+library's answer is that one lives on Table~\ref{tab:carriers-exact}
+and the other on Table~\ref{tab:carriers-primitive}, and
+Table~\ref{tab:carriers-crossings} spells out the named arrow that
+moves between them.
 
 % ============================================================
 \section{Sets Are Rules, Not Buckets}
