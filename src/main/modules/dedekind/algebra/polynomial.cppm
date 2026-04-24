@@ -23,12 +23,15 @@ module;
 #include <compare>     // for std::strong_ordering
 #include <concepts>    // for std::integral
 #include <functional>  // for std::plus, std::multiplies
+#include <stdexcept>   // for std::domain_error (div_rem)
+#include <utility>     // for std::make_pair (div_rem)
 #include <vector>
 
 export module dedekind.algebra:polynomial;
 
 import dedekind.category;
 import dedekind.sets;
+import :field;
 import :ring;
 
 namespace dedekind::algebra {
@@ -192,6 +195,58 @@ class RigPolynomial {
  */
 export template <typename R = unsigned int>
 using Polynomial = RigPolynomial<R>;
+
+/**
+ * @brief Generic Polynomial Euclidean Division over a field.
+ * @details Template-generic on the polynomial type so the signature can
+ *          live in the `:polynomial` partition without committing to a
+ *          specific concrete polynomial class.  The coefficient type
+ *          @c Coeff must be a field (every non-zero element has a
+ *          multiplicative inverse, as required by polynomial long
+ *          division on the leading coefficients).  The @c requires
+ *          clause also pins down the structural surface the algorithm
+ *          uses on @c Poly (zero test, degree, leading coefficient,
+ *          construction from a single @c Coeff), so misuse produces a
+ *          local diagnostic rather than a cryptic template error deep
+ *          inside the body.
+ *
+ * @throws std::logic_error until the algorithm body is filled in.
+ *
+ * FIXME: The algorithm body is still a stub --- it would need to
+ * subtract @c (leading_coeff * b << shift) from the running remainder
+ * and accumulate the term onto @c q, which requires @c Poly to expose
+ * a vector-scaling / shifting surface that @c RigPolynomial does not
+ * yet carry.  Until that lands (or the 'Polynomial elevation' FIXME on
+ * line 56 is resolved), calling @c div_rem throws @c std::logic_error
+ * rather than returning a silently-invalid @c (q, r) pair.  The
+ * earlier test file @c algebra/field_test.cppm was a @c .cppm (never
+ * matched by the build's @c *_test.cpp glob), so no real test
+ * coverage exists yet.
+ */
+export template <typename Poly, typename Coeff>
+  requires IsField<Coeff> && requires(Poly p, Coeff c) {
+    { p.is_zero() } -> std::convertible_to<bool>;
+    { p.degree() };
+    { p.leading_coefficient() } -> std::same_as<Coeff>;
+    Poly{c};
+  }
+constexpr std::pair<Poly, Poly> div_rem(const Poly& a, const Poly& b) {
+  if (b.is_zero()) throw std::domain_error("Division by zero.");
+
+  // Fail fast rather than return a silently-invalid (q, r) pair.  The
+  // full polynomial long-division loop would compute the leading-
+  // coefficient quotient, subtract @c (c * b << shift) from the
+  // running remainder, and accumulate the term onto @c q; but @c Poly
+  // does not yet expose the vector-scaling / shifting surface that
+  // step requires (see FIXME).  Until it does, every non-trivial
+  // input would yield an incorrect result that type-checks, so we
+  // throw here to document the incompleteness at the call site.
+  // Remove the throw and fill in the loop once the Poly surface lands.
+  (void)a;
+  throw std::logic_error(
+      "div_rem: polynomial long division not yet implemented "
+      "(see FIXME; requires Poly vector-scaling / shifting surface).");
+}
 
 }  // namespace dedekind::algebra
 

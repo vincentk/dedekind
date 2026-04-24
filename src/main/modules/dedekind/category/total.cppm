@@ -265,6 +265,64 @@ static_assert(IsRing<Modular<256>, std::plus<Modular<256>>,
                      std::multiplies<Modular<256>>>);
 
 /**
+ * @concept IsCommutativeRing
+ * @brief Level 2.4: A Ring whose multiplication is commutative.
+ * @details Every commutative ring satisfies all of @c IsRing plus the
+ * requirement that @c a * b == b * a for all @c a, @c b. The rationals
+ * @c ℚ, reals @c ℝ, Gaussian rationals @c ℚ(i), and @c Modular<N> for
+ * every @c N are commutative rings; @c M_2(ℝ) (2×2 real matrices) is a
+ * ring but @emph{not} commutative.
+ */
+export template <typename T, typename Add, typename Mult>
+concept IsCommutativeRing = IsRing<T, Add, Mult> && IsCommutative<T, Mult>;
+
+/**
+ * @concept IsField
+ * @brief Level 2.5: The axiomatic field witness --- a commutative ring
+ *        whose multiplicative structure is an abelian group (zero
+ *        excluded, by convention on @c is_invertible_v).
+ *
+ * @details A field is a commutative ring in which every non-zero
+ * element has a multiplicative inverse. Canonical examples: @c ℚ,
+ * @c ℝ, @c ℂ, and the Gaussian rationals @c ℚ(i).
+ *
+ * The concept composes two existing pieces of the category tower:
+ *
+ *   1. @c IsCommutativeRing<T, Add, Mult> --- ring laws plus
+ *      commutativity of multiplication.
+ *   2. @c IsAbelianGroup<T, Mult> --- the multiplicative structure
+ *      is itself an abelian group.
+ *
+ * The strict mathematical definition --- "every \emph{non-zero}
+ * element is multiplicatively invertible" --- cannot be stated in a
+ * C++ concept (concepts reason about types, not values). A carrier
+ * opts into the multiplicative-group witness by specialising
+ * @c is_invertible_v<T, Mult> / @c inverse_trait<T, Mult> to assert
+ * the field-level claim; zero is understood excluded.  This is the
+ * same mechanism the library already uses for additive inverses
+ * (e.g. @c is_invertible_v<Modular<N>, std::plus> = true).
+ *
+ * @note The concept is deliberately \emph{axiomatic}: no operator
+ *       requirements, consistent with the @c category:total layer's
+ *       convention that structural concepts check species traits
+ *       rather than operator syntax. The operator-bearing witness
+ *       --- which additionally requires @c operator/, @c .inverse(),
+ *       and @c std::divides --- is @c dedekind::algebra::IsField,
+ *       which \emph{builds on} this concept by composing it with
+ *       @c IsDivisionRing.
+ *
+ * Downstream call sites that currently reach for
+ * @c dedekind::algebra::IsFieldLikeScalar will retarget to
+ * @c IsField<T, Add, Mult> once carriers such as @c Rational<Z>,
+ * @c Complex<R>, and the relevant composites register the full
+ * ring- plus multiplicative-group-trait specialisations. That work
+ * is tracked under epic #374 and in particular #371 (axiom-hook
+ * auto-lifter).
+ */
+export template <typename T, typename Add, typename Mult>
+concept IsField = IsCommutativeRing<T, Add, Mult> && IsAbelianGroup<T, Mult>;
+
+/**
  * @concept IsSemilattice
  * @brief Level 3.1 compatibility alias for order semilattice refinement.
  * @details An operation is idempotent when a ⊕ a = a. Combined with

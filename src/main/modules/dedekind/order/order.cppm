@@ -7,11 +7,13 @@
  * Licensed under the Apache License, Version 2.0.
  *
  * @section Partitions
- *   - `:concepts`   — pre/total/partial orders, lattices, Archimedean,
- *                     Dedekind-complete.
- *   - `:halfspace`  — NTTP halfspace DSL (`bound<V>`, `Halfspace`,
- *                     `OrderInterval`, `Singleton`, `IntervalProduct`,
- *                     `structured_and`).
+ *   - `:poset`        — preorders, partial orders, directed sets, chains.
+ *   - `:lattice`      — meet / join / lattice / distributive lattice.
+ *   - `:completeness` — successor, Archimedean, dense / discrete,
+ *                       Dedekind-complete.
+ *   - `:halfspace`    — NTTP halfspace DSL (`bound<V>`, `Halfspace`,
+ *                       `OrderInterval`, `Singleton`, `IntervalProduct`,
+ *                       `structured_and`).
  *
  * Wikipedia: Partially ordered set, Total order, Half-space (geometry)
  *
@@ -22,5 +24,7 @@
  */
 export module dedekind.order;
 
-export import :concepts;
+export import :poset;
+export import :lattice;
+export import :completeness;
 export import :halfspace;
