@@ -438,11 +438,15 @@ struct SignedExtensionalCardinal {
   }
 
   constexpr SignedExtensionalCardinal operator-() const noexcept {
-    SignedExtensionalCardinal result{*this};
-    // Canonical zero stays positive.
-    if (magnitude != magnitude_type{}) {
-      result.negative = !negative;
+    // Canonicalise zero: if the magnitude is zero we always return +0,
+    // regardless of the input sign. The public-field layout means
+    // callers can construct non-canonical {negative = true, magnitude = 0}
+    // values directly; this operator normalises them on the way out.
+    if (magnitude == magnitude_type{}) {
+      return SignedExtensionalCardinal{};  // canonical +0
     }
+    SignedExtensionalCardinal result{*this};
+    result.negative = !negative;
     return result;
   }
 
@@ -514,8 +518,15 @@ struct SignedExtensionalCardinal {
   template <std::signed_integral S>
     requires(N == 1)
   constexpr explicit operator S() const noexcept {
-    const S mag = static_cast<S>(magnitude.limbs[0]);
-    return negative ? static_cast<S>(-mag) : mag;
+    // Negate in unsigned space: `-signed_min` is UB in the target type
+    // when magnitude equals |signed_min|.  Casting the unsigned magnitude
+    // back to the signed type after modular negation yields the correct
+    // two's-complement value (including the signed-min edge case).
+    using U = std::make_unsigned_t<S>;
+    const U u_mag = static_cast<U>(magnitude.limbs[0]);
+    const U u_signed =
+        negative ? static_cast<U>(static_cast<U>(0) - u_mag) : u_mag;
+    return static_cast<S>(u_signed);
   }
 };
 

@@ -45,13 +45,26 @@
  *
  * @section Scope
  * - 2D polytopes only (rank-2 narrowing from #364).
- * - Feasible + bounded inputs only. Infeasible polytope → empty
- *   candidate set (caller can inspect via `has_optimum`); unbounded /
- *   ill-posed → `static_assert` failure.
- * - Carrier must satisfy `IsRingLike<T>` and support division by the
- *   active-set determinant; paper-facing `T = Rational<long>` covers all
- *   requirements. The `Dual<Rational<long>>` layering works too (for
- *   parametric sensitivity analysis — see the `[dual]`-tagged test).
+ * - **Feasible + bounded** inputs only. An infeasible polytope (empty
+ *   feasible region) surfaces as `VertexCandidate::feasible == false`
+ *   on the returned candidate; callers inspect that flag on the
+ *   result of `maximize_value()`.  Unbounded polytopes are *not*
+ *   detected by this reduction: enumeration returns the best vertex
+ *   among the ${n \choose 2}$ active-set candidates, so an unbounded
+ *   objective over an unbounded polytope will yield a finite vertex
+ *   that is not the true supremum.  The paper-facing showcases are
+ *   bounded by construction; unbounded-LP detection is tracked as a
+ *   follow-up.
+ * - Carrier must (today) satisfy `IsRingLike<T>` plus division and
+ *   comparison, matching the actual `Invertible2x2` Cramer solve
+ *   below. The `requires` clauses are deliberately weaker than what
+ *   the body needs — tightening to `IsFieldLikeScalar<T>` plus an
+ *   ordering requirement, or to a proper `IsField<T, +, *>` once the
+ *   latter lands in `dedekind.category:total`, is tracked under
+ *   epic #374 (algebraic concept vocabulary alignment).  Paper-facing
+ *   `T = Rational<SignedExtensionalCardinal<>>` covers all the real
+ *   requirements; `Dual<Rational<...>>` layering works for parametric
+ *   sensitivity analysis (`[dual]`-tagged test).
  *
  * @note "Modellbildung ist die halbe Miete."
  *       (Modelling is half the battle.)
@@ -124,6 +137,33 @@ struct VertexCandidate {
 };
 
 /**
+ * @brief Carrier-aware singularity predicate on the Cramer determinant.
+ *
+ * @details For plain ring-like carriers (`Rational<Z>`, `int`, etc.) a
+ * determinant is singular iff it equals the additive identity. For
+ * `Dual<F>` (forward-mode AD) the situation is subtler: a dual of the
+ * form `{val = 0, der = t}` is *still* singular regardless of `t`,
+ * because the first-order primal part is what controls invertibility.
+ * A naive `det == T{}` check would miss this because `operator==` on
+ * `Dual<F>` compares both components and would treat `{0, t}` with
+ * `t != 0` as non-zero.
+ *
+ * We duck-type on the `.val` / `.der` pair to detect Dual-like
+ * carriers without adding a `dedekind.numbers:dual` import: any carrier
+ * exposing both fields is treated as having primal-determined
+ * singularity; everything else falls back to full equality.
+ */
+template <typename T>
+constexpr bool is_singular(const T& det) {
+  if constexpr (requires { det.val; det.der; }) {
+    // Dual-like carrier: primal-only check.
+    return det.val == decltype(det.val){};
+  } else {
+    return det == T{};
+  }
+}
+
+/**
  * @brief 2×2 active-set solve for the intersection of two halfspaces,
  *        treated as equalities: `a1 x + b1 y = c1`, `a2 x + b2 y = c2`.
  *
@@ -136,7 +176,7 @@ constexpr VertexCandidate<T> solve_active_set(const HalfspaceTriple<T>& h1,
                                               const HalfspaceTriple<T>& h2) {
   // Determinant of the active-set matrix [[a1 b1] [a2 b2]].
   const T det = h1.a * h2.b - h1.b * h2.a;
-  if (det == T{}) return {T{}, T{}, false};  // singular — parallel halfspaces
+  if (is_singular(det)) return {T{}, T{}, false};  // singular — parallel
 
   // Cramer's rule.
   const T x = (h1.c * h2.b - h1.b * h2.c) / det;
