@@ -46,5 +46,6 @@ export import :galois;
 export import :group;
 export import :modules;
 export import :polynomial;
+export import :registration;
 export import :ring;
 export import :vectorspace;
