@@ -488,26 +488,32 @@ We call this the \emph{Juliet Posture}, after the observation that a rose by any
 name would smell as sweet~\cite{shakespeare1597romeo}: the library cares about the
 \emph{scent} (structural invariants), not the \emph{lineage} (declared name).
 
-\begin{lstlisting}[language=C++, caption={The Juliet Posture: structural recognition checked statically, without requiring declared lineage.}, label={lst:structural}]
-// Nominal: recognised by declared lineage
-struct Ring { virtual T operator+(T) const = 0; ... };
-struct MyInt : Ring { ... };   // must opt in explicitly
+% Source: src/main/modules/dedekind/algebra/ring.cppm (concept definition, ll. 110-116)
+\begin{lstlisting}[language=C++, caption={The Juliet Posture: structural recognition checked statically, without requiring declared lineage. The operational concept from \texttt{dedekind.algebra:ring}.}, label={lst:structural}]
+// Nominal (pseudocode): recognised by declared lineage.
+struct Ring { /* virtual operations, must opt in explicitly */ };
+struct MyInt : Ring { /* ... */ };
 
-// Duck typing: recognised at runtime by the call site
-def generic_sum(a, b):         # Python: fails only when called
-    return a + b               # no compile-time guarantee
+// Duck typing (pseudocode): recognised at runtime by the call site.
+//   def generic_sum(a, b):       # Python: fails only when called
+//       return a + b             # no compile-time guarantee
 
-// Juliet Posture (C++23): recognised statically by behaviour
+// Juliet Posture (C++23, the actual dedekind concept):
 template <typename T>
-concept IsRing = requires(T a, T b) {
-    { a + b } -> std::same_as<T>;
-    { a * b } -> std::same_as<T>;
-    { T::origin() } -> std::same_as<T>; // additive identity
-    requires SpeciesTraits<T, std::plus<T>>::is_associative;
+concept IsRingLike = requires(T a, T b) {
+  { a + b  } -> std::same_as<T>;
+  { a - b  } -> std::same_as<T>;
+  { -a     } -> std::same_as<T>;
+  { a * b  } -> std::same_as<T>;
 };
 
-// int satisfies IsRing without any base class, checked at compile time.
-static_assert(IsRing<int>);    // proof obligation discharged at translation
+// int satisfies IsRingLike without any base class, checked at compile
+// time: the operators exist. But the operational concept is deliberately
+// weaker than the algebraic laws --- see lst:species --- so a separate
+// trait lookup filters out carriers whose + is not actually associative.
+static_assert(IsRingLike<int>);           // operators exist
+static_assert(IsRingLike<Rational<long>>);
+static_assert(!is_associative_v<int, std::plus<int>>);  // but + is not a monoid
 \end{lstlisting}
 
 \noindent The Juliet Posture delivers the best properties of both predecessors:
@@ -609,6 +615,7 @@ while \texttt{dedekind} preserves predicate-level structure in the type system a
 defers materialization to an explicit realization boundary.
 
 \subsection{The Tension: Abstract Naturals vs.\ IEEE Numerics}
+\label{sec:numeric-tension}
 
 Here is the tension in one sentence: the \texttt{int} in your source
 file is not the $\mathbb{Z}$ in your textbook, and everybody quietly
@@ -632,29 +639,37 @@ technical sense, wrong---it just happens not to be wrong on most inputs.
 
 \texttt{dedekind} encodes these divergences explicitly in the \texttt{:species} trait registry:
 
-\begin{lstlisting}[language=C++, caption={The species registry records algebraic properties---and their absence.}, label={lst:species}]
-// Ideal integers: associative addition
-template <>
-struct SpeciesTraits<int, std::plus<int>> {
-    static constexpr bool is_associative = true;
-    static constexpr bool is_commutative = true;
-};
+% Source: src/main/modules/dedekind/category/species.cppm (partial specialisations around ll. 485-500)
+\begin{lstlisting}[language=C++, caption={The species registry records algebraic properties---and their absence. Signed \texttt{int} is explicitly rejected as associative under \texttt{+} because signed overflow is undefined behaviour.}, label={lst:species}]
+// Variable template: is_associative_v<T, Op> is the structural trait.
+// The library partial-specialises it per-carrier, per-operation.
 
-// IEEE double: addition is NOT bit-exact associative
-template <>
-struct SpeciesTraits<double, std::plus<double>> {
-    static constexpr bool is_associative = false; // rounding
-    static constexpr bool is_commutative = true;
-};
+// Unsigned integrals are associative under +  (modular arithmetic).
+template <std::unsigned_integral T>
+inline constexpr bool is_associative_v<T, std::plus<T>> = true;
 
-static_assert( SpeciesTraits<int,    std::plus<int>   >::is_associative);
-static_assert(!SpeciesTraits<double, std::plus<double>>::is_associative);
+// Signed integrals are REJECTED: overflow of a signed integer is
+// undefined behaviour, so the addition operator is not a law-abiding
+// monoid on signed carriers.
+template <std::signed_integral T>
+inline constexpr bool is_associative_v<T, std::plus<T>> = false;
+
+// IEEE double is rejected for a different reason: rounding breaks
+// bit-exact associativity.
+template <>
+inline constexpr bool is_associative_v<double, std::plus<double>> = false;
+
+static_assert(is_associative_v<unsigned int, std::plus<unsigned int>>);
+static_assert(!is_associative_v<int,         std::plus<int>>);
+static_assert(!is_associative_v<double,      std::plus<double>>);
 \end{lstlisting}
 
-Generic algorithms that require associativity will fail to compile for \texttt{double}
-unless an explicit numeric policy (e.g.\ compensated summation, or an interval-arithmetic
-wrapper) is supplied.  The realization boundary is the point at which the programmer
-chooses which policy to apply.
+Generic algorithms that require associativity will fail to compile for
+\texttt{int} or \texttt{double} alike, unless an explicit numeric policy
+(modular semantics on signed overflow, compensated summation, an
+interval-arithmetic wrapper, or a lift to \lstinline{Rational<long>})
+is supplied. The realization boundary is the point at which the
+programmer chooses which policy to apply.
 
 \subsection{Dedekind Cuts as the Canonical Example}
 \label{sec:dedekind-cuts}
@@ -669,21 +684,28 @@ $r \in \mathbb{R}$ is the pair $(L, U)$ with
 \(U = \{q \in \mathbb{Q} \mid q \geq r\}\).
 
 The construction translates directly: the two sets are type-level
-predicates, and \emph{the predicate is the number}. To name Euler's
-constant, encode the rational-dominance fact that $e = \sum_{n \geq 0} 1/n!$:
+predicates, and \emph{the predicate is the number}. The library's
+canonical worked example is Dedekind's own motivating irrational,
+$\sqrt{2}$: a rational $q$ is in the lower cut iff $q^{2} < 2$. That
+is a decidable predicate over $\mathbb{Q}$, so the cut is a finite
+compile-time object---no approximation, no series summation, just a
+sentence in the ambient rational logic:
 
-\begin{lstlisting}[language=C++, caption={The Euler number $e$ as an intensional lower cut over $\mathbb{Q}$. The predicate is the number.}, label={lst:euler}]
-// Representing e via the series predicate:
-//   e = sum_{n=0}^{inf} 1/n!
-// The lower cut L_e = { q in Q | q < e }
-using LowerCut_e = Set<Rational, [](Rational q) {
-    // q is in L_e iff q < partial_sum(1/n!) for sufficient N
-    return series_dominates(q, EulerSeries{});
-}>;
-
-// At this point no arithmetic has been performed.
-// Comparison e < pi is a compile-time structural check on the cuts.
-static_assert(cut_less_than<LowerCut_e, LowerCut_pi>);
+% Source: src/main/modules/dedekind/numbers/symbolic.cppm (Sqrt2_Symbolic, ll. 24-38)
+\begin{lstlisting}[language=C++, caption={$\sqrt{2}$ as an intensional lower cut over $\mathbb{Q}$, from \texttt{dedekind.numbers:symbolic}. The predicate is the number.}, label={lst:euler}]
+template <typename Q>
+constexpr auto Sqrt2_Symbolic() {
+  const dedekind::sets::Ω<Q, TernaryLogic> universe{};
+  // The lower cut L_sqrt2 = { q in Q | q^2 < 2 }.
+  return ambient_set<Q>([universe](const Q& q) {
+    if constexpr (std::floating_point<Q>) {
+      if (std::isnan(q)) { return Ternary::Unknown; }
+    }
+    const auto in_cut =
+        (q * q < static_cast<Q>(2)) ? Ternary::True : Ternary::False;
+    return TernaryLogic::AND(universe(q), in_cut);
+  });
+}
 \end{lstlisting}
 
 \begin{figure}[htbp]
@@ -695,35 +717,36 @@ static_assert(cut_less_than<LowerCut_e, LowerCut_pi>);
     \draw (\x, -0.08) -- (\x, 0.08);
     \node[below] at (\x, -0.12) {\small $\l$};
   }
-  % The cut at e (approximately 2.718)
-  \draw[thick, red, dashed] (2.718, -0.75) -- (2.718, 1.0);
-  \node[red, above] at (2.718, 1.0) {$e$};
-  % Lower set L_e
-  \draw[blue, line width=2.5pt, opacity=0.45] (-0.25, 0.4) -- (2.718, 0.4);
-  \node[blue, above] at (1.2, 0.45) {\small $L_e = \{\, q \in \mathbb{Q} \mid q < e \,\}$};
-  % Upper set U_e
-  \draw[orange, line width=2.5pt, opacity=0.55] (2.718, -0.4) -- (5.3, -0.4);
-  \node[orange, below] at (4.0, -0.45) {\small $U_e = \{\, q \in \mathbb{Q} \mid q \geq e \,\}$};
+  % The cut at sqrt(2) (approximately 1.414)
+  \draw[thick, red, dashed] (1.414, -0.75) -- (1.414, 1.0);
+  \node[red, above] at (1.414, 1.0) {$\sqrt{2}$};
+  % Lower set L_sqrt2
+  \draw[blue, line width=2.5pt, opacity=0.45] (-0.25, 0.4) -- (1.414, 0.4);
+  \node[blue, above] at (0.6, 0.45) {\small $L_{\sqrt{2}} = \{\, q \in \mathbb{Q} \mid q^{2} < 2 \,\}$};
+  % Upper set U_sqrt2
+  \draw[orange, line width=2.5pt, opacity=0.55] (1.414, -0.4) -- (5.3, -0.4);
+  \node[orange, below] at (3.5, -0.45) {\small $U_{\sqrt{2}} = \{\, q \in \mathbb{Q} \mid q^{2} \geq 2 \,\}$};
   % Sample rationals
-  \foreach \x in {0, 1, 2, 2.5, 2.7} { \fill[blue] (\x, 0.4) circle (1.4pt); }
-  \foreach \x in {2.75, 3, 4, 5} { \fill[orange] (\x, -0.4) circle (1.4pt); }
+  \foreach \x in {0, 0.5, 1, 1.25, 1.4} { \fill[blue] (\x, 0.4) circle (1.4pt); }
+  \foreach \x in {1.5, 2, 3, 4, 5} { \fill[orange] (\x, -0.4) circle (1.4pt); }
 \end{tikzpicture}
-\caption{A Dedekind cut names $e$ by partitioning $\mathbb{Q}$.
-The lower half $L_e$ (blue) and upper half $U_e$ (orange) are both
-compile-time predicates. In \texttt{dedekind}, the real number
-\emph{is} the partition: no approximation is stored, no arithmetic
-has been performed, and the compiler can still compare $e < \pi$ by
-comparing the cuts structurally.}
+\caption{A Dedekind cut names $\sqrt{2}$ by partitioning $\mathbb{Q}$.
+The lower half $L_{\sqrt{2}}$ (blue) and upper half $U_{\sqrt{2}}$
+(orange) are both compile-time predicates. In \texttt{dedekind}, the
+real number \emph{is} the partition: no approximation is stored, no
+square root is computed, and the compiler still knows everything
+about $\sqrt{2}$ that the predicate $q^{2} < 2$ expresses.}
 \label{fig:dedekind-cut}
 \end{figure}
 
 Notice what \emph{hasn't} happened. No floating-point approximation of
-$e$ has been computed. No series has been summed. The comparison
-$e < \pi$ has not touched a single arithmetic instruction. The
-\lstinline{static_assert} succeeds because the two cuts are disjoint
-subsets of $\mathbb{Q}$ by their predicates, and the compiler can see
-that disjointness at translation time. Approximation is available later,
-when the programmer asks for it at a specific rational bound. Not before.
+$\sqrt{2}$ has been computed. No Newton iteration has been run. Asking
+``is $\tfrac{7}{5}$ less than $\sqrt{2}$?'' reduces to evaluating
+$\tfrac{49}{25} < 2$, which is true, at translation time---the answer
+is a structural check on the predicate rather than a numerical
+comparison. Approximation to a concrete floating-point value is
+available later, when the programmer asks for it at a specific
+precision. Not before.
 
 This is the intensional-first rule applied to the slipperiest objects
 in elementary mathematics. A real number named as a predicate can have
@@ -755,16 +778,19 @@ as predicate algebra. The subobject classifier $\Omega$ becomes a knob you can
 turn: classical \texttt{bool} for exact domains, Kleene K3 for floats, anything
 else you can register.
 
-\begin{lstlisting}[language=C++, caption={A set as a compile-time predicate type.}, label={lst:settype}]
+% Source: src/main/modules/dedekind/category/etcs.cppm (ambient_set, ll. 357-366)
+\begin{lstlisting}[language=C++, caption={A set as a compile-time predicate type. The set object is invocable; membership returns a logic value.}, label={lst:settype}]
+using namespace dedekind::category;
+
 // ambient_set<T>(P) creates the intensional set {x in T | P(x)}.
 // No values are stored; the predicate IS the set.
-auto even_gt_ten = dedekind::category::ambient_set<int>(
-    [](int x) { return x % 2 == 0 && x > 10; }
-);
+constexpr auto even_gt_ten = ambient_set<int>(
+    [](const int& x) { return x % 2 == 0 && x > 10; });
 
-// Membership test: O(1), no heap allocation.
-bool b = even_gt_ten.contains(12);  // true
-bool c = even_gt_ten.contains(7);   // false
+// Membership is a function call returning a logic value; no runtime
+// container or heap allocation is involved.
+static_assert(even_gt_ten(12) == ClassicalLogic::True);
+static_assert(even_gt_ten(7)  == ClassicalLogic::False);
 \end{lstlisting}
 
 \subsection{Set Operations as Predicate Composition}
@@ -783,17 +809,23 @@ is conjunction; union is disjunction; complement is negation. No values are touc
 because there are no values yet. The combinators compose at compile time and produce
 a new type---a new rule---which the compiler is then free to inspect.
 
-\begin{lstlisting}[language=C++, caption={Set intersection as type-level predicate conjunction.}, label={lst:intersection}]
-// Two intensional sets over int:
-using Primes = Set<int, [](int n) { return is_prime(n); }>;
-using Evens  = Set<int, [](int n) { return n % 2 == 0; }>;
+% Source: src/main/modules/dedekind/sets/expressions.cppm (Set::operator&, ll. 332+)
+\begin{lstlisting}[language=C++, caption={Set intersection as type-level predicate conjunction, discharged by the library's \lstinline{operator&} on \lstinline{Set}.}, label={lst:intersection}]
+using namespace dedekind::category;
 
-// Intersection: the predicate is P_prime AND P_even
-using PrimesAndEvens = Intersection<Primes, Evens>;
+// Two intensional sets over int.
+constexpr auto evens    = ambient_set<int>(
+    [](const int& n) { return n % 2 == 0; });
+constexpr auto ten_plus = ambient_set<int>(
+    [](const int& n) { return n > 10; });
 
-// The compiler inspects both predicates.
-// Primes > 2 are odd; even primes = {2}.
-// With sufficient metadata, this reduces at compile time.
+// Intersection: the predicate of (evens & ten_plus) is the conjunction
+// of the two component predicates, built as a type by the compiler.
+constexpr auto even_and_ten_plus = evens & ten_plus;
+
+static_assert(even_and_ten_plus(12) == ClassicalLogic::True);
+static_assert(even_and_ten_plus(11) == ClassicalLogic::False);
+static_assert(even_and_ten_plus(4)  == ClassicalLogic::False);
 \end{lstlisting}
 
 \subsection{The Subobject Classifier $\Omega$}
@@ -827,23 +859,28 @@ the API. The logic is a parameter.
 The payoff of the comprehension view is that the LLVM backend can \emph{prune} a
 set expression to a no-op when its predicate is statically unsatisfiable.
 
-\begin{lstlisting}[language=C++, caption={Contradictory predicates collapse to zero instructions.}, label={lst:pruning}]
-using Above10 = Set<int, [](int x) { return x > 10; }>;
-using Below5  = Set<int, [](int x) { return x < 5;  }>;
+% Source: src/test/cpp/modules/dedekind/python/showcase_03_halfspace_contradiction.cpp
+\begin{lstlisting}[language=C++, caption={Contradictory predicates collapse to the empty-set type $\varnothing$. Uses the \lstinline{Halfspace}-NTTP DSL to pin both bounds in the type signature, so the contradiction is resolved at translation time.}, label={lst:pruning}]
+using namespace dedekind::order;
 
-// Intersection has predicate: x > 10 AND x < 5
-// This is logically unsatisfiable for any integer x.
-using Impossible = Intersection<Above10, Below5>;
+constexpr auto n = var<ℕ>;
 
-// The compiler verifies emptiness via static_assert.
-// The resulting intersection object compiles to zero machine instructions.
-static_assert(set_is_empty<Impossible>);
+// Two halfspace-structured sets, with pivots (5 and 3) carried as NTTPs.
+constexpr auto gt_five  = Set{n % N | (n > bound<5>)};
+constexpr auto lt_three = Set{n % N | (n < bound<3>)};
+
+// operator& dispatches through `structured_and`; the type-level
+// contradiction rule collapses the meet to the empty-set type Ø<int>.
+constexpr Ø<int> empty_meet = gt_five & lt_three;
+static_assert(empty_meet == Ø{});
 \end{lstlisting}
 
-By hoisting the predicate into the type signature, the C++ concept machinery can
-call \lstinline{set_is_empty<Impossible>} at compile time.
-The generated binary contains no membership-test code for \texttt{Impossible}:
-it is structurally pruned by the type checker before code generation.
+The generated binary contains no membership-test code for
+\lstinline{empty_meet}: the type-level contradiction rule resolves the
+result to $\varnothing$ \emph{before} code generation, and the
+computability tier of $\varnothing$ is fully top
+(extensional/classical/element-in-type). The showcase listings below
+make this mechanically observable.
 
 \subsubsection*{Showcase witnesses}
 
@@ -856,6 +893,7 @@ is contradictory (since $x = y > 5$ forces $y > 5$, violating $y < 3$).
 The intersection is proven empty by \lstinline{static_assert}; the exported
 function compiles to a single \lstinline{ret i1 false}.
 
+% Source: src/test/cpp/modules/dedekind/python/showcase_01_diagonal_contradiction.cpp
 \begin{lstlisting}[language=C++, caption={Showcase 1 source: diagonal contradiction in $\mathbb{R}^2$.}, label={lst:showcase01_src}]
 constexpr auto R2 = R * R;
 constexpr auto xy = var<decltype(R2)>;
@@ -874,14 +912,14 @@ using R2Logic = typename decltype(empty_diagonal_cut)::logic_species;
 
 static_assert(empty_diagonal_cut(R2Point{6.0, 6.0}) == R2Logic::False);
 
-extern "C" __attribute__((noinline)) bool impress_empty_diagonal_cut() {
+extern "C" __attribute__((noinline)) bool witness_empty_diagonal_cut() {
   return empty_diagonal_cut(R2Point{6.0, 6.0}) == R2Logic::True;
 }
 \end{lstlisting}
 
+% Source: src/test/cpp/modules/dedekind/python/showcase_01_diagonal_contradiction.ll
 \begin{lstlisting}[caption={Showcase 1 LLVM IR (\texttt{clang++-22 -O2}): constant false return.}, label={lst:showcase01_ir}]
-define dso_local noundef zeroext i1 @impress_empty_diagonal_cut() #0 {
-entry:
+define noundef zeroext i1 @witness_empty_diagonal_cut() local_unnamed_addr #0 {
   ret i1 false
 }
 \end{lstlisting}
@@ -892,6 +930,7 @@ intersected with the square $[0.5,1.5]^2$ contains exactly $c_3 = 1+i$.
 The compiler proves all four membership assertions at translation time and folds the
 exported function to a single \lstinline{ret i1 true}.
 
+% Source: src/test/cpp/modules/dedekind/python/showcase_02_lattice_singleton.cpp
 \begin{lstlisting}[language=C++, caption={Showcase 2 source: lattice/square singleton in $\mathbb{C}$.}, label={lst:showcase02_src}]
 constexpr auto c = var<ℂ>;
 
@@ -912,12 +951,12 @@ using CLogic = typename decltype(lattice_square_intersection)::logic_species;
 static_assert(lattice_square_intersection(Complex<double>{1.0, 1.0}) == CLogic::True);
 static_assert(lattice_square_intersection(Complex<double>{0.0, 1.0}) == CLogic::False);
 
-extern "C" __attribute__((noinline)) bool impress_lattice_square_singleton() { /* ... */ }
+extern "C" __attribute__((noinline)) bool witness_lattice_square_singleton() { /* ... */ }
 \end{lstlisting}
 
+% Source: src/test/cpp/modules/dedekind/python/showcase_02_lattice_singleton.ll
 \begin{lstlisting}[caption={Showcase 2 LLVM IR (\texttt{clang++-22 -O2}): constant true return.}, label={lst:showcase02_ir}]
-define dso_local noundef zeroext i1 @impress_lattice_square_singleton() #0 {
-entry:
+define noundef zeroext i1 @witness_lattice_square_singleton() local_unnamed_addr #0 {
   ret i1 true
 }
 \end{lstlisting}
@@ -940,6 +979,7 @@ to runtime values is needed.
 Two opposing halfspaces with non-bridging pivots; the meet reduces to $\varnothing$
 by the type-level contradiction rule.
 
+% Source: src/test/cpp/modules/dedekind/python/showcase_03_halfspace_contradiction.cpp
 \begin{lstlisting}[language=C++, caption={Showcase 3 source: halfspace contradiction on $\mathbb{N}$ collapses to $\varnothing$.}, label={lst:showcase03_src}]
 constexpr auto n = var<ℕ>;
 
@@ -961,8 +1001,9 @@ static_assert( IsFiniteSet<decltype(empty_meet)>);
 static_assert( IsCompileTimeEnumerable<decltype(empty_meet)>);
 \end{lstlisting}
 
+% Source: src/test/cpp/modules/dedekind/python/showcase_03_halfspace_contradiction.ll
 \begin{lstlisting}[caption={Showcase 3 LLVM IR: constant false return.}, label={lst:showcase03_ir}]
-define noundef zeroext i1 @impress_empty_halfspace_meet() local_unnamed_addr #0 {
+define noundef zeroext i1 @witness_empty_halfspace_meet() local_unnamed_addr #0 {
   ret i1 false
 }
 \end{lstlisting}
@@ -972,6 +1013,7 @@ The same meet operator, applied to two halfspaces whose bounds pin exactly one
 integer: the result's type \emph{is} \lstinline{Singleton<4>}, with the unique
 inhabitant in the template parameter.
 
+% Source: src/test/cpp/modules/dedekind/python/showcase_04_halfspace_singleton.cpp
 \begin{lstlisting}[language=C++, caption={Showcase 4 source: cardinality-1 meet collapses to $\{4\}$.}, label={lst:showcase04_src}]
 constexpr auto n = var<ℕ>;
 
@@ -988,8 +1030,9 @@ static_assert(!IsCompileTimeEnumerable<decltype(gt_three)>);
 static_assert( IsCompileTimeEnumerable<decltype(in_between)>);
 \end{lstlisting}
 
+% Source: src/test/cpp/modules/dedekind/python/showcase_04_halfspace_singleton.ll
 \begin{lstlisting}[caption={Showcase 4 LLVM IR: constant true return at the unique inhabitant.}, label={lst:showcase04_ir}]
-define noundef zeroext i1 @impress_halfspace_singleton() local_unnamed_addr #0 {
+define noundef zeroext i1 @witness_halfspace_singleton() local_unnamed_addr #0 {
   ret i1 true
 }
 \end{lstlisting}
@@ -1091,6 +1134,7 @@ emitted binary contains only the literal coordinates of $(2,2)$.}
 \label{fig:lp-polytope}
 \end{figure}
 
+% Source: src/test/cpp/modules/dedekind/python/showcase_09_lp_vertex_typed_constant.cpp
 \begin{lstlisting}[language=C++, caption={Compile-time LP: the optimum IS a type. From \texttt{showcase\_09\_lp\_vertex\_typed\_constant.cpp}.}, label={lst:lp-centrepiece}]
 using Rat = Rational<long>;
 using H1 = Halfspace2D<Rat, Rat{1L}, Rat{1L}, Rat{4L}>;    //  x +  y <= 4
@@ -1116,12 +1160,13 @@ fixture return the numerator of the optimum's $x$- and $y$-coordinates.
 At \texttt{-O2}, \texttt{clang}'s optimiser folds the entire LP
 reduction to literal integers:
 
+% Source: src/test/cpp/modules/dedekind/python/showcase_09_lp_vertex_typed_constant.ll
 \begin{lstlisting}[caption={Emitted LLVM IR for Showcase~9. The six candidate solves, six feasibility checks, and six objective comparisons collapse to constant returns.}, label={lst:lp-ir}]
-define noundef i64 @impress_lp_optimum_x() ... {
+define noundef i64 @witness_lp_optimum_x() ... {
   ret i64 2
 }
 
-define noundef i64 @impress_lp_optimum_y() ... {
+define noundef i64 @witness_lp_optimum_y() ... {
   ret i64 2
 }
 \end{lstlisting}
@@ -1134,9 +1179,9 @@ tableau; no active-set machinery. The vertex \emph{is} a type, and
 returning its coordinate \emph{is} a literal.
 
 This closes one of the type-directed-collapse axes listed in
-Section~\ref{sec:gap} (issue~\#364) in a worked form: the LP solver is
-the C++ compiler, for every instance whose size and coefficients are
-compile-time data.
+Section~\ref{sec:gap}% tracker: issue #364 (linear programming)
+{} in a worked form: the LP solver is the C++ compiler, for every
+instance whose size and coefficients are compile-time data.
 
 \subsection{Forward-Mode AD as a Sibling Realisation of Compile-Time Derivatives}
 \label{sec:ad-elliott}
@@ -1170,6 +1215,7 @@ by $\varepsilon$---replace $x + y \leq 4$ with $x + y \leq 4 +
 infinitesimal perturbation; the Cramer solve now runs over dual
 numbers:
 
+% Source: src/test/cpp/modules/dedekind/optimization/lp_test.cpp
 \begin{lstlisting}[language=C++, caption={Parametric LP over \texttt{Dual<Rat>}: optimum + sensitivity as one typed constant. From \texttt{lp\_test.cpp}.}, label={lst:lp-dual}]
 using D = Dual<Rat>;
 using H1P = Halfspace2D<D, D{Rat{1L}}, D{Rat{1L}},
@@ -1237,6 +1283,7 @@ compiler discharges them.
 The exact carrier is \lstinline{Rational<long>}, so all the identities
 are bit-perfect; no tolerance, no rounding:
 
+% Source: src/test/cpp/modules/dedekind/linear_algebra/embeddings_test.cpp
 \begin{lstlisting}[language=C++, caption={Ring-homomorphism identities for $\mathbb{C}$ and $\mathbb{D}$ into $M_2(\mathbb{Q})$, both discharged as \lstinline{static_assert}s. From \texttt{embeddings\_test.cpp}.}, label={lst:lin-alg-embeddings}]
 using Rat = Rational<long>;
 
@@ -1287,6 +1334,7 @@ method. Given $p(x) = 3x^{3} + 2x^{2} + x + 1$ over $\mathbb{Q}$, the
 library computes $p'(x) = 9x^{2} + 4x + 1$ at compile time, and the
 identity is a type-level assertion:
 
+% Source: src/test/cpp/modules/dedekind/algebra/polynomials_test.cpp
 \begin{lstlisting}[language=C++, caption={Polynomial derivative: an exact identity, discharged by the compiler. From \texttt{polynomials\_test.cpp}.}, label={lst:poly-derive}]
 using P = Polynomial<int>;
 
@@ -1332,6 +1380,7 @@ $f$ against a supplied $F$, checks the two sides agree within a
 tolerance, and returns a \lstinline{bool}. Pass it a function and its
 antiderivative as lambdas, and the compiler does the integration:
 
+% Source: src/test/cpp/modules/dedekind/analysis/ftc_test.cpp
 \begin{lstlisting}[language=C++, caption={FTC Part~II, discharged by the compiler on a polynomial $f$ and its closed-form antiderivative $F$. From \texttt{ftc\_test.cpp}.}, label={lst:ftc-bridge}]
 // f(x) = 3x^2;  F(x) = x^3  is an antiderivative,
 // so  \int_0^2 3x^2 dx  should equal  F(2) - F(0) = 8.
@@ -1411,6 +1460,7 @@ linear model), nothing that blocks exact-rational evaluation.
 The filter is a template parameterised by the two noise constants;
 \lstinline{predict} and \lstinline{update} are \lstinline{constexpr}:
 
+% Source: src/test/cpp/modules/dedekind/linear_algebra/kalman_showcase_test.cpp
 \begin{lstlisting}[language=C++, caption={A scalar Kalman filter as a compile-time specialised primitive. Filter coefficients are NTTPs; the trajectory is verified by \lstinline{static_assert} over exact rationals. From \texttt{kalman\_showcase\_test.cpp}.}, label={lst:kalman-showcase}]
 using Rat = Rational<long>;
 
@@ -1587,23 +1637,28 @@ fixture, one compile-time witness---rather than a general framework.
 We would rather ship one reduction that fully collapses than four
 sketches that do not.
 
+% Tracker cross-reference for maintainers (invisible in PDF):
+%   Carrier tightening      -> issue #362
+%   Smooth optimization     -> issue #363
+%   Linear programming      -> issue #364  (demonstrated here)
+%   Lattice-law rewriting   -> issue #365
 \begin{itemize}
-  \item \textbf{Carrier tightening} (issue~\#362). Intersecting a subset of
+  \item \textbf{Carrier tightening.} Intersecting a subset of
     $\mathbb{N}$ with a subset of $\mathbb{R}$ should land in $\mathbb{N}$:
     the carrier lattice contributes its own structural reduction via the
     existing canonical embeddings (\lstinline{embed_ℕ_ℤ},
     \lstinline{embed_ℚ_ℝ}, \ldots).
-  \item \textbf{Smooth optimization} (issue~\#363). The stationary set
+  \item \textbf{Smooth optimization.} The stationary set
     $\{x \mid \nabla f(x) = 0\}$ for a quadratic $f$ collapses to a
     \lstinline{Singleton<x*>} with the minimizer in the template parameter.
     Same reduction pattern, applied at the extremum operator.
-  \item \textbf{Linear programming} (issue~\#364, demonstrated in
+  \item \textbf{Linear programming} (demonstrated in
     Section~\ref{sec:lp-centrepiece} and Section~\ref{sec:ad-elliott}).
     \lstinline{maximize(c, polytope)} reduces, for compile-time-sized LPs, to
     a typed vertex via type-level active-set enumeration, and the same
     reduction over a dual-number carrier yields sensitivity analysis
     with no extra code path: the solver is the compiler.
-  \item \textbf{Lattice-law rewriting} (issue~\#365). Distributivity and
+  \item \textbf{Lattice-law rewriting.} Distributivity and
     absorption applied at the type level rewrite
     $(A \cup B) \cap \lnot A$ to $B \cap \lnot A$ \emph{before} local
     reduction rules fire, exposing collapses that a purely local analysis
@@ -1800,6 +1855,31 @@ Eigen linear-algebra library is the de facto substrate for embedded
 numerics. These runtimes take the model as input and the target as
 fixed; they do not treat the hosting application's algebraic
 invariants as proof obligations for the C++ compiler to discharge.
+
+A deliberate choice on the linear-algebra backend is worth flagging
+here, since it connects the library's position to the
+abstract-naturals-versus-IEEE-numerics tension of
+Section~\ref{sec:numeric-tension}. Eigen~\cite{eigen2010} is
+mature, widely deployed, and excellent at what it targets---but it
+is also \emph{carrier-opinionated}: its matrix types default to
+\texttt{float} or \texttt{double} and its optimisations assume a
+field-like IEEE carrier. A natural path for \texttt{dedekind}'s
+runtime linear-algebra layer is instead toward
+GraphBLAS~\cite{kepner2011graphalgs, davis2019graphblas}, whose
+explicit \emph{(carrier, $+$, $\times$)} semiring parameterisation
+makes the ring-over-which-matrices-live a first-class configurable
+property. That matches the discipline this paper argues for:
+matrices over \lstinline{bool} (with OR/AND) are perfectly
+well-defined objects when inversion is not required, matrices over
+\lstinline{char} are useful for quantised embedded inference, and
+both sit naturally inside the \lstinline{IsRingLike} /
+\lstinline{IsSemiringLike} concept hierarchy. The cost of this
+generality is library complexity rather than carrier simplicity.
+The trade we advocate is correctness-and-performance (tight control
+over the ring structure) at the price of implementation effort,
+against Eigen's opposite trade---an ergonomic default carrier
+whose optimisations are largely locked to floating-point semantics.
+
 \texttt{dedekind} addresses a different surface: the \emph{inline}
 numerical primitives (Kalman filters, pose-estimation math, MPC
 steps, parametric optimisation) a robotics, automotive, or
@@ -1891,9 +1971,9 @@ turns each algebraic invariant into a structural gate the compiler
 polices; taken habitually, it shifts the library author's default
 from ``runtime check'' to ``type-level obligation''. Three axes of
 type-directed collapse remain open (Section~\ref{sec:gap}): carrier
-tightening (\#362), smooth optimization (\#363), and lattice-law
-rewriting (\#365); each sits on the same NTTP-plus-concepts
-foundation as the halfspace and LP reductions demonstrated here.
+tightening, smooth optimization, and lattice-law rewriting; each
+sits on the same NTTP-plus-concepts foundation as the halfspace and
+LP reductions demonstrated here.
 We leave them as worked targets for successor libraries that adopt
 the same discipline.
 
