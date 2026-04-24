@@ -47,10 +47,10 @@ using dedekind::sets::SignedExtensionalCardinal;
 using Rat = Rational<SignedExtensionalCardinal<>>;
 
 // Constraints of the paper-facing LP instance.
-using H1 = Halfspace2D<Rat, Rat{1}, Rat{1}, Rat{4}>;    //  x +  y ≤ 4
-using H2 = Halfspace2D<Rat, Rat{2}, Rat{1}, Rat{6}>;    // 2x +  y ≤ 6
-using H3 = Halfspace2D<Rat, Rat{-1}, Rat{0}, Rat{0}>;   //  x      ≥ 0
-using H4 = Halfspace2D<Rat, Rat{0}, Rat{-1}, Rat{0}>;   //       y ≥ 0
+using H1 = Halfspace2D<Rat, Rat{1}, Rat{1}, Rat{4}>;   //  x +  y ≤ 4
+using H2 = Halfspace2D<Rat, Rat{2}, Rat{1}, Rat{6}>;   // 2x +  y ≤ 6
+using H3 = Halfspace2D<Rat, Rat{-1}, Rat{0}, Rat{0}>;  //  x      ≥ 0
+using H4 = Halfspace2D<Rat, Rat{0}, Rat{-1}, Rat{0}>;  //       y ≥ 0
 
 // The optimum at the type level: `Vec2<Rat, Rat{2}, Rat{2}>`.
 using Optimum = decltype(maximize<Rat, Rat{3}, Rat{2}, H1, H2, H3, H4>());

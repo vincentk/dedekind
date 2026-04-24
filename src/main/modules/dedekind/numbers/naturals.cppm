@@ -122,8 +122,7 @@ concept IsNaturalNumber = std::unsigned_integral<T>;
  */
 export template <typename T>
 concept Monoid_ℕ =
-    IsNatural<T> &&
-    dedekind::category::IsCommutativeMonoid<T, std::plus<T>>;
+    IsNatural<T> && dedekind::category::IsCommutativeMonoid<T, std::plus<T>>;
 
 /**
  * @brief Canonical embedding 𝔹 ↪ ℕ: bool → unsigned.

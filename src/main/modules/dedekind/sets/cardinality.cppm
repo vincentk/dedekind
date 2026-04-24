@@ -401,15 +401,14 @@ struct SignedExtensionalCardinal {
         using U = std::make_unsigned_t<S>;
         // `0u - static_cast<U>(value)` in unsigned arithmetic yields the
         // magnitude without overflow even at the minimum value of S.
-        const U magnitude_bits =
-            static_cast<U>(0) - static_cast<U>(value);
+        const U magnitude_bits = static_cast<U>(0) - static_cast<U>(value);
         magnitude = magnitude_type{
             static_cast<typename magnitude_type::limb_type>(magnitude_bits)};
         return;
       }
     }
-    magnitude = magnitude_type{
-        static_cast<typename magnitude_type::limb_type>(value)};
+    magnitude =
+        magnitude_type{static_cast<typename magnitude_type::limb_type>(value)};
   }
 
   constexpr friend bool operator==(
@@ -484,7 +483,8 @@ struct SignedExtensionalCardinal {
     return result;
   }
 
-  /** @brief Euclidean division; result truncates toward zero (C++ semantics). */
+  /** @brief Euclidean division; result truncates toward zero (C++ semantics).
+   */
   constexpr friend SignedExtensionalCardinal operator/(
       const SignedExtensionalCardinal& lhs,
       const SignedExtensionalCardinal& rhs) noexcept {
@@ -648,19 +648,16 @@ struct inverse_trait<Z1, std::plus<Z1>> {
 };
 
 template <std::size_t N>
-inline constexpr bool
-    is_reflexive_v<dedekind::sets::SignedExtensionalCardinal<N>,
-                   std::less_equal<>> = true;
+inline constexpr bool is_reflexive_v<
+    dedekind::sets::SignedExtensionalCardinal<N>, std::less_equal<>> = true;
 
 template <std::size_t N>
-inline constexpr bool
-    is_transitive_v<dedekind::sets::SignedExtensionalCardinal<N>,
-                    std::less_equal<>> = true;
+inline constexpr bool is_transitive_v<
+    dedekind::sets::SignedExtensionalCardinal<N>, std::less_equal<>> = true;
 
 template <std::size_t N>
-inline constexpr bool
-    is_antisymmetric_v<dedekind::sets::SignedExtensionalCardinal<N>,
-                       std::less_equal<>> = true;
+inline constexpr bool is_antisymmetric_v<
+    dedekind::sets::SignedExtensionalCardinal<N>, std::less_equal<>> = true;
 
 static_assert(IsRing<Z1, std::plus<Z1>, std::multiplies<Z1>>,
               "SignedExtensionalCardinal<1> must certify as a total ring.");

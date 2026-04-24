@@ -136,8 +136,7 @@ constexpr VertexCandidate<T> solve_active_set(const HalfspaceTriple<T>& h1,
                                               const HalfspaceTriple<T>& h2) {
   // Determinant of the active-set matrix [[a1 b1] [a2 b2]].
   const T det = h1.a * h2.b - h1.b * h2.a;
-  if (det == T{})
-    return {T{}, T{}, false};  // singular — parallel halfspaces
+  if (det == T{}) return {T{}, T{}, false};  // singular — parallel halfspaces
 
   // Cramer's rule.
   const T x = (h1.c * h2.b - h1.b * h2.c) / det;

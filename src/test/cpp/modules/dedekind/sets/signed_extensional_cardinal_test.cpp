@@ -12,7 +12,6 @@
  */
 
 #include <catch2/catch_test_macros.hpp>
-
 #include <climits>
 
 import dedekind.sets;
@@ -55,7 +54,8 @@ TEST_CASE("SignedExtensionalCardinal — ordering respects sign",
   constexpr Z two{2};
   constexpr Z five{5};
 
-  STATIC_CHECK(minus_five < minus_three);  // both negative: larger |.| is smaller
+  STATIC_CHECK(minus_five <
+               minus_three);  // both negative: larger |.| is smaller
   STATIC_CHECK(minus_three < zero);
   STATIC_CHECK(zero < two);
   STATIC_CHECK(two < five);
@@ -110,9 +110,9 @@ TEST_CASE("SignedExtensionalCardinal — multiplication and sign rule",
   constexpr Z minus_two{-2};
   constexpr Z minus_three{-3};
 
-  STATIC_CHECK(two * three == Z{6});           // (+)(+) = (+)
-  STATIC_CHECK(minus_two * three == Z{-6});    // (-)(+) = (-)
-  STATIC_CHECK(two * minus_three == Z{-6});    // (+)(-) = (-)
+  STATIC_CHECK(two * three == Z{6});              // (+)(+) = (+)
+  STATIC_CHECK(minus_two * three == Z{-6});       // (-)(+) = (-)
+  STATIC_CHECK(two * minus_three == Z{-6});       // (+)(-) = (-)
   STATIC_CHECK(minus_two * minus_three == Z{6});  // (-)(-) = (+)
 
   // Zero absorbs sign.

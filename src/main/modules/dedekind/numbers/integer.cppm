@@ -214,8 +214,7 @@ concept IsComplex = requires(C z) {
  */
 export template <typename T>
 concept Group_ℤ =
-    IsInteger<T> &&
-    dedekind::category::IsAbelianGroup<T, std::plus<T>>;
+    IsInteger<T> && dedekind::category::IsAbelianGroup<T, std::plus<T>>;
 
 /**
  * @concept Field_ℚ
@@ -240,8 +239,7 @@ concept Group_ℤ =
  *             std::multiplies<Q>>` once the latter is defined.
  */
 export template <typename Q, typename Z = int>
-concept Field_ℚ =
-    IsRational<Q, Z> && dedekind::algebra::IsFieldLikeScalar<Q>;
+concept Field_ℚ = IsRational<Q, Z> && dedekind::algebra::IsFieldLikeScalar<Q>;
 
 /**
  * @concept Continuum_ℝ
@@ -263,8 +261,7 @@ concept Continuum_ℝ =
  * @see FIXME: same retargeting as @ref Field_ℚ once @c IsField lands.
  */
 export template <typename C, typename R>
-concept Algebra_ℂ =
-    IsComplex<C, R> && dedekind::algebra::IsFieldLikeScalar<C>;
+concept Algebra_ℂ = IsComplex<C, R> && dedekind::algebra::IsFieldLikeScalar<C>;
 
 /**
  * @brief Characteristic morphism for ℤ: the integers.
