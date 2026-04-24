@@ -2,12 +2,12 @@
 @llvm.global_ctors = appending global [1 x { i32, ptr, ptr }] [{ i32, ptr, ptr } { i32 65535, ptr @_GLOBAL__sub_I_showcase_09_lp_vertex_typed_constant.cpp, ptr null }]
 
 ; Function Attrs: mustprogress nofree noinline norecurse nosync nounwind ssp willreturn memory(none) uwtable
-define noundef i64 @impress_lp_optimum_x() local_unnamed_addr #0 {
+define noundef i64 @witness_lp_optimum_x() local_unnamed_addr #0 {
   ret i64 2
 }
 
 ; Function Attrs: mustprogress nofree noinline norecurse nosync nounwind ssp willreturn memory(none) uwtable
-define noundef i64 @impress_lp_optimum_y() local_unnamed_addr #0 {
+define noundef i64 @witness_lp_optimum_y() local_unnamed_addr #0 {
   ret i64 2
 }
 

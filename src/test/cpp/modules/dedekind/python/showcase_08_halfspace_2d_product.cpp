@@ -57,7 +57,7 @@ static_assert(!IsCompileTimeEnumerable<decltype(box)>);
  *
  * Expected IR: `ret i1 true` — point (0, 5) lies in the box.
  */
-extern "C" __attribute__((noinline)) bool impress_2d_box_member() {
+extern "C" __attribute__((noinline)) bool witness_2d_box_member() {
   using Logic = typename decltype(box)::logic_species;
   return box(std::pair{0, 5}) == Logic::True;
 }

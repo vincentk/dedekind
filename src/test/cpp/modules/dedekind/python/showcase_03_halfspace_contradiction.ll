@@ -2,7 +2,7 @@
 @llvm.global_ctors = appending global [1 x { i32, ptr, ptr }] [{ i32, ptr, ptr } { i32 65535, ptr @_GLOBAL__sub_I_showcase_03_halfspace_contradiction.cpp, ptr null }]
 
 ; Function Attrs: mustprogress nofree noinline norecurse nosync nounwind ssp willreturn memory(none) uwtable
-define noundef zeroext i1 @impress_empty_halfspace_meet() local_unnamed_addr #0 {
+define noundef zeroext i1 @witness_empty_halfspace_meet() local_unnamed_addr #0 {
   ret i1 false
 }
 

@@ -54,6 +54,6 @@ static_assert(empty_diagonal_cut(R2Point{2.0, 2.0}) == R2Logic::False);
  *
  * Expected IR: `ret i1 false`
  */
-extern "C" __attribute__((noinline)) bool impress_empty_diagonal_cut() {
+extern "C" __attribute__((noinline)) bool witness_empty_diagonal_cut() {
   return empty_diagonal_cut(R2Point{6.0, 6.0}) == R2Logic::True;
 }

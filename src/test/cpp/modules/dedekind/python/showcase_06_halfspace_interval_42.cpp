@@ -63,7 +63,7 @@ static_assert(!IsCompileTimeEnumerable<decltype(iv)>);
  *
  * Expected IR: `ret i1 true` — inhabitant 0 is a member.
  */
-extern "C" __attribute__((noinline)) bool impress_interval_42_member() {
+extern "C" __attribute__((noinline)) bool witness_interval_42_member() {
   using Logic = typename decltype(iv)::logic_species;
   return iv(0) == Logic::True;
 }
