@@ -155,7 +155,10 @@ struct VertexCandidate {
  */
 template <typename T>
 constexpr bool is_singular(const T& det) {
-  if constexpr (requires { det.val; det.der; }) {
+  if constexpr (requires {
+                  det.val;
+                  det.der;
+                }) {
     // Dual-like carrier: primal-only check.
     return det.val == decltype(det.val){};
   } else {
