@@ -16,6 +16,12 @@
 \usepackage{amsmath, amssymb, amsthm} % Essential math tools
 \usepackage{mathtools}
 \usepackage{mathrsfs}
+
+% Theorem environments (amsthm is loaded above).
+\newtheorem{theorem}{Theorem}
+\newtheorem{definition}{Definition}
+\newtheorem{corollary}{Corollary}
+\newtheorem{proposition}{Proposition}
 \usepackage{graphicx}                  % Support for images
 \usepackage{hyperref}                  % Clickable links & cross-refs
 \usepackage{booktabs}                  % High-quality tables
@@ -169,7 +175,16 @@ differentiation as a sibling compile-time reduction in the sense of
 Elliott~\cite{elliott2018simple}. Both reductions share a single mechanism:
 the feasible polytope is a set-as-predicate, finite vertex candidates enumerate
 as pairs of binding constraints, and objective-directed argmax collapses the
-candidate set to a singleton.
+candidate set to a singleton. The same discipline extends to polynomial
+calculus: the Fundamental Theorem of Calculus (Part~II) is discharged at
+translation time, with the compiler running the trapezoidal quadrature
+against a closed-form antiderivative and concluding inside a
+\lstinline{static_assert}.
+
+The thesis this paper argues, in a single sentence:
+\emph{named algebraic structure at the type level, discharged by the
+compiler, narrows the gap between abstract mathematics and machine
+code without a separate proof assistant.}
 \end{abstract}
 
 \tableofcontents
@@ -200,10 +215,13 @@ those that do not. Haskell type classes~\cite{GHC2024} and
 dependently-typed languages such as Coq and Agda~\cite{norell2007towards}
 demonstrate the expressiveness; both impose runtime or toolchain costs
 that are hard to justify when the library's consumers are writing systems
-code. C++23 now offers a pragmatic middle ground: concepts check
-structural membership at compile time without nominal declarations,
-non-type template parameters let lambdas appear in type signatures, and
-named modules enforce a strict directed-acyclic build graph. The compiler
+code. C++23 now offers a pragmatic middle ground: \emph{concepts} (the
+compile-time analogue of Haskell type classes) check structural
+membership at compile time without nominal declarations, \emph{non-type
+template parameters} (NTTPs---template arguments that are values, not
+types) let lambdas and other compile-time data appear in type
+signatures, and \emph{named modules} enforce a strict directed-acyclic
+build graph. The compiler
 becomes both a \emph{verification gate}---violating an algebraic law is a
 type error, not a runtime exception---and an \emph{optimization
 engine}---the LLVM backend exploits the structural knowledge inherited
@@ -212,14 +230,91 @@ from the discharged proof obligations.
 Our posture is explicit: \texttt{dedekind} is a systems-programming
 library that treats mathematical concepts as first-class compile-time
 objects. The library is implemented in C++23, and the compile-time
-concept machinery is its primary interface, not a Python or notebook
-layer grafted on top. Python bindings exist as an optional facade, but
-they are not what the library is for; the consumer we design for is
-another C++ author who would otherwise bolt ad-hoc structure onto
-unverified numeric types. Choosing to land the semantics at the
+concept machinery is its primary interface; the consumer we design
+for is another C++ author who would otherwise bolt ad-hoc structure
+onto unverified numeric types. Choosing to land the semantics at the
 compile-time layer---rather than as runtime abstractions, or as a DSL
 lowered to a runtime solver---is a design commitment that shapes what
 the compiler can do for the user and what it cannot.
+
+\paragraph{Thesis.} In one sentence: \emph{named algebraic structure
+at the type level, discharged by the compiler, narrows the gap
+between abstract mathematics and machine code without a separate
+proof assistant.} Every section of the paper serves that sentence.
+Sets-as-rules, intensional-first, computability-tier collapse, the
+LP and AD and FTC reductions---these are the \emph{means} by which
+the thesis is discharged, and the mechanical witnesses
+(\lstinline{static_assert}s and IR fixtures) are the evidence that
+it is discharged in practice.
+
+\paragraph{What is new.}
+Compile-time verification of algebraic structure is not new in the
+abstract. Agda and Coq host it natively; Liquid Haskell attaches
+refinement predicates to types; C++ template-metaprogramming traditions
+(most visibly Boost.Hana~\cite{chagnon2016hana} and
+CTRE~\cite{dusikova2018ctre}) have demonstrated type-level computation
+at scale for over a decade; autodiff libraries such as
+Ceres-Solver~\cite{ceres-solver} and ENOKI~\cite{jakob2019enoki} have
+carried fragments of the dual-number story into production C++. What
+\emph{is} new, we claim, is that the full technique---named algebraic
+structure, discharged by the compiler, with the LLVM backend carrying
+the discharge through to optimised machine code---is now available,
+today, in standard C++23, without a proof assistant, a custom type
+checker, or a bespoke language extension. \texttt{dedekind} is the
+existence proof. The viewpoint on which it rests we name
+\emph{Axiomatic Systems Programming}: a nascent engineering discipline
+of practising, not merely describing, type-level structural verification
+in mainstream compiled code. The discipline can be lifted, with modest
+adjustment, to any language whose type system can name a predicate
+over compile-time data and check it mechanically (concepts-style
+Java/C\#, strictly-typed Python, the relevant parts of Rust). The
+contribution of this paper is the first rigorous articulation of that
+discipline, together with a worked library that discharges its claims
+mechanically.
+
+\paragraph{The compiler as a poor man's theorem prover.}
+A pedagogical framing that runs through this paper: we are using
+\texttt{clang++} as a poor man's theorem prover. The compiler is not
+searching for proofs---it has no tactic language, no resolution
+procedure, no proof assistant in the loop. What it \emph{does} have is
+a type system strong enough to name a predicate, a
+\lstinline{static_assert} strong enough to discharge it, and an LLVM
+backend that will happily remove what has already been decided. The
+library author supplies narrow, mechanically checkable proof
+obligations; the compiler discharges them; the optimiser then deletes
+the code that would have re-checked them at runtime. As a welcome side
+effect, the same machinery produces a family of composable library
+combinators (set meets, cuts, halfspaces, LP reductions) whose laws are
+verified at translation time and whose trivial cases collapse to zero
+instructions.
+
+Most of what follows is therefore \emph{not} specific to C++. Concepts
+have close analogues in Java (sealed types plus generic constraints),
+C\# (constrained generics, augmented by Roslyn source generators and
+analysers), and Python (PEP~484 type hints under a strict
+\texttt{mypy}/\texttt{pyright} pass). Any language whose type system
+can name a predicate over compile-time data and check it mechanically
+is a candidate host for the same technique. What C++23 contributes on
+top is the LLVM backend sitting downstream of the type checker:
+discharged proofs do not only \emph{verify}, they also \emph{optimise},
+and the connection between the two is what lets the LP vertex collapse
+to a literal return rather than to a skipped runtime check.
+
+\paragraph{What this buys, concretely.} From one underlying idea
+(``name the structure in the type, let the compiler discharge the
+laws'') and a small handful of primitives (concepts, NTTP-carried
+predicates, halfspaces, cuts), the library builds up, at compile time:
+a numeric tower ($\mathbb{N}$, $\mathbb{Z}$, $\mathbb{Q}$,
+$\mathbb{R}$ via Dedekind cuts, $\mathbb{C}$, dual numbers); a small
+linear-algebra layer (\texttt{Vec2}, \texttt{Invertible2x2} with
+closed-form Cramer inverse); a calculus layer (numerical,
+polynomial-symbolic, and dual-number forward AD, each a realisation of
+Elliott's $(f, f')$ product); and an optimisation layer (the LP vertex
+enumerator of Section~\ref{sec:lp-centrepiece}). No runtime solver
+ships with any of it. The breadth is part of the contribution: the
+technique scales from a single ring concept all the way up to an LP
+whose optimum is a \lstinline{static_assert}-checked literal in the
+emitted object file.
 
 \paragraph{A worked example in advance.}
 Section~\ref{sec:lp-centrepiece} presents the paper's centrepiece: a
@@ -234,8 +329,14 @@ ring (Section~\ref{sec:ad-elliott}) additionally recovers exact
 sensitivity analysis, recognising forward-mode automatic differentiation
 as a sibling compile-time reduction in the sense of
 Elliott~\cite{elliott2018simple}. Both reductions are witnessed by
-\lstinline{static_assert} at instantiation and by checked-in LLVM~IR
-fixtures that fail CI on optimiser drift.
+\lstinline{static_assert} (C++'s compile-time assertion---if the
+predicate is false, the program fails to build) at instantiation and by
+checked-in LLVM~IR fixtures that fail CI on optimiser drift. A third,
+smaller showcase (Section~\ref{sec:poly-ftc}) lifts the same discipline
+to polynomial calculus: the formal derivative of a rational polynomial
+is a \lstinline{static_assert}-checked identity, and the Fundamental
+Theorem of Calculus (Part~II) is discharged at translation time against
+a closed-form antiderivative.
 
 \paragraph{The three claims this paper substantiates.}
 \begin{enumerate}
@@ -246,6 +347,26 @@ fixtures that fail CI on optimiser drift.
 \end{enumerate}
 The remainder of the paper develops these three claims and demonstrates
 each by a reduction that compiles to a constant.
+
+\subsection{How to Read This Paper}
+\label{sec:how-to-read}
+
+Code and mathematics appear side by side throughout. That pairing is the
+whole point. Most of the interesting objects in this paper---Dedekind
+cuts, rings, dual numbers, polytopes, active sets, ring homomorphisms---
+have two faces: a math notation most readers have met at some point,
+and a C++ type most readers will find easier to trace. Put both on the
+page and you get a kind of binocular vision: whichever face is clearer
+for you carries the meaning, and the other face falls into place.
+
+No prior familiarity with C++23 templates or with the specific
+mathematical objects is required. When something non-obvious appears---a
+non-type template parameter, a ring homomorphism, a co-Kleisli arrow---it
+is unpacked on first use, often by showing the corresponding C++ idiom
+next to the math definition and inviting the reader to read them as two
+names for the same thing. If you are at home with Haskell's type classes,
+Agda's dependent types, or Coq's proof terms, many of the moves will feel
+familiar; if not, the C++ side is the on-ramp.
 
 \subsection{Paper Structure}
 
@@ -456,22 +577,25 @@ defers materialization to an explicit realization boundary.
 
 \subsection{The Tension: Abstract Naturals vs.\ IEEE Numerics}
 
-The motivating tension is the mismatch between the mathematical naturals $\mathbb{N}$ and
-the machine integers that implement them.
+Here is the tension in one sentence: the \texttt{int} in your source
+file is not the $\mathbb{Z}$ in your textbook, and everybody quietly
+agrees to pretend it is. The ring $\mathbb{Z}$ obeys a few laws:
 
-The ring $\mathbb{Z}$ of integers satisfies:
 \begin{itemize}
   \item Associativity of addition: $(a + b) + c = a + (b + c)$.
   \item Existence of additive inverse: $\forall a,\, \exists -a$ such that $a + (-a) = 0$.
   \item No upper or lower bound.
 \end{itemize}
-A 32-bit signed \texttt{int} satisfies \emph{none} of these exactly:
-addition overflows, negation of \texttt{INT\_MIN} is undefined behavior, and the
-representable range is finite.
 
-IEEE~754 \texttt{double}~\cite{ieee754_2019} is even further from any abstract field:
-addition is non-associative due to rounding, and the special values \texttt{NaN}
-and $\pm\infty$ break the law of excluded middle.
+A 32-bit signed \texttt{int} obeys \emph{none} of them exactly: addition
+overflows, negation of \texttt{INT\_MIN} is undefined behaviour, and the
+representable range is finite. IEEE~754 \texttt{double}~\cite{ieee754_2019}
+is further out still: addition is non-associative because rounding
+happens every step, and \texttt{NaN} and $\pm\infty$ puncture the law of
+excluded middle in the exact way Section~\ref{sec:sets-rules} will ask
+the subobject classifier $\Omega$ to repair. A generic algorithm that
+silently assumes the ring laws on these carriers is, in the literal
+technical sense, wrong---it just happens not to be wrong on most inputs.
 
 \texttt{dedekind} encodes these divergences explicitly in the \texttt{:species} trait registry:
 
@@ -502,14 +626,20 @@ chooses which policy to apply.
 \subsection{Dedekind Cuts as the Canonical Example}
 \label{sec:dedekind-cuts}
 
-The library's namesake---Dedekind cuts---is the canonical illustration.
-A real number $r \in \mathbb{R}$ is represented as a pair of intensional sets
-$(L, U)$ where $L = \{q \in \mathbb{Q} \mid q < r\}$ and
-$U = \{q \in \mathbb{Q} \mid q \geq r\}$.
-This is entirely symbolic: no floating-point approximation is involved until the
-programmer requests a concrete rational bound.
+Here is Dedekind's move, the library's namesake. To name a real number,
+don't try to write it down. Instead, partition the rationals into those
+strictly below it and those at or above it. That partition \emph{is} the
+number. You don't need to compute the real; you just need to be able to
+tell, for any rational, which side it lands on. Formally,
+$r \in \mathbb{R}$ is the pair $(L, U)$ with
+\(L = \{q \in \mathbb{Q} \mid q < r\}\) and
+\(U = \{q \in \mathbb{Q} \mid q \geq r\}\).
 
-\begin{lstlisting}[language=C++, caption={The Euler number $e$ as an intensional lower cut over $\mathbb{Q}$.}, label={lst:euler}]
+The construction translates directly: the two sets are type-level
+predicates, and \emph{the predicate is the number}. To name Euler's
+constant, encode the rational-dominance fact that $e = \sum_{n \geq 0} 1/n!$:
+
+\begin{lstlisting}[language=C++, caption={The Euler number $e$ as an intensional lower cut over $\mathbb{Q}$. The predicate is the number.}, label={lst:euler}]
 // Representing e via the series predicate:
 //   e = sum_{n=0}^{inf} 1/n!
 // The lower cut L_e = { q in Q | q < e }
@@ -523,9 +653,49 @@ using LowerCut_e = Set<Rational, [](Rational q) {
 static_assert(cut_less_than<LowerCut_e, LowerCut_pi>);
 \end{lstlisting}
 
-The \lstinline{static_assert} succeeds because the cuts are formally disjoint subsets
-of $\mathbb{Q}$ by their predicates, not because any floating-point approximation has been
-compared.
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[scale=1.3]
+  % Number line
+  \draw[->, thick] (-0.4, 0) -- (5.5, 0) node[right] {$\mathbb{Q}$};
+  \foreach \x/\l in {0/0, 1/1, 2/2, 3/3, 4/4, 5/5} {
+    \draw (\x, -0.08) -- (\x, 0.08);
+    \node[below] at (\x, -0.12) {\small $\l$};
+  }
+  % The cut at e (approximately 2.718)
+  \draw[thick, red, dashed] (2.718, -0.75) -- (2.718, 1.0);
+  \node[red, above] at (2.718, 1.0) {$e$};
+  % Lower set L_e
+  \draw[blue, line width=2.5pt, opacity=0.45] (-0.25, 0.4) -- (2.718, 0.4);
+  \node[blue, above] at (1.2, 0.45) {\small $L_e = \{\, q \in \mathbb{Q} \mid q < e \,\}$};
+  % Upper set U_e
+  \draw[orange, line width=2.5pt, opacity=0.55] (2.718, -0.4) -- (5.3, -0.4);
+  \node[orange, below] at (4.0, -0.45) {\small $U_e = \{\, q \in \mathbb{Q} \mid q \geq e \,\}$};
+  % Sample rationals
+  \foreach \x in {0, 1, 2, 2.5, 2.7} { \fill[blue] (\x, 0.4) circle (1.4pt); }
+  \foreach \x in {2.75, 3, 4, 5} { \fill[orange] (\x, -0.4) circle (1.4pt); }
+\end{tikzpicture}
+\caption{A Dedekind cut names $e$ by partitioning $\mathbb{Q}$.
+The lower half $L_e$ (blue) and upper half $U_e$ (orange) are both
+compile-time predicates. In \texttt{dedekind}, the real number
+\emph{is} the partition: no approximation is stored, no arithmetic
+has been performed, and the compiler can still compare $e < \pi$ by
+comparing the cuts structurally.}
+\label{fig:dedekind-cut}
+\end{figure}
+
+Notice what \emph{hasn't} happened. No floating-point approximation of
+$e$ has been computed. No series has been summed. The comparison
+$e < \pi$ has not touched a single arithmetic instruction. The
+\lstinline{static_assert} succeeds because the two cuts are disjoint
+subsets of $\mathbb{Q}$ by their predicates, and the compiler can see
+that disjointness at translation time. Approximation is available later,
+when the programmer asks for it at a specific rational bound. Not before.
+
+This is the intensional-first rule applied to the slipperiest objects
+in elementary mathematics. A real number named as a predicate can have
+its realisation deferred indefinitely, without losing the ability to
+reason about it.
 
 % ============================================================
 \section{Sets Are Rules, Not Buckets}
@@ -534,19 +704,23 @@ compared.
 
 \subsection{The Comprehension View}
 
-In \texttt{dedekind}, a set is not a heap-allocated container of values---a \emph{bucket}---but a
-\emph{rule}: a predicate $P : A \to \Omega$ over an \emph{ambient species} $A$, where $\Omega$ is a
-subobject classifier (classical \texttt{bool}, Kleene K3, or another registered logic).
-The set
+Here is the move. A set is not a bucket. A set is a rule:
 \[
-  S = \{x \in A \mid P(x)\}
+  S = \{x \in A \mid P(x)\}.
 \]
-exists as a compile-time type.  No elements are stored or enumerated until the programmer
-explicitly requests materialization.
+The right-hand side is the definition most mathematicians write down first and then
+silently forget, reaching instead for a list or a \texttt{std::vector}. In
+\texttt{dedekind} we take that right-hand side literally. The set $S$ is the
+\emph{type} whose inhabitants are elements of the ambient species $A$ satisfying
+$P$. Nothing is enumerated, nothing is allocated, nothing is stored. The
+predicate \emph{is} the set.
 
-This is the set-builder, or \emph{comprehension}, representation advocated by Lawvere's ETCS
-framework~\cite{lawvere1964etcs, lawvere2003sets}: set objects are defined by their membership
-predicates and universal properties, not by extensional storage.
+That shift---what Lawvere called the comprehension view~\cite{lawvere1964etcs,
+lawvere2003sets}---is the one idea this section needs. Once you accept it,
+everything downstream (intersection, complement, emptiness, pruning) falls out
+as predicate algebra. The subobject classifier $\Omega$ becomes a knob you can
+turn: classical \texttt{bool} for exact domains, Kleene K3 for floats, anything
+else you can register.
 
 \begin{lstlisting}[language=C++, caption={A set as a compile-time predicate type.}, label={lst:settype}]
 // ambient_set<T>(P) creates the intensional set {x in T | P(x)}.
@@ -562,7 +736,8 @@ bool c = even_gt_ten.contains(7);   // false
 
 \subsection{Set Operations as Predicate Composition}
 
-Because sets are predicates, set operations are predicate combinators:
+If a set is a predicate, a set operation is whatever operation you would apply to
+the predicates. The dictionary writes itself:
 
 \begin{align*}
   S_1 \cap S_2 &\triangleq \{x \in A \mid P_1(x) \land P_2(x)\} \\
@@ -570,9 +745,10 @@ Because sets are predicates, set operations are predicate combinators:
   \overline{S_1}  &\triangleq \{x \in A \mid \neg P_1(x)\}
 \end{align*}
 
-These combinators are composed \emph{entirely at compile time}; the resulting predicate
-is a new type, not a new runtime object.
-The compiler can therefore reason about it before any program execution occurs.
+Every operation on the left is an operation on $\Omega$ on the right. Intersection
+is conjunction; union is disjunction; complement is negation. No values are touched,
+because there are no values yet. The combinators compose at compile time and produce
+a new type---a new rule---which the compiler is then free to inspect.
 
 \begin{lstlisting}[language=C++, caption={Set intersection as type-level predicate conjunction.}, label={lst:intersection}]
 // Two intensional sets over int:
@@ -588,19 +764,28 @@ using PrimesAndEvens = Intersection<Primes, Evens>;
 \end{lstlisting}
 
 \subsection{The Subobject Classifier $\Omega$}
-The ambient logic $\Omega$ is a pluggable type parameter.
-Classical Boolean logic ($\Omega = \{\top, \bot\}$) is the default.
-For floating-point domains, \texttt{dedekind} provides a Kleene K3 logic
-($\Omega = \{-1, 0, +1\}$) in which the \texttt{NaN} singularity maps to the
-\emph{Unknown} truth value, cleanly restoring the law of excluded middle:
-$P \lor \neg P = \mathit{Unknown}$ is not a paradox in K3.
 
-This pluggability is what allows the same set-builder infrastructure to model both
-exact integer domains (classical logic) and floating-point approximation domains
-(Kleene logic) without changing the API surface.
+Here is what $\Omega$ is doing for us. A predicate $P : A \to \Omega$ maps ambient
+elements to \emph{truth values}, and $\Omega$ is the type those truth values live
+in. Change $\Omega$, and you change what counts as membership.
+
+The default is the one every programmer expects: $\Omega = \{\top, \bot\}$,
+classical two-valued logic. Plug it in and you get ordinary set theory.
+
+Swap it for Kleene K3---$\Omega = \{-1, 0, +1\}$---and something more interesting
+happens. The extra value is \emph{Unknown}, and it is where \texttt{NaN} lives.
+In classical logic, $P \lor \neg P = \top$ is a theorem; with \texttt{NaN} in
+play, that theorem quietly breaks, because neither $x < \texttt{NaN}$ nor
+$x \geq \texttt{NaN}$ is true. In K3, $P \lor \neg P = \mathit{Unknown}$ is a
+calm, unremarkable identity. The paradox was never in the floats; it was in our
+choice of $\Omega$.
+
+That is the payoff: the same comprehension machinery handles exact domains
+(pick classical $\Omega$) and floating-point domains (pick K3) with no change to
+the API. The logic is a parameter.
 
 % ============================================================
-\section{Compile-Time Reductions: From Set Pruning to Linear Programming}
+\section{Compile-Time Reductions: From Set Pruning to Optimisation and Calculus}
 \label{sec:pruning}
 % ============================================================
 
@@ -794,15 +979,19 @@ integer lattice intersected with real-valued bounds (showcase~7), and
 \subsection{Linear Programming: The Optimum as a Typed Constant}
 \label{sec:lp-centrepiece}
 
-Set-comprehension pruning reduces a compound set \emph{to} a simpler set;
-the same compile-time machinery, applied under an ordering, reduces a
-set \emph{to a singleton}. The canonical instance is linear programming:
-the polytope is an intersection of halfspace predicates (already a set in
-the comprehension view); the objective is a linear functional; the
-optimum is the vertex that maximises the objective over the feasible
-region. When the problem instance is named at the type level, the
-optimum becomes a typed constant at translation time---the solver is the
-compiler.
+Stare at a linear program for a moment. The polytope is an intersection
+of halfspaces---a set, in exactly the comprehension sense of
+Section~\ref{sec:sets-rules}. The objective is a linear functional. The
+optimum is the one vertex of the polytope at which the objective is
+largest.
+
+The previous section's reductions collapsed a set to a simpler set. An
+optimum is also a collapse: it reduces a set to a single point. The move
+of this section is to lift that collapse into the type system. If every
+halfspace and every objective coefficient is named at the type level,
+the compiler has enough information to enumerate the vertices, run the
+feasibility checks, compare the objective values, and emit the winner
+as a literal. The LP solver is the C++ compiler.
 
 \paragraph{Showcase~9 (centrepiece).} Consider a textbook LP:
 \begin{align*}
@@ -811,12 +1000,63 @@ compiler.
                           & 2x + y \leq 6 \\
                           & x, y \geq 0
 \end{align*}
-The feasible region is a polygon in $\mathbb{Q}^2$; the optimum is the
-vertex $(2, 2)$ where the non-axis-aligned constraints $x + y = 4$ and
+The feasible region is a polygon in $\mathbb{Q}^2$
+(Figure~\ref{fig:lp-polytope}); the optimum is the vertex
+$(2, 2)$ where the non-axis-aligned constraints $x + y = 4$ and
 $2x + y = 6$ are simultaneously binding (objective value $10$). In
 \texttt{dedekind.optimization:lp}, constraints are NTTPs and the
 reduction is a variadic template whose output carries the vertex at the
 type level:
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[scale=0.85]
+  % Axes
+  \draw[->, thick] (-0.3, 0) -- (5.3, 0) node[right] {$x$};
+  \draw[->, thick] (0, -0.3) -- (0, 5.5) node[above] {$y$};
+  % Gridlines
+  \draw[gray, very thin, opacity=0.5] (0, 0) grid (5, 5);
+  \foreach \i in {1,2,3,4,5} {
+    \node[below left, font=\scriptsize] at (\i, 0) {$\i$};
+    \node[below left, font=\scriptsize] at (0, \i) {$\i$};
+  }
+  % Feasible region: polygon (0,0)-(3,0)-(2,2)-(0,4)
+  \fill[blue!18] (0,0) -- (3,0) -- (2,2) -- (0,4) -- cycle;
+  \draw[blue!40!black, thick] (0,0) -- (3,0) -- (2,2) -- (0,4) -- cycle;
+  % The two non-trivial constraint boundaries (extended past feasible region)
+  \draw[green!50!black, dashed, thick] (-0.1, 4.1) -- (4.5,-0.4)
+    node[pos=0.92, below right, font=\small] {$x+y=4$};
+  \draw[red!60!black, dashed, thick] (-0.1, 6.2) -- (3.4, -0.8)
+    node[pos=0.92, below right, font=\small] {$2x+y=6$};
+  % Objective level line through the optimum: 3x+2y=10 passes through (2,2) and (0,5)
+  \draw[violet!70!black, dotted, thick] (-0.1, 5.15) -- (3.5, -0.25)
+    node[pos=0.08, above right, font=\small] {$3x+2y=10$};
+  % Feasible vertices
+  \fill[black] (0,0) circle (2.5pt);
+  \fill[black] (3,0) circle (2.5pt);
+  \fill[black] (0,4) circle (2.5pt);
+  % Highlight the optimum
+  \fill[red] (2,2) circle (3.5pt);
+  \draw[red, thick] (2,2) circle (6pt);
+  % Vertex labels with objective values
+  \node[below left, font=\small] at (0,0) {$(0,0)\!:\!0$};
+  \node[below right, font=\small] at (3,0) {$(3,0)\!:\!9$};
+  \node[above left, font=\small] at (0,4) {$(0,4)\!:\!8$};
+  \node[above right, font=\small, red] at (2.1,2.05) {$\mathbf{(2,2)\!:\!10}$};
+  % Objective direction arrow
+  \draw[->, thick, violet!80!black] (4.0, 3.2) -- (4.6, 3.6);
+  \node[violet!80!black, font=\small] at (4.3, 2.95) {$c = (3,2)$};
+\end{tikzpicture}
+\caption{The feasible polygon of Showcase~9. Vertices are labelled
+with the objective value $3x + 2y$ at each. The active-set
+enumeration considers all $\binom{4}{2} = 6$ pairs of constraints;
+four pairs produce feasible intersections, and the optimum is the one
+vertex (red) where both non-axis-aligned constraints
+$H_1\colon x+y\leq 4$ and $H_2\colon 2x+y\leq 6$ bind simultaneously.
+At translation time the compiler performs this enumeration; the
+emitted binary contains only the literal coordinates of $(2,2)$.}
+\label{fig:lp-polytope}
+\end{figure}
 
 \begin{lstlisting}[language=C++, caption={Compile-time LP: the optimum IS a type. From \texttt{showcase\_09\_lp\_vertex\_typed\_constant.cpp}.}, label={lst:lp-centrepiece}]
 using Rat = Rational<long>;
@@ -868,28 +1108,28 @@ compile-time data.
 \subsection{Forward-Mode AD as a Sibling Realisation of Compile-Time Derivatives}
 \label{sec:ad-elliott}
 
-Running the same LP reduction over the \emph{dual numbers}
-$\mathbb{Q}[\varepsilon]/(\varepsilon^2)$ instead of $\mathbb{Q}$
-produces the optimum and its sensitivity to a perturbed parameter as
-one typed constant---no separate derivative pass, no re-solve of the
-LP, no finite-difference approximation. The chain rule has already run
-as the ring arithmetic during the Cramer solve.
+Now swap the ring. Re-run the same LP reduction, but over
+$\mathbb{Q}[\varepsilon]/(\varepsilon^2)$ instead of $\mathbb{Q}$. Out
+the other end comes the optimum \emph{and} its derivative with respect
+to a chosen input---as one typed constant. No separate derivative
+pass, no finite differences, no re-solve. The chain rule has already
+run, quietly, as the arithmetic inside the Cramer solve.
 
-We follow Elliott's framing~\cite{elliott2018simple}: forward-mode
-automatic differentiation is the product $(f, f')$ with chain-rule
-composition, not the ``dual number'' object \emph{per se}. Dual numbers
-are one realisation of the $(\text{value}, \text{tangent})$ product in
-which $\varepsilon^2 = 0$ makes the chain rule a theorem of the ring
-structure. The \texttt{dedekind} library already ships two other
-realisations of the same abstract derivative:
-\texttt{dedekind.analysis:ftc::derivative\_at} (numerical central
-difference) and
-\texttt{dedekind.algebra:polynomial::RigPolynomial::derive} (exact
-formal polynomial derivative). \texttt{Dual<F>} is the representation
-that lives at the type level: its primal and tangent are structural
-fields, so \texttt{Dual<Rational<long>>} can appear as \texttt{T} in
-any NTTP-parameterised carrier, including the LP's
-\texttt{Halfspace2D<T, a, b, c>}.
+The framing is Elliott's~\cite{elliott2018simple}: forward-mode AD is
+the product $(f, f')$ carrying the chain rule on its back, not the
+``dual number'' object \emph{per se}. Dual numbers are simply the
+realisation of the $(\text{value}, \text{tangent})$ product in which
+$\varepsilon^2 = 0$ makes the chain rule fall out of the ring laws.
+Seen that way, \texttt{dedekind} has been shipping derivatives all
+along: \texttt{dedekind.analysis:ftc::derivative\_at} computes the same
+abstract derivative numerically (central difference), and
+\texttt{dedekind.algebra:polynomial::RigPolynomial::derive} computes it
+symbolically (exact formal derivative). The new object,
+\texttt{Dual<F>}, is the representation that lives at the type level:
+its primal and tangent are structural fields, so
+\texttt{Dual<Rational<long>>} slots into any NTTP-parameterised carrier
+---including the LP's \texttt{Halfspace2D<T, a, b, c>}---without
+special-casing.
 
 \paragraph{Showcase: parametric LP sensitivity.} Perturb $H_1$'s bound
 by $\varepsilon$---replace $x + y \leq 4$ with $x + y \leq 4 +
@@ -930,6 +1170,175 @@ construction (every intermediate carrier satisfies the
 Holomorphic automatic differentiation at compile time is a direct
 consequence; we leave its application to a follow-up work.
 
+\subsection{Linear Algebra: \texorpdfstring{$\mathbb{C}$ and $\mathbb{D}$}{ℂ and 𝔻} as Subrings of \texorpdfstring{$M_2(\mathbb{Q})$}{M₂(ℚ)}}
+\label{sec:lin-alg-embedding}
+
+One more sibling, from a slightly different angle. The LP reduction
+of Section~\ref{sec:lp-centrepiece} used a $2 \times 2$ linear
+algebra layer (\lstinline{Vec2}, \lstinline{Invertible2x2}) inside the
+Cramer solve; the same layer supports something cleaner to exhibit---
+the compiler verifying an algebraic identity between \emph{scalars}
+and \emph{matrices}.
+
+Two classical embeddings sit in the library: the complex number
+$a + bi$ lifts to a rotation-scaling $2 \times 2$ matrix, and the
+dual number $a + b\varepsilon$ lifts to a shear $2 \times 2$
+matrix:
+\[
+  \mathbb{C} \hookrightarrow M_2(\mathbb{Q}) : \quad
+  a + bi \;\mapsto\; \begin{pmatrix} a & -b \\ b & a \end{pmatrix},
+  \qquad\qquad
+  \mathbb{D} \hookrightarrow M_2(\mathbb{Q}) : \quad
+  a + b\varepsilon \;\mapsto\; \begin{pmatrix} a & b \\ 0 & a \end{pmatrix}.
+\]
+Read left-to-right, these are two sentences in one breath. Read
+side-by-side, they tell a story: the complex-plane rotation that
+makes $i^2 = -1$ happen, and the shear that makes $\varepsilon^2 = 0$
+happen, are the same \emph{kind} of move---a scalar ring embedded in
+a matrix ring by a ring homomorphism $\phi$ satisfying
+\(\phi(xy) = \phi(x)\,\phi(y)\) and $\phi(x + y) = \phi(x) + \phi(y)$.
+The library claims these identities at the type level, and the
+compiler discharges them.
+
+\paragraph{Showcase~12 --- both homomorphisms, both over $\mathbb{Q}$.}
+The exact carrier is \lstinline{Rational<long>}, so all the identities
+are bit-perfect; no tolerance, no rounding:
+
+\begin{lstlisting}[language=C++, caption={Ring-homomorphism identities for $\mathbb{C}$ and $\mathbb{D}$ into $M_2(\mathbb{Q})$, both discharged as \lstinline{static_assert}s. From \texttt{embeddings\_test.cpp}.}, label={lst:lin-alg-embeddings}]
+using Rat = Rational<long>;
+
+// Complex numbers as 2x2 rotation-scaling matrices.
+constexpr Complex<Rat> z{Rat{1L}, Rat{2L}};
+constexpr Complex<Rat> w{Rat{3L}, Rat{-5L}};
+static_assert(as_matrix2x2(z + w) == as_matrix2x2(z) + as_matrix2x2(w));
+static_assert(as_matrix2x2(z * w) == as_matrix2x2(z) * as_matrix2x2(w));
+
+// Dual numbers as 2x2 shear matrices.
+constexpr Dual<Rat> d{Rat{2L}, Rat{3L}};
+constexpr Dual<Rat> e{Rat{-1L}, Rat{5L}};
+static_assert(as_matrix2x2(d + e) == as_matrix2x2(d) + as_matrix2x2(e));
+static_assert(as_matrix2x2(d * e) == as_matrix2x2(d) * as_matrix2x2(e));
+
+// The defining relation \epsilon^2 = 0 lifts cleanly.
+constexpr Dual<Rat> eps{Rat{0L}, Rat{1L}};
+static_assert(as_matrix2x2(eps) * as_matrix2x2(eps) == zero_matrix2x2_v<Rat>);
+\end{lstlisting}
+
+The \lstinline{eps * eps} assertion is the one that lands the
+pedagogical point. The defining relation of $\mathbb{D}$ is
+$\varepsilon^2 = 0$; transported through the matrix embedding, it
+becomes $\left(\begin{smallmatrix} 0 & 1 \\ 0 & 0 \end{smallmatrix}\right)^2 =
+\left(\begin{smallmatrix} 0 & 0 \\ 0 & 0 \end{smallmatrix}\right)$,
+an elementary fact of matrix arithmetic. The compiler checks both
+sides and agrees: the algebraic relation downstairs and the matrix
+relation upstairs are the same fact. That equivalence, free of
+narration, is the point.
+
+\subsection{Polynomials and the Fundamental Theorem, Verified at Compile Time}
+\label{sec:poly-ftc}
+
+Turn the same lens on calculus. A polynomial is a sequence of
+coefficients, so ``differentiate this polynomial'' is an operation on
+sequences---shift down one exponent, multiply each coefficient by its
+old exponent. The operation is exact, runs entirely in the underlying
+ring, and the answer is itself a polynomial. If the polynomial lives at
+the type level (or as a \lstinline{constexpr} value), so does its
+derivative. The Fundamental Theorem of Calculus is a sentence in the
+same language: ``differentiation and integration are inverse, modulo a
+constant of integration,'' and we would like the compiler to verify it.
+
+\paragraph{Showcase~10 — polynomial derivative, exact.}
+\texttt{dedekind.algebra:polynomial} already ships
+\lstinline{RigPolynomial<R>::derive()} as a \lstinline{constexpr}
+method. Given $p(x) = 3x^{3} + 2x^{2} + x + 1$ over $\mathbb{Q}$, the
+library computes $p'(x) = 9x^{2} + 4x + 1$ at compile time, and the
+identity is a type-level assertion:
+
+\begin{lstlisting}[language=C++, caption={Polynomial derivative: an exact identity, discharged by the compiler. From \texttt{polynomials\_test.cpp}.}, label={lst:poly-derive}]
+using P = Polynomial<int>;
+
+// p(x)  = 3x^3 + 2x^2 + x + 1  (coefficients constant-first)
+// p'(x) = 9x^2 + 4x + 1
+static_assert(P({1, 1, 2, 3}).derive() == P({1, 4, 9}));
+static_assert(P({0, 1}).derive() == P::one());   // d/dx (x) = 1
+static_assert(P::one().derive().is_zero());       // d/dx (1) = 0
+\end{lstlisting}
+
+This is the same reduction pattern as the halfspace and LP showcases,
+applied at the polynomial carrier: the answer is not \emph{computed at
+runtime and compared to a literal}, it is \emph{the literal in the
+emitted object file}. Coefficients are exact because
+\lstinline{RigPolynomial::derive()} is a ring homomorphism, not a
+numerical approximation. The \lstinline{int} carrier in the showcase
+is the minimal witness; the same identities go through unchanged for
+\lstinline{Rational<long>}, and more generally for any
+\lstinline{IsRingLike} carrier---so a rational polynomial's derivative
+is as exact as its coefficients.
+
+Note the pattern: the polynomials are \emph{inlined} at the
+\lstinline{static_assert} call site rather than declared as
+\lstinline{constexpr} variables. The reason is a transient detail of
+C++20/23 \lstinline{constexpr}: \lstinline{std::vector} may be used
+inside a constant expression, but its storage must be released before
+that expression ends, so a namespace-scope \lstinline{constexpr}
+polynomial variable with vector-backed coefficients does not compile.
+Inlining keeps every allocation transient. Replacing the coefficient
+storage with a fixed-capacity \lstinline{std::array} would lift this
+restriction and allow a namespace-scope \lstinline{constexpr}
+polynomial variable; we leave that to a follow-up.
+
+\paragraph{Showcase~11 — FTC Part~II, numerically witnessed at compile time.}
+The Fundamental Theorem of Calculus, Part~II, says that for $f$
+continuous on $[a, b]$ with antiderivative $F$,
+\[
+  \int_{a}^{b} f(x)\,\mathrm{d}x \;=\; F(b) - F(a).
+\]
+The library's \lstinline{ftc_part_ii_bridge} is a
+\lstinline{constexpr} function that runs a trapezoidal quadrature of
+$f$ against a supplied $F$, checks the two sides agree within a
+tolerance, and returns a \lstinline{bool}. Pass it a function and its
+antiderivative as lambdas, and the compiler does the integration:
+
+\begin{lstlisting}[language=C++, caption={FTC Part~II, discharged by the compiler on a polynomial $f$ and its closed-form antiderivative $F$. From \texttt{ftc\_test.cpp}.}, label={lst:ftc-bridge}]
+// f(x) = 3x^2;  F(x) = x^3  is an antiderivative,
+// so  \int_0^2 3x^2 dx  should equal  F(2) - F(0) = 8.
+constexpr auto f = [](double x) { return 3.0 * x * x; };
+constexpr auto F = [](double x) { return x * x * x; };
+
+static_assert(ftc_part_ii_bridge<double>(f, F, 0.0, 2.0, 1e-3));
+\end{lstlisting}
+
+The \lstinline{static_assert} compiles, which means the compiler ran
+the full trapezoidal rule (default $4096$ slices), subtracted
+$F(2) - F(0)$, and confirmed the result agreed with $8.0$ within
+tolerance $10^{-3}$. As with the LP centrepiece, there is no runtime
+integration: the numerical verification of a calculus theorem happens
+during translation, and the binary contains only the literal
+\lstinline{true}.
+
+A small engineering aside that reinforces the Compiler-Wall discussion
+of Section~\ref{sec:compiler-wall}: lifting this check into
+\lstinline{static_assert} required replacing a single \lstinline{std::abs(double)}
+call with a hand-rolled \lstinline{(v < 0 ? -v : v)} inside
+\lstinline{detail::magnitude}. Libc++'s \lstinline{std::abs(double)} is
+not \lstinline{constexpr}, which is enough to block the entire
+\lstinline{close_enough} chain from compile-time evaluation. Such
+one-symbol obstructions are the texture of the wall: easy to fix once
+spotted, but invisible until a \lstinline{static_assert} exposes them.
+
+\paragraph{What the pair contributes.}
+Showcase~10 is exact-algebraic: the derivative \emph{is} a
+polynomial, and the identity is a ring-theoretic fact the compiler
+just agrees with. Showcase~11 is numerical-constructive: the
+integral is computed, by the compiler, on a concrete interval.
+Together they pin down the two faces of the derivative already
+present in the library (exact formal on polynomials, numerical on
+general functions) as siblings of the dual-number forward AD of
+Section~\ref{sec:ad-elliott}. Three realisations of $(f, f')$, each
+faithful at the level its carrier allows, and each a
+\lstinline{static_assert}-witnessed compile-time reduction in the
+sense of the present paper.
+
 \subsection{Algebraic Properties Enable Stronger Pruning}
 
 Beyond interval arithmetic, \emph{algebraic} properties of the predicates provide
@@ -951,34 +1360,93 @@ the simpler set at compile time.
 \subsection{From Cardinality Pruning to Type-Directed Collapse}
 \label{sec:gap}
 
-Earlier drafts of this section recorded cardinality-driven pruning (issue~\#348)
-as an open contribution target.
-The halfspace showcases of Section~\ref{sec:pruning} discharge that target:
-for halfspace-structured predicates over an ordered carrier, the library
-reduces $S_1 \cap S_2$ to $\varnothing$, to a \lstinline{Singleton}, or to a
-typed \lstinline{OrderInterval} with compile-time-observable cardinality, at
-translation time and without runtime support.
+Step back from the showcases for a moment. What is the pattern? In every
+one of them we started with an intensional set---a predicate---and we
+ended with a named extensional object whose \emph{type} carries the
+answer: $\varnothing$, a singleton, an order interval of known
+cardinality, an LP vertex. The collapse is not incidental; it is a
+rewrite rule, running inside the type system, at translation time. To
+make the claim precise, we first formalise ``how much the compiler
+knows about a set'' as a lattice, then state the theorem as monotone
+motion up that lattice.
 
-The resolved form is sharper than the cardinality-count version:
+\begin{definition}[Computability tier]
+\label{def:computability-tier}
+For a compile-time set $S$ over an ambient carrier $T$, the
+\emph{computability tier} is the triple
+\[
+  \mathcal{T}(S) \;=\; \bigl(\,\mathsf{R}(S),\; \mathsf{L}(S),\; \mathsf{K}(S)\,\bigr)
+  \;\in\; \{\mathrm{Int},\mathrm{Ext}\} \times \{\mathrm{K3},\mathrm{Cl}\} \times \{\mathrm{Opq},\mathrm{Elt}\}
+\]
+whose components are the \emph{representation} tier ($\mathsf{R}$:
+intensional vs.\ extensional, i.e.\ predicate vs.\ elements-in-type),
+the \emph{logic} tier ($\mathsf{L}$: Kleene three-valued vs.\
+classical two-valued membership), and the \emph{knowledge} tier
+($\mathsf{K}$: elements opaque vs.\ carried in the type). Each axis
+carries the order $\mathrm{Int} \preceq \mathrm{Ext}$,
+$\mathrm{K3} \preceq \mathrm{Cl}$,
+$\mathrm{Opq} \preceq \mathrm{Elt}$; the product order is
+componentwise. The resulting Boolean lattice $(\mathcal{T}, \preceq)$
+has bottom $\bot = (\mathrm{Int},\mathrm{K3},\mathrm{Opq})$ (``a raw
+predicate over a floating-point carrier with no inhabitants known'')
+and top $\top = (\mathrm{Ext},\mathrm{Cl},\mathrm{Elt})$ (``a named
+finite set whose members are template parameters and whose membership
+is decidable'').
+\end{definition}
 
-\begin{quote}
-  \textbf{Theorem (Type-Directed Collapse, halfspace case).}
-  Let $T$ be an ordered carrier and let $P, Q$ be halfspace predicates over
-  $T$ with pivots carried at the type level as non-type template parameters.
-  The meet $\{x \mid P(x)\} \cap \{x \mid Q(x)\}$ is resolved at compile time
-  to $\varnothing$, a \lstinline{Singleton<v>}, or an \lstinline{OrderInterval}
-  whose cardinality (when $T$ is integral) is a compile-time constant.
-  The computability classification of the result is strictly tighter than
-  that of either operand: intensional $\to$ extensional, Ternary $\to$
-  Classical, opaque $\to$ element-in-type.
-\end{quote}
+Every showcase of Section~\ref{sec:pruning} is a motion inside this
+lattice. The empty-halfspace reductions of Showcase~3 go $(\mathrm{Int},\mathrm{K3},\mathrm{Opq}) \mapsto \top$
+in one step (the result is $\varnothing$); the cardinality-1 reduction
+of Showcase~4 and the LP reduction of Showcase~9 do the same. The
+reductions never slide downward. With that in hand:
 
-This is not just a decision procedure; it is a type-level rewrite rule. The
-pattern generalizes beyond halfspaces to four independently presentable axes
-of \emph{type-directed collapse}, each tracked on the issue tracker as
-follow-on work. For each axis the paper relies on a narrow existential proof
-(one worked instance + IR fixture + compile-time witness) rather than a
-completed general framework.
+\begin{proposition}[Type-Directed Collapse, halfspace case; empirically verified]
+\label{prop:type-directed-collapse}
+Let $T$ be an ordered carrier, and let $P, Q$ be halfspace predicates
+over $T$ with pivots carried at the type level as non-type template
+parameters. The meet
+\[
+  S \;=\; \{x \in T \mid P(x)\} \,\cap\, \{x \in T \mid Q(x)\}
+\]
+is resolved by the library at compile time to one of $\varnothing$, a
+\lstinline{Singleton<v>}, or an \lstinline{OrderInterval} whose
+cardinality (when $T$ is integral) is a compile-time constant. Writing
+$S_1 = \{x \mid P(x)\}$ and $S_2 = \{x \mid Q(x)\}$, the reduction is
+monotone up the computability-tier lattice:
+\[
+  \mathcal{T}(S) \;\succeq\; \mathcal{T}(S_1) \,\lor\, \mathcal{T}(S_2),
+\]
+and strictly so on at least one axis in every case we exhibit.
+
+\smallskip
+\noindent\emph{Status of claim.} This proposition is \emph{not} proved
+inductively in the paper. It is discharged by exhibition: each case
+is checked into the library as a
+\lstinline{static_assert}/\lstinline{STATIC_CHECK} witness and, where
+relevant, as an LLVM~IR fixture that fails CI on optimiser drift (see
+Section~\ref{sec:pruning}). Read the proposition as an empirically
+verified structural claim about the library, not as a universally
+quantified theorem; a general inductive proof over pivot
+configurations is left open.
+\end{proposition}
+
+\begin{corollary}[Iterated collapse]
+\label{cor:iterated-collapse}
+Any finite composition of type-directed-collapse reductions is itself
+monotone up $\mathcal{T}$. In particular, no sequence of library
+operations can ever return a set that is \emph{less} decidable than
+its inputs.
+\end{corollary}
+
+So: not ``a faster way to do set algebra'', but a rewrite rule that
+happens to live in the C++ type system, and whose action is
+monotone-ascending in a lattice of decidability. The halfspace case is
+the smallest non-trivial instance we know how to prove mechanically.
+Four further axes appear to obey the same pattern; the project tracker
+carries one existential proof per axis---one worked instance, one IR
+fixture, one compile-time witness---rather than a general framework.
+We would rather ship one reduction that fully collapses than four
+sketches that do not.
 
 \begin{itemize}
   \item \textbf{Carrier tightening} (issue~\#362). Intersecting a subset of
@@ -1007,6 +1475,113 @@ Each axis sits on the foundation shared with Section~\ref{sec:pruning}: NTTP
 predicates, structured \lstinline{operator&} dispatch, and the computability
 tiers visible in the showcases. Taken together they sketch a program of
 which the current halfspace reductions are the first installment.
+
+The polynomial-calculus showcase of
+Section~\ref{sec:poly-ftc} belongs to the same family but at the
+\emph{function} layer rather than the set layer: a function
+(polynomial, or a $C^{\infty}$ lambda) is an intensional object
+reduced, under a ring homomorphism (\lstinline{derive}) or a
+numerical integrator, to another intensional object whose identity
+with a target is discharged by the compiler. The computability-tier
+framing lifts to this setting: the derivative of
+\lstinline|P({1, 1, 2, 3})| \emph{is} \lstinline|P({1, 4, 9})| as a
+\lstinline{static_assert}-visible value, and
+\lstinline{ftc_part_ii_bridge} lifts a calculus theorem from
+``checkable at runtime'' to ``true at translation time''.
+
+\subsection{The Compiler Wall: Where This Stops}
+\label{sec:compiler-wall}
+
+Treating \texttt{clang++} as a poor man's theorem prover is useful
+precisely because the compiler is bounded, predictable, and cheap. It
+is also, for the same reason, incapable of doing everything a real
+proof assistant would. The purpose of this subsection is to be honest
+about the wall and to name the \texttt{clang} knobs that push it back
+by a constant factor but cannot remove it.
+
+\paragraph{Template instantiation depth.}
+Every reduction in this paper is written as a variadic template whose
+depth grows with the number of type arguments. \texttt{clang}'s default
+instantiation-depth limit is $1024$; on deep recursions (e.g.\ an LP
+with many halfspaces, or the cartesian-product carriers of
+Showcase~8) we see it earlier than expected because concepts and NTTP
+lambdas each add their own frames. The escape hatch is
+\lstinline{-ftemplate-depth=N}; the \texttt{dedekind} build raises it
+to $2048$ on the affected translation units. This buys depth linearly
+in $N$ at the cost of compile time and resident memory, and it does
+not help when the recursion is superlinear in the instance size.
+
+\paragraph{\texttt{constexpr} step and call-depth limits.}
+\lstinline{-fconstexpr-steps} (default $\sim\!1{,}048{,}576$ on recent
+\texttt{clang}) caps the number of evaluation steps a single
+\lstinline{constexpr} computation may take; \lstinline{-fconstexpr-depth}
+caps call recursion independently. Both matter here because the
+LP reduction performs its Cramer solves and feasibility checks inside
+\lstinline{consteval} functions. A $2\times 2$ LP with four
+constraints is comfortably under the default; a $2\times 2$ LP with
+thirty constraints ($\binom{30}{2} = 435$ active sets) begins to
+approach the limit with any nontrivial constraint metadata. Raising
+the cap is a compile-time cost; the more principled answer---and the
+one we prefer---is to stop at the boundary and hand off to a runtime
+solver, which is exactly the case our centrepiece is \emph{not}.
+
+\paragraph{Combinatorial blowup is the real wall.}
+Compile-time vertex enumeration over $n$ halfspaces is $\binom{n}{2}$
+active-set solves. For $n = 4$ (the paper's LP) that is six solves,
+trivially tractable. For $n = 20$ it is $190$; for $n = 100$, $4950$;
+for $n = 1000$, nearly half a million. Template instantiation cost
+per solve is roughly constant, so the method remains tractable for LPs
+whose constraint count is a handful to perhaps a few dozen---the
+regime of textbook instances, parametric sensitivity studies, and
+embedded-system sizing problems. It is \emph{not} the regime of
+industrial LP. The intended partition: compile-time reduction for
+instances that are fixed in type, runtime simplex/interior-point
+solvers (and the attendant numerical compromises) for instances whose
+size or coefficients are only known at execution.
+
+\paragraph{Numeric overflow in the carrier.}
+The paper's code listings use \lstinline{Rational<long>} throughout.
+Cramer's rule over $\mathbb{Q}$ is exact, but determinants of integer
+matrices can grow quickly, and \lstinline{long} will overflow silently
+before the \texttt{constexpr} evaluator notices (overflow of a signed
+integer in a constant-expression context is implementation-defined on
+this front). The \lstinline{long} choice is deliberately
+\emph{pedagogical}: it is the carrier every reader understands at a
+glance, and its failure mode---silent overflow on large
+instances---is a canonical systems-programming hazard that makes the
+wall visible where the theory is clean.
+
+The library itself already offers the well-behaved alternative. The
+\lstinline{dedekind.numbers:cardinality} partition exports
+\lstinline{ExtensionalCardinal<N>}: a compile-time multi-limb natural
+backed by \lstinline{std::array<std::size_t, N>}, structurally usable
+as an NTTP, and certified as \lstinline{IsInteger}. Consequently
+\lstinline{Rational<ExtensionalCardinal<>>} is already a valid
+arbitrary-precision exact rational, and the \lstinline{IsRingLike}
+concept tolerates the substitution for free---every combinator in
+Section~\ref{sec:pruning} is written against the concept, not the
+carrier. The \lstinline{long}~$\to$~\lstinline{ExtensionalCardinal<>}
+swap is a one-typedef change that trades a line of pedagogical
+legibility for full bit-range safety.
+
+\paragraph{Error messages and the readability tax.}
+A failed \texttt{static\_assert} in a deep reduction produces, by
+default, a multi-page expansion trail that is difficult for a new
+user to parse. The mitigation we adopt is a combination of
+\lstinline{requires}-clauses at call sites (so the first failing
+predicate is the reported one), named concepts with short
+\texttt{diagnostic} strings, and targeted \lstinline{static_assert}
+messages inside internal reductions. This is an ergonomics concern
+rather than a correctness one, but it is the concern a reader most
+often encounters first and deserves explicit acknowledgement.
+
+In short: the compiler wall has a predictable shape---depth, steps,
+combinatorics, numeric range, diagnostics---and each is either
+pushable by a flag, avoidable by staying within the instance regime
+for which this technique is intended, or a known limitation we do not
+claim to have solved. The paper's contribution lies entirely to the
+left of that wall.
+
 % ============================================================
 \section{Related Work}
 \label{sec:related}
@@ -1084,76 +1659,95 @@ runtime pipeline operations rather than compile-time type invariants.
 library that could in principle back such pipelines, but the contribution
 we demonstrate here is the compile-time reduction at the C++ layer itself.
 
-\paragraph{C++ template metaprogramming libraries.}
-Boost.Hana~\cite{chagnon2016hana} and \texttt{mp11}~\cite{pdimov2017mp11} provide
-compile-time data structure manipulation.
-\texttt{dedekind} builds on these ideas but targets algebraic \emph{semantic} content
-(associativity, commutativity, cardinality) rather than purely syntactic structure
-manipulation.
+\paragraph{C++ template metaprogramming lineage.}
+Compile-time computation in C++ has a long tradition that
+\texttt{dedekind} builds on rather than supplants. Boost.Hana
+~\cite{chagnon2016hana} and \texttt{mp11}~\cite{pdimov2017mp11} provide
+compile-time heterogeneous containers and type-level algorithm
+support; Hana in particular already demonstrates concept-based
+structural dispatch at compile time and would be a natural
+lower-layer substrate for several of our combinators.
+CTRE~\cite{dusikova2018ctre} shows that serious computation
+(regular-expression matching, compiled to a type-level automaton)
+can live entirely inside the type system and emit optimised
+machine code; the shape of that reduction---intensional description
+to a named extensional object at translation time---is close kin to
+our halfspace and LP reductions, differing in subject matter but
+not in mechanism. Expression-template AD libraries including
+ENOKI~\cite{jakob2019enoki} and the runtime AD systems
+Ceres~\cite{ceres-solver}, Adept~\cite{hogan2014adept},
+and CasADi~\cite{andersson2019casadi} have carried pieces of the
+dual-number story into production workloads.
+
+\texttt{dedekind}'s position relative to this lineage is specific
+and narrow: it targets \emph{algebraic-semantic} content---ring
+homomorphisms, structural cardinality, ordering laws, the
+$(f, f')$ product as an Elliott~\cite{elliott2018simple} sibling---rather
+than the syntactic structure manipulation that is the traditional focus
+of TMP libraries. The contribution is not another metaprogramming
+trick but the claim, supported by worked reductions, that the
+\emph{discipline} of treating mainstream C++23 as a structural-gate
+theorem prover (Axiomatic Systems Programming) is now coherent enough
+to practise end-to-end.
 % ============================================================
 \section{Conclusion}
 \label{sec:conclusion}
 % ============================================================
 
-We have presented \texttt{dedekind}, a C++23 library that treats sets as
-\emph{rules over ambient species} rather than containers of values.
-The intensional-first design rule---defer materialization to explicit
-boundaries---has two direct payoffs: algebraic reasoning is preserved
-across the abstract/hardware boundary, and the LLVM backend can prune
-logically empty set expressions to zero machine instructions.
+The thesis of this paper, once more: \emph{named algebraic structure
+at the type level, discharged by the compiler, narrows the gap
+between abstract mathematics and machine code without a separate
+proof assistant.} \texttt{dedekind} is the existence proof. Sets are
+rules rather than buckets; intensional descriptions defer
+materialisation to explicit boundaries; the LLVM backend carries
+discharged proofs through to object-code optimisation. The
+centrepiece existential proof (Section~\ref{sec:lp-centrepiece}) shows
+a textbook linear-programming instance reducing at compile time to
+its optimal vertex as a typed constant---the six candidate solves,
+six feasibility checks, and six objective comparisons vanish in the
+emitted IR. The same reduction over the dual-number ring recovers
+exact forward-mode sensitivities (Section~\ref{sec:ad-elliott}); over
+\lstinline{RigPolynomial} it produces exact symbolic derivatives and
+discharges the Fundamental Theorem of Calculus at translation time
+(Section~\ref{sec:poly-ftc}); at the linear-algebra layer it
+certifies the ring homomorphisms
+$\mathbb{C}, \mathbb{D} \hookrightarrow M_2(\mathbb{Q})$ as
+compile-time facts (Section~\ref{sec:lin-alg-embedding}). In every
+case the binary contains only literals.
 
-The centrepiece existential proof (Section~\ref{sec:lp-centrepiece})
-demonstrates both payoffs at once. A textbook 2D linear-programming
-instance reduces at compile time to its optimal vertex as a typed
-constant; the six candidate solves, six feasibility checks, and six
-objective comparisons vanish in the emitted IR, which contains only
-the literal return of the optimum's coordinates. Running the same
-reduction over the dual-number ring
-$\mathbb{Q}[\varepsilon]/(\varepsilon^2)$ additionally recovers exact
-sensitivity analysis (Section~\ref{sec:ad-elliott})---forward-mode
-automatic differentiation as a sibling compile-time reduction in the
-sense of Elliott~\cite{elliott2018simple}, with the chain rule absorbed
-into the ring arithmetic during the Cramer solve.
+\paragraph{Axiomatic Systems Programming as a practised discipline.}
+The viewpoint we name in Section~\ref{sec:introduction}---treating
+\texttt{clang++} as a poor man's theorem prover, and the
+\texttt{IsRingLike} concept as a proof obligation the carrier must
+discharge---is the paper's intended export. Taken seriously, it
+turns each algebraic invariant into a structural gate the compiler
+polices; taken habitually, it shifts the library author's default
+from ``runtime check'' to ``type-level obligation''. Three axes of
+type-directed collapse remain open (Section~\ref{sec:gap}): carrier
+tightening (\#362), smooth optimization (\#363), and lattice-law
+rewriting (\#365); each sits on the same NTTP-plus-concepts
+foundation as the halfspace and LP reductions demonstrated here.
+We leave them as worked targets for successor libraries that adopt
+the same discipline.
 
-Three themes recur throughout:
-\begin{enumerate}
-  \item \textbf{Axiomatic Systems Programming.}  C++23 concepts, named
-        modules, and NTTP-embedded predicates make it possible to use
-        the compiler---though explicitly not as a theorem prover---to
-        rule out whole classes of algebraic-law violations and to
-        exploit the resulting structural knowledge for optimization,
-        without a separate proof assistant. The LP reduction exercises
-        all three features: halfspace constraints are NTTPs, the
-        reduction is guarded by concepts naming the ring-like carrier,
-        and the module boundary caches the verified reduction as a
-        Binary Module Interface file for downstream consumers.
-  \item \textbf{Intensional first.}  The tension between abstract
-        number theory and IEEE~754 hardware semantics is resolved by
-        encoding the divergence in the \texttt{:species} trait registry
-        and deferring arithmetic policy choice to the realization
-        boundary. The LP's exact-$\mathbb{Q}$ path and the AD's
-        dual-ring path are two realizations of the same intensional
-        reduction; the carrier is chosen by the user, not baked into
-        the algorithm.
-  \item \textbf{Sets are rules.}  A set defined by a type-level
-        predicate supports compile-time symbolic manipulation that a
-        runtime container cannot. The LP's feasible polytope is such a
-        set; its reduction to a singleton optimum is the sharpest
-        instance of the paper's thesis.
-\end{enumerate}
-
-Three axes of type-directed collapse remain open
-(Section~\ref{sec:gap}): carrier tightening (\#362), smooth
-optimization (\#363), and lattice-law rewriting (\#365). Each sits on
-the same foundation---NTTP predicates, structured \texttt{operator\&}
-dispatch, computability tiers---as the halfspace and LP reductions
-demonstrated here, and each extends the paradigm to a new collapse
-pattern: carrier lattices, extrema of differentiable functions, and
-distributive rewriting, respectively. The present paper's contribution
-is the worked existential proof that compile-time reduction to a typed
-optimum is achievable in standard C++23, for problem classes large
-enough to matter, with a mechanical IR witness that survives the
-optimiser.
+\paragraph{A forward claim, in its weakest defensible form.}
+As numerical workloads saturate available hardware, the marginal
+returns of brute-force optimisation are diminishing, and the lever
+with a different cost curve is specialisation at translation time
+rather than run time. We do not prove here that axiomatic
+discipline applied at library scale yields a meaningful fraction of
+data-centre cycles back; we claim only that the ingredients---compile-time
+verification, structural optimisation, ring-aware code generation,
+exact arithmetic carriers---are now assembled in mainstream C++23,
+and that the discipline is worth practising precisely because its
+payoffs accrue at scales larger than any single library. If even a
+small fraction of the arithmetic done in contemporary numerical
+workloads ran against libraries whose algebraic invariants had
+been discharged upstream, the compounded effect would be difficult
+to dismiss. The shape of that opportunity is what Axiomatic Systems
+Programming claims. Whether the shape materialises into the numbers
+it suggests is an engineering question, and one the next decade of
+library authors will answer.
 
 \printbibliography
 
