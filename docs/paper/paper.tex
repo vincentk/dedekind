@@ -751,6 +751,99 @@ in elementary mathematics. A real number named as a predicate can have
 its realisation deferred indefinitely, without losing the ability to
 reason about it.
 
+\subsection{Carriers: From Exact Rationals to Packed Integers}
+\label{sec:carrier-rosetta}
+
+The intensional-first rule applied to \emph{every} numeric role at
+once looks like Table~\ref{tab:carrier-rosetta}. Each row names a
+mathematical role (ℕ, ℤ, ℚ, ℝ, ℂ, …) and pairs the library's
+intensional (law-abiding, exact) carrier with the native machine
+carrier a programmer might ultimately drop to for performance. The
+concept column is the shared vocabulary: generic code written against
+the concept binds to \emph{either} side of the row, so the migration
+between exact and primitive is a one-line substitution at the type
+level --- the algorithm code is untouched.
+
+\begin{table}[htbp]
+\centering
+\caption{The carrier Rosetta. Left column: the \textbf{exact} carrier
+---the library's own intensional type that carries the algebraic
+laws of the named role. Right column: the \textbf{primitive} carrier
+---the \lstinline|std|-library type the hardware runs natively.
+Middle column: the named morphism the library provides to cross
+between them (embeddings, realization projections, policy gates).
+Generic code writes against the concept in the last column and binds
+to either side. Rows marked with $^{\dagger}$ point at concepts
+introduced under the concept-cleanup follow-up work; rows marked
+with $^{\ddagger}$ point at carriers whose ℵ$_0$-escalating variant
+is planned but not yet shipped.}
+\label{tab:carrier-rosetta}
+\small
+\begin{tabular}{@{}p{0.9cm} p{3.8cm} p{3.0cm} p{2.6cm} p{2.5cm}@{}}
+\toprule
+\textbf{Role} & \textbf{Exact (library)} & \textbf{Crossing} & \textbf{Primitive (std)} & \textbf{Concept} \\
+\midrule
+$\mathbb{B}$ & \lstinline|bool| under $\land, \lor$ & (identity) & \lstinline|bool| & \lstinline|IsBoolean| \\[2pt]
+$\mathbb{N}$ & \lstinline|Cardinality|$^{\ddagger}$, \lstinline|ExtensionalCardinal<N>| & \lstinline|realize_to_size_t|, \lstinline|embed_unsigned_integral| & \lstinline|unsigned long|, \lstinline|size_t| & \lstinline|Monoid_|$\mathbb{N}$ \\[2pt]
+$\mathbb{Z}$ & \lstinline|SignedCardinality|$^{\ddagger}$, \lstinline|SignedExtensionalCardinal<N>| & \lstinline|static_cast<int64_t>|, \lstinline|embed_signed_integral| & \lstinline|long|, \lstinline|int| & \lstinline|Group_|$\mathbb{Z}$ \\[2pt]
+$\mathbb{Z}$ partial & \textit{(not expressible)} & \textit{(direct)} & \lstinline|int|, \lstinline|long| (UB on overflow) & \lstinline|IsPartialAbelianGroup|$^{\dagger}$ \\[2pt]
+$\mathbb{Q}$ & \lstinline|Rational<SignedExtensionalCardinal<>>| & \lstinline|.resolve()|, IEEE policy gate & \lstinline|double|, \lstinline|float| & \lstinline|Field_|$\mathbb{Q}$ \\[2pt]
+$\mathbb{R}$ symbolic & \lstinline|LowerCut<Rational>| (Dedekind cut, predicate-only) & evaluate predicate at rational bound & \lstinline|double| & \lstinline|Continuum_|$\mathbb{R}$ \\[2pt]
+$\mathbb{R}$ policy & \lstinline|IEEE<double>| (policy-wrapped) & unwrap & \lstinline|double| & \lstinline|Continuum_|$\mathbb{R}$ (non-assoc.\ \lstinline|+|) \\[2pt]
+$\mathbb{C}$ & \lstinline|Complex<Rational<SignedEC<>>>| (Gaussian rationals) & per-component \lstinline|.resolve()| & \lstinline|std::complex<double>| & \lstinline|Algebra_|$\mathbb{C}$ \\[2pt]
+$\mathbb{D}$ (dual) & \lstinline|Dual<Rational<SignedEC<>>>| & \lstinline|.val| (primal) & \textit{(no native)} & \lstinline|IsRing<T,+,*>| + $\varepsilon^2 = 0$ \\[2pt]
+SIMD-$\mathbb{Z}$ & \textit{(future)} & carrier swap + overflow proof & \lstinline|int8_t|, \lstinline|int16_t| & \lstinline|IsPartialCyclicGroup|$^{\dagger}$ \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The table is also a migration map. The disciplined path is top-down
+on the exact side, then one hop across, and the workflow looks like
+this:
+
+\begin{enumerate}
+\item \textbf{Start correct.} Write the algorithm against the
+concept column using the exact intensional carrier. For arithmetic-
+heavy code this usually means \lstinline|Rational<SignedExtensionalCardinal<>>|:
+an arbitrary-precision exact rational whose laws are bit-for-bit
+provable. The code is slow (every operation is an N-limb rational
+reduction), but it is a reference implementation you can trust.
+
+\item \textbf{Verify.} Run the existing test suite. Exact rationals
+let every \lstinline|static_assert| be a provable identity rather
+than a floating-point tolerance check. Regressions surface as
+compile errors, not as silent drift.
+
+\item \textbf{Profile.} Identify the inner loops where arithmetic
+cost dominates.
+
+\item \textbf{Cross over.} In those loops only, substitute the
+native carrier on the right-hand column. The generic code compiled
+against \lstinline|Field_|$\mathbb{Q}$ will also bind to
+\lstinline|double| through \lstinline|Continuum_|$\mathbb{R}$, modulo
+the policy gates noted in the concept cell (e.g.\ loss of
+associativity under \lstinline|+|, which some algorithms tolerate
+and others do not). The cost of this step is dominated by
+rounding-error analysis, not by rewriting code.
+
+\item \textbf{Pack further, if profiling still demands.} For tight
+SIMD loops, drop to \lstinline|int8_t| / \lstinline|int16_t| and
+accept that every operation is a contract with the hardware that
+you have \emph{proven} no input can trigger overflow. The concept
+that binds the generic code through this hop is
+\lstinline|IsPartialAbelianGroup| --- explicitly named to record
+that the operation is partial.
+\end{enumerate}
+
+The rule behind the table: \textbf{you start correct, you finish
+fast, and the type system enforces that the laws your code relies on
+are the laws the carrier actually provides --- or fails to compile.}
+The reviewer who points out that \lstinline|Rational<long>| cannot
+scale to industrial problem sizes and the reviewer who points out
+that \lstinline|double| is not $\mathbb{Q}$ are both right; the
+library's answer is that both live in Table~\ref{tab:carrier-rosetta},
+and moving between them is a deliberate, type-level choice.
+
 % ============================================================
 \section{Sets Are Rules, Not Buckets}
 \label{sec:sets-rules}
