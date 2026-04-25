@@ -380,6 +380,27 @@ a closed-form antiderivative.
 The remainder of the paper develops these three claims and demonstrates
 each by a reduction that compiles to a constant.
 
+\paragraph{Intensional sets, structurally.} Where this paper says
+\emph{intensional set}, the intended referent is the structuralist set in
+the sense of the \emph{nLab}
+community~\cite{nlab:structural_set_theory}: an object whose membership
+is given by a characteristic morphism into a subobject classifier,
+situated in a Cartesian-closed ambient. The standard categorical fact is
+that every ETCS category is a Cartesian-closed category, but most
+Cartesian-closed categories are not ETCS; the library's \texttt{IsSet}
+concept is intended---aspirationally---to entail the canonical CCC
+witness on its ambient species, so that any ETCS-set carrier (for
+instance the finite field $\mathbb{F}_{64}$) inherits the CCC guarantee
+structurally rather than by per-carrier opt-in. What this alignment buys
+is the Lambek--Scott
+correspondence~\cite{lambek1988introduction}: a Cartesian-closed
+category \emph{is} a simply-typed lambda calculus. Realising the
+ETCS~$\subset$~CCC subsumption at the concept level therefore promotes
+\texttt{dedekind}'s set-builder DSL into a compile-time typed lambda
+calculus---function spaces, currying, evaluation, and product/coproduct
+introduction all witnessed by the same type-system machinery that
+discharges the algebraic laws of Section~\ref{sec:carrier-rosetta}.
+
 \subsection{How to Read This Paper}
 \label{sec:how-to-read}
 

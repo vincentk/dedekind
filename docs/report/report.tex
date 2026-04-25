@@ -1985,8 +1985,9 @@ By teaching the compiler the \emph{rule} of the sequence rather than a static va
 
 \noindent This mapping ensures that our software implementation is not merely a \textit{simulation} of set theory, but a direct \textit{instantiation} of its algebraic laws.
 
+\paragraph{Intensional sets and the nLab alignment.} Where this report uses the term \emph{intensional set}, the intended referent is the structuralist set in the sense of the \emph{nLab} community~\cite{nlab:structural_set_theory}: an object whose membership is given by a characteristic morphism into a subobject classifier, situated in a Cartesian-closed ambient. Standard categorical fact: every ETCS category is a Cartesian-closed category, but most CCCs are not ETCS. As an aspirational alignment goal, the library's \texttt{IsSet} concept aims to entail the canonical CCC witness on its ambient species, so that any ETCS-set carrier (e.g.\ $\mathbb{F}_{64}$) inherits the CCC guarantee structurally rather than by per-carrier opt-in.
 
-The structural mereology \cite{mormann2013structural} approach in \texttt{dedekind} defines sets via formal relations—union ($X \cup Y$), intersection ($X \cap Y$), and parthood ($X \subseteq Y$) and last but not least element ($x \in Y$)  -- prior to implementation. 
+The structural mereology \cite{mormann2013structural} approach in \texttt{dedekind} defines sets via formal relations—union ($X \cup Y$), intersection ($X \cap Y$), and parthood ($X \subseteq Y$) and last but not least element ($x \in Y$)  -- prior to implementation.
 This mirrors structuralist foundations such as Lawvere’s Elementary Theory of the Category of Sets (ETCS) \cite{lawvere2005elementary} and Cartesian Closed Categories (CCCs) \cite{lambek1988introduction, nlab:structural_set_theory}.
 By prioritizing \textit{structural transparency}, this methodology fundamentally departs from object-oriented encapsulation. 
 In a sense, it encodes the well known rule of thumb of "composition over inheritance" \cite{marquis2022structuralist}.
