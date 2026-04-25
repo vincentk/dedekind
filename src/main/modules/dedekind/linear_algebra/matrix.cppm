@@ -71,7 +71,7 @@ module;
 
 export module dedekind.linear_algebra:matrix;
 
-import dedekind.algebra; // IsRingLike, IsFieldLikeScalar, IsVectorSpaceLike
+import dedekind.algebra; // HasRingOperators, IsFieldLikeScalar, IsVectorSpaceLike
 import dedekind.category; // IsFunctor / Set / arrow (for matrix2x2_functor witness)
 import dedekind.numbers; // Rational<Z> for the ℚ carrier
 import dedekind.sets;    // Finite cardinality tag (for dimension_type)
@@ -102,10 +102,17 @@ namespace dedekind::linear_algebra {
  *           canonical choice for the paper-facing ℚ proof.
  * @tparam a,b,c,d Entries as NTTPs of type `T`.
  */
-// FIXME: bound stays at `IsFieldLikeScalar<T>` (not `IsRingLike<T>`) because
-// `inverse_type` divides by `det` — rings in general do not admit division,
-// so the closed-form Cramer inverse genuinely needs a field-like scalar.
-// Over `T = Rational<Z>` with integer `Z`, the constraint is tight.
+// Design choice (#393): `IsFieldLikeScalar<T>` is the right
+// constraint here, NOT a stopgap.  `inverse_type` divides by `det`,
+// and rings in general do not admit division, so the closed-form
+// Cramer inverse genuinely needs the field-like scalar surface.
+// Over `T = Rational<Z>` with integer `Z` the constraint is tight;
+// over IEEE-edge carriers (`IEEE<double>`) the operational variant
+// is exactly the right fit, since strict `IsField` would fail under
+// rounding-non-associativity.  The Has*Operators shape concepts
+// (in :ring / :order:lattice / :category:logic) are for callsites
+// that need the operator surface to compile but make no algebraic
+// claim --- not the case here.
 export template <typename T, T a, T b, T c, T d>
   requires dedekind::algebra::IsFieldLikeScalar<T>
 struct Invertible2x2 {
@@ -200,10 +207,10 @@ using Identity2x2 = Invertible2x2<T, T{1}, T{0}, T{0}, T{1}>;
  * negation, and mixed composition with `Invertible2x2`. Does not advertise
  * an inverse — singular `Matrix2x2`s are valid inhabitants of the type.
  */
-// `IsRingLike<T>` is sufficient: `Matrix2x2` uses +, -, unary -, *, but
+// `HasRingOperators<T>` is sufficient: `Matrix2x2` uses +, -, unary -, *, but
 // never divides. Tighter than `IsFieldLikeScalar<T>`.
 export template <typename T, T a, T b, T c, T d>
-  requires dedekind::algebra::IsRingLike<T>
+  requires dedekind::algebra::HasRingOperators<T>
 struct Matrix2x2 {
   using Domain = T;
 
@@ -410,15 +417,16 @@ struct BlockUpperTriangular {
  * transpose surface. Columns are `Vec2V<T>` (a 2×1 matrix from `:tuple`);
  * rows are `Covec2V<T>` (a 1×2 matrix).
  */
-// Bound: `IsRingLike<T>` for the arithmetic surface (+, -, unary -, *;
-// division is not used here — `Invertible2x2`'s Cramer inverse stays at
-// `IsFieldLikeScalar<T>`). `std::regular<T>` for the value-semantics
-// surface: members use `T x{}` default-init, `column(i)` / `row(i)`
-// return `{}` out-of-range, `operator==` is defaulted (needs
-// equality-comparable T), and struct copies require copyable T. The two
-// constraints are orthogonal and both are load-bearing.
+// Bound: `HasRingOperators<T>` for the arithmetic surface (+, -, unary -,
+// *; division is not used here — `Invertible2x2`'s Cramer inverse stays
+// at `IsFieldLikeScalar<T>`).  Pure syntactic shape, not an algebraic
+// claim — see #393.  `std::regular<T>` for the value-semantics surface:
+// members use `T x{}` default-init, `column(i)` / `row(i)` return `{}`
+// out-of-range, `operator==` is defaulted (needs equality-comparable T),
+// and struct copies require copyable T. The two constraints are
+// orthogonal and both are load-bearing.
 export template <typename T>
-  requires std::regular<T> && dedekind::algebra::IsRingLike<T>
+  requires std::regular<T> && dedekind::algebra::HasRingOperators<T>
 struct Matrix2x2V {
   using scalar_type = T;
   using column_type = Vec2V<T>;
@@ -501,7 +509,7 @@ inline constexpr Matrix2x2V<T> zero_matrix2x2_v{T{0}, T{0}, T{0}, T{0}};
  *  closing the (1×1, 2×1, 1×2, 2×2) shape family below.
  */
 export template <typename T>
-  requires std::regular<T> && dedekind::algebra::IsRingLike<T>
+  requires std::regular<T> && dedekind::algebra::HasRingOperators<T>
 struct matrix2x2_functor {
   using ArrowKind = dedekind::category::hub_arrow_tag;
   using Σ_cat = dedekind::category::CanonicalSetCCC<T>;
@@ -561,7 +569,7 @@ static_assert(
 namespace dedekind::category {
 
 export template <typename T>
-  requires std::regular<T> && dedekind::algebra::IsRingLike<T>
+  requires std::regular<T> && dedekind::algebra::HasRingOperators<T>
 struct unit_witness<dedekind::linear_algebra::Matrix2x2V, T> final {
   constexpr dedekind::linear_algebra::Matrix2x2V<T> operator()(T s) const {
     return {s, T{0}, T{0}, s};
@@ -573,7 +581,7 @@ struct unit_witness<dedekind::linear_algebra::Matrix2x2V, T> final {
  *  algebra to the underlying scalar ring.
  */
 export template <typename T>
-  requires std::regular<T> && dedekind::algebra::IsRingLike<T>
+  requires std::regular<T> && dedekind::algebra::HasRingOperators<T>
 struct counit_witness<dedekind::linear_algebra::Matrix2x2V, T> final {
   constexpr T operator()(
       const dedekind::linear_algebra::Matrix2x2V<T>& m) const {
@@ -715,7 +723,7 @@ using Rat = dedekind::numbers::Rational<long>;
 static_assert(dedekind::algebra::IsFieldLikeScalar<Rat>,
               "Rational<long> is the operational field-like scalar under "
               "the active numeric policy.");
-static_assert(dedekind::algebra::IsRingLike<Rat>,
+static_assert(dedekind::algebra::HasRingOperators<Rat>,
               "Rational<long> is also operationally ring-like (the subset "
               "of field-like that ignores the / requirement).");
 
@@ -729,11 +737,24 @@ static_assert(dedekind::algebra::IsVectorSpaceLike<Matrix2x2V<Rat>, Rat>,
               "entry-wise + and scalar *).");
 
 // `Matrix2x2V<ℚ>` under its own +, unary -, * is operationally a ring —
-// the load-bearing reuse of the new `IsRingLike` concept. This is the
+// the load-bearing reuse of the new `HasRingOperators` concept. This is the
 // precise form of the slogan "matrix over a field is at least a ring".
-static_assert(dedekind::algebra::IsRingLike<Matrix2x2V<Rat>>,
+static_assert(dedekind::algebra::HasRingOperators<Matrix2x2V<Rat>>,
               "Matrix2x2V<ℚ> is operationally a ring (non-commutative in "
               "general — see the AB ≠ BA witness below).");
+
+// Strict literal-operator surface (#393): Matrix2x2V's friend operators
+// for +, binary -, unary -, * all return `Matrix2x2V<T>` exactly, so
+// `HasRingOperators<Matrix2x2V<T>>` fires whenever T satisfies it.
+// This lifts the math-textbook slogan "matrices over a ring are a
+// (non-commutative) ring" up to the strict-closure shape concept.
+static_assert(dedekind::algebra::HasRingOperators<Matrix2x2V<Rat>>,
+              "Matrix2x2V<ℚ> closes strictly under the literal "
+              "+,-,unary -,* surface — same_as<Matrix2x2V<ℚ>> for each.");
+static_assert(dedekind::algebra::HasRingOperators<Matrix2x2V<unsigned int>>,
+              "Matrix2x2V<unsigned int>: the literal ring-operator surface "
+              "lifts through to the matrix carrier (entries' wrap closure "
+              "lifts elementwise).");
 
 // Dimension-as-cardinality: the tuple / matrix carriers expose a
 // `dimension_type` tag drawn from `dedekind.sets:cardinality`. This wires

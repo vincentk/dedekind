@@ -146,7 +146,7 @@ TEST_CASE("optimization:lp — infeasible polytope reports no optimum",
  * inside an NTTP context — `Dual<F>` became structural in the same PR
  * that adds this test.
  *
- * The LP reduction is generic over any `IsRingLike` carrier with a
+ * The LP reduction is generic over any `HasRingOperators` carrier with a
  * total order on the primal part; `Dual<Rat>` provides both (primal is
  * `Rat`, ordered; tangent rides along through the chain rule). Running
  * the same reduction over `Dual<Rat>` instead of plain `Rat` gives us

@@ -127,6 +127,37 @@ class RigPolynomial {
     return RigPolynomial(std::move(res));
   }
 
+  /**
+   * @brief Unary additive inverse: @c -p coefficient-wise.
+   *
+   * @details Available only when the coefficient ring @c R provides
+   * additive inverses (@c is_invertible_v<R, std::plus<R>>).  The
+   * bundled @c algebra::IsRing uses the functor-parametric
+   * @c HasRingOperatorsFor (which checks the functors close on the
+   * carrier, not the literal operators), so it does @b not by itself
+   * require unary @c -.  This unary @c - is required by the
+   * @b literal shape concept @c HasRingOperators<RigPolynomial<R>>
+   * (which does require @c -a as a same-type expression) and hence
+   * by the seal @c IsArithmeticRing<RigPolynomial<R>>.  Witnessing
+   * @c HasRingOperators<PolyUInt> / @c IsArithmeticRing<PolyUInt> in
+   * the formal-verification block below relies on this operator
+   * being available.  Added under #393 alongside the shape concept
+   * introduction; the prior operational alias @c IsRingLike was
+   * collapsed into @c HasRingOperators under the #394 retire-Like
+   * sweep, so the literal-shape concept is now the sole consumer
+   * of this operator.
+   */
+  friend constexpr RigPolynomial operator-(const RigPolynomial& a)
+    requires dedekind::category::is_invertible_v<R, std::plus<R>>
+  {
+    if (a.is_zero()) return a;
+    std::vector<R> res;
+    res.reserve(a.coeffs_.size());
+    for (const R& c : a.coeffs_)
+      res.push_back(dedekind::category::inverse_v<R, std::plus<R>>(c));
+    return RigPolynomial(std::move(res));
+  }
+
   /** @brief Cauchy Product: (a * b)_n = Σ (a_i * b_{n-i}) */
   friend constexpr RigPolynomial operator*(const RigPolynomial& a,
                                            const RigPolynomial& b) {
@@ -360,6 +391,25 @@ using PolyUInt = RigPolynomial<unsigned int>;
 static_assert(IsCommutativeRing<PolyUInt>,
               "RigPolynomial<unsigned int> must satisfy IsCommutativeRing "
               "(coefficient wrapping lifts to the polynomial level).");
+
+// Strict literal-operator surface (#393): RigPolynomial<R>'s friend
+// operator+, binary operator-, unary operator- (all gated on R's
+// additive invertibility), and operator* return `RigPolynomial<R>`
+// exactly.  When R is `unsigned int`, all three gates are open and the
+// literal-operator surface closes strictly on the polynomial carrier.
+static_assert(HasRingOperators<PolyUInt>,
+              "RigPolynomial<unsigned int> has the literal ring-operator "
+              "surface (+, -, unary -, *), all returning the polynomial "
+              "carrier itself.");
+
+// IsArithmeticRing seal: the strict ring proof + the literal-operator
+// surface meet on RigPolynomial<unsigned int>.  Polynomial rings over
+// unsigned int are reachable through plain C++ syntax, with results
+// staying in the carrier.
+static_assert(IsArithmeticRing<PolyUInt>,
+              "RigPolynomial<unsigned int> is the canonical arithmetic "
+              "ring — strict commutative-ring proof and literal +,-,* "
+              "agree on the polynomial carrier.");
 
 using PolyEC = RigPolynomial<dedekind::sets::ExtensionalCardinal<>>;
 static_assert(

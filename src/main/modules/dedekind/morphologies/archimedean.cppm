@@ -35,7 +35,7 @@ using namespace dedekind::sequences;
  * @details This is the syntactic counterpart of the categorical
  * @c dedekind::category::IsCyclicGroup<T, Op> in the strict /
  * operational pattern the project uses elsewhere
- * (cf.\ @c IsRingLike vs @c IsRing).  The two concepts are
+ * (cf.\ @c HasRingOperators vs @c IsRing).  The two concepts are
  * complementary:
  *
  *   - @c IsCyclic<T> --- "this carrier exposes the shape" (member

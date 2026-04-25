@@ -37,7 +37,7 @@ module;
 
 export module dedekind.linear_algebra:embeddings;
 
-import dedekind.algebra; // IsRingLike + IsRingLikeHomomorphism (constraint / witness)
+import dedekind.algebra; // HasRingOperators + IsRingHomomorphism (constraint / witness)
 import dedekind.numbers; // Complex<T>, Dual<T>, Rational<Z>, IsComplexScalar
 import :matrix;  // Matrix2x2V<T>, identity / zero constants for the target
 
@@ -63,10 +63,10 @@ using dedekind::numbers::Dual;
  */
 export template <typename T>
   requires dedekind::numbers::IsComplexScalar<T> &&
-           dedekind::algebra::IsRingLike<T>
+           dedekind::algebra::HasRingOperators<T>
 constexpr Matrix2x2V<T> as_matrix2x2(const Complex<T>& z) {
-  // `IsRingLike<T>` guarantees unary negation on `T`, and the target
-  // `Matrix2x2V<T>` is itself bounded on `IsRingLike<T>`, so the natural
+  // `HasRingOperators<T>` guarantees unary negation on `T`, and the target
+  // `Matrix2x2V<T>` is itself bounded on `HasRingOperators<T>`, so the natural
   // spelling `-z.imag()` is exactly in the required surface.
   return {z.real(), -z.imag(), z.imag(), z.real()};
 }
@@ -80,7 +80,7 @@ constexpr Matrix2x2V<T> as_matrix2x2(const Complex<T>& z) {
  */
 export template <typename T>
   requires dedekind::numbers::IsComplexScalar<T> &&
-           dedekind::algebra::IsRingLike<T>
+           dedekind::algebra::HasRingOperators<T>
 constexpr Complex<T> complex_from_matrix2x2(const Matrix2x2V<T>& M) {
   return Complex<T>{M.m11, M.m21};
 }
@@ -103,9 +103,9 @@ constexpr Complex<T> complex_from_matrix2x2(const Matrix2x2V<T>& M) {
  * @tparam T A carrier with ring-like arithmetic compatible with `Dual<T>`.
  */
 export template <typename T>
-  requires std::regular<T> && dedekind::algebra::IsRingLike<T>
+  requires std::regular<T> && dedekind::algebra::HasRingOperators<T>
 constexpr Matrix2x2V<T> as_matrix2x2(const Dual<T>& d) {
-  // `std::regular<T>` matches `Dual<F>`'s own constraint; `IsRingLike<T>`
+  // `std::regular<T>` matches `Dual<F>`'s own constraint; `HasRingOperators<T>`
   // is additionally required because the target `Matrix2x2V<T>` carries
   // that bound.
   return {d.value(), d.derivative(), T{0}, d.value()};
@@ -118,7 +118,7 @@ constexpr Matrix2x2V<T> as_matrix2x2(const Dual<T>& d) {
  *          Not enforced; see the `complex_from_matrix2x2` note.
  */
 export template <typename T>
-  requires std::regular<T> && dedekind::algebra::IsRingLike<T>
+  requires std::regular<T> && dedekind::algebra::HasRingOperators<T>
 constexpr Dual<T> dual_from_matrix2x2(const Matrix2x2V<T>& M) {
   return Dual<T>{M.m11, M.m12};
 }
@@ -181,7 +181,7 @@ static_assert(as_matrix2x2(eps_q* eps_q) == zero_matrix2x2_v<Rat>,
 
 /** @section Ring_Homomorphism_Concept_Witnesses
  *
- *  The two embeddings witness `dedekind.algebra::IsRingLikeHomomorphism`
+ *  The two embeddings witness `dedekind.algebra::IsRingHomomorphism`
  *  at the type level, folding the four preservation static_asserts above
  *  (0, 1, +, ·) into a single structural claim. Each wrapper struct
  *  promotes the function template to a callable object so the concept can
@@ -200,13 +200,13 @@ struct DualToMatrix2x2Hom {
   }
 };
 
-static_assert(dedekind::algebra::IsRingLikeHomomorphism<
+static_assert(dedekind::algebra::IsRingHomomorphism<
                   ComplexToMatrix2x2Hom, Complex<Rat>, Matrix2x2V<Rat>>,
               "ℂ ↪ M₂(ℚ) is structurally a ring-like homomorphism — the "
               "four preservation laws above pin its value-level content.");
 
-static_assert(dedekind::algebra::IsRingLikeHomomorphism<
-                  DualToMatrix2x2Hom, Dual<Rat>, Matrix2x2V<Rat>>,
+static_assert(dedekind::algebra::IsRingHomomorphism<DualToMatrix2x2Hom,
+                                                    Dual<Rat>, Matrix2x2V<Rat>>,
               "𝔻 ↪ M₂(ℚ) is structurally a ring-like homomorphism — the "
               "four preservation laws above pin its value-level content.");
 

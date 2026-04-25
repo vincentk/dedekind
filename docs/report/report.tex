@@ -1323,7 +1323,7 @@ The one-operation path of Table~\ref{tab:algebraic_hierarchy} composes into two-
 These three concepts live in \texttt{category:total} and are purely axiomatic---no operator requirements. The operator-bearing counterparts (\texttt{operator/}, \texttt{.inverse()}, \texttt{std::divides}) are added on top in \texttt{dedekind.algebra:field}, which composes the axiomatic witness with \texttt{IsDivisionRing}. \texttt{unsigned int} and \texttt{Modular<N>} (from \texttt{morphologies:cyclic}; see below) pass \texttt{IsCommutativeRing} but are correctly rejected by \texttt{IsField} unless a carrier explicitly registers multiplicative invertibility---the opt-in prevents the false positives that would arise from pure structural inspection.
 
 \paragraph{Cyclic groups (\#378).}
-The library carries two complementary cyclic concepts in the strict / operational pattern (cf.\ \texttt{IsRingLike} vs \texttt{IsRing}):
+The library carries two complementary cyclic concepts in the strict-axiomatic / shape-only pattern (cf.\ \texttt{IsRing} vs \texttt{HasRingOperators} in \texttt{algebra:ring}):
 
 \begin{itemize}
   \item \texttt{dedekind::category::IsCyclicGroup<T, Op>} (axiomatic) $=$ \texttt{IsAbelianGroup<T, Op>} $\wedge$ \texttt{is\_cyclic\_group\_v<T, Op>}. Struct-backed for cross-module discovery, with companion trait \texttt{cyclic\_order\_v<T, Op>} (returns the group order; zero signals "infinite cyclic" or "order not representable as \texttt{std::size\_t}").
@@ -2673,20 +2673,90 @@ CHECK(a * b == 42);
 CHECK(std::multiplies<int>{}(a, b) == 42);
 \end{lstlisting}
 
-\subsection{Operational witnesses: \texttt{IsRingLike}, \texttt{IsSemiringLike}, \texttt{IsRingLikeHomomorphism}}
-\label{subsec:algebra-ring-operational}
+\subsection{Shape concepts and the C++/textbook seam}
+\label{subsec:algebra-ring-shape-concepts}
 
 The strict \texttt{IsRing} and \texttt{IsSemiring} concepts above depend on the axiom variable templates (\texttt{identity\_v}, \texttt{is\_associative\_v}, \texttt{is\_commutative\_v}, \texttt{inverse\_v}) being specialised per carrier. Machine-backed carriers such as \texttt{Rational<long>} deliberately do not carry those proofs under the active numeric policy---the same pattern that gives \texttt{IsField} vs.\ \texttt{IsFieldLikeScalar} in \texttt{:modules}.
 
-\texttt{:ring} therefore also exports operational concepts that check closure of the arithmetic operators only:
+Issue \#393 surfaced a recurring need across \texttt{linear\_algebra}, \texttt{optimization}, and the analytic bridges: callsites that require the \emph{operator surface} of a ring (so a templated body can write \texttt{a + b} and \texttt{a * b}) but neither the strict categorical proof nor the operational division surface of \texttt{IsFieldLikeScalar}. The audit identified twenty-three such callsites. The response was a new concept tier---\emph{pure syntactic shape}---and a sealing seam between the math textbook and the C++ standard. A subsequent retire-\texttt{Like} sweep collapsed the previously-separate ``operational'' aliases (\texttt{IsRingLike}, \texttt{IsSemiringLike}, \texttt{IsRingLikeHomomorphism}) into the new shape vocabulary, since their bodies were structurally identical to the new shape concepts; the Pattern-(b) ``deliberate operational variant for IEEE-edge-case carriers'' rationale survives intact, expressed by saying ``the strict half does not fire on this carrier under the active numeric policy, but the literal-shape concept does.''
+
+\paragraph{The three tiers.} The library now distinguishes:
 
 \begin{itemize}
-  \item \texttt{IsRingLike<T>} --- closed $+$, binary $-$, unary $-$, $*$. Parallel to \texttt{IsFieldLikeScalar} but without the $/$ requirement (rings don't in general support division). Fires on \texttt{Rational<long>}, \texttt{int}, \texttt{unsigned int}, \texttt{Complex<R>} (for any \texttt{IsRingLike R}), \texttt{Dual<F>}, and \texttt{Matrix2x2V<R>} over any \texttt{IsRingLike R}---operationally witnessing ``matrices over a ring form a (non-commutative) ring''.
-  \item \texttt{IsSemiringLike<T>} --- closed $+$, $*$, structural identities \texttt{T\{\}} and \texttt{T\{1\}}, without subtraction or unary negation. The ``no additive inverse'' carriers: booleans under OR/AND, naturals, tropical semirings.
-  \item \texttt{IsRingLikeHomomorphism<Phi, Source, Target>} --- a callable $\phi$ that sends \texttt{Source} to \texttt{Target} with $+$ and $\cdot$ preservation. The structural concept asks that both carriers are ring-like, $\phi(a)$ is well-typed and returns \texttt{Target}, and the two preservation expressions $\phi(a + b) \mathrel{=\!=} \phi(a) + \phi(b)$ and $\phi(a \cdot b) \mathrel{=\!=} \phi(a) \cdot \phi(b)$ are well-formed. Whether each \texttt{==} returns \texttt{true} for all inputs is a value-level claim, witnessed per-instance via \texttt{static\_assert} on concrete probes (cf.\ the $\mathbb{C} \hookrightarrow M_2(\mathbb{Q})$ and $\mathbb{D} \hookrightarrow M_2(\mathbb{Q})$ witnesses in \texttt{dedekind.linear\_algebra:embeddings}).
+  \item \textbf{Strict (\texttt{category::IsRing<T, Add, Mult>}).} The categorical proof: every axiom variable template (\texttt{is\_associative\_v}, \texttt{is\_commutative\_v}, \texttt{inverse\_v}, \texttt{is\_distributive\_v}, \texttt{is\_periodic\_v}) must be specialised for the carrier under the chosen \texttt{Add} / \texttt{Mult} functors.
+  \item \textbf{Functor-parametric shape (\texttt{algebra::HasRingOperatorsFor<T, Add, Mult>}).} The chosen functors close on \texttt{T} by signature: \texttt{Add\{\}(a, b)} and \texttt{Mult\{\}(a, b)} both return \texttt{T}. Insensitive to integer-promotion paths in the literal operators.
+  \item \textbf{Literal shape (\texttt{algebra::HasRingOperators<T>}).} The literal C++ operators close strictly on \texttt{T}: \texttt{a + b}, \texttt{a - b}, \texttt{-a}, \texttt{a * b} all return \texttt{T} exactly. The textbook closure check.
 \end{itemize}
 
-Preservation of distinguished identities ($\phi(0) = 0$, $\phi(1) = 1$) is \emph{not} encoded structurally here: \texttt{IsRingLikeHomomorphism} checks only additive and multiplicative preservation on ring-like carriers and does not require or validate identity preservation, matching the absence of \texttt{T\{\}} / \texttt{T\{1\}} from \texttt{IsRingLike}. Unital laws, when needed, must be witnessed by stricter concepts or on concrete probe values.
+The bundled \texttt{algebra::IsRing<T, Add, Mult>} composes the strict proof with the functor-parametric shape; the seal \texttt{IsArithmeticRing<T>} composes the strict proof with the literal shape under \texttt{(std::plus, std::multiplies)}. \texttt{IsArithmeticRing} is where the math-textbook ring and the standard C++ arithmetic operators agree: writing \texttt{a + b} computes the ring's addition and the result genuinely stays in the carrier.
+
+\paragraph{The shape vocabulary.} The same shape-concept pattern extends across the algebraic surface the project actually consumes:
+
+\begin{itemize}
+  \item \textbf{Ring surface.} \texttt{HasRingOperators<T>} (literal $+$, binary $-$, unary $-$, $*$) and \texttt{HasSemiringOperators<T>} (literal $+$, $*$ with structural identities \texttt{T\{\}} and \texttt{T\{1\}}, no subtraction --- the ``no additive inverse'' carriers: booleans under OR/AND, naturals, tropical semirings).
+  \item \textbf{Group surface.} \texttt{HasGroupOperatorsAdd<T>} ($+$, binary $-$, unary $-$) and \texttt{HasGroupOperatorsMul<T>} ($*$, $/$, \texttt{T\{1\}} unit). C++ has no unary $1/x$ operator, so the multiplicative unit is named via the structural constructor \texttt{T\{1\}}; the reciprocal at the callsite is \texttt{T\{1\} / x}.
+  \item \textbf{Field surface.} \texttt{HasFieldOperators<T>} = \texttt{HasRingOperators<T>} $\wedge$ \texttt{HasGroupOperatorsMul<T>}. The full literal field operator surface in one concept.
+  \item \textbf{Successor / increment surface.} \texttt{HasSuccessorOperators<T>} (pre/post \texttt{++}, \texttt{--}; Peano-aligned, deliberately stricter than \texttt{std::weakly\_incrementable}).
+  \item \textbf{Compound-assignment surface.} \texttt{HasCompoundGroupOperatorsAdd<T>} (\texttt{+=}, \texttt{-=}) and \texttt{HasCompoundGroupOperatorsMul<T>} (\texttt{*=}, \texttt{/=}). Notable subtlety: per [expr.ass]/3 these compound forms compile to \texttt{a = T(a + b)} (resp.\ \texttt{a = T(a * b)}), with the implicit narrowing-after-promotion bringing the result back to \texttt{T}. So narrow unsigned types (\texttt{unsigned char}, \texttt{unsigned short}) \emph{satisfy} the compound shape even though they \emph{refuse} the corresponding out-of-place binary shape \texttt{HasGroupOperatorsAdd}.
+  \item \textbf{Lattice / logical surfaces.} \texttt{order::HasLatticeOperators<T>} (bitwise \texttt{\&}, \texttt{\textbar}, \texttt{\textasciicircum}, \texttt{\textasciitilde}) and \texttt{category::HasLogicalOperators<T>} (logical \texttt{\&\&}, \texttt{\textbar\textbar}, \texttt{!}). The lattice concept uses \texttt{convertible\_to<T>} deliberately so \texttt{bool} fires via promotion-and-back; the logical concept uses strict \texttt{same\_as<T>}.
+\end{itemize}
+
+\paragraph{The seals.} Where strict and literal meet, named ``arithmetic'' for ``the textbook structure agrees with the standard C++ operators on this carrier'':
+
+\begin{itemize}
+  \item \textbf{\texttt{IsArithmeticRing<T>}} = strict \texttt{IsRing<T, std::plus<T>, std::multiplies<T>>} $\wedge$ \texttt{HasRingOperators<T>}. Witnesses: \texttt{unsigned int}, \texttt{unsigned long}, \texttt{unsigned long long}, \texttt{std::size\_t}, \texttt{RigPolynomial<unsigned int>}.
+  \item \textbf{\texttt{IsArithmeticAdditiveGroup<T>}} = strict \texttt{IsAdditiveGroup<T, std::plus<T>>} $\wedge$ \texttt{HasGroupOperatorsAdd<T>}. The $\mathbb{Z}$-deal. Witnesses: \texttt{unsigned int} (modular), \texttt{SignedExtensionalCardinal<>} (the canonical exact $\mathbb{Z}$ carrier).
+\end{itemize}
+
+The $\mathbb{Q}$-deal is open: the \texttt{HasFieldOperators} surface is witnessed on \texttt{Rational<...>}, but the strict-and-literal seal \texttt{IsArithmeticField} is gated by an existing FIXME (the \texttt{category::IsField} species-trait registry isn't specialised on \texttt{Rational} under the active numeric policy). It lands when that FIXME closes.
+
+\paragraph{Homomorphism shape.} \texttt{IsRingHomomorphism<Phi, Source, Target>} --- a callable $\phi$ that sends \texttt{Source} to \texttt{Target} with $+$ and $\cdot$ preservation. The structural concept asks that both carriers carry \texttt{HasRingOperators}, that $\phi(a)$ is well-typed and returns \texttt{Target}, and that the two preservation expressions $\phi(a + b) \mathrel{=\!=} \phi(a) + \phi(b)$ and $\phi(a \cdot b) \mathrel{=\!=} \phi(a) \cdot \phi(b)$ are well-formed. Whether each \texttt{==} returns \texttt{true} for all inputs is a value-level claim, witnessed per-instance via \texttt{static\_assert} on concrete probes (cf.\ the $\mathbb{C} \hookrightarrow M_2(\mathbb{Q})$ and $\mathbb{D} \hookrightarrow M_2(\mathbb{Q})$ witnesses in \texttt{dedekind.linear\_algebra:embeddings}).
+
+Preservation of distinguished identities ($\phi(0) = 0$, $\phi(1) = 1$) is \emph{not} encoded structurally: \texttt{IsRingHomomorphism} checks only additive and multiplicative preservation, matching the absence of \texttt{T\{\}} / \texttt{T\{1\}} from \texttt{HasRingOperators}. Unital laws, when needed, must be witnessed by stricter concepts or on concrete probe values.
+
+\paragraph{Where the textbook and the C++ standard disagree.} The math-wins-over-C++ stance (per \texttt{README.md}) makes the strict / functor / literal split load-bearing on three carriers worth pinning explicitly:
+
+\begin{itemize}
+  \item \textbf{Narrow unsigneds.} Integer promotion lifts the result of \texttt{unsigned short + unsigned short} to \texttt{int}, so \texttt{unsigned short} is genuinely \emph{not} closed under the literal \texttt{+}. \texttt{HasRingOperators<unsigned short>} correctly refuses; \texttt{IsArithmeticRing<unsigned short>} likewise. But \texttt{std::plus<unsigned short>} returns \texttt{unsigned short} by signature, so \texttt{HasRingOperatorsFor} fires; combined with the modular-wrap proof at the categorical layer, the bundled \texttt{algebra::IsRing<unsigned short>} fires too. The narrow-unsigned scalar is a textbook ring under the right operators; the type system surfaces the disagreement as a real distinction.
+  \item \textbf{Signed integers.} \texttt{int} closes under the literal operators (\texttt{HasRingOperators<int>} fires) but the strict \texttt{category::IsRing<int>} does \emph{not}: signed-overflow UB defeats the periodicity axiom on which the categorical chain depends. \texttt{IsArithmeticRing<int>} correctly refuses.
+  \item \textbf{\texttt{bool} as $\mathbb{F}_2$.} \texttt{bool} is the Galois field $\mathbb{F}_2$ under the functor surface \texttt{(std::bit\_xor, std::bit\_and)}, but \texttt{bool + bool $\to$ int} via promotion, so \texttt{HasRingOperators<bool>} refuses --- the right behaviour, since \texttt{bool}'s ring structure lives over different operators than \texttt{+} and \texttt{*}.
+\end{itemize}
+
+Table~\ref{tab:ring-shape-rosetta} catalogues the divergence on the carriers the project actually uses. The pattern: where literal C++ operators agree with the textbook, every column ticks; where they diverge, the table names the precise failure point.
+
+\begin{table}[ht]
+\centering
+\caption{Rosetta: math textbook $\leftrightarrow$ C++ standard, indexed by carrier and shape concept (Issue~\#393). \textbf{Strict} = \texttt{category::IsRing<T, Add, Mult>} with the conventional functors. \textbf{Functor} = \texttt{HasRingOperatorsFor<T, Add, Mult>}. \textbf{Literal} = \texttt{HasRingOperators<T>}. \textbf{Seal} = \texttt{IsArithmeticRing<T>} = strict $\wedge$ literal under \texttt{(std::plus, std::multiplies)}. ``$\circ$'' marks an assertion that fires only at the literal-shape tier (the strict half is gated by an open FIXME on the species-trait registry); ``--'' marks not asserted at present.}
+\label{tab:ring-shape-rosetta}
+\small
+\begin{tabular}{@{}l l c c c c@{}}
+\toprule
+\textbf{Carrier} & \textbf{Math claim} & \textbf{Strict} & \textbf{Functor} & \textbf{Literal} & \textbf{Seal} \\
+\midrule
+\texttt{unsigned int}, \texttt{unsigned long}, \texttt{unsigned long long}, \texttt{size\_t} & ring $\mathbb{Z}/2^N\mathbb{Z}$ & \checkmark & \checkmark & \checkmark & \checkmark \\
+\texttt{unsigned short}, \texttt{unsigned char} & ring $\mathbb{Z}/2^N\mathbb{Z}$ & \checkmark & \checkmark & $\times$\textsuperscript{a} & $\times$ \\
+\texttt{int}, \texttt{long} & partial (signed-overflow UB) & $\times$\textsuperscript{b} & \checkmark & \checkmark & $\times$ \\
+\texttt{bool} under $(\oplus, \wedge)$ & Galois field $\mathbb{F}_2$ & \checkmark & \checkmark & $\times$\textsuperscript{a} & $\times$\textsuperscript{c} \\
+\texttt{bool} under $(\vee, \wedge)$ & Boolean rig (no $-$) & \texttt{IsRig} & rig only & $\times$ & $\times$ \\
+\texttt{Rational<long>} & field $\mathbb{Q}$ & $\circ$\textsuperscript{d} & $\circ$ & \checkmark & $\circ$ \\
+\texttt{RigPolynomial<unsigned int>} & polynomial ring $R[x]$ & \checkmark & \checkmark & \checkmark & \checkmark \\
+\texttt{Matrix2x2V<unsigned int>} & non-commutative ring & $\circ$ & $\circ$ & \checkmark & -- \\
+\texttt{Matrix2x2V<Rational<long>>} & non-commutative ring & $\circ$ & $\circ$ & \checkmark & -- \\
+\texttt{Vec2V<T>} & module / vector space, \emph{not a ring} & n/a & n/a & $\times$\textsuperscript{e} & n/a \\
+\bottomrule
+\end{tabular}
+
+\vspace{0.5em}
+\begin{tabular}{@{}l p{0.85\textwidth}@{}}
+\textsuperscript{a} & integer promotion: \texttt{a + b} returns \texttt{int}, not \texttt{T}. The functor surface (\texttt{std::plus<T>::operator()}) returns \texttt{T} by signature, so the math-textbook ring structure remains witnessable. \\
+\textsuperscript{b} & signed-overflow UB defeats the modular-wrap (\texttt{IsPeriodic}) axiom on which the categorical \texttt{IsRing} chain depends. The literal operators close on \texttt{int}; the textbook structure does not. \\
+\textsuperscript{c} & \texttt{bool}'s ring structure lives over $(\oplus, \wedge)$, not $(+, *)$; \texttt{IsArithmeticRing} (which fixes the standard functors) is the wrong question for this carrier. \\
+\textsuperscript{d} & operational only under the active numeric policy: the strict axiom variable templates are not specialised for \texttt{Rational<long>} (\texttt{IsFieldLikeScalar} is the operational variant). \\
+\textsuperscript{e} & vectors do not have an internal product \texttt{Vec2V $\times$ Vec2V $\to$ Vec2V}; only scalar multiplication \texttt{T $\times$ Vec2V $\to$ Vec2V}. The shape concept correctly refuses --- vectors are an additive abelian group plus a module, not a ring. \\
+\end{tabular}
+\end{table}
+
+The table reads as a guide for callsites: pick \emph{seal} when the body wants plain C++ syntax over a textbook-aligned carrier; pick \emph{strict + functor} when the carrier carries its ring structure over non-standard functors (\texttt{bool} as $\mathbb{F}_2$, narrow unsigneds modelled with explicit \texttt{std::plus} / \texttt{std::multiplies}); pick \emph{literal} when the body needs the operator surface but neither the categorical proof nor the operational identities (the lifted-elementwise matrix and tuple bodies, \texttt{Halfspace2D}'s linear evaluation).
 
 \section{\texttt{:field}}
 \label{sec:algebra-field}
@@ -3074,7 +3144,7 @@ b & \phantom{-}a
 so that matrix action agrees with complex multiplication:
 $M(z)\,v(w)=v(zw)$.
 
-The arithmetic surface now includes binary and unary \texttt{operator-} alongside $+$ and $\cdot$, so \texttt{Complex<R>} satisfies \texttt{dedekind::algebra::IsRingLike} for any \texttt{IsRingLike R}. Unary negation is expressed via \texttt{R\{\} - x} rather than \texttt{-x}, matching \texttt{IsComplexScalar<R>}'s requirement set exactly (which has \texttt{R\{\}} and binary $-$ but does not mandate unary $-$ on the scalar carrier). The ring-like surface is what lets the regular representation $\mathbb{C} \hookrightarrow M_2(T)$ in \texttt{dedekind.linear\_algebra:embeddings} carry the \texttt{IsRingLikeHomomorphism} witness structurally rather than just as prose.
+The arithmetic surface now includes binary and unary \texttt{operator-} alongside $+$ and $\cdot$, so \texttt{Complex<R>} satisfies \texttt{dedekind::algebra::HasRingOperators} for any \texttt{HasRingOperators R}. Unary negation is expressed via \texttt{R\{\} - x} rather than \texttt{-x}, matching \texttt{IsComplexScalar<R>}'s requirement set exactly (which has \texttt{R\{\}} and binary $-$ but does not mandate unary $-$ on the scalar carrier). The ring-like surface is what lets the regular representation $\mathbb{C} \hookrightarrow M_2(T)$ in \texttt{dedekind.linear\_algebra:embeddings} carry the \texttt{IsRingHomomorphism} witness structurally rather than just as prose.
 
 \section{\texttt{:quaternion}}
 \label{sec:numbers-quaternion}
@@ -3284,7 +3354,7 @@ The test suite exercises the following at build time:
   \item Tiers~0--2 of the block-Schur recursion (issue~\#366): Cramer's inverse over $\mathbb{Q}$, \texttt{DirectSum} composition, \texttt{BlockUpperTriangular} inverse via the degenerate-Schur closed form.
   \item The nine matrix slogans witnessed on \texttt{(Matrix2x2V<Rat>, Vec2V<Rat>, Covec2V<Rat>)}: column/row as vector/covector, dimension as cardinality, decomposition $\leftrightarrow$ concatenation round-trip, row and column counts, submodule-like, ring-like-plus-transpose, non-commutative multiplication, matrix algebra.
   \item $\mathrm{O}(2, \mathbb{Q})$ group closure and the linear action on $\mathbb{Q}^2$.
-  \item $\mathbb{C}$ and $\mathbb{D}$ as injective ring homomorphisms into $M_2(\mathbb{Q})$ via the \texttt{IsRingLikeHomomorphism} concept, plus $\varepsilon^2 = 0$ lifting to the zero matrix.
+  \item $\mathbb{C}$ and $\mathbb{D}$ as injective ring homomorphisms into $M_2(\mathbb{Q})$ via the \texttt{IsRingHomomorphism} concept, plus $\varepsilon^2 = 0$ lifting to the zero matrix.
 \end{enumerate}
 Current totals: $127$ assertions / $26$ cases in the linear-algebra suite.
 
@@ -3295,7 +3365,7 @@ Beyond the Phase~1 rank-nullity and backend stubs, the module grew three partiti
 
 \subsection{\texttt{:tuple}}
 
-\texttt{Vec2<T, x, y>} is a structural $2$-tuple with coordinates at the type level, used as the target of the NTTP matrix family's left action. \texttt{Vec2V<T>} is the value-level column vector---equivalently a $2 \times 1$ matrix, carrying \texttt{orientation = ColumnOrientation}, \texttt{row\_count = 2}, \texttt{column\_count = 1}, and \texttt{dimension\_type = dedekind::sets::Finite} (the cardinality tag linking dimension to the \texttt{dedekind.sets:cardinality} ladder). \texttt{Covec2V<T>} is its row-oriented dual ($1 \times 2$). Template bound: \texttt{dedekind::algebra::IsRingLike<T>}.
+\texttt{Vec2<T, x, y>} is a structural $2$-tuple with coordinates at the type level, used as the target of the NTTP matrix family's left action. \texttt{Vec2V<T>} is the value-level column vector---equivalently a $2 \times 1$ matrix, carrying \texttt{orientation = ColumnOrientation}, \texttt{row\_count = 2}, \texttt{column\_count = 1}, and \texttt{dimension\_type = dedekind::sets::Finite} (the cardinality tag linking dimension to the \texttt{dedekind.sets:cardinality} ladder). \texttt{Covec2V<T>} is its row-oriented dual ($1 \times 2$). Template bound: \texttt{dedekind::algebra::HasRingOperators<T>}.
 
 Transpose exchanges the two carriers: \texttt{Vec2V::transpose()} $\to$ \texttt{Covec2V} and vice versa, with $(a^{\mathsf{T}})^{\mathsf{T}} = a$ pinned at both type level (\texttt{HasInvolutiveTranspose}) and value level. Together they form an \texttt{IsTransposeDualPair}.
 
@@ -3306,7 +3376,7 @@ Two parallel families: NTTP (entries at the type level) and value-level.
 \textbf{NTTP family} (Tiers~0--2 of issue~\#366):
 \begin{itemize}
   \item \texttt{Invertible2x2<T, a, b, c, d>} with instantiation-time full-rank witness \texttt{a*d - b*c != 0} and closed-form Cramer \texttt{inverse\_type = Invertible2x2<T, d/det, -b/det, -c/det, a/det>}; exact over \texttt{Rational<Z>}. Bound: \texttt{IsFieldLikeScalar<T>} (Cramer needs division).
-  \item \texttt{Matrix2x2<T, a, b, c, d>} (possibly-singular NTTP peer, bound: \texttt{IsRingLike<T>}), \texttt{Identity2x2<T>}, \texttt{Zero2x2<T>}.
+  \item \texttt{Matrix2x2<T, a, b, c, d>} (possibly-singular NTTP peer, bound: \texttt{HasRingOperators<T>}), \texttt{Identity2x2<T>}, \texttt{Zero2x2<T>}.
   \item \texttt{DirectSum<A, B>} with $(A \oplus B)^{-1} = A^{-1} \oplus B^{-1}$ and blockwise composition (Tier~1, invertibility-preserving combinator).
   \item \texttt{BlockUpperTriangular<A, B, D>} for $M = \begin{pmatrix} A & B \\ 0 & D \end{pmatrix}$ using the degenerate-Schur closed form---the non-trivial recurrence beyond direct sum (Tier~2).
 \end{itemize}
@@ -3323,7 +3393,7 @@ STATIC_CHECK(M * M.inverse() == BlockUpperTriangular<Identity2x2<Rat>,
                                                      Identity2x2<Rat>>{});
 \end{lstlisting}
 
-\textbf{Value-level family.} \texttt{Matrix2x2V<T>} is the runtime companion to NTTP \texttt{Matrix2x2} (bound: \texttt{IsRingLike<T>}) with the full \texttt{IsMatrixAlgebra} surface: $+$, $-$ (binary and unary), $*$ (scalar and matrix), \texttt{column(i)}, \texttt{row(i)}, \texttt{transpose()}. The constants \texttt{identity\_matrix2x2\_v<T>} and \texttt{zero\_matrix2x2\_v<T>} are \texttt{inline constexpr} variable templates.
+\textbf{Value-level family.} \texttt{Matrix2x2V<T>} is the runtime companion to NTTP \texttt{Matrix2x2} (bound: \texttt{HasRingOperators<T>}) with the full \texttt{IsMatrixAlgebra} surface: $+$, $-$ (binary and unary), $*$ (scalar and matrix), \texttt{column(i)}, \texttt{row(i)}, \texttt{transpose()}. The constants \texttt{identity\_matrix2x2\_v<T>} and \texttt{zero\_matrix2x2\_v<T>} are \texttt{inline constexpr} variable templates.
 
 Shape-conforming linear actions realise matrices as linear maps on tuples: \texttt{Matrix2x2V * Vec2V} $\to$ \texttt{Vec2V} (left action; inner dim $2 = 2$) and \texttt{Covec2V * Matrix2x2V} $\to$ \texttt{Covec2V} (right action). The symmetric pairings are deliberately \emph{not} overloaded---they are structurally ill-typed, witnessed by \texttt{!MatchesMultiplicativeShape}.
 
@@ -3350,7 +3420,7 @@ Canonical regular representations of $\mathbb{C}$ and $\mathbb{D}$ (dual numbers
   \mathbb{C} \hookrightarrow M_2(T): \quad a + b\,i \mapsto \begin{pmatrix} a & -b \\ b & a \end{pmatrix}, \qquad
   \mathbb{D} \hookrightarrow M_2(T): \quad a + b\,\varepsilon \mapsto \begin{pmatrix} a & b \\ 0 & a \end{pmatrix}.
 \]
-Both are injective ring homomorphisms witnessed over $\mathbb{Q}$ at compile time. The \texttt{IsRingLikeHomomorphism} concept from \texttt{dedekind.algebra:ring} pins the structural shape of the claim; per-value preservation of $0$, $1$, $+$, $\cdot$ is asserted on concrete probes. The nilpotency relation $\varepsilon^2 = 0$ in $\mathbb{D}$ lifts exactly to $\begin{pmatrix} 0 & 1 \\ 0 & 0 \end{pmatrix}^2 = 0$. Left-inverse extractors \texttt{complex\_from\_matrix2x2} and \texttt{dual\_from\_matrix2x2} complete the round-trip on the image.
+Both are injective ring homomorphisms witnessed over $\mathbb{Q}$ at compile time. The \texttt{IsRingHomomorphism} concept from \texttt{dedekind.algebra:ring} pins the structural shape of the claim; per-value preservation of $0$, $1$, $+$, $\cdot$ is asserted on concrete probes. The nilpotency relation $\varepsilon^2 = 0$ in $\mathbb{D}$ lifts exactly to $\begin{pmatrix} 0 & 1 \\ 0 & 0 \end{pmatrix}^2 = 0$. Left-inverse extractors \texttt{complex\_from\_matrix2x2} and \texttt{dual\_from\_matrix2x2} complete the round-trip on the image.
 
 \begin{lstlisting}[language=C++, caption={\texttt{:embeddings}: $\mathbb{C} \hookrightarrow M_2(\mathbb{Q})$ as a ring homomorphism.}, label={lst:embeddings-complex}]
 struct ComplexToMatrix2x2Hom {
@@ -3359,7 +3429,7 @@ struct ComplexToMatrix2x2Hom {
   }
 };
 
-static_assert(dedekind::algebra::IsRingLikeHomomorphism<
+static_assert(dedekind::algebra::IsRingHomomorphism<
                   ComplexToMatrix2x2Hom, Complex<Rat>, Matrix2x2V<Rat>>);
 
 // Per-value preservation on a non-symmetric probe pair.

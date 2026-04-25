@@ -47,12 +47,52 @@ import dedekind.order;
 import dedekind.sets;
 
 import :ring;
+import :group;  // HasGroupOperatorsMul (HasFieldOperators's mul half)
 import :division;
 
 namespace dedekind::algebra {
 using namespace dedekind::category;
 using namespace dedekind::order;
 using namespace dedekind::sets;
+
+/**
+ * @concept HasFieldOperators
+ * @brief @b Pure @b syntactic @b shape: T closes strictly under the
+ *        full field operator surface @c +, binary @c -, unary @c -,
+ *        @c *, @c /, and exposes the multiplicative unit @c T{1}.
+ *
+ * @details
+ * The aggregator concept for the field-operator surface.  Equal in
+ * content to @c HasRingOperators<T> @c && @c HasGroupOperatorsMul<T>:
+ *
+ *   - @c HasRingOperators<T> --- @c +, binary @c -, unary @c -,
+ *     @c * close strictly on @c T (the additive-group + ring surface);
+ *   - @c HasGroupOperatorsMul<T> --- @c *, @c /, @c T{1} close
+ *     strictly on @c T (the multiplicative-group surface).
+ *
+ * The shared @c * clause is idempotent in C++ concepts; the union
+ * names the full set of operators a field-style callsite needs to
+ * write plain field arithmetic in C++ syntax.
+ *
+ * Canonical positive witness: @c Rational<I> for any
+ * @c HasRingOperators @c I.
+ *
+ * Shape vs.\ semantics: @c HasFieldOperators<unsigned int> @b fires
+ * (the literal @c +, @c -, @c *, @c / all close on @c unsigned int
+ * and @c unsigned int{1} is well-formed), even though the textbook
+ * claim "@c unsigned int is a field" is false (integer @c / is
+ * truncation, not field inverse; @c 5/3 = @c 1, not @c 5/3).  The
+ * semantic claim lives in @c IsField, gated by the species-trait
+ * registry; @c HasFieldOperators is shape-only.  The shape concept
+ * @b does refuse on narrow unsigned types (@c unsigned char, @c
+ * unsigned short --- integer promotion lifts the result of @c +
+ * and @c * to @c int) and on @c bool (same reason).
+ *
+ * Introduced under #394 as the user-requested ℚ-deal companion of
+ * @c HasRingOperators / @c HasGroupOperatorsAdd.
+ */
+export template <typename T>
+concept HasFieldOperators = HasRingOperators<T> && HasGroupOperatorsMul<T>;
 
 /**
  * @concept IsField

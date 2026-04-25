@@ -418,4 +418,42 @@ struct SubobjectClassifier {
  * the Standard Library to the Ternary Topos.
  */
 
+/**
+ * @concept HasLogicalOperators
+ * @brief @b Pure @b syntactic @b shape: T supports the logical
+ *        operators @c &&, @c ||, @c ! with closed results.
+ *
+ * @details
+ * Use this concept where the callsite needs Boolean-flavoured logical
+ * operators (rather than the bitwise lattice operators of
+ * @c dedekind::order::HasLatticeOperators) --- @c bool, @c Ternary,
+ * predicate carriers, Kleene three-valued logic.  No axiomatic claim
+ * is made about truth tables or excluded-middle.  Note also that
+ * short-circuit evaluation of @c && / @c || is guaranteed only for
+ * the @b built-in operators on @c bool; once @c && / @c || are
+ * @b overloaded for a user-defined @c T they evaluate like ordinary
+ * functions (both operands always evaluated, in unspecified order),
+ * so this concept makes no short-circuit claim either.  Sibling of
+ * @c dedekind::algebra::HasRingOperators (in @c algebra:ring) and
+ * @c dedekind::order::HasLatticeOperators (in @c order:lattice) in
+ * the shape-concept family --- introduced under #393.
+ */
+export template <typename T>
+concept HasLogicalOperators = requires(T a, T b) {
+  { a && b } -> std::same_as<T>;
+  { a || b } -> std::same_as<T>;
+  { !a } -> std::same_as<T>;
+};
+
+/** @section Formal_Verification */
+
+// Pure-syntactic-shape witness: bool is the canonical fit because
+// bool && bool, bool || bool, !bool all return bool.  int does NOT
+// satisfy this concept --- a && b on ints yields bool, not int ---
+// which is the correct behaviour for a strictly-closing shape concept.
+static_assert(HasLogicalOperators<bool>,
+              "bool has the syntactic logical-operator surface "
+              "(&&, ||, ! all close to bool; short-circuit evaluation "
+              "is the built-in-operator behaviour, not a concept claim).");
+
 }  // namespace dedekind::category
