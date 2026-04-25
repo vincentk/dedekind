@@ -12,6 +12,7 @@
  */
 
 #include <catch2/catch_test_macros.hpp>
+#include <climits>
 #include <compare>
 #include <variant>
 
@@ -268,6 +269,51 @@ TEST_CASE("SignedCardinality — partial-ordering with unordered NaZ",
     CHECK(compare_signed(five, naz) == std::partial_ordering::unordered);
     CHECK(compare_signed(naz, pos_inf) == std::partial_ordering::unordered);
   }
+}
+
+TEST_CASE(
+    "SignedCardinality — INT_MAX round-trip through (-2)*(-2)/4 = identity",
+    "[sets][cardinality][signed][saturation][roundtrip]") {
+  // INT_MAX = 2^31 - 1.  Multiplying by -2 gives -(2^32 - 2) (magnitude
+  // ~4.3 billion); multiplying again gives 4*(2^31 - 1) = 2^33 - 4
+  // (~8.6 billion).  Both fit comfortably in a single std::size_t limb
+  // (max ~1.8e19), so no escalation kicks in --- the operations stay on
+  // the finite fragment and the round-trip recovers the original.
+  const auto original = finite_signed_cardinality(INT_MAX);
+  const auto neg_two = finite_signed_cardinality(-2);
+  const auto four = finite_signed_cardinality(4);
+
+  const auto step1 = original * neg_two;
+  const auto step2 = step1 * neg_two;
+  const auto roundtrip = step2 / four;
+
+  // All intermediates stayed on the finite fragment.
+  REQUIRE(std::holds_alternative<SEC>(step1));
+  REQUIRE(std::holds_alternative<SEC>(step2));
+  REQUIRE(std::holds_alternative<SEC>(roundtrip));
+
+  // Intermediate values, computed by hand:
+  //   step1 = INT_MAX * -2 = -(2^32 - 2) = -4294967294
+  //   step2 = step1 * -2  =  4 * INT_MAX = 2^33 - 4 = 8589934588
+  // Both magnitudes exceed UINT32_MAX (~4.29e9 vs 8.59e9 for step2),
+  // confirming the value-level check exercises a regime above 32-bit
+  // integer arithmetic but still inside the single-limb 64-bit
+  // capacity.
+  const auto expected_step1 =
+      finite_signed_cardinality(-4294967294LL);  // = -2 * INT_MAX
+  const auto expected_step2 =
+      finite_signed_cardinality(8589934588LL);  // = 4 * INT_MAX
+  CHECK(step1 == expected_step1);
+  CHECK(step2 == expected_step2);
+
+  // Sign tracking: × (-2) flips sign; × (-2) again restores positive;
+  // / 4 keeps the sign.
+  CHECK(std::get<SEC>(step1).negative);
+  CHECK_FALSE(std::get<SEC>(step2).negative);
+  CHECK_FALSE(std::get<SEC>(roundtrip).negative);
+
+  // The round-trip equals the original.
+  CHECK(roundtrip == original);
 }
 
 TEST_CASE(
