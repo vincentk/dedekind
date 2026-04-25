@@ -816,8 +816,7 @@ export constexpr SignedCardinality operator%(
 export constexpr std::partial_ordering compare_signed(
     const SignedCardinality& lhs, const SignedCardinality& rhs) noexcept {
   using namespace detail;
-  if (sc_is_naz(lhs) || sc_is_naz(rhs))
-    return std::partial_ordering::unordered;
+  if (sc_is_naz(lhs) || sc_is_naz(rhs)) return std::partial_ordering::unordered;
   // -ℵ_0 < everything except itself.
   if (sc_is_neg_inf(lhs) && sc_is_neg_inf(rhs))
     return std::partial_ordering::equivalent;
