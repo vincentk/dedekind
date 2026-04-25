@@ -94,7 +94,7 @@ concept HasGroupOperatorsAdd = requires(T a, T b) {
  */
 export template <typename T>
 concept HasGroupOperatorsMul = requires(T a, T b) {
-  { a* b } -> std::same_as<T>;
+  { a * b } -> std::same_as<T>;
   { a / b } -> std::same_as<T>;
   T{1};
 };
