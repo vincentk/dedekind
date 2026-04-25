@@ -241,3 +241,62 @@ static_assert(dedekind::category::IsFunctor<covec2_functor<int>>,
               "T-arrow to the elementwise Covec2V<T>-arrow.");
 
 }  // namespace dedekind::linear_algebra
+
+/** @section Monadic_Unit_Witnesses
+ *
+ *  The functor hubs above are the morphism-lifting half of a Kleisli
+ *  triple; this section pins the @c η / unit half — the scalar → linear-map
+ *  lift that the user expects to see at the linear-algebra layer.  For
+ *  @c Vec2V<T> and @c Covec2V<T> the canonical unit is the diagonal
+ *  broadcast @c s ↦ {s, s}, which is the element of the kernel of the
+ *  difference map @c {x, y} ↦ x − y.  Together with the elementwise
+ *  functorial lift in @c vec2_functor / @c covec2_functor, this gives a
+ *  Reader-flavoured Kleisli triple ([2] → T  with diagonal bind);
+ *  the corresponding @c operator>>= is intentionally deferred to a
+ *  follow-up since the project's Reader monad is not yet generalised
+ *  beyond @c Path<·>.
+ */
+namespace dedekind::category {
+
+template <typename T>
+  requires std::regular<T> && dedekind::algebra::IsRingLike<T>
+struct unit_witness<dedekind::linear_algebra::Vec2V, T> final {
+  constexpr dedekind::linear_algebra::Vec2V<T> operator()(T s) const {
+    return {s, s};
+  }
+};
+
+template <typename T>
+  requires std::regular<T> && dedekind::algebra::IsRingLike<T>
+struct unit_witness<dedekind::linear_algebra::Covec2V, T> final {
+  constexpr dedekind::linear_algebra::Covec2V<T> operator()(T s) const {
+    return {s, s};
+  }
+};
+
+/** @brief Counit / extract witness for @c Vec2V<T>.  Canonical projection
+ *  to the first coordinate; mirrors the Reader-monad @c π_0 counit.
+ */
+template <typename T>
+  requires std::regular<T> && dedekind::algebra::IsRingLike<T>
+struct counit_witness<dedekind::linear_algebra::Vec2V, T> final {
+  constexpr T operator()(const dedekind::linear_algebra::Vec2V<T>& v) const {
+    return v.x;
+  }
+};
+
+}  // namespace dedekind::category
+
+namespace dedekind::linear_algebra {
+
+static_assert(
+    dedekind::category::unit_witness<Vec2V, int>{}(7) == Vec2V<int>{7, 7},
+    "Vec2V η: scalar → diagonal broadcast.");
+static_assert(
+    dedekind::category::counit_witness<Vec2V, int>{}(Vec2V<int>{3, 5}) == 3,
+    "Vec2V ε: extract canonical first coordinate.");
+static_assert(
+    dedekind::category::unit_witness<Covec2V, int>{}(2) == Covec2V<int>{2, 2},
+    "Covec2V η: scalar → diagonal broadcast.");
+
+}  // namespace dedekind::linear_algebra

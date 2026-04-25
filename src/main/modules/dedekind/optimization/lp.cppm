@@ -288,4 +288,51 @@ constexpr auto maximize() {
   return Vec2<T, v.x, v.y>{};
 }
 
+/** @section Comonadic_Extract_Witness
+ *
+ *  @c maximize<T, cx, cy, Hs...>() is structurally a comonadic counit
+ *  (@c ε in the Kleisli notation): it takes the polytope-context
+ *  @c (cx, cy, Hs...) — bundled as the NTTP pack — and extracts the
+ *  optimal vertex as @c Vec2<T, x*, y*>.  The pack-as-context view
+ *  matches the textbook co-Kleisli arrow shape
+ *  @c F<T> → T already noted in the file header.  The
+ *  @c Polytope2D wrapper below makes the extract explicit at the
+ *  type level so the witness can be pinned without changing the
+ *  primary API surface.
+ */
+namespace detail {
+
+/** @brief Polytope context: the (cx, cy, Hs...) pack reified as a type.
+ *
+ *  Carries no runtime state; it exists only so the comonadic extract
+ *  has a context-carrier to consume.  Conceptually @c F<T> in the
+ *  @c F<T> → T shape of the LP reduction.
+ */
+template <typename T, T cx, T cy, typename... Hs>
+  requires(sizeof...(Hs) >= 2) && dedekind::algebra::IsRingLike<T>
+struct Polytope2D final {
+  using scalar_type = T;
+  static constexpr T objective_x = cx;
+  static constexpr T objective_y = cy;
+
+  /** @brief @c ε: extract the optimal vertex as a typed Vec2.  The
+   *  reduction collapses to a typed constant at instantiation —
+   *  exactly the LP-vertex-as-typed-constant claim from §5 of the
+   *  paper.
+   */
+  static constexpr auto extract() { return maximize<T, cx, cy, Hs...>(); }
+};
+
+}  // namespace detail
+
+/** @brief @c ε / extract for the LP comonadic context.  Provided as a
+ *  free function so callers can write @c lp_extract(polytope) without
+ *  reaching into @c detail.
+ */
+export template <typename T, T cx, T cy, typename... Hs>
+  requires(sizeof...(Hs) >= 2) && dedekind::algebra::IsRingLike<T>
+constexpr auto lp_extract(detail::Polytope2D<T, cx, cy, Hs...>) {
+  return detail::Polytope2D<T, cx, cy, Hs...>::extract();
+}
+
 }  // namespace dedekind::optimization
