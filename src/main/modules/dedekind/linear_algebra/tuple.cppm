@@ -289,14 +289,14 @@ struct counit_witness<dedekind::linear_algebra::Vec2V, T> final {
 
 namespace dedekind::linear_algebra {
 
-static_assert(
-    dedekind::category::unit_witness<Vec2V, int>{}(7) == Vec2V<int>{7, 7},
-    "Vec2V η: scalar → diagonal broadcast.");
-static_assert(
-    dedekind::category::counit_witness<Vec2V, int>{}(Vec2V<int>{3, 5}) == 3,
-    "Vec2V ε: extract canonical first coordinate.");
-static_assert(
-    dedekind::category::unit_witness<Covec2V, int>{}(2) == Covec2V<int>{2, 2},
-    "Covec2V η: scalar → diagonal broadcast.");
+static_assert(dedekind::category::unit_witness<Vec2V, int>{}(7) ==
+                  Vec2V<int>{7, 7},
+              "Vec2V η: scalar → diagonal broadcast.");
+static_assert(dedekind::category::counit_witness<Vec2V, int>{}(Vec2V<int>{
+                  3, 5}) == 3,
+              "Vec2V ε: extract canonical first coordinate.");
+static_assert(dedekind::category::unit_witness<Covec2V, int>{}(2) ==
+                  Covec2V<int>{2, 2},
+              "Covec2V η: scalar → diagonal broadcast.");
 
 }  // namespace dedekind::linear_algebra
