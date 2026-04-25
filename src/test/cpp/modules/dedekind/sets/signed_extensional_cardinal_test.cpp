@@ -233,6 +233,81 @@ TEST_CASE(
 }
 
 TEST_CASE(
+    "SignedExtensionalCardinal<2> — limb growth then shrinkage "
+    "via repeated additions",
+    "[sets][cardinality][signed][multi-limb][roundtrip]") {
+  // User-requested round-trip:
+  //   (a) start at 0;
+  //   (b) keep adding the increment until the magnitude requires two
+  //       limbs (limbs[1] != 0);
+  //   (c) multiply by -1 (unary negation);
+  //   (d) keep adding the same increment until the value reaches 0;
+  //   (e) check that the magnitude is back to a single limb
+  //       (limbs[1] == 0).
+  //
+  // Note on the increment: the user's pseudocode used +13 each step.
+  // At a 64-bit `std::size_t` limb the natural-number of +13 steps
+  // required to cross 2^64 is ceil(2^64 / 13) ≈ 1.4e18 --- intractable
+  // as a unit test.  We scale the increment to `13 * 2^56` (= 0x0D
+  // followed by 56 low-zero bits, a small odd-multiple of a power of
+  // two) so the loop crosses the boundary in ~20 iterations.  The
+  // *structural* invariant (limb-count grows past 1 in step (b),
+  // collapses back to 1 in step (e)) is preserved; only the
+  // increment magnitude is scaled to make the loop tractable.
+  using Z2 = SignedExtensionalCardinal<2>;
+
+  constexpr Z2 zero;
+  // 13 * 2^56 fits comfortably in a single std::size_t limb
+  // (~9.36e17, well under 2^64 ≈ 1.84e19) --- single-step addition
+  // never overflows a single limb on its own.
+  Z2 increment;
+  increment.magnitude.limbs[0] =
+      static_cast<Z2::magnitude_type::limb_type>(13ULL) << 56;
+
+  // (a) start at 0.
+  Z2 value = zero;
+  REQUIRE(value == zero);
+  REQUIRE(value.magnitude.limbs[0] == 0);
+  REQUIRE(value.magnitude.limbs[1] == 0);
+
+  // (b) keep adding the increment until magnitude requires two limbs.
+  std::size_t step_count = 0;
+  while (value.magnitude.limbs[1] == 0) {
+    value = value + increment;
+    ++step_count;
+  }
+  // The boundary crossing happens at the smallest k such that
+  // k * (13 * 2^56) > 2^64, i.e.\ k = ceil(2^64 / (13 * 2^56))
+  // = ceil(2^8 / 13) = ceil(256 / 13) = 20.
+  CHECK(step_count == 20);
+  CHECK(value.magnitude.limbs[1] != 0);
+  CHECK_FALSE(value.negative);
+
+  // (c) multiply by -1 (unary negation).
+  value = -value;
+  CHECK(value.negative);
+  CHECK(value.magnitude.limbs[1] != 0);  // magnitude preserved
+
+  // (d) keep adding the increment until the value reaches 0 again.
+  // Each +increment moves the value upward; from a negative
+  // 20-increments-deep starting point, exactly 20 additions return
+  // us to canonical zero (sign-magnitude addition cancels through
+  // the sign-flip on the last step).
+  std::size_t shrink_steps = 0;
+  while (value != zero) {
+    value = value + increment;
+    ++shrink_steps;
+  }
+  CHECK(shrink_steps == 20);
+
+  // (e) check that the magnitude is now a single limb.
+  CHECK(value.magnitude.limbs[1] == 0);
+  CHECK(value.magnitude.limbs[0] == 0);  // == 0 exactly
+  CHECK_FALSE(value.negative);           // canonical +0
+  CHECK(value == zero);
+}
+
+TEST_CASE(
     "SignedExtensionalCardinal<3> — three-limb round-trip "
     "through (-2)·(-2)/4 = identity",
     "[sets][cardinality][signed][multi-limb][roundtrip]") {
