@@ -343,9 +343,8 @@ static_assert(IsCyclicRing<CyclicRing<int, 100>>,
  * built over these ambients inherits the CCC guarantee structurally
  * per #389.
  */
-static_assert(
-    dedekind::category::HasCanonicalSetCCC<Modular<256>>,
-    "Modular<256> hosts a canonical Cartesian-closed Set ambient.");
+static_assert(dedekind::category::HasCanonicalSetCCC<Modular<256>>,
+              "Modular<256> hosts a canonical Cartesian-closed Set ambient.");
 static_assert(
     dedekind::category::HasCanonicalSetCCC<CyclicRing<int, 100>>,
     "CyclicRing<int, 100> hosts a canonical Cartesian-closed Set ambient.");

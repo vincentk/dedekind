@@ -494,8 +494,9 @@ static_assert(dedekind::category::HasCanonicalSetCCC<Rational<default_integer>>,
 static_assert(
     dedekind::category::HasCanonicalSetCCC<ExtensionalCardinal<>>,
     "ExtensionalCardinal<> hosts a canonical Cartesian-closed Set ambient.");
-static_assert(dedekind::category::HasCanonicalSetCCC<SignedExtensionalCardinal<>>,
-              "SignedExtensionalCardinal<> hosts a canonical "
-              "Cartesian-closed Set ambient.");
+static_assert(
+    dedekind::category::HasCanonicalSetCCC<SignedExtensionalCardinal<>>,
+    "SignedExtensionalCardinal<> hosts a canonical "
+    "Cartesian-closed Set ambient.");
 
 }  // namespace dedekind::numbers
