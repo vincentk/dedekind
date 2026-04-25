@@ -399,22 +399,22 @@ static_assert(f64_primitive_α != 𝔽64{},
  *        @f$\alpha^0, \alpha^1, \ldots, \alpha^{62}@f$.
  *
  * @details Returns a @c FinitePath<𝔽64> of size @c 63 whose @c i-th
- * element is @f$\alpha^i@f$.  The walk is the bidirectional anchor
- * between @c category::IsCyclicGroup<𝔽64, std::multiplies<𝔽64>>
- * (axiomatic: 𝔽64^× is cyclic of order 63) and the standard-library
+ * element is @f$\alpha^i@f$.  Built via @c sequences::iterate, which
+ * pre-materialises the orbit into a shared vector at construction
+ * time --- so @c at(n) is @c O(1) and a full enumeration is
+ * @c O(n) rather than the naive @c O(n^2) of a per-call
+ * exponent walk.  The walk is the bidirectional anchor between
+ * @c category::IsCyclicGroup<𝔽64, std::multiplies<𝔽64>> (axiomatic:
+ * 𝔽64^× is cyclic of order 63) and the standard-library
  * @c std::ranges::input_range surface --- the same path that
  * @c morphologies:archimedean :: IsCyclic carriers walk via
  * @c successor / @c generator, here realised as an explicit
  * sequence over @f$\mathbb{N}_{<63}@f$.
  */
 export inline auto f64_primitive_powers() {
-  return dedekind::sequences::FinitePath<𝔽64>{
-      [](std::size_t n) {
-        𝔽64 result(static_cast<std::uint8_t>(1));
-        for (std::size_t i = 0; i < n; ++i) result = result * f64_primitive_α;
-        return result;
-      },
-      63u};
+  return dedekind::sequences::iterate(
+      𝔽64{static_cast<std::uint8_t>(1)},
+      [](const 𝔽64& x) { return x * f64_primitive_α; }, std::size_t{63});
 }
 
 static_assert(

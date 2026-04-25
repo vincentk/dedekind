@@ -86,20 +86,23 @@ concept IsNet = IsArrow<N> && IsDirectedSet<typename N::Domain>;
  *
  * @c FinitePath<T> already exposes @c begin() / @c end() returning
  * iterators that satisfy the @c std::input_iterator concept (cf.\
- * @c sequences:path), so any @c IsFiniteSequence carrier is a
+ * @c sequences:path), so @c FinitePath<T> is a
  * @c std::ranges::input_range out of the box.  The reverse direction
  * is provided by the @c from_range factory in @c sequences:path,
  * which lifts any @c std::ranges::input_range into a
  * @c FinitePath<T>.  In symbols:
  *
- *   @c IsFiniteSequence<Seq> @c => @c std::ranges::input_range<Seq>
+ *   @c FinitePath<T> @c => @c std::ranges::input_range
  *
  *   @c std::ranges::input_range<R> @c => @c FinitePath<value_t> @c =
  *   @c from_range(r)
  *
- * This is the anchor that makes library sequences flow into
- * @c std::ranges algorithms (transform / filter / for_each / accumulate)
- * without an explicit adapter.
+ * This is the anchor that makes @c FinitePath<T> values flow into
+ * @c std::ranges algorithms (transform / filter / for_each) and
+ * iterator-based reductions such as @c std::accumulate without a
+ * bespoke adapter.  Other @c IsFiniteSequence carriers acquire the
+ * same range surface by additionally exposing @c begin() / @c end()
+ * (the concept does not require it; @c FinitePath provides it).
  *
  * @subsection Coroutine_Anchor (C++23, future once libc++ ships @c <generator>)
  *
