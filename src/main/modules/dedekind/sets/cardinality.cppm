@@ -148,24 +148,80 @@ struct ExtensionalCardinal {
   }
 
   /**
-   * @brief Euclidean division (single-limb exact; multi-limb truncates to
-   *        first limb). Division by zero yields zero by convention (total).
+   * @brief Euclidean division.  Division by zero yields zero by
+   *        convention (total).  When the divisor fits in a single
+   *        limb, performs schoolbook long division across the full
+   *        @c N-limb dividend (multi-limb-correct).  When the divisor
+   *        itself is multi-limb, falls back to single-limb truncation
+   *        --- multi-limb-by-multi-limb division is out of scope.
    */
   constexpr friend ExtensionalCardinal operator/(
       const ExtensionalCardinal& lhs, const ExtensionalCardinal& rhs) noexcept {
     if (rhs.limbs[0] == 0) return ExtensionalCardinal{};
+    // Detect a multi-limb divisor; fall back to truncated single-limb
+    // division if the rhs has any non-zero high limbs.
+    bool divisor_multi_limb = false;
+    for (std::size_t i = 1; i < N; ++i) {
+      if (rhs.limbs[i] != 0) {
+        divisor_multi_limb = true;
+        break;
+      }
+    }
+    if (divisor_multi_limb) {
+      ExtensionalCardinal result{};
+      result.limbs[0] = lhs.limbs[0] / rhs.limbs[0];
+      return result;
+    }
+    // Single-limb divisor: schoolbook long division from the high limb
+    // down.  Use unsigned __int128 to carry the running remainder
+    // shifted into the next limb without overflowing intermediate
+    // arithmetic.
     ExtensionalCardinal result{};
-    result.limbs[0] = lhs.limbs[0] / rhs.limbs[0];
+    unsigned __int128 remainder = 0;
+    const unsigned __int128 divisor =
+        static_cast<unsigned __int128>(rhs.limbs[0]);
+    for (std::size_t i = N; i-- > 0;) {
+      const unsigned __int128 cur =
+          (remainder << limb_bits) |
+          static_cast<unsigned __int128>(lhs.limbs[i]);
+      result.limbs[i] = static_cast<limb_type>(cur / divisor);
+      remainder = cur % divisor;
+    }
     return result;
   }
 
-  /** @brief Euclidean modulo (single-limb exact). Division by zero yields
-   *         lhs by convention (total). */
+  /** @brief Euclidean modulo.  Division by zero yields @c lhs by
+   *         convention (total).  Single-limb divisor: full multi-limb
+   *         remainder via the same long-division pass as @c operator/;
+   *         the result is therefore representable in a single limb (it
+   *         is bounded above by the divisor) and lives in @c limbs[0].
+   *         Multi-limb divisor: falls back to single-limb truncation. */
   constexpr friend ExtensionalCardinal operator%(
       const ExtensionalCardinal& lhs, const ExtensionalCardinal& rhs) noexcept {
     if (rhs.limbs[0] == 0) return lhs;
+    bool divisor_multi_limb = false;
+    for (std::size_t i = 1; i < N; ++i) {
+      if (rhs.limbs[i] != 0) {
+        divisor_multi_limb = true;
+        break;
+      }
+    }
+    if (divisor_multi_limb) {
+      ExtensionalCardinal result{};
+      result.limbs[0] = lhs.limbs[0] % rhs.limbs[0];
+      return result;
+    }
+    unsigned __int128 remainder = 0;
+    const unsigned __int128 divisor =
+        static_cast<unsigned __int128>(rhs.limbs[0]);
+    for (std::size_t i = N; i-- > 0;) {
+      const unsigned __int128 cur =
+          (remainder << limb_bits) |
+          static_cast<unsigned __int128>(lhs.limbs[i]);
+      remainder = cur % divisor;
+    }
     ExtensionalCardinal result{};
-    result.limbs[0] = lhs.limbs[0] % rhs.limbs[0];
+    result.limbs[0] = static_cast<limb_type>(remainder);
     return result;
   }
 
