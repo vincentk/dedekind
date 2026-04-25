@@ -118,10 +118,9 @@ inline constexpr bool
 
 TEST_CASE("IsCommutativeRing — baseline existing carriers",
           "[category][commutative-ring]") {
-  // The modular-ring test types the library already certifies as IsRing
-  // are also commutative, so IsCommutativeRing must hold.
-  using M = dedekind::category::Modular<256>;
-  STATIC_CHECK(IsCommutativeRing<M, std::plus<M>, std::multiplies<M>>);
+  // unsigned int is the canonical primitive commutative ring (Z/2^N Z).
+  // The stronger Modular<N> witness lives in morphologies:cyclic and is
+  // covered by its own tests in the algebra test layer.
   STATIC_CHECK(IsCommutativeRing<unsigned int, std::plus<unsigned int>,
                                  std::multiplies<unsigned int>>);
 }
@@ -143,14 +142,9 @@ TEST_CASE("IsField — rejects non-field commutative rings without opt-in",
   // side fails IsAbelianGroup and IsField must reject: unsigned int is
   // ℤ/2^Nℤ, a ring but not a field (non-units lack multiplicative
   // inverses).  This is precisely the false-positive the opt-in
-  // prevents.
+  // prevents.  (The Modular<N> variant of this negative witness is
+  // exercised in the algebra test layer, which can see
+  // morphologies:cyclic.)
   STATIC_CHECK_FALSE(IsField<unsigned int, std::plus<unsigned int>,
                              std::multiplies<unsigned int>>);
-
-  // Same for the library's own Modular<256>: structurally a
-  // commutative ring, but not a field (only units coprime to 256
-  // are invertible).  Without an is_invertible_v specialisation on
-  // the multiplicative operation, the concept rejects it.
-  using M = dedekind::category::Modular<256>;
-  STATIC_CHECK_FALSE(IsField<M, std::plus<M>, std::multiplies<M>>);
 }

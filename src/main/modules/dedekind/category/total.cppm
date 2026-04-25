@@ -39,7 +39,10 @@ module;
 
 #include <algorithm>
 #include <concepts>
+#include <cstddef>  // for std::size_t (cyclic_order_v)
 #include <functional>
+#include <limits>       // for std::numeric_limits (cyclic_order_v)
+#include <type_traits>  // for std::false_type, std::integral_constant
 
 export module dedekind.category:total;
 
@@ -201,6 +204,101 @@ concept IsAbelianGroup = IsGroup<T, Op> && IsCommutative<T, Op>;
 static_assert(IsAbelianGroup<unsigned int, std::plus<unsigned int>>);
 
 /**
+ * @brief Opt-in trait: is @c (T, Op) a \emph{cyclic} abelian group?
+ *
+ * @details Closes #378.  A cyclic group is an abelian group generated
+ * by a single element.  Every cyclic group is isomorphic to
+ * @f$\mathbb{Z}/n\mathbb{Z}@f$ for some @f$n \ge 1@f$ (finite cyclic)
+ * or to @f$\mathbb{Z}@f$ itself (infinite cyclic).  In this library,
+ * all finite cyclic carriers that matter --- @c unsigned int /
+ * @c unsigned long / @c size_t under @c std::plus (wrapping at
+ * @f$2^N@f$), @c ExtensionalCardinal<N> under @c std::plus,
+ * @c SignedExtensionalCardinal<N> under @c std::plus,
+ * @c morphologies::Modular<N> under @c std::plus --- are cyclic
+ * specialisations of the abelian-group case.
+ *
+ * The trait is struct-backed (@c is_cyclic_group<T, Op>) so
+ * SpeciesTraits-based discovery works across module boundaries.
+ * Default @c false; carrier author declares finiteness / cyclicity
+ * (C++ concepts cannot derive it from a type signature).
+ */
+export template <typename T, typename Op>
+struct is_cyclic_group : std::false_type {};
+
+/** @brief Shorthand access to the @c is_cyclic_group trait. */
+export template <typename T, typename Op>
+inline constexpr bool is_cyclic_group_v = is_cyclic_group<T, Op>::value;
+
+/**
+ * @brief The order @f$n@f$ of a cyclic group (its cardinality).
+ *
+ * @details A positive value @f$n@f$ signals a finite cyclic group
+ * of that order.  The sentinel value @c 0 covers two distinct cases
+ * the trait does not distinguish: the infinite cyclic case
+ * (isomorphic to @f$\mathbb{Z}@f$) and the finite cyclic case whose
+ * order overflows @c std::size_t (e.g.\ @c uint64_t under @c std::plus
+ * on a 64-bit platform, where the order @f$2^{64}@f$ is not
+ * representable as @c std::size_t).
+ */
+export template <typename T, typename Op>
+struct cyclic_order : std::integral_constant<std::size_t, 0> {};
+
+export template <typename T, typename Op>
+inline constexpr std::size_t cyclic_order_v = cyclic_order<T, Op>::value;
+
+/**
+ * @concept IsCyclicGroup
+ * @brief A cyclic abelian group: the honest concept name for
+ * @f$\mathbb{Z}/n\mathbb{Z}@f$ carriers and their machine-backed cousins.
+ *
+ * @details Composes @c IsAbelianGroup with the finite-cyclicity
+ * opt-in @c is_cyclic_group_v.  Does \emph{not} require
+ * @c cyclic_order_v > 0 --- that would exclude the infinite cyclic
+ * case @f$\mathbb{Z}@f$, which is also genuinely cyclic (generated
+ * by 1).
+ */
+export template <typename T, typename Op>
+concept IsCyclicGroup = IsAbelianGroup<T, Op> && is_cyclic_group_v<T, Op>;
+
+/** @section IsCyclicGroup_witnesses_for_primitive_unsigned_integrals
+ *
+ * Every @c std::unsigned_integral @c T under @c std::plus<T> is a
+ * cyclic group: addition wraps modulo @c 2^N (with @c N the bit
+ * width), and @c T(1) generates the whole group.  Specialisations
+ * live here rather than in @c :species because they extend the
+ * @c is_cyclic_group / @c cyclic_order struct templates declared
+ * in @c :total, so the specialisations must be provided from this
+ * partition.
+ */
+// Exclude bool: `std::plus<bool>(true, true)` is `true` (promotion to
+// int gives 2, then conversion back to bool), not `false`, so `true`
+// has no additive inverse and (bool, +) isn't a group.  The library
+// models bool's additive-group structure via `std::bit_xor<bool>`
+// instead (see `:species`).
+template <std::unsigned_integral T>
+  requires(!std::same_as<T, bool>)
+struct is_cyclic_group<T, std::plus<T>> : std::true_type {};
+
+// Order of the (T, +) cyclic group is 2^N where N = bit width of T.
+// `std::numeric_limits<T>::digits` gives N for unsigned integral
+// types (no sign bit).  For types where 2^N overflows std::size_t
+// (e.g. N >= 64 on a 64-bit platform), report 0 ("order not
+// representable as std::size_t"); callers treating 0 as "finite but
+// oversized" should switch to a wider trait.
+template <std::unsigned_integral T>
+  requires(!std::same_as<T, bool>)
+struct cyclic_order<T, std::plus<T>>
+    : std::integral_constant<
+          std::size_t, (std::numeric_limits<T>::digits <
+                        std::numeric_limits<std::size_t>::digits)
+                           ? (std::size_t{1} << std::numeric_limits<T>::digits)
+                           : std::size_t{0}> {};
+
+// `unsigned int` under + is the canonical primitive cyclic group.
+static_assert(IsCyclicGroup<unsigned int, std::plus<unsigned int>>,
+              "unsigned int under + must be a cyclic group (wraps mod 2^N).");
+
+/**
  * @concept IsRig
  * @brief Level 2.1: A Semiring without Negatives (Addition is a Monoid).
  * @details A Rig ("Ring without negatives") provides two monoidal operations
@@ -260,9 +358,8 @@ concept IsRing = IsRig<T, Add, Mult> && IsRng<T, Add, Mult>;
 static_assert(IsRing<unsigned int, std::plus<unsigned int>,
                      std::multiplies<unsigned int>>);
 
-// SUCCESS: Modular<N> is a Total Ring (Axiomatic Periodicity).
-static_assert(IsRing<Modular<256>, std::plus<Modular<256>>,
-                     std::multiplies<Modular<256>>>);
+// `Modular<N>` is a total ring (axiomatic periodicity) — asserted in
+// `morphologies:cyclic`, where the carrier now lives (see #378).
 
 /**
  * @concept IsCommutativeRing

@@ -25,6 +25,31 @@ import dedekind.sequences;
 namespace dedekind::morphologies {
 using namespace dedekind::sequences;
 
+/**
+ * @concept IsCyclic
+ * @brief \emph{Operational} duck-typed check that @c T carries the
+ *        member API of a cyclic structure: @c T::Domain alias,
+ *        @c T::generator() returning a Domain element, and
+ *        @c T::successor(a) walking the chain.
+ *
+ * @details This is the syntactic counterpart of the categorical
+ * @c dedekind::category::IsCyclicGroup<T, Op> in the strict /
+ * operational pattern the project uses elsewhere
+ * (cf.\ @c IsRingLike vs @c IsRing).  The two concepts are
+ * complementary:
+ *
+ *   - @c IsCyclic<T> --- "this carrier exposes the shape" (member
+ *     API for generator + successor).  Cheap to check; useful for
+ *     duck-typed templated algorithms that walk a cyclic chain.
+ *   - @c category::IsCyclicGroup<T, Op> --- "this carrier under
+ *     this operation forms a cyclic abelian group" (axiomatic, via
+ *     @c IsAbelianGroup<T, Op> + the @c is_cyclic_group_v<T, Op>
+ *     opt-in trait).  More demanding; certifies the laws.
+ *
+ * Carriers that satisfy both --- e.g.\ @c morphologies::Modular<N>
+ * and @c morphologies::CyclicRing<T, N> --- are positively certified
+ * at both layers.
+ */
 export template <typename T>
 concept IsCyclic = requires {
   typename T::Domain;

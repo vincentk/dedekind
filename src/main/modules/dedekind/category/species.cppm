@@ -728,107 +728,16 @@ template <std::integral T>
 struct is_periodic<T, std::bit_xor<T>> : std::true_type {};
 
 /**
- * @section The_Modular_Species (Z/nZ)
- * A total species representing a Finite Cyclic Group.
+ * @section Ring_like_distributivity_for_unsigned_integrals
+ * The @c Modular<N> carrier and its trait specialisations moved to
+ * @c dedekind.morphologies:cyclic as part of #378; see that partition
+ * for the finite-cyclic-ring story.  The generic distributivity
+ * claim for @c std::unsigned_integral carriers (which covers
+ * @c unsigned int / @c unsigned long / @c size_t) stays here.
  */
-export template <auto N>
-struct Modular {
-  static_assert(N > 0, "Modulus must be positive.");
-  using machine_type = decltype(N);
-  machine_type value;
-
-  // We keep the constructor explicit to maintain structuralist integrity
-  explicit constexpr Modular(machine_type v) : value(v % N) {}
-
-  // Total Addition: (a + b) mod N
-  constexpr friend Modular operator+(Modular a, Modular b) {
-    return Modular((a.value + b.value) % N);
-  }
-
-  // Total Multiplication: (a * b) mod N
-  constexpr friend Modular operator*(Modular a, Modular b) {
-    return Modular((a.value * b.value) % N);
-  }
-
-  // Equality as a Subobject Classifier
-  constexpr friend bool operator==(Modular a, Modular b) {
-    return a.value == b.value;
-  }
-};
-
 template <typename T>
 inline constexpr bool is_distributive_v<T, std::multiplies<>, std::plus<>> =
     std::unsigned_integral<T>;
-
-template <auto N>
-inline constexpr bool
-    is_distributive_v<Modular<N>, std::multiplies<>, std::plus<>> = true;
-
-template <auto N>
-inline constexpr bool is_distributive_v<Modular<N>, std::multiplies<Modular<N>>,
-                                        std::plus<Modular<N>>> = true;
-
-/** @section Additive_Inverses */
-template <auto N>
-inline constexpr bool is_invertible_v<Modular<N>, std::plus<Modular<N>>> = true;
-
-// Also for the transparent version if your concepts use it:
-template <auto N>
-inline constexpr bool is_invertible_v<Modular<N>, std::plus<>> = true;
-
-template <auto N>
-struct is_associative<Modular<N>, std::plus<Modular<N>>> : std::true_type {};
-
-template <auto N>
-struct is_commutative<Modular<N>, std::plus<Modular<N>>> : std::true_type {};
-
-template <auto N>
-struct is_associative<Modular<N>, std::multiplies<Modular<N>>>
-    : std::true_type {};
-
-template <auto N>
-struct is_commutative<Modular<N>, std::multiplies<Modular<N>>>
-    : std::true_type {};
-
-template <auto N>
-struct is_periodic<Modular<N>, std::plus<Modular<N>>> : std::true_type {};
-
-template <auto N>
-struct is_periodic<Modular<N>, std::multiplies<Modular<N>>> : std::true_type {};
-
-template <auto N>
-struct identity_trait<Modular<N>, std::plus<Modular<N>>> {
-  using value_type = Modular<N>;
-  static constexpr Modular<N> value = Modular<N>{0};
-};
-
-template <auto N>
-struct identity_trait<Modular<N>, std::multiplies<Modular<N>>> {
-  using value_type = Modular<N>;
-  static constexpr Modular<N> value = Modular<N>{1};
-};
-
-/** @section Atlas_Registration: Modular<N> */
-export template <auto N>
-struct SpeciesTraits<Modular<N>> {
-  using Domain = Modular<N>;
-  using machine_type = decltype(N);
-
-  /** @section Algebraic_Facts */
-  template <typename Op>
-  static constexpr bool is_associative_v = true;
-
-  template <typename Op>
-  static constexpr bool is_commutative_v = true;
-
-  // Addition and Multiplication are both idempotent ONLY if N=1 (Trivial Ring)
-  template <typename Op>
-  static constexpr bool is_idempotent_v = (N == 1);
-
-  static constexpr Modular<N> identity = Modular<N>(0);
-
-  static constexpr bool is_distributive = true;
-};
 
 static_assert(
     characteristic_v<unsigned char> == 256,
@@ -1146,10 +1055,8 @@ static_assert(is_distributive_v<unsigned int, std::multiplies<>, std::plus<>>,
 static_assert(!is_distributive_v<int, std::multiplies<>, std::plus<>>,
               "Honesty Check: Signed * does NOT distribute over + due to UB.");
 
-static_assert(is_distributive_v<Modular<256>, std::multiplies<Modular<256>>,
-                                std::plus<Modular<256>>>,
-              "Axiom Error: Modular multiplication must distribute over "
-              "modular addition.");
+// Modular<N>'s distributivity static_assert lives in morphologies:cyclic
+// (the carrier moved there as part of #378).
 
 // 3. Bitwise Distributivity: AND distributes over OR (Boolean Ring properties).
 static_assert(is_distributive_v<unsigned int, std::bit_and<>, std::bit_or<>>,
@@ -1160,5 +1067,10 @@ static_assert(is_distributive_v<unsigned int, std::bit_and<>, std::bit_or<>>,
 static_assert(
     !is_distributive_v<int, std::multiplies<>, std::bit_or<>>,
     "Logic Error: Multiplication should not distribute over bitwise OR.");
+
+// The `is_cyclic_group` / `cyclic_order` specialisations for
+// `std::unsigned_integral` carriers live in `dedekind.category:total`
+// alongside the `IsCyclicGroup` concept itself (the struct templates
+// are defined there; `:species` is below `:total` in the DAG).
 
 }  // namespace dedekind::category

@@ -465,6 +465,15 @@ static_assert(IsDense<Rational<default_integer>>,
               "Rational<Z> must satisfy IsDense (ℚ is dense in itself: "
               "between any two rationals lies another).");
 
+// ℚ is also a valid net domain: the total order makes it directed
+// (every pair {a, b} has a common upper bound, e.g.\ max(a, b)).
+// Cf.\ Munkres / Kelley: a net is a function from a directed set,
+// not necessarily ℕ.
+static_assert(dedekind::order::IsDirectedSet<Rational<default_integer>>,
+              "Rational<Z> is a directed set --- ℚ is a valid net "
+              "domain (totally ordered, every pair has a common "
+              "upper bound).");
+
 // Structural product proof: ℚ is constructed as pairs (num, den) from ℤ × ℤ.
 static_assert(
     dedekind::category::IsProduct<Rational<default_integer>, default_integer,
