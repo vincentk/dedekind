@@ -104,7 +104,8 @@ concept IsNet = IsArrow<N> && IsDirectedSet<typename N::Domain>;
  * same range surface by additionally exposing @c begin() / @c end()
  * (the concept does not require it; @c FinitePath provides it).
  *
- * @subsection Coroutine_Anchor (C++23, future once libc++ ships @c \<generator\>)
+ * @subsection Coroutine_Anchor (C++23, future once libc++ ships @c
+ * \<generator\>)
  *
  * The C++23 @c std::generator<T> coroutine (P2502R2,
  * @c \<generator\>) is the natural pull-model dual: a coroutine that
