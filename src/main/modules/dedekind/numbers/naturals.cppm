@@ -149,6 +149,22 @@ constexpr N embed_unsigned_integral(U v) {
   return N{v};
 }
 
+/** @section Formal_Verification */
+
+// Self-documenting witness: the canonical machine-natural carrier
+// satisfies both the structural concept (IsNatural) and its alias
+// (IsNaturalNumber).  Pinned here so any future drift in the concept
+// body breaks the build at the partition boundary.
+static_assert(IsNatural<unsigned int>,
+              "unsigned int satisfies IsNatural (commutative semiring "
+              "with order; +,*,<= close on the carrier).");
+static_assert(IsNaturalNumber<unsigned int>,
+              "unsigned int is the canonical IsNaturalNumber.");
+
+// `Monoid_ℕ<ExtensionalCardinal<>>` is the canonical exact-ℕ witness,
+// asserted in `:rational` (where the species-trait registrations are
+// reachable).
+
 };  // namespace dedekind::numbers
 
 namespace dedekind::category {

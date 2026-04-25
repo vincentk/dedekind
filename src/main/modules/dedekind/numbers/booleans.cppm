@@ -61,6 +61,18 @@ using FiniteBooleanSetOf = dedekind::sets::FiniteBooleanSet<L>;
  *
  * @tparam M The Algebraic Structure governing the Boolean set.
  * @tparam E The underlying element type (e.g., bool).
+ *
+ * @note FIXME(#379): this concept appears to be dead code.  The body
+ * requires @c m.cardinality() to return @c std::same_as<std::size_t>,
+ * but the canonical Boolean carrier @c FiniteBooleanSet (in
+ * @c sets:expressions) returns @c cardinality_type @c = @c Finite ---
+ * a tag type, not @c std::size_t.  The concept therefore does not
+ * fire on its own canonical carrier, and there are no witnesses
+ * anywhere in the codebase.  Surgery candidate: either repair the
+ * concept body to accept @c Finite (or any @c IsCardinality
+ * value-or-tag) and add a @c static_assert(Is_B<FiniteBooleanSetOf<>>)
+ * witness, or remove the concept as deliberately-not-shipped.  Flagged
+ * during the #379 paper / module sweep.
  */
 export template <typename M, typename E = typename M::Domain>
 concept Is_B = std::same_as<E, bool> && requires(const M& m) {

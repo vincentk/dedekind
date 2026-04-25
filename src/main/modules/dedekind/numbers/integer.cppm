@@ -160,6 +160,23 @@ export using extensional_integer = int;
  */
 export using default_integer = extensional_integer;
 
+// FIXME(#379): the *Like cluster below is a candidate for the
+// retire-Like surgery phase that follows the alignment sweep.
+//   - `IsRationalLike` checks only operator closure (+, -, *, /); it is
+//     structurally identical to `algebra::HasFieldOperators` (shipped in
+//     #394) modulo the absence of the `T{1}` clause.  Retarget call
+//     sites to `HasFieldOperators` and remove this concept.
+//   - `IsFieldLike = IsRationalLike` is a tautological alias with no
+//     additional content; remove and retarget to the same replacement.
+//   - `IsReal = IsRealLike || IsRationalLike` is a disjunction whose
+//     two arms are semantically distinct (floating-point arithmetic vs
+//     exact-rational arithmetic).  The union "is approximately real"
+//     reading is loose; tighten to a single explicit concept or split
+//     into two.
+//   - `IsContinuous` and `IsDiscrete` partition `std::regular` types by
+//     `std::integral` --- a syntactic split that says nothing about
+//     mathematical density / discreteness.  Reconsider as part of the
+//     retire-Like sweep.
 export template <typename T>
 concept IsRationalLike = std::regular<T> && requires(T a, T b) {
   { a + b } -> std::same_as<T>;
@@ -226,17 +243,20 @@ concept Group_ℤ =
  * asserts both the rational-structure shape and the field arithmetic
  * without naming a concrete @c Rational<Z>.
  *
- * @note The field-side requirement is currently expressed via
- * @c dedekind::algebra::IsFieldLikeScalar, which is an *operational*
- * (syntactic) witness rather than a law-abiding algebraic concept. A proper
- * @c IsField in @c dedekind.category:total is intended and will replace
- * this dependency once the design for ``multiplicative group on nonzero
- * elements'' lands in the category layer. Until then, carriers that pass
- * this concept are guaranteed the *arithmetic* of a field but not every
- * law mechanically --- the species-trait registry supplies the laws
- * separately.
- * @see FIXME: retarget to `dedekind::category::IsField<Q, std::plus<Q>,
- *             std::multiplies<Q>>` once the latter is defined.
+ * @note FIXME(#379): the field-side requirement is expressed via
+ * @c dedekind::algebra::IsFieldLikeScalar (an operational shape), not
+ * via the strict @c dedekind::category::IsField that shipped in #375
+ * (closed 2026-04-24).  The actual current blocker is that
+ * @c category::IsField<Rational<...>, std::plus, std::multiplies>
+ * does not fire on @c Rational<...> under the active numeric policy
+ * --- the species-trait registry isn't specialised
+ * (@c is_invertible_v<Rational<...>, std::multiplies>, etc.), not
+ * the absence of @c IsField.  Surgery candidate: specialise the
+ * species traits on the @c Rational carrier so this concept can
+ * retarget to @c category::IsField directly.  Until then, carriers
+ * that pass @c Field_ℚ are guaranteed the @b arithmetic of a field
+ * but not every law mechanically --- the species-trait registry
+ * supplies the laws separately.
  */
 export template <typename Q, typename Z = int>
 concept Field_ℚ = IsRational<Q, Z> && dedekind::algebra::IsFieldLikeScalar<Q>;
@@ -248,7 +268,9 @@ concept Field_ℚ = IsRational<Q, Z> && dedekind::algebra::IsFieldLikeScalar<Q>;
  * @details Bundles the structural @c IsReal witness with @c IsContinuous and
  * the operational field-like arithmetic discipline.
  *
- * @see FIXME: same retargeting as @ref Field_ℚ once @c IsField lands.
+ * @see FIXME(#379): same retargeting story as @ref Field_ℚ ---
+ * @c category::IsField now exists (#375), but the species-trait
+ * specialisations on the carriers are the actual current block.
  */
 export template <typename T>
 concept Continuum_ℝ =
@@ -258,10 +280,30 @@ concept Continuum_ℝ =
  * @concept Algebra_ℂ
  * @brief ℂ as an algebra over an underlying real-like field @c R.
  *
- * @see FIXME: same retargeting as @ref Field_ℚ once @c IsField lands.
+ * @see FIXME(#379): same retargeting story as @ref Field_ℚ ---
+ * @c category::IsField now exists (#375), but the species-trait
+ * specialisations on the carriers are the actual current block.
  */
 export template <typename C, typename R>
 concept Algebra_ℂ = IsComplex<C, R> && dedekind::algebra::IsFieldLikeScalar<C>;
+
+/** @section Formal_Verification (partition-local) */
+
+// Self-documenting witness: the machine integer carrier satisfies the
+// structural IsInteger concept (the strict Group_ℤ claim is asserted
+// in `:rational` where the species-trait registrations land).
+static_assert(IsInteger<extensional_integer>,
+              "extensional_integer (= int) satisfies IsInteger "
+              "(structural Euclidean-integer-domain syntax).");
+
+// `Group_ℤ<int>` deliberately does NOT fire under the math-wins-over-
+// C++ stance: signed-overflow UB defeats the strict abelian-group
+// proof.  `Group_ℤ<SignedExtensionalCardinal<>>` is the canonical
+// exact-ℤ witness, asserted in `:rational`.
+static_assert(!Group_ℤ<int>,
+              "int must NOT satisfy Group_ℤ: signed-overflow UB "
+              "defeats the strict abelian-group proof under the "
+              "math-wins-over-C++ stance.");
 
 /**
  * @brief Characteristic morphism for ℤ: the integers.

@@ -46,8 +46,17 @@ import :real;
 
 namespace dedekind::numbers {
 
-export constexpr auto Sqrt2() { return Real<double>{1.41421356237}; }
-export constexpr auto E() { return Real<double>{2.71828182846}; }
-export constexpr auto Pi() { return Real<double>{3.14159265359}; }
+// FIXME(#379): partition reserved for genuine Dedekind-cut realisations
+// of named real constants ($\sqrt{2}$, $e$, $\pi$, $\gamma$, $\zeta(3)$,
+// ...).  The earlier `Sqrt2()` / `E()` / `Pi()` returning hardcoded
+// `Real<double>{1.41421356237}` etc. were @b not Dedekind cuts ---
+// they were `double` literals dressed in the `Real<double>` type and
+// labelled misleadingly as "transcendental constants" (note that
+// $\sqrt{2}$ is algebraic, not transcendental).  Removed during the
+// #379 alignment sweep.  Genuine cut realisations would build each
+// constant as a predicate set over $\mathbb{Q}$ (e.g.\ Leibniz /
+// Euler series anchors for $\pi$ and $e$, the algebraic predicate
+// $\{q \in \mathbb{Q} : q \cdot q < 2\}$ for $\sqrt{2}$); the
+// machinery for such cuts lives in `:real`.
 
 }  // namespace dedekind::numbers

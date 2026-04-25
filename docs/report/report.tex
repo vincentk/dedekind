@@ -3090,36 +3090,87 @@ $\mathbb{D}$ (dual) & \texttt{Dual<F>} & automatic differentiation \\
 \section{\texttt{:booleans}}
 \label{sec:numbers-booleans}
 
-\texttt{Truth<L>} lifts the truth-values of a logic $L$ into the numerical species hierarchy, providing the base of the embedding chain.
+The Boolean species $\mathbb{B}$ as the base of the embedding chain.  \texttt{FiniteBooleanSetOf<L>} (alias for \texttt{dedekind.sets::FiniteBooleanSet<L>}) is the canonical characteristic-function carrier for $\mathbb{B}$ over a logic $L$ (default \texttt{ClassicalLogic}).  \texttt{Is\_B<M, E>} names a structure as a Boolean semiring with $|S| = 2$.  The \texttt{Truth<L>} lifting of truth-values into numerical-species form lives in \texttt{dedekind.category:logic}, not in this partition.
 
 \section{\texttt{:naturals}}
 \label{sec:numbers-naturals}
 
-Wraps \texttt{unsigned} as the canonical $\mathbb{N}$. The embedding $embed\_\mathbb{B}\_\mathbb{N}$ sends \texttt{false} $\mapsto 0$, \texttt{true} $\mapsto 1$.
+The intensional $\mathbb{N}$ as a commutative semiring with total order. \texttt{IsNatural<N>} is the structural concept: any carrier closing $+$, $*$, $\leq$ on itself qualifies, including user-defined certified naturals (e.g.\ \texttt{ExtensionalCardinal<N>}) --- the concept is deliberately not restricted to \texttt{std::unsigned\_integral}. \texttt{Monoid\_$\mathbb{N}$} composes \texttt{IsNatural} with the species-trait certification of $(T, +, 0)$ as a commutative monoid; it is the gate downstream generic code is meant to program against. \texttt{IsNaturalNumber<T>} is the alias for \texttt{std::unsigned\_integral} --- the IEEE-policy / extensional realisation of $\mathbb{N}$. The canonical embeddings: \texttt{embed\_$\mathbb{B}$\_$\mathbb{N}$} sends \texttt{false} $\mapsto 0$, \texttt{true} $\mapsto 1$ (registered as \texttt{is\_monic\_arrow\_v}); \texttt{embed\_unsigned\_integral<N>(v)} injects a machine value into a certified \texttt{IsNatural} domain.
 
 \section{\texttt{:integer}}
 \label{sec:numbers-integer}
 
-The integer layer now distinguishes the extensional machine boundary from the
-default carrier seam. In particular, \texttt{extensional\_integer} names the
-machine realization (currently \texttt{int}) while \texttt{default\_integer}
-is the architectural alias consumed downstream by \texttt{:rational},
-\texttt{:real}, and \texttt{:complex}. This keeps intensional retargeting
-localized to one alias.
+The integer layer distinguishes the extensional machine boundary from the
+default carrier seam. \texttt{extensional\_integer} names the machine
+realisation (currently \texttt{int}); \texttt{default\_integer} is the
+architectural alias consumed downstream by \texttt{:rational}, \texttt{:real},
+and \texttt{:complex}, keeping intensional retargeting localised to one alias.
 
-The partition also exports \texttt{euclidean\_gcd} as an integer-spine
-normalization primitive: for built-ins it routes through \texttt{std::gcd}, and
-for structural \texttt{IsInteger} carriers it falls back to the Euclidean
-algorithm over \texttt{\%}.
+\paragraph{Concepts.} \texttt{IsInteger<Z>} is the structural Euclidean-
+integer-domain concept (regular, unary $-$, $+$, $-$, $*$, $/$, $\%$, $<$);
+deliberately not restricted to \texttt{std::signed\_integral} so that
+user-defined multi-precision carriers (e.g.\ \texttt{SignedExtensionalCardinal<N>})
+qualify. \texttt{Group\_$\mathbb{Z}$} composes \texttt{IsInteger} with the
+species-trait certification of $(T, +, 0)$ as an abelian group --- the gate
+that rejects signed \texttt{int} (UB on overflow) and admits the certified
+carriers. \texttt{Field\_$\mathbb{Q}$}, \texttt{Continuum\_$\mathbb{R}$},
+\texttt{Algebra\_$\mathbb{C}$} are the analogous bundles for $\mathbb{Q}$,
+$\mathbb{R}$, $\mathbb{C}$; their field-side clauses still bind to
+\texttt{algebra::IsFieldLikeScalar} pending species-trait specialisation on
+the relevant carriers (FIXME(\#379) breadcrumbs in source).
+
+\paragraph{Embeddings.} \texttt{embed\_signed\_integral<Z>(v)} injects a
+\texttt{std::signed\_integral} value into a certified \texttt{IsInteger}
+domain via the carrier's single-argument constructor;
+\texttt{euclidean\_gcd} is the integer-spine normalisation primitive (routes
+through \texttt{std::gcd} for built-ins; falls back to the Euclidean algorithm
+over \texttt{\%} for structural \texttt{IsInteger} carriers).
+
+\paragraph{Residual *Like cluster.} \texttt{IsRationalLike}, \texttt{IsFieldLike},
+\texttt{IsRealLike}, \texttt{IsReal}, \texttt{IsContinuous}, \texttt{IsDiscrete}
+are the pre-\#394 syntactic-shape concepts that survived the retire-Like
+sweep because they live in \texttt{numbers}, not \texttt{algebra}. Flagged
+in source with \texttt{FIXME(\#379)} as candidates for the second
+retire-Like sweep: \texttt{IsRationalLike} duplicates
+\texttt{algebra::HasFieldOperators}; \texttt{IsFieldLike} is a tautological
+alias of \texttt{IsRationalLike}; \texttt{IsReal} is a disjunction whose two
+arms are semantically distinct.
 
 \section{\texttt{:rational}}
 \label{sec:numbers-rational}
 
-\texttt{Rational<Z>} implements $\mathbb{Q}$ as a GCD-normalised fraction,
-now normalized through \texttt{euclidean\_gcd} from \texttt{:integer} rather
-than a direct dependency on \texttt{std::gcd}. This removes a machine-only
-assumption from the fraction simplifier and keeps the integer/rational boundary
-structural.
+\texttt{Rational<Z>} implements $\mathbb{Q}$ as a GCD-normalised fraction over
+any \texttt{IsInteger} domain, normalised through \texttt{euclidean\_gcd} from
+\texttt{:integer} rather than \texttt{std::gcd} directly --- removes a
+machine-only assumption from the fraction simplifier and keeps the
+integer/rational boundary structural.
+
+\paragraph{Carriers and concept gates.} \texttt{Rational<default\_integer>} is
+the canonical $\mathbb{Q}$ carrier the showcases instantiate on;
+\texttt{Rational<SignedExtensionalCardinal<>>} is the exact-ℚ carrier for
+arbitrary-precision-flavoured downstream code. \texttt{RationalsOf<I, L>} is
+the predicate set-class (lifts $\mathbb{Q}$ as an \texttt{IsSet} over the
+ambient species); \texttt{RationalSet} (alias) and the constant
+$\mathbb{Q}$ at the namespace level are the user-facing handles.
+\texttt{RationalPolynomial<I>} (alias for
+\texttt{algebra::RigPolynomial<Rational<I>>}) is $\mathbb{Q}[x]$.
+
+\paragraph{Witnesses (in source).}
+\texttt{IsInteger<ExtensionalCardinal<>>}, \texttt{IsInteger<SignedExtensionalCardinal<>>},
+\texttt{Monoid\_$\mathbb{N}$<ExtensionalCardinal<>>},
+\texttt{Group\_$\mathbb{Z}$<SignedExtensionalCardinal<>>},
+\texttt{IsTotallyOrdered<Rational<default\_integer>>},
+\texttt{IsDense<Rational<default\_integer>>},
+\texttt{IsDirectedSet<Rational<default\_integer>>},
+\texttt{IsProduct<Rational<default\_integer>, default\_integer, default\_integer>},
+\texttt{HasCanonicalSetCCC<Rational<default\_integer>>},
+\texttt{HasFieldOperators<Rational<default\_integer>>}.
+The strict \texttt{Field\_$\mathbb{Q}$} bundle does \emph{not} fire on
+\texttt{Rational<...>} today --- the species-trait registry is not specialised
+on \texttt{Rational}; the operational \texttt{IsFieldLikeScalar} witness is
+the load-bearing field-arithmetic guarantee, and the strict-and-literal seal
+\texttt{IsArithmeticField} is gated by the same FIXME (see
+\texttt{rational.cppm:444} for the breadcrumb).
 
 \begin{lstlisting}[language=C++, caption={Numbers: rational simplification and field inverse (from \texttt{rational\_test.cpp}).}, label={lst:numbers-rational}]
 Rational<default_integer> q(12, 18);   // euclidean_gcd(12,18)=6
@@ -3134,14 +3185,21 @@ REQUIRE(identity.num() == 1);
 \section{\texttt{:cardinality}}
 \label{sec:numbers-cardinality}
 
-This partition re-exports \texttt{dedekind.sets} and adds the two proofs that
-require the \texttt{numbers} and \texttt{order} layers:
-\texttt{IsNatural<ExtensionalCardinal<>>} and
-\texttt{IsTotallyOrdered<ExtensionalCardinal<>>}.
-The concrete cardinality types themselves---\texttt{Finite}, $\aleph\texttt{<N>}$,
-$\aleph_0$, $\beth_1$, \texttt{ExtensionalCardinal<N>}, and the
-\texttt{Cardinality} sum type---are defined one layer below in
-\texttt{dedekind.sets:cardinality} (see Section~\ref{sec:sets-cardinality}).
+This partition re-exports \texttt{dedekind.sets:cardinality} and adds the
+proofs that require the \texttt{numbers} and \texttt{order} layers:
+\texttt{IsNatural<ExtensionalCardinal<>>} and ordering chains
+(\texttt{IsPreOrdered}, \texttt{IsPartiallyOrdered}, \texttt{IsTotallyOrdered})
+on both \texttt{ExtensionalCardinal<>} (the bounded $\mathbb{N}$ carrier) and
+\texttt{SignedExtensionalCardinal<>} (the bounded $\mathbb{Z}$ carrier), plus
+the \texttt{IsDirectedSet} witness.
+
+The concrete cardinality types themselves---\texttt{Finite},
+$\aleph\texttt{<N>}$, $\aleph_0$, $\beth_1$, \texttt{ExtensionalCardinal<N>},
+\texttt{SignedExtensionalCardinal<N>}, the \texttt{Cardinality} sum type, and
+the new \texttt{SignedCardinality} (PR \#396) ${\pm}\aleph_0$-escalating
+extended-integer carrier---are defined one layer below in
+\texttt{dedekind.sets:cardinality} (see Section~\ref{sec:sets-cardinality}),
+where they also receive their species-trait registrations.
 
 \section{\texttt{:complex}}
 \label{sec:numbers-complex}
@@ -3180,27 +3238,37 @@ which is verified in the module test suite.
 \section{\texttt{:scalars}}
 \label{sec:numbers-scalars}
 
-Provides the floating-point anchors \texttt{machine\_real\_scalar} and \texttt{machine\_integer} as pre-certified concrete species. It also defines the bridge concepts \texttt{IsFloatingScalar}, \texttt{IsIntegralScalar}, and \texttt{IsUnsignedIntegralScalar} to connect concrete machine scalars with the structural ontology.
+Bridge concepts that connect concrete machine scalars to the structural ontology. \texttt{IsIntegralScalar} / \texttt{IsUnsignedIntegralScalar} / \texttt{IsFloatingScalar} are re-exports / aliases of the homonymous concepts in \texttt{dedekind.algebra}; \texttt{IsScalar<M, C>} is the bundled gate ($M$ is the algebraic structure, $C$ the carrier). Provides anchors \texttt{machine\_real\_scalar} (alias for \texttt{double}, lives in \texttt{:real}) and \texttt{machine\_integer} (alias for \texttt{extensional\_integer}, lives in \texttt{:rational}).
 
 \section{\texttt{:dual}}
 \label{sec:numbers-dual}
 
-\texttt{Dual<F>} implements dual numbers $a + b\varepsilon$ ($\varepsilon^2 = 0$) for automatic differentiation. The value component \texttt{.value()} is the primal; \texttt{.derivative()} is the tangent.
+\texttt{Dual<F>} implements dual numbers $a + b\varepsilon$ ($\varepsilon^2 = 0$) for automatic differentiation; the value component \texttt{.value()} is the primal, \texttt{.derivative()} is the tangent. \texttt{DualSet} (alias for \texttt{DualSetOf<>}) is the predicate set carrier; the constant $\mathbb{D}$ is the user-facing handle. Witnesses pinned in source: nilpotency $\varepsilon^2 = 0$ on \texttt{Dual<double>}, derivative composition (e.g.\ $(x + \varepsilon)^2 = x^2 + 2x\varepsilon$ at the seed value), and \texttt{IsFieldLikeScalar<Dual<double>>} as the operational field-like witness (Pattern-(b) per PR \#394: deliberately operational under the active numeric policy; the strict \texttt{IsField} bundle does not fire on \texttt{Dual} since dual numbers are not a field --- $\varepsilon$ has no multiplicative inverse).
 
 \section{\texttt{:symbolic}}
 \label{sec:numbers-symbolic}
 
-Formal symbols (indeterminates) for polynomial and symbolic computation. Provides the carrier type for \texttt{Polynomial<R>} in \texttt{dedekind.algebra}.
+Formal symbols (indeterminates) for polynomial and symbolic computation. Provides the carrier type for \texttt{algebra::RigPolynomial<R>} (the canonical $R[x]$ polynomial ring); the \texttt{numbers:rational} layer specialises this to $\mathbb{Q}[x]$ via \texttt{RationalPolynomial<I>}.
 
 \section{\texttt{:real}}
 \label{sec:numbers-real}
 
-The real-number construction via Dedekind cuts: a real number is a partition $(L, U)$ of $\mathbb{Q}$ such that $L$ is non-empty, downward-closed, and has no maximum.
+The real-number construction via Dedekind cuts: a real number is a partition $(L, U)$ of $\mathbb{Q}$ such that $L$ is non-empty, downward-closed, and has no maximum. \texttt{IsRealCarrier<S>} is the structural concept (carriers closing $+, -, *, /$ on themselves with regular semantics). \texttt{Real<R>} is the named-real wrapper over a real carrier; \texttt{ExactReal<I>} is the exact-rational-cut realisation over an \texttt{IsInteger} carrier; \texttt{RealsOf<I, L>} / \texttt{RealSet} / $\mathbb{R}$ are the predicate set-classes. \texttt{machine\_real\_scalar} is the alias for \texttt{double}. Witnesses: \texttt{IsFieldLikeScalar<ExactReal<>>} (operational, Pattern-(b)).
 
 \section{\texttt{:constants}}
 \label{sec:numbers-constants}
 
-Named transcendental constants $\pi$, $e$, $\gamma$, etc., certified as Dedekind cuts over $\mathbb{Q}$.
+Reserved for genuine Dedekind-cut realisations of named real constants. The earlier \texttt{Sqrt2()} / \texttt{E()} / \texttt{Pi()} returning hardcoded \texttt{Real<double>\{1.41421356237\}}-style values were \emph{not} Dedekind cuts (they were \texttt{double} literals dressed in the \texttt{Real<double>} type) and were misleadingly labelled ``transcendental'' --- $\sqrt{2}$ is algebraic, not transcendental. Removed during the \#379 alignment sweep. Genuine cut realisations would build each constant as a predicate set over $\mathbb{Q}$ (e.g.\ Leibniz / Euler series anchors for $\pi$ and $e$, the algebraic predicate $\{q \in \mathbb{Q} : q \cdot q < 2\}$ for $\sqrt{2}$); the machinery for such cuts lives in \texttt{:real}.
+
+\section{\texttt{:lattice}}
+\label{sec:numbers-lattice}
+
+The user-facing lattice factory over a continuous number system, parameterised by an ambient set value and a dimension count: \texttt{lattice<C>} is the Gaussian-integer lattice $\mathbb{Z}[i] \subset \mathbb{C}$, \texttt{lattice<R>} is the integer lattice $\mathbb{Z} \subset \mathbb{R}$, and \texttt{lattice<C, 3>} / \texttt{lattice<R, 3>} are the corresponding $n$-dimensional lifts. Bounded variants \texttt{lattice<C>.bounded(size)} / \texttt{lattice<R>.bounded(size)} restrict to a finite square / interval grid. The factory exposes the lattice as a first-class set object with \texttt{Domain}, \texttt{Codomain}, \texttt{logic\_species}, and \texttt{cardinality\_type} aliases inherited from the ambient set, so downstream code can reason about lattice points using the same set-theoretic vocabulary that ambient $\mathbb{C}$ / $\mathbb{R}$ use.
+
+\section{\texttt{:mandelbrot}}
+\label{sec:numbers-mandelbrot}
+
+The Mandelbrot construction as a worked intensional-set showcase. The partition exposes the orbit recurrence \texttt{mandelbrot\_orbit} once, separates the orbit-level escape criterion (\texttt{IsEscapeCriterion}) from the finite-stage parameter predicate (\texttt{prefix\_bounded\_N}), and organises stage-indexed computable approximations explicitly through \texttt{M\_N}, \texttt{orbit\_escapes}, and \texttt{M\_tower}. The clean separation of concerns --- recurrence fixed once, escape policy supplied by the caller, stage indexing explicit --- is a paper-facing example of compile-time computable real analysis built directly on the predicate-set machinery in \texttt{dedekind.sets}.
 
 \begin{lstlisting}[language=C++, caption={Numbers: inter-species embedding $\mathbb{B} \hookrightarrow \mathbb{N} \hookrightarrow \mathbb{Z} \hookrightarrow \mathbb{Q}$ (from \texttt{tower\_test.cpp}).}, label={lst:numbers-tower}]
 // Set membership via embedding chain
