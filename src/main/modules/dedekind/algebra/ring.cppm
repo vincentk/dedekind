@@ -452,8 +452,7 @@ static_assert(IsRing<unsigned short>,
 static_assert(IsRing<unsigned long>,
               "unsigned long is a ring (also IsArithmeticRing -- both "
               "halves agree on wide unsigned carriers).");
-static_assert(IsRing<unsigned long long>,
-              "unsigned long long is a ring.");
+static_assert(IsRing<unsigned long long>, "unsigned long long is a ring.");
 
 // Negative witness: signed narrow types fail the strict ring proof
 // (signed-overflow UB defeats IsPeriodic) AND the literal-operator
