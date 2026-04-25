@@ -1,5 +1,6 @@
 /**
  * @file dedekind/order/order.cppm
+ * @module dedekind.order
  * @brief Umbrella module for Level 1.5 — order relations and compile-time
  *        halfspace predicates.
  *
