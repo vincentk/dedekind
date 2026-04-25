@@ -57,11 +57,12 @@ module;
  *       Remaining lattice API refinement is tracked in issue #145.
  *
  * @section Geometric_Lattices
- * "Ein Gitter ist eine diskrete abelsche Untergruppe des ℝⁿ, endlich erzeugt
- *  und von vollem Rang. Es ist das Skelett, auf dem das Kontinuum aufgebaut
- *  wird." (A lattice is a discrete abelian subgroup of ℝⁿ, finitely generated
- *  and of full rank. It is the skeleton upon which the continuum is built.)
- *  — Johann Carl Friedrich Gauß, paraphrase common in lattice theory.
+ * "Die ganzzahligen Lösungen einer Aufgabe lassen sich als Punkte eines
+ *  Gitters auffassen --- so wird die Arithmetik geometrisch."
+ *  (The integer solutions of a problem can be viewed as points of a
+ *   lattice --- thus arithmetic becomes geometric.)
+ *  — Hermann Minkowski, paraphrase from *Geometrie der Zahlen* (1896), §1,
+ *    the founding text of geometric lattice theory in the modern sense.
  *
  * @see Wikipedia: Lattice (group), Gaussian integers.
  */
