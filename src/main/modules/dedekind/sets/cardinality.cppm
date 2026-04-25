@@ -276,13 +276,16 @@ constexpr std::variant<ExtensionalCardinal<N>, ℵ_0> mul_or_ℵ_0(
  *  @details The variant @c (ExtensionalCardinal<>, ℵ_0) is @b not a
  *  cyclic carrier (it does not wrap modulo capacity); on overflow it
  *  @b escalates --- saturates --- into @c ℵ_0 via the @c add /
- *  @c mul helpers below.  Effectively bigint-flavoured arithmetic
- *  whose @b explicit overflow story is "you reached countable
- *  infinity" rather than the C++ default of silent wrap or UB.  The
- *  finite fragment is @c ExtensionalCardinal<> (multi-limb
- *  arbitrary-precision unsigned integer); the @c ℵ_0 alternative
- *  marks the saturation regime that takes over once the @c
- *  std::size_t-bound limb representation cannot hold the result.
+ *  @c mul helpers below.  The explicit overflow story is "you reached
+ *  countable infinity" rather than the C++ default of silent wrap or
+ *  UB.  The finite fragment is @c ExtensionalCardinal<N>, a
+ *  @b fixed-precision @c N-limb unsigned carrier; the default
+ *  @c ExtensionalCardinal<> uses a single @c std::size_t limb (so
+ *  the variant is @b not arbitrary-precision bigint --- choosing a
+ *  larger @c N at the type level widens the finite range but every
+ *  instantiation is still fixed-precision).  The @c ℵ_0 alternative
+ *  marks the saturation regime that takes over once that fixed
+ *  capacity cannot hold the result.
  *
  *  Strictly mathematically, @f$\mathbb{N} \cup \{\aleph_0\}@f$ is
  *  not a monoid in the textbook sense (e.g.\ left-cancellation
@@ -389,7 +392,7 @@ export constexpr ExtensionalCardinal<> inverse(
 }
 
 /**
- * @brief Signed arbitrary-precision integer with a sign-magnitude layout.
+ * @brief Signed fixed-precision N-limb integer with a sign-magnitude layout.
  *
  * @details Two structural fields — @ref negative (the sign bit) and @ref
  * magnitude (an N-limb unsigned natural delegated to ExtensionalCardinal<N>).
@@ -399,8 +402,12 @@ export constexpr ExtensionalCardinal<> inverse(
  *
  * Satisfies IsInteger (see registrations after the numbers:integer module
  * pulls this file), making it the intended signed backing carrier for
- * `Rational<Z>` when arbitrary-precision rationals with negative coefficients
- * are required — overflow happens at 2^{N*64-1} and not before.
+ * `Rational<Z>` when fixed-precision rationals with negative coefficients
+ * are required — overflow happens at 2^{N*64-1} and not before.  The
+ * `SignedCardinality` variant downstream wraps this carrier with ±ℵ_0
+ * sentinels so callers that need an unbounded ℤ proxy escalate
+ * (saturate) rather than wrap; this carrier on its own is the bounded
+ * (cyclic, mod 2^{N*64}) ℤ proxy.
  *
  * Structural on purpose: the two public fields make the type usable as a
  * non-type template parameter wherever `Rational<Z>` is.
@@ -619,11 +626,15 @@ export struct NaZ {
  *      IEEE-NaN-style rather than throwing, keeping the carrier
  *      usable in @c constexpr / NTTP-shaped contexts that cannot
  *      observe exceptions.
- *    - The finite fragment @c SignedExtensionalCardinal<> is
- *      arbitrary-precision signed-magnitude --- effectively
- *      bigint-flavoured signed arithmetic whose explicit overflow
- *      story is "you saturated at @f$\pm \aleph_0@f$" rather than the
- *      C++ default of silent wrap or signed-overflow UB.
+ *    - The finite fragment @c SignedExtensionalCardinal<N> is
+ *      @b fixed-precision signed-magnitude with @c N limbs; the
+ *      shorthand @c SignedExtensionalCardinal<> uses the default
+ *      single-limb instantiation (so the variant is @b not
+ *      arbitrary-precision bigint --- choosing a larger @c N widens
+ *      the finite range but every instantiation is still
+ *      fixed-precision).  The explicit overflow story is escalation
+ *      to @f$\pm \aleph_0@f$, not bigint growth: signed-overflow UB
+ *      and silent wrap are replaced by the saturation behaviour.
  *
  *  Strictly mathematically, @f$\mathbb{Z} \cup \{\pm \aleph_0,
  *  \mathit{NaZ}\}@f$ is not a group in the textbook sense
