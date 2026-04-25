@@ -61,7 +61,7 @@ class Complex {
   }
 
   // Binary and unary negation — complex numbers form an additive group
-  // so both ops must exist. Relied on by `dedekind.algebra::IsRingLike`
+  // so both ops must exist. Relied on by `dedekind.algebra::HasRingOperators`
   // witness in `:linear_algebra::embeddings`, which asserts the canonical
   // regular representation ℂ → M₂(R) is a ring homomorphism.
   friend constexpr Complex operator-(const Complex& a, const Complex& b) {
@@ -89,7 +89,7 @@ class Complex {
    * the zero-division case the behaviour is inherited from `R / R` (e.g.
    * `Rational<Z>` throws / asserts).
    *
-   * Lifts `Complex<R>` from `IsRingLike` into `IsFieldLikeScalar` (the
+   * Lifts `Complex<R>` from `HasRingOperators` into `IsFieldLikeScalar` (the
    * `a/b → S` clause), which in turn lets `Dual<Complex<R>>` admit
    * `operator/` for holomorphic forward-mode automatic differentiation
    * at compile time.

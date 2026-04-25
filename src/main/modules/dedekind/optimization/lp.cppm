@@ -55,7 +55,7 @@
  *   that is not the true supremum.  The paper-facing showcases are
  *   bounded by construction; unbounded-LP detection is tracked as a
  *   follow-up.
- * - Carrier must (today) satisfy `IsRingLike<T>` plus division and
+ * - Carrier must (today) satisfy `HasRingOperators<T>` plus division and
  *   comparison, matching the actual `Invertible2x2` Cramer solve
  *   below. The `requires` clauses are deliberately weaker than what
  *   the body needs — tightening to `IsFieldLikeScalar<T>` plus an
@@ -78,7 +78,7 @@ module;
 
 export module dedekind.optimization:lp;
 
-import dedekind.algebra;        // IsRingLike constraint
+import dedekind.algebra;        // HasRingOperators constraint
 import dedekind.numbers;        // Rational<Z>
 import dedekind.linear_algebra; // Invertible2x2, Vec2
 
@@ -282,7 +282,7 @@ constexpr detail::VertexCandidate<T> maximize_value() {
  * finite optimal vertex, the function errors at instantiation).
  */
 export template <typename T, T cx, T cy, typename... Hs>
-  requires(sizeof...(Hs) >= 2) && dedekind::algebra::IsRingLike<T>
+  requires(sizeof...(Hs) >= 2) && dedekind::algebra::HasRingOperators<T>
 constexpr auto maximize() {
   constexpr auto v = maximize_value<T, cx, cy, Hs...>();
   static_assert(v.feasible,
@@ -313,7 +313,7 @@ constexpr auto maximize() {
  *  @c lp_extract so module consumers can name the parameter type.
  */
 export template <typename T, T cx, T cy, typename... Hs>
-  requires(sizeof...(Hs) >= 2) && dedekind::algebra::IsRingLike<T>
+  requires(sizeof...(Hs) >= 2) && dedekind::algebra::HasRingOperators<T>
 struct Polytope2D final {
   using scalar_type = T;
   static constexpr T objective_x = cx;
@@ -332,7 +332,7 @@ struct Polytope2D final {
  *  call site.
  */
 export template <typename T, T cx, T cy, typename... Hs>
-  requires(sizeof...(Hs) >= 2) && dedekind::algebra::IsRingLike<T>
+  requires(sizeof...(Hs) >= 2) && dedekind::algebra::HasRingOperators<T>
 constexpr auto lp_extract(Polytope2D<T, cx, cy, Hs...>) {
   return Polytope2D<T, cx, cy, Hs...>::extract();
 }

@@ -49,9 +49,11 @@ using namespace dedekind::category;
  * operators.  The two shape concepts are siblings; pick whichever
  * matches the callsite's actual operator surface.
  *
- * The structurally-similar @c IsRingLike is retained as the
- * @b operational variant for IEEE-edge-case carriers; see audit #393.
- * The strict categorical counterpart is
+ * Pattern-(b) carriers (e.g.\ @c Rational<long> under the active
+ * numeric policy, IEEE @c double) satisfy this shape concept while
+ * the strict @c category::IsRing refuses --- the literal-shape is
+ * the right concept to gate templated bodies whose strict half
+ * cannot fire.  The strict categorical counterpart is
  * @c dedekind::category::IsRing<T, Add, Mult> in @c category:total.
  */
 export template <typename T>
@@ -74,7 +76,9 @@ concept HasRingOperators = requires(T a, T b) {
  * @c bool under @c (std::bit_xor<bool>, std::bit_and<bool>) is a
  * Boolean ring (@f$\mathbb{F}_2@f$); both functors return @c bool by
  * signature, so this concept fires --- whereas @c HasRingOperators
- * <bool> does not, because @c bool ^ bool @c -> int.
+ * <bool> does not, because @c bool + bool @c -> int (and @c bool *
+ * @c bool @c -> int) via integer promotion, both of which the literal
+ * shape concept checks.
  *
  * @c HasRingOperators and @c HasRingOperatorsFor are @b distinct
  * shape concepts on different surfaces: the former checks the
@@ -167,10 +171,15 @@ concept IsRing =
  * stays in @c T.  No promotion, no functor indirection, no operator
  * disagreement.
  *
- * Canonical inhabitants: @c int (modular wrap), @c unsigned int
- * (modular), @c Rational<I> (exact), @c Complex<R> for arithmetic
- * @c R, @c 𝔽64 (which deliberately defines its literal @c + to be
- * the field's XOR).
+ * Canonical inhabitants: @c unsigned int (modular wrap), other wide
+ * unsigned integral types whose width is at least @c sizeof(int)
+ * (no integer-promotion path: @c unsigned long, @c unsigned long
+ * long, @c std::size_t), @c RigPolynomial<unsigned int> (the
+ * polynomial ring lifts elementwise).  @c int is @b not a
+ * canonical inhabitant: signed-overflow UB defeats the @c IsPeriodic
+ * axiom on which the strict @c IsRing chain depends, even though
+ * the literal operators close on the carrier (see witness comment
+ * below).
  *
  * Carriers that satisfy @c IsRing but @b not @c IsArithmeticRing
  * include @c bool under @c (std::bit_xor, std::bit_and) (the
@@ -207,55 +216,49 @@ export template <typename T, typename Add = std::plus<T>,
 concept IsCommutativeRing =
     IsRing<T, Add, Mult> && dedekind::category::IsCommutative<T, Mult>;
 
-/** @section Operational_Witnesses
+/** @section Semiring_Shape_And_Homomorphisms
  *
- *  `IsRing` and `IsSemiring` above are the strict categorical proofs and
- *  depend on the axiom variable templates (`identity_v`, `is_associative_v`,
- *  `is_commutative_v`, `inverse_v`) being specialised per carrier. Machine-
- *  backed carriers such as `Rational<long>` deliberately do NOT carry those
- *  proofs under the active numeric policy — the same pattern that gives
- *  `IsField` vs `IsFieldLikeScalar` (see `:modules`).
+ *  The literal-operator shape concept @c HasRingOperators above
+ *  covers the ring surface (+, -, unary -, *).  The semiring surface
+ *  drops subtraction / unary negation but adds the structural
+ *  identities @c T{} and @c T{1} --- the "no additive inverse"
+ *  carriers (booleans under OR/AND, naturals, tropical semirings).
  *
- *  The operational witnesses below are the analogous shortcut for
- *  ring-shaped carriers: they check closure of the arithmetic operators
- *  only. Identity elements (`0` and `1`) belong to the strict tower and
- *  are not encoded here, matching `IsFieldLikeScalar`'s shape.
+ *  Below we add the semiring-shape sibling and the homomorphism
+ *  shape concept that lifts the ring surface to morphism-preservation
+ *  claims.  Both are pure-shape (no axiomatic claim); the strict
+ *  categorical counterparts live in @c category:total.
+ *
+ *  History (#394 retire-Like sweep): @c IsRingLike (identical body
+ *  to @c HasRingOperators), @c IsSemiringLike (identical body to
+ *  @c HasSemiringOperators below), and @c IsRingLikeHomomorphism
+ *  were collapsed into the literal-shape vocabulary --- the
+ *  operational-vs-shape distinction had no structural difference, so
+ *  the @c *Like names were redundant aliases.  Pattern-(b) carriers
+ *  (e.g.\ @c Rational<long>, IEEE @c double) still satisfy these
+ *  shape concepts via the same mechanism as before; the rationale
+ *  for accepting them is now expressed by saying "the strict half
+ *  (e.g.\ @c IsRing) does not fire on this carrier under the active
+ *  numeric policy, but the literal-shape (@c HasRingOperators) does".
  */
 
 /**
- * @concept IsRingLike
- * @brief Operational ring witness: +, unary -, binary -, * are closed in T.
+ * @concept HasSemiringOperators
+ * @brief @b Pure @b syntactic @b shape: T closes strictly under @c +
+ *        and @c *, with structural identities @c T{} and @c T{1}.
  *
- *  Parallel to `IsFieldLikeScalar` from `:modules` but without the `/`
- *  requirement: rings don't in general support division. Shape is
- *  deliberately symmetric with `IsFieldLikeScalar` — operator closure
- *  only, no structural identity witnesses (they live behind the strict
- *  categorical axiom-hook tower).
+ * @details
+ * The semiring-shape sibling of @c HasRingOperators: drops binary /
+ * unary @c - (no additive inverse required) but adds the structural
+ * default-constructor and unit constructor.  Carriers that fire:
+ * @c bool under OR/AND, @c unsigned int (also fires @c
+ * HasRingOperators), naturals, tropical and other exotic semirings.
  *
- *  Fires on `Rational<long>`, `int`, `unsigned int`, `Complex<R>` (for
- *  any `IsRingLike R`), `Dual<F>`, and — crucially — on `Matrix2x2V<R>`
- *  for any `IsRingLike R`, witnessing the slogan "matrices over a ring
- *  form a (non-commutative) ring".
+ * Replaces the former @c IsSemiringLike (identical body) under the
+ * #394 retire-Like sweep.
  */
 export template <typename T>
-concept IsRingLike = requires(T a, T b) {
-  { a + b } -> std::same_as<T>;
-  { a - b } -> std::same_as<T>;
-  { -a } -> std::same_as<T>;
-  { a * b } -> std::same_as<T>;
-};
-
-/**
- * @concept IsSemiringLike
- * @brief Operational semiring witness: +, *, `T{}`, `T{1}` — NO subtraction
- *        or unary negation required.
- *
- *  The "no additive inverse" carriers: booleans (under OR/AND), naturals,
- *  tropical and other exotic semirings. Parallel to `IsRingLike` but
- *  without the subtraction and unary-minus clauses.
- */
-export template <typename T>
-concept IsSemiringLike = requires(T a, T b) {
+concept HasSemiringOperators = requires(T a, T b) {
   { a + b } -> std::same_as<T>;
   { a * b } -> std::same_as<T>;
   T{};
@@ -286,68 +289,66 @@ concept IsSemiringLike = requires(T a, T b) {
 // `HasRingOperators`.
 
 /**
- * @concept IsRingLikeHomomorphism
- * @brief A callable φ that sends `Source` to `Target` with additive and
- *        multiplicative preservation:
+ * @concept IsRingHomomorphism
+ * @brief A callable φ that sends `Source` to `Target` with additive
+ *        and multiplicative preservation:
  *
  *   φ(a + b) == φ(a) + φ(b)      additive preservation
  *   φ(a · b) == φ(a) · φ(b)      multiplicative preservation
  *
  *  The concept checks the STRUCTURAL shape of the claim:
- *   - `Source` and `Target` are both operationally ring-like,
+ *   - `Source` and `Target` both have the literal ring operator
+ *     surface (`HasRingOperators`),
  *   - `φ(a)` is well-typed and returns `Target`,
  *   - both preservation expressions are well-formed (yield `bool`).
  *
  *  Preservation of distinguished identities (φ(0) = 0, φ(1) = 1) is NOT
- *  encoded structurally here: `IsRingLike` does not expose identity
- *  elements, so the concept cannot reach them. Unital / identity laws,
- *  when needed, must be checked by stricter concepts or on concrete
- *  probe values (cf. `dedekind.linear_algebra:embeddings` for the
- *  ℂ ↪ M₂(ℚ) and 𝔻 ↪ M₂(ℚ) cases where `zero_matrix2x2_v` and
+ *  encoded structurally here: `HasRingOperators` does not expose
+ *  identity elements, so the concept cannot reach them. Unital /
+ *  identity laws, when needed, must be checked by stricter concepts or
+ *  on concrete probe values (cf. `dedekind.linear_algebra:embeddings`
+ *  for the ℂ ↪ M₂(ℚ) and 𝔻 ↪ M₂(ℚ) cases where `zero_matrix2x2_v` and
  *  `identity_matrix2x2_v` are asserted at specific instances).
  *
- *  The semantic LAW — that each `==` returns `true` for all inputs — is
- *  a value-level claim, witnessed per instance via `static_assert` on
- *  concrete probes. A concept cannot encode a universally-quantified
- *  runtime property directly; this is the conventional operational
- *  witness.
+ *  The semantic LAW --- that each `==` returns `true` for all inputs ---
+ *  is a value-level claim, witnessed per instance via `static_assert`
+ *  on concrete probes. A concept cannot encode a universally-quantified
+ *  runtime property directly; this is the conventional shape witness.
  *
- *  Parallel to how `IsRingLike` is the operational half of `IsRing`: a
- *  strict categorical `IsRingHomomorphism` would additionally witness
+ *  A strict categorical `IsRingHomomorphism` would additionally witness
  *  identity preservation and require the strict axiom-hook tower. No
  *  such strict version is exported yet because the carrier-level hooks
  *  are not generally populated on machine-backed carriers.
+ *
+ *  Renamed from `IsRingLikeHomomorphism` under the #394 retire-Like
+ *  sweep; body now uses `HasRingOperators` directly.
  */
 // FIXME: add `IsGroupHomomorphism`, `IsMonoidHomomorphism`, and
-// `IsSemiringLikeHomomorphism` specialisations alongside once there are
-// concrete call sites that need them (e.g. embedding modular groups into
-// symmetric groups, or tropical-semiring homomorphisms).
+// `IsSemiringHomomorphism` specialisations alongside once there are
+// concrete call sites that need them (e.g. embedding modular groups
+// into symmetric groups, or tropical-semiring homomorphisms).
 export template <typename Phi, typename Source, typename Target>
-concept IsRingLikeHomomorphism = IsRingLike<Source> && IsRingLike<Target> &&
-                                 requires(const Phi& phi, Source a, Source b) {
-                                   { phi(a) } -> std::same_as<Target>;
-                                   {
-                                     phi(a + b) == (phi(a) + phi(b))
-                                   } -> std::same_as<bool>;
-                                   {
-                                     phi(a * b) == (phi(a) * phi(b))
-                                   } -> std::same_as<bool>;
-                                 };
+concept IsRingHomomorphism =
+    HasRingOperators<Source> && HasRingOperators<Target> &&
+    requires(const Phi& phi, Source a, Source b) {
+      { phi(a) } -> std::same_as<Target>;
+      { phi(a + b) == (phi(a) + phi(b)) } -> std::same_as<bool>;
+      { phi(a * b) == (phi(a) * phi(b)) } -> std::same_as<bool>;
+    };
 // This concept encodes additive and multiplicative preservation only.
 // It does not structurally require or witness preservation of identities
-// (0 or 1), because `IsRingLike` does not expose identity elements.
+// (0 or 1), because `HasRingOperators` does not expose identity elements.
 // Unital / identity laws, when needed, must be witnessed by stricter
 // concepts or on concrete probe values.
 
 /** @section Formal_Verification */
 
-// Operational witnesses on primitive carriers.
-static_assert(IsRingLike<int>,
-              "int satisfies IsRingLike (wrapping / two's-complement).");
-static_assert(IsRingLike<unsigned int>,
-              "unsigned int satisfies IsRingLike (modular arithmetic).");
-static_assert(IsSemiringLike<unsigned int>,
-              "unsigned int also satisfies IsSemiringLike "
+// Shape witnesses on primitive carriers (note: HasRingOperators<int>
+// and HasRingOperators<unsigned int> are also asserted further down
+// in the literal-shape witness block --- the duplication is harmless
+// and keeps both blocks self-contained).
+static_assert(HasSemiringOperators<unsigned int>,
+              "unsigned int satisfies HasSemiringOperators "
               "(without needing unary negation).");
 
 // Pure-syntactic-shape witnesses for HasRingOperators.  Strict

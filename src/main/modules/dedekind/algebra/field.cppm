@@ -47,6 +47,7 @@ import dedekind.order;
 import dedekind.sets;
 
 import :ring;
+import :group;     // HasGroupOperatorsMul (HasFieldOperators's mul half)
 import :division;
 
 namespace dedekind::algebra {
@@ -73,13 +74,19 @@ using namespace dedekind::sets;
  * names the full set of operators a field-style callsite needs to
  * write plain field arithmetic in C++ syntax.
  *
- * Canonical positive witness: @c Rational<I> for any operationally
- * ring-like @c I.  Negative witness: any narrow unsigned (integer
- * promotion lifts results to @c int), @c unsigned int (no
- * field-respecting @c / --- but the @b shape refuses on a different
- * ground: there is no @c .inverse() expectation here, only the
- * @c T{1} unit, so unsigned int actually @b shape-passes; the
- * textbook claim "this is a field" fails at the strict layer).
+ * Canonical positive witness: @c Rational<I> for any
+ * @c HasRingOperators @c I.
+ *
+ * Shape vs.\ semantics: @c HasFieldOperators<unsigned int> @b fires
+ * (the literal @c +, @c -, @c *, @c / all close on @c unsigned int
+ * and @c unsigned int{1} is well-formed), even though the textbook
+ * claim "@c unsigned int is a field" is false (integer @c / is
+ * truncation, not field inverse; @c 5/3 = @c 1, not @c 5/3).  The
+ * semantic claim lives in @c IsField, gated by the species-trait
+ * registry; @c HasFieldOperators is shape-only.  The shape concept
+ * @b does refuse on narrow unsigned types (@c unsigned char, @c
+ * unsigned short --- integer promotion lifts the result of @c +
+ * and @c * to @c int) and on @c bool (same reason).
  *
  * Introduced under #394 as the user-requested ℚ-deal companion of
  * @c HasRingOperators / @c HasGroupOperatorsAdd.

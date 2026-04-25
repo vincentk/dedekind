@@ -71,7 +71,7 @@ module;
 
 export module dedekind.linear_algebra:matrix;
 
-import dedekind.algebra; // HasRingOperators, IsRingLike, IsFieldLikeScalar, IsVectorSpaceLike
+import dedekind.algebra; // HasRingOperators, HasRingOperators, IsFieldLikeScalar, IsVectorSpaceLike
 import dedekind.category; // IsFunctor / Set / arrow (for matrix2x2_functor witness)
 import dedekind.numbers; // Rational<Z> for the ℚ carrier
 import dedekind.sets;    // Finite cardinality tag (for dimension_type)
@@ -207,10 +207,10 @@ using Identity2x2 = Invertible2x2<T, T{1}, T{0}, T{0}, T{1}>;
  * negation, and mixed composition with `Invertible2x2`. Does not advertise
  * an inverse — singular `Matrix2x2`s are valid inhabitants of the type.
  */
-// `IsRingLike<T>` is sufficient: `Matrix2x2` uses +, -, unary -, *, but
+// `HasRingOperators<T>` is sufficient: `Matrix2x2` uses +, -, unary -, *, but
 // never divides. Tighter than `IsFieldLikeScalar<T>`.
 export template <typename T, T a, T b, T c, T d>
-  requires dedekind::algebra::IsRingLike<T>
+  requires dedekind::algebra::HasRingOperators<T>
 struct Matrix2x2 {
   using Domain = T;
 
@@ -723,7 +723,7 @@ using Rat = dedekind::numbers::Rational<long>;
 static_assert(dedekind::algebra::IsFieldLikeScalar<Rat>,
               "Rational<long> is the operational field-like scalar under "
               "the active numeric policy.");
-static_assert(dedekind::algebra::IsRingLike<Rat>,
+static_assert(dedekind::algebra::HasRingOperators<Rat>,
               "Rational<long> is also operationally ring-like (the subset "
               "of field-like that ignores the / requirement).");
 
@@ -737,9 +737,9 @@ static_assert(dedekind::algebra::IsVectorSpaceLike<Matrix2x2V<Rat>, Rat>,
               "entry-wise + and scalar *).");
 
 // `Matrix2x2V<ℚ>` under its own +, unary -, * is operationally a ring —
-// the load-bearing reuse of the new `IsRingLike` concept. This is the
+// the load-bearing reuse of the new `HasRingOperators` concept. This is the
 // precise form of the slogan "matrix over a field is at least a ring".
-static_assert(dedekind::algebra::IsRingLike<Matrix2x2V<Rat>>,
+static_assert(dedekind::algebra::HasRingOperators<Matrix2x2V<Rat>>,
               "Matrix2x2V<ℚ> is operationally a ring (non-commutative in "
               "general — see the AB ≠ BA witness below).");
 

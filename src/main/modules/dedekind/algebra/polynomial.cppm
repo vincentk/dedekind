@@ -142,7 +142,7 @@ class RigPolynomial {
    * @c HasRingOperators<PolyUInt> / @c IsArithmeticRing<PolyUInt> in
    * the formal-verification block below relies on this operator
    * being available.  The structurally similar operational concept
-   * @c IsRingLike<RigPolynomial<R>> also depends on it.  Added under
+   * @c HasRingOperators<RigPolynomial<R>> also depends on it.  Added under
    * #393 alongside the shape concept introduction.
    */
   friend constexpr RigPolynomial operator-(const RigPolynomial& a)

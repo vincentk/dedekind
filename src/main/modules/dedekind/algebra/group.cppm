@@ -68,7 +68,7 @@ concept HasGroupOperatorsAdd = requires(T a, T b) {
  * @c ++, @c --, @c ~, @c ! can be unary); the convention here is to
  * witness the multiplicative @b unit (the identity element @c 1) via
  * the structural constructor @c T{1}, parallel to @c
- * IsSemiringLike's @c T{1} requirement.  The reciprocal of @c x is
+ * HasSemiringOperators's @c T{1} requirement.  The reciprocal of @c x is
  * then @c T{1} / x at the callsite, with no carrier-imposed @c
  * .inverse() method needed.
  *
@@ -128,10 +128,15 @@ concept HasGroupOperatorsMul = requires(T a, T b) {
  * is what arithmetic carriers do but iterator categories do not.
  *
  * Carriers that fire: @c int, @c unsigned int, @c unsigned short, all
- * @c std::integral types.  Carriers that refuse: @c bool (pre/post
- * @c ++ and @c -- on @c bool were removed in C++17), @c float / @c
- * double (no @c -- ; @c ++ is supported but the project's stance is
- * to refuse anyway --- IEEE arithmetic is not Peano).
+ * @c std::integral types, and also @c float / @c double (the shape
+ * compiles --- @c ++a and @c --a are well-formed on floating-point
+ * types).  The @b semantic claim "this carrier is a Peano successor
+ * structure" lives in @c IsCyclicGroup and friends; IEEE
+ * floating-point fails that semantic claim (rounding makes
+ * @c ++a not coherent with the additive @c +1) but passes the
+ * pure-shape check.  Carriers that refuse the shape: @c bool ---
+ * pre/post @c ++ and @c -- on @c bool were removed in C++17, so
+ * the operators are syntactically ill-formed.
  *
  * Introduced under #394.
  */
