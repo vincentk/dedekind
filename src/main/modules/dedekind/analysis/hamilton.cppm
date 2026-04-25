@@ -194,10 +194,10 @@ struct HarmonicOscillator {
 static_assert(IsCurve<decltype(harmonic_oscillator_curve<double>(1.0, 0.0))>,
               "Closed-form harmonic trajectory must be a curve.");
 
-static_assert(IsHamiltonian<HarmonicOscillator<double>, PhasePoint<double>,
-                            double>,
-              "HarmonicOscillator<double> must satisfy IsHamiltonian: "
-              "energy(state) ∈ ℝ.");
+static_assert(
+    IsHamiltonian<HarmonicOscillator<double>, PhasePoint<double>, double>,
+    "HarmonicOscillator<double> must satisfy IsHamiltonian: "
+    "energy(state) ∈ ℝ.");
 
 static_assert(IsSequence<decltype(harmonic_oscillator_leapfrog_path<double>(
                   1.0, 0.0, 0.01))>,

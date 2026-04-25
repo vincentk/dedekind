@@ -80,8 +80,7 @@ constexpr OneForm<F, N> from_covector(const Covector<F, N>& cov) {
 
 // OneForm<F, N> evaluates a tangent vector to a scalar via the dot product
 // of its components with the vector — the canonical 1-form action.
-static_assert(
-    IsDifferentialForm<OneForm<double, 3>, Vector<double, 3>, double>,
-    "OneForm<double, 3> must satisfy IsDifferentialForm: ω(v) ∈ ℝ.");
+static_assert(IsDifferentialForm<OneForm<double, 3>, Vector<double, 3>, double>,
+              "OneForm<double, 3> must satisfy IsDifferentialForm: ω(v) ∈ ℝ.");
 
 }  // namespace dedekind::analysis
