@@ -25,8 +25,8 @@
  *   - Constructor range canonicalisation (bits 6--7 dropped).
  */
 
-#include <catch2/catch_test_macros.hpp>
 #include <algorithm>
+#include <catch2/catch_test_macros.hpp>
 #include <cstdint>
 #include <functional>
 #include <ranges>
@@ -265,8 +265,7 @@ TEST_CASE("𝔽64^× — IsFiniteSequence cardinality matches cyclic-group order
   const auto seq = dedekind::algebra::f64_primitive_powers();
   CHECK(seq.size() ==
         dedekind::category::cyclic_order_v<𝔽64, std::multiplies<𝔽64>>);
-  CHECK(seq.size() ==
-        dedekind::algebra::galois_order_v<𝔽64, std::plus<𝔽64>,
-                                          std::multiplies<𝔽64>> -
-            1);  // |𝔽_q^×| = q - 1.
+  CHECK(seq.size() == dedekind::algebra::galois_order_v<𝔽64, std::plus<𝔽64>,
+                                                        std::multiplies<𝔽64>> -
+                          1);  // |𝔽_q^×| = q - 1.
 }
