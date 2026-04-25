@@ -1,7 +1,8 @@
 /**
- * @file dedekind/morphology/morphologies.cppm
- * @module dedekind.morphology
- * @brief Level 4: The Logic of Form (Isomorphisms and Homomorphisms).
+ * @file dedekind/morphologies/morphologies.cppm
+ * @module dedekind.morphologies
+ * @brief Level 4: cyclic and Archimedean morphology carriers and their
+ *        operational concept witnesses.
  *
  * @section The_Structural_Seal
  * « La mathématique est l'étude des structures qui sont invariantes par
@@ -11,19 +12,30 @@
  *   certain changes of form. Morphology is the grasping of this stability.)
  *  — René Thom, 'Stabilité structurelle et morphogénèse'
  *
+ * @section Partitions
+ *   - @c :archimedean --- @c IsCyclic, @c IsCyclicRing, @c IsSimplyInfinite,
+ *     @c IsArchimedeanField, @c IsDedekindCompleteField, @c IsCauchy,
+ *     @c IsConvergent, plus the @c CauchyPath carrier.  Hosts the
+ *     @c successor / @c generator vocabulary notes (carrier-level
+ *     member API ↔ axiomatic @c order::IsSuccessor; modern
+ *     copula-theoretic Archimedean-generator bridge).
+ *   - @c :cyclic --- the concrete cyclic carriers @c Modular<N>
+ *     (@f$\mathbb{Z}/N\mathbb{Z}@f$ as a finite cyclic ring) and
+ *     @c CyclicRing<T,N>.  Both expose the operational @c IsCyclic
+ *     shape; @c Modular<N> is additionally registered with the
+ *     axiomatic @c category::IsCyclicGroup<T, std::plus<T>>.
+ *
  * @section Taxonomic_Intent
- * While :algebra defines the internal harmony of a species, :morphology
- * defines the valid mappings (Arrows) between distinct species. It
- * establishes the criteria for "Sameness" (Isomorphism) and "Structure
- * Preservation" (Homomorphism) across the Dedekind universe.
+ * While @c :algebra defines the internal harmony of a species,
+ * @c :morphologies defines the valid mappings (Arrows) between distinct
+ * species and the carriers that exhibit canonical morphological
+ * structure (cyclic, Archimedean, Cauchy).  It establishes the criteria
+ * for "Sameness" (Isomorphism) and "Structure Preservation"
+ * (Homomorphism) across the Dedekind universe.
  *
- * @details
- * This module reifies the Categorical Functors that allow us to transport
- * properties from the Integers to the Rationals, and ultimately to
- * the Real Continuum.
- *
- * @see dedekind.category:algebra
- * @see dedekind.algebra:fields
+ * @see dedekind.category:total --- the axiomatic side
+ *      (@c IsCyclicGroup, @c IsAbelianGroup, @c IsCommutativeRing).
+ * @see dedekind.algebra:field --- the field-level concept counterpart.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.

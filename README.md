@@ -52,6 +52,8 @@ _AI assistance is used during the development of this project._
 ### Further reading:
 
 * **Build**: the build instructions are available through the [CMakeLists.txt](CMakeLists.txt) and controlled through the [build action](.github/workflows/cmake.yml).
-* **Python (MVP)**: see [docs/python/README.md](docs/python/README.md) and [docs/python/release-checklist-v0.1.md](docs/python/release-checklist-v0.1.md).
-* **Documentation**: [Doxygen API Reference](https://vincentk.github.io/dedekind/)
-* **Theory**: See the [Draft Paper](https://vincentk.github.io/dedekind/paper.pdf) and the [Draft Report](https://vincentk.github.io/dedekind/report.pdf) for the theoretical foundations. _Note: These are works in progress._
+* **Documentation** (three views of the same project; all works in progress):
+  * [Doxygen API Reference](https://vincentk.github.io/dedekind/) — for quick lookups against the source tree.
+  * [Draft Paper](https://vincentk.github.io/dedekind/paper.pdf) — a high-level overview with the theoretical motivation.
+  * [Draft Report](https://vincentk.github.io/dedekind/report.pdf) — a reference manual for the project's current state.
+* **Python Bindings (MVP)**: see [docs/python/README.md](docs/python/README.md) and [docs/python/release-checklist-v0.1.md](docs/python/release-checklist-v0.1.md).

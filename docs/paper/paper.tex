@@ -678,6 +678,64 @@ next stage's formation rule.  We do not need the full apparatus: the point
 for a systems-programming paradigm is that closure-at-stage-\(n\) is a
 generative signal for stage-\(n{+}1\), rather than a terminal achievement.
 
+\subsubsection*{Methodological note: closure under AI assistance}
+
+A pragmatic disclosure, in the same Penrose register.  The library is
+developed with AI assistance: Anthropic's Claude as the primary
+code-writing agent, Google's Gemini for associative search and
+second-opinion mathematical commentary, GitHub Copilot for
+pull-request review.  The human role reduces to prioritisation,
+orchestration, and the demand that the systems converge on a
+consensus before changes land.  Read against the section just
+concluded, this admits the obvious Penrose-style worry: if the
+development is ``almost mechanical'', on what basis can the output
+claim mathematical merit?
+
+The pragmatic answer is that the artefacts are kept honest by three
+compounding constraints, all of which this paper has stressed
+throughout.
+\begin{enumerate}
+\item \emph{Domain textbook anchoring}: every concept name, type, and
+law statement in the codebase is taken directly from a working
+mathematician's published vocabulary---Lawvere on ETCS, Cayley and
+Sylvester on matrices, Seki K\^owa on determinants, Lambek on
+Cartesian closure, Minkowski on lattices.  The vocabulary has already
+been audited by the wider mathematical community; the AI's
+contribution is to fit its output to that audited shape, not to
+invent fresh terminology.
+\item \emph{Mechanical validation}: every algebraic claim becomes a
+\texttt{static\_assert} the compiler must discharge, every concept
+composes through a named-module DAG the build system enforces, and
+every behavioural claim passes the test suite under CI before
+merging.  The compiler does not care which agent typed the code.
+\item \emph{Codomain textbook anchoring}: concepts on the carrier
+side are validated against the ontology of the C++ standard library
+itself---\texttt{std::ranges::input\_range},
+\texttt{std::input\_iterator}, \texttt{std::regular}, the
+\texttt{<concepts>} standard-concepts header,
+\texttt{std::numeric\_limits}, the iterator hierarchy.  Where the
+library's mathematical structure has a standard analogue, the
+analogue is named explicitly (e.g.\ \texttt{IsFiniteSequence} flowing
+into \texttt{std::ranges} algorithms via \texttt{FinitePath}'s
+iterator surface).  The standard library has its own audit history;
+binding to it on the codomain side mirrors the mathematical-vocabulary
+binding on the domain side.
+\end{enumerate}
+The closure-at-stage-\(n\) signal of the previous paragraph applies
+recursively to the development methodology over all three: the AI
+systems supply stage-\(n{+}1\) candidates, the mechanical filters
+discharge the consistency, and the human chooses the next fragment
+of mathematics to encode.  Read the right way around, the
+arrangement is also enabling: a working mathematician who would
+rather not spend most of her time on the deep details of the
+\texttt{C++} standard can still ship a faithful library, because the
+parts that need the standard's deep details are exactly the parts
+the constraints above police mechanically.  The natural-language
+fragment of the development is, then, not a confession but a
+\emph{division of labour}---one that lets the mathematical content
+stay in mathematical vocabulary all the way down to where the
+machine takes over.
+
 % ============================================================
 \section{Intensional First, Realize When You Mean It}
 \label{sec:intensional}
@@ -1420,7 +1478,14 @@ The IR is checked into the repository as a fixture
 gate (\texttt{make ir-fixture-check}) fails CI if optimiser drift ever
 loses the collapse. The binary contains no LP solver; no simplex
 tableau; no active-set machinery. The vertex \emph{is} a type, and
-returning its coordinate \emph{is} a literal.
+returning its coordinate \emph{is} a literal.  Because the reduction
+lands in \texttt{Rational<...>} rather than IEEE floating point, the
+\lstinline{ret i64 2} output is bit-identical across ARM and x86
+back-ends and host floating-point ABIs --- the typed constant has
+no rounding mode to disagree about.  This is the embedded /
+cross-platform-determinism guarantee the paper has been claiming
+throughout, made concrete by the absence of any \texttt{double}-typed
+reduction in the IR.
 
 This closes one of the type-directed-collapse axes listed in
 Section~\ref{sec:gap}% tracker: issue #364 (linear programming)
@@ -1774,6 +1839,87 @@ where Axiomatic Systems Programming succeeds or fails for embedded
 ML, is an engineering program we name and invite, not one this paper
 discharges on its own.
 
+\paragraph{Natural successor domains.}
+Two application families share the same shape as the Kalman primitive
+demonstrated above and are the natural successors of this showcase
+in a follow-up paper.  \emph{Compile-time Monte Carlo} reduces a
+fixed-sample-size estimator to a typed result that carries both the
+sample mean and its standard error in one envelope; running the same
+estimator over \lstinline{Dual<Rational<...>>} returns the
+parameter-sensitivity of the estimator with no separate autodiff
+pass.  \emph{Compile-time molecular dynamics} integrates a small
+N-body system through the leapfrog primitive of
+\lstinline{dedekind.analysis:hamilton} (the symplectic kick--drift--kick
+integrator already shipped); energy conservation along the resulting
+trajectory becomes a \lstinline{static_assert} pattern; the
+\lstinline{dedekind.analysis:exterior} symplectic 2-form witnesses
+the Hamiltonian structure; and pathwise sensitivities to a force-field
+parameter are again a \lstinline{Dual}-ring lift.  Both domains
+share the structure this paper has been pinning throughout: fixed
+problem topology at compile time, per-step computation that is
+scalars and small vectors rather than multi-dimensional matrix
+factorisation, and a hard correctness signal (energy conservation;
+reproducible mean) that the type system can police.  The substrate
+(leapfrog, exterior 2-form, exact rational arithmetic, the
+\lstinline{Dual} product ring) is shipped today, and the
+discipline is already being applied to it.  The following test
+case lives at the test layer of the current main branch (\\
+\texttt{\detokenize{src/test/cpp/modules/dedekind/analysis/hamilton_test.cpp}})
+and bundles three witnesses for the harmonic-oscillator MD
+primitive: the carrier satisfies \texttt{IsHamiltonian}
+structurally, the symplectic 2-form is antisymmetric on the
+canonical basis pair, and the carrier conserves energy along the
+closed-form flow.  The listing also exhibits the Compiler Wall of
+Section~\ref{sec:compiler-wall} in miniature: claims (1) and (2)
+are decided at translation time (\texttt{STATIC\_CHECK}); claim
+(3) is necessarily runtime (\texttt{CHECK}) because the closed-form
+flow calls \texttt{std::cos} / \texttt{std::sin} and the tolerance
+compare uses \texttt{std::abs(double)}, none of which is
+\texttt{constexpr} in libc++ --- the very wall the §5.5
+hand-rolled \texttt{magnitude} is designed to push back against.
+
+% Source:
+% src/test/cpp/modules/dedekind/analysis/hamilton_test.cpp
+\begin{lstlisting}[language=C++, basicstyle=\ttfamily\small]
+TEST_CASE("Analysis: Harmonic oscillator "
+          "--- paper §5.7 showcase witnesses") {
+  using ℝ = double;
+
+  // 1. :hamilton --- HarmonicOscillator<R> exposes the
+  //    IsHamiltonian energy(state) -> R surface.
+  STATIC_CHECK(
+      IsHamiltonian<HarmonicOscillator<ℝ>, PhasePoint<ℝ>, ℝ>);
+
+  // 2. :exterior --- the symplectic 2-form ω = dp ∧ dq is
+  //    antisymmetric on the canonical basis pair.  Pure
+  //    algebra, no transcendentals --- decided at translation
+  //    time.
+  constexpr OneForm<ℝ, 2> dq{{1.0, 0.0}};
+  constexpr OneForm<ℝ, 2> dp{{0.0, 1.0}};
+  constexpr auto omega = wedge(dp, dq);
+  constexpr Vector<ℝ, 2> v_x{1.0, 0.0};
+  constexpr Vector<ℝ, 2> v_y{0.0, 1.0};
+  STATIC_CHECK(omega(v_x, v_y) == -omega(v_y, v_x));
+
+  // 3. H(q, p) = ½(p² + ω²q²) is constant along the flow.
+  //    Runtime, not STATIC_CHECK: the closed-form expression
+  //    uses std::cos / std::sin (not constexpr in libc++), and
+  //    the tolerance compare uses std::abs(double) (likewise).
+  //    This claim sits to the right of the Compiler Wall.
+  const HarmonicOscillator<ℝ> H{1.0};
+  const auto flow = harmonic_oscillator_curve<ℝ>(1.0, 0.0, 1.0);
+  const ℝ e0 = H.energy(flow(0.0));
+  const ℝ et = H.energy(flow(2.5));
+  CHECK(std::abs(et - e0) < 1e-12);
+}
+\end{lstlisting}
+
+\noindent The worked showcases and quantitative comparisons
+against domain baselines (LAMMPS-flavoured MD,
+scientific-computing MC libraries) are deliberately left to a
+successor paper rather than diluted into this one; the witnesses
+above show that the discipline is already paving the road.
+
 \subsection{Algebraic Properties Enable Stronger Pruning}
 
 Beyond interval arithmetic, \emph{algebraic} properties of the predicates provide
@@ -2012,6 +2158,98 @@ a constraint list that the author was \emph{unable} to prune
 structurally---an unlikely shape for the use cases this library is
 written against.
 
+\paragraph{Active-set hints as the user-side escape valve.}
+Even within the compile-time regime, a user with domain knowledge of
+\emph{which} halfspaces bind at the optimum can short-circuit the
+$\binom{n}{d}$ enumeration entirely: because the constraint pack is
+already an NTTP list, instantiating
+\lstinline|maximize<T, cx, cy, H_i, H_j>()| with just the binding
+pair (instead of the full pack) is exactly the active-set hint, and
+the library evaluates only that single Cramer solve.  An explicit
+\lstinline|with_active_set<...>| API that takes the hint as a separate
+template argument and verifies feasibility against the full pack
+without re-enumerating is a natural successor surface, but the
+underlying NTTP-pack-as-hint mechanism is available today: dropping
+slack constraints from the syntactic list is the user's prerogative,
+and the combinatorial term then tracks the hinted count rather than
+the raw one.
+
+\paragraph{Scaling beyond atomic carriers via structure-preserving combinators.}
+The same partition---atoms below, runtime above---governs the
+linear-algebra surface the paper exhibits at the $2 \times 2$ scale.
+The library ships \texttt{Invertible2x2}, \texttt{Matrix2x2V},
+\texttt{Vec2V} as statically-validated atoms; larger systems are
+\emph{not} reached by inflating the atom (we do not aim for
+$n \times n$ inversion in templates), but by composing atoms through
+\emph{structure-preserving combinators} that propagate the
+invariants up.  \texttt{DirectSum<A, B>} carries invertibility from
+its factors to the block-diagonal whole and is shipped today;
+$4 \times 4$ invertibility is therefore already a one-combinator
+step from the $2 \times 2$ atom, with $(A \oplus B)^{-1} =
+A^{-1} \oplus B^{-1}$ exact over $\mathbb{Q}$ and verifiable by
+\texttt{static\_assert}:
+
+% Source:
+% src/test/cpp/modules/dedekind/linear_algebra/matrix_test.cpp
+\begin{lstlisting}[language=C++, basicstyle=\ttfamily\small]
+TEST_CASE("linear_algebra:matrix --- Tier 1: "
+          "DirectSum preserves invertibility") {
+  constexpr Invertible2x2<Rat, Rat{1L}, Rat{2L},
+                          Rat{3L}, Rat{4L}> block_M{};
+  // 90° rotation over ℚ.
+  constexpr Invertible2x2<Rat, Rat{0L}, Rat{-1L},
+                          Rat{1L}, Rat{0L}> block_rot{};
+  constexpr DirectSum<decltype(block_M),
+                      decltype(block_rot)> ds{};
+  constexpr auto ds_inv = ds.inverse();
+
+  using IdentityDirectSum =
+      DirectSum<Identity2x2<Rat>, Identity2x2<Rat>>;
+  STATIC_CHECK(ds * ds_inv == IdentityDirectSum{});
+  STATIC_CHECK(ds_inv * ds == IdentityDirectSum{});
+}
+\end{lstlisting}
+
+\noindent \texttt{BlockUpperTriangular<A, B, D>} extends the same
+propagation to triangular blocks under a degenerate-Schur condition
+(also shipped, also testable as a single \texttt{static\_assert}); a
+future Kronecker combinator preserves orthogonality and lattice
+structure compositionally.  Each combinator is itself a small
+structurally-checked unit; their composition gives $2^k \times 2^k$
+matrices whose invariants follow by induction without exponential
+blowup in the templates.  The remaining roadmap items
+% Backlog: issues #366 (block-Schur invertibility recursion, full
+% non-degenerate case), #368 (catalog of well-behaved matrix
+% carriers --- orthogonal, rotation, diagonal), #369 (structure-
+% preserving combinators including Kronecker).
+fall out of the same Axiomatic-Systems-Programming discipline rather
+than requiring a different paradigm, and are tracked in the project
+backlog rather than discharged here.  The $2 \times 2 \to 4 \times 4$
+step is a witness, not a promise; everything beyond is the natural
+recursion of the same combinator pattern.
+
+\paragraph{4D collapse in the IR.}
+The cross-platform-determinism guarantee of
+Section~\ref{sec:lp-centrepiece} is not specific to the LP showcase:
+it carries forward to the $4 \times 4$ DirectSum case in the same
+form.  A witness function asserting
+$(M \oplus R) \cdot (M \oplus R)^{-1} = I \oplus I$ over
+$\mathbb{Q}$ compiles, at \texttt{-O2}, to
+\lstinline|ret i64 1| --- a literal whose value clang's optimiser
+additionally annotates with the \texttt{memory(none)} attribute,
+indicating that the function reads no memory.  The four
+$2 \times 2$ blocks, the four Cramer solves, the four
+multiplications-and-additions per entry, the eight type-level
+comparisons in \texttt{DirectSum::operator==} are all decided at
+translation time; the binary contains a single literal load.
+Because the carrier is \texttt{Rational<\ldots>}, this collapse is
+again bit-identical across ARM and x86 back-ends: the same
+\lstinline|ret i64 1| holds whether the build target is the host
+\texttt{x86\_64} or a \texttt{Cortex-M} cross-compile.  The
+$4 \times 4$ result has zero footprint in the emitted binary, and
+the same recursion gives the same property at every $2^k \times 2^k$
+the combinator stack is composed up to.
+
 \paragraph{Numeric overflow in the carrier.}
 The paper's code listings ship with
 \lstinline{Rational<SignedExtensionalCardinal<>>}: an
@@ -2039,13 +2277,66 @@ so the swap between exact and native is a one-line change at the
 \paragraph{Error messages and the readability tax.}
 A failed \texttt{static\_assert} in a deep reduction produces, by
 default, a multi-page expansion trail that is difficult for a new
-user to parse. The mitigation we adopt is a combination of
-\lstinline{requires}-clauses at call sites (so the first failing
-predicate is the reported one), named concepts with short
-\texttt{diagnostic} strings, and targeted \lstinline{static_assert}
-messages inside internal reductions. This is an ergonomics concern
-rather than a correctness one, but it is the concern a reader most
-often encounters first and deserves explicit acknowledgement.
+user to parse. The bulk of this is a C++ language-design concern
+that no library can fully repair; the realistic ambition is to
+\emph{fail fast}, so that the first message a reader sees is the
+predicate that genuinely broke and not the cascade of downstream
+failures it triggered. The mitigation the library adopts is exactly
+that: \lstinline{requires}-clauses at call sites (so the first
+failing predicate is the reported one), named concepts with short
+\texttt{diagnostic} strings, targeted \lstinline{static_assert}
+messages inside internal reductions, and---structurally---building
+combinators out of statically-validated atoms so that a failure is
+localised to its smallest witness rather than surfacing inside a
+deep template instantiation. The
+\texttt{IsRing} / \texttt{IsField} / \texttt{IsCyclicGroup} concepts
+of \texttt{dedekind.category:total} all follow this pattern: each
+adds a single named requirement on top of a previously-established
+one, so the first violated predicate is also the most specific one.
+This is an ergonomics concern rather than a correctness one, but it
+is the concern a reader most often encounters first and deserves
+explicit acknowledgement.
+
+\paragraph{Worked diagnostic example.}
+A reader who tries to construct an \texttt{Invertible2x2} from a
+matrix that, on inspection of the page, looks plausible but is
+actually rank-deficient receives a single named diagnostic at
+instantiation rather than a substitution-failure cascade. The
+deliberate-mistake input
+
+\begin{lstlisting}[language=C++, basicstyle=\ttfamily\small]
+constexpr Invertible2x2<Rat,
+                        Rat{1L}, Rat{2L},
+                        Rat{2L}, Rat{4L}> M_singular{};
+// det = 1*4 - 2*2 = 0  ---  rows are linearly dependent.
+\end{lstlisting}
+
+\noindent yields, with \texttt{clang++ 22} and the project's standard
+build flags, the following diagnostic
+(\lstinline{-fno-color-diagnostics}, \lstinline{-ferror-limit=2},
+unedited):
+
+\begin{lstlisting}[basicstyle=\ttfamily\footnotesize, breaklines=true, columns=fullflexible]
+matrix.cppm:120:17: error: static assertion failed due to requirement '!(det == ...{0})':
+  Invertible2x2 requires full rank: a*d - b*c != 0
+  120 |   static_assert(!(det == T{0}),
+      |                 ^~~~~~~~~~~~~~
+failed_proof.cpp:12:46: note: in instantiation of template class
+  'dedekind::linear_algebra::Invertible2x2<Rat, 1, 2, 2, 4>' requested here
+
+1 error generated.
+\end{lstlisting}
+
+\noindent The first diagnostic line names the broken predicate in the
+language of linear algebra (``\texttt{requires full rank: a*d - b*c
+!= 0}''); the source location points at the carrier definition where
+the invariant is asserted; the instantiation note shows the offending
+template arguments inline. There is no substitution-failure cascade
+because the predicate is a literal \texttt{static\_assert} inside the
+class body, not a \lstinline{requires}-clause that has to be probed.
+This is what we mean by \emph{fail fast at the named axiom}: the
+reader sees the mathematical claim that broke before the
+type-system mechanics that surfaced it.
 
 In short: the compiler wall has a predictable shape---depth, steps,
 combinatorics, numeric range, diagnostics---and each is either
@@ -2255,6 +2546,35 @@ LP reductions demonstrated here.
 We leave them as worked targets for successor libraries that adopt
 the same discipline.
 
+\paragraph{A pragmatic dividend: time-to-confidence.}
+Beyond the correctness argument we have been making throughout,
+hoisting checks into the type system buys a feedback-loop dividend
+that working library authors notice daily.  A
+\texttt{static\_assert} returns its verdict in the seconds the
+translation unit takes to compile; a full test run returns its in
+minutes; an integration suite or a manual click-through, in tens
+of minutes to hours.  The contrast is sharpest at the
+dynamic-language end of the spectrum: an invariant that surfaces
+only when a Python code path runs in production may take days or
+weeks to manifest, by which point the offending edit is several
+deploys behind and the stack trace points at the consequence
+rather than the cause.  Dragging the verdict back from
+``production \texttt{AttributeError}'' to ``pre-commit type check''
+--- exactly what \texttt{mypy} or \texttt{pyright} do for a
+strict-typed Python codebase, and what \texttt{static\_assert}
+does for a strict-typed C++23 one --- is the same hoisting move
+made at a different point along the same gradient.  An invariant
+the compiler enforces costs zero CI minutes; an invariant the
+test suite enforces costs its execution time, multiplied by every
+commit that runs it.  The asymmetry compounds: over the lifetime
+of a library, every invariant hoisted into the type system buys
+back the corresponding test's wall-clock cost on every build, on
+every commit, in every CI pass.  The type system is therefore not
+just a correctness discipline but a feedback-loop discipline, and
+the two reinforce each other---the case for naming structure in
+the type is also, quite practically, the case for closing the
+loop on it faster.
+
 \paragraph{A forward claim, in its weakest defensible form.}
 As numerical workloads saturate available hardware, the marginal
 returns of brute-force optimisation are diminishing, and the lever
@@ -2286,6 +2606,28 @@ dismiss. The shape of that opportunity is what Axiomatic Systems
 Programming claims. Whether the shape materialises into the numbers
 it suggests is an engineering question, and one the next decade of
 library authors will answer.
+
+\paragraph{Reproducibility under heterogeneous tooling.}
+The discipline this paper names is, deliberately, falsifiable.  The
+constraints under which it stays honest---textbook-anchored
+vocabulary, a named-module dependency graph, structural assertions
+discharged at translation time, a CI-policed test suite---do not
+depend on which agent typed any particular line of code, nor on the
+specific host language.  As Section~\ref{sec:axiomatic} notes, the
+technique transfers with modest adjustment to any
+strongly-typed-and-tested substrate whose type system can name a
+predicate over compile-time data and check it mechanically: Scala
+under refined types and a strict build, C\# with constrained
+generics under Roslyn analysers, Java with sealed types, strictly-
+typed Python under \texttt{mypy} or \texttt{pyright}.  C++23 is the
+worked example here---chosen because of the LLVM lever from
+discharged proof to optimised object code---but the discipline does
+not turn on it.  A practitioner adopting the same constraints and a
+comparable toolchain in 2026 should be able to produce comparable
+artefacts on comparable timescales, irrespective of host language or
+of how the keystrokes were generated.  The discipline is meant to
+outlast any particular generation of authoring tool---and,
+increasingly, of programming language.
 
 \printbibliography
 

@@ -118,3 +118,84 @@ TEST_CASE("Analysis: Hamiltonian Observables", "[analysis][hamilton]") {
     REQUIRE(std::abs(eN - e0) < 2e-2);
   }
 }
+
+// Paper showcase (§5.7 "Natural successor domains"): three witnesses
+// for the harmonic-oscillator MD primitive, bundled here as the
+// single source of truth that the paper quotes near-verbatim.  If a
+// future edit drifts any of the three, CI catches it before the
+// paper does.
+TEST_CASE("Analysis: Harmonic oscillator --- paper §5.7 showcase witnesses",
+          "[analysis][hamilton][exterior][paper-showcase]") {
+  using ℝ = double;
+
+  // 1. :hamilton --- HarmonicOscillator<R> exposes the
+  //    IsHamiltonian energy(state) -> R surface; the carrier
+  //    satisfies the concept structurally.
+  STATIC_CHECK(IsHamiltonian<HarmonicOscillator<ℝ>, PhasePoint<ℝ>, ℝ>);
+
+  // 2. :exterior --- the symplectic 2-form ω = dp ∧ dq is
+  //    antisymmetric on the canonical basis pair.  Pure algebra,
+  //    no transcendentals --- promoted to STATIC_CHECK so the
+  //    claim is decided at translation time.
+  constexpr OneForm<ℝ, 2> dq{{1.0, 0.0}};
+  constexpr OneForm<ℝ, 2> dp{{0.0, 1.0}};
+  constexpr auto omega = wedge(dp, dq);
+  constexpr Vector<ℝ, 2> v_x{1.0, 0.0};
+  constexpr Vector<ℝ, 2> v_y{0.0, 1.0};
+  STATIC_CHECK(omega(v_x, v_y) == -omega(v_y, v_x));
+
+  // 3. Energy conservation along the harmonic-oscillator
+  //    closed-form flow.  H(q, p) = ½(p² + ω²q²) for ω = 1; the
+  //    flow rotates in (q, p) and H is constant.  This one is
+  //    runtime, not STATIC_CHECK: the closed-form expression
+  //    calls std::cos / std::sin (libc++'s implementation is not
+  //    constexpr), and the tolerance compare uses std::abs(double)
+  //    (likewise not constexpr in libc++ --- the very wall §5.5
+  //    documents and sometimes hand-rolls around).  The check
+  //    therefore sits to the right of the Compiler Wall.
+  const HarmonicOscillator<ℝ> H{1.0};
+  const auto flow = harmonic_oscillator_curve<ℝ>(1.0, 0.0, 1.0);
+  const ℝ e0 = H.energy(flow(0.0));
+  const ℝ et = H.energy(flow(2.5));
+  CHECK(std::abs(et - e0) < 1e-12);
+}
+
+TEST_CASE("Analysis: HarmonicOscillator carrier satisfies IsHamiltonian (#388)",
+          "[analysis][hamilton][concept]") {
+  // The HarmonicOscillator<R> carrier introduced in :hamilton is the
+  // concrete witness for IsHamiltonian.  H(q, p) = ½ (p² + ω² q²).
+  // This test exercises the .energy() member at runtime, complementing
+  // the static_assert(IsHamiltonian<...>) pinned next to the carrier.
+  using ℝ = double;
+  using Phase = Vector<ℝ, 2>;
+
+  SECTION("ω = 1: H(q=1, p=0) = ½") {
+    const HarmonicOscillator<ℝ> H{1.0};
+    REQUIRE(std::abs(H.energy(Phase{1.0, 0.0}) - 0.5) < 1e-12);
+  }
+
+  SECTION("ω = 1: H(q=0, p=1) = ½") {
+    const HarmonicOscillator<ℝ> H{1.0};
+    REQUIRE(std::abs(H.energy(Phase{0.0, 1.0}) - 0.5) < 1e-12);
+  }
+
+  SECTION("ω = 2: H(q=1, p=0) = 2 (kinetic-free, ω² q² / 2 = 4 / 2)") {
+    const HarmonicOscillator<ℝ> H{2.0};
+    REQUIRE(std::abs(H.energy(Phase{1.0, 0.0}) - 2.0) < 1e-12);
+  }
+
+  SECTION("ω = 1: total energy is conserved along the closed-form flow") {
+    // Sample energy at four different times along the H-flow; values
+    // must agree to within floating-point round-off (the closed-form
+    // expression is exact in the symbolic q, p parametrisation).
+    const HarmonicOscillator<ℝ> H{1.0};
+    const auto curve = harmonic_oscillator_curve<ℝ>(1.0, 0.0, 1.0);
+    const ℝ e0 = H.energy(curve(0.0));
+    const ℝ e1 = H.energy(curve(0.5));
+    const ℝ e2 = H.energy(curve(1.0));
+    const ℝ e3 = H.energy(curve(2.5));
+    REQUIRE(std::abs(e1 - e0) < 1e-12);
+    REQUIRE(std::abs(e2 - e0) < 1e-12);
+    REQUIRE(std::abs(e3 - e0) < 1e-12);
+  }
+}

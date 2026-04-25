@@ -499,6 +499,27 @@ static_assert(IsSequence<Path<int>>, "Path must satisfy the sequence concept.");
 static_assert(IsFiniteSequence<FinitePath<int>>,
               "FinitePath must satisfy the finite sequence concept.");
 
+// Bidirectional anchor (math ↔ stdlib) for #388: FinitePath<T>
+// presents as a std::ranges::input_range out of the box
+// (FinitePath::begin / end yield std::input_iterator instances),
+// and the inverse direction is provided by from_range just above,
+// which lifts any std::ranges::input_range into a FinitePath.
+// Anchoring at the input_range concept makes FinitePath values flow
+// into std::ranges algorithms such as transform and for_each, as
+// well as views such as std::views::filter, and iterator-based
+// reductions such as std::accumulate without a bespoke adapter,
+// keeping the :sequences vocabulary connected to standard C++
+// idioms while the strictly stronger std::generator coroutine is
+// awaited from libc++.  Other IsFiniteSequence carriers acquire the
+// same range surface by additionally exposing begin() / end(); the
+// concept itself does not mandate them.
+static_assert(std::ranges::input_range<FinitePath<int>>,
+              "FinitePath<T> must satisfy std::ranges::input_range so "
+              "library sequences flow into std::ranges algorithms.");
+static_assert(
+    std::input_iterator<decltype(std::declval<FinitePath<int>>().begin())>,
+    "FinitePath<T>::begin() must yield a std::input_iterator.");
+
 static_assert(IsKleisliExtension<Path, int, long>,
               "Path must satisfy the Kleisli extension witness.");
 

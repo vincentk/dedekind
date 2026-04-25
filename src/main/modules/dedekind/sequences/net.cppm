@@ -76,6 +76,73 @@ concept IsNet = IsArrow<N> && IsDirectedSet<typename N::Domain>;
 /**
  * @concept IsSequence
  * @brief The fundamental mapping from a Domain Set to a Value Type.
+ *
+ * @section IsSequence_vs_stdlib_388
+ *
+ * @c IsSequence anchors bidirectionally to the C++ standard library
+ * via two complementary surfaces.
+ *
+ * @subsection Iterator_Range_Anchor (available today)
+ *
+ * @c FinitePath<T> already exposes @c begin() / @c end() returning
+ * iterators that satisfy the @c std::input_iterator concept (cf.\
+ * @c sequences:path), so @c FinitePath<T> is a
+ * @c std::ranges::input_range out of the box.  The reverse direction
+ * is provided by the @c from_range factory in @c sequences:path,
+ * which lifts any @c std::ranges::input_range into a
+ * @c FinitePath<T>.  In symbols:
+ *
+ *   @c FinitePath<T> @c => @c std::ranges::input_range
+ *
+ *   @c std::ranges::input_range<R> @c => @c FinitePath<value_t> @c =
+ *   @c from_range(r)
+ *
+ * This is the anchor that makes @c FinitePath<T> values flow into
+ * @c std::ranges algorithms such as @c transform and @c for_each,
+ * as well as range adaptors such as @c std::views::filter, and
+ * into iterator-based reductions such as @c std::accumulate ---
+ * without a bespoke adapter.  Other @c IsFiniteSequence carriers
+ * acquire the same range surface by additionally exposing
+ * @c begin() / @c end() (the concept does not require it;
+ * @c FinitePath provides it).
+ *
+ * @subsection Coroutine_Anchor (C++23, future once libc++ ships @c
+ * \<generator\>)
+ *
+ * The C++23 @c std::generator<T> coroutine (P2502R2,
+ * @c \<generator\>) is the natural pull-model dual: a coroutine that
+ * yields @c T values in order.  Semantically it is a sequence with
+ * domain @f$\mathbb{N}@f$ (or a finite prefix) and codomain @c T,
+ * isomorphic to @c IsFiniteSequence / @c IsSequence over @c std::size_t.
+ * An adapter once libc++ ships @c \<generator\>:
+ *
+ * @code
+ * template <typename Seq> requires IsFiniteSequence<Seq>
+ * std::generator<typename Seq::Codomain> as_std_generator(Seq s) {
+ *   for (std::size_t i = 0; i < s.size(); ++i) co_yield s.at(i);
+ * }
+ * @endcode
+ *
+ * Documented rather than implemented to avoid a toolchain-version
+ * dependency in the main source.  Until libc++ ships it, the
+ * iterator/range anchor above covers the same use cases.
+ *
+ * @subsection On_Pull_vs_Push
+ *
+ * @c IsSequence is a @b pull model (consumer asks for index @c i,
+ * receives @c s.at(i)) and admits a @b directed-set domain via the
+ * @c IsNet refinement (cf.\ Munkres / Kelley nets).  Standard
+ * iterators and @c std::generator are both @b pull-style too, but
+ * with domain implicitly @f$\mathbb{N}@f$.  The library's @c IsNet
+ * generalises the standard view to non-totally-ordered index sets;
+ * the iterator/range and coroutine anchors specialise to the
+ * @f$\mathbb{N}@f$-indexed case.
+ *
+ * A natural worked example: the primitive-element enumeration
+ * @f$\mathbb{F}_q^{\times} = \{\alpha^0, \alpha^1, \ldots,
+ * \alpha^{q-2}\}@f$ presents cleanly as both
+ * @c std::ranges::input_range (today, via @c FinitePath) and
+ * @c std::generator<F> (future, via the adapter sketched above).
  */
 export template <typename Seq>
 concept IsSequence = IsNet<Seq> && IsCountablyIndexedFamily<Seq> && requires {

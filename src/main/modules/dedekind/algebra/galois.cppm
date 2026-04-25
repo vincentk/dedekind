@@ -38,15 +38,19 @@
  */
 module;
 
-#include <cstddef>  // for std::size_t (galois_order_v)
-#include <cstdint>  // for std::uint8_t / std::uint16_t (𝔽64 storage)
+#include <concepts>  // for std::same_as (primitive-powers structural witnesses)
+#include <cstddef>   // for std::size_t (galois_order_v)
+#include <cstdint>   // for std::uint8_t / std::uint16_t (𝔽64 storage)
 #include <functional>  // for std::plus, std::multiplies, std::bit_xor, std::bit_and
+#include <ranges>  // for std::ranges::input_range / range_value_t (𝔽64^× anchor)
 #include <stdexcept>  // for std::domain_error (𝔽64 division-by-zero)
 #include <type_traits>  // for std::false_type, std::bool_constant, std::integral_constant
 
 export module dedekind.algebra:galois;
 
 import dedekind.category;
+import dedekind.sequences; // FinitePath / IsFiniteSequence — for the
+    // 𝔽64^× primitive-element enumeration witness (#388).
 import :field;
 import :registration;
 
@@ -370,6 +374,84 @@ static_assert(dedekind::category::cyclic_order_v<𝔽64, std::multiplies<𝔽64>
 static_assert(!dedekind::category::is_cyclic_group_v<𝔽64, std::plus<𝔽64>>,
               "𝔽64's additive group is elementary abelian (Z/2)^6, "
               "not cyclic.");
+
+/** @section Primitive_Element_Enumeration #388
+ *
+ * The multiplicative group @f$\mathbb{F}_{64}^{\times}@f$ is cyclic
+ * of order @c 63 (as witnessed above); a primitive element is
+ * @f$\alpha = x@f$ under the chosen polynomial
+ * @f$f(x) = x^6 + x + 1@f$, which has bit-representation @c 0b000010
+ * @c = @c 2.  Thus the enumeration
+ * @f$\{\alpha^0, \alpha^1, \ldots, \alpha^{62}\}@f$ visits every
+ * element of @f$\mathbb{F}_{64}^{\times}@f$ exactly once and is the
+ * canonical worked example of an @c IsFiniteSequence over a finite
+ * cyclic group --- the example sketched in the
+ * @c sequences:net @c IsSequence_vs_stdlib_388 doc block.
+ */
+export inline constexpr 𝔽64 f64_primitive_α = 𝔽64{static_cast<std::uint8_t>(2)};
+
+static_assert(f64_primitive_α != 𝔽64{},
+              "Primitive element of 𝔽64 is non-zero (it must lie in "
+              "𝔽64^×, the multiplicative group of order 63).");
+
+/**
+ * @brief Enumerate @f$\mathbb{F}_{64}^{\times}@f$ as the cyclic walk
+ *        @f$\alpha^0, \alpha^1, \ldots, \alpha^{62}@f$.
+ *
+ * @details Returns a @c FinitePath<𝔽64> of size @c 63 whose @c i-th
+ * element is @f$\alpha^i@f$.  Built via @c sequences::iterate, which
+ * pre-materialises the orbit into a shared vector at construction
+ * time --- so @c at(n) is @c O(1) and a full enumeration is
+ * @c O(n) rather than the naive @c O(n^2) of a per-call
+ * exponent walk.  The walk is the bidirectional anchor between
+ * @c category::IsCyclicGroup<𝔽64, std::multiplies<𝔽64>> (axiomatic:
+ * 𝔽64^× is cyclic of order 63) and the standard-library
+ * @c std::ranges::input_range surface --- the same path that
+ * @c morphologies:archimedean :: IsCyclic carriers walk via
+ * @c successor / @c generator, here realised as an explicit
+ * sequence over @f$\mathbb{N}_{<63}@f$.
+ */
+export inline auto f64_primitive_powers() {
+  return dedekind::sequences::iterate(
+      𝔽64{static_cast<std::uint8_t>(1)},
+      [](const 𝔽64& x) { return x * f64_primitive_α; }, std::size_t{63});
+}
+
+static_assert(
+    dedekind::sequences::IsFiniteSequence<decltype(f64_primitive_powers())>,
+    "𝔽64^× primitive-element enumeration must satisfy IsFiniteSequence "
+    "(finite cyclic-group walk, size 63 = |𝔽64^×|).");
+
+static_assert(dedekind::category::cyclic_order_v<𝔽64, std::multiplies<𝔽64>> ==
+                  63,
+              "𝔽64^× has order 63, matching the FinitePath size below.");
+
+// Structural pinning: the enumeration's Codomain is 𝔽64, the Domain
+// is std::size_t (the iterator anchor on which std::ranges machinery
+// keys), and FinitePath<𝔽64> participates in the IsSequence chain
+// already exercised in :path.  These pin at the type level the
+// claims the f64_primitive_powers() docstring makes about its shape.
+static_assert(
+    std::same_as<typename decltype(f64_primitive_powers())::Codomain, 𝔽64>,
+    "𝔽64^× enumeration Codomain must be 𝔽64.");
+static_assert(
+    std::same_as<typename decltype(f64_primitive_powers())::Domain,
+                 std::size_t>,
+    "𝔽64^× enumeration Domain must be std::size_t (iterator anchor).");
+static_assert(dedekind::sequences::IsSequence<decltype(f64_primitive_powers())>,
+              "𝔽64^× enumeration must satisfy IsSequence "
+              "(IsFiniteSequence ⊂ IsSequence).");
+static_assert(dedekind::sequences::IsNet<decltype(f64_primitive_powers())>,
+              "𝔽64^× enumeration must satisfy IsNet "
+              "(IsSequence ⊂ IsNet; the Domain std::size_t is a directed "
+              "set in the Munkres / Kelley sense).");
+static_assert(std::ranges::input_range<decltype(f64_primitive_powers())>,
+              "𝔽64^× enumeration must be a std::ranges::input_range — "
+              "the bidirectional math ↔ stdlib anchor specialised to 𝔽64^×.");
+static_assert(
+    std::same_as<std::ranges::range_value_t<decltype(f64_primitive_powers())>,
+                 𝔽64>,
+    "std::ranges::range_value_t of the 𝔽64^× enumeration must be 𝔽64.");
 
 /** @section CCC_Inheritance_389 CCC inheritance (#389)
  *
