@@ -55,6 +55,39 @@ using namespace dedekind::order;
 using namespace dedekind::sets;
 
 /**
+ * @concept HasFieldOperators
+ * @brief @b Pure @b syntactic @b shape: T closes strictly under the
+ *        full field operator surface @c +, binary @c -, unary @c -,
+ *        @c *, @c /, and exposes the multiplicative unit @c T{1}.
+ *
+ * @details
+ * The aggregator concept for the field-operator surface.  Equal in
+ * content to @c HasRingOperators<T> @c && @c HasGroupOperatorsMul<T>:
+ *
+ *   - @c HasRingOperators<T> --- @c +, binary @c -, unary @c -,
+ *     @c * close strictly on @c T (the additive-group + ring surface);
+ *   - @c HasGroupOperatorsMul<T> --- @c *, @c /, @c T{1} close
+ *     strictly on @c T (the multiplicative-group surface).
+ *
+ * The shared @c * clause is idempotent in C++ concepts; the union
+ * names the full set of operators a field-style callsite needs to
+ * write plain field arithmetic in C++ syntax.
+ *
+ * Canonical positive witness: @c Rational<I> for any operationally
+ * ring-like @c I.  Negative witness: any narrow unsigned (integer
+ * promotion lifts results to @c int), @c unsigned int (no
+ * field-respecting @c / --- but the @b shape refuses on a different
+ * ground: there is no @c .inverse() expectation here, only the
+ * @c T{1} unit, so unsigned int actually @b shape-passes; the
+ * textbook claim "this is a field" fails at the strict layer).
+ *
+ * Introduced under #394 as the user-requested ℚ-deal companion of
+ * @c HasRingOperators / @c HasGroupOperatorsAdd.
+ */
+export template <typename T>
+concept HasFieldOperators = HasRingOperators<T> && HasGroupOperatorsMul<T>;
+
+/**
  * @concept IsField
  * @brief The "Painless" Field: a Commutative Ring that admits Division,
  *        with both the axiomatic witness and the operator surface.

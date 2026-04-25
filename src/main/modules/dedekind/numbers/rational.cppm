@@ -425,6 +425,18 @@ static_assert(Group_ℤ<SignedExtensionalCardinal<>>,
               "SignedExtensionalCardinal<> must realize ℤ as an abelian "
               "group under std::plus.");
 
+// ℤ-deal (#394): the strict additive-group proof above AND the literal
+// C++ +, binary -, unary - operators close strictly on the carrier.
+// SignedExtensionalCardinal<>'s friend operators all return
+// SignedExtensionalCardinal<> exactly, so HasGroupOperatorsAdd fires;
+// combined with the species-trait Group_ℤ proof, IsArithmeticAdditiveGroup
+// is the meet-point between the math-textbook ℤ structure and the
+// standard C++ arithmetic operators on this carrier.
+static_assert(
+    dedekind::algebra::IsArithmeticAdditiveGroup<SignedExtensionalCardinal<>>,
+    "SignedExtensionalCardinal<> is the canonical ℤ-deal: strict "
+    "additive group AND literal +,-,unary - close on the carrier.");
+
 // ℚ as the field of rationals: the canonical arbitrary-precision rational
 // carrier that the paper-facing showcases instantiate on.
 //
@@ -438,6 +450,22 @@ static_assert(Group_ℤ<SignedExtensionalCardinal<>>,
 // dogfooding issue sweep (see backlog issues to be created). Until then
 // the operational witnesses (IsFieldLikeScalar<Rational<SignedEC<>>>
 // asserted above) are the load-bearing guarantees.
+
+// ℚ-deal (#394, surface only): HasFieldOperators is the literal field-
+// operator surface (+, -, unary -, *, /, T{1}).  Rational<I>'s friend
+// operators and inverse-via-T{1}/x route close strictly on Rational<I>
+// for any operationally-ring-like I; the witness fires regardless of
+// the strict-IsField FIXME above, since it is a syntactic shape claim
+// and not an axiomatic one.  The strict-and-literal seal (analogous to
+// IsArithmeticAdditiveGroup on ℤ) lands when the FIXME above closes.
+static_assert(dedekind::algebra::HasFieldOperators<Rational<default_integer>>,
+              "Rational<default_integer> has the literal field-operator "
+              "surface: +, -, unary -, *, / all close on Rational, and "
+              "Rational{1} is the multiplicative unit.");
+static_assert(
+    dedekind::algebra::HasFieldOperators<Rational<SignedExtensionalCardinal<>>>,
+    "Rational<SignedExtensionalCardinal<>> --- the canonical exact ℚ "
+    "carrier --- has the field-operator surface.");
 
 /**
  * @brief Canonical polynomial ring over the rationals: Q[x].
