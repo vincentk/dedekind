@@ -220,6 +220,51 @@ concept IsMereologicalJoinBand =
     IsMereologicalJoinSemigroup<T, Join> && IsIdempotent<T, Join>;
 
 /**
+ * @concept IsAbsorptive
+ * @brief Mutual absorption and internal idempotency for a pair of
+ *        operations.
+ *
+ * @details Verifies that @c Op1 and @c Op2 are dual partners:
+ *   1. @c Op1 absorbs @c Op2: @f$a \vee (a \wedge b) = a@f$
+ *   2. @c Op2 absorbs @c Op1: @f$a \wedge (a \vee b) = a@f$
+ *   3. Both are idempotent (inherent in absorption, but verified for
+ *      rigor).
+ *
+ * Hosted here in @c :mereology (lifted from @c :species under #387)
+ * because absorption is a lattice-shaped fact about pairs of
+ * operations, not a tier-zero trait of single operations --- the
+ * downstream lattice concepts in @c :mereology / @c :posetal /
+ * @c :total are the natural consumers.  The underlying trait
+ * variable @c is_absorptive_v stays in @c :species (where the rest
+ * of the trait registry lives, and where carriers opt in).
+ */
+export template <typename T, typename Op1, typename Op2>
+concept IsAbsorptive =
+    IsIdempotent<T, Op1> && IsIdempotent<T, Op2> &&
+    is_absorptive_v<T, Op1, Op2> && is_absorptive_v<T, Op2, Op1>;
+
+/**
+ * @concept IsSaturating
+ * @brief Taxonomic Decorator: certifies that an operation reaches
+ *        out-of-range values via a saturating escalation (e.g.\
+ *        @f$\pm \aleph_0@f$) rather than wrapping or being undefined.
+ *
+ * @details The one-op sibling of @c IsAbsorptive.  Where absorption
+ * names the law that one operation collapses pairs through another
+ * (a lattice fact), saturation names the law that an operation
+ * escalates to a fixed sentinel on out-of-range inputs (an
+ * extended-range fact).  Both feed @c category:species's
+ * @c IsTotal pragmatic certificate via their underlying trait
+ * variables; @c IsTotal in @c :species reaches for the trait
+ * variable @c is_saturating_v directly so the upstream layer does
+ * not depend on this partition's concept-level surface.
+ *
+ * Introduced under #377 for @c sets::SignedCardinality.
+ */
+export template <typename T, typename Op>
+concept IsSaturating = is_saturating_v<T, Op>;
+
+/**
  * @concept IsMereologicalSkewLatticeOperations
  * @brief Non-commutative lattice-style operations (skew lattice fragment).
  *

@@ -696,12 +696,37 @@ struct is_periodic : std::false_type {};
 export template <typename T, typename Op>
 inline constexpr bool is_periodic_v = is_periodic<T, Op>::value;
 
-/** @section totality  */
+/** @section Property_Ledger: Saturation
+ *  A type is saturating under @c Op if it defines an extended-range
+ *  topology where "stepping off the edge" escalates to a saturating
+ *  value (e.g.\ @f$\pm \aleph_0@f$) rather than wrapping.  The
+ *  archetypal carrier is @c sets::SignedCardinality (#377) ---
+ *  the ℤ ∪ {±ℵ_0, NaZ} extended-integer carrier whose @c + is total
+ *  by escalation, not by wrap.
+ *
+ *  Distinct from @c is_idempotent_v, which says the operation is
+ *  globally stable (a*a = a for all a).  Saturation is the milder
+ *  claim that the operation is total because any out-of-range
+ *  result has a defined saturating image.
+ */
+export template <typename T, typename Op>
+struct is_saturating : std::false_type {};
+
+export template <typename T, typename Op>
+inline constexpr bool is_saturating_v = is_saturating<T, Op>::value;
+
+/** @section totality
+ *  Three pragmatic paths to totality, each a sufficient (not
+ *  necessary) condition: periodicity (modular wrap), idempotence
+ *  (globally stable), or saturation (escalation to an extended-range
+ *  sentinel).  See the textbook note on @c IsTotal below.
+ */
 export template <typename T, typename Op>
 struct is_total
     : std::bool_constant<
-          is_periodic_v<T, Op> ||  // Path A: It wraps (Groups/Rings)
-          is_idempotent_v<T, Op>   // Path B: It's stable (Lattices/Extrema)
+          is_periodic_v<T, Op> ||   // Path A: It wraps (Groups/Rings)
+          is_idempotent_v<T, Op> ||  // Path B: It's stable (Lattices/Extrema)
+          is_saturating_v<T, Op>     // Path C: It escalates (extended ℤ, ±ℵ_0)
           > {};
 
 export template <typename T, typename Op>
@@ -872,16 +897,23 @@ concept IsPeriodic = is_periodic_v<T, Op>;
 /**
  * @concept IsTotal
  * @brief The Master Safety Certificate for Level 0.
- * A morphism is total if it is either Periodic (Circular) or Idempotent
- * (Stable).
+ * A morphism is total if it is Periodic (Circular), Idempotent
+ * (Stable), or Saturating (escalating to an extended-range sentinel).
  *
  * Textbook note:
- * Periodicity and idempotence are orthogonal algebraic properties. This
- * concept is a pragmatic implementation certificate and not a canonical
- * algebraic taxonomy boundary.
+ * The three paths are orthogonal algebraic properties.  This concept
+ * is a pragmatic implementation certificate and not a canonical
+ * algebraic taxonomy boundary; carriers opt in to whichever path
+ * matches their machine-totality story.  The named concept @c
+ * IsSaturating that wraps @c is_saturating_v lives in @c
+ * morphologies:absorption (the saturation home), per #387's lift;
+ * here we reach for the underlying trait variable directly so this
+ * upstream-foundational layer does not depend on a downstream
+ * partition.
  */
 export template <typename T, typename Op>
-concept IsTotal = IsPeriodic<T, Op> || IsIdempotent<T, Op>;
+concept IsTotal = IsPeriodic<T, Op> || IsIdempotent<T, Op> ||
+                  is_saturating_v<T, Op>;
 
 /** @section Lattice_Morphisms (std::ranges) */
 
@@ -918,15 +950,27 @@ inline constexpr bool is_distributive_v<T, decltype(std::ranges::min),
                                         decltype(std::ranges::max)> = true;
 
 /**
- * @brief The Absorber Trait (Axiom: a ∨ (a ∧ b) = a)
+ * @brief The Absorber Trait (Axiom: a ∨ (a ∧ b) = a).
  * Represents the structural tethering between two dual operations.
+ *
+ * @note (#387 lift) The named concept @c IsAbsorptive that wraps
+ * this trait, plus the audit witnesses, live in the downstream
+ * partition @c morphologies:absorption.  The opt-in specialisations
+ * for the canonical operator pairs ((max, min), (logical_or,
+ * logical_and), the (bit_xor, bit_and) Boolean-ring non-witness)
+ * stay here, alongside the trait-variable template, so that upstream
+ * concepts in @c category (e.g.\ @c IsLattice in @c :total,
+ * @c IsMereologicalSkewLatticeOperations in @c :mereology,
+ * @c IsOrderLatticeOperations in @c :posetal) can reach them via the
+ * direct trait check without inverting the dependency on
+ * @c morphologies.
  */
 template <typename T, typename Op1, typename Op2>
 inline constexpr bool is_absorptive_v = false;
 
 /** @section Lattice_Absorber_Registration */
 
-// 1. Integers: max/min (Mutual)
+// 1. Integers (and any totally-ordered carrier): max/min mutual absorption.
 template <typename T>
 inline constexpr bool
     is_absorptive_v<T, decltype(std::ranges::max), decltype(std::ranges::min)> =
@@ -936,7 +980,7 @@ inline constexpr bool
     is_absorptive_v<T, decltype(std::ranges::min), decltype(std::ranges::max)> =
         true;
 
-// 2. Logic: OR/AND (Mutual)
+// 2. Boolean / Kleene logic: OR/AND mutual absorption.
 template <typename T>
 inline constexpr bool
     is_absorptive_v<T, std::logical_or<T>, std::logical_and<T>> = true;
@@ -954,7 +998,9 @@ inline constexpr bool is_idempotent_v<T, std::bit_xor<T>> = false;
 template <typename T>
 inline constexpr bool is_idempotent_v<T, std::bit_and<T>> = true;
 
-// 3. The Absorption Failure (Crucial for the "Not a Lattice" proof)
+// 3. The Absorption Failure (the "Boolean Ring is not a Lattice"
+//    pin); explicit specialisations against rogue downstream
+//    re-specialisation.
 template <typename T>
 inline constexpr bool is_absorptive_v<T, std::bit_xor<T>, std::bit_and<T>> =
     false;
@@ -962,20 +1008,6 @@ inline constexpr bool is_absorptive_v<T, std::bit_xor<T>, std::bit_and<T>> =
 template <typename T>
 inline constexpr bool is_absorptive_v<T, std::bit_and<T>, std::bit_xor<T>> =
     false;
-
-/**
- * @concept IsAbsorptive
- * @brief Axiom: Mutual Absorption and Internal Idempotency.
- *
- * Verifies that Op1 and Op2 are dual partners:
- * 1. Op1 absorbs Op2: a ∨ (a ∧ b) = a
- * 2. Op2 absorbs Op1: a ∧ (a ∨ b) = a
- * 3. Both are idempotent (inherent in absorption, but verified for rigor).
- */
-export template <typename T, typename Op1, typename Op2>
-concept IsAbsorptive =
-    IsIdempotent<T, Op1> && IsIdempotent<T, Op2> &&
-    is_absorptive_v<T, Op1, Op2> && is_absorptive_v<T, Op2, Op1>;
 
 /** @section Atomic_Floor_Verification */
 
