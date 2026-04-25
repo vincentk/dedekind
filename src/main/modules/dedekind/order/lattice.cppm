@@ -83,17 +83,28 @@ concept IsOrderJoinSemilattice =
 /**
  * @concept IsOrderLattice
  * @brief @b Bundled @b lattice @b witness: the strict commutative-ring
- *        proof under @c (Add, Mult) AND the bitwise/lattice operator
- *        surface on @c T, by definition.
+ *        proof under @c (std::bit_xor<T>, std::bit_and<T>) AND the
+ *        bitwise/lattice operator surface on @c T, by definition.
  *
  * @details
  * The Boolean-ring reading of "lattice": a commutative ring where
- * @c Add plays the role of symmetric difference (join modulo
- * absorption) and @c Mult plays the role of meet.  Defaults
- * @c std::bit_xor<T> / @c std::bit_and<T> match the bitwise operators
- * the @c HasLatticeOperators shape concept describes; the bundle is
- * the conjunction of "the type system has the categorical proof" and
- * "the type system has the operators", in one query.
+ * the additive operation plays the role of symmetric difference
+ * (join modulo absorption) and the multiplicative operation plays
+ * the role of meet.  This bundle locks the @c (Add, Mult) functors
+ * to @c (std::bit_xor<T>, std::bit_and<T>) --- the operator pair
+ * the @c HasLatticeOperators shape concept describes --- so the two
+ * halves of the bundle (categorical proof + operator surface) refer
+ * to the @b same algebraic structure.
+ *
+ * Earlier drafts parameterised the bundle by @c (Add, Mult) and
+ * defaulted them to @c (std::bit_xor<T>, std::bit_and<T>); the
+ * parameters were unused by the operator-surface clause (which is
+ * hard-wired to the bitwise operators), so a caller could pass
+ * non-bitwise @c (Add, Mult) and still satisfy the concept on a
+ * carrier with bitwise ops.  The current form pins the bundle to
+ * the Boolean-ring reading; callers wanting other @c (Add, Mult)
+ * pairs should reach for the underlying
+ * @c category::IsCommutativeRing<T, Add, Mult> directly.
  *
  * @b Meaning @b shift @b (#393): this concept previously re-exported
  * @c category::IsCertifiedOrderLatticeOperations<T, Join, Meet> with
@@ -106,10 +117,10 @@ concept IsOrderJoinSemilattice =
  * The Boolean ring and Boolean lattice are equivalent categories, so
  * either reading recovers the other on Boolean-flavoured carriers.
  */
-export template <typename T, typename Add = std::bit_xor<T>,
-                 typename Mult = std::bit_and<T>>
-concept IsOrderLattice = dedekind::category::IsCommutativeRing<T, Add, Mult> &&
-                         HasLatticeOperators<T>;
+export template <typename T>
+concept IsOrderLattice =
+    dedekind::category::IsCommutativeRing<T, std::bit_xor<T>, std::bit_and<T>> &&
+    HasLatticeOperators<T>;
 
 /**
  * @concept IsOrderDistributiveLattice

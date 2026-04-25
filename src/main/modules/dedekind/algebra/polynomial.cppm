@@ -131,13 +131,19 @@ class RigPolynomial {
    * @brief Unary additive inverse: @c -p coefficient-wise.
    *
    * @details Available only when the coefficient ring @c R provides
-   * additive inverses (@c is_invertible_v<R, std::plus<R>>).  Required
-   * by the bundled @c algebra::IsRing concept to satisfy the
-   * @c HasRingOperators<RigPolynomial<R>> shape clause; without it,
-   * a `static_assert(IsCommutativeRing<RigPolynomial<R>>)` would fail
-   * the operator-surface check even though the trait machinery is
-   * registered.  Added under #393 alongside the shape concept
-   * introduction.
+   * additive inverses (@c is_invertible_v<R, std::plus<R>>).  The
+   * bundled @c algebra::IsRing uses the functor-parametric
+   * @c HasRingOperatorsFor (which checks the functors close on the
+   * carrier, not the literal operators), so it does @b not by itself
+   * require unary @c -.  This unary @c - is required by the
+   * @b literal shape concept @c HasRingOperators<RigPolynomial<R>>
+   * (which does require @c -a as a same-type expression) and hence
+   * by the seal @c IsArithmeticRing<RigPolynomial<R>>.  Witnessing
+   * @c HasRingOperators<PolyUInt> / @c IsArithmeticRing<PolyUInt> in
+   * the formal-verification block below relies on this operator
+   * being available.  The structurally similar operational concept
+   * @c IsRingLike<RigPolynomial<R>> also depends on it.  Added under
+   * #393 alongside the shape concept introduction.
    */
   friend constexpr RigPolynomial operator-(const RigPolynomial& a)
     requires dedekind::category::is_invertible_v<R, std::plus<R>>

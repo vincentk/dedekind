@@ -76,13 +76,16 @@ concept HasRingOperators = requires(T a, T b) {
  * signature, so this concept fires --- whereas @c HasRingOperators
  * <bool> does not, because @c bool ^ bool @c -> int.
  *
- * The strict @c HasRingOperators<T> is the parameter-free fixed
- * point @c HasRingOperatorsFor<T, std::plus<T>, std::multiplies<T>>
- * combined with the requirement that the literal @c + and @c * agree
- * with the functors.  Most ring carriers satisfy both; carriers like
- * @c bool satisfy only the functor variant, because their textbook
+ * @c HasRingOperators and @c HasRingOperatorsFor are @b distinct
+ * shape concepts on different surfaces: the former checks the
+ * literal C++ operators @c + and @c * close on @c T, the latter
+ * checks the functors close on @c T.  Neither concept compares the
+ * @b semantics of the literal operators to the functors --- two
+ * carriers with the same @c (Add, Mult) defaults can satisfy one
+ * concept and not the other (most ring carriers satisfy both;
+ * @c bool satisfies only the functor variant, because its textbook
  * ring structure lives over different operators than the standard
- * @c + and @c *.
+ * @c + and @c *).
  */
 export template <typename T, typename Add = std::plus<T>,
                  typename Mult = std::multiplies<T>>
@@ -274,9 +277,13 @@ concept IsSemiringLike = requires(T a, T b) {
 // short-circuit claim.
 
 // `algebra::IsRing` already exists earlier in this file as the
-// bundled concept (`category::IsRing && IsSemiring && IsAdditiveGroup`);
-// the `&& HasRingOperators<T>` clause was added there to encode the
-// shape↔concept mapping the audit (#393) recorded.
+// bundled concept (`category::IsRing && IsSemiring && IsAdditiveGroup
+// && HasRingOperatorsFor<T, Add, Mult>`); the functor-parametric
+// shape clause was added there to encode the shape↔concept mapping
+// the audit (#393) recorded under the math-wins-over-C++ stance ---
+// see the doc-block on `IsRing` above for why the bundle uses the
+// functor-parametric `HasRingOperatorsFor` rather than the literal
+// `HasRingOperators`.
 
 /**
  * @concept IsRingLikeHomomorphism
