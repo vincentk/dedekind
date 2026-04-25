@@ -2182,22 +2182,51 @@ The library ships \texttt{Invertible2x2}, \texttt{Matrix2x2V},
 \emph{not} reached by inflating the atom (we do not aim for
 $n \times n$ inversion in templates), but by composing atoms through
 \emph{structure-preserving combinators} that propagate the
-invariants up. \texttt{DirectSum<A, B>} carries invertibility from
-its factors to the block-diagonal whole; \texttt{BlockUpperTriangular<A,
-B, D>} extends the same propagation to triangular blocks under a
-degenerate-Schur condition; a future Kronecker combinator preserves
-orthogonality and lattice structure compositionally. Each combinator
-is itself a small structurally-checked unit; their composition gives
-$2^k \times 2^k$ matrices whose invariants follow by induction
-without exponential blowup in the templates. The roadmap items
-% Backlog: issues #366 (block-Schur invertibility recursion),
-% #368 (catalog of well-behaved matrix carriers), #369
-% (structure-preserving combinators).
+invariants up.  \texttt{DirectSum<A, B>} carries invertibility from
+its factors to the block-diagonal whole and is shipped today;
+$4 \times 4$ invertibility is therefore already a one-combinator
+step from the $2 \times 2$ atom, with $(A \oplus B)^{-1} =
+A^{-1} \oplus B^{-1}$ exact over $\mathbb{Q}$ and verifiable by
+\texttt{static\_assert}:
+
+% Source:
+% src/test/cpp/modules/dedekind/linear_algebra/matrix_test.cpp
+\begin{lstlisting}[language=C++, basicstyle=\ttfamily\small]
+TEST_CASE("linear_algebra:matrix --- Tier 1: "
+          "DirectSum preserves invertibility") {
+  constexpr Invertible2x2<Rat, Rat{1L}, Rat{2L},
+                          Rat{3L}, Rat{4L}> block_M{};
+  // 90° rotation over ℚ.
+  constexpr Invertible2x2<Rat, Rat{0L}, Rat{-1L},
+                          Rat{1L}, Rat{0L}> block_rot{};
+  constexpr DirectSum<decltype(block_M),
+                      decltype(block_rot)> ds{};
+  constexpr auto ds_inv = ds.inverse();
+
+  using IdentityDirectSum =
+      DirectSum<Identity2x2<Rat>, Identity2x2<Rat>>;
+  STATIC_CHECK(ds * ds_inv == IdentityDirectSum{});
+  STATIC_CHECK(ds_inv * ds == IdentityDirectSum{});
+}
+\end{lstlisting}
+
+\noindent \texttt{BlockUpperTriangular<A, B, D>} extends the same
+propagation to triangular blocks under a degenerate-Schur condition
+(also shipped, also testable as a single \texttt{static\_assert}); a
+future Kronecker combinator preserves orthogonality and lattice
+structure compositionally.  Each combinator is itself a small
+structurally-checked unit; their composition gives $2^k \times 2^k$
+matrices whose invariants follow by induction without exponential
+blowup in the templates.  The remaining roadmap items
+% Backlog: issues #366 (block-Schur invertibility recursion, full
+% non-degenerate case), #368 (catalog of well-behaved matrix
+% carriers --- orthogonal, rotation, diagonal), #369 (structure-
+% preserving combinators including Kronecker).
 fall out of the same Axiomatic-Systems-Programming discipline rather
 than requiring a different paradigm, and are tracked in the project
-backlog rather than discharged here. This paper establishes the
-atom-level pattern that the combinators preserve; the combinators
-themselves are scope for a successor library iteration.
+backlog rather than discharged here.  The $2 \times 2 \to 4 \times 4$
+step is a witness, not a promise; everything beyond is the natural
+recursion of the same combinator pattern.
 
 \paragraph{Numeric overflow in the carrier.}
 The paper's code listings ship with
