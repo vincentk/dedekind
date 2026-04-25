@@ -387,71 +387,94 @@ community~\cite{nlab:structural_set_theory}: an object whose membership
 is given by a characteristic morphism into a subobject classifier,
 situated in a Cartesian-closed ambient. The standard categorical fact is
 that every ETCS category is a Cartesian-closed category, but most
-Cartesian-closed categories are not ETCS. The library realises this
-subsumption at the concept level: \texttt{IsSet<T>} requires
-\texttt{HasCanonicalSetCCC<typename T::Ambient>} in its body, so any
-ETCS-set carrier (e.g.\ the finite field $\mathbb{F}_{64}$, or
-$\mathbb{Z}/N\mathbb{Z}$, or $\mathbb{Q}$) inherits the CCC guarantee
-structurally rather than by per-carrier opt-in. What this buys is the
+Cartesian-closed categories are not. The library now enforces the
+subsumption directly: an object satisfying $\textsc{IsSet}$ entails the
+CCC witness on its ambient species, so any ETCS-set carrier --- the
+finite field $\mathbb{F}_{64}$, the cyclic ring
+$\mathbb{Z}/N\mathbb{Z}$, the rationals $\mathbb{Q}$ --- comes with
+$1$, $\times$, and $(-)^{(-)}$ for free. What this buys is the
 Lambek--Scott correspondence~\cite{lambek1988introduction}: a
 Cartesian-closed category \emph{is} a simply-typed lambda calculus, and
-once the subsumption is enforced at the concept level, \texttt{dedekind}'s
-set-builder DSL is one---function spaces, currying, evaluation, and
-product/coproduct introduction are witnessed by the same type-system
-machinery that discharges the algebraic laws of
+once the subsumption is wired into the concept,
+\texttt{dedekind}'s set-builder DSL is one --- function spaces,
+currying, evaluation, and product/coproduct introduction are witnessed
+by the same type-system machinery that discharges the algebraic laws of
 Section~\ref{sec:carrier-rosetta}.
 
-\paragraph{What else falls out for free.} Once you commit to building on
-category theory, the rest is mostly bookkeeping. Three examples of
-non-trivial mileage you get from naming the structures and letting the
-compiler discharge them:
+\paragraph{What else falls out for free.} Once you commit to building
+on category theory, the rest is mostly bookkeeping. Three concrete
+examples of non-trivial mileage you get from naming the structures and
+letting the compiler discharge them.
 
-\begin{itemize}
-  \item \emph{Functorial spine across the matrix-shape family.} The
-        carriers \texttt{Vec2V<T>}, \texttt{Covec2V<T>}, and
-        \texttt{Matrix2x2V<T>} all carry an explicit shape over their
-        element type, and so they all want to be functors. They are.
-        Each is registered with a hub type
-        (\texttt{vec2\_functor<T>}, \texttt{covec2\_functor<T>},
-        \texttt{matrix2x2\_functor<T>}) that owns the elementwise lift
-        $f: T\to T \;\mapsto\; \mathrm{fmap}\, f$ and witnesses
-        \texttt{IsFunctor} structurally. The scalar ($1\times 1$)
-        corner of the family is the existing identity functor on
-        \texttt{Set<T>}, with \texttt{Shape<U> = U}. Naming the shape
-        gives you elementwise lifting for free, in code that runs at
-        compile time and emits no IR.
-  \item \emph{Monadic unit as the scalar embedding.} The
-        ``scalar $\mapsto$ linear map'' lift one writes by hand in
-        every linear-algebra library is the categorical unit
-        $\eta: T \to F\langle T\rangle$. Pinning $\eta$ as a
-        \texttt{unit\_witness} specialisation gives you, for free,
-        \emph{$\eta_{\mathrm{Vec2V}}(s) = (s, s)$} (diagonal
-        broadcast) and \emph{$\eta_{\mathrm{Matrix2x2V}}(s) = s\cdot I$}
-        (the canonical ring monomorphism $T \hookrightarrow M_2(T)$
-        into the centre of the matrix algebra). Because both live in
-        the same Kleisli framework as the existing \texttt{Path}
-        comonad and the \texttt{Box}/\texttt{Maybe} monads, they
-        compose with \texttt{>>=} and \texttt{<<=} out of the box.
-  \item \emph{LP optimum as a comonadic extract.} The compile-time
-        linear-programming reduction of
-        Section~\ref{sec:lp-centrepiece} has the textbook shape of a
-        co-Kleisli arrow $F\langle T\rangle \to T$: the polytope
-        context provides the $F\langle T\rangle$ and the optimum is
-        the $T$. Naming this directly --- a reified
-        \texttt{Polytope2D<T, cx, cy, Hs\ldots>} carrying the NTTP
-        pack as a type, plus a free \texttt{lp\_extract} which
-        delegates to \texttt{maximize<\ldots>()} --- buys the
-        comonadic vocabulary at zero runtime cost: the extract is
-        already a \texttt{static\_assert}-checked typed constant in
-        the emitted object file. The $\varepsilon$ that elsewhere
-        costs a Tactics file and a coq compilation here costs a
-        \texttt{using} alias and a \texttt{constexpr} call.
-\end{itemize}
+\medskip
 
-\noindent The pattern is the same in each case: name the structure in
-the type, register the appropriate witness, let the compiler discharge
-the laws. The categorical machinery is not decorative. It saves
-substantive code and substantive proof effort, and it keeps both
+\noindent\emph{(i) A functorial spine across a shape family.} Fix a
+ring $T$ and consider the dimensional shape family
+$\bigl(\,T,\;T^2,\;{}^t T^2,\;M_2(T)\,\bigr)$ --- scalar, column,
+row, square. Each is functorial in $T$:
+\[
+  F : \mathbf{Set} \longrightarrow \mathbf{Set},
+  \qquad
+  F(T) \in \bigl\{\,T,\;T^2,\;{}^t T^2,\;M_2(T)\,\bigr\},
+  \qquad
+  F(f)\bigl(\,(x_{ij})\,\bigr) \;=\; \bigl(\,f(x_{ij})\,\bigr).
+\]
+That is, lift an arrow $f: T \to T$ to the elementwise arrow on the
+shape. Each of the four functors is registered as an
+$\textsc{IsFunctor}$ witness in the library; the scalar ($1\times 1$)
+corner is the identity functor with $\mathrm{Shape}(U) = U$, sitting
+at the apex of the family. Naming the shape gets you elementwise
+lifting at compile time --- no extra code per carrier and no runtime
+cost.
+
+\medskip
+
+\noindent\emph{(ii) The scalar embedding is a monadic unit.} The
+``scalar $\mapsto$ linear map'' lift one writes by hand in every
+linear-algebra library is the categorical unit
+$\eta_F: T \to F(T)$ of the corresponding shape functor. Pinning
+$\eta$ as a witness gives the canonical entries:
+\[
+  \eta_{T^2}(s) = (s,\,s),
+  \qquad
+  \eta_{M_2}(s) = s \cdot I_2 \;=\; \begin{pmatrix} s & 0 \\ 0 & s \end{pmatrix}.
+\]
+The second is the classical ring monomorphism
+$T \hookrightarrow M_2(T)$ into the centre of the matrix algebra, and
+appears as a one-liner pinned next to the carrier rather than a
+proof obligation maintained by hand. Because both witnesses live in
+the same Kleisli framework as the project's $\mathrm{Path}$ comonad
+and the $\mathrm{Box}/\mathrm{Maybe}$ monads, they compose with bind
+($\gg{=}$) and extend ($\lll{=}$) out of the box.
+
+\medskip
+
+\noindent\emph{(iii) The LP optimum is a comonadic extract.} The
+compile-time linear-programming reduction of
+Section~\ref{sec:lp-centrepiece} has the textbook shape of a
+co-Kleisli arrow
+\[
+  \varepsilon_{\mathrm{LP}} : \mathrm{Polytope}(T) \longrightarrow T^2,
+  \qquad
+  \varepsilon_{\mathrm{LP}}\bigl(\,(\mathbf{c},\,H_1,\dots,H_n)\,\bigr) \;=\; \arg\max_{\mathbf{x} \in \bigcap_i H_i} \mathbf{c}^\top \mathbf{x},
+\]
+where the polytope is the $F(T)$ context (objective vector
+$\mathbf{c}$ together with halfspaces $H_i$) and the optimal vertex
+$\mathbf{x}^\star \in T^2$ is the $T$. Naming this directly --- the
+context as a reified type carrying the NTTP pack, with a free
+function $\mathrm{lp\_extract}$ delegating to the existing reduction
+--- buys the comonadic vocabulary at zero runtime cost: the
+$\varepsilon_{\mathrm{LP}}$ map is already a \texttt{static\_assert}-checked
+typed constant in the emitted object file. The counit that elsewhere
+costs a Tactics file and a coq compilation here costs a type alias
+and a \texttt{constexpr} call.
+
+\medskip
+
+\noindent The pattern is the same each time: name the structure in
+the type, register the witness, let the compiler discharge the laws.
+The categorical machinery is not decorative. It saves substantive
+code and substantive proof effort, and the resulting library is
 auditable from the type alone.
 
 \subsection{How to Read This Paper}
