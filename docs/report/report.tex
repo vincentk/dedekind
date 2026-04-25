@@ -2688,6 +2688,59 @@ The strict \texttt{IsRing} and \texttt{IsSemiring} concepts above depend on the 
 
 Preservation of distinguished identities ($\phi(0) = 0$, $\phi(1) = 1$) is \emph{not} encoded structurally here: \texttt{IsRingLikeHomomorphism} checks only additive and multiplicative preservation on ring-like carriers and does not require or validate identity preservation, matching the absence of \texttt{T\{\}} / \texttt{T\{1\}} from \texttt{IsRingLike}. Unital laws, when needed, must be witnessed by stricter concepts or on concrete probe values.
 
+\subsection{Shape concepts and the C++/textbook seam: \texttt{HasRingOperators}, \texttt{HasRingOperatorsFor}, \texttt{IsArithmeticRing}}
+\label{subsec:algebra-ring-shape-concepts}
+
+Issue \#393 surfaced a recurring need across \texttt{linear\_algebra}, \texttt{optimization}, and the analytic bridges: callsites that require the \emph{operator surface} of a ring (so a templated body can write \texttt{a + b} and \texttt{a * b}) but neither the strict categorical proof nor the operational division surface of \texttt{IsFieldLikeScalar}. The audit identified twenty-three such callsites. The response was a third concept tier --- \emph{pure syntactic shape} --- and a sealing seam between the math textbook and the C++ standard.
+
+\paragraph{The three tiers.} The library now distinguishes:
+
+\begin{itemize}
+  \item \textbf{Strict (\texttt{category::IsRing<T, Add, Mult>}).} The categorical proof: every axiom variable template (\texttt{is\_associative\_v}, \texttt{is\_commutative\_v}, \texttt{inverse\_v}, \texttt{is\_distributive\_v}, \texttt{is\_periodic\_v}) must be specialised for the carrier under the chosen \texttt{Add} / \texttt{Mult} functors.
+  \item \textbf{Operational (\texttt{algebra::IsRingLike<T>}).} Closure of \texttt{+}, binary \texttt{-}, unary \texttt{-}, \texttt{*} as same-type operators. No identities, no axioms.
+  \item \textbf{Syntactic shape (\texttt{algebra::HasRingOperators<T>}).} Same operator surface as \texttt{IsRingLike}, but framed explicitly as a \emph{shape} concept --- the document semantics is that the callsite needs the operators to compile and yield \texttt{T}, with no claim of any algebraic structure.
+\end{itemize}
+
+The strict concept is the textbook witness; the operational concept is the IEEE-edge-case escape hatch (e.g.\ for \texttt{Rational<long>} under the active numeric policy); the shape concept names the surface a templated body actually consumes. Two siblings refine the surface: \texttt{HasRingOperatorsFor<T, Add, Mult>} parameterises by the chosen functors (so a callsite can ask whether \texttt{std::bit\_xor<T>} / \texttt{std::bit\_and<T>} close on \texttt{T} regardless of what the literal \texttt{+} and \texttt{*} do), and \texttt{IsArithmeticRing<T>} is the \emph{seal}: a carrier that satisfies the strict ring proof under \texttt{(std::plus, std::multiplies)} \emph{and} whose literal \texttt{+}, \texttt{-}, \texttt{*} close strictly on \texttt{T}. \texttt{IsArithmeticRing} is where the math-textbook ring and the standard C++ arithmetic operators agree: writing \texttt{a + b} computes the ring's addition and the result genuinely stays in the carrier.
+
+\paragraph{Where C++ diverges from the textbook.} The bundled \texttt{algebra::IsRing<T, Add, Mult>} composes the strict proof with \texttt{HasRingOperatorsFor<T, Add, Mult>} --- the \emph{functor-parametric} surface. The math-wins-over-C++ stance (per \texttt{README.md}) makes this load-bearing: integer promotion lifts the result of \texttt{unsigned short + unsigned short} to \texttt{int}, so \texttt{unsigned short} is genuinely \emph{not} closed under the literal \texttt{+}. The strict \texttt{HasRingOperators<unsigned short>} correctly refuses, and so does \texttt{IsArithmeticRing<unsigned short>}. But \texttt{std::plus<unsigned short>} and \texttt{std::multiplies<unsigned short>} return \texttt{unsigned short} by signature, so \texttt{HasRingOperatorsFor<unsigned short, std::plus<unsigned short>, std::multiplies<unsigned short>>} fires; combined with the modular-wrap proof at the categorical layer, \texttt{algebra::IsRing<unsigned short>} fires too. The narrow-unsigned scalar is a textbook ring under the right operators; the type system surfaces the disagreement between the textbook and the literal C++ surface as a real distinction. The same pattern handles \texttt{bool} under \texttt{(std::bit\_xor, std::bit\_and)}: \texttt{bool} is the Galois field $\mathbb{F}_2$ under the functor surface, but \texttt{bool + bool $\to$ int} via promotion, so \texttt{HasRingOperators<bool>} refuses --- the right behaviour, since \texttt{bool}'s ring structure lives over different operators than \texttt{+} and \texttt{*}.
+
+Table~\ref{tab:ring-shape-rosetta} catalogues the divergence on the carriers the project actually uses. The pattern: where literal C++ operators agree with the textbook, every column ticks; where they diverge (integer promotion, signed-overflow UB, missing internal product), the table names the precise failure point.
+
+\begin{table}[ht]
+\centering
+\caption{Rosetta: math textbook $\leftrightarrow$ C++ standard, indexed by carrier and shape concept (Issue~\#393). \textbf{Strict} = \texttt{category::IsRing<T, Add, Mult>} with the conventional functors. \textbf{Functor} = \texttt{HasRingOperatorsFor<T, Add, Mult>}. \textbf{Literal} = \texttt{HasRingOperators<T>}. \textbf{Seal} = \texttt{IsArithmeticRing<T>} = strict $\wedge$ literal under \texttt{(std::plus, std::multiplies)}. ``$\circ$'' marks the operational-only assertion; ``--'' marks not asserted at present.}
+\label{tab:ring-shape-rosetta}
+\small
+\begin{tabular}{@{}l l c c c c@{}}
+\toprule
+\textbf{Carrier} & \textbf{Math claim} & \textbf{Strict} & \textbf{Functor} & \textbf{Literal} & \textbf{Seal} \\
+\midrule
+\texttt{unsigned int}, \texttt{unsigned long}, \texttt{unsigned long long}, \texttt{size\_t} & ring $\mathbb{Z}/2^N\mathbb{Z}$ & \checkmark & \checkmark & \checkmark & \checkmark \\
+\texttt{unsigned short}, \texttt{unsigned char} & ring $\mathbb{Z}/2^N\mathbb{Z}$ & \checkmark & \checkmark & $\times$\textsuperscript{a} & $\times$ \\
+\texttt{int}, \texttt{long} & partial (signed-overflow UB) & $\times$\textsuperscript{b} & \checkmark & \checkmark & $\times$ \\
+\texttt{bool} under $(\oplus, \wedge)$ & Galois field $\mathbb{F}_2$ & \checkmark & \checkmark & $\times$\textsuperscript{a} & $\times$\textsuperscript{c} \\
+\texttt{bool} under $(\vee, \wedge)$ & Boolean rig (no $-$) & \texttt{IsRig} & rig only & $\times$ & $\times$ \\
+\texttt{Rational<long>} & field $\mathbb{Q}$ & $\circ$\textsuperscript{d} & $\circ$ & \checkmark & $\circ$ \\
+\texttt{RigPolynomial<unsigned int>} & polynomial ring $R[x]$ & \checkmark & \checkmark & \checkmark & \checkmark \\
+\texttt{Matrix2x2V<unsigned int>} & non-commutative ring & $\circ$ & $\circ$ & \checkmark & -- \\
+\texttt{Matrix2x2V<Rational<long>>} & non-commutative ring & $\circ$ & $\circ$ & \checkmark & -- \\
+\texttt{Vec2V<T>} & module / vector space, \emph{not a ring} & n/a & n/a & $\times$\textsuperscript{e} & n/a \\
+\bottomrule
+\end{tabular}
+
+\vspace{0.5em}
+\begin{tabular}{@{}l p{0.85\textwidth}@{}}
+\textsuperscript{a} & integer promotion: \texttt{a + b} returns \texttt{int}, not \texttt{T}. The functor surface (\texttt{std::plus<T>::operator()}) returns \texttt{T} by signature, so the math-textbook ring structure remains witnessable. \\
+\textsuperscript{b} & signed-overflow UB defeats the modular-wrap (\texttt{IsPeriodic}) axiom on which the categorical \texttt{IsRing} chain depends. The literal operators close on \texttt{int}; the textbook structure does not. \\
+\textsuperscript{c} & \texttt{bool}'s ring structure lives over $(\oplus, \wedge)$, not $(+, *)$; \texttt{IsArithmeticRing} (which fixes the standard functors) is the wrong question for this carrier. \\
+\textsuperscript{d} & operational only under the active numeric policy: the strict axiom variable templates are not specialised for \texttt{Rational<long>} (\texttt{IsFieldLikeScalar} is the operational variant). \\
+\textsuperscript{e} & vectors do not have an internal product \texttt{Vec2V $\times$ Vec2V $\to$ Vec2V}; only scalar multiplication \texttt{T $\times$ Vec2V $\to$ Vec2V}. The shape concept correctly refuses --- vectors are an additive abelian group plus a module, not a ring. \\
+\end{tabular}
+\end{table}
+
+The table reads as a guide for callsites: pick \emph{seal} when the body wants plain C++ syntax over a textbook-aligned carrier; pick \emph{strict + functor} when the carrier carries its ring structure over non-standard functors (\texttt{bool} as $\mathbb{F}_2$, narrow unsigneds modelled with explicit \texttt{std::plus} / \texttt{std::multiplies}); pick \emph{literal} when the body needs the operator surface but neither the categorical proof nor the operational identities (the lifted-elementwise matrix and tuple bodies, \texttt{Halfspace2D}'s linear evaluation).
+
 \section{\texttt{:field}}
 \label{sec:algebra-field}
 

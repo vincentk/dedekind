@@ -1003,6 +1003,77 @@ $\mathbb{D}$ (dual) & \lstinline|.val| (primal only; tangent discarded) & \lstin
 \end{tabular}
 \end{table}
 
+A fourth table addresses a subtler question that the first three
+gloss over: even on the same carrier, the \emph{textbook} ring
+structure and the \emph{literal C++ operators} do not always agree.
+Integer promotion lifts \lstinline|unsigned short + unsigned short|
+to \lstinline|int|, so \lstinline|unsigned short| is not closed
+under the literal \lstinline|+| --- yet the math-textbook structure
+on \lstinline|unsigned short| is the modular ring $\mathbb{Z}/2^{16}\mathbb{Z}$
+and the functor surface (\lstinline|std::plus<unsigned short>|) returns
+\lstinline|unsigned short| by signature. Signed-overflow UB defeats the
+modular-wrap proof on \lstinline|int|, even though the literal operators
+close. \lstinline|bool| is the Galois field $\mathbb{F}_2$ under
+$(\oplus, \wedge)$, but \lstinline|bool + bool| also yields \lstinline|int|.
+The library expresses these disagreements through three concept tiers
+--- \emph{strict} (the categorical proof), \emph{functor-parametric
+shape} (the operators close on the chosen functors), and
+\emph{literal shape} (the C++ \lstinline|+|, \lstinline|-|,
+\lstinline|*| close on the carrier directly) --- and a sealing concept
+\lstinline|IsArithmeticRing| that fires only when all three tiers agree
+under \lstinline|(std::plus, std::multiplies)|.
+Table~\ref{tab:rosetta-textbook-vs-cpp} catalogues the divergences on
+the carriers used in the worked examples (Issue~\#393).
+
+\begin{table}[htbp]
+\centering
+\caption{\textbf{Math textbook $\leftrightarrow$ C++ standard.} Where the
+literal C++ operators agree with the textbook (rows that tick all
+columns), the bundled seal \lstinline|IsArithmeticRing| fires and
+generic code can be written in plain syntax. Where they diverge
+(integer promotion, signed-overflow UB), the table names the precise
+failure point and the tier that still fires. ``$\circ$'' marks
+operational-only assertion under the active numeric policy; ``--''
+marks not-currently-asserted.}
+\label{tab:rosetta-textbook-vs-cpp}
+\small
+\begin{tabular}{@{}l l c c c c@{}}
+\toprule
+\textbf{Carrier} & \textbf{Math claim} & \textbf{Strict} & \textbf{Functor} & \textbf{Literal} & \textbf{Seal} \\
+\midrule
+\lstinline|unsigned int|, \lstinline|unsigned long|, \lstinline|size_t| & ring $\mathbb{Z}/2^N\mathbb{Z}$ & \checkmark & \checkmark & \checkmark & \checkmark \\
+\lstinline|unsigned short|, \lstinline|unsigned char| & ring $\mathbb{Z}/2^N\mathbb{Z}$ & \checkmark & \checkmark & $\times$\textsuperscript{a} & $\times$ \\
+\lstinline|int|, \lstinline|long| & partial (signed-overflow UB) & $\times$\textsuperscript{b} & \checkmark & \checkmark & $\times$ \\
+\lstinline|bool| under $(\oplus, \wedge)$ & Galois field $\mathbb{F}_2$ & \checkmark & \checkmark & $\times$\textsuperscript{a} & $\times$\textsuperscript{c} \\
+\lstinline|Rational<long>| & field $\mathbb{Q}$ & $\circ$\textsuperscript{d} & $\circ$ & \checkmark & $\circ$ \\
+\lstinline|RigPolynomial<unsigned int>| & polynomial ring $R[x]$ & \checkmark & \checkmark & \checkmark & \checkmark \\
+\lstinline|Matrix2x2V<unsigned int>| & non-commutative ring & $\circ$ & $\circ$ & \checkmark & -- \\
+\lstinline|Vec2V<T>| & module / vector space, \emph{not a ring} & n/a & n/a & $\times$\textsuperscript{e} & n/a \\
+\bottomrule
+\end{tabular}
+
+\vspace{0.5em}
+{\footnotesize
+\begin{tabular}{@{}l p{0.85\textwidth}@{}}
+\textsuperscript{a} & integer promotion lifts the result of literal \lstinline|+| / \lstinline|*| to \lstinline|int|; the functor surface returns \lstinline|T| by signature. \\
+\textsuperscript{b} & signed-overflow UB defeats the modular-wrap axiom; the categorical \lstinline|IsRing| chain breaks at the periodicity step. \\
+\textsuperscript{c} & \lstinline|bool|'s ring structure lives over $(\oplus, \wedge)$, not $(+, *)$; \lstinline|IsArithmeticRing|, which fixes \lstinline|(std::plus, std::multiplies)|, asks the wrong question for this carrier. \\
+\textsuperscript{d} & operational under the active numeric policy: \lstinline|IsFieldLikeScalar| is the operational variant, the categorical proof is intentionally not specialised. \\
+\textsuperscript{e} & vectors have no internal product \lstinline|Vec2V $\times$ Vec2V $\to$ Vec2V|, only scalar multiplication; the shape concept correctly refuses. \\
+\end{tabular}
+}
+\end{table}
+
+The reading rule for callsites: pick \emph{seal} when the body wants
+plain C++ syntax over a textbook-aligned carrier; pick
+\emph{strict $+$ functor} when the carrier carries its ring structure
+over non-standard functors (\lstinline|bool| as $\mathbb{F}_2$,
+narrow unsigneds explicitly modelled with \lstinline|std::plus| /
+\lstinline|std::multiplies|); pick \emph{literal} when the body
+needs the operator surface but not the algebraic axioms
+(elementwise-lifted matrix and tuple bodies, half-space evaluation
+in the linear-programming layer).
+
 The three tables together are a migration map. The disciplined path
 is: stay on Table~\ref{tab:carriers-exact} for the reference
 implementation, use Table~\ref{tab:carriers-crossings} to cross over
