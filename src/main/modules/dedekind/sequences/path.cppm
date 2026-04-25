@@ -512,8 +512,9 @@ static_assert(IsFiniteSequence<FinitePath<int>>,
 static_assert(std::ranges::input_range<FinitePath<int>>,
               "FinitePath<T> must satisfy std::ranges::input_range so "
               "library sequences flow into std::ranges algorithms.");
-static_assert(std::input_iterator<decltype(std::declval<FinitePath<int>>().begin())>,
-              "FinitePath<T>::begin() must yield a std::input_iterator.");
+static_assert(
+    std::input_iterator<decltype(std::declval<FinitePath<int>>().begin())>,
+    "FinitePath<T>::begin() must yield a std::input_iterator.");
 
 static_assert(IsKleisliExtension<Path, int, long>,
               "Path must satisfy the Kleisli extension witness.");
