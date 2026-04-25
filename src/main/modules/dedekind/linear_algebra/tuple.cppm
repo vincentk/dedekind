@@ -33,7 +33,7 @@ module;
 
 export module dedekind.linear_algebra:tuple;
 
-import dedekind.algebra; // IsRingLike, IsVectorSpaceLike (upstream)
+import dedekind.algebra;  // IsRingLike, IsVectorSpaceLike (upstream)
 import dedekind.category; // IsFunctor / Set / arrow (for vec2_functor witnesses)
 import dedekind.sets; // Finite tag — the cardinal the tuple dimension lives in
 import :contracts;    // ColumnOrientation, RowOrientation tags

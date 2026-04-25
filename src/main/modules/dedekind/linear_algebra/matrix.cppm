@@ -537,13 +537,13 @@ static_assert(dedekind::category::IsFunctor<matrix2x2_functor<int>>,
  *  shapes coincide.  Pinned here next to the higher-rank siblings so the
  *  family is visible in one place.
  */
-static_assert(dedekind::category::IsEndofunctor<
-                  dedekind::category::identity_functor<
-                      dedekind::category::CanonicalSetCCC<int>>>,
-              "Scalar shape (1×1): identity_functor<Set<T>> is the trivial "
-              "endofunctor on Set<T>; sits at the apex of the matrix-shape "
-              "family alongside vec2_functor (2×1), covec2_functor (1×2), "
-              "and matrix2x2_functor (2×2).");
+static_assert(
+    dedekind::category::IsEndofunctor<dedekind::category::identity_functor<
+        dedekind::category::CanonicalSetCCC<int>>>,
+    "Scalar shape (1×1): identity_functor<Set<T>> is the trivial "
+    "endofunctor on Set<T>; sits at the apex of the matrix-shape "
+    "family alongside vec2_functor (2×1), covec2_functor (1×2), "
+    "and matrix2x2_functor (2×2).");
 
 /** @section Shape_Conforming_Linear_Actions
  *
