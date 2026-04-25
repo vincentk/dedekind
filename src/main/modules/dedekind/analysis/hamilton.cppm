@@ -171,9 +171,33 @@ constexpr auto harmonic_oscillator_leapfrog_finite_path(R q0, R p0, R dt,
   return prefix(infinite, steps);
 }
 
+/**
+ * @brief Concrete Hamiltonian carrier for the 1-D harmonic oscillator.
+ *
+ * @details H(q, p) = ½ (p² + ω² q²) with unit mass.  Provides the
+ * minimal `.energy(state) -> R` surface required by @c IsHamiltonian.
+ * Pinned here so the concept is witnessed by a concrete carrier and
+ * not just a contract in the abstract.
+ */
+export template <std::floating_point R>
+struct HarmonicOscillator {
+  R ω = R{1};
+
+  constexpr R energy(const PhasePoint<R>& state) const {
+    const R q = state[0];
+    const R p = state[1];
+    return R{0.5} * (p * p + ω * ω * q * q);
+  }
+};
+
 /** @section Formal_Verification */
 static_assert(IsCurve<decltype(harmonic_oscillator_curve<double>(1.0, 0.0))>,
               "Closed-form harmonic trajectory must be a curve.");
+
+static_assert(IsHamiltonian<HarmonicOscillator<double>, PhasePoint<double>,
+                            double>,
+              "HarmonicOscillator<double> must satisfy IsHamiltonian: "
+              "energy(state) ∈ ℝ.");
 
 static_assert(IsSequence<decltype(harmonic_oscillator_leapfrog_path<double>(
                   1.0, 0.0, 0.01))>,

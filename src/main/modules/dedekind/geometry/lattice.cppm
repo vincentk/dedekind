@@ -219,3 +219,18 @@ static_assert(
     "embed_z2_r2 must be recognised as a monic arrow.");
 
 }  // namespace dedekind::category
+
+namespace dedekind::geometry {
+
+/** @section Formal_Verification */
+
+// The 2-D integer lattice equipped with the canonical embedding
+// (x, y) ↦ (double(x), double(y)) into ℝ² is a geometric lattice in
+// the IsGeometricLattice sense: the embedding is monic and the lattice
+// Set carries an integer-coordinate Domain (IntegerLatticePoint2D).
+static_assert(IsGeometricLattice<decltype(integer_lattice_2d()),
+                                 std::decay_t<decltype(embed_z2_r2)>>,
+              "ℤ² with embed_z2_r2 must satisfy IsGeometricLattice "
+              "(monic embedding + integer-coordinate Domain).");
+
+}  // namespace dedekind::geometry

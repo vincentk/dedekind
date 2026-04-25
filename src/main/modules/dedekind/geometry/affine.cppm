@@ -237,6 +237,21 @@ constexpr Vector<F, 1> as_vector(const F& x) {
 
 /** @section Formal_Verification */
 
-// Deferred while vector-space witnesses are being retargeted.
+// Vector<F, N> exposes a finite, statically-known dimension N and the
+// affine surface (+, -, scalar action) required by IsAffine.
+static_assert(HasFiniteDimension<Vector<double, 3>>,
+              "Vector<double, 3> must satisfy HasFiniteDimension.");
+static_assert(HasDimension<Vector<double, 3>, 3>,
+              "Vector<double, 3>::dimension must be 3.");
+static_assert(IsAffine<Vector<double, 3>, double>,
+              "Vector<double, 3> must satisfy IsAffine over double "
+              "(closed under +, -, and left/right scalar action).");
+
+// FunctionalVector exposes a countable but generally infinite dimension
+// — the typical inhabitant of l² / sequence-space ambients.
+static_assert(
+    HasCountableDimension<
+        FunctionalVector<double, decltype([](std::size_t) { return 0.0; })>>,
+    "FunctionalVector<double, Fn> must satisfy HasCountableDimension.");
 
 }  // namespace dedekind::geometry

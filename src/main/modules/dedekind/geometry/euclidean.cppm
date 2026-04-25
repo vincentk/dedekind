@@ -95,4 +95,16 @@ constexpr auto outside_closed_euclidean_ball_squared(
   return compare_euclidean_norm_squared(radius_squared, std::greater<>{});
 }
 
+/** @section Formal_Verification */
+
+// Vector<double, 3> equipped with the canonical distance(a, b) = ‖a-b‖
+// and the inner-product-induced norm satisfies both IsMetricSpace and
+// IsEuclideanSpace.
+static_assert(IsMetricSpace<Vector<double, 3>, double>,
+              "Vector<double, 3> must satisfy IsMetricSpace<·, double> "
+              "via the canonical distance(a, b) = norm(a - b).");
+static_assert(IsEuclideanSpace<Vector<double, 3>, double>,
+              "Vector<double, 3> must satisfy IsEuclideanSpace<·, double> "
+              "(metric + norm + euclidean_norm_squared).");
+
 }  // namespace dedekind::geometry

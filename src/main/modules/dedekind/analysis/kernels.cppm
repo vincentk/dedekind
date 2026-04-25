@@ -94,4 +94,12 @@ struct ReproducingKernel {
   }
 };
 
+/** @section Formal_Verification */
+
+// GaussianKernel<T> is a symmetric positive-definite kernel:
+// K(a, b) = exp(-(a-b)²/(2σ²)) is invariant under (a, b) ↔ (b, a).
+static_assert(IsKernel<GaussianKernel<double>, double, double>,
+              "GaussianKernel<double> must satisfy IsKernel<·, double, double> "
+              "(symmetric kernel returning a scalar).");
+
 }  // namespace dedekind::analysis
