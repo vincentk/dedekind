@@ -17,13 +17,13 @@
 
 import dedekind.sets;
 
+using dedekind::sets::compare_signed;
+using dedekind::sets::finite_signed_cardinality;
 using dedekind::sets::NaZ;
 using dedekind::sets::NegativeInfinity;
 using dedekind::sets::PositiveInfinity;
 using dedekind::sets::SignedCardinality;
 using dedekind::sets::SignedExtensionalCardinal;
-using dedekind::sets::compare_signed;
-using dedekind::sets::finite_signed_cardinality;
 
 namespace {
 
@@ -149,12 +149,8 @@ TEST_CASE("SignedCardinality — multiplication and saturation",
     CHECK(std::get<SEC>(p) == SEC{-4});
   }
   SECTION("(+ℵ_0) * positive = +ℵ_0") { CHECK(is_pos_inf(pos_inf * two)); }
-  SECTION("(+ℵ_0) * negative = -ℵ_0") {
-    CHECK(is_neg_inf(pos_inf * neg_two));
-  }
-  SECTION("(-ℵ_0) * negative = +ℵ_0") {
-    CHECK(is_pos_inf(neg_inf * neg_two));
-  }
+  SECTION("(+ℵ_0) * negative = -ℵ_0") { CHECK(is_neg_inf(pos_inf * neg_two)); }
+  SECTION("(-ℵ_0) * negative = +ℵ_0") { CHECK(is_pos_inf(neg_inf * neg_two)); }
   SECTION("(+ℵ_0) * (+ℵ_0) = +ℵ_0") { CHECK(is_pos_inf(pos_inf * pos_inf)); }
   SECTION("(+ℵ_0) * (-ℵ_0) = -ℵ_0") { CHECK(is_neg_inf(pos_inf * neg_inf)); }
   SECTION("0 * (+ℵ_0) = NaZ (indeterminate)") {
