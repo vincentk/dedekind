@@ -20,6 +20,7 @@
  */
 module;
 #include <algorithm>
+#include <concepts>  // std::convertible_to (HasLatticeOperators)
 #include <functional>
 
 export module dedekind.order:lattice;

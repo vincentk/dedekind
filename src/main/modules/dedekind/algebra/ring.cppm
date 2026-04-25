@@ -266,9 +266,12 @@ concept IsSemiringLike = requires(T a, T b) {
 // `HasLatticeOperators` (bitwise &, |, ^, ~ shape) lives in
 // `dedekind.order:lattice` --- order is the natural home for
 // lattice-flavoured concepts; this file kept ring-flavoured.
-// `HasLogicalOperators` (short-circuiting &&, ||, ! shape) lives
-// in `dedekind.category:logic` --- the topos-internal-logic
-// partition, the deepest logic home in the project.
+// `HasLogicalOperators` (the logical operator surface &&, ||, !
+// shape) lives in `dedekind.category:logic` --- the topos-internal-
+// logic partition, the deepest logic home in the project.  Note that
+// for user-defined `T` overloaded `&&`/`||` are NOT short-circuiting
+// (only the built-in operators on `bool` are); the concept makes no
+// short-circuit claim.
 
 // `algebra::IsRing` already exists earlier in this file as the
 // bundled concept (`category::IsRing && IsSemiring && IsAdditiveGroup`);
