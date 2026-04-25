@@ -39,8 +39,8 @@
 module;
 
 #include <concepts>  // for std::same_as (primitive-powers structural witnesses)
-#include <cstddef>  // for std::size_t (galois_order_v)
-#include <cstdint>  // for std::uint8_t / std::uint16_t (𝔽64 storage)
+#include <cstddef>   // for std::size_t (galois_order_v)
+#include <cstdint>   // for std::uint8_t / std::uint16_t (𝔽64 storage)
 #include <functional>  // for std::plus, std::multiplies, std::bit_xor, std::bit_and
 #include <ranges>  // for std::ranges::input_range / range_value_t (𝔽64^× anchor)
 #include <stdexcept>  // for std::domain_error (𝔽64 division-by-zero)
@@ -49,8 +49,8 @@ module;
 export module dedekind.algebra:galois;
 
 import dedekind.category;
-import dedekind.sequences;  // FinitePath / IsFiniteSequence — for the
-                            // 𝔽64^× primitive-element enumeration witness (#388).
+import dedekind.sequences; // FinitePath / IsFiniteSequence — for the
+    // 𝔽64^× primitive-element enumeration witness (#388).
 import :field;
 import :registration;
 
@@ -422,9 +422,9 @@ static_assert(
     "𝔽64^× primitive-element enumeration must satisfy IsFiniteSequence "
     "(finite cyclic-group walk, size 63 = |𝔽64^×|).");
 
-static_assert(
-    dedekind::category::cyclic_order_v<𝔽64, std::multiplies<𝔽64>> == 63,
-    "𝔽64^× has order 63, matching the FinitePath size below.");
+static_assert(dedekind::category::cyclic_order_v<𝔽64, std::multiplies<𝔽64>> ==
+                  63,
+              "𝔽64^× has order 63, matching the FinitePath size below.");
 
 // Structural pinning: the enumeration's Codomain is 𝔽64, the Domain
 // is std::size_t (the iterator anchor on which std::ranges machinery
@@ -435,7 +435,8 @@ static_assert(
     std::same_as<typename decltype(f64_primitive_powers())::Codomain, 𝔽64>,
     "𝔽64^× enumeration Codomain must be 𝔽64.");
 static_assert(
-    std::same_as<typename decltype(f64_primitive_powers())::Domain, std::size_t>,
+    std::same_as<typename decltype(f64_primitive_powers())::Domain,
+                 std::size_t>,
     "𝔽64^× enumeration Domain must be std::size_t (iterator anchor).");
 static_assert(dedekind::sequences::IsSequence<decltype(f64_primitive_powers())>,
               "𝔽64^× enumeration must satisfy IsSequence "
