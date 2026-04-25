@@ -2158,6 +2158,22 @@ a constraint list that the author was \emph{unable} to prune
 structurally---an unlikely shape for the use cases this library is
 written against.
 
+\paragraph{Active-set hints as the user-side escape valve.}
+Even within the compile-time regime, a user with domain knowledge of
+\emph{which} halfspaces bind at the optimum can short-circuit the
+$\binom{n}{d}$ enumeration entirely: because the constraint pack is
+already an NTTP list, instantiating
+\lstinline|maximize<T, cx, cy, H_i, H_j>()| with just the binding
+pair (instead of the full pack) is exactly the active-set hint, and
+the library evaluates only that single Cramer solve.  An explicit
+\lstinline|with_active_set<...>| API that takes the hint as a separate
+template argument and verifies feasibility against the full pack
+without re-enumerating is a natural successor surface, but the
+underlying NTTP-pack-as-hint mechanism is available today: dropping
+slack constraints from the syntactic list is the user's prerogative,
+and the combinatorial term then tracks the hinted count rather than
+the raw one.
+
 \paragraph{Scaling beyond atomic carriers via structure-preserving combinators.}
 The same partition---atoms below, runtime above---governs the
 linear-algebra surface the paper exhibits at the $2 \times 2$ scale.
