@@ -21,9 +21,18 @@
  * The column/row orientation tags come from `:contracts`; transpose
  * exchanges `Vec2V ↔ Covec2V`, establishing them as a dual pair.
  *
- * @note "Ordnung ist das halbe Leben."
- *       (Order is half of life.)
- *       -- German proverb; in tuple form, order IS the life.
+ * @note "I have in previous papers defined a 'Matrix' as a rectangular
+ *  array of terms, out of which different systems of determinants may
+ *  be engendered, as from the womb of a common parent."
+ *       — James Joseph Sylvester, *Additions to the Articles 'On a
+ *         New Class of Theorems' and 'On Pascal's Theorem'*,
+ *         Philosophical Magazine 4th series, vol. 1 (1851), p. 295.
+ *
+ *       The Sylvester etymology --- @c matrix as @c mater, "womb" ---
+ *       lands well at the tuple layer: the rank-1 carriers
+ *       @c Vec2V<T> (a column) and @c Covec2V<T> (a row) are the
+ *       parents from which @c Matrix2x2V<T> is engendered by
+ *       horizontal / vertical concatenation.
  */
 module;
 

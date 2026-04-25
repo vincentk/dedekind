@@ -54,11 +54,12 @@
  * Wikipedia: Invertible matrix, Cramer's rule, General linear group,
  * Group action
  *
- * @note "Die Erfindung einer Methode ist ein wesentlicher Teil der Mathematik."
- *       — Emmy Noether, attributed to Göttingen lecture remarks on ideal
- *         theory (reported by Alexandrov, 1935).
- *       [Trans: "The invention of a method is an essential part of
- *        mathematics."]
+ * @note "The notion of a matrix ... appears to me to be one of
+ *  considerable importance: it includes that of an ordinary algebraic
+ *  quantity, and also that of a quaternion."
+ *       — Arthur Cayley, *A Memoir on the Theory of Matrices*,
+ *         Philosophical Transactions of the Royal Society of London
+ *         148 (1858), Article 14.
  */
 module;
 
