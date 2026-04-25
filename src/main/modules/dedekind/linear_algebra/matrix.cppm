@@ -743,6 +743,19 @@ static_assert(dedekind::algebra::IsRingLike<Matrix2x2V<Rat>>,
               "Matrix2x2V<ℚ> is operationally a ring (non-commutative in "
               "general — see the AB ≠ BA witness below).");
 
+// Strict literal-operator surface (#393): Matrix2x2V's friend operators
+// for +, binary -, unary -, * all return `Matrix2x2V<T>` exactly, so
+// `HasRingOperators<Matrix2x2V<T>>` fires whenever T satisfies it.
+// This lifts the math-textbook slogan "matrices over a ring are a
+// (non-commutative) ring" up to the strict-closure shape concept.
+static_assert(dedekind::algebra::HasRingOperators<Matrix2x2V<Rat>>,
+              "Matrix2x2V<ℚ> closes strictly under the literal "
+              "+,-,unary -,* surface — same_as<Matrix2x2V<ℚ>> for each.");
+static_assert(dedekind::algebra::HasRingOperators<Matrix2x2V<unsigned int>>,
+              "Matrix2x2V<unsigned int>: the literal ring-operator surface "
+              "lifts through to the matrix carrier (entries' wrap closure "
+              "lifts elementwise).");
+
 // Dimension-as-cardinality: the tuple / matrix carriers expose a
 // `dimension_type` tag drawn from `dedekind.sets:cardinality`. This wires
 // the documented slogan "dimension resembles cardinality" into the type

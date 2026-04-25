@@ -251,6 +251,19 @@ static_assert(dedekind::category::IsFunctor<covec2_functor<int>>,
               "Covec2V<·> is a functor Set<T> → Set<Covec2V<T>>: lifts a "
               "T-arrow to the elementwise Covec2V<T>-arrow.");
 
+// Vectors do not form a ring: there is no internal product
+// `Vec2V × Vec2V → Vec2V`.  Vec2V exposes scalar multiplication
+// `T × Vec2V → Vec2V` and `Vec2V × T → Vec2V`, but `a * b` for
+// `a, b: Vec2V` is intentionally ill-formed.  The
+// `HasRingOperators<Vec2V<unsigned int>>` shape concept correctly
+// refuses; the textbook structure carried by Vec2V is an additive
+// abelian group + a module / vector space (see
+// `algebra::IsVectorSpaceLike`), not a ring.
+static_assert(!dedekind::algebra::HasRingOperators<Vec2V<unsigned int>>,
+              "Vec2V is not a ring: vectors have no internal product.");
+static_assert(!dedekind::algebra::HasRingOperators<Covec2V<unsigned int>>,
+              "Covec2V is not a ring: covectors have no internal product.");
+
 }  // namespace dedekind::linear_algebra
 
 /** @section Monadic_Unit_Witnesses

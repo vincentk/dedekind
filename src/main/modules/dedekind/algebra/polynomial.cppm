@@ -384,6 +384,25 @@ static_assert(IsCommutativeRing<PolyUInt>,
               "RigPolynomial<unsigned int> must satisfy IsCommutativeRing "
               "(coefficient wrapping lifts to the polynomial level).");
 
+// Strict literal-operator surface (#393): RigPolynomial<R>'s friend
+// operator+, binary operator-, unary operator- (all gated on R's
+// additive invertibility), and operator* return `RigPolynomial<R>`
+// exactly.  When R is `unsigned int`, all three gates are open and the
+// literal-operator surface closes strictly on the polynomial carrier.
+static_assert(HasRingOperators<PolyUInt>,
+              "RigPolynomial<unsigned int> has the literal ring-operator "
+              "surface (+, -, unary -, *), all returning the polynomial "
+              "carrier itself.");
+
+// IsArithmeticRing seal: the strict ring proof + the literal-operator
+// surface meet on RigPolynomial<unsigned int>.  Polynomial rings over
+// unsigned int are reachable through plain C++ syntax, with results
+// staying in the carrier.
+static_assert(IsArithmeticRing<PolyUInt>,
+              "RigPolynomial<unsigned int> is the canonical arithmetic "
+              "ring — strict commutative-ring proof and literal +,-,* "
+              "agree on the polynomial carrier.");
+
 using PolyEC = RigPolynomial<dedekind::sets::ExtensionalCardinal<>>;
 static_assert(
     IsCommutativeRing<PolyEC>,

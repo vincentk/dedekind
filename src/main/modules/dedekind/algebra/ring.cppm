@@ -376,6 +376,91 @@ static_assert(IsRing<unsigned int>,
 static_assert(IsCommutativeRing<unsigned int>,
               "unsigned int must satisfy IsCommutativeRing.");
 
+/** @subsection Narrow_Unsigned_Audit
+ *
+ *  Integer promotion (C++ [conv.prom]) lifts every unsigned-integral
+ *  type narrower than `int` to `int` (or to `unsigned int` if `int`
+ *  cannot represent the source range; on every platform we target,
+ *  `int` >= `short` >= `char`, so `int` always wins).  Concretely:
+ *
+ *      unsigned char  + unsigned char  -> int
+ *      unsigned short + unsigned short -> int
+ *
+ *  Under the math-wins-over-C++ stance (README), this is a textbook
+ *  closure failure: `unsigned short` is genuinely *not* closed under
+ *  the literal `+`.  `HasRingOperators<unsigned short>` correctly
+ *  refuses; so does `IsArithmeticRing<unsigned short>`.
+ *
+ *  The functor-parametric companion `HasRingOperatorsFor<U,
+ *  std::plus<U>, std::multiplies<U>>` *does* fire, because functors
+ *  return `U` by signature regardless of the internal promotion path.
+ *  Algebraically, every `std::unsigned_integral U` is the modular
+ *  ring Z/2^bits(U)Z under `(std::plus<U>, std::multiplies<U>)`; the
+ *  bundled `algebra::IsRing<U>` therefore fires for every
+ *  `std::unsigned_integral` (narrow or wide) -- it uses the
+ *  functor-parametric shape, which the math respects.
+ *
+ *  `IsArithmeticRing` is the strict literal-operator seal and only
+ *  fires on unsigned types whose width is >= sizeof(int): namely
+ *  `unsigned int`, `unsigned long`, `unsigned long long`, `std::size_t`,
+ *  and any `std::uintptr_t` synonym.
+ */
+
+// Strict literal-operator closure FAILS on narrow unsigned types via
+// integer promotion.  These negative witnesses pin the behaviour the
+// math-wins stance requires: textbook-not-closed types are refused.
+static_assert(!HasRingOperators<unsigned short>,
+              "unsigned short is not closed under literal +,-,*: "
+              "integer promotion lifts the result to int.");
+static_assert(!HasRingOperators<unsigned char>,
+              "unsigned char is not closed under literal +,-,*: "
+              "integer promotion lifts the result to int.");
+
+// Functor-parametric closure PASSES on all std::unsigned_integral
+// types: std::plus<U> / std::multiplies<U> return U by signature.
+static_assert(HasRingOperatorsFor<unsigned short, std::plus<unsigned short>,
+                                  std::multiplies<unsigned short>>,
+              "unsigned short closes under the functor surface "
+              "(std::plus<U> / std::multiplies<U> return U by signature).");
+static_assert(HasRingOperatorsFor<unsigned char, std::plus<unsigned char>,
+                                  std::multiplies<unsigned char>>);
+
+// Wider unsigned types: width >= sizeof(int), no promotion path.  The
+// arithmetic-ring seal fires on each: strict ring proof (modular wrap)
+// AND literal operators close on the carrier.  These are the
+// `std::unsigned_integral` types for which the textbook ring and the
+// C++ standard operators agree.
+static_assert(IsArithmeticRing<unsigned long>,
+              "unsigned long is an arithmetic ring (modular wrap).");
+static_assert(IsArithmeticRing<unsigned long long>,
+              "unsigned long long is an arithmetic ring (modular wrap).");
+static_assert(IsArithmeticRing<std::size_t>,
+              "std::size_t is an arithmetic ring (modular wrap).");
+
+// All `std::unsigned_integral` carriers, narrow or wide, are rings
+// under the functor-parametric bundle: the modular-wrap proof drives
+// IsPeriodic -> IsTotal -> IsMagma -> IsMonoid -> IsGroup -> IsRing,
+// and the std::plus / std::multiplies functors close on U by signature.
+// `IsArithmeticRing` (the strict literal-operator seal) is the
+// stronger claim and is only available on the wide ones.
+static_assert(IsRing<unsigned char>,
+              "unsigned char is a ring under (std::plus, std::multiplies) "
+              "via the functor surface, even though its literal operators "
+              "promote to int.");
+static_assert(IsRing<unsigned short>,
+              "unsigned short is likewise a functor-surface ring.");
+static_assert(IsRing<unsigned long>,
+              "unsigned long is a ring (also IsArithmeticRing -- both "
+              "halves agree on wide unsigned carriers).");
+static_assert(IsRing<unsigned long long>,
+              "unsigned long long is a ring.");
+
+// Negative witness: signed narrow types fail the strict ring proof
+// (signed-overflow UB defeats IsPeriodic) AND the literal-operator
+// surface (promotion to int).  No `static_assert` here -- nothing for
+// the strict half to certify on signed carriers under the
+// math-wins-over-C++ semantics.
+
 // `Modular<N>` (the archetypal finite commutative ring Z/NZ) lives in
 // `morphologies:cyclic` and is asserted there — algebra is upstream of
 // morphologies and cannot reference it from here.
