@@ -98,11 +98,13 @@ concept IsNet = IsArrow<N> && IsDirectedSet<typename N::Domain>;
  *   @c from_range(r)
  *
  * This is the anchor that makes @c FinitePath<T> values flow into
- * @c std::ranges algorithms (transform / filter / for_each) and
- * iterator-based reductions such as @c std::accumulate without a
- * bespoke adapter.  Other @c IsFiniteSequence carriers acquire the
- * same range surface by additionally exposing @c begin() / @c end()
- * (the concept does not require it; @c FinitePath provides it).
+ * @c std::ranges algorithms such as @c transform and @c for_each,
+ * as well as range adaptors such as @c std::views::filter, and
+ * into iterator-based reductions such as @c std::accumulate ---
+ * without a bespoke adapter.  Other @c IsFiniteSequence carriers
+ * acquire the same range surface by additionally exposing
+ * @c begin() / @c end() (the concept does not require it;
+ * @c FinitePath provides it).
  *
  * @subsection Coroutine_Anchor (C++23, future once libc++ ships @c
  * \<generator\>)

@@ -64,12 +64,16 @@ TEST_CASE("optimization:lp — Polytope2D + lp_extract comonadic counit (#388)",
   constexpr auto via_maximize =
       maximize<Rat, Rat{3L}, Rat{2L}, H1, H2, H3, H4>();
 
-  STATIC_CHECK(std::same_as<decltype(via_extract_member),
-                            const Vec2<Rat, Rat{2L}, Rat{2L}>>);
-  STATIC_CHECK(std::same_as<decltype(via_lp_extract),
-                            const Vec2<Rat, Rat{2L}, Rat{2L}>>);
+  // Assert on the *expression* types (the actual API return types)
+  // rather than the constexpr-local *variable* types --- the latter
+  // pick up a top-level const that isn't part of the API surface.
+  STATIC_CHECK(std::same_as<decltype(polytope.extract()),
+                            Vec2<Rat, Rat{2L}, Rat{2L}>>);
+  STATIC_CHECK(std::same_as<decltype(lp_extract(polytope)),
+                            Vec2<Rat, Rat{2L}, Rat{2L}>>);
   STATIC_CHECK(
-      std::same_as<decltype(via_maximize), const Vec2<Rat, Rat{2L}, Rat{2L}>>);
+      std::same_as<decltype(maximize<Rat, Rat{3L}, Rat{2L}, H1, H2, H3, H4>()),
+                   Vec2<Rat, Rat{2L}, Rat{2L}>>);
 
   CHECK(via_extract_member == via_maximize);
   CHECK(via_lp_extract == via_maximize);
