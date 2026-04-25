@@ -2419,6 +2419,35 @@ LP reductions demonstrated here.
 We leave them as worked targets for successor libraries that adopt
 the same discipline.
 
+\paragraph{A pragmatic dividend: time-to-confidence.}
+Beyond the correctness argument we have been making throughout,
+hoisting checks into the type system buys a feedback-loop dividend
+that working library authors notice daily.  A
+\texttt{static\_assert} returns its verdict in the seconds the
+translation unit takes to compile; a full test run returns its in
+minutes; an integration suite or a manual click-through, in tens
+of minutes to hours.  The contrast is sharpest at the
+dynamic-language end of the spectrum: an invariant that surfaces
+only when a Python code path runs in production may take days or
+weeks to manifest, by which point the offending edit is several
+deploys behind and the stack trace points at the consequence
+rather than the cause.  Dragging the verdict back from
+``production \texttt{AttributeError}'' to ``pre-commit type check''
+--- exactly what \texttt{mypy} or \texttt{pyright} do for a
+strict-typed Python codebase, and what \texttt{static\_assert}
+does for a strict-typed C++23 one --- is the same hoisting move
+made at a different point along the same gradient.  An invariant
+the compiler enforces costs zero CI minutes; an invariant the
+test suite enforces costs its execution time, multiplied by every
+commit that runs it.  The asymmetry compounds: over the lifetime
+of a library, every invariant hoisted into the type system buys
+back the corresponding test's wall-clock cost on every build, on
+every commit, in every CI pass.  The type system is therefore not
+just a correctness discipline but a feedback-loop discipline, and
+the two reinforce each other---the case for naming structure in
+the type is also, quite practically, the case for closing the
+loop on it faster.
+
 \paragraph{A forward claim, in its weakest defensible form.}
 As numerical workloads saturate available hardware, the marginal
 returns of brute-force optimisation are diminishing, and the lever
