@@ -269,7 +269,33 @@ constexpr std::variant<ExtensionalCardinal<N>, ℵ_0> mul_or_ℵ_0(
   return std::variant<ExtensionalCardinal<N>, ℵ_0>{checked.value};
 }
 
-/** @brief Draft sum type for finite vs countably infinite cardinalities. */
+/** @brief Sum type for finite vs countably infinite cardinalities; the
+ *         library's bona-fide proxy for @f$\mathbb{N}@f$ modulo
+ *         physical limits.
+ *
+ *  @details The variant @c (ExtensionalCardinal<>, ℵ_0) is @b not a
+ *  cyclic carrier (it does not wrap modulo capacity); on overflow it
+ *  @b escalates --- saturates --- into @c ℵ_0 via the @c add /
+ *  @c mul helpers below.  Effectively bigint-flavoured arithmetic
+ *  whose @b explicit overflow story is "you reached countable
+ *  infinity" rather than the C++ default of silent wrap or UB.  The
+ *  finite fragment is @c ExtensionalCardinal<> (multi-limb
+ *  arbitrary-precision unsigned integer); the @c ℵ_0 alternative
+ *  marks the saturation regime that takes over once the @c
+ *  std::size_t-bound limb representation cannot hold the result.
+ *
+ *  Strictly mathematically, @f$\mathbb{N} \cup \{\aleph_0\}@f$ is
+ *  not a monoid in the textbook sense (e.g.\ left-cancellation
+ *  fails on the saturating element).  The library's pragmatic
+ *  certificate accepts it as a proxy for @f$\mathbb{N}@f$ because
+ *  the finite fragment is @f$\mathbb{N}@f$ exactly and the
+ *  saturation is the @b explicit overflow contract: "if you compute
+ *  beyond memory limits, you saturate at @c ℵ_0".  Downstream code
+ *  that requires strict-ℕ behaviour should test the finite-fragment
+ *  alternative (@c std::holds_alternative<ExtensionalCardinal<>>).
+ *  See the sibling @c SignedCardinality below for the ℤ proxy on
+ *  the same pattern.
+ */
 export using Cardinality = std::variant<ExtensionalCardinal<>, ℵ_0>;
 
 /** @brief Convenience constructor for finite cardinal values. */
@@ -576,12 +602,46 @@ export struct NaZ {
   constexpr friend bool operator==(const NaZ&, const NaZ&) = default;
 };
 
-/** @brief Signed counterpart of @c Cardinality with ±ℵ_0 escalation.
+/** @brief Signed counterpart of @c Cardinality with ±ℵ_0 escalation;
+ *         the library's bona-fide proxy for @f$\mathbb{Z}@f$ modulo
+ *         physical limits.
  *
  *  @details Variant of @c (SignedExtensionalCardinal<>, +ℵ_0, −ℵ_0, NaZ).
  *  The finite alternative is the default-constructed first slot, so
- *  @c SignedCardinality{} is canonical zero.  Arithmetic operators are
- *  defined to escalate on signed-overflow rather than wrap.
+ *  @c SignedCardinality{} is canonical zero.
+ *
+ *  Same picture as @c Cardinality (the ℕ proxy), with a sign added:
+ *    - @b Not @b cyclic --- arithmetic does not wrap modulo capacity.
+ *    - On signed overflow, @b escalates (saturates) into @c ±ℵ_0
+ *      according to the sign of the operands.
+ *    - Indeterminate forms (@c +ℵ_0 + (−ℵ_0), @c 0 * ±ℵ_0,
+ *      @c ±ℵ_0 / ±ℵ_0, @c x / 0) propagate the @c NaZ sentinel
+ *      IEEE-NaN-style rather than throwing, keeping the carrier
+ *      usable in @c constexpr / NTTP-shaped contexts that cannot
+ *      observe exceptions.
+ *    - The finite fragment @c SignedExtensionalCardinal<> is
+ *      arbitrary-precision signed-magnitude --- effectively
+ *      bigint-flavoured signed arithmetic whose explicit overflow
+ *      story is "you saturated at @f$\pm \aleph_0@f$" rather than the
+ *      C++ default of silent wrap or signed-overflow UB.
+ *
+ *  Strictly mathematically, @f$\mathbb{Z} \cup \{\pm \aleph_0,
+ *  \mathit{NaZ}\}@f$ is not a group in the textbook sense
+ *  (@c +ℵ_0 + (−ℵ_0) = NaZ breaks the inverse law for the
+ *  saturating elements).  The library's pragmatic certificate
+ *  accepts it as a proxy for @f$\mathbb{Z}@f$ because the finite
+ *  fragment is @f$\mathbb{Z}@f$ exactly and the saturation /
+ *  NaZ behaviour is the @b explicit overflow contract: "if you
+ *  compute beyond memory limits, you saturate at @c ±ℵ_0; if you
+ *  compute an indeterminate form, you get @c NaZ".  Downstream code
+ *  that requires strict-ℤ behaviour should test the finite-fragment
+ *  alternative (@c std::holds_alternative<SignedExtensionalCardinal<>>).
+ *
+ *  Same shape as how @c unsigned int's @c IsRing claim is "modulo
+ *  wrap" rather than literal @f$\mathbb{Z}@f$ --- the project's
+ *  stance is that the truthful name for the carrier includes the
+ *  overflow / saturation behaviour, and the trait registry pins
+ *  what the carrier actually does at the limits.
  */
 export using SignedCardinality =
     std::variant<SignedExtensionalCardinal<>, PositiveInfinity,

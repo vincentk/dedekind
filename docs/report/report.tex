@@ -1838,11 +1838,26 @@ REQUIRE(res.value == C1{0});
 \end{lstlisting}
 
 \paragraph{The \texttt{Cardinality} sum type and overflow policy.}
-\texttt{Cardinality = std::variant<ExtensionalCardinal<>, $\aleph_0$>} is the user-facing cardinality value. Overflow promotion is explicit:
-\texttt{add\_or\_}$\aleph_0$ and \texttt{mul\_or\_}$\aleph_0$ return a \texttt{variant} that holds $\aleph_0\{\}$ whenever the checked arithmetic overflows, making the transition from finite to transfinite arithmetic a type-visible event rather than silent wraparound.
+\texttt{Cardinality = std::variant<ExtensionalCardinal<>, $\aleph_0$>} is the library's bona-fide proxy for $\mathbb{N}$ modulo physical limits. The carrier is \emph{not} cyclic: arithmetic does not wrap modulo capacity. Instead it \emph{escalates} (saturates) into $\aleph_0$ via \texttt{add\_or\_}$\aleph_0$ and \texttt{mul\_or\_}$\aleph_0$, which return a variant holding $\aleph_0\{\}$ whenever the underlying \texttt{checked\_add} / \texttt{checked\_mul} on \texttt{ExtensionalCardinal<>} reports overflow. The transition from finite to transfinite arithmetic is a type-visible event rather than silent wraparound.
+
+The finite fragment \texttt{ExtensionalCardinal<>} is multi-limb arbitrary-precision unsigned integer arithmetic; effectively bigint-flavoured. The $\aleph_0$ alternative marks the saturation regime that takes over once the \texttt{std::size\_t}-bound limb representation cannot hold the result. Strictly mathematically, $\mathbb{N} \cup \{\aleph_0\}$ is not a monoid in the textbook sense (left-cancellation fails on the saturating element), but the library's pragmatic certificate accepts it as a $\mathbb{N}$ proxy because the finite fragment \emph{is} $\mathbb{N}$ exactly and the saturation is the explicit overflow contract: ``if you compute beyond memory limits, you saturate at $\aleph_0$.'' Downstream code that requires strict-$\mathbb{N}$ behaviour tests the finite-fragment alternative via \texttt{std::holds\_alternative<ExtensionalCardinal<>>}.
 
 Utility functions \texttt{add}, \texttt{mul}, \texttt{compare}, and \texttt{realize\_to\_size\_t} operate on the full \texttt{Cardinality} type.
 The ring, natural, and total-order proofs for \texttt{ExtensionalCardinal<>} are co-located in the same partition as static assertions, so compilation failure is the earliest possible signal of a regression.
+
+\paragraph{The \texttt{SignedCardinality} sum type --- the $\mathbb{Z}$ counterpart.}
+\texttt{SignedCardinality = std::variant<SignedExtensionalCardinal<>, PositiveInfinity, NegativeInfinity, NaZ>} (introduced in \#377) is the signed counterpart of \texttt{Cardinality}, the library's bona-fide proxy for $\mathbb{Z}$ modulo physical limits. Same picture as the unsigned case, with a sign added:
+
+\begin{itemize}
+  \item Not cyclic; arithmetic does not wrap.
+  \item Signed-overflow \emph{escalates} (saturates) into $\pm \aleph_0$ according to the sign of the operands.
+  \item Indeterminate forms ($+\aleph_0 + (-\aleph_0)$, $0 \cdot \pm \aleph_0$, $\pm \aleph_0 / \pm \aleph_0$, $x / 0$) propagate the \texttt{NaZ} sentinel IEEE-NaN-style rather than throwing, keeping the carrier usable in \texttt{constexpr} / NTTP-shaped contexts that cannot observe exceptions.
+  \item The finite fragment \texttt{SignedExtensionalCardinal<>} is arbitrary-precision signed-magnitude --- effectively bigint-flavoured signed arithmetic.
+\end{itemize}
+
+Strictly mathematically, $\mathbb{Z} \cup \{\pm \aleph_0, \mathit{NaZ}\}$ is not a group ($+\aleph_0 + (-\aleph_0) = \mathit{NaZ}$ breaks the inverse law on the saturating elements), but the library's pragmatic certificate accepts it as a $\mathbb{Z}$ proxy on the same grounds as \texttt{Cardinality}'s acceptance as a $\mathbb{N}$ proxy: the finite fragment \emph{is} $\mathbb{Z}$ exactly, and the saturation / NaZ behaviour is the explicit overflow contract. The \texttt{IsAbelianGroup<SignedCardinality, std::plus>}, \texttt{IsRing}, and \texttt{IsCommutativeRing} witnesses fire via the \texttt{is\_saturating\_v} species trait introduced under \#377 (the third disjunct of \texttt{IsTotal} alongside periodicity and idempotence). Downstream code that requires strict-$\mathbb{Z}$ behaviour tests the finite-fragment alternative via \texttt{std::holds\_alternative<SignedExtensionalCardinal<>>}.
+
+This is the same shape as how \texttt{unsigned int}'s \texttt{IsRing} claim is ``modulo wrap'' rather than literal $\mathbb{Z}$: the library's stance is that the truthful name for the carrier includes the overflow / saturation behaviour, and the trait registry pins what the carrier actually does at the limits.
 
 \subsection{The \texttt{:relational} partition}
 \label{sec:sets-relational}
