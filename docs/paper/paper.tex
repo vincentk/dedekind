@@ -2320,6 +2320,19 @@ Programming claims. Whether the shape materialises into the numbers
 it suggests is an engineering question, and one the next decade of
 library authors will answer.
 
+\paragraph{Reproducibility under heterogeneous tooling.}
+The discipline this paper names is, deliberately, falsifiable.  The
+constraints under which it stays honest---textbook-anchored
+vocabulary, named-module DAG, \texttt{static\_assert}-discharged
+invariants, CI-policed test suite---do not depend on which agent
+typed any particular line of code, but only on whether that line
+discharges the obligations the type system imposes.  A practitioner
+adopting the same constraints and the same C++23 toolchain in 2026
+should be able to produce comparable artefacts on comparable
+timescales, irrespective of how the keystrokes were generated.  The
+discipline is meant to outlast any particular generation of
+authoring tool.
+
 \printbibliography
 
 \end{document}
