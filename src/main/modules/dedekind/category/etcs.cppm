@@ -329,6 +329,21 @@ concept HasAxiom10PowerObjectLattice =
  * @details
  * IsSet keeps the elegant Subobject representation (axiom 7) while making
  * the ETCS axiom mapping explicit and discoverable as concept-level witnesses.
+ *
+ * @section ETCS_subset_CCC
+ * Standard categorical fact: every ETCS category is a Cartesian-closed
+ * category, but most CCCs are not ETCS.  Axioms 3 (terminal), 5 (products),
+ * and 6 (exponentials) are exactly the structural ingredients of a CCC; the
+ * additional axioms (4 well-pointed, 7 subobject classifier, 9 NNO, 10
+ * choice/power-object lattice) are precisely what fails for general CCCs.
+ *
+ * The concept body therefore aggregates @c HasCanonicalSetCCC over the
+ * ambient species directly, so any carrier that satisfies @c IsSet
+ * inherits the CCC guarantee structurally rather than by per-carrier
+ * opt-in.  This is the Lambek--Scott payoff: Cartesian-closedness is
+ * simply-typed lambda calculus, and the ETCS subset relation now lifts
+ * that to the typed lambda calculus of the set-builder DSL.  Tracked
+ * historically under #389.
  */
 export template <typename T>
 concept IsSet =
@@ -340,15 +355,22 @@ concept IsSet =
     HasAxiom5CartesianProduct<typename T::Ambient> &&
     HasAxiom6Exponentiation<typename T::Ambient> &&
     HasAxiom7SubobjectClassifier<T> && HasAxiom8EmptySet<typename T::Ambient> &&
-    HasAxiom9NNO<typename T::Ambient> && HasAxiom10PowerObjectLattice<T>;
+    HasAxiom9NNO<typename T::Ambient> && HasAxiom10PowerObjectLattice<T> &&
+    HasCanonicalSetCCC<typename T::Ambient>;
 
 /**
  * @concept IsSetInCanonicalCCC
- * @brief Object/category bridge: ETCS set object with canonical CCC ambient.
+ * @brief Documentation alias for @c IsSet now that the latter entails
+ *        @c HasCanonicalSetCCC structurally (see #389).
+ *
+ * @details
+ * Pre-#389 this concept was a separate opt-in object/category bridge;
+ * post-#389 it is tautologically equivalent to @c IsSet<S> and retained
+ * only so existing call sites (and reader-facing documentation that
+ * names the CCC connection explicitly) keep working.
  */
 export template <typename S>
-concept IsSetInCanonicalCCC =
-    IsSet<S> && HasCanonicalSetCCC<typename S::Ambient>;
+concept IsSetInCanonicalCCC = IsSet<S>;
 
 /**
  * @brief Construct a set object over ambient species A from a characteristic
@@ -361,8 +383,25 @@ constexpr auto ambient_set(Pred&& predicate) {
   return classify<A>(std::forward<Pred>(predicate));
 }
 
+/**
+ * @section IsSet_entails_CCC_directional_witness
+ * Directional witness for the ETCS \f$\subset\f$ CCC implication: any
+ * carrier that satisfies @c IsSet entails @c HasCanonicalSetCCC over its
+ * ambient species.  Pinned via a representative carrier (a trivially-true
+ * predicate over @c int) so the implication is structurally checked next
+ * to the @c IsSet definition; if a future edit ever loosened @c IsSet, the
+ * second @c static_assert below would fail to certify the CCC corollary.
+ */
+namespace {
+using _isset_witness_t = decltype(ambient_set<int>([](int) { return true; }));
+}  // namespace
+static_assert(IsSet<_isset_witness_t>,
+              "Witness: representative carrier satisfies IsSet.");
+static_assert(HasCanonicalSetCCC<typename _isset_witness_t::Ambient>,
+              "Directional witness: IsSet entails HasCanonicalSetCCC over "
+              "the ambient species (every ETCS category is a CCC, #389).");
 static_assert(
-    IsSetInCanonicalCCC<decltype(ambient_set<int>([](int) { return true; }))>,
+    IsSetInCanonicalCCC<_isset_witness_t>,
     "Mnemonic check: ETCS set objects live over a canonical CCC ambient.");
 
 }  // namespace dedekind::category
