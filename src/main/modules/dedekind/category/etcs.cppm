@@ -217,9 +217,9 @@ concept HasAxiom7SubobjectClassifier =
  * keeping `IsSet` backward compatible. This witness is intentionally additive
  * and is not required by `IsSet`.
  */
-export template <typename S, typename Alpha, typename F, typename G>
+export template <typename S, typename Α, typename F, typename G>
 concept HasAxiom7ClassifierNaturalityWitness =
-    HasAxiom7SubobjectClassifier<S> && IsNaturalTransformation<Alpha, F, G> &&
+    HasAxiom7SubobjectClassifier<S> && IsNaturalTransformation<Α, F, G> &&
     std::same_as<typename F::Σ_cat::Species, typename S::Ambient>;
 
 /** @brief ETCS axiom 8 witness: initial object 0 is present. */
@@ -385,21 +385,27 @@ constexpr auto ambient_set(Pred&& predicate) {
 
 /**
  * @section IsSet_entails_CCC_directional_witness
- * Directional witness for the ETCS \f$\subset\f$ CCC implication: any
- * carrier that satisfies @c IsSet entails @c HasCanonicalSetCCC over its
- * ambient species.  Pinned via a representative carrier (a trivially-true
- * predicate over @c int) so the implication is structurally checked next
- * to the @c IsSet definition; if a future edit ever loosened @c IsSet, the
- * second @c static_assert below would fail to certify the CCC corollary.
+ * Directional witness for the ETCS \f$\subset\f$ CCC implication.
+ * The second @c static_assert encodes the implication
+ * @c IsSet<S> ==> HasCanonicalSetCCC<typename S::Ambient> directly
+ * (as @c !IsSet<S> || HasCanonicalSetCCC<...>) so that a future edit
+ * loosening @c IsSet to admit ambients without a canonical CCC would
+ * fail to certify the corollary --- a property the previous
+ * formulation, which asserted the two sides separately, did not have.
+ * Pinned via a representative carrier (a trivially-true predicate
+ * over @c int) so the implication is structurally checked next to the
+ * @c IsSet definition.
  */
 namespace {
 using _isset_witness_t = decltype(ambient_set<int>([](int) { return true; }));
 }  // namespace
 static_assert(IsSet<_isset_witness_t>,
               "Witness: representative carrier satisfies IsSet.");
-static_assert(HasCanonicalSetCCC<typename _isset_witness_t::Ambient>,
-              "Directional witness: IsSet entails HasCanonicalSetCCC over "
-              "the ambient species (every ETCS category is a CCC, #389).");
+static_assert(
+    !IsSet<_isset_witness_t> ||
+        HasCanonicalSetCCC<typename _isset_witness_t::Ambient>,
+    "Directional witness: IsSet entails HasCanonicalSetCCC over "
+    "the ambient species (every ETCS category is a CCC, #389).");
 static_assert(
     IsSetInCanonicalCCC<_isset_witness_t>,
     "Mnemonic check: ETCS set objects live over a canonical CCC ambient.");

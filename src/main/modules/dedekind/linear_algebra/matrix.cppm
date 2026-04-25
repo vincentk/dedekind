@@ -64,6 +64,7 @@ module;
 
 #include <concepts>
 #include <cstddef>
+#include <functional>  // std::invoke for matrix2x2_functor::φ
 #include <type_traits>
 #include <utility>  // std::declval for non-default-constructible type composition
 

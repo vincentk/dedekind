@@ -371,7 +371,7 @@ static_assert(!dedekind::category::is_cyclic_group_v<𝔽64, std::plus<𝔽64>>,
               "𝔽64's additive group is elementary abelian (Z/2)^6, "
               "not cyclic.");
 
-/** @section CCC_Inheritance #389
+/** @section CCC_Inheritance_389 CCC inheritance (#389)
  *
  * The Galois-field carriers can serve as the ambient species of an
  * ETCS-style set object; the canonical CCC over each carrier (terminal

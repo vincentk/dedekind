@@ -334,7 +334,7 @@ static_assert(IsCyclicRing<CyclicRing<int, 100>>,
               "CyclicRing<int, 100> satisfies morphologies::IsCyclicRing "
               "(IsCyclic + ring-shaped + and *).");
 
-/** @section CCC_Inheritance #389
+/** @section CCC_Inheritance_389 CCC inheritance (#389)
  *
  * Both cyclic-morphology carriers can serve as the ambient species of
  * an ETCS-style set object; the canonical CCC over each carrier

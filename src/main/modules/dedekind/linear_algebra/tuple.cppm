@@ -30,6 +30,8 @@ module;
 #include <concepts>
 #include <cstddef>
 #include <functional>
+#include <type_traits>
+#include <utility>
 
 export module dedekind.linear_algebra:tuple;
 

@@ -708,7 +708,7 @@ static_assert(IsCyclicGroup<Z1, std::plus<Z1>>,
               "SignedExtensionalCardinal<1> under + must satisfy IsCyclicGroup "
               "(bounded ℤ, wraps modulo capacity).");
 
-/** @section CCC_Inheritance #389
+/** @section CCC_Inheritance_389 CCC inheritance (#389)
  *
  * Both cardinal carriers can serve as the ambient species of an
  * ETCS-style set object; the canonical CCC over each carrier is

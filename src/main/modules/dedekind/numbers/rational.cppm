@@ -480,7 +480,7 @@ static_assert(
                                   default_integer>,
     "Rational<Z> must satisfy IsProduct<Rational<Z>, Z, Z> (ℚ ≅ ℤ × ℤ / ~).");
 
-/** @section CCC_Inheritance #389
+/** @section CCC_Inheritance_389 CCC inheritance (#389)
  *
  * The rational-number carriers and their integer building blocks all
  * host a canonical Cartesian-closed Set ambient: their @c IsSet
