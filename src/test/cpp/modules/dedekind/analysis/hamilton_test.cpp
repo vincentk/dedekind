@@ -118,3 +118,43 @@ TEST_CASE("Analysis: Hamiltonian Observables", "[analysis][hamilton]") {
     REQUIRE(std::abs(eN - e0) < 2e-2);
   }
 }
+
+TEST_CASE("Analysis: HarmonicOscillator carrier satisfies IsHamiltonian (#388)",
+          "[analysis][hamilton][concept]") {
+  // The HarmonicOscillator<R> carrier introduced in :hamilton is the
+  // concrete witness for IsHamiltonian.  H(q, p) = ½ (p² + ω² q²).
+  // This test exercises the .energy() member at runtime, complementing
+  // the static_assert(IsHamiltonian<...>) pinned next to the carrier.
+  using ℝ = double;
+  using Phase = Vector<ℝ, 2>;
+
+  SECTION("ω = 1: H(q=1, p=0) = ½") {
+    const HarmonicOscillator<ℝ> H{1.0};
+    REQUIRE(std::abs(H.energy(Phase{1.0, 0.0}) - 0.5) < 1e-12);
+  }
+
+  SECTION("ω = 1: H(q=0, p=1) = ½") {
+    const HarmonicOscillator<ℝ> H{1.0};
+    REQUIRE(std::abs(H.energy(Phase{0.0, 1.0}) - 0.5) < 1e-12);
+  }
+
+  SECTION("ω = 2: H(q=1, p=0) = 2 (kinetic-free, ω² q² / 2 = 4 / 2)") {
+    const HarmonicOscillator<ℝ> H{2.0};
+    REQUIRE(std::abs(H.energy(Phase{1.0, 0.0}) - 2.0) < 1e-12);
+  }
+
+  SECTION("ω = 1: total energy is conserved along the closed-form flow") {
+    // Sample energy at four different times along the H-flow; values
+    // must agree to within floating-point round-off (the closed-form
+    // expression is exact in the symbolic q, p parametrisation).
+    const HarmonicOscillator<ℝ> H{1.0};
+    const auto curve = harmonic_oscillator_curve<ℝ>(1.0, 0.0, 1.0);
+    const ℝ e0 = H.energy(curve(0.0));
+    const ℝ e1 = H.energy(curve(0.5));
+    const ℝ e2 = H.energy(curve(1.0));
+    const ℝ e3 = H.energy(curve(2.5));
+    REQUIRE(std::abs(e1 - e0) < 1e-12);
+    REQUIRE(std::abs(e2 - e0) < 1e-12);
+    REQUIRE(std::abs(e3 - e0) < 1e-12);
+  }
+}

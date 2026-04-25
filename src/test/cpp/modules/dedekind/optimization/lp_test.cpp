@@ -44,6 +44,34 @@ TEST_CASE("optimization:lp — Halfspace2D membership at the type level",
   STATIC_CHECK_FALSE(H1::template contains<Rat{3L}, Rat{3L}>());  // exterior
 }
 
+TEST_CASE("optimization:lp — Polytope2D + lp_extract comonadic counit (#388)",
+          "[optimization][lp][comonad][counit]") {
+  // The polytope context (cx, cy, Hs...) reified as a type, with the
+  // co-Kleisli counit lp_extract :: Polytope2D(T) → Vec2(T) delegating
+  // to maximize<...>().  Pins both the constructibility of the
+  // Polytope2D wrapper and the equivalence between extract() member,
+  // free-function lp_extract, and the underlying maximize() — three
+  // surfaces that must agree.
+  using Poly = Polytope2D<Rat, Rat{3L}, Rat{2L}, H1, H2, H3, H4>;
+
+  STATIC_CHECK(std::same_as<typename Poly::scalar_type, Rat>);
+  STATIC_CHECK(Poly::objective_x == Rat{3L});
+  STATIC_CHECK(Poly::objective_y == Rat{2L});
+
+  constexpr Poly polytope{};
+  constexpr auto via_extract_member = polytope.extract();
+  constexpr auto via_lp_extract = lp_extract(polytope);
+  constexpr auto via_maximize = maximize<Rat, Rat{3L}, Rat{2L}, H1, H2, H3, H4>();
+
+  STATIC_CHECK(std::same_as<decltype(via_extract_member), const Vec2<Rat, Rat{2L}, Rat{2L}>>);
+  STATIC_CHECK(std::same_as<decltype(via_lp_extract), const Vec2<Rat, Rat{2L}, Rat{2L}>>);
+  STATIC_CHECK(std::same_as<decltype(via_maximize), const Vec2<Rat, Rat{2L}, Rat{2L}>>);
+
+  CHECK(via_extract_member == via_maximize);
+  CHECK(via_lp_extract == via_maximize);
+  CHECK(via_extract_member == via_lp_extract);
+}
+
 TEST_CASE(
     "optimization:lp — paper-facing existential proof: "
     "maximize(3x + 2y, polytope) = Vec2<Rat, 2, 2> at compile time",
