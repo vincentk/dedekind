@@ -906,10 +906,9 @@ concept IsPeriodic = is_periodic_v<T, Op>;
  * algebraic taxonomy boundary; carriers opt in to whichever path
  * matches their machine-totality story.  The named concept @c
  * IsSaturating that wraps @c is_saturating_v lives in @c
- * morphologies:absorption (the saturation home), per #387's lift;
- * here we reach for the underlying trait variable directly so this
- * upstream-foundational layer does not depend on a downstream
- * partition.
+ * dedekind.category:mereology (per #387's lift); here we reach for
+ * the underlying trait variable directly so this upstream-
+ * foundational layer does not depend on that partition.
  */
 export template <typename T, typename Op>
 concept IsTotal =
@@ -954,16 +953,19 @@ inline constexpr bool is_distributive_v<T, decltype(std::ranges::min),
  * Represents the structural tethering between two dual operations.
  *
  * @note (#387 lift) The named concept @c IsAbsorptive that wraps
- * this trait, plus the audit witnesses, live in the downstream
- * partition @c morphologies:absorption.  The opt-in specialisations
- * for the canonical operator pairs ((max, min), (logical_or,
- * logical_and), the (bit_xor, bit_and) Boolean-ring non-witness)
- * stay here, alongside the trait-variable template, so that upstream
- * concepts in @c category (e.g.\ @c IsLattice in @c :total,
+ * this trait, plus the audit witnesses, live in
+ * @c dedekind.category:mereology (per #387's lift; the original
+ * draft considered a separate @c morphologies:absorption partition
+ * but settled on @c :mereology since the consumer concepts already
+ * live there).  The opt-in specialisations for the canonical
+ * operator pairs ((max, min), (logical_or, logical_and), the
+ * (bit_xor, bit_and) Boolean-ring non-witness) stay here, alongside
+ * the trait-variable template, so that other concepts in
+ * @c category (e.g.\ @c IsLattice in @c :total,
  * @c IsMereologicalSkewLattice in @c :mereology,
- * @c IsOrderLatticeOperations in @c :posetal) can reach them via the
- * direct trait check without inverting the dependency on
- * @c morphologies.
+ * @c IsOrderLatticeOperations in @c :posetal) can reach them via
+ * the direct trait check without creating a circular dependency on
+ * @c :mereology.
  */
 template <typename T, typename Op1, typename Op2>
 inline constexpr bool is_absorptive_v = false;

@@ -766,10 +766,10 @@ export constexpr SignedCardinality operator*(
   return SignedCardinality{result};
 }
 
-/** @brief Truncating division.  Division by zero, @c ±ℵ_0/±ℵ_0, and
- *         finite/±ℵ_0 with non-zero finite dividend each return @c NaZ
- *         or saturate as appropriate; finite/±ℵ_0 with finite numerator
- *         is @c 0 (the limit).
+/** @brief Truncating division.  Division by zero and @c ±ℵ_0/±ℵ_0
+ *         return @c NaZ; @c finite/±ℵ_0 returns @c 0 (the limit);
+ *         @c ±ℵ_0 divided by a non-zero finite value saturates to
+ *         signed infinity according to the operand signs.
  */
 export constexpr SignedCardinality operator/(
     const SignedCardinality& lhs, const SignedCardinality& rhs) noexcept {
@@ -804,34 +804,41 @@ export constexpr SignedCardinality operator%(
   return SignedCardinality{a % b};
 }
 
-/** @brief Total ordering on the extended integers: −ℵ_0 < finite < +ℵ_0;
- *         NaZ is unordered (returns @c std::strong_ordering::equivalent
- *         to itself, but otherwise compares as @c equivalent --- callers
- *         that need NaN-style unordering should test for @c NaZ
- *         explicitly via @c std::holds_alternative).
+/** @brief Partial ordering on the extended integers: −ℵ_0 < finite <
+ *         +ℵ_0; @c NaZ is @b unordered with respect to everything
+ *         (including itself), mirroring IEEE-NaN's unordered
+ *         semantics.  Returning @c std::partial_ordering rather than
+ *         @c std::strong_ordering is the principled choice: @c NaZ
+ *         compares @c unordered, which keeps ordering and equality
+ *         (variant's defaulted @c ==, which finds @c NaZ == @c NaZ
+ *         true) consistent without forcing a fake @c equal answer.
  */
-export constexpr std::strong_ordering compare_signed(
+export constexpr std::partial_ordering compare_signed(
     const SignedCardinality& lhs, const SignedCardinality& rhs) noexcept {
   using namespace detail;
-  if (sc_is_naz(lhs) || sc_is_naz(rhs)) return std::strong_ordering::equal;
+  if (sc_is_naz(lhs) || sc_is_naz(rhs))
+    return std::partial_ordering::unordered;
   // -ℵ_0 < everything except itself.
   if (sc_is_neg_inf(lhs) && sc_is_neg_inf(rhs))
-    return std::strong_ordering::equal;
-  if (sc_is_neg_inf(lhs)) return std::strong_ordering::less;
-  if (sc_is_neg_inf(rhs)) return std::strong_ordering::greater;
+    return std::partial_ordering::equivalent;
+  if (sc_is_neg_inf(lhs)) return std::partial_ordering::less;
+  if (sc_is_neg_inf(rhs)) return std::partial_ordering::greater;
   // +ℵ_0 > everything except itself.
   if (sc_is_pos_inf(lhs) && sc_is_pos_inf(rhs))
-    return std::strong_ordering::equal;
-  if (sc_is_pos_inf(lhs)) return std::strong_ordering::greater;
-  if (sc_is_pos_inf(rhs)) return std::strong_ordering::less;
+    return std::partial_ordering::equivalent;
+  if (sc_is_pos_inf(lhs)) return std::partial_ordering::greater;
+  if (sc_is_pos_inf(rhs)) return std::partial_ordering::less;
   return std::get<SignedExtensionalCardinal<>>(lhs) <=>
          std::get<SignedExtensionalCardinal<>>(rhs);
 }
 
-/** @brief @c < derived from @c compare_signed; required by @c IsInteger. */
+/** @brief @c < derived from @c compare_signed; required by @c IsInteger.
+ *         For @c NaZ operands the comparison is @c unordered so this
+ *         returns @c false, mirroring IEEE-NaN's @c < behaviour.
+ */
 export constexpr bool operator<(const SignedCardinality& lhs,
                                 const SignedCardinality& rhs) noexcept {
-  return compare_signed(lhs, rhs) == std::strong_ordering::less;
+  return compare_signed(lhs, rhs) == std::partial_ordering::less;
 }
 
 }  // namespace dedekind::sets
@@ -1079,11 +1086,14 @@ struct is_saturating<SC, std::plus<SC>> : std::true_type {};
 template <>
 struct is_saturating<SC, std::multiplies<SC>> : std::true_type {};
 
-// The defining ℤ trait: every element has an additive inverse.  -ℵ_0
-// is the inverse of +ℵ_0 and vice versa; for finite values the
-// inverse is sign-flip; for NaZ we propagate NaZ (NaZ has no inverse,
-// but the trait machinery treats it as self-inverse, mirroring how
-// IEEE -NaN behaves).
+// The defining ℤ trait exposes unary `-` as the operation used by
+// the additive-inverse machinery.  -ℵ_0 maps to +ℵ_0 and vice versa;
+// for finite values this is ordinary sign-flip; for NaZ, unary `-`
+// propagates NaZ (mirroring how IEEE -NaN behaves), without
+// asserting that NaZ satisfies an additive-inverse law.  The
+// pragmatic certificate is "the finite fragment is ℤ exactly; the
+// saturating elements satisfy the law mutually; NaZ propagates",
+// which is enough to lift IsAbelianGroup on the carrier.
 template <>
 inline constexpr bool is_invertible_v<SC, std::plus<SC>> = true;
 
@@ -1096,14 +1106,15 @@ struct inverse_trait<SC, std::plus<SC>> {
   }
 };
 
-template <>
-inline constexpr bool is_reflexive_v<SC, std::less_equal<>> = true;
-
-template <>
-inline constexpr bool is_transitive_v<SC, std::less_equal<>> = true;
-
-template <>
-inline constexpr bool is_antisymmetric_v<SC, std::less_equal<>> = true;
+// Note: order-axiom trait specialisations (is_reflexive_v /
+// is_transitive_v / is_antisymmetric_v) are deliberately *not*
+// registered for SignedCardinality with std::less_equal<>: the
+// carrier does not define operator<= (only operator< via the
+// partial-ordering compare_signed), and antisymmetry would not be
+// justified given NaZ's unordered comparison semantics.  Downstream
+// code that needs the order traits should specialise them on a
+// well-formed relation functor (e.g.\ one based on compare_signed)
+// rather than on std::less_equal<>.
 
 static_assert(IsAbelianGroup<SC, std::plus<SC>>,
               "SignedCardinality must certify as an abelian group under "

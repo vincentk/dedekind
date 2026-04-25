@@ -152,9 +152,9 @@ concept IsCertifiedOrderJoinSemilattice = IsOrderJoinSemilattice<T, Join>;
  * semantics (axiomatic lattice claims).  The signature mixin was
  * removed (and the now-unused signature concept retired) because
  * @c IsOrderJoinSemilattice / @c IsOrderMeetSemilattice already imply
- * the operator surface (each transitively requires its respective
- * @c …Signature concept).  The bundled concept here is purely
- * semantic.
+ * the operator surface through their upstream mereological magma
+ * concepts (@c IsMereologicalJoinMagma / @c IsMereologicalMeetMagma).
+ * The bundled concept here is purely semantic.
  */
 export template <typename T, typename Join = decltype(std::ranges::max),
                  typename Meet = decltype(std::ranges::min)>
