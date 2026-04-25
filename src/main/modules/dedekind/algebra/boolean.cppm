@@ -38,6 +38,7 @@ module;
 export module dedekind.algebra:boolean;
 
 import dedekind.category;
+import dedekind.order;
 import dedekind.sets;
 
 namespace dedekind::algebra {
@@ -58,5 +59,46 @@ export inline constexpr BooleanSet B{};
 static_assert(dedekind::category::IsSet<
                   decltype(dedekind::category::ambient_set<bool>(B))>,
               "BooleanSet must be the canonical IsSet anchor for bool.");
+
+// `bool` under (min, max) is a (distributive) lattice --- the Boolean
+// lattice 𝔹.  Witnessed at the source so downstream code does not
+// have to rederive the claim.  These complement the algebraic
+// witnesses elsewhere: `bool` under (XOR, AND) is the Galois field
+// 𝔽_2 (see :galois), and `bool` under (OR, AND) is the Boolean rig
+// (see :ring).  All three views agree on the underlying carrier.
+static_assert(dedekind::order::IsOrderJoinSemilattice<bool>,
+              "bool under max is a join-semilattice (the Boolean "
+              "lattice's join).");
+static_assert(dedekind::order::IsOrderMeetSemilattice<bool>,
+              "bool under min is a meet-semilattice (the Boolean "
+              "lattice's meet).");
+static_assert(dedekind::order::IsOrderLattice<bool>,
+              "bool under (min, max) is a lattice --- the Boolean "
+              "lattice 𝔹.");
+static_assert(dedekind::order::IsOrderDistributiveLattice<bool>,
+              "bool under (min, max) is a distributive lattice "
+              "(meet and join distribute over each other).");
+
+// Order witnesses: bool with `<=` is totally ordered (false ≤ true).
+// The `is_reflexive_v` / `is_transitive_v` / `is_antisymmetric_v`
+// specs covering integral types in `:species` lift here, plus
+// `std::totally_ordered<bool>` from the standard library.
+static_assert(dedekind::order::IsPreOrdered<bool>,
+              "bool with <= is a pre-order (reflexive + transitive).");
+static_assert(dedekind::order::IsPartiallyOrdered<bool>,
+              "bool with <= is a partial order (adds antisymmetry).");
+static_assert(dedekind::order::IsTotallyOrdered<bool>,
+              "bool with <= is totally ordered (false ≤ true).");
+
+// `bool` is also a directed set: every pair has a common upper bound
+// (trivially: `true` dominates).  This makes `bool` a valid \emph{net
+// domain} in the @c sequences sense (cf.\ Munkres / Kelley: a net is
+// a function from a directed set, not just from ℕ).  Witnessed here
+// rather than in @c order:poset because the lattice structure on
+// @c bool is anchored in the algebraic Boolean partition.
+static_assert(dedekind::order::IsDirectedSet<bool>,
+              "bool with <= is a directed set --- a valid net domain.");
+static_assert(dedekind::order::IsDirectedPoset<bool>,
+              "bool is a directed poset (directed + antisymmetric).");
 
 }  // namespace dedekind::algebra

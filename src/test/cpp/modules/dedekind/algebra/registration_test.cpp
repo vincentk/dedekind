@@ -99,32 +99,9 @@ TEST_CASE(
   STATIC_CHECK(galois_order_v<int, std::plus<int>, std::multiplies<int>> == 0);
 }
 
-TEST_CASE(
-    "registration — Modular<N>'s hand-written SpeciesTraits is not broadened",
-    "[algebra][registration]") {
-  // Regression check.  `SpeciesTraits<Modular<N>>` in
-  // `category:species` has Op-agnostic member templates
-  // (`template <typename Op> static constexpr bool is_associative_v
-  // = true;`) with pre-Registration semantics.  Without marker
-  // gating, the `:registration` discovery would pick these up and
-  // claim `is_associative<Modular<N>, Op>` = true for \emph{any}
-  // Op (e.g.\ `std::modulus` --- which isn't associative).  The
-  // marker gate prevents that: Modular<N>'s SpeciesTraits does not
-  // carry the `dedekind_registration_tag`, so the discovery
-  // specs don't apply, and Modular<N>'s free-standing
-  // specialisations (for the specific `std::plus<Modular<N>>` /
-  // `std::multiplies<Modular<N>>` Ops it genuinely supports)
-  // continue to govern.
-  using M = dedekind::category::Modular<256>;
-
-  // Positive: the hand-written specialisations for the canonical
-  // (+, *) ops still hold (untouched by the discovery machinery).
-  STATIC_CHECK(dedekind::category::is_associative_v<M, std::plus<M>>);
-  STATIC_CHECK(dedekind::category::is_associative_v<M, std::multiplies<M>>);
-
-  // Negative: the discovery did NOT accidentally claim Modular<N>
-  // is a Galois field under (+, *).  Modular<N> is a commutative
-  // ring but not a field for generic N (only N = prime gives a
-  // field), so `is_galois_field_v` must remain false.
-  STATIC_CHECK(!is_galois_field_v<M, std::plus<M>, std::multiplies<M>>);
-}
+// The Modular<N> regression test (verifying that hand-written
+// `SpeciesTraits<Modular<N>>` member templates aren't broadened by
+// the marker-gated discovery) lives in
+// `morphologies/modular_test.cpp` --- Modular relocated to
+// `morphologies:cyclic`, which the algebra test layer cannot
+// import (morphologies is downstream of algebra).

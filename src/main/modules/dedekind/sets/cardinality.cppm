@@ -677,4 +677,35 @@ static_assert(IsAbelianGroup<Z1, std::plus<Z1>>,
               "SignedExtensionalCardinal<1> must certify as an abelian group "
               "under addition (the defining ℤ-versus-ℕ distinction).");
 
+// ---------------------------------------------------------------------------
+// IsCyclicGroup witnesses for the cardinal carriers (#378).
+// ---------------------------------------------------------------------------
+//
+// `ExtensionalCardinal<N>` is the bounded ℕ carrier; under addition
+// it wraps modulo its limb capacity, forming a finite cyclic group.
+// `SignedExtensionalCardinal<N>` is its signed counterpart, also
+// cyclic under addition (same capacity, signed representation).
+// Order is exposed via `cyclic_order_v`; here we report 0
+// ("order not representable as std::size_t") rather than the exact
+// 2^(64 N)-class bound --- the concept-level claim is cyclicity,
+// not the cardinality value.
+
+template <std::size_t N>
+struct is_cyclic_group<dedekind::sets::ExtensionalCardinal<N>,
+                       std::plus<dedekind::sets::ExtensionalCardinal<N>>>
+    : std::true_type {};
+
+template <std::size_t N>
+struct is_cyclic_group<dedekind::sets::SignedExtensionalCardinal<N>,
+                       std::plus<dedekind::sets::SignedExtensionalCardinal<N>>>
+    : std::true_type {};
+
+static_assert(IsCyclicGroup<C1, std::plus<C1>>,
+              "ExtensionalCardinal<1> under + must satisfy IsCyclicGroup "
+              "(bounded ℕ, wraps modulo capacity).");
+
+static_assert(IsCyclicGroup<Z1, std::plus<Z1>>,
+              "SignedExtensionalCardinal<1> under + must satisfy IsCyclicGroup "
+              "(bounded ℤ, wraps modulo capacity).");
+
 }  // namespace dedekind::category

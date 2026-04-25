@@ -210,11 +210,9 @@ static_assert(IsRing<unsigned int>,
 static_assert(IsCommutativeRing<unsigned int>,
               "unsigned int must satisfy IsCommutativeRing.");
 
-// Modular<N> is the archetypal finite commutative ring Z/NZ.
-static_assert(IsRing<Modular<256>>,
-              "Modular<256> must satisfy IsRing (Z/256Z).");
-static_assert(IsCommutativeRing<Modular<256>>,
-              "Modular<256> must satisfy IsCommutativeRing.");
+// `Modular<N>` (the archetypal finite commutative ring Z/NZ) lives in
+// `morphologies:cyclic` and is asserted there — algebra is upstream of
+// morphologies and cannot reference it from here.
 
 // bool with OR/AND is an idempotent commutative semiring (the Boolean rig).
 // It is not a Ring: there is no additive inverse for True (True + x != False).
