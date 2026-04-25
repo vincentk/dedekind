@@ -33,8 +33,13 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @note "To understand is to bridge what appears separated."
- *       -- Emmy Noether, paraphrase
+ * @note "Hinc nostra differentialis methodus uno comprehendit calculo et
+ *  inversa illa, quae olim vix unius problematis solutionem suppeditabat."
+ *       — Gottfried Wilhelm Leibniz, *De geometria recondita et analysi
+ *         indivisibilium atque infinitorum* (Acta Eruditorum, 1686).
+ *       [Trans: "Hence our differential method comprehends in a single
+ *        calculus also that inverse one, which formerly scarcely supplied
+ *        the solution of a single problem."]
  */
 module;
 
