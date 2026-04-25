@@ -93,8 +93,12 @@ using dedekind::linear_algebra::Vec2;
  * negate coefficients and bound: `x ≥ 0` becomes
  * `Halfspace2D<T, -1, 0, 0>`.
  */
+// HasRingOperators<T> here: Halfspace2D evaluates `a*x + b*y` and a
+// scalar comparison; it does not depend on ring axioms of T (no
+// associativity / commutativity / identity claim is made), only on the
+// operators compiling and closing.  See #393 for the audit rationale.
 export template <typename T, T a, T b, T c>
-  requires dedekind::algebra::IsRingLike<T>
+  requires dedekind::algebra::HasRingOperators<T>
 struct Halfspace2D {
   using scalar_type = T;
   static constexpr T coeff_x = a;

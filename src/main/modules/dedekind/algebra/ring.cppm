@@ -132,10 +132,47 @@ concept IsSemiringLike = requires(T a, T b) {
   T{1};
 };
 
-// FIXME: unify IsRingLike with the strict IsRing once an axiom-hook auto-
-// lifter exists (see the rejected-concepts summary on PR #367 — item #4
-// "Axiom-hook auto-lifter"). Then operational and strict can collapse for
-// value-level carriers without per-type boilerplate.
+/**
+ * @concept HasRingOperators
+ * @brief @b Pure @b syntactic @b shape: T supports @c +, @c -, @c *
+ *        (binary and unary @c -) with closed results, and that's all.
+ *
+ * @details
+ * Use this concept where the callsite needs @c {+, -, *} to compile and
+ * close back into @c T but does @b not depend on any algebraic axiom
+ * (associativity, commutativity, identity, inverse, distributivity).
+ * Typical callers: container-shaped templates whose constructibility
+ * just needs the operators (componentwise tuple arithmetic, value-level
+ * matrix carriers under @c +/@c -/@c *, halfspace inequality evaluation
+ * with @c a*x + b*y comparisons, ring-homomorphism embedding shapes).
+ *
+ * The structurally-identical @c IsRingLike is retained as the
+ * @b operational variant: same predicates today, but reserved for
+ * callsites that genuinely depend on the operator surface acting like
+ * a ring under the active numeric policy (Kleene three-valued, partial
+ * traits, IEEE-edge admissibility).  @c HasRingOperators is the right
+ * name when the callsite's intent is "the operators must compile";
+ * @c IsRingLike is the right name when the callsite's intent is "the
+ * operators must compile @b and act ring-shaped under the policy in
+ * force".  Audit detail: see #393.
+ *
+ * The strict counterpart with full categorical axioms is
+ * @c dedekind::category::IsRing<T, Add, Mult> in @c category:total.
+ */
+export template <typename T>
+concept HasRingOperators = requires(T a, T b) {
+  { a + b } -> std::same_as<T>;
+  { a - b } -> std::same_as<T>;
+  { -a } -> std::same_as<T>;
+  { a * b } -> std::same_as<T>;
+};
+
+// `HasLatticeOperators` (bitwise &, |, ^, ~ shape) lives in
+// `dedekind.order:lattice` --- order is the natural home for
+// lattice-flavoured concepts; this file kept ring-flavoured.
+// `HasLogicalOperators` (short-circuiting &&, ||, ! shape) lives
+// in `dedekind.category:logic` --- the topos-internal-logic
+// partition, the deepest logic home in the project.
 
 /**
  * @concept IsRingLikeHomomorphism
@@ -201,6 +238,18 @@ static_assert(IsRingLike<unsigned int>,
 static_assert(IsSemiringLike<unsigned int>,
               "unsigned int also satisfies IsSemiringLike "
               "(without needing unary negation).");
+
+// Pure-syntactic-shape witnesses for HasRingOperators.  The shape
+// concept fires on every carrier IsRingLike fires on (same body) and
+// is the right name to use when the callsite depends on operators-
+// closing rather than on ring-shaped axioms under the policy in force.
+static_assert(HasRingOperators<int>,
+              "int has the syntactic ring-operator surface.");
+static_assert(HasRingOperators<unsigned int>,
+              "unsigned int has the syntactic ring-operator surface.");
+
+// HasLatticeOperators / HasLogicalOperators witnesses live with their
+// definitions in `order:lattice` / `category:logic` respectively.
 
 // unsigned int with wrapping arithmetic is the canonical total commutative
 // ring: IsPeriodic (wraps at 2^N) satisfies IsTotal → IsMagma → IsMonoid →

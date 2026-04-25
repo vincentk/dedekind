@@ -64,4 +64,40 @@ concept IsOrderDistributiveLattice =
     dedekind::category::IsCertifiedOrderDistributiveLatticeOperations<T, Join,
                                                                       Meet>;
 
+/**
+ * @concept HasLatticeOperators
+ * @brief @b Pure @b syntactic @b shape: T supports the bitwise / lattice
+ *        operators @c &, @c |, @c ^, @c ~ with closed results.
+ *
+ * @details
+ * Use this concept where the callsite needs the lattice operators
+ * @c {meet, join, symmetric-difference, complement} to compile and
+ * close back into @c T --- e.g.\ Boolean carriers, integral
+ * bit-twiddle types, sublattices of a Heyting algebra, the additive
+ * @f$\mathbb{F}_2@f$ surface.  No axiomatic claim about idempotency,
+ * absorption, distributivity, or De Morgan duality is made here; for
+ * those, use the certified lattice concepts above.  Sibling of
+ * @c dedekind::algebra::HasRingOperators (in @c algebra:ring) and
+ * @c dedekind::category::HasLogicalOperators (in @c category:logic)
+ * in the shape-concept family --- introduced under #393.
+ */
+export template <typename T>
+concept HasLatticeOperators = requires(T a, T b) {
+  { a & b } -> std::same_as<T>;
+  { a | b } -> std::same_as<T>;
+  { a ^ b } -> std::same_as<T>;
+  { ~a } -> std::same_as<T>;
+};
+
+/** @section Formal_Verification */
+
+// Pure-syntactic-shape witness: integer bit-twiddle types have all
+// four lattice operators closing on themselves.  Strict closure on T
+// --- integral promotion to int means `bool & bool` is int rather
+// than bool, so bool does NOT satisfy this concept as written;
+// unsigned int is the canonical fit.
+static_assert(HasLatticeOperators<unsigned int>,
+              "unsigned int has the syntactic lattice-operator surface "
+              "(bitwise &, |, ^, ~ all close to unsigned int).");
+
 }  // namespace dedekind::order

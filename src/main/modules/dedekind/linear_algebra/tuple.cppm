@@ -44,7 +44,7 @@ module;
 
 export module dedekind.linear_algebra:tuple;
 
-import dedekind.algebra;  // IsRingLike, IsVectorSpaceLike (upstream)
+import dedekind.algebra;  // HasRingOperators, IsVectorSpaceLike (upstream)
 import dedekind.category; // IsFunctor / Set / arrow (for vec2_functor witnesses)
 import dedekind.sets; // Finite tag — the cardinal the tuple dimension lives in
 import :contracts;    // ColumnOrientation, RowOrientation tags
@@ -80,7 +80,7 @@ struct Vec2 {
 // Forward declaration so `Vec2V::transpose()` can name `Covec2V` at the
 // point of definition. The bound matches the full declaration below.
 export template <typename T>
-  requires std::regular<T> && dedekind::algebra::IsRingLike<T>
+  requires std::regular<T> && dedekind::algebra::HasRingOperators<T>
 struct Covec2V;
 
 /**
@@ -99,7 +99,7 @@ struct Covec2V;
  * `:contracts`.
  */
 export template <typename T>
-  requires std::regular<T> && dedekind::algebra::IsRingLike<T>
+  requires std::regular<T> && dedekind::algebra::HasRingOperators<T>
 struct Vec2V {
   using scalar_type = T;
   using orientation = ColumnOrientation;
@@ -147,7 +147,7 @@ struct Vec2V {
  * views share the same underlying scalar layout.
  */
 export template <typename T>
-  requires std::regular<T> && dedekind::algebra::IsRingLike<T>
+  requires std::regular<T> && dedekind::algebra::HasRingOperators<T>
 struct Covec2V {
   using scalar_type = T;
   using orientation = RowOrientation;
@@ -180,7 +180,7 @@ struct Covec2V {
 };
 
 template <typename T>
-  requires std::regular<T> && dedekind::algebra::IsRingLike<T>
+  requires std::regular<T> && dedekind::algebra::HasRingOperators<T>
 constexpr Covec2V<T> Vec2V<T>::transpose() const {
   return {x, y};
 }
@@ -195,7 +195,7 @@ constexpr Covec2V<T> Vec2V<T>::transpose() const {
  *  @c dedekind::category::box_functor / @c maybe_functor in pattern.
  */
 export template <typename T>
-  requires std::regular<T> && dedekind::algebra::IsRingLike<T>
+  requires std::regular<T> && dedekind::algebra::HasRingOperators<T>
 struct vec2_functor {
   using ArrowKind = dedekind::category::hub_arrow_tag;
   using Σ_cat = dedekind::category::CanonicalSetCCC<T>;
@@ -220,7 +220,7 @@ struct vec2_functor {
 };
 
 export template <typename T>
-  requires std::regular<T> && dedekind::algebra::IsRingLike<T>
+  requires std::regular<T> && dedekind::algebra::HasRingOperators<T>
 struct covec2_functor {
   using ArrowKind = dedekind::category::hub_arrow_tag;
   using Σ_cat = dedekind::category::CanonicalSetCCC<T>;
@@ -270,7 +270,7 @@ static_assert(dedekind::category::IsFunctor<covec2_functor<int>>,
 namespace dedekind::category {
 
 export template <typename T>
-  requires std::regular<T> && dedekind::algebra::IsRingLike<T>
+  requires std::regular<T> && dedekind::algebra::HasRingOperators<T>
 struct unit_witness<dedekind::linear_algebra::Vec2V, T> final {
   constexpr dedekind::linear_algebra::Vec2V<T> operator()(T s) const {
     return {s, s};
@@ -278,7 +278,7 @@ struct unit_witness<dedekind::linear_algebra::Vec2V, T> final {
 };
 
 export template <typename T>
-  requires std::regular<T> && dedekind::algebra::IsRingLike<T>
+  requires std::regular<T> && dedekind::algebra::HasRingOperators<T>
 struct unit_witness<dedekind::linear_algebra::Covec2V, T> final {
   constexpr dedekind::linear_algebra::Covec2V<T> operator()(T s) const {
     return {s, s};
@@ -289,7 +289,7 @@ struct unit_witness<dedekind::linear_algebra::Covec2V, T> final {
  *  to the first coordinate; mirrors the Reader-monad @c π_0 counit.
  */
 export template <typename T>
-  requires std::regular<T> && dedekind::algebra::IsRingLike<T>
+  requires std::regular<T> && dedekind::algebra::HasRingOperators<T>
 struct counit_witness<dedekind::linear_algebra::Vec2V, T> final {
   constexpr T operator()(const dedekind::linear_algebra::Vec2V<T>& v) const {
     return v.x;

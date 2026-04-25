@@ -94,6 +94,17 @@ concept IsFieldElement = IsVectorSpace<F, F>;
  * @brief Pragmatic vector-space check used by first reified vector carriers.
  * @details Uses the operational `IsFieldLikeScalar` witness and does not
  *          depend on the stronger `IsField` proof machinery.
+ *
+ * @note @b Design @b choice (audit #393): paired with
+ *       @c IsFieldLikeScalar in the operational tower, intentionally
+ *       distinct from the strict @c category::IsVectorSpace.  The
+ *       paired pragmatism admits IEEE-backed carriers (e.g.\ a
+ *       @c LinearMap<double, R, C> witness over @c double) that
+ *       deliberately do not carry the strict categorical proof.
+ *       Where a callsite depends only on the operator surface
+ *       compiling (and not on vector-space axioms holding under the
+ *       policy in force), see @c dedekind::algebra::HasRingOperators
+ *       and siblings.
  */
 export template <typename V, typename F, typename Act = std::multiplies<>>
 concept IsVectorSpaceLike = IsFieldLikeScalar<F> && requires(F a, F b, V v) {

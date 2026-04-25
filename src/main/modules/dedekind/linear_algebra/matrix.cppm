@@ -71,7 +71,7 @@ module;
 
 export module dedekind.linear_algebra:matrix;
 
-import dedekind.algebra; // IsRingLike, IsFieldLikeScalar, IsVectorSpaceLike
+import dedekind.algebra; // HasRingOperators, IsRingLike, IsFieldLikeScalar, IsVectorSpaceLike
 import dedekind.category; // IsFunctor / Set / arrow (for matrix2x2_functor witness)
 import dedekind.numbers; // Rational<Z> for the ℚ carrier
 import dedekind.sets;    // Finite cardinality tag (for dimension_type)
@@ -102,10 +102,17 @@ namespace dedekind::linear_algebra {
  *           canonical choice for the paper-facing ℚ proof.
  * @tparam a,b,c,d Entries as NTTPs of type `T`.
  */
-// FIXME: bound stays at `IsFieldLikeScalar<T>` (not `IsRingLike<T>`) because
-// `inverse_type` divides by `det` — rings in general do not admit division,
-// so the closed-form Cramer inverse genuinely needs a field-like scalar.
-// Over `T = Rational<Z>` with integer `Z`, the constraint is tight.
+// Design choice (#393): `IsFieldLikeScalar<T>` is the right
+// constraint here, NOT a stopgap.  `inverse_type` divides by `det`,
+// and rings in general do not admit division, so the closed-form
+// Cramer inverse genuinely needs the field-like scalar surface.
+// Over `T = Rational<Z>` with integer `Z` the constraint is tight;
+// over IEEE-edge carriers (`IEEE<double>`) the operational variant
+// is exactly the right fit, since strict `IsField` would fail under
+// rounding-non-associativity.  The Has*Operators shape concepts
+// (in :ring / :order:lattice / :category:logic) are for callsites
+// that need the operator surface to compile but make no algebraic
+// claim --- not the case here.
 export template <typename T, T a, T b, T c, T d>
   requires dedekind::algebra::IsFieldLikeScalar<T>
 struct Invertible2x2 {
@@ -410,15 +417,16 @@ struct BlockUpperTriangular {
  * transpose surface. Columns are `Vec2V<T>` (a 2×1 matrix from `:tuple`);
  * rows are `Covec2V<T>` (a 1×2 matrix).
  */
-// Bound: `IsRingLike<T>` for the arithmetic surface (+, -, unary -, *;
-// division is not used here — `Invertible2x2`'s Cramer inverse stays at
-// `IsFieldLikeScalar<T>`). `std::regular<T>` for the value-semantics
-// surface: members use `T x{}` default-init, `column(i)` / `row(i)`
-// return `{}` out-of-range, `operator==` is defaulted (needs
-// equality-comparable T), and struct copies require copyable T. The two
-// constraints are orthogonal and both are load-bearing.
+// Bound: `HasRingOperators<T>` for the arithmetic surface (+, -, unary -,
+// *; division is not used here — `Invertible2x2`'s Cramer inverse stays
+// at `IsFieldLikeScalar<T>`).  Pure syntactic shape, not an algebraic
+// claim — see #393.  `std::regular<T>` for the value-semantics surface:
+// members use `T x{}` default-init, `column(i)` / `row(i)` return `{}`
+// out-of-range, `operator==` is defaulted (needs equality-comparable T),
+// and struct copies require copyable T. The two constraints are
+// orthogonal and both are load-bearing.
 export template <typename T>
-  requires std::regular<T> && dedekind::algebra::IsRingLike<T>
+  requires std::regular<T> && dedekind::algebra::HasRingOperators<T>
 struct Matrix2x2V {
   using scalar_type = T;
   using column_type = Vec2V<T>;
@@ -501,7 +509,7 @@ inline constexpr Matrix2x2V<T> zero_matrix2x2_v{T{0}, T{0}, T{0}, T{0}};
  *  closing the (1×1, 2×1, 1×2, 2×2) shape family below.
  */
 export template <typename T>
-  requires std::regular<T> && dedekind::algebra::IsRingLike<T>
+  requires std::regular<T> && dedekind::algebra::HasRingOperators<T>
 struct matrix2x2_functor {
   using ArrowKind = dedekind::category::hub_arrow_tag;
   using Σ_cat = dedekind::category::CanonicalSetCCC<T>;
@@ -561,7 +569,7 @@ static_assert(
 namespace dedekind::category {
 
 export template <typename T>
-  requires std::regular<T> && dedekind::algebra::IsRingLike<T>
+  requires std::regular<T> && dedekind::algebra::HasRingOperators<T>
 struct unit_witness<dedekind::linear_algebra::Matrix2x2V, T> final {
   constexpr dedekind::linear_algebra::Matrix2x2V<T> operator()(T s) const {
     return {s, T{0}, T{0}, s};
@@ -573,7 +581,7 @@ struct unit_witness<dedekind::linear_algebra::Matrix2x2V, T> final {
  *  algebra to the underlying scalar ring.
  */
 export template <typename T>
-  requires std::regular<T> && dedekind::algebra::IsRingLike<T>
+  requires std::regular<T> && dedekind::algebra::HasRingOperators<T>
 struct counit_witness<dedekind::linear_algebra::Matrix2x2V, T> final {
   constexpr T operator()(
       const dedekind::linear_algebra::Matrix2x2V<T>& m) const {

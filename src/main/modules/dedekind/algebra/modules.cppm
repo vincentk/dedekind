@@ -68,6 +68,19 @@ concept IsFloatingScalar = std::floating_point<S>;
  *          addition, subtraction, multiplication, division, and unary negation
  *          are available and closed in the carrier, even if the stricter
  *          categorical `IsField` proof is intentionally withheld.
+ *
+ * @note @b Design @b choice (audit #393): @c IsFieldLikeScalar is the
+ *       deliberate operational variant for IEEE-edge-case carriers that
+ *       intentionally do not carry strict axiomatic proofs.  It is
+ *       \emph{not} a stopgap for the missing strict @c IsField --- the
+ *       strict concept exists in @c category:total and is used at every
+ *       callsite that genuinely needs the field axioms.  Where a callsite
+ *       depends on the operator surface acting field-shaped under the
+ *       active numeric policy (Kleene three-valued, partial traits, IEEE
+ *       admissibility), this is the correct concept.  For pure
+ *       syntactic-shape requirements with no algebraic claim, see the
+ *       @c Has*Operators family (@c dedekind::algebra::HasRingOperators
+ *       and siblings).
  */
 export template <typename S>
 concept IsFieldLikeScalar = requires(S a, S b) {
