@@ -401,11 +401,10 @@ using _isset_witness_t = decltype(ambient_set<int>([](int) { return true; }));
 }  // namespace
 static_assert(IsSet<_isset_witness_t>,
               "Witness: representative carrier satisfies IsSet.");
-static_assert(
-    !IsSet<_isset_witness_t> ||
-        HasCanonicalSetCCC<typename _isset_witness_t::Ambient>,
-    "Directional witness: IsSet entails HasCanonicalSetCCC over "
-    "the ambient species (every ETCS category is a CCC, #389).");
+static_assert(!IsSet<_isset_witness_t> ||
+                  HasCanonicalSetCCC<typename _isset_witness_t::Ambient>,
+              "Directional witness: IsSet entails HasCanonicalSetCCC over "
+              "the ambient species (every ETCS category is a CCC, #389).");
 static_assert(
     IsSetInCanonicalCCC<_isset_witness_t>,
     "Mnemonic check: ETCS set objects live over a canonical CCC ambient.");

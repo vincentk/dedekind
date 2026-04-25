@@ -246,12 +246,12 @@ constexpr Box<Box<A>> δ(box_hub_tag, Box<A> const& ba) {
  * @brief Level 2.1: The raw family of components.
  */
 export template <typename Α, typename CatS, typename CatT>
-concept IsPreTransformation =
-    IsCategory<CatS> && IsCategory<CatT> &&
-    requires(Α α, typename CatS::Arrow::Domain c) {
-      // The machine: takes an object in S, returns an arrow in T
-      { α(c) } -> std::same_as<typename CatT::Arrow>;
-    };
+concept IsPreTransformation = IsCategory<CatS> && IsCategory<CatT> &&
+                              requires(Α α, typename CatS::Arrow::Domain c) {
+                                // The machine: takes an object in S, returns an
+                                // arrow in T
+                                { α(c) } -> std::same_as<typename CatT::Arrow>;
+                              };
 
 /**
  * @concept IsTwoMorphism
@@ -281,8 +281,8 @@ concept IsTwoMorphism =
  */
 export template <typename Α, typename F, typename G>
 concept IsNaturalTransformation =
-    IsTwoMorphism<Α, F, G> && requires(Α α, F f_map, G g_map,
-                                           typename F::Σ_cat::Arrow::Domain c) {
+    IsTwoMorphism<Α, F, G> &&
+    requires(Α α, F f_map, G g_map, typename F::Σ_cat::Arrow::Domain c) {
       // The Slide is witnessed through the identity spoke at c.
       // This keeps the condition structural for categories whose object
       // labels are recovered via their identity arrows.
@@ -319,10 +319,8 @@ struct identity_transformation {
  * @brief Vertical composition of two 2-morphisms (β . α).
  * @details α: F => G, β: G => H. Result: F => H.
  */
-export template <typename Α, typename Β, IsFunctor F, IsFunctor G,
-                 IsFunctor H>
-  requires IsNaturalTransformation<Α, F, G> &&
-           IsNaturalTransformation<Β, G, H>
+export template <typename Α, typename Β, IsFunctor F, IsFunctor G, IsFunctor H>
+  requires IsNaturalTransformation<Α, F, G> && IsNaturalTransformation<Β, G, H>
 struct vertical_composition {
   Α α;
   Β β;
