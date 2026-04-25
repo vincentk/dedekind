@@ -118,10 +118,9 @@ struct Modular {
   // large moduli (e.g.\ @c Modular<unsigned long long, 2^{50}>).
   // Callers needing a wider modulus should host a 128-bit-backed
   // carrier of their own; this one keeps to the standard widths.
-  static_assert(N == 1 ||
-                    static_cast<wide_type>(N - 1) <=
-                        std::numeric_limits<wide_type>::max() /
-                            static_cast<wide_type>(N - 1),
+  static_assert(N == 1 || static_cast<wide_type>(N - 1) <=
+                              std::numeric_limits<wide_type>::max() /
+                                  static_cast<wide_type>(N - 1),
                 "Modular<N>: (N-1)^2 must fit wide_type for safe "
                 "modular multiplication; pick a smaller N or a "
                 "wider machine_type.");
