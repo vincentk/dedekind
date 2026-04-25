@@ -1478,7 +1478,14 @@ The IR is checked into the repository as a fixture
 gate (\texttt{make ir-fixture-check}) fails CI if optimiser drift ever
 loses the collapse. The binary contains no LP solver; no simplex
 tableau; no active-set machinery. The vertex \emph{is} a type, and
-returning its coordinate \emph{is} a literal.
+returning its coordinate \emph{is} a literal.  Because the reduction
+lands in \texttt{Rational<...>} rather than IEEE floating point, the
+\lstinline{ret i64 2} output is bit-identical across ARM and x86
+back-ends and host floating-point ABIs --- the typed constant has
+no rounding mode to disagree about.  This is the embedded /
+cross-platform-determinism guarantee the paper has been claiming
+throughout, made concrete by the absence of any \texttt{double}-typed
+reduction in the IR.
 
 This closes one of the type-directed-collapse axes listed in
 Section~\ref{sec:gap}% tracker: issue #364 (linear programming)
@@ -1854,11 +1861,31 @@ scalars and small vectors rather than multi-dimensional matrix
 factorisation, and a hard correctness signal (energy conservation;
 reproducible mean) that the type system can police.  The substrate
 (leapfrog, exterior 2-form, exact rational arithmetic, the
-\lstinline{Dual} product ring) is shipped today; the worked
-showcases and quantitative comparisons against domain baselines
-(LAMMPS-flavoured MD, scientific-computing MC libraries) are
-deliberately left to a successor paper rather than diluted into
-this one.
+\lstinline{Dual} product ring) is shipped today, and the
+discipline is already being applied to it.  Two static witnesses
+from the current main branch:
+
+% Sources:
+% src/main/modules/dedekind/analysis/hamilton.cppm,
+% src/main/modules/dedekind/analysis/exterior.cppm
+\begin{lstlisting}[language=C++, basicstyle=\ttfamily\small]
+// :hamilton --- HarmonicOscillator<R> exposes the
+// IsHamiltonian energy(state) -> R surface; the carrier
+// satisfies the concept structurally.
+static_assert(
+    IsHamiltonian<HarmonicOscillator<double>,
+                  PhasePoint<double>, double>);
+
+// :exterior --- the symplectic 2-form is antisymmetric on
+// the canonical basis pair (witness of dω = 0 ingredient).
+static_assert(omega(v_x, v_y) == -omega(v_y, v_x));
+\end{lstlisting}
+
+\noindent The worked showcases and quantitative comparisons
+against domain baselines (LAMMPS-flavoured MD,
+scientific-computing MC libraries) are deliberately left to a
+successor paper rather than diluted into this one; the witnesses
+above show that the discipline is already paving the road.
 
 \subsection{Algebraic Properties Enable Stronger Pruning}
 
