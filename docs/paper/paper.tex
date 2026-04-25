@@ -725,7 +725,16 @@ The closure-at-stage-\(n\) signal of the previous paragraph applies
 recursively to the development methodology over all three: the AI
 systems supply stage-\(n{+}1\) candidates, the mechanical filters
 discharge the consistency, and the human chooses the next fragment
-of mathematics to encode.
+of mathematics to encode.  Read the right way around, the
+arrangement is also enabling: a working mathematician who would
+rather not spend most of her time on the deep details of the
+\texttt{C++} standard can still ship a faithful library, because the
+parts that need the standard's deep details are exactly the parts
+the constraints above police mechanically.  The natural-language
+fragment of the development is, then, not a confession but a
+\emph{division of labour}---one that lets the mathematical content
+stay in mathematical vocabulary all the way down to where the
+machine takes over.
 
 % ============================================================
 \section{Intensional First, Realize When You Mean It}
@@ -2061,6 +2070,28 @@ a constraint list that the author was \emph{unable} to prune
 structurally---an unlikely shape for the use cases this library is
 written against.
 
+\paragraph{Scaling beyond atomic carriers via structure-preserving combinators.}
+The same partition---atoms below, runtime above---governs the
+linear-algebra surface the paper exhibits at the $2 \times 2$ scale.
+The library ships \texttt{Invertible2x2}, \texttt{Matrix2x2V},
+\texttt{Vec2V} as statically-validated atoms; larger systems are
+\emph{not} reached by inflating the atom (we do not aim for
+$n \times n$ inversion in templates), but by composing atoms through
+\emph{structure-preserving combinators} that propagate the
+invariants up. \texttt{DirectSum<A, B>} carries invertibility from
+its factors to the block-diagonal whole; \texttt{BlockUpperTriangular<A,
+B, D>} extends the same propagation to triangular blocks under a
+degenerate-Schur condition; a future Kronecker combinator preserves
+orthogonality and lattice structure compositionally. Each combinator
+is itself a small structurally-checked unit; their composition gives
+$2^k \times 2^k$ matrices whose invariants follow by induction
+without exponential blowup in the templates. The roadmap items are
+tracked in the project backlog (issues \#366 / \#368 / \#369) and
+fall out of the same Axiomatic-Systems-Programming discipline rather
+than requiring a different paradigm. They are not part of this
+paper's scope; this paper establishes the atom-level pattern that
+the combinators preserve.
+
 \paragraph{Numeric overflow in the carrier.}
 The paper's code listings ship with
 \lstinline{Rational<SignedExtensionalCardinal<>>}: an
@@ -2088,13 +2119,25 @@ so the swap between exact and native is a one-line change at the
 \paragraph{Error messages and the readability tax.}
 A failed \texttt{static\_assert} in a deep reduction produces, by
 default, a multi-page expansion trail that is difficult for a new
-user to parse. The mitigation we adopt is a combination of
-\lstinline{requires}-clauses at call sites (so the first failing
-predicate is the reported one), named concepts with short
-\texttt{diagnostic} strings, and targeted \lstinline{static_assert}
-messages inside internal reductions. This is an ergonomics concern
-rather than a correctness one, but it is the concern a reader most
-often encounters first and deserves explicit acknowledgement.
+user to parse. The bulk of this is a C++ language-design concern
+that no library can fully repair; the realistic ambition is to
+\emph{fail fast}, so that the first message a reader sees is the
+predicate that genuinely broke and not the cascade of downstream
+failures it triggered. The mitigation the library adopts is exactly
+that: \lstinline{requires}-clauses at call sites (so the first
+failing predicate is the reported one), named concepts with short
+\texttt{diagnostic} strings, targeted \lstinline{static_assert}
+messages inside internal reductions, and---structurally---building
+combinators out of statically-validated atoms so that a failure is
+localised to its smallest witness rather than surfacing inside a
+deep template instantiation. The
+\texttt{IsRing} / \texttt{IsField} / \texttt{IsCyclicGroup} concepts
+of \texttt{dedekind.category:total} all follow this pattern: each
+adds a single named requirement on top of a previously-established
+one, so the first violated predicate is also the most specific one.
+This is an ergonomics concern rather than a correctness one, but it
+is the concern a reader most often encounters first and deserves
+explicit acknowledgement.
 
 In short: the compiler wall has a predictable shape---depth, steps,
 combinatorics, numeric range, diagnostics---and each is either
