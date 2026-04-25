@@ -708,4 +708,18 @@ static_assert(IsCyclicGroup<Z1, std::plus<Z1>>,
               "SignedExtensionalCardinal<1> under + must satisfy IsCyclicGroup "
               "(bounded ℤ, wraps modulo capacity).");
 
+/** @section CCC_Inheritance_389 CCC inheritance (#389)
+ *
+ * Both cardinal carriers can serve as the ambient species of an
+ * ETCS-style set object; the canonical CCC over each carrier is
+ * therefore Cartesian-closed and any @c IsSet built over these
+ * ambients inherits the CCC guarantee structurally per #389.
+ */
+static_assert(HasCanonicalSetCCC<C1>,
+              "ExtensionalCardinal<1> hosts a canonical Cartesian-closed "
+              "Set ambient.");
+static_assert(HasCanonicalSetCCC<Z1>,
+              "SignedExtensionalCardinal<1> hosts a canonical "
+              "Cartesian-closed Set ambient.");
+
 }  // namespace dedekind::category

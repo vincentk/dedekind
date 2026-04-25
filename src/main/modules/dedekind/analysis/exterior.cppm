@@ -65,12 +65,12 @@ constexpr auto wedge(const OneForm<F, N>& a, const OneForm<F, N>& b) {
 namespace {
 inline constexpr Vector<double, 2> v_x{1.0, 0.0};
 inline constexpr Vector<double, 2> v_y{0.0, 1.0};
-inline constexpr TwoForm<double, 2> omega{1.0};
+inline constexpr TwoForm<double, 2> ω{1.0};
 }  // namespace
 
-static_assert(omega(v_x, v_y) == -omega(v_y, v_x),
+static_assert(ω(v_x, v_y) == -ω(v_y, v_x),
               "TwoForm must be antisymmetric: ω(u,v) = -ω(v,u).");
-static_assert(omega(v_x, v_x) == 0.0,
+static_assert(ω(v_x, v_x) == 0.0,
               "TwoForm must vanish on the diagonal: ω(u,u) = 0.");
 
 }  // namespace dedekind::analysis

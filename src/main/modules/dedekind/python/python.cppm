@@ -1,5 +1,6 @@
 /**
  * @file dedekind/python/python.cppm
+ * @module dedekind.python
  * @brief Level 12: Curated binding facade for external runtimes.
  *
  * @copyright 2026 The Dedekind Authors

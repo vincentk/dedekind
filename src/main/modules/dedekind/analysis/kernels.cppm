@@ -45,11 +45,11 @@ struct GaussianKernel {
   using Domain = T;
   using Codomain = T;
 
-  T sigma = static_cast<T>(1);  // FIXME #123: magic default bandwidth
+  T σ = static_cast<T>(1);  // FIXME #123: magic default bandwidth
 
   constexpr T operator()(T a, T b) const noexcept {
     const T diff = a - b;
-    return std::exp(-(diff * diff) / (static_cast<T>(2) * sigma * sigma));
+    return std::exp(-(diff * diff) / (static_cast<T>(2) * σ * σ));
   }
 
   constexpr T at(std::size_t n) const noexcept {
@@ -93,5 +93,13 @@ struct ReproducingKernel {
     return at(x);
   }
 };
+
+/** @section Formal_Verification */
+
+// GaussianKernel<T> is a symmetric positive-definite kernel:
+// K(a, b) = exp(-(a-b)²/(2σ²)) is invariant under (a, b) ↔ (b, a).
+static_assert(IsKernel<GaussianKernel<double>, double, double>,
+              "GaussianKernel<double> must satisfy IsKernel<·, double, double> "
+              "(symmetric kernel returning a scalar).");
 
 }  // namespace dedekind::analysis

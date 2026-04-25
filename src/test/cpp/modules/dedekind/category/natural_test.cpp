@@ -26,8 +26,8 @@ TEST_CASE("Category: Natural Transformation Concepts", "[category][natural]") {
 TEST_CASE("Category: Natural Transformation Runtime Witnesses",
           "[category][natural]") {
   SECTION("Identity transformation returns the target identity component") {
-    identity_transformation<IdF> alpha{IdF{}};
-    auto component = alpha(4);
+    identity_transformation<IdF> α{IdF{}};
+    auto component = α(4);
 
     CHECK(component(42) == 42);
     CHECK(component(4) == 4);

@@ -1,6 +1,8 @@
 /**
  * @file dedekind/topology/topology.cppm
- * @brief Module interface in the dedekind hierarchy.
+ * @module dedekind.topology
+ * @brief Topology --- open-set predicates, neighbourhood filters, and
+ *        continuity witnesses for the species atlas.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.

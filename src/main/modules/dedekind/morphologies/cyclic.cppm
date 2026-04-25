@@ -334,4 +334,19 @@ static_assert(IsCyclicRing<CyclicRing<int, 100>>,
               "CyclicRing<int, 100> satisfies morphologies::IsCyclicRing "
               "(IsCyclic + ring-shaped + and *).");
 
+/** @section CCC_Inheritance_389 CCC inheritance (#389)
+ *
+ * Both cyclic-morphology carriers can serve as the ambient species of
+ * an ETCS-style set object; the canonical CCC over each carrier
+ * (terminal @c One, products @c std::pair, exponentials @c
+ * std::function) is therefore Cartesian-closed, and any @c IsSet<S>
+ * built over these ambients inherits the CCC guarantee structurally
+ * per #389.
+ */
+static_assert(dedekind::category::HasCanonicalSetCCC<Modular<256>>,
+              "Modular<256> hosts a canonical Cartesian-closed Set ambient.");
+static_assert(
+    dedekind::category::HasCanonicalSetCCC<CyclicRing<int, 100>>,
+    "CyclicRing<int, 100> hosts a canonical Cartesian-closed Set ambient.");
+
 }  // namespace dedekind::morphologies

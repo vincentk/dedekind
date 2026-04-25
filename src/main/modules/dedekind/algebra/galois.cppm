@@ -371,4 +371,17 @@ static_assert(!dedekind::category::is_cyclic_group_v<𝔽64, std::plus<𝔽64>>,
               "𝔽64's additive group is elementary abelian (Z/2)^6, "
               "not cyclic.");
 
+/** @section CCC_Inheritance_389 CCC inheritance (#389)
+ *
+ * The Galois-field carriers can serve as the ambient species of an
+ * ETCS-style set object; the canonical CCC over each carrier (terminal
+ * @c One, products @c std::pair, exponentials @c std::function) is
+ * therefore Cartesian-closed, and any @c IsSet<S> built over these
+ * ambients inherits the CCC guarantee structurally per #389.
+ */
+static_assert(dedekind::category::HasCanonicalSetCCC<bool>,
+              "𝔽2 (bool) hosts a canonical Cartesian-closed Set ambient.");
+static_assert(dedekind::category::HasCanonicalSetCCC<𝔽64>,
+              "𝔽64 hosts a canonical Cartesian-closed Set ambient.");
+
 }  // namespace dedekind::algebra

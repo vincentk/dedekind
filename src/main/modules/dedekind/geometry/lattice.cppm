@@ -6,9 +6,18 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @note "The Greeks made Space the subject-matter of a science of supreme
- * simplicity and certainty."
- *       -- Hermann Weyl, Space-Time-Matter (1918)
+ * @note "解伏題之法は、消去の術に在り"
+ *       — Seki Kōwa (関 孝和, 1642–1708), paraphrase of the central
+ *         thesis of *Kaifukudai no Hō* (解伏題之法, 1683), the
+ *         treatise that introduced determinant theory roughly a
+ *         decade before Leibniz.
+ *       [Trans: "The method of solving buried problems lies in the
+ *        technique of elimination."]
+ *
+ *       Seki computed on a sangi (算木) wooden board — a literal
+ *       integer lattice — making his school's algebraic technique
+ *       a natural ancestor of the @c IntegerLatticePoint2D /
+ *       @c integer_lattice_2d() carriers below.
  */
 
 module;
@@ -48,11 +57,12 @@ module;
  *       Remaining lattice API refinement is tracked in issue #145.
  *
  * @section Geometric_Lattices
- * "Ein Gitter ist eine diskrete abelsche Untergruppe des ℝⁿ, endlich erzeugt
- *  und von vollem Rang. Es ist das Skelett, auf dem das Kontinuum aufgebaut
- *  wird." (A lattice is a discrete abelian subgroup of ℝⁿ, finitely generated
- *  and of full rank. It is the skeleton upon which the continuum is built.)
- *  — Johann Carl Friedrich Gauß, paraphrase common in lattice theory.
+ * "Die ganzzahligen Lösungen einer Aufgabe lassen sich als Punkte eines
+ *  Gitters auffassen --- so wird die Arithmetik geometrisch."
+ *  (The integer solutions of a problem can be viewed as points of a
+ *   lattice --- thus arithmetic becomes geometric.)
+ *  — Hermann Minkowski, paraphrase from *Geometrie der Zahlen* (1896), §1,
+ *    the founding text of geometric lattice theory in the modern sense.
  *
  * @see Wikipedia: Lattice (group), Gaussian integers.
  */
@@ -219,3 +229,18 @@ static_assert(
     "embed_z2_r2 must be recognised as a monic arrow.");
 
 }  // namespace dedekind::category
+
+namespace dedekind::geometry {
+
+/** @section Formal_Verification */
+
+// The 2-D integer lattice equipped with the canonical embedding
+// (x, y) ↦ (double(x), double(y)) into ℝ² is a geometric lattice in
+// the IsGeometricLattice sense: the embedding is monic and the lattice
+// Set carries an integer-coordinate Domain (IntegerLatticePoint2D).
+static_assert(IsGeometricLattice<decltype(integer_lattice_2d()),
+                                 std::decay_t<decltype(embed_z2_r2)>>,
+              "ℤ² with embed_z2_r2 must satisfy IsGeometricLattice "
+              "(monic embedding + integer-coordinate Domain).");
+
+}  // namespace dedekind::geometry

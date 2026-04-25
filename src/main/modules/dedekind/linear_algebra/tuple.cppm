@@ -21,18 +21,31 @@
  * The column/row orientation tags come from `:contracts`; transpose
  * exchanges `Vec2V ↔ Covec2V`, establishing them as a dual pair.
  *
- * @note "Ordnung ist das halbe Leben."
- *       (Order is half of life.)
- *       -- German proverb; in tuple form, order IS the life.
+ * @note "I have in previous papers defined a 'Matrix' as a rectangular
+ *  array of terms, out of which different systems of determinants may
+ *  be engendered, as from the womb of a common parent."
+ *       — James Joseph Sylvester, *Additions to the Articles 'On a
+ *         New Class of Theorems' and 'On Pascal's Theorem'*,
+ *         Philosophical Magazine 4th series, vol. 1 (1851), p. 295.
+ *
+ *       The Sylvester etymology --- @c matrix as @c mater, "womb" ---
+ *       lands well at the tuple layer: the rank-1 carriers
+ *       @c Vec2V<T> (a column) and @c Covec2V<T> (a row) are the
+ *       parents from which @c Matrix2x2V<T> is engendered by
+ *       horizontal / vertical concatenation.
  */
 module;
 
 #include <concepts>
 #include <cstddef>
+#include <functional>
+#include <type_traits>
+#include <utility>
 
 export module dedekind.linear_algebra:tuple;
 
-import dedekind.algebra; // IsRingLike, IsVectorSpaceLike (upstream)
+import dedekind.algebra;  // IsRingLike, IsVectorSpaceLike (upstream)
+import dedekind.category; // IsFunctor / Set / arrow (for vec2_functor witnesses)
 import dedekind.sets; // Finite tag — the cardinal the tuple dimension lives in
 import :contracts;    // ColumnOrientation, RowOrientation tags
 
@@ -171,5 +184,130 @@ template <typename T>
 constexpr Covec2V<T> Vec2V<T>::transpose() const {
   return {x, y};
 }
+
+/** @section Functorial_Hubs
+ *
+ *  `Vec2V<·>` and `Covec2V<·>` carry a structural shape (2×1 / 1×2 with
+ *  element type @c T) that is functorial in @c T: an arrow @c f: T→T
+ *  lifts elementwise to an arrow @c Vec2V<T>→Vec2V<T> (resp.\ Covec).
+ *  The hub types below own that lift and witness
+ *  @c dedekind::category::IsFunctor for each shape.  They mirror
+ *  @c dedekind::category::box_functor / @c maybe_functor in pattern.
+ */
+export template <typename T>
+  requires std::regular<T> && dedekind::algebra::IsRingLike<T>
+struct vec2_functor {
+  using ArrowKind = dedekind::category::hub_arrow_tag;
+  using Σ_cat = dedekind::category::CanonicalSetCCC<T>;
+  using Τ_cat = dedekind::category::CanonicalSetCCC<Vec2V<T>>;
+
+  using Domain = Σ_cat;
+  using Codomain = Τ_cat;
+
+  template <typename U>
+  using Shape = Vec2V<U>;
+
+  template <typename 𝗳>
+    requires dedekind::category::IsArrow<std::remove_cvref_t<𝗳>>
+  constexpr auto φ(𝗳&& f) const {
+    return dedekind::category::arrow(
+        [f = std::forward<𝗳>(f)](Vec2V<T> const& v) -> Vec2V<T> {
+          return {std::invoke(f, v.x), std::invoke(f, v.y)};
+        });
+  }
+
+  constexpr Τ_cat operator()(const Σ_cat&) const noexcept { return {}; }
+};
+
+export template <typename T>
+  requires std::regular<T> && dedekind::algebra::IsRingLike<T>
+struct covec2_functor {
+  using ArrowKind = dedekind::category::hub_arrow_tag;
+  using Σ_cat = dedekind::category::CanonicalSetCCC<T>;
+  using Τ_cat = dedekind::category::CanonicalSetCCC<Covec2V<T>>;
+
+  using Domain = Σ_cat;
+  using Codomain = Τ_cat;
+
+  template <typename U>
+  using Shape = Covec2V<U>;
+
+  template <typename 𝗳>
+    requires dedekind::category::IsArrow<std::remove_cvref_t<𝗳>>
+  constexpr auto φ(𝗳&& f) const {
+    return dedekind::category::arrow(
+        [f = std::forward<𝗳>(f)](Covec2V<T> const& v) -> Covec2V<T> {
+          return {std::invoke(f, v.x), std::invoke(f, v.y)};
+        });
+  }
+
+  constexpr Τ_cat operator()(const Σ_cat&) const noexcept { return {}; }
+};
+
+static_assert(dedekind::category::IsFunctor<vec2_functor<int>>,
+              "Vec2V<·> is a functor Set<T> → Set<Vec2V<T>>: lifts a T-arrow "
+              "to the elementwise Vec2V<T>-arrow.");
+static_assert(dedekind::category::IsFunctor<covec2_functor<int>>,
+              "Covec2V<·> is a functor Set<T> → Set<Covec2V<T>>: lifts a "
+              "T-arrow to the elementwise Covec2V<T>-arrow.");
+
+}  // namespace dedekind::linear_algebra
+
+/** @section Monadic_Unit_Witnesses
+ *
+ *  The functor hubs above are the morphism-lifting half of a Kleisli
+ *  triple; this section pins the @c η / unit half — the scalar → linear-map
+ *  lift that the user expects to see at the linear-algebra layer.  For
+ *  @c Vec2V<T> and @c Covec2V<T> the canonical unit is the diagonal
+ *  broadcast @c s ↦ {s, s}, which is the element of the kernel of the
+ *  difference map @c {x, y} ↦ x − y.  Together with the elementwise
+ *  functorial lift in @c vec2_functor / @c covec2_functor, this gives a
+ *  Reader-flavoured Kleisli triple ([2] → T  with diagonal bind);
+ *  the corresponding @c operator>>= is intentionally deferred to a
+ *  follow-up since the project's Reader monad is not yet generalised
+ *  beyond @c Path<·>.
+ */
+namespace dedekind::category {
+
+export template <typename T>
+  requires std::regular<T> && dedekind::algebra::IsRingLike<T>
+struct unit_witness<dedekind::linear_algebra::Vec2V, T> final {
+  constexpr dedekind::linear_algebra::Vec2V<T> operator()(T s) const {
+    return {s, s};
+  }
+};
+
+export template <typename T>
+  requires std::regular<T> && dedekind::algebra::IsRingLike<T>
+struct unit_witness<dedekind::linear_algebra::Covec2V, T> final {
+  constexpr dedekind::linear_algebra::Covec2V<T> operator()(T s) const {
+    return {s, s};
+  }
+};
+
+/** @brief Counit / extract witness for @c Vec2V<T>.  Canonical projection
+ *  to the first coordinate; mirrors the Reader-monad @c π_0 counit.
+ */
+export template <typename T>
+  requires std::regular<T> && dedekind::algebra::IsRingLike<T>
+struct counit_witness<dedekind::linear_algebra::Vec2V, T> final {
+  constexpr T operator()(const dedekind::linear_algebra::Vec2V<T>& v) const {
+    return v.x;
+  }
+};
+
+}  // namespace dedekind::category
+
+namespace dedekind::linear_algebra {
+
+static_assert(dedekind::category::unit_witness<Vec2V, int>{}(7) ==
+                  Vec2V<int>{7, 7},
+              "Vec2V η: scalar → diagonal broadcast.");
+static_assert(dedekind::category::counit_witness<Vec2V, int>{}(Vec2V<int>{
+                  3, 5}) == 3,
+              "Vec2V ε: extract canonical first coordinate.");
+static_assert(dedekind::category::unit_witness<Covec2V, int>{}(2) ==
+                  Covec2V<int>{2, 2},
+              "Covec2V η: scalar → diagonal broadcast.");
 
 }  // namespace dedekind::linear_algebra

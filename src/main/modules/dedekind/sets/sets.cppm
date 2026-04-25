@@ -1,5 +1,6 @@
 /**
  * @file sets.cppm
+ * @module dedekind.sets
  * @brief The Dedekind Set Model: Concrete Collections and Set Morphisms.
  *
  * Copyright 2026 The Dedekind Authors

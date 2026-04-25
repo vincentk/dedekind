@@ -245,32 +245,32 @@ constexpr Box<Box<A>> δ(box_hub_tag, Box<A> const& ba) {
  * @concept IsPreTransformation
  * @brief Level 2.1: The raw family of components.
  */
-export template <typename Alpha, typename CatS, typename CatT>
-concept IsPreTransformation =
-    IsCategory<CatS> && IsCategory<CatT> &&
-    requires(Alpha alpha, typename CatS::Arrow::Domain c) {
-      // The machine: takes an object in S, returns an arrow in T
-      { alpha(c) } -> std::same_as<typename CatT::Arrow>;
-    };
+export template <typename Α, typename CatS, typename CatT>
+concept IsPreTransformation = IsCategory<CatS> && IsCategory<CatT> &&
+                              requires(Α α, typename CatS::Arrow::Domain c) {
+                                // The machine: takes an object in S, returns an
+                                // arrow in T
+                                { α(c) } -> std::same_as<typename CatT::Arrow>;
+                              };
 
 /**
  * @concept IsTwoMorphism
  * @brief Level 2.15: The bridge between two specific Functors.
  */
-export template <typename Alpha, typename F, typename G>
+export template <typename Α, typename F, typename G>
 concept IsTwoMorphism =
     IsFunctor<F> && IsFunctor<G> &&
     // Symmetry check: Both functors must connect the same Categories
     std::same_as<typename F::Σ_cat, typename G::Σ_cat> &&
     std::same_as<typename F::Τ_cat, typename G::Τ_cat> &&
-    requires(Alpha alpha, typename F::Σ_cat::Arrow::Domain c) {
+    requires(Α α, typename F::Σ_cat::Arrow::Domain c) {
       // Component at c connects F(c) to G(c) in the Target Hub
       // In the single-species setting, we recover F(c) and G(c) by lifting
       // the identity spoke on c and reading the resulting spoke's domain.
-      requires std::same_as<typename decltype(alpha(c))::Domain,
+      requires std::same_as<typename decltype(α(c))::Domain,
                             typename decltype(F{}.φ(
                                 F::Σ_cat::id_c(c)))::Domain>;
-      requires std::same_as<typename decltype(alpha(c))::Codomain,
+      requires std::same_as<typename decltype(α(c))::Codomain,
                             typename decltype(G{}.φ(
                                 G::Σ_cat::id_c(c)))::Domain>;
     };
@@ -279,21 +279,21 @@ concept IsTwoMorphism =
  * @concept IsNaturalTransformation
  * @theorem Naturality (F ⟹ G)
  */
-export template <typename Alpha, typename F, typename G>
+export template <typename Α, typename F, typename G>
 concept IsNaturalTransformation =
-    IsTwoMorphism<Alpha, F, G> && requires(Alpha alpha, F f_map, G g_map,
-                                           typename F::Σ_cat::Arrow::Domain c) {
+    IsTwoMorphism<Α, F, G> &&
+    requires(Α α, F f_map, G g_map, typename F::Σ_cat::Arrow::Domain c) {
       // The Slide is witnessed through the identity spoke at c.
       // This keeps the condition structural for categories whose object
       // labels are recovered via their identity arrows.
       {
-        (f_map >> F::Σ_cat::id_c(c)) >> alpha(c)
-      } -> std::same_as<decltype(alpha(c) >> (g_map >> F::Σ_cat::id_c(c)))>;
+        (f_map >> F::Σ_cat::id_c(c)) >> α(c)
+      } -> std::same_as<decltype(α(c) >> (g_map >> F::Σ_cat::id_c(c)))>;
     };
 
 /**
  * @brief The Identity Natural Transformation for Functor F.
- * @details alpha(c) = id_{F(c)}.
+ * @details α(c) = id_{F(c)}.
  */
 export template <IsFunctor F>
 struct identity_transformation {
@@ -316,46 +316,38 @@ struct identity_transformation {
 };
 
 /**
- * @brief Vertical composition of two 2-morphisms (beta . alpha).
- * @details alpha: F => G, beta: G => H. Result: F => H.
+ * @brief Vertical composition of two 2-morphisms (β . α).
+ * @details α: F => G, β: G => H. Result: F => H.
  */
-export template <typename Alpha, typename Beta, IsFunctor F, IsFunctor G,
-                 IsFunctor H>
-  requires IsNaturalTransformation<Alpha, F, G> &&
-           IsNaturalTransformation<Beta, G, H>
+export template <typename Α, typename Β, IsFunctor F, IsFunctor G, IsFunctor H>
+  requires IsNaturalTransformation<Α, F, G> && IsNaturalTransformation<Β, G, H>
 struct vertical_composition {
-  Alpha alpha;
-  Beta beta;
+  Α α;
+  Β β;
 
   auto operator()(const typename F::Σ_cat::Arrow::Domain& c) const {
-    return alpha(c) >> beta(c);
+    return α(c) >> β(c);
   }
 };
 
 /**
  * @brief Horizontal composition (Godement product).
- * @details F: C->D, G: D->E and alpha: F=>F', beta: G=>G'.
+ * @details F: C->D, G: D->E and α: F=>F', β: G=>G'.
  */
-export template <typename Alpha, typename Beta, IsFunctor F, IsFunctor F_prime,
+export template <typename Α, typename Β, IsFunctor F, IsFunctor F_prime,
                  IsFunctor G, IsFunctor G_prime>
-  requires IsNaturalTransformation<Alpha, F, F_prime> &&
-           IsNaturalTransformation<Beta, G, G_prime>
+  requires IsNaturalTransformation<Α, F, F_prime> &&
+           IsNaturalTransformation<Β, G, G_prime>
 struct horizontal_composition {
-  Alpha alpha;
-  Beta beta;
-  G g_functor;  // Required for mapping the components of alpha through G
+  Α α;
+  Β β;
+  G g_functor;  // Required for mapping the components of α through G
 
   auto operator()(const typename F::Σ_cat::Arrow::Domain& c) const {
-    // (beta * alpha)_c = G'(alpha_c) >> beta_{F(c)}
-    // or equivalent: beta_{F'(c)} >> G(alpha_c)
-    if constexpr (std::convertible_to<typename F::Σ_cat::Arrow::Domain,
-                                      typename G::Σ_cat::Arrow::Domain>) {
-      return G_prime{}.φ(alpha(c)) >>
-             beta(static_cast<typename G::Σ_cat::Arrow::Domain>(c));
-    } else {
-      return G_prime{}.φ(alpha(c)) >>
-             beta(static_cast<typename G::Σ_cat::Arrow::Domain>(c));
-    }
+    // (β * α)_c = G'(α_c) >> β_{F(c)}
+    // or equivalent: β_{F'(c)} >> G(α_c)
+    return G_prime{}.φ(α(c)) >>
+           β(static_cast<typename G::Σ_cat::Arrow::Domain>(c));
   }
 };
 

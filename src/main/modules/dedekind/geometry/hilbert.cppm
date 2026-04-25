@@ -60,4 +60,16 @@ export template <typename V, typename F>
 concept IsHilbertSpace =
     IsInnerProductSpace<V, F> && IsDedekindCompleteField<F>;
 
+/** @section Formal_Verification */
+
+// Vector<double, N> with the standard Euclidean inner product is the
+// canonical finite-dimensional inner-product space ℝᴺ.  The full
+// Hilbert-space concept additionally requires Dedekind-completeness
+// of the scalar field, which `double` does not satisfy categorically
+// (it is the IEEE proxy for ℝ, not ℝ itself); the witness for
+// IsHilbertSpace lands once an exact-real carrier ships.
+static_assert(IsFiniteDimensionalInnerProductSpace<Vector<double, 3>, double>,
+              "Vector<double, 3> must satisfy "
+              "IsFiniteDimensionalInnerProductSpace over double.");
+
 }  // namespace dedekind::geometry

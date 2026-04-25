@@ -54,22 +54,25 @@
  * Wikipedia: Invertible matrix, Cramer's rule, General linear group,
  * Group action
  *
- * @note "Die Erfindung einer Methode ist ein wesentlicher Teil der Mathematik."
- *       — Emmy Noether, attributed to Göttingen lecture remarks on ideal
- *         theory (reported by Alexandrov, 1935).
- *       [Trans: "The invention of a method is an essential part of
- *        mathematics."]
+ * @note "The notion of a matrix ... appears to me to be one of
+ *  considerable importance: it includes that of an ordinary algebraic
+ *  quantity, and also that of a quaternion."
+ *       — Arthur Cayley, *A Memoir on the Theory of Matrices*,
+ *         Philosophical Transactions of the Royal Society of London
+ *         148 (1858), Article 14.
  */
 module;
 
 #include <concepts>
 #include <cstddef>
+#include <functional>  // std::invoke for matrix2x2_functor::φ
 #include <type_traits>
 #include <utility>  // std::declval for non-default-constructible type composition
 
 export module dedekind.linear_algebra:matrix;
 
 import dedekind.algebra; // IsRingLike, IsFieldLikeScalar, IsVectorSpaceLike
+import dedekind.category; // IsFunctor / Set / arrow (for matrix2x2_functor witness)
 import dedekind.numbers; // Rational<Z> for the ℚ carrier
 import dedekind.sets;    // Finite cardinality tag (for dimension_type)
 import :contracts;       // matrix / vector / orientation concepts
@@ -487,6 +490,133 @@ inline constexpr Matrix2x2V<T> identity_matrix2x2_v{T{1}, T{0}, T{0}, T{1}};
 /** @brief Value-level zero: `[[0, 0], [0, 0]]`. */
 export template <typename T>
 inline constexpr Matrix2x2V<T> zero_matrix2x2_v{T{0}, T{0}, T{0}, T{0}};
+
+/** @section Functorial_Hub
+ *
+ *  `Matrix2x2V<·>` carries a 2×2 structural shape that is functorial in
+ *  the element type @c T: an arrow @c f: T→T lifts elementwise to an
+ *  arrow @c Matrix2x2V<T>→Matrix2x2V<T>.  The hub type below owns
+ *  that lift and witnesses @c dedekind::category::IsFunctor; it
+ *  complements @c vec2_functor / @c covec2_functor in @c :tuple,
+ *  closing the (1×1, 2×1, 1×2, 2×2) shape family below.
+ */
+export template <typename T>
+  requires std::regular<T> && dedekind::algebra::IsRingLike<T>
+struct matrix2x2_functor {
+  using ArrowKind = dedekind::category::hub_arrow_tag;
+  using Σ_cat = dedekind::category::CanonicalSetCCC<T>;
+  using Τ_cat = dedekind::category::CanonicalSetCCC<Matrix2x2V<T>>;
+
+  using Domain = Σ_cat;
+  using Codomain = Τ_cat;
+
+  template <typename U>
+  using Shape = Matrix2x2V<U>;
+
+  template <typename 𝗳>
+    requires dedekind::category::IsArrow<std::remove_cvref_t<𝗳>>
+  constexpr auto φ(𝗳&& f) const {
+    return dedekind::category::arrow(
+        [f = std::forward<𝗳>(f)](Matrix2x2V<T> const& m) -> Matrix2x2V<T> {
+          return {std::invoke(f, m.m11), std::invoke(f, m.m12),
+                  std::invoke(f, m.m21), std::invoke(f, m.m22)};
+        });
+  }
+
+  constexpr Τ_cat operator()(const Σ_cat&) const noexcept { return {}; }
+};
+
+static_assert(dedekind::category::IsFunctor<matrix2x2_functor<int>>,
+              "Matrix2x2V<·> is a functor Set<T> → Set<Matrix2x2V<T>>: "
+              "lifts a T-arrow to the elementwise Matrix2x2V<T>-arrow.");
+
+/** @section Scalar_Shape_As_Identity_Functor
+ *
+ *  A scalar T is the 1×1 corner of the shape family (1×1, 2×1, 1×2, 2×2):
+ *  it carries no extra structural shape over T itself.  The identity
+ *  functor on @c Set<T> witnesses this — its @c Shape<U> = U, so it sits
+ *  at the apex of the functorial hierarchy where the inner and outer
+ *  shapes coincide.  Pinned here next to the higher-rank siblings so the
+ *  family is visible in one place.
+ */
+static_assert(
+    dedekind::category::IsEndofunctor<dedekind::category::identity_functor<
+        dedekind::category::CanonicalSetCCC<int>>>,
+    "Scalar shape (1×1): identity_functor<Set<T>> is the trivial "
+    "endofunctor on Set<T>; sits at the apex of the matrix-shape "
+    "family alongside vec2_functor (2×1), covec2_functor (1×2), "
+    "and matrix2x2_functor (2×2).");
+
+/** @section Monadic_Unit_For_Matrix2x2V
+ *
+ *  The "scalar → linear map" lift the user expects to see at the
+ *  linear-algebra layer is the unit @c η : T → Matrix2x2V<T> sending
+ *  @c s ↦ s · I (a scalar matrix; equivalently, the centre of the
+ *  matrix algebra).  This is also the canonical ring homomorphism
+ *  @c T ↪ Matrix2x2V<T> witnessing the field/ring as a sub-ring of
+ *  its own matrix algebra.
+ */
+}  // namespace dedekind::linear_algebra
+
+namespace dedekind::category {
+
+export template <typename T>
+  requires std::regular<T> && dedekind::algebra::IsRingLike<T>
+struct unit_witness<dedekind::linear_algebra::Matrix2x2V, T> final {
+  constexpr dedekind::linear_algebra::Matrix2x2V<T> operator()(T s) const {
+    return {s, T{0}, T{0}, s};
+  }
+};
+
+/** @brief Counit / extract for @c Matrix2x2V<T>: top-left corner.  Matches
+ *  the @c m11 = (1, 1) entry — the canonical projection from the matrix
+ *  algebra to the underlying scalar ring.
+ */
+export template <typename T>
+  requires std::regular<T> && dedekind::algebra::IsRingLike<T>
+struct counit_witness<dedekind::linear_algebra::Matrix2x2V, T> final {
+  constexpr T operator()(
+      const dedekind::linear_algebra::Matrix2x2V<T>& m) const {
+    return m.m11;
+  }
+};
+
+}  // namespace dedekind::category
+
+namespace dedekind::linear_algebra {
+
+static_assert(dedekind::category::unit_witness<Matrix2x2V, int>{}(7) ==
+                  Matrix2x2V<int>{7, 0, 0, 7},
+              "Matrix2x2V η: scalar s ↦ s·I (scalar matrix in the centre of "
+              "the matrix algebra; canonical ring embedding T ↪ M_2(T)).");
+static_assert(dedekind::category::counit_witness<Matrix2x2V, int>{}(
+                  Matrix2x2V<int>{3, 5, 7, 9}) == 3,
+              "Matrix2x2V ε: extract top-left corner (canonical projection "
+              "M_2(T) → T).");
+
+/** @section Bifunctorial_And_Concept_Witnessed_Shapes
+ *
+ *  Higher matrix shapes do not fit the unary @c IsFunctor mould as
+ *  cleanly as the (1×1, 2×1, 1×2, 2×2) family above:
+ *
+ *  - @c DirectSum<A, B> and @c BlockUpperTriangular<A, B, D> are
+ *    naturally bifunctors / trifunctors @c Mat × Mat → Mat:
+ *    block-diagonal / block-UT composition is functorial in each
+ *    argument separately but not unary.  Witnessing them via the
+ *    unary @c IsFunctor concept would require either a partial
+ *    application trick (functor for fixed B / fixed D) or an
+ *    @c IsBifunctor extension to the category partition;
+ *  - Orthogonality, rotation, diagonality etc. live as concept-level
+ *    invariants on @c Matrix2x2V<·> (e.g.\ @c IsOrthogonalMatrixCarrier
+ *    in @c :contracts), not as separate carrier types.  Until #368
+ *    introduces dedicated carriers @c Orthogonal2x2<T>,
+ *    @c Rotation2x2<T>, etc., there is no type for a functor hub to
+ *    map into;
+ *
+ *  Both directions are real upgrades but require either bifunctor
+ *  concept work or new concrete carrier types from #368.  Tracked
+ *  separately rather than folded in here.
+ */
 
 /** @section Shape_Conforming_Linear_Actions
  *
