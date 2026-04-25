@@ -1832,6 +1832,34 @@ where Axiomatic Systems Programming succeeds or fails for embedded
 ML, is an engineering program we name and invite, not one this paper
 discharges on its own.
 
+\paragraph{Natural successor domains.}
+Two application families share the same shape as the Kalman primitive
+demonstrated above and are the natural successors of this showcase
+in a follow-up paper.  \emph{Compile-time Monte Carlo} reduces a
+fixed-sample-size estimator to a typed result that carries both the
+sample mean and its standard error in one envelope; running the same
+estimator over \lstinline{Dual<Rational<...>>} returns the
+parameter-sensitivity of the estimator with no separate autodiff
+pass.  \emph{Compile-time molecular dynamics} integrates a small
+N-body system through the leapfrog primitive of
+\lstinline{dedekind.analysis:hamilton} (the symplectic kick--drift--kick
+integrator already shipped); energy conservation along the resulting
+trajectory becomes a \lstinline{static_assert} pattern; the
+\lstinline{dedekind.analysis:exterior} symplectic 2-form witnesses
+the Hamiltonian structure; and pathwise sensitivities to a force-field
+parameter are again a \lstinline{Dual}-ring lift.  Both domains
+share the structure this paper has been pinning throughout: fixed
+problem topology at compile time, per-step computation that is
+scalars and small vectors rather than multi-dimensional matrix
+factorisation, and a hard correctness signal (energy conservation;
+reproducible mean) that the type system can police.  The substrate
+(leapfrog, exterior 2-form, exact rational arithmetic, the
+\lstinline{Dual} product ring) is shipped today; the worked
+showcases and quantitative comparisons against domain baselines
+(LAMMPS-flavoured MD, scientific-computing MC libraries) are
+deliberately left to a successor paper rather than diluted into
+this one.
+
 \subsection{Algebraic Properties Enable Stronger Pruning}
 
 Beyond interval arithmetic, \emph{algebraic} properties of the predicates provide
