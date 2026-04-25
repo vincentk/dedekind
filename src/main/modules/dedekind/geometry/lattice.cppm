@@ -6,9 +6,18 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @note "The Greeks made Space the subject-matter of a science of supreme
- * simplicity and certainty."
- *       -- Hermann Weyl, Space-Time-Matter (1918)
+ * @note "解伏題之法は、消去の術に在り"
+ *       — Seki Kōwa (関 孝和, 1642–1708), paraphrase of the central
+ *         thesis of *Kaifukudai no Hō* (解伏題之法, 1683), the
+ *         treatise that introduced determinant theory roughly a
+ *         decade before Leibniz.
+ *       [Trans: "The method of solving buried problems lies in the
+ *        technique of elimination."]
+ *
+ *       Seki computed on a sangi (算木) wooden board — a literal
+ *       integer lattice — making his school's algebraic technique
+ *       a natural ancestor of the @c IntegerLatticePoint2D /
+ *       @c integer_lattice_2d() carriers below.
  */
 
 module;
