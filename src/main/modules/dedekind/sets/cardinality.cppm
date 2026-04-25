@@ -555,7 +555,8 @@ struct SignedExtensionalCardinal {
 //     is the load-bearing certificate that lifts `IsTotal` and the
 //     downstream `IsAbelianGroup<SignedCardinality, std::plus<...>>`.
 
-/** @struct PositiveInfinity: the @f$+\aleph_0@f$ sentinel for SignedCardinality. */
+/** @struct PositiveInfinity: the @f$+\aleph_0@f$ sentinel for
+ * SignedCardinality. */
 export struct PositiveInfinity {
   constexpr friend bool operator==(const PositiveInfinity&,
                                    const PositiveInfinity&) = default;
@@ -583,8 +584,8 @@ export struct NaZ {
  *  defined to escalate on signed-overflow rather than wrap.
  */
 export using SignedCardinality =
-    std::variant<SignedExtensionalCardinal<>, PositiveInfinity, NegativeInfinity,
-                 NaZ>;
+    std::variant<SignedExtensionalCardinal<>, PositiveInfinity,
+                 NegativeInfinity, NaZ>;
 
 namespace detail {
 constexpr bool sc_is_finite(const SignedCardinality& v) noexcept {
@@ -600,9 +601,8 @@ constexpr bool sc_is_naz(const SignedCardinality& v) noexcept {
   return std::holds_alternative<NaZ>(v);
 }
 constexpr bool sc_is_zero(const SignedCardinality& v) noexcept {
-  return sc_is_finite(v) &&
-         std::get<SignedExtensionalCardinal<>>(v) ==
-             SignedExtensionalCardinal<>{};
+  return sc_is_finite(v) && std::get<SignedExtensionalCardinal<>>(v) ==
+                                SignedExtensionalCardinal<>{};
 }
 constexpr int sc_sign(const SignedCardinality& v) noexcept {
   // Returns +1 for positive (incl. +ℵ_0), -1 for negative (incl. -ℵ_0),
@@ -626,10 +626,8 @@ constexpr SignedCardinality finite_signed_cardinality(S value) noexcept {
 export constexpr SignedCardinality operator-(
     const SignedCardinality& v) noexcept {
   if (detail::sc_is_naz(v)) return SignedCardinality{NaZ{}};
-  if (detail::sc_is_pos_inf(v))
-    return SignedCardinality{NegativeInfinity{}};
-  if (detail::sc_is_neg_inf(v))
-    return SignedCardinality{PositiveInfinity{}};
+  if (detail::sc_is_pos_inf(v)) return SignedCardinality{NegativeInfinity{}};
+  if (detail::sc_is_neg_inf(v)) return SignedCardinality{PositiveInfinity{}};
   return SignedCardinality{-std::get<SignedExtensionalCardinal<>>(v)};
 }
 
@@ -639,10 +637,8 @@ export constexpr SignedCardinality operator+(
   using namespace detail;
   if (sc_is_naz(lhs) || sc_is_naz(rhs)) return SignedCardinality{NaZ{}};
   // Mixed infinities: indeterminate.
-  if (sc_is_pos_inf(lhs) && sc_is_neg_inf(rhs))
-    return SignedCardinality{NaZ{}};
-  if (sc_is_neg_inf(lhs) && sc_is_pos_inf(rhs))
-    return SignedCardinality{NaZ{}};
+  if (sc_is_pos_inf(lhs) && sc_is_neg_inf(rhs)) return SignedCardinality{NaZ{}};
+  if (sc_is_neg_inf(lhs) && sc_is_pos_inf(rhs)) return SignedCardinality{NaZ{}};
   // Same-sign infinities: absorb.
   if (sc_is_pos_inf(lhs) || sc_is_pos_inf(rhs))
     return SignedCardinality{PositiveInfinity{}};
@@ -663,8 +659,7 @@ export constexpr SignedCardinality operator+(
     SignedExtensionalCardinal<> result;
     result.negative = a.negative;
     result.magnitude = checked.value;
-    if (result.magnitude ==
-        SignedExtensionalCardinal<>::magnitude_type{}) {
+    if (result.magnitude == SignedExtensionalCardinal<>::magnitude_type{}) {
       result.negative = false;  // canonicalise zero
     }
     return SignedCardinality{result};
@@ -696,9 +691,8 @@ export constexpr SignedCardinality operator*(
   }
   const auto& a = std::get<SignedExtensionalCardinal<>>(lhs);
   const auto& b = std::get<SignedExtensionalCardinal<>>(rhs);
-  const auto checked =
-      SignedExtensionalCardinal<>::magnitude_type::checked_mul(a.magnitude,
-                                                               b.magnitude);
+  const auto checked = SignedExtensionalCardinal<>::magnitude_type::checked_mul(
+      a.magnitude, b.magnitude);
   if (checked.overflowed) {
     const bool result_negative = (a.negative != b.negative);
     return result_negative ? SignedCardinality{NegativeInfinity{}}
@@ -706,9 +700,9 @@ export constexpr SignedCardinality operator*(
   }
   SignedExtensionalCardinal<> result;
   result.magnitude = checked.value;
-  result.negative = (a.negative != b.negative) &&
-                    (result.magnitude !=
-                     SignedExtensionalCardinal<>::magnitude_type{});
+  result.negative =
+      (a.negative != b.negative) &&
+      (result.magnitude != SignedExtensionalCardinal<>::magnitude_type{});
   return SignedCardinality{result};
 }
 
@@ -743,8 +737,7 @@ export constexpr SignedCardinality operator%(
     const SignedCardinality& lhs, const SignedCardinality& rhs) noexcept {
   using namespace detail;
   if (sc_is_naz(lhs) || sc_is_naz(rhs)) return SignedCardinality{NaZ{}};
-  if (!sc_is_finite(lhs) || !sc_is_finite(rhs))
-    return SignedCardinality{NaZ{}};
+  if (!sc_is_finite(lhs) || !sc_is_finite(rhs)) return SignedCardinality{NaZ{}};
   if (sc_is_zero(rhs)) return SignedCardinality{NaZ{}};
   const auto& a = std::get<SignedExtensionalCardinal<>>(lhs);
   const auto& b = std::get<SignedExtensionalCardinal<>>(rhs);

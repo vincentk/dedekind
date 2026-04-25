@@ -724,7 +724,7 @@ inline constexpr bool is_saturating_v = is_saturating<T, Op>::value;
 export template <typename T, typename Op>
 struct is_total
     : std::bool_constant<
-          is_periodic_v<T, Op> ||   // Path A: It wraps (Groups/Rings)
+          is_periodic_v<T, Op> ||    // Path A: It wraps (Groups/Rings)
           is_idempotent_v<T, Op> ||  // Path B: It's stable (Lattices/Extrema)
           is_saturating_v<T, Op>     // Path C: It escalates (extended ℤ, ±ℵ_0)
           > {};
@@ -912,8 +912,8 @@ concept IsPeriodic = is_periodic_v<T, Op>;
  * partition.
  */
 export template <typename T, typename Op>
-concept IsTotal = IsPeriodic<T, Op> || IsIdempotent<T, Op> ||
-                  is_saturating_v<T, Op>;
+concept IsTotal =
+    IsPeriodic<T, Op> || IsIdempotent<T, Op> || is_saturating_v<T, Op>;
 
 /** @section Lattice_Morphisms (std::ranges) */
 

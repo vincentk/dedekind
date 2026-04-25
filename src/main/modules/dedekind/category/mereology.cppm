@@ -540,8 +540,8 @@ static_assert(IsMereologicalMeetSemigroup<int, decltype(std::ranges::min)>);
 static_assert(IsMereologicalJoinSemigroup<int, decltype(std::ranges::max)>);
 static_assert(IsMereologicalMeetBand<int, decltype(std::ranges::min)>);
 static_assert(IsMereologicalJoinBand<int, decltype(std::ranges::max)>);
-static_assert(IsMereologicalSkewLattice<
-              int, decltype(std::ranges::max), decltype(std::ranges::min)>);
+static_assert(IsMereologicalSkewLattice<int, decltype(std::ranges::max),
+                                        decltype(std::ranges::min)>);
 
 namespace detail {
 // Minimal positive witness for IsMereologicalCutCandidate.
