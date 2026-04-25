@@ -265,7 +265,7 @@ export template <typename T, typename Op>
 concept IsSaturating = is_saturating_v<T, Op>;
 
 /**
- * @concept IsMereologicalSkewLatticeOperations
+ * @concept IsMereologicalSkewLattice
  * @brief Non-commutative lattice-style operations (skew lattice fragment).
  *
  * @details
@@ -274,7 +274,7 @@ concept IsSaturating = is_saturating_v<T, Op>;
  */
 export template <typename T, typename Join = decltype(std::ranges::max),
                  typename Meet = decltype(std::ranges::min)>
-concept IsMereologicalSkewLatticeOperations =
+concept IsMereologicalSkewLattice =
     IsMereologicalJoinBand<T, Join> && IsMereologicalMeetBand<T, Meet> &&
     IsAbsorptive<T, Join, Meet>;
 
@@ -313,7 +313,7 @@ concept IsMereologicalJoinSemilattice = IsMereologicalJoinBand<T, Join>;
  * the order partition.
  *
  * Non-commutative variants are captured by
- * `IsMereologicalSkewLatticeOperations`.
+ * `IsMereologicalSkewLattice`.
  *
  * @see https://en.wikipedia.org/wiki/Skew_lattice
  */
@@ -381,7 +381,7 @@ concept IsSkewJoinSemilattice = IsMereologicalJoinBand<S, Join>;
  */
 export template <typename S, typename Join = std::bit_or<S>,
                  typename Meet = std::bit_and<S>>
-concept IsSkewLattice = IsMereologicalSkewLatticeOperations<S, Join, Meet>;
+concept IsSkewLattice = IsMereologicalSkewLattice<S, Join, Meet>;
 
 /**
  * @concept IsSetMeetSemilattice
@@ -540,7 +540,7 @@ static_assert(IsMereologicalMeetSemigroup<int, decltype(std::ranges::min)>);
 static_assert(IsMereologicalJoinSemigroup<int, decltype(std::ranges::max)>);
 static_assert(IsMereologicalMeetBand<int, decltype(std::ranges::min)>);
 static_assert(IsMereologicalJoinBand<int, decltype(std::ranges::max)>);
-static_assert(IsMereologicalSkewLatticeOperations<
+static_assert(IsMereologicalSkewLattice<
               int, decltype(std::ranges::max), decltype(std::ranges::min)>);
 
 namespace detail {

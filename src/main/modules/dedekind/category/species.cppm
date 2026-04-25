@@ -960,7 +960,7 @@ inline constexpr bool is_distributive_v<T, decltype(std::ranges::min),
  * logical_and), the (bit_xor, bit_and) Boolean-ring non-witness)
  * stay here, alongside the trait-variable template, so that upstream
  * concepts in @c category (e.g.\ @c IsLattice in @c :total,
- * @c IsMereologicalSkewLatticeOperations in @c :mereology,
+ * @c IsMereologicalSkewLattice in @c :mereology,
  * @c IsOrderLatticeOperations in @c :posetal) can reach them via the
  * direct trait check without inverting the dependency on
  * @c morphologies.
