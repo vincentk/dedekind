@@ -2085,12 +2085,15 @@ degenerate-Schur condition; a future Kronecker combinator preserves
 orthogonality and lattice structure compositionally. Each combinator
 is itself a small structurally-checked unit; their composition gives
 $2^k \times 2^k$ matrices whose invariants follow by induction
-without exponential blowup in the templates. The roadmap items are
-tracked in the project backlog (issues \#366 / \#368 / \#369) and
+without exponential blowup in the templates. The roadmap items
+% Backlog: issues #366 (block-Schur invertibility recursion),
+% #368 (catalog of well-behaved matrix carriers), #369
+% (structure-preserving combinators).
 fall out of the same Axiomatic-Systems-Programming discipline rather
-than requiring a different paradigm. They are not part of this
-paper's scope; this paper establishes the atom-level pattern that
-the combinators preserve.
+than requiring a different paradigm, and are tracked in the project
+backlog rather than discharged here. This paper establishes the
+atom-level pattern that the combinators preserve; the combinators
+themselves are scope for a successor library iteration.
 
 \paragraph{Numeric overflow in the carrier.}
 The paper's code listings ship with
