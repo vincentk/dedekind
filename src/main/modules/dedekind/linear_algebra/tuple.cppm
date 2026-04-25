@@ -260,7 +260,7 @@ static_assert(dedekind::category::IsFunctor<covec2_functor<int>>,
  */
 namespace dedekind::category {
 
-template <typename T>
+export template <typename T>
   requires std::regular<T> && dedekind::algebra::IsRingLike<T>
 struct unit_witness<dedekind::linear_algebra::Vec2V, T> final {
   constexpr dedekind::linear_algebra::Vec2V<T> operator()(T s) const {
@@ -268,7 +268,7 @@ struct unit_witness<dedekind::linear_algebra::Vec2V, T> final {
   }
 };
 
-template <typename T>
+export template <typename T>
   requires std::regular<T> && dedekind::algebra::IsRingLike<T>
 struct unit_witness<dedekind::linear_algebra::Covec2V, T> final {
   constexpr dedekind::linear_algebra::Covec2V<T> operator()(T s) const {
@@ -279,7 +279,7 @@ struct unit_witness<dedekind::linear_algebra::Covec2V, T> final {
 /** @brief Counit / extract witness for @c Vec2V<T>.  Canonical projection
  *  to the first coordinate; mirrors the Reader-monad @c π_0 counit.
  */
-template <typename T>
+export template <typename T>
   requires std::regular<T> && dedekind::algebra::IsRingLike<T>
 struct counit_witness<dedekind::linear_algebra::Vec2V, T> final {
   constexpr T operator()(const dedekind::linear_algebra::Vec2V<T>& v) const {

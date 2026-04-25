@@ -346,14 +346,8 @@ struct horizontal_composition {
   auto operator()(const typename F::Σ_cat::Arrow::Domain& c) const {
     // (β * α)_c = G'(α_c) >> β_{F(c)}
     // or equivalent: β_{F'(c)} >> G(α_c)
-    if constexpr (std::convertible_to<typename F::Σ_cat::Arrow::Domain,
-                                      typename G::Σ_cat::Arrow::Domain>) {
-      return G_prime{}.φ(α(c)) >>
-             β(static_cast<typename G::Σ_cat::Arrow::Domain>(c));
-    } else {
-      return G_prime{}.φ(α(c)) >>
-             β(static_cast<typename G::Σ_cat::Arrow::Domain>(c));
-    }
+    return G_prime{}.φ(α(c)) >>
+           β(static_cast<typename G::Σ_cat::Arrow::Domain>(c));
   }
 };
 

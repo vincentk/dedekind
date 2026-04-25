@@ -385,16 +385,18 @@ constexpr auto ambient_set(Pred&& predicate) {
 
 /**
  * @section IsSet_entails_CCC_directional_witness
- * Directional witness for the ETCS \f$\subset\f$ CCC implication.
- * The second @c static_assert encodes the implication
- * @c IsSet<S> ==> HasCanonicalSetCCC<typename S::Ambient> directly
- * (as @c !IsSet<S> || HasCanonicalSetCCC<...>) so that a future edit
- * loosening @c IsSet to admit ambients without a canonical CCC would
- * fail to certify the corollary --- a property the previous
- * formulation, which asserted the two sides separately, did not have.
- * Pinned via a representative carrier (a trivially-true predicate
- * over @c int) so the implication is structurally checked next to the
- * @c IsSet definition.
+ * Representative sanity check for the ETCS \f$\subset\f$ CCC
+ * implication.  The second @c static_assert checks the implication
+ * @c IsSet<S> ==> HasCanonicalSetCCC<typename S::Ambient> for the
+ * chosen witness type @c _isset_witness_t by spelling it as
+ * @c !IsSet<_isset_witness_t> || HasCanonicalSetCCC<...>.
+ *
+ * Because this is pinned to a single representative carrier (a
+ * trivially-true predicate over @c int) and @c HasCanonicalSetCCC<int>
+ * is independently true, the assertion is a local regression sanity
+ * check kept next to the @c IsSet definition --- not a universal
+ * proof that every future model of @c IsSet has a canonical CCC
+ * ambient.
  */
 namespace {
 using _isset_witness_t = decltype(ambient_set<int>([](int) { return true; }));

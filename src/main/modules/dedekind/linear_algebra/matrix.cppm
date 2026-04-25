@@ -559,7 +559,7 @@ static_assert(
 
 namespace dedekind::category {
 
-template <typename T>
+export template <typename T>
   requires std::regular<T> && dedekind::algebra::IsRingLike<T>
 struct unit_witness<dedekind::linear_algebra::Matrix2x2V, T> final {
   constexpr dedekind::linear_algebra::Matrix2x2V<T> operator()(T s) const {
@@ -571,7 +571,7 @@ struct unit_witness<dedekind::linear_algebra::Matrix2x2V, T> final {
  *  the @c m11 = (1, 1) entry — the canonical projection from the matrix
  *  algebra to the underlying scalar ring.
  */
-template <typename T>
+export template <typename T>
   requires std::regular<T> && dedekind::algebra::IsRingLike<T>
 struct counit_witness<dedekind::linear_algebra::Matrix2x2V, T> final {
   constexpr T operator()(

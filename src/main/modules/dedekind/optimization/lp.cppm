@@ -300,15 +300,15 @@ constexpr auto maximize() {
  *  type level so the witness can be pinned without changing the
  *  primary API surface.
  */
-namespace detail {
 
 /** @brief Polytope context: the (cx, cy, Hs...) pack reified as a type.
  *
  *  Carries no runtime state; it exists only so the comonadic extract
  *  has a context-carrier to consume.  Conceptually @c F<T> in the
- *  @c F<T> → T shape of the LP reduction.
+ *  @c F<T> → T shape of the LP reduction.  Exported alongside
+ *  @c lp_extract so module consumers can name the parameter type.
  */
-template <typename T, T cx, T cy, typename... Hs>
+export template <typename T, T cx, T cy, typename... Hs>
   requires(sizeof...(Hs) >= 2) && dedekind::algebra::IsRingLike<T>
 struct Polytope2D final {
   using scalar_type = T;
@@ -323,16 +323,14 @@ struct Polytope2D final {
   static constexpr auto extract() { return maximize<T, cx, cy, Hs...>(); }
 };
 
-}  // namespace detail
-
 /** @brief @c ε / extract for the LP comonadic context.  Provided as a
- *  free function so callers can write @c lp_extract(polytope) without
- *  reaching into @c detail.
+ *  free function so callers can write @c lp_extract(polytope) at the
+ *  call site.
  */
 export template <typename T, T cx, T cy, typename... Hs>
   requires(sizeof...(Hs) >= 2) && dedekind::algebra::IsRingLike<T>
-constexpr auto lp_extract(detail::Polytope2D<T, cx, cy, Hs...>) {
-  return detail::Polytope2D<T, cx, cy, Hs...>::extract();
+constexpr auto lp_extract(Polytope2D<T, cx, cy, Hs...>) {
+  return Polytope2D<T, cx, cy, Hs...>::extract();
 }
 
 }  // namespace dedekind::optimization
