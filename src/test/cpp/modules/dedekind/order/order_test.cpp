@@ -14,7 +14,13 @@ TEST_CASE("Order: The Geography of Species", "[order][axioms]") {
     STATIC_CHECK(IsTotallyOrdered<int>);
     STATIC_CHECK(dedekind::order::IsOrderMeetSemilattice<int>);
     STATIC_CHECK(dedekind::order::IsOrderJoinSemilattice<int>);
-    STATIC_CHECK(dedekind::order::IsOrderLattice<int>);
+    // int is a totally-ordered lattice under min / max.  The
+    // post-#393 `IsOrderLattice` is the bundled Boolean-ring lattice
+    // (Add = bit_xor, Mult = bit_and), which int does NOT satisfy ---
+    // int is an integer ring under +/*, not a Boolean ring under
+    // XOR/AND.  The order-theoretic min/max claim is now made
+    // directly via the underlying certified-lattice concept.
+    STATIC_CHECK(dedekind::category::IsCertifiedOrderLatticeOperations<int>);
     STATIC_CHECK(dedekind::order::IsOrderDistributiveLattice<int>);
     // Archimedean and density contracts are experimental in this layer.
   }
@@ -47,8 +53,12 @@ TEST_CASE("Order: Posetal lattice reuse", "[order][lattice]") {
   SECTION("Certified lattice operations are re-exported") {
     STATIC_CHECK(dedekind::order::IsOrderMeetSemilattice<int, decltype(meet)>);
     STATIC_CHECK(dedekind::order::IsOrderJoinSemilattice<int, decltype(join)>);
+    // Order-theoretic certified lattice on int (Join = max, Meet = min);
+    // post-#393, `IsOrderLattice` is the bundled Boolean-ring lattice and
+    // does not fire on integer carriers.
     STATIC_CHECK(
-        dedekind::order::IsOrderLattice<int, decltype(join), decltype(meet)>);
+        dedekind::category::IsCertifiedOrderLatticeOperations<
+            int, decltype(join), decltype(meet)>);
     STATIC_CHECK(
         dedekind::order::IsOrderDistributiveLattice<int, decltype(join),
                                                     decltype(meet)>);

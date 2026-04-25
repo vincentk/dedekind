@@ -127,6 +127,29 @@ class RigPolynomial {
     return RigPolynomial(std::move(res));
   }
 
+  /**
+   * @brief Unary additive inverse: @c -p coefficient-wise.
+   *
+   * @details Available only when the coefficient ring @c R provides
+   * additive inverses (@c is_invertible_v<R, std::plus<R>>).  Required
+   * by the bundled @c algebra::IsRing concept to satisfy the
+   * @c HasRingOperators<RigPolynomial<R>> shape clause; without it,
+   * a `static_assert(IsCommutativeRing<RigPolynomial<R>>)` would fail
+   * the operator-surface check even though the trait machinery is
+   * registered.  Added under #393 alongside the shape concept
+   * introduction.
+   */
+  friend constexpr RigPolynomial operator-(const RigPolynomial& a)
+    requires dedekind::category::is_invertible_v<R, std::plus<R>>
+  {
+    if (a.is_zero()) return a;
+    std::vector<R> res;
+    res.reserve(a.coeffs_.size());
+    for (const R& c : a.coeffs_)
+      res.push_back(dedekind::category::inverse_v<R, std::plus<R>>(c));
+    return RigPolynomial(std::move(res));
+  }
+
   /** @brief Cauchy Product: (a * b)_n = Σ (a_i * b_{n-i}) */
   friend constexpr RigPolynomial operator*(const RigPolynomial& a,
                                            const RigPolynomial& b) {
