@@ -6,11 +6,12 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @note "Etudiez la nature, aimez la nature, approchez-vous de la nature.
- * Elle ne vous trompera jamais."
- *       ("Study nature, love nature, stay close to nature. It will never
- * fail you.")
- *       -- Jean-Baptiste Fourier
+ * @note "Lectio mathematica nihil aliud est, quam meditatio cum calamo
+ * coniuncta."
+ *       — Leonhard Euler, paraphrase from the preface of
+ *         *Introductio in analysin infinitorum* (1748).
+ *       [Trans: "Reading mathematics is nothing other than meditation
+ *        conjoined with the pen."]
  */
 
 module;
