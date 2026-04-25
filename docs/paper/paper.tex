@@ -691,25 +691,41 @@ concluded, this admits the obvious Penrose-style worry: if the
 development is ``almost mechanical'', on what basis can the output
 claim mathematical merit?
 
-The pragmatic answer is that the artefacts are kept honest by two
-compounding constraints, both of which this paper has stressed
-throughout.  The first is \emph{textbook anchoring}: every concept
-name, type, and law statement in the codebase is taken directly from
-a working mathematician's published vocabulary---Lawvere on ETCS,
-Cayley and Sylvester on matrices, Seki K\^owa on determinants, Lambek
-on Cartesian closure, Minkowski on lattices.  The vocabulary has
-already been audited by the wider mathematical community; the AI's
+The pragmatic answer is that the artefacts are kept honest by three
+compounding constraints, all of which this paper has stressed
+throughout.
+\begin{enumerate}
+\item \emph{Domain textbook anchoring}: every concept name, type, and
+law statement in the codebase is taken directly from a working
+mathematician's published vocabulary---Lawvere on ETCS, Cayley and
+Sylvester on matrices, Seki K\^owa on determinants, Lambek on
+Cartesian closure, Minkowski on lattices.  The vocabulary has already
+been audited by the wider mathematical community; the AI's
 contribution is to fit its output to that audited shape, not to
-invent fresh terminology.  The second is \emph{mechanical
-validation}: every algebraic claim becomes a \texttt{static\_assert}
-the compiler must discharge, every concept composes through a
-named-module DAG the build system enforces, and every behavioural
-claim passes the test suite under CI before merging.  The compiler
-does not care which agent typed the code, and the closure-at-stage-\(n\)
-signal of the previous paragraph applies recursively to the
-development methodology: the AI systems supply stage-\(n{+}1\)
-candidates, the mechanical filters discharge the consistency, and the
-human chooses the next fragment of mathematics to encode.
+invent fresh terminology.
+\item \emph{Mechanical validation}: every algebraic claim becomes a
+\texttt{static\_assert} the compiler must discharge, every concept
+composes through a named-module DAG the build system enforces, and
+every behavioural claim passes the test suite under CI before
+merging.  The compiler does not care which agent typed the code.
+\item \emph{Codomain textbook anchoring}: concepts on the carrier
+side are validated against the ontology of the C++ standard library
+itself---\texttt{std::ranges::input\_range},
+\texttt{std::input\_iterator}, \texttt{std::regular}, the
+\texttt{<concepts>} standard-concepts header,
+\texttt{std::numeric\_limits}, the iterator hierarchy.  Where the
+library's mathematical structure has a standard analogue, the
+analogue is named explicitly (e.g.\ \texttt{IsFiniteSequence} flowing
+into \texttt{std::ranges} algorithms via \texttt{FinitePath}'s
+iterator surface).  The standard library has its own audit history;
+binding to it on the codomain side mirrors the mathematical-vocabulary
+binding on the domain side.
+\end{enumerate}
+The closure-at-stage-\(n\) signal of the previous paragraph applies
+recursively to the development methodology over all three: the AI
+systems supply stage-\(n{+}1\) candidates, the mechanical filters
+discharge the consistency, and the human chooses the next fragment
+of mathematics to encode.
 
 % ============================================================
 \section{Intensional First, Realize When You Mean It}
