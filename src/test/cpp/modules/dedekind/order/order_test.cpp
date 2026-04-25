@@ -56,9 +56,8 @@ TEST_CASE("Order: Posetal lattice reuse", "[order][lattice]") {
     // Order-theoretic certified lattice on int (Join = max, Meet = min);
     // post-#393, `IsOrderLattice` is the bundled Boolean-ring lattice and
     // does not fire on integer carriers.
-    STATIC_CHECK(
-        dedekind::category::IsCertifiedOrderLatticeOperations<
-            int, decltype(join), decltype(meet)>);
+    STATIC_CHECK(dedekind::category::IsCertifiedOrderLatticeOperations<
+                 int, decltype(join), decltype(meet)>);
     STATIC_CHECK(
         dedekind::order::IsOrderDistributiveLattice<int, decltype(join),
                                                     decltype(meet)>);

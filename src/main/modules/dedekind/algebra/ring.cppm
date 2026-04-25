@@ -141,9 +141,9 @@ concept IsRng = dedekind::category::IsRng<T, Add, Mult>;
 // `IsRing<T> && HasRingOperators<T>`.
 export template <typename T, typename Add = std::plus<T>,
                  typename Mult = std::multiplies<T>>
-concept IsRing = dedekind::category::IsRing<T, Add, Mult> &&
-                 IsSemiring<T, Add, Mult> && IsAdditiveGroup<T, Add> &&
-                 HasRingOperatorsFor<T, Add, Mult>;
+concept IsRing =
+    dedekind::category::IsRing<T, Add, Mult> && IsSemiring<T, Add, Mult> &&
+    IsAdditiveGroup<T, Add> && HasRingOperatorsFor<T, Add, Mult>;
 
 /**
  * @concept IsArithmeticRing
@@ -188,8 +188,8 @@ concept IsRing = dedekind::category::IsRing<T, Add, Mult> &&
  * meet" point.
  */
 export template <typename T>
-concept IsArithmeticRing = IsRing<T, std::plus<T>, std::multiplies<T>> &&
-                           HasRingOperators<T>;
+concept IsArithmeticRing =
+    IsRing<T, std::plus<T>, std::multiplies<T>> && HasRingOperators<T>;
 
 /**
  * @concept IsCommutativeRing

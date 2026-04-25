@@ -107,8 +107,8 @@ concept IsOrderJoinSemilattice =
  */
 export template <typename T, typename Add = std::bit_xor<T>,
                  typename Mult = std::bit_and<T>>
-concept IsOrderLattice =
-    dedekind::category::IsCommutativeRing<T, Add, Mult> && HasLatticeOperators<T>;
+concept IsOrderLattice = dedekind::category::IsCommutativeRing<T, Add, Mult> &&
+                         HasLatticeOperators<T>;
 
 /**
  * @concept IsOrderDistributiveLattice
