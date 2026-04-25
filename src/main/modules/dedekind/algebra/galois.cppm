@@ -378,7 +378,7 @@ static_assert(!dedekind::category::is_cyclic_group_v<𝔽64, std::plus<𝔽64>>,
 /** @section Primitive_Element_Enumeration #388
  *
  * The multiplicative group @f$\mathbb{F}_{64}^{\times}@f$ is cyclic
- * of order @c 63 (proven below); a primitive element is
+ * of order @c 63 (as witnessed above); a primitive element is
  * @f$\alpha = x@f$ under the chosen polynomial
  * @f$f(x) = x^6 + x + 1@f$, which has bit-representation @c 0b000010
  * @c = @c 2.  Thus the enumeration

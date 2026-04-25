@@ -68,15 +68,16 @@ using namespace dedekind::sequences;
  *     is a partial magma + multiplicatively pointed.  Axiomatic;
  *     the trait the @c order::IsArchimedean composition demands.
  *
- * The two coincide on carriers like @c Modular<N> (and primitive
- * unsigned integrals via wrap-around arithmetic), and the witness
- * @c Modular<N>::successor(x) == x + Modular<N>{1} below pins
- * that coherence at the type level.  Re-expressing
- * @c order::IsArchimedean purely in terms of @c :order concepts is
- * deliberately not done here: the additive partial-magma + pointed
- * multiplicative-identity composition is the algebraic content the
- * Archimedean axiom genuinely needs, and the order layer is the
- * right home for it.
+ * The two coincide on carriers like @c Modular<N> that satisfy both
+ * surfaces.  The coherence witness
+ * @c Modular<N>::successor(x) == x + Modular<N>{1} is pinned at the
+ * type level in @c src/main/modules/dedekind/morphologies/cyclic.cppm
+ * (alongside the @c IsCyclic / @c IsCyclicGroup chains for the same
+ * carrier).  Re-expressing @c order::IsArchimedean purely in terms
+ * of @c :order concepts is deliberately not done here: the additive
+ * partial-magma + pointed multiplicative-identity composition is the
+ * algebraic content the Archimedean axiom genuinely needs, and the
+ * order layer is the right home for it.
  *
  * @section Modern_Bridge_Archimedean_Generators
  *
