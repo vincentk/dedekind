@@ -134,18 +134,25 @@ TEST_CASE("Analysis: Harmonic oscillator --- paper §5.7 showcase witnesses",
   STATIC_CHECK(IsHamiltonian<HarmonicOscillator<ℝ>, PhasePoint<ℝ>, ℝ>);
 
   // 2. :exterior --- the symplectic 2-form ω = dp ∧ dq is
-  //    antisymmetric on the canonical basis pair (one ingredient of
-  //    dω = 0; symplectic structure on the (q, p) phase plane).
-  OneForm<ℝ, 2> dq{{1.0, 0.0}};
-  OneForm<ℝ, 2> dp{{0.0, 1.0}};
-  const auto omega = wedge(dp, dq);
-  const Vector<ℝ, 2> v_x{1.0, 0.0};
-  const Vector<ℝ, 2> v_y{0.0, 1.0};
-  CHECK(omega(v_x, v_y) == -omega(v_y, v_x));
+  //    antisymmetric on the canonical basis pair.  Pure algebra,
+  //    no transcendentals --- promoted to STATIC_CHECK so the
+  //    claim is decided at translation time.
+  constexpr OneForm<ℝ, 2> dq{{1.0, 0.0}};
+  constexpr OneForm<ℝ, 2> dp{{0.0, 1.0}};
+  constexpr auto omega = wedge(dp, dq);
+  constexpr Vector<ℝ, 2> v_x{1.0, 0.0};
+  constexpr Vector<ℝ, 2> v_y{0.0, 1.0};
+  STATIC_CHECK(omega(v_x, v_y) == -omega(v_y, v_x));
 
   // 3. Energy conservation along the harmonic-oscillator
-  //    closed-form flow.  H(q, p) = ½(p² + ω²q²) for ω = 1.  The
-  //    flow rotates in (q, p); H is constant.
+  //    closed-form flow.  H(q, p) = ½(p² + ω²q²) for ω = 1; the
+  //    flow rotates in (q, p) and H is constant.  This one is
+  //    runtime, not STATIC_CHECK: the closed-form expression
+  //    calls std::cos / std::sin (libc++'s implementation is not
+  //    constexpr), and the tolerance compare uses std::abs(double)
+  //    (likewise not constexpr in libc++ --- the very wall §5.5
+  //    documents and sometimes hand-rolls around).  The check
+  //    therefore sits to the right of the Compiler Wall.
   const HarmonicOscillator<ℝ> H{1.0};
   const auto flow = harmonic_oscillator_curve<ℝ>(1.0, 0.0, 1.0);
   const ℝ e0 = H.energy(flow(0.0));

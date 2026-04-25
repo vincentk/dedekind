@@ -1869,7 +1869,14 @@ and bundles three witnesses for the harmonic-oscillator MD
 primitive: the carrier satisfies \texttt{IsHamiltonian}
 structurally, the symplectic 2-form is antisymmetric on the
 canonical basis pair, and the carrier conserves energy along the
-closed-form flow.
+closed-form flow.  The listing also exhibits the Compiler Wall of
+Section~\ref{sec:compiler-wall} in miniature: claims (1) and (2)
+are decided at translation time (\texttt{STATIC\_CHECK}); claim
+(3) is necessarily runtime (\texttt{CHECK}) because the closed-form
+flow calls \texttt{std::cos} / \texttt{std::sin} and the tolerance
+compare uses \texttt{std::abs(double)}, none of which is
+\texttt{constexpr} in libc++ --- the very wall the §5.5
+hand-rolled \texttt{magnitude} is designed to push back against.
 
 % Source:
 % src/test/cpp/modules/dedekind/analysis/hamilton_test.cpp
@@ -1884,15 +1891,21 @@ TEST_CASE("Analysis: Harmonic oscillator "
       IsHamiltonian<HarmonicOscillator<ℝ>, PhasePoint<ℝ>, ℝ>);
 
   // 2. :exterior --- the symplectic 2-form ω = dp ∧ dq is
-  //    antisymmetric on the canonical basis pair.
-  OneForm<ℝ, 2> dq{{1.0, 0.0}};
-  OneForm<ℝ, 2> dp{{0.0, 1.0}};
-  const auto omega = wedge(dp, dq);
-  const Vector<ℝ, 2> v_x{1.0, 0.0};
-  const Vector<ℝ, 2> v_y{0.0, 1.0};
-  CHECK(omega(v_x, v_y) == -omega(v_y, v_x));
+  //    antisymmetric on the canonical basis pair.  Pure
+  //    algebra, no transcendentals --- decided at translation
+  //    time.
+  constexpr OneForm<ℝ, 2> dq{{1.0, 0.0}};
+  constexpr OneForm<ℝ, 2> dp{{0.0, 1.0}};
+  constexpr auto omega = wedge(dp, dq);
+  constexpr Vector<ℝ, 2> v_x{1.0, 0.0};
+  constexpr Vector<ℝ, 2> v_y{0.0, 1.0};
+  STATIC_CHECK(omega(v_x, v_y) == -omega(v_y, v_x));
 
   // 3. H(q, p) = ½(p² + ω²q²) is constant along the flow.
+  //    Runtime, not STATIC_CHECK: the closed-form expression
+  //    uses std::cos / std::sin (not constexpr in libc++), and
+  //    the tolerance compare uses std::abs(double) (likewise).
+  //    This claim sits to the right of the Compiler Wall.
   const HarmonicOscillator<ℝ> H{1.0};
   const auto flow = harmonic_oscillator_curve<ℝ>(1.0, 0.0, 1.0);
   const ℝ e0 = H.energy(flow(0.0));
