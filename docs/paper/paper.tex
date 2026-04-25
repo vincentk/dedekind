@@ -945,7 +945,7 @@ $\mathbb{F}_2^{64}$ & \lstinline|uint64_t| under $\oplus$, scalar action \lstinl
 $\mathbb{N}$ bounded & \lstinline|ExtensionalCardinal<N>| & \lstinline|IsCyclicGroup|, \lstinline|IsAbelianGroup<T,+>| \\
 $\mathbb{N}$ unbounded & \lstinline|Cardinality|$^{\ddagger}$ (variant over ℵ$_0$) & \lstinline|Monoid_|$\mathbb{N}$ \\
 $\mathbb{Z}$ bounded & \lstinline|SignedExtensionalCardinal<N>| & \lstinline|IsAbelianGroup<T,+>|, \lstinline|IsRing| \\
-$\mathbb{Z}$ unbounded & \lstinline|SignedCardinality|$^{\ddagger}$ & \lstinline|Group_|$\mathbb{Z}$ \\
+$\mathbb{Z}$ unbounded & \lstinline|SignedCardinality| (variant over $\pm \aleph_0$, NaZ) & \lstinline|IsAbelianGroup<T,+>|, \lstinline|IsRing| \\
 $\mathbb{Q}$ & \lstinline|Rational<SignedExtensionalCardinal<>>| & \lstinline|Field_|$\mathbb{Q}$ \\
 $\mathbb{R}$ symbolic & \lstinline|LowerCut<Rational>| (Dedekind cut) & \lstinline|Continuum_|$\mathbb{R}$ (predicate-only) \\
 $\mathbb{C}$ & \lstinline|Complex<Rational<SignedEC<>>>| & \lstinline|Algebra_|$\mathbb{C}$ \\

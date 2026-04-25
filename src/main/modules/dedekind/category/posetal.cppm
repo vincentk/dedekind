@@ -86,22 +86,6 @@ concept IsTotallyOrderedPosetal =
     IsPosetal<T, Rel, L> && IsTotalOrder<T, Rel, typename L::Ω>;
 
 /**
- * @concept IsOrderMeetSemilatticeSignature
- * @brief Signature-level meet operation witness.
- *
- * @details
- * This concept is intentionally shape-only. It is paired with
- * `IsOrderMeetSemilattice`, which enforces order-theoretic law refinement
- * over upstream mereological structure.
- *
- * @see https://en.wikipedia.org/wiki/Semilattice
- */
-export template <typename T, typename Meet = decltype(std::ranges::min)>
-concept IsOrderMeetSemilatticeSignature = requires(Meet meet, T a, T b) {
-  { meet(a, b) } -> std::convertible_to<T>;
-};
-
-/**
  * @concept IsOrderMeetSemilattice
  * @brief Order-theoretic meet-semilattice as a commutative refinement.
  *
@@ -109,10 +93,16 @@ concept IsOrderMeetSemilatticeSignature = requires(Meet meet, T a, T b) {
  * In the module hierarchy, `:mereology` provides the upstream associative +
  * idempotent meet band. `:posetal` refines that structure with commutativity,
  * yielding the order-theoretic meet-semilattice notion.
+ *
+ * @note Naming history: an `IsOrderMeetSemilatticeSignature` shape mixin
+ * was previously bundled into this concept's body; it was retired
+ * because @c IsMereologicalMeetSemilattice transitively requires
+ * @c IsMereologicalMeetMagma, which already checks the operator
+ * surface (@c meet(a, b) @c -> @c convertible_to<T>).  Callsites that
+ * need just the operator-surface check use the magma concept directly.
  */
 export template <typename T, typename Meet = decltype(std::ranges::min)>
 concept IsOrderMeetSemilattice =
-    IsOrderMeetSemilatticeSignature<T, Meet> &&
     IsMereologicalMeetSemilattice<T, Meet> && IsCommutative<T, Meet>;
 
 /**
@@ -124,22 +114,6 @@ export template <typename T, typename Meet = decltype(std::ranges::min)>
 concept IsCertifiedOrderMeetSemilattice = IsOrderMeetSemilattice<T, Meet>;
 
 /**
- * @concept IsOrderJoinSemilatticeSignature
- * @brief Signature-level join operation witness.
- *
- * @details
- * This concept is intentionally shape-only. It is paired with
- * `IsOrderJoinSemilattice`, which enforces order-theoretic law refinement
- * over upstream mereological structure.
- *
- * @see https://en.wikipedia.org/wiki/Semilattice
- */
-export template <typename T, typename Join = decltype(std::ranges::max)>
-concept IsOrderJoinSemilatticeSignature = requires(Join join, T a, T b) {
-  { join(a, b) } -> std::convertible_to<T>;
-};
-
-/**
  * @concept IsOrderJoinSemilattice
  * @brief Order-theoretic join-semilattice as a commutative refinement.
  *
@@ -147,10 +121,16 @@ concept IsOrderJoinSemilatticeSignature = requires(Join join, T a, T b) {
  * In the module hierarchy, `:mereology` provides the upstream associative +
  * idempotent join band. `:posetal` refines that structure with commutativity,
  * yielding the order-theoretic join-semilattice notion.
+ *
+ * @note Naming history: an `IsOrderJoinSemilatticeSignature` shape mixin
+ * was previously bundled into this concept's body; it was retired
+ * because @c IsMereologicalJoinSemilattice transitively requires
+ * @c IsMereologicalJoinMagma, which already checks the operator
+ * surface (@c join(a, b) @c -> @c convertible_to<T>).  Callsites that
+ * need just the operator-surface check use the magma concept directly.
  */
 export template <typename T, typename Join = decltype(std::ranges::max)>
 concept IsOrderJoinSemilattice =
-    IsOrderJoinSemilatticeSignature<T, Join> &&
     IsMereologicalJoinSemilattice<T, Join> && IsCommutative<T, Join>;
 
 /**
@@ -162,38 +142,23 @@ export template <typename T, typename Join = decltype(std::ranges::max)>
 concept IsCertifiedOrderJoinSemilattice = IsOrderJoinSemilattice<T, Join>;
 
 /**
- * @concept IsOrderLatticeOperationsSignature
- * @brief Signature-level join/meet composition witness.
- *
- * @details
- * This concept validates only expression shape. `IsOrderLatticeOperations`
- * adds the law-level refinement that situates the concept downstream of the
- * upstream mereological lattice core.
- *
- * @see Davey & Priestley, Introduction to Lattices and Order
- * @see https://en.wikipedia.org/wiki/Lattice_(order)
- */
-export template <typename T, typename Join = decltype(std::ranges::max),
-                 typename Meet = decltype(std::ranges::min)>
-concept IsOrderLatticeOperationsSignature =
-    IsOrderJoinSemilatticeSignature<T, Join> &&
-    IsOrderMeetSemilatticeSignature<T, Meet> &&
-    requires(Join join, Meet meet, T a, T b, T c) {
-      { join(a, meet(a, b)) } -> std::convertible_to<T>;
-      { meet(a, join(a, b)) } -> std::convertible_to<T>;
-      { join(a, meet(b, c)) } -> std::convertible_to<T>;
-      { meet(a, join(b, c)) } -> std::convertible_to<T>;
-    };
-
-/**
  * @concept IsOrderLatticeOperations
  * @brief Order-theoretic lattice operations as commutative + absorptive
  * refinement over upstream mereological lattice operations.
+ *
+ * @note Naming history: this concept previously bundled an
+ * @c IsOrderLatticeOperationsSignature signature mixin alongside the
+ * semantic clauses, mixing syntax (operator surface check) with
+ * semantics (axiomatic lattice claims).  The signature mixin was
+ * removed (and the now-unused signature concept retired) because
+ * @c IsOrderJoinSemilattice / @c IsOrderMeetSemilattice already imply
+ * the operator surface through their upstream mereological magma
+ * concepts (@c IsMereologicalJoinMagma / @c IsMereologicalMeetMagma).
+ * The bundled concept here is purely semantic.
  */
 export template <typename T, typename Join = decltype(std::ranges::max),
                  typename Meet = decltype(std::ranges::min)>
 concept IsOrderLatticeOperations =
-    IsOrderLatticeOperationsSignature<T, Join, Meet> &&
     IsMereologicalLatticeOperations<T, Join, Meet> &&
     IsOrderJoinSemilattice<T, Join> && IsOrderMeetSemilattice<T, Meet> &&
     IsAbsorptive<T, Join, Meet>;
@@ -243,11 +208,6 @@ concept IsPathProjection = requires(Project project, T x, Rel rel) {
   { project(x) };
   { rel(project(x), project(x)) } -> std::same_as<Ω>;
 };
-
-// Shape-level witnesses.
-static_assert(IsOrderMeetSemilatticeSignature<int, DefaultMeet>);
-static_assert(IsOrderJoinSemilatticeSignature<int, DefaultJoin>);
-static_assert(IsOrderLatticeOperationsSignature<int, DefaultJoin, DefaultMeet>);
 
 // Upstream/downstream alignment: posetal concepts refine mereological ones.
 static_assert(IsOrderMeetSemilattice<int, DefaultMeet>);

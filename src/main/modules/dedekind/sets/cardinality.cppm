@@ -148,24 +148,80 @@ struct ExtensionalCardinal {
   }
 
   /**
-   * @brief Euclidean division (single-limb exact; multi-limb truncates to
-   *        first limb). Division by zero yields zero by convention (total).
+   * @brief Euclidean division.  Division by zero yields zero by
+   *        convention (total).  When the divisor fits in a single
+   *        limb, performs schoolbook long division across the full
+   *        @c N-limb dividend (multi-limb-correct).  When the divisor
+   *        itself is multi-limb, falls back to single-limb truncation
+   *        --- multi-limb-by-multi-limb division is out of scope.
    */
   constexpr friend ExtensionalCardinal operator/(
       const ExtensionalCardinal& lhs, const ExtensionalCardinal& rhs) noexcept {
     if (rhs.limbs[0] == 0) return ExtensionalCardinal{};
+    // Detect a multi-limb divisor; fall back to truncated single-limb
+    // division if the rhs has any non-zero high limbs.
+    bool divisor_multi_limb = false;
+    for (std::size_t i = 1; i < N; ++i) {
+      if (rhs.limbs[i] != 0) {
+        divisor_multi_limb = true;
+        break;
+      }
+    }
+    if (divisor_multi_limb) {
+      ExtensionalCardinal result{};
+      result.limbs[0] = lhs.limbs[0] / rhs.limbs[0];
+      return result;
+    }
+    // Single-limb divisor: schoolbook long division from the high limb
+    // down.  Use unsigned __int128 to carry the running remainder
+    // shifted into the next limb without overflowing intermediate
+    // arithmetic.
     ExtensionalCardinal result{};
-    result.limbs[0] = lhs.limbs[0] / rhs.limbs[0];
+    unsigned __int128 remainder = 0;
+    const unsigned __int128 divisor =
+        static_cast<unsigned __int128>(rhs.limbs[0]);
+    for (std::size_t i = N; i-- > 0;) {
+      const unsigned __int128 cur =
+          (remainder << limb_bits) |
+          static_cast<unsigned __int128>(lhs.limbs[i]);
+      result.limbs[i] = static_cast<limb_type>(cur / divisor);
+      remainder = cur % divisor;
+    }
     return result;
   }
 
-  /** @brief Euclidean modulo (single-limb exact). Division by zero yields
-   *         lhs by convention (total). */
+  /** @brief Euclidean modulo.  Division by zero yields @c lhs by
+   *         convention (total).  Single-limb divisor: full multi-limb
+   *         remainder via the same long-division pass as @c operator/;
+   *         the result is therefore representable in a single limb (it
+   *         is bounded above by the divisor) and lives in @c limbs[0].
+   *         Multi-limb divisor: falls back to single-limb truncation. */
   constexpr friend ExtensionalCardinal operator%(
       const ExtensionalCardinal& lhs, const ExtensionalCardinal& rhs) noexcept {
     if (rhs.limbs[0] == 0) return lhs;
+    bool divisor_multi_limb = false;
+    for (std::size_t i = 1; i < N; ++i) {
+      if (rhs.limbs[i] != 0) {
+        divisor_multi_limb = true;
+        break;
+      }
+    }
+    if (divisor_multi_limb) {
+      ExtensionalCardinal result{};
+      result.limbs[0] = lhs.limbs[0] % rhs.limbs[0];
+      return result;
+    }
+    unsigned __int128 remainder = 0;
+    const unsigned __int128 divisor =
+        static_cast<unsigned __int128>(rhs.limbs[0]);
+    for (std::size_t i = N; i-- > 0;) {
+      const unsigned __int128 cur =
+          (remainder << limb_bits) |
+          static_cast<unsigned __int128>(lhs.limbs[i]);
+      remainder = cur % divisor;
+    }
     ExtensionalCardinal result{};
-    result.limbs[0] = lhs.limbs[0] % rhs.limbs[0];
+    result.limbs[0] = static_cast<limb_type>(remainder);
     return result;
   }
 
@@ -269,7 +325,36 @@ constexpr std::variant<ExtensionalCardinal<N>, ℵ_0> mul_or_ℵ_0(
   return std::variant<ExtensionalCardinal<N>, ℵ_0>{checked.value};
 }
 
-/** @brief Draft sum type for finite vs countably infinite cardinalities. */
+/** @brief Sum type for finite vs countably infinite cardinalities; the
+ *         library's bona-fide proxy for @f$\mathbb{N}@f$ modulo
+ *         physical limits.
+ *
+ *  @details The variant @c (ExtensionalCardinal<>, ℵ_0) is @b not a
+ *  cyclic carrier (it does not wrap modulo capacity); on overflow it
+ *  @b escalates --- saturates --- into @c ℵ_0 via the @c add /
+ *  @c mul helpers below.  The explicit overflow story is "you reached
+ *  countable infinity" rather than the C++ default of silent wrap or
+ *  UB.  The finite fragment is @c ExtensionalCardinal<N>, a
+ *  @b fixed-precision @c N-limb unsigned carrier; the default
+ *  @c ExtensionalCardinal<> uses a single @c std::size_t limb (so
+ *  the variant is @b not arbitrary-precision bigint --- choosing a
+ *  larger @c N at the type level widens the finite range but every
+ *  instantiation is still fixed-precision).  The @c ℵ_0 alternative
+ *  marks the saturation regime that takes over once that fixed
+ *  capacity cannot hold the result.
+ *
+ *  Strictly mathematically, @f$\mathbb{N} \cup \{\aleph_0\}@f$ is
+ *  not a monoid in the textbook sense (e.g.\ left-cancellation
+ *  fails on the saturating element).  The library's pragmatic
+ *  certificate accepts it as a proxy for @f$\mathbb{N}@f$ because
+ *  the finite fragment is @f$\mathbb{N}@f$ exactly and the
+ *  saturation is the @b explicit overflow contract: "if you compute
+ *  beyond memory limits, you saturate at @c ℵ_0".  Downstream code
+ *  that requires strict-ℕ behaviour should test the finite-fragment
+ *  alternative (@c std::holds_alternative<ExtensionalCardinal<>>).
+ *  See the sibling @c SignedCardinality below for the ℤ proxy on
+ *  the same pattern.
+ */
 export using Cardinality = std::variant<ExtensionalCardinal<>, ℵ_0>;
 
 /** @brief Convenience constructor for finite cardinal values. */
@@ -363,7 +448,7 @@ export constexpr ExtensionalCardinal<> inverse(
 }
 
 /**
- * @brief Signed arbitrary-precision integer with a sign-magnitude layout.
+ * @brief Signed fixed-precision N-limb integer with a sign-magnitude layout.
  *
  * @details Two structural fields — @ref negative (the sign bit) and @ref
  * magnitude (an N-limb unsigned natural delegated to ExtensionalCardinal<N>).
@@ -373,8 +458,12 @@ export constexpr ExtensionalCardinal<> inverse(
  *
  * Satisfies IsInteger (see registrations after the numbers:integer module
  * pulls this file), making it the intended signed backing carrier for
- * `Rational<Z>` when arbitrary-precision rationals with negative coefficients
- * are required — overflow happens at 2^{N*64-1} and not before.
+ * `Rational<Z>` when fixed-precision rationals with negative coefficients
+ * are required — overflow happens at 2^{N*64-1} and not before.  The
+ * `SignedCardinality` variant downstream wraps this carrier with ±ℵ_0
+ * sentinels so callers that need an unbounded ℤ proxy escalate
+ * (saturate) rather than wrap; this carrier on its own is the bounded
+ * (cyclic, mod 2^{N*64}) ℤ proxy.
  *
  * Structural on purpose: the two public fields make the type usable as a
  * non-type template parameter wherever `Rational<Z>` is.
@@ -529,6 +618,294 @@ struct SignedExtensionalCardinal {
     return static_cast<S>(u_signed);
   }
 };
+
+// ---------------------------------------------------------------------------
+// SignedCardinality: extended-integer carrier with ±ℵ_0 escalation (#377)
+// ---------------------------------------------------------------------------
+//
+// `SignedExtensionalCardinal<N>` shipped in #373 is a *finite* signed
+// carrier --- ℤ/2^{64 N}ℤ under sign-magnitude arithmetic.  Useful for
+// showcase arithmetic, but not ℤ.  `SignedCardinality` is the signed
+// counterpart of `Cardinality` (the ℕ ∪ {ℵ_0} variant): an extended-
+// integer carrier whose addition / subtraction / multiplication
+// escalate to ±ℵ_0 (or `NaZ` for indeterminate forms) rather than wrap.
+//
+// Design choices:
+//   - Mixed-infinity arithmetic (e.g.\ +ℵ_0 + (−ℵ_0)) returns the
+//     `NaZ` sentinel rather than throwing, mirroring IEEE NaN
+//     propagation: NaZ + anything = NaZ, NaZ * anything = NaZ.  Keeps
+//     the type usable in constexpr / NTTP-like contexts that cannot
+//     observe exceptions.
+//   - The variant alternative ordering (finite first) makes
+//     `SignedCardinality{}` the canonical zero, satisfying the
+//     `IsReflectiveSpecies`/`IsInteger` `T{}` requirement.
+//   - The total `+` / `*` are saturating, not periodic --- the
+//     `is_saturating_v` species trait (introduced under this issue)
+//     is the load-bearing certificate that lifts `IsTotal` and the
+//     downstream `IsAbelianGroup<SignedCardinality, std::plus<...>>`.
+
+/** @struct PositiveInfinity: the @f$+\aleph_0@f$ sentinel for
+ * SignedCardinality. */
+export struct PositiveInfinity {
+  constexpr friend bool operator==(const PositiveInfinity&,
+                                   const PositiveInfinity&) = default;
+};
+
+/** @struct NegativeInfinity: the @f$-\aleph_0@f$ sentinel. */
+export struct NegativeInfinity {
+  constexpr friend bool operator==(const NegativeInfinity&,
+                                   const NegativeInfinity&) = default;
+};
+
+/** @struct NaZ: Not-a-ℤ-element.  Result of indeterminate forms
+ *  (+ℵ_0 + (−ℵ_0), 0 * ±ℵ_0, ±ℵ_0 / ±ℵ_0, etc.).  Propagates through
+ *  arithmetic in the IEEE-NaN style.
+ */
+export struct NaZ {
+  constexpr friend bool operator==(const NaZ&, const NaZ&) = default;
+};
+
+/** @brief Signed counterpart of @c Cardinality with ±ℵ_0 escalation;
+ *         the library's bona-fide proxy for @f$\mathbb{Z}@f$ modulo
+ *         physical limits.
+ *
+ *  @details Variant of @c (SignedExtensionalCardinal<>, +ℵ_0, −ℵ_0, NaZ).
+ *  The finite alternative is the default-constructed first slot, so
+ *  @c SignedCardinality{} is canonical zero.
+ *
+ *  Same picture as @c Cardinality (the ℕ proxy), with a sign added:
+ *    - @b Not @b cyclic --- arithmetic does not wrap modulo capacity.
+ *    - On signed overflow, @b escalates (saturates) into @c ±ℵ_0
+ *      according to the sign of the operands.
+ *    - Indeterminate forms (@c +ℵ_0 + (−ℵ_0), @c 0 * ±ℵ_0,
+ *      @c ±ℵ_0 / ±ℵ_0, @c x / 0) propagate the @c NaZ sentinel
+ *      IEEE-NaN-style rather than throwing, keeping the carrier
+ *      usable in @c constexpr / NTTP-shaped contexts that cannot
+ *      observe exceptions.
+ *    - The finite fragment @c SignedExtensionalCardinal<N> is
+ *      @b fixed-precision signed-magnitude with @c N limbs; the
+ *      shorthand @c SignedExtensionalCardinal<> uses the default
+ *      single-limb instantiation (so the variant is @b not
+ *      arbitrary-precision bigint --- choosing a larger @c N widens
+ *      the finite range but every instantiation is still
+ *      fixed-precision).  The explicit overflow story is escalation
+ *      to @f$\pm \aleph_0@f$, not bigint growth: signed-overflow UB
+ *      and silent wrap are replaced by the saturation behaviour.
+ *
+ *  Strictly mathematically, @f$\mathbb{Z} \cup \{\pm \aleph_0,
+ *  \mathit{NaZ}\}@f$ is not a group in the textbook sense
+ *  (@c +ℵ_0 + (−ℵ_0) = NaZ breaks the inverse law for the
+ *  saturating elements).  The library's pragmatic certificate
+ *  accepts it as a proxy for @f$\mathbb{Z}@f$ because the finite
+ *  fragment is @f$\mathbb{Z}@f$ exactly and the saturation /
+ *  NaZ behaviour is the @b explicit overflow contract: "if you
+ *  compute beyond memory limits, you saturate at @c ±ℵ_0; if you
+ *  compute an indeterminate form, you get @c NaZ".  Downstream code
+ *  that requires strict-ℤ behaviour should test the finite-fragment
+ *  alternative (@c std::holds_alternative<SignedExtensionalCardinal<>>).
+ *
+ *  Same shape as how @c unsigned int's @c IsRing claim is "modulo
+ *  wrap" rather than literal @f$\mathbb{Z}@f$ --- the project's
+ *  stance is that the truthful name for the carrier includes the
+ *  overflow / saturation behaviour, and the trait registry pins
+ *  what the carrier actually does at the limits.
+ */
+export using SignedCardinality =
+    std::variant<SignedExtensionalCardinal<>, PositiveInfinity,
+                 NegativeInfinity, NaZ>;
+
+namespace detail {
+constexpr bool sc_is_finite(const SignedCardinality& v) noexcept {
+  return std::holds_alternative<SignedExtensionalCardinal<>>(v);
+}
+constexpr bool sc_is_pos_inf(const SignedCardinality& v) noexcept {
+  return std::holds_alternative<PositiveInfinity>(v);
+}
+constexpr bool sc_is_neg_inf(const SignedCardinality& v) noexcept {
+  return std::holds_alternative<NegativeInfinity>(v);
+}
+constexpr bool sc_is_naz(const SignedCardinality& v) noexcept {
+  return std::holds_alternative<NaZ>(v);
+}
+constexpr bool sc_is_zero(const SignedCardinality& v) noexcept {
+  return sc_is_finite(v) && std::get<SignedExtensionalCardinal<>>(v) ==
+                                SignedExtensionalCardinal<>{};
+}
+constexpr int sc_sign(const SignedCardinality& v) noexcept {
+  // Returns +1 for positive (incl. +ℵ_0), -1 for negative (incl. -ℵ_0),
+  // 0 for zero or NaZ.  Used by escalation logic.
+  if (sc_is_naz(v)) return 0;
+  if (sc_is_pos_inf(v)) return +1;
+  if (sc_is_neg_inf(v)) return -1;
+  const auto& z = std::get<SignedExtensionalCardinal<>>(v);
+  if (z == SignedExtensionalCardinal<>{}) return 0;
+  return z.negative ? -1 : +1;
+}
+}  // namespace detail
+
+/** @brief Convenience constructor for finite signed values. */
+export template <std::integral S>
+constexpr SignedCardinality finite_signed_cardinality(S value) noexcept {
+  return SignedCardinality{SignedExtensionalCardinal<>{value}};
+}
+
+/** @brief Unary negation: swaps signs and ±ℵ_0; preserves NaZ. */
+export constexpr SignedCardinality operator-(
+    const SignedCardinality& v) noexcept {
+  if (detail::sc_is_naz(v)) return SignedCardinality{NaZ{}};
+  if (detail::sc_is_pos_inf(v)) return SignedCardinality{NegativeInfinity{}};
+  if (detail::sc_is_neg_inf(v)) return SignedCardinality{PositiveInfinity{}};
+  return SignedCardinality{-std::get<SignedExtensionalCardinal<>>(v)};
+}
+
+/** @brief Addition with ±ℵ_0 escalation on overflow. */
+export constexpr SignedCardinality operator+(
+    const SignedCardinality& lhs, const SignedCardinality& rhs) noexcept {
+  using namespace detail;
+  if (sc_is_naz(lhs) || sc_is_naz(rhs)) return SignedCardinality{NaZ{}};
+  // Mixed infinities: indeterminate.
+  if (sc_is_pos_inf(lhs) && sc_is_neg_inf(rhs)) return SignedCardinality{NaZ{}};
+  if (sc_is_neg_inf(lhs) && sc_is_pos_inf(rhs)) return SignedCardinality{NaZ{}};
+  // Same-sign infinities: absorb.
+  if (sc_is_pos_inf(lhs) || sc_is_pos_inf(rhs))
+    return SignedCardinality{PositiveInfinity{}};
+  if (sc_is_neg_inf(lhs) || sc_is_neg_inf(rhs))
+    return SignedCardinality{NegativeInfinity{}};
+  // Both finite: sign-magnitude with overflow detection on same-sign
+  // adds (opposite-sign reduces magnitude, never overflows).
+  const auto& a = std::get<SignedExtensionalCardinal<>>(lhs);
+  const auto& b = std::get<SignedExtensionalCardinal<>>(rhs);
+  if (a.negative == b.negative) {
+    const auto checked =
+        SignedExtensionalCardinal<>::magnitude_type::checked_add(a.magnitude,
+                                                                 b.magnitude);
+    if (checked.overflowed) {
+      return a.negative ? SignedCardinality{NegativeInfinity{}}
+                        : SignedCardinality{PositiveInfinity{}};
+    }
+    SignedExtensionalCardinal<> result;
+    result.negative = a.negative;
+    result.magnitude = checked.value;
+    if (result.magnitude == SignedExtensionalCardinal<>::magnitude_type{}) {
+      result.negative = false;  // canonicalise zero
+    }
+    return SignedCardinality{result};
+  }
+  return SignedCardinality{a + b};
+}
+
+/** @brief Subtraction: @c a - b @c == a + (-b). */
+export constexpr SignedCardinality operator-(
+    const SignedCardinality& lhs, const SignedCardinality& rhs) noexcept {
+  return lhs + (-rhs);
+}
+
+/** @brief Multiplication with ±ℵ_0 escalation on overflow.  @c 0 * ±ℵ_0
+ *         is indeterminate (returns @c NaZ).
+ */
+export constexpr SignedCardinality operator*(
+    const SignedCardinality& lhs, const SignedCardinality& rhs) noexcept {
+  using namespace detail;
+  if (sc_is_naz(lhs) || sc_is_naz(rhs)) return SignedCardinality{NaZ{}};
+  const bool lhs_inf = sc_is_pos_inf(lhs) || sc_is_neg_inf(lhs);
+  const bool rhs_inf = sc_is_pos_inf(rhs) || sc_is_neg_inf(rhs);
+  if (lhs_inf || rhs_inf) {
+    if (sc_is_zero(lhs) || sc_is_zero(rhs))
+      return SignedCardinality{NaZ{}};  // 0 * ±ℵ_0
+    const int s = sc_sign(lhs) * sc_sign(rhs);
+    return s > 0 ? SignedCardinality{PositiveInfinity{}}
+                 : SignedCardinality{NegativeInfinity{}};
+  }
+  const auto& a = std::get<SignedExtensionalCardinal<>>(lhs);
+  const auto& b = std::get<SignedExtensionalCardinal<>>(rhs);
+  const auto checked = SignedExtensionalCardinal<>::magnitude_type::checked_mul(
+      a.magnitude, b.magnitude);
+  if (checked.overflowed) {
+    const bool result_negative = (a.negative != b.negative);
+    return result_negative ? SignedCardinality{NegativeInfinity{}}
+                           : SignedCardinality{PositiveInfinity{}};
+  }
+  SignedExtensionalCardinal<> result;
+  result.magnitude = checked.value;
+  result.negative =
+      (a.negative != b.negative) &&
+      (result.magnitude != SignedExtensionalCardinal<>::magnitude_type{});
+  return SignedCardinality{result};
+}
+
+/** @brief Truncating division.  Division by zero and @c ±ℵ_0/±ℵ_0
+ *         return @c NaZ; @c finite/±ℵ_0 returns @c 0 (the limit);
+ *         @c ±ℵ_0 divided by a non-zero finite value saturates to
+ *         signed infinity according to the operand signs.
+ */
+export constexpr SignedCardinality operator/(
+    const SignedCardinality& lhs, const SignedCardinality& rhs) noexcept {
+  using namespace detail;
+  if (sc_is_naz(lhs) || sc_is_naz(rhs)) return SignedCardinality{NaZ{}};
+  if (sc_is_zero(rhs)) return SignedCardinality{NaZ{}};  // x / 0
+  const bool lhs_inf = sc_is_pos_inf(lhs) || sc_is_neg_inf(lhs);
+  const bool rhs_inf = sc_is_pos_inf(rhs) || sc_is_neg_inf(rhs);
+  if (lhs_inf && rhs_inf) return SignedCardinality{NaZ{}};
+  if (lhs_inf) {
+    const int s = sc_sign(lhs) * sc_sign(rhs);
+    return s > 0 ? SignedCardinality{PositiveInfinity{}}
+                 : SignedCardinality{NegativeInfinity{}};
+  }
+  if (rhs_inf) return finite_signed_cardinality(0);  // finite / ±ℵ_0 → 0
+  const auto& a = std::get<SignedExtensionalCardinal<>>(lhs);
+  const auto& b = std::get<SignedExtensionalCardinal<>>(rhs);
+  return SignedCardinality{a / b};
+}
+
+/** @brief Truncating remainder.  Mirrors C++ semantics on the finite
+ *         alternative; non-finite operands give @c NaZ.
+ */
+export constexpr SignedCardinality operator%(
+    const SignedCardinality& lhs, const SignedCardinality& rhs) noexcept {
+  using namespace detail;
+  if (sc_is_naz(lhs) || sc_is_naz(rhs)) return SignedCardinality{NaZ{}};
+  if (!sc_is_finite(lhs) || !sc_is_finite(rhs)) return SignedCardinality{NaZ{}};
+  if (sc_is_zero(rhs)) return SignedCardinality{NaZ{}};
+  const auto& a = std::get<SignedExtensionalCardinal<>>(lhs);
+  const auto& b = std::get<SignedExtensionalCardinal<>>(rhs);
+  return SignedCardinality{a % b};
+}
+
+/** @brief Partial ordering on the extended integers: −ℵ_0 < finite <
+ *         +ℵ_0; @c NaZ is @b unordered with respect to everything
+ *         (including itself), mirroring IEEE-NaN's unordered
+ *         semantics.  Returning @c std::partial_ordering rather than
+ *         @c std::strong_ordering is the principled choice: @c NaZ
+ *         compares @c unordered, which keeps ordering and equality
+ *         (variant's defaulted @c ==, which finds @c NaZ == @c NaZ
+ *         true) consistent without forcing a fake @c equal answer.
+ */
+export constexpr std::partial_ordering compare_signed(
+    const SignedCardinality& lhs, const SignedCardinality& rhs) noexcept {
+  using namespace detail;
+  if (sc_is_naz(lhs) || sc_is_naz(rhs)) return std::partial_ordering::unordered;
+  // -ℵ_0 < everything except itself.
+  if (sc_is_neg_inf(lhs) && sc_is_neg_inf(rhs))
+    return std::partial_ordering::equivalent;
+  if (sc_is_neg_inf(lhs)) return std::partial_ordering::less;
+  if (sc_is_neg_inf(rhs)) return std::partial_ordering::greater;
+  // +ℵ_0 > everything except itself.
+  if (sc_is_pos_inf(lhs) && sc_is_pos_inf(rhs))
+    return std::partial_ordering::equivalent;
+  if (sc_is_pos_inf(lhs)) return std::partial_ordering::greater;
+  if (sc_is_pos_inf(rhs)) return std::partial_ordering::less;
+  return std::get<SignedExtensionalCardinal<>>(lhs) <=>
+         std::get<SignedExtensionalCardinal<>>(rhs);
+}
+
+/** @brief @c < derived from @c compare_signed; required by @c IsInteger.
+ *         For @c NaZ operands the comparison is @c unordered so this
+ *         returns @c false, mirroring IEEE-NaN's @c < behaviour.
+ */
+export constexpr bool operator<(const SignedCardinality& lhs,
+                                const SignedCardinality& rhs) noexcept {
+  return compare_signed(lhs, rhs) == std::partial_ordering::less;
+}
 
 }  // namespace dedekind::sets
 
@@ -721,5 +1098,101 @@ static_assert(HasCanonicalSetCCC<C1>,
 static_assert(HasCanonicalSetCCC<Z1>,
               "SignedExtensionalCardinal<1> hosts a canonical "
               "Cartesian-closed Set ambient.");
+
+// ---------------------------------------------------------------------------
+// Category trait registrations for SignedCardinality (#377)
+// ---------------------------------------------------------------------------
+//
+// The extended-integer carrier is a saturating abelian group under +
+// (escalating to ±ℵ_0 rather than wrapping or being undefined).  The
+// `is_saturating_v` trait is the load-bearing certificate that lifts
+// IsTotal -> IsMagma -> IsMonoid -> IsGroup -> IsAbelianGroup, the
+// chain `Group_ℤ` requires.  It is *not* periodic (unbounded), nor
+// idempotent (a+a != a in general), nor cyclic (no finite generator).
+
+using SC = dedekind::sets::SignedCardinality;
+
+template <>
+struct identity_trait<SC, std::plus<SC>> {
+  using value_type = SC;
+  static constexpr value_type value =
+      SC{dedekind::sets::SignedExtensionalCardinal<>{0}};
+};
+
+template <>
+struct identity_trait<SC, std::multiplies<SC>> {
+  using value_type = SC;
+  static constexpr value_type value =
+      SC{dedekind::sets::SignedExtensionalCardinal<>{1}};
+};
+
+template <>
+inline constexpr bool is_associative_v<SC, std::plus<SC>> = true;
+
+template <>
+inline constexpr bool is_associative_v<SC, std::multiplies<SC>> = true;
+
+template <>
+inline constexpr bool is_commutative_v<SC, std::plus<SC>> = true;
+
+template <>
+inline constexpr bool is_commutative_v<SC, std::multiplies<SC>> = true;
+
+template <>
+inline constexpr bool
+    is_distributive_v<SC, std::multiplies<SC>, std::plus<SC>> = true;
+
+// Saturation rather than periodicity: SignedCardinality is unbounded
+// and escalates to ±ℵ_0 on overflow.  This is the load-bearing
+// trait that satisfies the IsTotal pragmatic certificate.  See
+// `is_saturating` in `category:species`.
+template <>
+struct is_saturating<SC, std::plus<SC>> : std::true_type {};
+
+template <>
+struct is_saturating<SC, std::multiplies<SC>> : std::true_type {};
+
+// The defining ℤ trait exposes unary `-` as the operation used by
+// the additive-inverse machinery.  -ℵ_0 maps to +ℵ_0 and vice versa;
+// for finite values this is ordinary sign-flip; for NaZ, unary `-`
+// propagates NaZ (mirroring how IEEE -NaN behaves), without
+// asserting that NaZ satisfies an additive-inverse law.  The
+// pragmatic certificate is "the finite fragment is ℤ exactly; the
+// saturating elements satisfy the law mutually; NaZ propagates",
+// which is enough to lift IsAbelianGroup on the carrier.
+template <>
+inline constexpr bool is_invertible_v<SC, std::plus<SC>> = true;
+
+template <>
+struct inverse_trait<SC, std::plus<SC>> {
+  static constexpr bool exists = true;
+  using value_type = SC;
+  static constexpr value_type compute(const SC& value) noexcept {
+    return -value;
+  }
+};
+
+// Note: order-axiom trait specialisations (is_reflexive_v /
+// is_transitive_v / is_antisymmetric_v) are deliberately *not*
+// registered for SignedCardinality with std::less_equal<>: the
+// carrier does not define operator<= (only operator< via the
+// partial-ordering compare_signed), and antisymmetry would not be
+// justified given NaZ's unordered comparison semantics.  Downstream
+// code that needs the order traits should specialise them on a
+// well-formed relation functor (e.g.\ one based on compare_signed)
+// rather than on std::less_equal<>.
+
+static_assert(IsAbelianGroup<SC, std::plus<SC>>,
+              "SignedCardinality must certify as an abelian group under "
+              "addition --- the canonical exact-ℤ extended-integer carrier "
+              "with ±ℵ_0 escalation (closes #377's Group_ℤ acceptance).");
+
+static_assert(IsRing<SC, std::plus<SC>, std::multiplies<SC>>,
+              "SignedCardinality must certify as a total ring (the "
+              "saturation certificate satisfies IsTotal on the "
+              "multiplicative side too).");
+
+static_assert(IsCommutativeRing<SC, std::plus<SC>, std::multiplies<SC>>,
+              "SignedCardinality must certify as a commutative ring.");
 
 }  // namespace dedekind::category
