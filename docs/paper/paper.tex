@@ -2170,6 +2170,47 @@ This is an ergonomics concern rather than a correctness one, but it
 is the concern a reader most often encounters first and deserves
 explicit acknowledgement.
 
+\paragraph{Worked diagnostic example.}
+A reader who tries to construct an \texttt{Invertible2x2} from a
+matrix that, on inspection of the page, looks plausible but is
+actually rank-deficient receives a single named diagnostic at
+instantiation rather than a substitution-failure cascade. The
+deliberate-mistake input
+
+\begin{lstlisting}[language=C++, basicstyle=\ttfamily\small]
+constexpr Invertible2x2<Rat,
+                        Rat{1L}, Rat{2L},
+                        Rat{2L}, Rat{4L}> M_singular{};
+// det = 1*4 - 2*2 = 0  ---  rows are linearly dependent.
+\end{lstlisting}
+
+\noindent yields, with \texttt{clang++ 22} and the project's standard
+build flags, the following diagnostic
+(\lstinline{-fno-color-diagnostics}, \lstinline{-ferror-limit=2},
+unedited):
+
+\begin{lstlisting}[basicstyle=\ttfamily\footnotesize, breaklines=true, columns=fullflexible]
+matrix.cppm:120:17: error: static assertion failed due to requirement '!(det == ...{0})':
+  Invertible2x2 requires full rank: a*d - b*c != 0
+  120 |   static_assert(!(det == T{0}),
+      |                 ^~~~~~~~~~~~~~
+failed_proof.cpp:12:46: note: in instantiation of template class
+  'dedekind::linear_algebra::Invertible2x2<Rat, 1, 2, 2, 4>' requested here
+
+1 error generated.
+\end{lstlisting}
+
+\noindent The first diagnostic line names the broken predicate in the
+language of linear algebra (``\texttt{requires full rank: a*d - b*c
+!= 0}''); the source location points at the carrier definition where
+the invariant is asserted; the instantiation note shows the offending
+template arguments inline. There is no substitution-failure cascade
+because the predicate is a literal \texttt{static\_assert} inside the
+class body, not a \lstinline{requires}-clause that has to be probed.
+This is what we mean by \emph{fail fast at the named axiom}: the
+reader sees the mathematical claim that broke before the
+type-system mechanics that surfaced it.
+
 In short: the compiler wall has a predictable shape---depth, steps,
 combinatorics, numeric range, diagnostics---and each is either
 pushable by a flag, avoidable by staying within the instance regime
