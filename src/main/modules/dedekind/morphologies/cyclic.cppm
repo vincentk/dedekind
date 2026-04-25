@@ -325,6 +325,21 @@ static_assert(IsCyclic<Modular<256>>,
               "Modular<256> exposes the morphologies::IsCyclic shape "
               "(Domain / generator() / successor()).");
 
+// Peano-coherence witness for #388: the carrier-level
+// `T::successor(x)` member API and the abstract Peano successor
+// `S(x) = x + 1` agree on Modular<N>.  This pins the
+// "operational successor == algebraic successor" claim made in
+// the morphologies:archimedean Vocabulary_Notes block at the
+// type level — without it, a future edit to Modular<N> could
+// silently drift the two views apart.
+static_assert(Modular<256>::successor(Modular<256>{42}) ==
+                  (Modular<256>{42} + Modular<256>{1}),
+              "Modular<N>::successor(x) must equal the Peano successor "
+              "S(x) = x + 1 (member-API ↔ algebraic-axiom coherence).");
+static_assert(Modular<256>::generator() == Modular<256>{1},
+              "Modular<N>::generator() must be the multiplicative "
+              "identity 1 — it is what S iterates to enumerate Z/NZ.");
+
 // CyclicRing<T, N>: the experimental int-backed sibling.  Exercises
 // the same operational shape concept on a carrier that does not
 // otherwise plug into the categorical trait machinery.
