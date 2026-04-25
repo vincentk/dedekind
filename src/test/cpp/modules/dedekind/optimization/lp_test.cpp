@@ -61,11 +61,15 @@ TEST_CASE("optimization:lp — Polytope2D + lp_extract comonadic counit (#388)",
   constexpr Poly polytope{};
   constexpr auto via_extract_member = polytope.extract();
   constexpr auto via_lp_extract = lp_extract(polytope);
-  constexpr auto via_maximize = maximize<Rat, Rat{3L}, Rat{2L}, H1, H2, H3, H4>();
+  constexpr auto via_maximize =
+      maximize<Rat, Rat{3L}, Rat{2L}, H1, H2, H3, H4>();
 
-  STATIC_CHECK(std::same_as<decltype(via_extract_member), const Vec2<Rat, Rat{2L}, Rat{2L}>>);
-  STATIC_CHECK(std::same_as<decltype(via_lp_extract), const Vec2<Rat, Rat{2L}, Rat{2L}>>);
-  STATIC_CHECK(std::same_as<decltype(via_maximize), const Vec2<Rat, Rat{2L}, Rat{2L}>>);
+  STATIC_CHECK(std::same_as<decltype(via_extract_member),
+                            const Vec2<Rat, Rat{2L}, Rat{2L}>>);
+  STATIC_CHECK(std::same_as<decltype(via_lp_extract),
+                            const Vec2<Rat, Rat{2L}, Rat{2L}>>);
+  STATIC_CHECK(
+      std::same_as<decltype(via_maximize), const Vec2<Rat, Rat{2L}, Rat{2L}>>);
 
   CHECK(via_extract_member == via_maximize);
   CHECK(via_lp_extract == via_maximize);
