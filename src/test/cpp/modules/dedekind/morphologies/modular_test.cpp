@@ -94,3 +94,41 @@ TEST_CASE(
   // integer modular arithmetic).
   STATIC_CHECK(!is_galois_field_v<M, std::plus<M>, std::multiplies<M>>);
 }
+
+TEST_CASE("Modular<N> — Peano successor / generator coherence (#388)",
+          "[morphologies][modular][peano][successor][generator]") {
+  // The carrier-level T::successor(x) member API and the algebraic
+  // Peano successor S(x) = x + 1 must agree pointwise.  This is
+  // pinned at the type level in cyclic.cppm; the runtime walk here
+  // exercises the same coherence at every index, including the
+  // wrap-around at N-1 → 0 that the algebraic identity needs to
+  // respect.
+  using M7 = Modular<7>;
+
+  // Successor walks the chain back to its starting point in exactly
+  // N steps (this IS the cyclicity claim).
+  M7 cursor = M7::generator();  // = M7{1}
+  CHECK(cursor == M7{1});
+  for (int i = 0; i < 7; ++i) {
+    cursor = M7::successor(cursor);
+  }
+  // After 7 successor applications starting from 1, we should be
+  // back at 1: 1 → 2 → 3 → 4 → 5 → 6 → 0 → 1.
+  CHECK(cursor == M7{1});
+
+  // Pointwise: T::successor(x) == x + 1 across every residue.
+  for (int k = 0; k < 7; ++k) {
+    const M7 x{k};
+    CHECK(M7::successor(x) == (x + M7{1}));
+  }
+
+  // Generator + successor enumerate every residue (the orbit
+  // covers Z/7Z, since 1 is a generator of Z/7Z under +).
+  bool seen[7] = {false};
+  M7 walker = M7{0};
+  for (int i = 0; i < 7; ++i) {
+    seen[walker.value] = true;
+    walker = M7::successor(walker);
+  }
+  for (int i = 0; i < 7; ++i) CHECK(seen[i]);
+}

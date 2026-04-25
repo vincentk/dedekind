@@ -26,11 +26,15 @@
  */
 
 #include <catch2/catch_test_macros.hpp>
+#include <algorithm>
 #include <cstdint>
 #include <functional>
+#include <ranges>
+#include <set>
 
 import dedekind.algebra;
 import dedekind.category;
+import dedekind.sequences;
 
 using dedekind::algebra::galois_order_v;
 using dedekind::algebra::is_galois_field_v;
@@ -201,4 +205,68 @@ TEST_CASE("𝔽64 — primitive element α = x generates 𝔽64^×",
   for (int i = 0; i < 64; ++i) {
     CHECK(seen[i]);  // every element appeared exactly once (0 at the start).
   }
+}
+
+TEST_CASE(
+    "𝔽64^× — f64_primitive_powers() coheres with the manual α^i walk (#388)",
+    "[algebra][galois][F64][sequence]") {
+  // The library's f64_primitive_powers() returns a FinitePath<𝔽64> of
+  // size 63 whose i-th element is α^i.  This test pins the agreement
+  // between the FinitePath surface and the manual walk: faithfulness
+  // of the wrapper.  If a future edit reshuffled the at(i) semantics
+  // (say, returned α^(i+1) by mistake), this test catches it.
+  const auto seq = dedekind::algebra::f64_primitive_powers();
+  REQUIRE(seq.size() == 63);
+
+  const 𝔽64 alpha{std::uint8_t{0x02}};
+  𝔽64 manual = 𝔽64{std::uint8_t{1}};
+  for (std::size_t i = 0; i < 63; ++i) {
+    CHECK(seq.at(i) == manual);
+    manual = manual * alpha;
+  }
+  // After 63 multiplications by α we land on α^63 = 1 — the cyclic
+  // group closes (the same fact the existing primitive-element test
+  // proves manually, but here cross-checked through the FinitePath).
+  CHECK(manual == 𝔽64{std::uint8_t{1}});
+}
+
+TEST_CASE("𝔽64^× — std::ranges anchor walks all 63 non-zero elements (#388)",
+          "[algebra][galois][F64][sequence][ranges]") {
+  // The math ↔ stdlib bidirectional anchor in action: drive the
+  // FinitePath via std::ranges machinery and verify the cyclic-group
+  // walk.  This is the today-available anchor (std::ranges::input_range)
+  // that the IsSequence_vs_stdlib_388 doc block in :sequences:net
+  // describes; this test is the runtime witness that the anchor
+  // genuinely admits standard-algorithm consumers.
+  const auto seq = dedekind::algebra::f64_primitive_powers();
+
+  // std::ranges::distance over a sized_range yields the size.
+  CHECK(std::ranges::distance(seq) == 63);
+
+  // Walk via std::ranges::for_each: collect distinct values.
+  std::set<std::uint8_t> seen;
+  std::ranges::for_each(seq, [&](𝔽64 x) { seen.insert(x.value); });
+  CHECK(seen.size() == 63);
+  // Zero must NOT appear (the enumeration covers 𝔽64^× = 𝔽64 \ {0}).
+  CHECK(!seen.contains(std::uint8_t{0}));
+  // Every non-zero residue 1..63 must appear exactly once.
+  for (std::uint8_t v = 1; v <= 63; ++v) {
+    CHECK(seen.contains(v));
+  }
+}
+
+TEST_CASE("𝔽64^× — IsFiniteSequence cardinality matches cyclic-group order",
+          "[algebra][galois][F64][sequence][cyclic]") {
+  // Cross-check between the categorical witness
+  //   cyclic_order_v<𝔽64, std::multiplies<𝔽64>> == 63
+  // (axiomatic, in :galois) and the operational FinitePath::size()
+  // (the value-level walk).  Both must agree; if they didn't, the
+  // operational and axiomatic views of 𝔽64^× would have drifted apart.
+  const auto seq = dedekind::algebra::f64_primitive_powers();
+  CHECK(seq.size() ==
+        dedekind::category::cyclic_order_v<𝔽64, std::multiplies<𝔽64>>);
+  CHECK(seq.size() ==
+        dedekind::algebra::galois_order_v<𝔽64, std::plus<𝔽64>,
+                                          std::multiplies<𝔽64>> -
+            1);  // |𝔽_q^×| = q - 1.
 }
