@@ -1,8 +1,8 @@
 /** @file dedekind/morphologies/modular_test.cpp
  *
  * Tests for @c Modular<N> after its relocation from
- * @c dedekind.category:species (and the transient
- * to @c dedekind.morphologies:cyclic.
+ * @c dedekind.category:species (and the transient move
+ * to @c dedekind.morphologies:cyclic).
  *
  * Exercises the dual nature of the carrier: it satisfies the
  * operational @c morphologies::IsCyclic shape concept (via

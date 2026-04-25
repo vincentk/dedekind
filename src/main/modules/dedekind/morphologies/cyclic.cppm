@@ -109,6 +109,23 @@ struct Modular {
       std::conditional_t<(sizeof(machine_type) > sizeof(unsigned long long)),
                          machine_type, unsigned long long>;
 
+  // The widened intermediate must itself fit @c (N-1) * (N-1) for
+  // multiplication to be reduction-safe (addition's @c 2*(N-1) bound
+  // is implied).  At @c sizeof(wide_type) == 8, that caps @c N at
+  // @f$\lfloor\sqrt{2^{64}}\rfloor = 2^{32}@f$; the @c
+  // static_assert below makes the limit a hard build-time error
+  // rather than silent corruption for callers picking unusually
+  // large moduli (e.g.\ @c Modular<unsigned long long, 2^{50}>).
+  // Callers needing a wider modulus should host a 128-bit-backed
+  // carrier of their own; this one keeps to the standard widths.
+  static_assert(N == 1 ||
+                    static_cast<wide_type>(N - 1) <=
+                        std::numeric_limits<wide_type>::max() /
+                            static_cast<wide_type>(N - 1),
+                "Modular<N>: (N-1)^2 must fit wide_type for safe "
+                "modular multiplication; pick a smaller N or a "
+                "wider machine_type.");
+
   machine_type value;
 
   // Constructor normalises into @f$[0, N)@f$.  For signed

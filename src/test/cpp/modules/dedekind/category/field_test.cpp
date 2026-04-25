@@ -143,8 +143,8 @@ TEST_CASE("IsField — rejects non-field commutative rings without opt-in",
   // ℤ/2^Nℤ, a ring but not a field (non-units lack multiplicative
   // inverses).  This is precisely the false-positive the opt-in
   // prevents.  (The Modular<N> variant of this negative witness is
-  // exercised in the algebra test layer, which can see
-  // morphologies:cyclic.)
+  // exercised in the morphologies test layer at
+  // morphologies/modular_test.cpp, where the carrier is visible.)
   STATIC_CHECK_FALSE(IsField<unsigned int, std::plus<unsigned int>,
                              std::multiplies<unsigned int>>);
 }

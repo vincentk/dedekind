@@ -47,8 +47,10 @@ using namespace dedekind::sequences;
  *     opt-in trait).  More demanding; certifies the laws.
  *
  * Carriers that satisfy both --- e.g.\ @c morphologies::Modular<N>
- * and @c morphologies::CyclicRing<T, N> --- are positively certified
- * at both layers.
+ * --- are positively certified at both layers.  Other carriers,
+ * such as @c morphologies::CyclicRing<T, N>, may satisfy only the
+ * operational layer unless separately registered with the
+ * categorical trait machinery.
  */
 export template <typename T>
 concept IsCyclic = requires {
