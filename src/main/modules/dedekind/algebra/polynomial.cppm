@@ -141,9 +141,11 @@ class RigPolynomial {
    * by the seal @c IsArithmeticRing<RigPolynomial<R>>.  Witnessing
    * @c HasRingOperators<PolyUInt> / @c IsArithmeticRing<PolyUInt> in
    * the formal-verification block below relies on this operator
-   * being available.  The structurally similar operational concept
-   * @c HasRingOperators<RigPolynomial<R>> also depends on it.  Added under
-   * #393 alongside the shape concept introduction.
+   * being available.  Added under #393 alongside the shape concept
+   * introduction; the prior operational alias @c IsRingLike was
+   * collapsed into @c HasRingOperators under the #394 retire-Like
+   * sweep, so the literal-shape concept is now the sole consumer
+   * of this operator.
    */
   friend constexpr RigPolynomial operator-(const RigPolynomial& a)
     requires dedekind::category::is_invertible_v<R, std::plus<R>>

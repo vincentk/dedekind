@@ -445,11 +445,12 @@ static_assert(
 // operational concept) and IsRational (which chains through IsFieldLike ->
 // IsRationalLike). The right repair is part of a broader cleanup:
 // introduce `IsField<T, Add, Mult>` in dedekind.category:total, retire the
-// ad-hoc HasRingOperators/IsFieldLike/IsFieldLikeScalar names, and rebind
-// Field_ℚ to the proper algebraic concept. Tracked under the concept-
-// dogfooding issue sweep (see backlog issues to be created). Until then
-// the operational witnesses (IsFieldLikeScalar<Rational<SignedEC<>>>
-// asserted above) are the load-bearing guarantees.
+// ad-hoc IsFieldLike / IsFieldLikeScalar names (the IsRingLike-flavoured
+// ones already retired under #394's sweep into HasRingOperators), and
+// rebind Field_ℚ to the proper algebraic concept. Tracked under the
+// concept-dogfooding issue sweep (see backlog issues to be created).
+// Until then the operational witnesses (IsFieldLikeScalar<Rational<
+// SignedEC<>>> asserted above) are the load-bearing guarantees.
 
 // ℚ-deal (#394, surface only): HasFieldOperators is the literal field-
 // operator surface (+, -, unary -, *, /, T{1}).  Rational<I>'s friend

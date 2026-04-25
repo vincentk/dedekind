@@ -71,7 +71,7 @@ module;
 
 export module dedekind.linear_algebra:matrix;
 
-import dedekind.algebra; // HasRingOperators, HasRingOperators, IsFieldLikeScalar, IsVectorSpaceLike
+import dedekind.algebra; // HasRingOperators, IsFieldLikeScalar, IsVectorSpaceLike
 import dedekind.category; // IsFunctor / Set / arrow (for matrix2x2_functor witness)
 import dedekind.numbers; // Rational<Z> for the ℚ carrier
 import dedekind.sets;    // Finite cardinality tag (for dimension_type)
