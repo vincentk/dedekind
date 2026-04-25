@@ -1862,23 +1862,43 @@ factorisation, and a hard correctness signal (energy conservation;
 reproducible mean) that the type system can police.  The substrate
 (leapfrog, exterior 2-form, exact rational arithmetic, the
 \lstinline{Dual} product ring) is shipped today, and the
-discipline is already being applied to it.  Two static witnesses
-from the current main branch:
+discipline is already being applied to it.  The following test
+case lives at the test layer of the current main branch (\\
+\texttt{\detokenize{src/test/cpp/modules/dedekind/analysis/hamilton_test.cpp}})
+and bundles three witnesses for the harmonic-oscillator MD
+primitive: the carrier satisfies \texttt{IsHamiltonian}
+structurally, the symplectic 2-form is antisymmetric on the
+canonical basis pair, and the carrier conserves energy along the
+closed-form flow.
 
-% Sources:
-% src/main/modules/dedekind/analysis/hamilton.cppm,
-% src/main/modules/dedekind/analysis/exterior.cppm
+% Source:
+% src/test/cpp/modules/dedekind/analysis/hamilton_test.cpp
 \begin{lstlisting}[language=C++, basicstyle=\ttfamily\small]
-// :hamilton --- HarmonicOscillator<R> exposes the
-// IsHamiltonian energy(state) -> R surface; the carrier
-// satisfies the concept structurally.
-static_assert(
-    IsHamiltonian<HarmonicOscillator<double>,
-                  PhasePoint<double>, double>);
+TEST_CASE("Analysis: Harmonic oscillator "
+          "--- paper §5.7 showcase witnesses") {
+  using ℝ = double;
 
-// :exterior --- the symplectic 2-form is antisymmetric on
-// the canonical basis pair (witness of dω = 0 ingredient).
-static_assert(omega(v_x, v_y) == -omega(v_y, v_x));
+  // 1. :hamilton --- HarmonicOscillator<R> exposes the
+  //    IsHamiltonian energy(state) -> R surface.
+  STATIC_CHECK(
+      IsHamiltonian<HarmonicOscillator<ℝ>, PhasePoint<ℝ>, ℝ>);
+
+  // 2. :exterior --- the symplectic 2-form ω = dp ∧ dq is
+  //    antisymmetric on the canonical basis pair.
+  OneForm<ℝ, 2> dq{{1.0, 0.0}};
+  OneForm<ℝ, 2> dp{{0.0, 1.0}};
+  const auto omega = wedge(dp, dq);
+  const Vector<ℝ, 2> v_x{1.0, 0.0};
+  const Vector<ℝ, 2> v_y{0.0, 1.0};
+  CHECK(omega(v_x, v_y) == -omega(v_y, v_x));
+
+  // 3. H(q, p) = ½(p² + ω²q²) is constant along the flow.
+  const HarmonicOscillator<ℝ> H{1.0};
+  const auto flow = harmonic_oscillator_curve<ℝ>(1.0, 0.0, 1.0);
+  const ℝ e0 = H.energy(flow(0.0));
+  const ℝ et = H.energy(flow(2.5));
+  CHECK(std::abs(et - e0) < 1e-12);
+}
 \end{lstlisting}
 
 \noindent The worked showcases and quantitative comparisons

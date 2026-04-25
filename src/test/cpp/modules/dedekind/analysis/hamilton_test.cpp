@@ -119,6 +119,41 @@ TEST_CASE("Analysis: Hamiltonian Observables", "[analysis][hamilton]") {
   }
 }
 
+// Paper showcase (§5.7 "Natural successor domains"): three witnesses
+// for the harmonic-oscillator MD primitive, bundled here as the
+// single source of truth that the paper quotes near-verbatim.  If a
+// future edit drifts any of the three, CI catches it before the
+// paper does.
+TEST_CASE(
+    "Analysis: Harmonic oscillator --- paper §5.7 showcase witnesses",
+    "[analysis][hamilton][exterior][paper-showcase]") {
+  using ℝ = double;
+
+  // 1. :hamilton --- HarmonicOscillator<R> exposes the
+  //    IsHamiltonian energy(state) -> R surface; the carrier
+  //    satisfies the concept structurally.
+  STATIC_CHECK(IsHamiltonian<HarmonicOscillator<ℝ>, PhasePoint<ℝ>, ℝ>);
+
+  // 2. :exterior --- the symplectic 2-form ω = dp ∧ dq is
+  //    antisymmetric on the canonical basis pair (one ingredient of
+  //    dω = 0; symplectic structure on the (q, p) phase plane).
+  OneForm<ℝ, 2> dq{{1.0, 0.0}};
+  OneForm<ℝ, 2> dp{{0.0, 1.0}};
+  const auto omega = wedge(dp, dq);
+  const Vector<ℝ, 2> v_x{1.0, 0.0};
+  const Vector<ℝ, 2> v_y{0.0, 1.0};
+  CHECK(omega(v_x, v_y) == -omega(v_y, v_x));
+
+  // 3. Energy conservation along the harmonic-oscillator
+  //    closed-form flow.  H(q, p) = ½(p² + ω²q²) for ω = 1.  The
+  //    flow rotates in (q, p); H is constant.
+  const HarmonicOscillator<ℝ> H{1.0};
+  const auto flow = harmonic_oscillator_curve<ℝ>(1.0, 0.0, 1.0);
+  const ℝ e0 = H.energy(flow(0.0));
+  const ℝ et = H.energy(flow(2.5));
+  CHECK(std::abs(et - e0) < 1e-12);
+}
+
 TEST_CASE("Analysis: HarmonicOscillator carrier satisfies IsHamiltonian (#388)",
           "[analysis][hamilton][concept]") {
   // The HarmonicOscillator<R> carrier introduced in :hamilton is the
