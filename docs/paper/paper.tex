@@ -2228,6 +2228,28 @@ backlog rather than discharged here.  The $2 \times 2 \to 4 \times 4$
 step is a witness, not a promise; everything beyond is the natural
 recursion of the same combinator pattern.
 
+\paragraph{4D collapse in the IR.}
+The cross-platform-determinism guarantee of
+Section~\ref{sec:lp-centrepiece} is not specific to the LP showcase:
+it carries forward to the $4 \times 4$ DirectSum case in the same
+form.  A witness function asserting
+$(M \oplus R) \cdot (M \oplus R)^{-1} = I \oplus I$ over
+$\mathbb{Q}$ compiles, at \texttt{-O2}, to
+\lstinline|ret i64 1| --- a literal whose value clang's optimiser
+additionally annotates with the \texttt{memory(none)} attribute,
+indicating that the function reads no memory.  The four
+$2 \times 2$ blocks, the four Cramer solves, the four
+multiplications-and-additions per entry, the eight type-level
+comparisons in \texttt{DirectSum::operator==} are all decided at
+translation time; the binary contains a single literal load.
+Because the carrier is \texttt{Rational<\ldots>}, this collapse is
+again bit-identical across ARM and x86 back-ends: the same
+\lstinline|ret i64 1| holds whether the build target is the host
+\texttt{x86\_64} or a \texttt{Cortex-M} cross-compile.  The
+$4 \times 4$ result has zero footprint in the emitted binary, and
+the same recursion gives the same property at every $2^k \times 2^k$
+the combinator stack is composed up to.
+
 \paragraph{Numeric overflow in the carrier.}
 The paper's code listings ship with
 \lstinline{Rational<SignedExtensionalCardinal<>>}: an
