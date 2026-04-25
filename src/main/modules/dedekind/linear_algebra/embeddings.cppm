@@ -205,8 +205,8 @@ static_assert(dedekind::algebra::IsRingHomomorphism<
               "ℂ ↪ M₂(ℚ) is structurally a ring-like homomorphism — the "
               "four preservation laws above pin its value-level content.");
 
-static_assert(dedekind::algebra::IsRingHomomorphism<
-                  DualToMatrix2x2Hom, Dual<Rat>, Matrix2x2V<Rat>>,
+static_assert(dedekind::algebra::IsRingHomomorphism<DualToMatrix2x2Hom,
+                                                    Dual<Rat>, Matrix2x2V<Rat>>,
               "𝔻 ↪ M₂(ℚ) is structurally a ring-like homomorphism — the "
               "four preservation laws above pin its value-level content.");
 

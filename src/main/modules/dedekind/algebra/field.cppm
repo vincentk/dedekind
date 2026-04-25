@@ -47,7 +47,7 @@ import dedekind.order;
 import dedekind.sets;
 
 import :ring;
-import :group;     // HasGroupOperatorsMul (HasFieldOperators's mul half)
+import :group;  // HasGroupOperatorsMul (HasFieldOperators's mul half)
 import :division;
 
 namespace dedekind::algebra {

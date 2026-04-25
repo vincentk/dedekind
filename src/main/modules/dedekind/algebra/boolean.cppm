@@ -25,13 +25,9 @@
  * Element scouts are intentionally local (e.g. `auto b = var<BooleanSet>;`) to
  * avoid global name shadowing in downstream code.
  *
- * @section Historical_Note
- * "La matematica non e una collezione di trucchi: e grammatica delle forme."
- * (Mathematics is not a bag of tricks; it is a grammar of forms.)
- * — Emma Castelnuovo
- *
- * @note "The mathematician is born, not made."
- *       -- Henri Poincare, The Value of Science (1905)
+ * @note "La matematica non e una collezione di trucchi: e grammatica delle
+ * forme." (Mathematics is not a bag of tricks; it is a grammar of forms.) —
+ * Emma Castelnuovo as quoted by B. L. van der Waerden (1975)
  */
 module;
 
