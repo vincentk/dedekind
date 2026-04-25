@@ -1032,8 +1032,9 @@ literal C++ operators agree with the textbook (rows that tick all
 columns), the bundled seal \lstinline|IsArithmeticRing| fires and
 generic code can be written in plain syntax. Where they diverge
 (integer promotion, signed-overflow UB), the table names the precise
-failure point and the tier that still fires. ``$\circ$'' marks
-operational-only assertion under the active numeric policy; ``--''
+failure point and the tier that still fires. ``$\circ$'' marks an
+assertion that fires only at the literal-shape tier (the strict half
+is gated by an open FIXME on the species-trait registry); ``--''
 marks not-currently-asserted.}
 \label{tab:rosetta-textbook-vs-cpp}
 \small
