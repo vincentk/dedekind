@@ -2323,15 +2323,24 @@ library authors will answer.
 \paragraph{Reproducibility under heterogeneous tooling.}
 The discipline this paper names is, deliberately, falsifiable.  The
 constraints under which it stays honest---textbook-anchored
-vocabulary, named-module DAG, \texttt{static\_assert}-discharged
-invariants, CI-policed test suite---do not depend on which agent
-typed any particular line of code, but only on whether that line
-discharges the obligations the type system imposes.  A practitioner
-adopting the same constraints and the same C++23 toolchain in 2026
-should be able to produce comparable artefacts on comparable
-timescales, irrespective of how the keystrokes were generated.  The
-discipline is meant to outlast any particular generation of
-authoring tool.
+vocabulary, a named-module dependency graph, structural assertions
+discharged at translation time, a CI-policed test suite---do not
+depend on which agent typed any particular line of code, nor on the
+specific host language.  As Section~\ref{sec:axiomatic} notes, the
+technique transfers with modest adjustment to any
+strongly-typed-and-tested substrate whose type system can name a
+predicate over compile-time data and check it mechanically: Scala
+under refined types and a strict build, C\# with constrained
+generics under Roslyn analysers, Java with sealed types, strictly-
+typed Python under \texttt{mypy} or \texttt{pyright}.  C++23 is the
+worked example here---chosen because of the LLVM lever from
+discharged proof to optimised object code---but the discipline does
+not turn on it.  A practitioner adopting the same constraints and a
+comparable toolchain in 2026 should be able to produce comparable
+artefacts on comparable timescales, irrespective of host language or
+of how the keystrokes were generated.  The discipline is meant to
+outlast any particular generation of authoring tool---and,
+increasingly, of programming language.
 
 \printbibliography
 
