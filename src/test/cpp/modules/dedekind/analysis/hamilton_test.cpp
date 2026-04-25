@@ -124,9 +124,8 @@ TEST_CASE("Analysis: Hamiltonian Observables", "[analysis][hamilton]") {
 // single source of truth that the paper quotes near-verbatim.  If a
 // future edit drifts any of the three, CI catches it before the
 // paper does.
-TEST_CASE(
-    "Analysis: Harmonic oscillator --- paper §5.7 showcase witnesses",
-    "[analysis][hamilton][exterior][paper-showcase]") {
+TEST_CASE("Analysis: Harmonic oscillator --- paper §5.7 showcase witnesses",
+          "[analysis][hamilton][exterior][paper-showcase]") {
   using ℝ = double;
 
   // 1. :hamilton --- HarmonicOscillator<R> exposes the
