@@ -29,10 +29,12 @@ module;
 
 #include <concepts>
 #include <cstddef>
+#include <functional>
 
 export module dedekind.linear_algebra:tuple;
 
 import dedekind.algebra; // IsRingLike, IsVectorSpaceLike (upstream)
+import dedekind.category; // IsFunctor / Set / arrow (for vec2_functor witnesses)
 import dedekind.sets; // Finite tag — the cardinal the tuple dimension lives in
 import :contracts;    // ColumnOrientation, RowOrientation tags
 
@@ -171,5 +173,71 @@ template <typename T>
 constexpr Covec2V<T> Vec2V<T>::transpose() const {
   return {x, y};
 }
+
+/** @section Functorial_Hubs
+ *
+ *  `Vec2V<·>` and `Covec2V<·>` carry a structural shape (2×1 / 1×2 with
+ *  element type @c T) that is functorial in @c T: an arrow @c f: T→T
+ *  lifts elementwise to an arrow @c Vec2V<T>→Vec2V<T> (resp.\ Covec).
+ *  The hub types below own that lift and witness
+ *  @c dedekind::category::IsFunctor for each shape.  They mirror
+ *  @c dedekind::category::box_functor / @c maybe_functor in pattern.
+ */
+export template <typename T>
+  requires std::regular<T> && dedekind::algebra::IsRingLike<T>
+struct vec2_functor {
+  using ArrowKind = dedekind::category::hub_arrow_tag;
+  using Σ_cat = dedekind::category::CanonicalSetCCC<T>;
+  using Τ_cat = dedekind::category::CanonicalSetCCC<Vec2V<T>>;
+
+  using Domain = Σ_cat;
+  using Codomain = Τ_cat;
+
+  template <typename U>
+  using Shape = Vec2V<U>;
+
+  template <typename 𝗳>
+    requires dedekind::category::IsArrow<std::remove_cvref_t<𝗳>>
+  constexpr auto φ(𝗳&& f) const {
+    return dedekind::category::arrow(
+        [f = std::forward<𝗳>(f)](Vec2V<T> const& v) -> Vec2V<T> {
+          return {std::invoke(f, v.x), std::invoke(f, v.y)};
+        });
+  }
+
+  constexpr Τ_cat operator()(const Σ_cat&) const noexcept { return {}; }
+};
+
+export template <typename T>
+  requires std::regular<T> && dedekind::algebra::IsRingLike<T>
+struct covec2_functor {
+  using ArrowKind = dedekind::category::hub_arrow_tag;
+  using Σ_cat = dedekind::category::CanonicalSetCCC<T>;
+  using Τ_cat = dedekind::category::CanonicalSetCCC<Covec2V<T>>;
+
+  using Domain = Σ_cat;
+  using Codomain = Τ_cat;
+
+  template <typename U>
+  using Shape = Covec2V<U>;
+
+  template <typename 𝗳>
+    requires dedekind::category::IsArrow<std::remove_cvref_t<𝗳>>
+  constexpr auto φ(𝗳&& f) const {
+    return dedekind::category::arrow(
+        [f = std::forward<𝗳>(f)](Covec2V<T> const& v) -> Covec2V<T> {
+          return {std::invoke(f, v.x), std::invoke(f, v.y)};
+        });
+  }
+
+  constexpr Τ_cat operator()(const Σ_cat&) const noexcept { return {}; }
+};
+
+static_assert(dedekind::category::IsFunctor<vec2_functor<int>>,
+              "Vec2V<·> is a functor Set<T> → Set<Vec2V<T>>: lifts a T-arrow "
+              "to the elementwise Vec2V<T>-arrow.");
+static_assert(dedekind::category::IsFunctor<covec2_functor<int>>,
+              "Covec2V<·> is a functor Set<T> → Set<Covec2V<T>>: lifts a "
+              "T-arrow to the elementwise Covec2V<T>-arrow.");
 
 }  // namespace dedekind::linear_algebra

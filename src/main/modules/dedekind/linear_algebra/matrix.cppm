@@ -70,6 +70,7 @@ module;
 export module dedekind.linear_algebra:matrix;
 
 import dedekind.algebra; // IsRingLike, IsFieldLikeScalar, IsVectorSpaceLike
+import dedekind.category; // IsFunctor / Set / arrow (for matrix2x2_functor witness)
 import dedekind.numbers; // Rational<Z> for the ℚ carrier
 import dedekind.sets;    // Finite cardinality tag (for dimension_type)
 import :contracts;       // matrix / vector / orientation concepts
@@ -487,6 +488,62 @@ inline constexpr Matrix2x2V<T> identity_matrix2x2_v{T{1}, T{0}, T{0}, T{1}};
 /** @brief Value-level zero: `[[0, 0], [0, 0]]`. */
 export template <typename T>
 inline constexpr Matrix2x2V<T> zero_matrix2x2_v{T{0}, T{0}, T{0}, T{0}};
+
+/** @section Functorial_Hub
+ *
+ *  `Matrix2x2V<·>` carries a 2×2 structural shape that is functorial in
+ *  the element type @c T: an arrow @c f: T→T lifts elementwise to an
+ *  arrow @c Matrix2x2V<T>→Matrix2x2V<T>.  The hub type below owns
+ *  that lift and witnesses @c dedekind::category::IsFunctor; it
+ *  complements @c vec2_functor / @c covec2_functor in @c :tuple,
+ *  closing the (1×1, 2×1, 1×2, 2×2) shape family below.
+ */
+export template <typename T>
+  requires std::regular<T> && dedekind::algebra::IsRingLike<T>
+struct matrix2x2_functor {
+  using ArrowKind = dedekind::category::hub_arrow_tag;
+  using Σ_cat = dedekind::category::CanonicalSetCCC<T>;
+  using Τ_cat = dedekind::category::CanonicalSetCCC<Matrix2x2V<T>>;
+
+  using Domain = Σ_cat;
+  using Codomain = Τ_cat;
+
+  template <typename U>
+  using Shape = Matrix2x2V<U>;
+
+  template <typename 𝗳>
+    requires dedekind::category::IsArrow<std::remove_cvref_t<𝗳>>
+  constexpr auto φ(𝗳&& f) const {
+    return dedekind::category::arrow(
+        [f = std::forward<𝗳>(f)](Matrix2x2V<T> const& m) -> Matrix2x2V<T> {
+          return {std::invoke(f, m.m11), std::invoke(f, m.m12),
+                  std::invoke(f, m.m21), std::invoke(f, m.m22)};
+        });
+  }
+
+  constexpr Τ_cat operator()(const Σ_cat&) const noexcept { return {}; }
+};
+
+static_assert(dedekind::category::IsFunctor<matrix2x2_functor<int>>,
+              "Matrix2x2V<·> is a functor Set<T> → Set<Matrix2x2V<T>>: "
+              "lifts a T-arrow to the elementwise Matrix2x2V<T>-arrow.");
+
+/** @section Scalar_Shape_As_Identity_Functor
+ *
+ *  A scalar T is the 1×1 corner of the shape family (1×1, 2×1, 1×2, 2×2):
+ *  it carries no extra structural shape over T itself.  The identity
+ *  functor on @c Set<T> witnesses this — its @c Shape<U> = U, so it sits
+ *  at the apex of the functorial hierarchy where the inner and outer
+ *  shapes coincide.  Pinned here next to the higher-rank siblings so the
+ *  family is visible in one place.
+ */
+static_assert(dedekind::category::IsEndofunctor<
+                  dedekind::category::identity_functor<
+                      dedekind::category::CanonicalSetCCC<int>>>,
+              "Scalar shape (1×1): identity_functor<Set<T>> is the trivial "
+              "endofunctor on Set<T>; sits at the apex of the matrix-shape "
+              "family alongside vec2_functor (2×1), covec2_functor (1×2), "
+              "and matrix2x2_functor (2×2).");
 
 /** @section Shape_Conforming_Linear_Actions
  *
