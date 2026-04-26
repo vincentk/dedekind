@@ -714,6 +714,20 @@ constexpr auto power_set(const Set<T, L, P>& base) {
   return Set<Candidate, L, decltype(pred)>{pred};
 }
 
+/**
+ * @brief Textbook fraktur-P alias for @c power_set.
+ *
+ * @details In standard set-theory texts (Halmos, Munkres, Lambek--Scott)
+ * the power-set operator is written @c 𝔓 (fraktur capital P).  Exposed as
+ * a one-line forwarding wrapper so callers can write @c 𝔓(A) for the
+ * power set of @c A and have it read the same way it reads on the
+ * blackboard.  Mirrored on the Python side as @c dedekind.sets.𝔓.
+ */
+export template <typename T, typename L, typename P>
+constexpr auto 𝔓(const Set<T, L, P>& base) {
+  return power_set(base);
+}
+
 /** @brief Relation membership witness: (a,b) ∈ R. */
 export template <typename T1, typename T2, typename L, typename P>
 constexpr typename L::Ω relates(const Relation<T1, T2, L, P>& r, const T1& a,

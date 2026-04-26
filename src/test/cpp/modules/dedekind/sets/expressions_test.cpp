@@ -123,10 +123,14 @@ TEST_CASE("Dedekind Sets: Power-set witness over homogeneous predicates",
   const auto positive = Set{x % Ω<int>{} | (x > 0)};
 
   const auto p_positive = power_set(positive);
+  // Textbook fraktur-P alias: 𝔓(A) ≡ power_set(A).
+  const auto 𝔓_positive = 𝔓(positive);
 
   STATIC_CHECK(std::same_as<typename decltype(p_positive)::Domain,
                             std::remove_cvref_t<decltype(positive)>>);
+  STATIC_CHECK(std::same_as<decltype(p_positive), decltype(𝔓_positive)>);
   CHECK(p_positive(positive) == Ternary::True);
+  CHECK(𝔓_positive(positive) == Ternary::True);
 }
 
 TEST_CASE("Dedekind Sets: Power-set preserves ambient logic",
