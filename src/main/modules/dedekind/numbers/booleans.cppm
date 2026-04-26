@@ -118,15 +118,15 @@ concept Is_B = std::same_as<E, bool> && requires(const M& m) {
 /** @section Formal_Verification */
 
 // (0) Carrier-type witness: 𝔹 names the carrier itself.
-static_assert(std::same_as<𝔹, bool>,
-              "𝔹 is the bool carrier (post-#400).");
+static_assert(std::same_as<𝔹, bool>, "𝔹 is the bool carrier (post-#400).");
 
 // (1) IsSet anchor: the predicate-set FiniteBooleanSetOf<> is a bona-fide
 //     set (membership morphism bool → Ω).  Witnesses the set-builder DSL
 //     entry point that survives the carrier migration.
-static_assert(dedekind::category::IsSet<decltype(dedekind::category::ambient_set<
-                                                 bool>(FiniteBooleanSetOf<>{}))>,
-              "FiniteBooleanSetOf<> is the canonical IsSet anchor for bool.");
+static_assert(
+    dedekind::category::IsSet<decltype(dedekind::category::ambient_set<bool>(
+        FiniteBooleanSetOf<>{}))>,
+    "FiniteBooleanSetOf<> is the canonical IsSet anchor for bool.");
 
 // (2) Syntax (the C++ operator surface that maps to 𝔹's algebra).
 //   - The logical surface (∧, ∨, ¬) lives in `category:logic` as
@@ -166,14 +166,15 @@ static_assert(dedekind::order::IsOrderLattice<bool>,
 // The universal / empty Boolean predicate-sets live on @c FiniteBooleanSetOf<>
 // — kept here as the predicate-set witnesses that survive the symbol-as-
 // carrier reading.
-static_assert(
-    FiniteBooleanSetOf<>{ClassicalLogic::True, ClassicalLogic::True}(true) ==
-        ClassicalLogic::True,
-    "Universal Boolean predicate-set contains true.");
-static_assert(
-    FiniteBooleanSetOf<>{ClassicalLogic::True, ClassicalLogic::True}(false) ==
-        ClassicalLogic::True,
-    "Universal Boolean predicate-set contains false (every bool is a Boolean).");
+static_assert(FiniteBooleanSetOf<>{ClassicalLogic::True,
+                                   ClassicalLogic::True}(true) ==
+                  ClassicalLogic::True,
+              "Universal Boolean predicate-set contains true.");
+static_assert(FiniteBooleanSetOf<>{ClassicalLogic::True,
+                                   ClassicalLogic::True}(false) ==
+                  ClassicalLogic::True,
+              "Universal Boolean predicate-set contains false (every bool is a "
+              "Boolean).");
 static_assert(FiniteBooleanSetOf<>{}(true) == ClassicalLogic::False,
               "Empty Boolean predicate-set does not contain true.");
 static_assert(FiniteBooleanSetOf<>{}(false) == ClassicalLogic::False,
