@@ -921,6 +921,77 @@ export constexpr bool operator<(const SignedCardinality& lhs,
   return compare_signed(lhs, rhs) == std::partial_ordering::less;
 }
 
+// ---------------------------------------------------------------------------
+// Heterogeneous comparison: variant ↔ std::integral (closes #415)
+// ---------------------------------------------------------------------------
+//
+// Cross-type relational operators between the variant ℕ-/ℤ-proxy carriers
+// (@c Cardinality, @c SignedCardinality) and built-in @c std::integral
+// values.  The load-bearing path is the halfspace machinery's
+// @c (x @c > @c Pivot) substitution where @c x is a variant ℤ-proxy and
+// @c Pivot is the @c int NTTP from @c bound<-21>: previously this
+// required an explicit lift of the literal to the variant alternative.
+//
+// Defining @c operator<=> together with @c operator== lets the C++20
+// rewrite rules synthesise the four partial-order operators (@c <,
+// @c <=, @c >, @c >=) and the symmetric (rhs-first) direction
+// uniformly --- the witness section in @c numbers/cardinality.cppm
+// pins both directions via @c HasPartialOrderOperatorsWith.
+
+/** @brief @c Cardinality @c <=> @c std::integral.  ℵ_0 is greater than
+ *         any finite integer; negative signed values are below the
+ *         entire ℕ proxy (no element of @c Cardinality is negative),
+ *         which is encoded as @c lhs @c > @c rhs.  Otherwise the
+ *         comparison reduces to the @c ExtensionalCardinal<> spaceship.
+ */
+export template <std::integral T>
+constexpr std::strong_ordering operator<=>(const Cardinality& lhs,
+                                           T rhs) noexcept {
+  if (std::holds_alternative<ℵ_0>(lhs)) return std::strong_ordering::greater;
+  if constexpr (std::signed_integral<T>) {
+    if (rhs < 0) return std::strong_ordering::greater;
+  }
+  using U = std::make_unsigned_t<T>;
+  return std::get<ExtensionalCardinal<>>(lhs) <=>
+         ExtensionalCardinal<>{static_cast<U>(rhs)};
+}
+
+/** @brief @c Cardinality @c == @c std::integral.  Negative signed values
+ *         and ℵ_0 never equal a finite integer; the finite alternative
+ *         delegates to @c ExtensionalCardinal<>'s defaulted @c ==. */
+export template <std::integral T>
+constexpr bool operator==(const Cardinality& lhs, T rhs) noexcept {
+  if (std::holds_alternative<ℵ_0>(lhs)) return false;
+  if constexpr (std::signed_integral<T>) {
+    if (rhs < 0) return false;
+  }
+  using U = std::make_unsigned_t<T>;
+  return std::get<ExtensionalCardinal<>>(lhs) ==
+         ExtensionalCardinal<>{static_cast<U>(rhs)};
+}
+
+/** @brief @c SignedCardinality @c <=> @c std::integral.  Lifts @c rhs
+ *         to a finite @c SignedCardinality and routes through
+ *         @c compare_signed; @c NaZ on @c lhs propagates as
+ *         @c std::partial_ordering::unordered, mirroring IEEE-NaN's
+ *         unordered semantics. */
+export template <std::integral T>
+constexpr std::partial_ordering operator<=>(const SignedCardinality& lhs,
+                                            T rhs) noexcept {
+  return compare_signed(lhs, finite_signed_cardinality(rhs));
+}
+
+/** @brief @c SignedCardinality @c == @c std::integral.  @c NaZ and
+ *         @c ±ℵ_0 never equal a finite integer; the finite
+ *         alternative delegates to @c SignedExtensionalCardinal<>'s
+ *         canonical-zero-aware equality. */
+export template <std::integral T>
+constexpr bool operator==(const SignedCardinality& lhs, T rhs) noexcept {
+  if (!detail::sc_is_finite(lhs)) return false;
+  return std::get<SignedExtensionalCardinal<>>(lhs) ==
+         SignedExtensionalCardinal<>{rhs};
+}
+
 }  // namespace dedekind::sets
 
 // ---------------------------------------------------------------------------

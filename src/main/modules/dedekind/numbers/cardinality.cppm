@@ -71,4 +71,40 @@ static_assert(dedekind::order::IsDirectedSet<Z1>,
 // IsInteger<C1> is verified in rational.cppm (which imports both
 // :cardinality and :integer) to avoid a circular import chain.
 
+// Heterogeneous partial-order shape: the variant ℕ-/ℤ-proxy carriers
+// admit cross-type relational comparison with built-in @c std::integral
+// values via the operators defined in @c sets/cardinality.cppm
+// (closes #415).  Pinning the shape concept here --- not in @c sets ---
+// because the @c HasPartialOrderOperatorsWith concept itself lives in
+// @c dedekind.order:poset, which is downstream of @c sets.
+//
+// The load-bearing pair is @c (SignedCardinality, int) --- the halfspace
+// machinery's @c (x @c > @c Pivot) substitution where @c x is the
+// variant ℤ-proxy and @c Pivot is the @c int NTTP from @c bound<-21>.
+// The other pairs witness the symmetric (rhs-first) direction and the
+// unsigned ℕ-proxy slot for completeness.
+
+using SC = dedekind::sets::SignedCardinality;
+using Card = dedekind::sets::Cardinality;
+
+static_assert(dedekind::order::HasPartialOrderOperatorsWith<SC, int>,
+              "SignedCardinality must accept partial-order comparison "
+              "with int (the halfspace bound<-21> NTTP path).");
+static_assert(dedekind::order::HasPartialOrderOperatorsWith<int, SC>,
+              "int must accept partial-order comparison with "
+              "SignedCardinality (rhs-first direction).");
+static_assert(dedekind::order::HasPartialOrderOperatorsWith<SC, long>,
+              "SignedCardinality must accept partial-order comparison "
+              "with long (cross-width signed integral).");
+
+static_assert(dedekind::order::HasPartialOrderOperatorsWith<Card, unsigned int>,
+              "Cardinality must accept partial-order comparison with "
+              "unsigned int (the ℕ-proxy slot).");
+static_assert(dedekind::order::HasPartialOrderOperatorsWith<unsigned int, Card>,
+              "unsigned int must accept partial-order comparison with "
+              "Cardinality (rhs-first direction).");
+static_assert(dedekind::order::HasPartialOrderOperatorsWith<Card, int>,
+              "Cardinality vs signed int: negative signed values land "
+              "strictly below the ℕ proxy (no element is negative).");
+
 }  // namespace dedekind::numbers

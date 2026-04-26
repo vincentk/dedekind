@@ -32,6 +32,7 @@ export module dedekind.order:completeness;
 
 import dedekind.category;
 import :poset;
+import :total;  // IsTotallyOrdered relocated here per #410
 
 namespace dedekind::order {
 using namespace dedekind::category;
