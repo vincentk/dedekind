@@ -76,7 +76,8 @@ struct Boundaries {};
  */
 template <typename T>
 struct resolve_species {
-  using type = T;  // Fallback for primitives (int, bool, ...) — the carrier IS the element.
+  using type = T;  // Fallback for primitives (int, bool, ...) — the carrier IS
+                   // the element.
 };
 
 template <typename T>
