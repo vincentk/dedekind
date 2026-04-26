@@ -71,6 +71,44 @@ static_assert(dedekind::order::IsDirectedSet<Z1>,
 // IsInteger<C1> is verified in rational.cppm (which imports both
 // :cardinality and :integer) to avoid a circular import chain.
 
+// Variant ℕ-proxy @c Cardinality order witnesses (#424).  The
+// homogeneous operators (@c +, @c *, @c <=>) and trait specialisations
+// landed in @c sets/cardinality.cppm; the order-side witnesses live
+// here because @c IsPreOrdered / @c IsPartiallyOrdered / @c
+// IsTotallyOrdered / @c HasPartialOrderOperators / @c
+// HasTotalOrderOperators / @c IsDirectedSet are concepts in @c
+// dedekind.order, which is downstream of @c sets.
+//
+// These are the witnesses that the upcoming @c using @c ℕ @c = @c
+// Cardinality flip (#402) needs in place to keep the load-bearing
+// claims from PR #409 firing.
+static_assert(
+    dedekind::order::HasPartialOrderOperators<dedekind::sets::Cardinality>,
+    "Cardinality carries the partial-order operator surface "
+    "(< / <= / > / >=) post-#424.");
+static_assert(
+    dedekind::order::HasTotalOrderOperators<dedekind::sets::Cardinality>,
+    "Cardinality carries the total-order operator surface "
+    "(spaceship + four partial-order ops).");
+static_assert(dedekind::order::IsPreOrdered<dedekind::sets::Cardinality>,
+              "Cardinality with <= is a pre-order.");
+static_assert(dedekind::order::IsPartiallyOrdered<dedekind::sets::Cardinality>,
+              "Cardinality with <= is a partial order.");
+static_assert(dedekind::order::IsTotallyOrdered<dedekind::sets::Cardinality>,
+              "Cardinality is axiomatically totally ordered (the chain "
+              "axiom is satisfied: every pair is comparable, since the "
+              "finite fragment inherits from ExtensionalCardinal<>'s "
+              "strict total order and ℵ_0 dominates every finite value).");
+static_assert(dedekind::order::IsDirectedSet<dedekind::sets::Cardinality>,
+              "Cardinality is a directed set — a valid net domain "
+              "(the unbounded-ℕ-with-saturation case).");
+static_assert(dedekind::order::IsDirectedPoset<dedekind::sets::Cardinality>,
+              "Cardinality is a directed poset (every pair has a join, "
+              "and the order is antisymmetric).");
+static_assert(dedekind::order::IsDividableChain<dedekind::sets::Cardinality>,
+              "Cardinality carries Euclidean division and modulo "
+              "(closed on ℕ: 7/3 = 2 with remainder 1, both naturals).");
+
 // Heterogeneous partial-order shape: the variant ℕ-/ℤ-proxy carriers
 // admit cross-type relational comparison with built-in @c std::integral
 // values via the operators defined in @c sets/cardinality.cppm

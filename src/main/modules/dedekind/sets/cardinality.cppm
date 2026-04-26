@@ -422,6 +422,129 @@ export constexpr std::strong_ordering compare(const Cardinality& lhs,
          std::get<ExtensionalCardinal<>>(rhs);
 }
 
+// ---------------------------------------------------------------------------
+// Cardinality homogeneous operator surface (closes #424; prerequisite for
+// #416 / #402 retarget).  Mirrors the SignedCardinality pattern (PR #396)
+// --- @c std::plus / @c std::multiplies / @c std::three_way_comparable
+// can now find operators on @c Cardinality directly, lifting the @c IsRig
+// and order witnesses out of "free functions only" land.
+//
+// No subtraction: ℕ is closed under @c + but not under @c - (would
+// produce ℤ).  The math-wins reading is that @c Cardinality is a
+// @b commutative @b semiring (rig), not a ring; downstream code that
+// needs additive inverses uses @c SignedCardinality.
+//
+// @c / and @c % @b are included: Euclidean division on ℕ is closed
+// (@c 7 @c / @c 3 @c = @c 2 with remainder @c 1, both naturals --- the
+// quotient/remainder pair is the textbook construction).  This is what
+// lifts @c IsDividableChain<Cardinality> downstream in @c :completeness,
+// matching the existing claim on @c unsigned int.
+//
+// @c noexcept @b justification: the operators below dispatch through
+// @c std::get<>, which throws @c std::bad_variant_access if the variant
+// is @c valueless_by_exception.  @c std::variant becomes valueless only
+// if an alternative's move/copy ctor throws during reassignment; both
+// of @c Cardinality's alternatives are nothrow-move-constructible
+// (@c ExtensionalCardinal<> wraps a @c std::array of integral limbs;
+// @c ℵ_0 is empty), so @c Cardinality is provably never valueless and
+// the @c noexcept on these operators is sound.  The static_asserts
+// below make the guarantee explicit at compile time.
+// ---------------------------------------------------------------------------
+
+static_assert(std::is_nothrow_move_constructible_v<ExtensionalCardinal<>>,
+              "ExtensionalCardinal<> must be nothrow-move-constructible "
+              "so Cardinality is provably never valueless_by_exception "
+              "(and the noexcept on the homogeneous operators below is "
+              "sound, even though they dispatch through std::get<>).");
+static_assert(std::is_nothrow_move_constructible_v<ℵ_0>,
+              "ℵ_0 must be nothrow-move-constructible (it's empty, so "
+              "this is trivially true; pinned for the same valueless-"
+              "by-exception guarantee on Cardinality).");
+
+/** @brief Explicit @c == on @c Cardinality.  @c std::variant supplies a
+ *         defaulted @c operator== inside the module's purview, but it
+ *         is @b not reachable across the @c dedekind.sets module
+ *         boundary (the @c <variant> header lives in the global module
+ *         fragment, so its operator templates are not exported).
+ *         Defining the operator explicitly in @c dedekind::sets ---
+ *         where ADL can find it from importers like @c
+ *         dedekind.numbers --- closes that gap so @c
+ *         IsPartiallyOrdered<Cardinality> / @c
+ *         std::three_way_comparable<Cardinality> fire downstream. */
+export constexpr bool operator==(const Cardinality& lhs,
+                                 const Cardinality& rhs) noexcept {
+  const bool lhs_inf = std::holds_alternative<ℵ_0>(lhs);
+  const bool rhs_inf = std::holds_alternative<ℵ_0>(rhs);
+  if (lhs_inf != rhs_inf) return false;
+  if (lhs_inf) return true;
+  return std::get<ExtensionalCardinal<>>(lhs) ==
+         std::get<ExtensionalCardinal<>>(rhs);
+}
+
+/** @brief @c + on @c Cardinality wraps the existing @c add() policy
+ *         (saturating to @c ℵ_0 on overflow). */
+export constexpr Cardinality operator+(const Cardinality& lhs,
+                                       const Cardinality& rhs) noexcept {
+  return add(lhs, rhs);
+}
+
+/** @brief @c * on @c Cardinality wraps the existing @c mul() policy. */
+export constexpr Cardinality operator*(const Cardinality& lhs,
+                                       const Cardinality& rhs) noexcept {
+  return mul(lhs, rhs);
+}
+
+/** @brief Euclidean division on @c Cardinality.  Convention follows
+ *         the @c ExtensionalCardinal<> totalisation: division by zero
+ *         yields zero; @c finite @c / @c ℵ_0 yields zero (the limit);
+ *         @c ℵ_0 @c / @c finite-non-zero yields @c ℵ_0; @c ℵ_0 @c /
+ *         @c ℵ_0 yields @c ℵ_0 (saturation rather than indeterminate ---
+ *         @c Cardinality has no @c NaZ-equivalent sentinel; the ℕ proxy
+ *         keeps the policy total). */
+export constexpr Cardinality operator/(const Cardinality& lhs,
+                                       const Cardinality& rhs) noexcept {
+  const bool lhs_inf = std::holds_alternative<ℵ_0>(lhs);
+  const bool rhs_inf = std::holds_alternative<ℵ_0>(rhs);
+  if (lhs_inf && rhs_inf) return Cardinality{ℵ_0{}};
+  if (lhs_inf) {
+    // ℵ_0 / 0 collapses to 0 by ExtensionalCardinal<>'s convention; ℵ_0 /
+    // non-zero stays ℵ_0.
+    if (std::get<ExtensionalCardinal<>>(rhs) == ExtensionalCardinal<>{}) {
+      return finite_cardinality(0);
+    }
+    return Cardinality{ℵ_0{}};
+  }
+  if (rhs_inf) return finite_cardinality(0);  // finite / ℵ_0 → 0
+  return Cardinality{std::get<ExtensionalCardinal<>>(lhs) /
+                     std::get<ExtensionalCardinal<>>(rhs)};
+}
+
+/** @brief Euclidean remainder on @c Cardinality.  Mirrors the @c
+ *         operator/ convention: @c finite @c % @c finite delegates to
+ *         the underlying @c ExtensionalCardinal<>'s @c %; @c finite @c
+ *         % @c ℵ_0 returns the @c lhs (the limit-style "remainder is
+ *         the original" reading); operations with @c ℵ_0 on the @c lhs
+ *         saturate to @c ℵ_0. */
+export constexpr Cardinality operator%(const Cardinality& lhs,
+                                       const Cardinality& rhs) noexcept {
+  const bool lhs_inf = std::holds_alternative<ℵ_0>(lhs);
+  const bool rhs_inf = std::holds_alternative<ℵ_0>(rhs);
+  if (lhs_inf) return Cardinality{ℵ_0{}};
+  if (rhs_inf) return lhs;
+  return Cardinality{std::get<ExtensionalCardinal<>>(lhs) %
+                     std::get<ExtensionalCardinal<>>(rhs)};
+}
+
+/** @brief Spaceship on @c Cardinality wraps @c compare() (finite values
+ *         compare via the underlying @c ExtensionalCardinal<> spaceship;
+ *         @c ℵ_0 dominates every finite value).  Returns
+ *         @c std::strong_ordering --- there is no NaN-equivalent in the
+ *         ℕ proxy. */
+export constexpr std::strong_ordering operator<=>(
+    const Cardinality& lhs, const Cardinality& rhs) noexcept {
+  return compare(lhs, rhs);
+}
+
 /**
  * @brief Realize a cardinality value to `std::size_t` with explicit boundary.
  * @param transfinite_sentinel Value used for non-finite cardinalities.
@@ -727,6 +850,25 @@ export struct NaZ {
 export using SignedCardinality =
     std::variant<SignedExtensionalCardinal<>, PositiveInfinity,
                  NegativeInfinity, NaZ>;
+
+// noexcept justification for SignedCardinality's operators (parallel
+// to the Cardinality block above; pinned per Copilot review on PR #425
+// to make the std::get-can't-throw guarantee compile-time explicit).
+// All four variant alternatives are nothrow-move-constructible
+// (SignedExtensionalCardinal<> wraps an integral magnitude + bool;
+// PositiveInfinity / NegativeInfinity / NaZ are empty sentinel
+// structs), so SignedCardinality is provably never valueless and the
+// noexcept on its operators (in use since PR #396) is sound.
+static_assert(std::is_nothrow_move_constructible_v<SignedExtensionalCardinal<>>,
+              "SignedExtensionalCardinal<> must be nothrow-move-"
+              "constructible so SignedCardinality is provably never "
+              "valueless_by_exception.");
+static_assert(std::is_nothrow_move_constructible_v<PositiveInfinity> &&
+                  std::is_nothrow_move_constructible_v<NegativeInfinity> &&
+                  std::is_nothrow_move_constructible_v<NaZ>,
+              "All SignedCardinality sentinel alternatives (±ℵ_0, NaZ) "
+              "must be nothrow-move-constructible (empty structs --- "
+              "trivially true; pinned for the noexcept guarantee).");
 
 namespace detail {
 constexpr bool sc_is_finite(const SignedCardinality& v) noexcept {
@@ -1279,6 +1421,93 @@ static_assert(IsRing<SC, std::plus<SC>, std::multiplies<SC>>,
 
 static_assert(IsCommutativeRing<SC, std::plus<SC>, std::multiplies<SC>>,
               "SignedCardinality must certify as a commutative ring.");
+
+// ---------------------------------------------------------------------------
+// Category trait registrations for Cardinality (#424; prerequisite for
+// the #402 retarget).  The unsigned variant ℕ-proxy now carries the same
+// trait surface as its signed sibling SC --- modulo the missing additive
+// inverse: Cardinality is a commutative @b semiring (rig), not a ring.
+// ℕ has no negatives.
+//
+// Saturation (not periodicity) on both ops mirrors SignedCardinality:
+// overflow escalates to ℵ_0 rather than wrapping.  is_saturating is the
+// load-bearing IsTotal certificate (alongside is_periodic / is_idempotent).
+//
+// Order-axiom specialisations (is_reflexive_v / is_transitive_v /
+// is_antisymmetric_v under std::less_equal<>): registered here because
+// Cardinality's homogeneous operator<=> (added in #424 above) lifts the
+// underlying ExtensionalCardinal<>'s strict total order onto the variant
+// in the well-formed direction (finite ≤ ℵ_0; ℵ_0 ≤ ℵ_0).  Unlike
+// SignedCardinality (which carries NaZ's unordered semantics and
+// therefore can't justify std::less_equal<>-based axioms), Cardinality
+// is a clean total order.
+// ---------------------------------------------------------------------------
+
+using Card = dedekind::sets::Cardinality;
+
+template <>
+struct identity_trait<Card, std::plus<Card>> {
+  using value_type = Card;
+  static constexpr value_type value = dedekind::sets::finite_cardinality(0);
+};
+
+template <>
+struct identity_trait<Card, std::multiplies<Card>> {
+  using value_type = Card;
+  static constexpr value_type value = dedekind::sets::finite_cardinality(1);
+};
+
+template <>
+inline constexpr bool is_associative_v<Card, std::plus<Card>> = true;
+
+template <>
+inline constexpr bool is_associative_v<Card, std::multiplies<Card>> = true;
+
+template <>
+inline constexpr bool is_commutative_v<Card, std::plus<Card>> = true;
+
+template <>
+inline constexpr bool is_commutative_v<Card, std::multiplies<Card>> = true;
+
+template <>
+inline constexpr bool
+    is_distributive_v<Card, std::multiplies<Card>, std::plus<Card>> = true;
+
+// Saturating (escalates to ℵ_0 on overflow), not periodic.  Lifts
+// IsTotal -> IsMagma -> IsCommutativeMonoid -> IsRig (no additive
+// inverse, so the chain stops here; SignedCardinality is what extends
+// to IsRing / IsAbelianGroup).
+template <>
+struct is_saturating<Card, std::plus<Card>> : std::true_type {};
+
+template <>
+struct is_saturating<Card, std::multiplies<Card>> : std::true_type {};
+
+// Order-axiom traits under std::less_equal<>: the variant's homogeneous
+// <=> (compare()) is a strict total order on (finite ∪ {ℵ_0}).
+template <>
+inline constexpr bool is_reflexive_v<Card, std::less_equal<>> = true;
+
+template <>
+inline constexpr bool is_transitive_v<Card, std::less_equal<>> = true;
+
+template <>
+inline constexpr bool is_antisymmetric_v<Card, std::less_equal<>> = true;
+
+static_assert(IsCommutativeMonoid<Card, std::plus<Card>>,
+              "Cardinality must certify as a commutative monoid under "
+              "addition (the ℕ-proxy with ℵ_0 escalation; saturating, "
+              "not cyclic).");
+
+static_assert(IsCommutativeMonoid<Card, std::multiplies<Card>>,
+              "Cardinality must certify as a commutative monoid under "
+              "multiplication.");
+
+static_assert(IsRig<Card, std::plus<Card>, std::multiplies<Card>>,
+              "Cardinality must certify as a rig (commutative semiring): "
+              "+ and * are total, identities present, distributivity holds, "
+              "and there are no additive inverses (ℕ has no negatives). "
+              "The bona-fide ℕ proxy modulo physical limits.");
 
 // ---------------------------------------------------------------------------
 // SpeciesTraits specialisations: lift the variant ℕ-/ℤ-proxy carriers

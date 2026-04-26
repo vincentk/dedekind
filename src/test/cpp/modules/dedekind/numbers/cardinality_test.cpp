@@ -221,3 +221,57 @@ TEST_CASE(
     CHECK(0u < inf);
   }
 }
+
+TEST_CASE("Numbers: Cardinality homogeneous operator surface (#424)",
+          "[numbers][cardinality][operators]") {
+  const Cardinality three = finite_cardinality(3);
+  const Cardinality four = finite_cardinality(4);
+  const Cardinality inf = ℵ_0{};
+
+  SECTION("operator+ wraps add() with ℵ_0 absorption") {
+    CHECK((three + four) == finite_cardinality(7));
+    CHECK((three + inf) == inf);
+    CHECK((inf + inf) == inf);
+  }
+  SECTION("operator* wraps mul() with ℵ_0 absorption") {
+    CHECK((three * four) == finite_cardinality(12));
+    CHECK((three * inf) == inf);
+    CHECK((inf * inf) == inf);
+  }
+  SECTION("operator<=> wraps compare(); finite < ℵ_0") {
+    CHECK((three <=> four) == std::strong_ordering::less);
+    CHECK((four <=> three) == std::strong_ordering::greater);
+    CHECK((three <=> three) == std::strong_ordering::equal);
+    CHECK((three <=> inf) == std::strong_ordering::less);
+    CHECK((inf <=> three) == std::strong_ordering::greater);
+    CHECK((inf <=> inf) == std::strong_ordering::equal);
+  }
+  SECTION("Four partial-order operators synthesised from <=>") {
+    CHECK(three < four);
+    CHECK(four > three);
+    CHECK(three <= three);
+    CHECK(three >= three);
+    CHECK_FALSE(three > four);
+    CHECK(three < inf);
+  }
+  SECTION("Explicit operator== covers cross-module visibility") {
+    CHECK(three == finite_cardinality(3));
+    CHECK_FALSE(three == four);
+    CHECK(inf == Cardinality{ℵ_0{}});
+    CHECK_FALSE(three == inf);
+  }
+  SECTION("Euclidean division and modulo (the ℕ-closed pair)") {
+    const Cardinality seven = finite_cardinality(7);
+    const Cardinality two = finite_cardinality(2);
+    const Cardinality zero = finite_cardinality(0);
+    // Textbook: 7 = 2*3 + 1, both quotient and remainder in ℕ.
+    CHECK((seven / finite_cardinality(3)) == two);
+    CHECK((seven % finite_cardinality(3)) == finite_cardinality(1));
+    // Division-by-zero policy (totalised; ExtensionalCardinal convention).
+    CHECK((seven / zero) == zero);
+    CHECK((seven % zero) == seven);
+    // ℵ_0 interactions: finite / ℵ_0 = 0; ℵ_0 / finite-non-zero = ℵ_0.
+    CHECK((seven / inf) == zero);
+    CHECK((inf / two) == inf);
+  }
+}
