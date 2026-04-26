@@ -238,12 +238,11 @@ static_assert(
 // canonical machine carrier so the @b commutative-semiring claim that
 // Monoid_ℕ implies (via IsCommutativeMonoid<T, std::plus> + the
 // multiplicative monoid) is also visible as a single static_assert.
-static_assert(
-    dedekind::algebra::IsRig<unsigned int, std::plus<unsigned int>,
-                             std::multiplies<unsigned int>>,
-    "ℕ under (+, *) is a commutative idempotent semiring (rig) — "
-    "no additive inverse on the carrier; modular wrap is the "
-    "rig-flavoured closure rather than a ring inverse.");
+static_assert(dedekind::algebra::IsRig<unsigned int, std::plus<unsigned int>,
+                                       std::multiplies<unsigned int>>,
+              "ℕ under (+, *) is a commutative idempotent semiring (rig) — "
+              "no additive inverse on the carrier; modular wrap is the "
+              "rig-flavoured closure rather than a ring inverse.");
 // Order witnesses (explicit, for documentation purposes).  ℕ is the
 // canonical totally-ordered chain 0 ≤ 1 ≤ 2 ≤ ... at the literal
 // level; the spaceship and the four partial-order operators all
