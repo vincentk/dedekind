@@ -429,11 +429,16 @@ export constexpr std::strong_ordering compare(const Cardinality& lhs,
 // can now find operators on @c Cardinality directly, lifting the @c IsRig
 // and order witnesses out of "free functions only" land.
 //
-// No subtraction or division: ℕ is closed under @c + and @c * but not
-// under @c - (would produce ℤ) or @c / (would produce ℚ).  The math-wins
-// reading is that @c Cardinality is a @b commutative @b semiring (rig),
-// not a ring; downstream code that needs additive inverses uses
-// @c SignedCardinality.
+// No subtraction: ℕ is closed under @c + but not under @c - (would
+// produce ℤ).  The math-wins reading is that @c Cardinality is a
+// @b commutative @b semiring (rig), not a ring; downstream code that
+// needs additive inverses uses @c SignedCardinality.
+//
+// @c / and @c % @b are included: Euclidean division on ℕ is closed
+// (@c 7 @c / @c 3 @c = @c 2 with remainder @c 1, both naturals --- the
+// quotient/remainder pair is the textbook construction).  This is what
+// lifts @c IsDividableChain<Cardinality> downstream in @c :completeness,
+// matching the existing claim on @c unsigned int.
 // ---------------------------------------------------------------------------
 
 /** @brief Explicit @c == on @c Cardinality.  @c std::variant supplies a
@@ -467,6 +472,47 @@ export constexpr Cardinality operator+(const Cardinality& lhs,
 export constexpr Cardinality operator*(const Cardinality& lhs,
                                        const Cardinality& rhs) noexcept {
   return mul(lhs, rhs);
+}
+
+/** @brief Euclidean division on @c Cardinality.  Convention follows
+ *         the @c ExtensionalCardinal<> totalisation: division by zero
+ *         yields zero; @c finite @c / @c ℵ_0 yields zero (the limit);
+ *         @c ℵ_0 @c / @c finite-non-zero yields @c ℵ_0; @c ℵ_0 @c /
+ *         @c ℵ_0 yields @c ℵ_0 (saturation rather than indeterminate ---
+ *         @c Cardinality has no @c NaZ-equivalent sentinel; the ℕ proxy
+ *         keeps the policy total). */
+export constexpr Cardinality operator/(const Cardinality& lhs,
+                                       const Cardinality& rhs) noexcept {
+  const bool lhs_inf = std::holds_alternative<ℵ_0>(lhs);
+  const bool rhs_inf = std::holds_alternative<ℵ_0>(rhs);
+  if (lhs_inf && rhs_inf) return Cardinality{ℵ_0{}};
+  if (lhs_inf) {
+    // ℵ_0 / 0 collapses to 0 by ExtensionalCardinal<>'s convention; ℵ_0 /
+    // non-zero stays ℵ_0.
+    if (std::get<ExtensionalCardinal<>>(rhs) == ExtensionalCardinal<>{}) {
+      return finite_cardinality(0);
+    }
+    return Cardinality{ℵ_0{}};
+  }
+  if (rhs_inf) return finite_cardinality(0);  // finite / ℵ_0 → 0
+  return Cardinality{std::get<ExtensionalCardinal<>>(lhs) /
+                     std::get<ExtensionalCardinal<>>(rhs)};
+}
+
+/** @brief Euclidean remainder on @c Cardinality.  Mirrors the @c
+ *         operator/ convention: @c finite @c % @c finite delegates to
+ *         the underlying @c ExtensionalCardinal<>'s @c %; @c finite @c
+ *         % @c ℵ_0 returns the @c lhs (the limit-style "remainder is
+ *         the original" reading); operations with @c ℵ_0 on the @c lhs
+ *         saturate to @c ℵ_0. */
+export constexpr Cardinality operator%(const Cardinality& lhs,
+                                       const Cardinality& rhs) noexcept {
+  const bool lhs_inf = std::holds_alternative<ℵ_0>(lhs);
+  const bool rhs_inf = std::holds_alternative<ℵ_0>(rhs);
+  if (lhs_inf) return Cardinality{ℵ_0{}};
+  if (rhs_inf) return lhs;
+  return Cardinality{std::get<ExtensionalCardinal<>>(lhs) %
+                     std::get<ExtensionalCardinal<>>(rhs)};
 }
 
 /** @brief Spaceship on @c Cardinality wraps @c compare() (finite values

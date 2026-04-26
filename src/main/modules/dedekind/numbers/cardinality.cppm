@@ -105,6 +105,9 @@ static_assert(dedekind::order::IsDirectedSet<dedekind::sets::Cardinality>,
 static_assert(dedekind::order::IsDirectedPoset<dedekind::sets::Cardinality>,
               "Cardinality is a directed poset (every pair has a join, "
               "and the order is antisymmetric).");
+static_assert(dedekind::order::IsDividableChain<dedekind::sets::Cardinality>,
+              "Cardinality carries Euclidean division and modulo "
+              "(closed on ℕ: 7/3 = 2 with remainder 1, both naturals).");
 
 // Heterogeneous partial-order shape: the variant ℕ-/ℤ-proxy carriers
 // admit cross-type relational comparison with built-in @c std::integral

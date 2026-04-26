@@ -260,4 +260,18 @@ TEST_CASE("Numbers: Cardinality homogeneous operator surface (#424)",
     CHECK(inf == Cardinality{ℵ_0{}});
     CHECK_FALSE(three == inf);
   }
+  SECTION("Euclidean division and modulo (the ℕ-closed pair)") {
+    const Cardinality seven = finite_cardinality(7);
+    const Cardinality two = finite_cardinality(2);
+    const Cardinality zero = finite_cardinality(0);
+    // Textbook: 7 = 2*3 + 1, both quotient and remainder in ℕ.
+    CHECK((seven / finite_cardinality(3)) == two);
+    CHECK((seven % finite_cardinality(3)) == finite_cardinality(1));
+    // Division-by-zero policy (totalised; ExtensionalCardinal convention).
+    CHECK((seven / zero) == zero);
+    CHECK((seven % zero) == seven);
+    // ℵ_0 interactions: finite / ℵ_0 = 0; ℵ_0 / finite-non-zero = ℵ_0.
+    CHECK((seven / inf) == zero);
+    CHECK((inf / two) == inf);
+  }
 }
