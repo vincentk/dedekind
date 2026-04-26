@@ -114,9 +114,8 @@ concept HasTotalOrderOperators =
  * @c ClassicalLogic.  Per #415 / cross-issue note on PR #422.
  */
 export template <typename T, typename U, typename L = ClassicalLogic>
-concept HasTotalOrderOperatorsWith =
-    HasPartialOrderOperatorsWith<T, U, L> &&
-    std::three_way_comparable_with<T, U>;
+concept HasTotalOrderOperatorsWith = HasPartialOrderOperatorsWith<T, U, L> &&
+                                     std::three_way_comparable_with<T, U>;
 
 /** @section Formal_Verification */
 

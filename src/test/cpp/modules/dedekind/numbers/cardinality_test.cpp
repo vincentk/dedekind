@@ -173,8 +173,9 @@ TEST_CASE("Numbers: ExtensionalCardinal additive inverse",
   }
 }
 
-TEST_CASE("Numbers: Cardinality heterogeneous comparison vs std::integral (#415)",
-          "[numbers][cardinality][order][heterogeneous]") {
+TEST_CASE(
+    "Numbers: Cardinality heterogeneous comparison vs std::integral (#415)",
+    "[numbers][cardinality][order][heterogeneous]") {
   const Cardinality five = finite_cardinality(5);
   const Cardinality inf = ℵ_0{};
 
