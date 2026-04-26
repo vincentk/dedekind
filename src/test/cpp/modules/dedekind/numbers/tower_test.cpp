@@ -108,8 +108,7 @@ TEST_CASE("Tower: embed_floating_ℝ<F> covers any floating_point",
 
 TEST_CASE("Tower: 𝔹 ↪ ℕ via embed_𝔹_ℕ", "[numbers][tower][embedding]") {
   // Post-#402: embed_𝔹_ℕ has codomain ℕ = Cardinality (variant ℕ-proxy).
-  const auto naturals_v =
-      ambient_set<ℕ>([](const ℕ&) { return true; });
+  const auto naturals_v = ambient_set<ℕ>([](const ℕ&) { return true; });
 
   CHECK(embed_𝔹_ℕ(false) == 0u);
   CHECK(embed_𝔹_ℕ(true) == 1u);
