@@ -2473,6 +2473,23 @@ STATIC_CHECK(IsOrderDistributiveLattice<int>);
 STATIC_CHECK(IsPartiallyOrdered<bool>);
 \end{lstlisting}
 
+\paragraph{Order operator-shape concepts (\#401).} Per PR \#409, the order partition exports two pure-syntactic shape concepts mirroring the \texttt{Has*Operators} family from PR \#394 (cf.\ \texttt{HasRingOperators}, \texttt{HasFieldOperators}, \texttt{HasLatticeOperators}):
+
+\begin{itemize}
+  \item \texttt{HasPartialOrderOperators<T>}: the four relational operators \texttt{<}, \texttt{<=}, \texttt{>}, \texttt{>=} compile and yield \texttt{bool}-convertible results.
+  \item \texttt{HasTotalOrderOperators<T>}: the C++20 spaceship-comparable shape, composing \texttt{HasPartialOrderOperators} with \texttt{std::three\_way\_comparable}.
+\end{itemize}
+
+These witness the @b shape side of the shape-vs-axiom split — distinct from the axiomatic \texttt{IsPartiallyOrdered} / \texttt{IsTotallyOrdered}, which additionally require reflexivity / antisymmetry / comparability.  Canonical witnesses fired on \texttt{int}, \texttt{unsigned int}, and \texttt{bool}.
+
+\paragraph{Carrier-level structural witnesses on $\mathbb{B}$ and $\mathbb{N}$.} The \texttt{:booleans} and \texttt{:naturals} partitions in \texttt{dedekind.numbers} now pin three structural readings on each carrier alongside the algebraic witnesses already in place:
+
+\begin{itemize}
+  \item \texttt{IsTotallyOrdered<T>} (\textbf{chain}): $\mathbb{B}$ is the chain $\text{false} \leq \text{true}$; $\mathbb{N}$ is the chain $0 \leq 1 \leq 2 \leq \dots$.
+  \item \texttt{IsDirectedSet<T>} / \texttt{IsDirectedPoset<T>} (\textbf{net domain}): every pair has a common upper bound; pins the carrier as a valid net domain in the Munkres / Kelley sense (a net is a function from a directed set).
+  \item \texttt{IsFiniteSequence<FinitePath<T>>} (\textbf{sequence codomain}): the \texttt{FinitePath<T>} machinery enumerates the carrier as a bona-fide finite sequence; pins the carrier as a valid sequence codomain.
+\end{itemize}
+
 \section{Results}
 
 The module validates that every concrete arithmetic species registered in \texttt{dedekind.category} satisfies at least \texttt{IsPreOrdered}. Machine integers pass the full chain together with the re-exported posetal lattice certifications, confirming that the order layer now acts as a thin, literature-aligned facade over the richer categorical order machinery rather than an independent taxonomy.
