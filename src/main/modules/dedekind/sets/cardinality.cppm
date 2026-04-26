@@ -101,10 +101,14 @@ struct ExtensionalCardinal {
   constexpr ExtensionalCardinal(limb_type value) noexcept { limbs[0] = value; }
 
   /** @brief Construction from any integral type via two's-complement wrapping.
-   *  The explicit static_cast suppresses -Wsign-conversion at the call site. */
+   *  The explicit static_cast suppresses -Wsign-conversion at the call site.
+   *  Non-explicit (post-#402) so @c std::variant disambiguation can pick
+   *  this alternative when initialising @c Cardinality from an integral
+   *  literal — the load-bearing path for the @c ℕ-as-Cardinality
+   *  carrier reading. */
   template <std::integral S>
     requires(!std::same_as<S, limb_type>)
-  constexpr explicit ExtensionalCardinal(S value) noexcept {
+  constexpr ExtensionalCardinal(S value) noexcept {  // NOLINT
     limbs[0] = static_cast<limb_type>(value);
   }
 
