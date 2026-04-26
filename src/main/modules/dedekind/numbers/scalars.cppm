@@ -88,4 +88,16 @@ concept IsScalar =
       requires std::same_as<typename M::cardinality_type, C>;
     };
 
-};  // namespace dedekind::numbers
+/** @section Formal_Verification */
+
+// Self-documenting bridge-concept witnesses on the canonical machine
+// scalars; pinned here so that any future drift in the underlying
+// algebra concepts breaks the build at the partition boundary.
+static_assert(IsIntegralScalar<int>,
+              "int is the canonical IsIntegralScalar (machine signed int).");
+static_assert(IsUnsignedIntegralScalar<unsigned int>,
+              "unsigned int is the canonical IsUnsignedIntegralScalar.");
+static_assert(IsFloatingScalar<double>,
+              "double is the canonical IsFloatingScalar.");
+
+}  // namespace dedekind::numbers
