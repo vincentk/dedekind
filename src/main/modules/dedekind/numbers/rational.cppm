@@ -344,7 +344,16 @@ export using RationalSet = RationalsOf<>;
  *  @details Pluggable via @c ℚ_t<MyInteger> for non-default integer
  *  carriers; the bare @c ℚ defaults to @c Rational<default_integer>
  *  so the show-to-a-wider-audience API reads as plain mathematics:
- *  @c static_assert(IsField<ℚ>), @c auto @c q @c = @c var<ℚ>, etc.
+ *  @c static_assert(algebra::HasFieldOperators<ℚ>), @c auto @c q @c
+ *  = @c var<ℚ>, etc.
+ *
+ *  @note  The strict @c category::IsField<ℚ, std::plus<ℚ>,
+ *  std::multiplies<ℚ>> is @b not currently certified --- the
+ *  species-trait registry isn't specialised on @c Rational under the
+ *  active numeric policy (see the @c FIXME(\#379) breadcrumb at the
+ *  Field_ℚ definition in @c :integer).  The operational
+ *  @c algebra::IsFieldLikeScalar<ℚ> is the load-bearing field-
+ *  arithmetic guarantee today.
  */
 export template <IsInteger I = default_integer>
 using ℚ_t = Rational<I>;

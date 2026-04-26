@@ -3090,7 +3090,7 @@ $\mathbb{D}$ (dual) & \texttt{Dual<F>} & automatic differentiation \\
 \section{\texttt{:booleans}}
 \label{sec:numbers-booleans}
 
-The Boolean species $\mathbb{B}$ as the base of the embedding chain.  \texttt{FiniteBooleanSetOf<L>} (alias for \texttt{dedekind.sets::FiniteBooleanSet<L>}) is the canonical characteristic-function carrier for $\mathbb{B}$ over a logic $L$ (default \texttt{ClassicalLogic}).  \texttt{Is\_B<M, E>} names a structure as a Boolean semiring with $|S| = 2$.  The \texttt{Truth<L>} lifting of truth-values into numerical-species form lives in \texttt{dedekind.category:logic}, not in this partition.
+The Boolean species $\mathbb{B}$ as the base of the embedding chain.  \texttt{FiniteBooleanSetOf<L>} (alias for \texttt{dedekind.sets::FiniteBooleanSet<L>}) is the canonical characteristic-function carrier for $\mathbb{B}$ over a logic $L$ (default \texttt{ClassicalLogic}); \texttt{$\mathbb{B}$ = FiniteBooleanSetOf<>} is the user-facing alias.  The partition also exports a legacy \texttt{Is\_B<M, E>} concept that is currently \emph{not} witnessed on the canonical carrier (the concept body requires \texttt{m.cardinality()} of return type \texttt{std::size\_t}, but \texttt{FiniteBooleanSet}'s \texttt{cardinality()} returns the \texttt{Finite} tag); flagged with \texttt{FIXME(\#379)} as a surgery candidate.  The \texttt{Truth<L>} lifting of truth-values into numerical-species form lives in \texttt{dedekind.category:logic}, not in this partition.
 
 \section{\texttt{:naturals}}
 \label{sec:numbers-naturals}
@@ -3196,7 +3196,7 @@ the \texttt{IsDirectedSet} witness.
 The concrete cardinality types themselves---\texttt{Finite},
 $\aleph\texttt{<N>}$, $\aleph_0$, $\beth_1$, \texttt{ExtensionalCardinal<N>},
 \texttt{SignedExtensionalCardinal<N>}, the \texttt{Cardinality} sum type, and
-the new \texttt{SignedCardinality} (PR \#396) ${\pm}\aleph_0$-escalating
+the new \texttt{SignedCardinality} (\#377) ${\pm}\aleph_0$-escalating
 extended-integer carrier---are defined one layer below in
 \texttt{dedekind.sets:cardinality} (see Section~\ref{sec:sets-cardinality}),
 where they also receive their species-trait registrations.

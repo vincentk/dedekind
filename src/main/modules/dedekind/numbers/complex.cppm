@@ -21,6 +21,7 @@ module;
 
 export module dedekind.numbers:complex;
 
+import dedekind.algebra;  // HasRingOperators (canonical-spine witnesses)
 import dedekind.category;
 import dedekind.geometry;
 import dedekind.sets;
