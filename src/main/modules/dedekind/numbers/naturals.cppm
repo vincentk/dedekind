@@ -46,9 +46,9 @@ module;
 
 export module dedekind.numbers:naturals;
 
-import dedekind.algebra;  // HasRingOperators / HasSemiringOperators / IsArithmeticRing (canonical-spine witnesses)
+import dedekind.algebra; // HasRingOperators / HasSemiringOperators / IsArithmeticRing (canonical-spine witnesses)
 import dedekind.category;
-import dedekind.order;    // HasLatticeOperators (canonical-spine witnesses)
+import dedekind.order; // HasLatticeOperators (canonical-spine witnesses)
 import dedekind.sets;
 import :scalars;
 import :booleans;

@@ -22,7 +22,7 @@ module;
 
 export module dedekind.numbers:real;
 
-import dedekind.algebra;  // HasRingOperators / HasFieldOperators (canonical-spine witnesses)
+import dedekind.algebra; // HasRingOperators / HasFieldOperators (canonical-spine witnesses)
 import dedekind.category;
 import dedekind.order;
 import dedekind.sets;
