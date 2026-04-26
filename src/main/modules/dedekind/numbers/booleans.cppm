@@ -141,8 +141,8 @@ static_assert(std::same_as<typename FiniteBooleanSetOf<>::Domain, 𝔹>,
 //     set (membership morphism 𝔹 → Ω).  Witnesses the set-builder DSL
 //     entry point that survives the carrier migration.
 static_assert(
-    dedekind::category::IsSet<decltype(dedekind::category::ambient_set<𝔹>(
-        FiniteBooleanSetOf<>{}))>,
+    dedekind::category::IsSet<
+        decltype(dedekind::category::ambient_set<𝔹>(FiniteBooleanSetOf<>{}))>,
     "FiniteBooleanSetOf<> is the canonical IsSet anchor for 𝔹.");
 
 // (2) Syntax (the C++ operator surface that maps to 𝔹's algebra).
@@ -172,11 +172,10 @@ static_assert(
     dedekind::algebra::IsRig<𝔹, std::logical_or<𝔹>, std::logical_and<𝔹>>,
     "𝔹 under (∨, ∧) is the canonical Boolean rig (idempotent commutative "
     "semiring; no additive inverse on the carrier).");
-static_assert(
-    dedekind::category::IsField<𝔹, std::bit_xor<𝔹>, std::bit_and<𝔹>>,
-    "𝔹 under (⊕, ∧) is the Galois field 𝔽₂ (the smallest non-trivial "
-    "field; 𝔹's ring structure lives over the bitwise functors, "
-    "not over (+, *), per the math-wins-over-C++ stance).");
+static_assert(dedekind::category::IsField<𝔹, std::bit_xor<𝔹>, std::bit_and<𝔹>>,
+              "𝔹 under (⊕, ∧) is the Galois field 𝔽₂ (the smallest non-trivial "
+              "field; 𝔹's ring structure lives over the bitwise functors, "
+              "not over (+, *), per the math-wins-over-C++ stance).");
 static_assert(dedekind::order::IsOrderLattice<𝔹>,
               "𝔹 satisfies IsOrderLattice (the locked Boolean-ring lattice "
               "under (bit_xor, bit_and); both halves of the bundle fire).");
