@@ -1209,4 +1209,44 @@ static_assert(IsRing<SC, std::plus<SC>, std::multiplies<SC>>,
 static_assert(IsCommutativeRing<SC, std::plus<SC>, std::multiplies<SC>>,
               "SignedCardinality must certify as a commutative ring.");
 
+// ---------------------------------------------------------------------------
+// SpeciesTraits specialisations: lift the variant ℕ-/ℤ-proxy carriers
+// to first-class @c IsSpecies status (per #413; prerequisite for #402).
+//
+// Without these, @c std::variant<...> doesn't satisfy
+// @c IsSpecies (the primary @c SpeciesTraits<T> registration covers
+// @c std::integral / @c std::floating_point / @c bool only), so
+// @c ambient_set<Cardinality>(...) and @c ambient_set<SignedCardinality>(...)
+// can't anchor IsSet witnesses on the variant carriers — which blocks
+// the @c ℕ @c = @c Cardinality / @c ℤ @c = @c SignedCardinality
+// retarget under #402.
+//
+// Pattern follows @c SpeciesTraits<Rational<Z>> in @c numbers/rational.cppm:
+// @c Domain @c = the carrier itself (variants are their own elements),
+// @c machine_type @c = the carrier (no separate machine sibling — the
+// variants ARE the project's canonical exact ℕ-/ℤ-proxy carriers).
+// ---------------------------------------------------------------------------
+
+template <>
+struct SpeciesTraits<dedekind::sets::Cardinality> {
+  using Domain = dedekind::sets::Cardinality;
+  using machine_type = dedekind::sets::Cardinality;
+};
+
+template <>
+struct SpeciesTraits<dedekind::sets::SignedCardinality> {
+  using Domain = dedekind::sets::SignedCardinality;
+  using machine_type = dedekind::sets::SignedCardinality;
+};
+
+// IsSpecies witnesses: the variant carriers are now first-class
+// species and can flow into @c ambient_set<...> / ETCS object
+// construction in downstream partitions (cf.\ @c sets:boundaries,
+// where @c Ω<Cardinality> / @c Ω<SignedCardinality> instantiations
+// will land as part of the #402 retarget PR).
+static_assert(IsSpecies<dedekind::sets::Cardinality>,
+              "Cardinality must be a recognised Species (post-#413).");
+static_assert(IsSpecies<dedekind::sets::SignedCardinality>,
+              "SignedCardinality must be a recognised Species (post-#413).");
+
 }  // namespace dedekind::category
