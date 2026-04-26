@@ -60,6 +60,35 @@ class VariableSymbolicScoutTest(unittest.TestCase):
         with self.assertRaises(TypeError):
             ~b  # noqa: B015 — intentional: this should fail.
 
+    def test_var_relational_predicates_on_int_domain(self) -> None:
+        # The Variable surface is domain-agnostic — exercise the lambda
+        # bodies built by `__ne__` / `__lt__` / `__le__` / `__gt__` /
+        # `__ge__` on an integer carrier so the predicate-builder paths
+        # are actually invoked, not just constructed.
+        n = var(int)
+        self.assertTrue((n != 3)(2))
+        self.assertFalse((n != 3)(3))
+        self.assertTrue((n < 5)(4))
+        self.assertFalse((n < 5)(5))
+        self.assertTrue((n <= 5)(5))
+        self.assertFalse((n <= 5)(6))
+        self.assertTrue((n > 5)(6))
+        self.assertFalse((n > 5)(5))
+        self.assertTrue((n >= 5)(5))
+        self.assertFalse((n >= 5)(4))
+
+    def test_var_not_rejects_non_bool_domain(self) -> None:
+        # `not_()` is the bool-domain shorthand; calling it on a non-bool
+        # carrier should refuse rather than silently produce a
+        # nonsensical predicate.
+        n = var(int)
+        with self.assertRaises(TypeError):
+            n.not_()
+
+    def test_var_repr_names_the_domain(self) -> None:
+        self.assertEqual(repr(var(𝔹)), "var(bool)")
+        self.assertEqual(repr(var(int)), "var(int)")
+
 
 class PowerSetOfBooleansStressTest(unittest.TestCase):
     """Walk 2^𝔹 and pin the cardinality of predicate-filtered subfamilies.

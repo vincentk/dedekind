@@ -138,44 +138,46 @@ static_assert(std::same_as<typename FiniteBooleanSetOf<>::Domain, 𝔹>,
               "FiniteBooleanSetOf<>::Domain is the bool carrier 𝔹.");
 
 // (1) IsSet anchor: the predicate-set FiniteBooleanSetOf<> is a bona-fide
-//     set (membership morphism bool → Ω).  Witnesses the set-builder DSL
+//     set (membership morphism 𝔹 → Ω).  Witnesses the set-builder DSL
 //     entry point that survives the carrier migration.
 static_assert(
-    dedekind::category::IsSet<decltype(dedekind::category::ambient_set<bool>(
+    dedekind::category::IsSet<decltype(dedekind::category::ambient_set<𝔹>(
         FiniteBooleanSetOf<>{}))>,
-    "FiniteBooleanSetOf<> is the canonical IsSet anchor for bool.");
+    "FiniteBooleanSetOf<> is the canonical IsSet anchor for 𝔹.");
 
 // (2) Syntax (the C++ operator surface that maps to 𝔹's algebra).
+//     Witnesses written against 𝔹 directly (= @c bool post-#400) so the
+//     formal-verification block reads against the canonical species
+//     symbol the surrounding prose names.
 //   - The logical surface (∧, ∨, ¬) lives in `category:logic` as
-//     `HasLogicalOperators<bool>` and is witnessed there.
+//     `HasLogicalOperators` and is witnessed there.
 //   - The lattice / bitwise surface (&, |, ^, ~) lives in
-//     `order:lattice` as `HasLatticeOperators<bool>` and is witnessed
-//     there; bool's bitwise operators promote to int but the loose
+//     `order:lattice` as `HasLatticeOperators` and is witnessed
+//     there; the bitwise operators promote to int but the loose
 //     `convertible_to<bool>` shape lets the concept fire.
-static_assert(dedekind::category::HasLogicalOperators<bool>,
-              "𝔹's logical-operator surface is bool's (&&, ||, !).");
-static_assert(dedekind::order::HasLatticeOperators<bool>,
-              "𝔹's lattice-operator surface is bool's (&, |, ^, ~).");
+static_assert(dedekind::category::HasLogicalOperators<𝔹>,
+              "𝔹's logical-operator surface is (&&, ||, !).");
+static_assert(dedekind::order::HasLatticeOperators<𝔹>,
+              "𝔹's lattice-operator surface is (&, |, ^, ~).");
 
-// (3) Semantics (the algebraic structures bool actually carries).
+// (3) Semantics (the algebraic structures 𝔹 actually carries).
 //   - Boolean rig (𝔹, ∨, ∧): canonical commutative idempotent semiring,
 //     no additive inverse (the "no negation" carrier).
 //   - Boolean ring 𝔽₂ (= 𝔹 under (⊕, ∧)): a Galois field of order 2,
 //     with full ring + field laws.
-//   - Boolean-ring lattice (the locked `IsOrderLattice<bool>` from
-//     PR #394): bool under (bit_xor, bit_and) certifies as a
-//     commutative ring AND has the lattice operator surface.
+//   - Boolean-ring lattice (the locked `IsOrderLattice<𝔹>` from
+//     PR #394): 𝔹 under (bit_xor, bit_and) certifies as a commutative
+//     ring AND has the lattice operator surface.
 static_assert(
-    dedekind::algebra::IsRig<bool, std::logical_or<bool>,
-                             std::logical_and<bool>>,
+    dedekind::algebra::IsRig<𝔹, std::logical_or<𝔹>, std::logical_and<𝔹>>,
     "𝔹 under (∨, ∧) is the canonical Boolean rig (idempotent commutative "
     "semiring; no additive inverse on the carrier).");
 static_assert(
-    dedekind::category::IsField<bool, std::bit_xor<bool>, std::bit_and<bool>>,
+    dedekind::category::IsField<𝔹, std::bit_xor<𝔹>, std::bit_and<𝔹>>,
     "𝔹 under (⊕, ∧) is the Galois field 𝔽₂ (the smallest non-trivial "
-    "field; bool's ring structure lives over the bitwise functors, "
+    "field; 𝔹's ring structure lives over the bitwise functors, "
     "not over (+, *), per the math-wins-over-C++ stance).");
-static_assert(dedekind::order::IsOrderLattice<bool>,
+static_assert(dedekind::order::IsOrderLattice<𝔹>,
               "𝔹 satisfies IsOrderLattice (the locked Boolean-ring lattice "
               "under (bit_xor, bit_and); both halves of the bundle fire).");
 
