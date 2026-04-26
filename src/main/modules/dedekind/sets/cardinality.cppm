@@ -422,6 +422,63 @@ export constexpr std::strong_ordering compare(const Cardinality& lhs,
          std::get<ExtensionalCardinal<>>(rhs);
 }
 
+// ---------------------------------------------------------------------------
+// Cardinality homogeneous operator surface (closes #424; prerequisite for
+// #416 / #402 retarget).  Mirrors the SignedCardinality pattern (PR #396)
+// --- @c std::plus / @c std::multiplies / @c std::three_way_comparable
+// can now find operators on @c Cardinality directly, lifting the @c IsRig
+// and order witnesses out of "free functions only" land.
+//
+// No subtraction or division: ℕ is closed under @c + and @c * but not
+// under @c - (would produce ℤ) or @c / (would produce ℚ).  The math-wins
+// reading is that @c Cardinality is a @b commutative @b semiring (rig),
+// not a ring; downstream code that needs additive inverses uses
+// @c SignedCardinality.
+// ---------------------------------------------------------------------------
+
+/** @brief Explicit @c == on @c Cardinality.  @c std::variant supplies a
+ *         defaulted @c operator== inside the module's purview, but it
+ *         is @b not reachable across the @c dedekind.sets module
+ *         boundary (the @c <variant> header lives in the global module
+ *         fragment, so its operator templates are not exported).
+ *         Defining the operator explicitly in @c dedekind::sets ---
+ *         where ADL can find it from importers like @c
+ *         dedekind.numbers --- closes that gap so @c
+ *         IsPartiallyOrdered<Cardinality> / @c
+ *         std::three_way_comparable<Cardinality> fire downstream. */
+export constexpr bool operator==(const Cardinality& lhs,
+                                 const Cardinality& rhs) noexcept {
+  const bool lhs_inf = std::holds_alternative<ℵ_0>(lhs);
+  const bool rhs_inf = std::holds_alternative<ℵ_0>(rhs);
+  if (lhs_inf != rhs_inf) return false;
+  if (lhs_inf) return true;
+  return std::get<ExtensionalCardinal<>>(lhs) ==
+         std::get<ExtensionalCardinal<>>(rhs);
+}
+
+/** @brief @c + on @c Cardinality wraps the existing @c add() policy
+ *         (saturating to @c ℵ_0 on overflow). */
+export constexpr Cardinality operator+(const Cardinality& lhs,
+                                       const Cardinality& rhs) noexcept {
+  return add(lhs, rhs);
+}
+
+/** @brief @c * on @c Cardinality wraps the existing @c mul() policy. */
+export constexpr Cardinality operator*(const Cardinality& lhs,
+                                       const Cardinality& rhs) noexcept {
+  return mul(lhs, rhs);
+}
+
+/** @brief Spaceship on @c Cardinality wraps @c compare() (finite values
+ *         compare via the underlying @c ExtensionalCardinal<> spaceship;
+ *         @c ℵ_0 dominates every finite value).  Returns
+ *         @c std::strong_ordering --- there is no NaN-equivalent in the
+ *         ℕ proxy. */
+export constexpr std::strong_ordering operator<=>(
+    const Cardinality& lhs, const Cardinality& rhs) noexcept {
+  return compare(lhs, rhs);
+}
+
 /**
  * @brief Realize a cardinality value to `std::size_t` with explicit boundary.
  * @param transfinite_sentinel Value used for non-finite cardinalities.
@@ -1279,6 +1336,93 @@ static_assert(IsRing<SC, std::plus<SC>, std::multiplies<SC>>,
 
 static_assert(IsCommutativeRing<SC, std::plus<SC>, std::multiplies<SC>>,
               "SignedCardinality must certify as a commutative ring.");
+
+// ---------------------------------------------------------------------------
+// Category trait registrations for Cardinality (#424; prerequisite for
+// the #402 retarget).  The unsigned variant ℕ-proxy now carries the same
+// trait surface as its signed sibling SC --- modulo the missing additive
+// inverse: Cardinality is a commutative @b semiring (rig), not a ring.
+// ℕ has no negatives.
+//
+// Saturation (not periodicity) on both ops mirrors SignedCardinality:
+// overflow escalates to ℵ_0 rather than wrapping.  is_saturating is the
+// load-bearing IsTotal certificate (alongside is_periodic / is_idempotent).
+//
+// Order-axiom specialisations (is_reflexive_v / is_transitive_v /
+// is_antisymmetric_v under std::less_equal<>): registered here because
+// Cardinality's homogeneous operator<=> (added in #424 above) lifts the
+// underlying ExtensionalCardinal<>'s strict total order onto the variant
+// in the well-formed direction (finite ≤ ℵ_0; ℵ_0 ≤ ℵ_0).  Unlike
+// SignedCardinality (which carries NaZ's unordered semantics and
+// therefore can't justify std::less_equal<>-based axioms), Cardinality
+// is a clean total order.
+// ---------------------------------------------------------------------------
+
+using Card = dedekind::sets::Cardinality;
+
+template <>
+struct identity_trait<Card, std::plus<Card>> {
+  using value_type = Card;
+  static constexpr value_type value = dedekind::sets::finite_cardinality(0);
+};
+
+template <>
+struct identity_trait<Card, std::multiplies<Card>> {
+  using value_type = Card;
+  static constexpr value_type value = dedekind::sets::finite_cardinality(1);
+};
+
+template <>
+inline constexpr bool is_associative_v<Card, std::plus<Card>> = true;
+
+template <>
+inline constexpr bool is_associative_v<Card, std::multiplies<Card>> = true;
+
+template <>
+inline constexpr bool is_commutative_v<Card, std::plus<Card>> = true;
+
+template <>
+inline constexpr bool is_commutative_v<Card, std::multiplies<Card>> = true;
+
+template <>
+inline constexpr bool
+    is_distributive_v<Card, std::multiplies<Card>, std::plus<Card>> = true;
+
+// Saturating (escalates to ℵ_0 on overflow), not periodic.  Lifts
+// IsTotal -> IsMagma -> IsCommutativeMonoid -> IsRig (no additive
+// inverse, so the chain stops here; SignedCardinality is what extends
+// to IsRing / IsAbelianGroup).
+template <>
+struct is_saturating<Card, std::plus<Card>> : std::true_type {};
+
+template <>
+struct is_saturating<Card, std::multiplies<Card>> : std::true_type {};
+
+// Order-axiom traits under std::less_equal<>: the variant's homogeneous
+// <=> (compare()) is a strict total order on (finite ∪ {ℵ_0}).
+template <>
+inline constexpr bool is_reflexive_v<Card, std::less_equal<>> = true;
+
+template <>
+inline constexpr bool is_transitive_v<Card, std::less_equal<>> = true;
+
+template <>
+inline constexpr bool is_antisymmetric_v<Card, std::less_equal<>> = true;
+
+static_assert(IsCommutativeMonoid<Card, std::plus<Card>>,
+              "Cardinality must certify as a commutative monoid under "
+              "addition (the ℕ-proxy with ℵ_0 escalation; saturating, "
+              "not cyclic).");
+
+static_assert(IsCommutativeMonoid<Card, std::multiplies<Card>>,
+              "Cardinality must certify as a commutative monoid under "
+              "multiplication.");
+
+static_assert(IsRig<Card, std::plus<Card>, std::multiplies<Card>>,
+              "Cardinality must certify as a rig (commutative semiring): "
+              "+ and * are total, identities present, distributivity holds, "
+              "and there are no additive inverses (ℕ has no negatives). "
+              "The bona-fide ℕ proxy modulo physical limits.");
 
 // ---------------------------------------------------------------------------
 // SpeciesTraits specialisations: lift the variant ℕ-/ℤ-proxy carriers
