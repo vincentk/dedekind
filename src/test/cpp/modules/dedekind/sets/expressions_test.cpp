@@ -59,9 +59,7 @@ TEST_CASE("Dedekind Identities: Boolean literals collapse over 𝔹",
   constexpr auto b = var<BoolAmbient>;
 
   constexpr auto b_false = Set{b % B_bool | !b};
-  // Idiomatic textbook form: a bare bool variable in predicate position
-  // reads as the identity predicate (post-#400 Variable<bool>::operator()).
-  constexpr auto b_true = Set{b % B_bool | b};
+  constexpr auto b_true = Set{b % B_bool | (b == true)};
 
   STATIC_CHECK(Ø<bool, ClassicalLogic>{} == (b_false & b_true));
   STATIC_CHECK(B_bool == (b_false | b_true));

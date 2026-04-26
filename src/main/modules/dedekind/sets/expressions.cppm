@@ -119,23 +119,6 @@ struct Variable {
   constexpr auto operator%(const SubSpecies& s) const {
     return MembershipBinding<SubSpecies>{s};
   }
-
-  /**
-   * @brief Identity-predicate shorthand on bool variables: a bare
-   *        @c b reads as the predicate @c [](bool v){ @c return @c v;
-   *        @c }.
-   *
-   * @details Lets the set-builder DSL write @c Set{b @c % @c B @c | @c
-   * b} for the truthy fragment, mirroring textbook set-builder
-   * notation @c {b @c \in @c 𝔹 @c | @c b}.  Available only when the
-   * variable's element type is @c bool; on other carriers a bare
-   * variable in a predicate position remains ill-typed (as it should).
-   */
-  constexpr bool operator()(bool v) const
-    requires std::same_as<T, bool>
-  {
-    return v;
-  }
 };
 
 /** @brief Global factory for symbolic scouts. */
