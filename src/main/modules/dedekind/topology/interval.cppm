@@ -42,8 +42,49 @@ using namespace dedekind::category;
 using namespace dedekind::sets;
 using namespace dedekind::order;
 
-export enum class Direction { Upward, Downward };
+// @c Direction is shared with @c dedekind::order::halfspace (the
+// upstream NTTP-pivot Halfspace family).  Re-exported here as an alias
+// so the runtime-pivot @c Ray / @c HalfSpace family in this partition
+// reads against the same enum the order layer already publishes —
+// removes a duplicate definition and keeps the two halfspace families
+// (compile-time NTTP-pivot vs runtime-pivot) speaking the same
+// orientation vocabulary.  Per #414 / cross-family alignment sweep.
+export using Direction = dedekind::order::Direction;
+
+// @c Boundary is the runtime-pivot family's boundary-inclusion enum;
+// @c dedekind::order::Strictness is the NTTP-pivot family's boundary-
+// inclusion enum.  They are isomorphic — see @c to_strictness /
+// @c to_boundary helpers below.  Kept as separate enums for now (the
+// two families already use them as NTTPs in distinct surfaces); a
+// unified-enum sweep is a future refactor.
 export enum class Boundary { Open, Closed };
+
+/** @brief Cross-family conversion: runtime-pivot @c Boundary to
+ *         NTTP-pivot @c Strictness.  @c Boundary::Open ↔
+ *         @c Strictness::Strict; @c Boundary::Closed ↔
+ *         @c Strictness::NonStrict.  @c constexpr so it composes in
+ *         NTTP positions across the two families. */
+export constexpr dedekind::order::Strictness to_strictness(Boundary b) noexcept {
+  return b == Boundary::Open ? dedekind::order::Strictness::Strict
+                             : dedekind::order::Strictness::NonStrict;
+}
+
+/** @brief Cross-family conversion: NTTP-pivot @c Strictness to
+ *         runtime-pivot @c Boundary.  Inverse of @c to_strictness. */
+export constexpr Boundary to_boundary(dedekind::order::Strictness s) noexcept {
+  return s == dedekind::order::Strictness::Strict ? Boundary::Open
+                                                  : Boundary::Closed;
+}
+
+// Cross-family equivalence witnesses (round-trip invariance).
+static_assert(to_strictness(Boundary::Open) == dedekind::order::Strictness::Strict);
+static_assert(to_strictness(Boundary::Closed) ==
+              dedekind::order::Strictness::NonStrict);
+static_assert(to_boundary(dedekind::order::Strictness::Strict) == Boundary::Open);
+static_assert(to_boundary(dedekind::order::Strictness::NonStrict) ==
+              Boundary::Closed);
+static_assert(to_boundary(to_strictness(Boundary::Open)) == Boundary::Open);
+static_assert(to_boundary(to_strictness(Boundary::Closed)) == Boundary::Closed);
 
 namespace detail {
 

@@ -80,8 +80,9 @@ using namespace dedekind::category;
  */
 export template <typename T>
 concept IsRingIntegral =
-    std::integral<T> || std::same_as<T, dedekind::sets::Cardinality> ||
-    std::same_as<T, dedekind::sets::SignedCardinality>;
+    std::integral<std::remove_cvref_t<T>> ||
+    std::same_as<std::remove_cvref_t<T>, dedekind::sets::Cardinality> ||
+    std::same_as<std::remove_cvref_t<T>, dedekind::sets::SignedCardinality>;
 
 /** @section Formal_Verification (IsRingIntegral) */
 
@@ -99,6 +100,15 @@ static_assert(IsRingIntegral<dedekind::sets::SignedCardinality>,
               "SignedCardinality must satisfy IsRingIntegral — the variant "
               "ℤ-proxy is the canonical exact-ℤ integer-range carrier "
               "(post-#414).");
+
+// Cv-/ref-qualified spellings: the @c std::remove_cvref_t normalisation
+// in the concept body lets @c IsRingIntegral fire in deduced contexts
+// (matches the @c dedekind.sets:computability convention, per Copilot
+// review on PR #422).
+static_assert(IsRingIntegral<const int>);
+static_assert(IsRingIntegral<int&>);
+static_assert(IsRingIntegral<const dedekind::sets::Cardinality&>);
+static_assert(IsRingIntegral<dedekind::sets::SignedCardinality&&>);
 
 // Negative witnesses: continuous / non-integer carriers correctly refused.
 static_assert(!IsRingIntegral<double>);
