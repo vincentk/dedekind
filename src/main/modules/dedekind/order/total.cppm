@@ -70,36 +70,39 @@ concept IsLinearOrder = IsTotallyOrdered<T>;
 /**
  * @concept HasTotalOrderOperators
  * @brief @b Pure @b syntactic @b shape: T supports the spaceship
- *        operator @c <=> alongside the four partial-order operators.
+ *        operator @c <=> alongside the four partial-order operators
+ *        (the latter return @c L::Ω).
  *
  * @details
  * The C++20 three-way comparison shape: a @c <=> that returns one of
  * @c std::strong_ordering / @c std::weak_ordering / @c
  * std::partial_ordering, witnessing that @c T can act as a totally /
  * weakly ordered carrier at the @b operator level.  Composes @c
- * HasPartialOrderOperators with the spaceship so callsites can check
- * the full relational surface in one constraint.
+ * HasPartialOrderOperators<T, L> with the spaceship so callsites can
+ * check the full relational surface in one constraint.
  *
  * Note: a partial-ordering @c <=> still satisfies this shape (the
  * spaceship's three-way result type carries the order strength); for
  * an @b axiomatic total-order witness use @c IsTotallyOrdered, which
  * additionally requires @c std::totally_ordered (excluded middle on
  * comparability).  The shape vs.\ axiom split follows the @c
- * HasRingOperators / @c IsRing pattern from PR #394.
+ * HasRingOperators / @c IsRing pattern from PR #394.  @c L defaults to
+ * @c ClassicalLogic, mirroring @c HasPartialOrderOperators / @c
+ * IsPreOrdered.
  */
-export template <typename T>
+export template <typename T, typename L = ClassicalLogic>
 concept HasTotalOrderOperators =
-    HasPartialOrderOperators<T> && std::three_way_comparable<T>;
+    HasPartialOrderOperators<T, L> && std::three_way_comparable<T>;
 
 /**
  * @concept HasTotalOrderOperatorsWith
  * @brief @b Heterogeneous shape: T and U can be compared via @c <=> in
  *        @b both directions, alongside the four partial-order
- *        operators.
+ *        operators (the latter return @c L::Ω).
  *
  * @details
  * The cross-type spaceship-comparison shape: composes
- * @c HasPartialOrderOperatorsWith<T, U> with @c
+ * @c HasPartialOrderOperatorsWith<T, U, L> with @c
  * std::three_way_comparable_with<T, U>.  Names the surface needed for
  * cross-carrier comparisons — e.g.\ @c SignedCardinality @c <=> @c int
  * (the load-bearing path for the halfspace machinery's
@@ -107,12 +110,13 @@ concept HasTotalOrderOperators =
  * and @c Pivot is the @c int NTTP from @c bound<-21>).
  *
  * Sibling of the homogeneous @c HasTotalOrderOperators above and
- * @c HasPartialOrderOperatorsWith in @c :poset.  Per #415 /
- * cross-issue note on PR #422.
+ * @c HasPartialOrderOperatorsWith in @c :poset.  @c L defaults to
+ * @c ClassicalLogic.  Per #415 / cross-issue note on PR #422.
  */
-export template <typename T, typename U>
+export template <typename T, typename U, typename L = ClassicalLogic>
 concept HasTotalOrderOperatorsWith =
-    HasPartialOrderOperatorsWith<T, U> && std::three_way_comparable_with<T, U>;
+    HasPartialOrderOperatorsWith<T, U, L> &&
+    std::three_way_comparable_with<T, U>;
 
 /** @section Formal_Verification */
 

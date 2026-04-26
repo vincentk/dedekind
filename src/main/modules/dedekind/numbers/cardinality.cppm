@@ -81,8 +81,9 @@ static_assert(dedekind::order::IsDirectedSet<Z1>,
 // The load-bearing pair is @c (SignedCardinality, int) --- the halfspace
 // machinery's @c (x @c > @c Pivot) substitution where @c x is the
 // variant ℤ-proxy and @c Pivot is the @c int NTTP from @c bound<-21>.
-// The other pairs witness the symmetric (rhs-first) direction and the
-// unsigned ℕ-proxy slot for completeness.
+// @c HasPartialOrderOperatorsWith is symmetric in @c T and @c U
+// (mirrors @c std::three_way_comparable_with), so a single witness per
+// pair pins both directions of the relational surface.
 
 using SC = dedekind::sets::SignedCardinality;
 using Card = dedekind::sets::Cardinality;
@@ -90,9 +91,6 @@ using Card = dedekind::sets::Cardinality;
 static_assert(dedekind::order::HasPartialOrderOperatorsWith<SC, int>,
               "SignedCardinality must accept partial-order comparison "
               "with int (the halfspace bound<-21> NTTP path).");
-static_assert(dedekind::order::HasPartialOrderOperatorsWith<int, SC>,
-              "int must accept partial-order comparison with "
-              "SignedCardinality (rhs-first direction).");
 static_assert(dedekind::order::HasPartialOrderOperatorsWith<SC, long>,
               "SignedCardinality must accept partial-order comparison "
               "with long (cross-width signed integral).");
@@ -100,11 +98,12 @@ static_assert(dedekind::order::HasPartialOrderOperatorsWith<SC, long>,
 static_assert(dedekind::order::HasPartialOrderOperatorsWith<Card, unsigned int>,
               "Cardinality must accept partial-order comparison with "
               "unsigned int (the ℕ-proxy slot).");
-static_assert(dedekind::order::HasPartialOrderOperatorsWith<unsigned int, Card>,
-              "unsigned int must accept partial-order comparison with "
-              "Cardinality (rhs-first direction).");
 static_assert(dedekind::order::HasPartialOrderOperatorsWith<Card, int>,
               "Cardinality vs signed int: negative signed values land "
               "strictly below the ℕ proxy (no element is negative).");
+static_assert(dedekind::order::HasPartialOrderOperatorsWith<Card, bool>,
+              "Cardinality vs bool: bool is std::integral so the "
+              "ctor / comparison path must handle it (regression for "
+              "the make_unsigned_t<bool>-undefined trap).");
 
 }  // namespace dedekind::numbers

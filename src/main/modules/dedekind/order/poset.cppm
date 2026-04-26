@@ -105,17 +105,23 @@ concept IsDirectedPoset = IsPartiallyOrdered<T, L> && IsDirectedSet<T, L>;
 /**
  * @concept HasPartialOrderOperators
  * @brief @b Pure @b syntactic @b shape: T supports the partial-order
- *        operators @c <, @c <=, @c >, @c >= with bool-convertible
- *        results.
+ *        operators @c <, @c <=, @c >, @c >= with results in the
+ *        truth-value carrier @c L::Ω of a chosen logical species.
  *
  * @details
  * Use this concept where a callsite needs the four relational operators
- * to compile and yield a value coercible to @c bool, but does @b not
- * want to bind to a particular axiomatic order (preorder, partial,
- * total).  No claim about reflexivity, antisymmetry, transitivity, or
- * comparability is made here; for those, use @c IsPreOrdered /
- * @c IsPartiallyOrdered / @c IsTotallyOrdered (the last in
- * @c :order:total).
+ * to compile and yield a value in the truth-value carrier of a chosen
+ * @c IsLogicalSpecies, but does @b not want to bind to a particular
+ * axiomatic order (preorder, partial, total).  No claim about
+ * reflexivity, antisymmetry, transitivity, or comparability is made
+ * here; for those, use @c IsPreOrdered / @c IsPartiallyOrdered /
+ * @c IsTotallyOrdered (the last in @c :order:total).
+ *
+ * The @c L parameter defaults to @c ClassicalLogic (so @c L::Ω is
+ * @c bool); supply a different @c IsLogicalSpecies to constrain the
+ * return type to a non-Boolean truth-value carrier (e.g.\ Kleene
+ * @c TernaryLogic).  Mirrors the @c L-parametric pattern already used
+ * by @c IsPreOrdered / @c IsPartiallyOrdered.
  *
  * Sibling of @c dedekind::algebra::HasRingOperators (in @c
  * algebra:ring), @c dedekind::algebra::HasFieldOperators (in @c
@@ -123,39 +129,47 @@ concept IsDirectedPoset = IsPartiallyOrdered<T, L> && IsDirectedSet<T, L>;
  * in the shape-concept family.  The split between @b shape and @b
  * axiom mirrors the literal-vs-strict tier introduced under PR #394.
  */
-export template <typename T>
+export template <typename T, typename L = ClassicalLogic>
 concept HasPartialOrderOperators = requires(const T a, const T b) {
-  { a < b } -> std::convertible_to<bool>;
-  { a <= b } -> std::convertible_to<bool>;
-  { a > b } -> std::convertible_to<bool>;
-  { a >= b } -> std::convertible_to<bool>;
+  { a < b } -> std::same_as<typename L::Ω>;
+  { a <= b } -> std::same_as<typename L::Ω>;
+  { a > b } -> std::same_as<typename L::Ω>;
+  { a >= b } -> std::same_as<typename L::Ω>;
 };
 
 /**
  * @concept HasPartialOrderOperatorsWith
  * @brief @b Heterogeneous shape: T and U can be compared via the
- *        four partial-order operators in @b both directions.
+ *        four partial-order operators in @b both directions, yielding
+ *        results in the truth-value carrier @c L::Ω.
  *
  * @details
  * The cross-type relational-operator shape: requires @c <, @c <=,
- * @c >, @c >= to compile and yield bool-convertible results between
- * @c T and @c U values.  Names the surface needed for cross-carrier
- * comparisons — e.g.\ @c SignedCardinality @c < @c int (the
- * load-bearing path for the halfspace machinery's @c (x @c > @c
- * Pivot) substitution where @c x is the variant ℤ-proxy carrier and
- * @c Pivot is the @c int NTTP from @c bound<-21>).
+ * @c >, @c >= to compile in both directions and yield results in
+ * @c L::Ω.  Names the surface needed for cross-carrier comparisons —
+ * e.g.\ @c SignedCardinality @c < @c int (the load-bearing path for
+ * the halfspace machinery's @c (x @c > @c Pivot) substitution where
+ * @c x is the variant ℤ-proxy carrier and @c Pivot is the @c int NTTP
+ * from @c bound<-21>).
+ *
+ * @c L defaults to @c ClassicalLogic, mirroring the homogeneous
+ * sibling above and @c IsPreOrdered / @c IsPartiallyOrdered.
  *
  * Sibling of the homogeneous @c HasPartialOrderOperators above; the
  * spaceship-aware total-order variant
  * @c HasTotalOrderOperatorsWith<T, U> lives in @c :order:total.  Per
  * #415 / cross-issue note on PR #422.
  */
-export template <typename T, typename U>
+export template <typename T, typename U, typename L = ClassicalLogic>
 concept HasPartialOrderOperatorsWith = requires(const T t, const U u) {
-  { t < u } -> std::convertible_to<bool>;
-  { t <= u } -> std::convertible_to<bool>;
-  { t > u } -> std::convertible_to<bool>;
-  { t >= u } -> std::convertible_to<bool>;
+  { t < u } -> std::same_as<typename L::Ω>;
+  { t <= u } -> std::same_as<typename L::Ω>;
+  { t > u } -> std::same_as<typename L::Ω>;
+  { t >= u } -> std::same_as<typename L::Ω>;
+  { u < t } -> std::same_as<typename L::Ω>;
+  { u <= t } -> std::same_as<typename L::Ω>;
+  { u > t } -> std::same_as<typename L::Ω>;
+  { u >= t } -> std::same_as<typename L::Ω>;
 };
 
 /** @section Formal_Verification */

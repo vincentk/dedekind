@@ -172,3 +172,51 @@ TEST_CASE("Numbers: ExtensionalCardinal additive inverse",
     CHECK(inverse(zero, std::plus<C1>{}) == C1{0});
   }
 }
+
+TEST_CASE("Numbers: Cardinality heterogeneous comparison vs std::integral (#415)",
+          "[numbers][cardinality][order][heterogeneous]") {
+  const Cardinality five = finite_cardinality(5);
+  const Cardinality inf = ℵ_0{};
+
+  SECTION("Finite vs unsigned and signed (non-negative) — three-way") {
+    CHECK((five <=> 5u) == std::strong_ordering::equal);
+    CHECK((five <=> 4u) == std::strong_ordering::greater);
+    CHECK((five <=> 6u) == std::strong_ordering::less);
+    CHECK((five <=> 5) == std::strong_ordering::equal);  // signed int, rhs >= 0
+    CHECK(five == 5u);
+    CHECK(five == 5);
+    CHECK(five > 4u);
+    CHECK(five < 6);
+  }
+  SECTION("Negative signed values land strictly below the ℕ proxy") {
+    // No element of Cardinality is negative; finite > any negative int.
+    CHECK((five <=> -1) == std::strong_ordering::greater);
+    CHECK(five > -1);
+    CHECK_FALSE(five == -1);
+    // Even the empty cardinal (zero) is greater than a negative int.
+    const Cardinality zero = finite_cardinality(0);
+    CHECK(zero > -1);
+    CHECK_FALSE(zero == -7);
+  }
+  SECTION("ℵ_0 dominates every finite int") {
+    CHECK((inf <=> 0u) == std::strong_ordering::greater);
+    CHECK(inf > std::numeric_limits<unsigned>::max());
+    CHECK(inf > -1);
+    CHECK_FALSE(inf == 0u);
+  }
+  SECTION("bool is std::integral (regression for make_unsigned_t<bool>)") {
+    // std::make_unsigned_t<bool> is undefined; the comparison path must
+    // delegate through ExtensionalCardinal<>'s integral ctor instead.
+    const Cardinality one = finite_cardinality(1);
+    const Cardinality zero = finite_cardinality(0);
+    CHECK(one == true);
+    CHECK(zero == false);
+    CHECK(one > false);
+    CHECK(zero < true);
+  }
+  SECTION("Rhs-first direction synthesised by C++20 rewrite rules") {
+    CHECK(5u == five);
+    CHECK(4 < five);
+    CHECK(0u < inf);
+  }
+}

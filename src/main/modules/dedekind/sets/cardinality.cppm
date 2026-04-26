@@ -943,6 +943,10 @@ export constexpr bool operator<(const SignedCardinality& lhs,
  *         entire ℕ proxy (no element of @c Cardinality is negative),
  *         which is encoded as @c lhs @c > @c rhs.  Otherwise the
  *         comparison reduces to the @c ExtensionalCardinal<> spaceship.
+ *         Delegates the integral lift through @c ExtensionalCardinal<>'s
+ *         existing @c std::integral ctor, which subsumes @c bool /
+ *         @c size_t / signed-non-negative paths uniformly --- avoiding
+ *         @c std::make_unsigned_t (undefined for @c bool).
  */
 export template <std::integral T>
 constexpr std::strong_ordering operator<=>(const Cardinality& lhs,
@@ -951,9 +955,7 @@ constexpr std::strong_ordering operator<=>(const Cardinality& lhs,
   if constexpr (std::signed_integral<T>) {
     if (rhs < 0) return std::strong_ordering::greater;
   }
-  using U = std::make_unsigned_t<T>;
-  return std::get<ExtensionalCardinal<>>(lhs) <=>
-         ExtensionalCardinal<>{static_cast<U>(rhs)};
+  return std::get<ExtensionalCardinal<>>(lhs) <=> ExtensionalCardinal<>{rhs};
 }
 
 /** @brief @c Cardinality @c == @c std::integral.  Negative signed values
@@ -965,9 +967,7 @@ constexpr bool operator==(const Cardinality& lhs, T rhs) noexcept {
   if constexpr (std::signed_integral<T>) {
     if (rhs < 0) return false;
   }
-  using U = std::make_unsigned_t<T>;
-  return std::get<ExtensionalCardinal<>>(lhs) ==
-         ExtensionalCardinal<>{static_cast<U>(rhs)};
+  return std::get<ExtensionalCardinal<>>(lhs) == ExtensionalCardinal<>{rhs};
 }
 
 /** @brief @c SignedCardinality @c <=> @c std::integral.  Lifts @c rhs
