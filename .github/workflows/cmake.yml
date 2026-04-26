@@ -36,6 +36,21 @@ jobs:
         sudo ./llvm.sh 22
         sudo apt-get install -y clang-22 ninja-build clang-format-22 llvm-22
 
+    # Create the .venv up front and prepend it to GITHUB_PATH so every
+    # subsequent step uses the same virtualenv as a local dev box does.
+    # Local dev: ./.venv created by the developer; CI: ./.venv created
+    # here.  Both have dedekind editable-installed (via `make
+    # integration-test`'s `pip install -e .`) and pytest+pytest-cov from
+    # the [project.optional-dependencies] test extras.  Coverage paths
+    # then resolve uniformly against `*/site-packages/dedekind` and the
+    # `[tool.coverage.paths]` mapping in pyproject.toml rewrites them
+    # back to `python/dedekind/` for the grep gate / Codecov.
+    - name: Set up .venv (parity with local dev)
+      run: |
+        python -m venv .venv
+        echo "$PWD/.venv/bin" >> "$GITHUB_PATH"
+        ./.venv/bin/python -m pip install --quiet --upgrade pip
+
     - name: Check Code Formatting
       run: make format-check CLANG_FORMAT=clang-format-22
 
