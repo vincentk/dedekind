@@ -334,12 +334,14 @@ using NaturalNumbers = NaturalNumbersOf<>;
  *
  *  @details Per #401 (carrier-type migration of the canonical species
  *  symbols).  The machine-ℕ realisation is @c unsigned @c int — a
- *  modular ring ℤ/2³²ℤ; the formal "infinite number line" reading
- *  lives on @c ExtensionalCardinal<> (which saturates to ℵ₀ rather
- *  than wrapping; see PR #396).  Both carriers satisfy
- *  @c IsNatural; @c ℕ defaults to the machine flavour for showcase
- *  performance, while callers wanting the exact unbounded reading
- *  spell @c var<ExtensionalCardinal<>> directly.
+ *  modular ring ℤ/2^wℤ where @c w @c =
+ *  @c std::numeric_limits<unsigned @c int>::digits (typically 32 on
+ *  current targets, but not guaranteed by the standard).  The formal
+ *  "infinite number line" reading lives on @c ExtensionalCardinal<>
+ *  (which saturates to ℵ₀ rather than wrapping; see PR #396).  Both
+ *  carriers satisfy @c IsNatural; @c ℕ defaults to the machine flavour
+ *  for showcase performance, while callers wanting the exact unbounded
+ *  reading spell @c var<ExtensionalCardinal<>> directly.
  */
 export using ℕ = unsigned int;
 

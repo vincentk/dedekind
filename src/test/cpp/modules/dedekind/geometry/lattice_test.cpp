@@ -8,27 +8,32 @@ using namespace dedekind::category;
 using namespace dedekind::sets;
 
 TEST_CASE("Geometry: square_natural_grid", "[geometry][lattice]") {
+  // Post-#401: the natural-grid carrier is NaturalLatticePoint2D
+  // (= pair<unsigned, unsigned>), so braced initialisers must use
+  // unsigned literals.  The "rejects negatives" reading moves to the
+  // direct N(int) classifier (witnessed in numbers/naturals.cppm) and
+  // to the integer-grid tests below.
   SECTION("Contains expected interior points") {
-    const auto grid = square_natural_grid(4);
+    const auto grid = square_natural_grid(4u);
     using Logic = typename decltype(grid)::logic_species;
-    REQUIRE(grid({0, 0}) == Logic::True);
-    REQUIRE(grid({3, 3}) == Logic::True);
-    REQUIRE(grid({0, 3}) == Logic::True);
-    REQUIRE(grid({2, 1}) == Logic::True);
+    REQUIRE(grid({0u, 0u}) == Logic::True);
+    REQUIRE(grid({3u, 3u}) == Logic::True);
+    REQUIRE(grid({0u, 3u}) == Logic::True);
+    REQUIRE(grid({2u, 1u}) == Logic::True);
   }
 
-  SECTION("Excludes out-of-bounds points") {
-    const auto grid = square_natural_grid(4);
+  SECTION("Excludes out-of-bounds points (above the upper bound)") {
+    const auto grid = square_natural_grid(4u);
     using Logic = typename decltype(grid)::logic_species;
-    REQUIRE(grid({4, 0}) == Logic::False);
-    REQUIRE(grid({-1, 0}) == Logic::False);
-    REQUIRE(grid({0, 4}) == Logic::False);
+    REQUIRE(grid({4u, 0u}) == Logic::False);
+    REQUIRE(grid({0u, 4u}) == Logic::False);
+    REQUIRE(grid({100u, 100u}) == Logic::False);
   }
 
   SECTION("Empty grid contains no points") {
-    const auto grid = square_natural_grid(0);
+    const auto grid = square_natural_grid(0u);
     using Logic = typename decltype(grid)::logic_species;
-    REQUIRE(grid({0, 0}) == Logic::False);
+    REQUIRE(grid({0u, 0u}) == Logic::False);
   }
 }
 
@@ -44,16 +49,21 @@ TEST_CASE("Geometry: square_integer_grid", "[geometry][lattice]") {
   }
 
   SECTION("Natural grid is a subset of corresponding integer grid") {
-    const int n = 4;
+    const unsigned int n = 4u;
     const auto nat_grid = square_natural_grid(n);
-    const auto int_grid = square_integer_grid(0, n);
+    const auto int_grid = square_integer_grid(0, static_cast<int>(n));
     using NatLogic = typename decltype(nat_grid)::logic_species;
     using IntLogic = typename decltype(int_grid)::logic_species;
 
-    for (int x = -1; x <= n; ++x) {
-      for (int y = -1; y <= n; ++y) {
-        if (nat_grid({x, y}) == NatLogic::True)
-          REQUIRE(int_grid({x, y}) == IntLogic::True);
+    // Post-#401 the natural grid's carrier is unsigned, so the witness
+    // window walks unsigned points; the integer grid trivially accepts
+    // these via the canonical embedding ℕ ↪ ℤ.
+    for (unsigned int x = 0u; x <= n; ++x) {
+      for (unsigned int y = 0u; y <= n; ++y) {
+        if (nat_grid({x, y}) == NatLogic::True) {
+          REQUIRE(int_grid({static_cast<int>(x), static_cast<int>(y)}) ==
+                  IntLogic::True);
+        }
       }
     }
   }

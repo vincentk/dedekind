@@ -20,7 +20,7 @@ except ModuleNotFoundError as _exc:
 
 # Lazy-load submodules on first access to avoid circular imports
 def __getattr__(name):
-    """Lazy-load submodules (sequences, sets) on demand."""
+    """Lazy-load submodules (sequences, sets, numbers, algebra) on demand."""
     import importlib
 
     if name in {"sequences", "sets", "numbers", "algebra"}:

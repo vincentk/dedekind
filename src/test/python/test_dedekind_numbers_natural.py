@@ -96,18 +96,13 @@ class NaturalSemiringAxiomsTest(unittest.TestCase):
                     self.assertEqual(a * (b + c), a * b + a * c)
 
     def test_no_additive_inverse_in_ℕ(self) -> None:
-        # Distinguishes ℕ from ℤ: no a > 0 has an inverse in ℕ.
-        # Operationally, ``a - a = 0`` exits ℕ for any positive ``a``
-        # only via the embedding ℕ ↪ ℤ; the witness here pins the
-        # absence by checking that the closest unsigned-arithmetic
-        # analog (``-1 mod 2^N``) doesn't land back in the small-window
-        # ℕ-fragment we care about.
+        # Distinguishes ℕ from ℤ: no positive ``a`` has an additive
+        # inverse in ℕ.  Concretely, for ``a > 0`` there is no
+        # ``b ∈ ℕ`` such that ``a + b = 0``.
         for a in range(1, 5):
-            # In Python, a - a = 0 ∈ ℕ — so the axiom holds for x = 0;
-            # the structural absence is "no b ∈ ℕ with a + b = 0 except
-            # b = 0 = a", which is exactly the cancellation property.
+            # ``0`` is still the additive identity.
             self.assertEqual(a + 0, a)
-            # And no positive b ∈ ℕ exists with a + b = 0.
+            # But no positive natural sends a positive ``a`` back to ``0``.
             for b in range(1, 5):
                 self.assertNotEqual(a + b, 0)
 
