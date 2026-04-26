@@ -101,10 +101,24 @@ struct ExtensionalCardinal {
   constexpr ExtensionalCardinal(limb_type value) noexcept { limbs[0] = value; }
 
   /** @brief Construction from any integral type via two's-complement wrapping.
-   *  The explicit static_cast suppresses -Wsign-conversion at the call site. */
+   *  The explicit @c static_cast keeps the sign-conversion at this boundary
+   *  rather than at each call site.
+   *
+   *  Intentionally non-explicit (post-#402) so integral values can convert
+   *  implicitly when initialising or passing a @c Cardinality — the
+   *  load-bearing path for the @c ℕ-as-Cardinality carrier reading.  The
+   *  @c std::variant alternative @c ExtensionalCardinal<> is selected by
+   *  the variant's per-alternative-ctor lookup regardless of @c explicit;
+   *  what the @c explicit drop changes is whether implicit conversions are
+   *  permitted (e.g., copy-initialisation, argument passing, return
+   *  conversion) from @c std::integral source values. */
   template <std::integral S>
     requires(!std::same_as<S, limb_type>)
-  constexpr explicit ExtensionalCardinal(S value) noexcept {
+  constexpr ExtensionalCardinal(S value) noexcept {
+    // NOLINTNEXTLINE(google-explicit-constructor)
+    // Intentionally implicit so @c std::integral values convert to
+    // @c Cardinality (= @c std::variant<ExtensionalCardinal<>, ℵ_0>)
+    // without the call site spelling @c ExtensionalCardinal<>{...}.
     limbs[0] = static_cast<limb_type>(value);
   }
 
