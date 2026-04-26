@@ -53,8 +53,7 @@ TEST_CASE("Numbers: starter universes construct from ambient values",
   // The int overload returns ClassicalLogic::Ω (= bool) directly, not
   // lifted through TernaryLogic.
   static_assert(N(7) == true, "Predicate-set classifies 7 as natural.");
-  static_assert(N(-7) == false,
-                "Predicate-set classifies -7 as not natural.");
+  static_assert(N(-7) == false, "Predicate-set classifies -7 as not natural.");
 
   constexpr auto z = var<ℤ>;
   constexpr auto integers = Set{z % Z};

@@ -61,8 +61,9 @@ TEST_CASE("Sets+Category: Set naming boundary is explicit",
   const auto positive = Set{x % N | (x > 0u)};
 
   // `sets::Set` (DSL species) and `category::Set` (CCC witness) are distinct.
-  STATIC_CHECK(!std::same_as<decltype(positive),
-                             dedekind::category::CanonicalSetCCC<unsigned int>>);
+  STATIC_CHECK(
+      !std::same_as<decltype(positive),
+                    dedekind::category::CanonicalSetCCC<unsigned int>>);
   STATIC_CHECK(dedekind::category::HasCanonicalSetCCC<unsigned int>);
 
   // Bridge through ETCS object construction over the post-#401 ℕ carrier.

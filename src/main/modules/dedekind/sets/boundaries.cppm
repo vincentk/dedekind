@@ -329,7 +329,8 @@ struct NaturalNumbersOf {
 // @c BooleanSet de-export pattern from #407.
 using NaturalNumbers = NaturalNumbersOf<>;
 
-/** @brief The canonical Natural-numbers carrier symbol @c ℕ = @c unsigned @c int.
+/** @brief The canonical Natural-numbers carrier symbol @c ℕ = @c unsigned @c
+ * int.
  *
  *  @details Per #401 (carrier-type migration of the canonical species
  *  symbols).  The machine-ℕ realisation is @c unsigned @c int — a

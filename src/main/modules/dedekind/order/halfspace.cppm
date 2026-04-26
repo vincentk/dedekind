@@ -174,28 +174,32 @@ struct OrderInterval {
 /** @section Halfspace_Variable_DSL — Variable<S> × Bound<V> → Halfspace. */
 
 export template <typename Species, auto V>
-  requires std::convertible_to<decltype(V), dedekind::sets::element_of_t<Species>>
+  requires std::convertible_to<decltype(V),
+                               dedekind::sets::element_of_t<Species>>
 constexpr auto operator>(const Variable<Species>&, Bound<V>) {
   using T = dedekind::sets::element_of_t<Species>;
   return Halfspace<T, V, Direction::Upward, Strictness::Strict>{};
 }
 
 export template <typename Species, auto V>
-  requires std::convertible_to<decltype(V), dedekind::sets::element_of_t<Species>>
+  requires std::convertible_to<decltype(V),
+                               dedekind::sets::element_of_t<Species>>
 constexpr auto operator>=(const Variable<Species>&, Bound<V>) {
   using T = dedekind::sets::element_of_t<Species>;
   return Halfspace<T, V, Direction::Upward, Strictness::NonStrict>{};
 }
 
 export template <typename Species, auto V>
-  requires std::convertible_to<decltype(V), dedekind::sets::element_of_t<Species>>
+  requires std::convertible_to<decltype(V),
+                               dedekind::sets::element_of_t<Species>>
 constexpr auto operator<(const Variable<Species>&, Bound<V>) {
   using T = dedekind::sets::element_of_t<Species>;
   return Halfspace<T, V, Direction::Downward, Strictness::Strict>{};
 }
 
 export template <typename Species, auto V>
-  requires std::convertible_to<decltype(V), dedekind::sets::element_of_t<Species>>
+  requires std::convertible_to<decltype(V),
+                               dedekind::sets::element_of_t<Species>>
 constexpr auto operator<=(const Variable<Species>&, Bound<V>) {
   using T = dedekind::sets::element_of_t<Species>;
   return Halfspace<T, V, Direction::Downward, Strictness::NonStrict>{};

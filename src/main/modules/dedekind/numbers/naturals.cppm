@@ -188,8 +188,8 @@ static_assert(std::same_as<typename NaturalNumbersOf<>::Domain, ℕ>,
 //     set.  Witnesses the set-builder DSL entry point that survives the
 //     carrier migration.
 static_assert(
-    dedekind::category::IsSet<decltype(dedekind::category::ambient_set<unsigned int>(
-        NaturalNumbersOf<>{}))>,
+    dedekind::category::IsSet<decltype(dedekind::category::ambient_set<
+                                       unsigned int>(NaturalNumbersOf<>{}))>,
     "NaturalNumbersOf<> is the canonical IsSet anchor for ℕ.");
 
 // (2) Syntax (the C++ operator surface that maps to ℕ's algebra).

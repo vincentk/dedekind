@@ -32,7 +32,8 @@ constexpr auto threes_0_10 = [] {
 // ---------------------------------------------------------------------------
 TEST_CASE("Relational Algebra: Selection (σ)", "[sets][relational]") {
   // Keep only elements < 6 from evens_0_10 = {0, 2, 4, 6, 8}
-  const auto small_evens = select(evens_0_10, [](unsigned int v) { return v < 6u; });
+  const auto small_evens =
+      select(evens_0_10, [](unsigned int v) { return v < 6u; });
 
   SECTION("Members of σ_{<6}(evens) are even and below 6") {
     REQUIRE(small_evens(0u) == Ternary::True);
