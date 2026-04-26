@@ -33,5 +33,18 @@ from ..sets import Variable, var
 𝔹 = bool
 B = bool
 
+# Galois-field-of-order-2 reading of the same carrier: ``(𝔹, ^, &)`` is the
+# Galois field ``𝔽₂``.  Same underlying type, different reading — mirrors
+# the C++ ``static_assert(IsField<𝔹, std::bit_xor<𝔹>, std::bit_and<𝔹>>)``
+# in ``dedekind.numbers:booleans``.  Python's ``bool ^ bool`` and
+# ``bool & bool`` already return ``bool`` (bool is an ``int`` subclass) so
+# the field operations are zero-overhead aliases.
+#
+# Note: the textbook symbol ``𝔽₂`` (U+1D53D U+2082) cannot be a Python
+# identifier — the subscript ``₂`` is not in XID_Continue, so Python
+# rejects it at parse time.  ``F2`` is therefore the canonical Python
+# spelling; the textbook form ``𝔽₂`` lives in docstrings and prose.
+F2 = bool
 
-__all__ = ["𝔹", "B", "Variable", "var"]
+
+__all__ = ["𝔹", "B", "F2", "Variable", "var"]

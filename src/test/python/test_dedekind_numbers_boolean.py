@@ -14,7 +14,7 @@ false" subfamilies.
 
 import unittest
 
-from dedekind.numbers.boolean import 𝔹, B, Variable, var
+from dedekind.numbers.boolean import 𝔹, B, F2, Variable, var
 from dedekind.sets import 𝔓, power_set
 
 
@@ -31,6 +31,80 @@ class BooleanCarrierContractTest(unittest.TestCase):
         # The whole carrier {False, True}.
         universe = frozenset({False, True})
         self.assertEqual(universe, {x for x in (False, True)})
+
+
+class GaloisField2OnBooleansTest(unittest.TestCase):
+    """The (𝔹, ^, &) reading is the Galois field F2.
+
+    Mirrors the C++ witness
+    ``static_assert(IsField<𝔹, std::bit_xor<𝔹>, std::bit_and<𝔹>>)``
+    in ``dedekind.numbers:booleans``: same carrier type as 𝔹, with
+    addition := XOR and multiplication := AND.  Walks the field axioms
+    explicitly over the two-element universe so an external observer can
+    verify the structure by running the test.
+    """
+
+    def test_F2_alias(self) -> None:
+        self.assertIs(F2, bool)
+        self.assertIs(F2, bool)
+        # Same carrier type — the Galois reading is a relabelling, not a
+        # different type.
+        self.assertIs(F2, 𝔹)
+
+    def test_F2_python_operator_typing(self) -> None:
+        # Python's bool is an int subclass; ``bool ^ bool`` and
+        # ``bool & bool`` already return ``bool``, so the C++
+        # ``std::bit_xor<𝔹>`` / ``std::bit_and<𝔹>`` functor parametrisation
+        # has a zero-overhead Python mirror.
+        for a in (False, True):
+            for b in (False, True):
+                self.assertIsInstance(a ^ b, bool)
+                self.assertIsInstance(a & b, bool)
+
+    def test_F2_additive_group_axioms(self) -> None:
+        # (𝔹, ^, 0) is the additive abelian group: closure, identity,
+        # inverse (every element is its own inverse — characteristic 2),
+        # associativity, commutativity.
+        zero = False
+        for a in (False, True):
+            self.assertEqual(a ^ zero, a)               # left identity
+            self.assertEqual(zero ^ a, a)               # right identity
+            self.assertEqual(a ^ a, zero)               # self-inverse (char 2)
+            for b in (False, True):
+                self.assertEqual(a ^ b, b ^ a)          # commutative
+                for c in (False, True):
+                    self.assertEqual((a ^ b) ^ c, a ^ (b ^ c))  # associative
+
+    def test_F2_multiplicative_monoid_axioms(self) -> None:
+        # (𝔹, &, 1) is a commutative monoid; the unit 1 is True.
+        one = True
+        for a in (False, True):
+            self.assertEqual(a & one, a)                # left identity
+            self.assertEqual(one & a, a)                # right identity
+            for b in (False, True):
+                self.assertEqual(a & b, b & a)          # commutative
+                for c in (False, True):
+                    self.assertEqual((a & b) & c, a & (b & c))  # associative
+
+    def test_F2_distributivity(self) -> None:
+        # & distributes over ^: a & (b ^ c) = (a & b) ^ (a & c).
+        for a in (False, True):
+            for b in (False, True):
+                for c in (False, True):
+                    self.assertEqual(a & (b ^ c), (a & b) ^ (a & c))
+
+    def test_F2_multiplicative_inverses_for_non_zero(self) -> None:
+        # In a field, every non-zero element has a multiplicative inverse.
+        # F2 has exactly one non-zero element (True), and True is its own
+        # inverse: True & True == True.
+        self.assertEqual(True & True, True)
+
+    def test_F2_no_zero_divisors(self) -> None:
+        # Field ⇒ no zero divisors: a & b == 0 ⇒ a == 0 or b == 0.
+        for a in (False, True):
+            for b in (False, True):
+                if (a & b) is False:
+                    self.assertTrue(a is False or b is False)
 
 
 class VariableSymbolicScoutTest(unittest.TestCase):
