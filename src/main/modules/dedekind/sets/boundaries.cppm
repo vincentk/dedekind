@@ -299,7 +299,8 @@ static_assert(dedekind::category::HasCanonicalSetCCC<int>,
 // reachable via direct @c N(-7) calls for paper-listing readability.
 export template <typename L = ClassicalLogic, typename C = ℵ_0>
 struct NaturalNumbersOf {
-  using Domain = dedekind::sets::Cardinality;  // Aligned to the @c ℕ carrier post-#402.
+  using Domain =
+      dedekind::sets::Cardinality;  // Aligned to the @c ℕ carrier post-#402.
   using Codomain = typename L::Ω;
   using logic_species = L;
   using cardinality_type = C;
