@@ -442,3 +442,43 @@ static_assert(
     "Complex<ExactReal<>> must satisfy IsProduct (ℂ ≅ ℝ × ℝ over ℚ-based ℝ).");
 
 }  // namespace dedekind::category
+
+namespace dedekind::numbers {
+
+/** @section Canonical_Species_Spine (ℂ)
+ *
+ * The canonical complex-number species ℂ is defined above as
+ * @c ComplexSet @c = @c ComplexesOf<> with value-level constant
+ * @c C; @c Complex<S> implements ℂ via the Cayley--Dickson
+ * construction over any scalar ring @c S.  The spine witnesses pin
+ * ℂ's syntax / semantics / arrow fabric:
+ *
+ * (1) IsSet anchor on @c C (above).
+ * (2) Syntax: @c HasRingOperators<Complex<R>> for any @c
+ *     HasRingOperators @c R --- ℂ's ring operator surface lifts
+ *     elementwise (binary +, binary -, unary -, *).  The unary
+ *     negation surface is @c R{} @c - @c x at the callsite;
+ *     @c Complex<R> does not mandate unary @c - on its scalar
+ *     carrier @c R.
+ * (3) Semantics: @c IsProduct<Complex<R>, R, R> witnesses (above);
+ *     the regular representation @c ℂ @c ↪ @c M_2(R) is in
+ *     @c dedekind.linear_algebra:embeddings as
+ *     @c IsRingHomomorphism (renamed under PR #394's retire-Like
+ *     sweep).
+ * (4) Primitive-type arrow: @c std::complex<double> ↔ ℂ is not
+ *     yet shipped --- a future @c embed_std_complex would close
+ *     the loop, but the current path is to construct
+ *     @c Complex<double>{re, im} directly.
+ * (5) Adjacent-set arrow: ℝ ↪ ℂ via @c embed_ℝ_ℂ above
+ *     (registered monic); reverse projections @c .real() / @c
+ *     .imag() live on the carrier as accessors.  Higher: ℂ ↪ ℍ
+ *     (quaternions) via @c Quaternion<R>'s zero-imaginary lift
+ *     (see @c :quaternion).
+ */
+static_assert(dedekind::algebra::HasRingOperators<Complex<double>>,
+              "Complex<double> closes the literal ring operator surface.");
+static_assert(dedekind::algebra::HasRingOperators<Complex<ExactReal<>>>,
+              "Complex<ExactReal<>> --- the exact ℂ carrier --- closes the "
+              "literal ring operator surface.");
+
+}  // namespace dedekind::numbers

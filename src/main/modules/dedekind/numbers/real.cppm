@@ -377,4 +377,37 @@ static_assert(
 static_assert(dedekind::algebra::IsFieldLikeScalar<ExactReal<>>,
               "ExactReal<> must satisfy IsFieldLikeScalar (ℝ is a field).");
 
+/** @section Canonical_Species_Spine (ℝ)
+ *
+ * The canonical real-number species ℝ is defined above as
+ * @c RealSet @c = @c RealsOf<> with value-level constant @c R; the
+ * exact realisation is @c ExactReal<I> @c = @c Real<Rational<I>>
+ * (Dedekind cuts over ℚ, formally honest --- every value is a ratio
+ * of integers with no rounding loss).  The spine witnesses below pin
+ * ℝ's syntax / semantics / arrow fabric:
+ *
+ * (1) IsSet anchor on @c R (above).
+ * (2) Syntax: @c HasRingOperators / @c HasFieldOperators on the
+ *     exact carrier @c ExactReal<>; the machine carrier @c double
+ *     fires the literal-shape concept too, but its semantics are
+ *     IEEE-policy-flavoured (@c IsFieldLikeScalar holds with the
+ *     usual rounding caveats).
+ * (3) Semantics: @c IsDedekindComplete<ExactReal<>> (above) is the
+ *     defining ℝ axiom; @c IsFieldLikeScalar<ExactReal<>> is the
+ *     operational field witness (Pattern-(b) per #394).  Strict
+ *     @c IsField is gated by the same species-trait FIXME as ℚ.
+ * (4) Primitive-type arrow: ℝ ↔ @c double is the open #398 work
+ *     (explicit @c embed_double / @c realize_to_double morphisms).
+ *     The current trivial direction is @c Real<double>{x} for the
+ *     forward and @c .resolve() for the reverse.
+ * (5) Adjacent-set arrows: ℚ ↪ ℝ via @c embed_ℚ_ℝ above
+ *     (registered monic); ℝ ↪ ℂ via @c embed_ℝ_ℂ in @c :complex
+ *     (downstream).
+ */
+static_assert(dedekind::algebra::HasRingOperators<ExactReal<>>,
+              "ExactReal<> closes the ring operator surface.");
+static_assert(dedekind::algebra::HasFieldOperators<ExactReal<>>,
+              "ExactReal<> closes the field operator surface "
+              "(+, binary -, unary -, *, /, T{1}).");
+
 }  // namespace dedekind::numbers

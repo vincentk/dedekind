@@ -287,23 +287,65 @@ concept Continuum_ℝ =
 export template <typename C, typename R>
 concept Algebra_ℂ = IsComplex<C, R> && dedekind::algebra::IsFieldLikeScalar<C>;
 
-/** @section Formal_Verification (partition-local) */
+/** @section Canonical_Species_Spine (ℤ)
+ *
+ * The canonical species symbol @c ℤ (alias of @c IntegerSet
+ * @c = @c IntegersOf<>) and the value-level constant @c Z are
+ * defined further down; the spine below pins ℤ's syntax / semantics
+ * / arrow-fabric witnesses against drift.  The strict (species-trait)
+ * witnesses on the exact ℤ carrier @c SignedExtensionalCardinal<>
+ * land in @c :rational (where the species-trait registrations are
+ * reachable); the partition-local witnesses here cover the
+ * literal-shape concepts and the primitive-type arrows.
+ */
 
-// Self-documenting witness: the machine integer carrier satisfies the
-// structural IsInteger concept (the strict Group_ℤ claim is asserted
-// in `:rational` where the species-trait registrations land).
+// (1) IsSet anchor: deferred until after Z is defined further down.
+
+// (2) Syntax (the C++ operator surface that maps to ℤ's algebra).
+//   - HasRingOperators<int>: literal +, -, *, unary - all close on int.
+//   - HasGroupOperatorsAdd<int>: literal +, binary -, unary - all close.
+//   - HasSuccessorOperators<int>: pre/post ++, -- all close.
+//   - HasCompoundGroupOperators*<int>: +=, -=, *=, /= all close.
+static_assert(dedekind::algebra::HasRingOperators<int>,
+              "ℤ's machine carrier (int) closes the literal ring operator "
+              "surface.");
+static_assert(
+    dedekind::algebra::HasGroupOperatorsAdd<int>,
+    "ℤ's machine carrier closes the additive-group operator surface "
+    "(+, binary -, unary -).");
+static_assert(dedekind::algebra::HasSuccessorOperators<int>,
+              "ℤ's machine carrier supports the successor operator "
+              "surface (Peano-aligned ++, --).");
+
+// (3) Semantics (the algebraic structures int actually carries).
+//   - Self-documenting: IsInteger<int> (structural Euclidean-integer-
+//     domain syntax).
+//   - Group_ℤ<int> deliberately does NOT fire: signed-overflow UB
+//     defeats the strict abelian-group proof under the math-wins-
+//     over-C++ stance.  Group_ℤ<SignedExtensionalCardinal<>> is the
+//     exact-ℤ witness, asserted in `:rational`.
+//   - IsArithmeticAdditiveGroup<int> likewise refused.
 static_assert(IsInteger<extensional_integer>,
               "extensional_integer (= int) satisfies IsInteger "
               "(structural Euclidean-integer-domain syntax).");
-
-// `Group_ℤ<int>` deliberately does NOT fire under the math-wins-over-
-// C++ stance: signed-overflow UB defeats the strict abelian-group
-// proof.  `Group_ℤ<SignedExtensionalCardinal<>>` is the canonical
-// exact-ℤ witness, asserted in `:rational`.
 static_assert(!Group_ℤ<int>,
               "int must NOT satisfy Group_ℤ: signed-overflow UB "
               "defeats the strict abelian-group proof under the "
               "math-wins-over-C++ stance.");
+static_assert(!dedekind::algebra::IsArithmeticAdditiveGroup<int>,
+              "int must NOT satisfy IsArithmeticAdditiveGroup: same "
+              "reason as the Group_ℤ rejection.");
+
+// (4) Primitive-type arrow:  std::signed_integral ↔ ℤ.  Forward via
+// `embed_signed_integral<Z>(v)` defined earlier in this partition;
+// reverse via the carrier's explicit `operator S()` (single-limb only,
+// to prevent silent truncation).  Pinned below as static_asserts on
+// the canonical exact ℤ carrier.
+
+// (5) Adjacent-set arrow: ℕ ↪ ℤ via `embed_ℕ_ℤ` defined further down
+// in this partition.  Reverse direction (ℤ → ℕ via absolute value or
+// signed-bit projection) is not a strict embedding and is intentionally
+// not registered.
 
 /**
  * @brief Characteristic morphism for ℤ: the integers.

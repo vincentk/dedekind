@@ -359,6 +359,28 @@ inline constexpr bool
 
 namespace dedekind::numbers {
 
+/** @section Canonical_Species_Spine (ℚ)
+ *
+ * The canonical rational-number species ℚ is defined above as
+ * @c RationalSet @c = @c RationalsOf<> with value-level constant
+ * @c Q.  The spine witnesses below pin ℚ's syntax / semantics /
+ * arrow fabric against drift:
+ *
+ * (1) IsSet anchor;
+ * (2) Syntax: HasRingOperators / HasFieldOperators /
+ *     HasGroupOperatorsAdd / HasGroupOperatorsMul on the canonical
+ *     @c Rational<default_integer> carrier;
+ * (3) Semantics: total order, density, directed-set, CCC, plus the
+ *     operational @c IsFieldLikeScalar witness (the strict @c IsField
+ *     bundle is gated by the species-trait FIXME documented further
+ *     down);
+ * (4) Primitive-type arrow ℚ ↔ machine_integer via @c embed_ℤ_ℚ
+ *     (forward, registered monic);
+ * (5) Adjacent-set arrows: ℤ ↪ ℚ via @c embed_ℤ_ℚ above; ℚ ↪ ℝ via
+ *     @c embed_ℚ_ℝ in @c :real (downstream).  Reverse arrows
+ *     ℚ → double / ℝ → ℚ live behind the open #398 work.
+ */
+
 static_assert(
     dedekind::category::IsSet<decltype(dedekind::category::ambient_set<
                                        Rational<default_integer>>(Q))>,
@@ -467,6 +489,22 @@ static_assert(
     dedekind::algebra::HasFieldOperators<Rational<SignedExtensionalCardinal<>>>,
     "Rational<SignedExtensionalCardinal<>> --- the canonical exact ℚ "
     "carrier --- has the field-operator surface.");
+
+// Canonical-spine syntactic witnesses on Rational<default_integer>:
+// the ring / additive-group / multiplicative-group surfaces are all
+// implied by HasFieldOperators above (which is HasRingOperators ∧
+// HasGroupOperatorsMul), but pinning them explicitly here surfaces
+// each shape concept in the partition's witness ledger.
+static_assert(dedekind::algebra::HasRingOperators<Rational<default_integer>>,
+              "Rational<default_integer> closes the ring operator surface.");
+static_assert(
+    dedekind::algebra::HasGroupOperatorsAdd<Rational<default_integer>>,
+    "Rational<default_integer> closes the additive-group operator "
+    "surface (+, binary -, unary -).");
+static_assert(
+    dedekind::algebra::HasGroupOperatorsMul<Rational<default_integer>>,
+    "Rational<default_integer> closes the multiplicative-group operator "
+    "surface (*, /, T{1}).");
 
 /**
  * @brief Canonical polynomial ring over the rationals: Q[x].
