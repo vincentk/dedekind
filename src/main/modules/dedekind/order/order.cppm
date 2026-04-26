@@ -8,13 +8,15 @@
  * Licensed under the Apache License, Version 2.0.
  *
  * @section Partitions
- *   - `:poset`        — preorders, partial orders, directed sets;
- *                       `HasPartialOrderOperators` (shape) +
- *                       `HasPartialOrderOperatorsWith<T, U>` (heterogeneous shape).
+ *   - `:poset`        — preorders, partial orders, directed sets; the
+ *                       homogeneous `HasPartialOrderOperators` shape and
+ *                       its heterogeneous sibling
+ *                       `HasPartialOrderOperatorsWith<T, U>`.
  *   - `:total`        — total orders, linear orders, strict weak orders,
- *                       chains; `HasTotalOrderOperators` (spaceship shape) +
- *                       `HasTotalOrderOperatorsWith<T, U>` (heterogeneous shape).
- *                       Strictly stronger than `:poset`; mirrors `:category:total`'s
+ *                       chains; the homogeneous `HasTotalOrderOperators`
+ *                       (spaceship) shape and its heterogeneous sibling
+ *                       `HasTotalOrderOperatorsWith<T, U>`.  Strictly
+ *                       stronger than `:poset`; mirrors `:category:total`'s
  *                       order/algebra split (per #410).
  *   - `:lattice`      — meet / join / lattice / distributive lattice.
  *   - `:completeness` — successor, Archimedean, dense / discrete,

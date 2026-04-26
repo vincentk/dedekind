@@ -112,8 +112,7 @@ concept HasTotalOrderOperators =
  */
 export template <typename T, typename U>
 concept HasTotalOrderOperatorsWith =
-    HasPartialOrderOperatorsWith<T, U> &&
-    std::three_way_comparable_with<T, U>;
+    HasPartialOrderOperatorsWith<T, U> && std::three_way_comparable_with<T, U>;
 
 /** @section Formal_Verification */
 
