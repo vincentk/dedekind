@@ -13,8 +13,15 @@
  * examples remain readable and stable.
  *
  * @section Notation
- * - `𝔹`: canonical Unicode symbol for the Boolean ambient set.
- * - `B`: ASCII alias for environments where Unicode input is inconvenient.
+ * - `𝔹`: canonical Unicode symbol for the Boolean @b carrier (= @c bool).
+ *   Per #399 / #400 (show-to-a-wider-audience API), the species symbol
+ *   names the carrier type itself rather than a predicate-set alias;
+ *   @c static_assert(IsField<𝔹, bit_xor, bit_and>) and @c var<𝔹> read
+ *   directly against the carrier.
+ * - `BooleanSet` / `B`: predicate-set type and value-level constant for
+ *   set-builder DSL usage (e.g.\ @c Set{b @c % @c B @c | @c (b @c ==
+ *   @c true)}).  These keep their Ω-flavour predicate-set semantics;
+ *   only the symbol @c 𝔹 migrates to the carrier reading.
  *
  * @section Paper_Alignment
  * In the paper's Feature Cube (bool row), logical (`||`, `&&`) and bitwise
@@ -45,7 +52,17 @@ export template <typename L = dedekind::category::ClassicalLogic,
 using BooleanSetOf = Ω<bool, L, C>;
 
 export using BooleanSet = BooleanSetOf<>;
-export using 𝔹 = BooleanSet;
+
+/** @brief The canonical Boolean carrier type @c 𝔹 = @c bool.
+ *
+ *  @details Per #400 (carrier-type migration of the canonical species
+ *  symbols).  The Boolean structures @c bool carries — the Boolean rig
+ *  (@c bool, @c ∨, @c ∧), the Galois field 𝔽₂ (@c bool, @c ⊕, @c ∧),
+ *  the order lattice — are witnessed at this partition and at
+ *  @c numbers:booleans.  The predicate-set role moves to the
+ *  unambiguously-named @c BooleanSet (alias of @c Ω<bool>).
+ */
+export using 𝔹 = bool;
 
 export inline constexpr BooleanSet B{};
 

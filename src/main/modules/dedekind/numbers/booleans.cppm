@@ -56,32 +56,35 @@ using FiniteBooleanSetOf = dedekind::sets::FiniteBooleanSet<L>;
 
 /** @section Canonical_Species_Spine
  *
- * The canonical Boolean species symbol @c 𝔹.  In this partition
- * @c 𝔹 is the @b predicate-set (an alias of @c FiniteBooleanSetOf<>)
- * with @c Domain @c = @c bool; the underlying carrier is
- * @c bool itself, on which the algebraic structures live ---
- * @c (bool, @c ⊕, @c ∧, @c 0, @c 1) is the Galois field 𝔽₂, and
- * @c (bool, @c ∨, @c ∧) is the canonical Boolean rig.  The
- * carrier-vs-predicate-set distinction parallels the upper tower
- * (@c ℚ migrated to a carrier alias in this PR; @c ℕ / @c ℤ / @c ℝ /
- * @c ℂ / @c 𝔻 are tracked under \#399 for the same migration).
+ * The canonical Boolean species symbol @c 𝔹 = @c bool (the @b carrier
+ * type, after #400).  The Boolean structures @c bool carries are
+ * @c (bool, @c ⊕, @c ∧, @c 0, @c 1) — the Galois field 𝔽₂ — and
+ * @c (bool, @c ∨, @c ∧) — the canonical Boolean rig.  The carrier
+ * reading parallels the upper tower (@c ℚ migrated in PR #397; @c ℕ
+ * / @c ℤ / @c ℝ / @c ℂ / @c 𝔻 are tracked under \#399 for the same
+ * migration; this partition lands the @c 𝔹 step under \#400).
+ *
+ * The predicate-set role moves to @c FiniteBooleanSetOf<> (kept as a
+ * non-symbol-colliding alias of @c FiniteBooleanSet for set-builder
+ * DSL usage).  The canonical home of @c 𝔹 is
+ * @c dedekind::algebra::𝔹 (upstream of this partition); this
+ * partition re-exports it so downstream @c numbers code can reach
+ * the symbol without an extra namespace qualification.
  *
  * Acts as the base of the embedding chain
  * @c 𝔹 @c ↪ @c ℕ @c ↪ @c ℤ @c ↪ @c ℚ @c ↪ @c ℝ @c ↪ @c ℂ.
  */
 
-/** @brief The canonical Boolean species symbol 𝔹, alias of
- *         @c FiniteBooleanSetOf<> (the predicate-set type with
- *         @c Domain @c = @c bool).
+/** @brief Re-export of the canonical Boolean carrier symbol @c 𝔹 = @c bool.
  *
- *  @details No single-letter ASCII value-level constant is exported
- *  (the letter @c B collides too widely with matrix-algebra local-
- *  variable conventions in downstream test files); callers that want
- *  the @b universal Boolean set construct it explicitly as
- *  @c 𝔹{ClassicalLogic::True, ClassicalLogic::True}, and the @b empty
- *  Boolean set is @c 𝔹{} (default-constructed).
+ *  @details The canonical definition lives in @c dedekind::algebra::boolean
+ *  (upstream of this partition).  Per #400, @c 𝔹 names the carrier @c bool
+ *  itself, not a predicate-set alias.  Predicate-set callers want
+ *  @c FiniteBooleanSetOf<>{...} (explicit construction; e.g.\ the universal
+ *  Boolean set is @c FiniteBooleanSetOf<>{ClassicalLogic::True,
+ *  ClassicalLogic::True}, the empty Boolean set is @c FiniteBooleanSetOf<>{}).
  */
-export using 𝔹 = FiniteBooleanSetOf<>;
+export using ::dedekind::algebra::𝔹;
 
 /**
  * @concept Is_B
@@ -114,10 +117,16 @@ concept Is_B = std::same_as<E, bool> && requires(const M& m) {
 
 /** @section Formal_Verification */
 
-// (1) IsSet anchor: 𝔹 is a bona-fide set (membership morphism bool → Ω).
-static_assert(dedekind::category::IsSet<
-                  decltype(dedekind::category::ambient_set<bool>(𝔹{}))>,
-              "𝔹 must be the canonical IsSet anchor for bool.");
+// (0) Carrier-type witness: 𝔹 names the carrier itself.
+static_assert(std::same_as<𝔹, bool>,
+              "𝔹 is the bool carrier (post-#400).");
+
+// (1) IsSet anchor: the predicate-set FiniteBooleanSetOf<> is a bona-fide
+//     set (membership morphism bool → Ω).  Witnesses the set-builder DSL
+//     entry point that survives the carrier migration.
+static_assert(dedekind::category::IsSet<decltype(dedekind::category::ambient_set<
+                                                 bool>(FiniteBooleanSetOf<>{}))>,
+              "FiniteBooleanSetOf<> is the canonical IsSet anchor for bool.");
 
 // (2) Syntax (the C++ operator surface that maps to 𝔹's algebra).
 //   - The logical surface (∧, ∨, ¬) lives in `category:logic` as
@@ -153,20 +162,22 @@ static_assert(dedekind::order::IsOrderLattice<bool>,
               "𝔹 satisfies IsOrderLattice (the locked Boolean-ring lattice "
               "under (bit_xor, bit_and); both halves of the bundle fire).");
 
-// (4) Primitive-type arrow:  bool ↔ 𝔹 is the trivial domain identity ---
-// bool *is* 𝔹's underlying type (Domain = bool); the universal Boolean
-// set 𝔹{True, True} accepts every bool, and the empty Boolean set
-// 𝔹{} accepts none.
-static_assert(𝔹{ClassicalLogic::True, ClassicalLogic::True}(true) ==
-                  ClassicalLogic::True,
-              "Universal 𝔹 contains true.");
-static_assert(𝔹{ClassicalLogic::True, ClassicalLogic::True}(false) ==
-                  ClassicalLogic::True,
-              "Universal 𝔹 contains false (every bool is a Boolean).");
-static_assert(𝔹{}(true) == ClassicalLogic::False,
-              "Empty 𝔹 does not contain true.");
-static_assert(𝔹{}(false) == ClassicalLogic::False,
-              "Empty 𝔹 does not contain false.");
+// (4) Primitive-type arrow: 𝔹 *is* @c bool (post-#400 carrier migration).
+// The universal / empty Boolean predicate-sets live on @c FiniteBooleanSetOf<>
+// — kept here as the predicate-set witnesses that survive the symbol-as-
+// carrier reading.
+static_assert(
+    FiniteBooleanSetOf<>{ClassicalLogic::True, ClassicalLogic::True}(true) ==
+        ClassicalLogic::True,
+    "Universal Boolean predicate-set contains true.");
+static_assert(
+    FiniteBooleanSetOf<>{ClassicalLogic::True, ClassicalLogic::True}(false) ==
+        ClassicalLogic::True,
+    "Universal Boolean predicate-set contains false (every bool is a Boolean).");
+static_assert(FiniteBooleanSetOf<>{}(true) == ClassicalLogic::False,
+              "Empty Boolean predicate-set does not contain true.");
+static_assert(FiniteBooleanSetOf<>{}(false) == ClassicalLogic::False,
+              "Empty Boolean predicate-set does not contain false.");
 
 // (5) Adjacent-set arrow: 𝔹 ↪ ℕ via @c embed_𝔹_ℕ in @c :naturals.
 // This partition is upstream of @c :naturals, so the witness for the

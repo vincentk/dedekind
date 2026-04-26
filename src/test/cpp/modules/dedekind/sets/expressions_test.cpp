@@ -58,7 +58,7 @@ TEST_CASE("Dedekind Identities: Boolean literals collapse over 𝔹",
 
   constexpr auto b = var<BoolAmbient>;
 
-  constexpr auto b_false = Set{b % B_bool | (b == false)};
+  constexpr auto b_false = Set{b % B_bool | !b};
   constexpr auto b_true = Set{b % B_bool | (b == true)};
 
   STATIC_CHECK(Ø<bool, ClassicalLogic>{} == (b_false & b_true));

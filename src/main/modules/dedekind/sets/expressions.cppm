@@ -88,13 +88,39 @@ struct MembershipBinding {
 };
 
 /**
+ * @brief Resolve the underlying-element type of a @c Species, falling back
+ *        to @c Species itself when @c Species has no nested @c Domain.
+ *
+ * @details Lets @c Variable / @c var work uniformly over predicate-set
+ * carriers (which carry @c Domain as a nested type) and primitive carrier
+ * types (where the carrier @b is the element, e.g.\ @c bool, @c int, the
+ * canonical species symbols @c 𝔹, @c ℕ, @c ℤ etc.\ once they migrate to
+ * primitive aliases per #399).  This is the carrier-type half of the
+ * show-to-a-wider-audience API: @c var<bool>, @c var<𝔹>, @c var<int>
+ * all resolve to a symbolic scout ranging over the carrier itself.
+ */
+template <typename S>
+struct domain_of {
+  using type = S;
+};
+
+template <typename S>
+  requires requires { typename S::Domain; }
+struct domain_of<S> {
+  using type = typename S::Domain;
+};
+
+template <typename S>
+using domain_of_t = typename domain_of<S>::type;
+
+/**
  * @class Variable
  * @brief The 'Symbolic Scout' (id_S) of a Species.
  * @details Represents a point-in-potentia for set construction.
  */
 export template <typename Species>
 struct Variable {
-  using T = typename Species::Domain;
+  using T = domain_of_t<Species>;
   using is_variable = void;
 
   /** @brief The Membership Morphism (x % S). Mimics 'x \in S'. */
@@ -476,31 +502,31 @@ Set(Species) -> Set<typename Species::Domain,
 
 export template <typename Species, typename Rhs>
 constexpr auto operator<(const Variable<Species>&, const Rhs& rhs) {
-  return [rhs](const typename Species::Domain& v) { return v < rhs; };
+  return [rhs](const domain_of_t<Species>& v) { return v < rhs; };
 }
 
 export template <typename Species, typename Rhs>
 constexpr auto operator<=(const Variable<Species>&, const Rhs& rhs) {
-  return [rhs](const typename Species::Domain& v) { return v <= rhs; };
+  return [rhs](const domain_of_t<Species>& v) { return v <= rhs; };
 }
 
 export template <typename Species, typename Rhs>
 constexpr auto operator>(const Variable<Species>&, const Rhs& rhs) {
-  return [rhs](const typename Species::Domain& v) { return v > rhs; };
+  return [rhs](const domain_of_t<Species>& v) { return v > rhs; };
 }
 
 export template <typename Species, typename Rhs>
 constexpr auto operator>=(const Variable<Species>&, const Rhs& rhs) {
-  return [rhs](const typename Species::Domain& v) { return v >= rhs; };
+  return [rhs](const domain_of_t<Species>& v) { return v >= rhs; };
 }
 
 export template <typename Species, typename Rhs>
 constexpr auto operator==(const Variable<Species>&, const Rhs& rhs) {
-  return [rhs](const typename Species::Domain& v) { return v == rhs; };
+  return [rhs](const domain_of_t<Species>& v) { return v == rhs; };
 }
 
 export template <typename Species>
-  requires std::same_as<typename Species::Domain, bool>
+  requires std::same_as<domain_of_t<Species>, bool>
 constexpr auto operator==(const Variable<Species>&, bool rhs) {
   return BooleanEqPredicate{rhs};
 }
@@ -512,7 +538,7 @@ constexpr auto operator==(const Variable<Species>&, bool rhs) {
  *  pruning hooks only needs to be made once.
  */
 export template <typename Species>
-  requires std::same_as<typename Species::Domain, bool>
+  requires std::same_as<domain_of_t<Species>, bool>
 constexpr auto operator!(const Variable<Species>& v) {
   return v == false;
 }
