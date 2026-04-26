@@ -137,11 +137,22 @@ concept Monoid_ℕ =
     IsNatural<T> && dedekind::category::IsCommutativeMonoid<T, std::plus<T>>;
 
 /**
- * @brief Canonical embedding 𝔹 ↪ ℕ: bool → unsigned.
- * @details False maps to 0, True maps to 1.
+ * @brief Canonical embedding 𝔹 ↪ ℕ: bool → Cardinality (post-#402).
+ * @details False maps to the finite cardinal 0; True maps to the finite
+ *          cardinal 1.  The codomain is the variant ℕ-proxy
+ *          @c Cardinality so the embedding chain composes naturally
+ *          through @c embed_ℕ_ℤ (Cardinality → SignedCardinality).
+ *          Pre-#402 the codomain was @c unsigned (the machine ℕ
+ *          carrier); callers that need the machine-side step
+ *          explicitly compose with @c std::get<ExtensionalCardinal<>>
+ *          or convert via @c realize_to_size_t.
  */
 export inline constexpr auto embed_𝔹_ℕ =
-    arrow<bool, unsigned>([](const bool& b) noexcept { return b ? 1u : 0u; });
+    arrow<bool, dedekind::sets::Cardinality>(
+        [](const bool& b) noexcept -> dedekind::sets::Cardinality {
+          return b ? dedekind::sets::finite_cardinality(1)
+                   : dedekind::sets::finite_cardinality(0);
+        });
 
 /**
  * @brief Canonical injection from `std::unsigned_integral` into any

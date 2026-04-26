@@ -16,6 +16,7 @@ module;
 #include <concepts>
 #include <numeric>
 #include <type_traits>
+#include <variant>
 
 export module dedekind.numbers:integer;
 
@@ -361,61 +362,119 @@ static_assert(!dedekind::algebra::IsArithmeticAdditiveGroup<int>,
 
 /**
  * @brief Characteristic morphism for ℤ: the integers.
- * Accepts native int and all embedded predecessors (unsigned, Ternary).
+ * Accepts the variant ℤ-proxy carrier @c SignedCardinality (post-#402)
+ * plus the embedded predecessors (@c std::integral, @c Cardinality,
+ * @c Ternary, @c bool).
  */
 export template <typename L = ClassicalLogic, typename C = ℵ_0>
 struct IntegersOf {
-  using Domain = int;
+  using Domain = dedekind::sets::SignedCardinality;  // post-#402 retarget
   using Codomain = typename L::Ω;
   using logic_species = L;
   using cardinality_type = C;
 
-  // Native int: always a member of ℤ
+  // The variant ℤ-proxy: every value (incl. ±ℵ_0 and NaZ) is in the
+  // saturating-ℤ proxy by definition of the carrier.
+  constexpr typename L::Ω operator()(const Domain&) const { return L::True; }
+
+  // Native int: always a member of ℤ.  Kept as a separate overload so
+  // callsites passing @c int literals don't force a SignedCardinality
+  // lift at the call boundary.
   constexpr typename L::Ω operator()(int) const { return L::True; }
 
-  // Embedded unsigned (via embed_ℕ_ℤ)
-  constexpr typename L::Ω operator()(unsigned n) const {
-    return operator()(static_cast<int>(n));
+  // Embedded std::signed_integral (other widths than int).
+  template <std::signed_integral S>
+    requires(!std::same_as<S, int> && !std::same_as<S, bool>)
+  constexpr typename L::Ω operator()(S) const {
+    return L::True;
+  }
+
+  // Embedded unsigned (the ℕ ↪ ℤ embedding's image).
+  template <std::unsigned_integral U>
+    requires(!std::same_as<U, bool>)
+  constexpr typename L::Ω operator()(U) const {
+    return L::True;
+  }
+
+  // Embedded ℕ-proxy carrier (Cardinality), via the variant ℕ ↪ ℤ
+  // embedding @c embed_ℕ_ℤ defined further down.
+  constexpr typename L::Ω operator()(
+      const dedekind::sets::Cardinality&) const {
+    return L::True;
   }
 
   // Embedded Ternary (via embed_K3_ℤ)
   constexpr typename L::Ω operator()(Ternary t) const {
     switch (t) {
       case Ternary::False:
-        return operator()(-1);
       case Ternary::Unknown:
-        return operator()(0);
       case Ternary::True:
-        return operator()(1);
+        return L::True;
     }
     return L::False;
   }
 
-  // Embedded bool (via embed_𝔹_ℕ → embed_ℕ_ℤ)
-  constexpr typename L::Ω operator()(bool b) const {
-    return operator()(embed_𝔹_ℕ(b));
-  }
+  // Embedded bool.
+  constexpr typename L::Ω operator()(bool) const { return L::True; }
 };
 
 export using IntegerSet = IntegersOf<>;
-export using ℤ = IntegerSet;
 
-export inline constexpr ℤ Z{};
+/** @brief The canonical Integers carrier symbol @c ℤ = @c SignedCardinality.
+ *
+ *  @details Per #402 (math-wins-over-C++ retarget).  @c ℤ is now the
+ *  variant ℤ-proxy carrier @c SignedCardinality (=
+ *  @c std::variant<SignedExtensionalCardinal<>, +ℵ_0, −ℵ_0, NaZ>) —
+ *  saturating to @c ±ℵ_0 on overflow rather than wrapping or being UB
+ *  the way @c int (the earlier reading) did.  The structural advantage:
+ *  the variant honestly models ℤ (every element has a well-defined
+ *  additive inverse on the finite fragment; saturating elements satisfy
+ *  the laws mutually; NaZ propagates IEEE-NaN-style).  Strict-ring /
+ *  abelian-group witnesses fire on @c SignedCardinality (PR #396);
+ *  callers wanting the bounded machine carrier explicitly spell @c int
+ *  directly.
+ */
+export using ℤ = dedekind::sets::SignedCardinality;
 
-static_assert(dedekind::category::IsSet<
-                  decltype(dedekind::category::ambient_set<int>(Z))>,
-              "IntegersOf must be the canonical IsSet anchor for "
-              "dedekind.numbers:integer.");
+// The canonical ambient-set @b value @c Z is the predicate-set
+// @c IntegersOf<>{}, parallel to @c N @c = @c NaturalNumbersOf<>{} in
+// @c sets:boundaries.  Pre-#402 this was @c ℤ{} (because @c ℤ aliased
+// the predicate-set); post-flip @c ℤ is the carrier so we anchor on
+// the predicate-set template directly.
+export inline constexpr IntegersOf<> Z{};
+
+static_assert(
+    dedekind::category::IsSet<
+        decltype(dedekind::category::ambient_set<ℤ>(Z))>,
+    "IntegersOf must be the canonical IsSet anchor for "
+    "dedekind.numbers:integer.");
 
 /**
- * @brief Canonical embedding ℕ ↪ ℤ: unsigned int → int.
- * @details The natural numbers embed into the integers via the unsigned→signed
- *          widening conversion. This is injective for values that fit in int;
- *          large unsigned values may overflow, so the domain is conventionally
- *          restricted to values ≤ INT_MAX when used with certified arithmetic.
+ * @brief Canonical embedding ℕ ↪ ℤ: Cardinality → SignedCardinality.
+ * @details Post-#402, the natural numbers (variant ℕ-proxy) embed into
+ *          the integers (variant ℤ-proxy) by lifting each finite
+ *          @c ExtensionalCardinal<> into the positive fragment of
+ *          @c SignedExtensionalCardinal<>, and mapping @c ℵ_0 to
+ *          @c PositiveInfinity (= +ℵ_0).  The embedding is injective on
+ *          the finite fragment when the magnitude fits in a single
+ *          signed limb (otherwise the saturation kicks in on the ℤ side
+ *          too).
  */
-export inline constexpr auto embed_ℕ_ℤ = arrow<unsigned, int>(
-    [](const unsigned& x) noexcept { return static_cast<int>(x); });
+export inline constexpr auto embed_ℕ_ℤ =
+    arrow<dedekind::sets::Cardinality, dedekind::sets::SignedCardinality>(
+        [](const dedekind::sets::Cardinality& x) noexcept
+        -> dedekind::sets::SignedCardinality {
+          if (std::holds_alternative<dedekind::sets::ℵ_0>(x)) {
+            return dedekind::sets::SignedCardinality{
+                dedekind::sets::PositiveInfinity{}};
+          }
+          const auto& finite =
+              std::get<dedekind::sets::ExtensionalCardinal<>>(x);
+          dedekind::sets::SignedExtensionalCardinal<> result;
+          result.magnitude = finite;
+          result.negative = false;
+          return dedekind::sets::SignedCardinality{result};
+        });
 
 /**
  * @brief Canonical embedding K3 ↪ ℤ: Ternary → int.
