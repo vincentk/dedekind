@@ -17,7 +17,7 @@ TEST_CASE("Numbers: canonical starter symbols", "[numbers][starter]") {
   //     NaturalNumbersOf<> (= Ω-flavoured classifier).
   //   • The relationship is NaturalNumbersOf<>::Domain = ℕ — the
   //     predicate-set's underlying element type IS the carrier.
-  STATIC_CHECK(std::same_as<ℕ, unsigned int>);
+  STATIC_CHECK(std::same_as<ℕ, Cardinality>);
   STATIC_CHECK(std::same_as<decltype(N), const NaturalNumbersOf<>>);
   STATIC_CHECK(std::same_as<typename NaturalNumbersOf<>::Domain, ℕ>);
 

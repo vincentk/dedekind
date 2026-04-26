@@ -177,11 +177,16 @@ using ::dedekind::sets::ℕ;
 
 /** @section Formal_Verification */
 
-// (0) Carrier-type witness: ℕ names the carrier itself (post-#401).
-static_assert(std::same_as<ℕ, unsigned int>,
-              "ℕ is the unsigned-int carrier (post-#401; modular ring "
-              "ℤ/2^N, with ExtensionalCardinal<> as the exact saturating-"
-              "to-ℵ_0 sibling).");
+// (0) Carrier-type witness: ℕ names the carrier itself (post-#402; the
+//     variant ℕ-proxy from sets:cardinality, replacing the unsigned-int
+//     reading shipped under #401).
+static_assert(std::same_as<ℕ, dedekind::sets::Cardinality>,
+              "ℕ is the variant ℕ-proxy carrier @c Cardinality "
+              "(= @c std::variant<ExtensionalCardinal<>, ℵ_0>) — "
+              "saturating to ℵ_0 on overflow; honestly models ℕ "
+              "(no additive inverses; rig-not-ring).  Callers wanting "
+              "the bounded machine carrier explicitly spell @c unsigned "
+              "@c int directly.");
 
 // (0a) Relationship between ℕ (the carrier) and NaturalNumbersOf<>
 //      (the predicate-set / classifier).  The predicate-set's @c Domain
@@ -190,7 +195,7 @@ static_assert(std::same_as<ℕ, unsigned int>,
 //      carry no predicate-set surface); to participate as a set, lift
 //      through the predicate-set.
 static_assert(std::same_as<typename NaturalNumbersOf<>::Domain, ℕ>,
-              "NaturalNumbersOf<>::Domain is the unsigned-int carrier "
+              "NaturalNumbersOf<>::Domain is the variant ℕ-proxy carrier "
               "ℕ — predicate-set's underlying element type IS the "
               "carrier.");
 
@@ -198,8 +203,8 @@ static_assert(std::same_as<typename NaturalNumbersOf<>::Domain, ℕ>,
 //     set.  Witnesses the set-builder DSL entry point that survives the
 //     carrier migration.
 static_assert(
-    dedekind::category::IsSet<decltype(dedekind::category::ambient_set<
-                                       unsigned int>(NaturalNumbersOf<>{}))>,
+    dedekind::category::IsSet<
+        decltype(dedekind::category::ambient_set<ℕ>(NaturalNumbersOf<>{}))>,
     "NaturalNumbersOf<> is the canonical IsSet anchor for ℕ.");
 
 // (2) Syntax (the C++ operator surface that maps to ℕ's algebra).

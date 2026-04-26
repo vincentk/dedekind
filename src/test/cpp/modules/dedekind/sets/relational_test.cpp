@@ -15,14 +15,14 @@ namespace {
 constexpr auto evens_0_10 = [] {
   auto x = var<ℕ>;
   return Set{x % N |
-             [](unsigned int v) { return (v < 10u) && (v % 2u == 0u); }};
+             [](const auto& v) { return (v < 10u) && (v % 2u == 0u); }};
 }();
 
 // Multiples of 3 in [0, 10)
 constexpr auto threes_0_10 = [] {
   auto x = var<ℕ>;
   return Set{x % N |
-             [](unsigned int v) { return (v < 10u) && (v % 3u == 0u); }};
+             [](const auto& v) { return (v < 10u) && (v % 3u == 0u); }};
 }();
 
 }  // namespace
@@ -33,7 +33,7 @@ constexpr auto threes_0_10 = [] {
 TEST_CASE("Relational Algebra: Selection (σ)", "[sets][relational]") {
   // Keep only elements < 6 from evens_0_10 = {0, 2, 4, 6, 8}
   const auto small_evens =
-      select(evens_0_10, [](unsigned int v) { return v < 6u; });
+      select(evens_0_10, [](const auto& v) { return v < 6u; });
 
   SECTION("Members of σ_{<6}(evens) are even and below 6") {
     REQUIRE(small_evens(0u) == Ternary::True);
@@ -52,7 +52,7 @@ TEST_CASE("Relational Algebra: Selection (σ)", "[sets][relational]") {
   }
 
   SECTION("Logical-valued predicates preserve Ω semantics") {
-    const auto flagged = select(evens_0_10, [](unsigned int v) {
+    const auto flagged = select(evens_0_10, [](const auto& v) {
       return (v == 2u) ? Ternary::Unknown : Ternary::True;
     });
 

@@ -39,8 +39,8 @@ constexpr auto gt_three = Set{n % N | (n > bound<3>)};
 constexpr auto lt_five = Set{n % N | (n < bound<5>)};
 
 // Compile-time theorem: the meet IS the singleton {4} on ℕ.
-constexpr Singleton<4u> in_between = gt_three & lt_five;
-static_assert(in_between == Singleton<4u>{});
+constexpr Singleton<4> in_between = gt_three & lt_five;
+static_assert(in_between == Singleton<4>{});
 
 // Computability made a compile-time observable: the parent Sets carry NONE
 // of the three tiers; the reduced Singleton carries ALL THREE. Compile-time

@@ -71,28 +71,28 @@ TEST_CASE("order:halfspace — Variable DSL constructs Halfspace from bound<V>",
   SECTION("> constructs Upward/Strict") {
     constexpr auto h = n > bound<7>;
     using H = std::decay_t<decltype(h)>;
-    STATIC_CHECK(std::same_as<H, Halfspace<unsigned int, 7, Direction::Upward,
+    STATIC_CHECK(std::same_as<H, Halfspace<ℕ, 7, Direction::Upward,
                                            Strictness::Strict>>);
   }
 
   SECTION(">= constructs Upward/NonStrict") {
     constexpr auto h = n >= bound<7>;
     using H = std::decay_t<decltype(h)>;
-    STATIC_CHECK(std::same_as<H, Halfspace<unsigned int, 7, Direction::Upward,
+    STATIC_CHECK(std::same_as<H, Halfspace<ℕ, 7, Direction::Upward,
                                            Strictness::NonStrict>>);
   }
 
   SECTION("< constructs Downward/Strict") {
     constexpr auto h = n < bound<7>;
     using H = std::decay_t<decltype(h)>;
-    STATIC_CHECK(std::same_as<H, Halfspace<unsigned int, 7, Direction::Downward,
+    STATIC_CHECK(std::same_as<H, Halfspace<ℕ, 7, Direction::Downward,
                                            Strictness::Strict>>);
   }
 
   SECTION("<= constructs Downward/NonStrict") {
     constexpr auto h = n <= bound<7>;
     using H = std::decay_t<decltype(h)>;
-    STATIC_CHECK(std::same_as<H, Halfspace<unsigned int, 7, Direction::Downward,
+    STATIC_CHECK(std::same_as<H, Halfspace<ℕ, 7, Direction::Downward,
                                            Strictness::NonStrict>>);
   }
   // Note (post-#409 review): the DSL constraint also rejects negative
@@ -279,7 +279,7 @@ TEST_CASE("order:halfspace — reduction boundary tightens all three tiers",
   SECTION("Empty-meet reduction") {
     constexpr auto gt5 = Set{n % N | (n > bound<5>)};
     constexpr auto lt3 = Set{n % N | (n < bound<3>)};
-    constexpr Ø<unsigned int> meet = gt5 & lt3;
+    constexpr Ø<ℕ> meet = gt5 & lt3;
 
     STATIC_CHECK_FALSE(HasDecidableMembership<decltype(gt5)>);
     STATIC_CHECK_FALSE(IsFiniteSet<decltype(gt5)>);
@@ -293,7 +293,7 @@ TEST_CASE("order:halfspace — reduction boundary tightens all three tiers",
   SECTION("Singleton reduction") {
     constexpr auto gt3 = Set{n % N | (n > bound<3>)};
     constexpr auto lt5 = Set{n % N | (n < bound<5>)};
-    constexpr Singleton<4u> s = gt3 & lt5;
+    constexpr Singleton<4> s = gt3 & lt5;
 
     STATIC_CHECK_FALSE(HasDecidableMembership<decltype(gt3)>);
     STATIC_CHECK(HasDecidableMembership<decltype(s)>);

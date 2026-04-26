@@ -340,18 +340,36 @@ constexpr auto structured_and(Halfspace<T, Lo, Direction::Upward, SL, L>,
   constexpr bool disjoint = either_strict ? (Lo >= Hi) : (Lo > Hi);
   if constexpr (disjoint) {
     return EmptyPredicate<T>{};
-  } else if constexpr (std::integral<T>) {
-    // Cardinality of {x : T | Lo ⋈ x ⋈ Hi} over integral T.
+  } else if constexpr (IsRingIntegral<T>) {
+    // Cardinality of {x : T | Lo ⋈ x ⋈ Hi} over an integer-flavoured T
+    // (@c IsRingIntegral admits @c std::integral plus the variant
+    // proxies @c Cardinality / @c SignedCardinality, post-#414).
     constexpr bool lo_open = (SL == Strictness::Strict);
     constexpr bool hi_open = (SU == Strictness::Strict);
     constexpr auto span = Hi - Lo + (lo_open ? 0 : 1) + (hi_open ? -1 : 0);
     if constexpr (span == 1) {
       // Unique inhabitant: the smallest x admitted by the lower boundary.
-      // static_cast rather than brace-init to permit real-valued bounds on an
-      // integer carrier (e.g. `bound<-21.0>` on `var<ℤ>`).
-      constexpr T unique =
-          lo_open ? static_cast<T>(Lo + 1) : static_cast<T>(Lo);
-      return Singleton<unique, L>{};
+      // The Singleton's NTTP value is computed in the @b bound's primitive
+      // type (typically @c int), @b not cast to @c T --- @c Cardinality /
+      // @c SignedCardinality are @c std::variant carriers and therefore
+      // not structural-NTTP types in C++20, so casting through them would
+      // make the Singleton ill-formed.  The Singleton's @c Domain is
+      // @c decltype(unique) (= the bound's type, e.g.\ @c int); runtime
+      // queries with @c T-valued arguments are routed through the
+      // cross-type @c == path landed in PR #423.
+      //
+      // For @c std::integral @c T the cast is preserved verbatim so the
+      // pre-#402 behaviour on primitive carriers (@c Singleton<4u> on
+      // @c unsigned @c int, @c Singleton<int_value> for real-pivot-on-int
+      // showcases like @c bound<-21.0> on @c var<int>) doesn't shift.
+      if constexpr (std::integral<T>) {
+        constexpr T unique =
+            lo_open ? static_cast<T>(Lo + 1) : static_cast<T>(Lo);
+        return Singleton<unique, L>{};
+      } else {
+        constexpr auto unique = lo_open ? (Lo + 1) : Lo;
+        return Singleton<unique, L>{};
+      }
     } else {
       return OrderInterval<T, Lo, Hi, SL, SU, L>{};
     }

@@ -38,11 +38,11 @@ TEST_CASE("Sets+Category: singleton and comprehension predicates satisfy ETCS",
   const auto positive = Set{x % N | (x > 0u)};
   const auto bounded = Set{x % N | (x <= 10u)};
 
-  // ambient_set<unsigned int> lifts the predicate-set into an unsigned-int
+  // ambient_set<ℕ> lifts the predicate-set into an unsigned-int
   // ambient (matching the post-#401 ℕ = unsigned int carrier).  The
   // characteristic-function χ then reads on unsigned values.
-  const auto positive_set = ambient_set<unsigned int>(positive);
-  const auto bounded_set = ambient_set<unsigned int>(bounded);
+  const auto positive_set = ambient_set<ℕ>(positive);
+  const auto bounded_set = ambient_set<ℕ>(bounded);
   const auto support = set_intersection(positive_set, bounded_set);
 
   STATIC_CHECK(dedekind::category::IsSet<decltype(positive_set)>);
@@ -63,11 +63,11 @@ TEST_CASE("Sets+Category: Set naming boundary is explicit",
   // `sets::Set` (DSL species) and `category::Set` (CCC witness) are distinct.
   STATIC_CHECK(
       !std::same_as<decltype(positive),
-                    dedekind::category::CanonicalSetCCC<unsigned int>>);
-  STATIC_CHECK(dedekind::category::HasCanonicalSetCCC<unsigned int>);
+                    dedekind::category::CanonicalSetCCC<ℕ>>);
+  STATIC_CHECK(dedekind::category::HasCanonicalSetCCC<ℕ>);
 
   // Bridge through ETCS object construction over the post-#401 ℕ carrier.
-  const auto positive_set = ambient_set<unsigned int>(positive);
+  const auto positive_set = ambient_set<ℕ>(positive);
   STATIC_CHECK(dedekind::category::IsSetInCanonicalCCC<decltype(positive_set)>);
 
   CHECK(positive_set.χ(3u) == Ternary::True);
