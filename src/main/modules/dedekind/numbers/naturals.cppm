@@ -58,6 +58,7 @@ export module dedekind.numbers:naturals;
 import dedekind.algebra; // HasRingOperators / HasSemiringOperators / IsArithmeticRing (canonical-spine witnesses)
 import dedekind.category;
 import dedekind.order; // HasLatticeOperators (canonical-spine witnesses)
+import dedekind.sequences; // IsFiniteSequence (canonical-spine witnesses on FinitePath<ℕ>)
 import dedekind.sets;
 import :scalars;
 import :booleans;
@@ -266,6 +267,22 @@ static_assert(dedekind::order::HasTotalOrderOperators<ℕ>,
 static_assert(dedekind::order::IsTotallyOrdered<ℕ>,
               "ℕ is axiomatically totally ordered (the chain "
               "0 ≤ 1 ≤ 2 ≤ ...).");
+// Order-domain witnesses: ℕ is a directed set (every finite subset has
+// an upper bound) and a directed poset (directed + antisymmetric).
+// These pin ℕ as a valid @b net-domain in the Munkres / Kelley sense:
+// a net is a function from a directed set, and ℕ is the prototypical
+// directed set (sequences are nets indexed by ℕ).
+static_assert(dedekind::order::IsDirectedSet<ℕ>,
+              "ℕ is a directed set — the prototypical net domain.");
+static_assert(dedekind::order::IsDirectedPoset<ℕ>,
+              "ℕ is a directed poset (directed + antisymmetric).");
+// Sequence witness: FinitePath<ℕ> is a finite sequence enumerating
+// a ℕ-prefix.  Pins ℕ as a valid @b sequence codomain: any finite
+// sub-sequence of natural numbers presents as IsFiniteSequence.
+static_assert(
+    dedekind::sequences::IsFiniteSequence<dedekind::sequences::FinitePath<ℕ>>,
+    "FinitePath<ℕ> is a bona-fide finite sequence; ℕ is a valid "
+    "sequence codomain.");
 
 // (4) Primitive-type arrows.  ℕ *is* @c unsigned @c int (post-#401), so
 // the predicate-set membership question reduces to direct calls on the

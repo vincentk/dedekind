@@ -44,6 +44,7 @@ export module dedekind.numbers:booleans;
 import dedekind.algebra;
 import dedekind.category;
 import dedekind.order;
+import dedekind.sequences;
 import dedekind.sets;
 import :scalars;
 
@@ -195,6 +196,21 @@ static_assert(dedekind::order::HasTotalOrderOperators<𝔹>,
 static_assert(dedekind::order::IsTotallyOrdered<𝔹>,
               "𝔹 is axiomatically totally ordered (the chain "
               "false ≤ true).");
+// Order-domain witnesses: 𝔹 is a directed set (every pair has a common
+// upper bound — `true` dominates) and a directed poset (directed +
+// antisymmetric).  Pins 𝔹 as a valid @b net-domain.
+static_assert(dedekind::order::IsDirectedSet<𝔹>,
+              "𝔹 is a directed set — every pair has `true` as a common "
+              "upper bound.");
+static_assert(dedekind::order::IsDirectedPoset<𝔹>,
+              "𝔹 is a directed poset (directed + antisymmetric).");
+// Sequence witness: FinitePath<𝔹> is a finite sequence enumerating
+// 𝔹-elements (the obvious 2-element path [false, true] is the
+// canonical witness).  Pins 𝔹 as a valid @b sequence codomain.
+static_assert(
+    dedekind::sequences::IsFiniteSequence<dedekind::sequences::FinitePath<𝔹>>,
+    "FinitePath<𝔹> is a bona-fide finite sequence; 𝔹 is a valid "
+    "sequence codomain.");
 
 // (4) Primitive-type arrow: 𝔹 *is* @c bool (post-#400 carrier migration).
 // The universal / empty Boolean predicate-sets live on @c FiniteBooleanSetOf<>
