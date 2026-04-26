@@ -74,19 +74,19 @@ struct Boundaries {};
  * machinery in @c :expressions can use the same trait without
  * duplicating the resolution logic.
  */
-template <typename T>
+export template <typename T>
 struct resolve_species {
   using type = T;  // Fallback for primitives (int, bool, ...) — the carrier IS
                    // the element.
 };
 
-template <typename T>
+export template <typename T>
   requires requires { typename T::Domain; }
 struct resolve_species<T> {
   using type = typename T::Domain;  // Extract from formal Species.
 };
 
-template <typename T>
+export template <typename T>
 using element_of_t = typename resolve_species<T>::type;
 
 /**
@@ -286,33 +286,67 @@ static_assert(dedekind::category::HasCanonicalSetCCC<int>,
               "Breadcrumb to :cartesian: boundary ambient int has canonical "
               "CCC witness.");
 
-// Transitional alias used by tests and set-builder examples.
-// ETCS-level natural-number witnesses may replace this direct alias later.
+// Predicate-set classifier for ℕ (the natural-numbers ambient species).
+// Per #401 the canonical species symbol @c ℕ migrated to a carrier-type
+// alias (@c ℕ = @c unsigned @c int); this predicate-set retained as the
+// set-builder DSL handle ("is this value in ℕ?"), with its @c Domain
+// aligned to the carrier so @c var<ℕ> @c % @c N composes cleanly.
+//
+// The @c int-typed @c operator() overload survives as a callsite
+// convenience on the @b classifier reading (ℕ ⊂ ℤ via the
+// non-negativity check); it is not on the formal predicate-set
+// signature (which is @c Domain @c = @c unsigned @c int) but is
+// reachable via direct @c N(-7) calls for paper-listing readability.
 export template <typename L = ClassicalLogic, typename C = ℵ_0>
 struct NaturalNumbersOf {
-  using Domain = int;
+  using Domain = unsigned int;  // Aligned to the @c ℕ carrier, post-#401.
   using Codomain = typename L::Ω;
   using logic_species = L;
   using cardinality_type = C;
 
-  constexpr typename L::Ω operator()(int x) const {
-    return x >= 0 ? L::True : L::False;
-  }
-
+  // Canonical signature: every unsigned value is in ℕ.
   template <std::unsigned_integral U>
   constexpr typename L::Ω operator()(U) const {
     return L::True;
   }
 
-  // Embedded bool (via embed_𝔹_ℕ → unsigned): landing in ℕ
+  // Classifier convenience: ℕ ⊂ ℤ via non-negativity.  Reachable via direct
+  // @c N(-7) calls; the @c Set DSL routes through @c Domain @c = @c
+  // unsigned @c int, so this overload does @b not fire from
+  // @c Set{var<ℕ> @c % @c N}-flavoured callsites.
+  constexpr typename L::Ω operator()(int x) const {
+    return x >= 0 ? L::True : L::False;
+  }
+
+  // Embedded bool (via @c embed_𝔹_ℕ → unsigned): landing in ℕ.
   constexpr typename L::Ω operator()(bool) const { return L::True; }
 };
 
-export using NaturalNumbers = NaturalNumbersOf<>;
-export using ℕ = NaturalNumbers;
+// Non-exported convenience alias used by the value-level @c N constant
+// below.  Public surface is @c NaturalNumbersOf<L, C> (the parameterised
+// template); callers naming the default form should use
+// @c NaturalNumbersOf<> directly or @c decltype(N).  Mirrors the
+// @c BooleanSet de-export pattern from #407.
+using NaturalNumbers = NaturalNumbersOf<>;
+
+/** @brief The canonical Natural-numbers carrier symbol @c ℕ = @c unsigned @c
+ * int.
+ *
+ *  @details Per #401 (carrier-type migration of the canonical species
+ *  symbols).  The machine-ℕ realisation is @c unsigned @c int — a
+ *  modular ring ℤ/2^wℤ where @c w @c =
+ *  @c std::numeric_limits<unsigned @c int>::digits (typically 32 on
+ *  current targets, but not guaranteed by the standard).  The formal
+ *  "infinite number line" reading lives on @c ExtensionalCardinal<>
+ *  (which saturates to ℵ₀ rather than wrapping; see PR #396).  Both
+ *  carriers satisfy @c IsNatural; @c ℕ defaults to the machine flavour
+ *  for showcase performance, while callers wanting the exact unbounded
+ *  reading spell @c var<ExtensionalCardinal<>> directly.
+ */
+export using ℕ = unsigned int;
 
 // Canonical ambient-set value used by the sets DSL tests.
-export inline constexpr ℕ N{};
+export inline constexpr NaturalNumbersOf<> N{};
 
 /**
  * @brief ETCS-aligned upper bound for meet/intersection cardinality.

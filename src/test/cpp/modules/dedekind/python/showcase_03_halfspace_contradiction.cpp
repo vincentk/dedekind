@@ -39,7 +39,7 @@ constexpr auto gt_five = Set{n % N | (n > bound<5>)};
 constexpr auto lt_three = Set{n % N | (n < bound<3>)};
 
 // Compile-time theorem: the meet IS the empty set on ℕ.
-constexpr Ø<int> empty_meet = gt_five & lt_three;
+constexpr Ø<unsigned int> empty_meet = gt_five & lt_three;
 static_assert(empty_meet == Ø{});
 
 // Computability made a compile-time observable: the parent Sets carry NONE
@@ -64,5 +64,5 @@ static_assert(IsCompileTimeEnumerable<decltype(empty_meet)>);
  */
 extern "C" __attribute__((noinline)) bool witness_empty_halfspace_meet() {
   using Logic = typename decltype(empty_meet)::logic_species;
-  return empty_meet(42) == Logic::True;
+  return empty_meet(42u) == Logic::True;
 }

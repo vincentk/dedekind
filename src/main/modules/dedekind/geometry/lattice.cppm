@@ -79,11 +79,21 @@ using namespace dedekind::sets;
 using namespace dedekind::category;
 
 // Canonical lattice species in the geometry layer.
-export using NaturalLatticeSet = ℕ;
+// Pre-#401 this was @c using @c NaturalLatticeSet @c = @c ℕ; after the
+// carrier migration @c ℕ became the unsigned-int carrier itself, so the
+// lattice factory needs the predicate-set species (with @c ::Domain) for
+// its existing specialisation.  Aliasing to @c NaturalNumbersOf<>
+// preserves the geometry contract (Species with @c Domain @c = @c
+// unsigned @c int).
+export using NaturalLatticeSet = NaturalNumbersOf<>;
 export using IntegerLatticeSet = Ω<int>;
 export using IntegerLatticeScalar = typename IntegerLatticeSet::Domain;
 export using IntegerLatticePoint2D =
     std::pair<IntegerLatticeScalar, IntegerLatticeScalar>;
+// Natural-lattice scalar matches the post-#401 ℕ carrier (= unsigned int).
+export using NaturalLatticeScalar = ℕ;
+export using NaturalLatticePoint2D =
+    std::pair<NaturalLatticeScalar, NaturalLatticeScalar>;
 
 /**
  * @concept IsGeometricLattice
@@ -117,7 +127,9 @@ template <>
 struct LatticeFactory<NaturalLatticeSet> {
   constexpr auto line() const {
     auto k = var<ℕ>;
-    return Set{k % N | (k >= 0)};
+    // Every unsigned value is in ℕ by construction post-#401; the
+    // predicate-set N is the universal classifier for unsigned values.
+    return Set{k % N};
   }
 
   constexpr auto plane() const {
@@ -164,16 +176,18 @@ export constexpr auto integer_lattice_2d() {
  *
  * @details Built as the cartesian product of two finite bounded naturals using
  *          the set-builder DSL. This is the lattice domain before any
- *          continuous embedding.
+ *          continuous embedding.  Post-#401 the grid coordinates are
+ *          @c NaturalLatticePoint2D @c = @c pair<unsigned, unsigned>
+ *          to match the @c ℕ carrier reading.
  *
  * @param n  Side length of the grid (number of points per axis).
- * @return A Set<IntegerLatticePoint2D, ClassicalLogic, ...>.
+ * @return A Set<NaturalLatticePoint2D, TernaryLogic, ...>.
  */
-export constexpr auto square_natural_grid(int n) {
-  auto p = var_for_type<IntegerLatticePoint2D>;
+export constexpr auto square_natural_grid(unsigned int n) {
+  auto p = var_for_type<NaturalLatticePoint2D>;
   const auto unbounded = natural_lattice_2d();
-  return Set{p % unbounded | [n](const IntegerLatticePoint2D& q) {
-    return (q.first >= 0) && (q.first < n) && (q.second >= 0) && (q.second < n);
+  return Set{p % unbounded | [n](const NaturalLatticePoint2D& q) {
+    return (q.first < n) && (q.second < n);
   }};
 }
 

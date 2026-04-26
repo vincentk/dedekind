@@ -29,6 +29,7 @@
  */
 module;
 #include <algorithm>
+#include <compare>  // std::three_way_comparable for HasTotalOrderOperators
 #include <concepts>
 #include <functional>
 
@@ -113,7 +114,69 @@ concept IsTotallyOrdered = IsPartiallyOrdered<T> && std::totally_ordered<T>;
 export template <typename T>
 concept IsLinearOrder = IsTotallyOrdered<T>;
 
+/**
+ * @concept HasPartialOrderOperators
+ * @brief @b Pure @b syntactic @b shape: T supports the partial-order
+ *        operators @c <, @c <=, @c >, @c >= with bool-convertible
+ *        results.
+ *
+ * @details
+ * Use this concept where a callsite needs the four relational operators
+ * to compile and yield a value coercible to @c bool, but does @b not
+ * want to bind to a particular axiomatic order (preorder, partial,
+ * total).  No claim about reflexivity, antisymmetry, transitivity, or
+ * comparability is made here; for those, use @c IsPreOrdered /
+ * @c IsPartiallyOrdered / @c IsTotallyOrdered.
+ *
+ * Sibling of @c dedekind::algebra::HasRingOperators (in @c
+ * algebra:ring), @c dedekind::algebra::HasFieldOperators (in @c
+ * algebra:field), and @c HasLatticeOperators (in @c order:lattice)
+ * in the shape-concept family.  The split between @b shape and @b
+ * axiom mirrors the literal-vs-strict tier introduced under PR #394.
+ */
+export template <typename T>
+concept HasPartialOrderOperators = requires(const T a, const T b) {
+  { a < b } -> std::convertible_to<bool>;
+  { a <= b } -> std::convertible_to<bool>;
+  { a > b } -> std::convertible_to<bool>;
+  { a >= b } -> std::convertible_to<bool>;
+};
+
+/**
+ * @concept HasTotalOrderOperators
+ * @brief @b Pure @b syntactic @b shape: T supports the spaceship
+ *        operator @c <=> alongside the four partial-order operators.
+ *
+ * @details
+ * The C++20 three-way comparison shape: a @c <=> that returns one of
+ * @c std::strong_ordering / @c std::weak_ordering / @c
+ * std::partial_ordering, witnessing that @c T can act as a totally /
+ * weakly ordered carrier at the @b operator level.  Composes @c
+ * HasPartialOrderOperators with the spaceship so callsites can check
+ * the full relational surface in one constraint.
+ *
+ * Note: a partial-ordering @c <=> still satisfies this shape (the
+ * spaceship's three-way result type carries the order strength); for
+ * an @b axiomatic total-order witness use @c IsTotallyOrdered, which
+ * additionally requires @c std::totally_ordered (excluded middle on
+ * comparability).  The shape vs.\ axiom split follows the @c
+ * HasRingOperators / @c IsRing pattern from PR #394.
+ */
+export template <typename T>
+concept HasTotalOrderOperators =
+    HasPartialOrderOperators<T> && std::three_way_comparable<T>;
+
 /** @section Formal_Verification */
+
+// int / unsigned int / bool are the canonical totally-ordered carriers,
+// with spaceship and the four partial-order operators.  Pin them as the
+// canonical witnesses for the new shape concepts.
+static_assert(HasPartialOrderOperators<int>);
+static_assert(HasTotalOrderOperators<int>);
+static_assert(HasPartialOrderOperators<unsigned int>);
+static_assert(HasTotalOrderOperators<unsigned int>);
+static_assert(HasPartialOrderOperators<bool>);
+static_assert(HasTotalOrderOperators<bool>);
 
 // int is the canonical totally ordered chain.
 static_assert(IsTotallyOrdered<int>, "int must satisfy IsTotallyOrdered.");

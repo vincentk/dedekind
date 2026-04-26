@@ -32,12 +32,21 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @note "Having been introduced there to this art with an amazing method of
- * teaching by means of the nine figures of the Indians, I loved the knowledge
- * of such an art to such an extent above all other arts...that I learned with
- * very earnest application...anything to be studied concerning it and its
- * various methods used in Egypt, in Syria, in Greece, in Sicily, and in
- * Provence." — Leonardo Fibonacci, *Liber Abaci*, Prologus (~1202).
+ * @note "Ubi ex mirabili magisterio in arte per novem figuras Indorum
+ * introductus, scientia artis in tantum mihi pre ceteris placuit, et
+ * intellexi ad illam, quod, quicquid studebatur ex ea apud Egyptum,
+ * Syriam, Greciam, Siciliam et Provinciam cum suis variis modis, ad
+ * que loca negotiationis tam postea peragravi per multum studium et
+ * disputationis didici conflictum."
+ * [Trans: "There, having been introduced to that art by a marvelous
+ * method of teaching by means of the nine figures of the Indians, the
+ * knowledge of the art so pleased me above all others, and I came to
+ * understand it, that whatever was studied of it in Egypt, Syria,
+ * Greece, Sicily, and Provence, and their various methods, to which
+ * places of business I afterwards travelled — through much study and
+ * the contest of disputation, I learned."]
+ *       — Leonardo Pisano (Fibonacci), *Liber Abaci*, Prologus (1202;
+ *         Boncompagni edition, Rome 1857).
  */
 module;
 
@@ -49,6 +58,7 @@ export module dedekind.numbers:naturals;
 import dedekind.algebra; // HasRingOperators / HasSemiringOperators / IsArithmeticRing (canonical-spine witnesses)
 import dedekind.category;
 import dedekind.order; // HasLatticeOperators (canonical-spine witnesses)
+import dedekind.sequences; // IsFiniteSequence (canonical-spine witnesses on FinitePath<ℕ>)
 import dedekind.sets;
 import :scalars;
 import :booleans;
@@ -167,13 +177,30 @@ using ::dedekind::sets::ℕ;
 
 /** @section Formal_Verification */
 
-// (1) IsSet anchor: ℕ is a bona-fide set.  The upstream
-// `NaturalNumbersOf` predicate has Domain = int (with a non-negativity
-// classifier and unsigned/bool overloads), so the IsSet anchor is over
-// the int ambient.
-static_assert(dedekind::category::IsSet<
-                  decltype(dedekind::category::ambient_set<int>(ℕ{}))>,
-              "ℕ must be the canonical IsSet anchor.");
+// (0) Carrier-type witness: ℕ names the carrier itself (post-#401).
+static_assert(std::same_as<ℕ, unsigned int>,
+              "ℕ is the unsigned-int carrier (post-#401; modular ring "
+              "ℤ/2^N, with ExtensionalCardinal<> as the exact saturating-"
+              "to-ℵ_0 sibling).");
+
+// (0a) Relationship between ℕ (the carrier) and NaturalNumbersOf<>
+//      (the predicate-set / classifier).  The predicate-set's @c Domain
+//      @b is the carrier — same shape as the 𝔹 ↔ Ω<bool> relationship
+//      from #400.  IsSet<ℕ> itself does @b not fire (carrier types
+//      carry no predicate-set surface); to participate as a set, lift
+//      through the predicate-set.
+static_assert(std::same_as<typename NaturalNumbersOf<>::Domain, ℕ>,
+              "NaturalNumbersOf<>::Domain is the unsigned-int carrier "
+              "ℕ — predicate-set's underlying element type IS the "
+              "carrier.");
+
+// (1) IsSet anchor: the predicate-set NaturalNumbersOf<> is a bona-fide
+//     set.  Witnesses the set-builder DSL entry point that survives the
+//     carrier migration.
+static_assert(
+    dedekind::category::IsSet<decltype(dedekind::category::ambient_set<
+                                       unsigned int>(NaturalNumbersOf<>{}))>,
+    "NaturalNumbersOf<> is the canonical IsSet anchor for ℕ.");
 
 // (2) Syntax (the C++ operator surface that maps to ℕ's algebra).
 //   - HasSemiringOperators<unsigned int>: +, * close, with T{} and T{1}.
@@ -215,16 +242,70 @@ static_assert(
     "math-wins-over-C++ stance, this is the closest strict-ring carrier "
     "ℕ has at the machine level (the unbounded ℕ proxy lives in "
     "`Cardinality` from sets:cardinality, with ℵ_0 escalation).");
+// IsRig witness on the canonical machine carrier.  Pinned at @c
+// unsigned @c int so the weaker @b semiring/rig claim is visible as a
+// single static_assert alongside the stronger @c IsArithmeticRing
+// seal above.  This records semiring closure/structure for the @c
+// IsRig concept's purposes; it does @b not claim idempotent addition
+// or the absence of additive inverses for the modular machine carrier
+// (where @c 1+UINT_MAX==0 so additive inverses @b do exist for every
+// element, and @c a+a is generally @b not equal to @c a).  The
+// textbook "rig = semiring without additive inverse" reading applies
+// to the abstract ℕ; the machine carrier is a stricter ring under
+// modular wrap.
+static_assert(dedekind::algebra::IsRig<unsigned int, std::plus<unsigned int>,
+                                       std::multiplies<unsigned int>>,
+              "unsigned int satisfies the IsRig witness under + and * on "
+              "the canonical machine carrier; records semiring "
+              "closure/structure only, not stronger textbook ℕ laws "
+              "(no idempotency claim; modular-wrap inverses exist for "
+              "every element).");
+// Order witnesses (explicit, for documentation purposes).  ℕ is the
+// canonical totally-ordered chain 0 ≤ 1 ≤ 2 ≤ ... at the literal
+// level; the spaceship and the four partial-order operators all
+// fire on the carrier.  Mirrors the @b shape vs.\ @b axiom split of
+// HasRingOperators / IsRing from PR #394.
+static_assert(dedekind::order::HasPartialOrderOperators<ℕ>,
+              "ℕ carries the partial-order operator surface "
+              "(<, <=, >, >=).");
+static_assert(dedekind::order::HasTotalOrderOperators<ℕ>,
+              "ℕ carries the total-order operator surface "
+              "(spaceship + the four partial-order operators).");
+static_assert(dedekind::order::IsTotallyOrdered<ℕ>,
+              "ℕ is axiomatically totally ordered (the chain "
+              "0 ≤ 1 ≤ 2 ≤ ...).");
+// Order-domain witnesses: ℕ is a directed set (every finite subset has
+// an upper bound) and a directed poset (directed + antisymmetric).
+// These pin ℕ as a valid @b net-domain in the Munkres / Kelley sense:
+// a net is a function from a directed set, and ℕ is the prototypical
+// directed set (sequences are nets indexed by ℕ).
+static_assert(dedekind::order::IsDirectedSet<ℕ>,
+              "ℕ is a directed set — the prototypical net domain.");
+static_assert(dedekind::order::IsDirectedPoset<ℕ>,
+              "ℕ is a directed poset (directed + antisymmetric).");
+// Sequence witness: FinitePath<ℕ> is a finite sequence enumerating
+// a ℕ-prefix.  Pins ℕ as a valid @b sequence codomain: any finite
+// sub-sequence of natural numbers presents as IsFiniteSequence.
+static_assert(
+    dedekind::sequences::IsFiniteSequence<dedekind::sequences::FinitePath<ℕ>>,
+    "FinitePath<ℕ> is a bona-fide finite sequence; ℕ is a valid "
+    "sequence codomain.");
 
-// (4) Primitive-type arrows.  std::unsigned_integral ↔ ℕ:
-//   - Forward (unsigned → ℕ): just the predicate ℕ{}(value), which is
-//     trivially total (every unsigned is a natural).
+// (4) Primitive-type arrows.  ℕ *is* @c unsigned @c int (post-#401), so
+// the predicate-set membership question reduces to direct calls on the
+// classifier @c N (the namespace-level @c NaturalNumbersOf<> constant
+// from sets:boundaries):
+//   - Forward (unsigned → ℕ): trivially total (every unsigned is a
+//     natural).
 //   - Forward into a certified IsNatural domain (e.g.\ ExtensionalCardinal<>):
 //     `embed_unsigned_integral<N>(v)`.
 //   - Reverse (ℕ → unsigned): for the certified domain, project via
 //     `realize_to_size_t(sentinel)` (lives in sets:cardinality).
-static_assert(ℕ{}(0u) == ClassicalLogic::True, "0 ∈ ℕ.");
-static_assert(ℕ{}(42u) == ClassicalLogic::True, "42 ∈ ℕ.");
+static_assert(N(0u) == ClassicalLogic::True, "0 ∈ ℕ.");
+static_assert(N(42u) == ClassicalLogic::True, "42 ∈ ℕ.");
+static_assert(N(-7) == ClassicalLogic::False,
+              "Direct N(int) call is the ℕ-as-subset-of-ℤ classifier; "
+              "rejects negatives.");
 
 // (5) Adjacent-set arrow: 𝔹 ↪ ℕ via @c embed_𝔹_ℕ above; registered
 // monic at the bottom of this partition.  The forward arrow ℕ ↪ ℤ

@@ -94,7 +94,7 @@ TEST_CASE("Pruning showcase 3: halfspace contradiction on ℕ collapses to Ø",
   constexpr auto gt_five = Set{n % N | (n > bound<5>)};
   constexpr auto lt_three = Set{n % N | (n < bound<3>)};
 
-  constexpr Ø<int> empty_meet = gt_five & lt_three;
+  constexpr Ø<unsigned int> empty_meet = gt_five & lt_three;
   STATIC_CHECK(empty_meet == Ø{});
 
   SECTION("Computability tiers tighten at the reduction boundary") {
@@ -114,8 +114,8 @@ TEST_CASE("Pruning showcase 4: cardinality-1 halfspace meet = Singleton<4>",
   constexpr auto gt_three = Set{n % N | (n > bound<3>)};
   constexpr auto lt_five = Set{n % N | (n < bound<5>)};
 
-  constexpr Singleton<4> in_between = gt_three & lt_five;
-  STATIC_CHECK(in_between == Singleton<4>{});
+  constexpr Singleton<4u> in_between = gt_three & lt_five;
+  STATIC_CHECK(in_between == Singleton<4u>{});
 
   SECTION("Elements now live at the type level") {
     STATIC_CHECK_FALSE(IsCompileTimeEnumerable<decltype(gt_three)>);

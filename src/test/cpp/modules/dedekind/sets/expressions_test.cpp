@@ -15,11 +15,15 @@ TEST_CASE("Dedekind MVP: Basic Membership and Symbols", "[sets]") {
     auto finite = Set{x % singleton(1) | (x == 1)};
     REQUIRE(finite(1) == true);
     REQUIRE(finite(2) == false);
+  }
 
-    // Should be Set<int, TernaryLogic> (because ℕ is transfinite)
-    auto infinite = Set{x % N | (x > 0)};
-    REQUIRE(infinite(5) == Ternary::True);
-    REQUIRE(infinite(-5) == Ternary::False);
+  SECTION("Natural-numbers membership") {
+    // Post-#401, ℕ is the unsigned-int carrier; the predicate-set N has
+    // Domain = unsigned int, so callsites use unsigned values.
+    auto n = var<ℕ>;
+    auto infinite = Set{n % N | (n > 0u)};
+    REQUIRE(infinite(5u) == Ternary::True);
+    REQUIRE(infinite(0u) == Ternary::False);
   }
 }
 
@@ -31,23 +35,28 @@ TEST_CASE("Dedekind Identities: Extremal Collapse", "[sets][identities]") {
     auto U = Set{N};
 
     static_assert(std::is_same_v<decltype(U)::logic_species, TernaryLogic>);
-    REQUIRE(U(42) == Ternary::True);
-    REQUIRE(U(-1) == Ternary::False);
+    // ℕ-as-carrier (= unsigned int) accepts every unsigned value; the
+    // classifier reading on int is reachable via direct N(-1) calls.
+    REQUIRE(U(42u) == Ternary::True);
+    // Direct N(int) call returns ClassicalLogic::Ω (= bool), not Ternary,
+    // because the int overload short-circuits to the classical answer
+    // without lifting through the ambient logic.
+    REQUIRE(N(-1) == false);
   }
 
   SECTION("Contradiction: {x ∈ ℕ | x > 10 ∧ x < 5} is ∅") {
     // Here we combine the symbolic predicates
-    auto S = Set{x % N | (x > 10 && x < 5)};
+    auto S = Set{x % N | (x > 10u && x < 5u)};
 
     // For a non-trivial polish, we verify it is 'Total Absence'
-    REQUIRE(S(0) == Ternary::False);
-    REQUIRE(S(7) == Ternary::False);
-    REQUIRE(S(12) == Ternary::False);
+    REQUIRE(S(0u) == Ternary::False);
+    REQUIRE(S(7u) == Ternary::False);
+    REQUIRE(S(12u) == Ternary::False);
   }
 
   SECTION("Tautology: {x ∈ ℕ | x > 10 ∨ x <= 10} is Ω") {
-    auto S = Set{x % N | (x > 10 || x <= 10)};
-    REQUIRE(S(7) == Ternary::True);
+    auto S = Set{x % N | (x > 10u || x <= 10u)};
+    REQUIRE(S(7u) == Ternary::True);
   }
 }
 
@@ -137,7 +146,7 @@ TEST_CASE("Dedekind Sets: Power-set preserves ambient logic",
           "[sets][powerset][logic]") {
   auto x = var<ℕ>;
 
-  const auto gt_zero = Set{x % N | (x > 0)};
+  const auto gt_zero = Set{x % N | (x > 0u)};
   const auto p_gt_zero = power_set(gt_zero);
 
   STATIC_CHECK(
@@ -168,8 +177,8 @@ TEST_CASE("Dedekind Sets: Heterogeneous subset semantics",
           "[sets][subset][logic]") {
   SECTION("Ternary logic yields Unknown for heterogeneous predicates") {
     auto x = var<ℕ>;
-    const auto gt_zero = Set{x % N | (x > 0)};
-    const auto ge_zero = Set{x % N | (x >= 0)};
+    const auto gt_zero = Set{x % N | (x > 0u)};
+    const auto ge_zero = Set{x % N | (x >= 0u)};
 
     REQUIRE((gt_zero <= ge_zero) == Ternary::Unknown);
   }

@@ -174,30 +174,66 @@ struct OrderInterval {
 /** @section Halfspace_Variable_DSL — Variable<S> × Bound<V> → Halfspace. */
 
 export template <typename Species, auto V>
-  requires std::convertible_to<decltype(V), typename Species::Domain>
+  requires std::convertible_to<decltype(V),
+                               dedekind::sets::element_of_t<Species>> &&
+           // Reject negative signed pivots on unsigned carriers: the
+           // implicit signed→unsigned conversion would wrap (-1 → UINT_MAX)
+           // and produce nonsense semantics (`x > -1` becomes `x > UINT_MAX`,
+           // which is False for every reachable x).  Real-valued bounds
+           // (e.g. bound<-21.0> on var<ℝ>) remain admissible because
+           // signed_integral excludes floating-point types.
+           (!std::unsigned_integral<dedekind::sets::element_of_t<Species>> ||
+            !std::signed_integral<decltype(V)> || V >= 0)
 constexpr auto operator>(const Variable<Species>&, Bound<V>) {
-  using T = typename Species::Domain;
+  using T = dedekind::sets::element_of_t<Species>;
   return Halfspace<T, V, Direction::Upward, Strictness::Strict>{};
 }
 
 export template <typename Species, auto V>
-  requires std::convertible_to<decltype(V), typename Species::Domain>
+  requires std::convertible_to<decltype(V),
+                               dedekind::sets::element_of_t<Species>> &&
+           // Reject negative signed pivots on unsigned carriers: the
+           // implicit signed→unsigned conversion would wrap (-1 → UINT_MAX)
+           // and produce nonsense semantics (`x > -1` becomes `x > UINT_MAX`,
+           // which is False for every reachable x).  Real-valued bounds
+           // (e.g. bound<-21.0> on var<ℝ>) remain admissible because
+           // signed_integral excludes floating-point types.
+           (!std::unsigned_integral<dedekind::sets::element_of_t<Species>> ||
+            !std::signed_integral<decltype(V)> || V >= 0)
 constexpr auto operator>=(const Variable<Species>&, Bound<V>) {
-  using T = typename Species::Domain;
+  using T = dedekind::sets::element_of_t<Species>;
   return Halfspace<T, V, Direction::Upward, Strictness::NonStrict>{};
 }
 
 export template <typename Species, auto V>
-  requires std::convertible_to<decltype(V), typename Species::Domain>
+  requires std::convertible_to<decltype(V),
+                               dedekind::sets::element_of_t<Species>> &&
+           // Reject negative signed pivots on unsigned carriers: the
+           // implicit signed→unsigned conversion would wrap (-1 → UINT_MAX)
+           // and produce nonsense semantics (`x > -1` becomes `x > UINT_MAX`,
+           // which is False for every reachable x).  Real-valued bounds
+           // (e.g. bound<-21.0> on var<ℝ>) remain admissible because
+           // signed_integral excludes floating-point types.
+           (!std::unsigned_integral<dedekind::sets::element_of_t<Species>> ||
+            !std::signed_integral<decltype(V)> || V >= 0)
 constexpr auto operator<(const Variable<Species>&, Bound<V>) {
-  using T = typename Species::Domain;
+  using T = dedekind::sets::element_of_t<Species>;
   return Halfspace<T, V, Direction::Downward, Strictness::Strict>{};
 }
 
 export template <typename Species, auto V>
-  requires std::convertible_to<decltype(V), typename Species::Domain>
+  requires std::convertible_to<decltype(V),
+                               dedekind::sets::element_of_t<Species>> &&
+           // Reject negative signed pivots on unsigned carriers: the
+           // implicit signed→unsigned conversion would wrap (-1 → UINT_MAX)
+           // and produce nonsense semantics (`x > -1` becomes `x > UINT_MAX`,
+           // which is False for every reachable x).  Real-valued bounds
+           // (e.g. bound<-21.0> on var<ℝ>) remain admissible because
+           // signed_integral excludes floating-point types.
+           (!std::unsigned_integral<dedekind::sets::element_of_t<Species>> ||
+            !std::signed_integral<decltype(V)> || V >= 0)
 constexpr auto operator<=(const Variable<Species>&, Bound<V>) {
-  using T = typename Species::Domain;
+  using T = dedekind::sets::element_of_t<Species>;
   return Halfspace<T, V, Direction::Downward, Strictness::NonStrict>{};
 }
 

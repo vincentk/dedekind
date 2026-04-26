@@ -9,8 +9,17 @@ using namespace dedekind::numbers;
 using namespace dedekind::sets;
 
 TEST_CASE("Numbers: canonical starter symbols", "[numbers][starter]") {
-  STATIC_CHECK(std::same_as<ℕ, NaturalNumbers>);
-  STATIC_CHECK(std::same_as<decltype(N), const ℕ>);
+  // Carrier-vs-predicate-set surface (post-#401).
+  //   • ℕ is the carrier type itself: ℕ = unsigned int (machine-ℕ;
+  //     modular ring ℤ/2^N).  ExtensionalCardinal<> is the exact-ℕ
+  //     sibling (saturating to ℵ_0; see PR #396).
+  //   • N is the value-level universal Natural predicate-set, of type
+  //     NaturalNumbersOf<> (= Ω-flavoured classifier).
+  //   • The relationship is NaturalNumbersOf<>::Domain = ℕ — the
+  //     predicate-set's underlying element type IS the carrier.
+  STATIC_CHECK(std::same_as<ℕ, unsigned int>);
+  STATIC_CHECK(std::same_as<decltype(N), const NaturalNumbersOf<>>);
+  STATIC_CHECK(std::same_as<typename NaturalNumbersOf<>::Domain, ℕ>);
 
   STATIC_CHECK(std::same_as<ℤ, IntegerSet>);
   STATIC_CHECK(std::same_as<decltype(Z), const ℤ>);
@@ -34,9 +43,17 @@ TEST_CASE("Numbers: starter universes construct from ambient values",
           "[numbers][starter][sets]") {
   constexpr auto n = var<ℕ>;
   constexpr auto naturals = Set{n % N};
-  static_assert(naturals(7) == Ternary::True);
-  static_assert(naturals(-7) == Ternary::False);
+  // The Set DSL routes calls through Domain = unsigned int (post-#401),
+  // so callsites pass unsigned values.  Every unsigned value is in ℕ
+  // by construction (ℕ-as-carrier).
   static_assert(naturals(7u) == Ternary::True);
+  static_assert(naturals(0u) == Ternary::True);
+  // Classifier reading (ℕ ⊂ ℤ via non-negativity) is preserved on direct
+  // calls to the predicate-set, where the int overload is reachable.
+  // The int overload returns ClassicalLogic::Ω (= bool) directly, not
+  // lifted through TernaryLogic.
+  static_assert(N(7) == true, "Predicate-set classifies 7 as natural.");
+  static_assert(N(-7) == false, "Predicate-set classifies -7 as not natural.");
 
   constexpr auto z = var<ℤ>;
   constexpr auto integers = Set{z % Z};
@@ -65,10 +82,10 @@ TEST_CASE("Numbers: starter universes satisfy lattice identities",
     constexpr auto n = var<ℕ>;
     const auto U = Set{n % N};
     const auto O = !U;
-    CHECK((U | O)(7) == Ternary::True);
-    CHECK((U & O)(7) == Ternary::False);
-    CHECK((U | O)(-3) == Ternary::True);
-    CHECK((U & O)(-3) == Ternary::False);
+    CHECK((U | O)(7u) == Ternary::True);
+    CHECK((U & O)(7u) == Ternary::False);
+    CHECK((U | O)(0u) == Ternary::True);
+    CHECK((U & O)(0u) == Ternary::False);
   }
 
   {
