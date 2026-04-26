@@ -92,7 +92,9 @@ TEST_CASE("Boundaries: The Algebra of Extremality", "[sets][boundaries]") {
   }
 
   SECTION("Cardinality bounds for intensional/transfinite sets use sentinel") {
-    constexpr ℕ naturals;
+    // ℕ is now the carrier (unsigned int) post-#401; the predicate-set
+    // value is the namespace-level constant @c N (NaturalNumbersOf<>).
+    constexpr auto naturals = N;
     constexpr Ø<ℤ> empty;
     constexpr SingletonSet<ℤ> singleton{7};
     const auto max_v = std::numeric_limits<std::size_t>::max();

@@ -167,13 +167,30 @@ using ::dedekind::sets::ℕ;
 
 /** @section Formal_Verification */
 
-// (1) IsSet anchor: ℕ is a bona-fide set.  The upstream
-// `NaturalNumbersOf` predicate has Domain = int (with a non-negativity
-// classifier and unsigned/bool overloads), so the IsSet anchor is over
-// the int ambient.
-static_assert(dedekind::category::IsSet<
-                  decltype(dedekind::category::ambient_set<int>(ℕ{}))>,
-              "ℕ must be the canonical IsSet anchor.");
+// (0) Carrier-type witness: ℕ names the carrier itself (post-#401).
+static_assert(std::same_as<ℕ, unsigned int>,
+              "ℕ is the unsigned-int carrier (post-#401; modular ring "
+              "ℤ/2^N, with ExtensionalCardinal<> as the exact saturating-"
+              "to-ℵ_0 sibling).");
+
+// (0a) Relationship between ℕ (the carrier) and NaturalNumbersOf<>
+//      (the predicate-set / classifier).  The predicate-set's @c Domain
+//      @b is the carrier — same shape as the 𝔹 ↔ Ω<bool> relationship
+//      from #400.  IsSet<ℕ> itself does @b not fire (carrier types
+//      carry no predicate-set surface); to participate as a set, lift
+//      through the predicate-set.
+static_assert(std::same_as<typename NaturalNumbersOf<>::Domain, ℕ>,
+              "NaturalNumbersOf<>::Domain is the unsigned-int carrier "
+              "ℕ — predicate-set's underlying element type IS the "
+              "carrier.");
+
+// (1) IsSet anchor: the predicate-set NaturalNumbersOf<> is a bona-fide
+//     set.  Witnesses the set-builder DSL entry point that survives the
+//     carrier migration.
+static_assert(
+    dedekind::category::IsSet<decltype(dedekind::category::ambient_set<unsigned int>(
+        NaturalNumbersOf<>{}))>,
+    "NaturalNumbersOf<> is the canonical IsSet anchor for ℕ.");
 
 // (2) Syntax (the C++ operator surface that maps to ℕ's algebra).
 //   - HasSemiringOperators<unsigned int>: +, * close, with T{} and T{1}.
@@ -216,15 +233,21 @@ static_assert(
     "ℕ has at the machine level (the unbounded ℕ proxy lives in "
     "`Cardinality` from sets:cardinality, with ℵ_0 escalation).");
 
-// (4) Primitive-type arrows.  std::unsigned_integral ↔ ℕ:
-//   - Forward (unsigned → ℕ): just the predicate ℕ{}(value), which is
-//     trivially total (every unsigned is a natural).
+// (4) Primitive-type arrows.  ℕ *is* @c unsigned @c int (post-#401), so
+// the predicate-set membership question reduces to direct calls on the
+// classifier @c N (the namespace-level @c NaturalNumbersOf<> constant
+// from sets:boundaries):
+//   - Forward (unsigned → ℕ): trivially total (every unsigned is a
+//     natural).
 //   - Forward into a certified IsNatural domain (e.g.\ ExtensionalCardinal<>):
 //     `embed_unsigned_integral<N>(v)`.
 //   - Reverse (ℕ → unsigned): for the certified domain, project via
 //     `realize_to_size_t(sentinel)` (lives in sets:cardinality).
-static_assert(ℕ{}(0u) == ClassicalLogic::True, "0 ∈ ℕ.");
-static_assert(ℕ{}(42u) == ClassicalLogic::True, "42 ∈ ℕ.");
+static_assert(N(0u) == ClassicalLogic::True, "0 ∈ ℕ.");
+static_assert(N(42u) == ClassicalLogic::True, "42 ∈ ℕ.");
+static_assert(N(-7) == ClassicalLogic::False,
+              "Direct N(int) call is the ℕ-as-subset-of-ℤ classifier; "
+              "rejects negatives.");
 
 // (5) Adjacent-set arrow: 𝔹 ↪ ℕ via @c embed_𝔹_ℕ above; registered
 // monic at the bottom of this partition.  The forward arrow ℕ ↪ ℤ

@@ -23,7 +23,7 @@ def __getattr__(name):
     """Lazy-load submodules (sequences, sets) on demand."""
     import importlib
 
-    if name in {"sequences", "sets"}:
+    if name in {"sequences", "sets", "numbers", "algebra"}:
         module_name = f"{__name__}.{name}"
         try:
             return importlib.import_module(f".{name}", __name__)

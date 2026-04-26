@@ -64,8 +64,8 @@ TEST_CASE("order:halfspace — Variable DSL constructs Halfspace from bound<V>",
           "[order][halfspace][dsl]") {
   // ℕ rather than ℤ so the order-test target stays upstream of numbers: ℤ
   // lives in `dedekind.numbers`, which is downstream of `dedekind.order` in
-  // the build DAG. ℕ has the same underlying Domain (`int`), so the test
-  // exercises identical `Halfspace<int, ...>` instantiations.
+  // the build DAG. Post-#401, ℕ is the unsigned-int carrier, so the test
+  // now exercises `Halfspace<unsigned int, ...>` instantiations.
   constexpr auto n = var<ℕ>;
 
   SECTION("> constructs Upward/Strict") {
@@ -73,7 +73,7 @@ TEST_CASE("order:halfspace — Variable DSL constructs Halfspace from bound<V>",
     using H = std::decay_t<decltype(h)>;
     STATIC_CHECK(
         std::same_as<H,
-                     Halfspace<int, 7, Direction::Upward, Strictness::Strict>>);
+                     Halfspace<unsigned int, 7, Direction::Upward, Strictness::Strict>>);
   }
 
   SECTION(">= constructs Upward/NonStrict") {
@@ -81,7 +81,7 @@ TEST_CASE("order:halfspace — Variable DSL constructs Halfspace from bound<V>",
     using H = std::decay_t<decltype(h)>;
     STATIC_CHECK(
         std::same_as<
-            H, Halfspace<int, 7, Direction::Upward, Strictness::NonStrict>>);
+            H, Halfspace<unsigned int, 7, Direction::Upward, Strictness::NonStrict>>);
   }
 
   SECTION("< constructs Downward/Strict") {
@@ -89,7 +89,7 @@ TEST_CASE("order:halfspace — Variable DSL constructs Halfspace from bound<V>",
     using H = std::decay_t<decltype(h)>;
     STATIC_CHECK(
         std::same_as<
-            H, Halfspace<int, 7, Direction::Downward, Strictness::Strict>>);
+            H, Halfspace<unsigned int, 7, Direction::Downward, Strictness::Strict>>);
   }
 
   SECTION("<= constructs Downward/NonStrict") {
@@ -97,7 +97,7 @@ TEST_CASE("order:halfspace — Variable DSL constructs Halfspace from bound<V>",
     using H = std::decay_t<decltype(h)>;
     STATIC_CHECK(
         std::same_as<
-            H, Halfspace<int, 7, Direction::Downward, Strictness::NonStrict>>);
+            H, Halfspace<unsigned int, 7, Direction::Downward, Strictness::NonStrict>>);
   }
 }
 
@@ -271,7 +271,7 @@ TEST_CASE("order:halfspace — reduction boundary tightens all three tiers",
   SECTION("Empty-meet reduction") {
     constexpr auto gt5 = Set{n % N | (n > bound<5>)};
     constexpr auto lt3 = Set{n % N | (n < bound<3>)};
-    constexpr Ø<int> meet = gt5 & lt3;
+    constexpr Ø<unsigned int> meet = gt5 & lt3;
 
     STATIC_CHECK_FALSE(HasDecidableMembership<decltype(gt5)>);
     STATIC_CHECK_FALSE(IsFiniteSet<decltype(gt5)>);
@@ -285,7 +285,7 @@ TEST_CASE("order:halfspace — reduction boundary tightens all three tiers",
   SECTION("Singleton reduction") {
     constexpr auto gt3 = Set{n % N | (n > bound<3>)};
     constexpr auto lt5 = Set{n % N | (n < bound<5>)};
-    constexpr Singleton<4> s = gt3 & lt5;
+    constexpr Singleton<4u> s = gt3 & lt5;
 
     STATIC_CHECK_FALSE(HasDecidableMembership<decltype(gt3)>);
     STATIC_CHECK(HasDecidableMembership<decltype(s)>);

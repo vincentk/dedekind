@@ -15,14 +15,14 @@ namespace {
 constexpr auto evens_0_10 = [] {
   auto x = var<ℕ>;
   return Set{x % N |
-             [](int v) { return (v >= 0) && (v < 10) && (v % 2 == 0); }};
+             [](unsigned int v) { return (v < 10u) && (v % 2u == 0u); }};
 }();
 
 // Multiples of 3 in [0, 10)
 constexpr auto threes_0_10 = [] {
   auto x = var<ℕ>;
   return Set{x % N |
-             [](int v) { return (v >= 0) && (v < 10) && (v % 3 == 0); }};
+             [](unsigned int v) { return (v < 10u) && (v % 3u == 0u); }};
 }();
 
 }  // namespace
@@ -32,32 +32,32 @@ constexpr auto threes_0_10 = [] {
 // ---------------------------------------------------------------------------
 TEST_CASE("Relational Algebra: Selection (σ)", "[sets][relational]") {
   // Keep only elements < 6 from evens_0_10 = {0, 2, 4, 6, 8}
-  const auto small_evens = select(evens_0_10, [](int v) { return v < 6; });
+  const auto small_evens = select(evens_0_10, [](unsigned int v) { return v < 6u; });
 
   SECTION("Members of σ_{<6}(evens) are even and below 6") {
-    REQUIRE(small_evens(0) == Ternary::True);
-    REQUIRE(small_evens(2) == Ternary::True);
-    REQUIRE(small_evens(4) == Ternary::True);
+    REQUIRE(small_evens(0u) == Ternary::True);
+    REQUIRE(small_evens(2u) == Ternary::True);
+    REQUIRE(small_evens(4u) == Ternary::True);
   }
 
   SECTION("Elements >= 6 are excluded even if even") {
-    REQUIRE(small_evens(6) == Ternary::False);
-    REQUIRE(small_evens(8) == Ternary::False);
+    REQUIRE(small_evens(6u) == Ternary::False);
+    REQUIRE(small_evens(8u) == Ternary::False);
   }
 
   SECTION("Odd numbers are excluded regardless of bound") {
-    REQUIRE(small_evens(3) == Ternary::False);
-    REQUIRE(small_evens(5) == Ternary::False);
+    REQUIRE(small_evens(3u) == Ternary::False);
+    REQUIRE(small_evens(5u) == Ternary::False);
   }
 
   SECTION("Logical-valued predicates preserve Ω semantics") {
-    const auto flagged = select(evens_0_10, [](int v) {
-      return (v == 2) ? Ternary::Unknown : Ternary::True;
+    const auto flagged = select(evens_0_10, [](unsigned int v) {
+      return (v == 2u) ? Ternary::Unknown : Ternary::True;
     });
 
-    REQUIRE(flagged(0) == Ternary::True);
-    REQUIRE(flagged(2) == Ternary::Unknown);
-    REQUIRE(flagged(3) == Ternary::False);
+    REQUIRE(flagged(0u) == Ternary::True);
+    REQUIRE(flagged(2u) == Ternary::Unknown);
+    REQUIRE(flagged(3u) == Ternary::False);
   }
 }
 
@@ -69,21 +69,21 @@ TEST_CASE("Relational Algebra: Union (∪)", "[sets][relational]") {
   const auto union_set = set_union(evens_0_10, threes_0_10);
 
   SECTION("Elements in both sets are in the union") {
-    REQUIRE(union_set(0) == Ternary::True);  // 0: even and mult-of-3
-    REQUIRE(union_set(6) == Ternary::True);  // 6: even and mult-of-3
+    REQUIRE(union_set(0u) == Ternary::True);  // 0: even and mult-of-3
+    REQUIRE(union_set(6u) == Ternary::True);  // 6: even and mult-of-3
   }
 
   SECTION("Elements in only one set are in the union") {
-    REQUIRE(union_set(2) == Ternary::True);  // even only
-    REQUIRE(union_set(4) == Ternary::True);  // even only
-    REQUIRE(union_set(3) == Ternary::True);  // mult-of-3 only
-    REQUIRE(union_set(9) == Ternary::True);  // mult-of-3 only
+    REQUIRE(union_set(2u) == Ternary::True);  // even only
+    REQUIRE(union_set(4u) == Ternary::True);  // even only
+    REQUIRE(union_set(3u) == Ternary::True);  // mult-of-3 only
+    REQUIRE(union_set(9u) == Ternary::True);  // mult-of-3 only
   }
 
   SECTION("Elements in neither set are excluded") {
-    REQUIRE(union_set(1) == Ternary::False);
-    REQUIRE(union_set(5) == Ternary::False);
-    REQUIRE(union_set(7) == Ternary::False);
+    REQUIRE(union_set(1u) == Ternary::False);
+    REQUIRE(union_set(5u) == Ternary::False);
+    REQUIRE(union_set(7u) == Ternary::False);
   }
 }
 
@@ -95,19 +95,19 @@ TEST_CASE("Relational Algebra: Difference (∖)", "[sets][relational]") {
   const auto diff = set_difference(evens_0_10, threes_0_10);
 
   SECTION("Pure-even elements remain in the difference") {
-    REQUIRE(diff(2) == Ternary::True);
-    REQUIRE(diff(4) == Ternary::True);
-    REQUIRE(diff(8) == Ternary::True);
+    REQUIRE(diff(2u) == Ternary::True);
+    REQUIRE(diff(4u) == Ternary::True);
+    REQUIRE(diff(8u) == Ternary::True);
   }
 
   SECTION("Even multiples-of-3 are removed") {
-    REQUIRE(diff(0) == Ternary::False);  // 0 ∈ threes
-    REQUIRE(diff(6) == Ternary::False);  // 6 ∈ threes
+    REQUIRE(diff(0u) == Ternary::False);  // 0 ∈ threes
+    REQUIRE(diff(6u) == Ternary::False);  // 6 ∈ threes
   }
 
   SECTION("Odd multiples-of-3 are not in the difference (not in evens)") {
-    REQUIRE(diff(3) == Ternary::False);
-    REQUIRE(diff(9) == Ternary::False);
+    REQUIRE(diff(3u) == Ternary::False);
+    REQUIRE(diff(9u) == Ternary::False);
   }
 }
 
@@ -119,15 +119,15 @@ TEST_CASE("Relational Algebra: Intersection (∩)", "[sets][relational]") {
   const auto inter = set_intersection(evens_0_10, threes_0_10);
 
   SECTION("Elements in both sets are in the intersection") {
-    REQUIRE(inter(0) == Ternary::True);
-    REQUIRE(inter(6) == Ternary::True);
+    REQUIRE(inter(0u) == Ternary::True);
+    REQUIRE(inter(6u) == Ternary::True);
   }
 
   SECTION("Elements in only one set are excluded") {
-    REQUIRE(inter(2) == Ternary::False);  // even but not mult-of-3
-    REQUIRE(inter(3) == Ternary::False);  // mult-of-3 but not even
-    REQUIRE(inter(4) == Ternary::False);
-    REQUIRE(inter(9) == Ternary::False);
+    REQUIRE(inter(2u) == Ternary::False);  // even but not mult-of-3
+    REQUIRE(inter(3u) == Ternary::False);  // mult-of-3 but not even
+    REQUIRE(inter(4u) == Ternary::False);
+    REQUIRE(inter(9u) == Ternary::False);
   }
 }
 

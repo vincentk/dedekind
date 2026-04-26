@@ -39,8 +39,8 @@ constexpr auto gt_three = Set{n % N | (n > bound<3>)};
 constexpr auto lt_five = Set{n % N | (n < bound<5>)};
 
 // Compile-time theorem: the meet IS the singleton {4} on ℕ.
-constexpr Singleton<4> in_between = gt_three & lt_five;
-static_assert(in_between == Singleton<4>{});
+constexpr Singleton<4u> in_between = gt_three & lt_five;
+static_assert(in_between == Singleton<4u>{});
 
 // Computability made a compile-time observable: the parent Sets carry NONE
 // of the three tiers; the reduced Singleton carries ALL THREE. Compile-time
@@ -64,5 +64,5 @@ static_assert(IsCompileTimeEnumerable<decltype(in_between)>);
  */
 extern "C" __attribute__((noinline)) bool witness_halfspace_singleton() {
   using Logic = typename decltype(in_between)::logic_species;
-  return in_between(4) == Logic::True;
+  return in_between(4u) == Logic::True;
 }

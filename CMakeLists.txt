@@ -239,6 +239,7 @@ if(DEDEKIND_BUILD_PYTHON_BINDINGS)
 
     file(MAKE_DIRECTORY "${DEDEKIND_PYTHON_PACKAGE_DIR}")
     file(MAKE_DIRECTORY "${DEDEKIND_PYTHON_PACKAGE_DIR}/numbers")
+    file(MAKE_DIRECTORY "${DEDEKIND_PYTHON_PACKAGE_DIR}/algebra")
     configure_file(
         ${CMAKE_CURRENT_SOURCE_DIR}/python/dedekind/__init__.py
         ${DEDEKIND_PYTHON_PACKAGE_DIR}/__init__.py
@@ -263,6 +264,18 @@ if(DEDEKIND_BUILD_PYTHON_BINDINGS)
         ${CMAKE_CURRENT_SOURCE_DIR}/python/dedekind/numbers/boolean.py
         ${DEDEKIND_PYTHON_PACKAGE_DIR}/numbers/boolean.py
         COPYONLY)
+    configure_file(
+        ${CMAKE_CURRENT_SOURCE_DIR}/python/dedekind/numbers/natural.py
+        ${DEDEKIND_PYTHON_PACKAGE_DIR}/numbers/natural.py
+        COPYONLY)
+    configure_file(
+        ${CMAKE_CURRENT_SOURCE_DIR}/python/dedekind/algebra/__init__.py
+        ${DEDEKIND_PYTHON_PACKAGE_DIR}/algebra/__init__.py
+        COPYONLY)
+    configure_file(
+        ${CMAKE_CURRENT_SOURCE_DIR}/python/dedekind/algebra/polynomial.py
+        ${DEDEKIND_PYTHON_PACKAGE_DIR}/algebra/polynomial.py
+        COPYONLY)
 
     nanobind_add_module(_dedekind PROTECT_STACK
         src/main/modules/dedekind/python/nanobind.cpp)
@@ -284,7 +297,12 @@ if(DEDEKIND_BUILD_PYTHON_BINDINGS)
     install(FILES
         ${CMAKE_CURRENT_SOURCE_DIR}/python/dedekind/numbers/__init__.py
         ${CMAKE_CURRENT_SOURCE_DIR}/python/dedekind/numbers/boolean.py
+        ${CMAKE_CURRENT_SOURCE_DIR}/python/dedekind/numbers/natural.py
         DESTINATION dedekind/numbers)
+    install(FILES
+        ${CMAKE_CURRENT_SOURCE_DIR}/python/dedekind/algebra/__init__.py
+        ${CMAKE_CURRENT_SOURCE_DIR}/python/dedekind/algebra/polynomial.py
+        DESTINATION dedekind/algebra)
 
     add_test(
         NAME test_python_bindings
