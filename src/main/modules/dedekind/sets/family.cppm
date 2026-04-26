@@ -63,22 +63,6 @@ using namespace dedekind::category;
  */
 namespace dedekind::sets {
 
-/** @section Structural_Resolution */
-
-template <typename T>
-struct resolve_species {
-  using type = T;  // Fallback for primitives (int, bool)
-};
-
-template <typename T>
-  requires requires { typename T::Domain; }
-struct resolve_species<T> {
-  using type = typename T::Domain;  // Extract from formal Species
-};
-
-template <typename T>
-using element_of_t = typename resolve_species<T>::type;
-
 /** @section Set_Type_Erasure */
 
 export template <typename Species, typename L = ClassicalLogic>

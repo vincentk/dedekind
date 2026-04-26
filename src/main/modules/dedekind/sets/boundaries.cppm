@@ -64,6 +64,30 @@ namespace dedekind::sets {
 
 struct Boundaries {};
 
+/** @section Structural_Resolution
+ *
+ * @c resolve_species / @c element_of_t resolve a type to its underlying
+ * element type: predicate-set carriers (anything with a nested
+ * @c ::Domain) project to their domain, primitive types are their own
+ * elements (the @b carrier reading after #399).  Lifted from
+ * @c :family to @c :boundaries so the upstream @c Variable / @c var
+ * machinery in @c :expressions can use the same trait without
+ * duplicating the resolution logic.
+ */
+template <typename T>
+struct resolve_species {
+  using type = T;  // Fallback for primitives (int, bool, ...) — the carrier IS the element.
+};
+
+template <typename T>
+  requires requires { typename T::Domain; }
+struct resolve_species<T> {
+  using type = typename T::Domain;  // Extract from formal Species.
+};
+
+template <typename T>
+using element_of_t = typename resolve_species<T>::type;
+
 /**
  * @brief Sentinel carrier for the parameter-free form `Ø{}`.
  *

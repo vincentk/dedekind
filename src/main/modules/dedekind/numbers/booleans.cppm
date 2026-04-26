@@ -120,6 +120,23 @@ concept Is_B = std::same_as<E, bool> && requires(const M& m) {
 // (0) Carrier-type witness: 𝔹 names the carrier itself.
 static_assert(std::same_as<𝔹, bool>, "𝔹 is the bool carrier (post-#400).");
 
+// (0a) Relationship between 𝔹 (the carrier) and Ω<bool> (the
+//      predicate-set / characteristic-function wrapper).  The
+//      predicate-set's @c Domain @b is the carrier, and the
+//      @c FiniteBooleanSetOf<> alias from this partition is the
+//      same predicate set.  IsSet<𝔹> itself does @b not fire — the
+//      @c IsSet concept (in @c category:set) needs the predicate-set
+//      surface (membership morphism, ambient species, etc.); a
+//      bare carrier type like @c bool carries no such surface.  To
+//      participate as a set, lift the carrier through
+//      @c BooleanSetOf<> / @c FiniteBooleanSetOf<>; the IsSet anchor
+//      in (1) below witnesses exactly that lift.
+static_assert(std::same_as<typename Ω<bool>::Domain, 𝔹>,
+              "Ω<bool>::Domain is the bool carrier 𝔹 — predicate-set's "
+              "underlying element type IS the carrier.");
+static_assert(std::same_as<typename FiniteBooleanSetOf<>::Domain, 𝔹>,
+              "FiniteBooleanSetOf<>::Domain is the bool carrier 𝔹.");
+
 // (1) IsSet anchor: the predicate-set FiniteBooleanSetOf<> is a bona-fide
 //     set (membership morphism bool → Ω).  Witnesses the set-builder DSL
 //     entry point that survives the carrier migration.

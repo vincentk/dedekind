@@ -53,10 +53,12 @@ class VariableSymbolicScoutTest(unittest.TestCase):
         self.assertTrue(falsy(False))
         self.assertFalse(falsy(True))
 
-    def test_var_invert_aliases_not(self) -> None:
+    def test_var_does_not_overload_invert(self) -> None:
+        # `~` is reserved for set complement project-wide; do NOT overload
+        # it on Variable.  Use ``b.not_()`` for the bool-domain shorthand.
         b = var(𝔹)
-        self.assertEqual((~b)(False), b.not_()(False))
-        self.assertEqual((~b)(True), b.not_()(True))
+        with self.assertRaises(TypeError):
+            ~b  # noqa: B015 — intentional: this should fail.
 
 
 class PowerSetOfBooleansStressTest(unittest.TestCase):
@@ -76,7 +78,9 @@ class PowerSetOfBooleansStressTest(unittest.TestCase):
 
     def setUp(self) -> None:
         self.carrier = (False, True)
-        self.powerset = 𝔓(self.carrier)
+        # `𝔓` is a generator (lazy, mathematically unordered); materialise
+        # to a list once for the cardinality / membership assertions below.
+        self.powerset = list(𝔓(self.carrier))
         # Sanity: |𝔓(𝔹)| = 2^|𝔹| = 4.
         self.assertEqual(len(self.powerset), 4)
 

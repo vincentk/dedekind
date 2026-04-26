@@ -51,7 +51,12 @@ export template <typename L = dedekind::category::ClassicalLogic,
                  typename C = Finite>
 using BooleanSetOf = Ω<bool, L, C>;
 
-export using BooleanSet = BooleanSetOf<>;
+// Non-exported convenience alias used by the value-level B constant
+// below.  The exported public surface is `BooleanSetOf<L, C>` (the
+// parameterised template); callers naming the default form should
+// either use `BooleanSetOf<>` directly or @c decltype(B).  This keeps
+// the namespace surface small, per Copilot review on PR #407.
+using BooleanSet = BooleanSetOf<>;
 
 /** @brief The canonical Boolean carrier type @c 𝔹 = @c bool.
  *
