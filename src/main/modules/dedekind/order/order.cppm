@@ -8,7 +8,16 @@
  * Licensed under the Apache License, Version 2.0.
  *
  * @section Partitions
- *   - `:poset`        — preorders, partial orders, directed sets, chains.
+ *   - `:poset`        — preorders, partial orders, directed sets; the
+ *                       homogeneous `HasPartialOrderOperators` shape and
+ *                       its heterogeneous sibling
+ *                       `HasPartialOrderOperatorsWith<T, U>`.
+ *   - `:total`        — total orders, linear orders, strict weak orders,
+ *                       chains; the homogeneous `HasTotalOrderOperators`
+ *                       (spaceship) shape and its heterogeneous sibling
+ *                       `HasTotalOrderOperatorsWith<T, U>`.  Strictly
+ *                       stronger than `:poset`; mirrors `:category:total`'s
+ *                       order/algebra split (per #410).
  *   - `:lattice`      — meet / join / lattice / distributive lattice.
  *   - `:completeness` — successor, Archimedean, dense / discrete,
  *                       Dedekind-complete.
@@ -26,6 +35,7 @@
 export module dedekind.order;
 
 export import :poset;
+export import :total;
 export import :lattice;
 export import :completeness;
 export import :halfspace;

@@ -331,3 +331,59 @@ TEST_CASE(
   CHECK(five < seven);
   CHECK_FALSE(seven < five);
 }
+
+TEST_CASE(
+    "SignedCardinality — heterogeneous comparison vs std::integral (#415)",
+    "[sets][cardinality][signed][order][heterogeneous]") {
+  const auto pos_inf = SignedCardinality{PositiveInfinity{}};
+  const auto neg_inf = SignedCardinality{NegativeInfinity{}};
+  const auto naz = SignedCardinality{NaZ{}};
+  const auto five = finite_signed_cardinality(5);
+  const auto neg_three = finite_signed_cardinality(-3);
+
+  SECTION("Finite vs int — three-way and four partial-order ops") {
+    CHECK((five <=> 5) == std::partial_ordering::equivalent);
+    CHECK((five <=> 4) == std::partial_ordering::greater);
+    CHECK((five <=> 6) == std::partial_ordering::less);
+    CHECK(five == 5);
+    CHECK(five != 4);
+    CHECK(five > 4);
+    CHECK(five >= 5);
+    CHECK(five < 6);
+    CHECK(five <= 5);
+  }
+  SECTION("Negative finite vs negative int") {
+    CHECK((neg_three <=> -3) == std::partial_ordering::equivalent);
+    CHECK(neg_three == -3);
+    CHECK(neg_three < 0);
+    CHECK(neg_three < -2);
+    CHECK(neg_three > -4);
+  }
+  SECTION("+ℵ_0 dominates every finite int") {
+    CHECK((pos_inf <=> 0) == std::partial_ordering::greater);
+    CHECK(pos_inf > 0);
+    CHECK(pos_inf > INT_MAX);
+    CHECK_FALSE(pos_inf == 0);
+  }
+  SECTION("-ℵ_0 sits below every finite int") {
+    CHECK((neg_inf <=> 0) == std::partial_ordering::less);
+    CHECK(neg_inf < 0);
+    CHECK(neg_inf < INT_MIN);
+    CHECK_FALSE(neg_inf == 0);
+  }
+  SECTION("NaZ is unordered with every int (IEEE-NaN style)") {
+    CHECK((naz <=> 5) == std::partial_ordering::unordered);
+    CHECK_FALSE(naz < 5);
+    CHECK_FALSE(naz > 5);
+    CHECK_FALSE(naz == 5);
+    CHECK(naz != 5);
+  }
+  SECTION("Rhs-first direction synthesised by C++20 rewrite rules") {
+    // 5 == five compiles via the synthesised reversed operator==.
+    CHECK(5 == five);
+    CHECK(4 < five);
+    CHECK(6 > five);
+    CHECK(0 < pos_inf);
+    CHECK(0 > neg_inf);
+  }
+}

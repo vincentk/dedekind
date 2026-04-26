@@ -95,38 +95,33 @@ concept IsPartiallyOrdered =
 export template <typename T, typename L = ClassicalLogic>
 concept IsDirectedPoset = IsPartiallyOrdered<T, L> && IsDirectedSet<T, L>;
 
-/**
- * @concept IsStrictWeakOrder
- * @brief The standard C++ 'Compare' requirement (e.g., for std::sort).
- * @details A relation < where incomparability is transitive.
- */
-export template <typename T>
-concept IsStrictWeakOrder = std::strict_weak_order<std::less<T>, T, T>;
-
-/**
- * @concept IsTotallyOrdered
- * @brief A refinement where every pair is comparable (The Chain).
- */
-export template <typename T>
-concept IsTotallyOrdered = IsPartiallyOrdered<T> && std::totally_ordered<T>;
-
-/** @brief Synonym for Total Order. */
-export template <typename T>
-concept IsLinearOrder = IsTotallyOrdered<T>;
+// IsStrictWeakOrder, IsTotallyOrdered, IsLinearOrder, HasTotalOrderOperators
+// have been relocated to @c :order:total per #410 — the strictly-stronger
+// total-order layer is now its own partition (mirrors @c :category:total
+// which already houses the strict total-axiomatic content for algebra).
+// They remain accessible via the @c dedekind.order umbrella; partition-
+// scoped imports may need to add @c import @c :total directly.
 
 /**
  * @concept HasPartialOrderOperators
  * @brief @b Pure @b syntactic @b shape: T supports the partial-order
- *        operators @c <, @c <=, @c >, @c >= with bool-convertible
- *        results.
+ *        operators @c <, @c <=, @c >, @c >= with results in the
+ *        truth-value carrier @c L::Ω of a chosen logical species.
  *
  * @details
  * Use this concept where a callsite needs the four relational operators
- * to compile and yield a value coercible to @c bool, but does @b not
- * want to bind to a particular axiomatic order (preorder, partial,
- * total).  No claim about reflexivity, antisymmetry, transitivity, or
- * comparability is made here; for those, use @c IsPreOrdered /
- * @c IsPartiallyOrdered / @c IsTotallyOrdered.
+ * to compile and yield a value in the truth-value carrier of a chosen
+ * @c IsLogicalSpecies, but does @b not want to bind to a particular
+ * axiomatic order (preorder, partial, total).  No claim about
+ * reflexivity, antisymmetry, transitivity, or comparability is made
+ * here; for those, use @c IsPreOrdered / @c IsPartiallyOrdered /
+ * @c IsTotallyOrdered (the last in @c :order:total).
+ *
+ * The @c L parameter defaults to @c ClassicalLogic (so @c L::Ω is
+ * @c bool); supply a different @c IsLogicalSpecies to constrain the
+ * return type to a non-Boolean truth-value carrier (e.g.\ Kleene
+ * @c TernaryLogic).  Mirrors the @c L-parametric pattern already used
+ * by @c IsPreOrdered / @c IsPartiallyOrdered.
  *
  * Sibling of @c dedekind::algebra::HasRingOperators (in @c
  * algebra:ring), @c dedekind::algebra::HasFieldOperators (in @c
@@ -134,57 +129,62 @@ concept IsLinearOrder = IsTotallyOrdered<T>;
  * in the shape-concept family.  The split between @b shape and @b
  * axiom mirrors the literal-vs-strict tier introduced under PR #394.
  */
-export template <typename T>
+export template <typename T, typename L = ClassicalLogic>
 concept HasPartialOrderOperators = requires(const T a, const T b) {
-  { a < b } -> std::convertible_to<bool>;
-  { a <= b } -> std::convertible_to<bool>;
-  { a > b } -> std::convertible_to<bool>;
-  { a >= b } -> std::convertible_to<bool>;
+  { a < b } -> std::same_as<typename L::Ω>;
+  { a <= b } -> std::same_as<typename L::Ω>;
+  { a > b } -> std::same_as<typename L::Ω>;
+  { a >= b } -> std::same_as<typename L::Ω>;
 };
 
 /**
- * @concept HasTotalOrderOperators
- * @brief @b Pure @b syntactic @b shape: T supports the spaceship
- *        operator @c <=> alongside the four partial-order operators.
+ * @concept HasPartialOrderOperatorsWith
+ * @brief @b Heterogeneous shape: T and U can be compared via the
+ *        four partial-order operators in @b both directions, yielding
+ *        results in the truth-value carrier @c L::Ω.
  *
  * @details
- * The C++20 three-way comparison shape: a @c <=> that returns one of
- * @c std::strong_ordering / @c std::weak_ordering / @c
- * std::partial_ordering, witnessing that @c T can act as a totally /
- * weakly ordered carrier at the @b operator level.  Composes @c
- * HasPartialOrderOperators with the spaceship so callsites can check
- * the full relational surface in one constraint.
+ * The cross-type relational-operator shape: requires @c <, @c <=,
+ * @c >, @c >= to compile in both directions and yield results in
+ * @c L::Ω.  Names the surface needed for cross-carrier comparisons —
+ * e.g.\ @c SignedCardinality @c < @c int (the load-bearing path for
+ * the halfspace machinery's @c (x @c > @c Pivot) substitution where
+ * @c x is the variant ℤ-proxy carrier and @c Pivot is the @c int NTTP
+ * from @c bound<-21>).
  *
- * Note: a partial-ordering @c <=> still satisfies this shape (the
- * spaceship's three-way result type carries the order strength); for
- * an @b axiomatic total-order witness use @c IsTotallyOrdered, which
- * additionally requires @c std::totally_ordered (excluded middle on
- * comparability).  The shape vs.\ axiom split follows the @c
- * HasRingOperators / @c IsRing pattern from PR #394.
+ * @c L defaults to @c ClassicalLogic, mirroring the homogeneous
+ * sibling above and @c IsPreOrdered / @c IsPartiallyOrdered.
+ *
+ * Sibling of the homogeneous @c HasPartialOrderOperators above; the
+ * spaceship-aware total-order variant
+ * @c HasTotalOrderOperatorsWith<T, U> lives in @c :order:total.  Per
+ * #415 / cross-issue note on PR #422.
  */
-export template <typename T>
-concept HasTotalOrderOperators =
-    HasPartialOrderOperators<T> && std::three_way_comparable<T>;
+export template <typename T, typename U, typename L = ClassicalLogic>
+concept HasPartialOrderOperatorsWith = requires(const T t, const U u) {
+  { t < u } -> std::same_as<typename L::Ω>;
+  { t <= u } -> std::same_as<typename L::Ω>;
+  { t > u } -> std::same_as<typename L::Ω>;
+  { t >= u } -> std::same_as<typename L::Ω>;
+  { u < t } -> std::same_as<typename L::Ω>;
+  { u <= t } -> std::same_as<typename L::Ω>;
+  { u > t } -> std::same_as<typename L::Ω>;
+  { u >= t } -> std::same_as<typename L::Ω>;
+};
 
 /** @section Formal_Verification */
 
-// int / unsigned int / bool are the canonical totally-ordered carriers,
-// with spaceship and the four partial-order operators.  Pin them as the
-// canonical witnesses for the new shape concepts.
+// int / unsigned int / bool are the canonical carriers; the homogeneous
+// partial-order shape fires on each.  Total-order witnesses live in
+// @c :order:total.
 static_assert(HasPartialOrderOperators<int>);
-static_assert(HasTotalOrderOperators<int>);
 static_assert(HasPartialOrderOperators<unsigned int>);
-static_assert(HasTotalOrderOperators<unsigned int>);
 static_assert(HasPartialOrderOperators<bool>);
-static_assert(HasTotalOrderOperators<bool>);
 
-// int is the canonical totally ordered chain.
-static_assert(IsTotallyOrdered<int>, "int must satisfy IsTotallyOrdered.");
-
-// IsTotallyOrdered<double> is architecturally withheld: dedekind's
-// is_reflexive_v<double, std::less_equal<>> is false by design because IEEE 754
-// NaN violates reflexivity (NaN <= NaN is false). See species.cppm note.
-// Use IsOrderedField<double> (archimedean.cppm) or std::totally_ordered<double>
-// for the operational ordering witness.
+// Heterogeneous partial-order shape on canonical std::integral pairs.
+static_assert(HasPartialOrderOperatorsWith<int, int>);
+static_assert(HasPartialOrderOperatorsWith<int, long>);
+static_assert(HasPartialOrderOperatorsWith<long, int>);
+static_assert(HasPartialOrderOperatorsWith<unsigned int, int>);
 
 }  // namespace dedekind::order
