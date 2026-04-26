@@ -398,7 +398,8 @@ struct IntegersOf {
 
   // Embedded ℕ-proxy carrier (Cardinality), via the variant ℕ ↪ ℤ
   // embedding @c embed_ℕ_ℤ defined further down.
-  constexpr typename L::Ω operator()(const dedekind::sets::Cardinality&) const {
+  constexpr typename L::Ω operator()(
+      const dedekind::sets::Cardinality&) const {
     return L::True;
   }
 
@@ -443,7 +444,8 @@ export using ℤ = dedekind::sets::SignedCardinality;
 export inline constexpr IntegersOf<> Z{};
 
 static_assert(
-    dedekind::category::IsSet<decltype(dedekind::category::ambient_set<ℤ>(Z))>,
+    dedekind::category::IsSet<
+        decltype(dedekind::category::ambient_set<ℤ>(Z))>,
     "IntegersOf must be the canonical IsSet anchor for "
     "dedekind.numbers:integer.");
 
@@ -461,7 +463,7 @@ static_assert(
 export inline constexpr auto embed_ℕ_ℤ =
     arrow<dedekind::sets::Cardinality, dedekind::sets::SignedCardinality>(
         [](const dedekind::sets::Cardinality& x) noexcept
-            -> dedekind::sets::SignedCardinality {
+        -> dedekind::sets::SignedCardinality {
           if (std::holds_alternative<dedekind::sets::ℵ_0>(x)) {
             return dedekind::sets::SignedCardinality{
                 dedekind::sets::PositiveInfinity{}};
