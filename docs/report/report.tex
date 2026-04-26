@@ -1782,6 +1782,8 @@ The \texttt{:boundaries} partition defines the extremal set objects for a given 
 
 In practical terms, this partition stabilizes the API for identities used by union, intersection, and complement while keeping the carrier and classifier explicit at the type level.
 
+The partition also hosts the canonical \texttt{resolve\_species} / \texttt{element\_of\_t} trait (lifted from \texttt{:family} under \#400). Given a species type $S$, \texttt{element\_of\_t<S>} resolves to the underlying element type: predicate-set carriers (anything with a nested \texttt{::Domain}) project to their domain, while primitive carriers like \texttt{bool} / \texttt{int} are their own elements --- the carrier reading after \#399. The trait sits in \texttt{:boundaries} so that both \texttt{:expressions} (where \texttt{Variable<S>::T = element\_of\_t<S>}) and \texttt{:family} (where \texttt{AnySetOver} consumes \texttt{element\_of\_t<Species>}) reach for the same single source of truth, removing a drift hazard flagged during PR \#407 review.
+
 \subsection{The \texttt{:expressions} partition}
 
 The \texttt{:expressions} partition is the set-builder workhorse. It provides intensional sets as predicates, symbolic variable bindings, logical predicate composition, subset witnesses, Cartesian products, relations, set-functions, and power-set construction.
@@ -1799,6 +1801,12 @@ For the current PR scope, the intended feature baseline in \texttt{:expressions}
   with compile-time witness checks aligned to boundary equality tests;
   \item downstream static coverage in \texttt{dedekind.numbers} over $\mathbb{R}$ and $\mathbb{C}$ using composed predicates and nested set operations.
 \end{itemize}
+
+\paragraph{Symbolic-scout factory.} \texttt{Variable<S>} (with the global factory \texttt{var<S>}) is the symbolic-scout / point-in-potentia for set construction. The underlying element type is resolved via \texttt{element\_of\_t<S>} (in \texttt{:boundaries}), which lets \texttt{var<bool>}, \texttt{var<\textbackslash{}mathbb\{B\}>}, \texttt{var<\textbackslash{}mathbb\{Q\}>}, \texttt{var<int>} all work uniformly --- predicate-set carriers project through their nested \texttt{::Domain}, primitive carriers are their own elements. This is the carrier-type half of the show-to-a-wider-audience API tracked under \#399 / \#400--\#405.
+
+\paragraph{Power-set operator $\mathfrak{P}$.} \texttt{power\_set(A)} is the standard combinator (the \texttt{Set}-valued $\mathfrak{P}(A) = \{B \mid B \subseteq A\}$). Per \#407 the partition also exports \texttt{$\mathfrak{P}$} as a one-line forwarding alias for the same combinator, so callsites can write the textbook fraktur-P form \texttt{$\mathfrak{P}$(A)} and have it read the way it reads on the blackboard (Halmos / Munkres / Lambek--Scott). The Python mirror in \texttt{dedekind.sets} exports the same alias (see Chapter~\ref{chap:python}).
+
+\paragraph{Bool-domain DSL convention.} On a \texttt{Variable<S>} with \texttt{element\_of\_t<S> == bool}, the canonical predicate shorthands are \texttt{(b == true)} for the truthy fragment and \texttt{!b} for the falsy fragment (the latter desugars to \texttt{BooleanEqPredicate\{false\}} via the bool-specialised \texttt{operator!}). The textbook bare-\texttt{b} form \texttt{Set\{b \% B \,|\, b\}} is desirable but currently not wired into the \texttt{structured\_and} / \texttt{FiniteBooleanSet} collapse machinery (which specialises on \texttt{BooleanEqPredicate}); see \#408 for the planned extension.
 
 \subsection{The \texttt{:mereology} partition}
 
@@ -1888,6 +1896,8 @@ Projection ($\pi$) requires existential quantification over an infinite domain a
 \label{sec:sets-family}
 
 A \emph{family} is a ``set of sets'': a collection of subsets of a common ambient species $A$, organized as a bounded lattice with the empty set as bottom and the universal set as top. The \texttt{:family} partition provides this higher-order layer for assembling atlases, covers, and topological systems from individually certified set objects.
+
+The partition still consumes \texttt{element\_of\_t<Species>} (in \texttt{AnySetOver}'s \texttt{SingletonSet} alternative), but the trait itself lives upstream in \texttt{:boundaries} after the \#400 lift. Removing the duplicate definition fixed a drift hazard the reviewer flagged on PR \#407.
 
 \subsection{The \texttt{:interop} partition}
 \label{sec:sets-interop}
@@ -3572,6 +3582,32 @@ The implementation currently spans three coordinated surfaces:
 For sequences, the binding surface includes \texttt{path\_from\_range}, overloaded \texttt{path\_from\_array} for typed 1D ndarrays, typed helper entrypoints (\texttt{path\_from\_bool\_array}, \texttt{path\_from\_int64\_array}, \texttt{path\_from\_float64\_array}), and \texttt{path\_from\_str\_seq}. The Python \texttt{frame\_to\_paths} adapter dispatches by dtype and normalizes payloads before crossing the C++ boundary.
 
 For sets, \texttt{set\_union}, \texttt{set\_intersection}, \texttt{set\_difference}, and \texttt{set\_cardinality} are exposed through overloaded finite extensional carriers for \texttt{bool}/\texttt{int}/\texttt{double}/\texttt{std::string}. Complex and dual numbers are additionally surfaced for numerical prototyping.
+
+\subsection{The \texttt{dedekind.numbers.boolean} mirror (PR \#407 / \#400)}
+\label{sec:python-numbers-mirror}
+
+PR \#407 introduces the first child of the canonical-species spine on the Python side: \texttt{dedekind.numbers.boolean} mirrors the C++ partition \texttt{dedekind.numbers:booleans} so that callsites read the same way across the language boundary:
+
+\begin{lstlisting}[language=Python, caption={Python mirror of the canonical Boolean carrier (from \texttt{test\_dedekind\_numbers\_boolean.py}).}, label={lst:python-boolean-mirror}]
+from dedekind.numbers.boolean import 𝔹, B, var
+from dedekind.sets import 𝔓
+
+assert 𝔹 is bool                            # carrier-type contract
+b = var(𝔹)                                 # symbolic scout, var(domain)
+truthy = (b == True)                        # callable predicate
+falsy = b.not_()                            # bool-domain shorthand
+powerset = list(𝔓((False, True)))           # |𝔓(𝔹)| = 4
+\end{lstlisting}
+
+The Python surface is intentionally minimal --- enough to act as the external-API contract test for the \#400 carrier migration. Two design points are pinned by tests:
+
+\begin{itemize}
+  \item \textbf{\texttt{Variable} lives in \texttt{dedekind.sets}}, not in the boolean child module: the symbolic-scout machinery is domain-agnostic, mirroring the C++ \texttt{dedekind::sets::Variable<S>} placement. \texttt{dedekind.numbers.boolean} re-exports \texttt{var} for callsite ergonomics.
+  \item \textbf{\texttt{$\sim$} is reserved for set complement project-wide.} \texttt{Variable} therefore does \emph{not} overload \texttt{\_\_invert\_\_} (a regression test pins this); the bool-domain identity-negation shorthand is \texttt{b.not\_()}. Bitwise lattice operators \texttt{|} and \texttt{\&} carry set union and intersection on \texttt{Set} (matching the C++ \texttt{Set::operator|} / \texttt{Set::operator\&}).
+  \item \textbf{Power-set as a generator.} \texttt{power\_set} (and the textbook fraktur-P alias \texttt{$\mathfrak{P}$}) yields \texttt{frozenset} elements lazily with internal carrier deduplication, so $|\mathfrak{P}(\mathbb{B})| = 2^{|\mathbb{B}|} = 4$ holds even on inputs with repeated elements.
+\end{itemize}
+
+The same \#400 / \#407 contract on the C++ side is witnessed in the \texttt{:booleans} partition of \texttt{dedekind.numbers} and the \texttt{:expressions} partition of \texttt{dedekind.sets} (\texttt{Variable<S>::T = element\_of\_t<S>} via \texttt{:boundaries}; the \texttt{$\mathfrak{P}$} fraktur-P alias for \texttt{power\_set}). Per-symbol mirrors for $\mathbb{N}$, $\mathbb{Z}$, $\mathbb{R}$, $\mathbb{C}$, $\mathbb{D}$ are tracked under \#401--\#405 alongside the matching C++ carrier migrations.
 
 \section{Results}
 
