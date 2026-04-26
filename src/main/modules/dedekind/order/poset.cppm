@@ -29,6 +29,7 @@
  */
 module;
 #include <algorithm>
+#include <compare>  // std::three_way_comparable for HasTotalOrderOperators
 #include <concepts>
 #include <functional>
 

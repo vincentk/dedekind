@@ -95,6 +95,18 @@ TEST_CASE("order:halfspace — Variable DSL constructs Halfspace from bound<V>",
     STATIC_CHECK(std::same_as<H, Halfspace<unsigned int, 7, Direction::Downward,
                                            Strictness::NonStrict>>);
   }
+  // Note (post-#409 review): the DSL constraint also rejects negative
+  // signed pivots on unsigned carriers (e.g. `var<ℕ> > bound<-1>` no
+  // longer compiles, where previously int→unsigned conversion would
+  // wrap -1 to UINT_MAX silently).  The regression is exercised
+  // implicitly: dropping the constraint would not break any existing
+  // test, but enabling it does not break any either, so the rejection
+  // is observable only via the constraint-level diagnostic at any
+  // would-be call site.  A direct `static_assert(!requires { ... })`
+  // witness is not stable here because the generic relational
+  // operators in `:expressions` propagate substitution failure as a
+  // hard error inside the requires-clause; tightening those is
+  // tracked under the bare-`Domain` audit (#411).
 }
 
 TEST_CASE("order:halfspace — structured_and on opposing halfspaces",
