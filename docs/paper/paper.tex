@@ -596,19 +596,19 @@ struct MyInt : Ring { /* ... */ };
 
 // Juliet Posture (C++23, the actual dedekind concept):
 template <typename T>
-concept IsRingLike = requires(T a, T b) {
+concept HasRingOperators = requires(T a, T b) {
   { a + b  } -> std::same_as<T>;
   { a - b  } -> std::same_as<T>;
   { -a     } -> std::same_as<T>;
   { a * b  } -> std::same_as<T>;
 };
 
-// int satisfies IsRingLike without any base class, checked at compile
+// int satisfies HasRingOperators without any base class, checked at compile
 // time: the operators exist. But the operational concept is deliberately
 // weaker than the algebraic laws --- see lst:species --- so a separate
 // trait lookup filters out carriers whose + is not actually associative.
-static_assert(IsRingLike<int>);           // operators exist
-static_assert(IsRingLike<Rational<long>>);
+static_assert(HasRingOperators<int>);           // operators exist
+static_assert(HasRingOperators<Rational<long>>);
 static_assert(!is_associative_v<int, std::plus<int>>);  // but + is not a monoid
 \end{lstlisting}
 
@@ -920,10 +920,7 @@ runs natively, and the concept each of them carries (with the usual
 IEEE / overflow caveats). Table~\ref{tab:carriers-crossings} is the
 state-machine that connects the two: given a role, which named
 embedding or realisation arrow moves you from exact to primitive, and
-which moves you back. Rows or cells marked with $^{\dagger}$ point at
-concepts introduced under the concept-cleanup follow-up work; rows or
-cells marked with $^{\ddagger}$ point at carriers whose
-ℵ$_0$-escalating variant is planned but not yet shipped.
+which moves you back.
 
 \begin{table}[htbp]
 \centering
@@ -943,7 +940,7 @@ $\mathbb{F}_2$ & \lstinline|bool| under $(\oplus, \land)$ & \lstinline|IsGaloisF
 $\mathbb{F}_{64}$ & \texttt{𝔽64} ($\mathbb{F}_2[x]/(x^6{+}x{+}1)$, 6-bit in \lstinline|uint8_t|) & \lstinline|IsGaloisField<T,+,*>| (order 64) \\
 $\mathbb{F}_2^{64}$ & \lstinline|uint64_t| under $\oplus$, scalar action \lstinline|Bit2U64Action| & \lstinline|IsVectorSpace<uint64_t, bool>| \\
 $\mathbb{N}$ bounded & \lstinline|ExtensionalCardinal<N>| & \lstinline|IsCyclicGroup|, \lstinline|IsAbelianGroup<T,+>| \\
-$\mathbb{N}$ unbounded & \lstinline|Cardinality|$^{\ddagger}$ (variant over ℵ$_0$) & \lstinline|Monoid_|$\mathbb{N}$ \\
+$\mathbb{N}$ unbounded & \lstinline|Cardinality| (variant over $\aleph_0$) & \lstinline|IsAbelianGroup<T,+>| (saturating) \\
 $\mathbb{Z}$ bounded & \lstinline|SignedExtensionalCardinal<N>| & \lstinline|IsAbelianGroup<T,+>|, \lstinline|IsRing| \\
 $\mathbb{Z}$ unbounded & \lstinline|SignedCardinality| (variant over $\pm \aleph_0$, NaZ) & \lstinline|IsAbelianGroup<T,+>|, \lstinline|IsRing| \\
 $\mathbb{Q}$ & \lstinline|Rational<SignedExtensionalCardinal<>>| & \lstinline|Field_|$\mathbb{Q}$ \\
@@ -969,8 +966,8 @@ the reference implementation on the exact side.}
 \midrule
 \lstinline|bool| & Boolean algebra under $\land, \lor, \lnot$ & \lstinline|IsBoolean| \\
 \lstinline|unsigned long|, \lstinline|size_t| & Modular, wraps at $2^{N}$ & \lstinline|IsCyclicGroup|, \lstinline|IsAbelianGroup<T,+>| \\
-\lstinline|int|, \lstinline|long| & Partial (UB on signed overflow) & \lstinline|IsPartialAbelianGroup|$^{\dagger}$ \\
-\lstinline|int8_t|, \lstinline|int16_t| & Partial + SIMD-vectorisable & \lstinline|IsPartialCyclicGroup|$^{\dagger}$ \\
+\lstinline|int|, \lstinline|long| & Partial (UB on signed overflow) & \lstinline|HasRingOperators|; strict \lstinline|IsRing| refuses (math-wins). Use \lstinline|SignedCardinality| / \lstinline|SignedExtensionalCardinal<>| / \lstinline|:partial| Maybe-monad for total alternatives. \\
+\lstinline|int8_t|, \lstinline|int16_t| & Partial + SIMD-vectorisable & Same as above; SIMD lanes use the partial-group reading. \\
 \lstinline|float|, \lstinline|double| & IEEE 754, rounded, non-associative & \lstinline|Continuum_|$\mathbb{R}$ (non-assoc.\ \lstinline|+|) \\
 \lstinline|std::complex<double>| & Cartesian pair over IEEE \lstinline|double| & \lstinline|Algebra_|$\mathbb{C}$ (non-assoc.) \\
 \bottomrule
@@ -1626,7 +1623,7 @@ Over \texttt{Dual<Complex<Rational<long>>>}, the reduction would
 compute optima and sensitivities over the Gaussian rationals
 $\mathbb{Q}(i)$; the ring tower is closed under these layerings by
 construction (every intermediate carrier satisfies the
-\texttt{IsRingLike} concept documented in the companion report).
+\texttt{HasRingOperators} concept documented in the companion report).
 Holomorphic automatic differentiation at compile time is a direct
 consequence; we leave its application to a follow-up work.
 
@@ -1735,7 +1732,7 @@ emitted object file}. Coefficients are exact because
 numerical approximation. The \lstinline{int} carrier in the showcase
 is the minimal witness; the same identities go through unchanged for
 \lstinline{Rational<long>}, and more generally for any
-\lstinline{IsRingLike} carrier---so a rational polynomial's derivative
+\lstinline{HasRingOperators} carrier---so a rational polynomial's derivative
 is as exact as its coefficients.
 
 Note the pattern: the polynomials are \emph{inlined} at the
@@ -2323,28 +2320,19 @@ the same recursion gives the same property at every $2^k \times 2^k$
 the combinator stack is composed up to.
 
 \paragraph{Numeric overflow in the carrier.}
-The paper's code listings ship with
-\lstinline{Rational<SignedExtensionalCardinal<>>}: an
-arbitrary-precision signed rational whose exact range easily
-accommodates every arithmetic operation the showcases exercise.
-Cramer's rule over $\mathbb{Q}$ is exact, and on this carrier no
-determinant --- however fat --- ever overflows silently; escalation
-to $\aleph_0$ is tracked in Section~\ref{sec:carrier-rosetta}'s
-Rosetta table.
-
-A programmer who trades the exact carrier for a native one
-(\lstinline{Rational<long>}, or \lstinline{double}, per
-Table~\ref{tab:carriers-crossings}) inherits the corresponding
-failure mode: signed-integer overflow is undefined behaviour on the
-former, rounding is non-associative on the latter. That trade is
-deliberate and the Rosetta table spells out the named arrow for
-making it. The crucial property the showcases demonstrate ---
-compile-time reduction to a typed constant --- does not depend on
-carrier choice; it survives every row of the table. Every combinator
-in Section~\ref{sec:pruning} is written against the
-\lstinline{IsRingLike} concept, not against any particular carrier,
-so the swap between exact and native is a one-line change at the
-\lstinline{using} declaration.
+The carrier-vs-overflow trade-offs are catalogued in
+Section~\ref{sec:carrier-rosetta}'s Rosetta tables: showcases default
+to \lstinline{Rational<SignedExtensionalCardinal<>>} (exact, no
+silent overflow); programmers who trade exactness for native
+performance pick the corresponding row of
+Table~\ref{tab:carriers-primitive} and accept the named failure
+mode (signed-overflow UB on \lstinline|int|/\lstinline|long|;
+non-associative rounding on \lstinline|float|/\lstinline|double|).
+Every combinator in Section~\ref{sec:pruning} is written against
+\lstinline{HasRingOperators} rather than any particular carrier, so
+the swap is a one-line change at the \lstinline{using} declaration
+and the compile-time-reduction-to-a-typed-constant claim survives
+every row of the Rosetta.
 
 \paragraph{Error messages and the readability tax.}
 A failed \texttt{static\_assert} in a deep reduction produces, by
@@ -2481,7 +2469,7 @@ reduction that solves the LP also computes its sensitivities when
 instantiated over the right ring (Section~\ref{sec:ad-elliott}).
 \texttt{dedekind}'s contribution is not a new AD algorithm but the
 observation that a single compile-time reduction, written once over an
-\texttt{IsRingLike} carrier, serves as LP solver over $\mathbb{Q}$ and
+\texttt{HasRingOperators} carrier, serves as LP solver over $\mathbb{Q}$ and
 as forward-mode AD engine over $\mathbb{Q}[\varepsilon]/(\varepsilon^2)$
 with no extra code path.
 
@@ -2513,8 +2501,8 @@ property. That matches the discipline this paper argues for:
 matrices over \lstinline{bool} (with OR/AND) are perfectly
 well-defined objects when inversion is not required, matrices over
 \lstinline{char} are useful for quantised embedded inference, and
-both sit naturally inside the \lstinline{IsRingLike} /
-\lstinline{IsSemiringLike} concept hierarchy. The cost of this
+both sit naturally inside the \lstinline{HasRingOperators} /
+\lstinline{HasSemiringOperators} concept hierarchy. The cost of this
 generality is library complexity rather than carrier simplicity.
 The trade we advocate is correctness-and-performance (tight control
 over the ring structure) at the price of implementation effort,
@@ -2527,7 +2515,7 @@ steps, parametric optimisation) a robotics, automotive, or
 instrumentation engineer writes directly in their control loop. For
 these, a fixed-topology LP, a compile-specialised Kalman update
 (Section~\ref{sec:kalman-showcase}), or an exact-rational sensor-fusion
-step expressed against \texttt{IsRingLike} concepts exhibits three
+step expressed against \texttt{HasRingOperators} concepts exhibits three
 properties the model-runtime path does not aim at: a binary with no
 interpreter, a dependency graph no heavier than the system's
 \texttt{clang++}, and bit-for-bit deterministic arithmetic across
@@ -2606,7 +2594,7 @@ case the binary contains only literals.
 \paragraph{Axiomatic Systems Programming as a practised discipline.}
 The viewpoint we name in Section~\ref{sec:introduction}---treating
 \texttt{clang++} as a poor man's theorem prover, and the
-\texttt{IsRingLike} concept as a proof obligation the carrier must
+\texttt{HasRingOperators} concept as a proof obligation the carrier must
 discharge---is the paper's intended export. Taken seriously, it
 turns each algebraic invariant into a structural gate the compiler
 polices; taken habitually, it shifts the library author's default
