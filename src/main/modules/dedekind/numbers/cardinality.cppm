@@ -82,12 +82,14 @@ static_assert(dedekind::order::IsDirectedSet<Z1>,
 // These are the witnesses that the upcoming @c using @c ℕ @c = @c
 // Cardinality flip (#402) needs in place to keep the load-bearing
 // claims from PR #409 firing.
-static_assert(dedekind::order::HasPartialOrderOperators<dedekind::sets::Cardinality>,
-              "Cardinality carries the partial-order operator surface "
-              "(< / <= / > / >=) post-#424.");
-static_assert(dedekind::order::HasTotalOrderOperators<dedekind::sets::Cardinality>,
-              "Cardinality carries the total-order operator surface "
-              "(spaceship + four partial-order ops).");
+static_assert(
+    dedekind::order::HasPartialOrderOperators<dedekind::sets::Cardinality>,
+    "Cardinality carries the partial-order operator surface "
+    "(< / <= / > / >=) post-#424.");
+static_assert(
+    dedekind::order::HasTotalOrderOperators<dedekind::sets::Cardinality>,
+    "Cardinality carries the total-order operator surface "
+    "(spaceship + four partial-order ops).");
 static_assert(dedekind::order::IsPreOrdered<dedekind::sets::Cardinality>,
               "Cardinality with <= is a pre-order.");
 static_assert(dedekind::order::IsPartiallyOrdered<dedekind::sets::Cardinality>,
