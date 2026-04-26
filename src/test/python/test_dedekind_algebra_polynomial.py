@@ -78,6 +78,41 @@ class RigPolynomialIntRingArithmeticTest(unittest.TestCase):
         with self.assertRaises(TypeError):
             a + b
 
+    def test_multiplication_ring_mismatch_raises(self) -> None:
+        a = RigPolynomial([1], ring=int)
+        b = RigPolynomial([True], ring=F2)
+        with self.assertRaises(TypeError):
+            a * b
+
+    def test_eq_against_non_polynomial_returns_NotImplemented(self) -> None:
+        # Falls through Python's binary-op protocol; the comparison
+        # ultimately resolves to False rather than raising.
+        p = RigPolynomial([1, 2, 3])
+        self.assertFalse(p == 42)
+        self.assertFalse(p == "not a polynomial")
+        self.assertNotEqual(p, 42)
+
+    def test_add_against_non_polynomial_returns_NotImplemented(self) -> None:
+        # Same protocol fallthrough; the addition raises TypeError once
+        # both __add__ and __radd__ return NotImplemented.
+        p = RigPolynomial([1, 2, 3])
+        with self.assertRaises(TypeError):
+            _ = p + 42  # noqa: F841
+
+    def test_mul_against_non_polynomial_returns_NotImplemented(self) -> None:
+        p = RigPolynomial([1, 2, 3])
+        with self.assertRaises(TypeError):
+            _ = p * 42  # noqa: F841
+
+    def test_repr_round_trips_ring_and_coeffs(self) -> None:
+        p_int = RigPolynomial([1, 2, 3])
+        self.assertEqual(repr(p_int), "RigPolynomial([1, 2, 3], ring=int)")
+        p_f2 = RigPolynomial([True, False, True], ring=F2)
+        self.assertEqual(
+            repr(p_f2), "RigPolynomial([True, False, True], ring=bool)"
+        )
+        self.assertEqual(repr(RigPolynomial.zero()), "RigPolynomial([], ring=int)")
+
 
 class GaloisField2PolynomialAxiomsTest(unittest.TestCase):
     """The textbook ``(x+1)² = x²+1 over 𝔽₂`` witness.
