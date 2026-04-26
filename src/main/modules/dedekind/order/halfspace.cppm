@@ -45,6 +45,76 @@ namespace dedekind::order {
 using namespace dedekind::sets;
 using namespace dedekind::category;
 
+/**
+ * @concept IsRingIntegral
+ * @brief Carrier types that admit integer-range arithmetic semantics.
+ *
+ * @details Generalises @c std::integral to also recognise the project's
+ * variant ℕ-/ℤ-proxy carriers (@c Cardinality, @c SignedCardinality
+ * from PR #396 / @c sets:cardinality).  The concept names "carriers
+ * for which @c OrderInterval can compute a finite cardinality from
+ * compile-time bounds and strictness pairs" — the integer-range
+ * reading.
+ *
+ * Pre-#414, @c OrderInterval gated this surface as @c is_integer_range
+ * @c = @c std::integral<T>, which excluded the variant carriers (they
+ * are @c std::variant<...>, not built-in integral types) even though
+ * they semantically satisfy the integer-range reading.  Post-#414,
+ * @c OrderInterval gates on @c IsRingIntegral<T>, so the upcoming
+ * @c ℕ @c = @c Cardinality / @c ℤ @c = @c SignedCardinality retarget
+ * (#402) keeps the existing showcases (6, 7, 8) compiling without
+ * losing the @c size() / @c lower_pivot / @c upper_pivot surface on
+ * the variant carriers.
+ *
+ * Floating-point carriers (@c float / @c double / @c Real<Q>) are
+ * @b not admitted: their range cardinalities are uncountable in the
+ * abstract reading and lossy under IEEE rounding in the operational
+ * reading; @c OrderInterval over a continuous carrier correctly
+ * returns @c cardinality_type @c = @c ℵ_0.
+ *
+ * Sibling of the @c HasRingOperators / @c IsRing pattern from PR #394:
+ * @b shape concept rather than axiom.  No claim about closure under
+ * arithmetic, additive inverses, or strict ring laws is made here —
+ * only that the carrier reads as an integer-magnitude domain for
+ * cardinality-counting purposes.
+ */
+export template <typename T>
+concept IsRingIntegral =
+    std::integral<std::remove_cvref_t<T>> ||
+    std::same_as<std::remove_cvref_t<T>, dedekind::sets::Cardinality> ||
+    std::same_as<std::remove_cvref_t<T>, dedekind::sets::SignedCardinality>;
+
+/** @section Formal_Verification (IsRingIntegral) */
+
+// Positive witnesses: built-in integrals + the variant ℕ-/ℤ-proxy carriers.
+static_assert(IsRingIntegral<int>);
+static_assert(IsRingIntegral<unsigned int>);
+static_assert(IsRingIntegral<long>);
+static_assert(IsRingIntegral<long long>);
+static_assert(IsRingIntegral<std::size_t>);
+static_assert(IsRingIntegral<bool>);
+static_assert(IsRingIntegral<dedekind::sets::Cardinality>,
+              "Cardinality must satisfy IsRingIntegral — the variant ℕ-proxy "
+              "is the canonical exact-ℕ integer-range carrier (post-#414).");
+static_assert(IsRingIntegral<dedekind::sets::SignedCardinality>,
+              "SignedCardinality must satisfy IsRingIntegral — the variant "
+              "ℤ-proxy is the canonical exact-ℤ integer-range carrier "
+              "(post-#414).");
+
+// Cv-/ref-qualified spellings: the @c std::remove_cvref_t normalisation
+// in the concept body lets @c IsRingIntegral fire in deduced contexts
+// (matches the @c dedekind.sets:computability convention, per Copilot
+// review on PR #422).
+static_assert(IsRingIntegral<const int>);
+static_assert(IsRingIntegral<int&>);
+static_assert(IsRingIntegral<const dedekind::sets::Cardinality&>);
+static_assert(IsRingIntegral<dedekind::sets::SignedCardinality&&>);
+
+// Negative witnesses: continuous / non-integer carriers correctly refused.
+static_assert(!IsRingIntegral<double>);
+static_assert(!IsRingIntegral<float>);
+static_assert(!IsRingIntegral<long double>);
+
 /** @brief Orientation of a halfspace along the chain. */
 export enum class Direction { Upward, Downward };
 
@@ -153,10 +223,15 @@ struct OrderInterval {
     return (lo_ok && hi_ok) ? L::True : L::False;
   }
 
-  // For integral carriers, cardinality is compile-time-decidable from the
-  // bounds and strictness pair. Gate the size()/cardinality_type surface so
-  // that continuous carriers (like Real<double>) correctly fail `IsFiniteSet`.
-  static constexpr bool is_integer_range = std::integral<T>;
+  // For integer-range carriers, cardinality is compile-time-decidable
+  // from the bounds and strictness pair.  Gate the size() / cardinality_type
+  // surface so that continuous carriers (like Real<double>) correctly fail
+  // IsFiniteSet, AND so that the variant ℕ-/ℤ-proxy carriers from
+  // sets:cardinality (Cardinality, SignedCardinality) keep this surface
+  // post-#402 retarget.  The IsRingIntegral concept (above) is the
+  // post-#414 generalisation of std::integral — same semantics for the
+  // built-in integers, plus admission of the variant carriers.
+  static constexpr bool is_integer_range = IsRingIntegral<T>;
 
   constexpr std::size_t size() const
     requires is_integer_range
