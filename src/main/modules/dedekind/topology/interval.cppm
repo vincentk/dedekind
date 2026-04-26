@@ -64,7 +64,8 @@ export enum class Boundary { Open, Closed };
  *         @c Strictness::Strict; @c Boundary::Closed ↔
  *         @c Strictness::NonStrict.  @c constexpr so it composes in
  *         NTTP positions across the two families. */
-export constexpr dedekind::order::Strictness to_strictness(Boundary b) noexcept {
+export constexpr dedekind::order::Strictness to_strictness(
+    Boundary b) noexcept {
   return b == Boundary::Open ? dedekind::order::Strictness::Strict
                              : dedekind::order::Strictness::NonStrict;
 }
@@ -77,10 +78,12 @@ export constexpr Boundary to_boundary(dedekind::order::Strictness s) noexcept {
 }
 
 // Cross-family equivalence witnesses (round-trip invariance).
-static_assert(to_strictness(Boundary::Open) == dedekind::order::Strictness::Strict);
+static_assert(to_strictness(Boundary::Open) ==
+              dedekind::order::Strictness::Strict);
 static_assert(to_strictness(Boundary::Closed) ==
               dedekind::order::Strictness::NonStrict);
-static_assert(to_boundary(dedekind::order::Strictness::Strict) == Boundary::Open);
+static_assert(to_boundary(dedekind::order::Strictness::Strict) ==
+              Boundary::Open);
 static_assert(to_boundary(dedekind::order::Strictness::NonStrict) ==
               Boundary::Closed);
 static_assert(to_boundary(to_strictness(Boundary::Open)) == Boundary::Open);
