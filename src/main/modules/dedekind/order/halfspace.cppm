@@ -80,8 +80,7 @@ using namespace dedekind::category;
  */
 export template <typename T>
 concept IsRingIntegral =
-    std::integral<T> ||
-    std::same_as<T, dedekind::sets::Cardinality> ||
+    std::integral<T> || std::same_as<T, dedekind::sets::Cardinality> ||
     std::same_as<T, dedekind::sets::SignedCardinality>;
 
 /** @section Formal_Verification (IsRingIntegral) */
