@@ -232,6 +232,32 @@ static_assert(
     "math-wins-over-C++ stance, this is the closest strict-ring carrier "
     "ℕ has at the machine level (the unbounded ℕ proxy lives in "
     "`Cardinality` from sets:cardinality, with ℵ_0 escalation).");
+// Commutative-semiring witness (explicit, for documentation purposes).
+// ℕ under (+, *) is a commutative idempotent semiring without additive
+// inverse — what the math textbook calls a @b rig.  Pinned at the
+// canonical machine carrier so the @b commutative-semiring claim that
+// Monoid_ℕ implies (via IsCommutativeMonoid<T, std::plus> + the
+// multiplicative monoid) is also visible as a single static_assert.
+static_assert(
+    dedekind::algebra::IsRig<unsigned int, std::plus<unsigned int>,
+                             std::multiplies<unsigned int>>,
+    "ℕ under (+, *) is a commutative idempotent semiring (rig) — "
+    "no additive inverse on the carrier; modular wrap is the "
+    "rig-flavoured closure rather than a ring inverse.");
+// Order witnesses (explicit, for documentation purposes).  ℕ is the
+// canonical totally-ordered chain 0 ≤ 1 ≤ 2 ≤ ... at the literal
+// level; the spaceship and the four partial-order operators all
+// fire on the carrier.  Mirrors the @b shape vs.\ @b axiom split of
+// HasRingOperators / IsRing from PR #394.
+static_assert(dedekind::order::HasPartialOrderOperators<ℕ>,
+              "ℕ carries the partial-order operator surface "
+              "(<, <=, >, >=).");
+static_assert(dedekind::order::HasTotalOrderOperators<ℕ>,
+              "ℕ carries the total-order operator surface "
+              "(spaceship + the four partial-order operators).");
+static_assert(dedekind::order::IsTotallyOrdered<ℕ>,
+              "ℕ is axiomatically totally ordered (the chain "
+              "0 ≤ 1 ≤ 2 ≤ ...).");
 
 // (4) Primitive-type arrows.  ℕ *is* @c unsigned @c int (post-#401), so
 // the predicate-set membership question reduces to direct calls on the

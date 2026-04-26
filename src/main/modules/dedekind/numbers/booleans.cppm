@@ -179,6 +179,22 @@ static_assert(dedekind::category::IsField<𝔹, std::bit_xor<𝔹>, std::bit_and
 static_assert(dedekind::order::IsOrderLattice<𝔹>,
               "𝔹 satisfies IsOrderLattice (the locked Boolean-ring lattice "
               "under (bit_xor, bit_and); both halves of the bundle fire).");
+// Order witnesses (explicit, for documentation purposes).  𝔹 is a
+// totally-ordered chain under @c <=, with the spaceship and the four
+// partial-order operators present at the @b literal level — both the
+// shape concepts @c HasPartialOrderOperators / @c HasTotalOrderOperators
+// (introduced under #401) and the @b axiomatic @c IsTotallyOrdered
+// fire on the carrier.  Mirrors the @b shape vs.\ @b axiom split of
+// the @c HasRingOperators / @c IsRing pattern from PR #394.
+static_assert(dedekind::order::HasPartialOrderOperators<𝔹>,
+              "𝔹 carries the partial-order operator surface "
+              "(<, <=, >, >=).");
+static_assert(dedekind::order::HasTotalOrderOperators<𝔹>,
+              "𝔹 carries the total-order operator surface "
+              "(spaceship + the four partial-order operators).");
+static_assert(dedekind::order::IsTotallyOrdered<𝔹>,
+              "𝔹 is axiomatically totally ordered (the chain "
+              "false ≤ true).");
 
 // (4) Primitive-type arrow: 𝔹 *is* @c bool (post-#400 carrier migration).
 // The universal / empty Boolean predicate-sets live on @c FiniteBooleanSetOf<>
