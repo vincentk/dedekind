@@ -32,12 +32,21 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @note "Having been introduced there to this art with an amazing method of
- * teaching by means of the nine figures of the Indians, I loved the knowledge
- * of such an art to such an extent above all other arts...that I learned with
- * very earnest application...anything to be studied concerning it and its
- * various methods used in Egypt, in Syria, in Greece, in Sicily, and in
- * Provence." — Leonardo Fibonacci, *Liber Abaci*, Prologus (~1202).
+ * @note "Ubi ex mirabili magisterio in arte per novem figuras Indorum
+ * introductus, scientia artis in tantum mihi pre ceteris placuit, et
+ * intellexi ad illam, quod, quicquid studebatur ex ea apud Egyptum,
+ * Syriam, Greciam, Siciliam et Provinciam cum suis variis modis, ad
+ * que loca negotiationis tam postea peragravi per multum studium et
+ * disputationis didici conflictum."
+ * [Trans: "There, having been introduced to that art by a marvelous
+ * method of teaching by means of the nine figures of the Indians, the
+ * knowledge of the art so pleased me above all others, and I came to
+ * understand it, that whatever was studied of it in Egypt, Syria,
+ * Greece, Sicily, and Provence, and their various methods, to which
+ * places of business I afterwards travelled — through much study and
+ * the contest of disputation, I learned."]
+ *       — Leonardo Pisano (Fibonacci), *Liber Abaci*, Prologus (1202;
+ *         Boncompagni edition, Rome 1857).
  */
 module;
 
