@@ -42,7 +42,11 @@ export template <typename R>
   requires IsComplexScalar<R>
 class Complex {
  public:
+  // Self-Domain: var<ℂ> ranges over complex numbers (per the
+  // symbolic-scout factory's Variable<S>::T = S::Domain rule).
+  using Domain = Complex;
   using scalar_type = R;
+  using ScalarCarrier = R;
 
   // Real and imaginary parts as a public pair.
   // Public to satisfy IsProduct<Complex<R>, R, R> (ℂ ≅ ℝ × ℝ).

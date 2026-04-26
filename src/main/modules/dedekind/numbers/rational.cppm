@@ -51,7 +51,13 @@ export using machine_integer = extensional_integer;
 export template <IsInteger Z>
 class Rational {
  public:
-  using Domain = Z;
+  // Self-Domain: `Variable<Rational<Z>>::T` becomes `Rational<Z>` so
+  // the symbolic-scout factory `var<ℚ>` ranges over rationals (the
+  // intended math reading), not over the underlying integer carrier.
+  // The integer carrier is still accessible via the @c IntegerCarrier
+  // alias below.
+  using Domain = Rational;
+  using IntegerCarrier = Z;
 
   // Numerator and denominator as a canonical pair (second always positive).
   // Public to satisfy IsProduct<Rational<Z>, Z, Z> (ℚ ≅ ℤ × ℤ / ~).
@@ -326,10 +332,30 @@ struct RationalsOf {
   }
 };
 
+/** @brief The predicate-set carrier for the rational numbers (the
+ *         IsSet anchor; categorical set object).  See @c ℚ below for
+ *         the algebraic carrier (the @c Rational<...> field type).
+ */
 export using RationalSet = RationalsOf<>;
-export using ℚ = RationalSet;
 
-export inline constexpr ℚ Q{};
+/** @brief The canonical rational-number field ℚ, as the carrier type
+ *         (default-instantiated @c Rational<default_integer>).
+ *
+ *  @details Pluggable via @c ℚ_t<MyInteger> for non-default integer
+ *  carriers; the bare @c ℚ defaults to @c Rational<default_integer>
+ *  so the show-to-a-wider-audience API reads as plain mathematics:
+ *  @c static_assert(IsField<ℚ>), @c auto @c q @c = @c var<ℚ>, etc.
+ */
+export template <IsInteger I = default_integer>
+using ℚ_t = Rational<I>;
+
+export using ℚ = ℚ_t<>;
+
+/** @brief The predicate-set value (instance of @c RationalSet),
+ *         retained for set-builder DSL usage like @c Set{q @c % @c Q}
+ *         where @c q @c = @c var<ℚ> ranges over rationals.
+ */
+export inline constexpr RationalSet Q{};
 
 /**
  * @brief Machine realization arrow ℤ ↪ ℚ: machine_integer → Rational<I>.

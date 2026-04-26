@@ -48,7 +48,11 @@ concept IsRealCarrier = requires(S a, S b) {
 export template <IsRealCarrier Q>
 class Real {
  public:
-  using Domain = Q;
+  // Self-Domain: var<ℝ> ranges over reals (per the symbolic-scout
+  // factory's Variable<S>::T = S::Domain rule).  The underlying
+  // scalar carrier is exposed via ScalarCarrier.
+  using Domain = Real;
+  using ScalarCarrier = Q;
   using path_type = Q;
 
   constexpr Real() = default;
