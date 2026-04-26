@@ -91,10 +91,17 @@ struct MembershipBinding {
  * @class Variable
  * @brief The 'Symbolic Scout' (id_S) of a Species.
  * @details Represents a point-in-potentia for set construction.
+ *
+ * The underlying element type is resolved via the canonical
+ * @c element_of_t trait (in @c :boundaries): predicate-set carriers
+ * project to their nested @c ::Domain, primitive carriers are their own
+ * elements.  This is the trait that lets @c var<bool>, @c var<𝔹>,
+ * @c var<ℕ> work uniformly across the show-to-a-wider-audience API
+ * (#399).
  */
 export template <typename Species>
 struct Variable {
-  using T = typename Species::Domain;
+  using T = element_of_t<Species>;
   using is_variable = void;
 
   /** @brief The Membership Morphism (x % S). Mimics 'x \in S'. */
@@ -476,31 +483,31 @@ Set(Species) -> Set<typename Species::Domain,
 
 export template <typename Species, typename Rhs>
 constexpr auto operator<(const Variable<Species>&, const Rhs& rhs) {
-  return [rhs](const typename Species::Domain& v) { return v < rhs; };
+  return [rhs](const element_of_t<Species>& v) { return v < rhs; };
 }
 
 export template <typename Species, typename Rhs>
 constexpr auto operator<=(const Variable<Species>&, const Rhs& rhs) {
-  return [rhs](const typename Species::Domain& v) { return v <= rhs; };
+  return [rhs](const element_of_t<Species>& v) { return v <= rhs; };
 }
 
 export template <typename Species, typename Rhs>
 constexpr auto operator>(const Variable<Species>&, const Rhs& rhs) {
-  return [rhs](const typename Species::Domain& v) { return v > rhs; };
+  return [rhs](const element_of_t<Species>& v) { return v > rhs; };
 }
 
 export template <typename Species, typename Rhs>
 constexpr auto operator>=(const Variable<Species>&, const Rhs& rhs) {
-  return [rhs](const typename Species::Domain& v) { return v >= rhs; };
+  return [rhs](const element_of_t<Species>& v) { return v >= rhs; };
 }
 
 export template <typename Species, typename Rhs>
 constexpr auto operator==(const Variable<Species>&, const Rhs& rhs) {
-  return [rhs](const typename Species::Domain& v) { return v == rhs; };
+  return [rhs](const element_of_t<Species>& v) { return v == rhs; };
 }
 
 export template <typename Species>
-  requires std::same_as<typename Species::Domain, bool>
+  requires std::same_as<element_of_t<Species>, bool>
 constexpr auto operator==(const Variable<Species>&, bool rhs) {
   return BooleanEqPredicate{rhs};
 }
@@ -512,7 +519,7 @@ constexpr auto operator==(const Variable<Species>&, bool rhs) {
  *  pruning hooks only needs to be made once.
  */
 export template <typename Species>
-  requires std::same_as<typename Species::Domain, bool>
+  requires std::same_as<element_of_t<Species>, bool>
 constexpr auto operator!(const Variable<Species>& v) {
   return v == false;
 }
@@ -686,6 +693,20 @@ constexpr auto power_set(const Set<T, L, P>& base) {
   using Candidate = Set<T, L, P>;
   auto pred = [base](const Candidate& candidate) { return candidate <= base; };
   return Set<Candidate, L, decltype(pred)>{pred};
+}
+
+/**
+ * @brief Textbook fraktur-P alias for @c power_set.
+ *
+ * @details In standard set-theory texts (Halmos, Munkres, Lambek--Scott)
+ * the power-set operator is written @c 𝔓 (fraktur capital P).  Exposed as
+ * a one-line forwarding wrapper so callers can write @c 𝔓(A) for the
+ * power set of @c A and have it read the same way it reads on the
+ * blackboard.  Mirrored on the Python side as @c dedekind.sets.𝔓.
+ */
+export template <typename T, typename L, typename P>
+constexpr auto 𝔓(const Set<T, L, P>& base) {
+  return power_set(base);
 }
 
 /** @brief Relation membership witness: (a,b) ∈ R. */

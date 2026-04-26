@@ -13,8 +13,24 @@
  * examples remain readable and stable.
  *
  * @section Notation
- * - `𝔹`: canonical Unicode symbol for the Boolean ambient set.
- * - `B`: ASCII alias for environments where Unicode input is inconvenient.
+ * - `𝔹`: canonical Unicode symbol for the Boolean @b carrier (= @c bool).
+ *   Per #399 / #400 (show-to-a-wider-audience API), the species symbol
+ *   names the carrier type itself rather than a predicate-set alias;
+ *   @c static_assert(IsField<𝔹, bit_xor, bit_and>) and @c var<𝔹> read
+ *   directly against the carrier.
+ * - `BooleanSetOf<L, C>`: parameterised predicate-set template alias for
+ *   `Ω<bool, L, C>`.  The default form `BooleanSetOf<>` is the canonical
+ *   predicate-set type for the Boolean ambient species; this is the
+ *   public template alias to spell when a callsite needs the type
+ *   itself (e.g.\ in a static_assert).
+ * - `B`: value-level universal Boolean predicate-set, of type
+ *   `BooleanSetOf<>`, used as the right-hand-side of the membership
+ *   operator in set-builder DSL (e.g.\ @c Set{b @c % @c B @c | @c (b
+ *   @c == @c true)}).
+ * - `BooleanSet` (non-exported): an internal convenience alias for
+ *   `BooleanSetOf<>` used inside this partition.  Not part of the
+ *   public surface — external callers should spell `BooleanSetOf<>` or
+ *   `decltype(B)` for the same type.
  *
  * @section Paper_Alignment
  * In the paper's Feature Cube (bool row), logical (`||`, `&&`) and bitwise
@@ -22,8 +38,10 @@
  * identities, absorbers, and distributivity). The test suite validates this
  * alignment explicitly.
  *
- * Element scouts are intentionally local (e.g. `auto b = var<BooleanSet>;`) to
- * avoid global name shadowing in downstream code.
+ * Element scouts are intentionally local (e.g. `auto b = var<BooleanSetOf<>>;`
+ * or equivalently `auto b = var<decltype(B)>;` --- both spellings reach the
+ * same predicate-set type) to avoid global name shadowing in downstream
+ * code.
  *
  * @note "La matematica non e una collezione di trucchi: e grammatica delle
  * forme." (Mathematics is not a bag of tricks; it is a grammar of forms.) —
@@ -44,8 +62,23 @@ export template <typename L = dedekind::category::ClassicalLogic,
                  typename C = Finite>
 using BooleanSetOf = Ω<bool, L, C>;
 
-export using BooleanSet = BooleanSetOf<>;
-export using 𝔹 = BooleanSet;
+// Non-exported convenience alias used by the value-level B constant
+// below.  The exported public surface is `BooleanSetOf<L, C>` (the
+// parameterised template); callers naming the default form should
+// either use `BooleanSetOf<>` directly or @c decltype(B).  This keeps
+// the namespace surface small, per Copilot review on PR #407.
+using BooleanSet = BooleanSetOf<>;
+
+/** @brief The canonical Boolean carrier type @c 𝔹 = @c bool.
+ *
+ *  @details Per #400 (carrier-type migration of the canonical species
+ *  symbols).  The Boolean structures @c bool carries — the Boolean rig
+ *  (@c bool, @c ∨, @c ∧), the Galois field 𝔽₂ (@c bool, @c ⊕, @c ∧),
+ *  the order lattice — are witnessed at this partition and at
+ *  @c numbers:booleans.  The predicate-set role moves to the
+ *  unambiguously-named @c BooleanSet (alias of @c Ω<bool>).
+ */
+export using 𝔹 = bool;
 
 export inline constexpr BooleanSet B{};
 

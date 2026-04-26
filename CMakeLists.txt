@@ -238,6 +238,7 @@ if(DEDEKIND_BUILD_PYTHON_BINDINGS)
     set(DEDEKIND_PYTHON_PACKAGE_DIR "${DEDEKIND_PYTHON_PACKAGE_ROOT}/dedekind")
 
     file(MAKE_DIRECTORY "${DEDEKIND_PYTHON_PACKAGE_DIR}")
+    file(MAKE_DIRECTORY "${DEDEKIND_PYTHON_PACKAGE_DIR}/numbers")
     configure_file(
         ${CMAKE_CURRENT_SOURCE_DIR}/python/dedekind/__init__.py
         ${DEDEKIND_PYTHON_PACKAGE_DIR}/__init__.py
@@ -245,6 +246,22 @@ if(DEDEKIND_BUILD_PYTHON_BINDINGS)
     configure_file(
         ${CMAKE_CURRENT_SOURCE_DIR}/python/dedekind/dsl.py
         ${DEDEKIND_PYTHON_PACKAGE_DIR}/dsl.py
+        COPYONLY)
+    configure_file(
+        ${CMAKE_CURRENT_SOURCE_DIR}/python/dedekind/sets.py
+        ${DEDEKIND_PYTHON_PACKAGE_DIR}/sets.py
+        COPYONLY)
+    configure_file(
+        ${CMAKE_CURRENT_SOURCE_DIR}/python/dedekind/sequences.py
+        ${DEDEKIND_PYTHON_PACKAGE_DIR}/sequences.py
+        COPYONLY)
+    configure_file(
+        ${CMAKE_CURRENT_SOURCE_DIR}/python/dedekind/numbers/__init__.py
+        ${DEDEKIND_PYTHON_PACKAGE_DIR}/numbers/__init__.py
+        COPYONLY)
+    configure_file(
+        ${CMAKE_CURRENT_SOURCE_DIR}/python/dedekind/numbers/boolean.py
+        ${DEDEKIND_PYTHON_PACKAGE_DIR}/numbers/boolean.py
         COPYONLY)
 
     nanobind_add_module(_dedekind PROTECT_STACK
@@ -261,7 +278,13 @@ if(DEDEKIND_BUILD_PYTHON_BINDINGS)
     install(FILES
         ${CMAKE_CURRENT_SOURCE_DIR}/python/dedekind/__init__.py
         ${CMAKE_CURRENT_SOURCE_DIR}/python/dedekind/dsl.py
+        ${CMAKE_CURRENT_SOURCE_DIR}/python/dedekind/sets.py
+        ${CMAKE_CURRENT_SOURCE_DIR}/python/dedekind/sequences.py
         DESTINATION dedekind)
+    install(FILES
+        ${CMAKE_CURRENT_SOURCE_DIR}/python/dedekind/numbers/__init__.py
+        ${CMAKE_CURRENT_SOURCE_DIR}/python/dedekind/numbers/boolean.py
+        DESTINATION dedekind/numbers)
 
     add_test(
         NAME test_python_bindings

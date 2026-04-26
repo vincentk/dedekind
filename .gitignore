@@ -79,3 +79,4 @@ build_ci/**
 .venv*/**
 
 nn_notes/**
+.coverage

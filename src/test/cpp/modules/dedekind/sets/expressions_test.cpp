@@ -58,7 +58,7 @@ TEST_CASE("Dedekind Identities: Boolean literals collapse over 𝔹",
 
   constexpr auto b = var<BoolAmbient>;
 
-  constexpr auto b_false = Set{b % B_bool | (b == false)};
+  constexpr auto b_false = Set{b % B_bool | !b};
   constexpr auto b_true = Set{b % B_bool | (b == true)};
 
   STATIC_CHECK(Ø<bool, ClassicalLogic>{} == (b_false & b_true));
@@ -123,10 +123,14 @@ TEST_CASE("Dedekind Sets: Power-set witness over homogeneous predicates",
   const auto positive = Set{x % Ω<int>{} | (x > 0)};
 
   const auto p_positive = power_set(positive);
+  // Textbook fraktur-P alias: 𝔓(A) ≡ power_set(A).
+  const auto 𝔓_positive = 𝔓(positive);
 
   STATIC_CHECK(std::same_as<typename decltype(p_positive)::Domain,
                             std::remove_cvref_t<decltype(positive)>>);
+  STATIC_CHECK(std::same_as<decltype(p_positive), decltype(𝔓_positive)>);
   CHECK(p_positive(positive) == Ternary::True);
+  CHECK(𝔓_positive(positive) == Ternary::True);
 }
 
 TEST_CASE("Dedekind Sets: Power-set preserves ambient logic",
