@@ -40,10 +40,11 @@ static_assert(IsMonicArrow<std::decay_t<decltype(embed_ℝ_ℂ<>)>>);
 // ---------------------------------------------------------------------------
 
 static_assert(std::same_as<Dom<std::decay_t<decltype(embed_𝔹_ℕ)>>, bool>);
-static_assert(std::same_as<Cod<std::decay_t<decltype(embed_𝔹_ℕ)>>, ℕ>);
+static_assert(std::same_as<Cod<std::decay_t<decltype(embed_𝔹_ℕ)>>, unsigned>);
 
-static_assert(std::same_as<Dom<std::decay_t<decltype(embed_ℕ_ℤ)>>, ℕ>);
-static_assert(std::same_as<Cod<std::decay_t<decltype(embed_ℕ_ℤ)>>, ℤ>);
+static_assert(std::same_as<Dom<std::decay_t<decltype(embed_ℕ_ℤ)>>, unsigned>);
+static_assert(
+    std::same_as<Cod<std::decay_t<decltype(embed_ℕ_ℤ)>>, machine_integer>);
 
 static_assert(std::same_as<Dom<std::decay_t<decltype(embed_K3_ℤ)>>, Ternary>);
 static_assert(
@@ -107,15 +108,14 @@ TEST_CASE("Tower: embed_floating_ℝ<F> covers any floating_point",
 // ---------------------------------------------------------------------------
 
 TEST_CASE("Tower: 𝔹 ↪ ℕ via embed_𝔹_ℕ", "[numbers][tower][embedding]") {
-  // Post-#402: embed_𝔹_ℕ has codomain ℕ = Cardinality (variant ℕ-proxy).
-  const auto naturals_v =
-      ambient_set<ℕ>([](const ℕ&) { return true; });
+  const auto naturals_u =
+      ambient_set<unsigned>([](const unsigned&) { return true; });
 
   CHECK(embed_𝔹_ℕ(false) == 0u);
   CHECK(embed_𝔹_ℕ(true) == 1u);
 
-  CHECK(in_via(false, embed_𝔹_ℕ, naturals_v) == true);
-  CHECK(in_via(true, embed_𝔹_ℕ, naturals_v) == true);
+  CHECK(in_via(false, embed_𝔹_ℕ, naturals_u) == true);
+  CHECK(in_via(true, embed_𝔹_ℕ, naturals_u) == true);
 }
 
 // ---------------------------------------------------------------------------
@@ -123,12 +123,12 @@ TEST_CASE("Tower: 𝔹 ↪ ℕ via embed_𝔹_ℕ", "[numbers][tower][embedding]
 // ---------------------------------------------------------------------------
 
 TEST_CASE("Tower: ℕ ↪ ℤ via embed_ℕ_ℤ", "[numbers][tower][embedding]") {
-  // Post-#402: embed_ℕ_ℤ : ℕ (Cardinality) → ℤ (SignedCardinality).
-  const auto integers = ambient_set<ℤ>([](const ℤ&) { return true; });
+  // Unsigned naturals always embed into integers successfully.
+  const auto integers = ambient_set<int>([](const int&) { return true; });
 
-  CHECK(in_via(finite_cardinality(0), embed_ℕ_ℤ, integers) == true);
-  CHECK(in_via(finite_cardinality(42), embed_ℕ_ℤ, integers) == true);
-  CHECK(in_via(finite_cardinality(1000), embed_ℕ_ℤ, integers) == true);
+  CHECK(in_via(0u, embed_ℕ_ℤ, integers) == true);
+  CHECK(in_via(42u, embed_ℕ_ℤ, integers) == true);
+  CHECK(in_via(1000u, embed_ℕ_ℤ, integers) == true);
 
   // Membership in the naturals set respects sign.
   CHECK(N(0) == true);
@@ -145,19 +145,15 @@ TEST_CASE("Tower: ℕ ↪ ℤ via embed_ℕ_ℤ", "[numbers][tower][embedding]")
 // ---------------------------------------------------------------------------
 
 TEST_CASE("Tower: K3 ↪ ℤ via embed_K3_ℤ", "[numbers][tower][embedding]") {
-  // embed_K3_ℤ stays on the int machine carrier — Ternary → int — so the
-  // ambient is the int machine universe (not the post-#402 variant ℤ).
-  // The K3 → variant-ℤ retargeting is tracked separately under FIXME(#402).
-  const auto integers_machine =
-      ambient_set<int>([](const int&) { return true; });
+  const auto integers = ambient_set<int>([](const int&) { return true; });
 
   CHECK(embed_K3_ℤ(Ternary::False) == -1);
   CHECK(embed_K3_ℤ(Ternary::Unknown) == 0);
   CHECK(embed_K3_ℤ(Ternary::True) == 1);
 
-  CHECK(in_via(Ternary::False, embed_K3_ℤ, integers_machine) == true);
-  CHECK(in_via(Ternary::Unknown, embed_K3_ℤ, integers_machine) == true);
-  CHECK(in_via(Ternary::True, embed_K3_ℤ, integers_machine) == true);
+  CHECK(in_via(Ternary::False, embed_K3_ℤ, integers) == true);
+  CHECK(in_via(Ternary::Unknown, embed_K3_ℤ, integers) == true);
+  CHECK(in_via(Ternary::True, embed_K3_ℤ, integers) == true);
 }
 
 // ---------------------------------------------------------------------------
@@ -198,16 +194,6 @@ TEST_CASE("Tower: ℝ ↪ ℂ via embed_ℝ_ℂ", "[numbers][tower][embedding]")
 // Composed tower: unsigned ↪ ℤ ↪ ℚ ↪ ℝ ↪ ℂ  (via >> composition)
 // ---------------------------------------------------------------------------
 
-// FIXME(#402): post-flip, @c embed_ℕ_ℤ goes ℕ (Cardinality) → ℤ
-// (SignedCardinality); @c embed_ℤ_ℚ<> goes machine_integer (= int) →
-// Rational<int>.  The chain composition is no longer direct — would
-// need an explicit @c SignedCardinality → @c int bridge (e.g. via
-// @c std::get<SignedExtensionalCardinal<>>(...) or the existing
-// @c operator @c S() conversion on @c SignedExtensionalCardinal<>).
-// Restoring the composed chain over the variant carriers belongs to a
-// follow-up PR; the integer-axis tower tests above already cover each
-// adjacency on its own.
-#if 0
 TEST_CASE("Tower: composed chain unsigned -> ℤ -> ℚ -> ℝ -> ℂ",
           "[numbers][tower][embedding][composition]") {
   const auto embed_ℕ_ℚ = embed_ℕ_ℤ >> embed_ℤ_ℚ<>;
@@ -219,7 +205,6 @@ TEST_CASE("Tower: composed chain unsigned -> ℤ -> ℚ -> ℝ -> ℂ",
   CHECK(result.real() == 3.0);
   CHECK(result.imag() == 0.0);
 }
-#endif
 
 // ---------------------------------------------------------------------------
 // Stress test: Im(K3 -> ℤ) ∩ { z in ℂ | Re(z) > 0 }
