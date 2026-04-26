@@ -58,6 +58,22 @@ testpaths = ["src/test/python"]
 source = ["python/dedekind"]
 omit = ["*/__pycache__/*"]
 
+# Path-mapping: when CI installs the dedekind wheel into site-packages
+# (or a venv), coverage records the physical site-packages paths.  This
+# mapping rewrites them back to the source-tree path so:
+#   * the XML's <class filename="..."> attributes reference
+#     `python/dedekind/...`, satisfying the workflow gate
+#     `grep -q "python/dedekind/" build/python-coverage.xml` in
+#     `.github/workflows/cmake.yml`;
+#   * Codecov / IDE jump-to-source resolves to the actual source files
+#     rather than to read-only installed copies.
+[tool.coverage.paths]
+source = [
+    "python/dedekind",
+    "*/site-packages/dedekind",
+    "*/dedekind",
+]
+
 [tool.coverage.report]
 show_missing = true
 
