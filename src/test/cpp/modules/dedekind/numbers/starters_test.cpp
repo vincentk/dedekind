@@ -15,8 +15,10 @@ TEST_CASE("Numbers: canonical starter symbols", "[numbers][starter]") {
   STATIC_CHECK(std::same_as<ℤ, IntegerSet>);
   STATIC_CHECK(std::same_as<decltype(Z), const ℤ>);
 
-  STATIC_CHECK(std::same_as<ℚ, RationalSet>);
-  STATIC_CHECK(std::same_as<decltype(Q), const ℚ>);
+  // ℚ is now the carrier type (the field of rationals); the value-level
+  // constant Q is the predicate-set instance (RationalsOf<> / RationalSet).
+  STATIC_CHECK(std::same_as<ℚ, Rational<default_integer>>);
+  STATIC_CHECK(std::same_as<decltype(Q), const RationalsOf<>>);
 
   STATIC_CHECK(std::same_as<ℝ, RealSet>);
   STATIC_CHECK(std::same_as<decltype(R), const ℝ>);

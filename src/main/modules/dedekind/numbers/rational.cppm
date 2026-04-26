@@ -51,7 +51,13 @@ export using machine_integer = extensional_integer;
 export template <IsInteger Z>
 class Rational {
  public:
-  using Domain = Z;
+  // Self-Domain: `Variable<Rational<Z>>::T` becomes `Rational<Z>` so
+  // the symbolic-scout factory `var<ℚ>` ranges over rationals (the
+  // intended math reading), not over the underlying integer carrier.
+  // The integer carrier is still accessible via the @c IntegerCarrier
+  // alias below.
+  using Domain = Rational;
+  using IntegerCarrier = Z;
 
   // Numerator and denominator as a canonical pair (second always positive).
   // Public to satisfy IsProduct<Rational<Z>, Z, Z> (ℚ ≅ ℤ × ℤ / ~).
@@ -326,10 +332,56 @@ struct RationalsOf {
   }
 };
 
-export using RationalSet = RationalsOf<>;
-export using ℚ = RationalSet;
+/** @brief Internal predicate-set type for the rational numbers (the
+ *         IsSet anchor; categorical set object).  See @c ℚ below for
+ *         the algebraic carrier (the @c Rational<...> field type).
+ *         Not @c export-ed --- the API boundary is crystal clear:
+ *         @c ℚ is the field, @c RationalSet is the implementation
+ *         detail underlying the value-level constant @c Q.
+ */
+using RationalSet = RationalsOf<>;
 
-export inline constexpr ℚ Q{};
+/** @brief The canonical rational-number field ℚ, as the carrier type
+ *         (default-instantiated @c Rational<default_integer>).
+ *
+ *  @details Pluggable via @c ℚ_t<MyInteger> for non-default integer
+ *  carriers; the bare @c ℚ defaults to @c Rational<default_integer>
+ *  so the show-to-a-wider-audience API reads as plain mathematics:
+ *  @c static_assert(algebra::HasFieldOperators<ℚ>), @c auto @c q @c
+ *  = @c var<ℚ>, etc.
+ *
+ *  @note  The strict @c category::IsField<ℚ, std::plus<ℚ>,
+ *  std::multiplies<ℚ>> is @b not currently certified.  Two distinct
+ *  blocks compose:
+ *
+ *  1. @b IsTotal @b gate (architectural).  The strict ring/field
+ *     ladder requires @c IsMagma, which requires @c IsTotal<T, Op>
+ *     @c = @c IsPeriodic @c || @c IsIdempotent @c || @c IsSaturating.
+ *     Exact carriers like @c Rational<...> are none of those (no
+ *     wrap, no idempotence, no saturation), so the strict ladder is
+ *     blocked at the totality step regardless of invertibility
+ *     specialisations.  An "exact" or "infinite-domain-total"
+ *     fourth path on @c IsTotal would be required.
+ *  2. @b Species-trait specialisations (incremental).  Even with
+ *     IsTotal lifted, the @c is_invertible_v / @c inverse_trait
+ *     registrations would still be missing on @c Rational under the
+ *     active numeric policy.
+ *
+ *  See the @c FIXME(\#379) breadcrumb at the Field_ℚ definition in
+ *  @c :integer.  Until both blocks lift, the operational
+ *  @c algebra::IsFieldLikeScalar<ℚ> is the load-bearing field-
+ *  arithmetic guarantee.
+ */
+export template <IsInteger I = default_integer>
+using ℚ_t = Rational<I>;
+
+export using ℚ = ℚ_t<>;
+
+/** @brief The predicate-set value (instance of @c RationalSet),
+ *         retained for set-builder DSL usage like @c Set{q @c % @c Q}
+ *         where @c q @c = @c var<ℚ> ranges over rationals.
+ */
+export inline constexpr RationalSet Q{};
 
 /**
  * @brief Machine realization arrow ℤ ↪ ℚ: machine_integer → Rational<I>.
@@ -358,6 +410,28 @@ inline constexpr bool
 }  // namespace dedekind::category
 
 namespace dedekind::numbers {
+
+/** @section Canonical_Species_Spine (ℚ)
+ *
+ * The canonical rational-number species ℚ is defined above as
+ * @c RationalSet @c = @c RationalsOf<> with value-level constant
+ * @c Q.  The spine witnesses below pin ℚ's syntax / semantics /
+ * arrow fabric against drift:
+ *
+ * (1) IsSet anchor;
+ * (2) Syntax: HasRingOperators / HasFieldOperators /
+ *     HasGroupOperatorsAdd / HasGroupOperatorsMul on the canonical
+ *     @c Rational<default_integer> carrier;
+ * (3) Semantics: total order, density, directed-set, CCC, plus the
+ *     operational @c IsFieldLikeScalar witness (the strict @c IsField
+ *     bundle is gated by the species-trait FIXME documented further
+ *     down);
+ * (4) Primitive-type arrow ℚ ↔ machine_integer via @c embed_ℤ_ℚ
+ *     (forward, registered monic);
+ * (5) Adjacent-set arrows: ℤ ↪ ℚ via @c embed_ℤ_ℚ above; ℚ ↪ ℝ via
+ *     @c embed_ℚ_ℝ in @c :real (downstream).  Reverse arrows
+ *     ℚ → double / ℝ → ℚ live behind the open #398 work.
+ */
 
 static_assert(
     dedekind::category::IsSet<decltype(dedekind::category::ambient_set<
@@ -467,6 +541,22 @@ static_assert(
     dedekind::algebra::HasFieldOperators<Rational<SignedExtensionalCardinal<>>>,
     "Rational<SignedExtensionalCardinal<>> --- the canonical exact ℚ "
     "carrier --- has the field-operator surface.");
+
+// Canonical-spine syntactic witnesses on Rational<default_integer>:
+// the ring / additive-group / multiplicative-group surfaces are all
+// implied by HasFieldOperators above (which is HasRingOperators ∧
+// HasGroupOperatorsMul), but pinning them explicitly here surfaces
+// each shape concept in the partition's witness ledger.
+static_assert(dedekind::algebra::HasRingOperators<Rational<default_integer>>,
+              "Rational<default_integer> closes the ring operator surface.");
+static_assert(
+    dedekind::algebra::HasGroupOperatorsAdd<Rational<default_integer>>,
+    "Rational<default_integer> closes the additive-group operator "
+    "surface (+, binary -, unary -).");
+static_assert(
+    dedekind::algebra::HasGroupOperatorsMul<Rational<default_integer>>,
+    "Rational<default_integer> closes the multiplicative-group operator "
+    "surface (*, /, T{1}).");
 
 /**
  * @brief Canonical polynomial ring over the rationals: Q[x].

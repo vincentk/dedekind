@@ -29,11 +29,14 @@ TEST_CASE("Numbers: Symbolic Checkpoint", "[numbers][symbolic]") {
     REQUIRE(s.imag().resolve() == 6.0);
   }
 
-  SECTION("Constants and transcendental marker") {
-    REQUIRE(Pi().resolve() > 3.14);
-    REQUIRE(E().resolve() > 2.71);
+  SECTION("Transcendental-set marker (no rational point in the set)") {
+    // The `:constants` partition's hardcoded `Pi()` / `E()` / `Sqrt2()`
+    // were removed in #379 (they were `double` literals dressed in
+    // `Real<double>`, not Dedekind cuts); the `TranscendentalSet<double>`
+    // marker --- the @b set of transcendentals over $\mathbb{R}$ ---
+    // remains in `:symbolic` and is what this section actually checks.
     const auto T = TranscendentalSet<double>();
     STATIC_CHECK(dedekind::category::IsSet<decltype(T)>);
-    REQUIRE(T.χ(0.0) == false);
+    REQUIRE(T.χ(0.0) == false);  // 0 is rational, not transcendental
   }
 }

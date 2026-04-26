@@ -160,6 +160,23 @@ export using extensional_integer = int;
  */
 export using default_integer = extensional_integer;
 
+// FIXME(#379): the *Like cluster below is a candidate for the
+// retire-Like surgery phase that follows the alignment sweep.
+//   - `IsRationalLike` checks only operator closure (+, -, *, /); it is
+//     structurally identical to `algebra::HasFieldOperators` (shipped in
+//     #394) modulo the absence of the `T{1}` clause.  Retarget call
+//     sites to `HasFieldOperators` and remove this concept.
+//   - `IsFieldLike = IsRationalLike` is a tautological alias with no
+//     additional content; remove and retarget to the same replacement.
+//   - `IsReal = IsRealLike || IsRationalLike` is a disjunction whose
+//     two arms are semantically distinct (floating-point arithmetic vs
+//     exact-rational arithmetic).  The union "is approximately real"
+//     reading is loose; tighten to a single explicit concept or split
+//     into two.
+//   - `IsContinuous` and `IsDiscrete` partition `std::regular` types by
+//     `std::integral` --- a syntactic split that says nothing about
+//     mathematical density / discreteness.  Reconsider as part of the
+//     retire-Like sweep.
 export template <typename T>
 concept IsRationalLike = std::regular<T> && requires(T a, T b) {
   { a + b } -> std::same_as<T>;
@@ -226,17 +243,29 @@ concept Group_ℤ =
  * asserts both the rational-structure shape and the field arithmetic
  * without naming a concrete @c Rational<Z>.
  *
- * @note The field-side requirement is currently expressed via
- * @c dedekind::algebra::IsFieldLikeScalar, which is an *operational*
- * (syntactic) witness rather than a law-abiding algebraic concept. A proper
- * @c IsField in @c dedekind.category:total is intended and will replace
- * this dependency once the design for ``multiplicative group on nonzero
- * elements'' lands in the category layer. Until then, carriers that pass
- * this concept are guaranteed the *arithmetic* of a field but not every
- * law mechanically --- the species-trait registry supplies the laws
- * separately.
- * @see FIXME: retarget to `dedekind::category::IsField<Q, std::plus<Q>,
- *             std::multiplies<Q>>` once the latter is defined.
+ * @note FIXME(#379): the field-side requirement is expressed via
+ * @c dedekind::algebra::IsFieldLikeScalar (an operational shape), not
+ * via the strict @c dedekind::category::IsField that shipped in #375
+ * (closed 2026-04-24).  Two distinct blocks compose into the actual
+ * current blocker:
+ *
+ * 1. @b IsTotal @b gate.  The strict ring/field ladder requires
+ *    @c IsMagma, which requires @c IsTotal<T, Op> @c = @c IsPeriodic
+ *    @c || @c IsIdempotent @c || @c IsSaturating (per
+ *    @c category:species).  Exact carriers like @c Rational<...> /
+ *    @c ExactReal<> are none of those (no wrap, no idempotence, no
+ *    saturation), so the strict ladder is architecturally blocked at
+ *    the totality step regardless of invertibility traits.  Lifting
+ *    this would require a new @c IsTotal certification path for
+ *    exact carriers (e.g.\ "infinite-domain-total" or "exact").
+ * 2. @b Species-trait specialisations.  Even with @c IsTotal lifted,
+ *    the @c is_invertible_v<Rational<...>, std::multiplies> /
+ *    @c inverse_trait specialisations would still be missing on the
+ *    exact carriers under the active numeric policy.
+ *
+ * Until both blocks lift, carriers that pass @c Field_ℚ are
+ * guaranteed the @b arithmetic of a field via @c IsFieldLikeScalar
+ * but not every law mechanically.
  */
 export template <typename Q, typename Z = int>
 concept Field_ℚ = IsRational<Q, Z> && dedekind::algebra::IsFieldLikeScalar<Q>;
@@ -248,7 +277,11 @@ concept Field_ℚ = IsRational<Q, Z> && dedekind::algebra::IsFieldLikeScalar<Q>;
  * @details Bundles the structural @c IsReal witness with @c IsContinuous and
  * the operational field-like arithmetic discipline.
  *
- * @see FIXME: same retargeting as @ref Field_ℚ once @c IsField lands.
+ * @see FIXME(#379): same retargeting story as @ref Field_ℚ ---
+ * @c category::IsField exists (#375), but BOTH the @c IsTotal gate
+ * (which currently admits only periodic/idempotent/saturating ops,
+ * blocking exact carriers like @c ExactReal<>) AND the species-trait
+ * specialisations would need lifting.
  */
 export template <typename T>
 concept Continuum_ℝ =
@@ -258,10 +291,73 @@ concept Continuum_ℝ =
  * @concept Algebra_ℂ
  * @brief ℂ as an algebra over an underlying real-like field @c R.
  *
- * @see FIXME: same retargeting as @ref Field_ℚ once @c IsField lands.
+ * @see FIXME(#379): same retargeting story as @ref Field_ℚ ---
+ * @c category::IsField exists (#375), but BOTH the @c IsTotal gate
+ * (which currently admits only periodic/idempotent/saturating ops,
+ * blocking exact carriers like @c Complex<ExactReal<>>) AND the
+ * species-trait specialisations would need lifting.
  */
 export template <typename C, typename R>
 concept Algebra_ℂ = IsComplex<C, R> && dedekind::algebra::IsFieldLikeScalar<C>;
+
+/** @section Canonical_Species_Spine (ℤ)
+ *
+ * The canonical species symbol @c ℤ (alias of @c IntegerSet
+ * @c = @c IntegersOf<>) and the value-level constant @c Z are
+ * defined further down; the spine below pins ℤ's syntax / semantics
+ * / arrow-fabric witnesses against drift.  The strict (species-trait)
+ * witnesses on the exact ℤ carrier @c SignedExtensionalCardinal<>
+ * land in @c :rational (where the species-trait registrations are
+ * reachable); the partition-local witnesses here cover the
+ * literal-shape concepts and the primitive-type arrows.
+ */
+
+// (1) IsSet anchor: deferred until after Z is defined further down.
+
+// (2) Syntax (the C++ operator surface that maps to ℤ's algebra).
+//   - HasRingOperators<int>: literal +, -, *, unary - all close on int.
+//   - HasGroupOperatorsAdd<int>: literal +, binary -, unary - all close.
+//   - HasSuccessorOperators<int>: pre/post ++, -- all close.
+//   - HasCompoundGroupOperators*<int>: +=, -=, *=, /= all close.
+static_assert(dedekind::algebra::HasRingOperators<int>,
+              "ℤ's machine carrier (int) closes the literal ring operator "
+              "surface.");
+static_assert(dedekind::algebra::HasGroupOperatorsAdd<int>,
+              "ℤ's machine carrier closes the additive-group operator surface "
+              "(+, binary -, unary -).");
+static_assert(dedekind::algebra::HasSuccessorOperators<int>,
+              "ℤ's machine carrier supports the successor operator "
+              "surface (Peano-aligned ++, --).");
+
+// (3) Semantics (the algebraic structures int actually carries).
+//   - Self-documenting: IsInteger<int> (structural Euclidean-integer-
+//     domain syntax).
+//   - Group_ℤ<int> deliberately does NOT fire: signed-overflow UB
+//     defeats the strict abelian-group proof under the math-wins-
+//     over-C++ stance.  Group_ℤ<SignedExtensionalCardinal<>> is the
+//     exact-ℤ witness, asserted in `:rational`.
+//   - IsArithmeticAdditiveGroup<int> likewise refused.
+static_assert(IsInteger<extensional_integer>,
+              "extensional_integer (= int) satisfies IsInteger "
+              "(structural Euclidean-integer-domain syntax).");
+static_assert(!Group_ℤ<int>,
+              "int must NOT satisfy Group_ℤ: signed-overflow UB "
+              "defeats the strict abelian-group proof under the "
+              "math-wins-over-C++ stance.");
+static_assert(!dedekind::algebra::IsArithmeticAdditiveGroup<int>,
+              "int must NOT satisfy IsArithmeticAdditiveGroup: same "
+              "reason as the Group_ℤ rejection.");
+
+// (4) Primitive-type arrow:  std::signed_integral ↔ ℤ.  Forward via
+// `embed_signed_integral<Z>(v)` defined earlier in this partition;
+// reverse via the carrier's explicit `operator S()` (single-limb only,
+// to prevent silent truncation).  Pinned below as static_asserts on
+// the canonical exact ℤ carrier.
+
+// (5) Adjacent-set arrow: ℕ ↪ ℤ via `embed_ℕ_ℤ` defined further down
+// in this partition.  Reverse direction (ℤ → ℕ via absolute value or
+// signed-bit projection) is not a strict embedding and is intentionally
+// not registered.
 
 /**
  * @brief Characteristic morphism for ℤ: the integers.

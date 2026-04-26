@@ -46,7 +46,9 @@ module;
 
 export module dedekind.numbers:naturals;
 
+import dedekind.algebra; // HasRingOperators / HasSemiringOperators / IsArithmeticRing (canonical-spine witnesses)
 import dedekind.category;
+import dedekind.order; // HasLatticeOperators (canonical-spine witnesses)
 import dedekind.sets;
 import :scalars;
 import :booleans;
@@ -149,7 +151,86 @@ constexpr N embed_unsigned_integral(U v) {
   return N{v};
 }
 
-};  // namespace dedekind::numbers
+/** @section Canonical_Species_Spine
+ *
+ * The canonical natural-numbers species ℕ is defined upstream in
+ * @c dedekind.sets:boundaries (as @c NaturalNumbersOf<L, C> with
+ * alias @c ℕ = @c NaturalNumbers and value-level constant
+ * @c inline @c constexpr @c ℕ @c N{}).  This partition adds the
+ * @c numbers-/@c order-/@c algebra-layer witnesses that pin the
+ * canonical species against drift, and provides the embedding chain
+ * arrows @c 𝔹 ↪ ℕ ↪ ℤ that the upstream sets layer cannot reach.
+ */
+
+using ::dedekind::sets::N;
+using ::dedekind::sets::ℕ;
+
+/** @section Formal_Verification */
+
+// (1) IsSet anchor: ℕ is a bona-fide set.  The upstream
+// `NaturalNumbersOf` predicate has Domain = int (with a non-negativity
+// classifier and unsigned/bool overloads), so the IsSet anchor is over
+// the int ambient.
+static_assert(dedekind::category::IsSet<
+                  decltype(dedekind::category::ambient_set<int>(ℕ{}))>,
+              "ℕ must be the canonical IsSet anchor.");
+
+// (2) Syntax (the C++ operator surface that maps to ℕ's algebra).
+//   - HasSemiringOperators<unsigned int>: +, * close, with T{} and T{1}.
+//   - HasRingOperators<unsigned int>: +, -, unary -, * close (modular wrap
+//     gives ℕ-flavoured behaviour without true negatives, but the literal
+//     operators close on the carrier).
+//   - HasLatticeOperators<unsigned int>: bitwise &, |, ^, ~ close.
+static_assert(
+    dedekind::algebra::HasSemiringOperators<unsigned int>,
+    "ℕ's machine carrier (unsigned) closes the semiring operator surface "
+    "(+, *, T{}, T{1}).");
+static_assert(dedekind::algebra::HasRingOperators<unsigned int>,
+              "ℕ's machine carrier (unsigned) also closes the literal "
+              "ring operator surface (+, binary -, unary -, *) "
+              "modulo wrap.");
+static_assert(dedekind::order::HasLatticeOperators<unsigned int>,
+              "ℕ's machine carrier (unsigned) closes the bitwise lattice "
+              "operator surface (&, |, ^, ~).");
+
+// (3) Semantics (the algebraic structures unsigned int actually carries).
+//   - Self-documenting: IsNatural / IsNaturalNumber on the canonical
+//     machine carrier (asserted earlier in this partition).
+//   - Strict abelian-group / ring witnesses on `unsigned int` and on the
+//     exact ℕ carrier (`ExtensionalCardinal<>`) live in their respective
+//     trait-registration partitions; cited here as a lookup chain.
+//   - The seal `IsArithmeticRing<unsigned int>` (PR #394) certifies that
+//     the strict ring proof and the literal C++ operators agree on the
+//     canonical machine carrier.
+static_assert(IsNatural<unsigned int>,
+              "unsigned int satisfies IsNatural (commutative semiring "
+              "with order; +,*,<= close on the carrier).");
+static_assert(IsNaturalNumber<unsigned int>,
+              "unsigned int is the canonical IsNaturalNumber.");
+static_assert(
+    dedekind::algebra::IsArithmeticRing<unsigned int>,
+    "unsigned int is the seal where strict ℕ-flavoured ring proof and "
+    "the literal C++ operators (+, binary -, unary -, *) agree --- the "
+    "canonical machine arithmetic ring under modular wrap.  Under the "
+    "math-wins-over-C++ stance, this is the closest strict-ring carrier "
+    "ℕ has at the machine level (the unbounded ℕ proxy lives in "
+    "`Cardinality` from sets:cardinality, with ℵ_0 escalation).");
+
+// (4) Primitive-type arrows.  std::unsigned_integral ↔ ℕ:
+//   - Forward (unsigned → ℕ): just the predicate ℕ{}(value), which is
+//     trivially total (every unsigned is a natural).
+//   - Forward into a certified IsNatural domain (e.g.\ ExtensionalCardinal<>):
+//     `embed_unsigned_integral<N>(v)`.
+//   - Reverse (ℕ → unsigned): for the certified domain, project via
+//     `realize_to_size_t(sentinel)` (lives in sets:cardinality).
+static_assert(ℕ{}(0u) == ClassicalLogic::True, "0 ∈ ℕ.");
+static_assert(ℕ{}(42u) == ClassicalLogic::True, "42 ∈ ℕ.");
+
+// (5) Adjacent-set arrow: 𝔹 ↪ ℕ via @c embed_𝔹_ℕ above; registered
+// monic at the bottom of this partition.  The forward arrow ℕ ↪ ℤ
+// lives in @c :integer (downstream), as @c embed_ℕ_ℤ.
+
+}  // namespace dedekind::numbers
 
 namespace dedekind::category {
 template <>
