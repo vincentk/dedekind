@@ -35,6 +35,15 @@ Homepage = "https://github.com/vincentk/dedekind"
 minimum-version = "build-system.requires"
 build-dir = "build-python/{wheel_tag}"
 wheel.packages = ["python/dedekind"]
+# Scope the editable / wheel install to the nanobind extension target
+# only.  CMake's dependency graph still pulls in the layer libraries
+# transitively (_dedekind → dedekind_python → … → dedekind_category),
+# so the link is correct.  Skipped: 13 test executables (each linking
+# Catch2 + multiple layer static libs) plus the IR-fixture target.
+# That's where ~5–10 minutes of CI wall time go on every Python-touch
+# run.  Closes #426.  `make test` continues to invoke `cmake --build`
+# directly with the full target set, so the test suite is untouched.
+build.targets = ["_dedekind"]
 
 [tool.scikit-build.cmake.define]
 DEDEKIND_BUILD_PYTHON_BINDINGS = "ON"
