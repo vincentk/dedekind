@@ -56,17 +56,28 @@ using FiniteBooleanSetOf = dedekind::sets::FiniteBooleanSet<L>;
 
 /** @section Canonical_Species_Spine
  *
- * The canonical Boolean species 𝔹 = (bool, ⊕, ∧, 0, 1) under its
- * Galois-field-𝔽₂ reading.  Acts as the base of the embedding chain
- * 𝔹 ↪ ℕ ↪ ℤ ↪ ℚ ↪ ℝ ↪ ℂ.
+ * The canonical Boolean species symbol @c 𝔹.  In this partition
+ * @c 𝔹 is the @b predicate-set (an alias of @c FiniteBooleanSetOf<>)
+ * with @c Domain @c = @c bool; the underlying carrier is
+ * @c bool itself, on which the algebraic structures live ---
+ * @c (bool, @c ⊕, @c ∧, @c 0, @c 1) is the Galois field 𝔽₂, and
+ * @c (bool, @c ∨, @c ∧) is the canonical Boolean rig.  The
+ * carrier-vs-predicate-set distinction parallels the upper tower
+ * (@c ℚ migrated to a carrier alias in this PR; @c ℕ / @c ℤ / @c ℝ /
+ * @c ℂ / @c 𝔻 are tracked under \#399 for the same migration).
+ *
+ * Acts as the base of the embedding chain
+ * @c 𝔹 @c ↪ @c ℕ @c ↪ @c ℤ @c ↪ @c ℚ @c ↪ @c ℝ @c ↪ @c ℂ.
  */
 
-/** @brief The canonical Boolean species 𝔹, alias of @c FiniteBooleanSetOf<>.
+/** @brief The canonical Boolean species symbol 𝔹, alias of
+ *         @c FiniteBooleanSetOf<> (the predicate-set type with
+ *         @c Domain @c = @c bool).
  *
- *  @details No single-letter ASCII value-level constant is exported (the
- *  letter @c B collides too widely with matrix-algebra local-variable
- *  conventions in downstream test files); callers that want the
- *  @b universal Boolean set construct it explicitly as
+ *  @details No single-letter ASCII value-level constant is exported
+ *  (the letter @c B collides too widely with matrix-algebra local-
+ *  variable conventions in downstream test files); callers that want
+ *  the @b universal Boolean set construct it explicitly as
  *  @c 𝔹{ClassicalLogic::True, ClassicalLogic::True}, and the @b empty
  *  Boolean set is @c 𝔹{} (default-constructed).
  */

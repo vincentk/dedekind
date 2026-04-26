@@ -975,7 +975,7 @@ the reference implementation on the exact side.}
 
 \vspace{0.3em}
 \begin{flushleft}
-{\footnotesize \textsuperscript{a} \lstinline|HasRingOperators| holds (literal $+$, binary $-$, unary $-$, $*$ all close on the carrier); the strict \lstinline|IsRing| bundle refuses, since signed-overflow UB defeats the periodicity axiom (math-wins-over-C++). Total alternatives: \lstinline|SignedCardinality| (saturating), \lstinline|SignedExtensionalCardinal<>| (cyclic), or the \lstinline|:partial| Maybe-monad chain for honest fail-on-overflow.}
+{\footnotesize \textsuperscript{a} \lstinline|HasRingOperators| holds (literal $+$, binary $-$, unary $-$, $*$ all close on the carrier); the strict \lstinline|IsRing| bundle refuses because signed-overflow UB makes the operation partial, which doesn't satisfy any of the \lstinline|IsTotal| paths (\lstinline|IsPeriodic| / \lstinline|IsIdempotent| / \lstinline|IsSaturating|) the totality gate admits (math-wins-over-C++). Total alternatives: \lstinline|SignedCardinality| (saturating), \lstinline|SignedExtensionalCardinal<>| (cyclic), or the \lstinline|:partial| Maybe-monad chain for honest fail-on-overflow.}
 \end{flushleft}
 \end{table}
 
@@ -1059,7 +1059,7 @@ marks not-currently-asserted.}
 {\footnotesize
 \begin{tabular}{@{}l p{0.85\textwidth}@{}}
 \textsuperscript{a} & integer promotion lifts the result of literal \lstinline|+| / \lstinline|*| to \lstinline|int|; the functor surface returns \lstinline|T| by signature. \\
-\textsuperscript{b} & signed-overflow UB defeats the modular-wrap axiom; the categorical \lstinline|IsRing| chain breaks at the periodicity step. \\
+\textsuperscript{b} & signed-overflow UB means the carrier admits no \lstinline|IsTotal| label (it is neither periodic, nor idempotent, nor saturating); the categorical \lstinline|IsRing| chain --- which composes \lstinline|IsTotal| --- therefore breaks for this carrier. \\
 \textsuperscript{c} & \lstinline|bool|'s ring structure lives over $(\oplus, \wedge)$, not $(+, *)$; \lstinline|IsArithmeticRing|, which fixes \lstinline|(std::plus, std::multiplies)|, asks the wrong question for this carrier. \\
 \textsuperscript{d} & operational under the active numeric policy: \lstinline|IsFieldLikeScalar| is the operational variant, the categorical proof is intentionally not specialised. \\
 \textsuperscript{e} & vectors have no internal product \lstinline|Vec2V $\times$ Vec2V $\to$ Vec2V|, only scalar multiplication; the shape concept correctly refuses. \\

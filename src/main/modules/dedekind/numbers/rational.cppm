@@ -332,11 +332,14 @@ struct RationalsOf {
   }
 };
 
-/** @brief The predicate-set carrier for the rational numbers (the
+/** @brief Internal predicate-set type for the rational numbers (the
  *         IsSet anchor; categorical set object).  See @c ℚ below for
  *         the algebraic carrier (the @c Rational<...> field type).
+ *         Not @c export-ed --- the API boundary is crystal clear:
+ *         @c ℚ is the field, @c RationalSet is the implementation
+ *         detail underlying the value-level constant @c Q.
  */
-export using RationalSet = RationalsOf<>;
+using RationalSet = RationalsOf<>;
 
 /** @brief The canonical rational-number field ℚ, as the carrier type
  *         (default-instantiated @c Rational<default_integer>).
@@ -348,12 +351,26 @@ export using RationalSet = RationalsOf<>;
  *  = @c var<ℚ>, etc.
  *
  *  @note  The strict @c category::IsField<ℚ, std::plus<ℚ>,
- *  std::multiplies<ℚ>> is @b not currently certified --- the
- *  species-trait registry isn't specialised on @c Rational under the
- *  active numeric policy (see the @c FIXME(\#379) breadcrumb at the
- *  Field_ℚ definition in @c :integer).  The operational
+ *  std::multiplies<ℚ>> is @b not currently certified.  Two distinct
+ *  blocks compose:
+ *
+ *  1. @b IsTotal @b gate (architectural).  The strict ring/field
+ *     ladder requires @c IsMagma, which requires @c IsTotal<T, Op>
+ *     @c = @c IsPeriodic @c || @c IsIdempotent @c || @c IsSaturating.
+ *     Exact carriers like @c Rational<...> are none of those (no
+ *     wrap, no idempotence, no saturation), so the strict ladder is
+ *     blocked at the totality step regardless of invertibility
+ *     specialisations.  An "exact" or "infinite-domain-total"
+ *     fourth path on @c IsTotal would be required.
+ *  2. @b Species-trait specialisations (incremental).  Even with
+ *     IsTotal lifted, the @c is_invertible_v / @c inverse_trait
+ *     registrations would still be missing on @c Rational under the
+ *     active numeric policy.
+ *
+ *  See the @c FIXME(\#379) breadcrumb at the Field_ℚ definition in
+ *  @c :integer.  Until both blocks lift, the operational
  *  @c algebra::IsFieldLikeScalar<ℚ> is the load-bearing field-
- *  arithmetic guarantee today.
+ *  arithmetic guarantee.
  */
 export template <IsInteger I = default_integer>
 using ℚ_t = Rational<I>;

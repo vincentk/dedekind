@@ -246,17 +246,26 @@ concept Group_ℤ =
  * @note FIXME(#379): the field-side requirement is expressed via
  * @c dedekind::algebra::IsFieldLikeScalar (an operational shape), not
  * via the strict @c dedekind::category::IsField that shipped in #375
- * (closed 2026-04-24).  The actual current blocker is that
- * @c category::IsField<Rational<...>, std::plus, std::multiplies>
- * does not fire on @c Rational<...> under the active numeric policy
- * --- the species-trait registry isn't specialised
- * (@c is_invertible_v<Rational<...>, std::multiplies>, etc.), not
- * the absence of @c IsField.  Surgery candidate: specialise the
- * species traits on the @c Rational carrier so this concept can
- * retarget to @c category::IsField directly.  Until then, carriers
- * that pass @c Field_ℚ are guaranteed the @b arithmetic of a field
- * but not every law mechanically --- the species-trait registry
- * supplies the laws separately.
+ * (closed 2026-04-24).  Two distinct blocks compose into the actual
+ * current blocker:
+ *
+ * 1. @b IsTotal @b gate.  The strict ring/field ladder requires
+ *    @c IsMagma, which requires @c IsTotal<T, Op> @c = @c IsPeriodic
+ *    @c || @c IsIdempotent @c || @c IsSaturating (per
+ *    @c category:species).  Exact carriers like @c Rational<...> /
+ *    @c ExactReal<> are none of those (no wrap, no idempotence, no
+ *    saturation), so the strict ladder is architecturally blocked at
+ *    the totality step regardless of invertibility traits.  Lifting
+ *    this would require a new @c IsTotal certification path for
+ *    exact carriers (e.g.\ "infinite-domain-total" or "exact").
+ * 2. @b Species-trait specialisations.  Even with @c IsTotal lifted,
+ *    the @c is_invertible_v<Rational<...>, std::multiplies> /
+ *    @c inverse_trait specialisations would still be missing on the
+ *    exact carriers under the active numeric policy.
+ *
+ * Until both blocks lift, carriers that pass @c Field_ℚ are
+ * guaranteed the @b arithmetic of a field via @c IsFieldLikeScalar
+ * but not every law mechanically.
  */
 export template <typename Q, typename Z = int>
 concept Field_ℚ = IsRational<Q, Z> && dedekind::algebra::IsFieldLikeScalar<Q>;
@@ -269,8 +278,10 @@ concept Field_ℚ = IsRational<Q, Z> && dedekind::algebra::IsFieldLikeScalar<Q>;
  * the operational field-like arithmetic discipline.
  *
  * @see FIXME(#379): same retargeting story as @ref Field_ℚ ---
- * @c category::IsField now exists (#375), but the species-trait
- * specialisations on the carriers are the actual current block.
+ * @c category::IsField exists (#375), but BOTH the @c IsTotal gate
+ * (which currently admits only periodic/idempotent/saturating ops,
+ * blocking exact carriers like @c ExactReal<>) AND the species-trait
+ * specialisations would need lifting.
  */
 export template <typename T>
 concept Continuum_ℝ =
@@ -281,8 +292,10 @@ concept Continuum_ℝ =
  * @brief ℂ as an algebra over an underlying real-like field @c R.
  *
  * @see FIXME(#379): same retargeting story as @ref Field_ℚ ---
- * @c category::IsField now exists (#375), but the species-trait
- * specialisations on the carriers are the actual current block.
+ * @c category::IsField exists (#375), but BOTH the @c IsTotal gate
+ * (which currently admits only periodic/idempotent/saturating ops,
+ * blocking exact carriers like @c Complex<ExactReal<>>) AND the
+ * species-trait specialisations would need lifting.
  */
 export template <typename C, typename R>
 concept Algebra_ℂ = IsComplex<C, R> && dedekind::algebra::IsFieldLikeScalar<C>;

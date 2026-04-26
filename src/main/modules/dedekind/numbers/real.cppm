@@ -400,7 +400,12 @@ static_assert(dedekind::algebra::IsFieldLikeScalar<ExactReal<>>,
  * (3) Semantics: @c IsDedekindComplete<ExactReal<>> (above) is the
  *     defining ℝ axiom; @c IsFieldLikeScalar<ExactReal<>> is the
  *     operational field witness (Pattern-(b) per #394).  Strict
- *     @c IsField is gated by the same species-trait FIXME as ℚ.
+ *     @c IsField is blocked by two distinct issues: the
+ *     architectural @c IsTotal gate (currently periodic/idempotent/
+ *     saturating only --- exact carriers are none of those) and the
+ *     species-trait specialisations on @c Rational / @c ExactReal
+ *     under the active numeric policy.  See the @c FIXME(\#379) at
+ *     the @c Field_ℚ definition in @c :integer for the full chain.
  * (4) Primitive-type arrow: ℝ ↔ @c double is the open #398 work
  *     (explicit @c embed_double / @c realize_to_double morphisms).
  *     The current trivial direction is @c Real<double>{x} for the

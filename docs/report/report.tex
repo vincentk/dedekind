@@ -3116,8 +3116,14 @@ that rejects signed \texttt{int} (UB on overflow) and admits the certified
 carriers. \texttt{Field\_$\mathbb{Q}$}, \texttt{Continuum\_$\mathbb{R}$},
 \texttt{Algebra\_$\mathbb{C}$} are the analogous bundles for $\mathbb{Q}$,
 $\mathbb{R}$, $\mathbb{C}$; their field-side clauses still bind to
-\texttt{algebra::IsFieldLikeScalar} pending species-trait specialisation on
-the relevant carriers (FIXME(\#379) breadcrumbs in source).
+\texttt{algebra::IsFieldLikeScalar} rather than the strict
+\texttt{category::IsField} bundle. The block is two-fold: (i)
+the species-trait registry is not specialised on \texttt{Rational} /
+\texttt{Real} / \texttt{Complex}, and (ii) the strict \texttt{category::IsField}
+chain composes \texttt{IsTotal}, which currently admits only
+periodic, idempotent, or saturating operators --- the genuinely-infinite
+field arithmetic on $\mathbb{Q}$ / $\mathbb{R}$ / $\mathbb{C}$ matches none
+of those three labels (FIXME(\#379) breadcrumbs in source).
 
 \paragraph{Embeddings.} \texttt{embed\_signed\_integral<Z>(v)} injects a
 \texttt{std::signed\_integral} value into a certified \texttt{IsInteger}
@@ -3165,10 +3171,14 @@ $\mathbb{Q}$ at the namespace level are the user-facing handles.
 \texttt{IsProduct<Rational<default\_integer>, default\_integer, default\_integer>},
 \texttt{HasCanonicalSetCCC<Rational<default\_integer>>},
 \texttt{HasFieldOperators<Rational<default\_integer>>}.
-The strict \texttt{Field\_$\mathbb{Q}$} bundle does \emph{not} fire on
-\texttt{Rational<...>} today --- the species-trait registry is not specialised
-on \texttt{Rational}; the operational \texttt{IsFieldLikeScalar} witness is
-the load-bearing field-arithmetic guarantee, and the strict-and-literal seal
+The strict \texttt{category::IsField} bundle does \emph{not} fire on
+\texttt{Rational<...>} today. The block is two-fold: (i) the species-trait
+registry is not specialised on \texttt{Rational}, and (ii) the strict
+\texttt{category::IsField} chain composes \texttt{IsTotal}, which admits
+only periodic, idempotent, or saturating operators --- $\mathbb{Q}$'s
+genuinely-infinite addition / multiplication matches none of those three.
+The operational \texttt{IsFieldLikeScalar} witness is therefore the
+load-bearing field-arithmetic guarantee, and the strict-and-literal seal
 \texttt{IsArithmeticField} is gated by the same FIXME (see
 \texttt{rational.cppm:444} for the breadcrumb).
 
