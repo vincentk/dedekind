@@ -160,8 +160,8 @@ constexpr N embed_unsigned_integral(U v) {
  * arrows @c 𝔹 ↪ ℕ ↪ ℤ that the upstream sets layer cannot reach.
  */
 
-using ::dedekind::sets::ℕ;
 using ::dedekind::sets::N;
+using ::dedekind::sets::ℕ;
 
 /** @section Formal_Verification */
 
@@ -169,10 +169,9 @@ using ::dedekind::sets::N;
 // `NaturalNumbersOf` predicate has Domain = int (with a non-negativity
 // classifier and unsigned/bool overloads), so the IsSet anchor is over
 // the int ambient.
-static_assert(
-    dedekind::category::IsSet<decltype(dedekind::category::ambient_set<int>(
-        ℕ{}))>,
-    "ℕ must be the canonical IsSet anchor.");
+static_assert(dedekind::category::IsSet<
+                  decltype(dedekind::category::ambient_set<int>(ℕ{}))>,
+              "ℕ must be the canonical IsSet anchor.");
 
 // (2) Syntax (the C++ operator surface that maps to ℕ's algebra).
 //   - HasSemiringOperators<unsigned int>: +, * close, with T{} and T{1}.
@@ -222,10 +221,8 @@ static_assert(
 //     `embed_unsigned_integral<N>(v)`.
 //   - Reverse (ℕ → unsigned): for the certified domain, project via
 //     `realize_to_size_t(sentinel)` (lives in sets:cardinality).
-static_assert(ℕ{}(0u) == ClassicalLogic::True,
-              "0 ∈ ℕ.");
-static_assert(ℕ{}(42u) == ClassicalLogic::True,
-              "42 ∈ ℕ.");
+static_assert(ℕ{}(0u) == ClassicalLogic::True, "0 ∈ ℕ.");
+static_assert(ℕ{}(42u) == ClassicalLogic::True, "42 ∈ ℕ.");
 
 // (5) Adjacent-set arrow: 𝔹 ↪ ℕ via @c embed_𝔹_ℕ above; registered
 // monic at the bottom of this partition.  The forward arrow ℕ ↪ ℤ

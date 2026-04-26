@@ -104,8 +104,8 @@ concept Is_B = std::same_as<E, bool> && requires(const M& m) {
 /** @section Formal_Verification */
 
 // (1) IsSet anchor: 𝔹 is a bona-fide set (membership morphism bool → Ω).
-static_assert(dedekind::category::IsSet<decltype(dedekind::category::
-                                                     ambient_set<bool>(𝔹{}))>,
+static_assert(dedekind::category::IsSet<
+                  decltype(dedekind::category::ambient_set<bool>(𝔹{}))>,
               "𝔹 must be the canonical IsSet anchor for bool.");
 
 // (2) Syntax (the C++ operator surface that maps to 𝔹's algebra).
@@ -134,28 +134,24 @@ static_assert(
     "𝔹 under (∨, ∧) is the canonical Boolean rig (idempotent commutative "
     "semiring; no additive inverse on the carrier).");
 static_assert(
-    dedekind::category::IsField<bool, std::bit_xor<bool>,
-                                std::bit_and<bool>>,
+    dedekind::category::IsField<bool, std::bit_xor<bool>, std::bit_and<bool>>,
     "𝔹 under (⊕, ∧) is the Galois field 𝔽₂ (the smallest non-trivial "
     "field; bool's ring structure lives over the bitwise functors, "
     "not over (+, *), per the math-wins-over-C++ stance).");
-static_assert(
-    dedekind::order::IsOrderLattice<bool>,
-    "𝔹 satisfies IsOrderLattice (the locked Boolean-ring lattice "
-    "under (bit_xor, bit_and); both halves of the bundle fire).");
+static_assert(dedekind::order::IsOrderLattice<bool>,
+              "𝔹 satisfies IsOrderLattice (the locked Boolean-ring lattice "
+              "under (bit_xor, bit_and); both halves of the bundle fire).");
 
 // (4) Primitive-type arrow:  bool ↔ 𝔹 is the trivial domain identity ---
 // bool *is* 𝔹's underlying type (Domain = bool); the universal Boolean
 // set 𝔹{True, True} accepts every bool, and the empty Boolean set
 // 𝔹{} accepts none.
-static_assert(
-    𝔹{ClassicalLogic::True, ClassicalLogic::True}(true) ==
-        ClassicalLogic::True,
-    "Universal 𝔹 contains true.");
-static_assert(
-    𝔹{ClassicalLogic::True, ClassicalLogic::True}(false) ==
-        ClassicalLogic::True,
-    "Universal 𝔹 contains false (every bool is a Boolean).");
+static_assert(𝔹{ClassicalLogic::True, ClassicalLogic::True}(true) ==
+                  ClassicalLogic::True,
+              "Universal 𝔹 contains true.");
+static_assert(𝔹{ClassicalLogic::True, ClassicalLogic::True}(false) ==
+                  ClassicalLogic::True,
+              "Universal 𝔹 contains false (every bool is a Boolean).");
 static_assert(𝔹{}(true) == ClassicalLogic::False,
               "Empty 𝔹 does not contain true.");
 static_assert(𝔹{}(false) == ClassicalLogic::False,

@@ -309,10 +309,9 @@ concept Algebra_ℂ = IsComplex<C, R> && dedekind::algebra::IsFieldLikeScalar<C>
 static_assert(dedekind::algebra::HasRingOperators<int>,
               "ℤ's machine carrier (int) closes the literal ring operator "
               "surface.");
-static_assert(
-    dedekind::algebra::HasGroupOperatorsAdd<int>,
-    "ℤ's machine carrier closes the additive-group operator surface "
-    "(+, binary -, unary -).");
+static_assert(dedekind::algebra::HasGroupOperatorsAdd<int>,
+              "ℤ's machine carrier closes the additive-group operator surface "
+              "(+, binary -, unary -).");
 static_assert(dedekind::algebra::HasSuccessorOperators<int>,
               "ℤ's machine carrier supports the successor operator "
               "surface (Peano-aligned ++, --).");
