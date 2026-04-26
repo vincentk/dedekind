@@ -439,7 +439,27 @@ export constexpr std::strong_ordering compare(const Cardinality& lhs,
 // quotient/remainder pair is the textbook construction).  This is what
 // lifts @c IsDividableChain<Cardinality> downstream in @c :completeness,
 // matching the existing claim on @c unsigned int.
+//
+// @c noexcept @b justification: the operators below dispatch through
+// @c std::get<>, which throws @c std::bad_variant_access if the variant
+// is @c valueless_by_exception.  @c std::variant becomes valueless only
+// if an alternative's move/copy ctor throws during reassignment; both
+// of @c Cardinality's alternatives are nothrow-move-constructible
+// (@c ExtensionalCardinal<> wraps a @c std::array of integral limbs;
+// @c ℵ_0 is empty), so @c Cardinality is provably never valueless and
+// the @c noexcept on these operators is sound.  The static_asserts
+// below make the guarantee explicit at compile time.
 // ---------------------------------------------------------------------------
+
+static_assert(std::is_nothrow_move_constructible_v<ExtensionalCardinal<>>,
+              "ExtensionalCardinal<> must be nothrow-move-constructible "
+              "so Cardinality is provably never valueless_by_exception "
+              "(and the noexcept on the homogeneous operators below is "
+              "sound, even though they dispatch through std::get<>).");
+static_assert(std::is_nothrow_move_constructible_v<ℵ_0>,
+              "ℵ_0 must be nothrow-move-constructible (it's empty, so "
+              "this is trivially true; pinned for the same valueless-"
+              "by-exception guarantee on Cardinality).");
 
 /** @brief Explicit @c == on @c Cardinality.  @c std::variant supplies a
  *         defaulted @c operator== inside the module's purview, but it
@@ -830,6 +850,25 @@ export struct NaZ {
 export using SignedCardinality =
     std::variant<SignedExtensionalCardinal<>, PositiveInfinity,
                  NegativeInfinity, NaZ>;
+
+// noexcept justification for SignedCardinality's operators (parallel
+// to the Cardinality block above; pinned per Copilot review on PR #425
+// to make the std::get-can't-throw guarantee compile-time explicit).
+// All four variant alternatives are nothrow-move-constructible
+// (SignedExtensionalCardinal<> wraps an integral magnitude + bool;
+// PositiveInfinity / NegativeInfinity / NaZ are empty sentinel
+// structs), so SignedCardinality is provably never valueless and the
+// noexcept on its operators (in use since PR #396) is sound.
+static_assert(std::is_nothrow_move_constructible_v<SignedExtensionalCardinal<>>,
+              "SignedExtensionalCardinal<> must be nothrow-move-"
+              "constructible so SignedCardinality is provably never "
+              "valueless_by_exception.");
+static_assert(std::is_nothrow_move_constructible_v<PositiveInfinity> &&
+                  std::is_nothrow_move_constructible_v<NegativeInfinity> &&
+                  std::is_nothrow_move_constructible_v<NaZ>,
+              "All SignedCardinality sentinel alternatives (±ℵ_0, NaZ) "
+              "must be nothrow-move-constructible (empty structs --- "
+              "trivially true; pinned for the noexcept guarantee).");
 
 namespace detail {
 constexpr bool sc_is_finite(const SignedCardinality& v) noexcept {
