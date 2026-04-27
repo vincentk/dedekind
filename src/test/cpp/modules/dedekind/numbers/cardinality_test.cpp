@@ -624,3 +624,46 @@ TEST_CASE(
     CHECK(diff == finite_signed_cardinality(-3));
   }
 }
+
+TEST_CASE(
+    "Elementwise carrier-promotion: abs as the retraction ℤ → ℕ "
+    "(closes #436)",
+    "[numbers][cardinality][carrier-lattice][elementwise]") {
+  // abs is the downward complement of the closure-forcing direction:
+  // where unary − widens ℕ → ℤ along the Grothendieck embedding,
+  // abs narrows ℤ → ℕ along the same embedding's retraction.  The
+  // result type announces the non-negativity guarantee at the type
+  // level.  See docs/design/carrier-lattice.md.
+  SECTION("Type-level: abs(SignedCardinality) returns Cardinality") {
+    const auto z = finite_signed_cardinality(-5);
+    STATIC_CHECK(std::same_as<decltype(abs(z)), Cardinality>);
+  }
+  SECTION("Positive finite: abs preserves magnitude") {
+    CHECK(abs(finite_signed_cardinality(5)) == finite_cardinality(5));
+  }
+  SECTION("Negative finite: abs folds the sign") {
+    CHECK(abs(finite_signed_cardinality(-5)) == finite_cardinality(5));
+  }
+  SECTION("Canonical zero: abs(0) == 0") {
+    CHECK(abs(finite_signed_cardinality(0)) == finite_cardinality(0));
+  }
+  SECTION("Retraction identity: abs(positive_signed_with_magnitude_n) == n") {
+    // The retraction-on-the-non-negative-fragment claim:
+    //   abs ∘ embed_ℕ_ℤ = id_ℕ
+    // witnessed without reaching into the detail::lift helper — we
+    // build a non-negative SignedCardinality directly with magnitude
+    // 7 (the embedding's image of finite_cardinality(7)) and verify
+    // abs returns to the original.
+    const auto z = finite_signed_cardinality(7);  // ≡ embed_ℕ_ℤ(7)
+    CHECK(abs(z) == finite_cardinality(7));
+  }
+  SECTION("PositiveInfinity → ℵ_0") {
+    CHECK(abs(SignedCardinality{PositiveInfinity{}}) == Cardinality{ℵ_0{}});
+  }
+  SECTION("NegativeInfinity → ℵ_0 (sign folded; magnitude escalates)") {
+    CHECK(abs(SignedCardinality{NegativeInfinity{}}) == Cardinality{ℵ_0{}});
+  }
+  SECTION("NaZ → ℵ_0 (saturating fallback for indeterminate forms)") {
+    CHECK(abs(SignedCardinality{NaZ{}}) == Cardinality{ℵ_0{}});
+  }
+}

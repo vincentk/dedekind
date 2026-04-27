@@ -1445,6 +1445,42 @@ export constexpr SignedCardinality operator-(const Cardinality& v) noexcept {
   return -detail::lift_cardinality_to_signed(v);
 }
 
+/** @brief Retraction direction: @c abs : @c ℤ @c → @c ℕ.  The math-
+ *         honest signature for absolute value: every element of
+ *         @c SignedCardinality has a non-negative magnitude, so the
+ *         result type @b is @c Cardinality (not @c
+ *         SignedCardinality), announcing the non-negativity guarantee
+ *         at the type level.
+ *
+ *  Categorically, @c abs is a @b retraction (left inverse) of the
+ *  canonical embedding @c embed_ℕ_ℤ on the non-negative fragment of
+ *  ℤ — i.e., @c abs ∘ embed_ℕ_ℤ @c = @c id_ℕ — extended by sign-
+ *  folding on the negative fragment.  This is the @b downward
+ *  complement of the closure-forcing @c -Cardinality direction
+ *  above: where unary @c - @b widens @c ℕ @c → @c ℤ along the
+ *  Grothendieck embedding, @c abs @b narrows @c ℤ @c → @c ℕ along
+ *  the same embedding's retraction.  Closes #436.
+ *
+ *  Sentinel handling:
+ *    * @c finite_signed_cardinality(n) (any sign) → finite
+ *      Cardinality with magnitude @c |n|.
+ *    * @c PositiveInfinity → @c ℵ_0 (the bound on the magnitude
+ *      escalates to ℵ_0).
+ *    * @c NegativeInfinity → @c ℵ_0 (sign is folded; magnitude
+ *      escalates).
+ *    * @c NaZ → @c ℵ_0 by analogy with the IEEE-NaN-style propagation
+ *      that #396 chose for the saturating semantics; NaZ has no
+ *      well-defined magnitude, but the saturated answer is the
+ *      conservative bound.
+ */
+export constexpr Cardinality abs(const SignedCardinality& z) noexcept {
+  if (detail::sc_is_naz(z)) return Cardinality{ℵ_0{}};
+  if (detail::sc_is_pos_inf(z) || detail::sc_is_neg_inf(z))
+    return Cardinality{ℵ_0{}};
+  // Finite: extract the magnitude (an ExtensionalCardinal<>) directly.
+  return Cardinality{std::get<SignedExtensionalCardinal<>>(z).magnitude};
+}
+
 /** @brief Closure-forcing binary minus on @c Cardinality: well-defined
  *         as a function @c ℕ × ℕ → ℤ; ℕ isn't closed under it.  The
  *         operator's existence with the wider return type @b is the
