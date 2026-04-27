@@ -72,11 +72,24 @@ STATIC_CHECK(std::same_as<typename decltype(union_set)::Domain, SignedCardinalit
 
 The general framework — a `carrier_lattice_meet_t<T1, T2>` trait covering every pair in the lattice, including ℝ / ℂ / 𝔻 — is the scope of #362 proper, tracked as a Paper-3 blocker.
 
+## The elementwise dual: carrier-aware arithmetic
+
+The same carrier-promotion logic applies one layer down — to elementwise arithmetic between values of different carriers. Mathematically, `n + z` with `n ∈ ℕ` and `z ∈ ℤ` is just ℤ-addition (the smaller operand lifts through the embedding); `n - m` with `n, m ∈ ℕ` *is* the Grothendieck-style structure-forcing step that produces an element of ℤ. C++'s integer-promotion rules (`unsigned + signed → unsigned` and friends) are the standard library's implicit version of this same idea, but they collapse in the **wrong direction** (smaller-carrier wins, with the famous wrap-on-negative trap).
+
+Two distinct cases worth distinguishing:
+
+- **Closed cross-carrier operations** — `Cardinality + SignedCardinality → SignedCardinality`. The smaller carrier lifts through the canonical embedding and the larger carrier's operator dispatches. The result type announces the math: the sum lives in the smaller closed carrier that contains both operands.
+- **Closure-forcing operations** — `Cardinality - Cardinality → SignedCardinality`. We deliberately omit `operator-` from `Cardinality` to keep the rig honest (PR #425). The cross-carrier (or homogeneous-but-promoting) overload `n - m → ℤ` *is* the Grothendieck embedding made operational: the operator's existence at the wider carrier is the structure-forcing axiom in code, not a backstage promotion silently kept hidden.
+
+This is tracked under issue **#432** as the elementwise sibling of #362. Same staging: existential proof on the variant pair `(Cardinality, SignedCardinality)` first; generic `carrier_arithmetic_promote_t<Op, T1, T2>` trait covering the wider lattice second.
+
 ## Recommendations
 
 1. **Keep the type-level distinction.** The embedding view is the right default for a language with a strong type system; provenance is worth its ergonomic cost.
 2. **Bridge with cross-type operators where the math is unambiguous.** Comparison (PR #423, #425, #428) is the canonical example.
 3. **Extend carrier-promotion rules in binary set operations beyond the current existential proof.** The `(Cardinality, SignedCardinality)` overloads for `&` / `|` now demonstrate the design works in practice: `Set<ℕ> ∩ Set<ℤ>` tightens to `Set<ℕ>` and `Set<ℕ> ∪ Set<ℤ>` widens to `Set<ℤ>` today. The remaining follow-up (#362) is to generalise that pair-specific result into a `carrier_lattice_meet_t<T1, T2>`-style framework across the wider lattice (ℕ ⊂ ℤ ⊂ ℚ ⊂ ℝ ⊂ ℂ), so the strict-vs-relaxed dichotomy does not leak anywhere in the DSL surface.
+
+4. **Bring the same carrier-awareness to elementwise arithmetic.** Tracked under #432 as the elementwise sibling of #362. The existential-proof scope mirrors this PR's: cross-carrier `+`, `-`, `*` between `Cardinality` and `SignedCardinality` first; generic `carrier_arithmetic_promote_t<Op, T1, T2>` trait second. The closure-forcing case (`ℕ - ℕ → ℤ`) is the operational statement of the Grothendieck construction.
 
 ## Pointers
 
