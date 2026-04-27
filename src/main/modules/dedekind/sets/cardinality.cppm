@@ -1406,6 +1406,54 @@ export constexpr bool operator==(const Cardinality& lhs,
          std::partial_ordering::equivalent;
 }
 
+// ---------------------------------------------------------------------------
+// Elementwise cross-carrier arithmetic (#432; paper-3 sibling of #362)
+// ---------------------------------------------------------------------------
+//
+// The carrier-aware analog of the Set-level strength-reduction in PR
+// #431: at the @b element level, arithmetic between values of different
+// carriers should compose along the canonical embeddings, with the
+// result type announcing the smallest carrier in which the operation
+// closes.  Two distinct cases:
+//
+//  (a) @b Closed @b cross-carrier @b ops — both operands have the
+//      operator and the result lives in the larger carrier.  Mechanical
+//      promotion via @c lift_cardinality_to_signed and dispatch to
+//      @c SignedCardinality's operator.
+//
+//  (b) @b Closure-forcing @b ops — the operator is well-defined on the
+//      smaller carrier as a function into the larger, but the smaller
+//      carrier isn't @b closed under it.  The operator's @b existence
+//      with a wider return type is the @b structure-forcing @b axiom
+//      expressed in code: this is exactly the Grothendieck construction
+//      "ℤ is what one obtains by adjoining @c operator- to @c (ℕ, +)",
+//      reified at the type level.  Phrasing "ℕ has no subtraction" is
+//      the slight oversimplification we used in PR #425; the honest
+//      reading is that subtraction is well-defined on ℕ × ℕ → ℤ; ℕ just
+//      isn't closed under it.  See @c docs/design/carrier-lattice.md.
+
+/** @brief Closure-forcing unary minus on @c Cardinality: well-defined
+ *         on every natural, with codomain widened to @c
+ *         SignedCardinality.  @c -finite_cardinality(0) is canonical
+ *         zero; @c -finite_cardinality(n>0) is the negative
+ *         @c SignedCardinality with magnitude @c n; @c -ℵ_0 maps to
+ *         @c -ℵ_0 (the @c NegativeInfinity sentinel).  This is the
+ *         smallest possible elementwise statement of the Grothendieck
+ *         construction in code. */
+export constexpr SignedCardinality operator-(const Cardinality& v) noexcept {
+  if (std::holds_alternative<ℵ_0>(v)) {
+    return SignedCardinality{NegativeInfinity{}};
+  }
+  const auto& finite = std::get<ExtensionalCardinal<>>(v);
+  if (finite == ExtensionalCardinal<>{}) {
+    return SignedCardinality{};  // canonical +0 (negation of zero)
+  }
+  SignedExtensionalCardinal<> result;
+  result.magnitude = finite;
+  result.negative = true;
+  return SignedCardinality{result};
+}
+
 }  // namespace dedekind::sets
 
 // ---------------------------------------------------------------------------
