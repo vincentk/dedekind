@@ -315,8 +315,9 @@ TEST_CASE("Numbers: variant carriers ↔ std::floating_point comparison (#428)",
     const Cardinality two_to_53 = finite_cardinality(1ULL << 53);
     const Cardinality two_to_53_plus_1 = finite_cardinality((1ULL << 53) + 1);
     const double two_to_53_d = static_cast<double>(1ULL << 53);
-    CHECK(two_to_53 == two_to_53_d);          // exact at 2^53
-    CHECK_FALSE(two_to_53_plus_1 == two_to_53_d);  // 2^53+1 ≠ 2^53 (no rounding-fake)
+    CHECK(two_to_53 == two_to_53_d);  // exact at 2^53
+    CHECK_FALSE(two_to_53_plus_1 ==
+                two_to_53_d);  // 2^53+1 ≠ 2^53 (no rounding-fake)
     CHECK(two_to_53_plus_1 > two_to_53_d);
     // Non-integer rhs at integer lhs.
     CHECK(five != 5.5);
