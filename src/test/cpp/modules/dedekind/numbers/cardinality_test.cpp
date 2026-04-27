@@ -560,6 +560,10 @@ TEST_CASE(
     const auto product = finite_cardinality(5) * finite_signed_cardinality(-3);
     CHECK(product == finite_signed_cardinality(-15));
   }
+  SECTION("(-3) (ℤ) * 5 (ℕ) = -15 (ℤ); symmetric direction (commutativity)") {
+    const auto product = finite_signed_cardinality(-3) * finite_cardinality(5);
+    CHECK(product == finite_signed_cardinality(-15));
+  }
   SECTION("Cross-carrier subtraction: 5 (ℕ) - (-3) (ℤ) = 8 (ℤ)") {
     const auto diff = finite_cardinality(5) - finite_signed_cardinality(-3);
     CHECK(diff == finite_signed_cardinality(8));
@@ -593,5 +597,23 @@ TEST_CASE(
     // saturation semantics propagate it as NaZ (see PR #396).
     const auto diff = Cardinality{ℵ_0{}} - Cardinality{ℵ_0{}};
     CHECK(std::holds_alternative<NaZ>(diff));
+  }
+  // 𝔹 ↪ ℕ ↪ ℤ chain composition: bool values lift implicitly into the
+  // variant-carrier alternatives via the existing ExtensionalCardinal<>
+  // / SignedExtensionalCardinal<> integral ctors (PRs #396, #412).  The
+  // closed cross-carrier overloads here pick up the chain naturally.
+  SECTION("𝔹 + ℕ → ℕ: bool + Cardinality") {
+    const auto sum = Cardinality{true} + finite_cardinality(5);
+    CHECK(sum == finite_cardinality(6));
+  }
+  SECTION("𝔹 + ℤ → ℤ: bool + SignedCardinality (chain composition)") {
+    const auto sum = Cardinality{true} + finite_signed_cardinality(-3);
+    STATIC_CHECK(std::same_as<decltype(sum), const SignedCardinality>);
+    CHECK(sum == finite_signed_cardinality(-2));
+  }
+  SECTION("𝔹 - ℕ closure-forcing into ℤ: bool - Cardinality") {
+    const auto diff = Cardinality{false} - finite_cardinality(3);
+    STATIC_CHECK(std::same_as<decltype(diff), const SignedCardinality>);
+    CHECK(diff == finite_signed_cardinality(-3));
   }
 }

@@ -581,7 +581,10 @@ constexpr auto make_f_coalgebra(Functor&& functor, Structure&& structure) {
 // have been relocated to the @c :adjunction partition (per Pierce's
 // own structural choice — adjunctions get their own section).
 // Reachable via the @c dedekind.category umbrella import; consumers
-// can also @c import :adjunction directly when partition-scoped.
+// who used to @c import :functor directly should switch to @c
+// import :adjunction.  The project is in experimental status, so API
+// breaks at the partition-scoped layer are acceptable when the
+// structural reorganisation is cleaner.
 
 /**
  * @brief Iteratively compute a fixed point of an endomorphism.
