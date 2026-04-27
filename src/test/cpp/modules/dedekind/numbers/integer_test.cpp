@@ -1,5 +1,9 @@
 #include <catch2/catch_test_macros.hpp>
-#include <variant>
+#include <variant>  // For std::variant's operator== reached via ADL on
+                    // SignedCardinality / Cardinality (aliases of
+                    // std::variant<...>).  Without this include the
+                    // CHECK assertions below fail to find the comparison
+                    // operator — see PR #437 review thread.
 
 import dedekind.category;
 import dedekind.numbers;

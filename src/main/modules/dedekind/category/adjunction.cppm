@@ -320,11 +320,17 @@ concept IsGaloisConnection =
  *        @c C(x)) for all @c x.
  *
  *  Every Galois connection induces a closure operator via @c g ∘
- *  @c f (the round-trip on the source side).  Examples in arithmetic:
- *  @c ⌊·⌋ ∘ ι : @c ℝ → @c ℝ is the round-down-to-nearest-integer
- *  closure (idempotent and monotone but not extensive on @c ℝ;
- *  extensive holds on @c ℤ).  In the carrier lattice, @c
- *  embed_ℕ_ℤ ∘ abs : @c ℤ → @c ℤ is the absolute-value closure.
+ *  @c f (the round-trip on the source side).  Example in arithmetic:
+ *  for the ceiling/inclusion adjunction @c ⌈·⌉ ⊣ @c ι, the
+ *  source-side round-trip @c ι ∘ @c ⌈·⌉ : @c ℝ → @c ℝ is the
+ *  round-up-to-nearest-integer closure (extensive, monotone, and
+ *  idempotent on @c (ℝ, ≤)).  Dually, for the floor/inclusion
+ *  adjunction @c ι ⊣ @c ⌊·⌋, the source-side round-trip @c ⌊·⌋ ∘ @c ι :
+ *  @c ℤ → @c ℤ is a closure operator as well — indeed, the identity
+ *  on @c ℤ.  Note: @c embed_ℕ_ℤ ∘ @c abs is @b not a closure operator
+ *  because it isn't monotone on @c (ℤ, ≤) (sign-folding inverts
+ *  order on the negative fragment); the @c (embed_ℕ_ℤ, @c abs) pair
+ *  is a split mono / split epi rather than a Galois connection.
  *
  *  C++ concepts cannot quantify universally over @c P, so the
  *  three properties (idempotent / monotone / extensive) are the
