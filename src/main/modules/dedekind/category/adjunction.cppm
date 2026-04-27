@@ -240,4 +240,97 @@ constexpr auto make_adjunction(Left&& left, Right&& right, Unit&& unit,
       std::forward<Unit>(unit), std::forward<Counit>(counit)};
 }
 
+// ===========================================================================
+// Galois connections — adjunctions in posets (closes #435)
+// ===========================================================================
+//
+// When the source and target categories of an adjunction are @b
+// posets (categories where there's at most one morphism between any
+// two objects, namely the @c ≤ relation), the adjunction degenerates
+// to its simplest form: a Galois connection.  The Hom-set bijection
+// @c Hom_𝒞(F(d), c) ≅ Hom_𝒟(d, U(c)) collapses to the order-theoretic
+// equivalence
+//
+//   f(x) ≤ y  ⟺  x ≤ g(y)
+//
+// (Pierce, @c Basic @c Category @c Theory @c §2.6.)  In posets the
+// triangle identities trivialise — there's at most one arrow between
+// any two objects, so all naturality squares commute automatically;
+// the universal-property content reduces to the inequality above.
+//
+// Concrete examples in arithmetic (per the user-shared Gemini
+// conversation during PR #433):
+//   * Inclusion @c ι : ℤ ↪ ℝ; floor @c ⌊·⌋ is its right adjoint:
+//     @c ι(n) ≤ x ⟺ n ≤ ⌊x⌋.
+//   * Ceiling @c ⌈·⌉ is the left adjoint of @c ι:
+//     @c ⌈x⌉ ≤ n ⟺ x ≤ ι(n).
+//   * Addition @c +k ⊣ subtraction @c -k:
+//     @c x + k ≤ y ⟺ x ≤ y - k.
+//   * In ℕ, the right adjoint of @c +k is @b truncated @b subtraction
+//     @c y −̇ k = max(y - k, 0); see @c
+//     docs/design/carrier-lattice.md, "A road not taken: truncated
+//     subtraction" — the order-theoretic dual of the closure-forcing
+//     @c ℕ - ℕ → ℤ this codebase chose.
+//
+// Composing both directions of a Galois connection produces a @b
+// closure @b operator: @c g ∘ f is idempotent (@c g(f(g(f(x)))) =
+// @c g(f(x))), monotone, and extensive (@c x ≤ g(f(x))).  The
+// closure-operator concept below names this structural rotation.
+
+/**
+ * @concept IsGaloisConnection
+ * @brief @b Structural @b shape: @c F and @c G form a Galois
+ *        connection @c F ⊣ @c G in a posetal setting — the simplest
+ *        adjunction.  Both are monotone functions @c P → @c Q and
+ *        @c Q → @c P (poset categories with @c ≤ as the morphism
+ *        relation), and the universal-property test
+ *
+ *          f(x) ≤ y  ⟺  x ≤ g(y)
+ *
+ *        holds.  C++ concepts cannot quantify universally over @c x
+ *        and @c y, so the equivalence is the engineer's honesty
+ *        obligation; the structural shape names the @b signatures.
+ *
+ *  @b Relationship @b to @b @c HasAdjunctionShape: a Galois
+ *  connection @b is an adjunction in the simplest possible
+ *  category-theoretic setting (posets).  @c IsGaloisConnection is
+ *  the order-theoretic specialisation — it doesn't @b require the
+ *  full functor / natural-transformation machinery because in a
+ *  poset there's at most one arrow between any two objects, so the
+ *  naturality content trivialises.  Useful as a lightweight
+ *  vocabulary anchor for arithmetic-flavoured adjunctions
+ *  (floor/ceiling, addition/subtraction, etc.).
+ */
+export template <typename F, typename G, typename P, typename Q>
+concept IsGaloisConnection =
+    requires(F f, G g, P x, Q y) {
+      { f(x) } -> std::convertible_to<Q>;
+      { g(y) } -> std::convertible_to<P>;
+    };
+
+/**
+ * @concept IsClosureOperator
+ * @brief @b Structural @b shape: @c C is a closure operator on a
+ *        poset @c P — a function @c C : @c P → @c P that is
+ *        idempotent (@c C(C(x)) @c = @c C(x)), monotone (@c x @c ≤
+ *        @c y @c ⇒ @c C(x) @c ≤ @c C(y)), and extensive (@c x @c ≤
+ *        @c C(x)) for all @c x.
+ *
+ *  Every Galois connection induces a closure operator via @c g ∘
+ *  @c f (the round-trip on the source side).  Examples in arithmetic:
+ *  @c ⌊·⌋ ∘ ι : @c ℝ → @c ℝ is the round-down-to-nearest-integer
+ *  closure (idempotent and monotone but not extensive on @c ℝ;
+ *  extensive holds on @c ℤ).  In the carrier lattice, @c
+ *  embed_ℕ_ℤ ∘ abs : @c ℤ → @c ℤ is the absolute-value closure.
+ *
+ *  C++ concepts cannot quantify universally over @c P, so the
+ *  three properties (idempotent / monotone / extensive) are the
+ *  engineer's honesty obligation; the structural shape names the
+ *  @b signature only (@c P → @c P).
+ */
+export template <typename C, typename P>
+concept IsClosureOperator = requires(C c, P x) {
+  { c(x) } -> std::convertible_to<P>;
+};
+
 }  // namespace dedekind::category
