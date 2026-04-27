@@ -58,7 +58,7 @@ The user-surfaced operational case. Two reasonable answers:
 
 Option **(b)** is what the math textbooks do silently. It composes; it preserves the type-level provenance (the result of `Set<ℕ> ∩ Set<ℤ>` is correctly typed `Set<ℕ>`); it doesn't require value-level implicit conversion *between* the carriers.
 
-This codebase ships option **(b)** as an **existential proof** on the variant pair `(Cardinality, SignedCardinality)` — a hand-coded overload pair on `Set::operator&` and `Set::operator|` that demonstrates the rule operationally:
+This codebase ships option **(b)** as an **existential proof** on the variant pair `(Cardinality, SignedCardinality)` — a hand-coded pair of free-function `operator&` / `operator|` overloads in `dedekind::sets` for that mixed-carrier case. Ordinary `a & b` / `a | b` syntax finds them via ADL, which demonstrates the rule operationally:
 
 ```cpp
 // Set<ℕ> & Set<ℤ> tightens to Set<ℕ>
@@ -76,7 +76,7 @@ The general framework — a `carrier_lattice_meet_t<T1, T2>` trait covering ever
 
 1. **Keep the type-level distinction.** The embedding view is the right default for a language with a strong type system; provenance is worth its ergonomic cost.
 2. **Bridge with cross-type operators where the math is unambiguous.** Comparison (PR #423, #425, #428) is the canonical example.
-3. **Add carrier-promotion rules to binary set operations** (a follow-up PR, not yet filed). This is the operational realisation of (b) above; without it, `Set<ℕ> ∩ Set<ℤ>` doesn't compile and the strict-vs-relaxed dichotomy leaks into the DSL surface.
+3. **Extend carrier-promotion rules in binary set operations beyond the current existential proof.** The `(Cardinality, SignedCardinality)` overloads for `&` / `|` now demonstrate the design works in practice: `Set<ℕ> ∩ Set<ℤ>` tightens to `Set<ℕ>` and `Set<ℕ> ∪ Set<ℤ>` widens to `Set<ℤ>` today. The remaining follow-up (#362) is to generalise that pair-specific result into a `carrier_lattice_meet_t<T1, T2>`-style framework across the wider lattice (ℕ ⊂ ℤ ⊂ ℚ ⊂ ℝ ⊂ ℂ), so the strict-vs-relaxed dichotomy does not leak anywhere in the DSL surface.
 
 ## Pointers
 

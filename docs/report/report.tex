@@ -2222,7 +2222,7 @@ The construction follows the Feynman/Grothendieck reading: $\mathbb{Z}$ is what 
 
 The countervailing structural pull --- the production-systems drift toward a single \emph{Über-Carrier} (everything becomes \texttt{double}; everything becomes \texttt{string}) --- is described in the design doc. The carrier-strength-reduction rule (intersection tightens to the smaller carrier; union widens to the larger) is the explicit counter-pull: it spends some ergonomic budget on preserved provenance so that downstream code retains something the type system can enforce.
 
-The general framework that lets every pair $(T_1, T_2)$ in the lattice compose under set operations is tracked as a Paper-3 prerequisite (issue \#362). The current PR ships the existential proof on the variant pair $(\texttt{Cardinality}, \texttt{SignedCardinality})$ --- the load-bearing case --- as a hand-coded overload pair on $\texttt{Set::operator\&}$ and $\texttt{Set::operator|}$, locked in by unit tests covering both the type-level collapse and the runtime semantics.
+The general framework that lets every pair $(T_1, T_2)$ in the lattice compose under set operations is tracked as a Paper-3 prerequisite (issue \#362). The current PR ships the existential proof on the variant pair $(\texttt{Cardinality}, \texttt{SignedCardinality})$ --- the load-bearing case --- as a hand-coded pair of \emph{non-member} $\texttt{operator\&}$ / $\texttt{operator|}$ overloads in $\texttt{dedekind::sets}$ for the heterogeneous \texttt{Set} instantiations (found via ADL at the call site), locked in by unit tests covering both the type-level collapse and the runtime semantics.
 
 \section{Results}
 \label{sec:ieee-results}

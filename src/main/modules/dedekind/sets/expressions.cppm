@@ -285,31 +285,16 @@ constexpr auto operator&(const FiniteBooleanSet<L>& lhs,
 // load-bearing case for Paper 3's type-directed-collapse story.
 //
 // The result predicate evaluates @c lhs(v) @c && @c rhs(lift(v)) where
-// @c v has the smaller carrier's type and @c lift is the canonical ℕ
-// ↪ ℤ embedding (mirrors @c detail::lift_cardinality_to_signed in
-// @c :cardinality; inlined here so @c expressions.cppm doesn't need to
-// reach into the detail namespace cross-partition).
+// @c v has the smaller carrier's type and @c lift is @c
+// detail::lift_cardinality_to_signed from @c :cardinality (the single
+// source of truth for the variant-level ℕ ↪ ℤ embedding; cross-
+// partition reachable since @c :expressions imports @c :cardinality
+// and @c detail is a non-exported namespace inside the same module).
 //
 // Future iterations under #362 will replace this hand-coded pair with
 // a @c carrier_lattice_meet_t<T1, T2> trait and a generic overload
 // that dispatches across the full lattice.  See
 // @c docs/design/carrier-lattice.md for the design discussion.
-
-namespace detail {
-/** @brief Lift @c Cardinality into @c SignedCardinality via the
- *         canonical ℕ ↪ ℤ embedding.  Local to @c :expressions for
- *         the cross-carrier @c operator& below. */
-constexpr SignedCardinality lift_natural_to_signed(
-    const Cardinality& c) noexcept {
-  if (std::holds_alternative<ℵ_0>(c)) {
-    return SignedCardinality{PositiveInfinity{}};
-  }
-  SignedExtensionalCardinal<> result;
-  result.magnitude = std::get<ExtensionalCardinal<>>(c);
-  result.negative = false;
-  return SignedCardinality{result};
-}
-}  // namespace detail
 
 /** @brief Cross-carrier meet @c Set<Cardinality> @c & @c
  *         Set<SignedCardinality> @c → @c Set<Cardinality> (carrier
@@ -320,7 +305,7 @@ export template <typename L, typename P1, typename P2>
 constexpr auto operator&(const Set<Cardinality, L, P1>& lhs,
                          const Set<SignedCardinality, L, P2>& rhs) {
   auto predicate = [lhs, rhs](const Cardinality& v) {
-    return L::AND(lhs(v), rhs(detail::lift_natural_to_signed(v)));
+    return L::AND(lhs(v), rhs(detail::lift_cardinality_to_signed(v)));
   };
   return Set<Cardinality, L, decltype(predicate)>{predicate};
 }
@@ -335,14 +320,22 @@ constexpr auto operator&(const Set<SignedCardinality, L, P1>& lhs,
 }
 
 namespace detail {
-/** @brief Partial inverse of @c lift_natural_to_signed: project a
- *         @c SignedCardinality back to @c Cardinality when the value
- *         is non-negative and not a NaZ.  Returns the projected
- *         @c Cardinality on success; returns @c std::nullopt when
- *         @c v is negative, @c -ℵ_0, or @c NaZ — i.e. when @c v @b
- *         not in ℕ.  This is the operational shadow of "ℕ ⊂ ℤ as a
- *         partial reverse": injection ℕ ↪ ℤ has a partial inverse on
- *         the non-negative fragment of ℤ. */
+/** @brief Helpers for the partial inverse of @c
+ *         lift_cardinality_to_signed (the canonical ℕ ↪ ℤ embedding).
+ *
+ *  @c sc_is_in_natural_image(v) returns whether @c v lies in the
+ *  image of ℕ inside @c SignedCardinality — equivalently, whether
+ *  @c v is neither negative finite, @c -ℵ_0, nor @c NaZ.  When that
+ *  predicate holds, @c project_signed_to_natural(v) projects @c v
+ *  back to @c Cardinality.  Calling @c project_signed_to_natural on
+ *  values outside the image violates its precondition.
+ *
+ *  This is the operational shadow of "ℕ ⊂ ℤ as a partial reverse":
+ *  the injection ℕ ↪ ℤ has a partial inverse on the non-negative
+ *  fragment of ℤ.  @c std::optional is intentionally not used here —
+ *  the predicate-then-project split keeps the cross-carrier @c
+ *  operator| below in pure @c constexpr-friendly territory and lets
+ *  the predicate be reused on the @c Set's branching choice. */
 constexpr bool sc_is_negative_finite(const SignedCardinality& v) noexcept {
   if (!std::holds_alternative<SignedExtensionalCardinal<>>(v)) return false;
   return std::get<SignedExtensionalCardinal<>>(v).negative;
@@ -357,7 +350,7 @@ constexpr bool sc_is_in_natural_image(const SignedCardinality& v) noexcept {
 
 constexpr Cardinality project_signed_to_natural(
     const SignedCardinality& v) noexcept {
-  // Pre: @c sc_is_in_natural_image(v) holds.
+  // Pre: sc_is_in_natural_image(v) holds.
   if (std::holds_alternative<PositiveInfinity>(v)) {
     return Cardinality{ℵ_0{}};
   }

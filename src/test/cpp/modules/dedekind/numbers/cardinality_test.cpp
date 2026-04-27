@@ -309,6 +309,19 @@ TEST_CASE("Numbers: variant carriers ↔ std::floating_point comparison (#428)",
     CHECK(5.5 > five);
     CHECK(pos_inf_d == inf);
     CHECK(0.0 < inf);
+    // Precision regime: above 2^53 a double can't distinguish consecutive
+    // integers, so a naive @c static_cast<double>(lhs) @c == @c rhs path
+    // would fake equality.  The integer-domain comparator must say no.
+    const Cardinality two_to_53 = finite_cardinality(1ULL << 53);
+    const Cardinality two_to_53_plus_1 = finite_cardinality((1ULL << 53) + 1);
+    const double two_to_53_d = static_cast<double>(1ULL << 53);
+    CHECK(two_to_53 == two_to_53_d);          // exact at 2^53
+    CHECK_FALSE(two_to_53_plus_1 == two_to_53_d);  // 2^53+1 ≠ 2^53 (no rounding-fake)
+    CHECK(two_to_53_plus_1 > two_to_53_d);
+    // Non-integer rhs at integer lhs.
+    CHECK(five != 5.5);
+    CHECK(five < 5.5);
+    CHECK(five > 4.5);
   }
   SECTION("SignedCardinality vs double — full sign + sentinel matrix") {
     const auto pos_three = finite_signed_cardinality(3);
@@ -338,6 +351,20 @@ TEST_CASE("Numbers: variant carriers ↔ std::floating_point comparison (#428)",
     CHECK(2.5 < pos_three);
     CHECK(pos_inf_d == pos_inf_sc);
     CHECK(neg_inf_d == neg_inf_sc);
+    // Precision regime: same 2^53 rounding-fake guard as on the ℕ side,
+    // applied to both signs.
+    const auto two_to_53_z = finite_signed_cardinality(1LL << 53);
+    const auto neg_two_to_53_z = finite_signed_cardinality(-(1LL << 53));
+    const double two_to_53_d = static_cast<double>(1LL << 53);
+    CHECK(two_to_53_z == two_to_53_d);
+    CHECK(neg_two_to_53_z == -two_to_53_d);
+    // Non-integer rhs at integer lhs.
+    CHECK(pos_three != 3.25);
+    CHECK(pos_three < 3.25);
+    CHECK(neg_three > -3.25);
+    // Mixed sign: any positive ≠ any negative.
+    CHECK_FALSE(pos_three == -3.0);
+    CHECK(pos_three > -3.0);
   }
   SECTION("Cross-variant ℕ ↔ ℤ comparison (the canonical ℕ ⊂ ℤ embedding)") {
     const Cardinality five_n = finite_cardinality(5);
