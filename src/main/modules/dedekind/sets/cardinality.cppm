@@ -1134,6 +1134,179 @@ constexpr bool operator==(const SignedCardinality& lhs, T rhs) noexcept {
          SignedExtensionalCardinal<>{rhs};
 }
 
+// ---------------------------------------------------------------------------
+// Heterogeneous comparison: variant ↔ std::floating_point (closes #428)
+// ---------------------------------------------------------------------------
+//
+// Cross-type relational operators between the variant ℕ-/ℤ-proxy
+// carriers and built-in @c std::floating_point values.  Mirrors the
+// @c std::integral overloads above; needed for showcase callsites like
+// @c (var<ℤ> @c > @c bound<-21.0>) where @c bound<V>'s NTTP type is
+// @c double and the carrier is the variant.  Returns @c
+// std::partial_ordering throughout — a NaN @c rhs (or @c NaZ on @c
+// lhs) propagates as @c unordered, IEEE-NaN-style.
+//
+// Float extraction for the variant carriers:
+//   * @c ExtensionalCardinal<>'s @c explicit @c operator @c F() (in
+//     this same file) covers the @c Cardinality finite path.
+//   * @c SignedExtensionalCardinal<> doesn't carry an @c operator
+//     @c F(); we lift via @c (negative @c ? @c -1 @c : @c 1) @c *
+//     @c static_cast<F>(magnitude) on the single-limb instantiation.
+
+namespace detail {
+/** @brief Convert the SignedCardinality finite fragment to a
+ *         floating-point value (single-limb only by virtue of the
+ *         underlying @c ExtensionalCardinal<>'s @c operator @c F()
+ *         constraint). */
+template <std::floating_point F>
+constexpr F sc_finite_to_floating(const SignedExtensionalCardinal<>& z) noexcept {
+  const F mag = static_cast<F>(z.magnitude);
+  return z.negative ? -mag : mag;
+}
+}  // namespace detail
+
+/** @brief @c Cardinality @c <=> @c std::floating_point.  @c ℵ_0 is
+ *         greater than every finite double (and equivalent to
+ *         @c +inf); negative finite floats and @c -inf land strictly
+ *         below the ℕ proxy.  A @c NaN @c rhs returns
+ *         @c std::partial_ordering::unordered. */
+export template <std::floating_point F>
+constexpr std::partial_ordering operator<=>(const Cardinality& lhs,
+                                            F rhs) noexcept {
+  // NaN propagates as unordered.
+  if (rhs != rhs) return std::partial_ordering::unordered;
+  if (std::holds_alternative<ℵ_0>(lhs)) {
+    // +inf is the only finite-double equivalent of ℵ_0.
+    if (rhs == std::numeric_limits<F>::infinity())
+      return std::partial_ordering::equivalent;
+    return std::partial_ordering::greater;
+  }
+  if (rhs == -std::numeric_limits<F>::infinity())
+    return std::partial_ordering::greater;
+  if (rhs == std::numeric_limits<F>::infinity())
+    return std::partial_ordering::less;
+  if (rhs < F{0}) return std::partial_ordering::greater;  // ℕ ≥ 0 > rhs
+  const F lhs_value = static_cast<F>(std::get<ExtensionalCardinal<>>(lhs));
+  if (lhs_value < rhs) return std::partial_ordering::less;
+  if (lhs_value > rhs) return std::partial_ordering::greater;
+  return std::partial_ordering::equivalent;
+}
+
+/** @brief @c Cardinality @c == @c std::floating_point.  Equality
+ *         requires an exact finite-vs-finite match, or @c ℵ_0 vs
+ *         @c +inf.  @c NaN never equals anything. */
+export template <std::floating_point F>
+constexpr bool operator==(const Cardinality& lhs, F rhs) noexcept {
+  if (rhs != rhs) return false;  // NaN
+  if (std::holds_alternative<ℵ_0>(lhs))
+    return rhs == std::numeric_limits<F>::infinity();
+  if (rhs < F{0}) return false;
+  return static_cast<F>(std::get<ExtensionalCardinal<>>(lhs)) == rhs;
+}
+
+/** @brief @c SignedCardinality @c <=> @c std::floating_point.
+ *         @c NaZ propagates as @c unordered (mirrors compare_signed's
+ *         NaZ semantics); @c ±ℵ_0 maps to @c ±inf-equivalent;
+ *         @c NaN @c rhs returns @c unordered.  Finite-vs-finite uses
+ *         the magnitude lift @c sc_finite_to_floating. */
+export template <std::floating_point F>
+constexpr std::partial_ordering operator<=>(const SignedCardinality& lhs,
+                                            F rhs) noexcept {
+  using namespace detail;
+  if (sc_is_naz(lhs)) return std::partial_ordering::unordered;
+  if (rhs != rhs) return std::partial_ordering::unordered;  // NaN
+  if (sc_is_pos_inf(lhs)) {
+    return rhs == std::numeric_limits<F>::infinity()
+               ? std::partial_ordering::equivalent
+               : std::partial_ordering::greater;
+  }
+  if (sc_is_neg_inf(lhs)) {
+    return rhs == -std::numeric_limits<F>::infinity()
+               ? std::partial_ordering::equivalent
+               : std::partial_ordering::less;
+  }
+  if (rhs == std::numeric_limits<F>::infinity())
+    return std::partial_ordering::less;
+  if (rhs == -std::numeric_limits<F>::infinity())
+    return std::partial_ordering::greater;
+  const F lhs_value =
+      sc_finite_to_floating<F>(std::get<SignedExtensionalCardinal<>>(lhs));
+  if (lhs_value < rhs) return std::partial_ordering::less;
+  if (lhs_value > rhs) return std::partial_ordering::greater;
+  return std::partial_ordering::equivalent;
+}
+
+/** @brief @c SignedCardinality @c == @c std::floating_point.  @c NaZ /
+ *         @c NaN never equal anything; @c ±ℵ_0 equals only @c ±inf;
+ *         finite delegates through the magnitude lift. */
+export template <std::floating_point F>
+constexpr bool operator==(const SignedCardinality& lhs, F rhs) noexcept {
+  using namespace detail;
+  if (sc_is_naz(lhs)) return false;
+  if (rhs != rhs) return false;
+  if (sc_is_pos_inf(lhs)) return rhs == std::numeric_limits<F>::infinity();
+  if (sc_is_neg_inf(lhs)) return rhs == -std::numeric_limits<F>::infinity();
+  return sc_finite_to_floating<F>(
+             std::get<SignedExtensionalCardinal<>>(lhs)) == rhs;
+}
+
+// ---------------------------------------------------------------------------
+// Heterogeneous comparison: Cardinality ↔ SignedCardinality (closes #428,
+// extended scope from the user's "ℕ ⊂ ℤ should be comparable" pushback)
+// ---------------------------------------------------------------------------
+//
+// The canonical embedding @c ℕ ↪ @c ℤ is structural: every natural is an
+// integer.  At the variant level @c Cardinality (ℕ-proxy) embeds into
+// @c SignedCardinality (ℤ-proxy) via @c embed_ℕ_ℤ (in @c numbers/integer.cppm).
+// That makes @c Cardinality @c < @c SignedCardinality a well-defined
+// question; pre-#428 it didn't compile, forcing call sites to explicitly
+// lift through the embedding before comparing.
+//
+// The implementation lifts @c Cardinality on the fly to its
+// @c SignedCardinality image and routes through @c compare_signed:
+//   * @c finite Cardinality @c c → positive @c SignedExtensionalCardinal<>
+//     with @c magnitude @c = @c c, @c negative @c = @c false.
+//   * @c ℵ_0 → @c PositiveInfinity (= @c +ℵ_0).
+// Returns @c std::partial_ordering throughout — a @c NaZ on the
+// @c SignedCardinality side propagates as @c unordered.
+
+namespace detail {
+/** @brief Lift @c Cardinality into @c SignedCardinality via the canonical
+ *         ℕ ↪ ℤ embedding.  Mirrors @c embed_ℕ_ℤ in @c numbers/integer.cppm
+ *         but lives here so the cross-variant operators below can reach
+ *         it without crossing the @c sets → @c numbers module boundary. */
+constexpr SignedCardinality lift_cardinality_to_signed(
+    const Cardinality& c) noexcept {
+  if (std::holds_alternative<ℵ_0>(c)) {
+    return SignedCardinality{PositiveInfinity{}};
+  }
+  SignedExtensionalCardinal<> result;
+  result.magnitude = std::get<ExtensionalCardinal<>>(c);
+  result.negative = false;
+  return SignedCardinality{result};
+}
+}  // namespace detail
+
+/** @brief @c Cardinality @c <=> @c SignedCardinality.  Routes through
+ *         the canonical ℕ ↪ ℤ lift and @c compare_signed; @c NaZ on
+ *         the @c rhs propagates as @c unordered. */
+export constexpr std::partial_ordering operator<=>(
+    const Cardinality& lhs, const SignedCardinality& rhs) noexcept {
+  return compare_signed(detail::lift_cardinality_to_signed(lhs), rhs);
+}
+
+/** @brief @c Cardinality @c == @c SignedCardinality.  @c NaZ never
+ *         equals anything; otherwise the canonical lift settles the
+ *         comparison. */
+export constexpr bool operator==(const Cardinality& lhs,
+                                 const SignedCardinality& rhs) noexcept {
+  if (detail::sc_is_naz(rhs)) return false;
+  // The lift produces a non-negative SignedCardinality, so any negative
+  // rhs is never equal.  Otherwise compare_signed returns equivalent.
+  return compare_signed(detail::lift_cardinality_to_signed(lhs), rhs) ==
+         std::partial_ordering::equivalent;
+}
+
 }  // namespace dedekind::sets
 
 // ---------------------------------------------------------------------------

@@ -275,3 +275,79 @@ TEST_CASE("Numbers: Cardinality homogeneous operator surface (#424)",
     CHECK((inf / two) == inf);
   }
 }
+
+TEST_CASE("Numbers: variant carriers ↔ std::floating_point comparison (#428)",
+          "[numbers][cardinality][order][floating]") {
+  using std::numeric_limits;
+  const auto pos_inf_d = numeric_limits<double>::infinity();
+  const auto neg_inf_d = -numeric_limits<double>::infinity();
+  const auto nan_d = numeric_limits<double>::quiet_NaN();
+
+  SECTION("Cardinality vs double — finite, ℵ_0, ±inf, NaN, negatives") {
+    const Cardinality five = finite_cardinality(5);
+    const Cardinality inf = ℵ_0{};
+    // Finite vs finite double.
+    CHECK(five == 5.0);
+    CHECK(five > 4.5);
+    CHECK(five < 5.5);
+    // Negative double — every Cardinality > -anything.
+    CHECK(five > -1.0);
+    CHECK(five > neg_inf_d);
+    CHECK_FALSE(five == -5.0);
+    // ℵ_0 dominates every finite double; equivalent to +inf.
+    CHECK(inf > 1e308);
+    CHECK(inf == pos_inf_d);
+    CHECK(inf > neg_inf_d);
+    // NaN propagates as unordered (all comparisons false; != is true).
+    CHECK_FALSE(five < nan_d);
+    CHECK_FALSE(five > nan_d);
+    CHECK_FALSE(five == nan_d);
+    CHECK(five != nan_d);
+  }
+  SECTION("SignedCardinality vs double — full sign + sentinel matrix") {
+    const auto pos_three = finite_signed_cardinality(3);
+    const auto neg_three = finite_signed_cardinality(-3);
+    const auto pos_inf_sc = SignedCardinality{PositiveInfinity{}};
+    const auto neg_inf_sc = SignedCardinality{NegativeInfinity{}};
+    const auto naz = SignedCardinality{NaZ{}};
+    // Finite vs finite double.
+    CHECK(pos_three == 3.0);
+    CHECK(neg_three == -3.0);
+    CHECK(pos_three > 2.5);
+    CHECK(neg_three < -2.5);
+    // ±ℵ_0 maps to ±inf for the comparison.
+    CHECK(pos_inf_sc == pos_inf_d);
+    CHECK(neg_inf_sc == neg_inf_d);
+    CHECK(pos_inf_sc > 1e308);
+    CHECK(neg_inf_sc < -1e308);
+    // NaZ propagates as unordered; NaN rhs same.
+    CHECK_FALSE(naz < 0.0);
+    CHECK_FALSE(naz > 0.0);
+    CHECK_FALSE(naz == 0.0);
+    CHECK_FALSE(pos_three < nan_d);
+    CHECK_FALSE(pos_three == nan_d);
+  }
+  SECTION("Cross-variant ℕ ↔ ℤ comparison (the canonical ℕ ⊂ ℤ embedding)") {
+    const Cardinality five_n = finite_cardinality(5);
+    const Cardinality inf_n = ℵ_0{};
+    const auto five_z = finite_signed_cardinality(5);
+    const auto neg_three_z = finite_signed_cardinality(-3);
+    const auto pos_inf_z = SignedCardinality{PositiveInfinity{}};
+    const auto neg_inf_z = SignedCardinality{NegativeInfinity{}};
+    const auto naz = SignedCardinality{NaZ{}};
+    // Finite ℕ vs ℤ — the lift settles equality and ordering.
+    CHECK(five_n == five_z);
+    CHECK(five_n > neg_three_z);          // ℕ ≥ 0 > -3
+    CHECK(five_n < finite_signed_cardinality(7));
+    // ℵ_0 ↦ +ℵ_0 under the lift; equivalent to PositiveInfinity.
+    CHECK(inf_n == pos_inf_z);
+    CHECK_FALSE(inf_n > pos_inf_z);  // equivalent, not strictly greater
+    CHECK(inf_n > five_z);
+    // ℕ never below -ℵ_0.
+    CHECK(five_n > neg_inf_z);
+    // NaZ on the ℤ side propagates as unordered.
+    CHECK_FALSE(five_n < naz);
+    CHECK_FALSE(five_n > naz);
+    CHECK_FALSE(five_n == naz);
+  }
+}
