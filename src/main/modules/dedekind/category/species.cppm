@@ -123,6 +123,57 @@ template <typename T>
 struct is_commutative<T, std::bit_and<T>> : std::true_type {};
 
 /**
+ * @concept IsClosedUnder
+ * @brief @c (S, @c Op) is closed under a binary operation: @c
+ *        Op{}(s_1, @c s_2) returns a value of type @c S for any
+ *        @c S-typed operands.  The textbook closure axiom expressed
+ *        structurally — no opt-in trait needed because closure is
+ *        deducible from the operator's signature.
+ *
+ *  @b Relationship @b to @b @c IsTotal (defined further down): @c
+ *  IsTotal is the @b stronger axiomatic claim that the operation is
+ *  total as a function @c S @c × @c S @c → @c S (defined for all
+ *  inputs, achieved via one of the periodic / idempotent / saturating
+ *  paths).  @c IsClosedUnder is purely about the operator's return
+ *  type; it does @b not promise totality.  So @c IsTotal<T, @c Op>
+ *  implies @c IsClosedUnder<T, @c Op>, but not vice-versa: @c int
+ *  under @c std::plus<> satisfies @c IsClosedUnder (the operator
+ *  returns @c int) but not @c IsTotal (signed overflow is UB).  The
+ *  three concepts @c IsClosedUnder / @c IsTotal / @c IsClosureForcing
+ *  (in @c :total) are siblings:
+ *
+ *    * @c IsClosedUnder<S, @c Op> — structural: signature returns @c S.
+ *    * @c IsTotal<S, @c Op> — axiomatic: defined for all inputs AND
+ *      returns @c S.
+ *    * @c IsClosureForcing<Op, @c S, @c T> — operation is total with
+ *      a @b wider codomain @c T, and @c T is the universal recipient
+ *      (the smallest carrier closing @c Op over @c S inputs).
+ *
+ *  Used positively as a witness ("ℕ is closed under +") and
+ *  negatively in @c HasClosureForcingShape ("ℕ is @b not closed
+ *  under −, which is why @c -Cardinality returns @c
+ *  SignedCardinality").  See @c docs/design/carrier-lattice.md, the
+ *  "elementwise dual" section.
+ */
+export template <typename S, typename Op>
+concept IsClosedUnder = requires(const S& a, const S& b) {
+  { Op{}(a, b) } -> std::same_as<S>;
+};
+
+/**
+ * @concept IsClosedUnderUnary
+ * @brief Unary closure variant: @c Op{}(s) returns @c S for any
+ *        @c S-typed operand.  Cardinality has @b no @c IsClosedUnderUnary
+ *        for @c std::negate<> (negation of a positive natural would
+ *        need to land outside ℕ); that's the structural witness that
+ *        @c -Cardinality is closure-forcing rather than closed.
+ */
+export template <typename S, typename Op>
+concept IsClosedUnderUnary = requires(const S& a) {
+  { Op{}(a) } -> std::same_as<S>;
+};
+
+/**
  * @brief Trait to mark an operation as idempotent: a ∘ a = a
  **/
 export template <typename T, typename Op>

@@ -64,6 +64,7 @@ export import :action;
 // Level 2: The Bridge (Functorial Spine)
 export import :functor;
 export import :natural;
+export import :adjunction;  // Free / Forgetful pair, IsAdjunction (Pierce-style separate section)
 export import :monad;
 export import :kleisli;
 

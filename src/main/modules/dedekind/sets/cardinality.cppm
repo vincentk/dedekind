@@ -1931,4 +1931,50 @@ static_assert(IsSpecies<dedekind::sets::Cardinality>,
 static_assert(IsSpecies<dedekind::sets::SignedCardinality>,
               "SignedCardinality must be a recognised Species (post-#413).");
 
+// ---------------------------------------------------------------------------
+// Closure-forcing trait specialisations (slice of #432)
+// ---------------------------------------------------------------------------
+//
+// Engineer's honesty obligation: assert that @c SignedCardinality is
+// the @b canonical (smallest) recipient of the closure-forcing
+// operations on @c Cardinality.  Justification: @c SignedCardinality
+// is (the operational realisation of) the Grothendieck group of
+// @c (Cardinality, +); the unary and binary @c − overloads in @c
+// dedekind::sets are the universal map ℕ → Forget(ℤ) / its binary
+// shadow.  See @c docs/design/carrier-lattice.md for the textbook
+// dependency graph.
+
+template <>
+inline constexpr bool
+    is_closure_forcing_v<std::negate<>, dedekind::sets::Cardinality,
+                         dedekind::sets::SignedCardinality> = true;
+
+template <>
+inline constexpr bool
+    is_closure_forcing_v<std::minus<>, dedekind::sets::Cardinality,
+                         dedekind::sets::SignedCardinality> = true;
+
+static_assert(
+    IsClosureForcing<std::negate<>, dedekind::sets::Cardinality,
+                     dedekind::sets::SignedCardinality>,
+    "Unary @c -Cardinality is closure-forcing into @c SignedCardinality "
+    "— the Grothendieck construction at the operator level.");
+
+static_assert(
+    IsClosureForcing<std::minus<>, dedekind::sets::Cardinality,
+                     dedekind::sets::SignedCardinality>,
+    "Binary @c Cardinality - Cardinality is closure-forcing into "
+    "@c SignedCardinality — well-defined as a function ℕ × ℕ → ℤ.");
+
+// And the negative-control witness: ℕ is @b not closed under unary or
+// binary @c -, which is exactly what makes those ops closure-forcing.
+static_assert(!IsClosedUnderUnary<dedekind::sets::Cardinality, std::negate<>>,
+              "Cardinality must @b not satisfy IsClosedUnderUnary under "
+              "@c std::negate<> — that's precisely what makes unary @c - "
+              "closure-forcing.");
+static_assert(!IsClosedUnder<dedekind::sets::Cardinality, std::minus<>>,
+              "Cardinality must @b not satisfy IsClosedUnder under "
+              "@c std::minus<> — that's precisely what makes binary @c - "
+              "closure-forcing.");
+
 }  // namespace dedekind::category

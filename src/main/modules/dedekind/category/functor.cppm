@@ -575,55 +575,13 @@ constexpr auto make_f_coalgebra(Functor&& functor, Structure&& structure) {
       std::forward<Functor>(functor), std::forward<Structure>(structure)};
 }
 
-/**
- * @concept IsAdjunction
- * @brief A typed unit/counit witness relating a left and right functor.
- */
-export template <typename Left, typename Right, typename Unit, typename Counit>
-concept IsAdjunction =
-    IsFunctor<Left> && IsFunctor<Right> && IsArrow<Unit> && IsArrow<Counit> &&
-    std::same_as<typename Left::Σ_cat, typename Right::Τ_cat> &&
-    std::same_as<typename Left::Τ_cat, typename Right::Σ_cat> &&
-    std::same_as<typename Unit::Domain, typename Left::Σ_cat::Species> &&
-    std::same_as<typename Unit::Codomain,
-                 typename Right::template Shape<typename Left::template Shape<
-                     typename Left::Σ_cat::Species>>> &&
-    std::same_as<typename Counit::Domain,
-                 typename Left::template Shape<typename Right::template Shape<
-                     typename Right::Σ_cat::Species>>> &&
-    std::same_as<typename Counit::Codomain, typename Right::Σ_cat::Species>;
-
-/**
- * @brief Typed unit/counit data for an adjunction witness.
- */
-export template <typename Left, typename Right, typename Unit, typename Counit>
-  requires IsAdjunction<Left, Right, Unit, Counit>
-struct adjunction_witness {
-  using left_functor_type = Left;
-  using right_functor_type = Right;
-  using unit_type = Unit;
-  using counit_type = Counit;
-
-  Left left{};
-  Right right{};
-  Unit unit{};
-  Counit counit{};
-};
-
-/**
- * @brief Factory for adjunction witnesses.
- */
-export template <typename Left, typename Right, typename Unit, typename Counit>
-  requires IsAdjunction<std::remove_cvref_t<Left>, std::remove_cvref_t<Right>,
-                        std::remove_cvref_t<Unit>, std::remove_cvref_t<Counit>>
-constexpr auto make_adjunction(Left&& left, Right&& right, Unit&& unit,
-                               Counit&& counit) {
-  return adjunction_witness<
-      std::remove_cvref_t<Left>, std::remove_cvref_t<Right>,
-      std::remove_cvref_t<Unit>, std::remove_cvref_t<Counit>>{
-      std::forward<Left>(left), std::forward<Right>(right),
-      std::forward<Unit>(unit), std::forward<Counit>(counit)};
-}
+// IsAdjunction (the typed 4-parameter unit/counit witness),
+// adjunction_witness, make_adjunction, and the structural-shape
+// concepts HasAdjunctionShape / IsFreeFunctor / IsForgetfulFunctor
+// have been relocated to the @c :adjunction partition (per Pierce's
+// own structural choice — adjunctions get their own section).
+// Reachable via the @c dedekind.category umbrella import; consumers
+// can also @c import :adjunction directly when partition-scoped.
 
 /**
  * @brief Iteratively compute a fixed point of an endomorphism.
