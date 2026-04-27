@@ -568,4 +568,30 @@ TEST_CASE(
     const auto diff = finite_signed_cardinality(-3) - finite_cardinality(5);
     CHECK(diff == finite_signed_cardinality(-8));
   }
+  // Coverage discipline: exercise the @c ℵ_0 branch of @c
+  // lift_cardinality_to_signed, which the cross-carrier ops route
+  // through.  Without these the lift's @c std::holds_alternative<ℵ_0>
+  // path goes uncovered (caught in PR #433's first review pass).
+  SECTION("ℵ_0 (ℕ) + 5 (ℤ) = +ℵ_0 (ℤ); lift's ℵ_0 branch exercised") {
+    const auto sum = Cardinality{ℵ_0{}} + finite_signed_cardinality(5);
+    CHECK(sum == SignedCardinality{PositiveInfinity{}});
+  }
+  SECTION("ℵ_0 (ℕ) - 5 (ℤ) = +ℵ_0 (ℤ)") {
+    const auto diff = Cardinality{ℵ_0{}} - finite_signed_cardinality(5);
+    CHECK(diff == SignedCardinality{PositiveInfinity{}});
+  }
+  SECTION("ℵ_0 (ℕ) * 5 (ℤ) = +ℵ_0 (ℤ)") {
+    const auto product = Cardinality{ℵ_0{}} * finite_signed_cardinality(5);
+    CHECK(product == SignedCardinality{PositiveInfinity{}});
+  }
+  SECTION("Binary closure-forcing on ℵ_0 inputs: ℵ_0 - 5 = +ℵ_0") {
+    const auto diff = Cardinality{ℵ_0{}} - finite_cardinality(5);
+    CHECK(diff == SignedCardinality{PositiveInfinity{}});
+  }
+  SECTION("Binary closure-forcing on dual ℵ_0 inputs: ℵ_0 - ℵ_0 = NaZ") {
+    // (+ℵ_0) - (+ℵ_0) is the indeterminate form; SignedCardinality's
+    // saturation semantics propagate it as NaZ (see PR #396).
+    const auto diff = Cardinality{ℵ_0{}} - Cardinality{ℵ_0{}};
+    CHECK(std::holds_alternative<NaZ>(diff));
+  }
 }
