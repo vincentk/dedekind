@@ -193,6 +193,24 @@ struct Singleton {
     return (x == Value) ? L::True : L::False;
   }
 
+  /** @brief Heterogeneous membership query: cross-type @c == against
+   *         @c Value.  @c Singleton::Domain is the type of @c Value
+   *         (typically @c int when emitted by the post-#402 variant
+   *         branch of @c structured_and), but the variant carriers
+   *         @c Cardinality / @c SignedCardinality (and any other
+   *         cross-type-comparable @c U) need to query membership too.
+   *         Routes through the cross-type @c == landed in PR #423 /
+   *         #425.  Constrained to @c U distinct from @c Domain so the
+   *         non-template overload above wins on exact matches. */
+  template <typename U>
+    requires(!std::same_as<std::remove_cvref_t<U>, Domain>) &&
+            requires(const U& x) {
+              { x == Value } -> std::convertible_to<bool>;
+            }
+  constexpr Codomain operator()(const U& x) const {
+    return (x == Value) ? L::True : L::False;
+  }
+
   constexpr std::size_t size() const { return 1; }
 
   // Cross-logic identity: `Singleton<V, L1>` and `Singleton<V, L2>` represent

@@ -9,10 +9,12 @@ using namespace dedekind::numbers;
 using namespace dedekind::sets;
 
 TEST_CASE("Numbers: canonical starter symbols", "[numbers][starter]") {
-  // Carrier-vs-predicate-set surface (post-#401).
-  //   • ℕ is the carrier type itself: ℕ = unsigned int (machine-ℕ;
-  //     modular ring ℤ/2^N).  ExtensionalCardinal<> is the exact-ℕ
-  //     sibling (saturating to ℵ_0; see PR #396).
+  // Carrier-vs-predicate-set surface (post-#402; updates #401's reading).
+  //   • ℕ is the carrier type itself: ℕ = Cardinality (variant ℕ-proxy
+  //     = std::variant<ExtensionalCardinal<>, ℵ_0>; saturating to ℵ_0
+  //     on overflow).  Pre-#402 ℕ was the machine carrier `unsigned int`;
+  //     callers wanting that bounded reading now spell `unsigned int`
+  //     directly.
   //   • N is the value-level universal Natural predicate-set, of type
   //     NaturalNumbersOf<> (= Ω-flavoured classifier).
   //   • The relationship is NaturalNumbersOf<>::Domain = ℕ — the
@@ -43,9 +45,11 @@ TEST_CASE("Numbers: starter universes construct from ambient values",
           "[numbers][starter][sets]") {
   constexpr auto n = var<ℕ>;
   constexpr auto naturals = Set{n % N};
-  // The Set DSL routes calls through Domain = unsigned int (post-#401),
-  // so callsites pass unsigned values.  Every unsigned value is in ℕ
-  // by construction (ℕ-as-carrier).
+  // The Set DSL routes calls through Domain = Cardinality (post-#402);
+  // unsigned literals lift implicitly into the variant's finite
+  // alternative (@c ExtensionalCardinal<>{u}), so callsites passing
+  // unsigned values still resolve naturally.  Every Cardinality value
+  // is in ℕ by construction (ℕ-as-carrier).
   static_assert(naturals(7u) == Ternary::True);
   static_assert(naturals(0u) == Ternary::True);
   // Classifier reading (ℕ ⊂ ℤ via non-negativity) is preserved on direct
