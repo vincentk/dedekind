@@ -39,7 +39,7 @@ constexpr auto gt_five = Set{n % N | (n > bound<5>)};
 constexpr auto lt_three = Set{n % N | (n < bound<3>)};
 
 // Compile-time theorem: the meet IS the empty set on ℕ.
-constexpr Ø<unsigned int> empty_meet = gt_five & lt_three;
+constexpr Ø<ℕ> empty_meet = gt_five & lt_three;
 static_assert(empty_meet == Ø{});
 
 // Computability made a compile-time observable: the parent Sets carry NONE

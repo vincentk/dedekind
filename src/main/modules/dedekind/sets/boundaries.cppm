@@ -299,26 +299,32 @@ static_assert(dedekind::category::HasCanonicalSetCCC<int>,
 // reachable via direct @c N(-7) calls for paper-listing readability.
 export template <typename L = ClassicalLogic, typename C = ℵ_0>
 struct NaturalNumbersOf {
-  using Domain = unsigned int;  // Aligned to the @c ℕ carrier, post-#401.
+  using Domain =
+      dedekind::sets::Cardinality;  // Aligned to the @c ℕ carrier post-#402.
   using Codomain = typename L::Ω;
   using logic_species = L;
   using cardinality_type = C;
 
-  // Canonical signature: every unsigned value is in ℕ.
+  // Canonical signature: every Cardinality value is in ℕ (by definition).
+  constexpr typename L::Ω operator()(const Domain&) const { return L::True; }
+
+  // Classifier convenience: every unsigned-integral value lands in ℕ
+  // (it embeds via @c ExtensionalCardinal<>{u} into @c Cardinality's
+  // finite alternative).  Kept as a separate overload so callsites
+  // that pass @c unsigned literals still resolve directly without
+  // forcing the variant lift at every call site.
   template <std::unsigned_integral U>
   constexpr typename L::Ω operator()(U) const {
     return L::True;
   }
 
-  // Classifier convenience: ℕ ⊂ ℤ via non-negativity.  Reachable via direct
-  // @c N(-7) calls; the @c Set DSL routes through @c Domain @c = @c
-  // unsigned @c int, so this overload does @b not fire from
-  // @c Set{var<ℕ> @c % @c N}-flavoured callsites.
+  // Classifier convenience: ℕ ⊂ ℤ via non-negativity.  Reachable via
+  // direct @c N(-7) calls for paper-listing readability.
   constexpr typename L::Ω operator()(int x) const {
     return x >= 0 ? L::True : L::False;
   }
 
-  // Embedded bool (via @c embed_𝔹_ℕ → unsigned): landing in ℕ.
+  // Embedded bool (via @c embed_𝔹_ℕ): landing in ℕ.
   constexpr typename L::Ω operator()(bool) const { return L::True; }
 };
 
@@ -329,21 +335,28 @@ struct NaturalNumbersOf {
 // @c BooleanSet de-export pattern from #407.
 using NaturalNumbers = NaturalNumbersOf<>;
 
-/** @brief The canonical Natural-numbers carrier symbol @c ℕ = @c unsigned @c
- * int.
+/** @brief The canonical Natural-numbers carrier symbol @c ℕ = @c Cardinality.
  *
- *  @details Per #401 (carrier-type migration of the canonical species
- *  symbols).  The machine-ℕ realisation is @c unsigned @c int — a
- *  modular ring ℤ/2^wℤ where @c w @c =
- *  @c std::numeric_limits<unsigned @c int>::digits (typically 32 on
- *  current targets, but not guaranteed by the standard).  The formal
- *  "infinite number line" reading lives on @c ExtensionalCardinal<>
- *  (which saturates to ℵ₀ rather than wrapping; see PR #396).  Both
- *  carriers satisfy @c IsNatural; @c ℕ defaults to the machine flavour
- *  for showcase performance, while callers wanting the exact unbounded
- *  reading spell @c var<ExtensionalCardinal<>> directly.
+ *  @details Per #402 (math-wins-over-C++ retarget).  @c ℕ is now the
+ *  variant ℕ-proxy carrier @c Cardinality (= @c
+ *  std::variant<ExtensionalCardinal<>, ℵ_0>) — saturating to @c ℵ_0
+ *  on overflow rather than wrapping the way @c unsigned @c int (the
+ *  earlier post-#401 reading) did.  The structural advantage: the
+ *  variant honestly models ℕ (no additive inverses; rig-not-ring),
+ *  whereas @c unsigned @c int is structurally @b more than ℕ (modular
+ *  ring with additive inverses, since @c 0 @c - @c 1 wraps to
+ *  @c UINT_MAX).  Callers wanting the bounded machine carrier
+ *  explicitly spell @c unsigned @c int directly.
+ *
+ *  Witness layer: @c Cardinality carries the homogeneous operator +
+ *  trait + concept surface shipped in PR #425 (#424) — @c +, @c *,
+ *  @c /, @c %, @c <=>, @c ==; @c IsRig, @c IsCommutativeMonoid under
+ *  each op, @c HasPartialOrderOperators / @c HasTotalOrderOperators,
+ *  @c IsTotallyOrdered, @c IsDirectedSet / @c IsDirectedPoset,
+ *  @c IsDividableChain.  Subtraction is intentionally absent: ℕ × ℕ →
+ *  ℤ is the @c SignedCardinality job.
  */
-export using ℕ = unsigned int;
+export using ℕ = dedekind::sets::Cardinality;
 
 // Canonical ambient-set value used by the sets DSL tests.
 export inline constexpr NaturalNumbersOf<> N{};

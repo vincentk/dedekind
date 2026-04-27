@@ -33,7 +33,7 @@ TEST_CASE("sets:computability — HasDecidableMembership on Ø",
 
   SECTION("Intensional Set over a transfinite carrier fails the concept") {
     constexpr auto x = var<ℕ>;
-    constexpr auto s = Set{x % N | [](unsigned int v) { return v > 5u; }};
+    constexpr auto s = Set{x % N | [](const auto& v) { return v > 5u; }};
     // ℕ is transfinite → NaturalLogic picks TernaryLogic.
     STATIC_CHECK_FALSE(HasDecidableMembership<decltype(s)>);
   }
@@ -47,7 +47,7 @@ TEST_CASE("sets:computability — IsFiniteSet on Ø", "[sets][computability]") {
 
   SECTION("Intensional Set over a transfinite carrier is not finite") {
     constexpr auto x = var<ℕ>;
-    constexpr auto s = Set{x % N | [](unsigned int v) { return v > 5u; }};
+    constexpr auto s = Set{x % N | [](const auto& v) { return v > 5u; }};
     STATIC_CHECK_FALSE(IsFiniteSet<decltype(s)>);
   }
 }
@@ -61,7 +61,7 @@ TEST_CASE("sets:computability — IsCompileTimeEnumerable on Ø",
 
   SECTION("An intensional Set is neither finite nor compile-time-enumerable") {
     constexpr auto x = var<ℕ>;
-    constexpr auto s = Set{x % N | [](unsigned int v) { return v > 5u; }};
+    constexpr auto s = Set{x % N | [](const auto& v) { return v > 5u; }};
     STATIC_CHECK_FALSE(IsFiniteSet<decltype(s)>);
     STATIC_CHECK_FALSE(IsCompileTimeEnumerable<decltype(s)>);
   }
