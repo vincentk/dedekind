@@ -53,12 +53,14 @@ module;
 #include <functional>
 #include <type_traits>
 #include <utility>
+#include <variant>
 
 export module dedekind.sets:expressions;
 
 import dedekind.category;
-import :boundaries;  // For Ω, Ø
-import :mereology;   // For NaturalLogic
+import :boundaries;    // For Ω, Ø
+import :cardinality;   // For Cardinality / SignedCardinality (cross-carrier meet)
+import :mereology;     // For NaturalLogic
 
 namespace dedekind::sets {
 using namespace dedekind::category;
@@ -260,6 +262,139 @@ export template <typename L>
 constexpr auto operator&(const FiniteBooleanSet<L>& lhs,
                          const Set<bool, L, BooleanEqPredicate>& rhs) {
   return rhs & lhs;
+}
+
+// ---------------------------------------------------------------------------
+// Cross-carrier meet on the variant pair (existential proof, slice of #362)
+// ---------------------------------------------------------------------------
+//
+// When two sets are intersected and their carriers are related by the
+// canonical embedding ℕ ↪ ℤ, the result's carrier should be the @b
+// tighter of the two — the library picks the pullback along the
+// embedding.  Mathematically:
+//
+//   A ⊂ ℕ,  B ⊂ ℤ,  ℕ ↪ ℤ
+//   ⇒  A ∩ B ⊂ ℕ  (not ⊂ ℤ).
+//
+// This is the @b carrier @b strength-reduction rule: the carrier
+// "lattice" (ℕ < ℤ < ℚ < ℝ < ℂ) drives the resulting carrier of binary
+// set operations.  #362 tracks the @b general framework (any pair in
+// the lattice); the overloads below land the @b existential @b proof
+// for the variant pair (Cardinality, SignedCardinality), which is the
+// load-bearing case for Paper 3's type-directed-collapse story.
+//
+// The result predicate evaluates @c lhs(v) @c && @c rhs(lift(v)) where
+// @c v has the smaller carrier's type and @c lift is the canonical ℕ
+// ↪ ℤ embedding (mirrors @c detail::lift_cardinality_to_signed in
+// @c :cardinality; inlined here so @c expressions.cppm doesn't need to
+// reach into the detail namespace cross-partition).
+//
+// Future iterations under #362 will replace this hand-coded pair with
+// a @c carrier_lattice_meet_t<T1, T2> trait and a generic overload
+// that dispatches across the full lattice.  See
+// @c docs/design/carrier-lattice.md for the design discussion.
+
+namespace detail {
+/** @brief Lift @c Cardinality into @c SignedCardinality via the
+ *         canonical ℕ ↪ ℤ embedding.  Local to @c :expressions for
+ *         the cross-carrier @c operator& below. */
+constexpr SignedCardinality lift_natural_to_signed(
+    const Cardinality& c) noexcept {
+  if (std::holds_alternative<ℵ_0>(c)) {
+    return SignedCardinality{PositiveInfinity{}};
+  }
+  SignedExtensionalCardinal<> result;
+  result.magnitude = std::get<ExtensionalCardinal<>>(c);
+  result.negative = false;
+  return SignedCardinality{result};
+}
+}  // namespace detail
+
+/** @brief Cross-carrier meet @c Set<Cardinality> @c & @c
+ *         Set<SignedCardinality> @c → @c Set<Cardinality> (carrier
+ *         strength-reduction; closes a slice of #362).  The
+ *         intersection is contained in ℕ, so the result carrier is
+ *         @c Cardinality. */
+export template <typename L, typename P1, typename P2>
+constexpr auto operator&(const Set<Cardinality, L, P1>& lhs,
+                         const Set<SignedCardinality, L, P2>& rhs) {
+  auto predicate = [lhs, rhs](const Cardinality& v) {
+    return L::AND(lhs(v), rhs(detail::lift_natural_to_signed(v)));
+  };
+  return Set<Cardinality, L, decltype(predicate)>{predicate};
+}
+
+/** @brief Symmetric: @c Set<SignedCardinality> @c & @c
+ *         Set<Cardinality> delegates to the canonical direction.  The
+ *         result still tightens to @c Set<Cardinality>. */
+export template <typename L, typename P1, typename P2>
+constexpr auto operator&(const Set<SignedCardinality, L, P1>& lhs,
+                         const Set<Cardinality, L, P2>& rhs) {
+  return rhs & lhs;
+}
+
+namespace detail {
+/** @brief Partial inverse of @c lift_natural_to_signed: project a
+ *         @c SignedCardinality back to @c Cardinality when the value
+ *         is non-negative and not a NaZ.  Returns the projected
+ *         @c Cardinality on success; returns @c std::nullopt when
+ *         @c v is negative, @c -ℵ_0, or @c NaZ — i.e. when @c v @b
+ *         not in ℕ.  This is the operational shadow of "ℕ ⊂ ℤ as a
+ *         partial reverse": injection ℕ ↪ ℤ has a partial inverse on
+ *         the non-negative fragment of ℤ. */
+constexpr bool sc_is_negative_finite(const SignedCardinality& v) noexcept {
+  if (!std::holds_alternative<SignedExtensionalCardinal<>>(v)) return false;
+  return std::get<SignedExtensionalCardinal<>>(v).negative;
+}
+
+constexpr bool sc_is_in_natural_image(const SignedCardinality& v) noexcept {
+  if (std::holds_alternative<NaZ>(v)) return false;
+  if (std::holds_alternative<NegativeInfinity>(v)) return false;
+  if (sc_is_negative_finite(v)) return false;
+  return true;
+}
+
+constexpr Cardinality project_signed_to_natural(
+    const SignedCardinality& v) noexcept {
+  // Pre: @c sc_is_in_natural_image(v) holds.
+  if (std::holds_alternative<PositiveInfinity>(v)) {
+    return Cardinality{ℵ_0{}};
+  }
+  return Cardinality{std::get<SignedExtensionalCardinal<>>(v).magnitude};
+}
+}  // namespace detail
+
+/** @brief Cross-carrier join @c Set<Cardinality> @c | @c
+ *         Set<SignedCardinality> @c → @c Set<SignedCardinality>
+ *         (carrier widening; closes a slice of #362).  The union may
+ *         contain negative integers from the @c rhs side, so the
+ *         result carrier widens to ℤ.
+ *
+ *  Membership for @c v @c : @c ℤ:
+ *    * If @c v lives in the image of ℕ ↪ ℤ (non-negative, not @c NaZ,
+ *      not @c -ℵ_0), evaluate @c lhs on the projected ℕ value and OR
+ *      with @c rhs(v).
+ *    * Otherwise @c v is not in ℕ, so @c lhs(v) is structurally @c
+ *      false; the union reduces to @c rhs(v). */
+export template <typename L, typename P1, typename P2>
+constexpr auto operator|(const Set<Cardinality, L, P1>& lhs,
+                         const Set<SignedCardinality, L, P2>& rhs) {
+  auto predicate = [lhs, rhs](const SignedCardinality& v) {
+    if (detail::sc_is_in_natural_image(v)) {
+      return L::OR(lhs(detail::project_signed_to_natural(v)), rhs(v));
+    }
+    return rhs(v);
+  };
+  return Set<SignedCardinality, L, decltype(predicate)>{predicate};
+}
+
+/** @brief Symmetric: @c Set<SignedCardinality> @c | @c Set<Cardinality>
+ *         delegates to the canonical direction.  The result still
+ *         widens to @c Set<SignedCardinality>. */
+export template <typename L, typename P1, typename P2>
+constexpr auto operator|(const Set<SignedCardinality, L, P1>& lhs,
+                         const Set<Cardinality, L, P2>& rhs) {
+  return rhs | lhs;
 }
 
 /** @brief Convenience Alias: If S is a type, var<S> is the scout. */

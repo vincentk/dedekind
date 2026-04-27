@@ -30,6 +30,17 @@ The split is intentional: type-level distinction prevents accidental mixing (a `
 - **`<=>` and `==`** between any two carriers in the lattice that are operationally comparable (`Cardinality` ↔ `SignedCardinality`, both ↔ `std::integral`, both ↔ `std::floating_point` per #428).
 - **Constructor implicit conversion** from `std::integral` into the variant alternatives' literal-constructor surface (`ExtensionalCardinal<>{5u}`, `SignedExtensionalCardinal<>{-3}`). This is the single direction where *value* lifting is allowed without ceremony — it's the call-site convenience that lets `Set{n % N | (n > 5u)}` look the way the math reads.
 
+## The structural pull this design resists
+
+A common drift in production systems is to pick a single "uber-carrier" — typically the *largest* member of an implicit lattice — and route every value through it: every numeric quantity becomes a `double`; every boundary value becomes a `string`. This isn't a community failing or an engineering mistake; it lies in the nature of things. The collapse is the local optimum: wire-format simplicity, ergonomic uniformity, fewer template parameters at every interface, "the runtime handles it." Nothing about the daily pressure of building software pulls *toward* preserving a finer carrier distinction; everything pulls *away* from it.
+
+The structural cost is the same in every direction the collapse takes:
+
+- **Promote-everything** collapses the lattice *upward*: ℕ becomes ℤ becomes ℝ becomes the runtime float. Provenance is destroyed; the smaller carrier's invariants (non-negativity, integrality, exactness) are gone the moment a value passes through the uber-carrier. A function expecting an integer accepts the bit-pattern result of a floating-point computation.
+- **Project-everything** collapses the lattice *downward through serialisation*: ℝ becomes a `string`, then back to ℝ on the other side, with the round-trip inheriting whichever loss the parser introduces. Type information has to be reconstructed at every boundary, and the reconstruction can silently disagree with the original.
+
+The carrier-strength-reduction rule is the explicit counter-pull. Instead of *widening everything* to a common carrier, the meet operation *tightens to the smaller carrier* whenever the lattice admits it; the union widens to the larger only when the math actually requires it. Provenance is preserved at the type level; the structure-forcing step (subtraction → ℤ, division → ℚ, completion → ℝ) is named explicitly. The library spends some ergonomic budget here so that the type system has something left to enforce downstream.
+
 ## Concrete pressure point: `Set<ℕ> ∩ Set<ℤ>`
 
 The user-surfaced operational case. Two reasonable answers:
@@ -47,7 +58,19 @@ The user-surfaced operational case. Two reasonable answers:
 
 Option **(b)** is what the math textbooks do silently. It composes; it preserves the type-level provenance (the result of `Set<ℕ> ∩ Set<ℤ>` is correctly typed `Set<ℕ>`); it doesn't require value-level implicit conversion *between* the carriers.
 
-This codebase doesn't yet implement (b) — the binary set operations on the DSL currently require homogeneous carriers. Adding the carrier-promotion rule is a future PR.
+This codebase ships option **(b)** as an **existential proof** on the variant pair `(Cardinality, SignedCardinality)` — a hand-coded overload pair on `Set::operator&` and `Set::operator|` that demonstrates the rule operationally:
+
+```cpp
+// Set<ℕ> & Set<ℤ> tightens to Set<ℕ>
+const auto meet = positive_n & bounded_z;
+STATIC_CHECK(std::same_as<typename decltype(meet)::Domain, ℕ>);
+
+// Set<ℕ> | Set<ℤ> widens to Set<ℤ>  ({1} ∪ {-1} ⊂ ℤ)
+const auto union_set = one_n | neg_one_z;
+STATIC_CHECK(std::same_as<typename decltype(union_set)::Domain, SignedCardinality>);
+```
+
+The general framework — a `carrier_lattice_meet_t<T1, T2>` trait covering every pair in the lattice, including ℝ / ℂ / 𝔻 — is the scope of #362 proper, tracked as a Paper-3 blocker.
 
 ## Recommendations
 

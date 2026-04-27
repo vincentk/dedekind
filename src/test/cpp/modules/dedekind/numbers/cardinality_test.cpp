@@ -351,3 +351,77 @@ TEST_CASE("Numbers: variant carriers ↔ std::floating_point comparison (#428)",
     CHECK_FALSE(five_n == naz);
   }
 }
+
+TEST_CASE(
+    "Carrier strength-reduction: existential proof on (Cardinality, "
+    "SignedCardinality) (slice of #362)",
+    "[numbers][cardinality][carrier-lattice][order]") {
+  // The existential proof of the carrier-promotion rule on the variant
+  // pair: the load-bearing case for Paper 3's type-directed-collapse
+  // story.  See docs/design/carrier-lattice.md for the design.
+  // Mathematically:
+  //   A ⊂ ℕ,  B ⊂ ℤ,  ℕ ↪ ℤ
+  //   ⇒  A ∩ B ⊂ ℕ   (intersection tightens to the smaller carrier)
+  //   ⇒  A ∪ B ⊂ ℤ   (union widens to the larger carrier)
+  //
+  // The ℤ side is built directly on the variant carrier @c
+  // SignedCardinality (rather than @c var<ℤ> via the predicate-set
+  // alias) because the @c ℤ alias-flip to the variant lives behind
+  // #402 — see the @c FIXME breadcrumb.  Once #402 lands this test can
+  // shift to the more idiomatic @c var<ℤ> form.
+  using L = TernaryLogic;
+  SECTION("Set<ℕ> & Set<ℤ> tightens to Set<ℕ>") {
+    constexpr auto n = var<ℕ>;
+    constexpr auto positive_n = Set{n % N | (n > 5u)};     // {6, 7, 8, …} ⊂ ℕ
+    auto bounded_pred = [](const SignedCardinality& v) {
+      // {…, -1, 0, …, 10} ⊂ ℤ
+      return (v <= 10) ? L::True : L::False;
+    };
+    const Set<SignedCardinality, L, decltype(bounded_pred)> bounded_z{
+        bounded_pred};
+    const auto meet = positive_n & bounded_z;              // {6, 7, …, 10} ⊂ ℕ
+    // Type-level proof: result carrier is ℕ (Cardinality), not ℤ.
+    STATIC_CHECK(std::same_as<typename decltype(meet)::Domain, ℕ>);
+    // Members in the natural-side window are in the meet.
+    CHECK(meet(finite_cardinality(6)) == Ternary::True);
+    CHECK(meet(finite_cardinality(10)) == Ternary::True);
+    // Members of A but outside the ℤ window are excluded.
+    CHECK(meet(finite_cardinality(11)) == Ternary::False);
+    // Members below the ℕ window are excluded.
+    CHECK(meet(finite_cardinality(5)) == Ternary::False);
+  }
+  SECTION("Set<ℕ> | Set<ℤ> widens to Set<ℤ> ({1} ∪ {-1} ⊂ ℤ)") {
+    constexpr auto n = var<ℕ>;
+    constexpr auto one_n = Set{n % N | (n == 1u)};         // {1} ⊂ ℕ
+    auto neg_one_pred = [](const SignedCardinality& v) {
+      return (v == -1) ? L::True : L::False;
+    };
+    const Set<SignedCardinality, L, decltype(neg_one_pred)> neg_one_z{
+        neg_one_pred};                                     // {-1} ⊂ ℤ
+    const auto union_set = one_n | neg_one_z;              // {1, -1} ⊂ ℤ
+    // Type-level proof: result carrier widens to ℤ (SignedCardinality).
+    STATIC_CHECK(std::same_as<typename decltype(union_set)::Domain,
+                              SignedCardinality>);
+    // Both 1 (from ℕ) and -1 (from ℤ) are in the union.
+    CHECK(union_set(finite_signed_cardinality(1)) == Ternary::True);
+    CHECK(union_set(finite_signed_cardinality(-1)) == Ternary::True);
+    // Other values are excluded.
+    CHECK(union_set(finite_signed_cardinality(0)) == Ternary::False);
+    CHECK(union_set(finite_signed_cardinality(2)) == Ternary::False);
+    CHECK(union_set(finite_signed_cardinality(-2)) == Ternary::False);
+  }
+  SECTION("Symmetric direction: Set<ℤ> & Set<ℕ> still tightens to Set<ℕ>") {
+    constexpr auto n = var<ℕ>;
+    auto bounded_pred = [](const SignedCardinality& v) {
+      return (v >= -3) ? L::True : L::False;               // {-3, -2, …} ⊂ ℤ
+    };
+    const Set<SignedCardinality, L, decltype(bounded_pred)> bounded_z{
+        bounded_pred};
+    constexpr auto small_n = Set{n % N | (n < 5u)};        // {0, …, 4} ⊂ ℕ
+    const auto meet = bounded_z & small_n;                 // {0, …, 4} ⊂ ℕ
+    STATIC_CHECK(std::same_as<typename decltype(meet)::Domain, ℕ>);
+    CHECK(meet(finite_cardinality(0)) == Ternary::True);
+    CHECK(meet(finite_cardinality(4)) == Ternary::True);
+    CHECK(meet(finite_cardinality(5)) == Ternary::False);
+  }
+}
