@@ -78,6 +78,7 @@ export module dedekind.category:adjunction;
 
 import :functor;
 import :morphism;
+import :natural;  // For IsNaturalTransformation, used in unit/counit witnesses (#434)
 import :small;
 
 namespace dedekind::category {
@@ -153,22 +154,59 @@ export template <typename U, typename F>
 concept IsForgetfulFunctor = HasAdjunctionShape<F, U>;
 
 /**
+ * @concept IsUnitOfAdjunction
+ * @brief @b Structural @b shape: @c η is the unit of an adjunction
+ *        @c F ⊣ @c U — a natural transformation @c id_𝒟 ⇒ @c U ∘ @c F.
+ *
+ *  Composes the existing @c IsNaturalTransformation (in @c :natural)
+ *  with @c HasAdjunctionShape.  The triangle identities — the actual
+ *  content of the adjunction — remain universal-property territory
+ *  (engineer's honesty obligation; not deducible by the type-checker).
+ *
+ *  In carrier-lattice terms, @c η_d : @c d → @c U(F(d)) is the
+ *  canonical embedding of @c d into the underlying object of its
+ *  free construction — for example, @c η_ℕ : @c ℕ ↪ @c ℤ is the
+ *  variant-level analog of @c embed_ℕ_ℤ.  Closes #434.
+ */
+export template <typename Eta, typename F, typename U>
+concept IsUnitOfAdjunction =
+    HasAdjunctionShape<F, U> &&
+    IsNaturalTransformation<Eta, identity_functor<typename F::Σ_cat>,
+                            composite_functor<F, U>>;
+
+/**
+ * @concept IsCounitOfAdjunction
+ * @brief @b Structural @b shape: @c ε is the counit of an adjunction
+ *        @c F ⊣ @c U — a natural transformation @c F ∘ @c U ⇒
+ *        @c id_𝒞.  Dual of @c IsUnitOfAdjunction.
+ */
+export template <typename Epsilon, typename F, typename U>
+concept IsCounitOfAdjunction =
+    HasAdjunctionShape<F, U> &&
+    IsNaturalTransformation<Epsilon, composite_functor<U, F>,
+                            identity_functor<typename F::Τ_cat>>;
+
+/**
  * @concept IsAdjunction
  * @brief A typed unit/counit witness relating a left and right functor.
+ *
+ *  Tightened (#434) to require the unit and counit to be @b natural
+ *  @b transformations, not raw arrows.  Per Mac Lane (Ch. IV) /
+ *  Milewski (*Category Theory for Programmers*, Ch. on Adjunctions):
+ *  an adjunction is @b defined by natural transformations; the
+ *  earlier arrow-based form (pre-#434) was structurally under-strict.
+ *  The arrow-shape constraints on @c Unit / @c Counit are retained
+ *  via @c IsNaturalTransformation's own requirements.
+ *
+ *  The triangle identities — @c (εF) ∘ (Fη) = @c 1_F and @c (Gε) ∘
+ *  (ηG) = @c 1_G — remain universal-property territory; they're the
+ *  engineer's honesty obligation at the witness site.
  */
 export template <typename Left, typename Right, typename Unit, typename Counit>
 concept IsAdjunction =
-    IsFunctor<Left> && IsFunctor<Right> && IsArrow<Unit> && IsArrow<Counit> &&
-    std::same_as<typename Left::Σ_cat, typename Right::Τ_cat> &&
-    std::same_as<typename Left::Τ_cat, typename Right::Σ_cat> &&
-    std::same_as<typename Unit::Domain, typename Left::Σ_cat::Species> &&
-    std::same_as<typename Unit::Codomain,
-                 typename Right::template Shape<typename Left::template Shape<
-                     typename Left::Σ_cat::Species>>> &&
-    std::same_as<typename Counit::Domain,
-                 typename Left::template Shape<typename Right::template Shape<
-                     typename Right::Σ_cat::Species>>> &&
-    std::same_as<typename Counit::Codomain, typename Right::Σ_cat::Species>;
+    HasAdjunctionShape<Left, Right> &&
+    IsUnitOfAdjunction<Unit, Left, Right> &&
+    IsCounitOfAdjunction<Counit, Left, Right>;
 
 /**
  * @brief Typed unit/counit data for an adjunction witness.
