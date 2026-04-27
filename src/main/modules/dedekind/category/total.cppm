@@ -540,4 +540,87 @@ static_assert(
 // The Final Verdict:
 static_assert(!IsLattice<unsigned int, XOR, AND>,
               "Taxonomy Error: A Boolean Ring is a Ring, not a Lattice.");
+
+// ===========================================================================
+// Closure-forcing operators (concept-only vocabulary, slice of #432)
+// ===========================================================================
+//
+// Textbook reference: when an operation is well-defined on a smaller
+// carrier @c S as a function @c S @c × @c S @c → @c T (or @c S @c →
+// @c T for the unary case) but @c S itself is @b not closed under it,
+// the operation is @b closure-forcing.  The operator's existence with
+// the wider codomain @c T @b is the structure-forcing axiom expressed
+// in code, and @c T is canonically the @b smallest carrier in the
+// lattice that closes the operation — i.e., @c T @c = @c F(S) under
+// the relevant free-functor adjunction (Grothendieck construction for
+// ℕ → ℤ via @c −; field of fractions for ℤ → ℚ via @c ÷; etc.).
+//
+// See @c docs/design/carrier-lattice.md for the broader discussion
+// and the relationship to the @c :functor / @c :natural / @c :species
+// vocabularies.
+//
+// Concept-only here: structural-shape clause is deducible; the
+// universal-property clause (@c T is the @b smallest closing carrier,
+// not just @b a closing carrier) lives one layer above the type-
+// checker and is carried by the engineer's opt-in trait
+// @c is_closure_forcing_v, in the same pattern as @c
+// is_associative_v / @c is_saturating.  Concrete trait specialisations
+// live next to the carriers they pin (e.g., @c sets:cardinality for
+// the @c (Cardinality, SignedCardinality) pair).
+
+/**
+ * @concept HasClosureForcingShape
+ * @brief @b Structural shape: @c Op{} sends @c (A, A) → B (binary)
+ *        or @c A → B (unary) with @c A @c ≠ @c B.  Pure deducible
+ *        clause of @c IsClosureForcing.  The universal-property side
+ *        — that @c B is the @b smallest carrier closing @c Op over
+ *        @c A — is carried by the @c is_closure_forcing_v opt-in
+ *        trait below.
+ *
+ *  @c A @c ≠ @c B is the structural witness that something widens; if
+ *  @c A @c = @c B the operation is closed and @c IsClosureForcing
+ *  doesn't apply.
+ */
+export template <typename Op, typename A, typename B>
+concept HasClosureForcingShape =
+    !std::same_as<A, B> &&
+    (requires(const A& a) {
+      { Op{}(a) } -> std::same_as<B>;
+    } || requires(const A& a1, const A& a2) {
+      { Op{}(a1, a2) } -> std::same_as<B>;
+    });
+
+/**
+ * @brief Opt-in trait carrying the universal-property clause of
+ *        @c IsClosureForcing — the engineer's honesty obligation that
+ *        @c B is the @b canonical (smallest) carrier closing @c Op
+ *        over @c A inputs.  C++ concepts cannot quantify universally,
+ *        so this part of the witness is asserted, not deduced.
+ *        Pattern mirrors @c is_associative_v / @c is_saturating.
+ *
+ *  Specialise for each concrete @c (Op, A, B) triple where the
+ *  universal-property holds — typically next to the carrier
+ *  definitions, so the canonicality claim is visible alongside the
+ *  carrier choice.
+ */
+export template <typename Op, typename A, typename B>
+inline constexpr bool is_closure_forcing_v = false;
+
+/**
+ * @concept IsClosureForcing
+ * @brief @b Composite: structural shape + opt-in canonicality.  The
+ *        full witness that @c Op @b is the closure-forcing operator
+ *        @c A @c → @c B (or @c A @c × @c A @c → @c B), with @c B the
+ *        canonical recipient.
+ *
+ *  Operationally: @c IsClosureForcing<std::negate<>, @c Cardinality,
+ *  @c SignedCardinality> witnesses that @c -Cardinality (unary) is
+ *  the Grothendieck embedding's operator-level shadow.  Similarly
+ *  @c IsClosureForcing<std::minus<>, @c Cardinality,
+ *  @c SignedCardinality> for the binary case.
+ */
+export template <typename Op, typename A, typename B>
+concept IsClosureForcing =
+    HasClosureForcingShape<Op, A, B> && is_closure_forcing_v<Op, A, B>;
+
 }  // namespace dedekind::category

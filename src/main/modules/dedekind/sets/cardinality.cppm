@@ -1406,6 +1406,107 @@ export constexpr bool operator==(const Cardinality& lhs,
          std::partial_ordering::equivalent;
 }
 
+// ---------------------------------------------------------------------------
+// Elementwise cross-carrier arithmetic (#432; paper-3 sibling of #362)
+// ---------------------------------------------------------------------------
+//
+// The carrier-aware analog of the Set-level strength-reduction in PR
+// #431: at the @b element level, arithmetic between values of different
+// carriers should compose along the canonical embeddings, with the
+// result type announcing the smallest carrier in which the operation
+// closes.  Two distinct cases:
+//
+//  (a) @b Closed @b cross-carrier @b ops — both operands have the
+//      operator and the result lives in the larger carrier.  Mechanical
+//      promotion via @c lift_cardinality_to_signed and dispatch to
+//      @c SignedCardinality's operator.
+//
+//  (b) @b Closure-forcing @b ops — the operator is well-defined on the
+//      smaller carrier as a function into the larger, but the smaller
+//      carrier isn't @b closed under it.  The operator's @b existence
+//      with a wider return type is the @b structure-forcing @b axiom
+//      expressed in code: this is exactly the Grothendieck construction
+//      "ℤ is what one obtains by adjoining @c operator- to @c (ℕ, +)",
+//      reified at the type level.  Phrasing "ℕ has no subtraction" is
+//      the slight oversimplification we used in PR #425; the honest
+//      reading is that subtraction is well-defined on ℕ × ℕ → ℤ; ℕ just
+//      isn't closed under it.  See @c docs/design/carrier-lattice.md.
+
+/** @brief Closure-forcing unary minus on @c Cardinality: well-defined
+ *         on every natural, with codomain widened to @c
+ *         SignedCardinality.  Delegates to the canonical lift @c
+ *         detail::lift_cardinality_to_signed and @c SignedCardinality's
+ *         existing unary @c -, so canonicalisation rules (canonical
+ *         @c +0 for negation-of-zero; @c +ℵ_0 → @c -ℵ_0 sentinel
+ *         flip) flow from a single source of truth.  This is the
+ *         smallest possible elementwise statement of the Grothendieck
+ *         construction in code. */
+export constexpr SignedCardinality operator-(const Cardinality& v) noexcept {
+  return -detail::lift_cardinality_to_signed(v);
+}
+
+/** @brief Closure-forcing binary minus on @c Cardinality: well-defined
+ *         as a function @c ℕ × ℕ → ℤ; ℕ isn't closed under it.  The
+ *         operator's existence with the wider return type @b is the
+ *         Grothendieck embedding made operational at the binary level.
+ *         Routes through @c lift_cardinality_to_signed on both
+ *         operands and dispatches to @c SignedCardinality's @c -. */
+export constexpr SignedCardinality operator-(const Cardinality& a,
+                                             const Cardinality& b) noexcept {
+  return detail::lift_cardinality_to_signed(a) -
+         detail::lift_cardinality_to_signed(b);
+}
+
+/** @brief Closed cross-carrier addition: @c Cardinality @c + @c
+ *         SignedCardinality lifts the @c Cardinality through the
+ *         canonical embedding and dispatches to @c SignedCardinality's
+ *         @c +.  Closes in @c ℤ.  Carrier-promotion in the
+ *         math-correct direction (larger carrier wins). */
+export constexpr SignedCardinality operator+(
+    const Cardinality& a, const SignedCardinality& b) noexcept {
+  return detail::lift_cardinality_to_signed(a) + b;
+}
+
+/** @brief Symmetric: @c SignedCardinality @c + @c Cardinality.
+ *         Delegates to the canonical direction; addition is
+ *         commutative on ℤ. */
+export constexpr SignedCardinality operator+(const SignedCardinality& a,
+                                             const Cardinality& b) noexcept {
+  return a + detail::lift_cardinality_to_signed(b);
+}
+
+/** @brief Closure-forcing cross-carrier subtraction: @c Cardinality
+ *         @c - @c SignedCardinality.  Result is in @c ℤ — well-defined
+ *         on the @c (ℕ, ℤ) pair as a function into ℤ. */
+export constexpr SignedCardinality operator-(
+    const Cardinality& a, const SignedCardinality& b) noexcept {
+  return detail::lift_cardinality_to_signed(a) - b;
+}
+
+/** @brief Symmetric: @c SignedCardinality @c - @c Cardinality.  Lifts
+ *         @c b through the embedding; result is in @c ℤ.  Subtraction
+ *         is @b not commutative, so this is a separate overload, not
+ *         a delegation. */
+export constexpr SignedCardinality operator-(const SignedCardinality& a,
+                                             const Cardinality& b) noexcept {
+  return a - detail::lift_cardinality_to_signed(b);
+}
+
+/** @brief Closed cross-carrier multiplication: @c Cardinality @c * @c
+ *         SignedCardinality lifts and dispatches.  Closes in @c ℤ. */
+export constexpr SignedCardinality operator*(
+    const Cardinality& a, const SignedCardinality& b) noexcept {
+  return detail::lift_cardinality_to_signed(a) * b;
+}
+
+/** @brief Symmetric: @c SignedCardinality @c * @c Cardinality.
+ *         Multiplication is commutative; delegates to the canonical
+ *         direction. */
+export constexpr SignedCardinality operator*(const SignedCardinality& a,
+                                             const Cardinality& b) noexcept {
+  return a * detail::lift_cardinality_to_signed(b);
+}
+
 }  // namespace dedekind::sets
 
 // ---------------------------------------------------------------------------
@@ -1820,5 +1921,50 @@ static_assert(IsSpecies<dedekind::sets::Cardinality>,
               "Cardinality must be a recognised Species (post-#413).");
 static_assert(IsSpecies<dedekind::sets::SignedCardinality>,
               "SignedCardinality must be a recognised Species (post-#413).");
+
+// ---------------------------------------------------------------------------
+// Closure-forcing trait specialisations (slice of #432)
+// ---------------------------------------------------------------------------
+//
+// Engineer's honesty obligation: assert that @c SignedCardinality is
+// the @b canonical (smallest) recipient of the closure-forcing
+// operations on @c Cardinality.  Justification: @c SignedCardinality
+// is (the operational realisation of) the Grothendieck group of
+// @c (Cardinality, +); the unary and binary @c − overloads in @c
+// dedekind::sets are the universal map ℕ → Forget(ℤ) / its binary
+// shadow.  See @c docs/design/carrier-lattice.md for the textbook
+// dependency graph.
+
+template <>
+inline constexpr bool
+    is_closure_forcing_v<std::negate<>, dedekind::sets::Cardinality,
+                         dedekind::sets::SignedCardinality> = true;
+
+template <>
+inline constexpr bool
+    is_closure_forcing_v<std::minus<>, dedekind::sets::Cardinality,
+                         dedekind::sets::SignedCardinality> = true;
+
+static_assert(
+    IsClosureForcing<std::negate<>, dedekind::sets::Cardinality,
+                     dedekind::sets::SignedCardinality>,
+    "Unary @c -Cardinality is closure-forcing into @c SignedCardinality "
+    "— the Grothendieck construction at the operator level.");
+
+static_assert(IsClosureForcing<std::minus<>, dedekind::sets::Cardinality,
+                               dedekind::sets::SignedCardinality>,
+              "Binary @c Cardinality - Cardinality is closure-forcing into "
+              "@c SignedCardinality — well-defined as a function ℕ × ℕ → ℤ.");
+
+// And the negative-control witness: ℕ is @b not closed under unary or
+// binary @c -, which is exactly what makes those ops closure-forcing.
+static_assert(!IsClosedUnderUnary<dedekind::sets::Cardinality, std::negate<>>,
+              "Cardinality must @b not satisfy IsClosedUnderUnary under "
+              "@c std::negate<> — that's precisely what makes unary @c - "
+              "closure-forcing.");
+static_assert(!IsClosedUnder<dedekind::sets::Cardinality, std::minus<>>,
+              "Cardinality must @b not satisfy IsClosedUnder under "
+              "@c std::minus<> — that's precisely what makes binary @c - "
+              "closure-forcing.");
 
 }  // namespace dedekind::category

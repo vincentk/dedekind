@@ -106,6 +106,21 @@ Once those choices are honest, `clang++` does the rest: every `static_assert` di
 
 The Über-Carrier collapse, in this framing, is what happens when the honesty obligation is silently waived: the engineer accepts a single carrier "for ergonomic reasons" and the trait registry's claims gradually drift away from what the carrier actually supports. The carrier-strength-reduction rule is the operational counter-pull — it spends a little ergonomic budget keeping the carriers distinct so the trait registry can stay honest, and the compiler can keep doing the mechanical half of its job.
 
+## A road not taken: truncated subtraction
+
+Closure-forcing is not the only adjoint reading of `ℕ - ℕ`. An order-theoretic alternative — well-known in poset / lattice category theory — is **truncated subtraction**: `y − k = 0` if `y < k`, otherwise the usual difference. This *is* a Galois connection in `(ℕ, ≤)` (the universal property `x + k ≤ y ⟺ x ≤ y −̇ k` holds with `−̇` denoting truncated subtraction), and it keeps closure inside ℕ — at the cost of collapsing distinct deficits (`3 − 5` and `4 − 5` both become `0`).
+
+The two adjoints sit at opposite ends of a tradeoff:
+
+| Choice | Preserved | Lost |
+|---|---|---|
+| **Closure-forcing** (`ℕ - ℕ → ℤ`) | Information: `3 − 5 = −2` is the true answer | Closure: result type widens |
+| **Truncated subtraction** (`ℕ - ℕ → ℕ`) | Closure: result stays in ℕ | Information: `3 − 5 = 4 − 5 = 0` |
+
+Both are honest. This codebase chose closure-forcing because it preserves provenance — the *information* about the relative magnitude survives the operation, and the carrier announces the move into ℤ at the type level. Truncated subtraction is the right choice for a different design (e.g., "monotonic counters where deficits saturate to zero"); we don't ship it, but the design space has both options and naming the road-not-taken is the honest move.
+
+The Galois-connection viewpoint is more general than this section reflects: every step in the carrier lattice ℕ ⊂ ℤ ⊂ ℚ ⊂ ℝ ⊂ ℂ corresponds to a pair of adjoints at the order-theoretic level (in addition to the categorical adjunctions sketched above). Tracking the order-theoretic / Galois reading as a parallel framing is filed as a follow-up.
+
 ## Note on the Feynman / Grothendieck construction
 
 The "subset vs. embedding" question is the operational shadow of how ℤ is *constructed* from ℕ in the math literature. Feynman's lectures (and any standard algebra text) build ℤ as the Grothendieck group of (ℕ, +) — formally adjoining additive inverses by introducing `operator-`. The phrasing "ℕ has no subtraction" is a slight oversimplification: subtraction *is* well-defined as a function ℕ × ℕ → ℤ; ℕ simply isn't closed under it, and ℤ is what you get when you make the codomain wide enough that the operation closes.

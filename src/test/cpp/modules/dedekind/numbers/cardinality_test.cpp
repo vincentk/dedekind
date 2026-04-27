@@ -470,3 +470,157 @@ TEST_CASE(
     CHECK(meet(finite_cardinality(5)) == Ternary::False);
   }
 }
+
+TEST_CASE(
+    "Elementwise carrier-promotion: closure-forcing unary − (slice of #432)",
+    "[numbers][cardinality][carrier-lattice][elementwise]") {
+  // Unary minus IS well-defined on ℕ as a function ℕ → ℤ; ℕ simply
+  // isn't closed under it.  The operator's existence with a wider
+  // return type is the Grothendieck construction in code.  See
+  // docs/design/carrier-lattice.md, "The elementwise dual" section.
+  SECTION("Type-level: -Cardinality returns SignedCardinality") {
+    constexpr auto five_n = finite_cardinality(5);
+    STATIC_CHECK(std::same_as<decltype(-five_n), SignedCardinality>);
+  }
+  SECTION("Negation of a positive finite natural lands in the negative ℤ") {
+    const auto neg_five = -finite_cardinality(5);
+    REQUIRE(std::holds_alternative<SignedExtensionalCardinal<>>(neg_five));
+    const auto& z = std::get<SignedExtensionalCardinal<>>(neg_five);
+    CHECK(z.negative);
+    CHECK(z.magnitude == ExtensionalCardinal<>{5});
+    // Witness: -n equals the corresponding negative finite_signed_cardinality.
+    CHECK(neg_five == finite_signed_cardinality(-5));
+  }
+  SECTION("Negation of 0 is canonical +0 (no spurious -0)") {
+    const auto neg_zero = -finite_cardinality(0);
+    REQUIRE(std::holds_alternative<SignedExtensionalCardinal<>>(neg_zero));
+    const auto& z = std::get<SignedExtensionalCardinal<>>(neg_zero);
+    CHECK_FALSE(z.negative);  // canonical zero
+    CHECK(z.magnitude == ExtensionalCardinal<>{});
+    CHECK(neg_zero == finite_signed_cardinality(0));
+  }
+  SECTION("Negation of ℵ_0 maps to -ℵ_0 (NegativeInfinity sentinel)") {
+    const auto neg_inf = -Cardinality{ℵ_0{}};
+    CHECK(std::holds_alternative<NegativeInfinity>(neg_inf));
+    CHECK(neg_inf == SignedCardinality{NegativeInfinity{}});
+  }
+}
+
+TEST_CASE(
+    "Elementwise carrier-promotion: closure-forcing binary − on ℕ × ℕ → ℤ "
+    "(slice of #432)",
+    "[numbers][cardinality][carrier-lattice][elementwise]") {
+  // Subtraction IS well-defined on ℕ × ℕ → ℤ; ℕ isn't closed under it.
+  // The cross-carrier overload makes that explicit at the type level.
+  SECTION("Type-level: Cardinality - Cardinality returns SignedCardinality") {
+    constexpr auto five_n = finite_cardinality(5);
+    constexpr auto three_n = finite_cardinality(3);
+    STATIC_CHECK(std::same_as<decltype(five_n - three_n), SignedCardinality>);
+  }
+  SECTION("5 - 3 = 2 (positive in ℕ; result still typed as ℤ)") {
+    const auto diff = finite_cardinality(5) - finite_cardinality(3);
+    CHECK(diff == finite_signed_cardinality(2));
+  }
+  SECTION("3 - 5 = -2 (closure forces ℤ; ℕ would reject)") {
+    const auto diff = finite_cardinality(3) - finite_cardinality(5);
+    CHECK(diff == finite_signed_cardinality(-2));
+  }
+  SECTION("n - n = 0 for any n") {
+    const auto diff = finite_cardinality(7) - finite_cardinality(7);
+    CHECK(diff == finite_signed_cardinality(0));
+  }
+}
+
+TEST_CASE(
+    "Elementwise carrier-promotion: closed cross-carrier + and * on (ℕ, ℤ) "
+    "(slice of #432)",
+    "[numbers][cardinality][carrier-lattice][elementwise]") {
+  // Closed cross-carrier ops: both operands have the operator and the
+  // result lives in the larger carrier.  Carrier-promotion in the
+  // math-correct direction (signed wins).
+  SECTION("Type-level: Cardinality + SignedCardinality returns ℤ") {
+    constexpr auto n = finite_cardinality(5);
+    constexpr auto z = finite_signed_cardinality(-3);
+    STATIC_CHECK(std::same_as<decltype(n + z), SignedCardinality>);
+    STATIC_CHECK(std::same_as<decltype(z + n), SignedCardinality>);
+    STATIC_CHECK(std::same_as<decltype(n * z), SignedCardinality>);
+    STATIC_CHECK(std::same_as<decltype(z * n), SignedCardinality>);
+    STATIC_CHECK(std::same_as<decltype(n - z), SignedCardinality>);
+    STATIC_CHECK(std::same_as<decltype(z - n), SignedCardinality>);
+  }
+  SECTION("5 (ℕ) + (-3) (ℤ) = 2 (ℤ)") {
+    const auto sum = finite_cardinality(5) + finite_signed_cardinality(-3);
+    CHECK(sum == finite_signed_cardinality(2));
+  }
+  SECTION("(-3) (ℤ) + 5 (ℕ) = 2 (ℤ); commutativity") {
+    const auto sum = finite_signed_cardinality(-3) + finite_cardinality(5);
+    CHECK(sum == finite_signed_cardinality(2));
+  }
+  SECTION("5 (ℕ) * (-3) (ℤ) = -15 (ℤ)") {
+    const auto product = finite_cardinality(5) * finite_signed_cardinality(-3);
+    CHECK(product == finite_signed_cardinality(-15));
+  }
+  SECTION("(-3) (ℤ) * 5 (ℕ) = -15 (ℤ); symmetric direction (commutativity)") {
+    const auto product = finite_signed_cardinality(-3) * finite_cardinality(5);
+    CHECK(product == finite_signed_cardinality(-15));
+  }
+  SECTION("Cross-carrier subtraction: 5 (ℕ) - (-3) (ℤ) = 8 (ℤ)") {
+    const auto diff = finite_cardinality(5) - finite_signed_cardinality(-3);
+    CHECK(diff == finite_signed_cardinality(8));
+  }
+  SECTION("Cross-carrier subtraction: (-3) (ℤ) - 5 (ℕ) = -8 (ℤ)") {
+    const auto diff = finite_signed_cardinality(-3) - finite_cardinality(5);
+    CHECK(diff == finite_signed_cardinality(-8));
+  }
+  // Coverage discipline: exercise the @c ℵ_0 branch of @c
+  // lift_cardinality_to_signed, which the cross-carrier ops route
+  // through.  Without these the lift's @c std::holds_alternative<ℵ_0>
+  // path goes uncovered (caught in PR #433's first review pass).
+  SECTION("ℵ_0 (ℕ) + 5 (ℤ) = +ℵ_0 (ℤ); lift's ℵ_0 branch exercised") {
+    const auto sum = Cardinality{ℵ_0{}} + finite_signed_cardinality(5);
+    CHECK(sum == SignedCardinality{PositiveInfinity{}});
+  }
+  SECTION("ℵ_0 (ℕ) - 5 (ℤ) = +ℵ_0 (ℤ)") {
+    const auto diff = Cardinality{ℵ_0{}} - finite_signed_cardinality(5);
+    CHECK(diff == SignedCardinality{PositiveInfinity{}});
+  }
+  SECTION("ℵ_0 (ℕ) * 5 (ℤ) = +ℵ_0 (ℤ)") {
+    const auto product = Cardinality{ℵ_0{}} * finite_signed_cardinality(5);
+    CHECK(product == SignedCardinality{PositiveInfinity{}});
+  }
+  SECTION("Binary closure-forcing on ℵ_0 inputs: ℵ_0 - 5 = +ℵ_0") {
+    const auto diff = Cardinality{ℵ_0{}} - finite_cardinality(5);
+    CHECK(diff == SignedCardinality{PositiveInfinity{}});
+  }
+  SECTION("Binary closure-forcing on dual ℵ_0 inputs: ℵ_0 - ℵ_0 = NaZ") {
+    // (+ℵ_0) - (+ℵ_0) is the indeterminate form; SignedCardinality's
+    // saturation semantics propagate it as NaZ (see PR #396).
+    const auto diff = Cardinality{ℵ_0{}} - Cardinality{ℵ_0{}};
+    CHECK(std::holds_alternative<NaZ>(diff));
+  }
+  // 𝔹 ↪ ℕ ↪ ℤ chain composition.  Subtle but important: a @c bool
+  // value does @b not implicitly convert to @c Cardinality in a single
+  // step — the conversion would have to go via @c
+  // ExtensionalCardinal<>{bool} (the integral ctor template, PR #412)
+  // and then through @c std::variant's alternative-selection ctor, and
+  // C++ allows at most one user-defined conversion in an implicit
+  // conversion sequence.  So call sites that want to lift a @c bool
+  // into the variant ℕ-proxy spell @c Cardinality{b} explicitly; the
+  // @b chain composition the cross-carrier overloads provide is from
+  // @c Cardinality forward, not from @c bool.  These SECTIONs witness
+  // that explicit construction + the cross-carrier dispatch.
+  SECTION("Cardinality{bool} + ℕ → ℕ: explicit lift + same-carrier sum") {
+    const auto sum = Cardinality{true} + finite_cardinality(5);
+    CHECK(sum == finite_cardinality(6));
+  }
+  SECTION("Cardinality{bool} + ℤ → ℤ: explicit lift + cross-carrier sum") {
+    const auto sum = Cardinality{true} + finite_signed_cardinality(-3);
+    STATIC_CHECK(std::same_as<decltype(sum), const SignedCardinality>);
+    CHECK(sum == finite_signed_cardinality(-2));
+  }
+  SECTION("Cardinality{bool} - ℕ → ℤ: explicit lift + closure-forcing −") {
+    const auto diff = Cardinality{false} - finite_cardinality(3);
+    STATIC_CHECK(std::same_as<decltype(diff), const SignedCardinality>);
+    CHECK(diff == finite_signed_cardinality(-3));
+  }
+}
