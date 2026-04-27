@@ -85,6 +85,14 @@ The general framework — a `carrier_lattice_meet_t<T1, T2>` trait covering ever
 - Cross-type comparison ops: same `cardinality.cppm` file (the heterogeneous `<=>` / `==` overloads).
 - Witnesses: [`src/main/modules/dedekind/numbers/cardinality.cppm`](../../src/main/modules/dedekind/numbers/cardinality.cppm) (`HasPartialOrderOperatorsWith<…>` static_asserts).
 
+## The honesty obligation
+
+The carrier-lattice design is one local instance of a wider principle that runs through the project: the engineer carries the honesty obligation up front, and the compiler discharges everything that follows mechanically. Choosing the right carrier (ℕ for ℕ, not `unsigned int`; ℤ for ℤ, not `int`); spelling the canonical embeddings explicitly; populating the trait registry with claims that are constructively true of the carrier (`is_associative_v<T,Op>` only where the carrier supports it operationally); refraining from `reinterpret_cast` and undefined-behaviour escape hatches in the public surface — these are decisions the type system cannot make and cannot police. They are the load-bearing trust commitment of the library, and they live at a single layer (the trait registry, the embedding arrows, the carrier choices) rather than diffused across runtime checks.
+
+Once those choices are honest, `clang++` does the rest: every `static_assert` discharged, every `requires`-clause checked, every NTTP-folded `constexpr` evaluation, every IR-level constant fold derived from the structural knowledge. The "poor man's" qualifier we attach to this use of the compiler is structural, not economic: `clang++` *is* a formal system, and a typing derivation it accepts is a proof in the propositional fragment. What it cannot do is decide whether the trait registry is honest in the first place — that is the engineer's job, and it is the same job the carrier-lattice design names explicitly.
+
+The Über-Carrier collapse, in this framing, is what happens when the honesty obligation is silently waived: the engineer accepts a single carrier "for ergonomic reasons" and the trait registry's claims gradually drift away from what the carrier actually supports. The carrier-strength-reduction rule is the operational counter-pull — it spends a little ergonomic budget keeping the carriers distinct so the trait registry can stay honest, and the compiler can keep doing the mechanical half of its job.
+
 ## Note on the Feynman / Grothendieck construction
 
 The "subset vs. embedding" question is the operational shadow of how ℤ is *constructed* from ℕ in the math literature. Feynman's lectures (and any standard algebra text) build ℤ as the Grothendieck group of (ℕ, +) — formally adjoining additive inverses by introducing `operator-`. ℕ has no subtraction; ℤ is what you get when you force closure under it.
