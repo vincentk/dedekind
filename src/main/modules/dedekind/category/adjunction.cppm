@@ -114,8 +114,10 @@ namespace dedekind::category {
 export template <typename F, typename U>
 concept HasAdjunctionShape =
     IsFunctor<F> && IsFunctor<U> &&
-    std::same_as<typename F::Σ_cat, typename U::Τ_cat> &&  // F starts where U ends
-    std::same_as<typename F::Τ_cat, typename U::Σ_cat>;    // F ends where U starts
+    std::same_as<typename F::Σ_cat,
+                 typename U::Τ_cat> &&  // F starts where U ends
+    std::same_as<typename F::Τ_cat,
+                 typename U::Σ_cat>;  // F ends where U starts
 
 /**
  * @concept IsFreeFunctor

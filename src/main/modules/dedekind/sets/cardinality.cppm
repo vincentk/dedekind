@@ -1960,11 +1960,10 @@ static_assert(
     "Unary @c -Cardinality is closure-forcing into @c SignedCardinality "
     "— the Grothendieck construction at the operator level.");
 
-static_assert(
-    IsClosureForcing<std::minus<>, dedekind::sets::Cardinality,
-                     dedekind::sets::SignedCardinality>,
-    "Binary @c Cardinality - Cardinality is closure-forcing into "
-    "@c SignedCardinality — well-defined as a function ℕ × ℕ → ℤ.");
+static_assert(IsClosureForcing<std::minus<>, dedekind::sets::Cardinality,
+                               dedekind::sets::SignedCardinality>,
+              "Binary @c Cardinality - Cardinality is closure-forcing into "
+              "@c SignedCardinality — well-defined as a function ℕ × ℕ → ℤ.");
 
 // And the negative-control witness: ℕ is @b not closed under unary or
 // binary @c -, which is exactly what makes those ops closure-forcing.
