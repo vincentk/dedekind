@@ -1471,8 +1471,8 @@ export constexpr SignedCardinality operator-(const Cardinality& a,
  *         canonical embedding and dispatches to @c SignedCardinality's
  *         @c +.  Closes in @c ℤ.  Carrier-promotion in the
  *         math-correct direction (larger carrier wins). */
-export constexpr SignedCardinality operator+(const Cardinality& a,
-                                             const SignedCardinality& b) noexcept {
+export constexpr SignedCardinality operator+(
+    const Cardinality& a, const SignedCardinality& b) noexcept {
   return detail::lift_cardinality_to_signed(a) + b;
 }
 
@@ -1487,8 +1487,8 @@ export constexpr SignedCardinality operator+(const SignedCardinality& a,
 /** @brief Closure-forcing cross-carrier subtraction: @c Cardinality
  *         @c - @c SignedCardinality.  Result is in @c ℤ — well-defined
  *         on the @c (ℕ, ℤ) pair as a function into ℤ. */
-export constexpr SignedCardinality operator-(const Cardinality& a,
-                                             const SignedCardinality& b) noexcept {
+export constexpr SignedCardinality operator-(
+    const Cardinality& a, const SignedCardinality& b) noexcept {
   return detail::lift_cardinality_to_signed(a) - b;
 }
 
@@ -1503,8 +1503,8 @@ export constexpr SignedCardinality operator-(const SignedCardinality& a,
 
 /** @brief Closed cross-carrier multiplication: @c Cardinality @c * @c
  *         SignedCardinality lifts and dispatches.  Closes in @c ℤ. */
-export constexpr SignedCardinality operator*(const Cardinality& a,
-                                             const SignedCardinality& b) noexcept {
+export constexpr SignedCardinality operator*(
+    const Cardinality& a, const SignedCardinality& b) noexcept {
   return detail::lift_cardinality_to_signed(a) * b;
 }
 
