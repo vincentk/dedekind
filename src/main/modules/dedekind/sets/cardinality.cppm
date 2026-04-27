@@ -1434,24 +1434,15 @@ export constexpr bool operator==(const Cardinality& lhs,
 
 /** @brief Closure-forcing unary minus on @c Cardinality: well-defined
  *         on every natural, with codomain widened to @c
- *         SignedCardinality.  @c -finite_cardinality(0) is canonical
- *         zero; @c -finite_cardinality(n>0) is the negative
- *         @c SignedCardinality with magnitude @c n; @c -ℵ_0 maps to
- *         @c -ℵ_0 (the @c NegativeInfinity sentinel).  This is the
+ *         SignedCardinality.  Delegates to the canonical lift @c
+ *         detail::lift_cardinality_to_signed and @c SignedCardinality's
+ *         existing unary @c -, so canonicalisation rules (canonical
+ *         @c +0 for negation-of-zero; @c +ℵ_0 → @c -ℵ_0 sentinel
+ *         flip) flow from a single source of truth.  This is the
  *         smallest possible elementwise statement of the Grothendieck
  *         construction in code. */
 export constexpr SignedCardinality operator-(const Cardinality& v) noexcept {
-  if (std::holds_alternative<ℵ_0>(v)) {
-    return SignedCardinality{NegativeInfinity{}};
-  }
-  const auto& finite = std::get<ExtensionalCardinal<>>(v);
-  if (finite == ExtensionalCardinal<>{}) {
-    return SignedCardinality{};  // canonical +0 (negation of zero)
-  }
-  SignedExtensionalCardinal<> result;
-  result.magnitude = finite;
-  result.negative = true;
-  return SignedCardinality{result};
+  return -detail::lift_cardinality_to_signed(v);
 }
 
 /** @brief Closure-forcing binary minus on @c Cardinality: well-defined

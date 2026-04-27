@@ -598,20 +598,27 @@ TEST_CASE(
     const auto diff = Cardinality{ℵ_0{}} - Cardinality{ℵ_0{}};
     CHECK(std::holds_alternative<NaZ>(diff));
   }
-  // 𝔹 ↪ ℕ ↪ ℤ chain composition: bool values lift implicitly into the
-  // variant-carrier alternatives via the existing ExtensionalCardinal<>
-  // / SignedExtensionalCardinal<> integral ctors (PRs #396, #412).  The
-  // closed cross-carrier overloads here pick up the chain naturally.
-  SECTION("𝔹 + ℕ → ℕ: bool + Cardinality") {
+  // 𝔹 ↪ ℕ ↪ ℤ chain composition.  Subtle but important: a @c bool
+  // value does @b not implicitly convert to @c Cardinality in a single
+  // step — the conversion would have to go via @c
+  // ExtensionalCardinal<>{bool} (the integral ctor template, PR #412)
+  // and then through @c std::variant's alternative-selection ctor, and
+  // C++ allows at most one user-defined conversion in an implicit
+  // conversion sequence.  So call sites that want to lift a @c bool
+  // into the variant ℕ-proxy spell @c Cardinality{b} explicitly; the
+  // @b chain composition the cross-carrier overloads provide is from
+  // @c Cardinality forward, not from @c bool.  These SECTIONs witness
+  // that explicit construction + the cross-carrier dispatch.
+  SECTION("Cardinality{bool} + ℕ → ℕ: explicit lift + same-carrier sum") {
     const auto sum = Cardinality{true} + finite_cardinality(5);
     CHECK(sum == finite_cardinality(6));
   }
-  SECTION("𝔹 + ℤ → ℤ: bool + SignedCardinality (chain composition)") {
+  SECTION("Cardinality{bool} + ℤ → ℤ: explicit lift + cross-carrier sum") {
     const auto sum = Cardinality{true} + finite_signed_cardinality(-3);
     STATIC_CHECK(std::same_as<decltype(sum), const SignedCardinality>);
     CHECK(sum == finite_signed_cardinality(-2));
   }
-  SECTION("𝔹 - ℕ closure-forcing into ℤ: bool - Cardinality") {
+  SECTION("Cardinality{bool} - ℕ → ℤ: explicit lift + closure-forcing −") {
     const auto diff = Cardinality{false} - finite_cardinality(3);
     STATIC_CHECK(std::same_as<decltype(diff), const SignedCardinality>);
     CHECK(diff == finite_signed_cardinality(-3));

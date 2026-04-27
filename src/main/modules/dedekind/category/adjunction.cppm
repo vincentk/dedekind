@@ -71,6 +71,7 @@
 module;
 
 #include <concepts>
+#include <type_traits>
 #include <utility>
 
 export module dedekind.category:adjunction;
