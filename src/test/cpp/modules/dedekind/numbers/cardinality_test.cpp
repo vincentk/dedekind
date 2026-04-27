@@ -372,14 +372,14 @@ TEST_CASE(
   using L = TernaryLogic;
   SECTION("Set<ℕ> & Set<ℤ> tightens to Set<ℕ>") {
     constexpr auto n = var<ℕ>;
-    constexpr auto positive_n = Set{n % N | (n > 5u)};     // {6, 7, 8, …} ⊂ ℕ
+    constexpr auto positive_n = Set{n % N | (n > 5u)};  // {6, 7, 8, …} ⊂ ℕ
     auto bounded_pred = [](const SignedCardinality& v) {
       // {…, -1, 0, …, 10} ⊂ ℤ
       return (v <= 10) ? L::True : L::False;
     };
     const Set<SignedCardinality, L, decltype(bounded_pred)> bounded_z{
         bounded_pred};
-    const auto meet = positive_n & bounded_z;              // {6, 7, …, 10} ⊂ ℕ
+    const auto meet = positive_n & bounded_z;  // {6, 7, …, 10} ⊂ ℕ
     // Type-level proof: result carrier is ℕ (Cardinality), not ℤ.
     STATIC_CHECK(std::same_as<typename decltype(meet)::Domain, ℕ>);
     // Members in the natural-side window are in the meet.
@@ -392,16 +392,16 @@ TEST_CASE(
   }
   SECTION("Set<ℕ> | Set<ℤ> widens to Set<ℤ> ({1} ∪ {-1} ⊂ ℤ)") {
     constexpr auto n = var<ℕ>;
-    constexpr auto one_n = Set{n % N | (n == 1u)};         // {1} ⊂ ℕ
+    constexpr auto one_n = Set{n % N | (n == 1u)};  // {1} ⊂ ℕ
     auto neg_one_pred = [](const SignedCardinality& v) {
       return (v == -1) ? L::True : L::False;
     };
     const Set<SignedCardinality, L, decltype(neg_one_pred)> neg_one_z{
-        neg_one_pred};                                     // {-1} ⊂ ℤ
-    const auto union_set = one_n | neg_one_z;              // {1, -1} ⊂ ℤ
+        neg_one_pred};                         // {-1} ⊂ ℤ
+    const auto union_set = one_n | neg_one_z;  // {1, -1} ⊂ ℤ
     // Type-level proof: result carrier widens to ℤ (SignedCardinality).
-    STATIC_CHECK(std::same_as<typename decltype(union_set)::Domain,
-                              SignedCardinality>);
+    STATIC_CHECK(
+        std::same_as<typename decltype(union_set)::Domain, SignedCardinality>);
     // Both 1 (from ℕ) and -1 (from ℤ) are in the union.
     CHECK(union_set(finite_signed_cardinality(1)) == Ternary::True);
     CHECK(union_set(finite_signed_cardinality(-1)) == Ternary::True);
@@ -413,12 +413,12 @@ TEST_CASE(
   SECTION("Symmetric direction: Set<ℤ> & Set<ℕ> still tightens to Set<ℕ>") {
     constexpr auto n = var<ℕ>;
     auto bounded_pred = [](const SignedCardinality& v) {
-      return (v >= -3) ? L::True : L::False;               // {-3, -2, …} ⊂ ℤ
+      return (v >= -3) ? L::True : L::False;  // {-3, -2, …} ⊂ ℤ
     };
     const Set<SignedCardinality, L, decltype(bounded_pred)> bounded_z{
         bounded_pred};
-    constexpr auto small_n = Set{n % N | (n < 5u)};        // {0, …, 4} ⊂ ℕ
-    const auto meet = bounded_z & small_n;                 // {0, …, 4} ⊂ ℕ
+    constexpr auto small_n = Set{n % N | (n < 5u)};  // {0, …, 4} ⊂ ℕ
+    const auto meet = bounded_z & small_n;           // {0, …, 4} ⊂ ℕ
     STATIC_CHECK(std::same_as<typename decltype(meet)::Domain, ℕ>);
     CHECK(meet(finite_cardinality(0)) == Ternary::True);
     CHECK(meet(finite_cardinality(4)) == Ternary::True);
