@@ -337,7 +337,7 @@ TEST_CASE("Numbers: variant carriers ↔ std::floating_point comparison (#428)",
     const auto naz = SignedCardinality{NaZ{}};
     // Finite ℕ vs ℤ — the lift settles equality and ordering.
     CHECK(five_n == five_z);
-    CHECK(five_n > neg_three_z);          // ℕ ≥ 0 > -3
+    CHECK(five_n > neg_three_z);  // ℕ ≥ 0 > -3
     CHECK(five_n < finite_signed_cardinality(7));
     // ℵ_0 ↦ +ℵ_0 under the lift; equivalent to PositiveInfinity.
     CHECK(inf_n == pos_inf_z);

@@ -1159,7 +1159,8 @@ namespace detail {
  *         underlying @c ExtensionalCardinal<>'s @c operator @c F()
  *         constraint). */
 template <std::floating_point F>
-constexpr F sc_finite_to_floating(const SignedExtensionalCardinal<>& z) noexcept {
+constexpr F sc_finite_to_floating(
+    const SignedExtensionalCardinal<>& z) noexcept {
   const F mag = static_cast<F>(z.magnitude);
   return z.negative ? -mag : mag;
 }
@@ -1246,8 +1247,8 @@ constexpr bool operator==(const SignedCardinality& lhs, F rhs) noexcept {
   if (rhs != rhs) return false;
   if (sc_is_pos_inf(lhs)) return rhs == std::numeric_limits<F>::infinity();
   if (sc_is_neg_inf(lhs)) return rhs == -std::numeric_limits<F>::infinity();
-  return sc_finite_to_floating<F>(
-             std::get<SignedExtensionalCardinal<>>(lhs)) == rhs;
+  return sc_finite_to_floating<F>(std::get<SignedExtensionalCardinal<>>(lhs)) ==
+         rhs;
 }
 
 // ---------------------------------------------------------------------------
