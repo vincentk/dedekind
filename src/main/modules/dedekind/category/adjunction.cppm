@@ -281,9 +281,10 @@ constexpr auto make_adjunction(Left&& left, Right&& right, Unit&& unit,
  * @concept IsGaloisConnection
  * @brief @b Structural @b shape: @c F and @c G form a Galois
  *        connection @c F ⊣ @c G in a posetal setting — the simplest
- *        adjunction.  Both are monotone functions @c P → @c Q and
- *        @c Q → @c P (poset categories with @c ≤ as the morphism
- *        relation), and the universal-property test
+ *        adjunction.  Both are monotone arrows; @c F : @c P → @c Q
+ *        and @c G : @c Q → @c P with the source/target carriers
+ *        crossed (so @c F's @c Codomain matches @c G's @c Domain
+ *        and vice versa).  The universal-property test
  *
  *          f(x) ≤ y  ⟺  x ≤ g(y)
  *
@@ -300,17 +301,20 @@ constexpr auto make_adjunction(Left&& left, Right&& right, Unit&& unit,
  *  naturality content trivialises.  Useful as a lightweight
  *  vocabulary anchor for arithmetic-flavoured adjunctions
  *  (floor/ceiling, addition/subtraction, etc.).
+ *
+ *  @c P and @c Q are not free template parameters — they are
+ *  recovered from @c F's @c Domain / @c Codomain.  @c G's
+ *  carriers are required to be the cross-pair: @c G : @c Q → @c P.
  */
-export template <typename F, typename G, typename P, typename Q>
-concept IsGaloisConnection = requires(F f, G g, P x, Q y) {
-  { f(x) } -> std::convertible_to<Q>;
-  { g(y) } -> std::convertible_to<P>;
-};
+export template <typename F, typename G>
+concept IsGaloisConnection =
+    IsArrow<F> && IsArrow<G> && std::same_as<Dom<G>, Cod<F>> &&
+    std::same_as<Cod<G>, Dom<F>>;
 
 /**
  * @concept IsClosureOperator
  * @brief @b Structural @b shape: @c C is a closure operator on a
- *        poset @c P — a function @c C : @c P → @c P that is
+ *        poset @c P — an arrow @c C : @c P → @c P that is
  *        idempotent (@c C(C(x)) @c = @c C(x)), monotone (@c x @c ≤
  *        @c y @c ⇒ @c C(x) @c ≤ @c C(y)), and extensive (@c x @c ≤
  *        @c C(x)) for all @c x.
@@ -325,11 +329,10 @@ concept IsGaloisConnection = requires(F f, G g, P x, Q y) {
  *  C++ concepts cannot quantify universally over @c P, so the
  *  three properties (idempotent / monotone / extensive) are the
  *  engineer's honesty obligation; the structural shape names the
- *  @b signature only (@c P → @c P).
+ *  @b signature only (an @c IsArrow whose @c Domain equals its
+ *  @c Codomain).
  */
-export template <typename C, typename P>
-concept IsClosureOperator = requires(C c, P x) {
-  { c(x) } -> std::convertible_to<P>;
-};
+export template <typename C>
+concept IsClosureOperator = IsArrow<C> && std::same_as<Dom<C>, Cod<C>>;
 
 }  // namespace dedekind::category
