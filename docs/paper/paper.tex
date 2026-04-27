@@ -1421,6 +1421,27 @@ type-level knowledge of elements. The \emph{reduction boundary} is the
 \emph{computability boundary}, and the six \lstinline{static_assert}s flanking
 each reduction are its mechanical witness.
 
+\paragraph{FIXME (\#362) --- showcase: carrier strength-reduction.}
+The showcases above collapse the \emph{cardinality} of an intensional set
+(transfinite $\mapsto$ finite $\mapsto$ singleton); a complementary showcase,
+not yet listed in the showcase grid, would collapse the \emph{ambient set}
+itself.  Mathematically: $A \subset \mathbb{N}$, $B \subset \mathbb{Z}$,
+$\mathbb{N} \hookrightarrow \mathbb{Z}$ implies $A \cap B \subset \mathbb{N}$
+(not $\subset \mathbb{Z}$), and dually $A \cup B \subset \mathbb{Z}$ widens
+along the embedding.  The library now ships an existential proof of the
+rule on the variant pair $(\texttt{Cardinality}, \texttt{SignedCardinality})$
+--- $\texttt{Set}\langle\mathbb{N}\rangle \cap \texttt{Set}\langle\mathbb{Z}\rangle$
+type-collapses to $\texttt{Set}\langle\mathbb{N}\rangle$, locked in by
+unit tests --- but the mechanism does not yet appear as an IR-fixture
+showcase with a \lstinline{ret i1 true / false} witness on a heterogeneous
+intersection.  Adding such a showcase makes the carrier-axis collapse
+empirically observable on the same footing as the cardinality-axis ones
+above; it sits naturally next to Showcases~3 and~4 in the grid.  The full
+carrier-promotion framework (any pair in the lattice $\mathbb{N} \subset
+\mathbb{Z} \subset \mathbb{Q} \subset \mathbb{R} \subset \mathbb{C}$, not
+just the variant pair) is tracked under issue \#362 and discussed in
+\texttt{docs/design/carrier-lattice.md}.
+
 Further showcases in the source tree exercise the same machinery on
 $\mathbb{R}$ ambient carriers (showcase~5), non-point intervals with observable
 cardinality (showcase~6: $-21 < n \leq 21$ on $\mathbb{Z}$, $|\cdot|=42$),
