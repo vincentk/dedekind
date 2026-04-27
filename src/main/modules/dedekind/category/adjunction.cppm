@@ -78,7 +78,8 @@ export module dedekind.category:adjunction;
 
 import :functor;
 import :morphism;
-import :natural;  // For IsNaturalTransformation, used in unit/counit witnesses (#434)
+import :natural;  // For IsNaturalTransformation, used in unit/counit witnesses
+                  // (#434)
 import :small;
 
 namespace dedekind::category {
@@ -204,8 +205,7 @@ concept IsCounitOfAdjunction =
  */
 export template <typename Left, typename Right, typename Unit, typename Counit>
 concept IsAdjunction =
-    HasAdjunctionShape<Left, Right> &&
-    IsUnitOfAdjunction<Unit, Left, Right> &&
+    HasAdjunctionShape<Left, Right> && IsUnitOfAdjunction<Unit, Left, Right> &&
     IsCounitOfAdjunction<Counit, Left, Right>;
 
 /**
@@ -302,11 +302,10 @@ constexpr auto make_adjunction(Left&& left, Right&& right, Unit&& unit,
  *  (floor/ceiling, addition/subtraction, etc.).
  */
 export template <typename F, typename G, typename P, typename Q>
-concept IsGaloisConnection =
-    requires(F f, G g, P x, Q y) {
-      { f(x) } -> std::convertible_to<Q>;
-      { g(y) } -> std::convertible_to<P>;
-    };
+concept IsGaloisConnection = requires(F f, G g, P x, Q y) {
+  { f(x) } -> std::convertible_to<Q>;
+  { g(y) } -> std::convertible_to<P>;
+};
 
 /**
  * @concept IsClosureOperator
