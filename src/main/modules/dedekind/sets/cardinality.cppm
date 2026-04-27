@@ -1257,8 +1257,13 @@ constexpr bool operator==(const SignedCardinality& lhs, F rhs) noexcept {
 // ---------------------------------------------------------------------------
 //
 // The canonical embedding @c ℕ ↪ @c ℤ is structural: every natural is an
-// integer.  At the variant level @c Cardinality (ℕ-proxy) embeds into
-// @c SignedCardinality (ℤ-proxy) via @c embed_ℕ_ℤ (in @c numbers/integer.cppm).
+// integer.  At the @b variant level the corresponding map is
+// @c Cardinality (ℕ-proxy) → @c SignedCardinality (ℤ-proxy); the lift
+// helper below realises it.  (The same direction at the machine /
+// downstream-numbers layer is named @c embed_ℕ_ℤ in @c
+// numbers/integer.cppm — pre-#402 that arrow is @c arrow<unsigned, int>;
+// post-#402 it retargets to the variant pair, at which point the local
+// helper here and @c embed_ℕ_ℤ become two names for the same lift.)
 // That makes @c Cardinality @c < @c SignedCardinality a well-defined
 // question; pre-#428 it didn't compile, forcing call sites to explicitly
 // lift through the embedding before comparing.
@@ -1273,9 +1278,13 @@ constexpr bool operator==(const SignedCardinality& lhs, F rhs) noexcept {
 
 namespace detail {
 /** @brief Lift @c Cardinality into @c SignedCardinality via the canonical
- *         ℕ ↪ ℤ embedding.  Mirrors @c embed_ℕ_ℤ in @c numbers/integer.cppm
- *         but lives here so the cross-variant operators below can reach
- *         it without crossing the @c sets → @c numbers module boundary. */
+ *         ℕ ↪ ℤ embedding direction.  This is the local @c Cardinality
+ *         → @c SignedCardinality variant-level analogue of @c embed_ℕ_ℤ
+ *         in @c numbers/integer.cppm (which is @c arrow<unsigned, @c int>
+ *         pre-#402 and retargets to the variant pair post-#402); the
+ *         helper lives here so the cross-variant operators below can
+ *         reach it without crossing the @c sets → @c numbers module
+ *         boundary. */
 constexpr SignedCardinality lift_cardinality_to_signed(
     const Cardinality& c) noexcept {
   if (std::holds_alternative<ℵ_0>(c)) {

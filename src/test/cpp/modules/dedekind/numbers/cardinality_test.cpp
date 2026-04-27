@@ -303,6 +303,12 @@ TEST_CASE("Numbers: variant carriers ↔ std::floating_point comparison (#428)",
     CHECK_FALSE(five > nan_d);
     CHECK_FALSE(five == nan_d);
     CHECK(five != nan_d);
+    // Rhs-first direction (synthesised by C++20 rewrite rules).
+    CHECK(5.0 == five);
+    CHECK(4.5 < five);
+    CHECK(5.5 > five);
+    CHECK(pos_inf_d == inf);
+    CHECK(0.0 < inf);
   }
   SECTION("SignedCardinality vs double — full sign + sentinel matrix") {
     const auto pos_three = finite_signed_cardinality(3);
@@ -326,6 +332,12 @@ TEST_CASE("Numbers: variant carriers ↔ std::floating_point comparison (#428)",
     CHECK_FALSE(naz == 0.0);
     CHECK_FALSE(pos_three < nan_d);
     CHECK_FALSE(pos_three == nan_d);
+    // Rhs-first direction (synthesised by C++20 rewrite rules).
+    CHECK(3.0 == pos_three);
+    CHECK(-3.0 == neg_three);
+    CHECK(2.5 < pos_three);
+    CHECK(pos_inf_d == pos_inf_sc);
+    CHECK(neg_inf_d == neg_inf_sc);
   }
   SECTION("Cross-variant ℕ ↔ ℤ comparison (the canonical ℕ ⊂ ℤ embedding)") {
     const Cardinality five_n = finite_cardinality(5);
@@ -349,6 +361,11 @@ TEST_CASE("Numbers: variant carriers ↔ std::floating_point comparison (#428)",
     CHECK_FALSE(five_n < naz);
     CHECK_FALSE(five_n > naz);
     CHECK_FALSE(five_n == naz);
+    // Rhs-first direction (synthesised by C++20 rewrite rules).
+    CHECK(five_z == five_n);
+    CHECK(neg_three_z < five_n);
+    CHECK(pos_inf_z == inf_n);
+    CHECK(neg_inf_z < five_n);
   }
 }
 
