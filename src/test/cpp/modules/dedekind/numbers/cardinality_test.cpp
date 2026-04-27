@@ -222,6 +222,120 @@ TEST_CASE(
   }
 }
 
+// Compile-time contract pinning for #415: variant carrier ↔ std::integral
+// relational ops MUST be constexpr-evaluable.  These static_asserts lock
+// the contract that downstream halfspace machinery relies on (e.g.\
+// @c var<ℤ> @c > @c bound<-21> after the @c #402 retarget).
+namespace {
+constexpr auto sa_c5 = finite_cardinality(5);
+constexpr auto sa_c0 = finite_cardinality(0);
+constexpr auto sa_inf = Cardinality{ℵ_0{}};
+constexpr auto sa_z5 = finite_signed_cardinality(5);
+constexpr auto sa_z_neg3 = finite_signed_cardinality(-3);
+constexpr auto sa_z_pos_inf = SignedCardinality{PositiveInfinity{}};
+constexpr auto sa_z_neg_inf = SignedCardinality{NegativeInfinity{}};
+
+// --- Cardinality × std::integral (forward and reversed) ---
+static_assert(sa_c5 > 3u);
+static_assert(sa_c5 > 3);
+static_assert(sa_c5 < 10u);
+static_assert(sa_c5 >= 5);
+static_assert(sa_c5 <= 5u);
+static_assert(sa_c5 == 5u);
+static_assert(sa_c5 > -1);  // any Cardinality > any negative int
+static_assert(sa_c0 > -7);
+static_assert(sa_inf > 0u);
+static_assert(sa_inf > -1);
+// Reversed direction (T on LHS) — C++20 spaceship rewrite synthesis.
+static_assert(3u < sa_c5);
+static_assert(5u == sa_c5);
+static_assert(-1 < sa_inf);
+
+// --- SignedCardinality × std::integral (forward and reversed) ---
+static_assert(sa_z5 > -3);
+static_assert(sa_z5 < 10);
+static_assert(sa_z5 >= 5);
+static_assert(sa_z5 <= 5);
+static_assert(sa_z5 == 5);
+static_assert(sa_z_neg3 < 0);
+static_assert(sa_z_neg3 > -10);
+static_assert(sa_z_neg3 == -3);
+// ±ℵ_0 dominates any finite int unconditionally.
+static_assert(sa_z_pos_inf > 1'000'000);
+static_assert(sa_z_neg_inf < -1'000'000);
+// Reversed direction.
+static_assert(-3 < sa_z5);
+static_assert(0 > sa_z_neg3);
+static_assert(5 == sa_z5);
+}  // namespace
+
+TEST_CASE(
+    "Numbers: SignedCardinality heterogeneous comparison vs std::integral "
+    "(#415)",
+    "[numbers][cardinality][order][heterogeneous][signed]") {
+  const SignedCardinality pos_five = finite_signed_cardinality(5);
+  const SignedCardinality neg_three = finite_signed_cardinality(-3);
+  const SignedCardinality pos_inf{PositiveInfinity{}};
+  const SignedCardinality neg_inf{NegativeInfinity{}};
+  const SignedCardinality naz{NaZ{}};
+
+  SECTION("Positive finite vs signed and unsigned int") {
+    CHECK(pos_five > -3);
+    CHECK(pos_five > 0);
+    CHECK(pos_five > 4);
+    CHECK(pos_five < 6);
+    CHECK(pos_five >= 5);
+    CHECK(pos_five <= 5);
+    CHECK(pos_five == 5);
+    CHECK(pos_five > 4u);
+    CHECK(pos_five == 5u);
+  }
+  SECTION("Negative finite vs signed and unsigned int") {
+    CHECK(neg_three < 0);
+    CHECK(neg_three < -2);
+    CHECK(neg_three > -4);
+    CHECK(neg_three == -3);
+    CHECK_FALSE(neg_three == 3);
+    // Negative SignedCardinality is strictly less than any unsigned.
+    CHECK(neg_three < 0u);
+    CHECK(neg_three < 5u);
+  }
+  SECTION("±ℵ_0 dominates / is dominated unconditionally") {
+    CHECK(pos_inf > std::numeric_limits<int>::max());
+    CHECK(pos_inf > 0);
+    CHECK(pos_inf > -1);
+    CHECK(pos_inf > 0u);
+    CHECK_FALSE(pos_inf == 0);
+    CHECK(neg_inf < std::numeric_limits<int>::min());
+    CHECK(neg_inf < 0);
+    CHECK(neg_inf < -1);
+    CHECK_FALSE(neg_inf == 0);
+  }
+  SECTION("NaZ propagates as unordered: all relational ops false, == false") {
+    CHECK_FALSE(naz < 0);
+    CHECK_FALSE(naz <= 0);
+    CHECK_FALSE(naz > 0);
+    CHECK_FALSE(naz >= 0);
+    CHECK_FALSE(naz == 0);
+    CHECK(naz != 0);  // unordered semantics: NaZ is not equal to anything
+  }
+  SECTION("bool is std::integral on the SignedCardinality side too") {
+    const SignedCardinality one = finite_signed_cardinality(1);
+    const SignedCardinality zero = finite_signed_cardinality(0);
+    CHECK(one == true);
+    CHECK(zero == false);
+    CHECK(one > false);
+    CHECK(zero < true);
+  }
+  SECTION("Rhs-first direction synthesised by C++20 rewrite rules") {
+    CHECK(-3 < pos_five);
+    CHECK(0u < pos_five);
+    CHECK(5 == pos_five);
+    CHECK(0 > neg_three);
+    CHECK(-3 == neg_three);
+  }
+}
+
 TEST_CASE("Numbers: Cardinality homogeneous operator surface (#424)",
           "[numbers][cardinality][operators]") {
   const Cardinality three = finite_cardinality(3);
