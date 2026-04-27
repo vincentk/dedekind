@@ -1454,6 +1454,68 @@ export constexpr SignedCardinality operator-(const Cardinality& v) noexcept {
   return SignedCardinality{result};
 }
 
+/** @brief Closure-forcing binary minus on @c Cardinality: well-defined
+ *         as a function @c ℕ × ℕ → ℤ; ℕ isn't closed under it.  The
+ *         operator's existence with the wider return type @b is the
+ *         Grothendieck embedding made operational at the binary level.
+ *         Routes through @c lift_cardinality_to_signed on both
+ *         operands and dispatches to @c SignedCardinality's @c -. */
+export constexpr SignedCardinality operator-(const Cardinality& a,
+                                             const Cardinality& b) noexcept {
+  return detail::lift_cardinality_to_signed(a) -
+         detail::lift_cardinality_to_signed(b);
+}
+
+/** @brief Closed cross-carrier addition: @c Cardinality @c + @c
+ *         SignedCardinality lifts the @c Cardinality through the
+ *         canonical embedding and dispatches to @c SignedCardinality's
+ *         @c +.  Closes in @c ℤ.  Carrier-promotion in the
+ *         math-correct direction (larger carrier wins). */
+export constexpr SignedCardinality operator+(const Cardinality& a,
+                                             const SignedCardinality& b) noexcept {
+  return detail::lift_cardinality_to_signed(a) + b;
+}
+
+/** @brief Symmetric: @c SignedCardinality @c + @c Cardinality.
+ *         Delegates to the canonical direction; addition is
+ *         commutative on ℤ. */
+export constexpr SignedCardinality operator+(const SignedCardinality& a,
+                                             const Cardinality& b) noexcept {
+  return a + detail::lift_cardinality_to_signed(b);
+}
+
+/** @brief Closure-forcing cross-carrier subtraction: @c Cardinality
+ *         @c - @c SignedCardinality.  Result is in @c ℤ — well-defined
+ *         on the @c (ℕ, ℤ) pair as a function into ℤ. */
+export constexpr SignedCardinality operator-(const Cardinality& a,
+                                             const SignedCardinality& b) noexcept {
+  return detail::lift_cardinality_to_signed(a) - b;
+}
+
+/** @brief Symmetric: @c SignedCardinality @c - @c Cardinality.  Lifts
+ *         @c b through the embedding; result is in @c ℤ.  Subtraction
+ *         is @b not commutative, so this is a separate overload, not
+ *         a delegation. */
+export constexpr SignedCardinality operator-(const SignedCardinality& a,
+                                             const Cardinality& b) noexcept {
+  return a - detail::lift_cardinality_to_signed(b);
+}
+
+/** @brief Closed cross-carrier multiplication: @c Cardinality @c * @c
+ *         SignedCardinality lifts and dispatches.  Closes in @c ℤ. */
+export constexpr SignedCardinality operator*(const Cardinality& a,
+                                             const SignedCardinality& b) noexcept {
+  return detail::lift_cardinality_to_signed(a) * b;
+}
+
+/** @brief Symmetric: @c SignedCardinality @c * @c Cardinality.
+ *         Multiplication is commutative; delegates to the canonical
+ *         direction. */
+export constexpr SignedCardinality operator*(const SignedCardinality& a,
+                                             const Cardinality& b) noexcept {
+  return a * detail::lift_cardinality_to_signed(b);
+}
+
 }  // namespace dedekind::sets
 
 // ---------------------------------------------------------------------------

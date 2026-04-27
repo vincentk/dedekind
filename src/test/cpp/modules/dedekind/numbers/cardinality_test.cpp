@@ -505,3 +505,67 @@ TEST_CASE(
     CHECK(neg_inf == SignedCardinality{NegativeInfinity{}});
   }
 }
+
+TEST_CASE(
+    "Elementwise carrier-promotion: closure-forcing binary − on ℕ × ℕ → ℤ "
+    "(slice of #432)",
+    "[numbers][cardinality][carrier-lattice][elementwise]") {
+  // Subtraction IS well-defined on ℕ × ℕ → ℤ; ℕ isn't closed under it.
+  // The cross-carrier overload makes that explicit at the type level.
+  SECTION("Type-level: Cardinality - Cardinality returns SignedCardinality") {
+    constexpr auto five_n = finite_cardinality(5);
+    constexpr auto three_n = finite_cardinality(3);
+    STATIC_CHECK(std::same_as<decltype(five_n - three_n), SignedCardinality>);
+  }
+  SECTION("5 - 3 = 2 (positive in ℕ; result still typed as ℤ)") {
+    const auto diff = finite_cardinality(5) - finite_cardinality(3);
+    CHECK(diff == finite_signed_cardinality(2));
+  }
+  SECTION("3 - 5 = -2 (closure forces ℤ; ℕ would reject)") {
+    const auto diff = finite_cardinality(3) - finite_cardinality(5);
+    CHECK(diff == finite_signed_cardinality(-2));
+  }
+  SECTION("n - n = 0 for any n") {
+    const auto diff = finite_cardinality(7) - finite_cardinality(7);
+    CHECK(diff == finite_signed_cardinality(0));
+  }
+}
+
+TEST_CASE(
+    "Elementwise carrier-promotion: closed cross-carrier + and * on (ℕ, ℤ) "
+    "(slice of #432)",
+    "[numbers][cardinality][carrier-lattice][elementwise]") {
+  // Closed cross-carrier ops: both operands have the operator and the
+  // result lives in the larger carrier.  Carrier-promotion in the
+  // math-correct direction (signed wins).
+  SECTION("Type-level: Cardinality + SignedCardinality returns ℤ") {
+    constexpr auto n = finite_cardinality(5);
+    constexpr auto z = finite_signed_cardinality(-3);
+    STATIC_CHECK(std::same_as<decltype(n + z), SignedCardinality>);
+    STATIC_CHECK(std::same_as<decltype(z + n), SignedCardinality>);
+    STATIC_CHECK(std::same_as<decltype(n * z), SignedCardinality>);
+    STATIC_CHECK(std::same_as<decltype(z * n), SignedCardinality>);
+    STATIC_CHECK(std::same_as<decltype(n - z), SignedCardinality>);
+    STATIC_CHECK(std::same_as<decltype(z - n), SignedCardinality>);
+  }
+  SECTION("5 (ℕ) + (-3) (ℤ) = 2 (ℤ)") {
+    const auto sum = finite_cardinality(5) + finite_signed_cardinality(-3);
+    CHECK(sum == finite_signed_cardinality(2));
+  }
+  SECTION("(-3) (ℤ) + 5 (ℕ) = 2 (ℤ); commutativity") {
+    const auto sum = finite_signed_cardinality(-3) + finite_cardinality(5);
+    CHECK(sum == finite_signed_cardinality(2));
+  }
+  SECTION("5 (ℕ) * (-3) (ℤ) = -15 (ℤ)") {
+    const auto product = finite_cardinality(5) * finite_signed_cardinality(-3);
+    CHECK(product == finite_signed_cardinality(-15));
+  }
+  SECTION("Cross-carrier subtraction: 5 (ℕ) - (-3) (ℤ) = 8 (ℤ)") {
+    const auto diff = finite_cardinality(5) - finite_signed_cardinality(-3);
+    CHECK(diff == finite_signed_cardinality(8));
+  }
+  SECTION("Cross-carrier subtraction: (-3) (ℤ) - 5 (ℕ) = -8 (ℤ)") {
+    const auto diff = finite_signed_cardinality(-3) - finite_cardinality(5);
+    CHECK(diff == finite_signed_cardinality(-8));
+  }
+}
