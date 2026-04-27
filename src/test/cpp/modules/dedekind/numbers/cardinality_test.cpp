@@ -224,8 +224,8 @@ TEST_CASE(
 
 // Compile-time contract pinning for #415: variant carrier ↔ std::integral
 // relational ops MUST be constexpr-evaluable.  These static_asserts lock
-// the contract that downstream halfspace machinery relies on (e.g.\
-// @c var<ℤ> @c > @c bound<-21> after the @c #402 retarget).
+// the contract that downstream halfspace machinery relies on — for
+// example, @c var<ℤ> @c > @c bound<-21> after the @c #402 retarget.
 namespace {
 constexpr auto sa_c5 = finite_cardinality(5);
 constexpr auto sa_c0 = finite_cardinality(0);
@@ -252,6 +252,7 @@ static_assert(5u == sa_c5);
 static_assert(-1 < sa_inf);
 
 // --- SignedCardinality × std::integral (forward and reversed) ---
+//   * signed-int axis
 static_assert(sa_z5 > -3);
 static_assert(sa_z5 < 10);
 static_assert(sa_z5 >= 5);
@@ -260,13 +261,27 @@ static_assert(sa_z5 == 5);
 static_assert(sa_z_neg3 < 0);
 static_assert(sa_z_neg3 > -10);
 static_assert(sa_z_neg3 == -3);
-// ±ℵ_0 dominates any finite int unconditionally.
+//   * unsigned-int axis (positive finite + negative-finite-vs-unsigned)
+static_assert(sa_z5 > 4u);
+static_assert(sa_z5 == 5u);
+static_assert(sa_z_neg3 < 0u);  // negative SignedCardinality < any unsigned
+static_assert(sa_z_neg3 < 5u);
+//   * bool axis
+static_assert(sa_z5 > false);
+static_assert(sa_z5 > true);
+static_assert(finite_signed_cardinality(1) == true);
+static_assert(finite_signed_cardinality(0) == false);
+//   * ±ℵ_0 dominates any finite int unconditionally
 static_assert(sa_z_pos_inf > 1'000'000);
+static_assert(sa_z_pos_inf > std::numeric_limits<unsigned>::max());
 static_assert(sa_z_neg_inf < -1'000'000);
-// Reversed direction.
+//   * reversed direction (T on LHS)
 static_assert(-3 < sa_z5);
 static_assert(0 > sa_z_neg3);
 static_assert(5 == sa_z5);
+static_assert(4u < sa_z5);
+static_assert(5u == sa_z5);
+static_assert(false < sa_z5);
 }  // namespace
 
 TEST_CASE(
