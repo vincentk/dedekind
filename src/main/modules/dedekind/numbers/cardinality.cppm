@@ -144,4 +144,29 @@ static_assert(dedekind::order::HasPartialOrderOperatorsWith<Card, bool>,
               "ctor / comparison path must handle it (regression for "
               "the make_unsigned_t<bool>-undefined trap).");
 
+// Floating-point cross-type comparison (closes #428).  Load-bearing for
+// the real-pivot showcases (e.g.\ @c var<ℤ> @c > @c bound<-21.0> in
+// showcase 07) where the bound's NTTP type is @c double and the carrier
+// is the variant.  @c HasPartialOrderOperatorsWith is symmetric, so one
+// witness per pair pins both directions.
+static_assert(dedekind::order::HasPartialOrderOperatorsWith<SC, double>,
+              "SignedCardinality must accept partial-order comparison "
+              "with double (the real-pivot showcase path).");
+static_assert(dedekind::order::HasPartialOrderOperatorsWith<SC, float>,
+              "SignedCardinality must accept partial-order comparison "
+              "with float (cross-width floating).");
+static_assert(dedekind::order::HasPartialOrderOperatorsWith<Card, double>,
+              "Cardinality must accept partial-order comparison with "
+              "double (negative finite values and -inf land strictly "
+              "below the ℕ proxy; +inf is equivalent to ℵ_0).");
+
+// Cross-variant ℕ ↔ ℤ comparison (closes #428, extended scope).  The
+// canonical ℕ ↪ ℤ embedding makes @c Cardinality vs @c SignedCardinality
+// well-defined; the variant operators in @c sets/cardinality.cppm route
+// through the lift @c lift_cardinality_to_signed and @c compare_signed.
+static_assert(
+    dedekind::order::HasPartialOrderOperatorsWith<Card, SC>,
+    "Cardinality vs SignedCardinality: ℕ ↪ ℤ is the canonical embedding, "
+    "so cross-variant comparison is structurally well-defined.");
+
 }  // namespace dedekind::numbers

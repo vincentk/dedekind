@@ -654,6 +654,33 @@ here, but its full force (dependent products, inductive proofs, universe
 hierarchies) is not available in C++23; what \emph{is} available is enough
 to anchor the two uses above.
 
+\paragraph{A note on terminology: ``poor man's'' is structural, not economic.}
+We call \texttt{clang++} a \emph{poor man's} theorem prover throughout
+this paper; the qualifier is meant in a structural rather than a cost
+sense.  \texttt{clang++} \emph{is} a formal system in the technical
+sense: a typing derivation that the type-checker accepts is a proof in
+the propositional fragment, against a fixed set of inference rules.
+What the architecture imposes is a single division of labour.  The
+\emph{library author and the user} carry the honesty obligation up
+front: the trait registry is populated with claims that are
+constructively true of the carrier (\lstinline{is_associative_v<T,Op>}
+asserted only where the carrier supports it operationally); the
+language's escape hatches (\lstinline{reinterpret_cast},
+\lstinline{const_cast}, undefined behaviour) are not used in the
+public surface; concept formulations are chosen to match the math.
+\emph{Once the math is honest}, the rest is mechanical: the compiler
+discharges every \lstinline{static_assert} and \lstinline{requires}-clause
+derived from those claims, every concept-driven dispatch, every
+NTTP-folded \lstinline{constexpr} evaluation, against the same fixed
+inference rules; the LLVM backend then optimises under the resulting
+structural knowledge.  No kernel re-checks the derivation independently,
+but none is needed within the bounded core: the typing rules are
+themselves the verifier, and the engineer's trust commitment sits at a
+single layer (the trait registry) rather than diffused across runtime
+checks.  The trade is therefore an honesty obligation up front for a
+mechanical guarantee afterward---and it is that asymmetry, not the
+cost, that makes the technique worth practising.
+
 \subsubsection*{Bounded yet open-ended}
 
 Each use is bounded \emph{individually}, but the paradigm as a whole exhibits
@@ -1420,6 +1447,27 @@ transfinite carrier to a named extensional object (either $\varnothing$ or a
 type-level knowledge of elements. The \emph{reduction boundary} is the
 \emph{computability boundary}, and the six \lstinline{static_assert}s flanking
 each reduction are its mechanical witness.
+
+\paragraph{FIXME (\#362) --- showcase: carrier strength-reduction.}
+The showcases above collapse the \emph{cardinality} of an intensional set
+(transfinite $\mapsto$ finite $\mapsto$ singleton); a complementary showcase,
+not yet listed in the showcase grid, would collapse the \emph{ambient set}
+itself.  Mathematically: $A \subset \mathbb{N}$, $B \subset \mathbb{Z}$,
+$\mathbb{N} \hookrightarrow \mathbb{Z}$ implies $A \cap B \subset \mathbb{N}$
+(not $\subset \mathbb{Z}$), and dually $A \cup B \subset \mathbb{Z}$ widens
+along the embedding.  The library now ships an existential proof of the
+rule on the variant pair $(\texttt{Cardinality}, \texttt{SignedCardinality})$
+--- $\texttt{Set}\langle\mathbb{N}\rangle \cap \texttt{Set}\langle\mathbb{Z}\rangle$
+type-collapses to $\texttt{Set}\langle\mathbb{N}\rangle$, locked in by
+unit tests --- but the mechanism does not yet appear as an IR-fixture
+showcase with a \lstinline{ret i1 true / false} witness on a heterogeneous
+intersection.  Adding such a showcase makes the carrier-axis collapse
+empirically observable on the same footing as the cardinality-axis ones
+above; it sits naturally next to Showcases~3 and~4 in the grid.  The full
+carrier-promotion framework (any pair in the lattice $\mathbb{N} \subset
+\mathbb{Z} \subset \mathbb{Q} \subset \mathbb{R} \subset \mathbb{C}$, not
+just the variant pair) is tracked under issue \#362 and discussed in
+\texttt{docs/design/carrier-lattice.md}.
 
 Further showcases in the source tree exercise the same machinery on
 $\mathbb{R}$ ambient carriers (showcase~5), non-point intervals with observable

@@ -275,3 +275,198 @@ TEST_CASE("Numbers: Cardinality homogeneous operator surface (#424)",
     CHECK((inf / two) == inf);
   }
 }
+
+TEST_CASE("Numbers: variant carriers ↔ std::floating_point comparison (#428)",
+          "[numbers][cardinality][order][floating]") {
+  using std::numeric_limits;
+  const auto pos_inf_d = numeric_limits<double>::infinity();
+  const auto neg_inf_d = -numeric_limits<double>::infinity();
+  const auto nan_d = numeric_limits<double>::quiet_NaN();
+
+  SECTION("Cardinality vs double — finite, ℵ_0, ±inf, NaN, negatives") {
+    const Cardinality five = finite_cardinality(5);
+    const Cardinality inf = ℵ_0{};
+    // Finite vs finite double.
+    CHECK(five == 5.0);
+    CHECK(five > 4.5);
+    CHECK(five < 5.5);
+    // Negative double — every Cardinality > -anything.
+    CHECK(five > -1.0);
+    CHECK(five > neg_inf_d);
+    CHECK_FALSE(five == -5.0);
+    // ℵ_0 dominates every finite double; equivalent to +inf.
+    CHECK(inf > 1e308);
+    CHECK(inf == pos_inf_d);
+    CHECK(inf > neg_inf_d);
+    // NaN propagates as unordered (all comparisons false; != is true).
+    CHECK_FALSE(five < nan_d);
+    CHECK_FALSE(five > nan_d);
+    CHECK_FALSE(five == nan_d);
+    CHECK(five != nan_d);
+    // Rhs-first direction (synthesised by C++20 rewrite rules).
+    CHECK(5.0 == five);
+    CHECK(4.5 < five);
+    CHECK(5.5 > five);
+    CHECK(pos_inf_d == inf);
+    CHECK(0.0 < inf);
+    // Precision regime: above 2^53 a double can't distinguish consecutive
+    // integers, so a naive @c static_cast<double>(lhs) @c == @c rhs path
+    // would fake equality.  The integer-domain comparator must say no.
+    const Cardinality two_to_53 = finite_cardinality(1ULL << 53);
+    const Cardinality two_to_53_plus_1 = finite_cardinality((1ULL << 53) + 1);
+    const double two_to_53_d = static_cast<double>(1ULL << 53);
+    CHECK(two_to_53 == two_to_53_d);  // exact at 2^53
+    CHECK_FALSE(two_to_53_plus_1 ==
+                two_to_53_d);  // 2^53+1 ≠ 2^53 (no rounding-fake)
+    CHECK(two_to_53_plus_1 > two_to_53_d);
+    // Non-integer rhs at integer lhs.
+    CHECK(five != 5.5);
+    CHECK(five < 5.5);
+    CHECK(five > 4.5);
+  }
+  SECTION("SignedCardinality vs double — full sign + sentinel matrix") {
+    const auto pos_three = finite_signed_cardinality(3);
+    const auto neg_three = finite_signed_cardinality(-3);
+    const auto pos_inf_sc = SignedCardinality{PositiveInfinity{}};
+    const auto neg_inf_sc = SignedCardinality{NegativeInfinity{}};
+    const auto naz = SignedCardinality{NaZ{}};
+    // Finite vs finite double.
+    CHECK(pos_three == 3.0);
+    CHECK(neg_three == -3.0);
+    CHECK(pos_three > 2.5);
+    CHECK(neg_three < -2.5);
+    // ±ℵ_0 maps to ±inf for the comparison.
+    CHECK(pos_inf_sc == pos_inf_d);
+    CHECK(neg_inf_sc == neg_inf_d);
+    CHECK(pos_inf_sc > 1e308);
+    CHECK(neg_inf_sc < -1e308);
+    // NaZ propagates as unordered; NaN rhs same.
+    CHECK_FALSE(naz < 0.0);
+    CHECK_FALSE(naz > 0.0);
+    CHECK_FALSE(naz == 0.0);
+    CHECK_FALSE(pos_three < nan_d);
+    CHECK_FALSE(pos_three == nan_d);
+    // Rhs-first direction (synthesised by C++20 rewrite rules).
+    CHECK(3.0 == pos_three);
+    CHECK(-3.0 == neg_three);
+    CHECK(2.5 < pos_three);
+    CHECK(pos_inf_d == pos_inf_sc);
+    CHECK(neg_inf_d == neg_inf_sc);
+    // Precision regime: same 2^53 rounding-fake guard as on the ℕ side,
+    // applied to both signs.
+    const auto two_to_53_z = finite_signed_cardinality(1LL << 53);
+    const auto neg_two_to_53_z = finite_signed_cardinality(-(1LL << 53));
+    const double two_to_53_d = static_cast<double>(1LL << 53);
+    CHECK(two_to_53_z == two_to_53_d);
+    CHECK(neg_two_to_53_z == -two_to_53_d);
+    // Non-integer rhs at integer lhs.
+    CHECK(pos_three != 3.25);
+    CHECK(pos_three < 3.25);
+    CHECK(neg_three > -3.25);
+    // Mixed sign: any positive ≠ any negative.
+    CHECK_FALSE(pos_three == -3.0);
+    CHECK(pos_three > -3.0);
+  }
+  SECTION("Cross-variant ℕ ↔ ℤ comparison (the canonical ℕ ⊂ ℤ embedding)") {
+    const Cardinality five_n = finite_cardinality(5);
+    const Cardinality inf_n = ℵ_0{};
+    const auto five_z = finite_signed_cardinality(5);
+    const auto neg_three_z = finite_signed_cardinality(-3);
+    const auto pos_inf_z = SignedCardinality{PositiveInfinity{}};
+    const auto neg_inf_z = SignedCardinality{NegativeInfinity{}};
+    const auto naz = SignedCardinality{NaZ{}};
+    // Finite ℕ vs ℤ — the lift settles equality and ordering.
+    CHECK(five_n == five_z);
+    CHECK(five_n > neg_three_z);  // ℕ ≥ 0 > -3
+    CHECK(five_n < finite_signed_cardinality(7));
+    // ℵ_0 ↦ +ℵ_0 under the lift; equivalent to PositiveInfinity.
+    CHECK(inf_n == pos_inf_z);
+    CHECK_FALSE(inf_n > pos_inf_z);  // equivalent, not strictly greater
+    CHECK(inf_n > five_z);
+    // ℕ never below -ℵ_0.
+    CHECK(five_n > neg_inf_z);
+    // NaZ on the ℤ side propagates as unordered.
+    CHECK_FALSE(five_n < naz);
+    CHECK_FALSE(five_n > naz);
+    CHECK_FALSE(five_n == naz);
+    // Rhs-first direction (synthesised by C++20 rewrite rules).
+    CHECK(five_z == five_n);
+    CHECK(neg_three_z < five_n);
+    CHECK(pos_inf_z == inf_n);
+    CHECK(neg_inf_z < five_n);
+  }
+}
+
+TEST_CASE(
+    "Carrier strength-reduction: existential proof on (Cardinality, "
+    "SignedCardinality) (slice of #362)",
+    "[numbers][cardinality][carrier-lattice][order]") {
+  // The existential proof of the carrier-promotion rule on the variant
+  // pair: the load-bearing case for Paper 3's type-directed-collapse
+  // story.  See docs/design/carrier-lattice.md for the design.
+  // Mathematically:
+  //   A ⊂ ℕ,  B ⊂ ℤ,  ℕ ↪ ℤ
+  //   ⇒  A ∩ B ⊂ ℕ   (intersection tightens to the smaller carrier)
+  //   ⇒  A ∪ B ⊂ ℤ   (union widens to the larger carrier)
+  //
+  // The ℤ side is built directly on the variant carrier @c
+  // SignedCardinality (rather than @c var<ℤ> via the predicate-set
+  // alias) because the @c ℤ alias-flip to the variant lives behind
+  // #402 — see the @c FIXME breadcrumb.  Once #402 lands this test can
+  // shift to the more idiomatic @c var<ℤ> form.
+  using L = TernaryLogic;
+  SECTION("Set<ℕ> & Set<ℤ> tightens to Set<ℕ>") {
+    constexpr auto n = var<ℕ>;
+    constexpr auto positive_n = Set{n % N | (n > 5u)};  // {6, 7, 8, …} ⊂ ℕ
+    auto bounded_pred = [](const SignedCardinality& v) {
+      // {…, -1, 0, …, 10} ⊂ ℤ
+      return (v <= 10) ? L::True : L::False;
+    };
+    const Set<SignedCardinality, L, decltype(bounded_pred)> bounded_z{
+        bounded_pred};
+    const auto meet = positive_n & bounded_z;  // {6, 7, …, 10} ⊂ ℕ
+    // Type-level proof: result carrier is ℕ (Cardinality), not ℤ.
+    STATIC_CHECK(std::same_as<typename decltype(meet)::Domain, ℕ>);
+    // Members in the natural-side window are in the meet.
+    CHECK(meet(finite_cardinality(6)) == Ternary::True);
+    CHECK(meet(finite_cardinality(10)) == Ternary::True);
+    // Members of A but outside the ℤ window are excluded.
+    CHECK(meet(finite_cardinality(11)) == Ternary::False);
+    // Members below the ℕ window are excluded.
+    CHECK(meet(finite_cardinality(5)) == Ternary::False);
+  }
+  SECTION("Set<ℕ> | Set<ℤ> widens to Set<ℤ> ({1} ∪ {-1} ⊂ ℤ)") {
+    constexpr auto n = var<ℕ>;
+    constexpr auto one_n = Set{n % N | (n == 1u)};  // {1} ⊂ ℕ
+    auto neg_one_pred = [](const SignedCardinality& v) {
+      return (v == -1) ? L::True : L::False;
+    };
+    const Set<SignedCardinality, L, decltype(neg_one_pred)> neg_one_z{
+        neg_one_pred};                         // {-1} ⊂ ℤ
+    const auto union_set = one_n | neg_one_z;  // {1, -1} ⊂ ℤ
+    // Type-level proof: result carrier widens to ℤ (SignedCardinality).
+    STATIC_CHECK(
+        std::same_as<typename decltype(union_set)::Domain, SignedCardinality>);
+    // Both 1 (from ℕ) and -1 (from ℤ) are in the union.
+    CHECK(union_set(finite_signed_cardinality(1)) == Ternary::True);
+    CHECK(union_set(finite_signed_cardinality(-1)) == Ternary::True);
+    // Other values are excluded.
+    CHECK(union_set(finite_signed_cardinality(0)) == Ternary::False);
+    CHECK(union_set(finite_signed_cardinality(2)) == Ternary::False);
+    CHECK(union_set(finite_signed_cardinality(-2)) == Ternary::False);
+  }
+  SECTION("Symmetric direction: Set<ℤ> & Set<ℕ> still tightens to Set<ℕ>") {
+    constexpr auto n = var<ℕ>;
+    auto bounded_pred = [](const SignedCardinality& v) {
+      return (v >= -3) ? L::True : L::False;  // {-3, -2, …} ⊂ ℤ
+    };
+    const Set<SignedCardinality, L, decltype(bounded_pred)> bounded_z{
+        bounded_pred};
+    constexpr auto small_n = Set{n % N | (n < 5u)};  // {0, …, 4} ⊂ ℕ
+    const auto meet = bounded_z & small_n;           // {0, …, 4} ⊂ ℕ
+    STATIC_CHECK(std::same_as<typename decltype(meet)::Domain, ℕ>);
+    CHECK(meet(finite_cardinality(0)) == Ternary::True);
+    CHECK(meet(finite_cardinality(4)) == Ternary::True);
+    CHECK(meet(finite_cardinality(5)) == Ternary::False);
+  }
+}
