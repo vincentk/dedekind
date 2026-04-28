@@ -928,6 +928,21 @@ is explicit: SQL evaluation is typically defined over already-realized relations
 while \texttt{dedekind} preserves predicate-level structure in the type system and
 defers materialization to an explicit realization boundary.
 
+The methodological lineage also runs through Abelson and
+Sussman's~\cite{abelson1996sicp} \emph{programming by wishful thinking}: name
+the procedure you wish you had, use it, and supply its definition only when the
+surrounding code forces a concrete answer.  SICP's medium for this discipline
+is Scheme---an untyped lambda calculus where the wished-for procedure is
+\emph{notational} until evaluation reaches it.  Our medium is the C++23 type
+checker, which performs a typed lambda calculus on our behalf at compile time:
+the wished-for object inhabits a predicate-set type, the wishes are tracked
+structurally as type-level constraints, and the realization boundary is the
+single point at which the type system permits an extensional value to be
+produced.  Where SICP defers \emph{evaluation} (a runtime move), we defer
+\emph{materialization} (a compile-time-to-runtime move), and the type checker
+is the auditor that ensures the wishes were coherent before the realization
+happens.
+
 \begin{figure}[ht]
 \centering
 \begin{tikzcd}[column sep=huge, row sep=large, ampersand replacement=\&]
