@@ -776,4 +776,146 @@ constexpr To lift(From const&) {
                        // constructible (which @c return @c To{} would).
 }
 
+// ---------------------------------------------------------------------------
+// Order / equivalence / graph axes for binary relations (closes #464).
+//
+// Extends the relation-classification taxonomy started by #460 / PR #463
+// with the symmetric-side / order-side opt-in traits, all R-keyed for
+// parity with @c is_left_total_v / @c is_right_unique_v.  Sibling to
+// the @c (T, Op)-keyed @c is_reflexive_v / @c is_transitive_v / @c
+// is_antisymmetric_v in @c :mereology — those classify @b binary @b
+// operations @c T @c × @c T @c → @c T (closure), while these classify
+// @b binary @b relations @c R(A, B) @c → @c bool (membership of pair).
+//
+// Compositions yield textbook special cases:
+//
+//   | composition (homogeneous V × V)        | reading              |
+//   |----------------------------------------|----------------------|
+//   | IsBinaryRelation                       | directed graph       |
+//   | + symmetric                            | undirected graph     |
+//   | + reflexive + symmetric + transitive   | equivalence relation |
+//   | + reflexive + antisymmetric+transitive | partial order        |
+// ---------------------------------------------------------------------------
+
+/**
+ * @brief User-declared reflexivity witness for a binary relation.
+ * @details Reflexivity: @c R(a, @c a) holds for every @c a.  Cannot be
+ *          checked at compile time in general; opt-in.  Sibling to
+ *          @c :mereology's @c is_reflexive_v<T, Op> (which is keyed on
+ *          a binary @b operation, not a binary @b relation).
+ */
+export template <typename R>
+inline constexpr bool is_reflexive_relation_v = false;
+
+/**
+ * @brief User-declared symmetry witness for a binary relation.
+ * @details Symmetry: @c R(a, @c b) implies @c R(b, @c a).  Combined
+ *          with reflexivity and transitivity, characterises an
+ *          @b equivalence @b relation; combined with @c IsBinaryRelation
+ *          on a homogeneous @c V @c × @c V, characterises an
+ *          @b undirected @b graph.
+ */
+export template <typename R>
+inline constexpr bool is_symmetric_relation_v = false;
+
+/**
+ * @brief User-declared antisymmetry witness for a binary relation.
+ * @details Antisymmetry: @c R(a, @c b) and @c R(b, @c a) imply @c a
+ *          @c == @c b.  Combined with reflexivity and transitivity,
+ *          characterises a @b partial @b order.  Sibling to
+ *          @c :mereology's @c is_antisymmetric_v<T, Op>.
+ */
+export template <typename R>
+inline constexpr bool is_antisymmetric_relation_v = false;
+
+/**
+ * @brief User-declared transitivity witness for a binary relation.
+ * @details Transitivity: @c R(a, @c b) and @c R(b, @c c) imply
+ *          @c R(a, @c c).  Sibling to @c :mereology's
+ *          @c is_transitive_v<T, Op>.
+ */
+export template <typename R>
+inline constexpr bool is_transitive_relation_v = false;
+
+/**
+ * @concept IsEquivalenceRelation
+ * @brief A homogeneous binary relation @c R @c ⊆ @c V @c × @c V is an
+ *        @b equivalence @b relation when reflexive, symmetric, and
+ *        transitive.
+ * @details Combines @c IsBinaryRelation<R, V, V> with the three opt-in
+ *          honesty traits.  Canonical witness: @c std::equal_to<V>
+ *          (registered below for @c V @c = @c int as the existential
+ *          proof).
+ */
+export template <typename R, typename V>
+concept IsEquivalenceRelation =
+    IsBinaryRelation<R, V, V> && is_reflexive_relation_v<R> &&
+    is_symmetric_relation_v<R> && is_transitive_relation_v<R>;
+
+/**
+ * @concept IsDirectedGraph
+ * @brief A homogeneous binary relation @c R @c ⊆ @c V @c × @c V on a
+ *        vertex set @c V is a @b directed @b graph: each ordered pair
+ *        @c (u, @c v) with @c R(u, @c v) @c == @c true is an edge.
+ * @details Just @c IsBinaryRelation on a homogeneous carrier — the
+ *          structural shape is the relation; no extra trait registration
+ *          is required to call something a "directed graph" (the
+ *          generality is the point).
+ */
+export template <typename R, typename V>
+concept IsDirectedGraph = IsBinaryRelation<R, V, V>;
+
+/**
+ * @concept IsUndirectedGraph
+ * @brief A directed graph @c R is @b undirected when its relation is
+ *        symmetric: @c R(u, @c v) iff @c R(v, @c u).
+ */
+export template <typename R, typename V>
+concept IsUndirectedGraph = IsDirectedGraph<R, V> && is_symmetric_relation_v<R>;
+
+// ---------------------------------------------------------------------------
+// Canonical existential-proof witness: std::equal_to<V> is the equivalence
+// relation on V — but ONLY for integral V.  Floating-point @c V breaks
+// reflexivity (NaN @c == @c NaN is false under IEEE 754); user-defined
+// types may have an @c operator== that violates equivalence laws (the
+// project trusts only what it verifies, and it has not verified
+// arbitrary user-defined equality).  The constraint is therefore
+// @c std::integral<V>; equality on integral types is a true equivalence
+// (no NaN, no overflow-induced asymmetry).  Floating-point and user-
+// defined V are NOT registered here; downstream callers that want
+// structural-equivalence treatment for those carriers register their
+// own opt-in traits site-locally.
+// ---------------------------------------------------------------------------
+template <std::integral V>
+inline constexpr bool is_reflexive_relation_v<std::equal_to<V>> = true;
+template <std::integral V>
+inline constexpr bool is_symmetric_relation_v<std::equal_to<V>> = true;
+template <std::integral V>
+inline constexpr bool is_transitive_relation_v<std::equal_to<V>> = true;
+
+static_assert(IsBinaryRelation<std::equal_to<int>, int, int>,
+              "std::equal_to<int> is a binary relation on int × int.");
+static_assert(IsEquivalenceRelation<std::equal_to<int>, int>,
+              "std::equal_to<int> is the canonical equivalence relation: "
+              "reflexive, symmetric, transitive.");
+static_assert(IsDirectedGraph<std::equal_to<int>, int>,
+              "Every binary relation on V × V is a directed graph "
+              "structurally; std::equal_to<int> is the trivial loop graph.");
+static_assert(IsUndirectedGraph<std::equal_to<int>, int>,
+              "std::equal_to<int> is symmetric, hence an undirected graph.");
+
+// Negative witness: std::equal_to<double> is NOT registered as
+// reflexive (NaN == NaN is false under IEEE 754), so it does not
+// fire IsEquivalenceRelation.  Pinned mechanically so the policy
+// is type-checked, not just commentary.
+static_assert(!is_reflexive_relation_v<std::equal_to<double>>,
+              "std::equal_to<double> is NOT reflexive (NaN == NaN is false "
+              "under IEEE 754); the integral-only constraint above prevents "
+              "the floating-point specialisation from firing.");
+static_assert(!IsEquivalenceRelation<std::equal_to<double>, double>,
+              "std::equal_to<double> is therefore NOT registered as an "
+              "equivalence relation; downstream callers needing structural "
+              "equivalence on double must opt-in site-locally with a NaN-"
+              "exclusion clause.");
+
 }  // namespace dedekind::category
