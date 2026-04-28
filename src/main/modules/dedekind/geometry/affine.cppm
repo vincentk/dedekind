@@ -1,7 +1,8 @@
 /**
  * @file dedekind/geometry/affine.cppm
  * @partition :affine
- * @brief Module interface in the dedekind hierarchy.
+ * @brief Level 10: Affine spaces — points, vectors, dimension witnesses
+ *        (Finite / Countably-Infinite); base of the geometry hierarchy.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.

@@ -1,7 +1,8 @@
 /**
  * @file dedekind/numbers/lattice.cppm
  * @partition :lattice
- * @brief Module interface in the dedekind hierarchy.
+ * @brief Level 9.6: First-class lattice species over continuous number
+ *        systems — integer / Gaussian lattices in ℝ, ℂ, ℝⁿ, ℂⁿ.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
@@ -22,10 +23,6 @@ module;
 /**
  * @file dedekind/numbers/lattice.cppm
  * @partition :lattice
- * @brief First-class lattice species over continuous number systems.
- *
- * Copyright 2026 The Dedekind Authors
- * Licensed under the Apache License, Version 2.0.
  *
  * @section Description
  * This partition provides the user-facing lattice factory:

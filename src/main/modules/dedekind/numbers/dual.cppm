@@ -1,10 +1,16 @@
 /**
  * @file dedekind/numbers/dual.cppm
  * @partition :dual
- * @brief Module interface in the dedekind hierarchy.
+ * @brief Level 9.5: The Infinitesimal Extension 𝔻 — dual numbers
+ *        a + bε with ε² = 0 (algebraic basis for forward-mode AD).
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
+ *
+ * @section The_Nilpotent_Basis
+ * Reifies Dual Numbers a + bε where ε² = 0.
+ * This provides the algebraic foundation for Forward-Mode
+ * Automatic Differentiation (AD).
  *
  * @note "Musica est exercitium arithmeticae occultum nescientis se numerare
  * animi."
@@ -15,17 +21,6 @@
 
 module;
 #include <concepts>
-
-/**
- * @file dedekind/numbers/dual.cppm
- * @partition :dual
- * @brief Level 9.5: The Infinitesimal Extension (D).
- *
- * @section The_Nilpotent_Basis
- * Reifies Dual Numbers a + bε where ε² = 0.
- * This provides the algebraic foundation for Forward-Mode
- * Automatic Differentiation (AD).
- */
 
 export module dedekind.numbers:dual;
 

@@ -1,7 +1,8 @@
 /**
  * @file dedekind/geometry/inner_product.cppm
  * @partition :inner_product
- * @brief Module interface in the dedekind hierarchy.
+ * @brief Level 10.1: The Metric of Angles — pre-Hilbert spaces (inner-
+ *        product spaces over ℝ or ℂ, before Cauchy completion).
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
@@ -15,12 +16,6 @@ module;
 #include <cmath>
 #include <concepts>
 #include <cstddef>
-
-/**
- * @file dedekind/geometry/inner_product.cppm
- * @partition :inner_product
- * @brief Level 10.1: The Metric of Angles (Pre-Hilbert Spaces).
- */
 
 export module dedekind.geometry:inner_product;
 
