@@ -39,8 +39,7 @@ TEST_CASE("sint: embed_sint_ℤ across canonical widths",
   CHECK(embed_sint_ℤ(1) == finite_signed_cardinality(1));
   CHECK(embed_sint_ℤ(-1) == finite_signed_cardinality(-1));
   CHECK(embed_sint_ℤ(42) == finite_signed_cardinality(42));
-  CHECK(embed_sint_ℤ(-42) ==
-        finite_signed_cardinality(-42));
+  CHECK(embed_sint_ℤ(-42) == finite_signed_cardinality(-42));
   CHECK(embed_sint_ℤ(static_cast<long>(1000)) ==
         finite_signed_cardinality(1000));
   CHECK(embed_sint_ℤ(static_cast<long long>(-7)) ==
@@ -52,14 +51,10 @@ TEST_CASE("sint: embed_sint_ℤ across canonical widths",
 TEST_CASE("sint: embed_sint_ℤ_ named-arrow form",
           "[numbers][sint][lift][monic-arrow]") {
   STATIC_CHECK(IsArrow<std::decay_t<decltype(embed_sint_ℤ_)>>);
-  STATIC_CHECK(
-      IsMonicArrow<std::decay_t<decltype(embed_sint_ℤ_)>>);
-  STATIC_CHECK(
-      std::same_as<Dom<std::decay_t<decltype(embed_sint_ℤ_)>>,
-                   int>);
-  STATIC_CHECK(
-      std::same_as<Cod<std::decay_t<decltype(embed_sint_ℤ_)>>,
-                   SignedCardinality>);
+  STATIC_CHECK(IsMonicArrow<std::decay_t<decltype(embed_sint_ℤ_)>>);
+  STATIC_CHECK(std::same_as<Dom<std::decay_t<decltype(embed_sint_ℤ_)>>, int>);
+  STATIC_CHECK(std::same_as<Cod<std::decay_t<decltype(embed_sint_ℤ_)>>,
+                            SignedCardinality>);
 
   CHECK(embed_sint_ℤ_(0) == finite_signed_cardinality(0));
   CHECK(embed_sint_ℤ_(42) == finite_signed_cardinality(42));
@@ -68,14 +63,10 @@ TEST_CASE("sint: embed_sint_ℤ_ named-arrow form",
 
 TEST_CASE("sint: lift is injective on the finite fragment",
           "[numbers][sint][lift][injective]") {
-  CHECK(embed_sint_ℤ(0) !=
-        embed_sint_ℤ(1));
-  CHECK(embed_sint_ℤ(0) !=
-        embed_sint_ℤ(-1));
-  CHECK(embed_sint_ℤ(41) !=
-        embed_sint_ℤ(42));
-  CHECK(embed_sint_ℤ(-1) !=
-        embed_sint_ℤ(1));
+  CHECK(embed_sint_ℤ(0) != embed_sint_ℤ(1));
+  CHECK(embed_sint_ℤ(0) != embed_sint_ℤ(-1));
+  CHECK(embed_sint_ℤ(41) != embed_sint_ℤ(42));
+  CHECK(embed_sint_ℤ(-1) != embed_sint_ℤ(1));
 }
 
 // ===========================================================================

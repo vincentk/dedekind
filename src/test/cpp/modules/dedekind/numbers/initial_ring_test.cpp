@@ -272,11 +272,9 @@ TEST_CASE(
   CHECK(lift_ℕ_ℤ_(finite_cardinality(0)) == finite_signed_cardinality(0));
   // Middle-row vertical arrows (machine → variant lifts).
   STATIC_CHECK(IsArrow<std::decay_t<decltype(embed_uint_ℕ_)>>);
-  STATIC_CHECK(
-      IsMonicArrow<std::decay_t<decltype(embed_uint_ℕ_)>>);
+  STATIC_CHECK(IsMonicArrow<std::decay_t<decltype(embed_uint_ℕ_)>>);
   STATIC_CHECK(IsArrow<std::decay_t<decltype(embed_sint_ℤ_)>>);
-  STATIC_CHECK(
-      IsMonicArrow<std::decay_t<decltype(embed_sint_ℤ_)>>);
+  STATIC_CHECK(IsMonicArrow<std::decay_t<decltype(embed_sint_ℤ_)>>);
   // Middle-row horizontal arrow: machine-layer ℕ → ℤ sign reinterpretation.
   STATIC_CHECK(IsArrow<std::decay_t<decltype(embed_uint_sint_)>>);
   STATIC_CHECK(IsMonicArrow<std::decay_t<decltype(embed_uint_sint_)>>);

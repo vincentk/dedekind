@@ -41,8 +41,7 @@ TEST_CASE("uint: embed_uint_ℕ across canonical widths",
   CHECK(embed_uint_ℕ(42u) == finite_cardinality(42));
   CHECK(embed_uint_ℕ(static_cast<unsigned long>(1000)) ==
         finite_cardinality(1000));
-  CHECK(embed_uint_ℕ(static_cast<std::size_t>(7)) ==
-        finite_cardinality(7));
+  CHECK(embed_uint_ℕ(static_cast<std::size_t>(7)) == finite_cardinality(7));
   CHECK(embed_uint_ℕ(static_cast<unsigned char>(255)) ==
         finite_cardinality(255));
   CHECK(embed_uint_ℕ(static_cast<unsigned short>(0xFFFF)) ==
@@ -52,14 +51,11 @@ TEST_CASE("uint: embed_uint_ℕ across canonical widths",
 TEST_CASE("uint: embed_uint_ℕ_ named-arrow form",
           "[numbers][uint][lift][monic-arrow]") {
   STATIC_CHECK(IsArrow<std::decay_t<decltype(embed_uint_ℕ_)>>);
+  STATIC_CHECK(IsMonicArrow<std::decay_t<decltype(embed_uint_ℕ_)>>);
   STATIC_CHECK(
-      IsMonicArrow<std::decay_t<decltype(embed_uint_ℕ_)>>);
+      std::same_as<Dom<std::decay_t<decltype(embed_uint_ℕ_)>>, unsigned>);
   STATIC_CHECK(
-      std::same_as<Dom<std::decay_t<decltype(embed_uint_ℕ_)>>,
-                   unsigned>);
-  STATIC_CHECK(
-      std::same_as<Cod<std::decay_t<decltype(embed_uint_ℕ_)>>,
-                   Cardinality>);
+      std::same_as<Cod<std::decay_t<decltype(embed_uint_ℕ_)>>, Cardinality>);
 
   CHECK(embed_uint_ℕ_(0u) == finite_cardinality(0));
   CHECK(embed_uint_ℕ_(42u) == finite_cardinality(42));
@@ -71,10 +67,8 @@ TEST_CASE("uint: lift is injective on the finite fragment",
   // Distinct unsigned values yield distinct Cardinality values
   // (witnesses the monic claim).
   CHECK(embed_uint_ℕ(0u) != embed_uint_ℕ(1u));
-  CHECK(embed_uint_ℕ(41u) !=
-        embed_uint_ℕ(42u));
-  CHECK(embed_uint_ℕ(0xFFFFu) !=
-        embed_uint_ℕ(0u));
+  CHECK(embed_uint_ℕ(41u) != embed_uint_ℕ(42u));
+  CHECK(embed_uint_ℕ(0xFFFFu) != embed_uint_ℕ(0u));
 }
 
 TEST_CASE("uint: lift forgets the modular ring structure",

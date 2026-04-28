@@ -118,8 +118,7 @@ namespace dedekind::numbers {
  * @tparam S Any @c std::signed_integral source type.
  */
 export template <std::signed_integral S>
-constexpr dedekind::sets::SignedCardinality embed_sint_ℤ(
-    S v) {
+constexpr dedekind::sets::SignedCardinality embed_sint_ℤ(S v) {
   // The lift funnels into @c finite_signed_cardinality, which stores
   // into @c SignedExtensionalCardinal<>'s magnitude (a @c
   // ExtensionalCardinal<> with @c std::size_t limb).  On 32-bit
@@ -285,11 +284,11 @@ static_assert(
 
 namespace dedekind::category {
 template <>
-inline constexpr bool is_monic_arrow_v<
-    std::decay_t<decltype(dedekind::numbers::embed_sint_ℤ_)>> =
-    true;
-static_assert(IsInjective<std::decay_t<
-                  decltype(dedekind::numbers::embed_sint_ℤ_)>>,
-              "embed_sint_ℤ_ (int → SignedCardinality) is "
-              "registered injective.");
+inline constexpr bool
+    is_monic_arrow_v<std::decay_t<decltype(dedekind::numbers::embed_sint_ℤ_)>> =
+        true;
+static_assert(
+    IsInjective<std::decay_t<decltype(dedekind::numbers::embed_sint_ℤ_)>>,
+    "embed_sint_ℤ_ (int → SignedCardinality) is "
+    "registered injective.");
 }  // namespace dedekind::category

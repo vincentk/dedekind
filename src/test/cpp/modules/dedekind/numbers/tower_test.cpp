@@ -40,11 +40,13 @@ static_assert(IsMonicArrow<std::decay_t<decltype(embed_ℝ_ℂ<>)>>);
 // ---------------------------------------------------------------------------
 
 static_assert(std::same_as<Dom<std::decay_t<decltype(embed_𝔹_uint_)>>, bool>);
-static_assert(std::same_as<Cod<std::decay_t<decltype(embed_𝔹_uint_)>>, unsigned>);
-
-static_assert(std::same_as<Dom<std::decay_t<decltype(embed_uint_sint_)>>, unsigned>);
 static_assert(
-    std::same_as<Cod<std::decay_t<decltype(embed_uint_sint_)>>, machine_integer>);
+    std::same_as<Cod<std::decay_t<decltype(embed_𝔹_uint_)>>, unsigned>);
+
+static_assert(
+    std::same_as<Dom<std::decay_t<decltype(embed_uint_sint_)>>, unsigned>);
+static_assert(std::same_as<Cod<std::decay_t<decltype(embed_uint_sint_)>>,
+                           machine_integer>);
 
 static_assert(std::same_as<Dom<std::decay_t<decltype(embed_𝕂3_ℤ_)>>, Ternary>);
 static_assert(std::same_as<Cod<std::decay_t<decltype(embed_𝕂3_ℤ_)>>,
@@ -88,26 +90,20 @@ TEST_CASE("Tower: embed_unsigned_ℕ (concrete monic arrow)",
   CHECK(embed_unsigned_ℕ(1000u).limbs[0] == 1000UL);
 }
 
-TEST_CASE(
-    "Tower: embed_uint_ℕ (universal machine→variant lift)",
-    "[numbers][tower][embedding][carrier-lattice]") {
+TEST_CASE("Tower: embed_uint_ℕ (universal machine→variant lift)",
+          "[numbers][tower][embedding][carrier-lattice]") {
   // The structure-forgetting lift from std::unsigned_integral
   // (modular ring ℤ/2^wℤ) into the variant ℕ-proxy Cardinality
   // (saturating commutative monoid).  Closes part of #417.
+  STATIC_CHECK(IsMonicArrow<std::decay_t<decltype(embed_uint_ℕ_)>>);
   STATIC_CHECK(
-      IsMonicArrow<std::decay_t<decltype(embed_uint_ℕ_)>>);
-  STATIC_CHECK(
-      std::same_as<Dom<std::decay_t<decltype(embed_uint_ℕ_)>>,
-                   unsigned>);
-  STATIC_CHECK(
-      std::same_as<Cod<std::decay_t<decltype(embed_uint_ℕ_)>>,
-                   dedekind::sets::Cardinality>);
+      std::same_as<Dom<std::decay_t<decltype(embed_uint_ℕ_)>>, unsigned>);
+  STATIC_CHECK(std::same_as<Cod<std::decay_t<decltype(embed_uint_ℕ_)>>,
+                            dedekind::sets::Cardinality>);
 
   // Function-template form covers any std::unsigned_integral width.
-  CHECK(embed_uint_ℕ(0u) ==
-        dedekind::sets::finite_cardinality(0));
-  CHECK(embed_uint_ℕ(42u) ==
-        dedekind::sets::finite_cardinality(42));
+  CHECK(embed_uint_ℕ(0u) == dedekind::sets::finite_cardinality(0));
+  CHECK(embed_uint_ℕ(42u) == dedekind::sets::finite_cardinality(42));
   CHECK(embed_uint_ℕ(static_cast<unsigned long>(1000)) ==
         dedekind::sets::finite_cardinality(1000));
   CHECK(embed_uint_ℕ(static_cast<std::size_t>(7)) ==
@@ -116,10 +112,8 @@ TEST_CASE(
   // Concrete monic arrow form (the named-arrow variant for
   // composition with downstream IsMonicArrow / IsRingHomomorphism
   // callsites).
-  CHECK(embed_uint_ℕ_(0u) ==
-        dedekind::sets::finite_cardinality(0));
-  CHECK(embed_uint_ℕ_(42u) ==
-        dedekind::sets::finite_cardinality(42));
+  CHECK(embed_uint_ℕ_(0u) == dedekind::sets::finite_cardinality(0));
+  CHECK(embed_uint_ℕ_(42u) == dedekind::sets::finite_cardinality(42));
 }
 
 TEST_CASE("Tower: embed_signed_to_ℤ<S> covers any signed_integral",

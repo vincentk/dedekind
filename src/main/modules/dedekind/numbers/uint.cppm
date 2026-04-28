@@ -349,12 +349,11 @@ static_assert(
 
 namespace dedekind::category {
 template <>
-inline constexpr bool is_monic_arrow_v<
-    std::decay_t<decltype(dedekind::numbers::embed_uint_ℕ_)>> =
-    true;
+inline constexpr bool
+    is_monic_arrow_v<std::decay_t<decltype(dedekind::numbers::embed_uint_ℕ_)>> =
+        true;
 static_assert(
-    IsInjective<
-        std::decay_t<decltype(dedekind::numbers::embed_uint_ℕ_)>>,
+    IsInjective<std::decay_t<decltype(dedekind::numbers::embed_uint_ℕ_)>>,
     "embed_uint_ℕ_ (unsigned → Cardinality) is "
     "registered injective.");
 }  // namespace dedekind::category

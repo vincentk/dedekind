@@ -527,11 +527,11 @@ constexpr extensional_integer embed_signed_to_ℤ(S v) {
 
 namespace dedekind::category {
 template <>
-inline constexpr bool
-    is_monic_arrow_v<std::decay_t<decltype(dedekind::numbers::embed_uint_sint_)>> =
-        true;
-static_assert(IsInjective<std::decay_t<decltype(dedekind::numbers::embed_uint_sint_)>>,
-              "embed_uint_sint_ (machine-layer ℕ → ℤ) is registered injective.");
+inline constexpr bool is_monic_arrow_v<
+    std::decay_t<decltype(dedekind::numbers::embed_uint_sint_)>> = true;
+static_assert(
+    IsInjective<std::decay_t<decltype(dedekind::numbers::embed_uint_sint_)>>,
+    "embed_uint_sint_ (machine-layer ℕ → ℤ) is registered injective.");
 
 template <>
 inline constexpr bool

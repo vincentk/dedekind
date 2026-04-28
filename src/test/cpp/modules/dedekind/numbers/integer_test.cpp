@@ -159,13 +159,11 @@ TEST_CASE(
   // two honest extensions agree where the UB-bearing original refuses
   // to commit.
   CHECK(abs_int_unsigned(int_min) == int_min_magnitude);
-  CHECK(abs(embed_sint_ℤ_(int_min)) ==
-        finite_cardinality(int_min_magnitude));
+  CHECK(abs(embed_sint_ℤ_(int_min)) == finite_cardinality(int_min_magnitude));
   // The exported arrow form abs_ (from :cardinality) wraps the same
   // operation and exhibits the same totality at INT_MIN.  Covers the
   // arrow's lambda body for codecov.
-  CHECK(abs_(embed_sint_ℤ_(int_min)) ==
-        finite_cardinality(int_min_magnitude));
+  CHECK(abs_(embed_sint_ℤ_(int_min)) == finite_cardinality(int_min_magnitude));
   CHECK(abs_(embed_sint_ℤ_(-3)) == finite_cardinality(3));
   CHECK(abs_(embed_sint_ℤ_(0)) == finite_cardinality(0));
 }
