@@ -42,8 +42,12 @@ export import :sint;      // std::signed_integral: operator surface ✓,
                           // axiomatic ring ✗ (Honest Rejection;
                           // closes part of #418)
 export import :integral;  // std::integral umbrella note over the three
-                          // siblings (unsigned_integral / signed_integral /
-                          // bool); closes #419
+                          // siblings (unsigned_integral / signed_integral
+                          // / bool); closes #419
+export import :floating_point;  // std::floating_point: operator surface +
+                                // operational ordered-field ✓; axiomatic ring /
+                                // field / total order ✗ (IEEE 754 Honest
+                                // Rejection); closes #420
 
 /** @section Algebraic_Extensions (Level 3 & 8) */
 export import :rational;    // ℚ (The Quotient Field)
