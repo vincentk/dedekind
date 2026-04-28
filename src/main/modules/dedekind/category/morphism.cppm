@@ -683,4 +683,123 @@ concept IsBijectiveArrow = IsMonicArrow<E> && IsEpicArrow<E>;
 static_assert(IsBijectiveArrow<Identity<int>>,
               "Identity must be recognised as a bijective arrow.");
 
+// ---------------------------------------------------------------------------
+// Pedagogical-accessibility primitive: function as a special case of
+// relation (closes #460).
+//
+// The textbook layering taught in advanced high-school / undergraduate
+// classes:
+//
+//   * A @b relation @c R @c ⊆ @c A @c × @c B is a subset of the
+//     Cartesian product (a set of pairs).  At the type level, the
+//     callable-indicator reading is a predicate
+//     @c R(A const&, B const&) @c → @c bool.
+//   * A @b function @c f @c : @c A @c → @c B is a relation that is
+//     @b left-total (every @c a @c ∈ @c A has at least one image) and
+//     @b right-unique (every @c a has at most one image).
+//   * The categorical @c IsArrow operationalises "function" — every
+//     IsArrow induces a relation @c R(a, b) @c := @c (f(a) @c == @c b)
+//     that is left-total + right-unique by construction.
+//
+// The set-of-pairs / value-level reading of "relation" lives in
+// @c sets:expressions as @c Relation<T1, T2, L, P> = @c Set<pair<T1, T2>,
+// L, P>; the two readings are isomorphic.  This callable-indicator
+// reading is the type-level sibling, parallel to @c IsArrow.
+// ---------------------------------------------------------------------------
+
+/**
+ * @concept IsBinaryRelation
+ * @brief A type @c R is a binary relation @c A @c × @c B @c → @c bool
+ *        if it is callable on @c A and @c B and yields a boolean.
+ *
+ * @details Callable-indicator reading of @c R @c ⊆ @c A @c × @c B
+ * (the predicate is the membership-of-pair indicator).  Sibling to
+ * the value-level @c sets::Relation<T1, T2, L, P> alias, which models
+ * the relation as a Set of pairs.  The two readings are isomorphic.
+ */
+export template <typename R, typename A, typename B>
+concept IsBinaryRelation = requires(R const& r, A const& a, B const& b) {
+  { r(a, b) } -> std::convertible_to<bool>;
+};
+
+/**
+ * @brief User-declared left-totality witness for a binary relation.
+ * @details Left-totality: every @c a @c ∈ @c A is related to at least
+ *          one @c b @c ∈ @c B.  Cannot be checked at compile time in
+ *          general; opt-in via @c is_left_total_v<R> = true.  Mirrors
+ *          the @c is_monic_arrow_v / @c is_epic_arrow_v opt-in pattern.
+ */
+export template <typename R>
+inline constexpr bool is_left_total_v = false;
+
+/**
+ * @brief User-declared right-uniqueness witness for a binary relation.
+ * @details Right-uniqueness: each @c a @c ∈ @c A is related to @b at
+ *          @b most one @c b @c ∈ @c B.  Same opt-in pattern; combined
+ *          with @c is_left_total_v<R>, this characterises a function
+ *          as a special case of relation.
+ */
+export template <typename R>
+inline constexpr bool is_right_unique_v = false;
+
+/**
+ * @concept IsBinaryFunction
+ * @brief A binary relation @c R @c ⊆ @c A @c × @c B is a @b function
+ *        when it is left-total AND right-unique.
+ * @details The textbook function-as-relation characterisation:
+ *          a function is a single-valued total relation.  Combines
+ *          @c IsBinaryRelation (structural shape) with the two opt-in
+ *          honesty traits.
+ */
+export template <typename R, typename A, typename B>
+concept IsBinaryFunction =
+    IsBinaryRelation<R, A, B> && is_left_total_v<R> && is_right_unique_v<R>;
+
+/**
+ * @brief Adapter: realise an @c IsArrow @c F @c : @c A @c → @c B as a
+ *        binary relation @c (a, @c b) @c ↦ @c f(a) @c == @c b.
+ * @details Bridge between the categorical-arrow reading and the
+ *          set-theoretic function-as-relation reading.  Every IsArrow
+ *          induces such a relation by construction, and that relation
+ *          is structurally left-total (every @c a yields @c f(a))
+ *          and right-unique (function calls are deterministic) — the
+ *          opt-in traits below register both facts.
+ */
+export template <typename F>
+  requires IsArrow<F>
+struct arrow_as_relation {
+  using ArrowType = F;
+  F f;
+
+  constexpr bool operator()(typename F::Domain const& a,
+                            typename F::Codomain const& b) const {
+    return f(a) == b;
+  }
+};
+
+// arrow_as_relation<F> is BY CONSTRUCTION left-total + right-unique:
+//   * left-total: f(a) is always defined for any a in F::Domain (that's
+//     what IsArrow guarantees).
+//   * right-unique: f(a) is deterministic, so for any a there is at
+//     most one b with f(a) == b (in fact exactly one, namely f(a)).
+template <typename F>
+  requires IsArrow<F>
+inline constexpr bool is_left_total_v<arrow_as_relation<F>> = true;
+
+template <typename F>
+  requires IsArrow<F>
+inline constexpr bool is_right_unique_v<arrow_as_relation<F>> = true;
+
+// Bridge static_assert: every IsArrow induces an IsBinaryFunction via
+// arrow_as_relation.  Demonstrated here on the canonical Identity<int>;
+// downstream witnesses fire automatically by construction.
+static_assert(IsBinaryRelation<arrow_as_relation<Identity<int>>, int, int>,
+              "Bridge :morphism — arrow_as_relation<F> is a binary "
+              "relation on F::Domain × F::Codomain (callable indicator).");
+static_assert(IsBinaryFunction<arrow_as_relation<Identity<int>>, int, int>,
+              "Bridge :morphism — every IsArrow induces an IsBinaryFunction "
+              "(left-total + right-unique by construction).  Identity is the "
+              "canonical witness; arbitrary IsArrow F → arrow_as_relation<F> "
+              "fires the same chain.");
+
 }  // namespace dedekind::category
