@@ -22,7 +22,7 @@ export module dedekind.numbers:integer;
 import dedekind.algebra;
 import dedekind.category;
 import dedekind.sets;
-import :naturals;
+import :natural;
 export import :cardinality;
 
 namespace dedekind::numbers {
@@ -480,6 +480,13 @@ export inline constexpr auto embed_unsigned_ℕ =
               static_cast<ExtensionalCardinal<>::limb_type>(u)};
         });
 
+// The universal machine-to-variant lift @c embed_unsigned_to_Cardinality
+// and its concrete-arrow form @c embed_unsigned_Cardinality_ live in the
+// dedicated sibling partition @c numbers:uint, which consolidates the
+// @c std::unsigned_integral family's textbook classification (commutative
+// ring @c ℤ/2^wℤ, the @c Modular<N> / @c IsCyclic correspondence, and
+// the width-ladder ring-hom witnesses).  Cross-reference only here.
+
 /**
  * @brief Canonical embedding of any std::signed_integral into ℤ.
  *
@@ -510,4 +517,5 @@ inline constexpr bool
 template <>
 inline constexpr bool is_monic_arrow_v<
     std::decay_t<decltype(dedekind::numbers::embed_unsigned_ℕ)>> = true;
+// Monicity of @c embed_unsigned_Cardinality_ is registered in @c :uint.
 }  // namespace dedekind::category

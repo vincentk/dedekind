@@ -88,6 +88,40 @@ TEST_CASE("Tower: embed_unsigned_ℕ (concrete monic arrow)",
   CHECK(embed_unsigned_ℕ(1000u).limbs[0] == 1000UL);
 }
 
+TEST_CASE(
+    "Tower: embed_unsigned_to_Cardinality (universal machine→variant lift)",
+    "[numbers][tower][embedding][carrier-lattice]") {
+  // The structure-forgetting lift from std::unsigned_integral
+  // (modular ring ℤ/2^wℤ) into the variant ℕ-proxy Cardinality
+  // (saturating commutative monoid).  Closes part of #417.
+  STATIC_CHECK(
+      IsMonicArrow<std::decay_t<decltype(embed_unsigned_Cardinality_)>>);
+  STATIC_CHECK(
+      std::same_as<Dom<std::decay_t<decltype(embed_unsigned_Cardinality_)>>,
+                   unsigned>);
+  STATIC_CHECK(
+      std::same_as<Cod<std::decay_t<decltype(embed_unsigned_Cardinality_)>>,
+                   dedekind::sets::Cardinality>);
+
+  // Function-template form covers any std::unsigned_integral width.
+  CHECK(embed_unsigned_to_Cardinality(0u) ==
+        dedekind::sets::finite_cardinality(0));
+  CHECK(embed_unsigned_to_Cardinality(42u) ==
+        dedekind::sets::finite_cardinality(42));
+  CHECK(embed_unsigned_to_Cardinality(static_cast<unsigned long>(1000)) ==
+        dedekind::sets::finite_cardinality(1000));
+  CHECK(embed_unsigned_to_Cardinality(static_cast<std::size_t>(7)) ==
+        dedekind::sets::finite_cardinality(7));
+
+  // Concrete monic arrow form (the named-arrow variant for
+  // composition with downstream IsMonicArrow / IsRingHomomorphism
+  // callsites).
+  CHECK(embed_unsigned_Cardinality_(0u) ==
+        dedekind::sets::finite_cardinality(0));
+  CHECK(embed_unsigned_Cardinality_(42u) ==
+        dedekind::sets::finite_cardinality(42));
+}
+
 TEST_CASE("Tower: embed_signed_to_ℤ<S> covers any signed_integral",
           "[numbers][tower][embedding]") {
   CHECK(embed_signed_to_ℤ(static_cast<short>(5)) == 5);

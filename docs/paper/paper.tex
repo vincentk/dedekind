@@ -662,12 +662,27 @@ sense: a typing derivation that the type-checker accepts is a proof in
 the propositional fragment, against a fixed set of inference rules.
 What the architecture imposes is a single division of labour.  The
 \emph{library author and the user} carry the honesty obligation up
-front: the trait registry is populated with claims that are
-constructively true of the carrier (\lstinline{is_associative_v<T,Op>}
-asserted only where the carrier supports it operationally); the
-language's escape hatches (\lstinline{reinterpret_cast},
-\lstinline{const_cast}, undefined behaviour) are not used in the
-public surface; concept formulations are chosen to match the math.
+front\footnote{Two complementary readings ground this division of
+labour.  Technically, it is the Curry--Howard reading of
+type-system-driven verification articulated by Wadler in
+\emph{Propositions as Types}~\cite{wadler2015propositions}: types
+are propositions, programs are proofs, and type-checking is
+mechanical proof verification --- the engineer's role is to
+\emph{honestly assert} the proposition by selecting the right
+concept or trait specialisation, and the compiler's role is to
+mechanically discharge the derivation.  Professionally, the framing
+also inherits from codified engineering ethics: the
+NSPE \emph{Code of Ethics for Engineers}~\cite{nspe_ethics} pins
+truthfulness in public statements and faithful agency as
+fundamental canons --- a software engineer's claim that a carrier
+satisfies a given concept, expressed through a trait specialisation,
+is exactly such a public statement.}: the trait registry is
+populated with claims that are constructively true of the carrier
+(\lstinline{is_associative_v<T,Op>} asserted only where the carrier
+supports it operationally); the language's escape hatches
+(\lstinline{reinterpret_cast}, \lstinline{const_cast}, undefined
+behaviour) are not used in the public surface; concept formulations
+are chosen to match the math.
 \emph{Once the math is honest}, the rest is mechanical: the compiler
 discharges every \lstinline{static_assert} and \lstinline{requires}-clause
 derived from those claims, every concept-driven dispatch, every
@@ -680,6 +695,123 @@ single layer (the trait registry) rather than diffused across runtime
 checks.  The trade is therefore an honesty obligation up front for a
 mechanical guarantee afterward---and it is that asymmetry, not the
 cost, that makes the technique worth practising.
+
+\subsubsection*{Axiomatic programming as an ethical obligation}
+
+The framing in the previous footnote suggests something stronger than
+a stylistic preference.  Read in the spirit of the
+NSPE \emph{Code of Ethics for Engineers}~\cite{nspe_ethics}, axiomatic
+programming is not merely \emph{compatible} with the engineering
+profession's truthfulness canons; it is among the few software-side
+techniques that lets those canons bite operationally.  Civil engineers
+who certify structural drawings carry a verifiable, signed claim about
+load-bearing properties; electrical engineers who sign off on a
+distribution panel carry a similar claim about isolation and
+fault-current ratings.  Software engineers, by contrast, routinely
+``claim'' algebraic, ordering, or invariant properties of their code
+through informal documentation and runtime tests --- claims whose
+verification is deferred, partial, and easily out of date.
+
+The paradigm illustrated in this paper narrows the gap on a narrow but
+non-trivial fragment.  When the engineer expresses a structural
+assertion as a concept witness (\lstinline{is_associative_v<T,Op>},
+\lstinline{IsCommutativeRing<unsigned int, ...>},
+\lstinline{!IsField<unsigned int, ...>}), the assertion becomes a
+\emph{public statement} in exactly the sense Canon III recognises ---
+visible at the type-system level, machine-checkable against fixed
+inference rules, and directly subject to peer review through the
+ordinary code-review process.  The professional duty of truthfulness,
+read as a constraint on what software engineers ought to assert and
+how, supplies a normative reading of the technique that goes beyond
+``it produces fewer bugs'': it argues that, where the structure of the
+problem admits a mechanical check, deferring to runtime tests or
+informal documentation is a weaker discharge of the truthfulness
+canon than asserting the property at the type level and letting the
+compiler discharge it.\footnote{The argument is bounded, not absolute.
+Most software claims cannot be reduced to type-level structural
+assertions --- correctness of a TCP retransmit timer, fairness of a
+scheduler, end-to-end latency under load.  The paper's claim is that
+on the fragment where the reduction \emph{is} possible (algebraic
+laws, ordering, carrier-shape invariants, structural pruning), the
+ethics canon supplies a normative reason to take the reduction rather
+than leaving the claim at the testimonial level.  See
+Section~\ref{sec:gap} for the four axes on which the present paradigm
+is bounded; the fragment we cover sits inside those bounds rather
+than extending past them.}
+
+The carrier-lattice section's recurring \emph{Honest Rejection} policy
+is the clearest example.  Calling \texttt{unsigned int} a witness for
+$\mathbb{N}$ is not a mere abuse of notation; it is the kind of
+informal claim the truthfulness canon would have a software engineer
+re-examine.  The library refuses the witness because $\mathbb{N}$ has
+no additive inverse and \texttt{unsigned int} does (mod wrap), and
+that asymmetry has downstream consequences any conscientious caller
+needs to know about.  The refusal is mechanical, but the
+\emph{decision to make the refusal mechanical at all} is a
+professional-ethics decision: the engineer chose not to defer the
+claim to documentation or test fixtures.  Multiplied across a library,
+across the carrier lattice, and across the algebraic concept
+vocabulary, the technique amounts to taking the truthfulness canon
+seriously as a constraint on software practice rather than a
+free-floating professional ideal.
+
+\subsubsection*{Old mathematics, newly accessible}
+
+A note worth making in the discussion register: nothing about the
+axioms invoked above is new.  The category-theoretic vocabulary on
+which the project rests --- categories, functors, natural
+transformations, adjunctions, free constructions, monads --- was
+worked out across the 1960s and 1970s in the mathematical-logic
+literature.  Lawvere's elementary theory of the category of
+sets~\cite{lawvere1964elementary} appeared in 1964; Mac Lane's
+\emph{Categories for the Working Mathematician}~\cite{maclane1971categories}
+followed in 1971; the classical adjoint-functor theorems and the
+Grothendieck-style free constructions are several decades old.  The
+applicability of this material to programming was documented through
+the late 1980s and early 1990s --- Wadler's \emph{Theorems for
+Free!}~\cite{wadler1989theorems} on parametricity, Moggi's
+\emph{Notions of computation and monads}~\cite{moggi1991notions} on
+monadic semantics for effects.  None of the structural ideas
+exercised in the showcases of this paper are inventions of the
+present work; the contribution is the fitting of those ideas to a
+production-grade C++23 substrate.
+
+What \emph{has} changed, sharply, is accessibility.  Until quite
+recently, the mathematical vocabulary remained a specialist
+language: a working software engineer who had not been routed
+through a category-theory or type-theory graduate course tended to
+encounter Mac Lane and Moggi as cultural references rather than as
+working tools.  AI assistants today close that distance.  An
+educated practitioner can now have a productive conversation with a
+modern language model about the difference between a forgetful
+functor and a Galois connection, between a rig and a ring, between a
+witness concept and a structural shape concept --- and have the
+model translate the result into concrete C++23 concept formulations,
+trait specialisations, and \texttt{static\_assert} witnesses.  This
+is the engineering analogue of a calculator's relationship to a
+slide rule: the mathematics is the same; the cost of routine use has
+collapsed.\footnote{The methodological note in the next paragraphs
+discloses the AI-assisted development of the present library
+itself; the remark here is about the wider population of working
+software engineers who can now apply axiomatic-programming
+techniques without first becoming category theorists, not about the
+authors' own workflow.}
+
+The present library is one demonstration of the resulting
+opportunity.  We do not claim it is the only such library, nor that
+its specific architectural choices are the only honest ones; we do
+claim that it is a working artefact that aims to be \emph{compliant}
+with the axioms it invokes --- the trait specialisations, the
+concept formulations, the carrier-lattice classifications all
+selected to match the textbook structure rather than the
+machine-convenient one.  The combination of (a) old, audited
+mathematical vocabulary, (b) a strict type system that mechanically
+discharges derivations from that vocabulary, and (c) AI assistance
+that lowers the bridge between the mathematical and engineering
+fragments puts the technique within reach of the working
+practitioner in a way that was not the case even five years ago.
+That accessibility is the most consequential change behind the
+present paradigm; the rest is bookkeeping.
 
 \subsubsection*{Bounded yet open-ended}
 
@@ -1475,6 +1607,41 @@ cardinality (showcase~6: $-21 < n \leq 21$ on $\mathbb{Z}$, $|\cdot|=42$),
 integer lattice intersected with real-valued bounds (showcase~7), and
 2D rectangles via structural cartesian product (showcase~8: $42 \times 11 =
 462$). All are IR-verified.
+
+\paragraph{The machine layer below $\mathbb{N}$: \texttt{std::unsigned\_integral} is $\mathbb{Z}/2^w\mathbb{Z}$.}
+The lattice $\mathbb{N} \subset \mathbb{Z} \subset \mathbb{Q} \subset \mathbb{R}
+\subset \mathbb{C}$ rests on a machine layer occupied by the standard library's
+primitive integer families. The honest textbook reading of
+\lstinline{std::unsigned_integral} is that each width-$w$ instance is the
+finite cyclic ring $\mathbb{Z}/2^w\mathbb{Z}$ under modular arithmetic --- a
+\emph{commutative ring}, \emph{not} the textbook
+$\mathbb{N}$.\footnote{The mod-wrap arithmetic gives every element an additive
+inverse: $u + (2^w - u) \equiv 0 \pmod{2^w}$. The textbook $\mathbb{N}$ is a
+commutative semiring \emph{without} additive inverse; calling \texttt{unsigned
+int} ``natural numbers'' is a category-theoretic error in the direction of
+claiming \emph{more} structure than $\mathbb{N}$ actually has.} The library's
+$\mathbb{N}$ lives on the variant carrier \lstinline{Cardinality} (the
+saturating commutative monoid, no $-$); the \lstinline{std::unsigned_integral}
+layer is the canonical quotient of monoids
+$\mathbb{N} \twoheadrightarrow \mathbb{Z}/2^w\mathbb{Z}$ that sits
+\emph{above} $\mathbb{N}$ rather than coinciding with
+it.\footnote{This framing is the correct reading of the project's
+\emph{Honest Rejection} policy: a hardware species is rejected as a witness
+for an idealised mathematical structure when its laws differ from those of the
+idealised structure --- and the rejection is symmetric in direction, so that
+``too much structure'' (\texttt{unsigned int}'s modular inverse) is rejected
+on the same footing as ``too little'' (\texttt{int}'s undefined-behaviour
+overflow that defeats closure).} The truthy-positivity injection
+$\mathbb{B} \hookrightarrow \texttt{std::unsigned\_integral}$ and the
+structure-forgetting lift
+$\texttt{std::unsigned\_integral} \to \texttt{Cardinality}$ make the embedding
+chain $\mathbb{B} \hookrightarrow \texttt{std::unsigned\_integral} \to
+\mathbb{N}$ explicit at the type level.\footnote{The symmetric three-element
+chain $\mathbb{K3} \hookrightarrow \texttt{std::signed\_integral} \to
+\mathbb{Z}$ is the Kleene-truth-value version, with \texttt{embed\_K3\_}$\mathbb{Z}$
+as the first leg (False $\mapsto -1$, Unknown $\mapsto 0$, True $\mapsto 1$);
+the symmetric story is tracked under issue~\#418.} The full discussion lives
+in the report chapter on the carrier lattice.
 
 \subsection{Linear Programming: The Optimum as a Typed Constant}
 \label{sec:lp-centrepiece}

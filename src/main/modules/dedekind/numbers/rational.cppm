@@ -456,7 +456,7 @@ static_assert(
 // making it satisfy IsInteger. It represents ℕ "by fiat": a total ring
 // (IsRing, IsMagma) whose wrapping arithmetic avoids UB. This assert lives
 // here (not in cardinality.cppm) to avoid a circular import chain:
-//   :cardinality → :naturals   :integer → :cardinality   :rational → :integer
+//   :cardinality → :natural   :integer → :cardinality   :rational → :integer
 static_assert(IsInteger<ExtensionalCardinal<>>,
               "ExtensionalCardinal<> must satisfy IsInteger (Euclidean "
               "ring: +, -, *, /, % with two's-complement wrapping).");

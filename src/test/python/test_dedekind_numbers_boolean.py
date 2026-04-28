@@ -38,7 +38,7 @@ class GaloisField2OnBooleansTest(unittest.TestCase):
 
     Mirrors the C++ witness
     ``static_assert(IsField<𝔹, std::bit_xor<𝔹>, std::bit_and<𝔹>>)``
-    in ``dedekind.numbers:booleans``: same carrier type as 𝔹, with
+    in ``dedekind.numbers:boolean``: same carrier type as 𝔹, with
     addition := XOR and multiplication := AND.  Walks the field axioms
     explicitly over the two-element universe so an external observer can
     verify the structure by running the test.

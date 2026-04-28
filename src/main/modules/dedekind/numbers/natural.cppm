@@ -53,7 +53,7 @@ module;
 #include <concepts>
 #include <functional>
 
-export module dedekind.numbers:naturals;
+export module dedekind.numbers:natural;
 
 import dedekind.algebra; // HasRingOperators / HasSemiringOperators / IsArithmeticRing (canonical-spine witnesses)
 import dedekind.category;
@@ -61,7 +61,7 @@ import dedekind.order; // HasLatticeOperators (canonical-spine witnesses)
 import dedekind.sequences; // IsFiniteSequence (canonical-spine witnesses on FinitePath<ℕ>)
 import dedekind.sets;
 import :scalars;
-import :booleans;
+import :boolean;
 
 namespace dedekind::numbers {
 using namespace dedekind::category;
@@ -315,6 +315,14 @@ static_assert(N(-7) == ClassicalLogic::False,
 // (5) Adjacent-set arrow: 𝔹 ↪ ℕ via @c embed_𝔹_ℕ above; registered
 // monic at the bottom of this partition.  The forward arrow ℕ ↪ ℤ
 // lives in @c :integer (downstream), as @c embed_ℕ_ℤ.
+
+// (6) The @c std::unsigned_integral family classification (textbook
+//     @c ℤ/2^wℤ stance, the universal lift @c
+//     embed_unsigned_to_Cardinality, the @c Modular<N> / @c IsCyclic
+//     correspondence, and the width-ladder ring-hom witnesses) lives
+//     in the dedicated sibling partition @c :uint.  Cross-reference
+//     only here — the consolidated narrative + audit trail belongs
+//     in one place.
 
 }  // namespace dedekind::numbers
 
