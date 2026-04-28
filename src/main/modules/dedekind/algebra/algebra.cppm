@@ -1,7 +1,7 @@
 /**
  * @file algebra.cppm
  * @module dedekind.algebra
- * @brief Level 3: The Algebra of Restoration — Groups ⊂ Rings ⊂ Modules ⊂ Polynomials.
+ * @brief Level 3: Groups ⊂ Rings ⊂ Modules ⊂ Polynomials.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.

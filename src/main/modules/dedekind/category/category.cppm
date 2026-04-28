@@ -1,7 +1,7 @@
 /**
  * @file dedekind/category/category.cppm
  * @module dedekind.category
- * @brief Level 0--4: categorical bedrock — atoms, universal constructions, total and partial algebra, the functor / natural-transformation / monad / Kleisli spine, and the ETCS facade for sets-as-subobjects.
+ * @brief Level 0--4: categorical bedrock + ETCS facade.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.

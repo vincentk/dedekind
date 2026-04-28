@@ -2,7 +2,7 @@
  * @file dedekind/algebra/initial_ring.cppm
  * @partition :initial_ring
  * @module dedekind.algebra:initial_ring
- * @brief @c ℤ as a Form — the Initial Ring and the Grothendieck group of @c ℕ (two universal properties on the same carrier).
+ * @brief @c ℤ as a Form — Initial Ring and Grothendieck group of @c ℕ.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
