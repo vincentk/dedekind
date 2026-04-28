@@ -65,6 +65,7 @@
 
 \usepackage{tikz}
 \usetikzlibrary{shapes.geometric, arrows.meta, positioning, calc, backgrounds}
+\usepackage{tikz-cd}
 
 \usepackage{draftwatermark}
 \SetWatermarkScale{5}
@@ -926,6 +927,20 @@ Majki\'c's intensional FOL treatment for peer-to-peer data integration
 is explicit: SQL evaluation is typically defined over already-realized relations,
 while \texttt{dedekind} preserves predicate-level structure in the type system and
 defers materialization to an explicit realization boundary.
+
+\begin{figure}[ht]
+\centering
+\begin{tikzcd}[column sep=huge, row sep=large, ampersand replacement=\&]
+  \texttt{Cardinality}~(\mathbb{N}) \arrow[r, "\texttt{lift\_cardinality\_to\_signed}"]
+    \& \texttt{SignedCardinality}~(\mathbb{Z}) \arrow[l, dashed, bend right=30, "\texttt{abs}"'] \\
+  \texttt{unsigned~int}~(\mathbb{Z}/2^w\mathbb{Z}) \arrow[u, "\texttt{embed\_unsigned\_to\_Cardinality}"] \arrow[r, "\texttt{embed\_}\mathbb{N}\texttt{\_}\mathbb{Z}~(\text{machine})"]
+    \& \texttt{int}~(\text{machine}~\mathbb{Z}) \arrow[u, "\texttt{embed\_signed\_to\_SignedCardinality}"'] \\
+  \texttt{bool}~(\mathbb{B}) \arrow[u, "\texttt{embed\_}\mathbb{B}\texttt{\_}\mathbb{N}"] \arrow[r, "\texttt{embed\_}\mathbb{B}\texttt{\_}\mathbb{K}3"]
+    \& \texttt{Ternary}~(\mathbb{K}3) \arrow[uu, bend right=40, "\texttt{embed\_K3\_}\mathbb{Z}"']
+\end{tikzcd}
+\caption{The carrier lattice (discrete-foundations slice). Three layers, bottom to top: truth-value carriers (\texttt{bool}, \texttt{Ternary}); machine integer carriers (\texttt{unsigned~int} = $\mathbb{Z}/2^w\mathbb{Z}$ as a finite cyclic ring; \texttt{int} = machine $\mathbb{Z}$ with UB-on-overflow); variant carriers inhabiting the textbook Forms (\texttt{Cardinality} = $\mathbb{N}$ as the Natural Numbers Object; \texttt{SignedCardinality} = $\mathbb{Z}$ as the Initial Ring / Grothendieck group of $\mathbb{N}$). Each labelled arrow is the actual code identifier of a canonical embedding registered as a monic morphism in \texttt{dedekind.numbers}. The top-row arrow \texttt{lift\_cardinality\_to\_signed} is the canonical $\mathbb{N} \hookrightarrow \mathbb{Z}$ embedding at the variant carrier layer (the Grothendieck-construction unit); the binary closure-forcing operator $\texttt{Cardinality} - \texttt{Cardinality} \to \texttt{SignedCardinality}$ realises the Grothendieck \emph{construction} on operator pairs and is not shown on the diagram (it would require a product node). The middle-row arrow \texttt{embed\_}$\mathbb{N}$\texttt{\_}$\mathbb{Z}$ is the machine-layer sign reinterpretation \texttt{static\_cast<int>(unsigned)} despite its variant-evocative name --- the actual canonical $\mathbb{N} \to \mathbb{Z}$ on the carriers happens at the variant layer. The dashed retraction \texttt{abs} is the split-mono partner of the embedding ($\texttt{abs} \circ \texttt{embed} = \mathrm{id}$ on the non-negative fragment). \texttt{embed\_K3\_}$\mathbb{Z}$ skips the machine-int row and lands directly on \texttt{SignedCardinality} (a deliberate factorisation choice). Multiple paths between extremes commute up to canonical isomorphism.}
+\label{fig:carrier-lattice}
+\end{figure}
 
 \paragraph{The Form: $\mathbb{N}$ as the Natural Numbers Object.}
 The library reifies $\mathbb{N}$ structurally as Lawvere's

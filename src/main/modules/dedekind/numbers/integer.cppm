@@ -519,3 +519,56 @@ inline constexpr bool is_monic_arrow_v<
     std::decay_t<decltype(dedekind::numbers::embed_unsigned_ℕ)>> = true;
 // Monicity of @c embed_unsigned_Cardinality_ is registered in @c :uint.
 }  // namespace dedekind::category
+
+// ===========================================================================
+// Initial Ring + Grothendieck Group witnesses on @c SignedCardinality
+// (closes part of #446).
+//
+// Two universal-property witnesses anchoring @c SignedCardinality
+// simultaneously:
+//   * @c IsInitialRing<SignedCardinality> — for every ring @c R there
+//     exists a unique ring homomorphism @c SignedCardinality @c → @c R
+//     (e.g.\ @c χ_{Modular<n>} as the mod-n reduction).
+//   * @c IsGrothendieckGroup<SignedCardinality, Cardinality> —
+//     @c SignedCardinality is the free abelian group on the
+//     commutative monoid @c Cardinality; the closure-forcing operator
+//     @c Cardinality @c - @c Cardinality @c → @c SignedCardinality
+//     realises the construction at the operator level.
+//
+// Universal-property content (existence + uniqueness of the canonical
+// homomorphisms) is the engineer's honesty obligation; the test
+// suite exercises the operational behaviour at concrete targets.
+// ===========================================================================
+
+namespace dedekind::algebra {
+
+template <>
+inline constexpr bool is_initial_ring_v<dedekind::sets::SignedCardinality> =
+    true;
+
+template <>
+inline constexpr bool is_grothendieck_group_v<dedekind::sets::SignedCardinality,
+                                              dedekind::sets::Cardinality> =
+    true;
+
+}  // namespace dedekind::algebra
+
+namespace dedekind::numbers {
+
+static_assert(
+    dedekind::algebra::IsInitialRing<dedekind::sets::SignedCardinality>,
+    "SignedCardinality is the canonical Initial Ring witness: for every "
+    "ring R there exists a unique ring homomorphism SignedCardinality → R "
+    "(e.g. χ_{Modular<n>} = mod-n reduction).  Universal-property content "
+    "is the engineer's honesty obligation.");
+
+static_assert(
+    dedekind::algebra::IsGrothendieckGroup<dedekind::sets::SignedCardinality,
+                                           dedekind::sets::Cardinality>,
+    "SignedCardinality is the canonical Grothendieck group of Cardinality: "
+    "the free abelian group on the commutative monoid (Cardinality, +, 0).  "
+    "The closure-forcing operator Cardinality - Cardinality → "
+    "SignedCardinality realises the Grothendieck construction at the "
+    "operator level.");
+
+}  // namespace dedekind::numbers

@@ -1,5 +1,25 @@
 # The carrier lattice: ℕ ⊂ ℤ ⊂ ℚ ⊂ ℝ ⊂ ℂ at the C++ type level
 
+## The discrete-foundations slice
+
+```
+                       SignedCardinality (ℤ-Form: Initial Ring / Grothendieck of ℕ)
+                      ╱     ↑
+   embed_signed_to_SC       │ closure-forcing  Cardinality - Cardinality → SC
+                  ╱         │                  (Grothendieck-construction unit)
+                int  ←──── Cardinality  (ℕ-Form: NNO)
+                 ↑          ↑     ↑
+        embed_K3_ℤ         │     │ embed_unsigned_to_Cardinality
+                 │   embed_ℕ_ℤ    │ (PR #441, the named monic arrow)
+              Ternary       unsigned int  (= ℤ/2^wℤ, the modular finite ring)
+                              ↑
+                              │ embed_𝔹_ℕ
+                              │
+                            bool (𝔹-Form: Ω, the Subobject Classifier)
+```
+
+Three layers: truth-value carriers (`bool`, `Ternary`); machine integer carriers (`unsigned int` = ℤ/2^wℤ; `int` = machine ℤ with UB-on-overflow); variant carriers inhabiting the textbook Forms (`Cardinality` = ℕ-as-NNO; `SignedCardinality` = ℤ-as-Initial-Ring / Grothendieck-of-ℕ). The dashed retraction `abs : SignedCardinality → Cardinality` (PR #437/#436) is the split-mono partner of the embedding — `abs ∘ embed = id` on the non-negative fragment. Multiple paths between extremes commute up to canonical isomorphism.
+
 ## The question
 
 Mathematically, ℕ is a *proper subset* of ℤ — every natural number is, literally, an integer. So `Cardinality` (the post-#402 ℕ-proxy) ought to behave as a subset of `SignedCardinality` (the ℤ-proxy), and operations that mix them — `5 < -3` ; `Set<ℕ> ∩ Set<ℤ>` — should compose without ceremony.
