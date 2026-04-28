@@ -265,6 +265,11 @@ TEST_CASE(
   // Top-row variant-layer arrow: ℕ ↪ ℤ canonical embedding.
   STATIC_CHECK(IsArrow<std::decay_t<decltype(lift_ℕ_ℤ_)>>);
   STATIC_CHECK(IsMonicArrow<std::decay_t<decltype(lift_ℕ_ℤ_)>>);
+  // Operational witness: lift_ℕ_ℤ_ realises the canonical embedding
+  // — applied to a Cardinality, returns the corresponding non-
+  // negative SignedCardinality.  Covers the arrow's lambda body.
+  CHECK(lift_ℕ_ℤ_(finite_cardinality(7)) == finite_signed_cardinality(7));
+  CHECK(lift_ℕ_ℤ_(finite_cardinality(0)) == finite_signed_cardinality(0));
   // Middle-row vertical arrows (machine → variant lifts).
   STATIC_CHECK(IsArrow<std::decay_t<decltype(embed_unsigned_Cardinality_)>>);
   STATIC_CHECK(
