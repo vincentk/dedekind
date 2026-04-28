@@ -84,14 +84,58 @@ concept IsArrow = requires {
   { f(x) } -> std::convertible_to<typename std::remove_cvref_t<F>::Codomain>;
 };
 
+// ---------------------------------------------------------------------------
+// Picking policy for Domain-resolving helpers (closes #411).
+//
+// The codebase has @b three helpers for retrieving the underlying-element
+// type of a species / arrow.  They are not strict duplicates — each
+// serves a distinct audience.  Pick the right one for your call site:
+//
+//   * @c Dom<F> / @c Cod<F> — home: @c :morphism (here).
+//     Use when the site is @c IsArrow-strict: functors, naturality,
+//     hub-arrows; i.e. when the callable-with-Domain/Codomain shape
+//     is required by the surrounding code.
+//
+//   * @c element_of_t<S> — home: @c :sets:boundaries.
+//     Use when the site needs to accept @b primitive carriers
+//     (@c bool, @c unsigned, …) as well as predicate-set carriers
+//     (post-carrier-migration code paths; the "species or carrier"
+//     generality).  This is the only helper with a primitive
+//     fallback.
+//
+//   * @c MorphicBridge<signature_extractor<F>::type>::Domain —
+//     home: @c :morphism (below).
+//     Use in typed-lambda contexts where @c F doesn't expose
+//     @c ::Domain directly.
+//
+// @b Bare @c typename @c T::Domain is acceptable @b only when:
+//   * The site has its own @c requires @c { @c typename @c T::Domain; @c }
+//     constraint that excludes primitives, OR
+//   * The type is locally constructed (e.g. inside a producer site
+//     like @c using @c Domain @c = @c T;).
+//
+// In post-carrier-migration code paths (post-#400 / #401 / #402 etc.)
+// where a "species" parameter may be a primitive carrier, prefer
+// @c element_of_t<S>; bare @c S::Domain there fails to compile on
+// primitives and forces a cascade fix at every consumer site.  See
+// PR #409 / @c :order:halfspace for the precedent where the cascade
+// was caught.
+// ---------------------------------------------------------------------------
+
 /**
  * @brief Shorthand to look up the Domain of an Arrow type F.
+ *
+ * @details Picking-policy slot 1 of 3 — see the policy comment above.
+ *          Use this in @c IsArrow-strict contexts; for primitive-aware
+ *          generality use @c element_of_t<S> from @c :sets:boundaries.
  */
 export template <IsArrow F>
 using Dom = typename std::remove_cvref_t<F>::Domain;
 
 /**
  * @brief Shorthand to look up the Codomain of an Arrow type F.
+ *
+ * @details Codomain analogue of @c Dom; same picking-policy slot.
  */
 export template <IsArrow F>
 using Cod = typename std::remove_cvref_t<F>::Codomain;
@@ -206,7 +250,17 @@ struct SpeciesTraits<std::less_equal<T>>
 template <typename T>
 struct SpeciesTraits<std::less<T>> : infer_morphism<std::less<T>, T, T> {};
 
-/** @section Lambda_Introspection */
+/** @section Lambda_Introspection
+ *
+ * @c MorphicBridge synthesises @c Domain / @c Codomain for callable
+ * types that don't expose those nested aliases directly (lambdas,
+ * function pointers, @c std::function instances).  This is picking-
+ * policy slot 3 of 3 — see the policy comment near @c Dom / @c Cod
+ * above.  Use @c MorphicBridge<signature_extractor<F>::type>::Domain
+ * for typed-lambda contexts; for @c IsArrow-strict contexts use
+ * @c Dom<F>; for primitive-aware sites use @c element_of_t<S> from
+ * @c :sets:boundaries.
+ */
 template <typename T>
 struct MorphicBridge;
 

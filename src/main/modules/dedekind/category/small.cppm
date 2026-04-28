@@ -135,7 +135,10 @@ concept IsCategory = requires {
 
   // The 'label' type for objects in this category
   typename Cat::Species;
-  requires std::same_as<typename Cat::Species, typename Cat::Arrow::Domain>;
+  // Per the picking policy in :morphism (#411): use Dom<...> in
+  // IsArrow-strict contexts (Cat::Arrow is constrained as IsArrow
+  // below).  Self-documents that the Domain comes via the arrow shape.
+  requires std::same_as<typename Cat::Species, Dom<typename Cat::Arrow>>;
 
   // 1. The Type: Capitalized to avoid shadowing the function
   typename Cat::Id;
@@ -154,10 +157,10 @@ concept IsCategory = requires {
    */
   requires requires(typename Cat::Arrow f, typename Cat::Arrow g) {
     { f >> g } -> IsArrow;
-    requires std::same_as<typename decltype(f >> g)::Domain,
-                          typename Cat::Arrow::Domain>;
-    requires std::same_as<typename decltype(f >> g)::Codomain,
-                          typename Cat::Arrow::Codomain>;
+    // Per the picking policy in :morphism (#411): use Dom / Cod for
+    // arrow-shaped composite results.
+    requires std::same_as<Dom<decltype(f >> g)>, Dom<typename Cat::Arrow>>;
+    requires std::same_as<Cod<decltype(f >> g)>, Cod<typename Cat::Arrow>>;
   };
 
   /**

@@ -73,6 +73,27 @@ struct Boundaries {};
  * @c :family to @c :boundaries so the upstream @c Variable / @c var
  * machinery in @c :expressions can use the same trait without
  * duplicating the resolution logic.
+ *
+ * @section Picking_Policy_Cross_Reference
+ *
+ * @c element_of_t is one of @b three Domain-resolving helpers in the
+ * project — see @c :morphism's "Picking policy" comment block (post-
+ * #411) for the canonical decision rule.  In short:
+ *
+ *   * @c Dom<F> / @c Cod<F> ( @c :morphism) — for @c IsArrow-strict
+ *     contexts.
+ *   * @c element_of_t<S> ( @b here) — for sites that must accept @b
+ *     primitive carriers as well as predicate-set carriers.  This is
+ *     the only helper with a primitive fallback; per-symbol carrier
+ *     migrations (post-#401 / #402 etc.) prefer this on consumer sites
+ *     to avoid the "primitive doesn't satisfy @c Species::Domain"
+ *     cascade.
+ *   * @c MorphicBridge<signature_extractor<F>::type>::Domain ( @c
+ *     :morphism) — for typed-lambda contexts without nested @c ::Domain.
+ *
+ * Bare @c typename @c T::Domain is acceptable only at @b producer sites
+ * (where @c using @c Domain @c = @c T; is the @b defining clause), or
+ * inside a @c requires that already excludes primitives.
  */
 export template <typename T>
 struct resolve_species {
