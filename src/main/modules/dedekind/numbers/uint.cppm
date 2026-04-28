@@ -260,6 +260,18 @@ static_assert(dedekind::order::IsTotallyOrdered<unsigned int>,
 static_assert(dedekind::order::IsDirectedSet<unsigned int>,
               "unsigned int is a directed set (net domain).");
 
+// Bitwise / lattice operator surface — std::unsigned_integral carries
+// the four bitwise operators, satisfying the syntactic-shape concept
+// from :order:lattice. The bundled IsOrderLattice axiomatic claim is
+// not made here (it lives at the Boolean-ring reading on :boolean).
+static_assert(dedekind::order::HasLatticeOperators<unsigned int>,
+              "unsigned int carries the bitwise / lattice operator surface "
+              "(&, |, ^, ~).");
+static_assert(dedekind::order::HasLatticeOperators<unsigned long>,
+              "unsigned long carries the bitwise / lattice operator surface.");
+static_assert(dedekind::order::HasLatticeOperators<std::size_t>,
+              "std::size_t carries the bitwise / lattice operator surface.");
+
 // Sequence witness: machine unsigned is a valid sequence codomain.
 static_assert(dedekind::sequences::IsFiniteSequence<
                   dedekind::sequences::FinitePath<unsigned int>>,

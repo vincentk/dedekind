@@ -275,6 +275,34 @@ static_assert(dedekind::order::IsTotallyOrdered<int>,
 static_assert(dedekind::order::IsDirectedSet<int>,
               "int is a directed set (net domain).");
 
+// Bitwise / lattice operator surface — std::signed_integral carries
+// the four bitwise operators (mirrors the unsigned-side claim in
+// :uint). No axiomatic lattice claim is made here.
+static_assert(dedekind::order::HasLatticeOperators<int>,
+              "int carries the bitwise / lattice operator surface "
+              "(&, |, ^, ~).");
+static_assert(dedekind::order::HasLatticeOperators<long>,
+              "long carries the bitwise / lattice operator surface.");
+static_assert(dedekind::order::HasLatticeOperators<long long>,
+              "long long carries the bitwise / lattice operator surface.");
+
+// Axiomatic-ring rejection — the strictly weaker downstream consequence
+// of the @c !Group_ℤ / @c !IsArithmeticAdditiveGroup pins above.
+// Pinned explicitly so the std::signed_integral reader sees the
+// dichotomy in one place: the operator surface fires, the axiomatic
+// ring witness does not.
+static_assert(!dedekind::category::IsRing<int, std::plus<int>,
+                                          std::multiplies<int>>,
+              "int is NOT an axiomatic ring under std::plus / "
+              "std::multiplies: signed-overflow UB defeats closure "
+              "before the ring axioms are reachable.");
+static_assert(!dedekind::category::IsRing<long, std::plus<long>,
+                                          std::multiplies<long>>,
+              "long is NOT an axiomatic ring: same reason as int.");
+static_assert(!dedekind::category::IsRing<long long, std::plus<long long>,
+                                          std::multiplies<long long>>,
+              "long long is NOT an axiomatic ring: same reason as int.");
+
 // Sequence witness: machine signed int is a valid sequence codomain.
 static_assert(
     dedekind::sequences::IsFiniteSequence<dedekind::sequences::FinitePath<int>>,
