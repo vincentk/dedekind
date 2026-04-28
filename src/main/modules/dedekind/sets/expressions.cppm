@@ -78,9 +78,13 @@ struct Comprehension {
   static constexpr bool is_idempotent_v = true;
 };
 
-// Forward declaration: resolved below where Variable lives.
+// Forward declarations: resolved below where Variable / BooleanEqPredicate
+// are fully defined.  Both are @c export-declared here so the later
+// definitions match in module linkage.
 export template <typename Species>
 struct Variable;
+
+export struct BooleanEqPredicate;
 
 /** @brief The Membership Binding: Bridges a Variable to its Domain. */
 template <typename Species>
