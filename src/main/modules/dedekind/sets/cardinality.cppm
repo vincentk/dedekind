@@ -1349,10 +1349,10 @@ constexpr bool operator==(const SignedCardinality& lhs, F rhs) noexcept {
 // integer.  At the @b variant level the corresponding map is
 // @c Cardinality (ℕ-proxy) → @c SignedCardinality (ℤ-proxy); the lift
 // helper below realises it.  (The same direction at the machine /
-// downstream-numbers layer is named @c embed_ℕ_ℤ in @c
+// downstream-numbers layer is named @c embed_uint_sint_ in @c
 // numbers/integer.cppm — pre-#402 that arrow is @c arrow<unsigned, int>;
 // post-#402 it retargets to the variant pair, at which point the local
-// helper here and @c embed_ℕ_ℤ become two names for the same lift.)
+// helper here and @c embed_uint_sint_ become two names for the same lift.)
 // That makes @c Cardinality @c < @c SignedCardinality a well-defined
 // question; pre-#428 it didn't compile, forcing call sites to explicitly
 // lift through the embedding before comparing.
@@ -1369,7 +1369,7 @@ constexpr bool operator==(const SignedCardinality& lhs, F rhs) noexcept {
  *         ℕ ↪ ℤ embedding direction.  Public, exported: this is the
  *         canonical variant-level @c ℕ @c ↪ @c ℤ embedding that the
  *         carrier-lattice diagram (Figure 1 in @c paper.tex) labels at
- *         the top row.  The machine-layer counterpart is @c embed_ℕ_ℤ
+ *         the top row.  The machine-layer counterpart is @c embed_uint_sint_
  *         in @c numbers:integer (an @c arrow<unsigned, @c int> sign
  *         reinterpretation, structurally distinct from the variant-
  *         layer canonical embedding here).  Lives in @c sets:cardinality
@@ -1456,8 +1456,8 @@ export constexpr SignedCardinality operator-(const Cardinality& v) noexcept {
  *         at the type level.
  *
  *  Categorically, @c abs is a @b retraction (left inverse) of the
- *  canonical embedding @c embed_ℕ_ℤ on the non-negative fragment of
- *  ℤ — i.e., @c abs ∘ embed_ℕ_ℤ @c = @c id_ℕ — extended by sign-
+ *  canonical embedding @c embed_uint_sint_ on the non-negative fragment of
+ *  ℤ — i.e., @c abs ∘ embed_uint_sint_ @c = @c id_ℕ — extended by sign-
  *  folding on the negative fragment.  This is the @b downward
  *  complement of the closure-forcing @c -Cardinality direction
  *  above: where unary @c - @b widens @c ℕ @c → @c ℤ along the
@@ -1506,7 +1506,7 @@ export constexpr SignedCardinality operator-(const Cardinality& v) noexcept {
  *  @c unsigned to make the codomain match) holds on the non-@c
  *  INT_MIN fragment of @c int and is partial at @c INT_MIN — @c
  *  std::abs(INT_MIN) is UB, while @c
- *  abs(embed_int_SignedCardinality_(INT_MIN)) is a finite Cardinality
+ *  abs(embed_sint_ℤ_(INT_MIN)) is a finite Cardinality
  *  with magnitude @c |INT_MIN| (computable via the unsigned-modular
  *  expression @c 0u @c - @c static_cast<unsigned>(INT_MIN) — well-
  *  defined for any @c int width per @c

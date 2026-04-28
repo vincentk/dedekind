@@ -30,7 +30,7 @@
  *      a ring-homomorphism on the non-overflow fragment.  Witnessed
  *      structurally below.
  *
- *   2. @b Machine → variant forgetful: @c embed_unsigned_to_Cardinality
+ *   2. @b Machine → variant forgetful: @c embed_uint_ℕ
  *      lifts the modular ring into the saturating commutative monoid
  *      @c Cardinality, @b forgetting the additive inverse the source
  *      carries via mod wrap.
@@ -59,13 +59,13 @@
  *     whose typing lets downstream code state the triangle identities.
  *
  * The @b machine→variant @b forgetful arrow @c
- * embed_unsigned_to_Cardinality is a structurally forgetful Set-arrow
+ * embed_uint_ℕ is a structurally forgetful Set-arrow
  * (Ring → CMon, dropping the additive inverse) rather than a forgetful
  * @b functor in the strict @c IsForgetfulFunctor sense; reading it as
  * the action-component of the variant Grothendieck adjunction is the
  * natural categorical bridge.  The @b variant Grothendieck @b
  * adjunction itself ( @c Cardinality @c ⊣ @c SignedCardinality, with
- * @c embed_ℕ_ℤ as the unit and @c abs as the retraction-not-counit) is
+ * @c embed_uint_sint_ as the unit and @c abs as the retraction-not-counit) is
  * cross-referenced from the carrier-lattice section of
  * @c report.tex / @c paper.tex but @b not reified as an
  * @c IsAdjunction witness in this partition (that belongs to #402's
@@ -131,7 +131,7 @@ namespace dedekind::numbers {
  * @c Cardinality{ExtensionalCardinal<>{u}}; the @c ℵ_0 alternative on
  * the codomain stays unreached on the embedding direction.
  *
- * Companion to @c embed_signed_to_SignedCardinality (filed under #418),
+ * Companion to @c embed_sint_ℤ (filed under #418),
  * which provides the symmetric lift on the @c std::signed_integral
  * side.  The lift completes the embedding chain
  * @c 𝔹 @c → @c std::unsigned_integral @c → @c ℕ documented in the
@@ -140,10 +140,10 @@ namespace dedekind::numbers {
  * @tparam U Any @c std::unsigned_integral source type.
  */
 export template <std::unsigned_integral U>
-constexpr dedekind::sets::Cardinality embed_unsigned_to_Cardinality(U v) {
+constexpr dedekind::sets::Cardinality embed_uint_ℕ(U v) {
   static_assert(std::numeric_limits<U>::digits <=
                     std::numeric_limits<std::size_t>::digits,
-                "embed_unsigned_to_Cardinality requires every value of U to "
+                "embed_uint_ℕ requires every value of U to "
                 "be representable as std::size_t; otherwise the conversion "
                 "would silently truncate and break injectivity.  On platforms "
                 "where this fires (e.g. 32-bit std::size_t with 64-bit "
@@ -157,16 +157,16 @@ constexpr dedekind::sets::Cardinality embed_unsigned_to_Cardinality(U v) {
  * @brief Concrete monic arrow: unsigned ↪ Cardinality (variant ℕ-proxy).
  *
  * @details The named-arrow form of @c
- * embed_unsigned_to_Cardinality<unsigned>, registered as monic in
+ * embed_uint_ℕ<unsigned>, registered as monic in
  * @c is_monic_arrow_v so downstream @c IsMonicArrow / @c
  * IsRingHomomorphism callsites can find it.  Distinct unsigned values
  * yield distinct @c Cardinality values (injective on the finite
  * fragment).
  */
-export inline constexpr auto embed_unsigned_Cardinality_ =
+export inline constexpr auto embed_uint_ℕ_ =
     dedekind::category::arrow<unsigned, dedekind::sets::Cardinality>(
         [](const unsigned& u) noexcept -> dedekind::sets::Cardinality {
-          return embed_unsigned_to_Cardinality(u);
+          return embed_uint_ℕ(u);
         });
 
 // ===========================================================================
@@ -350,11 +350,11 @@ static_assert(
 namespace dedekind::category {
 template <>
 inline constexpr bool is_monic_arrow_v<
-    std::decay_t<decltype(dedekind::numbers::embed_unsigned_Cardinality_)>> =
+    std::decay_t<decltype(dedekind::numbers::embed_uint_ℕ_)>> =
     true;
 static_assert(
     IsInjective<
-        std::decay_t<decltype(dedekind::numbers::embed_unsigned_Cardinality_)>>,
-    "embed_unsigned_Cardinality_ (unsigned → Cardinality) is "
+        std::decay_t<decltype(dedekind::numbers::embed_uint_ℕ_)>>,
+    "embed_uint_ℕ_ (unsigned → Cardinality) is "
     "registered injective.");
 }  // namespace dedekind::category

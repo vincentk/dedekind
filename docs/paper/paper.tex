@@ -933,12 +933,12 @@ defers materialization to an explicit realization boundary.
 \begin{tikzcd}[column sep=huge, row sep=large, ampersand replacement=\&]
   \texttt{Cardinality}~(\mathbb{N}) \arrow[r, "\texttt{lift\_}\mathbb{N}\texttt{\_}\mathbb{Z}\texttt{\_}"]
     \& \texttt{SignedCardinality}~(\mathbb{Z}) \arrow[l, dashed, bend right=30, "\texttt{abs}"'] \\
-  \texttt{unsigned~int}~(\mathbb{Z}/2^w\mathbb{Z}) \arrow[u, "\texttt{embed\_unsigned\_Cardinality\_}"] \arrow[r, "\texttt{embed\_}\mathbb{N}\texttt{\_}\mathbb{Z}~(\text{machine})"]
-    \& \texttt{int}~(\text{machine}~\mathbb{Z}) \arrow[u, "\texttt{embed\_int\_SignedCardinality\_}"'] \\
-  \texttt{bool}~(\mathbb{B}) \arrow[u, "\texttt{embed\_}\mathbb{B}\texttt{\_}\mathbb{N}"] \arrow[r, "\texttt{embed\_}\mathbb{B}\texttt{\_}\mathbb{K}3"]
-    \& \texttt{Ternary}~(\mathbb{K}3) \arrow[uu, bend right=40, "\texttt{embed\_K3\_}\mathbb{Z}"']
+  \texttt{unsigned~int}~(\mathbb{Z}/2^w\mathbb{Z}) \arrow[u, "\texttt{embed\_uint\_}\mathbb{N}\texttt{\_}"] \arrow[r, "\texttt{embed\_uint\_sint\_}"]
+    \& \texttt{int}~(\text{machine}~\mathbb{Z}) \arrow[u, "\texttt{embed\_sint\_}\mathbb{Z}\texttt{\_}"'] \\
+  \texttt{bool}~(\mathbb{B}) \arrow[u, "\texttt{embed\_}\mathbb{B}\texttt{\_uint\_}"] \arrow[r, "\texttt{embed\_}\mathbb{B}\texttt{\_}\mathbb{K}3\texttt{\_}"]
+    \& \texttt{Ternary}~(\mathbb{K}3) \arrow[uu, bend right=75, looseness=1.6, "\texttt{embed\_}\mathbb{K}3\texttt{\_}\mathbb{Z}\texttt{\_}"']
 \end{tikzcd}
-\caption{The carrier lattice (discrete-foundations slice). Three layers, bottom to top: truth-value carriers (\texttt{bool}, \texttt{Ternary}); machine integer carriers (\texttt{unsigned~int} = $\mathbb{Z}/2^w\mathbb{Z}$ as a finite cyclic ring; \texttt{int} = machine $\mathbb{Z}$ with UB-on-overflow); variant carriers inhabiting the textbook Forms (\texttt{Cardinality} = $\mathbb{N}$ as the Natural Numbers Object; \texttt{SignedCardinality} = $\mathbb{Z}$ as the Initial Ring / Grothendieck group of $\mathbb{N}$). Each labelled arrow is an exported \texttt{arrow} object in \texttt{dedekind.numbers} registered as a monic morphism (the trait \texttt{is\_monic\_arrow\_v} = \texttt{true}); test case \texttt{[carrier-lattice][figure][monic][witness]} pins the seven \texttt{IsMonicArrow} concept-level facts that this caption asserts. The top-row variant-layer arrow \texttt{lift\_}$\mathbb{N}$\texttt{\_}$\mathbb{Z}$\texttt{\_} (which wraps the public function \texttt{dedekind::sets::lift\_cardinality\_to\_signed}) is the canonical $\mathbb{N} \hookrightarrow \mathbb{Z}$ embedding and is the Grothendieck-construction \emph{unit} at object $\mathbb{N}$; the binary closure-forcing operator $\texttt{Cardinality} - \texttt{Cardinality} \to \texttt{SignedCardinality}$ realises the Grothendieck \emph{construction} (the multiplication of the construction) on operator pairs and is not shown on the diagram (it would require a product node). The middle-row arrow \texttt{embed\_}$\mathbb{N}$\texttt{\_}$\mathbb{Z}$ is the machine-layer sign reinterpretation \texttt{static\_cast<int>(unsigned)} despite its variant-evocative name --- the actual canonical $\mathbb{N} \to \mathbb{Z}$ on the carriers happens at the variant layer. The dashed retraction \texttt{abs} is the split-mono partner of \texttt{lift\_}$\mathbb{N}$\texttt{\_}$\mathbb{Z}$\texttt{\_} ($\texttt{abs} \circ \texttt{lift} = \mathrm{id}$ on the non-negative fragment); it is not asserted monic --- \texttt{abs} folds sign ($\texttt{abs}(3) = \texttt{abs}(-3)$), so distinct $\mathbb{Z}$-values are conflated. \texttt{embed\_K3\_}$\mathbb{Z}$ skips the machine-int row and lands directly on \texttt{SignedCardinality} (a deliberate factorisation choice). Multiple paths between extremes commute up to canonical isomorphism.}
+\caption{The carrier lattice (discrete-foundations slice). Three layers, bottom to top: truth-value carriers (\texttt{bool}, \texttt{Ternary}); machine integer carriers (\texttt{unsigned~int} = $\mathbb{Z}/2^w\mathbb{Z}$ as a finite cyclic ring; \texttt{int} = machine $\mathbb{Z}$ with UB-on-overflow); variant carriers inhabiting the textbook Forms (\texttt{Cardinality} = $\mathbb{N}$ as the Natural Numbers Object; \texttt{SignedCardinality} = $\mathbb{Z}$ as the Initial Ring / Grothendieck group of $\mathbb{N}$). Each labelled arrow is an exported \texttt{arrow} object in \texttt{dedekind.numbers} registered as a monic morphism (the trait \texttt{is\_monic\_arrow\_v} = \texttt{true}); test case \texttt{[carrier-lattice][figure][monic][witness]} pins the seven \texttt{IsMonicArrow} concept-level facts that this caption asserts. The top-row variant-layer arrow \texttt{lift\_}$\mathbb{N}$\texttt{\_}$\mathbb{Z}$\texttt{\_} (which wraps the public function \texttt{dedekind::sets::lift\_cardinality\_to\_signed}) is the canonical $\mathbb{N} \hookrightarrow \mathbb{Z}$ embedding and is the Grothendieck-construction \emph{unit} at object $\mathbb{N}$; the binary closure-forcing operator $\texttt{Cardinality} - \texttt{Cardinality} \to \texttt{SignedCardinality}$ realises the Grothendieck \emph{construction} (the multiplication of the construction) on operator pairs and is not shown on the diagram (it would require a product node). The middle-row arrow \texttt{embed\_uint\_sint\_} is the machine-layer sign reinterpretation \texttt{static\_cast<int>(unsigned)}; renamed (post-\#457) to mark the actual machine-layer domain and codomain explicitly --- the variant-layer canonical $\mathbb{N} \hookrightarrow \mathbb{Z}$ embedding lives at the top row as \texttt{lift\_}$\mathbb{N}$\texttt{\_}$\mathbb{Z}$\texttt{\_}. The dashed retraction \texttt{abs} is the split-mono partner of \texttt{lift\_}$\mathbb{N}$\texttt{\_}$\mathbb{Z}$\texttt{\_} ($\texttt{abs} \circ \texttt{lift} = \mathrm{id}$ on the non-negative fragment); it is not asserted monic --- \texttt{abs} folds sign ($\texttt{abs}(3) = \texttt{abs}(-3)$), so distinct $\mathbb{Z}$-values are conflated. \texttt{embed\_}$\mathbb{K}3$\texttt{\_}$\mathbb{Z}$\texttt{\_} skips the machine-int row and lands directly on \texttt{SignedCardinality} (a deliberate factorisation choice). Multiple paths between extremes commute up to canonical isomorphism.}
 \label{fig:carrier-lattice}
 \end{figure}
 
@@ -1815,11 +1815,11 @@ exact-$\mathbb{Z}$ reading lives one carrier step deeper, on
 \lstinline{SignedCardinality} (with $\pm\aleph_0$ saturation and
 \lstinline{NaZ}).}  The Kleene-truth-value version of the embedding chain is
 $\mathbb{K3} \hookrightarrow \texttt{std::signed\_integral} \to \mathbb{Z}$,
-factored exactly as the Boolean / unsigned chain is: \texttt{embed\_K3\_}$\mathbb{Z}$
+factored exactly as the Boolean / unsigned chain is: \texttt{embed\_}$\mathbb{K}3$\texttt{\_}$\mathbb{Z}$\texttt{\_}
 encodes the three Kleene values into the signed-int machine layer (\texttt{False}
 $\mapsto -1$, \texttt{Unknown} $\mapsto 0$, \texttt{True} $\mapsto 1$;
 post-PR~\#439), and the lift $\texttt{std::signed\_integral} \to \mathbb{Z}$
-(called \texttt{embed\_signed\_to\_SignedCardinality}, post-issue~\#418) lands
+(called \texttt{embed\_sint\_}$\mathbb{Z}$\texttt{\_}, post-issue~\#418 / renamed under~\#457) lands
 in the variant $\mathbb{Z}$-proxy.\footnote{Both rejections are symmetric in
 form: each carrier's claim is mismatched with the textbook structure it would
 purport to inhabit, and the type system refuses the mismatch in both
@@ -2513,7 +2513,7 @@ sketches that do not.
   \item \textbf{Carrier tightening.} Intersecting a subset of
     $\mathbb{N}$ with a subset of $\mathbb{R}$ should land in $\mathbb{N}$:
     the carrier lattice contributes its own structural reduction via the
-    existing canonical embeddings (\lstinline{embed_ℕ_ℤ},
+    existing canonical embeddings (\lstinline{embed_uint_sint_},
     \lstinline{embed_ℚ_ℝ}, \ldots).
   \item \textbf{Smooth optimization.} The stationary set
     $\{x \mid \nabla f(x) = 0\}$ for a quadratic $f$ collapses to a

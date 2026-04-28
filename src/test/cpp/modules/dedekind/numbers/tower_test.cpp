@@ -28,9 +28,9 @@ using namespace dedekind::ieee;
 // ---------------------------------------------------------------------------
 
 static_assert(IsMonicArrow<Identity<machine_integer>>);
-static_assert(IsMonicArrow<std::decay_t<decltype(embed_𝔹_ℕ)>>);
-static_assert(IsMonicArrow<std::decay_t<decltype(embed_ℕ_ℤ)>>);
-static_assert(IsMonicArrow<std::decay_t<decltype(embed_K3_ℤ)>>);
+static_assert(IsMonicArrow<std::decay_t<decltype(embed_𝔹_uint_)>>);
+static_assert(IsMonicArrow<std::decay_t<decltype(embed_uint_sint_)>>);
+static_assert(IsMonicArrow<std::decay_t<decltype(embed_𝕂3_ℤ_)>>);
 static_assert(IsMonicArrow<std::decay_t<decltype(embed_ℤ_ℚ<>)>>);
 static_assert(IsMonicArrow<std::decay_t<decltype(embed_ℚ_ℝ<>)>>);
 static_assert(IsMonicArrow<std::decay_t<decltype(embed_ℝ_ℂ<>)>>);
@@ -39,15 +39,15 @@ static_assert(IsMonicArrow<std::decay_t<decltype(embed_ℝ_ℂ<>)>>);
 // Arrow types are correct (compile-time)
 // ---------------------------------------------------------------------------
 
-static_assert(std::same_as<Dom<std::decay_t<decltype(embed_𝔹_ℕ)>>, bool>);
-static_assert(std::same_as<Cod<std::decay_t<decltype(embed_𝔹_ℕ)>>, unsigned>);
+static_assert(std::same_as<Dom<std::decay_t<decltype(embed_𝔹_uint_)>>, bool>);
+static_assert(std::same_as<Cod<std::decay_t<decltype(embed_𝔹_uint_)>>, unsigned>);
 
-static_assert(std::same_as<Dom<std::decay_t<decltype(embed_ℕ_ℤ)>>, unsigned>);
+static_assert(std::same_as<Dom<std::decay_t<decltype(embed_uint_sint_)>>, unsigned>);
 static_assert(
-    std::same_as<Cod<std::decay_t<decltype(embed_ℕ_ℤ)>>, machine_integer>);
+    std::same_as<Cod<std::decay_t<decltype(embed_uint_sint_)>>, machine_integer>);
 
-static_assert(std::same_as<Dom<std::decay_t<decltype(embed_K3_ℤ)>>, Ternary>);
-static_assert(std::same_as<Cod<std::decay_t<decltype(embed_K3_ℤ)>>,
+static_assert(std::same_as<Dom<std::decay_t<decltype(embed_𝕂3_ℤ_)>>, Ternary>);
+static_assert(std::same_as<Cod<std::decay_t<decltype(embed_𝕂3_ℤ_)>>,
                            dedekind::sets::SignedCardinality>);
 
 static_assert(
@@ -89,36 +89,36 @@ TEST_CASE("Tower: embed_unsigned_ℕ (concrete monic arrow)",
 }
 
 TEST_CASE(
-    "Tower: embed_unsigned_to_Cardinality (universal machine→variant lift)",
+    "Tower: embed_uint_ℕ (universal machine→variant lift)",
     "[numbers][tower][embedding][carrier-lattice]") {
   // The structure-forgetting lift from std::unsigned_integral
   // (modular ring ℤ/2^wℤ) into the variant ℕ-proxy Cardinality
   // (saturating commutative monoid).  Closes part of #417.
   STATIC_CHECK(
-      IsMonicArrow<std::decay_t<decltype(embed_unsigned_Cardinality_)>>);
+      IsMonicArrow<std::decay_t<decltype(embed_uint_ℕ_)>>);
   STATIC_CHECK(
-      std::same_as<Dom<std::decay_t<decltype(embed_unsigned_Cardinality_)>>,
+      std::same_as<Dom<std::decay_t<decltype(embed_uint_ℕ_)>>,
                    unsigned>);
   STATIC_CHECK(
-      std::same_as<Cod<std::decay_t<decltype(embed_unsigned_Cardinality_)>>,
+      std::same_as<Cod<std::decay_t<decltype(embed_uint_ℕ_)>>,
                    dedekind::sets::Cardinality>);
 
   // Function-template form covers any std::unsigned_integral width.
-  CHECK(embed_unsigned_to_Cardinality(0u) ==
+  CHECK(embed_uint_ℕ(0u) ==
         dedekind::sets::finite_cardinality(0));
-  CHECK(embed_unsigned_to_Cardinality(42u) ==
+  CHECK(embed_uint_ℕ(42u) ==
         dedekind::sets::finite_cardinality(42));
-  CHECK(embed_unsigned_to_Cardinality(static_cast<unsigned long>(1000)) ==
+  CHECK(embed_uint_ℕ(static_cast<unsigned long>(1000)) ==
         dedekind::sets::finite_cardinality(1000));
-  CHECK(embed_unsigned_to_Cardinality(static_cast<std::size_t>(7)) ==
+  CHECK(embed_uint_ℕ(static_cast<std::size_t>(7)) ==
         dedekind::sets::finite_cardinality(7));
 
   // Concrete monic arrow form (the named-arrow variant for
   // composition with downstream IsMonicArrow / IsRingHomomorphism
   // callsites).
-  CHECK(embed_unsigned_Cardinality_(0u) ==
+  CHECK(embed_uint_ℕ_(0u) ==
         dedekind::sets::finite_cardinality(0));
-  CHECK(embed_unsigned_Cardinality_(42u) ==
+  CHECK(embed_uint_ℕ_(42u) ==
         dedekind::sets::finite_cardinality(42));
 }
 
@@ -141,28 +141,28 @@ TEST_CASE("Tower: embed_floating_ℝ<F> covers any floating_point",
 // 𝔹 ↪ ℕ
 // ---------------------------------------------------------------------------
 
-TEST_CASE("Tower: 𝔹 ↪ ℕ via embed_𝔹_ℕ", "[numbers][tower][embedding]") {
+TEST_CASE("Tower: 𝔹 ↪ ℕ via embed_𝔹_uint_", "[numbers][tower][embedding]") {
   const auto naturals_u =
       ambient_set<unsigned>([](const unsigned&) { return true; });
 
-  CHECK(embed_𝔹_ℕ(false) == 0u);
-  CHECK(embed_𝔹_ℕ(true) == 1u);
+  CHECK(embed_𝔹_uint_(false) == 0u);
+  CHECK(embed_𝔹_uint_(true) == 1u);
 
-  CHECK(in_via(false, embed_𝔹_ℕ, naturals_u) == true);
-  CHECK(in_via(true, embed_𝔹_ℕ, naturals_u) == true);
+  CHECK(in_via(false, embed_𝔹_uint_, naturals_u) == true);
+  CHECK(in_via(true, embed_𝔹_uint_, naturals_u) == true);
 }
 
 // ---------------------------------------------------------------------------
 // ℕ ↪ ℤ
 // ---------------------------------------------------------------------------
 
-TEST_CASE("Tower: ℕ ↪ ℤ via embed_ℕ_ℤ", "[numbers][tower][embedding]") {
+TEST_CASE("Tower: ℕ ↪ ℤ via embed_uint_sint_", "[numbers][tower][embedding]") {
   // Unsigned naturals always embed into integers successfully.
   const auto integers = ambient_set<int>([](const int&) { return true; });
 
-  CHECK(in_via(0u, embed_ℕ_ℤ, integers) == true);
-  CHECK(in_via(42u, embed_ℕ_ℤ, integers) == true);
-  CHECK(in_via(1000u, embed_ℕ_ℤ, integers) == true);
+  CHECK(in_via(0u, embed_uint_sint_, integers) == true);
+  CHECK(in_via(42u, embed_uint_sint_, integers) == true);
+  CHECK(in_via(1000u, embed_uint_sint_, integers) == true);
 
   // Membership in the naturals set respects sign.
   CHECK(N(0) == true);
@@ -178,8 +178,8 @@ TEST_CASE("Tower: ℕ ↪ ℤ via embed_ℕ_ℤ", "[numbers][tower][embedding]")
 // K3 ↪ ℤ
 // ---------------------------------------------------------------------------
 
-TEST_CASE("Tower: K3 ↪ ℤ via embed_K3_ℤ", "[numbers][tower][embedding]") {
-  // Post-#430: embed_K3_ℤ lands on the variant ℤ-proxy SignedCardinality
+TEST_CASE("Tower: K3 ↪ ℤ via embed_𝕂3_ℤ_", "[numbers][tower][embedding]") {
+  // Post-#430: embed_𝕂3_ℤ_ lands on the variant ℤ-proxy SignedCardinality
   // rather than the int machine carrier.  The runtime equality checks
   // below use the heterogeneous SignedCardinality × std::integral
   // comparison contract pinned by #415 / PR #438; the ambient set is
@@ -187,13 +187,13 @@ TEST_CASE("Tower: K3 ↪ ℤ via embed_K3_ℤ", "[numbers][tower][embedding]") {
   const auto integers = ambient_set<dedekind::sets::SignedCardinality>(
       [](const dedekind::sets::SignedCardinality&) { return true; });
 
-  CHECK(embed_K3_ℤ(Ternary::False) == -1);
-  CHECK(embed_K3_ℤ(Ternary::Unknown) == 0);
-  CHECK(embed_K3_ℤ(Ternary::True) == 1);
+  CHECK(embed_𝕂3_ℤ_(Ternary::False) == -1);
+  CHECK(embed_𝕂3_ℤ_(Ternary::Unknown) == 0);
+  CHECK(embed_𝕂3_ℤ_(Ternary::True) == 1);
 
-  CHECK(in_via(Ternary::False, embed_K3_ℤ, integers) == true);
-  CHECK(in_via(Ternary::Unknown, embed_K3_ℤ, integers) == true);
-  CHECK(in_via(Ternary::True, embed_K3_ℤ, integers) == true);
+  CHECK(in_via(Ternary::False, embed_𝕂3_ℤ_, integers) == true);
+  CHECK(in_via(Ternary::Unknown, embed_𝕂3_ℤ_, integers) == true);
+  CHECK(in_via(Ternary::True, embed_𝕂3_ℤ_, integers) == true);
 }
 
 // ---------------------------------------------------------------------------
@@ -236,7 +236,7 @@ TEST_CASE("Tower: ℝ ↪ ℂ via embed_ℝ_ℂ", "[numbers][tower][embedding]")
 
 TEST_CASE("Tower: composed chain unsigned -> ℤ -> ℚ -> ℝ -> ℂ",
           "[numbers][tower][embedding][composition]") {
-  const auto embed_ℕ_ℚ = embed_ℕ_ℤ >> embed_ℤ_ℚ<>;
+  const auto embed_ℕ_ℚ = embed_uint_sint_ >> embed_ℤ_ℚ<>;
   const auto embed_ℕ_ℝ = embed_ℕ_ℚ >> embed_ℚ_ℝ<>;
   const auto embed_ℕ_ℂ = embed_ℕ_ℝ >> embed_ℝ_ℂ<>;
 
@@ -253,12 +253,12 @@ TEST_CASE("Tower: composed chain unsigned -> ℤ -> ℚ -> ℝ -> ℂ",
 TEST_CASE("Stress: Im(K3->ℤ) intersect positive-real ℂ",
           "[numbers][tower][embedding][intersection]") {
   // Image of K3 in ℤ under canonical embedding: {-1, 0, 1}.  Post-#430
-  // @c embed_K3_ℤ lands on @c SignedCardinality; the heterogeneous
+  // @c embed_𝕂3_ℤ_ lands on @c SignedCardinality; the heterogeneous
   // @c == contract pinned by #415 / PR #438 lets us verify the image
   // values directly.
-  CHECK(embed_K3_ℤ(Ternary::False) == -1);
-  CHECK(embed_K3_ℤ(Ternary::Unknown) == 0);
-  CHECK(embed_K3_ℤ(Ternary::True) == 1);
+  CHECK(embed_𝕂3_ℤ_(Ternary::False) == -1);
+  CHECK(embed_𝕂3_ℤ_(Ternary::Unknown) == 0);
+  CHECK(embed_𝕂3_ℤ_(Ternary::True) == 1);
 
   // FIXME(#429): bridging from @c SignedCardinality to the @c int-typed
   // @c embed_ℤ_ℚ<> needs the @c realize_signed_to_machine extraction
@@ -521,8 +521,8 @@ TEST_CASE("Tower: inter-species set membership via embeddings",
       ambient_set<unsigned>([](const unsigned&) { return true; });
 
   // Every boolean embeds into ℕ and stays in the universal set.
-  CHECK(in_via(true, embed_𝔹_ℕ, naturals) == true);
-  CHECK(in_via(false, embed_𝔹_ℕ, naturals) == true);
+  CHECK(in_via(true, embed_𝔹_uint_, naturals) == true);
+  CHECK(in_via(false, embed_𝔹_uint_, naturals) == true);
 
   // Compose 𝔹 ↪ ℕ ↪ ℤ ↪ ℚ and test against a ℚ+ predicate.
   // Rational<> is not an ETCS species, so use Set<> directly.
@@ -533,7 +533,7 @@ TEST_CASE("Tower: inter-species set membership via embeddings",
       positive_rationals{positive_pred};
 
   const auto embed_𝔹_ℚ = [](bool b) {
-    return embed_ℤ_ℚ<>(embed_ℕ_ℤ(embed_𝔹_ℕ(b)));
+    return embed_ℤ_ℚ<>(embed_uint_sint_(embed_𝔹_uint_(b)));
   };
 
   CHECK(positive_rationals(embed_𝔹_ℚ(true)) == true);    // 1/1 ∈ ℚ+

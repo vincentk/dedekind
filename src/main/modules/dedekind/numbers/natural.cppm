@@ -140,7 +140,7 @@ concept Monoid_ℕ =
  * @brief Canonical embedding 𝔹 ↪ ℕ: bool → unsigned.
  * @details False maps to 0, True maps to 1.
  */
-export inline constexpr auto embed_𝔹_ℕ =
+export inline constexpr auto embed_𝔹_uint_ =
     arrow<bool, unsigned>([](const bool& b) noexcept { return b ? 1u : 0u; });
 
 /**
@@ -312,13 +312,15 @@ static_assert(N(-7) == ClassicalLogic::False,
               "Direct N(int) call is the ℕ-as-subset-of-ℤ classifier; "
               "rejects negatives.");
 
-// (5) Adjacent-set arrow: 𝔹 ↪ ℕ via @c embed_𝔹_ℕ above; registered
-// monic at the bottom of this partition.  The forward arrow ℕ ↪ ℤ
-// lives in @c :integer (downstream), as @c embed_ℕ_ℤ.
+// (5) Adjacent-set arrow: 𝔹 ↪ ℕ via @c embed_𝔹_uint_ above; registered
+// monic at the bottom of this partition.  The machine-layer sign
+// reinterpretation @c unsigned @c → @c int lives in @c :integer
+// (downstream), as @c embed_uint_sint_; the canonical variant-layer
+// ℕ @c ↪ @c ℤ embedding is @c lift_ℕ_ℤ_ (also in @c :integer).
 
 // (6) The @c std::unsigned_integral family classification (textbook
 //     @c ℤ/2^wℤ stance, the universal lift @c
-//     embed_unsigned_to_Cardinality, the @c Modular<N> / @c IsCyclic
+//     embed_uint_ℕ, the @c Modular<N> / @c IsCyclic
 //     correspondence, and the width-ladder ring-hom witnesses) lives
 //     in the dedicated sibling partition @c :uint.  Cross-reference
 //     only here — the consolidated narrative + audit trail belongs
@@ -377,8 +379,8 @@ static_assert(dedekind::category::IsNNO<ℕ, cardinality_zero, cardinality_succ>
 namespace dedekind::category {
 template <>
 inline constexpr bool
-    is_monic_arrow_v<std::decay_t<decltype(dedekind::numbers::embed_𝔹_ℕ)>> =
+    is_monic_arrow_v<std::decay_t<decltype(dedekind::numbers::embed_𝔹_uint_)>> =
         true;
-static_assert(IsInjective<std::decay_t<decltype(dedekind::numbers::embed_𝔹_ℕ)>>,
-              "embed_𝔹_ℕ (𝔹 ↪ ℕ) is registered injective.");
+static_assert(IsInjective<std::decay_t<decltype(dedekind::numbers::embed_𝔹_uint_)>>,
+              "embed_𝔹_uint_ (𝔹 ↪ ℕ) is registered injective.");
 }  // namespace dedekind::category

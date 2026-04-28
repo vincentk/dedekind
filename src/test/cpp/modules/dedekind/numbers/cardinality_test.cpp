@@ -778,12 +778,12 @@ TEST_CASE(
   }
   SECTION("Retraction identity: abs(positive_signed_with_magnitude_n) == n") {
     // The retraction-on-the-non-negative-fragment claim:
-    //   abs ∘ embed_ℕ_ℤ = id_ℕ
+    //   abs ∘ embed_uint_sint_ = id_ℕ
     // witnessed without reaching into the detail::lift helper — we
     // build a non-negative SignedCardinality directly with magnitude
     // 7 (the embedding's image of finite_cardinality(7)) and verify
     // abs returns to the original.
-    const auto z = finite_signed_cardinality(7);  // ≡ embed_ℕ_ℤ(7)
+    const auto z = finite_signed_cardinality(7);  // ≡ embed_uint_sint_(7)
     CHECK(abs(z) == finite_cardinality(7));
   }
   SECTION("PositiveInfinity → ℵ_0") {

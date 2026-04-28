@@ -271,43 +271,43 @@ TEST_CASE(
   CHECK(lift_ℕ_ℤ_(finite_cardinality(7)) == finite_signed_cardinality(7));
   CHECK(lift_ℕ_ℤ_(finite_cardinality(0)) == finite_signed_cardinality(0));
   // Middle-row vertical arrows (machine → variant lifts).
-  STATIC_CHECK(IsArrow<std::decay_t<decltype(embed_unsigned_Cardinality_)>>);
+  STATIC_CHECK(IsArrow<std::decay_t<decltype(embed_uint_ℕ_)>>);
   STATIC_CHECK(
-      IsMonicArrow<std::decay_t<decltype(embed_unsigned_Cardinality_)>>);
-  STATIC_CHECK(IsArrow<std::decay_t<decltype(embed_int_SignedCardinality_)>>);
+      IsMonicArrow<std::decay_t<decltype(embed_uint_ℕ_)>>);
+  STATIC_CHECK(IsArrow<std::decay_t<decltype(embed_sint_ℤ_)>>);
   STATIC_CHECK(
-      IsMonicArrow<std::decay_t<decltype(embed_int_SignedCardinality_)>>);
+      IsMonicArrow<std::decay_t<decltype(embed_sint_ℤ_)>>);
   // Middle-row horizontal arrow: machine-layer ℕ → ℤ sign reinterpretation.
-  STATIC_CHECK(IsArrow<std::decay_t<decltype(embed_ℕ_ℤ)>>);
-  STATIC_CHECK(IsMonicArrow<std::decay_t<decltype(embed_ℕ_ℤ)>>);
+  STATIC_CHECK(IsArrow<std::decay_t<decltype(embed_uint_sint_)>>);
+  STATIC_CHECK(IsMonicArrow<std::decay_t<decltype(embed_uint_sint_)>>);
   // Bottom-row vertical arrow: 𝔹 ↪ ℕ.
-  STATIC_CHECK(IsArrow<std::decay_t<decltype(embed_𝔹_ℕ)>>);
-  STATIC_CHECK(IsMonicArrow<std::decay_t<decltype(embed_𝔹_ℕ)>>);
+  STATIC_CHECK(IsArrow<std::decay_t<decltype(embed_𝔹_uint_)>>);
+  STATIC_CHECK(IsMonicArrow<std::decay_t<decltype(embed_𝔹_uint_)>>);
   // Bottom-row horizontal arrow: 𝔹 ↪ 𝕂3.
-  STATIC_CHECK(IsArrow<std::decay_t<decltype(embed_𝔹_𝕂3)>>);
-  STATIC_CHECK(IsMonicArrow<std::decay_t<decltype(embed_𝔹_𝕂3)>>);
+  STATIC_CHECK(IsArrow<std::decay_t<decltype(embed_𝔹_𝕂3_)>>);
+  STATIC_CHECK(IsMonicArrow<std::decay_t<decltype(embed_𝔹_𝕂3_)>>);
   // Bottom-to-top diagonal arrow: 𝕂3 ↪ ℤ (skips the machine row).
-  STATIC_CHECK(IsArrow<std::decay_t<decltype(embed_K3_ℤ)>>);
-  STATIC_CHECK(IsMonicArrow<std::decay_t<decltype(embed_K3_ℤ)>>);
+  STATIC_CHECK(IsArrow<std::decay_t<decltype(embed_𝕂3_ℤ_)>>);
+  STATIC_CHECK(IsMonicArrow<std::decay_t<decltype(embed_𝕂3_ℤ_)>>);
 }
 
 // ===========================================================================
-// (6) embed_𝔹_𝕂3 operational behaviour (covers the lambda body for
+// (6) embed_𝔹_𝕂3_ operational behaviour (covers the lambda body for
 //     codecov; this PR's only new arrow at the carrier-lattice layer)
 // ===========================================================================
 
 TEST_CASE(
-    "carrier-lattice: embed_𝔹_𝕂3 maps true to Ternary::True and false to "
+    "carrier-lattice: embed_𝔹_𝕂3_ maps true to Ternary::True and false to "
     "Ternary::False (canonical 2-valued ↪ 3-valued Kleene inclusion)",
     "[carrier-lattice][boolean][kleene][embed]") {
-  CHECK(embed_𝔹_𝕂3(true) == Ternary::True);
-  CHECK(embed_𝔹_𝕂3(false) == Ternary::False);
+  CHECK(embed_𝔹_𝕂3_(true) == Ternary::True);
+  CHECK(embed_𝔹_𝕂3_(false) == Ternary::False);
   // Ternary::Unknown is by construction NOT in the image of the
   // canonical embedding — it represents the third truth-value that
   // 𝔹 lacks.  This negative fact is the structural reason the
   // arrow is monic but not surjective.
-  CHECK(embed_𝔹_𝕂3(true) != Ternary::Unknown);
-  CHECK(embed_𝔹_𝕂3(false) != Ternary::Unknown);
+  CHECK(embed_𝔹_𝕂3_(true) != Ternary::Unknown);
+  CHECK(embed_𝔹_𝕂3_(false) != Ternary::Unknown);
 }
 
 // ===========================================================================
