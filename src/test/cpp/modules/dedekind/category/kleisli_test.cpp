@@ -201,3 +201,29 @@ TEST_CASE("Category: Named Kleisli aliases", "[category][kleisli][aliases]") {
     CHECK(extended == Box<int>{18});
   }
 }
+
+TEST_CASE(
+    "Category: Fish-operator concept tier (#450) — operator-shape "
+    "concepts for arrow compose / Kleisli bind / comonadic extend",
+    "[category][fish-operators][concept-shape]") {
+  // The fish-operator concept tier classifies types by which fish-family
+  // operator surfaces they support.  These are operator-shape concepts:
+  // they pin syntactic availability, not the equational laws (which are
+  // pinned by IsArrow / IsMonad / IsComonad in their own partitions).
+  using BoxBind = decltype([](int x) { return Box<int>{x + 1}; });
+
+  SECTION("HasKleisliBindOperators: Box<int> + Kleisli arrow fires") {
+    STATIC_CHECK(HasKleisliBindOperators<Box<int>, BoxBind>);
+  }
+
+  SECTION("HasComonadicExtendOperators: Box<int> + co-Kleisli arrow fires") {
+    using BoxCoBind = decltype([](Box<int> b) { return b.value * 2; });
+    STATIC_CHECK(HasComonadicExtendOperators<Box<int>, BoxCoBind>);
+  }
+
+  SECTION(
+      "HasKleisliBindOperators negative: bare int + bind-arrow does NOT "
+      "fire (no Kleisli operator surface on a non-monadic carrier)") {
+    STATIC_CHECK(!HasKleisliBindOperators<int, BoxBind>);
+  }
+}

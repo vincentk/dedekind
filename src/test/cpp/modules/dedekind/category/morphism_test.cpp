@@ -141,4 +141,13 @@ TEST_CASE("Category: Algebraic Proofs (Runtime Witnesses)",
     STATIC_CHECK(!IsSurjective<std::decay_t<decltype(constant)>>);
     STATIC_CHECK(!IsBijective<std::decay_t<decltype(constant)>>);
   }
+
+  SECTION("Fish-operator concept tier (#450) — HasArrowComposeOperators") {
+    // Categorical arrow composition: f : A → B and g : B → C compose
+    // via f >> g : A → C.  The concept pins syntactic availability;
+    // identity-on-int is the canonical witness.
+    STATIC_CHECK(HasArrowComposeOperators<Identity<int>, Identity<int>>);
+    // Negative: a non-arrow type does NOT support categorical composition.
+    STATIC_CHECK(!HasArrowComposeOperators<int, int>);
+  }
 }

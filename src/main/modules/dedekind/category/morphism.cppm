@@ -755,4 +755,49 @@ static_assert(IsBijective<Identity<int>>,
               "IsBijective synonym must agree with IsBijectiveArrow on "
               "Identity.");
 
+// ---------------------------------------------------------------------------
+// Fish-operator concept tier (closes part of #450).
+//
+// The project's operator surface for arrow composition / monadic bind /
+// comonadic extend is informally called the "fish family":
+//   * @c >>   — arrow composition (here in @c :morphism); fish alias for
+//               monadic bind (in @c :kleisli) on monadic carriers.
+//   * @c <<   — fish alias for comonadic extend (in @c :kleisli).
+//   * @c >>=  — monadic bind (in @c :kleisli).
+//   * @c <<=  — comonadic extend (in @c :kleisli).
+//
+// This concept tier reifies the @b operator-shape availability — does
+// the type support the named operator? — at the type level.  Categorical
+// reading: @c >> on arrows is composition in the base category C; @c
+// >>= on a monadic carrier is composition in the Kleisli category 𝒞_M.
+// The concepts here pin only the @b syntactic surface; the equational
+// laws (associativity, unit) are the engineer's honesty obligation for
+// each registration site.
+// ---------------------------------------------------------------------------
+
+/**
+ * @concept HasArrowComposeOperators
+ * @brief Two arrow-shaped types @c F, @c G compose via @c >> (and
+ *        @c << for the reverse direction).
+ * @details Captures the operator-shape availability of categorical
+ *          arrow composition: given @c f @c : @c A @c → @c B and
+ *          @c g @c : @c B @c → @c C, the expression @c f @c >> @c g
+ *          must compile and yield an arrow @c A @c → @c C.  This
+ *          partition's @c operator>> on @c IsSpokeArrow witnesses the
+ *          concept; the laws (associativity, identity) are the
+ *          engineer's honesty obligation, mechanically discharged
+ *          by the existing @c "id ∘ id @c = @c id" static_asserts.
+ */
+export template <typename F, typename G>
+concept HasArrowComposeOperators =
+    IsArrow<F> && IsArrow<G> && requires(F const& f, G const& g) {
+      { f >> g };
+    };
+
+// Witness: Identity arrows compose (id_int >> id_int = id_int) — the
+// canonical syntactic check of @c >> availability on the simplest pair.
+static_assert(HasArrowComposeOperators<Identity<int>, Identity<int>>,
+              "Identity<int> must support @c >> arrow composition with "
+              "itself; this is the canonical fish-operator witness.");
+
 }  // namespace dedekind::category
