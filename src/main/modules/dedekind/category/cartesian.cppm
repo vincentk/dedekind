@@ -874,14 +874,23 @@ export template <typename R, typename V>
 concept IsUndirectedGraph = IsDirectedGraph<R, V> && is_symmetric_relation_v<R>;
 
 // ---------------------------------------------------------------------------
-// Canonical existential-proof witness: std::equal_to<int> is THE
-// equivalence relation on int.
+// Canonical existential-proof witness: std::equal_to<V> is the equivalence
+// relation on V — but ONLY for integral V.  Floating-point @c V breaks
+// reflexivity (NaN @c == @c NaN is false under IEEE 754); user-defined
+// types may have an @c operator== that violates equivalence laws (the
+// project trusts only what it verifies, and it has not verified
+// arbitrary user-defined equality).  The constraint is therefore
+// @c std::integral<V>; equality on integral types is a true equivalence
+// (no NaN, no overflow-induced asymmetry).  Floating-point and user-
+// defined V are NOT registered here; downstream callers that want
+// structural-equivalence treatment for those carriers register their
+// own opt-in traits site-locally.
 // ---------------------------------------------------------------------------
-template <typename V>
+template <std::integral V>
 inline constexpr bool is_reflexive_relation_v<std::equal_to<V>> = true;
-template <typename V>
+template <std::integral V>
 inline constexpr bool is_symmetric_relation_v<std::equal_to<V>> = true;
-template <typename V>
+template <std::integral V>
 inline constexpr bool is_transitive_relation_v<std::equal_to<V>> = true;
 
 static_assert(IsBinaryRelation<std::equal_to<int>, int, int>,
@@ -894,5 +903,19 @@ static_assert(IsDirectedGraph<std::equal_to<int>, int>,
               "structurally; std::equal_to<int> is the trivial loop graph.");
 static_assert(IsUndirectedGraph<std::equal_to<int>, int>,
               "std::equal_to<int> is symmetric, hence an undirected graph.");
+
+// Negative witness: std::equal_to<double> is NOT registered as
+// reflexive (NaN == NaN is false under IEEE 754), so it does not
+// fire IsEquivalenceRelation.  Pinned mechanically so the policy
+// is type-checked, not just commentary.
+static_assert(!is_reflexive_relation_v<std::equal_to<double>>,
+              "std::equal_to<double> is NOT reflexive (NaN == NaN is false "
+              "under IEEE 754); the integral-only constraint above prevents "
+              "the floating-point specialisation from firing.");
+static_assert(!IsEquivalenceRelation<std::equal_to<double>, double>,
+              "std::equal_to<double> is therefore NOT registered as an "
+              "equivalence relation; downstream callers needing structural "
+              "equivalence on double must opt-in site-locally with a NaN-"
+              "exclusion clause.");
 
 }  // namespace dedekind::category
