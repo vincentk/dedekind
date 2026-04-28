@@ -324,6 +324,50 @@ static_assert(N(-7) == ClassicalLogic::False,
 //     only here — the consolidated narrative + audit trail belongs
 //     in one place.
 
+// ---------------------------------------------------------------------------
+// (7) NNO witness: @c Cardinality is the canonical inhabitant of the
+//     Natural Numbers Object (ETCS Axiom 9; @c
+//     dedekind.category:nno).  Closes part of #445.
+// ---------------------------------------------------------------------------
+//
+// Architecture: NNO  →  Cardinality  →  ℕ.
+//   * NNO is the Form (universal property defined in @c :nno).
+//   * @c Cardinality is the canonical carrier witnessing the NNO,
+//     certified below by @c IsNNO<Cardinality, cardinality_zero,
+//     cardinality_succ>.  Saturating semantics (@c ℵ_0 escalation)
+//     honestly handles the transfinite case.
+//   * @c ℕ is the name pointing to @c Cardinality (this partition's
+//     @c using ℕ alias, post-#427).
+//
+// The zero element @c z : 1 → ℕ is @c cardinality_zero, returning
+// @c finite_cardinality(0).  The successor @c s : ℕ → ℕ is @c
+// cardinality_succ, returning @c n + finite_cardinality(1) on the
+// finite fragment and absorbing into @c ℵ_0 on the saturation
+// regime — the latter is the carrier's honest behaviour at the
+// transfinite element the abstract NNO admits.
+
+/** @brief The zero element @c 1 → @c ℕ for the NNO universal property
+ *         witness on @c Cardinality.  Nullary callable, returns
+ *         @c finite_cardinality(0). */
+export struct cardinality_zero {
+  constexpr ℕ operator()() const noexcept { return finite_cardinality(0); }
+};
+
+/** @brief The successor map @c ℕ → @c ℕ for the NNO universal property
+ *         witness on @c Cardinality.  On the finite fragment, returns
+ *         @c n + 1; on @c ℵ_0, returns @c ℵ_0 (saturation). */
+export struct cardinality_succ {
+  constexpr ℕ operator()(const ℕ& n) const noexcept {
+    return n + finite_cardinality(1);
+  }
+};
+
+static_assert(dedekind::category::IsNNO<ℕ, cardinality_zero, cardinality_succ>,
+              "Cardinality is the canonical NNO witness: "
+              "z = cardinality_zero, s = cardinality_succ; "
+              "saturation to ℵ_0 honestly handles the transfinite "
+              "element the abstract NNO admits.");
+
 }  // namespace dedekind::numbers
 
 namespace dedekind::category {

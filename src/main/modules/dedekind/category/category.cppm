@@ -52,6 +52,8 @@ export import :logic;      // The Subobject Classifier (Truth)
 export import :posetal;    // Partial Orders (Verified by Logic)
 export import :small;      // Small Categories
 export import :discrete;   // The Discrete Category (Points as Arrows)
+export import :nno;        // The Natural Numbers Object (ETCS Axiom 9 reified;
+                           // closes part of #445)
 export import :limit;      // Universal Limits
 export import :cartesian;  // Products/Coproducts, CCC Foundations
 export import :topoi;      // Internal Logic of the Topos
