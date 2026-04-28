@@ -41,6 +41,9 @@ export import :integer;  // ℤ partition (variant ℤ-proxy / IntegersOf<>)
 export import :sint;     // std::signed_integral: operator surface ✓,
                          // axiomatic ring ✗ (Honest Rejection;
                          // closes part of #418)
+export import :integral; // std::integral umbrella note over the three
+                         // siblings (unsigned_integral / signed_integral /
+                         // bool); closes #419
 
 /** @section Algebraic_Extensions (Level 3 & 8) */
 export import :rational;    // ℚ (The Quotient Field)
