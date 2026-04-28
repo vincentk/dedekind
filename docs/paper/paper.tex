@@ -1636,12 +1636,38 @@ $\mathbb{B} \hookrightarrow \texttt{std::unsigned\_integral}$ and the
 structure-forgetting lift
 $\texttt{std::unsigned\_integral} \to \texttt{Cardinality}$ make the embedding
 chain $\mathbb{B} \hookrightarrow \texttt{std::unsigned\_integral} \to
-\mathbb{N}$ explicit at the type level.\footnote{The symmetric three-element
-chain $\mathbb{K3} \hookrightarrow \texttt{std::signed\_integral} \to
-\mathbb{Z}$ is the Kleene-truth-value version, with \texttt{embed\_K3\_}$\mathbb{Z}$
-as the first leg (False $\mapsto -1$, Unknown $\mapsto 0$, True $\mapsto 1$);
-the symmetric story is tracked under issue~\#418.} The full discussion lives
+\mathbb{N}$ explicit at the type level.  The full discussion lives
 in the report chapter on the carrier lattice.
+
+\paragraph{The signed sibling: \texttt{std::signed\_integral} carries the operator surface but not the axiomatic ring.}
+The signed-integer family (\texttt{int}, \texttt{long}, \texttt{long long})
+presents the \emph{dual} category-theoretic error to its unsigned sibling.
+Where \texttt{unsigned int} claims \emph{more} structure than $\mathbb{N}$
+has, \texttt{int} claims \emph{less} structure than $\mathbb{Z}$
+has.\footnote{The literal C++ ring operators ($+$, binary $-$, unary $-$,
+$*$) all close on \texttt{int} and the order layer is fine; the operator
+surface really is there.  But \emph{signed-overflow is undefined behaviour},
+which means closure-under-arithmetic fails as a stable axiom.  The library's
+posture is therefore honest in both directions: \lstinline{HasRingOperators<int>}
+fires (the surface is real); \lstinline{IsRing<int, std::plus, std::multiplies>}
+does not (the axiomatic-ring witness would be a false claim under UB).  The
+exact-$\mathbb{Z}$ reading lives one carrier step deeper, on
+\lstinline{SignedCardinality} (with $\pm\aleph_0$ saturation and
+\lstinline{NaZ}).}  The Kleene-truth-value version of the embedding chain is
+$\mathbb{K3} \hookrightarrow \texttt{std::signed\_integral} \to \mathbb{Z}$,
+factored exactly as the Boolean / unsigned chain is: \texttt{embed\_K3\_}$\mathbb{Z}$
+encodes the three Kleene values into the signed-int machine layer (\texttt{False}
+$\mapsto -1$, \texttt{Unknown} $\mapsto 0$, \texttt{True} $\mapsto 1$;
+post-PR~\#439), and the lift $\texttt{std::signed\_integral} \to \mathbb{Z}$
+(called \texttt{embed\_signed\_to\_SignedCardinality}, post-issue~\#418) lands
+in the variant $\mathbb{Z}$-proxy.\footnote{Both rejections are symmetric in
+form: each carrier's claim is mismatched with the textbook structure it would
+purport to inhabit, and the type system refuses the mismatch in both
+directions.  An engineer who claims that the carrier their code uses is a ring
+``in spirit'' is making the kind of public statement the truthfulness canons
+of \cite{nspe_ethics} are about; the type system's refusal to accept the
+\lstinline{IsRing<int>} witness is the mechanical analogue of an external
+review catching the claim.}
 
 \subsection{Linear Programming: The Optimum as a Typed Constant}
 \label{sec:lp-centrepiece}
