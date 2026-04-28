@@ -9,8 +9,8 @@
  *
  * @note "Il concetto di trasformazione naturale è il vero motivo per cui
  *        sono state inventate le categorie."
- *       ("The concept of natural transformation is the real reason why
- *        categories were invented.")
+ *       [Trans: "The concept of natural transformation is the real reason
+ *        why categories were invented."]
  *       — Saunders Mac Lane (paraphrased in the spirit of Paolo Aluffi,
  *         *Algebra: Chapter 0*, AMS 2009).
  *

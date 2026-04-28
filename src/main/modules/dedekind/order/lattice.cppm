@@ -21,6 +21,9 @@
  * @note "Lattice theory provides the appropriate generality for the
  *        algebraic study of order, just as group theory does for
  *        symmetries."
+ *       [Trans: original is English; the gloss is that meet (∧) and
+ *        join (∨) play the same role for partial orders that the
+ *        group operation plays for symmetry groups.]
  *       — Garrett Birkhoff, *Lattice Theory* (3rd ed.,
  *         AMS Colloquium Publications vol. 25, 1967), Preface.
  *         Birkhoff's monograph is the canonical reference for the

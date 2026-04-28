@@ -38,8 +38,8 @@
  *
  * @note "Die Geometrie ist nicht die Wissenschaft von den Größen,
  *        sondern von der Art und Weise, wie sie zusammenhängen."
- *       ("Geometry is not the science of magnitudes, but of the way
- *        they hang together.")
+ *       [Trans: "Geometry is not the science of magnitudes, but of the
+ *        way they hang together."]
  *       — Hermann Graßmann, *Die lineale Ausdehnungslehre, ein neuer
  *         Zweig der Mathematik* (Leipzig, 1844), Einleitung. The
  *         founding text of vector-space theory; Graßmann's relational

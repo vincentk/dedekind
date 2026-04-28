@@ -9,6 +9,9 @@
  * @note "At the heart of generic programming is a single, simple idea:
  *        program over the most abstract type that supports the operations
  *        the algorithm needs."
+ *       [Trans: original is English; the gloss is that interop bridges
+ *        should ask only for the minimal interface the algorithm uses,
+ *        not commit either side to the other's representational choices.]
  *       — Alexander A. Stepanov & Daniel E. Rose, *From Mathematics to
  *         Generic Programming* (Addison-Wesley, 2014), §1. Stepanov
  *         designed the STL on this principle; the partition's bridges

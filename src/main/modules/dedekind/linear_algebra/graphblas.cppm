@@ -14,6 +14,10 @@
  * @note "Sparse matrices and graphs are duals.  The duality opens the
  *        door to writing graph algorithms in the natural language of
  *        linear algebra."
+ *       [Trans: original is English; the practitioner-language note here
+ *        is glossed in plain terms — a graph's adjacency-matrix view
+ *        *is* its algebraic representation, and iterating along edges
+ *        becomes matrix-vector multiplication along the sparse pattern.]
  *       — Timothy A. Davis, *Algorithm 1000: SuiteSparse:GraphBLAS*,
  *         ACM TOMS 45(4) (2019), §1. Davis is the maintainer of
  *         SuiteSparse; the GraphBLAS standard formalises the duality
