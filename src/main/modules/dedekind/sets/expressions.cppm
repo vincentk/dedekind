@@ -129,7 +129,8 @@ struct MembershipBinding {
    *  @c !b) routing into it.
    */
   template <typename OtherSpecies>
-    requires std::same_as<element_of_t<OtherSpecies>, bool>
+    requires std::same_as<element_of_t<Species>, bool> &&
+             std::same_as<element_of_t<OtherSpecies>, bool>
   constexpr auto operator|(const Variable<OtherSpecies>&) const {
     return Comprehension<Species, BooleanEqPredicate>{base,
                                                       BooleanEqPredicate{true}};
