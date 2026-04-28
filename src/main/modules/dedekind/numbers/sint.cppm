@@ -120,13 +120,22 @@ namespace dedekind::numbers {
 export template <std::signed_integral S>
 constexpr dedekind::sets::SignedCardinality embed_signed_to_SignedCardinality(
     S v) {
-  static_assert(
-      std::numeric_limits<S>::digits <= std::numeric_limits<long long>::digits,
-      "embed_signed_to_SignedCardinality requires every value of S "
-      "to be representable in long long; otherwise the conversion "
-      "would silently truncate and break injectivity.  On platforms "
-      "where this fires (e.g. wider extended integer types), an "
-      "explicit ±ℵ_0 escalation on overflow would be needed.");
+  // The lift funnels into @c finite_signed_cardinality, which stores
+  // into @c SignedExtensionalCardinal<>'s magnitude (a @c
+  // ExtensionalCardinal<> with @c std::size_t limb).  On 32-bit
+  // platforms, @c long @c long is wider than @c std::size_t — so the
+  // limb-width is the actual binding constraint, not @c long @c long.
+  // Pin the guard against the @b finite-fragment limb width so the
+  // injectivity claim holds on every platform.
+  static_assert(std::numeric_limits<S>::digits <=
+                    std::numeric_limits<std::size_t>::digits,
+                "embed_signed_to_SignedCardinality requires every value of S "
+                "to be representable in the SignedExtensionalCardinal<>'s limb "
+                "type (std::size_t for the magnitude).  On platforms where "
+                "this fires (e.g. 32-bit std::size_t with 64-bit long long, or "
+                "wider extended integer types), an explicit ±ℵ_0 escalation "
+                "on out-of-range values would be needed; without it the "
+                "conversion would silently truncate and break injectivity.");
   return dedekind::sets::finite_signed_cardinality(v);
 }
 
@@ -174,6 +183,8 @@ static_assert(dedekind::algebra::HasSuccessorOperators<int>,
               "(pre/post ++, --).");
 static_assert(dedekind::algebra::HasSuccessorOperators<long>,
               "long closes the successor / predecessor operator surface.");
+static_assert(dedekind::algebra::HasSuccessorOperators<long long>,
+              "long long closes the successor / predecessor operator surface.");
 
 // (2b) Negative axiomatic witnesses — the load-bearing Honest
 // Rejection.  Signed-overflow UB defeats closure-under-arithmetic
@@ -183,8 +194,8 @@ static_assert(dedekind::algebra::HasSuccessorOperators<long>,
 static_assert(!Group_ℤ<int>,
               "int must NOT satisfy Group_ℤ: signed-overflow UB defeats "
               "the strict abelian-group proof under the math-wins-over-C++ "
-              "stance.  Group_ℤ<SignedExtensionalCardinal<>> is the exact-ℤ "
-              "witness.");
+              "stance.  SignedCardinality is the exact-ℤ witness "
+              "(carrier home: dedekind::sets:cardinality).");
 static_assert(!Group_ℤ<long>,
               "long must NOT satisfy Group_ℤ for the same reason.");
 static_assert(!Group_ℤ<long long>,
@@ -194,6 +205,8 @@ static_assert(!dedekind::algebra::IsArithmeticAdditiveGroup<int>,
               "UB-on-overflow reason as the Group_ℤ rejection.");
 static_assert(!dedekind::algebra::IsArithmeticAdditiveGroup<long>,
               "long must NOT satisfy IsArithmeticAdditiveGroup.");
+static_assert(!dedekind::algebra::IsArithmeticAdditiveGroup<long long>,
+              "long long must NOT satisfy IsArithmeticAdditiveGroup.");
 
 // Order surface — every @c std::signed_integral is totally ordered at
 // the machine layer; the order layer is honest while the arithmetic

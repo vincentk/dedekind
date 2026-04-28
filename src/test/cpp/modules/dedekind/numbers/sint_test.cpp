@@ -152,21 +152,24 @@ TEST_CASE(
 // (4) Embedding chain: 𝕂3 → sint → ℤ (signed counterpart to 𝔹 → uint → ℕ)
 // ===========================================================================
 
-TEST_CASE("sint: lift composes with embed_K3_ℤ (𝕂3 → sint → ℤ chain)",
+TEST_CASE("sint: 𝕂3 → sint → ℤ chain via embed_K3_ℤ + lift",
           "[numbers][sint][lift][embedding-chain]") {
   // Post-PR #439, embed_K3_ℤ already lands on SignedCardinality
-  // directly.  The composition embed_K3_ℤ_machine_int >>
-  // embed_signed_to_SignedCardinality realises the textbook-factored
-  // chain 𝕂3 → std::signed_integral → ℤ documented in the carrier-
-  // lattice section of paper.tex / report.tex.  Here we test the
-  // structurally-equivalent form by applying the lift to the canonical
-  // K3 image values.
-  CHECK(embed_signed_to_SignedCardinality(-1) ==
-        finite_signed_cardinality(-1));  // K3::False
-  CHECK(embed_signed_to_SignedCardinality(0) ==
-        finite_signed_cardinality(0));  // K3::Unknown
-  CHECK(embed_signed_to_SignedCardinality(1) ==
-        finite_signed_cardinality(1));  // K3::True
+  // directly.  The textbook-factored chain
+  //
+  //   𝕂3 → std::signed_integral → ℤ
+  //
+  // would route through @c int (the machine layer) on the first leg
+  // and then through @c embed_signed_to_SignedCardinality on the
+  // second; PR #439's chosen factorisation collapses the two legs
+  // into one for ergonomic reasons.  Exercise the chain claim
+  // directly by relating @c embed_K3_ℤ's images to the lifted
+  // canonical machine-int images @c -1 / @c 0 / @c 1, asserting
+  // that both factorisations agree on the canonical value of each
+  // Kleene truth-value.
+  CHECK(embed_K3_ℤ(Ternary::False) == embed_signed_to_SignedCardinality(-1));
+  CHECK(embed_K3_ℤ(Ternary::Unknown) == embed_signed_to_SignedCardinality(0));
+  CHECK(embed_K3_ℤ(Ternary::True) == embed_signed_to_SignedCardinality(1));
 }
 
 // ===========================================================================
