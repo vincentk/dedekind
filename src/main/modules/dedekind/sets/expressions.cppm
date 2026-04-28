@@ -78,13 +78,27 @@ struct Comprehension {
   static constexpr bool is_idempotent_v = true;
 };
 
-// Forward declarations: resolved below where Variable / BooleanEqPredicate
-// are fully defined.  Both are @c export-declared here so the later
-// definitions match in module linkage.
+// Forward declaration of @c Variable: the @c MembershipBinding pipe
+// below has a Variable<bool>-truthy specialisation that needs the
+// type name; the full definition lives just below.
 export template <typename Species>
 struct Variable;
 
-export struct BooleanEqPredicate;
+/** @brief Boolean equality predicate for compile-time pruning over 𝔹.
+ *
+ *  Defined here (rather than further down where the @c FiniteBooleanSet
+ *  collapse machinery lives) because the @c MembershipBinding pipe's
+ *  Variable<bool>-truthy specialisation rewrites the bare-@c b form to
+ *  @c BooleanEqPredicate{true}, and that overload needs the type to
+ *  be complete (#408).  The collapse-machinery uses further down still
+ *  see the same definition — it's the single source of truth for the
+ *  bool-domain predicate.
+ */
+export struct BooleanEqPredicate {
+  bool expected;
+
+  constexpr bool operator()(bool v) const { return v == expected; }
+};
 
 /** @brief The Membership Binding: Bridges a Variable to its Domain. */
 template <typename Species>
@@ -211,13 +225,6 @@ inline constexpr bool IsComplementPair_v =
 
 export template <typename T, typename L, typename Predicate>
 class Set;
-
-/** @brief Boolean equality predicate for compile-time pruning over 𝔹. */
-export struct BooleanEqPredicate {
-  bool expected;
-
-  constexpr bool operator()(bool v) const { return v == expected; }
-};
 
 /** @brief Extensional finite bool-domain result for collapsed 𝔹 operations. */
 export template <typename L>
