@@ -291,14 +291,14 @@ static_assert(dedekind::order::HasLatticeOperators<long long>,
 // Pinned explicitly so the std::signed_integral reader sees the
 // dichotomy in one place: the operator surface fires, the axiomatic
 // ring witness does not.
-static_assert(!dedekind::category::IsRing<int, std::plus<int>,
-                                          std::multiplies<int>>,
-              "int is NOT an axiomatic ring under std::plus / "
-              "std::multiplies: signed-overflow UB defeats closure "
-              "before the ring axioms are reachable.");
-static_assert(!dedekind::category::IsRing<long, std::plus<long>,
-                                          std::multiplies<long>>,
-              "long is NOT an axiomatic ring: same reason as int.");
+static_assert(
+    !dedekind::category::IsRing<int, std::plus<int>, std::multiplies<int>>,
+    "int is NOT an axiomatic ring under std::plus / "
+    "std::multiplies: signed-overflow UB defeats closure "
+    "before the ring axioms are reachable.");
+static_assert(
+    !dedekind::category::IsRing<long, std::plus<long>, std::multiplies<long>>,
+    "long is NOT an axiomatic ring: same reason as int.");
 static_assert(!dedekind::category::IsRing<long long, std::plus<long long>,
                                           std::multiplies<long long>>,
               "long long is NOT an axiomatic ring: same reason as int.");
