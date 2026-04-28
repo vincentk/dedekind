@@ -927,6 +927,54 @@ is explicit: SQL evaluation is typically defined over already-realized relations
 while \texttt{dedekind} preserves predicate-level structure in the type system and
 defers materialization to an explicit realization boundary.
 
+\paragraph{A pair of canonical intensional series: Fibonacci on $\mathbb{N}$, negafibonacci on $\mathbb{Z}$.}
+The design rule has a small, well-understood pedagogical pair that
+makes the intensional-first style concrete.  Fibonacci on $\mathbb{N}$ is
+defined inductively by $F_0 = 0$, $F_1 = 1$, $F_{n+1} = F_n + F_{n-1}$;
+the recurrence uses only addition, so the sequence stays in $\mathbb{N}$
+throughout.  Negafibonacci on $\mathbb{Z}$ extends the same recurrence
+to negative indices via $F_{n-1} = F_{n+1} - F_n$, producing
+$F_{-1}, F_{-2}, F_{-3}, F_{-4}, F_{-5} = 1, -1, 2, -3, 5$.  The
+backward step uses subtraction --- exactly the operator that
+structurally distinguishes $\mathbb{Z}$ from $\mathbb{N}$.\footnote{The
+proper categorical framing is the coalgebraic one.  A two-term
+recurrence is not directly the universal property of the natural
+numbers object (which captures one-step recurrences $a_{n+1} =
+g(a_n)$); it is a coalgebra for the functor $F(X) = A \times X$
+where the state carries the pair $(F_n, F_{n-1})$ and the step
+function advances both.  Negafibonacci is the same coalgebra run
+with the subtractive step function in place of the additive one ---
+both well-typed \textbf{only} because the state carrier admits the
+operator (additive group structure for negafibonacci; additive
+monoid is enough for forward Fibonacci).  Pinning the state to
+\lstinline{Cardinality} or \lstinline{SignedCardinality} rather than
+to a machine \lstinline{unsigned int} or \lstinline{int} is what
+makes the coalgebra type-correct in the textbook sense; the machine
+carriers' UB-on-overflow / mod-wrap behaviour would render the
+coalgebra's transition partial without the type system noticing.}
+Computing either series in the canonical mathematical carrier
+(\lstinline{Cardinality} for $\mathbb{N}$, \lstinline{SignedCardinality}
+for $\mathbb{Z}$) keeps the practitioner in the textbook structure
+the whole way through: no machine-int arithmetic, no
+UB-on-overflow risk for large $|n|$, the saturating semantics
+honestly handles oversize values via $\aleph_0$ or
+$\pm\aleph_0$.\footnote{The contrast is sharp.  The same recurrence
+on a 32-bit \lstinline{int} carrier silently produces incorrect
+results once $F_n$ exceeds $\mathrm{INT\_MAX}/2$ (because
+$F_n + F_{n-1}$ overflows undefined-behaviourly); on \lstinline{unsigned int}
+it would silently wrap modulo $2^{32}$.  The variant carriers
+either return the correct large value or escalate to $\aleph_0$
+explicitly --- the law that fails on the machine carriers becomes
+either a true claim or a typed sentinel.}  The descent to a
+machine integer, when the practitioner needs native performance for
+a downstream pipeline, is an explicit \emph{realize-step} that
+carries a proof obligation: the caller chooses a sentinel for the
+transfinite case and the type system mechanically forces them to
+handle that case.  The ergonomic story is therefore not "Honest
+Rejection imposes a cost" but rather "the cost is moved to where
+the engineer must own it" --- which is precisely the truthfulness
+canon at work.
+
 \subsection{The Tension: Abstract Naturals vs.\ IEEE Numerics}
 \label{sec:numeric-tension}
 
@@ -1636,12 +1684,38 @@ $\mathbb{B} \hookrightarrow \texttt{std::unsigned\_integral}$ and the
 structure-forgetting lift
 $\texttt{std::unsigned\_integral} \to \texttt{Cardinality}$ make the embedding
 chain $\mathbb{B} \hookrightarrow \texttt{std::unsigned\_integral} \to
-\mathbb{N}$ explicit at the type level.\footnote{The symmetric three-element
-chain $\mathbb{K3} \hookrightarrow \texttt{std::signed\_integral} \to
-\mathbb{Z}$ is the Kleene-truth-value version, with \texttt{embed\_K3\_}$\mathbb{Z}$
-as the first leg (False $\mapsto -1$, Unknown $\mapsto 0$, True $\mapsto 1$);
-the symmetric story is tracked under issue~\#418.} The full discussion lives
+\mathbb{N}$ explicit at the type level.  The full discussion lives
 in the report chapter on the carrier lattice.
+
+\paragraph{The signed sibling: \texttt{std::signed\_integral} carries the operator surface but not the axiomatic ring.}
+The signed-integer family (\texttt{int}, \texttt{long}, \texttt{long long})
+presents the \emph{dual} category-theoretic error to its unsigned sibling.
+Where \texttt{unsigned int} claims \emph{more} structure than $\mathbb{N}$
+has, \texttt{int} claims \emph{less} structure than $\mathbb{Z}$
+has.\footnote{The literal C++ ring operators ($+$, binary $-$, unary $-$,
+$*$) all close on \texttt{int} and the order layer is fine; the operator
+surface really is there.  But \emph{signed-overflow is undefined behaviour},
+which means closure-under-arithmetic fails as a stable axiom.  The library's
+posture is therefore honest in both directions: \lstinline{HasRingOperators<int>}
+fires (the surface is real); \lstinline{IsRing<int, std::plus, std::multiplies>}
+does not (the axiomatic-ring witness would be a false claim under UB).  The
+exact-$\mathbb{Z}$ reading lives one carrier step deeper, on
+\lstinline{SignedCardinality} (with $\pm\aleph_0$ saturation and
+\lstinline{NaZ}).}  The Kleene-truth-value version of the embedding chain is
+$\mathbb{K3} \hookrightarrow \texttt{std::signed\_integral} \to \mathbb{Z}$,
+factored exactly as the Boolean / unsigned chain is: \texttt{embed\_K3\_}$\mathbb{Z}$
+encodes the three Kleene values into the signed-int machine layer (\texttt{False}
+$\mapsto -1$, \texttt{Unknown} $\mapsto 0$, \texttt{True} $\mapsto 1$;
+post-PR~\#439), and the lift $\texttt{std::signed\_integral} \to \mathbb{Z}$
+(called \texttt{embed\_signed\_to\_SignedCardinality}, post-issue~\#418) lands
+in the variant $\mathbb{Z}$-proxy.\footnote{Both rejections are symmetric in
+form: each carrier's claim is mismatched with the textbook structure it would
+purport to inhabit, and the type system refuses the mismatch in both
+directions.  An engineer who claims that the carrier their code uses is a ring
+``in spirit'' is making the kind of public statement the truthfulness canons
+of \cite{nspe_ethics} are about; the type system's refusal to accept the
+\lstinline{IsRing<int>} witness is the mechanical analogue of an external
+review catching the claim.}
 
 \subsection{Linear Programming: The Optimum as a Typed Constant}
 \label{sec:lp-centrepiece}

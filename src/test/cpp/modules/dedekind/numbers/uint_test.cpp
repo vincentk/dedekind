@@ -11,6 +11,7 @@
  * compile-time witnesses live inside the partition itself; this file
  * exercises the @b runtime / @b composition surface.
  */
+#include <array>
 #include <catch2/catch_test_macros.hpp>
 #include <cstddef>
 #include <functional>  // std::plus
@@ -155,4 +156,36 @@ TEST_CASE("uint: lift composes with the bool→unsigned arrow (𝔹 → uint →
   // the carrier-lattice section of paper.tex / report.tex.
   CHECK(embed_unsigned_Cardinality_(embed_𝔹_ℕ(false)) == finite_cardinality(0));
   CHECK(embed_unsigned_Cardinality_(embed_𝔹_ℕ(true)) == finite_cardinality(1));
+}
+
+TEST_CASE("uint: Fibonacci on Cardinality — the canonical intensional ℕ-series",
+          "[numbers][uint][ergonomics][intensional-first][fibonacci]") {
+  // Fibonacci is the textbook intensional ℕ-series — defined inductively
+  // by F_0 = 0, F_1 = 1, F_{n+1} = F_n + F_{n-1}.  The recurrence uses
+  // only addition; the sequence stays in ℕ throughout.  Computing it on
+  // @c Cardinality keeps the practitioner in the canonical mathematical
+  // carrier the whole way through (no machine-int arithmetic; no
+  // overflow risk; saturation to @c ℵ_0 if a value were to exceed the
+  // finite fragment, honestly).  Sibling to the negafibonacci-on-
+  // SignedCardinality test in @c sint_test.cpp.
+  auto f_prev = finite_cardinality(0);  // F_0
+  auto f_curr = finite_cardinality(1);  // F_1
+
+  // Compute F_2 .. F_10: the textbook 1, 2, 3, 5, 8, 13, 21, 34, 55.
+  std::array<Cardinality, 9> fibs;
+  for (std::size_t i = 0; i < 9; ++i) {
+    auto next = f_prev + f_curr;
+    fibs[i] = next;
+    f_prev = f_curr;
+    f_curr = next;
+  }
+  CHECK(fibs[0] == finite_cardinality(1));   // F_2
+  CHECK(fibs[1] == finite_cardinality(2));   // F_3
+  CHECK(fibs[2] == finite_cardinality(3));   // F_4
+  CHECK(fibs[3] == finite_cardinality(5));   // F_5
+  CHECK(fibs[4] == finite_cardinality(8));   // F_6
+  CHECK(fibs[5] == finite_cardinality(13));  // F_7
+  CHECK(fibs[6] == finite_cardinality(21));  // F_8
+  CHECK(fibs[7] == finite_cardinality(34));  // F_9
+  CHECK(fibs[8] == finite_cardinality(55));  // F_10
 }
