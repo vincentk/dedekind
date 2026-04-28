@@ -71,12 +71,13 @@ In this approach:
 
 ### Engineering honesty and mechanical sympathy
 
-Two related disciplines anchor the technique:
+The library asks the engineer to claim only what is mathematically true of a type, and lets the compiler check the consequences mechanically. The trade is an **honesty obligation up front for a mechanical guarantee afterward**; that asymmetry, not the cost, is what makes the technique worth practising.
 
-- **Engineering honesty.** The trait registry asserts only what is constructively true of the carrier — `is_associative_v<T, Op>` is registered when `Op` actually associates on `T`, never as a convenience. Concept names match the math: `unsigned int` is rejected as a witness for ℕ because it claims *more* structure than ℕ has (additive inverses via mod wrap), not less. Read in the spirit of the engineering profession's truthfulness canons, this is a **public statement** at the type-system level — visible, peer-reviewable, and machine-checkable against fixed inference rules.
-- **Mechanical sympathy.** Once the math is honest, the rest is mechanical: `static_assert`s discharge the derivation, concept-driven dispatch routes calls without runtime overhead, NTTP-folded `constexpr` evaluation carries witnesses through to the IR. The compiler does not care which agent typed the code; it cares that the typing rules check.
-
-The trade is therefore an honesty obligation up front for a mechanical guarantee afterward — that asymmetry, not the cost, is what makes the technique worth practising. See the paper's *§Axiomatic Systems Programming* for the full argument.
+**Further reading:**
+- *Axiomatic Systems Programming* (with the *Honest Rejection* policy and the *Old mathematics, newly accessible* discussion) in the [paper](https://vincentk.github.io/dedekind/paper.pdf).
+- Curry–Howard reading of type-system-driven verification: Wadler, [*Propositions as Types*](https://doi.org/10.1145/2699407), CACM 2015.
+- Professional grounding: NSPE [*Code of Ethics for Engineers*](https://www.nspe.org/sites/default/files/resources/pdfs/Ethics/CodeofEthics/NSPECodeofEthicsforEngineers.pdf) — canons III (truthful public statements) and IV (faithful agency).
+- Categorical foundations: Lawvere, *An elementary theory of the category of sets* (PNAS, 1964); Mac Lane, *Categories for the Working Mathematician* (1971).
 
 _AI assistance is used during the development of this project._
 
