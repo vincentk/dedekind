@@ -230,9 +230,33 @@ static_assert(FiniteBooleanSetOf<>{}(true) == ClassicalLogic::False,
 static_assert(FiniteBooleanSetOf<>{}(false) == ClassicalLogic::False,
               "Empty Boolean predicate-set does not contain false.");
 
+/**
+ * @brief Canonical embedding @c 𝔹 @c ↪ @c 𝕂3: bool → Ternary.
+ * @details The two-valued-to-three-valued Kleene lift: @c false @c
+ *          ↦ @c Ternary::False (@c -1), @c true @c ↦ @c
+ *          Ternary::True (@c 1).  The @c Ternary::Unknown (@c 0)
+ *          value is @b not in the image — it represents the third
+ *          truth-value that @c 𝔹 lacks.  This is the canonical
+ *          inclusion of two-valued classical logic into three-
+ *          valued Kleene logic; structurally a monomorphism.
+ */
+export inline constexpr auto embed_𝔹_𝕂3 =
+    arrow<bool, dedekind::category::Ternary>(
+        [](const bool& b) noexcept -> dedekind::category::Ternary {
+          return b ? dedekind::category::Ternary::True
+                   : dedekind::category::Ternary::False;
+        });
+
 // (5) Adjacent-set arrow: 𝔹 ↪ ℕ via @c embed_𝔹_ℕ in @c :natural.
 // This partition is upstream of @c :natural, so the witness for the
 // monic-arrow registration lives in @c :natural (registered there as
 // @c is_monic_arrow_v = true on @c embed_𝔹_ℕ).
 
 }  // namespace dedekind::numbers
+
+namespace dedekind::category {
+template <>
+inline constexpr bool
+    is_monic_arrow_v<std::decay_t<decltype(dedekind::numbers::embed_𝔹_𝕂3)>> =
+        true;
+}  // namespace dedekind::category

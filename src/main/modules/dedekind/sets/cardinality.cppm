@@ -1365,16 +1365,20 @@ constexpr bool operator==(const SignedCardinality& lhs, F rhs) noexcept {
 // Returns @c std::partial_ordering throughout — a @c NaZ on the
 // @c SignedCardinality side propagates as @c unordered.
 
-namespace detail {
 /** @brief Lift @c Cardinality into @c SignedCardinality via the canonical
- *         ℕ ↪ ℤ embedding direction.  This is the local @c Cardinality
- *         → @c SignedCardinality variant-level analogue of @c embed_ℕ_ℤ
- *         in @c numbers/integer.cppm (which is @c arrow<unsigned, @c int>
- *         pre-#402 and retargets to the variant pair post-#402); the
- *         helper lives here so the cross-variant operators below can
- *         reach it without crossing the @c sets → @c numbers module
- *         boundary. */
-constexpr SignedCardinality lift_cardinality_to_signed(
+ *         ℕ ↪ ℤ embedding direction.  Public, exported: this is the
+ *         canonical variant-level @c ℕ @c ↪ @c ℤ embedding that the
+ *         carrier-lattice diagram (Figure 1 in @c paper.tex) labels at
+ *         the top row.  The machine-layer counterpart is @c embed_ℕ_ℤ
+ *         in @c numbers:integer (an @c arrow<unsigned, @c int> sign
+ *         reinterpretation, structurally distinct from the variant-
+ *         layer canonical embedding here).  Lives in @c sets:cardinality
+ *         so the cross-variant operators below reach it without crossing
+ *         the @c sets @c → @c numbers module boundary; an exported
+ *         @c arrow form @c lift_ℕ_ℤ_ wrapping this function lives in
+ *         @c numbers:integer for monic-arrow registration in the
+ *         carrier lattice. */
+export constexpr SignedCardinality lift_cardinality_to_signed(
     const Cardinality& c) noexcept {
   if (std::holds_alternative<ℵ_0>(c)) {
     return SignedCardinality{PositiveInfinity{}};
@@ -1384,14 +1388,13 @@ constexpr SignedCardinality lift_cardinality_to_signed(
   result.negative = false;
   return SignedCardinality{result};
 }
-}  // namespace detail
 
 /** @brief @c Cardinality @c <=> @c SignedCardinality.  Routes through
  *         the canonical ℕ ↪ ℤ lift and @c compare_signed; @c NaZ on
  *         the @c rhs propagates as @c unordered. */
 export constexpr std::partial_ordering operator<=>(
     const Cardinality& lhs, const SignedCardinality& rhs) noexcept {
-  return compare_signed(detail::lift_cardinality_to_signed(lhs), rhs);
+  return compare_signed(lift_cardinality_to_signed(lhs), rhs);
 }
 
 /** @brief @c Cardinality @c == @c SignedCardinality.  @c NaZ never
@@ -1402,7 +1405,7 @@ export constexpr bool operator==(const Cardinality& lhs,
   if (detail::sc_is_naz(rhs)) return false;
   // The lift produces a non-negative SignedCardinality, so any negative
   // rhs is never equal.  Otherwise compare_signed returns equivalent.
-  return compare_signed(detail::lift_cardinality_to_signed(lhs), rhs) ==
+  return compare_signed(lift_cardinality_to_signed(lhs), rhs) ==
          std::partial_ordering::equivalent;
 }
 
@@ -1435,14 +1438,14 @@ export constexpr bool operator==(const Cardinality& lhs,
 /** @brief Closure-forcing unary minus on @c Cardinality: well-defined
  *         on every natural, with codomain widened to @c
  *         SignedCardinality.  Delegates to the canonical lift @c
- *         detail::lift_cardinality_to_signed and @c SignedCardinality's
+ *         lift_cardinality_to_signed and @c SignedCardinality's
  *         existing unary @c -, so canonicalisation rules (canonical
  *         @c +0 for negation-of-zero; @c +ℵ_0 → @c -ℵ_0 sentinel
  *         flip) flow from a single source of truth.  This is the
  *         smallest possible elementwise statement of the Grothendieck
  *         construction in code. */
 export constexpr SignedCardinality operator-(const Cardinality& v) noexcept {
-  return -detail::lift_cardinality_to_signed(v);
+  return -lift_cardinality_to_signed(v);
 }
 
 /** @brief Retraction direction: @c abs : @c ℤ @c → @c ℕ.  The math-
@@ -1489,8 +1492,7 @@ export constexpr Cardinality abs(const SignedCardinality& z) noexcept {
  *         operands and dispatches to @c SignedCardinality's @c -. */
 export constexpr SignedCardinality operator-(const Cardinality& a,
                                              const Cardinality& b) noexcept {
-  return detail::lift_cardinality_to_signed(a) -
-         detail::lift_cardinality_to_signed(b);
+  return lift_cardinality_to_signed(a) - lift_cardinality_to_signed(b);
 }
 
 /** @brief Closed cross-carrier addition: @c Cardinality @c + @c
@@ -1500,7 +1502,7 @@ export constexpr SignedCardinality operator-(const Cardinality& a,
  *         math-correct direction (larger carrier wins). */
 export constexpr SignedCardinality operator+(
     const Cardinality& a, const SignedCardinality& b) noexcept {
-  return detail::lift_cardinality_to_signed(a) + b;
+  return lift_cardinality_to_signed(a) + b;
 }
 
 /** @brief Symmetric: @c SignedCardinality @c + @c Cardinality.
@@ -1508,7 +1510,7 @@ export constexpr SignedCardinality operator+(
  *         commutative on ℤ. */
 export constexpr SignedCardinality operator+(const SignedCardinality& a,
                                              const Cardinality& b) noexcept {
-  return a + detail::lift_cardinality_to_signed(b);
+  return a + lift_cardinality_to_signed(b);
 }
 
 /** @brief Closure-forcing cross-carrier subtraction: @c Cardinality
@@ -1516,7 +1518,7 @@ export constexpr SignedCardinality operator+(const SignedCardinality& a,
  *         on the @c (ℕ, ℤ) pair as a function into ℤ. */
 export constexpr SignedCardinality operator-(
     const Cardinality& a, const SignedCardinality& b) noexcept {
-  return detail::lift_cardinality_to_signed(a) - b;
+  return lift_cardinality_to_signed(a) - b;
 }
 
 /** @brief Symmetric: @c SignedCardinality @c - @c Cardinality.  Lifts
@@ -1525,14 +1527,14 @@ export constexpr SignedCardinality operator-(
  *         a delegation. */
 export constexpr SignedCardinality operator-(const SignedCardinality& a,
                                              const Cardinality& b) noexcept {
-  return a - detail::lift_cardinality_to_signed(b);
+  return a - lift_cardinality_to_signed(b);
 }
 
 /** @brief Closed cross-carrier multiplication: @c Cardinality @c * @c
  *         SignedCardinality lifts and dispatches.  Closes in @c ℤ. */
 export constexpr SignedCardinality operator*(
     const Cardinality& a, const SignedCardinality& b) noexcept {
-  return detail::lift_cardinality_to_signed(a) * b;
+  return lift_cardinality_to_signed(a) * b;
 }
 
 /** @brief Symmetric: @c SignedCardinality @c * @c Cardinality.
@@ -1540,7 +1542,7 @@ export constexpr SignedCardinality operator*(
  *         direction. */
 export constexpr SignedCardinality operator*(const SignedCardinality& a,
                                              const Cardinality& b) noexcept {
-  return a * detail::lift_cardinality_to_signed(b);
+  return a * lift_cardinality_to_signed(b);
 }
 
 }  // namespace dedekind::sets

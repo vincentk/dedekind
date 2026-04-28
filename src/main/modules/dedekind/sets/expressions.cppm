@@ -285,11 +285,10 @@ constexpr auto operator&(const FiniteBooleanSet<L>& lhs,
 // load-bearing case for Paper 3's type-directed-collapse story.
 //
 // The result predicate evaluates @c lhs(v) @c && @c rhs(lift(v)) where
-// @c v has the smaller carrier's type and @c lift is @c
-// detail::lift_cardinality_to_signed from @c :cardinality (the single
-// source of truth for the variant-level ℕ ↪ ℤ embedding; cross-
-// partition reachable since @c :expressions imports @c :cardinality
-// and @c detail is a non-exported namespace inside the same module).
+// @c v has the smaller carrier's type and @c lift is the exported
+// @c lift_cardinality_to_signed from @c :cardinality (the single
+// source of truth for the variant-level ℕ ↪ ℤ embedding; reachable
+// here because @c :expressions imports @c :cardinality).
 //
 // Future iterations under #362 will replace this hand-coded pair with
 // a @c carrier_lattice_meet_t<T1, T2> trait and a generic overload
@@ -305,7 +304,7 @@ export template <typename L, typename P1, typename P2>
 constexpr auto operator&(const Set<Cardinality, L, P1>& lhs,
                          const Set<SignedCardinality, L, P2>& rhs) {
   auto predicate = [lhs, rhs](const Cardinality& v) {
-    return L::AND(lhs(v), rhs(detail::lift_cardinality_to_signed(v)));
+    return L::AND(lhs(v), rhs(lift_cardinality_to_signed(v)));
   };
   return Set<Cardinality, L, decltype(predicate)>{predicate};
 }

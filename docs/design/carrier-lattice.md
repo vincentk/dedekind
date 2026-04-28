@@ -1,5 +1,27 @@
 # The carrier lattice: ℕ ⊂ ℤ ⊂ ℚ ⊂ ℝ ⊂ ℂ at the C++ type level
 
+## The discrete-foundations slice
+
+```
+                       SignedCardinality (ℤ-Form: Initial Ring / Grothendieck of ℕ)
+                      ╱     ↑
+   embed_int_                │ lift_ℕ_ℤ_  (canonical ℕ ↪ ℤ embedding;
+   SignedCardinality_       │              Grothendieck-construction unit
+                  ╱         │              at object ℕ)
+                int  ←──── Cardinality  (ℕ-Form: NNO)
+                 ↑          ↑     ↑
+        embed_K3_ℤ         │     │ embed_unsigned_Cardinality_
+                 │   embed_ℕ_ℤ    │ (PR #441, the named monic arrow)
+                 │   (machine)    │
+              Ternary       unsigned int  (= ℤ/2^wℤ, the modular finite ring)
+                              ↑
+                              │ embed_𝔹_ℕ
+                              │
+                            bool (𝔹-Form: Ω, the Subobject Classifier)
+```
+
+Three layers: truth-value carriers (`bool`, `Ternary`); machine integer carriers (`unsigned int` = ℤ/2^wℤ; `int` = machine ℤ with UB-on-overflow); variant carriers inhabiting the textbook Forms (`Cardinality` = ℕ-as-NNO; `SignedCardinality` = ℤ-as-Initial-Ring / Grothendieck-of-ℕ). Each labelled arrow is an exported `arrow` object in `dedekind.numbers` registered as monic via `is_monic_arrow_v`; the carrier-lattice test case in `initial_ring_test.cpp` pins the `IsMonicArrow` concept-level facts. The dashed retraction `abs : SignedCardinality → Cardinality` (PR #437/#436) is the split-mono partner of `lift_ℕ_ℤ_` — `abs ∘ lift = id` on the non-negative fragment; it is not monic itself — `abs` folds sign (`abs(3) == abs(-3)`), so distinct ℤ-values are conflated. The closure-forcing operator `Cardinality - Cardinality → SignedCardinality` is the Grothendieck-construction *multiplication* (the construction map on operator pairs); the *unit* is the embedding `lift_ℕ_ℤ_` shown above. Multiple paths between extremes commute up to canonical isomorphism.
+
 ## The question
 
 Mathematically, ℕ is a *proper subset* of ℤ — every natural number is, literally, an integer. So `Cardinality` (the post-#402 ℕ-proxy) ought to behave as a subset of `SignedCardinality` (the ℤ-proxy), and operations that mix them — `5 < -3` ; `Set<ℕ> ∩ Set<ℤ>` — should compose without ceremony.
