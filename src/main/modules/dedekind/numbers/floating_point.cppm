@@ -27,7 +27,7 @@
  *      claim.
  *
  *   2. @b NaN @b breaks @b reflexivity.  @c NaN @c <= @c NaN evaluates to
- *      @c false in IEEE 754, so @c is_reflexive_v<double, std::less_equal>
+ *      @c false in IEEE 754, so @c is_reflexive_v<double, @c std::less_equal<>>
  *      is deliberately not registered (see @c category/species.cppm).
  *      The @c IsTotallyOrdered<T> witness fails accordingly --- a fact
  *      cited in @c order/total.cppm but @b not previously pinned
@@ -74,13 +74,16 @@ module;
 
 export module dedekind.numbers:floating_point;
 
-import dedekind.algebra;  // HasFieldOperators / HasRingOperators /
-                          // algebra::IsField (axiomatic forms whose negation
-                          // is the umbrella claim)
-import dedekind.category; // category::IsRing (the upstream axiomatic ring
-                          // concept that algebra::IsField composes over)
-import dedekind.order;    // HasPartialOrderOperators / HasTotalOrderOperators
-                          // / IsTotallyOrdered (negation pinned here)
+import dedekind.algebra;   // HasFieldOperators / HasRingOperators
+                           // (operator-surface positives)
+import dedekind.category;  // category::IsRing / category::IsField --- the
+                           // axiomatic forms whose negation is the umbrella
+                           // claim (algebra::IsField composes these with
+                           // IsDivisionRing's operator surface, so its
+                           // negation is too strong: it would also fire on
+                           // a missing operator/, not just on broken axioms).
+import dedekind.order;     // HasPartialOrderOperators / HasTotalOrderOperators
+                           // / IsTotallyOrdered (negation pinned here)
 
 namespace dedekind::numbers {
 
@@ -145,18 +148,27 @@ static_assert(!dedekind::category::IsRing<long double, std::plus<long double>,
               "long double is NOT an axiomatic ring: same reason as float / "
               "double (IEEE 754 rounding).");
 
-static_assert(!dedekind::algebra::IsField<float, std::plus<float>,
-                                          std::multiplies<float>>,
-              "float is NOT a field under std::plus / std::multiplies: "
-              "the field axioms inherit ring closure, which fails under "
-              "IEEE 754 rounding.");
-static_assert(!dedekind::algebra::IsField<double, std::plus<double>,
-                                          std::multiplies<double>>,
-              "double is NOT a field under std::plus / std::multiplies: "
-              "same reason as float (rounding defeats ring axioms).");
-static_assert(!dedekind::algebra::IsField<long double, std::plus<long double>,
-                                          std::multiplies<long double>>,
-              "long double is NOT a field: same reason as float / double.");
+// Pin the @b axiomatic field rejection via @c category::IsField (which
+// requires the species-trait structure including @c IsAbelianGroup<T,
+// Mult>) rather than @c algebra::IsField (which composes the axiomatic
+// concept with @c IsDivisionRing's operator surface --- @c .inverse() /
+// @c std::divides). The umbrella claim is that the field @b axioms
+// don't hold; pinning the algebra:: form would also fire on a missing
+// operator/ surface, which is the wrong kind of rejection here.
+static_assert(!dedekind::category::IsField<float, std::plus<float>,
+                                           std::multiplies<float>>,
+              "float is NOT an axiomatic field under std::plus / "
+              "std::multiplies: the field axioms inherit ring closure, "
+              "which fails under IEEE 754 rounding.");
+static_assert(!dedekind::category::IsField<double, std::plus<double>,
+                                           std::multiplies<double>>,
+              "double is NOT an axiomatic field under std::plus / "
+              "std::multiplies: same reason as float (rounding defeats "
+              "ring axioms).");
+static_assert(!dedekind::category::IsField<long double, std::plus<long double>,
+                                           std::multiplies<long double>>,
+              "long double is NOT an axiomatic field: same reason as "
+              "float / double.");
 
 static_assert(!dedekind::order::IsTotallyOrdered<float>,
               "float is NOT IsTotallyOrdered: IEEE 754 NaN <= NaN evaluates "
