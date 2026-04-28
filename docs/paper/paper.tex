@@ -1476,6 +1476,41 @@ integer lattice intersected with real-valued bounds (showcase~7), and
 2D rectangles via structural cartesian product (showcase~8: $42 \times 11 =
 462$). All are IR-verified.
 
+\paragraph{The machine layer below $\mathbb{N}$: \texttt{std::unsigned\_integral} is $\mathbb{Z}/2^w\mathbb{Z}$.}
+The lattice $\mathbb{N} \subset \mathbb{Z} \subset \mathbb{Q} \subset \mathbb{R}
+\subset \mathbb{C}$ rests on a machine layer occupied by the standard library's
+primitive integer families. The honest textbook reading of
+\lstinline{std::unsigned_integral} is that each width-$w$ instance is the
+finite cyclic ring $\mathbb{Z}/2^w\mathbb{Z}$ under modular arithmetic --- a
+\emph{commutative ring}, \emph{not} the textbook
+$\mathbb{N}$.\footnote{The mod-wrap arithmetic gives every element an additive
+inverse: $u + (2^w - u) \equiv 0 \pmod{2^w}$. The textbook $\mathbb{N}$ is a
+commutative semiring \emph{without} additive inverse; calling \texttt{unsigned
+int} ``natural numbers'' is a category-theoretic error in the direction of
+claiming \emph{more} structure than $\mathbb{N}$ actually has.} The library's
+$\mathbb{N}$ lives on the variant carrier \lstinline{Cardinality} (the
+saturating commutative monoid, no $-$); the \lstinline{std::unsigned_integral}
+layer is the canonical quotient of monoids
+$\mathbb{N} \twoheadrightarrow \mathbb{Z}/2^w\mathbb{Z}$ that sits
+\emph{above} $\mathbb{N}$ rather than coinciding with
+it.\footnote{This framing is the correct reading of the project's
+\emph{Honest Rejection} policy: a hardware species is rejected as a witness
+for an idealised mathematical structure when its laws differ from those of the
+idealised structure --- and the rejection is symmetric in direction, so that
+``too much structure'' (\texttt{unsigned int}'s modular inverse) is rejected
+on the same footing as ``too little'' (\texttt{int}'s undefined-behaviour
+overflow that defeats closure).} The truthy-positivity injection
+$\mathbb{B} \hookrightarrow \texttt{std::unsigned\_integral}$ and the
+structure-forgetting lift
+$\texttt{std::unsigned\_integral} \to \texttt{Cardinality}$ make the embedding
+chain $\mathbb{B} \hookrightarrow \texttt{std::unsigned\_integral} \to
+\mathbb{N}$ explicit at the type level.\footnote{The symmetric three-element
+chain $\mathbb{K3} \hookrightarrow \texttt{std::signed\_integral} \to
+\mathbb{Z}$ is the Kleene-truth-value version, with \texttt{embed\_K3\_}$\mathbb{Z}$
+as the first leg (False $\mapsto -1$, Unknown $\mapsto 0$, True $\mapsto 1$);
+the symmetric story is tracked under issue~\#418.} The full discussion lives
+in the report chapter on the carrier lattice.
+
 \subsection{Linear Programming: The Optimum as a Typed Constant}
 \label{sec:lp-centrepiece}
 
