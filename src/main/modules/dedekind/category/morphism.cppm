@@ -91,31 +91,35 @@ concept IsArrow = requires {
 // type of a species / arrow.  They are not strict duplicates — each
 // serves a distinct audience.  Pick the right one for your call site:
 //
-//   | Helper                                    | Home                | Use
-//   when                                                  |
-//   |-------------------------------------------|---------------------|-----------------------------------------------------------|
-//   | @c Dom<F> / @c Cod<F>                     | @c :morphism (here) | The
-//   site is @c IsArrow-strict (functors, naturality, hub-arrows; the callable +
-//   Domain/Codomain shape is required). | | @c element_of_t<S> | @c
-//   :sets:boundaries | The site needs to work on @b primitive carriers as well
-//   as predicate-set carriers (post-carrier-migration code paths; "species or
-//   carrier" generality). | | @c
-//   MorphicBridge<signature_extractor<F>::type>::Domain | @c :morphism (below)|
-//   The site is a typed-lambda context where @c F doesn't expose @c ::Domain
-//   directly. |
+//   * @c Dom<F> / @c Cod<F> — home: @c :morphism (here).
+//     Use when the site is @c IsArrow-strict: functors, naturality,
+//     hub-arrows; i.e. when the callable-with-Domain/Codomain shape
+//     is required by the surrounding code.
+//
+//   * @c element_of_t<S> — home: @c :sets:boundaries.
+//     Use when the site needs to accept @b primitive carriers
+//     (@c bool, @c unsigned, …) as well as predicate-set carriers
+//     (post-carrier-migration code paths; the "species or carrier"
+//     generality).  This is the only helper with a primitive
+//     fallback.
+//
+//   * @c MorphicBridge<signature_extractor<F>::type>::Domain —
+//     home: @c :morphism (below).
+//     Use in typed-lambda contexts where @c F doesn't expose
+//     @c ::Domain directly.
 //
 // @b Bare @c typename @c T::Domain is acceptable @b only when:
-//   * The site has its own @c requires @c { @c typename @c T::Domain;
-//     @c } constraint that excludes primitives, OR
-//   * The type is locally constructed (e.g. struct member ordering inside
-//     a producer site like @c using @c Domain @c = @c T;).
+//   * The site has its own @c requires @c { @c typename @c T::Domain; @c }
+//     constraint that excludes primitives, OR
+//   * The type is locally constructed (e.g. inside a producer site
+//     like @c using @c Domain @c = @c T;).
 //
 // In post-carrier-migration code paths (post-#400 / #401 / #402 etc.)
-// where a "species" parameter may be a primitive carrier (@c bool,
-// @c unsigned, …), prefer @c element_of_t<S>; bare @c S::Domain there
-// fails to compile on primitives and forces a cascade fix at every
-// consumer site.  See PR #409 / @c :order:halfspace for the precedent
-// where the cascade was caught.
+// where a "species" parameter may be a primitive carrier, prefer
+// @c element_of_t<S>; bare @c S::Domain there fails to compile on
+// primitives and forces a cascade fix at every consumer site.  See
+// PR #409 / @c :order:halfspace for the precedent where the cascade
+// was caught.
 // ---------------------------------------------------------------------------
 
 /**
