@@ -128,12 +128,17 @@ TEST_CASE("Category: Algebraic Proofs (Runtime Witnesses)",
     STATIC_CHECK(IsInjective<Identity<int>>);
     STATIC_CHECK(IsSurjective<Identity<int>>);
     STATIC_CHECK(IsBijective<Identity<int>>);
-    // Cross-check: an arbitrary non-monic arrow is neither injective
-    // nor bijective (default opt-in trait is false).
-    auto const f = arrow([](int x) { return x; });
-    STATIC_CHECK(IsArrow<std::decay_t<decltype(f)>>);
-    STATIC_CHECK(!IsInjective<std::decay_t<decltype(f)>>);
-    STATIC_CHECK(!IsSurjective<std::decay_t<decltype(f)>>);
-    STATIC_CHECK(!IsBijective<std::decay_t<decltype(f)>>);
+    // Cross-check: a clearly non-injective arrow (constant function
+    // returning 0) is structurally NOT injective and NOT bijective —
+    // the default opt-in traits return false, and the synonyms
+    // mechanically agree.  Picked a constant rather than @c
+    // arrow([](int x){return x;}) per Copilot review: the latter is
+    // structurally identity (injective) and would be misleading as a
+    // negative-case witness if property inference is added later.
+    auto const constant = arrow<int, int>([](int) { return 0; });
+    STATIC_CHECK(IsArrow<std::decay_t<decltype(constant)>>);
+    STATIC_CHECK(!IsInjective<std::decay_t<decltype(constant)>>);
+    STATIC_CHECK(!IsSurjective<std::decay_t<decltype(constant)>>);
+    STATIC_CHECK(!IsBijective<std::decay_t<decltype(constant)>>);
   }
 }

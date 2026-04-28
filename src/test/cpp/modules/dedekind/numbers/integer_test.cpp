@@ -1,5 +1,6 @@
 #include <catch2/catch_test_macros.hpp>
 #include <cstdlib>  // For std::abs in the partial-commuting-square test.
+#include <limits>  // For std::numeric_limits in the abs honest-extension tests.
 #include <variant>  // For std::variant's operator== reached via ADL on
                     // SignedCardinality / Cardinality (aliases of
                     // std::variant<...>).  Without this include the
@@ -84,19 +85,25 @@ TEST_CASE(
     "Integer: abs is the honest total extension of std::abs — well-defined "
     "at INT_MIN where std::abs is UB",
     "[numbers][integer][carrier-lattice][abs][honest-extension]") {
-  // The pathological value: INT_MIN = -2^31 on a 32-bit int.  std::abs(INT_MIN)
-  // is undefined behaviour because -INT_MIN overflows the signed-int range.
-  // Our @c abs lifts INT_MIN through the variant embedding and returns a
-  // finite @c Cardinality with magnitude 2^31 — total, no UB, type-level
-  // non-negativity guarantee.
+  // The pathological value: INT_MIN.  std::abs(INT_MIN) is undefined
+  // behaviour because -INT_MIN overflows the signed-int range.  Our
+  // @c abs lifts INT_MIN through the variant embedding and returns a
+  // finite @c Cardinality with the magnitude — total, no UB, type-
+  // level non-negativity guarantee.
+  //
+  // Portability: compute the expected magnitude via unsigned modular
+  // arithmetic so the test does not hard-code 32-bit two's-complement
+  // ABI.  @c 0u @c - @c static_cast<unsigned>(int_min) is well-defined
+  // for any width.
   constexpr int int_min = std::numeric_limits<int>::min();
+  constexpr unsigned int_min_magnitude = 0u - static_cast<unsigned>(int_min);
   const auto z_min = embed_int_SignedCardinality_(int_min);
   const auto magnitude = abs(z_min);
 
   // Magnitude IS representable as a non-negative Cardinality (the
   // saturating ℕ-proxy carrier).  No UB, no truncation; the answer is
-  // the concrete finite value 2^31 = 2147483648.
-  CHECK(magnitude == finite_cardinality(2147483648u));
+  // the concrete finite value @c |INT_MIN|.
+  CHECK(magnitude == finite_cardinality(int_min_magnitude));
   // The answer is NOT ℵ_0 — INT_MIN is well-finite, just not negatable
   // in the int range.
   CHECK_FALSE(magnitude == Cardinality{ℵ_0{}});
@@ -118,8 +125,11 @@ TEST_CASE(
   // non-negativity at the type level; the implementation is total
   // (works for INT_MIN where std::abs is UB).
   constexpr int int_min = std::numeric_limits<int>::min();
-  // abs_int_unsigned(INT_MIN) = 2^31u — total, no UB.
-  CHECK(abs_int_unsigned(int_min) == 2147483648u);
+  // |INT_MIN| computed via unsigned modular arithmetic — well-defined
+  // for any int width / two's-complement ABI.
+  constexpr unsigned int_min_magnitude = 0u - static_cast<unsigned>(int_min);
+  // abs_int_unsigned(INT_MIN) = |INT_MIN| — total, no UB.
+  CHECK(abs_int_unsigned(int_min) == int_min_magnitude);
   // Sign-folding: distinct +n / -n map to the same unsigned magnitude
   // (so the function is NOT injective).
   CHECK(abs_int_unsigned(3) == 3u);
@@ -145,17 +155,17 @@ TEST_CASE(
     CHECK(via_variant == finite_cardinality(via_machine));
   }
   // At INT_MIN: machine-layer abs_int_unsigned and variant-layer abs
-  // both yield magnitude 2^31, even though std::abs(INT_MIN) is UB.
-  // The two honest extensions agree where the UB-bearing original
-  // refuses to commit.
-  CHECK(abs_int_unsigned(int_min) == 2147483648u);
+  // both yield |INT_MIN|, even though std::abs(INT_MIN) is UB.  The
+  // two honest extensions agree where the UB-bearing original refuses
+  // to commit.
+  CHECK(abs_int_unsigned(int_min) == int_min_magnitude);
   CHECK(abs(embed_int_SignedCardinality_(int_min)) ==
-        finite_cardinality(2147483648u));
+        finite_cardinality(int_min_magnitude));
   // The exported arrow form abs_ (from :cardinality) wraps the same
   // operation and exhibits the same totality at INT_MIN.  Covers the
   // arrow's lambda body for codecov.
   CHECK(abs_(embed_int_SignedCardinality_(int_min)) ==
-        finite_cardinality(2147483648u));
+        finite_cardinality(int_min_magnitude));
   CHECK(abs_(embed_int_SignedCardinality_(-3)) == finite_cardinality(3));
   CHECK(abs_(embed_int_SignedCardinality_(0)) == finite_cardinality(0));
 }

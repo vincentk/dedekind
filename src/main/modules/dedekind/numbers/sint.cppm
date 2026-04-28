@@ -170,17 +170,21 @@ export inline constexpr auto embed_int_SignedCardinality_ =
  * Honest-extension property: @b total at @c INT_MIN where @c
  * std::abs is UB.  The implementation works in @c unsigned modular
  * arithmetic (which is well-defined for all input bit-patterns) and
- * relies on @c -static_cast<unsigned>(INT_MIN) @c = @c 2^31u being
- * the correct magnitude.  This avoids the UB that @c std::abs(INT_MIN)
- * triggers via @c -INT_MIN overflow.
+ * relies on @c 0u @c - @c static_cast<unsigned>(INT_MIN) yielding
+ * @c |INT_MIN| as an @c unsigned (well-defined for any @c int width
+ * and any two's-complement / sign-magnitude / ones'-complement ABI;
+ * the project does not pin a 32-bit assumption).  This avoids the
+ * UB that @c std::abs(INT_MIN) triggers via @c -INT_MIN overflow.
  *
  * Categorical classification: @b neither @b monic @b nor @b epic.
  *   * Not monic: distinct inputs @c +n and @c -n map to the same
  *     @c unsigned magnitude (sign-folding).
- *   * Not epic onto @c unsigned: the image is @c [0, @c 2^31],
- *     missing @c [2^31+1, @c 2^32-1].  Restricted to @c [0, @c 2^31]
- *     as codomain, the function would be epic — but C++ has no clean
- *     "non-negative int" type to express that codomain.
+ *   * Not epic onto @c unsigned: the image is the half-range @c [0,
+ *     @c |INT_MIN|], missing the upper half of @c unsigned.  Restricted
+ *     to @c [0, @c |INT_MIN|] as codomain the function would be epic —
+ *     but C++ has no clean "non-negative int" type to express that
+ *     codomain (cf. @c std::numeric_limits<int>::digits for the
+ *     width-relative phrasing).
  *
  * Variant-layer counterpart: @c abs : @c SignedCardinality @c → @c
  * Cardinality (in @c sets:cardinality), which IS surjective onto

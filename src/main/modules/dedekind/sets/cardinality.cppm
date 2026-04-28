@@ -1507,9 +1507,12 @@ export constexpr SignedCardinality operator-(const Cardinality& v) noexcept {
  *  INT_MIN fragment of @c int and is partial at @c INT_MIN — @c
  *  std::abs(INT_MIN) is UB, while @c
  *  abs(embed_int_SignedCardinality_(INT_MIN)) is a finite Cardinality
- *  with magnitude @c 2^31.  This is the same Honest-Rejection /
- *  saturating-extension pattern the project runs for @c int / @c
- *  unsigned vs the variant carriers.
+ *  with magnitude @c |INT_MIN| (computable via the unsigned-modular
+ *  expression @c 0u @c - @c static_cast<unsigned>(INT_MIN) — well-
+ *  defined for any @c int width per @c
+ *  std::numeric_limits<int>::digits, no 32-bit ABI assumption).  This
+ *  is the same Honest-Rejection / saturating-extension pattern the
+ *  project runs for @c int / @c unsigned vs the variant carriers.
  *
  *  @see std::abs (machine-layer counterpart; type-dishonest @c int →
  *       @c int signature; partial under UB at @c INT_MIN).
