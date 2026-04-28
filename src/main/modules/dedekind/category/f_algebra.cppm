@@ -48,6 +48,19 @@
  * @c N via coproduct copairing on the standard injections @c inl @c
  * : @c 1 @c → @c 1 @c + @c N and @c inr @c : @c N @c → @c 1 @c + @c N.
  *
+ * The @c 1 in @c 1 @c + @c N is the @b terminal object of the
+ * ambient category — concretely, the @c category::One @c = @c
+ * std::monostate reified in the @c :limit partition (which carries
+ * @c IsTerminalObject<One> as a static_assert).  The categorical
+ * pattern @c IsInitialFAlgebra is itself one level up from the
+ * @c IsInitialObject reification in @c :limit (which pins
+ * @c category::Zero @c = @c std::nullptr_t as the initial in Set):
+ * the F-Alg category has its own initial object @c (μF, in), and
+ * @c IsInitialFAlgebra is the engineer's honesty obligation that
+ * a particular @c (A, α) is that initial object.  See
+ * @c f_algebra_test.cpp for the static_assert witnesses linking the
+ * two layers.
+ *
  * @section Honesty_Obligation
  *
  * As with @c :nno, C++ concepts cannot quantify over the universal
@@ -99,6 +112,7 @@ module;
 export module dedekind.category:f_algebra;
 
 export import :functor;
+import :limit;
 
 namespace dedekind::category {
 
@@ -162,5 +176,39 @@ concept IsInitialFAlgebra =
 export template <typename F, typename A, typename α>
 concept IsTerminalFCoalgebra =
     IsFCoalgebra<A, α, F> && is_terminal_f_coalgebra_v<F, A, α>;
+
+// Cross-partition invariants connecting @c :f_algebra to @c :limit.
+// These compose primitives from @c :limit ( @c One, @c Zero,
+// @c TerminalCategory, @c InitialCategory, @c unit<>, @c zero<>)
+// with the structural-shape concept @c IsFAlgebra from @c :functor.
+// The combinations are non-trivial — they fail to type-check if
+// either partition's invariants drift independently — and the
+// @c static_asserts here make the compiler the witness rather than
+// deferring the check to the test suite.
+
+// (1) The unique terminal-typed morphism @c unit<One>() :
+//     @c One @c → @c One is structurally the structure map of an
+//     F-algebra over @c identity_functor<TerminalCategory> with
+//     carrier @c One.  Composes @c :limit's terminal-object data
+//     ( @c One, @c TerminalCategory, @c unit<>) with @c :functor's
+//     @c identity_functor and @c IsFAlgebra.  Categorical
+//     content: the identity endomorphism on the terminal object is
+//     the canonical F-algebra structure map at carrier @c One.
+static_assert(
+    IsFAlgebra<One, decltype(unit<One>()), identity_functor<TerminalCategory>>,
+    "Bridge :f_algebra ↔ :limit: unit<One>() : One → One is structurally "
+    "the F-algebra structure map for identity_functor on TerminalCategory "
+    "with carrier One.  Fails fast if :limit's One / TerminalCategory or "
+    ":functor's IsFAlgebra / identity_functor invariants drift apart.");
+
+// (2) Dually, @c zero<Zero>() : @c Zero @c → @c Zero is structurally
+//     the structure map of an F-coalgebra over @c
+//     identity_functor<InitialCategory> with carrier @c Zero.  Same
+//     cross-partition invariant on the initial side.
+static_assert(IsFCoalgebra<Zero, decltype(zero<Zero>()),
+                           identity_functor<InitialCategory>>,
+              "Bridge :f_algebra ↔ :limit: zero<Zero>() : Zero → Zero is "
+              "structurally the F-coalgebra structure map for "
+              "identity_functor on InitialCategory with carrier Zero.");
 
 }  // namespace dedekind::category
