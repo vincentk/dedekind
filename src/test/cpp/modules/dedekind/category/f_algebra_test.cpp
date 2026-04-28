@@ -33,13 +33,17 @@ using namespace dedekind::category;
 // ===========================================================================
 
 namespace {
-// Reuse the existing IdF setup from functor_test.cpp so this suite
-// stands on its own without leaking helpers.
-using IntCat = DiscreteCategory<int>;
-using IdF = identity_functor<IntCat>;
+// Use @c unsigned to keep the toy successor / halve shape aligned
+// with the textbook @c F(X) @c = @c 1 @c + @c X reading on naturals
+// (@c unsigned wraps under overflow, which is well-defined; @c int
+// would have signed-overflow UB).  The successor map @c x @c ↦ @c
+// x @c + @c 1 is the structural Peano-style step the universal-
+// property concept ranges over.
+using NatCat = DiscreteCategory<unsigned>;
+using IdF = identity_functor<NatCat>;
 
-constexpr auto successor_arrow = arrow([](int x) { return x + 1; });
-constexpr auto halve_arrow = arrow([](int x) { return x / 2; });
+constexpr auto successor_arrow = arrow([](unsigned x) { return x + 1u; });
+constexpr auto halve_arrow = arrow([](unsigned x) { return x / 2u; });
 using SuccArrow = std::decay_t<decltype(successor_arrow)>;
 using HalveArrow = std::decay_t<decltype(halve_arrow)>;
 }  // namespace
@@ -52,16 +56,16 @@ TEST_CASE(
   // universal-property concept @c IsInitialFAlgebra does not, since
   // initiality is the engineer's honesty obligation and must be
   // explicitly registered.
-  STATIC_CHECK(IsFAlgebra<int, SuccArrow, IdF>);
-  STATIC_CHECK(!is_initial_f_algebra_v<IdF, int, SuccArrow>);
-  STATIC_CHECK(!IsInitialFAlgebra<IdF, int, SuccArrow>);
+  STATIC_CHECK(IsFAlgebra<unsigned, SuccArrow, IdF>);
+  STATIC_CHECK(!is_initial_f_algebra_v<IdF, unsigned, SuccArrow>);
+  STATIC_CHECK(!IsInitialFAlgebra<IdF, unsigned, SuccArrow>);
 }
 
 TEST_CASE("f_algebra: IsTerminalFCoalgebra opt-in trait defaults to false",
           "[category][f_algebra][terminal][negative]") {
-  STATIC_CHECK(IsFCoalgebra<int, HalveArrow, IdF>);
-  STATIC_CHECK(!is_terminal_f_coalgebra_v<IdF, int, HalveArrow>);
-  STATIC_CHECK(!IsTerminalFCoalgebra<IdF, int, HalveArrow>);
+  STATIC_CHECK(IsFCoalgebra<unsigned, HalveArrow, IdF>);
+  STATIC_CHECK(!is_terminal_f_coalgebra_v<IdF, unsigned, HalveArrow>);
+  STATIC_CHECK(!IsTerminalFCoalgebra<IdF, unsigned, HalveArrow>);
 }
 
 // ===========================================================================

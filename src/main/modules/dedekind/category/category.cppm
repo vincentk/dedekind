@@ -68,7 +68,7 @@ export import :action;
 // Level 2: The Bridge (Functorial Spine)
 export import :functor;
 export import :f_algebra;  // Initial F-algebra / terminal F-coalgebra
-                           // universal- property reification (Pierce §5; closes
+                           // universal-property reification (Pierce §5; closes
                            // #449)
 export import :natural;
 export import :adjunction;  // Free / Forgetful pair, IsAdjunction (Pierce-style

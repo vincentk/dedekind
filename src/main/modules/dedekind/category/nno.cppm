@@ -105,11 +105,13 @@ namespace dedekind::category {
  * F-algebras of @c F(X) @c = @c 1 @c + @c X) is reified in the
  * sibling partition @c :f_algebra (closes the universal-property
  * layer for #449; Pierce §5.4, Mac Lane III–VI).  The two readings
- * are operationally equivalent — the @c (z, s) pair pinned here is
- * exactly the structure map @c 1 @c + @c N @c → @c N when @c 1 @c +
- * is encoded as the coproduct.  This partition focuses on the
- * @c (z, s) shape since it is the more directly recognisable one
- * to a working mathematician.
+ * are operationally equivalent — the @c (z, s) pair pinned here
+ * @b induces the structure map @c [z, @c s] @c : @c 1 @c + @c N @c →
+ * @c N via coproduct copairing on the standard injections
+ * @c inl @c : @c 1 @c → @c 1 @c + @c N and
+ * @c inr @c : @c N @c → @c 1 @c + @c N.  This partition focuses on
+ * the @c (z, s) shape since it is the more directly recognisable
+ * one to a working mathematician.
  *
  * @tparam N The carrier object.
  * @tparam Z A nullary callable @c Z : 1 → N (the zero element).
