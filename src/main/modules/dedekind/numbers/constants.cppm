@@ -18,9 +18,6 @@
 module;
 
 /**
- * @file dedekind/numbers/constants.cppm
- * @partition :constants
- *
  * @section Description
  * This partition is reserved for cut-based realisations of $\sqrt{2}$, $e$,
  * $\pi$, $\gamma$, $\zeta(3)$, and similar named real constants. The

@@ -21,9 +21,6 @@ module;
 #include <utility>
 
 /**
- * @file dedekind/numbers/lattice.cppm
- * @partition :lattice
- *
  * @section Description
  * This partition provides the user-facing lattice factory:
  *
