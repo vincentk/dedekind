@@ -102,10 +102,14 @@ namespace dedekind::category {
  * presentation: @c Z(), @c S(Z()), @c S(S(Z())), ...
  *
  * The dual shape concept on the @b Functor side (NNOs as initial
- * algebras of @c F(X) @c = @c 1 @c + @c X) is a natural sibling and
- * is filed for follow-up; this partition focuses on the universal-
- * property shape since it is the more directly recognisable one to
- * a working mathematician.
+ * F-algebras of @c F(X) @c = @c 1 @c + @c X) is reified in the
+ * sibling partition @c :f_algebra (closes the universal-property
+ * layer for #449; Pierce §5.4, Mac Lane III–VI).  The two readings
+ * are operationally equivalent — the @c (z, s) pair pinned here is
+ * exactly the structure map @c 1 @c + @c N @c → @c N when @c 1 @c +
+ * is encoded as the coproduct.  This partition focuses on the
+ * @c (z, s) shape since it is the more directly recognisable one
+ * to a working mathematician.
  *
  * @tparam N The carrier object.
  * @tparam Z A nullary callable @c Z : 1 → N (the zero element).
