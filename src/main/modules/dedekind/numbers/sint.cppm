@@ -105,8 +105,8 @@ namespace dedekind::numbers {
  * via the saturating semantics — moving the carrier @b up the
  * carrier lattice rather than @b across it.
  *
- * Companion to @c embed_unsigned_to_Cardinality (in @c :uint, post-
- * #417) on the symmetric unsigned side.  Together the two arrows
+ * Companion to @c embed_uint_ℕ (in @c :uint, post-#417 / renamed
+ * under #457) on the symmetric unsigned side.  Together the two arrows
  * complete the embedding chains
  *
  *   @c 𝔹 @c → @c std::unsigned_integral @c → @c ℕ
@@ -118,8 +118,7 @@ namespace dedekind::numbers {
  * @tparam S Any @c std::signed_integral source type.
  */
 export template <std::signed_integral S>
-constexpr dedekind::sets::SignedCardinality embed_signed_to_SignedCardinality(
-    S v) {
+constexpr dedekind::sets::SignedCardinality embed_sint_ℤ(S v) {
   // The lift funnels into @c finite_signed_cardinality, which stores
   // into @c SignedExtensionalCardinal<>'s magnitude (a @c
   // ExtensionalCardinal<> with @c std::size_t limb).  On 32-bit
@@ -129,7 +128,7 @@ constexpr dedekind::sets::SignedCardinality embed_signed_to_SignedCardinality(
   // injectivity claim holds on every platform.
   static_assert(std::numeric_limits<S>::digits <=
                     std::numeric_limits<std::size_t>::digits,
-                "embed_signed_to_SignedCardinality requires every value of S "
+                "embed_sint_ℤ requires every value of S "
                 "to be representable in the SignedExtensionalCardinal<>'s limb "
                 "type (std::size_t for the magnitude).  On platforms where "
                 "this fires (e.g. 32-bit std::size_t with 64-bit long long, or "
@@ -143,15 +142,15 @@ constexpr dedekind::sets::SignedCardinality embed_signed_to_SignedCardinality(
  * @brief Concrete monic arrow: int ↪ SignedCardinality (variant ℤ-proxy).
  *
  * @details The named-arrow form of @c
- * embed_signed_to_SignedCardinality<int>, registered as monic in
+ * embed_sint_ℤ<int>, registered as monic in
  * @c is_monic_arrow_v so downstream @c IsMonicArrow callsites can
  * find it.  Distinct @c int values yield distinct @c SignedCardinality
  * values (injective on the finite fragment).
  */
-export inline constexpr auto embed_int_SignedCardinality_ =
+export inline constexpr auto embed_sint_ℤ_ =
     dedekind::category::arrow<int, dedekind::sets::SignedCardinality>(
         [](const int& i) noexcept -> dedekind::sets::SignedCardinality {
-          return embed_signed_to_SignedCardinality(i);
+          return embed_sint_ℤ(i);
         });
 
 /**
@@ -285,11 +284,11 @@ static_assert(
 
 namespace dedekind::category {
 template <>
-inline constexpr bool is_monic_arrow_v<
-    std::decay_t<decltype(dedekind::numbers::embed_int_SignedCardinality_)>> =
-    true;
-static_assert(IsInjective<std::decay_t<
-                  decltype(dedekind::numbers::embed_int_SignedCardinality_)>>,
-              "embed_int_SignedCardinality_ (int → SignedCardinality) is "
-              "registered injective.");
+inline constexpr bool
+    is_monic_arrow_v<std::decay_t<decltype(dedekind::numbers::embed_sint_ℤ_)>> =
+        true;
+static_assert(
+    IsInjective<std::decay_t<decltype(dedekind::numbers::embed_sint_ℤ_)>>,
+    "embed_sint_ℤ_ (int → SignedCardinality) is "
+    "registered injective.");
 }  // namespace dedekind::category

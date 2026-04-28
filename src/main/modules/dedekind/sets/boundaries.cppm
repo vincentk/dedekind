@@ -345,7 +345,7 @@ struct NaturalNumbersOf {
     return x >= 0 ? L::True : L::False;
   }
 
-  // Embedded bool (via @c embed_𝔹_ℕ): landing in ℕ.
+  // Embedded bool (via @c embed_𝔹_uint_): landing in ℕ.
   constexpr typename L::Ω operator()(bool) const { return L::True; }
 };
 

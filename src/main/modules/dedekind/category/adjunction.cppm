@@ -167,7 +167,7 @@ concept IsForgetfulFunctor = HasAdjunctionShape<F, U>;
  *  In carrier-lattice terms, @c η_d : @c d → @c U(F(d)) is the
  *  canonical embedding of @c d into the underlying object of its
  *  free construction — for example, @c η_ℕ : @c ℕ ↪ @c ℤ is the
- *  variant-level analog of @c embed_ℕ_ℤ.  Closes #434.
+ *  variant-level analog of @c embed_uint_sint_.  Closes #434.
  */
 export template <typename Eta, typename F, typename U>
 concept IsUnitOfAdjunction =
@@ -327,9 +327,9 @@ concept IsGaloisConnection =
  *  idempotent on @c (ℝ, ≤)).  Dually, for the floor/inclusion
  *  adjunction @c ι ⊣ @c ⌊·⌋, the source-side round-trip @c ⌊·⌋ ∘ @c ι :
  *  @c ℤ → @c ℤ is a closure operator as well — indeed, the identity
- *  on @c ℤ.  Note: @c embed_ℕ_ℤ ∘ @c abs is @b not a closure operator
+ *  on @c ℤ.  Note: @c embed_uint_sint_ ∘ @c abs is @b not a closure operator
  *  because it isn't monotone on @c (ℤ, ≤) (sign-folding inverts
- *  order on the negative fragment); the @c (embed_ℕ_ℤ, @c abs) pair
+ *  order on the negative fragment); the @c (embed_uint_sint_, @c abs) pair
  *  is a split mono / split epi rather than a Galois connection.
  *
  *  C++ concepts cannot quantify universally over @c P, so the

@@ -30,7 +30,7 @@ using namespace dedekind::sets;
 // fragment — which is the @b retraction defining clause — is what's
 // exercised below.  ℤ → ℕ → ℤ is @b not bijective: @c abs folds
 // sign, so re-embedding loses the sign bit.  The asymmetry is what
-// makes the pair @c (embed_ℕ_ℤ, @c abs) a @b split @b mono / @b split
+// makes the pair @c (embed_uint_sint_, @c abs) a @b split @b mono / @b split
 // @b epi rather than an isomorphism (see @c
 // docs/design/carrier-lattice.md).
 
@@ -97,7 +97,7 @@ TEST_CASE(
   // for any width.
   constexpr int int_min = std::numeric_limits<int>::min();
   constexpr unsigned int_min_magnitude = 0u - static_cast<unsigned>(int_min);
-  const auto z_min = embed_int_SignedCardinality_(int_min);
+  const auto z_min = embed_sint_ℤ_(int_min);
   const auto magnitude = abs(z_min);
 
   // Magnitude IS representable as a non-negative Cardinality (the
@@ -112,7 +112,7 @@ TEST_CASE(
   // operations agree on the magnitude — the partial commuting square
   // holds on the non-INT_MIN fragment.
   constexpr int int_max = std::numeric_limits<int>::max();
-  const auto z_max = embed_int_SignedCardinality_(int_max);
+  const auto z_max = embed_sint_ℤ_(int_max);
   CHECK(abs(z_max) == finite_cardinality(static_cast<std::size_t>(int_max)));
 }
 
@@ -146,12 +146,12 @@ TEST_CASE(
   }
 
   // Three-way bridge: abs_int_unsigned(v) at the machine layer agrees
-  // with the variant-layer abs lifted through embed_int_SignedCardinality_,
+  // with the variant-layer abs lifted through embed_sint_ℤ_,
   // when the latter's Cardinality result is realised back to a finite
   // value.  Holds on the safe fragment of int.
   for (const int v : {0, 1, -1, 42, -42, 1000, -1000}) {
     const auto via_machine = abs_int_unsigned(v);
-    const auto via_variant = abs(embed_int_SignedCardinality_(v));
+    const auto via_variant = abs(embed_sint_ℤ_(v));
     CHECK(via_variant == finite_cardinality(via_machine));
   }
   // At INT_MIN: machine-layer abs_int_unsigned and variant-layer abs
@@ -159,13 +159,11 @@ TEST_CASE(
   // two honest extensions agree where the UB-bearing original refuses
   // to commit.
   CHECK(abs_int_unsigned(int_min) == int_min_magnitude);
-  CHECK(abs(embed_int_SignedCardinality_(int_min)) ==
-        finite_cardinality(int_min_magnitude));
+  CHECK(abs(embed_sint_ℤ_(int_min)) == finite_cardinality(int_min_magnitude));
   // The exported arrow form abs_ (from :cardinality) wraps the same
   // operation and exhibits the same totality at INT_MIN.  Covers the
   // arrow's lambda body for codecov.
-  CHECK(abs_(embed_int_SignedCardinality_(int_min)) ==
-        finite_cardinality(int_min_magnitude));
-  CHECK(abs_(embed_int_SignedCardinality_(-3)) == finite_cardinality(3));
-  CHECK(abs_(embed_int_SignedCardinality_(0)) == finite_cardinality(0));
+  CHECK(abs_(embed_sint_ℤ_(int_min)) == finite_cardinality(int_min_magnitude));
+  CHECK(abs_(embed_sint_ℤ_(-3)) == finite_cardinality(3));
+  CHECK(abs_(embed_sint_ℤ_(0)) == finite_cardinality(0));
 }

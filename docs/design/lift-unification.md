@@ -15,12 +15,12 @@ bespoke per (from, to) pair:
 
 ```
 lift_ℕ_ℤ_                       (variant-layer ℕ → ℤ)
-embed_unsigned_Cardinality_     (machine → variant ℕ)
-embed_int_SignedCardinality_    (machine → variant ℤ)
-embed_ℕ_ℤ                       (machine sign reinterpretation)
-embed_𝔹_ℕ                       (𝔹 → ℕ)
-embed_𝔹_𝕂3                      (𝔹 → 𝕂3)
-embed_K3_ℤ                       (𝕂3 → ℤ; skips machine row)
+embed_uint_ℕ_     (machine → variant ℕ)
+embed_sint_ℤ_    (machine → variant ℤ)
+embed_uint_sint_                       (machine sign reinterpretation)
+embed_𝔹_uint_                       (𝔹 → ℕ)
+embed_𝔹_𝕂3_                      (𝔹 → 𝕂3)
+embed_𝕂3_ℤ_                       (𝕂3 → ℤ; skips machine row)
 ```
 
 The user-surfaced question (#455): could / should these all be
@@ -35,16 +35,16 @@ families, NOT a single categorical concept:
 1. **Set-theoretic mono inclusions** (no monad). Pure structural
    injections from a smaller set into a larger one. No partiality,
    no saturating sentinel, no Kleisli structure.
-   - `embed_𝔹_ℕ`, `embed_𝔹_𝕂3`, `embed_K3_ℤ`, `lift_ℕ_ℤ_`.
+   - `embed_𝔹_uint_`, `embed_𝔹_𝕂3_`, `embed_𝕂3_ℤ_`, `lift_ℕ_ℤ_`.
 
 2. **Machine → variant lifts** (partial under range). Each carries a
    `static_assert` guarding against `numeric_limits<size_t>::digits <
    numeric_limits<source>::digits`. On the safe range, these are
    structural injections; off the range they would silently truncate
    and break injectivity (which is why the guard exists).
-   - `embed_unsigned_Cardinality_`, `embed_int_SignedCardinality_`.
+   - `embed_uint_ℕ_`, `embed_sint_ℤ_`.
 
-3. **Machine sign-cast (value conversion)**. The arrow `embed_ℕ_ℤ`
+3. **Machine sign-cast (value conversion)**. The arrow `embed_uint_sint_`
    (`arrow<unsigned, int>`) is `static_cast<int>(unsigned)` — a value
    conversion (not a bit-pattern reinterpretation). For sources in
    `[0, INT_MAX]` the conversion is value-preserving; for sources
@@ -54,7 +54,7 @@ families, NOT a single categorical concept:
    either case the mapping is **not value-preserving outside the safe
    range**, so the arrow is not a categorical injection on the full
    `unsigned` domain.
-   - `embed_ℕ_ℤ` (machine).
+   - `embed_uint_sint_` (machine).
 
 A single `monadic_lift` API across all three would either:
 - **Lie about the structure**: claim Kleisli / monadic content where
@@ -69,7 +69,7 @@ code**, not for categorical content:
 
 - `lift<From, To>(x)` as a function template that dispatches to the
   canonical bespoke arrow for each lattice pair via specialisation.
-- The bespoke names (`embed_𝔹_ℕ`, `lift_ℕ_ℤ_`, etc.) remain canonical
+- The bespoke names (`embed_𝔹_uint_`, `lift_ℕ_ℤ_`, etc.) remain canonical
   in the project; `lift<From, To>` is a discoverability alias on top.
 - No claim of categorical unity. Documentation explicit that the
   unified surface dispatches to *whatever the canonical lift is* for

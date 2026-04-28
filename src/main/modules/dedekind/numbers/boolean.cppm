@@ -240,26 +240,26 @@ static_assert(FiniteBooleanSetOf<>{}(false) == ClassicalLogic::False,
  *          inclusion of two-valued classical logic into three-
  *          valued Kleene logic; structurally a monomorphism.
  */
-export inline constexpr auto embed_𝔹_𝕂3 =
+export inline constexpr auto embed_𝔹_𝕂3_ =
     arrow<bool, dedekind::category::Ternary>(
         [](const bool& b) noexcept -> dedekind::category::Ternary {
           return b ? dedekind::category::Ternary::True
                    : dedekind::category::Ternary::False;
         });
 
-// (5) Adjacent-set arrow: 𝔹 ↪ ℕ via @c embed_𝔹_ℕ in @c :natural.
+// (5) Adjacent-set arrow: 𝔹 ↪ ℕ via @c embed_𝔹_uint_ in @c :natural.
 // This partition is upstream of @c :natural, so the witness for the
 // monic-arrow registration lives in @c :natural (registered there as
-// @c is_monic_arrow_v = true on @c embed_𝔹_ℕ).
+// @c is_monic_arrow_v = true on @c embed_𝔹_uint_).
 
 }  // namespace dedekind::numbers
 
 namespace dedekind::category {
 template <>
 inline constexpr bool
-    is_monic_arrow_v<std::decay_t<decltype(dedekind::numbers::embed_𝔹_𝕂3)>> =
+    is_monic_arrow_v<std::decay_t<decltype(dedekind::numbers::embed_𝔹_𝕂3_)>> =
         true;
 static_assert(
-    IsInjective<std::decay_t<decltype(dedekind::numbers::embed_𝔹_𝕂3)>>,
-    "embed_𝔹_𝕂3 (𝔹 ↪ 𝕂3) is registered injective.");
+    IsInjective<std::decay_t<decltype(dedekind::numbers::embed_𝔹_𝕂3_)>>,
+    "embed_𝔹_𝕂3_ (𝔹 ↪ 𝕂3) is registered injective.");
 }  // namespace dedekind::category

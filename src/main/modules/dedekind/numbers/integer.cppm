@@ -354,7 +354,7 @@ static_assert(!dedekind::algebra::IsArithmeticAdditiveGroup<int>,
 // to prevent silent truncation).  Pinned below as static_asserts on
 // the canonical exact ℤ carrier.
 
-// (5) Adjacent-set arrow: ℕ ↪ ℤ via `embed_ℕ_ℤ` defined further down
+// (5) Adjacent-set arrow: ℕ ↪ ℤ via `embed_uint_sint_` defined further down
 // in this partition.  Reverse direction (ℤ → ℕ via absolute value or
 // signed-bit projection) is not a strict embedding and is intentionally
 // not registered.
@@ -373,14 +373,14 @@ struct IntegersOf {
   // Native int: always a member of ℤ
   constexpr typename L::Ω operator()(int) const { return L::True; }
 
-  // Embedded unsigned (via embed_ℕ_ℤ)
+  // Embedded unsigned (via embed_uint_sint_)
   constexpr typename L::Ω operator()(unsigned n) const {
     return operator()(static_cast<int>(n));
   }
 
   // Embedded Ternary: False ↦ -1, Unknown ↦ 0, True ↦ 1.  Delegates
   // to the int overload directly rather than routing through @c
-  // embed_K3_ℤ — post-#430 that arrow lands on @c SignedCardinality
+  // embed_𝕂3_ℤ_ — post-#430 that arrow lands on @c SignedCardinality
   // (the variant ℤ-proxy), whereas this @c IntegersOf<> predicate-set
   // is parameterised on the int machine carrier.  The {-1, 0, 1}
   // mapping is the same; the implementations are deliberately
@@ -397,9 +397,9 @@ struct IntegersOf {
     return L::False;
   }
 
-  // Embedded bool (via embed_𝔹_ℕ → embed_ℕ_ℤ)
+  // Embedded bool (via embed_𝔹_uint_ → embed_uint_sint_)
   constexpr typename L::Ω operator()(bool b) const {
-    return operator()(embed_𝔹_ℕ(b));
+    return operator()(embed_𝔹_uint_(b));
   }
 };
 
@@ -420,7 +420,7 @@ static_assert(dedekind::category::IsSet<
  *          large unsigned values may overflow, so the domain is conventionally
  *          restricted to values ≤ INT_MAX when used with certified arithmetic.
  */
-export inline constexpr auto embed_ℕ_ℤ = arrow<unsigned, int>(
+export inline constexpr auto embed_uint_sint_ = arrow<unsigned, int>(
     [](const unsigned& x) noexcept { return static_cast<int>(x); });
 
 /**
@@ -434,7 +434,7 @@ export inline constexpr auto embed_ℕ_ℤ = arrow<unsigned, int>(
  *          @c Ternary value were ever constructed (cannot happen in
  *          practice — @c Ternary is a closed enum).
  */
-export inline constexpr auto embed_K3_ℤ =
+export inline constexpr auto embed_𝕂3_ℤ_ =
     arrow<Ternary, dedekind::sets::SignedCardinality>(
         [](const Ternary& t) noexcept -> dedekind::sets::SignedCardinality {
           switch (t) {
@@ -480,8 +480,8 @@ export inline constexpr auto embed_unsigned_ℕ =
               static_cast<ExtensionalCardinal<>::limb_type>(u)};
         });
 
-// The universal machine-to-variant lift @c embed_unsigned_to_Cardinality
-// and its concrete-arrow form @c embed_unsigned_Cardinality_ live in the
+// The universal machine-to-variant lift @c embed_uint_ℕ
+// and its concrete-arrow form @c embed_uint_ℕ_ live in the
 // dedicated sibling partition @c numbers:uint, which consolidates the
 // @c std::unsigned_integral family's textbook classification (commutative
 // ring @c ℤ/2^wℤ, the @c Modular<N> / @c IsCyclic correspondence, and
@@ -499,7 +499,7 @@ export inline constexpr auto embed_unsigned_ℕ =
  *          module boundary).  This @c arrow form is the named monic
  *          morphism the carrier-lattice Figure 1 labels at the
  *          variant-layer top row; structurally @b distinct from the
- *          machine-layer @c embed_ℕ_ℤ above (an
+ *          machine-layer @c embed_uint_sint_ above (an
  *          @c arrow<unsigned, @c int> sign reinterpretation).
  *          Registered as monic below.
  */
@@ -527,19 +527,19 @@ constexpr extensional_integer embed_signed_to_ℤ(S v) {
 
 namespace dedekind::category {
 template <>
-inline constexpr bool
-    is_monic_arrow_v<std::decay_t<decltype(dedekind::numbers::embed_ℕ_ℤ)>> =
-        true;
-static_assert(IsInjective<std::decay_t<decltype(dedekind::numbers::embed_ℕ_ℤ)>>,
-              "embed_ℕ_ℤ (machine-layer ℕ → ℤ) is registered injective.");
+inline constexpr bool is_monic_arrow_v<
+    std::decay_t<decltype(dedekind::numbers::embed_uint_sint_)>> = true;
+static_assert(
+    IsInjective<std::decay_t<decltype(dedekind::numbers::embed_uint_sint_)>>,
+    "embed_uint_sint_ (machine-layer ℕ → ℤ) is registered injective.");
 
 template <>
 inline constexpr bool
-    is_monic_arrow_v<std::decay_t<decltype(dedekind::numbers::embed_K3_ℤ)>> =
+    is_monic_arrow_v<std::decay_t<decltype(dedekind::numbers::embed_𝕂3_ℤ_)>> =
         true;
 static_assert(
-    IsInjective<std::decay_t<decltype(dedekind::numbers::embed_K3_ℤ)>>,
-    "embed_K3_ℤ (𝕂3 → ℤ) is registered injective.");
+    IsInjective<std::decay_t<decltype(dedekind::numbers::embed_𝕂3_ℤ_)>>,
+    "embed_𝕂3_ℤ_ (𝕂3 → ℤ) is registered injective.");
 
 template <>
 inline constexpr bool is_monic_arrow_v<
@@ -548,7 +548,7 @@ static_assert(
     IsInjective<std::decay_t<decltype(dedekind::numbers::embed_unsigned_ℕ)>>,
     "embed_unsigned_ℕ (unsigned → ExtensionalCardinal) is registered "
     "injective.");
-// Monicity of @c embed_unsigned_Cardinality_ is registered in @c :uint.
+// Monicity of @c embed_uint_ℕ_ is registered in @c :uint.
 
 template <>
 inline constexpr bool

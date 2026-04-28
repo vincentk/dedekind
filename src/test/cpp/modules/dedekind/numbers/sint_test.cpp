@@ -7,7 +7,7 @@
  * by @c numbers:sint (closes part of #418): the dual error-direction
  * to @c :uint (operator surface ✓, axiomatic ring ✗ under UB), the
  * universal machine→variant lift @c
- * embed_signed_to_SignedCardinality, and the @c 𝕂3 → sint → ℤ
+ * embed_sint_ℤ, and the @c 𝕂3 → sint → ℤ
  * embedding-chain composition (the signed counterpart to @c :uint's
  * @c 𝔹 → uint → ℕ chain).  The compile-time witnesses live inside
  * the partition itself; this file exercises the @b runtime / @b
@@ -33,49 +33,40 @@ using namespace dedekind::sets;
 // (1) The universal lift arrow: std::signed_integral → SignedCardinality
 // ===========================================================================
 
-TEST_CASE("sint: embed_signed_to_SignedCardinality across canonical widths",
+TEST_CASE("sint: embed_sint_ℤ across canonical widths",
           "[numbers][sint][lift][carrier-lattice]") {
-  CHECK(embed_signed_to_SignedCardinality(0) == finite_signed_cardinality(0));
-  CHECK(embed_signed_to_SignedCardinality(1) == finite_signed_cardinality(1));
-  CHECK(embed_signed_to_SignedCardinality(-1) == finite_signed_cardinality(-1));
-  CHECK(embed_signed_to_SignedCardinality(42) == finite_signed_cardinality(42));
-  CHECK(embed_signed_to_SignedCardinality(-42) ==
-        finite_signed_cardinality(-42));
-  CHECK(embed_signed_to_SignedCardinality(static_cast<long>(1000)) ==
+  CHECK(embed_sint_ℤ(0) == finite_signed_cardinality(0));
+  CHECK(embed_sint_ℤ(1) == finite_signed_cardinality(1));
+  CHECK(embed_sint_ℤ(-1) == finite_signed_cardinality(-1));
+  CHECK(embed_sint_ℤ(42) == finite_signed_cardinality(42));
+  CHECK(embed_sint_ℤ(-42) == finite_signed_cardinality(-42));
+  CHECK(embed_sint_ℤ(static_cast<long>(1000)) ==
         finite_signed_cardinality(1000));
-  CHECK(embed_signed_to_SignedCardinality(static_cast<long long>(-7)) ==
+  CHECK(embed_sint_ℤ(static_cast<long long>(-7)) ==
         finite_signed_cardinality(-7));
-  CHECK(embed_signed_to_SignedCardinality(static_cast<short>(-100)) ==
+  CHECK(embed_sint_ℤ(static_cast<short>(-100)) ==
         finite_signed_cardinality(-100));
 }
 
-TEST_CASE("sint: embed_int_SignedCardinality_ named-arrow form",
+TEST_CASE("sint: embed_sint_ℤ_ named-arrow form",
           "[numbers][sint][lift][monic-arrow]") {
-  STATIC_CHECK(IsArrow<std::decay_t<decltype(embed_int_SignedCardinality_)>>);
-  STATIC_CHECK(
-      IsMonicArrow<std::decay_t<decltype(embed_int_SignedCardinality_)>>);
-  STATIC_CHECK(
-      std::same_as<Dom<std::decay_t<decltype(embed_int_SignedCardinality_)>>,
-                   int>);
-  STATIC_CHECK(
-      std::same_as<Cod<std::decay_t<decltype(embed_int_SignedCardinality_)>>,
-                   SignedCardinality>);
+  STATIC_CHECK(IsArrow<std::decay_t<decltype(embed_sint_ℤ_)>>);
+  STATIC_CHECK(IsMonicArrow<std::decay_t<decltype(embed_sint_ℤ_)>>);
+  STATIC_CHECK(std::same_as<Dom<std::decay_t<decltype(embed_sint_ℤ_)>>, int>);
+  STATIC_CHECK(std::same_as<Cod<std::decay_t<decltype(embed_sint_ℤ_)>>,
+                            SignedCardinality>);
 
-  CHECK(embed_int_SignedCardinality_(0) == finite_signed_cardinality(0));
-  CHECK(embed_int_SignedCardinality_(42) == finite_signed_cardinality(42));
-  CHECK(embed_int_SignedCardinality_(-42) == finite_signed_cardinality(-42));
+  CHECK(embed_sint_ℤ_(0) == finite_signed_cardinality(0));
+  CHECK(embed_sint_ℤ_(42) == finite_signed_cardinality(42));
+  CHECK(embed_sint_ℤ_(-42) == finite_signed_cardinality(-42));
 }
 
 TEST_CASE("sint: lift is injective on the finite fragment",
           "[numbers][sint][lift][injective]") {
-  CHECK(embed_signed_to_SignedCardinality(0) !=
-        embed_signed_to_SignedCardinality(1));
-  CHECK(embed_signed_to_SignedCardinality(0) !=
-        embed_signed_to_SignedCardinality(-1));
-  CHECK(embed_signed_to_SignedCardinality(41) !=
-        embed_signed_to_SignedCardinality(42));
-  CHECK(embed_signed_to_SignedCardinality(-1) !=
-        embed_signed_to_SignedCardinality(1));
+  CHECK(embed_sint_ℤ(0) != embed_sint_ℤ(1));
+  CHECK(embed_sint_ℤ(0) != embed_sint_ℤ(-1));
+  CHECK(embed_sint_ℤ(41) != embed_sint_ℤ(42));
+  CHECK(embed_sint_ℤ(-1) != embed_sint_ℤ(1));
 }
 
 // ===========================================================================
@@ -141,8 +132,8 @@ TEST_CASE(
   // UB-on-overflow for total saturating semantics — which is what the
   // exact-ℤ reading lives on.  Witnesses the structural-completeness
   // gain at the variant layer.
-  const auto one_lifted = embed_signed_to_SignedCardinality(1);
-  const auto neg_one_lifted = embed_signed_to_SignedCardinality(-1);
+  const auto one_lifted = embed_sint_ℤ(1);
+  const auto neg_one_lifted = embed_sint_ℤ(-1);
   // Pick a finite value that exists on both sides and verify the lift
   // commutes with negation under the operator surface.
   CHECK(-one_lifted == neg_one_lifted);
@@ -152,24 +143,24 @@ TEST_CASE(
 // (4) Embedding chain: 𝕂3 → sint → ℤ (signed counterpart to 𝔹 → uint → ℕ)
 // ===========================================================================
 
-TEST_CASE("sint: 𝕂3 → sint → ℤ chain via embed_K3_ℤ + lift",
+TEST_CASE("sint: 𝕂3 → sint → ℤ chain via embed_𝕂3_ℤ_ + lift",
           "[numbers][sint][lift][embedding-chain]") {
-  // Post-PR #439, embed_K3_ℤ already lands on SignedCardinality
+  // Post-PR #439, embed_𝕂3_ℤ_ already lands on SignedCardinality
   // directly.  The textbook-factored chain
   //
   //   𝕂3 → std::signed_integral → ℤ
   //
   // would route through @c int (the machine layer) on the first leg
-  // and then through @c embed_signed_to_SignedCardinality on the
+  // and then through @c embed_sint_ℤ on the
   // second; PR #439's chosen factorisation collapses the two legs
   // into one for ergonomic reasons.  Exercise the chain claim
-  // directly by relating @c embed_K3_ℤ's images to the lifted
+  // directly by relating @c embed_𝕂3_ℤ_'s images to the lifted
   // canonical machine-int images @c -1 / @c 0 / @c 1, asserting
   // that both factorisations agree on the canonical value of each
   // Kleene truth-value.
-  CHECK(embed_K3_ℤ(Ternary::False) == embed_signed_to_SignedCardinality(-1));
-  CHECK(embed_K3_ℤ(Ternary::Unknown) == embed_signed_to_SignedCardinality(0));
-  CHECK(embed_K3_ℤ(Ternary::True) == embed_signed_to_SignedCardinality(1));
+  CHECK(embed_𝕂3_ℤ_(Ternary::False) == embed_sint_ℤ(-1));
+  CHECK(embed_𝕂3_ℤ_(Ternary::Unknown) == embed_sint_ℤ(0));
+  CHECK(embed_𝕂3_ℤ_(Ternary::True) == embed_sint_ℤ(1));
 }
 
 // ===========================================================================

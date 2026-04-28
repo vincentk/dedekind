@@ -6,7 +6,7 @@
  * Exercises the @c std::unsigned_integral family classification shipped
  * by @c numbers:uint (closes part of #417): the textbook @c ℤ/2^wℤ
  * stance, the universal machine→variant lift @c
- * embed_unsigned_to_Cardinality, the @c Modular<N> / @c IsCyclic
+ * embed_uint_ℕ, the @c Modular<N> / @c IsCyclic
  * correspondence, and the width-ladder ring-hom witnesses.  The
  * compile-time witnesses live inside the partition itself; this file
  * exercises the @b runtime / @b composition surface.
@@ -33,48 +33,42 @@ using dedekind::morphologies::Modular;
 // (1) The universal lift arrow: std::unsigned_integral → Cardinality
 // ===========================================================================
 
-TEST_CASE("uint: embed_unsigned_to_Cardinality across canonical widths",
+TEST_CASE("uint: embed_uint_ℕ across canonical widths",
           "[numbers][uint][lift][carrier-lattice]") {
   // Function-template form covers any std::unsigned_integral width.
-  CHECK(embed_unsigned_to_Cardinality(0u) == finite_cardinality(0));
-  CHECK(embed_unsigned_to_Cardinality(1u) == finite_cardinality(1));
-  CHECK(embed_unsigned_to_Cardinality(42u) == finite_cardinality(42));
-  CHECK(embed_unsigned_to_Cardinality(static_cast<unsigned long>(1000)) ==
+  CHECK(embed_uint_ℕ(0u) == finite_cardinality(0));
+  CHECK(embed_uint_ℕ(1u) == finite_cardinality(1));
+  CHECK(embed_uint_ℕ(42u) == finite_cardinality(42));
+  CHECK(embed_uint_ℕ(static_cast<unsigned long>(1000)) ==
         finite_cardinality(1000));
-  CHECK(embed_unsigned_to_Cardinality(static_cast<std::size_t>(7)) ==
-        finite_cardinality(7));
-  CHECK(embed_unsigned_to_Cardinality(static_cast<unsigned char>(255)) ==
+  CHECK(embed_uint_ℕ(static_cast<std::size_t>(7)) == finite_cardinality(7));
+  CHECK(embed_uint_ℕ(static_cast<unsigned char>(255)) ==
         finite_cardinality(255));
-  CHECK(embed_unsigned_to_Cardinality(static_cast<unsigned short>(0xFFFF)) ==
+  CHECK(embed_uint_ℕ(static_cast<unsigned short>(0xFFFF)) ==
         finite_cardinality(0xFFFF));
 }
 
-TEST_CASE("uint: embed_unsigned_Cardinality_ named-arrow form",
+TEST_CASE("uint: embed_uint_ℕ_ named-arrow form",
           "[numbers][uint][lift][monic-arrow]") {
-  STATIC_CHECK(IsArrow<std::decay_t<decltype(embed_unsigned_Cardinality_)>>);
+  STATIC_CHECK(IsArrow<std::decay_t<decltype(embed_uint_ℕ_)>>);
+  STATIC_CHECK(IsMonicArrow<std::decay_t<decltype(embed_uint_ℕ_)>>);
   STATIC_CHECK(
-      IsMonicArrow<std::decay_t<decltype(embed_unsigned_Cardinality_)>>);
+      std::same_as<Dom<std::decay_t<decltype(embed_uint_ℕ_)>>, unsigned>);
   STATIC_CHECK(
-      std::same_as<Dom<std::decay_t<decltype(embed_unsigned_Cardinality_)>>,
-                   unsigned>);
-  STATIC_CHECK(
-      std::same_as<Cod<std::decay_t<decltype(embed_unsigned_Cardinality_)>>,
-                   Cardinality>);
+      std::same_as<Cod<std::decay_t<decltype(embed_uint_ℕ_)>>, Cardinality>);
 
-  CHECK(embed_unsigned_Cardinality_(0u) == finite_cardinality(0));
-  CHECK(embed_unsigned_Cardinality_(42u) == finite_cardinality(42));
-  CHECK(embed_unsigned_Cardinality_(1000u) == finite_cardinality(1000));
+  CHECK(embed_uint_ℕ_(0u) == finite_cardinality(0));
+  CHECK(embed_uint_ℕ_(42u) == finite_cardinality(42));
+  CHECK(embed_uint_ℕ_(1000u) == finite_cardinality(1000));
 }
 
 TEST_CASE("uint: lift is injective on the finite fragment",
           "[numbers][uint][lift][injective]") {
   // Distinct unsigned values yield distinct Cardinality values
   // (witnesses the monic claim).
-  CHECK(embed_unsigned_to_Cardinality(0u) != embed_unsigned_to_Cardinality(1u));
-  CHECK(embed_unsigned_to_Cardinality(41u) !=
-        embed_unsigned_to_Cardinality(42u));
-  CHECK(embed_unsigned_to_Cardinality(0xFFFFu) !=
-        embed_unsigned_to_Cardinality(0u));
+  CHECK(embed_uint_ℕ(0u) != embed_uint_ℕ(1u));
+  CHECK(embed_uint_ℕ(41u) != embed_uint_ℕ(42u));
+  CHECK(embed_uint_ℕ(0xFFFFu) != embed_uint_ℕ(0u));
 }
 
 TEST_CASE("uint: lift forgets the modular ring structure",
@@ -84,8 +78,8 @@ TEST_CASE("uint: lift forgets the modular ring structure",
   // Exercised here by verifying the source's mod-wrap behaviour
   // (UINT_MAX + 1 == 0) does NOT carry over to the lifted values.
   const auto u_max = std::numeric_limits<unsigned int>::max();
-  const auto lifted_u_max = embed_unsigned_to_Cardinality(u_max);
-  const auto lifted_zero = embed_unsigned_to_Cardinality(0u);
+  const auto lifted_u_max = embed_uint_ℕ(u_max);
+  const auto lifted_zero = embed_uint_ℕ(0u);
   // Source-side: u_max + 1 wraps to 0.  Lifted side: u_max ≠ 0.
   CHECK(static_cast<unsigned int>(u_max + 1u) == 0u);  // mod wrap on source
   CHECK(lifted_u_max != lifted_zero);                  // no wrap on target
@@ -143,19 +137,19 @@ TEST_CASE(
   const unsigned int ui = 42;
   const std::size_t uz = 42;
 
-  CHECK(embed_unsigned_to_Cardinality(uc) == embed_unsigned_to_Cardinality(ui));
-  CHECK(embed_unsigned_to_Cardinality(us) == embed_unsigned_to_Cardinality(ui));
-  CHECK(embed_unsigned_to_Cardinality(uz) == embed_unsigned_to_Cardinality(ui));
-  CHECK(embed_unsigned_to_Cardinality(ui) == finite_cardinality(42));
+  CHECK(embed_uint_ℕ(uc) == embed_uint_ℕ(ui));
+  CHECK(embed_uint_ℕ(us) == embed_uint_ℕ(ui));
+  CHECK(embed_uint_ℕ(uz) == embed_uint_ℕ(ui));
+  CHECK(embed_uint_ℕ(ui) == finite_cardinality(42));
 }
 
 TEST_CASE("uint: lift composes with the bool→unsigned arrow (𝔹 → uint → ℕ)",
           "[numbers][uint][lift][embedding-chain]") {
-  // The composition embed_𝔹_ℕ >> embed_unsigned_Cardinality_ realises
+  // The composition embed_𝔹_uint_ >> embed_uint_ℕ_ realises
   // the embedding chain 𝔹 → std::unsigned_integral → ℕ documented in
   // the carrier-lattice section of paper.tex / report.tex.
-  CHECK(embed_unsigned_Cardinality_(embed_𝔹_ℕ(false)) == finite_cardinality(0));
-  CHECK(embed_unsigned_Cardinality_(embed_𝔹_ℕ(true)) == finite_cardinality(1));
+  CHECK(embed_uint_ℕ_(embed_𝔹_uint_(false)) == finite_cardinality(0));
+  CHECK(embed_uint_ℕ_(embed_𝔹_uint_(true)) == finite_cardinality(1));
 }
 
 TEST_CASE("uint: Fibonacci on Cardinality — the canonical intensional ℕ-series",
