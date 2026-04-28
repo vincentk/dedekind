@@ -378,7 +378,13 @@ struct IntegersOf {
     return operator()(static_cast<int>(n));
   }
 
-  // Embedded Ternary (via embed_K3_ℤ)
+  // Embedded Ternary: False ↦ -1, Unknown ↦ 0, True ↦ 1.  Delegates
+  // to the int overload directly rather than routing through @c
+  // embed_K3_ℤ — post-#430 that arrow lands on @c SignedCardinality
+  // (the variant ℤ-proxy), whereas this @c IntegersOf<> predicate-set
+  // is parameterised on the int machine carrier.  The {-1, 0, 1}
+  // mapping is the same; the implementations are deliberately
+  // separate to keep this overload at the machine-int layer.
   constexpr typename L::Ω operator()(Ternary t) const {
     switch (t) {
       case Ternary::False:
