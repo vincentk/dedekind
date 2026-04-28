@@ -540,15 +540,15 @@ static_assert(IsProductCategory<Set<std::pair<int, bool>>>);
 //
 // Compositions (as a wider taxonomy across the project):
 //
-//   | composition                                  | reading              |
-//   |----------------------------------------------|----------------------|
-//   | @c IsBinaryRelation (no extra constraint)    | generic binary rel.  |
-//   | @c IsBinaryRelation, homogeneous @c V @c × @c V | @b directed graph |
-//   | + symmetric                                  | @b undirected graph  |
-//   | + reflexive + symmetric + transitive         | equivalence relation |
-//   | + reflexive + antisymmetric + transitive     | partial order (@c
-//   :mereology) | | + left-total + right-unique                  | @b function
-//   (here)   | | + left-total + right-unique + monic + epic   | bijection |
+//   | composition                                | reading             |
+//   |--------------------------------------------|---------------------|
+//   | IsBinaryRelation (no extra constraint)     | generic binary rel. |
+//   | IsBinaryRelation, homogeneous V × V        | directed graph      |
+//   | + symmetric                                | undirected graph    |
+//   | + reflexive + symmetric + transitive       | equivalence relation|
+//   | + reflexive + antisymmetric + transitive   | partial order       |
+//   | + left-total + right-unique                | function (here)     |
+//   | + left-total + right-unique + monic + epic | bijection           |
 //
 // Note the indexing difference: @c :mereology's traits are keyed on
 // @c (T, Op) (homogeneous binary operation); the two traits added here
@@ -634,35 +634,70 @@ concept IsBinaryFunction =
  * @details Bridge between the categorical-arrow reading (in
  *          @c :morphism) and the set-theoretic function-as-relation
  *          reading (here in @c :cartesian, where products are first-
- *          class).  Every IsArrow induces such a relation by
- *          construction, and that relation is structurally left-total
- *          (every @c a yields @c f(a)) and right-unique (function
- *          calls are deterministic) — the opt-in traits below
- *          register both facts.
+ *          class).
+ *
+ *          Two requirements beyond the bare @c IsArrow:
+ *            (1) @c F must be callable on a @c const instance — the
+ *                operator() below is @c const, so a non-const-callable
+ *                arrow would not work.
+ *            (2) @c F's call result must be equality-comparable with
+ *                @c F::Codomain — the relation predicate is @c f(a)
+ *                @c == @c b.
+ *          Both are tightened in the @c requires clause below.
+ *
+ *          @c IsArrow itself is a structural shape (it only asserts
+ *          the call expression is well-formed); it does @b not
+ *          guarantee total / law-abiding behaviour over the domain.
+ *          The opt-in trait specialisations below register
+ *          left-totality and right-uniqueness on @c arrow_as_relation
+ *          @b by @b convention — every IsArrow is intended to be a
+ *          (total, deterministic) function in this codebase.  If a
+ *          carrier ever ships a partial @c IsArrow (e.g. a wrapper
+ *          that throws on some inputs), the engineer should
+ *          un-register the trait on that specific specialisation.
+ *
+ *          The template parameter @c F is normalised via
+ *          @c std::remove_cvref_t internally, so passing
+ *          @c arrow_as_relation<const F> or @c arrow_as_relation<F&>
+ *          works the same as @c arrow_as_relation<F>.
  */
 export template <typename F>
-  requires IsArrow<F>
+  requires IsArrow<F> &&
+           requires(std::remove_cvref_t<F> const& fn,
+                    typename std::remove_cvref_t<F>::Domain const& a,
+                    typename std::remove_cvref_t<F>::Codomain const& b) {
+             { fn(a) == b } -> std::convertible_to<bool>;
+           }
 struct arrow_as_relation {
-  using ArrowType = F;
-  F f;
+  using ArrowType = std::remove_cvref_t<F>;
+  ArrowType f;
 
-  constexpr bool operator()(typename F::Domain const& a,
-                            typename F::Codomain const& b) const {
+  constexpr bool operator()(typename ArrowType::Domain const& a,
+                            typename ArrowType::Codomain const& b) const {
     return f(a) == b;
   }
 };
 
-// arrow_as_relation<F> is BY CONSTRUCTION left-total + right-unique:
-//   * left-total: f(a) is always defined for any a in F::Domain (that's
-//     what IsArrow guarantees).
-//   * right-unique: f(a) is deterministic, so for any a there is at
-//     most one b with f(a) == b (in fact exactly one, namely f(a)).
+// arrow_as_relation<F> is registered left-total + right-unique by
+// convention (see docstring above).  IsArrow is a structural shape
+// only; the opt-in traits anchor the engineer's claim that the arrow
+// is a (total, deterministic) function in the textbook sense.
 template <typename F>
-  requires IsArrow<F>
+  requires IsArrow<F> &&
+               requires(std::remove_cvref_t<F> const& fn,
+                        typename std::remove_cvref_t<F>::Domain const& a,
+                        typename std::remove_cvref_t<F>::Codomain const& b) {
+                 { fn(a) == b } -> std::convertible_to<bool>;
+               }
 inline constexpr bool is_left_total_v<arrow_as_relation<F>> = true;
 
 template <typename F>
-  requires IsArrow<F>
+  requires IsArrow<F> &&
+               requires(std::remove_cvref_t<F> const& fn,
+                        typename std::remove_cvref_t<F>::Domain const& a,
+                        typename std::remove_cvref_t<F>::Codomain const& b) {
+                 { fn(a) == b } -> std::convertible_to<bool>;
+               }
 inline constexpr bool is_right_unique_v<arrow_as_relation<F>> = true;
 
 // Bridge :morphism ↔ :cartesian: every IsArrow induces an
