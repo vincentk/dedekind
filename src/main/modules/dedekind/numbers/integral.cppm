@@ -44,16 +44,17 @@
  *     resulting structure is not a field).
  *
  * @section Honesty_Obligation
- * The witness blocks below pin the umbrella's @b negative claim
- * (none of the three siblings is a field under arithmetic) at the
- * two carriers where the rejection is @b not already pinned upstream:
- * @c int (the @c :sint partition pins @c HasRingOperators<int> and
- * @c !Group_ℤ<int> but not @c !IsField directly) and @c bool (the
- * @c :boolean partition pins the XOR/AND field reading; the
- * arithmetic-operator reading is filed here).  The @c unsigned @c int
- * field rejection is already in @c :uint and is @b not restated
- * here (vacuous restatements are noise — see the project's
- * cross-partition assertion-style memo).
+ * The umbrella's @b negative claim (no std::integral sibling is a field
+ * under arithmetic) is discharged by combining three witnesses, two of
+ * which are pinned upstream and not restated here (vacuous restatements
+ * are noise — see the project's cross-partition assertion-style memo):
+ * @c !IsField<unsigned @c int> in @c :uint, @c !IsField<int> in
+ * @c algebra/field.cppm (the global signed-family witness).  The single
+ * pin in this partition closes the umbrella by addressing the third
+ * sibling — @c bool under arithmetic operators — whose rejection has
+ * not been pinned anywhere else (the @c :boolean partition pins the
+ * XOR/AND field @b acceptance, which is a structurally different
+ * object).
  *
  * @note "Wer wagt es, Rittersmann oder Knapp,
  *        Zu tauchen in diesen Schlund?"
@@ -67,7 +68,7 @@ module;
 
 export module dedekind.numbers:integral;
 
-import dedekind.algebra;  // IsField (umbrella negative-claim witness)
+import dedekind.algebra; // IsField (umbrella negative-claim witness)
 
 namespace dedekind::numbers {
 
