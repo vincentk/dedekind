@@ -936,8 +936,23 @@ throughout.  Negafibonacci on $\mathbb{Z}$ extends the same recurrence
 to negative indices via $F_{n-1} = F_{n+1} - F_n$, producing
 $F_{-1}, F_{-2}, F_{-3}, F_{-4}, F_{-5} = 1, -1, 2, -3, 5$.  The
 backward step uses subtraction --- exactly the operator that
-structurally distinguishes $\mathbb{Z}$ from $\mathbb{N}$.  Computing
-either series in the canonical mathematical carrier
+structurally distinguishes $\mathbb{Z}$ from $\mathbb{N}$.\footnote{The
+proper categorical framing is the coalgebraic one.  A two-term
+recurrence is not directly the universal property of the natural
+numbers object (which captures one-step recurrences $a_{n+1} =
+g(a_n)$); it is a coalgebra for the functor $F(X) = A \times X$
+where the state carries the pair $(F_n, F_{n-1})$ and the step
+function advances both.  Negafibonacci is the same coalgebra run
+with the subtractive step function in place of the additive one ---
+both well-typed @b only because the state carrier admits the
+operator (additive group structure for negafibonacci; additive
+monoid is enough for forward Fibonacci).  Pinning the state to
+\lstinline{Cardinality} or \lstinline{SignedCardinality} rather than
+to a machine \lstinline{unsigned int} or \lstinline{int} is what
+makes the coalgebra type-correct in the textbook sense; the machine
+carriers' UB-on-overflow / mod-wrap behaviour would render the
+coalgebra's transition partial without the type system noticing.}
+Computing either series in the canonical mathematical carrier
 (\lstinline{Cardinality} for $\mathbb{N}$, \lstinline{SignedCardinality}
 for $\mathbb{Z}$) keeps the practitioner in the textbook structure
 the whole way through: no machine-int arithmetic, no
