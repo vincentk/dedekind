@@ -19,10 +19,27 @@ It defines an embedded domain-specific language (eDSL) for mathematics with the 
 - **Optimization:** The library performs *mathematically motivated* optimizations (e.g., identity laws) at compile-time.
 
 ```cpp
-// If it satisfies the requirements of a Dedekind-complete ordered field,
-// it is treated as a representation of ℝ, regardless of its name.
-static_assert( SmellsLike<ℝ, DedekindCompleteField> );
+// Cardinality-1 reduction: an intensional set over a transfinite
+// carrier collapses to a named extensional Singleton — at compile
+// time, with no lambdas, no predicate erasure.
+constexpr auto n        = var<ℕ>;
+constexpr auto gt_three = Set{n % N | (n > bound<3>)};
+constexpr auto lt_five  = Set{n % N | (n < bound<5>)};
+
+constexpr Singleton<4> in_between = gt_three & lt_five;   // ≡ {4}
+static_assert(in_between == Singleton<4>{});
+
+// The parent Sets carry NONE of the three computability tiers; the
+// reduced Singleton carries ALL THREE.  The intersection IS the
+// theorem: { n ∈ ℕ | n > 3 } ∩ { n ∈ ℕ | n < 5 } = {4}.
+static_assert(!HasDecidableMembership<decltype(gt_three)>);
+static_assert( HasDecidableMembership<decltype(in_between)>);
+static_assert( IsCompileTimeEnumerable<decltype(in_between)>);
 ```
+
+The full set of IR-verified showcases lives under
+[`src/test/cpp/modules/dedekind/python/showcase_*.cpp`](src/test/cpp/modules/dedekind/python/);
+the example above is showcase 4.
 
 ### Quickstart
 ```bash
@@ -47,6 +64,15 @@ In this approach:
 2. **Language Conformity**: Modifications required to satisfy the host language (`C++`) are kept as non-intrusive as possible. Textbook naming conventions using `UTF-8` are preferred, i.e. `ℝ` instead of `IsRealNumberSet`.
 3. **Bi-directional Fidelity**: Once a `concept` compiles, its fidelity is verified by checking that `C++` invariants map correctly back to their mathematical counterparts within the test suite.
 4. **Co-Domain Anchoring**: Where the C++ standard library provides native support for algebraic concepts, this anchoring is made explicit (e.g. `bool`, `std::pair`, `std::variant`, ...) and documented via translation tables.
+
+### Engineering honesty and mechanical sympathy
+
+Two related disciplines anchor the technique:
+
+- **Engineering honesty.** The trait registry asserts only what is constructively true of the carrier — `is_associative_v<T, Op>` is registered when `Op` actually associates on `T`, never as a convenience. Concept names match the math: `unsigned int` is rejected as a witness for ℕ because it claims *more* structure than ℕ has (additive inverses via mod wrap), not less. Read in the spirit of the engineering profession's truthfulness canons, this is a **public statement** at the type-system level — visible, peer-reviewable, and machine-checkable against fixed inference rules.
+- **Mechanical sympathy.** Once the math is honest, the rest is mechanical: `static_assert`s discharge the derivation, concept-driven dispatch routes calls without runtime overhead, NTTP-folded `constexpr` evaluation carries witnesses through to the IR. The compiler does not care which agent typed the code; it cares that the typing rules check.
+
+The trade is therefore an honesty obligation up front for a mechanical guarantee afterward — that asymmetry, not the cost, is what makes the technique worth practising. See the paper's *§Axiomatic Systems Programming* for the full argument.
 
 _AI assistance is used during the development of this project._
 
