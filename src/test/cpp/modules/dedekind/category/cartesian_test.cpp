@@ -1,6 +1,7 @@
 /** @file src/test/cpp/modules/dedekind/category/cartesian_test.cpp */
 #include <catch2/catch_test_macros.hpp>
 #include <concepts>
+#include <functional>
 #include <utility>
 #include <variant>
 
@@ -140,5 +141,61 @@ TEST_CASE("Cartesian: Product Projection Semantics",
                               -> const std::pair<int, bool>& {
                    return arrow_drill_down(envelope);
                  })>);
+  }
+}
+
+TEST_CASE(
+    "Cartesian: Relation classification — equivalence / directed / "
+    "undirected graph axes (#464)",
+    "[category][cartesian][relation][equivalence][graph]") {
+  SECTION(
+      "std::equal_to<int> is the canonical equivalence relation: "
+      "reflexive, symmetric, transitive (registered upstream in :cartesian)") {
+    STATIC_CHECK(IsBinaryRelation<std::equal_to<int>, int, int>);
+    STATIC_CHECK(is_reflexive_relation_v<std::equal_to<int>>);
+    STATIC_CHECK(is_symmetric_relation_v<std::equal_to<int>>);
+    STATIC_CHECK(is_transitive_relation_v<std::equal_to<int>>);
+    STATIC_CHECK(IsEquivalenceRelation<std::equal_to<int>, int>);
+    // Equivalence on V × V is structurally an undirected graph (the
+    // identity loops + a-loops only when a == b).
+    STATIC_CHECK(IsUndirectedGraph<std::equal_to<int>, int>);
+
+    // Operational witness: equality reflects, symmetrises, transits.
+    constexpr std::equal_to<int> eq{};
+    CHECK(eq(7, 7));
+    CHECK(eq(3, 3));
+    CHECK(eq(3, 4) == eq(4, 3));  // symmetry
+    CHECK_FALSE(eq(3, 4));
+  }
+
+  SECTION(
+      "Negative case: std::less<int> is a binary relation but NOT an "
+      "equivalence — it is reflexive-failure (a < a is false), symmetry-"
+      "failure (a < b ≠ b < a), and antisymmetric instead.  Default "
+      "trait registration leaves it unclassified; this test pins the "
+      "negative facts as type-checked documentation") {
+    STATIC_CHECK(IsBinaryRelation<std::less<int>, int, int>);
+    STATIC_CHECK(IsDirectedGraph<std::less<int>, int>);
+    // No traits opt-in by default — std::less is not an equivalence.
+    STATIC_CHECK(!is_reflexive_relation_v<std::less<int>>);
+    STATIC_CHECK(!is_symmetric_relation_v<std::less<int>>);
+    STATIC_CHECK(!IsEquivalenceRelation<std::less<int>, int>);
+    STATIC_CHECK(!IsUndirectedGraph<std::less<int>, int>);
+  }
+
+  SECTION(
+      "Negative case: a multi-valued relation { (1,1), (1,2), (2,2) } "
+      "is a binary relation and a (degenerate) directed graph but NOT "
+      "an equivalence (no symmetry without (2,1)) and NOT a function "
+      "(fails right-uniqueness)") {
+    struct R {
+      constexpr bool operator()(int x, int y) const {
+        return (x == 1 && (y == 1 || y == 2)) || (x == 2 && y == 2);
+      }
+    };
+    STATIC_CHECK(IsBinaryRelation<R, int, int>);
+    STATIC_CHECK(IsDirectedGraph<R, int>);
+    STATIC_CHECK(!IsEquivalenceRelation<R, int>);
+    STATIC_CHECK(!IsBinaryFunction<R, int, int>);
   }
 }
