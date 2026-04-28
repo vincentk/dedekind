@@ -755,6 +755,64 @@ vocabulary, the technique amounts to taking the truthfulness canon
 seriously as a constraint on software practice rather than a
 free-floating professional ideal.
 
+\subsubsection*{Old mathematics, newly accessible}
+
+A note worth making in the discussion register: nothing about the
+axioms invoked above is new.  The category-theoretic vocabulary on
+which the project rests --- categories, functors, natural
+transformations, adjunctions, free constructions, monads --- was
+worked out across the 1960s and 1970s in the mathematical-logic
+literature.  Lawvere's elementary theory of the category of
+sets~\cite{lawvere1964elementary} appeared in 1964; Mac Lane's
+\emph{Categories for the Working Mathematician}~\cite{maclane1971categories}
+followed in 1971; the classical adjoint-functor theorems and the
+Grothendieck-style free constructions are several decades old.  The
+applicability of this material to programming was documented through
+the late 1980s and early 1990s --- Wadler's \emph{Theorems for
+Free!}~\cite{wadler1989theorems} on parametricity, Moggi's
+\emph{Notions of computation and monads}~\cite{moggi1991notions} on
+monadic semantics for effects.  None of the structural ideas
+exercised in the showcases of this paper are inventions of the
+present work; the contribution is the fitting of those ideas to a
+production-grade C++23 substrate.
+
+What \emph{has} changed, sharply, is accessibility.  Until quite
+recently, the mathematical vocabulary remained a specialist
+language: a working software engineer who had not been routed
+through a category-theory or type-theory graduate course tended to
+encounter Mac Lane and Moggi as cultural references rather than as
+working tools.  AI assistants today close that distance.  An
+educated practitioner can now have a productive conversation with a
+modern language model about the difference between a forgetful
+functor and a Galois connection, between a rig and a ring, between a
+witness concept and a structural shape concept --- and have the
+model translate the result into concrete C++23 concept formulations,
+trait specialisations, and \texttt{static\_assert} witnesses.  This
+is the engineering analogue of a calculator's relationship to a
+slide rule: the mathematics is the same; the cost of routine use has
+collapsed.\footnote{The methodological note in the next paragraphs
+discloses the AI-assisted development of the present library
+itself; the remark here is about the wider population of working
+software engineers who can now apply axiomatic-programming
+techniques without first becoming category theorists, not about the
+authors' own workflow.}
+
+The present library is one demonstration of the resulting
+opportunity.  We do not claim it is the only such library, nor that
+its specific architectural choices are the only honest ones; we do
+claim that it is a working artefact that aims to be \emph{compliant}
+with the axioms it invokes --- the trait specialisations, the
+concept formulations, the carrier-lattice classifications all
+selected to match the textbook structure rather than the
+machine-convenient one.  The combination of (a) old, audited
+mathematical vocabulary, (b) a strict type system that mechanically
+discharges derivations from that vocabulary, and (c) AI assistance
+that lowers the bridge between the mathematical and engineering
+fragments puts the technique within reach of the working
+practitioner in a way that was not the case even five years ago.
+That accessibility is the most consequential change behind the
+present paradigm; the rest is bookkeeping.
+
 \subsubsection*{Bounded yet open-ended}
 
 Each use is bounded \emph{individually}, but the paradigm as a whole exhibits
