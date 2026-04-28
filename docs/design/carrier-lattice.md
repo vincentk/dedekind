@@ -35,9 +35,9 @@ The choice is not aesthetic. It controls (a) whether a function expecting `Set<�
 
 ## What this codebase does
 
-**The embedding view at the type level.** `Cardinality` and `SignedCardinality` are distinct C++ types — different `std::variant<…>` instantiations, no implicit conversion between them. The arrows `embed_𝔹_uint_`, `embed_uint_sint_`, `embed_ℤ_ℚ`, `embed_ℚ_ℝ`, `embed_ℝ_ℂ` are the canonical injections; provenance is preserved.
+**The embedding view at the type level.** `Cardinality` and `SignedCardinality` are distinct C++ types — different `std::variant<…>` instantiations, no implicit conversion between them. The variant-layer canonical injection between them is `lift_ℕ_ℤ_` (wrapping the public `lift_cardinality_to_signed`); the wider tower contributes `embed_𝔹_uint_` (𝔹 ↪ unsigned), `embed_uint_sint_` (machine-layer unsigned ↪ int), `embed_ℤ_ℚ`, `embed_ℚ_ℝ`, `embed_ℝ_ℂ`. Provenance is preserved at every step.
 
-**The subset view at the operator level.** Cross-carrier `==` / `<=>` *do* compose, routing through the canonical lift. `Cardinality{5} < SignedCardinality{-3}` returns `false` directly; `Cardinality{ℵ_0} == SignedCardinality{PositiveInfinity{}}` returns `true`. The relational surface honours the math without forcing call sites to spell `embed_uint_sint_(card) < sc_value`.
+**The subset view at the operator level.** Cross-carrier `==` / `<=>` *do* compose, routing through the canonical lift. `Cardinality{5} < SignedCardinality{-3}` returns `false` directly; `Cardinality{ℵ_0} == SignedCardinality{PositiveInfinity{}}` returns `true`. The relational surface honours the math without forcing call sites to spell `lift_ℕ_ℤ_(card) < sc_value`.
 
 The split is intentional: type-level distinction prevents accidental mixing (a `void f(Set<ℤ>)` doesn't silently accept a `Set<ℕ>` and lose the natural-number guarantee); operator-level cross-comparison reflects the math.
 
@@ -67,7 +67,7 @@ The carrier-strength-reduction rule is the explicit counter-pull. Instead of *wi
 
 The user-surfaced operational case. Two reasonable answers:
 
-- **(a)** Forbid it. The user must lift `A : Set<ℕ>` into ℤ explicitly via `embed_uint_sint_` then take the intersection in `Set<ℤ>`. Mathematically correct under the strict view; ergonomically heavy.
+- **(a)** Forbid it. The user must lift `A : Set<ℕ>` into ℤ explicitly via `lift_ℕ_ℤ_` then take the intersection in `Set<ℤ>`. Mathematically correct under the strict view; ergonomically heavy.
 - **(b)** Allow it, with a *carrier-promotion* rule on the binary set operations:
 
   | Operation | Result carrier (mirrors the lattice) |
@@ -116,7 +116,7 @@ This is tracked under issue **#432** as the elementwise sibling of #362. Same st
 ## Pointers
 
 - `Cardinality` / `SignedCardinality` carrier definitions: [`src/main/modules/dedekind/sets/cardinality.cppm`](../../src/main/modules/dedekind/sets/cardinality.cppm).
-- The canonical embeddings: `embed_𝔹_uint_` in [`numbers/naturals.cppm`](../../src/main/modules/dedekind/numbers/naturals.cppm), `embed_uint_sint_` / `embed_𝕂3_ℤ_` in [`numbers/integer.cppm`](../../src/main/modules/dedekind/numbers/integer.cppm), `embed_ℤ_ℚ` / `embed_ℚ_ℝ` / `embed_ℝ_ℂ` in [`numbers/rational.cppm`](../../src/main/modules/dedekind/numbers/rational.cppm).
+- The canonical embeddings: `embed_𝔹_uint_` in [`numbers/natural.cppm`](../../src/main/modules/dedekind/numbers/natural.cppm), `embed_uint_sint_` / `embed_𝕂3_ℤ_` / `lift_ℕ_ℤ_` in [`numbers/integer.cppm`](../../src/main/modules/dedekind/numbers/integer.cppm), `embed_ℤ_ℚ` / `embed_ℚ_ℝ` / `embed_ℝ_ℂ` in [`numbers/rational.cppm`](../../src/main/modules/dedekind/numbers/rational.cppm).
 - Cross-type comparison ops: same `cardinality.cppm` file (the heterogeneous `<=>` / `==` overloads).
 - Witnesses: [`src/main/modules/dedekind/numbers/cardinality.cppm`](../../src/main/modules/dedekind/numbers/cardinality.cppm) (`HasPartialOrderOperatorsWith<…>` static_asserts).
 
