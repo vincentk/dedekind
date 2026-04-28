@@ -41,6 +41,7 @@ export module dedekind.category:cartesian;
 import :logic;
 import :limit;
 import :mereology;
+import :morphism;  // for IsArrow / Identity (used by arrow_as_relation bridge)
 import :species;
 
 namespace dedekind::category {
@@ -517,5 +518,160 @@ concept IsProductCategory = IsCategory<Cat> && requires {
 
 // A category of integer/boolean pairs is an honest Product Category
 static_assert(IsProductCategory<Set<std::pair<int, bool>>>);
+
+// ---------------------------------------------------------------------------
+// Pedagogical-accessibility primitive: function as a special case of
+// relation (closes #460).  Lives in @c :cartesian because relations
+// are subsets of products — and products are first-class here.
+//
+// @section Relation_Classification_Axes
+// Binary relations admit several @b orthogonal classification axes,
+// each gated by its own opt-in trait.  This partition adds one axis;
+// the others live elsewhere in the project:
+//
+//   | property           | trait                       | located in       |
+//   |--------------------|-----------------------------|------------------|
+//   | reflexive          | @c is_reflexive_v<T, Op>    | @c :mereology    |
+//   | transitive         | @c is_transitive_v<T, Op>   | @c :mereology    |
+//   | antisymmetric      | @c is_antisymmetric_v<T, Op>| @c :mereology    |
+//   | left-total         | @c is_left_total_v<R>       | @b :cartesian    |
+//   | right-unique       | @c is_right_unique_v<R>     | @b :cartesian    |
+//   | symmetric          | (filed for follow-up)       | @c :mereology    |
+//
+// Compositions:
+//   * @c IsPartialOrder = reflexive + transitive + antisymmetric (in
+//     @c :mereology, on homogeneous @c T @c × @c T relations).
+//   * @c IsBinaryFunction = left-total + right-unique (here; on
+//     possibly heterogeneous @c A @c × @c B relations).
+//   * @c IsEquivalenceRelation = reflexive + symmetric + transitive
+//     (would require the missing @c is_symmetric_v trait; follow-up).
+//
+// Note the indexing difference: @c :mereology's traits are keyed on
+// @c (T, Op) (homogeneous binary operation); the two traits added here
+// are keyed on @c R alone (the relation type), which lets the @c A ≠
+// @c B function shape work without extra parameters.
+//
+// Textbook layering taught in advanced high-school / undergraduate
+// classes:
+//
+//   * A @b relation @c R @c ⊆ @c A @c × @c B is a subset of the
+//     Cartesian product (a set of pairs).  At the type level, the
+//     callable-indicator reading is a predicate
+//     @c R(A const&, B const&) @c → @c bool.
+//   * A @b function @c f @c : @c A @c → @c B is a relation that is
+//     @b left-total (every @c a @c ∈ @c A has at least one image) and
+//     @b right-unique (every @c a has at most one image).
+//   * The categorical @c IsArrow operationalises "function" — every
+//     IsArrow induces a relation @c R(a, b) @c := @c (f(a) @c == @c b)
+//     that is left-total + right-unique by construction.
+//
+// The set-of-pairs / value-level reading of "relation" lives in
+// @c sets:expressions as @c Relation<T1, T2, L, P> = @c Set<pair<T1,
+// T2>, L, P>; the two readings are isomorphic.  This callable-
+// indicator reading is the type-level sibling, parallel to @c IsArrow.
+// ---------------------------------------------------------------------------
+
+/**
+ * @concept IsBinaryRelation
+ * @brief A type @c R is a binary relation @c A @c × @c B @c → @c bool
+ *        if it is callable on @c A and @c B and yields a boolean.
+ *
+ * @details Callable-indicator reading of @c R @c ⊆ @c A @c × @c B
+ * (the predicate is the membership-of-pair indicator).  Sibling to
+ * the value-level @c sets::Relation<T1, T2, L, P> alias, which models
+ * the relation as a Set of pairs.  The two readings are isomorphic.
+ */
+export template <typename R, typename A, typename B>
+concept IsBinaryRelation = requires(R const& r, A const& a, B const& b) {
+  { r(a, b) } -> std::convertible_to<bool>;
+};
+
+/**
+ * @brief User-declared left-totality witness for a binary relation.
+ * @details Left-totality: every @c a @c ∈ @c A is related to at least
+ *          one @c b @c ∈ @c B.  Cannot be checked at compile time in
+ *          general; opt-in via @c is_left_total_v<R> = true.  Mirrors
+ *          the @c is_monic_arrow_v / @c is_epic_arrow_v opt-in pattern
+ *          in @c :morphism, and the @c is_reflexive_v / @c
+ *          is_transitive_v / @c is_antisymmetric_v opt-in pattern in
+ *          @c :mereology.
+ */
+export template <typename R>
+inline constexpr bool is_left_total_v = false;
+
+/**
+ * @brief User-declared right-uniqueness witness for a binary relation.
+ * @details Right-uniqueness: each @c a @c ∈ @c A is related to @b at
+ *          @b most one @c b @c ∈ @c B.  Same opt-in pattern; combined
+ *          with @c is_left_total_v<R>, this characterises a function
+ *          as a special case of relation.
+ */
+export template <typename R>
+inline constexpr bool is_right_unique_v = false;
+
+/**
+ * @concept IsBinaryFunction
+ * @brief A binary relation @c R @c ⊆ @c A @c × @c B is a @b function
+ *        when it is left-total AND right-unique.
+ * @details The textbook function-as-relation characterisation:
+ *          a function is a single-valued total relation.  Combines
+ *          @c IsBinaryRelation (structural shape) with the two opt-in
+ *          honesty traits.  Orthogonal classification axis to the
+ *          posetal / equivalence axes (reflexive / symmetric /
+ *          antisymmetric / transitive) in @c :mereology.
+ */
+export template <typename R, typename A, typename B>
+concept IsBinaryFunction =
+    IsBinaryRelation<R, A, B> && is_left_total_v<R> && is_right_unique_v<R>;
+
+/**
+ * @brief Adapter: realise an @c IsArrow @c F @c : @c A @c → @c B as a
+ *        binary relation @c (a, @c b) @c ↦ @c f(a) @c == @c b.
+ * @details Bridge between the categorical-arrow reading (in
+ *          @c :morphism) and the set-theoretic function-as-relation
+ *          reading (here in @c :cartesian, where products are first-
+ *          class).  Every IsArrow induces such a relation by
+ *          construction, and that relation is structurally left-total
+ *          (every @c a yields @c f(a)) and right-unique (function
+ *          calls are deterministic) — the opt-in traits below
+ *          register both facts.
+ */
+export template <typename F>
+  requires IsArrow<F>
+struct arrow_as_relation {
+  using ArrowType = F;
+  F f;
+
+  constexpr bool operator()(typename F::Domain const& a,
+                            typename F::Codomain const& b) const {
+    return f(a) == b;
+  }
+};
+
+// arrow_as_relation<F> is BY CONSTRUCTION left-total + right-unique:
+//   * left-total: f(a) is always defined for any a in F::Domain (that's
+//     what IsArrow guarantees).
+//   * right-unique: f(a) is deterministic, so for any a there is at
+//     most one b with f(a) == b (in fact exactly one, namely f(a)).
+template <typename F>
+  requires IsArrow<F>
+inline constexpr bool is_left_total_v<arrow_as_relation<F>> = true;
+
+template <typename F>
+  requires IsArrow<F>
+inline constexpr bool is_right_unique_v<arrow_as_relation<F>> = true;
+
+// Bridge :morphism ↔ :cartesian: every IsArrow induces an
+// IsBinaryFunction via arrow_as_relation.  Demonstrated on the
+// canonical Identity<int>; downstream witnesses fire automatically.
+static_assert(IsBinaryRelation<arrow_as_relation<Identity<int>>, int, int>,
+              "Bridge :morphism ↔ :cartesian — arrow_as_relation<F> is a "
+              "binary relation on F::Domain × F::Codomain (callable "
+              "indicator).");
+static_assert(IsBinaryFunction<arrow_as_relation<Identity<int>>, int, int>,
+              "Bridge :morphism ↔ :cartesian — every IsArrow induces an "
+              "IsBinaryFunction (left-total + right-unique by construction).  "
+              "Identity is the canonical witness; arbitrary IsArrow F → "
+              "arrow_as_relation<F> fires the same chain.");
 
 }  // namespace dedekind::category
