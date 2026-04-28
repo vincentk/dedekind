@@ -33,13 +33,17 @@ static_assert(in_between == Singleton<4>{});
 // reduced Singleton carries ALL THREE.  The intersection IS the
 // theorem: { n ∈ ℕ | n > 3 } ∩ { n ∈ ℕ | n < 5 } = {4}.
 static_assert(!HasDecidableMembership<decltype(gt_three)>);
-static_assert( HasDecidableMembership<decltype(in_between)>);
-static_assert( IsCompileTimeEnumerable<decltype(in_between)>);
+static_assert(!IsFiniteSet<decltype(gt_three)>);
+static_assert(!IsCompileTimeEnumerable<decltype(gt_three)>);
+
+static_assert(HasDecidableMembership<decltype(in_between)>);
+static_assert(IsFiniteSet<decltype(in_between)>);
+static_assert(IsCompileTimeEnumerable<decltype(in_between)>);
 ```
 
 The full set of IR-verified showcases lives under
-[`src/test/cpp/modules/dedekind/python/showcase_*.cpp`](src/test/cpp/modules/dedekind/python/);
-the example above is showcase 4.
+[`src/test/cpp/modules/dedekind/python/`](src/test/cpp/modules/dedekind/python/).
+The example above is showcase 4.
 
 ### Quickstart
 ```bash
