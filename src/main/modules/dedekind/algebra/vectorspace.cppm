@@ -1,9 +1,7 @@
 /**
  * @file dedekind/algebra/vectorspace.cppm
  * @partition :vectorspace
- * @brief Level 3.7: The Linear Synthesis over a Field
- *        (vector-space concepts + vector-space witnesses on concrete
- *        carriers).
+ * @brief Level 3.7: The Linear Synthesis over a Field — vector-space concepts and witnesses on concrete carriers.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.

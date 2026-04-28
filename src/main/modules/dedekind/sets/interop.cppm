@@ -1,8 +1,7 @@
 /**
  * @file dedekind/sets/interop.cppm
  * @partition :interop
- * @brief Explicit bridges between Dedekind extensional sets and std set-like
- *        containers.
+ * @brief Explicit bridges between Dedekind extensional sets and std set-like containers.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.

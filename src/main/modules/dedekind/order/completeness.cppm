@@ -1,9 +1,7 @@
 /**
  * @file dedekind/order/completeness.cppm
  * @partition :completeness
- * @brief Level 1.5: Density and completeness profiles of an ordered
- *        structure --- successor, Archimedean, discrete / dense, and
- *        Dedekind-complete.
+ * @brief Level 1.5: Density and completeness profiles of an ordered structure — successor, Archimedean, discrete / dense, Dedekind-complete.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
