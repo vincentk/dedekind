@@ -73,7 +73,7 @@ In this approach:
 
 The library asks the engineer to claim only what is mathematically true of a type, and lets the compiler check the consequences mechanically. The trade is an **honesty obligation up front for a mechanical guarantee afterward**; that asymmetry, not the cost, is what makes the technique worth practising.
 
-**Further reading:**
+**Background reading:**
 - *Axiomatic Systems Programming* (with the *Honest Rejection* policy and the *Old mathematics, newly accessible* discussion) in the [paper](https://vincentk.github.io/dedekind/paper.pdf).
 - Curry–Howard reading of type-system-driven verification: Wadler, [*Propositions as Types*](https://doi.org/10.1145/2699407), CACM 2015.
 - Professional grounding: NSPE [*Code of Ethics for Engineers*](https://www.nspe.org/sites/default/files/resources/pdfs/Ethics/CodeofEthics/NSPECodeofEthicsforEngineers.pdf) — canons III (truthful public statements) and IV (faithful agency).
