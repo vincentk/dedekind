@@ -47,8 +47,8 @@ static_assert(
     std::same_as<Cod<std::decay_t<decltype(embed_ℕ_ℤ)>>, machine_integer>);
 
 static_assert(std::same_as<Dom<std::decay_t<decltype(embed_K3_ℤ)>>, Ternary>);
-static_assert(
-    std::same_as<Cod<std::decay_t<decltype(embed_K3_ℤ)>>, machine_integer>);
+static_assert(std::same_as<Cod<std::decay_t<decltype(embed_K3_ℤ)>>,
+                           dedekind::sets::SignedCardinality>);
 
 static_assert(
     std::same_as<Dom<std::decay_t<decltype(embed_ℤ_ℚ<>)>>, machine_integer>);
@@ -145,7 +145,13 @@ TEST_CASE("Tower: ℕ ↪ ℤ via embed_ℕ_ℤ", "[numbers][tower][embedding]")
 // ---------------------------------------------------------------------------
 
 TEST_CASE("Tower: K3 ↪ ℤ via embed_K3_ℤ", "[numbers][tower][embedding]") {
-  const auto integers = ambient_set<int>([](const int&) { return true; });
+  // Post-#430: embed_K3_ℤ lands on the variant ℤ-proxy SignedCardinality
+  // rather than the int machine carrier.  The runtime equality checks
+  // below use the heterogeneous SignedCardinality × std::integral
+  // comparison contract pinned by #415 / PR #438; the ambient set is
+  // built directly on SignedCardinality.
+  const auto integers = ambient_set<dedekind::sets::SignedCardinality>(
+      [](const dedekind::sets::SignedCardinality&) { return true; });
 
   CHECK(embed_K3_ℤ(Ternary::False) == -1);
   CHECK(embed_K3_ℤ(Ternary::Unknown) == 0);
@@ -212,10 +218,22 @@ TEST_CASE("Tower: composed chain unsigned -> ℤ -> ℚ -> ℝ -> ℂ",
 
 TEST_CASE("Stress: Im(K3->ℤ) intersect positive-real ℂ",
           "[numbers][tower][embedding][intersection]") {
-  // Image of K3 in ℤ under canonical embedding: {-1, 0, 1}.
-  const int z_false = embed_K3_ℤ(Ternary::False);
-  const int z_unknown = embed_K3_ℤ(Ternary::Unknown);
-  const int z_true = embed_K3_ℤ(Ternary::True);
+  // Image of K3 in ℤ under canonical embedding: {-1, 0, 1}.  Post-#430
+  // @c embed_K3_ℤ lands on @c SignedCardinality; the heterogeneous
+  // @c == contract pinned by #415 / PR #438 lets us verify the image
+  // values directly.
+  CHECK(embed_K3_ℤ(Ternary::False) == -1);
+  CHECK(embed_K3_ℤ(Ternary::Unknown) == 0);
+  CHECK(embed_K3_ℤ(Ternary::True) == 1);
+
+  // FIXME(#429): bridging from @c SignedCardinality to the @c int-typed
+  // @c embed_ℤ_ℚ<> needs the @c realize_signed_to_machine extraction
+  // arrow (filed under #429 as a #402 prerequisite).  Until that lands,
+  // we feed the downstream tower the canonical int values directly —
+  // the variant-side embedding is verified by the @c CHECKs above.
+  const int z_false = -1;
+  const int z_unknown = 0;
+  const int z_true = 1;
 
   const auto embed_ℤ_ℂ = embed_ℤ_ℚ<> >> embed_ℚ_ℝ<> >> embed_ℝ_ℂ<>;
 
