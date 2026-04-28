@@ -121,4 +121,24 @@ TEST_CASE("Category: Algebraic Proofs (Runtime Witnesses)",
     CHECK_FALSE(mv(1, 3));
     CHECK_FALSE(mv(2, 1));
   }
+
+  SECTION("Pedagogical synonyms (#459) agree with categorical originals") {
+    // Set-theoretic spellings are = aliases of the categorical
+    // primitives; either name fires the same opt-in trait.
+    STATIC_CHECK(IsInjective<Identity<int>>);
+    STATIC_CHECK(IsSurjective<Identity<int>>);
+    STATIC_CHECK(IsBijective<Identity<int>>);
+    // Cross-check: a clearly non-injective arrow (constant function
+    // returning 0) is structurally NOT injective and NOT bijective —
+    // the default opt-in traits return false, and the synonyms
+    // mechanically agree.  Picked a constant rather than @c
+    // arrow([](int x){return x;}) per Copilot review: the latter is
+    // structurally identity (injective) and would be misleading as a
+    // negative-case witness if property inference is added later.
+    auto const constant = arrow<int, int>([](int) { return 0; });
+    STATIC_CHECK(IsArrow<std::decay_t<decltype(constant)>>);
+    STATIC_CHECK(!IsInjective<std::decay_t<decltype(constant)>>);
+    STATIC_CHECK(!IsSurjective<std::decay_t<decltype(constant)>>);
+    STATIC_CHECK(!IsBijective<std::decay_t<decltype(constant)>>);
+  }
 }

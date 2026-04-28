@@ -154,6 +154,60 @@ export inline constexpr auto embed_int_SignedCardinality_ =
           return embed_signed_to_SignedCardinality(i);
         });
 
+/**
+ * @brief Type-honest absolute value at the machine layer:
+ *        @c int @c → @c unsigned.
+ *
+ * @details The natural categorical signature for absolute value on
+ * the signed-integer carrier is @c int @c → @c unsigned (the image
+ * is exactly the non-negative ints, which canonically embed into
+ * @c unsigned).  The C++ standard library's @c std::abs(int) @c → @c
+ * int is type-@b dishonest about this — its result is always non-
+ * negative but the return type doesn't say so, and the caller has to
+ * know.  This function is the type-honest sibling: the @c unsigned
+ * return type announces non-negativity at the type level.
+ *
+ * Honest-extension property: @b total at @c INT_MIN where @c
+ * std::abs is UB.  The implementation works in @c unsigned modular
+ * arithmetic (which is well-defined for all input bit-patterns) and
+ * relies on @c 0u @c - @c static_cast<unsigned>(INT_MIN) yielding
+ * @c |INT_MIN| as an @c unsigned (well-defined for any @c int width
+ * and any two's-complement / sign-magnitude / ones'-complement ABI;
+ * the project does not pin a 32-bit assumption).  This avoids the
+ * UB that @c std::abs(INT_MIN) triggers via @c -INT_MIN overflow.
+ *
+ * Categorical classification: @b neither @b monic @b nor @b epic.
+ *   * Not monic: distinct inputs @c +n and @c -n map to the same
+ *     @c unsigned magnitude (sign-folding).
+ *   * Not epic onto @c unsigned: the image is the half-range @c [0,
+ *     @c |INT_MIN|], missing the upper half of @c unsigned.  Restricted
+ *     to @c [0, @c |INT_MIN|] as codomain the function would be epic —
+ *     but C++ has no clean "non-negative int" type to express that
+ *     codomain (cf. @c std::numeric_limits<int>::digits for the
+ *     width-relative phrasing).
+ *
+ * Variant-layer counterpart: @c abs : @c SignedCardinality @c → @c
+ * Cardinality (in @c sets:cardinality), which IS surjective onto
+ * the saturating @c Cardinality (because @c Cardinality has an @c
+ * ℵ_0 sentinel and no upper bound on the finite fragment) — see the
+ * @c Relationship_to_std_abs section in that function's docstring.
+ */
+export constexpr unsigned abs_int_unsigned(int x) noexcept {
+  // The conditional is a clarity move; both branches reduce to
+  // @c -static_cast<unsigned>(x) modulo two's-complement arithmetic.
+  // Authored explicitly to make the type-honest reading obvious to a
+  // reader: "if negative, negate after widening to unsigned".
+  return x < 0 ? -static_cast<unsigned>(x) : static_cast<unsigned>(x);
+}
+
+// Type-signature witness: the function's return type IS @c unsigned,
+// not @c int — that's the load-bearing fact this partition adds vis-
+// à-vis @c std::abs.
+static_assert(std::same_as<decltype(abs_int_unsigned(0)), unsigned>,
+              "abs_int_unsigned has a type-honest unsigned codomain — the "
+              "non-negativity of the result is announced at the type level, "
+              "unlike std::abs(int) → int.");
+
 // ===========================================================================
 // (2) Family classification — std::signed_integral as operator-surface ✓ /
 //     axiomatic-ring ✗
@@ -234,4 +288,8 @@ template <>
 inline constexpr bool is_monic_arrow_v<
     std::decay_t<decltype(dedekind::numbers::embed_int_SignedCardinality_)>> =
     true;
+static_assert(IsInjective<std::decay_t<
+                  decltype(dedekind::numbers::embed_int_SignedCardinality_)>>,
+              "embed_int_SignedCardinality_ (int → SignedCardinality) is "
+              "registered injective.");
 }  // namespace dedekind::category

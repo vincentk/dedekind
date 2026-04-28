@@ -259,4 +259,7 @@ template <>
 inline constexpr bool
     is_monic_arrow_v<std::decay_t<decltype(dedekind::numbers::embed_𝔹_𝕂3)>> =
         true;
+static_assert(
+    IsInjective<std::decay_t<decltype(dedekind::numbers::embed_𝔹_𝕂3)>>,
+    "embed_𝔹_𝕂3 (𝔹 ↪ 𝕂3) is registered injective.");
 }  // namespace dedekind::category

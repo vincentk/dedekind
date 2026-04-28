@@ -683,4 +683,76 @@ concept IsBijectiveArrow = IsMonicArrow<E> && IsEpicArrow<E>;
 static_assert(IsBijectiveArrow<Identity<int>>,
               "Identity must be recognised as a bijective arrow.");
 
+// ---------------------------------------------------------------------------
+// Pedagogical-accessibility synonyms (closes #459).
+//
+// The categorical names @c IsMonicArrow / @c IsEpicArrow /
+// @c IsBijectiveArrow are the canonical primitives.  The set-theoretic
+// names @c IsInjective / @c IsSurjective / @c IsBijective are exposed
+// here as @c = aliases so readers coming from the standard high-school /
+// undergraduate set-theory baseline can find the concepts under the
+// vocabulary they already know.  No new structural content; the
+// underlying opt-in traits ( @c is_monic_arrow_v / @c is_epic_arrow_v)
+// retain their categorical names — register monicity / epicity once,
+// either spelling fires.
+//
+// Hierarchy (strict ⇒ relaxed):
+//   @c IsIsomorphism<F>  (above) — has @c inverse(f) ADL arrow available.
+//          ⇓ structurally implies (in Set: iso ⇒ mono + epi)
+//   @c IsBijective<E>  ≡  @c IsBijectiveArrow<E>
+//          ⇓
+//   @c IsInjective<E>  (≡ @c IsMonicArrow), @c IsSurjective<E> (≡ @c
+//   IsEpicArrow)
+//
+// @c IsIsomorphism is the @b strictest: it additionally demands that the
+// inverse morphism be present as an ADL-discoverable @c inverse() arrow.
+// A @c IsBijective arrow is the set-theoretic statement of the same fact
+// (injective + surjective) without requiring the inverse arrow to be
+// reified.  The reverse implication ( @c IsBijective @c ⇒ @c
+// IsIsomorphism) does @b not hold: a bijection can be declared via the
+// opt-in traits without its inverse being available as a callable arrow.
+// ---------------------------------------------------------------------------
+
+/**
+ * @concept IsInjective
+ * @brief Set-theoretic synonym for @c IsMonicArrow — an arrow is
+ *        @b injective iff distinct inputs yield distinct outputs
+ *        (@c f(x) @c == @c f(y) @c → @c x @c == @c y).
+ * @details Categorically the same concept: a monomorphism in the
+ *          category of sets.  Opt-in via @c is_monic_arrow_v<E>.
+ */
+export template <typename E>
+concept IsInjective = IsMonicArrow<E>;
+
+/**
+ * @concept IsSurjective
+ * @brief Set-theoretic synonym for @c IsEpicArrow — an arrow is
+ *        @b surjective iff every codomain element has a preimage
+ *        (∀ @c b ∈ @c B ∃ @c a ∈ @c A. @c f(a) @c == @c b).
+ * @details Categorically the same concept: an epimorphism in the
+ *          category of sets.  Opt-in via @c is_epic_arrow_v<E>.
+ */
+export template <typename E>
+concept IsSurjective = IsEpicArrow<E>;
+
+/**
+ * @concept IsBijective
+ * @brief Set-theoretic synonym for @c IsBijectiveArrow — an arrow is
+ *        @b bijective iff it is both injective and surjective, i.e. a
+ *        set-theoretic isomorphism @c A @c ≅ @c B.
+ */
+export template <typename E>
+concept IsBijective = IsBijectiveArrow<E>;
+
+// Mechanical witnesses that the synonyms agree with the categorical
+// originals on the canonical Identity arrow (and would diverge if any
+// future drift broke the alias).
+static_assert(IsInjective<Identity<int>>,
+              "IsInjective synonym must agree with IsMonicArrow on Identity.");
+static_assert(IsSurjective<Identity<int>>,
+              "IsSurjective synonym must agree with IsEpicArrow on Identity.");
+static_assert(IsBijective<Identity<int>>,
+              "IsBijective synonym must agree with IsBijectiveArrow on "
+              "Identity.");
+
 }  // namespace dedekind::category

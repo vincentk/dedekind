@@ -241,6 +241,9 @@ inline constexpr bool
 static_assert(
     IsMonicArrow<std::decay_t<decltype(dedekind::geometry::embed_z2_r2)>>,
     "embed_z2_r2 must be recognised as a monic arrow.");
+static_assert(
+    IsInjective<std::decay_t<decltype(dedekind::geometry::embed_z2_r2)>>,
+    "embed_z2_r2 (ℤ² ↪ ℝ²) is registered injective.");
 
 }  // namespace dedekind::category
 
