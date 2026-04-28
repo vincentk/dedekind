@@ -141,6 +141,15 @@ namespace dedekind::numbers {
  */
 export template <std::unsigned_integral U>
 constexpr dedekind::sets::Cardinality embed_unsigned_to_Cardinality(U v) {
+  static_assert(std::numeric_limits<U>::digits <=
+                    std::numeric_limits<std::size_t>::digits,
+                "embed_unsigned_to_Cardinality requires every value of U to "
+                "be representable as std::size_t; otherwise the conversion "
+                "would silently truncate and break injectivity.  On platforms "
+                "where this fires (e.g. 32-bit std::size_t with 64-bit "
+                "unsigned long long), a wider Cardinality finite-fragment "
+                "constructor or an explicit ℵ_0 escalation on overflow would "
+                "be needed.");
   return dedekind::sets::finite_cardinality(static_cast<std::size_t>(v));
 }
 
@@ -186,12 +195,15 @@ static_assert(dedekind::algebra::HasGroupOperatorsAdd<unsigned long>,
 static_assert(dedekind::algebra::HasGroupOperatorsAdd<std::size_t>,
               "std::size_t closes the additive-group operator surface.");
 
-// Axiomatic algebra — the textbook ℤ/2^wℤ commutative ring.
+// Axiomatic algebra — the textbook ℤ/2^wℤ commutative ring.  The
+// width @c w is platform-dependent (numeric_limits<unsigned int>::digits;
+// commonly 32 on LP64 / LLP64 systems but not guaranteed by the
+// standard).  Witness messages are kept width-agnostic.
 static_assert(
     dedekind::algebra::IsCommutativeRing<unsigned int, std::plus<unsigned int>,
                                          std::multiplies<unsigned int>>,
-    "unsigned int IS the commutative ring ℤ/2^32ℤ under modular "
-    "arithmetic — additive inverses via mod wrap, * commutes.");
+    "unsigned int IS the commutative ring ℤ/2^wℤ at the unsigned-int width "
+    "under modular arithmetic — additive inverses via mod wrap, * commutes.");
 static_assert(dedekind::algebra::IsCommutativeRing<
                   unsigned long, std::plus<unsigned long>,
                   std::multiplies<unsigned long>>,
@@ -220,7 +232,8 @@ static_assert(dedekind::algebra::IsArithmeticRing<std::size_t>,
 // (member-API) IsCyclic story.
 static_assert(
     dedekind::category::IsCyclicGroup<unsigned int, std::plus<unsigned int>>,
-    "unsigned int is the additive cyclic group ℤ/2^32ℤ under +.");
+    "unsigned int is the additive cyclic group ℤ/2^wℤ at the "
+    "unsigned-int width under +.");
 
 // Negative axiomatic witness: NOT a field.  Reason: @c 0 has no
 // multiplicative inverse; even-numbered elements share the @c 2
@@ -308,22 +321,29 @@ static_assert(dedekind::category::IsCyclicGroup<
 // Note: narrow-width @c HasGroupOperatorsAdd refuses on @c unsigned
 // @c short / @c unsigned @c char because integer promotion lifts
 // literal @c + to @c int (see PR #394's Pattern-(b) discussion in
-// @c algebra:group).  The ring-homomorphism shape is the @b lifted
-// operator agreement, not the @c short-typed surface.
+// @c algebra:group).  To witness preservation on the @b non-overflow
+// fragment of @c unsigned @c short ↪ @c unsigned @c int, we cast the
+// computed result back to @c unsigned @c short on the source side and
+// pick operands whose sum / product still fit in @c unsigned @c short.
+// (Without the cast-back, integer promotion makes both sides compute
+// in @c int and the equality holds even for values that @b would
+// overflow modulo @c 2^16 — masking the witness's intent.)
 
 static_assert(
-    static_cast<unsigned int>(static_cast<unsigned short>(0xFFFF) +
-                              static_cast<unsigned short>(1)) ==
-        static_cast<unsigned int>(0xFFFF) + static_cast<unsigned int>(1),
+    static_cast<unsigned int>(
+        static_cast<unsigned short>(static_cast<unsigned short>(0xFFFE) +
+                                    static_cast<unsigned short>(1))) ==
+        static_cast<unsigned int>(0xFFFE) + static_cast<unsigned int>(1),
     "Width-ladder ring-hom witness: + commutes with the @c unsigned "
-    "@c short ↪ @c unsigned @c int inclusion on the non-overflow fragment.");
+    "@c short ↪ @c unsigned @c int inclusion on the non-overflow fragment "
+    "(0xFFFE + 1 = 0xFFFF fits in unsigned short, no wrap on either side).");
 static_assert(
-    static_cast<unsigned int>(static_cast<unsigned short>(0x100) *
-                              static_cast<unsigned short>(0x100)) ==
-        static_cast<unsigned int>(0x100) * static_cast<unsigned int>(0x100),
-    "Width-ladder ring-hom witness: * commutes with the inclusion (the "
-    "non-overflow fragment fits in unsigned int even when overflow on "
-    "unsigned short would wrap).");
+    static_cast<unsigned int>(
+        static_cast<unsigned short>(static_cast<unsigned short>(0x00FF) *
+                                    static_cast<unsigned short>(0x0101))) ==
+        static_cast<unsigned int>(0x00FF) * static_cast<unsigned int>(0x0101),
+    "Width-ladder ring-hom witness: * commutes with the inclusion on the "
+    "non-overflow fragment (0xFF · 0x101 = 0xFFFF fits in unsigned short).");
 
 }  // namespace dedekind::numbers
 
