@@ -713,4 +713,48 @@ static_assert(IsBinaryFunction<arrow_as_relation<Identity<int>>, int, int>,
               "Identity is the canonical witness; arbitrary IsArrow F → "
               "arrow_as_relation<F> fires the same chain.");
 
+// ---------------------------------------------------------------------------
+// Carrier-lattice lift unification (closes part of #455).
+//
+// Discoverability alias indexed by the lattice arrow's @c (From, To)
+// pair.  Calling @c lift<From, To>(x) dispatches to the canonical
+// bespoke arrow registered for that pair (e.g. @c lift_ℕ_ℤ_ for the
+// pair @c (Cardinality, SignedCardinality)).  Bespoke names remain
+// canonical; this trait is purely additive.
+//
+// @b Not @b a @b categorical @b claim.  The seven existing carrier-
+// lattice arrows fall into three structurally distinct families
+// (set-theoretic mono inclusions, partial machine→variant lifts,
+// machine sign reinterpretation); a single "monadic lift" framing
+// would overstate the structure.  See @c docs/design/lift-unification.md
+// for the design decision rationale.
+//
+// Primary template fires a useful @c static_assert if instantiated on
+// an unregistered pair; specialisations live downstream where each
+// canonical bespoke arrow is defined.
+// ---------------------------------------------------------------------------
+
+/**
+ * @brief Canonical lift @c From @c → @c To across the carrier
+ *        lattice — discoverability alias dispatching to the
+ *        registered bespoke arrow for @c (From, @c To).
+ *
+ * @details Specialise this primary for each registered lattice pair.
+ * The primary fires a useful @c static_assert at instantiation if no
+ * specialisation exists, naming the design doc that lists the
+ * registered pairs.
+ */
+export template <typename From, typename To>
+constexpr To lift(From const&) {
+  // @c sizeof(From) @c == @c 0 is always false for complete types;
+  // the dependence on @c From defers the assert until instantiation,
+  // so specialisations are not affected.
+  static_assert(sizeof(From) == 0,
+                "No canonical lift<From, To> registered for this pair.  See "
+                "docs/design/lift-unification.md for the registered carrier-"
+                "lattice arrows; specialise dedekind::category::lift<From, To> "
+                "in the partition that owns the canonical bespoke.");
+  return To{};  // unreachable; satisfies the return-type contract.
+}
+
 }  // namespace dedekind::category
