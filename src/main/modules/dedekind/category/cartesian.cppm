@@ -713,4 +713,67 @@ static_assert(IsBinaryFunction<arrow_as_relation<Identity<int>>, int, int>,
               "Identity is the canonical witness; arbitrary IsArrow F → "
               "arrow_as_relation<F> fires the same chain.");
 
+// ---------------------------------------------------------------------------
+// Carrier-lattice lift unification (closes part of #455).
+//
+// Discoverability alias indexed by the lattice arrow's @c (From, To)
+// pair.  Calling @c lift<From, To>(x) dispatches to the canonical
+// bespoke arrow registered for that pair (e.g. @c lift_ℕ_ℤ_ for the
+// pair @c (Cardinality, SignedCardinality)).  Bespoke names remain
+// canonical; this trait is purely additive.
+//
+// @b Not @b a @b categorical @b claim.  The seven existing carrier-
+// lattice arrows fall into three structurally distinct families
+// (set-theoretic mono inclusions, partial machine→variant lifts,
+// machine sign reinterpretation); a single "monadic lift" framing
+// would overstate the structure.  See @c docs/design/lift-unification.md
+// for the design decision rationale.
+//
+// Primary template fires a useful @c static_assert if instantiated on
+// an unregistered pair; specialisations live downstream where each
+// canonical bespoke arrow is defined.
+// ---------------------------------------------------------------------------
+
+namespace lift_detail {
+/**
+ * @brief Dependent-false helper for the lift primary's static_assert.
+ * @details Defers @c false until template instantiation without
+ *          requiring the parameter types to be complete (unlike
+ *          @c sizeof(From) @c == @c 0, which would error for
+ *          incomplete @c From before emitting the intended
+ *          diagnostic).
+ */
+template <typename...>
+inline constexpr bool dependent_false_v = false;
+}  // namespace lift_detail
+
+/**
+ * @brief Canonical lift @c From @c → @c To across the carrier
+ *        lattice — discoverability alias dispatching to the
+ *        registered bespoke arrow for @c (From, @c To).
+ *
+ * @details Specialise this primary for each registered lattice pair.
+ * The primary fires a useful @c static_assert at instantiation if no
+ * specialisation exists, naming the design doc that lists the
+ * registered pairs.  The body uses a @c dependent_false_v helper
+ * (avoids @c sizeof on @c From which would require completeness) and
+ * ends with @c std::unreachable() — itself @c [[noreturn]] — so the
+ * function does NOT need @c To to be default-constructible (no
+ * @c return @c To{} required).  The function itself is NOT marked
+ * @c [[noreturn]] because that attribute would apply to
+ * specialisations too, and specialisations DO return their bespoke
+ * result.  Full specialisations override the primary cleanly.
+ */
+export template <typename From, typename To>
+constexpr To lift(From const&) {
+  static_assert(lift_detail::dependent_false_v<From, To>,
+                "No canonical lift<From, To> registered for this pair.  See "
+                "docs/design/lift-unification.md for the registered carrier-"
+                "lattice arrows; specialise dedekind::category::lift<From, To> "
+                "in the partition that owns the canonical bespoke.");
+  std::unreachable();  // Never reached: the static_assert above fires
+                       // first.  Avoids requiring @c To to be default-
+                       // constructible (which @c return @c To{} would).
+}
+
 }  // namespace dedekind::category

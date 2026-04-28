@@ -309,3 +309,30 @@ TEST_CASE(
   CHECK(embed_𝔹_𝕂3(true) != Ternary::Unknown);
   CHECK(embed_𝔹_𝕂3(false) != Ternary::Unknown);
 }
+
+// ===========================================================================
+// (7) Carrier-lattice lift unification (#455): existential-proof
+//     dispatch on the central (Cardinality, SignedCardinality) pair.
+// ===========================================================================
+
+TEST_CASE(
+    "carrier-lattice lift dispatch: lift<Cardinality, SignedCardinality>(c) "
+    "agrees with the canonical bespoke lift_ℕ_ℤ_(c) — discoverability alias "
+    "without categorical overclaim",
+    "[carrier-lattice][lift-unification][dispatch]") {
+  // The unified lift<From, To> trait dispatches to the canonical
+  // bespoke arrow registered for the (From, To) pair.  For the
+  // central variant-layer ℕ → ℤ pair, the dispatch resolves to
+  // lift_ℕ_ℤ_; the result must agree on every input.
+  for (const std::size_t v : {std::size_t{0}, std::size_t{1}, std::size_t{42},
+                              std::size_t{1000}, std::size_t{2147483648u}}) {
+    const auto via_alias =
+        lift<Cardinality, SignedCardinality>(finite_cardinality(v));
+    const auto via_bespoke = lift_ℕ_ℤ_(finite_cardinality(v));
+    CHECK(via_alias == via_bespoke);
+  }
+  // The transfinite case: lift_ℕ_ℤ_ promotes ℵ_0 to PositiveInfinity;
+  // the alias dispatch agrees.
+  const auto inf = Cardinality{ℵ_0{}};
+  CHECK(lift<Cardinality, SignedCardinality>(inf) == lift_ℕ_ℤ_(inf));
+}

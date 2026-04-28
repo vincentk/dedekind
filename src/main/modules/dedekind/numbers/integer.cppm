@@ -611,3 +611,20 @@ static_assert(
     "operator level.");
 
 }  // namespace dedekind::numbers
+
+// ---------------------------------------------------------------------------
+// Carrier-lattice lift unification (#455): existential-proof
+// specialisation of @c category::lift for the central variant-layer
+// pair @c (Cardinality, SignedCardinality).  Demonstrates that the
+// discoverability-alias dispatch works on a real lattice arrow;
+// remaining six specialisations land as follow-up.
+// ---------------------------------------------------------------------------
+
+namespace dedekind::category {
+template <>
+constexpr dedekind::sets::SignedCardinality
+lift<dedekind::sets::Cardinality, dedekind::sets::SignedCardinality>(
+    dedekind::sets::Cardinality const& n) {
+  return dedekind::numbers::lift_ℕ_ℤ_(n);
+}
+}  // namespace dedekind::category
