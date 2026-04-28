@@ -78,4 +78,47 @@ TEST_CASE("Category: Algebraic Proofs (Runtime Witnesses)",
     STATIC_CHECK(IsMonicArrow<Identity<int>>);
     STATIC_CHECK(IsEpicArrow<Identity<int>>);
   }
+
+  SECTION(
+      "Function-as-relation primitive (#460): IsBinaryRelation, "
+      "IsBinaryFunction, arrow_as_relation bridge") {
+    // (1) Positive: an arrow_as_relation<F> for an IsArrow F is a
+    //     binary function — left-total + right-unique by construction.
+    using ArrowRel = arrow_as_relation<Identity<int>>;
+    STATIC_CHECK(IsBinaryRelation<ArrowRel, int, int>);
+    STATIC_CHECK(is_left_total_v<ArrowRel>);
+    STATIC_CHECK(is_right_unique_v<ArrowRel>);
+    STATIC_CHECK(IsBinaryFunction<ArrowRel, int, int>);
+
+    // Operational witness: identity-as-relation relates (a, b) iff a == b.
+    constexpr ArrowRel id_rel{Identity<int>{}};
+    CHECK(id_rel(7, 7));
+    CHECK_FALSE(id_rel(7, 8));
+  }
+
+  SECTION(
+      "Function-as-relation negative case: a multi-valued relation "
+      "fails right-uniqueness (so IsBinaryFunction does not fire)") {
+    // A relation that violates right-uniqueness: for x = 1, both (1,1)
+    // and (1,2) are related — so it's a relation but NOT a function.
+    struct MultiValued {
+      constexpr bool operator()(int x, int y) const {
+        return (x == 1 && (y == 1 || y == 2)) || (x == 2 && y == 2);
+      }
+    };
+    STATIC_CHECK(IsBinaryRelation<MultiValued, int, int>);
+    // Default: not a function (opt-in traits default to false).  The
+    // engineer would NOT register either trait on a multi-valued
+    // relation, so IsBinaryFunction does not fire.
+    STATIC_CHECK(!is_left_total_v<MultiValued>);
+    STATIC_CHECK(!is_right_unique_v<MultiValued>);
+    STATIC_CHECK(!IsBinaryFunction<MultiValued, int, int>);
+    // Operational witness: the multi-valued behaviour is observable.
+    constexpr MultiValued mv{};
+    CHECK(mv(1, 1));
+    CHECK(mv(1, 2));  // ← right-uniqueness fails here
+    CHECK(mv(2, 2));
+    CHECK_FALSE(mv(1, 3));
+    CHECK_FALSE(mv(2, 1));
+  }
 }
