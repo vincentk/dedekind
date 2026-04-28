@@ -78,6 +78,28 @@ struct Comprehension {
   static constexpr bool is_idempotent_v = true;
 };
 
+// Forward declaration of @c Variable: the @c MembershipBinding pipe
+// below has a Variable<bool>-truthy specialisation that needs the
+// type name; the full definition lives just below.
+export template <typename Species>
+struct Variable;
+
+/** @brief Boolean equality predicate for compile-time pruning over 𝔹.
+ *
+ *  Defined here (rather than further down where the @c FiniteBooleanSet
+ *  collapse machinery lives) because the @c MembershipBinding pipe's
+ *  Variable<bool>-truthy specialisation rewrites the bare-@c b form to
+ *  @c BooleanEqPredicate{true}, and that overload needs the type to
+ *  be complete (#408).  The collapse-machinery uses further down still
+ *  see the same definition — it's the single source of truth for the
+ *  bool-domain predicate.
+ */
+export struct BooleanEqPredicate {
+  bool expected;
+
+  constexpr bool operator()(bool v) const { return v == expected; }
+};
+
 /** @brief The Membership Binding: Bridges a Variable to its Domain. */
 template <typename Species>
 struct MembershipBinding {
@@ -87,6 +109,31 @@ struct MembershipBinding {
   template <typename P>
   constexpr auto operator|(P&& p) const {
     return Comprehension<Species, std::decay_t<P>>{base, std::forward<P>(p)};
+  }
+
+  /** @brief Bare-Variable<bool> truthy-predicate specialisation (#408).
+   *
+   *  The textbook set-builder form @c Set{b @c % @c B @c | @c b}
+   *  reads "the elements of @c B for which @c b holds".  When @c b's
+   *  underlying element type is @c bool, the bare-@c b form is the
+   *  truthy predicate — semantically equivalent to @c b @c == @c true,
+   *  which produces a @c BooleanEqPredicate{true}.  This overload
+   *  rewrites the bare form to that canonical predicate so the
+   *  existing collapse machinery ( @c structured_and / @c
+   *  FiniteBooleanSet operators / @c Set::operator& / @c
+   *  Set::operator|) recognises it as the truthy half of a
+   *  complementary pair.  Mirrors the existing @c operator==(b, bool)
+   *  and @c operator!(b) overloads in this partition: the bool-domain
+   *  encoding lives in exactly one place ( @c BooleanEqPredicate),
+   *  with all three syntactic surfaces ( @c b, @c b @c == @c true,
+   *  @c !b) routing into it.
+   */
+  template <typename OtherSpecies>
+    requires std::same_as<element_of_t<Species>, bool> &&
+             std::same_as<element_of_t<OtherSpecies>, bool>
+  constexpr auto operator|(const Variable<OtherSpecies>&) const {
+    return Comprehension<Species, BooleanEqPredicate>{base,
+                                                      BooleanEqPredicate{true}};
   }
 };
 
@@ -179,13 +226,6 @@ inline constexpr bool IsComplementPair_v =
 
 export template <typename T, typename L, typename Predicate>
 class Set;
-
-/** @brief Boolean equality predicate for compile-time pruning over 𝔹. */
-export struct BooleanEqPredicate {
-  bool expected;
-
-  constexpr bool operator()(bool v) const { return v == expected; }
-};
 
 /** @brief Extensional finite bool-domain result for collapsed 𝔹 operations. */
 export template <typename L>

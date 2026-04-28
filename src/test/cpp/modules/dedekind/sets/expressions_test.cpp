@@ -79,6 +79,36 @@ TEST_CASE("Dedekind Identities: Boolean literals collapse over 𝔹",
   CHECK((b_false | b_true)(true) == true);
 }
 
+TEST_CASE(
+    "Dedekind Identities: bare-Variable<bool> truthy form collapses (#408)",
+    "[sets][identities][boolean][variable-truthy]") {
+  // The textbook DSL form `Set{b % B | b}` reads "elements of B for
+  // which b holds" — the bare-b form is the truthy predicate, and
+  // should be recognised as semantically equivalent to b == true by
+  // the structured-and / FiniteBooleanSet collapse machinery.
+  using BoolAmbient = Ω<bool, ClassicalLogic, Finite>;
+  constexpr BoolAmbient B_bool{};
+
+  constexpr auto b = var<BoolAmbient>;
+
+  // Bare-b form (the issue's target ergonomics).
+  constexpr auto b_true_bare = Set{b % B_bool | b};
+  // Equivalent comparison form.
+  constexpr auto b_true_eq = Set{b % B_bool | (b == true)};
+  // Negated bare-b form.
+  constexpr auto b_false = Set{b % B_bool | !b};
+
+  // The collapse machinery treats both bare-b and (b == true) as the
+  // same predicate (BooleanEqPredicate{true}) so the static_asserts
+  // pinning the Boolean partition laws fire on the bare-b form.
+  STATIC_CHECK(Ø<bool, ClassicalLogic>{} == (b_false & b_true_bare));
+  STATIC_CHECK(B_bool == (b_false | b_true_bare));
+
+  // Operational witness: bare-b agrees with (b == true) at every input.
+  CHECK(b_true_bare(false) == b_true_eq(false));
+  CHECK(b_true_bare(true) == b_true_eq(true));
+}
+
 TEST_CASE("Dedekind Sets: Cartesian product and relation witnesses",
           "[sets][relations][cartesian]") {
   auto x = var<Ω<int>>;
