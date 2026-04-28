@@ -74,16 +74,16 @@ module;
 
 export module dedekind.numbers:floating_point;
 
-import dedekind.algebra;   // HasFieldOperators / HasRingOperators
-                           // (operator-surface positives)
-import dedekind.category;  // category::IsRing / category::IsField --- the
-                           // axiomatic forms whose negation is the umbrella
-                           // claim (algebra::IsField composes these with
-                           // IsDivisionRing's operator surface, so its
-                           // negation is too strong: it would also fire on
-                           // a missing operator/, not just on broken axioms).
-import dedekind.order;     // HasPartialOrderOperators / HasTotalOrderOperators
-                           // / IsTotallyOrdered (negation pinned here)
+import dedekind.algebra;  // HasFieldOperators / HasRingOperators
+                          // (operator-surface positives)
+import dedekind.category; // category::IsRing / category::IsField --- the
+                          // axiomatic forms whose negation is the umbrella
+                          // claim (algebra::IsField composes these with
+                          // IsDivisionRing's operator surface, so its
+                          // negation is too strong: it would also fire on
+                          // a missing operator/, not just on broken axioms).
+import dedekind.order;    // HasPartialOrderOperators / HasTotalOrderOperators
+                          // / IsTotallyOrdered (negation pinned here)
 
 namespace dedekind::numbers {
 
