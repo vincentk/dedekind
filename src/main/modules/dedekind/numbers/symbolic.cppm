@@ -11,6 +11,17 @@
  * Reifies algebraic real constants as predicate-set lower-cuts (ETCS
  * subobjects of ℚ). The cut is the constant; bounded-precision queries
  * are the only thing that crosses the realisation boundary.
+ *
+ * @note "Wiskunde is een vrije schepping van de menselijke geest,
+ *        onafhankelijk van de ervaring."
+ *       [Trans: "Mathematics is a free creation of the human mind,
+ *        independent of experience."]
+ *       — L. E. J. Brouwer, paraphrased from *Over de grondslagen der
+ *         wiskunde* (Amsterdam, 1907). Brouwer's intuitionist /
+ *         constructive programme is the methodological ancestor of
+ *         this partition: the cut is the constant (a free mental
+ *         construction); bounded-precision queries are the only
+ *         realisation that crosses the boundary.
  */
 
 module;

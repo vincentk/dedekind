@@ -2,8 +2,7 @@
  * @file dedekind/category/nno.cppm
  * @partition :nno
  * @module dedekind.category:nno
- * @brief Level 2: The Natural Numbers Object (NNO) — Lawvere's ETCS Axiom 9
- *        as a first-class concept.
+ * @brief Level 2: The Natural Numbers Object — Lawvere's ETCS Axiom 9.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.

@@ -1,9 +1,7 @@
 /**
  * @file dedekind/order/completeness.cppm
  * @partition :completeness
- * @brief Level 1.5: Density and completeness profiles of an ordered
- *        structure --- successor, Archimedean, discrete / dense, and
- *        Dedekind-complete.
+ * @brief Level 1.5: Density and completeness profiles of orders.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
@@ -23,6 +21,17 @@
  * `IsDense`; see the declaration for the rationale.
  *
  * Wikipedia: Archimedean property, Dense order, Dedekind completeness.
+ *
+ * @note "Eine geordnete Menge heißt vollständig, wenn jede nicht leere
+ *        und nach oben beschränkte Teilmenge eine kleinste obere
+ *        Schranke besitzt."
+ *       [Trans: "An ordered set is called complete if every non-empty
+ *        subset bounded above has a least upper bound."]
+ *       — Felix Hausdorff, *Grundzüge der Mengenlehre* (Leipzig:
+ *         Veit & Co., 1914), §6. Hausdorff's foundational text on
+ *         set-theoretic order and topology codifies the
+ *         supremum-completeness reading the project's `IsDedekindComplete`
+ *         and `IsDense` concepts pin.
  */
 module;
 #include <concepts>

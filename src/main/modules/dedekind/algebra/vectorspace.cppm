@@ -1,9 +1,7 @@
 /**
  * @file dedekind/algebra/vectorspace.cppm
  * @partition :vectorspace
- * @brief Level 3.7: The Linear Synthesis over a Field
- *        (vector-space concepts + vector-space witnesses on concrete
- *        carriers).
+ * @brief Level 3.7: vector-space concepts + concrete witnesses.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
@@ -37,6 +35,15 @@
  * @c IsFieldLikeScalar operational witness) remain in
  * @c :modules; Galois-field concepts and carriers (bool-as-𝔽2,
  * struct 𝔽64) live in @c :galois.  @c :vectorspace imports both.
+ *
+ * @note "Die Geometrie ist nicht die Wissenschaft von den Größen,
+ *        sondern von der Art und Weise, wie sie zusammenhängen."
+ *       [Trans: "Geometry is not the science of magnitudes, but of the
+ *        way they hang together."]
+ *       — Hermann Graßmann, *Die lineale Ausdehnungslehre, ein neuer
+ *         Zweig der Mathematik* (Leipzig, 1844), Einleitung. The
+ *         founding text of vector-space theory; Graßmann's relational
+ *         framing prefigures the modern axiomatic definition.
  */
 module;
 
