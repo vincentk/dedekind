@@ -22,8 +22,15 @@
  * Both Forms anchor the same carrier; this test suite is the
  * @b formal, @b type-checked @b documentation that the dual
  * inhabitance holds operationally.
+ *
+ *   3. Carrier-lattice arrows (Figure 1 in @c paper.tex /
+ *      @c report.tex) — the labelled arrows are mechanically
+ *      witnessed as @c IsMonicArrow / @c IsArrow concepts so the
+ *      figure's claims are not schematic prose but type-checked
+ *      facts.
  */
 #include <catch2/catch_test_macros.hpp>
+#include <type_traits>
 #include <variant>  // load-bearing for variant operator== via ADL
 
 import dedekind.algebra;
@@ -52,8 +59,7 @@ TEST_CASE("initial_ring: IsInitialRing<SignedCardinality> fires",
 }
 
 TEST_CASE(
-    "initial_ring: IsGrothendieckGroup<SignedCardinality, Cardinality> "
-    "fires",
+    "initial_ring: IsGrothendieckGroup<SignedCardinality, Cardinality> fires",
     "[algebra][grothendieck][witness]") {
   STATIC_CHECK(IsGrothendieckGroup<SignedCardinality, Cardinality>);
   STATIC_CHECK((is_grothendieck_group_v<SignedCardinality, Cardinality>));
@@ -84,16 +90,20 @@ TEST_CASE(
 namespace {
 // Helper: mod-n reduction of a finite SignedCardinality value.
 // Implements χ_{Modular<n>} for the finite fragment.
+//
+// Precision: take the modulus in the limb type (the wider unsigned
+// type the @c ExtensionalCardinal stores @c magnitude.limbs[0] in)
+// before narrowing to @c Modular<N>::machine_type.  Casting first
+// would truncate the magnitude when @c machine_type is narrower
+// than the limb type.
 template <auto N>
-constexpr Modular<N> chi_to_modular(SignedCardinality const& z) noexcept {
-  // For finite values, extract magnitude with sign and reduce.
-  // The universal property's content (uniqueness) is the engineer's
-  // honesty obligation; this implementation realises the unique
-  // homomorphism on the finite fragment.
+constexpr Modular<N> χ_to_modular(SignedCardinality const& z) noexcept {
   if (auto const* sec = std::get_if<SignedExtensionalCardinal<>>(&z)) {
     using ML = typename Modular<N>::machine_type;
-    auto const mag = static_cast<ML>(sec->magnitude.limbs[0]);
-    auto const reduced_mag = mag % static_cast<ML>(N);
+    auto const limb = sec->magnitude.limbs[0];
+    using LimbType = std::remove_cv_t<std::remove_reference_t<decltype(limb)>>;
+    auto const reduced_in_limb = limb % static_cast<LimbType>(N);
+    auto const reduced_mag = static_cast<ML>(reduced_in_limb);
     if (sec->negative && reduced_mag != 0) {
       return Modular<N>{static_cast<ML>(N) - reduced_mag};
     }
@@ -111,17 +121,17 @@ TEST_CASE(
     "1 to 1, preserves +, *, zero",
     "[algebra][initial_ring][modular][universal-property]") {
   // Sends 1_ℤ to 1_M (the load-bearing universal-property clause).
-  CHECK(chi_to_modular<5>(finite_signed_cardinality(1)).value == 1);
-  CHECK(chi_to_modular<5>(finite_signed_cardinality(0)).value == 0);
+  CHECK(χ_to_modular<5>(finite_signed_cardinality(1)).value == 1);
+  CHECK(χ_to_modular<5>(finite_signed_cardinality(0)).value == 0);
   // Mod-5 reduction on positive finite values.
-  CHECK(chi_to_modular<5>(finite_signed_cardinality(7)).value == 2);
-  CHECK(chi_to_modular<5>(finite_signed_cardinality(13)).value == 3);
-  CHECK(chi_to_modular<5>(finite_signed_cardinality(25)).value == 0);
+  CHECK(χ_to_modular<5>(finite_signed_cardinality(7)).value == 2);
+  CHECK(χ_to_modular<5>(finite_signed_cardinality(13)).value == 3);
+  CHECK(χ_to_modular<5>(finite_signed_cardinality(25)).value == 0);
   // Mod-5 reduction on negative values (sign-aware: -3 ≡ 2 (mod 5)).
-  CHECK(chi_to_modular<5>(finite_signed_cardinality(-1)).value == 4);
-  CHECK(chi_to_modular<5>(finite_signed_cardinality(-3)).value == 2);
-  CHECK(chi_to_modular<5>(finite_signed_cardinality(-5)).value == 0);
-  CHECK(chi_to_modular<5>(finite_signed_cardinality(-7)).value == 3);
+  CHECK(χ_to_modular<5>(finite_signed_cardinality(-1)).value == 4);
+  CHECK(χ_to_modular<5>(finite_signed_cardinality(-3)).value == 2);
+  CHECK(χ_to_modular<5>(finite_signed_cardinality(-5)).value == 0);
+  CHECK(χ_to_modular<5>(finite_signed_cardinality(-7)).value == 3);
 }
 
 TEST_CASE(
@@ -132,15 +142,15 @@ TEST_CASE(
   auto const z3 = finite_signed_cardinality(3);
   auto const z5 = finite_signed_cardinality(5);
   // χ(a + b) = χ(a) + χ(b)
-  auto const sum_via_z = chi_to_modular<7>(z2 + z3);
-  auto const sum_via_m = chi_to_modular<7>(z2) + chi_to_modular<7>(z3);
+  auto const sum_via_z = χ_to_modular<7>(z2 + z3);
+  auto const sum_via_m = χ_to_modular<7>(z2) + χ_to_modular<7>(z3);
   CHECK(sum_via_z.value == sum_via_m.value);
   // χ(a * b) = χ(a) * χ(b)
-  auto const prod_via_z = chi_to_modular<7>(z2 * z5);
-  auto const prod_via_m = chi_to_modular<7>(z2) * chi_to_modular<7>(z5);
+  auto const prod_via_z = χ_to_modular<7>(z2 * z5);
+  auto const prod_via_m = χ_to_modular<7>(z2) * χ_to_modular<7>(z5);
   CHECK(prod_via_z.value == prod_via_m.value);
   // Wrap example: χ(8) = χ(1) since 8 ≡ 1 (mod 7).
-  CHECK(chi_to_modular<7>(finite_signed_cardinality(8)).value == 1);
+  CHECK(χ_to_modular<7>(finite_signed_cardinality(8)).value == 1);
 }
 
 // ===========================================================================
@@ -151,10 +161,12 @@ TEST_CASE(
     "grothendieck: Cardinality - Cardinality → SignedCardinality realises "
     "the Grothendieck construction at the operator level",
     "[algebra][grothendieck][universal-property][closure-forcing]") {
-  // The operator's existence with the wider codomain @b is the
-  // Grothendieck-construction unit at the operator level.  Exercise
-  // the textbook construction: [(a, b)] ∈ ℤ represents a - b.
-  // Verify the operator yields the corresponding SignedCardinality.
+  // Exercise the textbook construction: [(a, b)] ∈ ℤ represents
+  // a - b.  The closure-forcing operator's existence with the wider
+  // codomain is the Grothendieck-construction's @b multiplication
+  // (the construction map at the operator level); the @b unit is
+  // the embedding @c lift_ℕ_ℤ_ that lifts a single Cardinality into
+  // SignedCardinality (covered in test (5) below).
   auto const a3 = finite_cardinality(3);
   auto const a5 = finite_cardinality(5);
   auto const a7 = finite_cardinality(7);
@@ -228,6 +240,67 @@ TEST_CASE(
   auto const via_initial_ring = finite_signed_cardinality(7);
   CHECK(via_grothendieck == via_initial_ring);
   // χ_{Modular<5>} of either yields the same residue.
-  CHECK(chi_to_modular<5>(via_grothendieck).value ==
-        chi_to_modular<5>(via_initial_ring).value);
+  CHECK(χ_to_modular<5>(via_grothendieck).value ==
+        χ_to_modular<5>(via_initial_ring).value);
+}
+
+// ===========================================================================
+// (5) Carrier-lattice arrows are mechanically witnessed as monic
+// ===========================================================================
+//
+// Figure 1 in @c paper.tex / @c report.tex labels seven arrows.
+// The static_asserts below pin each one as @c IsMonicArrow at the
+// concept level — the figure's claim that they are canonical
+// embeddings registered as monic morphisms is not schematic prose
+// but a type-checked fact.  The dashed retraction @c abs (also
+// shown in the figure) is intentionally @b not asserted monic
+// here; it is a split-mono partner of @c lift_ℕ_ℤ_ (i.e.,
+// @c abs @c ∘ @c embed @c = @c id on the non-negative fragment),
+// which is a different categorical concept.
+
+TEST_CASE(
+    "carrier-lattice: every figure-1 arrow is a structural arrow and a "
+    "type-checked monic morphism",
+    "[carrier-lattice][figure][monic][witness]") {
+  // Top-row variant-layer arrow: ℕ ↪ ℤ canonical embedding.
+  STATIC_CHECK(IsArrow<std::decay_t<decltype(lift_ℕ_ℤ_)>>);
+  STATIC_CHECK(IsMonicArrow<std::decay_t<decltype(lift_ℕ_ℤ_)>>);
+  // Middle-row vertical arrows (machine → variant lifts).
+  STATIC_CHECK(IsArrow<std::decay_t<decltype(embed_unsigned_Cardinality_)>>);
+  STATIC_CHECK(
+      IsMonicArrow<std::decay_t<decltype(embed_unsigned_Cardinality_)>>);
+  STATIC_CHECK(IsArrow<std::decay_t<decltype(embed_int_SignedCardinality_)>>);
+  STATIC_CHECK(
+      IsMonicArrow<std::decay_t<decltype(embed_int_SignedCardinality_)>>);
+  // Middle-row horizontal arrow: machine-layer ℕ → ℤ sign reinterpretation.
+  STATIC_CHECK(IsArrow<std::decay_t<decltype(embed_ℕ_ℤ)>>);
+  STATIC_CHECK(IsMonicArrow<std::decay_t<decltype(embed_ℕ_ℤ)>>);
+  // Bottom-row vertical arrow: 𝔹 ↪ ℕ.
+  STATIC_CHECK(IsArrow<std::decay_t<decltype(embed_𝔹_ℕ)>>);
+  STATIC_CHECK(IsMonicArrow<std::decay_t<decltype(embed_𝔹_ℕ)>>);
+  // Bottom-row horizontal arrow: 𝔹 ↪ 𝕂3.
+  STATIC_CHECK(IsArrow<std::decay_t<decltype(embed_𝔹_𝕂3)>>);
+  STATIC_CHECK(IsMonicArrow<std::decay_t<decltype(embed_𝔹_𝕂3)>>);
+  // Bottom-to-top diagonal arrow: 𝕂3 ↪ ℤ (skips the machine row).
+  STATIC_CHECK(IsArrow<std::decay_t<decltype(embed_K3_ℤ)>>);
+  STATIC_CHECK(IsMonicArrow<std::decay_t<decltype(embed_K3_ℤ)>>);
+}
+
+// ===========================================================================
+// (6) embed_𝔹_𝕂3 operational behaviour (covers the lambda body for
+//     codecov; this PR's only new arrow at the carrier-lattice layer)
+// ===========================================================================
+
+TEST_CASE(
+    "carrier-lattice: embed_𝔹_𝕂3 maps true to Ternary::True and false to "
+    "Ternary::False (canonical 2-valued ↪ 3-valued Kleene inclusion)",
+    "[carrier-lattice][boolean][kleene][embed]") {
+  CHECK(embed_𝔹_𝕂3(true) == Ternary::True);
+  CHECK(embed_𝔹_𝕂3(false) == Ternary::False);
+  // Ternary::Unknown is by construction NOT in the image of the
+  // canonical embedding — it represents the third truth-value that
+  // 𝔹 lacks.  This negative fact is the structural reason the
+  // arrow is monic but not surjective.
+  CHECK(embed_𝔹_𝕂3(true) != Ternary::Unknown);
+  CHECK(embed_𝔹_𝕂3(false) != Ternary::Unknown);
 }

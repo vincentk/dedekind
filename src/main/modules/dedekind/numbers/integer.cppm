@@ -488,6 +488,28 @@ export inline constexpr auto embed_unsigned_ℕ =
 // the width-ladder ring-hom witnesses).  Cross-reference only here.
 
 /**
+ * @brief Canonical variant-layer embedding @c ℕ @c ↪ @c ℤ:
+ *        @c Cardinality @c → @c SignedCardinality, exposed as a
+ *        first-class @c arrow object for the carrier-lattice diagram.
+ *
+ * @details Wraps @c dedekind::sets::lift_cardinality_to_signed (the
+ *          public function definition; lives in @c sets:cardinality
+ *          to remain reachable from cross-variant comparison
+ *          operators without crossing the @c sets @c → @c numbers
+ *          module boundary).  This @c arrow form is the named monic
+ *          morphism the carrier-lattice Figure 1 labels at the
+ *          variant-layer top row; structurally @b distinct from the
+ *          machine-layer @c embed_ℕ_ℤ above (an
+ *          @c arrow<unsigned, @c int> sign reinterpretation).
+ *          Registered as monic below.
+ */
+export inline constexpr auto lift_ℕ_ℤ_ =
+    arrow<dedekind::sets::Cardinality, dedekind::sets::SignedCardinality>(
+        [](const dedekind::sets::Cardinality& c) noexcept {
+          return dedekind::sets::lift_cardinality_to_signed(c);
+        });
+
+/**
  * @brief Canonical embedding of any std::signed_integral into ℤ.
  *
  * @details The extensional integer carrier (extensional_integer = int) is the
@@ -518,6 +540,11 @@ template <>
 inline constexpr bool is_monic_arrow_v<
     std::decay_t<decltype(dedekind::numbers::embed_unsigned_ℕ)>> = true;
 // Monicity of @c embed_unsigned_Cardinality_ is registered in @c :uint.
+
+template <>
+inline constexpr bool
+    is_monic_arrow_v<std::decay_t<decltype(dedekind::numbers::lift_ℕ_ℤ_)>> =
+        true;
 }  // namespace dedekind::category
 
 // ===========================================================================
