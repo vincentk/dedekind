@@ -757,13 +757,15 @@ inline constexpr bool dependent_false_v = false;
  * specialisation exists, naming the design doc that lists the
  * registered pairs.  The body uses a @c dependent_false_v helper
  * (avoids @c sizeof on @c From which would require completeness) and
- * is @c [[noreturn]]-decorated via @c std::unreachable() so the
- * function does NOT need @c To to be default-constructible — the
- * primary will never actually return.  Full specialisations override
- * the primary cleanly.
+ * ends with @c std::unreachable() — itself @c [[noreturn]] — so the
+ * function does NOT need @c To to be default-constructible (no
+ * @c return @c To{} required).  The function itself is NOT marked
+ * @c [[noreturn]] because that attribute would apply to
+ * specialisations too, and specialisations DO return their bespoke
+ * result.  Full specialisations override the primary cleanly.
  */
 export template <typename From, typename To>
-[[noreturn]] constexpr To lift(From const&) {
+constexpr To lift(From const&) {
   static_assert(lift_detail::dependent_false_v<From, To>,
                 "No canonical lift<From, To> registered for this pair.  See "
                 "docs/design/lift-unification.md for the registered carrier-"

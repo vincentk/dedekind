@@ -93,12 +93,14 @@ inline constexpr bool dependent_false_v = false;
 }  // namespace lift_detail
 
 // Function template primary: fires a useful static_assert if no
-// specialisation exists for (From, To).  Decorated [[noreturn]] and
-// uses std::unreachable() so the body does NOT need `To` to be
-// default-constructible — the primary is never actually called once
-// the static_assert fires.
+// specialisation exists for (From, To).  The body ends with
+// std::unreachable() (itself [[noreturn]]) so it does NOT need `To`
+// to be default-constructible — the primary is never actually called
+// once the static_assert fires.  The function itself is NOT marked
+// [[noreturn]] because that attribute would apply to specialisations
+// too, and specialisations DO return.
 template <typename From, typename To>
-[[noreturn]] constexpr To lift(From const& x) {
+constexpr To lift(From const& x) {
   static_assert(lift_detail::dependent_false_v<From, To>,
                 "No canonical lift<From, To> registered for this pair.  "
                 "See docs/design/lift-unification.md for the registered "
