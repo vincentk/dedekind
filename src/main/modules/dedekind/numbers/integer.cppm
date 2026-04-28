@@ -418,21 +418,29 @@ export inline constexpr auto embed_ℕ_ℤ = arrow<unsigned, int>(
     [](const unsigned& x) noexcept { return static_cast<int>(x); });
 
 /**
- * @brief Canonical embedding K3 ↪ ℤ: Ternary → int.
- * @details Maps False -> -1, Unknown -> 0, True -> 1.
+ * @brief Canonical embedding K3 ↪ ℤ: Ternary → SignedCardinality.
+ * @details Maps False → -1, Unknown → 0, True → 1.  Lands on the
+ *          variant ℤ-proxy carrier @c SignedCardinality (closes #430,
+ *          a #402 prerequisite); the previous @c int codomain made
+ *          the K3 → variant-ℤ chain require an explicit machine-side
+ *          extraction step.  The unreachable default returns @c NaZ
+ *          for IEEE-NaN-style propagation if a non-canonical
+ *          @c Ternary value were ever constructed (cannot happen in
+ *          practice — @c Ternary is a closed enum).
  */
 export inline constexpr auto embed_K3_ℤ =
-    arrow<Ternary, int>([](const Ternary& t) noexcept {
-      switch (t) {
-        case Ternary::False:
-          return -1;
-        case Ternary::Unknown:
-          return 0;
-        case Ternary::True:
-          return 1;
-      }
-      return 0;
-    });
+    arrow<Ternary, dedekind::sets::SignedCardinality>(
+        [](const Ternary& t) noexcept -> dedekind::sets::SignedCardinality {
+          switch (t) {
+            case Ternary::False:
+              return dedekind::sets::finite_signed_cardinality(-1);
+            case Ternary::Unknown:
+              return dedekind::sets::finite_signed_cardinality(0);
+            case Ternary::True:
+              return dedekind::sets::finite_signed_cardinality(1);
+          }
+          return dedekind::sets::SignedCardinality{dedekind::sets::NaZ{}};
+        });
 
 /**
  * @brief Canonical embedding of any std::unsigned_integral into formal ℕ.
