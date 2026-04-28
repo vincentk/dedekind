@@ -293,32 +293,44 @@ constexpr auto operator<<(WA const& wa, F&& f) {
 
 /**
  * @concept HasKleisliBindOperators
- * @brief A monadic carrier @c MA supports Kleisli bind via @c >>=
- *        (and the fish alias @c >> ) with a Kleisli arrow @c F.
+ * @brief A monadic carrier @c MA supports Kleisli bind via BOTH
+ *        @c >>= AND its fish alias @c >> with a Kleisli arrow @c F.
  * @details Captures the operator-shape availability of monadic bind:
  *          given @c ma @c : @c M<A> and @c f @c : @c A @c → @c M<B>,
- *          the expression @c ma @c >>= @c f must compile.  The laws
- *          (left/right unit, associativity) are not enforced here;
- *          they are pinned by @c IsMonad in @c :monad.
+ *          @b both @c ma @c >>= @c f and @c ma @c >> @c f must
+ *          compile.  Requiring both makes the concept faithful to the
+ *          docstring's claim of fish-pair support; downstream code
+ *          constrained by this concept may freely use either spelling.
+ *          The laws (left/right unit, associativity) are not enforced
+ *          here; they are pinned by @c IsMonad in @c :monad.
  */
 export template <typename MA, typename F>
 concept HasKleisliBindOperators = requires(MA const& ma, F&& f) {
   { ma >>= std::forward<F>(f) };
+  { ma >> std::forward<F>(f) };
 };
 
 /**
  * @concept HasComonadicExtendOperators
  * @brief A comonadic carrier @c WA supports comonadic extend via
- *        @c <<= (and the fish alias @c << ) with a co-Kleisli arrow @c F.
+ *        BOTH @c <<= AND its fish alias @c << with a co-Kleisli
+ *        arrow @c F.
  * @details Captures the operator-shape availability of comonadic
  *          extend: given @c wa @c : @c W<A> and @c f @c : @c W<A> @c
- *          → @c B, the expression @c wa @c <<= @c f must compile.
- *          The laws (counit, coassociativity) are pinned by @c
- *          IsComonad in @c :monad.
+ *          → @c B, @b both @c wa @c <<= @c f and @c wa @c << @c f
+ *          must compile.  Mirrors the existing @c operator<< guard
+ *          on @c :kleisli that excludes @c std::ios_base-derived
+ *          types so the concept doesn't accidentally fire on stream
+ *          carriers; downstream code constrained by this concept may
+ *          freely use either spelling.  The laws (counit,
+ *          coassociativity) are pinned by @c IsComonad in @c :monad.
  */
 export template <typename WA, typename F>
-concept HasComonadicExtendOperators = requires(WA const& wa, F&& f) {
-  { wa <<= std::forward<F>(f) };
-};
+concept HasComonadicExtendOperators =
+    (!std::derived_from<std::remove_cvref_t<WA>, std::ios_base>) &&
+    requires(WA const& wa, F&& f) {
+      { wa <<= std::forward<F>(f) };
+      { wa << std::forward<F>(f) };
+    };
 
 }  // namespace dedekind::category
