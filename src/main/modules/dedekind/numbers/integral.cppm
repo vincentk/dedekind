@@ -67,32 +67,29 @@ module;
 
 export module dedekind.numbers:integral;
 
-import dedekind.algebra; // IsField (umbrella negative-claim witness)
-import :boolean;         // sibling: bool classification (closes #400)
-import :sint;  // sibling: signed_integral classification (closes #418)
-import :uint;  // sibling: unsigned_integral classification (closes #417)
+import dedekind.algebra;  // IsField (umbrella negative-claim witness)
 
 namespace dedekind::numbers {
 
-/** @section Formal_Verification — umbrella negative claims under arithmetic */
-
-// (1) @c int is not a field under @c std::plus / @c std::multiplies.  The
-//     :sint partition documents that signed-overflow UB defeats the
-//     axiomatic ring witness; the field rejection is the strictly weaker
-//     downstream consequence and is filed here at the umbrella level so
-//     the std::integral reader sees all three siblings rejected as fields
-//     under arithmetic in one place.
-static_assert(
-    !dedekind::algebra::IsField<int, std::plus<int>, std::multiplies<int>>,
-    "int is NOT a field under std::plus / std::multiplies: "
-    "signed-overflow UB defeats closure under arithmetic before "
-    "the field axioms are even reachable.");
-
-// (2) @c bool is not a field under @c std::plus / @c std::multiplies.  The
-//     :boolean partition pins @c IsField<𝔹, std::bit_xor, std::bit_and>
-//     (𝔹 = 𝔽₂ under XOR / AND); the arithmetic-operator reading is a
-//     different structure and is not a field.  Pinned here so the
-//     umbrella reader does not silently inherit the XOR / AND result.
+/** @section Formal_Verification — umbrella negative claims under arithmetic
+ *
+ * The per-sibling field rejections are pinned upstream and are NOT restated
+ * here (vacuous restatements are noise — see the project's cross-partition
+ * assertion-style memo):
+ *   * @c !IsField<unsigned int, std::plus, std::multiplies> --- pinned in
+ *     @c :uint (closes #417).
+ *   * @c !IsField<int> --- pinned at @c algebra/field.cppm (the global
+ *     umbrella witness for the signed family; signed-overflow UB defeats
+ *     closure under arithmetic before the field axioms are reachable).
+ *
+ * The @c bool sibling is the only one whose arithmetic-operator field
+ * rejection is genuinely new at the umbrella level: the @c :boolean
+ * partition pins @c IsField<𝔹, std::bit_xor, std::bit_and> (𝔹 = 𝔽₂ under
+ * XOR / AND), but the arithmetic-operator reading is a structurally
+ * different object and the rejection has not been pinned before.  Filed
+ * here so the umbrella reader does not silently inherit the XOR / AND
+ * result.
+ */
 static_assert(
     !dedekind::algebra::IsField<bool, std::plus<bool>, std::multiplies<bool>>,
     "bool is NOT a field under std::plus / std::multiplies: "
