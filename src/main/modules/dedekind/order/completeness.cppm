@@ -23,6 +23,17 @@
  * `IsDense`; see the declaration for the rationale.
  *
  * Wikipedia: Archimedean property, Dense order, Dedekind completeness.
+ *
+ * @note "Eine geordnete Menge heißt vollständig, wenn jede nicht leere
+ *        und nach oben beschränkte Teilmenge eine kleinste obere
+ *        Schranke besitzt."
+ *       ("An ordered set is called complete if every non-empty
+ *        subset bounded above has a least upper bound.")
+ *       — Felix Hausdorff, *Grundzüge der Mengenlehre* (Leipzig:
+ *         Veit & Co., 1914), §6. Hausdorff's foundational text on
+ *         set-theoretic order and topology codifies the
+ *         supremum-completeness reading the project's `IsDedekindComplete`
+ *         and `IsDense` concepts pin.
  */
 module;
 #include <concepts>

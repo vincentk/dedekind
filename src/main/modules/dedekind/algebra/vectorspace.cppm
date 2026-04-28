@@ -37,6 +37,15 @@
  * @c IsFieldLikeScalar operational witness) remain in
  * @c :modules; Galois-field concepts and carriers (bool-as-𝔽2,
  * struct 𝔽64) live in @c :galois.  @c :vectorspace imports both.
+ *
+ * @note "Die Geometrie ist nicht die Wissenschaft von den Größen,
+ *        sondern von der Art und Weise, wie sie zusammenhängen."
+ *       ("Geometry is not the science of magnitudes, but of the way
+ *        they hang together.")
+ *       — Hermann Graßmann, *Die lineale Ausdehnungslehre, ein neuer
+ *         Zweig der Mathematik* (Leipzig, 1844), Einleitung. The
+ *         founding text of vector-space theory; Graßmann's relational
+ *         framing prefigures the modern axiomatic definition.
  */
 module;
 

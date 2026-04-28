@@ -11,6 +11,14 @@
  * Reifies algebraic real constants as predicate-set lower-cuts (ETCS
  * subobjects of ℚ). The cut is the constant; bounded-precision queries
  * are the only thing that crosses the realisation boundary.
+ *
+ * @note "If God has mathematics of his own that needs to be done, let
+ *        him do it himself."
+ *       — Errett Bishop, *Schizophrenia in Contemporary Mathematics*
+ *         (AMS Colloquium Lectures, Missoula 1973). Bishop's
+ *         constructivist programme is the methodological ancestor of
+ *         this partition: the cut is the constant; bounded-precision
+ *         queries are the only realisation that crosses the boundary.
  */
 
 module;

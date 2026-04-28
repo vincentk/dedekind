@@ -2,10 +2,20 @@
  * @file dedekind/sets/interop.cppm
  * @partition :interop
  * @brief Explicit bridges between Dedekind extensional sets and std set-like
- * containers.
+ *        containers.
  *
- * Copyright 2026 The Dedekind Authors
+ * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
+ *
+ * @note "At the heart of generic programming is a single, simple idea:
+ *        program over the most abstract type that supports the operations
+ *        the algorithm needs."
+ *       — Alexander A. Stepanov & Daniel E. Rose, *From Mathematics to
+ *         Generic Programming* (Addison-Wesley, 2014), §1. Stepanov
+ *         designed the STL on this principle; the partition's bridges
+ *         honour it by translating across the rule-vs-bucket boundary
+ *         (Dedekind predicate-set ↔ std container) without forcing
+ *         either side into the other's vocabulary.
  */
 module;
 

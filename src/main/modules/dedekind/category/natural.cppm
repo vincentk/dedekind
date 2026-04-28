@@ -7,12 +7,12 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @quote
- * "Il concetto di trasformazione naturale è il vero motivo per cui
- *  sono state inventate le categorie."
- * (The concept of natural transformation is the real reason why
- *  categories were invented.)
- * — Saunders Mac Lane (tradotto in spirito Aluffi)
+ * @note "Il concetto di trasformazione naturale è il vero motivo per cui
+ *        sono state inventate le categorie."
+ *       ("The concept of natural transformation is the real reason why
+ *        categories were invented.")
+ *       — Saunders Mac Lane (paraphrased in the spirit of Paolo Aluffi,
+ *         *Algebra: Chapter 0*, AMS 2009).
  *
  *
  * For every object X, we define a morphism η_X: F⟨X⟩ → G⟨X⟩.

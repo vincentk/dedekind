@@ -10,6 +10,14 @@
  * This partition intentionally avoids linking to a concrete GraphBLAS library.
  * It provides a compile-time adapter witness used to validate that the
  * contract-level API can host a GraphBLAS backend in a follow-up PR.
+ *
+ * @note "Sparse matrices and graphs are duals.  The duality opens the
+ *        door to writing graph algorithms in the natural language of
+ *        linear algebra."
+ *       — Timothy A. Davis, *Algorithm 1000: SuiteSparse:GraphBLAS*,
+ *         ACM TOMS 45(4) (2019), §1. Davis is the maintainer of
+ *         SuiteSparse; the GraphBLAS standard formalises the duality
+ *         this partition's adapter targets.
  */
 module;
 
