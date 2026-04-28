@@ -1475,6 +1475,46 @@ export constexpr SignedCardinality operator-(const Cardinality& v) noexcept {
  *      that #396 chose for the saturating semantics; NaZ has no
  *      well-defined magnitude, but the saturated answer is the
  *      conservative bound.
+ *
+ *  @section Relationship_to_std_abs
+ *  Conceptually the same operation as @c std::abs at a different
+ *  carrier layer, with two load-bearing differences:
+ *
+ *  @b 1. @b Type-honest @b codomain.  The natural categorical
+ *  signature for absolute value is @c int @c → @c unsigned (the image
+ *  is exactly the non-negative ints, which canonically embed into
+ *  @c unsigned).  C++'s @c std::abs(int) @c → @c int is type-
+ *  @b dishonest about this: the result is always non-negative but the
+ *  return type doesn't say so, and the caller has to know.  This
+ *  @c abs's variant-layer signature @c SignedCardinality @c → @c
+ *  Cardinality (i.e. @c ℤ @c → @c ℕ) is the @b honest version of the
+ *  same operation: the type announces non-negativity.  In other
+ *  words, the variant @c abs is to the (type-honest) @c int @c → @c
+ *  unsigned absolute value what @c lift_ℕ_ℤ_ is to the unsigned-to-
+ *  signed widening — both honour at the variant layer what the
+ *  machine layer signs implicitly.
+ *
+ *  @b 2. @b Total. @c std::abs(int) has @b undefined @b behaviour at
+ *  @c INT_MIN (since @c -INT_MIN overflows the signed range).  The
+ *  variant carrier @c SignedCardinality has no such pathology — the
+ *  magnitude of the most-negative finite value is representable as a
+ *  non-negative @c Cardinality, and the saturating @c ±ℵ_0 / @c NaZ
+ *  cases extend the operation totally.
+ *
+ *  The commuting square (@c std::abs vs this @c abs across the
+ *  machine ↔ variant lifts, with the post-@c std::abs side coerced to
+ *  @c unsigned to make the codomain match) holds on the non-@c
+ *  INT_MIN fragment of @c int and is partial at @c INT_MIN — @c
+ *  std::abs(INT_MIN) is UB, while @c
+ *  abs(embed_int_SignedCardinality_(INT_MIN)) is a finite Cardinality
+ *  with magnitude @c 2^31.  This is the same Honest-Rejection /
+ *  saturating-extension pattern the project runs for @c int / @c
+ *  unsigned vs the variant carriers.
+ *
+ *  @see std::abs (machine-layer counterpart; type-dishonest @c int →
+ *       @c int signature; partial under UB at @c INT_MIN).
+ *  @see lift_ℕ_ℤ_ in @c numbers:integer (the injective half of the
+ *       split-mono Figure 1 pair).
  */
 export constexpr Cardinality abs(const SignedCardinality& z) noexcept {
   if (detail::sc_is_naz(z)) return Cardinality{ℵ_0{}};

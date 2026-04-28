@@ -1,4 +1,5 @@
 #include <catch2/catch_test_macros.hpp>
+#include <cstdlib>  // For std::abs in the partial-commuting-square test.
 #include <variant>  // For std::variant's operator== reached via ADL on
                     // SignedCardinality / Cardinality (aliases of
                     // std::variant<...>).  Without this include the
@@ -68,4 +69,93 @@ TEST_CASE("Integer: ℕ → ℤ → ℕ on ℵ_0 — saturating round-trip",
           "[numbers][integer][carrier-lattice][round-trip]") {
   const auto inf = Cardinality{ℵ_0{}};
   CHECK(abs(-inf) == inf);
+}
+
+// ===========================================================================
+// Honest extension of std::abs: our @c abs is total where @c std::abs(int)
+// is undefined.  At @c INT_MIN, @c std::abs(INT_MIN) is UB (since
+// @c -INT_MIN overflows the signed range), but the variant carrier
+// @c SignedCardinality has no such pathology — the magnitude of @c INT_MIN
+// is representable as a non-negative @c Cardinality.  This test exercises
+// the case @c std::abs cannot.
+// ===========================================================================
+
+TEST_CASE(
+    "Integer: abs is the honest total extension of std::abs — well-defined "
+    "at INT_MIN where std::abs is UB",
+    "[numbers][integer][carrier-lattice][abs][honest-extension]") {
+  // The pathological value: INT_MIN = -2^31 on a 32-bit int.  std::abs(INT_MIN)
+  // is undefined behaviour because -INT_MIN overflows the signed-int range.
+  // Our @c abs lifts INT_MIN through the variant embedding and returns a
+  // finite @c Cardinality with magnitude 2^31 — total, no UB, type-level
+  // non-negativity guarantee.
+  constexpr int int_min = std::numeric_limits<int>::min();
+  const auto z_min = embed_int_SignedCardinality_(int_min);
+  const auto magnitude = abs(z_min);
+
+  // Magnitude IS representable as a non-negative Cardinality (the
+  // saturating ℕ-proxy carrier).  No UB, no truncation; the answer is
+  // the concrete finite value 2^31 = 2147483648.
+  CHECK(magnitude == finite_cardinality(2147483648u));
+  // The answer is NOT ℵ_0 — INT_MIN is well-finite, just not negatable
+  // in the int range.
+  CHECK_FALSE(magnitude == Cardinality{ℵ_0{}});
+
+  // Cross-check: at INT_MAX (where std::abs IS defined), the two
+  // operations agree on the magnitude — the partial commuting square
+  // holds on the non-INT_MIN fragment.
+  constexpr int int_max = std::numeric_limits<int>::max();
+  const auto z_max = embed_int_SignedCardinality_(int_max);
+  CHECK(abs(z_max) == finite_cardinality(static_cast<std::size_t>(int_max)));
+}
+
+TEST_CASE(
+    "Integer: abs_int_unsigned is the type-honest machine-layer absolute "
+    "value — int → unsigned, total at INT_MIN where std::abs is UB",
+    "[numbers][integer][carrier-lattice][abs][honest-extension]") {
+  // abs_int_unsigned : int → unsigned is the type-honest sibling of
+  // std::abs : int → int.  The unsigned codomain announces
+  // non-negativity at the type level; the implementation is total
+  // (works for INT_MIN where std::abs is UB).
+  constexpr int int_min = std::numeric_limits<int>::min();
+  // abs_int_unsigned(INT_MIN) = 2^31u — total, no UB.
+  CHECK(abs_int_unsigned(int_min) == 2147483648u);
+  // Sign-folding: distinct +n / -n map to the same unsigned magnitude
+  // (so the function is NOT injective).
+  CHECK(abs_int_unsigned(3) == 3u);
+  CHECK(abs_int_unsigned(-3) == 3u);
+  CHECK(abs_int_unsigned(0) == 0u);
+
+  // Partial commuting square: on the non-INT_MIN fragment of int, the
+  // type-honest abs_int_unsigned agrees with std::abs coerced to unsigned.
+  // (At INT_MIN the std::abs side would be UB, so the comparison is
+  // omitted there — the previous CHECK already pinned that case.)
+  for (const int v :
+       {1, -1, 42, -42, 1000, -1000, std::numeric_limits<int>::max()}) {
+    CHECK(abs_int_unsigned(v) == static_cast<unsigned>(std::abs(v)));
+  }
+
+  // Three-way bridge: abs_int_unsigned(v) at the machine layer agrees
+  // with the variant-layer abs lifted through embed_int_SignedCardinality_,
+  // when the latter's Cardinality result is realised back to a finite
+  // value.  Holds on the safe fragment of int.
+  for (const int v : {0, 1, -1, 42, -42, 1000, -1000}) {
+    const auto via_machine = abs_int_unsigned(v);
+    const auto via_variant = abs(embed_int_SignedCardinality_(v));
+    CHECK(via_variant == finite_cardinality(via_machine));
+  }
+  // At INT_MIN: machine-layer abs_int_unsigned and variant-layer abs
+  // both yield magnitude 2^31, even though std::abs(INT_MIN) is UB.
+  // The two honest extensions agree where the UB-bearing original
+  // refuses to commit.
+  CHECK(abs_int_unsigned(int_min) == 2147483648u);
+  CHECK(abs(embed_int_SignedCardinality_(int_min)) ==
+        finite_cardinality(2147483648u));
+  // The exported arrow form abs_ (from :cardinality) wraps the same
+  // operation and exhibits the same totality at INT_MIN.  Covers the
+  // arrow's lambda body for codecov.
+  CHECK(abs_(embed_int_SignedCardinality_(int_min)) ==
+        finite_cardinality(2147483648u));
+  CHECK(abs_(embed_int_SignedCardinality_(-3)) == finite_cardinality(3));
+  CHECK(abs_(embed_int_SignedCardinality_(0)) == finite_cardinality(0));
 }
