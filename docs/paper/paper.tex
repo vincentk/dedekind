@@ -951,7 +951,51 @@ the other two species: $\mathbb{B}$ as the Subobject Classifier
 $\Omega$ (ETCS Axiom~7, already reified in
 \lstinline{dedekind.category:topoi} / \lstinline{:logic});
 $\mathbb{Z}$ as the Initial Ring (equivalently, the Grothendieck
-completion of $\mathbb{N}$), tracked as a follow-up.}
+completion of $\mathbb{N}$), reified by the next paragraph.}
+
+\paragraph{The Form: $\mathbb{Z}$ as the Initial Ring.}
+The library reifies $\mathbb{Z}$ structurally as the \emph{initial
+object in the category of (commutative, unital) rings}: for every
+ring $R$ there exists a \emph{unique} ring homomorphism $\chi_R :
+\mathbb{Z} \to R$, sending $1_\mathbb{Z} \mapsto 1_R$ and determined
+uniquely by ring-axiom preservation.\footnote{Equivalently, and this
+is the operationally relevant reading for the project's carrier
+lattice, $\mathbb{Z}$ is the \emph{Grothendieck completion} of
+$(\mathbb{N}, +, 0)$: the left adjoint of the forgetful functor
+$\mathrm{Ab} \to \mathrm{CMon}$ applied at $\mathbb{N}$.  Concretely
+$\mathbb{Z} = \mathbb{N} \times \mathbb{N} / \sim$ with $(a, b) \sim
+(c, d) \iff a + d = b + c$; the equivalence class $[(a, b)]$
+represents the integer $a - b$.  The closure-forcing binary
+subtraction \lstinline{Cardinality - Cardinality → SignedCardinality}
+realises the construction at the operator level: the operator is
+well-defined as a function $\mathbb{N} \times \mathbb{N} \to
+\mathbb{Z}$, not into $\mathbb{N}$ --- so the codomain widens, and
+the lift carries the Grothendieck construction operationally.  The
+two readings (initial-object-in-Ring and Grothendieck-completion-of-CMon)
+are equivalent up to canonical isomorphism.}  As before, the
+architecture is a three-layer chain mirroring the NNO story.
+\lstinline{IsInitialRing} is the Form (universal property; the
+existence-and-uniqueness of $\chi_R$ remains the engineer's honesty
+obligation, since C++ concepts cannot quantify over the universal
+content; the structural shape of the homomorphism's signature is
+what the type system pins).  \lstinline{SignedCardinality} (the
+variant $\mathbb{Z}$-proxy with $\pm\aleph_0$ saturation and
+\lstinline{NaZ}) is the canonical carrier inhabiting the Form,
+certified by a static-assert witness that exercises the universal
+property on at least one concrete target ring (\lstinline{Modular<n>}
+for some $n$ is the natural choice; the unique homomorphism is the
+mod-$n$ reduction).  $\mathbb{Z}$ is the alias practitioners use,
+pointing to \lstinline{SignedCardinality} once the variant-carrier
+migration of the integer alias is complete.\footnote{With $\Omega$
+already reified ($\mathbb{B}$, ETCS Axiom~7), the NNO reified
+($\mathbb{N}$, ETCS Axiom~9), and the Initial Ring reified
+($\mathbb{Z}$), the categorical-foundation triple on the discrete-
+foundations axis is complete: each of $\mathbb{B}$, $\mathbb{N}$,
+$\mathbb{Z}$ is the universal-property anchor for its symbol, with
+the carriers ($bool$,
+\lstinline{Cardinality}, \lstinline{SignedCardinality}) inhabiting
+those Forms operationally.  The textbook structure precedes the
+machine carriers, in the project's recurring Platonist reading.}
 
 \paragraph{A pair of canonical intensional series: Fibonacci on $\mathbb{N}$, negafibonacci on $\mathbb{Z}$.}
 The design rule has a small, well-understood pedagogical pair that
