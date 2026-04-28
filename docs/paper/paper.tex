@@ -942,6 +942,16 @@ defers materialization to an explicit realization boundary.
 \label{fig:carrier-lattice}
 \end{figure}
 
+\begin{figure}[ht]
+\centering
+\begin{tikzcd}[column sep=large, row sep=large, ampersand replacement=\&]
+  \&[-2em] \texttt{SignedCardinality}~(\mathbb{Z}) \arrow[dl, "\chi_{\mathbb{Z}/2}"'] \arrow[d, "\chi_{\mathbb{Z}/5}"] \arrow[dr, "\chi_{\mathbb{Z}/7}"] \&[-2em] \\
+  \texttt{Modular}\langle 2\rangle \& \texttt{Modular}\langle 5\rangle \& \texttt{Modular}\langle 7\rangle
+\end{tikzcd}
+\caption{The universal-property reading of $\mathbb{Z}$ as the initial ring (sibling to Figure~\ref{fig:carrier-lattice}). For every commutative unital ring $R$, the initial-object property of $\mathbb{Z}$ supplies a unique ring homomorphism $\chi_R : \mathbb{Z} \to R$. The diagram exhibits this at three concrete prime targets $R = \texttt{Modular}\langle n\rangle$ (the cyclic ring $\mathbb{Z}/n\mathbb{Z}$, with prime $n \in \{2, 5, 7\}$ chosen so each target is a field). Each $\chi_n$ is the mod-$n$ reduction; the test suite \texttt{[algebra][initial\_ring][modular][universal-property]} (in \texttt{src/test/cpp/modules/dedekind/numbers/initial\_ring\_test.cpp}) realises $\chi_n$ operationally as the helper \texttt{$\chi$\_to\_modular<n>} and exercises ring-homomorphism preservation ($\chi(a + b) = \chi(a) + \chi(b)$, $\chi(a \cdot b) = \chi(a) \cdot \chi(b)$, $\chi(1_\mathbb{Z}) = 1_R$) plus sign-aware mod reduction. A complementary structural reading: \texttt{unsigned~int} $\cong$ \texttt{Modular}$\langle 2^w\rangle$ at the machine layer (the carrier-lattice middle row of Figure~\ref{fig:carrier-lattice} is the same diagram unrolled at the machine width); \texttt{bool} $\cong$ \texttt{Modular}$\langle 2\rangle$ under XOR. The figure is the visual companion to the engineer's honesty obligation that universal-property uniqueness imposes: declaring \texttt{is\_initial\_ring\_v<SignedCardinality>~=~true} is the type-system anchor; the operational behaviour at every concrete target is the test-suite obligation.}
+\label{fig:initial-ring-modular}
+\end{figure}
+
 \paragraph{The Form: $\mathbb{N}$ as the Natural Numbers Object.}
 The library reifies $\mathbb{N}$ structurally as Lawvere's
 \emph{Natural Numbers Object} (NNO; ETCS Axiom~9
