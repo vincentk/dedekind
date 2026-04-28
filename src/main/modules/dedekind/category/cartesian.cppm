@@ -734,6 +734,19 @@ static_assert(IsBinaryFunction<arrow_as_relation<Identity<int>>, int, int>,
 // canonical bespoke arrow is defined.
 // ---------------------------------------------------------------------------
 
+namespace lift_detail {
+/**
+ * @brief Dependent-false helper for the lift primary's static_assert.
+ * @details Defers @c false until template instantiation without
+ *          requiring the parameter types to be complete (unlike
+ *          @c sizeof(From) @c == @c 0, which would error for
+ *          incomplete @c From before emitting the intended
+ *          diagnostic).
+ */
+template <typename...>
+inline constexpr bool dependent_false_v = false;
+}  // namespace lift_detail
+
 /**
  * @brief Canonical lift @c From @c → @c To across the carrier
  *        lattice — discoverability alias dispatching to the
@@ -742,19 +755,23 @@ static_assert(IsBinaryFunction<arrow_as_relation<Identity<int>>, int, int>,
  * @details Specialise this primary for each registered lattice pair.
  * The primary fires a useful @c static_assert at instantiation if no
  * specialisation exists, naming the design doc that lists the
- * registered pairs.
+ * registered pairs.  The body uses a @c dependent_false_v helper
+ * (avoids @c sizeof on @c From which would require completeness) and
+ * is @c [[noreturn]]-decorated via @c std::unreachable() so the
+ * function does NOT need @c To to be default-constructible — the
+ * primary will never actually return.  Full specialisations override
+ * the primary cleanly.
  */
 export template <typename From, typename To>
-constexpr To lift(From const&) {
-  // @c sizeof(From) @c == @c 0 is always false for complete types;
-  // the dependence on @c From defers the assert until instantiation,
-  // so specialisations are not affected.
-  static_assert(sizeof(From) == 0,
+[[noreturn]] constexpr To lift(From const&) {
+  static_assert(lift_detail::dependent_false_v<From, To>,
                 "No canonical lift<From, To> registered for this pair.  See "
                 "docs/design/lift-unification.md for the registered carrier-"
                 "lattice arrows; specialise dedekind::category::lift<From, To> "
                 "in the partition that owns the canonical bespoke.");
-  return To{};  // unreachable; satisfies the return-type contract.
+  std::unreachable();  // Never reached: the static_assert above fires
+                       // first.  Avoids requiring @c To to be default-
+                       // constructible (which @c return @c To{} would).
 }
 
 }  // namespace dedekind::category

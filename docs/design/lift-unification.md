@@ -44,10 +44,16 @@ families, NOT a single categorical concept:
    and break injectivity (which is why the guard exists).
    - `embed_unsigned_Cardinality_`, `embed_int_SignedCardinality_`.
 
-3. **Machine sign reinterpretation**. The arrow `embed_ℕ_ℤ`
-   (`arrow<unsigned, int>`) is `static_cast<int>(unsigned)` — a
-   bit-pattern reinterpretation, not a value-preserving lift. UB on
-   negative target if the source exceeds `INT_MAX`.
+3. **Machine sign-cast (value conversion)**. The arrow `embed_ℕ_ℤ`
+   (`arrow<unsigned, int>`) is `static_cast<int>(unsigned)` — a value
+   conversion (not a bit-pattern reinterpretation). For sources in
+   `[0, INT_MAX]` the conversion is value-preserving; for sources
+   outside that range the result is **implementation-defined** in
+   C++20 and earlier, and well-defined as the unique value congruent
+   modulo `2^N` in C++20 (which the project targets via C++23). In
+   either case the mapping is **not value-preserving outside the safe
+   range**, so the arrow is not a categorical injection on the full
+   `unsigned` domain.
    - `embed_ℕ_ℤ` (machine).
 
 A single `monadic_lift` API across all three would either:
@@ -77,10 +83,28 @@ code**, not for categorical content:
 ```cpp
 namespace dedekind::category {
 
-// Function template: dispatches to the canonical lift for (From, To).
-// Default: undefined (forces explicit specialisation).
+namespace lift_detail {
+// Dependent-false helper: defers `false` until template instantiation
+// without requiring `From` / `To` to be complete (unlike `sizeof(From)
+// == 0`, which would error for incomplete types before emitting the
+// intended diagnostic).
+template <typename...>
+inline constexpr bool dependent_false_v = false;
+}  // namespace lift_detail
+
+// Function template primary: fires a useful static_assert if no
+// specialisation exists for (From, To).  Decorated [[noreturn]] and
+// uses std::unreachable() so the body does NOT need `To` to be
+// default-constructible — the primary is never actually called once
+// the static_assert fires.
 template <typename From, typename To>
-constexpr To lift(From const& x) = delete;
+[[noreturn]] constexpr To lift(From const& x) {
+  static_assert(lift_detail::dependent_false_v<From, To>,
+                "No canonical lift<From, To> registered for this pair.  "
+                "See docs/design/lift-unification.md for the registered "
+                "lattice arrows.");
+  std::unreachable();
+}
 
 // Specialisations register the canonical lift for each lattice pair.
 // Each specialisation reduces to a call to the bespoke arrow.
