@@ -538,13 +538,17 @@ static_assert(IsProductCategory<Set<std::pair<int, bool>>>);
 //   | right-unique       | @c is_right_unique_v<R>     | @b :cartesian    |
 //   | symmetric          | (filed for follow-up)       | @c :mereology    |
 //
-// Compositions:
-//   * @c IsPartialOrder = reflexive + transitive + antisymmetric (in
-//     @c :mereology, on homogeneous @c T @c × @c T relations).
-//   * @c IsBinaryFunction = left-total + right-unique (here; on
-//     possibly heterogeneous @c A @c × @c B relations).
-//   * @c IsEquivalenceRelation = reflexive + symmetric + transitive
-//     (would require the missing @c is_symmetric_v trait; follow-up).
+// Compositions (as a wider taxonomy across the project):
+//
+//   | composition                                  | reading              |
+//   |----------------------------------------------|----------------------|
+//   | @c IsBinaryRelation (no extra constraint)    | generic binary rel.  |
+//   | @c IsBinaryRelation, homogeneous @c V @c × @c V | @b directed graph |
+//   | + symmetric                                  | @b undirected graph  |
+//   | + reflexive + symmetric + transitive         | equivalence relation |
+//   | + reflexive + antisymmetric + transitive     | partial order (@c
+//   :mereology) | | + left-total + right-unique                  | @b function
+//   (here)   | | + left-total + right-unique + monic + epic   | bijection |
 //
 // Note the indexing difference: @c :mereology's traits are keyed on
 // @c (T, Op) (homogeneous binary operation); the two traits added here
