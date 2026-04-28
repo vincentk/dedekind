@@ -39,7 +39,7 @@ module;
 #include <concepts>
 #include <functional>
 
-export module dedekind.numbers:booleans;
+export module dedekind.numbers:boolean;
 
 import dedekind.algebra;
 import dedekind.category;
@@ -230,9 +230,9 @@ static_assert(FiniteBooleanSetOf<>{}(true) == ClassicalLogic::False,
 static_assert(FiniteBooleanSetOf<>{}(false) == ClassicalLogic::False,
               "Empty Boolean predicate-set does not contain false.");
 
-// (5) Adjacent-set arrow: 𝔹 ↪ ℕ via @c embed_𝔹_ℕ in @c :naturals.
-// This partition is upstream of @c :naturals, so the witness for the
-// monic-arrow registration lives in @c :naturals (registered there as
+// (5) Adjacent-set arrow: 𝔹 ↪ ℕ via @c embed_𝔹_ℕ in @c :natural.
+// This partition is upstream of @c :natural, so the witness for the
+// monic-arrow registration lives in @c :natural (registered there as
 // @c is_monic_arrow_v = true on @c embed_𝔹_ℕ).
 
 }  // namespace dedekind::numbers

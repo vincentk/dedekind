@@ -9,9 +9,9 @@
  * making it available for use in polynomial ring assertions in `algebra`.
  *
  * This partition re-exports the set-level cardinality types and adds the
- * two assertions that require `dedekind.order` and `dedekind.numbers:naturals`:
+ * two assertions that require `dedekind.order` and `dedekind.numbers:natural`:
  *   - `IsTotallyOrdered<ExtensionalCardinal<>>` (needs order)
- *   - `IsNatural<ExtensionalCardinal<>>` (needs numbers:naturals)
+ *   - `IsNatural<ExtensionalCardinal<>>` (needs numbers:natural)
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
@@ -26,7 +26,7 @@ export module dedekind.numbers:cardinality;
 export import dedekind.sets;
 
 import dedekind.order;
-import :naturals;
+import :natural;
 
 namespace dedekind::numbers {
 

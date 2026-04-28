@@ -33,9 +33,11 @@ export import dedekind.order;  // Ordered predicate concepts for numeric species
 export import dedekind.topology;  // Rays, half-spaces, intervals, convex shapes
 
 /** @section Discrete_Foundations (Level -1 & 0) */
-export import :booleans;  // Truth<L> and Ω
-export import :naturals;  // ℕ (Unsigned species)
-export import :integer;   // ℤ (Signed species)
+export import :boolean;  // Truth<L> and Ω
+export import :uint;     // std::unsigned_integral as ℤ/2^wℤ
+                         // (machine layer below ℕ; closes part of #417)
+export import :natural;  // ℕ (Unsigned species)
+export import :integer;  // ℤ (Signed species)
 
 /** @section Algebraic_Extensions (Level 3 & 8) */
 export import :rational;    // ℚ (The Quotient Field)

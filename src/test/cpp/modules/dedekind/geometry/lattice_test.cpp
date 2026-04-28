@@ -11,7 +11,7 @@ TEST_CASE("Geometry: square_natural_grid", "[geometry][lattice]") {
   // Post-#401: the natural-grid carrier is NaturalLatticePoint2D
   // (= pair<unsigned, unsigned>), so braced initialisers must use
   // unsigned literals.  The "rejects negatives" reading moves to the
-  // direct N(int) classifier (witnessed in numbers/naturals.cppm) and
+  // direct N(int) classifier (witnessed in numbers/natural.cppm) and
   // to the integer-grid tests below.
   SECTION("Contains expected interior points") {
     const auto grid = square_natural_grid(4u);
@@ -83,7 +83,7 @@ TEST_CASE("Geometry: unbounded lattice relations", "[geometry][lattice]") {
 
     // Post-#401: ℕ-lattice carrier is unsigned int; natural-lattice-points
     // are unsigned pairs.  The "rejects negative" semantics moves to the
-    // direct N(int) classifier (witnessed in numbers/naturals.cppm).
+    // direct N(int) classifier (witnessed in numbers/natural.cppm).
     REQUIRE(n_line(0u) == NLineLogic::True);
     REQUIRE(n_line(7u) == NLineLogic::True);
     REQUIRE(n_plane({1u, 2u}) == NPlaneLogic::True);

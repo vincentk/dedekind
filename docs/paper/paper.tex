@@ -696,6 +696,65 @@ checks.  The trade is therefore an honesty obligation up front for a
 mechanical guarantee afterward---and it is that asymmetry, not the
 cost, that makes the technique worth practising.
 
+\subsubsection*{Axiomatic programming as an ethical obligation}
+
+The framing in the previous footnote suggests something stronger than
+a stylistic preference.  Read in the spirit of the
+NSPE \emph{Code of Ethics for Engineers}~\cite{nspe_ethics}, axiomatic
+programming is not merely \emph{compatible} with the engineering
+profession's truthfulness canons; it is among the few software-side
+techniques that lets those canons bite operationally.  Civil engineers
+who certify structural drawings carry a verifiable, signed claim about
+load-bearing properties; electrical engineers who sign off on a
+distribution panel carry a similar claim about isolation and
+fault-current ratings.  Software engineers, by contrast, routinely
+``claim'' algebraic, ordering, or invariant properties of their code
+through informal documentation and runtime tests --- claims whose
+verification is deferred, partial, and easily out of date.
+
+The paradigm illustrated in this paper closes the gap on a narrow but
+non-trivial fragment.  When the engineer expresses a structural
+assertion as a concept witness (\lstinline{is_associative_v<T,Op>},
+\lstinline{IsCommutativeRing<unsigned int, ...>},
+\lstinline{!IsField<unsigned int, ...>}), the assertion becomes a
+\emph{public statement} in exactly the sense Canon III recognises ---
+visible at the type-system level, machine-checkable against fixed
+inference rules, and directly subject to peer review through the
+ordinary code-review process.  The professional duty of truthfulness,
+read as a constraint on what software engineers ought to assert and
+how, supplies a normative reading of the technique that goes beyond
+``it produces fewer bugs'': it argues that, where the structure of the
+problem admits a mechanical check, deferring to runtime tests or
+informal documentation is a weaker discharge of the truthfulness
+canon than asserting the property at the type level and letting the
+compiler discharge it.\footnote{The argument is bounded, not absolute.
+Most software claims cannot be reduced to type-level structural
+assertions --- correctness of a TCP retransmit timer, fairness of a
+scheduler, end-to-end latency under load.  The paper's claim is that
+on the fragment where the reduction \emph{is} possible (algebraic
+laws, ordering, carrier-shape invariants, structural pruning), the
+ethics canon supplies a normative reason to take the reduction rather
+than leaving the claim at the testimonial level.  See
+Section~\ref{sec:gap} for the four axes on which the present paradigm
+is bounded; the fragment we cover sits inside those bounds rather
+than extending past them.}
+
+The carrier-lattice section's recurring \emph{Honest Rejection} policy
+is the clearest example.  Calling \texttt{unsigned int} a witness for
+$\mathbb{N}$ is not a mere abuse of notation; it is the kind of
+informal claim the truthfulness canon would have a software engineer
+re-examine.  The library refuses the witness because $\mathbb{N}$ has
+no additive inverse and \texttt{unsigned int} does (mod wrap), and
+that asymmetry has downstream consequences any conscientious caller
+needs to know about.  The refusal is mechanical, but the
+\emph{decision to make the refusal mechanical at all} is a
+professional-ethics decision: the engineer chose not to defer the
+claim to documentation or test fixtures.  Multiplied across a library,
+across the carrier lattice, and across the algebraic concept
+vocabulary, the technique amounts to taking the truthfulness canon
+seriously as a constraint on software practice rather than a
+free-floating professional ideal.
+
 \subsubsection*{Bounded yet open-ended}
 
 Each use is bounded \emph{individually}, but the paradigm as a whole exhibits

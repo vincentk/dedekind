@@ -22,7 +22,7 @@ export module dedekind.numbers:integer;
 import dedekind.algebra;
 import dedekind.category;
 import dedekind.sets;
-import :naturals;
+import :natural;
 export import :cardinality;
 
 namespace dedekind::numbers {
@@ -480,53 +480,12 @@ export inline constexpr auto embed_unsigned_ℕ =
               static_cast<ExtensionalCardinal<>::limb_type>(u)};
         });
 
-/**
- * @brief Universal machine-to-variant lift: @c std::unsigned_integral
- *        @c → @c Cardinality.  Closes part of #417.
- *
- * @details The structure-forgetting lift from the modular finite ring
- * @c ℤ/2^wℤ (which is what @c std::unsigned_integral honestly is — a
- * commutative ring with full additive inverses via mod wrap, NOT @c ℕ
- * in the textbook sense) into the saturating commutative monoid
- * @c Cardinality (the variant @c ℕ-proxy with @c ℵ_0 escalation; no
- * additive inverse).
- *
- * Categorically the arrow @b forgets the modular ring structure: the
- * source has additive inverses (every @c u admits @c (2^w - u) as its
- * additive inverse via mod wrap), while @c Cardinality has none.  The
- * arrow is @b not a ring homomorphism (it cannot be — the codomain is
- * not a ring).  It is the canonical Set-injection on the finite
- * fragment, lifting the machine value @c u to
- * @c Cardinality{ExtensionalCardinal<>{u}}; the @c ℵ_0 alternative on
- * the codomain stays unreached on the embedding direction.
- *
- * Companion to @c embed_signed_to_SignedCardinality (filed under
- * #418), which provides the symmetric lift on the @c
- * std::signed_integral side.  The lift completes the embedding chain
- * @c 𝔹 @c → @c std::unsigned_integral @c → @c ℕ documented in the
- * carrier-lattice section of @c report.tex / @c paper.tex.
- *
- * @tparam U Any @c std::unsigned_integral source type.
- */
-export template <std::unsigned_integral U>
-constexpr dedekind::sets::Cardinality embed_unsigned_to_Cardinality(U v) {
-  return dedekind::sets::finite_cardinality(static_cast<std::size_t>(v));
-}
-
-/**
- * @brief Concrete monic arrow: unsigned ↪ Cardinality (variant ℕ-proxy).
- *
- * @details The named-arrow form of @c embed_unsigned_to_Cardinality<unsigned>,
- * registered as monic in @c is_monic_arrow_v so downstream
- * @c IsMonicArrow / @c IsRingHomomorphism callsites can find it.
- * Distinct unsigned values yield distinct @c Cardinality values
- * (injective on the finite fragment).
- */
-export inline constexpr auto embed_unsigned_Cardinality_ =
-    arrow<unsigned, dedekind::sets::Cardinality>(
-        [](const unsigned& u) noexcept -> dedekind::sets::Cardinality {
-          return embed_unsigned_to_Cardinality(u);
-        });
+// The universal machine-to-variant lift @c embed_unsigned_to_Cardinality
+// and its concrete-arrow form @c embed_unsigned_Cardinality_ live in the
+// dedicated sibling partition @c numbers:uint, which consolidates the
+// @c std::unsigned_integral family's textbook classification (commutative
+// ring @c ℤ/2^wℤ, the @c Modular<N> / @c IsCyclic correspondence, and
+// the width-ladder ring-hom witnesses).  Cross-reference only here.
 
 /**
  * @brief Canonical embedding of any std::signed_integral into ℤ.
@@ -558,9 +517,5 @@ inline constexpr bool
 template <>
 inline constexpr bool is_monic_arrow_v<
     std::decay_t<decltype(dedekind::numbers::embed_unsigned_ℕ)>> = true;
-
-template <>
-inline constexpr bool is_monic_arrow_v<
-    std::decay_t<decltype(dedekind::numbers::embed_unsigned_Cardinality_)>> =
-    true;
+// Monicity of @c embed_unsigned_Cardinality_ is registered in @c :uint.
 }  // namespace dedekind::category

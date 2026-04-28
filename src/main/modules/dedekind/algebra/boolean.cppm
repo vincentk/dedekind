@@ -75,7 +75,7 @@ using BooleanSet = BooleanSetOf<>;
  *  symbols).  The Boolean structures @c bool carries — the Boolean rig
  *  (@c bool, @c ∨, @c ∧), the Galois field 𝔽₂ (@c bool, @c ⊕, @c ∧),
  *  the order lattice — are witnessed at this partition and at
- *  @c numbers:booleans.  The predicate-set role moves to the
+ *  @c numbers:boolean.  The predicate-set role moves to the
  *  unambiguously-named @c BooleanSet (alias of @c Ω<bool>).
  */
 export using 𝔹 = bool;
