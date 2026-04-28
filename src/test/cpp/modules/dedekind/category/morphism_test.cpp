@@ -121,4 +121,19 @@ TEST_CASE("Category: Algebraic Proofs (Runtime Witnesses)",
     CHECK_FALSE(mv(1, 3));
     CHECK_FALSE(mv(2, 1));
   }
+
+  SECTION("Pedagogical synonyms (#459) agree with categorical originals") {
+    // Set-theoretic spellings are = aliases of the categorical
+    // primitives; either name fires the same opt-in trait.
+    STATIC_CHECK(IsInjective<Identity<int>>);
+    STATIC_CHECK(IsSurjective<Identity<int>>);
+    STATIC_CHECK(IsBijective<Identity<int>>);
+    // Cross-check: an arbitrary non-monic arrow is neither injective
+    // nor bijective (default opt-in trait is false).
+    auto const f = arrow([](int x) { return x; });
+    STATIC_CHECK(IsArrow<std::decay_t<decltype(f)>>);
+    STATIC_CHECK(!IsInjective<std::decay_t<decltype(f)>>);
+    STATIC_CHECK(!IsSurjective<std::decay_t<decltype(f)>>);
+    STATIC_CHECK(!IsBijective<std::decay_t<decltype(f)>>);
+  }
 }

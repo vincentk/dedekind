@@ -1484,6 +1484,17 @@ export constexpr Cardinality abs(const SignedCardinality& z) noexcept {
   return Cardinality{std::get<SignedExtensionalCardinal<>>(z).magnitude};
 }
 
+/** @brief Arrow form of @c abs: an exported @c arrow<SignedCardinality,
+ *         Cardinality> object.  Registered @b epic (surjective) below: every
+ *         @c Cardinality is the image of itself ( @c abs(lift_ℕ_ℤ_(c)) @c =
+ *         @c c) and of its negation; the map is sign-folding, conflating
+ *         @c +n and @c -n.  Companion to the injective @c lift_ℕ_ℤ_ in
+ *         @c numbers:integer — together they exhibit the split-mono pair
+ *         from the carrier-lattice diagram (Figure 1). */
+export inline constexpr auto abs_ =
+    dedekind::category::arrow<SignedCardinality, Cardinality>(
+        [](const SignedCardinality& z) noexcept { return abs(z); });
+
 /** @brief Closure-forcing binary minus on @c Cardinality: well-defined
  *         as a function @c ℕ × ℕ → ℤ; ℕ isn't closed under it.  The
  *         operator's existence with the wider return type @b is the
@@ -2004,5 +2015,26 @@ static_assert(!IsClosedUnder<dedekind::sets::Cardinality, std::minus<>>,
               "Cardinality must @b not satisfy IsClosedUnder under "
               "@c std::minus<> — that's precisely what makes binary @c - "
               "closure-forcing.");
+
+// ---------------------------------------------------------------------------
+// Surjective-arrow witness: @c abs_ is registered @b epic.
+//
+// Every @c Cardinality @c c is the image of itself ( @c abs_(lift_ℕ_ℤ_(c))
+// @c = @c c) under @c abs_, so @c abs_ is surjective.  This is the project's
+// first downstream surjective arrow registration (closes part of #459's
+// downstream-witness goal): the @c IsSurjective synonym now mechanically
+// fires on a real domain arrow, not just on @c Identity.  The arrow is
+// @b not monic: distinct signed cardinalities (e.g. @c +3, @c -3) map to
+// the same @c Cardinality, so sign is folded.
+// ---------------------------------------------------------------------------
+template <>
+inline constexpr bool
+    is_epic_arrow_v<std::decay_t<decltype(dedekind::sets::abs_)>> = true;
+static_assert(IsSurjective<std::decay_t<decltype(dedekind::sets::abs_)>>,
+              "abs_ : SignedCardinality → Cardinality is registered "
+              "surjective; the IsSurjective synonym fires on a real domain "
+              "arrow.");
+static_assert(!IsInjective<std::decay_t<decltype(dedekind::sets::abs_)>>,
+              "abs_ is NOT injective — it folds sign (abs(3) == abs(-3)).");
 
 }  // namespace dedekind::category

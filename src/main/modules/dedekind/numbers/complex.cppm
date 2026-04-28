@@ -307,6 +307,9 @@ template <>
 inline constexpr bool
     is_monic_arrow_v<std::decay_t<decltype(dedekind::numbers::embed_ℝ_ℂ<>)>> =
         true;
+static_assert(
+    IsInjective<std::decay_t<decltype(dedekind::numbers::embed_ℝ_ℂ<>)>>,
+    "embed_ℝ_ℂ (ℝ ↪ ℂ) is registered injective.");
 }  // namespace dedekind::category
 
 namespace dedekind::numbers {
@@ -431,6 +434,9 @@ inline constexpr bool
 static_assert(
     IsMonicArrow<std::decay_t<decltype(dedekind::numbers::embed_z2_c)>>,
     "embed_z2_c must be recognised as a monic arrow.");
+static_assert(
+    IsInjective<std::decay_t<decltype(dedekind::numbers::embed_z2_c)>>,
+    "embed_z2_c (ℤ² ↪ ℂ) is registered injective.");
 
 // Structural product proof: ℂ ≅ ℝ × ℝ (or more generally S × S for any
 // carrier).

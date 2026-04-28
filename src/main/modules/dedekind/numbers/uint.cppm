@@ -352,4 +352,9 @@ template <>
 inline constexpr bool is_monic_arrow_v<
     std::decay_t<decltype(dedekind::numbers::embed_unsigned_Cardinality_)>> =
     true;
+static_assert(
+    IsInjective<
+        std::decay_t<decltype(dedekind::numbers::embed_unsigned_Cardinality_)>>,
+    "embed_unsigned_Cardinality_ (unsigned → Cardinality) is "
+    "registered injective.");
 }  // namespace dedekind::category

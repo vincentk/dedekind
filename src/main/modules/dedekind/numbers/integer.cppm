@@ -530,21 +530,33 @@ template <>
 inline constexpr bool
     is_monic_arrow_v<std::decay_t<decltype(dedekind::numbers::embed_ℕ_ℤ)>> =
         true;
+static_assert(IsInjective<std::decay_t<decltype(dedekind::numbers::embed_ℕ_ℤ)>>,
+              "embed_ℕ_ℤ (machine-layer ℕ → ℤ) is registered injective.");
 
 template <>
 inline constexpr bool
     is_monic_arrow_v<std::decay_t<decltype(dedekind::numbers::embed_K3_ℤ)>> =
         true;
+static_assert(
+    IsInjective<std::decay_t<decltype(dedekind::numbers::embed_K3_ℤ)>>,
+    "embed_K3_ℤ (𝕂3 → ℤ) is registered injective.");
 
 template <>
 inline constexpr bool is_monic_arrow_v<
     std::decay_t<decltype(dedekind::numbers::embed_unsigned_ℕ)>> = true;
+static_assert(
+    IsInjective<std::decay_t<decltype(dedekind::numbers::embed_unsigned_ℕ)>>,
+    "embed_unsigned_ℕ (unsigned → ExtensionalCardinal) is registered "
+    "injective.");
 // Monicity of @c embed_unsigned_Cardinality_ is registered in @c :uint.
 
 template <>
 inline constexpr bool
     is_monic_arrow_v<std::decay_t<decltype(dedekind::numbers::lift_ℕ_ℤ_)>> =
         true;
+static_assert(IsInjective<std::decay_t<decltype(dedekind::numbers::lift_ℕ_ℤ_)>>,
+              "lift_ℕ_ℤ_ (variant-layer ℕ ↪ ℤ; Grothendieck-construction unit) "
+              "is registered injective.");
 }  // namespace dedekind::category
 
 // ===========================================================================
