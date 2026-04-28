@@ -1402,11 +1402,15 @@ using IntCat = DiscreteCategory<int>;
 using IdF = identity_functor<IntCat>;
 
 auto successor = arrow([](int x) { return x + 1; });
-auto identity = arrow([](int x) { return x; });
 
 static_assert(IsFAlgebra<int, decltype(successor), IdF>);
 auto algebra = make_f_algebra(IdF{}, successor);
-auto adjunction = make_adjunction(IdF{}, IdF{}, identity, identity);
+
+// IsAdjunction (issue #434) requires unit / counit to be natural
+// transformations per Mac Lane / Milewski; the trivial IdF |- IdF
+// self-adjunction's unit and counit are both identity_transformation.
+using IdT = identity_transformation<IdF>;
+auto adjunction = make_adjunction(IdF{}, IdF{}, IdT{}, IdT{});
 
 constexpr auto stable = least_fixpoint(0, [](int x) {
     return x < 5 ? x + 1 : x;
@@ -1439,6 +1443,50 @@ concept IsNaturalTransformation = requires(Alpha alpha) {
 export template <template <typename> typename F>
 struct UnitTransformation;
 \end{lstlisting}
+
+\subsection{The \texttt{:adjunction} partition: Adjoint Functors and the Free / Forgetful Axis}
+\label{subsec:adjunction-partition}
+
+\textbf{Adjunctions as the load-bearing categorical structure.} Following Mac Lane's observation that ``adjoint functors arise everywhere'' \cite{maclane1971categories}, and adopting Pierce's \cite{pierce1991basic} pedagogical decision to treat adjunctions in their own section rather than as an appendix to functors, the library factors out a dedicated \texttt{:adjunction} partition. An adjunction $F \dashv U$ is a pair of functors $F: \mathcal{D} \to \mathcal{C}$ (the \emph{free} / left adjoint) and $U: \mathcal{C} \to \mathcal{D}$ (the \emph{forgetful} / right adjoint), together with a natural isomorphism $\mathrm{Hom}_\mathcal{C}(F(d), c) \cong \mathrm{Hom}_\mathcal{D}(d, U(c))$, equivalently witnessed by a unit $\eta: \mathrm{id}_\mathcal{D} \Rightarrow U \circ F$ and counit $\varepsilon: F \circ U \Rightarrow \mathrm{id}_\mathcal{C}$ satisfying the triangle identities.
+
+\textbf{Two concept tiers.} The partition exposes two conceptually distinct surfaces, mirroring the project's recurring \emph{shape vs.\ witness} pattern. The 2-parameter form \texttt{HasAdjunctionShape<F, U>} is the cheap, deducible structural concept --- it names the categorical signatures of the adjoint pair and gates downstream uses where the directional reading is what is load-bearing. The 4-parameter form \texttt{IsAdjunction<Left, Right, Unit, Counit>} is the stronger witness concept that requires explicit unit and counit components whose typing lets downstream code state and test the triangle identities; the concept itself does not (and cannot) verify the identities --- they remain the engineer's honesty obligation, since C++ concepts cannot quantify over the categorical content. Directional aliases \texttt{IsFreeFunctor<F, U>} and \texttt{IsForgetfulFunctor<U, F>} re-export \texttt{HasAdjunctionShape} under names that read in either direction at the call site.
+
+\textbf{Natural-transformation typing of the unit and counit.} A meaningful tightening (issue \#434) followed Mac Lane's and Milewski's \cite{milewski2018category} insistence that \emph{an adjunction cannot be defined without natural transformations}. The previous arrow-typed unit and counit admitted under-strict witnesses; the current \texttt{IsAdjunction} composes \texttt{IsUnitOfAdjunction} and \texttt{IsCounitOfAdjunction}, which themselves compose \texttt{IsNaturalTransformation} from the upstream \texttt{:natural} partition. The triangle identities $(\varepsilon F) \circ (F \eta) = 1_F$ and $(G \varepsilon) \circ (\eta G) = 1_G$ remain universal-property territory --- they are the engineer's honesty obligation, since C++ concepts cannot quantify over the ambient categorical content.
+
+\textbf{The carrier-lattice as a sequence of free constructions.} Each step in the numerical tower $\mathbb{N} \subset \mathbb{Z} \subset \mathbb{Q} \subset \mathbb{R} \subset \mathbb{C}$ is a free construction in its respective category: $F: \mathrm{Rig} \to \mathrm{Ring}$ (the Grothendieck construction, with $\mathbb{Z}$ free over $\mathbb{N}$); $F: \mathrm{IntegralDomain} \to \mathrm{Field}$ (the field of fractions, with $\mathbb{Q}$ free over $\mathbb{Z}$); $F: \mathrm{OrderedField} \to \mathrm{CompleteOrderedField}$ (the Cauchy completion, with $\mathbb{R}$ free over $\mathbb{Q}$); $F: \mathrm{Field} \to \mathrm{AlgebraicallyClosedField}$ (the algebraic closure, with $\mathbb{C}$ free over $\mathbb{R}$). At the code level, the unit's component for $\mathbb{N} \hookrightarrow \mathbb{Z}$ is the canonical embedding / variant lift $\texttt{Cardinality} \to \texttt{SignedCardinality}$ (e.g.\ \texttt{lift\_cardinality\_to\_signed} / \texttt{embed\_ℕ\_ℤ}); the closure-forcing operators (unary and binary $\texttt{operator-}$) are operational arithmetic constructions \emph{built on top of} that embedding rather than the embedding itself. The dual retraction $\texttt{abs}: \texttt{SignedCardinality} \to \texttt{Cardinality}$ is a left inverse on the non-negative fragment, witnessing that $\mathbb{N} \hookrightarrow \mathbb{Z}$ is a \emph{split mono} and not just a monomorphism.
+
+\textbf{Galois connections as the order-theoretic specialisation.} When the source and target categories are posets, the adjunction collapses to a Galois connection: the Hom-set bijection becomes the order-theoretic equivalence $f(x) \le y \iff x \le g(y)$, and the naturality squares trivialise because parallel arrows in a poset are automatically equal. The library exposes \texttt{IsGaloisConnection<F, G>} for this lightweight setting and \texttt{IsClosureOperator<C>} for the round-trip $g \circ f$ that any Galois connection induces (idempotent, monotone, extensive). Concrete examples include the inclusion $\iota: \mathbb{Z} \hookrightarrow \mathbb{R}$ and the floor $\lfloor \cdot \rfloor$ as its right adjoint; the addition $+k$ and subtraction $-k$ as a Galois pair on $\mathbb{Z}$; truncated subtraction $y \dot{-} k = \max(y - k, 0)$ as the right adjoint of $+k$ on $\mathbb{N}$. The last is documented in the design doc as \emph{the road not taken}: the elementwise dual of the closure-forcing operator $\mathbb{N} - \mathbb{N} \to \mathbb{Z}$ that this codebase chose.
+
+\begin{lstlisting}[language=C++, caption={Adjunction shape, witness, and Galois-connection vocabulary.}, label={lst:adjunction_witness}]
+// 2-param structural form: signatures of an adjoint pair F |- U.
+export template <typename F, typename U>
+concept HasAdjunctionShape =
+    IsFunctor<F> && IsFunctor<U> &&
+    std::same_as<typename F::Σ_cat, typename U::Τ_cat> &&
+    std::same_as<typename F::Τ_cat, typename U::Σ_cat>;
+
+// 4-param witness form: unit and counit are natural transformations.
+export template <typename Left, typename Right, typename Unit, typename Counit>
+concept IsAdjunction =
+    HasAdjunctionShape<Left, Right> &&
+    IsUnitOfAdjunction<Unit, Left, Right> &&         // Id_D ==> Right o Left
+    IsCounitOfAdjunction<Counit, Left, Right>;       // Left o Right ==> Id_C
+
+// Order-theoretic specialisation: adjunctions in posets.
+// F: P -> Q and G: Q -> P with crossed carriers; the universal-property
+// equivalence f(x) <= y  iff  x <= g(y) is the engineer's honesty obligation.
+export template <typename F, typename G>
+concept IsGaloisConnection =
+    IsArrow<F> && IsArrow<G> &&
+    std::same_as<Dom<G>, Cod<F>> &&
+    std::same_as<Cod<G>, Dom<F>>;
+
+// Closure operator: the round-trip g . f of any Galois connection.
+export template <typename C>
+concept IsClosureOperator = IsArrow<C> && std::same_as<Dom<C>, Cod<C>>;
+\end{lstlisting}
+
+The split between \texttt{HasAdjunctionShape} and \texttt{IsAdjunction} mirrors the analogous separation in the algebra cluster between \texttt{HasRingOperators} (operator surface) and \texttt{IsRing} (operator surface plus axiom witnesses). Both pairs reify the \emph{honesty obligation up front; mechanical guarantee afterward} division of labour: the engineer asserts the categorical content (the natural isomorphism, the triangle identities, the Galois law) by selecting the witness concept; the compiler then mechanically confirms that the assertion is type-coherent. The carrier-lattice instances of the pattern --- where the adjunction $\mathrm{Rig} \dashv \mathrm{Ring}$ is realised by the closure-forcing operators on $\texttt{Cardinality}$ and $\texttt{SignedCardinality}$ --- are discussed in Section~\ref{sec:carrier-lattice}.
 
 \subsection{The \texttt{:monad} partition: The \texorpdfstring{$\Omega$}{Omega}-Monad}
 
