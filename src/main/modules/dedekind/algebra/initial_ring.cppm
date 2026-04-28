@@ -66,6 +66,21 @@
  * second anchors the abelian-group-side universal property.  Both
  * land on the same carrier.
  *
+ * @section Bridge_to_Limit
+ * @c IsInitialRing instantiates the @b same universal-property
+ * pattern that @c :limit's @c IsInitialObject<Zero> instantiates,
+ * just at a different categorical level — initial in the @c Ring
+ * category rather than initial in @c Set.  The two readings live at
+ * different levels (forgetful functor @c U @c : @c Ring @c → @c Set
+ * does @b not preserve initial: @c ℤ is initial in @c Ring but its
+ * underlying set is not @c Zero @c = @c std::nullptr_t).  A
+ * non-vacuous structural witness of this bridge requires reifying
+ * @c IsTerminalRing for the trivial / zero ring (whose carrier is
+ * @c One @c = @c std::monostate from @c :limit) — filed as a sibling
+ * concern; the static_assert here would be premature without the
+ * dual concept.  See @c :f_algebra for the analogous bridge at the
+ * F-Alg category level.
+ *
  * @note "Adjoint functors arise everywhere."
  *       — Saunders Mac Lane.
  */
@@ -120,7 +135,8 @@ inline constexpr bool is_initial_ring_v = false;
  */
 export template <typename R>
 concept IsInitialRing =
-    dedekind::category::IsRing<R, std::plus<R>, std::multiplies<R>> &&
+    dedekind::category::IsCommutativeRing<R, std::plus<R>,
+                                          std::multiplies<R>> &&
     is_initial_ring_v<R>;
 
 // ===========================================================================
