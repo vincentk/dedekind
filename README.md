@@ -77,7 +77,7 @@ The library asks the engineer to claim only what is mathematically true of a typ
 - *Axiomatic Systems Programming* (with the *Honest Rejection* policy and the *Old mathematics, newly accessible* discussion) in the [paper](https://vincentk.github.io/dedekind/paper.pdf).
 - Curry–Howard reading of type-system-driven verification: Wadler, [*Propositions as Types*](https://doi.org/10.1145/2699407), CACM 2015.
 - Professional grounding: NSPE [*Code of Ethics for Engineers*](https://www.nspe.org/sites/default/files/resources/pdfs/Ethics/CodeofEthics/NSPECodeofEthicsforEngineers.pdf) — canons III (truthful public statements) and IV (faithful agency).
-- Categorical foundations: Lawvere, *An elementary theory of the category of sets* (PNAS, 1964); Mac Lane, *Categories for the Working Mathematician* (1971).
+- Categorical foundations: Lawvere, *An elementary theory of the category of sets* (PNAS, 1964); Mac Lane, *Categories for the Working Mathematician* (1971); for the programmer-accessible bridge, Bartosz Milewski, [*Category Theory for Programmers*](https://bartoszmilewski.com/2014/10/28/category-theory-for-programmers-the-preface/) (blog series and book).
 - *Mechanical sympathy* as a software-engineering discipline — the term Jackie Stewart used about race-car drivers and Martin Thompson popularised for low-latency systems work; see the [Mechanical Sympathy blog](https://mechanical-sympathy.blogspot.com/) and the LMAX Disruptor literature.
 
 _AI assistance is used during the development of this project._
