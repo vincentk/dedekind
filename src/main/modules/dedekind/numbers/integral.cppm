@@ -67,10 +67,10 @@ module;
 
 export module dedekind.numbers:integral;
 
-import dedekind.algebra;  // IsField (umbrella negative-claim witness)
-import :boolean;          // sibling: bool classification (closes #400)
-import :sint;             // sibling: signed_integral classification (closes #418)
-import :uint;             // sibling: unsigned_integral classification (closes #417)
+import dedekind.algebra; // IsField (umbrella negative-claim witness)
+import :boolean;         // sibling: bool classification (closes #400)
+import :sint;  // sibling: signed_integral classification (closes #418)
+import :uint;  // sibling: unsigned_integral classification (closes #417)
 
 namespace dedekind::numbers {
 
@@ -82,21 +82,21 @@ namespace dedekind::numbers {
 //     downstream consequence and is filed here at the umbrella level so
 //     the std::integral reader sees all three siblings rejected as fields
 //     under arithmetic in one place.
-static_assert(!dedekind::algebra::IsField<int, std::plus<int>,
-                                          std::multiplies<int>>,
-              "int is NOT a field under std::plus / std::multiplies: "
-              "signed-overflow UB defeats closure under arithmetic before "
-              "the field axioms are even reachable.");
+static_assert(
+    !dedekind::algebra::IsField<int, std::plus<int>, std::multiplies<int>>,
+    "int is NOT a field under std::plus / std::multiplies: "
+    "signed-overflow UB defeats closure under arithmetic before "
+    "the field axioms are even reachable.");
 
 // (2) @c bool is not a field under @c std::plus / @c std::multiplies.  The
 //     :boolean partition pins @c IsField<𝔹, std::bit_xor, std::bit_and>
 //     (𝔹 = 𝔽₂ under XOR / AND); the arithmetic-operator reading is a
 //     different structure and is not a field.  Pinned here so the
 //     umbrella reader does not silently inherit the XOR / AND result.
-static_assert(!dedekind::algebra::IsField<bool, std::plus<bool>,
-                                          std::multiplies<bool>>,
-              "bool is NOT a field under std::plus / std::multiplies: "
-              "the arithmetic operators promote to int; the field reading "
-              "of bool lives at std::bit_xor / std::bit_and (see :boolean).");
+static_assert(
+    !dedekind::algebra::IsField<bool, std::plus<bool>, std::multiplies<bool>>,
+    "bool is NOT a field under std::plus / std::multiplies: "
+    "the arithmetic operators promote to int; the field reading "
+    "of bool lives at std::bit_xor / std::bit_and (see :boolean).");
 
 }  // namespace dedekind::numbers
