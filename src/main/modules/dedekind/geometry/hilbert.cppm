@@ -1,7 +1,8 @@
 /**
  * @file dedekind/geometry/hilbert.cppm
  * @partition :hilbert
- * @brief Module interface in the dedekind hierarchy.
+ * @brief Level 10.2: The Complete Infinite — Hilbert spaces (Cauchy-
+ *        complete inner-product spaces over ℝ or ℂ).
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
@@ -13,12 +14,6 @@
 
 module;
 #include <concepts>
-
-/**
- * @file dedekind/geometry/hilbert.cppm
- * @partition :hilbert
- * @brief Level 10.2: The Complete Infinite (Hilbert Spaces).
- */
 
 export module dedekind.geometry:hilbert;
 

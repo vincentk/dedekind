@@ -1,10 +1,16 @@
 /**
  * @file dedekind/numbers/symbolic.cppm
  * @partition :symbolic
- * @brief Module interface in the dedekind hierarchy.
+ * @brief Level 9.4: Named symbolic constants — $\sqrt{2}$ and friends as
+ *        intensional Dedekind cuts over ℚ.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
+ *
+ * @section Description
+ * Reifies algebraic real constants as predicate-set lower-cuts (ETCS
+ * subobjects of ℚ). The cut is the constant; bounded-precision queries
+ * are the only thing that crosses the realisation boundary.
  */
 
 module;

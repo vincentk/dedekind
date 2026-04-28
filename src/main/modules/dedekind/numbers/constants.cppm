@@ -1,7 +1,9 @@
 /**
  * @file dedekind/numbers/constants.cppm
  * @partition :constants
- * @brief Module interface in the dedekind hierarchy.
+ * @brief Reserved partition for genuine Dedekind-cut realisations of
+ *        named real constants ($\sqrt{2}$, $e$, $\pi$, $\gamma$, …).
+ *        Currently empty (no exports).
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
@@ -16,14 +18,6 @@
 module;
 
 /**
- * @file dedekind/numbers/constants.cppm
- * @partition :constants
- * @brief Reserved partition for genuine Dedekind-cut realisations of
- *        named real constants. Currently empty (no exports).
- *
- * @copyright 2026 The Dedekind Authors
- * Licensed under the Apache License, Version 2.0.
- *
  * @section Description
  * This partition is reserved for cut-based realisations of $\sqrt{2}$, $e$,
  * $\pi$, $\gamma$, $\zeta(3)$, and similar named real constants. The

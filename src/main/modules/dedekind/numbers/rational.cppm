@@ -1,7 +1,9 @@
 /**
  * @file dedekind/numbers/rational.cppm
  * @partition :rational
- * @brief Module interface in the dedekind hierarchy.
+ * @module dedekind.numbers:rational
+ * @brief Level 8: The Quotient Field ℚ — rationals as numerator/
+ *        denominator pairs over an integer carrier.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
@@ -21,12 +23,6 @@ module;
 #include <numeric>
 #include <stdexcept>
 #include <utility>
-
-/**
- * @file dedekind/numbers/rational.cppm
- * @module dedekind.numbers:rational
- * @brief Level 8: The Quotient Field (Q).
- */
 
 export module dedekind.numbers:rational;
 
