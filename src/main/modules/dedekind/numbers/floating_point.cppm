@@ -74,13 +74,13 @@ module;
 
 export module dedekind.numbers:floating_point;
 
-import dedekind.algebra;   // HasFieldOperators / HasRingOperators /
-                           // algebra::IsField (axiomatic forms whose negation
-                           // is the umbrella claim)
-import dedekind.category;  // category::IsRing (the upstream axiomatic ring
-                           // concept that algebra::IsField composes over)
-import dedekind.order;     // HasPartialOrderOperators / HasTotalOrderOperators
-                           // / IsTotallyOrdered (negation pinned here)
+import dedekind.algebra;  // HasFieldOperators / HasRingOperators /
+                          // algebra::IsField (axiomatic forms whose negation
+                          // is the umbrella claim)
+import dedekind.category; // category::IsRing (the upstream axiomatic ring
+                          // concept that algebra::IsField composes over)
+import dedekind.order;    // HasPartialOrderOperators / HasTotalOrderOperators
+                          // / IsTotallyOrdered (negation pinned here)
 
 namespace dedekind::numbers {
 
@@ -105,8 +105,9 @@ static_assert(dedekind::algebra::HasRingOperators<double>,
 static_assert(dedekind::algebra::HasRingOperators<long double>,
               "long double carries the ring operator surface (+, -, *).");
 
-static_assert(dedekind::order::HasPartialOrderOperators<float>,
-              "float carries the partial-order operator surface (<, <=, >, >=).");
+static_assert(
+    dedekind::order::HasPartialOrderOperators<float>,
+    "float carries the partial-order operator surface (<, <=, >, >=).");
 static_assert(dedekind::order::HasPartialOrderOperators<double>,
               "double carries the partial-order operator surface.");
 static_assert(dedekind::order::HasPartialOrderOperators<long double>,
@@ -131,7 +132,8 @@ static_assert(dedekind::order::HasTotalOrderOperators<long double>,
 //     one place.
 
 static_assert(
-    !dedekind::category::IsRing<float, std::plus<float>, std::multiplies<float>>,
+    !dedekind::category::IsRing<float, std::plus<float>,
+                                std::multiplies<float>>,
     "float is NOT an axiomatic ring under std::plus / std::multiplies: "
     "IEEE 754 rounding defeats associativity ((a+b)+c != a+(b+c) in general).");
 static_assert(!dedekind::category::IsRing<double, std::plus<double>,
