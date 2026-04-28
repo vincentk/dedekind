@@ -316,6 +316,131 @@ static_assert(N(-7) == ClassicalLogic::False,
 // monic at the bottom of this partition.  The forward arrow ℕ ↪ ℤ
 // lives in @c :integer (downstream), as @c embed_ℕ_ℤ.
 
+// ---------------------------------------------------------------------------
+// (6) The std::unsigned_integral family — explicit textbook classification
+//     across @c unsigned @c int, @c unsigned @c long, @c std::size_t.
+//     Closes part of #417: each width-@c w instance is the finite cyclic
+//     ring @c ℤ/2^wℤ (commutative ring, modular arithmetic, full additive
+//     inverses via mod wrap).  Calling these "natural numbers" is a
+//     category-theoretic error in the direction of claiming @b more
+//     structure than @c ℕ has — the textbook @c ℕ is a commutative
+//     semiring @b without additive inverses, whereas @c std::unsigned_integral
+//     has the inverse via @c u + (2^w - u) ≡ 0 (mod 2^w).  The textbook
+//     @c ℕ lives one carrier step deeper, on @c Cardinality.
+// ---------------------------------------------------------------------------
+//
+// Witnesses below pin the std-unsigned-integral classification for all
+// three canonical representatives in a single block, each annotated with
+// the textbook reading.  Per-carrier witnesses already exist scattered in
+// @c algebra:ring / @c category:total / etc.; this block consolidates the
+// textbook narrative into a single @c numbers/-side audit trail.
+
+// Operator shape — the C++ surface that maps to the modular ring laws.
+static_assert(dedekind::algebra::HasRingOperators<unsigned long>,
+              "unsigned long closes the literal ring operator surface "
+              "(+, binary -, unary -, *) modulo wrap.");
+static_assert(dedekind::algebra::HasRingOperators<std::size_t>,
+              "std::size_t closes the literal ring operator surface.");
+static_assert(dedekind::algebra::HasGroupOperatorsAdd<unsigned int>,
+              "unsigned int closes the additive-group operator surface "
+              "(+, unary -, T{}); modular wrap supplies the inverse.");
+static_assert(dedekind::algebra::HasGroupOperatorsAdd<unsigned long>,
+              "unsigned long closes the additive-group operator surface.");
+static_assert(dedekind::algebra::HasGroupOperatorsAdd<std::size_t>,
+              "std::size_t closes the additive-group operator surface.");
+
+// Axiomatic algebra — the textbook ℤ/2^wℤ commutative ring.
+static_assert(
+    dedekind::algebra::IsCommutativeRing<unsigned int, std::plus<unsigned int>,
+                                         std::multiplies<unsigned int>>,
+    "unsigned int IS the commutative ring ℤ/2^32ℤ under modular "
+    "arithmetic — additive inverses via mod wrap, * commutes.");
+static_assert(dedekind::algebra::IsCommutativeRing<
+                  unsigned long, std::plus<unsigned long>,
+                  std::multiplies<unsigned long>>,
+              "unsigned long IS the commutative ring ℤ/2^wℤ at the platform "
+              "long width.");
+static_assert(
+    dedekind::algebra::IsCommutativeRing<std::size_t, std::plus<std::size_t>,
+                                         std::multiplies<std::size_t>>,
+    "std::size_t IS the commutative ring ℤ/2^wℤ at the pointer "
+    "width.");
+
+// IsArithmeticRing seal (PR #394) on the canonical representatives.
+static_assert(dedekind::algebra::IsArithmeticRing<unsigned long>,
+              "unsigned long: strict ring proof + literal C++ operators "
+              "agree under modular wrap.");
+static_assert(dedekind::algebra::IsArithmeticRing<std::size_t>,
+              "std::size_t: strict ring proof + literal C++ operators "
+              "agree under modular wrap.");
+
+// Cyclic-group structure: additive cyclic group of order @c 2^w.
+static_assert(
+    dedekind::category::IsCyclicGroup<unsigned int, std::plus<unsigned int>>,
+    "unsigned int is the additive cyclic group ℤ/2^32ℤ under +.");
+
+// Negative axiomatic witness: NOT a field.
+//   Reason: @c 0 has no multiplicative inverse; even-numbered elements share
+//   the @c 2 zero-divisor in @c ℤ/2^wℤ (e.g.\ @c 2 * 2^(w-1) ≡ 0); the
+//   modular ring is not an integral domain unless @c 2^w is prime, which
+//   it isn't for @c w ≥ 2.  Pinned as an explicit honesty statement: the
+//   commutative-ring claim is real, but it stops short of field.
+static_assert(!dedekind::algebra::IsField<unsigned int, std::plus<unsigned int>,
+                                          std::multiplies<unsigned int>>,
+              "unsigned int is NOT a field: 0 has no multiplicative inverse, "
+              "and ℤ/2^wℤ has zero divisors (2 · 2^(w-1) ≡ 0).");
+
+// Order surface — every std::unsigned_integral is totally ordered at the
+// machine layer.  The witnesses below extend the @c HasPartialOrderOperators
+// / @c HasTotalOrderOperators / @c IsTotallyOrdered chain (already pinned
+// on @c ℕ = @c Cardinality earlier in this partition) to the machine
+// representatives, since the machine-layer order is a separate claim from
+// the variant-carrier order.
+static_assert(dedekind::order::HasTotalOrderOperators<unsigned int>,
+              "unsigned int carries the total-order operator surface.");
+static_assert(dedekind::order::HasTotalOrderOperators<unsigned long>,
+              "unsigned long carries the total-order operator surface.");
+static_assert(dedekind::order::HasTotalOrderOperators<std::size_t>,
+              "std::size_t carries the total-order operator surface.");
+static_assert(dedekind::order::IsTotallyOrdered<unsigned int>,
+              "unsigned int is axiomatically totally ordered.");
+static_assert(dedekind::order::IsDirectedSet<unsigned int>,
+              "unsigned int is a directed set (net domain).");
+
+// Sequence witness: machine unsigned is a valid sequence codomain.
+static_assert(dedekind::sequences::IsFiniteSequence<
+                  dedekind::sequences::FinitePath<unsigned int>>,
+              "FinitePath<unsigned int> is a bona-fide finite sequence.");
+
+// ---------------------------------------------------------------------------
+// (7) Width-ladder ring-homomorphism witness (Part B of #417).
+//     The chain @c unsigned @c char ↪ @c unsigned @c short ↪ @c unsigned
+//     @c int ↪ @c unsigned @c long is a colimit ladder of finite cyclic
+//     rings (each step preserves @c + and @c * on the non-overflow
+//     fragment).  We pin one representative step here as a structural
+//     witness; the full ladder is mechanical from the C++ integer-promotion
+//     rules.
+//
+//     Note: narrow-width @c HasGroupOperatorsAdd refuses on @c unsigned
+//     @c short / @c unsigned @c char because integer promotion lifts
+//     literal @c + to @c int (see PR #394's Pattern-(b) discussion in
+//     @c algebra:group).  The ring-homomorphism shape is the @b lifted
+//     operator agreement, not the @c short-typed surface.
+// ---------------------------------------------------------------------------
+static_assert(
+    static_cast<unsigned int>(static_cast<unsigned short>(0xFFFF) +
+                              static_cast<unsigned short>(1)) ==
+        static_cast<unsigned int>(0xFFFF) + static_cast<unsigned int>(1),
+    "Width-ladder ring-hom witness: + commutes with the @c unsigned "
+    "@c short ↪ @c unsigned @c int inclusion on the non-overflow fragment.");
+static_assert(
+    static_cast<unsigned int>(static_cast<unsigned short>(0x100) *
+                              static_cast<unsigned short>(0x100)) ==
+        static_cast<unsigned int>(0x100) * static_cast<unsigned int>(0x100),
+    "Width-ladder ring-hom witness: * commutes with the inclusion (the "
+    "non-overflow fragment fits in unsigned int even when overflow on "
+    "unsigned short would wrap).");
+
 }  // namespace dedekind::numbers
 
 namespace dedekind::category {
