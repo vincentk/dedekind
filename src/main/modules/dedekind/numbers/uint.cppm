@@ -44,6 +44,33 @@
  *      the axiomatic @c category::IsCyclicGroup<T, std::plus<T>>.  The
  *      asymmetry is documented + witnessed below.
  *
+ * @section Adjunction_Vocabulary_Cross_Reference
+ * The categorical layers above use vocabulary defined in the @c
+ * :adjunction partition of @c dedekind.category (PR #437):
+ *
+ *   * @c HasAdjunctionShape<F, U> --- the 2-parameter structural form,
+ *     names just the signatures of an adjoint pair without committing
+ *     to specific unit / counit components.
+ *   * @c IsFreeFunctor<F, U> / @c IsForgetfulFunctor<U, F> ---
+ *     directional aliases that read in either direction at the call
+ *     site.
+ *   * @c IsAdjunction<Left, Right, Unit, Counit> --- the 4-parameter
+ *     witness form, requires explicit unit and counit components
+ *     whose typing lets downstream code state the triangle identities.
+ *
+ * The @b machine→variant @b forgetful arrow @c
+ * embed_unsigned_to_Cardinality is a structurally forgetful Set-arrow
+ * (Ring → CMon, dropping the additive inverse) rather than a forgetful
+ * @b functor in the strict @c IsForgetfulFunctor sense; reading it as
+ * the action-component of the variant Grothendieck adjunction is the
+ * natural categorical bridge.  The @b variant Grothendieck @b
+ * adjunction itself ( @c Cardinality @c ⊣ @c SignedCardinality, with
+ * @c embed_ℕ_ℤ as the unit and @c abs as the retraction-not-counit) is
+ * cross-referenced from the carrier-lattice section of
+ * @c report.tex / @c paper.tex but @b not reified as an
+ * @c IsAdjunction witness in this partition (that belongs to #402's
+ * closing PR or a dedicated successor).
+ *
  * @section Honesty_Obligation
  * The witness blocks below are the project's @b honesty obligation made
  * structural: each @c static_assert is an engineer's claim that the
