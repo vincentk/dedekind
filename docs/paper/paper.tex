@@ -662,12 +662,27 @@ sense: a typing derivation that the type-checker accepts is a proof in
 the propositional fragment, against a fixed set of inference rules.
 What the architecture imposes is a single division of labour.  The
 \emph{library author and the user} carry the honesty obligation up
-front: the trait registry is populated with claims that are
-constructively true of the carrier (\lstinline{is_associative_v<T,Op>}
-asserted only where the carrier supports it operationally); the
-language's escape hatches (\lstinline{reinterpret_cast},
-\lstinline{const_cast}, undefined behaviour) are not used in the
-public surface; concept formulations are chosen to match the math.
+front\footnote{Two complementary readings ground this division of
+labour.  Technically, it is the Curry--Howard reading of
+type-system-driven verification articulated by Wadler in
+\emph{Propositions as Types}~\cite{wadler2015propositions}: types
+are propositions, programs are proofs, and type-checking is
+mechanical proof verification --- the engineer's role is to
+\emph{honestly assert} the proposition by selecting the right
+concept or trait specialisation, and the compiler's role is to
+mechanically discharge the derivation.  Professionally, the framing
+also inherits from codified engineering ethics: the
+NSPE \emph{Code of Ethics for Engineers}~\cite{nspe_ethics} pins
+truthfulness in public statements and faithful agency as
+fundamental canons --- a software engineer's claim that a carrier
+satisfies a given concept, expressed through a trait specialisation,
+is exactly such a public statement.}: the trait registry is
+populated with claims that are constructively true of the carrier
+(\lstinline{is_associative_v<T,Op>} asserted only where the carrier
+supports it operationally); the language's escape hatches
+(\lstinline{reinterpret_cast}, \lstinline{const_cast}, undefined
+behaviour) are not used in the public surface; concept formulations
+are chosen to match the math.
 \emph{Once the math is honest}, the rest is mechanical: the compiler
 discharges every \lstinline{static_assert} and \lstinline{requires}-clause
 derived from those claims, every concept-driven dispatch, every
