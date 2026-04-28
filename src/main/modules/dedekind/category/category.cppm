@@ -21,8 +21,10 @@
  *
  * 0.   ATOMS (:species, :morphism, :mereology, :logic): Reification of machine
  *      primitives, the Skeletal Arrow, and the grounding of Truth via Parthood.
- * 0.5  INFRASTRUCTURE (:posetal, :small, :cartesian, :limit, :pullback):
- *      The universal category-theoretic constructions.
+ * 0.5  INFRASTRUCTURE (:posetal, :small, :discrete, :nno, :cartesian, :limit,
+ :pullback):
+ *      The universal category-theoretic constructions, including
+ *      Lawvere's Natural Numbers Object (ETCS Axiom 9; closes #445).
  * 1.   IDEALS (:total, :action): The pure laws of total algebra.
  * 2.   BRIDGE (:functor, :natural, :monad, :kleisli): The Functorial Spine
  *      enabling the Monadic Kleisli lift.

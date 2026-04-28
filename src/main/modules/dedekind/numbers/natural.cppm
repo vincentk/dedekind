@@ -343,8 +343,11 @@ static_assert(N(-7) == ClassicalLogic::False,
 // @c finite_cardinality(0).  The successor @c s : ℕ → ℕ is @c
 // cardinality_succ, returning @c n + finite_cardinality(1) on the
 // finite fragment and absorbing into @c ℵ_0 on the saturation
-// regime — the latter is the carrier's honest behaviour at the
-// transfinite element the abstract NNO admits.
+// regime.  The latter is @b the @b carrier's @b extra @b behaviour
+// beyond the textbook NNO — the abstract NNO is purely the
+// Peano-style universal property; @c Cardinality adds @c ℵ_0 as
+// the honest sentinel for values that exceed the machine
+// implementation's representable range.
 
 /** @brief The zero element @c 1 → @c ℕ for the NNO universal property
  *         witness on @c Cardinality.  Nullary callable, returns
@@ -364,9 +367,10 @@ export struct cardinality_succ {
 
 static_assert(dedekind::category::IsNNO<ℕ, cardinality_zero, cardinality_succ>,
               "Cardinality is the canonical NNO witness: "
-              "z = cardinality_zero, s = cardinality_succ; "
-              "saturation to ℵ_0 honestly handles the transfinite "
-              "element the abstract NNO admits.");
+              "z = cardinality_zero, s = cardinality_succ.  ℵ_0 "
+              "saturation is the carrier's extra behaviour beyond "
+              "the textbook NNO — an honest sentinel for values "
+              "that exceed the machine implementation's range.");
 
 }  // namespace dedekind::numbers
 

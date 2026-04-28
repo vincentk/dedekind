@@ -48,9 +48,12 @@
  * @li @b Cardinality (variant @c ℕ-proxy in @c sets:cardinality) is
  *     the @b canonical @b carrier inhabiting the NNO Form, certified
  *     by the @c IsNNO witness in @c numbers:natural.  Saturating
- *     semantics ( @c ℵ_0 escalation) honestly handles the
- *     transfinite case the abstract NNO admits but a machine carrier
- *     cannot represent.
+ *     semantics ( @c ℵ_0 escalation) is the @b carrier's extra
+ *     behaviour beyond the textbook NNO — the abstract NNO is
+ *     purely the Peano-style universal property over a bounded /
+ *     finite presentation; @c Cardinality adds @c ℵ_0 as an
+ *     overflow sentinel so a machine implementation can stay
+ *     honest about values that exceed its representable range.
  * @li @b ℕ (textbook symbol, in @c sets:boundaries post-#427) is an
  *     alias that @b refers to @c Cardinality — the @b symbol
  *     practitioners use.  The chain reads "NNO supplies the Form;
@@ -74,6 +77,8 @@ module;
 
 #include <concepts>
 #include <cstddef>
+#include <functional>  // std::invoke
+#include <type_traits>
 
 export module dedekind.category:nno;
 
@@ -151,10 +156,12 @@ concept IsNNO = requires(Z z, S s, N n) {
  *         @c n times.
  */
 export template <typename A, typename G>
+  requires std::invocable<G&, A const&> &&
+           std::convertible_to<std::invoke_result_t<G&, A const&>, A>
 constexpr A nno_iterate(A a0, G g, std::size_t n) {
   A current = a0;
   for (std::size_t i = 0; i < n; ++i) {
-    current = g(current);
+    current = std::invoke(g, current);
   }
   return current;
 }
