@@ -1962,22 +1962,22 @@ and
 $a + b\varepsilon \mapsto
 \bigl(\begin{smallmatrix} a & b \\ 0 & a \end{smallmatrix}\bigr)$
 are ring monomorphisms $\mathbb{C}, \mathbb{D} \hookrightarrow
-M_2(\mathbb{Q})$ — see, e.g., the standard treatment in any
-abstract-algebra reference. The library claims both identities at
-the type level over \lstinline{Rational<SignedExtensionalCardinal<>>}
-and the compiler discharges them as bit-perfect
-\texttt{static\_assert}s, with the defining relation $\varepsilon^2
-= 0$ lifting to
+M_2(\mathbb{Q})$ (see, e.g., Lang~\cite{lang2002algebra}). The
+library claims both identities at the type level over
+\lstinline{Rational<SignedExtensionalCardinal<>>} and the compiler
+discharges them as bit-perfect \texttt{static\_assert}s, with the
+defining relation $\varepsilon^2 = 0$ lifting to
 $\bigl(\begin{smallmatrix} 0 & 1 \\ 0 & 0 \end{smallmatrix}\bigr)^2
 = 0$ on the matrix side.
 
 % Source: src/test/cpp/modules/dedekind/linear_algebra/embeddings_test.cpp
-\begin{lstlisting}[language=C++, caption={Ring-homomorphism identities $\mathbb{C}, \mathbb{D} \hookrightarrow M_2(\mathbb{Q})$, discharged as \lstinline{static_assert}s. From \texttt{embeddings\_test.cpp}.}, label={lst:lin-alg-embeddings}]
+\begin{lstlisting}[language=C++, caption={Ring-homomorphism identities $\mathbb{C}, \mathbb{D} \hookrightarrow M_2(\mathbb{Q})$, discharged as \lstinline{static_assert}s; the source uses Catch2 \lstinline{STATIC_CHECK} macros and \lstinline{Rat{...L}} long-suffixed rationals, abridged here for legibility.}, label={lst:lin-alg-embeddings}]
 using Rat = Rational<SignedExtensionalCardinal<>>;
 constexpr Complex<Rat> z{Rat{1}, Rat{2}}, w{Rat{3}, Rat{-5}};
 constexpr Dual<Rat>    d{Rat{2}, Rat{3}}, e{Rat{-1}, Rat{5}};
 static_assert(as_matrix2x2(z + w) == as_matrix2x2(z) + as_matrix2x2(w));
 static_assert(as_matrix2x2(z * w) == as_matrix2x2(z) * as_matrix2x2(w));
+static_assert(as_matrix2x2(d + e) == as_matrix2x2(d) + as_matrix2x2(e));
 static_assert(as_matrix2x2(d * e) == as_matrix2x2(d) * as_matrix2x2(e));
 constexpr Dual<Rat> eps{Rat{0}, Rat{1}};
 static_assert(as_matrix2x2(eps) * as_matrix2x2(eps) == zero_matrix2x2_v<Rat>);
