@@ -265,22 +265,21 @@ refinement predicates to types; C++ template-metaprogramming traditions
 CTRE~\cite{dusikova2018ctre}) have demonstrated type-level computation
 at scale for over a decade; autodiff libraries such as
 Ceres-Solver~\cite{ceres-solver} and ENOKI~\cite{jakob2019enoki} have
-carried fragments of the dual-number story into production C++. What
-\emph{is} new, we claim, is that the full technique---named algebraic
-structure, discharged by the compiler, with the LLVM backend carrying
-the discharge through to optimised machine code---is now available,
-today, in standard C++23, without a proof assistant, a custom type
-checker, or a bespoke language extension. \texttt{dedekind} is the
-existence proof. The viewpoint on which it rests we name
-\emph{Axiomatic Systems Programming}: a nascent engineering discipline
+carried fragments of the dual-number story into production C++. What this
+paper adds is an end-to-end exhibition of the technique---named
+algebraic structure, discharged by the compiler, with the LLVM
+backend carrying the discharge through to optimised machine
+code---in standard C++23, without a proof assistant, a custom
+type checker, or a bespoke language extension. \texttt{dedekind}
+is the existence proof. The viewpoint on which it rests we name
+\emph{Axiomatic Systems Programming}: an engineering discipline
 of practising, not merely describing, type-level structural verification
 in mainstream compiled code. The discipline can be lifted, with modest
 adjustment, to any language whose type system can name a predicate
 over compile-time data and check it mechanically (concepts-style
 Java/C\#, strictly-typed Python, the relevant parts of Rust). The
-contribution of this paper is the first rigorous articulation of that
-discipline, together with a worked library that discharges its claims
-mechanically.
+contribution of this paper is an articulation of that discipline,
+together with a worked library that discharges its claims mechanically.
 
 \paragraph{Intended target.}
 The discipline lands well in CPU-first and embedded
@@ -565,43 +564,23 @@ honesty obligation up front (the trait registry, concept
 formulations, no \lstinline{reinterpret_cast} in the public
 surface), and the compiler discharges every
 \lstinline{static_assert} / \lstinline{requires}-clause /
-\lstinline{constexpr} evaluation that follows.\footnote{Two
-complementary readings ground this division of labour. Technically,
-the Curry--Howard reading articulated by Wadler in
-\emph{Propositions as Types}~\cite{wadler2015propositions}:
-types are propositions, programs are proofs, type-checking is
-mechanical proof verification. Professionally, codified engineering
-ethics: the NSPE \emph{Code of Ethics for
+\lstinline{constexpr} evaluation that follows. The Curry--Howard
+reading~\cite{wadler2015propositions} grounds this technically;
+codified engineering ethics
+ground it professionally --- the NSPE \emph{Code of Ethics for
 Engineers}~\cite{nspe_ethics} canons III + IV (truthfulness in
 public statements; faithful agency) treat a trait specialisation
-as a public statement subject to the canons.}
-The trade is an honesty obligation up front for a mechanical
-guarantee afterward; it is that asymmetry, not the cost, that
-makes the technique worth practising.
-
-\paragraph{Axiomatic programming as an ethical obligation, in
-brief.}
-Read in the spirit of the NSPE \emph{Code of Ethics for
-Engineers}~\cite{nspe_ethics}, the technique gives the
-profession's truthfulness canons (Canons III + IV) something to
-bite on at the software level. Civil and electrical engineers
-certify structural and isolation properties via signed,
-verifiable claims; software engineers, by contrast, typically
-``claim'' algebraic or invariant properties through informal
-documentation and runtime tests, deferred and easily out of date.
-The carrier-lattice's recurring \emph{Honest Rejection} policy is
-the clearest example: refusing \lstinline{unsigned int} as a
-witness for $\mathbb{N}$ is not pedantry but the kind of
-informal-claim re-examination Canon III asks of a working
-software engineer. Where the structure of the problem admits a
-mechanical check (algebraic laws, ordering, carrier-shape
-invariants), expressing the claim as a concept witness rather
-than as runtime tests or informal prose is a stronger discharge
-of the truthfulness canon.\footnote{The argument is bounded.
-Most software claims (TCP retransmit-timer correctness, scheduler
-fairness, end-to-end latency) cannot be reduced to type-level
-structural assertions. The paper covers the fragment where the
-reduction is available; Section~\ref{sec:gap} names the bounds.}
+as a public statement subject to the canons. The carrier-lattice's
+recurring \emph{Honest Rejection} policy is the clearest example:
+refusing \lstinline{unsigned int} as a witness for $\mathbb{N}$
+is not pedantry but the kind of informal-claim re-examination
+Canon III asks of a working software engineer. The trade is an
+honesty obligation up front for a mechanical guarantee
+afterward.\footnote{The argument is bounded. Most software claims
+(TCP retransmit-timer correctness, scheduler fairness, end-to-end
+latency) cannot be reduced to type-level structural assertions.
+The paper covers the fragment where the reduction is available;
+Section~\ref{sec:gap} names the bounds.}
 
 \paragraph{Bounded yet open-ended.}
 Each use of the technique is bounded individually, but every
@@ -717,49 +696,22 @@ $\mathbb{B}$ as the Subobject Classifier $\Omega$ (ETCS
 Axiom~7), $\mathbb{N}$ as Lawvere's Natural Numbers Object (NNO;
 ETCS Axiom~9~\cite{lawvere1964elementary}), and $\mathbb{Z}$ via
 two universal properties on a single carrier --- initial object in
-$\mathbf{CRing}$ (commutative unital rings; the
-\lstinline{IsInitialRing} concept is specialised to that
-category), and free abelian group on the commutative
+$\mathbf{CRing}$ and free abelian group on the commutative
 monoid $(\mathbb{N}, +, 0)$ (the Grothendieck construction; see
 Mac Lane~\cite{maclane1971categories} for the standard
 treatment).\footnote{Each Form sits behind a three-layer chain
-\emph{Form $\to$ Carrier $\to$ Symbol}. The Form is the universal
-property reified as a C++ concept (\lstinline{IsNNO},
-\lstinline{IsInitialRing}, \lstinline{IsGrothendieckGroup}); the
-carrier is the canonical inhabitant
-(\lstinline{Cardinality} for $\mathbb{N}$ with $\aleph_0$
-saturation; \lstinline{SignedCardinality} for $\mathbb{Z}$ with
-$\pm\aleph_0$ and \lstinline{NaZ}); the symbol is the alias
-practitioners use. Existence-and-uniqueness of the universal
-morphism remains the engineer's honesty obligation; what the type
-system pins mechanically is the structural shape (the
-$(z, s)$ pair of the NNO; the $\chi_R$ shape of the initial-ring
-homomorphism, witnessed concretely at $R =
-\texttt{Modular}\langle n\rangle$ in
-Figure~\ref{fig:initial-ring-modular}). The architecture's
-recurring Platonist reading: textbook structure precedes machine
-carriers.}
-
-The pedagogical exhibit is the Fibonacci / negafibonacci pair: the
-two-term recurrence $F_{n+1} = F_n + F_{n-1}$ on $\mathbb{N}$
-extends by $F_{n-1} = F_{n+1} - F_n$ to negative indices on
-$\mathbb{Z}$, with the backward step requiring exactly the
-operator (subtraction) that structurally distinguishes $\mathbb{Z}$
-from $\mathbb{N}$. Computing either series on the canonical
-variant carriers keeps the practitioner in the textbook structure
-throughout, with $\aleph_0$ / $\pm\aleph_0$ saturation as the
-honest sentinel for oversize values; the descent to a machine
-integer is an explicit realize-step.\footnote{The proper framing
-is coalgebraic: a two-term recurrence is a coalgebra for $F(X) = A
-\times X$ on state $(F_n, F_{n-1})$, not the NNO universal
-property directly. The same recurrence on a 32-bit
-\lstinline{int} silently overflows once $F_n > \texttt{INT\_MAX}/2$
-(UB); on \lstinline{unsigned int} it wraps modulo $2^{32}$. The
-variant carriers either return the correct large value or escalate
-to $\aleph_0$ explicitly --- the law that fails on the machine
-carriers becomes either a true claim or a typed sentinel. The
-realize-step's proof obligation (sentinel for the transfinite
-case) is precisely the truthfulness canon at work.}
+\emph{Form $\to$ Carrier $\to$ Symbol}: a universal-property
+concept (\lstinline{IsNNO}, \lstinline{IsInitialRing},
+\lstinline{IsGrothendieckGroup}), a canonical inhabitant
+(\lstinline{Cardinality} for $\mathbb{N}$,
+\lstinline{SignedCardinality} for $\mathbb{Z}$, both with
+$\aleph_0$-style saturation), and the practitioner-facing alias.
+The negafibonacci recurrence $F_{n-1} = F_{n+1} - F_n$ is the
+canonical exhibit: the backward step requires exactly the
+operator (subtraction) that distinguishes $\mathbb{Z}$ from
+$\mathbb{N}$, and the variant carriers escalate to
+$\pm\aleph_0$ rather than overflowing as
+\lstinline{int}/\lstinline{unsigned int} would.}
 
 \subsection{The Tension: Abstract Naturals vs.\ IEEE Numerics}
 \label{sec:numeric-tension}
@@ -1903,7 +1855,7 @@ sketches that do not.
 Each axis sits on the foundation shared with Section~\ref{sec:pruning}: NTTP
 predicates, structured \lstinline{operator&} dispatch, and the computability
 tiers visible in the showcases. Taken together they sketch a program of
-which the current halfspace reductions are the first installment.
+which the present halfspace reductions are one installment.
 
 The polynomial-calculus exhibit (companion-repository
 \texttt{:polynomial} / \texttt{:ftc} partitions) belongs to the same
@@ -2065,28 +2017,6 @@ backlog rather than discharged here.  The $2 \times 2 \to 4 \times 4$
 step is a witness, not a promise; everything beyond is the natural
 recursion of the same combinator pattern.
 
-\paragraph{4D collapse in the IR.}
-The cross-platform-determinism guarantee of
-Section~\ref{sec:lp-centrepiece} is not specific to the LP showcase:
-it carries forward to the $4 \times 4$ DirectSum case in the same
-form.  A witness function asserting
-$(M \oplus R) \cdot (M \oplus R)^{-1} = I \oplus I$ over
-$\mathbb{Q}$ compiles, at \texttt{-O2}, to
-\lstinline|ret i64 1| --- a literal whose value clang's optimiser
-additionally annotates with the \texttt{memory(none)} attribute,
-indicating that the function reads no memory.  The four
-$2 \times 2$ blocks, the four Cramer solves, the four
-multiplications-and-additions per entry, the eight type-level
-comparisons in \texttt{DirectSum::operator==} are all decided at
-translation time; the binary contains a single literal load.
-Because the carrier is \texttt{Rational<\ldots>}, this collapse is
-again bit-identical across ARM and x86 back-ends: the same
-\lstinline|ret i64 1| holds whether the build target is the host
-\texttt{x86\_64} or a \texttt{Cortex-M} cross-compile.  The
-$4 \times 4$ result has zero footprint in the emitted binary, and
-the same recursion gives the same property at every $2^k \times 2^k$
-the combinator stack is composed up to.
-
 \paragraph{Numeric overflow in the carrier.}
 The carrier-vs-overflow trade-offs are catalogued in
 Section~\ref{sec:carrier-rosetta}'s Rosetta tables: showcases default
@@ -2130,22 +2060,13 @@ A rank-deficient \lstinline{Invertible2x2<Rat, 1, 2, 2, 4>} input
 produces a single named diagnostic naming the broken predicate
 (\texttt{Invertible2x2 requires full rank: a*d - b*c != 0}) at the
 \texttt{static\_assert} site, with one \texttt{note} pointing at the
-instantiation; no substitution-failure cascade.\footnote{Verbatim
-\texttt{clang++}~22 output (with \texttt{-fno-color-diagnostics}
-\texttt{-ferror-limit=2}):
-\texttt{matrix.cppm:120:17: error: static assertion failed due to
-requirement '!(det == ...\{0\})':\ Invertible2x2 requires full
-rank: a*d - b*c != 0; failed\_proof.cpp:12:46: note: in
-instantiation of template class
-'dedekind::linear\_algebra::Invertible2x2<Rat, 1, 2, 2, 4>'
-requested here; 1 error generated.} The predicate sits inside the
-class body as a literal \texttt{static\_assert} rather than as a
-\lstinline{requires}-clause that has to be probed, so the diagnostic
-fires at the named axiom rather than as a probe failure deep in
-overload resolution.}
-This is \emph{fail fast at the named axiom}: the
-mathematical claim that broke surfaces before the type-system
-mechanics that surfaced it.
+instantiation; no substitution-failure cascade. The predicate sits
+inside the class body as a literal \texttt{static\_assert} rather
+than as a \lstinline{requires}-clause that has to be probed, so the
+diagnostic fires at the named axiom rather than as a probe failure
+deep in overload resolution. This is \emph{fail fast at the named
+axiom}: the mathematical claim that broke surfaces before the
+type-system mechanics that surfaced it.
 
 In short: the compiler wall has a predictable shape---depth, steps,
 combinatorics, numeric range, diagnostics---and each is either
@@ -2360,9 +2281,9 @@ classical pipeline remains indispensable---but a complement for
 instances that appear during code generation (problem-shape metadata,
 compile-time configuration polytopes, template-parametric optimizer
 settings). Exact-rational arithmetic over $\mathbb{Q}$ connects the
-approach to the exact-LP literature~\cite{gleixner2016exact}; the novel
-claim is the realisation at translation time with zero runtime
-overhead, witnessed in the emitted LLVM~IR fixtures.
+approach to the exact-LP literature~\cite{gleixner2016exact}; the
+specific contribution is the realisation at translation time with
+zero runtime overhead, witnessed in the emitted LLVM~IR fixtures.
 
 \paragraph{Automatic differentiation.}
 Runtime AD libraries such as Ceres~\cite{ceres-solver},
@@ -2512,35 +2433,6 @@ sits on the same NTTP-plus-concepts foundation as the halfspace and
 LP reductions demonstrated here.
 We leave them as worked targets for successor libraries that adopt
 the same discipline.
-
-\paragraph{A pragmatic dividend: time-to-confidence.}
-Beyond the correctness argument we have been making throughout,
-hoisting checks into the type system buys a feedback-loop dividend
-that working library authors notice daily.  A
-\texttt{static\_assert} returns its verdict in the seconds the
-translation unit takes to compile; a full test run returns its in
-minutes; an integration suite or a manual click-through, in tens
-of minutes to hours.  The contrast is sharpest at the
-dynamic-language end of the spectrum: an invariant that surfaces
-only when a Python code path runs in production may take days or
-weeks to manifest, by which point the offending edit is several
-deploys behind and the stack trace points at the consequence
-rather than the cause.  Dragging the verdict back from
-``production \texttt{AttributeError}'' to ``pre-commit type check''
---- exactly what \texttt{mypy} or \texttt{pyright} do for a
-strict-typed Python codebase, and what \texttt{static\_assert}
-does for a strict-typed C++23 one --- is the same hoisting move
-made at a different point along the same gradient.  An invariant
-the compiler enforces costs zero CI minutes; an invariant the
-test suite enforces costs its execution time, multiplied by every
-commit that runs it.  The asymmetry compounds: over the lifetime
-of a library, every invariant hoisted into the type system buys
-back the corresponding test's wall-clock cost on every build, on
-every commit, in every CI pass.  The type system is therefore not
-just a correctness discipline but a feedback-loop discipline, and
-the two reinforce each other---the case for naming structure in
-the type is also, quite practically, the case for closing the
-loop on it faster.
 
 \paragraph{A forward claim, in its weakest defensible form.}
 As numerical workloads saturate available hardware, the marginal
