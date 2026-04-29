@@ -1,11 +1,13 @@
 /**
- * @file algebra/universal.cppm
+ * @file dedekind/algebra/universal.cppm
  * @partition :universal
  * @brief The universal-algebra (A, F) meta-pattern: carrier + finitary
  * operations.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
+ *
+ * Wikipedia: Universal algebra, Algebraic structure, Free object.
  *
  * @section Why_this_partition
  * Each specific concept in this module's algebraic hierarchy
@@ -49,6 +51,13 @@
  *
  * @see Burris & Sankappanavar 1981, @em A @em Course @em in
  *      @em Universal @em Algebra (Springer GTM 78), §I.1.
+ *
+ * @note "L'algèbre est généreuse: elle donne souvent plus qu'on ne lui
+ *        demande."
+ *       [Trans: "Algebra is generous; she often gives more than is
+ *        asked of her."]
+ *       — Jean le Rond d'Alembert, attributed (cf.\ Œuvres, ed.\
+ *       Belin 1821, Vol. 1).
  */
 module;
 
@@ -148,9 +157,9 @@ static_assert(IsAlgebra<unsigned int, std::plus<unsigned int>,
                         std::multiplies<unsigned int>>,
               "unsigned int with (+, *) closes (A, F) under modular wrap.");
 
-static_assert(
-    IsAlgebra<bool, std::bit_xor<bool>, std::bit_and<bool>>,
-    "bool with (XOR, AND) closes (A, F) at the F_2 reading "
-    "(see :boolean for the axiomatic IsField witness on this carrier).");
+static_assert(IsAlgebra<bool, std::bit_xor<bool>, std::bit_and<bool>>,
+              "bool with (XOR, AND) closes (A, F) at the F_2 reading "
+              "(see dedekind.algebra:field for the axiomatic IsField<bool, "
+              "std::bit_xor, std::bit_and> witness on this carrier).");
 
 }  // namespace dedekind::algebra
