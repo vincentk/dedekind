@@ -642,9 +642,14 @@ static_assert(dedekind::algebra::HasGroupOperatorsMul<ℚ>,
 //     arrow as (4)).
 //   - Forward successor:    @c ℚ ↪ ℝ via @c embed_ℚ_ℝ in @c :real
 //     (downstream; q ↦ Real{q}, the canonical inclusion).
-//   - Reverse direction (ℚ → machine):  @c .resolve() yields a
-//     @c double approximation (lossy when the denominator's not a
-//     power of two; exact for dyadic rationals).
+//   - Reverse direction (ℚ → machine):  composes through the
+//     successor arrow — @c embed_ℚ_ℝ(q).resolve() yields a @c double
+//     approximation (lossy when the denominator's not a power of two;
+//     exact for dyadic rationals).  The reverse path is intentionally
+//     not a single primitive on @c Rational<I>: ℚ → @c double is the
+//     realisation crossing into IEEE 754 numerics, and the carrier-
+//     lattice convention routes that through the ℝ-proxy so the
+//     IEEE-754 friction is named at the right partition.
 
 /**
  * @section Formal_Verification
