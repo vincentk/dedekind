@@ -144,12 +144,37 @@
 \maketitle
 
 \begin{abstract}
-We present \texttt{dedekind}~\cite{dedekind2026}, an open-source C++23 library that embeds formal
-set-theoretic and categorical structures directly into the type system, available under the Apache-2.0 licence.
-The central design rule is \emph{intensional first, realize it when you mean it}: a set is represented
-as a predicate $P : A \to \Omega$ over an ambient species $A$, not as a heap-allocated container of
-values.  This comprehension view, rooted in Lawvere's Elementary Theory of the Category of Sets
-(ETCS)~\cite{lawvere1964etcs}, has two practical consequences that this paper explores:
+\noindent\emph{Named algebraic structure at the type level, discharged
+by the compiler, narrows the gap between abstract mathematics and
+machine code without a separate proof assistant.} The underlying
+theory and methodology are not new: Lawvere's Elementary Theory of
+the Category of Sets~\cite{lawvere1964etcs}, Wadler's
+parametricity~\cite{wadler1989theorems} and propositions-as-types
+reading~\cite{wadler2015propositions}, and structural concept-based
+typing have been studied for decades, and proof-assistant-grounded
+formalisation (Coq, Agda, Lean) has been the canonical academic
+deliverable. What is new is the \emph{cost-benefit calculus} of
+encoding mathematical structures directly in an industrial typed
+substrate. Modern AI assistants compress the time and expertise
+required to author opt-in trait specialisations, axiom-shape
+concepts, and the surrounding library scaffolding by an order of
+magnitude, turning what was previously an academic specialism into
+an actionable workflow for working software engineers. This paper
+argues, by exhibit rather than by theorem, that the cost-benefit
+turn matters in practice today.
+
+\medskip
+\noindent We present \texttt{dedekind}~\cite{dedekind2026}, an
+open-source C++23 library (Apache-2.0), as the executable exhibit of
+that workflow. The library embeds formal set-theoretic and
+categorical structures directly into the type system and targets
+\emph{mainstream C++23}---concepts, non-type template parameters,
+named modules---rather than a research compiler or a separate proof
+environment. The central design rule is \emph{intensional first,
+realize it when you mean it}: a set is represented as a predicate
+$P : A \to \Omega$ over an ambient species $A$, not as a
+heap-allocated container of values. This comprehension view has two
+practical consequences that the paper explores:
 \begin{itemize}
   \item Set operations (intersection, complement, union) compose as predicate combinators at
         compile time, enabling the \textsc{llvm} backend to perform \emph{structural pruning}---collapsing
@@ -182,11 +207,6 @@ calculus: the Fundamental Theorem of Calculus (Part~II) is discharged at
 translation time, with the compiler running the trapezoidal quadrature
 against a closed-form antiderivative and concluding inside a
 \lstinline{static_assert}.
-
-The thesis this paper argues, in a single sentence:
-\emph{named algebraic structure at the type level, discharged by the
-compiler, narrows the gap between abstract mathematics and machine
-code without a separate proof assistant.}
 
 \vspace{0.75em}
 \noindent\textbf{Keywords:} C++23; concepts; non-type template
@@ -2828,6 +2848,161 @@ pushable by a flag, avoidable by staying within the instance regime
 for which this technique is intended, or a known limitation we do not
 claim to have solved. The paper's contribution lies entirely to the
 left of that wall.
+
+\subsection{Boundary Observations: An Axiom~\texorpdfstring{$\to$}{->}~Theorem Chain}
+\label{sec:boundary-observations}
+
+The previous subsections present the technique through worked
+showcases, IR artefacts, and concrete diagnostics---an empirical
+register. The library admits a stricter framing whose structural
+parallel is Wadler's \emph{Theorems for Free!}~\cite{wadler1989theorems}:
+parametricity gives the typed-lambda calculus theorems from type
+signatures alone; the dedekind library extends the move into
+\emph{algebraic} territory, where a carrier's axiomatic profile
+(declared via opt-in traits and concept witnesses) discharges
+carrier-level theorems at the type level. The empirical artefacts of
+the showcases are then \emph{realisations} of an underlying
+axiom~$\to$~theorem chain rather than the substance of the chain
+itself.
+
+\paragraph{Axioms as the engineer's honesty obligation.}
+A carrier's algebraic profile is asserted explicitly. Where the
+proof of an axiom is beyond what C++ concepts can quantify, the claim
+is made via an opt-in trait specialisation, and the engineer who
+declares the trait carries Wadler's
+\emph{propositions-as-types}~\cite{wadler2015propositions}
+obligation under the NSPE Code of Ethics canons III and IV (truthful
+public statements; faithful agency). The library ships several such
+opt-in surfaces:
+\lstinline{is_monic_arrow_v} for monomorphism declarations,
+\lstinline{is_initial_ring_v} for the initial-object reading of
+$\mathbb{Z}$, \lstinline{is_grothendieck_group_v} for the
+free-abelian-group reading, \lstinline{is_initial_f_algebra_v} for the
+NNO-as-initial-F-algebra reading, and a family of axiom-shape concepts
+including \lstinline{IsRing}, \lstinline{IsField},
+\lstinline{IsTotallyOrdered}, \lstinline{IsArchimedean}, and
+\lstinline{IsCyclicGroup}. Each is the engineer's claim, not a
+machine-discharged proof; the structural shape (signatures, closure,
+opt-in trait set to \texttt{true}) is what the type system can pin
+mechanically.
+
+\paragraph{Theorems for free.}
+Once the axioms are discharged honestly, downstream code leans on a
+catalogue of carrier-level theorems without further proof:
+generic combinators over \lstinline{HasRingOperators<T>} compose for
+any carrier whose ring axioms hold; the carrier-swap $\mathtt{Rational
+\langle long\rangle} \to
+\mathtt{Rational\langle SignedExtensionalCardinal\langle\rangle\rangle}$
+is a one-line change at the \lstinline|using| declaration and every
+section's claim survives the swap; the type-directed collapse of
+Section~\ref{sec:pruning} (whose 1D specialisation admits a worked
+proof, deferred to a follow-up paper) reduces a constraint
+intersection to one of $\varnothing$, \lstinline{Singleton<v>}, or a
+typed \lstinline{Interval} entirely from carrier-level total-order +
+meet-closure; and the partition naming
+(\lstinline{:natural} / \lstinline{:integer} / \lstinline{:rational}
+/ \lstinline{:real} / \lstinline{:complex}) lifts the textbook
+vocabulary into the type system unchanged. The trade-off is plain:
+\emph{if} a carrier's domain admits the axioms, the affordances pay;
+\emph{if} the domain hits a friction (next paragraph), the axioms
+cannot be discharged honestly and downstream code falls back to the
+operational policy gate.
+
+\paragraph{Frictions: where C++23 and IEEE numerics break the chain.}
+The axioms cannot always be discharged. The friction points encountered while
+building the library are observational, not advocacy, and each is
+pinned at a concrete file:line in source so a reader can verify the
+mechanism rather than take the claim on faith.
+\emph{Integer-promotion shape mismatch}: \lstinline|bool * bool|
+under \lstinline|+| / \lstinline|*| returns \lstinline|int| rather
+than \lstinline|bool|; \lstinline|unsigned short * unsigned short|
+and \lstinline|unsigned char * unsigned char| likewise promote to
+\lstinline|int|. The functor surface
+(\lstinline|std::plus<bool>|, \lstinline|std::multiplies<unsigned short>|)
+returns the carrier by signature, but the literal \lstinline|+| /
+\lstinline|*| operator surface does not (witnessed at
+\texttt{algebra/ring.cppm}, \texttt{algebra/field.cppm},
+\texttt{numbers/uint.cppm}, \texttt{order/lattice.cppm}).
+\emph{Signed-overflow UB defeats $\mathbb{Z}$}: \lstinline|int| /
+\lstinline|long| / \lstinline|long long| carry the literal ring
+operator surface
+(\lstinline|HasRingOperators<int>| fires) but \emph{not} the
+axiomatic ring witness, because closure-under-arithmetic fails as a
+stable axiom under signed-overflow UB; the negative pins
+\lstinline|!Group_ℤ<int>|, \lstinline|!IsArithmeticAdditiveGroup<int>|,
+\lstinline|!category::IsRing<int, std::plus, std::multiplies>| at
+\texttt{numbers/sint.cppm} make the rejection mechanical.
+\emph{IEEE 754 breaks reflexivity}: \lstinline|NaN <= NaN|
+evaluates to \lstinline|false|, so
+\lstinline|is_reflexive_v<double, std::less_equal<>>| is deliberately
+not registered, and \lstinline|!IsTotallyOrdered<double>| / \dots /
+\lstinline|<long double>| / \dots / \lstinline|!category::IsRing<double, ...>|
+hold (\texttt{numbers/floating\_point.cppm} +
+\texttt{order/total.cppm}); the operational ordered-field reading
+survives via \lstinline|IsOrderedField<double>| in
+\texttt{morphologies/archimedean.cppm}.
+\emph{\lstinline|std::variant| NTTP-unfriendliness}: the variant
+$\mathbb{Z}$-proxy \lstinline|SignedCardinality| (variant of
+\lstinline|SignedExtensionalCardinal<>|, $\pm\aleph_0$,
+\lstinline|NaZ|) cannot be a non-type template parameter without
+workarounds, blocking compile-time arithmetic on the saturating
+integer carrier (\texttt{sets/cardinality.cppm},
+\texttt{numbers/rational.cppm}).
+\emph{\lstinline|std::integral| unifies three structurally distinct algebras}:
+\lstinline!std::integral T = std::unsigned_integral T || std::signed_integral T || std::same_as<T, bool>!,
+and the three siblings are a finite cyclic ring, an
+operator-surface-without-axioms carrier, and (separately) the
+Boolean rig + Galois field $\mathbb{F}_2$; nothing axiomatic
+survives the union (\texttt{numbers/integral.cppm}). Each friction
+is the structural reason an axiom slot is left
+\emph{unsatisfied} for the relevant family.
+
+\paragraph{The policy gate as the bridge.}
+Where the strict axioms cannot be discharged but the operator surface
+must still be programmed against, the library exposes an operational
+policy gate. The canonical example is the rational-field claim,
+which the showcases program against without committing the carrier
+to a specific machine integer:
+%
+\begin{lstlisting}[language=C++,basicstyle=\ttfamily\small]
+// numbers/rational.cppm — operational field-like witness for ℚ.
+// IsFieldLikeScalar is the operator-surface gate; the strict
+// axiomatic field witness lives at category::IsField but is not
+// load-bearing for downstream code that only needs +, -, *, /.
+static_assert(
+    dedekind::algebra::IsFieldLikeScalar<Rational<default_integer>>,
+    "Rational<I> must satisfy the operational field-like witness "
+    "(ℚ is a field).");
+
+static_assert(
+    dedekind::algebra::IsFieldLikeScalar<
+        Rational<SignedExtensionalCardinal<>>>,
+    "Rational<SignedExtensionalCardinal<>> must satisfy "
+    "IsFieldLikeScalar: the intended arbitrary-precision "
+    "signed-rational carrier for ℚ.");
+\end{lstlisting}
+%
+The two carriers differ in their machine-level friction profile
+(\lstinline|default_integer| trips signed-overflow UB on extreme
+inputs; \lstinline|SignedExtensionalCardinal<>| does not, at the
+cost of variant-NTTP friction) but both discharge the operational
+gate. Downstream combinators bind to \lstinline|IsFieldLikeScalar|
+rather than to \lstinline|category::IsField|, and the carrier swap
+between the two is a one-line change at the \lstinline|using|
+declaration. The gate is the load-bearing concept; the strict
+axiomatic field is reachable, on demand, when a use site warrants
+the heavier obligation.
+
+In short, where Section~\ref{sec:compiler-wall} names the
+\emph{mechanical} boundaries of the technique (template depth,
+\lstinline|consteval| budgets, combinatorial blowup, diagnostics),
+this subsection names the \emph{algebraic} boundary: which axioms
+discharge cleanly on which carriers, where the obligation falls to
+the engineer, and which frictions block the discharge. The empirical
+artefacts of the showcases sit one level below this chain---they
+demonstrate that the library realises the axiom~$\to$~theorem
+discipline in C++23 today, on the carriers in the Rosetta tables of
+Section~\ref{sec:carrier-rosetta}.
 
 % ============================================================
 \section{Related Work}
