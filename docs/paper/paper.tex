@@ -332,15 +332,17 @@ typed constant; the same reduction over the dual-number ring
 (Section~\ref{sec:ad-elliott}) recovers forward-mode automatic
 differentiation as a sibling compile-time reduction in the sense of
 Elliott~\cite{elliott2018simple}.\footnote{The discipline extends to
-polynomial calculus: the formal derivative of a rational polynomial
-is a \texttt{static\_assert}-checked identity, and the Fundamental
+polynomial calculus: the formal derivative of a polynomial is a
+\texttt{static\_assert}-checked identity, and the Fundamental
 Theorem of Calculus (Part~II) is discharged at translation time
-against a closed-form antiderivative. Worked exhibits in the
-companion repository's
-\texttt{dedekind.algebra:polynomial} and \texttt{dedekind.analysis:ftc}
-partitions; \texttt{static\_assert} witnesses pin
-$\frac{d}{dx}P(x) = P'(x)$ on rational polynomials and the
-trapezoidal-quadrature equality with the antiderivative.}
+as numerical agreement between a trapezoidal quadrature and a
+closed-form antiderivative. Worked exhibits in the companion
+repository's \texttt{dedekind.algebra:polynomial} and
+\texttt{dedekind.analysis:ftc} partitions; \texttt{static\_assert}
+witnesses pin $\frac{d}{dx}P(x) = P'(x)$ on polynomials over
+$\mathbb{Z}$ (and, where a divisible carrier is supplied, over
+$\mathbb{Q}$) and pin agreement within a documented tolerance for
+the FTC bridge.}
 
 \paragraph{The three claims this paper substantiates.}
 \begin{enumerate}
