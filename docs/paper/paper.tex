@@ -731,163 +731,79 @@ happens.
 \begin{figure}[p]
 \centering
 \begin{tikzpicture}[
-  scale=0.85,
+  scale=1.0,
   every node/.style={font=\small},
   baseline=(current bounding box.center)
 ]
-  % --- Lattice axes (oblique 2D projection of a 3D lattice) ---
-  %   X axis (right):           carrier strength (𝔹 → ℕ → ℤ → ℚ → ℝ)
-  %   Y axis (up):               object rank (scalar → V_2 → M_2)
-  %   Z axis (diag, two depths): degree-2 quotient extensions
-  %                              Dual(R) = R[ε]/(ε²)   — back-up-right (steeper)
-  %                              Cplx(R) = R[i]/(i²+1) — back-right-up (flatter)
-  \def\dx{4.0}
-  \def\dy{2.6}
-  % Dual depth axis: steeper slope.
-  \def\zxoffD{2.0}
-  \def\zyoffD{1.4}
-  % Cplx depth axis: flatter slope, reaches further right (fans out from Dual).
-  \def\zxoffC{5.0}
-  \def\zyoffC{0.8}
+  % --- Cube-corners-only schematic of the Algebraic Tower ---
+  %   X axis (right):  carrier strength
+  %   Y axis (up):     object rank
+  %   Z axis (back):   quotient functor X (a parameter; specific values
+  %                     enumerated in the caption)
+  %
+  % Eight corners only.  Intermediate lattice points (e.g.\ V_2(\mathbb{Z}),
+  % D(\mathbb{Q}), \mathbb{F}_64) live conceptually along the edges and are
+  % itemised in the per-axis tables below.
 
-  % --- Front face (z = 0): carrier-strength × rank grid (5 columns). ---
-  % Scalars (y = 0).
-  \node (B)  at (0*\dx, 0*\dy) {$\mathbb{B}$};
-  \node (N)  at (1*\dx, 0*\dy) {$\mathbb{N}$};
-  \node (Z)  at (2*\dx, 0*\dy) {$\mathbb{Z}$};
-  \node (Q)  at (3*\dx, 0*\dy) {$\mathbb{Q}$};
-  \node (R)  at (4*\dx, 0*\dy) {$\mathbb{R}$};
-  % V_2 (y = 1).
-  \node (V2B) at (0*\dx, 1*\dy) {$V_2(\mathbb{B})$};
-  \node (V2N) at (1*\dx, 1*\dy) {$V_2(\mathbb{N})$};
-  \node (V2Z) at (2*\dx, 1*\dy) {$V_2(\mathbb{Z})$};
-  \node (V2Q) at (3*\dx, 1*\dy) {$V_2(\mathbb{Q})$};
-  \node (V2R) at (4*\dx, 1*\dy) {$V_2(\mathbb{R})$};
-  % M_2 (y = 2).
-  \node (M2B) at (0*\dx, 2*\dy) {$M_2(\mathbb{B})$};
-  \node (M2N) at (1*\dx, 2*\dy) {$M_2(\mathbb{N})$};
-  \node (M2Z) at (2*\dx, 2*\dy) {$M_2(\mathbb{Z})$};
-  \node (M2Q) at (3*\dx, 2*\dy) {$M_2(\mathbb{Q})$};
-  \node (M2R) at (4*\dx, 2*\dy) {$M_2(\mathbb{R})$};
+  \def\dx{8.0}
+  \def\dy{5.0}
+  \def\zxoff{4.0}
+  \def\zyoff{3.0}
 
-  % --- Back face #1 (Dual depth axis): D(ℚ), D(ℝ) over rank stack. ---
-  \node[opacity=0.75] (DQ)   at (3*\dx + \zxoffD, 0*\dy + \zyoffD) {$D(\mathbb{Q})$};
-  \node[opacity=0.75] (DR)   at (4*\dx + \zxoffD, 0*\dy + \zyoffD) {$D(\mathbb{R})$};
-  \node[opacity=0.75] (V2DQ) at (3*\dx + \zxoffD, 1*\dy + \zyoffD) {$V_2(D(\mathbb{Q}))$};
-  \node[opacity=0.75] (V2DR) at (4*\dx + \zxoffD, 1*\dy + \zyoffD) {$V_2(D(\mathbb{R}))$};
-  \node[opacity=0.75] (M2DQ) at (3*\dx + \zxoffD, 2*\dy + \zyoffD) {$M_2(D(\mathbb{Q}))$};
-  \node[opacity=0.75] (M2DR) at (4*\dx + \zxoffD, 2*\dy + \zyoffD) {$M_2(D(\mathbb{R}))$};
+  % Front face (z = 0) corners.
+  \node (B)    at (0,    0)    {$\mathbb{B}$};
+  \node (C)    at (\dx,  0)    {$\mathbb{C}$};
+  \node (M2B)  at (0,    \dy)  {$M_2(\mathbb{B})$};
+  \node (M2C)  at (\dx,  \dy)  {$M_2(\mathbb{C})$};
 
-  % --- Back face #2 (Cplx depth axis): C(ℚ), C(ℝ) over rank stack. ---
-  \node[opacity=0.75] (CQ)   at (3*\dx + \zxoffC, 0*\dy + \zyoffC) {$C(\mathbb{Q})$};
-  \node[opacity=0.75] (CR)   at (4*\dx + \zxoffC, 0*\dy + \zyoffC) {$\mathbb{C} = C(\mathbb{R})$};
-  \node[opacity=0.75] (V2CQ) at (3*\dx + \zxoffC, 1*\dy + \zyoffC) {$V_2(C(\mathbb{Q}))$};
-  \node[opacity=0.75] (V2CR) at (4*\dx + \zxoffC, 1*\dy + \zyoffC) {$V_2(\mathbb{C})$};
-  \node[opacity=0.75] (M2CQ) at (3*\dx + \zxoffC, 2*\dy + \zyoffC) {$M_2(C(\mathbb{Q}))$};
-  \node[opacity=0.75] (M2CR) at (4*\dx + \zxoffC, 2*\dy + \zyoffC) {$M_2(\mathbb{C})$};
+  % Back face (z = 1) corners.
+  \node[opacity=0.7] (XB)    at (\zxoff,         \zyoff)         {$X(\mathbb{B})$};
+  \node[opacity=0.7] (XC)    at (\dx + \zxoff,   \zyoff)         {$X(\mathbb{C})$};
+  \node[opacity=0.7] (M2XB)  at (\zxoff,         \dy + \zyoff)   {$M_2(X(\mathbb{B}))$};
+  \node[opacity=0.7] (M2XC)  at (\dx + \zxoff,   \dy + \zyoff)   {$M_2(X(\mathbb{C}))$};
 
-  % --- Back-far-corner face (Dual ∘ Cplx ≅ Cplx ∘ Dual): commuting square. ---
-  % Position: zxoffD + zxoffC, zyoffD + zyoffC (sum of both depth offsets).
-  \node[opacity=0.6] (DCQ)   at (3*\dx + \zxoffD + \zxoffC, 0*\dy + \zyoffD + \zyoffC) {$DC(\mathbb{Q})$};
-  \node[opacity=0.6] (DCR)   at (4*\dx + \zxoffD + \zxoffC, 0*\dy + \zyoffD + \zyoffC) {$DC(\mathbb{R})$};
-  \node[opacity=0.6] (V2DCQ) at (3*\dx + \zxoffD + \zxoffC, 1*\dy + \zyoffD + \zyoffC) {$V_2(DC(\mathbb{Q}))$};
-  \node[opacity=0.6] (V2DCR) at (4*\dx + \zxoffD + \zxoffC, 1*\dy + \zyoffD + \zyoffC) {$V_2(DC(\mathbb{R}))$};
-  \node[opacity=0.6] (M2DCQ) at (3*\dx + \zxoffD + \zxoffC, 2*\dy + \zyoffD + \zyoffC) {$M_2(DC(\mathbb{Q}))$};
-  \node[opacity=0.6] (M2DCR) at (4*\dx + \zxoffD + \zxoffC, 2*\dy + \zyoffD + \zyoffC) {$M_2(DC(\mathbb{R}))$};
-
-  % --- Arrow styles ---
   \tikzset{
-    fwd/.style={->, >=stealth, semithick},
-    fwdback/.style={->, >=stealth, semithick, opacity=0.55},
-    diagD/.style={->, >=stealth, dashed, thick},
-    diagC/.style={->, >=stealth, dash dot, thick},
+    edge/.style={->, >=stealth, semithick},
+    edgeback/.style={->, >=stealth, semithick, opacity=0.55},
+    diag/.style={->, >=stealth, dashed, thick}
   }
 
-  % --- Front face arrows ---
-  % Horizontal: carrier strength (Cplx step removed; ℂ now lives on Cplx back face).
-  \draw[fwd] (B) -- (N);
-  \draw[fwd] (N) -- (Z);
-  \draw[fwd] (Z) -- (Q) node[midway, below=1pt, font=\scriptsize] {Frac};
-  \draw[fwd] (Q) -- (R) node[midway, below=1pt, font=\scriptsize] {Cuts};
-  \foreach \a/\b in {V2B/V2N, V2N/V2Z, V2Z/V2Q, V2Q/V2R} \draw[fwd] (\a) -- (\b);
-  \foreach \a/\b in {M2B/M2N, M2N/M2Z, M2Z/M2Q, M2Q/M2R} \draw[fwd] (\a) -- (\b);
-  % Vertical: rank (Free_2, End_R).
-  \foreach \a/\b in {B/V2B, N/V2N, Z/V2Z, Q/V2Q, R/V2R} \draw[fwd] (\a) -- (\b);
-  \draw[fwd] (Z) edge[draw=none] node[midway, right=1pt, font=\scriptsize] {Free$_2$} (V2Z);
-  \foreach \a/\b in {V2B/M2B, V2N/M2N, V2Z/M2Z, V2Q/M2Q, V2R/M2R} \draw[fwd] (\a) -- (\b);
-  \draw[fwd] (V2Z) edge[draw=none] node[midway, right=1pt, font=\scriptsize] {End$_R$} (M2Z);
+  % X-axis edges (4): "carrier strength" — generic; specific functor steps
+  % (Frac, Cuts, Cplx) listed in the caption / Table~\ref{tab:carriers-exact}.
+  \draw[edge]     (B)    -- node[midway, fill=white, inner sep=2pt, font=\large]
+                              {$\cdots$} (C);
+  \draw[edge]     (M2B)  -- node[midway, fill=white, inner sep=2pt, font=\large]
+                              {$\cdots$} (M2C);
+  \draw[edgeback] (XB)   -- node[midway, fill=white, inner sep=2pt, font=\large,
+                                 opacity=0.7] {$\cdots$} (XC);
+  \draw[edgeback] (M2XB) -- node[midway, fill=white, inner sep=2pt, font=\large,
+                                 opacity=0.7] {$\cdots$} (M2XC);
 
-  % --- Dual back-face arrows (horizontal + vertical) ---
-  \foreach \a/\b in {DQ/DR, V2DQ/V2DR, M2DQ/M2DR}
-    \draw[fwdback] (\a) -- (\b);
-  \foreach \a/\b in {DQ/V2DQ, DR/V2DR, V2DQ/M2DQ, V2DR/M2DR}
-    \draw[fwdback] (\a) -- (\b);
+  % Y-axis edges (4): "rank" — Free_2 / End_R; intermediate V_2(R) implicit.
+  \draw[edge]     (B)    -- node[midway, fill=white, inner sep=2pt, font=\large]
+                              {$\cdots$} (M2B);
+  \draw[edge]     (C)    -- node[midway, fill=white, inner sep=2pt, font=\large]
+                              {$\cdots$} (M2C);
+  \draw[edgeback] (XB)   -- node[midway, fill=white, inner sep=2pt, font=\large,
+                                 opacity=0.7] {$\cdots$} (M2XB);
+  \draw[edgeback] (XC)   -- node[midway, fill=white, inner sep=2pt, font=\large,
+                                 opacity=0.7] {$\cdots$} (M2XC);
 
-  % --- Cplx back-face arrows (horizontal + vertical) ---
-  \foreach \a/\b in {CQ/CR, V2CQ/V2CR, M2CQ/M2CR}
-    \draw[fwdback] (\a) -- (\b);
-  \foreach \a/\b in {CQ/V2CQ, CR/V2CR, V2CQ/M2CQ, V2CR/M2CR}
-    \draw[fwdback] (\a) -- (\b);
+  % Z-axis edges (4): "quotient X" — parameterised; intermediate
+  % compositions implicit.
+  \draw[diag] (B)   -- node[midway, sloped, above, font=\scriptsize] {$X$} (XB);
+  \draw[diag] (C)   -- (XC);
+  \draw[diag] (M2B) -- (M2XB);
+  \draw[diag] (M2C) -- (M2XC);
 
-  % --- Far-corner face arrows (horizontal + vertical) ---
-  \foreach \a/\b in {DCQ/DCR, V2DCQ/V2DCR, M2DCQ/M2DCR}
-    \draw[fwdback] (\a) -- (\b);
-  \foreach \a/\b in {DCQ/V2DCQ, DCR/V2DCR, V2DCQ/M2DCQ, V2DCR/M2DCR}
-    \draw[fwdback] (\a) -- (\b);
-
-  % --- Depth axis #1: Dual arrows (steeper, dashed) ---
-  \draw[diagD] (Q) -- (DQ) node[midway, sloped, above, font=\scriptsize] {Dual};
-  \draw[diagD] (R) -- (DR);
-  \draw[diagD] (V2Q) -- (V2DQ);
-  \draw[diagD] (V2R) -- (V2DR);
-  \draw[diagD] (M2Q) -- (M2DQ);
-  \draw[diagD] (M2R) -- (M2DR);
-  % Same depth axis applied to the Cplx back face → far-corner.
-  \draw[diagD] (CQ) -- (DCQ);
-  \draw[diagD] (CR) -- (DCR);
-  \draw[diagD] (V2CQ) -- (V2DCQ);
-  \draw[diagD] (V2CR) -- (V2DCR);
-  \draw[diagD] (M2CQ) -- (M2DCQ);
-  \draw[diagD] (M2CR) -- (M2DCR);
-
-  % --- Depth axis #2: Cplx arrows (flatter, dash-dot) ---
-  \draw[diagC] (Q) -- (CQ) node[midway, sloped, below, font=\scriptsize] {Cplx};
-  \draw[diagC] (R) -- (CR);
-  \draw[diagC] (V2Q) -- (V2CQ);
-  \draw[diagC] (V2R) -- (V2CR);
-  \draw[diagC] (M2Q) -- (M2CQ);
-  \draw[diagC] (M2R) -- (M2CR);
-  % Same depth axis applied to the Dual back face → far-corner.
-  \draw[diagC] (DQ) -- (DCQ);
-  \draw[diagC] (DR) -- (DCR);
-  \draw[diagC] (V2DQ) -- (V2DCQ);
-  \draw[diagC] (V2DR) -- (V2DCR);
-  \draw[diagC] (M2DQ) -- (M2DCQ);
-  \draw[diagC] (M2DR) -- (M2DCR);
-
-  % --- Machine substrate (Honest Rejection boundary, y = -1). ---
-  \node (mbool)   at (0*\dx, -1*\dy) {\texttt{bool}};
-  \node (muint)   at (1*\dx, -1*\dy) {\texttt{unsigned int}};
-  \node (mint)    at (2*\dx, -1*\dy) {\texttt{int}};
-  \node (mdouble) at (3*\dx, -1*\dy) {\texttt{double}};
-
-  % Honest-Rejection boundary line.
-  \draw[dotted, gray, thick]
-    ($(mbool.west) + (-0.5, 0.55*\dy)$) --
-    ($(mdouble.east) + (0.5, 0.55*\dy)$)
-    node[midway, above=1pt, font=\scriptsize\itshape, gray]
-      {Honest Rejection boundary};
-
-  % Embedding arrows: machine → variant proxy.
-  \tikzset{embed/.style={->, >=stealth, semithick, dotted}}
-  \draw[embed] (mbool)   -- (B)
-    node[midway, right=1pt, font=\scriptsize] {$\equiv$};
-  \draw[embed] (muint)   -- (N)
-    node[midway, right=1pt, font=\scriptsize] {\texttt{embed\_uint\_$\mathbb{N}$\_}};
-  \draw[embed] (mint)    -- (Z)
-    node[midway, right=1pt, font=\scriptsize] {\texttt{embed\_sint\_$\mathbb{Z}$\_}};
-  \draw[embed] (mdouble) -- (Q)
-    node[midway, right=1pt, font=\scriptsize] {\texttt{embed\_double\_$\mathbb{Q}$}};
+  % --- Axis-direction labels (placed beside the relevant edge) ---
+  \node[below=12pt, font=\itshape\small] at (\dx/2, 0)
+    {carrier strength};
+  \node[left=12pt, font=\itshape\small, rotate=90] at (0, \dy/2)
+    {object rank};
+  \node[font=\itshape\small, rotate=30, opacity=0.85]
+    at ($(B)!0.5!(XB) + (-0.6, 0.6)$)
+    {quotient $X$};
 \end{tikzpicture}
 \caption{The Algebraic Tower (target-state Figure~1, first sketch).
 Two-axis lattice: \emph{horizontal} = carrier-strength
