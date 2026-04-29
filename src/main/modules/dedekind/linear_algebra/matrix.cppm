@@ -1,9 +1,7 @@
 /**
  * @file dedekind/linear_algebra/matrix.cppm
  * @partition :matrix
- * @brief Level 12.5a: Matrices as rectangular linear maps between tuple
- *        spaces. Hosts both the NTTP (type-level) and value-level matrix
- *        families, plus the concept witnesses that tie them to `:contracts`.
+ * @brief Level 12.5a: Matrices as rectangular linear maps between tuples.
  *
  * @details
  * Following Stammbach's "Lineare Algebra", matrices are interpreted as

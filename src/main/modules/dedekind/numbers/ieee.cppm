@@ -1,6 +1,5 @@
 /**
  * @file dedekind/numbers/ieee.cppm
- * @module dedekind.numbers.ieee
  * @brief Bridge from numerical carriers into the upstream IEEE core module.
  *
  * @copyright 2026 The Dedekind Authors

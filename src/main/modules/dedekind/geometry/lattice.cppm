@@ -1,8 +1,7 @@
 /**
  * @file dedekind/geometry/lattice.cppm
  * @partition :lattice
- * @brief Level 9.3: Geometric Lattices — discrete subspaces with
- *        periodic structure (e.g. ℤ², ℕ², Gaussian integers in ℂ).
+ * @brief Level 9.3: Geometric lattices (ℤ², ℕ², Gaussian integers in ℂ).
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.

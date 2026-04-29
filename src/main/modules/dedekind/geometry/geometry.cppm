@@ -1,8 +1,6 @@
 /**
  * @file geometry.cppm
- * @module dedekind.geometry
- * @brief Level 9: Geometric Species (Affine ⊂ InnerProduct ⊂ Euclidean ⊂
- * Hilbert).
+ * @brief Level 9: Affine ⊂ InnerProduct ⊂ Euclidean ⊂ Hilbert.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.

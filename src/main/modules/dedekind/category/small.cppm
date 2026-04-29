@@ -1,7 +1,6 @@
 /**
  * @file dedekind/category/small.cppm
  * @partition :small
- * @module dedekind.category:small
  * @brief Small Categories (Enumerated Morphism Sets).
  *
  * @copyright 2026 The Dedekind Authors

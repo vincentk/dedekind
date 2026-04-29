@@ -1,7 +1,6 @@
 /**
  * @file dedekind/category/adjunction.cppm
  * @partition :adjunction
- * @module dedekind.category:adjunction
  * @brief Level 2.3: Adjoint functors (the Free / Forgetful axis).
  *
  * @copyright 2026 The Dedekind Authors

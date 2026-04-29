@@ -1,8 +1,7 @@
 /**
  * @file dedekind/geometry/linear_map.cppm
  * @partition :linear_map
- * @brief Level 10.05: Concrete finite-dimensional linear maps with algebraic
- * verification.
+ * @brief Level 10.05: Finite-dim linear maps with algebraic witnesses.
  *
  * @section Algebraic_Structure
  * LinearMap<F, R, C> represents a finite-dimensional linear map F^C -> F^R

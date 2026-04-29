@@ -1,7 +1,6 @@
 /**
  * @file dedekind/category/natural.cppm
  * @partition :natural
- * @module dedekind.category:natural
  * @brief Level 2.2: Natural Transformations (The Slide between Functors).
  *
  * @copyright 2026 The Dedekind Authors

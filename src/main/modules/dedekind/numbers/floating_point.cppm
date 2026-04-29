@@ -1,11 +1,7 @@
 /**
  * @file dedekind/numbers/floating_point.cppm
  * @partition :floating_point
- * @module dedekind.numbers:floating_point
- * @brief Level 4: The std::floating_point family — operator surface ✓ +
- *        operational ordered-field reading ✓, axiomatic ring / field /
- *        total order ✗ (IEEE 754 Honest Rejection: rounding breaks
- *        associativity; NaN breaks reflexivity).
+ * @brief Level 4: std::floating_point — IEEE 754 Honest Rejection.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.

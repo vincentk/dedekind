@@ -1,10 +1,7 @@
 /**
  * @file dedekind/numbers/sint.cppm
  * @partition :sint
- * @module dedekind.numbers:sint
- * @brief Level 4: The std::signed_integral family — operator surface ✓,
- *        axiomatic ring ✗ (Honest Rejection: dual error-direction to
- *        :uint).
+ * @brief Level 4: std::signed_integral — Honest Rejection (UB-on-overflow).
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.

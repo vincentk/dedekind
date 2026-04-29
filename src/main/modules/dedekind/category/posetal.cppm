@@ -1,9 +1,7 @@
 /**
  * @file dedekind/category/posetal.cppm
  * @partition :posetal
- * @concept IsPosetal
- * @brief Represents a Posetal Category (A Category derived from a Partially
- * Ordered Set).
+ * @brief Posetal categories — categories derived from partial orders.
  *
  * @section Categorical_Definition
  * A Posetal Category is a category where for any two objects A and B, there is

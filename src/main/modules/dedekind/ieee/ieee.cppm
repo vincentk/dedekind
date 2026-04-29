@@ -1,6 +1,5 @@
 /**
  * @file dedekind/ieee/ieee.cppm
- * @module dedekind.ieee
  * @brief Core IEEE fast lane as explicit physical plumbing.
  *
  * @copyright 2026 The Dedekind Authors

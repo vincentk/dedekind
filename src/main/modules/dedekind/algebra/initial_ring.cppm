@@ -1,7 +1,6 @@
 /**
  * @file dedekind/algebra/initial_ring.cppm
  * @partition :initial_ring
- * @module dedekind.algebra:initial_ring
  * @brief @c ℤ as a Form — Initial Ring and Grothendieck group of @c ℕ.
  *
  * @copyright 2026 The Dedekind Authors

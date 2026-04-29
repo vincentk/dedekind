@@ -1,8 +1,6 @@
 /**
  * @file dedekind/sequences/sequences.cppm
- * @module dedekind.sequences
- * @brief Sequences and paths --- nets, Kleisli/co-Kleisli triples, and
- *        comonadic prefix-aggregates over directed-set domains.
+ * @brief Sequences, paths, and (co-)Kleisli triples over directed sets.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.

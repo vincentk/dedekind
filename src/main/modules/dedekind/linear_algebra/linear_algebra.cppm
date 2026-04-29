@@ -1,6 +1,5 @@
 /**
  * @file linear_algebra.cppm
- * @module dedekind.linear_algebra
  * @brief Level 12.5: Backend-agnostic linear operator contracts.
  *
  * @copyright 2026 The Dedekind Authors

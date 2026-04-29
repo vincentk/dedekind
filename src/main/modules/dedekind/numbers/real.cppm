@@ -1,7 +1,6 @@
 /**
  * @file dedekind/numbers/real.cppm
  * @partition :real
- * @module dedekind.numbers:real
  * @brief Level 9: Minimal real wrapper for experimental reintegration.
  *
  * @copyright 2026 The Dedekind Authors

@@ -6,7 +6,6 @@
  * Copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @module dedekind.sets:singleton
  * @dependency dedekind.ontology
  *
  * @section The_Singleton_Atom: Mereological Singularity
