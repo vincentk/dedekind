@@ -816,6 +816,30 @@ happens.
   \draw[diag] (M2Q) -- (M2DQ);
   \draw[diag] (M2R) -- (M2DR);
   \draw[diag] (M2C) -- (M2DC);
+
+  % --- Machine substrate (Honest Rejection boundary, y = -1). ---
+  \node (mbool)   at (0*\dx, -1*\dy) {\texttt{bool}};
+  \node (muint)   at (1*\dx, -1*\dy) {\texttt{unsigned int}};
+  \node (mint)    at (2*\dx, -1*\dy) {\texttt{int}};
+  \node (mdouble) at (3*\dx, -1*\dy) {\texttt{double}};
+
+  % Honest-Rejection boundary line.
+  \draw[dotted, gray, thick]
+    ($(mbool.west) + (-0.5, 0.55*\dy)$) --
+    ($(mdouble.east) + (0.5, 0.55*\dy)$)
+    node[midway, above=1pt, font=\scriptsize\itshape, gray]
+      {Honest Rejection boundary};
+
+  % Embedding arrows: machine → variant proxy.
+  \tikzset{embed/.style={->, >=stealth, semithick, dotted}}
+  \draw[embed] (mbool)   -- (B)
+    node[midway, right=1pt, font=\scriptsize] {$\equiv$};
+  \draw[embed] (muint)   -- (N)
+    node[midway, right=1pt, font=\scriptsize] {\texttt{embed\_uint\_$\mathbb{N}$\_}};
+  \draw[embed] (mint)    -- (Z)
+    node[midway, right=1pt, font=\scriptsize] {\texttt{embed\_sint\_$\mathbb{Z}$\_}};
+  \draw[embed] (mdouble) -- (Q)
+    node[midway, right=1pt, font=\scriptsize] {\texttt{embed\_double\_$\mathbb{Q}$}};
 \end{tikzpicture}
 \caption{The Algebraic Tower (target-state Figure~1, first sketch).
 Two-axis lattice: \emph{horizontal} = carrier-strength
