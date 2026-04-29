@@ -736,86 +736,105 @@ happens.
   baseline=(current bounding box.center)
 ]
   % --- Lattice axes (oblique 2D projection of a 3D lattice) ---
-  %   X axis (right):           carrier strength (𝔹 → … → ℂ)
+  %   X axis (right):           carrier strength (𝔹 → ℕ → ℤ → ℚ → ℝ)
   %   Y axis (up):               object rank (scalar → V_2 → M_2)
-  %   Z axis (diag up-right):    extension functor (base → Dual)
+  %   Z axis (diag, two depths): degree-2 quotient extensions
+  %                              Dual(R) = R[ε]/(ε²)   — back-up-right (steeper)
+  %                              Cplx(R) = R[i]/(i²+1) — back-right-up (flatter)
   \def\dx{4.0}
   \def\dy{2.6}
-  \def\zxoff{2.0}
-  \def\zyoff{1.4}
+  % Dual depth axis: steeper slope.
+  \def\zxoffD{2.0}
+  \def\zyoffD{1.4}
+  % Cplx depth axis: flatter slope, reaches further right (fans out from Dual).
+  \def\zxoffC{5.0}
+  \def\zyoffC{0.8}
 
-  % --- Front face (z = 0): full carrier-strength × rank grid. ---
+  % --- Front face (z = 0): carrier-strength × rank grid (5 columns). ---
   % Scalars (y = 0).
   \node (B)  at (0*\dx, 0*\dy) {$\mathbb{B}$};
   \node (N)  at (1*\dx, 0*\dy) {$\mathbb{N}$};
   \node (Z)  at (2*\dx, 0*\dy) {$\mathbb{Z}$};
   \node (Q)  at (3*\dx, 0*\dy) {$\mathbb{Q}$};
   \node (R)  at (4*\dx, 0*\dy) {$\mathbb{R}$};
-  \node (C)  at (5*\dx, 0*\dy) {$\mathbb{C}$};
   % V_2 (y = 1).
   \node (V2B) at (0*\dx, 1*\dy) {$V_2(\mathbb{B})$};
   \node (V2N) at (1*\dx, 1*\dy) {$V_2(\mathbb{N})$};
   \node (V2Z) at (2*\dx, 1*\dy) {$V_2(\mathbb{Z})$};
   \node (V2Q) at (3*\dx, 1*\dy) {$V_2(\mathbb{Q})$};
   \node (V2R) at (4*\dx, 1*\dy) {$V_2(\mathbb{R})$};
-  \node (V2C) at (5*\dx, 1*\dy) {$V_2(\mathbb{C})$};
   % M_2 (y = 2).
   \node (M2B) at (0*\dx, 2*\dy) {$M_2(\mathbb{B})$};
   \node (M2N) at (1*\dx, 2*\dy) {$M_2(\mathbb{N})$};
   \node (M2Z) at (2*\dx, 2*\dy) {$M_2(\mathbb{Z})$};
   \node (M2Q) at (3*\dx, 2*\dy) {$M_2(\mathbb{Q})$};
   \node (M2R) at (4*\dx, 2*\dy) {$M_2(\mathbb{R})$};
-  \node (M2C) at (5*\dx, 2*\dy) {$M_2(\mathbb{C})$};
 
-  % --- Back face (z = 1): Dual sub-tower over ℚ, ℝ, ℂ only. ---
-  \node[opacity=0.75] (DQ)   at (3*\dx + \zxoff, 0*\dy + \zyoff) {$D(\mathbb{Q})$};
-  \node[opacity=0.75] (DR)   at (4*\dx + \zxoff, 0*\dy + \zyoff) {$D(\mathbb{R})$};
-  \node[opacity=0.75] (DC)   at (5*\dx + \zxoff, 0*\dy + \zyoff) {$D(\mathbb{C})$};
-  \node[opacity=0.75] (V2DQ) at (3*\dx + \zxoff, 1*\dy + \zyoff) {$V_2(D(\mathbb{Q}))$};
-  \node[opacity=0.75] (V2DR) at (4*\dx + \zxoff, 1*\dy + \zyoff) {$V_2(D(\mathbb{R}))$};
-  \node[opacity=0.75] (V2DC) at (5*\dx + \zxoff, 1*\dy + \zyoff) {$V_2(D(\mathbb{C}))$};
-  \node[opacity=0.75] (M2DQ) at (3*\dx + \zxoff, 2*\dy + \zyoff) {$M_2(D(\mathbb{Q}))$};
-  \node[opacity=0.75] (M2DR) at (4*\dx + \zxoff, 2*\dy + \zyoff) {$M_2(D(\mathbb{R}))$};
-  \node[opacity=0.75] (M2DC) at (5*\dx + \zxoff, 2*\dy + \zyoff) {$M_2(D(\mathbb{C}))$};
+  % --- Back face #1 (Dual depth axis): D(ℚ), D(ℝ) over rank stack. ---
+  \node[opacity=0.75] (DQ)   at (3*\dx + \zxoffD, 0*\dy + \zyoffD) {$D(\mathbb{Q})$};
+  \node[opacity=0.75] (DR)   at (4*\dx + \zxoffD, 0*\dy + \zyoffD) {$D(\mathbb{R})$};
+  \node[opacity=0.75] (V2DQ) at (3*\dx + \zxoffD, 1*\dy + \zyoffD) {$V_2(D(\mathbb{Q}))$};
+  \node[opacity=0.75] (V2DR) at (4*\dx + \zxoffD, 1*\dy + \zyoffD) {$V_2(D(\mathbb{R}))$};
+  \node[opacity=0.75] (M2DQ) at (3*\dx + \zxoffD, 2*\dy + \zyoffD) {$M_2(D(\mathbb{Q}))$};
+  \node[opacity=0.75] (M2DR) at (4*\dx + \zxoffD, 2*\dy + \zyoffD) {$M_2(D(\mathbb{R}))$};
+
+  % --- Back face #2 (Cplx depth axis): C(ℚ), C(ℝ) over rank stack. ---
+  \node[opacity=0.75] (CQ)   at (3*\dx + \zxoffC, 0*\dy + \zyoffC) {$C(\mathbb{Q})$};
+  \node[opacity=0.75] (CR)   at (4*\dx + \zxoffC, 0*\dy + \zyoffC) {$\mathbb{C} = C(\mathbb{R})$};
+  \node[opacity=0.75] (V2CQ) at (3*\dx + \zxoffC, 1*\dy + \zyoffC) {$V_2(C(\mathbb{Q}))$};
+  \node[opacity=0.75] (V2CR) at (4*\dx + \zxoffC, 1*\dy + \zyoffC) {$V_2(\mathbb{C})$};
+  \node[opacity=0.75] (M2CQ) at (3*\dx + \zxoffC, 2*\dy + \zyoffC) {$M_2(C(\mathbb{Q}))$};
+  \node[opacity=0.75] (M2CR) at (4*\dx + \zxoffC, 2*\dy + \zyoffC) {$M_2(\mathbb{C})$};
 
   % --- Arrow styles ---
   \tikzset{
     fwd/.style={->, >=stealth, semithick},
     fwdback/.style={->, >=stealth, semithick, opacity=0.55},
-    diag/.style={->, >=stealth, dashed, thick}
+    diagD/.style={->, >=stealth, dashed, thick},
+    diagC/.style={->, >=stealth, dash dot, thick},
   }
 
   % --- Front face arrows ---
-  % Horizontal: carrier strength.
+  % Horizontal: carrier strength (Cplx step removed; ℂ now lives on Cplx back face).
   \draw[fwd] (B) -- (N);
   \draw[fwd] (N) -- (Z);
   \draw[fwd] (Z) -- (Q) node[midway, below=1pt, font=\scriptsize] {Frac};
   \draw[fwd] (Q) -- (R) node[midway, below=1pt, font=\scriptsize] {Cuts};
-  \draw[fwd] (R) -- (C) node[midway, below=1pt, font=\scriptsize] {Cplx};
-  \foreach \a/\b in {V2B/V2N, V2N/V2Z, V2Z/V2Q, V2Q/V2R, V2R/V2C} \draw[fwd] (\a) -- (\b);
-  \foreach \a/\b in {M2B/M2N, M2N/M2Z, M2Z/M2Q, M2Q/M2R, M2R/M2C} \draw[fwd] (\a) -- (\b);
+  \foreach \a/\b in {V2B/V2N, V2N/V2Z, V2Z/V2Q, V2Q/V2R} \draw[fwd] (\a) -- (\b);
+  \foreach \a/\b in {M2B/M2N, M2N/M2Z, M2Z/M2Q, M2Q/M2R} \draw[fwd] (\a) -- (\b);
   % Vertical: rank (Free_2, End_R).
-  \foreach \a/\b in {B/V2B, N/V2N, Z/V2Z, Q/V2Q, R/V2R, C/V2C} \draw[fwd] (\a) -- (\b);
+  \foreach \a/\b in {B/V2B, N/V2N, Z/V2Z, Q/V2Q, R/V2R} \draw[fwd] (\a) -- (\b);
   \draw[fwd] (Z) edge[draw=none] node[midway, right=1pt, font=\scriptsize] {Free$_2$} (V2Z);
-  \foreach \a/\b in {V2B/M2B, V2N/M2N, V2Z/M2Z, V2Q/M2Q, V2R/M2R, V2C/M2C} \draw[fwd] (\a) -- (\b);
+  \foreach \a/\b in {V2B/M2B, V2N/M2N, V2Z/M2Z, V2Q/M2Q, V2R/M2R} \draw[fwd] (\a) -- (\b);
   \draw[fwd] (V2Z) edge[draw=none] node[midway, right=1pt, font=\scriptsize] {End$_R$} (M2Z);
 
-  % --- Back face arrows ---
-  \foreach \a/\b in {DQ/DR, DR/DC, V2DQ/V2DR, V2DR/V2DC, M2DQ/M2DR, M2DR/M2DC}
+  % --- Dual back-face arrows (horizontal + vertical) ---
+  \foreach \a/\b in {DQ/DR, V2DQ/V2DR, M2DQ/M2DR}
     \draw[fwdback] (\a) -- (\b);
-  \foreach \a/\b in {DQ/V2DQ, DR/V2DR, DC/V2DC, V2DQ/M2DQ, V2DR/M2DR, V2DC/M2DC}
+  \foreach \a/\b in {DQ/V2DQ, DR/V2DR, V2DQ/M2DQ, V2DR/M2DR}
     \draw[fwdback] (\a) -- (\b);
 
-  % --- Depth axis: diagonal Dual arrows from front to back. ---
-  \draw[diag] (Q) -- (DQ) node[midway, sloped, above, font=\scriptsize] {Dual};
-  \draw[diag] (R) -- (DR);
-  \draw[diag] (C) -- (DC);
-  \draw[diag] (V2Q) -- (V2DQ);
-  \draw[diag] (V2R) -- (V2DR);
-  \draw[diag] (V2C) -- (V2DC);
-  \draw[diag] (M2Q) -- (M2DQ);
-  \draw[diag] (M2R) -- (M2DR);
-  \draw[diag] (M2C) -- (M2DC);
+  % --- Cplx back-face arrows (horizontal + vertical) ---
+  \foreach \a/\b in {CQ/CR, V2CQ/V2CR, M2CQ/M2CR}
+    \draw[fwdback] (\a) -- (\b);
+  \foreach \a/\b in {CQ/V2CQ, CR/V2CR, V2CQ/M2CQ, V2CR/M2CR}
+    \draw[fwdback] (\a) -- (\b);
+
+  % --- Depth axis #1: Dual arrows (steeper, dashed) ---
+  \draw[diagD] (Q) -- (DQ) node[midway, sloped, above, font=\scriptsize] {Dual};
+  \draw[diagD] (R) -- (DR);
+  \draw[diagD] (V2Q) -- (V2DQ);
+  \draw[diagD] (V2R) -- (V2DR);
+  \draw[diagD] (M2Q) -- (M2DQ);
+  \draw[diagD] (M2R) -- (M2DR);
+
+  % --- Depth axis #2: Cplx arrows (flatter, dash-dot) ---
+  \draw[diagC] (Q) -- (CQ) node[midway, sloped, below, font=\scriptsize] {Cplx};
+  \draw[diagC] (R) -- (CR);
+  \draw[diagC] (V2Q) -- (V2CQ);
+  \draw[diagC] (V2R) -- (V2CR);
+  \draw[diagC] (M2Q) -- (M2CQ);
+  \draw[diagC] (M2R) -- (M2CR);
 
   % --- Machine substrate (Honest Rejection boundary, y = -1). ---
   \node (mbool)   at (0*\dx, -1*\dy) {\texttt{bool}};
