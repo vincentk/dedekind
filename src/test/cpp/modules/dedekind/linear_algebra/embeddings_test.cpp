@@ -100,3 +100,89 @@ TEST_CASE("linear_algebra:embeddings — nilpotent ε² = 0 lifts to M₂(ℚ)",
   STATIC_CHECK(as_matrix2x2(eps_q) * as_matrix2x2(eps_q) ==
                zero_matrix2x2_v<Rat>);
 }
+
+// ===========================================================================
+// Algebraic-Lattice corners on the canonical numeric tower.
+//
+// This test is the read-side anchor for Figure 1 (`fig:carrier-lattice`)
+// of `paper.tex`.  Each STATIC_CHECK below pins one corner of the
+// 3D oblique lattice as satisfying the universal-algebra (A, F)
+// pattern at the closure tier (cf. `dedekind.algebra:universal`).
+//
+// Cells that compile today are pinned with positive STATIC_CHECKs.
+// Cells that don't are flagged with FIXME breadcrumbs naming the
+// missing surface or the structural reason — those become activation
+// targets for #498 (the Algebraic Tower epic) as the trait registry
+// (#499), refined types (#496), and the Dual / Complex generalisations
+// (#504, #505) ship.
+// ===========================================================================
+
+TEST_CASE("Algebraic Lattice (Figure 1): cube corners on the numeric tower",
+          "[linear_algebra][algebraic_lattice][universal]") {
+  using dedekind::algebra::IsAlgebra;
+
+  // ---- Front face (no quotient applied) ----
+  //   Bottom row: scalars Q, R, C.
+
+  // ℚ as carrier — the canonical exact rational.
+  STATIC_CHECK(IsAlgebra<Rat, std::plus<Rat>, std::multiplies<Rat>>);
+
+  // ℂ as carrier — Complex<Rat> closes ring-shape under (+, *).
+  STATIC_CHECK(IsAlgebra<Complex<Rat>, std::plus<Complex<Rat>>,
+                         std::multiplies<Complex<Rat>>>);
+
+  // 𝔻 as carrier — Dual<Rat> closes ring-shape under (+, *).
+  STATIC_CHECK(
+      IsAlgebra<Dual<Rat>, std::plus<Dual<Rat>>, std::multiplies<Dual<Rat>>>);
+
+  // ---- Top row of the front face: Matrix layer over each scalar ----
+  // FIXME(#498/NEW-B / #500): pin IsAlgebra on Matrix2x2V<Rat>,
+  // Matrix2x2V<Complex<Rat>>, Matrix2x2V<Dual<Rat>>.  Requires
+  // std::plus<Matrix2x2V<...>> / std::multiplies<Matrix2x2V<...>>
+  // functor-tier closure to be exercised; currently the matrix
+  // operator surface is exercised at the value level
+  // (`Matrix2x2V<...>::operator+`, `::operator*`) but the std::plus<>
+  // /std::multiplies<> functor instantiations have not been pinned
+  // here.  Add when NEW-B (#500) lands the trait specialisations.
+
+  // ---- Back face (single quotient applied, Q-axis = Dual or Cplx) ----
+  //
+  // Examples of two-step compositions live one functor deep:
+  //   - Dual(Complex(Rat))   — the AD carrier over ℚ-rationals.
+  //   - Complex(Dual(Rat))   — same ring up to canonical iso.
+  //
+  // The two compositions commute (independent generators i, ε), per
+  // the Algebraic Lattice caption.  Either direction works as a
+  // closure-tier witness.
+  using Z2_over_Rat = Dual<Complex<Rat>>;
+  STATIC_CHECK(IsAlgebra<Z2_over_Rat, std::plus<Z2_over_Rat>,
+                         std::multiplies<Z2_over_Rat>>);
+
+  // ---- Far-back-corner: M_2(X(ℂ)) — the lattice top ----
+  // FIXME(#498/NEW-B / #500): pin IsAlgebra on
+  // Matrix2x2V<Dual<Complex<Rat>>>.  Same reason as the matrix-row
+  // FIXME above — std::plus/std::multiplies functor-tier closure on
+  // the composite Matrix2x2V<...> carrier is not pinned.  When NEW-B
+  // (#500) lands, this becomes the canonical lattice-top witness:
+  //
+  //   STATIC_CHECK(
+  //       IsAlgebra<Matrix2x2V<Dual<Complex<Rat>>>,
+  //                 std::plus<Matrix2x2V<Dual<Complex<Rat>>>>,
+  //                 std::multiplies<Matrix2x2V<Dual<Complex<Rat>>>>>);
+
+  // ---- Boundary cases (where the lattice deliberately refuses) ----
+  //
+  // 𝔹-rooted cells: bool with (+, *) does NOT close on bool because
+  // of integer promotion (paper §3.4 footnote a; tab:rosetta-textbook
+  // -vs-cpp).  The honest path is `IsAlgebra<bool, std::bit_xor<bool>,
+  // std::bit_and<bool>>` (the F_2 reading), exercised in
+  // `algebra/universal_test.cpp` and `algebra/f2_test.cpp`.
+  //
+  // FIXME(#498 / #496): the negative refusal at `IsAlgebra<bool,
+  // std::plus<bool>, std::multiplies<bool>>` is structural truth but
+  // not currently pinned as a static_assert(!) in this file because
+  // the closure check fails by the literal-tier promotion mechanism
+  // (operator+ on bool returns int).  When the refined-type
+  // discipline of #496 lands, the bool→F_2 channel is the typed
+  // boundary; the negative pin can move there.
+}
