@@ -530,13 +530,28 @@ typing.
 
 \paragraph{An old capability, newly accessible.}
 None of the calculus underneath is new.  Templates have always been
-a System-F-flavoured substrate: type-parameter polymorphism, $\beta$-style
-substitution via \lstinline{using} aliases, normalisation through
-\lstinline{constexpr} evaluation --- the Lambek--Scott
+a System-F-flavoured substrate \emph{within a carefully selected subset
+of C++}: type-parameter polymorphism, $\beta$-style substitution via
+\lstinline{using} aliases, normalisation through \lstinline{constexpr}
+evaluation --- the Lambek--Scott
 correspondence~\cite{lambek1988introduction} and the Curry--Howard
 reading~\cite{wadler2015propositions} have applied to that fragment for
-as long as it has existed.  What changed in C++20/23 was not the lambda
-calculus underneath; it was the addition of \lstinline{concept},
+as long as it has existed.\footnote{The qualifier is load-bearing.
+C++ as a whole language admits no closed denotational semantics:
+overload resolution and argument-dependent lookup are non-uniform,
+two-phase name lookup interacts with template instantiation in ways
+that defeat parametricity (Wadler's classical objection to template
+genericity~\cite{bracha1998making} bites here), \lstinline{reinterpret_cast}
+breaks type abstraction, and template instantiation is in general
+Turing-complete and undecidable.  The library's discipline is to use
+\emph{none} of these escape hatches in its public surface --- an honesty
+obligation discharged by review, by the trait registry, and by the
+absence of unsafe casts in any \lstinline{export}-qualified API.  What
+remains is a subset that admits the System-F reading.  Pinning that
+subset down was not always obvious: each partition in the build graph
+records a decision about which template idioms are admissible and which
+are not.}  What changed in C++20/23 was not the lambda calculus
+underneath; it was the addition of \lstinline{concept},
 \lstinline{requires}-clauses, and NTTPs, which together turned a
 long-standing latent capability into a surface the type checker can
 discharge mechanically.  Practitioners with deep template-metaprogramming
@@ -646,21 +661,29 @@ vocabulary directly, rather than re-explaining the bridge each time.
 
 \begin{table}[htbp]
 \centering
-\caption{\textbf{C++23 surface $\leftrightarrow$ lambda calculus / category theory.}
-The translation is restricted to the propositional fragment that the
-C++ type checker can discharge mechanically. Template type-parameter
-polymorphism (System-F-style $\Lambda\alpha. M$) is used here; full
-\emph{dependent} quantification over types (the Curry--Howard reading
-of dependent products / $\Pi$-types) is not available in C++23 and is
-not claimed here. The ``Realisation'' column points to the section
-where each row is exhibited.}
+\caption{\textbf{Disciplined C++23 surface $\leftrightarrow$ lambda
+calculus / category theory.}  The mapping holds for the
+\emph{carefully selected subset} of C++ that the library enforces in
+its public surface: no \lstinline{reinterpret_cast}, no
+ADL-dependent overload resolution, no template-template hackery; only
+\lstinline{concept}-constrained templates, NTTP-carried
+predicates, \lstinline{using} aliases, and \lstinline{constexpr}
+evaluation.  C++ as a whole language admits no closed denotational
+semantics (overload resolution and ADL are non-uniform; template
+instantiation is in general undecidable; parametricity is not
+preserved --- cf.\ Bracha et al.~\cite{bracha1998making}).  Template
+type-parameter polymorphism (System-F-style $\Lambda\alpha. M$) is
+used here; full \emph{dependent} quantification over types (the
+Curry--Howard reading of dependent products / $\Pi$-types) is not
+available in C++23 and is not claimed.  The ``Realisation'' column
+points to the section where each row is exhibited.}
 \label{tab:cpp-stlc-mapping}
 \small
 \begin{tabular}{@{}p{0.30\textwidth} p{0.32\textwidth} p{0.30\textwidth}@{}}
 \toprule
-\textbf{C++23 (\texttt{dedekind})} & \textbf{Lambda calculus / category theory} & \textbf{Realisation} \\
+\textbf{Disciplined C++23 (\texttt{dedekind})} & \textbf{Lambda calculus / category theory} & \textbf{Realisation} \\
 \midrule
-\lstinline|template <typename T>| & Type variable $\alpha$; System-F universal quantification at the type level & §\ref{sec:axiomatic} \\
+\lstinline|template <typename T>| & Type variable $\alpha$; System-F universal quantification at the type level (parametric \emph{in the disciplined subset}; no specialisation, no SFINAE branch in the public surface) & §\ref{sec:axiomatic} \\
 \lstinline|concept| & Type-class / kind constraint --- a predicate on types restricting the domain of a polymorphic function & §\ref{sec:axiomatic}, lst.~\ref{lst:structural} \\
 \lstinline|requires|-clause & Evidence / constraint satisfaction --- a proof obligation that the type carries the term-level operations & §\ref{sec:axiomatic} \\
 \lstinline|static_assert| & Mechanical proof that proposition $P$ is inhabited at translation time (Curry--Howard~\cite{wadler2015propositions}) & throughout \\
