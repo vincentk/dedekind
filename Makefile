@@ -278,6 +278,27 @@ pr-sync:
 	fi
 	gh pr checks || true
 
+# Sweep ALL open PRs authored by the current user: report each PR's
+# mergeability, base ref, draft status, status-check rollup, and
+# unresolved-review-thread count. Read-only.
+# Usage: make pr-status-all
+pr-status-all:
+	@REPO="$$(gh repo view --json nameWithOwner --jq .nameWithOwner)"; \
+	OWNER="$${REPO%/*}"; NAME="$${REPO#*/}"; \
+	echo "Sweeping open PRs in $$REPO ..."; \
+	gh pr list --author "@me" --state open --json number,title,baseRefName,isDraft,mergeable,statusCheckRollup \
+		--jq '.[] | {n:.number, base:.baseRefName, draft:.isDraft, merge:.mergeable, title:(.title[0:70]), checks:( [.statusCheckRollup[]? | select(.conclusion!=null) | .conclusion] | (group_by(.) | map({(.[0]):length}) | add // {}) ) }' \
+		| jq -r '"#\(.n) [\(.merge)\(if .draft then " DRAFT" else "" end) base=\(.base)] checks=\(.checks // {}) | \(.title)"'; \
+	echo ""; \
+	echo "Unresolved review threads per open PR ..."; \
+	for n in $$(gh pr list --author "@me" --state open --json number --jq '.[].number'); do \
+		C="$$(gh api graphql \
+			-F owner="$$OWNER" -F name="$$NAME" -F number="$$n" \
+			-f query='query($$owner:String!, $$name:String!, $$number:Int!) { repository(owner: $$owner, name: $$name) { pullRequest(number: $$number) { reviewThreads(first: 100) { nodes { isResolved } } } } }' \
+			--jq '.data.repository.pullRequest.reviewThreads.nodes | map(select(.isResolved == false)) | length' 2>/dev/null)"; \
+		printf "  #%-4s %s unresolved\n" "$$n" "$${C:-?}"; \
+	done
+
 # List inline PR review comments for the current PR (or PR=<number>).
 pr-review-comments:
 	@PR_NUM="$(PR)"; \
