@@ -2894,12 +2894,15 @@ operational policy gate.
 \paragraph{Frictions: where C++23 and IEEE numerics break the chain.}
 The axioms cannot always be discharged. The friction points encountered while
 building the library are observational, not advocacy, and each is
-pinned at a concrete file:line in source so a reader can verify the
-mechanism rather than take the claim on faith.
-\emph{Integer-promotion shape mismatch}: \lstinline|bool * bool|
-under \lstinline|+| / \lstinline|*| returns \lstinline|int| rather
-than \lstinline|bool|; \lstinline|unsigned short * unsigned short|
-and \lstinline|unsigned char * unsigned char| likewise promote to
+pinned at a concrete file in source (with the relevant lines flagged
+in the corresponding partition's witness blocks) so a reader can
+verify the mechanism rather than take the claim on faith.
+\emph{Integer-promotion shape mismatch}: \lstinline|bool + bool| and
+\lstinline|bool * bool| return \lstinline|int| rather than
+\lstinline|bool|; \lstinline|unsigned short + unsigned short| /
+\lstinline|unsigned short * unsigned short| and
+\lstinline|unsigned char + unsigned char| /
+\lstinline|unsigned char * unsigned char| likewise promote to
 \lstinline|int|. The functor surface
 (\lstinline|std::plus<bool>|, \lstinline|std::multiplies<unsigned short>|)
 returns the carrier by signature, but the literal \lstinline|+| /
@@ -2918,9 +2921,10 @@ stable axiom under signed-overflow UB; the negative pins
 \emph{IEEE 754 breaks reflexivity}: \lstinline|NaN <= NaN|
 evaluates to \lstinline|false|, so
 \lstinline|is_reflexive_v<double, std::less_equal<>>| is deliberately
-not registered, and \lstinline|!IsTotallyOrdered<double>| / \dots /
-\lstinline|<long double>| / \dots / \lstinline|!category::IsRing<double, ...>|
-hold (\texttt{numbers/floating\_point.cppm} +
+not registered, and \lstinline|!IsTotallyOrdered<double>|,
+\lstinline|!IsTotallyOrdered<long double>|, and
+\lstinline|!category::IsRing<double, std::plus, std::multiplies>|
+all hold (\texttt{numbers/floating\_point.cppm} +
 \texttt{order/total.cppm}); the operational ordered-field reading
 survives via \lstinline|IsOrderedField<double>| in
 \texttt{morphologies/archimedean.cppm}.
@@ -2948,7 +2952,7 @@ which the showcases program against without committing the carrier
 to a specific machine integer:
 %
 \begin{lstlisting}[language=C++,basicstyle=\ttfamily\small]
-// numbers/rational.cppm — operational field-like witness for ℚ.
+// numbers/rational.cppm --- operational field-like witness for ℚ.
 // IsFieldLikeScalar is the operator-surface gate; the strict
 // axiomatic field witness lives at category::IsField but is not
 // load-bearing for downstream code that only needs +, -, *, /.
