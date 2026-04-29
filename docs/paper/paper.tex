@@ -786,6 +786,15 @@ happens.
   \node[opacity=0.75] (M2CQ) at (3*\dx + \zxoffC, 2*\dy + \zyoffC) {$M_2(C(\mathbb{Q}))$};
   \node[opacity=0.75] (M2CR) at (4*\dx + \zxoffC, 2*\dy + \zyoffC) {$M_2(\mathbb{C})$};
 
+  % --- Back-far-corner face (Dual ∘ Cplx ≅ Cplx ∘ Dual): commuting square. ---
+  % Position: zxoffD + zxoffC, zyoffD + zyoffC (sum of both depth offsets).
+  \node[opacity=0.6] (DCQ)   at (3*\dx + \zxoffD + \zxoffC, 0*\dy + \zyoffD + \zyoffC) {$DC(\mathbb{Q})$};
+  \node[opacity=0.6] (DCR)   at (4*\dx + \zxoffD + \zxoffC, 0*\dy + \zyoffD + \zyoffC) {$DC(\mathbb{R})$};
+  \node[opacity=0.6] (V2DCQ) at (3*\dx + \zxoffD + \zxoffC, 1*\dy + \zyoffD + \zyoffC) {$V_2(DC(\mathbb{Q}))$};
+  \node[opacity=0.6] (V2DCR) at (4*\dx + \zxoffD + \zxoffC, 1*\dy + \zyoffD + \zyoffC) {$V_2(DC(\mathbb{R}))$};
+  \node[opacity=0.6] (M2DCQ) at (3*\dx + \zxoffD + \zxoffC, 2*\dy + \zyoffD + \zyoffC) {$M_2(DC(\mathbb{Q}))$};
+  \node[opacity=0.6] (M2DCR) at (4*\dx + \zxoffD + \zxoffC, 2*\dy + \zyoffD + \zyoffC) {$M_2(DC(\mathbb{R}))$};
+
   % --- Arrow styles ---
   \tikzset{
     fwd/.style={->, >=stealth, semithick},
@@ -820,6 +829,12 @@ happens.
   \foreach \a/\b in {CQ/V2CQ, CR/V2CR, V2CQ/M2CQ, V2CR/M2CR}
     \draw[fwdback] (\a) -- (\b);
 
+  % --- Far-corner face arrows (horizontal + vertical) ---
+  \foreach \a/\b in {DCQ/DCR, V2DCQ/V2DCR, M2DCQ/M2DCR}
+    \draw[fwdback] (\a) -- (\b);
+  \foreach \a/\b in {DCQ/V2DCQ, DCR/V2DCR, V2DCQ/M2DCQ, V2DCR/M2DCR}
+    \draw[fwdback] (\a) -- (\b);
+
   % --- Depth axis #1: Dual arrows (steeper, dashed) ---
   \draw[diagD] (Q) -- (DQ) node[midway, sloped, above, font=\scriptsize] {Dual};
   \draw[diagD] (R) -- (DR);
@@ -827,6 +842,13 @@ happens.
   \draw[diagD] (V2R) -- (V2DR);
   \draw[diagD] (M2Q) -- (M2DQ);
   \draw[diagD] (M2R) -- (M2DR);
+  % Same depth axis applied to the Cplx back face → far-corner.
+  \draw[diagD] (CQ) -- (DCQ);
+  \draw[diagD] (CR) -- (DCR);
+  \draw[diagD] (V2CQ) -- (V2DCQ);
+  \draw[diagD] (V2CR) -- (V2DCR);
+  \draw[diagD] (M2CQ) -- (M2DCQ);
+  \draw[diagD] (M2CR) -- (M2DCR);
 
   % --- Depth axis #2: Cplx arrows (flatter, dash-dot) ---
   \draw[diagC] (Q) -- (CQ) node[midway, sloped, below, font=\scriptsize] {Cplx};
@@ -835,6 +857,13 @@ happens.
   \draw[diagC] (V2R) -- (V2CR);
   \draw[diagC] (M2Q) -- (M2CQ);
   \draw[diagC] (M2R) -- (M2CR);
+  % Same depth axis applied to the Dual back face → far-corner.
+  \draw[diagC] (DQ) -- (DCQ);
+  \draw[diagC] (DR) -- (DCR);
+  \draw[diagC] (V2DQ) -- (V2DCQ);
+  \draw[diagC] (V2DR) -- (V2DCR);
+  \draw[diagC] (M2DQ) -- (M2DCQ);
+  \draw[diagC] (M2DR) -- (M2DCR);
 
   % --- Machine substrate (Honest Rejection boundary, y = -1). ---
   \node (mbool)   at (0*\dx, -1*\dy) {\texttt{bool}};
