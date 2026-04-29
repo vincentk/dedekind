@@ -469,40 +469,20 @@ new ones.
 
 \subsection{Structural vs.\ Nominal Typing: The Juliet Posture}
 
-Three distinct schools of structural identification appear in the history of programming
-languages.  Understanding their differences clarifies why C++23 concepts represent a
-genuine advance.
+The three schools of type identification --- nominal (declared
+lineage; checked at compile time but blind to behaviour), duck
+(structural by call-site method probe; checked at runtime, too late
+for the optimiser), and static structural typing (concept-based;
+behaviour checked at compile time without a declared lineage) ---
+are textbook material; for the canonical treatment see
+Pierce~\cite{pierce2002tapl} and Cardelli's type-systems
+survey~\cite{cardelli1996typesystems}.
 
-\paragraph{Nominal typing.}
-Traditional object-oriented frameworks require a type to \emph{declare} its membership.
-A class is a \texttt{Ring} because it inherits from a base class named \texttt{Ring},
-or implements an interface so named.
-The \emph{name} is the proof of membership.
-The compiler checks lineage, not behaviour.
-A type that provides every ring operation but neglects to inherit the right base class
-is silently excluded; a type that inherits the right class but provides broken operations
-is silently accepted.
-
-\paragraph{Duck typing.}
-Dynamic languages (Python, Ruby, early JavaScript) use a runtime structural check
-colloquially known as \emph{duck typing}: ``if it walks like a duck and quacks like a
-duck, it is a duck.''
-Membership is determined at the call site by testing whether the required method exists
-and can be invoked.
-This is genuinely structural---it cares about behaviour, not name---but the check
-happens \emph{at runtime}, too late to drive compile-time optimization, and errors
-surface only when a missing method is actually called.
-A set represented as a Python \texttt{list} and tested by \lstinline{in} is duck-typed
-in this sense: the membership check succeeds or fails at the point of evaluation, with
-no opportunity for the compiler to discover that the set is empty or that two conjoined
-predicates are contradictory.
-
-\paragraph{Static structural typing---the Juliet Posture.}
-C++23 concepts combine the structural insight of duck typing with the static,
-compile-time guarantees of nominal typing---without requiring a declaration of intent.
-We call this the \emph{Juliet Posture}, after the observation that a rose by any other
-name would smell as sweet~\cite{shakespeare1597romeo}: the library cares about the
-\emph{scent} (structural invariants), not the \emph{lineage} (declared name).
+C++23 concepts realise the third school.  We call the resulting
+discipline the \emph{Juliet Posture}, after the observation that a
+rose by any other name would smell as sweet~\cite{shakespeare1597romeo}:
+the library cares about the \emph{scent} (structural invariants),
+not the \emph{lineage} (declared name).
 
 % Source: src/main/modules/dedekind/algebra/ring.cppm (concept definition, ll. 110-116)
 \begin{lstlisting}[language=C++, caption={The Juliet Posture: structural recognition checked statically, without requiring declared lineage. The operational concept from \texttt{dedekind.algebra:ring}.}, label={lst:structural}]
@@ -574,246 +554,90 @@ here, but its full force (dependent products, inductive proofs, universe
 hierarchies) is not available in C++23; what \emph{is} available is enough
 to anchor the two uses above.
 
-\paragraph{A note on terminology: ``poor man's'' is structural, not economic.}
-We call \texttt{clang++} a \emph{poor man's} theorem prover throughout
-this paper; the qualifier is meant in a structural rather than a cost
-sense.  \texttt{clang++} \emph{is} a formal system in the technical
-sense: a typing derivation that the type-checker accepts is a proof in
-the propositional fragment, against a fixed set of inference rules.
-What the architecture imposes is a single division of labour.  The
-\emph{library author and the user} carry the honesty obligation up
-front\footnote{Two complementary readings ground this division of
-labour.  Technically, it is the Curry--Howard reading of
-type-system-driven verification articulated by Wadler in
-\emph{Propositions as Types}~\cite{wadler2015propositions}: types
-are propositions, programs are proofs, and type-checking is
-mechanical proof verification --- the engineer's role is to
-\emph{honestly assert} the proposition by selecting the right
-concept or trait specialisation, and the compiler's role is to
-mechanically discharge the derivation.  Professionally, the framing
-also inherits from codified engineering ethics: the
-NSPE \emph{Code of Ethics for Engineers}~\cite{nspe_ethics} pins
-truthfulness in public statements and faithful agency as
-fundamental canons --- a software engineer's claim that a carrier
-satisfies a given concept, expressed through a trait specialisation,
-is exactly such a public statement.}: the trait registry is
-populated with claims that are constructively true of the carrier
-(\lstinline{is_associative_v<T,Op>} asserted only where the carrier
-supports it operationally); the language's escape hatches
-(\lstinline{reinterpret_cast}, \lstinline{const_cast}, undefined
-behaviour) are not used in the public surface; concept formulations
-are chosen to match the math.
-\emph{Once the math is honest}, the rest is mechanical: the compiler
-discharges every \lstinline{static_assert} and \lstinline{requires}-clause
-derived from those claims, every concept-driven dispatch, every
-NTTP-folded \lstinline{constexpr} evaluation, against the same fixed
-inference rules; the LLVM backend then optimises under the resulting
-structural knowledge.  No kernel re-checks the derivation independently,
-but none is needed within the bounded core: the typing rules are
-themselves the verifier, and the engineer's trust commitment sits at a
-single layer (the trait registry) rather than diffused across runtime
-checks.  The trade is therefore an honesty obligation up front for a
-mechanical guarantee afterward---and it is that asymmetry, not the
-cost, that makes the technique worth practising.
+\paragraph{``Poor man's'' is structural, not economic.}
+We call \texttt{clang++} a \emph{poor man's} theorem prover
+throughout the paper; the qualifier is structural, not economic.
+\texttt{clang++} \emph{is} a formal system in the technical sense ---
+a typing derivation it accepts is a proof in the propositional
+fragment against a fixed inference rule-set --- and the architecture
+imposes a single division of labour: the engineer carries the
+honesty obligation up front (the trait registry, concept
+formulations, no \lstinline{reinterpret_cast} in the public
+surface), and the compiler discharges every
+\lstinline{static_assert} / \lstinline{requires}-clause /
+\lstinline{constexpr} evaluation that follows.\footnote{Two
+complementary readings ground this division of labour. Technically,
+the Curry--Howard reading articulated by Wadler in
+\emph{Propositions as Types}~\cite{wadler2015propositions}:
+types are propositions, programs are proofs, type-checking is
+mechanical proof verification. Professionally, codified engineering
+ethics: the NSPE \emph{Code of Ethics for
+Engineers}~\cite{nspe_ethics} canons III + IV (truthfulness in
+public statements; faithful agency) treat a trait specialisation
+as a public statement subject to the canons.}
+The trade is an honesty obligation up front for a mechanical
+guarantee afterward; it is that asymmetry, not the cost, that
+makes the technique worth practising.
 
-\subsubsection*{Axiomatic programming as an ethical obligation}
+\paragraph{Axiomatic programming as an ethical obligation, in
+brief.}
+Read in the spirit of the NSPE \emph{Code of Ethics for
+Engineers}~\cite{nspe_ethics}, the technique gives the
+profession's truthfulness canons (Canons III + IV) something to
+bite on at the software level. Civil and electrical engineers
+certify structural and isolation properties via signed,
+verifiable claims; software engineers, by contrast, typically
+``claim'' algebraic or invariant properties through informal
+documentation and runtime tests, deferred and easily out of date.
+The carrier-lattice's recurring \emph{Honest Rejection} policy is
+the clearest example: refusing \lstinline{unsigned int} as a
+witness for $\mathbb{N}$ is not pedantry but the kind of
+informal-claim re-examination Canon III asks of a working
+software engineer. Where the structure of the problem admits a
+mechanical check (algebraic laws, ordering, carrier-shape
+invariants), expressing the claim as a concept witness rather
+than as runtime tests or informal prose is a stronger discharge
+of the truthfulness canon.\footnote{The argument is bounded.
+Most software claims (TCP retransmit-timer correctness, scheduler
+fairness, end-to-end latency) cannot be reduced to type-level
+structural assertions. The paper covers the fragment where the
+reduction is available; Section~\ref{sec:gap} names the bounds.}
 
-The framing in the previous footnote suggests something stronger than
-a stylistic preference.  Read in the spirit of the
-NSPE \emph{Code of Ethics for Engineers}~\cite{nspe_ethics}, axiomatic
-programming is not merely \emph{compatible} with the engineering
-profession's truthfulness canons; it is among the few software-side
-techniques that lets those canons bite operationally.  Civil engineers
-who certify structural drawings carry a verifiable, signed claim about
-load-bearing properties; electrical engineers who sign off on a
-distribution panel carry a similar claim about isolation and
-fault-current ratings.  Software engineers, by contrast, routinely
-``claim'' algebraic, ordering, or invariant properties of their code
-through informal documentation and runtime tests --- claims whose
-verification is deferred, partial, and easily out of date.
+\paragraph{Bounded yet open-ended.}
+Each use of the technique is bounded individually, but every
+class of errors ruled out and optimisations enabled tends to
+expose a next class that the current machinery does not handle
+but the library's structural vocabulary already names. The four
+axes of Section~\ref{sec:gap} fall out of the halfspace
+reductions almost by construction.\footnote{Penrose's \emph{The
+Road to Reality}~\cite{penrose2004roadtoreality} offers an
+analogous observation about G\"odel's incompleteness theorem ---
+a formal system closing at one level motivates the next, not
+as exhaustion but as natural successor; the closest formal
+analogue is Turing's ordinal logics~\cite{turing1939ordinals},
+where each stage's consistency feeds the next stage's formation
+rule. The systems-programming reading is benign: the issue
+tracker plays the successor role.}
 
-The paradigm illustrated in this paper narrows the gap on a narrow but
-non-trivial fragment.  When the engineer expresses a structural
-assertion as a concept witness (\lstinline{is_associative_v<T,Op>},
-\lstinline{IsCommutativeRing<unsigned int, ...>},
-\lstinline{!IsField<unsigned int, ...>}), the assertion becomes a
-\emph{public statement} in exactly the sense Canon III recognises ---
-visible at the type-system level, machine-checkable against fixed
-inference rules, and directly subject to peer review through the
-ordinary code-review process.  The professional duty of truthfulness,
-read as a constraint on what software engineers ought to assert and
-how, supplies a normative reading of the technique that goes beyond
-``it produces fewer bugs'': it argues that, where the structure of the
-problem admits a mechanical check, deferring to runtime tests or
-informal documentation is a weaker discharge of the truthfulness
-canon than asserting the property at the type level and letting the
-compiler discharge it.\footnote{The argument is bounded, not absolute.
-Most software claims cannot be reduced to type-level structural
-assertions --- correctness of a TCP retransmit timer, fairness of a
-scheduler, end-to-end latency under load.  The paper's claim is that
-on the fragment where the reduction \emph{is} possible (algebraic
-laws, ordering, carrier-shape invariants, structural pruning), the
-ethics canon supplies a normative reason to take the reduction rather
-than leaving the claim at the testimonial level.  See
-Section~\ref{sec:gap} for the four axes on which the present paradigm
-is bounded; the fragment we cover sits inside those bounds rather
-than extending past them.}
-
-The carrier-lattice section's recurring \emph{Honest Rejection} policy
-is the clearest example.  Calling \texttt{unsigned int} a witness for
-$\mathbb{N}$ is not a mere abuse of notation; it is the kind of
-informal claim the truthfulness canon would have a software engineer
-re-examine.  The library refuses the witness because $\mathbb{N}$ has
-no additive inverse and \texttt{unsigned int} does (mod wrap), and
-that asymmetry has downstream consequences any conscientious caller
-needs to know about.  The refusal is mechanical, but the
-\emph{decision to make the refusal mechanical at all} is a
-professional-ethics decision: the engineer chose not to defer the
-claim to documentation or test fixtures.  Multiplied across a library,
-across the carrier lattice, and across the algebraic concept
-vocabulary, the technique amounts to taking the truthfulness canon
-seriously as a constraint on software practice rather than a
-free-floating professional ideal.
-
-\subsubsection*{Old mathematics, newly accessible}
-
-A note worth making in the discussion register: nothing about the
-axioms invoked above is new.  The category-theoretic vocabulary on
-which the project rests --- categories, functors, natural
-transformations, adjunctions, free constructions, monads --- was
-worked out across the 1960s and 1970s in the mathematical-logic
-literature.  Lawvere's elementary theory of the category of
-sets~\cite{lawvere1964elementary} appeared in 1964; Mac Lane's
-\emph{Categories for the Working Mathematician}~\cite{maclane1971categories}
-followed in 1971; the classical adjoint-functor theorems and the
-Grothendieck-style free constructions are several decades old.  The
-applicability of this material to programming was documented through
-the late 1980s and early 1990s --- Wadler's \emph{Theorems for
-Free!}~\cite{wadler1989theorems} on parametricity, Moggi's
-\emph{Notions of computation and monads}~\cite{moggi1991notions} on
-monadic semantics for effects.  None of the structural ideas
-exercised in the showcases of this paper are inventions of the
-present work; the contribution is the fitting of those ideas to a
-production-grade C++23 substrate.
-
-What \emph{has} changed, sharply, is accessibility.  Until quite
-recently, the mathematical vocabulary remained a specialist
-language: a working software engineer who had not been routed
-through a category-theory or type-theory graduate course tended to
-encounter Mac Lane and Moggi as cultural references rather than as
-working tools.  AI assistants today close that distance.  An
-educated practitioner can now have a productive conversation with a
-modern language model about the difference between a forgetful
-functor and a Galois connection, between a rig and a ring, between a
-witness concept and a structural shape concept --- and have the
-model translate the result into concrete C++23 concept formulations,
-trait specialisations, and \texttt{static\_assert} witnesses.  This
-is the engineering analogue of a calculator's relationship to a
-slide rule: the mathematics is the same; the cost of routine use has
-collapsed.\footnote{The methodological note in the next paragraphs
-discloses the AI-assisted development of the present library
-itself; the remark here is about the wider population of working
-software engineers who can now apply axiomatic-programming
-techniques without first becoming category theorists, not about the
-authors' own workflow.}
-
-The present library is one demonstration of the resulting
-opportunity.  We do not claim it is the only such library, nor that
-its specific architectural choices are the only honest ones; we do
-claim that it is a working artefact that aims to be \emph{compliant}
-with the axioms it invokes --- the trait specialisations, the
-concept formulations, the carrier-lattice classifications all
-selected to match the textbook structure rather than the
-machine-convenient one.  The combination of (a) old, audited
-mathematical vocabulary, (b) a strict type system that mechanically
-discharges derivations from that vocabulary, and (c) AI assistance
-that lowers the bridge between the mathematical and engineering
-fragments puts the technique within reach of the working
-practitioner in a way that was not the case even five years ago.
-That accessibility is the most consequential change behind the
-present paradigm; the rest is bookkeeping.
-
-\subsubsection*{Bounded yet open-ended}
-
-Each use is bounded \emph{individually}, but the paradigm as a whole exhibits
-a productive open-endedness worth naming.  Every class of errors ruled out,
-and every class of optimizations enabled, tends to expose a next class that
-the current type machinery does not handle but that the library's structural
-vocabulary names clearly enough to become a tracked, narrowly-scoped
-follow-on.  In our setting the four axes listed in Section~\ref{sec:gap} are
-each discovered rather than engineered: they fall out of the halfspace
-reductions of Section~\ref{sec:pruning} almost by construction.
-
-Penrose offers a related observation about {G\"{o}del}'s incompleteness theorem
-in \emph{The Road to Reality}~\cite{penrose2004roadtoreality}: a formal system
-that closes at one level thereby motivates a next level, not as an exhaustion
-but as a natural successor.  Our setting is more benign than Penrose's
-philosophical one---the issue tracker plays the role he reserves for the
-mind's eye, and the successor steps are ordinary software work rather than
-exits from formal systems---but the pattern is the same.  The closest formal
-analogue in the mathematical-logic literature is Turing's ordinal
-logics~\cite{turing1939ordinals}, where each stage's consistency feeds the
-next stage's formation rule.  We do not need the full apparatus: the point
-for a systems-programming paradigm is that closure-at-stage-\(n\) is a
-generative signal for stage-\(n{+}1\), rather than a terminal achievement.
-
-\subsubsection*{Methodological note: closure under AI assistance}
-
-A pragmatic disclosure, in the same Penrose register.  The library is
-developed with AI assistance: Anthropic's Claude as the primary
-code-writing agent, Google's Gemini for associative search and
-second-opinion mathematical commentary, GitHub Copilot for
-pull-request review.  The human role reduces to prioritisation,
-orchestration, and the demand that the systems converge on a
-consensus before changes land.  Read against the section just
-concluded, this admits the obvious Penrose-style worry: if the
-development is ``almost mechanical'', on what basis can the output
-claim mathematical merit?
-
-The pragmatic answer is that the artefacts are kept honest by three
-compounding constraints, all of which this paper has stressed
-throughout.
-\begin{enumerate}
-\item \emph{Domain textbook anchoring}: every concept name, type, and
-law statement in the codebase is taken directly from a working
-mathematician's published vocabulary---Lawvere on ETCS, Cayley and
-Sylvester on matrices, Seki K\^owa on determinants, Lambek on
-Cartesian closure, Minkowski on lattices.  The vocabulary has already
-been audited by the wider mathematical community; the AI's
-contribution is to fit its output to that audited shape, not to
-invent fresh terminology.
-\item \emph{Mechanical validation}: every algebraic claim becomes a
-\texttt{static\_assert} the compiler must discharge, every concept
-composes through a named-module DAG the build system enforces, and
-every behavioural claim passes the test suite under CI before
-merging.  The compiler does not care which agent typed the code.
-\item \emph{Codomain textbook anchoring}: concepts on the carrier
-side are validated against the ontology of the C++ standard library
-itself---\texttt{std::ranges::input\_range},
-\texttt{std::input\_iterator}, \texttt{std::regular}, the
-\texttt{<concepts>} standard-concepts header,
-\texttt{std::numeric\_limits}, the iterator hierarchy.  Where the
-library's mathematical structure has a standard analogue, the
-analogue is named explicitly (e.g.\ \texttt{IsFiniteSequence} flowing
-into \texttt{std::ranges} algorithms via \texttt{FinitePath}'s
-iterator surface).  The standard library has its own audit history;
-binding to it on the codomain side mirrors the mathematical-vocabulary
-binding on the domain side.
-\end{enumerate}
-The closure-at-stage-\(n\) signal of the previous paragraph applies
-recursively to the development methodology over all three: the AI
-systems supply stage-\(n{+}1\) candidates, the mechanical filters
-discharge the consistency, and the human chooses the next fragment
-of mathematics to encode.  Read the right way around, the
-arrangement is also enabling: a working mathematician who would
-rather not spend most of her time on the deep details of the
-\texttt{C++} standard can still ship a faithful library, because the
-parts that need the standard's deep details are exactly the parts
-the constraints above police mechanically.  The natural-language
-fragment of the development is, then, not a confession but a
-\emph{division of labour}---one that lets the mathematical content
-stay in mathematical vocabulary all the way down to where the
-machine takes over.
+\paragraph{Methodological disclosure: AI-assisted development.}
+The library is developed with AI assistance (Anthropic's Claude
+as the primary code-writing agent, with Gemini and GitHub Copilot
+in supporting roles); the human role is prioritisation,
+orchestration, and consensus-before-merge. Three compounding
+constraints keep the artefacts honest: \emph{domain textbook
+anchoring} (concept names and law statements taken directly from
+the published mathematical vocabulary --- Lawvere, Mac Lane,
+Lambek, Wadler, Moggi), \emph{mechanical validation} (every
+algebraic claim becomes a \lstinline{static_assert} the compiler
+discharges; every concept composes through a named-module DAG;
+every behavioural claim passes CI), and \emph{codomain textbook
+anchoring} (concepts validated against the C++ standard library's
+own ontology --- \lstinline{std::ranges::input_range},
+\lstinline{std::regular}, \lstinline{std::numeric_limits}, the
+iterator hierarchy). The natural-language fragment of the
+workflow is a division of labour: the mathematical content stays
+in mathematical vocabulary all the way down to where the machine
+takes over.
 
 % ============================================================
 \section{Intensional First, Realize When You Mean It}
