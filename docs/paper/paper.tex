@@ -365,8 +365,10 @@ classifier, situated in a Cartesian-closed ambient. An object
 satisfying $\textsc{IsSet}$ entails the CCC witness on its ambient
 species, so any ETCS-set carrier comes with $1$, $\times$, and
 $(-)^{(-)}$ for free; the resulting set-builder DSL reads as a syntax
-for STLC by Lambek--Scott. The C++$\leftrightarrow$STLC translation is
-catalogued in Table~\ref{tab:cpp-stlc-mapping}.
+for STLC by the Lambek--Scott
+correspondence~\cite{lambek1988introduction}. The
+C++$\leftrightarrow$STLC translation is catalogued in
+Table~\ref{tab:cpp-stlc-mapping}.
 
 \paragraph{What else falls out for free.} Naming the structure in
 the type buys non-trivial mileage at no runtime cost. Three quick
@@ -543,10 +545,12 @@ vocabulary directly, rather than re-explaining the bridge each time.
 \centering
 \caption{\textbf{C++23 surface $\leftrightarrow$ lambda calculus / category theory.}
 The translation is restricted to the propositional fragment that the
-C++ type checker can discharge mechanically; full
-quantification over types (the Curry--Howard reading of dependent
-products) is not available in C++23 and is not claimed here. The
-``Realisation'' column points to the section where each row is exhibited.}
+C++ type checker can discharge mechanically. Template type-parameter
+polymorphism (System-F-style $\Lambda\alpha. M$) is used here; full
+\emph{dependent} quantification over types (the Curry--Howard reading
+of dependent products / $\Pi$-types) is not available in C++23 and is
+not claimed here. The ``Realisation'' column points to the section
+where each row is exhibited.}
 \label{tab:cpp-stlc-mapping}
 \small
 \begin{tabular}{@{}p{0.30\textwidth} p{0.32\textwidth} p{0.30\textwidth}@{}}
