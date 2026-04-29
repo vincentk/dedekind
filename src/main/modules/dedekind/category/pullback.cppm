@@ -156,11 +156,12 @@ auto pullback(F_Raw&& f_raw, G_Raw&& g_raw) {
  * @tparam F The first parallel morphism f: A ⟶ B.
  * @tparam G The second parallel morphism g: A ⟶ B.
  */
+// Per the picking policy in :morphism (#411): use Dom / Cod in
+// IsArrow-strict contexts; the IsArrow<F> / IsArrow<G> guards above
+// cover the precondition.
 export template <typename E, typename F, typename G>
 concept IsEqualizer =
-    IsArrow<F> && IsArrow<G> &&
-    std::same_as<typename F::Domain, typename G::Domain> &&
-    std::same_as<typename F::Codomain, typename G::Codomain> &&
-    IsSubobject<E, typename F::Domain>;
+    IsArrow<F> && IsArrow<G> && std::same_as<Dom<F>, Dom<G>> &&
+    std::same_as<Cod<F>, Cod<G>> && IsSubobject<E, Dom<F>>;
 
 }  // namespace dedekind::category

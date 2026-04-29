@@ -173,16 +173,19 @@ concept IsCategory = requires {
 
 /** @section Identity_Short_Circuits */
 
-// Law: id_A >> g = g
+// Law: id_A >> g = g.  Per the picking policy in :morphism (#411): use
+// Dom<G> in IsArrow-strict contexts; self-documents that the Domain comes
+// via the arrow shape.
 export template <typename T, IsArrow G>
-  requires std::same_as<T, typename G::Domain>
+  requires std::same_as<T, Dom<G>>
 constexpr auto operator>>(Identity<T>, G&& g) {
   return std::forward<G>(g);
 }
 
-// Law: f >> id_B = f
+// Law: f >> id_B = f.  Same picking-policy reasoning: Cod<F> in
+// IsArrow-strict contexts.
 export template <IsArrow F, typename T>
-  requires std::same_as<typename F::Codomain, T>
+  requires std::same_as<Cod<F>, T>
 constexpr auto operator>>(F&& f, Identity<T>) {
   return std::forward<F>(f);
 }
