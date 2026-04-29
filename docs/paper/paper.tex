@@ -727,17 +727,52 @@ produced.  Where SICP defers \emph{evaluation} (a runtime move), we defer
 is the auditor that ensures the wishes were coherent before the realization
 happens.
 
-\begin{figure}[ht]
+\begin{figure}[p]
 \centering
-\begin{tikzcd}[column sep=huge, row sep=large, ampersand replacement=\&]
-  \texttt{Cardinality}~(\mathbb{N}) \arrow[r, "\texttt{lift\_}\mathbb{N}\texttt{\_}\mathbb{Z}\texttt{\_}"]
-    \& \texttt{SignedCardinality}~(\mathbb{Z}) \arrow[l, dashed, bend right=30, "\texttt{abs}"'] \\
-  \texttt{unsigned~int}~(\mathbb{Z}/2^w\mathbb{Z}) \arrow[u, "\texttt{embed\_uint\_}\mathbb{N}\texttt{\_}"] \arrow[r, "\texttt{embed\_uint\_sint\_}"]
-    \& \texttt{int}~(\text{machine}~\mathbb{Z}) \arrow[u, "\texttt{embed\_sint\_}\mathbb{Z}\texttt{\_}"'] \\
-  \texttt{bool}~(\mathbb{B}) \arrow[u, "\texttt{embed\_}\mathbb{B}\texttt{\_uint\_}"] \arrow[r, "\texttt{embed\_}\mathbb{B}\texttt{\_}\mathbb{K}3\texttt{\_}"]
-    \& \texttt{Ternary}~(\mathbb{K}3) \arrow[uu, bend right=75, looseness=1.6, "\texttt{embed\_}\mathbb{K}3\texttt{\_}\mathbb{Z}\texttt{\_}"']
+\begin{tikzcd}[
+  column sep=large,
+  row sep=large,
+  ampersand replacement=\&,
+  cells={nodes={font=\small}},
+  labels={font=\scriptsize}
+]
+  \&\& M_2(\mathbb{Z}) \arrow[r] \&
+  M_2(\mathbb{Q}) \arrow[r] \&
+  M_2(\mathbb{R}) \arrow[r] \&
+  M_2(\mathbb{C}) \\
+  \&\& V_2(\mathbb{Z}) \arrow[u, "\mathrm{End}_R"] \arrow[r] \&
+  V_2(\mathbb{Q}) \arrow[u, "\mathrm{End}_R"] \arrow[r] \&
+  V_2(\mathbb{R}) \arrow[u, "\mathrm{End}_R"] \arrow[r] \&
+  V_2(\mathbb{C}) \arrow[u, "\mathrm{End}_R"] \\
+  \mathbb{B} \arrow[r] \&
+  \mathbb{N} \arrow[r] \&
+  \mathbb{Z} \arrow[u, "\mathrm{Free}_2"] \arrow[r, "\mathrm{Frac}"] \&
+  \mathbb{Q} \arrow[u, "\mathrm{Free}_2"] \arrow[r, "\mathrm{Cuts}"] \&
+  \mathbb{R} \arrow[u, "\mathrm{Free}_2"] \arrow[r, "\mathrm{Cplx}"] \&
+  \mathbb{C} \arrow[u, "\mathrm{Free}_2"]
 \end{tikzcd}
-\caption{The carrier lattice (discrete-foundations slice). Three layers, bottom to top: truth-value carriers (\texttt{bool}, \texttt{Ternary}); machine integer carriers (\texttt{unsigned~int} = $\mathbb{Z}/2^w\mathbb{Z}$ as a finite cyclic ring; \texttt{int} = machine $\mathbb{Z}$ with UB-on-overflow); variant carriers inhabiting the textbook Forms (\texttt{Cardinality} = $\mathbb{N}$ as the Natural Numbers Object; \texttt{SignedCardinality} = $\mathbb{Z}$ as the Initial Ring / Grothendieck group of $\mathbb{N}$). Each labelled arrow is an exported \texttt{arrow} object in \texttt{dedekind.numbers} registered as a monic morphism (the trait \texttt{is\_monic\_arrow\_v} = \texttt{true}); test case \texttt{[carrier-lattice][figure][monic][witness]} pins the seven \texttt{IsMonicArrow} concept-level facts that this caption asserts. The top-row variant-layer arrow \texttt{lift\_}$\mathbb{N}$\texttt{\_}$\mathbb{Z}$\texttt{\_} (which wraps the public function \texttt{dedekind::sets::lift\_cardinality\_to\_signed}) is the canonical $\mathbb{N} \hookrightarrow \mathbb{Z}$ embedding and is the Grothendieck-construction \emph{unit} at object $\mathbb{N}$; the binary closure-forcing operator $\texttt{Cardinality} - \texttt{Cardinality} \to \texttt{SignedCardinality}$ realises the Grothendieck \emph{construction} (the multiplication of the construction) on operator pairs and is not shown on the diagram (it would require a product node). The middle-row arrow \texttt{embed\_uint\_sint\_} is the machine-layer sign reinterpretation \texttt{static\_cast<int>(unsigned)}; renamed (post-\#457) to mark the actual machine-layer domain and codomain explicitly --- the variant-layer canonical $\mathbb{N} \hookrightarrow \mathbb{Z}$ embedding lives at the top row as \texttt{lift\_}$\mathbb{N}$\texttt{\_}$\mathbb{Z}$\texttt{\_}. The dashed retraction \texttt{abs} is the split-mono partner of \texttt{lift\_}$\mathbb{N}$\texttt{\_}$\mathbb{Z}$\texttt{\_} ($\texttt{abs} \circ \texttt{lift} = \mathrm{id}$ on the non-negative fragment); it is not asserted monic --- \texttt{abs} folds sign ($\texttt{abs}(3) = \texttt{abs}(-3)$), so distinct $\mathbb{Z}$-values are conflated. \texttt{embed\_}$\mathbb{K}3$\texttt{\_}$\mathbb{Z}$\texttt{\_} skips the machine-int row and lands directly on \texttt{SignedCardinality} (a deliberate factorisation choice). Multiple paths between extremes commute up to canonical isomorphism.}
+\caption{The Algebraic Tower (target-state Figure~1, first sketch).
+Two-axis lattice: \emph{horizontal} = carrier-strength
+($\mathbb{B} \to \mathbb{N} \to \mathbb{Z} \to \mathbb{Q} \to \mathbb{R}
+\to \mathbb{C}$, each step a labelled functor application
+\textsc{Frac} / \textsc{Cuts} / \textsc{Cplx}); \emph{vertical} =
+object rank (Scalars $\to$ Vectors $V_2(R)$ via $\mathrm{Free}_2$
+$\to$ Matrices $M_2(R)$ via $\mathrm{End}_R$). The finite-field side
+branch ($\mathbb{F}_p$, $\mathbb{F}_{64}$) hangs off $\mathbb{Z}$
+through the same $\mathrm{Quot}$ functor at prime / polynomial
+ideals (cf.\ Figure~\ref{fig:initial-ring-modular} for the
+modular-arithmetic exhibit). The Extension-Functor row (Dual /
+Cplx as quotient rings) names the constructions used at each
+step. The Machine Substrate row (\texttt{bool} / \texttt{uint} /
+\texttt{int} / \texttt{double}) sits below the Honest-Rejection
+boundary; the dashed arrows mark the realisation crossings that
+embed each machine type into its variant proxy. \emph{Hooks for
+the off-figure dimensions:} higher rank ($V_n$, $M_n$, $n > 2$;
+\#368), predicate-set / order-theoretic constructions (a sibling
+\emph{Geometric Tower}, candidate Figure~1b), tensor / exterior
+powers, and the trait-registry pinning of every arrow as a
+mechanical witness (\#499). The 2D projection is necessarily
+lossy.}
 \label{fig:carrier-lattice}
 \end{figure}
 
