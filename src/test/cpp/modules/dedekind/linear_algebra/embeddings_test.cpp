@@ -150,7 +150,12 @@ TEST_CASE("Algebraic Lattice (Figure 1): cube corners on the numeric tower",
   //
   // Examples of two-step compositions live one functor deep:
   //   - Dual(Complex(Rat))   — the AD carrier over ℚ-rationals.
-  //   - Complex(Dual(Rat))   — same ring up to canonical iso.
+  //   - Complex(Dual(Rat))   — abstractly isomorphic to Dual(Complex(Rat))
+  //                            as the polynomial quotient
+  //                            ℚ[i, ε]/(i²+1, ε²); the C++ carriers are
+  //                            distinct types with distinct concrete
+  //                            operations and no canonical-iso witness
+  //                            shipped today (cf. #504/#505 generalisations).
   //
   // The two compositions commute (independent generators i, ε), per
   // the Algebraic Lattice caption.  Either direction works as a

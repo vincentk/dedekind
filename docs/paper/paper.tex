@@ -951,8 +951,12 @@ specific cells fall out of the type system at the call site.
 3D oblique-projection lattice; eight cube corners, three Fraktur-axis
 parameters.  $\mathfrak{A}$ (carrier-strength) follows the chain
 $\mathbb{B} \to \mathbb{N} \to \mathbb{Z} \to \mathbb{Q} \to \mathbb{R}
-\to \mathbb{C}$ via successive functors Frac / Cuts / Cplx
-(Tables~\ref{tab:carriers-exact}--\ref{tab:rosetta-textbook-vs-cpp}).
+\to \mathbb{C}$; the early steps use the natural-numbers-object
+($\mathbb{B} \to \mathbb{N}$) and the Grothendieck ring construction
+($\mathbb{N} \to \mathbb{Z}$), the later steps the
+\emph{Frac} / \emph{Cuts} / \emph{Cplx} functors
+($\mathbb{Z} \to \mathbb{Q} \to \mathbb{R} \to \mathbb{C}$;
+Tables~\ref{tab:carriers-exact}--\ref{tab:rosetta-textbook-vs-cpp}).
 $\mathfrak{R}$ (rank) lifts Scalar $\to V_n(R) \to M_n(R)$ via
 $\mathrm{Free}_n$ and $\mathrm{End}_R$ (Table~\ref{tab:rosetta-rank}).
 $\mathfrak{Q}$ (quotient) realises an extension $R \to X(R)$ at a
@@ -1386,7 +1390,7 @@ commute when their generating variables are independent.}
 \textbf{$X$} & \textbf{Polynomial ideal} & \textbf{Algebra} & \textbf{Structure} & \textbf{C++23 carrier} \\
 \midrule
 $D$ (Dual) & $(\varepsilon^2)$ & $R[\varepsilon]/(\varepsilon^2)$ & nilpotent (never integral) & \lstinline|Dual<F>| (\#504 generalises) \\
-$C$ (Cplx) & $(i^2 + 1)$ & $R[i]/(i^2 + 1)$ & field-extension when $p$ irreducible$^a$ & \lstinline|Complex<R>| (\#505 generalises) \\
+$C$ (Cplx) & $(i^2 + 1)$ & $R[i]/(i^2 + 1)$ & integral-domain extension when $i^2{+}1$ irreducible; field extension when $R$ is a field$^a$ & \lstinline|Complex<R>| (\#505 generalises) \\
 $D \circ C \cong C \circ D$ & $(i^2 + 1, \varepsilon^2)$ & $R[i, \varepsilon]/(i^2{+}1, \varepsilon^2)$ & nilpotent dual of the complex extension & nested \lstinline|Dual<Complex<R>>| \\
 $G$ (Galois) & $(q(x))$ for $q$ irreducible & $\mathbb{F}_p[x]/(q(x))$ & finite field $\mathbb{F}_{p^n}$ & \lstinline|𝔽64| ($\mathbb{F}_2[x]/(x^6{+}x{+}1)$, PR \#444) \\
 \bottomrule
