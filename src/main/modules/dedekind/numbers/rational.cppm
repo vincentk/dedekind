@@ -41,6 +41,14 @@ using namespace dedekind::sets;
 // Canonical extensional/machine realization for the integer carrier.
 export using machine_integer = extensional_integer;
 
+// Canonical extensional/machine realization for the floating-point side
+// of the rational realization boundary.  Mirrors @c machine_integer: a
+// single-place rename surface so downstream code does not hard-code
+// @c double everywhere.  The IEEE 754 partial reading lives at
+// @c numbers:floating_point ; the exact embedding into ℚ runs through
+// @c embed_double_ℚ (defined further down).
+export using machine_float = double;
+
 /**
  * @class Rational
  * @brief The Field of Fractions over an Integral Domain Z.
@@ -574,30 +582,69 @@ namespace dedekind::numbers {
 /** @section Canonical_Species_Spine (ℚ)
  *
  * The canonical rational-number species ℚ is defined above as
- * @c RationalSet @c = @c RationalsOf<> with value-level constant
- * @c Q.  The spine witnesses below pin ℚ's syntax / semantics /
- * arrow fabric against drift:
- *
- * (1) IsSet anchor;
- * (2) Syntax: HasRingOperators / HasFieldOperators /
- *     HasGroupOperatorsAdd / HasGroupOperatorsMul on the canonical
- *     @c Rational<default_integer> carrier;
- * (3) Semantics: total order, density, directed-set, CCC, plus the
- *     operational @c IsFieldLikeScalar witness (the strict @c IsField
- *     bundle is gated by the species-trait FIXME documented further
- *     down);
- * (4) Primitive-type arrow ℚ ↔ machine_integer via @c embed_ℤ_ℚ
- *     (forward, registered monic);
- * (5) Adjacent-set arrows: ℤ ↪ ℚ via @c embed_ℤ_ℚ above; ℚ ↪ ℝ via
- *     @c embed_ℚ_ℝ in @c :real (downstream).  Reverse arrows
- *     ℚ → double / ℝ → ℚ live behind the open #398 work.
+ * @c ℚ @c = @c Rational<default_integer> with value-level
+ * predicate-set constant @c Q (of type @c IntegersOf<>-analog @c
+ * RationalsOf<>).  The spine witnesses below pin ℚ's syntax /
+ * semantics / arrow-fabric witnesses against drift; the layout
+ * mirrors the @c numbers:integer spine for ℤ so that downstream code
+ * can scan one block per textbook carrier and find the same five
+ * witness slots.
  */
 
+// (1) IsSet anchor on the predicate-set constant Q.
 static_assert(
     dedekind::category::IsSet<decltype(dedekind::category::ambient_set<
                                        Rational<default_integer>>(Q))>,
     "RationalsOf must be the canonical IsSet anchor for "
     "dedekind.numbers:rational.");
+
+// (2) Syntax (the C++ operator surface that maps to ℚ's algebra).
+//   - HasRingOperators<ℚ>: literal +, binary -, unary -, * close on ℚ.
+//   - HasFieldOperators<ℚ>: literal +, -, *, / close on ℚ
+//     (HasRingOperators + closure under /).
+//   - HasGroupOperatorsAdd<ℚ>: literal +, binary -, unary - close on ℚ.
+//   - HasGroupOperatorsMul<ℚ>: literal *, / close on ℚ \ {0}.
+static_assert(dedekind::algebra::HasRingOperators<ℚ>,
+              "ℚ closes the literal ring operator surface (+, binary -, "
+              "unary -, *).");
+static_assert(dedekind::algebra::HasFieldOperators<ℚ>,
+              "ℚ closes the literal field operator surface (+, -, *, /).");
+static_assert(dedekind::algebra::HasGroupOperatorsAdd<ℚ>,
+              "ℚ closes the additive-group operator surface (+, binary -, "
+              "unary -).");
+static_assert(dedekind::algebra::HasGroupOperatorsMul<ℚ>,
+              "ℚ closes the multiplicative-group operator surface "
+              "(*, /), modulo division-by-zero (the field carrier "
+              "of ℚ is total only off the multiplicative-zero set).");
+
+// (3) Semantics (the algebraic structures Rational<default_integer> actually
+//     carries).  The strict @c category::IsField<ℚ, std::plus, std::multiplies>
+//     witness is architecturally blocked by the @c IsTotal gate (exact carriers
+//     are neither periodic, idempotent, nor saturating); the operational
+//     reading via @c IsFieldLikeScalar is the load-bearing field-arithmetic
+//     guarantee, asserted downstream in this file's Formal_Verification block.
+//     Group_ℤ on the integer carrier of ℚ is also asserted downstream where
+//     the species-trait registry is reachable.
+
+// (4) Primitive-type arrows on ℚ:
+//   - Forward (machine → ℚ): @c embed_ℤ_ℚ promotes a @c machine_integer
+//     to a rational n/1 (registered monic; injective by construction).
+//   - Forward (machine_float → ℚ): @c embed_double_ℚ extracts the exact
+//     dyadic rational m·2^e from the IEEE 754 bit-pattern (registered
+//     monic; rejects NaN / ±∞ as out-of-band — the rationals are a field
+//     with no sentinels).
+// Both arrows are defined further up in this partition; their
+// IsMonicArrow / IsInjective registrations live in the
+// @c dedekind::category-namespace block below those definitions.
+
+// (5) Adjacent-set arrows on ℚ:
+//   - Forward predecessor: @c ℤ ↪ ℚ via @c embed_ℤ_ℚ (n ↦ n/1; same
+//     arrow as (4)).
+//   - Forward successor:    @c ℚ ↪ ℝ via @c embed_ℚ_ℝ in @c :real
+//     (downstream; q ↦ Real{q}, the canonical inclusion).
+//   - Reverse direction (ℚ → machine):  @c .resolve() yields a
+//     @c double approximation (lossy when the denominator's not a
+//     power of two; exact for dyadic rationals).
 
 /**
  * @section Formal_Verification
