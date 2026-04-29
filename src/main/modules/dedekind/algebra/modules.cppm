@@ -1,5 +1,5 @@
 /**
- * @file algebra:modules.cppm
+ * @file dedekind/algebra/modules.cppm
  * @partition :modules
  * @brief Level 3.6: The Linear Synthesis (Modules and Vector Spaces).
  *

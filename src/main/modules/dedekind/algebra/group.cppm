@@ -1,5 +1,5 @@
 /**
- * @file algebra:group.cppm
+ * @file dedekind/algebra/group.cppm
  * @partition :group
  * @brief Level 3.1: The Symmetry of Numbers (ℤ, ℚ*).
  *

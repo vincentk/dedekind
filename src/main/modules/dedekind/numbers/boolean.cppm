@@ -1,5 +1,5 @@
 /**
- * @file ontology:numbers.cppm
+ * @file dedekind/numbers/boolean.cppm
  * @brief Formal definition of the Boolean system 𝔹 within the numeric ontology.
  *
  * Copyright 2026 The Dedekind Authors
