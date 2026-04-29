@@ -139,9 +139,39 @@ TEST_CASE("embed_double_ℚ: NaN and ±∞ are out-of-band (throw at runtime)",
                     std::domain_error);
 }
 
-TEST_CASE("embed_double_ℚ: registered as a monic arrow (IsInjective fires)",
-          "[numbers][rational][embedding][float][category]") {
-  using ArrowT = std::decay_t<decltype(embed_double_ℚ<>)>;
-  STATIC_CHECK(dedekind::category::is_monic_arrow_v<ArrowT>);
-  STATIC_CHECK(dedekind::category::IsInjective<ArrowT>);
+TEST_CASE(
+    "embed_double_ℚ: precision-overflow inputs throw on built-in signed I",
+    "[numbers][rational][embedding][float][overflow]") {
+  // 0.1 has reduced mantissa 7205759403792794 (well above INT_MAX) and a
+  // -56 exponent (denominator 2^56, also above INT_MAX).  Both the
+  // mantissa-fit check and the scaling-overflow check are valid
+  // rejections; the arrow throws std::overflow_error on either branch.
+  REQUIRE_THROWS_AS(embed_double_ℚ<int>(0.1), std::overflow_error);
+
+  // 1e20 has biased exponent 1089 → exp ≈ 13, with a non-trivial
+  // mantissa; scaling by 2^13 in int overflows.
+  REQUIRE_THROWS_AS(embed_double_ℚ<int>(1.0e20), std::overflow_error);
+
+  // For `long long` the range is much wider: 0.1 still requires a
+  // 56-bit denominator, which fits in long long (63-bit signed range).
+  // Just confirm the call succeeds on a wide enough carrier.
+  CHECK_NOTHROW(embed_double_ℚ<long long>(0.1));
+}
+
+TEST_CASE("embed_double_ℚ: in-range injectivity (the partial-monic property)",
+          "[numbers][rational][embedding][float][injectivity]") {
+  // is_monic_arrow_v is intentionally not registered (see the
+  // partition-side comment); the in-range subset is provably injective
+  // by the exactness of the dyadic decomposition.  This case exercises
+  // injectivity on a small set of in-range inputs, with the formal
+  // type-level @c IsMonicArrow registration deferred to #496.
+  using Rat = Rational<default_integer>;
+  const Rat r_three_a = embed_double_ℚ<>(3.0);
+  const Rat r_three_b = embed_double_ℚ<>(3.0);  // same input → same output
+  CHECK(r_three_a == r_three_b);
+
+  // Distinct in-range inputs map to distinct rationals.
+  CHECK(embed_double_ℚ<>(3.0) != embed_double_ℚ<>(2.0));
+  CHECK(embed_double_ℚ<>(0.5) != embed_double_ℚ<>(0.25));
+  CHECK(embed_double_ℚ<>(-0.75) != embed_double_ℚ<>(0.75));
 }
