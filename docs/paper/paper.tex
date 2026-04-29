@@ -2488,7 +2488,12 @@ Let $T$ be a totally ordered carrier, and let
 \]
 be lower-bound and upper-bound halfspace predicates over $T$ whose
 pivots $a_i, b_j \in T$ are carried at the type level as non-type
-template parameters. The meet
+template parameters. Define the effective bounds
+$a^\star \coloneqq \max_i a_i$ if $m \ge 1$ and $a^\star \coloneqq
+\bot$ if $m = 0$, and $b^\star \coloneqq \min_j b_j$ if $n \ge 1$
+and $b^\star \coloneqq \top$ if $n = 0$ (where $\bot, \top$ denote
+the carrier's bottom and top elements, taken as
+$\pm\infty$-style sentinels when $T$ is unbounded). Then the meet
 \[
   S \;=\; \bigcap_{i=1}^{m} \{x \in T \mid P_i(x)\}
         \;\cap\;
@@ -2496,12 +2501,11 @@ template parameters. The meet
 \]
 is resolved at compile time to exactly one of:
 \begin{enumerate}
-  \item $\varnothing$, when $\max_i a_i > \min_j b_j$;
+  \item $\varnothing$, when $a^\star > b^\star$;
   \item a \lstinline{Singleton<v>}, when $T$ is integral and
-        $\max_i a_i = \min_j b_j = v$;
-  \item an \lstinline{OrderInterval}~$[\max_i a_i, \min_j b_j]$
-        otherwise (where the lower and upper bounds default to the
-        carrier's $\bot$ and $\top$ when $m = 0$ or $n = 0$).
+        $a^\star = b^\star = v$;
+  \item an \lstinline{OrderInterval}~$[a^\star, b^\star]$
+        otherwise.
 \end{enumerate}
 \end{theorem}
 
@@ -2539,7 +2543,7 @@ suffice:
 \noindent
 The same case-split, with rôles of $a_i$ and $b_j$ exchanged,
 discharges the symmetric upper-bound addition. Each case lands in
-one of the three forms, completing the induction.\qed
+one of the three forms, completing the induction.
 \end{proof}
 
 \paragraph{Theorems for free.}
