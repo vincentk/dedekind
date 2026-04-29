@@ -487,21 +487,26 @@ concept IsIterativeEndomorphism =
  * @concept IsFAlgebra
  * @brief A carrier `A` equipped with a structure map `F<A> -> A`.
  */
+// Per the picking policy in :morphism (#411): use Dom / Cod in
+// IsArrow-strict contexts; the IsArrow<Structure> guards cover the
+// precondition for both concepts below.
 export template <typename Carrier, typename Structure, typename Functor>
-concept IsFAlgebra = IsEndofunctor<Functor> && IsArrow<Structure> &&
-                     std::same_as<typename Structure::Domain,
-                                  typename Functor::template Shape<Carrier>> &&
-                     std::same_as<typename Structure::Codomain, Carrier>;
+concept IsFAlgebra =
+    IsEndofunctor<Functor> && IsArrow<Structure> &&
+    std::same_as<Dom<Structure>,
+                 typename Functor::template Shape<Carrier>> &&
+    std::same_as<Cod<Structure>, Carrier>;
 
 /**
  * @concept IsFCoalgebra
  * @brief A carrier `A` equipped with a structure map `A -> F<A>`.
  */
 export template <typename Carrier, typename Structure, typename Functor>
-concept IsFCoalgebra = IsEndofunctor<Functor> && IsArrow<Structure> &&
-                       std::same_as<typename Structure::Domain, Carrier> &&
-                       std::same_as<typename Structure::Codomain,
-                                    typename Functor::template Shape<Carrier>>;
+concept IsFCoalgebra =
+    IsEndofunctor<Functor> && IsArrow<Structure> &&
+    std::same_as<Dom<Structure>, Carrier> &&
+    std::same_as<Cod<Structure>,
+                 typename Functor::template Shape<Carrier>>;
 
 /**
  * @brief A concrete witness for an `F`-algebra.
