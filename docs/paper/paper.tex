@@ -586,7 +586,7 @@ they do not appear in any \lstinline{export}-qualified signature.}
 \toprule
 \textbf{Rule on the public surface} & \textbf{What it rules out, and why} \\
 \midrule
-No \lstinline{reinterpret_cast} in any \lstinline{export}-qualified API. &
+No \lstinline|reinterpret_cast| in any \lstinline|export|-qualified API. &
 Defeats type abstraction at the value level.  Bit-level reinterpretation
 (e.g., IEEE-754 inspection) lives in non-exporting internal partitions. \\
 No SFINAE branches in the public surface. &
@@ -597,7 +597,7 @@ No ADL-dependent dispatch except for textbook operator overloads. &
 Argument-dependent lookup is admitted only where the textbook reads
 \texttt{a + b} or \texttt{a == b} on library carriers; free-function
 calls in user code dispatch through explicit qualification. \\
-No template-template parameters in \lstinline{export}-qualified signatures.\footnote{One
+No template-template parameters in \lstinline|export|-qualified signatures.\footnote{One
 tracked exception at the time of writing: the \texttt{:kleisli} partition's
 \texttt{unit\_witness}, \texttt{counit\_witness}, \texttt{IsKleisliExtension},
 \texttt{IsCoKleisliExtension}, and \texttt{IsFrobenius} retain a
@@ -608,13 +608,13 @@ higher-kindedness via a nested alias rather than via a template-template
 parameter at the call site) is tracked in issue~\#508 of the companion
 repository, and this footnote retires when that issue closes.} &
 Higher-kinded structure is named at the level of concepts
-(\lstinline{IsFunctor<F>}, etc.), not by passing template-templates
+(\lstinline|IsFunctor<F>|, etc.), not by passing template-templates
 through public function signatures. \\
 No public-API specialisation that branches behaviour. &
 Generic templates are parametric across the public surface; per-type
 specialisations live in the trait registry, each carrying an
 algebraic claim that is reviewed and CI-checked against a
-\lstinline{static_assert}. \\
+\lstinline|static_assert|. \\
 Bounded template instantiation depth. &
 The Turing-complete instantiation machinery is bounded by the
 carrier-lattice depth (Figure~\ref{fig:carrier-lattice}: scalar,
