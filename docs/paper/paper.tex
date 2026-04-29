@@ -196,9 +196,7 @@ Calculus (Part~II) discharged inside a \lstinline{static_assert}.
 \noindent\textbf{Keywords:} C++23; concepts; non-type template
 parameters; compile-time verification; Axiomatic Systems Programming;
 type-directed collapse; linear programming; forward-mode automatic
-differentiation; edge computing; extreme edge computing (XEC);
-green edge computing; embedded machine learning; sustainable
-computing.
+differentiation.
 \end{abstract}
 
 % ============================================================
@@ -337,43 +335,23 @@ discharged proofs do not only \emph{verify}, they also \emph{optimise},
 and the connection between the two is what lets the LP vertex collapse
 to a literal return rather than to a skipped runtime check.
 
-\paragraph{What this buys, concretely.} From one underlying idea
-(``name the structure in the type, let the compiler discharge the
-laws'') and a small handful of primitives (concepts, NTTP-carried
-predicates, halfspaces, cuts), the library builds up, at compile time:
-a numeric tower ($\mathbb{N}$, $\mathbb{Z}$, $\mathbb{Q}$,
-$\mathbb{R}$ via Dedekind cuts, $\mathbb{C}$, dual numbers); a small
-linear-algebra layer (\texttt{Vec2}, \texttt{Invertible2x2} with
-closed-form Cramer inverse); a calculus layer (numerical,
-polynomial-symbolic, and dual-number forward AD, each a realisation of
-Elliott's $(f, f')$ product); and an optimisation layer (the LP vertex
-enumerator of Section~\ref{sec:lp-centrepiece}). No runtime solver
-ships with any of it. The breadth is part of the contribution: the
-technique scales from a single ring concept all the way up to an LP
-whose optimum is a \lstinline{static_assert}-checked literal in the
-emitted object file.
-
-\paragraph{A worked example in advance.}
-Section~\ref{sec:lp-centrepiece} presents the paper's centrepiece: a
-textbook linear-programming instance whose objective vector and
-constraint polytope are named at the type level reduces at compile time
-to its optimal vertex as a typed constant. The six candidate solves,
-six feasibility checks, and six objective comparisons vanish in the
-emitted IR, which contains only the literal return of the optimum's
-coordinates. No LP solver runs; the compiler has already performed the
-active-set enumeration. Running the same reduction over the dual-number
-ring (Section~\ref{sec:ad-elliott}) additionally recovers exact
-sensitivity analysis, recognising forward-mode automatic differentiation
-as a sibling compile-time reduction in the sense of
-Elliott~\cite{elliott2018simple}. Both reductions are witnessed by
-\lstinline{static_assert} (C++'s compile-time assertion---if the
-predicate is false, the program fails to build) at instantiation and by
-checked-in LLVM~IR fixtures that fail CI on optimiser drift. A third,
-smaller showcase (Section~\ref{sec:poly-ftc}) lifts the same discipline
-to polynomial calculus: the formal derivative of a rational polynomial
-is a \lstinline{static_assert}-checked identity, and the Fundamental
-Theorem of Calculus (Part~II) is discharged at translation time against
-a closed-form antiderivative.
+\paragraph{What this buys, concretely.} From the design rule (``name
+the structure in the type, let the compiler discharge the laws'') and
+a small handful of primitives (concepts, NTTP-carried predicates,
+halfspaces, cuts), the library builds, at compile time, a numeric
+tower ($\mathbb{N}$, $\mathbb{Z}$, $\mathbb{Q}$, $\mathbb{R}$ via
+Dedekind cuts, $\mathbb{C}$, dual numbers), a small linear-algebra
+layer, a calculus layer (numerical / polynomial / dual-number AD),
+and an optimisation layer (the LP vertex enumerator of
+Section~\ref{sec:lp-centrepiece}). No runtime solver ships with any
+of it. The centrepiece (Section~\ref{sec:lp-centrepiece}) is a
+textbook LP that reduces at compile time to its optimal vertex as a
+typed constant; the same reduction over the dual-number ring
+(Section~\ref{sec:ad-elliott}) recovers forward-mode automatic
+differentiation as a sibling compile-time reduction in the sense of
+Elliott~\cite{elliott2018simple}; a third showcase
+(Section~\ref{sec:poly-ftc}) lifts the discipline to polynomial
+calculus.
 
 \paragraph{The three claims this paper substantiates.}
 \begin{enumerate}
@@ -406,81 +384,27 @@ currying, evaluation, and product/coproduct introduction are witnessed
 by the same type-system machinery that discharges the algebraic laws of
 Section~\ref{sec:carrier-rosetta}.
 
-\paragraph{What else falls out for free.} Once you commit to building
-on category theory, the rest is mostly bookkeeping. Three concrete
-examples of non-trivial mileage you get from naming the structures and
-letting the compiler discharge them.
-
-\medskip
-
-\noindent\emph{(i) A functorial spine across a shape family.} Fix a
-ring $T$ and consider the dimensional shape family
-$\bigl(\,T,\;T^2,\;{}^t T^2,\;M_2(T)\,\bigr)$ --- scalar, column,
-row, square. Each is functorial in $T$:
-\[
-  F : \mathbf{Set} \longrightarrow \mathbf{Set},
-  \qquad
-  F(T) \in \bigl\{\,T,\;T^2,\;{}^t T^2,\;M_2(T)\,\bigr\},
-  \qquad
-  F(f)\bigl(\,(x_{ij})\,\bigr) \;=\; \bigl(\,f(x_{ij})\,\bigr).
-\]
-That is, lift an arrow $f: T \to T$ to the elementwise arrow on the
-shape. Each of the four functors is registered as an
-$\textsc{IsFunctor}$ witness in the library; the scalar ($1\times 1$)
-corner is the identity functor with $\mathrm{Shape}(U) = U$, sitting
-at the apex of the family. Naming the shape gets you elementwise
-lifting at compile time --- no extra code per carrier and no runtime
-cost.
-
-\medskip
-
-\noindent\emph{(ii) The scalar embedding is a monadic unit.} The
-``scalar $\mapsto$ linear map'' lift one writes by hand in every
-linear-algebra library is the categorical unit
-$\eta_F: T \to F(T)$ of the corresponding shape functor. Pinning
-$\eta$ as a witness gives the canonical entries:
-\[
-  \eta_{T^2}(s) = (s,\,s),
-  \qquad
-  \eta_{M_2}(s) = s \cdot I_2 \;=\; \begin{pmatrix} s & 0 \\ 0 & s \end{pmatrix}.
-\]
-The second is the classical ring monomorphism
-$T \hookrightarrow M_2(T)$ into the centre of the matrix algebra, and
-appears as a one-liner pinned next to the carrier rather than a
-proof obligation maintained by hand. Because both witnesses live in
-the same Kleisli framework as the project's $\mathrm{Path}$ comonad
-and the $\mathrm{Box}/\mathrm{Maybe}$ monads, they compose with bind
-($\gg{=}$) and extend ($\lll{=}$) out of the box.
-
-\medskip
-
-\noindent\emph{(iii) The LP optimum is a comonadic extract.} The
-compile-time linear-programming reduction of
-Section~\ref{sec:lp-centrepiece} has the textbook shape of a
-co-Kleisli arrow
-\[
-  \varepsilon_{\mathrm{LP}} : \mathrm{Polytope}(T) \longrightarrow T^2,
-  \qquad
-  \varepsilon_{\mathrm{LP}}\bigl(\,(\mathbf{c},\,H_1,\dots,H_n)\,\bigr) \;=\; \arg\max_{\mathbf{x} \in \bigcap_i H_i} \mathbf{c}^\top \mathbf{x},
-\]
-where the polytope is the $F(T)$ context (objective vector
-$\mathbf{c}$ together with halfspaces $H_i$) and the optimal vertex
-$\mathbf{x}^\star \in T^2$ is the $T$. Naming this directly --- the
-context as a reified type carrying the NTTP pack, with a free
-function $\mathrm{lp\_extract}$ delegating to the existing reduction
---- buys the comonadic vocabulary at zero runtime cost: the
-$\varepsilon_{\mathrm{LP}}$ map is already a \texttt{static\_assert}-checked
-typed constant in the emitted object file. The counit that elsewhere
-costs a Tactics file and a coq compilation here costs a type alias
-and a \texttt{constexpr} call.
-
-\medskip
-
-\noindent The pattern is the same each time: name the structure in
-the type, register the witness, let the compiler discharge the laws.
-The categorical machinery is not decorative. It saves substantive
-code and substantive proof effort, and the resulting library is
-auditable from the type alone.
+\paragraph{What else falls out for free.} Naming the structure in
+the type buys non-trivial mileage at no runtime cost. Three quick
+examples illustrate the pattern: (i) the scalar / column / row /
+square family $\bigl(T, T^2, {}^t T^2, M_2(T)\bigr)$ is functorial
+in $T$ and each functor is an $\textsc{IsFunctor}$ witness, so an
+arrow $f: T \to T$ lifts elementwise without per-carrier
+boilerplate; (ii) the scalar embedding $T \hookrightarrow M_2(T)$ is
+the monadic unit $\eta_F$ of the shape functor, $\eta_{M_2}(s) = s
+\cdot I_2$, pinned as a witness next to the carrier; (iii) the LP
+reduction of Section~\ref{sec:lp-centrepiece} is a co-Kleisli arrow
+$\varepsilon_{\mathrm{LP}}: \mathrm{Polytope}(T) \to T^2$ extracting
+the optimal vertex from the polytope context.\footnote{The
+companion claims compose through the Kleisli machinery already in
+the library (the $\mathrm{Path}$ comonad, the
+$\mathrm{Box}/\mathrm{Maybe}$ monads), with bind ($\gg{=}$) and
+extend ($\lll{=}$) operators. The categorical vocabulary is not
+decorative: it lets the same primitives carry several theorem
+discharges---elementwise lifting, scalar-into-matrix monomorphism,
+LP counit---each as a typed constant in the emitted object file
+where elsewhere it would cost a tactics file and a separate
+compilation pipeline.}
 
 \subsection{How to Read This Paper}
 \label{sec:how-to-read}
@@ -1992,37 +1916,29 @@ instance whose size and coefficients are compile-time data.
 \subsection{Forward-Mode AD as a Sibling Realisation of Compile-Time Derivatives}
 \label{sec:ad-elliott}
 
-Now swap the ring. Re-run the same LP reduction, but over
-$\mathbb{Q}[\varepsilon]/(\varepsilon^2)$ instead of $\mathbb{Q}$. Out
-the other end comes the optimum \emph{and} its derivative with respect
-to a chosen input---as one typed constant. No separate derivative
-pass, no finite differences, no re-solve. The chain rule has already
-run, quietly, as the arithmetic inside the Cramer solve.
-
-The framing is Elliott's~\cite{elliott2018simple}: forward-mode AD is
-the product $(f, f')$ carrying the chain rule on its back, not the
-``dual number'' object \emph{per se}. Dual numbers are simply the
-realisation of the $(\text{value}, \text{tangent})$ product in which
-$\varepsilon^2 = 0$ makes the chain rule fall out of the ring laws.
-Seen that way, \texttt{dedekind} has been shipping derivatives all
-along: \texttt{dedekind.analysis:ftc::derivative\_at} computes the same
-abstract derivative numerically (central difference), and
-\texttt{dedekind.algebra:polynomial::RigPolynomial::derive} computes it
-symbolically (exact formal derivative). The new object,
-\texttt{Dual<F>}, is the representation that lives at the type level:
-its primal and tangent are structural fields, so
-\texttt{Dual<Rational<long>>} slots into any NTTP-parameterised carrier
+Swap the ring: re-run the same LP reduction over
+$\mathbb{Q}[\varepsilon]/(\varepsilon^2)$ instead of $\mathbb{Q}$.
+The optimum and its derivative with respect to a chosen input come
+out as one typed constant; no separate derivative pass. We follow
+Elliott's framing~\cite{elliott2018simple} that forward-mode AD is
+the chain-rule-carrying product $(f, f')$, with the dual-number ring
+making the chain rule fall out of the ring laws.\footnote{The same
+abstract derivative is computed numerically by
+\texttt{dedekind.analysis:ftc::derivative\_at} (central difference)
+and symbolically by
+\texttt{dedekind.algebra:polynomial::RigPolynomial::derive}. The
+\texttt{Dual<F>} carrier slots into any NTTP-parameterised carrier
 ---including the LP's \texttt{Halfspace2D<T, a, b, c>}---without
-special-casing.
+special-casing, because its primal and tangent are structural
+fields.}
 
-\paragraph{Showcase: parametric LP sensitivity.} Perturb $H_1$'s bound
-by $\varepsilon$---replace $x + y \leq 4$ with $x + y \leq 4 +
-\varepsilon$. The active set at the optimum is unchanged for
-infinitesimal perturbation; the Cramer solve now runs over dual
-numbers:
+\paragraph{Showcase: parametric LP sensitivity.} Perturb $H_1$'s
+bound by $\varepsilon$ (replace $x + y \leq 4$ with
+$x + y \leq 4 + \varepsilon$). The active set is unchanged for
+infinitesimal perturbation; the Cramer solve now runs over duals:
 
 % Source: src/test/cpp/modules/dedekind/optimization/lp_test.cpp
-\begin{lstlisting}[language=C++, caption={Parametric LP over \texttt{Dual<Rat>}: optimum + sensitivity as one typed constant. From \texttt{lp\_test.cpp}.}, label={lst:lp-dual}]
+\begin{lstlisting}[language=C++, caption={Parametric LP over \texttt{Dual<Rat>}. From \texttt{lp\_test.cpp}.}, label={lst:lp-dual}]
 using D = Dual<Rat>;
 using H1P = Halfspace2D<D, D{Rat{1L}}, D{Rat{1L}},
                         D{Rat{4L}, Rat{1L}}>;  // bound = 4 + epsilon
@@ -2036,24 +1952,16 @@ static_assert(v.x.val == Rat{2L}  && v.x.der == Rat{-1L});
 static_assert(v.y.val == Rat{2L}  && v.y.der == Rat{2L});
 \end{lstlisting}
 
-The primal is the original optimum $(2, 2)$; the tangents $(-1, +2)$
-are the partial derivatives of $x^*$ and $y^*$ with respect to the
-perturbation parameter. A hand derivation confirms: with the active set
-$\{x + y = 4 + t, \; 2x + y = 6\}$, the solution is
-$x^*(t) = 2 - t$, $y^*(t) = 2 + 2t$, so the sensitivities are $-1$ and
-$+2$. The point of this showcase is not the hand derivation---it is
-that the library's LP reduction, written once over an unconstrained
-ring-like carrier, yields exact sensitivity analysis when instantiated
-over the right ring.
-
-The same $\mathtt{Dual}\circ\mathtt{Rational}$ layering composes further.
-Over \texttt{Dual<Complex<Rational<long>>>}, the reduction would
-compute optima and sensitivities over the Gaussian rationals
-$\mathbb{Q}(i)$; the ring tower is closed under these layerings by
-construction (every intermediate carrier satisfies the
-\texttt{HasRingOperators} concept documented in the companion report).
-Holomorphic automatic differentiation at compile time is a direct
-consequence; we leave its application to a follow-up work.
+\noindent
+The primal $(2, 2)$ is the original optimum; the tangents $(-1, +2)$
+match the hand derivation $x^*(t) = 2 - t$, $y^*(t) = 2 + 2t$ on the
+active set $\{x + y = 4 + t,\; 2x + y = 6\}$. The LP reduction was
+written once over an unconstrained ring-like carrier; instantiating
+it over the dual-number ring discharges sensitivity analysis as a
+side effect of the ring laws. The same
+$\mathtt{Dual}\circ\mathtt{Complex}\circ\mathtt{Rational}$ layering
+extends to holomorphic automatic differentiation at compile time;
+we leave its application to a follow-up.
 
 \subsection{Linear Algebra: \texorpdfstring{$\mathbb{C}$ and $\mathbb{D}$}{ℂ and 𝔻} as Subrings of \texorpdfstring{$M_2(\mathbb{Q})$}{M₂(ℚ)}}
 \label{sec:lin-alg-embedding}
@@ -2890,46 +2798,27 @@ This is an ergonomics concern rather than a correctness one, but it
 is the concern a reader most often encounters first and deserves
 explicit acknowledgement.
 
-\paragraph{Worked diagnostic example.}
-A reader who tries to construct an \texttt{Invertible2x2} from a
-matrix that, on inspection of the page, looks plausible but is
-actually rank-deficient receives a single named diagnostic at
-instantiation rather than a substitution-failure cascade. The
-deliberate-mistake input
-
-\begin{lstlisting}[language=C++, basicstyle=\ttfamily\small]
-constexpr Invertible2x2<Rat,
-                        Rat{1L}, Rat{2L},
-                        Rat{2L}, Rat{4L}> M_singular{};
-// det = 1*4 - 2*2 = 0  ---  rows are linearly dependent.
-\end{lstlisting}
-
-\noindent yields, with \texttt{clang++ 22} and the project's standard
-build flags, the following diagnostic
-(\lstinline{-fno-color-diagnostics}, \lstinline{-ferror-limit=2},
-unedited):
-
-\begin{lstlisting}[basicstyle=\ttfamily\footnotesize, breaklines=true, columns=fullflexible]
-matrix.cppm:120:17: error: static assertion failed due to requirement '!(det == ...{0})':
-  Invertible2x2 requires full rank: a*d - b*c != 0
-  120 |   static_assert(!(det == T{0}),
-      |                 ^~~~~~~~~~~~~~
-failed_proof.cpp:12:46: note: in instantiation of template class
-  'dedekind::linear_algebra::Invertible2x2<Rat, 1, 2, 2, 4>' requested here
-
-1 error generated.
-\end{lstlisting}
-
-\noindent The first diagnostic line names the broken predicate in the
-language of linear algebra (``\texttt{requires full rank: a*d - b*c
-!= 0}''); the source location points at the carrier definition where
-the invariant is asserted; the instantiation note shows the offending
-template arguments inline. There is no substitution-failure cascade
-because the predicate is a literal \texttt{static\_assert} inside the
-class body, not a \lstinline{requires}-clause that has to be probed.
-This is what we mean by \emph{fail fast at the named axiom}: the
-reader sees the mathematical claim that broke before the
-type-system mechanics that surfaced it.
+\paragraph{Worked diagnostic.}
+A rank-deficient \lstinline{Invertible2x2<Rat, 1, 2, 2, 4>} input
+produces a single named diagnostic naming the broken predicate
+(\texttt{Invertible2x2 requires full rank: a*d - b*c != 0}) at the
+\texttt{static\_assert} site, with one \texttt{note} pointing at the
+instantiation; no substitution-failure cascade.\footnote{Verbatim
+\texttt{clang++}~22 output (with \texttt{-fno-color-diagnostics}
+\texttt{-ferror-limit=2}):
+\texttt{matrix.cppm:120:17: error: static assertion failed due to
+requirement '!(det == ...\{0\})':\ Invertible2x2 requires full
+rank: a*d - b*c != 0; failed\_proof.cpp:12:46: note: in
+instantiation of template class
+'dedekind::linear\_algebra::Invertible2x2<Rat, 1, 2, 2, 4>'
+requested here; 1 error generated.} The predicate sits inside the
+class body as a literal \texttt{static\_assert} rather than as a
+\lstinline{requires}-clause that has to be probed, so the diagnostic
+fires at the named axiom rather than as a probe failure deep in
+overload resolution.}
+This is \emph{fail fast at the named axiom}: the
+mathematical claim that broke surfaces before the type-system
+mechanics that surfaced it.
 
 In short: the compiler wall has a predictable shape---depth, steps,
 combinatorics, numeric range, diagnostics---and each is either
