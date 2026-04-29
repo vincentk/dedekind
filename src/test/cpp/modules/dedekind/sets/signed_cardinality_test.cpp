@@ -14,12 +14,15 @@
 #include <catch2/catch_test_macros.hpp>
 #include <climits>
 #include <compare>
+#include <concepts>
+#include <limits>
 #include <variant>
 
 import dedekind.sets;
 
 using dedekind::sets::compare_signed;
 using dedekind::sets::finite_signed_cardinality;
+using dedekind::sets::make_signed_cardinality;
 using dedekind::sets::NaZ;
 using dedekind::sets::NegativeInfinity;
 using dedekind::sets::PositiveInfinity;
@@ -386,4 +389,83 @@ TEST_CASE(
     CHECK(0 < pos_inf);
     CHECK(0 > neg_inf);
   }
+}
+
+// ===========================================================================
+// Floating-point construction (#399 unblocker)
+// ===========================================================================
+
+TEST_CASE(
+    "SignedExtensionalCardinal<1>(F) — finite floating-point values truncate "
+    "toward zero",
+    "[sets][signed_cardinality][floating-point][construction]") {
+  // Positive finite: truncates the fractional part.
+  constexpr SignedExtensionalCardinal<> three_from_double{3.7};
+  STATIC_CHECK(three_from_double == SignedExtensionalCardinal<>{3});
+
+  // Negative finite: sign-correct, magnitude truncated.
+  constexpr SignedExtensionalCardinal<> minus_twentyone_from_double{-21.6};
+  STATIC_CHECK(minus_twentyone_from_double == SignedExtensionalCardinal<>{-21});
+
+  // Zero (both ±0.0 collapse to canonical zero).
+  constexpr SignedExtensionalCardinal<> zero_from_pos_zero{0.0};
+  constexpr SignedExtensionalCardinal<> zero_from_neg_zero{-0.0};
+  STATIC_CHECK(zero_from_pos_zero == SignedExtensionalCardinal<>{});
+  STATIC_CHECK(zero_from_neg_zero == SignedExtensionalCardinal<>{});
+
+  // float source as well as double.
+  constexpr SignedExtensionalCardinal<> seven_from_float{7.0f};
+  STATIC_CHECK(seven_from_float == SignedExtensionalCardinal<>{7});
+}
+
+TEST_CASE(
+    "make_signed_cardinality(F) — total factory routes IEEE-754 sentinels to "
+    "the variant alternatives",
+    "[sets][signed_cardinality][floating-point][factory]") {
+  SECTION("Finite finite values land on SignedExtensionalCardinal<> branch") {
+    constexpr auto five = make_signed_cardinality(5.0);
+    STATIC_CHECK(std::holds_alternative<SignedExtensionalCardinal<>>(five));
+    STATIC_CHECK(std::get<SignedExtensionalCardinal<>>(five) ==
+                 SignedExtensionalCardinal<>{5});
+  }
+  SECTION("+∞ lands on PositiveInfinity branch") {
+    constexpr auto pos_inf =
+        make_signed_cardinality(std::numeric_limits<double>::infinity());
+    STATIC_CHECK(std::holds_alternative<PositiveInfinity>(pos_inf));
+  }
+  SECTION("-∞ lands on NegativeInfinity branch") {
+    constexpr auto neg_inf =
+        make_signed_cardinality(-std::numeric_limits<double>::infinity());
+    STATIC_CHECK(std::holds_alternative<NegativeInfinity>(neg_inf));
+  }
+  SECTION("NaN lands on NaZ branch") {
+    constexpr auto naz =
+        make_signed_cardinality(std::numeric_limits<double>::quiet_NaN());
+    STATIC_CHECK(std::holds_alternative<NaZ>(naz));
+  }
+  SECTION("float overload routes the same way") {
+    constexpr auto pos_inf_f =
+        make_signed_cardinality(std::numeric_limits<float>::infinity());
+    STATIC_CHECK(std::holds_alternative<PositiveInfinity>(pos_inf_f));
+  }
+}
+
+TEST_CASE("SignedCardinality{F} — variant converting ctor on a finite source",
+          "[sets][signed_cardinality][floating-point][variant]") {
+  // The variant std::variant<SignedExtensionalCardinal<>, ±∞, NaZ> picks
+  // SignedExtensionalCardinal<> as the unique alternative whose ctor
+  // accepts double, so SignedCardinality{double} compiles for finite
+  // values.  This is the load-bearing path for halfspace.cppm's
+  // `convertible_to<decltype(V), element_of_t<Species>>` check after
+  // the #399 retarget.
+  constexpr SignedCardinality minus_twentyone = SignedCardinality{-21.0};
+  STATIC_CHECK(
+      std::holds_alternative<SignedExtensionalCardinal<>>(minus_twentyone));
+  STATIC_CHECK(std::get<SignedExtensionalCardinal<>>(minus_twentyone) ==
+               SignedExtensionalCardinal<>{-21});
+
+  // std::convertible_to<double, SignedCardinality> now holds —
+  // the architectural fact #399's ℤ-as-carrier slice depends on.
+  STATIC_CHECK(std::convertible_to<double, SignedCardinality>);
+  STATIC_CHECK(std::convertible_to<float, SignedCardinality>);
 }

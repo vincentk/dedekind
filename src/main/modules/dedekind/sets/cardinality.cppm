@@ -35,6 +35,7 @@ module;
 #include <cstddef>
 #include <functional>
 #include <limits>
+#include <stdexcept>
 #include <utility>
 #include <variant>
 
@@ -638,6 +639,54 @@ struct SignedExtensionalCardinal {
         magnitude_type{static_cast<typename magnitude_type::limb_type>(value)};
   }
 
+  /** @brief Construction from any floating-point source, single-limb only.
+   *
+   *  @details Truncates toward zero (the C++ \c static_cast<long_long>(F)
+   *  semantics).  NaN and ±∞ are out-of-band for the bounded
+   *  @c SignedExtensionalCardinal<N> carrier --- those values belong on
+   *  the variant @c SignedCardinality, which routes through
+   *  @c make_signed_cardinality(F) below.  In a constant-evaluation
+   *  context the compiler rejects NaN / ±∞ inputs as
+   *  not-a-constant-expression (constexpr cannot throw); at runtime the
+   *  same inputs trigger @c std::domain_error.  Single-limb only to
+   *  prevent silent truncation of multi-limb values, mirroring the
+   *  symmetric explicit @c operator F() above.
+   *
+   *  Intentionally non-explicit so floating-point values convert
+   *  implicitly into the variant @c SignedCardinality via the
+   *  single-alternative converting constructor of @c std::variant ---
+   *  the load-bearing path for @c bound<-21.0> on @c var<ℤ> after the
+   *  #399 retarget.  Negative pivots remain admissible via the
+   *  sign-aware branch below; ±0 collapse to canonical zero.
+   */
+  template <std::floating_point F>
+    requires(N == 1)
+  // NOLINTNEXTLINE(google-explicit-constructor)
+  constexpr SignedExtensionalCardinal(F value) : negative(false), magnitude() {
+    if (value != value) {  // NaN check (works in constexpr)
+      throw std::domain_error(
+          "SignedExtensionalCardinal<N>(F): NaN is out of band; route via "
+          "make_signed_cardinality(F) which lands on SignedCardinality{NaZ{}}");
+    }
+    constexpr F kInfinity = std::numeric_limits<F>::infinity();
+    if (value == kInfinity || value == -kInfinity) {
+      throw std::domain_error(
+          "SignedExtensionalCardinal<N>(F): ±infinity is out of band; route "
+          "via make_signed_cardinality(F) which lands on "
+          "SignedCardinality{±ℵ_0}");
+    }
+    if (value < F{0}) {
+      negative = true;
+      const auto magnitude_value = static_cast<long long>(-value);
+      magnitude = magnitude_type{
+          static_cast<typename magnitude_type::limb_type>(magnitude_value)};
+      return;
+    }
+    const auto magnitude_value = static_cast<long long>(value);
+    magnitude = magnitude_type{
+        static_cast<typename magnitude_type::limb_type>(magnitude_value)};
+  }
+
   constexpr friend bool operator==(
       const SignedExtensionalCardinal& lhs,
       const SignedExtensionalCardinal& rhs) noexcept {
@@ -903,6 +952,39 @@ constexpr int sc_sign(const SignedCardinality& v) noexcept {
 /** @brief Convenience constructor for finite signed values. */
 export template <std::integral S>
 constexpr SignedCardinality finite_signed_cardinality(S value) noexcept {
+  return SignedCardinality{SignedExtensionalCardinal<>{value}};
+}
+
+/** @brief Total factory @c F → @c SignedCardinality with the
+ *         IEEE-754 sentinels routed to the variant's structural
+ *         alternatives.
+ *
+ *  @details The mapping:
+ *    - @c NaN → @c SignedCardinality{NaZ{}}
+ *    - @c +∞ → @c SignedCardinality{PositiveInfinity{}}
+ *    - @c -∞ → @c SignedCardinality{NegativeInfinity{}}
+ *    - finite → @c SignedCardinality{SignedExtensionalCardinal<>{value}}
+ *      (truncated toward zero per the @c SignedExtensionalCardinal<1>
+ *      floating-point ctor)
+ *
+ *  This is the @b safe path for floating-point sources at the
+ *  variant ℤ-proxy.  The bare @c SignedExtensionalCardinal<>{F}
+ *  constructor refuses NaN / ±∞ as out-of-band; this factory
+ *  preserves the semantic distinction by routing them to the
+ *  appropriate variant alternative.
+ */
+export template <std::floating_point F>
+constexpr SignedCardinality make_signed_cardinality(F value) noexcept {
+  if (value != value) {
+    return SignedCardinality{NaZ{}};
+  }
+  constexpr F kInfinity = std::numeric_limits<F>::infinity();
+  if (value == kInfinity) {
+    return SignedCardinality{PositiveInfinity{}};
+  }
+  if (value == -kInfinity) {
+    return SignedCardinality{NegativeInfinity{}};
+  }
   return SignedCardinality{SignedExtensionalCardinal<>{value}};
 }
 
