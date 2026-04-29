@@ -887,11 +887,13 @@ $\mathbb{B} \to \mathbb{N} \to \mathbb{Z} \to \mathbb{Q} \to \mathbb{R}
 $\mathfrak{R}$ (rank) lifts Scalar $\to V_n(R) \to M_n(R)$ via
 $\mathrm{Free}_n$ and $\mathrm{End}_R$ (Table~\ref{tab:rosetta-rank}).
 $\mathfrak{Q}$ (quotient) realises an extension $R \to X(R)$ at a
-degree-2 polynomial ideal --- $X = D$ gives
-$R[\varepsilon]/(\varepsilon^2)$ (dual numbers), $X = C$ gives
-$R[i]/(i^2 + 1)$ (complex extension), $X = G$ gives $R[x]/(p(x))$
-for $p$ irreducible (Galois extension); see
-Table~\ref{tab:rosetta-quotient} for the full enumeration.
+polynomial ideal --- the degree-2 instances dominate the worked
+showcases: $X = D$ gives $R[\varepsilon]/(\varepsilon^2)$ (dual
+numbers), $X = C$ gives $R[i]/(i^2 + 1)$ (complex extension); higher
+degrees enter via $X = G$, $R[x]/(p(x))$ for $p$ irreducible (Galois
+extension; e.g.\ $\mathbb{F}_{64} = \mathbb{F}_2[x]/(x^6 + x + 1)$
+at degree~6).  See Table~\ref{tab:rosetta-quotient} for the full
+enumeration.
 The bottom-front-left corner $\mathbb{B}$ is the lattice bottom; the
 top-right-back corner $M_2(X(\mathbb{C}))$ is an illustrative
 stopping point on an unbounded-above lattice.  The reading aids,
@@ -1323,12 +1325,19 @@ $G$ (Galois) & $(q(x))$ for $q$ irreducible & $\mathbb{F}_p[x]/(q(x))$ & finite 
 
 \vspace{0.5em}
 {\footnotesize
-\textsuperscript{a} Cplx is a field-extension when $i^2+1$ is irreducible
-over $R$ (true over $\mathbb{R}, \mathbb{Q}, \mathbb{Z}$); over $\mathbb{F}_2$
-the polynomial factors as $(x+1)^2$ and the result is a nilpotent ring
-isomorphic to $D(\mathbb{F}_2)$ (cf.\ \#505).  This is a concrete example of
-the "same construction, different result depending on base" pattern the
-quotient axis encodes.  Per-cell compile-status (which $R \times X$
+\textsuperscript{a} The structural type of $C(R) = R[i]/(i^2 + 1)$
+depends on both the irreducibility of $i^2 + 1$ over $R$ \emph{and}
+on whether $R$ is itself a field.  When $i^2 + 1$ is irreducible over
+$R$, the result is an integral-domain extension --- a field extension
+when $R$ is already a field (e.g.\ $C(\mathbb{Q}) = \mathbb{Q}[i]$ is
+a field; $C(\mathbb{R}) = \mathbb{C}$ is a field), an integral-domain
+extension when $R$ is an integral domain but not a field (e.g.\
+$C(\mathbb{Z}) = \mathbb{Z}[i]$, the Gaussian integers, is a Euclidean
+domain but not a field).  When $i^2 + 1$ is reducible (e.g.\ over
+$\mathbb{F}_2$ where it factors as $(x + 1)^2$), the quotient has
+nilpotents and is isomorphic to $D(\mathbb{F}_2)$ (cf.\ \#505).
+This is a concrete example of the "same construction, different
+result depending on base" pattern the quotient axis encodes.  Per-cell compile-status (which $R \times X$
 combinations the experimental library admits today vs which are pending
 implementation) is tracked in the trait registry of \#499 as positive /
 negative \texttt{static\_assert} witnesses.}
