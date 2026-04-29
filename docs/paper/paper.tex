@@ -147,69 +147,49 @@
 \noindent\emph{Named algebraic structure at the type level, discharged
 by the compiler, narrows the gap between abstract mathematics and
 machine code without a separate proof assistant.} The underlying
-theory and methodology are not new: Lawvere's Elementary Theory of
-the Category of Sets~\cite{lawvere1964etcs}, Wadler's
-parametricity~\cite{wadler1989theorems} and propositions-as-types
-reading~\cite{wadler2015propositions}, and structural concept-based
-typing have been studied for decades, and proof-assistant-grounded
-formalisation (Coq, Agda, Lean) has been the canonical academic
-deliverable. What is new is the \emph{cost-benefit calculus} of
-encoding mathematical structures directly in an industrial typed
-substrate. Modern transformer-based coding assistants substantially
-compress the time and expertise required to author opt-in trait
+theory is not new---ETCS~\cite{lawvere1964etcs}, Wadler's
+parametricity and propositions-as-types
+reading~\cite{wadler1989theorems,wadler2015propositions}, and
+proof-assistant-grounded formalisation in Coq, Agda, and Lean have
+been studied for decades. What is new is the \emph{cost-benefit
+calculus}: modern transformer-based coding assistants substantially
+compress the time and expertise needed to author opt-in trait
 specialisations, axiom-shape concepts, and the surrounding library
-scaffolding, turning what was previously an academic specialism
-into an actionable workflow for working software engineers. This
-paper argues, by exhibit rather than by theorem, that the
-cost-benefit turn matters in practice today; the meta-claim is not
-ours to originate---adjacent positions have been argued
-elsewhere---and we make it here primarily so the body's executable
+scaffolding, turning what was an academic specialism into an
+actionable workflow for working software engineers. The meta-claim
+is not ours to originate; we make it here so the body's executable
 exhibit can be read in that light.
 
 \medskip
 \noindent We present \texttt{dedekind}~\cite{dedekind2026}, an
-open-source C++23 library (Apache-2.0), as the executable exhibit of
-that workflow. The library embeds formal set-theoretic and
-categorical structures directly into the type system and targets
-\emph{mainstream C++23}---concepts, non-type template parameters,
-named modules---rather than a research compiler or a separate proof
-environment. The central design rule is \emph{intensional first,
-realize it when you mean it}: a set is represented as a predicate
-$P : A \to \Omega$ over an ambient species $A$, not as a
-heap-allocated container of values. This comprehension view has two
-practical consequences that the paper explores:
+open-source C++23 library (Apache-2.0), as that exhibit. It embeds
+formal set-theoretic and categorical structures directly into the
+type system and targets \emph{mainstream C++23}---concepts,
+non-type template parameters, named modules---rather than a research
+compiler. The design rule is \emph{intensional first, realize when
+you mean it}: a set is represented as a predicate $P : A \to \Omega$
+over an ambient species $A$, not as a heap-allocated container, with
+two practical consequences:
 \begin{itemize}
-  \item Set operations (intersection, complement, union) compose as predicate combinators at
-        compile time, enabling the \textsc{llvm} backend to perform \emph{structural pruning}---collapsing
-        logically empty intersections into zero-instruction machine code.
-  \item Numeric realization is deferred to explicit boundaries, cleanly separating abstract
-        algebraic reasoning (e.g.\ over the naturals $\mathbb{N}$) from hardware-constrained
-        IEEE~754 floating-point~\cite{ieee754_2019} semantics.
+  \item Set operations (intersection, complement, union) compose as
+        predicate combinators at compile time, enabling the
+        \textsc{llvm} backend to perform \emph{structural pruning}:
+        logically empty intersections collapse into zero-instruction
+        machine code.
+  \item Numeric realisation is deferred to explicit boundaries,
+        cleanly separating abstract algebraic reasoning (e.g.\ over
+        the naturals $\mathbb{N}$) from hardware-constrained IEEE~754
+        floating-point~\cite{ieee754_2019} semantics.
 \end{itemize}
-We motivate the design from the library-implementer's perspective: mathematically faithful
-libraries in compiled languages have traditionally paid for algebraic invariants either in
-silent bugs or in runtime checks, and we argue that recent C++23 advances (concepts,
-non-type template parameters, named modules) let those invariants live at the type level
-instead. We identify \emph{Axiomatic Systems Programming} as a nascent paradigm in which
-the compiler---explicitly \emph{not} a theorem prover, but a structural gate---rules
-out whole classes of algebraic-law violations at translation time and enables whole
-classes of structural optimizations that exploit the ruled-out failure modes.
-As the centrepiece existential proof, we show that a textbook linear-programming
-instance reduces at compile time to its optimal vertex as a typed constant---the
-six candidate solves, six feasibility checks, and six objective comparisons all
-vanish in the emitted IR, which contains only the literal return of the
-optimum's coordinates. Running the same reduction over the dual-number ring
-$\mathbb{Q}[\varepsilon]/(\varepsilon^2)$ additionally recovers exact sensitivity
-analysis with no separate derivative pass, recognising forward-mode automatic
-differentiation as a sibling compile-time reduction in the sense of
-Elliott~\cite{elliott2018simple}. Both reductions share a single mechanism:
-the feasible polytope is a set-as-predicate, finite vertex candidates enumerate
-as pairs of binding constraints, and objective-directed argmax collapses the
-candidate set to a singleton. The same discipline extends to polynomial
-calculus: the Fundamental Theorem of Calculus (Part~II) is discharged at
-translation time, with the compiler running the trapezoidal quadrature
-against a closed-form antiderivative and concluding inside a
-\lstinline{static_assert}.
+The paper identifies \emph{Axiomatic Systems Programming} as a
+nascent paradigm in which the compiler is a structural gate, not a
+theorem prover, and demonstrates the discipline through a textbook
+linear-programming instance that reduces at compile time to its
+optimal vertex as a typed constant; the same reduction over a
+dual-number ring additionally recovers forward-mode automatic
+differentiation~\cite{elliott2018simple} as a sibling compile-time
+collapse, and the discipline extends to a Fundamental Theorem of
+Calculus (Part~II) discharged inside a \lstinline{static_assert}.
 
 \vspace{0.75em}
 \noindent\textbf{Keywords:} C++23; concepts; non-type template
