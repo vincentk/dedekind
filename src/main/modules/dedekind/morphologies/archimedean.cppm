@@ -1,5 +1,5 @@
 /**
- * @file ontology:morphologies.cppm
+ * @file dedekind/morphologies/archimedean.cppm
  * @partition :archimedean
  * @brief Level 3.5b: Archimedean / ordered-field convergence stubs.
  *
