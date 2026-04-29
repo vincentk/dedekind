@@ -369,40 +369,30 @@ mechanical witness the compiler discharges.
 The remainder of the paper develops these three claims and demonstrates
 each by a reduction that compiles to a constant.
 
-\paragraph{Intensional sets, structurally.} The
-\emph{intensional set} of this paper is the structuralist set in the
-sense of the \emph{nLab}~\cite{nlab:structural_set_theory}: an object
-whose membership is a characteristic morphism into a subobject
-classifier, situated in a Cartesian-closed ambient. An object
-satisfying $\textsc{IsSet}$ entails the CCC witness on its ambient
-species, so any ETCS-set carrier comes with $1$, $\times$, and
-$(-)^{(-)}$ for free; the resulting set-builder DSL reads as a syntax
-for STLC by the Lambek--Scott
-correspondence~\cite{lambek1988introduction}. The
-C++$\leftrightarrow$STLC translation is catalogued in
-Table~\ref{tab:cpp-stlc-mapping}.
-
-\paragraph{What else falls out for free.} Naming the structure in
-the type buys non-trivial mileage at no runtime cost. Three quick
-examples illustrate the pattern: (i) the scalar / column / row /
-square family $\bigl(T, T^2, {}^t T^2, M_2(T)\bigr)$ is functorial
-in $T$ and each functor is an $\textsc{IsFunctor}$ witness, so an
-arrow $f: T \to T$ lifts elementwise without per-carrier
-boilerplate; (ii) the scalar embedding $T \hookrightarrow M_2(T)$ is
-the monadic unit $\eta_F$ of the shape functor, $\eta_{M_2}(s) = s
-\cdot I_2$, pinned as a witness next to the carrier; (iii) the LP
-reduction of Section~\ref{sec:lp-centrepiece} is a co-Kleisli arrow
-$\varepsilon_{\mathrm{LP}}: \mathrm{Polytope}(T) \to T^2$ extracting
-the optimal vertex from the polytope context.\footnote{The
-companion claims compose through the Kleisli machinery already in
-the library (the $\mathrm{Path}$ comonad, the
-$\mathrm{Box}/\mathrm{Maybe}$ monads), with bind ($\gg{=}$) and
-extend ($\lll{=}$) operators. The categorical vocabulary is not
-decorative: it lets the same primitives carry several theorem
-discharges---elementwise lifting, scalar-into-matrix monomorphism,
-LP counit---each as a typed constant in the emitted object file
-where elsewhere it would cost a tactics file and a separate
-compilation pipeline.}
+\paragraph{What falls out for free.}  Naming the structure in the
+type buys mileage at no runtime cost.  An \emph{intensional set}
+here is the structuralist set in the sense of the
+\emph{nLab}~\cite{nlab:structural_set_theory} --- a predicate into
+a subobject classifier, situated in a Cartesian-closed
+ambient~\cite{lambek1988introduction} --- and once the
+$\textsc{IsSet}$ concept is wired in, the same machinery that
+discharges set membership also lifts arrows over functorial
+families ($T \mapsto T^2 \mapsto M_2(T)$ etc.), pins ring monomorphisms
+($T \hookrightarrow M_2(T)$ as a monadic unit), and extracts optima
+from polytopes (the LP reduction of
+Section~\ref{sec:lp-centrepiece} is a co-Kleisli arrow).\footnote{%
+Concretely: each of the scalar / column / row / square shape
+constructors $(T, T^2, {}^t T^2, M_2(T))$ is functorial in $T$ and
+ships an $\textsc{IsFunctor}$ witness, so an arrow $f: T \to T$
+lifts elementwise without per-carrier boilerplate.  The scalar
+embedding $T \hookrightarrow M_2(T)$ is the unit $\eta_{M_2}(s) =
+s \cdot I_2$ of the shape monad.  The LP vertex extraction is a
+co-Kleisli arrow $\varepsilon_{\mathrm{LP}}: \mathrm{Polytope}(T)
+\to T^2$.  The library carries these as typed constants in the
+emitted object file via the same primitives that discharge the
+algebraic laws --- the categorical vocabulary is not decorative.
+The C++$\leftrightarrow$STLC translation that names this machinery
+is in Table~\ref{tab:cpp-stlc-mapping}.}
 
 \subsection{How to Read This Paper}
 \label{sec:how-to-read}
@@ -741,66 +731,55 @@ is the auditor that ensures the wishes were coherent before the realization
 happens.
 
 \paragraph{Reading Figure~\ref{fig:carrier-lattice}.}
-The Algebraic Lattice is rendered as a 2D oblique projection of a 3D
-cube; eight corners, twelve edges, three Fraktur-letter axis
-parameters ($\mathfrak{A}$ carrier-strength, $\mathfrak{R}$ rank,
-$\mathfrak{Q}$ quotient).  Five reading aids worth pinning before the
-figure does the work:
+The Algebraic Lattice is a 2D oblique projection of a 3D cube ---
+eight corners, twelve edges, three Fraktur-letter axes
+($\mathfrak{A}$ carrier-strength, $\mathfrak{R}$ rank,
+$\mathfrak{Q}$ quotient).  $\mathbb{B}$ sits at the bottom-front-left;
+$M_2(X(\mathbb{C}))$ at the top-back-right.
 
-\emph{(i) Interpretive choice.}  Where the carrier axis stops is
-partly conventional.  Placing $\mathbb{C}$ at the front-right corner
-treats $\mathbb{C}$ as a textbook carrier; placing $\mathbb{R}$ there
-would treat $\mathbb{C}$ as the back-face quotient
-$C(\mathbb{R}) = \mathbb{R}[i]/(i^2 + 1)$; placing $\mathbb{Q}$ would
-treat both $\mathbb{R}$ (via $\mathrm{Cuts}$) and $\mathbb{C}$ (via
-$\mathrm{Cplx} \circ \mathrm{Cuts}$) as quotient-axis nodes.  All
-three readings are equally valid; the figure encodes one such choice
-($\mathbb{C}$-as-carrier).  The carrier-vs-quotient line is partly
-interpretive (§\ref{sec:carrier-rosetta}).
+Where the carrier axis stops is partly conventional.  We place
+$\mathbb{C}$ at the front-right corner because the textbook chain
+ends there, but the same diagram with $\mathbb{R}$ at the corner would
+push $\mathbb{C}$ to a back-face node $C(\mathbb{R}) =
+\mathbb{R}[i]/(i^2 + 1)$ via the quotient axis; with $\mathbb{Q}$ at
+the corner, $\mathbb{R}$ joins it via $\mathrm{Cuts}$.  All three
+readings agree on the math; the carrier-vs-quotient line is partly
+interpretive
+(§\ref{sec:carrier-rosetta}).\footnote{A parallel \emph{computability}
+lattice (representation Int / Ext; logic K3 / Cl; knowledge Opq / Elt)
+sits orthogonal to the three axes drawn --- the algebraic tower says
+\emph{which algebra}; the computability tier says \emph{how much the
+compiler knows about a set built on it}
+(§\ref{sec:gap}, Definition~\ref{def:computability-tier}).  We don't
+draw the second cube; one 3D figure carries the weight.}
 
-\emph{(ii) Computability-tier complement.}  A parallel three-axis
-lattice on top of any cell --- representation (Int / Ext), logic
-(K3 / Cl), knowledge (Opq / Elt) --- describes the density of
-compile-time information at that cell
-(§\ref{sec:gap}, Definition~\ref{def:computability-tier}).  That
-lattice is orthogonal to the three drawn here: the algebraic tower
-says \emph{which algebra}, the computability tier says \emph{how
-much the compiler knows about a set built on it}.  We do not draw
-the second cube --- one 3D figure already carries the structural
-weight.
+The lattice is unbounded above.  Iterated quotients, tensor products,
+$p$-adic completions and similar each yield a strictly larger object
+without a canonical maximum, so the visual top-right-back corner is
+an illustrative stopping point and the rendering is necessarily a
+finite slice.\footnote{Binary meets (largest shared substructure) are
+canonical; binary joins (smallest common extension) exist as pushouts
+but require ambient choice, so the structure is better thought of as
+a bounded-below lattice (informally, a meet-semilattice with
+constructive joins).  Other dimensions the figure deliberately omits:
+higher rank ($n > 2$; \#368), predicate-set / order-theoretic
+constructions (candidate sibling \emph{Geometric Tower}; future
+Figure~1b), iterated $\mathfrak{Q}$ (jet bundles; \#504), and the
+Honest-Rejection machine-substrate boundary (\texttt{bool},
+\texttt{uint}, \texttt{int}, \texttt{double} embed into
+$\mathbb{B} / \mathbb{N} / \mathbb{Z} / \mathbb{Q}$ via named
+\texttt{embed\_*} arrows in \texttt{dedekind.numbers}).  Per-cell
+compile-status of any specific instance is in the trait registry
+(\#499); the figure carries the structural shape.}
 
-\emph{(iii) Commutation.}  Not all axes commute: $\mathfrak{R}$ and
-$\mathfrak{Q}$ always commute ($M_n(X(R)) \cong X(M_n(R))$ when both
-sides are defined); different $\mathfrak{Q}$ values commute when
-their generating variables are independent ($D \circ C \cong C \circ D$);
-$\mathfrak{A}$ and $\mathfrak{Q}$ commute partially --- e.g.\
-$\mathrm{Frac}(D(R))$ is undefined ($D(R)$ has nilpotents) but
-$\mathrm{Frac}(C(R)) \cong C(\mathrm{Frac}(R))$; $\mathfrak{A}$ and
-$\mathfrak{R}$ commute restrictively ($\mathfrak{R}$ produces modules,
-not rings, so subsequent $\mathfrak{A}$ steps may not type-check).
-Per-cell compile-status is pinned in the trait registry (\#499); the
-figure shows the structural shape.
-
-\emph{(iv) Off-figure dimensions.}  Higher rank ($n > 2$; \#368),
-predicate-set / order-theoretic constructions (candidate sibling
-\emph{Geometric Tower}; future Figure~1b), iterated $\mathfrak{Q}$
-(jet bundles; \#504), and the Honest-Rejection machine-substrate
-boundary (\texttt{bool}, \texttt{uint}, \texttt{int}, \texttt{double}
-embed into $\mathbb{B} / \mathbb{N} / \mathbb{Z} / \mathbb{Q}$ via
-named \texttt{embed\_*} arrows in \texttt{dedekind.numbers}).  The 2D
-projection is necessarily lossy.
-
-\emph{(v) Structural caveat.}  The lattice has a unique bottom
-($\mathbb{B}$) but \emph{no} unique top --- iterated quotients,
-tensor products, Witt vectors, $p$-adic completions and similar each
-yield a strictly larger object without a canonical maximum.  Binary
-meets (largest shared substructure) are easy to identify; binary
-joins (smallest common extension) exist categorically as pushouts
-but are not unique without ambient choice, so in practice the
-structure is better thought of as a bounded-below lattice (or,
-informally, a meet-semilattice with constructive joins).  The
-visual top-right-back corner $M_2(X(\mathbb{C}))$ is therefore an
-illustrative stopping point, not a categorical maximum.
+The three axes don't all commute: matrix and quotient functors
+commute when both sides are defined; different quotient functors
+commute when their generating variables are independent (so
+$D \circ C \cong C \circ D$); but $\mathfrak{A}$ steps can fail to
+type-check after $\mathfrak{R}$ (producing modules, not rings) or
+after a quotient that destroys an integral domain (so
+$\mathrm{Frac}(D(R))$ is undefined).  Worth knowing on first read; the
+specific cells fall out of the type system at the call site.
 
 \begin{figure}[p]
 \centering
@@ -2240,78 +2219,49 @@ proof assistant would. The purpose of this subsection is to be honest
 about the wall and to name the \texttt{clang} knobs that push it back
 by a constant factor but cannot remove it.
 
-\paragraph{Template instantiation depth.}
-Every reduction in this paper is written as a variadic template whose
-depth grows with the number of type arguments. \texttt{clang}'s default
-instantiation-depth limit is $1024$; on deep recursions (e.g.\ an LP
-with many halfspaces, or the cartesian-product carriers of
-Showcase~8) we see it earlier than expected because concepts and NTTP
-lambdas each add their own frames. The escape hatch is
-\lstinline{-ftemplate-depth=N}; the \texttt{dedekind} build raises it
-to $2048$ on the affected translation units. This buys depth linearly
-in $N$ at the cost of compile time and resident memory, and it does
-not help when the recursion is superlinear in the instance size.
-
-\paragraph{\texttt{constexpr} step and call-depth limits.}
-\lstinline{-fconstexpr-steps} (default $\sim\!1{,}048{,}576$ on recent
-\texttt{clang}) caps the number of evaluation steps a single
-\lstinline{constexpr} computation may take; \lstinline{-fconstexpr-depth}
-caps call recursion independently. Both matter here because the
-LP reduction performs its Cramer solves and feasibility checks inside
-\lstinline{consteval} functions. A $2\times 2$ LP with four
-constraints is comfortably under the default; a $2\times 2$ LP with
-thirty constraints ($\binom{30}{2} = 435$ active sets) begins to
-approach the limit with any nontrivial constraint metadata. Raising
-the cap is a compile-time cost; the more principled answer---and the
-one we prefer---is to stop at the boundary and hand off to a runtime
-solver, which is exactly the case our centrepiece is \emph{not}.
+\paragraph{Compile-time budgets.}
+Every reduction in this paper is a variadic template, so two
+\texttt{clang} budgets matter: \emph{instantiation depth} (default
+$1024$, raised to $2048$ on the affected translation units; concepts
+and NTTP lambdas each add frames so the limit hits earlier than the
+naive count suggests) and \emph{\lstinline{constexpr} steps} (default
+$\sim\!10^6$, capping a single \lstinline{constexpr} evaluation).  A
+$2\times 2$ LP with four constraints is comfortably under both; a
+$2\times 2$ LP with thirty constraints ($\binom{30}{2} = 435$ active
+sets and nontrivial metadata) starts approaching the step limit.
+Raising the caps is possible (\lstinline{-ftemplate-depth=N},
+\lstinline{-fconstexpr-steps=N}) but trades compile time and resident
+memory for reach; the more principled answer is to stop at the
+boundary and hand off to a runtime solver --- which is exactly the
+case our centrepiece is \emph{not}.
 
 \paragraph{Combinatorial blowup is the pessimistic bound.}
 Compile-time vertex enumeration over $n$ halfspaces is, in the worst
-case, $\binom{n}{d}$ active-set solves for a $d$-dimensional LP; in
-the 2D case this paper demonstrates, $\binom{n}{2}$. For $n = 4$
-that is six solves; for $n = 20$, 190; for $n = 1000$, nearly half a
-million. Taken at face value the figure looks alarming. Two facts
-about real constraint lists soften it substantially.
-
-First, by the fundamental theorem of linear programming, the optimum
-of a $d$-dimensional LP is attained at a vertex with at most $d$
-binding constraints. In practice the active set is often
-significantly smaller than $d$---many vertices of a handwritten
-polytope bind only one or two of the stated constraints, and most
-of the syntactic constraint list is either slack at the optimum or
-logically redundant. The $\binom{n}{d}$ figure is the enumeration
-cost, not a measure of what any vertex actually witnesses.
-
-Second, many redundancies are \emph{statically} removable when
-constraints live at the type level. Two halfspaces with the same
-normal reduce at compile time to the tighter bound:
+case, $\binom{n}{d}$ active-set solves for a $d$-dimensional LP
+(six for $n = 4$, $190$ for $n = 20$, nearly half a million for
+$n = 1000$).  Two facts soften this substantially in practice.  By
+the fundamental theorem of linear programming, the optimum of a
+$d$-dimensional LP is attained at a vertex with at most $d$ binding
+constraints, and on a handwritten polytope most of the syntactic
+constraint list is slack or redundant; the $\binom{n}{d}$ figure
+counts enumeration cost, not what any one vertex actually witnesses.
+Many of those redundancies are also \emph{statically} removable: the
+library's \lstinline{structured_and} dispatch already collapses
+linearly-dependent or contradictory halfspaces at compile time
+(Showcases~3 and~4), so the combinatorial term tracks the pruned
+count rather than the raw
+one.\footnote{Concretely:
 \lstinline|x > 5 && x > 7| collapses to \lstinline|x > 7| (stricter
-pivot wins), \lstinline|x > 5 && x < 2| collapses to $\varnothing$
-(contradiction), and \lstinline|x > 3 && x < 5| over an integral
-carrier collapses to \lstinline{Singleton<4>}. The library's
-\lstinline{structured_and}
-dispatch already performs exactly these reductions for 1D halfspaces
-(Showcases~3 and~4 are the empty-meet and cardinality-1 witnesses);
-the same dispatch pattern extends naturally to 2D halfspaces whose
-normals are linearly dependent. A structurally pruned constraint
-list is typically much smaller than its syntactic form, and the
-combinatorial term tracks the pruned count, not the raw one.
-
-For the embedded regime this paper targets---MPC steps with a handful
-of physical constraints, sensor-fusion guards with a few axis-aligned
-bounds, parametric configuration LPs---the raw constraint count
-rarely exceeds a few dozen, and compile-time pruning typically drops
-it further. The method remains tractable for the instance regime
-it was built for. The intended partition is unchanged: compile-time
-reduction for problems whose structure is fixed in the type, runtime
-simplex or interior-point solvers (and the attendant numerical
-compromises) for problems whose size or coefficients are only known
-at execution. Industrial-scale LP is emphatically the latter; we do
-not claim it is the former. A genuine pathological case would require
-a constraint list that the author was \emph{unable} to prune
-structurally---an unlikely shape for the use cases this library is
-written against.
+pivot wins); \lstinline|x > 5 && x < 2| collapses to $\varnothing$
+(contradiction); \lstinline|x > 3 && x < 5| over an integral carrier
+collapses to \lstinline{Singleton<4>}.  The 2D extension --- pruning
+halfspaces whose normals are linearly dependent --- follows the same
+dispatch pattern.}
+The instance regime this paper targets --- MPC steps with a handful
+of physical constraints, sensor-fusion guards, parametric
+configuration LPs --- rarely exceeds a few dozen raw constraints
+before pruning, and remains comfortably tractable.  Industrial-scale
+LP is emphatically not in scope; we do not claim it is.
 
 \paragraph{Active-set hints as the user-side escape valve.}
 Even within the compile-time regime, a user with domain knowledge of
@@ -2383,56 +2333,34 @@ backlog rather than discharged here.  The $2 \times 2 \to 4 \times 4$
 step is a witness, not a promise; everything beyond is the natural
 recursion of the same combinator pattern.
 
-\paragraph{Numeric overflow in the carrier.}
+\paragraph{Carrier choices, error messages, ergonomics.}
 The carrier-vs-overflow trade-offs are catalogued in
 Section~\ref{sec:carrier-rosetta}'s Rosetta tables: showcases default
 to \lstinline{Rational<SignedExtensionalCardinal<>>} (exact, no
 silent overflow); programmers who trade exactness for native
-performance pick the corresponding row of
-Table~\ref{tab:carriers-primitive} and accept the named failure
-mode (signed-overflow UB on \lstinline|int|/\lstinline|long|;
-non-associative rounding on \lstinline|float|/\lstinline|double|).
-Every combinator in Section~\ref{sec:pruning} is written against
-\lstinline{HasRingOperators} rather than any particular carrier, so
-the swap is a one-line change at the \lstinline{using} declaration
-and the compile-time-reduction-to-a-typed-constant claim survives
-every row of the Rosetta.
-
-\paragraph{Error messages and the readability tax.}
-A failed \texttt{static\_assert} in a deep reduction produces, by
-default, a multi-page expansion trail that is difficult for a new
-user to parse. The bulk of this is a C++ language-design concern
-that no library can fully repair; the realistic ambition is to
-\emph{fail fast}, so that the first message a reader sees is the
-predicate that genuinely broke and not the cascade of downstream
-failures it triggered. The mitigation the library adopts is exactly
-that: \lstinline{requires}-clauses at call sites (so the first
-failing predicate is the reported one), named concepts with short
-\texttt{diagnostic} strings, targeted \lstinline{static_assert}
-messages inside internal reductions, and---structurally---building
-combinators out of statically-validated atoms so that a failure is
-localised to its smallest witness rather than surfacing inside a
-deep template instantiation. The
-\texttt{IsRing} / \texttt{IsField} / \texttt{IsCyclicGroup} concepts
-of \texttt{dedekind.category:total} all follow this pattern: each
-adds a single named requirement on top of a previously-established
-one, so the first violated predicate is also the most specific one.
-This is an ergonomics concern rather than a correctness one, but it
-is the concern a reader most often encounters first and deserves
-explicit acknowledgement.
-
-\paragraph{Worked diagnostic.}
-A rank-deficient \lstinline{Invertible2x2<Rat, 1, 2, 2, 4>} input
-produces a single named diagnostic naming the broken predicate
-(\texttt{Invertible2x2 requires full rank: a*d - b*c != 0}) at the
-\texttt{static\_assert} site, with one \texttt{note} pointing at the
-instantiation; no substitution-failure cascade. The predicate sits
-inside the class body as a literal \texttt{static\_assert} rather
-than as a \lstinline{requires}-clause that has to be probed, so the
-diagnostic fires at the named axiom rather than as a probe failure
-deep in overload resolution. This is \emph{fail fast at the named
-axiom}: the mathematical claim that broke surfaces before the
-type-system mechanics that surfaced it.
+performance pick a primitive row and accept the named failure mode
+(signed-overflow UB on \lstinline|int|; non-associative rounding on
+\lstinline|float|/\lstinline|double|).  The combinators of
+Section~\ref{sec:pruning} bind to \lstinline{HasRingOperators}
+rather than any particular carrier, so the swap is a one-line change
+at the \lstinline{using} declaration.  Error messages, by contrast,
+are a more universal C++ pain: a failed \texttt{static\_assert} in a
+deep reduction can produce a multi-page expansion trail that no
+library can fully repair.  The realistic ambition is to \emph{fail
+fast at the named axiom} --- the first message the reader sees should
+be the predicate that genuinely broke, not the cascade of downstream
+failures it triggered.  The library structures concept ladders so
+that each rung adds a single named requirement, and uses targeted
+\lstinline{static_assert} messages inside internal reductions, so a
+violation surfaces at the smallest witness rather than deep inside
+overload resolution.\footnote{Worked diagnostic: a rank-deficient
+\lstinline{Invertible2x2<Rat, 1, 2, 2, 4>} input produces a single
+named message (\texttt{Invertible2x2 requires full rank: a*d - b*c
+!= 0}) at the \texttt{static\_assert} site with one \texttt{note}
+pointing at the instantiation, no substitution-failure cascade.  The
+predicate sits inside the class body as a literal
+\texttt{static\_assert} rather than as a \lstinline{requires}-clause
+to be probed, so the diagnostic fires at the named axiom directly.}
 
 In short: the compiler wall has a predictable shape---depth, steps,
 combinatorics, numeric range, diagnostics---and each is either
