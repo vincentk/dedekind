@@ -1,10 +1,7 @@
 /**
  * @file dedekind/numbers/integral.cppm
  * @partition :integral
- * @module dedekind.numbers:integral
- * @brief Level 4: Umbrella note over @c std::integral —
- *        the union of three structurally-distinct algebras
- *        (@c std::unsigned_integral, @c std::signed_integral, @c bool).
+ * @brief Level 4: std::integral umbrella over uint / sint / bool.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.

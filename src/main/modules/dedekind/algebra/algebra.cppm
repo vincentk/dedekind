@@ -1,6 +1,5 @@
 /**
  * @file algebra.cppm
- * @module dedekind.algebra
  * @brief Level 3: Groups ⊂ Rings ⊂ Modules ⊂ Polynomials.
  *
  * @copyright 2026 The Dedekind Authors

@@ -1,8 +1,7 @@
 /**
  * @file dedekind/linear_algebra/tuple.cppm
  * @partition :tuple
- * @brief Level 12.5a₀: Finite tuples — vectors and covectors as indexed
- *        sequences, oriented as columns or rows.
+ * @brief Level 12.5a₀: Finite tuples — column / row vectors and covectors.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.

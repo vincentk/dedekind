@@ -1,10 +1,7 @@
 /**
  * @file dedekind/numbers/uint.cppm
  * @partition :uint
- * @module dedekind.numbers:uint
- * @brief Level 4: The std::unsigned_integral family — explicit textbook
- *        classification as ℤ/2^wℤ + universal machine→variant lift +
- *        Modular<N> / IsCyclic correspondence.
+ * @brief Level 4: std::unsigned_integral as ℤ/2^wℤ — modular ring, not ℕ.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.

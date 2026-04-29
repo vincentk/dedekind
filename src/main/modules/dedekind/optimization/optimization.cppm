@@ -1,8 +1,6 @@
 /**
  * @file optimization.cppm
- * @module dedekind.optimization
- * @brief Level 13: Mathematical-programming problem classes as type-level
- *        reductions — the optimum becomes a typed constant at compile time.
+ * @brief Level 13: Mathematical programming — optimum as a typed constant.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.

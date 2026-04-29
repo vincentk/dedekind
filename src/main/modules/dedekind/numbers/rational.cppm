@@ -1,9 +1,7 @@
 /**
  * @file dedekind/numbers/rational.cppm
  * @partition :rational
- * @module dedekind.numbers:rational
- * @brief Level 8: The Quotient Field ℚ — rationals as numerator/
- *        denominator pairs over an integer carrier.
+ * @brief Level 8: ℚ — rationals as numerator/denominator pairs.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.

@@ -1,9 +1,7 @@
 /**
  * @file dedekind/numbers/constants.cppm
  * @partition :constants
- * @brief Reserved partition for genuine Dedekind-cut realisations of
- *        named real constants ($\sqrt{2}$, $e$, $\pi$, $\gamma$, …).
- *        Currently empty (no exports).
+ * @brief Reserved for Dedekind-cut realisations of named reals (empty).
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.

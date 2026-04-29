@@ -1,6 +1,5 @@
 /**
  * @file numbers.cppm
- * @module dedekind.numbers
  * @brief Level -1 to 8: The Numerical Tower (ℕ ⊂ ℤ ⊂ ℚ ⊂ ℝ ⊂ ℂ).
  *
  * @copyright 2026 The Dedekind Authors

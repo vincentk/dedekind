@@ -1,8 +1,7 @@
 /**
  * @file dedekind/sets/expressions.cppm
  * @partition :expressions
- * @brief Level 1.2: Set-Builder DSL -- comprehension, membership, Boolean
- * connectives, subsets, relations, functions and the power set.
+ * @brief Level 1.2: Set-builder DSL — comprehension + Boolean connectives.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.

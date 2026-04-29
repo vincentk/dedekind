@@ -1,8 +1,7 @@
 /**
  * @file dedekind/sets/relational.cppm
  * @partition :relational
- * @brief Level 1.3: Relational Algebra -- canonical combinators for Sets and
- * Relations.
+ * @brief Level 1.3: Relational Algebra — combinators for Sets and Relations.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.

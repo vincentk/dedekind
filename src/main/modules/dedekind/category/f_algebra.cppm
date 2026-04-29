@@ -1,11 +1,7 @@
 /**
  * @file dedekind/category/f_algebra.cppm
  * @partition :f_algebra
- * @module dedekind.category:f_algebra
- * @brief Level 2 (Bridge): Universal-property reification of @b F-algebras
- *        and @b F-coalgebras — the @b initial F-algebra (the carrier of
- *        catamorphisms) and the @b terminal F-coalgebra (the carrier of
- *        anamorphisms).  Closes the universal-property layer for #449.
+ * @brief Level 2: Initial F-algebras and terminal F-coalgebras.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.

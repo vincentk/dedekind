@@ -1,6 +1,5 @@
 /**
  * @file dedekind/category/category.cppm
- * @module dedekind.category
  * @brief Level 0--4: categorical bedrock + ETCS facade.
  *
  * @copyright 2026 The Dedekind Authors

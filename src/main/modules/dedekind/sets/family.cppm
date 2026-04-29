@@ -6,7 +6,6 @@
  * Copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @module dedekind.sets:family
  * @dependency dedekind.ontology, dedekind.sets:boundaries
  *
  * @section The_Family: The Algebra of Collections

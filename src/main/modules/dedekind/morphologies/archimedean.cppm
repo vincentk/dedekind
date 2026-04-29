@@ -1,8 +1,7 @@
 /**
- * @file ontology:morphologies.cppm
+ * @file dedekind/morphologies/archimedean.cppm
  * @partition :archimedean
- * @brief Level 3.5b: Convergence morphology stubs for experimental
- * reintegration.
+ * @brief Level 3.5b: Archimedean / ordered-field convergence stubs.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.

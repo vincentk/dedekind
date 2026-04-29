@@ -1,8 +1,7 @@
 /**
  * @file dedekind/numbers/symbolic.cppm
  * @partition :symbolic
- * @brief Level 9.4: Named symbolic constants — $\sqrt{2}$ and friends as
- *        intensional Dedekind cuts over ℚ.
+ * @brief Level 9.4: Symbolic constants ($\sqrt{2}$, …) as Dedekind cuts.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.

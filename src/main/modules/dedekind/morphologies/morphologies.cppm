@@ -1,8 +1,6 @@
 /**
  * @file dedekind/morphologies/morphologies.cppm
- * @module dedekind.morphologies
- * @brief Level 4: cyclic and Archimedean morphology carriers and their
- *        operational concept witnesses.
+ * @brief Level 4: Cyclic and Archimedean morphology carriers.
  *
  * @section The_Structural_Seal
  * « La mathématique est l'étude des structures qui sont invariantes par

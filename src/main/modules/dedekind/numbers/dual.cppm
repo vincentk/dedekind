@@ -1,8 +1,7 @@
 /**
  * @file dedekind/numbers/dual.cppm
  * @partition :dual
- * @brief Level 9.5: The Infinitesimal Extension 𝔻 — dual numbers
- *        a + bε with ε² = 0 (algebraic basis for forward-mode AD).
+ * @brief Level 9.5: Dual numbers 𝔻 = a + bε with ε² = 0 (forward-mode AD).
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.

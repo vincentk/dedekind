@@ -1,6 +1,5 @@
 /**
  * @file dedekind/numbers/approx.cppm
- * @module dedekind.numbers.approx
  * @brief Compatibility bridge for IEEE approximation policies.
  *
  * @copyright 2026 The Dedekind Authors

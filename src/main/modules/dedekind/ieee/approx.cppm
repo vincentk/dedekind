@@ -1,6 +1,5 @@
 /**
  * @file dedekind/ieee/approx.cppm
- * @module dedekind.ieee.approx
  * @brief Approximation policies for the IEEE effect context.
  *
  * @copyright 2026 The Dedekind Authors

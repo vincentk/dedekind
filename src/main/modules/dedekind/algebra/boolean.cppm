@@ -1,7 +1,6 @@
 /**
  * @file boolean.cppm
  * @partition :boolean
- * @module dedekind.algebra:boolean
  * @brief Boolean Starter Package: canonical Boolean ambient species aliases.
  *
  * @copyright 2026 The Dedekind Authors
