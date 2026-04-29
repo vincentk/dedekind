@@ -395,8 +395,8 @@ the monadic unit $\eta_F$ of the shape functor, $\eta_{M_2}(s) = s
 \cdot I_2$, pinned as a witness next to the carrier; (iii) the LP
 reduction of Section~\ref{sec:lp-centrepiece} is a co-Kleisli arrow
 $\varepsilon_{\mathrm{LP}}: \mathrm{Polytope}(T) \to T^2$ extracting
-the optimal vertex from the polytope context.\footnote{Each
-companion claim composes through the Kleisli machinery already in
+the optimal vertex from the polytope context.\footnote{The
+companion claims compose through the Kleisli machinery already in
 the library (the $\mathrm{Path}$ comonad, the
 $\mathrm{Box}/\mathrm{Maybe}$ monads), with bind ($\gg{=}$) and
 extend ($\lll{=}$) operators. The categorical vocabulary is not
@@ -1959,7 +1959,7 @@ active set $\{x + y = 4 + t,\; 2x + y = 6\}$. The LP reduction was
 written once over an unconstrained ring-like carrier; instantiating
 it over the dual-number ring discharges sensitivity analysis as a
 side effect of the ring laws. The same
-$\mathtt{Dual}\circ\mathtt{Rational}\circ\mathtt{Complex}$ layering
+$\mathtt{Dual}\circ\mathtt{Complex}\circ\mathtt{Rational}$ layering
 extends to holomorphic automatic differentiation at compile time;
 we leave its application to a follow-up.
 
