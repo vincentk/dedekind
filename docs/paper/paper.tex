@@ -727,7 +727,6 @@ produced.  Where SICP defers \emph{evaluation} (a runtime move), we defer
 is the auditor that ensures the wishes were coherent before the realization
 happens.
 
-\begin{landscape}
 \begin{figure}[p]
 \centering
 \begin{tikzpicture}[
@@ -736,19 +735,13 @@ happens.
   baseline=(current bounding box.center)
 ]
   % --- Cube-corners-only schematic of the Algebraic Tower ---
-  %   X axis (right):  carrier strength
-  %   Y axis (up):     object rank
-  %   Z axis (back):   quotient functor X (a parameter; specific values
-  %                     enumerated in the caption)
-  %
-  % Eight corners only.  Intermediate lattice points (e.g.\ V_2(\mathbb{Z}),
-  % D(\mathbb{Q}), \mathbb{F}_64) live conceptually along the edges and are
-  % itemised in the per-axis tables below.
-
-  \def\dx{8.0}
-  \def\dy{5.0}
-  \def\zxoff{4.0}
-  \def\zyoff{3.0}
+  %   X axis (right):  carrier strength 𝔄  (Frac, Cuts, Cplx — see Table A)
+  %   Y axis (up):     rank             𝔯  (Free_n, End_R    — see Table B)
+  %   Z axis (back):   quotient         𝔔  (D, C, D∘C, ...   — see Table C)
+  \def\dx{4.0}
+  \def\dy{3.0}
+  \def\zxoff{2.5}
+  \def\zyoff{2.0}
 
   % Front face (z = 0) corners.
   \node (B)    at (0,    0)    {$\mathbb{B}$};
@@ -768,68 +761,84 @@ happens.
     diag/.style={->, >=stealth, dashed, thick}
   }
 
-  % X-axis edges (4): "carrier strength" — generic; specific functor steps
-  % (Frac, Cuts, Cplx) listed in the caption / Table~\ref{tab:carriers-exact}.
-  \draw[edge]     (B)    -- node[midway, fill=white, inner sep=2pt, font=\large]
-                              {$\cdots$} (C);
-  \draw[edge]     (M2B)  -- node[midway, fill=white, inner sep=2pt, font=\large]
-                              {$\cdots$} (M2C);
-  \draw[edgeback] (XB)   -- node[midway, fill=white, inner sep=2pt, font=\large,
-                                 opacity=0.7] {$\cdots$} (XC);
-  \draw[edgeback] (M2XB) -- node[midway, fill=white, inner sep=2pt, font=\large,
-                                 opacity=0.7] {$\cdots$} (M2XC);
+  % X-axis edges (4): "carrier strength" 𝔄 — Frac / Cuts / Cplx; see Table A.
+  \draw[edge]     (B)    -- node[midway, fill=white, inner sep=2pt]
+                              {$\mathfrak{A}$} (C);
+  \draw[edge]     (M2B)  -- node[midway, fill=white, inner sep=2pt]
+                              {$\mathfrak{A}$} (M2C);
+  \draw[edgeback] (XB)   -- node[midway, fill=white, inner sep=2pt, opacity=0.7]
+                              {$\mathfrak{A}$} (XC);
+  \draw[edgeback] (M2XB) -- node[midway, fill=white, inner sep=2pt, opacity=0.7]
+                              {$\mathfrak{A}$} (M2XC);
 
-  % Y-axis edges (4): "rank" — Free_2 / End_R; intermediate V_2(R) implicit.
-  \draw[edge]     (B)    -- node[midway, fill=white, inner sep=2pt, font=\large]
-                              {$\cdots$} (M2B);
-  \draw[edge]     (C)    -- node[midway, fill=white, inner sep=2pt, font=\large]
-                              {$\cdots$} (M2C);
-  \draw[edgeback] (XB)   -- node[midway, fill=white, inner sep=2pt, font=\large,
-                                 opacity=0.7] {$\cdots$} (M2XB);
-  \draw[edgeback] (XC)   -- node[midway, fill=white, inner sep=2pt, font=\large,
-                                 opacity=0.7] {$\cdots$} (M2XC);
+  % Y-axis edges (4): "rank" 𝔯 — Free_n / End_R; see Table B.
+  \draw[edge]     (B)    -- node[midway, fill=white, inner sep=2pt]
+                              {$\mathfrak{R}$} (M2B);
+  \draw[edge]     (C)    -- node[midway, fill=white, inner sep=2pt]
+                              {$\mathfrak{R}$} (M2C);
+  \draw[edgeback] (XB)   -- node[midway, fill=white, inner sep=2pt, opacity=0.7]
+                              {$\mathfrak{R}$} (M2XB);
+  \draw[edgeback] (XC)   -- node[midway, fill=white, inner sep=2pt, opacity=0.7]
+                              {$\mathfrak{R}$} (M2XC);
 
-  % Z-axis edges (4): "quotient X" — parameterised; intermediate
-  % compositions implicit.
-  \draw[diag] (B)   -- node[midway, sloped, above, font=\scriptsize] {$X$} (XB);
-  \draw[diag] (C)   -- (XC);
-  \draw[diag] (M2B) -- (M2XB);
-  \draw[diag] (M2C) -- (M2XC);
+  % Z-axis edges (4): "quotient" 𝔔 — D / C / D∘C / ...; see Table C.
+  \draw[diag] (B)   -- node[midway, sloped, above, font=\scriptsize]
+                          {$\mathfrak{Q}$} (XB);
+  \draw[diag] (C)   -- node[midway, sloped, above, font=\scriptsize]
+                          {$\mathfrak{Q}$} (XC);
+  \draw[diag] (M2B) -- node[midway, sloped, above, font=\scriptsize]
+                          {$\mathfrak{Q}$} (M2XB);
+  \draw[diag] (M2C) -- node[midway, sloped, above, font=\scriptsize]
+                          {$\mathfrak{Q}$} (M2XC);
 
-  % --- Axis-direction labels (placed beside the relevant edge) ---
+  % --- Axis-direction labels ---
   \node[below=12pt, font=\itshape\small] at (\dx/2, 0)
-    {carrier strength};
+    {carrier-strength $\mathfrak{A}$};
   \node[left=12pt, font=\itshape\small, rotate=90] at (0, \dy/2)
-    {object rank};
+    {rank $\mathfrak{R}$};
   \node[font=\itshape\small, rotate=30, opacity=0.85]
-    at ($(B)!0.5!(XB) + (-0.6, 0.6)$)
-    {quotient $X$};
+    at ($(B)!0.5!(XB) + (-0.5, 0.5)$)
+    {quotient $\mathfrak{Q}$};
 \end{tikzpicture}
-\caption{The Algebraic Tower (target-state Figure~1, first sketch).
-Two-axis lattice: \emph{horizontal} = carrier-strength
-($\mathbb{B} \to \mathbb{N} \to \mathbb{Z} \to \mathbb{Q} \to \mathbb{R}
-\to \mathbb{C}$, each step a labelled functor application
-\textsc{Frac} / \textsc{Cuts} / \textsc{Cplx}); \emph{vertical} =
-object rank (Scalars $\to$ Vectors $V_2(R)$ via $\mathrm{Free}_2$
-$\to$ Matrices $M_2(R)$ via $\mathrm{End}_R$). The finite-field side
-branch ($\mathbb{F}_p$, $\mathbb{F}_{64}$) hangs off $\mathbb{Z}$
-through the same $\mathrm{Quot}$ functor at prime / polynomial
-ideals (cf.\ Figure~\ref{fig:initial-ring-modular} for the
-modular-arithmetic exhibit). The Extension-Functor row (Dual /
-Cplx as quotient rings) names the constructions used at each
-step. The Machine Substrate row (\texttt{bool} / \texttt{uint} /
-\texttt{int} / \texttt{double}) sits below the Honest-Rejection
-boundary; the dashed arrows mark the realisation crossings that
-embed each machine type into its variant proxy. \emph{Hooks for
-the off-figure dimensions:} higher rank ($V_n$, $M_n$, $n > 2$;
-\#368), predicate-set / order-theoretic constructions (a sibling
-\emph{Geometric Tower}, candidate Figure~1b), tensor / exterior
-powers, and the trait-registry pinning of every arrow as a
-mechanical witness (\#499). The 2D projection is necessarily
-lossy.}
+\caption{\emph{The Algebraic Tower.}
+3D oblique-projection lattice; only the eight cube corners are drawn
+explicitly.  Three orthogonal axes, each parameterised by a Fraktur-letter
+functor: $\mathfrak{A}$ (carrier-strength) — the chain $\mathbb{B} \to
+\mathbb{N} \to \mathbb{Z} \to \mathbb{Q} \to \mathbb{R} \to \mathbb{C}$
+via successive functors (Frac, Cuts, Cplx;
+Tables~\ref{tab:carriers-exact}--\ref{tab:rosetta-textbook-vs-cpp});
+$\mathfrak{R}$ (rank) — Scalar $\to V_n(R) \to M_n(R)$ via
+$\mathrm{Free}_n$ and $\mathrm{End}_R$ (Table~\ref{tab:rosetta-rank});
+$\mathfrak{Q}$ (quotient) — base ring $R \to X(R)$ at a degree-2
+polynomial ideal, $X \in \{D, C, D \circ C, \ldots\}$
+(Table~\ref{tab:rosetta-quotient}).
+The bottom-front-left corner $\mathbb{B}$ is the lattice bottom
+(weakest carrier, no rank lift, no extension); the top-right-back corner
+$M_2(X(\mathbb{C}))$ is the lattice top.  Intermediate lattice points
+(e.g.\ $V_2(\mathbb{Z})$, $D(\mathbb{Q})$, $\mathbb{F}_{64}$) live along
+the edges and are itemised in the per-axis rosetta tables.
+\emph{Commutation:} not all axes commute --- \textit{(i)} $\mathfrak{R}$
+and $\mathfrak{Q}$ always commute ($M_n(X(R)) \cong X(M_n(R))$ when
+both are defined); \textit{(ii)} different $\mathfrak{Q}$ values commute
+when their generating variables are independent
+($D \circ C \cong C \circ D$); \textit{(iii)} $\mathfrak{A}$ and
+$\mathfrak{Q}$ commute partially --- e.g.\ $\mathrm{Frac}(D(R))$ is
+undefined ($D(R)$ has nilpotents) but
+$\mathrm{Frac}(C(R)) \cong C(\mathrm{Frac}(R))$; \textit{(iv)}
+$\mathfrak{A}$ and $\mathfrak{R}$ commute restrictively
+($\mathfrak{R}$ produces modules, not rings, so subsequent
+$\mathfrak{A}$ steps may not type-check).  Specific compile-status
+per cell is pinned in the trait registry (\#499); the figure shows
+the structural shape.
+\emph{Off-figure dimensions:} higher rank ($n > 2$; \#368),
+predicate-set / order-theoretic constructions (candidate sibling
+Figure~1b), iterated $\mathfrak{Q}$ (jet bundles; \#504), Honest-Rejection
+machine-substrate boundary (\texttt{bool} / \texttt{uint} / \texttt{int}
+/ \texttt{double} embed into $\mathbb{B} / \mathbb{N} / \mathbb{Z} /
+\mathbb{Q}$ via named \texttt{embed\_*} arrows in
+\texttt{dedekind.numbers}).  The 2D projection is necessarily lossy.}
 \label{fig:carrier-lattice}
 \end{figure}
-\end{landscape}
 
 \begin{figure}[ht]
 \centering
@@ -1139,6 +1148,72 @@ marks not-currently-asserted.}
 \textsuperscript{e} & vectors have no internal product \lstinline|Vec2V $\times$ Vec2V $\to$ Vec2V|, only scalar multiplication; the shape concept correctly refuses. \\
 \end{tabular}
 }
+\end{table}
+
+% --- Rosetta tables for the rank ($\mathfrak{R}$) and quotient ($\mathfrak{Q}$)
+%     axes of the Algebraic Tower (Figure~\ref{fig:carrier-lattice}). ---
+
+\begin{table}[htbp]
+\centering
+\caption{\textbf{Rank-axis rosetta ($\mathfrak{R}$).}  Per-rank object,
+its functorial origin, the C++23 carrier in \texttt{dedekind.linear\_algebra},
+and the canonical textbook reference.  The chain
+$T \to V_n(T) \to M_n(T)$ exhibits the rank-axis steps of
+Figure~\ref{fig:carrier-lattice}; the existing
+Tables~\ref{tab:carriers-exact}--\ref{tab:rosetta-textbook-vs-cpp} cover
+the carrier-strength axis specifically.}
+\label{tab:rosetta-rank}
+\small
+\begin{tabular}{@{}l l l l@{}}
+\toprule
+\textbf{Object} & \textbf{Functor} & \textbf{C++23 carrier} & \textbf{Textbook} \\
+\midrule
+$T$ (scalar) & identity & \lstinline|T| (any \lstinline|HasRingOperators|) & --- \\
+$V_n(T) = T^n$ & $\mathrm{Free}_n$ (left adjoint to forgetful $\mathbf{Mod}_R \to \mathbf{Set}$) & \lstinline|Vec2V<T>| (and future $V_n$) & Mac Lane §VII \\
+$M_n(T) = \mathrm{End}_T(V_n)$ & $\mathrm{End}_R$ (internal hom in $\mathbf{Mod}_R$) & \lstinline|Matrix2x2V<T>| (and future $M_n$) & Mac Lane §VII \\
+\bottomrule
+\end{tabular}
+
+\vspace{0.5em}
+{\footnotesize
+\noindent The figure exhibits $n = 2$ as the worked example.  Higher-rank
+extensions ($n > 2$) are reached by structure-preserving combinators
+(\texttt{DirectSum}, \texttt{BlockUpperTriangular}, \texttt{Kronecker};
+issue \#368) rather than by inflating the atomic class template.}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\caption{\textbf{Quotient-axis rosetta ($\mathfrak{Q}$).}  Per-quotient
+realisation: the polynomial ideal, the resulting algebra, the structural
+property of the resulting ring, and the C++23 carrier (where shipped).
+Each row is a specific value of the parameter $X$ in
+Figure~\ref{fig:carrier-lattice}.  Compositions ($X = D \circ C$ etc.)
+commute when their generating variables are independent.}
+\label{tab:rosetta-quotient}
+\small
+\begin{tabular}{@{}l l l l l@{}}
+\toprule
+\textbf{$X$} & \textbf{Polynomial ideal} & \textbf{Algebra} & \textbf{Structure} & \textbf{C++23 carrier} \\
+\midrule
+$D$ (Dual) & $(\varepsilon^2)$ & $R[\varepsilon]/(\varepsilon^2)$ & nilpotent (never integral) & \lstinline|Dual<F>| (\#504 generalises) \\
+$C$ (Cplx) & $(i^2 + 1)$ & $R[i]/(i^2 + 1)$ & field-extension when $p$ irreducible$^a$ & \lstinline|Complex<R>| (\#505 generalises) \\
+$D \circ C \cong C \circ D$ & $(i^2 + 1, \varepsilon^2)$ & $R[i, \varepsilon]/(i^2{+}1, \varepsilon^2)$ & nilpotent dual of the complex extension & nested \lstinline|Dual<Complex<R>>| \\
+$G$ (Galois) & $(q(x))$ for $q$ irreducible & $\mathbb{F}_p[x]/(q(x))$ & finite field $\mathbb{F}_{p^n}$ & \lstinline|𝔽64| ($\mathbb{F}_2[x]/(x^6{+}x{+}1)$, PR \#444) \\
+\bottomrule
+\end{tabular}
+
+\vspace{0.5em}
+{\footnotesize
+\textsuperscript{a} Cplx is a field-extension when $i^2+1$ is irreducible
+over $R$ (true over $\mathbb{R}, \mathbb{Q}, \mathbb{Z}$); over $\mathbb{F}_2$
+the polynomial factors as $(x+1)^2$ and the result is a nilpotent ring
+isomorphic to $D(\mathbb{F}_2)$ (cf.\ \#505).  This is a concrete example of
+the "same construction, different result depending on base" pattern the
+quotient axis encodes.  Per-cell compile-status (which $R \times X$
+combinations the experimental library admits today vs which are pending
+implementation) is tracked in the trait registry of \#499 as positive /
+negative \texttt{static\_assert} witnesses.}
 \end{table}
 
 Reading rule for callsites: pick \emph{seal} for plain C++ syntax
