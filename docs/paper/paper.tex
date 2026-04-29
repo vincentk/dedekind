@@ -850,7 +850,19 @@ Figure~1b), iterated $\mathfrak{Q}$ (jet bundles; \#504), Honest-Rejection
 machine-substrate boundary (\texttt{bool} / \texttt{uint} / \texttt{int}
 / \texttt{double} embed into $\mathbb{B} / \mathbb{N} / \mathbb{Z} /
 \mathbb{Q}$ via named \texttt{embed\_*} arrows in
-\texttt{dedekind.numbers}).  The 2D projection is necessarily lossy.}
+\texttt{dedekind.numbers}).  The 2D projection is necessarily lossy.
+\emph{Structural caveat:} the algebraic lattice has a unique bottom
+($\mathbb{B}$) but \emph{no} unique top --- iterated quotients, tensor
+products, Witt vectors, $p$-adic completions and similar each yield a
+strictly larger object without a canonical maximum.  Binary meets
+(largest shared substructure) are easy to identify; binary joins
+(smallest common extension) exist categorically as pushouts but are
+not unique without ambient choice, so in practice the structure is
+better thought of as a bounded-below lattice (or, less formally, a
+meet-semilattice with constructive joins).  The visual "top-right-back"
+corner $M_2(X(\mathbb{C}))$ is therefore an \emph{illustrative
+stopping point}, not a categorical maximum --- the figure is a finite
+slice for clarity of exposition.}
 \label{fig:carrier-lattice}
 \end{figure}
 
