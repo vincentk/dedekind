@@ -282,30 +282,12 @@ contribution of this paper is the first rigorous articulation of that
 discipline, together with a worked library that discharges its claims
 mechanically.
 
-\paragraph{Intended target: CPU-first and embedded machine learning.}
-One concrete application domain motivates the discipline and runs
-through the showcases of Section~\ref{sec:pruning}: computation that
-leaves the data centre and moves to the edge. In CPU-first and
-embedded machine-learning deployments---vehicles, robotics,
-scientific instruments, industrial controllers, the wider edge
-computing~\cite{shi2016edge} landscape---the operating point is
-precisely the one our Compiler Wall
-(Section~\ref{sec:compiler-wall}) is tuned for: small fixed-topology
-problems, hard constraints on runtime footprint, a strong preference
-for deterministic arithmetic, and a toolchain no heavier than the
-system's \texttt{clang++} already is. Model Predictive Control,
-Kalman-style sensor fusion, quaternion-based pose math, small-model
-inference with gradients---these are fixed-shape computations whose
-coefficients and dimensions are known at compile time; existing
-embedded ML runtimes (TFLite Micro~\cite{david2021tflm}, ONNX
-Runtime, microTVM) schedule them on top of a heavyweight interpreter
-or a code-generator with its own dependency closure.
-\texttt{dedekind} sits one layer down: it is the \emph{compile-time
-substrate} against which such primitives can be written directly in
-standard C++23, with the structural discipline this paper
-articulates, and with no runtime at all. The Kalman filter of
-Section~\ref{sec:kalman-showcase} is the paper's worked embedded
-primitive; MPC and micro-inference are the natural successors.
+\paragraph{Intended target.}
+The discipline lands well in CPU-first and embedded
+machine-learning deployments---small fixed-topology problems with
+hard runtime-footprint constraints---where the technique's
+compile-time-substrate posture sits one layer below existing
+embedded ML runtimes such as TFLite Micro~\cite{david2021tflm}.
 
 \paragraph{The compiler as a poor man's theorem prover.}
 A pedagogical framing that runs through this paper: we are using
@@ -349,9 +331,16 @@ textbook LP that reduces at compile time to its optimal vertex as a
 typed constant; the same reduction over the dual-number ring
 (Section~\ref{sec:ad-elliott}) recovers forward-mode automatic
 differentiation as a sibling compile-time reduction in the sense of
-Elliott~\cite{elliott2018simple}; a third showcase
-(Section~\ref{sec:poly-ftc}) lifts the discipline to polynomial
-calculus.
+Elliott~\cite{elliott2018simple}.\footnote{The discipline extends to
+polynomial calculus: the formal derivative of a rational polynomial
+is a \texttt{static\_assert}-checked identity, and the Fundamental
+Theorem of Calculus (Part~II) is discharged at translation time
+against a closed-form antiderivative. Worked exhibits in the
+companion repository's
+\texttt{dedekind.algebra:polynomial} and \texttt{dedekind.analysis:ftc}
+partitions; \texttt{static\_assert} witnesses pin
+$\frac{d}{dx}P(x) = P'(x)$ on rational polynomials and the
+trapezoidal-quadrature equality with the antiderivative.}
 
 \paragraph{The three claims this paper substantiates.}
 \begin{enumerate}
@@ -1966,364 +1955,33 @@ we leave its application to a follow-up.
 \subsection{Linear Algebra: \texorpdfstring{$\mathbb{C}$ and $\mathbb{D}$}{ℂ and 𝔻} as Subrings of \texorpdfstring{$M_2(\mathbb{Q})$}{M₂(ℚ)}}
 \label{sec:lin-alg-embedding}
 
-One more sibling, from a slightly different angle. The LP reduction
-of Section~\ref{sec:lp-centrepiece} used a $2 \times 2$ linear
-algebra layer (\lstinline{Vec2}, \lstinline{Invertible2x2}) inside the
-Cramer solve; the same layer supports something cleaner to exhibit---
-the compiler verifying an algebraic identity between \emph{scalars}
-and \emph{matrices}.
-
-Two classical embeddings sit in the library: the complex number
-$a + bi$ lifts to a rotation-scaling $2 \times 2$ matrix, and the
-dual number $a + b\varepsilon$ lifts to a shear $2 \times 2$
-matrix:
-\[
-  \mathbb{C} \hookrightarrow M_2(\mathbb{Q}) : \quad
-  a + bi \;\mapsto\; \begin{pmatrix} a & -b \\ b & a \end{pmatrix},
-  \qquad\qquad
-  \mathbb{D} \hookrightarrow M_2(\mathbb{Q}) : \quad
-  a + b\varepsilon \;\mapsto\; \begin{pmatrix} a & b \\ 0 & a \end{pmatrix}.
-\]
-Read left-to-right, these are two sentences in one breath. Read
-side-by-side, they tell a story: the complex-plane rotation that
-makes $i^2 = -1$ happen, and the shear that makes $\varepsilon^2 = 0$
-happen, are the same \emph{kind} of move---a scalar ring embedded in
-a matrix ring by a ring homomorphism $\phi$ satisfying
-\(\phi(xy) = \phi(x)\,\phi(y)\) and $\phi(x + y) = \phi(x) + \phi(y)$.
-The library claims these identities at the type level, and the
-compiler discharges them.
-
-\paragraph{Showcase~12 --- both homomorphisms, both over $\mathbb{Q}$.}
-The exact carrier is \lstinline{Rational<SignedExtensionalCardinal<>>},
-so all the identities are bit-perfect; no tolerance, no rounding:
+The classical regular representations
+$a + bi \mapsto
+\bigl(\begin{smallmatrix} a & -b \\ b & a \end{smallmatrix}\bigr)$
+and
+$a + b\varepsilon \mapsto
+\bigl(\begin{smallmatrix} a & b \\ 0 & a \end{smallmatrix}\bigr)$
+are ring monomorphisms $\mathbb{C}, \mathbb{D} \hookrightarrow
+M_2(\mathbb{Q})$ — see, e.g., the standard treatment in any
+abstract-algebra reference. The library claims both identities at
+the type level over \lstinline{Rational<SignedExtensionalCardinal<>>}
+and the compiler discharges them as bit-perfect
+\texttt{static\_assert}s, with the defining relation $\varepsilon^2
+= 0$ lifting to
+$\bigl(\begin{smallmatrix} 0 & 1 \\ 0 & 0 \end{smallmatrix}\bigr)^2
+= 0$ on the matrix side.
 
 % Source: src/test/cpp/modules/dedekind/linear_algebra/embeddings_test.cpp
-\begin{lstlisting}[language=C++, caption={Ring-homomorphism identities for $\mathbb{C}$ and $\mathbb{D}$ into $M_2(\mathbb{Q})$, both discharged as \lstinline{static_assert}s. From \texttt{embeddings\_test.cpp}.}, label={lst:lin-alg-embeddings}]
-using Rat = Rational<SignedExtensionalCardinal<>>;  // canonical exact ℚ
-
-// Complex numbers as 2x2 rotation-scaling matrices.
-constexpr Complex<Rat> z{Rat{1}, Rat{2}};
-constexpr Complex<Rat> w{Rat{3}, Rat{-5}};
+\begin{lstlisting}[language=C++, caption={Ring-homomorphism identities $\mathbb{C}, \mathbb{D} \hookrightarrow M_2(\mathbb{Q})$, discharged as \lstinline{static_assert}s. From \texttt{embeddings\_test.cpp}.}, label={lst:lin-alg-embeddings}]
+using Rat = Rational<SignedExtensionalCardinal<>>;
+constexpr Complex<Rat> z{Rat{1}, Rat{2}}, w{Rat{3}, Rat{-5}};
+constexpr Dual<Rat>    d{Rat{2}, Rat{3}}, e{Rat{-1}, Rat{5}};
 static_assert(as_matrix2x2(z + w) == as_matrix2x2(z) + as_matrix2x2(w));
 static_assert(as_matrix2x2(z * w) == as_matrix2x2(z) * as_matrix2x2(w));
-
-// Dual numbers as 2x2 shear matrices.
-constexpr Dual<Rat> d{Rat{2}, Rat{3}};
-constexpr Dual<Rat> e{Rat{-1}, Rat{5}};
-static_assert(as_matrix2x2(d + e) == as_matrix2x2(d) + as_matrix2x2(e));
 static_assert(as_matrix2x2(d * e) == as_matrix2x2(d) * as_matrix2x2(e));
-
-// The defining relation \epsilon^2 = 0 lifts cleanly.
 constexpr Dual<Rat> eps{Rat{0}, Rat{1}};
 static_assert(as_matrix2x2(eps) * as_matrix2x2(eps) == zero_matrix2x2_v<Rat>);
 \end{lstlisting}
-
-The \lstinline{eps * eps} assertion is the one that lands the
-pedagogical point. The defining relation of $\mathbb{D}$ is
-$\varepsilon^2 = 0$; transported through the matrix embedding, it
-becomes $\left(\begin{smallmatrix} 0 & 1 \\ 0 & 0 \end{smallmatrix}\right)^2 =
-\left(\begin{smallmatrix} 0 & 0 \\ 0 & 0 \end{smallmatrix}\right)$,
-an elementary fact of matrix arithmetic. The compiler checks both
-sides and agrees: the algebraic relation downstairs and the matrix
-relation upstairs are the same fact. That equivalence, free of
-narration, is the point.
-
-\subsection{Polynomials and the Fundamental Theorem, Verified at Compile Time}
-\label{sec:poly-ftc}
-
-Turn the same lens on calculus. A polynomial is a sequence of
-coefficients, so ``differentiate this polynomial'' is an operation on
-sequences---shift down one exponent, multiply each coefficient by its
-old exponent. The operation is exact, runs entirely in the underlying
-ring, and the answer is itself a polynomial. If the polynomial lives at
-the type level (or as a \lstinline{constexpr} value), so does its
-derivative. The Fundamental Theorem of Calculus is a sentence in the
-same language: ``differentiation and integration are inverse, modulo a
-constant of integration,'' and we would like the compiler to verify it.
-
-\paragraph{Showcase~10 — polynomial derivative, exact.}
-\texttt{dedekind.algebra:polynomial} already ships
-\lstinline{RigPolynomial<R>::derive()} as a \lstinline{constexpr}
-method. Given $p(x) = 3x^{3} + 2x^{2} + x + 1$ over $\mathbb{Q}$, the
-library computes $p'(x) = 9x^{2} + 4x + 1$ at compile time, and the
-identity is a type-level assertion:
-
-% Source: src/test/cpp/modules/dedekind/algebra/polynomials_test.cpp
-\begin{lstlisting}[language=C++, caption={Polynomial derivative: an exact identity, discharged by the compiler. From \texttt{polynomials\_test.cpp}.}, label={lst:poly-derive}]
-using ℤ = int;                 // the integer coefficient ring
-using P = Polynomial<ℤ>;
-
-// p(x)  = 3x^3 + 2x^2 + x + 1  (coefficients constant-first)
-// p'(x) = 9x^2 + 4x + 1
-static_assert(P({1, 1, 2, 3}).derive() == P({1, 4, 9}));
-static_assert(P({0, 1}).derive() == P::one());   // d/dx (x) = 1
-static_assert(P::one().derive().is_zero());       // d/dx (1) = 0
-\end{lstlisting}
-
-This is the same reduction pattern as the halfspace and LP showcases,
-applied at the polynomial carrier: the answer is not \emph{computed at
-runtime and compared to a literal}, it is \emph{the literal in the
-emitted object file}. Coefficients are exact because
-\lstinline{RigPolynomial::derive()} is a ring homomorphism, not a
-numerical approximation. The \lstinline{int} carrier in the showcase
-is the minimal witness; the same identities go through unchanged for
-\lstinline{Rational<long>}, and more generally for any
-\lstinline{HasRingOperators} carrier---so a rational polynomial's derivative
-is as exact as its coefficients.
-
-Note the pattern: the polynomials are \emph{inlined} at the
-\lstinline{static_assert} call site rather than declared as
-\lstinline{constexpr} variables. The reason is a transient detail of
-C++20/23 \lstinline{constexpr}: \lstinline{std::vector} may be used
-inside a constant expression, but its storage must be released before
-that expression ends, so a namespace-scope \lstinline{constexpr}
-polynomial variable with vector-backed coefficients does not compile.
-Inlining keeps every allocation transient. Replacing the coefficient
-storage with a fixed-capacity \lstinline{std::array} would lift this
-restriction and allow a namespace-scope \lstinline{constexpr}
-polynomial variable; we leave that to a follow-up.
-
-\paragraph{Showcase~11 — FTC Part~II, numerically witnessed at compile time.}
-The Fundamental Theorem of Calculus, Part~II, says that for $f$
-continuous on $[a, b]$ with antiderivative $F$,
-\[
-  \int_{a}^{b} f(x)\,\mathrm{d}x \;=\; F(b) - F(a).
-\]
-The library's \lstinline{ftc_part_ii_bridge} is a
-\lstinline{constexpr} function that runs a trapezoidal quadrature of
-$f$ against a supplied $F$, checks the two sides agree within a
-tolerance, and returns a \lstinline{bool}. Pass it a function and its
-antiderivative as lambdas, and the compiler does the integration:
-
-% Source: src/test/cpp/modules/dedekind/analysis/ftc_test.cpp
-\begin{lstlisting}[language=C++, caption={FTC Part~II, discharged by the compiler on a polynomial $f$ and its closed-form antiderivative $F$. From \texttt{ftc\_test.cpp}.}, label={lst:ftc-bridge}]
-// f(x) = 3x^2;  F(x) = x^3  is an antiderivative,
-// so  \int_0^2 3x^2 dx  should equal  F(2) - F(0) = 8.
-constexpr auto f = [](double x) { return 3.0 * x * x; };
-constexpr auto F = [](double x) { return x * x * x; };
-
-static_assert(ftc_part_ii_bridge<double>(f, F, 0.0, 2.0, 1e-3));
-\end{lstlisting}
-
-The \lstinline{static_assert} compiles, which means the compiler ran
-the full trapezoidal rule (default $4096$ slices), subtracted
-$F(2) - F(0)$, and confirmed the result agreed with $8.0$ within
-tolerance $10^{-3}$. As with the LP centrepiece, there is no runtime
-integration: the numerical verification of a calculus theorem happens
-during translation, and the binary contains only the literal
-\lstinline{true}.
-
-A small engineering aside that reinforces the Compiler-Wall discussion
-of Section~\ref{sec:compiler-wall}: lifting this check into
-\lstinline{static_assert} required replacing a single \lstinline{std::abs(double)}
-call with a hand-rolled \lstinline{(v < 0 ? -v : v)} inside
-\lstinline{detail::magnitude}. Libc++'s \lstinline{std::abs(double)} is
-not \lstinline{constexpr}, which is enough to block the entire
-\lstinline{close_enough} chain from compile-time evaluation. Such
-one-symbol obstructions are the texture of the wall: easy to fix once
-spotted, but invisible until a \lstinline{static_assert} exposes them.
-
-\paragraph{What the pair contributes.}
-Showcase~10 is exact-algebraic: the derivative \emph{is} a
-polynomial, and the identity is a ring-theoretic fact the compiler
-just agrees with. Showcase~11 is numerical-constructive: the
-integral is computed, by the compiler, on a concrete interval.
-Together they pin down the two faces of the derivative already
-present in the library (exact formal on polynomials, numerical on
-general functions) as siblings of the dual-number forward AD of
-Section~\ref{sec:ad-elliott}. Three realisations of $(f, f')$, each
-faithful at the level its carrier allows, and each a
-\lstinline{static_assert}-witnessed compile-time reduction in the
-sense of the present paper.
-
-\subsection{Embedded Sensor Fusion: A Kalman Filter as a Compile-Time Primitive}
-\label{sec:kalman-showcase}
-
-The previous subsections demonstrate the discipline on the
-mathematician's favourite objects: LP vertices, derivatives,
-homomorphisms, FTC. This subsection runs the same discipline on the
-embedded engineer's favourite object. A scalar Kalman filter is the
-canonical building block of sensor fusion---used in spacecraft
-navigation from Apollo onward, in every modern IMU-based pose
-estimator, in essentially every robotics control stack. The runtime
-cost of a single scalar update step is modest; the cumulative cost,
-at $\text{kHz}$-scale loops on embedded targets with battery budgets,
-is emphatically not. If the filter's coefficients are known at
-compile time---and in a deployed embedded system they very nearly
-always are, because they encode sensor characteristics---then every
-arithmetic operation the filter performs at run time is a candidate
-for compile-time specialisation.
-
-\paragraph{The filter, in five lines.} Given process noise $Q$ and
-measurement noise $R$ (both known at compile time), state estimate
-$\hat{x}$ and covariance $P$ (carried at run time as
-\lstinline{Rational<SignedExtensionalCardinal<>>}), and a measurement
-$z$, one stationary-model update is:
-\begin{align*}
-  P        &\leftarrow P + Q                          & \text{(predict)}\\
-  y        &= z - \hat{x}                             & \text{(innovation)}\\
-  S        &= P + R                                   & \text{(innovation covariance)}\\
-  K        &= P / S                                   & \text{(Kalman gain)}\\
-  \hat{x}  &\leftarrow \hat{x} + K \cdot y            & \text{(state update)}\\
-  P        &\leftarrow (1 - K) \cdot P                & \text{(covariance update)}\\
-\end{align*}
-Five arithmetic operations: one division, three multiplications, two
-additions and two subtractions, over the underlying ring. No matrix
-inverse (state is one-dimensional), no square roots (stationary
-linear model), nothing that blocks exact-rational evaluation.
-
-\paragraph{Showcase~13 — one-step update, compile-time trajectory.}
-The filter is a template parameterised by the two noise constants;
-\lstinline{predict} and \lstinline{update} are \lstinline{constexpr}:
-
-% Source: src/test/cpp/modules/dedekind/linear_algebra/kalman_showcase_test.cpp
-\begin{lstlisting}[language=C++, caption={A scalar Kalman filter as a compile-time specialised primitive. Filter coefficients are NTTPs; the trajectory is verified by \lstinline{static_assert} over exact rationals. From \texttt{kalman\_showcase\_test.cpp}.}, label={lst:kalman-showcase}]
-using Rat = Rational<SignedExtensionalCardinal<>>;  // canonical exact ℚ
-
-template <typename R, R Q, R Rnoise>
-struct KalmanFilter1D {
-  R x_hat;
-  R P;
-
-  constexpr void predict()       { P = P + Q; }         // F = 1
-  constexpr void update(R z) {
-    const R innovation = z - x_hat;
-    const R S          = P + Rnoise;
-    const R K          = P / S;
-    x_hat = x_hat + K * innovation;
-    P     = (R{1} - K) * P;
-  }
-};
-
-// Q = 1/100, R = 1/10, initial estimate 0, initial covariance 1,
-// single measurement z = 1.
-constexpr auto filtered = [] {
-  KalmanFilter1D<Rat, Rat{1, 100}, Rat{1, 10}> f{Rat{0}, Rat{1}};
-  f.predict();
-  f.update(Rat{1});
-  return f;
-}();
-
-static_assert(filtered.x_hat == Rat{101, 111});
-static_assert(filtered.P     == Rat{101, 1110});
-\end{lstlisting}
-
-The arithmetic checks by hand: after \lstinline{predict},
-$P = 1 + \tfrac{1}{100} = \tfrac{101}{100}$; the innovation is
-$y = 1$; $S = \tfrac{101}{100} + \tfrac{1}{10} = \tfrac{111}{100}$;
-$K = \tfrac{101}{111}$; $\hat{x}' = \tfrac{101}{111}$;
-$P' = \tfrac{10}{111} \cdot \tfrac{101}{100} = \tfrac{101}{1110}$.
-The compiler verifies this exact sequence at translation time, and a
-companion two-step test asserts covariance contraction,
-$P_{\text{after two updates}} < P_{\text{after one update}}$, as a
-compile-time fact.
-
-\paragraph{Why this matters for embedded deployment.} The showcase's
-value is not the one-step numerical result but the \emph{shape} of
-the code it represents. In a production embedded system, $Q$ and
-$R$ are sensor-characterisation constants written into firmware;
-$\hat{x}$ and $P$ are runtime state; $z$ is a runtime sample. The
-\lstinline{constexpr} structure specialises once at build time to
-the specific filter a given sensor requires, and the run-time update
-is an allocation-free, dispatch-free, branch-free sequence of
-primitive arithmetic that any mainstream embedded toolchain will
-schedule tightly. On carriers where exact rationals are not wanted
-(\lstinline{float} on an MCU), the same template instantiates with
-the carrier-appropriate arithmetic; on carriers where they are
-(safety-critical replay, bit-exact cross-platform determinism),
-\lstinline{Rational<long>} or \lstinline{Rational<ExtensionalCardinal<>>}
-gives the reproducibility guarantee built in.
-
-What this showcase does \emph{not} demonstrate: a multi-dimensional
-state (would require the linear-algebra layer's matrix inversion
-beyond $2 \times 2$); a steady-state solve via the discrete algebraic
-Riccati equation (the square root blocks exact rationals); or
-benchmarks against an embedded ML runtime (a follow-up paper's
-territory). It demonstrates the primitive and the pattern. The rest,
-where Axiomatic Systems Programming succeeds or fails for embedded
-ML, is an engineering program we name and invite, not one this paper
-discharges on its own.
-
-\paragraph{Natural successor domains.}
-Two application families share the same shape as the Kalman primitive
-demonstrated above and are the natural successors of this showcase
-in a follow-up paper.  \emph{Compile-time Monte Carlo} reduces a
-fixed-sample-size estimator to a typed result that carries both the
-sample mean and its standard error in one envelope; running the same
-estimator over \lstinline{Dual<Rational<...>>} returns the
-parameter-sensitivity of the estimator with no separate autodiff
-pass.  \emph{Compile-time molecular dynamics} integrates a small
-N-body system through the leapfrog primitive of
-\lstinline{dedekind.analysis:hamilton} (the symplectic kick--drift--kick
-integrator already shipped); energy conservation along the resulting
-trajectory becomes a \lstinline{static_assert} pattern; the
-\lstinline{dedekind.analysis:exterior} symplectic 2-form witnesses
-the Hamiltonian structure; and pathwise sensitivities to a force-field
-parameter are again a \lstinline{Dual}-ring lift.  Both domains
-share the structure this paper has been pinning throughout: fixed
-problem topology at compile time, per-step computation that is
-scalars and small vectors rather than multi-dimensional matrix
-factorisation, and a hard correctness signal (energy conservation;
-reproducible mean) that the type system can police.  The substrate
-(leapfrog, exterior 2-form, exact rational arithmetic, the
-\lstinline{Dual} product ring) is shipped today, and the
-discipline is already being applied to it.  The following test
-case lives at the test layer of the current main branch (\\
-\texttt{\detokenize{src/test/cpp/modules/dedekind/analysis/hamilton_test.cpp}})
-and bundles three witnesses for the harmonic-oscillator MD
-primitive: the carrier satisfies \texttt{IsHamiltonian}
-structurally, the symplectic 2-form is antisymmetric on the
-canonical basis pair, and the carrier conserves energy along the
-closed-form flow.  The listing also exhibits the Compiler Wall of
-Section~\ref{sec:compiler-wall} in miniature: claims (1) and (2)
-are decided at translation time (\texttt{STATIC\_CHECK}); claim
-(3) is necessarily runtime (\texttt{CHECK}) because the closed-form
-flow calls \texttt{std::cos} / \texttt{std::sin} and the tolerance
-compare uses \texttt{std::abs(double)}, none of which is
-\texttt{constexpr} in libc++ --- the very wall the §5.5
-hand-rolled \texttt{magnitude} is designed to push back against.
-
-% Source:
-% src/test/cpp/modules/dedekind/analysis/hamilton_test.cpp
-\begin{lstlisting}[language=C++, basicstyle=\ttfamily\small]
-TEST_CASE("Analysis: Harmonic oscillator "
-          "--- paper §5.7 showcase witnesses") {
-  using ℝ = double;
-
-  // 1. :hamilton --- HarmonicOscillator<R> exposes the
-  //    IsHamiltonian energy(state) -> R surface.
-  STATIC_CHECK(
-      IsHamiltonian<HarmonicOscillator<ℝ>, PhasePoint<ℝ>, ℝ>);
-
-  // 2. :exterior --- the symplectic 2-form ω = dp ∧ dq is
-  //    antisymmetric on the canonical basis pair.  Pure
-  //    algebra, no transcendentals --- decided at translation
-  //    time.
-  constexpr OneForm<ℝ, 2> dq{{1.0, 0.0}};
-  constexpr OneForm<ℝ, 2> dp{{0.0, 1.0}};
-  constexpr auto omega = wedge(dp, dq);
-  constexpr Vector<ℝ, 2> v_x{1.0, 0.0};
-  constexpr Vector<ℝ, 2> v_y{0.0, 1.0};
-  STATIC_CHECK(omega(v_x, v_y) == -omega(v_y, v_x));
-
-  // 3. H(q, p) = ½(p² + ω²q²) is constant along the flow.
-  //    Runtime, not STATIC_CHECK: the closed-form expression
-  //    uses std::cos / std::sin (not constexpr in libc++), and
-  //    the tolerance compare uses std::abs(double) (likewise).
-  //    This claim sits to the right of the Compiler Wall.
-  const HarmonicOscillator<ℝ> H{1.0};
-  const auto flow = harmonic_oscillator_curve<ℝ>(1.0, 0.0, 1.0);
-  const ℝ e0 = H.energy(flow(0.0));
-  const ℝ et = H.energy(flow(2.5));
-  CHECK(std::abs(et - e0) < 1e-12);
-}
-\end{lstlisting}
-
-\noindent The worked showcases and quantitative comparisons
-against domain baselines (LAMMPS-flavoured MD,
-scientific-computing MC libraries) are deliberately left to a
-successor paper rather than diluted into this one; the witnesses
-above show that the discipline is already paving the road.
 
 \subsection{Algebraic Properties Enable Stronger Pruning}
 
@@ -2572,18 +2230,12 @@ predicates, structured \lstinline{operator&} dispatch, and the computability
 tiers visible in the showcases. Taken together they sketch a program of
 which the current halfspace reductions are the first installment.
 
-The polynomial-calculus showcase of
-Section~\ref{sec:poly-ftc} belongs to the same family but at the
-\emph{function} layer rather than the set layer: a function
-(polynomial, or a $C^{\infty}$ lambda) is an intensional object
-reduced, under a ring homomorphism (\lstinline{derive}) or a
-numerical integrator, to another intensional object whose identity
-with a target is discharged by the compiler. The computability-tier
-framing lifts to this setting: the derivative of
-\lstinline|P({1, 1, 2, 3})| \emph{is} \lstinline|P({1, 4, 9})| as a
-\lstinline{static_assert}-visible value, and
-\lstinline{ftc_part_ii_bridge} lifts a calculus theorem from
-``checkable at runtime'' to ``true at translation time''.
+The polynomial-calculus exhibit (companion-repository
+\texttt{:polynomial} / \texttt{:ftc} partitions) belongs to the same
+family but at the \emph{function} layer: a polynomial reduced under
+\lstinline{derive} (a ring homomorphism) or a numerical integrator
+yields another intensional object whose identity with a target is
+discharged by the compiler.
 
 \subsection{The Compiler Wall: Where This Stops}
 \label{sec:compiler-wall}
@@ -3094,10 +2746,10 @@ whose optimisations are largely locked to floating-point semantics.
 numerical primitives (Kalman filters, pose-estimation math, MPC
 steps, parametric optimisation) a robotics, automotive, or
 instrumentation engineer writes directly in their control loop. For
-these, a fixed-topology LP, a compile-specialised Kalman update
-(Section~\ref{sec:kalman-showcase}), or an exact-rational sensor-fusion
-step expressed against \texttt{HasRingOperators} concepts exhibits three
-properties the model-runtime path does not aim at: a binary with no
+these, a fixed-topology LP, a compile-specialised Kalman update,
+or an exact-rational sensor-fusion step expressed against
+\texttt{HasRingOperators} concepts exhibits three properties the
+model-runtime path does not aim at: a binary with no
 interpreter, a dependency graph no heavier than the system's
 \texttt{clang++}, and bit-for-bit deterministic arithmetic across
 platforms when the carrier is $\mathbb{Q}$. We see this as a
@@ -3163,14 +2815,13 @@ a textbook linear-programming instance reducing at compile time to
 its optimal vertex as a typed constant---the six candidate solves,
 six feasibility checks, and six objective comparisons vanish in the
 emitted IR. The same reduction over the dual-number ring recovers
-exact forward-mode sensitivities (Section~\ref{sec:ad-elliott}); over
-\lstinline{RigPolynomial} it produces exact symbolic derivatives and
-discharges the Fundamental Theorem of Calculus at translation time
-(Section~\ref{sec:poly-ftc}); at the linear-algebra layer it
-certifies the ring homomorphisms
+exact forward-mode sensitivities (Section~\ref{sec:ad-elliott}); at
+the linear-algebra layer it certifies the ring homomorphisms
 $\mathbb{C}, \mathbb{D} \hookrightarrow M_2(\mathbb{Q})$ as
-compile-time facts (Section~\ref{sec:lin-alg-embedding}). In every
-case the binary contains only literals.
+compile-time facts (Section~\ref{sec:lin-alg-embedding}). The
+companion repository's polynomial-calculus partitions discharge the
+Fundamental Theorem of Calculus at translation time on the same
+discipline. In every case the binary contains only literals.
 
 \paragraph{Axiomatic Systems Programming as a practised discipline.}
 The viewpoint we name in Section~\ref{sec:introduction}---treating
