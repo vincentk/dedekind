@@ -48,4 +48,5 @@ export import :modules;
 export import :polynomial;
 export import :registration;
 export import :ring;
+export import :universal;  // IsAlgebra meta-pattern (Burris-Sankappanavar)
 export import :vectorspace;

@@ -10,7 +10,7 @@
 
 ### Computational Structuralism in Modern C++23
 
-The `dedekind` library intends to be a faithful translation of mathematical concepts into modern `C++`. 
+The `dedekind` library translates a coherent slice of mathematical concepts into modern `C++`. 
 It defines an embedded domain-specific language (eDSL) for mathematics with the following goals:
 
 - **Recognizability:** Code should be intuitive to both mathematicians and `C++` programmers.
@@ -66,7 +66,7 @@ The project rests on two pillars: **C++23** and **Category Theory**.
 In this approach:
 1. **Verbatim Lifting**: Mathematical concepts are translated into `C++` `concept`s with minimal adjustments. The flow from axioms to theorems is enforced by the `module` build order, the `import` graph and `C++` declaration order rules.
 2. **Language Conformity**: Modifications required to satisfy the host language (`C++`) are kept as non-intrusive as possible. Textbook naming conventions using `UTF-8` are preferred, i.e. `ℝ` instead of `IsRealNumberSet`.
-3. **Bi-directional Fidelity**: Once a `concept` compiles, its fidelity is verified by checking that `C++` invariants map correctly back to their mathematical counterparts within the test suite.
+3. **Bi-directional Fidelity**: Once a `concept` compiles, its behaviour is checked by mapping `C++` invariants back to their mathematical counterparts within the test suite.
 4. **Co-Domain Anchoring**: Where the C++ standard library provides native support for algebraic concepts, this anchoring is made explicit (e.g. `bool`, `std::pair`, `std::variant`, ...) and documented via translation tables.
 
 ### Engineering honesty and mechanical sympathy
