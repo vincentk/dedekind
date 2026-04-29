@@ -729,51 +729,93 @@ happens.
 
 \begin{figure}[p]
 \centering
-\begin{tikzcd}[
-  column sep=large,
-  row sep=large,
-  ampersand replacement=\&,
-  cells={nodes={font=\small}},
-  labels={font=\scriptsize}
+\begin{tikzpicture}[
+  scale=0.85,
+  every node/.style={font=\small},
+  baseline=(current bounding box.center)
 ]
-  %% Top: base-scalar rank stack (matrices, vectors, scalars).
-  M_2(\mathbb{B}) \arrow[r] \&
-  M_2(\mathbb{N}) \arrow[r] \&
-  M_2(\mathbb{Z}) \arrow[r] \&
-  M_2(\mathbb{Q}) \arrow[r] \&
-  M_2(\mathbb{R}) \arrow[r] \&
-  M_2(\mathbb{C}) \\
-  V_2(\mathbb{B}) \arrow[u, "\mathrm{End}_R"] \arrow[r] \&
-  V_2(\mathbb{N}) \arrow[u, "\mathrm{End}_R"] \arrow[r] \&
-  V_2(\mathbb{Z}) \arrow[u, "\mathrm{End}_R"] \arrow[r] \&
-  V_2(\mathbb{Q}) \arrow[u, "\mathrm{End}_R"] \arrow[r] \&
-  V_2(\mathbb{R}) \arrow[u, "\mathrm{End}_R"] \arrow[r] \&
-  V_2(\mathbb{C}) \arrow[u, "\mathrm{End}_R"] \\
-  \mathbb{B} \arrow[u, "\mathrm{Free}_2"] \arrow[r] \&
-  \mathbb{N} \arrow[u, "\mathrm{Free}_2"] \arrow[r] \&
-  \mathbb{Z} \arrow[u, "\mathrm{Free}_2"] \arrow[r, "\mathrm{Frac}"] \&
-  \mathbb{Q} \arrow[u, "\mathrm{Free}_2"]
-            \arrow[r, "\mathrm{Cuts}"]
-            \arrow[d, "\mathrm{Dual}"'] \&
-  \mathbb{R} \arrow[u, "\mathrm{Free}_2"]
-            \arrow[r, "\mathrm{Cplx}"]
-            \arrow[d, "\mathrm{Dual}"'] \&
-  \mathbb{C} \arrow[u, "\mathrm{Free}_2"]
-            \arrow[d, "\mathrm{Dual}"'] \\
-  %% Bottom: Dual sub-tower under cols 4, 5, 6.
-  \&\&\&
-  D(\mathbb{Q}) \arrow[r] \arrow[d, "\mathrm{Free}_2"'] \&
-  D(\mathbb{R}) \arrow[r] \arrow[d, "\mathrm{Free}_2"'] \&
-  D(\mathbb{C}) \arrow[d, "\mathrm{Free}_2"'] \\
-  \&\&\&
-  V_2(D(\mathbb{Q})) \arrow[r] \arrow[d, "\mathrm{End}_R"'] \&
-  V_2(D(\mathbb{R})) \arrow[r] \arrow[d, "\mathrm{End}_R"'] \&
-  V_2(D(\mathbb{C})) \arrow[d, "\mathrm{End}_R"'] \\
-  \&\&\&
-  M_2(D(\mathbb{Q})) \arrow[r] \&
-  M_2(D(\mathbb{R})) \arrow[r] \&
-  M_2(D(\mathbb{C}))
-\end{tikzcd}
+  % --- Lattice axes (oblique 2D projection of a 3D lattice) ---
+  %   X axis (right):           carrier strength (𝔹 → … → ℂ)
+  %   Y axis (up):               object rank (scalar → V_2 → M_2)
+  %   Z axis (diag up-right):    extension functor (base → Dual)
+  \def\dx{2.0}
+  \def\dy{1.3}
+  \def\zxoff{1.0}
+  \def\zyoff{0.7}
+
+  % --- Front face (z = 0): full carrier-strength × rank grid. ---
+  % Scalars (y = 0).
+  \node (B)  at (0*\dx, 0*\dy) {$\mathbb{B}$};
+  \node (N)  at (1*\dx, 0*\dy) {$\mathbb{N}$};
+  \node (Z)  at (2*\dx, 0*\dy) {$\mathbb{Z}$};
+  \node (Q)  at (3*\dx, 0*\dy) {$\mathbb{Q}$};
+  \node (R)  at (4*\dx, 0*\dy) {$\mathbb{R}$};
+  \node (C)  at (5*\dx, 0*\dy) {$\mathbb{C}$};
+  % V_2 (y = 1).
+  \node (V2B) at (0*\dx, 1*\dy) {$V_2(\mathbb{B})$};
+  \node (V2N) at (1*\dx, 1*\dy) {$V_2(\mathbb{N})$};
+  \node (V2Z) at (2*\dx, 1*\dy) {$V_2(\mathbb{Z})$};
+  \node (V2Q) at (3*\dx, 1*\dy) {$V_2(\mathbb{Q})$};
+  \node (V2R) at (4*\dx, 1*\dy) {$V_2(\mathbb{R})$};
+  \node (V2C) at (5*\dx, 1*\dy) {$V_2(\mathbb{C})$};
+  % M_2 (y = 2).
+  \node (M2B) at (0*\dx, 2*\dy) {$M_2(\mathbb{B})$};
+  \node (M2N) at (1*\dx, 2*\dy) {$M_2(\mathbb{N})$};
+  \node (M2Z) at (2*\dx, 2*\dy) {$M_2(\mathbb{Z})$};
+  \node (M2Q) at (3*\dx, 2*\dy) {$M_2(\mathbb{Q})$};
+  \node (M2R) at (4*\dx, 2*\dy) {$M_2(\mathbb{R})$};
+  \node (M2C) at (5*\dx, 2*\dy) {$M_2(\mathbb{C})$};
+
+  % --- Back face (z = 1): Dual sub-tower over ℚ, ℝ, ℂ only. ---
+  \node[opacity=0.75] (DQ)   at (3*\dx + \zxoff, 0*\dy + \zyoff) {$D(\mathbb{Q})$};
+  \node[opacity=0.75] (DR)   at (4*\dx + \zxoff, 0*\dy + \zyoff) {$D(\mathbb{R})$};
+  \node[opacity=0.75] (DC)   at (5*\dx + \zxoff, 0*\dy + \zyoff) {$D(\mathbb{C})$};
+  \node[opacity=0.75] (V2DQ) at (3*\dx + \zxoff, 1*\dy + \zyoff) {$V_2(D(\mathbb{Q}))$};
+  \node[opacity=0.75] (V2DR) at (4*\dx + \zxoff, 1*\dy + \zyoff) {$V_2(D(\mathbb{R}))$};
+  \node[opacity=0.75] (V2DC) at (5*\dx + \zxoff, 1*\dy + \zyoff) {$V_2(D(\mathbb{C}))$};
+  \node[opacity=0.75] (M2DQ) at (3*\dx + \zxoff, 2*\dy + \zyoff) {$M_2(D(\mathbb{Q}))$};
+  \node[opacity=0.75] (M2DR) at (4*\dx + \zxoff, 2*\dy + \zyoff) {$M_2(D(\mathbb{R}))$};
+  \node[opacity=0.75] (M2DC) at (5*\dx + \zxoff, 2*\dy + \zyoff) {$M_2(D(\mathbb{C}))$};
+
+  % --- Arrow styles ---
+  \tikzset{
+    fwd/.style={->, >=stealth, semithick},
+    fwdback/.style={->, >=stealth, semithick, opacity=0.55},
+    diag/.style={->, >=stealth, dashed, thick}
+  }
+
+  % --- Front face arrows ---
+  % Horizontal: carrier strength.
+  \draw[fwd] (B) -- (N);
+  \draw[fwd] (N) -- (Z);
+  \draw[fwd] (Z) -- (Q) node[midway, below=1pt, font=\scriptsize] {Frac};
+  \draw[fwd] (Q) -- (R) node[midway, below=1pt, font=\scriptsize] {Cuts};
+  \draw[fwd] (R) -- (C) node[midway, below=1pt, font=\scriptsize] {Cplx};
+  \foreach \a/\b in {V2B/V2N, V2N/V2Z, V2Z/V2Q, V2Q/V2R, V2R/V2C} \draw[fwd] (\a) -- (\b);
+  \foreach \a/\b in {M2B/M2N, M2N/M2Z, M2Z/M2Q, M2Q/M2R, M2R/M2C} \draw[fwd] (\a) -- (\b);
+  % Vertical: rank (Free_2, End_R).
+  \foreach \a/\b in {B/V2B, N/V2N, Z/V2Z, Q/V2Q, R/V2R, C/V2C} \draw[fwd] (\a) -- (\b);
+  \draw[fwd] (Z) edge[draw=none] node[midway, right=1pt, font=\scriptsize] {Free$_2$} (V2Z);
+  \foreach \a/\b in {V2B/M2B, V2N/M2N, V2Z/M2Z, V2Q/M2Q, V2R/M2R, V2C/M2C} \draw[fwd] (\a) -- (\b);
+  \draw[fwd] (V2Z) edge[draw=none] node[midway, right=1pt, font=\scriptsize] {End$_R$} (M2Z);
+
+  % --- Back face arrows ---
+  \foreach \a/\b in {DQ/DR, DR/DC, V2DQ/V2DR, V2DR/V2DC, M2DQ/M2DR, M2DR/M2DC}
+    \draw[fwdback] (\a) -- (\b);
+  \foreach \a/\b in {DQ/V2DQ, DR/V2DR, DC/V2DC, V2DQ/M2DQ, V2DR/M2DR, V2DC/M2DC}
+    \draw[fwdback] (\a) -- (\b);
+
+  % --- Depth axis: diagonal Dual arrows from front to back. ---
+  \draw[diag] (Q) -- (DQ) node[midway, sloped, above, font=\scriptsize] {Dual};
+  \draw[diag] (R) -- (DR);
+  \draw[diag] (C) -- (DC);
+  \draw[diag] (V2Q) -- (V2DQ);
+  \draw[diag] (V2R) -- (V2DR);
+  \draw[diag] (V2C) -- (V2DC);
+  \draw[diag] (M2Q) -- (M2DQ);
+  \draw[diag] (M2R) -- (M2DR);
+  \draw[diag] (M2C) -- (M2DC);
+\end{tikzpicture}
 \caption{The Algebraic Tower (target-state Figure~1, first sketch).
 Two-axis lattice: \emph{horizontal} = carrier-strength
 ($\mathbb{B} \to \mathbb{N} \to \mathbb{Z} \to \mathbb{Q} \to \mathbb{R}
