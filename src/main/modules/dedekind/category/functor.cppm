@@ -493,8 +493,7 @@ concept IsIterativeEndomorphism =
 export template <typename Carrier, typename Structure, typename Functor>
 concept IsFAlgebra =
     IsEndofunctor<Functor> && IsArrow<Structure> &&
-    std::same_as<Dom<Structure>,
-                 typename Functor::template Shape<Carrier>> &&
+    std::same_as<Dom<Structure>, typename Functor::template Shape<Carrier>> &&
     std::same_as<Cod<Structure>, Carrier>;
 
 /**
@@ -505,8 +504,7 @@ export template <typename Carrier, typename Structure, typename Functor>
 concept IsFCoalgebra =
     IsEndofunctor<Functor> && IsArrow<Structure> &&
     std::same_as<Dom<Structure>, Carrier> &&
-    std::same_as<Cod<Structure>,
-                 typename Functor::template Shape<Carrier>>;
+    std::same_as<Cod<Structure>, typename Functor::template Shape<Carrier>>;
 
 /**
  * @brief A concrete witness for an `F`-algebra.
