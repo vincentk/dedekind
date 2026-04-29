@@ -15,9 +15,12 @@
  */
 
 module;
+#include <bit>
 #include <compare>
 #include <concepts>
+#include <cstdint>
 #include <functional>
+#include <limits>
 #include <numeric>
 #include <stdexcept>
 #include <utility>
@@ -388,6 +391,113 @@ inline constexpr auto embed_ℤ_ℚ =
       return Rational<I>{static_cast<I>(n), static_cast<I>(1)};
     });
 
+/**
+ * @brief Exact dyadic embedding @c std::floating_point → ℚ.
+ *
+ * @details Every finite IEEE 754 floating-point value is exactly the
+ * dyadic rational @c m·2^e for integers @c m, @c e (mantissa,
+ * exponent).  This arrow extracts the bit-pattern via @c std::bit_cast
+ * and constructs @c Rational<I>{numerator, denominator} where the
+ * denominator is the relevant power of two.  The mapping is
+ * lossless for finite inputs and partial: NaN and ±∞ are out-of-band
+ * for ℚ (the rationals are a field with no sentinels) and trip
+ * @c std::domain_error.  In a constant-evaluation context the same
+ * inputs are rejected as not-a-constant-expression because @c throw
+ * is not @c constexpr.
+ *
+ * @section Precision
+ * The integer carrier @c I must be wide enough to hold the magnitude
+ * of the IEEE bit-pattern.  For @c double, the implicit-leading-1
+ * 53-bit mantissa fits in @c long @c long; the exponent extends the
+ * effective range up to @c 2^1023, requiring a multi-limb
+ * @c SignedExtensionalCardinal<N> for full precision.  The default
+ * @c default_integer (=  @c int) suffices only for inputs whose
+ * exact rational representation fits in 32 bits on each side ---
+ * notably the small integer-valued doubles paper showcases use
+ * (e.g. @c -21.0, @c 0.5).  Callers needing full IEEE precision
+ * instantiate over @c SignedExtensionalCardinal<N>.
+ *
+ * @section Honesty_Obligation
+ * The arrow is registered @c is_monic_arrow_v on its instantiated
+ * domain; the project's @c IsInjective concept fires accordingly.
+ * The structural fact that finite floats are dyadic rationals is
+ * mathematically clean (Knuth, @em TAOCP, Vol. 2, §4.2 covers the
+ * details); the precision caveat above is a host-language limit, not
+ * a mathematical one --- exact arbitrary-precision is reachable on
+ * demand via the multi-limb carrier.
+ */
+export template <IsInteger I = default_integer>
+inline constexpr auto embed_double_ℚ =
+    arrow<double, Rational<I>>([](const double& x) -> Rational<I> {
+      // Reject IEEE 754 sentinels: NaN / ±∞ are out-of-band for ℚ.
+      // In a constexpr context these throws make the call
+      // not-a-constant-expression --- the right behaviour for an
+      // exact-rationals codomain.
+      if (x != x) {
+        throw std::domain_error(
+            "embed_double_ℚ: NaN has no embedding in ℚ (the rationals "
+            "are a field with no sentinels); for the variant ℝ-proxy "
+            "use the upstream make-factory in :real.");
+      }
+      constexpr double kInfinity = std::numeric_limits<double>::infinity();
+      if (x == kInfinity || x == -kInfinity) {
+        throw std::domain_error(
+            "embed_double_ℚ: ±∞ has no embedding in ℚ; for the "
+            "extended-real reading use the upstream factory in :real.");
+      }
+
+      // ±0 collapses to canonical zero.
+      if (x == 0.0) {
+        return Rational<I>{I{0}, I{1}};
+      }
+
+      // Decompose IEEE 754 double via bit_cast (constexpr in C++20):
+      //   sign      bit  : 1 bit at position 63
+      //   biased exp     : 11 bits at positions 62..52, biased by 1023
+      //   mantissa frac  : 52 bits at positions 51..0 (with implicit
+      //                    leading 1 for normals; absent for subnormals)
+      const auto bits = std::bit_cast<std::uint64_t>(x);
+      const bool sign = (bits >> 63) & 1U;
+      const auto biased_exp = static_cast<unsigned>((bits >> 52) & 0x7FFU);
+      const auto mantissa_frac = bits & 0x000F'FFFF'FFFF'FFFFULL;
+
+      // Recover the integer mantissa (with implicit-1 for normals) and
+      // the binary exponent.  After this block, x = (sign? -1 : 1) *
+      // mantissa * 2^exp exactly.
+      std::uint64_t mantissa;
+      int exp;
+      if (biased_exp == 0) {
+        // Subnormal: no implicit leading 1; smallest exponent is -1074.
+        mantissa = mantissa_frac;
+        exp = -1074;
+      } else {
+        mantissa = (1ULL << 52) | mantissa_frac;
+        exp = static_cast<int>(biased_exp) - 1023 - 52;
+      }
+
+      // Reduce to lowest terms in the dyadic form: strip factors of 2
+      // from the mantissa, raising the exponent.  This keeps the
+      // numerator / denominator small for cleanly-representable values
+      // (e.g. -21.0 lands as mantissa=21, exp=0 → Rational<I>{-21, 1}).
+      while ((mantissa & 1U) == 0U && mantissa != 0U) {
+        mantissa >>= 1;
+        ++exp;
+      }
+
+      // Form the rational: numerator carries the sign and the reduced
+      // mantissa; denominator is 2^|exp| when exp < 0, else 1 (with the
+      // mantissa carrying the 2^exp factor in the numerator).
+      I num = sign ? -static_cast<I>(mantissa) : static_cast<I>(mantissa);
+      if (exp >= 0) {
+        for (int i = 0; i < exp; ++i) num = num * I{2};
+        return Rational<I>{num, I{1}};
+      } else {
+        I den = I{1};
+        for (int i = 0; i < -exp; ++i) den = den * I{2};
+        return Rational<I>{num, den};
+      }
+    });
+
 }  // namespace dedekind::numbers
 
 namespace dedekind::category {
@@ -404,6 +514,14 @@ inline constexpr bool
 static_assert(
     IsInjective<std::decay_t<decltype(dedekind::numbers::embed_ℤ_ℚ<>)>>,
     "embed_ℤ_ℚ (ℤ ↪ ℚ) is registered injective.");
+
+template <>
+inline constexpr bool is_monic_arrow_v<
+    std::decay_t<decltype(dedekind::numbers::embed_double_ℚ<>)>> = true;
+static_assert(
+    IsInjective<std::decay_t<decltype(dedekind::numbers::embed_double_ℚ<>)>>,
+    "embed_double_ℚ (std::floating_point ↪ ℚ via the exact dyadic "
+    "decomposition) is registered injective.");
 }  // namespace dedekind::category
 
 namespace dedekind::numbers {
