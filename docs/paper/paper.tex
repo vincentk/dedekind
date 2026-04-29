@@ -736,20 +736,43 @@ happens.
   cells={nodes={font=\small}},
   labels={font=\scriptsize}
 ]
-  \&\& M_2(\mathbb{Z}) \arrow[r] \&
+  %% Top: base-scalar rank stack (matrices, vectors, scalars).
+  M_2(\mathbb{B}) \arrow[r] \&
+  M_2(\mathbb{N}) \arrow[r] \&
+  M_2(\mathbb{Z}) \arrow[r] \&
   M_2(\mathbb{Q}) \arrow[r] \&
   M_2(\mathbb{R}) \arrow[r] \&
   M_2(\mathbb{C}) \\
-  \&\& V_2(\mathbb{Z}) \arrow[u, "\mathrm{End}_R"] \arrow[r] \&
+  V_2(\mathbb{B}) \arrow[u, "\mathrm{End}_R"] \arrow[r] \&
+  V_2(\mathbb{N}) \arrow[u, "\mathrm{End}_R"] \arrow[r] \&
+  V_2(\mathbb{Z}) \arrow[u, "\mathrm{End}_R"] \arrow[r] \&
   V_2(\mathbb{Q}) \arrow[u, "\mathrm{End}_R"] \arrow[r] \&
   V_2(\mathbb{R}) \arrow[u, "\mathrm{End}_R"] \arrow[r] \&
   V_2(\mathbb{C}) \arrow[u, "\mathrm{End}_R"] \\
-  \mathbb{B} \arrow[r] \&
-  \mathbb{N} \arrow[r] \&
+  \mathbb{B} \arrow[u, "\mathrm{Free}_2"] \arrow[r] \&
+  \mathbb{N} \arrow[u, "\mathrm{Free}_2"] \arrow[r] \&
   \mathbb{Z} \arrow[u, "\mathrm{Free}_2"] \arrow[r, "\mathrm{Frac}"] \&
-  \mathbb{Q} \arrow[u, "\mathrm{Free}_2"] \arrow[r, "\mathrm{Cuts}"] \&
-  \mathbb{R} \arrow[u, "\mathrm{Free}_2"] \arrow[r, "\mathrm{Cplx}"] \&
+  \mathbb{Q} \arrow[u, "\mathrm{Free}_2"]
+            \arrow[r, "\mathrm{Cuts}"]
+            \arrow[d, "\mathrm{Dual}"'] \&
+  \mathbb{R} \arrow[u, "\mathrm{Free}_2"]
+            \arrow[r, "\mathrm{Cplx}"]
+            \arrow[d, "\mathrm{Dual}"'] \&
   \mathbb{C} \arrow[u, "\mathrm{Free}_2"]
+            \arrow[d, "\mathrm{Dual}"'] \\
+  %% Bottom: Dual sub-tower under cols 4, 5, 6.
+  \&\&\&
+  D(\mathbb{Q}) \arrow[r] \arrow[d, "\mathrm{Free}_2"'] \&
+  D(\mathbb{R}) \arrow[r] \arrow[d, "\mathrm{Free}_2"'] \&
+  D(\mathbb{C}) \arrow[d, "\mathrm{Free}_2"'] \\
+  \&\&\&
+  V_2(D(\mathbb{Q})) \arrow[r] \arrow[d, "\mathrm{End}_R"'] \&
+  V_2(D(\mathbb{R})) \arrow[r] \arrow[d, "\mathrm{End}_R"'] \&
+  V_2(D(\mathbb{C})) \arrow[d, "\mathrm{End}_R"'] \\
+  \&\&\&
+  M_2(D(\mathbb{Q})) \arrow[r] \&
+  M_2(D(\mathbb{R})) \arrow[r] \&
+  M_2(D(\mathbb{C}))
 \end{tikzcd}
 \caption{The Algebraic Tower (target-state Figure~1, first sketch).
 Two-axis lattice: \emph{horizontal} = carrier-strength
