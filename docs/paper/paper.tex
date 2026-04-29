@@ -563,6 +563,65 @@ standard C++23.  The translation table at the end of this section
 (§\ref{sec:cpp-stlc-mapping}) is the dictionary between what was always
 there and what the modern surface now lets one say out loud.
 
+\paragraph{The admissibility rules.}
+``Carefully selected'' is not informal: the library polices a fixed
+list of admissibility rules on every \lstinline{export}-qualified
+declaration.  Each rule closes a specific escape hatch by which C++
+would otherwise escape its System-F reading
+(Table~\ref{tab:admissibility-rules}); together they delineate the
+disciplined fragment over which Table~\ref{tab:cpp-stlc-mapping}'s
+mapping holds.
+
+\begin{table}[htbp]
+\centering
+\caption{\textbf{The admissibility rules: which C++ idioms are admitted
+in the library's public surface, and what each rule rules out.}  The
+discipline is the price of the System-F reading; each rule below is
+the cost of one row of Table~\ref{tab:cpp-stlc-mapping}.  Internal
+partitions may use the listed escape hatches in bounded scopes, but
+they do not appear in any \lstinline{export}-qualified signature.}
+\label{tab:admissibility-rules}
+\small
+\begin{tabular}{@{}p{0.42\textwidth} p{0.52\textwidth}@{}}
+\toprule
+\textbf{Rule on the public surface} & \textbf{What it rules out, and why} \\
+\midrule
+No \lstinline{reinterpret_cast} in any \lstinline{export}-qualified API. &
+Defeats type abstraction at the value level.  Bit-level reinterpretation
+(e.g., IEEE-754 inspection) lives in non-exporting internal partitions. \\
+No SFINAE branches in the public surface. &
+Substitution-failure-as-overload-selection makes the same call
+mean different things at different call sites.  Concept-constrained
+templates fail with named-axiom messages instead. \\
+No ADL-dependent dispatch except for textbook operator overloads. &
+Argument-dependent lookup is admitted only where the textbook reads
+\texttt{a + b} or \texttt{a == b} on library carriers; free-function
+calls in user code dispatch through explicit qualification. \\
+No template-template parameters in \lstinline{export}-qualified signatures. &
+Higher-kinded structure is named at the level of concepts
+(\lstinline{IsFunctor<F>}, etc.), not by passing template-templates
+through public function signatures. \\
+No public-API specialisation that branches behaviour. &
+Generic templates are parametric across the public surface; per-type
+specialisations live in the trait registry, each carrying an
+algebraic claim that is reviewed and CI-checked against a
+\lstinline{static_assert}. \\
+Bounded template instantiation depth. &
+The Turing-complete instantiation machinery is bounded by the
+carrier-lattice depth (Figure~\ref{fig:carrier-lattice}: scalar,
+shape, quotient axes; depth $\leq 3$ in the current surface), which
+keeps the type checker's work within a decidable cone. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+The list is not novel --- working C++ teams police variants of it
+informally; the contribution here is that the rules are what
+make Table~\ref{tab:cpp-stlc-mapping}'s mapping accurate, and that
+each rule has a mechanical witness in the partition graph (the
+public-API headers exported by each \lstinline{export module}
+declaration are the audit surface).
+
 \subsection{The Compiler as Structural Gate and Optimization Engine}
 
 Two durable uses of a compile-time type system underlie this paradigm, neither
