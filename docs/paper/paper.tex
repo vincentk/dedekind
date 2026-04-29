@@ -619,17 +619,30 @@ of which requires the compiler to be a theorem prover:
         subject of Section~\ref{sec:pruning}.
 \end{enumerate}
 
-Both uses are bounded.  clang's type checker is not a theorem prover: it has
-no dependent types, no universal-quantification inference, no proof-search
-engine.  What it does have is \lstinline{static_assert},
-\lstinline{requires}-clauses, and \lstinline{constexpr} evaluation---enough to
-verify a predetermined proof sketch, not enough to generate one.  The paradigm
-claims the reliable half: ruling out, and optimizing under, the classes of
+Both uses are bounded but open-ended.  clang's type checker is not a
+theorem prover: it has no dependent types, no universal-quantification
+inference, no proof-search engine.  What it does have is
+\lstinline{static_assert}, \lstinline{requires}-clauses, and
+\lstinline{constexpr} evaluation---enough to verify a predetermined
+proof sketch, not enough to generate one.  The paradigm claims the
+reliable half: ruling out, and optimizing under, the classes of
 structural failures the programmer has named in the type system.  The
-Curry--Howard correspondence between propositions and types is suggestive
-here, but its full force (dependent products, inductive proofs, universe
-hierarchies) is not available in C++23; what \emph{is} available is enough
-to anchor the two uses above.
+Curry--Howard correspondence between propositions and types is
+suggestive here, but its full force (dependent products, inductive
+proofs, universe hierarchies) is not available in C++23; what
+\emph{is} available is enough to anchor the two uses above.  Each use
+ruled out exposes a next class that the current machinery does not
+handle but the library's structural vocabulary already names; the four
+axes of Section~\ref{sec:gap} fall out of the halfspace reductions
+almost by construction.\footnote{Penrose's \emph{The Road to
+Reality}~\cite{penrose2004roadtoreality} offers an analogous
+observation about G\"odel's incompleteness theorem --- a formal
+system closing at one level motivates the next, not as exhaustion
+but as natural successor; the closest formal analogue is Turing's
+ordinal logics~\cite{turing1939ordinals}, where each stage's
+consistency feeds the next stage's formation rule.  The
+systems-programming reading is benign: the issue tracker plays the
+successor role.}
 
 \paragraph{``Poor man's'' is structural, not economic.}
 We call \texttt{clang++} a \emph{poor man's} theorem prover
@@ -660,41 +673,25 @@ latency) cannot be reduced to type-level structural assertions.
 The paper covers the fragment where the reduction is available;
 Section~\ref{sec:gap} names the bounds.}
 
-\paragraph{Bounded yet open-ended.}
-Each use of the technique is bounded individually, but every
-class of errors ruled out and optimisations enabled tends to
-expose a next class that the current machinery does not handle
-but the library's structural vocabulary already names. The four
-axes of Section~\ref{sec:gap} fall out of the halfspace
-reductions almost by construction.\footnote{Penrose's \emph{The
-Road to Reality}~\cite{penrose2004roadtoreality} offers an
-analogous observation about G\"odel's incompleteness theorem ---
-a formal system closing at one level motivates the next, not
-as exhaustion but as natural successor; the closest formal
-analogue is Turing's ordinal logics~\cite{turing1939ordinals},
-where each stage's consistency feeds the next stage's formation
-rule. The systems-programming reading is benign: the issue
-tracker plays the successor role.}
-
-\paragraph{Methodological disclosure: AI-assisted development.}
-The library is developed with AI assistance (Anthropic's Claude
-as the primary code-writing agent, with Gemini and GitHub Copilot
-in supporting roles); the human role is prioritisation,
-orchestration, and consensus-before-merge. Three compounding
-constraints keep the artefacts honest: \emph{domain textbook
-anchoring} (concept names and law statements taken directly from
-the published mathematical vocabulary --- Lawvere, Mac Lane,
-Lambek, Wadler, Moggi), \emph{mechanical validation} (every
-algebraic claim becomes a \lstinline{static_assert} the compiler
-discharges; every concept composes through a named-module DAG;
-every behavioural claim passes CI), and \emph{codomain textbook
-anchoring} (concepts validated against the C++ standard library's
-own ontology --- \lstinline{std::ranges::input_range},
-\lstinline{std::regular}, \lstinline{std::numeric_limits}, the
-iterator hierarchy). The natural-language fragment of the
-workflow is a division of labour: the mathematical content stays
-in mathematical vocabulary all the way down to where the machine
-takes over.
+\paragraph{Three honesty-anchoring constraints.}
+Three compounding constraints keep the library's artefacts honest:
+\emph{domain textbook anchoring} (concept names and law statements
+taken directly from the published mathematical vocabulary ---
+Lawvere, Mac Lane, Lambek, Wadler, Moggi); \emph{mechanical
+validation} (every algebraic claim becomes a
+\lstinline{static_assert} the compiler discharges; every concept
+composes through a named-module DAG; every behavioural claim passes
+CI); and \emph{codomain textbook anchoring} (concepts validated
+against the C++ standard library's own ontology ---
+\lstinline{std::ranges::input_range}, \lstinline{std::regular},
+\lstinline{std::numeric_limits}, the iterator
+hierarchy).\footnote{The library is developed with AI assistance
+(Anthropic's Claude as the primary code-writing agent; Gemini and
+GitHub Copilot in supporting roles); the human role is
+prioritisation, orchestration, and consensus-before-merge.  The
+three constraints above are what keep the workflow honest: the
+mathematical content stays in mathematical vocabulary all the way
+down to where the machine takes over.}
 
 % ============================================================
 \section{Intensional First, Realize When You Mean It}
