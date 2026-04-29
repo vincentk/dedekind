@@ -205,6 +205,26 @@ differentiation.
 \label{sec:introduction}
 % ============================================================
 
+\subsection{How to Read This Paper}
+\label{sec:how-to-read}
+
+Code and mathematics appear side by side throughout. That pairing is the
+whole point. Most of the interesting objects in this paper---Dedekind
+cuts, rings, dual numbers, polytopes, active sets, ring homomorphisms---
+have two faces: a math notation most readers have met at some point,
+and a C++ type most readers will find easier to trace. Put both on the
+page and you get a kind of binocular vision: whichever face is clearer
+for you carries the meaning, and the other face falls into place.
+
+No prior familiarity with C++23 templates or with the specific
+mathematical objects is required. When something non-obvious appears---a
+non-type template parameter, a ring homomorphism, a co-Kleisli arrow---it
+is unpacked on first use, often by showing the corresponding C++ idiom
+next to the math definition and inviting the reader to read them as two
+names for the same thing. If you are at home with Haskell's type classes,
+Agda's dependent types, or Coq's proof terms, many of the moves will feel
+familiar; if not, the C++ side is the on-ramp.
+
 \subsection{Motivation: Mathematical Faithfulness in a Compiled Library}
 
 A library implementer who wants to expose mathematical abstractions in a
@@ -295,11 +315,34 @@ embedded ML runtimes such as TFLite Micro~\cite{david2021tflm}.
 
 \paragraph{The compiler as a poor man's theorem prover.}
 A pedagogical framing that runs through this paper: we are using
-\texttt{clang++} as a poor man's theorem prover. The compiler is not
-searching for proofs---it has no tactic language, no resolution
-procedure, no proof assistant in the loop. What it \emph{does} have is
-a type system strong enough to name a predicate, a
-\lstinline{static_assert} strong enough to discharge it, and an LLVM
+\texttt{clang++} as a poor man's theorem prover.\footnote{The
+qualifier ``poor man's'' is structural, not economic.  \texttt{clang++}
+\emph{is} a formal system in the technical sense --- a typing
+derivation it accepts is a proof in the propositional fragment
+against a fixed inference rule-set --- and the architecture imposes
+a single division of labour: the engineer carries the honesty
+obligation up front (the trait registry, concept formulations, no
+\lstinline{reinterpret_cast} in the public surface), and the
+compiler discharges every \lstinline{static_assert} /
+\lstinline{requires}-clause / \lstinline{constexpr} evaluation that
+follows.  The Curry--Howard reading~\cite{wadler2015propositions}
+grounds this technically; codified engineering ethics ground it
+professionally --- the NSPE \emph{Code of Ethics for
+Engineers}~\cite{nspe_ethics} canons III + IV (truthfulness in
+public statements; faithful agency) treat a trait specialisation as
+a public statement subject to the canons.  The carrier-lattice's
+recurring \emph{Honest Rejection} policy is the clearest example:
+refusing \lstinline{unsigned int} as a witness for $\mathbb{N}$ is
+not pedantry but the kind of informal-claim re-examination Canon~III
+asks of a working software engineer.  The argument is bounded: most
+software claims (TCP retransmit-timer correctness, scheduler
+fairness, end-to-end latency) cannot be reduced to type-level
+structural assertions; the paper covers the fragment where the
+reduction is available.}
+The compiler is not searching for proofs---it has no tactic language,
+no resolution procedure, no proof assistant in the loop. What it
+\emph{does} have is a type system strong enough to name a predicate,
+a \lstinline{static_assert} strong enough to discharge it, and an LLVM
 backend that will happily remove what has already been decided. The
 library author supplies narrow, mechanically checkable proof
 obligations; the compiler discharges them; the optimiser then deletes
@@ -330,23 +373,35 @@ Dedekind cuts, $\mathbb{C}$, dual numbers), a small linear-algebra
 layer, a calculus layer (numerical / polynomial / dual-number AD),
 and an optimisation layer (the LP vertex enumerator of
 Section~\ref{sec:lp-centrepiece}). No runtime solver ships with any
-of it. The centrepiece (Section~\ref{sec:lp-centrepiece}) is a
-textbook LP that reduces at compile time to its optimal vertex as a
-typed constant; the same reduction over the dual-number ring
-(Section~\ref{sec:ad-elliott}) recovers forward-mode automatic
-differentiation as a sibling compile-time reduction in the sense of
-Elliott~\cite{elliott2018simple}.\footnote{The discipline extends to
-polynomial calculus: the formal derivative of a polynomial is a
-\texttt{static\_assert}-checked identity, and the Fundamental
-Theorem of Calculus (Part~II) is discharged at translation time
-as numerical agreement between a trapezoidal quadrature and a
-closed-form antiderivative. Worked exhibits in the companion
-repository's \texttt{dedekind.algebra:polynomial} and
-\texttt{dedekind.analysis:ftc} partitions; \texttt{static\_assert}
-witnesses pin $\frac{d}{dx}P(x) = P'(x)$ on polynomials over
-$\mathbb{Z}$ (and, where a divisible carrier is supplied, over
-$\mathbb{Q}$) and pin agreement within a documented tolerance for
-the FTC bridge.}
+of it. The same machinery lifts arrows over functorial families
+($T \mapsto T^2 \mapsto M_2(T)$ etc.), pins ring monomorphisms
+($T \hookrightarrow M_2(T)$ as a monadic unit), and extracts optima
+from polytopes (the LP reduction of
+Section~\ref{sec:lp-centrepiece} is a co-Kleisli
+arrow);\footnote{%
+Concretely: each of the scalar / column / row / square shape
+constructors $(T, T^2, {}^t T^2, M_2(T))$ is functorial in $T$ and
+ships an $\textsc{IsFunctor}$ witness, so an arrow $f: T \to T$
+lifts elementwise without per-carrier boilerplate.  The scalar
+embedding $T \hookrightarrow M_2(T)$ is the unit $\eta_{M_2}(s) =
+s \cdot I_2$ of the shape monad.  The LP vertex extraction is a
+co-Kleisli arrow $\varepsilon_{\mathrm{LP}}: \mathrm{Polytope}(T)
+\to T^2$.  The library carries these as typed constants in the
+emitted object file via the same primitives that discharge the
+algebraic laws.  The discipline extends to polynomial calculus: the
+formal derivative of a polynomial is a \texttt{static\_assert}-checked
+identity, and the Fundamental Theorem of Calculus (Part~II) is
+discharged at translation time as numerical agreement between a
+trapezoidal quadrature and a closed-form antiderivative
+(\texttt{dedekind.algebra:polynomial} and
+\texttt{dedekind.analysis:ftc} partitions in the companion
+repository).} the categorical vocabulary that names this machinery
+(Table~\ref{tab:cpp-stlc-mapping}) is therefore not decorative ---
+intensional sets in the sense of the
+\emph{nLab}~\cite{nlab:structural_set_theory} (predicates into a
+subobject classifier, situated in a Cartesian-closed
+ambient~\cite{lambek1988introduction}) are the same machinery
+discharging set membership and lifting structure-preserving arrows.
 
 \paragraph{Scope of the claim.}  We make no pretence that a complete
 and faithful taxonomy of mathematics is achievable; the structure
@@ -368,51 +423,6 @@ mechanical witness the compiler discharges.
 \end{enumerate}
 The remainder of the paper develops these three claims and demonstrates
 each by a reduction that compiles to a constant.
-
-\paragraph{What falls out for free.}  Naming the structure in the
-type buys mileage at no runtime cost.  An \emph{intensional set}
-here is the structuralist set in the sense of the
-\emph{nLab}~\cite{nlab:structural_set_theory} --- a predicate into
-a subobject classifier, situated in a Cartesian-closed
-ambient~\cite{lambek1988introduction} --- and once the
-$\textsc{IsSet}$ concept is wired in, the same machinery that
-discharges set membership also lifts arrows over functorial
-families ($T \mapsto T^2 \mapsto M_2(T)$ etc.), pins ring monomorphisms
-($T \hookrightarrow M_2(T)$ as a monadic unit), and extracts optima
-from polytopes (the LP reduction of
-Section~\ref{sec:lp-centrepiece} is a co-Kleisli arrow).\footnote{%
-Concretely: each of the scalar / column / row / square shape
-constructors $(T, T^2, {}^t T^2, M_2(T))$ is functorial in $T$ and
-ships an $\textsc{IsFunctor}$ witness, so an arrow $f: T \to T$
-lifts elementwise without per-carrier boilerplate.  The scalar
-embedding $T \hookrightarrow M_2(T)$ is the unit $\eta_{M_2}(s) =
-s \cdot I_2$ of the shape monad.  The LP vertex extraction is a
-co-Kleisli arrow $\varepsilon_{\mathrm{LP}}: \mathrm{Polytope}(T)
-\to T^2$.  The library carries these as typed constants in the
-emitted object file via the same primitives that discharge the
-algebraic laws --- the categorical vocabulary is not decorative.
-The C++$\leftrightarrow$STLC translation that names this machinery
-is in Table~\ref{tab:cpp-stlc-mapping}.}
-
-\subsection{How to Read This Paper}
-\label{sec:how-to-read}
-
-Code and mathematics appear side by side throughout. That pairing is the
-whole point. Most of the interesting objects in this paper---Dedekind
-cuts, rings, dual numbers, polytopes, active sets, ring homomorphisms---
-have two faces: a math notation most readers have met at some point,
-and a C++ type most readers will find easier to trace. Put both on the
-page and you get a kind of binocular vision: whichever face is clearer
-for you carries the meaning, and the other face falls into place.
-
-No prior familiarity with C++23 templates or with the specific
-mathematical objects is required. When something non-obvious appears---a
-non-type template parameter, a ring homomorphism, a co-Kleisli arrow---it
-is unpacked on first use, often by showing the corresponding C++ idiom
-next to the math definition and inviting the reader to read them as two
-names for the same thing. If you are at home with Haskell's type classes,
-Agda's dependent types, or Coq's proof terms, many of the moves will feel
-familiar; if not, the C++ side is the on-ramp.
 
 \subsection{Paper Structure}
 
@@ -518,12 +528,83 @@ properties from the trait registry, and ultimately prune logically empty set
 expressions to zero machine instructions---none of which is possible with runtime duck
 typing.
 
+\subsection{The Compiler as Structural Gate and Optimization Engine}
+
+Two durable uses of a compile-time type system underlie this paradigm, neither
+of which requires the compiler to be a theorem prover:
+
+\begin{enumerate}
+  \item \textbf{Ruling out entire classes of errors.}  Encoding algebraic laws as
+        concept requirements makes every instantiation of a generic template an
+        implicit proof obligation discharged at translation time.  Failed
+        obligations are type errors, not runtime exceptions.  The obligation
+        itself is finite, decidable, and mechanical---the compiler \emph{checks}
+        it, but does not \emph{search for} it.  Failed obligations surface
+        as named-axiom messages (e.g.\ \texttt{Invertible2x2 requires full
+        rank: a*d - b*c != 0}) rather than as deep template-cascade
+        traces; the structural discipline behind this and a worked
+        diagnostic are exhibited in Section~\ref{sec:compiler-wall}.
+  \item \textbf{Enabling entire classes of optimizations.}  The LLVM backend
+        exploits the structural knowledge inherited from discharged obligations.
+        When a set is defined by a predicate and two predicates are logically
+        contradictory, the compiler determines at translation time that the
+        resulting intersection is empty and emits no machine instructions for
+        it.  This is what we term \emph{structural pruning}, and it is the
+        subject of Section~\ref{sec:pruning}.
+\end{enumerate}
+
+Both uses are bounded but open-ended.  clang's type checker is not a
+theorem prover: it has no dependent types, no universal-quantification
+inference, no proof-search engine.  What it does have is
+\lstinline{static_assert}, \lstinline{requires}-clauses, and
+\lstinline{constexpr} evaluation---enough to verify a predetermined
+proof sketch, not enough to generate one.  The paradigm claims the
+reliable half: ruling out, and optimizing under, the classes of
+structural failures the programmer has named in the type system.  The
+Curry--Howard correspondence between propositions and types is
+suggestive here, but its full force (dependent products, inductive
+proofs, universe hierarchies) is not available in C++23; what
+\emph{is} available is enough to anchor the two uses above.  Each use
+ruled out exposes a next class that the current machinery does not
+handle but the library's structural vocabulary already names; the four
+axes of Section~\ref{sec:gap} fall out of the halfspace reductions
+almost by construction.\footnote{Penrose's \emph{The Road to
+Reality}~\cite{penrose2004roadtoreality} offers an analogous
+observation about G\"odel's incompleteness theorem --- a formal
+system closing at one level motivates the next, not as exhaustion
+but as natural successor; the closest formal analogue is Turing's
+ordinal logics~\cite{turing1939ordinals}, where each stage's
+consistency feeds the next stage's formation rule.  The
+systems-programming reading is benign: the issue tracker plays the
+successor role.}
+
+\paragraph{Three honesty-anchoring constraints.}
+Three compounding constraints keep the library's artefacts honest:
+\emph{domain textbook anchoring} (concept names and law statements
+taken directly from the published mathematical vocabulary ---
+Lawvere, Mac Lane, Lambek, Wadler, Moggi); \emph{mechanical
+validation} (every algebraic claim becomes a
+\lstinline{static_assert} the compiler discharges; every concept
+composes through a named-module DAG; every behavioural claim passes
+CI); and \emph{codomain textbook anchoring} (concepts validated
+against the C++ standard library's own ontology ---
+\lstinline{std::ranges::input_range}, \lstinline{std::regular},
+\lstinline{std::numeric_limits}, the iterator
+hierarchy).\footnote{The library is developed with AI assistance
+(Anthropic's Claude as the primary code-writing agent; Gemini and
+GitHub Copilot in supporting roles); the human role is
+prioritisation, orchestration, and consensus-before-merge.  The
+three constraints above are what keep the workflow honest: the
+mathematical content stays in mathematical vocabulary all the way
+down to where the machine takes over.}
+
 \subsection{C++23 as a Lambda-Calculus Substrate: A Translation Table}
 \label{sec:cpp-stlc-mapping}
 
-The technique this paper exhibits is, in formal terms, the use of
-\texttt{clang++} as an evaluator for a fragment of the simply-typed
-lambda calculus (STLC) augmented with System-F-style
+The two uses above are sharper when named in the calculus that
+underwrites them. The technique this paper exhibits is, in formal
+terms, the use of \texttt{clang++} as an evaluator for a fragment of
+the simply-typed lambda calculus (STLC) augmented with System-F-style
 polymorphism via templates. Pierce~\cite{pierce2002tapl} is the
 canonical reference for both calculi; the Lambek--Scott
 correspondence~\cite{lambek1988introduction} is the categorical bridge
@@ -583,105 +664,6 @@ category---hence, equivalently, for STLC; and the
 \lstinline|constexpr|-as-normalisation row is what lets type-directed
 collapse (§\ref{sec:gap}) act as a form of cut elimination, with the
 LLVM backend treating the reduced bottom type as dead code.
-
-\subsection{The Compiler as Structural Gate and Optimization Engine}
-
-Two durable uses of a compile-time type system underlie this paradigm, neither
-of which requires the compiler to be a theorem prover:
-
-\begin{enumerate}
-  \item \textbf{Ruling out entire classes of errors.}  Encoding algebraic laws as
-        concept requirements makes every instantiation of a generic template an
-        implicit proof obligation discharged at translation time.  Failed
-        obligations are type errors, not runtime exceptions.  The obligation
-        itself is finite, decidable, and mechanical---the compiler \emph{checks}
-        it, but does not \emph{search for} it.  Failed obligations surface
-        as named-axiom messages (e.g.\ \texttt{Invertible2x2 requires full
-        rank: a*d - b*c != 0}) rather than as deep template-cascade
-        traces; the structural discipline behind this and a worked
-        diagnostic are exhibited in Section~\ref{sec:compiler-wall}.
-  \item \textbf{Enabling entire classes of optimizations.}  The LLVM backend
-        exploits the structural knowledge inherited from discharged obligations.
-        When a set is defined by a predicate and two predicates are logically
-        contradictory, the compiler determines at translation time that the
-        resulting intersection is empty and emits no machine instructions for
-        it.  This is what we term \emph{structural pruning}, and it is the
-        subject of Section~\ref{sec:pruning}.
-\end{enumerate}
-
-Both uses are bounded but open-ended.  clang's type checker is not a
-theorem prover: it has no dependent types, no universal-quantification
-inference, no proof-search engine.  What it does have is
-\lstinline{static_assert}, \lstinline{requires}-clauses, and
-\lstinline{constexpr} evaluation---enough to verify a predetermined
-proof sketch, not enough to generate one.  The paradigm claims the
-reliable half: ruling out, and optimizing under, the classes of
-structural failures the programmer has named in the type system.  The
-Curry--Howard correspondence between propositions and types is
-suggestive here, but its full force (dependent products, inductive
-proofs, universe hierarchies) is not available in C++23; what
-\emph{is} available is enough to anchor the two uses above.  Each use
-ruled out exposes a next class that the current machinery does not
-handle but the library's structural vocabulary already names; the four
-axes of Section~\ref{sec:gap} fall out of the halfspace reductions
-almost by construction.\footnote{Penrose's \emph{The Road to
-Reality}~\cite{penrose2004roadtoreality} offers an analogous
-observation about G\"odel's incompleteness theorem --- a formal
-system closing at one level motivates the next, not as exhaustion
-but as natural successor; the closest formal analogue is Turing's
-ordinal logics~\cite{turing1939ordinals}, where each stage's
-consistency feeds the next stage's formation rule.  The
-systems-programming reading is benign: the issue tracker plays the
-successor role.}
-
-\paragraph{``Poor man's'' is structural, not economic.}
-We call \texttt{clang++} a \emph{poor man's} theorem prover
-throughout the paper; the qualifier is structural, not economic.
-\texttt{clang++} \emph{is} a formal system in the technical sense ---
-a typing derivation it accepts is a proof in the propositional
-fragment against a fixed inference rule-set --- and the architecture
-imposes a single division of labour: the engineer carries the
-honesty obligation up front (the trait registry, concept
-formulations, no \lstinline{reinterpret_cast} in the public
-surface), and the compiler discharges every
-\lstinline{static_assert} / \lstinline{requires}-clause /
-\lstinline{constexpr} evaluation that follows. The Curry--Howard
-reading~\cite{wadler2015propositions} grounds this technically;
-codified engineering ethics
-ground it professionally --- the NSPE \emph{Code of Ethics for
-Engineers}~\cite{nspe_ethics} canons III + IV (truthfulness in
-public statements; faithful agency) treat a trait specialisation
-as a public statement subject to the canons. The carrier-lattice's
-recurring \emph{Honest Rejection} policy is the clearest example:
-refusing \lstinline{unsigned int} as a witness for $\mathbb{N}$
-is not pedantry but the kind of informal-claim re-examination
-Canon III asks of a working software engineer. The trade is an
-honesty obligation up front for a mechanical guarantee
-afterward.\footnote{The argument is bounded. Most software claims
-(TCP retransmit-timer correctness, scheduler fairness, end-to-end
-latency) cannot be reduced to type-level structural assertions.
-The paper covers the fragment where the reduction is available;
-Section~\ref{sec:gap} names the bounds.}
-
-\paragraph{Three honesty-anchoring constraints.}
-Three compounding constraints keep the library's artefacts honest:
-\emph{domain textbook anchoring} (concept names and law statements
-taken directly from the published mathematical vocabulary ---
-Lawvere, Mac Lane, Lambek, Wadler, Moggi); \emph{mechanical
-validation} (every algebraic claim becomes a
-\lstinline{static_assert} the compiler discharges; every concept
-composes through a named-module DAG; every behavioural claim passes
-CI); and \emph{codomain textbook anchoring} (concepts validated
-against the C++ standard library's own ontology ---
-\lstinline{std::ranges::input_range}, \lstinline{std::regular},
-\lstinline{std::numeric_limits}, the iterator
-hierarchy).\footnote{The library is developed with AI assistance
-(Anthropic's Claude as the primary code-writing agent; Gemini and
-GitHub Copilot in supporting roles); the human role is
-prioritisation, orchestration, and consensus-before-merge.  The
-three constraints above are what keep the workflow honest: the
-mathematical content stays in mathematical vocabulary all the way
-down to where the machine takes over.}
 
 % ============================================================
 \section{Intensional First, Realize When You Mean It}
