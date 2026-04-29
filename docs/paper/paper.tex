@@ -274,12 +274,16 @@ type checker, or a bespoke language extension. \texttt{dedekind}
 is the existence proof. The viewpoint on which it rests we name
 \emph{Axiomatic Systems Programming}: an engineering discipline
 of practising, not merely describing, type-level structural verification
-in mainstream compiled code. The discipline can be lifted, with modest
-adjustment, to any language whose type system can name a predicate
-over compile-time data and check it mechanically (concepts-style
-Java/C\#, strictly-typed Python, the relevant parts of Rust). The
-contribution of this paper is an articulation of that discipline,
-together with a worked library that discharges its claims mechanically.
+in mainstream compiled code. The discipline transfers to any language
+hosting System-F-style polymorphism with structural concept-style
+constraints; the active research line on extending System F with
+modern type-system disciplines is published at length (see, e.g.,
+the DOT calculus underlying
+Scala~3~\cite{amin2016essence} and the capability-tracking line
+of work~\cite{boruchgruszecki2023capturing}). The contribution of
+this paper is an articulation of that discipline restricted to
+mainstream C++23, together with a worked library that discharges
+its claims mechanically.
 
 \paragraph{Intended target.}
 The discipline lands well in CPU-first and embedded
@@ -521,10 +525,19 @@ canonical reference for both calculi; the Lambek--Scott
 correspondence~\cite{lambek1988introduction} is the categorical bridge
 that lets the same surface read as a Cartesian-closed category. The
 mapping is mechanical, summarised in
-Table~\ref{tab:cpp-stlc-mapping}, and is the lens through which the
-remainder of the paper should be read: subsequent sections cite STLC
-and category-theoretic vocabulary directly, rather than re-explaining
-the bridge each time.
+Table~\ref{tab:cpp-stlc-mapping}. The arrows in the chain
+\emph{C++23 $\subseteq$ System F + structural qualifiers
+$\Rightarrow$ STLC + subobject classifier $\equiv$ topos
+$\Rightarrow$ CCC} are not all symmetric: the $\equiv$ between STLC
+and CCC is Lambek--Scott; the $\Rightarrow$ from topos to CCC is
+strip-the-axioms (CCC alone has many models unrelated to sets);
+the $\subseteq$ between C++23 and System F holds for the
+disciplined fragment the library enforces, not for the C++ language
+as a whole (overload resolution is non-uniform; partiality breaks
+strict CCC totality).
+The asymmetry is the lens through which the remainder of the paper
+should be read: subsequent sections cite STLC and category-theoretic
+vocabulary directly, rather than re-explaining the bridge each time.
 
 \begin{table}[htbp]
 \centering
