@@ -353,26 +353,16 @@ the FTC bridge.}
 The remainder of the paper develops these three claims and demonstrates
 each by a reduction that compiles to a constant.
 
-\paragraph{Intensional sets, structurally.} Where this paper says
-\emph{intensional set}, the intended referent is the structuralist set in
-the sense of the \emph{nLab}
-community~\cite{nlab:structural_set_theory}: an object whose membership
-is given by a characteristic morphism into a subobject classifier,
-situated in a Cartesian-closed ambient. The standard categorical fact is
-that every ETCS category is a Cartesian-closed category, but most
-Cartesian-closed categories are not. The library now enforces the
-subsumption directly: an object satisfying $\textsc{IsSet}$ entails the
-CCC witness on its ambient species, so any ETCS-set carrier --- the
-finite field $\mathbb{F}_{64}$, the cyclic ring
-$\mathbb{Z}/N\mathbb{Z}$, the rationals $\mathbb{Q}$ --- comes with
-$1$, $\times$, and $(-)^{(-)}$ for free. What this buys is the
-Lambek--Scott correspondence~\cite{lambek1988introduction}: a
-Cartesian-closed category \emph{is} a simply-typed lambda calculus, and
-once the subsumption is wired into the concept,
-\texttt{dedekind}'s set-builder DSL is one --- function spaces,
-currying, evaluation, and product/coproduct introduction are witnessed
-by the same type-system machinery that discharges the algebraic laws of
-Section~\ref{sec:carrier-rosetta}.
+\paragraph{Intensional sets, structurally.} The
+\emph{intensional set} of this paper is the structuralist set in the
+sense of the \emph{nLab}~\cite{nlab:structural_set_theory}: an object
+whose membership is a characteristic morphism into a subobject
+classifier, situated in a Cartesian-closed ambient. An object
+satisfying $\textsc{IsSet}$ entails the CCC witness on its ambient
+species, so any ETCS-set carrier comes with $1$, $\times$, and
+$(-)^{(-)}$ for free; the resulting set-builder DSL reads as a syntax
+for STLC by Lambek--Scott. The C++$\leftrightarrow$STLC translation is
+catalogued in Table~\ref{tab:cpp-stlc-mapping}.
 
 \paragraph{What else falls out for free.} Naming the structure in
 the type buys non-trivial mileage at no runtime cost. Three quick
@@ -519,6 +509,61 @@ can \emph{act on it}: it can specialize code paths, infer additional algebraic
 properties from the trait registry, and ultimately prune logically empty set
 expressions to zero machine instructions---none of which is possible with runtime duck
 typing.
+
+\subsection{C++23 as a Lambda-Calculus Substrate: A Translation Table}
+\label{sec:cpp-stlc-mapping}
+
+The technique this paper exhibits is, in formal terms, the use of
+\texttt{clang++} as an evaluator for a fragment of the simply-typed
+lambda calculus (STLC) augmented with System-F-style
+polymorphism via templates. Pierce~\cite{pierce2002tapl} is the
+canonical reference for both calculi; the Lambek--Scott
+correspondence~\cite{lambek1988introduction} is the categorical bridge
+that lets the same surface read as a Cartesian-closed category. The
+mapping is mechanical, summarised in
+Table~\ref{tab:cpp-stlc-mapping}, and is the lens through which the
+remainder of the paper should be read: subsequent sections cite STLC
+and category-theoretic vocabulary directly, rather than re-explaining
+the bridge each time.
+
+\begin{table}[htbp]
+\centering
+\caption{\textbf{C++23 surface $\leftrightarrow$ lambda calculus / category theory.}
+The translation is restricted to the propositional fragment that the
+C++ type checker can discharge mechanically; full
+quantification over types (the Curry--Howard reading of dependent
+products) is not available in C++23 and is not claimed here. The
+``Realisation'' column points to the section where each row is exhibited.}
+\label{tab:cpp-stlc-mapping}
+\small
+\begin{tabular}{@{}p{0.30\textwidth} p{0.32\textwidth} p{0.30\textwidth}@{}}
+\toprule
+\textbf{C++23 (\texttt{dedekind})} & \textbf{Lambda calculus / category theory} & \textbf{Realisation} \\
+\midrule
+\lstinline|template <typename T>| & Type variable $\alpha$; System-F universal quantification at the type level & §\ref{sec:axiomatic} \\
+\lstinline|concept| & Type-class / kind constraint --- a predicate on types restricting the domain of a polymorphic function & §\ref{sec:axiomatic}, lst.~\ref{lst:structural} \\
+\lstinline|requires|-clause & Evidence / constraint satisfaction --- a proof obligation that the type carries the term-level operations & §\ref{sec:axiomatic} \\
+\lstinline|static_assert| & Mechanical proof that proposition $P$ is inhabited at translation time (Curry--Howard~\cite{wadler2015propositions}) & throughout \\
+NTTP-carried lambda $\lambda x. P(x)$ & Characteristic morphism $\chi_S : A \to \Omega$ defining a set by its membership rule & §\ref{sec:sets-rules} \\
+\lstinline|using| alias & Type-level redex --- the compiler reduces by $\beta$-style substitution & §\ref{sec:axiomatic} \\
+\lstinline|constexpr| evaluation & Normalisation ($\beta$-reduction) --- reduction of a term to its value or literal form & §\ref{sec:lp-centrepiece}, IR fixtures \\
+\lstinline|std::same_as| & Definitional type equality $\tau = \sigma$ & §\ref{sec:lp-centrepiece} \\
+\lstinline|Ø<T>| (empty-set type) & Bottom type $\bot$ --- the uninhabited type witnessing a logical contradiction & §\ref{sec:pruning}, Showcase 3 \\
+\lstinline|HasCanonicalSetCCC<T>| & The Cartesian-closed-category witness ($1$, $\times$, $(-)^{(-)}$) on the ambient species & §\ref{sec:sets-rules} \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Three rows are doing more work than the others, and the paper's
+contribution lies on top of them: the subobject classifier
+$\Omega$ (the codomain of every NTTP-carried lambda; see
+§\ref{sec:sets-rules}) is what makes a predicate a \emph{set} in
+the structuralist sense; the Lambek--Scott correspondence is what
+makes the set-builder DSL a syntax for a Cartesian-closed
+category---hence, equivalently, for STLC; and the
+\lstinline|constexpr|-as-normalisation row is what lets type-directed
+collapse (§\ref{sec:gap}) act as a form of cut elimination, with the
+LLVM backend treating the reduced bottom type as dead code.
 
 \subsection{The Compiler as Structural Gate and Optimization Engine}
 
