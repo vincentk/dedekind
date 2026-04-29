@@ -22,6 +22,7 @@
 \newtheorem{definition}{Definition}
 \newtheorem{corollary}{Corollary}
 \newtheorem{proposition}{Proposition}
+\newtheorem{conjecture}{Conjecture}
 \usepackage{graphicx}                  % Support for images
 \usepackage{hyperref}                  % Clickable links & cross-refs
 \usepackage{booktabs}                  % High-quality tables
@@ -2477,35 +2478,136 @@ in one step (the result is $\varnothing$); the cardinality-1 reduction
 of Showcase~4 and the LP reduction of Showcase~9 do the same. The
 reductions never slide downward. With that in hand:
 
-\begin{proposition}[Type-Directed Collapse, halfspace case; empirically verified]
-\label{prop:type-directed-collapse}
-Let $T$ be an ordered carrier, and let $P, Q$ be halfspace predicates
-over $T$ with pivots carried at the type level as non-type template
-parameters. The meet
+\begin{theorem}[Type-Directed Collapse, totally-ordered 1D case]
+\label{thm:type-directed-collapse-1d}
+Let $T$ be a totally ordered carrier, and let
 \[
-  S \;=\; \{x \in T \mid P(x)\} \,\cap\, \{x \in T \mid Q(x)\}
+  P_i(x) \;=\; (x \ge a_i), \quad i = 1, \dots, m,
+  \qquad
+  Q_j(x) \;=\; (x \le b_j), \quad j = 1, \dots, n,
 \]
-is resolved by the library at compile time to one of $\varnothing$, a
-\lstinline{Singleton<v>}, or an \lstinline{OrderInterval} whose
-cardinality (when $T$ is integral) is a compile-time constant. Writing
-$S_1 = \{x \mid P(x)\}$ and $S_2 = \{x \mid Q(x)\}$, the reduction is
-monotone up the computability-tier lattice:
+be lower-bound and upper-bound halfspace predicates over $T$ whose
+pivots $a_i, b_j \in T$ are carried at the type level as non-type
+template parameters. The meet
 \[
-  \mathcal{T}(S) \;\succeq\; \mathcal{T}(S_1) \,\lor\, \mathcal{T}(S_2),
+  S \;=\; \bigcap_{i=1}^{m} \{x \in T \mid P_i(x)\}
+        \;\cap\;
+        \bigcap_{j=1}^{n} \{x \in T \mid Q_j(x)\}
 \]
-and strictly so on at least one axis in every case we exhibit.
+is resolved at compile time to exactly one of:
+\begin{enumerate}
+  \item $\varnothing$, when $\max_i a_i > \min_j b_j$;
+  \item a \lstinline{Singleton<v>}, when $T$ is integral and
+        $\max_i a_i = \min_j b_j = v$;
+  \item an \lstinline{OrderInterval}~$[\max_i a_i, \min_j b_j]$
+        otherwise (where the lower and upper bounds default to the
+        carrier's $\bot$ and $\top$ when $m = 0$ or $n = 0$).
+\end{enumerate}
+\end{theorem}
+
+\begin{proof}
+By induction on $m + n$.
 
 \smallskip
-\noindent\emph{Status of claim.} This proposition is \emph{not} proved
-inductively in the paper. It is discharged by exhibition: each case
-is checked into the library as a
-\lstinline{static_assert}/\lstinline{STATIC_CHECK} witness and, where
-relevant, as an LLVM~IR fixture that fails CI on optimiser drift (see
-Section~\ref{sec:pruning}). Read the proposition as an empirically
-verified structural claim about the library, not as a universally
-quantified theorem; a general inductive proof over pivot
-configurations is left open.
-\end{proposition}
+\noindent\emph{Base case} ($m + n = 0$): no constraints; $S = T$,
+which is the order interval $[\bot, \top]$ (case 3) by the boundary
+convention.
+
+\smallskip
+\noindent\emph{Inductive step.} Assume the claim holds for $k$ total
+constraints. Add one more; without loss of generality (by the
+symmetry between lower and upper bounds) take it to be a fresh
+lower-bound predicate $P_*(x) = (x \ge a_*)$. The inductive
+hypothesis gives a reduced form $S_k$ of one of the three shapes.
+Form $S = S_k \cap \{x \mid x \ge a_*\}$. Two compile-time
+comparisons of $a_*$ against the bounds of $S_k$ (where present)
+suffice:
+
+\begin{itemize}
+  \item \textbf{Redundant.} If $S_k$ has lower bound $a$ and
+        $a_* \le a$, then $\{x \mid x \ge a_*\} \supseteq S_k$ and
+        $S = S_k$; the form is preserved.
+  \item \textbf{Tightening.} If $S_k$ is the interval $[a, b]$ (or
+        unbounded above) and $a < a_* \le b$ (or no upper bound),
+        then $S = [a_*, b]$ in case 3; if $T$ is integral and
+        $a_* = b$, then $S = \{a_*\}$ (case 2).
+  \item \textbf{Contradicting.} If $S_k$ has upper bound $b$ and
+        $a_* > b$, or if $S_k$ is already $\varnothing$, then
+        $S = \varnothing$ (case 1).
+\end{itemize}
+
+\noindent
+The same case-split, with rôles of $a_i$ and $b_j$ exchanged,
+discharges the symmetric upper-bound addition. Each case lands in
+one of the three forms, completing the induction.\qed
+\end{proof}
+
+\paragraph{Theorems for free.}
+The structural shape of Theorem~\ref{thm:type-directed-collapse-1d}
+is Wadler's \emph{Theorems for Free!}~\cite{wadler1989theorems}
+move at the algebraic register. Wadler showed that polymorphic
+types in the typed lambda calculus discharge a class of theorems by
+parametricity alone, with no further proof obligation on the
+caller. Here, the analogous discharge runs from \emph{carrier-axiom
+declaration} (\lstinline{HasTotalOrderOperators<T>} +
+\lstinline{IsTotallyOrdered<T>}, plus the integral-carrier
+witness when case 2 is to fire) to a carrier-level reduction of any
+finite intersection of half-line constraints. The engineer's
+honesty obligation is the axiom set; the collapse is
+type-level free. The proof above is one demonstration that the
+discharge is mechanical---the inductive argument does not depend on
+which carrier or which pivot type, only on the axiom slots being
+filled.
+
+\paragraph{Existential anchor.}
+The theorem is realised in the library by witnesses that
+materialise at the static-assertion layer; the canonical exhibit on
+$\mathbb{N}$ is the typed-constant collapse
+\[
+  \{x \in \mathbb{N} \mid x \ge 2\} \,\cap\, \{x \in \mathbb{N} \mid x \le 5\}
+  \;\longrightarrow\;
+  \texttt{OrderInterval}\langle 2, 5\rangle,
+\]
+checked at compile time. Section~\ref{sec:pruning} catalogues these
+witnesses; the LLVM~IR fixtures pin the resulting machine-code
+collapse downstream of the type-level reduction.
+
+\begin{conjecture}[Type-Directed Collapse, n-dimensional generalisation]
+\label{conj:type-directed-collapse-nd}
+Let $T_1, \dots, T_d$ be totally ordered carriers and let
+$\{P_k\}_{k=1}^{N}$ be halfspace predicates over the product
+$T_1 \times \dots \times T_d$ whose pivots are carried at the type
+level. The meet
+\[
+  S \;=\; \bigcap_{k=1}^{N} \{(x_1, \dots, x_d) \mid P_k(x_1, \dots, x_d)\}
+\]
+admits a compile-time reduction to a typed normal form
+generalising the three cases of
+Theorem~\ref{thm:type-directed-collapse-1d} (empty, vertex-singleton,
+or a polytope record carrying its active constraint set), under a
+suitable axiom set on the product carrier (total order per axis,
+closure of the meet under the product, and a vertex-enumeration
+discipline for the polytope case). Writing $S_k$ for the
+single-constraint set, the reduction is monotone up the
+computability-tier lattice:
+\[
+  \mathcal{T}(S) \;\succeq\; \bigvee_{k} \mathcal{T}(S_k),
+\]
+and strictly so on at least one axis in every case the library
+exhibits.
+
+\smallskip
+\noindent\emph{Status of claim.} This conjecture is \emph{not}
+proved in the paper. It is supported by the same exhibition pattern
+as the 1D theorem: each case is checked into the library as a
+\lstinline{static_assert}/\lstinline{STATIC_CHECK} witness and,
+where relevant, as an LLVM~IR fixture that fails CI on optimiser
+drift (see Section~\ref{sec:pruning}). The 2D linear-programming
+showcase of Section~\ref{sec:lp-centrepiece} discharges one
+non-trivial instance via active-set vertex enumeration; a general
+inductive proof over pivot configurations and dimensions $d$ is left
+open.
+\end{conjecture}
 
 \begin{corollary}[Iterated collapse]
 \label{cor:iterated-collapse}
