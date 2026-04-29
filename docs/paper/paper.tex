@@ -593,7 +593,11 @@ of which requires the compiler to be a theorem prover:
         implicit proof obligation discharged at translation time.  Failed
         obligations are type errors, not runtime exceptions.  The obligation
         itself is finite, decidable, and mechanical---the compiler \emph{checks}
-        it, but does not \emph{search for} it.
+        it, but does not \emph{search for} it.  Failed obligations surface
+        as named-axiom messages (e.g.\ \texttt{Invertible2x2 requires full
+        rank: a*d - b*c != 0}) rather than as deep template-cascade
+        traces; the structural discipline behind this and a worked
+        diagnostic are exhibited in Section~\ref{sec:compiler-wall}.
   \item \textbf{Enabling entire classes of optimizations.}  The LLVM backend
         exploits the structural knowledge inherited from discharged obligations.
         When a set is defined by a predicate and two predicates are logically
@@ -727,6 +731,68 @@ produced.  Where SICP defers \emph{evaluation} (a runtime move), we defer
 is the auditor that ensures the wishes were coherent before the realization
 happens.
 
+\paragraph{Reading Figure~\ref{fig:carrier-lattice}.}
+The Algebraic Lattice is rendered as a 2D oblique projection of a 3D
+cube; eight corners, twelve edges, three Fraktur-letter axis
+parameters ($\mathfrak{A}$ carrier-strength, $\mathfrak{R}$ rank,
+$\mathfrak{Q}$ quotient).  Five reading aids worth pinning before the
+figure does the work:
+
+\emph{(i) Interpretive choice.}  Where the carrier axis stops is
+partly conventional.  Placing $\mathbb{C}$ at the front-right corner
+treats $\mathbb{C}$ as a textbook carrier; placing $\mathbb{R}$ there
+would treat $\mathbb{C}$ as the back-face quotient
+$C(\mathbb{R}) = \mathbb{R}[i]/(i^2 + 1)$; placing $\mathbb{Q}$ would
+treat both $\mathbb{R}$ (via $\mathrm{Cuts}$) and $\mathbb{C}$ (via
+$\mathrm{Cplx} \circ \mathrm{Cuts}$) as quotient-axis nodes.  All
+three readings are equally valid; the figure encodes one such choice
+($\mathbb{C}$-as-carrier).  The carrier-vs-quotient line is partly
+interpretive (§\ref{sec:carrier-rosetta}).
+
+\emph{(ii) Computability-tier complement.}  A parallel three-axis
+lattice on top of any cell --- representation (Int / Ext), logic
+(K3 / Cl), knowledge (Opq / Elt) --- describes the density of
+compile-time information at that cell
+(§\ref{sec:gap}, Definition~\ref{def:computability-tier}).  That
+lattice is orthogonal to the three drawn here: the algebraic tower
+says \emph{which algebra}, the computability tier says \emph{how
+much the compiler knows about a set built on it}.  We do not draw
+the second cube --- one 3D figure already carries the structural
+weight.
+
+\emph{(iii) Commutation.}  Not all axes commute: $\mathfrak{R}$ and
+$\mathfrak{Q}$ always commute ($M_n(X(R)) \cong X(M_n(R))$ when both
+sides are defined); different $\mathfrak{Q}$ values commute when
+their generating variables are independent ($D \circ C \cong C \circ D$);
+$\mathfrak{A}$ and $\mathfrak{Q}$ commute partially --- e.g.\
+$\mathrm{Frac}(D(R))$ is undefined ($D(R)$ has nilpotents) but
+$\mathrm{Frac}(C(R)) \cong C(\mathrm{Frac}(R))$; $\mathfrak{A}$ and
+$\mathfrak{R}$ commute restrictively ($\mathfrak{R}$ produces modules,
+not rings, so subsequent $\mathfrak{A}$ steps may not type-check).
+Per-cell compile-status is pinned in the trait registry (\#499); the
+figure shows the structural shape.
+
+\emph{(iv) Off-figure dimensions.}  Higher rank ($n > 2$; \#368),
+predicate-set / order-theoretic constructions (candidate sibling
+\emph{Geometric Tower}; future Figure~1b), iterated $\mathfrak{Q}$
+(jet bundles; \#504), and the Honest-Rejection machine-substrate
+boundary (\texttt{bool}, \texttt{uint}, \texttt{int}, \texttt{double}
+embed into $\mathbb{B} / \mathbb{N} / \mathbb{Z} / \mathbb{Q}$ via
+named \texttt{embed\_*} arrows in \texttt{dedekind.numbers}).  The 2D
+projection is necessarily lossy.
+
+\emph{(v) Structural caveat.}  The lattice has a unique bottom
+($\mathbb{B}$) but \emph{no} unique top --- iterated quotients,
+tensor products, Witt vectors, $p$-adic completions and similar each
+yield a strictly larger object without a canonical maximum.  Binary
+meets (largest shared substructure) are easy to identify; binary
+joins (smallest common extension) exist categorically as pushouts
+but are not unique without ambient choice, so in practice the
+structure is better thought of as a bounded-below lattice (or,
+informally, a meet-semilattice with constructive joins).  The
+visual top-right-back corner $M_2(X(\mathbb{C}))$ is therefore an
+illustrative stopping point, not a categorical maximum.
+
 \begin{figure}[p]
 \centering
 \begin{tikzpicture}[
@@ -801,68 +867,25 @@ happens.
     {quotient $\mathfrak{Q}$};
 \end{tikzpicture}
 \caption{\emph{The Algebraic Lattice.}
-3D oblique-projection lattice; only the eight cube corners are drawn
-explicitly.  Three orthogonal axes, each parameterised by a Fraktur-letter
-functor: $\mathfrak{A}$ (carrier-strength) — the chain $\mathbb{B} \to
-\mathbb{N} \to \mathbb{Z} \to \mathbb{Q} \to \mathbb{R} \to \mathbb{C}$
-via successive functors (Frac, Cuts, Cplx;
-Tables~\ref{tab:carriers-exact}--\ref{tab:rosetta-textbook-vs-cpp});
-$\mathfrak{R}$ (rank) — Scalar $\to V_n(R) \to M_n(R)$ via
-$\mathrm{Free}_n$ and $\mathrm{End}_R$ (Table~\ref{tab:rosetta-rank});
-$\mathfrak{Q}$ (quotient) — base ring $R \to X(R)$ at a degree-2
-polynomial ideal, $X \in \{D, C, D \circ C, \ldots\}$
-(Table~\ref{tab:rosetta-quotient}).
-The bottom-front-left corner $\mathbb{B}$ is the lattice bottom
-(weakest carrier, no rank lift, no extension); the top-right-back corner
-$M_2(X(\mathbb{C}))$ is the lattice top.  Intermediate lattice points
-(e.g.\ $V_2(\mathbb{Z})$, $D(\mathbb{Q})$, $\mathbb{F}_{64}$) live along
-the edges and are itemised in the per-axis rosetta tables.
-\emph{Interpretive choice:} where the carrier axis stops is partly
-conventional.  Placing $\mathbb{C}$ at the front-right corner treats
-$\mathbb{C}$ as a textbook carrier in its own right; placing $\mathbb{R}$
-there would treat $\mathbb{C}$ as a back-face quotient
-$C(\mathbb{R}) = \mathbb{R}[i]/(i^2 + 1)$; placing $\mathbb{Q}$ there
-would treat both $\mathbb{R}$ (via $\mathrm{Cuts}$) and $\mathbb{C}$
-(via $\mathrm{Cplx} \circ \mathrm{Cuts}$) as quotient-axis nodes.
-All three readings are equally valid; the figure encodes one such
-choice (ℂ-as-carrier).  The carrier-vs-quotient line is partly
-interpretive --- §\ref{sec:carrier-rosetta} discusses both readings;
-the universal-algebra (A, F) anchor of
-Burris-Sankappanavar~\cite{burris1981universalalgebra} treats
-\emph{carrier} formally as the underlying-set component, leaving the
-construction-vs-primitive choice to the modeller.
-\emph{Commutation:} not all axes commute --- \textit{(i)} $\mathfrak{R}$
-and $\mathfrak{Q}$ always commute ($M_n(X(R)) \cong X(M_n(R))$ when
-both are defined); \textit{(ii)} different $\mathfrak{Q}$ values commute
-when their generating variables are independent
-($D \circ C \cong C \circ D$); \textit{(iii)} $\mathfrak{A}$ and
-$\mathfrak{Q}$ commute partially --- e.g.\ $\mathrm{Frac}(D(R))$ is
-undefined ($D(R)$ has nilpotents) but
-$\mathrm{Frac}(C(R)) \cong C(\mathrm{Frac}(R))$; \textit{(iv)}
-$\mathfrak{A}$ and $\mathfrak{R}$ commute restrictively
-($\mathfrak{R}$ produces modules, not rings, so subsequent
-$\mathfrak{A}$ steps may not type-check).  Specific compile-status
-per cell is pinned in the trait registry (\#499); the figure shows
-the structural shape.
-\emph{Off-figure dimensions:} higher rank ($n > 2$; \#368),
-predicate-set / order-theoretic constructions (candidate sibling
-Figure~1b), iterated $\mathfrak{Q}$ (jet bundles; \#504), Honest-Rejection
-machine-substrate boundary (\texttt{bool} / \texttt{uint} / \texttt{int}
-/ \texttt{double} embed into $\mathbb{B} / \mathbb{N} / \mathbb{Z} /
-\mathbb{Q}$ via named \texttt{embed\_*} arrows in
-\texttt{dedekind.numbers}).  The 2D projection is necessarily lossy.
-\emph{Structural caveat:} the algebraic lattice has a unique bottom
-($\mathbb{B}$) but \emph{no} unique top --- iterated quotients, tensor
-products, Witt vectors, $p$-adic completions and similar each yield a
-strictly larger object without a canonical maximum.  Binary meets
-(largest shared substructure) are easy to identify; binary joins
-(smallest common extension) exist categorically as pushouts but are
-not unique without ambient choice, so in practice the structure is
-better thought of as a bounded-below lattice (or, less formally, a
-meet-semilattice with constructive joins).  The visual "top-right-back"
-corner $M_2(X(\mathbb{C}))$ is therefore an \emph{illustrative
-stopping point}, not a categorical maximum --- the figure is a finite
-slice for clarity of exposition.}
+3D oblique-projection lattice; eight cube corners, three Fraktur-axis
+parameters.  $\mathfrak{A}$ (carrier-strength) follows the chain
+$\mathbb{B} \to \mathbb{N} \to \mathbb{Z} \to \mathbb{Q} \to \mathbb{R}
+\to \mathbb{C}$ via successive functors Frac / Cuts / Cplx
+(Tables~\ref{tab:carriers-exact}--\ref{tab:rosetta-textbook-vs-cpp}).
+$\mathfrak{R}$ (rank) lifts Scalar $\to V_n(R) \to M_n(R)$ via
+$\mathrm{Free}_n$ and $\mathrm{End}_R$ (Table~\ref{tab:rosetta-rank}).
+$\mathfrak{Q}$ (quotient) realises an extension $R \to X(R)$ at a
+degree-2 polynomial ideal --- $X = D$ gives
+$R[\varepsilon]/(\varepsilon^2)$ (dual numbers), $X = C$ gives
+$R[i]/(i^2 + 1)$ (complex extension), $X = G$ gives $R[x]/(p(x))$
+for $p$ irreducible (Galois extension); see
+Table~\ref{tab:rosetta-quotient} for the full enumeration.
+The bottom-front-left corner $\mathbb{B}$ is the lattice bottom; the
+top-right-back corner $M_2(X(\mathbb{C}))$ is an illustrative
+stopping point on an unbounded-above lattice.  The reading aids,
+commutation rules, off-figure dimensions, and the bounded-below /
+no-unique-top caveat are discussed in the body prose immediately
+preceding this figure.}
 \label{fig:carrier-lattice}
 \end{figure}
 
@@ -1044,7 +1067,46 @@ $\operatorname{Frac}(\mathbb{Z})$~\cite{lang2002algebra}; $\mathbb{C}$
 is both a carrier and the quotient
 $\mathbb{R}[i]/(i^2 + 1)$.  The Algebraic Lattice
 (Figure~\ref{fig:carrier-lattice}) separates these two readings onto
-distinct axes; the rosetta tables that follow itemise each axis.
+distinct axes; the rosetta tables that follow itemise each axis.\footnote{%
+\emph{Meets vs. joins.} Type-level meets (the largest shared
+substructure of two algebras) are computed via dispatch ---
+\lstinline{structured_and} on intersecting predicate-sets is the
+canonical example.  Joins (the smallest common extension) are
+\emph{not} synthesised by the library: pushouts / tensor products
+require ambient choice (which base, which extension functor) that
+the project's Honest Rejection stance refuses to make
+automatically.  Joins are handled instead via named carrier-crossing
+arrows the user invokes explicitly (\lstinline{embed_ℤ_ℚ} for
+$\mathbb{Z} \hookrightarrow \mathbb{Q}$, etc.).  The trade-off is
+honest: the library refuses to fabricate the answers that aren't
+canonical.}
+
+\paragraph{Re-enabling refused carriers.}  The Honest Rejection
+policy refuses carriers like \lstinline{int} as a witness for
+\emph{axiomatic} ring laws (signed-overflow UB defeats closure as a
+stable axiom, per Listing~\ref{lst:species}).  An engineer with a
+local proof that overflow cannot occur on their inputs has two
+sanctioned re-entry paths:
+
+\begin{itemize}
+\item \emph{Operator-surface tier.}  \lstinline{HasRingOperators<int>}
+fires unconditionally; downstream combinators that bind to this
+weaker concept (rather than to the strict \lstinline{IsRing} bundle)
+admit \lstinline{int} directly.  Most paper showcases bind to the
+operator-surface tier for exactly this reason.
+\item \emph{Opt-in trait specialisation.}  Where a stronger axiom is
+needed, the engineer specialises the relevant species trait
+explicitly: e.g.\ \lstinline{is_associative_v<MyType, std::plus<>> = true;}
+for a user-defined type whose addition is provably associative.  The
+specialisation is a public statement under the truthfulness canons
+(NSPE Code of Ethics, Canons~III + IV \cite{nspe_ethics}); the
+engineer carries the proof obligation, the library trusts the trait.
+\end{itemize}
+
+The mechanism is intentionally narrow: the engineer can re-enable a
+specific (carrier, axiom) pair, but cannot re-enable an entire
+concept bundle without specialising each axiom trait individually.
+Pedantic by default; opt-in by deliberate engineer action.
 
 The intensional-first rule applied to \emph{every} numeric role at
 once is spelled out in three tables. Table~\ref{tab:carriers-exact}
@@ -1786,8 +1848,13 @@ The IR is checked into the repository as a fixture
 (\texttt{showcase\_09\_lp\_vertex\_typed\_constant.ll}); a build-time
 gate (\texttt{make ir-fixture-check}) fails CI if optimiser drift ever
 loses the collapse. The binary contains no LP solver; no simplex
-tableau; no active-set machinery. The vertex \emph{is} a type, and
-returning its coordinate \emph{is} a literal.  Because the reduction
+tableau; no active-set machinery. More precisely: the vertex's
+coordinates are non-type template parameters of the result type
+(\lstinline|Vec2<Rat, Rat{2}, Rat{2}>|), so the C++23 NTTP machinery
+is what carries the answer through to type-level. The input is a
+constexpr value passed as NTTP; the output is a type whose NTTPs
+encode the coordinates; the runtime call returning a coordinate
+collapses to a literal load in the emitted IR.  Because the reduction
 lands in \texttt{Rational<...>} rather than IEEE floating point, the
 \lstinline{ret i64 2} output is bit-identical across ARM and x86
 back-ends and host floating-point ABIs --- the typed constant has
@@ -2111,6 +2178,15 @@ sketches that do not.
     $\{x \mid \nabla f(x) = 0\}$ for a quadratic $f$ collapses to a
     \lstinline{Singleton<x*>} with the minimizer in the template parameter.
     Same reduction pattern, applied at the extremum operator.
+    \emph{Scope note:} the polytope / linear-programming domain is not
+    incidental.  Active-set enumeration over halfspaces is
+    constructively bounded at compile time precisely because halfspaces
+    have finite combinatorial structure; non-polyhedral domains
+    (KKT-stationary-point search over arbitrary smooth $f$) require
+    symbolic root-finding which does not terminate at template-
+    instantiation time.  Quadratic $f$ is the worked-instance
+    boundary; non-linear extensions are post-paper work tracked
+    under \#363.
   \item \textbf{Linear programming} (demonstrated in
     Section~\ref{sec:lp-centrepiece} and Section~\ref{sec:ad-elliott}).
     \lstinline{maximize(c, polytope)} reduces, for compile-time-sized LPs, to
