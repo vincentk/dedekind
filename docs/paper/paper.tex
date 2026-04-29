@@ -528,6 +528,26 @@ properties from the trait registry, and ultimately prune logically empty set
 expressions to zero machine instructions---none of which is possible with runtime duck
 typing.
 
+\paragraph{An old capability, newly accessible.}
+None of the calculus underneath is new.  Templates have always been
+a System-F-flavoured substrate: type-parameter polymorphism, $\beta$-style
+substitution via \lstinline{using} aliases, normalisation through
+\lstinline{constexpr} evaluation --- the Lambek--Scott
+correspondence~\cite{lambek1988introduction} and the Curry--Howard
+reading~\cite{wadler2015propositions} have applied to that fragment for
+as long as it has existed.  What changed in C++20/23 was not the lambda
+calculus underneath; it was the addition of \lstinline{concept},
+\lstinline{requires}-clauses, and NTTPs, which together turned a
+long-standing latent capability into a surface the type checker can
+discharge mechanically.  Practitioners with deep template-metaprogramming
+experience --- Boost.Hana~\cite{chagnon2016hana} and CTRE~\cite{dusikova2018ctre}
+are the visible end of a long lineage --- have known this terrain for
+over a decade; the contribution of this paper is to walk it under the
+named-structure / discharged-by-the-compiler discipline, end-to-end, in
+standard C++23.  The translation table at the end of this section
+(§\ref{sec:cpp-stlc-mapping}) is the dictionary between what was always
+there and what the modern surface now lets one say out loud.
+
 \subsection{The Compiler as Structural Gate and Optimization Engine}
 
 Two durable uses of a compile-time type system underlie this paradigm, neither
