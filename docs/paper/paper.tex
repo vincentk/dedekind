@@ -710,143 +710,56 @@ happens.
 \label{fig:initial-ring-modular}
 \end{figure}
 
-\paragraph{The Form: $\mathbb{N}$ as the Natural Numbers Object.}
-The library reifies $\mathbb{N}$ structurally as Lawvere's
-\emph{Natural Numbers Object} (NNO; ETCS Axiom~9
-\cite{lawvere1964elementary}): the universal $(N, z, s)$ such that
-for any $(A, a_0, g)$ there exists a unique $f : N \to A$ making
-the recursion diagram commute.\footnote{Existence and uniqueness of
-$f$ form the universal property; in C++ this is the engineer's
-honesty obligation, since the type system cannot quantify over the
-functorial content.  What the type system \textbf{can} pin is the
-structural shape: the \lstinline{IsNNO} concept in
-\lstinline{dedekind.category:nno} requires $z$ to be a nullary
-callable returning $N$ (the zero element $1 \to N$) and $s$ to be
-a unary callable on $N$ returning $N$ (the successor).  The
-architecture is a three-layer chain: \emph{Form $\to$ Carrier
-$\to$ Symbol}.  \lstinline{IsNNO} is the Form;
-\lstinline{Cardinality} (the variant $\mathbb{N}$-proxy with
-$\aleph_0$ saturation) is the canonical carrier inhabiting the
-Form, certified by \lstinline{static_assert(IsNNO<Cardinality,
-cardinality_zero, cardinality_succ>)}; $\mathbb{N}$ is the alias
-that points to \lstinline{Cardinality}.  The same chain reads on
-the other two species: $\mathbb{B}$ as the Subobject Classifier
-$\Omega$ (ETCS Axiom~7, already reified in
-\lstinline{dedekind.category:topoi} / \lstinline{:logic});
-$\mathbb{Z}$ as the Initial Ring (equivalently, the Grothendieck
-completion of $\mathbb{N}$), reified by the next paragraph.}
+\paragraph{Forms before carriers.}
+The library reifies the discrete-foundations triple structurally
+rather than starting from a machine-integer carrier:
+$\mathbb{B}$ as the Subobject Classifier $\Omega$ (ETCS
+Axiom~7), $\mathbb{N}$ as Lawvere's Natural Numbers Object (NNO;
+ETCS Axiom~9~\cite{lawvere1964elementary}), and $\mathbb{Z}$ via
+two universal properties on a single carrier --- initial object in
+$\mathbf{CRing}$ (commutative unital rings; the
+\lstinline{IsInitialRing} concept is specialised to that
+category), and free abelian group on the commutative
+monoid $(\mathbb{N}, +, 0)$ (the Grothendieck construction; see
+Mac Lane~\cite{maclane1971categories} for the standard
+treatment).\footnote{Each Form sits behind a three-layer chain
+\emph{Form $\to$ Carrier $\to$ Symbol}. The Form is the universal
+property reified as a C++ concept (\lstinline{IsNNO},
+\lstinline{IsInitialRing}, \lstinline{IsGrothendieckGroup}); the
+carrier is the canonical inhabitant
+(\lstinline{Cardinality} for $\mathbb{N}$ with $\aleph_0$
+saturation; \lstinline{SignedCardinality} for $\mathbb{Z}$ with
+$\pm\aleph_0$ and \lstinline{NaZ}); the symbol is the alias
+practitioners use. Existence-and-uniqueness of the universal
+morphism remains the engineer's honesty obligation; what the type
+system pins mechanically is the structural shape (the
+$(z, s)$ pair of the NNO; the $\chi_R$ shape of the initial-ring
+homomorphism, witnessed concretely at $R =
+\texttt{Modular}\langle n\rangle$ in
+Figure~\ref{fig:initial-ring-modular}). The architecture's
+recurring Platonist reading: textbook structure precedes machine
+carriers.}
 
-\paragraph{The Form: $\mathbb{Z}$ as the Initial Ring \emph{and} as the Grothendieck group of $\mathbb{N}$.}
-The library reifies $\mathbb{Z}$ structurally via \emph{two}
-universal properties, both load-bearing for downstream reasoning
-and both witnessed at the type-system level on the same canonical
-carrier.  The first is the \emph{initial-object-in-Ring} reading:
-for every ring $R$ there exists a unique ring homomorphism
-$\chi_R : \mathbb{Z} \to R$, sending $1_\mathbb{Z} \mapsto 1_R$ and
-determined uniquely by ring-axiom preservation.
-Figure~\ref{fig:initial-ring-modular} exhibits this concretely
-at three prime targets $R = \texttt{Modular}\langle n\rangle$
-($n \in \{2, 5, 7\}$).  The second is the
-\emph{Grothendieck-group-of-$\mathbb{N}$} reading: $\mathbb{Z}$ is
-the free abelian group on the commutative monoid $(\mathbb{N}, +,
-0)$, equivalently the left adjoint of the forgetful functor
-$\mathrm{Ab} \to \mathrm{CMon}$ applied at
-$\mathbb{N}$.\footnote{Concretely $\mathbb{Z} = \mathbb{N} \times
-\mathbb{N} / \sim$ with $(a, b) \sim (c, d) \iff a + d = b + c$;
-the equivalence class $[(a, b)]$ represents the integer $a - b$.
-The closure-forcing binary subtraction
-\lstinline{Cardinality - Cardinality → SignedCardinality} realises
-the Grothendieck construction at the operator level: the operator
-is well-defined as a function $\mathbb{N} \times \mathbb{N} \to
-\mathbb{Z}$, not into $\mathbb{N}$ --- so the codomain widens, and
-the lift carries the construction operationally.  The two readings
-agree up to canonical isomorphism.  A third nearby reading ---
-$\mathbb{Z}$ as the free abelian group on a one-element set
-$\{*\}$, via the left adjoint of the forgetful functor
-$\mathrm{Ab} \to \mathrm{Set}$ --- is also valid but has no
-distinct operational consumer in the project, so only the first two
-are reified.}  Reifying both as separate concepts gives the
-practitioner a piece of \emph{formal, type-checked documentation}
-that the same carrier inhabits both Forms; it also lets downstream
-generic code bind to whichever universal property is the relevant
-one for its argument.  As before, the architecture is a three-layer
-chain mirroring the NNO story.  \lstinline{IsInitialRing<R>} and
-\lstinline{IsGrothendieckGroup<G, M>} are the two Forms (universal
-properties; existence-and-uniqueness of the unique morphism remains
-the engineer's honesty obligation in each case; the structural
-shape of the morphism's signature is what the type system pins).
-\lstinline{SignedCardinality} (the variant $\mathbb{Z}$-proxy with
-$\pm\aleph_0$ saturation and \lstinline{NaZ}) is the canonical
-carrier inhabiting both Forms, certified by two static-assert
-witnesses: one exercising
-\lstinline{IsInitialRing<SignedCardinality>} on a concrete target
-ring (\lstinline{Modular<n>}, with the unique homomorphism the
-mod-$n$ reduction), and one exercising
-\lstinline{IsGrothendieckGroup<SignedCardinality, Cardinality>} on
-the variant pair the carrier-lattice already supplies.
-$\mathbb{Z}$ is the alias practitioners use, pointing to
-\lstinline{SignedCardinality} once the variant-carrier migration of
-the integer alias is complete.\footnote{With $\Omega$
-already reified ($\mathbb{B}$, ETCS Axiom~7), the NNO reified
-($\mathbb{N}$, ETCS Axiom~9), and the Initial Ring reified
-($\mathbb{Z}$), the categorical-foundation triple on the discrete-
-foundations axis is complete: each of $\mathbb{B}$, $\mathbb{N}$,
-$\mathbb{Z}$ is the universal-property anchor for its symbol, with
-the carriers ($bool$,
-\lstinline{Cardinality}, \lstinline{SignedCardinality}) inhabiting
-those Forms operationally.  The textbook structure precedes the
-machine carriers, in the project's recurring Platonist reading.}
-
-\paragraph{A pair of canonical intensional series: Fibonacci on $\mathbb{N}$, negafibonacci on $\mathbb{Z}$.}
-The design rule has a small, well-understood pedagogical pair that
-makes the intensional-first style concrete and exercises the NNO
-universal property via the iterative-recursion combinator
-\lstinline{nno_iterate} from \lstinline{dedekind.category:nno}.
-Fibonacci on $\mathbb{N}$ is defined inductively by $F_0 = 0$,
-$F_1 = 1$, $F_{n+1} = F_n + F_{n-1}$; the recurrence uses only
-addition, so the sequence stays in $\mathbb{N}$ throughout.
-Negafibonacci on $\mathbb{Z}$ extends the same recurrence to
-negative indices via $F_{n-1} = F_{n+1} - F_n$, producing
-$F_{-1}, F_{-2}, F_{-3}, F_{-4}, F_{-5} = 1, -1, 2, -3, 5$.  The
-backward step uses subtraction --- exactly the operator that
-structurally distinguishes $\mathbb{Z}$ from $\mathbb{N}$.\footnote{The
-proper categorical framing is the coalgebraic one.  A two-term
-recurrence is not directly the universal property of the NNO
-(which captures one-step recurrences $a_{n+1} = g(a_n)$); it is a
-coalgebra for the functor $F(X) = A \times X$ where the state
-carries the pair $(F_n, F_{n-1})$ and the step function advances
-both.  Negafibonacci is the same coalgebra run with the
-subtractive step function in place of the additive one --- both
-well-typed \textbf{only} because the state carrier admits the
-operator (additive group structure for negafibonacci; additive
-monoid is enough for forward Fibonacci).  Pinning the state to
-\lstinline{Cardinality} or \lstinline{SignedCardinality} rather than
-to a machine \lstinline{unsigned int} or \lstinline{int} is what
-makes the coalgebra type-correct in the textbook sense; the machine
-carriers' UB-on-overflow / mod-wrap behaviour would render the
-coalgebra's transition partial without the type system noticing.}
-Computing either series in the canonical mathematical carrier
-(\lstinline{Cardinality} for $\mathbb{N}$, \lstinline{SignedCardinality}
-for $\mathbb{Z}$) keeps the practitioner in the textbook structure
-the whole way through: no machine-int arithmetic, no
-UB-on-overflow risk for large $|n|$, the saturating semantics
-honestly handles oversize values via $\aleph_0$ or
-$\pm\aleph_0$.\footnote{The contrast is sharp.  The same recurrence
-on a 32-bit \lstinline{int} carrier silently produces incorrect
-results once $F_n$ exceeds $\mathrm{INT\_MAX}/2$ (because
-$F_n + F_{n-1}$ overflows undefined-behaviourly); on \lstinline{unsigned int}
-it would silently wrap modulo $2^{32}$.  The variant carriers
-either return the correct large value or escalate to $\aleph_0$
-explicitly --- the law that fails on the machine carriers becomes
-either a true claim or a typed sentinel.}  The descent to a
-machine integer, when the practitioner needs native performance for
-a downstream pipeline, is an explicit \emph{realize-step} that
-carries a proof obligation: the caller chooses a sentinel for the
-transfinite case and the type system mechanically forces them to
-handle that case.  The ergonomic story is therefore not "Honest
-Rejection imposes a cost" but rather "the cost is moved to where
-the engineer must own it" --- which is precisely the truthfulness
-canon at work.
+The pedagogical exhibit is the Fibonacci / negafibonacci pair: the
+two-term recurrence $F_{n+1} = F_n + F_{n-1}$ on $\mathbb{N}$
+extends by $F_{n-1} = F_{n+1} - F_n$ to negative indices on
+$\mathbb{Z}$, with the backward step requiring exactly the
+operator (subtraction) that structurally distinguishes $\mathbb{Z}$
+from $\mathbb{N}$. Computing either series on the canonical
+variant carriers keeps the practitioner in the textbook structure
+throughout, with $\aleph_0$ / $\pm\aleph_0$ saturation as the
+honest sentinel for oversize values; the descent to a machine
+integer is an explicit realize-step.\footnote{The proper framing
+is coalgebraic: a two-term recurrence is a coalgebra for $F(X) = A
+\times X$ on state $(F_n, F_{n-1})$, not the NNO universal
+property directly. The same recurrence on a 32-bit
+\lstinline{int} silently overflows once $F_n > \texttt{INT\_MAX}/2$
+(UB); on \lstinline{unsigned int} it wraps modulo $2^{32}$. The
+variant carriers either return the correct large value or escalate
+to $\aleph_0$ explicitly --- the law that fails on the machine
+carriers becomes either a true claim or a typed sentinel. The
+realize-step's proof obligation (sentinel for the transfinite
+case) is precisely the truthfulness canon at work.}
 
 \subsection{The Tension: Abstract Naturals vs.\ IEEE Numerics}
 \label{sec:numeric-tension}
@@ -908,22 +821,14 @@ programmer chooses which policy to apply.
 \subsection{Dedekind Cuts as the Canonical Example}
 \label{sec:dedekind-cuts}
 
-Here is Dedekind's move, the library's namesake. To name a real number,
-don't try to write it down. Instead, partition the rationals into those
-strictly below it and those at or above it. That partition \emph{is} the
-number. You don't need to compute the real; you just need to be able to
-tell, for any rational, which side it lands on. Formally,
-$r \in \mathbb{R}$ is the pair $(L, U)$ with
-\(L = \{q \in \mathbb{Q} \mid q < r\}\) and
-\(U = \{q \in \mathbb{Q} \mid q \geq r\}\).
-
-The construction translates directly: the two sets are type-level
-predicates, and \emph{the predicate is the number}. The library's
-canonical worked example is Dedekind's own motivating irrational,
-$\sqrt{2}$: a rational $q$ is in the lower cut iff $q^{2} < 2$. That
-is a decidable predicate over $\mathbb{Q}$, so the cut is a finite
-compile-time object---no approximation, no series summation, just a
-sentence in the ambient rational logic:
+Dedekind's construction --- $r \in \mathbb{R}$ as the partition
+$(L, U)$ of $\mathbb{Q}$ into rationals strictly below $r$ and those
+at or above --- translates the intensional-first rule directly: the
+two sets are type-level predicates, and \emph{the predicate is the
+number}. The library's canonical worked example is Dedekind's own
+$\sqrt{2}$: a rational $q$ is in the lower cut iff $q^{2} < 2$, a
+decidable predicate over $\mathbb{Q}$ that compiles into a finite
+type-level object --- no approximation, no series summation:
 
 % Source: src/main/modules/dedekind/numbers/symbolic.cppm (Sqrt2_Symbolic, ll. 24-38)
 \begin{lstlisting}[language=C++, caption={$\sqrt{2}$ as an intensional lower cut over $\mathbb{Q}$, from \texttt{dedekind.numbers:symbolic}. The predicate is the number.}, label={lst:euler}]
@@ -973,19 +878,12 @@ about $\sqrt{2}$ that the predicate $q^{2} < 2$ expresses.}
 \label{fig:dedekind-cut}
 \end{figure}
 
-Notice what \emph{hasn't} happened. No floating-point approximation of
-$\sqrt{2}$ has been computed. No Newton iteration has been run. Asking
-``is $\tfrac{7}{5}$ less than $\sqrt{2}$?'' reduces to evaluating
-$\tfrac{49}{25} < 2$, which is true, at translation time---the answer
-is a structural check on the predicate rather than a numerical
-comparison. Approximation to a concrete floating-point value is
-available later, when the programmer asks for it at a specific
-precision. Not before.
-
-This is the intensional-first rule applied to the slipperiest objects
-in elementary mathematics. A real number named as a predicate can have
-its realisation deferred indefinitely, without losing the ability to
-reason about it.
+No floating-point approximation is computed; no Newton iteration runs.
+Asking ``is $\tfrac{7}{5}$ less than $\sqrt{2}$?'' reduces to
+$\tfrac{49}{25} < 2$, decidable at translation time. Approximation to
+a concrete float is available later, at a specific precision, when
+the programmer asks for it. The intensional object survives
+indefinitely without losing reasoning power.
 
 \subsection{Carriers: From Exact Rationals to Packed Integers}
 \label{sec:carrier-rosetta}
@@ -1085,27 +983,18 @@ $\mathbb{D}$ (dual) & \lstinline|.val| (primal only; tangent discarded) & \lstin
 \end{tabular}
 \end{table}
 
-A fourth table addresses a subtler question that the first three
-gloss over: even on the same carrier, the \emph{textbook} ring
-structure and the \emph{literal C++ operators} do not always agree.
-Integer promotion lifts \lstinline|unsigned short + unsigned short|
-to \lstinline|int|, so \lstinline|unsigned short| is not closed
-under the literal \lstinline|+| --- yet the math-textbook structure
-on \lstinline|unsigned short| is the modular ring $\mathbb{Z}/2^{16}\mathbb{Z}$
-and the functor surface (\lstinline|std::plus<unsigned short>|) returns
-\lstinline|unsigned short| by signature. Signed-overflow UB defeats the
-modular-wrap proof on \lstinline|int|, even though the literal operators
-close. \lstinline|bool| is the Galois field $\mathbb{F}_2$ under
-$(\oplus, \wedge)$, but \lstinline|bool + bool| also yields \lstinline|int|.
-The library expresses these disagreements through three concept tiers
---- \emph{strict} (the categorical proof), \emph{functor-parametric
-shape} (the operators close on the chosen functors), and
-\emph{literal shape} (the C++ \lstinline|+|, \lstinline|-|,
-\lstinline|*| close on the carrier directly) --- and a sealing concept
-\lstinline|IsArithmeticRing| that fires only when all three tiers agree
-under \lstinline|(std::plus, std::multiplies)|.
-Table~\ref{tab:rosetta-textbook-vs-cpp} catalogues the divergences on
-the carriers used in the worked examples (Issue~\#393).
+A fourth table addresses where textbook ring structure and literal
+C++ operators diverge: the library expresses the disagreement
+through three concept tiers --- \emph{strict} (categorical proof),
+\emph{functor-parametric shape} (operators close on the chosen
+functors), and \emph{literal shape} (the C++ \lstinline|+|,
+\lstinline|-|, \lstinline|*| close on the carrier directly) ---
+sealed by \lstinline|IsArithmeticRing| when all three agree under
+\lstinline|(std::plus, std::multiplies)|.
+Table~\ref{tab:rosetta-textbook-vs-cpp} catalogues the divergences
+on the carriers used in the worked examples (Issue~\#393); the
+friction list is summarised structurally in
+Section~\ref{sec:boundary-observations}.
 
 \begin{table}[htbp]
 \centering
@@ -1147,67 +1036,27 @@ marks not-currently-asserted.}
 }
 \end{table}
 
-The reading rule for callsites: pick \emph{seal} when the body wants
-plain C++ syntax over a textbook-aligned carrier; pick
-\emph{strict $+$ functor} when the carrier carries its ring structure
-over non-standard functors (\lstinline|bool| as $\mathbb{F}_2$,
-narrow unsigneds explicitly modelled with \lstinline|std::plus| /
-\lstinline|std::multiplies|); pick \emph{literal} when the body
-needs the operator surface but not the algebraic axioms
-(elementwise-lifted matrix and tuple bodies, half-space evaluation
-in the linear-programming layer).
+Reading rule for callsites: pick \emph{seal} for plain C++ syntax
+over a textbook-aligned carrier; pick \emph{strict + functor} when
+the carrier carries its ring structure over non-standard functors
+(\lstinline|bool| as $\mathbb{F}_2$, narrow unsigneds with
+\lstinline|std::plus| / \lstinline|std::multiplies|); pick
+\emph{literal} for the operator surface without the algebraic
+axioms (elementwise-lifted matrix bodies, halfspace evaluation).
 
-The three tables together are a migration map. The disciplined path
-is: stay on Table~\ref{tab:carriers-exact} for the reference
-implementation, use Table~\ref{tab:carriers-crossings} to cross over
-where performance demands, and land in
-Table~\ref{tab:carriers-primitive} with an honest, named set of
-caveats. The workflow looks like this:
-
-\begin{enumerate}
-\item \textbf{Start correct.} Write the algorithm against the
-concept column using the exact intensional carrier. For arithmetic-
-heavy code this usually means \lstinline|Rational<SignedExtensionalCardinal<>>|:
-an arbitrary-precision exact rational whose laws are bit-for-bit
-provable. The code is slow (every operation is an N-limb rational
-reduction), but it is a reference implementation you can trust.
-
-\item \textbf{Verify.} Run the existing test suite. Exact rationals
-let every \lstinline|static_assert| be a provable identity rather
-than a floating-point tolerance check. Regressions surface as
-compile errors, not as silent drift.
-
-\item \textbf{Profile.} Identify the inner loops where arithmetic
-cost dominates.
-
-\item \textbf{Cross over.} In those loops only, substitute the
-native carrier on the right-hand column. The generic code compiled
-against \lstinline|Field_|$\mathbb{Q}$ will also bind to
-\lstinline|double| through \lstinline|Continuum_|$\mathbb{R}$, modulo
-the policy gates noted in the concept cell (e.g.\ loss of
-associativity under \lstinline|+|, which some algorithms tolerate
-and others do not). The cost of this step is dominated by
-rounding-error analysis, not by rewriting code.
-
-\item \textbf{Pack further, if profiling still demands.} For tight
-SIMD loops, drop to \lstinline|int8_t| / \lstinline|int16_t| and
-accept that every operation is a contract with the hardware that
-you have \emph{proven} no input can trigger overflow. The concept
-that binds the generic code through this hop is
-\lstinline|IsPartialAbelianGroup| --- explicitly named to record
-that the operation is partial.
-\end{enumerate}
-
-The rule behind the three tables: \textbf{you start correct, you
-finish fast, and the type system enforces that the laws your code
-relies on are the laws the carrier actually provides --- or fails to
-compile.} The reviewer who points out that \lstinline|Rational<long>|
-cannot scale to industrial problem sizes and the reviewer who points
-out that \lstinline|double| is not $\mathbb{Q}$ are both right; the
-library's answer is that one lives on Table~\ref{tab:carriers-exact}
-and the other on Table~\ref{tab:carriers-primitive}, and
-Table~\ref{tab:carriers-crossings} spells out the named arrow that
-moves between them.
+\paragraph{Migration discipline.}
+The three tables form a migration map: \emph{start correct} on
+Table~\ref{tab:carriers-exact} (typically
+\lstinline|Rational<SignedExtensionalCardinal<>>| for
+arithmetic-heavy code, with bit-for-bit provable laws); \emph{cross
+over} via Table~\ref{tab:carriers-crossings} only in profiled inner
+loops where arithmetic cost dominates; \emph{land} on
+Table~\ref{tab:carriers-primitive} with the named caveat the
+concept cell records (e.g.\ loss of associativity under
+\lstinline|+|, which some algorithms tolerate and others do not).
+The rule: \textbf{start correct, finish fast, and the type system
+enforces that the laws your code relies on are the laws the carrier
+actually provides --- or fails to compile.}
 
 % ============================================================
 \section{Sets Are Rules, Not Buckets}
