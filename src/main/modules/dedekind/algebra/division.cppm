@@ -1,5 +1,5 @@
 /**
- * @file algebra:division.cppm
+ * @file dedekind/algebra/division.cppm
  * @partition :division
  * @brief Level 3.3: The Euclidean Engine (Division Rings and Domains).
  *

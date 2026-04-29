@@ -1,5 +1,5 @@
 /**
- * @file ontology:algebra.cppm
+ * @file dedekind/algebra/field.cppm
  * @partition :algebra
  * @brief Level 3: The Rules of Harmony (Groups, Rings, and Fields).
  *

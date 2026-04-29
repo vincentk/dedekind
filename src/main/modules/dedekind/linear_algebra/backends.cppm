@@ -1,5 +1,5 @@
 /**
- * @file linear_algebra:backends.cppm
+ * @file dedekind/linear_algebra/backends.cppm
  * @partition :backends
  * @brief Backend capability contracts for linear algebra realization layers.
  *

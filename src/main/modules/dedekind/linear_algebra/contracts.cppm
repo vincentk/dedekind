@@ -1,5 +1,5 @@
 /**
- * @file linear_algebra:contracts.cppm
+ * @file dedekind/linear_algebra/contracts.cppm
  * @partition :contracts
  * @brief Rank-nullity and matrix-structural compile-time contracts.
  *

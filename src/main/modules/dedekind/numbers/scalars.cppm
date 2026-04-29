@@ -1,5 +1,5 @@
 /**
- * @file ontology:numbers.cppm
+ * @file dedekind/numbers/scalars.cppm
  * @brief Semirings as the formal algebraic basis for scalar number systems.
  *
  * Copyright 2026 The Dedekind Authors

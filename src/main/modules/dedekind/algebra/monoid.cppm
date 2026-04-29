@@ -1,5 +1,5 @@
 /**
- * @file algebra:monoid.cppm
+ * @file dedekind/algebra/monoid.cppm
  * @partition :monoid
  * @brief Level 3.0a: The Additive and Multiplicative Monoids (ℕ).
  *

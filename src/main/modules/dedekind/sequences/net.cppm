@@ -1,5 +1,5 @@
 /**
- * @file ontology:sequences.cppm
+ * @file dedekind/sequences/net.cppm
  * @partition :sequences
  * @brief Level 2.5: The Path (The Morphism of Enumeration).
  *

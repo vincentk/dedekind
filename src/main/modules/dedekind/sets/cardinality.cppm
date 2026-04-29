@@ -1,5 +1,5 @@
 /**
- * @file sets/cardinality.cppm
+ * @file dedekind/sets/cardinality.cppm
  * @partition :cardinality
  * @brief Cardinality types and the Extensional N-limb cardinal carrier.
  *

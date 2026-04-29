@@ -1,5 +1,5 @@
 /**
- * @file algebra:ring.cppm
+ * @file dedekind/algebra/ring.cppm
  * @partition :ring
  * @brief Level 3.2: The Rules of Harmony (The Semiring Synthesis).
  *

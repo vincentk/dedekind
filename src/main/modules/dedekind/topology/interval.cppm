@@ -1,5 +1,5 @@
 /**
- * @file ontology:topology.cppm
+ * @file dedekind/topology/interval.cppm
  * @partition :shapes
  * @brief Level 3.1: Topological Mereology (Rays and Intervals).
  *

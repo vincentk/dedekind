@@ -1,5 +1,5 @@
 /**
- * @file linear_algebra:graphblas.cppm
+ * @file dedekind/linear_algebra/graphblas.cppm
  * @partition :graphblas
  * @brief GraphBLAS-facing adapter stub for contract conformance checks.
  *
