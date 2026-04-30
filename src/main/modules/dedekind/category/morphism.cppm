@@ -54,21 +54,116 @@ import :species;
 
 namespace dedekind::category {
 
+// ---------------------------------------------------------------------------
+// Hub / Spoke architecture (clarified under #525)
+// ---------------------------------------------------------------------------
+//
+// @section Single_Species_Commitment
+//
+// The dedekind category model is @b single-species by design: a category
+// @c 𝒞 in this codebase is realised as a struct (e.g.\ @c Set<T>) whose
+// objects are values of a single C++ type @c T (the @c Species), and
+// whose arrows are @c Morphism<T, T, ...> instances.  This is a
+// pragmatic restriction for the disciplined-template fragment: modeling
+// polymorphic-collection-of-species categories would require runtime
+// type-erasure (existentials, type-erased object containers) that the
+// project's System-F-flavoured admissibility rules
+// (Table~\ref{tab:admissibility-rules} in @c paper.tex) deliberately
+// exclude.
+//
+// Concrete consequences:
+//   * @c Set<int> is the category whose objects are values of type
+//     @c int and whose arrows are @c Morphism<int, int, ...>.
+//   * @c Set<Box<int>> is a @b different category — same structural
+//     definition, distinct species.
+//   * @c Set<Path<int>> is a category whose objects are sequences
+//     @c ℕ @c → @c int (treated as objects in @b Set, exactly per the
+//     CCC reading where function spaces are first-class objects).
+//   * Functors @c F: @c 𝒞 @c → @c 𝒟 are realised as @b Hub types
+//     (@c box_functor, @c maybe_functor, etc.) carrying
+//     @c Σ_cat / @c Τ_cat aliases that name the source / target
+//     categories explicitly.
+//
+// @section Arrows_Within_vs_Between_Categories
+//
+// Composition of arrows comes in two flavours that must @b not be
+// conflated at the dispatch level:
+//
+//   1. @b Spoke @b composition — composition of arrows @b within a
+//      single category.  Given @c f: @c a → @c b and @c g: @c b → @c c
+//      both in @c 𝒞 (so @c a, @c b, @c c are @c 𝒞.Species values),
+//      @c f @c >> @c g is the textbook composition @c a → @c c in @c 𝒞.
+//   2. @b Hub @b composition — composition of arrows @b between
+//      categories.  Given functors @c F: @c 𝒞 → @c 𝒟 and @c G: @c 𝒟 → @c ℰ
+//      (so @c F.Σ_cat = @c 𝒞, @c F.Τ_cat = @c 𝒟, etc.), @c F @c >> @c G
+//      is functor composition @c 𝒞 → @c ℰ in @b Cat (the category of
+//      categories).
+//
+// These are different operations on different categories.  At the
+// dispatch level they need separate routes — otherwise a generic
+// @c operator>> overload sees both flavours and either resolves
+// ambiguously or misroutes.  The @c spoke_arrow_tag / @c hub_arrow_tag
+// tags below + the @c IsSpokeArrow / @c IsHubArrow concepts further down
+// implement that routing: object-level @c operator>> in this partition
+// gates on @c IsSpokeArrow; hub-level composition (functor composition,
+// natural-transformation composition, etc.) is owned by the bridge
+// partitions (@c :functor, @c :natural).
+//
+// @section Hub_Spoke_Discriminator (#525)
+//
+// The spoke discriminator is "Domain is not a category-shaped thing"
+// (i.e.\ @c !IsCategoryShape<Dom<T>>), expressing the formal definition
+// of arrow-within-a-category: a spoke arrow's @b Domain is an object,
+// not a category.  Pre-#525 the discriminator used the structural-proxy
+// @c !IsArrow<Dom<T>> on the implicit theory that an arrow whose Domain
+// is itself an arrow is probably a hub.  That proxy worked
+// coincidentally for functor-Hubs (whose Domain is a category and
+// therefore has @c Cat::Arrow, satisfying @c IsArrow) but over-fired on
+// object-level types that happen to expose @c Domain / @c Codomain
+// aliases for @b unrelated reasons — the canonical example is
+// @c Path<T>, which carries @c Domain @c = @c std::size_t to model the
+// textbook reading "a sequence is a function @c ℕ @c → @c T".  The
+// post-#525 discriminator @c IsCategoryShape (defined just below
+// @c IsArrow) tests for the identifying category aliases (@c ::Arrow,
+// @c ::Species, @c ::Id) directly — asking the right question rather
+// than the structural proxy.
+//
+// @section Manual_Override
+//
+// In addition to the structural test, types may opt in / out manually
+// via @c using @c ArrowKind @c = @c spoke_arrow_tag; or
+// @c hub_arrow_tag; .  Today the @c hub_arrow_tag opt-out is the
+// load-bearing override (functor Hubs use it); @c spoke_arrow_tag is a
+// reserved spoke-marker for parallel future opt-in cases.
+// ---------------------------------------------------------------------------
+
 /**
- * @brief Marker tag for ordinary object-level arrows.
- * @details Attach as `using ArrowKind = spoke_arrow_tag;` when a type should
- * participate in spoke-level operator routing.
+ * @brief Marker tag for ordinary object-level arrows (spoke arrows).
+ *
+ * @details Attach as @c using @c ArrowKind @c = @c spoke_arrow_tag; when
+ * a type should @b explicitly participate in spoke-level operator routing
+ * (composition @b within a category).  In practice the structural
+ * discriminator @c IsSpokeArrow (further down) catches the typical case
+ * automatically; this tag is the manual override for types that carry
+ * an unusual surface and want to be classified as spokes.
+ *
+ * See the architecture block above for the single-species design context.
  */
 export struct spoke_arrow_tag {};
 
 /**
  * @brief Marker tag for hub-level arrows (e.g., functor hubs).
- * @details Attach as `using ArrowKind = hub_arrow_tag;` to opt out of
- * spoke-level composition overloads in this partition.
  *
- * This keeps `:morphism` decoupled from downstream naming conventions while
- * still allowing higher-level partitions (such as `:functor`) to route
- * overload resolution explicitly.
+ * @details Attach as @c using @c ArrowKind @c = @c hub_arrow_tag; to
+ * opt out of spoke-level composition overloads.  Hub arrows are arrows
+ * @b between categories (functors, natural transformations, etc.); they
+ * compose by their own rules in bridge partitions (@c :functor,
+ * @c :natural).
+ *
+ * The opt-out keeps @c :morphism decoupled from downstream naming
+ * conventions while still letting higher-level partitions route
+ * overload resolution explicitly.  See the architecture block above
+ * for the dispatch rationale.
  */
 export struct hub_arrow_tag {};
 
