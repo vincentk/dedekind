@@ -1041,8 +1041,8 @@ combinators (\texttt{DirectSum}, \texttt{BlockUpperTriangular},
 \textbf{Object} & \textbf{Functor} & \textbf{Concept} & \textbf{C++23 carrier} \\
 \midrule
 $T$ (scalar) & identity & \lstinline|IsRing| / \lstinline|IsField| & \lstinline|T| \\
-$V_n(T) = T^n$ & $\mathrm{Free}_n$ (left adjoint $\mathbf{Mod}_R \to \mathbf{Set}$; Mac Lane~\cite{maclane1971categories} §VII) & \lstinline|IsModule<T, V>| & \lstinline|Vec2V<T>| \\
-$M_n(T) = \mathrm{End}_T(V_n)$ & $\mathrm{End}_R$ (internal hom in $\mathbf{Mod}_R$; Mac Lane~\cite{maclane1971categories} §VII) & \lstinline|IsLinearAction<T,V,M>| & \lstinline|Matrix2x2V<T>| \\
+$V_n(T) = T^n$ & $\mathrm{Free}_n$ (left adjoint to the forgetful functor $\mathbf{Mod}_R \to \mathbf{Set}$; Mac Lane~\cite{maclane1971categories} §VII) & \lstinline|IsModule<V, T>| & \lstinline|Vec2V<T>| \\
+$M_n(T) = \mathrm{End}_T(V_n)$ & $\mathrm{End}_R$ (internal hom in $\mathbf{Mod}_R$; Mac Lane~\cite{maclane1971categories} §VII) & \lstinline|IsLinearAction<T, V, Act>| & \lstinline|Matrix2x2V<T>| \\
 \bottomrule
 \end{tabular}
 \end{table}
