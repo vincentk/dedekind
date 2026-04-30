@@ -473,75 +473,53 @@ constexpr auto forall(const Path<T, Cardinality>& path, Pred&& pred) {
 namespace dedekind::category {
 
 /**
- * @brief The Path Functor — full @c IsFunctor model for the
- *        @c Path<·> shape (#508 / PR #521 review).
+ * @brief The Path Hub for the @c Path<·> shape (#508 / PR #521 review).
  *
- * @details Models the categorical functor @c Set<T> @c → @c Set<Path<T>>:
- * @c Shape<U> @c = @c Path<U> on objects, @c φ on arrows lifts a
- * pointwise function @c T @c → @c U to @c Path<T> @c → @c Path<U>
- * by composing each element through the original generator.
- * Mirrors @c box_functor / @c maybe_functor in @c :functor.
+ * @details Carries the @c Shape<U> @c = @c Path<U> alias used by the
+ * Kleisli witness registry (@c unit_witness / @c counit_witness /
+ * @c IsKleisliExtension / @c IsCoKleisliExtension / @c IsFrobenius).
+ * Named @c path_functor for naming-convention parity with the sibling
+ * @c box_functor / @c maybe_functor / @c vec2_functor /
+ * @c matrix2x2_functor Hubs in other partitions.
+ *
+ * @section path__Functor_Limitation
+ * Unlike @c box_functor / @c maybe_functor — which DO satisfy
+ * @c dedekind::category::IsFunctor — @c path_functor deliberately
+ * does NOT.  Reason: @c Path<T> is itself an Arrow at the type level
+ * (carries @c Domain @c = @c std::size_t and @c Codomain @c = @c T,
+ * realising the textbook reading @c Path: @c ℕ @c → @c T).  This
+ * makes @c Morphism<Path<T>, Path<T>, ...> fail @c IsSpokeArrow
+ * (because @c Path<T> is an @c IsArrow domain), which in turn makes
+ * @c Set<Path<T>>::operator>>(Arrow, Arrow) — needed by
+ * @c IsCategory<Set<Path<T>>> — not resolve cleanly.  The standard
+ * Functor-on-Set machinery does not apply.  This is structural to
+ * Path's "is itself an arrow" nature and not a defect to be papered
+ * over.
  *
  * @section path__Frobenius_Reading
  * Path is @b Frobenius — it carries both monadic and comonadic
- * structure (per the partition's header note).  Under the
- * categorical reading:
- *   * @c path_functor is the underlying functor T (informal
- *     "Set @c → @c Set" endofunctor; the strict @c IsEndofunctor
- *     concept demands @c Σ_cat @c = @c Τ_cat which the
- *     per-T-parameterised representation does not satisfy at
- *     this Hub level — same convention as @c box_functor /
- *     @c maybe_functor in @c :functor).
- *   * @c unit_witness<path_functor<T>, T> is the @c T-component
- *     of the natural transformation @c η: @c Id @c ⇒ @c T
- *     (constant path @c λn.x).
+ * structure (per the partition's header note).  Under the categorical
+ * reading at the Kleisli-witness level:
+ *   * @c path_functor is the Hub-tag for the underlying functor T,
+ *     namely the type-constructor @c Path<·> on objects (no @c φ
+ *     reified at this level for the structural reason above).
+ *   * @c unit_witness<path_functor<T>, T> is the @c T-component of
+ *     the natural transformation @c η: @c Id @c ⇒ @c T (constant
+ *     path @c λn.x).
  *   * @c counit_witness<path_functor<T>, T> is the @c T-component
  *     of the natural transformation @c ε: @c T @c ⇒ @c Id (head
  *     sampling @c p.at(0)).
- *   * Together these are the unit / counit of the Frobenius
- *     monad-comonad on Path.  The downstream
- *     @c IsFrobenius<path_functor<int>, int, long> static_assert
- *     witnesses the Kleisli-side bracket shape mechanically.
+ *   * The downstream @c IsFrobenius<path_functor<int>, int, long>
+ *     static_assert witnesses the Kleisli-side bracket shape
+ *     mechanically — that's the right level to certify on Path.
  */
 export template <typename T>
 struct path_functor {
-  using ArrowKind = dedekind::category::hub_arrow_tag;
-  // CanonicalSetCCC is the exported set-CCC alias (Set<T> in :cartesian
-  // is not export-qualified for downstream consumers); follows the
-  // vec2_functor / matrix2x2_functor pattern in :linear_algebra.
-  using Σ_cat = dedekind::category::CanonicalSetCCC<T>;
-  using Τ_cat =
-      dedekind::category::CanonicalSetCCC<dedekind::sequences::Path<T>>;
-
-  using Domain = Σ_cat;
-  using Codomain = Τ_cat;
-
-  /** @brief F_obj: the type-constructor action of the functor. */
+  /** @brief F_obj: the type-constructor action of the functor.
+   *         The only Functor-shaped surface @c path_functor reifies. */
   template <typename U>
   using Shape = dedekind::sequences::Path<U>;
-
-  /** @brief F_mor (φ): pointwise lift of an arrow @c T @c → @c U
-   *         to @c Path<T> @c → @c Path<U>, by composition with
-   *         the source path's generator at each index. */
-  template <typename 𝗳>
-    requires dedekind::category::IsArrow<std::remove_cvref_t<𝗳>>
-  constexpr auto φ(𝗳&& f) const {
-    using ResultT = std::invoke_result_t<𝗳, T>;
-    return dedekind::category::arrow(
-        [f = std::forward<𝗳>(f)](dedekind::sequences::Path<T> const& p) {
-          return dedekind::sequences::Path<ResultT>{
-              [f, p](std::size_t n) { return std::invoke(f, p.at(n)); }};
-        });
-  }
-
-  /** @brief Action on the source-category object (Hub-arrow surface). */
-  constexpr Τ_cat operator()(const Σ_cat&) const noexcept { return {}; }
 };
-
-static_assert(dedekind::category::IsFunctor<path_functor<int>>,
-              "path_functor must satisfy IsFunctor — the Hub-pattern "
-              "consistency requirement that justifies the *_functor "
-              "naming alongside box_functor / maybe_functor / etc.");
 
 // Path participates in the Kleisli witness framework as an infinite constant
 // path for η and head sampling for ε.
