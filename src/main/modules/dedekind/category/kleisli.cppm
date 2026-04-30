@@ -58,6 +58,7 @@ module;
 #include <concepts>
 #include <functional>
 #include <ios>
+#include <utility>  // std::move / std::forward (kept self-contained per #521 review)
 
 export module dedekind.category:kleisli;
 

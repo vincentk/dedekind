@@ -473,19 +473,26 @@ constexpr auto forall(const Path<T, Cardinality>& path, Pred&& pred) {
 namespace dedekind::category {
 
 /**
- * @brief Hub-tag carrying the @c Path<U> Shape<U> alias for the
- *        unit_witness / counit_witness Kleisli registrations (#508).
+ * @brief Kleisli-only Hub-tag carrying the @c Path<U> Shape<U> alias
+ *        for the @c unit_witness / @c counit_witness registrations
+ *        (#508).
  *
- * @details Mirrors @c box_functor in @c :functor: a regular type whose
- * nested @c Shape<U> alias names the carrier this Hub stands for.  Used
- * as the first template argument to @c unit_witness / @c counit_witness /
- * @c IsKleisliExtension / @c IsCoKleisliExtension / @c IsFrobenius after
- * the template-template removal in PR #508.  The outer @c T parameter
- * carries the canonical pinned-Shape representative (@c Path<T>) so the
- * Hub is well-formed at any concrete instantiation.
+ * @details Deliberately @b not named @c path_functor: this type
+ * provides @c Shape<U> only — it does not model
+ * @c dedekind::category::IsFunctor (no @c Σ_cat / @c Τ_cat /
+ * @c ArrowKind / @c φ surface).  The fully-fledged @c box_functor /
+ * @c vec2_functor / @c covec2_functor / @c matrix2x2_functor Hubs in
+ * sibling partitions provide the IsFunctor surface; this Hub is
+ * scoped to the Kleisli witness registry only.  Renaming to
+ * @c path_kleisli_hub keeps the API surface consistent with the
+ * naming convention the project applies elsewhere (@c maybe_hub /
+ * @c box_hub for non-functor hubs).  Used as the first template
+ * argument to @c unit_witness / @c counit_witness /
+ * @c IsKleisliExtension / @c IsCoKleisliExtension / @c IsFrobenius
+ * after the template-template removal in #508.
  */
 export template <typename T>
-struct path_functor {
+struct path_kleisli_hub {
   template <typename U>
   using Shape = dedekind::sequences::Path<U>;
 };
@@ -493,14 +500,14 @@ struct path_functor {
 // Path participates in the Kleisli witness framework as an infinite constant
 // path for η and head sampling for ε.
 export template <typename T>
-struct unit_witness<path_functor<T>, T> final {
+struct unit_witness<path_kleisli_hub<T>, T> final {
   constexpr auto operator()(T x) const {
     return dedekind::sequences::Path<T>{[x](std::size_t) { return x; }};
   }
 };
 
 export template <typename T>
-struct counit_witness<path_functor<T>, T> final {
+struct counit_witness<path_kleisli_hub<T>, T> final {
   constexpr T operator()(const dedekind::sequences::Path<T>& p) const {
     return p.at(0);
   }
@@ -538,14 +545,14 @@ static_assert(
     std::input_iterator<decltype(std::declval<FinitePath<int>>().begin())>,
     "FinitePath<T>::begin() must yield a std::input_iterator.");
 
-static_assert(IsKleisliExtension<path_functor<int>, int, long>,
+static_assert(IsKleisliExtension<path_kleisli_hub<int>, int, long>,
               "Path must satisfy the Kleisli extension witness.");
 
-static_assert(IsCoKleisliExtension<path_functor<int>, int, long>,
+static_assert(IsCoKleisliExtension<path_kleisli_hub<int>, int, long>,
               "Path must satisfy the co-Kleisli extension witness.");
 
 static_assert(
-    IsFrobenius<path_functor<int>, int, long>,
+    IsFrobenius<path_kleisli_hub<int>, int, long>,
     "Path must satisfy the Frobenius witness (Kleisli + co-Kleisli).");
 
 }  // namespace dedekind::sequences
