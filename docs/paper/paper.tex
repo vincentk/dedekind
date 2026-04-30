@@ -795,6 +795,48 @@ category---hence, equivalently, for STLC; and the
 collapse (§\ref{sec:gap}) act as a form of cut elimination, with the
 LLVM backend treating the reduced bottom type as dead code.
 
+\paragraph{Named functors that build the library's carriers.}
+The categorical vocabulary is not decorative.  Each carrier in the
+numeric tower (Figure~\ref{fig:carrier-lattice}) arrives as the image
+of a named universal-property functor applied to its base:
+$\mathbb{Q} = \operatorname{Frac}(\mathbb{Z})$ (field of fractions;
+right adjoint to the forgetful functor from fields to integral
+domains), $\mathbb{R} = \operatorname{Cuts}(\mathbb{Q})$ (Dedekind
+order-completion), $\mathbb{C} = \operatorname{Cplx}(\mathbb{R}) =
+\mathbb{R}[i]/(i^2 + 1)$ (quotient ring), $\mathbb{D} =
+\operatorname{Dual}(\mathbb{R}) = \mathbb{R}[\varepsilon]/(\varepsilon^2)$
+(quotient ring; the tangent-bundle ring of the affine line over
+$\mathbb{R}$).  The rank axis adds two more: $\operatorname{Free}_n(R)
+= R^n$ (left adjoint to the forgetful functor from $R$-modules to
+sets) and $\operatorname{End}_R(R^n) = M_n(R)$ (internal hom in
+$\operatorname{Mod}_R$).  The library partitions correspond
+one-to-one to these functors --- \texttt{:rational} ships
+$\operatorname{Frac}$, \texttt{:real} ships $\operatorname{Cuts}$,
+\texttt{:complex} ships $\operatorname{Cplx}$,
+\texttt{analysis:dual} ships $\operatorname{Dual}$,
+\texttt{:tuple} ships $\operatorname{Free}_2$, \texttt{:matrix} ships
+$\operatorname{End}_R$ at $n=2$ --- so a reader fluent in either
+side can move between the textbook diagram and the C++ source
+without an interpretive layer.  Each carrier exposes its source-side
+projection by a member alias (\lstinline|Rational<I>::IntegerCarrier|,
+\lstinline|Real<Q>::ScalarCarrier|, \lstinline|Complex<R>::ScalarCarrier|,
+\lstinline|Dual<F>::value_type|).  A co-located \lstinline|static_assert|
+pins the functor identification mechanically for the
+field-of-fractions, Dedekind-cuts, and quotient-by-$(i^2+1)$ carriers
+(\texttt{Rational}, \texttt{Real}, \texttt{Complex}); the
+$\operatorname{Dual}$ identification is pinned structurally via the
+\lstinline|IsTangentBundle| concept in
+\texttt{geometry:tangent}, which checks the same source-side
+projection under a different name (\lstinline|value_type|, plus the
+\lstinline|.value()| / \lstinline|.derivative()| accessors).  The aliases are not yet fully aligned with the
+\lstinline|:functor| partition's convention
+($\Sigma_{\mathrm{cat}}$ / $\mathrm{T}_{\mathrm{cat}}$ for source /
+target category, \lstinline|Shape<U>| for the on-objects action;
+cf.~\lstinline|box_functor<T>|): unifying the two surfaces is the
+NEW-A trait-registry follow-up under issue~\#498.  References for
+each construction are tabulated in Table~\ref{tab:rosetta-quotient}
+(quotient axis) and Table~\ref{tab:rosetta-rank} (rank axis).
+
 % ============================================================
 \section{Intensional First, Realize When You Mean It}
 \label{sec:intensional}
@@ -2049,6 +2091,30 @@ defining relation $\varepsilon^2 = 0$ lifting to
 $\bigl(\begin{smallmatrix} 0 & 1 \\ 0 & 0 \end{smallmatrix}\bigr)^2
 = 0$ on the matrix side.
 
+In the functor vocabulary of §\ref{sec:axiomatic} (paragraph
+\emph{Named functors that build the library's carriers}): both
+embeddings are natural transformations between the quotient-functor
+images and the endomorphism-ring image of the rank functor.  Over a
+generic base ring $R$, the source side reads
+$\operatorname{Cplx}(R) = R[i]/(i^2 + 1)$ and
+$\operatorname{Dual}(R) = R[\varepsilon]/(\varepsilon^2)$; the target
+reads $M_2(R) = \operatorname{End}_R(\operatorname{Free}_2(R))$.  The
+two embeddings are then components of a single natural-transformation
+schema $\operatorname{Cplx}, \operatorname{Dual} \Rightarrow
+\operatorname{End}_R \circ \operatorname{Free}_2$ over the same base
+ring $R$ --- the textbook ``regular representation'' viewed through
+the carrier-lattice axes (Figure~\ref{fig:carrier-lattice}).  The
+worked instance shipped above is $R = \mathbb{Q}$ (with the exact
+\lstinline|Rational<SignedExtensionalCardinal<>>| carrier), so the
+\lstinline|static_assert|s in the listing below discharge
+$\operatorname{Cplx}(\mathbb{Q})$ and $\operatorname{Dual}(\mathbb{Q})$
+embedding into $M_2(\mathbb{Q})$.  The lattice's commutation identities
+(the back-face quotients commute with the rank lift; see
+Table~\ref{tab:rosetta-quotient}) underwrite the fact that the same
+identities hold over any sufficiently structured base.  The §2 paragraph's
+$\mathbb{C} = \operatorname{Cplx}(\mathbb{R})$ reading is the
+$R = \mathbb{R}$ specialisation of the same schema.
+
 % Source: src/test/cpp/modules/dedekind/linear_algebra/embeddings_test.cpp
 \begin{lstlisting}[language=C++, caption={Ring-homomorphism identities $\mathbb{C}, \mathbb{D} \hookrightarrow M_2(\mathbb{Q})$, discharged as \lstinline{static_assert}s; the source uses Catch2 \lstinline{STATIC_CHECK} macros and \lstinline{Rat{...L}} long-suffixed rationals, abridged here for legibility.}, label={lst:lin-alg-embeddings}]
 using Rat = Rational<SignedExtensionalCardinal<>>;
@@ -2843,6 +2909,41 @@ sits on the same NTTP-plus-concepts foundation as the halfspace and
 LP reductions demonstrated here.
 We leave them as worked targets for successor libraries that adopt
 the same discipline.
+
+\paragraph{An absent failure mode worth reporting.}
+A practical observation, offered honestly: across this library's
+development we did not encounter the two failure modes mainstream
+C++ template programming is famed for --- @emph{template
+instantiation explosion} (compile times that grow super-linearly
+with template depth) and @emph{template error hell} (diagnostics
+buried inside long substitution-failure cascades, far from the
+call site that triggered them).  Neither was a recurring concern.
+This is not nothing: both phenomena are well-documented hazards
+in production C++ template programming.  The disciplined fragment
+of §\ref{sec:axiomatic} (Table~\ref{tab:admissibility-rules})
+appears to rule out, by construction, the mechanisms that produce
+each.  The concept-constrained-template machinery fails at
+@emph{constraint-evaluation} time --- before template-body
+instantiation, with named-axiom diagnostics --- so the SFINAE-
+cascade error path is excluded.  Uniform parametric polymorphism
+(System-F-style; no specialisation-driven branching admitted in the
+public surface) keeps the set of compiled code paths linear in the
+number of callsites rather than combinatorial in the type tuples.
+And the bounded-instantiation-depth admissibility rule (capped at
+the carrier-lattice's three axes in the current surface) prevents
+the recursively-unfolding template-metaprogramming pattern that
+produces the explosion.  Whether this implies a @emph{formal}
+result --- a theorem that the disciplined fragment lies inside a
+decidable type-checking regime --- the paper does not claim.  The
+fragment is small enough that decidability is plausible
+(Lambek--Scott~\cite{lambek1988introduction} maps the constructive
+half to a CCC fragment; the propositions-as-types
+reading~\cite{wadler2015propositions} restricts to inhabited
+propositional types), but a proof would have to argue against
+the full C++ overload-resolution and ADL machinery and lies outside
+the scope of this engineering existence-proof.  We report the
+observation; the explanation we leave to the type-systems
+literature.
 
 \paragraph{A forward claim, in its weakest defensible form.}
 As numerical workloads saturate available hardware, the marginal

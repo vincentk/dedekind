@@ -314,6 +314,25 @@ static_assert(
 
 namespace dedekind::numbers {
 
+// Functor identification: Complex<R> = Cplx(R).  The Cplx functor
+// (quotient ring R[i]/(i² + 1); cf. Lang §III.1) takes a commutative
+// ring R to the ring extension by a square root of -1; for any
+// IsComplexScalar R, Complex<R> IS that quotient ring (a field when
+// R is a field with i² + 1 irreducible; an integral-domain extension
+// when R is an integral domain; nilpotent when i² + 1 reduces).  The
+// ScalarCarrier alias is the source-side projection of the Cplx
+// functor, mechanically aligning the §2 paper paragraph
+// ("Named functors that build the library's carriers") with source.
+//
+// FIXME(#498/NEW-A): same naming-convention question as
+// Rational<I>::IntegerCarrier and Real<Q>::ScalarCarrier — see the
+// FIXME there.  Aligning IntegerCarrier / ScalarCarrier / value_type
+// with :functor's Σ_cat / Τ_cat / Shape<U> convention is NEW-A
+// trait-registry work.
+static_assert(std::same_as<typename Complex<double>::ScalarCarrier, double>,
+              "Complex<R> is the Cplx-functor image of R; ScalarCarrier "
+              "names R mechanically.");
+
 /**
  * @brief Canonical embedding ℤ² ↪ ℂ: (x, y) ↦ x + iy.
  *
