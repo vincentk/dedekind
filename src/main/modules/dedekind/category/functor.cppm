@@ -24,7 +24,8 @@
  * that maps morphisms from the source category to the target category while
  * strictly preserving identity and composition laws.
  *
- * @section functor__The_Honest_Spine
+ * @section functor__The_Honest_Spine Hub (Intensional Law) vs. Spoke
+ * (Extensional Matter)
  *
  * With a view to interoperability with primitive types and the std::library,
  * Dedekind distinguishes between the mathematical rule of transformation
@@ -52,7 +53,8 @@
  * Applicator**. This witness allows the "Handy" fish operators (>> and <<) to
  * resolve unambiguously by utilizing the Hub's categorical authority.
  *
- * @section functor__IsFunctor_Models
+ * @section functor__IsFunctor_Models Concrete IsFunctor Models In This
+ * Partition
  *
  * The following types in this partition model @ref IsFunctor:
  * - @ref identity_functor: Cat -> Cat.

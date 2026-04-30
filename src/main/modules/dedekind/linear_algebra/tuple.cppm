@@ -50,7 +50,7 @@ import :contracts;    // ColumnOrientation, RowOrientation tags
 
 namespace dedekind::linear_algebra {
 
-/** @section tuple__NTTP_Tuples */
+/** @section tuple__NTTP_Tuples — entries pinned at the type level. */
 
 /**
  * @brief Structural 2-tuple with coordinates at the type level.
@@ -74,8 +74,7 @@ struct Vec2 {
   }
 };
 
-/** @section tuple__Value_Level_Tuples
- */
+/** @section tuple__Value_Level_Tuples Column / row vectors as 2x1 / 1x2 matrices. */
 
 // Forward declaration so `Vec2V::transpose()` can name `Covec2V` at the
 // point of definition. The bound matches the full declaration below.

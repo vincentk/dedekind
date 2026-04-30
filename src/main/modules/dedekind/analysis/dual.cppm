@@ -122,7 +122,7 @@ struct Dual {
   constexpr F value() const { return val; }
   constexpr F derivative() const { return der; }
 
-  /** @section dual__Dual_Arithmetic */
+  /** @section dual__Dual_Arithmetic: ε² = 0 */
 
   friend constexpr bool operator==(const Dual&, const Dual&) = default;
 

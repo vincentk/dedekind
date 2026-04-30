@@ -19,7 +19,10 @@
  * Categorification here is an act of reasoning, not an act of
  * allocation.
  *
- * @section species__Taxonomic_Traits
+ * @section species__Taxonomic_Traits: The Skeletal Constants
+ * - identity_v<T, Op>  : The neutral element for a specific operation.
+ * - is_associative_v   : Static proof of grouping independence.
+ * - is_commutative_v   : Static proof of order independence.
  *
  * @section species__The_Proto_Morphism
  * Defines the skeletal signature of an Arrow (Domain -> Codomain).
@@ -78,7 +81,7 @@ static_assert(IsSpecies<double>,
 static_assert(IsSpecies<bool>,
               "Atlas Error: bool must be a recognized Species.");
 
-/** @section species__The */
+/** @section species__The Traits (The categorical invariants) */
 
 /**
  * @brief Trait to mark an operation as associative: (a ∘ b) ∘ c = a ∘ (b ∘ c)
@@ -201,7 +204,7 @@ struct is_idempotent<T, MaxOp> : std::true_type {};
 template <typename T, typename Op>
 struct identity_registry {};  // Empty box
 
-/** @section species__Lattice */
+/** @section species__Lattice Identities */
 
 // Signed/Floating: The Lattice (Max) identity is the absolute floor.
 template <typename T, typename Op>
@@ -415,7 +418,7 @@ concept IsReflexive = requires(T a) {
   { Rel{}(a, a) };
 } && requires { requires is_reflexive_v<T, Rel>; };
 
-/** @section species__Transitivity */
+/** @section species__Transitivity: (a <= b && b <= c) => a <= c */
 export template <typename T, typename Rel>
 struct is_transitive : std::false_type {};
 
@@ -440,7 +443,7 @@ concept IsTransitive = requires(T a, T b) {
   { Rel{}(a, b) } -> std::convertible_to<bool>;
 } && requires { requires is_transitive_v<T, Rel>; };
 
-/** @section species__Antisymmetry */
+/** @section species__Antisymmetry: (a <= b && b <= a) => a == b */
 export template <typename T, typename Rel>
 struct is_antisymmetric : std::false_type {};
 
@@ -465,7 +468,7 @@ concept IsAntisymmetric = requires(T a, T b) {
   { Rel{}(a, b) } -> std::convertible_to<bool>;
 } && requires { requires is_antisymmetric_v<T, Rel>; };
 
-/** @section species__Categorical_Inverses */
+/** @section species__Categorical_Inverses: The 'Undo' Bricks */
 
 /** @brief In XOR, every element is its own inverse (Involutive). */
 template <std::integral 𝒯>
@@ -602,7 +605,7 @@ inline constexpr bool is_associative_v<T, std::modulus<T>> = false;
 template <std::integral T>
 inline constexpr bool is_commutative_v<T, std::modulus<T>> = false;
 
-/** @section species__Bitwise_Certifications */
+/** @section species__Bitwise_Certifications: (Z, ^) and (Z, &) */
 
 // 1. Bitwise XOR (^) is Associative, Commutative, and has Identity 0.
 template <std::integral T>
@@ -734,7 +737,9 @@ static_assert(
     !is_associative_v<int, std::plus<int>>,
     "Honesty Check: Signed addition is NOT associative due to UB hazards.");
 
-/** @section species__Property_Ledger
+/** @section species__Property_Ledger: Periodicity
+ *  A type is periodic if it defines a circular topology where
+ *  "stepping off the edge" results in a valid, defined wrap.
  */
 export template <typename T, typename Op>
 struct is_periodic : std::false_type {};
@@ -742,7 +747,7 @@ struct is_periodic : std::false_type {};
 export template <typename T, typename Op>
 inline constexpr bool is_periodic_v = is_periodic<T, Op>::value;
 
-/** @section species__Property_Ledger_2
+/** @section species__Property_Ledger_2: Saturation
  *  A type is saturating under @c Op if it defines an extended-range
  *  topology where "stepping off the edge" escalates to a saturating
  *  value (e.g.\ @f$\pm \aleph_0@f$) rather than wrapping.  The
@@ -893,7 +898,7 @@ concept IsAssociative = is_associative_v<T, Op>;
 export template <typename T, typename Op>
 concept IsCommutative = is_commutative_v<T, Op>;
 
-/** @section species__Commutative */
+/** @section species__Commutative Verification: The Symmetry Law */
 
 // Proof: (int, &) is Commutative (even though it's not a SmallCategory).
 // This allows a compiler to reorder bitwise AND masks.
@@ -960,7 +965,7 @@ export template <typename T, typename Op>
 concept IsTotal =
     IsPeriodic<T, Op> || IsIdempotent<T, Op> || is_saturating_v<T, Op>;
 
-/** @section species__Lattice_Morphisms */
+/** @section species__Lattice_Morphisms (std::ranges) */
 
 // 1. Join (max) is Idempotent, Associative, and Commutative
 template <typename T>
@@ -982,7 +987,7 @@ inline constexpr bool is_associative_v<T, decltype(std::ranges::min)> = true;
 template <typename T>
 inline constexpr bool is_commutative_v<T, decltype(std::ranges::min)> = true;
 
-/** @section species__Distributive_Lattice_Laws */
+/** @section species__Distributive_Lattice_Laws (std::ranges) */
 
 // 1. Max distributes over Min
 template <typename T>
@@ -1036,7 +1041,7 @@ template <typename T>
 inline constexpr bool
     is_absorptive_v<T, std::logical_and<T>, std::logical_or<T>> = true;
 
-/** @section species__Boolean_Ring_Morphisms */
+/** @section species__Boolean_Ring_Morphisms (XOR, AND) */
 
 // 1. XOR (std::bit_xor) is NOT idempotent (a ^ a = 0)
 template <typename T>

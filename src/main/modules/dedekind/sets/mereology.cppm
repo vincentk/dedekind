@@ -9,7 +9,10 @@
  * @build_order 2
  * @dependency :logic, :category
  *
- * @section mereology__Mereology
+ * @section mereology__Mereology: The Geometry of Existence
+ * This partition defines the "Body" of the Dedekind species. In the
+ * structuralist ontology, Mereology establishes the relationship between
+ * 'Parts' and 'Wholes' as a mapping between a Domain and a Logic.
  *
  * @details
  * Membership is defined as a morphism to a Subobject Classifier (Ω).
@@ -50,8 +53,8 @@ export module dedekind.sets:mereology;
 import dedekind.category;
 
 /**
- * @section mereology__Mereology_2
- * @section mereology__Mereology_3
+ * @section mereology__Mereology_2: The study of parts and wholes.
+ * @section mereology__Mereology_3: The Hierarchy of Order.
  */
 namespace dedekind::sets {
 
@@ -268,7 +271,7 @@ concept IsSystem = IsBoundedLattice<S> && requires {
   requires std::same_as<typename S::Domain::ambient_species, Species>;
 };
 
-/** @section mereology__The_Scale */
+/** @section mereology__The_Scale: The Logic of Magnitude */
 
 export template <typename C>
 // Terminology note: this concept validates cardinality metadata tags
@@ -294,9 +297,9 @@ concept IsFiniteMagnitude = IsCountable<C> && (C::is_finite == true);
 
 // Finite, ℵ<N>, ℵ_0, ℶ_1 are defined in :cardinality (same module).
 
-/** @section mereology__The_Body */
+/** @section mereology__The_Body: The Logic of Presence */
 
-/** @section mereology__The_Extent */
+/** @section mereology__The_Extent: The Logic of Realization */
 
 /**
  * @concept IsEnumerated
@@ -316,11 +319,11 @@ concept IsEnumerated = requires(const S s) {
   requires dedekind::category::IsSet<
       decltype(dedekind::category::ambient_set<typename S::Domain>(s))>;
 
-  /** @section mereology__Magnitude */
+  /** @section mereology__Magnitude: The Physical Proof */
   // An extensional set MUST claim a Finite cardinality type.
   requires(S::cardinality_type::is_finite == true);
 
-  /** @section mereology__Termination */
+  /** @section mereology__Termination: The Boundedness Proof */
   // Every extensional set must define a maximum capacity (upper_bound)
   // to ensure memory-safe allocations and finite iteration.
   { s.upper_bound() } -> std::convertible_to<std::size_t>;
@@ -363,7 +366,7 @@ concept IsPointedSet = requires(const S s) {
 } && IsPointed<T, std::plus<T>>;
 
 /**
- * @section mereology__Structural_Inference
+ * @section mereology__Structural_Inference: NaturalLogic
  * @brief Deduce the governing logic species from the nature of the Base.
  *
  * Theorem:

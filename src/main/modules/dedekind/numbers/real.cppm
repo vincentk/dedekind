@@ -401,7 +401,7 @@ static_assert(
 static_assert(dedekind::algebra::HasFieldOperators<ExactReal<>>,
               "ExactReal<> must satisfy HasFieldOperators (ℝ is a field).");
 
-/** @section real__Canonical_Species_Spine
+/** @section real__Canonical_Species_Spine (ℝ)
  *
  * The canonical real-number species ℝ is defined above as
  * @c RealSet @c = @c RealsOf<> with value-level constant @c R; the

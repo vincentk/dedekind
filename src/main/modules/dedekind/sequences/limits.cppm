@@ -3,7 +3,10 @@
  * @partition :limits
  * @brief The Convergence Morphism (Resolution of the Path).
  *
- * @section limits__Convergence
+ * @section limits__Convergence: The Bridge to Continuity
+ * This partition defines the "Resolution" of a Path into a single point.
+ * In the Dedekind structuralist framework, a limit is the terminal state
+ * of a sequence as it enters the infinitesimal neighborhood of a species.
  *
  * @details
  * We utilize the Archimedean property from (:order) to ensure that the

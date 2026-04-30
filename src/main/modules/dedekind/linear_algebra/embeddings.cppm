@@ -47,7 +47,7 @@ namespace dedekind::linear_algebra {
 using dedekind::analysis::Dual;
 using dedekind::numbers::Complex;
 
-/** @section embeddings__Canonical_Embedding_ℂ_ */
+/** @section embeddings__Canonical_Embedding_ℂ_↪_M₂ */
 
 /**
  * @brief Regular representation of ℂ inside M₂(T):
@@ -86,7 +86,7 @@ constexpr Complex<T> complex_from_matrix2x2(const Matrix2x2V<T>& M) {
   return Complex<T>{M.m11, M.m21};
 }
 
-/** @section embeddings__Canonical_Embedding_𝔻_ */
+/** @section embeddings__Canonical_Embedding_𝔻_↪_M₂ */
 
 /**
  * @brief Regular representation of 𝔻 inside M₂(T):

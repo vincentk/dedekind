@@ -125,7 +125,7 @@ export template <typename T, typename Add = std::plus<T>,
 concept IsField =
     dedekind::category::IsField<T, Add, Mult> && IsDivisionRing<T, Add, Mult>;
 
-/** @section field__Formal_Verification
+/** @section field__Formal_Verification: bool is the Galois field 𝔽2
  *
  * Rather than wrap @c bool in a dedicated carrier struct, the library
  * witnesses @f$\mathbb{F}_2@f$ directly on the primitive type under

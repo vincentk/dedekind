@@ -13,7 +13,7 @@
  * to an empty predicate at compile time. Contrast with the lambda-returning
  * variable operators in `dedekind.sets`, which erase the pivot into a closure.
  *
- * @section halfspace__DSL_Surface
+ * @section halfspace__DSL_Surface (paper-facing)
  *
  *     inline constexpr auto n = var<ℕ>;
  *     inline constexpr auto big   = Set{n % N | (n > bound<5>)};
@@ -84,7 +84,7 @@ concept IsRingIntegral =
     std::same_as<std::remove_cvref_t<T>, dedekind::sets::Cardinality> ||
     std::same_as<std::remove_cvref_t<T>, dedekind::sets::SignedCardinality>;
 
-/** @section halfspace__Formal_Verification */
+/** @section halfspace__Formal_Verification (IsRingIntegral) */
 
 // Positive witnesses: built-in integrals + the variant ℕ-/ℤ-proxy carriers.
 static_assert(IsRingIntegral<int>);
@@ -264,8 +264,8 @@ struct OrderInterval {
   using cardinality_type = std::conditional_t<is_integer_range, Finite, ℵ_0>;
 };
 
-/** @section halfspace__Halfspace_Variable_DSL
- */
+/** @section halfspace__Halfspace_Variable_DSL — Variable<S> × Bound<V> →
+ * Halfspace. */
 
 export template <typename Species, auto V>
   requires std::convertible_to<decltype(V),
@@ -331,7 +331,7 @@ constexpr auto operator<=(const Variable<Species>&, Bound<V>) {
   return Halfspace<T, V, Direction::Downward, Strictness::NonStrict>{};
 }
 
-/** @section halfspace__Halfspace_Structural_Algebra
+/** @section halfspace__Halfspace_Structural_Algebra — ADL hooks for operator&&.
  */
 
 /**
@@ -445,7 +445,7 @@ constexpr auto structured_and(Halfspace<T, P1, Direction::Downward, S1, L>,
   }
 }
 
-/** @section halfspace__Interval_Cartesian_Product */
+/** @section halfspace__Interval_Cartesian_Product — 2D structural products. */
 
 /**
  * @brief Cartesian product of two reduced extensional structures (typically

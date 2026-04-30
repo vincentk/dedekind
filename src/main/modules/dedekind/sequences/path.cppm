@@ -183,7 +183,7 @@ struct Path {
   constexpr T at(std::size_t i) const { return generator(i); }
 
   /**
-   * @section path__Kleisli_Triple
+   * @section path__Kleisli_Triple (The Monadic Push)
    * @brief Bind (>>=): m >>= f.
    */
   template <typename F>
@@ -203,7 +203,7 @@ struct Path {
   }
 
   /**
-   * @section path__Co_Kleisli_Triple
+   * @section path__Co_Kleisli_Triple (The Comonadic Pull)
    * @brief Extend (<<=): w <<= f.
    */
   template <typename F>

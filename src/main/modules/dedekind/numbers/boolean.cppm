@@ -8,7 +8,7 @@
  * @partition :numbers
  * @dependency :algebra, :topology, :cardinalities, :scalars
  *
- * @section numbers_boolean__Booleans
+ * @section numbers_boolean__Booleans: The Binary Logic Structure
  * This partition defines the @b Boolean species—the simplest non-trivial
  * numerical system. It establishes the formal mapping between logical
  * truth values and the algebraic structure of a semiring.

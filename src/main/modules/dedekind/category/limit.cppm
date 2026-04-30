@@ -11,7 +11,11 @@
  *  infinite to the finite."
  *  — Gian-Carlo Rota, Indiscrete Thoughts
  *
- * @section limit__Limits
+ * @section limit__Limits: The Universal Boundaries
+ * In the Dedekind topos, the Initial (0) and Terminal (1) objects represent
+ * the finite "anchors" of a system of otherwise infinite potential relations.
+ * They are the unique sinks and sources through which the structure of
+ * every other species is measured and made finite.
  *
  * @section limit__Std_Namespace_Mappings
  * This partition asserts bidirectional mappings between categorical boundary

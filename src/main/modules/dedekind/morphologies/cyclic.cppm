@@ -243,7 +243,7 @@ struct identity_trait<dedekind::morphologies::Modular<N>,
   static constexpr value_type value = value_type{1};
 };
 
-/** @section cyclic__Atlas_Registration */
+/** @section cyclic__Atlas_Registration: Modular<N> */
 
 export template <auto N>
 struct SpeciesTraits<dedekind::morphologies::Modular<N>> {
@@ -290,7 +290,7 @@ struct cyclic_order<dedekind::morphologies::Modular<N>,
 
 namespace dedekind::morphologies {
 
-/** @section cyclic__Formal_Verification
+/** @section cyclic__Formal_Verification — main-source witnesses
  *
  *  These @c static_assert s travel with the carrier definitions so
  *  downstream modules see them immediately on import.  Tests in
@@ -349,7 +349,7 @@ static_assert(IsCyclicRing<CyclicRing<int, 100>>,
               "CyclicRing<int, 100> satisfies morphologies::IsCyclicRing "
               "(IsCyclic + ring-shaped + and *).");
 
-/** @section cyclic__CCC_Inheritance_389
+/** @section cyclic__CCC_Inheritance_389 CCC inheritance (#389)
  *
  * Both cyclic-morphology carriers can serve as the ambient species of
  * an ETCS-style set object; the canonical CCC over each carrier
