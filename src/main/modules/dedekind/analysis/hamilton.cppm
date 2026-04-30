@@ -3,7 +3,7 @@
  * @partition :hamilton
  * @brief Level 4: The Principle of Least Action (Hamiltonian Dynamics).
  *
- * @section Hamiltonian: The Flow of the Species
+ * @section hamilton__Hamiltonian: The Flow of the Species
  * This partition defines the generator of motion \( \mathcal{H} \). In the
  * Dedekind Category, the Hamiltonian is the Morphism that maps the Phase
  * Space (Position and Momentum) to the Energy Scalar Field.
@@ -190,7 +190,7 @@ struct HarmonicOscillator {
   }
 };
 
-/** @section Formal_Verification */
+/** @section hamilton__Formal_Verification */
 static_assert(IsCurve<decltype(harmonic_oscillator_curve<double>(1.0, 0.0))>,
               "Closed-form harmonic trajectory must be a curve.");
 

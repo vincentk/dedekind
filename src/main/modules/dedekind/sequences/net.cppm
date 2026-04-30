@@ -3,7 +3,7 @@
  * @partition :sequences
  * @brief Level 2.5: The Path (The Morphism of Enumeration).
  *
- * @section Sequences: The Logic of Enumeration
+ * @section net__Sequences: The Logic of Enumeration
  * This partition defines the "Path" (λn. s_n) as a Morphism from a Domain
  * (Index Set) to a Codomain (Species). This provides the functional basis for
  * Sequence Spaces like ℓ² (Hilbert Spaces), where the Path is an element and
@@ -77,7 +77,7 @@ concept IsNet = IsArrow<N> && IsDirectedSet<typename N::Domain>;
  * @concept IsSequence
  * @brief The fundamental mapping from a Domain Set to a Value Type.
  *
- * @section IsSequence_vs_stdlib_388
+ * @section net__IsSequence_vs_stdlib_388
  *
  * @c IsSequence anchors bidirectionally to the C++ standard library
  * via two complementary surfaces.
@@ -192,7 +192,7 @@ struct toy_countable_family {
 };
 }  // namespace detail
 
-/** @section Formal_Verification */
+/** @section net__Formal_Verification */
 static_assert(IsIndexedMorphismFamily<detail::toy_countable_family<int>>,
               "Countable toy family must satisfy indexed family concept.");
 

@@ -7,7 +7,7 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  *
- * @section Shapes: The Geometry of Boundaries
+ * @section interval__Shapes: The Geometry of Boundaries
  * This partition defines the fundamental morphological units of the continuum.
  * Following the Dedekind construction, we define the "Half-Space" as a Ray
  * and the "Bounded Space" as an Interval.
@@ -131,7 +131,7 @@ class Ray : public detail::BoundaryTag<B> {
   using Codomain = typename L::Ω;
   using is_ray_tag = void;
 
-  /** @section Algebraic_Axioms */
+  /** @section interval__Algebraic_Axioms */
   template <typename Op>
   static constexpr bool is_associative_v = true;
 
@@ -142,7 +142,7 @@ class Ray : public detail::BoundaryTag<B> {
 
   constexpr T pivot() const { return pivot_; }
 
-  /** @section Logic: Characteristic Function */
+  /** @section interval__Logic: Characteristic Function */
   constexpr auto operator()(const T& x) const {
     if constexpr (D == Direction::Upward)
       return (B == Boundary::Open ? x > pivot_ : x >= pivot_) ? L::True
@@ -152,7 +152,7 @@ class Ray : public detail::BoundaryTag<B> {
                                                               : L::False;
   }
 
-  /** @section Algebraic_Laws: The Rhyme of the Lattice */
+  /** @section interval__Algebraic_Laws: The Rhyme of the Lattice */
   friend constexpr Ray operator|(const Ray& a, const Ray& b) {
     if constexpr (D == Direction::Upward)
       return Ray{std::min(a.pivot_, b.pivot_)};  // Union of upward rays
@@ -168,7 +168,7 @@ class Ray : public detail::BoundaryTag<B> {
   }
 
   // Inside Ray<T, Dir, L>
-  /** @section Lattice_Laws */
+  /** @section interval__Lattice_Laws */
   constexpr auto operator<=(const Ray& other) const {
     if constexpr (D == Direction::Upward)
       return (pivot_ >= other.pivot_) ? L::True : L::False;
@@ -212,7 +212,7 @@ class Interval : public detail::IntervalBoundaryTag<Lower, Upper> {
   upper_ray_type upper_;
 };
 
-/** @section Trait_Registration */
+/** @section interval__Trait_Registration */
 export template <typename T, Direction D, Boundary B, typename L>
 inline constexpr bool is_convex_v<Ray<T, D, B, L>> = true;
 
@@ -308,7 +308,7 @@ class HalfSpace : public detail::BoundaryTag<B> {
 export template <typename T, Boundary B, typename L>
 inline constexpr bool is_convex_v<HalfSpace<T, B, L>> = true;
 
-/** @section Formal_Verification */
+/** @section interval__Formal_Verification */
 
 // Every Ray and Interval is a convex set (no holes).
 // Note: int (not double) because IsTotallyOrdered<double> is withheld in
@@ -322,7 +322,7 @@ static_assert(IsConvex<HalfSpace<int>>, "A half-space must satisfy IsConvex.");
 }  // namespace dedekind::topology
 
 /**
- * @section The_Topological_Bridge
+ * @section interval__The_Topological_Bridge
  * We re-open the category namespace to reify the Ray as a formal Species
  * and establish its Algebraic Harmony.
  */
@@ -339,7 +339,7 @@ struct SpeciesTraits<dedekind::topology::Ray<T, D, B, L>> {
       std::integral<T> ? CardinalityTag::Countable : CardinalityTag::Continuum;
 };
 
-/** @section Mereological_Harmony */
+/** @section interval__Mereological_Harmony */
 
 // We must explicitly register the Lattice Axioms for IsSet to resolve.
 template <typename T, dedekind::topology::Direction D,
@@ -363,7 +363,7 @@ template <typename T, dedekind::topology::Direction D,
 inline constexpr bool
     is_idempotent_v<dedekind::topology::Ray<T, D, B, L>, std::bit_or<>> = true;
 
-/** @section HalfSpace_Harmony */
+/** @section interval__HalfSpace_Harmony */
 
 export template <typename T, dedekind::topology::Boundary B, typename L>
 struct SpeciesTraits<dedekind::topology::HalfSpace<T, B, L>> {

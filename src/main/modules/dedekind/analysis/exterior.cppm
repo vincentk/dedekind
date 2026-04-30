@@ -34,7 +34,7 @@ struct TwoForm {
   // For simplicity in 2D/Symplectic: ω = dp ∧ dq
   F magnitude;
 
-  /** @section The_Symplectic_Action */
+  /** @section exterior__The_Symplectic_Action */
   constexpr F operator()(const Vector<F, N>& u, const Vector<F, N>& v) const {
     // ω(u, v) = u1*v2 - u2*v1 (The determinant/signed area)
     return magnitude * (u[0] * v[1] - u[1] * v[0]);
@@ -52,7 +52,7 @@ constexpr auto wedge(const OneForm<F, N>& a, const OneForm<F, N>& b) {
                        (a.components[1] * b.components[0])};
 }
 
-/** @section Formal_Verification
+/** @section exterior__Formal_Verification
  *
  * Antisymmetry ω(u,v) = -ω(v,u) is the defining property of a 2-form.
  * The 2D case is exact (no floating-point rounding on integer inputs).

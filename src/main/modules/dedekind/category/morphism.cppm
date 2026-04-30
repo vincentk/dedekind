@@ -3,7 +3,7 @@
  * @partition :morphism
  * @brief Level 0: The Skeletal Morphism (Structural Cement).
  *
- * @section The_Structuralist_Framework
+ * @section morphism__The_Structuralist_Framework
  * This partition defines the categorical primitives that govern the interaction
  * between species. In the Dedekind ontology, we do not treat functions as
  * ephemeral blocks of logic, but as formal "Arrows" that carry their own
@@ -30,7 +30,7 @@
  * - @ref Identity (id)   : The "Zero-Length Highway" (Reflexivity).
  * - @ref operator>>      : Categorical composition (The Path Axiom).
  *
- * @section The_Action_Axiom
+ * @section morphism__The_Action_Axiom
  * To bypass C++ template limitations regarding ADL, morphisms are treated as
  * "Actions." This allows us to lift total functions into the monadic Kleisli
  * spine without losing the formal species-integrity of the Domain.
@@ -169,7 +169,7 @@ concept IsSpokeArrow =
     };
 
 /**
- * @section The_Skeletal_Morphism
+ * @section morphism__The_Skeletal_Morphism
  * @brief The formal structure of an Arrow f: A -> B.
  */
 export template <typename A, typename B, typename Func>
@@ -203,7 +203,7 @@ template <typename F, typename A>
   requires requires(F f, A x) { f(x, x); }
 struct SpeciesTraits<F, A> : infer_morphism<F, A, A> {};
 
-/** @section Logical_Species (bool) */
+/** @section morphism__Logical_Species (bool) */
 template <>
 struct SpeciesTraits<std::logical_and<bool>>
     : infer_morphism<std::logical_and<bool>, bool, bool> {};
@@ -214,7 +214,7 @@ template <>
 struct SpeciesTraits<std::equal_to<bool>>
     : infer_morphism<std::equal_to<bool>, bool, bool> {};
 
-/** @section Integral_Species (uint/int) */
+/** @section morphism__Integral_Species (uint/int) */
 template <typename T>
   requires std::integral<T>
 struct SpeciesTraits<std::plus<T>> : infer_morphism<std::plus<T>, T, T> {};
@@ -242,7 +242,7 @@ template <typename T>
   requires std::integral<T>
 struct SpeciesTraits<std::bit_or<T>> : infer_morphism<std::bit_or<T>, T, T> {};
 
-/** @section Relational_Morphisms (Subobject Classifiers) */
+/** @section morphism__Relational_Morphisms (Subobject Classifiers) */
 template <typename T>
 struct SpeciesTraits<std::less_equal<T>>
     : infer_morphism<std::less_equal<T>, T, T> {};
@@ -250,7 +250,7 @@ struct SpeciesTraits<std::less_equal<T>>
 template <typename T>
 struct SpeciesTraits<std::less<T>> : infer_morphism<std::less<T>, T, T> {};
 
-/** @section Lambda_Introspection
+/** @section morphism__Lambda_Introspection
  *
  * @c MorphicBridge synthesises @c Domain / @c Codomain for callable
  * types that don't expose those nested aliases directly (lambdas,
@@ -285,14 +285,14 @@ struct MorphicBridge<R (C::*)(A)> {
   using Codomain = std::decay_t<R>;
 };
 
-/** @section Library_Function_Support */
+/** @section morphism__Library_Function_Support */
 template <typename R, typename A>
 struct MorphicBridge<std::function<R(A)>> {
   using Domain = std::decay_t<A>;
   using Codomain = std::decay_t<R>;
 };
 
-/** @section Morphic_Resolution */
+/** @section morphism__Morphic_Resolution */
 
 template <typename F>
 struct signature_extractor {
@@ -320,7 +320,7 @@ template <typename F>
 using codomain_t =
     typename MorphicBridge<typename signature_extractor<F>::type>::Codomain;
 
-/** @section CTAD_Guide */
+/** @section morphism__CTAD_Guide */
 template <typename F>
 Morphism(F) -> Morphism<domain_t<F>, codomain_t<F>, F>;
 
@@ -328,7 +328,7 @@ static_assert(
     IsArrow<Morphism<int, bool, std::function<bool(int)>>>,
     "Taxonomy Error: Morphism must satisfy the skeletal IsArrow concept.");
 
-/** @section Morphic_Factory */
+/** @section morphism__Morphic_Factory */
 
 // 1. Overload for raw Lambdas / Functors
 // Restricted: Only if it's NOT already an Arrow but IS callable.
@@ -418,7 +418,7 @@ struct Rule {
   constexpr B operator()(const A& x) const { return apply(x); }
 };
 
-/** @section Rule_Overloads */
+/** @section morphism__Rule_Overloads */
 // Specifically target Rule to kill the 'bool' ambiguity and fix deduction.
 export template <typename A, typename B>
 auto operator&&(const Rule<A, B>& p1, const Rule<A, B>& p2) {
@@ -436,14 +436,15 @@ auto operator||(const Rule<A, B>& p1, const Rule<A, B>& p2) {
   }};
 }
 
-/** @section Arrow Factory Verification: Tagging & Species Integrity */
+/** @section morphism__Arrow Factory Verification: Tagging & Species Integrity
+ */
 
 // 4. Action Proof: The tagged arrow preserves the underlying action.
 // We verify that the factory-produced morphism actually executes.
 static_assert(endo<int>([](int x) { return x * 2; })(21) == 42,
               "Arrow Factory: Action check failed for anonymous lambda.");
 
-/** @section The_Universal_Functor_Interface */
+/** @section morphism__The_Universal_Functor_Interface */
 
 /**
  * @brief The Identity Morphism and Functorial Witness.
@@ -467,7 +468,7 @@ struct Identity final {
   using Codomain = T;
 
   /**
-   * @section Categorical_Actions
+   * @section morphism__Categorical_Actions
    * The following operators ensure that Identity acts as a structure-preserving
    * map across different levels of the categorical hierarchy.
    */
@@ -513,14 +514,14 @@ constexpr auto id() {
   return Identity<A>{};
 }
 
-/** @section Morphism_Lifting_Proof */
+/** @section morphism__Morphism_Lifting_Proof */
 using Negate = std::negate<int>;
 using TaggedNegate = Morphism<int, int, Negate>;
 
 constexpr auto f_neg = endo<int>(std::negate<int>{});
 constexpr auto identity_int = id<int>();
 
-/** @section Identity Verification */
+/** @section morphism__Identity Verification */
 static_assert(IsArrow<decltype(id<bool>())>,
               "The id<A>() factory must produce a valid Arrow.");
 
@@ -532,7 +533,7 @@ static_assert(f_neg(identity_int(42)) == f_neg(42),
 static_assert(identity_int(f_neg(42)) == f_neg(42),
               "Unit Law: id_B ∘ f must equal f.");
 
-/** @section Lifting Traits to the Identity Functor */
+/** @section morphism__Lifting Traits to the Identity Functor */
 
 // 1. If T is associative under Op, Identity<T> is associative.
 template <typename T, typename Op>
@@ -545,7 +546,7 @@ inline constexpr bool is_commutative_v<Identity<T>, Op> =
     is_commutative_v<T, Op>;
 
 /**
- * @section Lifting Traits: Morphism Identity
+ * @section morphism__Lifting_2 Traits: Morphism Identity
  * The identity element of the Identity Morphism under composition
  * is the Identity Morphism itself (id ∘ id = id).
  */
@@ -553,7 +554,7 @@ template <typename T, typename Op>
 inline constexpr Identity<T> identity_v<Identity<T>, Op> = Identity<T>{};
 
 /**
- * @section Categorical Composition (Explicitly Typed)
+ * @section morphism__Categorical Composition (Explicitly Typed)
  * @brief Synthesizes an arrow A -> C from A -> B and B -> C.
  * @details By requiring A, B, and C as template parameters, we ensure
  *          the composition is a statically verified bridge.
@@ -577,7 +578,8 @@ constexpr auto operator>>(F&& f, G&& g) {
                          A x) constexpr { return g(f(std::move(x))); });
 }
 
-/** @section Categorical Verification: The Unit Laws (f ∘ id = f = id ∘ f) */
+/** @section morphism__Categorical_2 Verification: The Unit Laws (f ∘ id = f =
+ * id ∘ f) */
 
 // 1. Proof: Morphism Identity (Existence & Tagging)
 // We verify that id exists and chains with tagged morphisms.
@@ -590,7 +592,7 @@ static_assert(IsArrow<decltype(endo<int>(std::negate<int>{}) >> id<int>())>,
 
 // 2. Proof: Cross-Species Identity
 // id_Z combined with a Z -> B bridge must result in a Z -> B bridge
-/** @section Cross_Species_Proof: Z -> B */
+/** @section morphism__Cross_Species_Proof: Z -> B */
 static_assert(
     IsArrow<decltype(arrow<int, bool>([](int x) { return x > 0; }))>,
     "Skeletal Failure: Failed to construct an anonymous cross-species "
@@ -646,7 +648,7 @@ template <typename A, typename B, typename Impl>
 static_assert(IsIsomorphism<TaggedNegate>,
               "Negation must be recognized as a reversible Morphism.");
 /**
- * @section The Action Bridge (Value >> Arrow)
+ * @section morphism__The Action Bridge (Value >> Arrow)
  * @brief Proposition: A Value x can be piped into a Morphism f: A -> B.
  * @details This is the terminal step of a Highway pipeline. It maps the
  *          Species-level data into the Codomain result.

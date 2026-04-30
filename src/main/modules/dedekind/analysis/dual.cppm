@@ -3,7 +3,7 @@
  * @partition :dual
  * @brief Dual numbers 𝔻 = a + bε with ε² = 0 — forward-mode AD carrier.
  *
- * @section Partition_Move
+ * @section dual__Partition_Move
  * This file relocated from @c dedekind.numbers:dual to
  * @c dedekind.analysis:dual at PR #513: the construction is algebraically
  * a quotient ring, but its structural meaning is differential ---
@@ -18,12 +18,12 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @section The_Nilpotent_Basis
+ * @section dual__The_Nilpotent_Basis
  * Reifies Dual Numbers a + bε where ε² = 0.
  * This provides the algebraic foundation for Forward-Mode
  * Automatic Differentiation (AD).
  *
- * @section Carrier_Generality
+ * @section dual__Carrier_Generality
  * The construction Dual(R) = R[ε]/(ε²) is well-defined over any
  * commutative ring R, not only over floating-point fields.  The current
  * Dual<F> constraint `std::regular<F>` reflects this: integer carriers
@@ -53,7 +53,7 @@
  * @em Algebra @em with @em a @em View @em Toward @em Algebraic
  * @em Geometry, §16.5).
  *
- * @section Coherence_With_Numerical_FTC_Bridge
+ * @section dual__Coherence_With_Numerical_FTC_Bridge
  * Forward-mode AD on Dual<F> is the @b symbolic / @b exact route from
  * a function to its derivative: @c f(x + ε) yields the primal in the
  * value component and the derivative in the tangent component,
@@ -122,7 +122,7 @@ struct Dual {
   constexpr F value() const { return val; }
   constexpr F derivative() const { return der; }
 
-  /** @section Dual_Arithmetic: ε² = 0 */
+  /** @section dual__Dual_Arithmetic: ε² = 0 */
 
   friend constexpr bool operator==(const Dual&, const Dual&) = default;
 
@@ -177,7 +177,7 @@ struct Dual {
 // reviewer request: a more discoverable home for tangent-bundle
 // vocabulary).
 
-/** @section Formal_Verification */
+/** @section dual__Formal_Verification */
 
 // Basis element ε = Dual(0, 1); the nilpotent axiom ε² = 0.
 inline constexpr Dual<double> eps{0.0, 1.0};

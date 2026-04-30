@@ -51,7 +51,7 @@ using namespace dedekind::sequences;
  * operational layer unless separately registered with the
  * categorical trait machinery.
  *
- * @section Vocabulary_Notes_388
+ * @section archimedean__Vocabulary_Notes_388
  *
  * The @c T::successor(x) member API exposed by @c IsCyclic carriers
  * coincides numerically with the Peano successor @f$S(x) = x + 1@f$
@@ -78,7 +78,7 @@ using namespace dedekind::sequences;
  * algebraic content the Archimedean axiom genuinely needs, and the
  * order layer is the right home for it.
  *
- * @section Modern_Bridge_Archimedean_Generators
+ * @section archimedean__Modern_Bridge_Archimedean_Generators
  *
  * The Peano successor and the Archimedean property are unified in
  * modern probability through the @b Archimedean @b generator of
@@ -162,7 +162,7 @@ struct CauchyPath : public Path<T> {
   using is_cauchy_tag = void;
 };
 
-/** @section Formal_Verification */
+/** @section archimedean__Formal_Verification */
 
 // double is the canonical ordered Archimedean field under machine semantics.
 static_assert(

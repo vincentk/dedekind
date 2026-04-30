@@ -66,7 +66,7 @@ concept BackendConformantLinearOperator =
     LinearOperatorContract<Op> &&
     LinearAlgebraBackend<typename Op::backend_type>;
 
-/** @section Formal_Verification */
+/** @section graphblas__Formal_Verification */
 
 // SparseLinearOperatorStub satisfies the minimal linear operator contract
 // (rank-nullity witness + scalar type) and the backend-aware extension.

@@ -9,7 +9,7 @@
  * @build_order 6
  * @dependency :algebra, :order
  *
- * @section Topology: The Geometry of Closeness
+ * @section neighborhood__Topology: The Geometry of Closeness
  * This partition establishes the qualitative "shape" of our species. It
  * transforms discrete algebraic structures (like Q) into continuous spaces
  * (like R) by defining the concepts of "closeness" and "convergence".
@@ -21,7 +21,7 @@
  * - IsSequence / HasLimit: The "Path" to a point (Convergence).
  * - IsDedekindComplete: The "Seamless" property (No gaps).
  *
- * @section Structural_Synthesis
+ * @section neighborhood__Structural_Synthesis
  * We synthesize the Order from (:order) and the Metric from (:algebra)
  * to define the 'Dedekind Cut'. This is the ultimate "Promotion" in the
  * library: moving from the Discrete (N, Z) to the Continuous (R).
@@ -80,7 +80,7 @@ concept IsNeighborhood = IsOpen<N> && requires(N n, T p) {
 };
 
 /**
- * @section Topology: Morphological Shapes
+ * @section neighborhood__Topology_2: Morphological Shapes
  */
 
 export template <typename S>

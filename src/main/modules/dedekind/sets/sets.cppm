@@ -5,7 +5,7 @@
  * Copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @section Set_Theory: Implementation of Mereological Relations
+ * @section sets__Set_Theory: Implementation of Mereological Relations
  * This module provides concrete implementations for the abstract laws
  * defined in dedekind.ontology. While the ontology defines the requirements
  * for a set, this module provides the mechanisms to construct them.
@@ -18,7 +18,7 @@
  * - Intensional Sets: Rule-based definitions (Comprehensions).
  * - Set Morphisms: Automatic lifting of functions (fmap) and filters (bind).
  *
- * @section The_Comprehension_Syntax
+ * @section sets__The_Comprehension_Syntax
  * This module enables symbolic set-builder notation:
  * { f | x % S | P } -> The mapping of elements in S satisfying P by f.
  *

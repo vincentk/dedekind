@@ -6,7 +6,7 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @section Honest_Stance
+ * @section integral__Honest_Stance
  * The standard-library hierarchy
  *
  *   @c std::integral @c = @c std::unsigned_integral @c ||
@@ -27,7 +27,7 @@
  * three different algebras whose only durable common ground is the
  * @b syntactic operator surface — nothing axiomatic survives the union.
  *
- * @section Dispatch_Pattern
+ * @section integral__Dispatch_Pattern
  * Callers that need axiomatic guarantees must dispatch on the sibling
  * concepts rather than on the umbrella:
  *
@@ -40,7 +40,7 @@
  *     (bool's arithmetic operator surface promotes to @c int and the
  *     resulting structure is not a field).
  *
- * @section Honesty_Obligation
+ * @section integral__Honesty_Obligation
  * The umbrella's @b negative claim (no std::integral sibling is a field
  * under arithmetic) is discharged by combining three witnesses, two of
  * which are pinned upstream and not restated here (vacuous restatements
@@ -69,7 +69,8 @@ import dedekind.algebra; // IsField (umbrella negative-claim witness)
 
 namespace dedekind::numbers {
 
-/** @section Formal_Verification — umbrella negative claims under arithmetic
+/** @section integral__Formal_Verification — umbrella negative claims under
+ * arithmetic
  *
  * The per-sibling field rejections are pinned upstream and are NOT restated
  * here (vacuous restatements are noise — see the project's cross-partition

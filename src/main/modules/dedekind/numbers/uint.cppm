@@ -6,7 +6,7 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @section Honest_Stance
+ * @section uint__Honest_Stance
  * Each width-@c w instance of @c std::unsigned_integral (`unsigned int`,
  * `unsigned long`, `std::size_t`, plus the narrow widths modulo integer
  * promotion) is the finite cyclic ring @c ℤ/2^wℤ under modular
@@ -18,7 +18,7 @@
  * textbook @c ℕ lives one carrier step deeper, on the variant
  * @c Cardinality (with @c ℵ_0 saturation).
  *
- * @section Three_Layers
+ * @section uint__Three_Layers
  * The @c std::unsigned_integral family bridges three categorical layers:
  *
  *   1. @b Width-ladder colimit (within the family): @c unsigned @c char
@@ -41,7 +41,7 @@
  *      the axiomatic @c category::IsCyclicGroup<T, std::plus<T>>.  The
  *      asymmetry is documented + witnessed below.
  *
- * @section Adjunction_Vocabulary_Cross_Reference
+ * @section uint__Adjunction_Vocabulary_Cross_Reference
  * The categorical layers above use vocabulary defined in the @c
  * :adjunction partition of @c dedekind.category (PR #437):
  *
@@ -68,7 +68,7 @@
  * @c IsAdjunction witness in this partition (that belongs to #402's
  * closing PR or a dedicated successor).
  *
- * @section Honesty_Obligation
+ * @section uint__Honesty_Obligation
  * The witness blocks below are the project's @b honesty obligation made
  * structural: each @c static_assert is an engineer's claim that the
  * named carrier exhibits the named property.  The Curry--Howard

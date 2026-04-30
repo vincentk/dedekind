@@ -6,7 +6,7 @@
  * Copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @section The_Field_of_Reunion
+ * @section field__The_Field_of_Reunion
  * In the tradition of Sharaf al-Dīn al-Ṭūsī, the Field is the species
  * of total inversion. It ensures that every action has a symmetric
  * reaction—a multiplicative inverse—allowing for the 'completion'
@@ -125,7 +125,7 @@ export template <typename T, typename Add = std::plus<T>,
 concept IsField =
     dedekind::category::IsField<T, Add, Mult> && IsDivisionRing<T, Add, Mult>;
 
-/** @section Formal_Verification: bool is the Galois field 𝔽2
+/** @section field__Formal_Verification: bool is the Galois field 𝔽2
  *
  * Rather than wrap @c bool in a dedicated carrier struct, the library
  * witnesses @f$\mathbb{F}_2@f$ directly on the primitive type under

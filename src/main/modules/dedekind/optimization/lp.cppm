@@ -6,7 +6,7 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @section Overview
+ * @section lp__Overview
  * Compile-time 2D LP over a structural ring-like scalar (paper-facing
  * carrier: `Rational<long>`). A problem instance is named at the type
  * level — objective as two NTTPs, constraints as a pack of
@@ -14,7 +14,7 @@
  * `maximize<cx, cy, H1, H2, …>()` returns the optimum as an NTTP
  * `Vec2<T, x*, y*>` — "the optimum IS a type", literally.
  *
- * @section Comonadic_Framing
+ * @section lp__Comonadic_Framing
  * The reduction is structurally a co-Kleisli arrow. Conceptually:
  *
  *     Path<Vec2<T, x, y>>  →  Vec2<T, x*, y*>
@@ -30,7 +30,7 @@
  * NTTP-friendly `Path` carrier lands (tracked informally; the conceptual
  * pattern matches exactly).
  *
- * @section Paper_Facing_Showcase
+ * @section lp__Paper_Facing_Showcase
  *     maximize 3x + 2y
  *     subject to  x +  y ≤ 4       (H1)
  *                 2x +  y ≤ 6       (H2)
@@ -43,7 +43,7 @@
  * solve uses `Invertible2x2<Rat, 1, 1, 2, 1>` (det = -1), giving the
  * ℚ-exact intersection (2, 2) without rounding.
  *
- * @section Scope
+ * @section lp__Scope
  * - 2D polytopes only (rank-2 narrowing from #364).
  * - **Feasible + bounded** inputs only. An infeasible polytope (empty
  *   feasible region) surfaces as `VertexCandidate::feasible == false`
@@ -117,7 +117,7 @@ struct Halfspace2D {
   }
 };
 
-/** @section LP_Reduction_Internals
+/** @section lp__LP_Reduction_Internals
  *
  *  Value-level helpers used to fold the NTTP constraint pack at compile
  *  time. The output is then re-promoted to an NTTP `Vec2<T, x*, y*>`.
@@ -292,7 +292,7 @@ constexpr auto maximize() {
   return Vec2<T, v.x, v.y>{};
 }
 
-/** @section Comonadic_Extract_Witness
+/** @section lp__Comonadic_Extract_Witness
  *
  *  @c maximize<T, cx, cy, Hs...>() is structurally a comonadic counit
  *  (@c ε in the Kleisli notation): it takes the polytope-context

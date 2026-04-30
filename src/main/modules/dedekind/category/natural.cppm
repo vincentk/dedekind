@@ -29,7 +29,7 @@
  *
  * @concept IsNaturalTransformation
  * @brief α : F ⟹ G
- * @section Naturality_Condition
+ * @section natural__Naturality_Condition
  * For every object $X$ in the source category, $\eta$ provides a component
  * arrow $\eta_X: F(X) \to G(X)$ such that for any morphism $f: X \to Y$,
  * the naturality square commutes: $G(f) \circ \eta_X = \eta_Y \circ F(f)$.

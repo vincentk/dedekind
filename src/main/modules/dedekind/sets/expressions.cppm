@@ -6,7 +6,7 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @section Description
+ * @section expressions__Description
  * This partition provides the principal "set-builder" abstraction:
  * Set<T, L, Predicate> -- an intensional set whose membership test is a
  * compile-time callable predicate ranging into a subobject classifier L::Omega.
@@ -22,7 +22,7 @@
  *  - power_set            -- P(A) encoded as a Set of sets.
  *  - relates, is_single_valued_at -- point-wise witnesses.
  *
- * @section Canonical_Examples
+ * @section expressions__Canonical_Examples
  * ```cpp
  * auto n = var<ℕ>;
  * const int size = 512;
@@ -30,7 +30,7 @@
  * const auto grid = cartesian_product(xs, xs);  // xs x xs
  * ```
  *
- * @section References
+ * @section expressions__References
  * - Lawvere, F.W. (1964) -- ETCS axioms @cite lawvere1964etcs
  * - Lambek & Scott (1988) -- higher-order categorical logic @cite
  * lambek1988higher
@@ -104,7 +104,7 @@ template <typename Species>
 struct MembershipBinding {
   const Species& base;
 
-  /** @section The_Comprehension_Pipe */
+  /** @section expressions__The_Comprehension_Pipe */
   template <typename P>
   constexpr auto operator|(P&& p) const {
     return Comprehension<Species, std::decay_t<P>>{base, std::forward<P>(p)};
@@ -638,12 +638,12 @@ static_assert(
     dedekind::category::HasCanonicalSetCCC<int>,
     "Breadcrumb to :cartesian: ambient int carries canonical CCC witness.");
 
-/** @section Identity_CTAD */
+/** @section expressions__Identity_CTAD */
 template <typename Species>
 Set(Species) -> Set<typename Species::Domain,
                     typename NaturalLogic<Species>::type, Species>;
 
-/** @section Relational_Lifting (Level 1) */
+/** @section expressions__Relational_Lifting (Level 1) */
 
 // Note: We move these OUTSIDE the Variable struct, into namespace
 // dedekind::sets
@@ -691,7 +691,7 @@ constexpr auto operator!(const Variable<Species>& v) {
   return v == false;
 }
 
-/** @section Logical_Lifting */
+/** @section expressions__Logical_Lifting */
 
 /**
  * @brief Downstream specialization hook for structured predicate conjunction.

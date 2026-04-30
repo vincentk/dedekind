@@ -6,7 +6,7 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @section Scope
+ * @section vectorspace__Scope
  * A vector space is a module whose scalar ring is additionally a
  * field.  This partition hosts the concepts and the concrete
  * vector-space witnesses at that strictly higher layer:
@@ -184,7 +184,7 @@ export struct Bit2U64Action {
 
 namespace dedekind::algebra {
 
-/** @section Formal_Verification */
+/** @section vectorspace__Formal_Verification */
 
 // RealLine's operational vector-space witnesses.
 static_assert(HasVectorSpaceOperators<RealLine, RealLineScalar>,

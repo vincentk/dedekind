@@ -5,7 +5,7 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @section Description
+ * @section python__Description
  * This layer is intentionally positioned at the end of the build chain.
  * It provides a narrow, auditable facade that downstream wrappers
  * (e.g. Python bindings) can expose without importing the full internal

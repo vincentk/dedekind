@@ -6,7 +6,7 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @section Small: Categories with Set-Sized Morphisms
+ * @section small__Small: Categories with Set-Sized Morphisms
  * A Small Category is defined by the property that its collections of objects
  * and morphisms are Sets (not Classes). In the context of C++23, "Smallness"
  * is a pragmatic guarantee: any category reifiable within the type system is
@@ -51,7 +51,7 @@ import :species;
 
 namespace dedekind::category {
 
-/** @section Canonical_Species_Infrastructure */
+/** @section small__Canonical_Species_Infrastructure */
 
 /** @brief Primary template for canonical operations. */
 template <typename T>
@@ -91,7 +91,7 @@ struct canonical_op<std::string> {
 template <typename T>
 using category_op_t = typename canonical_op<T>::type;
 
-/** @section Grounding_Truths */
+/** @section small__Grounding_Truths */
 
 // Since is_associative_v is already defined in :species, we must
 // specialize the underlying is_associative trait it likely wraps,
@@ -171,7 +171,7 @@ concept IsCategory = requires {
    */
 };
 
-/** @section Identity_Short_Circuits */
+/** @section small__Identity_Short_Circuits */
 
 // Law: id_A >> g = g.  Per the picking policy in :morphism (#411): use
 // Dom<G> in IsArrow-strict contexts; self-documents that the Domain comes

@@ -23,7 +23,7 @@
  * the compiler to perform symbolic reductions—the automated 'balancing'
  * of the mathematical equation.
  *
- * @section The_Algebraic_Stack
+ * @section algebra__The_Algebraic_Stack
  * - **Group (@ref group)**: The logic of Inversion and Symmetry.
  * - **Rings (@ref ring)**: The dual structure of Addition and Multiplication.
  * - **Division (@ref division)**: The Euclidean Algorithm and the GCD Morphism.

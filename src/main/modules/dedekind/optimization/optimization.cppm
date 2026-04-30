@@ -5,7 +5,7 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @section Description
+ * @section optimization__Description
  * This module hosts compile-time problem classes from mathematical
  * programming: linear programming (`:lp`), later quadratic programming
  * (`:qp`) and beyond. The umbrella claim: for problem instances whose

@@ -54,7 +54,7 @@ export template <typename V, typename F>
 concept IsHilbertSpace =
     IsInnerProductSpace<V, F> && IsDedekindCompleteField<F>;
 
-/** @section Formal_Verification */
+/** @section hilbert__Formal_Verification */
 
 // Vector<double, N> with the standard Euclidean inner product is the
 // canonical finite-dimensional inner-product space ℝᴺ.  The full

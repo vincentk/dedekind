@@ -5,7 +5,7 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @section Structural_Numerics
+ * @section numbers__Structural_Numerics
  * "Liczba nie jest tylko wielkością, lecz punktem w sieci powiązań.
  *  Zrozumieć liczbę to zrozumieć strukturę, w której ona występuje."
  *  (A number is not merely a magnitude, but a point in a network of relations.
@@ -27,11 +27,11 @@
 
 export module dedekind.numbers;
 
-/** @section Ordered_And_Convex_Structures */
+/** @section numbers__Ordered_And_Convex_Structures */
 export import dedekind.order;  // Ordered predicate concepts for numeric species
 export import dedekind.topology;  // Rays, half-spaces, intervals, convex shapes
 
-/** @section Discrete_Foundations (Level -1 & 0) */
+/** @section numbers__Discrete_Foundations (Level -1 & 0) */
 export import :boolean;   // Truth<L> and Ω
 export import :uint;      // std::unsigned_integral as ℤ/2^wℤ
                           // (machine layer below ℕ; closes part of #417)
@@ -48,7 +48,7 @@ export import :floating_point;  // std::floating_point: operator surface +
                                 // field / total order ✗ (IEEE 754 Honest
                                 // Rejection); closes #420
 
-/** @section Algebraic_Extensions (Level 3 & 8) */
+/** @section numbers__Algebraic_Extensions (Level 3 & 8) */
 export import :rational;    // ℚ (The Quotient Field)
 export import :complex;     // ℂ (The Cayley-Dickson construction)
 export import :quaternion;  // ℍ (Hamilton's division ring)
@@ -56,7 +56,7 @@ export import :scalars;     // Floating-point anchors
 export import :lattice;     // Lattices over ℝ and ℂ
 export import :mandelbrot;  // Mandelbrot recurrence/orbit helpers
 
-/** @section Non_Standard_Analysis */
+/** @section numbers__Non_Standard_Analysis */
 // :dual moved to dedekind.analysis:dual at PR #513 --- the carrier is
 // fundamentally differential (forward-mode AD) and its natural neighbours
 // (:ftc, :forms, :hamilton) live in :analysis.  Consumers should
@@ -66,5 +66,5 @@ export import :symbolic;     // Formal symbols / Indeterminates
 export import :real;         // ℝ (The Dedekind Cut / Cauchy continuum)
 export import :cardinality;  // Draft finite/aleph0 carrier and policies
 
-/** @section Metadata */
+/** @section numbers__Metadata */
 export import :constants;  // π, e, γ, etc.

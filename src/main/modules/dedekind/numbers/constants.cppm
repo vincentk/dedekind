@@ -16,7 +16,7 @@
 module;
 
 /**
- * @section Description
+ * @section constants__Description
  * This partition is reserved for cut-based realisations of $\sqrt{2}$, $e$,
  * $\pi$, $\gamma$, $\zeta(3)$, and similar named real constants. The
  * earlier @c Sqrt2() / @c E() / @c Pi() entries returning hardcoded

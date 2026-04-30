@@ -49,7 +49,7 @@ import dedekind.algebra;
 
 export namespace dedekind::linear_algebra {
 
-/** @section Rank_Nullity_Contracts (historical scope) */
+/** @section contracts__Rank_Nullity_Contracts (historical scope) */
 
 /**
  * @concept RankNullityWitness
@@ -88,7 +88,8 @@ concept LinearOperatorContract = requires {
   requires RankNullityWitness<typename Op::rank_nullity>;
 };
 
-/** @section Dimensionality — a finite cardinality of coordinate axes.
+/** @section contracts__Dimensionality — a finite cardinality of coordinate
+ * axes.
  *
  *  `HasDimensionCount<V>` asks a carrier to expose its coordinate count as
  *  a compile-time `std::size_t`. This is the linear-algebraic specialisation
@@ -107,7 +108,8 @@ concept HasDimensionCount = requires {
   { V::dimension } -> std::convertible_to<std::size_t>;
 };
 
-/** @section Orientation — the column/row distinction for 1-tensors. */
+/** @section contracts__Orientation — the column/row distinction for 1-tensors.
+ */
 
 /** @brief Tag for column-oriented 1-tensors (vectors in the usual sense). */
 struct ColumnOrientation {};
@@ -125,7 +127,7 @@ concept HasOrientation =
     (std::same_as<typename V::orientation, ColumnOrientation> ||
      std::same_as<typename V::orientation, RowOrientation>);
 
-/** @section Vectors and covectors.
+/** @section contracts__Vectors and covectors.
  *
  *  Operational witnesses: we check additive closure, unary negation, and a
  *  left scalar action `S × V → V`, alongside a finite dimension. This is the
@@ -170,7 +172,7 @@ template <typename V>
 concept IsCovector =
     IsVectorLike<V> && std::same_as<typename V::orientation, RowOrientation>;
 
-/** @section Matrix shape and decomposition. */
+/** @section contracts__Matrix shape and decomposition. */
 
 /**
  * @concept HasMatrixShape
@@ -252,7 +254,8 @@ template <typename M>
 concept IsMatrix = requires { typename M::scalar_type; } && HasMatrixShape<M> &&
                    HasColumnDecomposition<M> && HasRowDecomposition<M>;
 
-/** @section Algebraic_Contracts — ring, module, field structure on matrices. */
+/** @section contracts__Algebraic_Contracts — ring, module, field structure on
+ * matrices. */
 
 /**
  * @concept IsMatrixSubmoduleLike
@@ -407,7 +410,8 @@ template <typename M, typename F>
 concept IsInvertibleMatrixOverField =
     IsMatrixOverFieldRingLike<M, F> && HasMultiplicativeInverse<M>;
 
-/** @section Orthogonal matrices — the cleanest group-under-multiplication.
+/** @section contracts__Orthogonal matrices — the cleanest
+ * group-under-multiplication.
  *
  *  An orthogonal matrix satisfies `Mᵀ · M = M · Mᵀ = I`, so its inverse is
  *  its transpose. Orthogonal matrices are **not** a ring (not additively
@@ -436,7 +440,7 @@ template <typename M>
 concept IsOrthogonalMatrixCarrier =
     HasMatrixMultiplication<M> && HasInvolutiveTranspose<M>;
 
-/** @section Shape-conformant operations.
+/** @section contracts__Shape-conformant operations.
  *
  *  Matrix addition requires the two operands to share row count, column
  *  count, and scalar type. Matrix multiplication requires the inner

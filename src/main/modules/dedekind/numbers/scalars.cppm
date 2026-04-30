@@ -8,7 +8,7 @@
  * @partition :scalars
  * @dependency :algebra, :topology, :cardinalities
  *
- * @section Numbers: The Registry of Numeric Types
+ * @section scalars__Numbers: The Registry of Numeric Types
  * This partition defines the @b Scalar—the fundamental unit of the ontology.
  * It maps concrete C++ types to their formal algebraic and topological
  * identities.
@@ -88,7 +88,7 @@ concept IsScalar =
       requires std::same_as<typename M::cardinality_type, C>;
     };
 
-/** @section Formal_Verification */
+/** @section scalars__Formal_Verification */
 
 // Self-documenting bridge-concept witnesses on the canonical machine
 // scalars; pinned here so that any future drift in the underlying

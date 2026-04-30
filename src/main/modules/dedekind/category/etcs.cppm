@@ -12,7 +12,7 @@
  * set interface. In this codebase, a "set" is represented as a subobject
  * classified by a characteristic morphism χ: A → Ω.
  *
- * @section ETCS_Axiom_Mapping Lawvere's 10 Axioms mapped to dedekind
+ * @section etcs__ETCS_Axiom_Mapping Lawvere's 10 Axioms mapped to dedekind
  *
  * The following table maps each of the 10 axioms of Lawvere's ETCS to the
  * corresponding C++23 implementation. Items marked (asp.) are aspirational.
@@ -330,7 +330,7 @@ concept HasAxiom10PowerObjectLattice =
  * IsSet keeps the elegant Subobject representation (axiom 7) while making
  * the ETCS axiom mapping explicit and discoverable as concept-level witnesses.
  *
- * @section ETCS_subset_CCC
+ * @section etcs__ETCS_subset_CCC
  * Standard categorical fact: every ETCS category is a Cartesian-closed
  * category, but most CCCs are not ETCS.  Axioms 3 (terminal), 5 (products),
  * and 6 (exponentials) are exactly the structural ingredients of a CCC; the
@@ -384,7 +384,7 @@ constexpr auto ambient_set(Pred&& predicate) {
 }
 
 /**
- * @section IsSet_entails_CCC_directional_witness
+ * @section etcs__IsSet_entails_CCC_directional_witness
  * Representative sanity check for the ETCS \f$\subset\f$ CCC
  * implication.  The second @c static_assert checks the implication
  * @c IsSet<S> ==> HasCanonicalSetCCC<typename S::Ambient> for the

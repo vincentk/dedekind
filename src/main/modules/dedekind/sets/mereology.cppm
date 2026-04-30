@@ -9,7 +9,7 @@
  * @build_order 2
  * @dependency :logic, :category
  *
- * @section Mereology: The Geometry of Existence
+ * @section mereology__Mereology: The Geometry of Existence
  * This partition defines the "Body" of the Dedekind species. In the
  * structuralist ontology, Mereology establishes the relationship between
  * 'Parts' and 'Wholes' as a mapping between a Domain and a Logic.
@@ -22,7 +22,7 @@
  * - IsBooleanSet: The Classical {True, False} universe (The Binary Prime).
  * - IsKleeneSet: The Indeterminate {True, False, Unknown} universe.
  *
- * @section Structural_Anchors
+ * @section mereology__Structural_Anchors
  * Standard C++ operators are anchored here as Set Morphisms,
  * lifting logical connectives into latticial operations:
  * - operator&&, operator& : Intersection (The Meet).
@@ -53,8 +53,8 @@ export module dedekind.sets:mereology;
 import dedekind.category;
 
 /**
- * @section Mereology: The study of parts and wholes.
- * @section Mereology: The Hierarchy of Order.
+ * @section mereology__Mereology_2: The study of parts and wholes.
+ * @section mereology__Mereology_3: The Hierarchy of Order.
  */
 namespace dedekind::sets {
 
@@ -174,7 +174,7 @@ concept IsMereologicalLattice = dedekind::category::IsSetLattice<S> &&
                                   // std::convertible_to<typename L::type>;
 
                                   /**
-                                   * @section The_Absorption_Proofs
+                                   * @section mereology__The_Absorption_Proofs
                                    * These laws anchor the duality of the
                                    * Monadic Push (|) and the Comonadic Pull
                                    * (&).
@@ -271,7 +271,7 @@ concept IsSystem = IsBoundedLattice<S> && requires {
   requires std::same_as<typename S::Domain::ambient_species, Species>;
 };
 
-/** @section The_Scale: The Logic of Magnitude */
+/** @section mereology__The_Scale: The Logic of Magnitude */
 
 export template <typename C>
 // Terminology note: this concept validates cardinality metadata tags
@@ -297,9 +297,9 @@ concept IsFiniteMagnitude = IsCountable<C> && (C::is_finite == true);
 
 // Finite, ℵ<N>, ℵ_0, ℶ_1 are defined in :cardinality (same module).
 
-/** @section The_Body: The Logic of Presence */
+/** @section mereology__The_Body: The Logic of Presence */
 
-/** @section The_Extent: The Logic of Realization */
+/** @section mereology__The_Extent: The Logic of Realization */
 
 /**
  * @concept IsEnumerated
@@ -319,11 +319,11 @@ concept IsEnumerated = requires(const S s) {
   requires dedekind::category::IsSet<
       decltype(dedekind::category::ambient_set<typename S::Domain>(s))>;
 
-  /** @section Magnitude: The Physical Proof */
+  /** @section mereology__Magnitude: The Physical Proof */
   // An extensional set MUST claim a Finite cardinality type.
   requires(S::cardinality_type::is_finite == true);
 
-  /** @section Termination: The Boundedness Proof */
+  /** @section mereology__Termination: The Boundedness Proof */
   // Every extensional set must define a maximum capacity (upper_bound)
   // to ensure memory-safe allocations and finite iteration.
   { s.upper_bound() } -> std::convertible_to<std::size_t>;
@@ -366,7 +366,7 @@ concept IsPointedSet = requires(const S s) {
 } && IsPointed<T, std::plus<T>>;
 
 /**
- * @section Structural_Inference: NaturalLogic
+ * @section mereology__Structural_Inference: NaturalLogic
  * @brief Deduce the governing logic species from the nature of the Base.
  *
  * Theorem:

@@ -6,7 +6,7 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @section Motivation
+ * @section tuple__Motivation
  * Following Stammbach's "Lineare Algebra", a tuple is a finite, ordered
  * collection of elements in a common carrier: `(x₁, …, xₙ) ∈ Tⁿ`. Tuples
  * come before matrices in the pedagogical order — matrices will then be
@@ -50,7 +50,7 @@ import :contracts;    // ColumnOrientation, RowOrientation tags
 
 namespace dedekind::linear_algebra {
 
-/** @section NTTP_Tuples — entries pinned at the type level. */
+/** @section tuple__NTTP_Tuples — entries pinned at the type level. */
 
 /**
  * @brief Structural 2-tuple with coordinates at the type level.
@@ -74,7 +74,8 @@ struct Vec2 {
   }
 };
 
-/** @section Value_Level_Tuples — column / row vectors as 2×1 / 1×2 matrices. */
+/** @section tuple__Value_Level_Tuples — column / row vectors as 2×1 / 1×2
+ * matrices. */
 
 // Forward declaration so `Vec2V::transpose()` can name `Covec2V` at the
 // point of definition. The bound matches the full declaration below.
@@ -184,7 +185,7 @@ constexpr Covec2V<T> Vec2V<T>::transpose() const {
   return {x, y};
 }
 
-/** @section Functorial_Hubs
+/** @section tuple__Functorial_Hubs
  *
  *  `Vec2V<·>` and `Covec2V<·>` carry a structural shape (2×1 / 1×2 with
  *  element type @c T) that is functorial in @c T: an arrow @c f: T→T
@@ -265,7 +266,7 @@ static_assert(!dedekind::algebra::HasRingOperators<Covec2V<unsigned int>>,
 
 }  // namespace dedekind::linear_algebra
 
-/** @section Monadic_Unit_Witnesses
+/** @section tuple__Monadic_Unit_Witnesses
  *
  *  The functor hubs above are the morphism-lifting half of a Kleisli
  *  triple; this section pins the @c η / unit half — the scalar → linear-map

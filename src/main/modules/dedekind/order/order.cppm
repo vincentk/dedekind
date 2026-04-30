@@ -5,7 +5,7 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @section Partitions
+ * @section order__Partitions
  *   - `:poset`        — preorders, partial orders, directed sets; the
  *                       homogeneous `HasPartialOrderOperators` shape and
  *                       its heterogeneous sibling

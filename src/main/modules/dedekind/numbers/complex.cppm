@@ -117,7 +117,7 @@ constexpr R euclidean_norm_squared(const Complex<R>& z) {
   return (re * re) + (im * im);
 }
 
-/** @section Partial_Arithmetic_with_Ternary_Logic */
+/** @section complex__Partial_Arithmetic_with_Ternary_Logic */
 
 /**
  * @brief Partial addition transform for Complex<R>.
@@ -484,7 +484,7 @@ static_assert(
 
 namespace dedekind::numbers {
 
-/** @section Canonical_Species_Spine (ℂ)
+/** @section complex__Canonical_Species_Spine (ℂ)
  *
  * The canonical complex-number species ℂ is defined above as
  * @c ComplexSet @c = @c ComplexesOf<> with value-level constant

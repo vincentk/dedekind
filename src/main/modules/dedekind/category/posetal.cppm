@@ -3,7 +3,7 @@
  * @partition :posetal
  * @brief Posetal categories — categories derived from partial orders.
  *
- * @section Categorical_Definition
+ * @section posetal__Categorical_Definition
  * A Posetal Category is a category where for any two objects A and B, there is
  * **at most one** morphism from A to B. In this framework:
  * - Objects are elements of the set.
@@ -13,7 +13,7 @@
  * - Skeletality in the category corresponds to Antisymmetry (a ≤ b and b ≤ a
  * implies a = b).
  *
- * @section Order_Structure
+ * @section posetal__Order_Structure
  * This structure corresponds to a **Partially Ordered Set (Poset)**. Unlike a
  * Preorder, a Posetal Category is skeletal, meaning isomorphic objects are
  * identical.

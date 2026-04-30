@@ -8,7 +8,7 @@
  * you may not use this file except in compliance with the License.
 
  *
- * @section Taxonomy_of_Identity
+ * @section monoid__Taxonomy_of_Identity
  * This partition grounds the abstract categorical Monoid into the
  * established arithmetic notation of Algebra. It reifies the
  * "Rules of Neutrality" for Addition (0) and Multiplication (1),
@@ -66,7 +66,7 @@ concept IsAdditiveMonoid = IsMonoid<T, Add> && IsAlgebra<T, Add>;
 export template <typename T, typename Mult = std::multiplies<T>>
 concept IsMultiplicativeMonoid = IsMonoid<T, Mult> && IsAlgebra<T, Mult>;
 
-/** @section Formal_Verification */
+/** @section monoid__Formal_Verification */
 
 // During experimental reintegration, full monoid witnesses for int
 // are deferred pending structure-proof registration in category module.

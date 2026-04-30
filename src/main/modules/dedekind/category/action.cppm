@@ -3,14 +3,14 @@
  * @partition :action
  * @brief Level 1: The Morphisms of Influence (Actions and Representations).
 
- * @section Structural_Influence
+ * @section action__Structural_Influence
  * While Level 0 (:morphism) defines mapping between species,
  * Level 1 defines the "Action" of a Species S upon a Species M (S ⟳ M).
  * In the Dedekind structuralist view, an Action is the reification of
  * Scalar multiplication, leading naturally to the concepts of Modules,
  * Vector Spaces, and eventually, the Linear Algebra of the Continuum.
  *
- * @section The_PR96_Shielding_Logic
+ * @section action__The_PR96_Shielding_Logic
  * To ensure zero-overhead and prevent "too few arguments" errors when
  * checking binary functors (like std::multiplies) against unary morphism
  * concepts, we utilize "Signature Shields." This allows the compiler to
@@ -69,7 +69,7 @@ static_assert(IsAction<decltype(zero<int, int>()), int>,
 static_assert(IsAction<decltype(unit<int, int>()), int>,
               "Unit Morphism must satisfy the Action axioms (Absorption).");
 
-/** @section Level_1_Axiomatic_Verification */
+/** @section action__Level_1_Axiomatic_Verification */
 
 constexpr auto z = zero<int, int>();
 constexpr auto highway = id<int>();
@@ -86,7 +86,7 @@ static_assert(
 static_assert(highway(42) == 42,
               "Unit Law: The Identity Highway must preserve the input.");
 
-/** @section Unit_Algebraic_Verification */
+/** @section action__Unit_Algebraic_Verification */
 
 // 1. The Multiplicative Unit Law (Point-wise)
 // The Unit Morphism maps any input to the Point 1.
@@ -126,7 +126,7 @@ static_assert(
 export template <typename F, typename M>
 concept IsAdditiveMorphism = requires(const F f, const M m1, const M m2) {
   /**
-   * @section Distributive_Axiom_Shield
+   * @section action__Distributive_Axiom_Shield
    * We only enforce the unary call f(m1 + m2) if F is not a known binary
    * operator or if M is not a primitive integral.
    */
@@ -138,7 +138,7 @@ concept IsAdditiveMorphism = requires(const F f, const M m1, const M m2) {
               };
 
   /**
-   * @section Linear_Preservation_Shield
+   * @section action__Linear_Preservation_Shield
    * The Morphism must preserve the additive identity: f(0) = 0.
    * We shield this for binary functors to prevent "too few arguments" errors.
    */
@@ -197,9 +197,9 @@ struct ZeroAction final {
   constexpr B operator()(const A&) const noexcept { return identity_v<B, Op>; }
 };
 
-/** @section Zero Morphism Verification */
+/** @section action__Zero Morphism Verification */
 
-/** @section Peak Symmetry: Zero vs. Groupoid */
+/** @section action__Peak Symmetry: Zero vs. Groupoid */
 
 // Proof: The result of zero() belongs to the Identity element.
 static_assert(zero<int, int, std::plus<int>>()(99) == 0,

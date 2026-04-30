@@ -6,7 +6,7 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @section Scope
+ * @section registration__Scope
  * Closes #382.  When a concrete carrier @c T is registered as a
  * field under some @c (Add, Mult), the per-carrier trait block has
  * historically been ~40 lines of boilerplate (identity, associativity,

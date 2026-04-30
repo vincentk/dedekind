@@ -5,7 +5,7 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @section Description
+ * @section analysis__Description
  * Public facade for the current analysis layer.
  *
  * Exported partitions:

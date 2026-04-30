@@ -6,7 +6,7 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @section NNO_Universal_Property
+ * @section nno__NNO_Universal_Property
  * In Lawvere's ETCS the natural numbers are not @b constructed --- they
  * are defined by a @b universal @b property.  An NNO consists of an
  * object @c N together with two arrows
@@ -27,7 +27,7 @@
  * content.  The structural shape ( @c z and @c s as arrows of the
  * stated signatures) @b is what the type system can pin.
  *
- * @section This_Partition
+ * @section nno__This_Partition
  * Lifts ETCS Axiom 9 from the @c :etcs facade-level mention (where it
  * was previously cross-referenced as @c SpeciesTraits<unsigned>) to a
  * first-class @b concept that any carrier can witness.  Closes part of
@@ -35,7 +35,7 @@
  * sets:cardinality, @c Modular<N> from @c morphologies:cyclic) are
  * registered downstream where the carriers are available.
  *
- * @section Form_Bias_NNO_Cardinality_ℕ
+ * @section nno__Form_Bias_NNO_Cardinality_ℕ
  * Per the project's Platonist stance ("Forms precede carriers"), the
  * architecture is a three-layer chain:
  *

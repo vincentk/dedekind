@@ -3,7 +3,7 @@
  * @partition :total
  * @brief Level 1: The Laws of Total Algebra (The Algebraic Hierarchy).
  *
- * @section The_Categorical_Foundation
+ * @section total__The_Categorical_Foundation
  * « Język jest aparatem wyznaczającym obraz świata. Struktura kategorii
  *   jest fundamentem wszelkiego poznania naukowego. »
  *  (Language is an apparatus that determines the image of the world.
@@ -16,7 +16,7 @@
  * these structures as species that "mature" as they gain axioms—moving
  * from the primal Magma to the perfect symmetry of an Abelian Group.
  *
- * @section Std_Namespace_Mappings
+ * @section total__Std_Namespace_Mappings
  * This partition asserts bidirectional mappings between algebraic hierarchy
  * concepts and standard C++ types:
  *
@@ -260,7 +260,7 @@ inline constexpr std::size_t cyclic_order_v = cyclic_order<T, Op>::value;
 export template <typename T, typename Op>
 concept IsCyclicGroup = IsAbelianGroup<T, Op> && is_cyclic_group_v<T, Op>;
 
-/** @section IsCyclicGroup_witnesses_for_primitive_unsigned_integrals
+/** @section total__IsCyclicGroup_witnesses_for_primitive_unsigned_integrals
  *
  * Every @c std::unsigned_integral @c T under @c std::plus<T> is a
  * cyclic group: addition wraps modulo @c 2^N (with @c N the bit
@@ -524,7 +524,7 @@ static_assert(
 static_assert(IsDistributiveLattice<int, decltype(std::ranges::max),
                                     decltype(std::ranges::min)>);
 
-/** @section Boolean_Ring_Negative_Proof */
+/** @section total__Boolean_Ring_Negative_Proof */
 
 using XOR = std::bit_xor<unsigned int>;
 using AND = std::bit_and<unsigned int>;

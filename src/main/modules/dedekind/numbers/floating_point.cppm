@@ -6,7 +6,7 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @section Honest_Stance
+ * @section floating_point__Honest_Stance
  * Each @c std::floating_point instance ( @c float, @c double, @c long
  * @c double ) carries the @b operator @b surface of a field: @c +, @c -,
  * @c *, @c / all close on the carrier; @c <=> realises the IEEE 754
@@ -39,7 +39,7 @@
  * machinery in @c category/numeric.cppm, @b not to a false axiomatic
  * claim.
  *
- * @section Honesty_Obligation
+ * @section floating_point__Honesty_Obligation
  * The witness blocks below pin the umbrella's @b negative axiomatic
  * claims at the partition boundary so future drift in either the
  * trait registry or the concept definitions trips the build.  The
@@ -83,7 +83,8 @@ import dedekind.order;    // HasPartialOrderOperators / HasTotalOrderOperators
 
 namespace dedekind::numbers {
 
-/** @section Formal_Verification — std::floating_point family witnesses */
+/** @section floating_point__Formal_Verification — std::floating_point family
+ * witnesses */
 
 // (1) Operator surface — every std::floating_point carrier carries the
 //     full field-operator shape and the partial- / total-order-operator

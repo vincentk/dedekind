@@ -2,7 +2,7 @@
  * @file dedekind/morphologies/morphologies.cppm
  * @brief Level 4: Cyclic and Archimedean morphology carriers.
  *
- * @section The_Structural_Seal
+ * @section morphologies__The_Structural_Seal
  * « La mathématique est l'étude des structures qui sont invariantes par
  *   certains changements de forme. La morphologie est la saisie de
  *   cette stabilité. »
@@ -10,7 +10,7 @@
  *   certain changes of form. Morphology is the grasping of this stability.)
  *  — René Thom, 'Stabilité structurelle et morphogénèse'
  *
- * @section Partitions
+ * @section morphologies__Partitions
  *   - @c :archimedean --- @c IsCyclic, @c IsCyclicRing, @c IsSimplyInfinite,
  *     @c IsArchimedeanField, @c IsDedekindCompleteField, @c IsCauchy,
  *     @c IsConvergent, plus the @c CauchyPath carrier.  Hosts the
@@ -23,7 +23,7 @@
  *     shape; @c Modular<N> is additionally registered with the
  *     axiomatic @c category::IsCyclicGroup<T, std::plus<T>>.
  *
- * @section Taxonomic_Intent
+ * @section morphologies__Taxonomic_Intent
  * While @c :algebra defines the internal harmony of a species,
  * @c :morphologies defines the valid mappings (Arrows) between distinct
  * species and the carriers that exhibit canonical morphological

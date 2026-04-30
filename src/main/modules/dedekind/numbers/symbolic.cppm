@@ -6,7 +6,7 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @section Description
+ * @section symbolic__Description
  * Reifies algebraic real constants as predicate-set lower-cuts (ETCS
  * subobjects of ℚ). The cut is the constant; bounded-precision queries
  * are the only thing that crosses the realisation boundary.
@@ -53,7 +53,7 @@ constexpr auto Sqrt2_Symbolic() {
   });
 }
 
-/** @section Transcendental_Anchors */
+/** @section symbolic__Transcendental_Anchors */
 
 /**
  * @brief Trait to mark a species as Transcendental (π, e).

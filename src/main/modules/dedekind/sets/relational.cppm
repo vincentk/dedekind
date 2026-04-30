@@ -6,7 +6,7 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @section Description
+ * @section relational__Description
  * This partition provides the five primitive operators of Codd's relational
  * algebra, lifted to the typed, intensional Set model of dedekind.sets:
  *
@@ -21,7 +21,7 @@
  * and is therefore intentionally omitted from this MVP.
  * Rename (ρ) reduces to a type alias in C++ and requires no runtime support.
  *
- * @section Canonical_Examples
+ * @section relational__Canonical_Examples
  * ```cpp
  * // Two relations: parent ⊆ Person × Person, ancestor ⊆ Person × Person
  * const auto grandparent = natural_join(parent, parent);       // ⋈
@@ -32,7 +32,7 @@
  * const auto adults_only = set_difference(people, minors);     // ∖
  * ```
  *
- * @section References
+ * @section relational__References
  * - Codd, E.F. (1970) "A Relational Model of Data for Large Shared Data
  *   Banks", Comm. ACM 13(6). https://doi.org/10.1145/362384.362685
  * - Wikipedia: Relational algebra

@@ -6,7 +6,7 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @section Two_Universal_Properties_For_ℤ
+ * @section initial_ring__Two_Universal_Properties_For_ℤ
  * The categorical identity of @c ℤ has two textbook universal-
  * property readings, both load-bearing for the project:
  *
@@ -24,7 +24,7 @@
  *      unique group homomorphism @c φ̂ @c : @c ℤ @c → @c G extending
  *      @c φ.  Reified as @c IsGrothendieckGroup<G, M>.
  *
- * @section Why_Reify_Both
+ * @section initial_ring__Why_Reify_Both
  * The two readings are mathematically equivalent up to canonical
  * isomorphism, but they sit in @b different categories ( @c Ring vs
  * @c Ab) and bind to different operational consumers in the project:
@@ -40,7 +40,7 @@
  * inhabits both Forms; downstream generic code can bind to whichever
  * universal property is relevant for its argument.
  *
- * @section Honesty_Obligation
+ * @section initial_ring__Honesty_Obligation
  * Existence and uniqueness of the canonical homomorphisms remain the
  * engineer's honesty obligation.  C++ concepts cannot quantify
  * universally over the target ring (in @c IsInitialRing) or the
@@ -53,7 +53,7 @@
  * Grothendieck side) — the static_asserts pin the shape, the test
  * suite pins the operational behaviour.
  *
- * @section Architecture
+ * @section initial_ring__Architecture
  * Three-layer chain mirroring the NNO story (PR #447):
  *
  *   @c IsInitialRing  →  @c SignedCardinality  →  @c ℤ
@@ -63,7 +63,7 @@
  * second anchors the abelian-group-side universal property.  Both
  * land on the same carrier.
  *
- * @section Bridge_to_Limit
+ * @section initial_ring__Bridge_to_Limit
  * @c IsInitialRing instantiates the @b same universal-property
  * pattern that @c :limit's @c IsInitialObject<Zero> instantiates,
  * just at a different categorical level — initial in the @c Ring

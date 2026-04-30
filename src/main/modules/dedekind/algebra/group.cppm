@@ -7,7 +7,7 @@
  * Licensed under the Apache License, Version 2.0.
 
  *
- * @section Taxonomy_of_Symmetry
+ * @section group__Taxonomy_of_Symmetry
  * This partition establishes the "Rules of Reflection" (Inverses).
  * It promotes Monoids to Groups by verifying the existence of
  * symmetric elements: the negative (-x) for addition and the
@@ -263,7 +263,7 @@ export template <typename T>
 concept IsArithmeticAdditiveGroup =
     IsAdditiveGroup<T, std::plus<T>> && HasGroupOperatorsAdd<T>;
 
-/** @section Formal_Verification */
+/** @section group__Formal_Verification */
 
 // During experimental reintegration, full group witnesses for int
 // are deferred pending structure-proof registration in category module.

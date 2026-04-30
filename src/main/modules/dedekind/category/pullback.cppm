@@ -11,7 +11,7 @@
  *  it is the universal solution to finding pairs (x, y) that agree in Z."
  *  — Saunders Mac Lane, *Categories for the Working Mathematician*
  *
- * @section Pullbacks_and_Equalizers
+ * @section pullback__Pullbacks_and_Equalizers
  * This partition defines the two primary limit constructions used in the
  * Dedekind Topos:
  *
@@ -144,7 +144,7 @@ auto pullback(F_Raw&& f_raw, G_Raw&& g_raw) {
  * containing exactly those members where the morphisms f and g coincide.
  * It is the internal "Solution Set" for the equation f(x) = g(x).
  *
- * @section Universal_Property
+ * @section pullback__Universal_Property
  * For any object Q and morphism q: Q ⟶ A such that f ∘ q = g ∘ q,
  * there exists a unique morphism u: Q ⟶ E such that ι ∘ u = q.
  *

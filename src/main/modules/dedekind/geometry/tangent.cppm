@@ -6,7 +6,7 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @section Scope_And_Extension
+ * @section tangent__Scope_And_Extension
  * Hosts the @b flat-case (element-wise) tangent-bundle concept,
  * sitting next to the trivial-case @c TangentVector / @c CotangentVector
  * aliases in @c :linear_map.  The non-flat manifold-bundle structure
@@ -16,7 +16,7 @@
  * @c dedekind.topology (manifold-as-topological-space) and
  * @c dedekind.geometry (smooth structure).
  *
- * @section Coherence
+ * @section tangent__Coherence
  * The canonical witness for @c IsTangentBundle is @c Dual<F> in
  * @c dedekind.analysis:dual --- forward-mode automatic differentiation
  * on @c Dual<F> is exactly arithmetic in the tangent-bundle ring
@@ -69,7 +69,7 @@ namespace dedekind::geometry {
  *          forward-mode automatic differentiation is exactly arithmetic
  *          in the tangent-bundle ring T(Spec F).
  *
- * @section Scope_And_Extension
+ * @section tangent__Scope_And_Extension_2
  * This concept captures the @b flat case --- the carrier alone, no
  * underlying manifold structure --- because over the affine line the
  * tangent bundle is canonically isomorphic to the @em total @em space

@@ -3,7 +3,7 @@
  * @partition :kleisli
  * @brief Level 2: The Kleisli Partition (The Extension Systems).
  *
- * @section The_Kleisli_Unification
+ * @section kleisli__The_Kleisli_Unification
  * This partition defines the "Extension Systems" that serve as the functional
  * engine for the Dedekind ontology. By focusing on the Kleisli Triple (for
  * Monads) and the Co-Kleisli Triple (for Comonads), we sidestep C++ template
@@ -21,7 +21,8 @@
  * - <<= (Extend)       : The 'co-extension' operator, sampling the species into
  * a new context.
  *
- * @section Notation_Mapping Textbook Notation -> Implementation Surface
+ * @section kleisli__Notation_Mapping Textbook Notation -> Implementation
+ * Surface
  *
  * Core monadic/comonadic symbols and their implementation names:
  * - η : unit/pure (concrete overloads defined in `:natural`)
@@ -36,7 +37,7 @@
  * - `wa <<= f` and `extend(wa, f)` are aliases for σ(wa, f)
  * - fish aliases: `ma >> f` (Kleisli) and `wa << f` (co-Kleisli)
  *
- * @section The_Bootstrapping_Mechanism
+ * @section kleisli__The_Bootstrapping_Mechanism
  * This partition is the prerequisite for the ':functorial' partition. Because
  * 'fmap' is an epi-phenomenon in this ontology, the presence of either a
  * Kleisli or Co-Kleisli structure allows the automatic derivation of functorial
@@ -66,7 +67,7 @@ import :morphism;
 
 namespace dedekind::category {
 
-/** @section The_Box_Action_Engine */
+/** @section kleisli__The_Box_Action_Engine */
 
 // Bind: Box<T> >>= (T -> Box<U>) -> Box<U>
 export template <typename T, typename Func>
@@ -81,7 +82,7 @@ constexpr auto operator<<=(const Box<T>& b, Func&& f) {
   return Box<U>{std::forward<Func>(f)(b)};
 }
 
-/** @section The_Kleisli_Witnesses */
+/** @section kleisli__The_Kleisli_Witnesses */
 
 /**
  * @brief unit_witness<F, T>: Generic Kleisli unit witness.
@@ -107,7 +108,7 @@ struct counit_witness<Box, T> final {
   constexpr T operator()(const Box<T>& b) const noexcept { return b.value; }
 };
 
-/** @section Extension_Concepts */
+/** @section kleisli__Extension_Concepts */
 
 export template <template <typename...> typename F, typename T, typename U>
 concept IsKleisliExtension = requires(T x, F<T> box, std::function<F<U>(T)> f) {
@@ -125,7 +126,7 @@ export template <template <typename...> typename F, typename T, typename U>
 concept IsFrobenius =
     IsKleisliExtension<F, T, U> && IsCoKleisliExtension<F, T, U>;
 
-/** @section Kleisli_Operators */
+/** @section kleisli__Kleisli_Operators */
 
 /**
  * @brief κ (kappa): Kleisli bind (monadic extension).
@@ -213,7 +214,7 @@ constexpr auto extend(HubTag tag, WA const& wa, F&& f) {
   return φ(duplicate(tag, wa), std::forward<F>(f));
 }
 
-/** @section Kleisli_Bind_Operators */
+/** @section kleisli__Kleisli_Bind_Operators */
 
 /**
  * @brief operator>>= : Monadic bind (Kleisli arrow application).

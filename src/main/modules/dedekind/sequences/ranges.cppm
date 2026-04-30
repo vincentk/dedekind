@@ -6,7 +6,7 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @section Serendipity: The Triple Nature of the Integer Interval
+ * @section ranges__Serendipity: The Triple Nature of the Integer Interval
  * For any integral type T, the integer interval [a, b) is simultaneously:
  *
  *   1. **A Sequence** (IsTerminalSet via as_sequence()):

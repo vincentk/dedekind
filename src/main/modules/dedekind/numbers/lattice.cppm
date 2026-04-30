@@ -20,7 +20,7 @@ module;
 #include <utility>
 
 /**
- * @section Description
+ * @section numbers_lattice__Description
  * This partition provides the user-facing lattice factory:
  *
  *   auto c = lattice<C>;         // Gaussian-integer lattice in ℂ

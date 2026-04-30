@@ -6,7 +6,7 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @section FAlg_Universal_Property
+ * @section f_algebra__FAlg_Universal_Property
  *
  * Pierce §5 introduces F-algebras and F-coalgebras immediately after
  * functors and before natural transformations because they are the
@@ -31,7 +31,7 @@
  *   @b Terminal @b F-coalgebra: dually; the unique morphism is the
  *   @b anamorphism (unfold).
  *
- * @section Bridge_to_NNO
+ * @section f_algebra__Bridge_to_NNO
  *
  * The @c :nno partition reifies Lawvere's NNO universal property as
  * the @c (z, s) shape — pedagogically the more recognisable form for
@@ -57,7 +57,7 @@
  * @c f_algebra_test.cpp for the static_assert witnesses linking the
  * two layers.
  *
- * @section Honesty_Obligation
+ * @section f_algebra__Honesty_Obligation
  *
  * As with @c :nno, C++ concepts cannot quantify over the universal
  * property's @b uniqueness clause.  The structural shape ( @c
@@ -71,7 +71,7 @@
  * Ethics).  An identical opt-in pattern is used by @c
  * algebra:initial_ring (PR #451) for @c ℤ as the initial ring.
  *
- * @section Categorical_Duality
+ * @section f_algebra__Categorical_Duality
  *
  * The dual pair carries the recursion ↔ corecursion split
  * structurally — no catamorphism without an anamorphism.  Both halves

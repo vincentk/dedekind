@@ -76,7 +76,7 @@ constexpr OneForm<F, N> from_covector(const Covector<F, N>& cov) {
   return result;
 }
 
-/** @section Formal_Verification */
+/** @section forms__Formal_Verification */
 
 // OneForm<F, N> evaluates a tangent vector to a scalar via the dot product
 // of its components with the vector — the canonical 1-form action.

@@ -6,7 +6,7 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @section The_Euclidean_Restoration
+ * @section division__The_Euclidean_Restoration
  * « إن هذا العلم، أي الجبر، غايته استخراج المجهولات، سواء كانت
  *   مقادير عددية أو هندسية. »
  * (The aim of this science, Algebra, is to extract unknowns,
@@ -14,7 +14,7 @@
  *  — Omar Khayyam (عمر الخيام), 'Treatise on Demonstration of Problems of
  * Algebra'
  *
- * @section Taxonomy_of_Extraction
+ * @section division__Taxonomy_of_Extraction
  * This partition reifies the "Morphism of Remainder." By establishing
  * IsEuclidean, we enable the recursive balancing of magnitudes—the
  * foundational GCD algorithm that allows for the 'restoration' of
@@ -80,7 +80,7 @@ concept IsEuclidean = IsCommutativeRing<T, Add, Mult> && IsDividableChain<T> &&
                         { Rem{}(a, b) } -> std::same_as<T>;
                       };
 
-/** @section Formal_Verification */
+/** @section division__Formal_Verification */
 
 // unsigned int carries integer division and modulo, so the structural
 // IsEuclidean concept holds. However, unsigned int is NOT an infinite Euclidean

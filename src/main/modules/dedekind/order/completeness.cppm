@@ -6,7 +6,7 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @section Scope
+ * @section completeness__Scope
  * These concepts classify \emph{how} an ordered carrier fills the
  * gaps between its elements.  Together they distinguish the
  * classical ℤ / ℚ / ℝ tower:
@@ -112,7 +112,7 @@ export template <typename S>
 concept IsDedekindComplete =
     IsTotallyOrdered<S> && IsDense<S> && dedekind::category::HasExtrema<S>;
 
-/** @section Formal_Verification */
+/** @section completeness__Formal_Verification */
 
 // int carries integer division and modulo, lifting it to IsDividableChain.
 static_assert(

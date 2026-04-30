@@ -9,7 +9,7 @@
  *
  * Wikipedia: Universal algebra, Algebraic structure, Free object.
  *
- * @section Why_this_partition
+ * @section universal__Why_this_partition
  * Each specific concept in this module's algebraic hierarchy
  * (@c IsRing<T, Add, Mult>, @c IsField<T, Add, Mult>,
  * @c IsAbelianGroup<T, Op>, @c IsMonoid<T, Op>, ...) is an instance
@@ -25,7 +25,7 @@
  * between @c HasRingOperators (closure tier) and @c IsRing (axiom
  * tier) within the ring partition.
  *
- * @section Use_cases
+ * @section universal__Use_cases
  * - Documentation anchor: the (A, F) vocabulary is named here, with
  *   one citation, and downstream concepts inherit by reference.
  * - Future @c IsHomomorphism<Arrow, A1, A2> (filed as separate
@@ -44,7 +44,7 @@
  *        symmetries we identify mechanically, the lower the
  *        per-functor implementation effort downstream.
  *
- * @section Naming
+ * @section universal__Naming
  * The partition is named @c :universal (universal algebra), not the
  * shorter @c :algebra, because the umbrella module is itself named
  * @c dedekind.algebra and a same-named partition would collide.
@@ -113,7 +113,7 @@ concept IsOpOn = IsBinaryOpOn<T, Op> || IsUnaryOpOn<T, Op>;
  * of which IS an instance of @c IsAlgebra with a specific F and a
  * specific axiom-trait registry.
  *
- * @section Compositional_use
+ * @section universal__Compositional_use
  * Quotient functors, free constructions, and similar functors operate
  * at the algebra level.  A quotient morphism @c R @c → @c R[x]/I is
  * an arrow between two @c IsAlgebra instances; an

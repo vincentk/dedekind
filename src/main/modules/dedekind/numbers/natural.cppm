@@ -9,7 +9,7 @@
  * @build_order 7
  * @dependency :algebra, :topology, :cardinalities
  *
- * @section Numbers: The Realization of the Soul
+ * @section natural__Numbers: The Realization of the Soul
  * This partition is the final "Registry" of the ontology. It maps concrete
  * C++ types to their formal algebraic and topological identities.
  *
@@ -20,7 +20,7 @@
  * - IsRational : Q (ℚ) - The Countable Dense Field.
  * - IsReal     : R (ℝ) - The Continuous Dedekind-Complete Field.
  *
- * @section Structural_Mapping
+ * @section natural__Structural_Mapping
  * This is where we perform the final 'Lifting'. We prove that 'int'
  * satisfies 'Group_ℤ' and that 'double' is a hardware-constrained
  * approximation of 'Field_ℝ'.
@@ -161,7 +161,7 @@ constexpr N embed_unsigned_integral(U v) {
   return N{v};
 }
 
-/** @section Canonical_Species_Spine
+/** @section natural__Canonical_Species_Spine
  *
  * The canonical natural-numbers species ℕ is defined upstream in
  * @c dedekind.sets:boundaries (as @c NaturalNumbersOf<L, C> with
@@ -175,7 +175,7 @@ constexpr N embed_unsigned_integral(U v) {
 using ::dedekind::sets::N;
 using ::dedekind::sets::ℕ;
 
-/** @section Formal_Verification */
+/** @section natural__Formal_Verification */
 
 // (0) Carrier-type witness: ℕ names the carrier itself (post-#402; the
 //     variant ℕ-proxy from sets:cardinality, replacing the unsigned-int
