@@ -111,7 +111,7 @@ class Rational {
   constexpr Z num() const { return first; }
   constexpr Z den() const { return second; }
 
-  /** @section rational__Multiplicative_Inverse: The Reciprocal */
+  /** @section rational__Multiplicative_Inverse */
   constexpr Rational inverse() const {
     if (first == Z{0}) {
       throw std::domain_error("Rational: Zero has no multiplicative inverse.");
@@ -604,7 +604,7 @@ static_assert(
 
 namespace dedekind::numbers {
 
-/** @section rational__Canonical_Species_Spine (ℚ)
+/** @section rational__Canonical_Species_Spine
  *
  * The canonical rational-number species ℚ is defined above as
  * @c ℚ @c = @c Rational<default_integer> with value-level
@@ -838,7 +838,7 @@ static_assert(
                                   default_integer>,
     "Rational<Z> must satisfy IsProduct<Rational<Z>, Z, Z> (ℚ ≅ ℤ × ℤ / ~).");
 
-/** @section rational__CCC_Inheritance_389 CCC inheritance (#389)
+/** @section rational__CCC_Inheritance_389
  *
  * The rational-number carriers and their integer building blocks all
  * host a canonical Cartesian-closed Set ambient: their @c IsSet

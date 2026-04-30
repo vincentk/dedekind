@@ -3,11 +3,7 @@
  * @partition :sequences
  * @brief The Path (The Morphism of Enumeration).
  *
- * @section net__Sequences: The Logic of Enumeration
- * This partition defines the "Path" (λn. s_n) as a Morphism from a Domain
- * (Index Set) to a Codomain (Species). This provides the functional basis for
- * Sequence Spaces like ℓ² (Hilbert Spaces), where the Path is an element and
- * the Space is the Set.
+ * @section net__Sequences
  *
  * @details
  * Transitioning from Static Magnitude to Ordered Traversal:

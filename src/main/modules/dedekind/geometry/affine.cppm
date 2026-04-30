@@ -116,7 +116,7 @@ class Vector {
     return true;
   }
 
-  /** @section affine__The_Scaling_Morphism: Vector * Scalar */
+  /** @section affine__The_Scaling_Morphism */
   friend constexpr Vector operator*(const Vector& v, const F& s) {
     Vector res = v;
     for (auto& c : res.coords_) c = c * s;
@@ -127,7 +127,7 @@ class Vector {
     return v * s;
   }
 
-  /** @section affine__Vector_Addition: The Translation */
+  /** @section affine__Vector_Addition */
   friend constexpr Vector operator+(const Vector& a, const Vector& b) {
     Vector res = a;
     for (std::size_t i = 0; i < N; ++i)

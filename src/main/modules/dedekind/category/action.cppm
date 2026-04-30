@@ -197,9 +197,9 @@ struct ZeroAction final {
   constexpr B operator()(const A&) const noexcept { return identity_v<B, Op>; }
 };
 
-/** @section action__Zero Morphism Verification */
+/** @section action__Zero */
 
-/** @section action__Peak Symmetry: Zero vs. Groupoid */
+/** @section action__Peak */
 
 // Proof: The result of zero() belongs to the Identity element.
 static_assert(zero<int, int, std::plus<int>>()(99) == 0,

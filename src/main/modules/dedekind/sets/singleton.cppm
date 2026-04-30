@@ -8,10 +8,7 @@
  *
  * @dependency dedekind.ontology
  *
- * @section singleton__The_Singleton_Atom: Mereological Singularity
- * In the Dedekind universe, the Singleton is the "Unit of Presence."
- * It serves as the canonical implementation of a Pointed Set and provides
- * the concrete singleton constructor used in sets-level monadic workflows.
+ * @section singleton__The_Singleton_Atom
  *
  * @details
  * This structure bridges Level 0a (Species) and Level 1 (Mereology):
@@ -59,8 +56,8 @@ import :boundaries;
 import :expressions;
 
 /**
- * @section singleton__Mereology: The study of parts and wholes.
- * @section singleton__Mereology_2: The Hierarchy of Order.
+ * @section singleton__Mereology
+ * @section singleton__Mereology_2
  */
 namespace dedekind::sets {
 
@@ -100,7 +97,7 @@ struct SingletonSet {
   constexpr std::size_t upper_bound() const { return 1; }
   constexpr auto cardinality() const { return Finite{}; }
 
-  /** @section singleton__Mereological_Relation (sqsubseteq) */
+  /** @section singleton__Mereological_Relation */
 
   // 1. Manual definition to satisfy: { a <= b } -> typename L::Ω
   constexpr typename L::Ω operator<=(const SingletonSet& other) const {
@@ -173,14 +170,14 @@ constexpr auto singleton(T&& value) {
   return SingletonSet<std::decay_t<T>>{std::forward<T>(value)};
 }
 
-/** @section singleton__The_Set_Monad: The Categorical Identity */
+/** @section singleton__The_Set_Monad */
 
 /**
  * @section singleton__Singleton_Kleisli_Triple
  * @brief The Bricks of the Singleton Monad.
  */
 
-/** @section singleton__Bind (>>=) */
+/** @section singleton__Bind */
 export template <typename T, typename L, typename Func>
 constexpr auto operator>>=(const SingletonSet<T, L>& s, Func&& f) {
   /**
@@ -193,7 +190,7 @@ constexpr auto operator>>=(const SingletonSet<T, L>& s, Func&& f) {
 
 /** @section singleton__Singleton_CoKleisli_Triple */
 
-/** @section singleton__Extend (<<=) */
+/** @section singleton__Extend */
 export template <typename T, typename L, typename Func>
 constexpr auto operator<<=(const SingletonSet<T, L>& s, Func&& f) {
   using U = std::invoke_result_t<Func, SingletonSet<T, L>>;

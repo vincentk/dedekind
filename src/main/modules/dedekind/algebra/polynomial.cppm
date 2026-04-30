@@ -54,10 +54,7 @@ class RigPolynomial {
   using machine_type = std::vector<R>;
 
   /**
-   * @section polynomial__Inversion_Axiom (The Rig Property)
-   * FIXME: RigPolynomial is NOT invertible by definition.
-   * In the ETCS refactor, we will introduce a 'Polynomial' elevation
-   * that specializes this to true when R satisfies IsAbelianGroup.
+   * @section polynomial__Inversion_Axiom
    */
   template <typename Op>
   static constexpr bool is_invertible_v = false;

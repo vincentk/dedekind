@@ -84,10 +84,7 @@ constexpr auto duplicate(HubTag tag, WA const& wa) {
 }
 
 /**
- * @section monad__Monad_as_Monoid (Explicit Definition)
- * We bridge the gap:
- *   η (Unit)           <--> identity_v (Monoid Unit)
- *   μ (Multiplication) <--> Op         (Monoid Operation)
+ * @section monad__Monad_as_Monoid
  *
  * @brief T : C -> C with η : Id ⟹ T and μ : T² ⟹ T
  * @details In the project's single-species setting, the component laws are
@@ -124,7 +121,7 @@ concept IsMonad =
     };
 
 /**
- * @section monad__Comonadic_Morphisms: Extract (ε) and Duplicate (δ)
+ * @section monad__Comonadic_Morphisms
  */
 
 /**

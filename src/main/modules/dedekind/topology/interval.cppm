@@ -7,10 +7,7 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  *
- * @section interval__Shapes: The Geometry of Boundaries
- * This partition defines the fundamental morphological units of the continuum.
- * Following the Dedekind construction, we define the "Half-Space" as a Ray
- * and the "Bounded Space" as an Interval.
+ * @section interval__Shapes
  *
  * @details
  * - Ray: An Idempotent Semigroupoid representing a directed infinity.
@@ -142,7 +139,7 @@ class Ray : public detail::BoundaryTag<B> {
 
   constexpr T pivot() const { return pivot_; }
 
-  /** @section interval__Logic: Characteristic Function */
+  /** @section interval__Logic */
   constexpr auto operator()(const T& x) const {
     if constexpr (D == Direction::Upward)
       return (B == Boundary::Open ? x > pivot_ : x >= pivot_) ? L::True
@@ -152,7 +149,7 @@ class Ray : public detail::BoundaryTag<B> {
                                                               : L::False;
   }
 
-  /** @section interval__Algebraic_Laws: The Rhyme of the Lattice */
+  /** @section interval__Algebraic_Laws */
   friend constexpr Ray operator|(const Ray& a, const Ray& b) {
     if constexpr (D == Direction::Upward)
       return Ray{std::min(a.pivot_, b.pivot_)};  // Union of upward rays

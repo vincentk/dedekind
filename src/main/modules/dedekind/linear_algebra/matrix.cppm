@@ -42,7 +42,7 @@
  * entries live in the type, each matrix-vector product is a type-level
  * rewrite, observable via `static_assert`.
  *
- * @section matrix__DSL_Surface (paper-facing)
+ * @section matrix__DSL_Surface
  *
  *     using Q = dedekind::numbers::Rational<long>;
  *     // M = [[1, 2], [3, 4]],  det = -2
@@ -78,8 +78,7 @@ import :tuple;           // Vec2 (NTTP), Vec2V / Covec2V (value-level)
 
 namespace dedekind::linear_algebra {
 
-/** @section matrix__NTTP_Matrix_Family — compile-time 2×2 matrices used for the
- *  block-Schur invertibility program (#366). Entries live in the type.
+/** @section matrix__NTTP_Matrix_Family
  */
 
 /**
@@ -395,10 +394,7 @@ struct BlockUpperTriangular {
   }
 };
 
-/** @section matrix__Value_Level_Matrix_Family — the runtime companion to the
- * NTTP carriers above. Entries are ordinary constexpr fields; equality is value
- * equality. `Matrix2x2V` is the paper-facing target of the ℂ/𝔻 regular
- * representations in `:embeddings`.
+/** @section matrix__Value_Level_Matrix_Family
  */
 
 /**
@@ -646,7 +642,7 @@ constexpr Covec2V<T> operator*(const Covec2V<T>& v, const Matrix2x2V<T>& A) {
   return {v.x * A.m11 + v.y * A.m21, v.x * A.m12 + v.y * A.m22};
 }
 
-/** @section matrix__Concatenation_Builders — tuples into matrices.
+/** @section matrix__Concatenation_Builders
  *
  *  Concatenation is the inverse of decomposition: the column view of a
  *  matrix `M.column(0)` and `M.column(1)` reassembles to `M` under `|`;
@@ -697,8 +693,7 @@ constexpr Matrix2x2V<T> operator/(const Covec2V<T>& a, const Covec2V<T>& b) {
   return {a.x, a.y, b.x, b.y};
 }
 
-/** @section matrix__Concept_Witnesses_over_ℚ — the `:contracts` slogan-pack
- * witnessed on the concrete Matrix2x2V / Vec2V / Covec2V triple.
+/** @section matrix__Concept_Witnesses_over_ℚ
  *
  *  The nine structural claims, shape-conformance, transpose involution /
  *  duality, and the orthogonal group O(2, ℚ) — each pinned by

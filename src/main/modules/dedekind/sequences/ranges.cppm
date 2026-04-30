@@ -6,8 +6,7 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @section ranges__Serendipity: The Triple Nature of the Integer Interval
- * For any integral type T, the integer interval [a, b) is simultaneously:
+ * @section ranges__Serendipity
  *
  *   1. **A Sequence** (IsTerminalSet via as_sequence()):
  *      The injective enumeration f(i) = a + i, f: ℕ → T.

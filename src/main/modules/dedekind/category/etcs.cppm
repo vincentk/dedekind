@@ -12,7 +12,7 @@
  * set interface. In this codebase, a "set" is represented as a subobject
  * classified by a characteristic morphism χ: A → Ω.
  *
- * @section etcs__ETCS_Axiom_Mapping Lawvere's 10 Axioms mapped to dedekind
+ * @section etcs__ETCS_Axiom_Mapping
  *
  * The following table maps each of the 10 axioms of Lawvere's ETCS to the
  * corresponding C++23 implementation. Items marked (asp.) are aspirational.

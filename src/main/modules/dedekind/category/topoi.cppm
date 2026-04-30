@@ -69,7 +69,7 @@ constexpr auto lift_classifier_constant(Constant&& value) {
   }
 }
 
-/** @section topoi__The Point-Free Composition Engine */
+/** @section topoi__The */
 
 /**
  * @brief The Predicate Morphism (A Mapping from Domain to Truth).

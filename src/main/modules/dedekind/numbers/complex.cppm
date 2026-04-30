@@ -484,7 +484,7 @@ static_assert(
 
 namespace dedekind::numbers {
 
-/** @section complex__Canonical_Species_Spine (ℂ)
+/** @section complex__Canonical_Species_Spine
  *
  * The canonical complex-number species ℂ is defined above as
  * @c ComplexSet @c = @c ComplexesOf<> with value-level constant

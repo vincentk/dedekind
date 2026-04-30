@@ -8,12 +8,7 @@
  *
  * @dependency dedekind.ontology
  *
- * @section boundaries__The_Structural_Limits: ⊥ and ⊤
- * In the Dedekind topos, the boundaries of a Species define the 'North
- * and South poles' of the set-lattice. This partition implements the
- * identities required for a Bounded Lattice over any Species:
- * - UniversalSet (V): The 'Top' (⊤). The extensional whole of a Species.
- * - EmptySet (∅): The 'Bottom' (⊥). The mereological remainder of the whole.
+ * @section boundaries__The_Structural_Limits
  *
  * @details
  * These sets are the 'First-Class Citizens' of the Mereological System:
@@ -56,8 +51,8 @@ import :mereology;
 using namespace dedekind::category;
 
 /**
- * @section boundaries__Mereology: The study of parts and wholes.
- * @section boundaries__Mereology_2: The Hierarchy of Order.
+ * @section boundaries__Mereology
+ * @section boundaries__Mereology_2
  */
 namespace dedekind::sets {
 
@@ -156,7 +151,7 @@ struct Ø final : Boundaries {
   /** @section boundaries__Extensionality_Proof */
   constexpr std::size_t size() const { return 0; }
 
-  /** @section boundaries__Lattice_Axiom: Initiality */
+  /** @section boundaries__Lattice_Axiom */
   // The Empty Set is a part of everything (including itself)
   // We use a simple template to avoid recursion with IsSet
   template <typename S>
@@ -249,10 +244,7 @@ struct Ω final : Boundaries {
   constexpr auto operator!() const { return Ø<T, L>{}; }
 
   /**
-   * @section boundaries__Lattice_Axiom_2: Terminality
-   * Everything is a part of the Universal Set.
-   * Constraint: Exclude Variables (which have a member T) to let
-   * symbolic expressions handle their own comparisons.
+   * @section boundaries__Lattice_Axiom_2
    */
   template <typename S>
     requires(!requires { typename S::T; }) &&
@@ -261,7 +253,7 @@ struct Ω final : Boundaries {
     return L::True;
   }
 
-  /** @section boundaries__Lattice_Axiom_3: Reflexivity */
+  /** @section boundaries__Lattice_Axiom_3 */
   constexpr typename L::Ω operator<=(const Ω&) const { return L::True; }
 
   // Explicitly define equality if <=> is being deleted by members

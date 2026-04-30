@@ -21,8 +21,7 @@
  * - <<= (Extend)       : The 'co-extension' operator, sampling the species into
  * a new context.
  *
- * @section kleisli__Notation_Mapping Textbook Notation -> Implementation
- * Surface
+ * @section kleisli__Notation_Mapping
  *
  * Core monadic/comonadic symbols and their implementation names:
  * - η : unit/pure (concrete overloads defined in `:natural`)

@@ -89,7 +89,7 @@ concept IsLogicalSpecies = requires(typename L::Ω a, typename L::Ω b) {
 };
 
 /**
- * @section logic__Species 1: Classical Logic (The Binary Prime)
+ * @section logic__Species
  * @brief The internal logic of the Classical Topos ({True, False}).
  *
  * ClassicalLogic defines the standard Boolean algebra where the Law of
@@ -117,8 +117,7 @@ static_assert(IsLogicalSpecies<ClassicalLogic>,
               "ClassicalLogic must fulfill IsLogicalSpecies");
 
 /**
- * @section logic__Species_2 2: Kleene Ternary Logic (The Logic of
- * Indeterminacy)
+ * @section logic__Species_2
  * @brief A three-valued propositional logic for handling partial information.
  *
  * Unlike ClassicalLogic, Ternary logic allows for an 'Unknown' state,

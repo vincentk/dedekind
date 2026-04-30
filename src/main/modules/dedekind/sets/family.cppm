@@ -8,11 +8,7 @@
  *
  * @dependency dedekind.ontology, dedekind.sets:boundaries
  *
- * @section family__The_Family: The Algebra of Collections
- * In the Dedekind topos, a Family is a 'Set of Sets'—a realized mereological
- * 'System' that collects various parts (subsets) of a common Ambient Species.
- * It acts as the higher-order structural layer where sets themselves
- * become the elements of a larger Lattice.
+ * @section family__The_Family
  *
  * @details
  * A Family is defined by its adherence to the Bounded Lattice axioms:
@@ -57,8 +53,8 @@ import :singleton;
 using namespace dedekind::category;
 
 /**
- * @section family__Mereology: The study of parts and wholes.
- * @section family__Mereology_2: The Hierarchy of Order.
+ * @section family__Mereology
+ * @section family__Mereology_2
  */
 namespace dedekind::sets {
 
