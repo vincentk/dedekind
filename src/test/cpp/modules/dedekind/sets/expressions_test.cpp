@@ -31,6 +31,32 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
           "[sets][operators]") {
   auto x = var<ℕ>;
 
+  SECTION("Boundary collapses: A ^ ∅ = A, ∅ ^ A = A (#469)") {
+    auto S = Set{x % N | x > 10u};
+    Ø<unsigned int, TernaryLogic> empty{};
+    // Both directions collapse structurally to S (the type is preserved,
+    // not erased to a lambda predicate).
+    auto right_collapse = S ^ empty;
+    auto left_collapse = empty ^ S;
+    static_assert(std::is_same_v<decltype(right_collapse), decltype(S)>,
+                  "S ^ Ø collapses structurally to the same Set type as S.");
+    static_assert(std::is_same_v<decltype(left_collapse), decltype(S)>,
+                  "Ø ^ S collapses structurally to the same Set type as S.");
+    REQUIRE(right_collapse(50u) == Ternary::True);
+    REQUIRE(right_collapse(5u) == Ternary::False);
+  }
+
+  SECTION("Boundary collapses: A ^ Ω = ¬A, Ω ^ A = ¬A (#469)") {
+    auto S = Set{x % N | x > 10u};
+    Ω<unsigned int, TernaryLogic> universe{};
+    auto right_collapse = S ^ universe;              // type: !S
+    auto left_collapse = universe ^ S;               // type: !S
+    REQUIRE(right_collapse(50u) == Ternary::False);  // 50 ∈ S → ∉ !S
+    REQUIRE(right_collapse(5u) == Ternary::True);    // 5 ∉ S  → ∈ !S
+    REQUIRE(left_collapse(50u) == Ternary::False);
+    REQUIRE(left_collapse(5u) == Ternary::True);
+  }
+
   SECTION("Self-XOR is empty at every input: A ^ A is ∅ pointwise") {
     // The structural type-level collapse `same_as<P, P> → Ø` is
     // unsound for stateful predicates (two Set<T, L, P> with the same

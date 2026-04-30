@@ -649,6 +649,24 @@ constexpr auto operator!(Set<T, L, Predicate>&& s) {
   return s.operator!();
 }
 
+/** @brief @c Set @c ^ @c Ø @c = @c Set (symmetric difference with empty
+ *         is identity; #469).  Symmetric of @c Ø::operator^(S) above —
+ *         this overload picks up @c S @c ^ @c Ø when the boundary is on
+ *         the right, keeping the structural collapse type-level rather
+ *         than falling through to the lambda. */
+export template <typename T, typename L, typename Predicate>
+constexpr auto operator^(const Set<T, L, Predicate>& s, const Ø<T, L>&) {
+  return s;
+}
+
+/** @brief @c Set @c ^ @c Ω @c = @c ¬Set (symmetric difference with the
+ *         universe is the complement; #469).  Symmetric of
+ *         @c Ω::operator^(S) above. */
+export template <typename T, typename L, typename C, typename Predicate>
+constexpr auto operator^(const Set<T, L, Predicate>& s, const Ω<T, L, C>&) {
+  return !s;
+}
+
 export template <typename B, typename P>
 Set(Comprehension<B, P>)
     -> Set<typename B::Domain, typename NaturalLogic<B>::type, P>;
