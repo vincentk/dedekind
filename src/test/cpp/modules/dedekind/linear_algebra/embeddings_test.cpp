@@ -16,8 +16,10 @@
 #include <functional>
 
 import dedekind.algebra;
+import dedekind.category; // dedekind::category::IsField on bool (F_2 reading)
 import dedekind.linear_algebra;
 import dedekind.numbers;
+import dedekind.order; // dedekind::order::HasLatticeOperators on bool
 import dedekind.sets;
 
 using namespace dedekind::algebra;
@@ -177,19 +179,39 @@ TEST_CASE("Algebraic Lattice (Figure 1): cube corners on the numeric tower",
   //                 std::plus<Matrix2x2V<Dual<Complex<Rat>>>>,
   //                 std::multiplies<Matrix2x2V<Dual<Complex<Rat>>>>>);
 
-  // ---- Boundary cases (where the lattice deliberately refuses) ----
+  // ---- Lattice bottom-front-left corner: 𝔹 = bool ----
   //
-  // 𝔹-rooted cells: bool with (+, *) does NOT close on bool because
-  // of integer promotion (paper §3.4 footnote a; tab:rosetta-textbook
-  // -vs-cpp).  The honest path is `IsAlgebra<bool, std::bit_xor<bool>,
-  // std::bit_and<bool>>` (the F_2 reading), exercised in
-  // `algebra/universal_test.cpp` and `algebra/f2_test.cpp`.
+  // The Algebraic Lattice caption places 𝔹 at the bottom-front-left
+  // corner.  Per the paper §3.4 Rosetta tables, the natural reading
+  // of bool's algebraic surface is the Galois field 𝔽₂ under
+  // (XOR, AND); the Boolean-lattice reading under (∨, ∧) is the
+  // sibling structure.  Both fire on the same carrier; the operation
+  // tuple disambiguates.  These witnesses also live upstream
+  // (`numbers:boolean`, `algebra:universal`), but pinning them here
+  // anchors the lattice bottom to the read-side test that names
+  // itself for Figure 1.
+  STATIC_CHECK(IsAlgebra<𝔹, std::bit_xor<bool>, std::bit_and<bool>>);
+  STATIC_CHECK(
+      dedekind::category::IsField<𝔹, std::bit_xor<bool>, std::bit_and<bool>>);
+  STATIC_CHECK(dedekind::order::HasLatticeOperators<𝔹>);
+
+  // ---- Boundary case: alphabet choice on the 𝔹-rooted cells ----
   //
-  // FIXME(#498 / #496): the negative refusal at `IsAlgebra<bool,
-  // std::plus<bool>, std::multiplies<bool>>` is structural truth but
-  // not currently pinned as a static_assert(!) in this file because
-  // the closure check fails by the literal-tier promotion mechanism
-  // (operator+ on bool returns int).  When the refined-type
-  // discipline of #496 lands, the bool→F_2 channel is the typed
-  // boundary; the negative pin can move there.
+  // The closure-tier `IsAlgebra<bool, std::plus<bool>, std::multiplies<bool>>`
+  // check tests `op(a, b) -> std::same_as<bool>`.  `std::plus<bool>` and
+  // `std::multiplies<bool>` go through C++ integer promotion (literal
+  // `a + b` on bools yields `int`) but the functor's call operator
+  // narrows back to `bool`, so the closure-tier `same_as<bool>` check
+  // mechanically succeeds.  What the closure check does *not* see is
+  // that the values returned reflect the int-promoted arithmetic
+  // (`true + true -> int(2) -> bool(true)`, not the F_2-natural
+  // `true + true -> false`).  The textbook (+, *) reading is therefore
+  // the *wrong alphabet* for the lattice-bottom cell --- the F_2
+  // reading above (XOR, AND) is the operationally correct one;
+  // (∨, ∧) is the Boolean-lattice sibling on the same carrier.
+  // Paper §3.4 footnote a and `tab:rosetta-textbook-vs-cpp` cover the
+  // alphabet choice in detail; the refined-type discipline of #496
+  // will make the bool→F_2 channel a typed boundary so the wrong
+  // alphabet becomes a type error rather than a silent semantic
+  // mismatch.
 }

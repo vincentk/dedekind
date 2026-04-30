@@ -1249,7 +1249,7 @@ the reference implementation on the exact side.}
 \toprule
 \textbf{Primitive type} & \textbf{Arithmetic semantics} & \textbf{Concept satisfied} \\
 \midrule
-\lstinline|bool| & Boolean algebra under $\land, \lor, \lnot$ & \lstinline|IsBoolean| \\
+\lstinline|bool| & Galois field $\mathbb{F}_2$ under $(\oplus, \land)$; Boolean lattice under $(\lor, \land)$ on the same carrier & \lstinline|category::IsField<bool, std::bit_xor<bool>, std::bit_and<bool>>|; \lstinline|order::HasLatticeOperators<bool>| \\
 \lstinline|unsigned long|, \lstinline|size_t| & Modular, wraps at $2^{N}$ & \lstinline|IsCyclicGroup|, \lstinline|IsAbelianGroup<T,+>| \\
 \lstinline|int|, \lstinline|long| & Partial (UB on signed overflow) & \lstinline|HasRingOperators|\textsuperscript{a} \\
 \lstinline|int8_t|, \lstinline|int16_t| & Partial + SIMD-vectorisable & \lstinline|HasRingOperators|\textsuperscript{a} \\
