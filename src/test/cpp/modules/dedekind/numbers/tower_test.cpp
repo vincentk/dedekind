@@ -52,13 +52,18 @@ static_assert(std::same_as<Dom<std::decay_t<decltype(embed_𝕂3_ℤ_)>>, Ternar
 static_assert(std::same_as<Cod<std::decay_t<decltype(embed_𝕂3_ℤ_)>>,
                            dedekind::sets::SignedCardinality>);
 
-// embed_ℤ_ℚ<> / embed_ℚ_ℝ<> default-instantiate over default_integer
-// (= SignedExtensionalCardinal<> post-#499 retarget), not machine_integer.
+// embed_ℤ_ℚ<> takes a machine_integer (the source-side type is hardwired
+// in the arrow definition, independent of the I template parameter) and
+// returns a Rational<I> with I = default_integer post-#499 retarget
+// (default_integer = SignedExtensionalCardinal<>).
 static_assert(
-    std::same_as<Dom<std::decay_t<decltype(embed_ℤ_ℚ<>)>>, default_integer>);
+    std::same_as<Dom<std::decay_t<decltype(embed_ℤ_ℚ<>)>>, machine_integer>);
 static_assert(std::same_as<Cod<std::decay_t<decltype(embed_ℤ_ℚ<>)>>,
                            Rational<default_integer>>);
 
+// embed_ℚ_ℝ<> default-instantiates with I = default_integer (so the source
+// is Rational<default_integer> = Rational<SignedExtensionalCardinal<>>)
+// and S = machine_real_scalar.
 static_assert(std::same_as<Dom<std::decay_t<decltype(embed_ℚ_ℝ<>)>>,
                            Rational<default_integer>>);
 static_assert(std::same_as<Cod<std::decay_t<decltype(embed_ℚ_ℝ<>)>>,
