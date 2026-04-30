@@ -594,6 +594,23 @@ class Set {
       // @c (x @c < @c 5) is not the @c NegatedPredicate wrapper of
       // @c (x @c > @c 100)) but @c structured_and detects.
       return *this | other;
+    } else if constexpr (std::same_as<std::decay_t<decltype(*this | other)>,
+                                      Ω<T, L>>) {
+      // Compile-time-covering optimisation (dual of the disjoint
+      // branch above): when @c A @c ∪ @c B reduces structurally to
+      // @c Ω<T, L> at the type level, the textbook identity becomes
+      // @c A @c △ @c B @c = @c Ω @c ∖ @c (A @c ∩ @c B) @c =
+      // @c ¬(A @c ∩ @c B).  Currently dormant: today the only path
+      // by which @c | yields @c Ω at the type level is the
+      // @c IsComplementPair_v branch, which is already handled by
+      // branch 1 above.  When a @c structured_or overload lands
+      // (mirroring the existing @c structured_and in
+      // @c order:halfspace) and detects covering halfspace pairs
+      // whose union covers the carrier without complement-pair
+      // shape, this branch will fire automatically.  Added now for
+      // symmetry with the disjoint branch and to document the
+      // design space.
+      return !(*this & other);
     } else {
       auto predicate = [lhs = predicate_, rhs = other.predicate_](const T& v) {
         const auto a = lhs(v);
