@@ -562,9 +562,11 @@ static_assert(IsSequence<Path<int>>, "Path must satisfy the sequence concept.");
 // it surfaces here at the load-bearing case that motivated the
 // sharpening.
 namespace _path_525 {
-using PathArrow =
-    dedekind::category::Set<Path<int>>::Arrow;  // Morphism<Path<int>,
-                                                // Path<int>, fn(Path)>
+using PathArrow = dedekind::category::CanonicalSetCCC<Path<int>>::Arrow;
+// Morphism<Path<int>, Path<int>, std::function<Path<int>(Path<int>)>> —
+// CanonicalSetCCC<X> is the exported alias for the in-cartesian Set<X>
+// type (Set itself is not export-qualified).  Same precedent as the
+// vec2_functor / matrix2x2_functor Hubs in :linear_algebra.
 static_assert(dedekind::category::IsArrow<Path<int>>,
               "Path<int> is itself an IsArrow at the type level "
               "(Domain = size_t, Codomain = T, call operator).");
@@ -576,7 +578,6 @@ static_assert(dedekind::category::IsSpokeArrow<PathArrow>,
               "Morphism<Path<int>, Path<int>, ...> is a SpokeArrow under "
               "the #525 sharpening (Dom = Path<int>, which is not a "
               "category-shaped thing). Pre-#525 this static_assert would "
-              "have failed because Path<int> structurally satisfied "
               "IsArrow.");
 }  // namespace _path_525
 
