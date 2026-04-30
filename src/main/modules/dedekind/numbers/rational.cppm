@@ -374,7 +374,7 @@ using RationalSet = RationalsOf<>;
  *
  *  See the @c FIXME(\#379) breadcrumb at the Field_ℚ definition in
  *  @c :integer.  Until both blocks lift, the operational
- *  @c algebra::IsFieldLikeScalar<ℚ> is the load-bearing field-
+ *  @c algebra::HasFieldOperators<ℚ> is the load-bearing field-
  *  arithmetic guarantee.
  */
 export template <IsInteger I = default_integer>
@@ -621,10 +621,10 @@ static_assert(dedekind::algebra::HasGroupOperatorsMul<ℚ>,
 //     carries).  The strict @c category::IsField<ℚ, std::plus, std::multiplies>
 //     witness is architecturally blocked by the @c IsTotal gate (exact carriers
 //     are neither periodic, idempotent, nor saturating); the operational
-//     reading via @c IsFieldLikeScalar is the load-bearing field-arithmetic
-//     guarantee, asserted downstream in this file's Formal_Verification block.
-//     Group_ℤ on the integer carrier of ℚ is also asserted downstream where
-//     the species-trait registry is reachable.
+//     reading via @c HasFieldOperators is the load-bearing
+//     field-arithmetic guarantee, asserted downstream in this file's
+//     Formal_Verification block. Group_ℤ on the integer carrier of ℚ is also
+//     asserted downstream where the species-trait registry is reachable.
 
 // (4) Primitive-type arrows on ℚ:
 //   - Forward (machine → ℚ): @c embed_ℤ_ℚ promotes a @c machine_integer
@@ -654,8 +654,9 @@ static_assert(dedekind::algebra::HasGroupOperatorsMul<ℚ>,
 /**
  * @section Formal_Verification
  *
- * Rational<I> satisfies the operational field-like witness (IsFieldLikeScalar):
- * all four arithmetic operations are available and closed.
+ * Rational<I> satisfies the operational field-like witness
+ * (HasFieldOperators): all four arithmetic operations are available and
+ * closed.
  *
  * @note The stronger categorical proof IsField<Rational<I>> is architecturally
  * blocked: IsField requires IsRing which requires IsMonoid which requires
@@ -679,13 +680,14 @@ static_assert(IsInteger<SignedExtensionalCardinal<>>,
               "2^{N*64 - 1}).");
 
 static_assert(
-    dedekind::algebra::IsFieldLikeScalar<Rational<default_integer>>,
+    dedekind::algebra::HasFieldOperators<Rational<default_integer>>,
     "Rational<I> must satisfy the operational field-like witness (ℚ is a "
     "field).");
 
 static_assert(
-    dedekind::algebra::IsFieldLikeScalar<Rational<SignedExtensionalCardinal<>>>,
-    "Rational<SignedExtensionalCardinal<>> must satisfy IsFieldLikeScalar: "
+    dedekind::algebra::HasFieldOperators<Rational<SignedExtensionalCardinal<>>>,
+    "Rational<SignedExtensionalCardinal<>> must satisfy "
+    "HasFieldOperators: "
     "the intended arbitrary-precision signed-rational carrier for ℚ.");
 
 // ---------------------------------------------------------------------------
@@ -726,17 +728,16 @@ static_assert(
 // ℚ as the field of rationals: the canonical arbitrary-precision rational
 // carrier that the paper-facing showcases instantiate on.
 //
-// FIXME: Field_ℚ currently fails to certify on this carrier because the
-// concept's body transitively depends on IsFieldLikeScalar (the ad-hoc
-// operational concept) and IsRational (which chains through IsFieldLike ->
-// IsRationalLike). The right repair is part of a broader cleanup:
-// introduce `IsField<T, Add, Mult>` in dedekind.category:total, retire the
-// ad-hoc IsFieldLike / IsFieldLikeScalar names (the IsRingLike-flavoured
-// ones already retired under #394's sweep into HasRingOperators), and
-// rebind Field_ℚ to the proper algebraic concept. Tracked under the
-// concept-dogfooding issue sweep (see backlog issues to be created).
-// Until then the operational witnesses (IsFieldLikeScalar<Rational<
-// SignedEC<>>> asserted above) are the load-bearing guarantees.
+// FIXME(#374): Field_ℚ does not yet certify on this carrier.  The
+// concept-vocabulary alignment of #374 has landed (the canonical
+// HasFieldOperators in algebra:field is the operator-shape predicate;
+// the strict IsField in category:total is the axiomatic one), but
+// Field_ℚ's body still transitively depends on the trait specialisations
+// (identity_v / is_associative_v / is_commutative_v) being lifted onto
+// Rational<I> via the IsTotal gate.  The remaining repair is the trait
+// auto-lifter (axiom hooks); until then the operator-shape witness
+// HasFieldOperators<Rational<SignedEC<>>> asserted below is the
+// load-bearing guarantee.
 
 // ℚ-deal (#394, surface only): HasFieldOperators is the literal field-
 // operator surface (+, -, unary -, *, /, T{1}).  Rational<I>'s friend
@@ -779,14 +780,14 @@ static_assert(
  * (currently `int`, the machine signed integer) gives Q[x] over ℤ.
  *
  * @note This is the structurally correct polynomial ring: the coefficient type
- * Rational<I> is field-like (IsFieldLikeScalar), so the polynomial ring has
- * all four arithmetic operations available. A future retarget to
+ * Rational<I> is field-like (HasFieldOperators), so the polynomial ring
+ * has all four arithmetic operations available. A future retarget to
  * SignedExtensionalCardinal<N> would give a provably total Q[x].
  */
 export template <IsInteger I = default_integer>
 using RationalPolynomial = dedekind::algebra::RigPolynomial<Rational<I>>;
 
-static_assert(dedekind::algebra::IsFieldLikeScalar<Rational<default_integer>>,
+static_assert(dedekind::algebra::HasFieldOperators<Rational<default_integer>>,
               "RationalPolynomial coefficient type must be field-like.");
 
 // Ordering and density proofs for ℚ.

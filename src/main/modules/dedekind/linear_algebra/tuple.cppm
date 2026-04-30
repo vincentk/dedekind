@@ -43,7 +43,7 @@ module;
 
 export module dedekind.linear_algebra:tuple;
 
-import dedekind.algebra;  // HasRingOperators, IsVectorSpaceLike (upstream)
+import dedekind.algebra; // HasRingOperators, HasVectorSpaceOperators (upstream)
 import dedekind.category; // IsFunctor / Set / arrow (for vec2_functor witnesses)
 import dedekind.sets; // Finite tag — the cardinal the tuple dimension lives in
 import :contracts;    // ColumnOrientation, RowOrientation tags
@@ -257,7 +257,7 @@ static_assert(dedekind::category::IsFunctor<covec2_functor<int>>,
 // `HasRingOperators<Vec2V<unsigned int>>` shape concept correctly
 // refuses; the textbook structure carried by Vec2V is an additive
 // abelian group + a module / vector space (see
-// `algebra::IsVectorSpaceLike`), not a ring.
+// `algebra::HasVectorSpaceOperators`), not a ring.
 static_assert(!dedekind::algebra::HasRingOperators<Vec2V<unsigned int>>,
               "Vec2V is not a ring: vectors have no internal product.");
 static_assert(!dedekind::algebra::HasRingOperators<Covec2V<unsigned int>>,

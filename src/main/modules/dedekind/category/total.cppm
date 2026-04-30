@@ -409,7 +409,7 @@ concept IsCommutativeRing = IsRing<T, Add, Mult> && IsCommutative<T, Mult>;
  *       @c IsDivisionRing.
  *
  * Downstream call sites that currently reach for
- * @c dedekind::algebra::IsFieldLikeScalar will retarget to
+ * @c dedekind::algebra::HasFieldOperators will retarget to
  * @c IsField<T, Add, Mult> once carriers such as @c Rational<Z>,
  * @c Complex<R>, and the relevant composites register the full
  * ring- plus multiplicative-group-trait specialisations. That work

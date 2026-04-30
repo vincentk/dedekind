@@ -381,8 +381,8 @@ static_assert(
     "ℝ defined over ℚ via the Dedekind cut construction.");
 
 // Proof: ExactReal<> satisfies the operational field-like witness.
-static_assert(dedekind::algebra::IsFieldLikeScalar<ExactReal<>>,
-              "ExactReal<> must satisfy IsFieldLikeScalar (ℝ is a field).");
+static_assert(dedekind::algebra::HasFieldOperators<ExactReal<>>,
+              "ExactReal<> must satisfy HasFieldOperators (ℝ is a field).");
 
 /** @section Canonical_Species_Spine (ℝ)
  *
@@ -397,10 +397,10 @@ static_assert(dedekind::algebra::IsFieldLikeScalar<ExactReal<>>,
  * (2) Syntax: @c HasRingOperators / @c HasFieldOperators on the
  *     exact carrier @c ExactReal<>; the machine carrier @c double
  *     fires the literal-shape concept too, but its semantics are
- *     IEEE-policy-flavoured (@c IsFieldLikeScalar holds with the
+ *     IEEE-policy-flavoured (@c HasFieldOperators holds with the
  *     usual rounding caveats).
  * (3) Semantics: @c IsDedekindComplete<ExactReal<>> (above) is the
- *     defining ℝ axiom; @c IsFieldLikeScalar<ExactReal<>> is the
+ *     defining ℝ axiom; @c HasFieldOperators<ExactReal<>> is the
  *     operational field witness (Pattern-(b) per #394).  Strict
  *     @c IsField is blocked by two distinct issues: the
  *     architectural @c IsTotal gate (currently periodic/idempotent/

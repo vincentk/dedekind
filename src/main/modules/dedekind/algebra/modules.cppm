@@ -35,6 +35,7 @@ import dedekind.ieee;
 import :field;
 import :group;
 import :polynomial;
+import :ring;  // HasRingOperators (operator-shape claim on int / unsigned int)
 
 namespace dedekind::algebra {
 using namespace dedekind::category;
@@ -60,36 +61,13 @@ concept IsUnsignedIntegralScalar = std::unsigned_integral<S>;
 export template <typename S>
 concept IsFloatingScalar = std::floating_point<S>;
 
-/**
- * @concept IsFieldLikeScalar
- * @brief Operational scalar witness for field-like arithmetic under policy.
- * @details This concept captures the permissive path used for machine-backed
- *          arithmetic carriers such as `dedekind::ieee::IEEE<double>`, where
- *          addition, subtraction, multiplication, division, and unary negation
- *          are available and closed in the carrier, even if the stricter
- *          categorical `IsField` proof is intentionally withheld.
- *
- * @note @b Design @b choice (audit #393): @c IsFieldLikeScalar is the
- *       deliberate operational variant for IEEE-edge-case carriers that
- *       intentionally do not carry strict axiomatic proofs.  It is
- *       \emph{not} a stopgap for the missing strict @c IsField --- the
- *       strict concept exists in @c category:total and is used at every
- *       callsite that genuinely needs the field axioms.  Where a callsite
- *       depends on the operator surface acting field-shaped under the
- *       active numeric policy (Kleene three-valued, partial traits, IEEE
- *       admissibility), this is the correct concept.  For pure
- *       syntactic-shape requirements with no algebraic claim, see the
- *       @c Has*Operators family (@c dedekind::algebra::HasRingOperators
- *       and siblings).
- */
-export template <typename S>
-concept IsFieldLikeScalar = requires(S a, S b) {
-  { a + b } -> std::same_as<S>;
-  { a - b } -> std::same_as<S>;
-  { -a } -> std::same_as<S>;
-  { a * b } -> std::same_as<S>;
-  { a / b } -> std::same_as<S>;
-};
+// HasFieldOperators<S> --- the operator-shape predicate "S has field-shaped
+// arithmetic" --- lives in @c dedekind.algebra:field as
+// @c HasRingOperators<S> @c && @c HasGroupOperatorsMul<S>.  This partition
+// (formerly :modules) used to ship a duplicate @c IsFieldLikeScalar with the
+// same intent; that duplicate was retired alongside the rest of the operational
+// @c *Like family (Stream 3 of #374).  Downstream code in @c :modules and
+// @c :vectorspace consumes the canonical @c HasFieldOperators directly.
 
 /**
  * @concept IsSemimodule
@@ -234,23 +212,19 @@ export using RealLine = OneDimensionalVector<dedekind::ieee::IEEE<double>>;
 export using UnsignedLine = OneDimensionalVector<unsigned int>;
 export using BoolLine = OneDimensionalVector<bool>;
 
-/**
- * @concept IsSemimoduleLike
- * @brief Operational semimodule witness for concrete machine-level carriers.
- * @details This concept is intentionally lightweight and checks closure and
- *          compatibility signatures for additive/multiplicative/action laws.
- */
-export template <typename M, typename S, typename AddM, typename AddS,
-                 typename MultS, typename Act>
-concept IsSemimoduleLike = requires(M m1, M m2, S s1, S s2) {
-  { AddM{}(m1, m2) } -> std::same_as<M>;
-  { AddS{}(s1, s2) } -> std::same_as<S>;
-  { MultS{}(s1, s2) } -> std::same_as<S>;
-  { Act{}(s1, m1) } -> std::same_as<M>;
-  { Act{}(MultS{}(s1, s2), m1) } -> std::same_as<M>;
-  { Act{}(AddS{}(s1, s2), m1) } -> std::same_as<M>;
-  { Act{}(s1, AddM{}(m1, m2)) } -> std::same_as<M>;
-};
+// HasSemimoduleOperators / HasScalarOperators were briefly exposed as
+// derived shape predicates over (AddM, AddS, MultS, Act) functor tuples.
+// Per #510 review: they are too generic to earn a name --- the closure
+// claim ``these operations are functor-instantiable on T'' is mechanical
+// substitution of the same operator-shape checks already covered by
+// @c HasRingOperators / @c HasGroupOperatorsAdd / @c HasGroupOperatorsMul,
+// and the algebraic claim is the strict @c IsSemimodule / @c IsScalar in
+// @c category:total.  Either spelling --- pure operator shape, or the
+// strict algebraic concept --- is more honest than a middle ``Operators''
+// concept that adds nothing.  The retired aliases were wide enough that
+// no consumer actually needed the multi-functor form; downstream code
+// now binds either to the operator-shape predicates directly or to the
+// strict algebraic concepts.
 
 /** @brief Additive join on 1D Boolean vectors (OR). */
 export struct BoolLineJoin {
@@ -295,23 +269,6 @@ constexpr OneDimensionalVector<S, Tag> scale_strength_reduced(
 }
 
 /**
- * @concept IsScalarLike
- * @brief Operational counterpart of `IsScalar` for machine-backed carriers.
- * @details Reads "S is a 1D semimodule-like over itself" using the pragmatic
- *          closure signatures rather than the strict categorical proof. This
- *          is the concept a type like `Rational<long>` or `IEEE<double>` can
- *          carry under the active numeric policy (cf. `IsFieldLikeScalar`).
- *
- *          The vector-space-level operational witnesses
- *          (`IsVectorSpaceLike`, `IsFieldElementLike`,
- *          `SatisfiesVectorSpaceAxioms`) live in
- *          `algebra:vectorspace`, alongside the strict `IsVectorSpace`.
- */
-export template <typename S>
-concept IsScalarLike = IsSemimoduleLike<S, S, std::plus<S>, std::plus<S>,
-                                        std::multiplies<S>, std::multiplies<>>;
-
-/**
  * @struct PolynomialOperator
  * @brief The "Enhanced" Polynomial: A Formal Sum reified as a Morphic Action.
  *
@@ -342,23 +299,27 @@ struct PolynomialOperator {
 export using RealLineScalar = decltype(RealLine{}.coordinate());
 
 // RealLine's vector-space witnesses live in `:vectorspace` (they use
-// `IsVectorSpaceLike` / `SatisfiesVectorSpaceAxioms`, which moved
+// `HasVectorSpaceOperators` / `SatisfiesVectorSpaceAxioms`, which moved
 // there along with the rest of the field-level concept surface).
-static_assert(
-    IsSemimoduleLike<BoolLine, bool, BoolLineJoin, std::logical_or<bool>,
-                     std::logical_and<bool>, BoolLineMeetAction>,
-    "BoolLine should satisfy the 1D boolean semimodule-like witness.");
 
-/** @section Bona_Fide_Scalar_and_Field_Element_Witnesses
+/** @section Operator_Shape_Witnesses_For_Bona_Fide_Scalars
  *
  *  "A scalar is a 1D semi-module over itself; an element of a field is a 1D
- *   vector space over itself." These operational witnesses anchor the slogan
- *   for concrete carriers under the active numeric policy.
+ *   vector space over itself."  The operator-shape side of those slogans is
+ *   captured by the existing @c HasRingOperators predicate from @c :ring;
+ *   the strict-algebraic side is @c IsScalar / @c IsFieldElement in
+ *   @c category:total / @c algebra:vectorspace.  No middle ``ScalarOperators''
+ *   alias is shipped --- callers pick the spelling that matches what they
+ *   actually need.
  */
-static_assert(IsScalarLike<unsigned int>,
-              "unsigned int is a bona fide scalar (1D semi-module over self).");
-static_assert(IsScalarLike<int>,
-              "int is a bona fide scalar (1D semi-module over self).");
+static_assert(HasRingOperators<unsigned int>,
+              "unsigned int closes the ring-operator surface (+, -, unary -, "
+              "*); the strict algebraic claim is intentionally not specialised "
+              "(modular-wrap, not associative).");
+static_assert(HasRingOperators<int>,
+              "int closes the ring-operator surface (+, -, unary -, *); the "
+              "strict algebraic claim is intentionally not specialised "
+              "(signed-overflow UB).");
 
 }  // namespace dedekind::algebra
 

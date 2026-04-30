@@ -302,7 +302,7 @@ constexpr LinearMap<F, Rows, Cols> zero_linear_map() {
  *   a categorical field proof
  *
  * Consequence: LinearMap<F, R, C> behaves as a vector-space-like carrier over
- * F in the same operational sense used by IsFieldLikeScalar.
+ * F in the same operational sense used by HasFieldOperators.
  *
  * This means LinearMap satisfies the **four axioms of linear action**:
  * 1. Vector Additivity: s * (m1 + m2) = s*m1 + s*m2
@@ -649,7 +649,7 @@ struct CotangentBundlePoint {
 
 // LinearMap<F, R, C> over a field-like scalar forms a vector-space-like
 // carrier.
-static_assert(IsVectorSpaceLike<LinearMap<double, 2, 3>, double>,
+static_assert(HasVectorSpaceOperators<LinearMap<double, 2, 3>, double>,
               "LinearMap<double,2,3> must be vector-space-like over double.");
 
 }  // namespace dedekind::geometry

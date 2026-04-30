@@ -44,7 +44,7 @@ TEST_CASE("Modules: Integer Polynomial Action", "[algebra][modules]") {
   SECTION("Semimodule and vector-space baseline concepts are grounded") {
     CHECK(IsSemimodule<unsigned int, unsigned int>);
     using RealScalar = decltype(RealLine{}.coordinate());
-    CHECK(IsVectorSpaceLike<RealLine, RealScalar>);
+    CHECK(HasVectorSpaceOperators<RealLine, RealScalar>);
     CHECK(SatisfiesVectorSpaceAxioms<RealLine, RealScalar>);
   }
 
@@ -71,8 +71,16 @@ TEST_CASE("Modules: Integer Polynomial Action", "[algebra][modules]") {
     CHECK(BoolLineMeetAction{}(true, a).coordinate());
     CHECK_FALSE(BoolLineMeetAction{}(false, a).coordinate());
 
-    CHECK(IsSemimoduleLike<BoolLine, bool, BoolLineJoin, std::logical_or<bool>,
-                           std::logical_and<bool>, BoolLineMeetAction>);
+    // The four value-level CHECKs above already exercise BoolLine's
+    // semimodule semantics under (BoolLineJoin, BoolLineMeetAction) at
+    // concrete inputs.  A meta-level signature-alignment claim
+    // previously named HasSemimoduleOperators<BoolLine, bool, ...> was
+    // retired in PR #510 / #374 (over-generic; redundant with the
+    // strict IsSemimodule for carriers that earn the trait registry,
+    // and with the value-level CHECKs for those that don't).  The
+    // strict IsSemimodule does not fire here because the axiom-variable
+    // templates are not specialised for (logical_or, logical_and) on
+    // bool under the active numeric policy.
   }
 
   SECTION("Unsigned 1D scaling supports strength reduction") {

@@ -129,8 +129,8 @@ concept HasOrientation =
  *
  *  Operational witnesses: we check additive closure, unary negation, and a
  *  left scalar action `S × V → V`, alongside a finite dimension. This is the
- *  `IsVectorSpaceLike` pattern from `dedekind.algebra:modules` projected onto
- *  a carrier that exposes `scalar_type` and `dimension`.
+ *  `HasVectorSpaceOperators` pattern from `dedekind.algebra:modules` projected
+ * onto a carrier that exposes `scalar_type` and `dimension`.
  */
 
 /**

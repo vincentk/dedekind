@@ -70,7 +70,7 @@ template <typename R>
 using resolved_value_t =
     std::remove_cvref_t<decltype(resolved_value(std::declval<R>()))>;
 
-// Design choice (#393): the IsFieldLikeScalar dependency is the
+// Design choice (#393): the HasFieldOperators dependency is the
 // deliberate operational variant of IsField, paired here with a
 // floating-point resolved-value requirement.  Numerical FTC bridges
 // land on IEEE-edge carriers (IEEE<double> proxies for ℝ); strict
@@ -78,7 +78,7 @@ using resolved_value_t =
 // the categorical axioms.  The operational pairing is intentional,
 // not a stopgap.
 template <typename R>
-concept IsNumericalBridgeScalar = dedekind::algebra::IsFieldLikeScalar<R> &&
+concept IsNumericalBridgeScalar = dedekind::algebra::HasFieldOperators<R> &&
                                   std::floating_point<resolved_value_t<R>>;
 
 template <IsNumericalBridgeScalar R>

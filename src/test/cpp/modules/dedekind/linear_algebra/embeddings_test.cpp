@@ -6,11 +6,10 @@
  * time; this file mirrors them into Catch2 `STATIC_CHECK`s so they show
  * up in the test report alongside the rest of the linear-algebra suite.
  *
- * Also hosts the operational algebra-modules concept checks
- * (`IsScalarLike`, `IsFieldElementLike`) on concrete numeric carriers
- * — those live here because `Rational<long>` cannot be imported into
- * the algebra test directory (module-DAG rule: algebra is upstream of
- * numbers).
+ * Also hosts the operator-shape concept checks
+ * (`HasRingOperators`, `HasFieldOperators`) on concrete numeric carriers —
+ * those live here because `Rational<long>` cannot be imported into the
+ * algebra test directory (module-DAG rule: algebra is upstream of numbers).
  */
 
 #include <catch2/catch_test_macros.hpp>
@@ -32,14 +31,17 @@ using Rat = Rational<SignedExtensionalCardinal<>>;
 }  // namespace
 
 TEST_CASE(
-    "algebra:modules — a bona fide field element is a 1D vector space over "
-    "itself",
+    "algebra:modules — operator-shape witnesses for bona fide scalars",
     "[algebra][modules][scalar][field]") {
-  // Operational witnesses (IsFieldLikeScalar-based) — the concepts the
-  // machine-backed carriers actually satisfy under the active numeric policy.
-  STATIC_CHECK(IsScalarLike<int>);
-  STATIC_CHECK(IsScalarLike<unsigned int>);
-  STATIC_CHECK(IsFieldElementLike<Rat>);
+  // Operator-shape predicates are what int / unsigned int actually satisfy
+  // under the active numeric policy (the strict IsRing / IsField are
+  // intentionally not specialised on these carriers — signed-overflow UB,
+  // modular wrap).  Rat carries the full HasFieldOperators surface (the
+  // canonical concept from algebra:field, == HasRingOperators ∧
+  // HasGroupOperatorsMul), and is the textbook ℚ.
+  STATIC_CHECK(HasRingOperators<int>);
+  STATIC_CHECK(HasRingOperators<unsigned int>);
+  STATIC_CHECK(HasFieldOperators<Rat>);
 }
 
 TEST_CASE("linear_algebra:embeddings — ℂ ↪ M₂(ℚ) is a ring homomorphism",

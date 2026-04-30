@@ -94,8 +94,8 @@ class Complex {
    * the zero-division case the behaviour is inherited from `R / R` (e.g.
    * `Rational<Z>` throws / asserts).
    *
-   * Lifts `Complex<R>` from `HasRingOperators` into `IsFieldLikeScalar` (the
-   * `a/b → S` clause), which in turn lets `Dual<Complex<R>>` admit
+   * Lifts `Complex<R>` from `HasRingOperators` into `HasFieldOperators`
+   * (the `a/b → S` clause), which in turn lets `Dual<Complex<R>>` admit
    * `operator/` for holomorphic forward-mode automatic differentiation
    * at compile time.
    */

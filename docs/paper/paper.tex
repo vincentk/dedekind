@@ -1337,7 +1337,7 @@ marks not-currently-asserted.}
 \textsuperscript{a} & integer promotion lifts the result of literal \lstinline|+| / \lstinline|*| to \lstinline|int|; the functor surface returns \lstinline|T| by signature. \\
 \textsuperscript{b} & signed-overflow UB means the carrier admits no \lstinline|IsTotal| label (it is neither periodic, nor idempotent, nor saturating); the categorical \lstinline|IsRing| chain --- which composes \lstinline|IsTotal| --- therefore breaks for this carrier. \\
 \textsuperscript{c} & \lstinline|bool|'s ring structure lives over $(\oplus, \wedge)$, not $(+, *)$; \lstinline|IsArithmeticRing|, which fixes \lstinline|(std::plus, std::multiplies)|, asks the wrong question for this carrier. \\
-\textsuperscript{d} & operational under the active numeric policy: \lstinline|IsFieldLikeScalar| is the operational variant, the categorical proof is intentionally not specialised. \\
+\textsuperscript{d} & operational under the active numeric policy: \lstinline|HasFieldOperators| is the operational variant, the categorical proof is intentionally not specialised. \\
 \textsuperscript{e} & vectors have no internal product \lstinline|Vec2V $\times$ Vec2V $\to$ Vec2V|, only scalar multiplication; the shape concept correctly refuses. \\
 \end{tabular}
 }
@@ -2587,19 +2587,19 @@ to a specific machine integer:
 %
 \begin{lstlisting}[language=C++,basicstyle=\ttfamily\small]
 // numbers/rational.cppm --- operational field-like witness for ℚ.
-// IsFieldLikeScalar is the operator-surface gate; the strict
+// HasFieldOperators is the operator-surface gate; the strict
 // axiomatic field witness lives at category::IsField but is not
 // load-bearing for downstream code that only needs +, -, *, /.
 static_assert(
-    dedekind::algebra::IsFieldLikeScalar<Rational<default_integer>>,
+    dedekind::algebra::HasFieldOperators<Rational<default_integer>>,
     "Rational<I> must satisfy the operational field-like witness "
     "(ℚ is a field).");
 
 static_assert(
-    dedekind::algebra::IsFieldLikeScalar<
+    dedekind::algebra::HasFieldOperators<
         Rational<SignedExtensionalCardinal<>>>,
     "Rational<SignedExtensionalCardinal<>> must satisfy "
-    "IsFieldLikeScalar: the intended arbitrary-precision "
+    "HasFieldOperators: the intended arbitrary-precision "
     "signed-rational carrier for ℚ.");
 \end{lstlisting}
 %
@@ -2607,7 +2607,7 @@ The two carriers differ in their machine-level friction profile
 (\lstinline|default_integer| trips signed-overflow UB on extreme
 inputs; \lstinline|SignedExtensionalCardinal<>| does not, at the
 cost of variant-NTTP friction) but both discharge the operational
-gate. Downstream combinators bind to \lstinline|IsFieldLikeScalar|
+gate. Downstream combinators bind to \lstinline|HasFieldOperators|
 rather than to \lstinline|category::IsField|, and the carrier swap
 between the two is a one-line change at the \lstinline|using|
 declaration. The gate is the load-bearing concept; the strict

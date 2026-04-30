@@ -14,14 +14,16 @@
  *   - `IsVectorSpace<V, F>`     --- strict axiomatic witness, uses
  *                                   the axiomatic
  *                                   `dedekind::category::IsField`.
- *   - `IsVectorSpaceLike<V, F>` --- operational counterpart.
+ *   - `HasVectorSpaceOperators<V, F>` --- operational counterpart.
  *   - `IsFieldElement<F>`       --- slogan: "a field element is a 1D
- *                                   vector space over itself."
- *   - `IsFieldElementLike<F>`   --- operational counterpart.
+ *                                   vector space over itself."  Its
+ *                                   operational counterpart is the
+ *                                   canonical `HasFieldOperators<F>`
+ *                                   from `:field`.
  *   - `SatisfiesVectorSpaceAxioms` --- structural axiom-shape battery.
  *
  * Witnesses:
- *   - @c RealLine as @c IsVectorSpaceLike (operational);
+ *   - @c RealLine as @c HasVectorSpaceOperators (operational);
  *   - @c 𝔽64 (from @c :galois) as @c IsVectorSpace<𝔽64, bool> ---
  *     a 6-D vector space over the prime subfield @f$\mathbb{F}_2@f$;
  *   - @c uint64_t as @c IsVectorSpace<uint64_t, bool, ...> ---
@@ -31,10 +33,11 @@
  *     addition; a @c Bit2U64Action functor is the scalar action.
  *
  * The module-level concepts (semimodule, module, 1D
- * @c OneDimensionalVector, integral-scalar detectors,
- * @c IsFieldLikeScalar operational witness) remain in
- * @c :modules; Galois-field concepts and carriers (bool-as-𝔽2,
- * struct 𝔽64) live in @c :galois.  @c :vectorspace imports both.
+ * @c OneDimensionalVector, integral-scalar detectors) remain in
+ * @c :modules; the operational field-shape witness
+ * @c HasFieldOperators is canonical in @c :field; Galois-field
+ * concepts and carriers (bool-as-𝔽2, struct 𝔽64) live in
+ * @c :galois.  @c :vectorspace imports all three.
  *
  * @note "Die Geometrie ist nicht die Wissenschaft von den Größen,
  *        sondern von der Art und Weise, wie sie zusammenhängen."
@@ -97,13 +100,13 @@ export template <typename F>
 concept IsFieldElement = IsVectorSpace<F, F>;
 
 /**
- * @concept IsVectorSpaceLike
+ * @concept HasVectorSpaceOperators
  * @brief Pragmatic vector-space check used by first reified vector carriers.
- * @details Uses the operational `IsFieldLikeScalar` witness and does not
+ * @details Uses the operational `HasFieldOperators` witness and does not
  *          depend on the stronger `IsField` proof machinery.
  *
  * @note @b Design @b choice (audit #393): paired with
- *       @c IsFieldLikeScalar in the operational tower, intentionally
+ *       @c HasFieldOperators in the operational tower, intentionally
  *       distinct from the strict @c category::IsVectorSpace.  The
  *       paired pragmatism admits IEEE-backed carriers (e.g.\ a
  *       @c LinearMap<double, R, C> witness over @c double) that
@@ -114,18 +117,17 @@ concept IsFieldElement = IsVectorSpace<F, F>;
  *       and siblings.
  */
 export template <typename V, typename F, typename Act = std::multiplies<>>
-concept IsVectorSpaceLike = IsFieldLikeScalar<F> && requires(F a, F b, V v) {
-  { v + v } -> std::same_as<V>;
-  { -v } -> std::same_as<V>;
-  { Act{}(a, v) } -> std::same_as<V>;
-};
+concept HasVectorSpaceOperators =
+    HasFieldOperators<F> && HasGroupOperatorsAdd<V> &&
+    requires(F a, V v) {
+      { Act{}(a, v) } -> std::same_as<V>;
+    };
 
-/**
- * @concept IsFieldElementLike
- * @brief Operational counterpart of `IsFieldElement`.
- */
-export template <typename F>
-concept IsFieldElementLike = IsVectorSpaceLike<F, F>;
+// "A field element is a 1D vector space over itself" — the slogan was
+// previously reified as @c IsFieldElementLike<F> and then briefly as a derived
+// alias here.  The operational counterpart of @c IsFieldElement collapses to
+// the canonical @c HasFieldOperators<F> from @c :field (Stream 3 of #374);
+// downstream code consumes @c HasFieldOperators directly.
 
 /**
  * @concept SatisfiesVectorSpaceAxioms
@@ -136,7 +138,7 @@ export template <typename V, typename F, typename AddV = std::plus<V>,
                  typename MultF = std::multiplies<F>,
                  typename Act = std::multiplies<>>
 concept SatisfiesVectorSpaceAxioms =
-    IsVectorSpaceLike<V, F, Act> && requires(F a, F b, V x, V y) {
+    HasVectorSpaceOperators<V, F, Act> && requires(F a, F b, V x, V y) {
       { AddV{}(x, y) } -> std::same_as<V>;
       { Act{}(a, AddV{}(x, y)) } -> std::same_as<V>;
       { AddV{}(Act{}(a, x), Act{}(a, y)) } -> std::same_as<V>;
@@ -186,7 +188,7 @@ namespace dedekind::algebra {
 /** @section Formal_Verification */
 
 // RealLine's operational vector-space witnesses.
-static_assert(IsVectorSpaceLike<RealLine, RealLineScalar>,
+static_assert(HasVectorSpaceOperators<RealLine, RealLineScalar>,
               "RealLine should satisfy the baseline 1D vector-space witness.");
 static_assert(SatisfiesVectorSpaceAxioms<RealLine, RealLineScalar>,
               "RealLine should satisfy vector-space axiom signatures.");

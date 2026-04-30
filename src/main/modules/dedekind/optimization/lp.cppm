@@ -58,7 +58,7 @@
  * - Carrier must (today) satisfy `HasRingOperators<T>` plus division and
  *   comparison, matching the actual `Invertible2x2` Cramer solve
  *   below. The `requires` clauses are deliberately weaker than what
- *   the body needs — tightening to `IsFieldLikeScalar<T>` plus an
+ *   the body needs — tightening to `HasFieldOperators<T>` plus an
  *   ordering requirement, or to a proper `IsField<T, +, *>` once the
  *   latter lands in `dedekind.category:total`, is tracked under
  *   epic #374 (algebraic concept vocabulary alignment).  Paper-facing
