@@ -282,9 +282,15 @@ static_assert(!dedekind::algebra::HasRingOperators<Covec2V<unsigned int>>,
  */
 namespace dedekind::category {
 
+// PR #508: unit_witness / counit_witness now take a Hub regular type
+// rather than a template-template parameter.  The existing
+// vec2_functor<T> / covec2_functor<T> Hubs (above in this partition)
+// already carry the @c Shape<U> alias the new witness primary expects;
+// reuse them directly.
+
 export template <typename T>
   requires std::regular<T> && dedekind::algebra::HasRingOperators<T>
-struct unit_witness<dedekind::linear_algebra::Vec2V, T> final {
+struct unit_witness<dedekind::linear_algebra::vec2_functor<T>, T> final {
   constexpr dedekind::linear_algebra::Vec2V<T> operator()(T s) const {
     return {s, s};
   }
@@ -292,7 +298,7 @@ struct unit_witness<dedekind::linear_algebra::Vec2V, T> final {
 
 export template <typename T>
   requires std::regular<T> && dedekind::algebra::HasRingOperators<T>
-struct unit_witness<dedekind::linear_algebra::Covec2V, T> final {
+struct unit_witness<dedekind::linear_algebra::covec2_functor<T>, T> final {
   constexpr dedekind::linear_algebra::Covec2V<T> operator()(T s) const {
     return {s, s};
   }
@@ -303,7 +309,7 @@ struct unit_witness<dedekind::linear_algebra::Covec2V, T> final {
  */
 export template <typename T>
   requires std::regular<T> && dedekind::algebra::HasRingOperators<T>
-struct counit_witness<dedekind::linear_algebra::Vec2V, T> final {
+struct counit_witness<dedekind::linear_algebra::vec2_functor<T>, T> final {
   constexpr T operator()(const dedekind::linear_algebra::Vec2V<T>& v) const {
     return v.x;
   }
@@ -313,13 +319,13 @@ struct counit_witness<dedekind::linear_algebra::Vec2V, T> final {
 
 namespace dedekind::linear_algebra {
 
-static_assert(dedekind::category::unit_witness<Vec2V, int>{}(7) ==
+static_assert(dedekind::category::unit_witness<vec2_functor<int>, int>{}(7) ==
                   Vec2V<int>{7, 7},
               "Vec2V η: scalar → diagonal broadcast.");
-static_assert(dedekind::category::counit_witness<Vec2V, int>{}(Vec2V<int>{
-                  3, 5}) == 3,
+static_assert(dedekind::category::counit_witness<vec2_functor<int>, int>{}(
+                  Vec2V<int>{3, 5}) == 3,
               "Vec2V ε: extract canonical first coordinate.");
-static_assert(dedekind::category::unit_witness<Covec2V, int>{}(2) ==
+static_assert(dedekind::category::unit_witness<covec2_functor<int>, int>{}(2) ==
                   Covec2V<int>{2, 2},
               "Covec2V η: scalar → diagonal broadcast.");
 

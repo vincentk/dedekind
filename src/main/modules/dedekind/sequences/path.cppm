@@ -472,17 +472,35 @@ constexpr auto forall(const Path<T, Cardinality>& path, Pred&& pred) {
 
 namespace dedekind::category {
 
+/**
+ * @brief Hub-tag carrying the @c Path<U> Shape<U> alias for the
+ *        unit_witness / counit_witness Kleisli registrations (#508).
+ *
+ * @details Mirrors @c box_functor in @c :functor: a regular type whose
+ * nested @c Shape<U> alias names the carrier this Hub stands for.  Used
+ * as the first template argument to @c unit_witness / @c counit_witness /
+ * @c IsKleisliExtension / @c IsCoKleisliExtension / @c IsFrobenius after
+ * the template-template removal in PR #508.  The outer @c T parameter
+ * carries the canonical pinned-Shape representative (@c Path<T>) so the
+ * Hub is well-formed at any concrete instantiation.
+ */
+export template <typename T>
+struct path_functor {
+  template <typename U>
+  using Shape = dedekind::sequences::Path<U>;
+};
+
 // Path participates in the Kleisli witness framework as an infinite constant
 // path for η and head sampling for ε.
 export template <typename T>
-struct unit_witness<dedekind::sequences::Path, T> final {
+struct unit_witness<path_functor<T>, T> final {
   constexpr auto operator()(T x) const {
     return dedekind::sequences::Path<T>{[x](std::size_t) { return x; }};
   }
 };
 
 export template <typename T>
-struct counit_witness<dedekind::sequences::Path, T> final {
+struct counit_witness<path_functor<T>, T> final {
   constexpr T operator()(const dedekind::sequences::Path<T>& p) const {
     return p.at(0);
   }
@@ -520,14 +538,14 @@ static_assert(
     std::input_iterator<decltype(std::declval<FinitePath<int>>().begin())>,
     "FinitePath<T>::begin() must yield a std::input_iterator.");
 
-static_assert(IsKleisliExtension<Path, int, long>,
+static_assert(IsKleisliExtension<path_functor<int>, int, long>,
               "Path must satisfy the Kleisli extension witness.");
 
-static_assert(IsCoKleisliExtension<Path, int, long>,
+static_assert(IsCoKleisliExtension<path_functor<int>, int, long>,
               "Path must satisfy the co-Kleisli extension witness.");
 
 static_assert(
-    IsFrobenius<Path, int, long>,
+    IsFrobenius<path_functor<int>, int, long>,
     "Path must satisfy the Frobenius witness (Kleisli + co-Kleisli).");
 
 }  // namespace dedekind::sequences
