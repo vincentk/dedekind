@@ -58,9 +58,12 @@ module;
 #include <concepts>
 #include <functional>
 #include <ios>
+#include <utility>  // std::move / std::forward (kept self-contained per #521 review)
 
 export module dedekind.category:kleisli;
 
+import :functor;  // box_functor (canonical Hub for unit_witness/counit_witness;
+                  // #508)
 import :monad;
 import :small;
 import :morphism;
@@ -84,47 +87,70 @@ constexpr auto operator<<=(const Box<T>& b, Func&& f) {
 
 /** @section kleisli__The_Kleisli_Witnesses */
 
+// PR #508: removed template-template parameters from the public surface of
+// :kleisli to make the disciplined-fragment claim of the paper's
+// admissibility-rules table hold without exception.  The Hub indirection
+// follows the :functor precedent (PR introducing box_functor / maybe_functor
+// in :functor): higher-kindedness lives in a regular type's nested Shape<U>
+// alias rather than as a template-template parameter.  Carrier-side
+// specialisations in :sequences:path , :linear_algebra:tuple ,
+// :linear_algebra:matrix follow the same pattern, instantiating
+// unit_witness / counit_witness on box_functor<T> / path_functor<T> /
+// vec2_functor<T> / covec2_functor<T> / matrix2x2_functor<T>
+// (the canonical Hubs the *_functor partition already exports).
+
 /**
- * @brief unit_witness<F, T>: Generic Kleisli unit witness.
- * Lifts a value into the Kleisli extension.
+ * @brief unit_witness<Hub, T>: Generic Kleisli unit witness.
+ * Lifts a value into the Kleisli extension named by @c Hub::template Shape<T>.
+ *
+ * @tparam Hub A regular type carrying a nested @c Shape<U> alias; canonical
+ *             example is @c box_functor<U> from @c :functor.
+ * @tparam T   The value type.
  */
-export template <template <typename...> typename F, typename T>
+export template <typename Hub, typename T>
 struct unit_witness;
 
 export template <typename T>
-struct unit_witness<Box, T> final {
+struct unit_witness<box_functor<T>, T> final {
   constexpr auto operator()(T x) const { return Box<T>{std::move(x)}; }
 };
 
 /**
- * @brief counit_witness<F, T>: Generic Kleisli counit witness.
- * Samples a value from the co-Kleisli extension.
+ * @brief counit_witness<Hub, T>: Generic Kleisli counit witness.
+ * Samples a value from the co-Kleisli extension named by
+ * @c Hub::template Shape<T>.
  */
-export template <template <typename...> typename F, typename T>
+export template <typename Hub, typename T>
 struct counit_witness;
 
 export template <typename T>
-struct counit_witness<Box, T> final {
+struct counit_witness<box_functor<T>, T> final {
   constexpr T operator()(const Box<T>& b) const noexcept { return b.value; }
 };
 
 /** @section kleisli__Extension_Concepts */
 
-export template <template <typename...> typename F, typename T, typename U>
-concept IsKleisliExtension = requires(T x, F<T> box, std::function<F<U>(T)> f) {
-  { unit_witness<F, T>{}(x) } -> std::same_as<F<T>>;
-  { box >>= f } -> std::same_as<F<U>>;
-};
+export template <typename Hub, typename T, typename U>
+concept IsKleisliExtension =
+    requires(T x, typename Hub::template Shape<T> box,
+             std::function<typename Hub::template Shape<U>(T)> f) {
+      {
+        unit_witness<Hub, T>{}(x)
+      } -> std::same_as<typename Hub::template Shape<T>>;
+      { box >>= f } -> std::same_as<typename Hub::template Shape<U>>;
+    };
 
-export template <template <typename...> typename F, typename T, typename U>
-concept IsCoKleisliExtension = requires(F<T> box, std::function<U(F<T>)> f) {
-  { counit_witness<F, T>{}(box) } -> std::same_as<T>;
-  { box <<= f } -> std::same_as<F<U>>;
-};
+export template <typename Hub, typename T, typename U>
+concept IsCoKleisliExtension =
+    requires(typename Hub::template Shape<T> box,
+             std::function<U(typename Hub::template Shape<T>)> f) {
+      { counit_witness<Hub, T>{}(box) } -> std::same_as<T>;
+      { box <<= f } -> std::same_as<typename Hub::template Shape<U>>;
+    };
 
-export template <template <typename...> typename F, typename T, typename U>
+export template <typename Hub, typename T, typename U>
 concept IsFrobenius =
-    IsKleisliExtension<F, T, U> && IsCoKleisliExtension<F, T, U>;
+    IsKleisliExtension<Hub, T, U> && IsCoKleisliExtension<Hub, T, U>;
 
 /** @section kleisli__Kleisli_Operators */
 

@@ -566,9 +566,14 @@ static_assert(
 
 namespace dedekind::category {
 
+// PR #508: unit_witness / counit_witness now take a Hub regular type
+// rather than a template-template parameter.  The existing
+// matrix2x2_functor<T> Hub above carries the @c Shape<U> alias the new
+// witness primary expects; reuse it directly.
+
 export template <typename T>
   requires std::regular<T> && dedekind::algebra::HasRingOperators<T>
-struct unit_witness<dedekind::linear_algebra::Matrix2x2V, T> final {
+struct unit_witness<dedekind::linear_algebra::matrix2x2_functor<T>, T> final {
   constexpr dedekind::linear_algebra::Matrix2x2V<T> operator()(T s) const {
     return {s, T{0}, T{0}, s};
   }
@@ -580,7 +585,7 @@ struct unit_witness<dedekind::linear_algebra::Matrix2x2V, T> final {
  */
 export template <typename T>
   requires std::regular<T> && dedekind::algebra::HasRingOperators<T>
-struct counit_witness<dedekind::linear_algebra::Matrix2x2V, T> final {
+struct counit_witness<dedekind::linear_algebra::matrix2x2_functor<T>, T> final {
   constexpr T operator()(
       const dedekind::linear_algebra::Matrix2x2V<T>& m) const {
     return m.m11;
@@ -591,11 +596,11 @@ struct counit_witness<dedekind::linear_algebra::Matrix2x2V, T> final {
 
 namespace dedekind::linear_algebra {
 
-static_assert(dedekind::category::unit_witness<Matrix2x2V, int>{}(7) ==
-                  Matrix2x2V<int>{7, 0, 0, 7},
+static_assert(dedekind::category::unit_witness<matrix2x2_functor<int>, int>{}(
+                  7) == Matrix2x2V<int>{7, 0, 0, 7},
               "Matrix2x2V η: scalar s ↦ s·I (scalar matrix in the centre of "
               "the matrix algebra; canonical ring embedding T ↪ M_2(T)).");
-static_assert(dedekind::category::counit_witness<Matrix2x2V, int>{}(
+static_assert(dedekind::category::counit_witness<matrix2x2_functor<int>, int>{}(
                   Matrix2x2V<int>{3, 5, 7, 9}) == 3,
               "Matrix2x2V ε: extract top-left corner (canonical projection "
               "M_2(T) → T).");
