@@ -800,8 +800,9 @@ The categorical vocabulary is not decorative.  Each carrier in the
 numeric tower (Figure~\ref{fig:carrier-lattice}) arrives as the image
 of a named universal-property functor applied to its base:
 $\mathbb{Q} = \operatorname{Frac}(\mathbb{Z})$ (field of fractions;
-right adjoint to the forgetful functor from fields to integral
-domains), $\mathbb{R} = \operatorname{Cuts}(\mathbb{Q})$ (Dedekind
+left adjoint to the inclusion / forgetful functor
+$\mathbf{Field} \hookrightarrow \mathbf{IntegralDomain}$),
+$\mathbb{R} = \operatorname{Cuts}(\mathbb{Q})$ (Dedekind
 order-completion), $\mathbb{C} = \operatorname{Cplx}(\mathbb{R}) =
 \mathbb{R}[i]/(i^2 + 1)$ (quotient ring), $\mathbb{D} =
 \operatorname{Dual}(\mathbb{R}) = \mathbb{R}[\varepsilon]/(\varepsilon^2)$
@@ -2913,9 +2914,9 @@ the same discipline.
 \paragraph{An absent failure mode worth reporting.}
 A practical observation, offered honestly: across this library's
 development we did not encounter the two failure modes mainstream
-C++ template programming is famed for --- @emph{template
+C++ template programming is famed for --- \emph{template
 instantiation explosion} (compile times that grow super-linearly
-with template depth) and @emph{template error hell} (diagnostics
+with template depth) and \emph{template error hell} (diagnostics
 buried inside long substitution-failure cascades, far from the
 call site that triggered them).  Neither was a recurring concern.
 This is not nothing: both phenomena are well-documented hazards
@@ -2923,7 +2924,7 @@ in production C++ template programming.  The disciplined fragment
 of §\ref{sec:axiomatic} (Table~\ref{tab:admissibility-rules})
 appears to rule out, by construction, the mechanisms that produce
 each.  The concept-constrained-template machinery fails at
-@emph{constraint-evaluation} time --- before template-body
+\emph{constraint-evaluation} time --- before template-body
 instantiation, with named-axiom diagnostics --- so the SFINAE-
 cascade error path is excluded.  Uniform parametric polymorphism
 (System-F-style; no specialisation-driven branching admitted in the
@@ -2932,7 +2933,7 @@ number of callsites rather than combinatorial in the type tuples.
 And the bounded-instantiation-depth admissibility rule (capped at
 the carrier-lattice's three axes in the current surface) prevents
 the recursively-unfolding template-metaprogramming pattern that
-produces the explosion.  Whether this implies a @emph{formal}
+produces the explosion.  Whether this implies a \emph{formal}
 result --- a theorem that the disciplined fragment lies inside a
 decidable type-checking regime --- the paper does not claim.  The
 fragment is small enough that decidability is plausible

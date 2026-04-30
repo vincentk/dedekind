@@ -308,8 +308,8 @@ namespace dedekind::numbers {
 static_assert((Rational<default_integer>(2, 3).inverse().num() == 3));
 
 // Functor identification: Rational<I> = Frac(I).  The Frac functor
-// (field-of-fractions; right adjoint to the forgetful functor from
-// fields to integral domains; cf. Lang §II.4) takes an integral domain
+// (field-of-fractions; left adjoint to the inclusion / forgetful functor
+// Fields → IntegralDomains; cf. Lang §II.4) takes an integral domain
 // I to its quotient field; for any IsInteger I, Rational<I> IS that
 // quotient field.  Pinning this mechanically aligns the paper §2
 // prose ("Named functors that build the library's carriers") with the

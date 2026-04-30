@@ -317,9 +317,18 @@ namespace dedekind::numbers {
 // Functor identification: Complex<R> = Cplx(R).  The Cplx functor
 // (quotient ring R[i]/(i² + 1); cf. Lang §III.1) takes a commutative
 // ring R to the ring extension by a square root of -1; for any
-// IsComplexScalar R, Complex<R> IS that quotient ring (a field when
-// R is a field with i² + 1 irreducible; an integral-domain extension
-// when R is an integral domain; nilpotent when i² + 1 reduces).  The
+// IsComplexScalar R, Complex<R> IS that quotient ring.  The structural
+// type of the result depends on how i² + 1 sits in R[x]:
+//   - irreducible over R → R[i]/(i² + 1) is an integral-domain
+//     extension (a field when R itself is a field);
+//   - reducible into distinct linear factors over R → semisimple
+//     decomposition R[i]/(i² + 1) ≅ R × R (e.g., over R = ℂ);
+//   - reducible into a repeated factor (i.e., (x - α)² in R[x]) →
+//     nilpotent quotient with non-trivial radical (e.g., R = 𝔽_2,
+//     where x² + 1 = (x + 1)²).
+// The "nilpotent" branch is the @em not-square-free case specifically,
+// not "any reducible case" — semisimple-decomposition reductions
+// don't produce nilpotents (they produce idempotents).  The
 // ScalarCarrier alias is the source-side projection of the Cplx
 // functor, mechanically aligning the §2 paper paragraph
 // ("Named functors that build the library's carriers") with source.
