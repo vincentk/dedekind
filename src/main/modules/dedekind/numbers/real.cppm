@@ -297,13 +297,31 @@ export template <IsInteger I = default_integer,
 inline constexpr auto embed_ℚ_ℝ =
     arrow<Rational<I>, Real<S>>([](const Rational<I>& q) noexcept {
       auto to_real_scalar = [](const I& z) -> S {
-        if constexpr (std::convertible_to<I, S>) {
+        // Detect @b static-castability rather than just implicit
+        // convertibility: a carrier may expose @c explicit
+        // @c operator @c S, which makes @c static_cast<S>(z) valid
+        // even when @c std::convertible_to<I, S> is false.  PR #520
+        // review follow-up: this captures both the implicit-conversion
+        // case (built-in @c int @c → @c double) and the
+        // explicit-conversion-operator case uniformly.
+        if constexpr (requires { static_cast<S>(z); }) {
           return static_cast<S>(z);
         } else {
-          // Variant carrier path: extract via the documented int bridge,
-          // then widen to S.  Lossy by design at the variant-int step
-          // (multi-limb values truncate to single-limb int) AND at the
-          // int-to-float step (above 2^53 the IEEE rounding fires).
+          // Variant carrier path: the variant integer is first
+          // extracted via its documented @c operator @c int (a
+          // signed-integral conversion, gated separately on the
+          // variant), then widened to @c S.  Lossy by design at the
+          // variant-int step (multi-limb values truncate to
+          // single-limb int) AND at the int-to-float step (above 2^53
+          // IEEE rounding fires).  We require the int bridge exists;
+          // if neither path is available, the static_assert below
+          // surfaces a diagnostic at the right spot rather than an
+          // opaque template substitution failure.
+          static_assert(
+              requires { static_cast<int>(z); },
+              "embed_ℚ_ℝ requires either static_cast<S>(I) or "
+              "static_cast<int>(I) to be valid; provide one or "
+              "the other on the integer carrier I.");
           return static_cast<S>(static_cast<int>(z));
         }
       };
