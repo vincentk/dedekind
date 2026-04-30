@@ -604,6 +604,9 @@ class Set {
                                       Ø<T, L>>) {
       // Compile-time-disjoint optimisation (#469 / PR #523 review):
       // A △ B = (A ∪ B) ∖ (A ∩ B); when @c A @c ∩ @c B is empty
+      // (the @c ∖ here is the Unicode set-difference glyph, used
+      // consistently throughout this comment block; literal @c \\ is
+      // avoided to keep Doxygen rendering uniform).
       // (i.e.\ @c A & @c B reduces structurally to @c Ø<T, L> at the
       // type level via @c structured_and / @c IsComplementPair_v),
       // the symmetric difference is just the union @c A | @c B.
@@ -649,9 +652,16 @@ class Set {
       Set<T, L, NegatedPredicateBase_t<Predicate>> inner{predicate_.base};
       return !(inner ^ other);
     } else {
+      // Predicates may return @c bool (the most common case for
+      // user-supplied lambdas) or @c L::Ω directly.  Normalise both
+      // sides via @c lift_logic<L> before passing into @c L::AND /
+      // @c L::OR / @c L::NOT, which require @c L::Ω inputs.  This
+      // matches the existing @c Set::operator() normalisation pattern
+      // and the @c relational.cppm dispatch — bool returns lift cleanly
+      // to @c L::Ω, ternary returns are passed through.
       auto predicate = [lhs = predicate_, rhs = other.predicate_](const T& v) {
-        const auto a = lhs(v);
-        const auto b = rhs(v);
+        const auto a = dedekind::category::lift_logic<L>(lhs(v));
+        const auto b = dedekind::category::lift_logic<L>(rhs(v));
         return L::OR(L::AND(a, L::NOT(b)), L::AND(L::NOT(a), b));
       };
       return Set<T, L, decltype(predicate)>{predicate};

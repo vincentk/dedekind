@@ -161,8 +161,13 @@ struct SingletonSet {
   template <typename U, typename L2>
   constexpr auto operator^(const SingletonSet<U, L2>& other) const {
     return var<Ω<T, L>> % Ω<T, L>{} | [s1 = *this, s2 = other](const T& x) {
-      const auto a = s1(x);
-      const auto b = s2(x);
+      // SingletonSet::operator() returns L::Ω directly via the
+      // (v == pivot) ? L::True : L::False branch, so no lift is
+      // strictly necessary here — but lift_logic<L> normalises in case
+      // either L1 or L2 ever returns bool, and matches the free
+      // operator^ pattern below.
+      const auto a = dedekind::category::lift_logic<L>(s1(x));
+      const auto b = dedekind::category::lift_logic<L>(s2(x));
       return L::OR(L::AND(a, L::NOT(b)), L::AND(L::NOT(a), b));
     };
   }
@@ -191,8 +196,11 @@ export template <typename T, typename L1, typename L2, typename P>
 constexpr auto operator^(const SingletonSet<T, L1>& s,
                          const Set<T, L2, P>& other) {
   return var<Ω<T, L1>> % Ω<T, L1>{} | [s, other](const T& x) {
-    const auto a = s(x);
-    const auto b = other(x);
+    // Normalise both predicate returns to L1::Ω before passing into
+    // the L1::AND / OR / NOT pipeline.  bool-returning user predicates
+    // are common; lift_logic handles the bool→L1::Ω conversion.
+    const auto a = dedekind::category::lift_logic<L1>(s(x));
+    const auto b = dedekind::category::lift_logic<L1>(other(x));
     return L1::OR(L1::AND(a, L1::NOT(b)), L1::AND(L1::NOT(a), b));
   };
 }
