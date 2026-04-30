@@ -69,20 +69,20 @@ concept HasRingOperators = requires(T a, T b) {
 // HasRingOperatorsFor was previously a 5-line concept here, checking
 // `add(a, b) -> T` and `mult(a, b) -> T`.  The universal-algebra
 // anchor IsAlgebra<T, Ops...> from :universal captures exactly that
-// closure-tier check, and additionally requires std::regular<T> ---
-// a strengthening relative to the retired HasRingOperatorsFor (and
-// relative to the upstream IsAdditiveGroup chain, whose
-// IsGroup/IsMonoid/IsSemigroup/IsMagma/IsTotal links do @b not
-// require std::regular).  In practice every carrier the library
-// realises as a ring is already regular (int, unsigned, double,
-// Rational<I>, Complex<R>, Dual<F>, RigPolynomial<R>, ...), so the
-// strengthening is principled rather than punitive: it pins the
-// (A, F) bundle to value-semantics carriers, matching the textbook
-// universal-algebra setting.  Downstream code that wanted the
-// functor-parametric closure surface should use
-// `IsAlgebra<T, Add, Mult>` directly; the literal-operator surface
-// (where C++'s +, -, *, etc. close on T) is the separate sibling
-// concept HasRingOperators above (#498/#500).
+// closure-tier check (plus the std::regular<T> value-semantics
+// requirement that matches Burris--Sankappanavar's carrier
+// convention).  As of this PR the algebra-layer wrappers
+// IsAdditiveMonoid, IsMultiplicativeMonoid, IsAdditiveGroup,
+// and IsMultiplicativeGroup also extend IsAlgebra<T, Op>, so the
+// std::regular<T> requirement flows through the IsRing chain at
+// each refinement level rather than appearing only at the
+// top-level IsAlgebra<T, Add, Mult> bundle.  HasRingOperatorsFor
+// has been retired in favour of the canonical (A, F) form.
+// Downstream code that wanted the functor-parametric closure
+// surface should use `IsAlgebra<T, Add, Mult>` directly; the
+// literal-operator surface (where C++'s +, -, *, etc. close on T)
+// is the separate sibling concept HasRingOperators above
+// (#498/#500/#517).
 
 /**
  * @concept IsSemiring

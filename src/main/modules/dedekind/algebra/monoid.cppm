@@ -28,6 +28,7 @@ module;
 
 export module dedekind.algebra:monoid;
 
+import :universal;  // IsAlgebra (universal-algebra closure tier; #517)
 import dedekind.category;
 
 namespace dedekind::algebra {
@@ -37,24 +38,33 @@ using namespace dedekind::category;
  * @concept IsAdditiveMonoid
  * @brief Proposition: The species (T, +) forms a Monoid.
  * @details Operator is configurable; default witness is `std::plus<T>`
- * (the canonical `+`) to align with category:total.
- * @tparam T The carrier type.
+ * (the canonical `+`) to align with category:total.  At the
+ * algebra layer the wrapper also pins the universal-algebra
+ * closure tier @c IsAlgebra<T, Add> --- which adds @c std::regular<T>,
+ * matching Burris--Sankappanavar's value-semantics carrier
+ * convention.  The upstream @c category::IsMonoid is intentionally
+ * lighter (no @c std::regular requirement); the algebra-layer
+ * wrappers in this partition strengthen it.
+ * @tparam T The carrier type (@c std::regular).
  * @tparam Add The additive operation witness (defaults to `std::plus<T>`).
  */
 export template <typename T, typename Add = std::plus<T>>
-concept IsAdditiveMonoid = IsMonoid<T, Add>;
+concept IsAdditiveMonoid = IsMonoid<T, Add> && IsAlgebra<T, Add>;
 
 /**
  * @concept IsMultiplicativeMonoid
  * @brief Proposition: The species (T, *) forms a Monoid.
  * @details Operator is configurable; default witness is
- * `std::multiplies<T>` (the canonical `*`) to align with category:total.
- * @tparam T The carrier type.
+ * `std::multiplies<T>` (the canonical `*`) to align with
+ * category:total.  Sibling of @c IsAdditiveMonoid; same
+ * @c IsAlgebra<T, Mult> strengthening at the algebra-layer wrapper
+ * (#517).
+ * @tparam T The carrier type (@c std::regular).
  * @tparam Mult The multiplicative operation witness (defaults to
  * `std::multiplies<T>`).
  */
 export template <typename T, typename Mult = std::multiplies<T>>
-concept IsMultiplicativeMonoid = IsMonoid<T, Mult>;
+concept IsMultiplicativeMonoid = IsMonoid<T, Mult> && IsAlgebra<T, Mult>;
 
 /** @section Formal_Verification */
 
