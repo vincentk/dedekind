@@ -115,7 +115,7 @@ static_assert(x_seed * x_seed == Dual<double>{9.0, 6.0},
               "AD rule: d/dx(x²)|_{x=3} = 6.");
 
 // Dual<double> is field-like: +, -, unary -, *, / are all defined and closed.
-static_assert(dedekind::algebra::IsFieldLikeScalar<Dual<double>>,
+static_assert(dedekind::algebra::HasFieldOperators<Dual<double>>,
               "Dual<double> must satisfy the operational field-like witness.");
 
 export template <typename F = double, typename L = ClassicalLogic,

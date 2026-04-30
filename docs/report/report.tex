@@ -2849,9 +2849,9 @@ CHECK(std::multiplies<int>{}(a, b) == 42);
 \subsection{Shape concepts and the C++/textbook seam}
 \label{subsec:algebra-ring-shape-concepts}
 
-The strict \texttt{IsRing} and \texttt{IsSemiring} concepts above depend on the axiom variable templates (\texttt{identity\_v}, \texttt{is\_associative\_v}, \texttt{is\_commutative\_v}, \texttt{inverse\_v}) being specialised per carrier. Machine-backed carriers such as \texttt{Rational<long>} deliberately do not carry those proofs under the active numeric policy---the same pattern that gives \texttt{IsField} vs.\ \texttt{IsFieldLikeScalar} in \texttt{:modules}.
+The strict \texttt{IsRing} and \texttt{IsSemiring} concepts above depend on the axiom variable templates (\texttt{identity\_v}, \texttt{is\_associative\_v}, \texttt{is\_commutative\_v}, \texttt{inverse\_v}) being specialised per carrier. Machine-backed carriers such as \texttt{Rational<long>} deliberately do not carry those proofs under the active numeric policy---the same pattern that gives \texttt{IsField} (axiomatic, in \texttt{category:total}) vs.\ \texttt{HasFieldOperators} (operator-shape, in \texttt{algebra:field}).
 
-Issue \#393 surfaced a recurring need across \texttt{linear\_algebra}, \texttt{optimization}, and the analytic bridges: callsites that require the \emph{operator surface} of a ring (so a templated body can write \texttt{a + b} and \texttt{a * b}) but neither the strict categorical proof nor the operational division surface of \texttt{IsFieldLikeScalar}. The audit identified twenty-three such callsites. The response was a new concept tier---\emph{pure syntactic shape}---and a sealing seam between the math textbook and the C++ standard. A subsequent retire-\texttt{Like} sweep collapsed the previously-separate ``operational'' aliases (\texttt{IsRingLike}, \texttt{IsSemiringLike}, \texttt{IsRingLikeHomomorphism}) into the new shape vocabulary, since their bodies were structurally identical to the new shape concepts; the Pattern-(b) ``deliberate operational variant for IEEE-edge-case carriers'' rationale survives intact, expressed by saying ``the strict half does not fire on this carrier under the active numeric policy, but the literal-shape concept does.''
+Issue \#393 surfaced a recurring need across \texttt{linear\_algebra}, \texttt{optimization}, and the analytic bridges: callsites that require the \emph{operator surface} of a ring (so a templated body can write \texttt{a + b} and \texttt{a * b}) but neither the strict categorical proof nor the operational division surface of \texttt{HasFieldOperators}. The audit identified twenty-three such callsites. The response was a new concept tier---\emph{pure syntactic shape}---and a sealing seam between the math textbook and the C++ standard. A subsequent retire-\texttt{Like} sweep collapsed the previously-separate ``operational'' aliases (\texttt{IsRingLike}, \texttt{IsSemiringLike}, \texttt{IsRingLikeHomomorphism}) into the new shape vocabulary, since their bodies were structurally identical to the new shape concepts; the Pattern-(b) ``deliberate operational variant for IEEE-edge-case carriers'' rationale survives intact, expressed by saying ``the strict half does not fire on this carrier under the active numeric policy, but the literal-shape concept does.''
 
 \paragraph{The three tiers.} The library now distinguishes:
 
@@ -2924,7 +2924,7 @@ Table~\ref{tab:ring-shape-rosetta} catalogues the divergence on the carriers the
 \textsuperscript{a} & integer promotion: \texttt{a + b} returns \texttt{int}, not \texttt{T}. The functor surface (\texttt{std::plus<T>::operator()}) returns \texttt{T} by signature, so the math-textbook ring structure remains witnessable. \\
 \textsuperscript{b} & signed-overflow UB defeats the modular-wrap (\texttt{IsPeriodic}) axiom on which the categorical \texttt{IsRing} chain depends. The literal operators close on \texttt{int}; the textbook structure does not. \\
 \textsuperscript{c} & \texttt{bool}'s ring structure lives over $(\oplus, \wedge)$, not $(+, *)$; \texttt{IsArithmeticRing} (which fixes the standard functors) is the wrong question for this carrier. \\
-\textsuperscript{d} & operational only under the active numeric policy: the strict axiom variable templates are not specialised for \texttt{Rational<long>} (\texttt{IsFieldLikeScalar} is the operational variant). \\
+\textsuperscript{d} & operational only under the active numeric policy: the strict axiom variable templates are not specialised for \texttt{Rational<long>} (\texttt{HasFieldOperators} is the operational variant). \\
 \textsuperscript{e} & vectors do not have an internal product \texttt{Vec2V $\times$ Vec2V $\to$ Vec2V}; only scalar multiplication \texttt{T $\times$ Vec2V $\to$ Vec2V}. The shape concept correctly refuses --- vectors are an additive abelian group plus a module, not a ring. \\
 \end{tabular}
 \end{table}
@@ -2980,13 +2980,12 @@ The strict concepts \texttt{IsSemimodule<M, S>} and \texttt{IsModule<M, S>} comp
 
 \subsection{Operational scalar / module witnesses}
 
-For machine-backed carriers that are deliberately blocked from the strict tower, \texttt{:modules} exports an operational parallel:
+For machine-backed carriers that are deliberately blocked from the strict tower, the algebra hierarchy exports an operational parallel.  Each name is anchored in the partition that defines it:
 
 \begin{itemize}
-  \item \texttt{IsFieldLikeScalar<S>} --- closed $+$, $-$, unary $-$, $*$, $/$. The canonical operational witness for scalars under the active numeric policy.
-  \item \texttt{IsSemimoduleLike<M, S, AddM, AddS, MultS, Act>} --- closure of the additive, multiplicative, and action operations together with the four compatibility signatures (distributivity of action over $+$ on both sides, action through scalar $*$).
-  \item \texttt{IsVectorSpaceLike<V, F>} --- \texttt{IsFieldLikeScalar<F>} plus \texttt{v + v}, unary $-v$, and the scalar action \texttt{F * V} $\to$ \texttt{V}.
-  \item \texttt{SatisfiesVectorSpaceAxioms<V, F, ...>} --- the full axiom-signature battery (distributivity, action composition, unit axiom when a multiplicative identity witness exists).
+  \item \texttt{HasFieldOperators<S>} (in \texttt{algebra:field}) --- closed $+$, $-$, unary $-$, $*$, $/$ together with \texttt{T\{1\}}.  Defined as \texttt{HasRingOperators<S>} $\wedge$ \texttt{HasGroupOperatorsMul<S>} and the canonical operator-shape witness for field-shaped scalars under the active numeric policy.
+  \item \texttt{HasVectorSpaceOperators<V, F>} (in \texttt{algebra:vectorspace}) --- \texttt{HasFieldOperators<F>} $\wedge$ \texttt{HasGroupOperatorsAdd<V>} plus the scalar action \texttt{F * V} $\to$ \texttt{V}.
+  \item \texttt{SatisfiesVectorSpaceAxioms<V, F, ...>} (in \texttt{algebra:vectorspace}) --- the full axiom-signature battery (distributivity, action composition, unit axiom when a multiplicative identity witness exists).
 \end{itemize}
 
 \subsection{Bona fide scalar}
@@ -2995,8 +2994,8 @@ For machine-backed carriers that are deliberately blocked from the strict tower,
 A slogan of the project is that ``a scalar is a 1D semi-module over itself''; the field-level counterpart (``a field element is a 1D vector space over itself'') lives in \texttt{:vectorspace}. Encoded as concepts:
 
 \begin{itemize}
-  \item \texttt{IsScalar<S>} $= $ \texttt{IsSemimodule<S, S>} (strict).
-  \item \texttt{IsScalarLike<S>} --- operational counterpart using \texttt{IsSemimoduleLike}. Fires on machine-backed carriers such as \texttt{int}, \texttt{unsigned int}, \texttt{Rational<long>}.
+  \item \texttt{IsScalar<S>} $= $ \texttt{IsSemimodule<S, S>} (strict, in \texttt{algebra:modules}).
+  \item For carriers where the strict tower is architecturally withheld (\texttt{int}, \texttt{unsigned int}, \texttt{Rational<long>}, \ldots), the operator-shape spelling is the existing \texttt{HasRingOperators<S>} (in \texttt{algebra:ring}).  No middle ``\texttt{HasScalarOperators}'' alias is shipped --- callers pick the spelling that matches what they actually need.
 \end{itemize}
 
 The reified 1D carrier \texttt{OneDimensionalVector<S, Tag>} demonstrates the slogan concretely: a coordinate in the scalar species \texttt{S} with pointwise addition and scalar action.
@@ -3009,13 +3008,13 @@ A vector space is a module whose scalar ring is additionally a field. The partit
 \begin{itemize}
   \item \texttt{IsVectorSpace<V, F>} $= $ \texttt{IsModule<V, F>} $\wedge$ \texttt{category::IsField<F>}. The axiomatic witness uses the category-layer \texttt{IsField} so that primitive scalar carriers like \texttt{bool} under $(\oplus, \wedge)$ qualify without needing a division-operator surface.
   \item \texttt{IsFieldElement<F>} $= $ \texttt{IsVectorSpace<F, F>} --- ``a field element is a 1D vector space over itself''.
-  \item \texttt{IsVectorSpaceLike<V, F>}, \texttt{IsFieldElementLike<F>}, \texttt{SatisfiesVectorSpaceAxioms<V, F, \ldots>} --- operational counterparts using \texttt{IsFieldLikeScalar} (from \texttt{:modules}). These fire on machine-backed carriers like \texttt{RealLine} where the strict categorical field tower is architecturally withheld.
+  \item \texttt{HasVectorSpaceOperators<V, F>} and \texttt{SatisfiesVectorSpaceAxioms<V, F, \ldots>} (in \texttt{:vectorspace}), built on top of the canonical \texttt{HasFieldOperators<F>} (in \texttt{algebra:field}).  These fire on machine-backed carriers like \texttt{RealLine} where the strict categorical field tower is architecturally withheld.
 \end{itemize}
 
 Three vector-space witnesses are registered:
 
 \begin{itemize}
-  \item \texttt{RealLine} as \texttt{IsVectorSpaceLike<RealLine, RealLineScalar>} and \texttt{SatisfiesVectorSpaceAxioms<RealLine, RealLineScalar>} (operational).
+  \item \texttt{RealLine} as \texttt{HasVectorSpaceOperators<RealLine, RealLineScalar>} and \texttt{SatisfiesVectorSpaceAxioms<RealLine, RealLineScalar>} (operational).
   \item \texttt{𝔽64} (from \texttt{:galois}) as \texttt{IsVectorSpace<𝔽64, bool>} --- a 6-dimensional vector space over $\mathbb{F}_2$. The scalar action \texttt{operator*(bool, 𝔽64)} uses the natural embedding $\mathbb{F}_2 \hookrightarrow \mathbb{F}_{64}$.
   \item \texttt{uint64\_t} as \texttt{IsVectorSpace<uint64\_t, bool, \ldots>} --- $\mathbb{F}_2^{64}$, the 64-dimensional vector space over $\mathbb{F}_2$. Not a field: \texttt{uint64\_t} has zero divisors under bitwise AND. No wrapper struct: \texttt{uint64\_t} already \emph{is} the carrier; XOR is the additive group, and the scalar action \texttt{Bit2U64Action} reads as ``multiply every bit of \texttt{v} by the scalar bit'' ($\texttt{false}\cdot v = 0$, $\texttt{true}\cdot v = v$). The vector-space axioms are verified value-level in \texttt{vectorspace\_test.cpp} (scalar additivity, vector additivity, action composition, unit) with the two-valued scalar side exhausted.
 \end{itemize}
@@ -3276,7 +3275,7 @@ that rejects signed \texttt{int} (UB on overflow) and admits the certified
 carriers. \texttt{Field\_$\mathbb{Q}$}, \texttt{Continuum\_$\mathbb{R}$},
 \texttt{Algebra\_$\mathbb{C}$} are the analogous bundles for $\mathbb{Q}$,
 $\mathbb{R}$, $\mathbb{C}$; their field-side clauses still bind to
-\texttt{algebra::IsFieldLikeScalar} rather than the strict
+\texttt{algebra::HasFieldOperators} rather than the strict
 \texttt{category::IsField} bundle. The block is two-fold: (i)
 the species-trait registry is not specialised on \texttt{Rational} /
 \texttt{Real} / \texttt{Complex}, and (ii) the strict \texttt{category::IsField}
@@ -3337,7 +3336,7 @@ registry is not specialised on \texttt{Rational}, and (ii) the strict
 \texttt{category::IsField} chain composes \texttt{IsTotal}, which admits
 only periodic, idempotent, or saturating operators --- $\mathbb{Q}$'s
 genuinely-infinite addition / multiplication matches none of those three.
-The operational \texttt{IsFieldLikeScalar} witness is therefore the
+The operational \texttt{HasFieldOperators} witness is therefore the
 load-bearing field-arithmetic guarantee, and the strict-and-literal seal
 \texttt{IsArithmeticField} is gated by the same FIXME (see
 \texttt{rational.cppm:444} for the breadcrumb).
@@ -3413,7 +3412,7 @@ Bridge concepts that connect concrete machine scalars to the structural ontology
 \section{\texttt{:dual}}
 \label{sec:numbers-dual}
 
-\texttt{Dual<F>} implements dual numbers $a + b\varepsilon$ ($\varepsilon^2 = 0$) for automatic differentiation; the value component \texttt{.value()} is the primal, \texttt{.derivative()} is the tangent. \texttt{DualSet} (alias for \texttt{DualSetOf<>}) is the predicate set carrier; the constant $\mathbb{D}$ is the user-facing handle. Witnesses pinned in source: nilpotency $\varepsilon^2 = 0$ on \texttt{Dual<double>}, derivative composition (e.g.\ $(x + \varepsilon)^2 = x^2 + 2x\varepsilon$ at the seed value), and \texttt{IsFieldLikeScalar<Dual<double>>} as the operational field-like witness (Pattern-(b) per PR \#394: deliberately operational under the active numeric policy; the strict \texttt{IsField} bundle does not fire on \texttt{Dual} since dual numbers are not a field --- $\varepsilon$ has no multiplicative inverse).
+\texttt{Dual<F>} implements dual numbers $a + b\varepsilon$ ($\varepsilon^2 = 0$) for automatic differentiation; the value component \texttt{.value()} is the primal, \texttt{.derivative()} is the tangent. \texttt{DualSet} (alias for \texttt{DualSetOf<>}) is the predicate set carrier; the constant $\mathbb{D}$ is the user-facing handle. Witnesses pinned in source: nilpotency $\varepsilon^2 = 0$ on \texttt{Dual<double>}, derivative composition (e.g.\ $(x + \varepsilon)^2 = x^2 + 2x\varepsilon$ at the seed value), and \texttt{HasFieldOperators<Dual<double>>} as the operational field-like witness (Pattern-(b) per PR \#394: deliberately operational under the active numeric policy; the strict \texttt{IsField} bundle does not fire on \texttt{Dual} since dual numbers are not a field --- $\varepsilon$ has no multiplicative inverse).
 
 \section{\texttt{:symbolic}}
 \label{sec:numbers-symbolic}
@@ -3423,7 +3422,7 @@ Formal symbols (indeterminates) for polynomial and symbolic computation. Provide
 \section{\texttt{:real}}
 \label{sec:numbers-real}
 
-The real-number construction via Dedekind cuts: a real number is a partition $(L, U)$ of $\mathbb{Q}$ such that $L$ is non-empty, downward-closed, and has no maximum. \texttt{IsRealCarrier<S>} is the structural concept (carriers closing $+, -, *, /$ on themselves with regular semantics). \texttt{Real<R>} is the named-real wrapper over a real carrier; \texttt{ExactReal<I>} is the exact-rational-cut realisation over an \texttt{IsInteger} carrier; \texttt{RealsOf<I, L>} / \texttt{RealSet} / $\mathbb{R}$ are the predicate set-classes. \texttt{machine\_real\_scalar} is the alias for \texttt{double}. Witnesses: \texttt{IsFieldLikeScalar<ExactReal<>>} (operational, Pattern-(b)).
+The real-number construction via Dedekind cuts: a real number is a partition $(L, U)$ of $\mathbb{Q}$ such that $L$ is non-empty, downward-closed, and has no maximum. \texttt{IsRealCarrier<S>} is the structural concept (carriers closing $+, -, *, /$ on themselves with regular semantics). \texttt{Real<R>} is the named-real wrapper over a real carrier; \texttt{ExactReal<I>} is the exact-rational-cut realisation over an \texttt{IsInteger} carrier; \texttt{RealsOf<I, L>} / \texttt{RealSet} / $\mathbb{R}$ are the predicate set-classes. \texttt{machine\_real\_scalar} is the alias for \texttt{double}. Witnesses: \texttt{HasFieldOperators<ExactReal<>>} (operational, Pattern-(b)).
 
 \section{\texttt{:constants}}
 \label{sec:numbers-constants}
@@ -3628,7 +3627,7 @@ Two parallel families: NTTP (entries at the type level) and value-level.
 
 \textbf{NTTP family} (Tiers~0--2 of issue~\#366):
 \begin{itemize}
-  \item \texttt{Invertible2x2<T, a, b, c, d>} with instantiation-time full-rank witness \texttt{a*d - b*c != 0} and closed-form Cramer \texttt{inverse\_type = Invertible2x2<T, d/det, -b/det, -c/det, a/det>}; exact over \texttt{Rational<Z>}. Bound: \texttt{IsFieldLikeScalar<T>} (Cramer needs division).
+  \item \texttt{Invertible2x2<T, a, b, c, d>} with instantiation-time full-rank witness \texttt{a*d - b*c != 0} and closed-form Cramer \texttt{inverse\_type = Invertible2x2<T, d/det, -b/det, -c/det, a/det>}; exact over \texttt{Rational<Z>}. Bound: \texttt{HasFieldOperators<T>} (Cramer needs division).
   \item \texttt{Matrix2x2<T, a, b, c, d>} (possibly-singular NTTP peer, bound: \texttt{HasRingOperators<T>}), \texttt{Identity2x2<T>}, \texttt{Zero2x2<T>}.
   \item \texttt{DirectSum<A, B>} with $(A \oplus B)^{-1} = A^{-1} \oplus B^{-1}$ and blockwise composition (Tier~1, invertibility-preserving combinator).
   \item \texttt{BlockUpperTriangular<A, B, D>} for $M = \begin{pmatrix} A & B \\ 0 & D \end{pmatrix}$ using the degenerate-Schur closed form---the non-trivial recurrence beyond direct sum (Tier~2).
@@ -3695,7 +3694,7 @@ static_assert(as_matrix2x2(z + w) == as_matrix2x2(z) + as_matrix2x2(w));
 \section{Matrix-structural concepts (extended \texttt{:contracts})}
 \label{sec:linear_algebra-matrix-contracts}
 
-\texttt{:contracts} was extended alongside the tuple/matrix/embeddings work with a vocabulary encoding the nine matrix slogans. The hierarchy follows the project's strict/operational pattern (c.f.\ \texttt{IsField} vs.\ \texttt{IsFieldLikeScalar}):
+\texttt{:contracts} was extended alongside the tuple/matrix/embeddings work with a vocabulary encoding the nine matrix slogans. The hierarchy follows the project's strict/operational pattern (c.f.\ \texttt{IsField} vs.\ \texttt{HasFieldOperators}):
 
 \begin{itemize}
   \item \textbf{Dimension and orientation.} \texttt{HasDimensionCount<V>} (compile-time axis count, parallel to \texttt{dedekind.sets:cardinality}), \texttt{ColumnOrientation} / \texttt{RowOrientation} tag types, \texttt{HasOrientation<V>}.

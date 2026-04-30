@@ -69,7 +69,7 @@ module;
 
 export module dedekind.linear_algebra:matrix;
 
-import dedekind.algebra; // HasRingOperators, IsFieldLikeScalar, IsVectorSpaceLike
+import dedekind.algebra; // HasRingOperators, HasFieldOperators, HasVectorSpaceOperators
 import dedekind.category; // IsFunctor / Set / arrow (for matrix2x2_functor witness)
 import dedekind.numbers; // Rational<Z> for the ℚ carrier
 import dedekind.sets;    // Finite cardinality tag (for dimension_type)
@@ -100,7 +100,7 @@ namespace dedekind::linear_algebra {
  *           canonical choice for the paper-facing ℚ proof.
  * @tparam a,b,c,d Entries as NTTPs of type `T`.
  */
-// Design choice (#393): `IsFieldLikeScalar<T>` is the right
+// Design choice (#393): `HasFieldOperators<T>` is the right
 // constraint here, NOT a stopgap.  `inverse_type` divides by `det`,
 // and rings in general do not admit division, so the closed-form
 // Cramer inverse genuinely needs the field-like scalar surface.
@@ -112,7 +112,7 @@ namespace dedekind::linear_algebra {
 // that need the operator surface to compile but make no algebraic
 // claim --- not the case here.
 export template <typename T, T a, T b, T c, T d>
-  requires dedekind::algebra::IsFieldLikeScalar<T>
+  requires dedekind::algebra::HasFieldOperators<T>
 struct Invertible2x2 {
   using Domain = T;
 
@@ -206,7 +206,7 @@ using Identity2x2 = Invertible2x2<T, T{1}, T{0}, T{0}, T{1}>;
  * an inverse — singular `Matrix2x2`s are valid inhabitants of the type.
  */
 // `HasRingOperators<T>` is sufficient: `Matrix2x2` uses +, -, unary -, *, but
-// never divides. Tighter than `IsFieldLikeScalar<T>`.
+// never divides. Tighter than `HasFieldOperators<T>`.
 export template <typename T, T a, T b, T c, T d>
   requires dedekind::algebra::HasRingOperators<T>
 struct Matrix2x2 {
@@ -417,7 +417,7 @@ struct BlockUpperTriangular {
  */
 // Bound: `HasRingOperators<T>` for the arithmetic surface (+, -, unary -,
 // *; division is not used here — `Invertible2x2`'s Cramer inverse stays
-// at `IsFieldLikeScalar<T>`).  Pure syntactic shape, not an algebraic
+// at `HasFieldOperators<T>`).  Pure syntactic shape, not an algebraic
 // claim — see #393.  `std::regular<T>` for the value-semantics surface:
 // members use `T x{}` default-init, `column(i)` / `row(i)` return `{}`
 // out-of-range, `operator==` is defaulted (needs equality-comparable T),
@@ -712,24 +712,26 @@ using Rat = dedekind::numbers::Rational<long>;
 /** @subsection Upstream_Concept_Witnesses — algebra concepts on ℚ carriers.
  *
  *  Rather than redefine the vector-space / module content, witness that the
- *  value-level tuple and matrix carriers satisfy the operational concepts
- *  already in `dedekind.algebra:modules` (`IsVectorSpaceLike`,
- *  `IsSemimoduleLike`, `IsFieldLikeScalar`). This anchors the new tuple /
- *  matrix types to the upstream algebraic hierarchy.
+ *  value-level tuple and matrix carriers satisfy the canonical operator-shape
+ *  predicates living one level up: `HasFieldOperators` (in
+ *  `dedekind.algebra:field`), `HasRingOperators` (in `dedekind.algebra:ring`),
+ *  and `HasVectorSpaceOperators` (in `dedekind.algebra:vectorspace`).  This
+ *  anchors the new tuple / matrix types to the upstream algebraic hierarchy
+ *  without redefining its concept surface here.
  */
 
-static_assert(dedekind::algebra::IsFieldLikeScalar<Rat>,
+static_assert(dedekind::algebra::HasFieldOperators<Rat>,
               "Rational<long> is the operational field-like scalar under "
               "the active numeric policy.");
 static_assert(dedekind::algebra::HasRingOperators<Rat>,
               "Rational<long> is also operationally ring-like (the subset "
               "of field-like that ignores the / requirement).");
 
-static_assert(dedekind::algebra::IsVectorSpaceLike<Vec2V<Rat>, Rat>,
+static_assert(dedekind::algebra::HasVectorSpaceOperators<Vec2V<Rat>, Rat>,
               "Vec2V<ℚ> is an operational vector-space-like over ℚ.");
-static_assert(dedekind::algebra::IsVectorSpaceLike<Covec2V<Rat>, Rat>,
+static_assert(dedekind::algebra::HasVectorSpaceOperators<Covec2V<Rat>, Rat>,
               "Covec2V<ℚ> is an operational vector-space-like over ℚ.");
-static_assert(dedekind::algebra::IsVectorSpaceLike<Matrix2x2V<Rat>, Rat>,
+static_assert(dedekind::algebra::HasVectorSpaceOperators<Matrix2x2V<Rat>, Rat>,
               "Matrix2x2V<ℚ> is an operational vector-space-like over ℚ "
               "(matrices over a field are themselves a vector space under "
               "entry-wise + and scalar *).");

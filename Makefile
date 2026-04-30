@@ -41,7 +41,7 @@ endif
 _HOST_CORES := $(shell nproc 2>/dev/null || sysctl -n hw.ncpu 2>/dev/null || echo 4)
 JOBS ?= $(shell j=$$(( $(_HOST_CORES) - 2 )); [ $$j -lt 2 ] && j=2; echo $$j)
 
-.PHONY: all clean compile test-compile test integration-test coverage python-coverage python-coverage-local ir-fixture-refresh ir-fixture-check format format-check install-hooks ci-install-doxygen-deps ci-install-report-deps doxygen dot doc report paper \
+.PHONY: all clean compile test-compile test integration-test coverage python-coverage python-coverage-local ir-fixture-refresh ir-fixture-check format format-check install-hooks ci-install-doxygen-deps ci-install-report-deps doxygen doc report paper \
 	ci-history ci-main pr-init pr-status pr-status-all pr-checks pr-watch pr-sync pr-review-comments pr-review-unresolved pr-resolve-thread pr-resolve-threads \
 	check-review-comments resolve-review-comment issue-list jupyter
 
@@ -418,18 +418,5 @@ report:
 paper:
 	$(MAKE) -C docs/paper ci-check
 
-# Generate build dependency graph without breaking the Ninja build
-dot: $(BUILD_DIR)/CMakeCache.txt
-	@mkdir -p $(DOCS_DIR)/figures
-	#ninja -C build -t graph | \
-	#gvpr -c 'N[match(label, ".*\.cppm") < 0]{delete($$G, $$)}' | \
-	#sed -E 's|label="(.*/)?([^/]+)\.cppm"|label="\2"|g' | \
-	#> $(DOT_FILE)
-	ninja -C build -t graph | gvpr -f $(FILTER_GVPR) > $(DOT_FILE)
-	dot -Tpdf $(DOT_FILE) -o $(DOCS_DIR)/figures/dedekind_deps.pdf
-
-
-doc: dot
-	cd $(DOCS_DIR) && pdflatex $(DOCS_MAIN).tex
-	cd $(DOCS_DIR) && biber $(DOCS_MAIN)
-	cd $(DOCS_DIR) && pdflatex $(DOCS_MAIN).tex
+doc:
+	$(MAKE) -C $(DOCS_DIR)

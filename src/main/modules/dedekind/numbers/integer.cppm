@@ -244,7 +244,7 @@ concept Group_ℤ =
  * without naming a concrete @c Rational<Z>.
  *
  * @note FIXME(#379): the field-side requirement is expressed via
- * @c dedekind::algebra::IsFieldLikeScalar (an operational shape), not
+ * @c dedekind::algebra::HasFieldOperators (an operational shape), not
  * via the strict @c dedekind::category::IsField that shipped in #375
  * (closed 2026-04-24).  Two distinct blocks compose into the actual
  * current blocker:
@@ -264,11 +264,11 @@ concept Group_ℤ =
  *    exact carriers under the active numeric policy.
  *
  * Until both blocks lift, carriers that pass @c Field_ℚ are
- * guaranteed the @b arithmetic of a field via @c IsFieldLikeScalar
+ * guaranteed the @b arithmetic of a field via @c HasFieldOperators
  * but not every law mechanically.
  */
 export template <typename Q, typename Z = int>
-concept Field_ℚ = IsRational<Q, Z> && dedekind::algebra::IsFieldLikeScalar<Q>;
+concept Field_ℚ = IsRational<Q, Z> && dedekind::algebra::HasFieldOperators<Q>;
 
 /**
  * @concept Continuum_ℝ
@@ -285,7 +285,7 @@ concept Field_ℚ = IsRational<Q, Z> && dedekind::algebra::IsFieldLikeScalar<Q>;
  */
 export template <typename T>
 concept Continuum_ℝ =
-    IsReal<T> && IsContinuous<T> && dedekind::algebra::IsFieldLikeScalar<T>;
+    IsReal<T> && IsContinuous<T> && dedekind::algebra::HasFieldOperators<T>;
 
 /**
  * @concept Algebra_ℂ
@@ -298,7 +298,7 @@ concept Continuum_ℝ =
  * species-trait specialisations would need lifting.
  */
 export template <typename C, typename R>
-concept Algebra_ℂ = IsComplex<C, R> && dedekind::algebra::IsFieldLikeScalar<C>;
+concept Algebra_ℂ = IsComplex<C, R> && dedekind::algebra::HasFieldOperators<C>;
 
 /** @section Canonical_Species_Spine (ℤ)
  *

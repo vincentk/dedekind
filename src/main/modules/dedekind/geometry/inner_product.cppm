@@ -54,14 +54,14 @@ concept IsInnerProductModule = IsModule<M, R> && HasInnerProduct<M, R>;
 /**
  * @concept IsInnerProductSpace
  * @brief A field-like vector carrier equipped with an inner product morphism.
- * @details Uses the operational `IsFieldLikeScalar` and
- *          `IsVectorSpaceLike` witnesses so IEEE-backed floating carriers can
- *          participate under the active numerical policy, even when the
- *          stricter categorical `IsVectorSpace` proof is intentionally
- *          withheld.
+ * @details Uses the operational `HasFieldOperators` and
+ *          `HasVectorSpaceOperators` witnesses so IEEE-backed floating carriers
+ * can participate under the active numerical policy, even when the stricter
+ * categorical `IsVectorSpace` proof is intentionally withheld.
  */
 export template <typename V, typename F>
-concept IsInnerProductSpace = IsVectorSpaceLike<V, F> && HasInnerProduct<V, F>;
+concept IsInnerProductSpace =
+    HasVectorSpaceOperators<V, F> && HasInnerProduct<V, F>;
 
 /** @section The_Standard_Dot_Product */
 

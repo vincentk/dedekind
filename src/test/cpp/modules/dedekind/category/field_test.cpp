@@ -18,7 +18,7 @@
  * over values.  Default-false carriers must fail the concept even
  * when their ring-trait chain otherwise looks field-shaped.
  *
- * The paper-facing retargeting of @c IsFieldLikeScalar call sites
+ * The paper-facing retargeting of @c HasFieldOperators call sites
  * to @c IsField happens once @c Rational<Z>, @c Complex<R>, etc.
  * gain their trait specialisations (tracked under epic #374,
  * children #371 axiom-hook auto-lifter and #379 paper sweep).
