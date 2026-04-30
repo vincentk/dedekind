@@ -1,7 +1,7 @@
 /**
  * @file dedekind/numbers/real.cppm
  * @partition :real
- * @brief Level 9: Minimal real wrapper for experimental reintegration.
+ * @brief Minimal real wrapper for experimental reintegration.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
@@ -107,7 +107,7 @@ class Real {
   Q value_{};
 };
 
-/** @section Partial_Arithmetic_with_Ternary_Logic */
+/** @section real__Partial_Arithmetic_with_Ternary_Logic */
 
 /**
  * @brief Partial addition transform for Real<S>.
@@ -401,7 +401,7 @@ static_assert(
 static_assert(dedekind::algebra::HasFieldOperators<ExactReal<>>,
               "ExactReal<> must satisfy HasFieldOperators (ℝ is a field).");
 
-/** @section Canonical_Species_Spine (ℝ)
+/** @section real__Canonical_Species_Spine (ℝ)
  *
  * The canonical real-number species ℝ is defined above as
  * @c RealSet @c = @c RealsOf<> with value-level constant @c R; the

@@ -1,18 +1,18 @@
 /**
  * @file geometry.cppm
- * @brief Level 9: Affine ⊂ InnerProduct ⊂ Euclidean ⊂ Hilbert.
+ * @brief Affine ⊂ InnerProduct ⊂ Euclidean ⊂ Hilbert.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @section Structural_Geometry
+ * @section geometry__Structural_Geometry
  * "Geometrie ist nicht die Lehre von den Dingen, sondern von der Art und Weise,
  *  wie sie koexistieren. Raum ist eine relationale Ordnung koexistierender
  * Objekte." (Geometry is not the study of things, but of the way in which they
  * coexist. Space is a relational order of coexisting objects.) — Bernulf
  * Kanitscheider, 'Geometrie und Wirklichkeit' (1971).
  *
- * @section Geometric_Taxonomy
+ * @section geometry__Geometric_Taxonomy
  * Following the Erlangen Program and ETCS foundations, we treat geometry as
  * the study of invariants under specific groups of morphisms:
  *
@@ -39,19 +39,19 @@
 
 export module dedekind.geometry;
 
-/** @section Level_9.1: The Relational Foundation */
+/** @section geometry__Relational_Foundation */
 export import :affine;         // The Point-Vector Duality
 export import :linear_map;     // Concrete finite-dimensional linear maps
 export import :inner_product;  // The Bilinear Mapping ⟨-, -⟩
 
-/** @section Level_9.2: The Metric Completion */
+/** @section geometry__Metric_Completion */
 export import :euclidean;  // The Normed Space (L2-Topology)
 export import :hilbert;    // The Complete Unitary Space (L2-Convergence)
 
-/** @section Level_9.3: Geometric Lattices */
+/** @section geometry__Geometric_Lattices */
 export import :lattice;  // Discretizations of continuous spaces (ℤⁿ ↪ ℝⁿ)
 
-/** @section Level_9.4: Tangent-Bundle Concepts (flat case) */
+/** @section geometry__Tangent_Bundle_Concepts_Flat */
 export import :tangent;  // IsTangentBundle (flat case); canonical witness
                          // Dual<F> lives in :analysis:dual.  Bundle structure
                          // on non-flat manifolds tracked under #185.

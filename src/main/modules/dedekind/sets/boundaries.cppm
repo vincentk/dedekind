@@ -8,7 +8,7 @@
  *
  * @dependency dedekind.ontology
  *
- * @section The_Structural_Limits: ⊥ and ⊤
+ * @section boundaries__The_Structural_Limits
  * In the Dedekind topos, the boundaries of a Species define the 'North
  * and South poles' of the set-lattice. This partition implements the
  * identities required for a Bounded Lattice over any Species:
@@ -22,7 +22,7 @@
  * 3. Identity: They serve as the unit elements for Union (|) and Intersection
  * (&).
  *
- * @section Semantic_Role
+ * @section boundaries__Semantic_Role
  * While a SingletonSet represents an 'Atomic Part', the boundaries
  * represent the 'Absolute State' of the Species. In a 'Family' (A Set
  * of Sets), these objects serve as the terminal bounds of the collection.
@@ -56,14 +56,14 @@ import :mereology;
 using namespace dedekind::category;
 
 /**
- * @section Mereology: The study of parts and wholes.
- * @section Mereology: The Hierarchy of Order.
+ * @section boundaries__Mereology
+ * @section boundaries__Mereology_2
  */
 namespace dedekind::sets {
 
 struct Boundaries {};
 
-/** @section Structural_Resolution
+/** @section boundaries__Structural_Resolution
  *
  * @c resolve_species / @c element_of_t resolve a type to its underlying
  * element type: predicate-set carriers (anything with a nested
@@ -73,7 +73,7 @@ struct Boundaries {};
  * machinery in @c :expressions can use the same trait without
  * duplicating the resolution logic.
  *
- * @section Picking_Policy_Cross_Reference
+ * @section boundaries__Picking_Policy_Cross_Reference
  *
  * @c element_of_t is one of @b three Domain-resolving helpers in the
  * project — see @c :morphism's "Picking policy" comment block (post-
@@ -130,7 +130,7 @@ struct Ø final : Boundaries {
   using is_compile_time_extensional_tag = void;
   using base_set_type = Ø<T, L>;
 
-  /** @section Algebraic_Axioms */
+  /** @section boundaries__Algebraic_Axioms */
   template <typename Op>
   static constexpr bool is_associative_v =
       std::is_same_v<Op, std::bit_and<base_set_type>> ||
@@ -153,10 +153,10 @@ struct Ø final : Boundaries {
     requires(!std::same_as<OtherL, L>)
   constexpr Ø(const Ø<T, OtherL>&) {}
 
-  /** @section Extensionality_Proof */
+  /** @section boundaries__Extensionality_Proof */
   constexpr std::size_t size() const { return 0; }
 
-  /** @section Lattice_Axiom: Initiality */
+  /** @section boundaries__Lattice_Axiom: Initiality */
   // The Empty Set is a part of everything (including itself)
   // We use a simple template to avoid recursion with IsSet
   template <typename S>
@@ -235,7 +235,7 @@ struct Ω final : Boundaries {
   using is_universal_boundary = void;
   using logic_species = L;
 
-  /** @section Algebraic_Axioms */
+  /** @section boundaries__Algebraic_Axioms_2 */
   template <typename Op>
   static constexpr bool is_associative_v =
       std::is_same_v<Op, std::bit_and<base_set_type>> ||
@@ -249,7 +249,7 @@ struct Ω final : Boundaries {
   constexpr auto operator!() const { return Ø<T, L>{}; }
 
   /**
-   * @section Lattice_Axiom: Terminality
+   * @section boundaries__Lattice_Axiom_2
    * Everything is a part of the Universal Set.
    * Constraint: Exclude Variables (which have a member T) to let
    * symbolic expressions handle their own comparisons.
@@ -261,7 +261,7 @@ struct Ω final : Boundaries {
     return L::True;
   }
 
-  /** @section Lattice_Axiom: Reflexivity */
+  /** @section boundaries__Lattice_Axiom_3: Reflexivity */
   constexpr typename L::Ω operator<=(const Ω&) const { return L::True; }
 
   // Explicitly define equality if <=> is being deleted by members

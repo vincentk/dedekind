@@ -1,12 +1,12 @@
 /**
  * @file dedekind/category/logic.cppm
  * @partition :logic
- * @brief Level 0: The Rules of Thought (Ω).
+ * @brief The Rules of Thought (Ω).
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @section Algebraic_Logic
+ * @section logic__Algebraic_Logic
  * "Metoda algebraiczna w logice polega na traktowaniu każdego systemu
  *  logicznego jako pewnego określonego rodzaju algebry abstrakcyjnej."
  *  (The algebraic method in logic consists in treating every logical system
@@ -24,7 +24,7 @@
  * - ClassicalLogic: The Boolean Topos ({True, False}).
  * - TernaryLogic: The Kleene Topos ({True, False, Unknown}).
  *
- * @section Structural_Invariants
+ * @section logic__Structural_Invariants
  * Logics in Dedekind are treated as Rigs (Semirings).
  * - Addition (+) is the Supremum/Join (OR).
  * - Multiplication (*) is the Infimum/Meet (AND).
@@ -89,7 +89,7 @@ concept IsLogicalSpecies = requires(typename L::Ω a, typename L::Ω b) {
 };
 
 /**
- * @section Species 1: Classical Logic (The Binary Prime)
+ * @section logic__Species
  * @brief The internal logic of the Classical Topos ({True, False}).
  *
  * ClassicalLogic defines the standard Boolean algebra where the Law of
@@ -117,7 +117,8 @@ static_assert(IsLogicalSpecies<ClassicalLogic>,
               "ClassicalLogic must fulfill IsLogicalSpecies");
 
 /**
- * @section Species 2: Kleene Ternary Logic (The Logic of Indeterminacy)
+ * @section logic__Species_2
+ * Indeterminacy)
  * @brief A three-valued propositional logic for handling partial information.
  *
  * Unlike ClassicalLogic, Ternary logic allows for an 'Unknown' state,
@@ -230,7 +231,7 @@ export template <typename Pred, typename T>
 using OmegaOf = std::remove_cvref_t<
     std::invoke_result_t<const std::decay_t<Pred>&, const T&>>;
 
-/** @section Cardinality_Ontology_Tokens */
+/** @section logic__Cardinality_Ontology_Tokens */
 export enum class CardinalityTag { Finite, Countable, Continuum };
 
 export template <typename TargetLogic, typename T>
@@ -256,7 +257,7 @@ struct Truth {
 
   machine_type value;
 
-  /** @section Monic_Construction */
+  /** @section logic__Monic_Construction */
   // Removed 'explicit' to allow seamless return from lambdas/expressions
   constexpr Truth(machine_type v) noexcept : value(v) {}
   constexpr Truth() noexcept : value(L::False) {}
@@ -266,7 +267,7 @@ struct Truth {
     return {L::NOT(a.value)};
   }
 
-  /** @section Rig_Operations */
+  /** @section logic__Rig_Operations */
 
   // Addition as the Supremum (OR)
   friend constexpr Truth operator+(Truth a, Truth b) noexcept {
@@ -283,7 +284,7 @@ struct Truth {
     return {lift_logic<L>((a + b) == b)};
   }
 
-  /** @section Identity_Discovery */
+  /** @section logic__Identity_Discovery */
   template <typename Op>
   static constexpr auto identity_v = []() {
     if constexpr (std::is_same_v<Op, std::plus<Truth>> ||
@@ -298,12 +299,12 @@ struct Truth {
   // The Archimedean Anchor (Successor = x + 1)
   static constexpr Truth one() { return {L::True}; }
 
-  /** @section Conversion */
+  /** @section logic__Conversion */
   constexpr explicit operator machine_type() const noexcept { return value; }
   constexpr bool operator==(const Truth&) const = default;
 };
 
-/** @section Logic_Species_Aliases */
+/** @section logic__Logic_Species_Aliases */
 
 /** @brief The Boolean Species (The Binary Prime). */
 export using Boolean = Truth<ClassicalLogic>;
@@ -343,7 +344,7 @@ struct SpeciesTraits<Truth<L>> {
 };
 
 /**
- * @section Logic_Atlas_Bridge
+ * @section logic__Logic_Atlas_Bridge
  * Maps a Species to its specific Truth Object (Omega).
  * This bridge consumes the facts from the :species Atlas to determine
  * which logical system governs a given type.
@@ -379,7 +380,7 @@ export template <typename T>
 using Omega = typename LogicOf<T>::Ω;
 
 /**
- * @section The_Subobject_Classifier
+ * @section logic__The_Subobject_Classifier
  * Formal elevation from Machine Result -> Omega.
  */
 export template <IsSpecies T>
@@ -445,7 +446,7 @@ concept HasLogicalOperators = requires(T a, T b) {
   { !a } -> std::same_as<T>;
 };
 
-/** @section Formal_Verification */
+/** @section logic__Formal_Verification */
 
 // Pure-syntactic-shape witness: bool is the canonical fit because
 // bool && bool, bool || bool, !bool all return bool.  int does NOT

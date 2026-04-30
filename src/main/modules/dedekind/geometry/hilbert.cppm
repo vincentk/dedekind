@@ -1,7 +1,7 @@
 /**
  * @file dedekind/geometry/hilbert.cppm
  * @partition :hilbert
- * @brief Level 10.2: Hilbert spaces — Cauchy-complete inner-product spaces.
+ * @brief Hilbert spaces — Cauchy-complete inner-product spaces.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
@@ -54,7 +54,7 @@ export template <typename V, typename F>
 concept IsHilbertSpace =
     IsInnerProductSpace<V, F> && IsDedekindCompleteField<F>;
 
-/** @section Formal_Verification */
+/** @section hilbert__Formal_Verification */
 
 // Vector<double, N> with the standard Euclidean inner product is the
 // canonical finite-dimensional inner-product space ℝᴺ.  The full

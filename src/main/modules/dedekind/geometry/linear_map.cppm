@@ -1,9 +1,9 @@
 /**
  * @file dedekind/geometry/linear_map.cppm
  * @partition :linear_map
- * @brief Level 10.05: Finite-dim linear maps with algebraic witnesses.
+ * @brief Finite-dim linear maps with algebraic witnesses.
  *
- * @section Algebraic_Structure
+ * @section linear_map__Algebraic_Structure
  * LinearMap<F, R, C> represents a finite-dimensional linear map F^C -> F^R
  * and serves as an algebraic carrier for the theory of modules and vector
  * spaces.
@@ -24,7 +24,7 @@
  * @note Matrix **multiplication** (composition) is non-commutative, so the
  *       ring of square matrices does NOT form a commutative ring, only a ring.
  *
- * @section Design_and_Extensibility
+ * @section linear_map__Design_and_Extensibility
  * The current LinearMap<F, R, C> is a dense matrix implementation with
  * compile-time fixed dimensions. This design is appropriate for:
  * - Small to medium matrices (dense, static dimensions)
@@ -293,7 +293,7 @@ constexpr LinearMap<F, Rows, Cols> zero_linear_map() {
 }
 
 /**
- * @section Algebraic_Verification_for_Matrix_Scalars
+ * @section linear_map__Algebraic_Verification_for_Matrix_Scalars
  *
  * When F satisfies IsMatrixScalar:
  * - the implementation provides the operations needed by this MVP
@@ -324,7 +324,7 @@ constexpr LinearMap<F, Rows, Cols> zero_linear_map() {
  */
 
 /**
- * @section Module_Structure_Verification
+ * @section linear_map__Module_Structure_Verification
  *
  * **Core Algebraic Theorem:**
  * LinearMap<F, R, C> is always a **Semimodule** over the scalar semiring F.
@@ -519,7 +519,7 @@ constexpr LinearMap<F, M, N> outer(const Vector<F, M>& u,
 }
 
 /**
- * @section Specializations_for_Common_Ring_and_Field_Scalars
+ * @section linear_map__Specializations_for_Common_Ring_and_Field_Scalars
  *
  * The following type aliases provide semantic naming for matrices over
  * specific algebraic structures. Each specialization documents the algebraic
@@ -669,7 +669,7 @@ struct CotangentBundlePoint {
                                    const CotangentBundlePoint&) = default;
 };
 
-/** @section Formal_Verification */
+/** @section linear_map__Formal_Verification */
 
 // LinearMap<F, R, C> over a field-like scalar forms a vector-space-like
 // carrier.

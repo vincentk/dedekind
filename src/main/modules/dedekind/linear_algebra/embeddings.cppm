@@ -1,12 +1,12 @@
 /**
  * @file dedekind/linear_algebra/embeddings.cppm
  * @partition :embeddings
- * @brief Level 12.5c: Canonical regular representations ℂ ↪ M₂, 𝔻 ↪ M₂.
+ * @brief Canonical regular representations ℂ ↪ M₂, 𝔻 ↪ M₂.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @section Overview
+ * @section embeddings__Overview
  * Two faithful ring homomorphisms, both spelled over the same 2×2 carrier
  * `Matrix2x2V<T>` from `:matrix`:
  *
@@ -47,7 +47,7 @@ namespace dedekind::linear_algebra {
 using dedekind::analysis::Dual;
 using dedekind::numbers::Complex;
 
-/** @section Canonical_Embedding_ℂ_↪_M₂ */
+/** @section embeddings__Canonical_Embedding_ℂ_↪_M₂ */
 
 /**
  * @brief Regular representation of ℂ inside M₂(T):
@@ -86,7 +86,7 @@ constexpr Complex<T> complex_from_matrix2x2(const Matrix2x2V<T>& M) {
   return Complex<T>{M.m11, M.m21};
 }
 
-/** @section Canonical_Embedding_𝔻_↪_M₂ */
+/** @section embeddings__Canonical_Embedding_𝔻_↪_M₂ */
 
 /**
  * @brief Regular representation of 𝔻 inside M₂(T):
@@ -124,7 +124,7 @@ constexpr Dual<T> dual_from_matrix2x2(const Matrix2x2V<T>& M) {
   return Dual<T>{M.m11, M.m12};
 }
 
-/** @section Ring_Homomorphism_Witnesses_over_ℚ
+/** @section embeddings__Ring_Homomorphism_Witnesses_over_ℚ
  *
  *  The paper-facing existential proofs that both embeddings are ring
  *  homomorphisms — exact at compile time over `Rational<long>`.
@@ -180,7 +180,7 @@ inline constexpr Dual<Rat> eps_q{Rat{0L}, Rat{1L}};
 static_assert(as_matrix2x2(eps_q* eps_q) == zero_matrix2x2_v<Rat>,
               "ε² = 0 in 𝔻 lifts to the zero matrix under the embedding.");
 
-/** @section Ring_Homomorphism_Concept_Witnesses
+/** @section embeddings__Ring_Homomorphism_Concept_Witnesses
  *
  *  The two embeddings witness `dedekind.algebra::IsRingHomomorphism`
  *  at the type level, folding the four preservation static_asserts above

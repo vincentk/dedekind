@@ -8,7 +8,7 @@
  *
  * @dependency dedekind.ontology
  *
- * @section The_Singleton_Atom: Mereological Singularity
+ * @section singleton__The_Singleton_Atom
  * In the Dedekind universe, the Singleton is the "Unit of Presence."
  * It serves as the canonical implementation of a Pointed Set and provides
  * the concrete singleton constructor used in sets-level monadic workflows.
@@ -24,7 +24,7 @@
  * while dedekind.sets is being retargeted to the updated hub/spoke interfaces
  * in dedekind.category.
  *
- * @section Structural_Role
+ * @section singleton__Structural_Role
  * The SingletonSet provides the baseline proof for the Unified Highway Bridge.
  * Its sets-layer operations (constructor, bind, extend) are available now;
  * category-layer η/ε and derived fmap wiring is intentionally postponed to a
@@ -59,8 +59,8 @@ import :boundaries;
 import :expressions;
 
 /**
- * @section Mereology: The study of parts and wholes.
- * @section Mereology: The Hierarchy of Order.
+ * @section singleton__Mereology
+ * @section singleton__Mereology_2
  */
 namespace dedekind::sets {
 
@@ -77,7 +77,7 @@ struct SingletonSet {
   using is_extensional_tag = void;
   using base_set_type = SingletonSet<T, L>;
 
-  /** @section Algebraic_Axioms */
+  /** @section singleton__Algebraic_Axioms */
   template <typename Op>
   static constexpr bool is_associative_v =
       std::is_same_v<Op, std::bit_and<base_set_type>> ||
@@ -95,12 +95,12 @@ struct SingletonSet {
 
   constexpr T origin() const { return pivot; }
 
-  /** @section Extensionality_Proof */
+  /** @section singleton__Extensionality_Proof */
   constexpr std::size_t size() const { return 1; }
   constexpr std::size_t upper_bound() const { return 1; }
   constexpr auto cardinality() const { return Finite{}; }
 
-  /** @section Mereological_Relation (sqsubseteq) */
+  /** @section singleton__Mereological_Relation (sqsubseteq) */
 
   // 1. Manual definition to satisfy: { a <= b } -> typename L::Ω
   constexpr typename L::Ω operator<=(const SingletonSet& other) const {
@@ -130,9 +130,9 @@ struct SingletonSet {
     return L::False;
   }
 
-  /** @section Mereological_Lattice_Audit */
+  /** @section singleton__Mereological_Lattice_Audit */
 
-  /** @section Unified_Lattice_Operations (Level 1) */
+  /** @section singleton__Unified_Lattice_Operations */
 
   template <typename U, typename L2>
   constexpr auto operator|(const SingletonSet<U, L2>& other) const {
@@ -165,7 +165,7 @@ static_assert(dedekind::category::HasCanonicalSetCCC<int>,
               "Breadcrumb to :cartesian: singleton ambient int has canonical "
               "CCC witness.");
 
-/** @section The_Set_Monad_Realization */
+/** @section singleton__The_Set_Monad_Realization */
 
 /** @brief η: T -> SingletonSet<T> (The Unit) */
 export template <typename T>
@@ -173,14 +173,14 @@ constexpr auto singleton(T&& value) {
   return SingletonSet<std::decay_t<T>>{std::forward<T>(value)};
 }
 
-/** @section The_Set_Monad: The Categorical Identity */
+/** @section singleton__The_Set_Monad: The Categorical Identity */
 
 /**
- * @section Singleton_Kleisli_Triple
+ * @section singleton__Singleton_Kleisli_Triple
  * @brief The Bricks of the Singleton Monad.
  */
 
-/** @section Bind (>>=) */
+/** @section singleton__Bind (>>=) */
 export template <typename T, typename L, typename Func>
 constexpr auto operator>>=(const SingletonSet<T, L>& s, Func&& f) {
   /**
@@ -191,9 +191,9 @@ constexpr auto operator>>=(const SingletonSet<T, L>& s, Func&& f) {
   return std::forward<Func>(f)(s.pivot);
 }
 
-/** @section Singleton_CoKleisli_Triple */
+/** @section singleton__Singleton_CoKleisli_Triple */
 
-/** @section Extend (<<=) */
+/** @section singleton__Extend (<<=) */
 export template <typename T, typename L, typename Func>
 constexpr auto operator<<=(const SingletonSet<T, L>& s, Func&& f) {
   using U = std::invoke_result_t<Func, SingletonSet<T, L>>;
@@ -203,7 +203,7 @@ constexpr auto operator<<=(const SingletonSet<T, L>& s, Func&& f) {
 
 };  // namespace dedekind::sets
 
-/** @section The_Final_Ontology_Proof
+/** @section singleton__The_Final_Ontology_Proof
  * Deferred while `dedekind.sets` is being retargeted to the updated
  * `dedekind.category` hub/spoke functor API.
  */

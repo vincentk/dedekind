@@ -8,7 +8,7 @@
  * @partition :numbers
  * @dependency :algebra, :topology, :cardinalities, :scalars
  *
- * @section Booleans: The Binary Logic Structure
+ * @section numbers_boolean__Booleans
  * This partition defines the @b Boolean species—the simplest non-trivial
  * numerical system. It establishes the formal mapping between logical
  * truth values and the algebraic structure of a semiring.
@@ -55,7 +55,7 @@ using namespace dedekind::sets;
 export template <typename L = ClassicalLogic>
 using FiniteBooleanSetOf = dedekind::sets::FiniteBooleanSet<L>;
 
-/** @section Canonical_Species_Spine
+/** @section numbers_boolean__Canonical_Species_Spine
  *
  * The canonical Boolean species symbol @c 𝔹 = @c bool (the @b carrier
  * type, after #400).  The Boolean structures @c bool carries are
@@ -116,7 +116,7 @@ concept Is_B = std::same_as<E, bool> && requires(const M& m) {
   requires m.cardinality() == 2;
 };
 
-/** @section Formal_Verification */
+/** @section numbers_boolean__Formal_Verification */
 
 // (0) Carrier-type witness: 𝔹 names the carrier itself.
 static_assert(std::same_as<𝔹, bool>, "𝔹 is the bool carrier (post-#400).");

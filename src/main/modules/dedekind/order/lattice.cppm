@@ -1,12 +1,12 @@
 /**
  * @file dedekind/order/lattice.cppm
  * @partition :lattice
- * @brief Level 1.5: Order-theoretic meet / join / lattice structures.
+ * @brief Order-theoretic meet / join / lattice structures.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @section Scope
+ * @section order_lattice__Scope
  * Species carrying binary meet and/or join operations that respect
  * the underlying order, reaching up to distributive lattices.  The
  * actual axiomatic certification (associativity, commutativity,
@@ -146,7 +146,7 @@ concept IsOrderDistributiveLattice =
     dedekind::category::IsCertifiedOrderDistributiveLatticeOperations<T, Join,
                                                                       Meet>;
 
-/** @section Formal_Verification */
+/** @section order_lattice__Formal_Verification */
 
 // Pure-syntactic-shape witnesses: integer bit-twiddle types and
 // bool itself satisfy the four lattice operators with results

@@ -1,7 +1,7 @@
 /**
  * @file dedekind/category/functor.cppm
  * @partition :functor
- * @brief Level 2: The Functorial Spine (Structure Preservation).
+ * @brief The Functorial Spine (Structure Preservation).
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
@@ -11,7 +11,7 @@
  * (Truth is One, though the sages speak of it as many.)
  * — ऋग्वेद (Rig Veda)
  *
- * @section The_Functorial_Mapping
+ * @section functor__The_Functorial_Mapping
  * A Functor is a bridge between categories that preserves the "Grammar" of
  * the source. In our skeletal framework, a Functor F: T -> U ensures that:
  * 1. Objects are mapped: Every species T has a corresponding F<T>.
@@ -24,8 +24,8 @@
  * that maps morphisms from the source category to the target category while
  * strictly preserving identity and composition laws.
  *
- * @section The_Honest_Spine Hub (Intensional Law) vs. Spoke (Extensional
- * Matter)
+ * @section functor__The_Honest_Spine
+ * (Extensional Matter)
  *
  * With a view to interoperability with primitive types and the std::library,
  * Dedekind distinguishes between the mathematical rule of transformation
@@ -53,7 +53,8 @@
  * Applicator**. This witness allows the "Handy" fish operators (>> and <<) to
  * resolve unambiguously by utilizing the Hub's categorical authority.
  *
- * @section IsFunctor_Models Concrete IsFunctor Models In This Partition
+ * @section functor__IsFunctor_Models
+ * Partition
  *
  * The following types in this partition model @ref IsFunctor:
  * - @ref identity_functor: Cat -> Cat.

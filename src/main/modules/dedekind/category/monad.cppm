@@ -1,7 +1,7 @@
 /**
  * @file dedekind/category/monad.cppm
  * @partition :monad
- * @brief Level 2.5: Monads and Comonads (Context as Algebra).
+ * @brief Monads and Comonads (Context as Algebra).
  *
  * This partition internalizes monads and comonads as endofunctor-level
  * algebraic structure. Because categories in this library are specialized to a
@@ -29,7 +29,7 @@ import :natural;
 namespace dedekind::category {
 
 /**
- * @section Monadic_and_Comonadic_Components
+ * @section monad__Monadic_and_Comonadic_Components
  *
  * The concrete implementations of η (Unit), μ (Multiplication), ε (Counit),
  * and δ (Comultiplication) are defined in the :natural partition for each
@@ -84,7 +84,7 @@ constexpr auto duplicate(HubTag tag, WA const& wa) {
 }
 
 /**
- * @section Monad_as_Monoid (Explicit Definition)
+ * @section monad__Monad_as_Monoid
  * We bridge the gap:
  *   η (Unit)           <--> identity_v (Monoid Unit)
  *   μ (Multiplication) <--> Op         (Monoid Operation)
@@ -124,7 +124,7 @@ concept IsMonad =
     };
 
 /**
- * @section Comonadic_Morphisms: Extract (ε) and Duplicate (δ)
+ * @section monad__Comonadic_Morphisms
  */
 
 /**
@@ -141,7 +141,7 @@ concept IsMonad =
  * identity lifting, which is the canonical witness mechanism in this library's
  * single-species categories.
  *
- * @section The_Mereological_Pull
+ * @section monad__The_Mereological_Pull
  * Following the Dedekind posture, we do not require δ (Duplicate/Coreturn)
  * to be explicitly defined if <<= (Extend) is present, as δ is the
  * "Self-Extend": δ(w) = w <<= id.
@@ -169,7 +169,7 @@ concept IsComonad =
       { δ(w_obj) >> ε(w_obj) } -> std::same_as<typename W::Σ_cat::Id>;
     };
 
-/** @section Generic_Monadic_Pipeline */
+/** @section monad__Generic_Monadic_Pipeline */
 
 export template <typename W>
 struct η_tag {};

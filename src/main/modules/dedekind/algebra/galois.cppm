@@ -1,12 +1,12 @@
 /**
  * @file dedekind/algebra/galois.cppm
  * @partition :galois
- * @brief Level 3.5: Galois fields (finite fields).
+ * @brief Galois fields (finite fields).
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @section Scope
+ * @section galois__Scope
  * A \emph{Galois field} (or finite field) is a field of finite
  * cardinality.  Every such field has order @f$q = p^n@f$ for some
  * prime @f$p@f$ and positive integer @f$n@f$; the prime @f$p@f$ is the
@@ -329,7 +329,7 @@ struct cyclic_order<dedekind::algebra::𝔽64,
 
 namespace dedekind::algebra {
 
-/** @section Formal_Verification */
+/** @section galois__Formal_Verification */
 
 // bool is the Galois field 𝔽2 under (XOR, AND).
 static_assert(IsGaloisField<bool, std::bit_xor<bool>, std::bit_and<bool>>,
@@ -375,7 +375,7 @@ static_assert(!dedekind::category::is_cyclic_group_v<𝔽64, std::plus<𝔽64>>,
               "𝔽64's additive group is elementary abelian (Z/2)^6, "
               "not cyclic.");
 
-/** @section Primitive_Element_Enumeration #388
+/** @section galois__Primitive_Element_Enumeration #388
  *
  * The multiplicative group @f$\mathbb{F}_{64}^{\times}@f$ is cyclic
  * of order @c 63 (as witnessed above); a primitive element is
@@ -453,7 +453,7 @@ static_assert(
                  𝔽64>,
     "std::ranges::range_value_t of the 𝔽64^× enumeration must be 𝔽64.");
 
-/** @section CCC_Inheritance_389 CCC inheritance (#389)
+/** @section galois__CCC_Inheritance_389 CCC inheritance (#389)
  *
  * The Galois-field carriers can serve as the ambient species of an
  * ETCS-style set object; the canonical CCC over each carrier (terminal

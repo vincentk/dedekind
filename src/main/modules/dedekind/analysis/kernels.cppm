@@ -1,12 +1,12 @@
 /**
  * @file dedekind/analysis/kernels.cppm
  * @partition :kernels
- * @brief Level 11.4: Kernel primitives -- Gaussian and reproducing kernels.
+ * @brief Kernel primitives -- Gaussian and reproducing kernels.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @section Description
+ * @section kernels__Description
  * This partition currently provides a compact kernel toolkit used to anchor
  * analysis terminology in code:
  *
@@ -94,7 +94,7 @@ struct ReproducingKernel {
   }
 };
 
-/** @section Formal_Verification */
+/** @section kernels__Formal_Verification */
 
 // GaussianKernel<T> is a symmetric positive-definite kernel:
 // K(a, b) = exp(-(a-b)²/(2σ²)) is invariant under (a, b) ↔ (b, a).

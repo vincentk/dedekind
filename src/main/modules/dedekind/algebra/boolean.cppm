@@ -6,12 +6,12 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @section Starter_Intent
+ * @section algebra_boolean__Starter_Intent
  * This partition offers a small, explicit entry point for Boolean algebra in
  * the set-builder DSL. It exports canonical Boolean universe aliases so
  * examples remain readable and stable.
  *
- * @section Notation
+ * @section algebra_boolean__Notation
  * - `𝔹`: canonical Unicode symbol for the Boolean @b carrier (= @c bool).
  *   Per #399 / #400 (show-to-a-wider-audience API), the species symbol
  *   names the carrier type itself rather than a predicate-set alias;
@@ -31,7 +31,7 @@
  *   public surface — external callers should spell `BooleanSetOf<>` or
  *   `decltype(B)` for the same type.
  *
- * @section Paper_Alignment
+ * @section algebra_boolean__Paper_Alignment
  * In the paper's Feature Cube (bool row), logical (`||`, `&&`) and bitwise
  * (`|`, `&`) operators over bool share the same lattice behavior (join/meet,
  * identities, absorbers, and distributivity). The test suite validates this
@@ -81,7 +81,7 @@ export using 𝔹 = bool;
 
 export inline constexpr BooleanSet B{};
 
-/** @section Formal_Verification */
+/** @section algebra_boolean__Formal_Verification */
 
 // BooleanSet is the canonical IsSet witness for the Boolean ambient universe.
 static_assert(dedekind::category::IsSet<

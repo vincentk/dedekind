@@ -1,7 +1,7 @@
 /**
  * @file dedekind/category/mereology.cppm
  * @partition :mereology
- * @brief Level 0c: Embryonic Mereology (Part-Whole and Skew Algebraic Core).
+ * @brief Embryonic Mereology (Part-Whole and Skew Algebraic Core).
  *
  * Following the formal axiomatization of Stanisław Leśniewski, this partition
  * introduces the "Part-Whole" relation as a foundational structural primitive.
@@ -12,7 +12,7 @@
  * Commutative, order-theoretic semilattice/lattice refinements are layered in
  * `:posetal` to keep order-theory nomenclature and laws localized there.
  *
- * @section Axioms
+ * @section mereology__Axioms
  * 1. Reflexivity: Everything is a part of itself.
  * 2. Transitivity: A part of a part is a part of the whole.
  * 3. Antisymmetry: Two distinct things cannot be parts of each other.

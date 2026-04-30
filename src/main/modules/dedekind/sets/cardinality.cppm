@@ -1476,7 +1476,7 @@ export constexpr SignedCardinality operator-(const Cardinality& v) noexcept {
  *      well-defined magnitude, but the saturated answer is the
  *      conservative bound.
  *
- *  @section Relationship_to_std_abs
+ *  @section cardinality__Relationship_to_std_abs
  *  Conceptually the same operation as @c std::abs at a different
  *  carrier layer, with two load-bearing differences:
  *
@@ -1777,7 +1777,7 @@ static_assert(IsCyclicGroup<Z1, std::plus<Z1>>,
               "SignedExtensionalCardinal<1> under + must satisfy IsCyclicGroup "
               "(bounded ℤ, wraps modulo capacity).");
 
-/** @section CCC_Inheritance_389 CCC inheritance (#389)
+/** @section cardinality__CCC_Inheritance_389 CCC inheritance (#389)
  *
  * Both cardinal carriers can serve as the ambient species of an
  * ETCS-style set object; the canonical CCC over each carrier is

@@ -1,7 +1,7 @@
 /**
  * @file dedekind/category/discrete.cppm
  * @partition :discrete
- * @brief Level 0.25: The Discrete Infrastructure (Points as Arrows).
+ * @brief The Discrete Infrastructure (Points as Arrows).
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
@@ -12,7 +12,7 @@
  * objects, as well as the means to treat any species element as a
  * constant mapping.
  *
- * @section The_Discrete_Duality
+ * @section discrete__The_Discrete_Duality
  * While Level 0 (:morphism) provides the syntax of the Arrow, Level 0.25
  * provides the "Discrete Points" that populate the objects:
  * - @ref One (1)   : The Terminal Object; the categorical "Atom" of Truth.
@@ -20,7 +20,7 @@
  * - @ref ConstantMorphism : A mapping that factors through the Terminal
  *                          Object, collapsing the domain into a single point.
  *
- * @section Role_in_the_Fractal
+ * @section discrete__Role_in_the_Fractal
  * By establishing the Discrete Floor here, we enable Level 0.5 (:limit) to
  * define universal properties (Initiality/Terminality) and Level 1 (:total)
  * to define algebraic identities (Zero/Unit) without circular dependencies.
@@ -57,7 +57,7 @@ struct ConstantMorphism final {
   constexpr B operator()(const A&) const noexcept { return value; }
 };
 
-/** @section Registration_Atomic_Floor */
+/** @section discrete__Registration_Atomic_Floor */
 template <typename A, typename B, typename Op>
   requires IsPointed<B, Op>
 struct identity_registry<ConstantMorphism<A, B>, Op> {
@@ -65,14 +65,14 @@ struct identity_registry<ConstantMorphism<A, B>, Op> {
 };
 
 /**
- * @section Constant_Morphism_Axioms
+ * @section discrete__Constant_Morphism_Axioms
  * A Constant Mapping is inherently associative under any operation
  * because it is a fixed sink: c ∘ (c ∘ c) = c.
  */
 template <typename A, typename B, typename Op>
 inline constexpr bool is_associative_v<ConstantMorphism<A, B>, Op> = true;
 
-/** @section Unified_Ideal_Factories */
+/** @section discrete__Unified_Ideal_Factories */
 export template <typename A, typename B, typename Op = std::plus<B>>
   requires IsPointed<B, Op>
 constexpr auto zero() {
@@ -94,7 +94,7 @@ static_assert(
     "Logic Error: Zero mapping failed to return the identity element.");
 
 /**
- * @section Discrete_Categories
+ * @section discrete__Discrete_Categories
  * A Discrete Category is a Small Category where the only morphisms are
  * identities.
  */

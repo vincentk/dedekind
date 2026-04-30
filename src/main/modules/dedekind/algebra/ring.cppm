@@ -1,7 +1,7 @@
 /**
  * @file dedekind/algebra/ring.cppm
  * @partition :ring
- * @brief Level 3.2: The Rules of Harmony (The Semiring Synthesis).
+ * @brief The Rules of Harmony (The Semiring Synthesis).
  *
  * @copyright 2026 The Dedekind Authors
 
@@ -203,7 +203,7 @@ export template <typename T, typename Add = std::plus<T>,
 concept IsCommutativeRing =
     IsRing<T, Add, Mult> && dedekind::category::IsCommutative<T, Mult>;
 
-/** @section Semiring_Shape_And_Homomorphisms
+/** @section ring__Semiring_Shape_And_Homomorphisms
  *
  *  The literal-operator shape concept @c HasRingOperators above
  *  covers the ring surface (+, -, unary -, *).  The semiring surface
@@ -328,7 +328,7 @@ concept IsRingHomomorphism =
 // Unital / identity laws, when needed, must be witnessed by stricter
 // concepts or on concrete probe values.
 
-/** @section Formal_Verification */
+/** @section ring__Formal_Verification */
 
 // Shape witnesses on primitive carriers (note: HasRingOperators<int>
 // and HasRingOperators<unsigned int> are also asserted further down

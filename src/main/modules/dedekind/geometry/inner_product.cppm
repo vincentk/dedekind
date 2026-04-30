@@ -1,7 +1,7 @@
 /**
  * @file dedekind/geometry/inner_product.cppm
  * @partition :inner_product
- * @brief Level 10.1: Pre-Hilbert (inner-product) spaces over ℝ or ℂ.
+ * @brief Pre-Hilbert (inner-product) spaces over ℝ or ℂ.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
@@ -63,7 +63,7 @@ export template <typename V, typename F>
 concept IsInnerProductSpace =
     HasVectorSpaceOperators<V, F> && HasInnerProduct<V, F>;
 
-/** @section The_Standard_Dot_Product */
+/** @section inner_product__The_Standard_Dot_Product */
 
 export template <std::floating_point F, std::size_t N>
 constexpr F dot(const Vector<F, N>& u, const Vector<F, N>& v) {
@@ -87,7 +87,7 @@ constexpr F norm(const Vector<F, N>& v) {
   return std::sqrt(dot(v, v));
 }
 
-/** @section Formal_Verification */
+/** @section inner_product__Formal_Verification */
 
 // Vector<F,N> with the standard Euclidean inner product forms an inner product
 // space over the scalar field F.

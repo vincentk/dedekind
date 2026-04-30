@@ -1,11 +1,11 @@
 /**
  * @file linear_algebra.cppm
- * @brief Level 12.5: Backend-agnostic linear operator contracts.
+ * @brief Backend-agnostic linear operator contracts.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @section Description
+ * @section linear_algebra__Description
  * This layer introduces compile-time contracts for linear operators and backend
  * capability witnesses, without committing to a concrete execution engine.
  *

@@ -1,7 +1,7 @@
 /**
  * @file dedekind/category/numeric.cppm
  * @partition :numeric
- * @brief Level 3: The Numeric Landing (IEEE 754 and Lipschitz Boundaries).
+ * @brief The Numeric Landing (IEEE 754 and Lipschitz Boundaries).
  *
  * @details
  * This partition defines first-pass, honest APIs for machine-numeric hazards:
@@ -371,7 +371,7 @@ concept IsNumericHoleClassifier =
     IsNumericSpecies<T> && IsCharacteristic<Chi> && std::same_as<Dom<Chi>, T> &&
     std::same_as<Cod<Chi>, Ternary>;
 
-/** @section Coverage_Bridge_API
+/** @section numeric__Coverage_Bridge_API
  * @brief Non-template bridge functions for profiler-friendly attribution.
  *
  * These wrappers preserve the template-based public API while providing

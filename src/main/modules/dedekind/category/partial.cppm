@@ -1,9 +1,9 @@
 /**
  * @file dedekind/category/partial.cppm
  * @partition :partial
- * @brief Level 3: The Logic of Potentiality (Partial Algebra).
+ * @brief The Logic of Potentiality (Partial Algebra).
  *
- * @section The_Algebraic_Logic_of_Partiality
+ * @section partial__The_Algebraic_Logic_of_Partiality
  * "Metoda algebraiczna w logice polega na traktowaniu każdego systemu
  *  logicznego jako pewnego określonego rodzaju algebry abstrakcyjnej." — H.
  * Rasiowa
@@ -37,7 +37,7 @@ import :numeric;
 namespace dedekind::category {
 
 /**
- * @section Forward_Declarations_of_Traits
+ * @section partial__Forward_Declarations_of_Traits
  *
  * Kleene-style partial algebra traits. Specializations declare whether a
  * binary operation on a type possesses associativity, commutativity, or
@@ -72,7 +72,7 @@ struct GetLogic<std::optional<T>> {
 };
 
 /**
- * @section The_Rescue_Pod
+ * @section partial__The_Rescue_Pod
  * @brief The Kleisli Context for "Consistently Broken" Species.
  */
 export template <typename T>
@@ -180,7 +180,7 @@ concept IsPartialSupportClassifier =
     IsCharacteristic<Chi> && std::same_as<Dom<Chi>, T> &&
     std::same_as<Cod<Chi>, Ternary>;
 
-/** @section Honest_Generic_Arithmetic_Transforms */
+/** @section partial__Honest_Generic_Arithmetic_Transforms */
 
 /** @brief Addition with overflow check (Classical Logic). */
 export template <std::integral T>
@@ -296,7 +296,7 @@ struct HonestDivTransform {
   using logic_species = TernaryLogic;
 };
 
-/** @section Concept_Maturation */
+/** @section partial__Concept_Maturation */
 
 export template <typename T, typename Op>
 concept IsPartialSemigroup =
@@ -330,7 +330,7 @@ concept IsPartialAbelianGroup = IsPartialGroup<T, Op> && requires {
   requires is_kleene_commutative_v<T, Op>;
 };
 
-/** @section Honesty_Anchors */
+/** @section partial__Honesty_Anchors */
 
 // 1. HonestDiv is a partial magma.
 static_assert(IsPartialMagma<int, HonestDivTransform<int>>);

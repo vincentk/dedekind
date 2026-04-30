@@ -1,7 +1,7 @@
 /**
  * @file dedekind/category/limit.cppm
  * @partition :limit
- * @brief Level 0.6: The Boundary Objects (Initial and Terminal).
+ * @brief The Boundary Objects (Initial and Terminal).
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
@@ -11,13 +11,13 @@
  *  infinite to the finite."
  *  — Gian-Carlo Rota, Indiscrete Thoughts
  *
- * @section Limits: The Universal Boundaries
+ * @section limit__Limits
  * In the Dedekind topos, the Initial (0) and Terminal (1) objects represent
  * the finite "anchors" of a system of otherwise infinite potential relations.
  * They are the unique sinks and sources through which the structure of
  * every other species is measured and made finite.
  *
- * @section Std_Namespace_Mappings
+ * @section limit__Std_Namespace_Mappings
  * This partition asserts bidirectional mappings between categorical boundary
  * objects and `std` types:
  *
@@ -220,7 +220,7 @@ concept IsProjectedInitialObject =
     IsInitialObject<std::remove_cvref_t<decltype(std::declval<Project>()(
         std::declval<const T&>()))>>;
 
-/** @section Realizations */
+/** @section limit__Realizations */
 export using TerminalCategory = DiscreteCategory<One>;
 export using InitialCategory = DiscreteCategory<Zero>;
 

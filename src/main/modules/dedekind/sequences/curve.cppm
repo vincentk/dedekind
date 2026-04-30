@@ -1,9 +1,9 @@
 /**
  * @file dedekind/sequences/curve.cppm
  * @partition :curve
- * @brief Level 2.5c: The Curve (Continuum-Indexed Morphism Family).
+ * @brief The Curve (Continuum-Indexed Morphism Family).
  *
- * @section Curve_Morphism
+ * @section curve__Curve_Morphism
  * A curve is modeled as a morphism family γ: I -> T where I is a real-valued
  * index species. This complements Path (countable/discrete indexing) with a
  * continuum-indexed sibling.
@@ -62,7 +62,7 @@ export template <typename C>
 concept IsCurve = IsIndexedMorphismFamily<C> &&
                   std::floating_point<typename std::remove_cvref_t<C>::Domain>;
 
-/** @section Formal_Verification */
+/** @section curve__Formal_Verification */
 static_assert(IsArrow<Curve<double, int>>,
               "Curve must satisfy the categorical arrow concept.");
 

@@ -1,7 +1,7 @@
 /**
  * @file dedekind/linear_algebra/matrix.cppm
  * @partition :matrix
- * @brief Level 12.5a: Matrices as rectangular linear maps between tuples.
+ * @brief Matrices as rectangular linear maps between tuples.
  *
  * @details
  * Following Stammbach's "Lineare Algebra", matrices are interpreted as
@@ -20,7 +20,7 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @section Tier0_Existential_Proof
+ * @section matrix__Tier0_Existential_Proof
  * Tier 0 of issue #366 — the block-Schur invertibility recursion program.
  * This partition establishes the base case that higher tiers compose:
  * `Invertible2x2<T, a, b, c, d>` is an NTTP-parameterised 2×2 matrix with the
@@ -34,7 +34,7 @@
  * exact rational arithmetic sidesteps the rounding / structurality questions
  * that `Real<double>` would raise today.
  *
- * @section Module_Action_Alignment
+ * @section matrix__Module_Action_Alignment
  * `Vec2<T, x, y>` is a structural 2-vector carrying its coordinates as NTTPs.
  * `Invertible2x2` carries a left action on `Vec2` via `operator*(Vec2)`, which
  * is the compile-time analogue of the linear action `GL_2(T) × T² → T²` that
@@ -42,7 +42,7 @@
  * entries live in the type, each matrix-vector product is a type-level
  * rewrite, observable via `static_assert`.
  *
- * @section DSL_Surface (paper-facing)
+ * @section matrix__DSL_Surface
  *
  *     using Q = dedekind::numbers::Rational<long>;
  *     // M = [[1, 2], [3, 4]],  det = -2
@@ -78,7 +78,7 @@ import :tuple;           // Vec2 (NTTP), Vec2V / Covec2V (value-level)
 
 namespace dedekind::linear_algebra {
 
-/** @section NTTP_Matrix_Family — compile-time 2×2 matrices used for the
+/** @section matrix__NTTP_Matrix_Family — compile-time 2×2 matrices used for the
  *  block-Schur invertibility program (#366). Entries live in the type.
  */
 
@@ -395,10 +395,10 @@ struct BlockUpperTriangular {
   }
 };
 
-/** @section Value_Level_Matrix_Family — the runtime companion to the NTTP
- *  carriers above. Entries are ordinary constexpr fields; equality is
- *  value equality. `Matrix2x2V` is the paper-facing target of the ℂ/𝔻
- *  regular representations in `:embeddings`.
+/** @section matrix__Value_Level_Matrix_Family — the runtime companion to the
+ * NTTP carriers above. Entries are ordinary constexpr fields; equality is value
+ * equality. `Matrix2x2V` is the paper-facing target of the ℂ/𝔻 regular
+ * representations in `:embeddings`.
  */
 
 /**
@@ -497,7 +497,7 @@ inline constexpr Matrix2x2V<T> identity_matrix2x2_v{T{1}, T{0}, T{0}, T{1}};
 export template <typename T>
 inline constexpr Matrix2x2V<T> zero_matrix2x2_v{T{0}, T{0}, T{0}, T{0}};
 
-/** @section Functorial_Hub
+/** @section matrix__Functorial_Hub
  *
  *  `Matrix2x2V<·>` carries a 2×2 structural shape that is functorial in
  *  the element type @c T: an arrow @c f: T→T lifts elementwise to an
@@ -536,7 +536,7 @@ static_assert(dedekind::category::IsFunctor<matrix2x2_functor<int>>,
               "Matrix2x2V<·> is a functor Set<T> → Set<Matrix2x2V<T>>: "
               "lifts a T-arrow to the elementwise Matrix2x2V<T>-arrow.");
 
-/** @section Scalar_Shape_As_Identity_Functor
+/** @section matrix__Scalar_Shape_As_Identity_Functor
  *
  *  A scalar T is the 1×1 corner of the shape family (1×1, 2×1, 1×2, 2×2):
  *  it carries no extra structural shape over T itself.  The identity
@@ -553,7 +553,7 @@ static_assert(
     "family alongside vec2_functor (2×1), covec2_functor (1×2), "
     "and matrix2x2_functor (2×2).");
 
-/** @section Monadic_Unit_For_Matrix2x2V
+/** @section matrix__Monadic_Unit_For_Matrix2x2V
  *
  *  The "scalar → linear map" lift the user expects to see at the
  *  linear-algebra layer is the unit @c η : T → Matrix2x2V<T> sending
@@ -600,7 +600,7 @@ static_assert(dedekind::category::counit_witness<Matrix2x2V, int>{}(
               "Matrix2x2V ε: extract top-left corner (canonical projection "
               "M_2(T) → T).");
 
-/** @section Bifunctorial_And_Concept_Witnessed_Shapes
+/** @section matrix__Bifunctorial_And_Concept_Witnessed_Shapes
  *
  *  Higher matrix shapes do not fit the unary @c IsFunctor mould as
  *  cleanly as the (1×1, 2×1, 1×2, 2×2) family above:
@@ -624,7 +624,7 @@ static_assert(dedekind::category::counit_witness<Matrix2x2V, int>{}(
  *  separately rather than folded in here.
  */
 
-/** @section Shape_Conforming_Linear_Actions
+/** @section matrix__Shape_Conforming_Linear_Actions
  *
  *  `Matrix2x2V × Vec2V → Vec2V` (left action on column vectors, 2×2 · 2×1)
  *  and `Covec2V × Matrix2x2V → Covec2V` (right action on row vectors,
@@ -646,7 +646,7 @@ constexpr Covec2V<T> operator*(const Covec2V<T>& v, const Matrix2x2V<T>& A) {
   return {v.x * A.m11 + v.y * A.m21, v.x * A.m12 + v.y * A.m22};
 }
 
-/** @section Concatenation_Builders — tuples into matrices.
+/** @section matrix__Concatenation_Builders — tuples into matrices.
  *
  *  Concatenation is the inverse of decomposition: the column view of a
  *  matrix `M.column(0)` and `M.column(1)` reassembles to `M` under `|`;
@@ -697,8 +697,8 @@ constexpr Matrix2x2V<T> operator/(const Covec2V<T>& a, const Covec2V<T>& b) {
   return {a.x, a.y, b.x, b.y};
 }
 
-/** @section Concept_Witnesses_over_ℚ — the `:contracts` slogan-pack witnessed
- *  on the concrete Matrix2x2V / Vec2V / Covec2V triple.
+/** @section matrix__Concept_Witnesses_over_ℚ — the `:contracts` slogan-pack
+ * witnessed on the concrete Matrix2x2V / Vec2V / Covec2V triple.
  *
  *  The nine structural claims, shape-conformance, transpose involution /
  *  duality, and the orthogonal group O(2, ℚ) — each pinned by

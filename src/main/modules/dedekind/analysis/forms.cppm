@@ -1,7 +1,7 @@
 /**
  * @file dedekind/analysis/forms.cppm
  * @partition :forms
- * @brief Level 11.5: The Exterior Algebra (Differential Forms).
+ * @brief The Exterior Algebra (Differential Forms).
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
@@ -76,7 +76,7 @@ constexpr OneForm<F, N> from_covector(const Covector<F, N>& cov) {
   return result;
 }
 
-/** @section Formal_Verification */
+/** @section forms__Formal_Verification */
 
 // OneForm<F, N> evaluates a tangent vector to a scalar via the dot product
 // of its components with the vector — the canonical 1-form action.

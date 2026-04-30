@@ -11,7 +11,7 @@
  *  aspect that we should explicitly axiomatise."
  *  — Myles Tierney
  *
- * @section The_Subobject_Classifier
+ * @section topoi__The_Subobject_Classifier
  * The Lawvere-Tierney object Ω (Omega) is the central object that classifies
  * subobjects. Every elementary topos carries an internal logic which
  * generalizes standard set theory into objective categorical form.
@@ -69,7 +69,7 @@ constexpr auto lift_classifier_constant(Constant&& value) {
   }
 }
 
-/** @section The Point-Free Composition Engine */
+/** @section topoi__Point_Free_Composition_Engine */
 
 /**
  * @brief The Predicate Morphism (A Mapping from Domain to Truth).
@@ -332,7 +332,7 @@ struct Subobject {
   constexpr A ι(const Member& m) const { return m.value; }
 
   /**
-   * @section Pullback_Projections
+   * @section topoi__Pullback_Projections
    * These projections are only valid when the Ambient space A satisfies
    * the IsProduct concept (X × Y).
    */

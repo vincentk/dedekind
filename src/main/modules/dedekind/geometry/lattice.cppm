@@ -1,7 +1,7 @@
 /**
  * @file dedekind/geometry/lattice.cppm
  * @partition :lattice
- * @brief Level 9.3: Geometric lattices (ℤ², ℕ², Gaussian integers in ℂ).
+ * @brief Geometric lattices (ℤ², ℕ², Gaussian integers in ℂ).
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
@@ -26,7 +26,7 @@ module;
 #include <utility>
 
 /**
- * @section Description
+ * @section geometry_lattice__Description
  * Geometric Lattices — Discretizations of Continuous Spaces.
  *
  * A **geometric lattice** Λ ⊂ V is a discrete subgroup of a vector space V,
@@ -51,7 +51,7 @@ module;
  * @note Roadmap status: PR #144 is a partial implementation under issue #143.
  *       Remaining lattice API refinement is tracked in issue #145.
  *
- * @section Geometric_Lattices
+ * @section geometry_lattice__Geometric_Lattices
  * "Die ganzzahligen Lösungen einer Aufgabe lassen sich als Punkte eines
  *  Gitters auffassen --- so wird die Arithmetik geometrisch."
  *  (The integer solutions of a problem can be viewed as points of a
@@ -244,7 +244,7 @@ static_assert(
 
 namespace dedekind::geometry {
 
-/** @section Formal_Verification */
+/** @section geometry_lattice__Formal_Verification */
 
 // The 2-D integer lattice equipped with the canonical embedding
 // (x, y) ↦ (double(x), double(y)) into ℝ² is a geometric lattice in

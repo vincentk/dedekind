@@ -3,7 +3,7 @@
  * @partition :computability
  * @brief Computability as a compile-time observable.
  *
- * @section Computability_Tiers
+ * @section computability__Computability_Tiers
  *
  * Three concepts expose how much of a set's computational content is
  * available to the compiler. Two of them are strictly nested by their
@@ -32,7 +32,7 @@
  *   elements without ever running the program. Definitionally implies
  *   `IsFiniteSet` (it is spelled as a refinement of it).
  *
- * @section Reduction_Restores_Computability
+ * @section computability__Reduction_Restores_Computability
  *
  * The `Set::operator&` / `operator|` machinery monotonically tightens this
  * classification as compile-time reductions succeed. An intensional Set over

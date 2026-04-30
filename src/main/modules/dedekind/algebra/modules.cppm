@@ -1,13 +1,13 @@
 /**
  * @file dedekind/algebra/modules.cppm
  * @partition :modules
- * @brief Level 3.6: The Linear Synthesis (Modules and Vector Spaces).
+ * @brief The Linear Synthesis (Modules and Vector Spaces).
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
 
  *
- * @section Taxonomy_of_Influence
+ * @section modules__Taxonomy_of_Influence
  * A Module is the reification of 'Structural Action'. It defines how
  * a Ring (the Scalar) acts upon an Additive Group (the Vector),
  * creating the 'Linear Action' that serves as the engine for all
@@ -284,7 +284,7 @@ export template <typename R, typename M>
 struct PolynomialOperator {
   RigPolynomial<R> p;
 
-  /** @section The_Action_Axiom */
+  /** @section modules__The_Action_Axiom */
   constexpr M operator()(const M& x) const {
     // Horner's Method implementation lives here,
     // where IsModule is fully visible.
@@ -302,7 +302,7 @@ export using RealLineScalar = decltype(RealLine{}.coordinate());
 // `HasVectorSpaceOperators` / `SatisfiesVectorSpaceAxioms`, which moved
 // there along with the rest of the field-level concept surface).
 
-/** @section Operator_Shape_Witnesses_For_Bona_Fide_Scalars
+/** @section modules__Operator_Shape_Witnesses_For_Bona_Fide_Scalars
  *
  *  "A scalar is a 1D semi-module over itself; an element of a field is a 1D
  *   vector space over itself."  The operator-shape side of those slogans is

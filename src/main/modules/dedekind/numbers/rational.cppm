@@ -1,7 +1,7 @@
 /**
  * @file dedekind/numbers/rational.cppm
  * @partition :rational
- * @brief Level 8: ℚ — rationals as numerator/denominator pairs.
+ * @brief ℚ — rationals as numerator/denominator pairs.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
@@ -78,7 +78,7 @@ class Rational {
   constexpr Rational(Z n)
       : first(n), second(Z{1}) {}  // NOLINT(google-explicit-constructor)
 
-  /** @section The_Simplification_Morphism */
+  /** @section rational__The_Simplification_Morphism */
   constexpr void simplify() {
     if (second == Z{0}) throw std::domain_error("Rational: Division by zero.");
 
@@ -93,7 +93,7 @@ class Rational {
     }
   }
 
-  /** @section Relational_Morphisms */
+  /** @section rational__Relational_Morphisms */
 
   // Three-way comparison: a/b <=> c/d iff a*d <=> c*b (positive denominators).
   // Providing <=> gives <, <=, >, >= automatically (C++20).
@@ -111,7 +111,7 @@ class Rational {
   constexpr Z num() const { return first; }
   constexpr Z den() const { return second; }
 
-  /** @section Multiplicative_Inverse: The Reciprocal */
+  /** @section rational__Multiplicative_Inverse: The Reciprocal */
   constexpr Rational inverse() const {
     if (first == Z{0}) {
       throw std::domain_error("Rational: Zero has no multiplicative inverse.");
@@ -120,7 +120,7 @@ class Rational {
     return Rational(second, first);
   }
 
-  /** @section Field_Operators */
+  /** @section rational__Field_Operators */
 
   // Multiplication: (a/b) * (c/d) = (ac / bd)
   friend constexpr Rational operator*(const Rational& a, const Rational& b) {
@@ -145,7 +145,7 @@ class Rational {
   constexpr Rational operator-() const { return Rational(-first, second); }
 };
 
-/** @section Partial_Arithmetic_with_Ternary_Logic */
+/** @section rational__Partial_Arithmetic_with_Ternary_Logic */
 
 /**
  * @brief Partial addition transform for Rational<I>.
@@ -239,7 +239,7 @@ struct PartialEmbedIntegerToRational {
 }  // namespace dedekind::numbers
 
 /**
- * @section Kleene_Traits_in_Category_Namespace
+ * @section rational__Kleene_Traits_in_Category_Namespace
  *
  * Specializations of Kleene traits for Rational<I> types.
  * These must be in the dedekind::category namespace where the traits
@@ -302,7 +302,7 @@ inline constexpr bool
 
 namespace dedekind::numbers {
 
-/** @section Formal_Verification */
+/** @section rational__Formal_Verification */
 
 // Proof: The inverse of 2/3 is 3/2.
 static_assert((Rational<default_integer>(2, 3).inverse().num() == 3));
@@ -440,7 +440,7 @@ inline constexpr auto embed_ℤ_ℚ =
  * same conditions are rejected as not-a-constant-expression because
  * @c throw is not @c constexpr.
  *
- * @section Precision
+ * @section rational__Precision
  * The integer carrier @c I must be wide enough to hold the reduced
  * 53-bit mantissa and any post-decomposition power-of-two scaling.
  * For built-in signed @c I (e.g. @c int, @c long, @c long @c long)
@@ -458,7 +458,7 @@ inline constexpr auto embed_ℤ_ℚ =
  * precision instantiate over @c SignedExtensionalCardinal<N> with
  * @c N large enough.
  *
- * @section Honesty_Obligation
+ * @section rational__Honesty_Obligation
  * The arrow is a @b partial morphism in the Cockett--Lack
  * restriction-category sense (cf. references.bib, cockett2002restriction):
  * total on its in-range subset (where it is provably injective by the
@@ -604,7 +604,7 @@ static_assert(
 
 namespace dedekind::numbers {
 
-/** @section Canonical_Species_Spine (ℚ)
+/** @section rational__Canonical_Species_Spine (ℚ)
  *
  * The canonical rational-number species ℚ is defined above as
  * @c ℚ @c = @c Rational<default_integer> with value-level
@@ -677,7 +677,7 @@ static_assert(dedekind::algebra::HasGroupOperatorsMul<ℚ>,
 //     IEEE-754 friction is named at the right partition.
 
 /**
- * @section Formal_Verification
+ * @section rational__Formal_Verification_2
  *
  * Rational<I> satisfies the operational field-like witness
  * (HasFieldOperators): all four arithmetic operations are available and
@@ -838,7 +838,7 @@ static_assert(
                                   default_integer>,
     "Rational<Z> must satisfy IsProduct<Rational<Z>, Z, Z> (ℚ ≅ ℤ × ℤ / ~).");
 
-/** @section CCC_Inheritance_389 CCC inheritance (#389)
+/** @section rational__CCC_Inheritance_389 CCC inheritance (#389)
  *
  * The rational-number carriers and their integer building blocks all
  * host a canonical Cartesian-closed Set ambient: their @c IsSet

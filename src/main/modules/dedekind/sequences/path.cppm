@@ -1,9 +1,9 @@
 /**
  * @file dedekind/sequences/path.cppm
  * @partition :path
- * @brief Level 2.5a: The Frobenius Path (Morphism of Enumeration).
+ * @brief The Frobenius Path (Morphism of Enumeration).
  *
- * @section The_Path_Morphism
+ * @section path__The_Path_Morphism
  * Following the Dedekind structuralist tradition, a Path is a functional
  * mapping (λn. s_n) from the Countable Index (ℕ) to a Species (T).
  *
@@ -179,11 +179,11 @@ struct Path {
 
   constexpr Codomain operator()(Domain i) const { return generator(i); }
 
-  /** @section Sequence_Interface */
+  /** @section path__Sequence_Interface */
   constexpr T at(std::size_t i) const { return generator(i); }
 
   /**
-   * @section Kleisli_Triple (The Monadic Push)
+   * @section path__Kleisli_Triple
    * @brief Bind (>>=): m >>= f.
    */
   template <typename F>
@@ -203,7 +203,7 @@ struct Path {
   }
 
   /**
-   * @section Co_Kleisli_Triple (The Comonadic Pull)
+   * @section path__Co_Kleisli_Triple
    * @brief Extend (<<=): w <<= f.
    */
   template <typename F>
@@ -493,7 +493,7 @@ struct counit_witness<dedekind::sequences::Path, T> final {
 namespace dedekind::sequences {
 using namespace dedekind::category;
 
-/** @section Formal_Verification */
+/** @section path__Formal_Verification */
 static_assert(IsSequence<Path<int>>, "Path must satisfy the sequence concept.");
 
 static_assert(IsFiniteSequence<FinitePath<int>>,

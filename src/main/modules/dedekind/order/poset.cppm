@@ -1,12 +1,12 @@
 /**
  * @file dedekind/order/poset.cppm
  * @partition :poset
- * @brief Level 1.5: Preorders, partial orders, directed sets, chains.
+ * @brief Preorders, partial orders, directed sets, chains.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @section Scope
+ * @section poset__Scope
  * The most basic concepts in `dedekind.order` live here: species
  * classified by the \emph{relation} they carry (reflexivity,
  * transitivity, antisymmetry, directedness, comparability).  Lattice
@@ -14,7 +14,7 @@
  * and completeness profiles (Archimedean, Dedekind-complete, ...)
  * live in `:completeness`.
  *
- * @section Structural_Synthesis
+ * @section poset__Structural_Synthesis
  * - Pre-Order: Reflexive and Transitive.
  * - Directed Set: A Pre-Order with a Join-Semilattice (Convergence).
  * - Directed Poset: A Directed Set with Antisymmetry (Identity).
@@ -171,7 +171,7 @@ concept HasPartialOrderOperatorsWith = requires(const T t, const U u) {
   { u >= t } -> std::same_as<typename L::Ω>;
 };
 
-/** @section Formal_Verification */
+/** @section poset__Formal_Verification */
 
 // int / unsigned int / bool are the canonical carriers; the homogeneous
 // partial-order shape fires on each.  Total-order witnesses live in

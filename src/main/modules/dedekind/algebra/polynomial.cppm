@@ -1,7 +1,7 @@
 /**
  * @file dedekind/algebra/polynomial.cppm
  * @partition :polynomial
- * @brief Level 3.1: The Algebra of Formal Sums (R[x]).
+ * @brief The Algebra of Formal Sums (R[x]).
 
  *
  * @details
@@ -54,7 +54,7 @@ class RigPolynomial {
   using machine_type = std::vector<R>;
 
   /**
-   * @section Inversion_Axiom (The Rig Property)
+   * @section polynomial__Inversion_Axiom
    * FIXME: RigPolynomial is NOT invertible by definition.
    * In the ETCS refactor, we will introduce a 'Polynomial' elevation
    * that specializes this to true when R satisfies IsAbelianGroup.
@@ -62,7 +62,7 @@ class RigPolynomial {
   template <typename Op>
   static constexpr bool is_invertible_v = false;
 
-  /** @section Identity_Discovery */
+  /** @section polynomial__Identity_Discovery */
   template <typename Op>
   static constexpr auto identity_v = []() {
     if constexpr (std::is_same_v<Op, std::plus<RigPolynomial>> ||
@@ -74,11 +74,11 @@ class RigPolynomial {
     }
   }();
 
-  /** @section Constants */
+  /** @section polynomial__Constants */
   static constexpr auto zero() { return RigPolynomial{}; }
   static constexpr auto one() { return RigPolynomial{R{1}}; }
 
-  /** @section Construction */
+  /** @section polynomial__Construction */
   constexpr RigPolynomial() = default;
   constexpr explicit RigPolynomial(R scalar) : coeffs_{scalar} {
     canonicalize();
@@ -88,7 +88,7 @@ class RigPolynomial {
     canonicalize();
   }
 
-  /** @section Algebraic_Morphisms */
+  /** @section polynomial__Algebraic_Morphisms */
   friend constexpr bool operator==(const RigPolynomial& a,
                                    const RigPolynomial& b) = default;
 
@@ -220,7 +220,7 @@ class RigPolynomial {
 };
 
 /**
- * @section The_Polynomial_Alias
+ * @section polynomial__The_Polynomial_Alias
  * FIXME: Temporary Alias for PR 96.
  * This bridges the existing code to the new RigPolynomial implementation.
  */
@@ -287,7 +287,7 @@ namespace dedekind::category {
 template <typename R>
 using Poly = algebra::RigPolynomial<R>;
 
-/** @section Symmetry_Axioms */
+/** @section polynomial__Symmetry_Axioms */
 template <typename R>
 inline constexpr bool is_associative_v<Poly<R>, std::plus<>> = true;
 template <typename R>
@@ -360,7 +360,7 @@ inline constexpr bool is_invertible_v<Poly<R>, std::plus<Poly<R>>> = true;
 namespace dedekind::algebra {
 
 /**
- * @section Formal_Verification
+ * @section polynomial__Formal_Verification
  *
  * @note Algebraic inheritance: RigPolynomial<R> inherits the algebraic
  * structure of its coefficient type R:

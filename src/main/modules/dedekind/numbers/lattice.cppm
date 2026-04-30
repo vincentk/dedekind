@@ -1,7 +1,7 @@
 /**
  * @file dedekind/numbers/lattice.cppm
  * @partition :lattice
- * @brief Level 9.6: Integer / Gaussian lattices in ℝ, ℂ, ℝⁿ, ℂⁿ.
+ * @brief Integer / Gaussian lattices in ℝ, ℂ, ℝⁿ, ℂⁿ.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
@@ -20,7 +20,7 @@ module;
 #include <utility>
 
 /**
- * @section Description
+ * @section numbers_lattice__Description
  * This partition provides the user-facing lattice factory:
  *
  *   auto c = lattice<C>;         // Gaussian-integer lattice in ℂ

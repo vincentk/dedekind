@@ -300,7 +300,7 @@ concept Continuum_ℝ =
 export template <typename C, typename R>
 concept Algebra_ℂ = IsComplex<C, R> && dedekind::algebra::HasFieldOperators<C>;
 
-/** @section Canonical_Species_Spine (ℤ)
+/** @section integer__Canonical_Species_Spine (ℤ)
  *
  * The canonical species symbol @c ℤ (alias of @c IntegerSet
  * @c = @c IntegersOf<>) and the value-level constant @c Z are

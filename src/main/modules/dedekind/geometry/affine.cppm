@@ -1,7 +1,7 @@
 /**
  * @file dedekind/geometry/affine.cppm
  * @partition :affine
- * @brief Level 10: Affine spaces — points, vectors, dimension witnesses.
+ * @brief Affine spaces — points, vectors, dimension witnesses.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
@@ -32,7 +32,7 @@ using namespace dedekind::category;
 using namespace dedekind::algebra;
 
 /**
- * @section Dimension_Cardinality
+ * @section affine__Dimension_Cardinality
  * Tags for the cardinality of a vector's index set (its dimension).
  * Mirrors dedekind::sets::Finite / ℵ_0 semantics in a geometry-local form,
  * avoiding a cross-layer import while keeping terminology consistent.
@@ -116,7 +116,7 @@ class Vector {
     return true;
   }
 
-  /** @section The_Scaling_Morphism: Vector * Scalar */
+  /** @section affine__The_Scaling_Morphism: Vector * Scalar */
   friend constexpr Vector operator*(const Vector& v, const F& s) {
     Vector res = v;
     for (auto& c : res.coords_) c = c * s;
@@ -127,7 +127,7 @@ class Vector {
     return v * s;
   }
 
-  /** @section Vector_Addition: The Translation */
+  /** @section affine__Vector_Addition: The Translation */
   friend constexpr Vector operator+(const Vector& a, const Vector& b) {
     Vector res = a;
     for (std::size_t i = 0; i < N; ++i)
@@ -235,7 +235,7 @@ constexpr Vector<F, 1> as_vector(const F& x) {
   return {x};
 }
 
-/** @section Formal_Verification */
+/** @section affine__Formal_Verification */
 
 // Vector<F, N> exposes a finite, statically-known dimension N and the
 // affine surface (+, -, scalar action) required by IsAffine.

@@ -1,9 +1,9 @@
 /**
  * @file dedekind/sequences/limits.cppm
  * @partition :limits
- * @brief Level 2.5b: The Convergence Morphism (Resolution of the Path).
+ * @brief The Convergence Morphism (Resolution of the Path).
  *
- * @section Convergence: The Bridge to Continuity
+ * @section limits__Convergence
  * This partition defines the "Resolution" of a Path into a single point.
  * In the Dedekind structuralist framework, a limit is the terminal state
  * of a sequence as it enters the infinitesimal neighborhood of a species.
@@ -65,7 +65,7 @@ export template <typename T>
   requires std::floating_point<T> && IsArchimedean<T>
 constexpr T limit(const Path<T>& s) {
   /**
-   * @section Structuralist_Resolution
+   * @section limits__Structuralist_Resolution
    * In a machine context, we sample the path at the 'asymptotic'
    * horizon of the species.
    */
@@ -74,7 +74,7 @@ constexpr T limit(const Path<T>& s) {
   return s.at(10000);
 }
 
-/** @section Formal_Verification */
+/** @section limits__Formal_Verification */
 
 /** @proof
  * Deferred while Archimedean witnesses are being retargeted to the current

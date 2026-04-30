@@ -2,12 +2,12 @@
  * @file dedekind/category/cartesian.cppm
  * @partition :cartesian
  * @brief Cartesian Closed Category (CCC) Foundations.
- * @section Cartesian: Products, Coproducts, Exponentials, and Terminal Objects
+ * @section cartesian__Cartesian
  * This partition defines the structures required for a category to be
  * Cartesian Closed. In the Dedekind universe, this provides the "Product"
  * and "Function Space" (Exponential) mechanics necessary for ETCS.
  *
- * @section Std_Namespace_Mappings
+ * @section cartesian__Std_Namespace_Mappings
  * This partition asserts bidirectional mappings between categorical constructs
  * and `std` types:
  *
@@ -366,7 +366,7 @@ auto eval(F&& f, A&& a) -> decltype(auto) {
   return std::invoke(std::forward<F>(f), std::forward<A>(a));
 }
 
-/** @section Structural_Exponential_Verification */
+/** @section cartesian__Structural_Exponential_Verification */
 
 // 1. The "Heavy" Exponential: Type-erased function space
 static_assert(IsExponential<std::function<bool(int)>, int, bool>,
@@ -524,7 +524,7 @@ static_assert(IsProductCategory<Set<std::pair<int, bool>>>);
 // relation (closes #460).  Lives in @c :cartesian because relations
 // are subsets of products — and products are first-class here.
 //
-// @section Relation_Classification_Axes
+// @section cartesian__Relation_Classification_Axes
 // Binary relations admit several @b orthogonal classification axes,
 // each gated by its own opt-in trait.  This partition adds one axis;
 // the others live elsewhere in the project:

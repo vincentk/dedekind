@@ -1,12 +1,12 @@
 /**
  * @file dedekind/order/total.cppm
  * @partition :total
- * @brief Level 1.5b: Total-order layer (stronger than @c :poset).
+ * @brief Total-order layer (stronger than @c :poset).
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @section Scope
+ * @section total__Scope
  * Concepts that genuinely require comparability of every pair (the chain
  * axiom): @c IsTotallyOrdered, @c IsLinearOrder, @c IsStrictWeakOrder,
  * the spaceship-aware shape concept @c HasTotalOrderOperators, and the
@@ -18,7 +18,7 @@
  * total-axiomatic content for algebra; this partition is its order
  * sibling).  Per #410.
  *
- * @section Heterogeneous_Comparison_Surface
+ * @section total__Heterogeneous_Comparison_Surface
  * @c HasTotalOrderOperatorsWith<T, U> — and its partial-order sibling
  * in @c :poset — fill the seam between the homogeneous @c <=>-shape
  * (which only describes @c T @c <=> @c T) and the real-world need to
@@ -116,7 +116,7 @@ export template <typename T, typename U, typename L = ClassicalLogic>
 concept HasTotalOrderOperatorsWith = HasPartialOrderOperatorsWith<T, U, L> &&
                                      std::three_way_comparable_with<T, U>;
 
-/** @section Formal_Verification */
+/** @section total__Formal_Verification */
 
 // int / unsigned int / bool: canonical totally-ordered chains, spaceship
 // + the four partial-order operators all fire.

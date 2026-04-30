@@ -8,7 +8,7 @@
  *
  * @dependency dedekind.ontology, dedekind.sets:boundaries
  *
- * @section The_Family: The Algebra of Collections
+ * @section family__The_Family
  * In the Dedekind topos, a Family is a 'Set of Sets'—a realized mereological
  * 'System' that collects various parts (subsets) of a common Ambient Species.
  * It acts as the higher-order structural layer where sets themselves
@@ -21,7 +21,7 @@
  * - Extremality: The Family is bounded by the Empty Set (⊥) and the
  *   Universal Set (⊤) provided by the :boundaries partition.
  *
- * @section Structural_Mapping
+ * @section family__Structural_Mapping
  * While individual sets define 'Presence', the Family defines 'Space'.
  * By collecting singletons, intervals, and rule-based bodies, the Family
  * provides the topological foundation for advanced Dedekind structures
@@ -57,12 +57,12 @@ import :singleton;
 using namespace dedekind::category;
 
 /**
- * @section Mereology: The study of parts and wholes.
- * @section Mereology: The Hierarchy of Order.
+ * @section family__Mereology
+ * @section family__Mereology_2
  */
 namespace dedekind::sets {
 
-/** @section Set_Type_Erasure */
+/** @section family__Set_Type_Erasure */
 
 export template <typename Species, typename L = ClassicalLogic>
 using AnySetOver = std::variant<Ø<Species, L>, Ω<Species, L>,
@@ -80,7 +80,7 @@ using AnySetOver = std::variant<Ø<Species, L>, Ω<Species, L>,
  * extreme points—the Empty Set and the Universal Set—serve as the
  * structural Identities for Union and Intersection.
  *
- * @section Semantic_Role
+ * @section family__Semantic_Role
  * - An element of a Family is itself an IsSet (e.g., SingletonSet).
  * - A Family over Species X is bounded by the Power Set P(X).
  * - It provides the context for Topos-aware set operations.

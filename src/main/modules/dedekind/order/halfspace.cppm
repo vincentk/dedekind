@@ -1,19 +1,19 @@
 /**
  * @file dedekind/order/halfspace.cppm
  * @partition :halfspace
- * @brief Level 1.5b: Compile-time halfspace predicates on ordered carriers.
+ * @brief Compile-time halfspace predicates on ordered carriers.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @section Halfspaces_As_Types
+ * @section halfspace__Halfspaces_As_Types
  * Structured compile-time halfspace predicates over an ordered carrier. The
  * pivot is carried in the predicate's TYPE as a non-type template parameter,
  * which is what lets `(n > bound<5>) && (n < bound<3>)` collapse structurally
  * to an empty predicate at compile time. Contrast with the lambda-returning
  * variable operators in `dedekind.sets`, which erase the pivot into a closure.
  *
- * @section DSL_Surface (paper-facing)
+ * @section halfspace__DSL_Surface
  *
  *     inline constexpr auto n = var<ℕ>;
  *     inline constexpr auto big   = Set{n % N | (n > bound<5>)};
@@ -84,7 +84,7 @@ concept IsRingIntegral =
     std::same_as<std::remove_cvref_t<T>, dedekind::sets::Cardinality> ||
     std::same_as<std::remove_cvref_t<T>, dedekind::sets::SignedCardinality>;
 
-/** @section Formal_Verification (IsRingIntegral) */
+/** @section halfspace__Formal_Verification (IsRingIntegral) */
 
 // Positive witnesses: built-in integrals + the variant ℕ-/ℤ-proxy carriers.
 static_assert(IsRingIntegral<int>);
@@ -264,7 +264,8 @@ struct OrderInterval {
   using cardinality_type = std::conditional_t<is_integer_range, Finite, ℵ_0>;
 };
 
-/** @section Halfspace_Variable_DSL — Variable<S> × Bound<V> → Halfspace. */
+/** @section halfspace__Halfspace_Variable_DSL — Variable<S> × Bound<V> →
+ * Halfspace. */
 
 export template <typename Species, auto V>
   requires std::convertible_to<decltype(V),
@@ -330,7 +331,8 @@ constexpr auto operator<=(const Variable<Species>&, Bound<V>) {
   return Halfspace<T, V, Direction::Downward, Strictness::NonStrict>{};
 }
 
-/** @section Halfspace_Structural_Algebra — ADL hooks for operator&&. */
+/** @section halfspace__Halfspace_Structural_Algebra — ADL hooks for operator&&.
+ */
 
 /**
  * @brief Intersection of an upward and a downward halfspace.
@@ -443,7 +445,7 @@ constexpr auto structured_and(Halfspace<T, P1, Direction::Downward, S1, L>,
   }
 }
 
-/** @section Interval_Cartesian_Product — 2D structural products. */
+/** @section halfspace__Interval_Cartesian_Product — 2D structural products. */
 
 /**
  * @brief Cartesian product of two reduced extensional structures (typically

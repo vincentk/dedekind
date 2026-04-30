@@ -1,9 +1,9 @@
 /**
  * @file dedekind/category/species.cppm
  * @partition :species
- * @brief Level 0a: The Reified Machine (The Taxonomic Bricks).
+ * @brief The Reified Machine (The Taxonomic Bricks).
  *
- * @section The_Taxonomy_of_Species
+ * @section species__The_Taxonomy_of_Species
  * This partition performs the formal reification of C++ machine types.
  * Following Joyal’s Theory of Species, we treat each fundamental type
  * not as a set of values, but as a rule for generating structure.
@@ -19,12 +19,12 @@
  * Categorification here is an act of reasoning, not an act of
  * allocation.
  *
- * @section Taxonomic_Traits: The Skeletal Constants
+ * @section species__Taxonomic_Traits
  * - identity_v<T, Op>  : The neutral element for a specific operation.
  * - is_associative_v   : Static proof of grouping independence.
  * - is_commutative_v   : Static proof of order independence.
  *
- * @section The_Proto_Morphism
+ * @section species__The_Proto_Morphism
  * Defines the skeletal signature of an Arrow (Domain -> Codomain).
  * This provides the mapping metadata required for the Functorial
  * discovery in Level 0b (:category).
@@ -56,7 +56,7 @@ namespace dedekind::category {
 export template <typename T, typename... Args>
 struct SpeciesTraits;
 
-/** @section Primary_Registration_for_Atoms */
+/** @section species__Primary_Registration_for_Atoms */
 // We register the "Species" themselves so they satisfy IsSpecies
 template <typename T>
   requires std::integral<T> || std::floating_point<T> || std::same_as<T, bool>
@@ -72,7 +72,7 @@ struct SpeciesTraits<T> {
 export template <typename T>
 concept IsSpecies = requires { typename SpeciesTraits<T>::Domain; };
 
-/** @section Verification_of_the_Algebraic_Atlas */
+/** @section species__Verification_of_the_Algebraic_Atlas */
 
 // 1. Verify "Atoms" (IsSpecies)
 static_assert(IsSpecies<int>, "Atlas Error: int must be a recognized Species.");
@@ -81,7 +81,7 @@ static_assert(IsSpecies<double>,
 static_assert(IsSpecies<bool>,
               "Atlas Error: bool must be a recognized Species.");
 
-/** @section The Traits (The categorical invariants) */
+/** @section species__Categorical_Invariant_Traits */
 
 /**
  * @brief Trait to mark an operation as associative: (a ∘ b) ∘ c = a ∘ (b ∘ c)
@@ -113,7 +113,7 @@ struct is_commutative<T, Op>
 export template <typename T, typename Op>
 inline constexpr bool is_commutative_v = is_commutative<T, Op>::value;
 
-/** @section The_Bitwise_Commutativity_Axiom */
+/** @section species__The_Bitwise_Commutativity_Axiom */
 template <typename T>
   requires std::is_integral_v<T>
 struct is_commutative<T, std::bit_or<T>> : std::true_type {};
@@ -204,7 +204,7 @@ struct is_idempotent<T, MaxOp> : std::true_type {};
 template <typename T, typename Op>
 struct identity_registry {};  // Empty box
 
-/** @section Lattice Identities */
+/** @section species__Lattice Identities */
 
 // Signed/Floating: The Lattice (Max) identity is the absolute floor.
 template <typename T, typename Op>
@@ -224,7 +224,7 @@ struct identity_registry<T, Op> {
   static constexpr T value = std::numeric_limits<T>::max();
 };
 
-/** @section Integral_Pointed_Species */
+/** @section species__Integral_Pointed_Species */
 
 // The Modulo Group identity is 0.
 template <typename T, typename Op>
@@ -242,7 +242,7 @@ struct identity_registry<T, Op> {
   static constexpr T value = T{1};
 };
 
-/** @section Bitwise_Pointed_Species */
+/** @section species__Bitwise_Pointed_Species */
 
 // 1. Bitwise OR/XOR Identity is 0
 template <typename T>
@@ -402,7 +402,7 @@ struct is_reflexive<T, Rel>
 export template <typename T, typename Rel>
 inline constexpr bool is_reflexive_v = is_reflexive<T, Rel>::value;
 
-/** @section The_Reflexivity_Axiom */
+/** @section species__The_Reflexivity_Axiom */
 // General case: Any type T is reflexive under std::less_equal
 // if it satisfies basic totally_ordered requirements.
 template <typename T>
@@ -418,7 +418,7 @@ concept IsReflexive = requires(T a) {
   { Rel{}(a, a) };
 } && requires { requires is_reflexive_v<T, Rel>; };
 
-/** @section Transitivity: (a <= b && b <= c) => a <= c */
+/** @section species__Transitivity: (a <= b && b <= c) => a <= c */
 export template <typename T, typename Rel>
 struct is_transitive : std::false_type {};
 
@@ -443,7 +443,7 @@ concept IsTransitive = requires(T a, T b) {
   { Rel{}(a, b) } -> std::convertible_to<bool>;
 } && requires { requires is_transitive_v<T, Rel>; };
 
-/** @section Antisymmetry: (a <= b && b <= a) => a == b */
+/** @section species__Antisymmetry: (a <= b && b <= a) => a == b */
 export template <typename T, typename Rel>
 struct is_antisymmetric : std::false_type {};
 
@@ -468,7 +468,7 @@ concept IsAntisymmetric = requires(T a, T b) {
   { Rel{}(a, b) } -> std::convertible_to<bool>;
 } && requires { requires is_antisymmetric_v<T, Rel>; };
 
-/** @section Categorical_Inverses: The 'Undo' Bricks */
+/** @section species__Categorical_Inverses: The 'Undo' Bricks */
 
 /** @brief In XOR, every element is its own inverse (Involutive). */
 template <std::integral 𝒯>
@@ -500,7 +500,7 @@ struct inverse_trait {
 };
 
 /**
- * @section The_Distributive_Axiom
+ * @section species__The_Distributive_Axiom
  * @brief Trait to mark the structural glue between two operators.
  * axiom: a * (b + c) = (a * b) + (a * c)
  */
@@ -605,7 +605,7 @@ inline constexpr bool is_associative_v<T, std::modulus<T>> = false;
 template <std::integral T>
 inline constexpr bool is_commutative_v<T, std::modulus<T>> = false;
 
-/** @section Bitwise_Certifications: (Z, ^) and (Z, &) */
+/** @section species__Bitwise_Certifications: (Z, ^) and (Z, &) */
 
 // 1. Bitwise XOR (^) is Associative, Commutative, and has Identity 0.
 template <std::integral T>
@@ -679,7 +679,7 @@ template <>
 inline constexpr bool
     is_distributive_v<bool, std::bit_and<bool>, std::bit_xor<bool>> = true;
 
-/** @section Transparent_Bridges */
+/** @section species__Transparent_Bridges */
 
 // 1. Bitwise OR (|)
 template <std::integral T>
@@ -718,7 +718,7 @@ inline constexpr bool is_distributive_v<T, std::bit_and<>, std::bit_or<>> =
     std::integral<T>;
 
 /**
- * @section Taxonomic_Validation
+ * @section species__Taxonomic_Validation
  * @brief Self-verifying the structural integrity of the reified species.
  */
 static_assert(identity_v<bool, std::logical_or<bool>> == false,
@@ -737,7 +737,7 @@ static_assert(
     !is_associative_v<int, std::plus<int>>,
     "Honesty Check: Signed addition is NOT associative due to UB hazards.");
 
-/** @section Property_Ledger: Periodicity
+/** @section species__Property_Ledger: Periodicity
  *  A type is periodic if it defines a circular topology where
  *  "stepping off the edge" results in a valid, defined wrap.
  */
@@ -747,7 +747,7 @@ struct is_periodic : std::false_type {};
 export template <typename T, typename Op>
 inline constexpr bool is_periodic_v = is_periodic<T, Op>::value;
 
-/** @section Property_Ledger: Saturation
+/** @section species__Property_Ledger_2: Saturation
  *  A type is saturating under @c Op if it defines an extended-range
  *  topology where "stepping off the edge" escalates to a saturating
  *  value (e.g.\ @f$\pm \aleph_0@f$) rather than wrapping.  The
@@ -766,7 +766,7 @@ struct is_saturating : std::false_type {};
 export template <typename T, typename Op>
 inline constexpr bool is_saturating_v = is_saturating<T, Op>::value;
 
-/** @section totality
+/** @section species__totality
  *  Three pragmatic paths to totality, each a sufficient (not
  *  necessary) condition: periodicity (modular wrap), idempotence
  *  (globally stable), or saturation (escalation to an extended-range
@@ -804,7 +804,7 @@ template <std::integral T>
 struct is_periodic<T, std::bit_xor<T>> : std::true_type {};
 
 /**
- * @section Ring_like_distributivity_for_unsigned_integrals
+ * @section species__Ring_like_distributivity_for_unsigned_integrals
  * The @c Modular<N> carrier and its trait specialisations moved to
  * @c dedekind.morphologies:cyclic as part of #378; see that partition
  * for the finite-cyclic-ring story.  The generic distributivity
@@ -819,7 +819,7 @@ static_assert(
     characteristic_v<unsigned char> == 256,
     "Taxonomy Error: 8-bit unsigned species must have characteristic 256.");
 
-/** @section Logic_Species_Specializations */
+/** @section species__Logic_Species_Specializations */
 
 // Theorem: Truth is Idempotent. (True ∧ True = True)
 template <>
@@ -881,7 +881,7 @@ struct origin_trait<T> {
   static constexpr T value = 0.0;
 };
 
-/** @section The_Decorator_Concepts */
+/** @section species__The_Decorator_Concepts */
 
 /** @concept IsTransfinite: A species that exceeds any terminal ordinal. */
 export template <typename T>
@@ -898,7 +898,7 @@ concept IsAssociative = is_associative_v<T, Op>;
 export template <typename T, typename Op>
 concept IsCommutative = is_commutative_v<T, Op>;
 
-/** @section Commutative Verification: The Symmetry Law */
+/** @section species__Commutative Verification: The Symmetry Law */
 
 // Proof: (int, &) is Commutative (even though it's not a SmallCategory).
 // This allows a compiler to reorder bitwise AND masks.
@@ -965,7 +965,7 @@ export template <typename T, typename Op>
 concept IsTotal =
     IsPeriodic<T, Op> || IsIdempotent<T, Op> || is_saturating_v<T, Op>;
 
-/** @section Lattice_Morphisms (std::ranges) */
+/** @section species__Lattice_Morphisms (std::ranges) */
 
 // 1. Join (max) is Idempotent, Associative, and Commutative
 template <typename T>
@@ -987,7 +987,7 @@ inline constexpr bool is_associative_v<T, decltype(std::ranges::min)> = true;
 template <typename T>
 inline constexpr bool is_commutative_v<T, decltype(std::ranges::min)> = true;
 
-/** @section Distributive_Lattice_Laws (std::ranges) */
+/** @section species__Distributive_Lattice_Laws (std::ranges) */
 
 // 1. Max distributes over Min
 template <typename T>
@@ -1021,7 +1021,7 @@ inline constexpr bool is_distributive_v<T, decltype(std::ranges::min),
 template <typename T, typename Op1, typename Op2>
 inline constexpr bool is_absorptive_v = false;
 
-/** @section Lattice_Absorber_Registration */
+/** @section species__Lattice_Absorber_Registration */
 
 // 1. Integers (and any totally-ordered carrier): max/min mutual absorption.
 template <typename T>
@@ -1041,7 +1041,7 @@ template <typename T>
 inline constexpr bool
     is_absorptive_v<T, std::logical_and<T>, std::logical_or<T>> = true;
 
-/** @section Boolean_Ring_Morphisms (XOR, AND) */
+/** @section species__Boolean_Ring_Morphisms (XOR, AND) */
 
 // 1. XOR (std::bit_xor) is NOT idempotent (a ^ a = 0)
 template <typename T>
@@ -1062,7 +1062,7 @@ template <typename T>
 inline constexpr bool is_absorptive_v<T, std::bit_and<T>, std::bit_xor<T>> =
     false;
 
-/** @section Atomic_Floor_Verification */
+/** @section species__Atomic_Floor_Verification */
 
 static_assert(!is_associative_v<int, std::plus<int>>,
               "Honesty Check: Signed addition is NOT associative due to UB.");
@@ -1130,7 +1130,7 @@ static_assert(!is_associative_v<int, std::modulus<>>,
 static_assert(!is_commutative_v<int, std::modulus<>>,
               "Axiom Error: Modulus is not commutative.");
 
-/** @section Distributive_Certifications */
+/** @section species__Distributive_Certifications */
 
 // 1. Unsigned: Multiplicative Distribution over Addition is Total.
 static_assert(is_distributive_v<unsigned int, std::multiplies<>, std::plus<>>,

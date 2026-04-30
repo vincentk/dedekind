@@ -1,12 +1,12 @@
 /**
  * @file dedekind/numbers/sint.cppm
  * @partition :sint
- * @brief Level 4: std::signed_integral — Honest Rejection (UB-on-overflow).
+ * @brief std::signed_integral — Honest Rejection (UB-on-overflow).
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @section Honest_Stance
+ * @section sint__Honest_Stance
  * The signed-integer family (@c int, @c long, @c long @c long, the
  * narrow widths modulo integer promotion) presents the @b dual
  * category-theoretic error to its unsigned sibling.  Where @c unsigned
@@ -23,7 +23,7 @@
  * exact-@c ℤ reading lives one carrier step deeper, on @c
  * SignedCardinality (with @c ±ℵ_0 saturation and @c NaZ).
  *
- * @section Symmetric_Honest_Rejection
+ * @section sint__Symmetric_Honest_Rejection
  * @c unsigned @c int and @c int are rejected as witnesses for @c ℕ and
  * @c ℤ respectively for @b opposite reasons --- but the rejection is
  * @b symmetric @b in @b form: each carrier's claim is mismatched with
@@ -32,7 +32,7 @@
  * @c numbers:uint partition (closes #417) for the @c std::unsigned_integral
  * counterpart.
  *
- * @section Honesty_Obligation
+ * @section sint__Honesty_Obligation
  * The witness blocks below are the project's @b honesty obligation made
  * structural: each @c static_assert is an engineer's claim that the
  * named carrier exhibits (or does @b not exhibit) the named property.
@@ -41,7 +41,7 @@
  * See the @c §"poor man's theorem prover" footnote in @c report.tex /
  * @c paper.tex for the full literature anchor.
  *
- * @section Ergonomics_Doctrine
+ * @section sint__Ergonomics_Doctrine
  * Honest Rejection is structurally correct, but a separate question
  * is whether it harms practitioner ergonomics in practice.  The
  * project's answer is doctrinal, not technical: the recommended

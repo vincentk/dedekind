@@ -1,12 +1,12 @@
 /**
  * @file dedekind/category/adjunction.cppm
  * @partition :adjunction
- * @brief Level 2.3: Adjoint functors (the Free / Forgetful axis).
+ * @brief Adjoint functors (the Free / Forgetful axis).
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @section Adjunctions
+ * @section adjunction__Adjunctions
  *
  * An @b adjunction @c F @c ⊣ @c U is a pair of functors
  *   @c F : @c 𝒟 @c → @c 𝒞 (the @b free / left adjoint) and
@@ -20,7 +20,7 @@
  * gives adjunctions their own section because the structure recurs
  * everywhere a free construction does).
  *
- * @section In_this_codebase
+ * @section adjunction__In_this_codebase
  *
  * Concrete carrier-side instances:
  *   * @c F : @c Rig @c → @c Ring (the Grothendieck construction):
@@ -40,7 +40,7 @@
  * unit's components made operational at the operator level — see
  * @c docs/design/carrier-lattice.md.
  *
- * @section Two_concept_tiers
+ * @section adjunction__Two_concept_tiers
  *
  * The partition exposes two conceptually distinct surfaces:
  *

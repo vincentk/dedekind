@@ -1,20 +1,20 @@
 /**
  * @file dedekind/numbers/quaternion.cppm
  * @partition :quaternion
- * @brief Level 9: The Quaternion Division Ring (ℍ).
+ * @brief The Quaternion Division Ring (ℍ).
  *
- * @section Algebraic_Structure
+ * @section quaternion__Algebraic_Structure
  * The quaternions ℍ form a non-commutative division ring (a skew-field):
  *   - (ℍ, +) is an abelian group
  *   - (ℍ \ {0}, ×) is a group (non-abelian)
  *   - ij = k, jk = i, ki = j,  ji = -k, kj = -i, ik = -j
  *   - i² = j² = k² = ijk = -1
  *
- * @section Vector_Space_Embedding
+ * @section quaternion__Vector_Space_Embedding
  * Quaternions embed into ℝ⁴ via q = a + bi + cj + dk ↦ (a, b, c, d).
  * This identifies ℍ as a 4-dimensional real vector space.
  *
- * @section Matrix_Representation
+ * @section quaternion__Matrix_Representation
  * The left-multiplication map L_q : ℍ → ℍ, p ↦ q×p, is an ℝ-linear map.
  * In the basis {1, i, j, k} its matrix is:
  *   L_q =  ⎡ a  -b  -c  -d ⎤
@@ -178,7 +178,7 @@ constexpr LinearMap<R, 4, 4> as_matrix(const Quaternion<R>& q) {
            {z, -y, x, w}}};  // row 3
 }
 
-/** @section Formal_Verification
+/** @section quaternion__Formal_Verification
  *
  * The Hamilton relations i²=j²=k²=ijk=-1 and non-commutativity ij≠ji
  * are not just documentation — they are compile-time proofs that the
