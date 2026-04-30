@@ -648,6 +648,31 @@ struct SignedExtensionalCardinal {
     return lhs.negative == rhs.negative && lhs.magnitude == rhs.magnitude;
   }
 
+  /** @brief Heterogeneous equality with built-in integrals.
+   *
+   *  @details Without this overload the comparison @c SEC<> @c == @c int
+   *  is ambiguous: both @c operator==(SEC, SEC) (after the implicit
+   *  @c int @c → @c SEC constructor) and @c operator==(SignedCardinality,
+   *  int) (after the implicit @c SEC @c → @c SignedCardinality variant
+   *  conversion) match in one user-defined conversion.  Providing the
+   *  heterogeneous form directly on @c SEC makes it a strictly better
+   *  match (no UDC required on the @c SEC side), resolving the ambiguity
+   *  without forcing call-sites to write @c SEC<>{N} just to compare
+   *  against an @c int literal.  Symmetric overload below covers
+   *  @c int @c == @c SEC.  Required by the @c default_integer retarget
+   *  to @c SEC<> (#499 / paper-side ℚ-as-IsField unblock).
+   */
+  template <std::integral T>
+  constexpr friend bool operator==(const SignedExtensionalCardinal& lhs,
+                                   T rhs) noexcept {
+    return lhs == SignedExtensionalCardinal{rhs};
+  }
+  template <std::integral T>
+  constexpr friend bool operator==(
+      T lhs, const SignedExtensionalCardinal& rhs) noexcept {
+    return SignedExtensionalCardinal{lhs} == rhs;
+  }
+
   constexpr friend std::strong_ordering operator<=>(
       const SignedExtensionalCardinal& lhs,
       const SignedExtensionalCardinal& rhs) noexcept {

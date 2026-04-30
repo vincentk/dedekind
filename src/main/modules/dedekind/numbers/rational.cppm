@@ -78,6 +78,24 @@ class Rational {
   constexpr Rational(Z n)
       : first(n), second(Z{1}) {}  // NOLINT(google-explicit-constructor)
 
+  /** @brief Embedding of any standard integral as a rational n/1, in @b one
+   *  user-defined conversion.
+   *
+   *  @details Without this constructor, building a @c Rational<Z> from an
+   *  @c int literal would require two UDCs (@c int → @c Z → @c Rational<Z>),
+   *  which C++ does not permit in implicit-conversion chains.  This template
+   *  collapses both steps into a single UDC so that @c Real<Rational<Z>>{1}
+   *  works for any @c Z whose constructor accepts a built-in integral
+   *  (canonical example post-retarget: @c Z = @c SignedExtensionalCardinal<>,
+   *  whose @c S → @c SEC<> constructor is itself a one-UDC step).  Required
+   *  for the @c HasGroupOperatorsMul @c T{1} witness on @c ExactReal<>
+   *  (#499 / default_integer retarget).
+   */
+  template <std::integral S>
+    requires(!std::same_as<S, Z>)
+  constexpr Rational(S n)  // NOLINT(google-explicit-constructor)
+      : first(Z{n}), second(Z{1}) {}
+
   /** @section rational__The_Simplification_Morphism */
   constexpr void simplify() {
     if (second == Z{0}) throw std::domain_error("Rational: Division by zero.");
@@ -305,7 +323,9 @@ namespace dedekind::numbers {
 /** @section rational__Formal_Verification */
 
 // Proof: The inverse of 2/3 is 3/2.
-static_assert((Rational<default_integer>(2, 3).inverse().num() == 3));
+static_assert((Rational<default_integer>(default_integer{2}, default_integer{3})
+                   .inverse()
+                   .num() == default_integer{3}));
 
 // Functor identification: Rational<I> = Frac(I).  The Frac functor
 // (field-of-fractions; left adjoint to the inclusion / forgetful functor

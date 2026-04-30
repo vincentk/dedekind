@@ -87,11 +87,20 @@ concept IsDiscrete = IsArchimedean<T> && requires(T x) {
 /**
  * @concept IsDense
  * @brief A property where a midpoint always exists (a < c < b).
+ *
+ * @details The midpoint is computed as @c (a + b) / T{2} rather than
+ * @c (a + b) / 2 so that the @b carrier itself supplies the value
+ * @c 2 (via the @c T{2} structural constructor), rather than relying
+ * on mixed-type @c T-vs-int arithmetic.  This matters for variant
+ * exact carriers (@c SignedExtensionalCardinal<>, @c Rational<...> over
+ * such) which do not implicitly inter-operate with literal @c int ---
+ * forcing the carrier to construct its own @c 2 keeps the concept
+ * honest across both built-in (@c int, @c double) and exact carriers.
  */
 export template <typename T>
 concept IsDense =
     IsTotallyOrdered<T> && !IsDiscrete<T> && requires(const T a, const T b) {
-      { (a + b) / 2 } -> std::convertible_to<T>;
+      { (a + b) / T{2} } -> std::convertible_to<T>;
     };
 
 /**

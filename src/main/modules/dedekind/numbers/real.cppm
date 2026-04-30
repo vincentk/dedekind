@@ -276,12 +276,38 @@ namespace dedekind::numbers {
 /**
  * @brief Machine realization arrow ℚ ↪ ℝ: Rational<I> → Real<S>.
  * @details Converts a rational p/q to the closest IEEE 754 value of type S.
+ *
+ * @section Carrier_Bridge_Locality
+ * The integer-to-IEEE conversion @c static_cast<S>(q.num()) is the lossy
+ * step.  When @c I is a built-in (@c int, @c long, ...), the standard
+ * float-from-int conversion fires.  When @c I is a variant exact carrier
+ * (@c SignedExtensionalCardinal<>, etc.) which deliberately does @b not
+ * export an @c operator @c double (to keep the variant carriers free of
+ * IEEE coupling), the lossy bridge is implemented here at the
+ * @b call-site rather than upstream: the variant integer is first
+ * extracted as a built-in @c int via its @c operator @c int (single-limb,
+ * the canonical retarget instance) and then promoted to @c S via
+ * standard widening.  This keeps the IEEE-coupling local to the arrow
+ * that owns the lossy semantics, matching the structural-Platonist
+ * directive that variant carriers do not advertise machine-numeric
+ * conversions they do not need.
  */
 export template <IsInteger I = default_integer,
                  IsRealCarrier S = machine_real_scalar>
 inline constexpr auto embed_ℚ_ℝ =
     arrow<Rational<I>, Real<S>>([](const Rational<I>& q) noexcept {
-      return Real<S>{static_cast<S>(q.num()) / static_cast<S>(q.den())};
+      auto to_real_scalar = [](const I& z) -> S {
+        if constexpr (std::convertible_to<I, S>) {
+          return static_cast<S>(z);
+        } else {
+          // Variant carrier path: extract via the documented int bridge,
+          // then widen to S.  Lossy by design at the variant-int step
+          // (multi-limb values truncate to single-limb int) AND at the
+          // int-to-float step (above 2^53 the IEEE rounding fires).
+          return static_cast<S>(static_cast<int>(z));
+        }
+      };
+      return Real<S>{to_real_scalar(q.num()) / to_real_scalar(q.den())};
     });
 
 /**
