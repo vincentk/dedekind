@@ -52,13 +52,15 @@ static_assert(std::same_as<Dom<std::decay_t<decltype(embed_𝕂3_ℤ_)>>, Ternar
 static_assert(std::same_as<Cod<std::decay_t<decltype(embed_𝕂3_ℤ_)>>,
                            dedekind::sets::SignedCardinality>);
 
+// embed_ℤ_ℚ<> / embed_ℚ_ℝ<> default-instantiate over default_integer
+// (= SignedExtensionalCardinal<> post-#499 retarget), not machine_integer.
 static_assert(
-    std::same_as<Dom<std::decay_t<decltype(embed_ℤ_ℚ<>)>>, machine_integer>);
+    std::same_as<Dom<std::decay_t<decltype(embed_ℤ_ℚ<>)>>, default_integer>);
 static_assert(std::same_as<Cod<std::decay_t<decltype(embed_ℤ_ℚ<>)>>,
-                           Rational<machine_integer>>);
+                           Rational<default_integer>>);
 
 static_assert(std::same_as<Dom<std::decay_t<decltype(embed_ℚ_ℝ<>)>>,
-                           Rational<machine_integer>>);
+                           Rational<default_integer>>);
 static_assert(std::same_as<Cod<std::decay_t<decltype(embed_ℚ_ℝ<>)>>,
                            Real<machine_real_scalar>>);
 
@@ -206,10 +208,13 @@ TEST_CASE("Tower: ℤ ↪ ℚ via embed_ℤ_ℚ", "[numbers][tower][embedding]")
 // ---------------------------------------------------------------------------
 
 TEST_CASE("Tower: ℚ ↪ ℝ via embed_ℚ_ℝ", "[numbers][tower][embedding]") {
-  // Embedding preserves value: 3/1 -> 3.0.
-  CHECK(embed_ℚ_ℝ<>(Rational<machine_integer>{3, 1}).resolve() == 3.0);
-  CHECK(embed_ℚ_ℝ<>(Rational<machine_integer>{1, 2}).resolve() == 0.5);
-  CHECK(embed_ℚ_ℝ<>(Rational<machine_integer>{-7, 4}).resolve() == -1.75);
+  // Embedding preserves value: 3/1 -> 3.0.  embed_ℚ_ℝ<> defaults its
+  // integer carrier to default_integer (SignedExtensionalCardinal<>
+  // post-#499 retarget); construct via the default_integer factory.
+  using D = default_integer;
+  CHECK(embed_ℚ_ℝ<>(Rational<D>{D{3}, D{1}}).resolve() == 3.0);
+  CHECK(embed_ℚ_ℝ<>(Rational<D>{D{1}, D{2}}).resolve() == 0.5);
+  CHECK(embed_ℚ_ℝ<>(Rational<D>{D{-7}, D{4}}).resolve() == -1.75);
 }
 
 // ---------------------------------------------------------------------------
@@ -494,10 +499,12 @@ TEST_CASE("Tower: inter-species set membership via embeddings",
 
   // Compose 𝔹 ↪ ℕ ↪ ℤ ↪ ℚ and test against a ℚ+ predicate.
   // Rational<> is not an ETCS species, so use Set<> directly.
-  const auto positive_pred = [](const Rational<machine_integer>& q) {
-    return q.num() > 0;
+  // embed_ℤ_ℚ<> default-instantiates over default_integer (SEC<>
+  // post-#499 retarget); the predicate-set type parameter must match.
+  const auto positive_pred = [](const Rational<default_integer>& q) {
+    return q.num() > default_integer{0};
   };
-  const Set<Rational<machine_integer>, ClassicalLogic, decltype(positive_pred)>
+  const Set<Rational<default_integer>, ClassicalLogic, decltype(positive_pred)>
       positive_rationals{positive_pred};
 
   const auto embed_𝔹_ℚ = [](bool b) {

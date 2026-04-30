@@ -66,7 +66,8 @@ TEST_CASE("Numbers: starter universes construct from ambient values",
 
   constexpr auto q = var<ℚ>;
   constexpr auto rationals = Set{q % Q};
-  static_assert(rationals(Rational<int>{1, 2}) == Ternary::True);
+  static_assert(rationals(Rational<default_integer>{
+                    default_integer{1}, default_integer{2}}) == Ternary::True);
 
   constexpr auto r = var<ℝ>;
   constexpr auto reals = Set{r % R};
@@ -105,8 +106,10 @@ TEST_CASE("Numbers: starter universes satisfy lattice identities",
     constexpr auto q = var<ℚ>;
     const auto U = Set{q % Q};
     const auto O = !U;
-    CHECK((U | O)(Rational<int>{1, 3}) == Ternary::True);
-    CHECK((U & O)(Rational<int>{1, 3}) == Ternary::False);
+    CHECK((U | O)(Rational<default_integer>{
+              default_integer{1}, default_integer{3}}) == Ternary::True);
+    CHECK((U & O)(Rational<default_integer>{
+              default_integer{1}, default_integer{3}}) == Ternary::False);
   }
 
   {
