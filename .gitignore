@@ -35,12 +35,18 @@ build-runtime-bridges**
 **/dist/
 
 
+# LaTeX build artefacts (paper + report).
+# These are regenerated on every build; tracking them creates recurring
+# binary/textual merge conflicts on parallel paper-touching PRs.
 docs/paper/*.aux
 docs/paper/*.bbl
 docs/paper/*.bcf
 docs/paper/*.blg
+docs/paper/*.fdb_latexmk
+docs/paper/*.fls
 docs/paper/*.log
 docs/paper/*.out
+docs/paper/*.synctex.gz
 docs/paper/*.toc
 docs/paper/*.run.xml
 # Built artefact; published from main via the docs-and-pages CI job.
@@ -51,11 +57,15 @@ docs/paper/*.run.xml
 # the inline-comment form here landed at PR #514 but didn't actually
 # ignore paper.pdf for any consumer.)
 docs/paper/paper.pdf
+docs/report/*.aux
 docs/report/*.bbl
 docs/report/*.bcf
 docs/report/*.blg
+docs/report/*.fdb_latexmk
+docs/report/*.fls
 docs/report/*.log
 docs/report/*.out
+docs/report/*.synctex.gz
 docs/report/*.toc
 docs/report/*.run.xml
 docs/report/report.pdf
