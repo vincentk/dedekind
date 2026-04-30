@@ -27,6 +27,49 @@ TEST_CASE("Dedekind MVP: Basic Membership and Symbols", "[sets]") {
   }
 }
 
+TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
+          "[sets][operators]") {
+  auto x = var<ℕ>;
+
+  SECTION("Self-XOR collapses to empty: A ^ A = ∅") {
+    auto S = Set{x % N | x > 10u};
+    auto S_xor_S = S ^ S;
+    static_assert(
+        std::is_same_v<decltype(S_xor_S), Ø<unsigned int, TernaryLogic>>,
+        "A ^ A reduces structurally to Ø.");
+  }
+
+  SECTION("Complementary-pair XOR collapses to universe: A ^ ¬A = Ω") {
+    auto S = Set{x % N | x > 10u};
+    auto S_xor_notS = S ^ !S;
+    static_assert(
+        std::is_same_v<decltype(S_xor_notS), Ω<unsigned int, TernaryLogic>>,
+        "A ^ ¬A reduces structurally to Ω.");
+  }
+
+  SECTION("Membership: x ∈ A ^ B iff x is in exactly one") {
+    auto A = Set{x % N | x > 10u};
+    auto B = Set{x % N | x < 100u};
+    auto sym_diff = A ^ B;
+    // 5: in B only (5 < 100, 5 ≯ 10) → in symmetric difference
+    REQUIRE(sym_diff(5u) == Ternary::True);
+    // 50: in both (50 > 10 AND 50 < 100) → NOT in symmetric difference
+    REQUIRE(sym_diff(50u) == Ternary::False);
+    // 200: in A only (200 > 10, 200 ≮ 100) → in symmetric difference
+    REQUIRE(sym_diff(200u) == Ternary::True);
+  }
+
+  SECTION("Textbook identity: A ^ B == (A | B) & !(A & B)") {
+    auto A = Set{x % N | x > 10u};
+    auto B = Set{x % N | x < 100u};
+    auto sym_diff = A ^ B;
+    auto union_minus_inter = (A | B) & !(A & B);
+    REQUIRE(sym_diff(5u) == union_minus_inter(5u));
+    REQUIRE(sym_diff(50u) == union_minus_inter(50u));
+    REQUIRE(sym_diff(200u) == union_minus_inter(200u));
+  }
+}
+
 TEST_CASE("Dedekind Identities: Extremal Collapse", "[sets][identities]") {
   auto x = var<ℕ>;
 

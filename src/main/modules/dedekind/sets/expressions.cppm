@@ -554,6 +554,38 @@ class Set {
     }
   }
 
+  /**
+   * @brief Symmetric difference @c A @c △ @c B (set-theoretic XOR; #469).
+   *
+   * @details The textbook identity
+   * @c A @c △ @c B @c = @c (A @c ∖ @c B) @c ∪ @c (B @c ∖ @c A) @c =
+   * @c (A @c ∪ @c B) @c \ @c (A @c ∩ @c B), realised at the predicate
+   * level via @c L::OR / @c L::AND / @c L::NOT --- no new logic species
+   * obligation, since XOR is a derived operation in any boolean /
+   * Heyting algebra.  The C++ @c ^ operator is the bitwise-XOR analogue
+   * at the singleton-bit level, completing the @c | / @c & / @c ^
+   * operator surface family.
+   *
+   * Same-predicate self-XOR collapses to the empty set (@c A @c △ @c A
+   * @c = @c ∅); complementary-pair XOR collapses to the universe
+   * (@c A @c △ @c ¬A @c = @c Ω).
+   */
+  template <typename OtherPredicate>
+  constexpr auto operator^(const Set<T, L, OtherPredicate>& other) const {
+    if constexpr (std::same_as<Predicate, OtherPredicate>) {
+      return Ø<T, L>{};
+    } else if constexpr (IsComplementPair_v<Predicate, OtherPredicate>) {
+      return Ω<T, L>{};
+    } else {
+      auto predicate = [lhs = predicate_, rhs = other.predicate_](const T& v) {
+        const auto a = lhs(v);
+        const auto b = rhs(v);
+        return L::OR(L::AND(a, L::NOT(b)), L::AND(L::NOT(a), b));
+      };
+      return Set<T, L, decltype(predicate)>{predicate};
+    }
+  }
+
   /** @brief Same-predicate subset: always True (identity). */
   constexpr typename L::Ω operator<=(const Set& /*other*/) const {
     return L::True;
