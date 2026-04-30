@@ -17,7 +17,7 @@ All agents MUST be aware of the contributor guide lines in `CONTRIBUTING.md` whi
 Session-start requirement:
 - Agents SHOULD read `CONTRIBUTING.md` at the beginning of each new chat/session before planning, triage, or implementation work.
 - Agents SHOULD read `README.md` at the beginning of each new chat/session and perform the severe-divergence check described below.
-- Agents SHOULD read the core project documentation references at the beginning of each new chat/session: `docs/report/references.bib` and `docs/paper/references.bib`.
+- Agents SHOULD read the core project documentation references at the beginning of each new chat/session: `docs/paper/references.bib`.
 
 Execution policy for routine work in this repository:
 - Operate autonomously for vanilla workloads so the user does not need to babysit the session.
