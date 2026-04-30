@@ -19,6 +19,8 @@ export module dedekind.algebra:ring;
 
 import :monoid;
 import :group;
+import :universal;  // IsAlgebra (universal-algebra closure-tier predicate; PR
+                    // #500 / #498)
 import dedekind.category;
 
 namespace dedekind::algebra {
@@ -44,8 +46,8 @@ using namespace dedekind::category;
  * under @b functor-wrapped operators --- @c std::bit_xor<bool>{}(a,b)
  * returns @c bool by the functor's signature regardless of the
  * internal integer-promotion path.  For those carriers the shape
- * companion is @c HasRingOperatorsFor<T, Add, Mult> below, which
- * checks the functors close on @c T rather than the literal
+ * companion is the universal-algebra anchor @c IsAlgebra<T, Add, Mult> from @c
+ * :universal, which checks the functors close on @c T rather than the literal
  * operators.  The two shape concepts are siblings; pick whichever
  * matches the callsite's actual operator surface.
  *
@@ -64,39 +66,18 @@ concept HasRingOperators = requires(T a, T b) {
   { a * b } -> std::same_as<T>;
 };
 
-/**
- * @concept HasRingOperatorsFor
- * @brief @b Functor-parametric @b shape: T closes strictly under the
- *        @c Add and @c Mult @b functors (not the literal operators).
- *
- * @details
- * The escape hatch for carriers that satisfy the strict ring axioms
- * via non-standard functors but whose @b literal C++ operators don't
- * close on @c T because of integer promotion.  Canonical example:
- * @c bool under @c (std::bit_xor<bool>, std::bit_and<bool>) is a
- * Boolean ring (@f$\mathbb{F}_2@f$); both functors return @c bool by
- * signature, so this concept fires --- whereas @c HasRingOperators
- * <bool> does not, because @c bool + bool @c -> int (and @c bool *
- * @c bool @c -> int) via integer promotion, both of which the literal
- * shape concept checks.
- *
- * @c HasRingOperators and @c HasRingOperatorsFor are @b distinct
- * shape concepts on different surfaces: the former checks the
- * literal C++ operators @c + and @c * close on @c T, the latter
- * checks the functors close on @c T.  Neither concept compares the
- * @b semantics of the literal operators to the functors --- two
- * carriers with the same @c (Add, Mult) defaults can satisfy one
- * concept and not the other (most ring carriers satisfy both;
- * @c bool satisfies only the functor variant, because its textbook
- * ring structure lives over different operators than the standard
- * @c + and @c *).
- */
-export template <typename T, typename Add = std::plus<T>,
-                 typename Mult = std::multiplies<T>>
-concept HasRingOperatorsFor = requires(T a, T b, Add add, Mult mult) {
-  { add(a, b) } -> std::same_as<T>;
-  { mult(a, b) } -> std::same_as<T>;
-};
+// HasRingOperatorsFor was previously a 5-line concept here, checking
+// `add(a, b) -> T` and `mult(a, b) -> T`.  Since the universal-algebra
+// anchor IsAlgebra<T, Ops...> from :universal already captures
+// exactly that closure-tier check (modulo the std::regular<T>
+// requirement, which IsRing enforces transitively via IsAdditiveGroup),
+// HasRingOperatorsFor was a strictly smaller restatement of the same
+// predicate and has been retired in favour of the canonical
+// universal-algebra (A, F) form (#498/#500).  Downstream code that
+// wanted the functor-parametric closure surface should use
+// `IsAlgebra<T, Add, Mult>` directly; the literal-operator surface
+// (where C++'s +, -, *, etc. close on T) is the separate sibling
+// concept HasRingOperators above.
 
 /**
  * @concept IsSemiring
@@ -134,23 +115,24 @@ concept IsRng = dedekind::category::IsRng<T, Add, Mult>;
  */
 // Bundle (#393): algebra::IsRing requires the strict categorical
 // proof, the redundant IsSemiring + IsAdditiveGroup decomposition,
-// AND the @b functor-parametric operator surface via
-// HasRingOperatorsFor<T, Add, Mult>.  Math-wins-over-C++ semantics
-// (per the README): if a carrier's @b literal operators don't close
-// on T (e.g.\ bool's `+` returns int via promotion), then T is
-// textbook-not-closed under those operators; but the same carrier
-// may genuinely be a ring under @b non-standard functors (bool under
-// std::bit_xor / std::bit_and is the Boolean ring 𝔽_2).  The
-// functor-parametric shape captures the textbook closure regardless
-// of which C++ operators happen to alias the ring's operations.  A
-// callsite that wants the literal-operator surface @b in @b addition
-// to the strict ring proof says so explicitly via
-// `IsRing<T> && HasRingOperators<T>`.
+// AND the @b functor-parametric operator surface via the universal-
+// algebra anchor @c IsAlgebra<T, Add, Mult> (which checks both
+// @c add(a, b) -> T and @c mult(a, b) -> T).  Math-wins-over-C++
+// semantics (per the README): if a carrier's @b literal operators
+// don't close on T (e.g.\ bool's `+` returns int via promotion),
+// then T is textbook-not-closed under those operators; but the same
+// carrier may genuinely be a ring under @b non-standard functors
+// (bool under std::bit_xor / std::bit_and is the Boolean ring 𝔽_2).
+// The functor-parametric @c IsAlgebra shape captures the textbook
+// closure regardless of which C++ operators happen to alias the
+// ring's operations.  A callsite that wants the literal-operator
+// surface @b in @b addition to the strict ring proof says so
+// explicitly via `IsRing<T> && HasRingOperators<T>`.
 export template <typename T, typename Add = std::plus<T>,
                  typename Mult = std::multiplies<T>>
 concept IsRing =
     dedekind::category::IsRing<T, Add, Mult> && IsSemiring<T, Add, Mult> &&
-    IsAdditiveGroup<T, Add> && HasRingOperatorsFor<T, Add, Mult>;
+    IsAdditiveGroup<T, Add> && IsAlgebra<T, Add, Mult>;
 
 /**
  * @concept IsArithmeticRing
@@ -281,11 +263,11 @@ concept HasSemiringOperators = requires(T a, T b) {
 
 // `algebra::IsRing` already exists earlier in this file as the
 // bundled concept (`category::IsRing && IsSemiring && IsAdditiveGroup
-// && HasRingOperatorsFor<T, Add, Mult>`); the functor-parametric
+// && IsAlgebra<T, Add, Mult>`); the functor-parametric
 // shape clause was added there to encode the shape↔concept mapping
 // the audit (#393) recorded under the math-wins-over-C++ stance ---
 // see the doc-block on `IsRing` above for why the bundle uses the
-// functor-parametric `HasRingOperatorsFor` rather than the literal
+// functor-parametric `IsAlgebra` rather than the literal
 // `HasRingOperators`.
 
 /**
@@ -402,7 +384,7 @@ static_assert(IsCommutativeRing<unsigned int>,
  *  the literal `+`.  `HasRingOperators<unsigned short>` correctly
  *  refuses; so does `IsArithmeticRing<unsigned short>`.
  *
- *  The functor-parametric companion `HasRingOperatorsFor<U,
+ *  The functor-parametric companion `IsAlgebra<U,
  *  std::plus<U>, std::multiplies<U>>` *does* fire, because functors
  *  return `U` by signature regardless of the internal promotion path.
  *  Algebraically, every `std::unsigned_integral U` is the modular
@@ -429,12 +411,13 @@ static_assert(!HasRingOperators<unsigned char>,
 
 // Functor-parametric closure PASSES on all std::unsigned_integral
 // types: std::plus<U> / std::multiplies<U> return U by signature.
-static_assert(HasRingOperatorsFor<unsigned short, std::plus<unsigned short>,
-                                  std::multiplies<unsigned short>>,
+// Now expressed via the universal-algebra anchor IsAlgebra (#500/#498).
+static_assert(IsAlgebra<unsigned short, std::plus<unsigned short>,
+                        std::multiplies<unsigned short>>,
               "unsigned short closes under the functor surface "
               "(std::plus<U> / std::multiplies<U> return U by signature).");
-static_assert(HasRingOperatorsFor<unsigned char, std::plus<unsigned char>,
-                                  std::multiplies<unsigned char>>);
+static_assert(IsAlgebra<unsigned char, std::plus<unsigned char>,
+                        std::multiplies<unsigned char>>);
 
 // Wider unsigned types: width >= sizeof(int), no promotion path.  The
 // arithmetic-ring seal fires on each: strict ring proof (modular wrap)

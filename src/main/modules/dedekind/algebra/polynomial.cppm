@@ -133,7 +133,7 @@ class RigPolynomial {
    * @details Available only when the coefficient ring @c R provides
    * additive inverses (@c is_invertible_v<R, std::plus<R>>).  The
    * bundled @c algebra::IsRing uses the functor-parametric
-   * @c HasRingOperatorsFor (which checks the functors close on the
+   * @c IsAlgebra (which checks the functors close on the
    * carrier, not the literal operators), so it does @b not by itself
    * require unary @c -.  This unary @c - is required by the
    * @b literal shape concept @c HasRingOperators<RigPolynomial<R>>
