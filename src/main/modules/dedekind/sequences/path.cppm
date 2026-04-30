@@ -473,41 +473,83 @@ constexpr auto forall(const Path<T, Cardinality>& path, Pred&& pred) {
 namespace dedekind::category {
 
 /**
- * @brief Kleisli-only Hub-tag carrying the @c Path<U> Shape<U> alias
- *        for the @c unit_witness / @c counit_witness registrations
- *        (#508).
+ * @brief The Path Functor — full @c IsFunctor model for the
+ *        @c Path<·> shape (#508 / PR #521 review).
  *
- * @details Deliberately @b not named @c path_functor: this type
- * provides @c Shape<U> only — it does not model
- * @c dedekind::category::IsFunctor (no @c Σ_cat / @c Τ_cat /
- * @c ArrowKind / @c φ surface).  The fully-fledged @c box_functor /
- * @c vec2_functor / @c covec2_functor / @c matrix2x2_functor Hubs in
- * sibling partitions provide the IsFunctor surface; this Hub is
- * scoped to the Kleisli witness registry only.  Renaming to
- * @c path_kleisli_hub keeps the API surface consistent with the
- * naming convention the project applies elsewhere (@c maybe_hub /
- * @c box_hub for non-functor hubs).  Used as the first template
- * argument to @c unit_witness / @c counit_witness /
- * @c IsKleisliExtension / @c IsCoKleisliExtension / @c IsFrobenius
- * after the template-template removal in #508.
+ * @details Models the categorical functor @c Set<T> @c → @c Set<Path<T>>:
+ * @c Shape<U> @c = @c Path<U> on objects, @c φ on arrows lifts a
+ * pointwise function @c T @c → @c U to @c Path<T> @c → @c Path<U>
+ * by composing each element through the original generator.
+ * Mirrors @c box_functor / @c maybe_functor in @c :functor.
+ *
+ * @section path__Frobenius_Reading
+ * Path is @b Frobenius — it carries both monadic and comonadic
+ * structure (per the partition's header note).  Under the
+ * categorical reading:
+ *   * @c path_functor is the underlying functor T (informal
+ *     "Set @c → @c Set" endofunctor; the strict @c IsEndofunctor
+ *     concept demands @c Σ_cat @c = @c Τ_cat which the
+ *     per-T-parameterised representation does not satisfy at
+ *     this Hub level — same convention as @c box_functor /
+ *     @c maybe_functor in @c :functor).
+ *   * @c unit_witness<path_functor<T>, T> is the @c T-component
+ *     of the natural transformation @c η: @c Id @c ⇒ @c T
+ *     (constant path @c λn.x).
+ *   * @c counit_witness<path_functor<T>, T> is the @c T-component
+ *     of the natural transformation @c ε: @c T @c ⇒ @c Id (head
+ *     sampling @c p.at(0)).
+ *   * Together these are the unit / counit of the Frobenius
+ *     monad-comonad on Path.  The downstream
+ *     @c IsFrobenius<path_functor<int>, int, long> static_assert
+ *     witnesses the Kleisli-side bracket shape mechanically.
  */
 export template <typename T>
-struct path_kleisli_hub {
+struct path_functor {
+  using ArrowKind = dedekind::category::hub_arrow_tag;
+  using Σ_cat = dedekind::category::Set<T>;
+  using Τ_cat = dedekind::category::Set<dedekind::sequences::Path<T>>;
+
+  using Domain = Σ_cat;
+  using Codomain = Τ_cat;
+
+  /** @brief F_obj: the type-constructor action of the functor. */
   template <typename U>
   using Shape = dedekind::sequences::Path<U>;
+
+  /** @brief F_mor (φ): pointwise lift of an arrow @c T @c → @c U
+   *         to @c Path<T> @c → @c Path<U>, by composition with
+   *         the source path's generator at each index. */
+  template <typename 𝗳>
+    requires dedekind::category::IsArrow<std::remove_cvref_t<𝗳>>
+  constexpr auto φ(𝗳&& f) const {
+    using ResultT = std::invoke_result_t<𝗳, T>;
+    return dedekind::category::arrow(
+        [f = std::forward<𝗳>(f)](dedekind::sequences::Path<T> const& p) {
+          return dedekind::sequences::Path<ResultT>{
+              [f, p](std::size_t n) { return std::invoke(f, p.at(n)); }};
+        });
+  }
+
+  /** @brief Action on the source-category object (Hub-arrow surface). */
+  constexpr Τ_cat operator()(const Σ_cat&) const noexcept { return {}; }
 };
+
+static_assert(dedekind::category::IsFunctor<path_functor<int>>,
+              "path_functor must satisfy IsFunctor — the Hub-pattern "
+              "consistency requirement that justifies the *_functor "
+              "naming alongside box_functor / maybe_functor / etc.");
 
 // Path participates in the Kleisli witness framework as an infinite constant
 // path for η and head sampling for ε.
 export template <typename T>
-struct unit_witness<path_kleisli_hub<T>, T> final {
+struct unit_witness<path_functor<T>, T> final {
   constexpr auto operator()(T x) const {
     return dedekind::sequences::Path<T>{[x](std::size_t) { return x; }};
   }
 };
 
 export template <typename T>
-struct counit_witness<path_kleisli_hub<T>, T> final {
+struct counit_witness<path_functor<T>, T> final {
   constexpr T operator()(const dedekind::sequences::Path<T>& p) const {
     return p.at(0);
   }
@@ -545,14 +587,14 @@ static_assert(
     std::input_iterator<decltype(std::declval<FinitePath<int>>().begin())>,
     "FinitePath<T>::begin() must yield a std::input_iterator.");
 
-static_assert(IsKleisliExtension<path_kleisli_hub<int>, int, long>,
+static_assert(IsKleisliExtension<path_functor<int>, int, long>,
               "Path must satisfy the Kleisli extension witness.");
 
-static_assert(IsCoKleisliExtension<path_kleisli_hub<int>, int, long>,
+static_assert(IsCoKleisliExtension<path_functor<int>, int, long>,
               "Path must satisfy the co-Kleisli extension witness.");
 
 static_assert(
-    IsFrobenius<path_kleisli_hub<int>, int, long>,
+    IsFrobenius<path_functor<int>, int, long>,
     "Path must satisfy the Frobenius witness (Kleisli + co-Kleisli).");
 
 }  // namespace dedekind::sequences
