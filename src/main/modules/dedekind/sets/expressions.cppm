@@ -566,15 +566,20 @@ class Set {
    * at the singleton-bit level, completing the @c | / @c & / @c ^
    * operator surface family.
    *
-   * Same-predicate self-XOR collapses to the empty set (@c A @c △ @c A
-   * @c = @c ∅); complementary-pair XOR collapses to the universe
-   * (@c A @c △ @c ¬A @c = @c Ω).
+   * @section expressions__Soundness_note
+   * Complementary-pair XOR collapses to the universe
+   * (@c A @c △ @c ¬A @c = @c Ω) via the same @c IsComplementPair_v
+   * detection used by @c | / @c &.  A naïve same-predicate-type
+   * collapse to @c Ø would be @b unsound: predicate types like
+   * @c BooleanEqPredicate are stateful (carry an @c expected field),
+   * so two @c Set<T, L, P> instances with the same @c Predicate type
+   * may classify @b different sets.  Self-XOR is therefore handled by
+   * the lambda fallback below — correct at every input by the textbook
+   * identity, just without the type-level structural collapse.
    */
   template <typename OtherPredicate>
   constexpr auto operator^(const Set<T, L, OtherPredicate>& other) const {
-    if constexpr (std::same_as<Predicate, OtherPredicate>) {
-      return Ø<T, L>{};
-    } else if constexpr (IsComplementPair_v<Predicate, OtherPredicate>) {
+    if constexpr (IsComplementPair_v<Predicate, OtherPredicate>) {
       return Ω<T, L>{};
     } else {
       auto predicate = [lhs = predicate_, rhs = other.predicate_](const T& v) {

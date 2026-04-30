@@ -31,12 +31,40 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
           "[sets][operators]") {
   auto x = var<ℕ>;
 
-  SECTION("Self-XOR collapses to empty: A ^ A = ∅") {
+  SECTION("Self-XOR is empty at every input: A ^ A is ∅ pointwise") {
+    // The structural type-level collapse `same_as<P, P> → Ø` is
+    // unsound for stateful predicates (two Set<T, L, P> with the same
+    // predicate TYPE may carry different predicate VALUES classifying
+    // different sets — see the stateful-predicate-disjoint-instances
+    // section below).  The honest claim is therefore the runtime one:
+    // for any Set S, S ^ S evaluates to false at every input.
     auto S = Set{x % N | x > 10u};
     auto S_xor_S = S ^ S;
-    static_assert(
-        std::is_same_v<decltype(S_xor_S), Ø<unsigned int, TernaryLogic>>,
-        "A ^ A reduces structurally to Ø.");
+    REQUIRE(S_xor_S(5u) == Ternary::False);
+    REQUIRE(S_xor_S(50u) == Ternary::False);
+    REQUIRE(S_xor_S(200u) == Ternary::False);
+  }
+
+  SECTION(
+      "Stateful-predicate disjoint instances: type equality does NOT "
+      "imply set equality (#469 regression test)") {
+    // Two Set<bool, L, BooleanEqPredicate> instances with the same
+    // Predicate TYPE but disjoint VALUES.  The XOR of {true} and
+    // {false} should be the full {true, false} universe, NOT empty.
+    // This regression test guards against a same-Predicate-type
+    // collapse that would wrongly fire on every BooleanEqPredicate
+    // pair regardless of the .expected field.
+    using BoolAmbient = Ω<bool, ClassicalLogic, Finite>;
+    constexpr BoolAmbient B_bool{};
+    constexpr auto b = var<BoolAmbient>;
+    auto only_true = Set{b % B_bool | (b == true)};
+    auto only_false = Set{b % B_bool | (b == false)};
+    auto sym_diff = only_true ^ only_false;
+    // The symmetric difference of two disjoint singletons is their
+    // union — every element of {true, false} appears in exactly one,
+    // so both inputs must be in the result.
+    CHECK(sym_diff(true) == true);
+    CHECK(sym_diff(false) == true);
   }
 
   SECTION("Complementary-pair XOR collapses to universe: A ^ ¬A = Ω") {
