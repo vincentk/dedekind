@@ -180,22 +180,44 @@ inline constexpr bool is_homomorphism_v = false;
 
 /**
  * @concept IsHomomorphism
- * @brief An arrow declared to be an algebra homomorphism (preserves the
- *        operation family across two algebras).
+ * @brief An arrow @b declared to be an algebra homomorphism via the
+ *        opt-in @c is_homomorphism_v trait.
  *
- * @details The opt-in trait @c is_homomorphism_v<Arrow> is the
- * declaration; this concept is the gate-and-check that an arrow has
- * been declared a homomorphism @b and is structurally an arrow
- * (carries @c Domain / @c Codomain aliases through @c IsArrow).
+ * @details Mathematically, a homomorphism is an arrow that preserves
+ * the operation family across two algebras (@c f(op(x, y)) @c == @c
+ * op'(f(x), f(y))).  This concept @b does @b not mechanically check
+ * that property: at the unparameterised slice landed in #506, the
+ * concept gates only on
+ *
+ *   * @c category::IsArrow<Arrow> --- structural shape: @c Domain /
+ *     @c Codomain aliases plus the call signature; @b and
+ *   * @c is_homomorphism_v<Arrow> --- the user's opt-in declaration.
+ *
+ * It does @b not verify that @c Domain or @c Codomain satisfy
+ * @c IsAlgebra, and it does @b not check the per-operation
+ * preservation law.  The declaration is the engineer's honesty
+ * obligation, with the algebraic-soul registry (the
+ * @c is_homomorphism_v specialisation) as the audit trail.  Same
+ * discipline as @c category::is_monic_arrow_v / @c is_epic_arrow_v
+ * (in @c category:morphism) — declarations of a property the compiler
+ * cannot verify in general.
  *
  * @section IsHomomorphism_Use
  *
  *   * @b Positive @b use: gate templated bodies whose correctness
  *     depends on the homomorphism law (e.g.\ a quotient-construction
- *     factory that needs to know its source arrow respects the algebra
- *     ops).
+ *     factory that wants to know its source arrow has been declared
+ *     to respect the algebra ops).
  *   * @b Witness: @c static_assert(IsHomomorphism<E>, ...) at the
- *     declaration site of @c E pins the registry entry mechanically.
+ *     declaration site of @c E pins the registry entry mechanically
+ *     so reviewers see the claim alongside the code that licenses it.
+ *
+ * Per-operator-pair refinements that @b do mechanically pair operations
+ * across @c Domain / @c Codomain (e.g.\ @c IsAdditiveHomomorphism,
+ * @c IsMultiplicativeHomomorphism, @c IsRingHomomorphism @c =
+ * @c IsAdditiveHomomorphism @c && @c IsMultiplicativeHomomorphism)
+ * are filed as a follow-on slice; those will tighten the gate beyond
+ * the present user-declaration form.
  *
  * @see Lang, @em Algebra (3rd ed.), §III.1 (homomorphisms of rings);
  *      Mac Lane, @em Categories @em for @em the @em Working
@@ -208,15 +230,21 @@ concept IsHomomorphism =
 
 /**
  * @concept IsQuotientMorphism
- * @brief An arrow declared to be the quotient morphism of an algebra
- *        by a congruence: a surjective homomorphism.
+ * @brief An arrow @b declared to be both a homomorphism (via
+ *        @c is_homomorphism_v) @b and surjective (via
+ *        @c category::is_epic_arrow_v).
  *
- * @details The textbook quotient morphism @c π: @c A @c → @c A/~ is
- * a surjective homomorphism (it preserves the operations and is
- * surjective onto the quotient algebra).  Composes the existing
- * @c IsSurjective concept (in @c category:morphism, which is the
- * pedagogical-accessibility synonym for @c IsEpicArrow) with
- * @c IsHomomorphism above.
+ * @details Mathematically, the canonical quotient morphism
+ * @c π: @c A @c → @c A/~ is a surjective homomorphism: it preserves
+ * the operations and hits every element of the quotient algebra.
+ * This concept is the @b structural / @b syntactic gate for
+ * "declared homomorphism + declared surjectivity"; it does @b not
+ * verify that the arrow is the canonical projection of any
+ * particular congruence, nor that the quotient algebra has been
+ * constructed.  It composes the two opt-in trait declarations
+ * @c is_homomorphism_v (above) and @c category::is_epic_arrow_v
+ * (in @c category:morphism, surfaced via the @c IsSurjective
+ * pedagogical synonym).
  *
  * @see Lang §III.1 (kernel-quotient-image factorisation, sometimes
  *      called the first isomorphism theorem).

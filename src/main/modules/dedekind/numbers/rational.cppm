@@ -594,21 +594,30 @@ static_assert(
 
 namespace dedekind::algebra {
 
-// embed_ℤ_ℚ is a @b ring @b homomorphism: the field-of-fractions
-// inclusion @c ℤ @c ↪ @c Frac(ℤ) @c = @c ℚ preserves both ring
-// operations --- @c (n + m)/1 == @c n/1 + @c m/1 (additive law) and
-// @c (n * m)/1 == @c n/1 * @c m/1 (multiplicative law) --- by
-// definition of Rational arithmetic (numerator-aware reduction
-// preserves these on @c den == 1 inputs).  Pinned here as the first
-// positive witness for the @c is_homomorphism_v / @c IsHomomorphism
-// pair introduced in @c algebra:universal under #506.
+// embed_ℤ_ℚ is, mathematically, a @b ring @b homomorphism: the
+// field-of-fractions inclusion @c ℤ @c ↪ @c Frac(ℤ) @c = @c ℚ
+// preserves both ring operations --- @c (n + m)/1 == @c n/1 + @c m/1
+// (additive law) and @c (n * m)/1 == @c n/1 * @c m/1 (multiplicative
+// law) --- by definition of Rational arithmetic (numerator-aware
+// reduction preserves these on @c den == 1 inputs).  At the
+// @b trait-registry tier the @c is_homomorphism_v / @c IsHomomorphism
+// pair (introduced in @c algebra:universal under #506) is
+// @b unparameterised: it does not yet name a specific (Op, Op')
+// pair, so the registration here is the @b algebra-level homomorphism
+// witness (the strictly stronger ring-homomorphism reading lives in
+// the prose, awaiting per-axiom-tier refinements
+// @c IsAdditiveHomomorphism / @c IsMultiplicativeHomomorphism /
+// @c IsRingHomomorphism in a follow-on slice).  Pinned here as the
+// first positive @c is_homomorphism_v witness in the project.
 template <>
 inline constexpr bool
     is_homomorphism_v<std::decay_t<decltype(dedekind::numbers::embed_ℤ_ℚ<>)>> =
         true;
 static_assert(
     IsHomomorphism<std::decay_t<decltype(dedekind::numbers::embed_ℤ_ℚ<>)>>,
-    "embed_ℤ_ℚ (ℤ ↪ ℚ) is registered as a ring homomorphism.");
+    "embed_ℤ_ℚ (ℤ ↪ ℚ) is registered as an algebra homomorphism "
+    "(the strictly stronger ring-homomorphism reading lives in the "
+    "prose; the trait is intentionally unparameterised at this slice).");
 
 }  // namespace dedekind::algebra
 
