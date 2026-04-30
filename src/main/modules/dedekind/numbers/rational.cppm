@@ -372,6 +372,28 @@ static_assert(std::same_as<typename Rational<default_integer>::IntegerCarrier,
               "Rational<I> is the Frac-functor image of I; the "
               "IntegerCarrier alias names I mechanically.");
 
+}  // namespace dedekind::numbers
+
+namespace dedekind::category {
+
+// NEW-A trait registry (#498/#499): @c Rational<I> is a module over
+// its @c IntegerCarrier @c I.  Textbook reading: ℚ is a ℤ-module
+// (and ℚ is the field of fractions @c Frac(ℤ); the Frac construction
+// preserves the source-side scalar action).  Specialised here at the
+// carrier-defining partition so the trait pin lives next to the
+// carrier itself — the algebraic-soul registry pattern.
+template <dedekind::numbers::IsInteger I>
+inline constexpr bool is_module_v<dedekind::numbers::Rational<I>, I> = true;
+
+static_assert(
+    is_module_v<dedekind::numbers::Rational<dedekind::numbers::default_integer>,
+                dedekind::numbers::default_integer>,
+    "Rational<I> is a module over its IntegerCarrier I.");
+
+}  // namespace dedekind::category
+
+namespace dedekind::numbers {
+
 /**
  * @brief Characteristic morphism for ℚ: the rationals.
  * Accepts native Rational<I> and delegates predecessor checks through ℤ.

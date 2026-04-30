@@ -342,6 +342,29 @@ static_assert(std::same_as<typename Complex<double>::ScalarCarrier, double>,
               "Complex<R> is the Cplx-functor image of R; ScalarCarrier "
               "names R mechanically.");
 
+}  // namespace dedekind::numbers
+
+namespace dedekind::category {
+
+// NEW-A trait registry (#498/#499): @c Complex<T> is a module over
+// its @c ScalarCarrier @c T.  Textbook reading: the quotient ring
+// @c T[i]/(i² + 1) carries the canonical @c T-action by component-
+// wise multiplication on the @c (real, imag) pair.  The vector-
+// space upgrade (when @c T is a field) is intentionally @b not
+// reified here — see the @c is_vector_space_v note in @c :action
+// for why the strict reading is dishonest on shipping carriers.
+template <dedekind::numbers::IsComplexScalar T>
+inline constexpr bool is_module_v<dedekind::numbers::Complex<T>, T> = true;
+
+static_assert(is_module_v<dedekind::numbers::Complex<double>, double>,
+              "Complex<R> is a module over its ScalarCarrier R "
+              "(double witnesses the operator-shape level; the "
+              "axiomatic field upgrade is a separate concern).");
+
+}  // namespace dedekind::category
+
+namespace dedekind::numbers {
+
 /**
  * @brief Canonical embedding ℤ² ↪ ℂ: (x, y) ↦ x + iy.
  *

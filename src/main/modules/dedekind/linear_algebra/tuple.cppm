@@ -330,3 +330,28 @@ static_assert(dedekind::category::unit_witness<covec2_functor<int>, int>{}(2) ==
               "Covec2V η: scalar → diagonal broadcast.");
 
 }  // namespace dedekind::linear_algebra
+
+namespace dedekind::category {
+
+// NEW-A trait registry (#498/#499): @c Vec2V<T> is a free @c T-module
+// of rank 2 (canonically isomorphic to @c T^2 via the (x, y)
+// component projection).  Sibling @c Covec2V<T> is the dual rank-2
+// module (row vector); both pin against the same trait at rank 2.
+template <typename T>
+  requires std::regular<T> && dedekind::algebra::HasRingOperators<T>
+inline constexpr bool
+    is_free_module_v<dedekind::linear_algebra::Vec2V<T>, T, 2> = true;
+
+template <typename T>
+  requires std::regular<T> && dedekind::algebra::HasRingOperators<T>
+inline constexpr bool
+    is_free_module_v<dedekind::linear_algebra::Covec2V<T>, T, 2> = true;
+
+static_assert(is_free_module_v<dedekind::linear_algebra::Vec2V<int>, int, 2>,
+              "Vec2V<T> is a free T-module of rank 2 (M ≅ T^2 via "
+              "componentwise projection).");
+static_assert(is_free_module_v<dedekind::linear_algebra::Covec2V<int>, int, 2>,
+              "Covec2V<T> is a free T-module of rank 2 (the row-vector "
+              "dual to Vec2V<T>).");
+
+}  // namespace dedekind::category
