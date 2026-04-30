@@ -1042,6 +1042,80 @@ static_assert(IsBijective<Identity<int>>,
               "Identity.");
 
 // ---------------------------------------------------------------------------
+// Inter-carrier arrow class taxonomy (#380, step 1).
+//
+// The library distinguishes three classes of arrows that move values
+// between carriers:
+//
+//   (a)/(c) Total injection           e: A ↣ B          @c is_monic_arrow_v
+//   (b₁)    Total realisation         e: A → B (sentinel-carrying)
+//                                                       @c is_total_arrow_v
+//   (b₂)    Kleisli partial           e: A → M B (M a monad — typically
+//                                                 @c std::optional / @c Maybe)
+//                                                       @c is_kleisli_arrow_v
+//
+// The total-injection slot is already covered above by @c is_monic_arrow_v
+// (and its companion @c is_epic_arrow_v).  This block adds the two
+// missing slots so each class has its own opt-in trait + concept; the
+// audit / decorate sweep that pins concrete @c realize_to_* and
+// @c try_realize_to_* arrows to the right class is step 2 of #380.
+// ---------------------------------------------------------------------------
+
+/**
+ * @brief User-declared "total realisation" witness for an arrow type.
+ * @details A total realisation is an arrow @c e: @c A @c → @c B that
+ *          never reports absence — it always returns a value of @c B,
+ *          but its contract carries a documented @b sentinel for inputs
+ *          that have no faithful image (e.g., @c realize_to_size_t
+ *          returning @c std::numeric_limits<std::size_t>::max() on
+ *          overflow).  Default @c false; opt-in by specialising to
+ *          @c true on arrows whose totality + sentinel is part of the
+ *          contract.  Distinct from @c is_monic_arrow_v (injection) and
+ *          @c is_kleisli_arrow_v (partial-via-monad).
+ */
+export template <typename E>
+inline constexpr bool is_total_arrow_v = false;
+
+/**
+ * @concept IsTotalArrow
+ * @brief An arrow declared to be a total realisation with a documented
+ *        sentinel.
+ * @details Opt-in via @c is_total_arrow_v<E> @c = @c true.  The intended
+ *          use is the @c realize_to_<primitive> family of arrows
+ *          (#380): exact ↪ primitive realisations whose contract includes
+ *          a sentinel for out-of-range inputs.
+ */
+export template <typename E>
+concept IsTotalArrow = IsArrow<E> && is_total_arrow_v<E>;
+
+/**
+ * @brief User-declared "Kleisli arrow" witness for an arrow type.
+ * @details A Kleisli arrow lives in the Kleisli category of a monad
+ *          @c M: it has shape @c e: @c A @c → @c M<B>.  In the library
+ *          today this is overwhelmingly @c M @c = @c std::optional /
+ *          @c Maybe, used for partial realisations (e.g.,
+ *          @c try_realize_to_size_t returning @c std::optional<size_t>).
+ *          Default @c false; opt-in by specialising to @c true at the
+ *          @c (E, M) pair.
+ *
+ *          Pairs with the @c dedekind.category:kleisli partition's
+ *          composition / fmap machinery; this trait only declares
+ *          membership in the Kleisli category, it does not implement
+ *          composition.
+ */
+export template <typename E, typename M>
+inline constexpr bool is_kleisli_arrow_v = false;
+
+/**
+ * @concept IsKleisliArrow
+ * @brief An arrow declared to live in the Kleisli category of monad
+ *        @c M.
+ * @details Opt-in via @c is_kleisli_arrow_v<E, @c M> @c = @c true.
+ */
+export template <typename E, typename M>
+concept IsKleisliArrow = IsArrow<E> && is_kleisli_arrow_v<E, M>;
+
+// ---------------------------------------------------------------------------
 // Fish-operator concept tier (closes part of #450).
 //
 // The project's operator surface for arrow composition / monadic bind /
