@@ -337,6 +337,19 @@ namespace dedekind::category {
 // of rank 2 (canonically isomorphic to @c T^2 via the (x, y)
 // component projection).  Sibling @c Covec2V<T> is the dual rank-2
 // module (row vector); both pin against the same trait at rank 2.
+//
+// Free-module ⟹ module: the @c is_module_v specialisations below
+// keep the registry consistent so downstream code querying the plain
+// @c is_module_v predicate sees these vector carriers as well.
+template <typename T>
+  requires std::regular<T> && dedekind::algebra::HasRingOperators<T>
+inline constexpr bool is_module_v<dedekind::linear_algebra::Vec2V<T>, T> = true;
+
+template <typename T>
+  requires std::regular<T> && dedekind::algebra::HasRingOperators<T>
+inline constexpr bool is_module_v<dedekind::linear_algebra::Covec2V<T>, T> =
+    true;
+
 template <typename T>
   requires std::regular<T> && dedekind::algebra::HasRingOperators<T>
 inline constexpr bool
@@ -347,6 +360,10 @@ template <typename T>
 inline constexpr bool
     is_free_module_v<dedekind::linear_algebra::Covec2V<T>, T, 2> = true;
 
+static_assert(is_module_v<dedekind::linear_algebra::Vec2V<int>, int>,
+              "Vec2V<T> is a T-module (free-module ⟹ module).");
+static_assert(is_module_v<dedekind::linear_algebra::Covec2V<int>, int>,
+              "Covec2V<T> is a T-module (free-module ⟹ module).");
 static_assert(is_free_module_v<dedekind::linear_algebra::Vec2V<int>, int, 2>,
               "Vec2V<T> is a free T-module of rank 2 (M ≅ T^2 via "
               "componentwise projection).");
