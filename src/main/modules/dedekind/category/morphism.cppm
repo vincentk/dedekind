@@ -1047,12 +1047,10 @@ static_assert(IsBijective<Identity<int>>,
 // The library distinguishes three classes of arrows that move values
 // between carriers:
 //
-//   (a)/(c) Total injection           e: A ↣ B          @c is_monic_arrow_v
-//   (b₁)    Total realisation         e: A → B (sentinel-carrying)
-//                                                       @c is_total_arrow_v
-//   (b₂)    Kleisli partial           e: A → M B (M a monad — typically
-//                                                 @c std::optional / @c Maybe)
-//                                                       @c is_kleisli_arrow_v
+//   (a)/(c) Total injection       e: A ↣ B          @c is_monic_arrow_v
+//   (b₁)    Sentinel realisation  e: A → B (sentinel on out-of-range)
+//                                                   @c is_realisation_arrow_v
+//   (b₂)    Kleisli partial       e: A → M B        @c is_kleisli_arrow_v
 //
 // The total-injection slot is already covered above by
 // @c is_monic_arrow_v (epicity, @c is_epic_arrow_v, is the orthogonal
@@ -1061,11 +1059,17 @@ static_assert(IsBijective<Identity<int>>,
 // missing slots so each class has its own opt-in trait + concept; the
 // audit / decorate sweep that pins concrete @c realize_to_* and
 // @c try_realize_to_* arrows to the right class is step 2 of #380.
+//
+// @note The (b₁) slot's name avoids @c IsTotalArrow because that
+// concept is already taken (in @c :total) for an unrelated property
+// of morphisms over hazard-free domains.  The realisation reading
+// stresses the @b purpose (exact ↦ primitive realisation with
+// sentinel) rather than the totality property.
 // ---------------------------------------------------------------------------
 
 /**
- * @brief User-declared "total realisation" witness for an arrow type.
- * @details A total realisation is an arrow @c e: @c A @c → @c B that
+ * @brief User-declared "sentinel realisation" witness for an arrow type.
+ * @details A sentinel realisation is an arrow @c e: @c A @c → @c B that
  *          never reports absence — it always returns a value of @c B,
  *          but its contract carries a documented @b sentinel for inputs
  *          that have no faithful image (e.g., @c realize_to_size_t
@@ -1076,21 +1080,21 @@ static_assert(IsBijective<Identity<int>>,
  *          @c is_kleisli_arrow_v (partial-via-monad).
  */
 export template <typename E>
-inline constexpr bool is_total_arrow_v = false;
+inline constexpr bool is_realisation_arrow_v = false;
 
 /**
- * @concept IsTotalArrow
- * @brief An arrow declared to be a total realisation with a documented
- *        sentinel.
- * @details Opt-in via @c is_total_arrow_v<E> @c = @c true.  The intended
- *          use is the @c realize_to_<primitive> family of arrows
+ * @concept IsRealisationArrow
+ * @brief An arrow declared to be a sentinel realisation: total with a
+ *        documented sentinel for out-of-range inputs.
+ * @details Opt-in via @c is_realisation_arrow_v<E> @c = @c true.  The
+ *          intended use is the @c realize_to_<primitive> family of arrows
  *          (#380): exact → primitive realisations whose contract includes
  *          a sentinel for out-of-range inputs (these arrows are total but
  *          @b not injective, so the plain @c → arrow rather than @c ↪
  *          is correct).
  */
 export template <typename E>
-concept IsTotalArrow = IsArrow<E> && is_total_arrow_v<E>;
+concept IsRealisationArrow = IsArrow<E> && is_realisation_arrow_v<E>;
 
 /**
  * @brief User-declared "Kleisli arrow" witness for an arrow type.
