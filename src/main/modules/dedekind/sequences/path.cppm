@@ -506,8 +506,12 @@ namespace dedekind::category {
 export template <typename T>
 struct path_functor {
   using ArrowKind = dedekind::category::hub_arrow_tag;
-  using Σ_cat = dedekind::category::Set<T>;
-  using Τ_cat = dedekind::category::Set<dedekind::sequences::Path<T>>;
+  // CanonicalSetCCC is the exported set-CCC alias (Set<T> in :cartesian
+  // is not export-qualified for downstream consumers); follows the
+  // vec2_functor / matrix2x2_functor pattern in :linear_algebra.
+  using Σ_cat = dedekind::category::CanonicalSetCCC<T>;
+  using Τ_cat =
+      dedekind::category::CanonicalSetCCC<dedekind::sequences::Path<T>>;
 
   using Domain = Σ_cat;
   using Codomain = Τ_cat;
