@@ -545,6 +545,44 @@ using namespace dedekind::category;
 /** @section path__Formal_Verification */
 static_assert(IsSequence<Path<int>>, "Path must satisfy the sequence concept.");
 
+// Discriminator-sharpening witness (#525).  Path<int> is itself an
+// IsArrow at the type level (it carries Domain = std::size_t and a
+// call operator, modelling the textbook reading "a sequence is a
+// function ℕ → T").  The load-bearing distinction the #525 fix
+// makes is between "Path<int> is an arrow" (true: it has Domain,
+// Codomain, call operator) and "Path<int> is category-shaped"
+// (false: no ::Arrow / ::Species / ::Id aliases — Path<int> is an
+// object, not a category-to-category arrow).  Pre-#525 the
+// IsSpokeArrow discriminator read !IsArrow<Dom<T>> — but the
+// Morphism here has Dom = Path<int>, which IS an arrow, so the
+// proxy mis-classified Morphism<Path,Path,...> as NOT a SpokeArrow.
+// Post-#525 the discriminator reads !IsCategoryShape<Dom<T>>, which
+// returns false for Path<int> (it has no category-shape aliases),
+// so the Morphism IS a SpokeArrow.  This static_assert pins the fix
+// mechanically; if the discriminator ever regresses, it surfaces
+// here at the load-bearing case that motivated the sharpening.
+namespace _path_525 {
+using PathArrow = dedekind::category::CanonicalSetCCC<Path<int>>::Arrow;
+// Morphism<Path<int>, Path<int>, std::function<Path<int>(Path<int>)>> —
+// CanonicalSetCCC<X> is the exported alias for the in-cartesian Set<X>
+// type (Set itself is not export-qualified).  Same precedent as the
+// vec2_functor / matrix2x2_functor Hubs in :linear_algebra.
+static_assert(dedekind::category::IsArrow<Path<int>>,
+              "Path<int> is itself an IsArrow at the type level "
+              "(Domain = size_t, Codomain = T, call operator).");
+static_assert(!dedekind::category::IsCategoryShape<Path<int>>,
+              "Path<int> is NOT a category-shaped thing — it has no "
+              "::Arrow / ::Species / ::Id aliases.  This is the "
+              "distinction the #525 discriminator-sharpening makes.");
+static_assert(dedekind::category::IsSpokeArrow<PathArrow>,
+              "Morphism<Path<int>, Path<int>, ...> is a SpokeArrow under "
+              "the #525 sharpening (Dom = Path<int>, which is not a "
+              "category-shaped thing). Pre-#525 this static_assert would "
+              "have failed because Path<int> satisfies IsArrow at the "
+              "type level, and the old !IsArrow<Dom<T>> discriminator "
+              "therefore mis-classified the Morphism as non-spoke.");
+}  // namespace _path_525
+
 static_assert(IsFiniteSequence<FinitePath<int>>,
               "FinitePath must satisfy the finite sequence concept.");
 
