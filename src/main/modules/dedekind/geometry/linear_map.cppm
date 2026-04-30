@@ -588,6 +588,15 @@ using RealMatrix = LinearMap<double, Rows, Cols>;
  * For the flat manifold F^N, the tangent space T_p(F^N) ≅ F^N for every
  * base-point p.  The alias makes the geometric role explicit without
  * introducing any new data.
+ *
+ * @note A bare @c TangentVector is the @em fibre @em element (a single
+ *       tangent vector), not a tangent-bundle carrier on its own --- the
+ *       latter is a (point, tangent vector) pair, captured by
+ *       @c TangentBundlePoint below at the geometric level and by
+ *       @c IsTangentBundle in @c :tangent at the algebraic-ring level.
+ *       @c Dual<F> in @c dedekind.analysis:dual is the canonical
+ *       @c IsTangentBundle witness; forward-mode AD on @c Dual<F> is
+ *       arithmetic in the tangent-bundle ring T(Spec F).
  */
 export template <IsMatrixScalar F, std::size_t N>
 using TangentVector = Vector<F, N>;
@@ -613,6 +622,21 @@ using CotangentVector = Covector<F, N>;
  * Packages a base-point with a tangent vector at that point.  For the flat
  * manifold F^N the bundle is trivially the product; in a non-flat setting
  * (future issue) this struct would generalise to an atlas-chart-local section.
+ *
+ * @note Structurally this is the (point, fibre) pair shape that the
+ *       @c IsTangentBundle concept in @c :tangent describes.  The current
+ *       struct stops at the @em data layout, however --- it does not
+ *       supply ring operators (+, -, *) on the bundle, which the concept
+ *       additionally requires.  The carrier that @em does carry the
+ *       full tangent-bundle ring structure --- value, derivative, and
+ *       arithmetic respecting the nilpotent ε² = 0 --- is @c Dual<F> in
+ *       @c dedekind.analysis:dual.  When the manifold abstraction of
+ *       \#185 lands, a sibling @c IsTangentBundlePoint concept (just
+ *       the structural pair, no ring) and a refined
+ *       @c IsTangentBundleStructure<TM, M> (paired with a base manifold
+ *       and projection) are the natural extensions; @c TangentBundlePoint
+ *       can then be retrofitted to satisfy the structural-pair concept
+ *       without forcing a ring shape.
  *
  * FIXME(https://github.com/vincentk/dedekind/issues/185): Lift the bundle
  * point carriers from extensional `N` to first-class dimension/cardinality

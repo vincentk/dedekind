@@ -43,8 +43,14 @@ docs/paper/*.log
 docs/paper/*.out
 docs/paper/*.toc
 docs/paper/*.run.xml
-docs/paper/paper.pdf  # built artefact; published from main via the docs-and-pages CI job
-docs/report/*.aux
+# Built artefact; published from main via the docs-and-pages CI job.
+# (Note: gitignore does NOT support inline trailing comments — an
+# explanation MUST sit on its own `#`-prefixed line above the pattern,
+# otherwise the trailing text becomes part of the literal path pattern
+# and the actual file is never matched.  This footgun bit PR #513;
+# the inline-comment form here landed at PR #514 but didn't actually
+# ignore paper.pdf for any consumer.)
+docs/paper/paper.pdf
 docs/report/*.bbl
 docs/report/*.bcf
 docs/report/*.blg

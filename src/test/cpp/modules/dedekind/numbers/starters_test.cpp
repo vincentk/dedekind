@@ -37,8 +37,9 @@ TEST_CASE("Numbers: canonical starter symbols", "[numbers][starter]") {
   STATIC_CHECK(std::same_as<ℂ, ComplexSet>);
   STATIC_CHECK(std::same_as<decltype(C), const ℂ>);
 
-  STATIC_CHECK(std::same_as<𝔻, DualSet>);
-  STATIC_CHECK(std::same_as<decltype(D), const 𝔻>);
+  // 𝔻 / D / DualSet starter aliases moved to dedekind.analysis:dual at
+  // PR ; analogous STATIC_CHECKs live in
+  // src/test/cpp/modules/dedekind/analysis/dual_test.cpp.
 }
 
 TEST_CASE("Numbers: starter universes construct from ambient values",
@@ -75,9 +76,9 @@ TEST_CASE("Numbers: starter universes construct from ambient values",
   constexpr auto complexes = Set{c % C};
   static_assert(complexes(Complex<double>{1.0, 2.0}) == Ternary::True);
 
-  constexpr auto d = var<𝔻>;
-  constexpr auto duals = Set{d % D};
-  static_assert(duals(Dual<double>{1.0, 1.0}) == Ternary::True);
+  // 𝔻 starter-universe construction moved to
+  // src/test/cpp/modules/dedekind/analysis/dual_test.cpp at PR #513
+  // (Dual<F> relocated from :numbers to :analysis).
 }
 
 TEST_CASE("Numbers: starter universes satisfy lattice identities",
@@ -124,11 +125,7 @@ TEST_CASE("Numbers: starter universes satisfy lattice identities",
     CHECK((U & O)(Complex<double>{1.0, -1.0}) == Ternary::False);
   }
 
-  {
-    constexpr auto d = var<𝔻>;
-    const auto U = Set{d % D};
-    const auto O = !U;
-    CHECK((U | O)(Dual<double>{3.0, 1.0}) == Ternary::True);
-    CHECK((U & O)(Dual<double>{3.0, 1.0}) == Ternary::False);
-  }
+  // 𝔻 / D / Dual lattice-identity check moved to
+  // src/test/cpp/modules/dedekind/analysis/dual_test.cpp at PR #513
+  // (Dual<F> relocated from :numbers to :analysis).
 }

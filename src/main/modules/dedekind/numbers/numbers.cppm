@@ -57,7 +57,11 @@ export import :lattice;     // Lattices over ℝ and ℂ
 export import :mandelbrot;  // Mandelbrot recurrence/orbit helpers
 
 /** @section Non_Standard_Analysis */
-export import :dual;         // Automatic Differentiation / Infinitesimals
+// :dual moved to dedekind.analysis:dual at PR #513 --- the carrier is
+// fundamentally differential (forward-mode AD) and its natural neighbours
+// (:ftc, :forms, :hamilton) live in :analysis.  Consumers should
+// `import dedekind.analysis;` (downstream of :numbers in the build graph)
+// to reach Dual<F> and the 𝔻 alias.
 export import :symbolic;     // Formal symbols / Indeterminates
 export import :real;         // ℝ (The Dedekind Cut / Cauchy continuum)
 export import :cardinality;  // Draft finite/aleph0 carrier and policies

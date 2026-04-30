@@ -51,6 +51,11 @@ export import :hilbert;    // The Complete Unitary Space (L2-Convergence)
 /** @section Level_9.3: Geometric Lattices */
 export import :lattice;  // Discretizations of continuous spaces (ℤⁿ ↪ ℝⁿ)
 
+/** @section Level_9.4: Tangent-Bundle Concepts (flat case) */
+export import :tangent;  // IsTangentBundle (flat case); canonical witness
+                         // Dual<F> lives in :analysis:dual.  Bundle structure
+                         // on non-flat manifolds tracked under #185.
+
 /**
  * @note The build order is critical:
  * :affine must be scanned before :euclidean, as an Euclidean space

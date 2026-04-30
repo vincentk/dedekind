@@ -16,6 +16,7 @@
 #include <functional>
 
 import dedekind.algebra;
+import dedekind.analysis; // Dual<F> (relocated from :numbers at PR #513)
 import dedekind.category; // dedekind::category::IsField on bool (F_2 reading)
 import dedekind.linear_algebra;
 import dedekind.numbers;
@@ -23,6 +24,7 @@ import dedekind.order; // dedekind::order::HasLatticeOperators on bool
 import dedekind.sets;
 
 using namespace dedekind::algebra;
+using namespace dedekind::analysis;  // Dual<F>
 using namespace dedekind::linear_algebra;
 using namespace dedekind::numbers;
 using dedekind::sets::SignedExtensionalCardinal;

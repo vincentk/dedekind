@@ -40,6 +40,7 @@
 #include <unordered_set>
 #include <vector>
 
+import dedekind.analysis; // Dual<F> (relocated from :numbers at PR #513)
 import dedekind.numbers;
 import dedekind.python;
 
@@ -192,7 +193,7 @@ void bind_complex(nb::module_& m) {
 }
 
 void bind_dual(nb::module_& m) {
-  using Dual = dedekind::numbers::Dual<double>;
+  using Dual = dedekind::analysis::Dual<double>;
   nb::class_<Dual>(m, "Dual",
                    "Represents a dual number d = val + der*ε (ε² = 0).")
       .def(nb::init<double, double>(), nb::arg("val") = 0.0,
