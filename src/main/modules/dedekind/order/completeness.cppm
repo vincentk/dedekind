@@ -1,7 +1,7 @@
 /**
  * @file dedekind/order/completeness.cppm
  * @partition :completeness
- * @brief Level 1.5: Density and completeness profiles of orders.
+ * @brief Density and completeness profiles of orders.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.

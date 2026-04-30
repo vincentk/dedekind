@@ -1,7 +1,7 @@
 /**
  * @file dedekind/analysis/hamilton.cppm
  * @partition :hamilton
- * @brief Level 4: The Principle of Least Action (Hamiltonian Dynamics).
+ * @brief The Principle of Least Action (Hamiltonian Dynamics).
  *
  * @section hamilton__Hamiltonian: The Flow of the Species
  * This partition defines the generator of motion \( \mathcal{H} \). In the

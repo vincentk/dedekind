@@ -1,7 +1,7 @@
 /**
  * @file dedekind/category/action.cppm
  * @partition :action
- * @brief Level 1: The Morphisms of Influence (Actions and Representations).
+ * @brief The Morphisms of Influence (Actions and Representations).
 
  * @section action__Structural_Influence
  * While Level 0 (:morphism) defines mapping between species,
@@ -69,7 +69,7 @@ static_assert(IsAction<decltype(zero<int, int>()), int>,
 static_assert(IsAction<decltype(unit<int, int>()), int>,
               "Unit Morphism must satisfy the Action axioms (Absorption).");
 
-/** @section action__Level_1_Axiomatic_Verification */
+/** @section action__Axiomatic_Verification */
 
 constexpr auto z = zero<int, int>();
 constexpr auto highway = id<int>();

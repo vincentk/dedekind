@@ -1,7 +1,7 @@
 /**
  * @file dedekind/analysis/forms.cppm
  * @partition :forms
- * @brief Level 11.5: The Exterior Algebra (Differential Forms).
+ * @brief The Exterior Algebra (Differential Forms).
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.

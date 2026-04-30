@@ -1,7 +1,7 @@
 /**
  * @file dedekind/algebra/ring.cppm
  * @partition :ring
- * @brief Level 3.2: The Rules of Harmony (The Semiring Synthesis).
+ * @brief The Rules of Harmony (The Semiring Synthesis).
  *
  * @copyright 2026 The Dedekind Authors
 

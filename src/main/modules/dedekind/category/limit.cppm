@@ -1,7 +1,7 @@
 /**
  * @file dedekind/category/limit.cppm
  * @partition :limit
- * @brief Level 0.6: The Boundary Objects (Initial and Terminal).
+ * @brief The Boundary Objects (Initial and Terminal).
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.

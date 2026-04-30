@@ -1,7 +1,7 @@
 /**
  * @file dedekind/topology/interval.cppm
  * @partition :shapes
- * @brief Level 3.1: Topological Mereology (Rays and Intervals).
+ * @brief Topological Mereology (Rays and Intervals).
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0 (the "License");

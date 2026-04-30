@@ -1,7 +1,7 @@
 /**
  * @file dedekind/algebra/monoid.cppm
  * @partition :monoid
- * @brief Level 3.0a: The Additive and Multiplicative Monoids (ℕ).
+ * @brief The Additive and Multiplicative Monoids (ℕ).
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0 (the "License");

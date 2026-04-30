@@ -12,7 +12,7 @@
  *
  * @details
  * In the Dedekind architecture, set theory bridges logic (Level -1)
- * and magnitude (Level 2). By implementing monadic and comonadic
+ * and magnitude. By implementing monadic and comonadic
  * extensions for specific structures, we enable:
  * - Extensional Sets: Materialized collections (Singleton, Finite Sets).
  * - Intensional Sets: Rule-based definitions (Comprehensions).

@@ -1,7 +1,7 @@
 /**
  * @file dedekind/analysis/kernels.cppm
  * @partition :kernels
- * @brief Level 11.4: Kernel primitives -- Gaussian and reproducing kernels.
+ * @brief Kernel primitives -- Gaussian and reproducing kernels.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.

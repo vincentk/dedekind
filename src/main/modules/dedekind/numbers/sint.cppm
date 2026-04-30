@@ -1,7 +1,7 @@
 /**
  * @file dedekind/numbers/sint.cppm
  * @partition :sint
- * @brief Level 4: std::signed_integral — Honest Rejection (UB-on-overflow).
+ * @brief std::signed_integral — Honest Rejection (UB-on-overflow).
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.

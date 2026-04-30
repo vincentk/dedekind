@@ -1,7 +1,7 @@
 /**
  * @file dedekind/numbers/quaternion.cppm
  * @partition :quaternion
- * @brief Level 9: The Quaternion Division Ring (ℍ).
+ * @brief The Quaternion Division Ring (ℍ).
  *
  * @section quaternion__Algebraic_Structure
  * The quaternions ℍ form a non-commutative division ring (a skew-field):

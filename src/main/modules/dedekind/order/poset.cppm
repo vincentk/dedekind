@@ -1,7 +1,7 @@
 /**
  * @file dedekind/order/poset.cppm
  * @partition :poset
- * @brief Level 1.5: Preorders, partial orders, directed sets, chains.
+ * @brief Preorders, partial orders, directed sets, chains.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.

@@ -1,7 +1,7 @@
 /**
  * @file dedekind/category/natural.cppm
  * @partition :natural
- * @brief Level 2.2: Natural Transformations (The Slide between Functors).
+ * @brief Natural Transformations (The Slide between Functors).
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
@@ -242,7 +242,7 @@ constexpr Box<Box<A>> δ(box_hub_tag, Box<A> const& ba) {
 
 /**
  * @concept IsPreTransformation
- * @brief Level 2.1: The raw family of components.
+ * @brief The raw family of components.
  */
 export template <typename Α, typename CatS, typename CatT>
 concept IsPreTransformation = IsCategory<CatS> && IsCategory<CatT> &&
@@ -254,7 +254,7 @@ concept IsPreTransformation = IsCategory<CatS> && IsCategory<CatT> &&
 
 /**
  * @concept IsTwoMorphism
- * @brief Level 2.15: The bridge between two specific Functors.
+ * @brief The bridge between two specific Functors.
  */
 export template <typename Α, typename F, typename G>
 concept IsTwoMorphism =

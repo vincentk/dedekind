@@ -1,7 +1,7 @@
 /**
  * @file dedekind/algebra/field.cppm
  * @partition :algebra
- * @brief Level 3: The Rules of Harmony (Groups, Rings, and Fields).
+ * @brief The Rules of Harmony (Groups, Rings, and Fields).
  *
  * Copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
@@ -22,9 +22,9 @@
  * @build_order 4
  * @dependency :category, :mereology, :order
  *
- * @see dedekind.ontology:category (Level 0)
- * @see dedekind.ontology:mereology (Level 1)
- * @see dedekind.ontology:order (Level 1.5)
+ * @see dedekind.ontology:category
+ * @see dedekind.ontology:mereology
+ * @see dedekind.ontology:order
  *
  * Wikipedia: Abstract algebra, Group theory, Ring (mathematics), Field
  * (physics)

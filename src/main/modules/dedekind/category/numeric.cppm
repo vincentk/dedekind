@@ -1,7 +1,7 @@
 /**
  * @file dedekind/category/numeric.cppm
  * @partition :numeric
- * @brief Level 3: The Numeric Landing (IEEE 754 and Lipschitz Boundaries).
+ * @brief The Numeric Landing (IEEE 754 and Lipschitz Boundaries).
  *
  * @details
  * This partition defines first-pass, honest APIs for machine-numeric hazards:

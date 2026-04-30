@@ -1,7 +1,7 @@
 /**
  * @file dedekind/sequences/ranges.cppm
  * @partition :ranges
- * @brief Level 2.6: The Integer Interval — A Serendipitous Bridge.
+ * @brief The Integer Interval — A Serendipitous Bridge.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.

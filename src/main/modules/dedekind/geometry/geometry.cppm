@@ -1,6 +1,6 @@
 /**
  * @file geometry.cppm
- * @brief Level 9: Affine ⊂ InnerProduct ⊂ Euclidean ⊂ Hilbert.
+ * @brief Affine ⊂ InnerProduct ⊂ Euclidean ⊂ Hilbert.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
@@ -39,19 +39,19 @@
 
 export module dedekind.geometry;
 
-/** @section geometry__Level_9.1: The Relational Foundation */
+/** @section geometry__Relational_Foundation */
 export import :affine;         // The Point-Vector Duality
 export import :linear_map;     // Concrete finite-dimensional linear maps
 export import :inner_product;  // The Bilinear Mapping ⟨-, -⟩
 
-/** @section geometry__Level_9_2.2: The Metric Completion */
+/** @section geometry__Metric_Completion */
 export import :euclidean;  // The Normed Space (L2-Topology)
 export import :hilbert;    // The Complete Unitary Space (L2-Convergence)
 
-/** @section geometry__Level_9_3.3: Geometric Lattices */
+/** @section geometry__Geometric_Lattices */
 export import :lattice;  // Discretizations of continuous spaces (ℤⁿ ↪ ℝⁿ)
 
-/** @section geometry__Level_9_4.4: Tangent-Bundle Concepts (flat case) */
+/** @section geometry__Tangent_Bundle_Concepts_Flat */
 export import :tangent;  // IsTangentBundle (flat case); canonical witness
                          // Dual<F> lives in :analysis:dual.  Bundle structure
                          // on non-flat manifolds tracked under #185.

@@ -88,8 +88,7 @@ concept LinearOperatorContract = requires {
   requires RankNullityWitness<typename Op::rank_nullity>;
 };
 
-/** @section contracts__Dimensionality — a finite cardinality of coordinate
- * axes.
+/** @section contracts__Dimensionality A finite cardinality of coordinate axes.
  *
  *  `HasDimensionCount<V>` asks a carrier to expose its coordinate count as
  *  a compile-time `std::size_t`. This is the linear-algebraic specialisation
@@ -108,8 +107,7 @@ concept HasDimensionCount = requires {
   { V::dimension } -> std::convertible_to<std::size_t>;
 };
 
-/** @section contracts__Orientation — the column/row distinction for 1-tensors.
- */
+/** @section contracts__Orientation The column/row distinction for 1-tensors. */
 
 /** @brief Tag for column-oriented 1-tensors (vectors in the usual sense). */
 struct ColumnOrientation {};
@@ -254,8 +252,7 @@ template <typename M>
 concept IsMatrix = requires { typename M::scalar_type; } && HasMatrixShape<M> &&
                    HasColumnDecomposition<M> && HasRowDecomposition<M>;
 
-/** @section contracts__Algebraic_Contracts — ring, module, field structure on
- * matrices. */
+/** @section contracts__Algebraic_Contracts Ring, module, field structure on matrices. */
 
 /**
  * @concept IsMatrixSubmoduleLike
@@ -410,8 +407,7 @@ template <typename M, typename F>
 concept IsInvertibleMatrixOverField =
     IsMatrixOverFieldRingLike<M, F> && HasMultiplicativeInverse<M>;
 
-/** @section contracts__Orthogonal matrices — the cleanest
- * group-under-multiplication.
+/** @section contracts__Orthogonal Orthogonal matrices: the cleanest group-under-multiplication.
  *
  *  An orthogonal matrix satisfies `Mᵀ · M = M · Mᵀ = I`, so its inverse is
  *  its transpose. Orthogonal matrices are **not** a ring (not additively

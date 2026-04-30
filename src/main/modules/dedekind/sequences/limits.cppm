@@ -1,7 +1,7 @@
 /**
  * @file dedekind/sequences/limits.cppm
  * @partition :limits
- * @brief Level 2.5b: The Convergence Morphism (Resolution of the Path).
+ * @brief The Convergence Morphism (Resolution of the Path).
  *
  * @section limits__Convergence: The Bridge to Continuity
  * This partition defines the "Resolution" of a Path into a single point.

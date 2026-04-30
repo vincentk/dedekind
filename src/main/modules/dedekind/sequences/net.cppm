@@ -1,7 +1,7 @@
 /**
  * @file dedekind/sequences/net.cppm
  * @partition :sequences
- * @brief Level 2.5: The Path (The Morphism of Enumeration).
+ * @brief The Path (The Morphism of Enumeration).
  *
  * @section net__Sequences: The Logic of Enumeration
  * This partition defines the "Path" (λn. s_n) as a Morphism from a Domain

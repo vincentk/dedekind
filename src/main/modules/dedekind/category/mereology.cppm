@@ -1,7 +1,7 @@
 /**
  * @file dedekind/category/mereology.cppm
  * @partition :mereology
- * @brief Level 0c: Embryonic Mereology (Part-Whole and Skew Algebraic Core).
+ * @brief Embryonic Mereology (Part-Whole and Skew Algebraic Core).
  *
  * Following the formal axiomatization of Stanisław Leśniewski, this partition
  * introduces the "Part-Whole" relation as a foundational structural primitive.

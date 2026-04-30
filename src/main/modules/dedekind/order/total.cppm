@@ -1,7 +1,7 @@
 /**
  * @file dedekind/order/total.cppm
  * @partition :total
- * @brief Level 1.5b: Total-order layer (stronger than @c :poset).
+ * @brief Total-order layer (stronger than @c :poset).
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.

@@ -132,7 +132,7 @@ struct SingletonSet {
 
   /** @section singleton__Mereological_Lattice_Audit */
 
-  /** @section singleton__Unified_Lattice_Operations (Level 1) */
+  /** @section singleton__Unified_Lattice_Operations */
 
   template <typename U, typename L2>
   constexpr auto operator|(const SingletonSet<U, L2>& other) const {

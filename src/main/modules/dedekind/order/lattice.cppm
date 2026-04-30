@@ -1,7 +1,7 @@
 /**
  * @file dedekind/order/lattice.cppm
  * @partition :lattice
- * @brief Level 1.5: Order-theoretic meet / join / lattice structures.
+ * @brief Order-theoretic meet / join / lattice structures.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.

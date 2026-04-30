@@ -1,7 +1,7 @@
 /**
  * @file dedekind/algebra/galois.cppm
  * @partition :galois
- * @brief Level 3.5: Galois fields (finite fields).
+ * @brief Galois fields (finite fields).
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.

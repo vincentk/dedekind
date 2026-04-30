@@ -1,7 +1,7 @@
 /**
  * @file dedekind/numbers/integral.cppm
  * @partition :integral
- * @brief Level 4: std::integral umbrella over uint / sint / bool.
+ * @brief std::integral umbrella over uint / sint / bool.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
@@ -69,8 +69,7 @@ import dedekind.algebra; // IsField (umbrella negative-claim witness)
 
 namespace dedekind::numbers {
 
-/** @section integral__Formal_Verification — umbrella negative claims under
- * arithmetic
+/** @section integral__Formal_Verification Umbrella negative claims under arithmetic.
  *
  * The per-sibling field rejections are pinned upstream and are NOT restated
  * here (vacuous restatements are noise — see the project's cross-partition

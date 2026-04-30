@@ -1,7 +1,7 @@
 /**
  * @file dedekind/numbers/floating_point.cppm
  * @partition :floating_point
- * @brief Level 4: std::floating_point — IEEE 754 Honest Rejection.
+ * @brief std::floating_point — IEEE 754 Honest Rejection.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
@@ -83,8 +83,7 @@ import dedekind.order;    // HasPartialOrderOperators / HasTotalOrderOperators
 
 namespace dedekind::numbers {
 
-/** @section floating_point__Formal_Verification — std::floating_point family
- * witnesses */
+/** @section floating_point__Formal_Verification std::floating_point family witnesses */
 
 // (1) Operator surface — every std::floating_point carrier carries the
 //     full field-operator shape and the partial- / total-order-operator

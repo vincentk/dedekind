@@ -1,7 +1,7 @@
 /**
  * @file dedekind/algebra/group.cppm
  * @partition :group
- * @brief Level 3.1: The Symmetry of Numbers (ℤ, ℚ*).
+ * @brief The Symmetry of Numbers (ℤ, ℚ*).
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.

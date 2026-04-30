@@ -1,7 +1,7 @@
 /**
  * @file dedekind/optimization/lp.cppm
  * @partition :lp
- * @brief Level 13a: Linear programming with the optimum as a typed constant.
+ * @brief Linear programming with the optimum as a typed constant.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.

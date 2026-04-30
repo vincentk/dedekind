@@ -1,7 +1,7 @@
 /**
  * @file dedekind/category/partial.cppm
  * @partition :partial
- * @brief Level 3: The Logic of Potentiality (Partial Algebra).
+ * @brief The Logic of Potentiality (Partial Algebra).
  *
  * @section partial__The_Algebraic_Logic_of_Partiality
  * "Metoda algebraiczna w logice polega na traktowaniu każdego systemu

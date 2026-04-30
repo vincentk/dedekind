@@ -31,7 +31,7 @@ export module dedekind.numbers;
 export import dedekind.order;  // Ordered predicate concepts for numeric species
 export import dedekind.topology;  // Rays, half-spaces, intervals, convex shapes
 
-/** @section numbers__Discrete_Foundations (Level -1 & 0) */
+/** @section numbers__Discrete_Foundations */
 export import :boolean;   // Truth<L> and Ω
 export import :uint;      // std::unsigned_integral as ℤ/2^wℤ
                           // (machine layer below ℕ; closes part of #417)
@@ -48,7 +48,7 @@ export import :floating_point;  // std::floating_point: operator surface +
                                 // field / total order ✗ (IEEE 754 Honest
                                 // Rejection); closes #420
 
-/** @section numbers__Algebraic_Extensions (Level 3 & 8) */
+/** @section numbers__Algebraic_Extensions */
 export import :rational;    // ℚ (The Quotient Field)
 export import :complex;     // ℂ (The Cayley-Dickson construction)
 export import :quaternion;  // ℍ (Hamilton's division ring)

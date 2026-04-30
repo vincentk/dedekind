@@ -1,7 +1,7 @@
 /**
  * @file dedekind/category/f_algebra.cppm
  * @partition :f_algebra
- * @brief Level 2: Initial F-algebras and terminal F-coalgebras.
+ * @brief Initial F-algebras and terminal F-coalgebras.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.

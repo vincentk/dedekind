@@ -1,7 +1,7 @@
 /**
  * @file dedekind/category/species.cppm
  * @partition :species
- * @brief Level 0a: The Reified Machine (The Taxonomic Bricks).
+ * @brief The Reified Machine (The Taxonomic Bricks).
  *
  * @section species__The_Taxonomy_of_Species
  * This partition performs the formal reification of C++ machine types.

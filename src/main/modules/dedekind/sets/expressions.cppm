@@ -1,7 +1,7 @@
 /**
  * @file dedekind/sets/expressions.cppm
  * @partition :expressions
- * @brief Level 1.2: Set-builder DSL — comprehension + Boolean connectives.
+ * @brief Set-builder DSL — comprehension + Boolean connectives.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
@@ -643,7 +643,7 @@ template <typename Species>
 Set(Species) -> Set<typename Species::Domain,
                     typename NaturalLogic<Species>::type, Species>;
 
-/** @section expressions__Relational_Lifting (Level 1) */
+/** @section expressions__Relational_Lifting */
 
 // Note: We move these OUTSIDE the Variable struct, into namespace
 // dedekind::sets

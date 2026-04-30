@@ -1,7 +1,7 @@
 /**
  * @file dedekind/category/etcs.cppm
  * @partition :etcs
- * @brief Level 4: Elementary Theory of the Category of Sets (ETCS) facade.
+ * @brief Elementary Theory of the Category of Sets (ETCS) facade.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.

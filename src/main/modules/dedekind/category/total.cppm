@@ -1,7 +1,7 @@
 /**
  * @file dedekind/category/total.cppm
  * @partition :total
- * @brief Level 1: The Laws of Total Algebra (The Algebraic Hierarchy).
+ * @brief The Laws of Total Algebra (The Algebraic Hierarchy).
  *
  * @section total__The_Categorical_Foundation
  * « Język jest aparatem wyznaczającym obraz świata. Struktura kategorii
@@ -96,7 +96,7 @@ static_assert(IsTotalArrow<decltype(unit<int, int>())>,
 
 /**
  * @concept IsMagma
- * @brief Level 1.0: T × T → T (The Base Total Species).
+ * @brief T × T → T (The Base Total Species).
  * @details A Magma is the most primitive algebraic structure: a set T together
  * with a binary operation Op that is closed (the result stays in T) and total
  * (defined for every pair of inputs). No further axioms are required.
@@ -116,14 +116,14 @@ static_assert(!IsMagma<int, std::plus<int>>);
 
 /**
  * @concept IsUnitalMagma
- * @brief Level 1.1: A Magma with a global Identity (0 or 1).
+ * @brief A Magma with a global Identity (0 or 1).
  */
 export template <typename T, typename Op>
 concept IsUnitalMagma = IsMagma<T, Op> && IsPointed<T, Op>;
 
 /**
  * @concept IsLoop
- * @brief Level 1.2: A UnitalMagma with Inverses (-x).
+ * @brief A UnitalMagma with Inverses (-x).
  * @note "A Group without the Associativity Axiom."
  */
 export template <typename T, typename Op>
@@ -131,7 +131,7 @@ concept IsLoop = IsUnitalMagma<T, Op> && IsInvertible<T, Op>;
 
 /**
  * @concept IsSemigroup
- * @brief Level 1.3: An Associative Magma.
+ * @brief An Associative Magma.
  * @details Adds associativity to the Magma: (a ⊕ b) ⊕ c = a ⊕ (b ⊕ c).
  * This is the foundational property that allows operations to be "chained"
  * without ambiguity, enabling sequential composition.
@@ -149,7 +149,7 @@ concept IsCommutativeSemigroup = IsSemigroup<T, Op> && IsCommutative<T, Op>;
 
 /**
  * @concept IsMonoid
- * @brief Level 1.4: A Semigroup with a two-sided Identity element.
+ * @brief A Semigroup with a two-sided Identity element.
  * @details Adds a neutral element `e` such that e ⊕ a = a = a ⊕ e for all a.
  * `bool` with `logical_or` is a Monoid (identity = `false`);
  * `unsigned int` with `plus` is a Monoid (identity = 0).
@@ -159,7 +159,7 @@ concept IsMonoid = IsSemigroup<T, Op> && IsUnitalMagma<T, Op>;
 
 /**
  * @concept IsCommutativeMonoid
- * @brief Level 1.5: A Monoid where the operation is commutative.
+ * @brief A Monoid where the operation is commutative.
  * @details Both `bool` (OR, AND) and `unsigned int` (multiplication) satisfy
  * this level. Importantly, `unsigned int` with multiplication is a
  * CommutativeMonoid but not a Group (no multiplicative inverse for 2).
@@ -177,7 +177,7 @@ static_assert(IsCommutativeMonoid<unsigned int, std::multiplies<unsigned int>>);
 
 /**
  * @concept IsGroup
- * @brief Level 1.6: A Monoid with two-sided Inverses (The Perfect Symmetry).
+ * @brief A Monoid with two-sided Inverses (The Perfect Symmetry).
  * @details Every element a has a unique inverse a⁻¹ such that a ⊕ a⁻¹ = e.
  * `unsigned int` with addition is a Group (modular inverse exists for every
  * element in Z/2ⁿZ). Signed `int` with addition is not, as overflow is
@@ -193,7 +193,7 @@ static_assert(!IsGroup<unsigned int, std::minus<unsigned int>>);
 
 /**
  * @concept IsAbelianGroup
- * @brief Level 1.7: A Commutative Group.
+ * @brief A Commutative Group.
  * @details `unsigned int` with addition (Z/2ⁿZ) is the canonical example:
  * addition wraps, every element has a modular inverse, and a + b = b + a.
  */
@@ -300,7 +300,7 @@ static_assert(IsCyclicGroup<unsigned int, std::plus<unsigned int>>,
 
 /**
  * @concept IsRig
- * @brief Level 2.1: A Semiring without Negatives (Addition is a Monoid).
+ * @brief A Semiring without Negatives (Addition is a Monoid).
  * @details A Rig ("Ring without negatives") provides two monoidal operations
  * that distribute over each other. `bool` with (OR, AND) and `unsigned int`
  * with (+, *) are both Rigs. Neither has an additive inverse, so they stop
@@ -322,7 +322,7 @@ static_assert(IsRig<unsigned int, std::plus<unsigned int>,
 
 /**
  * @concept IsRng
- * @brief Level 2.2: A Ring without Identity (Multiplication is a Semigroup).
+ * @brief A Ring without Identity (Multiplication is a Semigroup).
  * @details Provides an Abelian Group for addition and a Semigroup for
  * multiplication, with distribution. Called "Rng" (Ring without the
  * multiplicative identity "i").
@@ -344,7 +344,7 @@ concept IsSemiring = IsRig<T, Add, Mult>;
 
 /**
  * @concept IsRing
- * @brief Level 2.3: The Perfect Species (Rig ∩ Rng).
+ * @brief The Perfect Species (Rig ∩ Rng).
  * @details A Ring combines an Abelian Group for addition and a Monoid for
  * multiplication, with mutual distributivity. `unsigned int` with (+, *)
  * forms a Ring (arithmetic in Z/2ⁿZ). Signed `int` does not satisfy this
@@ -363,7 +363,7 @@ static_assert(IsRing<unsigned int, std::plus<unsigned int>,
 
 /**
  * @concept IsCommutativeRing
- * @brief Level 2.4: A Ring whose multiplication is commutative.
+ * @brief A Ring whose multiplication is commutative.
  * @details Every commutative ring satisfies all of @c IsRing plus the
  * requirement that @c a * b == b * a for all @c a, @c b. The rationals
  * @c ℚ, reals @c ℝ, Gaussian rationals @c ℚ(i), and @c Modular<N> for
@@ -375,7 +375,7 @@ concept IsCommutativeRing = IsRing<T, Add, Mult> && IsCommutative<T, Mult>;
 
 /**
  * @concept IsField
- * @brief Level 2.5: The axiomatic field witness --- a commutative ring
+ * @brief The axiomatic field witness --- a commutative ring
  *        whose multiplicative structure is an abelian group (zero
  *        excluded, by convention on @c is_invertible_v).
  *
@@ -421,7 +421,7 @@ concept IsField = IsCommutativeRing<T, Add, Mult> && IsAbelianGroup<T, Mult>;
 
 /**
  * @concept IsSemilattice
- * @brief Level 3.1 compatibility alias for order semilattice refinement.
+ * @brief compatibility alias for order semilattice refinement.
  * @details An operation is idempotent when a ⊕ a = a. Combined with
  * commutativity and associativity, this gives the structure of a semilattice.
  * `bool` with OR (or AND), and `int`/`double` with `max` (or `min`) are
@@ -452,7 +452,7 @@ concept IsMeetSemilattice = IsTotal<T, Op> && IsOrderMeetSemilattice<T, Op>;
 
 /**
  * @concept IsLattice
- * @brief Level 3.2 compatibility alias for order-lattice refinement.
+ * @brief compatibility alias for order-lattice refinement.
  * @details Combines a JoinSemilattice and a MeetSemilattice with the
  * absorption identities: a ∨ (a ∧ b) = a and a ∧ (a ∨ b) = a.
  * `bool` with (OR, AND) and `int`/`double` with (max, min) are Lattices.
@@ -467,7 +467,7 @@ concept IsLattice = IsTotal<T, Join> && IsTotal<T, Meet> &&
 
 /**
  * @concept IsDistributiveLattice
- * @brief Level 3.3 compatibility alias for distributive order lattices.
+ * @brief compatibility alias for distributive order lattices.
  * @details
  * Formal Laws:
  * 1. a ∨ (b ∧ c) = (a ∨ b) ∧ (a ∨ c)  [Join over Meet]

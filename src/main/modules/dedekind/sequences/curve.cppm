@@ -1,7 +1,7 @@
 /**
  * @file dedekind/sequences/curve.cppm
  * @partition :curve
- * @brief Level 2.5c: The Curve (Continuum-Indexed Morphism Family).
+ * @brief The Curve (Continuum-Indexed Morphism Family).
  *
  * @section curve__Curve_Morphism
  * A curve is modeled as a morphism family γ: I -> T where I is a real-valued

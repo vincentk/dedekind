@@ -1,6 +1,6 @@
 /**
  * @file dedekind/analysis/analysis.cppm
- * @brief Level 11: kernels, forms, exterior calculus, Hamiltonian flow.
+ * @brief kernels, forms, exterior calculus, Hamiltonian flow.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.

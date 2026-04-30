@@ -1,7 +1,7 @@
 /**
  * @file dedekind/algebra/vectorspace.cppm
  * @partition :vectorspace
- * @brief Level 3.7: vector-space concepts + concrete witnesses.
+ * @brief vector-space concepts + concrete witnesses.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.

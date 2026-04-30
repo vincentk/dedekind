@@ -1,7 +1,7 @@
 /**
  * @file dedekind/category/monad.cppm
  * @partition :monad
- * @brief Level 2.5: Monads and Comonads (Context as Algebra).
+ * @brief Monads and Comonads (Context as Algebra).
  *
  * This partition internalizes monads and comonads as endofunctor-level
  * algebraic structure. Because categories in this library are specialized to a

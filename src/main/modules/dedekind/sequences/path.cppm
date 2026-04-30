@@ -1,7 +1,7 @@
 /**
  * @file dedekind/sequences/path.cppm
  * @partition :path
- * @brief Level 2.5a: The Frobenius Path (Morphism of Enumeration).
+ * @brief The Frobenius Path (Morphism of Enumeration).
  *
  * @section path__The_Path_Morphism
  * Following the Dedekind structuralist tradition, a Path is a functional

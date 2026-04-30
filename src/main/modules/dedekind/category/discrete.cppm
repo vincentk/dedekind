@@ -1,7 +1,7 @@
 /**
  * @file dedekind/category/discrete.cppm
  * @partition :discrete
- * @brief Level 0.25: The Discrete Infrastructure (Points as Arrows).
+ * @brief The Discrete Infrastructure (Points as Arrows).
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.

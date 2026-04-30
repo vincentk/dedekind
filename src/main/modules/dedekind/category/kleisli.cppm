@@ -1,7 +1,7 @@
 /**
  * @file dedekind/category/kleisli.cppm
  * @partition :kleisli
- * @brief Level 2: The Kleisli Partition (The Extension Systems).
+ * @brief The Kleisli Partition (The Extension Systems).
  *
  * @section kleisli__The_Kleisli_Unification
  * This partition defines the "Extension Systems" that serve as the functional

@@ -1,6 +1,6 @@
 /**
  * @file dedekind/sets/mereology.cppm
- * @brief Level 1: The Rules of Presence (Topos-Aware Sets).
+ * @brief The Rules of Presence (Topos-Aware Sets).
  *
  * Copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.

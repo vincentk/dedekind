@@ -1,6 +1,6 @@
 /**
  * @file dedekind/topology/neighborhood.cppm
- * @brief Level 3: The Rules of Continuity (Neighborhoods, Limits, and Cuts).
+ * @brief The Rules of Continuity (Neighborhoods, Limits, and Cuts).
  *
  * Copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.

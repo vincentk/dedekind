@@ -1,7 +1,7 @@
 /**
  * @file dedekind/numbers/rational.cppm
  * @partition :rational
- * @brief Level 8: ℚ — rationals as numerator/denominator pairs.
+ * @brief ℚ — rationals as numerator/denominator pairs.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.

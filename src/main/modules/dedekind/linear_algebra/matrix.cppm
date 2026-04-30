@@ -1,7 +1,7 @@
 /**
  * @file dedekind/linear_algebra/matrix.cppm
  * @partition :matrix
- * @brief Level 12.5a: Matrices as rectangular linear maps between tuples.
+ * @brief Matrices as rectangular linear maps between tuples.
  *
  * @details
  * Following Stammbach's "Lineare Algebra", matrices are interpreted as

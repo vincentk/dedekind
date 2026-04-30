@@ -1,7 +1,7 @@
 /**
  * @file dedekind/category/functor.cppm
  * @partition :functor
- * @brief Level 2: The Functorial Spine (Structure Preservation).
+ * @brief The Functorial Spine (Structure Preservation).
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.

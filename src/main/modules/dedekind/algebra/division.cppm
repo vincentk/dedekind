@@ -1,7 +1,7 @@
 /**
  * @file dedekind/algebra/division.cppm
  * @partition :division
- * @brief Level 3.3: The Euclidean Engine (Division Rings and Domains).
+ * @brief The Euclidean Engine (Division Rings and Domains).
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.

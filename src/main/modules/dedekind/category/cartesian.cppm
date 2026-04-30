@@ -2,10 +2,10 @@
  * @file dedekind/category/cartesian.cppm
  * @partition :cartesian
  * @brief Cartesian Closed Category (CCC) Foundations.
- * @section cartesian__Cartesian: Products, Coproducts, Exponentials, and
- * Terminal Objects This partition defines the structures required for a
- * category to be Cartesian Closed. In the Dedekind universe, this provides the
- * "Product" and "Function Space" (Exponential) mechanics necessary for ETCS.
+ * @section cartesian__Cartesian Products, Coproducts, Exponentials, and Terminal Objects.
+ * This partition defines the structures required for a category to be
+ * Cartesian Closed. In the Dedekind universe, this provides the "Product"
+ * and "Function Space" (Exponential) mechanics necessary for ETCS.
  *
  * @section cartesian__Std_Namespace_Mappings
  * This partition asserts bidirectional mappings between categorical constructs

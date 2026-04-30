@@ -1,7 +1,7 @@
 /**
  * @file dedekind/algebra/modules.cppm
  * @partition :modules
- * @brief Level 3.6: The Linear Synthesis (Modules and Vector Spaces).
+ * @brief The Linear Synthesis (Modules and Vector Spaces).
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.

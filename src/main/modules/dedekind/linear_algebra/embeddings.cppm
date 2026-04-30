@@ -1,7 +1,7 @@
 /**
  * @file dedekind/linear_algebra/embeddings.cppm
  * @partition :embeddings
- * @brief Level 12.5c: Canonical regular representations ℂ ↪ M₂, 𝔻 ↪ M₂.
+ * @brief Canonical regular representations ℂ ↪ M₂, 𝔻 ↪ M₂.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.

@@ -1,7 +1,7 @@
 /**
  * @file dedekind/category/morphism.cppm
  * @partition :morphism
- * @brief Level 0: The Skeletal Morphism (Structural Cement).
+ * @brief The Skeletal Morphism (Structural Cement).
  *
  * @section morphism__The_Structuralist_Framework
  * This partition defines the categorical primitives that govern the interaction
@@ -436,8 +436,7 @@ auto operator||(const Rule<A, B>& p1, const Rule<A, B>& p2) {
   }};
 }
 
-/** @section morphism__Arrow Factory Verification: Tagging & Species Integrity
- */
+/** @section morphism__Arrow Factory Verification: Tagging and Species Integrity. */
 
 // 4. Action Proof: The tagged arrow preserves the underlying action.
 // We verify that the factory-produced morphism actually executes.

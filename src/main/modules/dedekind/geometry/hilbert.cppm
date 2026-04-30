@@ -1,7 +1,7 @@
 /**
  * @file dedekind/geometry/hilbert.cppm
  * @partition :hilbert
- * @brief Level 10.2: Hilbert spaces — Cauchy-complete inner-product spaces.
+ * @brief Hilbert spaces — Cauchy-complete inner-product spaces.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.

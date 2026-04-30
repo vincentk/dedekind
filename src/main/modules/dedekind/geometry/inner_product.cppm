@@ -1,7 +1,7 @@
 /**
  * @file dedekind/geometry/inner_product.cppm
  * @partition :inner_product
- * @brief Level 10.1: Pre-Hilbert (inner-product) spaces over ℝ or ℂ.
+ * @brief Pre-Hilbert (inner-product) spaces over ℝ or ℂ.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
