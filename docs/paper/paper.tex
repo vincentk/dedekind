@@ -737,17 +737,17 @@ The asymmetry is the lens through which the remainder of the paper
 should be read: subsequent sections cite STLC and category-theoretic
 vocabulary directly, rather than re-explaining the bridge each time.
 
-\begin{landscape}
-\begin{table}
+\begin{table}[htbp]
 \centering
 \caption{\textbf{Disciplined C++23 surface $\leftrightarrow$ simply
 typed $\lambda$-calculus / category theory.}  Correspondence /
 mapping table from concepts and keywords in the disciplined fragment
 of the C++ language to STLC; exhibits of realisations are referenced
-in-line in column~1.}
+in-line in column~1.  The midrule separates standard C++23
+features (top) from \texttt{dedekind}-specific identifiers (bottom).}
 \label{tab:cpp-stlc-mapping}
 \small
-\begin{tabular}{@{}p{0.4\textwidth} p{0.6\textwidth}@{}}
+\begin{tabular}{@{}p{0.42\textwidth} p{0.52\textwidth}@{}}
 \toprule
 \textbf{Disciplined C++23 (\texttt{dedekind})} & \textbf{Lambda calculus / category theory} \\
 \midrule
@@ -759,13 +759,13 @@ NTTP-carried lambda $\lambda x. P(x)$ (§\ref{sec:sets-rules}) & Characteristic 
 \lstinline|using| alias (§\ref{sec:axiomatic}) & Type-level redex --- the compiler reduces by $\beta$-style substitution \\
 \lstinline|constexpr| evaluation (§\ref{sec:lp-centrepiece}, IR fixtures) & Normalisation ($\beta$-reduction) --- reduction of a term to its value or literal form \\
 \lstinline|std::same_as| (§\ref{sec:lp-centrepiece}) & Definitional type equality $\tau = \sigma$ \\
+\midrule
 \lstinline|Ø<T>| (empty-set type; §\ref{sec:pruning}, Showcase 3) & Bottom type $\bot$ --- the uninhabited type witnessing a logical contradiction \\
 \lstinline|HasCanonicalSetCCC<T>| (§\ref{sec:sets-rules}) & The Cartesian-closed-category witness ($1$, $\times$, $(-)^{(-)}$) on the ambient species \\
 \lstinline|template <typename R> struct Cplx { ... };| (and siblings; §\ref{sec:axiomatic}, §\ref{sec:lin-alg-embedding}) & On-objects action of a universal-property functor $F : \mathbf{C} \to \mathbf{C}$ at the type level (here $F = \operatorname{Cplx}$, $\operatorname{Dual}$, $\operatorname{Frac}$, $\operatorname{Cuts}$, $\operatorname{Free}_n$, $\operatorname{End}_R$) \\
 \bottomrule
 \end{tabular}
 \end{table}
-\end{landscape}
 
 Three rows are doing more work than the others, and the paper's
 contribution lies on top of them: the subobject classifier
