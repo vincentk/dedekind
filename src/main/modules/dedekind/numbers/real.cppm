@@ -354,6 +354,23 @@ static_assert(
 
 namespace dedekind::numbers {
 
+// Functor identification: Real<Q> = Cuts(Q).  The Cuts functor
+// (Dedekind order-completion of an ordered field; cf. Lang §I appendix)
+// takes a dense-ordered carrier Q to its Cauchy/Dedekind completion;
+// for any IsRealCarrier Q, Real<Q> IS that completion.  The
+// ScalarCarrier alias is the source-side projection of the Cuts
+// functor, mechanically aligning the §2 paper paragraph
+// ("Named functors that build the library's carriers") with source.
+//
+// FIXME(#498/NEW-A): same naming-convention question as
+// Rational<I>::IntegerCarrier — see the FIXME there.  Aligning
+// IntegerCarrier / ScalarCarrier / value_type with :functor's
+// Σ_cat / Τ_cat / Shape<U> convention is NEW-A trait-registry work.
+static_assert(std::same_as<typename Real<machine_real_scalar>::ScalarCarrier,
+                           machine_real_scalar>,
+              "Real<Q> is the Cuts-functor image of Q; ScalarCarrier names Q "
+              "mechanically.");
+
 static_assert(
     dedekind::category::IsSet<decltype(dedekind::category::ambient_set<
                                        Real<machine_real_scalar>>(R))>,

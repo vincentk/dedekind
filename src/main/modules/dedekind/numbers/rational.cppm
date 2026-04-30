@@ -307,6 +307,31 @@ namespace dedekind::numbers {
 // Proof: The inverse of 2/3 is 3/2.
 static_assert((Rational<default_integer>(2, 3).inverse().num() == 3));
 
+// Functor identification: Rational<I> = Frac(I).  The Frac functor
+// (field-of-fractions; left adjoint to the inclusion / forgetful functor
+// Fields → IntegralDomains; cf. Lang §II.4) takes an integral domain
+// I to its quotient field; for any IsInteger I, Rational<I> IS that
+// quotient field.  Pinning this mechanically aligns the paper §2
+// prose ("Named functors that build the library's carriers") with the
+// source: the IntegerCarrier alias is the source-side projection of
+// the Frac functor, so any consumer can read off "what does this
+// rational sit over?" by inspecting Rational<I>::IntegerCarrier.
+//
+// FIXME(#498/NEW-A): IntegerCarrier is the ad-hoc source-projection
+// alias on Rational<I>; sibling carriers use ScalarCarrier
+// (Real<Q>, Complex<R>) and value_type (Dual<F>, IsTangentBundle).
+// The dedekind.category:functor partition meanwhile establishes the
+// canonical convention --- Σ_cat / Τ_cat for source/target category
+// and Shape<U> for the on-objects action (cf. box_functor<T> at
+// src/main/modules/dedekind/category/functor.cppm).  Unifying the carrier-side
+// projections with the :functor convention is NEW-A trait-registry
+// work and tracked under #498; this static_assert is the smallest
+// honest pinning available today.
+static_assert(std::same_as<typename Rational<default_integer>::IntegerCarrier,
+                           default_integer>,
+              "Rational<I> is the Frac-functor image of I; the "
+              "IntegerCarrier alias names I mechanically.");
+
 /**
  * @brief Characteristic morphism for ℚ: the rationals.
  * Accepts native Rational<I> and delegates predecessor checks through ℤ.
