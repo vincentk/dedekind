@@ -30,9 +30,8 @@ namespace {
 using Rat = Rational<SignedExtensionalCardinal<>>;
 }  // namespace
 
-TEST_CASE(
-    "algebra:modules — operator-shape witnesses for bona fide scalars",
-    "[algebra][modules][scalar][field]") {
+TEST_CASE("algebra:modules — operator-shape witnesses for bona fide scalars",
+          "[algebra][modules][scalar][field]") {
   // Operator-shape predicates are what int / unsigned int actually satisfy
   // under the active numeric policy (the strict IsRing / IsField are
   // intentionally not specialised on these carriers — signed-overflow UB,

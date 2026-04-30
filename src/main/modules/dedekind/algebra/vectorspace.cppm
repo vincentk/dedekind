@@ -118,8 +118,7 @@ concept IsFieldElement = IsVectorSpace<F, F>;
  */
 export template <typename V, typename F, typename Act = std::multiplies<>>
 concept HasVectorSpaceOperators =
-    HasFieldOperators<F> && HasGroupOperatorsAdd<V> &&
-    requires(F a, V v) {
+    HasFieldOperators<F> && HasGroupOperatorsAdd<V> && requires(F a, V v) {
       { Act{}(a, v) } -> std::same_as<V>;
     };
 
