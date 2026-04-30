@@ -126,6 +126,31 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
     CHECK(sym_diff(false) == true);
   }
 
+  SECTION(
+      "Compile-time-disjoint optimisation: A ^ B = A | B when A & B is "
+      "structurally empty (#469)") {
+    // Halfspace-style disjoint pair: (x > 10) and (x < 5) over ℕ — the
+    // structured_and overload in :order:halfspace detects emptiness of
+    // the intersection at the type level, so A & B reduces to
+    // Ø<unsigned int, TernaryLogic>.  In that case A ^ B should
+    // collapse to A | B (no XOR formula needed in the result lambda).
+    auto A = Set{x % N | x > 10u};
+    auto B = Set{x % N | x < 5u};
+    auto sym_diff_disjoint = A ^ B;
+    auto union_disjoint = A | B;
+    // Membership matches the union (since the intersection is empty,
+    // every element in either is in exactly one).
+    REQUIRE(sym_diff_disjoint(3u) == union_disjoint(3u));
+    REQUIRE(sym_diff_disjoint(7u) == union_disjoint(7u));
+    REQUIRE(sym_diff_disjoint(20u) == union_disjoint(20u));
+    // 3 < 5 → in B → in symmetric difference / union.
+    REQUIRE(sym_diff_disjoint(3u) == Ternary::True);
+    // 7 is in neither (7 < 5 false, 7 > 10 false).
+    REQUIRE(sym_diff_disjoint(7u) == Ternary::False);
+    // 20 > 10 → in A → in symmetric difference / union.
+    REQUIRE(sym_diff_disjoint(20u) == Ternary::True);
+  }
+
   SECTION("Complementary-pair XOR collapses to universe: A ^ ¬A = Ω") {
     auto S = Set{x % N | x > 10u};
     auto S_xor_notS = S ^ !S;

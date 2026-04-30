@@ -581,6 +581,19 @@ class Set {
   constexpr auto operator^(const Set<T, L, OtherPredicate>& other) const {
     if constexpr (IsComplementPair_v<Predicate, OtherPredicate>) {
       return Ω<T, L>{};
+    } else if constexpr (std::same_as<std::decay_t<decltype(*this & other)>,
+                                      Ø<T, L>>) {
+      // Compile-time-disjoint optimisation (#469 / PR #523 review):
+      // A △ B = (A ∪ B) ∖ (A ∩ B); when @c A @c ∩ @c B is empty
+      // (i.e.\ @c A & @c B reduces structurally to @c Ø<T, L> at the
+      // type level via @c structured_and / @c IsComplementPair_v),
+      // the symmetric difference is just the union @c A | @c B.
+      // This catches halfspace-style disjoint pairs like
+      // @c (x @c > @c 100) @c △ @c (x @c < @c 5) which the
+      // @c IsComplementPair_v branch above does not see (because
+      // @c (x @c < @c 5) is not the @c NegatedPredicate wrapper of
+      // @c (x @c > @c 100)) but @c structured_and detects.
+      return *this | other;
     } else {
       auto predicate = [lhs = predicate_, rhs = other.predicate_](const T& v) {
         const auto a = lhs(v);
