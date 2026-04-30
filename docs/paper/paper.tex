@@ -790,25 +790,18 @@ LLVM backend treating the reduced bottom type as dead code.
 \paragraph{Named functors that build the library's carriers.}
 Each carrier in the numeric tower
 (Figure~\ref{fig:carrier-lattice}) is the image of a named
-universal-property functor applied to its base:
-$\mathbb{Q} = \operatorname{Frac}(\mathbb{Z})$ (field of fractions;
-left adjoint to
-$\mathbf{Field} \hookrightarrow \mathbf{IntegralDomain}$),
-$\mathbb{R} = \operatorname{Cuts}(\mathbb{Q})$ (Dedekind
-order-completion),
-$\mathbb{C} = \operatorname{Cplx}(\mathbb{R}) = \mathbb{R}[i]/(i^2 + 1)$
-and $\mathbb{D} = \operatorname{Dual}(\mathbb{R}) =
-\mathbb{R}[\varepsilon]/(\varepsilon^2)$ (quotient rings; $\mathbb{D}$
-is the tangent-bundle ring of the affine line over $\mathbb{R}$); the
-rank axis adds $\operatorname{Free}_n(R) = R^n$ (left adjoint to the
-forgetful functor $\operatorname{Mod}_R \to \mathbf{Set}$) and
-$\operatorname{End}_R(R^n) = M_n(R)$ (internal hom in
-$\operatorname{Mod}_R$).  The library partitions ship these
-one-to-one --- \texttt{:rational}, \texttt{:real}, \texttt{:complex},
-\texttt{analysis:dual}, \texttt{:tuple}, \texttt{:matrix} ---
-so a reader fluent in either side can move between the textbook
-diagram and the C++ source directly.\footnote{Each carrier exposes
-its source-side projection by a member alias
+universal-property functor applied to its base.  The quotient axis
+($\operatorname{Frac}$, $\operatorname{Cuts}$, $\operatorname{Cplx}$,
+$\operatorname{Dual}$) and the rank axis ($\operatorname{Free}_n$,
+$\operatorname{End}_R$) are catalogued with their universal
+properties, polynomial ideals, and C++23 carriers in
+Table~\ref{tab:rosetta-quotient} and Table~\ref{tab:rosetta-rank};
+the library partitions ship them one-to-one
+(\texttt{:rational}, \texttt{:real}, \texttt{:complex},
+\texttt{analysis:dual}, \texttt{:tuple}, \texttt{:matrix}), so a
+reader fluent in either side can move between the textbook diagram
+and the C++ source directly.\footnote{Each carrier exposes its
+source-side projection by a member alias
 (\lstinline|Rational<I>::IntegerCarrier|,
 \lstinline|Real<Q>::ScalarCarrier|,
 \lstinline|Complex<R>::ScalarCarrier|, \lstinline|Dual<F>::value_type|);
@@ -821,9 +814,7 @@ partition's convention ($\Sigma_{\mathrm{cat}}$ /
 $\mathrm{T}_{\mathrm{cat}}$ for source / target,
 \lstinline|Shape<U>| for the on-objects action;
 cf.\ \lstinline|box_functor<T>|): unification is the NEW-A
-trait-registry follow-up under issue~\#498.}  References for each
-construction are tabulated in Table~\ref{tab:rosetta-quotient}
-(quotient axis) and Table~\ref{tab:rosetta-rank} (rank axis).
+trait-registry follow-up under issue~\#498.}
 
 % ============================================================
 \section{Intensional First, Realize When You Mean It}
