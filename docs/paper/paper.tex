@@ -591,49 +591,6 @@ would otherwise escape its System-F reading
 disciplined fragment over which Table~\ref{tab:cpp-stlc-mapping}'s
 mapping holds.
 
-\begin{table}[htbp]
-\centering
-\caption{\textbf{The admissibility rules: which C++ idioms are admitted
-in the library's public surface, and what each rule rules out.}  The
-discipline is the price of the System-F reading; each rule below is
-the cost of one row of Table~\ref{tab:cpp-stlc-mapping}.  Internal
-partitions may use the listed escape hatches in bounded scopes, but
-they do not appear in any \lstinline{export}-qualified signature.}
-\label{tab:admissibility-rules}
-\small
-\begin{tabular}{@{}p{0.42\textwidth} p{0.52\textwidth}@{}}
-\toprule
-\textbf{Rule on the public surface} & \textbf{What it rules out, and why} \\
-\midrule
-No \lstinline|reinterpret_cast| in any \lstinline|export|-qualified API. &
-Defeats type abstraction at the value level.  Bit-level reinterpretation
-(e.g., IEEE-754 inspection) lives in non-exporting internal partitions. \\
-No SFINAE branches in the public surface. &
-Substitution-failure-as-overload-selection makes the same call
-mean different things at different call sites.  Concept-constrained
-templates fail with named-axiom messages instead. \\
-No ADL-dependent dispatch except for textbook operator overloads. &
-Argument-dependent lookup is admitted only where the textbook reads
-\texttt{a + b} or \texttt{a == b} on library carriers; free-function
-calls in user code dispatch through explicit qualification. \\
-No template-template parameters in \lstinline|export|-qualified signatures. &
-Higher-kinded structure is named at the level of concepts
-(\lstinline|IsFunctor<F>|, etc.), not by passing template-templates
-through public function signatures. \\
-No public-API specialisation that branches behaviour. &
-Generic templates are parametric across the public surface; per-type
-specialisations live in the trait registry, each carrying an
-algebraic claim that is reviewed and CI-checked against a
-\lstinline|static_assert|. \\
-Bounded template instantiation depth. &
-The Turing-complete instantiation machinery is bounded by the
-carrier-lattice depth (Figure~\ref{fig:carrier-lattice}: scalar,
-shape, quotient axes; depth $\leq 3$ in the current surface), which
-keeps the type checker's work within a decidable cone. \\
-\bottomrule
-\end{tabular}
-\end{table}
-
 The list is not novel --- working C++ teams police variants of it
 informally; the contribution here is that the rules are what
 make Table~\ref{tab:cpp-stlc-mapping}'s mapping accurate, and that
@@ -739,38 +696,76 @@ vocabulary directly, rather than re-explaining the bridge each time.
 
 \begin{table}[htbp]
 \centering
-\caption{\textbf{Disciplined C++23 surface $\leftrightarrow$ lambda
-calculus / category theory.}  The mapping holds for the
-\emph{carefully selected subset} of C++ that the library enforces in
-its public surface: no \lstinline{reinterpret_cast}, no
-ADL-dependent overload resolution, no template-template hackery; only
-\lstinline{concept}-constrained templates, NTTP-carried
-predicates, \lstinline{using} aliases, and \lstinline{constexpr}
-evaluation.  C++ as a whole language admits no closed denotational
-semantics (overload resolution and ADL are non-uniform; template
-instantiation is in general undecidable; parametricity is not
-preserved --- cf.\ Bracha et al.~\cite{bracha1998making}).  Template
-type-parameter polymorphism (System-F-style $\Lambda\alpha. M$) is
-used here; full \emph{dependent} quantification over types (the
-Curry--Howard reading of dependent products / $\Pi$-types) is not
-available in C++23 and is not claimed.  The ``Realisation'' column
-points to the section where each row is exhibited.}
+\caption{\textbf{The admissibility rules: which C++ idioms are admitted
+in the library's public surface, and what each rule rules out.}  The
+discipline is the price of the System-F reading; each rule below is
+the cost of one row of Table~\ref{tab:cpp-stlc-mapping}.  Internal
+partitions may use the listed escape hatches in bounded scopes, but
+they do not appear in any \lstinline{export}-qualified signature.}
+\label{tab:admissibility-rules}
+\small
+\begin{tabular}{@{}p{0.42\textwidth} p{0.52\textwidth}@{}}
+\toprule
+\textbf{Rule on the public surface} & \textbf{What it rules out, and why} \\
+\midrule
+No \lstinline|reinterpret_cast| in any \lstinline|export|-qualified API. &
+Defeats type abstraction at the value level.  Bit-level reinterpretation
+(e.g., IEEE-754 inspection) lives in non-exporting internal partitions. \\
+No SFINAE branches in the public surface. &
+Substitution-failure-as-overload-selection makes the same call
+mean different things at different call sites.  Concept-constrained
+templates fail with named-axiom messages instead. \\
+No ADL-dependent dispatch except for textbook operator overloads. &
+Argument-dependent lookup is admitted only where the textbook reads
+\texttt{a + b} or \texttt{a == b} on library carriers; free-function
+calls in user code dispatch through explicit qualification. \\
+No template-template parameters in \lstinline|export|-qualified signatures. &
+Higher-kinded structure is named at the level of concepts
+(\lstinline|IsFunctor<F>|, etc.), not by passing template-templates
+through public function signatures. \\
+No public-API specialisation that branches behaviour. &
+Generic templates are parametric across the public surface; per-type
+specialisations live in the trait registry, each carrying an
+algebraic claim that is reviewed and CI-checked against a
+\lstinline|static_assert|. \\
+Bounded template instantiation depth. &
+The Turing-complete instantiation machinery is bounded by the
+carrier-lattice depth (Figure~\ref{fig:carrier-lattice}: scalar,
+shape, quotient axes; depth $\leq 3$ in the current surface), which
+keeps the type checker's work within a decidable cone. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\caption{\textbf{From disciplined C++23 to set builder notation to simply typed $\lambda$-calculus and category theory.}  Correspondence /
+mapping table from concepts and keywords in the disciplined fragment
+of the C++ language to STLC; exhibits of realisations are referenced
+in-line in column~1.  The midrule separates standard C++23 features
+(top) from the set-builder DSL identifiers (bottom) that name the
+subobject classifier $\Omega$ and the Cartesian-closed-category
+witness on which the set-comprehension surface
+(§\ref{sec:sets-rules}) is built.}
 \label{tab:cpp-stlc-mapping}
 \small
-\begin{tabular}{@{}p{0.30\textwidth} p{0.32\textwidth} p{0.30\textwidth}@{}}
+\begin{tabular}{@{}p{0.42\textwidth} p{0.52\textwidth}@{}}
 \toprule
-\textbf{Disciplined C++23 (\texttt{dedekind})} & \textbf{Lambda calculus / category theory} & \textbf{Realisation} \\
+\textbf{Disciplined C++23} & \textbf{Lambda calculus / category theory} \\
 \midrule
-\lstinline|template <typename T>| & Type variable $\alpha$; System-F universal quantification at the type level (parametric \emph{in the disciplined subset}; no specialisation, no SFINAE branch in the public surface) & §\ref{sec:axiomatic} \\
-\lstinline|concept| & Type-class / kind constraint --- a predicate on types restricting the domain of a polymorphic function & §\ref{sec:axiomatic}, lst.~\ref{lst:structural} \\
-\lstinline|requires|-clause & Evidence / constraint satisfaction --- a proof obligation that the type carries the term-level operations & §\ref{sec:axiomatic} \\
-\lstinline|static_assert| & Mechanical proof that proposition $P$ is inhabited at translation time (Curry--Howard~\cite{wadler2015propositions}) & throughout \\
-NTTP-carried lambda $\lambda x. P(x)$ & Characteristic morphism $\chi_S : A \to \Omega$ defining a set by its membership rule & §\ref{sec:sets-rules} \\
-\lstinline|using| alias & Type-level redex --- the compiler reduces by $\beta$-style substitution & §\ref{sec:axiomatic} \\
-\lstinline|constexpr| evaluation & Normalisation ($\beta$-reduction) --- reduction of a term to its value or literal form & §\ref{sec:lp-centrepiece}, IR fixtures \\
-\lstinline|std::same_as| & Definitional type equality $\tau = \sigma$ & §\ref{sec:lp-centrepiece} \\
-\lstinline|Ø<T>| (empty-set type) & Bottom type $\bot$ --- the uninhabited type witnessing a logical contradiction & §\ref{sec:pruning}, Showcase 3 \\
-\lstinline|HasCanonicalSetCCC<T>| & The Cartesian-closed-category witness ($1$, $\times$, $(-)^{(-)}$) on the ambient species & §\ref{sec:sets-rules} \\
+\lstinline|template <typename T>| (§\ref{sec:axiomatic}) & Type variable $\alpha$; System-F universal quantification at the type level (parametric \emph{in the disciplined subset}; no specialisation, no SFINAE branch in the public surface) \\
+\lstinline|concept| (§\ref{sec:axiomatic}, lst.~\ref{lst:structural}) & Type-class / kind constraint --- a predicate on types restricting the domain of a polymorphic function \\
+\lstinline|requires|-clause (§\ref{sec:axiomatic}) & Evidence / constraint satisfaction --- a proof obligation that the type carries the term-level operations \\
+\lstinline|static_assert| (throughout) & Mechanical proof that proposition $P$ is inhabited at translation time (Curry--Howard~\cite{wadler2015propositions}) \\
+\lstinline|using| alias (§\ref{sec:axiomatic}) & Type-level redex --- the compiler reduces by $\beta$-style substitution \\
+\lstinline|constexpr| evaluation (§\ref{sec:lp-centrepiece}, IR fixtures) & Normalisation ($\beta$-reduction) --- reduction of a term to its value or literal form \\
+\lstinline|std::same_as| (§\ref{sec:lp-centrepiece}) & Definitional type equality $\tau = \sigma$ \\
+\midrule
+\texttt{dedekind} & \\
+\midrule
+NTTP-carried lambda $\lambda x. P(x)$ (§\ref{sec:sets-rules}) & Characteristic morphism $\chi_S : A \to \Omega$ defining a set by its membership rule \\
+\lstinline|Ø<T>| (empty-set type; §\ref{sec:pruning}, Showcase 3) & Bottom type $\bot$ --- the uninhabited type witnessing a logical contradiction \\
+\lstinline|HasCanonicalSetCCC<T>| (§\ref{sec:sets-rules}) & The Cartesian-closed-category witness ($1$, $\times$, $(-)^{(-)}$) on the ambient species \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -787,47 +782,33 @@ collapse (§\ref{sec:gap}) act as a form of cut elimination, with the
 LLVM backend treating the reduced bottom type as dead code.
 
 \paragraph{Named functors that build the library's carriers.}
-The categorical vocabulary is not decorative.  Each carrier in the
-numeric tower (Figure~\ref{fig:carrier-lattice}) arrives as the image
-of a named universal-property functor applied to its base:
-$\mathbb{Q} = \operatorname{Frac}(\mathbb{Z})$ (field of fractions;
-left adjoint to the inclusion / forgetful functor
-$\mathbf{Field} \hookrightarrow \mathbf{IntegralDomain}$),
-$\mathbb{R} = \operatorname{Cuts}(\mathbb{Q})$ (Dedekind
-order-completion), $\mathbb{C} = \operatorname{Cplx}(\mathbb{R}) =
-\mathbb{R}[i]/(i^2 + 1)$ (quotient ring), $\mathbb{D} =
-\operatorname{Dual}(\mathbb{R}) = \mathbb{R}[\varepsilon]/(\varepsilon^2)$
-(quotient ring; the tangent-bundle ring of the affine line over
-$\mathbb{R}$).  The rank axis adds two more: $\operatorname{Free}_n(R)
-= R^n$ (left adjoint to the forgetful functor from $R$-modules to
-sets) and $\operatorname{End}_R(R^n) = M_n(R)$ (internal hom in
-$\operatorname{Mod}_R$).  The library partitions correspond
-one-to-one to these functors --- \texttt{:rational} ships
-$\operatorname{Frac}$, \texttt{:real} ships $\operatorname{Cuts}$,
-\texttt{:complex} ships $\operatorname{Cplx}$,
-\texttt{analysis:dual} ships $\operatorname{Dual}$,
-\texttt{:tuple} ships $\operatorname{Free}_2$, \texttt{:matrix} ships
-$\operatorname{End}_R$ at $n=2$ --- so a reader fluent in either
-side can move between the textbook diagram and the C++ source
-without an interpretive layer.  Each carrier exposes its source-side
-projection by a member alias (\lstinline|Rational<I>::IntegerCarrier|,
-\lstinline|Real<Q>::ScalarCarrier|, \lstinline|Complex<R>::ScalarCarrier|,
-\lstinline|Dual<F>::value_type|).  A co-located \lstinline|static_assert|
-pins the functor identification mechanically for the
-field-of-fractions, Dedekind-cuts, and quotient-by-$(i^2+1)$ carriers
-(\texttt{Rational}, \texttt{Real}, \texttt{Complex}); the
-$\operatorname{Dual}$ identification is pinned structurally via the
-\lstinline|IsTangentBundle| concept in
-\texttt{geometry:tangent}, which checks the same source-side
-projection under a different name (\lstinline|value_type|, plus the
-\lstinline|.value()| / \lstinline|.derivative()| accessors).  The aliases are not yet fully aligned with the
-\lstinline|:functor| partition's convention
-($\Sigma_{\mathrm{cat}}$ / $\mathrm{T}_{\mathrm{cat}}$ for source /
-target category, \lstinline|Shape<U>| for the on-objects action;
-cf.~\lstinline|box_functor<T>|): unifying the two surfaces is the
-NEW-A trait-registry follow-up under issue~\#498.  References for
-each construction are tabulated in Table~\ref{tab:rosetta-quotient}
-(quotient axis) and Table~\ref{tab:rosetta-rank} (rank axis).
+Each carrier in the numeric tower
+(Figure~\ref{fig:carrier-lattice}) is the image of a named
+universal-property functor applied to its base.  The quotient axis
+($\operatorname{Frac}$, $\operatorname{Cuts}$, $\operatorname{Cplx}$,
+$\operatorname{Dual}$) and the rank axis ($\operatorname{Free}_n$,
+$\operatorname{End}_R$) are catalogued with their universal
+properties, polynomial ideals, and C++23 carriers in
+Table~\ref{tab:rosetta-quotient} and Table~\ref{tab:rosetta-rank};
+the library partitions ship them one-to-one
+(\texttt{:rational}, \texttt{:real}, \texttt{:complex},
+\texttt{analysis:dual}, \texttt{:tuple}, \texttt{:matrix}), so a
+reader fluent in either side can move between the textbook diagram
+and the C++ source directly.\footnote{Each carrier exposes its
+source-side projection by a member alias
+(\lstinline|Rational<I>::IntegerCarrier|,
+\lstinline|Real<Q>::ScalarCarrier|,
+\lstinline|Complex<R>::ScalarCarrier|, \lstinline|Dual<F>::value_type|);
+a co-located \lstinline|static_assert| pins the Frac / Cuts / Cplx
+identifications mechanically, and the $\operatorname{Dual}$
+identification is pinned structurally via the
+\lstinline|IsTangentBundle| concept in \texttt{geometry:tangent}.
+The aliases are not yet aligned with the \lstinline|:functor|
+partition's convention ($\Sigma_{\mathrm{cat}}$ /
+$\mathrm{T}_{\mathrm{cat}}$ for source / target,
+\lstinline|Shape<U>| for the on-objects action;
+cf.\ \lstinline|box_functor<T>|): unification is the NEW-A
+trait-registry follow-up under issue~\#498.}
 
 % ============================================================
 \section{Intensional First, Realize When You Mean It}
@@ -1039,6 +1020,74 @@ preceding this figure.}
 \label{fig:initial-ring-modular}
 \end{figure}
 
+% --- Rosetta tables for the rank ($\mathfrak{R}$) and quotient ($\mathfrak{Q}$)
+%     axes of the Algebraic Lattice (Figure~\ref{fig:carrier-lattice}). ---
+
+\begin{table}[htbp]
+\centering
+\caption{\textbf{Rank-axis rosetta ($\mathfrak{R}$).}  Per-rank object,
+its functorial origin (with textbook citation in-line), the algebraic
+concept witnessing it, and the C++23 carrier in
+\texttt{dedekind.linear\_algebra}.  The chain
+$T \to V_n(T) \to M_n(T)$ exhibits the rank-axis steps of
+Figure~\ref{fig:carrier-lattice}.  The figure exhibits $n = 2$ as the
+worked example; higher ranks are reached via structure-preserving
+combinators (\texttt{DirectSum}, \texttt{BlockUpperTriangular},
+\texttt{Kronecker}; issue \#368).}
+\label{tab:rosetta-rank}
+\small
+\begin{tabular}{@{}l l l l@{}}
+\toprule
+\textbf{Object} & \textbf{Functor} & \textbf{Concept} & \textbf{C++23 carrier} \\
+\midrule
+$T$ (scalar) & identity & \lstinline|IsRing| / \lstinline|IsField| & \lstinline|T| \\
+$V_n(T) = T^n$ & $\mathrm{Free}_n$ (left adjoint to the forgetful functor $\mathbf{Mod}_R \to \mathbf{Set}$; Mac Lane~\cite{maclane1971categories} §VII) & \lstinline|IsModule<V, T>| & \lstinline|Vec2V<T>| \\
+$M_n(T) = \mathrm{End}_T(V_n)$ & $\mathrm{End}_R$ (internal hom in $\mathbf{Mod}_R$; Mac Lane~\cite{maclane1971categories} §VII) & \lstinline|IsLinearAction<T, V, Act>| & \lstinline|Matrix2x2V<T>| \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\caption{\textbf{Quotient-axis rosetta ($\mathfrak{Q}$).}  Per-quotient
+realisation: the polynomial ideal, the resulting algebra, the structural
+property of the resulting ring, and the C++23 carrier (where shipped).
+Each row is a specific value of the parameter $X$ in
+Figure~\ref{fig:carrier-lattice}.  Compositions ($X = D \circ C$ etc.)
+commute when their generating variables are independent.}
+\label{tab:rosetta-quotient}
+\small
+\begin{tabular}{@{}l l l l l@{}}
+\toprule
+\textbf{$X$} & \textbf{Polynomial ideal} & \textbf{Algebra} & \textbf{Structure} & \textbf{C++23 carrier} \\
+\midrule
+$D$ (Dual) & $(\varepsilon^2)$ & $R[\varepsilon]/(\varepsilon^2)$ & nilpotent (never integral) & \lstinline|Dual<F>| (\#504 generalises) \\
+$C$ (Cplx) & $(i^2 + 1)$ & $R[i]/(i^2 + 1)$ & integral-domain extension when $i^2{+}1$ irreducible; field extension when $R$ is a field$^a$ & \lstinline|Complex<R>| (\#505 generalises) \\
+$D \circ C \cong C \circ D$ & $(i^2 + 1, \varepsilon^2)$ & $R[i, \varepsilon]/(i^2{+}1, \varepsilon^2)$ & nilpotent dual of the complex extension & nested \lstinline|Dual<Complex<R>>| \\
+$G$ (Galois) & $(q(x))$ for $q$ irreducible & $\mathbb{F}_p[x]/(q(x))$ & finite field $\mathbb{F}_{p^n}$ & \lstinline|𝔽64| ($\mathbb{F}_2[x]/(x^6{+}x{+}1)$, PR \#444) \\
+\bottomrule
+\end{tabular}
+
+\vspace{0.5em}
+{\footnotesize
+\textsuperscript{a} The structural type of $C(R) = R[i]/(i^2 + 1)$
+depends on both the irreducibility of $i^2 + 1$ over $R$ \emph{and}
+on whether $R$ is itself a field.  When $i^2 + 1$ is irreducible over
+$R$, the result is an integral-domain extension --- a field extension
+when $R$ is already a field (e.g.\ $C(\mathbb{Q}) = \mathbb{Q}[i]$ is
+a field; $C(\mathbb{R}) = \mathbb{C}$ is a field), an integral-domain
+extension when $R$ is an integral domain but not a field (e.g.\
+$C(\mathbb{Z}) = \mathbb{Z}[i]$, the Gaussian integers, is a Euclidean
+domain but not a field).  When $i^2 + 1$ is reducible (e.g.\ over
+$\mathbb{F}_2$ where it factors as $(x + 1)^2$), the quotient has
+nilpotents and is isomorphic to $D(\mathbb{F}_2)$ (cf.\ \#505).
+This is a concrete example of the "same construction, different
+result depending on base" pattern the quotient axis encodes.  Per-cell compile-status (which $R \times X$
+combinations the experimental library admits today vs which are pending
+implementation) is tracked in the trait registry of \#499 as positive /
+negative \texttt{static\_assert} witnesses.}
+\end{table}
+
 \paragraph{Forms before carriers.}
 The library reifies the discrete-foundations triple structurally
 rather than starting from a machine-integer carrier:
@@ -1063,6 +1112,17 @@ operator (subtraction) that distinguishes $\mathbb{Z}$ from
 $\mathbb{N}$, and the variant carriers escalate to
 $\pm\aleph_0$ rather than overflowing as
 \lstinline{int}/\lstinline{unsigned int} would.}
+The same Form-then-Carrier discipline continues up the
+tower.\footnote{$\mathbb{Q} = \operatorname{Frac}(\mathbb{Z})$,
+$\mathbb{R} = \operatorname{Cuts}(\mathbb{Q})$,
+$\mathbb{C} = \operatorname{Cplx}(\mathbb{R})$,
+$\mathbb{D} = \operatorname{Dual}(\mathbb{R})$, and the rank lift
+$\operatorname{Free}_n(R) = R^n$ /
+$\operatorname{End}_R(R^n) = M_n(R)$ are all named as functors
+in §\ref{sec:axiomatic}, paragraph \emph{Named functors that
+build the library's carriers}; carriers are named by the
+universal property that defines them, not by the storage scheme
+they happen to use.}
 
 \subsection{The Tension: Abstract Naturals vs.\ IEEE Numerics}
 \label{sec:numeric-tension}
@@ -1394,79 +1454,6 @@ marks not-currently-asserted.}
 \textsuperscript{e} & vectors have no internal product \lstinline|Vec2V $\times$ Vec2V $\to$ Vec2V|, only scalar multiplication; the shape concept correctly refuses. \\
 \end{tabular}
 }
-\end{table}
-
-% --- Rosetta tables for the rank ($\mathfrak{R}$) and quotient ($\mathfrak{Q}$)
-%     axes of the Algebraic Lattice (Figure~\ref{fig:carrier-lattice}). ---
-
-\begin{table}[htbp]
-\centering
-\caption{\textbf{Rank-axis rosetta ($\mathfrak{R}$).}  Per-rank object,
-its functorial origin, the C++23 carrier in \texttt{dedekind.linear\_algebra},
-and the canonical textbook reference.  The chain
-$T \to V_n(T) \to M_n(T)$ exhibits the rank-axis steps of
-Figure~\ref{fig:carrier-lattice}; the existing
-Tables~\ref{tab:carriers-exact}--\ref{tab:rosetta-textbook-vs-cpp} cover
-the carrier-strength axis specifically.}
-\label{tab:rosetta-rank}
-\small
-\begin{tabular}{@{}l l l l@{}}
-\toprule
-\textbf{Object} & \textbf{Functor} & \textbf{C++23 carrier} & \textbf{Textbook} \\
-\midrule
-$T$ (scalar) & identity & \lstinline|T| (any \lstinline|HasRingOperators|) & --- \\
-$V_n(T) = T^n$ & $\mathrm{Free}_n$ (left adjoint to forgetful $\mathbf{Mod}_R \to \mathbf{Set}$) & \lstinline|Vec2V<T>| (and future $V_n$) & Mac Lane §VII \\
-$M_n(T) = \mathrm{End}_T(V_n)$ & $\mathrm{End}_R$ (internal hom in $\mathbf{Mod}_R$) & \lstinline|Matrix2x2V<T>| (and future $M_n$) & Mac Lane §VII \\
-\bottomrule
-\end{tabular}
-
-\vspace{0.5em}
-{\footnotesize
-\noindent The figure exhibits $n = 2$ as the worked example.  Higher-rank
-extensions ($n > 2$) are reached by structure-preserving combinators
-(\texttt{DirectSum}, \texttt{BlockUpperTriangular}, \texttt{Kronecker};
-issue \#368) rather than by inflating the atomic class template.}
-\end{table}
-
-\begin{table}[htbp]
-\centering
-\caption{\textbf{Quotient-axis rosetta ($\mathfrak{Q}$).}  Per-quotient
-realisation: the polynomial ideal, the resulting algebra, the structural
-property of the resulting ring, and the C++23 carrier (where shipped).
-Each row is a specific value of the parameter $X$ in
-Figure~\ref{fig:carrier-lattice}.  Compositions ($X = D \circ C$ etc.)
-commute when their generating variables are independent.}
-\label{tab:rosetta-quotient}
-\small
-\begin{tabular}{@{}l l l l l@{}}
-\toprule
-\textbf{$X$} & \textbf{Polynomial ideal} & \textbf{Algebra} & \textbf{Structure} & \textbf{C++23 carrier} \\
-\midrule
-$D$ (Dual) & $(\varepsilon^2)$ & $R[\varepsilon]/(\varepsilon^2)$ & nilpotent (never integral) & \lstinline|Dual<F>| (\#504 generalises) \\
-$C$ (Cplx) & $(i^2 + 1)$ & $R[i]/(i^2 + 1)$ & integral-domain extension when $i^2{+}1$ irreducible; field extension when $R$ is a field$^a$ & \lstinline|Complex<R>| (\#505 generalises) \\
-$D \circ C \cong C \circ D$ & $(i^2 + 1, \varepsilon^2)$ & $R[i, \varepsilon]/(i^2{+}1, \varepsilon^2)$ & nilpotent dual of the complex extension & nested \lstinline|Dual<Complex<R>>| \\
-$G$ (Galois) & $(q(x))$ for $q$ irreducible & $\mathbb{F}_p[x]/(q(x))$ & finite field $\mathbb{F}_{p^n}$ & \lstinline|𝔽64| ($\mathbb{F}_2[x]/(x^6{+}x{+}1)$, PR \#444) \\
-\bottomrule
-\end{tabular}
-
-\vspace{0.5em}
-{\footnotesize
-\textsuperscript{a} The structural type of $C(R) = R[i]/(i^2 + 1)$
-depends on both the irreducibility of $i^2 + 1$ over $R$ \emph{and}
-on whether $R$ is itself a field.  When $i^2 + 1$ is irreducible over
-$R$, the result is an integral-domain extension --- a field extension
-when $R$ is already a field (e.g.\ $C(\mathbb{Q}) = \mathbb{Q}[i]$ is
-a field; $C(\mathbb{R}) = \mathbb{C}$ is a field), an integral-domain
-extension when $R$ is an integral domain but not a field (e.g.\
-$C(\mathbb{Z}) = \mathbb{Z}[i]$, the Gaussian integers, is a Euclidean
-domain but not a field).  When $i^2 + 1$ is reducible (e.g.\ over
-$\mathbb{F}_2$ where it factors as $(x + 1)^2$), the quotient has
-nilpotents and is isomorphic to $D(\mathbb{F}_2)$ (cf.\ \#505).
-This is a concrete example of the "same construction, different
-result depending on base" pattern the quotient axis encodes.  Per-cell compile-status (which $R \times X$
-combinations the experimental library admits today vs which are pending
-implementation) is tracked in the trait registry of \#499 as positive /
-negative \texttt{static\_assert} witnesses.}
 \end{table}
 
 Reading rule for callsites: pick \emph{seal} for plain C++ syntax
@@ -2083,29 +2070,18 @@ defining relation $\varepsilon^2 = 0$ lifting to
 $\bigl(\begin{smallmatrix} 0 & 1 \\ 0 & 0 \end{smallmatrix}\bigr)^2
 = 0$ on the matrix side.
 
-In the functor vocabulary of §\ref{sec:axiomatic} (paragraph
-\emph{Named functors that build the library's carriers}): both
-embeddings are natural transformations between the quotient-functor
-images and the endomorphism-ring image of the rank functor.  Over a
-generic base ring $R$, the source side reads
-$\operatorname{Cplx}(R) = R[i]/(i^2 + 1)$ and
-$\operatorname{Dual}(R) = R[\varepsilon]/(\varepsilon^2)$; the target
-reads $M_2(R) = \operatorname{End}_R(\operatorname{Free}_2(R))$.  The
-two embeddings are then components of a single natural-transformation
-schema $\operatorname{Cplx}, \operatorname{Dual} \Rightarrow
-\operatorname{End}_R \circ \operatorname{Free}_2$ over the same base
-ring $R$ --- the textbook ``regular representation'' viewed through
-the carrier-lattice axes (Figure~\ref{fig:carrier-lattice}).  The
-worked instance shipped above is $R = \mathbb{Q}$ (with the exact
-\lstinline|Rational<SignedExtensionalCardinal<>>| carrier), so the
-\lstinline|static_assert|s in the listing below discharge
-$\operatorname{Cplx}(\mathbb{Q})$ and $\operatorname{Dual}(\mathbb{Q})$
-embedding into $M_2(\mathbb{Q})$.  The lattice's commutation identities
-(the back-face quotients commute with the rank lift; see
-Table~\ref{tab:rosetta-quotient}) underwrite the fact that the same
-identities hold over any sufficiently structured base.  The §2 paragraph's
-$\mathbb{C} = \operatorname{Cplx}(\mathbb{R})$ reading is the
-$R = \mathbb{R}$ specialisation of the same schema.
+In the functor vocabulary of §\ref{sec:axiomatic}, both embeddings
+are components of a single natural-transformation schema
+$\operatorname{Cplx}, \operatorname{Dual} \Rightarrow
+\operatorname{End}_R \circ \operatorname{Free}_2$, with target
+$M_2(R) = \operatorname{End}_R(\operatorname{Free}_2(R)) =
+\operatorname{End}_R(R^2)$; the worked instance ships at
+$R = \mathbb{Q}$ via
+\lstinline|Rational<SignedExtensionalCardinal<>>|, so the listing
+below discharges $\operatorname{Cplx}(\mathbb{Q})$ and
+$\operatorname{Dual}(\mathbb{Q}) \hookrightarrow M_2(\mathbb{Q})$
+mechanically (the $R = \mathbb{R}$ specialisation is the textbook
+``regular representation'').
 
 % Source: src/test/cpp/modules/dedekind/linear_algebra/embeddings_test.cpp
 \begin{lstlisting}[language=C++, caption={Ring-homomorphism identities $\mathbb{C}, \mathbb{D} \hookrightarrow M_2(\mathbb{Q})$, discharged as \lstinline{static_assert}s; the source uses Catch2 \lstinline{STATIC_CHECK} macros and \lstinline{Rat{...L}} long-suffixed rationals, abridged here for legibility.}, label={lst:lin-alg-embeddings}]
