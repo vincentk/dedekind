@@ -295,15 +295,15 @@ namespace dedekind::numbers {
 export template <IsInteger I = default_integer,
                  IsRealCarrier S = machine_real_scalar>
 inline constexpr auto embed_ℚ_ℝ =
-    arrow<Rational<I>, Real<S>>([](const Rational<I>& q) noexcept {
+    arrow<Rational<I>, Real<S>>([](const Rational<I>& q) {
       auto to_real_scalar = [](const I& z) -> S {
         // Detect @b static-castability rather than just implicit
         // convertibility: a carrier may expose @c explicit
         // @c operator @c S, which makes @c static_cast<S>(z) valid
-        // even when @c std::convertible_to<I, S> is false.  PR #520
-        // review follow-up: this captures both the implicit-conversion
-        // case (built-in @c int @c → @c double) and the
-        // explicit-conversion-operator case uniformly.
+        // even when @c std::convertible_to<I, S> is false.  This
+        // captures both the implicit-conversion case (built-in
+        // @c int @c → @c double) and the explicit-conversion-operator
+        // case uniformly.
         if constexpr (requires { static_cast<S>(z); }) {
           return static_cast<S>(z);
         } else {

@@ -686,7 +686,8 @@ struct SignedExtensionalCardinal {
    *  heterogeneous form directly on @c SEC makes it a strictly better
    *  match (no UDC on the @c SEC side), letting callers write
    *  @c q.num() @c > @c 0 and similar without explicit
-   *  @c default_integer{0} lifts.  PR #520 review follow-up.
+   *  @c default_integer{0} lifts.  Mirrors the heterogeneous
+   *  @c operator== above for the ordering side.
    */
   template <std::integral T>
   constexpr friend std::strong_ordering operator<=>(

@@ -97,9 +97,10 @@ class Rational {
    *    * @c Real<Rational<Z>>{1} for the @c HasGroupOperatorsMul
    *      @c T{1} witness on @c ExactReal<>;
    *    * @c Rational<Z>{2} for the @c (a @c + @c b) @c / @c T{2}
-   *      midpoint expression in the @c IsDense concept (post-#520
-   *      reformulation that uses @c T{2} instead of bare-int
-   *      @c 2 to keep the carrier in control of its own value-2);
+   *      midpoint expression in the @c IsDense concept (the @c T{2}
+   *      reformulation, landed under this PR, replaces the previous
+   *      bare-int @c 2 so the carrier is in control of its own
+   *      value-2);
    *    * generally, any context where an @c int literal lifts into
    *      @c Rational<Z> across one UDC.
    *
