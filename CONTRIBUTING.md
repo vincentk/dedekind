@@ -144,7 +144,7 @@ projects them onto PR content rather than build mechanics.
 
 - The `Makefile` is the **preferred** build interface; use `make <target>` rather than
    raw `cmake`/`ninja`/`ctest` commands whenever an equivalent target exists.
-   Available targets: `compile`, `test-compile`, `test`, `format`, `format-check`, `coverage`, `doxygen`, `report`, `paper`,
+   Available targets: `compile`, `test-compile`, `test`, `format`, `format-check`, `coverage`, `doxygen`, `paper`,
    `clean`, `install-hooks`, `ci-history`, `ci-main`, `pr-init`, `pr-status`, `pr-checks`, `pr-watch`, `pr-sync`, `pr-review-comments`, `pr-review-unresolved`.
 - Contributor workflow helper targets:
   `make ci-history BRANCH=<name> [LIMIT=<n>]` checks recent CI runs for a specific branch.
@@ -160,7 +160,7 @@ projects them onto PR content rather than build mechanics.
 - Treat the GitHub CI build as the reference build for the project.  Local builds are useful,
    but merge readiness is determined by the PR checks.
 - **Net result:** the CI pipeline uses the same `make` targets as contributors do locally
-   (`make test`, `make coverage`, `make doxygen`, `make report`).  For routine development,
+   (`make test`, `make coverage`, `make doxygen`, `make paper`).  For routine development,
    the only thing a contributor strictly needs to run locally is `git push`; GitHub Actions
    handles the heavy compilation, test execution, coverage processing, and documentation
    builds on every push.  Local builds remain necessary when debugging non-trivial build
@@ -251,7 +251,7 @@ appear downstream, in the same order a textbook would present them.
 | `make coverage` | Build, run tests, and produce an LLVM coverage report |
 | `make python-coverage` | Run Python tests and generate `build/python-coverage.xml` |
 | `make doxygen` | Build Doxygen API docs into `build/docs/` |
-| `make report` | Fast report compile check (`docs/report` `ci-check`) |
+| `make paper` | Fast paper compile check (`docs/paper` `ci-check`) |
 | `make install-hooks` | Install the pre-push git hook |
 
 ### Backlog Grooming And CI Health Quick Loop
@@ -338,7 +338,7 @@ Both reports are uploaded to Codecov for centralized visibility.
 - Mirror the doxygen header style used in neighbouring files — see
   `Doxygen header convention` below for the full shape.
 - Keep concepts and naming aligned with the textbook literature cited in
-  `docs/report/references.bib`.  UTF-8 mathematical symbols (ℤ, ℝ, …) are preferred
+  `docs/paper/references.bib`.  UTF-8 mathematical symbols (ℤ, ℝ, …) are preferred
   over verbose ASCII alternatives.
 - Add or extend tests in the corresponding `src/test/cpp/modules/…` file.
 
@@ -355,8 +355,7 @@ comment block whose elements, in order, are:
    Version 2.0.`
 5. One or more `@section` blocks summarising the partition's contents and
    its mathematical intent. Cross-reference the textbook literature in
-   `docs/report/references.bib` and `docs/paper/references.bib` when a
-   concept has a canonical attested source.
+   `docs/paper/references.bib` when a concept has a canonical attested source.
 6. A `Wikipedia: ...` line enumerating two or three articles a reader might
    consult to place the partition in the broader literature.
 7. A `@note` containing a **pertinent or serendipitous quote from a not

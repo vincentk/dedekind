@@ -186,20 +186,14 @@ jobs:
     - name: Install docs toolchains
       run: |
         make ci-install-doxygen-deps
-        make ci-install-report-deps
+        make ci-install-paper-deps
 
-    - name: Build Doxygen, report, and paper in parallel
+    - name: Build Doxygen and paper in parallel
       run: |
         (
           make doxygen CXX=clang++-22 CC=clang-22 CMAKE_EXTRA_ARGS="-DDEDEKIND_RUNTIME_COVERAGE_BRIDGES=ON"
         ) &
         DOXYGEN_BUILD_PID=$!
-
-        (
-          make report
-          make -C docs/report doc
-        ) &
-        REPORT_BUILD_PID=$!
 
         (
           make paper
@@ -208,14 +202,12 @@ jobs:
         PAPER_BUILD_PID=$!
 
         wait "$DOXYGEN_BUILD_PID"
-        wait "$REPORT_BUILD_PID"
         wait "$PAPER_BUILD_PID"
 
     - name: Stage Pages content
       run: |
         mkdir -p build/pages
         cp -R build/docs/html/. build/pages/
-        cp docs/report/report.pdf build/pages/report.pdf
         cp docs/paper/paper.pdf build/pages/paper.pdf
 
     - name: Upload artifact
