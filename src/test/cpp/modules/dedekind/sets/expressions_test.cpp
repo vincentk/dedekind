@@ -31,6 +31,39 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
           "[sets][operators]") {
   auto x = var<ℕ>;
 
+  SECTION(
+      "Singleton ^ Singleton — equal pivots empty, distinct pivots union "
+      "(#469)") {
+    auto same_a = singleton(7);
+    auto same_b = singleton(7);
+    auto distinct = singleton(11);
+    auto sym_eq = same_a ^ same_b;
+    auto sym_neq = same_a ^ distinct;
+    // {7} ^ {7} is empty pointwise.
+    REQUIRE(sym_eq(7) == false);
+    REQUIRE(sym_eq(0) == false);
+    // {7} ^ {11} contains exactly 7 and 11.
+    REQUIRE(sym_neq(7) == true);
+    REQUIRE(sym_neq(11) == true);
+    REQUIRE(sym_neq(0) == false);
+  }
+
+  SECTION("Singleton ^ Set — pivot toggles membership (#469)") {
+    auto x_int = var<Ω<int>>;
+    auto positives = Set{x_int % Ω<int>{} | (x_int > 0)};
+    auto sing_in_set = singleton(5);
+    auto sing_out_set = singleton(-3);
+    auto in_xor = sing_in_set ^ positives;    // 5 ∈ positives → result drops 5
+    auto out_xor = sing_out_set ^ positives;  // -3 ∉ positives → result adds -3
+    // 5 was in positives, now isn't (singleton toggled it off).
+    REQUIRE(in_xor(5) == false);
+    REQUIRE(in_xor(7) == true);  // 7 stays in (was in positives, not toggled)
+    // -3 wasn't in positives, now is (singleton toggled it on).
+    REQUIRE(out_xor(-3) == true);
+    REQUIRE(out_xor(7) == true);    // 7 stays in
+    REQUIRE(out_xor(-1) == false);  // -1 stays out
+  }
+
   SECTION("Boundary collapses: A ^ ∅ = A, ∅ ^ A = A (#469)") {
     auto S = Set{x % N | x > 10u};
     Ø<unsigned int, TernaryLogic> empty{};
