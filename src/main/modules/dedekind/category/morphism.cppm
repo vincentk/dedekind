@@ -55,86 +55,165 @@ import :species;
 namespace dedekind::category {
 
 // ---------------------------------------------------------------------------
-// Hub / Spoke architecture (clarified under #525)
+// Morphisms vs functors in a single-species universe (clarified under #525)
 // ---------------------------------------------------------------------------
 //
-// @section Single_Species_Commitment
+// This block reads in two registers — categorical (morphism / functor)
+// and architectural (spoke / hub).  The categorical content drives the
+// design; the architectural vocabulary is the C++23 realisation of it.
 //
-// The dedekind category model is @b single-species by design: a category
-// @c 𝒞 in this codebase is realised as a struct (e.g.\ @c Set<T>) whose
-// objects are values of a single C++ type @c T (the @c Species), and
-// whose arrows are @c Morphism<T, T, ...> instances.  This is a
-// pragmatic restriction for the disciplined-template fragment: modeling
-// polymorphic-collection-of-species categories would require runtime
-// type-erasure (existentials, type-erased object containers) that the
-// project's System-F-flavoured admissibility rules
-// (Table~\ref{tab:admissibility-rules} in @c paper.tex) deliberately
-// exclude.
+// @section Single_Species_Universe
 //
-// Concrete consequences:
-//   * @c Set<int> is the category whose objects are values of type
-//     @c int and whose arrows are @c Morphism<int, int, ...>.
-//   * @c Set<Box<int>> is a @b different category — same structural
-//     definition, distinct species.
-//   * @c Set<Path<int>> is a category whose objects are sequences
-//     @c ℕ @c → @c int (treated as objects in @b Set, exactly per the
-//     CCC reading where function spaces are first-class objects).
-//   * Functors @c F: @c 𝒞 @c → @c 𝒟 are realised as @b Hub types
-//     (@c box_functor, @c maybe_functor, etc.) carrying
-//     @c Σ_cat / @c Τ_cat aliases that name the source / target
-//     categories explicitly.
+// The dedekind category model is @b single-species by design.  A
+// category @c 𝒞 in this codebase has @b objects drawn from a single
+// C++ type — its @c Species — and @b morphisms drawn from a single
+// C++ type — its @c Arrow.  In code this looks like
 //
-// @section Arrows_Within_vs_Between_Categories
+//   struct Set<T> {                   // The category of T-valued things.
+//     using Species = T;              //   Objects: values of type T.
+//     using Arrow = Morphism<T, T, std::function<T(T)>>;  //   Morphisms.
+//     using Id = SetId<T>;
+//     ...
+//   };
 //
-// Composition of arrows comes in two flavours that must @b not be
-// conflated at the dispatch level:
+// This restriction is pragmatic, not principled.  In the textbook
+// presentation a category's collection of objects is a class whose
+// elements may belong to different types; modeling that polymorphism
+// in C++23 would require runtime type-erasure (existentials,
+// type-erased object containers), which the project's System-F-flavoured
+// admissibility rules (Table~\ref{tab:admissibility-rules} in
+// @c paper.tex) deliberately exclude.  The single-species commitment
+// is the price of the disciplined-template fragment.
 //
-//   1. @b Spoke @b composition — composition of arrows @b within a
-//      single category.  Given @c f: @c a → @c b and @c g: @c b → @c c
-//      both in @c 𝒞 (so @c a, @c b, @c c are @c 𝒞.Species values),
-//      @c f @c >> @c g is the textbook composition @c a → @c c in @c 𝒞.
-//   2. @b Hub @b composition — composition of arrows @b between
-//      categories.  Given functors @c F: @c 𝒞 → @c 𝒟 and @c G: @c 𝒟 → @c ℰ
-//      (so @c F.Σ_cat = @c 𝒞, @c F.Τ_cat = @c 𝒟, etc.), @c F @c >> @c G
-//      is functor composition @c 𝒞 → @c ℰ in @b Cat (the category of
-//      categories).
+// Concrete instances of this pattern in the codebase:
+//   * @c Set<int> — the category whose objects are int values and
+//     whose morphisms are functions @c int @c → @c int.
+//   * @c Set<Box<int>> — a @b different category, same structural
+//     shape, distinct species.
+//   * @c Set<Path<int>> — a category whose objects are sequences
+//     @c ℕ @c → @c int.  Path<int> is an OBJECT in this category,
+//     even though Path is itself an arrow at the meta-level (every
+//     sequence IS a function ℕ → T) — exactly the CCC reading where
+//     function spaces are first-class objects in @b Set.
 //
-// These are different operations on different categories.  At the
-// dispatch level they need separate routes — otherwise a generic
-// @c operator>> overload sees both flavours and either resolves
-// ambiguously or misroutes.  The @c spoke_arrow_tag / @c hub_arrow_tag
-// tags below + the @c IsSpokeArrow / @c IsHubArrow concepts further down
-// implement that routing: object-level @c operator>> in this partition
-// gates on @c IsSpokeArrow; hub-level composition (functor composition,
-// natural-transformation composition, etc.) is owned by the bridge
-// partitions (@c :functor, @c :natural).
+// @section Morphisms_within_a_Category
 //
-// @section Hub_Spoke_Discriminator (#525)
+// A morphism in @c 𝒞 is an arrow @c f: @c a → @c b where @c a, @c b
+// are objects of @c 𝒞 (i.e., @c 𝒞.Species values).  Composition of
+// morphisms is internal: given @c f: @c a → @c b and @c g: @c b → @c c
+// in @c 𝒞, the composite @c g @c ∘ @c f: @c a → @c c is also a
+// morphism in @c 𝒞.  This is the closure axiom: a category is closed
+// under composition of its own morphisms.
 //
-// The spoke discriminator is "Domain is not a category-shaped thing"
-// (i.e.\ @c !IsCategoryShape<Dom<T>>), expressing the formal definition
-// of arrow-within-a-category: a spoke arrow's @b Domain is an object,
-// not a category.  Pre-#525 the discriminator used the structural-proxy
-// @c !IsArrow<Dom<T>> on the implicit theory that an arrow whose Domain
-// is itself an arrow is probably a hub.  That proxy worked
-// coincidentally for functor-Hubs (whose Domain is a category and
-// therefore has @c Cat::Arrow, satisfying @c IsArrow) but over-fired on
-// object-level types that happen to expose @c Domain / @c Codomain
-// aliases for @b unrelated reasons — the canonical example is
-// @c Path<T>, which carries @c Domain @c = @c std::size_t to model the
-// textbook reading "a sequence is a function @c ℕ @c → @c T".  The
-// post-#525 discriminator @c IsCategoryShape (defined just below
-// @c IsArrow) tests for the identifying category aliases (@c ::Arrow,
-// @c ::Species, @c ::Id) directly — asking the right question rather
-// than the structural proxy.
+// In code, @c 𝒞.Arrow instances ARE the morphisms.  In the dispatch
+// vocabulary below they are called @b spoke @b arrows, because in the
+// hub/spoke architecture they are arrows that connect ordinary
+// (object-level) endpoints — the spokes of the wheel, with the
+// category itself as the hub.  The fish @c f @c >> @c g (sugar for
+// @c g @c ∘ @c f) is the operator surface for spoke composition.
+//
+// @section Functors_between_Categories
+//
+// A functor @c F: @c 𝒞 → @c 𝒟 is, mathematically, a structure-
+// preserving map between two categories.  It has two parts:
+//
+//   * @b F_obj: an action on objects, taking @c 𝒞.Species @c → @c 𝒟.Species.
+//     In code this is @c F::template @c Shape<U> (the type-constructor
+//     part: @c box_functor<T>::Shape<U> @c = @c Box<U>, etc.).
+//   * @b F_mor: an action on morphisms, taking @c 𝒞.Arrow @c → @c 𝒟.Arrow,
+//     with @c F(g @c ∘ @c f) @c = @c F(g) @c ∘ @c F(f) and
+//     @c F(id_a) @c = @c id_{F(a)}.  In code this is @c F.φ(f) (the
+//     morphic-lift method on the functor Hub).
+//
+// Because functors are themselves arrows — they are the arrows of
+// @b Cat, the category of categories — they have their own
+// composition: given @c F: @c 𝒞 → @c 𝒟 and @c G: @c 𝒟 → @c ℰ, the
+// composite @c G @c ∘ @c F: @c 𝒞 → @c ℰ is a functor (a morphism in
+// @b Cat).  This is a @b different operation than morphism
+// composition within a single category — different category, different
+// composition law, different concrete realisation.
+//
+// In the architecture vocabulary below, functors are called @b hub
+// @b arrows: their endpoints are categories (the source / target
+// labels @c Σ_cat / @c Τ_cat that hub types like @c box_functor
+// expose), so they sit "above" the spoke arrows that connect objects
+// within a single category.  The fish @c F @c >> @c G (sugar for
+// @c G @c ∘ @c F) at the hub level is functor composition; that
+// operator is owned by @c :functor, not by this partition.
+//
+// @section Three_Composition_Shapes
+//
+// Together these give @b three distinct operator-@c >> shapes the
+// codebase uses:
+//
+//   1. @b Morphism @c >> @b Morphism (spoke @c >> spoke) —
+//      composition of arrows within a category.  Owned by this
+//      partition (@c :morphism, line ~565).  Requires
+//      @c IsSpokeArrow on both sides + matching middle types.
+//   2. @b Functor @c >> @b Functor (hub @c >> hub) — composition in
+//      @b Cat.  Owned by @c :functor (the @c composite_functor
+//      machinery).  Requires @c IsFunctor on both sides +
+//      @c F::Τ_cat @c == @c G::Σ_cat (so the source/target categories
+//      of the chain match up).
+//   3. @b Functor @c >> @b Morphism (hub @c >> spoke) — @b not
+//      composition; instead a syntactic-sugar reuse of @c >> for the
+//      @b functorial @b action on arrows (i.e.\ @c F.φ(f) /
+//      @c fmap @c F @c f).  Owned by @c :functor.  Categorically,
+//      this is the F_mor part of the functor applied to an arrow in
+//      the source category, returning an arrow in the target
+//      category.  It is not "composition" in the same sense as (1)
+//      and (2); the operator-symbol overlap is for ergonomics in the
+//      Haskell idiom (@c functor @c <$> @c arrow), not for
+//      categorical uniformity.  Reader beware: @c F @c >> @c f does
+//      @b not mean "compose F with f as morphisms in the same
+//      category" — that would be ill-typed, since F's codomain is a
+//      category and f's domain is an object.
+//
+// The fourth combination, @b Morphism @c >> @b Functor (spoke @c >>
+// hub), has no categorical reading and no overload exists.  Such an
+// expression fails to compile.
+//
+// @section Discriminator (#525)
+//
+// The split between (1) and (2)/(3) at dispatch time hinges on a
+// single question: @b is @b the @b Domain @b a @b category?
+//
+//   * If yes — Domain has @c ::Arrow / @c ::Species / @c ::Id aliases
+//     identifying it as a category — the arrow is a functor
+//     (between categories): a hub.
+//   * If no — Domain is an object — the arrow is a morphism (within a
+//     category): a spoke.
+//
+// The codebase realises this question structurally as
+// @c IsCategoryShape<Dom<T>>, defined further down.  @c IsCategoryShape
+// is the structural prefix of the full @c IsCategory in @c :small —
+// here we only need the shape to make the routing decision; the
+// behavioural axioms (composition closure, identity laws) are not
+// needed at this layer.
+//
+// Pre-#525 the discriminator used @c !IsArrow<Dom<T>> as a structural
+// proxy for "Domain isn't a category".  This worked coincidentally
+// for functor-Hubs (whose Domain is a category and therefore has
+// @c Cat::Arrow, satisfying @c IsArrow) but over-fired on object-level
+// types that happen to expose @c Domain / @c Codomain aliases for
+// unrelated reasons.  The canonical example: @c Path<T> declares
+// @c Domain @c = @c std::size_t to model the textbook reading "a
+// sequence is a function @c ℕ @c → @c T", which makes
+// @c IsArrow<Path<T>> trivially true even though @c Path<T> is an
+// @b object in @b Set, not a category.  The post-#525 form
+// @c !IsCategoryShape<Dom<T>> asks the right question and the
+// over-fire stops.
 //
 // @section Manual_Override
 //
 // In addition to the structural test, types may opt in / out manually
 // via @c using @c ArrowKind @c = @c spoke_arrow_tag; or
 // @c hub_arrow_tag; .  Today the @c hub_arrow_tag opt-out is the
-// load-bearing override (functor Hubs use it); @c spoke_arrow_tag is a
-// reserved spoke-marker for parallel future opt-in cases.
+// load-bearing override (functor Hubs use it to forcibly exclude
+// themselves from spoke routing); @c spoke_arrow_tag is a reserved
+// spoke-marker for parallel future opt-in cases (a type that wants
+// to participate in spoke composition despite an unusual Domain
+// shape, etc.).
 // ---------------------------------------------------------------------------
 
 /**
