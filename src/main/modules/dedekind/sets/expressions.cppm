@@ -223,6 +223,25 @@ template <typename P1, typename P2>
 inline constexpr bool IsComplementPair_v =
     IsComplementPair<std::decay_t<P1>, std::decay_t<P2>>::value;
 
+// IsNegatedPredicate_v / NegatedPredicateBase_t: pattern-match on the
+// @c NegatedPredicate<X> wrapper at the type level, exposing the inner
+// predicate type for downstream rewrites (De Morgan / negation-peel
+// collapses on @c operator^; #469 / PR #523).
+template <typename P>
+struct IsNegatedPredicateImpl : std::false_type {
+  using base_type = void;
+};
+template <typename Inner>
+struct IsNegatedPredicateImpl<NegatedPredicate<Inner>> : std::true_type {
+  using base_type = Inner;
+};
+template <typename P>
+inline constexpr bool IsNegatedPredicate_v =
+    IsNegatedPredicateImpl<std::decay_t<P>>::value;
+template <typename P>
+using NegatedPredicateBase_t =
+    typename IsNegatedPredicateImpl<std::decay_t<P>>::base_type;
+
 export template <typename T, typename L, typename Predicate>
 class Set;
 
@@ -611,6 +630,24 @@ class Set {
       // symmetry with the disjoint branch and to document the
       // design space.
       return !(*this & other);
+    } else if constexpr (IsNegatedPredicate_v<OtherPredicate>) {
+      // De Morgan negation-peel (#469 / PR #523):
+      // A △ ¬X = ¬(A △ X)
+      // When the rhs predicate is a @c NegatedPredicate<X> wrapper,
+      // peel the negation outward and recurse into @c operator^ on
+      // the unwrapped @c X.  The result is the @b complement of the
+      // unwrapped XOR, which is the textbook biconditional /
+      // equivalence (@c x @c ∈ @c A @c ↔ @c x @c ∈ @c X).  Saves a
+      // @c NegatedPredicate wrapper layer in the result type and
+      // gives the inner @c operator^ a chance to fire its other
+      // collapses against the unwrapped predicate.
+      Set<T, L, NegatedPredicateBase_t<OtherPredicate>> inner{
+          other.predicate_.base};
+      return !(*this ^ inner);
+    } else if constexpr (IsNegatedPredicate_v<Predicate>) {
+      // Symmetric peel: ¬X △ B = ¬(X △ B).
+      Set<T, L, NegatedPredicateBase_t<Predicate>> inner{predicate_.base};
+      return !(inner ^ other);
     } else {
       auto predicate = [lhs = predicate_, rhs = other.predicate_](const T& v) {
         const auto a = lhs(v);

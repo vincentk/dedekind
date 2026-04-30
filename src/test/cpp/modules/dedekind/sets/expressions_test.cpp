@@ -151,6 +151,27 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
     REQUIRE(sym_diff_disjoint(20u) == Ternary::True);
   }
 
+  SECTION("De Morgan negation peel: A ^ ¬B = ¬(A ^ B) (#469)") {
+    // When the rhs predicate is wrapped in NegatedPredicate (e.g.\
+    // !some_set), the operator^ peels the negation outward.
+    // Resulting semantic: x ∈ A ^ ¬B iff x is in exactly one, which
+    // is equivalent to x ∈ A ↔ x ∈ B (the biconditional).
+    auto A = Set{x % N | x > 10u};
+    auto B = Set{x % N | x < 100u};
+    auto sym_diff_neg = A ^ !B;
+    auto biconditional = !(A ^ B);
+    // Both should agree pointwise: A ^ ¬B = ¬(A ^ B).
+    REQUIRE(sym_diff_neg(5u) == biconditional(5u));
+    REQUIRE(sym_diff_neg(50u) == biconditional(50u));
+    REQUIRE(sym_diff_neg(200u) == biconditional(200u));
+    // Concrete values:
+    // 5: ∈ B (5 < 100), ∉ A (5 ≯ 10) → A ^ B classifies True at 5
+    //   → ¬(A ^ B) classifies False at 5 → A ^ ¬B = False.
+    REQUIRE(sym_diff_neg(5u) == Ternary::False);
+    // 50: ∈ both A and B → A ^ B classifies False → ¬(A ^ B) = True.
+    REQUIRE(sym_diff_neg(50u) == Ternary::True);
+  }
+
   SECTION("Complementary-pair XOR collapses to universe: A ^ ¬A = Ω") {
     auto S = Set{x % N | x > 10u};
     auto S_xor_notS = S ^ !S;
