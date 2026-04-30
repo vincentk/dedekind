@@ -197,19 +197,16 @@ struct SingletonSet {
 export template <typename T, typename L1, typename L2, typename P>
 constexpr auto operator^(const SingletonSet<T, L1>& s,
                          const Set<T, L2, P>& other) {
-  // Ascend to the wider logic: if either side is TernaryLogic the result
-  // is TernaryLogic.  In particular `singleton(v)` is ClassicalLogic but
-  // `Set{x % Ω<T> | …}` ascends through NaturalLogic to TernaryLogic, so
-  // a naive choice of L1 leaves `lift_logic<ClassicalLogic>(Ternary)`
-  // dead-on-arrival.
-  using L = std::conditional_t<
-      std::is_same_v<L1, dedekind::category::TernaryLogic> ||
-          std::is_same_v<L2, dedekind::category::TernaryLogic>,
-      dedekind::category::TernaryLogic, dedekind::category::ClassicalLogic>;
-  return Set{var<Ω<T, L>> % Ω<T, L>{} | [s, other](const T& x) {
-    const auto a = dedekind::category::lift_logic<L>(s(x));
-    const auto b = dedekind::category::lift_logic<L>(other(x));
-    return L::OR(L::AND(a, L::NOT(b)), L::AND(L::NOT(a), b));
+  // The asymmetry is one-sided: `singleton(v)` always lands in
+  // ClassicalLogic, while `Set{x % Ω<T> | …}` ascends through
+  // NaturalLogic and routinely arrives as TernaryLogic.  Take the
+  // result logic from that same side (L2): the singleton's bool lifts
+  // through `lift_logic<L2>` cleanly, and the Set's predicate is
+  // already in L2.
+  return Set{var<Ω<T, L2>> % Ω<T, L2>{} | [s, other](const T& x) {
+    const auto a = dedekind::category::lift_logic<L2>(s(x));
+    const auto b = dedekind::category::lift_logic<L2>(other(x));
+    return L2::OR(L2::AND(a, L2::NOT(b)), L2::AND(L2::NOT(a), b));
   }};
 }
 
