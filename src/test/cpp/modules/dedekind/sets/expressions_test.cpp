@@ -39,13 +39,16 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
     auto distinct = singleton(11);
     auto sym_eq = same_a ^ same_b;
     auto sym_neq = same_a ^ distinct;
+    // The Set CTAD ascends the logic species to TernaryLogic via
+    // NaturalLogic<Ω<...>>; results compare against Ternary::True /
+    // Ternary::False, not bool.
     // {7} ^ {7} is empty pointwise.
-    REQUIRE(sym_eq(7) == false);
-    REQUIRE(sym_eq(0) == false);
+    REQUIRE(sym_eq(7) == Ternary::False);
+    REQUIRE(sym_eq(0) == Ternary::False);
     // {7} ^ {11} contains exactly 7 and 11.
-    REQUIRE(sym_neq(7) == true);
-    REQUIRE(sym_neq(11) == true);
-    REQUIRE(sym_neq(0) == false);
+    REQUIRE(sym_neq(7) == Ternary::True);
+    REQUIRE(sym_neq(11) == Ternary::True);
+    REQUIRE(sym_neq(0) == Ternary::False);
   }
 
   SECTION("Singleton ^ Set — pivot toggles membership (#469)") {
@@ -55,13 +58,15 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
     auto sing_out_set = singleton(-3);
     auto in_xor = sing_in_set ^ positives;    // 5 ∈ positives → result drops 5
     auto out_xor = sing_out_set ^ positives;  // -3 ∉ positives → result adds -3
+    // Same TernaryLogic ascent as above.
     // 5 was in positives, now isn't (singleton toggled it off).
-    REQUIRE(in_xor(5) == false);
-    REQUIRE(in_xor(7) == true);  // 7 stays in (was in positives, not toggled)
+    REQUIRE(in_xor(5) == Ternary::False);
+    REQUIRE(in_xor(7) ==
+            Ternary::True);  // 7 stays in (was in positives, not toggled)
     // -3 wasn't in positives, now is (singleton toggled it on).
-    REQUIRE(out_xor(-3) == true);
-    REQUIRE(out_xor(7) == true);    // 7 stays in
-    REQUIRE(out_xor(-1) == false);  // -1 stays out
+    REQUIRE(out_xor(-3) == Ternary::True);
+    REQUIRE(out_xor(7) == Ternary::True);    // 7 stays in
+    REQUIRE(out_xor(-1) == Ternary::False);  // -1 stays out
   }
 
   SECTION("Boundary collapses: A ^ ∅ = A, ∅ ^ A = A (#469)") {
