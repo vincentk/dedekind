@@ -1054,8 +1054,10 @@ static_assert(IsBijective<Identity<int>>,
 //                                                 @c std::optional / @c Maybe)
 //                                                       @c is_kleisli_arrow_v
 //
-// The total-injection slot is already covered above by @c is_monic_arrow_v
-// (and its companion @c is_epic_arrow_v).  This block adds the two
+// The total-injection slot is already covered above by
+// @c is_monic_arrow_v (epicity, @c is_epic_arrow_v, is the orthogonal
+// surjectivity property — companion in the categorical zoo, not part
+// of the total-injection class itself).  This block adds the two
 // missing slots so each class has its own opt-in trait + concept; the
 // audit / decorate sweep that pins concrete @c realize_to_* and
 // @c try_realize_to_* arrows to the right class is step 2 of #380.
@@ -1082,8 +1084,10 @@ inline constexpr bool is_total_arrow_v = false;
  *        sentinel.
  * @details Opt-in via @c is_total_arrow_v<E> @c = @c true.  The intended
  *          use is the @c realize_to_<primitive> family of arrows
- *          (#380): exact ↪ primitive realisations whose contract includes
- *          a sentinel for out-of-range inputs.
+ *          (#380): exact → primitive realisations whose contract includes
+ *          a sentinel for out-of-range inputs (these arrows are total but
+ *          @b not injective, so the plain @c → arrow rather than @c ↪
+ *          is correct).
  */
 export template <typename E>
 concept IsTotalArrow = IsArrow<E> && is_total_arrow_v<E>;
@@ -1091,10 +1095,15 @@ concept IsTotalArrow = IsArrow<E> && is_total_arrow_v<E>;
 /**
  * @brief User-declared "Kleisli arrow" witness for an arrow type.
  * @details A Kleisli arrow lives in the Kleisli category of a monad
- *          @c M: it has shape @c e: @c A @c → @c M<B>.  In the library
- *          today this is overwhelmingly @c M @c = @c std::optional /
- *          @c Maybe, used for partial realisations (e.g.,
- *          @c try_realize_to_size_t returning @c std::optional<size_t>).
+ *          @c M: it has shape @c e: @c A @c → @c M<B>.  The @c M slot
+ *          is the @b Kleisli @b hub @b tag of the monad in question
+ *          (@c maybe_hub_tag, @c box_hub_tag, etc.) — i.e.\ a tag
+ *          type that names which Kleisli category the arrow inhabits,
+ *          not the class template @c std::optional itself.  In the
+ *          library today partial realisations are the dominant
+ *          consumer (e.g., a @c try_realize_to_size_t returning
+ *          @c std::optional<size_t> would opt in via
+ *          @c is_kleisli_arrow_v<F, maybe_hub_tag> @c = @c true).
  *          Default @c false; opt-in by specialising to @c true at the
  *          @c (E, M) pair.
  *
@@ -1108,9 +1117,9 @@ inline constexpr bool is_kleisli_arrow_v = false;
 
 /**
  * @concept IsKleisliArrow
- * @brief An arrow declared to live in the Kleisli category of monad
- *        @c M.
- * @details Opt-in via @c is_kleisli_arrow_v<E, @c M> @c = @c true.
+ * @brief An arrow declared to live in the Kleisli category indexed by
+ *        the monad-hub tag @c M.
+ * @details Opt-in via @c is_kleisli_arrow_v<E, M> @c = @c true.
  */
 export template <typename E, typename M>
 concept IsKleisliArrow = IsArrow<E> && is_kleisli_arrow_v<E, M>;
