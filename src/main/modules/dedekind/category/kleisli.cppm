@@ -21,7 +21,7 @@
  * - <<= (Extend)       : The 'co-extension' operator, sampling the species into
  * a new context.
  *
- * @section kleisli__Notation_Mapping Textbook Notation -> Implementation
+ * @section kleisli__Notation_Mapping
  * Surface
  *
  * Core monadic/comonadic symbols and their implementation names:

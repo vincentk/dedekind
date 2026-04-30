@@ -9,7 +9,7 @@
  * @build_order 7
  * @dependency :algebra, :topology, :cardinalities
  *
- * @section natural__Numbers: The Realization of the Soul
+ * @section natural__Numbers
  * This partition is the final "Registry" of the ontology. It maps concrete
  * C++ types to their formal algebraic and topological identities.
  *

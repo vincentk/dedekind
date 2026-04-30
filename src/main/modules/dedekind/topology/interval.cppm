@@ -7,7 +7,7 @@
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
  *
- * @section interval__Shapes: The Geometry of Boundaries
+ * @section interval__Shapes
  * This partition defines the fundamental morphological units of the continuum.
  * Following the Dedekind construction, we define the "Half-Space" as a Ray
  * and the "Bounded Space" as an Interval.

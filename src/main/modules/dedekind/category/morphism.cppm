@@ -436,7 +436,8 @@ auto operator||(const Rule<A, B>& p1, const Rule<A, B>& p2) {
   }};
 }
 
-/** @section morphism__Arrow Factory Verification: Tagging and Species Integrity. */
+/** @section morphism__Arrow Factory Verification: Tagging and Species
+ * Integrity. */
 
 // 4. Action Proof: The tagged arrow preserves the underlying action.
 // We verify that the factory-produced morphism actually executes.
@@ -545,7 +546,7 @@ inline constexpr bool is_commutative_v<Identity<T>, Op> =
     is_commutative_v<T, Op>;
 
 /**
- * @section morphism__Lifting_2 Traits: Morphism Identity
+ * @section morphism__Lifting_2
  * The identity element of the Identity Morphism under composition
  * is the Identity Morphism itself (id ∘ id = id).
  */
@@ -553,7 +554,7 @@ template <typename T, typename Op>
 inline constexpr Identity<T> identity_v<Identity<T>, Op> = Identity<T>{};
 
 /**
- * @section morphism__Categorical Composition (Explicitly Typed)
+ * @section morphism__Categorical
  * @brief Synthesizes an arrow A -> C from A -> B and B -> C.
  * @details By requiring A, B, and C as template parameters, we ensure
  *          the composition is a statically verified bridge.
@@ -647,7 +648,7 @@ template <typename A, typename B, typename Impl>
 static_assert(IsIsomorphism<TaggedNegate>,
               "Negation must be recognized as a reversible Morphism.");
 /**
- * @section morphism__The Action Bridge (Value >> Arrow)
+ * @section morphism__Pipe_Operator
  * @brief Proposition: A Value x can be piped into a Morphism f: A -> B.
  * @details This is the terminal step of a Highway pipeline. It maps the
  *          Species-level data into the Codomain result.

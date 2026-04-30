@@ -74,7 +74,8 @@ struct Vec2 {
   }
 };
 
-/** @section tuple__Value_Level_Tuples Column / row vectors as 2x1 / 1x2 matrices. */
+/** @section tuple__Value_Level_Tuples Column / row vectors as 2x1 / 1x2
+ * matrices. */
 
 // Forward declaration so `Vec2V::transpose()` can name `Covec2V` at the
 // point of definition. The bound matches the full declaration below.

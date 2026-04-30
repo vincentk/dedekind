@@ -13,7 +13,7 @@
  * to an empty predicate at compile time. Contrast with the lambda-returning
  * variable operators in `dedekind.sets`, which erase the pivot into a closure.
  *
- * @section halfspace__DSL_Surface (paper-facing)
+ * @section halfspace__DSL_Surface
  *
  *     inline constexpr auto n = var<ℕ>;
  *     inline constexpr auto big   = Set{n % N | (n > bound<5>)};

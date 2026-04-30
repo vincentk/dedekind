@@ -42,7 +42,7 @@
  * entries live in the type, each matrix-vector product is a type-level
  * rewrite, observable via `static_assert`.
  *
- * @section matrix__DSL_Surface (paper-facing)
+ * @section matrix__DSL_Surface
  *
  *     using Q = dedekind::numbers::Rational<long>;
  *     // M = [[1, 2], [3, 4]],  det = -2

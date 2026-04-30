@@ -9,7 +9,7 @@
  * @build_order 2
  * @dependency :logic, :category
  *
- * @section mereology__Mereology: The Geometry of Existence
+ * @section mereology__Mereology
  * This partition defines the "Body" of the Dedekind species. In the
  * structuralist ontology, Mereology establishes the relationship between
  * 'Parts' and 'Wholes' as a mapping between a Domain and a Logic.
@@ -53,8 +53,8 @@ export module dedekind.sets:mereology;
 import dedekind.category;
 
 /**
- * @section mereology__Mereology_2: The study of parts and wholes.
- * @section mereology__Mereology_3: The Hierarchy of Order.
+ * @section mereology__Mereology_2
+ * @section mereology__Mereology_3
  */
 namespace dedekind::sets {
 
@@ -366,7 +366,7 @@ concept IsPointedSet = requires(const S s) {
 } && IsPointed<T, std::plus<T>>;
 
 /**
- * @section mereology__Structural_Inference: NaturalLogic
+ * @section mereology__Structural_Inference
  * @brief Deduce the governing logic species from the nature of the Base.
  *
  * Theorem:

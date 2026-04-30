@@ -9,7 +9,7 @@
  * @build_order 6
  * @dependency :algebra, :order
  *
- * @section neighborhood__Topology: The Geometry of Closeness
+ * @section neighborhood__Topology
  * This partition establishes the qualitative "shape" of our species. It
  * transforms discrete algebraic structures (like Q) into continuous spaces
  * (like R) by defining the concepts of "closeness" and "convergence".
@@ -80,7 +80,7 @@ concept IsNeighborhood = IsOpen<N> && requires(N n, T p) {
 };
 
 /**
- * @section neighborhood__Topology_2: Morphological Shapes
+ * @section neighborhood__Topology_2
  */
 
 export template <typename S>

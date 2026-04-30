@@ -6,7 +6,7 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @section small__Small: Categories with Set-Sized Morphisms
+ * @section small__Small
  * A Small Category is defined by the property that its collections of objects
  * and morphisms are Sets (not Classes). In the context of C++23, "Smallness"
  * is a pragmatic guarantee: any category reifiable within the type system is

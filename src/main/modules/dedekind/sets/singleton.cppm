@@ -8,7 +8,7 @@
  *
  * @dependency dedekind.ontology
  *
- * @section singleton__The_Singleton_Atom: Mereological Singularity
+ * @section singleton__The_Singleton_Atom
  * In the Dedekind universe, the Singleton is the "Unit of Presence."
  * It serves as the canonical implementation of a Pointed Set and provides
  * the concrete singleton constructor used in sets-level monadic workflows.
@@ -59,8 +59,8 @@ import :boundaries;
 import :expressions;
 
 /**
- * @section singleton__Mereology: The study of parts and wholes.
- * @section singleton__Mereology_2: The Hierarchy of Order.
+ * @section singleton__Mereology
+ * @section singleton__Mereology_2
  */
 namespace dedekind::sets {
 

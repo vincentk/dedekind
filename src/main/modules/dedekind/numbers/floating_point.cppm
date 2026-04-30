@@ -83,7 +83,8 @@ import dedekind.order;    // HasPartialOrderOperators / HasTotalOrderOperators
 
 namespace dedekind::numbers {
 
-/** @section floating_point__Formal_Verification std::floating_point family witnesses */
+/** @section floating_point__Formal_Verification std::floating_point family
+ * witnesses */
 
 // (1) Operator surface — every std::floating_point carrier carries the
 //     full field-operator shape and the partial- / total-order-operator

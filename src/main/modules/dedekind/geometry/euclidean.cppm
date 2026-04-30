@@ -6,7 +6,7 @@
  * Copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
- * @section euclidean__Geometry: The Logic of Space.
+ * @section euclidean__Geometry
  * @details This partition bridges Algebra and Topology by introducing the
  *          concept of a "Metric." It ensures that our numerical species
  *          can be measured not just as sets or fields, but as physical

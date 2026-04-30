@@ -8,7 +8,7 @@
  *
  * @dependency dedekind.ontology
  *
- * @section boundaries__The_Structural_Limits: ⊥ and ⊤
+ * @section boundaries__The_Structural_Limits
  * In the Dedekind topos, the boundaries of a Species define the 'North
  * and South poles' of the set-lattice. This partition implements the
  * identities required for a Bounded Lattice over any Species:
@@ -56,8 +56,8 @@ import :mereology;
 using namespace dedekind::category;
 
 /**
- * @section boundaries__Mereology: The study of parts and wholes.
- * @section boundaries__Mereology_2: The Hierarchy of Order.
+ * @section boundaries__Mereology
+ * @section boundaries__Mereology_2
  */
 namespace dedekind::sets {
 
@@ -249,7 +249,7 @@ struct Ω final : Boundaries {
   constexpr auto operator!() const { return Ø<T, L>{}; }
 
   /**
-   * @section boundaries__Lattice_Axiom_2: Terminality
+   * @section boundaries__Lattice_Axiom_2
    * Everything is a part of the Universal Set.
    * Constraint: Exclude Variables (which have a member T) to let
    * symbolic expressions handle their own comparisons.

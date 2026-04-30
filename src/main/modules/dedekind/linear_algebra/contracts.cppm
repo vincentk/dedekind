@@ -252,7 +252,8 @@ template <typename M>
 concept IsMatrix = requires { typename M::scalar_type; } && HasMatrixShape<M> &&
                    HasColumnDecomposition<M> && HasRowDecomposition<M>;
 
-/** @section contracts__Algebraic_Contracts Ring, module, field structure on matrices. */
+/** @section contracts__Algebraic_Contracts Ring, module, field structure on
+ * matrices. */
 
 /**
  * @concept IsMatrixSubmoduleLike
@@ -407,7 +408,8 @@ template <typename M, typename F>
 concept IsInvertibleMatrixOverField =
     IsMatrixOverFieldRingLike<M, F> && HasMultiplicativeInverse<M>;
 
-/** @section contracts__Orthogonal Orthogonal matrices: the cleanest group-under-multiplication.
+/** @section contracts__Orthogonal Orthogonal matrices: the cleanest
+ * group-under-multiplication.
  *
  *  An orthogonal matrix satisfies `Mᵀ · M = M · Mᵀ = I`, so its inverse is
  *  its transpose. Orthogonal matrices are **not** a ring (not additively

@@ -3,7 +3,7 @@
  * @partition :hamilton
  * @brief The Principle of Least Action (Hamiltonian Dynamics).
  *
- * @section hamilton__Hamiltonian: The Flow of the Species
+ * @section hamilton__Hamiltonian
  * This partition defines the generator of motion \( \mathcal{H} \). In the
  * Dedekind Category, the Hamiltonian is the Morphism that maps the Phase
  * Space (Position and Momentum) to the Energy Scalar Field.

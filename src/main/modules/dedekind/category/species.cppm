@@ -19,7 +19,7 @@
  * Categorification here is an act of reasoning, not an act of
  * allocation.
  *
- * @section species__Taxonomic_Traits: The Skeletal Constants
+ * @section species__Taxonomic_Traits
  * - identity_v<T, Op>  : The neutral element for a specific operation.
  * - is_associative_v   : Static proof of grouping independence.
  * - is_commutative_v   : Static proof of order independence.
@@ -81,7 +81,7 @@ static_assert(IsSpecies<double>,
 static_assert(IsSpecies<bool>,
               "Atlas Error: bool must be a recognized Species.");
 
-/** @section species__The Traits (The categorical invariants) */
+/** @section species__Categorical_Invariant_Traits */
 
 /**
  * @brief Trait to mark an operation as associative: (a ∘ b) ∘ c = a ∘ (b ∘ c)

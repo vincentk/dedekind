@@ -69,7 +69,8 @@ import dedekind.algebra; // IsField (umbrella negative-claim witness)
 
 namespace dedekind::numbers {
 
-/** @section integral__Formal_Verification Umbrella negative claims under arithmetic.
+/** @section integral__Formal_Verification Umbrella negative claims under
+ * arithmetic.
  *
  * The per-sibling field rejections are pinned upstream and are NOT restated
  * here (vacuous restatements are noise — see the project's cross-partition
