@@ -43,6 +43,7 @@ docs/paper/*.log
 docs/paper/*.out
 docs/paper/*.toc
 docs/paper/*.run.xml
+docs/paper/paper.pdf  # built artefact; published from main via the docs-and-pages CI job
 docs/report/*.aux
 docs/report/*.bbl
 docs/report/*.bcf
