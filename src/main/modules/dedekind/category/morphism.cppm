@@ -217,14 +217,15 @@ namespace dedekind::category {
 // ---------------------------------------------------------------------------
 
 /**
- * @brief Marker tag for ordinary object-level arrows (spoke arrows).
+ * @brief Marker tag reserved for ordinary object-level arrows (spoke arrows).
  *
- * @details Attach as @c using @c ArrowKind @c = @c spoke_arrow_tag; when
- * a type should @b explicitly participate in spoke-level operator routing
- * (composition @b within a category).  In practice the structural
- * discriminator @c IsSpokeArrow (further down) catches the typical case
- * automatically; this tag is the manual override for types that carry
- * an unusual surface and want to be classified as spokes.
+ * @details Currently @b reserved: @c IsSpokeArrow does not check for
+ * @c ArrowKind @c = @c spoke_arrow_tag as an opt-in.  The structural
+ * discriminator @c !IsCategoryShape<Dom<T>> already catches the typical
+ * spoke case automatically, so no opt-in is needed in practice.  This
+ * tag is kept as a parallel slot to @c hub_arrow_tag so a future opt-in
+ * mechanism (e.g., for a type whose Domain is unusually category-shaped
+ * but should still route as a spoke) can be added symmetrically.
  *
  * See the architecture block above for the single-species design context.
  */
