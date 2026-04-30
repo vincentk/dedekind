@@ -9,6 +9,8 @@
  * Public facade for the current analysis layer.
  *
  * Exported partitions:
+ * - :dual     -- Dual numbers 𝔻 = a + bε (ε² = 0); forward-mode AD
+ *                carrier (moved from :numbers at PR #513).
  * - :forms    -- differential one-forms and covector conversion.
  * - :exterior -- wedge products and alternating two-forms.
  * - :hamilton -- Poisson brackets and Hamiltonian witnesses.
@@ -26,6 +28,8 @@
 
 export module dedekind.analysis;
 
+export import :dual;  // Dual numbers 𝔻 = a + bε; forward-mode AD carrier
+                      // (relocated from :numbers at PR #513).
 export import :exterior;
 export import :ftc;
 export import :forms;

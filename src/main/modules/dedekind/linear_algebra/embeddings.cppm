@@ -38,13 +38,14 @@ module;
 export module dedekind.linear_algebra:embeddings;
 
 import dedekind.algebra; // HasRingOperators + IsRingHomomorphism (constraint / witness)
-import dedekind.numbers; // Complex<T>, Dual<T>, Rational<Z>, IsComplexScalar
+import dedekind.analysis; // Dual<T>: 𝔻 ↪ M₂ regular representation (relocated from :numbers at PR #513)
+import dedekind.numbers; // Complex<T>, Rational<Z>, IsComplexScalar
 import :matrix;  // Matrix2x2V<T>, identity / zero constants for the target
 
 namespace dedekind::linear_algebra {
 
+using dedekind::analysis::Dual;
 using dedekind::numbers::Complex;
-using dedekind::numbers::Dual;
 
 /** @section Canonical_Embedding_ℂ_↪_M₂ */
 

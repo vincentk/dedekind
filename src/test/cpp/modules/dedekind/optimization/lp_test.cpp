@@ -8,11 +8,13 @@
 
 #include <catch2/catch_test_macros.hpp>
 
+import dedekind.analysis; // Dual<F> (relocated from :numbers at PR #513)
 import dedekind.linear_algebra;
 import dedekind.numbers;
 import dedekind.optimization;
 import dedekind.sets;
 
+using namespace dedekind::analysis;  // Dual<F>
 using namespace dedekind::linear_algebra;
 using namespace dedekind::numbers;
 using namespace dedekind::optimization;

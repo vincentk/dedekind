@@ -268,6 +268,25 @@ compile-time layer---rather than as runtime abstractions, or as a DSL
 lowered to a runtime solver---is a design commitment that shapes what
 the compiler can do for the user and what it cannot.
 
+\paragraph{Infinite and infinitesimal data, natively.}
+A second motivation runs through the project: handling
+\emph{infinite} (unbounded sets, lazy streams, transfinite cardinals)
+and \emph{infinitesimal} (dual numbers, formal series, Newton-quotient
+differentials) data structures in everyday programming, without each
+project reinventing its own ad-hoc encoding.  Three host-language
+properties make such objects legible: \emph{lazy evaluation} (an
+infinite predicate or a formal series can be carried as a typed
+intension, never as a finite materialisation), \emph{strong typing}
+(the distinction between a Dedekind cut and a \texttt{double} survives
+all the way through composition), and a \emph{compositional surface}
+(new structures arrive by application of named functors, not by
+copy-and-paste).  C++23 supplies a workable subset of all three ---
+\lstinline{constexpr} for staged evaluation, \lstinline{concept}s for
+disciplined typing, named modules for compositional layering --- and
+the library leans on each.  Figure~\ref{fig:carrier-lattice}'s
+carrier lattice and the dual-number / tangent-bundle identification
+(§\ref{sec:ad-elliott}) are the load-bearing exhibits.
+
 \paragraph{Thesis.} In one sentence: \emph{named algebraic structure
 at the type level, discharged by the compiler, narrows the gap
 between abstract mathematics and machine code without a separate

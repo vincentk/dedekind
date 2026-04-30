@@ -470,37 +470,11 @@ TEST_CASE("Tower+IEEE: IEEE<double> union and complement",
 
 // ---------------------------------------------------------------------------
 // ℂ ↪ Dual: Complex values embedded into Dual numbers (real part, zero ε)
+//
+// Moved to src/test/cpp/modules/dedekind/analysis/dual_test.cpp at PR #513
+// — Dual<F> relocated from :numbers to :analysis (the carrier's
+// structural meaning is differential / forward-mode AD).
 // ---------------------------------------------------------------------------
-
-TEST_CASE("Tower: ℂ -> Dual (forward-mode AD seed)", "[numbers][tower][dual]") {
-  // A complex number c = (a + 0i) can be seeded into Dual as (a + 0ε).
-  const auto c = Complex<machine_real_scalar>{3.0, 0.0};
-  const Dual<machine_real_scalar> d{c.real(), machine_real_scalar{}};
-
-  CHECK(d.value() == 3.0);
-  CHECK(d.derivative() == 0.0);
-
-  // Dual arithmetic: (3 + 0ε) * (2 + 1ε) = 6 + 3ε
-  const Dual<machine_real_scalar> seed{2.0, 1.0};
-  const auto product = d * seed;
-  CHECK(product.value() == 6.0);
-  CHECK(product.derivative() == 3.0);
-}
-
-TEST_CASE("Tower: Set membership over Dual<double> domain",
-          "[numbers][tower][dual][sets]") {
-  using F = machine_real_scalar;
-  // Sets over Dual: membership based on the primal value component.
-  const auto positive_pred = [](const Dual<F>& d) { return d.value() > 0.0; };
-  const Set<Dual<F>, ClassicalLogic, decltype(positive_pred)> positive_primal{
-      positive_pred};
-
-  CHECK(positive_primal(Dual<F>{1.0, 0.5}) == true);
-  CHECK(positive_primal(Dual<F>{-1.0, 0.5}) == false);
-
-  // Derivative component does not affect set membership.
-  CHECK(positive_primal(Dual<F>{0.5, -99.0}) == true);
-}
 static_assert(is_kleene_commutative_v<Complex<machine_real_scalar>,
                                       PartialMulComplex<machine_real_scalar>>);
 
