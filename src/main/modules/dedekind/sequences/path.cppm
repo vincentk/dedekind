@@ -545,6 +545,41 @@ using namespace dedekind::category;
 /** @section path__Formal_Verification */
 static_assert(IsSequence<Path<int>>, "Path must satisfy the sequence concept.");
 
+// Discriminator-sharpening witness (#525).  Path<int> is itself an
+// IsArrow at the type level (it carries Domain = std::size_t and a
+// call operator, modelling the textbook reading "a sequence is a
+// function ℕ → T").  Pre-#525 the IsSpokeArrow definition used
+// !IsArrow<Dom<T>> as a structural proxy for "Domain isn't a
+// category" — which over-fired here, classifying
+// Morphism<Path<int>, Path<int>, ...> as NOT a SpokeArrow even
+// though Path<int>'s Domain is std::size_t (an object, not a
+// category).  Post-#525 the discriminator uses
+// !IsCategoryShape<Dom<T>>, asking the right question: is the
+// Domain a category-shaped thing?  std::size_t isn't (no
+// ::Arrow / ::Species / ::Id aliases), so Morphism<Path,Path,...>
+// IS a SpokeArrow under the new definition.  This static_assert
+// pins the fix mechanically; if the discriminator ever regresses,
+// it surfaces here at the load-bearing case that motivated the
+// sharpening.
+namespace _path_525 {
+using PathArrow =
+    dedekind::category::Set<Path<int>>::Arrow;  // Morphism<Path<int>,
+                                                // Path<int>, fn(Path)>
+static_assert(dedekind::category::IsArrow<Path<int>>,
+              "Path<int> is itself an IsArrow at the type level "
+              "(Domain = size_t, Codomain = T, call operator).");
+static_assert(!dedekind::category::IsCategoryShape<Path<int>>,
+              "Path<int> is NOT a category-shaped thing — it has no "
+              "::Arrow / ::Species / ::Id aliases.  This is the "
+              "distinction the #525 discriminator-sharpening makes.");
+static_assert(dedekind::category::IsSpokeArrow<PathArrow>,
+              "Morphism<Path<int>, Path<int>, ...> is a SpokeArrow under "
+              "the #525 sharpening (Dom = Path<int>, which is not a "
+              "category-shaped thing). Pre-#525 this static_assert would "
+              "have failed because Path<int> structurally satisfied "
+              "IsArrow.");
+}  // namespace _path_525
+
 static_assert(IsFiniteSequence<FinitePath<int>>,
               "FinitePath must satisfy the finite sequence concept.");
 

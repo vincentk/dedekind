@@ -141,29 +141,84 @@ export template <IsArrow F>
 using Cod = typename std::remove_cvref_t<F>::Codomain;
 
 /**
- * @concept IsHubArrow
- * @brief Higher-order arrow whose Domain/Codomain are themselves arrows.
- * @details In the hub/spoke vocabulary, a "hub" arrow acts on spokes as its
- *          objects. Functors are the canonical example: they map arrows in one
- *          category to arrows in another category.
+ * @concept IsCategoryShape
+ * @brief Structural prefix of @c dedekind::category::IsCategory: a type
+ *        carrying the identifying category-shaped aliases @c ::Arrow,
+ *        @c ::Species, @c ::Id.
+ *
+ * @details The full @c IsCategory in @c :small refines this with
+ * behavioural checks (@c id_c factory, @c f @c >> @c g internal
+ * closure, etc.).  At this layer we only need the structural test to
+ * answer the question "is this thing a @b category" for purposes of
+ * hub/spoke discrimination.  Full @c IsCategory cannot be referenced
+ * here because @c :small imports @c :morphism (cycle), and because
+ * @c IsCategory recursively uses @c f @c >> @c g which is the very
+ * operator we are gating.  The structural prefix is the load-bearing
+ * piece for routing — it identifies the @b argument-shape of a
+ * functor (a thing taking a category, not an object), which is the
+ * single distinction the hub/spoke split needs to make (#525).
  */
 export template <typename T>
-concept IsHubArrow = IsArrow<T> && IsArrow<Dom<T>> && IsArrow<Cod<T>>;
+concept IsCategoryShape = requires {
+  typename std::remove_cvref_t<T>::Arrow;
+  typename std::remove_cvref_t<T>::Species;
+  typename std::remove_cvref_t<T>::Id;
+};
+
+/**
+ * @concept IsHubArrow
+ * @brief Higher-order arrow whose Domain/Codomain are categories
+ *        (functors and similar arrows-between-categories; #525).
+ * @details In the hub/spoke vocabulary, a "hub" arrow acts on
+ *          categories as its objects: it is an arrow @b between
+ *          categories, not within one.  Functors are the canonical
+ *          example.  The @c IsCategoryShape prefix detects the
+ *          identifying @c ::Arrow / @c ::Species / @c ::Id alias
+ *          surface; the prior structural-proxy form
+ *          (@c IsArrow<Dom<T>>) over-fired on object-level types
+ *          that happen to expose @c Domain / @c Codomain aliases
+ *          for unrelated reasons (e.g., @c Path<T> = sequence
+ *          @c ℕ → @c T at the type level).
+ */
+export template <typename T>
+concept IsHubArrow =
+    IsArrow<T> && IsCategoryShape<Dom<T>> && IsCategoryShape<Cod<T>>;
 
 /**
  * @concept IsSpokeArrow
- * @brief Object-level arrow whose Domain/Codomain are not arrows.
- * @details A "spoke" arrow connects ordinary species-level objects. Generic
- *          categorical composition in this partition is intentionally limited
- *          to spoke arrows so higher-order composition can be owned by the
- *          appropriate bridge partitions.
+ * @brief Object-level arrow whose Domain/Codomain are @b not
+ *        categories (#525 sharpening).
+ * @details A "spoke" arrow connects ordinary species-level objects
+ *          @b within a category.  The discriminator is "Domain is
+ *          not a category-shaped thing" (@c !IsCategoryShape<Dom<T>>);
+ *          this is the formal expression of "this isn't a functor".
+ *          Generic categorical composition in this partition is
+ *          intentionally limited to spoke arrows so higher-order
+ *          composition (functor @c ∘ functor in @b Cat) can be
+ *          owned by the appropriate bridge partitions.
  *
- * If a type advertises `using ArrowKind = hub_arrow_tag;`, it is excluded
- * from `IsSpokeArrow` even if its Domain/Codomain are object-level labels.
+ * @section morphism__Spoke_Discriminator_Sharpening
+ * Pre-#525 the discriminator read @c !IsArrow<Dom<T>> — a structural
+ * proxy that worked coincidentally for functor-Hubs (whose Domain is
+ * a @c IsCategory<C> witness, which trivially satisfies @c IsArrow
+ * via @c Cat::Arrow), but over-fired on object-level carriers that
+ * happen to expose @c Domain / @c Codomain aliases for unrelated
+ * reasons.  The canonical example is @c Path<T>, which models the
+ * textbook reading "a sequence is a function @c ℕ @c → @c T" by
+ * declaring @c Domain @c = @c std::size_t and a call operator —
+ * making @c IsArrow<Path<T>> @b true at the type level even though
+ * @c Path<T> is plainly an @b object (not a category-to-category
+ * arrow).  The sharpened discriminator @c !IsCategoryShape<Dom<T>>
+ * stops the over-fire while preserving the original intent: hub
+ * arrows are arrows between categories.
+ *
+ * If a type advertises @c using @c ArrowKind @c = @c hub_arrow_tag;
+ * it is still excluded from @c IsSpokeArrow as a manual override.
  */
 export template <typename T>
 concept IsSpokeArrow =
-    IsArrow<T> && !IsArrow<Dom<T>> && !IsArrow<Cod<T>> && !requires {
+    IsArrow<T> && !IsCategoryShape<Dom<T>> && !IsCategoryShape<Cod<T>> &&
+    !requires {
       requires std::same_as<typename std::remove_cvref_t<T>::ArrowKind,
                             hub_arrow_tag>;
     };
