@@ -150,15 +150,19 @@ export using extensional_integer = int;
  * @brief Default integer carrier used by downstream numeric layers.
  *
  * @details Intentionally an alias so the default can be retargeted in one
- * place. Current choice is the machine signed integer (syntactically IsInteger,
- * operationally correct for arithmetic that stays in range).
- *
- * @note The natural-number carrier `ExtensionalCardinal<>` satisfies IsInteger
- * and forms a total ring (IsRing), but is unsigned — negative rationals need
- * a signed carrier. A future `SignedExtensionalCardinal<N>` is the intended
- * long-term retarget. See rational.cppm for `RationalPolynomial` (Q[x]).
+ * place.  Current choice is @c SignedExtensionalCardinal<> --- the
+ * variant signed-integer-by-fiat carrier whose arithmetic is total
+ * (sign-magnitude with periodic wrap, no UB).  This makes the default
+ * @c Rational<default_integer> participate in the strict @c IsRing
+ * chain (and so @c IsField), via the @c SignedExtensionalCardinal<>
+ * @c IsInteger pinning.  The previous default was machine @c int,
+ * which @b syntactically satisfies @c IsInteger but @b not
+ * @c IsMagma (signed-overflow UB), blocking any axiomatic ring/field
+ * proof on @c Rational<int> at the @c IsTotal certificate.  The
+ * machine alias @c extensional_integer remains @c int for callsites
+ * that genuinely want the IEEE-style machine carrier.
  */
-export using default_integer = extensional_integer;
+export using default_integer = SignedExtensionalCardinal<>;
 
 // FIXME(#379): the *Like cluster below is a candidate for the
 // retire-Like surgery phase that follows the alignment sweep.

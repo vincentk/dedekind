@@ -74,9 +74,47 @@ class Rational {
   constexpr Rational(Z num, Z den) : first(num), second(den) { simplify(); }
 
   /** @brief Embedding of an integer as a rational n/1.
-   *  Implicit to allow `(a + b) / Z{2}` in IsDense checks. */
+   *  Implicit to allow @c Rational<Z>{Z_value} to flow into the
+   *  @c (a @c + @c b) @c / @c T{2} midpoint expression that the
+   *  @c IsDense concept (in @c order:completeness) requires.
+   *  When @c T = @c Rational<Z>, @c T{2} resolves through the
+   *  @c Rational(std::integral) overload below (@c int → @c Rational<Z>
+   *  in one UDC), bypassing the two-UDC chain
+   *  @c int @c → @c Z @c → @c Rational<Z> that C++ would otherwise
+   *  reject.  This @c Rational(Z) form remains the canonical embedding
+   *  when the caller already has a @c Z value in hand. */
   constexpr Rational(Z n)
       : first(n), second(Z{1}) {}  // NOLINT(google-explicit-constructor)
+
+  /** @brief Embedding of any standard integral as a rational n/1, in @b one
+   *  user-defined conversion.
+   *
+   *  @details Without this constructor, building a @c Rational<Z> from an
+   *  @c int literal would require two UDCs (@c int → @c Z → @c Rational<Z>),
+   *  which C++ does not permit in implicit-conversion chains.  This template
+   *  collapses both steps into a single UDC, enabling:
+   *
+   *    * @c Real<Rational<Z>>{1} for the @c HasGroupOperatorsMul
+   *      @c T{1} witness on @c ExactReal<>;
+   *    * @c Rational<Z>{2} for the @c (a @c + @c b) @c / @c T{2}
+   *      midpoint expression in the @c IsDense concept (the @c T{2}
+   *      reformulation, landed under this PR, replaces the previous
+   *      bare-int @c 2 so the carrier is in control of its own
+   *      value-2);
+   *    * generally, any context where an @c int literal lifts into
+   *      @c Rational<Z> across one UDC.
+   *
+   *  Canonical example post-retarget: @c Z @c = @c
+   *  SignedExtensionalCardinal<>, whose @c S → @c SEC<> constructor
+   *  is itself a one-UDC step.  Required for the
+   *  @c HasGroupOperatorsMul / @c IsDense witnesses to fire on
+   *  @c Real<Rational<default_integer>> (#499 / default_integer
+   *  retarget).
+   */
+  template <std::integral S>
+    requires(!std::same_as<S, Z>)
+  constexpr Rational(S n)  // NOLINT(google-explicit-constructor)
+      : first(Z{n}), second(Z{1}) {}
 
   /** @section rational__The_Simplification_Morphism */
   constexpr void simplify() {
@@ -305,7 +343,9 @@ namespace dedekind::numbers {
 /** @section rational__Formal_Verification */
 
 // Proof: The inverse of 2/3 is 3/2.
-static_assert((Rational<default_integer>(2, 3).inverse().num() == 3));
+static_assert((Rational<default_integer>(default_integer{2}, default_integer{3})
+                   .inverse()
+                   .num() == default_integer{3}));
 
 // Functor identification: Rational<I> = Frac(I).  The Frac functor
 // (field-of-fractions; left adjoint to the inclusion / forgetful functor

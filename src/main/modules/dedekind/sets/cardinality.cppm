@@ -648,6 +648,58 @@ struct SignedExtensionalCardinal {
     return lhs.negative == rhs.negative && lhs.magnitude == rhs.magnitude;
   }
 
+  /** @brief Heterogeneous equality with built-in integrals.
+   *
+   *  @details Without this overload the comparison @c SEC<> @c == @c int
+   *  is ambiguous: both @c operator==(SEC, SEC) (after the implicit
+   *  @c int @c → @c SEC constructor) and @c operator==(SignedCardinality,
+   *  int) (after the implicit @c SEC @c → @c SignedCardinality variant
+   *  conversion) match in one user-defined conversion.  Providing the
+   *  heterogeneous form directly on @c SEC makes it a strictly better
+   *  match (no UDC required on the @c SEC side), resolving the ambiguity
+   *  without forcing call-sites to write @c SEC<>{N} just to compare
+   *  against an @c int literal.  Symmetric overload below covers
+   *  @c int @c == @c SEC.  Required by the @c default_integer retarget
+   *  to @c SEC<> (#499 / paper-side ℚ-as-IsField unblock).
+   */
+  template <std::integral T>
+  constexpr friend bool operator==(const SignedExtensionalCardinal& lhs,
+                                   T rhs) noexcept {
+    return lhs == SignedExtensionalCardinal{rhs};
+  }
+  template <std::integral T>
+  constexpr friend bool operator==(
+      T lhs, const SignedExtensionalCardinal& rhs) noexcept {
+    return SignedExtensionalCardinal{lhs} == rhs;
+  }
+
+  /** @brief Heterogeneous ordering with built-in integrals.
+   *
+   *  @details Mirrors the heterogeneous @c operator== above for the
+   *  ordering side (@c <, @c <=, @c >, @c >=).  Without these
+   *  overloads, comparisons like @c q.num() @c > @c 0 (where
+   *  @c q.num() returns @c SEC<> after the @c default_integer
+   *  retarget, and @c 0 is an @c int literal) trigger the same
+   *  ambiguity the equality side resolved: @c operator<=>(SEC, SEC)
+   *  via @c int @c → @c SEC versus @c operator<=>(SignedCardinality,
+   *  int) via @c SEC @c → @c SignedCardinality.  Providing the
+   *  heterogeneous form directly on @c SEC makes it a strictly better
+   *  match (no UDC on the @c SEC side), letting callers write
+   *  @c q.num() @c > @c 0 and similar without explicit
+   *  @c default_integer{0} lifts.  Mirrors the heterogeneous
+   *  @c operator== above for the ordering side.
+   */
+  template <std::integral T>
+  constexpr friend std::strong_ordering operator<=>(
+      const SignedExtensionalCardinal& lhs, T rhs) noexcept {
+    return lhs <=> SignedExtensionalCardinal{rhs};
+  }
+  template <std::integral T>
+  constexpr friend std::strong_ordering operator<=>(
+      T lhs, const SignedExtensionalCardinal& rhs) noexcept {
+    return SignedExtensionalCardinal{lhs} <=> rhs;
+  }
+
   constexpr friend std::strong_ordering operator<=>(
       const SignedExtensionalCardinal& lhs,
       const SignedExtensionalCardinal& rhs) noexcept {
