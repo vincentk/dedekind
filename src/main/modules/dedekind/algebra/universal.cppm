@@ -66,6 +66,9 @@ module;
 
 export module dedekind.algebra:universal;
 
+import dedekind.category; // IsArrow, IsSurjective (composing IsHomomorphism /
+                          // IsQuotientMorphism; #506)
+
 namespace dedekind::algebra {
 
 // ---------------------------------------------------------------------------
@@ -131,6 +134,96 @@ concept IsOpOn = IsBinaryOpOn<T, Op> || IsUnaryOpOn<T, Op>;
  */
 export template <typename T, typename... Ops>
 concept IsAlgebra = std::regular<T> && (... && IsOpOn<T, Ops>);
+
+// ---------------------------------------------------------------------------
+// Phase 2: Homomorphisms — arrows between algebras (#506).
+// ---------------------------------------------------------------------------
+//
+// A homomorphism is an arrow @c f: @c A1 @c → @c A2 between two algebras
+// @c (A1, F1) and @c (A2, F2) that respects each operation in the family:
+// for every paired @c (op, @c op'), the law @c f(op(x, @c y)) @c == @c
+// op'(f(x), @c f(y)) holds (binary case; the unary / nullary cases are
+// analogous).
+//
+// In the textbook setting the law is a runtime equation; in the library
+// we pin it as an @b opt-in @b trait declaration --- @c
+// is_homomorphism_v<Arrow> @c = @c true --- and the engineer's honesty
+// obligation is to register the trait only when the runtime law holds.
+// This mirrors @c is_monic_arrow_v / @c is_epic_arrow_v (in
+// @c category:morphism), which carry the analogous monicity / epicity
+// declarations: the compiler trusts the user's declaration; the
+// algebraic-soul registry is the audit trail.
+//
+// The first slice (this PR) pins the @b unparameterised concept --- the
+// homomorphism trait does not name a specific @c (Op, @c Op') pair.
+// Per-operator-pair refinement (e.g.\ @c IsAdditiveHomomorphism,
+// @c IsMultiplicativeHomomorphism, @c IsRingHomomorphism @c =
+// @c IsAdditiveHomomorphism @c && @c IsMultiplicativeHomomorphism)
+// is a follow-on slice once we have at least one positive witness in
+// place (see #506 acceptance criteria).
+
+/**
+ * @brief User-declared homomorphism witness for an arrow type.
+ *
+ * @details A homomorphism is an arrow that respects each operation in
+ * the source algebra's family.  The runtime law cannot be verified at
+ * compile time in general (the law is a per-input equation); users
+ * specialise this trait to @c true to declare that a given arrow @b is
+ * a homomorphism.  The compiler trusts the declaration; the
+ * algebraic-soul registry is the audit trail.
+ *
+ * Mirrors @c category::is_monic_arrow_v / @c category::is_epic_arrow_v
+ * in declaration shape and discipline (#506).
+ */
+export template <typename Arrow>
+inline constexpr bool is_homomorphism_v = false;
+
+/**
+ * @concept IsHomomorphism
+ * @brief An arrow declared to be an algebra homomorphism (preserves the
+ *        operation family across two algebras).
+ *
+ * @details The opt-in trait @c is_homomorphism_v<Arrow> is the
+ * declaration; this concept is the gate-and-check that an arrow has
+ * been declared a homomorphism @b and is structurally an arrow
+ * (carries @c Domain / @c Codomain aliases through @c IsArrow).
+ *
+ * @section IsHomomorphism_Use
+ *
+ *   * @b Positive @b use: gate templated bodies whose correctness
+ *     depends on the homomorphism law (e.g.\ a quotient-construction
+ *     factory that needs to know its source arrow respects the algebra
+ *     ops).
+ *   * @b Witness: @c static_assert(IsHomomorphism<E>, ...) at the
+ *     declaration site of @c E pins the registry entry mechanically.
+ *
+ * @see Lang, @em Algebra (3rd ed.), §III.1 (homomorphisms of rings);
+ *      Mac Lane, @em Categories @em for @em the @em Working
+ *      @em Mathematician §III.1 (homomorphisms as morphisms in the
+ *      category of algebras).
+ */
+export template <typename Arrow>
+concept IsHomomorphism =
+    dedekind::category::IsArrow<Arrow> && is_homomorphism_v<Arrow>;
+
+/**
+ * @concept IsQuotientMorphism
+ * @brief An arrow declared to be the quotient morphism of an algebra
+ *        by a congruence: a surjective homomorphism.
+ *
+ * @details The textbook quotient morphism @c π: @c A @c → @c A/~ is
+ * a surjective homomorphism (it preserves the operations and is
+ * surjective onto the quotient algebra).  Composes the existing
+ * @c IsSurjective concept (in @c category:morphism, which is the
+ * pedagogical-accessibility synonym for @c IsEpicArrow) with
+ * @c IsHomomorphism above.
+ *
+ * @see Lang §III.1 (kernel-quotient-image factorisation, sometimes
+ *      called the first isomorphism theorem).
+ */
+export template <typename Arrow>
+concept IsQuotientMorphism =
+    IsHomomorphism<Arrow> && dedekind::category::IsSurjective<Arrow>;
 
 }  // namespace dedekind::algebra
 

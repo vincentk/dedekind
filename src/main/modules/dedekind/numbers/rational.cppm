@@ -590,6 +590,30 @@ static_assert(
     IsInjective<std::decay_t<decltype(dedekind::numbers::embed_ℤ_ℚ<>)>>,
     "embed_ℤ_ℚ (ℤ ↪ ℚ) is registered injective.");
 
+}  // namespace dedekind::category
+
+namespace dedekind::algebra {
+
+// embed_ℤ_ℚ is a @b ring @b homomorphism: the field-of-fractions
+// inclusion @c ℤ @c ↪ @c Frac(ℤ) @c = @c ℚ preserves both ring
+// operations --- @c (n + m)/1 == @c n/1 + @c m/1 (additive law) and
+// @c (n * m)/1 == @c n/1 * @c m/1 (multiplicative law) --- by
+// definition of Rational arithmetic (numerator-aware reduction
+// preserves these on @c den == 1 inputs).  Pinned here as the first
+// positive witness for the @c is_homomorphism_v / @c IsHomomorphism
+// pair introduced in @c algebra:universal under #506.
+template <>
+inline constexpr bool
+    is_homomorphism_v<std::decay_t<decltype(dedekind::numbers::embed_ℤ_ℚ<>)>> =
+        true;
+static_assert(
+    IsHomomorphism<std::decay_t<decltype(dedekind::numbers::embed_ℤ_ℚ<>)>>,
+    "embed_ℤ_ℚ (ℤ ↪ ℚ) is registered as a ring homomorphism.");
+
+}  // namespace dedekind::algebra
+
+namespace dedekind::category {
+
 // Note: @c is_monic_arrow_v<embed_double_ℚ<I>> is intentionally NOT
 // registered.  embed_double_ℚ is a partial morphism (rejects NaN, ±∞,
 // and precision-overflow inputs) in the Cockett--Lack restriction-
