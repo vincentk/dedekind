@@ -39,6 +39,7 @@ module;
 export module dedekind.order:lattice;
 
 import dedekind.category;
+import dedekind.sets; // Set / UniversalPredicate (HasLatticeOperators witness; #469)
 
 namespace dedekind::order {
 using namespace dedekind::category;
@@ -169,5 +170,25 @@ static_assert(IsOrderLattice<bool>,
               "bool is the canonical Boolean-ring lattice "
               "(under bit_xor / bit_and; both halves of the bundle "
               "fire today).");
+
+// HasLatticeOperators on Set<T, L, P> (#469).  After the operator^
+// symmetric-difference slice landed alongside operator~ (predicate-
+// level complement), the intensional set carrier supports the full
+// bitwise lattice-operator surface @c (|, &, ^, ~) with results
+// convertible back to Set.  Pinning the witness here links the
+// @c :sets:expressions Set carrier to the @c :order:lattice
+// operator-shape concept mechanically.
+//
+// Note: @c IsOrderLattice<Set<...>> is intentionally @b not pinned —
+// that bundle additionally requires @c IsCommutativeRing<T, bit_xor,
+// bit_and> on the carrier (the Boolean-ring reading specifically),
+// and Set is a more general lattice carrier than the Boolean-ring
+// shape.  The trait-certified axiomatic lattice claim on Set is
+// filed for a follow-on slice in #524.
+static_assert(HasLatticeOperators<
+                  dedekind::sets::Set<int, dedekind::category::ClassicalLogic,
+                                      dedekind::sets::UniversalPredicate<int>>>,
+              "Set<T, L, P> supports the full bitwise lattice-operator surface "
+              "(|, &, ^, ~) — joins, meets, symmetric difference, complement.");
 
 }  // namespace dedekind::order

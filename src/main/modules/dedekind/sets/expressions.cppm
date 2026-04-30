@@ -726,6 +726,30 @@ constexpr auto operator!(Set<T, L, Predicate>&& s) {
   return s.operator!();
 }
 
+/** @brief Set complement via the bitwise-style operator @c ~ (#469).
+ *
+ *  @details Alias for @c operator!(Set): @c ~A returns the
+ *  predicate-level complement @c Set<T, L, NegatedPredicate<P>>.
+ *  Adding the @c ~ spelling completes the bitwise-operator family
+ *  @c (|, &, ^, ~) on @c Set<T, L, P>, satisfying
+ *  @c dedekind::order::HasLatticeOperators (witness pinned in
+ *  @c order:lattice).  The deeper @c U @c ∖ @c A reading where
+ *  @c U is a chosen ambient universe is a separate semantic
+ *  question (#469's deferred design call, tracked under #524).
+ */
+export template <typename T, typename L, typename Predicate>
+constexpr auto operator~(const Set<T, L, Predicate>& s) {
+  return s.operator!();
+}
+export template <typename T, typename L, typename Predicate>
+constexpr auto operator~(Set<T, L, Predicate>& s) {
+  return s.operator!();
+}
+export template <typename T, typename L, typename Predicate>
+constexpr auto operator~(Set<T, L, Predicate>&& s) {
+  return s.operator!();
+}
+
 /** @brief @c Set @c ^ @c Ø @c = @c Set (symmetric difference with empty
  *         is identity; #469).  Symmetric of @c Ø::operator^(S) above —
  *         this overload picks up @c S @c ^ @c Ø when the boundary is on
