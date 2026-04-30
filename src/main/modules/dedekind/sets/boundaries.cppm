@@ -209,6 +209,13 @@ struct Ø final : Boundaries {
   constexpr auto operator&(const S&) const {
     return *this;
   }
+  // Ø ^ S = S  (∅ △ S = S; #469)
+  // Same AnyDomain block as | / & above.
+  template <typename S>
+    requires(!std::same_as<T, AnyDomain>)
+  constexpr auto operator^(const S& s) const {
+    return s;
+  }
 };
 
 /**
@@ -286,6 +293,14 @@ struct Ω final : Boundaries {
   template <typename S>
   constexpr auto operator&(const S& s) const {
     return s;
+  }
+
+  // Ω ^ S = ¬S  (Ω △ S = ¬S; #469)
+  // Pointwise: x ∈ Ω △ S iff x is in exactly one; x is always in Ω,
+  // so x ∈ Ω △ S iff x ∉ S, i.e. the complement of S.
+  template <typename S>
+  constexpr auto operator^(const S& s) const {
+    return !s;
   }
 };
 

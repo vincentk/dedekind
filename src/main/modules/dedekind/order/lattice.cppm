@@ -170,4 +170,32 @@ static_assert(IsOrderLattice<bool>,
               "(under bit_xor / bit_and; both halves of the bundle "
               "fire today).");
 
+// Set<T, L, P> structurally cannot satisfy @c HasLatticeOperators (#469
+// design note).  After the @c operator^ symmetric-difference slice
+// landed alongside @c operator~ (predicate-level complement), Set
+// supports all four lattice operator @c symbols (|, &, ^, ~).  But
+// @c HasLatticeOperators<T> additionally requires the result to be
+// @c convertible_to<T> — i.e.\ it asks for a homogeneous-result
+// surface, where @c a @c & @c b returns something castable back to
+// @c T.  This works for primitive carriers (@c bool, @c unsigned int)
+// where the operators stay within the carrier (modulo integer
+// promotion, which IS convertible back).  It does @b not work for
+// Set, whose operators are @b type-parameterised: @c |, @c &, @c ^
+// each return @c Set<T, L, lambda-OR/AND/XOR-predicate> with a fresh
+// @c Predicate template parameter, and @c ~A returns @c Set<T, L,
+// NegatedPredicate<P>>.  None of these are convertible back to the
+// input @c Set<T, L, P>, because the Predicate is a structural part
+// of the type.
+//
+// The "Set is a lattice" claim therefore lives one level less strict
+// than @c HasLatticeOperators: Set has the @b lattice @b operator
+// @b shape (the four operators all compile and return some Set), but
+// not the convertible-result shape the existing concept requires.
+// A follow-on slice (filed under #524) could introduce a weaker
+// @c HasLatticeOperatorShape<T> concept that drops the
+// @c convertible_to<T> clause and pin Set against that.  For this
+// PR's scope, the documentation of the operator surface in
+// @c :sets:expressions and the operational tests in
+// @c expressions_test.cpp suffice.
+
 }  // namespace dedekind::order

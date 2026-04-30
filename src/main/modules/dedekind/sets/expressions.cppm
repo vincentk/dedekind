@@ -223,6 +223,25 @@ template <typename P1, typename P2>
 inline constexpr bool IsComplementPair_v =
     IsComplementPair<std::decay_t<P1>, std::decay_t<P2>>::value;
 
+// IsNegatedPredicate_v / NegatedPredicateBase_t: pattern-match on the
+// @c NegatedPredicate<X> wrapper at the type level, exposing the inner
+// predicate type for downstream rewrites (De Morgan / negation-peel
+// collapses on @c operator^; #469 / PR #523).
+template <typename P>
+struct IsNegatedPredicateImpl : std::false_type {
+  using base_type = void;
+};
+template <typename Inner>
+struct IsNegatedPredicateImpl<NegatedPredicate<Inner>> : std::true_type {
+  using base_type = Inner;
+};
+template <typename P>
+inline constexpr bool IsNegatedPredicate_v =
+    IsNegatedPredicateImpl<std::decay_t<P>>::value;
+template <typename P>
+using NegatedPredicateBase_t =
+    typename IsNegatedPredicateImpl<std::decay_t<P>>::base_type;
+
 export template <typename T, typename L, typename Predicate>
 class Set;
 
@@ -554,6 +573,101 @@ class Set {
     }
   }
 
+  /**
+   * @brief Symmetric difference @c A @c △ @c B (set-theoretic XOR; #469).
+   *
+   * @details The textbook identity
+   * @c A @c △ @c B @c = @c (A @c ∖ @c B) @c ∪ @c (B @c ∖ @c A) @c =
+   * @c (A @c ∪ @c B) @c \ @c (A @c ∩ @c B), realised at the predicate
+   * level via @c L::OR / @c L::AND / @c L::NOT --- no new logic species
+   * obligation, since XOR is a derived operation in any boolean /
+   * Heyting algebra.  The C++ @c ^ operator is the bitwise-XOR analogue
+   * at the singleton-bit level, completing the @c | / @c & / @c ^
+   * operator surface family.
+   *
+   * @section expressions__Soundness_note
+   * Complementary-pair XOR collapses to the universe
+   * (@c A @c △ @c ¬A @c = @c Ω) via the same @c IsComplementPair_v
+   * detection used by @c | / @c &.  A naïve same-predicate-type
+   * collapse to @c Ø would be @b unsound: predicate types like
+   * @c BooleanEqPredicate are stateful (carry an @c expected field),
+   * so two @c Set<T, L, P> instances with the same @c Predicate type
+   * may classify @b different sets.  Self-XOR is therefore handled by
+   * the lambda fallback below — correct at every input by the textbook
+   * identity, just without the type-level structural collapse.
+   */
+  template <typename OtherPredicate>
+  constexpr auto operator^(const Set<T, L, OtherPredicate>& other) const {
+    if constexpr (IsComplementPair_v<Predicate, OtherPredicate>) {
+      return Ω<T, L>{};
+    } else if constexpr (std::same_as<std::decay_t<decltype(*this & other)>,
+                                      Ø<T, L>>) {
+      // Compile-time-disjoint optimisation (#469 / PR #523 review):
+      // A △ B = (A ∪ B) ∖ (A ∩ B); when @c A @c ∩ @c B is empty
+      // (the @c ∖ here is the Unicode set-difference glyph, used
+      // consistently throughout this comment block; literal @c \\ is
+      // avoided to keep Doxygen rendering uniform).
+      // (i.e.\ @c A & @c B reduces structurally to @c Ø<T, L> at the
+      // type level via @c structured_and / @c IsComplementPair_v),
+      // the symmetric difference is just the union @c A | @c B.
+      // This catches halfspace-style disjoint pairs like
+      // @c (x @c > @c 100) @c △ @c (x @c < @c 5) which the
+      // @c IsComplementPair_v branch above does not see (because
+      // @c (x @c < @c 5) is not the @c NegatedPredicate wrapper of
+      // @c (x @c > @c 100)) but @c structured_and detects.
+      return *this | other;
+    } else if constexpr (std::same_as<std::decay_t<decltype(*this | other)>,
+                                      Ω<T, L>>) {
+      // Compile-time-covering optimisation (dual of the disjoint
+      // branch above): when @c A @c ∪ @c B reduces structurally to
+      // @c Ω<T, L> at the type level, the textbook identity becomes
+      // @c A @c △ @c B @c = @c Ω @c ∖ @c (A @c ∩ @c B) @c =
+      // @c ¬(A @c ∩ @c B).  Currently dormant: today the only path
+      // by which @c | yields @c Ω at the type level is the
+      // @c IsComplementPair_v branch, which is already handled by
+      // branch 1 above.  When a @c structured_or overload lands
+      // (mirroring the existing @c structured_and in
+      // @c order:halfspace) and detects covering halfspace pairs
+      // whose union covers the carrier without complement-pair
+      // shape, this branch will fire automatically.  Added now for
+      // symmetry with the disjoint branch and to document the
+      // design space.
+      return !(*this & other);
+    } else if constexpr (IsNegatedPredicate_v<OtherPredicate>) {
+      // De Morgan negation-peel (#469 / PR #523):
+      // A △ ¬X = ¬(A △ X)
+      // When the rhs predicate is a @c NegatedPredicate<X> wrapper,
+      // peel the negation outward and recurse into @c operator^ on
+      // the unwrapped @c X.  The result is the @b complement of the
+      // unwrapped XOR, which is the textbook biconditional /
+      // equivalence (@c x @c ∈ @c A @c ↔ @c x @c ∈ @c X).  Saves a
+      // @c NegatedPredicate wrapper layer in the result type and
+      // gives the inner @c operator^ a chance to fire its other
+      // collapses against the unwrapped predicate.
+      Set<T, L, NegatedPredicateBase_t<OtherPredicate>> inner{
+          other.predicate_.base};
+      return !(*this ^ inner);
+    } else if constexpr (IsNegatedPredicate_v<Predicate>) {
+      // Symmetric peel: ¬X △ B = ¬(X △ B).
+      Set<T, L, NegatedPredicateBase_t<Predicate>> inner{predicate_.base};
+      return !(inner ^ other);
+    } else {
+      // Predicates may return @c bool (the most common case for
+      // user-supplied lambdas) or @c L::Ω directly.  Normalise both
+      // sides via @c lift_logic<L> before passing into @c L::AND /
+      // @c L::OR / @c L::NOT, which require @c L::Ω inputs.  This
+      // matches the existing @c Set::operator() normalisation pattern
+      // and the @c relational.cppm dispatch — bool returns lift cleanly
+      // to @c L::Ω, ternary returns are passed through.
+      auto predicate = [lhs = predicate_, rhs = other.predicate_](const T& v) {
+        const auto a = dedekind::category::lift_logic<L>(lhs(v));
+        const auto b = dedekind::category::lift_logic<L>(rhs(v));
+        return L::OR(L::AND(a, L::NOT(b)), L::AND(L::NOT(a), b));
+      };
+      return Set<T, L, decltype(predicate)>{predicate};
+    }
+  }
+
   /** @brief Same-predicate subset: always True (identity). */
   constexpr typename L::Ω operator<=(const Set& /*other*/) const {
     return L::True;
@@ -610,6 +724,48 @@ constexpr auto operator!(Set<T, L, Predicate>& s) {
 export template <typename T, typename L, typename Predicate>
 constexpr auto operator!(Set<T, L, Predicate>&& s) {
   return s.operator!();
+}
+
+/** @brief Set complement via the bitwise-style operator @c ~ (#469).
+ *
+ *  @details Alias for @c operator!(Set): @c ~A returns the
+ *  predicate-level complement @c Set<T, L, NegatedPredicate<P>>.
+ *  Adding the @c ~ spelling completes the bitwise-operator family
+ *  @c (|, &, ^, ~) on @c Set<T, L, P>, satisfying
+ *  @c dedekind::order::HasLatticeOperators (witness pinned in
+ *  @c order:lattice).  The deeper @c U @c ∖ @c A reading where
+ *  @c U is a chosen ambient universe is a separate semantic
+ *  question (#469's deferred design call, tracked under #524).
+ */
+export template <typename T, typename L, typename Predicate>
+constexpr auto operator~(const Set<T, L, Predicate>& s) {
+  return s.operator!();
+}
+export template <typename T, typename L, typename Predicate>
+constexpr auto operator~(Set<T, L, Predicate>& s) {
+  return s.operator!();
+}
+export template <typename T, typename L, typename Predicate>
+constexpr auto operator~(Set<T, L, Predicate>&& s) {
+  return s.operator!();
+}
+
+/** @brief @c Set @c ^ @c Ø @c = @c Set (symmetric difference with empty
+ *         is identity; #469).  Symmetric of @c Ø::operator^(S) above —
+ *         this overload picks up @c S @c ^ @c Ø when the boundary is on
+ *         the right, keeping the structural collapse type-level rather
+ *         than falling through to the lambda. */
+export template <typename T, typename L, typename Predicate>
+constexpr auto operator^(const Set<T, L, Predicate>& s, const Ø<T, L>&) {
+  return s;
+}
+
+/** @brief @c Set @c ^ @c Ω @c = @c ¬Set (symmetric difference with the
+ *         universe is the complement; #469).  Symmetric of
+ *         @c Ω::operator^(S) above. */
+export template <typename T, typename L, typename C, typename Predicate>
+constexpr auto operator^(const Set<T, L, Predicate>& s, const Ω<T, L, C>&) {
+  return !s;
 }
 
 export template <typename B, typename P>

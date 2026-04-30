@@ -148,11 +148,73 @@ struct SingletonSet {
            [s1 = *this, s2 = other](const T& x) { return s1(x) && s2(x); };
   }
 
+  /** @brief Symmetric difference @c {a} @c △ @c {b} (#469).
+   *  @details Pointwise XOR: @c x @c ∈ @c {a} @c △ @c {b} iff
+   *  @c x @c == @c a @c XOR @c x @c == @c b.  When @c a @c == @c b
+   *  the result is empty; otherwise it is the 2-element set
+   *  @c {a, @c b}.  Both cases are uniformly expressed by the same
+   *  lambda predicate; we do @b not collapse to @c Ø at the type
+   *  level even when the singleton TYPES match (@c SingletonSet<T,
+   *  @c L> stores its pivot as a runtime value, so type equality
+   *  does not imply pivot equality — same trap as
+   *  @c BooleanEqPredicate; see @c expressions.cppm:operator^). */
+  template <typename U, typename L2>
+  constexpr auto operator^(const SingletonSet<U, L2>& other) const {
+    // The `var<Ω> % Ω | lambda` chain produces a Comprehension; wrap
+    // in `Set{...}` to materialise an actual Set the caller can invoke.
+    // Without this, callers got `Comprehension does not provide a
+    // call operator` errors at the test site.
+    return Set{var<Ω<T, L>> % Ω<T, L>{} | [s1 = *this, s2 = other](const T& x) {
+      // SingletonSet::operator() returns L::Ω directly,
+      // so the lift_logic<L> calls are defensive: they
+      // normalise if L1 or L2 ever returns bool.
+      const auto a = dedekind::category::lift_logic<L>(s1(x));
+      const auto b = dedekind::category::lift_logic<L>(s2(x));
+      return L::OR(L::AND(a, L::NOT(b)), L::AND(L::NOT(a), b));
+    }};
+  }
+
   // Complement: !{a}
   // In a strict sense, this is the relative complement (Universe \ {a}).
   // For the sake of the lattice, we return the Universal boundary.
   constexpr auto operator!() const { return Ω<T, L>{}; }
 };
+
+// ---------------------------------------------------------------------------
+// Singleton ^ Set / Set ^ Singleton — symmetric difference on the Atom
+// (#469 review-driven specialisations).
+//
+// Sound version: produce a lambda-Set whose predicate evaluates the
+// pointwise XOR.  When @c S has decidable (ClassicalLogic) membership
+// the predicate could be specialised further at construction time:
+//   if pivot ∈ S → result = S - {pivot} → predicate s(x) && x != pivot
+//   if pivot ∉ S → result = S + {pivot} → predicate s(x) || x == pivot
+// That lossy-membership-pivot specialisation is a follow-on micro-
+// optimisation; this slice keeps the operator surface complete and
+// correct without engineering the predicate-rewrite branch.
+// ---------------------------------------------------------------------------
+
+export template <typename T, typename L1, typename L2, typename P>
+constexpr auto operator^(const SingletonSet<T, L1>& s,
+                         const Set<T, L2, P>& other) {
+  // The asymmetry is one-sided: `singleton(v)` always lands in
+  // ClassicalLogic, while `Set{x % Ω<T> | …}` ascends through
+  // NaturalLogic and routinely arrives as TernaryLogic.  Take the
+  // result logic from that same side (L2): the singleton's bool lifts
+  // through `lift_logic<L2>` cleanly, and the Set's predicate is
+  // already in L2.
+  return Set{var<Ω<T, L2>> % Ω<T, L2>{} | [s, other](const T& x) {
+    const auto a = dedekind::category::lift_logic<L2>(s(x));
+    const auto b = dedekind::category::lift_logic<L2>(other(x));
+    return L2::OR(L2::AND(a, L2::NOT(b)), L2::AND(L2::NOT(a), b));
+  }};
+}
+
+export template <typename T, typename L1, typename L2, typename P>
+constexpr auto operator^(const Set<T, L1, P>& other,
+                         const SingletonSet<T, L2>& s) {
+  return s ^ other;
+}
 
 static_assert(IsPointedSet<SingletonSet<int>, int> &&
                   IsExtensional<SingletonSet<int>>,
