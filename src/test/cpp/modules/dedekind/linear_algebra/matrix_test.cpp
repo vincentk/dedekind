@@ -11,11 +11,17 @@
  */
 
 #include <catch2/catch_test_macros.hpp>
+#include <functional>  // std::plus / std::multiplies / std::bit_xor / std::bit_and (Algebraic Lattice corners)
 
+import dedekind.algebra; // IsAlgebra (universal-algebra closure-tier predicate; Algebraic Lattice)
+import dedekind.analysis; // Dual<F> (relocated from :numbers at #513)
 import dedekind.category;
 import dedekind.numbers;
 import dedekind.linear_algebra;
+import dedekind.order; // dedekind::order::HasLatticeOperators on bool (𝔹 lattice corner)
+import dedekind.sets; // SignedExtensionalCardinal (the canonical ℚ carrier for the lattice corners)
 
+using namespace dedekind::analysis;
 using namespace dedekind::numbers;
 using namespace dedekind::linear_algebra;
 
@@ -304,4 +310,131 @@ TEST_CASE("linear_algebra:matrix — runtime-exercised Matrix2x2V operators",
   CHECK(A == Matrix2x2V<int>{1, 2, 3, 4});        // default operator==
   CHECK_FALSE(A == B);                            // negative case
   CHECK(A + B == Matrix2x2V<int>{6, 8, 10, 12});  // operator+ body
+}
+
+// ===========================================================================
+// Algebraic-Lattice corners on the canonical numeric tower.
+//
+// This test is the read-side anchor for Figure 1 (`fig:carrier-lattice`)
+// of `paper.tex`.  Each STATIC_CHECK below pins one corner of the
+// 3D oblique lattice as satisfying the universal-algebra (A, F)
+// pattern at the closure tier (cf. `dedekind.algebra:universal`).
+//
+// Cells that compile today are pinned with positive STATIC_CHECKs.
+// The matrix-tier corners (M_2(R), M_2(X(ℂ))) closed at PR #500;
+// the original FIXME breadcrumbs at those cells turned out to be
+// over-cautious — Matrix2x2V<T>'s operator+/operator* surface is
+// already enough for the closure-tier IsAlgebra check to fire.
+//
+// Originally lived in linear_algebra/embeddings_test.cpp (where the
+// matrix-tier work surfaced); moved here at PR #500 to a dedicated
+// matrix-tier home, since the lattice-corner story is broader than
+// the ℂ ↪ M₂ / 𝔻 ↪ M₂ embeddings that file is otherwise about.
+// ===========================================================================
+
+namespace {
+// Arbitrary-precision signed rational — the canonical ℚ carrier for the
+// lattice corners (matches embeddings_test.cpp's choice of carrier and
+// keeps the closure-tier identities exact at the ring layer).
+using LatticeRat = Rational<dedekind::sets::SignedExtensionalCardinal<>>;
+}  // namespace
+
+TEST_CASE("Algebraic Lattice (Figure 1): cube corners on the numeric tower",
+          "[linear_algebra][algebraic_lattice][universal]") {
+  using dedekind::algebra::IsAlgebra;
+  using R = LatticeRat;
+
+  // ---- Front face (no quotient applied) ----
+  //   Bottom row: scalars Q, R, C.
+
+  // ℚ as carrier — the canonical exact rational.
+  STATIC_CHECK(IsAlgebra<R, std::plus<R>, std::multiplies<R>>);
+
+  // ℂ as carrier — Complex<R> closes ring-shape under (+, *).
+  STATIC_CHECK(IsAlgebra<Complex<R>, std::plus<Complex<R>>,
+                         std::multiplies<Complex<R>>>);
+
+  // 𝔻 as carrier — Dual<R> closes ring-shape under (+, *).
+  STATIC_CHECK(
+      IsAlgebra<Dual<R>, std::plus<Dual<R>>, std::multiplies<Dual<R>>>);
+
+  // ---- Top row of the front face: Matrix layer over each scalar ----
+  //
+  // M_2(R) = End_R(Free_2(R)) — the rank-functor image at n=2 over
+  // each base scalar.  Pinning IsAlgebra on Matrix2x2V<...> at the
+  // closure tier makes the rank-axis of Figure 1 firm: same shape as
+  // the bottom-row scalar witnesses, one rank up.
+  STATIC_CHECK(IsAlgebra<Matrix2x2V<R>, std::plus<Matrix2x2V<R>>,
+                         std::multiplies<Matrix2x2V<R>>>);
+  STATIC_CHECK(
+      IsAlgebra<Matrix2x2V<Complex<R>>, std::plus<Matrix2x2V<Complex<R>>>,
+                std::multiplies<Matrix2x2V<Complex<R>>>>);
+  STATIC_CHECK(IsAlgebra<Matrix2x2V<Dual<R>>, std::plus<Matrix2x2V<Dual<R>>>,
+                         std::multiplies<Matrix2x2V<Dual<R>>>>);
+
+  // ---- Back face (single quotient applied, Q-axis = Dual or Cplx) ----
+  //
+  // Examples of two-step compositions live one functor deep:
+  //   - Dual(Complex(R))   — the AD carrier over ℚ-rationals.
+  //   - Complex(Dual(R))   — abstractly isomorphic to Dual(Complex(R))
+  //                          as the polynomial quotient
+  //                          ℚ[i, ε]/(i²+1, ε²); the C++ carriers are
+  //                          distinct types with distinct concrete
+  //                          operations and no canonical-iso witness
+  //                          shipped today (cf. #504/#505 generalisations).
+  //
+  // The two compositions commute (independent generators i, ε), per
+  // the Algebraic Lattice caption.  Either direction works as a
+  // closure-tier witness.
+  using Z2_over_R = Dual<Complex<R>>;
+  STATIC_CHECK(
+      IsAlgebra<Z2_over_R, std::plus<Z2_over_R>, std::multiplies<Z2_over_R>>);
+
+  // ---- Far-back-corner: M_2(X(ℂ)) — the lattice top ----
+  //
+  // The composite carrier sitting at the top-right-back corner of
+  // Figure 1: matrix layer (rank axis) over the back-face quotient
+  // (Dual ∘ Complex) over ℚ.  Closing IsAlgebra here pins the lattice
+  // top --- the upper bound of the worked existence-proof slice (the
+  // lattice itself is bounded-below / unbounded-above; this corner is
+  // the conventional stop, not a maximum).
+  STATIC_CHECK(IsAlgebra<Matrix2x2V<Dual<Complex<R>>>,
+                         std::plus<Matrix2x2V<Dual<Complex<R>>>>,
+                         std::multiplies<Matrix2x2V<Dual<Complex<R>>>>>);
+
+  // ---- Lattice bottom-front-left corner: 𝔹 = bool ----
+  //
+  // The Algebraic Lattice caption places 𝔹 at the bottom-front-left
+  // corner.  Per the paper §3.4 Rosetta tables, the natural reading
+  // of bool's algebraic surface is the Galois field 𝔽₂ under
+  // (XOR, AND); the Boolean-lattice reading under (∨, ∧) is the
+  // sibling structure.  Both fire on the same carrier; the operation
+  // tuple disambiguates.  These witnesses also live upstream
+  // (`numbers:boolean`, `algebra:universal`), but pinning them here
+  // anchors the lattice bottom to the read-side test that names
+  // itself for Figure 1.
+  STATIC_CHECK(IsAlgebra<𝔹, std::bit_xor<bool>, std::bit_and<bool>>);
+  STATIC_CHECK(
+      dedekind::category::IsField<𝔹, std::bit_xor<bool>, std::bit_and<bool>>);
+  STATIC_CHECK(dedekind::order::HasLatticeOperators<𝔹>);
+
+  // ---- Boundary case: alphabet choice on the 𝔹-rooted cells ----
+  //
+  // The closure-tier `IsAlgebra<bool, std::plus<bool>, std::multiplies<bool>>`
+  // check tests `op(a, b) -> std::same_as<bool>`.  `std::plus<bool>` and
+  // `std::multiplies<bool>` go through C++ integer promotion (literal
+  // `a + b` on bools yields `int`) but the functor's call operator
+  // narrows back to `bool`, so the closure-tier `same_as<bool>` check
+  // mechanically succeeds.  What the closure check does *not* see is
+  // that the values returned reflect the int-promoted arithmetic
+  // (`true + true -> int(2) -> bool(true)`, not the F_2-natural
+  // `true + true -> false`).  The textbook (+, *) reading is therefore
+  // the *wrong alphabet* for the lattice-bottom cell --- the F_2
+  // reading above (XOR, AND) is the operationally correct one;
+  // (∨, ∧) is the Boolean-lattice sibling on the same carrier.
+  // Paper §3.4 footnote a and `tab:rosetta-textbook-vs-cpp` cover the
+  // alphabet choice in detail; the refined-type discipline of #496
+  // will make the bool→F_2 channel a typed boundary so the wrong
+  // alphabet becomes a type error rather than a silent semantic
+  // mismatch.
 }

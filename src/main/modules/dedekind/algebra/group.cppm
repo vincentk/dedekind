@@ -27,6 +27,7 @@ module;
 export module dedekind.algebra:group;
 
 import :monoid;
+import :universal;  // IsAlgebra (universal-algebra closure tier; #517)
 import dedekind.category;
 
 namespace dedekind::algebra {
@@ -219,7 +220,7 @@ concept HasCompoundGroupOperatorsMul = requires(T a, T b) {
  * @tparam Add The additive operation witness (defaults to `std::plus<T>`).
  */
 export template <typename T, typename Add = std::plus<T>>
-concept IsAdditiveGroup = IsGroup<T, Add>;
+concept IsAdditiveGroup = IsGroup<T, Add> && IsAlgebra<T, Add>;
 
 /**
  * @concept IsMultiplicativeGroup
@@ -231,7 +232,8 @@ concept IsAdditiveGroup = IsGroup<T, Add>;
  * `std::multiplies<T>`).
  */
 export template <typename T, typename Mult = std::multiplies<T>>
-concept IsMultiplicativeGroup = dedekind::category::IsGroup<T, Mult>;
+concept IsMultiplicativeGroup =
+    dedekind::category::IsGroup<T, Mult> && IsAlgebra<T, Mult>;
 
 /**
  * @concept IsArithmeticAdditiveGroup
