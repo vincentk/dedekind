@@ -224,16 +224,21 @@ struct ZeroAction final {
 
 /**
  * @brief @c is_module_v<M, R>: declare that @c M is a module over the
- *        commutative ring @c R.
+ *        scalar @c R.
  *
  * @details Default false; specialised in carrier-defining
  * partitions (e.g.\ @c Rational<I> over @c I in
  * @c numbers:rational; @c Complex<T> over @c T in
  * @c numbers:complex; @c Dual<T> over @c T in @c analysis:dual).
- * The companion concept @c IsLinearAction (above) is the
- * @b operator-surface check; this trait is the @b structural pin
- * for the recursive enrichment relations Figure~1 of the paper
- * depicts (#498 / #499).
+ * Each shipping specialisation is gated on the operator-surface
+ * concepts @c HasRingOperators / @c IsComplexScalar / etc., which
+ * is what the rest of the library actually checks at the call sites
+ * — the strict commutative-ring axioms are not demanded structurally
+ * because most shipping carriers (IEEE-754, @c Rational<I>) fail
+ * @c IsTotal under rounding / non-periodicity.  The companion
+ * concept @c IsLinearAction (above) is the @b operator-surface
+ * check; this trait is the @b structural pin for the recursive
+ * enrichment relations Figure~1 of the paper depicts (#498 / #499).
  */
 export template <typename M, typename R>
 inline constexpr bool is_module_v = false;
