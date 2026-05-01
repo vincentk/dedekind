@@ -453,13 +453,12 @@ choice of C++23 as the implementation substrate, introduces the
 \emph{Axiomatic Systems Programming} paradigm, and develops the
 intensional-first design rule (§\ref{sec:intensional}) including
 the tension between abstract algebraic numerics and IEEE~754
-hardware floating point and the carrier rosetta from exact
+hardware floating-point and the carrier Rosetta from exact
 rationals to packed integers.
 Section~\ref{sec:sets-rules} (\emph{Sets and Sequences}) develops
-the view of sets as predicates over ambient species, shows how set
-operations compose symbolically under the subobject classifier
-$\Omega$, and lifts the same intensional discipline to
-$\mathbb{N}$-indexed sequences.
+the view of sets as predicates over ambient species and shows how
+set operations compose symbolically under the subobject classifier
+$\Omega$.
 Section~\ref{sec:pruning} (\emph{Algebraic Lattice}) presents the
 carrier-tower target state and the compile-time structural
 reductions it acts through: halfspace pruning, linear programming
@@ -1520,15 +1519,14 @@ actually provides --- or fails to compile.}
 \label{sec:sets-rules}
 % ============================================================
 
-The second pillar.  Predicative carriers and infinite-domain
-function-space carriers: sets as predicates over an ambient species
-(the Comprehension View), pruning under the subobject classifier
-$\Omega$, and the sequence layer (\lstinline|Path|, \lstinline|FinitePath|)
-that lifts the same intensional discipline to $\mathbb{N}$-indexed
-families and beyond.  Where §\ref{sec:axiomatic} fixes the substrate,
-this section reifies its first concrete inhabitants — sets that are
-rules, not buckets, and sequences that are functions
-$\mathbb{N} \to T$, not stored arrays.
+The second pillar.  Sets as predicates over an ambient species (the
+Comprehension View), and the symbolic composition of set operations
+under the subobject classifier $\Omega$.  Where §\ref{sec:axiomatic}
+fixes the substrate, this section reifies its first concrete
+inhabitants — sets that are rules, not buckets.  The sequence-layer
+counterpart (functions $\mathbb{N} \to T$ as infinite-dimensional
+vectors, sharing the same intensional posture) extends this pillar
+in a sibling slice.
 
 \subsection{The Comprehension View: Sets Are Rules, Not Buckets}
 
