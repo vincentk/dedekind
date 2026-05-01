@@ -19,7 +19,8 @@ module;
 export module dedekind.geometry:inner_product;
 
 import :affine;
-import :linear_map;  // Covector<F, N> = LinearMap<F, 1, N> for the operator* (φ, v) overload
+import :linear_map;  // Covector<F, N> = LinearMap<F, 1, N> for the operator*
+                     // (φ, v) overload
 import dedekind.algebra;
 
 namespace dedekind::geometry {

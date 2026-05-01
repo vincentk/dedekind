@@ -58,9 +58,9 @@ module;
 
 export module dedekind.geometry:outer_product;
 
-import dedekind.algebra;  // (scalar carriers — IsMatrixScalar, etc.)
-import :affine;           // Vector<F, N>
-import :linear_map;       // LinearMap<F, M, N>, geometry::outer
+import dedekind.algebra; // (scalar carriers — IsMatrixScalar, etc.)
+import :affine;          // Vector<F, N>
+import :linear_map;      // LinearMap<F, M, N>, geometry::outer
 
 namespace dedekind::geometry {
 
@@ -117,7 +117,8 @@ constexpr LinearMap<F, M, N> dyad(const Vector<F, M>& u,
  *  row vector (covector) on the right gives the dyadic / outer
  *  product, a rank-1 @c LinearMap.
  *
- *  @c Vector<F, @c M> @c × @c Covector<F, @c N> @c → @c LinearMap<F, @c M, @c N>
+ *  @c Vector<F, @c M> @c × @c Covector<F, @c N> @c → @c LinearMap<F, @c M, @c
+ * N>
  *
  *  This is the @b outer-product face of @c operator*; the dual
  *  @b inner-product face @c Covector @c × @c Vector @c → @c F lives
