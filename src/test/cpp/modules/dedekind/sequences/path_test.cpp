@@ -215,4 +215,42 @@ TEST_CASE("Sequences: The Path to Continuity",
     auto sum = a + empty;
     REQUIRE(sum.size() == 0);  // min(4, 0) = 0; empty operand absorbs.
   }
+
+  SECTION("FinitePath<T>: binary - extent uses min(a.size(), b.size())") {
+    FinitePath<ℤ> a{[](std::size_t n) -> ℤ { return static_cast<ℤ>(n) * 100; },
+                    /*size=*/3};
+    FinitePath<ℤ> b{[](std::size_t n) -> ℤ { return static_cast<ℤ>(n); },
+                    /*size=*/5};
+
+    auto diff = a - b;
+    REQUIRE(diff.size() == 3);  // min(3, 5)
+    REQUIRE(diff.at(0) == 0);
+    REQUIRE(diff.at(1) == 99);   // 100 - 1
+    REQUIRE(diff.at(2) == 198);  // 200 - 2
+  }
+
+  SECTION("FinitePath<T>: unary - preserves extent") {
+    FinitePath<ℤ> a{[](std::size_t n) -> ℤ { return static_cast<ℤ>(n); },
+                    /*size=*/4};
+
+    auto neg = -a;
+    REQUIRE(neg.size() == 4);  // unary - preserves a.size()
+    REQUIRE(neg.at(0) == 0);
+    REQUIRE(neg.at(3) == -3);
+  }
+
+  SECTION("FinitePath<T>: scalar * preserves extent (left and right)") {
+    FinitePath<ℤ> a{[](std::size_t n) -> ℤ { return static_cast<ℤ>(n) + 1; },
+                    /*size=*/3};
+
+    auto left = ℤ{5} * a;
+    REQUIRE(left.size() == 3);  // scalar * preserves a.size()
+    REQUIRE(left.at(0) == 5);
+    REQUIRE(left.at(2) == 15);
+
+    auto right = a * ℤ{2};
+    REQUIRE(right.size() == 3);  // a * scalar preserves a.size()
+    REQUIRE(right.at(0) == 2);
+    REQUIRE(right.at(2) == 6);
+  }
 }

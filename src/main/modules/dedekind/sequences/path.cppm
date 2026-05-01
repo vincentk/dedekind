@@ -184,7 +184,7 @@ struct Path {
 
   /** @section path__Pointwise_Operators
    *
-   *  @c Path<T, @c Card> is a function space @c T^ℕ (or @c T^[0..N)
+   *  @c Path<T, @c Cardinality> is a function space @c T^ℕ (or @c T^[0..N)
    *  in the finite case): pointwise @c +, scalar @c ·, and unary @c -
    *  give the vector-space surface a function space carries.  This is
    *  the operator anchor for #537's @c IsFunctionSpace<W, @c D, @c T>
