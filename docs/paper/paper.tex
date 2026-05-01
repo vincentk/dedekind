@@ -445,23 +445,52 @@ each by a reduction that compiles to a constant.
 
 \subsection{Paper Structure}
 
-Section~\ref{sec:axiomatic} motivates the choice of C++23 as the implementation substrate and
-introduces the \emph{Axiomatic Systems Programming} paradigm.
-Section~\ref{sec:intensional} explains the intensional-first design rule and the tension between
-abstract algebraic numerics and IEEE~754 hardware floating point.
-Section~\ref{sec:sets-rules} develops the view of sets as predicates over ambient species and shows
-how set operations compose symbolically.
-Section~\ref{sec:pruning} presents compile-time structural reductions:
-halfspace pruning, linear programming as a reduction to a typed vertex, and
-forward-mode automatic differentiation as a sibling reduction over the
-dual-number ring.
+The body splits across three pillars: \emph{Category Theory},
+\emph{Sets and Sequences}, \emph{Algebraic Lattice}.
+
+Section~\ref{sec:axiomatic} (\emph{Category Theory}) motivates the
+choice of C++23 as the implementation substrate, introduces the
+\emph{Axiomatic Systems Programming} paradigm, and develops the
+intensional-first design rule (§\ref{sec:intensional}) including
+the tension between abstract algebraic numerics and IEEE~754
+hardware floating point and the carrier rosetta from exact
+rationals to packed integers.
+Section~\ref{sec:sets-rules} (\emph{Sets and Sequences}) develops
+the view of sets as predicates over ambient species, shows how set
+operations compose symbolically under the subobject classifier
+$\Omega$, and lifts the same intensional discipline to
+$\mathbb{N}$-indexed sequences.
+Section~\ref{sec:pruning} (\emph{Algebraic Lattice}) presents the
+carrier-tower target state and the compile-time structural
+reductions it acts through: halfspace pruning, linear programming
+as a reduction to a typed vertex, forward-mode automatic
+differentiation as a sibling reduction over the dual-number ring,
+and the $\mathbb{C} / \mathbb{D} \hookrightarrow M_2(\mathbb{Q})$
+embedding.
 Section~\ref{sec:related} surveys related work.
 Section~\ref{sec:conclusion} concludes.
 
 % ============================================================
-\section{Axiomatic Systems Programming}
+\section{Category Theory}
 \label{sec:axiomatic}
 % ============================================================
+
+The first pillar.  We establish the categorical and type-theoretic
+substrate every later claim depends on.  We work, in effect, in the
+category $\mathbf{Cpp}$ — objects are C++ types, arrows are the
+type-respecting maps the language admits — and operate within its
+disciplined fragment, where the Cartesian-closed-category witness
+makes the surface a faithful image of STLC under Lambek--Scott.
+Two correspondences carry the weight: a \lstinline|concept|
+functions as a subobject classifier — a predicate on objects of
+$\mathbf{Cpp}$ that selects a subobject (the inhabitants satisfying
+the predicate); type composition (templates parameterised over
+constrained types, function templates, function objects) reads as
+arrow composition.  The intensional-first design rule, developed in
+§\ref{sec:intensional}, fixes a specific posture inside this
+category: pick the Form-faithful carrier first, let the compiler see
+the structure rather than the carrier, and realise to a machine type
+only at named arrows.
 
 \subsection{The Substrate: C++23}
 
@@ -818,11 +847,11 @@ declared homomorphism + declared surjectivity, naming the canonical
 projection $\pi: A \to A/{\sim}$).}
 
 % ============================================================
-\section{Intensional First, Realize When You Mean It}
+\subsection{Intensional First, Realize When You Mean It}
 \label{sec:intensional}
 % ============================================================
 
-\subsection{The Design Rule}
+\subsubsection{The Design Rule}
 
 The central methodology of \texttt{dedekind} is captured by a single rule:
 \begin{quote}
@@ -1132,7 +1161,7 @@ build the library's carriers}; carriers are named by the
 universal property that defines them, not by the storage scheme
 they happen to use.}
 
-\subsection{The Tension: Abstract Naturals vs.\ IEEE Numerics}
+\subsubsection{The Tension: Abstract Naturals vs.\ IEEE Numerics}
 \label{sec:numeric-tension}
 
 Here is the tension in one sentence: the \texttt{int} in your source
@@ -1189,7 +1218,7 @@ interval-arithmetic wrapper, or a lift to \lstinline{Rational<long>})
 is supplied. The realization boundary is the point at which the
 programmer chooses which policy to apply.
 
-\subsection{Dedekind Cuts as the Canonical Example}
+\subsubsection{Dedekind Cuts as the Canonical Example}
 \label{sec:dedekind-cuts}
 
 Dedekind's construction --- $r \in \mathbb{R}$ as the partition
@@ -1256,7 +1285,7 @@ a concrete float is available later, at a specific precision, when
 the programmer asks for it. The intensional object survives
 indefinitely without losing reasoning power.
 
-\subsection{Carriers: From Exact Rationals to Packed Integers}
+\subsubsection{Carriers: From Exact Rationals to Packed Integers}
 \label{sec:carrier-rosetta}
 
 A \emph{carrier} in this paper is the underlying set on which an
@@ -1487,11 +1516,21 @@ enforces that the laws your code relies on are the laws the carrier
 actually provides --- or fails to compile.}
 
 % ============================================================
-\section{Sets Are Rules, Not Buckets}
+\section{Sets and Sequences}
 \label{sec:sets-rules}
 % ============================================================
 
-\subsection{The Comprehension View}
+The second pillar.  Predicative carriers and infinite-domain
+function-space carriers: sets as predicates over an ambient species
+(the Comprehension View), pruning under the subobject classifier
+$\Omega$, and the sequence layer (\lstinline|Path|, \lstinline|FinitePath|)
+that lifts the same intensional discipline to $\mathbb{N}$-indexed
+families and beyond.  Where §\ref{sec:axiomatic} fixes the substrate,
+this section reifies its first concrete inhabitants — sets that are
+rules, not buckets, and sequences that are functions
+$\mathbb{N} \to T$, not stored arrays.
+
+\subsection{The Comprehension View: Sets Are Rules, Not Buckets}
 
 Here is the move. A set is not a bucket. A set is a rule:
 \[
@@ -1583,9 +1622,20 @@ That is the payoff: the same comprehension machinery handles exact domains
 the API. The logic is a parameter.
 
 % ============================================================
-\section{Compile-Time Reductions: From Set Pruning to Optimisation and Calculus}
+\section{Algebraic Lattice}
 \label{sec:pruning}
 % ============================================================
+
+The third pillar.  The carrier tower of Figure~\ref{fig:carrier-lattice}
+in load-bearing form: HSP propagation lifts axioms componentwise
+along quotients (\textbf{H}, e.g. \texttt{Frac}, \texttt{Complex},
+\texttt{Dual}) and direct products (\textbf{P}, e.g. $V_n(R)$,
+\texttt{Diagonal}); $\operatorname{End}_R$ is the partial-axiom
+rank-$n$ extension.  The compile-time-reduction showcases (linear
+programming, automatic differentiation, the
+$\mathbb{C} / \mathbb{D} \hookrightarrow M_2(\mathbb{Q})$
+embedding) are the algebraic lattice acting through the disciplined
+fragment of §\ref{sec:axiomatic}.
 
 \subsection{Structural Pruning in Practice}
 
