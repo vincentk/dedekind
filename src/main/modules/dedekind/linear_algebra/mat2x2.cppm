@@ -74,10 +74,11 @@ export module dedekind.linear_algebra:mat2x2;
 import dedekind.algebra; // HasRingOperators, HasFieldOperators, HasVectorSpaceOperators
 import dedekind.category; // IsFunctor / Set / arrow (for matrix2x2_functor witness)
 import dedekind.numbers; // Rational<Z> for the ℚ carrier
-import dedekind.sets;    // Finite cardinality tag (for dimension_type)
-import :basis;           // is_endomorphism_ring_v trait declaration
-import :contracts;       // matrix / vector / orientation concepts
-import :vec2;            // Vec2 (NTTP), Vec2V / Covec2V (value-level)
+import dedekind.order; // IsDirectedSet — algebraic gate on operator[] index domain (any net domain)
+import dedekind.sets; // Finite cardinality tag (for dimension_type)
+import :basis;        // is_endomorphism_ring_v trait declaration
+import :contracts;    // matrix / vector / orientation concepts
+import :vec2;         // Vec2 (NTTP), Vec2V / Covec2V (value-level)
 
 namespace dedekind::linear_algebra {
 
@@ -486,6 +487,30 @@ struct Matrix2x2V {
     if (i == 0) return {m11, m12};
     if (i == 1) return {m21, m22};
     return {};
+  }
+
+  /** @brief Indexed projection: @c m[i] @c = @c row(i), so @c m[i][j]
+   *         resolves to the textbook entry @c m_{ij} via the row's own
+   *         eval counit.  Out-of-range @c i yields the zero row (same
+   *         semantics as @c row()).  Categorical reading: the curried
+   *         form of the binary CCC eval @c eval: @c (T^2)^{2} @c ×
+   *         @c 2 @c × @c 2 @c → @c T at the matrix-shape carrier.
+   *         @c Idx is gated by @c dedekind::order::IsDirectedSet — same
+   *         algebraic net-domain anchor as @c Vec2V::operator[].
+   *
+   *  @note The composed expression @c m[i][j] is safe as a value
+   *        expression: @c m[i] returns a @c Covec2V<T> by value, and
+   *        @c Covec2V::operator[] returns @c T by value (lifetime
+   *        extension applies to the prvalue chain).  Binding the
+   *        intermediate @c m[i] to a reference and *then* indexing
+   *        @c .operator[] is also safe (reference-bound temporary
+   *        lives for the full statement).
+   */
+  template <typename Idx>
+    requires dedekind::order::IsDirectedSet<Idx> &&
+             std::convertible_to<Idx, std::size_t>
+  constexpr row_type operator[](Idx const& i) const {
+    return row(static_cast<std::size_t>(i));
   }
 
   /** @brief Matrix transpose: reflect across the main diagonal. */
@@ -967,5 +992,49 @@ static_assert(orth_R90 * col_e1 == col_e2);
 static_assert(orth_R90 * col_e2 == -col_e1);
 
 }  // namespace detail
+
+}  // namespace dedekind::linear_algebra
+
+/** @section matrix__Categorical_Anchor_For_Subscript
+ *
+ *  Pin the @c category:cartesian opt-in marker (#531) on @c Matrix2x2V<T>:
+ *  the matrix subscript @c m[i] realises the CCC eval counit at the
+ *  outer index, with the row's own @c operator[] closing @c m[i][j] over
+ *  the inner index — together yielding the textbook entry @c m_{ij}.
+ */
+namespace dedekind::category {
+
+// Parametric in @c Idx, constrained to match @c Matrix2x2V::operator[]
+// exactly so the raw trait does not say @c true for indices the
+// carrier would refuse.
+template <typename T, typename Idx>
+  requires dedekind::order::IsDirectedSet<Idx> &&
+               std::convertible_to<Idx, std::size_t>
+inline constexpr bool
+    is_eval_arrow_v<dedekind::linear_algebra::Matrix2x2V<T>, Idx> = true;
+
+}  // namespace dedekind::category
+
+namespace dedekind::linear_algebra {
+
+static_assert(
+    dedekind::category::IsEvalArrow<Matrix2x2V<unsigned int>, std::size_t>,
+    "Matrix2x2V<T>::operator[] is the CCC eval counit at the row index "
+    "(Mac Lane CWM §IV.6).");
+static_assert(
+    dedekind::category::IsEvalArrow<Matrix2x2V<unsigned int>, unsigned int>,
+    "Matrix2x2V<T>::operator[] accepts unsigned int as a net-domain index "
+    "(parametric Idx, gated by IsDirectedSet + convertible_to<size_t>).");
+
+namespace detail_op {
+inline constexpr Matrix2x2V<unsigned int> opm{1u, 2u, 3u, 4u};
+static_assert(opm[0][0] == 1u, "m[0][0] = m11.");
+static_assert(opm[0][1] == 2u, "m[0][1] = m12.");
+static_assert(opm[1][0] == 3u, "m[1][0] = m21.");
+static_assert(opm[1][1] == 4u, "m[1][1] = m22.");
+// Out-of-range row: m[2] is the zero row (matches row(2) semantics).
+static_assert(opm[2u][0] == 0u, "m[2][0] = 0u (out-of-range row is zero).");
+static_assert(opm[2u][1] == 0u, "m[2][1] = 0u (out-of-range row is zero).");
+}  // namespace detail_op
 
 }  // namespace dedekind::linear_algebra

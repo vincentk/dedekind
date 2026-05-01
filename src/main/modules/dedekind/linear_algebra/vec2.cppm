@@ -58,9 +58,10 @@ export module dedekind.linear_algebra:vec2;
 
 import dedekind.algebra; // HasRingOperators, HasVectorSpaceOperators (upstream)
 import dedekind.category; // IsFunctor / Set / arrow (for vec2_functor witnesses)
-import dedekind.sets; // Finite tag — the cardinal the tuple dimension lives in
-import :basis;        // is_free_module_v trait declaration
-import :contracts;    // ColumnOrientation, RowOrientation tags
+import dedekind.order; // IsDirectedSet — algebraic gate on the operator[] index domain (any net domain works)
+import dedekind.sets;  // Finite tag — the cardinal the tuple dimension lives in
+import :basis;         // is_free_module_v trait declaration
+import :contracts;     // ColumnOrientation, RowOrientation tags
 
 namespace dedekind::linear_algebra {
 
@@ -147,6 +148,53 @@ struct Vec2V {
     return {a.x * s, a.y * s};
   }
 
+  /** @brief Indexed projection. Semantics match @c row()/@c column() in
+   *         the matrix family: @c i=0 returns @c x, @c i=1 returns @c y,
+   *         out-of-range returns @c T{} (the zero element).  Returned by
+   *         value to avoid the @c m[i][j]-style dangling-reference trap
+   *         when binding to a reference.
+   *
+   *  Categorical reading (Mac Lane CWM §IV.6): the subscript @c v[i] is
+   *  the CCC eval counit @c ε: @c (T^2)^{2} @c × @c 2 @c → @c T applied
+   *  to @c (v, @c i).  Equivalently the curried form @c v: @c 2 @c → @c T
+   *  in @b Set, with @c v[i] @c = @c eval(v, @c i).  The @c is_eval_arrow_v
+   *  trait below pins the categorical reading at the carrier site.
+   *
+   *  @c Idx is gated by @c dedekind::order::IsDirectedSet — the
+   *  algebraic predicate that picks out @b net @b domains (compare
+   *  @c sequences:net's @c IsNet, which requires
+   *  @c IsDirectedSet on @c N::Domain).  Conversion to
+   *  @c std::size_t names the index numerically and admits @c bool,
+   *  @c int, @c unsigned, @c std::size_t, @c ℕ, and any future
+   *  intensional cardinal that converts.
+   */
+  template <typename Idx>
+    requires dedekind::order::IsDirectedSet<Idx> &&
+             std::convertible_to<Idx, std::size_t>
+  constexpr T operator[](Idx const& i) const {
+    const std::size_t s = static_cast<std::size_t>(i);
+    if (s == 0) return x;
+    if (s == 1) return y;
+    return T{};
+  }
+
+  /** @brief Named-pair view via @c operator->.
+   *
+   *  Returns a proxy whose members @c _1 / @c fst alias @c x and @c _2 /
+   *  @c snd alias @c y.  Mirrors the textbook left/right projection of
+   *  the homogeneous pair @c T² and the Pierce-style first/second tuple
+   *  destructors.  Categorical reading: @c v->_1 reads as the comonadic
+   *  extract on the canonical first projection (Wadler 1992).
+   */
+  struct ArrowView {
+    T const& _1;
+    T const& _2;
+    T const& fst;
+    T const& snd;
+    constexpr ArrowView const* operator->() const { return this; }
+  };
+  constexpr ArrowView operator->() const { return ArrowView{x, y, x, y}; }
+
   /** @brief Transpose to the dual covector: column → row. */
   constexpr Covec2V<T> transpose() const;
 };
@@ -187,6 +235,20 @@ struct Covec2V {
   }
   friend constexpr Covec2V operator*(const Covec2V& a, const T& s) {
     return {a.x * s, a.y * s};
+  }
+
+  /** @brief Indexed projection.  Same row-style semantics as
+   *         @c Vec2V::operator[]: @c i=0 returns @c x, @c i=1 returns
+   *         @c y, out-of-range returns @c T{}.  Returned by value.
+   */
+  template <typename Idx>
+    requires dedekind::order::IsDirectedSet<Idx> &&
+             std::convertible_to<Idx, std::size_t>
+  constexpr T operator[](Idx const& i) const {
+    const std::size_t s = static_cast<std::size_t>(i);
+    if (s == 0) return x;
+    if (s == 1) return y;
+    return T{};
   }
 
   /** @brief Transpose to the dual vector: row → column. */
@@ -445,5 +507,81 @@ static_assert(is_free_module_v<Vec2V<unsigned int>, unsigned int, 2>,
 static_assert(is_free_module_v<Covec2V<unsigned int>, unsigned int, 2>,
               "Covec2V<T> is a free T-module of rank 2 (the row-vector "
               "dual to Vec2V<T>).");
+
+}  // namespace dedekind::linear_algebra
+
+/** @section vec2__Categorical_Anchors_For_Operators
+ *
+ *  Pin the @c category:cartesian / @c category:kleisli opt-in markers
+ *  (#531) on the homogeneous-pair carriers: @c Vec2V<T> and @c Covec2V<T>
+ *  realise the CCC eval counit through @c operator[]; @c Vec2V<T> also
+ *  realises comonadic extract @c ε through @c operator-> via the
+ *  @c ArrowView proxy (first / second projection of the pair).
+ */
+namespace dedekind::category {
+
+// Parametric in @c Idx, but constrained to match the carrier's
+// @c operator[] requires-clause exactly: any net domain that the
+// carrier actually accepts fires the CCC-counit reading.  Constraining
+// the partial spec (rather than letting the @c HasSubscriptOperator
+// concept gate alone) keeps the raw trait honest — it does not say
+// @c true for @c Idx the carrier would refuse to instantiate.
+template <typename T, typename Idx>
+  requires dedekind::order::IsDirectedSet<Idx> &&
+               std::convertible_to<Idx, std::size_t>
+inline constexpr bool is_eval_arrow_v<dedekind::linear_algebra::Vec2V<T>, Idx> =
+    true;
+
+template <typename T, typename Idx>
+  requires dedekind::order::IsDirectedSet<Idx> &&
+               std::convertible_to<Idx, std::size_t>
+inline constexpr bool
+    is_eval_arrow_v<dedekind::linear_algebra::Covec2V<T>, Idx> = true;
+
+template <typename T>
+inline constexpr bool is_kleisli_deref_v<dedekind::linear_algebra::Vec2V<T>> =
+    true;
+
+}  // namespace dedekind::category
+
+namespace dedekind::linear_algebra {
+
+// Witness the CCC eval-counit reading across multiple algebraic net
+// domains: @c bool (the binary directed set), @c unsigned @c int (the
+// canonical primitive carrier under modular @c IsRing), and @c int.
+// Future intensional @c ℕ slots in here without touching the carrier.
+static_assert(dedekind::category::IsEvalArrow<Vec2V<unsigned int>, bool>,
+              "Vec2V<T>::operator[] accepts bool as a net-domain index.");
+static_assert(
+    dedekind::category::IsEvalArrow<Vec2V<unsigned int>, unsigned int>,
+    "Vec2V<T>::operator[] is the CCC eval counit (Mac Lane CWM §IV.6); "
+    "Idx is gated algebraically by IsDirectedSet.");
+static_assert(dedekind::category::IsEvalArrow<Vec2V<unsigned int>, int>,
+              "Vec2V<T>::operator[] accepts int as a net-domain index.");
+static_assert(
+    dedekind::category::IsEvalArrow<Covec2V<unsigned int>, unsigned int>,
+    "Covec2V<T>::operator[] is the CCC eval counit (row-vector dual).");
+static_assert(
+    dedekind::category::IsKleisliDeref<Vec2V<unsigned int>>,
+    "Vec2V<T>::operator-> realises comonadic extract on the homogeneous "
+    "pair (first / second projection via the ArrowView proxy; "
+    "Wadler 1992).");
+
+// Value-level witnesses for the operator surface.
+namespace detail_op {
+inline constexpr Vec2V<unsigned int> opv{3u, 7u};
+static_assert(opv[0u] == 3u, "Vec2V::operator[](0u) returns x.");
+static_assert(opv[1u] == 7u, "Vec2V::operator[](1u) returns y.");
+static_assert(opv[false] == 3u, "Vec2V::operator[](false) returns x.");
+static_assert(opv[true] == 7u, "Vec2V::operator[](true) returns y.");
+static_assert(opv->_1 == 3u, "Vec2V::operator->::_1 is the first projection.");
+static_assert(opv->_2 == 7u, "Vec2V::operator->::_2 is the second projection.");
+static_assert(opv->fst == 3u, "Vec2V::operator->::fst aliases _1.");
+static_assert(opv->snd == 7u, "Vec2V::operator->::snd aliases _2.");
+
+inline constexpr Covec2V<unsigned int> opcv{4u, 9u};
+static_assert(opcv[0u] == 4u, "Covec2V::operator[](0u) returns x.");
+static_assert(opcv[1u] == 9u, "Covec2V::operator[](1u) returns y.");
+}  // namespace detail_op
 
 }  // namespace dedekind::linear_algebra

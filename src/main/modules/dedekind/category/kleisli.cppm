@@ -360,4 +360,51 @@ concept HasComonadicExtendOperators =
       { wa << std::forward<F>(f) };
     };
 
+// ---------------------------------------------------------------------------
+// operator-> — Kleisli dereference / comonadic extract (#531, step 1).
+//
+// A C++ arrow-dereference expression @c m->member on a monadic /
+// comonadic carrier has two CT readings depending on the carrier
+// shape:
+//
+//   * @b Comonadic carrier (e.g. @c Box<T>, future smart-pointer-like
+//     comonads): @c m->member @c ≡ @c ε(m).member, where
+//     @c ε: @c W<A> @c → @c A is the comonadic @b extract (Mac Lane
+//     @em CWM §VI; Wadler 1992 @em Comprehending @em Monads).
+//   * @b Monadic carrier with partial dereference (e.g. @c Maybe<T>):
+//     @c m->member is Kleisli sugar — well-defined when the monadic
+//     value is "present", behaviour on absence is carrier-specific
+//     (UB / throw / sentinel).
+//
+// Both readings share the operator surface; the codebase reifies them
+// in the two-layer @c Has*Operators / strict-concept pattern:
+//
+//   1. @c HasArrowDereferenceOperator<M> — purely syntactic.
+//   2. @c IsKleisliDeref<M> — opt-in, witnesses the categorical
+//      reading at the carrier site via @c is_kleisli_deref_v.
+// ---------------------------------------------------------------------------
+
+/** @concept HasArrowDereferenceOperator
+ *  @brief Syntactic check: @c m.operator->() compiles for @c M.
+ */
+export template <typename M>
+concept HasArrowDereferenceOperator = requires(M const& m) { m.operator->(); };
+
+/** @brief @c is_kleisli_deref_v<M>: opt-in marker that the carrier's
+ *         @c operator-> realises Kleisli dereference (for monadic
+ *         carriers like @c Maybe<T>) or comonadic extract @c ε
+ *         (for comonadic carriers like @c Box<T>).  Default false;
+ *         specialise to @c true at the carrier site. */
+export template <typename M>
+inline constexpr bool is_kleisli_deref_v = false;
+
+/** @concept IsKleisliDeref
+ *  @brief @c M exposes @c operator-> and the carrier site has
+ *         declared it as Kleisli dereference / comonadic extract
+ *         (Mac Lane CWM §VI; Wadler 1992).
+ */
+export template <typename M>
+concept IsKleisliDeref =
+    HasArrowDereferenceOperator<M> && is_kleisli_deref_v<M>;
+
 }  // namespace dedekind::category
