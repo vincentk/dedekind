@@ -46,6 +46,8 @@ export import :initial_ring;  // ℤ as Initial Ring + Grothendieck Group
                               // of ℕ (closes part of #446)
 export import :modules;
 export import :polynomial;
+export import :quotient;  // IsQuotientAlgebra<Q> + structural-trait propagation
+                          // (Frac, Cplx, Dual; #498/#499 NEW-A)
 export import :registration;
 export import :ring;
 export import :universal;  // IsAlgebra meta-pattern (Burris-Sankappanavar)
