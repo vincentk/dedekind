@@ -8,6 +8,16 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
+ * @note "A class @c K of algebras is closed under the formation of
+ *        subalgebras, homomorphic images, and direct products if and
+ *        only if @c K is the class of all algebras satisfying some
+ *        set of identities."
+ *       — Garrett Birkhoff, @em On @em the @em structure @em of
+ *         @em abstract @em algebras, Proc.\ Cambridge Phil.\ Soc.\ 31
+ *         (1935), Theorem 1; the modern formulation is in
+ *         Burris--Sankappanavar~\cite{burris1981universalalgebra}
+ *         §II.11 (Theorem 11.9, the HSP theorem).
+ *
  * @section quotient__The_Meta_Symmetry
  *
  * A "quotient over a bona fide algebra is itself a bona fide algebra".

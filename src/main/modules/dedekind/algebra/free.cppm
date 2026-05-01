@@ -6,6 +6,19 @@
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
  *
+ * @note "Given a class @c K of algebras of type @c F and a set @c X
+ *        of variables, the @b free @b algebra @c F_K(X) over @c K
+ *        with @c X as its set of free generators is uniquely
+ *        determined (up to isomorphism) by the property that for
+ *        every algebra @c A in @c K and every map @c X @c → @c A
+ *        there is a unique homomorphism @c F_K(X) @c → @c A
+ *        extending the map."
+ *       — Stanley Burris and H. P. Sankappanavar,
+ *         @em A @em Course @em in @em Universal @em Algebra
+ *         \cite{burris1981universalalgebra}, §II.10–11
+ *         (paraphrased; the universal property is the textbook
+ *         definition of @c F_K(X)).
+ *
  * @section free__The_Free_Algebra_Functor
  *
  * For a variety @c V of algebras, the @b free V-algebra on a set @c X
