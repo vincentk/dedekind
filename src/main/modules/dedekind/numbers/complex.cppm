@@ -363,9 +363,10 @@ static_assert(std::same_as<typename Complex<double>::ScalarCarrier, double>,
 //
 // Complex<R> = R[i]/(i² + 1) is a polynomial-quotient construction.
 // The single declaration below — `quotient_algebra_base<Complex<R>>::type
-// = R` — fires the structural-trait propagation in `:functor`:
-// associativity, commutativity, distributivity, and the IsTotal
-// saturation certificate all lift from R to Complex<R> uniformly.
+// = R` — fires the structural-trait propagation through
+// `dedekind.algebra:quotient`: associativity, commutativity,
+// distributivity, and the full IsTotal disjunction (periodic /
+// idempotent / saturating) all lift from R to Complex<R> uniformly.
 // The carrier-specific bits (additive identity, additive inverse) live
 // next to it as identity_trait / inverse_trait specialisations.
 // ---------------------------------------------------------------------------

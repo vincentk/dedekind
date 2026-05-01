@@ -7,7 +7,7 @@
  *
  * @details
  * Following Stammbach's "Lineare Algebra", matrices are interpreted as
- * linear maps on the tuple carriers from `:tuple`. This partition carries
+ * linear maps on the 2-vector carriers from `:vec2`. This partition carries
  * two parallel families:
  *
  *   - NTTP family: `Invertible2x2`, `Matrix2x2`, `Identity2x2`, `Zero2x2`,
@@ -415,7 +415,7 @@ struct BlockUpperTriangular {
  * Satisfies `IsMatrix<M>` and `IsMatrixOverFieldRingLike<M, T>` from
  * `:contracts`: exposes `row_count`/`column_count`, `column_type`/`row_type`,
  * both decompositions (via `column(i)` / `row(i)`), and the full ring-plus-
- * transpose surface. Columns are `Vec2V<T>` (a 2×1 matrix from `:tuple`);
+ * transpose surface. Columns are `Vec2V<T>` (a 2×1 matrix from `:vec2`);
  * rows are `Covec2V<T>` (a 1×2 matrix).
  */
 // Bound: `HasRingOperators<T>` for the arithmetic surface (+, -, unary -,
@@ -506,7 +506,7 @@ inline constexpr Matrix2x2V<T> zero_matrix2x2_v{T{0}, T{0}, T{0}, T{0}};
  *  the element type @c T: an arrow @c f: T→T lifts elementwise to an
  *  arrow @c Matrix2x2V<T>→Matrix2x2V<T>.  The hub type below owns
  *  that lift and witnesses @c dedekind::category::IsFunctor; it
- *  complements @c vec2_functor / @c covec2_functor in @c :tuple,
+ *  complements @c vec2_functor / @c covec2_functor in @c :vec2,
  *  closing the (1×1, 2×1, 1×2, 2×2) shape family below.
  */
 export template <typename T>

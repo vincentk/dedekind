@@ -426,8 +426,9 @@ static_assert(
 // R[x] is the free associative R-algebra on one generator (Lang
 // §IV.1).  A single declaration of free_algebra_base<RigPolynomial<R>>::type
 // = R fires the structural-trait propagation in algebra:free —
-// associativity, commutativity, distributivity, saturation all lift
-// from R to R[x] uniformly.
+// associativity, commutativity, distributivity, and the full IsTotal
+// disjunction (periodic / idempotent / saturating) all lift from R
+// to R[x] uniformly.
 // ---------------------------------------------------------------------------
 
 namespace dedekind::category {
