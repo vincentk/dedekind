@@ -169,8 +169,8 @@ TEST_CASE("Sequences: The Path to Continuity",
 
     auto sum = a + b;
     REQUIRE(sum.at(0) == 0);
-    REQUIRE(sum.at(3) == 33);   // 3 + 30
-    REQUIRE(sum.at(7) == 77);   // 7 + 70
+    REQUIRE(sum.at(3) == 33);  // 3 + 30
+    REQUIRE(sum.at(7) == 77);  // 7 + 70
 
     auto diff = b - a;
     REQUIRE(diff.at(0) == 0);

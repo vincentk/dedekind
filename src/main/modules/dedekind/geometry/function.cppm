@@ -1,7 +1,7 @@
 /**
  * @file dedekind/geometry/function.cppm
  * @partition :function
- * @brief Concept anchoring for function spaces (functions on infinite domains as infinite-dimensional vectors) — #537 slice 1.
+ * @brief Concept anchoring for function spaces — #537 slice 1.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
