@@ -190,8 +190,10 @@ struct Vec2V {
   template <std::size_t I>
     requires(I < dimension)
   constexpr T operator[](std::integral_constant<std::size_t, I>) const {
-    if constexpr (I == 0) return x;
-    else return y;
+    if constexpr (I == 0)
+      return x;
+    else
+      return y;
   }
 
   /** @brief 𝔹-indexed static overload — the type-theoretic reading of
@@ -206,8 +208,10 @@ struct Vec2V {
    */
   template <bool B>
   constexpr T operator[](std::bool_constant<B>) const {
-    if constexpr (B == false) return x;
-    else return y;
+    if constexpr (B == false)
+      return x;
+    else
+      return y;
   }
 
   /** @brief Named-pair view via @c operator->.
@@ -291,8 +295,10 @@ struct Covec2V {
   template <std::size_t I>
     requires(I < dimension)
   constexpr T operator[](std::integral_constant<std::size_t, I>) const {
-    if constexpr (I == 0) return x;
-    else return y;
+    if constexpr (I == 0)
+      return x;
+    else
+      return y;
   }
 
   /** @brief 𝔹-indexed static overload — same reading as
@@ -301,8 +307,10 @@ struct Covec2V {
    */
   template <bool B>
   constexpr T operator[](std::bool_constant<B>) const {
-    if constexpr (B == false) return x;
-    else return y;
+    if constexpr (B == false)
+      return x;
+    else
+      return y;
   }
 
   /** @brief Transpose to the dual vector: row → column. */
