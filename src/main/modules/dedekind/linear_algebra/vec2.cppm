@@ -148,7 +148,11 @@ struct Vec2V {
     return {a.x * s, a.y * s};
   }
 
-  /** @brief Indexed projection: @c v[0] @c = @c v.x, @c v[1] @c = @c v.y.
+  /** @brief Indexed projection. Semantics match @c row()/@c column() in
+   *         the matrix family: @c i=0 returns @c x, @c i=1 returns @c y,
+   *         out-of-range returns @c T{} (the zero element).  Returned by
+   *         value to avoid the @c m[i][j]-style dangling-reference trap
+   *         when binding to a reference.
    *
    *  Categorical reading (Mac Lane CWM §IV.6): the subscript @c v[i] is
    *  the CCC eval counit @c ε: @c (T^2)^{2} @c × @c 2 @c → @c T applied
@@ -157,21 +161,21 @@ struct Vec2V {
    *  trait below pins the categorical reading at the carrier site.
    *
    *  @c Idx is gated by @c dedekind::order::IsDirectedSet — the
-   *  algebraic predicate that picks out @b net @b domains (cf.\
+   *  algebraic predicate that picks out @b net @b domains (compare
    *  @c sequences:net's @c IsNet, which requires
-   *  @c IsDirectedSet<typename N::Domain>).  This admits @c bool,
-   *  @c std::size_t / @c int / @c unsigned, @c ℕ, and any future
-   *  intensional cardinal as a valid index — keeping the eval surface
-   *  intensional in the index theory.  The bool-convertibility clause
-   *  picks the binary "first vs.\ rest" projection at this 2-cell
-   *  carrier; richer @c Idx types collapse to @c {0, ≠0} at the
-   *  carrier surface.
+   *  @c IsDirectedSet on @c N::Domain).  Conversion to
+   *  @c std::size_t names the index numerically and admits @c bool,
+   *  @c int, @c unsigned, @c std::size_t, @c ℕ, and any future
+   *  intensional cardinal that converts.
    */
   template <typename Idx>
     requires dedekind::order::IsDirectedSet<Idx> &&
-             std::convertible_to<Idx, bool>
-  constexpr T const& operator[](Idx const& i) const {
-    return static_cast<bool>(i) ? y : x;
+             std::convertible_to<Idx, std::size_t>
+  constexpr T operator[](Idx const& i) const {
+    const std::size_t s = static_cast<std::size_t>(i);
+    if (s == 0) return x;
+    if (s == 1) return y;
+    return T{};
   }
 
   /** @brief Named-pair view via @c operator->.
@@ -233,17 +237,18 @@ struct Covec2V {
     return {a.x * s, a.y * s};
   }
 
-  /** @brief Indexed projection: @c v[0] @c = @c v.x, @c v[1] @c = @c v.y.
-   *
-   *  Same CCC eval-counit reading and @c IsDirectedSet-gated
-   *  parametric @c Idx (any net domain) as @c Vec2V::operator[]; pinned
-   *  via @c is_eval_arrow_v below.
+  /** @brief Indexed projection.  Same row-style semantics as
+   *         @c Vec2V::operator[]: @c i=0 returns @c x, @c i=1 returns
+   *         @c y, out-of-range returns @c T{}.  Returned by value.
    */
   template <typename Idx>
     requires dedekind::order::IsDirectedSet<Idx> &&
-             std::convertible_to<Idx, bool>
-  constexpr T const& operator[](Idx const& i) const {
-    return static_cast<bool>(i) ? y : x;
+             std::convertible_to<Idx, std::size_t>
+  constexpr T operator[](Idx const& i) const {
+    const std::size_t s = static_cast<std::size_t>(i);
+    if (s == 0) return x;
+    if (s == 1) return y;
+    return T{};
   }
 
   /** @brief Transpose to the dual vector: row → column. */
@@ -515,16 +520,21 @@ static_assert(is_free_module_v<Covec2V<unsigned int>, unsigned int, 2>,
  */
 namespace dedekind::category {
 
-// Parametric in @c Idx: any net domain (any @c IsDirectedSet) that
-// satisfies the syntactic @c HasSubscriptOperator gate fires the
-// CCC-counit reading.  The double gate @c IsEvalArrow keeps the
-// surface honest for non-bool-convertible @c Idx where the carrier's
-// own template @c requires-clause refuses to instantiate.
+// Parametric in @c Idx, but constrained to match the carrier's
+// @c operator[] requires-clause exactly: any net domain that the
+// carrier actually accepts fires the CCC-counit reading.  Constraining
+// the partial spec (rather than letting the @c HasSubscriptOperator
+// concept gate alone) keeps the raw trait honest — it does not say
+// @c true for @c Idx the carrier would refuse to instantiate.
 template <typename T, typename Idx>
+  requires dedekind::order::IsDirectedSet<Idx> &&
+           std::convertible_to<Idx, std::size_t>
 inline constexpr bool is_eval_arrow_v<dedekind::linear_algebra::Vec2V<T>, Idx> =
     true;
 
 template <typename T, typename Idx>
+  requires dedekind::order::IsDirectedSet<Idx> &&
+           std::convertible_to<Idx, std::size_t>
 inline constexpr bool
     is_eval_arrow_v<dedekind::linear_algebra::Covec2V<T>, Idx> = true;
 

@@ -608,12 +608,15 @@ static_assert(
     "FinitePath<T>::begin() must yield a std::input_iterator.");
 
 // Juliet-posture witness (#531): the @c std::ranges API produces bona
-// fide library sequences via the @c from_range adapter — every
-// @c std::ranges::input_range round-trips into @c FinitePath<T>, i.e.\
-// into the @c IsFiniteSequence concept.  The intensional / lazy
-// std::ranges surface is anchored in the library's sequence layer at
-// the type level; the actual conversion is runtime, but the conceptual
-// commitment is decidable as a @c static_assert.
+// fide library sequences via the @c from_range adapter — any
+// @b finite @c std::ranges::input_range round-trips (when iterated to
+// completion) into @c FinitePath<T>, i.e. into the
+// @c IsFiniteSequence concept.  The intensional / lazy std::ranges
+// surface is anchored in the library's sequence layer at the type
+// level.  The static_asserts below decide the type-level commitment;
+// the actual materialisation of an infinite range would not terminate
+// at runtime — the witness is about the @em type carrying the
+// sequence concept, not about iterating arbitrary ranges.
 static_assert(
     IsFiniteSequence<decltype(from_range(std::declval<std::vector<int>>()))>,
     "from_range over a std::ranges::input_range produces a FinitePath, "
