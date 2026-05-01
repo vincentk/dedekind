@@ -587,13 +587,11 @@ inline constexpr bool
 // is_eval_arrow_v on the integral-parametric form so IsEvalArrow
 // fires uniformly across runtime and static-index surfaces.
 template <typename T, std::integral U, U I>
-inline constexpr bool
-    is_eval_arrow_v<dedekind::linear_algebra::Vec2V<T>,
-                    std::integral_constant<U, I>> = true;
+inline constexpr bool is_eval_arrow_v<dedekind::linear_algebra::Vec2V<T>,
+                                      std::integral_constant<U, I>> = true;
 template <typename T, std::integral U, U I>
-inline constexpr bool
-    is_eval_arrow_v<dedekind::linear_algebra::Covec2V<T>,
-                    std::integral_constant<U, I>> = true;
+inline constexpr bool is_eval_arrow_v<dedekind::linear_algebra::Covec2V<T>,
+                                      std::integral_constant<U, I>> = true;
 
 template <typename T>
 inline constexpr bool is_kleisli_deref_v<dedekind::linear_algebra::Vec2V<T>> =

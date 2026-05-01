@@ -1037,9 +1037,8 @@ inline constexpr bool
 // trait so IsEvalArrow fires uniformly across runtime and
 // static-index surfaces.
 template <typename T, std::integral U, U I>
-inline constexpr bool
-    is_eval_arrow_v<dedekind::linear_algebra::Matrix2x2V<T>,
-                    std::integral_constant<U, I>> = true;
+inline constexpr bool is_eval_arrow_v<dedekind::linear_algebra::Matrix2x2V<T>,
+                                      std::integral_constant<U, I>> = true;
 
 }  // namespace dedekind::category
 
