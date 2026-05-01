@@ -150,6 +150,34 @@ struct is_saturating<Q, std::multiplies<Q>>
     : is_saturating<quotient_algebra_base_t<Q>,
                     std::multiplies<quotient_algebra_base_t<Q>>> {};
 
+// is_periodic + is_idempotent propagate too: the IsTotal certificate
+// in :species is the disjunction of these three paths, so any of
+// them sufficing on Base must lift to Q for IsTotal to fire on Q.
+
+template <typename Q>
+  requires IsQuotientAlgebra<Q>
+struct is_periodic<Q, std::plus<Q>>
+    : is_periodic<quotient_algebra_base_t<Q>,
+                  std::plus<quotient_algebra_base_t<Q>>> {};
+
+template <typename Q>
+  requires IsQuotientAlgebra<Q>
+struct is_periodic<Q, std::multiplies<Q>>
+    : is_periodic<quotient_algebra_base_t<Q>,
+                  std::multiplies<quotient_algebra_base_t<Q>>> {};
+
+template <typename Q>
+  requires IsQuotientAlgebra<Q>
+struct is_idempotent<Q, std::plus<Q>>
+    : is_idempotent<quotient_algebra_base_t<Q>,
+                    std::plus<quotient_algebra_base_t<Q>>> {};
+
+template <typename Q>
+  requires IsQuotientAlgebra<Q>
+struct is_idempotent<Q, std::multiplies<Q>>
+    : is_idempotent<quotient_algebra_base_t<Q>,
+                    std::multiplies<quotient_algebra_base_t<Q>>> {};
+
 // ---------------------------------------------------------------------------
 // P (Direct Product) — Birkhoff's HSP, Burris-Sankappanavar §II.10.
 //
@@ -231,6 +259,30 @@ template <typename Q>
   requires IsProductAlgebra<Q>
 struct is_saturating<Q, std::multiplies<Q>>
     : is_saturating<product_algebra_base_t<Q>,
+                    std::multiplies<product_algebra_base_t<Q>>> {};
+
+template <typename Q>
+  requires IsProductAlgebra<Q>
+struct is_periodic<Q, std::plus<Q>>
+    : is_periodic<product_algebra_base_t<Q>,
+                  std::plus<product_algebra_base_t<Q>>> {};
+
+template <typename Q>
+  requires IsProductAlgebra<Q>
+struct is_periodic<Q, std::multiplies<Q>>
+    : is_periodic<product_algebra_base_t<Q>,
+                  std::multiplies<product_algebra_base_t<Q>>> {};
+
+template <typename Q>
+  requires IsProductAlgebra<Q>
+struct is_idempotent<Q, std::plus<Q>>
+    : is_idempotent<product_algebra_base_t<Q>,
+                    std::plus<product_algebra_base_t<Q>>> {};
+
+template <typename Q>
+  requires IsProductAlgebra<Q>
+struct is_idempotent<Q, std::multiplies<Q>>
+    : is_idempotent<product_algebra_base_t<Q>,
                     std::multiplies<product_algebra_base_t<Q>>> {};
 
 }  // namespace dedekind::category

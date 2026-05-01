@@ -136,4 +136,27 @@ struct is_saturating<F, std::multiplies<F>>
     : is_saturating<free_algebra_base_t<F>,
                     std::multiplies<free_algebra_base_t<F>>> {};
 
+template <typename F>
+  requires IsFreeAlgebra<F>
+struct is_periodic<F, std::plus<F>>
+    : is_periodic<free_algebra_base_t<F>, std::plus<free_algebra_base_t<F>>> {};
+
+template <typename F>
+  requires IsFreeAlgebra<F>
+struct is_periodic<F, std::multiplies<F>>
+    : is_periodic<free_algebra_base_t<F>,
+                  std::multiplies<free_algebra_base_t<F>>> {};
+
+template <typename F>
+  requires IsFreeAlgebra<F>
+struct is_idempotent<F, std::plus<F>>
+    : is_idempotent<free_algebra_base_t<F>, std::plus<free_algebra_base_t<F>>> {
+};
+
+template <typename F>
+  requires IsFreeAlgebra<F>
+struct is_idempotent<F, std::multiplies<F>>
+    : is_idempotent<free_algebra_base_t<F>,
+                    std::multiplies<free_algebra_base_t<F>>> {};
+
 }  // namespace dedekind::category
