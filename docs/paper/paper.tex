@@ -1,3 +1,4 @@
+% !TEX TS-program = lualatex
 \documentclass[11pt, a4paper]{article}
 
 % LuaLaTeX handles UTF-8 natively; fontspec lets the document pick up any
@@ -205,99 +206,102 @@ differentiation.
 \label{sec:introduction}
 % ============================================================
 
-\subsection{How to Read This Paper}
-\label{sec:how-to-read}
+A software developer who wants to expose mathematical abstractions in a
+programming language faces a recurring tension.
+Algebraic structures---groups,
+rings, fields, vector spaces---are defined in the abstract by laws which are hard to enforce to say the least: associativity,
+commutativity, identities, inverses, closure, totality and many more.
+The concrete carriers a programming language offers violate those laws conditionally, sometimes silently:
+sets must fit into memory, functions may throw runtime exceptions or return \texttt{null};
+a 32-bit signed \texttt{int} is not an additive group (overflow, \texttt{INT\_MIN} has no
+negation), an IEEE~754 \texttt{double}~\cite{ieee754_2019} may overflow, underflow, be \texttt{NaN},
+and is definitely not associative under addition in the bit-perfect sense.
+The library author's options are to ignore the divergence and try to mitigate or silence bugs on specific inputs,
+police it at runtime, or encode it in the software build process so the build system can police and
+maybe exploit it.
+In real life, the pragmatic choice is often to just define an array of \texttt{double}, call it a tensor and get on with life. 
+This paper however is about what happens when a library implemented \emph{in a mainstream programming language} takes the third
+option seriously and consistently attempts to opt for mathematical rigor and build-time constraints as opposed to playing it fast and loose and risking runtime errors.
 
-Code and mathematics appear side by side throughout. That pairing is the
-whole point. Most of the interesting objects in this paper---Dedekind
-cuts, rings, dual numbers, polytopes, active sets, ring homomorphisms---
-have two faces: a math notation most readers have met at some point,
-and a C++ type most readers will find easier to trace. Put both on the
-page and you get a kind of binocular vision: whichever face is clearer
-for you carries the meaning, and the other face falls into place.
+The challenge is understood to be open-ended and ambitious and so the process being adopted to implement this library must be simple, robust almost to the point of being mechanical and easy to validate at each step.
+Loosely spoken and one paragraph: where nlab\cite{nlab} attempt to categorify physics and summarize the results in a wiki, this library aims to take their output as axiomatic and translate it into a mainstream programming language.
+If the compiler accepts their axioms then, the compiler should also be able validate or perhaps even derive the corresponding theorems\cite{wadler}.
 
-No prior familiarity with C++23 templates or with the specific
-mathematical objects is required. When something non-obvious appears---a
-non-type template parameter, a ring homomorphism, a co-Kleisli arrow---it
-is unpacked on first use, often by showing the corresponding C++ idiom
-next to the math definition and inviting the reader to read them as two
-names for the same thing. If you are at home with Haskell's type classes,
-Agda's dependent types, or Coq's proof terms, many of the moves will feel
-familiar; if not, the C++ side is the on-ramp.
+The choice of anchoring the library's domain in category theory on the mathematical side is neither new nor arbitrary and follows a well-trodden path.
+The authoritative textbook in the context of programming might be `Types and Programming Languages`\cite{pierce}.
+\footnote{
+For the more casual reader of this text, it should be sufficient to remember that at its most basic, category theory is a book-keeping device of sorts that can tell us what clicks together and what doesn't and how things might be re-arranged and perhaps simplified.
+Somewhat casually:
+\begin{enumerate}
+\item A category consists of \emph{objects} which are deliberately chosen to be opaque black boxes.
+Precisely because they are opaque, a practitioner can choose objects to be whatever they like: sets, types, algebraic structure, \ldots it changes nothing about the applicability of category theory.
+\item Arrows (morphisms) point from one object (domain) to another (codomain).
+If it lacks a domain or a codomain, then whatever it is, it's not an arrow.
+\item If an arrow's domain and codomain happen to be the same object $A$, then it is called the identity arrow $id_A$.
+\item If the codomain of arrow $f$ matches the domain of arrow $g$, then they can be \emph{composed} to give a new arrow $h = g \circ f$.
+\item Any arrow $f$ with domain $A$ can compose with $id_a$, but that's the same as doing nothing: $f \circ id_A = f$, in particular $id_A \circ id_A = id_A$
+\item If two distinct arrows $g$ and $f$ happen to have the same domain and codomain, then they are said to \emph{commute}: $f = g$.
+Trivially, this is the case for $id_A = id_A$, but as one starts to compose arrows into complex structures, these equations start to form interesting constraints.
+\end{enumerate}
+}
+The appeal of category theory in programming language research should be obvious: a minimalist type checker does not need to do much more that check whether the output of one function matches the input of another.
+A ``sufficiently smart'' optimizing compiler might know about a fair amount of commutation rules and re-write the arrows in a sensible sort of way.
 
-\subsection{Motivation: Mathematical Faithfulness in a Compiled Library}
+Once this basic rapport is established, once can build out the path to 
+\begin{enumerate}
+\item cartesian closed categories\cite{insert} (in a way a generalization of sets equipped with singly typed $\lambda$-calculi\cite{insert}), 
+\item the elementary theory of the category of sets (ETCS, the siamese twin of conventional ZF-set theory) \cite{insert}, and, 
+\item to universal algebra and abstract algebra \cite{insert}.
+\end{enumerate}
 
-A library implementer who wants to expose mathematical abstractions in a
-compiled language faces a recurring tension. Algebraic structures---groups,
-rings, fields, vector spaces---are defined by laws: associativity,
-commutativity, identities, inverses. But the concrete carriers a compiled
-language offers violate those laws conditionally: a 32-bit signed
-\texttt{int} is not an additive group (overflow, \texttt{INT\_MIN} has no
-negation), and IEEE~754 \texttt{double}~\cite{ieee754_2019} is not
-associative under addition. The library author's options are to ignore the
-divergence (silent bugs on specific inputs), police it at runtime (hot
-paths pay), or encode it in the type system so the compiler can police and
-exploit it. This paper is about what happens when a library takes the third
-option seriously, in standard C++23.
-
-The third option requires a type system strong enough to name algebraic
-structure and to discriminate between carriers that satisfy a law and
+If the goal is to define a domain specific language embedded in a pre-existing host language, then the approach requires a type system strong enough to name algebraic
+structure and to discriminate between carriers that claim to satisfy a law and
 those that do not. Haskell type classes~\cite{GHC2024} and
 dependently-typed languages such as Coq and Agda~\cite{norell2007towards}
-demonstrate the expressiveness; both impose runtime or toolchain costs
+demonstrate the expressiveness; but both impose runtime or toolchain costs
 that are hard to justify when the library's consumers are writing systems
-code. C++23 now offers a pragmatic middle ground: \emph{concepts} (the
-compile-time analogue of Haskell type classes) check structural
-membership at compile time without nominal declarations, \emph{non-type
-template parameters} (NTTPs---template arguments that are values, not
-types) let lambdas and other compile-time data appear in type
-signatures, and \emph{named modules} enforce a strict directed-acyclic
-build graph. The compiler
-becomes both a \emph{verification gate}---violating an algebraic law is a
-type error, not a runtime exception---and an \emph{optimization
-engine}---the LLVM backend exploits the structural knowledge inherited
-from the discharged proof obligations.
+code.
+In general: the bigger and more demanding the runtime, the more it will compete for resources and trigger compatibility issues with other runtimes.
+
+If one wants to target a programming environment that imposes no extra runtime requirements above and beyond the host systems natively supported features, it becomes interesting to look at systems programming languages where the runtime is exactly the one provided for by the host system.
+One such language is C++23 \cite{cpp23standard} which increasingly offers a pragmatic middle ground: 
+\texttt{module} enforce a strict directed-acyclic build graph,
+\texttt{consteval} and \texttt{constexpr} allow for a fair amount of compile-time logic,
+\texttt{concepts} are compile-time structural checks,
+\emph{non-type template parameters} (NTTP---template arguments that are values, not
+types) let compile-time constants or derived compile-time data appear in type
+signatures.
+
+Putting it all together, the hope is that the compiler becomes
+\begin{enumerate} 
+\item a \emph{mathematical verification gate}: violating an algebraic law is a type error, not a runtime exception;
+\item an optimization engine that \emph{knows the user-defined math}: the LLVM backend exploits the structural knowledge inherited
+from the discharged proof obligations \emph{at compile time}.
+\end{enumerate} 
+
+The desired outcome is to enable checks and processes about as follows: 
+i) an attempt to multiply matrices with incompatible shapes or to invert a singular matrix simply won't compile.
+ii) an attempt to compute an inverse twice in a row is identified as the identity operation, and so no transformation code need even be emitted,
+iii) $\mathbb N$ might be a transfinite (intensional) set, but an arbitrary finite (extensional) subset can still be selected;
+iv) an element test in an empty set will always return false;
+v) transcendental number can not be computed to the last digit, but they can be represented \emph{exactly}.
 
 Our posture is explicit: \texttt{dedekind} is a systems-programming
 library that treats mathematical concepts as first-class compile-time
 objects. The library is implemented in C++23, and the compile-time
 concept machinery is its primary interface; the consumer we design
 for is another C++ author who would otherwise bolt ad-hoc structure
-onto unverified numeric types. Choosing to land the semantics at the
+onto hard to verify numeric types. Choosing to land the semantics at the
 compile-time layer---rather than as runtime abstractions, or as a DSL
 lowered to a runtime solver---is a design commitment that shapes what
-the compiler can do for the user and what it cannot.
+the compiler and the library can do for the user and what they cannot.
 
-\paragraph{Infinite and infinitesimal data, natively.}
-A second motivation runs through the project: handling
-\emph{infinite} (unbounded sets, lazy streams, transfinite cardinals)
-and \emph{infinitesimal} (dual numbers, formal series, Newton-quotient
-differentials) data structures in everyday programming, without each
-project reinventing its own ad-hoc encoding.  Three host-language
-properties make such objects legible: \emph{lazy evaluation} (an
-infinite predicate or a formal series can be carried as a typed
-intension, never as a finite materialisation), \emph{strong typing}
-(the distinction between a Dedekind cut and a \texttt{double} survives
-all the way through composition), and a \emph{compositional surface}
-(new structures arrive by application of named functors, not by
-copy-and-paste).  C++23 supplies a workable subset of all three ---
-\lstinline{constexpr} for staged evaluation, \lstinline{concept}s for
-disciplined typing, named modules for compositional layering --- and
-the library leans on each.  Figure~\ref{fig:carrier-lattice}'s
-carrier lattice and the dual-number / tangent-bundle identification
-(§\ref{sec:ad-elliott}) are the load-bearing exhibits.
-
-\paragraph{Thesis.} In one sentence: \emph{named algebraic structure
+\paragraph{The thesis.} In one sentence: \emph{named algebraic structure
 at the type level, discharged by the compiler, narrows the gap
 between abstract mathematics and machine code without a separate
 proof assistant.} Every section of the paper serves that sentence.
-Sets-as-rules, intensional-first, computability-tier collapse, the
-LP and AD and FTC reductions---these are the \emph{means} by which
-the thesis is discharged, and the mechanical witnesses
-(\lstinline{static_assert}s and IR fixtures) are the evidence that
-it is discharged in practice.
 
-\paragraph{What is new.}
+\paragraph{How is this new?}
 Compile-time verification of algebraic structure is not new in the
 abstract. Agda and Coq host it natively; Liquid Haskell attaches
 refinement predicates to types; C++ template-metaprogramming traditions
@@ -325,6 +329,18 @@ this paper is an articulation of that discipline restricted to
 mainstream C++23, together with a worked library that discharges
 its claims mechanically.
 
+Most of what follows is therefore \emph{not} specific to C++. Concepts
+have close analogues in Java (sealed types plus generic constraints),
+C\# (constrained generics, augmented by Roslyn source generators and
+analysers), and Python (PEP~484 type hints under a strict
+\texttt{mypy}/\texttt{pyright} pass). Any language whose type system
+can name a predicate over compile-time data and check it mechanically
+is a candidate host for the same technique. What C++23 contributes on
+top is the LLVM backend sitting downstream of the type checker:
+discharged proofs do not only \emph{verify}, they also \emph{optimise},
+and the connection between the two is what lets the LP vertex collapse
+to a literal return rather than to a skipped runtime check.
+
 \paragraph{Intended target.}
 The discipline lands well in CPU-first and embedded
 machine-learning deployments---small fixed-topology problems with
@@ -335,7 +351,7 @@ embedded ML runtimes such as TFLite Micro~\cite{david2021tflm}.
 \paragraph{The compiler as a poor man's theorem prover.}
 A pedagogical framing that runs through this paper: we are using
 \texttt{clang++} as a poor man's theorem prover.\footnote{The
-qualifier ``poor man's'' is structural, not economic.  \texttt{clang++}
+qualifier ``poor man's'' is structural, not only economic.  \texttt{clang++}
 \emph{is} a formal system in the technical sense --- a typing
 derivation it accepts is a proof in the propositional fragment
 against a fixed inference rule-set --- and the architecture imposes
@@ -370,18 +386,6 @@ effect, the same machinery produces a family of composable library
 combinators (set meets, cuts, halfspaces, LP reductions) whose laws are
 verified at translation time and whose trivial cases collapse to zero
 instructions.
-
-Most of what follows is therefore \emph{not} specific to C++. Concepts
-have close analogues in Java (sealed types plus generic constraints),
-C\# (constrained generics, augmented by Roslyn source generators and
-analysers), and Python (PEP~484 type hints under a strict
-\texttt{mypy}/\texttt{pyright} pass). Any language whose type system
-can name a predicate over compile-time data and check it mechanically
-is a candidate host for the same technique. What C++23 contributes on
-top is the LLVM backend sitting downstream of the type checker:
-discharged proofs do not only \emph{verify}, they also \emph{optimise},
-and the connection between the two is what lets the LP vertex collapse
-to a literal return rather than to a skipped runtime check.
 
 \paragraph{What this buys, concretely.} From the design rule (``name
 the structure in the type, let the compiler discharge the laws'') and
@@ -422,17 +426,6 @@ subobject classifier, situated in a Cartesian-closed
 ambient~\cite{lambek1988introduction}) are the same machinery
 discharging set membership and lifting structure-preserving arrows.
 
-\paragraph{Scope of the claim.}  We make no pretence that a complete
-and faithful taxonomy of mathematics is achievable; the structure
-sketched in Figure~\ref{fig:carrier-lattice} is a bounded-below
-lattice with no canonical top --- iterated quotients, tensor
-products, $p$-adic completions and similar each yield a strictly
-larger object without a unique maximum, so any rendering is
-necessarily a finite slice for clarity of exposition.  What we
-\emph{do} report is a small set of findings that are both interesting
-and true: each claim has a worked exhibit in the library and a
-mechanical witness the compiler discharges.
-
 \paragraph{The three claims this paper substantiates.}
 \begin{enumerate}
   \item Sets are \emph{rules} (predicates), not \emph{buckets} (containers).
@@ -441,11 +434,15 @@ mechanical witness the compiler discharges.
         for algebraic invariants.
 \end{enumerate}
 The remainder of the paper develops these three claims and demonstrates
-each by a reduction that compiles to a constant.
+each by a reduction that compiles to a constant. We make no pretence that a complete
+and faithful taxonomy of mathematics is achievable; quite the contrary, we assert that this process is at best open-ended.
+What we \emph{do} report is a small set of findings that are both interesting
+and true: each claim has a worked exhibit in the library and a
+mechanical witness the compiler discharges.
 
 \subsection{Paper Structure}
 
-The body splits across three pillars: \emph{An Axiomatic Subset of C++23}, \emph{Sets and Sequences}, \emph{Algebraic Lattice}.
+The body splits across three pillars: \emph{An Intersection of C++23 and Category Theory}:, \emph{Sets and Sequences}, \emph{Algebraic Lattice}.
 
 Section~\ref{sec:axiomatic} (\emph{An Axiomatic Subset of C++23}) motivates the choice of C++23 as the implementation substrate, introduces the \emph{Axiomatic Systems Programming} paradigm, and develops the intensional-first design rule (§\ref{sec:intensional}) including the tension between abstract algebraic numerics and IEEE~754 hardware floating-point and the carrier Rosetta from exact rationals to packed integers.
 Section~\ref{sec:sets-rules} (\emph{Sets and Sequences}) develops the view of sets as predicates over ambient species and shows how set operations compose symbolically under the subobject classifier $\Omega$.
@@ -454,7 +451,7 @@ Section~\ref{sec:related} surveys related work.
 Section~\ref{sec:conclusion} concludes.
 
 % ============================================================
-\section{A Categorified Subset of C++23}
+\section{An Intersection of C++23 and Category Theory}
 \label{sec:axiomatic}
 % ============================================================
 
@@ -464,15 +461,15 @@ We take this absence as our starting point: we do not claim that this general pr
 Recent developments in the C++ standard~\cite{cpp23standard} allow us to change this calculus, with three C++23 features being particularly central:
 
 \begin{description}
+  \item[\texttt{module}]: named modules enforce a strict directed-acyclic build graph, preventing circular
+        dependencies between algebraic layers and caching verified structural invariants as
+        Binary Module Interface (BMI) files.
   \item[Concepts] allow \emph{structural typing}: a type satisfies a concept if it provides the
         required operations and relations, regardless of its name.  This is the compile-time
         analogue of Haskell type classes, but with zero-cost dispatch and no runtime dictionary.
   \item[Non-type template parameters (NTTP)] allow lambdas---including predicate functions---to
         appear as template arguments.  A set-builder predicate can therefore be part of the
         \emph{type}, not merely a runtime value passed at construction.
-  \item[Named modules] enforce a strict directed-acyclic build graph, preventing circular
-        dependencies between algebraic layers and caching verified structural invariants as
-        Binary Module Interface (BMI) files.
 \end{description}
 
 
