@@ -182,6 +182,62 @@ struct Path {
   /** @section path__Sequence_Interface */
   constexpr T at(std::size_t i) const { return generator(i); }
 
+  /** @section path__Pointwise_Operators
+   *
+   *  @c Path<T, @c Cardinality> is a function space @c T^ℕ (or @c T^[0..N)
+   *  in the finite case): pointwise @c +, scalar @c ·, and unary @c -
+   *  give the vector-space surface a function space carries.  This is
+   *  the operator anchor for #537's @c IsFunctionSpace<W, @c D, @c T>
+   *  concept.  Each operation produces a fresh @c Path whose
+   *  generator captures the operands intensionally — no eager
+   *  materialisation of values.
+   */
+
+  friend constexpr Path operator+(Path const& a, Path const& b) {
+    auto gen = [a, b](std::size_t i) { return a.at(i) + b.at(i); };
+    if constexpr (IsFiniteMagnitude<Cardinality>) {
+      return Path{gen, std::min(a.size(), b.size())};
+    } else {
+      return Path{gen};
+    }
+  }
+
+  friend constexpr Path operator-(Path const& a, Path const& b) {
+    auto gen = [a, b](std::size_t i) { return a.at(i) - b.at(i); };
+    if constexpr (IsFiniteMagnitude<Cardinality>) {
+      return Path{gen, std::min(a.size(), b.size())};
+    } else {
+      return Path{gen};
+    }
+  }
+
+  friend constexpr Path operator-(Path const& a) {
+    auto gen = [a](std::size_t i) { return -a.at(i); };
+    if constexpr (IsFiniteMagnitude<Cardinality>) {
+      return Path{gen, a.size()};
+    } else {
+      return Path{gen};
+    }
+  }
+
+  friend constexpr Path operator*(T const& s, Path const& a) {
+    auto gen = [s, a](std::size_t i) { return s * a.at(i); };
+    if constexpr (IsFiniteMagnitude<Cardinality>) {
+      return Path{gen, a.size()};
+    } else {
+      return Path{gen};
+    }
+  }
+
+  friend constexpr Path operator*(Path const& a, T const& s) {
+    auto gen = [s, a](std::size_t i) { return a.at(i) * s; };
+    if constexpr (IsFiniteMagnitude<Cardinality>) {
+      return Path{gen, a.size()};
+    } else {
+      return Path{gen};
+    }
+  }
+
   /**
    * @section path__Kleisli_Triple
    * @brief Bind (>>=): m >>= f.
