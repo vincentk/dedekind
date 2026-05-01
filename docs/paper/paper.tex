@@ -224,11 +224,11 @@ This paper however is about what happens when a library implemented \emph{in a m
 option seriously and consistently attempts to opt for mathematical rigor and build-time constraints as opposed to playing it fast and loose and risking runtime errors.
 
 The challenge is understood to be open-ended and ambitious and so the process being adopted to implement this library must be simple, robust almost to the point of being mechanical and easy to validate at each step.
-Loosely spoken and one paragraph: where nlab\cite{nlab} attempt to categorify physics and summarize the results in a wiki, this library aims to take their output as axiomatic and translate it into a mainstream programming language.
-If the compiler accepts their axioms then, the compiler should also be able validate or perhaps even derive the corresponding theorems\cite{wadler}.
+Loosely speaking and in one paragraph: where the nLab~\cite{nlab} attempts to categorify physics and summarise the results in a wiki, this library aims to take that output as axiomatic and translate it into a mainstream programming language.
+If the compiler accepts those axioms, then the compiler should also be able to validate (or, by way of the Curry--Howard correspondence, perhaps even derive) the corresponding theorems~\cite{wadler2015propositions}.
 
 The choice of anchoring the library's domain in category theory on the mathematical side is neither new nor arbitrary and follows a well-trodden path.
-The authoritative textbook in the context of programming might be `Types and Programming Languages`\cite{pierce}.
+The authoritative textbook in the context of programming might be \emph{Types and Programming Languages}~\cite{pierce2002tapl}.
 \footnote{
 For the more casual reader of this text, it should be sufficient to remember that at its most basic, category theory is a book-keeping device of sorts that can tell us what clicks together and what doesn't and how things might be re-arranged and perhaps simplified.
 Somewhat casually:
@@ -239,19 +239,19 @@ Precisely because they are opaque, a practitioner can choose objects to be whate
 If it lacks a domain or a codomain, then whatever it is, it's not an arrow.
 \item If an arrow's domain and codomain happen to be the same object $A$, then it is called the identity arrow $id_A$.
 \item If the codomain of arrow $f$ matches the domain of arrow $g$, then they can be \emph{composed} to give a new arrow $h = g \circ f$.
-\item Any arrow $f$ with domain $A$ can compose with $id_a$, but that's the same as doing nothing: $f \circ id_A = f$, in particular $id_A \circ id_A = id_A$
-\item If two distinct arrows $g$ and $f$ happen to have the same domain and codomain, then they are said to \emph{commute}: $f = g$.
-Trivially, this is the case for $id_A = id_A$, but as one starts to compose arrows into complex structures, these equations start to form interesting constraints.
+\item Any arrow $f$ with domain $A$ can compose with $\mathrm{id}_A$, but that's the same as doing nothing: $f \circ \mathrm{id}_A = f$; in particular $\mathrm{id}_A \circ \mathrm{id}_A = \mathrm{id}_A$.
+\item If two paths in a diagram (each itself an arrow or a composition of arrows) share the same domain and codomain and are equal as morphisms, the diagram is said to \emph{commute}: $f = g$.
+Trivially this holds for $\mathrm{id}_A = \mathrm{id}_A$, but as one composes arrows into richer structures these equations start to form interesting constraints.
 \end{enumerate}
 }
-The appeal of category theory in programming language research should be obvious: a minimalist type checker does not need to do much more that check whether the output of one function matches the input of another.
-A ``sufficiently smart'' optimizing compiler might know about a fair amount of commutation rules and re-write the arrows in a sensible sort of way.
+The appeal of category theory in programming-language research should be obvious: a minimalist type checker does not need to do much more than check whether the output of one function matches the input of another.
+A ``sufficiently smart'' optimising compiler might know a fair amount about commutation rules and re-write the arrows in a sensible way.
 
-Once this basic rapport is established, once can build out the path to 
+Once this basic rapport is established, one can build out the path to
 \begin{enumerate}
-\item cartesian closed categories\cite{insert} (in a way a generalization of sets equipped with singly typed $\lambda$-calculi\cite{insert}), 
-\item the elementary theory of the category of sets (ETCS, the siamese twin of conventional ZF-set theory) \cite{insert}, and, 
-\item to universal algebra and abstract algebra \cite{insert}.
+\item Cartesian-closed categories~\cite{lambek1988introduction} (in a sense, a generalisation of sets equipped with the simply-typed $\lambda$-calculus~\cite{lambek1988introduction}),
+\item the elementary theory of the category of sets (ETCS, the Siamese twin of conventional ZF set theory)~\cite{lawvere1964etcs}, and
+\item universal algebra and abstract algebra~\cite{burris1981universalalgebra,lang2002algebra}.
 \end{enumerate}
 
 If the goal is to define a domain specific language embedded in a pre-existing host language, then the approach requires a type system strong enough to name algebraic
@@ -263,12 +263,12 @@ that are hard to justify when the library's consumers are writing systems
 code.
 In general: the bigger and more demanding the runtime, the more it will compete for resources and trigger compatibility issues with other runtimes.
 
-If one wants to target a programming environment that imposes no extra runtime requirements above and beyond the host systems natively supported features, it becomes interesting to look at systems programming languages where the runtime is exactly the one provided for by the host system.
-One such language is C++23 \cite{cpp23standard} which increasingly offers a pragmatic middle ground: 
-\texttt{module} enforce a strict directed-acyclic build graph,
+If one wants to target a programming environment that imposes no extra runtime requirements above and beyond the host system's natively supported features, it becomes interesting to look at systems programming languages where the runtime is exactly the one provided for by the host system.
+One such language is C++23~\cite{cpp23standard}, which increasingly offers a pragmatic middle ground:
+\texttt{module}s enforce a strict directed-acyclic build graph,
 \texttt{consteval} and \texttt{constexpr} allow for a fair amount of compile-time logic,
-\texttt{concepts} are compile-time structural checks,
-\emph{non-type template parameters} (NTTP---template arguments that are values, not
+\texttt{concept}s are compile-time structural checks, and
+\emph{non-type template parameters} (NTTPs---template arguments that are values, not
 types) let compile-time constants or derived compile-time data appear in type
 signatures.
 
@@ -279,12 +279,12 @@ Putting it all together, the hope is that the compiler becomes
 from the discharged proof obligations \emph{at compile time}.
 \end{enumerate} 
 
-The desired outcome is to enable checks and processes about as follows: 
-i) an attempt to multiply matrices with incompatible shapes or to invert a singular matrix simply won't compile.
-ii) an attempt to compute an inverse twice in a row is identified as the identity operation, and so no transformation code need even be emitted,
-iii) $\mathbb N$ might be a transfinite (intensional) set, but an arbitrary finite (extensional) subset can still be selected;
-iv) an element test in an empty set will always return false;
-v) transcendental number can not be computed to the last digit, but they can be represented \emph{exactly}.
+The desired outcome is to enable checks and processes such as the following:
+(i) an attempt to multiply matrices with incompatible shapes or to invert a singular matrix simply won't compile;
+(ii) an attempt to compute an inverse twice in a row is identified as the identity operation, and so no transformation code need even be emitted;
+(iii) $\mathbb{N}$ might be a transfinite (intensional) set, but an arbitrary finite (extensional) subset can still be selected;
+(iv) an element test on an empty set will always return false;
+(v) transcendental numbers cannot be computed to the last digit, but they can be represented \emph{exactly}.
 
 Our posture is explicit: \texttt{dedekind} is a systems-programming
 library that treats mathematical concepts as first-class compile-time
@@ -442,9 +442,9 @@ mechanical witness the compiler discharges.
 
 \subsection{Paper Structure}
 
-The body splits across three pillars: \emph{An Intersection of C++23 and Category Theory}:, \emph{Sets and Sequences}, \emph{Algebraic Lattice}.
+The body splits across three pillars: \emph{An Intersection of C++23 and Category Theory}, \emph{Sets and Sequences}, \emph{Algebraic Lattice}.
 
-Section~\ref{sec:axiomatic} (\emph{An Axiomatic Subset of C++23}) motivates the choice of C++23 as the implementation substrate, introduces the \emph{Axiomatic Systems Programming} paradigm, and develops the intensional-first design rule (§\ref{sec:intensional}) including the tension between abstract algebraic numerics and IEEE~754 hardware floating-point and the carrier Rosetta from exact rationals to packed integers.
+Section~\ref{sec:axiomatic} (\emph{An Intersection of C++23 and Category Theory}) motivates the choice of C++23 as the implementation substrate, introduces the \emph{Axiomatic Systems Programming} paradigm, and develops the intensional-first design rule (§\ref{sec:intensional}) including the tension between abstract algebraic numerics and IEEE~754 hardware floating-point and the carrier Rosetta from exact rationals to packed integers.
 Section~\ref{sec:sets-rules} (\emph{Sets and Sequences}) develops the view of sets as predicates over ambient species and shows how set operations compose symbolically under the subobject classifier $\Omega$.
 Section~\ref{sec:pruning} (\emph{Algebraic Lattice}) presents the carrier-tower target state and the compile-time structural reductions it acts through: halfspace pruning, linear programming as a reduction to a typed vertex, forward-mode automatic differentiation as a sibling reduction over the dual-number ring, and the $\mathbb{C} / \mathbb{D} \hookrightarrow M_2(\mathbb{Q})$ embedding.
 Section~\ref{sec:related} surveys related work.
@@ -461,7 +461,7 @@ We take this absence as our starting point: we do not claim that this general pr
 Recent developments in the C++ standard~\cite{cpp23standard} allow us to change this calculus, with three C++23 features being particularly central:
 
 \begin{description}
-  \item[\texttt{module}]: named modules enforce a strict directed-acyclic build graph, preventing circular
+  \item[\texttt{module}s] enforce a strict directed-acyclic build graph, preventing circular
         dependencies between algebraic layers and caching verified structural invariants as
         Binary Module Interface (BMI) files.
   \item[Concepts] allow \emph{structural typing}: a type satisfies a concept if it provides the
