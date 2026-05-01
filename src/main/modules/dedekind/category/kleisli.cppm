@@ -388,9 +388,7 @@ concept HasComonadicExtendOperators =
  *  @brief Syntactic check: @c m.operator->() compiles for @c M.
  */
 export template <typename M>
-concept HasArrowDereferenceOperator = requires(M const& m) {
-  m.operator->();
-};
+concept HasArrowDereferenceOperator = requires(M const& m) { m.operator->(); };
 
 /** @brief @c is_kleisli_deref_v<M>: opt-in marker that the carrier's
  *         @c operator-> realises Kleisli dereference (for monadic

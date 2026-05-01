@@ -58,10 +58,10 @@ export module dedekind.linear_algebra:vec2;
 
 import dedekind.algebra; // HasRingOperators, HasVectorSpaceOperators (upstream)
 import dedekind.category; // IsFunctor / Set / arrow (for vec2_functor witnesses)
-import dedekind.order;    // IsDirectedSet — algebraic gate on the operator[] index domain (any net domain works)
-import dedekind.sets; // Finite tag — the cardinal the tuple dimension lives in
-import :basis;        // is_free_module_v trait declaration
-import :contracts;    // ColumnOrientation, RowOrientation tags
+import dedekind.order; // IsDirectedSet — algebraic gate on the operator[] index domain (any net domain works)
+import dedekind.sets;  // Finite tag — the cardinal the tuple dimension lives in
+import :basis;         // is_free_module_v trait declaration
+import :contracts;     // ColumnOrientation, RowOrientation tags
 
 namespace dedekind::linear_algebra {
 
@@ -521,16 +521,16 @@ namespace dedekind::category {
 // surface honest for non-bool-convertible @c Idx where the carrier's
 // own template @c requires-clause refuses to instantiate.
 template <typename T, typename Idx>
-inline constexpr bool
-    is_eval_arrow_v<dedekind::linear_algebra::Vec2V<T>, Idx> = true;
+inline constexpr bool is_eval_arrow_v<dedekind::linear_algebra::Vec2V<T>, Idx> =
+    true;
 
 template <typename T, typename Idx>
 inline constexpr bool
     is_eval_arrow_v<dedekind::linear_algebra::Covec2V<T>, Idx> = true;
 
 template <typename T>
-inline constexpr bool
-    is_kleisli_deref_v<dedekind::linear_algebra::Vec2V<T>> = true;
+inline constexpr bool is_kleisli_deref_v<dedekind::linear_algebra::Vec2V<T>> =
+    true;
 
 }  // namespace dedekind::category
 
@@ -540,16 +540,14 @@ namespace dedekind::linear_algebra {
 // domains: @c bool (the binary directed set), @c unsigned @c int (the
 // canonical primitive carrier under modular @c IsRing), and @c int.
 // Future intensional @c ℕ slots in here without touching the carrier.
-static_assert(
-    dedekind::category::IsEvalArrow<Vec2V<unsigned int>, bool>,
-    "Vec2V<T>::operator[] accepts bool as a net-domain index.");
+static_assert(dedekind::category::IsEvalArrow<Vec2V<unsigned int>, bool>,
+              "Vec2V<T>::operator[] accepts bool as a net-domain index.");
 static_assert(
     dedekind::category::IsEvalArrow<Vec2V<unsigned int>, unsigned int>,
     "Vec2V<T>::operator[] is the CCC eval counit (Mac Lane CWM §IV.6); "
     "Idx is gated algebraically by IsDirectedSet.");
-static_assert(
-    dedekind::category::IsEvalArrow<Vec2V<unsigned int>, int>,
-    "Vec2V<T>::operator[] accepts int as a net-domain index.");
+static_assert(dedekind::category::IsEvalArrow<Vec2V<unsigned int>, int>,
+              "Vec2V<T>::operator[] accepts int as a net-domain index.");
 static_assert(
     dedekind::category::IsEvalArrow<Covec2V<unsigned int>, unsigned int>,
     "Covec2V<T>::operator[] is the CCC eval counit (row-vector dual).");

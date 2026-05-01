@@ -74,11 +74,11 @@ export module dedekind.linear_algebra:mat2x2;
 import dedekind.algebra; // HasRingOperators, HasFieldOperators, HasVectorSpaceOperators
 import dedekind.category; // IsFunctor / Set / arrow (for matrix2x2_functor witness)
 import dedekind.numbers; // Rational<Z> for the ℚ carrier
-import dedekind.order;   // IsDirectedSet — algebraic gate on operator[] index domain (any net domain)
-import dedekind.sets;    // Finite cardinality tag (for dimension_type)
-import :basis;           // is_endomorphism_ring_v trait declaration
-import :contracts;       // matrix / vector / orientation concepts
-import :vec2;            // Vec2 (NTTP), Vec2V / Covec2V (value-level)
+import dedekind.order; // IsDirectedSet — algebraic gate on operator[] index domain (any net domain)
+import dedekind.sets; // Finite cardinality tag (for dimension_type)
+import :basis;        // is_endomorphism_ring_v trait declaration
+import :contracts;    // matrix / vector / orientation concepts
+import :vec2;         // Vec2 (NTTP), Vec2V / Covec2V (value-level)
 
 namespace dedekind::linear_algebra {
 
@@ -997,7 +997,8 @@ namespace dedekind::category {
 
 template <typename T>
 inline constexpr bool
-    is_eval_arrow_v<dedekind::linear_algebra::Matrix2x2V<T>, std::size_t> = true;
+    is_eval_arrow_v<dedekind::linear_algebra::Matrix2x2V<T>, std::size_t> =
+        true;
 
 }  // namespace dedekind::category
 
