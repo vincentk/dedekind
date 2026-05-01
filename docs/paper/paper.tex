@@ -823,11 +823,11 @@ because IEEE~754 rounding defeats associativity.}
 \midrule
 \multicolumn{2}{@{}l}{\textbf{\lstinline|HasGroupOperatorsAdd|} --- additive group $(G, +, -, 0)$} \\
 \midrule
-\lstinline|a + b|, \lstinline|-a|, \lstinline|a - b|, \lstinline|T{}| & group operation, inverse, $a + (-b)$, identity \\
+\lstinline|a + b|, \lstinline|-a|, \lstinline|a - b| & group operation, inverse, $a + (-b)$ \\
 \midrule
 \multicolumn{2}{@{}l}{\textbf{\lstinline|HasGroupOperatorsMul|} --- multiplicative group $(G, \cdot, ^{-1}, 1)$} \\
 \midrule
-\lstinline|a * b|, \lstinline|a / b|, \lstinline|a.inverse()|, \lstinline|T{1}| & group operation, $a \cdot b^{-1}$, inverse, identity \\
+\lstinline|a * b|, \lstinline|a / b|, \lstinline|T{1}| & group operation, $a \cdot b^{-1}$, multiplicative unit (reciprocal of $x$ is \lstinline|T{1} / x|; no \lstinline|.inverse()| method required) \\
 \midrule
 \multicolumn{2}{@{}l}{\textbf{\lstinline|HasSemiringOperators|} --- semiring (rig: no additive inverse)} \\
 \midrule
@@ -835,16 +835,16 @@ because IEEE~754 rounding defeats associativity.}
 \midrule
 \multicolumn{2}{@{}l}{\textbf{\lstinline|HasRingOperators|} --- ring $(R, +, -, \cdot, 0, 1)$} \\
 \midrule
-\lstinline|a + b|, \lstinline|-a|, \lstinline|a * b| & ring addition + multiplication; absorbing zero is structural \\
+\lstinline|a + b|, \lstinline|a - b|, \lstinline|-a|, \lstinline|a * b| & ring addition + multiplication; absorbing zero is structural \\
 \midrule
-\multicolumn{2}{@{}l}{\textbf{\lstinline|HasFieldOperators|} --- field $(F, +, -, \cdot, /, 0, 1)$} \\
+\multicolumn{2}{@{}l}{\textbf{\lstinline|HasFieldOperators|} --- field $(F, +, -, \cdot, /, 0, 1)$, $\equiv$ \lstinline|HasRingOperators| $\wedge$ \lstinline|HasGroupOperatorsMul|} \\
 \midrule
-\lstinline|a / b| (in addition to \lstinline|HasRingOperators|) & multiplicative inverse $a \cdot b^{-1}$ on non-zero elements \\
+\lstinline|a / b|, \lstinline|T{1}| (in addition to \lstinline|HasRingOperators|) & multiplicative inverse $a \cdot b^{-1}$ on non-zero elements; multiplicative unit \\
 \midrule
-\multicolumn{2}{@{}l}{\textbf{\lstinline|HasVectorSpaceOperators<V, F>|} --- vector space over scalar field $F$} \\
+\multicolumn{2}{@{}l}{\textbf{\lstinline|HasVectorSpaceOperators<V, F, Act>|} --- vector space over scalar field $F$ (action functor \lstinline|Act|, defaults to \lstinline|std::multiplies<>|)} \\
 \midrule
 \lstinline|v + w|, \lstinline|-v| (additive group on $V$) & vector addition; \lstinline|HasGroupOperatorsAdd<V>| \\
-\lstinline|s * v|, \lstinline|v * s| (with \lstinline|s : F|) & scalar action $F \times V \to V$ \\
+\lstinline|Act{}(s, v)| with \lstinline|s : F| & scalar action $F \times V \to V$ via the action functor; \lstinline|s * v| under the default \lstinline|std::multiplies<>|. The right-action \lstinline|v * s| is conventional, not required by the concept. \\
 \midrule
 \multicolumn{2}{@{}l}{\textbf{\lstinline|HasLatticeOperators|} --- lattice $(L, \vee, \wedge)$} \\
 \midrule
