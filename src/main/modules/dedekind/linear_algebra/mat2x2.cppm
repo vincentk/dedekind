@@ -515,27 +515,20 @@ struct Matrix2x2V {
 
   /** @brief Halfspace-gated static-row overload (#372 slice b).  When
    *         the row index is encoded at the type level via
-   *         @c std::integral_constant<size_t, @c I>, the row halfspace
-   *         @c [0, row_count) is decided at compile time; out-of-range
-   *         indices fail to instantiate (the @c requires-clause
-   *         refuses them).  Composes with @c Covec2V's static
-   *         @c operator[] for full type-level @c m[i][j] bounds
-   *         checking.
+   *         @c {std::integral_constant<U,I>} for any
+   *         @c {std::integral U}, the row halfspace
+   *         @c {[0, row_count)} is decided at compile time;
+   *         out-of-range indices fail to instantiate.  Composes with
+   *         @c Covec2V's static @c operator[] for full type-level
+   *         @c {m[i][j]} bounds checking.  Subsumes the 𝔹-indexed
+   *         face — @c {Matrix2x2V<T> ≅ 𝔹 × 𝔹 → T}: with
+   *         @c Covec2V's bool overload, @c {m[B_row][B_col]} is
+   *         fully 𝔹-typed.
    */
-  template <std::size_t I>
-    requires(I < row_count)
-  constexpr row_type operator[](std::integral_constant<std::size_t, I>) const {
-    return row(I);
-  }
-
-  /** @brief 𝔹-indexed static row overload — the type-theoretic reading
-   *         of the @b 2×2 matrix as @c 𝔹 @c × @c 𝔹 @c → @c T.
-   *         Composed with @c Covec2V's bool-indexed overload, the
-   *         entry @c m[B_row][B_col] is fully 𝔹-typed.
-   */
-  template <bool B>
-  constexpr row_type operator[](std::bool_constant<B>) const {
-    return row(static_cast<std::size_t>(B));
+  template <std::integral U, U I>
+    requires(static_cast<std::size_t>(I) < row_count)
+  constexpr row_type operator[](std::integral_constant<U, I>) const {
+    return row(static_cast<std::size_t>(I));
   }
 
   /** @brief Matrix transpose: reflect across the main diagonal. */
@@ -1037,6 +1030,16 @@ template <typename T, typename Idx>
                std::convertible_to<Idx, std::size_t>
 inline constexpr bool
     is_eval_arrow_v<dedekind::linear_algebra::Matrix2x2V<T>, Idx> = true;
+
+// Static-index overload (#372 slice b) accepts any
+// integral_constant<U, I> with std::integral U — including bool
+// (bool_constant<B> ≡ integral_constant<bool, B>). Mirror this on the
+// trait so IsEvalArrow fires uniformly across runtime and
+// static-index surfaces.
+template <typename T, std::integral U, U I>
+inline constexpr bool
+    is_eval_arrow_v<dedekind::linear_algebra::Matrix2x2V<T>,
+                    std::integral_constant<U, I>> = true;
 
 }  // namespace dedekind::category
 

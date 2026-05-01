@@ -181,34 +181,24 @@ struct Vec2V {
   /** @brief Halfspace-gated static-index overload (#372 slice b).
    *
    *  When the index is encoded at the type level via
-   *  @c std::integral_constant<size_t, @c I>, the dimension halfspace
-   *  @c [0, @c dimension) is decided at compile time: out-of-range
-   *  indices fail to instantiate (the @c requires-clause refuses
-   *  them), making @c v[std::integral_constant<size_t, @c 2>{}] a
-   *  type-check failure rather than a runtime fallback.
-   */
-  template <std::size_t I>
-    requires(I < dimension)
-  constexpr T operator[](std::integral_constant<std::size_t, I>) const {
-    if constexpr (I == 0)
-      return x;
-    else
-      return y;
-  }
-
-  /** @brief 𝔹-indexed static overload — the type-theoretic reading of
-   *         the @b 2-cell carrier.
+   *  @c {std::integral_constant<U,I>} for any @c {std::integral U},
+   *  the dimension halfspace @c {[0, dimension)} is decided at
+   *  compile time: out-of-range indices fail to instantiate (the
+   *  @c requires-clause refuses them).
    *
-   *  @c Vec2V<T> @c ≅ @c 𝔹 @c → @c T as a function space: the index
-   *  set is the 2-element type @c 𝔹 @c = @c {false, @c true}, with
-   *  @c v[false_type] @c = @c x and @c v[true_type] @c = @c y.  No
-   *  out-of-range case exists — @c bool exhausts its inhabitants — so
-   *  the overload needs no @c requires gate.  Drives home the slogan
-   *  "the dimension halfspace at @c n=2 @b is @c 𝔹".
+   *  Subsumes both presentations:
+   *  @li @c {std::integral_constant<std::size_t,I>} — the size_t face;
+   *      @c {v[std::integral_constant<size_t,2>{}]} is a type-check
+   *      failure rather than a runtime fallback.
+   *  @li @c {std::bool_constant<B>} (= @c {std::integral_constant<bool,B>})
+   *      — the 𝔹-indexed face.  @c {Vec2V<T> ≅ 𝔹 → T} as a function
+   *      space: @c {v[false_type] = x}, @c {v[true_type] = y}.  Drives
+   *      home the slogan "the dimension halfspace at @c n=2 @b is 𝔹".
    */
-  template <bool B>
-  constexpr T operator[](std::bool_constant<B>) const {
-    if constexpr (B == false)
+  template <std::integral U, U I>
+    requires(static_cast<std::size_t>(I) < dimension)
+  constexpr T operator[](std::integral_constant<U, I>) const {
+    if constexpr (I == U{0})
       return x;
     else
       return y;
@@ -287,27 +277,18 @@ struct Covec2V {
     return T{};
   }
 
-  /** @brief Halfspace-gated static-index overload (#372 slice b).  Same
-   *         contract as @c Vec2V::operator[](integral_constant): the
-   *         index halfspace @c [0, dimension) is decided at compile
-   *         time; out-of-range indices fail to instantiate.
+  /** @brief Halfspace-gated static-index overload (#372 slice b).
+   *         Same integral-parametric contract as
+   *         @c Vec2V::operator[](integral_constant): admits any
+   *         @c {std::integral_constant<U,I>} with non-negative
+   *         @c {I < dimension}.  Subsumes the 𝔹-indexed face
+   *         (@c bool_constant<B> = @c {integral_constant<bool,B>}):
+   *         @c Covec2V<T> @c ≅ 𝔹 @c → @c T.
    */
-  template <std::size_t I>
-    requires(I < dimension)
-  constexpr T operator[](std::integral_constant<std::size_t, I>) const {
-    if constexpr (I == 0)
-      return x;
-    else
-      return y;
-  }
-
-  /** @brief 𝔹-indexed static overload — same reading as
-   *         @c Vec2V::operator[](bool_constant).  @c Covec2V<T> @c ≅
-   *         @c 𝔹 @c → @c T.
-   */
-  template <bool B>
-  constexpr T operator[](std::bool_constant<B>) const {
-    if constexpr (B == false)
+  template <std::integral U, U I>
+    requires(static_cast<std::size_t>(I) < dimension)
+  constexpr T operator[](std::integral_constant<U, I>) const {
+    if constexpr (I == U{0})
       return x;
     else
       return y;
@@ -599,6 +580,20 @@ template <typename T, typename Idx>
                std::convertible_to<Idx, std::size_t>
 inline constexpr bool
     is_eval_arrow_v<dedekind::linear_algebra::Covec2V<T>, Idx> = true;
+
+// Static-index overloads from #372 slice b accept any
+// integral_constant<U, I> with std::integral U — including bool
+// (bool_constant<B> ≡ integral_constant<bool, B>). Pin
+// is_eval_arrow_v on the integral-parametric form so IsEvalArrow
+// fires uniformly across runtime and static-index surfaces.
+template <typename T, std::integral U, U I>
+inline constexpr bool
+    is_eval_arrow_v<dedekind::linear_algebra::Vec2V<T>,
+                    std::integral_constant<U, I>> = true;
+template <typename T, std::integral U, U I>
+inline constexpr bool
+    is_eval_arrow_v<dedekind::linear_algebra::Covec2V<T>,
+                    std::integral_constant<U, I>> = true;
 
 template <typename T>
 inline constexpr bool is_kleisli_deref_v<dedekind::linear_algebra::Vec2V<T>> =
