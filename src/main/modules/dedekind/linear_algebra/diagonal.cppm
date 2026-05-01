@@ -1,8 +1,7 @@
 /**
  * @file dedekind/linear_algebra/diagonal.cppm
  * @partition :diagonal
- * @brief Intensional diagonal and rank-1 outer-product matrix carriers
- *        (#372 slice c + e) — work at any dimension, including @c ℵ_0.
+ * @brief Intensional diagonal and rank-1 outer-product matrix carriers (#372 slice c + e) at any dimension, including @c ℵ_0.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
@@ -45,11 +44,15 @@
  * (#402) navigated for runtime values, but type-template parameters
  * keep the carrier-side dispatch simpler at the type level).
  *
- * @note "Sumus quod sumus."  ("We are what we are.")
- *       — anonymous Latin proverb, applied here to the rule-based
- *       carriers: a diagonal matrix @b is its diagonal rule, and a
- *       rank-1 matrix @b is the pair of its factor vectors — no
- *       further dense representation is required.
+ * Wikipedia: Diagonal matrix, Outer product, Tensor product of vector spaces
+ *
+ * @note "Wir müssen wissen, wir werden wissen."
+ *       [Trans: "We must know, we will know."]
+ *       — David Hilbert, Königsberg radio address (8 September 1930);
+ *       inscribed on his tombstone in Göttingen.  Applied here to the
+ *       rule-based carriers: an intensional matrix @b is its rule —
+ *       at any cardinality, every entry is decidable on demand without
+ *       a dense representation.
  */
 module;
 
@@ -118,29 +121,43 @@ export template <typename D, typename F>
   requires IsDimension<D> && dedekind::category::IsArrow<F>
 struct Diagonal {
   using scalar_type = typename std::remove_cvref_t<F>::Codomain;
+  using rule_domain_type = typename std::remove_cvref_t<F>::Domain;
   using dimension_type = D;
   static constexpr bool is_finite = D::is_finite;
 
-  F rule{};
+  // No default member initialiser: keeps @c F free to be a stateful /
+  // capturing arrow (e.g. a @c Morphism returned by
+  // @c dedekind::category::arrow(...)) that lacks a default constructor.
+  // @c Diagonal<D, F>{rule_value} is the spelling; aggregate
+  // value-init @c Diagonal<D, F>{} still compiles when @c F itself
+  // is default-constructible (e.g. @c identity_rule<T>).
+  F rule;
 
-  /** @brief Diagonal entry at @c row @c = @c col @c = @c i. */
+  /** @brief Diagonal entry at @c row @c = @c col @c = @c i.
+   *
+   *  @c Idx is parametric over any @c IsDirectedSet that converts to
+   *  the rule's @c Domain — keeps the eval surface intensional in the
+   *  index theory (the rule decides what kind of net domain it
+   *  dispatches on; @c std::size_t is one inhabitant, @c ℕ another). */
   template <typename Idx>
     requires dedekind::order::IsDirectedSet<Idx> &&
-             std::convertible_to<Idx, std::size_t>
+             std::convertible_to<Idx, rule_domain_type>
   constexpr scalar_type at(Idx const& i) const {
-    return rule(static_cast<std::size_t>(i));
+    return rule(static_cast<rule_domain_type>(i));
   }
 
   /** @brief Matrix entry @c (i,j) @c = @c δ_ij @c · @c F(i).  Returns
-   *         @c T{} off-diagonal. */
+   *         @c T{} off-diagonal.  Equality of indices is decided after
+   *         conversion to the rule's @c Domain — both @c I and @c J
+   *         need only be net-domain-convertible to it. */
   template <typename I, typename J>
     requires dedekind::order::IsDirectedSet<I> &&
              dedekind::order::IsDirectedSet<J> &&
-             std::convertible_to<I, std::size_t> &&
-             std::convertible_to<J, std::size_t>
+             std::convertible_to<I, rule_domain_type> &&
+             std::convertible_to<J, rule_domain_type>
   constexpr scalar_type operator()(I const& i, J const& j) const {
-    const std::size_t si = static_cast<std::size_t>(i);
-    const std::size_t sj = static_cast<std::size_t>(j);
+    const rule_domain_type si = static_cast<rule_domain_type>(i);
+    const rule_domain_type sj = static_cast<rule_domain_type>(j);
     return si == sj ? rule(si) : scalar_type{};
   }
 };
@@ -185,18 +202,24 @@ using DiagonalZero = Diagonal<D, zero_rule<T>>;
 /** @brief The componentwise rule @c (F@c ·@c G)(i) @c = @c F(i) @c ·
  *         @c G(i). */
 export template <typename F, typename G>
-  requires dedekind::category::IsArrow<F> && dedekind::category::IsArrow<G>
+  requires dedekind::category::IsArrow<F> && dedekind::category::IsArrow<G> &&
+           std::same_as<typename std::remove_cvref_t<F>::Domain,
+                        typename std::remove_cvref_t<G>::Domain>
 struct diagonal_product_rule {
   using Codomain = typename std::remove_cvref_t<F>::Codomain;
-  using Domain = std::size_t;
+  using Domain = typename std::remove_cvref_t<F>::Domain;
   static_assert(
       std::same_as<Codomain, typename std::remove_cvref_t<G>::Codomain>,
       "diagonal_product_rule: F and G must share the scalar codomain.");
 
-  F f{};
-  G g{};
+  // No default member initialisers: see the rationale on @c Diagonal<D, F>
+  // above — keeps the rule types free to be non-default-constructible.
+  // Domain inherited from F (= G); composition is intensional in
+  // whatever net-domain the factor rules dispatch on.
+  F f;
+  G g;
 
-  constexpr Codomain operator()(std::size_t i) const { return f(i) * g(i); }
+  constexpr Codomain operator()(Domain const& i) const { return f(i) * g(i); }
 };
 
 /** @brief Diagonal-times-diagonal: returns the componentwise-product
@@ -229,21 +252,30 @@ export template <typename U, typename V>
   requires dedekind::category::IsArrow<U> && dedekind::category::IsArrow<V>
 struct OuterProduct {
   using scalar_type = typename std::remove_cvref_t<U>::Codomain;
+  using row_domain_type = typename std::remove_cvref_t<U>::Domain;
+  using col_domain_type = typename std::remove_cvref_t<V>::Domain;
   static_assert(
       std::same_as<scalar_type, typename std::remove_cvref_t<V>::Codomain>,
       "OuterProduct: U and V must share the scalar codomain.");
 
-  U u{};
-  V v{};
+  // No default member initialisers: keeps @c U / @c V free to be
+  // stateful / capturing arrows (e.g. @c Morphism returned by
+  // @c dedekind::category::arrow(...)) that lack a default constructor.
+  U u;
+  V v;
 
-  /** @brief Entry @c (i, @c j) @c = @c u(i) @c · @c v(j). */
+  /** @brief Entry @c (i, @c j) @c = @c u(i) @c · @c v(j).  Each axis is
+   *         intensional in its factor's @c Domain — the row index runs
+   *         in @c U::Domain, the column index in @c V::Domain (the two
+   *         can differ). */
   template <typename I, typename J>
     requires dedekind::order::IsDirectedSet<I> &&
              dedekind::order::IsDirectedSet<J> &&
-             std::convertible_to<I, std::size_t> &&
-             std::convertible_to<J, std::size_t>
+             std::convertible_to<I, row_domain_type> &&
+             std::convertible_to<J, col_domain_type>
   constexpr scalar_type operator()(I const& i, J const& j) const {
-    return u(static_cast<std::size_t>(i)) * v(static_cast<std::size_t>(j));
+    return u(static_cast<row_domain_type>(i)) *
+           v(static_cast<col_domain_type>(j));
   }
 };
 
