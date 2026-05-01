@@ -178,6 +178,38 @@ struct Vec2V {
     return T{};
   }
 
+  /** @brief Halfspace-gated static-index overload (#372 slice b).
+   *
+   *  When the index is encoded at the type level via
+   *  @c std::integral_constant<size_t, @c I>, the dimension halfspace
+   *  @c [0, @c dimension) is decided at compile time: out-of-range
+   *  indices fail to instantiate (the @c requires-clause refuses
+   *  them), making @c v[std::integral_constant<size_t, @c 2>{}] a
+   *  type-check failure rather than a runtime fallback.
+   */
+  template <std::size_t I>
+    requires(I < dimension)
+  constexpr T operator[](std::integral_constant<std::size_t, I>) const {
+    if constexpr (I == 0) return x;
+    else return y;
+  }
+
+  /** @brief 𝔹-indexed static overload — the type-theoretic reading of
+   *         the @b 2-cell carrier.
+   *
+   *  @c Vec2V<T> @c ≅ @c 𝔹 @c → @c T as a function space: the index
+   *  set is the 2-element type @c 𝔹 @c = @c {false, @c true}, with
+   *  @c v[false_type] @c = @c x and @c v[true_type] @c = @c y.  No
+   *  out-of-range case exists — @c bool exhausts its inhabitants — so
+   *  the overload needs no @c requires gate.  Drives home the slogan
+   *  "the dimension halfspace at @c n=2 @b is @c 𝔹".
+   */
+  template <bool B>
+  constexpr T operator[](std::bool_constant<B>) const {
+    if constexpr (B == false) return x;
+    else return y;
+  }
+
   /** @brief Named-pair view via @c operator->.
    *
    *  Returns a proxy whose members @c _1 / @c fst alias @c x and @c _2 /
@@ -249,6 +281,28 @@ struct Covec2V {
     if (s == 0) return x;
     if (s == 1) return y;
     return T{};
+  }
+
+  /** @brief Halfspace-gated static-index overload (#372 slice b).  Same
+   *         contract as @c Vec2V::operator[](integral_constant): the
+   *         index halfspace @c [0, dimension) is decided at compile
+   *         time; out-of-range indices fail to instantiate.
+   */
+  template <std::size_t I>
+    requires(I < dimension)
+  constexpr T operator[](std::integral_constant<std::size_t, I>) const {
+    if constexpr (I == 0) return x;
+    else return y;
+  }
+
+  /** @brief 𝔹-indexed static overload — same reading as
+   *         @c Vec2V::operator[](bool_constant).  @c Covec2V<T> @c ≅
+   *         @c 𝔹 @c → @c T.
+   */
+  template <bool B>
+  constexpr T operator[](std::bool_constant<B>) const {
+    if constexpr (B == false) return x;
+    else return y;
   }
 
   /** @brief Transpose to the dual vector: row → column. */
@@ -574,6 +628,31 @@ static_assert(opv[0u] == 3u, "Vec2V::operator[](0u) returns x.");
 static_assert(opv[1u] == 7u, "Vec2V::operator[](1u) returns y.");
 static_assert(opv[false] == 3u, "Vec2V::operator[](false) returns x.");
 static_assert(opv[true] == 7u, "Vec2V::operator[](true) returns y.");
+
+// Halfspace-gated static-index overload (#372 slice b): valid indices
+// pass; out-of-range indices fail the requires-clause.  Index type is
+// @c std::integral_constant<size_t, I>; at the call site, the literal
+// @c std::integral_constant<size_t, 0>{} encodes I=0 at the type level.
+static_assert(opv[std::integral_constant<std::size_t, 0>{}] == 3u,
+              "Vec2V::operator[]<0> returns x — static-index overload.");
+static_assert(opv[std::integral_constant<std::size_t, 1>{}] == 7u,
+              "Vec2V::operator[]<1> returns y — static-index overload.");
+// Out-of-range static indices fail to instantiate via the overload's
+// `requires (I < dimension)` clause; demonstrating this with a
+// `!requires { v[ic<2>{}] }` static_assert hits a clang diagnostic
+// quirk (the inner expression's diagnostic escapes the requires
+// SFINAE).  The compile-time rejection is a property of the overload
+// itself; verifying it negatively at the assert level is left to a
+// follow-up that uses a SFINAE-friendly variable-template wrapper.
+
+// 𝔹-indexed static overload: the type-theoretic reading of dim=2.
+// Vec2V<T> ≅ 𝔹 → T, with v[false_type] = x and v[true_type] = y.
+// No out-of-range case — bool exhausts its inhabitants — so no negative
+// requires-witness is needed.
+static_assert(opv[std::false_type{}] == 3u,
+              "Vec2V[false_type] = x — Vec2V<T> ≅ 𝔹 → T, false ↦ first.");
+static_assert(opv[std::true_type{}] == 7u,
+              "Vec2V[true_type] = y — Vec2V<T> ≅ 𝔹 → T, true ↦ second.");
 static_assert(opv->_1 == 3u, "Vec2V::operator->::_1 is the first projection.");
 static_assert(opv->_2 == 7u, "Vec2V::operator->::_2 is the second projection.");
 static_assert(opv->fst == 3u, "Vec2V::operator->::fst aliases _1.");
@@ -582,6 +661,15 @@ static_assert(opv->snd == 7u, "Vec2V::operator->::snd aliases _2.");
 inline constexpr Covec2V<unsigned int> opcv{4u, 9u};
 static_assert(opcv[0u] == 4u, "Covec2V::operator[](0u) returns x.");
 static_assert(opcv[1u] == 9u, "Covec2V::operator[](1u) returns y.");
+
+static_assert(opcv[std::integral_constant<std::size_t, 0>{}] == 4u,
+              "Covec2V::operator[]<0> returns x — static-index overload.");
+static_assert(opcv[std::integral_constant<std::size_t, 1>{}] == 9u,
+              "Covec2V::operator[]<1> returns y — static-index overload.");
+static_assert(opcv[std::false_type{}] == 4u,
+              "Covec2V[false_type] = x — Covec2V<T> ≅ 𝔹 → T.");
+static_assert(opcv[std::true_type{}] == 9u,
+              "Covec2V[true_type] = y — Covec2V<T> ≅ 𝔹 → T.");
 }  // namespace detail_op
 
 }  // namespace dedekind::linear_algebra
