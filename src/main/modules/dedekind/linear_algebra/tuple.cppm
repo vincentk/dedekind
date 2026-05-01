@@ -329,46 +329,37 @@ static_assert(dedekind::category::unit_witness<covec2_functor<int>, int>{}(2) ==
                   Covec2V<int>{2, 2},
               "Covec2V η: scalar → diagonal broadcast.");
 
-}  // namespace dedekind::linear_algebra
-
-namespace dedekind::category {
-
 // NEW-A trait registry (#498/#499): @c Vec2V<T> is a free @c T-module
 // of rank 2 (canonically isomorphic to @c T^2 via the (x, y)
 // component projection).  Sibling @c Covec2V<T> is the dual rank-2
 // module (row vector); both pin against the same trait at rank 2.
 //
-// Free-module ⟹ module: the @c is_module_v specialisations below
-// keep the registry consistent so downstream code querying the plain
-// @c is_module_v predicate sees these vector carriers as well.
+// The @c is_module_v witness fires automatically via the concept-based
+// default in @c dedekind::algebra:modules; we only opt-in to the
+// rank-bearing @c is_free_module_v here (free-module ⟹ module is the
+// algebraic implication, but the rank @c N is structural metadata
+// that no concept derives from the operator surface).
 template <typename T>
-  requires std::regular<T> && dedekind::algebra::HasRingOperators<T>
-inline constexpr bool is_module_v<dedekind::linear_algebra::Vec2V<T>, T> = true;
+  requires dedekind::algebra::IsModule<Vec2V<T>, T>
+inline constexpr bool is_free_module_v<Vec2V<T>, T, 2> = true;
 
 template <typename T>
-  requires std::regular<T> && dedekind::algebra::HasRingOperators<T>
-inline constexpr bool is_module_v<dedekind::linear_algebra::Covec2V<T>, T> =
-    true;
+  requires dedekind::algebra::IsModule<Covec2V<T>, T>
+inline constexpr bool is_free_module_v<Covec2V<T>, T, 2> = true;
 
-template <typename T>
-  requires std::regular<T> && dedekind::algebra::HasRingOperators<T>
-inline constexpr bool
-    is_free_module_v<dedekind::linear_algebra::Vec2V<T>, T, 2> = true;
-
-template <typename T>
-  requires std::regular<T> && dedekind::algebra::HasRingOperators<T>
-inline constexpr bool
-    is_free_module_v<dedekind::linear_algebra::Covec2V<T>, T, 2> = true;
-
-static_assert(is_module_v<dedekind::linear_algebra::Vec2V<int>, int>,
+// Witnesses use @c unsigned @c int — the canonical primitive carrier
+// that satisfies strict @c algebra::IsRing under modular arithmetic
+// (signed @c int fails @c IsRing because of signed-overflow UB).
+static_assert(dedekind::algebra::is_module_v<Vec2V<unsigned int>, unsigned int>,
               "Vec2V<T> is a T-module (free-module ⟹ module).");
-static_assert(is_module_v<dedekind::linear_algebra::Covec2V<int>, int>,
-              "Covec2V<T> is a T-module (free-module ⟹ module).");
-static_assert(is_free_module_v<dedekind::linear_algebra::Vec2V<int>, int, 2>,
+static_assert(
+    dedekind::algebra::is_module_v<Covec2V<unsigned int>, unsigned int>,
+    "Covec2V<T> is a T-module (free-module ⟹ module).");
+static_assert(is_free_module_v<Vec2V<unsigned int>, unsigned int, 2>,
               "Vec2V<T> is a free T-module of rank 2 (M ≅ T^2 via "
               "componentwise projection).");
-static_assert(is_free_module_v<dedekind::linear_algebra::Covec2V<int>, int, 2>,
+static_assert(is_free_module_v<Covec2V<unsigned int>, unsigned int, 2>,
               "Covec2V<T> is a free T-module of rank 2 (the row-vector "
               "dual to Vec2V<T>).");
 
-}  // namespace dedekind::category
+}  // namespace dedekind::linear_algebra

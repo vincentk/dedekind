@@ -18,6 +18,7 @@ export module dedekind.linear_algebra;
 
 export import :backends;
 export import :contracts;
+export import :basis;
 export import :graphblas;
 export import :tuple;
 export import :matrix;

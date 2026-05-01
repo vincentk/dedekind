@@ -605,30 +605,23 @@ static_assert(dedekind::category::counit_witness<matrix2x2_functor<int>, int>{}(
               "Matrix2x2V ε: extract top-left corner (canonical projection "
               "M_2(T) → T).");
 
-}  // namespace dedekind::linear_algebra
-
-namespace dedekind::category {
-
 // NEW-A trait registry (#498/#499): @c Matrix2x2V<T> is the
 // endomorphism ring of @c Vec2V<T>, i.e.\ @c End(Vec2V<T>) @c =
 // @c M_2(T).  Textbook reading: matrix multiplication is composition
 // of linear endomorphisms; the @c (Hom(V, V), @c ∘) ring is the
-// @c End ring of the module @c V.
+// @c End ring of the module @c V.  Gated on @c IsModule<Vec2V<T>, T>
+// so the module structure is in place before the End-ring claim is
+// recorded.
 template <typename T>
-  requires std::regular<T> && dedekind::algebra::HasRingOperators<T>
-inline constexpr bool
-    is_endomorphism_ring_v<dedekind::linear_algebra::Matrix2x2V<T>,
-                           dedekind::linear_algebra::Vec2V<T>> = true;
+  requires dedekind::algebra::IsModule<Vec2V<T>, T>
+inline constexpr bool is_endomorphism_ring_v<Matrix2x2V<T>, Vec2V<T>> = true;
 
+// Witness uses @c unsigned @c int — the canonical primitive carrier
+// that satisfies strict @c algebra::IsRing under modular arithmetic.
 static_assert(
-    is_endomorphism_ring_v<dedekind::linear_algebra::Matrix2x2V<int>,
-                           dedekind::linear_algebra::Vec2V<int>>,
+    is_endomorphism_ring_v<Matrix2x2V<unsigned int>, Vec2V<unsigned int>>,
     "Matrix2x2V<T> is End(Vec2V<T>) = M_2(T) (matrix multiplication "
     "= composition of linear endomorphisms of the rank-2 free module).");
-
-}  // namespace dedekind::category
-
-namespace dedekind::linear_algebra {
 
 /** @section matrix__Bifunctorial_And_Concept_Witnessed_Shapes
  *

@@ -90,6 +90,7 @@ export module dedekind.analysis:dual;
 import dedekind.algebra;
 import dedekind.category;
 import dedekind.geometry; // IsTangentBundle (flat-case tangent-bundle concept)
+import dedekind.numbers; // Rational<default_integer> (ℚ) — strict-IsRing scalar carrier for trait-registry witness
 import dedekind.sets;
 
 namespace dedekind::analysis {
@@ -257,31 +258,20 @@ static_assert(
     "Dual<int> is the discrete-side tangent-bundle (finite-difference) "
     "carrier over the machine integers.");
 
-}  // namespace dedekind::analysis
-
-namespace dedekind::category {
-
-// NEW-A trait registry (#498/#499): @c Dual<F> is a module over
-// @c F.  Textbook reading: the quotient ring @c F[ε]/(ε²) is rank-2
-// over @c F as a free module (Lang §III.1; Eisenbud §16.5).  At the
-// trait-registry tier we only pin the @b module property (Dual is
-// an F-module); the @b free-module-of-rank-2 specialisation is
-// genuinely structural too, but is left as a follow-on slice
-// pending a clean test.  Gated on @c algebra::HasRingOperators<F>
-// to match Dual's existing constraint surface.
-template <typename F>
-  requires dedekind::algebra::HasRingOperators<F>
-inline constexpr bool is_module_v<dedekind::analysis::Dual<F>, F> = true;
-
-static_assert(is_module_v<dedekind::analysis::Dual<double>, double>,
-              "Dual<F> is a module over F at the float-AD instance.");
-static_assert(is_module_v<dedekind::analysis::Dual<int>, int>,
-              "Dual<F> is a module over F at the discrete-AD "
-              "(finite-difference) instance.");
-
-}  // namespace dedekind::category
-
-namespace dedekind::analysis {
+// NEW-A trait registry witness (#498/#499): @c Dual<F> is a module
+// over @c F.  Textbook reading: the quotient ring @c F[ε]/(ε²) is
+// rank-2 over @c F as a free module (Lang §III.1; Eisenbud §16.5).
+// The trait itself is concept-based (in @c dedekind::algebra:modules) —
+// this witness fires automatically when the operator surface
+// satisfies @c IsModule<Dual<F>, F>.  The witness uses @c ℚ as the
+// scalar (@c double / @c int would fail strict @c IsRing axioms);
+// the free-module-of-rank-2 witness is the sister @c is_free_module_v
+// opt-in in @c linear_algebra:basis.
+static_assert(
+    dedekind::algebra::is_module_v<
+        Dual<dedekind::numbers::Rational<dedekind::numbers::default_integer>>,
+        dedekind::numbers::Rational<dedekind::numbers::default_integer>>,
+    "Dual<ℚ> is a module over ℚ — the exact-arithmetic AD instance.");
 
 export template <typename F = double, typename L = ClassicalLogic,
                  typename C = ℶ_1>

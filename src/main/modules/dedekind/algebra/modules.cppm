@@ -343,4 +343,29 @@ inline constexpr dedekind::algebra::OneDimensionalVector<S, Tag> inverse(
 
 }  // namespace dedekind::category
 
-namespace dedekind::algebra {}  // namespace dedekind::algebra
+namespace dedekind::algebra {
+
+/** @section modules__Trait_Registry (NEW-A, #498/#499)
+ *
+ * The recursive enrichment relations Figure~1 of the paper depicts
+ * (ℚ as ℤ-module, 𝔻 as ℝ-module, ℂ as ℝ-module, …) are pinned
+ * mechanically as a single concept-based trait variable.  Unlike a
+ * per-carrier opt-in pattern, the trait fires automatically for any
+ * carrier @c (M, @c R) whose operators satisfy @c IsModule<M, @c R> —
+ * no consumer-side registration is required.  The strict gating
+ * (Module ⟹ Ring) is honoured because @c IsModule itself composes
+ * @c IsRing<S>; carriers whose scalar fails @c IsRing won't fire the
+ * trait, which is the correct algebraic statement.
+ *
+ * Sister traits with structural-metadata payload (rank, endomorphism
+ * identity) live in @c linear_algebra:contracts where the metadata
+ * is at home.
+ */
+
+/** @brief @c is_module_v<M, R>: @c M is an @c R-module.  Concept-based
+ *         dispatch — fires automatically when @c IsModule<M, @c R>
+ *         holds. */
+export template <typename M, typename R>
+inline constexpr bool is_module_v = IsModule<M, R>;
+
+}  // namespace dedekind::algebra
