@@ -1,7 +1,7 @@
 /**
- * @file dedekind/linear_algebra/tuple.cppm
- * @partition :tuple
- * @brief Level 12.5a₀: Finite tuples — column / row vectors and covectors.
+ * @file dedekind/linear_algebra/vec2.cppm
+ * @partition :vec2
+ * @brief Level 12.5a₀: 2-tuples — Vec2 / Vec2V (column) and Covec2V (row).
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
@@ -41,11 +41,12 @@ module;
 #include <type_traits>
 #include <utility>
 
-export module dedekind.linear_algebra:tuple;
+export module dedekind.linear_algebra:vec2;
 
 import dedekind.algebra; // HasRingOperators, HasVectorSpaceOperators (upstream)
 import dedekind.category; // IsFunctor / Set / arrow (for vec2_functor witnesses)
 import dedekind.sets; // Finite tag — the cardinal the tuple dimension lives in
+import :basis;        // is_free_module_v trait declaration
 import :contracts;    // ColumnOrientation, RowOrientation tags
 
 namespace dedekind::linear_algebra {

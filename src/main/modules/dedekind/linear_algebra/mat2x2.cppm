@@ -1,7 +1,9 @@
 /**
- * @file dedekind/linear_algebra/matrix.cppm
- * @partition :matrix
- * @brief Matrices as rectangular linear maps between tuples.
+ * @file dedekind/linear_algebra/mat2x2.cppm
+ * @partition :mat2x2
+ * @brief 2×2 matrices — as linear maps between 2-tuples (the worked
+ *        first-class instance; n>2 lives behind the
+ *        structure-preserving combinators of #368).
  *
  * @details
  * Following Stammbach's "Lineare Algebra", matrices are interpreted as
@@ -67,14 +69,15 @@ module;
 #include <type_traits>
 #include <utility>  // std::declval for non-default-constructible type composition
 
-export module dedekind.linear_algebra:matrix;
+export module dedekind.linear_algebra:mat2x2;
 
 import dedekind.algebra; // HasRingOperators, HasFieldOperators, HasVectorSpaceOperators
 import dedekind.category; // IsFunctor / Set / arrow (for matrix2x2_functor witness)
 import dedekind.numbers; // Rational<Z> for the ℚ carrier
 import dedekind.sets;    // Finite cardinality tag (for dimension_type)
+import :basis;           // is_endomorphism_ring_v trait declaration
 import :contracts;       // matrix / vector / orientation concepts
-import :tuple;           // Vec2 (NTTP), Vec2V / Covec2V (value-level)
+import :vec2;            // Vec2 (NTTP), Vec2V / Covec2V (value-level)
 
 namespace dedekind::linear_algebra {
 

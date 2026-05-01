@@ -40,7 +40,7 @@ export module dedekind.linear_algebra:embeddings;
 import dedekind.algebra; // HasRingOperators + IsRingHomomorphism (constraint / witness)
 import dedekind.analysis; // Dual<T>: 𝔻 ↪ M₂ regular representation (relocated from :numbers at PR #513)
 import dedekind.numbers; // Complex<T>, Rational<Z>, IsComplexScalar
-import :matrix;  // Matrix2x2V<T>, identity / zero constants for the target
+import :mat2x2;  // Matrix2x2V<T>, identity / zero constants for the target
 
 namespace dedekind::linear_algebra {
 
