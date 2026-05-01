@@ -1,7 +1,8 @@
 /**
  * @file dedekind/geometry/function.cppm
  * @partition :function
- * @brief Concept anchoring for function spaces — functions on infinite domains as infinite-dimensional vectors (#537 slice 1).
+ * @brief Concept anchoring for function spaces — functions on infinite domains
+ * as infinite-dimensional vectors (#537 slice 1).
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
@@ -76,8 +77,8 @@ module;
 
 export module dedekind.geometry:function;
 
-import dedekind.sequences;  // Path<T, Cardinality> — the canonical infinite-dim function-space inhabitant
-import dedekind.sets;       // ℵ_0 — the canonical infinite cardinality
+import dedekind.sequences; // Path<T, Cardinality> — the canonical infinite-dim function-space inhabitant
+import dedekind.sets; // ℵ_0 — the canonical infinite cardinality
 
 namespace dedekind::geometry {
 
@@ -112,29 +113,27 @@ namespace dedekind::geometry {
  * pin the laws value-side in a follow-up.
  */
 export template <typename W, typename D, typename T>
-concept IsFunctionSpace = requires(W const& f, W const& g, D const& d,
-                                   T const& s) {
-  /** Eval: a function-space inhabitant is callable on the domain. */
-  { f(d) } -> std::convertible_to<T>;
-  /** Pointwise addition closes the carrier. */
-  { f + g } -> std::convertible_to<W>;
-  /** Scalar multiplication closes the carrier. */
-  { s* f } -> std::convertible_to<W>;
-};
+concept IsFunctionSpace =
+    requires(W const& f, W const& g, D const& d, T const& s) {
+      /** Eval: a function-space inhabitant is callable on the domain. */
+      { f(d) } -> std::convertible_to<T>;
+      /** Pointwise addition closes the carrier. */
+      { f + g } -> std::convertible_to<W>;
+      /** Scalar multiplication closes the carrier. */
+      { s * f } -> std::convertible_to<W>;
+    };
 
 /** @section function__Witnesses */
 
 // Path<T, ℵ_0> — the canonical ℵ_0-dimensional function-space
 // inhabitant.  Witnesses the concept at int / unsigned int (the
 // canonical primitive carrier under modular arithmetic).
-static_assert(
-    IsFunctionSpace<dedekind::sequences::Path<int>, std::size_t, int>,
-    "Path<int> (cardinality ℵ_0) is a function space ℕ → int: "
-    "eval / pointwise + / scalar · all close on the carrier.");
-static_assert(
-    IsFunctionSpace<dedekind::sequences::Path<unsigned int>, std::size_t,
-                    unsigned int>,
-    "Path<unsigned int> is a function space ℕ → unsigned int.");
+static_assert(IsFunctionSpace<dedekind::sequences::Path<int>, std::size_t, int>,
+              "Path<int> (cardinality ℵ_0) is a function space ℕ → int: "
+              "eval / pointwise + / scalar · all close on the carrier.");
+static_assert(IsFunctionSpace<dedekind::sequences::Path<unsigned int>,
+                              std::size_t, unsigned int>,
+              "Path<unsigned int> is a function space ℕ → unsigned int.");
 
 // FinitePath<T> — the finite cardinal sibling.  Same operator surface
 // (with min-extent semantics on +); same function-space inhabitation.

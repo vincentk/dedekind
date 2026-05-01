@@ -43,7 +43,8 @@ export module dedekind.geometry;
 export import :affine;         // The Point-Vector Duality
 export import :linear_map;     // Concrete finite-dimensional linear maps
 export import :inner_product;  // The Bilinear Mapping ⟨-, -⟩
-export import :function;       // Function spaces T^D as infinite-dim vector spaces (#537)
+export import :function;  // Function spaces T^D as infinite-dim vector spaces
+                          // (#537)
 
 /** @section geometry__Metric_Completion */
 export import :euclidean;  // The Normed Space (L2-Topology)
