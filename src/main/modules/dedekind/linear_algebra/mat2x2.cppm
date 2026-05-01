@@ -74,6 +74,7 @@ export module dedekind.linear_algebra:mat2x2;
 import dedekind.algebra; // HasRingOperators, HasFieldOperators, HasVectorSpaceOperators
 import dedekind.category; // IsFunctor / Set / arrow (for matrix2x2_functor witness)
 import dedekind.numbers; // Rational<Z> for the ℚ carrier
+import dedekind.order;   // IsDirectedSet — algebraic gate on operator[] index domain (any net domain)
 import dedekind.sets;    // Finite cardinality tag (for dimension_type)
 import :basis;           // is_endomorphism_ring_v trait declaration
 import :contracts;       // matrix / vector / orientation concepts
@@ -486,6 +487,21 @@ struct Matrix2x2V {
     if (i == 0) return {m11, m12};
     if (i == 1) return {m21, m22};
     return {};
+  }
+
+  /** @brief Indexed projection: @c m[i] @c = @c row(i), so @c m[i][j]
+   *         resolves to the textbook entry @c m_{ij} via the row's own
+   *         eval counit.  Categorical reading: the curried form of the
+   *         binary CCC eval @c eval: @c (T^2)^{2} @c × @c 2 @c × @c 2
+   *         @c → @c T at the matrix-shape carrier.  @c Idx is gated by
+   *         @c dedekind::order::IsDirectedSet — same algebraic
+   *         net-domain anchor as @c Vec2V::operator[].
+   */
+  template <typename Idx>
+    requires dedekind::order::IsDirectedSet<Idx> &&
+             std::convertible_to<Idx, bool>
+  constexpr row_type operator[](Idx const& i) const {
+    return static_cast<bool>(i) ? row(1) : row(0);
   }
 
   /** @brief Matrix transpose: reflect across the main diagonal. */
@@ -967,5 +983,37 @@ static_assert(orth_R90 * col_e1 == col_e2);
 static_assert(orth_R90 * col_e2 == -col_e1);
 
 }  // namespace detail
+
+}  // namespace dedekind::linear_algebra
+
+/** @section matrix__Categorical_Anchor_For_Subscript
+ *
+ *  Pin the @c category:cartesian opt-in marker (#531) on @c Matrix2x2V<T>:
+ *  the matrix subscript @c m[i] realises the CCC eval counit at the
+ *  outer index, with the row's own @c operator[] closing @c m[i][j] over
+ *  the inner index — together yielding the textbook entry @c m_{ij}.
+ */
+namespace dedekind::category {
+
+template <typename T>
+inline constexpr bool
+    is_eval_arrow_v<dedekind::linear_algebra::Matrix2x2V<T>, std::size_t> = true;
+
+}  // namespace dedekind::category
+
+namespace dedekind::linear_algebra {
+
+static_assert(
+    dedekind::category::IsEvalArrow<Matrix2x2V<unsigned int>, std::size_t>,
+    "Matrix2x2V<T>::operator[] is the CCC eval counit at the row index "
+    "(Mac Lane CWM §IV.6).");
+
+namespace detail_op {
+inline constexpr Matrix2x2V<unsigned int> opm{1u, 2u, 3u, 4u};
+static_assert(opm[0][0] == 1u, "m[0][0] = m11.");
+static_assert(opm[0][1] == 2u, "m[0][1] = m12.");
+static_assert(opm[1][0] == 3u, "m[1][0] = m21.");
+static_assert(opm[1][1] == 4u, "m[1][1] = m22.");
+}  // namespace detail_op
 
 }  // namespace dedekind::linear_algebra

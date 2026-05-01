@@ -256,6 +256,11 @@ static_assert(dedekind::order::IsTotallyOrdered<unsigned int>,
               "unsigned int is axiomatically totally ordered.");
 static_assert(dedekind::order::IsDirectedSet<unsigned int>,
               "unsigned int is a directed set (net domain).");
+static_assert(dedekind::order::IsDirectedSet<unsigned long>,
+              "unsigned long is a directed set (net domain).");
+static_assert(dedekind::order::IsDirectedSet<std::size_t>,
+              "std::size_t is a directed set (net domain) — anchors the "
+              "default C++ subscript Idx as a bona fide algebraic index.");
 
 // Bitwise / lattice operator surface — std::unsigned_integral carries
 // the four bitwise operators, satisfying the syntactic-shape concept

@@ -607,6 +607,25 @@ static_assert(
     std::input_iterator<decltype(std::declval<FinitePath<int>>().begin())>,
     "FinitePath<T>::begin() must yield a std::input_iterator.");
 
+// Juliet-posture witness (#531): the @c std::ranges API produces bona
+// fide library sequences via the @c from_range adapter — every
+// @c std::ranges::input_range round-trips into @c FinitePath<T>, i.e.\
+// into the @c IsFiniteSequence concept.  The intensional / lazy
+// std::ranges surface is anchored in the library's sequence layer at
+// the type level; the actual conversion is runtime, but the conceptual
+// commitment is decidable as a @c static_assert.
+static_assert(
+    IsFiniteSequence<decltype(from_range(std::declval<std::vector<int>>()))>,
+    "from_range over a std::ranges::input_range produces a FinitePath, "
+    "a bona fide IsFiniteSequence — anchors std::ranges output in the "
+    "library's sequence concept hierarchy (Juliet posture).");
+static_assert(
+    IsFiniteSequence<
+        decltype(from_range(std::declval<std::ranges::iota_view<int, int>>()))>,
+    "from_range over a std::ranges::iota_view (the lazy / intensional "
+    "view) produces a FinitePath, lifting the std::views::iota surface "
+    "into the library's sequence layer (Juliet posture).");
+
 static_assert(IsKleisliExtension<path_functor<int>, int, long>,
               "Path must satisfy the Kleisli extension witness.");
 
