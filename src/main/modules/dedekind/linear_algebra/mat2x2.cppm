@@ -513,6 +513,24 @@ struct Matrix2x2V {
     return row(static_cast<std::size_t>(i));
   }
 
+  /** @brief Halfspace-gated static-row overload (#372 slice b).  When
+   *         the row index is encoded at the type level via
+   *         @c {std::integral_constant<U,I>} for any
+   *         @c {std::integral U}, the row halfspace
+   *         @c {[0, row_count)} is decided at compile time;
+   *         out-of-range indices fail to instantiate.  Composes with
+   *         @c Covec2V's static @c operator[] for full type-level
+   *         @c {m[i][j]} bounds checking.  Subsumes the 𝔹-indexed
+   *         face — @c {Matrix2x2V<T> ≅ 𝔹 × 𝔹 → T}: with
+   *         @c Covec2V's bool overload, @c {m[B_row][B_col]} is
+   *         fully 𝔹-typed.
+   */
+  template <std::integral U, U I>
+    requires(static_cast<std::size_t>(I) < row_count)
+  constexpr row_type operator[](std::integral_constant<U, I>) const {
+    return row(static_cast<std::size_t>(I));
+  }
+
   /** @brief Matrix transpose: reflect across the main diagonal. */
   constexpr Matrix2x2V transpose() const { return {m11, m21, m12, m22}; }
 };
@@ -1013,6 +1031,15 @@ template <typename T, typename Idx>
 inline constexpr bool
     is_eval_arrow_v<dedekind::linear_algebra::Matrix2x2V<T>, Idx> = true;
 
+// Static-index overload (#372 slice b) accepts any
+// integral_constant<U, I> with std::integral U — including bool
+// (bool_constant<B> ≡ integral_constant<bool, B>). Mirror this on the
+// trait so IsEvalArrow fires uniformly across runtime and
+// static-index surfaces.
+template <typename T, std::integral U, U I>
+inline constexpr bool is_eval_arrow_v<dedekind::linear_algebra::Matrix2x2V<T>,
+                                      std::integral_constant<U, I>> = true;
+
 }  // namespace dedekind::category
 
 namespace dedekind::linear_algebra {
@@ -1035,6 +1062,35 @@ static_assert(opm[1][1] == 4u, "m[1][1] = m22.");
 // Out-of-range row: m[2] is the zero row (matches row(2) semantics).
 static_assert(opm[2u][0] == 0u, "m[2][0] = 0u (out-of-range row is zero).");
 static_assert(opm[2u][1] == 0u, "m[2][1] = 0u (out-of-range row is zero).");
+
+// Halfspace-gated static-index overloads (#372 slice b): valid indices
+// pass; out-of-range row OR column indices fail the requires-clause.
+// Composes the matrix's static-row overload with Covec2V's
+// static-column overload for full type-level m[i][j] bounds checking.
+static_assert(
+    opm[std::integral_constant<std::size_t, 0>{}]
+       [std::integral_constant<std::size_t, 0>{}] == 1u,
+    "Matrix2x2V::operator[]<0>::operator[]<0> = m11 — fully type-checked.");
+static_assert(
+    opm[std::integral_constant<std::size_t, 1>{}]
+       [std::integral_constant<std::size_t, 1>{}] == 4u,
+    "Matrix2x2V::operator[]<1>::operator[]<1> = m22 — fully type-checked.");
+// Out-of-range static indices: the overload's `requires (I < row_count)`
+// / `(J < column_count)` clauses refuse them; negative demonstration via
+// `!requires` runs into a clang diagnostic quirk and is deferred (same
+// followup as on Vec2V).
+
+// 𝔹 × 𝔹-indexed static access: Matrix2x2V<T> ≅ 𝔹 × 𝔹 → T,
+// with the four entries m11, m12, m21, m22 reachable via
+// (false, false), (false, true), (true, false), (true, true).
+static_assert(opm[std::false_type{}][std::false_type{}] == 1u,
+              "m[false][false] = m11 — Matrix2x2V<T> ≅ 𝔹 × 𝔹 → T.");
+static_assert(opm[std::false_type{}][std::true_type{}] == 2u,
+              "m[false][true] = m12.");
+static_assert(opm[std::true_type{}][std::false_type{}] == 3u,
+              "m[true][false] = m21.");
+static_assert(opm[std::true_type{}][std::true_type{}] == 4u,
+              "m[true][true] = m22.");
 }  // namespace detail_op
 
 }  // namespace dedekind::linear_algebra
