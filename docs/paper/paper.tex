@@ -454,7 +454,7 @@ Section~\ref{sec:related} surveys related work.
 Section~\ref{sec:conclusion} concludes.
 
 % ============================================================
-\section{An Axiomatic Subset of C++23}
+\section{A Categorified Subset of C++23}
 \label{sec:axiomatic}
 % ============================================================
 
@@ -477,14 +477,42 @@ Recent developments in the C++ standard~\cite{cpp23standard} allow us to change 
 
 
 This feasible region is thus a carefully selected axiomatic subset of C++23 such that well-understood semantics can be recovered.\footnote{Concretely: templates parameterised over concept-constrained types, non-type template parameters (NTTPs), named modules with strict DAG dependencies, \lstinline|static_assert| for compile-time obligation discharge, and \lstinline|constexpr| for $\beta$-style normalisation.  The fragment excludes the escape hatches that defeat the System-F reading: no \lstinline|reinterpret_cast| in public APIs, no SFINAE branches in public surfaces, no ADL-dependent dispatch beyond textbook operator overloads, no public-API specialisations that branch behaviour, no template-template parameters in public signatures, and bounded template instantiation depth.  Each exclusion closes a specific escape hatch by which C++ would otherwise leak past System F; the list is not novel --- working C++ teams police variants of it informally --- but is the price of the System-F reading.  Table~\ref{tab:admissibility-rules} below is exactly that list.}
-On this subset the standard correspondences hold and the surface reads as a faithful image of the simply-typed $\lambda$-calculus (under Lambek--Scott~\cite{lambek1988introduction}), of System F (via type-parameter polymorphism with concept constraints), and of category theory (via the Cartesian-closed-category witness on the underlying category $\mathbf{Cpp}$ of C++ types and the type-respecting maps the language admits).\footnote{On this subset: a type is an object of $\mathbf{Cpp}$; a function template (or function object) is an arrow; a \lstinline|concept| picks out the inhabitants of a predicate and reads as a subobject classifier on $\mathbf{Cpp}$; \lstinline|constexpr| evaluation reads as $\beta$-style normalisation; \lstinline|static_assert| reads as mechanical proof of proposition inhabitation under the Curry--Howard correspondence (after Wadler~\cite{wadler2015propositions}).  See Table~\ref{tab:cpp-stlc-mapping} for the row-by-row mapping.}
+Somewhat loosely speaking, we can name this subset the category $\mathbf{Cpp}$ where objects are types and values expressible in C++23 and morphisms are arrows between them.
+To further simplify our task, we restrict considerations to single-species categories~\cite{burris1981universalalgebra} where
+\begin{itemize}
+\item the objects of a given category all share a common type (a template parameter $\mathrm{T}$ further restricted to be \texttt{std::regular}),
+\item arrows within a given category (endomorphisms) are functions $\mathrm{T} \rightarrow \mathrm{T}$ and
+\item functions $\mathrm{T} \rightarrow \mathrm{S}$ are morphisms \emph{between} categories, often functors.
+\end{itemize}
+In software architecture, the resulting picture is a hub-and-spoke layout: each hub is a carrier type $\mathrm{T}$ (the species' shared object), and the spokes are the maps that compose with it --- operator overloads ($\mathrm{T} \times \mathrm{T} \to \mathrm{T}$), free-function actions on the carrier, trait specialisations registering structural facts about $\mathrm{T}$, and named embedding arrows $\mathrm{T} \to \mathrm{S}$ crossing to a sibling hub.
+The library lifts this pattern directly into the build graph: each named module declares one hub and owns its spokes; the partition DAG is the diagram of inter-hub arrows.
+Figure~\ref{fig:hub-spoke-bnz} sketches three concrete hubs ($\mathbb{B}$, $\mathbb{N}$, $\mathbb{Z}$) with one arrow of each kind.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzcd}[column sep=huge, row sep=large, ampersand replacement=\&]
+\mathbb{B} \arrow[loop above, "\neg"]
+  \arrow[r, "\iota_{\mathbb{B}\hookrightarrow\mathbb{N}}"]
+\& \mathbb{N} \arrow[r, shift left, "\iota_{\mathbb{N}\hookrightarrow\mathbb{Z}}"]
+\& \mathbb{Z} \arrow[l, shift left, "\rho_{\mathbb{Z}\to\mathbb{N}}"]
+\end{tikzcd}
+\caption{Hub-and-spoke at three carriers, $\mathbb{B}$, $\mathbb{N}$, $\mathbb{Z}$.  Each hub is a single-species category: its objects share a carrier type, and its endomorphisms are arrows within the species (the loop on $\mathbb{B}$ shows one --- negation $\neg: \mathbb{B} \to \mathbb{B}$).  Inter-hub arrows are morphisms between species: the canonical embedding $\iota_{\mathbb{B}\hookrightarrow\mathbb{N}}$ (false $\mapsto$ 0, true $\mapsto$ 1), the embedding $\iota_{\mathbb{N}\hookrightarrow\mathbb{Z}}$, and a partial realisation $\rho_{\mathbb{Z}\to\mathbb{N}}$ in the reverse direction (defined on the non-negative branch; the loose end of the back-arrow is the structural reason \texttt{:partial} exists).  Most arrows on each hub and most inter-hub arrows are suppressed for clarity; the diagram shows one of each kind.}
+\label{fig:hub-spoke-bnz}
+\end{figure}
+
+On this subset the standard correspondences hold and the surface reads as a faithful image of 
+\begin{itemize}
+\item the simply-typed $\lambda$-calculus (STLC, under Lambek--Scott~\cite{lambek1988introduction}), 
+\item System F (via type-parameter polymorphism with concept constraints), 
+\item category theory (via the Cartesian-closed-category witness on the underlying category $\mathbf{Cpp}$ of C++ types and the type-respecting maps the language admits).\footnote{On this subset: a type is an object of $\mathbf{Cpp}$; a function template (or function object) is an arrow; a \lstinline|concept| picks out the inhabitants of a predicate and reads as a subobject classifier on $\mathbf{Cpp}$; \lstinline|constexpr| evaluation reads as $\beta$-style normalisation; \lstinline|static_assert| reads as mechanical proof of proposition inhabitation under the Curry--Howard correspondence (after Wadler~\cite{wadler2015propositions}).  See Table~\ref{tab:cpp-stlc-mapping} for the row-by-row mapping.}
+\end{itemize}
 The intensional-first design rule (§\ref{sec:intensional}) is the posture this fragment invites: pick the Form-faithful carrier first, let the compiler see structure rather than carrier, realise to a machine type only at named arrows.
 
 \begin{table}[htbp]
 \centering
-\caption{\textbf{The admissibility rules: which C++ idioms are admitted
-in the library's public surface, and what each rule rules out.}  The
-discipline is the price of the System-F reading; each rule below is
+\caption{\textbf{The admissibility rules}: which C++ idioms are admitted
+in the library's public surface, and what each rule rules out.
+The discipline is the price of the System-F reading; each rule below is
 the cost of one row of Table~\ref{tab:cpp-stlc-mapping}.  Internal
 partitions may use the listed escape hatches in bounded scopes, but
 they do not appear in any \lstinline{export}-qualified signature.}
