@@ -1,8 +1,9 @@
 /**
  * @file dedekind/algebra/quotient.cppm
  * @partition :quotient
- * @brief Quotient algebras as a structural functor — declared base,
- *        propagated traits.
+ * @brief HSP structure-preserving operations on algebras — H (quotient)
+ *        + P (direct product) carrier-side concepts and structural-trait
+ *        propagation.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
@@ -138,5 +139,88 @@ template <typename Q>
 struct is_saturating<Q, std::multiplies<Q>>
     : is_saturating<quotient_algebra_base_t<Q>,
                     std::multiplies<quotient_algebra_base_t<Q>>> {};
+
+// ---------------------------------------------------------------------------
+// P (Direct Product) — Birkhoff's HSP, Burris-Sankappanavar §II.10.
+//
+// A direct product @c Q @c = @c Base × @c Base × ... × @c Base
+// (n copies) is the dual construction to the quotient: it preserves
+// the same structural properties as @c Base does, lifted
+// componentwise.  In the codebase, @c Vec2V<T> @c = @c Free_2(T) =
+// @c T × @c T is the worked rank-2 instance.
+// ---------------------------------------------------------------------------
+
+/** @brief @c product_algebra_base<Q>: carrier-side declaration that
+ *         @c Q is a finite direct product of some base algebra
+ *         (the @c P operation in Birkhoff HSP).  Specialise the
+ *         @c ::type member at the carrier-defining partition (e.g.\
+ *         @c Vec2V<T> in @c linear_algebra:vec2 records
+ *         @c product_algebra_base<Vec2V<T>>::type @c = @c T). */
+export template <typename Q>
+struct product_algebra_base {};
+
+/** @brief Convenience alias for @c product_algebra_base<Q>::type. */
+export template <typename Q>
+using product_algebra_base_t = typename product_algebra_base<Q>::type;
+
+/** @concept IsProductAlgebra
+ *  @brief @c Q is declared as a finite direct product of some base
+ *         algebra.
+ *  @details Triggered by a specialisation of
+ *           @c product_algebra_base<Q> exposing a @c ::type member.
+ *           Sibling of @c IsQuotientAlgebra; both are HSP operations
+ *           that preserve the structural species traits of @c Base.
+ */
+export template <typename Q>
+concept IsProductAlgebra = requires { typename product_algebra_base<Q>::type; };
+
+// --- Propagation: structural traits lift componentwise from Base. ----------
+//
+// Direct products preserve the same axioms as quotients do:
+// associativity / commutativity / distributivity / saturation all
+// lift componentwise from Base to Base × Base × ... × Base.
+
+template <typename Q>
+  requires IsProductAlgebra<Q>
+struct is_associative<Q, std::plus<Q>>
+    : is_associative<product_algebra_base_t<Q>,
+                     std::plus<product_algebra_base_t<Q>>> {};
+
+template <typename Q>
+  requires IsProductAlgebra<Q>
+struct is_associative<Q, std::multiplies<Q>>
+    : is_associative<product_algebra_base_t<Q>,
+                     std::multiplies<product_algebra_base_t<Q>>> {};
+
+template <typename Q>
+  requires IsProductAlgebra<Q>
+struct is_commutative<Q, std::plus<Q>>
+    : is_commutative<product_algebra_base_t<Q>,
+                     std::plus<product_algebra_base_t<Q>>> {};
+
+template <typename Q>
+  requires IsProductAlgebra<Q>
+struct is_commutative<Q, std::multiplies<Q>>
+    : is_commutative<product_algebra_base_t<Q>,
+                     std::multiplies<product_algebra_base_t<Q>>> {};
+
+template <typename Q>
+  requires IsProductAlgebra<Q>
+inline constexpr bool is_distributive_v<Q, std::multiplies<Q>, std::plus<Q>> =
+    is_distributive_v<product_algebra_base_t<Q>,
+                      std::multiplies<product_algebra_base_t<Q>>,
+                      std::plus<product_algebra_base_t<Q>>>;
+
+template <typename Q>
+  requires IsProductAlgebra<Q>
+struct is_saturating<Q, std::plus<Q>>
+    : is_saturating<product_algebra_base_t<Q>,
+                    std::plus<product_algebra_base_t<Q>>> {};
+
+template <typename Q>
+  requires IsProductAlgebra<Q>
+struct is_saturating<Q, std::multiplies<Q>>
+    : is_saturating<product_algebra_base_t<Q>,
+                    std::multiplies<product_algebra_base_t<Q>>> {};
 
 }  // namespace dedekind::category

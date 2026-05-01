@@ -335,8 +335,28 @@ static_assert(dedekind::category::unit_witness<covec2_functor<int>, int>{}(2) ==
 // component projection).  Sibling @c Covec2V<T> is the dual rank-2
 // module (row vector); both pin against the same trait at rank 2.
 //
+// Carrier-side construction shape: @c Vec2V<T> = @c T × @c T is a
+// @b direct @b product (the @c P operation in Birkhoff's HSP;
+// Burris-Sankappanavar §II.10).  Registering
+// @c product_algebra_base<Vec2V<T>>::type @c = @c T fires the
+// structural-trait propagation in @c algebra:quotient: associativity,
+// commutativity, distributivity, and the @c IsTotal saturation
+// certificate all lift componentwise from @c T to @c Vec2V<T>.
+template <typename T>
+  requires std::regular<T> && dedekind::algebra::HasRingOperators<T>
+struct dedekind::category::product_algebra_base<Vec2V<T>> {
+  using type = T;
+};
+
+template <typename T>
+  requires std::regular<T> && dedekind::algebra::HasRingOperators<T>
+struct dedekind::category::product_algebra_base<Covec2V<T>> {
+  using type = T;
+};
+
 // The @c is_module_v witness fires automatically via the concept-based
-// default in @c dedekind::algebra:modules; we only opt-in to the
+// default in @c dedekind::algebra:modules (composing the
+// @c product_algebra_base propagation above); we only opt-in to the
 // rank-bearing @c is_free_module_v here (free-module ⟹ module is the
 // algebraic implication, but the rank @c N is structural metadata
 // that no concept derives from the operator surface).
