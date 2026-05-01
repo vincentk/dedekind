@@ -342,16 +342,69 @@ static_assert(std::same_as<typename Complex<double>::ScalarCarrier, double>,
               "Complex<R> is the Cplx-functor image of R; ScalarCarrier "
               "names R mechanically.");
 
-// NEW-A trait registry note (#498/#499): @c Complex<T> is a module
-// over its @c ScalarCarrier @c T (textbook reading: the quotient ring
-// @c T[i]/(i² + 1) carries the canonical @c T-action by component-
-// wise multiplication on the @c (real, imag) pair).  The strict
-// concept-based default in @c dedekind::algebra:modules requires
-// @c algebra::IsRing<T> to fire; for shipping carriers @c double
-// (IEEE-754 fails associativity under rounding) and
-// @c Rational<default_integer> (the variant ℤ scalar fails @c IsTotal)
-// the strict gating does not fire.  No witness is pinned here until
-// that algebraic-axioms gap closes — see #498 follow-up.
+}  // namespace dedekind::numbers
+
+// ---------------------------------------------------------------------------
+// Quotient-algebra registration for Complex<R> (#498/#499 NEW-A).
+//
+// Complex<R> = R[i]/(i² + 1) is a polynomial-quotient construction.
+// The single declaration below — `quotient_algebra_base<Complex<R>>::type
+// = R` — fires the structural-trait propagation in `:functor`:
+// associativity, commutativity, distributivity, and the IsTotal
+// saturation certificate all lift from R to Complex<R> uniformly.
+// The carrier-specific bits (additive identity, additive inverse) live
+// next to it as identity_trait / inverse_trait specialisations.
+// ---------------------------------------------------------------------------
+
+namespace dedekind::category {
+
+template <dedekind::numbers::IsComplexScalar R>
+struct quotient_algebra_base<dedekind::numbers::Complex<R>> {
+  using type = R;
+};
+
+template <dedekind::numbers::IsComplexScalar R>
+struct identity_trait<dedekind::numbers::Complex<R>,
+                      std::plus<dedekind::numbers::Complex<R>>> {
+  using value_type = dedekind::numbers::Complex<R>;
+  static constexpr value_type value = value_type{R{}, R{}};
+};
+
+template <dedekind::numbers::IsComplexScalar R>
+struct identity_trait<dedekind::numbers::Complex<R>,
+                      std::multiplies<dedekind::numbers::Complex<R>>> {
+  using value_type = dedekind::numbers::Complex<R>;
+  static constexpr value_type value = value_type{R{1}, R{}};
+};
+
+template <dedekind::numbers::IsComplexScalar R>
+inline constexpr bool is_invertible_v<
+    dedekind::numbers::Complex<R>, std::plus<dedekind::numbers::Complex<R>>> =
+    true;
+
+template <dedekind::numbers::IsComplexScalar R>
+struct inverse_trait<dedekind::numbers::Complex<R>,
+                     std::plus<dedekind::numbers::Complex<R>>> {
+  static constexpr bool exists = true;
+  using value_type = dedekind::numbers::Complex<R>;
+  static constexpr value_type compute(
+      const dedekind::numbers::Complex<R>& z) noexcept {
+    return -z;
+  }
+};
+
+}  // namespace dedekind::category
+
+namespace dedekind::numbers {
+
+// NEW-A trait registry witness (#498/#499): @c Complex<R> is a module
+// over its @c ScalarCarrier @c R (textbook reading: the quotient ring
+// @c R[i]/(i² + 1) carries the canonical @c R-action by component-
+// wise multiplication on the @c (real, imag) pair).  The witness
+// fires through the quotient-algebra propagation in @c :functor.
+static_assert(dedekind::algebra::is_module_v<Complex<Rational<default_integer>>,
+                                             Rational<default_integer>>,
+              "Complex<ℚ> is a module over ℚ.");
 
 /**
  * @brief Canonical embedding ℤ² ↪ ℂ: (x, y) ↦ x + iy.

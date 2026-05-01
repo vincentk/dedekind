@@ -375,20 +375,29 @@ static_assert(std::same_as<typename Rational<default_integer>::IntegerCarrier,
 }  // namespace dedekind::numbers
 
 // ---------------------------------------------------------------------------
-// Species trait registrations for Rational<I> (#498/#499 NEW-A).
+// Quotient-algebra registration for Rational<I> (#498/#499 NEW-A).
 //
-// Rational<I> = Frac(I) inherits its algebraic structure from the
-// underlying integer carrier I: associativity, commutativity, and
-// distributivity hold whenever I has them; the additive inverse is
-// elementwise negation; the IsTotal certificate is inherited from I
-// (saturating in the ±ℵ_0 case, periodic in the modular cases).  The
-// specialisations below propagate I's species traits to Rational<I>
-// so that strict @c algebra::IsRing / @c algebra::IsModule fires at
-// the carrier-defining partition.
+// Rational<I> = Frac(I) is a quotient construction over the integer
+// carrier I (the equivalence collapses (a, b) ~ (c, d) iff a*d = c*b).
+// The single declaration below — `quotient_algebra_base<Rational<I>>::type
+// = I` — fires the structural-trait propagation in `:functor`:
+// associativity, commutativity, distributivity, and the IsTotal
+// saturation certificate all lift from I to Rational<I> uniformly.
+// The carrier-specific bits (additive identity 0/1, additive inverse
+// via -q) remain explicit specialisations of identity_trait /
+// inverse_trait below.
 // ---------------------------------------------------------------------------
 
 namespace dedekind::category {
 
+template <dedekind::numbers::IsInteger I>
+struct quotient_algebra_base<dedekind::numbers::Rational<I>> {
+  using type = I;
+};
+
+// Carrier-specific identity values (0/1 → 0/1 for plus, 1/1 for multiplies):
+// these don't propagate trivially because the quotient witness has its
+// own constructor shape.
 template <dedekind::numbers::IsInteger I>
 struct identity_trait<dedekind::numbers::Rational<I>,
                       std::plus<dedekind::numbers::Rational<I>>> {
@@ -403,52 +412,9 @@ struct identity_trait<dedekind::numbers::Rational<I>,
   static constexpr value_type value = value_type{I{1}, I{1}};
 };
 
-template <dedekind::numbers::IsInteger I>
-inline constexpr bool is_associative_v<
-    dedekind::numbers::Rational<I>, std::plus<dedekind::numbers::Rational<I>>> =
-    is_associative_v<I, std::plus<I>>;
-
-template <dedekind::numbers::IsInteger I>
-inline constexpr bool
-    is_associative_v<dedekind::numbers::Rational<I>,
-                     std::multiplies<dedekind::numbers::Rational<I>>> =
-        is_associative_v<I, std::multiplies<I>>;
-
-template <dedekind::numbers::IsInteger I>
-inline constexpr bool is_commutative_v<
-    dedekind::numbers::Rational<I>, std::plus<dedekind::numbers::Rational<I>>> =
-    is_commutative_v<I, std::plus<I>>;
-
-template <dedekind::numbers::IsInteger I>
-inline constexpr bool
-    is_commutative_v<dedekind::numbers::Rational<I>,
-                     std::multiplies<dedekind::numbers::Rational<I>>> =
-        is_commutative_v<I, std::multiplies<I>>;
-
-template <dedekind::numbers::IsInteger I>
-inline constexpr bool
-    is_distributive_v<dedekind::numbers::Rational<I>,
-                      std::multiplies<dedekind::numbers::Rational<I>>,
-                      std::plus<dedekind::numbers::Rational<I>>> =
-        is_distributive_v<I, std::multiplies<I>, std::plus<I>>;
-
-// IsTotal certificate is propagated from I: if I is saturating (e.g.
-// SignedExtensionalCardinal<>), then so is Rational<I>; if I is
-// periodic (e.g. unsigned int), then Rational<I> inherits periodicity
-// pointwise on numerator/denominator.
-template <dedekind::numbers::IsInteger I>
-struct is_saturating<dedekind::numbers::Rational<I>,
-                     std::plus<dedekind::numbers::Rational<I>>>
-    : std::bool_constant<is_saturating<I, std::plus<I>>::value> {};
-
-template <dedekind::numbers::IsInteger I>
-struct is_saturating<dedekind::numbers::Rational<I>,
-                     std::multiplies<dedekind::numbers::Rational<I>>>
-    : std::bool_constant<is_saturating<I, std::multiplies<I>>::value> {};
-
-// The defining ℚ trait: every rational has an additive inverse via
-// numerator-negation (the @c -a member), and ℚ is a field — every
-// non-zero rational has a multiplicative inverse via @c .inverse().
+// Carrier-specific additive inverse: the defining ℚ trait — every
+// rational has an additive inverse via numerator-negation.  This too
+// is carrier-specific (the construction depends on Rational's layout).
 template <dedekind::numbers::IsInteger I>
 inline constexpr bool is_invertible_v<
     dedekind::numbers::Rational<I>, std::plus<dedekind::numbers::Rational<I>>> =

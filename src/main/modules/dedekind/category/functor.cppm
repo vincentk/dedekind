@@ -742,4 +742,103 @@ constexpr auto φ(Box<A> const& box, F&& f) -> Box<std::invoke_result_t<F, A>> {
   return {std::invoke(std::forward<F>(f), box.value)};
 }
 
+/** @section functor__Quotient_Algebra_As_Structural_Functor
+ *
+ * A construction @c F that takes a "bona fide algebra" @c Base and
+ * produces a quotient @c Q @c = @c F(Base) is a @b structural @b
+ * functor: it preserves the algebraic surface (associativity,
+ * commutativity, distributivity, totality / saturation) of its
+ * input.  This is the meta-symmetry the species-trait registry
+ * exhibits at the trait level: the same kind of structure-preservation
+ * that distributivity exhibits between two operations, but lifted one
+ * level — between @b carriers.
+ *
+ * Concretely, the @c Frac, @c Cplx, @c Dual constructions all fit
+ * this shape:
+ *
+ *   - @c Rational<I> = @c Frac(I) — quotient of @c I × @c I by the
+ *     fraction equivalence; @c base = @c I.
+ *   - @c Complex<R> = @c R[i]/(i² + 1) — polynomial-quotient ring;
+ *     @c base = @c R.
+ *   - @c Dual<F> = @c F[ε]/(ε²) — polynomial-quotient ring;
+ *     @c base = @c F.
+ *
+ * Each carrier site declares the relation @b once via
+ * @c quotient_algebra_base<Q>; the propagation specialisations below
+ * lift the species traits uniformly.  The carrier-specific bits that
+ * @b don't propagate trivially — additive / multiplicative @b identity
+ * values and additive @b inverses (constructions whose realisation
+ * depends on the carrier shape) — remain as carrier-site
+ * specialisations of @c identity_trait / @c inverse_trait.
+ *
+ * Categorical reading: this is exactly what a @b structure-preserving
+ * @b functor does on a single-species universe (cf. the
+ * @c IsHubArrow / @c IsCategoryShape vocabulary in @c :morphism).  The
+ * trait registry is the C++23 reification of "structural functors
+ * preserve algebraic structure" at the type level.
+ */
+
+/** @brief @c quotient_algebra_base<Q>: carrier-side declaration that
+ *         @c Q is a quotient of some base algebra.  Specialise the
+ *         @c ::type member at the carrier-defining partition. */
+export template <typename Q>
+struct quotient_algebra_base {};
+
+/** @brief Convenience alias. */
+export template <typename Q>
+using quotient_algebra_base_t = typename quotient_algebra_base<Q>::type;
+
+/** @concept IsQuotientAlgebra
+ *  @brief @c Q is declared as a quotient of some base algebra.
+ *  @details Triggered by a specialisation of
+ *           @c quotient_algebra_base<Q> exposing a @c ::type member. */
+export template <typename Q>
+concept IsQuotientAlgebra =
+    requires { typename quotient_algebra_base<Q>::type; };
+
+// --- Propagation: structural traits lift from Base to Q. -------------------
+
+template <typename Q>
+  requires IsQuotientAlgebra<Q>
+struct is_associative<Q, std::plus<Q>>
+    : is_associative<quotient_algebra_base_t<Q>,
+                     std::plus<quotient_algebra_base_t<Q>>> {};
+
+template <typename Q>
+  requires IsQuotientAlgebra<Q>
+struct is_associative<Q, std::multiplies<Q>>
+    : is_associative<quotient_algebra_base_t<Q>,
+                     std::multiplies<quotient_algebra_base_t<Q>>> {};
+
+template <typename Q>
+  requires IsQuotientAlgebra<Q>
+struct is_commutative<Q, std::plus<Q>>
+    : is_commutative<quotient_algebra_base_t<Q>,
+                     std::plus<quotient_algebra_base_t<Q>>> {};
+
+template <typename Q>
+  requires IsQuotientAlgebra<Q>
+struct is_commutative<Q, std::multiplies<Q>>
+    : is_commutative<quotient_algebra_base_t<Q>,
+                     std::multiplies<quotient_algebra_base_t<Q>>> {};
+
+template <typename Q>
+  requires IsQuotientAlgebra<Q>
+inline constexpr bool is_distributive_v<Q, std::multiplies<Q>, std::plus<Q>> =
+    is_distributive_v<quotient_algebra_base_t<Q>,
+                      std::multiplies<quotient_algebra_base_t<Q>>,
+                      std::plus<quotient_algebra_base_t<Q>>>;
+
+template <typename Q>
+  requires IsQuotientAlgebra<Q>
+struct is_saturating<Q, std::plus<Q>>
+    : is_saturating<quotient_algebra_base_t<Q>,
+                    std::plus<quotient_algebra_base_t<Q>>> {};
+
+template <typename Q>
+  requires IsQuotientAlgebra<Q>
+struct is_saturating<Q, std::multiplies<Q>>
+    : is_saturating<quotient_algebra_base_t<Q>,
+                    std::multiplies<quotient_algebra_base_t<Q>>> {};
+
 }  // namespace dedekind::category
