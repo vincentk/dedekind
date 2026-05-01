@@ -372,16 +372,18 @@ static_assert(std::same_as<typename Rational<default_integer>::IntegerCarrier,
               "Rational<I> is the Frac-functor image of I; the "
               "IntegerCarrier alias names I mechanically.");
 
-// NEW-A trait registry witness (#498/#499): @c Rational<I> is a
-// module over its @c IntegerCarrier @c I.  Textbook reading: ℚ is a
-// ℤ-module (and ℚ is the field of fractions @c Frac(ℤ); the Frac
-// construction preserves the source-side scalar action).  The trait
-// itself is concept-based (in @c dedekind::algebra:modules); this
-// witness fires automatically for any @c I that satisfies
-// @c IsModule<Rational<I>, I> through the operator surface.
-static_assert(
-    dedekind::algebra::is_module_v<Rational<default_integer>, default_integer>,
-    "Rational<I> is a module over its IntegerCarrier I.");
+// NEW-A trait registry note (#498/#499): @c Rational<I> is a module
+// over its @c IntegerCarrier @c I (textbook reading: ℚ is a
+// ℤ-module).  The strict concept-based default in
+// @c dedekind::algebra:modules requires @c algebra::IsRing<I> to fire,
+// which the variant ℤ carrier @c SignedExtensionalCardinal<> does
+// @b not currently satisfy (the @c ±ℵ_0 saturation states fail
+// @c IsTotal at the @c IsMagma step).  The gap is real algebraic
+// project work (a future @c IsRing<SignedExtensionalCardinal<>>
+// proof, or an @c IsRing concept that admits saturating carriers);
+// see #498 follow-up.  No witness is pinned here until that gap
+// closes — claiming the module property without the strict proof
+// firing would be dishonest.
 
 /**
  * @brief Characteristic morphism for ℚ: the rationals.

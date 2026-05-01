@@ -342,20 +342,16 @@ static_assert(std::same_as<typename Complex<double>::ScalarCarrier, double>,
               "Complex<R> is the Cplx-functor image of R; ScalarCarrier "
               "names R mechanically.");
 
-// NEW-A trait registry witness (#498/#499): @c Complex<T> is a
-// module over its @c ScalarCarrier @c T.  Textbook reading: the
-// quotient ring @c T[i]/(i² + 1) carries the canonical @c T-action
-// by component-wise multiplication on the @c (real, imag) pair.  The
-// trait itself is concept-based (in @c dedekind::algebra:modules) —
-// this witness fires automatically when the operator surface
-// satisfies @c IsModule<Complex<T>, T>.  The witness uses @c ℚ as
-// the scalar (@c double would fail the strict @c IsRing axioms
-// because IEEE-754 isn't associative under rounding); the
-// vector-space upgrade is the sister @c is_vector_space_v witness in
-// @c algebra:vectorspace when the scalar is a strict field.
-static_assert(dedekind::algebra::is_module_v<Complex<Rational<default_integer>>,
-                                             Rational<default_integer>>,
-              "Complex<ℚ> is a module over ℚ.");
+// NEW-A trait registry note (#498/#499): @c Complex<T> is a module
+// over its @c ScalarCarrier @c T (textbook reading: the quotient ring
+// @c T[i]/(i² + 1) carries the canonical @c T-action by component-
+// wise multiplication on the @c (real, imag) pair).  The strict
+// concept-based default in @c dedekind::algebra:modules requires
+// @c algebra::IsRing<T> to fire; for shipping carriers @c double
+// (IEEE-754 fails associativity under rounding) and
+// @c Rational<default_integer> (the variant ℤ scalar fails @c IsTotal)
+// the strict gating does not fire.  No witness is pinned here until
+// that algebraic-axioms gap closes — see #498 follow-up.
 
 /**
  * @brief Canonical embedding ℤ² ↪ ℂ: (x, y) ↦ x + iy.
