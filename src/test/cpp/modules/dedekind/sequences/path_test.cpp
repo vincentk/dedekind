@@ -158,4 +158,61 @@ TEST_CASE("Sequences: The Path to Continuity",
     REQUIRE(hit.at(4) == true);   // prefix [42..46]: 46 > 45
     REQUIRE(hit.at(9) == true);   // absorbing: remains true
   }
+
+  // Pointwise function-space operators on Path<T> (#537 slice 1).
+  // These exercise the +, -, unary -, and scalar * overloads added so
+  // Path<T> participates in the IsFunctionSpace<·, std::size_t, T>
+  // concept.
+  SECTION("Path<T>: pointwise + / - / unary - on infinite cardinality") {
+    Path<ℤ> a{[](std::size_t n) -> ℤ { return static_cast<ℤ>(n); }};
+    Path<ℤ> b{[](std::size_t n) -> ℤ { return static_cast<ℤ>(n) * 10; }};
+
+    auto sum = a + b;
+    REQUIRE(sum.at(0) == 0);
+    REQUIRE(sum.at(3) == 33);   // 3 + 30
+    REQUIRE(sum.at(7) == 77);   // 7 + 70
+
+    auto diff = b - a;
+    REQUIRE(diff.at(0) == 0);
+    REQUIRE(diff.at(3) == 27);  // 30 - 3
+    REQUIRE(diff.at(7) == 63);  // 70 - 7
+
+    auto neg = -a;
+    REQUIRE(neg.at(0) == 0);
+    REQUIRE(neg.at(5) == -5);
+  }
+
+  SECTION("Path<T>: scalar multiplication, both sides") {
+    Path<ℤ> a{[](std::size_t n) -> ℤ { return static_cast<ℤ>(n) + 1; }};
+
+    auto left = ℤ{3} * a;
+    REQUIRE(left.at(0) == 3);   // 3 * 1
+    REQUIRE(left.at(4) == 15);  // 3 * 5
+
+    auto right = a * ℤ{4};
+    REQUIRE(right.at(0) == 4);   // 1 * 4
+    REQUIRE(right.at(2) == 12);  // 3 * 4
+  }
+
+  SECTION("FinitePath<T>: + extent uses min(a.size(), b.size())") {
+    FinitePath<ℤ> a{[](std::size_t n) -> ℤ { return static_cast<ℤ>(n); },
+                    /*size=*/5};
+    FinitePath<ℤ> b{[](std::size_t n) -> ℤ { return static_cast<ℤ>(n) * 100; },
+                    /*size=*/3};
+
+    auto sum = a + b;
+    REQUIRE(sum.size() == 3);  // min(5, 3)
+    REQUIRE(sum.at(0) == 0);
+    REQUIRE(sum.at(1) == 101);
+    REQUIRE(sum.at(2) == 202);
+  }
+
+  SECTION("FinitePath<T>: empty operand on + gives empty path") {
+    FinitePath<ℤ> a{[](std::size_t n) -> ℤ { return static_cast<ℤ>(n); },
+                    /*size=*/4};
+    FinitePath<ℤ> empty{[](std::size_t) -> ℤ { return 0; }, /*size=*/0};
+
+    auto sum = a + empty;
+    REQUIRE(sum.size() == 0);  // min(4, 0) = 0; empty operand absorbs.
+  }
 }

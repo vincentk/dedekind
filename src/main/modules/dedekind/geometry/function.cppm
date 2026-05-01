@@ -1,8 +1,7 @@
 /**
  * @file dedekind/geometry/function.cppm
  * @partition :function
- * @brief Concept anchoring for function spaces — functions on infinite domains
- * as infinite-dimensional vectors (#537 slice 1).
+ * @brief Concept anchoring for function spaces (functions on infinite domains as infinite-dimensional vectors) — #537 slice 1.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
@@ -49,9 +48,9 @@
  * @section function__Why_Geometry
  *
  * Three plausible homes were weighed in #537:
- * @c geometry:function_space (chosen here, named symmetrically with
- * @c :inner_product and @c :outer_product), @c linear_algebra:function_space
- * (pairs with the @c :diagonal carrier), and @c analysis:function_space
+ * @c geometry:function (chosen here, named symmetrically with
+ * @c :inner_product and @c :outer_product), @c linear_algebra:function
+ * (pairs with the @c :diagonal carrier), and @c analysis:function
  * (pairs with future measure / convergence content).  The geometric
  * home wins on partition naming consistency and on the natural pairing
  * with the existing inner / outer-product anchorings.
@@ -117,10 +116,13 @@ concept IsFunctionSpace =
     requires(W const& f, W const& g, D const& d, T const& s) {
       /** Eval: a function-space inhabitant is callable on the domain. */
       { f(d) } -> std::convertible_to<T>;
-      /** Pointwise addition closes the carrier. */
-      { f + g } -> std::convertible_to<W>;
-      /** Scalar multiplication closes the carrier. */
-      { s * f } -> std::convertible_to<W>;
+      /** Pointwise addition closes the carrier strictly (no proxy /
+       *  promoted return type — same convention as
+       *  @c geometry::IsAffine and
+       *  @c algebra::HasVectorSpaceOperators). */
+      { f + g } -> std::same_as<W>;
+      /** Scalar multiplication closes the carrier strictly. */
+      { s * f } -> std::same_as<W>;
     };
 
 /** @section function__Witnesses */
