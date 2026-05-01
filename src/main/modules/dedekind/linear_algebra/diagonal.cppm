@@ -67,7 +67,8 @@ import dedekind.algebra;  // (multiplication on T for the product rule)
 import dedekind.category; // IsArrow
 import dedekind.order;    // IsDirectedSet — algebraic gate on the index
 import dedekind.sets;     // ℵ<N>, ℵ_0 — type-level infinite cardinals
-import :mat2x2;           // Matrix2x2V<T> — n=2 dense companion target for to_dense (#372 slice d)
+import :mat2x2;  // Matrix2x2V<T> — n=2 dense companion target for to_dense
+                 // (#372 slice d)
 
 namespace dedekind::linear_algebra {
 
@@ -382,10 +383,8 @@ export template <typename F>
 constexpr Matrix2x2V<typename std::remove_cvref_t<F>::Codomain> to_dense(
     Diagonal<dim_finite<2>, F> const& d) {
   using T = typename std::remove_cvref_t<F>::Codomain;
-  return Matrix2x2V<T>{d.rule(typename std::remove_cvref_t<F>::Domain{0}),
-                       T{},
-                       T{},
-                       d.rule(typename std::remove_cvref_t<F>::Domain{1})};
+  return Matrix2x2V<T>{d.rule(typename std::remove_cvref_t<F>::Domain{0}), T{},
+                       T{}, d.rule(typename std::remove_cvref_t<F>::Domain{1})};
 }
 
 namespace detail_diag {
