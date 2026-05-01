@@ -59,10 +59,10 @@ module;
 
 export module dedekind.linear_algebra:diagonal;
 
-import dedekind.algebra;    // (multiplication on T for the product rule)
-import dedekind.category;   // IsArrow
-import dedekind.order;      // IsDirectedSet — algebraic gate on the index
-import dedekind.sets;       // ℵ<N>, ℵ_0 — type-level infinite cardinals
+import dedekind.algebra;  // (multiplication on T for the product rule)
+import dedekind.category; // IsArrow
+import dedekind.order;    // IsDirectedSet — algebraic gate on the index
+import dedekind.sets;     // ℵ<N>, ℵ_0 — type-level infinite cardinals
 
 namespace dedekind::linear_algebra {
 
@@ -189,8 +189,9 @@ export template <typename F, typename G>
 struct diagonal_product_rule {
   using Codomain = typename std::remove_cvref_t<F>::Codomain;
   using Domain = std::size_t;
-  static_assert(std::same_as<Codomain, typename std::remove_cvref_t<G>::Codomain>,
-                "diagonal_product_rule: F and G must share the scalar codomain.");
+  static_assert(
+      std::same_as<Codomain, typename std::remove_cvref_t<G>::Codomain>,
+      "diagonal_product_rule: F and G must share the scalar codomain.");
 
   F f{};
   G g{};
@@ -307,10 +308,8 @@ struct const_rule_three {
 static_assert(dedekind::category::IsArrow<const_rule_three>);
 
 inline constexpr OuterProduct<linear_rule_int, const_rule_three> rk1{};
-static_assert(rk1(0, 0) == 0,
-              "(λi.i ⊗ λj.3)(0, 0) = 0·3 = 0.");
-static_assert(rk1(2, 5) == 6,
-              "(λi.i ⊗ λj.3)(2, 5) = 2·3 = 6.");
+static_assert(rk1(0, 0) == 0, "(λi.i ⊗ λj.3)(0, 0) = 0·3 = 0.");
+static_assert(rk1(2, 5) == 6, "(λi.i ⊗ λj.3)(2, 5) = 2·3 = 6.");
 static_assert(rk1(100, 100) == 300,
               "(λi.i ⊗ λj.3)(100, 100) = 100·3 = 300 — the OuterProduct "
               "carrier evaluates intensionally at any (i, j).");
