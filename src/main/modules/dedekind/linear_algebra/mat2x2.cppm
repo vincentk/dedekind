@@ -626,6 +626,33 @@ static_assert(
     "Matrix2x2V<T> is End(Vec2V<T>) = M_2(T) (matrix multiplication "
     "= composition of linear endomorphisms of the rank-2 free module).");
 
+// NEW-B compositional witness (#498/#500): the rank-axis lift
+// (Vec_2 → M_2) composes cleanly with the carrier-strength choice
+// (ℤ → ℚ).  Pinning M_2(ℚ) = End_ℚ(V_2(ℚ)) over the exact-rationals
+// carrier @c Rational<default_integer> proves Figure 1's vertical
+// (P) and horizontal (Frac, an H step) axes commute at the worked
+// instance.  Builds on the post-#527 HSP architecture: the
+// quotient-algebra propagation lifts species traits from
+// @c default_integer to @c Rational<default_integer> (H-step) and
+// componentwise from @c Rational<default_integer> to
+// @c Vec2V<Rational<default_integer>> (P-step), so all witnesses
+// below fire mechanically without per-carrier opt-in.
+namespace _newb_compositional_pin {
+using Q = dedekind::numbers::Rational<dedekind::numbers::default_integer>;
+using Vec2_Q = dedekind::linear_algebra::Vec2V<Q>;
+using Mat2_Q = dedekind::linear_algebra::Matrix2x2V<Q>;
+static_assert(dedekind::algebra::is_module_v<Vec2_Q, Q>,
+              "Vec2V<ℚ> is a ℚ-module — P step composes with the "
+              "ℤ → ℚ Frac (H) step.");
+static_assert(is_free_module_v<Vec2_Q, Q, 2>,
+              "Vec2V<ℚ> is a free ℚ-module of rank 2.");
+static_assert(
+    is_endomorphism_ring_v<Mat2_Q, Vec2_Q>,
+    "M_2(ℚ) = End_ℚ(V_2(ℚ)) — the rank-axis lift Vec_2 → M_2 commutes "
+    "with the carrier-strength step ℤ → ℚ at the worked instance "
+    "(Figure 1, two-axis lattice; #498).");
+}  // namespace _newb_compositional_pin
+
 /** @section matrix__Bifunctorial_And_Concept_Witnessed_Shapes
  *
  *  Higher matrix shapes do not fit the unary @c IsFunctor mould as
