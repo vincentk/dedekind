@@ -1009,7 +1009,7 @@ namespace dedekind::category {
 // carrier would refuse.
 template <typename T, typename Idx>
   requires dedekind::order::IsDirectedSet<Idx> &&
-           std::convertible_to<Idx, std::size_t>
+               std::convertible_to<Idx, std::size_t>
 inline constexpr bool
     is_eval_arrow_v<dedekind::linear_algebra::Matrix2x2V<T>, Idx> = true;
 

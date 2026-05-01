@@ -528,13 +528,13 @@ namespace dedekind::category {
 // @c true for @c Idx the carrier would refuse to instantiate.
 template <typename T, typename Idx>
   requires dedekind::order::IsDirectedSet<Idx> &&
-           std::convertible_to<Idx, std::size_t>
+               std::convertible_to<Idx, std::size_t>
 inline constexpr bool is_eval_arrow_v<dedekind::linear_algebra::Vec2V<T>, Idx> =
     true;
 
 template <typename T, typename Idx>
   requires dedekind::order::IsDirectedSet<Idx> &&
-           std::convertible_to<Idx, std::size_t>
+               std::convertible_to<Idx, std::size_t>
 inline constexpr bool
     is_eval_arrow_v<dedekind::linear_algebra::Covec2V<T>, Idx> = true;
 
