@@ -1,7 +1,8 @@
 /**
  * @file dedekind/linear_algebra/diagonal.cppm
  * @partition :diagonal
- * @brief Intensional diagonal and rank-1 outer-product matrix carriers (#372 slice c + e) at any dimension, including @c ℵ_0.
+ * @brief Intensional diagonal and rank-1 outer-product matrix carriers (#372
+ * slice c + e) at any dimension, including @c ℵ_0.
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
