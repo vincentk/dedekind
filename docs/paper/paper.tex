@@ -474,22 +474,19 @@ Section~\ref{sec:conclusion} concludes.
 \label{sec:axiomatic}
 % ============================================================
 
-The first pillar.  We establish the categorical and type-theoretic
-substrate every later claim depends on.  We work, in effect, in the
-category $\mathbf{Cpp}$ — objects are C++ types, arrows are the
-type-respecting maps the language admits — and operate within its
-disciplined fragment, where the Cartesian-closed-category witness
-makes the surface a faithful image of STLC under Lambek--Scott.
-Two correspondences carry the weight: a \lstinline|concept|
-functions as a subobject classifier — a predicate on objects of
-$\mathbf{Cpp}$ that selects a subobject (the inhabitants satisfying
-the predicate); type composition (templates parameterised over
-constrained types, function templates, function objects) reads as
-arrow composition.  The intensional-first design rule, developed in
-§\ref{sec:intensional}, fixes a specific posture inside this
-category: pick the Form-faithful carrier first, let the compiler see
-the structure rather than the carrier, and realise to a machine type
-only at named arrows.
+The first pillar.  We work, loosely speaking, in the category
+$\mathbf{Cpp}$ — objects are C++ types, arrows are the type-respecting
+maps the language admits — and operate within its disciplined
+fragment, where the Cartesian-closed-category witness makes the
+surface a faithful image of STLC (Lambek--Scott).  Two readings
+carry the weight: a \lstinline|concept| reads, morally, as a
+subobject classifier — a predicate on objects of $\mathbf{Cpp}$ that
+picks out the inhabitants satisfying it; type composition (templates
+over constrained types, function templates, function objects) reads
+as arrow composition.  The intensional-first design rule
+(§\ref{sec:intensional}) is then the posture this category invites:
+pick the Form-faithful carrier first, let the compiler see structure
+rather than carrier, realise to a machine type only at named arrows.
 
 \subsection{The Substrate: C++23}
 
