@@ -1042,6 +1042,28 @@ static_assert(IsBijective<Identity<int>>,
               "Identity.");
 
 // ---------------------------------------------------------------------------
+// Inter-carrier arrow class taxonomy (#380).
+//
+// The textbook arrow classes that name themselves cleanly in this
+// partition are the @b monic / @b epic pair (already declared above
+// as @c is_monic_arrow_v / @c is_epic_arrow_v + @c IsMonicArrow /
+// @c IsEpicArrow).  The other two classes #380 enumerates have homes
+// downstream where their textbook reading is direct:
+//
+//   * @b Kleisli @b arrow (@c e: @c A @c → @c M<B>) — declared as
+//     @c is_kleisli_arrow_v<E, M> + @c IsKleisliArrow<E, M> in
+//     @c dedekind.category:kleisli, where the composition / fmap
+//     machinery already lives.
+//   * @b Sentinel @b realisation (@c e: @c A @c → @c B, total with
+//     a documented sentinel for out-of-range inputs) — deferred to a
+//     downstream partition (likely co-located with the
+//     @c realize_to_<primitive> family in @c dedekind.numbers) when
+//     step 2 of #380 lands.  No clean Pierce-style textbook name
+//     applies, so the trait is intentionally not declared at the
+//     @c :morphism layer.
+// ---------------------------------------------------------------------------
+
+// ---------------------------------------------------------------------------
 // Fish-operator concept tier (closes part of #450).
 //
 // The project's operator surface for arrow composition / monadic bind /

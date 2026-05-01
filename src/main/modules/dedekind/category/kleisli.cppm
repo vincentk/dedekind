@@ -58,12 +58,15 @@ module;
 #include <concepts>
 #include <functional>
 #include <ios>
+#include <optional>  // std::nullopt — used by the _kleisli_arrow_witness_380 skeleton
 #include <utility>  // std::move / std::forward (kept self-contained per #521 review)
 
 export module dedekind.category:kleisli;
 
 import :functor;  // box_functor (canonical Hub for unit_witness/counit_witness;
                   // #508)
+import :natural;  // IsDefaultHubTag — type-checked constraint on the Kleisli M
+                  // slot
 import :monad;
 import :small;
 import :morphism;
@@ -406,5 +409,75 @@ inline constexpr bool is_kleisli_deref_v = false;
 export template <typename M>
 concept IsKleisliDeref =
     HasArrowDereferenceOperator<M> && is_kleisli_deref_v<M>;
+
+/**
+ * @brief User-declared "Kleisli arrow" witness (#380, step 1).
+ * @details A Kleisli arrow lives in the Kleisli category indexed by a
+ *          monad-hub tag @c M.  Its underlying map has shape
+ *          @c e: @c A @c → @c T<B>, where @c T is the monadic carrier
+ *          shape selected by the hub tag (@c Maybe for
+ *          @c maybe_hub_tag, @c Box for @c box_hub_tag, @c Identity for
+ *          @c identity_hub_tag).  The @c M slot is the
+ *          @b monad-hub @b tag itself — a tag type that names which
+ *          Kleisli category the arrow inhabits — not the class template.
+ *          Constrained by @c IsDefaultHubTag to make the connection
+ *          type-checked; downstream code can extend by adding new tags
+ *          to the @c IsDefaultHubTag disjunction in @c :natural.
+ *          Default @c false; opt-in by specialising to @c true at the
+ *          @c (E, M) pair.  Pairs with the composition / fmap
+ *          machinery above; this trait only declares membership in the
+ *          Kleisli category, it does not implement composition.
+ */
+export template <typename E, typename M>
+  requires IsDefaultHubTag<M>
+inline constexpr bool is_kleisli_arrow_v = false;
+
+/**
+ * @concept IsKleisliArrow
+ * @brief An arrow declared to live in the Kleisli category indexed by
+ *        the monad-hub tag @c M (constrained by @c IsDefaultHubTag).
+ * @details Opt-in via @c is_kleisli_arrow_v<E, M> @c = @c true.
+ */
+export template <typename E, typename M>
+concept IsKleisliArrow =
+    IsArrow<E> && IsDefaultHubTag<M> && is_kleisli_arrow_v<E, M>;
+
+namespace _kleisli_arrow_witness_380 {
+
+// Witness skeleton (#380 step 1): a hand-rolled arrow E with shape
+// @c A @c → @c Maybe<B> opts in to @c IsKleisliArrow<E, maybe_hub_tag>
+// via the @c is_kleisli_arrow_v specialisation below.  Demonstrates the
+// end-to-end pattern step 2 of #380 will apply to real
+// @c try_realize_to_<primitive> arrows: declare the arrow, register
+// the trait, recover @c IsKleisliArrow at the use site.
+struct toy_partial_realize {
+  using ArrowKind = spoke_arrow_tag;
+  using Domain = int;
+  using Codomain = Maybe<int>;
+  constexpr Maybe<int> operator()(int n) const {
+    return n >= 0 ? Maybe<int>{n} : std::nullopt;
+  }
+};
+
+}  // namespace _kleisli_arrow_witness_380
+
+template <>
+inline constexpr bool is_kleisli_arrow_v<
+    _kleisli_arrow_witness_380::toy_partial_realize, maybe_hub_tag> = true;
+
+namespace _kleisli_arrow_witness_380 {
+
+static_assert(IsArrow<toy_partial_realize>,
+              "Witness arrow shape: A → Maybe<B> qualifies as IsArrow.");
+static_assert(
+    IsKleisliArrow<toy_partial_realize, maybe_hub_tag>,
+    "Opt-in via is_kleisli_arrow_v<E, maybe_hub_tag> = true lifts the "
+    "arrow into the IsKleisliArrow concept.");
+static_assert(
+    !IsKleisliArrow<toy_partial_realize, box_hub_tag>,
+    "Opt-in is per-(E, M) pair: a Maybe-shaped Kleisli arrow does not "
+    "automatically inhabit the Box Kleisli category.");
+
+}  // namespace _kleisli_arrow_witness_380
 
 }  // namespace dedekind::category
