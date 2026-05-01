@@ -197,6 +197,26 @@ struct ZeroAction final {
   constexpr B operator()(const A&) const noexcept { return identity_v<B, Op>; }
 };
 
+/** @section action__Module_FreeModule_EndoRing_Trait_Registry
+ *
+ * The NEW-A trait registry (#498/#499) was previously declared here
+ * as opt-in trait variables.  It now lives where the underlying
+ * concepts live, in concept-based-default form so that every carrier
+ * that structurally satisfies the algebra automatically registers
+ * (no per-carrier opt-in required):
+ *
+ *   - @c is_module_v<M, R>       — @c dedekind.algebra:modules
+ *                                  (concept-default = @c IsModule<M, R>).
+ *   - @c is_vector_space_v<V, F> — @c dedekind.algebra:vectorspace
+ *                                  (concept-default = @c IsVectorSpace<V, F>).
+ *   - @c is_free_module_v<M, R, N>     — @c dedekind.linear_algebra:basis
+ *     @c is_endomorphism_ring_v<A, V>    (opt-in trait variables;
+ *                                        carry structural metadata
+ *                                        @c N or the @c A=End(V) identity
+ *                                        that no concept derives from
+ *                                        the operator surface alone).
+ */
+
 /** @section action__Zero Morphism Verification */
 
 /** @section action__Peak Symmetry: Zero vs. Groupoid */

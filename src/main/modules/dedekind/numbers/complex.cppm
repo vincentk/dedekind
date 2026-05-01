@@ -16,6 +16,7 @@ module;
 
 #include <cmath>
 #include <concepts>
+#include <functional>  // std::plus / std::multiplies in trait specialisations
 #include <limits>
 #include <utility>
 
@@ -83,6 +84,19 @@ class Complex {
   friend constexpr Complex operator*(const Complex& a, const Complex& b) {
     return {(a.first * b.first) - (a.second * b.second),
             (a.first * b.second) + (a.second * b.first)};
+  }
+
+  // Explicit scalar action R × Complex<R> → Complex<R> (and the
+  // symmetric form), matching Vec2V<T>'s scalar-action pattern.  The
+  // implicit-conversion path R → Complex<R>{r, 0} → Complex<R>×Complex<R>
+  // exists, but nested requires-expressions in the IsAction concept
+  // don't discover the friend operator* through ADL on the dependent
+  // friend, so we expose the action explicitly.
+  friend constexpr Complex operator*(const R& s, const Complex& a) {
+    return {s * a.first, s * a.second};
+  }
+  friend constexpr Complex operator*(const Complex& a, const R& s) {
+    return {a.first * s, a.second * s};
   }
 
   /**
@@ -341,6 +355,72 @@ namespace dedekind::numbers {
 static_assert(std::same_as<typename Complex<double>::ScalarCarrier, double>,
               "Complex<R> is the Cplx-functor image of R; ScalarCarrier "
               "names R mechanically.");
+
+}  // namespace dedekind::numbers
+
+// ---------------------------------------------------------------------------
+// Quotient-algebra registration for Complex<R> (#498/#499 NEW-A).
+//
+// Complex<R> = R[i]/(i² + 1) is a polynomial-quotient construction.
+// The single declaration below — `quotient_algebra_base<Complex<R>>::type
+// = R` — fires the structural-trait propagation through
+// `dedekind.algebra:quotient`: associativity, commutativity,
+// distributivity, and the full IsTotal disjunction (periodic /
+// idempotent / saturating) all lift from R to Complex<R> uniformly.
+// The carrier-specific bits (additive identity, additive inverse) live
+// next to it as identity_trait / inverse_trait specialisations.
+// ---------------------------------------------------------------------------
+
+namespace dedekind::category {
+
+template <dedekind::numbers::IsComplexScalar R>
+struct quotient_algebra_base<dedekind::numbers::Complex<R>> {
+  using type = R;
+};
+
+template <dedekind::numbers::IsComplexScalar R>
+struct identity_trait<dedekind::numbers::Complex<R>,
+                      std::plus<dedekind::numbers::Complex<R>>> {
+  using value_type = dedekind::numbers::Complex<R>;
+  static constexpr value_type value = value_type{R{}, R{}};
+};
+
+template <dedekind::numbers::IsComplexScalar R>
+struct identity_trait<dedekind::numbers::Complex<R>,
+                      std::multiplies<dedekind::numbers::Complex<R>>> {
+  using value_type = dedekind::numbers::Complex<R>;
+  static constexpr value_type value = value_type{R{1}, R{}};
+};
+
+template <dedekind::numbers::IsComplexScalar R>
+inline constexpr bool is_invertible_v<
+    dedekind::numbers::Complex<R>, std::plus<dedekind::numbers::Complex<R>>> =
+    true;
+
+template <dedekind::numbers::IsComplexScalar R>
+struct inverse_trait<dedekind::numbers::Complex<R>,
+                     std::plus<dedekind::numbers::Complex<R>>> {
+  static constexpr bool exists = true;
+  using value_type = dedekind::numbers::Complex<R>;
+  static constexpr value_type compute(
+      const dedekind::numbers::Complex<R>& z) noexcept {
+    return -z;
+  }
+};
+
+}  // namespace dedekind::category
+
+namespace dedekind::numbers {
+
+// NEW-A trait registry witness (#498/#499): @c Complex<R> is a module
+// over its @c ScalarCarrier @c R (textbook reading: the quotient ring
+// @c R[i]/(i² + 1) carries the canonical @c R-action by component-
+// wise multiplication on the @c (real, imag) pair).  The witness
+// fires through the quotient-algebra propagation in
+// @c dedekind.algebra:quotient.
+static_assert(dedekind::algebra::is_module_v<Complex<Rational<default_integer>>,
+                                             Rational<default_integer>>,
+              "Complex<ℚ> is a module over ℚ.");
 
 /**
  * @brief Canonical embedding ℤ² ↪ ℂ: (x, y) ↦ x + iy.

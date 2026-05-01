@@ -90,6 +90,7 @@ export module dedekind.analysis:dual;
 import dedekind.algebra;
 import dedekind.category;
 import dedekind.geometry; // IsTangentBundle (flat-case tangent-bundle concept)
+import dedekind.numbers; // Rational<default_integer> for the trait-registry witness
 import dedekind.sets;
 
 namespace dedekind::analysis {
@@ -265,5 +266,78 @@ export using DualSet = DualSetOf<>;
 export using 𝔻 = DualSet;
 
 export inline constexpr 𝔻 D{};
+
+}  // namespace dedekind::analysis
+
+// ---------------------------------------------------------------------------
+// Quotient-algebra registration for Dual<F> (#498/#499 NEW-A).
+//
+// Dual<F> = F[ε]/(ε²) is a polynomial-quotient construction (the
+// nilpotent ε generator collapses to zero squared).  The single
+// declaration below — `quotient_algebra_base<Dual<F>>::type = F` —
+// fires the structural-trait propagation through
+// `dedekind.algebra:quotient`: associativity, commutativity,
+// distributivity, and the full IsTotal disjunction (periodic /
+// idempotent / saturating) all lift from F to Dual<F> uniformly.  The carrier-
+// specific bits (additive identity, additive inverse) live next to it
+// as identity_trait / inverse_trait specialisations.
+//
+// Textbook references: Lang §III.1; Eisenbud §16.5.
+// ---------------------------------------------------------------------------
+
+namespace dedekind::category {
+
+template <typename F>
+  requires std::regular<F>
+struct quotient_algebra_base<dedekind::analysis::Dual<F>> {
+  using type = F;
+};
+
+template <typename F>
+  requires std::regular<F>
+struct identity_trait<dedekind::analysis::Dual<F>,
+                      std::plus<dedekind::analysis::Dual<F>>> {
+  using value_type = dedekind::analysis::Dual<F>;
+  static constexpr value_type value = value_type{F{}, F{}};
+};
+
+template <typename F>
+  requires std::regular<F>
+struct identity_trait<dedekind::analysis::Dual<F>,
+                      std::multiplies<dedekind::analysis::Dual<F>>> {
+  using value_type = dedekind::analysis::Dual<F>;
+  static constexpr value_type value = value_type{F{1}, F{}};
+};
+
+template <typename F>
+  requires std::regular<F>
+inline constexpr bool is_invertible_v<dedekind::analysis::Dual<F>,
+                                      std::plus<dedekind::analysis::Dual<F>>> =
+    true;
+
+template <typename F>
+  requires std::regular<F>
+struct inverse_trait<dedekind::analysis::Dual<F>,
+                     std::plus<dedekind::analysis::Dual<F>>> {
+  static constexpr bool exists = true;
+  using value_type = dedekind::analysis::Dual<F>;
+  static constexpr value_type compute(
+      const dedekind::analysis::Dual<F>& d) noexcept {
+    return -d;
+  }
+};
+
+}  // namespace dedekind::category
+
+namespace dedekind::analysis {
+
+// NEW-A trait registry witness (#498/#499): @c Dual<F> is a module
+// over @c F.  The witness fires through the quotient-algebra
+// propagation in @c dedekind.algebra:quotient.
+static_assert(
+    dedekind::algebra::is_module_v<
+        Dual<dedekind::numbers::Rational<dedekind::numbers::default_integer>>,
+        dedekind::numbers::Rational<dedekind::numbers::default_integer>>,
+    "Dual<ℚ> is a module over ℚ — the exact-arithmetic AD instance.");
 
 }  // namespace dedekind::analysis

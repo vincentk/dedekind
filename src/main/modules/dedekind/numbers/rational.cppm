@@ -372,6 +372,80 @@ static_assert(std::same_as<typename Rational<default_integer>::IntegerCarrier,
               "Rational<I> is the Frac-functor image of I; the "
               "IntegerCarrier alias names I mechanically.");
 
+}  // namespace dedekind::numbers
+
+// ---------------------------------------------------------------------------
+// Quotient-algebra registration for Rational<I> (#498/#499 NEW-A).
+//
+// Rational<I> = Frac(I) is a quotient construction over the integer
+// carrier I (the equivalence collapses (a, b) ~ (c, d) iff a*d = c*b).
+// The single declaration below — `quotient_algebra_base<Rational<I>>::type
+// = I` — fires the structural-trait propagation through
+// `dedekind.algebra:quotient`: associativity, commutativity,
+// distributivity, and the full IsTotal disjunction (periodic /
+// idempotent / saturating) all lift from I to Rational<I> uniformly.
+// The carrier-specific bits (additive identity 0/1, additive inverse
+// via -q) remain explicit specialisations of identity_trait /
+// inverse_trait below.
+// ---------------------------------------------------------------------------
+
+namespace dedekind::category {
+
+template <dedekind::numbers::IsInteger I>
+struct quotient_algebra_base<dedekind::numbers::Rational<I>> {
+  using type = I;
+};
+
+// Carrier-specific identity values (0/1 → 0/1 for plus, 1/1 for multiplies):
+// these don't propagate trivially because the quotient witness has its
+// own constructor shape.
+template <dedekind::numbers::IsInteger I>
+struct identity_trait<dedekind::numbers::Rational<I>,
+                      std::plus<dedekind::numbers::Rational<I>>> {
+  using value_type = dedekind::numbers::Rational<I>;
+  static constexpr value_type value = value_type{I{0}, I{1}};
+};
+
+template <dedekind::numbers::IsInteger I>
+struct identity_trait<dedekind::numbers::Rational<I>,
+                      std::multiplies<dedekind::numbers::Rational<I>>> {
+  using value_type = dedekind::numbers::Rational<I>;
+  static constexpr value_type value = value_type{I{1}, I{1}};
+};
+
+// Carrier-specific additive inverse: the defining ℚ trait — every
+// rational has an additive inverse via numerator-negation.  This too
+// is carrier-specific (the construction depends on Rational's layout).
+template <dedekind::numbers::IsInteger I>
+inline constexpr bool is_invertible_v<
+    dedekind::numbers::Rational<I>, std::plus<dedekind::numbers::Rational<I>>> =
+    true;
+
+template <dedekind::numbers::IsInteger I>
+struct inverse_trait<dedekind::numbers::Rational<I>,
+                     std::plus<dedekind::numbers::Rational<I>>> {
+  static constexpr bool exists = true;
+  using value_type = dedekind::numbers::Rational<I>;
+  static constexpr value_type compute(
+      const dedekind::numbers::Rational<I>& q) noexcept {
+    return -q;
+  }
+};
+
+}  // namespace dedekind::category
+
+namespace dedekind::numbers {
+
+// NEW-A trait registry witness (#498/#499): @c Rational<I> is a
+// module over its @c IntegerCarrier @c I.  Textbook reading: ℚ is a
+// ℤ-module (and ℚ is the field of fractions @c Frac(ℤ); the Frac
+// construction preserves the source-side scalar action).  The trait
+// itself is concept-based (in @c dedekind::algebra:modules); the
+// witness fires through the species-trait specialisations above.
+static_assert(
+    dedekind::algebra::is_module_v<Rational<default_integer>, default_integer>,
+    "Rational<I> is a module over its IntegerCarrier I.");
+
 /**
  * @brief Characteristic morphism for ℚ: the rationals.
  * Accepts native Rational<I> and delegates predecessor checks through ℤ.

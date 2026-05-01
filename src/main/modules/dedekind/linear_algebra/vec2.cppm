@@ -1,7 +1,7 @@
 /**
- * @file dedekind/linear_algebra/tuple.cppm
- * @partition :tuple
- * @brief Level 12.5a₀: Finite tuples — column / row vectors and covectors.
+ * @file dedekind/linear_algebra/vec2.cppm
+ * @partition :vec2
+ * @brief Level 12.5a₀: 2-tuples — Vec2 / Vec2V (column) and Covec2V (row).
  *
  * @copyright 2026 The Dedekind Authors
  * Licensed under the Apache License, Version 2.0.
@@ -19,6 +19,19 @@
  *
  * The column/row orientation tags come from `:contracts`; transpose
  * exchanges `Vec2V ↔ Covec2V`, establishing them as a dual pair.
+ *
+ * @section vec2__CT_Framing
+ * In CT lingo: @c Vec2V<T> @c = @c T² is a @b homogeneous @b pair —
+ * the diagonal image of the binary Cartesian product
+ * (@c Δ: @c T @c → @c T @c × @c T from
+ * @c dedekind.category:cartesian) where both factors are the same
+ * carrier.  This is the textbook @b P (direct product) of HSP
+ * (Burris--Sankappanavar §II.10) at @c n = @c 2; the structural-
+ * trait propagation in @c dedekind.algebra:quotient lifts the
+ * species traits componentwise from @c T to @c Vec2V<T>.  The
+ * @b heterogeneous @b tuple — @c (A, @c B) where @c A and @c B
+ * are distinct carriers — lives in @c dedekind.category:cartesian
+ * (Pierce-land); homogeneous @c n=2 is what this partition reifies.
  *
  * @note "I have in previous papers defined a 'Matrix' as a rectangular
  *  array of terms, out of which different systems of determinants may
@@ -41,11 +54,12 @@ module;
 #include <type_traits>
 #include <utility>
 
-export module dedekind.linear_algebra:tuple;
+export module dedekind.linear_algebra:vec2;
 
 import dedekind.algebra; // HasRingOperators, HasVectorSpaceOperators (upstream)
 import dedekind.category; // IsFunctor / Set / arrow (for vec2_functor witnesses)
 import dedekind.sets; // Finite tag — the cardinal the tuple dimension lives in
+import :basis;        // is_free_module_v trait declaration
 import :contracts;    // ColumnOrientation, RowOrientation tags
 
 namespace dedekind::linear_algebra {
@@ -315,6 +329,73 @@ struct counit_witness<dedekind::linear_algebra::vec2_functor<T>, T> final {
   }
 };
 
+// Carrier-side construction shape: @c Vec2V<T> = @c T × @c T is a
+// @b direct @b product (the @c P operation in Birkhoff's HSP;
+// Burris-Sankappanavar §II.10).  Registering
+// @c product_algebra_base<Vec2V<T>>::type @c = @c T fires the
+// structural-trait propagation in @c algebra:quotient: associativity,
+// commutativity, distributivity, and the @c IsTotal certificate
+// (periodic / idempotent / saturating) all lift componentwise from
+// @c T to @c Vec2V<T>.
+template <typename T>
+struct product_algebra_base<dedekind::linear_algebra::Vec2V<T>> {
+  using type = T;
+};
+
+template <typename T>
+struct product_algebra_base<dedekind::linear_algebra::Covec2V<T>> {
+  using type = T;
+};
+
+// Carrier-specific additive identity + inverse on Vec2V / Covec2V.
+// These don't propagate trivially because identity_trait::value is a
+// constructed value of the carrier, requiring the carrier's ctor.
+template <typename T>
+struct identity_trait<dedekind::linear_algebra::Vec2V<T>,
+                      std::plus<dedekind::linear_algebra::Vec2V<T>>> {
+  using value_type = dedekind::linear_algebra::Vec2V<T>;
+  static constexpr value_type value = value_type{T{}, T{}};
+};
+
+template <typename T>
+struct identity_trait<dedekind::linear_algebra::Covec2V<T>,
+                      std::plus<dedekind::linear_algebra::Covec2V<T>>> {
+  using value_type = dedekind::linear_algebra::Covec2V<T>;
+  static constexpr value_type value = value_type{T{}, T{}};
+};
+
+template <typename T>
+inline constexpr bool
+    is_invertible_v<dedekind::linear_algebra::Vec2V<T>,
+                    std::plus<dedekind::linear_algebra::Vec2V<T>>> = true;
+
+template <typename T>
+inline constexpr bool
+    is_invertible_v<dedekind::linear_algebra::Covec2V<T>,
+                    std::plus<dedekind::linear_algebra::Covec2V<T>>> = true;
+
+template <typename T>
+struct inverse_trait<dedekind::linear_algebra::Vec2V<T>,
+                     std::plus<dedekind::linear_algebra::Vec2V<T>>> {
+  static constexpr bool exists = true;
+  using value_type = dedekind::linear_algebra::Vec2V<T>;
+  static constexpr value_type compute(
+      const dedekind::linear_algebra::Vec2V<T>& v) noexcept {
+    return -v;
+  }
+};
+
+template <typename T>
+struct inverse_trait<dedekind::linear_algebra::Covec2V<T>,
+                     std::plus<dedekind::linear_algebra::Covec2V<T>>> {
+  static constexpr bool exists = true;
+  using value_type = dedekind::linear_algebra::Covec2V<T>;
+  static constexpr value_type compute(
+      const dedekind::linear_algebra::Covec2V<T>& v) noexcept {
+    return -v;
+  }
+};
+
 }  // namespace dedekind::category
 
 namespace dedekind::linear_algebra {
@@ -328,5 +409,41 @@ static_assert(dedekind::category::counit_witness<vec2_functor<int>, int>{}(
 static_assert(dedekind::category::unit_witness<covec2_functor<int>, int>{}(2) ==
                   Covec2V<int>{2, 2},
               "Covec2V η: scalar → diagonal broadcast.");
+
+// NEW-A trait registry (#498/#499): @c Vec2V<T> is a free @c T-module
+// of rank 2 (canonically isomorphic to @c T^2 via the (x, y)
+// component projection).  Sibling @c Covec2V<T> is the dual rank-2
+// module (row vector); both pin against the same trait at rank 2.
+//
+// The @c is_module_v witness fires automatically via the concept-based
+// default in @c dedekind::algebra:modules (composing the
+// @c product_algebra_base propagation declared next to the type
+// itself); we only opt-in to the rank-bearing @c is_free_module_v
+// here (free-module ⟹ module is the algebraic implication, but the
+// rank @c N is structural metadata that no concept derives from the
+// operator surface).
+template <typename T>
+  requires dedekind::algebra::IsModule<Vec2V<T>, T>
+inline constexpr bool is_free_module_v<Vec2V<T>, T, 2> = true;
+
+template <typename T>
+  requires dedekind::algebra::IsModule<Covec2V<T>, T>
+inline constexpr bool is_free_module_v<Covec2V<T>, T, 2> = true;
+
+// Witnesses use @c unsigned @c int — the canonical primitive carrier
+// that satisfies strict @c algebra::IsRing under modular arithmetic
+// (signed @c int fails @c IsRing because of signed-overflow UB).
+
+static_assert(dedekind::algebra::is_module_v<Vec2V<unsigned int>, unsigned int>,
+              "Vec2V<T> is a T-module (free-module ⟹ module).");
+static_assert(
+    dedekind::algebra::is_module_v<Covec2V<unsigned int>, unsigned int>,
+    "Covec2V<T> is a T-module (free-module ⟹ module).");
+static_assert(is_free_module_v<Vec2V<unsigned int>, unsigned int, 2>,
+              "Vec2V<T> is a free T-module of rank 2 (M ≅ T^2 via "
+              "componentwise projection).");
+static_assert(is_free_module_v<Covec2V<unsigned int>, unsigned int, 2>,
+              "Covec2V<T> is a free T-module of rank 2 (the row-vector "
+              "dual to Vec2V<T>).");
 
 }  // namespace dedekind::linear_algebra

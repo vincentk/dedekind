@@ -32,6 +32,8 @@ export module dedekind.algebra:polynomial;
 import dedekind.category;
 import dedekind.sets;
 import :field;
+import :free;  // free_algebra_base trait declaration (R[x] is the free
+               // associative R-algebra on one generator; #498/#499)
 import :ring;
 
 namespace dedekind::algebra {
@@ -417,3 +419,23 @@ static_assert(
     "RigPolynomial<ExtensionalCardinal<>> must satisfy IsCommutativeRing.");
 
 }  // namespace dedekind::algebra
+
+// ---------------------------------------------------------------------------
+// Free-algebra registration for RigPolynomial<R> (#498/#499).
+//
+// R[x] is the free associative R-algebra on one generator (Lang
+// §IV.1).  A single declaration of free_algebra_base<RigPolynomial<R>>::type
+// = R fires the structural-trait propagation in algebra:free —
+// associativity, commutativity, distributivity, and the full IsTotal
+// disjunction (periodic / idempotent / saturating) all lift from R
+// to R[x] uniformly.
+// ---------------------------------------------------------------------------
+
+namespace dedekind::category {
+
+template <typename R>
+struct free_algebra_base<dedekind::algebra::RigPolynomial<R>> {
+  using type = R;
+};
+
+}  // namespace dedekind::category

@@ -211,4 +211,12 @@ static_assert(
     "uint64_t under XOR must satisfy IsVectorSpace<uint64_t, bool>: "
     "it is the 64-dimensional vector space 𝔽_2^{64} over 𝔽2.");
 
+/** @brief @c is_vector_space_v<V, F>: @c V is an @c F-vector-space.
+ *         Concept-based dispatch — fires automatically when
+ *         @c IsVectorSpace<V, @c F> holds (which composes
+ *         @c IsModule<V, @c F> + @c IsField<F>).  Companion to
+ *         @c is_module_v in @c :modules.  (#498/#499 trait registry.) */
+export template <typename V, typename F>
+inline constexpr bool is_vector_space_v = IsVectorSpace<V, F>;
+
 }  // namespace dedekind::algebra
