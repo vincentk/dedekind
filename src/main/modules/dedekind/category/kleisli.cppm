@@ -407,4 +407,29 @@ export template <typename M>
 concept IsKleisliDeref =
     HasArrowDereferenceOperator<M> && is_kleisli_deref_v<M>;
 
+/**
+ * @brief User-declared "Kleisli arrow" witness (#380, step 1).
+ * @details A Kleisli arrow lives in the Kleisli category of a monad
+ *          @c M: it has shape @c e: @c A @c → @c M<B>.  The @c M slot
+ *          is the @b monad-hub @b tag of the monad in question
+ *          (@c maybe_hub_tag, @c box_hub_tag, etc.) — i.e.\ a tag type
+ *          that names which Kleisli category the arrow inhabits, not
+ *          the class template itself.  Default @c false; opt-in by
+ *          specialising to @c true at the @c (E, M) pair.  Pairs with
+ *          the composition / fmap machinery above; this trait only
+ *          declares membership in the Kleisli category, it does not
+ *          implement composition.
+ */
+export template <typename E, typename M>
+inline constexpr bool is_kleisli_arrow_v = false;
+
+/**
+ * @concept IsKleisliArrow
+ * @brief An arrow declared to live in the Kleisli category indexed by
+ *        the monad-hub tag @c M.
+ * @details Opt-in via @c is_kleisli_arrow_v<E, M> @c = @c true.
+ */
+export template <typename E, typename M>
+concept IsKleisliArrow = IsArrow<E> && is_kleisli_arrow_v<E, M>;
+
 }  // namespace dedekind::category
