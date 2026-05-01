@@ -316,6 +316,73 @@ struct counit_witness<dedekind::linear_algebra::vec2_functor<T>, T> final {
   }
 };
 
+// Carrier-side construction shape: @c Vec2V<T> = @c T × @c T is a
+// @b direct @b product (the @c P operation in Birkhoff's HSP;
+// Burris-Sankappanavar §II.10).  Registering
+// @c product_algebra_base<Vec2V<T>>::type @c = @c T fires the
+// structural-trait propagation in @c algebra:quotient: associativity,
+// commutativity, distributivity, and the @c IsTotal certificate
+// (periodic / idempotent / saturating) all lift componentwise from
+// @c T to @c Vec2V<T>.
+template <typename T>
+struct product_algebra_base<dedekind::linear_algebra::Vec2V<T>> {
+  using type = T;
+};
+
+template <typename T>
+struct product_algebra_base<dedekind::linear_algebra::Covec2V<T>> {
+  using type = T;
+};
+
+// Carrier-specific additive identity + inverse on Vec2V / Covec2V.
+// These don't propagate trivially because identity_trait::value is a
+// constructed value of the carrier, requiring the carrier's ctor.
+template <typename T>
+struct identity_trait<dedekind::linear_algebra::Vec2V<T>,
+                      std::plus<dedekind::linear_algebra::Vec2V<T>>> {
+  using value_type = dedekind::linear_algebra::Vec2V<T>;
+  static constexpr value_type value = value_type{T{}, T{}};
+};
+
+template <typename T>
+struct identity_trait<dedekind::linear_algebra::Covec2V<T>,
+                      std::plus<dedekind::linear_algebra::Covec2V<T>>> {
+  using value_type = dedekind::linear_algebra::Covec2V<T>;
+  static constexpr value_type value = value_type{T{}, T{}};
+};
+
+template <typename T>
+inline constexpr bool
+    is_invertible_v<dedekind::linear_algebra::Vec2V<T>,
+                    std::plus<dedekind::linear_algebra::Vec2V<T>>> = true;
+
+template <typename T>
+inline constexpr bool
+    is_invertible_v<dedekind::linear_algebra::Covec2V<T>,
+                    std::plus<dedekind::linear_algebra::Covec2V<T>>> = true;
+
+template <typename T>
+struct inverse_trait<dedekind::linear_algebra::Vec2V<T>,
+                     std::plus<dedekind::linear_algebra::Vec2V<T>>> {
+  static constexpr bool exists = true;
+  using value_type = dedekind::linear_algebra::Vec2V<T>;
+  static constexpr value_type compute(
+      const dedekind::linear_algebra::Vec2V<T>& v) noexcept {
+    return -v;
+  }
+};
+
+template <typename T>
+struct inverse_trait<dedekind::linear_algebra::Covec2V<T>,
+                     std::plus<dedekind::linear_algebra::Covec2V<T>>> {
+  static constexpr bool exists = true;
+  using value_type = dedekind::linear_algebra::Covec2V<T>;
+  static constexpr value_type compute(
+      const dedekind::linear_algebra::Covec2V<T>& v) noexcept {
+    return -v;
+  }
+};
+
 }  // namespace dedekind::category
 
 namespace dedekind::linear_algebra {
@@ -335,31 +402,13 @@ static_assert(dedekind::category::unit_witness<covec2_functor<int>, int>{}(2) ==
 // component projection).  Sibling @c Covec2V<T> is the dual rank-2
 // module (row vector); both pin against the same trait at rank 2.
 //
-// Carrier-side construction shape: @c Vec2V<T> = @c T × @c T is a
-// @b direct @b product (the @c P operation in Birkhoff's HSP;
-// Burris-Sankappanavar §II.10).  Registering
-// @c product_algebra_base<Vec2V<T>>::type @c = @c T fires the
-// structural-trait propagation in @c algebra:quotient: associativity,
-// commutativity, distributivity, and the @c IsTotal saturation
-// certificate all lift componentwise from @c T to @c Vec2V<T>.
-template <typename T>
-  requires std::regular<T> && dedekind::algebra::HasRingOperators<T>
-struct dedekind::category::product_algebra_base<Vec2V<T>> {
-  using type = T;
-};
-
-template <typename T>
-  requires std::regular<T> && dedekind::algebra::HasRingOperators<T>
-struct dedekind::category::product_algebra_base<Covec2V<T>> {
-  using type = T;
-};
-
 // The @c is_module_v witness fires automatically via the concept-based
 // default in @c dedekind::algebra:modules (composing the
-// @c product_algebra_base propagation above); we only opt-in to the
-// rank-bearing @c is_free_module_v here (free-module ⟹ module is the
-// algebraic implication, but the rank @c N is structural metadata
-// that no concept derives from the operator surface).
+// @c product_algebra_base propagation declared next to the type
+// itself); we only opt-in to the rank-bearing @c is_free_module_v
+// here (free-module ⟹ module is the algebraic implication, but the
+// rank @c N is structural metadata that no concept derives from the
+// operator surface).
 template <typename T>
   requires dedekind::algebra::IsModule<Vec2V<T>, T>
 inline constexpr bool is_free_module_v<Vec2V<T>, T, 2> = true;
@@ -371,6 +420,7 @@ inline constexpr bool is_free_module_v<Covec2V<T>, T, 2> = true;
 // Witnesses use @c unsigned @c int — the canonical primitive carrier
 // that satisfies strict @c algebra::IsRing under modular arithmetic
 // (signed @c int fails @c IsRing because of signed-overflow UB).
+
 static_assert(dedekind::algebra::is_module_v<Vec2V<unsigned int>, unsigned int>,
               "Vec2V<T> is a T-module (free-module ⟹ module).");
 static_assert(

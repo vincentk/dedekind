@@ -95,27 +95,25 @@ concept IsFreeAlgebra = requires { typename free_algebra_base<F>::type; };
 
 template <typename F>
   requires IsFreeAlgebra<F>
-struct is_associative<F, std::plus<F>>
-    : is_associative<free_algebra_base_t<F>,
-                     std::plus<free_algebra_base_t<F>>> {};
+inline constexpr bool is_associative_v<F, std::plus<F>> =
+    is_associative_v<free_algebra_base_t<F>, std::plus<free_algebra_base_t<F>>>;
 
 template <typename F>
   requires IsFreeAlgebra<F>
-struct is_associative<F, std::multiplies<F>>
-    : is_associative<free_algebra_base_t<F>,
-                     std::multiplies<free_algebra_base_t<F>>> {};
+inline constexpr bool is_associative_v<F, std::multiplies<F>> =
+    is_associative_v<free_algebra_base_t<F>,
+                     std::multiplies<free_algebra_base_t<F>>>;
 
 template <typename F>
   requires IsFreeAlgebra<F>
-struct is_commutative<F, std::plus<F>>
-    : is_commutative<free_algebra_base_t<F>,
-                     std::plus<free_algebra_base_t<F>>> {};
+inline constexpr bool is_commutative_v<F, std::plus<F>> =
+    is_commutative_v<free_algebra_base_t<F>, std::plus<free_algebra_base_t<F>>>;
 
 template <typename F>
   requires IsFreeAlgebra<F>
-struct is_commutative<F, std::multiplies<F>>
-    : is_commutative<free_algebra_base_t<F>,
-                     std::multiplies<free_algebra_base_t<F>>> {};
+inline constexpr bool is_commutative_v<F, std::multiplies<F>> =
+    is_commutative_v<free_algebra_base_t<F>,
+                     std::multiplies<free_algebra_base_t<F>>>;
 
 template <typename F>
   requires IsFreeAlgebra<F>

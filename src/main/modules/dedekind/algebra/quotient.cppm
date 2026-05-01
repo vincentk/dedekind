@@ -107,29 +107,34 @@ concept IsQuotientAlgebra =
 // to lift @c IsAdditiveGroup, @c IsRing, @c IsModule on @c Q from the
 // strict gating on @c Base.
 
+// is_associative + is_commutative propagate via the @b variable-template
+// (not the struct): the species.cppm specs for primitives like
+// @c unsigned @c int are set directly on the variable template
+// (e.g.\ @c is_associative_v<T, @c std::plus<T>> @c = @c true), and a
+// struct-level inheritance would read the struct's default @c false.
 template <typename Q>
   requires IsQuotientAlgebra<Q>
-struct is_associative<Q, std::plus<Q>>
-    : is_associative<quotient_algebra_base_t<Q>,
-                     std::plus<quotient_algebra_base_t<Q>>> {};
+inline constexpr bool is_associative_v<Q, std::plus<Q>> =
+    is_associative_v<quotient_algebra_base_t<Q>,
+                     std::plus<quotient_algebra_base_t<Q>>>;
 
 template <typename Q>
   requires IsQuotientAlgebra<Q>
-struct is_associative<Q, std::multiplies<Q>>
-    : is_associative<quotient_algebra_base_t<Q>,
-                     std::multiplies<quotient_algebra_base_t<Q>>> {};
+inline constexpr bool is_associative_v<Q, std::multiplies<Q>> =
+    is_associative_v<quotient_algebra_base_t<Q>,
+                     std::multiplies<quotient_algebra_base_t<Q>>>;
 
 template <typename Q>
   requires IsQuotientAlgebra<Q>
-struct is_commutative<Q, std::plus<Q>>
-    : is_commutative<quotient_algebra_base_t<Q>,
-                     std::plus<quotient_algebra_base_t<Q>>> {};
+inline constexpr bool is_commutative_v<Q, std::plus<Q>> =
+    is_commutative_v<quotient_algebra_base_t<Q>,
+                     std::plus<quotient_algebra_base_t<Q>>>;
 
 template <typename Q>
   requires IsQuotientAlgebra<Q>
-struct is_commutative<Q, std::multiplies<Q>>
-    : is_commutative<quotient_algebra_base_t<Q>,
-                     std::multiplies<quotient_algebra_base_t<Q>>> {};
+inline constexpr bool is_commutative_v<Q, std::multiplies<Q>> =
+    is_commutative_v<quotient_algebra_base_t<Q>,
+                     std::multiplies<quotient_algebra_base_t<Q>>>;
 
 template <typename Q>
   requires IsQuotientAlgebra<Q>
@@ -220,27 +225,27 @@ concept IsProductAlgebra = requires { typename product_algebra_base<Q>::type; };
 
 template <typename Q>
   requires IsProductAlgebra<Q>
-struct is_associative<Q, std::plus<Q>>
-    : is_associative<product_algebra_base_t<Q>,
-                     std::plus<product_algebra_base_t<Q>>> {};
+inline constexpr bool is_associative_v<Q, std::plus<Q>> =
+    is_associative_v<product_algebra_base_t<Q>,
+                     std::plus<product_algebra_base_t<Q>>>;
 
 template <typename Q>
   requires IsProductAlgebra<Q>
-struct is_associative<Q, std::multiplies<Q>>
-    : is_associative<product_algebra_base_t<Q>,
-                     std::multiplies<product_algebra_base_t<Q>>> {};
+inline constexpr bool is_associative_v<Q, std::multiplies<Q>> =
+    is_associative_v<product_algebra_base_t<Q>,
+                     std::multiplies<product_algebra_base_t<Q>>>;
 
 template <typename Q>
   requires IsProductAlgebra<Q>
-struct is_commutative<Q, std::plus<Q>>
-    : is_commutative<product_algebra_base_t<Q>,
-                     std::plus<product_algebra_base_t<Q>>> {};
+inline constexpr bool is_commutative_v<Q, std::plus<Q>> =
+    is_commutative_v<product_algebra_base_t<Q>,
+                     std::plus<product_algebra_base_t<Q>>>;
 
 template <typename Q>
   requires IsProductAlgebra<Q>
-struct is_commutative<Q, std::multiplies<Q>>
-    : is_commutative<product_algebra_base_t<Q>,
-                     std::multiplies<product_algebra_base_t<Q>>> {};
+inline constexpr bool is_commutative_v<Q, std::multiplies<Q>> =
+    is_commutative_v<product_algebra_base_t<Q>,
+                     std::multiplies<product_algebra_base_t<Q>>>;
 
 template <typename Q>
   requires IsProductAlgebra<Q>

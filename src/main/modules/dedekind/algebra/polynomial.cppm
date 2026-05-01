@@ -433,7 +433,6 @@ static_assert(
 namespace dedekind::category {
 
 template <typename R>
-  requires std::equality_comparable<R>
 struct free_algebra_base<dedekind::algebra::RigPolynomial<R>> {
   using type = R;
 };

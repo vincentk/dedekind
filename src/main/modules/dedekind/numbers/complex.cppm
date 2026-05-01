@@ -16,6 +16,7 @@ module;
 
 #include <cmath>
 #include <concepts>
+#include <functional>  // std::plus / std::multiplies in trait specialisations
 #include <limits>
 #include <utility>
 
@@ -83,6 +84,19 @@ class Complex {
   friend constexpr Complex operator*(const Complex& a, const Complex& b) {
     return {(a.first * b.first) - (a.second * b.second),
             (a.first * b.second) + (a.second * b.first)};
+  }
+
+  // Explicit scalar action R × Complex<R> → Complex<R> (and the
+  // symmetric form), matching Vec2V<T>'s scalar-action pattern.  The
+  // implicit-conversion path R → Complex<R>{r, 0} → Complex<R>×Complex<R>
+  // exists, but nested requires-expressions in the IsAction concept
+  // don't discover the friend operator* through ADL on the dependent
+  // friend, so we expose the action explicitly.
+  friend constexpr Complex operator*(const R& s, const Complex& a) {
+    return {s * a.first, s * a.second};
+  }
+  friend constexpr Complex operator*(const Complex& a, const R& s) {
+    return {a.first * s, a.second * s};
   }
 
   /**
