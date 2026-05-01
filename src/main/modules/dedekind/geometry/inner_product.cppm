@@ -19,6 +19,7 @@ module;
 export module dedekind.geometry:inner_product;
 
 import :affine;
+import :linear_map;  // Covector<F, N> = LinearMap<F, 1, N> for the operator* (φ, v) overload
 import dedekind.algebra;
 
 namespace dedekind::geometry {
@@ -87,6 +88,31 @@ constexpr F norm(const Vector<F, N>& v) {
   return std::sqrt(dot(v, v));
 }
 
+/** @section inner_product__Operator_Surface
+ *
+ *  Standard linear-algebra notation: a covector applied to a vector
+ *  contracts the inner index, giving a scalar.  Equivalently the dual
+ *  pairing @c ⟨φ, @c v⟩ written multiplicatively.
+ *
+ *  @c Covector<F, @c N> @c × @c Vector<F, @c N> @c → @c F
+ *
+ *  This is the @b inner-product / contraction face of @c operator*;
+ *  the dual @b outer-product face @c Vector @c × @c Covector @c →
+ *  @c LinearMap lives in @c :outer_product.  Strict-@c IsField gate
+ *  on the scalar @c F: @c double is @b not a strict field
+ *  (rounding-non-associativity) and is rejected at this surface.
+ *  @c Rational<long> @c / strict-field carriers will become
+ *  admissible once @c Vector / @c LinearMap broaden their
+ *  @c IsMatrixScalar gate (#535).
+ */
+export template <typename F, std::size_t N>
+  requires dedekind::algebra::IsField<F>
+constexpr F operator*(const Covector<F, N>& phi, const Vector<F, N>& v) {
+  F res{};
+  for (std::size_t i = 0; i < N; ++i) res = res + phi.coefficient(0, i) * v[i];
+  return res;
+}
+
 /** @section inner_product__Formal_Verification */
 
 // Vector<F,N> with the standard Euclidean inner product forms an inner product
@@ -96,5 +122,12 @@ static_assert(HasInnerProduct<Vector<double, 3>, double>,
 
 static_assert(IsInnerProductSpace<Vector<double, 3>, double>,
               "Vector<double,3> must be an inner product space over double.");
+
+// operator*(Covector, Vector) is the inner-product face of *: a covector
+// applied to a vector contracts the inner index, yielding a scalar.
+// Witnesses on a concrete strict-field carrier (e.g. Rational<long>) are
+// deferred until Vector<F, N> / LinearMap<F, M, N> admit IsField scalars
+// — today they gate at IsMatrixScalar = std::floating_point. Tracked on
+// #535.
 
 }  // namespace dedekind::geometry
