@@ -64,7 +64,8 @@ export module dedekind.category:kleisli;
 
 import :functor;  // box_functor (canonical Hub for unit_witness/counit_witness;
                   // #508)
-import :natural;  // IsDefaultHubTag — type-checked constraint on the Kleisli M slot
+import :natural;  // IsDefaultHubTag — type-checked constraint on the Kleisli M
+                  // slot
 import :monad;
 import :small;
 import :morphism;
@@ -460,9 +461,8 @@ struct toy_partial_realize {
 }  // namespace _kleisli_arrow_witness_380
 
 template <>
-inline constexpr bool
-    is_kleisli_arrow_v<_kleisli_arrow_witness_380::toy_partial_realize,
-                       maybe_hub_tag> = true;
+inline constexpr bool is_kleisli_arrow_v<
+    _kleisli_arrow_witness_380::toy_partial_realize, maybe_hub_tag> = true;
 
 namespace _kleisli_arrow_witness_380 {
 
