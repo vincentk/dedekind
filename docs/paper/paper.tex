@@ -798,6 +798,82 @@ NTTP-carried lambda $\lambda x. P(x)$ (§\ref{sec:sets-rules}) & Characteristic 
 \end{tabular}
 \end{table}
 
+\begin{table}[htbp]
+\centering
+\caption{\textbf{Operator Rosetta: what the C++ programmer types
+↔ what they are operationally claiming.}  The
+\lstinline|Has*Operators| family pins the \emph{operator surface}
+of an algebraic structure.  Each section heading names the concept;
+each row maps the C++ spelling to the operation it witnesses.  The
+operator-surface concepts are the operational gate; the strict
+axiomatic concepts (\lstinline|IsRing|, \lstinline|IsField|,
+\lstinline|IsVectorSpace|, \dots; see Lang~\cite{lang2002algebra}
+for the standard structures and Burris--Sankappanavar
+\cite{burris1981universalalgebra} for the universal-algebra anchor)
+compose them with the species-trait registry that pins the laws.
+Carriers may carry the operators (\lstinline|Has*Operators|) without
+the laws holding strictly --- e.g.\ \lstinline|double| satisfies
+\lstinline|HasFieldOperators| but not strict \lstinline|IsField|
+because IEEE~754 rounding defeats associativity.}
+\label{tab:operator-rosetta}
+\small
+\begin{tabular}{@{}p{0.40\textwidth} p{0.54\textwidth}@{}}
+\toprule
+\textbf{C++ operator surface} & \textbf{Algebraic concept} \\
+\midrule
+\multicolumn{2}{@{}l}{\textbf{\lstinline|HasGroupOperatorsAdd|} --- additive group $(G, +, -, 0)$} \\
+\midrule
+\lstinline|a + b|, \lstinline|-a|, \lstinline|a - b| & group operation, inverse, $a + (-b)$ \\
+\midrule
+\multicolumn{2}{@{}l}{\textbf{\lstinline|HasGroupOperatorsMul|} --- multiplicative group $(G, \cdot, ^{-1}, 1)$} \\
+\midrule
+\lstinline|a * b|, \lstinline|a / b|, \lstinline|T{1}| & group operation, $a \cdot b^{-1}$, multiplicative unit (reciprocal of $x$ is \lstinline|T{1} / x|; no \lstinline|.inverse()| method required) \\
+\midrule
+\multicolumn{2}{@{}l}{\textbf{\lstinline|HasSemiringOperators|} --- semiring (rig: no additive inverse)} \\
+\midrule
+\lstinline|a + b|, \lstinline|a * b|, \lstinline|T{}|, \lstinline|T{1}| & both monoid operations + their identities; \emph{no} unary \lstinline|-| \\
+\midrule
+\multicolumn{2}{@{}l}{\textbf{\lstinline|HasRingOperators|} --- ring $(R, +, -, \cdot, 0, 1)$} \\
+\midrule
+\lstinline|a + b|, \lstinline|a - b|, \lstinline|-a|, \lstinline|a * b| & ring addition + multiplication; absorbing zero is structural \\
+\midrule
+\multicolumn{2}{@{}l}{\textbf{\lstinline|HasFieldOperators|} --- field $(F, +, -, \cdot, /, 0, 1)$, $\equiv$ \lstinline|HasRingOperators| $\wedge$ \lstinline|HasGroupOperatorsMul|} \\
+\midrule
+\lstinline|a / b|, \lstinline|T{1}| (in addition to \lstinline|HasRingOperators|) & multiplicative inverse $a \cdot b^{-1}$ on non-zero elements; multiplicative unit \\
+\midrule
+\multicolumn{2}{@{}l}{\textbf{\lstinline|HasVectorSpaceOperators<V, F, Act>|} --- vector space over scalar field $F$ (action functor \lstinline|Act|, defaults to \lstinline|std::multiplies<>|)} \\
+\midrule
+\lstinline|v + w|, \lstinline|-v| (additive group on $V$) & vector addition; \lstinline|HasGroupOperatorsAdd<V>| \\
+\lstinline|Act{}(s, v)| with \lstinline|s : F| & scalar action $F \times V \to V$ via the action functor; \lstinline|s * v| under the default \lstinline|std::multiplies<>|. The right-action \lstinline|v * s| is conventional, not required by the concept. \\
+\midrule
+\multicolumn{2}{@{}l}{\textbf{\lstinline|HasLatticeOperators|} --- lattice $(L, \vee, \wedge)$} \\
+\midrule
+\lstinline^a | b^, \lstinline|a & b|, \lstinline|a ^ b|, \lstinline|~a| & join, meet, symmetric difference, complement (bitwise on \lstinline|unsigned|) \\
+\midrule
+\multicolumn{2}{@{}l}{\textbf{\lstinline|HasPartialOrderOperators| / \lstinline|HasTotalOrderOperators|}} \\
+\midrule
+\lstinline|a < b|, \lstinline|a <= b|, \lstinline|a > b|, \lstinline|a >= b| & poset / chain comparisons; results in $\Omega$ of the chosen logic \\
+\midrule
+\multicolumn{2}{@{}l}{\textbf{\lstinline|HasKleisliBindOperators|} --- Kleisli (monadic) extension} \\
+\midrule
+\lstinline|ma >>= f|, \lstinline|ma >> f| & $\kappa(ma, f) = \mu(\varphi(ma, f))$; bind / fish \\
+\midrule
+\multicolumn{2}{@{}l}{\textbf{\lstinline|HasComonadicExtendOperators|} --- co-Kleisli (comonadic) extend} \\
+\midrule
+\lstinline|wa <<= f|, \lstinline|wa << f| & $\sigma(wa, f) = \varphi(\delta(wa), f)$; extend / cofish \\
+\midrule
+\multicolumn{2}{@{}l}{\textbf{\lstinline|HasSubscriptOperator|} / \lstinline|HasArrowDereferenceOperator| --- CCC eval / comonadic extract (PR \#533)} \\
+\midrule
+\lstinline|s[i]| & CCC eval counit $\varepsilon : (\textit{Idx} \times T^{\textit{Idx}}) \to T$ \\
+\lstinline|m->member| & comonadic extract $\varepsilon : W\langle T\rangle \to T$ (Wadler~\cite{wadler1992comprehending}) \\
+\midrule
+\multicolumn{2}{@{}l}{\textbf{\lstinline|HasCanonicalSetCCC|} --- CCC primitives on the ambient species} \\
+\midrule
+$1$, $\times$, $(-)^{(-)}$ & terminal object, binary product, exponential (the Lambek--Scott bridge to STLC) \\
+\bottomrule
+\end{tabular}
+\end{table}
+
 Three rows are doing more work than the others, and the paper's
 contribution lies on top of them: the subobject classifier
 $\Omega$ (the codomain of every NTTP-carried lambda; see
