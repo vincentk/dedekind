@@ -380,7 +380,8 @@ static_assert(std::same_as<typename Rational<default_integer>::IntegerCarrier,
 // Rational<I> = Frac(I) is a quotient construction over the integer
 // carrier I (the equivalence collapses (a, b) ~ (c, d) iff a*d = c*b).
 // The single declaration below — `quotient_algebra_base<Rational<I>>::type
-// = I` — fires the structural-trait propagation in `:functor`:
+// = I` — fires the structural-trait propagation in
+// `dedekind.algebra:quotient`:
 // associativity, commutativity, distributivity, and the IsTotal
 // saturation certificate all lift from I to Rational<I> uniformly.
 // The carrier-specific bits (additive identity 0/1, additive inverse

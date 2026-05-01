@@ -415,7 +415,8 @@ namespace dedekind::numbers {
 // over its @c ScalarCarrier @c R (textbook reading: the quotient ring
 // @c R[i]/(i² + 1) carries the canonical @c R-action by component-
 // wise multiplication on the @c (real, imag) pair).  The witness
-// fires through the quotient-algebra propagation in @c :functor.
+// fires through the quotient-algebra propagation in
+// @c dedekind.algebra:quotient.
 static_assert(dedekind::algebra::is_module_v<Complex<Rational<default_integer>>,
                                              Rational<default_integer>>,
               "Complex<ℚ> is a module over ℚ.");

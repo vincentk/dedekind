@@ -332,7 +332,7 @@ namespace dedekind::analysis {
 
 // NEW-A trait registry witness (#498/#499): @c Dual<F> is a module
 // over @c F.  The witness fires through the quotient-algebra
-// propagation in @c :functor.
+// propagation in @c dedekind.algebra:quotient.
 static_assert(
     dedekind::algebra::is_module_v<
         Dual<dedekind::numbers::Rational<dedekind::numbers::default_integer>>,

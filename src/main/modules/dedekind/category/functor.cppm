@@ -748,5 +748,21 @@ constexpr auto φ(Box<A> const& box, F&& f) -> Box<std::invoke_result_t<F, A>> {
 // in @c dedekind.algebra:quotient — the morphism-side cousin
 // @c IsQuotientMorphism is in @c :universal, and the carrier-side
 // @c IsQuotientAlgebra + propagation are sibling there.
+//
+// @b Visibility @b note: the propagation specialisations of
+// @c is_associative / @c is_commutative / @c is_distributive_v /
+// @c is_periodic / @c is_idempotent / @c is_saturating that lift
+// from a base algebra to its H/P/F image are declared in
+// @c dedekind.algebra:quotient (and sibling @c :free).  A consumer
+// querying these traits on a quotient / product / free carrier
+// (@c Rational<I>, @c Complex<R>, @c Dual<F>, @c Vec2V<T>,
+// @c RigPolynomial<R>) must transitively reach
+// @c dedekind.algebra for the propagation to fire.  In practice
+// every carrier-defining partition imports @c dedekind.algebra
+// already, so witnesses co-located with carriers always see the
+// propagation; pure @c dedekind.category-only TUs will see only
+// the primitive specs in @c :species (which is the correct answer
+// — the propagation only meaningfully applies to declared HSP /
+// free-algebra carriers).
 
 }  // namespace dedekind::category

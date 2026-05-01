@@ -44,7 +44,7 @@ namespace dedekind::linear_algebra {
  *
  * @details Default @c false; specialised by carrier sites at the rank
  * payload they own (e.g.\ @c Vec2V<T> over @c T at rank 2 in
- * @c :tuple).  Specialisations are gated on
+ * @c :vec2).  Specialisations are gated on
  * @c dedekind::algebra::IsModule<M, R> so the algebraic precondition
  * (R is a ring, M is a module over R) holds before the rank claim is
  * recorded — a free module is a module with a chosen basis, and the
@@ -60,7 +60,7 @@ inline constexpr bool is_free_module_v = false;
  *
  * @details Default @c false; specialised by carrier sites that own
  * the ring–module pair (e.g.\ @c Matrix2x2V<T> over @c Vec2V<T> in
- * @c :matrix).  Pins the internal-hom of the module category
+ * @c :mat2x2).  Pins the internal-hom of the module category
  * mechanically; downstream Figure~1 invariant tests can read this
  * trait rather than reconstructing the equality.
  */

@@ -358,8 +358,9 @@ namespace dedekind::algebra {
  * trait, which is the correct algebraic statement.
  *
  * Sister traits with structural-metadata payload (rank, endomorphism
- * identity) live in @c linear_algebra:contracts where the metadata
- * is at home.
+ * identity) — @c is_free_module_v and @c is_endomorphism_ring_v —
+ * live in @c dedekind.linear_algebra:basis where the metadata is at
+ * home.
  */
 
 /** @brief @c is_module_v<M, R>: @c M is an @c R-module.  Concept-based

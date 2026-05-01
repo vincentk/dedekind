@@ -787,11 +787,14 @@ base.}  Each carrier in the numeric tower
 preserving construction applied to its base: a quotient (H), a
 direct product (P), or an internal-hom variant
 (Tables~\ref{tab:rosetta-quotient} and \ref{tab:rosetta-rank}).  The
-library reifies the carrier side as two opt-in trait variables in
-\texttt{algebra:quotient} — \lstinline|IsQuotientAlgebra<Q>| and
-\lstinline|IsProductAlgebra<Q>| — and a single declaration at each
-carrier site fires the structural-trait propagation (associativity,
-commutativity, distributivity, totality / saturation) from the
+library reifies the carrier side as two detection concepts
+\lstinline|IsQuotientAlgebra<Q>| and \lstinline|IsProductAlgebra<Q>|
+in \texttt{algebra:quotient}, paired with marker traits
+\lstinline|quotient_algebra_base<Q>| / \lstinline|product_algebra_base<Q>|;
+a single declaration at each carrier site (specialising the marker
+trait's \lstinline|::type| member to the base) fires the
+structural-trait propagation (associativity, commutativity,
+distributivity, totality / saturation) from the
 base.\footnote{\textbf{HSP theorem
 (Burris--Sankappanavar~\cite{burris1981universalalgebra} §II.10).}
 A class $K$ of algebras is a variety iff it is closed under
@@ -800,7 +803,7 @@ A class $K$ of algebras is a variety iff it is closed under
 operations on algebras: any combination of them, applied to a base
 $A$ in a variety $V$, produces another algebra in $V$.  The
 \texttt{algebra:quotient} partition reifies the H and P operations
-as opt-in trait variables; the structural-trait propagation rule on
+as marker-trait + detection-concept pairs; the propagation rule on
 each is the C++23 image of the closure-under-operation clause.  S
 is not heavily exercised by today's carriers and is left absent.
 $\operatorname{End}_R$ at the rank axis is \emph{not} an HSP

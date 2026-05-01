@@ -20,6 +20,6 @@ export import :backends;
 export import :contracts;
 export import :basis;
 export import :graphblas;
-export import :vec2;
-export import :mat2x2;
+export import :vec2;    // homogeneous fixed-rank-2 (Vec2V<T> = T²)
+export import :matrix;  // n×m matrix aggregator (today: re-exports :mat2x2)
 export import :embeddings;

@@ -20,6 +20,19 @@
  * The column/row orientation tags come from `:contracts`; transpose
  * exchanges `Vec2V ↔ Covec2V`, establishing them as a dual pair.
  *
+ * @section vec2__CT_Framing
+ * In CT lingo: @c Vec2V<T> @c = @c T² is a @b homogeneous @b pair —
+ * the diagonal image of the binary Cartesian product
+ * (@c Δ: @c T @c → @c T @c × @c T from
+ * @c dedekind.category:cartesian) where both factors are the same
+ * carrier.  This is the textbook @b P (direct product) of HSP
+ * (Burris--Sankappanavar §II.10) at @c n = @c 2; the structural-
+ * trait propagation in @c dedekind.algebra:quotient lifts the
+ * species traits componentwise from @c T to @c Vec2V<T>.  The
+ * @b heterogeneous @b tuple — @c (A, @c B) where @c A and @c B
+ * are distinct carriers — lives in @c dedekind.category:cartesian
+ * (Pierce-land); homogeneous @c n=2 is what this partition reifies.
+ *
  * @note "I have in previous papers defined a 'Matrix' as a rectangular
  *  array of terms, out of which different systems of determinants may
  *  be engendered, as from the womb of a common parent."
