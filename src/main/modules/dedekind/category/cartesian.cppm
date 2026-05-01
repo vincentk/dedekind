@@ -918,4 +918,48 @@ static_assert(!IsEquivalenceRelation<std::equal_to<double>, double>,
               "equivalence on double must opt-in site-locally with a NaN-"
               "exclusion clause.");
 
+// ---------------------------------------------------------------------------
+// operator[] — eval / CCC counit (#531, step 1).
+//
+// A C++ subscript expression @c s[i] on a fixed-size carrier @c Seq
+// indexed by @c Idx is, in CCC vocabulary (Mac Lane @em CWM §IV.6;
+// Pierce @em TAPL §29), the @b evaluation @b map @c eval: @c Idx
+// @c × @c Seq @c → @c Codomain — the counit of the function-type
+// adjunction @c (- @c × @c A) @c ⊣ @c (-)^A.  Equivalently after
+// currying, @c s @c : @c Idx @c → @c Codomain in @b Set, with
+// @c s[i] @c = @c eval(i, @c s).
+//
+// The codebase reifies this in two layers (mirroring the
+// @c Has*Operators / strict-concept split elsewhere):
+//
+//   1. @c HasSubscriptOperator<Seq, @c Idx> — purely syntactic
+//      operator-surface predicate.
+//   2. @c IsEvalArrow<Seq, @c Idx> — opt-in, witnesses the CCC-counit
+//      reading at the carrier site via @c is_eval_arrow_v.
+// ---------------------------------------------------------------------------
+
+/** @concept HasSubscriptOperator
+ *  @brief Syntactic check: @c s[i] compiles for @c Seq, @c Idx.
+ */
+export template <typename Seq, typename Idx>
+concept HasSubscriptOperator = requires(Seq const& s, Idx i) {
+  { s[i] };
+};
+
+/** @brief @c is_eval_arrow_v<Seq, @c Idx>: opt-in marker that the
+ *         carrier's @c operator[] realises the CCC eval counit.
+ *         Default false; specialise to @c true at the carrier site
+ *         (@c FinitePath<T>, @c Vec2V<T>, …) when the
+ *         subscript-as-eval reading holds. */
+export template <typename Seq, typename Idx>
+inline constexpr bool is_eval_arrow_v = false;
+
+/** @concept IsEvalArrow
+ *  @brief @c Seq exposes @c operator[Idx] and the carrier site has
+ *         declared it as the CCC eval counit (Mac Lane CWM §IV.6).
+ */
+export template <typename Seq, typename Idx>
+concept IsEvalArrow =
+    HasSubscriptOperator<Seq, Idx> && is_eval_arrow_v<Seq, Idx>;
+
 }  // namespace dedekind::category
