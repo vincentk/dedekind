@@ -67,6 +67,8 @@ import dedekind.algebra;  // (multiplication on T for the product rule)
 import dedekind.category; // IsArrow
 import dedekind.order;    // IsDirectedSet — algebraic gate on the index
 import dedekind.sets;     // ℵ<N>, ℵ_0 — type-level infinite cardinals
+import :mat2x2;  // Matrix2x2V<T> — n=2 dense companion target for to_dense
+                 // (#372 slice d)
 
 namespace dedekind::linear_algebra {
 
@@ -357,6 +359,77 @@ inline constexpr OuterProduct<linear_rule_int, const_rule_six> rk1_scaled{};
 static_assert(rk1_scaled(2, 5) == 12,
               "(λi.i ⊗ λj.6)(2, 5) = 2·6 = 12 — bilinearity witness: "
               "scaling the right factor by 2 doubles the entry.");
+
+}  // namespace detail_diag
+
+/** @section diagonal__Companion_To_Dense — `Diagonal<dim_finite<2>, F>`
+ *  → `Matrix2x2V<T>` at finite n=2 (#372 slice d).
+ *
+ *  At finite dimension, the intensional `Diagonal<dim_finite<N>, F>`
+ *  has a canonical dense companion: the `N×N` matrix with `F(i)` on
+ *  the diagonal and `T{}` off-diagonal.  At `N = 2`, that companion
+ *  is `Matrix2x2V<T>` from `:mat2x2`.  The arrow is one-way: every
+ *  diagonal carrier projects onto a dense matrix; the reverse
+ *  direction (recognising rank-≤2 sparsity in a dense matrix) is not
+ *  universally well-defined and stays out of scope.
+ *
+ *  This is the bridge between the intensional rank-1 / diagonal
+ *  carriers from #534 and the existing 2×2 worked instance from #500.
+ *  The diagonal subalgebra of `End(V_2(T)) = M_2(T)` lives literally
+ *  inside `Matrix2x2V<T>` under this arrow.
+ */
+export template <typename F>
+  requires dedekind::category::IsArrow<F> &&
+           std::regular<typename std::remove_cvref_t<F>::Codomain> &&
+           dedekind::algebra::HasRingOperators<
+               typename std::remove_cvref_t<F>::Codomain>
+constexpr Matrix2x2V<typename std::remove_cvref_t<F>::Codomain> to_dense(
+    Diagonal<dim_finite<2>, F> const& d) {
+  using T = typename std::remove_cvref_t<F>::Codomain;
+  return Matrix2x2V<T>{d.at(std::size_t{0}), T{}, T{}, d.at(std::size_t{1})};
+}
+
+namespace detail_diag {
+
+// (6) to_dense companion: Identity<dim_finite<2>, T> projects onto the
+//     2×2 identity matrix; DiagonalZero projects onto the zero
+//     matrix.  General Diagonal<dim_finite<2>, f> projects onto
+//     [[f(0), 0], [0, f(1)]].
+static_assert(to_dense(Identity<dim_finite<2>, int>{}) ==
+                  identity_matrix2x2_v<int>,
+              "to_dense(Identity<dim_finite<2>, int>) = "
+              "identity_matrix2x2_v — the diagonal Identity carrier "
+              "projects onto the dense 2×2 identity matrix.");
+static_assert(to_dense(DiagonalZero<dim_finite<2>, int>{}) ==
+                  zero_matrix2x2_v<int>,
+              "to_dense(DiagonalZero<dim_finite<2>, int>) = "
+              "zero_matrix2x2_v — the diagonal Zero carrier projects "
+              "onto the dense 2×2 zero matrix.");
+
+// General diagonal: rule i ↦ i+1 gives diag(1, 2) at n=2.
+struct rule_one_two {
+  using Domain = std::size_t;
+  using Codomain = int;
+  constexpr int operator()(std::size_t i) const {
+    return static_cast<int>(i) + 1;
+  }
+};
+static_assert(dedekind::category::IsArrow<rule_one_two>);
+inline constexpr Diagonal<dim_finite<2>, rule_one_two> diag_one_two{};
+static_assert(to_dense(diag_one_two) == Matrix2x2V<int>{1, 0, 0, 2},
+              "to_dense(Diagonal<dim_finite<2>, λi.i+1>) = "
+              "[[1, 0], [0, 2]] — general diagonal projects entry-wise.");
+
+// Composition law: to_dense(D₁ * D₂) = to_dense(D₁) * to_dense(D₂)
+// at the diagonal subalgebra: the dense product of diagonal matrices
+// is again diagonal, with diagonal entries multiplied componentwise
+// in order — holds over any ring, no commutativity required.
+inline constexpr auto diag_one_two_squared = diag_one_two * diag_one_two;
+static_assert(to_dense(diag_one_two_squared) == Matrix2x2V<int>{1, 0, 0, 4},
+              "to_dense(diag(1,2) * diag(1,2)) = diag(1,4) — the "
+              "diagonal subalgebra closes under the dense matrix "
+              "product (and the projection is a ring homomorphism on "
+              "the diagonal).");
 
 }  // namespace detail_diag
 
