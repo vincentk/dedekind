@@ -166,6 +166,14 @@
   doi={10.2307/2034658}
 }
 
+@online{nlab:nlab,
+  author = {{nLab authors}},
+  title  = {nLab --- collaborative wiki on category theory, n-categories, and their applications},
+  url    = {https://ncatlab.org/nlab/show/nLab},
+  note   = {\href{https://ncatlab.org/nlab/show/nLab}{ncatlab.org/nlab/show/nLab}, accessed 2026-05-02},
+  year   = {2026}
+}
+
 @misc{nlab_kleisli,
   author = {{nLab authors}},
   title = {Kleisli category},
@@ -588,6 +596,15 @@
   publisher={ACM New York, NY, USA}
 }
 
+@article{chen2021evaluating,
+  title   = {Evaluating Large Language Models Trained on Code},
+  author  = {Chen, Mark and Tworek, Jerry and Jun, Heewoo and others},
+  journal = {arXiv preprint arXiv:2107.03374},
+  year    = {2021},
+  doi     = {10.48550/arXiv.2107.03374},
+  note    = {Foundational paper on LLM-based coding assistants (Codex / GitHub Copilot)}
+}
+
 @manual{cpp23standard,
   title        = {ISO/IEC 14882:2024: Programming languages --- C++},
   author       = {{ISO/IEC JTC 1/SC 22}},
@@ -605,6 +622,18 @@
   pages={75--86},
   year={2004},
   organization={IEEE}
+}
+
+@article{wadler1992comprehending,
+  title     = {Comprehending Monads},
+  author    = {Wadler, Philip},
+  journal   = {Mathematical Structures in Computer Science},
+  volume    = {2},
+  number    = {4},
+  pages     = {461--493},
+  year      = {1992},
+  publisher = {Cambridge University Press},
+  doi       = {10.1017/S0960129500001560}
 }
 
 @inproceedings{wadler1989theorems,
@@ -1003,6 +1032,43 @@
   year      = {1977},
   isbn      = {9780387902449},
   note      = {Exercise II.2.8 introduces $\mathrm{Spec}(k[\varepsilon]/(\varepsilon^2))$ as the scheme of tangent vectors at a point: the geometric meaning of dual numbers over any base ring $k$, including discrete carriers ($k = \mathbb{Z}$, $\mathbb{F}_p$, etc.).  The construction does not require $k$ to be a field or to be floating-point; the nilpotent $\varepsilon$ encodes ``first-order infinitesimal'' algebraically.}
+}
+
+@article{wirth1971stepwise,
+  author  = {Wirth, Niklaus},
+  title   = {Program Development by Stepwise Refinement},
+  journal = {Communications of the ACM},
+  volume  = {14},
+  number  = {4},
+  pages   = {221--227},
+  year    = {1971},
+  doi     = {10.1145/362575.362577},
+  note    = {The classical statement of top-down refinement: a specification is sharpened in successive steps, each step adding detail without invalidating earlier commitments.  Here borrowed as the development model under which the partition DAG carries refinements from $\mathbf{Cat}$ axioms down to machine carriers.}
+}
+
+@techreport{bradner1997rfc2119,
+  author      = {Bradner, Scott},
+  title       = {Key words for use in {RFC}s to Indicate Requirement Levels},
+  number      = {RFC 2119},
+  type        = {Request for Comments},
+  institution = {Internet Engineering Task Force},
+  publisher   = {RFC Editor},
+  year        = {1997},
+  doi         = {10.17487/RFC2119},
+  url         = {https://www.rfc-editor.org/rfc/rfc2119},
+  note        = {The canonical normative-keyword vocabulary (\textsc{MUST}, \textsc{SHOULD}, \textsc{MAY}, \dots).  §6 (``Guidance for use of these Imperatives'') stresses careful, sparing application; cited here for prompts to agentic systems where the same restraint applies.}
+}
+
+@article{vogels2009eventually,
+  author  = {Vogels, Werner},
+  title   = {Eventually Consistent},
+  journal = {Communications of the ACM},
+  volume  = {52},
+  number  = {1},
+  pages   = {40--44},
+  year    = {2009},
+  doi     = {10.1145/1435417.1435432},
+  note    = {Canonical statement of eventual consistency for distributed data stores.  Borrowed here for the alignment between mathematical Forms and C++ carriers: replicas (Form, concept, trait, machine type) may temporarily disagree, and convergence is monotone under bounded operations (each PR can only tighten the alignment).}
 }
 
 @book{eisenbud1995commalg,
