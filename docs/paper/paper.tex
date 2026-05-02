@@ -485,6 +485,12 @@ The automated test suite is the converse, a growing set of \emph{strong but exis
 Universal coverage is the build's job; existential depth is the test suite's; both accumulate monotonically under the convergence discipline.
 As a convenient and notable side effect: source code listings presented in this document are lifted verbatim from the repository's test suite.
 
+Similarly, where the output of LLVM opimizations is reported here, these are examples which are lifted from the test suite.
+Here, the compiler is run during CI with appropriate flags to emit a portable representation of the optimized backend instructions.
+The emitted instructions are then compared to LLVM IR fixtures checked into the source tree.
+This way, it can be checked during CI that algebraic compile-time optimizations are recognized by the compiler during the development cycle.
+Regressions would lead to build failures and be flagged during CI as blocking the corresponding PR.
+
 Agentic systems --- LLMs invoked as code-review and refactoring assistants --- enter this picture as a third party that can act on either side of the universal/existential split, provided the source carries enough domain context to prime them on each invocation.
 The library therefore embeds the domain language deliberately deep into the source: exhaustive Doxygen on every public surface, opinionated quotes from practitioners (e.g.\ references to the Polish school of logic and semantic epistemology~\cite{ajdukiewicz1985jezyk} where the underlying register is at issue), and named provenance on each trait specialisation.
 The audience is not only the human reader; it is also the agentic context window on every pull-request review.
@@ -1931,10 +1937,6 @@ define noundef zeroext i1 @witness_lattice_square_singleton() local_unnamed_addr
   ret i1 true
 }
 \end{lstlisting}
-
-Showcases 1 and 2 are checked in as LLVM IR fixtures and validated in CI
-(\texttt{make ir-fixture-check}). They exemplify the base case: pair-level
-predicate composition where constant-folding does the work.
 
 
 \textbf{Showcase 4 — Cardinality-1 reduction on $\mathbb{N}$.}
