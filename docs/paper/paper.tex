@@ -162,6 +162,9 @@ scaffolding, turning what was an academic specialism into an
 actionable workflow for working software engineers. The meta-claim
 is not ours to originate; we make it here so the body's executable
 exhibit can be read in that light.
+\end{abstract}
+
+\tableofcontents
 
 \medskip
 \noindent We present \texttt{dedekind}~\cite{dedekind2026}, an
@@ -199,7 +202,6 @@ Calculus (Part~II) discharged inside a \lstinline{static_assert}.
 parameters; compile-time verification; Axiomatic Systems Programming;
 type-directed collapse; linear programming; forward-mode automatic
 differentiation.
-\end{abstract}
 
 % ============================================================
 \section{Introduction}
@@ -464,17 +466,7 @@ What we \emph{do} report is a small set of findings that are both interesting
 and true: each claim has a worked exhibit in the library and a
 mechanical witness the compiler discharges.
 
-\subsection{Paper Structure}
-
-The body splits across three pillars: \emph{An Intersection of C++23 and Category Theory}, \emph{Sets and Sequences}, \emph{Algebraic Lattice}.
-
-Section~\ref{sec:axiomatic} (\emph{An Intersection of C++23 and Category Theory}) motivates the choice of C++23 as the implementation substrate, introduces the \emph{Axiomatic Systems Programming} paradigm, and develops the intensional-first design rule (§\ref{sec:intensional}) including the tension between abstract algebraic numerics and IEEE~754 hardware floating-point and the carrier Rosetta from exact rationals to packed integers.
-Section~\ref{sec:sets-rules} (\emph{Sets and Sequences}) develops the view of sets as predicates over ambient species and shows how set operations compose symbolically under the subobject classifier $\Omega$.
-Section~\ref{sec:pruning} (\emph{Algebraic Lattice}) presents the carrier-tower target state and the compile-time structural reductions it acts through: halfspace pruning, linear programming as a reduction to a typed vertex, forward-mode automatic differentiation as a sibling reduction over the dual-number ring, and the $\mathbb{C} / \mathbb{D} \hookrightarrow M_2(\mathbb{Q})$ embedding.
-Section~\ref{sec:related} surveys related work.
-Section~\ref{sec:conclusion} concludes.
-
-\section{The Faithful Functor as an Eventual Consistency Target}
+\section{Continuous Iteration towards the Faithful Translation}
 \label{sec:eventually}
 
 The development follows a Top-Down Refinement model~\cite{wirth1971stepwise}, where the library acts as an Executable Ontology: the mathematical Forms are anchored upstream, machine carriers are staged downstream, and each step in between is a refinement the compiler is asked to police.
@@ -487,21 +479,94 @@ To support this approach in a transparent fashion, we reach deep into the CI/CD 
 None of this is technically novel.
 What matters is that the engineering practices of mainstream open-source software development \emph{compose} cleanly with the type-system discipline, turning what would otherwise be a paper-only argument into an artefact whose every refinement step is reviewable, reproducible, and dated.
 
-Two complementary readings of this evidence are worth naming explicitly, since they shape how downstream tooling --- including agentic systems --- composes with the discipline.
-A successful type-check is a \emph{weak but universal} proof about the overall health of the Ontology: it asserts that every type-shaped claim in the build graph composes without contradiction, even though the individual assertions are coarse (concept satisfaction, not law-by-law verification).
+\subsection{The Compiler as Structural Gate and Optimization Engine}
+
+Two durable uses of a compile-time type system underlie this paradigm, neither
+of which requires the compiler to be a theorem prover:
+
+\begin{enumerate}
+  \item \textbf{Ruling out entire classes of errors.}  Encoding algebraic laws as
+        concept requirements makes every instantiation of a generic template an
+        implicit proof obligation discharged at translation time.  Failed
+        obligations are type errors, not runtime exceptions.  The obligation
+        itself is finite, decidable, and mechanical---the compiler \emph{checks}
+        it, but does not \emph{search for} it.  Failed obligations surface
+        as named-axiom messages (e.g.\ \texttt{Invertible2x2 requires full
+        rank: a*d - b*c != 0}) rather than as deep template-cascade
+        traces; the structural discipline behind this and a worked
+        diagnostic are exhibited in Section~\ref{sec:compiler-wall}.
+  \item \textbf{Enabling entire classes of optimizations.}  The LLVM backend
+        exploits the structural knowledge inherited from discharged obligations.
+        When a set is defined by a predicate and two predicates are logically
+        contradictory, the compiler determines at translation time that the
+        resulting intersection is empty and emits no machine instructions for
+        it.  This is what we term \emph{structural pruning}, and it is the
+        subject of Section~\ref{sec:pruning}.
+\end{enumerate}
+
+Both uses are bounded but open-ended.  clang's type checker is not a
+theorem prover: it has no dependent types, no universal-quantification
+inference, no proof-search engine.  What it does have is
+\lstinline{static_assert}, \lstinline{requires}-clauses, and
+\lstinline{constexpr} evaluation---enough to verify a predetermined
+proof sketch, not enough to generate one.  The paradigm claims the
+reliable half: ruling out, and optimizing under, the classes of
+structural failures the programmer has named in the type system.  The
+Curry--Howard correspondence between propositions and types is
+suggestive here, but its full force (dependent products, inductive
+proofs, universe hierarchies) is not available in C++23; what
+\emph{is} available is enough to anchor the two uses above.  Each use
+ruled out exposes a next class that the current machinery does not
+handle but the library's structural vocabulary already names; the four
+axes of Section~\ref{sec:gap} fall out of the halfspace reductions
+almost by construction.\footnote{Penrose's \emph{The Road to
+Reality}~\cite{penrose2004roadtoreality} offers an analogous
+observation about G\"odel's incompleteness theorem --- a formal
+system closing at one level motivates the next, not as exhaustion
+but as natural successor; the closest formal analogue is Turing's
+ordinal logics~\cite{turing1939ordinals}, where each stage's
+consistency feeds the next stage's formation rule.  The
+systems-programming reading is benign: the issue tracker plays the
+successor role.}
+
+\paragraph{Three honesty-anchoring constraints.}
+Three compounding constraints keep the library's artefacts honest:
+\emph{domain textbook anchoring} (concept names and law statements
+taken directly from the published mathematical vocabulary ---
+Lawvere, Mac Lane, Lambek, Wadler, Moggi); \emph{mechanical
+validation} (every algebraic claim becomes a
+\lstinline{static_assert} the compiler discharges; every concept
+composes through a named-module DAG; every behavioural claim passes
+CI); and \emph{codomain textbook anchoring} (concepts validated
+against the C++ standard library's own ontology ---
+\lstinline{std::ranges::input_range}, \lstinline{std::regular},
+\lstinline{std::numeric_limits}, the iterator
+hierarchy).\footnote{The library is developed with AI assistance
+(Anthropic's Claude as the primary code-writing agent; Gemini and
+GitHub Copilot in supporting roles); the human role is
+prioritisation, orchestration, and consensus-before-merge.  The
+three constraints above are what keep the workflow honest: the
+mathematical content stays in mathematical vocabulary all the way
+down to where the machine takes over.}
+
+A successful type-check is thus a \emph{weak but universal} proof about the overall health of the Ontology: it asserts that every type-shaped claim in the build graph composes without contradiction, even though the individual assertions are coarse (concept satisfaction, not law-by-law verification).
 The automated test suite is the converse, a growing set of \emph{strong but existential} proofs about the same Ontology: each test pins a concrete carrier-instance against a concrete law and discharges the obligation as a \lstinline|static_assert| witness rather than a runtime equality check.
 Universal coverage is the build's job; existential depth is the test suite's; both accumulate monotonically under the convergence discipline.
-As a convenient and notable side effect: source code listings presented in this document are lifted verbatim from the repository's test suite.
+As a convenient and notable side effect: source code listings presented in this document are lifted (occasionally abridged for paper-page budget) from the repository's test suite; each listing's source-tree path is recorded as a LaTeX-source comment immediately above the listing, so a reader auditing against the repository can find the verbatim original directly.
+
+Similarly, where the output of LLVM optimizations is reported here, these are examples which are lifted from the test suite.
+Here, the compiler is run during CI with appropriate flags to emit a portable representation of the optimized backend instructions.
+The emitted instructions are then compared to LLVM IR fixtures checked into the source tree.
+This way, it can be checked during CI that algebraic compile-time optimizations are recognized by the compiler during the development cycle.
+Regressions would lead to build failures and be flagged during CI as blocking the corresponding PR.
+
+
+\subsection{Use of Agentic Systems}
 
 Agentic systems --- LLMs invoked as code-review and refactoring assistants --- enter this picture as a third party that can act on either side of the universal/existential split, provided the source carries enough domain context to prime them on each invocation.
 The library therefore embeds the domain language deliberately deep into the source: exhaustive Doxygen on every public surface, opinionated quotes from practitioners (e.g.\ references to the Polish school of logic and semantic epistemology~\cite{ajdukiewicz1985jezyk} where the underlying register is at issue), and named provenance on each trait specialisation.
 The audience is not only the human reader; it is also the agentic context window on every pull-request review.
 Prompts to such systems are accordingly written liberally and in \emph{loose language} --- in the careful, sparing register of RFC~2119~§6~\cite{bradner1997rfc2119}, where the normative weight of \textsc{MUST} / \textsc{SHOULD} / \textsc{MAY} is reserved for the cases that actually demand it --- so that the agent can catalyse convergence not only at the syntactic layer the conventional build pipeline polices, but also at the semantic layer where loose intent has to be translated into precise concept-discharge obligations.
-
-A natural follow-up, which we leave open, is whether convergence in this sense can be \emph{measured} rather than claimed.
-The lens is the module dependency graph itself: each downstream theorem should be dense with upstream axioms rather than fabricating new ones; the foundational modules should accumulate the highest fan-in; the ratio of \lstinline|static_assert| obligations to lines of code should not collapse as the library grows.
-At present, this approach is operationalized by visual inspection of pull request patches.
-A more industrialized approach involving the automated generation and evaluation of concrete metrics in this style is work in progress and not part of the present paper's claims; what we document here is the architecture under which they would be measured.
 
 % ============================================================
 \section{An Intersection of C++23 and Category Theory}
@@ -699,76 +764,6 @@ make Table~\ref{tab:cpp-stlc-mapping}'s mapping accurate, and that
 each rule has a mechanical witness in the partition graph (the
 public-API headers exported by each \lstinline{export module}
 declaration are the audit surface).
-
-\subsection{The Compiler as Structural Gate and Optimization Engine}
-
-Two durable uses of a compile-time type system underlie this paradigm, neither
-of which requires the compiler to be a theorem prover:
-
-\begin{enumerate}
-  \item \textbf{Ruling out entire classes of errors.}  Encoding algebraic laws as
-        concept requirements makes every instantiation of a generic template an
-        implicit proof obligation discharged at translation time.  Failed
-        obligations are type errors, not runtime exceptions.  The obligation
-        itself is finite, decidable, and mechanical---the compiler \emph{checks}
-        it, but does not \emph{search for} it.  Failed obligations surface
-        as named-axiom messages (e.g.\ \texttt{Invertible2x2 requires full
-        rank: a*d - b*c != 0}) rather than as deep template-cascade
-        traces; the structural discipline behind this and a worked
-        diagnostic are exhibited in Section~\ref{sec:compiler-wall}.
-  \item \textbf{Enabling entire classes of optimizations.}  The LLVM backend
-        exploits the structural knowledge inherited from discharged obligations.
-        When a set is defined by a predicate and two predicates are logically
-        contradictory, the compiler determines at translation time that the
-        resulting intersection is empty and emits no machine instructions for
-        it.  This is what we term \emph{structural pruning}, and it is the
-        subject of Section~\ref{sec:pruning}.
-\end{enumerate}
-
-Both uses are bounded but open-ended.  clang's type checker is not a
-theorem prover: it has no dependent types, no universal-quantification
-inference, no proof-search engine.  What it does have is
-\lstinline{static_assert}, \lstinline{requires}-clauses, and
-\lstinline{constexpr} evaluation---enough to verify a predetermined
-proof sketch, not enough to generate one.  The paradigm claims the
-reliable half: ruling out, and optimizing under, the classes of
-structural failures the programmer has named in the type system.  The
-Curry--Howard correspondence between propositions and types is
-suggestive here, but its full force (dependent products, inductive
-proofs, universe hierarchies) is not available in C++23; what
-\emph{is} available is enough to anchor the two uses above.  Each use
-ruled out exposes a next class that the current machinery does not
-handle but the library's structural vocabulary already names; the four
-axes of Section~\ref{sec:gap} fall out of the halfspace reductions
-almost by construction.\footnote{Penrose's \emph{The Road to
-Reality}~\cite{penrose2004roadtoreality} offers an analogous
-observation about G\"odel's incompleteness theorem --- a formal
-system closing at one level motivates the next, not as exhaustion
-but as natural successor; the closest formal analogue is Turing's
-ordinal logics~\cite{turing1939ordinals}, where each stage's
-consistency feeds the next stage's formation rule.  The
-systems-programming reading is benign: the issue tracker plays the
-successor role.}
-
-\paragraph{Three honesty-anchoring constraints.}
-Three compounding constraints keep the library's artefacts honest:
-\emph{domain textbook anchoring} (concept names and law statements
-taken directly from the published mathematical vocabulary ---
-Lawvere, Mac Lane, Lambek, Wadler, Moggi); \emph{mechanical
-validation} (every algebraic claim becomes a
-\lstinline{static_assert} the compiler discharges; every concept
-composes through a named-module DAG; every behavioural claim passes
-CI); and \emph{codomain textbook anchoring} (concepts validated
-against the C++ standard library's own ontology ---
-\lstinline{std::ranges::input_range}, \lstinline{std::regular},
-\lstinline{std::numeric_limits}, the iterator
-hierarchy).\footnote{The library is developed with AI assistance
-(Anthropic's Claude as the primary code-writing agent; Gemini and
-GitHub Copilot in supporting roles); the human role is
-prioritisation, orchestration, and consensus-before-merge.  The
-three constraints above are what keep the workflow honest: the
-mathematical content stays in mathematical vocabulary all the way
-down to where the machine takes over.}
 
 \subsection{C++23 as a Lambda-Calculus Substrate: A Translation Table}
 \label{sec:cpp-stlc-mapping}
@@ -999,238 +994,6 @@ produced.  Where SICP defers \emph{evaluation} (a runtime move), we defer
 is the auditor that ensures the wishes were coherent before the realization
 happens.
 
-\paragraph{Reading Figure~\ref{fig:carrier-lattice}.}
-The Algebraic Lattice is a 2D oblique projection of a 3D cube ---
-eight corners, twelve edges, three Fraktur-letter axes
-($\mathfrak{A}$ carrier-strength, $\mathfrak{R}$ rank,
-$\mathfrak{Q}$ quotient).  $\mathbb{B}$ sits at the bottom-front-left;
-$M_2(X(\mathbb{C}))$ at the top-back-right.
-
-Where the carrier axis stops is partly conventional.  We place
-$\mathbb{C}$ at the front-right corner because the textbook chain
-ends there, but the same diagram with $\mathbb{R}$ at the corner would
-push $\mathbb{C}$ to a back-face node $C(\mathbb{R}) =
-\mathbb{R}[i]/(i^2 + 1)$ via the quotient axis; with $\mathbb{Q}$ at
-the corner, $\mathbb{R}$ joins it via $\mathrm{Cuts}$.  All three
-readings agree on the math; the carrier-vs-quotient line is partly
-interpretive
-(§\ref{sec:carrier-rosetta}).\footnote{A parallel \emph{computability}
-lattice (representation Int / Ext; logic K3 / Cl; knowledge Opq / Elt)
-sits orthogonal to the three axes drawn --- the algebraic tower says
-\emph{which algebra}; the computability tier says \emph{how much the
-compiler knows about a set built on it}
-(§\ref{sec:gap}, Definition~\ref{def:computability-tier}).  We don't
-draw the second cube; one 3D figure carries the weight.}
-
-The lattice is unbounded above.  Iterated quotients, tensor products,
-$p$-adic completions and similar each yield a strictly larger object
-without a canonical maximum, so the visual top-right-back corner is
-an illustrative stopping point and the rendering is necessarily a
-finite slice.\footnote{Binary meets (largest shared substructure) are
-canonical; binary joins (smallest common extension) exist as pushouts
-but require ambient choice, so the structure is better thought of as
-a bounded-below lattice (informally, a meet-semilattice with
-constructive joins).  Other dimensions the figure deliberately omits:
-higher rank ($n > 2$; \#368), predicate-set / order-theoretic
-constructions (candidate sibling \emph{Geometric Tower}; future
-Figure~1b), iterated $\mathfrak{Q}$ (jet bundles; \#504), and the
-Honest-Rejection machine-substrate boundary (\texttt{bool},
-\texttt{uint}, \texttt{int}, \texttt{double} embed into
-$\mathbb{B} / \mathbb{N} / \mathbb{Z} / \mathbb{Q}$ via named
-\texttt{embed\_*} arrows in \texttt{dedekind.numbers}).  Per-cell
-compile-status of any specific instance is in the trait registry
-(\#499); the figure carries the structural shape.}
-
-The three axes don't all commute: matrix and quotient functors
-commute when both sides are defined; different quotient functors
-commute when their generating variables are independent (so
-$D \circ C \cong C \circ D$); but $\mathfrak{A}$ steps can fail to
-type-check after $\mathfrak{R}$ (producing modules, not rings) or
-after a quotient that destroys an integral domain (so
-$\mathrm{Frac}(D(R))$ is undefined).  Worth knowing on first read; the
-specific cells fall out of the type system at the call site.
-
-\begin{figure}[p]
-\centering
-\begin{tikzpicture}[
-  scale=1.0,
-  every node/.style={font=\small},
-  baseline=(current bounding box.center)
-]
-  % --- Cube-corners-only schematic of the Algebraic Lattice ---
-  %   X axis (right):  carrier strength 𝔄  (Frac, Cuts, Cplx — see Table A)
-  %   Y axis (up):     rank             𝔯  (Free_n, End_R    — see Table B)
-  %   Z axis (back):   quotient         𝔔  (D, C, D∘C, ...   — see Table C)
-  \def\dx{4.0}
-  \def\dy{3.0}
-  \def\zxoff{2.5}
-  \def\zyoff{2.0}
-
-  % Front face (z = 0) corners.
-  \node (B)    at (0,    0)    {$\mathbb{B}$};
-  \node (C)    at (\dx,  0)    {$\mathbb{C}$};
-  \node (M2B)  at (0,    \dy)  {$M_2(\mathbb{B})$};
-  \node (M2C)  at (\dx,  \dy)  {$M_2(\mathbb{C})$};
-
-  % Back face (z = 1) corners.
-  \node[opacity=0.7] (XB)    at (\zxoff,         \zyoff)         {$X(\mathbb{B})$};
-  \node[opacity=0.7] (XC)    at (\dx + \zxoff,   \zyoff)         {$X(\mathbb{C})$};
-  \node[opacity=0.7] (M2XB)  at (\zxoff,         \dy + \zyoff)   {$M_2(X(\mathbb{B}))$};
-  \node[opacity=0.7] (M2XC)  at (\dx + \zxoff,   \dy + \zyoff)   {$M_2(X(\mathbb{C}))$};
-
-  \tikzset{
-    edge/.style={->, >=stealth, semithick},
-    edgeback/.style={->, >=stealth, semithick, opacity=0.55},
-    diag/.style={->, >=stealth, dashed, thick}
-  }
-
-  % X-axis edges (4): "carrier strength" 𝔄 — Frac / Cuts / Cplx; see Table A.
-  \draw[edge]     (B)    -- node[midway, fill=white, inner sep=2pt]
-                              {$\mathfrak{A}$} (C);
-  \draw[edge]     (M2B)  -- node[midway, fill=white, inner sep=2pt]
-                              {$\mathfrak{A}$} (M2C);
-  \draw[edgeback] (XB)   -- node[midway, fill=white, inner sep=2pt, opacity=0.7]
-                              {$\mathfrak{A}$} (XC);
-  \draw[edgeback] (M2XB) -- node[midway, fill=white, inner sep=2pt, opacity=0.7]
-                              {$\mathfrak{A}$} (M2XC);
-
-  % Y-axis edges (4): "rank" 𝔯 — Free_n / End_R; see Table B.
-  \draw[edge]     (B)    -- node[midway, fill=white, inner sep=2pt]
-                              {$\mathfrak{R}$} (M2B);
-  \draw[edge]     (C)    -- node[midway, fill=white, inner sep=2pt]
-                              {$\mathfrak{R}$} (M2C);
-  \draw[edgeback] (XB)   -- node[midway, fill=white, inner sep=2pt, opacity=0.7]
-                              {$\mathfrak{R}$} (M2XB);
-  \draw[edgeback] (XC)   -- node[midway, fill=white, inner sep=2pt, opacity=0.7]
-                              {$\mathfrak{R}$} (M2XC);
-
-  % Z-axis edges (4): "quotient" 𝔔 — D / C / D∘C / ...; see Table C.
-  \draw[diag] (B)   -- node[midway, sloped, above, font=\scriptsize]
-                          {$\mathfrak{Q}$} (XB);
-  \draw[diag] (C)   -- node[midway, sloped, above, font=\scriptsize]
-                          {$\mathfrak{Q}$} (XC);
-  \draw[diag] (M2B) -- node[midway, sloped, above, font=\scriptsize]
-                          {$\mathfrak{Q}$} (M2XB);
-  \draw[diag] (M2C) -- node[midway, sloped, above, font=\scriptsize]
-                          {$\mathfrak{Q}$} (M2XC);
-
-  % --- Axis-direction labels ---
-  \node[below=12pt, font=\itshape\small] at (\dx/2, 0)
-    {carrier-strength $\mathfrak{A}$};
-  \node[left=12pt, font=\itshape\small, rotate=90] at (0, \dy/2)
-    {rank $\mathfrak{R}$};
-  \node[font=\itshape\small, rotate=30, opacity=0.85]
-    at ($(B)!0.5!(XB) + (-0.5, 0.5)$)
-    {quotient $\mathfrak{Q}$};
-\end{tikzpicture}
-\caption{\emph{The Algebraic Lattice.}
-3D oblique-projection lattice; eight cube corners, three Fraktur-axis
-parameters.  $\mathfrak{A}$ (carrier-strength) follows the chain
-$\mathbb{B} \to \mathbb{N} \to \mathbb{Z} \to \mathbb{Q} \to \mathbb{R}
-\to \mathbb{C}$; the early steps use the natural-numbers-object
-($\mathbb{B} \to \mathbb{N}$) and the Grothendieck ring construction
-($\mathbb{N} \to \mathbb{Z}$), the later steps the
-\emph{Frac} / \emph{Cuts} / \emph{Cplx} functors
-($\mathbb{Z} \to \mathbb{Q} \to \mathbb{R} \to \mathbb{C}$;
-Tables~\ref{tab:carriers-exact}--\ref{tab:rosetta-textbook-vs-cpp}).
-$\mathfrak{R}$ (rank) lifts Scalar $\to V_n(R) \to M_n(R)$ via
-$\mathrm{Free}_n$ and $\mathrm{End}_R$ (Table~\ref{tab:rosetta-rank}).
-$\mathfrak{Q}$ (quotient) realises an extension $R \to X(R)$ at a
-polynomial ideal --- the degree-2 instances dominate the worked
-showcases: $X = D$ gives $R[\varepsilon]/(\varepsilon^2)$ (dual
-numbers), $X = C$ gives $R[i]/(i^2 + 1)$ (complex extension); higher
-degrees enter via $X = G$, $R[x]/(p(x))$ for $p$ irreducible (Galois
-extension; e.g.\ $\mathbb{F}_{64} = \mathbb{F}_2[x]/(x^6 + x + 1)$
-at degree~6).  See Table~\ref{tab:rosetta-quotient} for the full
-enumeration.
-The bottom-front-left corner $\mathbb{B}$ is the lattice bottom; the
-top-right-back corner $M_2(X(\mathbb{C}))$ is an illustrative
-stopping point on an unbounded-above lattice.  The reading aids,
-commutation rules, off-figure dimensions, and the bounded-below /
-no-unique-top caveat are discussed in the body prose immediately
-preceding this figure.}
-\label{fig:carrier-lattice}
-\end{figure}
-
-\begin{figure}[ht]
-\centering
-\begin{tikzcd}[column sep=large, row sep=large, ampersand replacement=\&]
-  \&[-2em] \texttt{SignedCardinality}~(\mathbb{Z}) \arrow[dl, "\chi_{\mathbb{Z}/2}"'] \arrow[d, "\chi_{\mathbb{Z}/5}"] \arrow[dr, "\chi_{\mathbb{Z}/7}"] \&[-2em] \\
-  \texttt{Modular}\langle 2\rangle \& \texttt{Modular}\langle 5\rangle \& \texttt{Modular}\langle 7\rangle
-\end{tikzcd}
-\caption{The universal-property reading of $\mathbb{Z}$ as the initial ring (sibling to Figure~\ref{fig:carrier-lattice}). For every commutative unital ring $R$, the initial-object property of $\mathbb{Z}$ supplies a unique ring homomorphism $\chi_R : \mathbb{Z} \to R$. The diagram exhibits this at three concrete prime targets $R = \texttt{Modular}\langle n\rangle$ (the cyclic ring $\mathbb{Z}/n\mathbb{Z}$, with prime $n \in \{2, 5, 7\}$ chosen so each target is a field). Each $\chi_n$ is the mod-$n$ reduction; the test suite \texttt{[algebra][initial\_ring][modular][universal-property]} (in \texttt{src/test/cpp/modules/dedekind/numbers/initial\_ring\_test.cpp}) realises $\chi_n$ operationally as the helper \texttt{$\chi$\_to\_modular<n>} and exercises ring-homomorphism preservation ($\chi(a + b) = \chi(a) + \chi(b)$, $\chi(a \cdot b) = \chi(a) \cdot \chi(b)$, $\chi(1_\mathbb{Z}) = 1_R$) plus sign-aware mod reduction. A complementary structural reading: \texttt{unsigned~int} $\cong$ \texttt{Modular}$\langle 2^w\rangle$ at the machine layer (the carrier-lattice middle row of Figure~\ref{fig:carrier-lattice} is the same diagram unrolled at the machine width); \texttt{bool} $\cong$ \texttt{Modular}$\langle 2\rangle$ under XOR. The figure is the visual companion to the engineer's honesty obligation that universal-property uniqueness imposes: declaring \texttt{is\_initial\_ring\_v<SignedCardinality>~=~true} is the type-system anchor; the operational behaviour at every concrete target is the test-suite obligation.}
-\label{fig:initial-ring-modular}
-\end{figure}
-
-% --- Rosetta tables for the rank ($\mathfrak{R}$) and quotient ($\mathfrak{Q}$)
-%     axes of the Algebraic Lattice (Figure~\ref{fig:carrier-lattice}). ---
-
-\begin{table}[htbp]
-\centering
-\caption{\textbf{Rank-axis rosetta ($\mathfrak{R}$).}  Per-rank
-object, its structure-preserving construction, the algebraic concept
-witnessing it, and the C++23 carrier.  The chain $T \to V_n(T) \to
-M_n(T)$ exhibits the rank-axis steps of
-Figure~\ref{fig:carrier-lattice}; $n = 2$ is the worked example,
-higher ranks via combinators (\texttt{DirectSum},
-\texttt{BlockUpperTriangular}, \texttt{Kronecker}; issue~\#368).}
-\label{tab:rosetta-rank}
-\small
-\begin{tabular}{@{}l l l l@{}}
-\toprule
-\textbf{Object} & \textbf{Construction} & \textbf{Concept} & \textbf{C++23 carrier} \\
-\midrule
-$T$ (scalar) & identity & \lstinline|IsRing| / \lstinline|IsField| & \lstinline|T| \\
-$V_n(T) = T^n$ & $\mathrm{Free}_n$ (\textbf{P} in HSP; Burris--Sankappanavar~\cite{burris1981universalalgebra} §II.10) & \lstinline|IsProductAlgebra<V>| & \lstinline|Vec2V<T>| \\
-$M_n(T) = \mathrm{End}_T(V_n)$ & internal hom in $\mathbf{Mod}_R$ (\emph{not} HSP; Mac Lane~\cite{maclane1971categories} §VII) & \lstinline|is_endomorphism_ring_v<M, V>| & \lstinline|Matrix2x2V<T>| \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-\begin{table}[htbp]
-\centering
-\caption{\textbf{Quotient-axis rosetta ($\mathfrak{Q}$) — all rows
-are \textbf{H} instances of HSP
-(Burris--Sankappanavar~\cite{burris1981universalalgebra} §II.10).}
-Per-quotient realisation: the polynomial ideal, the resulting
-algebra, the structural property, and the C++23 carrier.  Each row
-is a value of the parameter $X$ in Figure~\ref{fig:carrier-lattice};
-compositions ($X = D \circ C$ etc.) commute when their generators
-are independent.  Carrier-side concept across the table:
-\lstinline|IsQuotientAlgebra<Q>|.}
-\label{tab:rosetta-quotient}
-\small
-\begin{tabular}{@{}l l l l l@{}}
-\toprule
-\textbf{$X$} & \textbf{Polynomial ideal} & \textbf{Algebra} & \textbf{Structure} & \textbf{C++23 carrier} \\
-\midrule
-$D$ (Dual) & $(\varepsilon^2)$ & $R[\varepsilon]/(\varepsilon^2)$ & nilpotent (never integral) & \lstinline|Dual<F>| (\#504 generalises) \\
-$C$ (Cplx) & $(i^2 + 1)$ & $R[i]/(i^2 + 1)$ & integral-domain extension when $i^2{+}1$ irreducible; field extension when $R$ is a field$^a$ & \lstinline|Complex<R>| (\#505 generalises) \\
-$D \circ C \cong C \circ D$ & $(i^2 + 1, \varepsilon^2)$ & $R[i, \varepsilon]/(i^2{+}1, \varepsilon^2)$ & nilpotent dual of the complex extension & nested \lstinline|Dual<Complex<R>>| \\
-$G$ (Galois) & $(q(x))$ for $q$ irreducible & $\mathbb{F}_p[x]/(q(x))$ & finite field $\mathbb{F}_{p^n}$ & \lstinline|𝔽64| ($\mathbb{F}_2[x]/(x^6{+}x{+}1)$, PR \#444) \\
-\bottomrule
-\end{tabular}
-
-\vspace{0.5em}
-{\footnotesize
-\textsuperscript{a} The structural type of $C(R) = R[i]/(i^2 + 1)$
-depends on both the irreducibility of $i^2 + 1$ over $R$ \emph{and}
-on whether $R$ is itself a field.  When $i^2 + 1$ is irreducible over
-$R$, the result is an integral-domain extension --- a field extension
-when $R$ is already a field (e.g.\ $C(\mathbb{Q}) = \mathbb{Q}[i]$ is
-a field; $C(\mathbb{R}) = \mathbb{C}$ is a field), an integral-domain
-extension when $R$ is an integral domain but not a field (e.g.\
-$C(\mathbb{Z}) = \mathbb{Z}[i]$, the Gaussian integers, is a Euclidean
-domain but not a field).  When $i^2 + 1$ is reducible (e.g.\ over
-$\mathbb{F}_2$ where it factors as $(x + 1)^2$), the quotient has
-nilpotents and is isomorphic to $D(\mathbb{F}_2)$ (cf.\ \#505).
-This is a concrete example of the "same construction, different
-result depending on base" pattern the quotient axis encodes.  Per-cell compile-status (which $R \times X$
-combinations the experimental library admits today vs which are pending
-implementation) is tracked in the trait registry of \#499 as positive /
-negative \texttt{static\_assert} witnesses.}
-\end{table}
-
 \paragraph{Forms before carriers.}
 The library reifies the discrete-foundations triple structurally
 rather than starting from a machine-integer carrier:
@@ -1324,72 +1087,6 @@ interval-arithmetic wrapper, or a lift to \lstinline{Rational<long>})
 is supplied. The realization boundary is the point at which the
 programmer chooses which policy to apply.
 
-\subsubsection{Dedekind Cuts as the Canonical Example}
-\label{sec:dedekind-cuts}
-
-Dedekind's construction --- $r \in \mathbb{R}$ as the partition
-$(L, U)$ of $\mathbb{Q}$ into rationals strictly below $r$ and those
-at or above --- translates the intensional-first rule directly: the
-two sets are type-level predicates, and \emph{the predicate is the
-number}. The library's canonical worked example is Dedekind's own
-$\sqrt{2}$: a rational $q$ is in the lower cut iff $q^{2} < 2$, a
-decidable predicate over $\mathbb{Q}$ that compiles into a finite
-type-level object --- no approximation, no series summation:
-
-% Source: src/main/modules/dedekind/numbers/symbolic.cppm (Sqrt2_Symbolic, ll. 24-38)
-\begin{lstlisting}[language=C++, caption={$\sqrt{2}$ as an intensional lower cut over $\mathbb{Q}$, from \texttt{dedekind.numbers:symbolic}. The predicate is the number.}, label={lst:euler}]
-template <typename Q>
-constexpr auto Sqrt2_Symbolic() {
-  const dedekind::sets::Ω<Q, TernaryLogic> universe{};
-  // The lower cut L_sqrt2 = { q in Q | q^2 < 2 }.
-  return ambient_set<Q>([universe](const Q& q) {
-    if constexpr (std::floating_point<Q>) {
-      if (std::isnan(q)) { return Ternary::Unknown; }
-    }
-    const auto in_cut =
-        (q * q < static_cast<Q>(2)) ? Ternary::True : Ternary::False;
-    return TernaryLogic::AND(universe(q), in_cut);
-  });
-}
-\end{lstlisting}
-
-\begin{figure}[htbp]
-\centering
-\begin{tikzpicture}[scale=1.3]
-  % Number line
-  \draw[->, thick] (-0.4, 0) -- (5.5, 0) node[right] {$\mathbb{Q}$};
-  \foreach \x/\l in {0/0, 1/1, 2/2, 3/3, 4/4, 5/5} {
-    \draw (\x, -0.08) -- (\x, 0.08);
-    \node[below] at (\x, -0.12) {\small $\l$};
-  }
-  % The cut at sqrt(2) (approximately 1.414)
-  \draw[thick, red, dashed] (1.414, -0.75) -- (1.414, 1.0);
-  \node[red, above] at (1.414, 1.0) {$\sqrt{2}$};
-  % Lower set L_sqrt2
-  \draw[blue, line width=2.5pt, opacity=0.45] (-0.25, 0.4) -- (1.414, 0.4);
-  \node[blue, above] at (0.6, 0.45) {\small $L_{\sqrt{2}} = \{\, q \in \mathbb{Q} \mid q^{2} < 2 \,\}$};
-  % Upper set U_sqrt2
-  \draw[orange, line width=2.5pt, opacity=0.55] (1.414, -0.4) -- (5.3, -0.4);
-  \node[orange, below] at (3.5, -0.45) {\small $U_{\sqrt{2}} = \{\, q \in \mathbb{Q} \mid q^{2} \geq 2 \,\}$};
-  % Sample rationals
-  \foreach \x in {0, 0.5, 1, 1.25, 1.4} { \fill[blue] (\x, 0.4) circle (1.4pt); }
-  \foreach \x in {1.5, 2, 3, 4, 5} { \fill[orange] (\x, -0.4) circle (1.4pt); }
-\end{tikzpicture}
-\caption{A Dedekind cut names $\sqrt{2}$ by partitioning $\mathbb{Q}$.
-The lower half $L_{\sqrt{2}}$ (blue) and upper half $U_{\sqrt{2}}$
-(orange) are both compile-time predicates. In \texttt{dedekind}, the
-real number \emph{is} the partition: no approximation is stored, no
-square root is computed, and the compiler still knows everything
-about $\sqrt{2}$ that the predicate $q^{2} < 2$ expresses.}
-\label{fig:dedekind-cut}
-\end{figure}
-
-No floating-point approximation is computed; no Newton iteration runs.
-Asking ``is $\tfrac{7}{5}$ less than $\sqrt{2}$?'' reduces to
-$\tfrac{49}{25} < 2$, decidable at translation time. Approximation to
-a concrete float is available later, at a specific precision, when
-the programmer asks for it. The intensional object survives
-indefinitely without losing reasoning power.
 
 \subsubsection{Carriers: From Exact Rationals to Packed Integers}
 \label{sec:carrier-rosetta}
@@ -1635,6 +1332,27 @@ counterpart (functions $\mathbb{N} \to T$ as infinite-dimensional
 vectors, sharing the same intensional posture) extends this pillar
 in a sibling slice.
 
+\subsection{The Subobject Classifier $\Omega$}
+
+Here is what $\Omega$ is doing for us. A predicate $P : A \to \Omega$ maps ambient
+elements to \emph{truth values}, and $\Omega$ is the type those truth values live
+in. Change $\Omega$, and you change what counts as membership.
+
+The default is the one every programmer expects: $\Omega = \{\top, \bot\}$,
+classical two-valued logic. Plug it in and you get ordinary set theory.
+
+Swap it for Kleene K3---$\Omega = \{-1, 0, +1\}$---and something more interesting
+happens. The extra value is \emph{Unknown}, and it is where \texttt{NaN} lives.
+In classical logic, $P \lor \neg P = \top$ is a theorem; with \texttt{NaN} in
+play, that theorem quietly breaks, because neither $x < \texttt{NaN}$ nor
+$x \geq \texttt{NaN}$ is true. In K3, $P \lor \neg P = \mathit{Unknown}$ is a
+calm, unremarkable identity. The paradox was never in the floats; it was in our
+choice of $\Omega$.
+
+That is the payoff: the same comprehension machinery handles exact domains
+(pick classical $\Omega$) and floating-point domains (pick K3) with no change to
+the API. The logic is a parameter.
+
 \subsection{The Comprehension View: Sets Are Rules, Not Buckets}
 
 Here is the move. A set is not a bucket. A set is a rule:
@@ -1705,43 +1423,6 @@ static_assert(even_and_ten_plus(11) == ClassicalLogic::False);
 static_assert(even_and_ten_plus(4)  == ClassicalLogic::False);
 \end{lstlisting}
 
-\subsection{The Subobject Classifier $\Omega$}
-
-Here is what $\Omega$ is doing for us. A predicate $P : A \to \Omega$ maps ambient
-elements to \emph{truth values}, and $\Omega$ is the type those truth values live
-in. Change $\Omega$, and you change what counts as membership.
-
-The default is the one every programmer expects: $\Omega = \{\top, \bot\}$,
-classical two-valued logic. Plug it in and you get ordinary set theory.
-
-Swap it for Kleene K3---$\Omega = \{-1, 0, +1\}$---and something more interesting
-happens. The extra value is \emph{Unknown}, and it is where \texttt{NaN} lives.
-In classical logic, $P \lor \neg P = \top$ is a theorem; with \texttt{NaN} in
-play, that theorem quietly breaks, because neither $x < \texttt{NaN}$ nor
-$x \geq \texttt{NaN}$ is true. In K3, $P \lor \neg P = \mathit{Unknown}$ is a
-calm, unremarkable identity. The paradox was never in the floats; it was in our
-choice of $\Omega$.
-
-That is the payoff: the same comprehension machinery handles exact domains
-(pick classical $\Omega$) and floating-point domains (pick K3) with no change to
-the API. The logic is a parameter.
-
-% ============================================================
-\section{Algebraic Lattice}
-\label{sec:pruning}
-% ============================================================
-
-The third pillar.  The carrier tower of Figure~\ref{fig:carrier-lattice}
-in load-bearing form: HSP propagation lifts axioms componentwise
-along quotients (\textbf{H}, e.g. \texttt{Frac}, \texttt{Complex},
-\texttt{Dual}) and direct products (\textbf{P}, e.g. $V_n(R)$,
-\texttt{Diagonal}); $\operatorname{End}_R$ is the partial-axiom
-rank-$n$ extension.  The compile-time-reduction showcases (linear
-programming, automatic differentiation, the
-$\mathbb{C} / \mathbb{D} \hookrightarrow M_2(\mathbb{Q})$
-embedding) are the algebraic lattice acting through the disciplined
-fragment of §\ref{sec:axiomatic}.
-
 \subsection{Structural Pruning in Practice}
 
 The payoff of the comprehension view is that the LLVM backend can \emph{prune} a
@@ -1772,8 +1453,10 @@ make this mechanically observable.
 
 \subsubsection*{Showcase witnesses}
 
-Two concrete witnesses from the test suite demonstrate this in the actual
-\texttt{dedekind} API.
+A concrete witness from the test suite demonstrates this in the actual
+\texttt{dedekind} API.  (The complementary $\mathbb{C}$-flavoured Showcase~2 is
+deferred to §\ref{sec:linalg}, where the linear-algebra carriers it depends
+on are introduced.)
 
 \textbf{Showcase 1 — Diagonal contradiction in $\mathbb{R}^2$.}
 On the diagonal $\{(x,y) \mid x = y\}$, the strip predicate $x > 5 \land y < 3$
@@ -1812,46 +1495,24 @@ define noundef zeroext i1 @witness_empty_diagonal_cut() local_unnamed_addr #0 {
 }
 \end{lstlisting}
 
-\textbf{Showcase 2 — Lattice/square singleton in $\mathbb{C}$.}
-The natural-number lattice (Gaussian integers, $0 \leq \mathrm{Re}, \mathrm{Im} \leq 3$)
-intersected with the square $[0.5,1.5]^2$ contains exactly $c_3 = 1+i$.
-The compiler proves all four membership assertions at translation time and folds the
-exported function to a single \lstinline{ret i1 true}.
+\subsection{Algebraic Properties Enable Stronger Pruning}
 
-% Source: src/test/cpp/modules/dedekind/python/showcase_02_lattice_singleton.cpp
-\begin{lstlisting}[language=C++, caption={Showcase 2 source: lattice/square singleton in $\mathbb{C}$.}, label={lst:showcase02_src}]
-constexpr auto c = var<ℂ>;
+Beyond interval arithmetic, \emph{algebraic} properties of the predicates provide
+additional pruning opportunities.
+The \texttt{:species} registry records which operations are associative, commutative,
+idempotent, and so forth.
+These traits inform the compiler about structural relationships between sets:
 
-constexpr auto natural_lattice_in_c =
-    Set{c % C | [](const Complex<double>& z) {
-      return is_integral_coordinate(z.real()) &&
-             is_integral_coordinate(z.imag()) &&
-             (z.real() >= 0.0) && (z.real() <= 3.0) &&
-             (z.imag() >= 0.0) && (z.imag() <= 3.0);
-    }};
-constexpr auto square_c1_c2 = Set{c % C | [](const Complex<double>& z) {
-  return (z.real() >= 0.5) && (z.real() <= 1.5) &&
-         (z.imag() >= 0.5) && (z.imag() <= 1.5);
-}};
-constexpr auto lattice_square_intersection = natural_lattice_in_c & square_c1_c2;
-using CLogic = typename decltype(lattice_square_intersection)::logic_species;
+\begin{itemize}
+  \item $S \cap \varnothing = \varnothing$ (intersection with the empty set is empty).
+  \item $S \cap \overline{S} = \varnothing$ (intersection with the complement is empty).
+  \item If $S_1 \subseteq S_2$ then $S_1 \cap S_2 = S_1$ (subset absorption).
+\end{itemize}
 
-static_assert(lattice_square_intersection(Complex<double>{1.0, 1.0}) == CLogic::True);
-static_assert(lattice_square_intersection(Complex<double>{0.0, 1.0}) == CLogic::False);
+Each of these equalities can be discharged as a \lstinline{static_assert} once the
+relevant algebraic witnesses are in the trait registry, reducing the intersection to
+the simpler set at compile time.
 
-extern "C" __attribute__((noinline)) bool witness_lattice_square_singleton() { /* ... */ }
-\end{lstlisting}
-
-% Source: src/test/cpp/modules/dedekind/python/showcase_02_lattice_singleton.ll
-\begin{lstlisting}[caption={Showcase 2 LLVM IR (\texttt{clang++-22 -O2}): constant true return.}, label={lst:showcase02_ir}]
-define noundef zeroext i1 @witness_lattice_square_singleton() local_unnamed_addr #0 {
-  ret i1 true
-}
-\end{lstlisting}
-
-Showcases 1 and 2 are checked in as LLVM IR fixtures and validated in CI
-(\texttt{make ir-fixture-check}). They exemplify the base case: pair-level
-predicate composition where constant-folding does the work.
 
 \subsubsection*{From lambdas to structured predicates: the halfspace DSL}
 
@@ -1896,10 +1557,6 @@ define noundef zeroext i1 @witness_empty_halfspace_meet() local_unnamed_addr #0 
 }
 \end{lstlisting}
 
-\textbf{Showcase 4 — Cardinality-1 reduction on $\mathbb{N}$.}
-The same meet operator, applied to two halfspaces whose bounds pin exactly one
-integer: the result's type \emph{is} \lstinline{Singleton<4>}, with the unique
-inhabitant in the template parameter.
 
 % Source: src/test/cpp/modules/dedekind/python/showcase_04_halfspace_singleton.cpp
 \begin{lstlisting}[language=C++, caption={Showcase 4 source: cardinality-1 meet collapses to $\{4\}$.}, label={lst:showcase04_src}]
@@ -1932,6 +1589,365 @@ transfinite carrier to a named extensional object (either $\varnothing$ or a
 type-level knowledge of elements. The \emph{reduction boundary} is the
 \emph{computability boundary}, and the six \lstinline{static_assert}s flanking
 each reduction are its mechanical witness.
+
+
+% ============================================================
+\section{Algebraic Lattice}
+\label{sec:pruning}
+% ============================================================
+
+The third pillar.  The carrier tower of Figure~\ref{fig:carrier-lattice}
+in load-bearing form: HSP propagation lifts axioms componentwise
+along quotients (\textbf{H}, e.g. \texttt{Frac}, \texttt{Complex},
+\texttt{Dual}) and direct products (\textbf{P}, e.g. $V_n(R)$,
+\texttt{Diagonal}); $\operatorname{End}_R$ is the partial-axiom
+rank-$n$ extension.  The algebraic lattice's compile-time-reduction
+showcases live in the sister section §\ref{sec:linalg}
+\emph{Linear Algebra}: linear programming
+(§\ref{sec:lp-centrepiece}), forward-mode automatic differentiation
+(§\ref{sec:ad-elliott}), and the
+$\mathbb{C} / \mathbb{D} \hookrightarrow M_2(\mathbb{Q})$
+embedding (§\ref{sec:lin-alg-embedding}).  Each of these is the
+algebraic lattice acting through the disciplined
+fragment of §\ref{sec:axiomatic}.
+
+
+\paragraph{Reading Figure~\ref{fig:carrier-lattice}.}
+The Algebraic Lattice is a 2D oblique projection of a 3D cube ---
+eight corners, twelve edges, three Fraktur-letter axes
+($\mathfrak{A}$ carrier-strength, $\mathfrak{R}$ rank,
+$\mathfrak{Q}$ quotient).  $\mathbb{B}$ sits at the bottom-front-left;
+$M_2(X(\mathbb{C}))$ at the top-back-right.
+
+Where the carrier axis stops is partly conventional.  We place
+$\mathbb{C}$ at the front-right corner because the textbook chain
+ends there, but the same diagram with $\mathbb{R}$ at the corner would
+push $\mathbb{C}$ to a back-face node $C(\mathbb{R}) =
+\mathbb{R}[i]/(i^2 + 1)$ via the quotient axis; with $\mathbb{Q}$ at
+the corner, $\mathbb{R}$ joins it via $\mathrm{Cuts}$.  All three
+readings agree on the math; the carrier-vs-quotient line is partly
+interpretive
+(§\ref{sec:carrier-rosetta}).\footnote{A parallel \emph{computability}
+lattice (representation Int / Ext; logic K3 / Cl; knowledge Opq / Elt)
+sits orthogonal to the three axes drawn --- the algebraic tower says
+\emph{which algebra}; the computability tier says \emph{how much the
+compiler knows about a set built on it}
+(§\ref{sec:gap}, Definition~\ref{def:computability-tier}).  We don't
+draw the second cube; one 3D figure carries the weight.}
+
+The lattice is unbounded above.  Iterated quotients, tensor products,
+$p$-adic completions and similar each yield a strictly larger object
+without a canonical maximum, so the visual top-right-back corner is
+an illustrative stopping point and the rendering is necessarily a
+finite slice.\footnote{Binary meets (largest shared substructure) are
+canonical; binary joins (smallest common extension) exist as pushouts
+but require ambient choice, so the structure is better thought of as
+a bounded-below lattice (informally, a meet-semilattice with
+constructive joins).  Other dimensions the figure deliberately omits:
+higher rank ($n > 2$; \#368), predicate-set / order-theoretic
+constructions (candidate sibling \emph{Geometric Tower}; future
+Figure~1b), iterated $\mathfrak{Q}$ (jet bundles; \#504), and the
+Honest-Rejection machine-substrate boundary (\texttt{bool},
+\texttt{uint}, \texttt{int}, \texttt{double} embed into
+$\mathbb{B} / \mathbb{N} / \mathbb{Z} / \mathbb{Q}$ via named
+\texttt{embed\_*} arrows in \texttt{dedekind.numbers}).  Per-cell
+compile-status of any specific instance is in the trait registry
+(\#499); the figure carries the structural shape.}
+
+The three axes don't all commute: matrix and quotient functors
+commute when both sides are defined; different quotient functors
+commute when their generating variables are independent (so
+$D \circ C \cong C \circ D$); but $\mathfrak{A}$ steps can fail to
+type-check after $\mathfrak{R}$ (producing modules, not rings) or
+after a quotient that destroys an integral domain (so
+$\mathrm{Frac}(D(R))$ is undefined).  Worth knowing on first read; the
+specific cells fall out of the type system at the call site.
+
+\begin{figure}[p]
+\centering
+\begin{tikzpicture}[
+  scale=1.0,
+  every node/.style={font=\small},
+  baseline=(current bounding box.center)
+]
+  % --- Cube-corners-only schematic of the Algebraic Lattice ---
+  %   X axis (right):  carrier strength 𝔄  (Frac, Cuts, Cplx — see Table A)
+  %   Y axis (up):     rank             𝔯  (Free_n, End_R    — see Table B)
+  %   Z axis (back):   quotient         𝔔  (D, C, D∘C, ...   — see Table C)
+  \def\dx{4.0}
+  \def\dy{3.0}
+  \def\zxoff{2.5}
+  \def\zyoff{2.0}
+
+  % Front face (z = 0) corners.
+  \node (B)    at (0,    0)    {$\mathbb{B}$};
+  \node (C)    at (\dx,  0)    {$\mathbb{C}$};
+  \node (M2B)  at (0,    \dy)  {$M_2(\mathbb{B})$};
+  \node (M2C)  at (\dx,  \dy)  {$M_2(\mathbb{C})$};
+
+  % Back face (z = 1) corners.
+  \node[opacity=0.7] (XB)    at (\zxoff,         \zyoff)         {$X(\mathbb{B})$};
+  \node[opacity=0.7] (XC)    at (\dx + \zxoff,   \zyoff)         {$X(\mathbb{C})$};
+  \node[opacity=0.7] (M2XB)  at (\zxoff,         \dy + \zyoff)   {$M_2(X(\mathbb{B}))$};
+  \node[opacity=0.7] (M2XC)  at (\dx + \zxoff,   \dy + \zyoff)   {$M_2(X(\mathbb{C}))$};
+
+  \tikzset{
+    edge/.style={->, >=stealth, semithick},
+    edgeback/.style={->, >=stealth, semithick, opacity=0.55},
+    diag/.style={->, >=stealth, dashed, thick}
+  }
+
+  % X-axis edges (4): "carrier strength" 𝔄 — Frac / Cuts / Cplx; see Table A.
+  \draw[edge]     (B)    -- node[midway, fill=white, inner sep=2pt]
+                              {$\mathfrak{A}$} (C);
+  \draw[edge]     (M2B)  -- node[midway, fill=white, inner sep=2pt]
+                              {$\mathfrak{A}$} (M2C);
+  \draw[edgeback] (XB)   -- node[midway, fill=white, inner sep=2pt, opacity=0.7]
+                              {$\mathfrak{A}$} (XC);
+  \draw[edgeback] (M2XB) -- node[midway, fill=white, inner sep=2pt, opacity=0.7]
+                              {$\mathfrak{A}$} (M2XC);
+
+  % Y-axis edges (4): "rank" 𝔯 — Free_n / End_R; see Table B.
+  \draw[edge]     (B)    -- node[midway, fill=white, inner sep=2pt]
+                              {$\mathfrak{R}$} (M2B);
+  \draw[edge]     (C)    -- node[midway, fill=white, inner sep=2pt]
+                              {$\mathfrak{R}$} (M2C);
+  \draw[edgeback] (XB)   -- node[midway, fill=white, inner sep=2pt, opacity=0.7]
+                              {$\mathfrak{R}$} (M2XB);
+  \draw[edgeback] (XC)   -- node[midway, fill=white, inner sep=2pt, opacity=0.7]
+                              {$\mathfrak{R}$} (M2XC);
+
+  % Z-axis edges (4): "quotient" 𝔔 — D / C / D∘C / ...; see Table C.
+  \draw[diag] (B)   -- node[midway, sloped, above, font=\scriptsize]
+                          {$\mathfrak{Q}$} (XB);
+  \draw[diag] (C)   -- node[midway, sloped, above, font=\scriptsize]
+                          {$\mathfrak{Q}$} (XC);
+  \draw[diag] (M2B) -- node[midway, sloped, above, font=\scriptsize]
+                          {$\mathfrak{Q}$} (M2XB);
+  \draw[diag] (M2C) -- node[midway, sloped, above, font=\scriptsize]
+                          {$\mathfrak{Q}$} (M2XC);
+
+  % --- Axis-direction labels ---
+  \node[below=12pt, font=\itshape\small] at (\dx/2, 0)
+    {carrier-strength $\mathfrak{A}$};
+  \node[left=12pt, font=\itshape\small, rotate=90] at (0, \dy/2)
+    {rank $\mathfrak{R}$};
+  \node[font=\itshape\small, rotate=30, opacity=0.85]
+    at ($(B)!0.5!(XB) + (-0.5, 0.5)$)
+    {quotient $\mathfrak{Q}$};
+\end{tikzpicture}
+\caption{\emph{The Algebraic Lattice.}
+3D oblique-projection lattice; eight cube corners, three Fraktur-axis
+parameters.  $\mathfrak{A}$ (carrier-strength) follows the chain
+$\mathbb{B} \to \mathbb{N} \to \mathbb{Z} \to \mathbb{Q} \to \mathbb{R}
+\to \mathbb{C}$; the early steps use the natural-numbers-object
+($\mathbb{B} \to \mathbb{N}$) and the Grothendieck ring construction
+($\mathbb{N} \to \mathbb{Z}$), the later steps the
+\emph{Frac} / \emph{Cuts} / \emph{Cplx} functors
+($\mathbb{Z} \to \mathbb{Q} \to \mathbb{R} \to \mathbb{C}$;
+Tables~\ref{tab:carriers-exact}--\ref{tab:rosetta-textbook-vs-cpp}).
+$\mathfrak{R}$ (rank) lifts Scalar $\to V_n(R) \to M_n(R)$ via
+$\mathrm{Free}_n$ and $\mathrm{End}_R$ (Table~\ref{tab:rosetta-rank}).
+$\mathfrak{Q}$ (quotient) realises an extension $R \to X(R)$ at a
+polynomial ideal --- the degree-2 instances dominate the worked
+showcases: $X = D$ gives $R[\varepsilon]/(\varepsilon^2)$ (dual
+numbers), $X = C$ gives $R[i]/(i^2 + 1)$ (complex extension); higher
+degrees enter via $X = G$, $R[x]/(p(x))$ for $p$ irreducible (Galois
+extension; e.g.\ $\mathbb{F}_{64} = \mathbb{F}_2[x]/(x^6 + x + 1)$
+at degree~6).  See Table~\ref{tab:rosetta-quotient} for the full
+enumeration.
+The bottom-front-left corner $\mathbb{B}$ is the lattice bottom; the
+top-right-back corner $M_2(X(\mathbb{C}))$ is an illustrative
+stopping point on an unbounded-above lattice.  The reading aids,
+commutation rules, off-figure dimensions, and the bounded-below /
+no-unique-top caveat are discussed in the body prose immediately
+preceding this figure.}
+\label{fig:carrier-lattice}
+\end{figure}
+
+% --- Rosetta tables for the rank ($\mathfrak{R}$) and quotient ($\mathfrak{Q}$)
+%     axes of the Algebraic Lattice (Figure~\ref{fig:carrier-lattice}). ---
+
+\begin{table}[htbp]
+\centering
+\caption{\textbf{Rank-axis rosetta ($\mathfrak{R}$).}  Per-rank
+object, its structure-preserving construction, the algebraic concept
+witnessing it, and the C++23 carrier.  The chain $T \to V_n(T) \to
+M_n(T)$ exhibits the rank-axis steps of
+Figure~\ref{fig:carrier-lattice}; $n = 2$ is the worked example,
+higher ranks via combinators (\texttt{DirectSum},
+\texttt{BlockUpperTriangular}, \texttt{Kronecker}; issue~\#368).}
+\label{tab:rosetta-rank}
+\small
+\begin{tabular}{@{}l l l l@{}}
+\toprule
+\textbf{Object} & \textbf{Construction} & \textbf{Concept} & \textbf{C++23 carrier} \\
+\midrule
+$T$ (scalar) & identity & \lstinline|IsRing| / \lstinline|IsField| & \lstinline|T| \\
+$V_n(T) = T^n$ & $\mathrm{Free}_n$ (\textbf{P} in HSP; Burris--Sankappanavar~\cite{burris1981universalalgebra} §II.10) & \lstinline|IsProductAlgebra<V>| & \lstinline|Vec2V<T>| \\
+$M_n(T) = \mathrm{End}_T(V_n)$ & internal hom in $\mathbf{Mod}_R$ (\emph{not} HSP; Mac Lane~\cite{maclane1971categories} §VII) & \lstinline|is_endomorphism_ring_v<M, V>| & \lstinline|Matrix2x2V<T>| \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[htbp]
+\centering
+\caption{\textbf{Quotient-axis rosetta ($\mathfrak{Q}$) — all rows
+are \textbf{H} instances of HSP
+(Burris--Sankappanavar~\cite{burris1981universalalgebra} §II.10).}
+Per-quotient realisation: the polynomial ideal, the resulting
+algebra, the structural property, and the C++23 carrier.  Each row
+is a value of the parameter $X$ in Figure~\ref{fig:carrier-lattice};
+compositions ($X = D \circ C$ etc.) commute when their generators
+are independent.  Carrier-side concept across the table:
+\lstinline|IsQuotientAlgebra<Q>|.}
+\label{tab:rosetta-quotient}
+\small
+\begin{tabular}{@{}l l l l l@{}}
+\toprule
+\textbf{$X$} & \textbf{Polynomial ideal} & \textbf{Algebra} & \textbf{Structure} & \textbf{C++23 carrier} \\
+\midrule
+$D$ (Dual) & $(\varepsilon^2)$ & $R[\varepsilon]/(\varepsilon^2)$ & nilpotent (never integral) & \lstinline|Dual<F>| (\#504 generalises) \\
+$C$ (Cplx) & $(i^2 + 1)$ & $R[i]/(i^2 + 1)$ & integral-domain extension when $i^2{+}1$ irreducible; field extension when $R$ is a field$^a$ & \lstinline|Complex<R>| (\#505 generalises) \\
+$D \circ C \cong C \circ D$ & $(i^2 + 1, \varepsilon^2)$ & $R[i, \varepsilon]/(i^2{+}1, \varepsilon^2)$ & nilpotent dual of the complex extension & nested \lstinline|Dual<Complex<R>>| \\
+$G$ (Galois) & $(q(x))$ for $q$ irreducible & $\mathbb{F}_p[x]/(q(x))$ & finite field $\mathbb{F}_{p^n}$ & \lstinline|𝔽64| ($\mathbb{F}_2[x]/(x^6{+}x{+}1)$, PR \#444) \\
+\bottomrule
+\end{tabular}
+
+\vspace{0.5em}
+{\footnotesize
+\textsuperscript{a} The structural type of $C(R) = R[i]/(i^2 + 1)$
+depends on both the irreducibility of $i^2 + 1$ over $R$ \emph{and}
+on whether $R$ is itself a field.  When $i^2 + 1$ is irreducible over
+$R$, the result is an integral-domain extension --- a field extension
+when $R$ is already a field (e.g.\ $C(\mathbb{Q}) = \mathbb{Q}[i]$ is
+a field; $C(\mathbb{R}) = \mathbb{C}$ is a field), an integral-domain
+extension when $R$ is an integral domain but not a field (e.g.\
+$C(\mathbb{Z}) = \mathbb{Z}[i]$, the Gaussian integers, is a Euclidean
+domain but not a field).  When $i^2 + 1$ is reducible (e.g.\ over
+$\mathbb{F}_2$ where it factors as $(x + 1)^2$), the quotient has
+nilpotents and is isomorphic to $D(\mathbb{F}_2)$ (cf.\ \#505).
+This is a concrete example of the "same construction, different
+result depending on base" pattern the quotient axis encodes.  Per-cell compile-status (which $R \times X$
+combinations the experimental library admits today vs which are pending
+implementation) is tracked in the trait registry of \#499 as positive /
+negative \texttt{static\_assert} witnesses.}
+\end{table}
+
+
+\subsubsection{Dedekind Cuts as the Canonical Example}
+\label{sec:dedekind-cuts}
+
+Dedekind's construction --- $r \in \mathbb{R}$ as the partition
+$(L, U)$ of $\mathbb{Q}$ into rationals strictly below $r$ and those
+at or above --- translates the intensional-first rule directly: the
+two sets are type-level predicates, and \emph{the predicate is the
+number}. The library's canonical worked example is Dedekind's own
+$\sqrt{2}$: a rational $q$ is in the lower cut iff $q^{2} < 2$, a
+decidable predicate over $\mathbb{Q}$ that compiles into a finite
+type-level object --- no approximation, no series summation:
+
+% Source: src/main/modules/dedekind/numbers/symbolic.cppm (Sqrt2_Symbolic, ll. 24-38)
+\begin{lstlisting}[language=C++, caption={$\sqrt{2}$ as an intensional lower cut over $\mathbb{Q}$, from \texttt{dedekind.numbers:symbolic}. The predicate is the number.}, label={lst:euler}]
+template <typename Q>
+constexpr auto Sqrt2_Symbolic() {
+  const dedekind::sets::Ω<Q, TernaryLogic> universe{};
+  // The lower cut L_sqrt2 = { q in Q | q^2 < 2 }.
+  return ambient_set<Q>([universe](const Q& q) {
+    if constexpr (std::floating_point<Q>) {
+      if (std::isnan(q)) { return Ternary::Unknown; }
+    }
+    const auto in_cut =
+        (q * q < static_cast<Q>(2)) ? Ternary::True : Ternary::False;
+    return TernaryLogic::AND(universe(q), in_cut);
+  });
+}
+\end{lstlisting}
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[scale=1.3]
+  % Number line
+  \draw[->, thick] (-0.4, 0) -- (5.5, 0) node[right] {$\mathbb{Q}$};
+  \foreach \x/\l in {0/0, 1/1, 2/2, 3/3, 4/4, 5/5} {
+    \draw (\x, -0.08) -- (\x, 0.08);
+    \node[below] at (\x, -0.12) {\small $\l$};
+  }
+  % The cut at sqrt(2) (approximately 1.414)
+  \draw[thick, red, dashed] (1.414, -0.75) -- (1.414, 1.0);
+  \node[red, above] at (1.414, 1.0) {$\sqrt{2}$};
+  % Lower set L_sqrt2
+  \draw[blue, line width=2.5pt, opacity=0.45] (-0.25, 0.4) -- (1.414, 0.4);
+  \node[blue, above] at (0.6, 0.45) {\small $L_{\sqrt{2}} = \{\, q \in \mathbb{Q} \mid q^{2} < 2 \,\}$};
+  % Upper set U_sqrt2
+  \draw[orange, line width=2.5pt, opacity=0.55] (1.414, -0.4) -- (5.3, -0.4);
+  \node[orange, below] at (3.5, -0.45) {\small $U_{\sqrt{2}} = \{\, q \in \mathbb{Q} \mid q^{2} \geq 2 \,\}$};
+  % Sample rationals
+  \foreach \x in {0, 0.5, 1, 1.25, 1.4} { \fill[blue] (\x, 0.4) circle (1.4pt); }
+  \foreach \x in {1.5, 2, 3, 4, 5} { \fill[orange] (\x, -0.4) circle (1.4pt); }
+\end{tikzpicture}
+\caption{A Dedekind cut names $\sqrt{2}$ by partitioning $\mathbb{Q}$.
+The lower half $L_{\sqrt{2}}$ (blue) and upper half $U_{\sqrt{2}}$
+(orange) are both compile-time predicates. In \texttt{dedekind}, the
+real number \emph{is} the partition: no approximation is stored, no
+square root is computed, and the compiler still knows everything
+about $\sqrt{2}$ that the predicate $q^{2} < 2$ expresses.}
+\label{fig:dedekind-cut}
+\end{figure}
+
+No floating-point approximation is computed; no Newton iteration runs.
+Asking ``is $\tfrac{7}{5}$ less than $\sqrt{2}$?'' reduces to
+$\tfrac{49}{25} < 2$, decidable at translation time. Approximation to
+a concrete float is available later, at a specific precision, when
+the programmer asks for it. The intensional object survives
+indefinitely without losing reasoning power.
+
+
+
+\textbf{Showcase 2 — Lattice/square singleton in $\mathbb{C}$.}
+The natural-number lattice (Gaussian integers, $0 \leq \mathrm{Re}, \mathrm{Im} \leq 3$)
+intersected with the square $[0.5,1.5]^2$ contains exactly $c_3 = 1+i$.
+The compiler proves all four membership assertions at translation time and folds the
+exported function to a single \lstinline{ret i1 true}.
+
+% Source: src/test/cpp/modules/dedekind/python/showcase_02_lattice_singleton.cpp
+% (Abridged: the source ships four static_asserts on representative test
+% points plus an extern "C" witness function; the listing below shows two
+% representative static_asserts.  See the source file for the full set.)
+\begin{lstlisting}[language=C++, caption={Showcase 2 source: lattice/square singleton in $\mathbb{C}$.}, label={lst:showcase02_src}]
+constexpr auto c = var<ℂ>;
+
+constexpr auto natural_lattice_in_c =
+    Set{c % C | [](const Complex<double>& z) {
+      return is_integral_coordinate(z.real()) &&
+             is_integral_coordinate(z.imag()) &&
+             (z.real() >= 0.0) && (z.real() <= 3.0) &&
+             (z.imag() >= 0.0) && (z.imag() <= 3.0);
+    }};
+constexpr auto square_c1_c2 = Set{c % C | [](const Complex<double>& z) {
+  return (z.real() >= 0.5) && (z.real() <= 1.5) &&
+         (z.imag() >= 0.5) && (z.imag() <= 1.5);
+}};
+constexpr auto lattice_square_intersection = natural_lattice_in_c & square_c1_c2;
+using CLogic = typename decltype(lattice_square_intersection)::logic_species;
+
+static_assert(lattice_square_intersection(Complex<double>{1.0, 1.0}) == CLogic::True);
+static_assert(lattice_square_intersection(Complex<double>{0.0, 1.0}) == CLogic::False);
+\end{lstlisting}
+
+% Source: src/test/cpp/modules/dedekind/python/showcase_02_lattice_singleton.ll
+\begin{lstlisting}[caption={Showcase 2 LLVM IR (\texttt{clang++-22 -O2}): constant true return.}, label={lst:showcase02_ir}]
+define noundef zeroext i1 @witness_lattice_square_singleton() local_unnamed_addr #0 {
+  ret i1 true
+}
+\end{lstlisting}
+
+
+For the previously shown cardinality-1 reduction on $\mathbb{N}$, the same
+meet operator, applied to two halfspaces whose bounds pin exactly one
+integer, yields a result whose type \emph{is} \lstinline{Singleton<4>}, with
+the unique inhabitant in the template parameter.
+
 
 \paragraph{FIXME (\#362) --- showcase: carrier strength-reduction.}
 The showcases above collapse the \emph{cardinality} of an intensional set
@@ -2021,6 +2037,11 @@ directions.  An engineer who claims that the carrier their code uses is a ring
 of \cite{nspe_ethics} are about; the type system's refusal to accept the
 \lstinline{IsRing<int>} witness is the mechanical analogue of an external
 review catching the claim.}
+
+% ============================================================
+\section{Linear Algebra}
+\label{sec:linalg}
+% ============================================================
 
 \subsection{Linear Programming: The Optimum as a Typed Constant}
 \label{sec:lp-centrepiece}
@@ -2160,11 +2181,6 @@ cross-platform-determinism guarantee the paper has been claiming
 throughout, made concrete by the absence of any \texttt{double}-typed
 reduction in the IR.
 
-This closes one of the type-directed-collapse axes listed in
-Section~\ref{sec:gap}% tracker: issue #364 (linear programming)
-{} in a worked form: the LP solver is the C++ compiler, for every
-instance whose size and coefficients are compile-time data.
-
 \subsection{Forward-Mode AD as a Sibling Realisation of Compile-Time Derivatives}
 \label{sec:ad-elliott}
 
@@ -2257,24 +2273,6 @@ static_assert(as_matrix2x2(d * e) == as_matrix2x2(d) * as_matrix2x2(e));
 constexpr Dual<Rat> eps{Rat{0}, Rat{1}};
 static_assert(as_matrix2x2(eps) * as_matrix2x2(eps) == zero_matrix2x2_v<Rat>);
 \end{lstlisting}
-
-\subsection{Algebraic Properties Enable Stronger Pruning}
-
-Beyond interval arithmetic, \emph{algebraic} properties of the predicates provide
-additional pruning opportunities.
-The \texttt{:species} registry records which operations are associative, commutative,
-idempotent, and so forth.
-These traits inform the compiler about structural relationships between sets:
-
-\begin{itemize}
-  \item $S \cap \varnothing = \varnothing$ (intersection with the empty set is empty).
-  \item $S \cap \overline{S} = \varnothing$ (intersection with the complement is empty).
-  \item If $S_1 \subseteq S_2$ then $S_1 \cap S_2 = S_1$ (subset absorption).
-\end{itemize}
-
-Each of these equalities can be discharged as a \lstinline{static_assert} once the
-relevant algebraic witnesses are in the trait registry, reducing the intersection to
-the simpler set at compile time.
 
 \subsection{From Cardinality Pruning to Type-Directed Collapse}
 \label{sec:gap}
@@ -2521,76 +2519,6 @@ family but at the \emph{function} layer: a polynomial reduced under
 yields another intensional object whose identity with a target is
 discharged by the compiler.
 
-\subsection{The Compiler Wall: Where This Stops}
-\label{sec:compiler-wall}
-
-Treating \texttt{clang++} as a poor man's theorem prover is useful
-precisely because the compiler is bounded, predictable, and cheap. It
-is also, for the same reason, incapable of doing everything a real
-proof assistant would. The purpose of this subsection is to be honest
-about the wall and to name the \texttt{clang} knobs that push it back
-by a constant factor but cannot remove it.
-
-\paragraph{Compile-time budgets.}
-Every reduction in this paper is a variadic template, so two
-\texttt{clang} budgets matter: \emph{instantiation depth} (default
-$1024$, raised to $2048$ on the affected translation units; concepts
-and NTTP lambdas each add frames so the limit hits earlier than the
-naive count suggests) and \emph{\lstinline{constexpr} steps} (default
-$\sim\!10^6$, capping a single \lstinline{constexpr} evaluation).  A
-$2\times 2$ LP with four constraints is comfortably under both; a
-$2\times 2$ LP with thirty constraints ($\binom{30}{2} = 435$ active
-sets and nontrivial metadata) starts approaching the step limit.
-Raising the caps is possible (\lstinline{-ftemplate-depth=N},
-\lstinline{-fconstexpr-steps=N}) but trades compile time and resident
-memory for reach; the more principled answer is to stop at the
-boundary and hand off to a runtime solver --- which is exactly the
-case our centrepiece is \emph{not}.
-
-\paragraph{Combinatorial blowup is the pessimistic bound.}
-Compile-time vertex enumeration over $n$ halfspaces is, in the worst
-case, $\binom{n}{d}$ active-set solves for a $d$-dimensional LP
-(six for $n = 4$, $190$ for $n = 20$, nearly half a million for
-$n = 1000$).  Two facts soften this substantially in practice.  By
-the fundamental theorem of linear programming, the optimum of a
-$d$-dimensional LP is attained at a vertex with at most $d$ binding
-constraints, and on a handwritten polytope most of the syntactic
-constraint list is slack or redundant; the $\binom{n}{d}$ figure
-counts enumeration cost, not what any one vertex actually witnesses.
-Many of those redundancies are also \emph{statically} removable: the
-library's \lstinline{structured_and} dispatch already collapses
-linearly-dependent or contradictory halfspaces at compile time
-(Showcases~3 and~4), so the combinatorial term tracks the pruned
-count rather than the raw
-one.\footnote{Concretely:
-\lstinline|x > 5 && x > 7| collapses to \lstinline|x > 7| (stricter
-pivot wins); \lstinline|x > 5 && x < 2| collapses to $\varnothing$
-(contradiction); \lstinline|x > 3 && x < 5| over an integral carrier
-collapses to \lstinline{Singleton<4>}.  The 2D extension --- pruning
-halfspaces whose normals are linearly dependent --- follows the same
-dispatch pattern.}
-The instance regime this paper targets --- MPC steps with a handful
-of physical constraints, sensor-fusion guards, parametric
-configuration LPs --- rarely exceeds a few dozen raw constraints
-before pruning, and remains comfortably tractable.  Industrial-scale
-LP is emphatically not in scope; we do not claim it is.
-
-\paragraph{Active-set hints as the user-side escape valve.}
-Even within the compile-time regime, a user with domain knowledge of
-\emph{which} halfspaces bind at the optimum can short-circuit the
-$\binom{n}{d}$ enumeration entirely: because the constraint pack is
-already an NTTP list, instantiating
-\lstinline|maximize<T, cx, cy, H_i, H_j>()| with just the binding
-pair (instead of the full pack) is exactly the active-set hint, and
-the library evaluates only that single Cramer solve.  An explicit
-\lstinline|with_active_set<...>| API that takes the hint as a separate
-template argument and verifies feasibility against the full pack
-without re-enumerating is a natural successor surface, but the
-underlying NTTP-pack-as-hint mechanism is available today: dropping
-slack constraints from the syntactic list is the user's prerogative,
-and the combinatorial term then tracks the hinted count rather than
-the raw one.
-
 \paragraph{Scaling beyond atomic carriers via structure-preserving combinators.}
 The same partition---atoms below, runtime above---governs the
 linear-algebra surface the paper exhibits at the $2 \times 2$ scale.
@@ -2680,65 +2608,6 @@ pushable by a flag, avoidable by staying within the instance regime
 for which this technique is intended, or a known limitation we do not
 claim to have solved. The paper's contribution lies entirely to the
 left of that wall.
-
-\subsection{Boundary Observations: An Axiom~\texorpdfstring{$\to$}{->}~Theorem Chain}
-\label{sec:boundary-observations}
-
-The previous subsections present the technique through worked
-showcases, IR artefacts, and concrete diagnostics---an empirical
-register. The library admits a stricter framing whose structural
-parallel is Wadler's \emph{Theorems for Free!}~\cite{wadler1989theorems}:
-parametricity gives the typed-lambda calculus theorems from type
-signatures alone; the dedekind library extends the move into
-\emph{algebraic} territory, where a carrier's axiomatic profile
-(declared via opt-in traits and concept witnesses) discharges
-carrier-level theorems at the type level. The empirical artefacts of
-the showcases are then \emph{realisations} of an underlying
-axiom~$\to$~theorem chain rather than the substance of the chain
-itself.
-
-\paragraph{Axioms as the engineer's honesty obligation.}
-A carrier's algebraic profile is asserted explicitly. Where the
-proof of an axiom is beyond what C++ concepts can quantify, the claim
-is made via an opt-in trait specialisation, and the engineer who
-declares the trait carries Wadler's
-\emph{propositions-as-types}~\cite{wadler2015propositions}
-obligation under the NSPE Code of Ethics canons III and IV (truthful
-public statements; faithful agency). The library ships several such
-opt-in surfaces:
-\lstinline{is_monic_arrow_v} for monomorphism declarations,
-\lstinline{is_initial_ring_v} for the initial-object reading of
-$\mathbb{Z}$, \lstinline{is_grothendieck_group_v} for the
-free-abelian-group reading, \lstinline{is_initial_f_algebra_v} for the
-NNO-as-initial-F-algebra reading, and a family of axiom-shape concepts
-including \lstinline{IsRing}, \lstinline{IsField},
-\lstinline{IsTotallyOrdered}, \lstinline{IsArchimedean}, and
-\lstinline{IsCyclicGroup}. Each is the engineer's claim, not a
-machine-discharged proof; the structural shape (signatures, closure,
-opt-in trait set to \texttt{true}) is what the type system can pin
-mechanically.
-
-\paragraph{Theorems for free.}
-Once the axioms are discharged honestly, downstream code leans on a
-catalogue of carrier-level theorems without further proof:
-generic combinators over \lstinline{HasRingOperators<T>} compose for
-any carrier whose ring axioms hold; the carrier-swap $\mathtt{Rational
-\langle long\rangle} \to
-\mathtt{Rational\langle SignedExtensionalCardinal\langle\rangle\rangle}$
-is a one-line change at the \lstinline|using| declaration and every
-section's claim survives the swap; the type-directed collapse of
-Section~\ref{sec:pruning} (whose 1D specialisation admits a worked
-proof, deferred to a follow-up paper) reduces a constraint
-intersection to one of $\varnothing$, \lstinline{Singleton<v>}, or a
-typed \lstinline{Interval} entirely from carrier-level total-order +
-meet-closure; and the partition naming
-(\lstinline{:natural} / \lstinline{:integer} / \lstinline{:rational}
-/ \lstinline{:real} / \lstinline{:complex}) lifts the textbook
-vocabulary into the type system unchanged. The trade-off is plain:
-\emph{if} a carrier's domain admits the axioms, the affordances pay;
-\emph{if} the domain hits a friction (next paragraph), the axioms
-cannot be discharged honestly and downstream code falls back to the
-operational policy gate.
 
 \paragraph{Frictions: where C++23 and IEEE numerics break the chain.}
 The axioms cannot always be discharged. The friction points encountered while
@@ -2841,10 +2710,118 @@ discipline in C++23 today, on the carriers in the Rosetta tables of
 Section~\ref{sec:carrier-rosetta}.
 
 % ============================================================
-\section{Related Work}
-\label{sec:related}
+\section{Discussion}
+\label{sec:discussion}
 % ============================================================
 
+
+\subsection{The Compiler Wall: Where This Stops}
+\label{sec:compiler-wall}
+
+Treating \texttt{clang++} as a poor man's theorem prover is useful
+precisely because the compiler is bounded, predictable, and cheap. It
+is also, for the same reason, incapable of doing everything a real
+proof assistant would. The purpose of this subsection is to be honest
+about the wall and to name the \texttt{clang} knobs that push it back
+by a constant factor but cannot remove it.
+
+\paragraph{Compile-time budgets.}
+Every reduction in this paper is a variadic template, so two
+\texttt{clang} budgets matter: \emph{instantiation depth} (default
+$1024$, raised to $2048$ on the affected translation units; concepts
+and NTTP lambdas each add frames so the limit hits earlier than the
+naive count suggests) and \emph{\lstinline{constexpr} steps} (default
+$\sim\!10^6$, capping a single \lstinline{constexpr} evaluation).  A
+$2\times 2$ LP with four constraints is comfortably under both; a
+$2\times 2$ LP with thirty constraints ($\binom{30}{2} = 435$ active
+sets and nontrivial metadata) starts approaching the step limit.
+Raising the caps is possible (\lstinline{-ftemplate-depth=N},
+\lstinline{-fconstexpr-steps=N}) but trades compile time and resident
+memory for reach; the more principled answer is to stop at the
+boundary and hand off to a runtime solver --- which is exactly the
+case our centrepiece is \emph{not}.
+
+\paragraph{Combinatorial blowup is the pessimistic bound.}
+Compile-time vertex enumeration over $n$ halfspaces is, in the worst
+case, $\binom{n}{d}$ active-set solves for a $d$-dimensional LP
+(six for $n = 4$, $190$ for $n = 20$, nearly half a million for
+$n = 1000$).  Two facts soften this substantially in practice.  By
+the fundamental theorem of linear programming, the optimum of a
+$d$-dimensional LP is attained at a vertex with at most $d$ binding
+constraints, and on a handwritten polytope most of the syntactic
+constraint list is slack or redundant; the $\binom{n}{d}$ figure
+counts enumeration cost, not what any one vertex actually witnesses.
+Many of those redundancies are also \emph{statically} removable: the
+library's \lstinline{structured_and} dispatch already collapses
+linearly-dependent or contradictory halfspaces at compile time
+(Showcases~3 and~4), so the combinatorial term tracks the pruned
+count rather than the raw
+one.\footnote{Concretely:
+\lstinline|x > 5 && x > 7| collapses to \lstinline|x > 7| (stricter
+pivot wins); \lstinline|x > 5 && x < 2| collapses to $\varnothing$
+(contradiction); \lstinline|x > 3 && x < 5| over an integral carrier
+collapses to \lstinline{Singleton<4>}.  The 2D extension --- pruning
+halfspaces whose normals are linearly dependent --- follows the same
+dispatch pattern.}
+The instance regime this paper targets --- MPC steps with a handful
+of physical constraints, sensor-fusion guards, parametric
+configuration LPs --- rarely exceeds a few dozen raw constraints
+before pruning, and remains comfortably tractable.  Industrial-scale
+LP is emphatically not in scope; we do not claim it is.
+
+\paragraph{Active-set hints as the user-side escape valve.}
+Even within the compile-time regime, a user with domain knowledge of
+\emph{which} halfspaces bind at the optimum can short-circuit the
+$\binom{n}{d}$ enumeration entirely: because the constraint pack is
+already an NTTP list, instantiating
+\lstinline|maximize<T, cx, cy, H_i, H_j>()| with just the binding
+pair (instead of the full pack) is exactly the active-set hint, and
+the library evaluates only that single Cramer solve.  An explicit
+\lstinline|with_active_set<...>| API that takes the hint as a separate
+template argument and verifies feasibility against the full pack
+without re-enumerating is a natural successor surface, but the
+underlying NTTP-pack-as-hint mechanism is available today: dropping
+slack constraints from the syntactic list is the user's prerogative,
+and the combinatorial term then tracks the hinted count rather than
+the raw one.
+
+\subsection{Boundary Observations: An Axiom~\texorpdfstring{$\to$}{->}~Theorem Chain}
+\label{sec:boundary-observations}
+
+The preceding sections present the technique in an empirical sort of way: through worked showcases, IR artefacts, and concrete diagnostics.
+The library admits a stricter framing whose structural
+parallel is Wadler's \emph{Theorems for Free!}~\cite{wadler1989theorems}:
+parametricity gives the typed-lambda calculus theorems from type
+signatures alone; the dedekind library extends the move into
+\emph{algebraic} territory, where a carrier's axiomatic profile
+(declared via opt-in traits and concept witnesses) discharges
+carrier-level theorems at the type level. The empirical artefacts of
+the showcases are then \emph{realisations} of an underlying
+axiom~$\to$~theorem chain rather than the substance of the chain
+itself.
+
+\paragraph{Axioms as the engineer's honesty obligation.}
+A carrier's algebraic profile is asserted explicitly. Where the
+proof of an axiom is beyond what C++ concepts can quantify, the claim
+is made via an opt-in trait specialisation, and the engineer who
+declares the trait carries Wadler's
+\emph{propositions-as-types}~\cite{wadler2015propositions}
+obligation under the NSPE Code of Ethics canons III and IV (truthful
+public statements; faithful agency). The library ships several such
+opt-in surfaces:
+\lstinline{is_monic_arrow_v} for monomorphism declarations,
+\lstinline{is_initial_ring_v} for the initial-object reading of
+$\mathbb{Z}$, \lstinline{is_grothendieck_group_v} for the
+free-abelian-group reading, \lstinline{is_initial_f_algebra_v} for the
+NNO-as-initial-F-algebra reading, and a family of axiom-shape concepts
+including \lstinline{IsRing}, \lstinline{IsField},
+\lstinline{IsTotallyOrdered}, \lstinline{IsArchimedean}, and
+\lstinline{IsCyclicGroup}. Each is the engineer's claim, not a
+machine-discharged proof; the structural shape (signatures, closure,
+opt-in trait set to \texttt{true}) is what the type system can pin
+mechanically.
+
+\subsection{Related Work}
 \paragraph{Functional and dependently-typed approaches.}
 Agda~\cite{norell2007towards} and Coq provide dependent type systems in which set-membership
 proofs are first-class terms.  The expressiveness is greater than C++23, but the
