@@ -208,6 +208,18 @@ struct BoundScout {
     return Comprehension<AmbientType, std::decay_t<P>>{ambient,
                                                        std::forward<P>(p)};
   }
+
+  /** @brief Membership re-bind: @c b @c % @c S binds @c b to a
+   *  @b narrower set @c S whose @c Domain matches the scout's @c T.
+   *  Mirrors @c Variable<Species>::operator% for the case where the
+   *  scout's declared ambient is the universal @c Ω<T> but the
+   *  caller wants to specialise to a smaller subset (e.g.\
+   *  @c singleton(1), an empty set, a specific predicate-set). */
+  template <typename SubSpecies>
+    requires std::same_as<T, typename SubSpecies::Domain>
+  constexpr auto operator%(const SubSpecies& s) const {
+    return MembershipBinding<SubSpecies>{s};
+  }
 };
 
 /** @brief Variable-template factory for bound scouts at a specific

@@ -116,14 +116,14 @@ TEST_CASE("Modules: Integer Polynomial Action", "[algebra][modules]") {
   SECTION("Set comprehension syntax works for vector carriers") {
     using namespace dedekind::sets;
 
-    auto v = var<UniversalSet<RealLine>>;
+    auto v = element<Ω<RealLine>>;
     auto zero_line = Set{v % UniversalSet<RealLine>{} | [](const RealLine& r) {
       return r.coordinate().resolve() == 0.0;
     }};
     CHECK(zero_line(RealLine(0.0)) == dedekind::category::Ternary::True);
     CHECK(zero_line(RealLine(1.0)) == dedekind::category::Ternary::False);
 
-    auto b = var<UniversalSet<BoolLine>>;
+    auto b = element<Ω<BoolLine>>;
     auto true_line = Set{b % UniversalSet<BoolLine>{} |
                          [](const BoolLine& x) { return x.coordinate(); }};
     CHECK(true_line(BoolLine(true)) == dedekind::category::Ternary::True);

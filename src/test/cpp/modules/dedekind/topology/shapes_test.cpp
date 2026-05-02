@@ -150,7 +150,7 @@ TEST_CASE("Topology: Rules of Continuity Coverage", "[topology][continuity]") {
     using namespace dedekind::category;
     using namespace dedekind::sets;
 
-    auto x = var<UniversalSet<int>>;
+    auto x = element<Ω<int>>;
     UnitInterval open_mid(0, 3);
 
     auto in_open_mid =

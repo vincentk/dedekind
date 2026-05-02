@@ -8,8 +8,8 @@ using namespace dedekind::sets;
 
 TEST_CASE("Dedekind MVP: Basic Membership and Symbols", "[sets]") {
   SECTION("Integer Universe Membership") {
-    auto x = var<UniversalSet<int>>;  // A variable representing an element of
-                                      // the integer universe
+    auto x = element<Ω<int>>;  // A variable representing an element of
+                               // the integer universe
 
     // Should be Set<int, ClassicalLogic>
     auto finite = Set{x % singleton(1) | (x == 1)};
@@ -52,7 +52,7 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
   }
 
   SECTION("Singleton ^ Set — pivot toggles membership (#469)") {
-    auto x_int = var<UniversalSet<int>>;
+    auto x_int = element<Ω<int>>;
     auto positives = Set{x_int % UniversalSet<int>{} | (x_int > 0)};
     auto sing_in_set = singleton(5);
     auto sing_out_set = singleton(-3);
@@ -310,7 +310,7 @@ TEST_CASE(
 
 TEST_CASE("Dedekind Sets: Cartesian product and relation witnesses",
           "[sets][relations][cartesian]") {
-  auto x = var<UniversalSet<int>>;
+  auto x = element<Ω<int>>;
 
   const auto positive = Set{x % UniversalSet<int>{} | (x > 0)};
   const auto small = Set{x % UniversalSet<int>{} | (x <= 3)};
@@ -356,7 +356,7 @@ TEST_CASE("Dedekind Sets: Ambient cartesian product ergonomics",
 
 TEST_CASE("Dedekind Sets: Power-set witness over homogeneous predicates",
           "[sets][powerset]") {
-  auto x = var<UniversalSet<int>>;
+  auto x = element<Ω<int>>;
 
   const auto positive = Set{x % UniversalSet<int>{} | (x > 0)};
 
