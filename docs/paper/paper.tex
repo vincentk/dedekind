@@ -563,14 +563,14 @@ The strategy of this section is a three-step intersection.
 Both category theory and modern C++23 are large and occasionally intimidating beasts; each, however, admits a tractable subset with simple atomic building blocks and clear composition rules.
 The \texttt{dedekind} library lives at their intersection.
 
-\subsection{Structuralism with \textbf{Monoidal} Categories}
+\subsection{Structuralism with Single-Species Categories}
 \label{sec:spo}
 
 The choice of anchoring the library's domain in category theory on the mathematical side is neither new nor arbitrary and follows a well-trodden path.
 The authoritative textbook in the context of programming might be \emph{Types and Programming Languages}~\cite{pierce2002tapl}. 
 Here, we intend to lower the barrier to entry and so we restrict attention to \emph{single-species categories}~\cite{burris1981universalalgebra}: categories whose objects all share a common carrier type, whose endomorphisms are functions on that carrier, and whose inter-carrier maps become functors between sibling categories.
-This sort of structure is usually called a monoidal category $\mathbf{Monoid} \subset \mathbf{Cat}$, and it is defined as having only one object: the inhabitants of that type.
-This is a small fragment of $\mathbf{Cat}$ but, as §\ref{sec:spo} develops, it carries enough algebraic vocabulary to host carriers, operators, and structure-preserving arrows in the shape an engineering library actually needs and is actually a preferred starting point for the structuralist mathematical style~\cite{marquis2022structuralist}.
+The textbook way to read this restriction is via the bijection between monoids and one-object categories (Mac Lane~\cite{maclane1971categories} §I.1): every monoid \emph{is} a one-object category whose morphisms are the monoid elements; the single-species categories we use here are the engineering-library generalisation, where the species' shared carrier object plays the role of the monoid's underlying set and the species' operation signatures play the role of the monoid's binary operation.
+This is a small fragment of $\mathbf{Cat}$ but, as §\ref{sec:spo} develops, it carries enough algebraic vocabulary to host carriers, operators, and structure-preserving arrows in the shape an engineering library actually needs and is a preferred starting point for the structuralist mathematical style~\cite{marquis2022structuralist}.
 
 For the more casual reader of this text, it should be sufficient to remember that at its most basic, category theory is a book-keeping device of sorts that can tell us what clicks together and what doesn't and how things might be re-arranged and perhaps simplified.
 Somewhat casually:
@@ -622,15 +622,14 @@ The intensional-first design rule (§\ref{sec:intensional}) is the posture this 
 C++ taken as a whole is a famously inhospitable substrate for formal reasoning.
 A closed denotational semantics for the full language is, to our knowledge, not on the books.\footnote{Concretely: overload resolution and argument-dependent lookup are non-uniform; two-phase name lookup interacts with template instantiation in ways that defeat parametricity (Wadler's classical objection to template genericity, after Bracha \& Odersky~\cite{bracha1998making}, bites here); \lstinline|reinterpret_cast| breaks type abstraction at the value level; and template instantiation in general is Turing-complete and undecidable.  On the carrier side, undefined behaviour is the rule rather than the exception: signed-overflow UB defeats ring-associativity on machine \lstinline|int| / \lstinline|long|, IEEE-754 rounding-non-associativity defeats field-associativity on \lstinline|float| / \lstinline|double| --- §\ref{sec:carrier-rosetta} audits each stdlib carrier's algebraic surface against the textbook expectations.}
 
-To improve alignment with structuralist selection we just applied on the category side we want apply a similar selection on the C++ side also.
-Roughly speaking, we hope that our atomic types will be `std::regular` POCOs (Plain Old C++ Objects including the primitive types) and we wish to be able to pattern match on them using `concept` definitions.
+To bring the C++ side into alignment with the structuralist selection we just applied on the category side, we apply a similar restriction here.
+Roughly speaking, we hope that our atomic types will be \lstinline{std::regular} POCOs (Plain Old C++ Objects, including the primitive types) and we wish to be able to pattern-match on them using \lstinline{concept} definitions.
 For the small fragment of the language that we intend to work on, we reject what we have learned about encapsulation and polymorphism and trim down the internal complexity of objects to the point that they no longer support encapsulation and are fully transparent at compile-time so that interface and behavior are the only meaningful identity.
 
-We can compare and contrast this approach with three textbook schools ~\cite{pierce2002tapl, cardelli1996typesystems}  of type identification
+We can compare and contrast this approach with three textbook schools~\cite{pierce2002tapl, cardelli1996typesystems} of type identification:
 \begin{itemize}
-\item nominal declared lineage; checked at compile time but blind to behaviour),
-\item duck (structural by call-site method probe; checked at runtime, too late
-for the optimiser),
+\item nominal (declared lineage; checked at compile time but blind to behaviour),
+\item duck (structural by call-site method probe; checked at runtime, too late for the optimiser),
 \item static structural typing (concept-based; behaviour checked at compile time without a declared lineage).
 \end{itemize}
 
