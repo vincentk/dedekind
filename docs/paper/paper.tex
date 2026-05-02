@@ -1084,72 +1084,6 @@ interval-arithmetic wrapper, or a lift to \lstinline{Rational<long>})
 is supplied. The realization boundary is the point at which the
 programmer chooses which policy to apply.
 
-\subsubsection{Dedekind Cuts as the Canonical Example}
-\label{sec:dedekind-cuts}
-
-Dedekind's construction --- $r \in \mathbb{R}$ as the partition
-$(L, U)$ of $\mathbb{Q}$ into rationals strictly below $r$ and those
-at or above --- translates the intensional-first rule directly: the
-two sets are type-level predicates, and \emph{the predicate is the
-number}. The library's canonical worked example is Dedekind's own
-$\sqrt{2}$: a rational $q$ is in the lower cut iff $q^{2} < 2$, a
-decidable predicate over $\mathbb{Q}$ that compiles into a finite
-type-level object --- no approximation, no series summation:
-
-% Source: src/main/modules/dedekind/numbers/symbolic.cppm (Sqrt2_Symbolic, ll. 24-38)
-\begin{lstlisting}[language=C++, caption={$\sqrt{2}$ as an intensional lower cut over $\mathbb{Q}$, from \texttt{dedekind.numbers:symbolic}. The predicate is the number.}, label={lst:euler}]
-template <typename Q>
-constexpr auto Sqrt2_Symbolic() {
-  const dedekind::sets::Ω<Q, TernaryLogic> universe{};
-  // The lower cut L_sqrt2 = { q in Q | q^2 < 2 }.
-  return ambient_set<Q>([universe](const Q& q) {
-    if constexpr (std::floating_point<Q>) {
-      if (std::isnan(q)) { return Ternary::Unknown; }
-    }
-    const auto in_cut =
-        (q * q < static_cast<Q>(2)) ? Ternary::True : Ternary::False;
-    return TernaryLogic::AND(universe(q), in_cut);
-  });
-}
-\end{lstlisting}
-
-\begin{figure}[htbp]
-\centering
-\begin{tikzpicture}[scale=1.3]
-  % Number line
-  \draw[->, thick] (-0.4, 0) -- (5.5, 0) node[right] {$\mathbb{Q}$};
-  \foreach \x/\l in {0/0, 1/1, 2/2, 3/3, 4/4, 5/5} {
-    \draw (\x, -0.08) -- (\x, 0.08);
-    \node[below] at (\x, -0.12) {\small $\l$};
-  }
-  % The cut at sqrt(2) (approximately 1.414)
-  \draw[thick, red, dashed] (1.414, -0.75) -- (1.414, 1.0);
-  \node[red, above] at (1.414, 1.0) {$\sqrt{2}$};
-  % Lower set L_sqrt2
-  \draw[blue, line width=2.5pt, opacity=0.45] (-0.25, 0.4) -- (1.414, 0.4);
-  \node[blue, above] at (0.6, 0.45) {\small $L_{\sqrt{2}} = \{\, q \in \mathbb{Q} \mid q^{2} < 2 \,\}$};
-  % Upper set U_sqrt2
-  \draw[orange, line width=2.5pt, opacity=0.55] (1.414, -0.4) -- (5.3, -0.4);
-  \node[orange, below] at (3.5, -0.45) {\small $U_{\sqrt{2}} = \{\, q \in \mathbb{Q} \mid q^{2} \geq 2 \,\}$};
-  % Sample rationals
-  \foreach \x in {0, 0.5, 1, 1.25, 1.4} { \fill[blue] (\x, 0.4) circle (1.4pt); }
-  \foreach \x in {1.5, 2, 3, 4, 5} { \fill[orange] (\x, -0.4) circle (1.4pt); }
-\end{tikzpicture}
-\caption{A Dedekind cut names $\sqrt{2}$ by partitioning $\mathbb{Q}$.
-The lower half $L_{\sqrt{2}}$ (blue) and upper half $U_{\sqrt{2}}$
-(orange) are both compile-time predicates. In \texttt{dedekind}, the
-real number \emph{is} the partition: no approximation is stored, no
-square root is computed, and the compiler still knows everything
-about $\sqrt{2}$ that the predicate $q^{2} < 2$ expresses.}
-\label{fig:dedekind-cut}
-\end{figure}
-
-No floating-point approximation is computed; no Newton iteration runs.
-Asking ``is $\tfrac{7}{5}$ less than $\sqrt{2}$?'' reduces to
-$\tfrac{49}{25} < 2$, decidable at translation time. Approximation to
-a concrete float is available later, at a specific precision, when
-the programmer asks for it. The intensional object survives
-indefinitely without losing reasoning power.
 
 \subsubsection{Carriers: From Exact Rationals to Packed Integers}
 \label{sec:carrier-rosetta}
@@ -1556,6 +1490,24 @@ define noundef zeroext i1 @witness_empty_diagonal_cut() local_unnamed_addr #0 {
 }
 \end{lstlisting}
 
+\subsection{Algebraic Properties Enable Stronger Pruning}
+
+Beyond interval arithmetic, \emph{algebraic} properties of the predicates provide
+additional pruning opportunities.
+The \texttt{:species} registry records which operations are associative, commutative,
+idempotent, and so forth.
+These traits inform the compiler about structural relationships between sets:
+
+\begin{itemize}
+  \item $S \cap \varnothing = \varnothing$ (intersection with the empty set is empty).
+  \item $S \cap \overline{S} = \varnothing$ (intersection with the complement is empty).
+  \item If $S_1 \subseteq S_2$ then $S_1 \cap S_2 = S_1$ (subset absorption).
+\end{itemize}
+
+Each of these equalities can be discharged as a \lstinline{static_assert} once the
+relevant algebraic witnesses are in the trait registry, reducing the intersection to
+the simpler set at compile time.
+
 
 \subsubsection*{From lambdas to structured predicates: the halfspace DSL}
 
@@ -1874,6 +1826,74 @@ negative \texttt{static\_assert} witnesses.}
 \end{table}
 
 
+\subsubsection{Dedekind Cuts as the Canonical Example}
+\label{sec:dedekind-cuts}
+
+Dedekind's construction --- $r \in \mathbb{R}$ as the partition
+$(L, U)$ of $\mathbb{Q}$ into rationals strictly below $r$ and those
+at or above --- translates the intensional-first rule directly: the
+two sets are type-level predicates, and \emph{the predicate is the
+number}. The library's canonical worked example is Dedekind's own
+$\sqrt{2}$: a rational $q$ is in the lower cut iff $q^{2} < 2$, a
+decidable predicate over $\mathbb{Q}$ that compiles into a finite
+type-level object --- no approximation, no series summation:
+
+% Source: src/main/modules/dedekind/numbers/symbolic.cppm (Sqrt2_Symbolic, ll. 24-38)
+\begin{lstlisting}[language=C++, caption={$\sqrt{2}$ as an intensional lower cut over $\mathbb{Q}$, from \texttt{dedekind.numbers:symbolic}. The predicate is the number.}, label={lst:euler}]
+template <typename Q>
+constexpr auto Sqrt2_Symbolic() {
+  const dedekind::sets::Ω<Q, TernaryLogic> universe{};
+  // The lower cut L_sqrt2 = { q in Q | q^2 < 2 }.
+  return ambient_set<Q>([universe](const Q& q) {
+    if constexpr (std::floating_point<Q>) {
+      if (std::isnan(q)) { return Ternary::Unknown; }
+    }
+    const auto in_cut =
+        (q * q < static_cast<Q>(2)) ? Ternary::True : Ternary::False;
+    return TernaryLogic::AND(universe(q), in_cut);
+  });
+}
+\end{lstlisting}
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzpicture}[scale=1.3]
+  % Number line
+  \draw[->, thick] (-0.4, 0) -- (5.5, 0) node[right] {$\mathbb{Q}$};
+  \foreach \x/\l in {0/0, 1/1, 2/2, 3/3, 4/4, 5/5} {
+    \draw (\x, -0.08) -- (\x, 0.08);
+    \node[below] at (\x, -0.12) {\small $\l$};
+  }
+  % The cut at sqrt(2) (approximately 1.414)
+  \draw[thick, red, dashed] (1.414, -0.75) -- (1.414, 1.0);
+  \node[red, above] at (1.414, 1.0) {$\sqrt{2}$};
+  % Lower set L_sqrt2
+  \draw[blue, line width=2.5pt, opacity=0.45] (-0.25, 0.4) -- (1.414, 0.4);
+  \node[blue, above] at (0.6, 0.45) {\small $L_{\sqrt{2}} = \{\, q \in \mathbb{Q} \mid q^{2} < 2 \,\}$};
+  % Upper set U_sqrt2
+  \draw[orange, line width=2.5pt, opacity=0.55] (1.414, -0.4) -- (5.3, -0.4);
+  \node[orange, below] at (3.5, -0.45) {\small $U_{\sqrt{2}} = \{\, q \in \mathbb{Q} \mid q^{2} \geq 2 \,\}$};
+  % Sample rationals
+  \foreach \x in {0, 0.5, 1, 1.25, 1.4} { \fill[blue] (\x, 0.4) circle (1.4pt); }
+  \foreach \x in {1.5, 2, 3, 4, 5} { \fill[orange] (\x, -0.4) circle (1.4pt); }
+\end{tikzpicture}
+\caption{A Dedekind cut names $\sqrt{2}$ by partitioning $\mathbb{Q}$.
+The lower half $L_{\sqrt{2}}$ (blue) and upper half $U_{\sqrt{2}}$
+(orange) are both compile-time predicates. In \texttt{dedekind}, the
+real number \emph{is} the partition: no approximation is stored, no
+square root is computed, and the compiler still knows everything
+about $\sqrt{2}$ that the predicate $q^{2} < 2$ expresses.}
+\label{fig:dedekind-cut}
+\end{figure}
+
+No floating-point approximation is computed; no Newton iteration runs.
+Asking ``is $\tfrac{7}{5}$ less than $\sqrt{2}$?'' reduces to
+$\tfrac{49}{25} < 2$, decidable at translation time. Approximation to
+a concrete float is available later, at a specific precision, when
+the programmer asks for it. The intensional object survives
+indefinitely without losing reasoning power.
+
+
 
 \textbf{Showcase 2 — Lattice/square singleton in $\mathbb{C}$.}
 The natural-number lattice (Gaussian integers, $0 \leq \mathrm{Re}, \mathrm{Im} \leq 3$)
@@ -2155,11 +2175,6 @@ cross-platform-determinism guarantee the paper has been claiming
 throughout, made concrete by the absence of any \texttt{double}-typed
 reduction in the IR.
 
-This closes one of the type-directed-collapse axes listed in
-Section~\ref{sec:gap}% tracker: issue #364 (linear programming)
-{} in a worked form: the LP solver is the C++ compiler, for every
-instance whose size and coefficients are compile-time data.
-
 \subsection{Forward-Mode AD as a Sibling Realisation of Compile-Time Derivatives}
 \label{sec:ad-elliott}
 
@@ -2252,24 +2267,6 @@ static_assert(as_matrix2x2(d * e) == as_matrix2x2(d) * as_matrix2x2(e));
 constexpr Dual<Rat> eps{Rat{0}, Rat{1}};
 static_assert(as_matrix2x2(eps) * as_matrix2x2(eps) == zero_matrix2x2_v<Rat>);
 \end{lstlisting}
-
-\subsection{Algebraic Properties Enable Stronger Pruning}
-
-Beyond interval arithmetic, \emph{algebraic} properties of the predicates provide
-additional pruning opportunities.
-The \texttt{:species} registry records which operations are associative, commutative,
-idempotent, and so forth.
-These traits inform the compiler about structural relationships between sets:
-
-\begin{itemize}
-  \item $S \cap \varnothing = \varnothing$ (intersection with the empty set is empty).
-  \item $S \cap \overline{S} = \varnothing$ (intersection with the complement is empty).
-  \item If $S_1 \subseteq S_2$ then $S_1 \cap S_2 = S_1$ (subset absorption).
-\end{itemize}
-
-Each of these equalities can be discharged as a \lstinline{static_assert} once the
-relevant algebraic witnesses are in the trait registry, reducing the intersection to
-the simpler set at compile time.
 
 \subsection{From Cardinality Pruning to Type-Directed Collapse}
 \label{sec:gap}
