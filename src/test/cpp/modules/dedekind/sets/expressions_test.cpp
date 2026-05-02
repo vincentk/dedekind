@@ -8,8 +8,8 @@ using namespace dedekind::sets;
 
 TEST_CASE("Dedekind MVP: Basic Membership and Symbols", "[sets]") {
   SECTION("Integer Universe Membership") {
-    auto x = var<UniversalSet<int>>;  // A variable representing an element of the integer
-                           // universe
+    auto x = var<UniversalSet<int>>;  // A variable representing an element of
+                                      // the integer universe
 
     // Should be Set<int, ClassicalLogic>
     auto finite = Set{x % singleton(1) | (x == 1)};

@@ -137,16 +137,18 @@ TEST_CASE("Relational Algebra: Natural Join (⋈)", "[sets][relational]") {
   // Relation R1: {(a, b) | 0 <= a < 4 and b = a + 1}  (successor pairs)
   auto s1 = var_for_type<std::pair<int, int>>;
   const auto succ =
-      Set{s1 % UniversalSet<std::pair<int, int>>{} | [](const std::pair<int, int>& p) {
-        return (p.first >= 0) && (p.first < 4) && (p.second == p.first + 1);
-      }};
+      Set{s1 % UniversalSet<std::pair<int, int>>{} |
+          [](const std::pair<int, int>& p) {
+            return (p.first >= 0) && (p.first < 4) && (p.second == p.first + 1);
+          }};
 
   // Relation R2: {(b, c) | 0 <= b < 5 and c = b * 2}  (double pairs)
   auto s2 = var_for_type<std::pair<int, int>>;
   const auto dbl =
-      Set{s2 % UniversalSet<std::pair<int, int>>{} | [](const std::pair<int, int>& p) {
-        return (p.first >= 0) && (p.first < 5) && (p.second == p.first * 2);
-      }};
+      Set{s2 % UniversalSet<std::pair<int, int>>{} |
+          [](const std::pair<int, int>& p) {
+            return (p.first >= 0) && (p.first < 5) && (p.second == p.first * 2);
+          }};
 
   // Join: succ ⋈ dbl = {(a, b, c) | b = a+1 and c = b*2}
   // => (0,1,2), (1,2,4), (2,3,6), (3,4,8)

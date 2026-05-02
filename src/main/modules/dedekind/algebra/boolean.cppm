@@ -18,8 +18,8 @@
  *   @c static_assert(IsField<𝔹, bit_xor, bit_and>) and @c var<𝔹> read
  *   directly against the carrier.
  * - `BooleanSetOf<L, C>`: parameterised predicate-set template alias for
- *   `UniversalSet<bool, L, C>`.  The default form `BooleanSetOf<>` is the canonical
- *   predicate-set type for the Boolean ambient species; this is the
+ *   `UniversalSet<bool, L, C>`.  The default form `BooleanSetOf<>` is the
+ * canonical predicate-set type for the Boolean ambient species; this is the
  *   public template alias to spell when a callsite needs the type
  *   itself (e.g.\ in a static_assert).
  * - `B`: value-level universal Boolean predicate-set, of type

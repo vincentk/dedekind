@@ -174,6 +174,49 @@ struct Variable {
 export template <typename S>
 inline constexpr Variable<S> var{};
 
+/** @section expressions__BoundScout_and_Element__per_551
+ *
+ * Per #551 (one-transaction Ω-redesign): a typed scout that carries
+ * its ambient set as a non-type template parameter, so the
+ * @c % @c <ambient> binding step in @c Set{n @c % @c B @c | @c
+ * predicate} becomes redundant — the scout already knows its
+ * ambient.  Paper Listing 6 reads as:
+ *
+ *     inline constexpr auto 𝔹 = Ω<bool>;            // ambient value
+ *     inline constexpr auto b = element<𝔹>;          // bound scout
+ *     constexpr auto f = Set{b | !b};                // {b ∈ 𝔹 | !b}
+ *
+ * @c BoundScout<auto @c Ambient> is an empty struct (structural,
+ * usable as NTTP value).  @c Ambient is a constexpr instance of an
+ * ambient type (e.g.\ a @c UniversalSet<...>{} default-constructed
+ * at compile time, or anything with a nested @c Domain typedef).
+ * The scout's element type @c T is @c element_of_t<Ambient>'s
+ * underlying carrier.
+ */
+export template <auto Ambient>
+struct BoundScout {
+  using AmbientType = std::remove_cvref_t<decltype(Ambient)>;
+  using T = element_of_t<AmbientType>;
+  using is_variable = void;
+  static constexpr AmbientType ambient = Ambient;
+
+  /** @brief Set-builder pipe: @c b @c | @c predicate skips the
+   *  @c % @c <ambient> step because the scout already knows its
+   *  ambient at the type level. */
+  template <typename P>
+  constexpr auto operator|(P&& p) const {
+    return Comprehension<AmbientType, std::decay_t<P>>{ambient,
+                                                       std::forward<P>(p)};
+  }
+};
+
+/** @brief Variable-template factory for bound scouts at a specific
+ *  ambient value.  Companion to @c Ω<T>: spell @c element<Ω<T>> to
+ *  get a scout that ranges over the universal predicate at carrier
+ *  @c T.  */
+export template <auto Ambient>
+inline constexpr BoundScout<Ambient> element{};
+
 /** @brief The universal predicate: accepts every element of T. */
 export template <typename T>
 struct UniversalPredicate {
@@ -273,8 +316,9 @@ struct FiniteBooleanSet {
     return s == empty;
   }
 
-  friend constexpr bool operator==(const UniversalSet<bool, L, Finite>& universe,
-                                   const FiniteBooleanSet& s) {
+  friend constexpr bool operator==(
+      const UniversalSet<bool, L, Finite>& universe,
+      const FiniteBooleanSet& s) {
     return s == universe;
   }
 
@@ -487,6 +531,11 @@ class Set {
   constexpr auto operator()(const T& v) const {
     return dedekind::category::lift_logic<L>(predicate_(v));
   }
+
+  /** @brief Value-level membership query: sugar over @c operator() per
+   *  #551.  @c set.contains(v) reads more directly than @c set(v) at
+   *  paper-listing sites. */
+  constexpr auto contains(const T& v) const { return (*this)(v); }
 
   constexpr cardinality_type cardinality() const { return {}; }
 
@@ -764,7 +813,8 @@ constexpr auto operator^(const Set<T, L, Predicate>& s, const Ø<T, L>&) {
  *         universe is the complement; #469).  Symmetric of
  *         @c Ω::operator^(S) above. */
 export template <typename T, typename L, typename C, typename Predicate>
-constexpr auto operator^(const Set<T, L, Predicate>& s, const UniversalSet<T, L, C>&) {
+constexpr auto operator^(const Set<T, L, Predicate>& s,
+                         const UniversalSet<T, L, C>&) {
   return !s;
 }
 

@@ -132,9 +132,10 @@ static_assert(std::same_as<𝔹, bool>, "𝔹 is the bool carrier (post-#400).")
 //      participate as a set, lift the carrier through
 //      @c BooleanSetOf<> / @c FiniteBooleanSetOf<>; the IsSet anchor
 //      in (1) below witnesses exactly that lift.
-static_assert(std::same_as<typename UniversalSet<bool>::Domain, 𝔹>,
-              "UniversalSet<bool>::Domain is the bool carrier 𝔹 — predicate-set's "
-              "underlying element type IS the carrier.");
+static_assert(
+    std::same_as<typename UniversalSet<bool>::Domain, 𝔹>,
+    "UniversalSet<bool>::Domain is the bool carrier 𝔹 — predicate-set's "
+    "underlying element type IS the carrier.");
 static_assert(std::same_as<typename FiniteBooleanSetOf<>::Domain, 𝔹>,
               "FiniteBooleanSetOf<>::Domain is the bool carrier 𝔹.");
 

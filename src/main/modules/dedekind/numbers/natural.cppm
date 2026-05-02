@@ -190,8 +190,8 @@ static_assert(std::same_as<ℕ, dedekind::sets::Cardinality>,
 
 // (0a) Relationship between ℕ (the carrier) and NaturalNumbersOf<>
 //      (the predicate-set / classifier).  The predicate-set's @c Domain
-//      @b is the carrier — same shape as the 𝔹 ↔ UniversalSet<bool> relationship
-//      from #400.  IsSet<ℕ> itself does @b not fire (carrier types
+//      @b is the carrier — same shape as the 𝔹 ↔ UniversalSet<bool>
+//      relationship from #400.  IsSet<ℕ> itself does @b not fire (carrier types
 //      carry no predicate-set surface); to participate as a set, lift
 //      through the predicate-set.
 static_assert(std::same_as<typename NaturalNumbersOf<>::Domain, ℕ>,

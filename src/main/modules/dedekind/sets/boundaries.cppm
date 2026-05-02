@@ -293,8 +293,8 @@ struct UniversalSet final : Boundaries {
   constexpr typename L::Ω operator()(const T&) const { return L::True; }
 
   // Value-level membership query (sugar over operator()) per #551.
-  // @c UniversalSet<T>.contains(v) reads more directly than @c UniversalSet<T>(v) at
-  // paper-listing sites.
+  // @c UniversalSet<T>.contains(v) reads more directly than @c
+  // UniversalSet<T>(v) at paper-listing sites.
   constexpr bool contains(const T&) const { return true; }
 
   constexpr cardinality_type cardinality() const { return cardinality_type{}; }
@@ -324,9 +324,11 @@ struct UniversalSet final : Boundaries {
  *         reading per #551).
  *
  *  Variable template producing a default-constructed @c UniversalSet<T,L,C>
- *  instance.  Lets callers spell the ambient as @c UniversalSet<bool> rather than
+ *  instance.  Lets callers spell the ambient as @c UniversalSet<bool> rather
+ * than
  *  @c UniversalSet<bool>{} — paper Listing 6 reads as @c auto @c 𝔹 @c =
- *  @c UniversalSet<bool>; without the type-vs-value schism the pre-#551 surface had.
+ *  @c UniversalSet<bool>; without the type-vs-value schism the pre-#551 surface
+ * had.
  */
 export template <typename T, typename L = ClassicalLogic, typename C = ℵ_0>
 inline constexpr UniversalSet<T, L, C> Ω{};
