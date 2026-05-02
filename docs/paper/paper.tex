@@ -466,16 +466,6 @@ What we \emph{do} report is a small set of findings that are both interesting
 and true: each claim has a worked exhibit in the library and a
 mechanical witness the compiler discharges.
 
-\subsection{Paper Structure}
-
-The body splits across three pillars: \emph{An Intersection of C++23 and Category Theory}, \emph{Sets and Sequences}, \emph{Algebraic Lattice}.
-
-Section~\ref{sec:axiomatic} (\emph{An Intersection of C++23 and Category Theory}) motivates the choice of C++23 as the implementation substrate, introduces the \emph{Axiomatic Systems Programming} paradigm, and develops the intensional-first design rule (§\ref{sec:intensional}) including the tension between abstract algebraic numerics and IEEE~754 hardware floating-point and the carrier Rosetta from exact rationals to packed integers.
-Section~\ref{sec:sets-rules} (\emph{Sets and Sequences}) develops the view of sets as predicates over ambient species and shows how set operations compose symbolically under the subobject classifier $\Omega$.
-Section~\ref{sec:pruning} (\emph{Algebraic Lattice}) presents the carrier-tower target state and the compile-time structural reductions it acts through: halfspace pruning, linear programming as a reduction to a typed vertex, forward-mode automatic differentiation as a sibling reduction over the dual-number ring, and the $\mathbb{C} / \mathbb{D} \hookrightarrow M_2(\mathbb{Q})$ embedding.
-Section~\ref{sec:related} surveys related work.
-Section~\ref{sec:conclusion} concludes.
-
 \section{The Faithful Functor as an Eventual Consistency Target}
 \label{sec:eventually}
 
@@ -1728,22 +1718,6 @@ That is the payoff: the same comprehension machinery handles exact domains
 (pick classical $\Omega$) and floating-point domains (pick K3) with no change to
 the API. The logic is a parameter.
 
-% ============================================================
-\section{Algebraic Lattice}
-\label{sec:pruning}
-% ============================================================
-
-The third pillar.  The carrier tower of Figure~\ref{fig:carrier-lattice}
-in load-bearing form: HSP propagation lifts axioms componentwise
-along quotients (\textbf{H}, e.g. \texttt{Frac}, \texttt{Complex},
-\texttt{Dual}) and direct products (\textbf{P}, e.g. $V_n(R)$,
-\texttt{Diagonal}); $\operatorname{End}_R$ is the partial-axiom
-rank-$n$ extension.  The compile-time-reduction showcases (linear
-programming, automatic differentiation, the
-$\mathbb{C} / \mathbb{D} \hookrightarrow M_2(\mathbb{Q})$
-embedding) are the algebraic lattice acting through the disciplined
-fragment of §\ref{sec:axiomatic}.
-
 \subsection{Structural Pruning in Practice}
 
 The payoff of the comprehension view is that the LLVM backend can \emph{prune} a
@@ -1813,6 +1787,24 @@ define noundef zeroext i1 @witness_empty_diagonal_cut() local_unnamed_addr #0 {
   ret i1 false
 }
 \end{lstlisting}
+
+
+% ============================================================
+\section{Algebraic Lattice}
+\label{sec:pruning}
+% ============================================================
+
+The third pillar.  The carrier tower of Figure~\ref{fig:carrier-lattice}
+in load-bearing form: HSP propagation lifts axioms componentwise
+along quotients (\textbf{H}, e.g. \texttt{Frac}, \texttt{Complex},
+\texttt{Dual}) and direct products (\textbf{P}, e.g. $V_n(R)$,
+\texttt{Diagonal}); $\operatorname{End}_R$ is the partial-axiom
+rank-$n$ extension.  The compile-time-reduction showcases (linear
+programming, automatic differentiation, the
+$\mathbb{C} / \mathbb{D} \hookrightarrow M_2(\mathbb{Q})$
+embedding) are the algebraic lattice acting through the disciplined
+fragment of §\ref{sec:axiomatic}.
+
 
 \textbf{Showcase 2 — Lattice/square singleton in $\mathbb{C}$.}
 The natural-number lattice (Gaussian integers, $0 \leq \mathrm{Re}, \mathrm{Im} \leq 3$)
@@ -2523,76 +2515,6 @@ family but at the \emph{function} layer: a polynomial reduced under
 yields another intensional object whose identity with a target is
 discharged by the compiler.
 
-\subsection{The Compiler Wall: Where This Stops}
-\label{sec:compiler-wall}
-
-Treating \texttt{clang++} as a poor man's theorem prover is useful
-precisely because the compiler is bounded, predictable, and cheap. It
-is also, for the same reason, incapable of doing everything a real
-proof assistant would. The purpose of this subsection is to be honest
-about the wall and to name the \texttt{clang} knobs that push it back
-by a constant factor but cannot remove it.
-
-\paragraph{Compile-time budgets.}
-Every reduction in this paper is a variadic template, so two
-\texttt{clang} budgets matter: \emph{instantiation depth} (default
-$1024$, raised to $2048$ on the affected translation units; concepts
-and NTTP lambdas each add frames so the limit hits earlier than the
-naive count suggests) and \emph{\lstinline{constexpr} steps} (default
-$\sim\!10^6$, capping a single \lstinline{constexpr} evaluation).  A
-$2\times 2$ LP with four constraints is comfortably under both; a
-$2\times 2$ LP with thirty constraints ($\binom{30}{2} = 435$ active
-sets and nontrivial metadata) starts approaching the step limit.
-Raising the caps is possible (\lstinline{-ftemplate-depth=N},
-\lstinline{-fconstexpr-steps=N}) but trades compile time and resident
-memory for reach; the more principled answer is to stop at the
-boundary and hand off to a runtime solver --- which is exactly the
-case our centrepiece is \emph{not}.
-
-\paragraph{Combinatorial blowup is the pessimistic bound.}
-Compile-time vertex enumeration over $n$ halfspaces is, in the worst
-case, $\binom{n}{d}$ active-set solves for a $d$-dimensional LP
-(six for $n = 4$, $190$ for $n = 20$, nearly half a million for
-$n = 1000$).  Two facts soften this substantially in practice.  By
-the fundamental theorem of linear programming, the optimum of a
-$d$-dimensional LP is attained at a vertex with at most $d$ binding
-constraints, and on a handwritten polytope most of the syntactic
-constraint list is slack or redundant; the $\binom{n}{d}$ figure
-counts enumeration cost, not what any one vertex actually witnesses.
-Many of those redundancies are also \emph{statically} removable: the
-library's \lstinline{structured_and} dispatch already collapses
-linearly-dependent or contradictory halfspaces at compile time
-(Showcases~3 and~4), so the combinatorial term tracks the pruned
-count rather than the raw
-one.\footnote{Concretely:
-\lstinline|x > 5 && x > 7| collapses to \lstinline|x > 7| (stricter
-pivot wins); \lstinline|x > 5 && x < 2| collapses to $\varnothing$
-(contradiction); \lstinline|x > 3 && x < 5| over an integral carrier
-collapses to \lstinline{Singleton<4>}.  The 2D extension --- pruning
-halfspaces whose normals are linearly dependent --- follows the same
-dispatch pattern.}
-The instance regime this paper targets --- MPC steps with a handful
-of physical constraints, sensor-fusion guards, parametric
-configuration LPs --- rarely exceeds a few dozen raw constraints
-before pruning, and remains comfortably tractable.  Industrial-scale
-LP is emphatically not in scope; we do not claim it is.
-
-\paragraph{Active-set hints as the user-side escape valve.}
-Even within the compile-time regime, a user with domain knowledge of
-\emph{which} halfspaces bind at the optimum can short-circuit the
-$\binom{n}{d}$ enumeration entirely: because the constraint pack is
-already an NTTP list, instantiating
-\lstinline|maximize<T, cx, cy, H_i, H_j>()| with just the binding
-pair (instead of the full pack) is exactly the active-set hint, and
-the library evaluates only that single Cramer solve.  An explicit
-\lstinline|with_active_set<...>| API that takes the hint as a separate
-template argument and verifies feasibility against the full pack
-without re-enumerating is a natural successor surface, but the
-underlying NTTP-pack-as-hint mechanism is available today: dropping
-slack constraints from the syntactic list is the user's prerogative,
-and the combinatorial term then tracks the hinted count rather than
-the raw one.
-
 \paragraph{Scaling beyond atomic carriers via structure-preserving combinators.}
 The same partition---atoms below, runtime above---governs the
 linear-algebra surface the paper exhibits at the $2 \times 2$ scale.
@@ -2787,6 +2709,77 @@ Section~\ref{sec:carrier-rosetta}.
 \section{Discussion}
 \label{sec:discussion}
 % ============================================================
+
+
+\subsection{The Compiler Wall: Where This Stops}
+\label{sec:compiler-wall}
+
+Treating \texttt{clang++} as a poor man's theorem prover is useful
+precisely because the compiler is bounded, predictable, and cheap. It
+is also, for the same reason, incapable of doing everything a real
+proof assistant would. The purpose of this subsection is to be honest
+about the wall and to name the \texttt{clang} knobs that push it back
+by a constant factor but cannot remove it.
+
+\paragraph{Compile-time budgets.}
+Every reduction in this paper is a variadic template, so two
+\texttt{clang} budgets matter: \emph{instantiation depth} (default
+$1024$, raised to $2048$ on the affected translation units; concepts
+and NTTP lambdas each add frames so the limit hits earlier than the
+naive count suggests) and \emph{\lstinline{constexpr} steps} (default
+$\sim\!10^6$, capping a single \lstinline{constexpr} evaluation).  A
+$2\times 2$ LP with four constraints is comfortably under both; a
+$2\times 2$ LP with thirty constraints ($\binom{30}{2} = 435$ active
+sets and nontrivial metadata) starts approaching the step limit.
+Raising the caps is possible (\lstinline{-ftemplate-depth=N},
+\lstinline{-fconstexpr-steps=N}) but trades compile time and resident
+memory for reach; the more principled answer is to stop at the
+boundary and hand off to a runtime solver --- which is exactly the
+case our centrepiece is \emph{not}.
+
+\paragraph{Combinatorial blowup is the pessimistic bound.}
+Compile-time vertex enumeration over $n$ halfspaces is, in the worst
+case, $\binom{n}{d}$ active-set solves for a $d$-dimensional LP
+(six for $n = 4$, $190$ for $n = 20$, nearly half a million for
+$n = 1000$).  Two facts soften this substantially in practice.  By
+the fundamental theorem of linear programming, the optimum of a
+$d$-dimensional LP is attained at a vertex with at most $d$ binding
+constraints, and on a handwritten polytope most of the syntactic
+constraint list is slack or redundant; the $\binom{n}{d}$ figure
+counts enumeration cost, not what any one vertex actually witnesses.
+Many of those redundancies are also \emph{statically} removable: the
+library's \lstinline{structured_and} dispatch already collapses
+linearly-dependent or contradictory halfspaces at compile time
+(Showcases~3 and~4), so the combinatorial term tracks the pruned
+count rather than the raw
+one.\footnote{Concretely:
+\lstinline|x > 5 && x > 7| collapses to \lstinline|x > 7| (stricter
+pivot wins); \lstinline|x > 5 && x < 2| collapses to $\varnothing$
+(contradiction); \lstinline|x > 3 && x < 5| over an integral carrier
+collapses to \lstinline{Singleton<4>}.  The 2D extension --- pruning
+halfspaces whose normals are linearly dependent --- follows the same
+dispatch pattern.}
+The instance regime this paper targets --- MPC steps with a handful
+of physical constraints, sensor-fusion guards, parametric
+configuration LPs --- rarely exceeds a few dozen raw constraints
+before pruning, and remains comfortably tractable.  Industrial-scale
+LP is emphatically not in scope; we do not claim it is.
+
+\paragraph{Active-set hints as the user-side escape valve.}
+Even within the compile-time regime, a user with domain knowledge of
+\emph{which} halfspaces bind at the optimum can short-circuit the
+$\binom{n}{d}$ enumeration entirely: because the constraint pack is
+already an NTTP list, instantiating
+\lstinline|maximize<T, cx, cy, H_i, H_j>()| with just the binding
+pair (instead of the full pack) is exactly the active-set hint, and
+the library evaluates only that single Cramer solve.  An explicit
+\lstinline|with_active_set<...>| API that takes the hint as a separate
+template argument and verifies feasibility against the full pack
+without re-enumerating is a natural successor surface, but the
+underlying NTTP-pack-as-hint mechanism is available today: dropping
+slack constraints from the syntactic list is the user's prerogative,
+and the combinatorial term then tracks the hinted count rather than
+the raw one.
 
 \subsection{Boundary Observations: An Axiom~\texorpdfstring{$\to$}{->}~Theorem Chain}
 \label{sec:boundary-observations}
