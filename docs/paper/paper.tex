@@ -247,21 +247,7 @@ The claim is bounded --- only the part of mathematics that fits the disciplined 
 
 The choice of anchoring the library's domain in category theory on the mathematical side is neither new nor arbitrary and follows a well-trodden path.
 The authoritative textbook in the context of programming might be \emph{Types and Programming Languages}~\cite{pierce2002tapl}.
-\footnote{
-For the more casual reader of this text, it should be sufficient to remember that at its most basic, category theory is a book-keeping device of sorts that can tell us what clicks together and what doesn't and how things might be re-arranged and perhaps simplified.
-Somewhat casually:
-\begin{enumerate}
-\item A category consists of \emph{objects} which are deliberately chosen to be opaque black boxes.
-Precisely because they are opaque, a practitioner can choose objects to be whatever they like: sets, types, algebraic structure, \ldots it changes nothing about the applicability of category theory.
-\item Arrows (morphisms) point from one object (domain) to another (codomain).
-If it lacks a domain or a codomain, then whatever it is, it's not an arrow.
-\item If an arrow's domain and codomain happen to be the same object $A$, then it is called the identity arrow $id_A$.
-\item If the codomain of arrow $f$ matches the domain of arrow $g$, then they can be \emph{composed} to give a new arrow $h = g \circ f$.
-\item Any arrow $f$ with domain $A$ can compose with $\mathrm{id}_A$, but that's the same as doing nothing: $f \circ \mathrm{id}_A = f$; in particular $\mathrm{id}_A \circ \mathrm{id}_A = \mathrm{id}_A$.
-\item If two paths in a diagram (each itself an arrow or a composition of arrows) share the same domain and codomain and are equal as morphisms, the diagram is said to \emph{commute}: $f = g$.
-Trivially this holds for $\mathrm{id}_A = \mathrm{id}_A$, but as one composes arrows into richer structures these equations start to form interesting constraints.
-\end{enumerate}
-}
+
 The appeal of category theory in programming-language research should be obvious: a minimalist type checker does not need to do much more than check whether the output of one function matches the input of another.
 A ``sufficiently smart'' optimising compiler might know a fair amount about commutation rules and re-write the arrows in a sensible way.
 
@@ -573,14 +559,33 @@ Prompts to such systems are accordingly written liberally and in \emph{loose lan
 \label{sec:axiomatic}
 % ============================================================
 
-C++ taken as a whole is a famously inhospitable substrate for formal reasoning.
-A closed denotational semantics for the full language is, to our knowledge, not on the books.\footnote{Concretely: overload resolution and argument-dependent lookup are non-uniform; two-phase name lookup interacts with template instantiation in ways that defeat parametricity (Wadler's classical objection to template genericity, after Bracha \& Odersky~\cite{bracha1998making}, bites here); \lstinline|reinterpret_cast| breaks type abstraction at the value level; and template instantiation in general is Turing-complete and undecidable.  On the carrier side, undefined behaviour is the rule rather than the exception: signed-overflow UB defeats ring-associativity on machine \lstinline|int| / \lstinline|long|, IEEE-754 rounding-non-associativity defeats field-associativity on \lstinline|float| / \lstinline|double| --- §\ref{sec:carrier-rosetta} audits each stdlib carrier's algebraic surface against the textbook expectations.}
-We take this absence as our starting point: we do not claim that this general problem has been solved, but we assert the existence of a non-empty feasible region which can be inhabited cleanly under a small discipline.
-The three C++23 features named in §\ref{sec:introduction} --- \texttt{module}s, \texttt{concept}s, and NTTPs --- carry §CT-specific value at this layer: modules cache verified structural invariants as Binary Module Interface (BMI) files; concepts realise \emph{structural typing} as the compile-time analogue of Haskell type classes, with zero-cost dispatch and no runtime dictionary; and NTTPs let a set-builder predicate be part of the \emph{type} rather than a runtime value passed at construction (§\ref{sec:sets-rules}).
+The strategy of this section is a three-step intersection.
+Both category theory and modern C++23 are large and occasionally intimidating beasts; each, however, admits a tractable subset with simple atomic building blocks and clear composition rules.
+The \texttt{dedekind} library lives at their intersection.
 
+\subsection{Structuralism with Single-Species Categories}
+\label{sec:spo}
 
-This feasible region is thus a carefully selected axiomatic subset of C++23 such that well-understood semantics can be recovered.\footnote{Concretely: templates parameterised over concept-constrained types, non-type template parameters (NTTPs), named modules with strict DAG dependencies, \lstinline|static_assert| for compile-time obligation discharge, and \lstinline|constexpr| for $\beta$-style normalisation.  The fragment excludes the escape hatches that defeat the System-F reading: no \lstinline|reinterpret_cast| in public APIs, no SFINAE branches in public surfaces, no ADL-dependent dispatch beyond textbook operator overloads, no public-API specialisations that branch behaviour, no template-template parameters in public signatures, and bounded template instantiation depth.  Each exclusion closes a specific escape hatch by which C++ would otherwise leak past System F; the list is not novel --- working C++ teams police variants of it informally --- but is the price of the System-F reading.  Table~\ref{tab:admissibility-rules} below is exactly that list.}
-Somewhat loosely speaking, we can name this subset the category $\mathbf{Cpp}$ where objects are types and values expressible in C++23 and morphisms are arrows between them.
+The choice of anchoring the library's domain in category theory on the mathematical side is neither new nor arbitrary and follows a well-trodden path.
+The authoritative textbook in the context of programming might be \emph{Types and Programming Languages}~\cite{pierce2002tapl}.
+Here, we intend to lower the barrier to entry and so we restrict attention to \emph{single-species categories}~\cite{burris1981universalalgebra}: categories whose objects all share a common carrier type, whose endomorphisms are functions on that carrier, and whose inter-carrier maps become functors between sibling categories.
+The textbook way to read this restriction is via the bijection between monoids and one-object categories (Mac Lane~\cite{maclane1971categories} §I.1): every monoid \emph{is} a one-object category whose morphisms are the monoid elements; the single-species categories we use here are the engineering-library generalisation, where the species' shared carrier object plays the role of the monoid's underlying set and the species' operation signatures play the role of the monoid's binary operation.
+This is a small fragment of $\mathbf{Cat}$ but, as §\ref{sec:spo} develops, it carries enough algebraic vocabulary to host carriers, operators, and structure-preserving arrows in the shape an engineering library actually needs and is a preferred starting point for the structuralist mathematical style~\cite{marquis2022structuralist}.
+
+For the more casual reader of this text, it should be sufficient to remember that at its most basic, category theory is a book-keeping device of sorts that can tell us what clicks together and what doesn't and how things might be re-arranged and perhaps simplified.
+Somewhat casually:
+\begin{enumerate}
+\item A category consists of \emph{objects} which are deliberately chosen to be opaque black boxes.
+Precisely because they are opaque, a practitioner can choose objects to be whatever they like: sets, types, algebraic structure, \ldots it changes nothing about the applicability of category theory.
+\item Arrows (morphisms) point from one object (domain) to another (codomain).
+If it lacks a domain or a codomain, then whatever it is, it's not an arrow.
+\item If an arrow's domain and codomain happen to be the same object $A$, then it is called the identity arrow $id_A$.
+\item If the codomain of arrow $f$ matches the domain of arrow $g$, then they can be \emph{composed} to give a new arrow $h = g \circ f$.
+\item Any arrow $f$ with domain $A$ can compose with $\mathrm{id}_A$, but that's the same as doing nothing: $f \circ \mathrm{id}_A = f$; in particular $\mathrm{id}_A \circ \mathrm{id}_A = \mathrm{id}_A$.
+\item If two paths in a diagram (each itself an arrow or a composition of arrows) share the same domain and codomain and are equal as morphisms, the diagram is said to \emph{commute}: $f = g$.
+Trivially this holds for $\mathrm{id}_A = \mathrm{id}_A$, but as one composes arrows into richer structures these equations start to form interesting constraints.
+\end{enumerate}
+
 To further simplify our task, we restrict considerations to single-species categories~\cite{burris1981universalalgebra} where
 \begin{itemize}
 \item the objects of a given category all share a common type (a template parameter $\mathrm{T}$ further restricted to be \texttt{std::regular}),
@@ -609,6 +614,85 @@ Figure~\ref{fig:hub-spoke-bnz} sketches three concrete hubs ($\mathbb{B}$, $\mat
 
 On this subset the standard correspondences hold and the surface reads as a faithful image of the simply-typed $\lambda$-calculus (Lambek--Scott~\cite{lambek1988introduction}), System F (via type-parameter polymorphism with concept constraints), and category theory (via the Cartesian-closed-category witness on $\mathbf{Cpp}$); cf.\ Figure~\ref{fig:dedekind-bridge} and the row-by-row mapping in Table~\ref{tab:cpp-stlc-mapping}.
 The intensional-first design rule (§\ref{sec:intensional}) is the posture this fragment invites: pick the Form-faithful carrier first, let the compiler see structure rather than carrier, realise to a machine type only at named arrows.
+
+\subsection{Structuralism with the Juliet Posture}
+\label{sec:jlt}
+
+
+C++ taken as a whole is a famously inhospitable substrate for formal reasoning.
+A closed denotational semantics for the full language is, to our knowledge, not on the books.\footnote{Concretely: overload resolution and argument-dependent lookup are non-uniform; two-phase name lookup interacts with template instantiation in ways that defeat parametricity (Wadler's classical objection to template genericity, after Bracha \& Odersky~\cite{bracha1998making}, bites here); \lstinline|reinterpret_cast| breaks type abstraction at the value level; and template instantiation in general is Turing-complete and undecidable.  On the carrier side, undefined behaviour is the rule rather than the exception: signed-overflow UB defeats ring-associativity on machine \lstinline|int| / \lstinline|long|, IEEE-754 rounding-non-associativity defeats field-associativity on \lstinline|float| / \lstinline|double| --- §\ref{sec:carrier-rosetta} audits each stdlib carrier's algebraic surface against the textbook expectations.}
+
+To bring the C++ side into alignment with the structuralist selection we just applied on the category side, we apply a similar restriction here.
+Roughly speaking, we hope that our atomic types will be \lstinline{std::regular} POCOs (Plain Old C++ Objects, including the primitive types) and we wish to be able to pattern-match on them using \lstinline{concept} definitions.
+For the small fragment of the language that we intend to work on, we reject what we have learned about encapsulation and polymorphism and trim down the internal complexity of objects to the point that they no longer support encapsulation and are fully transparent at compile-time so that interface and behavior are the only meaningful identity.
+
+We can compare and contrast this approach with three textbook schools~\cite{pierce2002tapl, cardelli1996typesystems} of type identification:
+\begin{itemize}
+\item nominal (declared lineage; checked at compile time but blind to behaviour),
+\item duck (structural by call-site method probe; checked at runtime, too late for the optimiser),
+\item static structural typing (concept-based; behaviour checked at compile time without a declared lineage).
+\end{itemize}
+
+\begin{lstlisting}[language=C++, caption={Pseudocode illustration of nominal and duck typing, respecively.}, label={lst:nominal}]
+// Nominal (pseudocode): a supertype is recognised by declared lineage.
+struct Ring { /* virtual operations, must opt in explicitly */ };
+struct MyInt : Ring { /* ... */ };
+
+// Duck typing (pseudocode): recognised at runtime by the call site.
+//   def generic_sum(a, b):       # Python: fails only when called
+//       return a + b             # no compile-time guarantee
+\end{lstlisting}
+
+C++23 concepts realise the third school.  We call the resulting
+discipline the \emph{Juliet Posture}, after the observation that a
+rose by any other name would smell as sweet~\cite{shakespeare1597romeo}:
+the library cares about the \emph{scent} (structural invariants),
+not the \emph{lineage} (declared name).
+
+% Source: src/main/modules/dedekind/algebra/ring.cppm (concept definition, ll. 110-116)
+\begin{lstlisting}[
+ language=C++,
+ caption={The Juliet Posture: structural compile-time matching regardless of nominal provenance.}, float=ht]
+// Concept identifying the syntactic ring operators
+template <typename T>
+concept HasRingOperators = requires(T a, T b) {
+  { a + b  } -> std::same_as<T>;
+  { a - b  } -> std::same_as<T>;
+  { -a     } -> std::same_as<T>;
+  { a * b  } -> std::same_as<T>;
+};
+
+ // Operators exist on int, but (int, +), not a monoid, because associativity certification has been withheld:
+static_assert(HasRingOperators<int>); 
+static_assert(!IsAssociative<int, std::plus<int>>); 
+
+// Arithmetic operators are absent on bool but associativity is certified for logical operators:
+static_assert(!HasRingOperators<bool>);
+static_assert(!IsAssociative<bool, std::logical_and<bool>>); 
+\end{lstlisting}
+
+\noindent The Juliet Posture delivers desirable properties of both predecessors:
+structural sensitivity (behaviour, not name) and static verification (compile time,
+not runtime).
+Crucially, because the concept check is a compile-time proof obligation, the compiler
+can \emph{act on it}: it can specialize code paths, infer additional algebraic
+properties from the trait registry, and ultimately prune logically empty set
+expressions to zero machine instructions---none of which is possible with runtime duck
+typing.
+
+Pick a small \emph{axiomatic subset} of C++23: concept-constrained templates, non-type template parameters (NTTPs), named modules with strict DAG dependencies, \lstinline{static_assert} for compile-time obligation discharge, and \lstinline{constexpr} for $\beta$-style normalisation.
+Exclude the escape hatches that would otherwise leak past System F: no \lstinline{reinterpret_cast} in public APIs, no SFINAE branches in public surfaces, no ADL-dependent dispatch beyond textbook operator overloads, no public-API specialisations that branch behaviour, and bounded template-instantiation depth (Table~\ref{tab:admissibility-rules}).
+This is a small fragment of $\mathbf{Cpp}$, and §\ref{sec:jlt} develops the structural-typing posture under which it can be inhabited cleanly.
+Call this subset $\mathbf{Jlt} \subset \mathbf{Cpp}$ (mnemonically: \emph{Juliet}, after the \emph{rose by any other name} reading of structural-over-nominal typing).
+
+
+We take this absence as our starting point: we do not claim that this general problem has been solved, but we assert the existence of a non-empty feasible region which can be inhabited cleanly under a small discipline.
+The three C++23 features named in §\ref{sec:introduction} --- \texttt{module}s, \texttt{concept}s, and NTTPs --- carry §CT-specific value at this layer: modules cache verified structural invariants as Binary Module Interface (BMI) files; concepts realise \emph{structural typing} as the compile-time analogue of Haskell type classes, with zero-cost dispatch and no runtime dictionary; and NTTPs let a set-builder predicate be part of the \emph{type} rather than a runtime value passed at construction (§\ref{sec:sets-rules}).
+
+
+This feasible region is thus a carefully selected axiomatic subset of C++23 such that well-understood semantics can be recovered.\footnote{Concretely: templates parameterised over concept-constrained types, non-type template parameters (NTTPs), named modules with strict DAG dependencies, \lstinline|static_assert| for compile-time obligation discharge, and \lstinline|constexpr| for $\beta$-style normalisation.  The fragment excludes the escape hatches that defeat the System-F reading: no \lstinline|reinterpret_cast| in public APIs, no SFINAE branches in public surfaces, no ADL-dependent dispatch beyond textbook operator overloads, no public-API specialisations that branch behaviour, no template-template parameters in public signatures, and bounded template instantiation depth.  Each exclusion closes a specific escape hatch by which C++ would otherwise leak past System F; the list is not novel --- working C++ teams police variants of it informally --- but is the price of the System-F reading.  Table~\ref{tab:admissibility-rules} below is exactly that list.}
+Somewhat loosely speaking, we can name this subset the category $\mathbf{Cpp}$ where objects are types and values expressible in C++23 and morphisms are arrows between them.
+
 
 \begin{table}[htbp]
 \centering
@@ -660,59 +744,6 @@ Bridging tools such as \texttt{nanobind}~\cite{jakob2022nanobind} close the \emp
 but not the \emph{semantic} gap: the C++ backend cannot reason about high-level mathematical
 invariants defined in the Python layer.
 
-\subsection{Structural vs.\ Nominal Typing: The Juliet Posture}
-
-The three schools of type identification --- nominal (declared
-lineage; checked at compile time but blind to behaviour), duck
-(structural by call-site method probe; checked at runtime, too late
-for the optimiser), and static structural typing (concept-based;
-behaviour checked at compile time without a declared lineage) ---
-are textbook material; for the canonical treatment see
-Pierce~\cite{pierce2002tapl} and Cardelli's type-systems
-survey~\cite{cardelli1996typesystems}.
-
-C++23 concepts realise the third school.  We call the resulting
-discipline the \emph{Juliet Posture}, after the observation that a
-rose by any other name would smell as sweet~\cite{shakespeare1597romeo}:
-the library cares about the \emph{scent} (structural invariants),
-not the \emph{lineage} (declared name).
-
-% Source: src/main/modules/dedekind/algebra/ring.cppm (concept definition, ll. 110-116)
-\begin{lstlisting}[language=C++, caption={The Juliet Posture: structural recognition checked statically, without requiring declared lineage. The operational concept from \texttt{dedekind.algebra:ring}.}, label={lst:structural}]
-// Nominal (pseudocode): recognised by declared lineage.
-struct Ring { /* virtual operations, must opt in explicitly */ };
-struct MyInt : Ring { /* ... */ };
-
-// Duck typing (pseudocode): recognised at runtime by the call site.
-//   def generic_sum(a, b):       # Python: fails only when called
-//       return a + b             # no compile-time guarantee
-
-// Juliet Posture (C++23, the actual dedekind concept):
-template <typename T>
-concept HasRingOperators = requires(T a, T b) {
-  { a + b  } -> std::same_as<T>;
-  { a - b  } -> std::same_as<T>;
-  { -a     } -> std::same_as<T>;
-  { a * b  } -> std::same_as<T>;
-};
-
-// int satisfies HasRingOperators without any base class, checked at compile
-// time: the operators exist. But the operational concept is deliberately
-// weaker than the algebraic laws --- see lst:species --- so a separate
-// trait lookup filters out carriers whose + is not actually associative.
-static_assert(HasRingOperators<int>);           // operators exist
-static_assert(HasRingOperators<Rational<long>>);
-static_assert(!is_associative_v<int, std::plus<int>>);  // but + is not a monoid
-\end{lstlisting}
-
-\noindent The Juliet Posture delivers desirable properties of both predecessors:
-structural sensitivity (behaviour, not name) and static verification (compile time,
-not runtime).
-Crucially, because the concept check is a compile-time proof obligation, the compiler
-can \emph{act on it}: it can specialize code paths, infer additional algebraic
-properties from the trait registry, and ultimately prune logically empty set
-expressions to zero machine instructions---none of which is possible with runtime duck
-typing.
 
 \paragraph{An old capability, newly accessible.}
 None of the calculus underneath is new.  Templates have always been
@@ -765,8 +796,14 @@ each rule has a mechanical witness in the partition graph (the
 public-API headers exported by each \lstinline{export module}
 declaration are the audit surface).
 
-\subsection{C++23 as a Lambda-Calculus Substrate: A Translation Table}
+\subsection{The Structuralist Intersection: The \texttt{dedekind} DSL}
 \label{sec:cpp-stlc-mapping}
+
+The \texttt{dedekind} types and combinators are the inhabitants of $\mathbf{Jlt} \cap \mathbf{Spo}$: C++23 types and arrows that simultaneously sit in the disciplined syntactic fragment $\mathbf{Jlt}$ and carry single-species categorical structure from $\mathbf{Spo}$.
+The intersection is small but non-empty, and that is the point: a bounded feasible region a working software engineer can inhabit cleanly without leaving mainstream C++.
+The remainder of the section develops the two restrictions in turn --- §\ref{sec:spo} for $\mathbf{Spo}$, §\ref{sec:jlt} for $\mathbf{Jlt}$ --- and the subsequent pillars exhibit the intersection through worked examples.
+
+As noted in the Introduction, the categorical perspective is useful here precisely because it makes composition and rewrite structure explicit.
 
 The two uses above are sharper when named in the calculus that
 underwrites them. The technique this paper exhibits is, in formal
@@ -808,7 +845,7 @@ witness on which the set-comprehension surface
 \textbf{Disciplined C++23} & \textbf{Lambda calculus / category theory} \\
 \midrule
 \lstinline|template <typename T>| (§\ref{sec:axiomatic}) & Type variable $\alpha$; System-F universal quantification at the type level (parametric \emph{in the disciplined subset}; no specialisation, no SFINAE branch in the public surface) \\
-\lstinline|concept| (§\ref{sec:axiomatic}, lst.~\ref{lst:structural}) & Type-class / kind constraint --- a predicate on types restricting the domain of a polymorphic function \\
+\lstinline|concept| (§\ref{sec:axiomatic}) & Type-class / kind constraint --- a predicate on types restricting the domain of a polymorphic function \\
 \lstinline|requires|-clause (§\ref{sec:axiomatic}) & Evidence / constraint satisfaction --- a proof obligation that the type carries the term-level operations \\
 \lstinline|static_assert| (throughout) & Mechanical proof that proposition $P$ is inhabited at translation time (Curry--Howard~\cite{wadler2015propositions}) \\
 \lstinline|using| alias (§\ref{sec:axiomatic}) & Type-level redex --- the compiler reduces by $\beta$-style substitution \\
