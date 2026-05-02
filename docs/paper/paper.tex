@@ -564,13 +564,13 @@ Both category theory and modern C++23 are large and occasionally intimidating be
 The \texttt{dedekind} library lives at their intersection.
 
 \subsection{Structuralism with Single-Species Categories}
-\label{sec:monoid}
+\label{sec:spo}
 
 The choice of anchoring the library's domain in category theory on the mathematical side is neither new nor arbitrary and follows a well-trodden path.
-The authoritative textbook in the context of programming might be \emph{Types and Programming Languages}~\cite{pierce2002tapl}. 
+The authoritative textbook in the context of programming might be \emph{Types and Programming Languages}~\cite{pierce2002tapl}.
 Here, we intend to lower the barrier to entry and so we restrict attention to \emph{single-species categories}~\cite{burris1981universalalgebra}: categories whose objects all share a common carrier type, whose endomorphisms are functions on that carrier, and whose inter-carrier maps become functors between sibling categories.
 The textbook way to read this restriction is via the bijection between monoids and one-object categories (Mac Lane~\cite{maclane1971categories} §I.1): every monoid \emph{is} a one-object category whose morphisms are the monoid elements; the single-species categories we use here are the engineering-library generalisation, where the species' shared carrier object plays the role of the monoid's underlying set and the species' operation signatures play the role of the monoid's binary operation.
-This is a small fragment of $\mathbf{Cat}$ but, as §\ref{sec:monoid} develops, it carries enough algebraic vocabulary to host carriers, operators, and structure-preserving arrows in the shape an engineering library actually needs and is a preferred starting point for the structuralist mathematical style~\cite{marquis2022structuralist}.
+This is a small fragment of $\mathbf{Cat}$ but, as §\ref{sec:spo} develops, it carries enough algebraic vocabulary to host carriers, operators, and structure-preserving arrows in the shape an engineering library actually needs and is a preferred starting point for the structuralist mathematical style~\cite{marquis2022structuralist}.
 
 For the more casual reader of this text, it should be sufficient to remember that at its most basic, category theory is a book-keeping device of sorts that can tell us what clicks together and what doesn't and how things might be re-arranged and perhaps simplified.
 Somewhat casually:
@@ -799,9 +799,9 @@ declaration are the audit surface).
 \subsection{The Structuralist Intersection: The \texttt{dedekind} DSL}
 \label{sec:cpp-stlc-mapping}
 
-The \texttt{dedekind} types and combinators are the inhabitants of $\mathbf{Jlt} \cap \mathbf{Monoid}$: C++23 types and arrows that simultaneously sit in the disciplined syntactic fragment $\mathbf{Jlt}$ and carry single-species categorical structure from $\mathbf{Monoid}$.
+The \texttt{dedekind} types and combinators are the inhabitants of $\mathbf{Jlt} \cap \mathbf{Spo}$: C++23 types and arrows that simultaneously sit in the disciplined syntactic fragment $\mathbf{Jlt}$ and carry single-species categorical structure from $\mathbf{Spo}$.
 The intersection is small but non-empty, and that is the point: a bounded feasible region a working software engineer can inhabit cleanly without leaving mainstream C++.
-The remainder of the section develops the two restrictions in turn --- §\ref{sec:monoid} for $\mathbf{Monoid}$, §\ref{sec:jlt} for $\mathbf{Jlt}$ --- and the subsequent pillars exhibit the intersection through worked examples.
+The remainder of the section develops the two restrictions in turn --- §\ref{sec:spo} for $\mathbf{Spo}$, §\ref{sec:jlt} for $\mathbf{Jlt}$ --- and the subsequent pillars exhibit the intersection through worked examples.
 
 The appeal of category theory in programming-language research should be obvious: a minimalist type checker does not need to do much more than check whether the output of one function matches the input of another, and a ``sufficiently smart'' optimising compiler might know a fair amount about commutation rules and re-write the arrows in a sensible way.
 
@@ -845,7 +845,7 @@ witness on which the set-comprehension surface
 \textbf{Disciplined C++23} & \textbf{Lambda calculus / category theory} \\
 \midrule
 \lstinline|template <typename T>| (§\ref{sec:axiomatic}) & Type variable $\alpha$; System-F universal quantification at the type level (parametric \emph{in the disciplined subset}; no specialisation, no SFINAE branch in the public surface) \\
-\lstinline|concept| (§\ref{sec:axiomatic}, lst.~\ref{lst:structural}) & Type-class / kind constraint --- a predicate on types restricting the domain of a polymorphic function \\
+\lstinline|concept| (§\ref{sec:axiomatic}) & Type-class / kind constraint --- a predicate on types restricting the domain of a polymorphic function \\
 \lstinline|requires|-clause (§\ref{sec:axiomatic}) & Evidence / constraint satisfaction --- a proof obligation that the type carries the term-level operations \\
 \lstinline|static_assert| (throughout) & Mechanical proof that proposition $P$ is inhabited at translation time (Curry--Howard~\cite{wadler2015propositions}) \\
 \lstinline|using| alias (§\ref{sec:axiomatic}) & Type-level redex --- the compiler reduces by $\beta$-style substitution \\
