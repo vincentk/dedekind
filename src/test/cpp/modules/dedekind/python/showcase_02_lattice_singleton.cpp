@@ -31,18 +31,21 @@ constexpr bool is_integral_coordinate(double x) {
   return static_cast<double>(xi) == x;
 }
 
-// Symbolic variable ranging over ℂ
-constexpr auto c = var<ℂ>;
+// Symbolic scout ranging over the universal set Ω<Complex<double>>.
+// FIXME(#399 slice 4-6): once ℂ becomes a carrier alias, switch to
+// @c element<Ω<ℂ>>; for now @c ℂ is still the predicate-set type, so
+// we spell the carrier directly.
+constexpr auto c = element<Ω<Complex<double>>>;
 
 // Lifted natural-number lattice: Gaussian integers with 0 ≤ Re, Im ≤ 3
-constexpr auto natural_lattice_in_c = Set{c % C | [](const Complex<double>& z) {
+constexpr auto natural_lattice_in_c = Set{c | [](const Complex<double>& z) {
   return is_integral_coordinate(z.real()) && is_integral_coordinate(z.imag()) &&
          (z.real() >= 0.0) && (z.real() <= 3.0) && (z.imag() >= 0.0) &&
          (z.imag() <= 3.0);
 }};
 
 // Square region [0.5, 1.5] × [0.5, 1.5] inside ℂ
-constexpr auto square_c1_c2 = Set{c % C | [](const Complex<double>& z) {
+constexpr auto square_c1_c2 = Set{c | [](const Complex<double>& z) {
   return (z.real() >= 0.5) && (z.real() <= 1.5) && (z.imag() >= 0.5) &&
          (z.imag() <= 1.5);
 }};

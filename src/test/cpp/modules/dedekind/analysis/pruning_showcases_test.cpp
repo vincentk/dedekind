@@ -58,19 +58,22 @@ TEST_CASE("Pruning showcase 1: diagonal × strip on ℝ² is empty",
 namespace {
 
 // Shared with showcase 2 (ℂ lattice × square singleton).
-constexpr auto c = var<ℂ>;
+// FIXME(#399 slice 4-6): once ℂ becomes a carrier alias, switch to
+// @c element<Ω<ℂ>>; for now ℂ is still the predicate-set type, so we
+// spell the carrier directly.
+constexpr auto c = element<Ω<Complex<double>>>;
 
 constexpr bool is_integral_coordinate(double x) {
   const int xi = static_cast<int>(x);
   return static_cast<double>(xi) == x;
 }
 
-constexpr auto natural_lattice_in_c = Set{c % C | [](const Complex<double>& z) {
+constexpr auto natural_lattice_in_c = Set{c | [](const Complex<double>& z) {
   return is_integral_coordinate(z.real()) && is_integral_coordinate(z.imag()) &&
          (z.real() >= 0.0) && (z.real() <= 3.0) && (z.imag() >= 0.0) &&
          (z.imag() <= 3.0);
 }};
-constexpr auto square_c1_c2 = Set{c % C | [](const Complex<double>& z) {
+constexpr auto square_c1_c2 = Set{c | [](const Complex<double>& z) {
   return (z.real() >= 0.5) && (z.real() <= 1.5) && (z.imag() >= 0.5) &&
          (z.imag() <= 1.5);
 }};
@@ -90,9 +93,9 @@ TEST_CASE("Pruning showcase 2: ℕ² lattice × [½,1½]² in ℂ = {1+i}",
 
 TEST_CASE("Pruning showcase 3: halfspace contradiction on ℕ collapses to Ø",
           "[analysis][pruning][showcase][showcase03]") {
-  constexpr auto n = var<ℕ>;
-  constexpr auto gt_five = Set{n % N | (n > bound<5>)};
-  constexpr auto lt_three = Set{n % N | (n < bound<3>)};
+  constexpr auto n = element<Ω<ℕ>>;
+  constexpr auto gt_five = Set{n | (n > bound<5>)};
+  constexpr auto lt_three = Set{n | (n < bound<3>)};
 
   constexpr Ø<ℕ> empty_meet = gt_five & lt_three;
   STATIC_CHECK(empty_meet == Ø{});
@@ -110,9 +113,9 @@ TEST_CASE("Pruning showcase 3: halfspace contradiction on ℕ collapses to Ø",
 
 TEST_CASE("Pruning showcase 4: cardinality-1 halfspace meet = Singleton<4>",
           "[analysis][pruning][showcase][showcase04]") {
-  constexpr auto n = var<ℕ>;
-  constexpr auto gt_three = Set{n % N | (n > bound<3>)};
-  constexpr auto lt_five = Set{n % N | (n < bound<5>)};
+  constexpr auto n = element<Ω<ℕ>>;
+  constexpr auto gt_three = Set{n | (n > bound<3>)};
+  constexpr auto lt_five = Set{n | (n < bound<5>)};
 
   constexpr Singleton<4> in_between = gt_three & lt_five;
   STATIC_CHECK(in_between == Singleton<4>{});
@@ -125,9 +128,11 @@ TEST_CASE("Pruning showcase 4: cardinality-1 halfspace meet = Singleton<4>",
 
 TEST_CASE("Pruning showcase 5: halfspace meet on ℝ collapses to Ø",
           "[analysis][pruning][showcase][showcase05]") {
-  constexpr auto x = var<ℝ>;
-  constexpr auto gt_five = Set{x % R | (x > bound<5.0>)};
-  constexpr auto lt_three = Set{x % R | (x < bound<3.0>)};
+  // FIXME(#399 slice 4-6): once ℝ becomes a carrier alias, switch to
+  // @c element<Ω<ℝ>>; for now ℝ is still the predicate-set type.
+  constexpr auto x = element<Ω<Real<double>>>;
+  constexpr auto gt_five = Set{x | (x > bound<5.0>)};
+  constexpr auto lt_three = Set{x | (x < bound<3.0>)};
 
   constexpr Ø<Real<double>> empty_meet = gt_five & lt_three;
   STATIC_CHECK(empty_meet == Ø{});
@@ -140,9 +145,9 @@ TEST_CASE("Pruning showcase 5: halfspace meet on ℝ collapses to Ø",
 
 TEST_CASE("Pruning showcase 6: (-21, 21] on ℤ has size 42",
           "[analysis][pruning][showcase][showcase06]") {
-  constexpr auto n = var<ℤ>;
-  constexpr auto above = Set{n % Z | (n > bound<-21>)};
-  constexpr auto at_most = Set{n % Z | (n <= bound<21>)};
+  constexpr auto n = element<Ω<ℤ>>;
+  constexpr auto above = Set{n | (n > bound<-21>)};
+  constexpr auto at_most = Set{n | (n <= bound<21>)};
 
   constexpr auto iv = above & at_most;
   using Iv = std::decay_t<decltype(iv)>;
@@ -172,17 +177,13 @@ TEST_CASE("Pruning showcase 7: ℤ lattice ∩ real interval (-21.0, 21.0]",
   // distinct from showcase 6 (which uses integer bounds).
   //
   // @c IntsOnInt is the int-Domain universal predicate, defined
-  // locally because the canonical @c IntegersOf<> now carries
-  // @c Domain @c = @c SEC<>; #551 retires this naming under @c
-  // UniversalSet<int>.
-  struct IntsOnInt {
-    using Domain = int;
-    constexpr bool operator()(int) const { return true; }
-  };
-  constexpr IntsOnInt Z_int{};
-  constexpr auto n = var<int>;
-  constexpr auto above = Set{n % Z_int | (n > bound<-21.0>)};
-  constexpr auto at_most = Set{n % Z_int | (n <= bound<21.0>)};
+  // The pre-#551 surface used a locally-defined IntsOnInt predicate-set
+  // because the canonical @c IntegersOf<> carried @c Domain @c =
+  // @c SEC<>; under #551 the scout itself knows its ambient (Ω<int>),
+  // so no local predicate-set is needed.
+  constexpr auto n = element<Ω<int>>;
+  constexpr auto above = Set{n | (n > bound<-21.0>)};
+  constexpr auto at_most = Set{n | (n <= bound<21.0>)};
 
   constexpr auto lattice_cut = above & at_most;
   using Iv = std::decay_t<decltype(lattice_cut)>;
@@ -196,11 +197,9 @@ TEST_CASE("Pruning showcase 7: ℤ lattice ∩ real interval (-21.0, 21.0]",
 
 TEST_CASE("Pruning showcase 8: 2D rectangle via IntervalProduct",
           "[analysis][pruning][showcase][showcase08]") {
-  constexpr auto n = var<ℤ>;
-  constexpr auto I_wide =
-      Set{n % Z | (n > bound<-21>)} & Set{n % Z | (n <= bound<21>)};
-  constexpr auto I_tall =
-      Set{n % Z | (n >= bound<0>)} & Set{n % Z | (n <= bound<10>)};
+  constexpr auto n = element<Ω<ℤ>>;
+  constexpr auto I_wide = Set{n | (n > bound<-21>)} & Set{n | (n <= bound<21>)};
+  constexpr auto I_tall = Set{n | (n >= bound<0>)} & Set{n | (n <= bound<10>)};
 
   constexpr auto box = I_wide * I_tall;
 

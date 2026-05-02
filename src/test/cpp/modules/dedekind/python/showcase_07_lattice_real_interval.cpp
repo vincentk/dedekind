@@ -41,19 +41,14 @@ using namespace dedekind::order;
 // non-narrowing SEC<>↔real comparison arrow (deferred follow-up to
 // #399 slice 3 / #551).
 //
-// @c IntsOnInt is the int-Domain universal predicate, defined locally
-// because the canonical @c IntegersOf<> now carries @c Domain @c =
-// @c SignedExtensionalCardinal<> (the exact ℤ carrier).  The redesign
-// in #551 retires this kind of one-off naming under @c UniversalSet<int>.
-struct IntsOnInt {
-  using Domain = int;
-  constexpr bool operator()(int) const { return true; }
-};
-constexpr IntsOnInt Z_int{};
-constexpr auto n = var<int>;
+// Per #551, the scout itself knows its ambient (Ω<int>) — no
+// locally-defined predicate-set is needed.  The pre-#551 surface used
+// a one-off @c IntsOnInt because @c IntegersOf<> carries @c Domain
+// @c = @c SignedExtensionalCardinal<> (the exact ℤ carrier).
+constexpr auto n = element<Ω<int>>;
 
-constexpr auto above = Set{n % Z_int | (n > bound<-21.0>)};
-constexpr auto at_most = Set{n % Z_int | (n <= bound<21.0>)};
+constexpr auto above = Set{n | (n > bound<-21.0>)};
+constexpr auto at_most = Set{n | (n <= bound<21.0>)};
 
 // Meet: integer lattice inside a real interval.
 constexpr auto lattice_cut = above & at_most;

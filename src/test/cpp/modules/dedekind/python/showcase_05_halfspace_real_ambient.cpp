@@ -31,13 +31,15 @@ using namespace dedekind::algebra;
 using namespace dedekind::numbers;
 using namespace dedekind::order;
 
-// Symbolic variable ranging over ℝ (ambient real numbers, carrier
-// Real<double>).
-constexpr auto x = var<ℝ>;
+// Symbolic scout ranging over the universal set Ω<Real<double>>.
+// FIXME(#399 slice 4-6): once ℝ becomes a carrier alias for
+// Real<...>, switch to @c element<Ω<ℝ>>; for now ℝ is still the
+// predicate-set type, so we spell the carrier directly.
+constexpr auto x = element<Ω<Real<double>>>;
 
 // Opposing halfspaces with compile-time double-valued pivots.
-constexpr auto gt_five = Set{x % R | (x > bound<5.0>)};
-constexpr auto lt_three = Set{x % R | (x < bound<3.0>)};
+constexpr auto gt_five = Set{x | (x > bound<5.0>)};
+constexpr auto lt_three = Set{x | (x < bound<3.0>)};
 
 // Compile-time theorem: the meet IS the empty set on ℝ.
 constexpr Ø<Real<double>> empty_meet = gt_five & lt_three;
