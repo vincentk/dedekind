@@ -295,12 +295,12 @@ Putting it all together, the hope is that the compiler becomes
 from the discharged proof obligations \emph{at compile time}.
 \end{enumerate} 
 
-The desired outcome is to enable checks and processes such as the following:
+The desired outcome is to enable checks and processes such as the following \emph{at compile-time}:
 (i) an attempt to multiply matrices with incompatible shapes or to invert a singular matrix simply won't compile;
 (ii) an attempt to compute an inverse twice in a row is identified as the identity operation, and so no transformation code need even be emitted;
 (iii) $\mathbb{N}$ might be a transfinite (intensional) set, but an arbitrary finite (extensional) subset can still be selected;
-(iv) an element test on an empty set will always return false;
-(v) transcendental numbers cannot be computed to the last digit, but they can be represented \emph{exactly}.
+(iv) an element test on an empty set will always \texttt{return false} and be collapsed and in-lined as a result;
+(v) transcendental numbers cannot be computed to the last digit, but they can be represented \emph{exactly} and used in bounds checks.
 
 Our posture is explicit: \texttt{dedekind} is a systems-programming
 library that treats mathematical concepts as first-class compile-time
@@ -315,7 +315,9 @@ the compiler and the library can do for the user and what they cannot.
 \paragraph{The thesis.} In one sentence: \emph{named algebraic structure
 at the type level, discharged by the compiler, narrows the gap
 between abstract mathematics and machine code without a separate
-proof assistant.} Every section of the paper serves that sentence.
+proof assistant.}
+Figure \ref{fig:dedekind-bridge} illustrates this overarching goal.
+Every section of the paper serves that sentence.
 
 \paragraph{How is this new?}
 Compile-time verification of algebraic structure is not new in the
@@ -344,6 +346,12 @@ of work~\cite{boruchgruszecki2023capturing}). The contribution of
 this paper is an articulation of that discipline restricted to
 mainstream C++23, together with a worked library that discharges
 its claims mechanically.
+
+\paragraph{What shifted the cost--benefit calculus.}
+Two recent developments are the \emph{key enablers}, not tricks or shortcuts.
+First, the C++23 standard~\cite{cpp23standard} delivers the three features the technique needs --- \lstinline|concept|s, NTTPs, and named modules --- in a mainstream toolchain with an installed industrial base; previous template-metaprogramming traditions had to encode these implicitly at steep readability and review cost.
+Second, modern coding-assistant LLMs~\cite{chen2021evaluating} compress the time and expertise needed to author opt-in trait specialisations, axiom-shape concepts, and the surrounding library scaffolding, turning what was once a deep-template-metaprogramming specialism into an actionable workflow for working software engineers.
+The correctness story is unchanged --- the type system and \lstinline|static_assert| obligations are what the compiler discharges, both checked mechanically --- but the cost story is, and that is what makes the discipline viable at industrial scale rather than as a paper-only artefact.
 
 Most of what follows is therefore \emph{not} specific to C++. Concepts
 have close analogues in Java (sealed types plus generic constraints),
