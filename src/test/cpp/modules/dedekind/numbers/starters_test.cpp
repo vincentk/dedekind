@@ -23,8 +23,11 @@ TEST_CASE("Numbers: canonical starter symbols", "[numbers][starter]") {
   STATIC_CHECK(std::same_as<decltype(N), const NaturalNumbersOf<>>);
   STATIC_CHECK(std::same_as<typename NaturalNumbersOf<>::Domain, ℕ>);
 
-  STATIC_CHECK(std::same_as<ℤ, IntegerSet>);
-  STATIC_CHECK(std::same_as<decltype(Z), const ℤ>);
+  // ℤ is the exact-ℤ carrier alias (SignedExtensionalCardinal<>) per
+  // #399 slice 3; the value-level constant Z keeps its predicate-set
+  // role for set-builder DSL.  Same shape as the ℚ row below.
+  STATIC_CHECK(std::same_as<ℤ, SignedExtensionalCardinal<>>);
+  STATIC_CHECK(std::same_as<decltype(Z), const IntegersOf<>>);
 
   // ℚ is now the carrier type (the field of rationals); the value-level
   // constant Q is the predicate-set instance (RationalsOf<> / RationalSet).

@@ -306,11 +306,13 @@ concept Algebra_ℂ = IsComplex<C, R> && dedekind::algebra::HasFieldOperators<C>
 
 /** @section integer__Canonical_Species_Spine (ℤ)
  *
- * The canonical species symbol @c ℤ (alias of @c IntegerSet
- * @c = @c IntegersOf<>) and the value-level constant @c Z are
- * defined further down; the spine below pins ℤ's syntax / semantics
- * / arrow-fabric witnesses against drift.  The strict (species-trait)
- * witnesses on the exact ℤ carrier @c SignedExtensionalCardinal<>
+ * The canonical species symbol @c ℤ aliases the exact ℤ @b carrier
+ * @c SignedExtensionalCardinal<> per #399 (slice 3); the predicate-set
+ * form @c IntegersOf<> stays partition-local (non-exported as
+ * @c IntegerSet) and is reachable via the value-level constant @c Z
+ * for set-builder DSL.  Both are defined further down.  The spine
+ * below pins ℤ's syntax / semantics / arrow-fabric witnesses against
+ * drift.  The strict (species-trait) witnesses on the exact ℤ carrier
  * land in @c :rational (where the species-trait registrations are
  * reachable); the partition-local witnesses here cover the
  * literal-shape concepts and the primitive-type arrows.
@@ -369,12 +371,28 @@ static_assert(!dedekind::algebra::IsArithmeticAdditiveGroup<int>,
  */
 export template <typename L = ClassicalLogic, typename C = ℵ_0>
 struct IntegersOf {
-  using Domain = int;
+  // Domain is the exact ℤ carrier per #399 slice 3.  Tracks the
+  // top-level @c ℤ alias (@c SignedExtensionalCardinal<>) so that
+  // @c var<ℤ>; @c n @c % @c Z routes the same_as check on
+  // Variable's element type @c T against @c Z::Domain cleanly
+  // through the carrier — the int / unsigned / Ternary / bool
+  // overloads below remain reachable via implicit @c int @c → @c SEC
+  // construction.
+  using Domain = dedekind::sets::SignedExtensionalCardinal<>;
   using Codomain = typename L::Ω;
   using logic_species = L;
   using cardinality_type = C;
 
-  // Native int: always a member of ℤ
+  // Native exact ℤ: always a member of ℤ.  Direct dispatch on the
+  // carrier (no implicit-conversion round trip).
+  constexpr typename L::Ω operator()(
+      const dedekind::sets::SignedExtensionalCardinal<>&) const {
+    return L::True;
+  }
+
+  // Native int: always a member of ℤ.  Retained for callsite ergonomics
+  // (literals, machine-int fixtures); the implicit @c int @c → @c SEC
+  // construction lifts the same predicate.
   constexpr typename L::Ω operator()(int) const { return L::True; }
 
   // Embedded unsigned (via embed_uint_sint_)
@@ -407,15 +425,45 @@ struct IntegersOf {
   }
 };
 
-export using IntegerSet = IntegersOf<>;
-export using ℤ = IntegerSet;
+// Non-exported convenience alias used by the value-level @c Z constant
+// below.  Per #399 (canonical species symbols as carrier types), the
+// public name @c ℤ now denotes the exact ℤ @b carrier
+// (@c SignedExtensionalCardinal<>) rather than the predicate-set form;
+// callers who specifically need the predicate-set type should spell
+// @c IntegersOf<> or @c decltype(Z) — symmetric with the
+// @c BooleanSetOf<> / @c B handling on the @c 𝔹 side (#400 / #407).
+using IntegerSet = IntegersOf<>;
 
-export inline constexpr ℤ Z{};
+/** @brief The canonical Boolean-tower successor: the exact ℤ @b carrier.
+ *
+ *  Aliased to @c dedekind::sets::SignedExtensionalCardinal<> per #399's
+ *  show-to-a-wider-audience API: the species symbol names the carrier
+ *  type itself, so @c static_assert(IsRing<ℤ, ...>) and @c var<ℤ>
+ *  read directly against the carrier.  The value-level constant
+ *  @c Z below keeps its predicate-set role for the set-builder DSL
+ *  (e.g.\ @c Set{n @c % @c Z @c | @c (n @c > @c bound<-21>)}).
+ *
+ *  Strict semantic witnesses on the carrier (@c IsRing,
+ *  @c IsArithmeticAdditiveGroup, @c Group_ℤ, etc.) live in @c :rational
+ *  by module-DAG necessity (the trait registrations are reachable
+ *  there); the partition-local witnesses below cover what is reachable
+ *  in @c :integer's import scope.
+ */
+export using ℤ = dedekind::sets::SignedExtensionalCardinal<>;
 
-static_assert(dedekind::category::IsSet<
-                  decltype(dedekind::category::ambient_set<int>(Z))>,
-              "IntegersOf must be the canonical IsSet anchor for "
-              "dedekind.numbers:integer.");
+static_assert(std::same_as<ℤ, dedekind::sets::SignedExtensionalCardinal<>>,
+              "ℤ is the exact-ℤ carrier alias (#399 slice 3); the "
+              "predicate-set form spells as @c IntegersOf<> or "
+              "@c decltype(Z).");
+
+export inline constexpr IntegerSet Z{};
+
+static_assert(
+    dedekind::category::IsSet<
+        decltype(dedekind::category::ambient_set<
+                 dedekind::sets::SignedExtensionalCardinal<>>(Z))>,
+    "IntegersOf must be the canonical IsSet anchor for "
+    "dedekind.numbers:integer (Domain = exact ℤ carrier per #399 slice 3).");
 
 /**
  * @brief Canonical embedding ℕ ↪ ℤ: unsigned int → int.

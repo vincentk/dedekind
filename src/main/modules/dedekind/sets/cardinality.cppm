@@ -123,14 +123,6 @@ struct ExtensionalCardinal {
     limbs[0] = static_cast<limb_type>(value);
   }
 
-  /** @brief Explicit conversion to floating-point (single-limb only).
-   *  Constrained to N==1 to prevent silent truncation of multi-limb values. */
-  template <std::floating_point F>
-    requires(N == 1)
-  constexpr explicit operator F() const noexcept {
-    return static_cast<F>(limbs[0]);
-  }
-
   constexpr friend bool operator==(const ExtensionalCardinal&,
                                    const ExtensionalCardinal&) = default;
 
@@ -2056,6 +2048,20 @@ struct SpeciesTraits<dedekind::sets::SignedCardinality> {
   using machine_type = dedekind::sets::SignedCardinality;
 };
 
+// Lift the bounded exact ℤ carrier @c SignedExtensionalCardinal<N>
+// to IsSpecies status as well, parallel to @c SignedCardinality
+// above.  Required for @c ℤ @c = @c SignedExtensionalCardinal<>
+// to flow into @c ambient_set<...> as the canonical carrier per
+// #399 slice 3 (the value-level @c Z constant in
+// @c numbers/integer.cppm anchors @c IsSet on this carrier).  N is
+// kept parametric to mirror the per-N variability already exposed
+// at the carrier level.
+template <std::size_t N>
+struct SpeciesTraits<dedekind::sets::SignedExtensionalCardinal<N>> {
+  using Domain = dedekind::sets::SignedExtensionalCardinal<N>;
+  using machine_type = dedekind::sets::SignedExtensionalCardinal<N>;
+};
+
 // IsSpecies witnesses: the variant carriers are now first-class
 // species and can flow into @c ambient_set<...> / ETCS object
 // construction in downstream partitions (cf.\ @c sets:boundaries,
@@ -2065,6 +2071,10 @@ static_assert(IsSpecies<dedekind::sets::Cardinality>,
               "Cardinality must be a recognised Species (post-#413).");
 static_assert(IsSpecies<dedekind::sets::SignedCardinality>,
               "SignedCardinality must be a recognised Species (post-#413).");
+static_assert(
+    IsSpecies<dedekind::sets::SignedExtensionalCardinal<>>,
+    "SignedExtensionalCardinal<> must be a recognised Species — anchors "
+    "the @c ℤ alias's IsSet witness in @c numbers:integer (#399 slice 3).");
 
 // ---------------------------------------------------------------------------
 // Closure-forcing trait specialisations (slice of #432)

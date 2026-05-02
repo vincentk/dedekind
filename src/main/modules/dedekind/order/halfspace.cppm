@@ -78,11 +78,28 @@ using namespace dedekind::category;
  * only that the carrier reads as an integer-magnitude domain for
  * cardinality-counting purposes.
  */
+namespace detail_isringintegral {
+template <typename>
+struct is_signed_extensional_cardinal : std::false_type {};
+template <std::size_t N>
+struct is_signed_extensional_cardinal<
+    dedekind::sets::SignedExtensionalCardinal<N>> : std::true_type {};
+template <typename>
+struct is_extensional_cardinal : std::false_type {};
+template <std::size_t N>
+struct is_extensional_cardinal<dedekind::sets::ExtensionalCardinal<N>>
+    : std::true_type {};
+}  // namespace detail_isringintegral
+
 export template <typename T>
 concept IsRingIntegral =
     std::integral<std::remove_cvref_t<T>> ||
     std::same_as<std::remove_cvref_t<T>, dedekind::sets::Cardinality> ||
-    std::same_as<std::remove_cvref_t<T>, dedekind::sets::SignedCardinality>;
+    std::same_as<std::remove_cvref_t<T>, dedekind::sets::SignedCardinality> ||
+    detail_isringintegral::is_signed_extensional_cardinal<
+        std::remove_cvref_t<T>>::value ||
+    detail_isringintegral::is_extensional_cardinal<
+        std::remove_cvref_t<T>>::value;
 
 /** @section halfspace__Formal_Verification (IsRingIntegral) */
 
@@ -100,6 +117,25 @@ static_assert(IsRingIntegral<dedekind::sets::SignedCardinality>,
               "SignedCardinality must satisfy IsRingIntegral — the variant "
               "ℤ-proxy is the canonical exact-ℤ integer-range carrier "
               "(post-#414).");
+// Note on the SEC<N> / EC<N> extension and OrderInterval::size():
+// @c IsRingIntegral<T> gates the @c size() / cardinality surface on
+// the @b carrier @c T (the runtime element type), not on the @b NTTP
+// @c Hi and @c Lo bound values.  Current usage uniformly supplies
+// int-typed NTTPs (e.g.\ @c bound<-21>), so @c span @c = @c Hi @c -
+// @c Lo @c + @c ... reduces to int arithmetic and
+// @c static_cast<size_t>(span) is well-defined.  If a future spelling
+// places SEC-/EC-valued NTTPs in the bound slot (e.g.\ @c bound<SEC<>
+// @c {42}>), the @c size() formula would need a multi-limb-aware
+// reformulation.  Tracked alongside the SEC<>↔real comparison surface
+// in the #399 slice 3 follow-ups (#551).
+static_assert(
+    IsRingIntegral<dedekind::sets::SignedExtensionalCardinal<>>,
+    "SignedExtensionalCardinal<> must satisfy IsRingIntegral — the bounded "
+    "exact-ℤ carrier underlying the @c ℤ alias post-#399 slice 3.");
+static_assert(IsRingIntegral<dedekind::sets::ExtensionalCardinal<>>,
+              "ExtensionalCardinal<> must satisfy IsRingIntegral — the "
+              "bounded exact-ℕ carrier (sibling of SEC<> on the unsigned "
+              "side).");
 
 // Cv-/ref-qualified spellings: the @c std::remove_cvref_t normalisation
 // in the concept body lets @c IsRingIntegral fire in deduced contexts

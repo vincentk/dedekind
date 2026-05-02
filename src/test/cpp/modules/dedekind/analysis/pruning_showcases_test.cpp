@@ -162,9 +162,26 @@ TEST_CASE("Pruning showcase 6: (-21, 21] on ℤ has size 42",
 
 TEST_CASE("Pruning showcase 7: ℤ lattice ∩ real interval (-21.0, 21.0]",
           "[analysis][pruning][showcase][showcase07]") {
-  constexpr auto n = var<ℤ>;
-  constexpr auto above = Set{n % Z | (n > bound<-21.0>)};
-  constexpr auto at_most = Set{n % Z | (n <= bound<21.0>)};
+  // Machine-int carrier explicitly: on int, the standard int↔double
+  // promotion is what lets the real-valued bound compare with the
+  // integer variable.  The exact ℤ carrier
+  // (@c SignedExtensionalCardinal<>) intentionally does not silently
+  // narrow to double; real-bound support against the exact carrier
+  // is deferred to a SEC<>↔real comparison arrow (follow-up to #399
+  // slice 3 / #551).  Showcase 7 keeps the real-bound demonstration
+  // distinct from showcase 6 (which uses integer bounds).
+  //
+  // @c IntsOnInt is the int-Domain universal predicate, defined
+  // locally because the canonical @c IntegersOf<> now carries
+  // @c Domain @c = @c SEC<>; #551 retires this naming under @c Ω<int>.
+  struct IntsOnInt {
+    using Domain = int;
+    constexpr bool operator()(int) const { return true; }
+  };
+  constexpr IntsOnInt Z_int{};
+  constexpr auto n = var<int>;
+  constexpr auto above = Set{n % Z_int | (n > bound<-21.0>)};
+  constexpr auto at_most = Set{n % Z_int | (n <= bound<21.0>)};
 
   constexpr auto lattice_cut = above & at_most;
   using Iv = std::decay_t<decltype(lattice_cut)>;

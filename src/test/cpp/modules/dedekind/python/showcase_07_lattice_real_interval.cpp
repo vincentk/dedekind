@@ -31,11 +31,29 @@ using namespace dedekind::algebra;
 using namespace dedekind::numbers;
 using namespace dedekind::order;
 
-// Integer-valued variable, real-valued bounds.
-constexpr auto n = var<ℤ>;
+// Integer-valued variable, real-valued bounds.  This showcase
+// deliberately uses the machine-int carrier rather than the canonical
+// exact ℤ carrier (@c SignedExtensionalCardinal<>): on machine int,
+// the int↔double standard arithmetic promotion is what lets the
+// real-valued bound compare with the integer variable.  The exact
+// carrier intentionally does not silently narrow to double; real-bound
+// support against @c SignedExtensionalCardinal<> needs a
+// non-narrowing SEC<>↔real comparison arrow (deferred follow-up to
+// #399 slice 3 / #551).
+//
+// @c IntsOnInt is the int-Domain universal predicate, defined locally
+// because the canonical @c IntegersOf<> now carries @c Domain @c =
+// @c SignedExtensionalCardinal<> (the exact ℤ carrier).  The redesign
+// in #551 retires this kind of one-off naming under @c Ω<int>.
+struct IntsOnInt {
+  using Domain = int;
+  constexpr bool operator()(int) const { return true; }
+};
+constexpr IntsOnInt Z_int{};
+constexpr auto n = var<int>;
 
-constexpr auto above = Set{n % Z | (n > bound<-21.0>)};
-constexpr auto at_most = Set{n % Z | (n <= bound<21.0>)};
+constexpr auto above = Set{n % Z_int | (n > bound<-21.0>)};
+constexpr auto at_most = Set{n % Z_int | (n <= bound<21.0>)};
 
 // Meet: integer lattice inside a real interval.
 constexpr auto lattice_cut = above & at_most;
