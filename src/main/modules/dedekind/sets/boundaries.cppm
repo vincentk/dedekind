@@ -333,6 +333,17 @@ struct UniversalSet final : Boundaries {
 export template <typename T, typename L = ClassicalLogic, typename C = ℵ_0>
 inline constexpr UniversalSet<T, L, C> Ω{};
 
+/** @brief @c Ω<bool> specialisation: the Boolean carrier is finite,
+ *  so its universal predicate is classified by @c Finite cardinality
+ *  (not @c ℵ_0).  Without this specialisation, @c NaturalLogic<Ω<bool>>
+ *  would route through @c TernaryLogic (because @c ℵ_0 is transfinite);
+ *  the canonical 𝔹 ambient wants @c ClassicalLogic.  Mirrors the
+ *  pre-#551 @c BooleanSetOf<L,C> default of @c BooleanSetOf<
+ *  ClassicalLogic, Finite>.
+ */
+export template <>
+inline constexpr UniversalSet<bool, ClassicalLogic, Finite> Ω<bool>{};
+
 template <typename T, typename L>
 constexpr auto Ø<T, L>::operator!() const {
   return UniversalSet<T, L>{};

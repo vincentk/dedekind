@@ -9,10 +9,10 @@ using namespace dedekind::category;
 using namespace dedekind::sets;
 
 TEST_CASE("Algebra:Boolean starter symbols", "[algebra][boolean][starter]") {
-  auto b = var<𝔹>;
+  auto b = element<Ω<𝔹>>;
 
-  auto truthy = Set{b % B | (b == true)};
-  auto falsy = Set{b % B | !b};
+  auto truthy = Set{b | (b == true)};
+  auto falsy = Set{b | !b};
 
   // Carrier-vs-predicate-set surface (post-#400).
   //   • 𝔹 is the carrier type itself: 𝔹 = bool.
@@ -67,12 +67,12 @@ TEST_CASE("Algebra:Boolean paper alignment (logical vs bitwise)",
 }
 
 TEST_CASE("Algebra:Boolean set laws", "[algebra][boolean][sets][laws]") {
-  auto b = var<𝔹>;
+  auto b = element<Ω<𝔹>>;
 
-  const auto truthy = Set{b % B | (b == true)};
-  const auto falsy = Set{b % B | !b};
-  const auto empty = Set{b % B | ((b == true) && !b)};
-  const auto universe = Set{b % B};
+  const auto truthy = Set{b | (b == true)};
+  const auto falsy = Set{b | !b};
+  const auto empty = Set{b | ((b == true) && !b)};
+  const auto universe = Set{b};
 
   const auto same_set = [](const auto& lhs, const auto& rhs) {
     return lhs(false) == rhs(false) && lhs(true) == rhs(true);
@@ -105,16 +105,16 @@ TEST_CASE("Algebra:Boolean set laws", "[algebra][boolean][sets][laws]") {
 
 TEST_CASE("Algebra:Boolean contradiction is compile-time empty",
           "[algebra][boolean][showcase][constexpr]") {
-  constexpr auto b = var<𝔹>;
+  constexpr auto b = element<Ω<𝔹>>;
 
   // 1) Unfiltered Boolean universe.
-  constexpr auto universe = Set{b % B};
+  constexpr auto universe = Set{b};
   static_assert(universe(true));
   static_assert(universe(false));
 
   // 2) Two half-spaces over {false, true}.
-  constexpr auto truthy = Set{b % B | (b == true)};
-  constexpr auto falsy = Set{b % B | !b};
+  constexpr auto truthy = Set{b | (b == true)};
+  constexpr auto falsy = Set{b | !b};
 
   static_assert(truthy(true));
   static_assert(!truthy(false));

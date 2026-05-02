@@ -10,8 +10,12 @@ using namespace dedekind::sets;
 
 namespace {
 
-constexpr auto r = var<ℝ>;
-constexpr auto c = var<ℂ>;
+// FIXME(#399 slice 4-6): once ℝ/ℂ become carrier aliases, switch to
+// element<Ω<ℝ>>/element<Ω<ℂ>>; for now they are still predicate-set
+// types, so we spell the carriers (Real<double>/Complex<double>)
+// directly.
+constexpr auto r = element<Ω<Real<double>>>;
+constexpr auto c = element<Ω<Complex<double>>>;
 
 constexpr auto real_gt_zero = [](const Real<double>& x) {
   return x.resolve() > 0.0;
@@ -44,28 +48,28 @@ constexpr auto complex_not_third_quadrant =
     complex_re_positive || complex_im_nonnegative;
 
 constexpr auto ℝ_plus =
-    Set{r % R | [](const Real<double>& x) { return x.resolve() > 0.0; }};
+    Set{r | [](const Real<double>& x) { return x.resolve() > 0.0; }};
 
 constexpr auto ℝ_small =
-    Set{r % R | [](const Real<double>& x) { return x.resolve() < 3.0; }};
+    Set{r | [](const Real<double>& x) { return x.resolve() < 3.0; }};
 
 constexpr auto ℝ_nonzero =
-    Set{r % R | [](const Real<double>& x) { return x.resolve() != 0.0; }};
+    Set{r | [](const Real<double>& x) { return x.resolve() != 0.0; }};
 
 constexpr auto ℂ_right_half =
-    Set{c % C | [](const Complex<double>& z) { return z.real() > 0.0; }};
+    Set{c | [](const Complex<double>& z) { return z.real() > 0.0; }};
 
 constexpr auto ℂ_upper_half =
-    Set{c % C | [](const Complex<double>& z) { return z.imag() >= 0.0; }};
+    Set{c | [](const Complex<double>& z) { return z.imag() >= 0.0; }};
 
-constexpr auto ℂ_outside_unit_ball = Set{c % C | [](const Complex<double>& z) {
+constexpr auto ℂ_outside_unit_ball = Set{c | [](const Complex<double>& z) {
   return euclidean_norm_squared(z) > 1.0;
 }};
 
-constexpr auto between_reals = Set{r % R | real_between};
-constexpr auto outside_real_band = Set{r % R | real_outside_band};
-constexpr auto first_quadrant = Set{c % C | complex_first_quadrant};
-constexpr auto not_third_quadrant = Set{c % C | complex_not_third_quadrant};
+constexpr auto between_reals = Set{r | real_between};
+constexpr auto outside_real_band = Set{r | real_outside_band};
+constexpr auto first_quadrant = Set{c | complex_first_quadrant};
+constexpr auto not_third_quadrant = Set{c | complex_not_third_quadrant};
 
 using RDomain = typename decltype(ℝ_plus)::Domain;
 using CDomain = typename decltype(ℂ_right_half)::Domain;
