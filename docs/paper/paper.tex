@@ -474,6 +474,23 @@ Section~\ref{sec:pruning} (\emph{Algebraic Lattice}) presents the carrier-tower 
 Section~\ref{sec:related} surveys related work.
 Section~\ref{sec:conclusion} concludes.
 
+\section{The Faithful Functor as an Eventual Consistency Target}
+\label{sec:eventually}
+
+The development follows a Top-Down Refinement model~\cite{wirth1971stepwise}, where the library acts as an Executable Ontology: the mathematical Forms are anchored upstream, machine carriers are staged downstream, and each step in between is a refinement the compiler is asked to police.
+We treat the alignment between C++ types and mathematical axioms as an Eventual Consistency target~\cite{vogels2009eventually}, where the Semantic Gap is incrementally closed through the addition of Compile-Time Constraints rather than asserted globally up front.
+The framing is deliberately borrowed from distributed-systems literature: the system holds multiple replicas of the same fact (a Form, a concept, a trait specialisation, a machine type); the replicas may temporarily disagree (a carrier may not yet witness an axiom the Form claims); convergence is monotone under bounded operations, in the sense that each pull request can only \emph{tighten} the alignment, never loosen it.
+The quiescent state is the one in which every node in the partition DAG is green; the Semantic Gap is whatever sits between the current state and that target at any given moment.
+The §\ref{sec:introduction} framing --- ``aim at, not assert'' --- is the same statement read from this angle: the bridge $\mathcal{F}: \mathbf{Cat} \to \mathbf{Cpp}$ is the convergence target, and each concrete carrier's \lstinline|static_assert| discharge is a partial inhabitant accumulating against it.
+
+To support this approach in a transparent fashion, we reach deep into the CI/CD toolbox and enable whatever we can find: an open-source licence and public review for the social audit trail; public issue management for the backlog of refinements still owed; a reproducible build pipeline that re-runs the compile-time discipline on every push; a test harness whose \lstinline|static_assert| obligations are checked mechanically; pull-request reviews that frame each new trait specialisation as a public claim under engineering ethics (cf.\ §\ref{sec:introduction}'s NSPE-canon footnote); version control that pins the chain of refinements to specific commits; and test-coverage reports that flag the spokes of the hub-and-spoke architecture for which no carrier yet witnesses the trait.
+None of this is technically novel.
+What matters is that the engineering practices of mainstream open-source software development \emph{compose} cleanly with the type-system discipline, turning what would otherwise be a paper-only argument into an artefact whose every refinement step is reviewable, reproducible, and dated.
+
+A natural follow-up, which we leave open, is whether convergence in this sense can be \emph{measured} rather than claimed.
+The lens is the module dependency graph itself: each downstream theorem should be dense with upstream axioms rather than fabricating new ones; the foundational modules should accumulate the highest fan-in; the ratio of \lstinline|static_assert| obligations to lines of code should not collapse as the library grows.
+Concrete metrics in this style are work in progress and not part of the present paper's claims; what we document here is the architecture under which they would be measured.
+
 % ============================================================
 \section{An Intersection of C++23 and Category Theory}
 \label{sec:axiomatic}
