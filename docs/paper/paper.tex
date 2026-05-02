@@ -202,7 +202,6 @@ Calculus (Part~II) discharged inside a \lstinline{static_assert}.
 parameters; compile-time verification; Axiomatic Systems Programming;
 type-directed collapse; linear programming; forward-mode automatic
 differentiation.
-\end{abstract}
 
 % ============================================================
 \section{Introduction}
@@ -553,9 +552,9 @@ down to where the machine takes over.}
 A successful type-check is thus a \emph{weak but universal} proof about the overall health of the Ontology: it asserts that every type-shaped claim in the build graph composes without contradiction, even though the individual assertions are coarse (concept satisfaction, not law-by-law verification).
 The automated test suite is the converse, a growing set of \emph{strong but existential} proofs about the same Ontology: each test pins a concrete carrier-instance against a concrete law and discharges the obligation as a \lstinline|static_assert| witness rather than a runtime equality check.
 Universal coverage is the build's job; existential depth is the test suite's; both accumulate monotonically under the convergence discipline.
-As a convenient and notable side effect: source code listings presented in this document are lifted verbatim from the repository's test suite.
+As a convenient and notable side effect: source code listings presented in this document are lifted (occasionally abridged for paper-page budget) from the repository's test suite; each listing's source-tree path is recorded as a LaTeX-source comment immediately above the listing, so a reader auditing against the repository can find the verbatim original directly.
 
-Similarly, where the output of LLVM opimizations is reported here, these are examples which are lifted from the test suite.
+Similarly, where the output of LLVM optimizations is reported here, these are examples which are lifted from the test suite.
 Here, the compiler is run during CI with appropriate flags to emit a portable representation of the optimized backend instructions.
 The emitted instructions are then compared to LLVM IR fixtures checked into the source tree.
 This way, it can be checked during CI that algebraic compile-time optimizations are recognized by the compiler during the development cycle.
@@ -1454,8 +1453,10 @@ make this mechanically observable.
 
 \subsubsection*{Showcase witnesses}
 
-Two concrete witnesses from the test suite demonstrate this in the actual
-\texttt{dedekind} API.
+A concrete witness from the test suite demonstrates this in the actual
+\texttt{dedekind} API.  (The complementary $\mathbb{C}$-flavoured Showcase~2 is
+deferred to §\ref{sec:linalg}, where the linear-algebra carriers it depends
+on are introduced.)
 
 \textbf{Showcase 1 — Diagonal contradiction in $\mathbb{R}^2$.}
 On the diagonal $\{(x,y) \mid x = y\}$, the strip predicate $x > 5 \land y < 3$
@@ -1600,10 +1601,14 @@ in load-bearing form: HSP propagation lifts axioms componentwise
 along quotients (\textbf{H}, e.g. \texttt{Frac}, \texttt{Complex},
 \texttt{Dual}) and direct products (\textbf{P}, e.g. $V_n(R)$,
 \texttt{Diagonal}); $\operatorname{End}_R$ is the partial-axiom
-rank-$n$ extension.  The compile-time-reduction showcases (linear
-programming, automatic differentiation, the
+rank-$n$ extension.  The algebraic lattice's compile-time-reduction
+showcases live in the sister section §\ref{sec:linalg}
+\emph{Linear Algebra}: linear programming
+(§\ref{sec:lp-centrepiece}), forward-mode automatic differentiation
+(§\ref{sec:ad-elliott}), and the
 $\mathbb{C} / \mathbb{D} \hookrightarrow M_2(\mathbb{Q})$
-embedding) are the algebraic lattice acting through the disciplined
+embedding (§\ref{sec:lin-alg-embedding}).  Each of these is the
+algebraic lattice acting through the disciplined
 fragment of §\ref{sec:axiomatic}.
 
 
@@ -1906,6 +1911,9 @@ The compiler proves all four membership assertions at translation time and folds
 exported function to a single \lstinline{ret i1 true}.
 
 % Source: src/test/cpp/modules/dedekind/python/showcase_02_lattice_singleton.cpp
+% (Abridged: the source ships four static_asserts on representative test
+% points plus an extern "C" witness function; the listing below shows two
+% representative static_asserts.  See the source file for the full set.)
 \begin{lstlisting}[language=C++, caption={Showcase 2 source: lattice/square singleton in $\mathbb{C}$.}, label={lst:showcase02_src}]
 constexpr auto c = var<ℂ>;
 
@@ -1925,8 +1933,6 @@ using CLogic = typename decltype(lattice_square_intersection)::logic_species;
 
 static_assert(lattice_square_intersection(Complex<double>{1.0, 1.0}) == CLogic::True);
 static_assert(lattice_square_intersection(Complex<double>{0.0, 1.0}) == CLogic::False);
-
-extern "C" __attribute__((noinline)) bool witness_lattice_square_singleton() { /* ... */ }
 \end{lstlisting}
 
 % Source: src/test/cpp/modules/dedekind/python/showcase_02_lattice_singleton.ll
@@ -2782,8 +2788,7 @@ the raw one.
 \subsection{Boundary Observations: An Axiom~\texorpdfstring{$\to$}{->}~Theorem Chain}
 \label{sec:boundary-observations}
 
-The previous preceding sections present the technique in an empirical sort of way:
-through worked showcases, IR artefacts, and concrete diagnostics
+The preceding sections present the technique in an empirical sort of way: through worked showcases, IR artefacts, and concrete diagnostics.
 The library admits a stricter framing whose structural
 parallel is Wadler's \emph{Theorems for Free!}~\cite{wadler1989theorems}:
 parametricity gives the typed-lambda calculus theorems from type
