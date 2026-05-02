@@ -227,6 +227,18 @@ The challenge is understood to be open-ended and ambitious and so the process be
 Loosely speaking and in one paragraph: where the nLab~\cite{nlab} attempts to categorify physics and summarise the results in a wiki, this library aims to take that output as axiomatic and translate it into a mainstream programming language.
 If the compiler accepts those axioms, then the compiler should also be able to validate (or, by way of the Curry--Howard correspondence, perhaps even derive) the corresponding theorems~\cite{wadler2015propositions}.
 
+\begin{figure}[htbp]
+\centering
+\scalebox{1.5}{%
+\begin{tikzcd}[column sep=huge, row sep=large, ampersand replacement=\&]
+\mathbf{Cat} \arrow[r, shift left=2, "\text{interpret}"] \&
+\texttt{dedekind} \arrow[l, shift left=2, "\text{cite}"] \arrow[r, shift left=2, "\text{instantiate}"] \&
+\mathbf{Cpp} \arrow[l, shift left=2, "\text{verify}"]
+\end{tikzcd}}
+\caption{The overarching goal.  \texttt{dedekind} is a faithful-functor bridge between $\mathbf{Cat}$ (mathematical structure, axiomatically defined) and $\mathbf{Cpp}$ (a Cartesian-closed-category fragment of C++23 where structure must be type-carried; §\ref{sec:axiomatic}).  Math $\to$ library: an interpretation functor maps an axiomatic species (a ring, a vector space, a topos primitive) to a corresponding \texttt{dedekind} concept / trait / module.  Library $\to$ math: the library's declarations cite the underlying axiomatic source so the lifted structure has a textbook anchor.  Library $\to$ C++: the library instantiates concrete carriers (\lstinline|Rational<long>|, \lstinline|Vec2V<T>|, \dots) under the named structure.  C++ $\to$ library: the compiler verifies the carriers via \lstinline|static_assert| and concept-constraint discharge --- the propositional-fragment instance of the Curry--Howard--Lambek correspondence~\cite{lambek1988introduction,wadler2015propositions}.  The bridge is a \emph{faithful functor}, not an isomorphism: $\mathbf{Cpp}$ is constrained by computability (Church--Turing), so only a sliver of $\mathbf{Cat}$ is realised, but on that sliver the realisation is mechanical and decidable.}
+\label{fig:dedekind-bridge}
+\end{figure}
+
 The choice of anchoring the library's domain in category theory on the mathematical side is neither new nor arbitrary and follows a well-trodden path.
 The authoritative textbook in the context of programming might be \emph{Types and Programming Languages}~\cite{pierce2002tapl}.
 \footnote{
