@@ -618,15 +618,71 @@ The intensional-first design rule (§\ref{sec:intensional}) is the posture this 
 \subsection{Structuralism with the Juliet Posture}
 \label{sec:jlt}
 
-\paragraph{Step 2: tame C++23.}
+
+C++ taken as a whole is a famously inhospitable substrate for formal reasoning.
+A closed denotational semantics for the full language is, to our knowledge, not on the books.\footnote{Concretely: overload resolution and argument-dependent lookup are non-uniform; two-phase name lookup interacts with template instantiation in ways that defeat parametricity (Wadler's classical objection to template genericity, after Bracha \& Odersky~\cite{bracha1998making}, bites here); \lstinline|reinterpret_cast| breaks type abstraction at the value level; and template instantiation in general is Turing-complete and undecidable.  On the carrier side, undefined behaviour is the rule rather than the exception: signed-overflow UB defeats ring-associativity on machine \lstinline|int| / \lstinline|long|, IEEE-754 rounding-non-associativity defeats field-associativity on \lstinline|float| / \lstinline|double| --- §\ref{sec:carrier-rosetta} audits each stdlib carrier's algebraic surface against the textbook expectations.}
+
+To improve alignment with structuralist selection we just applied on the category side we want apply a similar selection on the C++ side also.
+Roughly speaking, we hope that our atomic types will be `std::regular` POCOs (Plain Old C++ Objects including the primitive types) and we wish to be able to pattern match on them using `concept` definitions.
+For the small fragment of the language that we intend to work on, we reject what we have learned about encapsulation and polymorphism and trim down the internal complexity of objects to the point that they no longer support encapsulation and are fully transparent at compile-time so that interface and behavior are the only meaningful identity.
+
+We can compare and contrast this approach with three textbook schools ~\cite{pierce2002tapl, cardelli1996typesystems}  of type identification
+\begin{itemize}
+\item nominal declared lineage; checked at compile time but blind to behaviour),
+\item duck (structural by call-site method probe; checked at runtime, too late
+for the optimiser),
+\item static structural typing (concept-based; behaviour checked at compile time without a declared lineage).
+\end{itemize}
+
+C++23 concepts realise the third school.  We call the resulting
+discipline the \emph{Juliet Posture}, after the observation that a
+rose by any other name would smell as sweet~\cite{shakespeare1597romeo}:
+the library cares about the \emph{scent} (structural invariants),
+not the \emph{lineage} (declared name).
+
+% Source: src/main/modules/dedekind/algebra/ring.cppm (concept definition, ll. 110-116)
+\begin{lstlisting}[language=C++, caption={The Juliet Posture: structural recognition checked statically, without requiring declared lineage. The operational concept from \texttt{dedekind.algebra:ring}.}, label={lst:structural}]
+// Nominal (pseudocode): recognised by declared lineage.
+struct Ring { /* virtual operations, must opt in explicitly */ };
+struct MyInt : Ring { /* ... */ };
+
+// Duck typing (pseudocode): recognised at runtime by the call site.
+//   def generic_sum(a, b):       # Python: fails only when called
+//       return a + b             # no compile-time guarantee
+
+// Juliet Posture (C++23, the actual dedekind concept):
+template <typename T>
+concept HasRingOperators = requires(T a, T b) {
+  { a + b  } -> std::same_as<T>;
+  { a - b  } -> std::same_as<T>;
+  { -a     } -> std::same_as<T>;
+  { a * b  } -> std::same_as<T>;
+};
+
+// int satisfies HasRingOperators without any base class, checked at compile
+// time: the operators exist. But the operational concept is deliberately
+// weaker than the algebraic laws --- see lst:species --- so a separate
+// trait lookup filters out carriers whose + is not actually associative.
+static_assert(HasRingOperators<int>);           // operators exist
+static_assert(HasRingOperators<Rational<long>>);
+static_assert(!is_associative_v<int, std::plus<int>>);  // but + is not a monoid
+\end{lstlisting}
+
+\noindent The Juliet Posture delivers desirable properties of both predecessors:
+structural sensitivity (behaviour, not name) and static verification (compile time,
+not runtime).
+Crucially, because the concept check is a compile-time proof obligation, the compiler
+can \emph{act on it}: it can specialize code paths, infer additional algebraic
+properties from the trait registry, and ultimately prune logically empty set
+expressions to zero machine instructions---none of which is possible with runtime duck
+typing.
+
 Pick a small \emph{axiomatic subset} of C++23: concept-constrained templates, non-type template parameters (NTTPs), named modules with strict DAG dependencies, \lstinline{static_assert} for compile-time obligation discharge, and \lstinline{constexpr} for $\beta$-style normalisation.
 Exclude the escape hatches that would otherwise leak past System F: no \lstinline{reinterpret_cast} in public APIs, no SFINAE branches in public surfaces, no ADL-dependent dispatch beyond textbook operator overloads, no public-API specialisations that branch behaviour, and bounded template-instantiation depth (Table~\ref{tab:admissibility-rules}).
 This is a small fragment of $\mathbf{Cpp}$, and §\ref{sec:jlt} develops the structural-typing posture under which it can be inhabited cleanly.
 Call this subset $\mathbf{Jlt} \subset \mathbf{Cpp}$ (mnemonically: \emph{Juliet}, after the \emph{rose by any other name} reading of structural-over-nominal typing).
 
 
-C++ taken as a whole is a famously inhospitable substrate for formal reasoning.
-A closed denotational semantics for the full language is, to our knowledge, not on the books.\footnote{Concretely: overload resolution and argument-dependent lookup are non-uniform; two-phase name lookup interacts with template instantiation in ways that defeat parametricity (Wadler's classical objection to template genericity, after Bracha \& Odersky~\cite{bracha1998making}, bites here); \lstinline|reinterpret_cast| breaks type abstraction at the value level; and template instantiation in general is Turing-complete and undecidable.  On the carrier side, undefined behaviour is the rule rather than the exception: signed-overflow UB defeats ring-associativity on machine \lstinline|int| / \lstinline|long|, IEEE-754 rounding-non-associativity defeats field-associativity on \lstinline|float| / \lstinline|double| --- §\ref{sec:carrier-rosetta} audits each stdlib carrier's algebraic surface against the textbook expectations.}
 We take this absence as our starting point: we do not claim that this general problem has been solved, but we assert the existence of a non-empty feasible region which can be inhabited cleanly under a small discipline.
 The three C++23 features named in §\ref{sec:introduction} --- \texttt{module}s, \texttt{concept}s, and NTTPs --- carry §CT-specific value at this layer: modules cache verified structural invariants as Binary Module Interface (BMI) files; concepts realise \emph{structural typing} as the compile-time analogue of Haskell type classes, with zero-cost dispatch and no runtime dictionary; and NTTPs let a set-builder predicate be part of the \emph{type} rather than a runtime value passed at construction (§\ref{sec:sets-rules}).
 
@@ -685,58 +741,6 @@ Bridging tools such as \texttt{nanobind}~\cite{jakob2022nanobind} close the \emp
 but not the \emph{semantic} gap: the C++ backend cannot reason about high-level mathematical
 invariants defined in the Python layer.
 
-
-The three schools of type identification --- nominal (declared
-lineage; checked at compile time but blind to behaviour), duck
-(structural by call-site method probe; checked at runtime, too late
-for the optimiser), and static structural typing (concept-based;
-behaviour checked at compile time without a declared lineage) ---
-are textbook material; for the canonical treatment see
-Pierce~\cite{pierce2002tapl} and Cardelli's type-systems
-survey~\cite{cardelli1996typesystems}.
-
-C++23 concepts realise the third school.  We call the resulting
-discipline the \emph{Juliet Posture}, after the observation that a
-rose by any other name would smell as sweet~\cite{shakespeare1597romeo}:
-the library cares about the \emph{scent} (structural invariants),
-not the \emph{lineage} (declared name).
-
-% Source: src/main/modules/dedekind/algebra/ring.cppm (concept definition, ll. 110-116)
-\begin{lstlisting}[language=C++, caption={The Juliet Posture: structural recognition checked statically, without requiring declared lineage. The operational concept from \texttt{dedekind.algebra:ring}.}, label={lst:structural}]
-// Nominal (pseudocode): recognised by declared lineage.
-struct Ring { /* virtual operations, must opt in explicitly */ };
-struct MyInt : Ring { /* ... */ };
-
-// Duck typing (pseudocode): recognised at runtime by the call site.
-//   def generic_sum(a, b):       # Python: fails only when called
-//       return a + b             # no compile-time guarantee
-
-// Juliet Posture (C++23, the actual dedekind concept):
-template <typename T>
-concept HasRingOperators = requires(T a, T b) {
-  { a + b  } -> std::same_as<T>;
-  { a - b  } -> std::same_as<T>;
-  { -a     } -> std::same_as<T>;
-  { a * b  } -> std::same_as<T>;
-};
-
-// int satisfies HasRingOperators without any base class, checked at compile
-// time: the operators exist. But the operational concept is deliberately
-// weaker than the algebraic laws --- see lst:species --- so a separate
-// trait lookup filters out carriers whose + is not actually associative.
-static_assert(HasRingOperators<int>);           // operators exist
-static_assert(HasRingOperators<Rational<long>>);
-static_assert(!is_associative_v<int, std::plus<int>>);  // but + is not a monoid
-\end{lstlisting}
-
-\noindent The Juliet Posture delivers desirable properties of both predecessors:
-structural sensitivity (behaviour, not name) and static verification (compile time,
-not runtime).
-Crucially, because the concept check is a compile-time proof obligation, the compiler
-can \emph{act on it}: it can specialize code paths, infer additional algebraic
-properties from the trait registry, and ultimately prune logically empty set
-expressions to zero machine instructions---none of which is possible with runtime duck
-typing.
 
 \paragraph{An old capability, newly accessible.}
 None of the calculus underneath is new.  Templates have always been
