@@ -559,18 +559,30 @@ Prompts to such systems are accordingly written liberally and in \emph{loose lan
 \label{sec:axiomatic}
 % ============================================================
 
-Here we proceed in three steps:
-Identify a tractably small subset of category theory (an occasionally intimidating beast) with easy to understand atomic building blocks and composition rules.
-The trick appears to be to use single-species categories. Let's call it $\mathbf{Spo} \subset \mathbf{Cat}$.
+The strategy of this section is a three-step intersection.
+Both category theory and modern C++23 are large and occasionally intimidating beasts; each, however, admits a tractable subset with simple atomic building blocks and clear composition rules.
+The \texttt{dedekind} library lives at their intersection.
 
-Do the same for C++23 (which just as intimidating) to arrive at a version which is also tamed. Let's call it $\mathbf{Jlt} \subset \mathbf{Cpp}$.
+\paragraph{Step 1: tame category theory.}
+Restrict attention to \emph{single-species categories}~\cite{burris1981universalalgebra}: categories whose objects all share a common carrier type, whose endomorphisms are functions on that carrier, and whose inter-carrier maps become functors between sibling categories.
+This is a small fragment of $\mathbf{Cat}$ but, as §\ref{sec:spo} develops, it carries enough algebraic vocabulary to host carriers, operators, and structure-preserving arrows in the shape an engineering library actually needs.
+Call this subset $\mathbf{Spo} \subset \mathbf{Cat}$ (mnemonically: \emph{single-species}).
 
-Form the intersection giving rise to the \texttt{dedekind} types and combinators $ \mathbf{Ddk} = \mathbf{Jlt} \cap \mathbf{Spo}$.
+\paragraph{Step 2: tame C++23.}
+Pick a small \emph{axiomatic subset} of C++23: concept-constrained templates, non-type template parameters (NTTPs), named modules with strict DAG dependencies, \lstinline{static_assert} for compile-time obligation discharge, and \lstinline{constexpr} for $\beta$-style normalisation.
+Exclude the escape hatches that would otherwise leak past System F: no \lstinline{reinterpret_cast} in public APIs, no SFINAE branches in public surfaces, no ADL-dependent dispatch beyond textbook operator overloads, no public-API specialisations that branch behaviour, and bounded template-instantiation depth (Table~\ref{tab:admissibility-rules}).
+This is a small fragment of $\mathbf{Cpp}$, and §\ref{sec:jlt} develops the structural-typing posture under which it can be inhabited cleanly.
+Call this subset $\mathbf{Jlt} \subset \mathbf{Cpp}$ (mnemonically: \emph{Juliet}, after the \emph{rose by any other name} reading of structural-over-nominal typing).
 
-The appeal of category theory in programming-language research should be obvious: a minimalist type checker does not need to do much more than check whether the output of one function matches the input of another.
-A ``sufficiently smart'' optimising compiler might know a fair amount about commutation rules and re-write the arrows in a sensible way.
+\paragraph{Step 3: form the intersection.}
+The \texttt{dedekind} types and combinators are the inhabitants of $\mathbf{Ddk} = \mathbf{Jlt} \cap \mathbf{Spo}$: C++23 types and arrows that simultaneously sit in the disciplined syntactic fragment $\mathbf{Jlt}$ and carry single-species categorical structure from $\mathbf{Spo}$.
+The intersection is small but non-empty, and that is the point: a bounded feasible region a working software engineer can inhabit cleanly without leaving mainstream C++.
+The remainder of the section develops the two restrictions in turn --- §\ref{sec:spo} for $\mathbf{Spo}$, §\ref{sec:jlt} for $\mathbf{Jlt}$ --- and the subsequent pillars exhibit the intersection through worked examples.
+
+The appeal of category theory in programming-language research should be obvious: a minimalist type checker does not need to do much more than check whether the output of one function matches the input of another, and a ``sufficiently smart'' optimising compiler might know a fair amount about commutation rules and re-write the arrows in a sensible way.
 
 \subsection{Not Just Abstract Nonsense: Single-Species Categories}
+\label{sec:spo}
 
 
 The choice of anchoring the library's domain in category theory on the mathematical side is neither new nor arbitrary and follows a well-trodden path.
@@ -619,6 +631,7 @@ On this subset the standard correspondences hold and the surface reads as a fait
 The intensional-first design rule (§\ref{sec:intensional}) is the posture this fragment invites: pick the Form-faithful carrier first, let the compiler see structure rather than carrier, realise to a machine type only at named arrows.
 
 \subsection{Structural vs.\ Nominal Typing: The Juliet Posture}
+\label{sec:jlt}
 
 
 C++ taken as a whole is a famously inhospitable substrate for formal reasoning.
