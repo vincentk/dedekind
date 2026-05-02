@@ -219,7 +219,7 @@ and is definitely not associative under addition in the bit-perfect sense.
 The library author's options are to ignore the divergence and try to mitigate or silence bugs on specific inputs,
 police it at runtime, or encode it in the software build process so the build system can police and
 maybe exploit it.
-In real life, the pragmatic choice is often to just define an array of \texttt{double}, call it a tensor and get on with life. 
+In real life, the pragmatic choice is often to just define an array of \texttt{double}, call it a tensor and get on with life.
 This paper however is about what happens when a library implemented \emph{in a mainstream programming language} takes the third
 option seriously and consistently attempts to opt for mathematical rigor and build-time constraints as opposed to playing it fast and loose and risking runtime errors.
 
