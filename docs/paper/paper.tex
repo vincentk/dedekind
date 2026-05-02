@@ -247,21 +247,7 @@ The claim is bounded --- only the part of mathematics that fits the disciplined 
 
 The choice of anchoring the library's domain in category theory on the mathematical side is neither new nor arbitrary and follows a well-trodden path.
 The authoritative textbook in the context of programming might be \emph{Types and Programming Languages}~\cite{pierce2002tapl}.
-\footnote{
-For the more casual reader of this text, it should be sufficient to remember that at its most basic, category theory is a book-keeping device of sorts that can tell us what clicks together and what doesn't and how things might be re-arranged and perhaps simplified.
-Somewhat casually:
-\begin{enumerate}
-\item A category consists of \emph{objects} which are deliberately chosen to be opaque black boxes.
-Precisely because they are opaque, a practitioner can choose objects to be whatever they like: sets, types, algebraic structure, \ldots it changes nothing about the applicability of category theory.
-\item Arrows (morphisms) point from one object (domain) to another (codomain).
-If it lacks a domain or a codomain, then whatever it is, it's not an arrow.
-\item If an arrow's domain and codomain happen to be the same object $A$, then it is called the identity arrow $id_A$.
-\item If the codomain of arrow $f$ matches the domain of arrow $g$, then they can be \emph{composed} to give a new arrow $h = g \circ f$.
-\item Any arrow $f$ with domain $A$ can compose with $\mathrm{id}_A$, but that's the same as doing nothing: $f \circ \mathrm{id}_A = f$; in particular $\mathrm{id}_A \circ \mathrm{id}_A = \mathrm{id}_A$.
-\item If two paths in a diagram (each itself an arrow or a composition of arrows) share the same domain and codomain and are equal as morphisms, the diagram is said to \emph{commute}: $f = g$.
-Trivially this holds for $\mathrm{id}_A = \mathrm{id}_A$, but as one composes arrows into richer structures these equations start to form interesting constraints.
-\end{enumerate}
-}
+
 The appeal of category theory in programming-language research should be obvious: a minimalist type checker does not need to do much more than check whether the output of one function matches the input of another.
 A ``sufficiently smart'' optimising compiler might know a fair amount about commutation rules and re-write the arrows in a sensible way.
 
@@ -581,7 +567,27 @@ Do the same for C++23 (which just as intimidating) to arrive at a version which 
 
 Form the intersection giving rise to the \texttt{dedekind} types and combinators $ \mathbf{Ddk} = \mathbf{Jlt} \cap \mathbf{Spo}$.
 
+The appeal of category theory in programming-language research should be obvious: a minimalist type checker does not need to do much more than check whether the output of one function matches the input of another.
+A ``sufficiently smart'' optimising compiler might know a fair amount about commutation rules and re-write the arrows in a sensible way.
+
 \subsection{Not Just Abstract Nonsense: Single-Species Categories}
+
+
+The choice of anchoring the library's domain in category theory on the mathematical side is neither new nor arbitrary and follows a well-trodden path.
+The authoritative textbook in the context of programming might be \emph{Types and Programming Languages}~\cite{pierce2002tapl}.
+For the more casual reader of this text, it should be sufficient to remember that at its most basic, category theory is a book-keeping device of sorts that can tell us what clicks together and what doesn't and how things might be re-arranged and perhaps simplified.
+Somewhat casually:
+\begin{enumerate}
+\item A category consists of \emph{objects} which are deliberately chosen to be opaque black boxes.
+Precisely because they are opaque, a practitioner can choose objects to be whatever they like: sets, types, algebraic structure, \ldots it changes nothing about the applicability of category theory.
+\item Arrows (morphisms) point from one object (domain) to another (codomain).
+If it lacks a domain or a codomain, then whatever it is, it's not an arrow.
+\item If an arrow's domain and codomain happen to be the same object $A$, then it is called the identity arrow $id_A$.
+\item If the codomain of arrow $f$ matches the domain of arrow $g$, then they can be \emph{composed} to give a new arrow $h = g \circ f$.
+\item Any arrow $f$ with domain $A$ can compose with $\mathrm{id}_A$, but that's the same as doing nothing: $f \circ \mathrm{id}_A = f$; in particular $\mathrm{id}_A \circ \mathrm{id}_A = \mathrm{id}_A$.
+\item If two paths in a diagram (each itself an arrow or a composition of arrows) share the same domain and codomain and are equal as morphisms, the diagram is said to \emph{commute}: $f = g$.
+Trivially this holds for $\mathrm{id}_A = \mathrm{id}_A$, but as one composes arrows into richer structures these equations start to form interesting constraints.
+\end{enumerate}
 
 To further simplify our task, we restrict considerations to single-species categories~\cite{burris1981universalalgebra} where
 \begin{itemize}
