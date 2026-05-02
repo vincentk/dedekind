@@ -363,7 +363,7 @@ static_assert(rk1_scaled(2, 5) == 12,
 }  // namespace detail_diag
 
 /** @section diagonal__Companion_To_Dense — `Diagonal<dim_finite<2>, F>`
- *  ↔ `Matrix2x2V<T>` at finite n=2 (#372 slice d).
+ *  → `Matrix2x2V<T>` at finite n=2 (#372 slice d).
  *
  *  At finite dimension, the intensional `Diagonal<dim_finite<N>, F>`
  *  has a canonical dense companion: the `N×N` matrix with `F(i)` on
@@ -379,12 +379,14 @@ static_assert(rk1_scaled(2, 5) == 12,
  *  inside `Matrix2x2V<T>` under this arrow.
  */
 export template <typename F>
-  requires dedekind::category::IsArrow<F>
+  requires dedekind::category::IsArrow<F> &&
+           std::regular<typename std::remove_cvref_t<F>::Codomain> &&
+           dedekind::algebra::HasRingOperators<
+               typename std::remove_cvref_t<F>::Codomain>
 constexpr Matrix2x2V<typename std::remove_cvref_t<F>::Codomain> to_dense(
     Diagonal<dim_finite<2>, F> const& d) {
   using T = typename std::remove_cvref_t<F>::Codomain;
-  return Matrix2x2V<T>{d.rule(typename std::remove_cvref_t<F>::Domain{0}), T{},
-                       T{}, d.rule(typename std::remove_cvref_t<F>::Domain{1})};
+  return Matrix2x2V<T>{d.at(std::size_t{0}), T{}, T{}, d.at(std::size_t{1})};
 }
 
 namespace detail_diag {
@@ -419,9 +421,9 @@ static_assert(to_dense(diag_one_two) == Matrix2x2V<int>{1, 0, 0, 2},
               "[[1, 0], [0, 2]] — general diagonal projects entry-wise.");
 
 // Composition law: to_dense(D₁ * D₂) = to_dense(D₁) * to_dense(D₂)
-// at the diagonal subalgebra (the entries on the diagonal commute,
-// so the diagonal product is the dense product restricted to the
-// diagonal).
+// at the diagonal subalgebra: the dense product of diagonal matrices
+// is again diagonal, with diagonal entries multiplied componentwise
+// in order — holds over any ring, no commutativity required.
 inline constexpr auto diag_one_two_squared = diag_one_two * diag_one_two;
 static_assert(to_dense(diag_one_two_squared) == Matrix2x2V<int>{1, 0, 0, 4},
               "to_dense(diag(1,2) * diag(1,2)) = diag(1,4) — the "
