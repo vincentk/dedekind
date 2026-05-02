@@ -163,6 +163,8 @@ actionable workflow for working software engineers. The meta-claim
 is not ours to originate; we make it here so the body's executable
 exhibit can be read in that light.
 
+\tableofcontents
+
 \medskip
 \noindent We present \texttt{dedekind}~\cite{dedekind2026}, an
 open-source C++23 library (Apache-2.0), as that exhibit. It embeds
@@ -2681,65 +2683,6 @@ for which this technique is intended, or a known limitation we do not
 claim to have solved. The paper's contribution lies entirely to the
 left of that wall.
 
-\subsection{Boundary Observations: An Axiom~\texorpdfstring{$\to$}{->}~Theorem Chain}
-\label{sec:boundary-observations}
-
-The previous subsections present the technique through worked
-showcases, IR artefacts, and concrete diagnostics---an empirical
-register. The library admits a stricter framing whose structural
-parallel is Wadler's \emph{Theorems for Free!}~\cite{wadler1989theorems}:
-parametricity gives the typed-lambda calculus theorems from type
-signatures alone; the dedekind library extends the move into
-\emph{algebraic} territory, where a carrier's axiomatic profile
-(declared via opt-in traits and concept witnesses) discharges
-carrier-level theorems at the type level. The empirical artefacts of
-the showcases are then \emph{realisations} of an underlying
-axiom~$\to$~theorem chain rather than the substance of the chain
-itself.
-
-\paragraph{Axioms as the engineer's honesty obligation.}
-A carrier's algebraic profile is asserted explicitly. Where the
-proof of an axiom is beyond what C++ concepts can quantify, the claim
-is made via an opt-in trait specialisation, and the engineer who
-declares the trait carries Wadler's
-\emph{propositions-as-types}~\cite{wadler2015propositions}
-obligation under the NSPE Code of Ethics canons III and IV (truthful
-public statements; faithful agency). The library ships several such
-opt-in surfaces:
-\lstinline{is_monic_arrow_v} for monomorphism declarations,
-\lstinline{is_initial_ring_v} for the initial-object reading of
-$\mathbb{Z}$, \lstinline{is_grothendieck_group_v} for the
-free-abelian-group reading, \lstinline{is_initial_f_algebra_v} for the
-NNO-as-initial-F-algebra reading, and a family of axiom-shape concepts
-including \lstinline{IsRing}, \lstinline{IsField},
-\lstinline{IsTotallyOrdered}, \lstinline{IsArchimedean}, and
-\lstinline{IsCyclicGroup}. Each is the engineer's claim, not a
-machine-discharged proof; the structural shape (signatures, closure,
-opt-in trait set to \texttt{true}) is what the type system can pin
-mechanically.
-
-\paragraph{Theorems for free.}
-Once the axioms are discharged honestly, downstream code leans on a
-catalogue of carrier-level theorems without further proof:
-generic combinators over \lstinline{HasRingOperators<T>} compose for
-any carrier whose ring axioms hold; the carrier-swap $\mathtt{Rational
-\langle long\rangle} \to
-\mathtt{Rational\langle SignedExtensionalCardinal\langle\rangle\rangle}$
-is a one-line change at the \lstinline|using| declaration and every
-section's claim survives the swap; the type-directed collapse of
-Section~\ref{sec:pruning} (whose 1D specialisation admits a worked
-proof, deferred to a follow-up paper) reduces a constraint
-intersection to one of $\varnothing$, \lstinline{Singleton<v>}, or a
-typed \lstinline{Interval} entirely from carrier-level total-order +
-meet-closure; and the partition naming
-(\lstinline{:natural} / \lstinline{:integer} / \lstinline{:rational}
-/ \lstinline{:real} / \lstinline{:complex}) lifts the textbook
-vocabulary into the type system unchanged. The trade-off is plain:
-\emph{if} a carrier's domain admits the axioms, the affordances pay;
-\emph{if} the domain hits a friction (next paragraph), the axioms
-cannot be discharged honestly and downstream code falls back to the
-operational policy gate.
-
 \paragraph{Frictions: where C++23 and IEEE numerics break the chain.}
 The axioms cannot always be discharged. The friction points encountered while
 building the library are observational, not advocacy, and each is
@@ -2841,10 +2784,48 @@ discipline in C++23 today, on the carriers in the Rosetta tables of
 Section~\ref{sec:carrier-rosetta}.
 
 % ============================================================
-\section{Related Work}
-\label{sec:related}
+\section{Discussion}
+\label{sec:discussion}
 % ============================================================
 
+\subsection{Boundary Observations: An Axiom~\texorpdfstring{$\to$}{->}~Theorem Chain}
+\label{sec:boundary-observations}
+
+The previous subsections present the technique through worked
+showcases, IR artefacts, and concrete diagnostics---an empirical
+register. The library admits a stricter framing whose structural
+parallel is Wadler's \emph{Theorems for Free!}~\cite{wadler1989theorems}:
+parametricity gives the typed-lambda calculus theorems from type
+signatures alone; the dedekind library extends the move into
+\emph{algebraic} territory, where a carrier's axiomatic profile
+(declared via opt-in traits and concept witnesses) discharges
+carrier-level theorems at the type level. The empirical artefacts of
+the showcases are then \emph{realisations} of an underlying
+axiom~$\to$~theorem chain rather than the substance of the chain
+itself.
+
+\paragraph{Axioms as the engineer's honesty obligation.}
+A carrier's algebraic profile is asserted explicitly. Where the
+proof of an axiom is beyond what C++ concepts can quantify, the claim
+is made via an opt-in trait specialisation, and the engineer who
+declares the trait carries Wadler's
+\emph{propositions-as-types}~\cite{wadler2015propositions}
+obligation under the NSPE Code of Ethics canons III and IV (truthful
+public statements; faithful agency). The library ships several such
+opt-in surfaces:
+\lstinline{is_monic_arrow_v} for monomorphism declarations,
+\lstinline{is_initial_ring_v} for the initial-object reading of
+$\mathbb{Z}$, \lstinline{is_grothendieck_group_v} for the
+free-abelian-group reading, \lstinline{is_initial_f_algebra_v} for the
+NNO-as-initial-F-algebra reading, and a family of axiom-shape concepts
+including \lstinline{IsRing}, \lstinline{IsField},
+\lstinline{IsTotallyOrdered}, \lstinline{IsArchimedean}, and
+\lstinline{IsCyclicGroup}. Each is the engineer's claim, not a
+machine-discharged proof; the structural shape (signatures, closure,
+opt-in trait set to \texttt{true}) is what the type system can pin
+mechanically.
+
+\subsection{Related Work}
 \paragraph{Functional and dependently-typed approaches.}
 Agda~\cite{norell2007towards} and Coq provide dependent type systems in which set-membership
 proofs are first-class terms.  The expressiveness is greater than C++23, but the
