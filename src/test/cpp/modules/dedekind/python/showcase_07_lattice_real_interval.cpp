@@ -31,15 +31,29 @@ using namespace dedekind::algebra;
 using namespace dedekind::numbers;
 using namespace dedekind::order;
 
-// Integer-valued variable, integer-valued bounds.  Real-valued bounds
-// against the exact ℤ carrier (@c SignedExtensionalCardinal<>) need a
-// SEC<>↔real comparison arrow that does not silently narrow; deferred
-// follow-up to #399 slice 3.  The math is identical for integer
-// membership: (-21.0, 21.0] ∩ ℤ = (-21, 21] ∩ ℤ.
-constexpr auto n = var<ℤ>;
+// Integer-valued variable, real-valued bounds.  This showcase
+// deliberately uses the machine-int carrier rather than the canonical
+// exact ℤ carrier (@c SignedExtensionalCardinal<>): on machine int,
+// the int↔double standard arithmetic promotion is what lets the
+// real-valued bound compare with the integer variable.  The exact
+// carrier intentionally does not silently narrow to double; real-bound
+// support against @c SignedExtensionalCardinal<> needs a
+// non-narrowing SEC<>↔real comparison arrow (deferred follow-up to
+// #399 slice 3 / #551).
+//
+// @c IntsOnInt is the int-Domain universal predicate, defined locally
+// because the canonical @c IntegersOf<> now carries @c Domain @c =
+// @c SignedExtensionalCardinal<> (the exact ℤ carrier).  The redesign
+// in #551 retires this kind of one-off naming under @c Ω<int>.
+struct IntsOnInt {
+  using Domain = int;
+  constexpr bool operator()(int) const { return true; }
+};
+constexpr IntsOnInt Z_int{};
+constexpr auto n = var<int>;
 
-constexpr auto above = Set{n % Z | (n > bound<-21>)};
-constexpr auto at_most = Set{n % Z | (n <= bound<21>)};
+constexpr auto above = Set{n % Z_int | (n > bound<-21.0>)};
+constexpr auto at_most = Set{n % Z_int | (n <= bound<21.0>)};
 
 // Meet: integer lattice inside a real interval.
 constexpr auto lattice_cut = above & at_most;
@@ -47,8 +61,8 @@ using Iv = std::decay_t<decltype(lattice_cut)>;
 
 // Type-level bounds and strictness reported back from the DSL — with the
 // real-valued pivots preserved exactly.
-static_assert(Iv::lower_pivot == -21);
-static_assert(Iv::upper_pivot == 21);
+static_assert(Iv::lower_pivot == -21.0);
+static_assert(Iv::upper_pivot == 21.0);
 static_assert(Iv::lower_strictness == Strictness::Strict);
 static_assert(Iv::upper_strictness == Strictness::NonStrict);
 

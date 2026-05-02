@@ -117,6 +117,17 @@ static_assert(IsRingIntegral<dedekind::sets::SignedCardinality>,
               "SignedCardinality must satisfy IsRingIntegral — the variant "
               "ℤ-proxy is the canonical exact-ℤ integer-range carrier "
               "(post-#414).");
+// Note on the SEC<N> / EC<N> extension and OrderInterval::size():
+// @c IsRingIntegral<T> gates the @c size() / cardinality surface on
+// the @b carrier @c T (the runtime element type), not on the @b NTTP
+// @c Hi and @c Lo bound values.  Current usage uniformly supplies
+// int-typed NTTPs (e.g.\ @c bound<-21>), so @c span @c = @c Hi @c -
+// @c Lo @c + @c ... reduces to int arithmetic and
+// @c static_cast<size_t>(span) is well-defined.  If a future spelling
+// places SEC-/EC-valued NTTPs in the bound slot (e.g.\ @c bound<SEC<>
+// @c {42}>), the @c size() formula would need a multi-limb-aware
+// reformulation.  Tracked alongside the SEC<>↔real comparison surface
+// in the #399 slice 3 follow-ups (#551).
 static_assert(
     IsRingIntegral<dedekind::sets::SignedExtensionalCardinal<>>,
     "SignedExtensionalCardinal<> must satisfy IsRingIntegral — the bounded "
