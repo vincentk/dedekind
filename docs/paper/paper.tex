@@ -564,13 +564,13 @@ Both category theory and modern C++23 are large and occasionally intimidating be
 The \texttt{dedekind} library lives at their intersection.
 
 \subsection{Structuralism with Single-Species Categories}
-\label{sec:spo}
+\label{sec:monoid}
 
 The choice of anchoring the library's domain in category theory on the mathematical side is neither new nor arbitrary and follows a well-trodden path.
 The authoritative textbook in the context of programming might be \emph{Types and Programming Languages}~\cite{pierce2002tapl}. 
 Here, we intend to lower the barrier to entry and so we restrict attention to \emph{single-species categories}~\cite{burris1981universalalgebra}: categories whose objects all share a common carrier type, whose endomorphisms are functions on that carrier, and whose inter-carrier maps become functors between sibling categories.
 The textbook way to read this restriction is via the bijection between monoids and one-object categories (Mac Lane~\cite{maclane1971categories} §I.1): every monoid \emph{is} a one-object category whose morphisms are the monoid elements; the single-species categories we use here are the engineering-library generalisation, where the species' shared carrier object plays the role of the monoid's underlying set and the species' operation signatures play the role of the monoid's binary operation.
-This is a small fragment of $\mathbf{Cat}$ but, as §\ref{sec:spo} develops, it carries enough algebraic vocabulary to host carriers, operators, and structure-preserving arrows in the shape an engineering library actually needs and is a preferred starting point for the structuralist mathematical style~\cite{marquis2022structuralist}.
+This is a small fragment of $\mathbf{Cat}$ but, as §\ref{sec:monoid} develops, it carries enough algebraic vocabulary to host carriers, operators, and structure-preserving arrows in the shape an engineering library actually needs and is a preferred starting point for the structuralist mathematical style~\cite{marquis2022structuralist}.
 
 For the more casual reader of this text, it should be sufficient to remember that at its most basic, category theory is a book-keeping device of sorts that can tell us what clicks together and what doesn't and how things might be re-arranged and perhaps simplified.
 Somewhat casually:
@@ -633,6 +633,16 @@ We can compare and contrast this approach with three textbook schools~\cite{pier
 \item static structural typing (concept-based; behaviour checked at compile time without a declared lineage).
 \end{itemize}
 
+\begin{lstlisting}[language=C++, caption={Pseudocode illustration of nominal and duck typing, respecively.}, label={lst:nominal}]
+// Nominal (pseudocode): a supertype is recognised by declared lineage.
+struct Ring { /* virtual operations, must opt in explicitly */ };
+struct MyInt : Ring { /* ... */ };
+
+// Duck typing (pseudocode): recognised at runtime by the call site.
+//   def generic_sum(a, b):       # Python: fails only when called
+//       return a + b             # no compile-time guarantee
+\end{lstlisting}
+
 C++23 concepts realise the third school.  We call the resulting
 discipline the \emph{Juliet Posture}, after the observation that a
 rose by any other name would smell as sweet~\cite{shakespeare1597romeo}:
@@ -640,16 +650,10 @@ the library cares about the \emph{scent} (structural invariants),
 not the \emph{lineage} (declared name).
 
 % Source: src/main/modules/dedekind/algebra/ring.cppm (concept definition, ll. 110-116)
-\begin{lstlisting}[language=C++, caption={The Juliet Posture: structural recognition checked statically, without requiring declared lineage. The operational concept from \texttt{dedekind.algebra:ring}.}, label={lst:structural}]
-// Nominal (pseudocode): recognised by declared lineage.
-struct Ring { /* virtual operations, must opt in explicitly */ };
-struct MyInt : Ring { /* ... */ };
-
-// Duck typing (pseudocode): recognised at runtime by the call site.
-//   def generic_sum(a, b):       # Python: fails only when called
-//       return a + b             # no compile-time guarantee
-
-// Juliet Posture (C++23, the actual dedekind concept):
+\begin{lstlisting}[
+ language=C++,
+ caption={The Juliet Posture: structural compile-time matching regardless of nominal provenance.}, float=ht]
+// Concept identifying the syntactic ring operators
 template <typename T>
 concept HasRingOperators = requires(T a, T b) {
   { a + b  } -> std::same_as<T>;
@@ -658,13 +662,13 @@ concept HasRingOperators = requires(T a, T b) {
   { a * b  } -> std::same_as<T>;
 };
 
-// int satisfies HasRingOperators without any base class, checked at compile
-// time: the operators exist. But the operational concept is deliberately
-// weaker than the algebraic laws --- see lst:species --- so a separate
-// trait lookup filters out carriers whose + is not actually associative.
-static_assert(HasRingOperators<int>);           // operators exist
-static_assert(HasRingOperators<Rational<long>>);
-static_assert(!is_associative_v<int, std::plus<int>>);  // but + is not a monoid
+ // Operators exist on int, but (int, +), not a monoid, because associativity certification has been withheld:
+static_assert(HasRingOperators<int>); 
+static_assert(!IsAssociative<int, std::plus<int>>); 
+
+// Arithmetic operators are absent on bool but associativity is certified for logical operators:
+static_assert(!HasRingOperators<bool>);
+static_assert(!IsAssociative<bool, std::logical_and<bool>>); 
 \end{lstlisting}
 
 \noindent The Juliet Posture delivers desirable properties of both predecessors:
@@ -797,7 +801,7 @@ declaration are the audit surface).
 
 The \texttt{dedekind} types and combinators are the inhabitants of $\mathbf{Jlt} \cap \mathbf{Monoid}$: C++23 types and arrows that simultaneously sit in the disciplined syntactic fragment $\mathbf{Jlt}$ and carry single-species categorical structure from $\mathbf{Monoid}$.
 The intersection is small but non-empty, and that is the point: a bounded feasible region a working software engineer can inhabit cleanly without leaving mainstream C++.
-The remainder of the section develops the two restrictions in turn --- §\ref{sec:spo} for $\mathbf{Monoid}$, §\ref{sec:jlt} for $\mathbf{Jlt}$ --- and the subsequent pillars exhibit the intersection through worked examples.
+The remainder of the section develops the two restrictions in turn --- §\ref{sec:monoid} for $\mathbf{Monoid}$, §\ref{sec:jlt} for $\mathbf{Jlt}$ --- and the subsequent pillars exhibit the intersection through worked examples.
 
 The appeal of category theory in programming-language research should be obvious: a minimalist type checker does not need to do much more than check whether the output of one function matches the input of another, and a ``sufficiently smart'' optimising compiler might know a fair amount about commutation rules and re-write the arrows in a sensible way.
 
