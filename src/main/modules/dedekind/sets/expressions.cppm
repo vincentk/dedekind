@@ -528,6 +528,16 @@ class Set {
              requires { typename B::is_universal_boundary; }
   constexpr Set(MembershipBinding<B>) : predicate_{} {}
 
+  /** @brief Per #551: constructor from a bare BoundScout — no @c %
+   *  binding step.  The scout's @c AmbientType IS the universal
+   *  predicate, so the Set's predicate is @c UniversalPredicate<T>. */
+  template <auto Ambient>
+    requires std::same_as<T, typename BoundScout<Ambient>::T> &&
+             std::same_as<Predicate, UniversalPredicate<T>> && requires {
+               typename BoundScout<Ambient>::AmbientType::is_universal_boundary;
+             }
+  constexpr Set(BoundScout<Ambient>) : predicate_{} {}
+
   constexpr auto operator()(const T& v) const {
     return dedekind::category::lift_logic<L>(predicate_(v));
   }
@@ -833,6 +843,19 @@ Set(MembershipBinding<S>)
     -> Set<typename S::Domain, typename NaturalLogic<S>::type,
            UniversalPredicate<typename S::Domain>>;
 
+/** @brief Per #551: deduction guide for @c Set{n} where n is a
+ *  @c BoundScout (no @c % step).  Routes to the same @c
+ *  UniversalPredicate<T>-flavoured Set as the membership-binding
+ *  guide above, but takes the bare scout. */
+export template <auto Ambient>
+  requires requires {
+    typename BoundScout<Ambient>::AmbientType::is_universal_boundary;
+  }
+Set(BoundScout<Ambient>) -> Set<
+    typename BoundScout<Ambient>::T,
+    typename NaturalLogic<typename BoundScout<Ambient>::AmbientType>::type,
+    UniversalPredicate<typename BoundScout<Ambient>::T>>;
+
 static_assert(
     dedekind::category::IsSet<decltype(dedekind::category::ambient_set<int>(
         Set<int, dedekind::category::ClassicalLogic, UniversalPredicate<int>>{
@@ -894,6 +917,51 @@ constexpr auto operator==(const Variable<Species>&, bool rhs) {
 export template <typename Species>
   requires std::same_as<element_of_t<Species>, bool>
 constexpr auto operator!(const Variable<Species>& v) {
+  return v == false;
+}
+
+/** @section expressions__Relational_Lifting_BoundScout
+ *
+ * Mirror of the @c Variable<Species> relational lifts above, for the
+ * post-#551 NTTP-parameterised scout @c BoundScout<auto>.  Same lambda-
+ * returning shape; the scout's @c T is @c element_of_t<AmbientType>.
+ */
+export template <auto Ambient, typename Rhs>
+constexpr auto operator<(const BoundScout<Ambient>&, const Rhs& rhs) {
+  return [rhs](const typename BoundScout<Ambient>::T& v) { return v < rhs; };
+}
+
+export template <auto Ambient, typename Rhs>
+constexpr auto operator<=(const BoundScout<Ambient>&, const Rhs& rhs) {
+  return [rhs](const typename BoundScout<Ambient>::T& v) { return v <= rhs; };
+}
+
+export template <auto Ambient, typename Rhs>
+constexpr auto operator>(const BoundScout<Ambient>&, const Rhs& rhs) {
+  return [rhs](const typename BoundScout<Ambient>::T& v) { return v > rhs; };
+}
+
+export template <auto Ambient, typename Rhs>
+constexpr auto operator>=(const BoundScout<Ambient>&, const Rhs& rhs) {
+  return [rhs](const typename BoundScout<Ambient>::T& v) { return v >= rhs; };
+}
+
+export template <auto Ambient, typename Rhs>
+constexpr auto operator==(const BoundScout<Ambient>&, const Rhs& rhs) {
+  return [rhs](const typename BoundScout<Ambient>::T& v) { return v == rhs; };
+}
+
+export template <auto Ambient>
+  requires std::same_as<typename BoundScout<Ambient>::T, bool>
+constexpr auto operator==(const BoundScout<Ambient>&, bool rhs) {
+  return BooleanEqPredicate{rhs};
+}
+
+/** @brief Unary negation of a boolean BoundScout: @c !b ≡ @c b @c == @c false.
+ */
+export template <auto Ambient>
+  requires std::same_as<typename BoundScout<Ambient>::T, bool>
+constexpr auto operator!(const BoundScout<Ambient>& v) {
   return v == false;
 }
 

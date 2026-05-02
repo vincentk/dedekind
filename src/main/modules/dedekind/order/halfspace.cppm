@@ -367,6 +367,60 @@ constexpr auto operator<=(const Variable<Species>&, Bound<V>) {
   return Halfspace<T, V, Direction::Downward, Strictness::NonStrict>{};
 }
 
+/** @section halfspace__Halfspace_BoundScout_DSL — BoundScout<auto> × Bound<V>
+ *  → Halfspace.
+ *
+ * Mirror of the Variable<Species> × Bound<V> overloads above, for the
+ * post-#551 NTTP-parameterised scout BoundScout<auto Ambient>.  Same
+ * Halfspace<T, V, D, S> result type; downstream collapse machinery
+ * (structured_and on halfspace pairs) is unchanged. */
+
+export template <auto Ambient, auto V>
+  requires std::convertible_to<
+               decltype(V), typename dedekind::sets::BoundScout<Ambient>::T> &&
+           (!std::unsigned_integral<
+                typename dedekind::sets::BoundScout<Ambient>::T> ||
+            !std::signed_integral<decltype(V)> || V >= 0)
+constexpr auto operator>(const dedekind::sets::BoundScout<Ambient>&, Bound<V>) {
+  using T = typename dedekind::sets::BoundScout<Ambient>::T;
+  return Halfspace<T, V, Direction::Upward, Strictness::Strict>{};
+}
+
+export template <auto Ambient, auto V>
+  requires std::convertible_to<
+               decltype(V), typename dedekind::sets::BoundScout<Ambient>::T> &&
+           (!std::unsigned_integral<
+                typename dedekind::sets::BoundScout<Ambient>::T> ||
+            !std::signed_integral<decltype(V)> || V >= 0)
+constexpr auto operator>=(const dedekind::sets::BoundScout<Ambient>&,
+                          Bound<V>) {
+  using T = typename dedekind::sets::BoundScout<Ambient>::T;
+  return Halfspace<T, V, Direction::Upward, Strictness::NonStrict>{};
+}
+
+export template <auto Ambient, auto V>
+  requires std::convertible_to<
+               decltype(V), typename dedekind::sets::BoundScout<Ambient>::T> &&
+           (!std::unsigned_integral<
+                typename dedekind::sets::BoundScout<Ambient>::T> ||
+            !std::signed_integral<decltype(V)> || V >= 0)
+constexpr auto operator<(const dedekind::sets::BoundScout<Ambient>&, Bound<V>) {
+  using T = typename dedekind::sets::BoundScout<Ambient>::T;
+  return Halfspace<T, V, Direction::Downward, Strictness::Strict>{};
+}
+
+export template <auto Ambient, auto V>
+  requires std::convertible_to<
+               decltype(V), typename dedekind::sets::BoundScout<Ambient>::T> &&
+           (!std::unsigned_integral<
+                typename dedekind::sets::BoundScout<Ambient>::T> ||
+            !std::signed_integral<decltype(V)> || V >= 0)
+constexpr auto operator<=(const dedekind::sets::BoundScout<Ambient>&,
+                          Bound<V>) {
+  using T = typename dedekind::sets::BoundScout<Ambient>::T;
+  return Halfspace<T, V, Direction::Downward, Strictness::NonStrict>{};
+}
+
 /** @section halfspace__Halfspace_Structural_Algebra — ADL hooks for operator&&.
  */
 
