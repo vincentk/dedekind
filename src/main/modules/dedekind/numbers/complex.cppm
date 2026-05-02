@@ -461,8 +461,11 @@ constexpr auto embed_grid_ℂ(
     const dedekind::sets::Set<dedekind::geometry::IntegerLatticePoint2D, L, P>&
         grid) {
   using namespace dedekind::sets;
-  auto c = var<ℂ>;
-  return Set{c % C | [grid](const Complex<double>& z) {
+  // FIXME(#399 slice 4-6): once ℂ becomes a carrier alias for
+  // Complex<...>, switch to @c element<Ω<ℂ>>; for now ℂ is still the
+  // predicate-set type.
+  auto c = element<Ω<Complex<double>>>;
+  return Set{c | [grid](const Complex<double>& z) {
     const double re = z.real();
     const double im = z.imag();
     dedekind::geometry::IntegerLatticeScalar x =

@@ -35,8 +35,9 @@ namespace {
 
 // Shared with showcase 1 (ℝ² diagonal × strip).
 constexpr auto R2 = R * R;
-constexpr auto xy = var<decltype(R2)>;
 using R2Point = typename decltype(R2)::Domain;
+// FIXME(#399 slice 4-6): see showcase_01 source for the same comment.
+constexpr auto xy = element<Ω<R2Point>>;
 
 constexpr auto diagonal =
     Set{xy % R2 | [](R2Point p) { return p.first == p.second; }};

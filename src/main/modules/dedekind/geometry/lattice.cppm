@@ -121,10 +121,10 @@ struct LatticeFactory;
 template <>
 struct LatticeFactory<NaturalLatticeSet> {
   constexpr auto line() const {
-    auto k = var<ℕ>;
-    // Every unsigned value is in ℕ by construction post-#401; the
-    // predicate-set N is the universal classifier for unsigned values.
-    return Set{k % N};
+    auto k = element<Ω<ℕ>>;
+    // Every Cardinality value is in ℕ by construction post-#401;
+    // the universal-set @c Ω<ℕ> is the canonical classifier here.
+    return Set{k};
   }
 
   constexpr auto plane() const {
