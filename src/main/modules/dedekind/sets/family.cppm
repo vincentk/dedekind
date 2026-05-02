@@ -65,7 +65,7 @@ namespace dedekind::sets {
 /** @section family__Set_Type_Erasure */
 
 export template <typename Species, typename L = ClassicalLogic>
-using AnySetOver = std::variant<Ø<Species, L>, Ω<Species, L>,
+using AnySetOver = std::variant<Ø<Species, L>, UniversalSet<Species, L>,
                                 SingletonSet<element_of_t<Species>, L>>;
 /**
  * @class Family
@@ -101,7 +101,7 @@ struct Family {
   using Domain = AnySetOver<Species, L>;
 
   static constexpr auto bottom() { return Ø<Species, L>{}; }
-  static constexpr auto top() { return Ω<Species, L>{}; }
+  static constexpr auto top() { return UniversalSet<Species, L>{}; }
 
   // ... Implementation of Lattice operators ...
 };

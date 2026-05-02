@@ -18,7 +18,7 @@
  *   @c static_assert(IsField<𝔹, bit_xor, bit_and>) and @c var<𝔹> read
  *   directly against the carrier.
  * - `BooleanSetOf<L, C>`: parameterised predicate-set template alias for
- *   `Ω<bool, L, C>`.  The default form `BooleanSetOf<>` is the canonical
+ *   `UniversalSet<bool, L, C>`.  The default form `BooleanSetOf<>` is the canonical
  *   predicate-set type for the Boolean ambient species; this is the
  *   public template alias to spell when a callsite needs the type
  *   itself (e.g.\ in a static_assert).
@@ -59,7 +59,7 @@ using namespace dedekind::sets;
 
 export template <typename L = dedekind::category::ClassicalLogic,
                  typename C = Finite>
-using BooleanSetOf = Ω<bool, L, C>;
+using BooleanSetOf = UniversalSet<bool, L, C>;
 
 // Non-exported convenience alias used by the value-level B constant
 // below.  The exported public surface is `BooleanSetOf<L, C>` (the
@@ -75,7 +75,7 @@ using BooleanSet = BooleanSetOf<>;
  *  (@c bool, @c ∨, @c ∧), the Galois field 𝔽₂ (@c bool, @c ⊕, @c ∧),
  *  the order lattice — are witnessed at this partition and at
  *  @c numbers:boolean.  The predicate-set role moves to the
- *  unambiguously-named @c BooleanSet (alias of @c Ω<bool>).
+ *  unambiguously-named @c BooleanSet (alias of @c UniversalSet<bool>).
  */
 export using 𝔹 = bool;
 

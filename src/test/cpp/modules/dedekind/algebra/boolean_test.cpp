@@ -17,13 +17,13 @@ TEST_CASE("Algebra:Boolean starter symbols", "[algebra][boolean][starter]") {
   // Carrier-vs-predicate-set surface (post-#400).
   //   • 𝔹 is the carrier type itself: 𝔹 = bool.
   //   • B is the value-level universal Boolean predicate-set, of type
-  //     BooleanSetOf<> (= Ω<bool, ClassicalLogic, Finite>).
+  //     BooleanSetOf<> (= UniversalSet<bool, ClassicalLogic, Finite>).
   //   • The relationship between the two is BooleanSetOf<>::Domain = 𝔹
   //     — the predicate-set's underlying element type IS the carrier.
   STATIC_CHECK(std::same_as<𝔹, bool>);
   STATIC_CHECK(std::same_as<decltype(B), const BooleanSetOf<>>);
   STATIC_CHECK(std::same_as<typename BooleanSetOf<>::Domain, 𝔹>);
-  STATIC_CHECK(std::same_as<typename Ω<bool>::Domain, 𝔹>);
+  STATIC_CHECK(std::same_as<typename UniversalSet<bool>::Domain, 𝔹>);
 
   CHECK(truthy(true));
   CHECK_FALSE(truthy(false));

@@ -173,7 +173,7 @@ TEST_CASE("Pruning showcase 7: ℤ lattice ∩ real interval (-21.0, 21.0]",
   //
   // @c IntsOnInt is the int-Domain universal predicate, defined
   // locally because the canonical @c IntegersOf<> now carries
-  // @c Domain @c = @c SEC<>; #551 retires this naming under @c Ω<int>.
+  // @c Domain @c = @c SEC<>; #551 retires this naming under @c UniversalSet<int>.
   struct IntsOnInt {
     using Domain = int;
     constexpr bool operator()(int) const { return true; }

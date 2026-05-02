@@ -44,7 +44,7 @@ using namespace dedekind::order;
 // @c IntsOnInt is the int-Domain universal predicate, defined locally
 // because the canonical @c IntegersOf<> now carries @c Domain @c =
 // @c SignedExtensionalCardinal<> (the exact ℤ carrier).  The redesign
-// in #551 retires this kind of one-off naming under @c Ω<int>.
+// in #551 retires this kind of one-off naming under @c UniversalSet<int>.
 struct IntsOnInt {
   using Domain = int;
   constexpr bool operator()(int) const { return true; }

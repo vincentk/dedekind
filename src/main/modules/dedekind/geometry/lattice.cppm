@@ -81,7 +81,7 @@ using namespace dedekind::category;
 // preserves the geometry contract (Species with @c Domain @c = @c
 // unsigned @c int).
 export using NaturalLatticeSet = NaturalNumbersOf<>;
-export using IntegerLatticeSet = Ω<int>;
+export using IntegerLatticeSet = UniversalSet<int>;
 export using IntegerLatticeScalar = typename IntegerLatticeSet::Domain;
 export using IntegerLatticePoint2D =
     std::pair<IntegerLatticeScalar, IntegerLatticeScalar>;
@@ -134,10 +134,10 @@ struct LatticeFactory<NaturalLatticeSet> {
 };
 
 template <std::signed_integral I>
-struct LatticeFactory<Ω<I>> {
+struct LatticeFactory<UniversalSet<I>> {
   constexpr auto line() const {
     auto k = var_for_type<I>;
-    return Set{k % Ω<I>{}};
+    return Set{k % UniversalSet<I>{}};
   }
 
   constexpr auto plane() const {

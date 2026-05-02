@@ -232,13 +232,22 @@ struct Ø final : Boundaries {
  * @struct UniversalSet
  * @brief U: The Terminal Object.
  * @details Intentional but Decidable: The rule "x ∈ U" always returns True.
+ *
+ * Per #551 (one-transaction redesign of the set-builder DSL): the @b type
+ * is named @c UniversalSet<T, L, C>; the value-level handle is the
+ * variable template @c UniversalSet<T, L, C> below, so callers spell
+ * @c UniversalSet<bool> rather than @c UniversalSet<bool>{}.  This makes the
+ * topos-theoretic reading direct ( @c Ω is the subobject classifier
+ * value at carrier @c T), and lets paper Listing 6 read as
+ * @c auto @c 𝔹 @c = @c UniversalSet<bool>; without the type/value schism the
+ * pre-#551 surface had.
  */
 export template <typename T, typename L = ClassicalLogic, typename C = ℵ_0>
-struct Ω final : Boundaries {
+struct UniversalSet final : Boundaries {
   using Domain = T;
   using Codomain = typename L::Ω;
   using cardinality_type = C;
-  using base_set_type = Ω<T, L, C>;
+  using base_set_type = UniversalSet<T, L, C>;
   using is_universal_boundary = void;
   using logic_species = L;
 
@@ -264,15 +273,17 @@ struct Ω final : Boundaries {
   template <typename S>
     requires(!requires { typename S::T; }) &&
             (!requires { typename S::is_variable; })
-  friend constexpr typename L::Ω operator<=(const S&, const Ω&) {
+  friend constexpr typename L::Ω operator<=(const S&, const UniversalSet&) {
     return L::True;
   }
 
   /** @section boundaries__Lattice_Axiom_3: Reflexivity */
-  constexpr typename L::Ω operator<=(const Ω&) const { return L::True; }
+  constexpr typename L::Ω operator<=(const UniversalSet&) const {
+    return L::True;
+  }
 
   // Explicitly define equality if <=> is being deleted by members
-  constexpr bool operator==(const Ω&) const { return true; }
+  constexpr bool operator==(const UniversalSet&) const { return true; }
 
   // Note: You'll eventually want overloads for:
   // Universal | Any = Universal
@@ -281,40 +292,58 @@ struct Ω final : Boundaries {
   // The Axiom: Total Presence
   constexpr typename L::Ω operator()(const T&) const { return L::True; }
 
+  // Value-level membership query (sugar over operator()) per #551.
+  // @c UniversalSet<T>.contains(v) reads more directly than @c UniversalSet<T>(v) at
+  // paper-listing sites.
+  constexpr bool contains(const T&) const { return true; }
+
   constexpr cardinality_type cardinality() const { return cardinality_type{}; }
 
-  // Ω | S = Ω
+  // U | S = U
   template <typename S>
   constexpr auto operator|(const S&) const {
     return *this;
   }
 
-  // Ω & S = S
+  // U & S = S
   template <typename S>
   constexpr auto operator&(const S& s) const {
     return s;
   }
 
-  // Ω ^ S = ¬S  (Ω △ S = ¬S; #469)
-  // Pointwise: x ∈ Ω △ S iff x is in exactly one; x is always in Ω,
-  // so x ∈ Ω △ S iff x ∉ S, i.e. the complement of S.
+  // U ^ S = ¬S  (U △ S = ¬S; #469)
+  // Pointwise: x ∈ U △ S iff x is in exactly one; x is always in U,
+  // so x ∈ U △ S iff x ∉ S, i.e. the complement of S.
   template <typename S>
   constexpr auto operator^(const S& s) const {
     return !s;
   }
 };
 
+/** @brief The universal-predicate value at carrier @c T (subobject-classifier
+ *         reading per #551).
+ *
+ *  Variable template producing a default-constructed @c UniversalSet<T,L,C>
+ *  instance.  Lets callers spell the ambient as @c UniversalSet<bool> rather than
+ *  @c UniversalSet<bool>{} — paper Listing 6 reads as @c auto @c 𝔹 @c =
+ *  @c UniversalSet<bool>; without the type-vs-value schism the pre-#551 surface had.
+ */
+export template <typename T, typename L = ClassicalLogic, typename C = ℵ_0>
+inline constexpr UniversalSet<T, L, C> Ω{};
+
 template <typename T, typename L>
 constexpr auto Ø<T, L>::operator!() const {
-  return Ω<T, L>{};
+  return UniversalSet<T, L>{};
 }
 
-// Cardinality metadata drives extensional classification for Ω.
+// Cardinality metadata drives extensional classification for UniversalSet.
 template <typename T, typename L, typename C>
-struct is_extensional<Ω<T, L, C>> : std::bool_constant<C::is_finite> {};
+struct is_extensional<UniversalSet<T, L, C>>
+    : std::bool_constant<C::is_finite> {};
 
-static_assert(dedekind::category::IsSet<decltype(ambient_set<int>(Ω<int>{}))>,
-              "The universal boundary must lift to an ETCS set object.");
+static_assert(
+    dedekind::category::IsSet<decltype(ambient_set<int>(UniversalSet<int>{}))>,
+    "The universal boundary must lift to an ETCS set object.");
 static_assert(dedekind::category::IsSet<decltype(ambient_set<int>(Ø<int>{}))>,
               "The empty boundary must lift to an ETCS set object.");
 static_assert(dedekind::category::HasCanonicalSetCCC<int>,
@@ -451,9 +480,9 @@ constexpr std::size_t bound_join(const S1& lhs, const S2& rhs) {
 
 namespace dedekind::category {
 
-// Cardinality metadata drives transfinite classification for Ω.
+// Cardinality metadata drives transfinite classification for UniversalSet.
 template <typename T, typename L, typename C>
-struct is_transfinite<dedekind::sets::Ω<T, L, C>>
+struct is_transfinite<dedekind::sets::UniversalSet<T, L, C>>
     : std::bool_constant<!C::is_finite> {};
 
 }  // namespace dedekind::category

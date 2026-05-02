@@ -71,9 +71,9 @@ using RDomain = typename decltype(ℝ_plus)::Domain;
 using CDomain = typename decltype(ℂ_right_half)::Domain;
 
 constexpr Ø<RDomain, TernaryLogic> R_empty{};
-constexpr Ω<RDomain, TernaryLogic> R_ambient{};
+constexpr UniversalSet<RDomain, TernaryLogic> R_ambient{};
 constexpr Ø<CDomain, TernaryLogic> C_empty{};
-constexpr Ω<CDomain, TernaryLogic> C_ambient{};
+constexpr UniversalSet<CDomain, TernaryLogic> C_ambient{};
 
 constexpr auto real_mix = !((ℝ_plus & ℝ_nonzero) | (ℝ_small | !ℝ_plus));
 constexpr auto complex_mix =

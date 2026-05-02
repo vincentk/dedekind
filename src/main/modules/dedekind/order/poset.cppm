@@ -47,7 +47,7 @@ using namespace dedekind::category;
 // imported (via the umbrella), since `:poset` is the foundational
 // partition the other order partitions build on.
 static_assert(dedekind::category::IsSet<
-                  decltype(dedekind::category::ambient_set<int>(Ω<int>{}))>,
+                  decltype(dedekind::category::ambient_set<int>(UniversalSet<int>{}))>,
               "dedekind.order is grounded on canonical ETCS set objects "
               "imported from dedekind.sets.");
 

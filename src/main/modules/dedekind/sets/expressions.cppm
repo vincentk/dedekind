@@ -264,7 +264,7 @@ struct FiniteBooleanSet {
     return at_false == L::False && at_true == L::False;
   }
 
-  constexpr bool operator==(const Ω<bool, L, Finite>&) const {
+  constexpr bool operator==(const UniversalSet<bool, L, Finite>&) const {
     return at_false == L::True && at_true == L::True;
   }
 
@@ -273,7 +273,7 @@ struct FiniteBooleanSet {
     return s == empty;
   }
 
-  friend constexpr bool operator==(const Ω<bool, L, Finite>& universe,
+  friend constexpr bool operator==(const UniversalSet<bool, L, Finite>& universe,
                                    const FiniteBooleanSet& s) {
     return s == universe;
   }
@@ -449,9 +449,9 @@ constexpr auto operator|(const Set<SignedCardinality, L, P1>& lhs,
 }
 
 /** @brief Convenience Alias: If S is a type, var<S> is the scout. */
-// This allows: auto x = var<int>; where int is mapped to Ω<int>
+// This allows: auto x = var<int>; where int is mapped to UniversalSet<int>
 export template <typename T>
-inline constexpr Variable<Ω<T>> var_for_type{};
+inline constexpr Variable<UniversalSet<T>> var_for_type{};
 
 export template <typename T, typename L, typename Predicate>
 class Set {
@@ -502,7 +502,7 @@ class Set {
   template <typename OtherPredicate>
   constexpr auto operator|(const Set<T, L, OtherPredicate>& other) const {
     if constexpr (IsComplementPair_v<Predicate, OtherPredicate>) {
-      return Ω<T, L>{};
+      return UniversalSet<T, L>{};
     } else if constexpr (std::same_as<T, bool> &&
                          std::same_as<Predicate, BooleanEqPredicate> &&
                          std::same_as<OtherPredicate, BooleanEqPredicate>) {
@@ -599,7 +599,7 @@ class Set {
   template <typename OtherPredicate>
   constexpr auto operator^(const Set<T, L, OtherPredicate>& other) const {
     if constexpr (IsComplementPair_v<Predicate, OtherPredicate>) {
-      return Ω<T, L>{};
+      return UniversalSet<T, L>{};
     } else if constexpr (std::same_as<std::decay_t<decltype(*this & other)>,
                                       Ø<T, L>>) {
       // Compile-time-disjoint optimisation (#469 / PR #523 review):
@@ -617,10 +617,10 @@ class Set {
       // @c (x @c > @c 100)) but @c structured_and detects.
       return *this | other;
     } else if constexpr (std::same_as<std::decay_t<decltype(*this | other)>,
-                                      Ω<T, L>>) {
+                                      UniversalSet<T, L>>) {
       // Compile-time-covering optimisation (dual of the disjoint
       // branch above): when @c A @c ∪ @c B reduces structurally to
-      // @c Ω<T, L> at the type level, the textbook identity becomes
+      // @c UniversalSet<T, L> at the type level, the textbook identity becomes
       // @c A @c △ @c B @c = @c Ω @c ∖ @c (A @c ∩ @c B) @c =
       // @c ¬(A @c ∩ @c B).  Currently dormant: today the only path
       // by which @c | yields @c Ω at the type level is the
@@ -764,7 +764,7 @@ constexpr auto operator^(const Set<T, L, Predicate>& s, const Ø<T, L>&) {
  *         universe is the complement; #469).  Symmetric of
  *         @c Ω::operator^(S) above. */
 export template <typename T, typename L, typename C, typename Predicate>
-constexpr auto operator^(const Set<T, L, Predicate>& s, const Ω<T, L, C>&) {
+constexpr auto operator^(const Set<T, L, Predicate>& s, const UniversalSet<T, L, C>&) {
   return !s;
 }
 

@@ -32,7 +32,7 @@ using namespace dedekind::category;
 using namespace dedekind::sets;
 using namespace dedekind::algebra;
 
-// Symbolic variable ranging over 𝔹 = Ω<bool, ClassicalLogic, Finite>
+// Symbolic variable ranging over 𝔹 = UniversalSet<bool, ClassicalLogic, Finite>
 constexpr auto b = var<𝔹>;
 
 // { b ∈ 𝔹 | ¬b } = the singleton {false} ⊂ 𝔹

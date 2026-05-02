@@ -121,7 +121,7 @@ concept Is_B = std::same_as<E, bool> && requires(const M& m) {
 // (0) Carrier-type witness: 𝔹 names the carrier itself.
 static_assert(std::same_as<𝔹, bool>, "𝔹 is the bool carrier (post-#400).");
 
-// (0a) Relationship between 𝔹 (the carrier) and Ω<bool> (the
+// (0a) Relationship between 𝔹 (the carrier) and UniversalSet<bool> (the
 //      predicate-set / characteristic-function wrapper).  The
 //      predicate-set's @c Domain @b is the carrier, and the
 //      @c FiniteBooleanSetOf<> alias from this partition is the
@@ -132,8 +132,8 @@ static_assert(std::same_as<𝔹, bool>, "𝔹 is the bool carrier (post-#400).")
 //      participate as a set, lift the carrier through
 //      @c BooleanSetOf<> / @c FiniteBooleanSetOf<>; the IsSet anchor
 //      in (1) below witnesses exactly that lift.
-static_assert(std::same_as<typename Ω<bool>::Domain, 𝔹>,
-              "Ω<bool>::Domain is the bool carrier 𝔹 — predicate-set's "
+static_assert(std::same_as<typename UniversalSet<bool>::Domain, 𝔹>,
+              "UniversalSet<bool>::Domain is the bool carrier 𝔹 — predicate-set's "
               "underlying element type IS the carrier.");
 static_assert(std::same_as<typename FiniteBooleanSetOf<>::Domain, 𝔹>,
               "FiniteBooleanSetOf<>::Domain is the bool carrier 𝔹.");

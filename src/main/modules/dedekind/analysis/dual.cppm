@@ -260,7 +260,7 @@ static_assert(
 
 export template <typename F = double, typename L = ClassicalLogic,
                  typename C = ℶ_1>
-using DualSetOf = Ω<Dual<F>, L, C>;
+using DualSetOf = UniversalSet<Dual<F>, L, C>;
 
 export using DualSet = DualSetOf<>;
 export using 𝔻 = DualSet;
