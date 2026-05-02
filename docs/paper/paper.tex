@@ -1936,10 +1936,10 @@ define noundef zeroext i1 @witness_lattice_square_singleton() local_unnamed_addr
 \end{lstlisting}
 
 
-\textbf{Showcase 4 — Cardinality-1 reduction on $\mathbb{N}$.}
-The same meet operator, applied to two halfspaces whose bounds pin exactly one
-integer: the result's type \emph{is} \lstinline{Singleton<4>}, with the unique
-inhabitant in the template parameter.
+For the previously shown cardinality-1 reduction on $\mathbb{N}$, the same
+meet operator, applied to two halfspaces whose bounds pin exactly one
+integer, yields a result whose type \emph{is} \lstinline{Singleton<4>}, with
+the unique inhabitant in the template parameter.
 
 
 \paragraph{FIXME (\#362) --- showcase: carrier strength-reduction.}
