@@ -239,6 +239,10 @@ If the compiler accepts those axioms, then the compiler should also be able to v
 \label{fig:dedekind-bridge}
 \end{figure}
 
+Figure~\ref{fig:dedekind-bridge} sketches the picture: \texttt{dedekind} sits in the middle and does the translation work in both directions.
+Math goes one way; C++ comes back.
+The claim is bounded --- only the part of mathematics that fits the disciplined fragment of C++23 is realised --- but on that part the realisation is mechanical.\footnote{The precise statement is that \texttt{dedekind} defines a \emph{faithful interpretation functor} $\mathcal{F}: \mathbf{Cat} \to \mathbf{Cpp}$, where $\mathbf{Cpp}$ is the disciplined-C++23 fragment modelled as a Cartesian-closed category (Mac Lane~\cite{maclane1971categories} for the categorical machinery; Pierce~\cite{pierce2002tapl} §29 for the propositional-fragment-as-typing-derivation reading; Lambek--Scott~\cite{lambek1988introduction} for the CCC $\leftrightarrow$ STLC equivalence; Wadler~\cite{wadler2015propositions} for the propositions-as-types reading at the type level).  $\mathcal{F}$ sends axiomatic species to types, predicates to \lstinline|concept|s, and laws to \lstinline|static_assert| obligations discharged by the type checker.  ``Faithful (not isomorphic)'' is load-bearing: $\mathbf{Cpp}$'s objects are constrained to the computable, by Church--Turing, so $\mathcal{F}$ is not surjective on $\mathbf{Cat}$; on its image, however, $\mathcal{F}$ preserves identities and composition, and the compiler accepts a typing derivation as a mechanical proof in the corresponding propositional fragment --- the Curry--Howard--Lambek correspondence in operational form.}
+
 The choice of anchoring the library's domain in category theory on the mathematical side is neither new nor arbitrary and follows a well-trodden path.
 The authoritative textbook in the context of programming might be \emph{Types and Programming Languages}~\cite{pierce2002tapl}.
 \footnote{
