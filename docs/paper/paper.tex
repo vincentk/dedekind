@@ -684,6 +684,7 @@ Pick a small \emph{axiomatic subset} of C++23: concept-constrained templates, no
 Exclude the escape hatches that would otherwise leak past System F: no \lstinline{reinterpret_cast} in public APIs, no SFINAE branches in public surfaces, no ADL-dependent dispatch beyond textbook operator overloads, no public-API specialisations that branch behaviour, and bounded template-instantiation depth (Table~\ref{tab:admissibility-rules}).
 This is a small fragment of $\mathbf{Cpp}$, and §\ref{sec:jlt} develops the structural-typing posture under which it can be inhabited cleanly.
 Call this subset $\mathbf{Jlt} \subset \mathbf{Cpp}$ (mnemonically: \emph{Juliet}, after the \emph{rose by any other name} reading of structural-over-nominal typing).
+In $\mathbf{Jlt}$ objects are `std::regular` types and values expressible in C++23 and morphisms are arrows between them.
 
 
 We take this absence as our starting point: we do not claim that this general problem has been solved, but we assert the existence of a non-empty feasible region which can be inhabited cleanly under a small discipline.
@@ -691,7 +692,6 @@ The three C++23 features named in §\ref{sec:introduction} --- \texttt{module}s,
 
 
 This feasible region is thus a carefully selected axiomatic subset of C++23 such that well-understood semantics can be recovered.\footnote{Concretely: templates parameterised over concept-constrained types, non-type template parameters (NTTPs), named modules with strict DAG dependencies, \lstinline|static_assert| for compile-time obligation discharge, and \lstinline|constexpr| for $\beta$-style normalisation.  The fragment excludes the escape hatches that defeat the System-F reading: no \lstinline|reinterpret_cast| in public APIs, no SFINAE branches in public surfaces, no ADL-dependent dispatch beyond textbook operator overloads, no public-API specialisations that branch behaviour, no template-template parameters in public signatures, and bounded template instantiation depth.  Each exclusion closes a specific escape hatch by which C++ would otherwise leak past System F; the list is not novel --- working C++ teams police variants of it informally --- but is the price of the System-F reading.  Table~\ref{tab:admissibility-rules} below is exactly that list.}
-Somewhat loosely speaking, we can name this subset the category $\mathbf{Cpp}$ where objects are types and values expressible in C++23 and morphisms are arrows between them.
 
 
 \begin{table}[htbp]
@@ -736,6 +736,41 @@ keeps the type checker's work within a decidable cone. \\
 \bottomrule
 \end{tabular}
 \end{table}
+
+\begin{table}[h]
+\centering
+\caption{Recovery of System F Properties via the Juliet Posture}
+\label{tab:system-f-jlt}
+\begin{tabular}{@{}lp{8cm}@{}}
+\toprule
+\textbf{System F Feature} & \textbf{Juliet Posture (\texttt{Jlt}) Realization} \\ \midrule
+\textbf{Parametricity} & 
+\textbf{Concept-Gating}: Use of \lstinline|requires| clauses to forbid ad-hoc inspection of type internals, ensuring functions are uniform across all types sharing the same \emph{scent}. \\ \addlinespace
+\textbf{Universal Quantification} ($\forall \alpha$) & 
+\textbf{Constrained Templates}: \lstinline|template<Scent T>| acts as a formal quantifier over a specific species of structure rather than a name-based set. \\ \addlinespace
+\textbf{Type Erasure} & 
+\textbf{Zero-Cost Mapping}: The logical identity of the program is independent of the carrier; the compiler treats nominal differences as aliases for the same underlying structural invariants. \\ \addlinespace
+\textbf{Strong Normalization} & 
+\textbf{Structural Pruning}: Restricting the substrate to non-recursive, finite algebraic compositions to ensure compile-time collapse and prevent Turing-complete template divergence. \\ \addlinespace
+\textbf{Impredicativity} & 
+\textbf{Meta-Concepts}: The ability to define concepts that operate on other concepts, facilitating the 2-arrow logic required for higher-order category mapping. \\ \addlinespace
+\textbf{Ad-hoc Rejection} & 
+\textbf{Ban on ADL/Specialization}: Explicit rejection of Argument-Dependent Lookup and template specialization to prevent the "lineage" from hijacking the "scent." \\ \bottomrule
+\end{tabular}
+\end{table}
+
+The key ingredients of the recovery of System F properties:
+\begin{enumerate}
+\item The "Postural" Ban on Overloading: System F does not allow a function to behave differently for int vs float (Ad-hoc polymorphism). 
+In \textbf{Jlt}, this recovered by banning ADL (Argument Dependent Lookup) and explicit specialization. 
+If a function is defined for Scent \texttt{T}, it must work the same for every rose that smells like \texttt{T}.
+\item Axiomatic Honesty: System F assumes its types follow their definitions perfectly.
+\textbf{Jlt} recovers this by auditing carriers (e.g., rejecting int for Ring operations where overflow might occur) to ensure the "Carrier Rosetta" actually matches the textbook expectations.
+\item Transparency vs. Encapsulation: System F types are "transparent" to the calculus.
+By rejecting OO-style encapsulation and private state, \textbf{Jlt} ensures that the "Type-Directed Collapse" can see all the way through the object to perform formal reductions.
+\end{enumerate}
+By enforcing these, one can effectively use the C++ compiler as a System F Type-Checker that happens to emit highly optimized assembly as a side effect.
+
 
 A common and well-known alternative to this \emph{disciplined embedding} is the \emph{two-language problem}~\cite{bezanson2017julia}: 
 the observation that research code is written in an expressive high-level language (Python, R, Julia) while only performance-critical
