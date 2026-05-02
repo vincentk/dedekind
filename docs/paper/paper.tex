@@ -466,7 +466,7 @@ What we \emph{do} report is a small set of findings that are both interesting
 and true: each claim has a worked exhibit in the library and a
 mechanical witness the compiler discharges.
 
-\section{The Faithful Functor as an Eventual Consistency Target}
+\section{Continuous Iteration towards the Faithful Translation}
 \label{sec:eventually}
 
 The development follows a Top-Down Refinement model~\cite{wirth1971stepwise}, where the library acts as an Executable Ontology: the mathematical Forms are anchored upstream, machine carriers are staged downstream, and each step in between is a refinement the compiler is asked to police.
@@ -479,8 +479,77 @@ To support this approach in a transparent fashion, we reach deep into the CI/CD 
 None of this is technically novel.
 What matters is that the engineering practices of mainstream open-source software development \emph{compose} cleanly with the type-system discipline, turning what would otherwise be a paper-only argument into an artefact whose every refinement step is reviewable, reproducible, and dated.
 
-Two complementary readings of this evidence are worth naming explicitly, since they shape how downstream tooling --- including agentic systems --- composes with the discipline.
-A successful type-check is a \emph{weak but universal} proof about the overall health of the Ontology: it asserts that every type-shaped claim in the build graph composes without contradiction, even though the individual assertions are coarse (concept satisfaction, not law-by-law verification).
+\subsection{The Compiler as Structural Gate and Optimization Engine}
+
+Two durable uses of a compile-time type system underlie this paradigm, neither
+of which requires the compiler to be a theorem prover:
+
+\begin{enumerate}
+  \item \textbf{Ruling out entire classes of errors.}  Encoding algebraic laws as
+        concept requirements makes every instantiation of a generic template an
+        implicit proof obligation discharged at translation time.  Failed
+        obligations are type errors, not runtime exceptions.  The obligation
+        itself is finite, decidable, and mechanical---the compiler \emph{checks}
+        it, but does not \emph{search for} it.  Failed obligations surface
+        as named-axiom messages (e.g.\ \texttt{Invertible2x2 requires full
+        rank: a*d - b*c != 0}) rather than as deep template-cascade
+        traces; the structural discipline behind this and a worked
+        diagnostic are exhibited in Section~\ref{sec:compiler-wall}.
+  \item \textbf{Enabling entire classes of optimizations.}  The LLVM backend
+        exploits the structural knowledge inherited from discharged obligations.
+        When a set is defined by a predicate and two predicates are logically
+        contradictory, the compiler determines at translation time that the
+        resulting intersection is empty and emits no machine instructions for
+        it.  This is what we term \emph{structural pruning}, and it is the
+        subject of Section~\ref{sec:pruning}.
+\end{enumerate}
+
+Both uses are bounded but open-ended.  clang's type checker is not a
+theorem prover: it has no dependent types, no universal-quantification
+inference, no proof-search engine.  What it does have is
+\lstinline{static_assert}, \lstinline{requires}-clauses, and
+\lstinline{constexpr} evaluation---enough to verify a predetermined
+proof sketch, not enough to generate one.  The paradigm claims the
+reliable half: ruling out, and optimizing under, the classes of
+structural failures the programmer has named in the type system.  The
+Curry--Howard correspondence between propositions and types is
+suggestive here, but its full force (dependent products, inductive
+proofs, universe hierarchies) is not available in C++23; what
+\emph{is} available is enough to anchor the two uses above.  Each use
+ruled out exposes a next class that the current machinery does not
+handle but the library's structural vocabulary already names; the four
+axes of Section~\ref{sec:gap} fall out of the halfspace reductions
+almost by construction.\footnote{Penrose's \emph{The Road to
+Reality}~\cite{penrose2004roadtoreality} offers an analogous
+observation about G\"odel's incompleteness theorem --- a formal
+system closing at one level motivates the next, not as exhaustion
+but as natural successor; the closest formal analogue is Turing's
+ordinal logics~\cite{turing1939ordinals}, where each stage's
+consistency feeds the next stage's formation rule.  The
+systems-programming reading is benign: the issue tracker plays the
+successor role.}
+
+\paragraph{Three honesty-anchoring constraints.}
+Three compounding constraints keep the library's artefacts honest:
+\emph{domain textbook anchoring} (concept names and law statements
+taken directly from the published mathematical vocabulary ---
+Lawvere, Mac Lane, Lambek, Wadler, Moggi); \emph{mechanical
+validation} (every algebraic claim becomes a
+\lstinline{static_assert} the compiler discharges; every concept
+composes through a named-module DAG; every behavioural claim passes
+CI); and \emph{codomain textbook anchoring} (concepts validated
+against the C++ standard library's own ontology ---
+\lstinline{std::ranges::input_range}, \lstinline{std::regular},
+\lstinline{std::numeric_limits}, the iterator
+hierarchy).\footnote{The library is developed with AI assistance
+(Anthropic's Claude as the primary code-writing agent; Gemini and
+GitHub Copilot in supporting roles); the human role is
+prioritisation, orchestration, and consensus-before-merge.  The
+three constraints above are what keep the workflow honest: the
+mathematical content stays in mathematical vocabulary all the way
+down to where the machine takes over.}
+
+A successful type-check is thus a \emph{weak but universal} proof about the overall health of the Ontology: it asserts that every type-shaped claim in the build graph composes without contradiction, even though the individual assertions are coarse (concept satisfaction, not law-by-law verification).
 The automated test suite is the converse, a growing set of \emph{strong but existential} proofs about the same Ontology: each test pins a concrete carrier-instance against a concrete law and discharges the obligation as a \lstinline|static_assert| witness rather than a runtime equality check.
 Universal coverage is the build's job; existential depth is the test suite's; both accumulate monotonically under the convergence discipline.
 As a convenient and notable side effect: source code listings presented in this document are lifted verbatim from the repository's test suite.
@@ -491,15 +560,13 @@ The emitted instructions are then compared to LLVM IR fixtures checked into the 
 This way, it can be checked during CI that algebraic compile-time optimizations are recognized by the compiler during the development cycle.
 Regressions would lead to build failures and be flagged during CI as blocking the corresponding PR.
 
+
+\subsection{Use of Agentic Systems}
+
 Agentic systems --- LLMs invoked as code-review and refactoring assistants --- enter this picture as a third party that can act on either side of the universal/existential split, provided the source carries enough domain context to prime them on each invocation.
 The library therefore embeds the domain language deliberately deep into the source: exhaustive Doxygen on every public surface, opinionated quotes from practitioners (e.g.\ references to the Polish school of logic and semantic epistemology~\cite{ajdukiewicz1985jezyk} where the underlying register is at issue), and named provenance on each trait specialisation.
 The audience is not only the human reader; it is also the agentic context window on every pull-request review.
 Prompts to such systems are accordingly written liberally and in \emph{loose language} --- in the careful, sparing register of RFC~2119~§6~\cite{bradner1997rfc2119}, where the normative weight of \textsc{MUST} / \textsc{SHOULD} / \textsc{MAY} is reserved for the cases that actually demand it --- so that the agent can catalyse convergence not only at the syntactic layer the conventional build pipeline polices, but also at the semantic layer where loose intent has to be translated into precise concept-discharge obligations.
-
-A natural follow-up, which we leave open, is whether convergence in this sense can be \emph{measured} rather than claimed.
-The lens is the module dependency graph itself: each downstream theorem should be dense with upstream axioms rather than fabricating new ones; the foundational modules should accumulate the highest fan-in; the ratio of \lstinline|static_assert| obligations to lines of code should not collapse as the library grows.
-At present, this approach is operationalized by visual inspection of pull request patches.
-A more industrialized approach involving the automated generation and evaluation of concrete metrics in this style is work in progress and not part of the present paper's claims; what we document here is the architecture under which they would be measured.
 
 % ============================================================
 \section{An Intersection of C++23 and Category Theory}
@@ -697,76 +764,6 @@ make Table~\ref{tab:cpp-stlc-mapping}'s mapping accurate, and that
 each rule has a mechanical witness in the partition graph (the
 public-API headers exported by each \lstinline{export module}
 declaration are the audit surface).
-
-\subsection{The Compiler as Structural Gate and Optimization Engine}
-
-Two durable uses of a compile-time type system underlie this paradigm, neither
-of which requires the compiler to be a theorem prover:
-
-\begin{enumerate}
-  \item \textbf{Ruling out entire classes of errors.}  Encoding algebraic laws as
-        concept requirements makes every instantiation of a generic template an
-        implicit proof obligation discharged at translation time.  Failed
-        obligations are type errors, not runtime exceptions.  The obligation
-        itself is finite, decidable, and mechanical---the compiler \emph{checks}
-        it, but does not \emph{search for} it.  Failed obligations surface
-        as named-axiom messages (e.g.\ \texttt{Invertible2x2 requires full
-        rank: a*d - b*c != 0}) rather than as deep template-cascade
-        traces; the structural discipline behind this and a worked
-        diagnostic are exhibited in Section~\ref{sec:compiler-wall}.
-  \item \textbf{Enabling entire classes of optimizations.}  The LLVM backend
-        exploits the structural knowledge inherited from discharged obligations.
-        When a set is defined by a predicate and two predicates are logically
-        contradictory, the compiler determines at translation time that the
-        resulting intersection is empty and emits no machine instructions for
-        it.  This is what we term \emph{structural pruning}, and it is the
-        subject of Section~\ref{sec:pruning}.
-\end{enumerate}
-
-Both uses are bounded but open-ended.  clang's type checker is not a
-theorem prover: it has no dependent types, no universal-quantification
-inference, no proof-search engine.  What it does have is
-\lstinline{static_assert}, \lstinline{requires}-clauses, and
-\lstinline{constexpr} evaluation---enough to verify a predetermined
-proof sketch, not enough to generate one.  The paradigm claims the
-reliable half: ruling out, and optimizing under, the classes of
-structural failures the programmer has named in the type system.  The
-Curry--Howard correspondence between propositions and types is
-suggestive here, but its full force (dependent products, inductive
-proofs, universe hierarchies) is not available in C++23; what
-\emph{is} available is enough to anchor the two uses above.  Each use
-ruled out exposes a next class that the current machinery does not
-handle but the library's structural vocabulary already names; the four
-axes of Section~\ref{sec:gap} fall out of the halfspace reductions
-almost by construction.\footnote{Penrose's \emph{The Road to
-Reality}~\cite{penrose2004roadtoreality} offers an analogous
-observation about G\"odel's incompleteness theorem --- a formal
-system closing at one level motivates the next, not as exhaustion
-but as natural successor; the closest formal analogue is Turing's
-ordinal logics~\cite{turing1939ordinals}, where each stage's
-consistency feeds the next stage's formation rule.  The
-systems-programming reading is benign: the issue tracker plays the
-successor role.}
-
-\paragraph{Three honesty-anchoring constraints.}
-Three compounding constraints keep the library's artefacts honest:
-\emph{domain textbook anchoring} (concept names and law statements
-taken directly from the published mathematical vocabulary ---
-Lawvere, Mac Lane, Lambek, Wadler, Moggi); \emph{mechanical
-validation} (every algebraic claim becomes a
-\lstinline{static_assert} the compiler discharges; every concept
-composes through a named-module DAG; every behavioural claim passes
-CI); and \emph{codomain textbook anchoring} (concepts validated
-against the C++ standard library's own ontology ---
-\lstinline{std::ranges::input_range}, \lstinline{std::regular},
-\lstinline{std::numeric_limits}, the iterator
-hierarchy).\footnote{The library is developed with AI assistance
-(Anthropic's Claude as the primary code-writing agent; Gemini and
-GitHub Copilot in supporting roles); the human role is
-prioritisation, orchestration, and consensus-before-merge.  The
-three constraints above are what keep the workflow honest: the
-mathematical content stays in mathematical vocabulary all the way
-down to where the machine takes over.}
 
 \subsection{C++23 as a Lambda-Calculus Substrate: A Translation Table}
 \label{sec:cpp-stlc-mapping}
