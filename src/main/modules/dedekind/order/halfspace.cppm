@@ -78,11 +78,28 @@ using namespace dedekind::category;
  * only that the carrier reads as an integer-magnitude domain for
  * cardinality-counting purposes.
  */
+namespace detail_isringintegral {
+template <typename>
+struct is_signed_extensional_cardinal : std::false_type {};
+template <std::size_t N>
+struct is_signed_extensional_cardinal<
+    dedekind::sets::SignedExtensionalCardinal<N>> : std::true_type {};
+template <typename>
+struct is_extensional_cardinal : std::false_type {};
+template <std::size_t N>
+struct is_extensional_cardinal<dedekind::sets::ExtensionalCardinal<N>>
+    : std::true_type {};
+}  // namespace detail_isringintegral
+
 export template <typename T>
 concept IsRingIntegral =
     std::integral<std::remove_cvref_t<T>> ||
     std::same_as<std::remove_cvref_t<T>, dedekind::sets::Cardinality> ||
-    std::same_as<std::remove_cvref_t<T>, dedekind::sets::SignedCardinality>;
+    std::same_as<std::remove_cvref_t<T>, dedekind::sets::SignedCardinality> ||
+    detail_isringintegral::is_signed_extensional_cardinal<
+        std::remove_cvref_t<T>>::value ||
+    detail_isringintegral::is_extensional_cardinal<
+        std::remove_cvref_t<T>>::value;
 
 /** @section halfspace__Formal_Verification (IsRingIntegral) */
 
@@ -100,6 +117,14 @@ static_assert(IsRingIntegral<dedekind::sets::SignedCardinality>,
               "SignedCardinality must satisfy IsRingIntegral — the variant "
               "ℤ-proxy is the canonical exact-ℤ integer-range carrier "
               "(post-#414).");
+static_assert(
+    IsRingIntegral<dedekind::sets::SignedExtensionalCardinal<>>,
+    "SignedExtensionalCardinal<> must satisfy IsRingIntegral — the bounded "
+    "exact-ℤ carrier underlying the @c ℤ alias post-#399 slice 3.");
+static_assert(IsRingIntegral<dedekind::sets::ExtensionalCardinal<>>,
+              "ExtensionalCardinal<> must satisfy IsRingIntegral — the "
+              "bounded exact-ℕ carrier (sibling of SEC<> on the unsigned "
+              "side).");
 
 // Cv-/ref-qualified spellings: the @c std::remove_cvref_t normalisation
 // in the concept body lets @c IsRingIntegral fire in deduced contexts
