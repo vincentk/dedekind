@@ -121,14 +121,15 @@ concept Is_B = std::same_as<E, bool> && requires(const M& m) {
 // (0) Universe witness: 𝔹 names the universe over the bool carrier (post-#559).
 //     Pre-#559, 𝔹 was a carrier-type alias for bool; post-#559 it is the
 //     value Ω<bool> (a constexpr UniversalSet<bool, ClassicalLogic, Finite>{}).
+static_assert(std::same_as<std::remove_cvref_t<decltype(dedekind::algebra::𝔹)>,
+                           UniversalSet<bool, ClassicalLogic, Finite>>,
+              "𝔹 is the universe Ω<bool> (post-#559).");
 static_assert(
-    std::same_as<std::remove_cvref_t<decltype(dedekind::algebra::𝔹)>,
-                 UniversalSet<bool, ClassicalLogic, Finite>>,
-    "𝔹 is the universe Ω<bool> (post-#559).");
-static_assert(
-    std::same_as<typename std::remove_cvref_t<decltype(dedekind::algebra::𝔹)>::Domain,
-                 bool>,
-    "𝔹's underlying carrier IS bool — the textbook universe-over-carrier reading.");
+    std::same_as<
+        typename std::remove_cvref_t<decltype(dedekind::algebra::𝔹)>::Domain,
+        bool>,
+    "𝔹's underlying carrier IS bool — the textbook universe-over-carrier "
+    "reading.");
 
 // (0a) Relationship between 𝔹 (the carrier) and UniversalSet<bool> (the
 //      predicate-set / characteristic-function wrapper).  The
@@ -152,8 +153,8 @@ static_assert(std::same_as<typename FiniteBooleanSetOf<>::Domain, bool>,
 //     set (membership morphism 𝔹 → Ω).  Witnesses the set-builder DSL
 //     entry point that survives the carrier migration.
 static_assert(
-    dedekind::category::IsSet<
-        decltype(dedekind::category::ambient_set<bool>(FiniteBooleanSetOf<>{}))>,
+    dedekind::category::IsSet<decltype(dedekind::category::ambient_set<bool>(
+        FiniteBooleanSetOf<>{}))>,
     "FiniteBooleanSetOf<> is the canonical IsSet anchor for 𝔹.");
 
 // (2) Syntax (the C++ operator surface that maps to 𝔹's algebra).
@@ -180,13 +181,15 @@ static_assert(dedekind::order::HasLatticeOperators<bool>,
 //     PR #394): 𝔹 under (bit_xor, bit_and) certifies as a commutative
 //     ring AND has the lattice operator surface.
 static_assert(
-    dedekind::algebra::IsRig<bool, std::logical_or<bool>, std::logical_and<bool>>,
+    dedekind::algebra::IsRig<bool, std::logical_or<bool>,
+                             std::logical_and<bool>>,
     "𝔹 under (∨, ∧) is the canonical Boolean rig (idempotent commutative "
     "semiring; no additive inverse on the carrier).");
-static_assert(dedekind::category::IsField<bool, std::bit_xor<bool>, std::bit_and<bool>>,
-              "𝔹 under (⊕, ∧) is the Galois field 𝔽₂ (the smallest non-trivial "
-              "field; 𝔹's ring structure lives over the bitwise functors, "
-              "not over (+, *), per the math-wins-over-C++ stance).");
+static_assert(
+    dedekind::category::IsField<bool, std::bit_xor<bool>, std::bit_and<bool>>,
+    "𝔹 under (⊕, ∧) is the Galois field 𝔽₂ (the smallest non-trivial "
+    "field; 𝔹's ring structure lives over the bitwise functors, "
+    "not over (+, *), per the math-wins-over-C++ stance).");
 static_assert(dedekind::order::IsOrderLattice<bool>,
               "𝔹 satisfies IsOrderLattice (the locked Boolean-ring lattice "
               "under (bit_xor, bit_and); both halves of the bundle fire).");
@@ -217,10 +220,10 @@ static_assert(dedekind::order::IsDirectedPoset<bool>,
 // Sequence witness: FinitePath<𝔹> is a finite sequence enumerating
 // 𝔹-elements (the obvious 2-element path [false, true] is the
 // canonical witness).  Pins 𝔹 as a valid @b sequence codomain.
-static_assert(
-    dedekind::sequences::IsFiniteSequence<dedekind::sequences::FinitePath<bool>>,
-    "FinitePath<𝔹> is a bona-fide finite sequence; 𝔹 is a valid "
-    "sequence codomain.");
+static_assert(dedekind::sequences::IsFiniteSequence<
+                  dedekind::sequences::FinitePath<bool>>,
+              "FinitePath<𝔹> is a bona-fide finite sequence; 𝔹 is a valid "
+              "sequence codomain.");
 
 // (4) Primitive-type arrow: 𝔹 *is* @c bool (post-#400 carrier migration).
 // The universal / empty Boolean predicate-sets live on @c FiniteBooleanSetOf<>

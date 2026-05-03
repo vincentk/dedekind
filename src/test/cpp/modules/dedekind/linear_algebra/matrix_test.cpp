@@ -414,8 +414,8 @@ TEST_CASE("Algebraic Lattice (Figure 1): cube corners on the numeric tower",
   // anchors the lattice bottom to the read-side test that names
   // itself for Figure 1.
   STATIC_CHECK(IsAlgebra<bool, std::bit_xor<bool>, std::bit_and<bool>>);
-  STATIC_CHECK(
-      dedekind::category::IsField<bool, std::bit_xor<bool>, std::bit_and<bool>>);
+  STATIC_CHECK(dedekind::category::IsField<bool, std::bit_xor<bool>,
+                                           std::bit_and<bool>>);
   STATIC_CHECK(dedekind::order::HasLatticeOperators<bool>);
 
   // ---- Boundary case: alphabet choice on the 𝔹-rooted cells ----
