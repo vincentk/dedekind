@@ -85,7 +85,7 @@ using FiniteBooleanSetOf = dedekind::sets::FiniteBooleanSet<L>;
  *  Boolean set is @c FiniteBooleanSetOf<>{ClassicalLogic::True,
  *  ClassicalLogic::True}, the empty Boolean set is @c FiniteBooleanSetOf<>{}).
  */
-export using ::dedekind::algebra::bool;
+export using ::dedekind::algebra::𝔹;
 
 /**
  * @concept Is_B
