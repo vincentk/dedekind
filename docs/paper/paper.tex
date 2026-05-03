@@ -742,45 +742,29 @@ The framing pays off in a row-by-row mapping: each Juliet-Posture restriction re
 
 \begin{table}[h]
 \centering
-\caption{The Structuralist Bridge: System F, the Juliet Posture, and Bourbaki}
+\caption{The structuralist bridge.  Each row reads three ways: a System F property (logic / type-theory tradition, Pierce~\cite{pierce2002tapl}~ch.~23, 29 + Wadler~\cite{wadler1989theorems}); the Juliet-Posture restriction in C++23 that recovers it; and the corresponding Bourbaki-structuralist move (Marquis~\cite{marquis2022structuralist}; Bourbaki's \emph{L'Architecture des mathématiques} 1948).  The triangulation is the point: each \textbf{Jlt} realisation is simultaneously a recovery of a System F property and a Bourbaki structuralist move.  The C++ column states the \emph{discipline} an engineer adopts; the consequences live in the outer columns.}
 \label{tab:structuralist-bridge}
-\begin{tabular}{@{}lll@{}}
+\begin{tabular}{@{}p{0.30\textwidth}p{0.32\textwidth}p{0.32\textwidth}@{}}
 \toprule
-\textbf{System F (Logic)} & \textbf{Juliet Posture (C++)} & \textbf{Structuralist Style (Bourbaki)} \\ \midrule
-\textbf{Parametricity} & \textbf{Concept-Gating} & \textbf{Typification}: Ignoring internal \\ 
- & (Structural constraints) & set-elements in favor of relations. \\ \addlinespace
-\textbf{Universal Quant.} & \textbf{Constrained Templates} & \textbf{Species of Structure}: The genus \\ 
-($\forall \alpha$) & (\lstinline|template<Scent T>|) & of all objects sharing a structure. \\ \addlinespace
-\textbf{Type Erasure} & \textbf{Zero-Cost Mapping} & \textbf{Indistinguishability}: Isomorphic \\ 
- & (Name-independence) & structures are functionally identical. \\ \addlinespace
-\textbf{Normalization} & \textbf{Structural Pruning} & \textbf{Echelon Construction}: Finite \\ 
- & (Finite algebraic collapse) & builds from base sets/axioms. \\ \addlinespace
-\textbf{Impredicativity} & \textbf{Meta-Concepts} & \textbf{Higher-Order Structure}: \\ 
- & (Concepts on concepts) & Structures built upon structures. \\ \addlinespace
-\textbf{Ad-hoc Rejection} & \textbf{Ban on ADL} & \textbf{Axiomatic Purity}: Rejection of \\ 
- & (Protection of the \emph{scent}) & "substance" or non-law behavior. \\ \bottomrule
-\end{tabular}
-\end{table}
-
-\begin{table}[h]
-\centering
-\caption{Recovery of System F properties via the Juliet Posture.  Each \textbf{Jlt} realisation is a structural restriction --- a discipline the engineer adopts --- whose consequence is the property in the left column.}
-\label{tab:system-f-jlt}
-\begin{tabular}{@{}lp{8cm}@{}}
-\toprule
-\textbf{System F property} & \textbf{Juliet Posture (\texttt{Jlt}) realisation} \\ \midrule
-\textbf{Parametricity} (the \emph{Theorems for Free!} reading~\cite{wadler1989theorems})\footnote{C++23 concepts realise parametricity in an \emph{implicit-style} discipline: the constraint is checked at instantiation but no concept witness is passed at runtime.  This is closer to Haskell-style type classes than to pure System F's explicit type abstraction, but the parametricity conclusions follow once the public surface excludes ad-hoc dispatch (Table~\ref{tab:admissibility-rules}'s no-SFINAE / no-ADL-beyond-textbook / no-public-specialisation rules).} &
-\textbf{Concept-gating}: \lstinline|requires|-clauses forbid the function from inspecting type internals, forcing it to interact only via the allowed \emph{scents} (axiom-shape concepts). \\ \addlinespace
+\textbf{System F property} & \textbf{Juliet Posture (C++)} & \textbf{Structuralist style (Bourbaki)} \\ \midrule
+\textbf{Parametricity} (\emph{Theorems for Free!}~\cite{wadler1989theorems})\footnote{C++23 concepts realise parametricity in an \emph{implicit-style} discipline: the constraint is checked at instantiation but no concept witness is passed at runtime.  This is closer to Haskell-style type classes than to pure System F's explicit type abstraction, but the parametricity conclusions follow once the public surface excludes ad-hoc dispatch (Table~\ref{tab:admissibility-rules}'s no-SFINAE / no-ADL-beyond-textbook / no-public-specialisation rules).}  &
+\textbf{Concept-gating}: \lstinline|requires|-clauses forbid the function from inspecting type internals; interaction happens only via the allowed \emph{scents} (axiom-shape concepts). &
+\textbf{Typification}: ignoring internal set-elements in favour of relations among them. \\ \addlinespace
 \textbf{Universal quantification} ($\forall\alpha.\dots$) &
-\textbf{Constrained templates}: \lstinline|template<Scent T>| reads as universal quantification over the species defined by the concept \emph{Scent}. \\ \addlinespace
+\textbf{Constrained templates}: \lstinline|template<Scent T>| reads as universal quantification over the species defined by the concept \emph{Scent}. &
+\textbf{Species of structure}: the genus of all objects sharing a given structure. \\ \addlinespace
 \textbf{Type erasure} (computation is type-blind) &
-\textbf{Zero-cost abstraction}: \lstinline|std::regular| objects with transparent value semantics let the compiler optimise on structure while the program's logic remains independent of the carrier name. \\ \addlinespace
-\textbf{Strong normalisation} (termination)\footnote{C++ template instantiation is Turing-complete in general (Veldhuizen 2003); strong normalisation is recovered specifically by Table~\ref{tab:admissibility-rules}'s bounded-instantiation-depth rule and the exclusion of template-template-parameter recursion in public signatures.  These restrictions are the price of the strong-normalisation reading.} &
-\textbf{Structural pruning}: rejecting Turing-complete template recursion in favour of finite algebraic compositions targets a fragment of C++ guaranteed to terminate (and to collapse logically empty constructions to zero machine instructions). \\ \addlinespace
-\textbf{Impredicativity} (types may be applied to types)\footnote{System F has prenex-style impredicativity at the kind level; C++23 concepts admit a practical form by allowing concepts to be defined in terms of other concepts (e.g.\ \lstinline|IsFunctor<F>| ranging over type-templates).  The two coincide on the fragment we use; the broader impredicative core (universe-level self-quantification) is not in scope.} &
-\textbf{Nested concepts / meta-species}: concepts defined in terms of other concepts let the library name 2-arrow structures (morphisms between morphisms) at the type level. \\ \addlinespace
+\textbf{Zero-cost abstraction}: \lstinline|std::regular| objects with transparent value semantics let the compiler optimise on structure while the program's logic remains independent of the carrier name. &
+\textbf{Indistinguishability}: isomorphic structures are functionally identical. \\ \addlinespace
+\textbf{Strong normalisation} (termination)\footnote{C++ template instantiation is Turing-complete in general (Veldhuizen 2003); strong normalisation is recovered specifically by Table~\ref{tab:admissibility-rules}'s bounded-instantiation-depth rule and the exclusion of template-template-parameter recursion in public signatures.  These restrictions are the price of the strong-normalisation reading.}  &
+\textbf{Structural pruning}: rejecting Turing-complete template recursion in favour of finite algebraic compositions targets a fragment guaranteed to terminate (and to collapse logically empty constructions to zero machine instructions). &
+\textbf{Echelon construction}: finite, well-founded builds from base sets and axioms. \\ \addlinespace
+\textbf{Impredicativity} (types may be applied to types)\footnote{System F has prenex-style impredicativity at the kind level; C++23 concepts admit a practical form by allowing concepts to be defined in terms of other concepts (e.g.\ \lstinline|IsFunctor<F>| ranging over type-templates).  The two coincide on the fragment we use; the broader impredicative core (universe-level self-quantification) is not in scope.}  &
+\textbf{Meta-concepts}: concepts defined in terms of other concepts let the library name 2-arrow structures (morphisms between morphisms) at the type level. &
+\textbf{Higher-order structure}: structures built upon structures. \\ \addlinespace
 \textbf{Ad-hoc rejection} (a function does not behave differently for \lstinline|int| vs \lstinline|float|) &
-\textbf{Ban on ADL / specialisation}: ADL beyond textbook operators, public-API specialisation, and SFINAE branching are excluded so that lineage cannot hijack scent (Table~\ref{tab:admissibility-rules}). \\ \bottomrule
+\textbf{Ban on ADL / specialisation}: ADL beyond textbook operators, public-API specialisation, and SFINAE branching are excluded so that lineage cannot hijack scent (Table~\ref{tab:admissibility-rules}). &
+\textbf{Axiomatic purity}: rejection of ``substance'' or non-law behaviour at the level of the structure. \\ \bottomrule
 \end{tabular}
 \end{table}
 
@@ -1018,12 +1002,16 @@ Listing~\ref{lst:isfunctor} is the same content as a C++23 concept in \texttt{de
 \begin{figure}[htbp]
 \centering
 \begin{tikzcd}[column sep=large, row sep=large, ampersand replacement=\&]
-A \arrow[r, "f"] \arrow[d, mapsto, "F"', shorten <=2pt, shorten >=2pt] \&
-B \arrow[d, mapsto, "F", shorten <=2pt, shorten >=2pt] \\
-F(A) \arrow[r, "F(f)"'] \&
-F(B)
+A \arrow[r, "f"] \arrow[d, mapsto, "F"', shorten <=2pt, shorten >=2pt]
+  \arrow[rr, bend left=35, "g \circ f"] \&
+B \arrow[r, "g"] \arrow[d, mapsto, "F", shorten <=2pt, shorten >=2pt] \&
+C \arrow[d, mapsto, "F", shorten <=2pt, shorten >=2pt] \\
+F(A) \arrow[r, "F(f)"']
+     \arrow[rr, bend right=35, "F(g \circ f)\;=\;F(g) \circ F(f)"'] \&
+F(B) \arrow[r, "F(g)"'] \&
+F(C)
 \end{tikzcd}
-\caption{The textbook functor diagram.  $F$ sends each source object $A \in \mathcal{C}$ to a target object $F(A) \in \mathcal{D}$ and each source arrow $f: A \to B$ to a target arrow $F(f): F(A) \to F(B)$, in a way that respects identities ($F(\mathrm{id}_A) = \mathrm{id}_{F(A)}$) and composition ($F(g \circ f) = F(g) \circ F(f)$).  Listing~\ref{lst:isfunctor} encodes the same content in C++23 concepts and exhibits a worked instance.}
+\caption{The textbook functor diagram, extended with a second source arrow $g: B \to C$ so the composition law is observable rather than only stated.  $F$ sends each source object $X \in \mathcal{C}$ to a target object $F(X) \in \mathcal{D}$ and each source arrow $f: A \to B$ to a target arrow $F(f): F(A) \to F(B)$, in a way that respects identities ($F(\mathrm{id}_A) = \mathrm{id}_{F(A)}$) and composition ($F(g \circ f) = F(g) \circ F(f)$, witnessed by the curved arrows on top and bottom).  Listing~\ref{lst:isfunctor} encodes the same content in C++23 concepts and exhibits a worked instance.}
 \label{fig:functor-diagram}
 \end{figure}
 
@@ -1059,7 +1047,7 @@ struct maybe_functor {
 static_assert(IsFunctor<maybe_functor<int>>);  // mechanical verification
 \end{lstlisting}
 
-The listing is the System-F-recovery table (Table~\ref{tab:system-f-jlt}) at work in one place: the \lstinline|template <typename F>| header is row 2's \emph{Constrained Templates} $\equiv \forall\alpha.\dots$; the \lstinline|requires|-clause is row 1's \emph{Concept-gating} discharging parametricity; the \lstinline|static_assert| is the Curry--Howard term that proves \lstinline|maybe_functor| inhabits the concept.
+The listing is the System-F-recovery table (Table~\ref{tab:structuralist-bridge}) at work in one place: the \lstinline|template <typename F>| header is row 2's \emph{Constrained Templates} $\equiv \forall\alpha.\dots$; the \lstinline|requires|-clause is row 1's \emph{Concept-gating} discharging parametricity; the \lstinline|static_assert| is the Curry--Howard term that proves \lstinline|maybe_functor| inhabits the concept.\footnote{An architectural choice worth naming: the functorial obligation lives in the \emph{hub} type (\lstinline|maybe_functor<T>|), \emph{not} in the carrier (\lstinline|std::optional<T>|).  In Haskell the carrier itself is the functor — \lstinline|optional T| is declared an instance of \lstinline|Functor| with the laws supplied implicitly.  In \texttt{dedekind} we deliberately keep \lstinline|std::optional<T>| a Plain Old C++ Object and externalise the functorial proof obligation into a separate hub: an engineer who wants \lstinline|std::optional| to act as a functor writes \lstinline|maybe_functor| and discharges the laws there.  The C++23 concept machinery does not project structural witnesses onto carriers automatically (concepts are checked, not synthesised), and crowding self-descriptive bits onto \lstinline|std::optional| would defeat the POCO discipline that lets the disciplined fragment recover System F (Table~\ref{tab:structuralist-bridge}).  The real-world functions an engineering library hosts are not generic in the strong Haskell sense — the functorial structure is supplied at the library boundary by a hub that names it, not inherited from the carrier.}
 The same machinery covers the carrier-tower's other functorial constructions ($V_n(R)$, $\mathrm{End}_R$, $\mathrm{Frac}$, $\mathrm{Complex}$, $\mathrm{Dual}$); see §\ref{sec:linalg} for worked instances at the linear-algebra layer.
 
 \paragraph{Every carrier is a structure-preserving image of its
