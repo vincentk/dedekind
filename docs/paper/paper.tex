@@ -988,6 +988,58 @@ category---hence, equivalently, for STLC; and the
 collapse (§\ref{sec:gap}) act as a form of cut elimination, with the
 LLVM backend treating the reduced bottom type as dead code.
 
+\paragraph{A worked example: the Functor concept.}
+The intersection $\mathbf{Jlt} \cap \mathbf{Spo}$ becomes concrete on a single non-trivial example.
+Figure~\ref{fig:functor-diagram} is the textbook commutative-square diagram for a functor $F: \mathcal{C} \to \mathcal{D}$~\cite{maclane1971categories} (Mac Lane §I.3): an object map $A \mapsto F(A)$ and an arrow map $f \mapsto F(f)$ that respects identities and composition.
+Listing~\ref{lst:isfunctor} is the same content as a C++23 concept in \texttt{dedekind.category:functor} together with a worked instance, the optional-value Maybe functor, mechanically verified by \lstinline|static_assert|.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzcd}[column sep=large, row sep=large, ampersand replacement=\&]
+A \arrow[r, "f"] \arrow[d, mapsto, "F"', shorten <=2pt, shorten >=2pt] \&
+B \arrow[d, mapsto, "F", shorten <=2pt, shorten >=2pt] \\
+F(A) \arrow[r, "F(f)"'] \&
+F(B)
+\end{tikzcd}
+\caption{The textbook functor diagram.  $F$ sends each source object $A \in \mathcal{C}$ to a target object $F(A) \in \mathcal{D}$ and each source arrow $f: A \to B$ to a target arrow $F(f): F(A) \to F(B)$, in a way that respects identities ($F(\mathrm{id}_A) = \mathrm{id}_{F(A)}$) and composition ($F(g \circ f) = F(g) \circ F(f)$).  Listing~\ref{lst:isfunctor} encodes the same content in C++23 concepts and exhibits a worked instance.}
+\label{fig:functor-diagram}
+\end{figure}
+
+% Source: src/main/modules/dedekind/category/functor.cppm (IsFunctor concept + maybe_functor instance, abridged)
+\begin{lstlisting}[language=C++, caption={The Functor concept and a worked instance (Maybe), abridged from \texttt{dedekind.category:functor}.  The concept body encodes Figure~\ref{fig:functor-diagram} structurally; the static assertion below is the Curry--Howard discharge that \texttt{maybe\_functor} inhabits the concept.}, label={lst:isfunctor}]
+template <typename F>
+concept IsFunctor = IsArrow<F> && requires {
+  typename F::Σ_cat;                         // source category
+  typename F::Τ_cat;                         // target category
+  typename F::template Shape<int>;           // object map  A -> F(A)
+} && requires(F f, typename F::Σ_cat::Arrow f_c) {
+  { f.φ(f_c) } -> IsArrow;                   // morphism lift  f -> F(f)
+  // Domain / Codomain of the lifted arrow track the object map:
+  // Dom(F(f)) = F(Dom(f)),  Cod(F(f)) = F(Cod(f))
+  // (full requires-clause elided; see source).
+};
+
+// The optional-value Maybe functor: Set<T> -> Set<std::optional<T>>.
+template <typename T>
+struct maybe_functor {
+  using Σ_cat = Set<T>;
+  using Τ_cat = Set<std::optional<T>>;
+  template <typename U> using Shape = std::optional<U>;
+  template <typename Fn>           // 𝗳 in source; ASCII here for font coverage
+    requires IsArrow<std::remove_cvref_t<Fn>>
+  constexpr auto φ(Fn&& f) const {
+    return arrow([f = std::forward<Fn>(f)](std::optional<T> const& m) {
+      return m.has_value() ? std::optional{std::invoke(f, *m)} : std::nullopt;
+    });
+  }
+};
+
+static_assert(IsFunctor<maybe_functor<int>>);  // mechanical verification
+\end{lstlisting}
+
+The listing is the System-F-recovery table (Table~\ref{tab:system-f-jlt}) at work in one place: the \lstinline|template <typename F>| header is row 2's \emph{Constrained Templates} $\equiv \forall\alpha.\dots$; the \lstinline|requires|-clause is row 1's \emph{Concept-gating} discharging parametricity; the \lstinline|static_assert| is the Curry--Howard term that proves \lstinline|maybe_functor| inhabits the concept.
+The same machinery covers the carrier-tower's other functorial constructions ($V_n(R)$, $\mathrm{End}_R$, $\mathrm{Frac}$, $\mathrm{Complex}$, $\mathrm{Dual}$); see §\ref{sec:linalg} for worked instances at the linear-algebra layer.
+
 \paragraph{Every carrier is a structure-preserving image of its
 base.}  Each carrier in the numeric tower
 (Figure~\ref{fig:carrier-lattice}) is the image of a structure-
