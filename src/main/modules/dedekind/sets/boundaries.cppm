@@ -235,11 +235,14 @@ struct Ø final : Boundaries {
  *
  * Per #551 (one-transaction redesign of the set-builder DSL): the @b type
  * is named @c UniversalSet<T, L, C>; the value-level handle is the
- * variable template @c UniversalSet<T, L, C> below, so callers spell
- * @c UniversalSet<bool> rather than @c UniversalSet<bool>{}.  This makes the
- * topos-theoretic reading direct ( @c Ω is the subobject classifier
- * value at carrier @c T), and lets paper Listing 6 read as
- * @c auto @c 𝔹 @c = @c UniversalSet<bool>; without the type/value schism the
+ * sibling variable template @c Ω<T, L, C> (declared further below in this
+ * partition) which spells @c UniversalSet<T, L, C>{}.  Callers therefore
+ * spell @c Ω<bool> at value-context sites rather than reaching for
+ * @c UniversalSet<bool>{}; the type and the variable template share their
+ * parameter pack so both names remain reachable at the same arity.  This
+ * makes the topos-theoretic reading direct ( @c Ω is the subobject
+ * classifier value at carrier @c T), and lets paper Listing 6 read as
+ * @c auto @c 𝔹 @c = @c Ω<bool>; without the type/value schism the
  * pre-#551 surface had.
  */
 export template <typename T, typename L = ClassicalLogic, typename C = ℵ_0>
@@ -294,8 +297,10 @@ struct UniversalSet final : Boundaries {
 
   // Value-level membership query (sugar over operator()) per #551.
   // @c UniversalSet<T>.contains(v) reads more directly than @c
-  // UniversalSet<T>(v) at paper-listing sites.
-  constexpr bool contains(const T&) const { return true; }
+  // UniversalSet<T>(v) at paper-listing sites.  Returns @c L::Ω (delegating
+  // to @c operator()) so the contract matches @c sets::Set::contains and
+  // generic code can call either uniformly.
+  constexpr typename L::Ω contains(const T& v) const { return (*this)(v); }
 
   constexpr cardinality_type cardinality() const { return cardinality_type{}; }
 

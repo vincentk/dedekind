@@ -32,7 +32,12 @@ using namespace dedekind::category;
 using namespace dedekind::sets;
 using namespace dedekind::algebra;
 
-// Symbolic variable ranging over 𝔹 = UniversalSet<bool, ClassicalLogic, Finite>
+// Symbolic scout ranging over the Boolean universe Ω<𝔹> (=
+// UniversalSet<bool, ClassicalLogic, Finite>).  At this PR's snapshot,
+// 𝔹 is the carrier alias (= bool) and the ambient is built explicitly
+// via Ω<𝔹>; #559's option-A migration (PR #560) collapses the spelling
+// further so that 𝔹 itself names the universe value and the scout reads
+// `element<𝔹>` directly.
 constexpr auto b = element<Ω<𝔹>>;
 
 // { b ∈ 𝔹 | ¬b } = the singleton {false} ⊂ 𝔹

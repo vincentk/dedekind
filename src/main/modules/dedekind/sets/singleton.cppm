@@ -160,10 +160,10 @@ struct SingletonSet {
    *  @c BooleanEqPredicate; see @c expressions.cppm:operator^). */
   template <typename U, typename L2>
   constexpr auto operator^(const SingletonSet<U, L2>& other) const {
-    // The `var<Ω> % Ω | lambda` chain produces a Comprehension; wrap
-    // in `Set{...}` to materialise an actual Set the caller can invoke.
-    // Without this, callers got `Comprehension does not provide a
-    // call operator` errors at the test site.
+    // The `element<Ω<T, L>> | lambda` chain produces a Comprehension;
+    // wrap in `Set{...}` to materialise an actual Set the caller can
+    // invoke.  Without this, callers got `Comprehension does not provide
+    // a call operator` errors at the test site.
     return Set{element<Ω<T, L>> | [s1 = *this, s2 = other](const T& x) {
       // SingletonSet::operator() returns L::Ω directly,
       // so the lift_logic<L> calls are defensive: they
