@@ -54,8 +54,10 @@ TEST_CASE("Boundaries: The Algebra of Extremality", "[sets][boundaries]") {
      * In a Union, the Universe is the Annihilator: Ω | S = Ω.
      * In an Intersection, the Void is the Annihilator: ∅ & S = ∅.
      */
-    static_assert(std::is_same_v<decltype((universe | null)), UniversalSet<SignedExtensionalCardinal<>>>);
-    static_assert(std::is_same_v<decltype((null & universe)), Ø<SignedExtensionalCardinal<>>>);
+    static_assert(std::is_same_v<decltype((universe | null)),
+                                 UniversalSet<SignedExtensionalCardinal<>>>);
+    static_assert(std::is_same_v<decltype((null & universe)),
+                                 Ø<SignedExtensionalCardinal<>>>);
   }
 
   // SECTION("Aha! 2: The Law of Identity") {
@@ -113,7 +115,9 @@ TEST_CASE("Boundaries: The Algebra of Extremality", "[sets][boundaries]") {
     constexpr SingletonSet<SignedExtensionalCardinal<>> s{42};
     constexpr Ø<SignedExtensionalCardinal<>> empty;
 
-    CHECK(std::is_same_v<decltype(empty | s), SingletonSet<SignedExtensionalCardinal<>>>);
-    CHECK(std::is_same_v<decltype(universe & s), SingletonSet<SignedExtensionalCardinal<>>>);
+    CHECK(std::is_same_v<decltype(empty | s),
+                         SingletonSet<SignedExtensionalCardinal<>>>);
+    CHECK(std::is_same_v<decltype(universe & s),
+                         SingletonSet<SignedExtensionalCardinal<>>>);
   }
 }

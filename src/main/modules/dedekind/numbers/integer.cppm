@@ -436,8 +436,9 @@ using IntegerSet = IntegersOf<>;
 
 /** @brief The canonical Boolean-tower successor: the exact ℤ universe.
  *
- *  Post-#559, @c ℤ names the @b universe value @c Ω<SignedExtensionalCardinal<>>
- *  (a constexpr @c UniversalSet<...>{}).  The carrier is
+ *  Post-#559, @c ℤ names the @b universe value @c
+ * Ω<SignedExtensionalCardinal<>> (a constexpr @c UniversalSet<...>{}).  The
+ * carrier is
  *  @c dedekind::sets::SignedExtensionalCardinal<>, addressed directly in
  *  template-type-parameter positions; the math symbol denotes the set.
  *

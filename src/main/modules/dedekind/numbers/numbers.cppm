@@ -32,18 +32,19 @@ export import dedekind.order;  // Ordered predicate concepts for numeric species
 export import dedekind.topology;  // Rays, half-spaces, intervals, convex shapes
 
 /** @section numbers__Discrete_Foundations */
-export import :boolean;         // Truth<L> and Ω
-export import :uint;            // std::unsigned_integral as ℤ/2^wℤ
-                                // (machine layer below ℕ; closes part of #417)
-export import :natural;         // Cardinality partition (carrier:
-                                // dedekind::sets::Cardinality)
-export import :integer;         // SignedExtensionalCardinal<> partition (variant ℤ-proxy / IntegersOf<>)
-export import :sint;            // std::signed_integral: operator surface ✓,
-                                // axiomatic ring ✗ (Honest Rejection;
-                                // closes part of #418)
-export import :integral;        // std::integral umbrella note over the three
-                                // siblings (unsigned_integral / signed_integral
-                                // / bool); closes #419
+export import :boolean;   // Truth<L> and Ω
+export import :uint;      // std::unsigned_integral as ℤ/2^wℤ
+                          // (machine layer below ℕ; closes part of #417)
+export import :natural;   // Cardinality partition (carrier:
+                          // dedekind::sets::Cardinality)
+export import :integer;   // SignedExtensionalCardinal<> partition (variant
+                          // ℤ-proxy / IntegersOf<>)
+export import :sint;      // std::signed_integral: operator surface ✓,
+                          // axiomatic ring ✗ (Honest Rejection;
+                          // closes part of #418)
+export import :integral;  // std::integral umbrella note over the three
+                          // siblings (unsigned_integral / signed_integral
+                          // / bool); closes #419
 export import :floating_point;  // std::floating_point: operator surface +
                                 // operational ordered-field ✓; axiomatic ring /
                                 // field / total order ✗ (IEEE 754 Honest
