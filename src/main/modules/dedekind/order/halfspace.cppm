@@ -11,13 +11,13 @@
  * pivot is carried in the predicate's TYPE as a non-type template parameter,
  * which is what lets `(n > bound<5>) && (n < bound<3>)` collapse structurally
  * to an empty predicate at compile time. Contrast with the lambda-returning
- * variable operators in `dedekind.sets`, which erase the pivot into a closure.
+ * scout operators in `dedekind.sets`, which erase the pivot into a closure.
  *
  * @section halfspace__DSL_Surface
  *
- *     inline constexpr auto n = var<ℕ>;
- *     inline constexpr auto big   = Set{n % N | (n > bound<5>)};
- *     inline constexpr auto small = Set{n % N | (n < bound<3>)};
+ *     inline constexpr auto n = element<Ω<ℕ>>;
+ *     inline constexpr auto big   = Set{n | (n > bound<5>)};
+ *     inline constexpr auto small = Set{n | (n < bound<3>)};
  *     // (big ∩ small) = ∅  — witnessed at compile time via structured_and
  *
  * Wikipedia: Half-space (geometry), Separating hyperplane theorem,
@@ -300,78 +300,11 @@ struct OrderInterval {
   using cardinality_type = std::conditional_t<is_integer_range, Finite, ℵ_0>;
 };
 
-/** @section halfspace__Halfspace_Variable_DSL — Variable<S> × Bound<V> →
- * Halfspace. */
-
-export template <typename Species, auto V>
-  requires std::convertible_to<decltype(V),
-                               dedekind::sets::element_of_t<Species>> &&
-           // Reject negative signed pivots on unsigned carriers: the
-           // implicit signed→unsigned conversion would wrap (-1 → UINT_MAX)
-           // and produce nonsense semantics (`x > -1` becomes `x > UINT_MAX`,
-           // which is False for every reachable x).  Real-valued bounds
-           // (e.g. bound<-21.0> on var<ℝ>) remain admissible because
-           // signed_integral excludes floating-point types.
-           (!std::unsigned_integral<dedekind::sets::element_of_t<Species>> ||
-            !std::signed_integral<decltype(V)> || V >= 0)
-constexpr auto operator>(const Variable<Species>&, Bound<V>) {
-  using T = dedekind::sets::element_of_t<Species>;
-  return Halfspace<T, V, Direction::Upward, Strictness::Strict>{};
-}
-
-export template <typename Species, auto V>
-  requires std::convertible_to<decltype(V),
-                               dedekind::sets::element_of_t<Species>> &&
-           // Reject negative signed pivots on unsigned carriers: the
-           // implicit signed→unsigned conversion would wrap (-1 → UINT_MAX)
-           // and produce nonsense semantics (`x > -1` becomes `x > UINT_MAX`,
-           // which is False for every reachable x).  Real-valued bounds
-           // (e.g. bound<-21.0> on var<ℝ>) remain admissible because
-           // signed_integral excludes floating-point types.
-           (!std::unsigned_integral<dedekind::sets::element_of_t<Species>> ||
-            !std::signed_integral<decltype(V)> || V >= 0)
-constexpr auto operator>=(const Variable<Species>&, Bound<V>) {
-  using T = dedekind::sets::element_of_t<Species>;
-  return Halfspace<T, V, Direction::Upward, Strictness::NonStrict>{};
-}
-
-export template <typename Species, auto V>
-  requires std::convertible_to<decltype(V),
-                               dedekind::sets::element_of_t<Species>> &&
-           // Reject negative signed pivots on unsigned carriers: the
-           // implicit signed→unsigned conversion would wrap (-1 → UINT_MAX)
-           // and produce nonsense semantics (`x > -1` becomes `x > UINT_MAX`,
-           // which is False for every reachable x).  Real-valued bounds
-           // (e.g. bound<-21.0> on var<ℝ>) remain admissible because
-           // signed_integral excludes floating-point types.
-           (!std::unsigned_integral<dedekind::sets::element_of_t<Species>> ||
-            !std::signed_integral<decltype(V)> || V >= 0)
-constexpr auto operator<(const Variable<Species>&, Bound<V>) {
-  using T = dedekind::sets::element_of_t<Species>;
-  return Halfspace<T, V, Direction::Downward, Strictness::Strict>{};
-}
-
-export template <typename Species, auto V>
-  requires std::convertible_to<decltype(V),
-                               dedekind::sets::element_of_t<Species>> &&
-           // Reject negative signed pivots on unsigned carriers: the
-           // implicit signed→unsigned conversion would wrap (-1 → UINT_MAX)
-           // and produce nonsense semantics (`x > -1` becomes `x > UINT_MAX`,
-           // which is False for every reachable x).  Real-valued bounds
-           // (e.g. bound<-21.0> on var<ℝ>) remain admissible because
-           // signed_integral excludes floating-point types.
-           (!std::unsigned_integral<dedekind::sets::element_of_t<Species>> ||
-            !std::signed_integral<decltype(V)> || V >= 0)
-constexpr auto operator<=(const Variable<Species>&, Bound<V>) {
-  using T = dedekind::sets::element_of_t<Species>;
-  return Halfspace<T, V, Direction::Downward, Strictness::NonStrict>{};
-}
-
 /** @section halfspace__Halfspace_BoundScout_DSL — BoundScout<auto> × Bound<V>
  *  → Halfspace.
  *
- * Mirror of the Variable<Species> × Bound<V> overloads above, for the
- * post-#551 NTTP-parameterised scout BoundScout<auto Ambient>.  Same
+ * Free-function overloads on the post-#551 NTTP-parameterised scout
+ * @c BoundScout<auto @c Ambient>.  Same
  * Halfspace<T, V, D, S> result type; downstream collapse machinery
  * (structured_and on halfspace pairs) is unchanged. */
 
@@ -471,7 +404,7 @@ constexpr auto structured_and(Halfspace<T, Lo, Direction::Upward, SL, L>,
       // For @c std::integral @c T the cast is preserved verbatim so the
       // pre-#402 behaviour on primitive carriers (@c Singleton<4u> on
       // @c unsigned @c int, @c Singleton<int_value> for real-pivot-on-int
-      // showcases like @c bound<-21.0> on @c var<int>) doesn't shift.
+      // showcases like @c bound<-21.0> on @c element<Ω<int>>) doesn't shift.
       if constexpr (std::integral<T>) {
         constexpr T unique =
             lo_open ? static_cast<T>(Lo + 1) : static_cast<T>(Lo);

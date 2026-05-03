@@ -13,7 +13,7 @@
  *
  * Key constructs exported:
  *  - Set<T,L,P>           -- ETCS-compatible intensional set.
- *  - Variable<S> / var<S> -- symbolic scouts for comprehension syntax.
+ *  - element<Ω<T>>        -- BoundScout factory for comprehension syntax (#551).
  *  - Boolean connectives &&, ||, ! lifted to predicate combinators.
  *  - operator<=           -- subset relation (same-predicate -> True;
  *                            heterogeneous -> Unknown via TernaryLogic).
@@ -24,9 +24,9 @@
  *
  * @section expressions__Canonical_Examples
  * ```cpp
- * auto n = var<ℕ>;
+ * auto n = element<Ω<ℕ>>;
  * const int size = 512;
- * const auto xs = Set{n % N | (n < size)};
+ * const auto xs = Set{n | (n < size)};
  * const auto grid = cartesian_product(xs, xs);  // xs x xs
  * ```
  *
@@ -77,23 +77,17 @@ struct Comprehension {
   static constexpr bool is_idempotent_v = true;
 };
 
-// Forward declaration of @c Variable: the @c MembershipBinding pipe
-// below has a Variable<bool>-truthy specialisation that needs the
-// type name; the full definition lives just below.
-export template <typename Species>
-struct Variable;
-
 /** @brief Forward declaration of @c BoundScout (post-#551), needed by
  *  @c MembershipBinding<S>::operator| below for the bool-truthy
- *  specialisation that mirrors the @c Variable<…> path. */
+ *  specialisation. */
 export template <auto Ambient>
 struct BoundScout;
 
 /** @brief Boolean equality predicate for compile-time pruning over 𝔹.
  *
  *  Defined here (rather than further down where the @c FiniteBooleanSet
- *  collapse machinery lives) because the @c MembershipBinding pipe's
- *  Variable<bool>-truthy specialisation rewrites the bare-@c b form to
+ *  collapse machinery lives) because the @c BoundScout pipe's
+ *  bool-truthy specialisation rewrites the bare-@c b form to
  *  @c BooleanEqPredicate{true}, and that overload needs the type to
  *  be complete (#408).  The collapse-machinery uses further down still
  *  see the same definition — it's the single source of truth for the
@@ -105,7 +99,7 @@ export struct BooleanEqPredicate {
   constexpr bool operator()(bool v) const { return v == expected; }
 };
 
-/** @brief The Membership Binding: Bridges a Variable to its Domain. */
+/** @brief The Membership Binding: bridges a narrower-bound scout to its Species. */
 template <typename Species>
 struct MembershipBinding {
   const Species& base;
@@ -116,7 +110,7 @@ struct MembershipBinding {
     return Comprehension<Species, std::decay_t<P>>{base, std::forward<P>(p)};
   }
 
-  /** @brief Bare-Variable<bool> truthy-predicate specialisation (#408).
+  /** @brief Bare-BoundScout<bool> truthy-predicate specialisation (#408 / #551).
    *
    *  The textbook set-builder form @c Set{b @c % @c B @c | @c b}
    *  reads "the elements of @c B for which @c b holds".  When @c b's
@@ -127,21 +121,12 @@ struct MembershipBinding {
    *  existing collapse machinery ( @c structured_and / @c
    *  FiniteBooleanSet operators / @c Set::operator& / @c
    *  Set::operator|) recognises it as the truthy half of a
-   *  complementary pair.  Mirrors the existing @c operator==(b, bool)
-   *  and @c operator!(b) overloads in this partition: the bool-domain
+   *  complementary pair.  Mirrors the @c operator==(b, bool) and
+   *  @c operator!(b) overloads in this partition: the bool-domain
    *  encoding lives in exactly one place ( @c BooleanEqPredicate),
    *  with all three syntactic surfaces ( @c b, @c b @c == @c true,
    *  @c !b) routing into it.
    */
-  template <typename OtherSpecies>
-    requires std::same_as<element_of_t<Species>, bool> &&
-             std::same_as<element_of_t<OtherSpecies>, bool>
-  constexpr auto operator|(const Variable<OtherSpecies>&) const {
-    return Comprehension<Species, BooleanEqPredicate>{base,
-                                                      BooleanEqPredicate{true}};
-  }
-
-  /** @brief Sibling of the above for the post-#551 BoundScout form. */
   template <auto OtherAmbient>
     requires std::same_as<element_of_t<Species>, bool> &&
              std::same_as<typename BoundScout<OtherAmbient>::T, bool>
@@ -150,44 +135,6 @@ struct MembershipBinding {
                                                       BooleanEqPredicate{true}};
   }
 };
-
-/**
- * @class Variable
- * @brief The 'Symbolic Scout' (id_S) of a Species.
- * @details Represents a point-in-potentia for set construction.
- *
- * The underlying element type is resolved via the canonical
- * @c element_of_t trait (in @c :boundaries): predicate-set carriers
- * project to their nested @c ::Domain, primitive carriers are their own
- * elements.  This is the trait that lets @c var<bool>, @c var<𝔹>,
- * @c var<ℕ> work uniformly across the show-to-a-wider-audience API
- * (#399).
- */
-export template <typename Species>
-struct Variable {
-  using T = element_of_t<Species>;
-  using is_variable = void;
-
-  /** @brief The Membership Morphism (x % S). Mimics 'x \in S'. */
-  constexpr auto operator%(const Species& s) const {
-    return MembershipBinding<Species>{s};
-  }
-
-  /**
-   * @brief The Membership Morphism.
-   * Allows binding this variable to any set S,
-   * provided they share the same underlying element type.
-   */
-  template <typename SubSpecies>
-    requires std::same_as<T, typename SubSpecies::Domain>
-  constexpr auto operator%(const SubSpecies& s) const {
-    return MembershipBinding<SubSpecies>{s};
-  }
-};
-
-/** @brief Global factory for symbolic scouts. */
-export template <typename S>
-inline constexpr Variable<S> var{};
 
 /** @section expressions__BoundScout_and_Element__per_551
  *
@@ -226,9 +173,8 @@ struct BoundScout {
 
   /** @brief Membership re-bind: @c b @c % @c S binds @c b to a
    *  @b narrower set @c S whose @c Domain matches the scout's @c T.
-   *  Mirrors @c Variable<Species>::operator% for the case where the
-   *  scout's declared ambient is the universal @c Ω<T> but the
-   *  caller wants to specialise to a smaller subset (e.g.\
+   *  Used when the scout's declared ambient is the universal @c Ω<T>
+   *  but the caller wants to specialise to a smaller subset (e.g.\
    *  @c singleton(1), an empty set, a specific predicate-set). */
   template <typename SubSpecies>
     requires std::same_as<T, typename SubSpecies::Domain>
@@ -242,7 +188,7 @@ struct BoundScout {
    *  predicate.  Routes to the canonical @c BooleanEqPredicate{true}
    *  so the existing collapse machinery treats the three syntactic
    *  surfaces ( @c b, @c b @c == @c true, @c !b) uniformly.  Mirror
-   *  of @c MembershipBinding<S>::operator|(const Variable<…>&). */
+   *  of @c MembershipBinding<S>::operator|(const BoundScout<…>&). */
   template <auto OtherAmbient>
     requires std::same_as<T, bool> &&
              std::same_as<typename BoundScout<OtherAmbient>::T, bool>
@@ -533,11 +479,6 @@ constexpr auto operator|(const Set<SignedCardinality, L, P1>& lhs,
                          const Set<Cardinality, L, P2>& rhs) {
   return rhs | lhs;
 }
-
-/** @brief Convenience Alias: If S is a type, var<S> is the scout. */
-// This allows: auto x = var<int>; where int is mapped to UniversalSet<int>
-export template <typename T>
-inline constexpr Variable<UniversalSet<T>> var_for_type{};
 
 export template <typename T, typename L, typename Predicate>
 class Set {
@@ -914,60 +855,11 @@ template <typename Species>
 Set(Species) -> Set<typename Species::Domain,
                     typename NaturalLogic<Species>::type, Species>;
 
-/** @section expressions__Relational_Lifting */
-
-// Note: We move these OUTSIDE the Variable struct, into namespace
-// dedekind::sets
-
-export template <typename Species, typename Rhs>
-constexpr auto operator<(const Variable<Species>&, const Rhs& rhs) {
-  return [rhs](const element_of_t<Species>& v) { return v < rhs; };
-}
-
-export template <typename Species, typename Rhs>
-constexpr auto operator<=(const Variable<Species>&, const Rhs& rhs) {
-  return [rhs](const element_of_t<Species>& v) { return v <= rhs; };
-}
-
-export template <typename Species, typename Rhs>
-constexpr auto operator>(const Variable<Species>&, const Rhs& rhs) {
-  return [rhs](const element_of_t<Species>& v) { return v > rhs; };
-}
-
-export template <typename Species, typename Rhs>
-constexpr auto operator>=(const Variable<Species>&, const Rhs& rhs) {
-  return [rhs](const element_of_t<Species>& v) { return v >= rhs; };
-}
-
-export template <typename Species, typename Rhs>
-constexpr auto operator==(const Variable<Species>&, const Rhs& rhs) {
-  return [rhs](const element_of_t<Species>& v) { return v == rhs; };
-}
-
-export template <typename Species>
-  requires std::same_as<element_of_t<Species>, bool>
-constexpr auto operator==(const Variable<Species>&, bool rhs) {
-  return BooleanEqPredicate{rhs};
-}
-
-/** @brief Unary negation of a boolean variable: `!b` ≡ `b == false`.
+/** @section expressions__Relational_Lifting (BoundScout)
  *
- *  Delegates to the `operator==` overload above so the bool-domain encoding
- *  lives in exactly one place: a future change to the predicate type or
- *  pruning hooks only needs to be made once.
- */
-export template <typename Species>
-  requires std::same_as<element_of_t<Species>, bool>
-constexpr auto operator!(const Variable<Species>& v) {
-  return v == false;
-}
-
-/** @section expressions__Relational_Lifting_BoundScout
- *
- * Mirror of the @c Variable<Species> relational lifts above, for the
- * post-#551 NTTP-parameterised scout @c BoundScout<auto>.  Same lambda-
- * returning shape; the scout's @c T is @c element_of_t<AmbientType>.
- */
+ * Free-function relational lifts on @c BoundScout<auto>.  Same lambda-
+ * returning shape as the textbook DSL; the scout's @c T is
+ * @c element_of_t<AmbientType>. */
 export template <auto Ambient, typename Rhs>
 constexpr auto operator<(const BoundScout<Ambient>&, const Rhs& rhs) {
   return [rhs](const typename BoundScout<Ambient>::T& v) { return v < rhs; };
