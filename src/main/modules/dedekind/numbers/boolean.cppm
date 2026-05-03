@@ -148,12 +148,13 @@ static_assert(
 //      participate as a set, lift the carrier through
 //      @c BooleanSetOf<> / @c FiniteBooleanSetOf<>; the IsSet anchor
 //      in (1) below witnesses exactly that lift.
+static_assert(std::same_as<typename UniversalSet<bool>::Domain, bool>,
+              "UniversalSet<bool>::Domain is the carrier `bool` (and 𝔹 = "
+              "Ω<bool>) — predicate-set's "
+              "underlying element type IS the carrier.");
 static_assert(
-    std::same_as<typename UniversalSet<bool>::Domain, bool>,
-    "UniversalSet<bool>::Domain is the carrier `bool` (and 𝔹 = Ω<bool>) — predicate-set's "
-    "underlying element type IS the carrier.");
-static_assert(std::same_as<typename FiniteBooleanSetOf<>::Domain, bool>,
-              "FiniteBooleanSetOf<>::Domain is the carrier `bool` (and 𝔹 = Ω<bool>).");
+    std::same_as<typename FiniteBooleanSetOf<>::Domain, bool>,
+    "FiniteBooleanSetOf<>::Domain is the carrier `bool` (and 𝔹 = Ω<bool>).");
 
 // (1) IsSet anchor: the predicate-set FiniteBooleanSetOf<> is a bona-fide
 //     set (membership morphism 𝔹 → Ω).  Witnesses the set-builder DSL

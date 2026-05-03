@@ -25,8 +25,8 @@ TEST_CASE("Algebra:Boolean starter symbols", "[algebra][boolean][starter]") {
   //     (decltype(B) == decltype(𝔹) == UniversalSet<bool, ...>).
   STATIC_CHECK(std::same_as<std::remove_cvref_t<decltype(𝔹)>,
                             UniversalSet<bool, ClassicalLogic, Finite>>);
-  STATIC_CHECK(std::same_as<typename std::remove_cvref_t<decltype(𝔹)>::Domain,
-                            bool>);
+  STATIC_CHECK(
+      std::same_as<typename std::remove_cvref_t<decltype(𝔹)>::Domain, bool>);
   STATIC_CHECK(std::same_as<decltype(B), const BooleanSetOf<>>);
   STATIC_CHECK(std::same_as<typename BooleanSetOf<>::Domain, bool>);
   STATIC_CHECK(std::same_as<typename UniversalSet<bool>::Domain, bool>);
