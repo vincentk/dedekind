@@ -66,7 +66,7 @@ export module dedekind.geometry:lattice;
 
 import :affine;  // for Vector<F, N>
 import dedekind.category;
-import dedekind.sets; // for Set, var, Ω, ℕ, N, cartesian_product
+import dedekind.sets; // for Set, var, Ω, Cardinality, N, cartesian_product
 
 namespace dedekind::geometry {
 
@@ -86,7 +86,7 @@ export using IntegerLatticeScalar = typename IntegerLatticeSet::Domain;
 export using IntegerLatticePoint2D =
     std::pair<IntegerLatticeScalar, IntegerLatticeScalar>;
 // Natural-lattice scalar matches the post-#401 ℕ carrier (= unsigned int).
-export using NaturalLatticeScalar = ℕ;
+export using NaturalLatticeScalar = Cardinality;
 export using NaturalLatticePoint2D =
     std::pair<NaturalLatticeScalar, NaturalLatticeScalar>;
 
@@ -121,7 +121,7 @@ struct LatticeFactory;
 template <>
 struct LatticeFactory<NaturalLatticeSet> {
   constexpr auto line() const {
-    auto k = element<Ω<ℕ>>;
+    auto k = element<Ω<Cardinality>>;
     // Every Cardinality value is in ℕ by construction post-#401;
     // the universal-set @c Ω<ℕ> is the canonical classifier here.
     return Set{k};

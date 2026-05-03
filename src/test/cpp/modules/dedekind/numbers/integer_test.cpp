@@ -37,8 +37,8 @@ using namespace dedekind::sets;
 TEST_CASE("Integer: ℕ → ℤ → ℕ via unary − then abs (closes #436 round-trip)",
           "[numbers][integer][carrier-lattice][round-trip]") {
   const auto n = finite_cardinality(7);
-  const auto neg = -n;         // ℕ → ℤ (closure-forcing negation)
-  const auto back = abs(neg);  // ℤ → ℕ (retraction)
+  const auto neg = -n;         // Cardinality → ℤ (closure-forcing negation)
+  const auto back = abs(neg);  // ℤ → Cardinality (retraction)
   CHECK(back == n);
 }
 
@@ -46,14 +46,14 @@ TEST_CASE("Integer: ℕ → ℤ → ℕ via binary − then abs",
           "[numbers][integer][carrier-lattice][round-trip]") {
   const auto n = finite_cardinality(7);
   const auto z = finite_cardinality(0) - n;  // → -7 in ℤ
-  const auto back = abs(z);                  // → 7 in ℕ
+  const auto back = abs(z);                  // → 7 in Cardinality
   CHECK(back == n);
 }
 
 TEST_CASE("Integer: ℤ → ℕ → ℤ folds sign — abs is not a bijection",
           "[numbers][integer][carrier-lattice][round-trip]") {
   const auto z_neg = finite_signed_cardinality(-5);
-  const auto folded = abs(z_neg);                           // → 5 in ℕ
+  const auto folded = abs(z_neg);                           // → 5 in Cardinality
   const auto re_embedded = folded - finite_cardinality(0);  // → +5 in ℤ
   CHECK(re_embedded == finite_signed_cardinality(5));
   CHECK_FALSE(re_embedded == z_neg);  // sign was lost on the round-trip

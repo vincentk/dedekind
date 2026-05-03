@@ -35,7 +35,7 @@ export import dedekind.topology;  // Rays, half-spaces, intervals, convex shapes
 export import :boolean;   // Truth<L> and Ω
 export import :uint;      // std::unsigned_integral as ℤ/2^wℤ
                           // (machine layer below ℕ; closes part of #417)
-export import :natural;   // ℕ partition (carrier: dedekind::sets::Cardinality)
+export import :natural;   // Cardinality partition (carrier: dedekind::sets::Cardinality)
 export import :integer;   // ℤ partition (variant ℤ-proxy / IntegersOf<>)
 export import :sint;      // std::signed_integral: operator surface ✓,
                           // axiomatic ring ✗ (Honest Rejection;

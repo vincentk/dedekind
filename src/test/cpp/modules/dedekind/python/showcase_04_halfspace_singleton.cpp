@@ -32,7 +32,7 @@ using namespace dedekind::numbers;
 using namespace dedekind::order;
 
 // Symbolic scout ranging over the universal set Ω<ℕ> (per #551).
-constexpr auto n = element<Ω<ℕ>>;
+constexpr auto n = element<Ω<Cardinality>>;
 
 // Opposing halfspaces with compile-time pivots separated by exactly two.
 constexpr auto gt_3 = Set{n | n > bound<3>};

@@ -66,21 +66,21 @@ TEST_CASE("order:halfspace — Variable DSL constructs Halfspace from bound<V>",
   // lives in `dedekind.numbers`, which is downstream of `dedekind.order` in
   // the build DAG. Post-#401, ℕ is the unsigned-int carrier, so the test
   // now exercises `Halfspace<unsigned int, ...>` instantiations.
-  constexpr auto n = element<Ω<ℕ>>;
+  constexpr auto n = element<Ω<Cardinality>>;
 
   SECTION("> constructs Upward/Strict") {
     constexpr auto h = n > bound<7>;
     using H = std::decay_t<decltype(h)>;
     STATIC_CHECK(
         std::same_as<H,
-                     Halfspace<ℕ, 7, Direction::Upward, Strictness::Strict>>);
+                     Halfspace<Cardinality, 7, Direction::Upward, Strictness::Strict>>);
   }
 
   SECTION(">= constructs Upward/NonStrict") {
     constexpr auto h = n >= bound<7>;
     using H = std::decay_t<decltype(h)>;
     STATIC_CHECK(std::same_as<
-                 H, Halfspace<ℕ, 7, Direction::Upward, Strictness::NonStrict>>);
+                 H, Halfspace<Cardinality, 7, Direction::Upward, Strictness::NonStrict>>);
   }
 
   SECTION("< constructs Downward/Strict") {
@@ -88,7 +88,7 @@ TEST_CASE("order:halfspace — Variable DSL constructs Halfspace from bound<V>",
     using H = std::decay_t<decltype(h)>;
     STATIC_CHECK(
         std::same_as<H,
-                     Halfspace<ℕ, 7, Direction::Downward, Strictness::Strict>>);
+                     Halfspace<Cardinality, 7, Direction::Downward, Strictness::Strict>>);
   }
 
   SECTION("<= constructs Downward/NonStrict") {
@@ -96,7 +96,7 @@ TEST_CASE("order:halfspace — Variable DSL constructs Halfspace from bound<V>",
     using H = std::decay_t<decltype(h)>;
     STATIC_CHECK(
         std::same_as<
-            H, Halfspace<ℕ, 7, Direction::Downward, Strictness::NonStrict>>);
+            H, Halfspace<Cardinality, 7, Direction::Downward, Strictness::NonStrict>>);
   }
   // Note (post-#409 review): the DSL constraint also rejects negative
   // signed pivots on unsigned carriers (e.g. `element<Ω<ℕ>> > bound<-1>` no
@@ -277,12 +277,12 @@ TEST_CASE("order:halfspace — reduction boundary tightens all three tiers",
           "[order][halfspace][computability][reduction]") {
   // Mirrored from analysis/pruning_showcases_test.cpp at the unit level:
   // the reduction boundary IS the computability boundary.
-  constexpr auto n = element<Ω<ℕ>>;
+  constexpr auto n = element<Ω<Cardinality>>;
 
   SECTION("Empty-meet reduction") {
     constexpr auto gt5 = Set{n | (n > bound<5>)};
     constexpr auto lt3 = Set{n | (n < bound<3>)};
-    constexpr Ø<ℕ> meet = gt5 & lt3;
+    constexpr Ø<Cardinality> meet = gt5 & lt3;
 
     STATIC_CHECK_FALSE(HasDecidableMembership<decltype(gt5)>);
     STATIC_CHECK_FALSE(IsFiniteSet<decltype(gt5)>);

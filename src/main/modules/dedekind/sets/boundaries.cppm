@@ -420,7 +420,7 @@ static_assert(dedekind::category::HasCanonicalSetCCC<int>,
 export template <typename L = ClassicalLogic, typename C = ℵ_0>
 struct NaturalNumbersOf {
   using Domain =
-      dedekind::sets::Cardinality;  // Aligned to the @c ℕ carrier post-#402.
+      dedekind::sets::Cardinality;  // Aligned to the @c Cardinality carrier post-#402.
   using Codomain = typename L::Ω;
   using logic_species = L;
   using cardinality_type = C;
