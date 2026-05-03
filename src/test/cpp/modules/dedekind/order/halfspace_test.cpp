@@ -66,7 +66,7 @@ TEST_CASE("order:halfspace — Variable DSL constructs Halfspace from bound<V>",
   // lives in `dedekind.numbers`, which is downstream of `dedekind.order` in
   // the build DAG. Post-#401, ℕ is the unsigned-int carrier, so the test
   // now exercises `Halfspace<unsigned int, ...>` instantiations.
-  constexpr auto n = element<Ω<Cardinality>>;
+  constexpr auto n = element<ℕ>;
 
   SECTION("> constructs Upward/Strict") {
     constexpr auto h = n > bound<7>;
@@ -277,7 +277,7 @@ TEST_CASE("order:halfspace — reduction boundary tightens all three tiers",
           "[order][halfspace][computability][reduction]") {
   // Mirrored from analysis/pruning_showcases_test.cpp at the unit level:
   // the reduction boundary IS the computability boundary.
-  constexpr auto n = element<Ω<Cardinality>>;
+  constexpr auto n = element<ℕ>;
 
   SECTION("Empty-meet reduction") {
     constexpr auto gt5 = Set{n | (n > bound<5>)};

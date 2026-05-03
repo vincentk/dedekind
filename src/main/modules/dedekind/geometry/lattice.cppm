@@ -121,7 +121,7 @@ struct LatticeFactory;
 template <>
 struct LatticeFactory<NaturalLatticeSet> {
   constexpr auto line() const {
-    auto k = element<Ω<Cardinality>>;
+    auto k = element<ℕ>;
     // Every Cardinality value is in ℕ by construction post-#401;
     // the universal-set @c Ω<ℕ> is the canonical classifier here.
     return Set{k};

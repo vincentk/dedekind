@@ -34,7 +34,7 @@ TEST_CASE("Sets+Category: singleton and comprehension predicates satisfy ETCS",
   CHECK(atom_set.χ(42) == true);
   CHECK(atom_set.χ(7) == false);
 
-  auto x = element<Ω<Cardinality>>;
+  auto x = element<ℕ>;
   const auto positive = Set{x | (x > 0u)};
   const auto bounded = Set{x | (x <= 10u)};
 
@@ -59,7 +59,7 @@ TEST_CASE("Sets+Category: singleton and comprehension predicates satisfy ETCS",
 
 TEST_CASE("Sets+Category: Set naming boundary is explicit",
           "[sets][category][etcs][alignment]") {
-  auto x = element<Ω<Cardinality>>;
+  auto x = element<ℕ>;
   const auto positive = Set{x | (x > 0u)};
 
   // `sets::Set` (DSL species) and `category::Set` (CCC witness) are distinct.

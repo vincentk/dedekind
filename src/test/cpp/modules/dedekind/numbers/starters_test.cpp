@@ -16,7 +16,7 @@ TEST_CASE("Numbers: canonical starter symbols", "[numbers][starter]") {
   // ambient-value is now uniform and minimal: one carrier, one
   // @c Ω<carrier> value, no per-symbol predicate-set type to remember.
 
-  STATIC_CHECK(std::same_as<Cardinality, Cardinality>);
+  STATIC_CHECK(std::same_as<std::remove_cvref_t<decltype(ℕ)>, UniversalSet<Cardinality>>);
   STATIC_CHECK(
       std::same_as<std::remove_cvref_t<decltype(Ω<Cardinality>)>, UniversalSet<Cardinality>>);
 
@@ -42,7 +42,7 @@ TEST_CASE("Numbers: starter universes construct from ambient values",
   //
   // The `% N` binding step is gone: the scout already knows its ambient.
 
-  constexpr auto n = element<Ω<Cardinality>>;
+  constexpr auto n = element<ℕ>;
   constexpr auto naturals = Set{n};
   static_assert(naturals(7u) == Ternary::True);
   static_assert(naturals(0u) == Ternary::True);
@@ -63,7 +63,7 @@ TEST_CASE("Numbers: starter universes construct from ambient values",
 TEST_CASE("Numbers: starter universes satisfy lattice identities",
           "[numbers][starter][algebra]") {
   {
-    constexpr auto n = element<Ω<Cardinality>>;
+    constexpr auto n = element<ℕ>;
     const auto U = Set{n};
     const auto O = !U;
     CHECK((U | O)(7u) == Ternary::True);

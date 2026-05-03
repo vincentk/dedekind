@@ -545,7 +545,7 @@ TEST_CASE(
   // shift to the more idiomatic @c element<Ω<ℤ>> form.
   using L = TernaryLogic;
   SECTION("Set<ℕ> & Set<ℤ> tightens to Set<ℕ>") {
-    constexpr auto n = element<Ω<Cardinality>>;
+    constexpr auto n = element<ℕ>;
     constexpr auto positive_n = Set{n | (n > 5u)};  // {6, 7, 8, …} ⊂ Cardinality
     auto bounded_pred = [](const SignedCardinality& v) {
       // {…, -1, 0, …, 10} ⊂ ℤ
@@ -565,7 +565,7 @@ TEST_CASE(
     CHECK(meet(finite_cardinality(5)) == Ternary::False);
   }
   SECTION("Set<ℕ> | Set<ℤ> widens to Set<ℤ> ({1} ∪ {-1} ⊂ ℤ)") {
-    constexpr auto n = element<Ω<Cardinality>>;
+    constexpr auto n = element<ℕ>;
     constexpr auto one_n = Set{n | (n == 1u)};  // {1} ⊂ Cardinality
     auto neg_one_pred = [](const SignedCardinality& v) {
       return (v == -1) ? L::True : L::False;
@@ -585,7 +585,7 @@ TEST_CASE(
     CHECK(union_set(finite_signed_cardinality(-2)) == Ternary::False);
   }
   SECTION("Symmetric direction: Set<ℤ> & Set<ℕ> still tightens to Set<ℕ>") {
-    constexpr auto n = element<Ω<Cardinality>>;
+    constexpr auto n = element<ℕ>;
     auto bounded_pred = [](const SignedCardinality& v) {
       return (v >= -3) ? L::True : L::False;  // {-3, -2, …} ⊂ ℤ
     };

@@ -139,8 +139,9 @@ TEST_CASE(
   STATIC_CHECK(
       std::same_as<decltype(cardinality_succ{}(Cardinality{})), Cardinality>);
 
-  // Layer 3: ℕ is the alias pointing to Cardinality.  The textbook
+  // Layer 3: ℕ is the universe Ω<Cardinality> (post-#559).  The textbook
   // symbol practitioners use; the NNO universal property is what it
   // _means_ via the chain.
-  STATIC_CHECK(std::same_as<Cardinality, Cardinality>);
+  STATIC_CHECK(std::same_as<typename std::remove_cvref_t<decltype(ℕ)>::Domain,
+                            Cardinality>);
 }

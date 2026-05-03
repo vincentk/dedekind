@@ -34,7 +34,7 @@ using namespace dedekind::order;
 // Symbolic scout ranging over the universal set Ω<ℕ>.  Per #551, the
 // scout carries its ambient at the type level, so the % binding step
 // disappears from the set-builder DSL.
-constexpr auto n = element<Ω<Cardinality>>;
+constexpr auto n = element<ℕ>;
 
 // Opposing halfspaces with compile-time pivots carried in the predicate type.
 constexpr auto gt_five = Set{n | (n > bound<5>)};

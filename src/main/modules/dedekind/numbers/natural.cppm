@@ -177,16 +177,22 @@ using ::dedekind::sets::ℕ;
 
 /** @section natural__Formal_Verification */
 
-// (0) Carrier-type witness: ℕ names the carrier itself (post-#402; the
-//     variant ℕ-proxy from sets:cardinality, replacing the unsigned-int
-//     reading shipped under #401).
-static_assert(std::same_as<Cardinality, dedekind::sets::Cardinality>,
-              "ℕ is the variant ℕ-proxy carrier @c Cardinality "
-              "(= @c std::variant<ExtensionalCardinal<>, ℵ_0>) — "
-              "saturating to ℵ_0 on overflow; honestly models ℕ "
-              "(no additive inverses; rig-not-ring).  Callers wanting "
-              "the bounded machine carrier explicitly spell @c unsigned "
-              "@c int directly.");
+// (0) Universe witness: ℕ names the universe over the Cardinality
+//     carrier (post-#559).  Pre-#559, ℕ was a carrier-type alias for
+//     Cardinality; post-#559 it is the value Ω<Cardinality> (a constexpr
+//     UniversalSet<Cardinality, ClassicalLogic, ℵ_0>{}).  Cardinality is
+//     the variant ℕ-proxy carrier (= @c std::variant<ExtensionalCardinal<>,
+//     ℵ_0>) — saturating to ℵ_0 on overflow; honestly models ℕ (no
+//     additive inverses; rig-not-ring).  Callers wanting the bounded
+//     machine carrier explicitly spell @c unsigned @c int directly.
+static_assert(
+    std::same_as<std::remove_cvref_t<decltype(dedekind::sets::ℕ)>,
+                 UniversalSet<Cardinality, ClassicalLogic, ℵ_0>>,
+    "ℕ is the universe Ω<Cardinality> (post-#559).");
+static_assert(
+    std::same_as<typename std::remove_cvref_t<decltype(dedekind::sets::ℕ)>::Domain,
+                 Cardinality>,
+    "ℕ's underlying carrier IS Cardinality — the textbook universe-over-carrier reading.");
 
 // (0a) Relationship between ℕ (the carrier) and NaturalNumbersOf<>
 //      (the predicate-set / classifier).  The predicate-set's @c Domain
