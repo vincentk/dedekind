@@ -426,12 +426,13 @@ struct IntegersOf {
 };
 
 // Non-exported convenience alias used by the value-level @c Z constant
-// below.  Per #399 (canonical species symbols as carrier types), the
-// public name @c ℤ now denotes the exact ℤ @b carrier
-// (@c SignedExtensionalCardinal<>) rather than the predicate-set form;
-// callers who specifically need the predicate-set type should spell
+// below.  Post-#559 (option-A migration), the public name @c ℤ denotes
+// the @b universe @b value @c Ω<SignedExtensionalCardinal<>>; the
+// carrier @c SignedExtensionalCardinal<> is named directly in
+// template-type-parameter positions (per #399 slice 3).  Callers who
+// specifically need the predicate-set @b classifier should spell
 // @c IntegersOf<> or @c decltype(Z) — symmetric with the
-// @c BooleanSetOf<> / @c B handling on the @c 𝔹 side (#400 / #407).
+// @c BooleanSetOf<> / @c B handling on the @c 𝔹 side.
 using IntegerSet = IntegersOf<>;
 
 /** @brief The canonical Boolean-tower successor: the exact ℤ universe.

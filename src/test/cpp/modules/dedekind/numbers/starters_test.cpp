@@ -23,8 +23,10 @@ TEST_CASE("Numbers: canonical starter symbols", "[numbers][starter]") {
   STATIC_CHECK(std::same_as<std::remove_cvref_t<decltype(Ω<Cardinality>)>,
                             UniversalSet<Cardinality>>);
 
-  STATIC_CHECK(
-      std::same_as<SignedExtensionalCardinal<>, SignedExtensionalCardinal<>>);
+  STATIC_CHECK(std::same_as<std::remove_cvref_t<decltype(ℤ)>,
+                            UniversalSet<SignedExtensionalCardinal<>>>);
+  STATIC_CHECK(std::same_as<typename std::remove_cvref_t<decltype(ℤ)>::Domain,
+                            SignedExtensionalCardinal<>>);
   STATIC_CHECK(std::same_as<
                std::remove_cvref_t<decltype(Ω<SignedExtensionalCardinal<>>)>,
                UniversalSet<SignedExtensionalCardinal<>>>);
