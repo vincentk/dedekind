@@ -681,6 +681,20 @@ properties from the trait registry, and ultimately prune logically empty set
 expressions to zero machine instructions---none of which is possible with runtime duck
 typing.
 
+% TODO(future-edit): the two-axis framing introduced in the next paragraph
+% is the load-bearing setup for the trait-registry implementation discussion
+% in §\ref{sec:pruning} (Algebraic Lattice).  Keep the touch light here ---
+% name the split, forward-pointer, and stop.  The actual registry mechanics
+% (specialisation tables, propagation rules, audit rosettas) belong in §5,
+% not in §3.  If §3 prose grows past one paragraph on this point, push the
+% overflow into §\ref{sec:pruning}.
+
+The listing exhibits a load-bearing split that runs through the rest of the paper.
+The operator surface witnessed by \lstinline|HasRingOperators| states \emph{closure} --- which types compose under which operators --- and this axis can be checked \emph{by inspection of the standard library}: the compiler resolves the overloads, the concept either binds or it does not, and no further human judgement is required.
+The algebraic \emph{laws} (associativity, commutativity, distributivity, identities, inverses, totality) are a separate axis and must be \emph{validated and certified by hand}: signed-overflow UB defeats ring-associativity on \lstinline|int|, IEEE-754 rounding defeats field-associativity on \lstinline|double|, matrix multiplication is non-commutative even when the scalar field is, and the standard library --- principled in its silence --- refuses to commit to a position on any of these.
+The Juliet Posture's job is to take that silence as a job description: lift each meta-symmetry to a compile-time predicate (\lstinline|IsAssociative<T, Op>|, \lstinline|IsCommutative<T, Op>|, \dots), populate it per carrier in a \emph{trait registry}, and let downstream concepts (\lstinline|IsRing|, \lstinline|IsField|) compose closure-on-the-surface with law-from-the-registry into a single \lstinline|static_assert| obligation.
+The mechanics of the registry --- which axioms propagate under which constructors, how the per-carrier specialisations are organised, how the audit rosettas measure the standard library's silence --- are deferred to §\ref{sec:pruning} (\emph{Algebraic Lattice}); the present section establishes only the framing.
+
 Pick a small \emph{axiomatic subset} of C++23: concept-constrained templates, non-type template parameters (NTTPs), named modules with strict DAG dependencies, \lstinline{static_assert} for compile-time obligation discharge, and \lstinline{constexpr} for $\beta$-style normalisation.
 Exclude the escape hatches that would otherwise leak past System F: no \lstinline{reinterpret_cast} in public APIs, no SFINAE branches in public surfaces, no ADL-dependent dispatch beyond textbook operator overloads, no public-API specialisations that branch behaviour, and bounded template-instantiation depth (Table~\ref{tab:admissibility-rules}).
 This is a small fragment of $\mathbf{Cpp}$, and §\ref{sec:jlt} develops the structural-typing posture under which it can be inhabited cleanly.
@@ -1748,6 +1762,89 @@ each reduction are its mechanical witness.
 \section{Algebraic Lattice}
 \label{sec:pruning}
 % ============================================================
+
+% TODO(future-edit): this section is the natural home for the deeper
+% trait-registry discussion that §\ref{sec:jlt} (Juliet Posture) only
+% gestures at.  The framing established there is the two-axis split:
+%   (i)  closure on the operator surface --- validated by inspecting
+%        the standard library (overload resolution, concept binding);
+%   (ii) algebraic laws (associativity, commutativity, distributivity,
+%        identities, inverses, totality) --- validated and certified
+%        by hand, per carrier, in the trait registry.
+% This section should expand axis (ii) with: how the registry is
+% organised (per-axiom variable templates like is_associative_v),
+% how propagation works (HSP under quotients/products; partial
+% propagation under End_R), and how the audit rosettas in
+% §\ref{sec:carrier-rosetta} measure the standard library's silence.
+% The §\ref{sec:species} listing already exhibits the registry style;
+% the work is integrating it as a coherent narrative thread rather
+% than a standalone listing.  Keep §3 lean --- if registry detail
+% accretes there, push it down here.
+
+% TODO(future-edit, draft figure): Figure~\ref{fig:two-axes} below is a
+% first-pass sketch of the two-axis split.  Disposition for the editing
+% pass: this figure is primarily an EDITING-TIME MNEMONIC --- a thinking
+% aid that helps keep the §\ref{sec:jlt}/§\ref{sec:pruning} narrative
+% honest about which axis any given paragraph is talking about.  It may
+% or may not earn its place at submission time; the decision is downstream
+% of how the surrounding registry prose lands.  Three ways it could go:
+%   (i)  load-bearing --- promoted to a numbered figure that the body
+%        prose explicitly cites in both §\ref{sec:jlt} and §\ref{sec:pruning};
+%   (ii) folded --- absorbed into the rosetta tables (§\ref{sec:carrier-rosetta},
+%        Tables~\ref{tab:rosetta-quotient}, \ref{tab:rosetta-rank}) as a
+%        compact column/row legend instead of a standalone figure;
+%   (iii) dropped --- the rosettas + the §\ref{sec:jlt} prose paragraph
+%        carry the framing without the figure.
+% The carrier placements are indicative, not audited --- the authoritative
+% data lives in the carrier rosettas.  Other open questions for the polish pass:
+%   (a) y-axis as a discrete law-stack (closure / +assoc / +comm / +id /
+%       +inv) as drawn, or a 2D law matrix (one axis per law) with carriers
+%       as cells?  The stack reads cleaner; a matrix is more honest about
+%       non-monotone cases (matrix mult: associative AND non-commutative).
+%   (b) cross-link to the §\ref{sec:species} registry listing so the
+%       reader sees the figure's "above this line" zone realised in code.
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}[
+  >={Stealth[length=2.5mm]},
+  carrier/.style={circle, fill=black, inner sep=1.5pt},
+  every node/.style={font=\small},
+]
+  % background bands
+  \fill[gray!8] (-0.05,-0.05) rectangle (10.4,1.05);
+  \fill[blue!4] (-0.05,1.05) rectangle (10.4,5.6);
+  \node[anchor=west, font=\footnotesize\itshape, gray] at (5.2,0.5) {std::library territory (overload resolution)};
+  \node[anchor=west, font=\footnotesize\itshape, blue!50!black] at (5.2,5.3) {trait registry territory (certified by hand)};
+
+  % axes
+  \draw[->, thick] (0,0) -- (10.2,0) node[anchor=west] {axis 1: operator surface};
+  \draw[->, thick] (0,0) -- (0,5.5) node[anchor=south] {axis 2: algebraic laws};
+
+  % horizontal ticks
+  \foreach \x/\lbl in {1.5/{none}, 4.5/{\texttt{HasRingOperators}}, 8/{\texttt{HasFieldOperators}}} {
+    \draw[thick] (\x,-0.1) -- (\x,0.1);
+    \node[anchor=north] at (\x,-0.15) {\lbl};
+  }
+
+  % vertical ticks
+  \foreach \y/\lbl in {1/{closure only}, 2/{+ associativity}, 3/{+ commutativity}, 4/{+ identities}, 5/{+ inverses}} {
+    \draw[thick] (-0.1,\y) -- (0.1,\y);
+    \node[anchor=east] at (-0.15,\y) {\lbl};
+  }
+
+  % carriers
+  \node[carrier, label={[label distance=0pt]above:{\texttt{int}}}] at (4.5,1) {};
+  \node[carrier, label={[label distance=0pt]above:{\texttt{unsigned}}}] at (4.5,3) {};
+  \node[carrier, label={[label distance=0pt]above:{\texttt{double}}}] at (8,1) {};
+  \node[carrier, label={[label distance=0pt]above:{\texttt{Rational<int>}}}] at (8,5) {};
+  \node[carrier, label={[label distance=0pt]above:{\texttt{Matrix<R>}}}] at (4.5,2) {};
+
+  % silence demarcation
+  \draw[densely dashed, gray!70!black, thick] (-0.05,1.05) -- (10.4,1.05);
+\end{tikzpicture}
+\caption{\textbf{The two axes of the trait registry (draft).}  Axis 1 (horizontal) is the operator surface: which types compose under which operators.  This axis is validated by \emph{inspection} of the standard library --- overload resolution and concept binding answer it without further human input.  Axis 2 (vertical) is the algebraic-law stack: closure-only, then $+$ associativity, $+$ commutativity, $+$ identities, $+$ inverses.  Above the dashed line the standard library is silent: each law must be \emph{certified by hand}, per carrier, in the trait registry of §\ref{sec:species}.  Carrier placements illustrate the typical shape of the silence: \texttt{int} closes the ring surface but signed-overflow UB defeats associativity (\textsc{ub}); \texttt{unsigned} reaches commutativity via modular arithmetic; \texttt{double} closes the field surface but IEEE-754 rounding defeats associativity; \texttt{Rational<int>} reaches the full field stack; matrix multiplication is associative without being commutative (a non-monotone point this stacked axis under-resolves --- see TODO note in source).  The placements are indicative; the audited data lives in the carrier rosettas (Tables~\ref{tab:rosetta-quotient}, \ref{tab:rosetta-rank}).}
+\label{fig:two-axes}
+\end{figure}
 
 The third pillar.  The carrier tower of Figure~\ref{fig:carrier-lattice}
 in load-bearing form: HSP propagation lifts axioms componentwise
