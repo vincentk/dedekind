@@ -1059,8 +1059,8 @@ export template <typename A, typename B>
   } && std::same_as<typename NaturalLogic<std::remove_cvref_t<A>>::type,
                     typename NaturalLogic<std::remove_cvref_t<B>>::type>
 constexpr auto cartesian_product(const A& a, const B& b) {
-  auto xa = var<std::remove_cvref_t<A>>;
-  auto xb = var<std::remove_cvref_t<B>>;
+  auto xa = element<Ω<typename std::remove_cvref_t<A>::Domain>>;
+  auto xb = element<Ω<typename std::remove_cvref_t<B>::Domain>>;
   const auto left = Set{xa % a};
   const auto right = Set{xb % b};
   return cartesian_product(left, right);

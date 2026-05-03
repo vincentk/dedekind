@@ -137,14 +137,14 @@ struct SingletonSet {
   template <typename U, typename L2>
   constexpr auto operator|(const SingletonSet<U, L2>& other) const {
     // Return a structural Join: {x | x == pivot || x == other.pivot}
-    return var<UniversalSet<T, L>> % UniversalSet<T, L>{} |
+    return element<Ω<T, L>> |
            [s1 = *this, s2 = other](const T& x) { return s1(x) || s2(x); };
   }
 
   template <typename U, typename L2>
   constexpr auto operator&(const SingletonSet<U, L2>& other) const {
     // Return a structural Meet: {x | x == pivot && x == other.pivot}
-    return var<UniversalSet<T, L>> % UniversalSet<T, L>{} |
+    return element<Ω<T, L>> |
            [s1 = *this, s2 = other](const T& x) { return s1(x) && s2(x); };
   }
 
@@ -164,15 +164,14 @@ struct SingletonSet {
     // in `Set{...}` to materialise an actual Set the caller can invoke.
     // Without this, callers got `Comprehension does not provide a
     // call operator` errors at the test site.
-    return Set{var<UniversalSet<T, L>> % UniversalSet<T, L>{} |
-               [s1 = *this, s2 = other](const T& x) {
-                 // SingletonSet::operator() returns L::Ω directly,
-                 // so the lift_logic<L> calls are defensive: they
-                 // normalise if L1 or L2 ever returns bool.
-                 const auto a = dedekind::category::lift_logic<L>(s1(x));
-                 const auto b = dedekind::category::lift_logic<L>(s2(x));
-                 return L::OR(L::AND(a, L::NOT(b)), L::AND(L::NOT(a), b));
-               }};
+    return Set{element<Ω<T, L>> | [s1 = *this, s2 = other](const T& x) {
+      // SingletonSet::operator() returns L::Ω directly,
+      // so the lift_logic<L> calls are defensive: they
+      // normalise if L1 or L2 ever returns bool.
+      const auto a = dedekind::category::lift_logic<L>(s1(x));
+      const auto b = dedekind::category::lift_logic<L>(s2(x));
+      return L::OR(L::AND(a, L::NOT(b)), L::AND(L::NOT(a), b));
+    }};
   }
 
   // Complement: !{a}
@@ -204,12 +203,11 @@ constexpr auto operator^(const SingletonSet<T, L1>& s,
   // result logic from that same side (L2): the singleton's bool lifts
   // through `lift_logic<L2>` cleanly, and the Set's predicate is
   // already in L2.
-  return Set{var<UniversalSet<T, L2>> % UniversalSet<T, L2>{} |
-             [s, other](const T& x) {
-               const auto a = dedekind::category::lift_logic<L2>(s(x));
-               const auto b = dedekind::category::lift_logic<L2>(other(x));
-               return L2::OR(L2::AND(a, L2::NOT(b)), L2::AND(L2::NOT(a), b));
-             }};
+  return Set{element<Ω<T, L2>> | [s, other](const T& x) {
+    const auto a = dedekind::category::lift_logic<L2>(s(x));
+    const auto b = dedekind::category::lift_logic<L2>(other(x));
+    return L2::OR(L2::AND(a, L2::NOT(b)), L2::AND(L2::NOT(a), b));
+  }};
 }
 
 export template <typename T, typename L1, typename L2, typename P>

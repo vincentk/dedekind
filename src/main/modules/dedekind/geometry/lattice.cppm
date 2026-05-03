@@ -136,7 +136,7 @@ struct LatticeFactory<NaturalLatticeSet> {
 template <std::signed_integral I>
 struct LatticeFactory<UniversalSet<I>> {
   constexpr auto line() const {
-    auto k = var_for_type<I>;
+    auto k = element<Ω<I>>;
     return Set{k % UniversalSet<I>{}};
   }
 
@@ -179,7 +179,7 @@ export constexpr auto integer_lattice_2d() {
  * @return A Set<NaturalLatticePoint2D, TernaryLogic, ...>.
  */
 export constexpr auto square_natural_grid(unsigned int n) {
-  auto p = var_for_type<NaturalLatticePoint2D>;
+  auto p = element<Ω<NaturalLatticePoint2D>>;
   const auto unbounded = natural_lattice_2d();
   return Set{p % unbounded | [n](const NaturalLatticePoint2D& q) {
     return (q.first < n) && (q.second < n);
@@ -195,7 +195,7 @@ export constexpr auto square_natural_grid(unsigned int n) {
  */
 export constexpr auto square_integer_grid(IntegerLatticeScalar lower,
                                           IntegerLatticeScalar upper) {
-  auto p = var_for_type<IntegerLatticePoint2D>;
+  auto p = element<Ω<IntegerLatticePoint2D>>;
   const auto unbounded = integer_lattice_2d();
   return Set{p % unbounded | [lower, upper](const IntegerLatticePoint2D& q) {
     return (q.first >= lower) && (q.first < upper) && (q.second >= lower) &&
