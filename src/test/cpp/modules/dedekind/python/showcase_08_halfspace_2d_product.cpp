@@ -31,7 +31,7 @@ using namespace dedekind::algebra;
 using namespace dedekind::numbers;
 using namespace dedekind::order;
 
-constexpr auto n = element<Ω<SignedExtensionalCardinal<>>>;
+constexpr auto n = element<ℤ>;
 
 // Two 1D intervals on ℤ.
 constexpr auto I_wide =

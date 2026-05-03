@@ -56,7 +56,7 @@ TEST_CASE("Numbers: starter universes construct from ambient values",
   static_assert(Ω<Cardinality>.contains(7u));
   static_assert(Ω<Cardinality>.contains(0u));
 
-  constexpr auto z = element<Ω<SignedExtensionalCardinal<>>>;
+  constexpr auto z = element<ℤ>;
   constexpr auto integers = Set{z};
   static_assert(integers(-7) == Ternary::True);
 
@@ -78,7 +78,7 @@ TEST_CASE("Numbers: starter universes satisfy lattice identities",
   }
 
   {
-    constexpr auto z = element<Ω<SignedExtensionalCardinal<>>>;
+    constexpr auto z = element<ℤ>;
     const auto U = Set{z};
     const auto O = !U;
     CHECK((U | O)(4) == Ternary::True);

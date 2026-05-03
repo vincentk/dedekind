@@ -146,7 +146,7 @@ TEST_CASE("Pruning showcase 5: halfspace meet on ℝ collapses to Ø",
 
 TEST_CASE("Pruning showcase 6: (-21, 21] on ℤ has size 42",
           "[analysis][pruning][showcase][showcase06]") {
-  constexpr auto n = element<Ω<SignedExtensionalCardinal<>>>;
+  constexpr auto n = element<ℤ>;
   constexpr auto above = Set{n | (n > bound<-21>)};
   constexpr auto at_most = Set{n | (n <= bound<21>)};
 
@@ -198,7 +198,7 @@ TEST_CASE("Pruning showcase 7: ℤ lattice ∩ real interval (-21.0, 21.0]",
 
 TEST_CASE("Pruning showcase 8: 2D rectangle via IntervalProduct",
           "[analysis][pruning][showcase][showcase08]") {
-  constexpr auto n = element<Ω<SignedExtensionalCardinal<>>>;
+  constexpr auto n = element<ℤ>;
   constexpr auto I_wide = Set{n | (n > bound<-21>)} & Set{n | (n <= bound<21>)};
   constexpr auto I_tall = Set{n | (n >= bound<0>)} & Set{n | (n <= bound<10>)};
 
