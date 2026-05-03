@@ -16,9 +16,10 @@ TEST_CASE("Numbers: canonical starter symbols", "[numbers][starter]") {
   // ambient-value is now uniform and minimal: one carrier, one
   // @c Ω<carrier> value, no per-symbol predicate-set type to remember.
 
-  STATIC_CHECK(std::same_as<std::remove_cvref_t<decltype(ℕ)>, UniversalSet<Cardinality>>);
-  STATIC_CHECK(
-      std::same_as<std::remove_cvref_t<decltype(Ω<Cardinality>)>, UniversalSet<Cardinality>>);
+  STATIC_CHECK(std::same_as<std::remove_cvref_t<decltype(ℕ)>,
+                            UniversalSet<Cardinality>>);
+  STATIC_CHECK(std::same_as<std::remove_cvref_t<decltype(Ω<Cardinality>)>,
+                            UniversalSet<Cardinality>>);
 
   STATIC_CHECK(std::same_as<ℤ, SignedExtensionalCardinal<>>);
   STATIC_CHECK(

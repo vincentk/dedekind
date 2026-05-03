@@ -71,32 +71,29 @@ TEST_CASE("order:halfspace — Variable DSL constructs Halfspace from bound<V>",
   SECTION("> constructs Upward/Strict") {
     constexpr auto h = n > bound<7>;
     using H = std::decay_t<decltype(h)>;
-    STATIC_CHECK(
-        std::same_as<H,
-                     Halfspace<Cardinality, 7, Direction::Upward, Strictness::Strict>>);
+    STATIC_CHECK(std::same_as<H, Halfspace<Cardinality, 7, Direction::Upward,
+                                           Strictness::Strict>>);
   }
 
   SECTION(">= constructs Upward/NonStrict") {
     constexpr auto h = n >= bound<7>;
     using H = std::decay_t<decltype(h)>;
-    STATIC_CHECK(std::same_as<
-                 H, Halfspace<Cardinality, 7, Direction::Upward, Strictness::NonStrict>>);
+    STATIC_CHECK(std::same_as<H, Halfspace<Cardinality, 7, Direction::Upward,
+                                           Strictness::NonStrict>>);
   }
 
   SECTION("< constructs Downward/Strict") {
     constexpr auto h = n < bound<7>;
     using H = std::decay_t<decltype(h)>;
-    STATIC_CHECK(
-        std::same_as<H,
-                     Halfspace<Cardinality, 7, Direction::Downward, Strictness::Strict>>);
+    STATIC_CHECK(std::same_as<H, Halfspace<Cardinality, 7, Direction::Downward,
+                                           Strictness::Strict>>);
   }
 
   SECTION("<= constructs Downward/NonStrict") {
     constexpr auto h = n <= bound<7>;
     using H = std::decay_t<decltype(h)>;
-    STATIC_CHECK(
-        std::same_as<
-            H, Halfspace<Cardinality, 7, Direction::Downward, Strictness::NonStrict>>);
+    STATIC_CHECK(std::same_as<H, Halfspace<Cardinality, 7, Direction::Downward,
+                                           Strictness::NonStrict>>);
   }
   // Note (post-#409 review): the DSL constraint also rejects negative
   // signed pivots on unsigned carriers (e.g. `element<Ω<ℕ>> > bound<-1>` no

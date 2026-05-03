@@ -185,14 +185,15 @@ using ::dedekind::sets::ℕ;
 //     ℵ_0>) — saturating to ℵ_0 on overflow; honestly models ℕ (no
 //     additive inverses; rig-not-ring).  Callers wanting the bounded
 //     machine carrier explicitly spell @c unsigned @c int directly.
+static_assert(std::same_as<std::remove_cvref_t<decltype(dedekind::sets::ℕ)>,
+                           UniversalSet<Cardinality, ClassicalLogic, ℵ_0>>,
+              "ℕ is the universe Ω<Cardinality> (post-#559).");
 static_assert(
-    std::same_as<std::remove_cvref_t<decltype(dedekind::sets::ℕ)>,
-                 UniversalSet<Cardinality, ClassicalLogic, ℵ_0>>,
-    "ℕ is the universe Ω<Cardinality> (post-#559).");
-static_assert(
-    std::same_as<typename std::remove_cvref_t<decltype(dedekind::sets::ℕ)>::Domain,
-                 Cardinality>,
-    "ℕ's underlying carrier IS Cardinality — the textbook universe-over-carrier reading.");
+    std::same_as<
+        typename std::remove_cvref_t<decltype(dedekind::sets::ℕ)>::Domain,
+        Cardinality>,
+    "ℕ's underlying carrier IS Cardinality — the textbook "
+    "universe-over-carrier reading.");
 
 // (0a) Relationship between ℕ (the carrier) and NaturalNumbersOf<>
 //      (the predicate-set / classifier).  The predicate-set's @c Domain
@@ -209,8 +210,8 @@ static_assert(std::same_as<typename NaturalNumbersOf<>::Domain, Cardinality>,
 //     set.  Witnesses the set-builder DSL entry point that survives the
 //     carrier migration.
 static_assert(
-    dedekind::category::IsSet<
-        decltype(dedekind::category::ambient_set<Cardinality>(NaturalNumbersOf<>{}))>,
+    dedekind::category::IsSet<decltype(dedekind::category::ambient_set<
+                                       Cardinality>(NaturalNumbersOf<>{}))>,
     "NaturalNumbersOf<> is the canonical IsSet anchor for ℕ.");
 
 // (2) Syntax (the C++ operator surface that maps to ℕ's algebra).
@@ -297,10 +298,10 @@ static_assert(dedekind::order::IsDirectedPoset<Cardinality>,
 // Sequence witness: FinitePath<ℕ> is a finite sequence enumerating
 // a ℕ-prefix.  Pins ℕ as a valid @b sequence codomain: any finite
 // sub-sequence of natural numbers presents as IsFiniteSequence.
-static_assert(
-    dedekind::sequences::IsFiniteSequence<dedekind::sequences::FinitePath<Cardinality>>,
-    "FinitePath<ℕ> is a bona-fide finite sequence; ℕ is a valid "
-    "sequence codomain.");
+static_assert(dedekind::sequences::IsFiniteSequence<
+                  dedekind::sequences::FinitePath<Cardinality>>,
+              "FinitePath<ℕ> is a bona-fide finite sequence; ℕ is a valid "
+              "sequence codomain.");
 
 // (4) Primitive-type arrows.  ℕ *is* @c unsigned @c int (post-#401), so
 // the predicate-set membership question reduces to direct calls on the
@@ -361,7 +362,9 @@ static_assert(N(-7) == ClassicalLogic::False,
  *         witness on @c Cardinality.  Nullary callable, returns
  *         @c finite_cardinality(0). */
 export struct cardinality_zero {
-  constexpr Cardinality operator()() const noexcept { return finite_cardinality(0); }
+  constexpr Cardinality operator()() const noexcept {
+    return finite_cardinality(0);
+  }
 };
 
 /** @brief The successor map @c ℕ → @c ℕ for the NNO universal property
@@ -373,12 +376,13 @@ export struct cardinality_succ {
   }
 };
 
-static_assert(dedekind::category::IsNNO<Cardinality, cardinality_zero, cardinality_succ>,
-              "Cardinality is the canonical NNO witness: "
-              "z = cardinality_zero, s = cardinality_succ.  ℵ_0 "
-              "saturation is the carrier's extra behaviour beyond "
-              "the textbook NNO — an honest sentinel for values "
-              "that exceed the machine implementation's range.");
+static_assert(
+    dedekind::category::IsNNO<Cardinality, cardinality_zero, cardinality_succ>,
+    "Cardinality is the canonical NNO witness: "
+    "z = cardinality_zero, s = cardinality_succ.  ℵ_0 "
+    "saturation is the carrier's extra behaviour beyond "
+    "the textbook NNO — an honest sentinel for values "
+    "that exceed the machine implementation's range.");
 
 }  // namespace dedekind::numbers
 

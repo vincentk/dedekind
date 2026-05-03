@@ -53,7 +53,7 @@ TEST_CASE("Integer: ℕ → ℤ → ℕ via binary − then abs",
 TEST_CASE("Integer: ℤ → ℕ → ℤ folds sign — abs is not a bijection",
           "[numbers][integer][carrier-lattice][round-trip]") {
   const auto z_neg = finite_signed_cardinality(-5);
-  const auto folded = abs(z_neg);                           // → 5 in Cardinality
+  const auto folded = abs(z_neg);  // → 5 in Cardinality
   const auto re_embedded = folded - finite_cardinality(0);  // → +5 in ℤ
   CHECK(re_embedded == finite_signed_cardinality(5));
   CHECK_FALSE(re_embedded == z_neg);  // sign was lost on the round-trip

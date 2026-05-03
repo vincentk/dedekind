@@ -546,7 +546,8 @@ TEST_CASE(
   using L = TernaryLogic;
   SECTION("Set<ℕ> & Set<ℤ> tightens to Set<ℕ>") {
     constexpr auto n = element<ℕ>;
-    constexpr auto positive_n = Set{n | (n > 5u)};  // {6, 7, 8, …} ⊂ Cardinality
+    constexpr auto positive_n =
+        Set{n | (n > 5u)};  // {6, 7, 8, …} ⊂ Cardinality
     auto bounded_pred = [](const SignedCardinality& v) {
       // {…, -1, 0, …, 10} ⊂ ℤ
       return (v <= 10) ? L::True : L::False;
