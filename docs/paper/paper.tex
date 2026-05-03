@@ -5,8 +5,8 @@
 % Unicode glyphs present in the default font, including mathematical script
 % characters used in listings (ℕ, ℤ, ℚ, ℝ, ℂ, Ø, and similar). We keep the
 % `newunicodechar` fallbacks for body text so amsmath glyphs (\mathbb) are
-% used in paragraphs, and extend the lstlisting literate table below for
-% code blocks.
+% used in paragraphs.  Code listings use the `minted` package (Pygments-
+% backed) with native UTF-8 — no per-character literate table needed.
 \usepackage{fontspec}
 \usepackage{newunicodechar}
 \usepackage[english]{babel}    % Language support
@@ -27,7 +27,8 @@
 \usepackage{graphicx}                  % Support for images
 \usepackage{hyperref}                  % Clickable links & cross-refs
 \usepackage{booktabs}                  % High-quality tables
-\usepackage{csquotes}
+% csquotes is loaded later — after `minted` (which pulls in `fvextra`)
+% to silence the fvextra/csquotes load-order warning.
 
 \newunicodechar{∩}{\ensuremath{\cap}}
 \newunicodechar{ℚ}{\ensuremath{\mathbb{Q}}}
@@ -48,6 +49,7 @@
 \newunicodechar{β}{\ensuremath{\beta}}
 \newunicodechar{λ}{\ensuremath{\lambda}}
 \newunicodechar{Ω}{\ensuremath{\Omega}}
+\newunicodechar{↔}{\ensuremath{\leftrightarrow}}
 \newunicodechar{χ}{\ensuremath{\chi}}
 \newunicodechar{Σ}{\ensuremath{\Sigma}}
 \newunicodechar{Τ}{\ensuremath{\mathrm{T}}}
@@ -75,56 +77,47 @@
 \usepackage[style=numeric, sorting=none]{biblatex}
 \addbibresource{references.bib}     % Points to your .bib file (include the extension)
 
-\usepackage{listings}
+% `minted` (Pygments-backed) handles UTF-8 natively in code listings —
+% no per-character literate table needed.  Requires `lualatex -shell-escape`
+% (the build pipeline in docs/paper/Makefile and the CI install step in
+% the project Makefile are updated accordingly).
+\usepackage{minted}
+\usepackage{csquotes}  % Load after minted/fvextra to silence load-order warning.
+
+% Use JuliaMono for code listings — designed specifically for Unicode-rich
+% source (Julia uses the full math repertoire) with native coverage of
+% Greek (φ, Σ, Τ, χ, ...), math double-struck (ℕ, ℤ, ℚ, ℝ, ℂ, 𝔻, 𝔽, ...),
+% math-fraktur, math-script, sub/superscripts, and arrows.  Replaces the
+% earlier `lmmono10` (no Greek) and `Fira Mono` (no math-double-struck)
+% choices made in the lstlisting era.  Installed locally via
+% `brew install --cask font-juliamono`; CI install adds `fonts-juliamono`
+% (Ubuntu 22.04+) under ci-install-paper-deps in the project Makefile.
+% Scale=0.90 keeps glyph metrics close to the document's serif body.
+\setmonofont{JuliaMono}[Scale=0.90]
+
+\setminted{
+  fontsize=\small,
+  breaklines=true,
+  breakanywhere=true,
+  frame=single,
+  framesep=2mm,
+  autogobble,
+}
+\usemintedstyle{friendly}
+
+% C++ is the default code-listing language in this paper; declare short
+% block + inline aliases so source markup reads `\begin{cpp}...\end{cpp}`
+% and `\cppinline{...}` rather than the verbose `\begin{minted}{cpp}` /
+% `\mintinline{cpp}{...}` forms.  The optional `[name]` first argument
+% names the environment directly; without it minted would produce
+% `\begin{cppcode}` and `\cpp{...}`, which would collide with our \cpp
+% short alias usage.
+\newminted[cpp]{cpp}{}
+\newmintinline[cppinline]{cpp}{}
 
 \definecolor{codegreen}{rgb}{0,0.6,0}
 \definecolor{codegray}{rgb}{0.5,0.5,0.5}
 \definecolor{codepurple}{rgb}{0.58,0,0.82}
-
-\lstset{
-  basicstyle=\small\ttfamily, % Makes text smaller and monospace
-  keywordstyle=\color{blue},  % Optional: highlights C++23 keywords
-  tabsize=2,
-  frame=single                % Adds a subtle border around the code
-  language=C++,
-  morekeywords={concept, requires, co_await, import, module, export},
-  keywordstyle=\color{blue}\bfseries,
-  commentstyle=\color{codegreen}\itshape,
-  stringstyle=\color{red},
-  numberstyle=\tiny\color{codegray}
-  breaklines=true,
-  float=htbp,      % <--- This prevents internal page breaks
-  captionpos=b,
-  extendedchars=true,
-  literate={ℚ}{{$\mathbb{Q}$}}1
-           {ℝ}{{$\mathbb{R}$}}1
-           {ℕ}{{$\mathbb{N}$}}1
-           {ℂ}{{$\mathbb{C}$}}1
-           {ℤ}{{$\mathbb{Z}$}}1
-           {𝔽}{{$\mathbb{F}$}}1
-           {²}{{$^2$}}1
-           {Ø}{{$\varnothing$}}1
-           {∃}{{$\exists$}}1
-           {π}{{$\pi$}}1
-           {⊂}{{$\subset$}}1
-           {⊆}{{$\subseteq$}}1
-           {∈}{{$\in$}}1
-           {∉}{{$\notin$}}1
-           {∧}{{$\land$}}1
-           {∨}{{$\lor$}}1
-           {≤}{{$\leq$}}1
-           {≥}{{$\geq$}}1
-           {→}{{$\to$}}1
-           {×}{{$\times$}}1
-           {μ}{{$\mu$}}1
-           {α}{{$\alpha$}}1
-           {β}{{$\beta$}}1
-           {λ}{{$\lambda$}}1
-           {Ω}{{$\Omega$}}1
-           {χ}{{$\chi$}}1
-           {Σ}{{$\Sigma$}}1
-           {Τ}{{$\mathrm{T}$}}1
-}
 
 \newcommand{\bind}{\mathbin{>\!\!>\mkern-6.7mu=}}
 
@@ -196,7 +189,7 @@ optimal vertex as a typed constant; the same reduction over a
 dual-number ring additionally recovers forward-mode automatic
 differentiation~\cite{elliott2018simple} as a sibling compile-time
 collapse, and the discipline extends to a Fundamental Theorem of
-Calculus (Part~II) discharged inside a \lstinline{static_assert}.
+Calculus (Part~II) discharged inside a \cppinline{static_assert}.
 
 \vspace{0.75em}
 \noindent\textbf{Keywords:} C++23; concepts; non-type template
@@ -238,13 +231,13 @@ If the compiler accepts those axioms, then the compiler should also be able to v
 \texttt{dedekind} \arrow[l, shift left=2, "\text{cite}"] \arrow[r, shift left=2, "\text{instantiate}"] \&
 \mathbf{Cpp} \arrow[l, shift left=2, "\text{verify}"]
 \end{tikzcd}}
-\caption{The overarching goal.  \texttt{dedekind} aims at being a faithful-functor bridge between $\mathbf{Cat}$ (mathematical structure, axiomatically defined) and $\mathbf{Cpp}$ (a Cartesian-closed-category fragment of C++23 where structure must be type-carried; §\ref{sec:axiomatic}).  Math $\to$ library: an interpretation functor maps an axiomatic species (a ring, a vector space, a topos primitive) to a corresponding \texttt{dedekind} concept / trait / module.  Library $\to$ math: the library's declarations cite the underlying axiomatic source so the lifted structure has a textbook anchor.  Library $\to$ C++: the library instantiates concrete carriers (\lstinline|Rational<long>|, \lstinline|Vec2V<T>|, \dots) under the named structure.  C++ $\to$ library: the compiler checks each carrier via \lstinline|static_assert| and concept-constraint discharge --- the propositional-fragment instance of the Curry--Howard--Lambek correspondence~\cite{lambek1988introduction,wadler2015propositions}.  The bridge is \emph{intended} as a faithful functor, not as an isomorphism: $\mathbf{Cpp}$ is constrained by computability (Church--Turing), so only a sliver of $\mathbf{Cat}$ is realised, and faithfulness is the architectural target rather than a single global theorem --- each concrete carrier's \lstinline|static_assert| discharge is a partial inhabitant of the meta-claim, accumulating evidence rather than proving it.}
+\caption{The overarching goal.  \texttt{dedekind} aims at being a faithful-functor bridge between $\mathbf{Cat}$ (mathematical structure, axiomatically defined) and $\mathbf{Cpp}$ (a Cartesian-closed-category fragment of C++23 where structure must be type-carried; §\ref{sec:axiomatic}).  Math $\to$ library: an interpretation functor maps an axiomatic species (a ring, a vector space, a topos primitive) to a corresponding \texttt{dedekind} concept / trait / module.  Library $\to$ math: the library's declarations cite the underlying axiomatic source so the lifted structure has a textbook anchor.  Library $\to$ C++: the library instantiates concrete carriers (\cppinline{Rational<long>}, \cppinline{Vec2V<T>}, \dots) under the named structure.  C++ $\to$ library: the compiler checks each carrier via \cppinline{static_assert} and concept-constraint discharge --- the propositional-fragment instance of the Curry--Howard--Lambek correspondence~\cite{lambek1988introduction,wadler2015propositions}.  The bridge is \emph{intended} as a faithful functor, not as an isomorphism: $\mathbf{Cpp}$ is constrained by computability (Church--Turing), so only a sliver of $\mathbf{Cat}$ is realised, and faithfulness is the architectural target rather than a single global theorem --- each concrete carrier's \cppinline{static_assert} discharge is a partial inhabitant of the meta-claim, accumulating evidence rather than proving it.}
 \label{fig:dedekind-bridge}
 \end{figure}
 
 Figure~\ref{fig:dedekind-bridge} sketches the picture: \texttt{dedekind} sits in the middle and does the translation work in both directions.
 Math goes one way; C++ comes back.
-The claim is bounded --- only the part of mathematics that fits the disciplined fragment of C++23 is realised, and even then we make no global claim of having proved the realisation faithful --- but on each concrete carrier the discharge is mechanical, and the architecture is set up so the evidence accumulates in a single direction.\footnote{The precise framing is that \texttt{dedekind} \emph{aims at} a faithful interpretation functor $\mathcal{F}: \mathbf{Cat} \to \mathbf{Cpp}$, where $\mathbf{Cpp}$ is the disciplined-C++23 fragment modelled as a Cartesian-closed category (Mac Lane~\cite{maclane1971categories} for the categorical machinery; Pierce~\cite{pierce2002tapl} §29 for the propositional-fragment-as-typing-derivation reading; Lambek--Scott~\cite{lambek1988introduction} for the CCC $\leftrightarrow$ STLC equivalence; Wadler~\cite{wadler2015propositions} for the propositions-as-types reading at the type level).  $\mathcal{F}$ sends axiomatic species to types, predicates to \lstinline|concept|s, and laws to \lstinline|static_assert| obligations discharged by the type checker.  Faithfulness here is the \emph{architectural target}, not a globally proven theorem: each concrete carrier's discharge is a partial inhabitant of the meta-claim, and the partition DAG plus the trait registry is the structure under which those partial inhabitants compose.  Two reasons we cannot promote this to a single global proof: $\mathbf{Cpp}$'s objects are constrained to the computable (Church--Turing), so $\mathcal{F}$ is not surjective on $\mathbf{Cat}$; and the C++ language outside the disciplined fragment admits escape hatches (cf.\ §\ref{sec:axiomatic}) whose absence in any given carrier is reviewed by humans and by CI rather than mechanically certified end-to-end.  ``Aim at, not assert'' is the honest claim; the paper's contribution is the architecture under which the evidence accumulates, plus the showcases that make accumulation visible.}
+The claim is bounded --- only the part of mathematics that fits the disciplined fragment of C++23 is realised, and even then we make no global claim of having proved the realisation faithful --- but on each concrete carrier the discharge is mechanical, and the architecture is set up so the evidence accumulates in a single direction.\footnote{The precise framing is that \texttt{dedekind} \emph{aims at} a faithful interpretation functor $\mathcal{F}: \mathbf{Cat} \to \mathbf{Cpp}$, where $\mathbf{Cpp}$ is the disciplined-C++23 fragment modelled as a Cartesian-closed category (Mac Lane~\cite{maclane1971categories} for the categorical machinery; Pierce~\cite{pierce2002tapl} §29 for the propositional-fragment-as-typing-derivation reading; Lambek--Scott~\cite{lambek1988introduction} for the CCC $\leftrightarrow$ STLC equivalence; Wadler~\cite{wadler2015propositions} for the propositions-as-types reading at the type level).  $\mathcal{F}$ sends axiomatic species to types, predicates to \cppinline{concept}s, and laws to \cppinline{static_assert} obligations discharged by the type checker.  Faithfulness here is the \emph{architectural target}, not a globally proven theorem: each concrete carrier's discharge is a partial inhabitant of the meta-claim, and the partition DAG plus the trait registry is the structure under which those partial inhabitants compose.  Two reasons we cannot promote this to a single global proof: $\mathbf{Cpp}$'s objects are constrained to the computable (Church--Turing), so $\mathcal{F}$ is not surjective on $\mathbf{Cat}$; and the C++ language outside the disciplined fragment admits escape hatches (cf.\ §\ref{sec:axiomatic}) whose absence in any given carrier is reviewed by humans and by CI rather than mechanically certified end-to-end.  ``Aim at, not assert'' is the honest claim; the paper's contribution is the architecture under which the evidence accumulates, plus the showcases that make accumulation visible.}
 
 The choice of anchoring the library's domain in category theory on the mathematical side is neither new nor arbitrary and follows a well-trodden path.
 The authoritative textbook in the context of programming might be \emph{Types and Programming Languages}~\cite{pierce2002tapl}.
@@ -338,9 +331,9 @@ its claims mechanically.
 
 \paragraph{What shifted the cost--benefit calculus.}
 Two recent developments are the \emph{key enablers}, not tricks or shortcuts.
-First, the C++23 standard~\cite{cpp23standard} delivers the three features the technique needs --- \lstinline|concept|s, NTTPs, and named modules --- in a mainstream toolchain with an installed industrial base; previous template-metaprogramming traditions had to encode these implicitly at steep readability and review cost.
+First, the C++23 standard~\cite{cpp23standard} delivers the three features the technique needs --- \cppinline{concept}s, NTTPs, and named modules --- in a mainstream toolchain with an installed industrial base; previous template-metaprogramming traditions had to encode these implicitly at steep readability and review cost.
 Second, modern coding-assistant LLMs~\cite{chen2021evaluating} compress the time and expertise needed to author opt-in trait specialisations, axiom-shape concepts, and the surrounding library scaffolding, turning what was once a deep-template-metaprogramming specialism into an actionable workflow for working software engineers.
-The correctness story is unchanged --- the type system and \lstinline|static_assert| obligations are what the compiler discharges, both checked mechanically --- but the cost story is, and that is what makes the discipline viable at industrial scale rather than as a paper-only artefact.
+The correctness story is unchanged --- the type system and \cppinline{static_assert} obligations are what the compiler discharges, both checked mechanically --- but the cost story is, and that is what makes the discipline viable at industrial scale rather than as a paper-only artefact.
 
 Most of what follows is therefore \emph{not} specific to C++. Concepts
 have close analogues in Java (sealed types plus generic constraints),
@@ -370,9 +363,9 @@ derivation it accepts is a proof in the propositional fragment
 against a fixed inference rule-set --- and the architecture imposes
 a single division of labour: the engineer carries the honesty
 obligation up front (the trait registry, concept formulations, no
-\lstinline{reinterpret_cast} in the public surface), and the
-compiler discharges every \lstinline{static_assert} /
-\lstinline{requires}-clause / \lstinline{constexpr} evaluation that
+\cppinline{reinterpret_cast} in the public surface), and the
+compiler discharges every \cppinline{static_assert} /
+\cppinline{requires}-clause / \cppinline{constexpr} evaluation that
 follows.  The Curry--Howard reading~\cite{wadler2015propositions}
 grounds this technically; codified engineering ethics ground it
 professionally --- the NSPE \emph{Code of Ethics for
@@ -380,7 +373,7 @@ Engineers}~\cite{nspe_ethics} canons III + IV (truthfulness in
 public statements; faithful agency) treat a trait specialisation as
 a public statement subject to the canons.  The carrier-lattice's
 recurring \emph{Honest Rejection} policy is the clearest example:
-refusing \lstinline{unsigned int} as a witness for $\mathbb{N}$ is
+refusing \cppinline{unsigned int} as a witness for $\mathbb{N}$ is
 not pedantry but the kind of informal-claim re-examination Canon~III
 asks of a working software engineer.  The argument is bounded: most
 software claims (TCP retransmit-timer correctness, scheduler
@@ -390,7 +383,7 @@ reduction is available.}
 The compiler is not searching for proofs---it has no tactic language,
 no resolution procedure, no proof assistant in the loop. What it
 \emph{does} have is a type system strong enough to name a predicate,
-a \lstinline{static_assert} strong enough to discharge it, and an LLVM
+a \cppinline{static_assert} strong enough to discharge it, and an LLVM
 backend that will happily remove what has already been decided. The
 library author supplies narrow, mechanically checkable proof
 obligations; the compiler discharges them; the optimiser then deletes
@@ -460,9 +453,9 @@ The development follows a Top-Down Refinement model~\cite{wirth1971stepwise}, wh
 We treat the alignment between C++ types and mathematical axioms as an Eventual Consistency target~\cite{vogels2009eventually}, where the Semantic Gap is incrementally closed through the addition of Compile-Time Constraints rather than asserted globally up front.
 The framing is deliberately borrowed from distributed-systems literature: the system holds multiple replicas of the same fact (a Form, a concept, a trait specialisation, a machine type); the replicas may temporarily disagree (a carrier may not yet witness an axiom the Form claims); convergence is monotone under bounded operations, in the sense that each pull request can only \emph{tighten} the alignment, never loosen it.
 The quiescent state is the one in which every node in the partition DAG is green; the Semantic Gap is whatever sits between the current state and that target at any given moment.
-The §\ref{sec:introduction} framing --- ``aim at, not assert'' --- is the same statement read from this angle: the bridge $\mathcal{F}: \mathbf{Cat} \to \mathbf{Cpp}$ is the convergence target, and each concrete carrier's \lstinline|static_assert| discharge is a partial inhabitant accumulating against it.
+The §\ref{sec:introduction} framing --- ``aim at, not assert'' --- is the same statement read from this angle: the bridge $\mathcal{F}: \mathbf{Cat} \to \mathbf{Cpp}$ is the convergence target, and each concrete carrier's \cppinline{static_assert} discharge is a partial inhabitant accumulating against it.
 
-To support this approach in a transparent fashion, we reach deep into the CI/CD toolbox and enable whatever we can find: an open-source licence and public review for the social audit trail; public issue management for the backlog of refinements still owed; a reproducible build pipeline that re-runs the compile-time discipline on every push; a test harness whose \lstinline|static_assert| obligations are checked mechanically; pull-request reviews that frame each new trait specialisation as a public claim under engineering ethics (cf.\ §\ref{sec:introduction}'s NSPE-canon footnote); version control that pins the chain of refinements to specific commits; and test-coverage reports that flag the spokes of the hub-and-spoke architecture for which no carrier yet witnesses the trait.
+To support this approach in a transparent fashion, we reach deep into the CI/CD toolbox and enable whatever we can find: an open-source licence and public review for the social audit trail; public issue management for the backlog of refinements still owed; a reproducible build pipeline that re-runs the compile-time discipline on every push; a test harness whose \cppinline{static_assert} obligations are checked mechanically; pull-request reviews that frame each new trait specialisation as a public claim under engineering ethics (cf.\ §\ref{sec:introduction}'s NSPE-canon footnote); version control that pins the chain of refinements to specific commits; and test-coverage reports that flag the spokes of the hub-and-spoke architecture for which no carrier yet witnesses the trait.
 None of this is technically novel.
 What matters is that the engineering practices of mainstream open-source software development \emph{compose} cleanly with the type-system discipline, turning what would otherwise be a paper-only argument into an artefact whose every refinement step is reviewable, reproducible, and dated.
 
@@ -494,8 +487,8 @@ of which requires the compiler to be a theorem prover:
 Both uses are bounded but open-ended.  clang's type checker is not a
 theorem prover: it has no dependent types, no universal-quantification
 inference, no proof-search engine.  What it does have is
-\lstinline{static_assert}, \lstinline{requires}-clauses, and
-\lstinline{constexpr} evaluation---enough to verify a predetermined
+\cppinline{static_assert}, \cppinline{requires}-clauses, and
+\cppinline{constexpr} evaluation---enough to verify a predetermined
 proof sketch, not enough to generate one.  The paradigm claims the
 reliable half: ruling out, and optimizing under, the classes of
 structural failures the programmer has named in the type system.  The
@@ -522,12 +515,12 @@ Three compounding constraints keep the library's artefacts honest:
 taken directly from the published mathematical vocabulary ---
 Lawvere, Mac Lane, Lambek, Wadler, Moggi); \emph{mechanical
 validation} (every algebraic claim becomes a
-\lstinline{static_assert} the compiler discharges; every concept
+\cppinline{static_assert} the compiler discharges; every concept
 composes through a named-module DAG; every behavioural claim passes
 CI); and \emph{codomain textbook anchoring} (concepts validated
 against the C++ standard library's own ontology ---
-\lstinline{std::ranges::input_range}, \lstinline{std::regular},
-\lstinline{std::numeric_limits}, the iterator
+\cppinline{std::ranges::input_range}, \cppinline{std::regular},
+\cppinline{std::numeric_limits}, the iterator
 hierarchy).\footnote{The library is developed with AI assistance
 (Anthropic's Claude as the primary code-writing agent; Gemini and
 GitHub Copilot in supporting roles); the human role is
@@ -537,7 +530,7 @@ mathematical content stays in mathematical vocabulary all the way
 down to where the machine takes over.}
 
 A successful type-check is thus a \emph{weak but universal} proof about the overall health of the Ontology: it asserts that every type-shaped claim in the build graph composes without contradiction, even though the individual assertions are coarse (concept satisfaction, not law-by-law verification).
-The automated test suite is the converse, a growing set of \emph{strong but existential} proofs about the same Ontology: each test pins a concrete carrier-instance against a concrete law and discharges the obligation as a \lstinline|static_assert| witness rather than a runtime equality check.
+The automated test suite is the converse, a growing set of \emph{strong but existential} proofs about the same Ontology: each test pins a concrete carrier-instance against a concrete law and discharges the obligation as a \cppinline{static_assert} witness rather than a runtime equality check.
 Universal coverage is the build's job; existential depth is the test suite's; both accumulate monotonically under the convergence discipline.
 As a convenient and notable side effect: source code listings presented in this document are lifted (occasionally abridged for paper-page budget) from the repository's test suite; each listing's source-tree path is recorded as a LaTeX-source comment immediately above the listing, so a reader auditing against the repository can find the verbatim original directly.
 
@@ -621,10 +614,10 @@ The intensional-first design rule (§\ref{sec:intensional}) is the posture this 
 
 
 C++ taken as a whole is a famously inhospitable substrate for formal reasoning.
-A closed denotational semantics for the full language is, to our knowledge, not on the books.\footnote{Concretely: overload resolution and argument-dependent lookup are non-uniform; two-phase name lookup interacts with template instantiation in ways that defeat parametricity (Wadler's classical objection to template genericity, after Bracha \& Odersky~\cite{bracha1998making}, bites here); \lstinline|reinterpret_cast| breaks type abstraction at the value level; and template instantiation in general is Turing-complete and undecidable.  On the carrier side, undefined behaviour is the rule rather than the exception: signed-overflow UB defeats ring-associativity on machine \lstinline|int| / \lstinline|long|, IEEE-754 rounding-non-associativity defeats field-associativity on \lstinline|float| / \lstinline|double| --- §\ref{sec:carrier-rosetta} audits each stdlib carrier's algebraic surface against the textbook expectations.}
+A closed denotational semantics for the full language is, to our knowledge, not on the books.\footnote{Concretely: overload resolution and argument-dependent lookup are non-uniform; two-phase name lookup interacts with template instantiation in ways that defeat parametricity (Wadler's classical objection to template genericity, after Bracha \& Odersky~\cite{bracha1998making}, bites here); \cppinline{reinterpret_cast} breaks type abstraction at the value level; and template instantiation in general is Turing-complete and undecidable.  On the carrier side, undefined behaviour is the rule rather than the exception: signed-overflow UB defeats ring-associativity on machine \cppinline{int} / \cppinline{long}, IEEE-754 rounding-non-associativity defeats field-associativity on \cppinline{float} / \cppinline{double} --- §\ref{sec:carrier-rosetta} audits each stdlib carrier's algebraic surface against the textbook expectations.}
 
 To bring the C++ side into alignment with the structuralist selection we just applied on the category side, we apply a similar restriction here.
-Roughly speaking, we hope that our atomic types will be \lstinline{std::regular} POCOs (Plain Old C++ Objects, including the primitive types) and we wish to be able to pattern-match on them using \lstinline{concept} definitions.
+Roughly speaking, we hope that our atomic types will be \cppinline{std::regular} POCOs (Plain Old C++ Objects, including the primitive types) and we wish to be able to pattern-match on them using \cppinline{concept} definitions.
 For the small fragment of the language that we intend to work on, we reject what we have learned about encapsulation and polymorphism and trim down the internal complexity of objects to the point that they no longer support encapsulation and are fully transparent at compile-time so that interface and behavior are the only meaningful identity.
 
 We can compare and contrast this approach with three textbook schools~\cite{pierce2002tapl, cardelli1996typesystems} of type identification:
@@ -634,7 +627,11 @@ We can compare and contrast this approach with three textbook schools~\cite{pier
 \item static structural typing (concept-based; behaviour checked at compile time without a declared lineage).
 \end{itemize}
 
-\begin{lstlisting}[language=C++, caption={Pseudocode illustration of nominal and duck typing, respecively.}, label={lst:nominal}]
+\begin{listing}[htbp]
+\caption{Pseudocode illustration of nominal and duck typing, respectively.}
+\label{lst:nominal}
+\begin{cpp}
+
 // Nominal (pseudocode): a supertype is recognised by declared lineage.
 struct Ring { /* virtual operations, must opt in explicitly */ };
 struct MyInt : Ring { /* ... */ };
@@ -642,7 +639,8 @@ struct MyInt : Ring { /* ... */ };
 // Duck typing (pseudocode): recognised at runtime by the call site.
 //   def generic_sum(a, b):       # Python: fails only when called
 //       return a + b             # no compile-time guarantee
-\end{lstlisting}
+\end{cpp}
+\end{listing}
 
 C++23 concepts realise the third school.  We call the resulting
 discipline the \emph{Juliet Posture}, after the observation that a
@@ -651,9 +649,10 @@ the library cares about the \emph{scent} (structural invariants),
 not the \emph{lineage} (declared name).
 
 % Source: src/main/modules/dedekind/algebra/ring.cppm (concept definition, ll. 110-116)
-\begin{lstlisting}[
- language=C++,
- caption={The Juliet Posture: structural compile-time matching regardless of nominal provenance.}, float=ht]
+\begin{listing}[ht]
+\caption{The Juliet Posture: structural compile-time matching regardless of nominal provenance.}
+\begin{cpp}
+
 // Concept identifying the syntactic ring operators
 template <typename T>
 concept HasRingOperators = requires(T a, T b) {
@@ -669,8 +668,9 @@ static_assert(!IsAssociative<int, std::plus<int>>);
 
 // Arithmetic operators are absent on bool but associativity is certified for logical operators:
 static_assert(!HasRingOperators<bool>);
-static_assert(!IsAssociative<bool, std::logical_and<bool>>); 
-\end{lstlisting}
+static_assert(!IsAssociative<bool, std::logical_and<bool>>);
+\end{cpp}
+\end{listing}
 
 \noindent The Juliet Posture delivers desirable properties of both predecessors:
 structural sensitivity (behaviour, not name) and static verification (compile time,
@@ -690,23 +690,23 @@ typing.
 % overflow into §\ref{sec:pruning}.
 
 The listing exhibits a load-bearing split that runs through the rest of the paper.
-The operator surface witnessed by \lstinline|HasRingOperators| states \emph{closure} --- which types compose under which operators --- and this axis can be checked \emph{by inspection of the standard library}: the compiler resolves the overloads, the concept either binds or it does not, and no further human judgement is required.
-The algebraic \emph{laws} (associativity, commutativity, distributivity, identities, inverses, totality) are a separate axis and must be \emph{validated and certified by hand}: signed-overflow UB defeats ring-associativity on \lstinline|int|, IEEE-754 rounding defeats field-associativity on \lstinline|double|, matrix multiplication is non-commutative even when the scalar field is, and the standard library --- principled in its silence --- refuses to commit to a position on any of these.
-The Juliet Posture's job is to take that silence as a job description: lift each meta-symmetry to a compile-time predicate (\lstinline|IsAssociative<T, Op>|, \lstinline|IsCommutative<T, Op>|, \dots), populate it per carrier in a \emph{trait registry}, and let downstream concepts (\lstinline|IsRing|, \lstinline|IsField|) compose closure-on-the-surface with law-from-the-registry into a single \lstinline|static_assert| obligation.
+The operator surface witnessed by \cppinline{HasRingOperators} states \emph{closure} --- which types compose under which operators --- and this axis can be checked \emph{by inspection of the standard library}: the compiler resolves the overloads, the concept either binds or it does not, and no further human judgement is required.
+The algebraic \emph{laws} (associativity, commutativity, distributivity, identities, inverses, totality) are a separate axis and must be \emph{validated and certified by hand}: signed-overflow UB defeats ring-associativity on \cppinline{int}, IEEE-754 rounding defeats field-associativity on \cppinline{double}, matrix multiplication is non-commutative even when the scalar field is, and the standard library --- principled in its silence --- refuses to commit to a position on any of these.
+The Juliet Posture's job is to take that silence as a job description: lift each meta-symmetry to a compile-time predicate (\cppinline{IsAssociative<T, Op>}, \cppinline{IsCommutative<T, Op>}, \dots), populate it per carrier in a \emph{trait registry}, and let downstream concepts (\cppinline{IsRing}, \cppinline{IsField}) compose closure-on-the-surface with law-from-the-registry into a single \cppinline{static_assert} obligation.
 The mechanics of the registry --- which axioms propagate under which constructors, how the per-carrier specialisations are organised, how the audit rosettas measure the standard library's silence --- are deferred to §\ref{sec:pruning} (\emph{Algebraic Lattice}); the present section establishes only the framing.
 
-Pick a small \emph{axiomatic subset} of C++23: concept-constrained templates, non-type template parameters (NTTPs), named modules with strict DAG dependencies, \lstinline{static_assert} for compile-time obligation discharge, and \lstinline{constexpr} for $\beta$-style normalisation.
-Exclude the escape hatches that would otherwise leak past System F: no \lstinline{reinterpret_cast} in public APIs, no SFINAE branches in public surfaces, no ADL-dependent dispatch beyond textbook operator overloads, no public-API specialisations that branch behaviour, and bounded template-instantiation depth (Table~\ref{tab:admissibility-rules}).
+Pick a small \emph{axiomatic subset} of C++23: concept-constrained templates, non-type template parameters (NTTPs), named modules with strict DAG dependencies, \cppinline{static_assert} for compile-time obligation discharge, and \cppinline{constexpr} for $\beta$-style normalisation.
+Exclude the escape hatches that would otherwise leak past System F: no \cppinline{reinterpret_cast} in public APIs, no SFINAE branches in public surfaces, no ADL-dependent dispatch beyond textbook operator overloads, no public-API specialisations that branch behaviour, and bounded template-instantiation depth (Table~\ref{tab:admissibility-rules}).
 This is a small fragment of $\mathbf{Cpp}$, and §\ref{sec:jlt} develops the structural-typing posture under which it can be inhabited cleanly.
 Call this subset $\mathbf{Jlt} \subset \mathbf{Cpp}$ (mnemonically: \emph{Juliet}, after the \emph{rose by any other name} reading of structural-over-nominal typing).
-In $\mathbf{Jlt}$ the objects are \lstinline{std::regular} types and the values they classify, both expressible in C++23, and the morphisms are the arrows the language admits between them.
+In $\mathbf{Jlt}$ the objects are \cppinline{std::regular} types and the values they classify, both expressible in C++23, and the morphisms are the arrows the language admits between them.
 
 
 We take this absence as our starting point: we do not claim that this general problem has been solved, but we assert the existence of a non-empty feasible region which can be inhabited cleanly under a small discipline.
 The three C++23 features named in §\ref{sec:introduction} --- \texttt{module}s, \texttt{concept}s, and NTTPs --- carry §CT-specific value at this layer: modules cache verified structural invariants as Binary Module Interface (BMI) files; concepts realise \emph{structural typing} as the compile-time analogue of Haskell type classes, with zero-cost dispatch and no runtime dictionary; and NTTPs let a set-builder predicate be part of the \emph{type} rather than a runtime value passed at construction (§\ref{sec:sets-rules}).
 
 
-This feasible region is thus a carefully selected axiomatic subset of C++23 such that well-understood semantics can be recovered.\footnote{Concretely: templates parameterised over concept-constrained types, non-type template parameters (NTTPs), named modules with strict DAG dependencies, \lstinline|static_assert| for compile-time obligation discharge, and \lstinline|constexpr| for $\beta$-style normalisation.  The fragment excludes the escape hatches that defeat the System-F reading: no \lstinline|reinterpret_cast| in public APIs, no SFINAE branches in public surfaces, no ADL-dependent dispatch beyond textbook operator overloads, no public-API specialisations that branch behaviour, no template-template parameters in public signatures, and bounded template instantiation depth.  Each exclusion closes a specific escape hatch by which C++ would otherwise leak past System F; the list is not novel --- working C++ teams police variants of it informally --- but is the price of the System-F reading.  Table~\ref{tab:admissibility-rules} below is exactly that list.}
+This feasible region is thus a carefully selected axiomatic subset of C++23 such that well-understood semantics can be recovered.\footnote{Concretely: templates parameterised over concept-constrained types, non-type template parameters (NTTPs), named modules with strict DAG dependencies, \cppinline{static_assert} for compile-time obligation discharge, and \cppinline{constexpr} for $\beta$-style normalisation.  The fragment excludes the escape hatches that defeat the System-F reading: no \cppinline{reinterpret_cast} in public APIs, no SFINAE branches in public surfaces, no ADL-dependent dispatch beyond textbook operator overloads, no public-API specialisations that branch behaviour, no template-template parameters in public signatures, and bounded template instantiation depth.  Each exclusion closes a specific escape hatch by which C++ would otherwise leak past System F; the list is not novel --- working C++ teams police variants of it informally --- but is the price of the System-F reading.  Table~\ref{tab:admissibility-rules} below is exactly that list.}
 
 
 \begin{table}[htbp]
@@ -716,14 +716,14 @@ in the library's public surface, and what each rule rules out.
 The discipline is the price of the System-F reading; each rule below is
 the cost of one row of Table~\ref{tab:cpp-stlc-mapping}.  Internal
 partitions may use the listed escape hatches in bounded scopes, but
-they do not appear in any \lstinline{export}-qualified signature.}
+they do not appear in any \cppinline{export}-qualified signature.}
 \label{tab:admissibility-rules}
 \small
 \begin{tabular}{@{}p{0.42\textwidth} p{0.52\textwidth}@{}}
 \toprule
 \textbf{Rule on the public surface} & \textbf{What it rules out, and why} \\
 \midrule
-No \lstinline|reinterpret_cast| in any \lstinline|export|-qualified API. &
+No \cppinline{reinterpret_cast} in any \cppinline{export}-qualified API. &
 Defeats type abstraction at the value level.  Bit-level reinterpretation
 (e.g., IEEE-754 inspection) lives in non-exporting internal partitions. \\
 No SFINAE branches in the public surface. &
@@ -734,15 +734,15 @@ No ADL-dependent dispatch except for textbook operator overloads. &
 Argument-dependent lookup is admitted only where the textbook reads
 \texttt{a + b} or \texttt{a == b} on library carriers; free-function
 calls in user code dispatch through explicit qualification. \\
-No template-template parameters in \lstinline|export|-qualified signatures. &
+No template-template parameters in \cppinline{export}-qualified signatures. &
 Higher-kinded structure is named at the level of concepts
-(\lstinline|IsFunctor<F>|, etc.), not by passing template-templates
+(\cppinline{IsFunctor<F>}, etc.), not by passing template-templates
 through public function signatures. \\
 No public-API specialisation that branches behaviour. &
 Generic templates are parametric across the public surface; per-type
 specialisations live in the trait registry, each carrying an
 algebraic claim that is reviewed and CI-checked against a
-\lstinline|static_assert|. \\
+\cppinline{static_assert}. \\
 Bounded template instantiation depth. &
 The Turing-complete instantiation machinery is bounded by the
 carrier-lattice depth (Figure~\ref{fig:carrier-lattice}: scalar,
@@ -762,21 +762,21 @@ The framing pays off in a row-by-row mapping: each Juliet-Posture restriction re
 \toprule
 \textbf{System F property} & \textbf{Juliet Posture (C++)} & \textbf{Structuralist style (Bourbaki)} \\ \midrule
 \textbf{Parametricity} (\emph{Theorems for Free!}~\cite{wadler1989theorems})\footnote{C++23 concepts realise parametricity in an \emph{implicit-style} discipline: the constraint is checked at instantiation but no concept witness is passed at runtime.  This is closer to Haskell-style type classes than to pure System F's explicit type abstraction, but the parametricity conclusions follow once the public surface excludes ad-hoc dispatch (Table~\ref{tab:admissibility-rules}'s no-SFINAE / no-ADL-beyond-textbook / no-public-specialisation rules).}  &
-\textbf{Concept-gating}: \lstinline|requires|-clauses forbid the function from inspecting type internals; interaction happens only via the allowed \emph{scents} (axiom-shape concepts). &
+\textbf{Concept-gating}: \cppinline{requires}-clauses forbid the function from inspecting type internals; interaction happens only via the allowed \emph{scents} (axiom-shape concepts). &
 \textbf{Typification}: ignoring internal set-elements in favour of relations among them. \\ \addlinespace
 \textbf{Universal quantification} ($\forall\alpha.\dots$) &
-\textbf{Constrained templates}: \lstinline|template<Scent T>| reads as universal quantification over the species defined by the concept \emph{Scent}. &
+\textbf{Constrained templates}: \cppinline{template<Scent T>} reads as universal quantification over the species defined by the concept \emph{Scent}. &
 \textbf{Species of structure}: the genus of all objects sharing a given structure. \\ \addlinespace
 \textbf{Type erasure} (computation is type-blind) &
-\textbf{Zero-cost abstraction}: \lstinline|std::regular| objects with transparent value semantics let the compiler optimise on structure while the program's logic remains independent of the carrier name. &
+\textbf{Zero-cost abstraction}: \cppinline{std::regular} objects with transparent value semantics let the compiler optimise on structure while the program's logic remains independent of the carrier name. &
 \textbf{Indistinguishability}: isomorphic structures are functionally identical. \\ \addlinespace
 \textbf{Strong normalisation} (termination)\footnote{C++ template instantiation is Turing-complete in general~\cite{veldhuizen2003templates}; strong normalisation is recovered specifically by Table~\ref{tab:admissibility-rules}'s bounded-instantiation-depth rule and the exclusion of template-template-parameter recursion in public signatures.  These restrictions are the price of the strong-normalisation reading.}  &
 \textbf{Structural pruning}: rejecting Turing-complete template recursion in favour of finite algebraic compositions targets a fragment guaranteed to terminate (and to collapse logically empty constructions to zero machine instructions). &
 \textbf{Echelon construction}: finite, well-founded builds from base sets and axioms. \\ \addlinespace
-\textbf{Impredicativity} (types may be applied to types)\footnote{System F has prenex-style impredicativity at the kind level; C++23 concepts admit a practical form by allowing concepts to be defined in terms of other concepts (e.g.\ \lstinline|IsFunctor<F>| ranging over type-templates).  The two coincide on the fragment we use; the broader impredicative core (universe-level self-quantification) is not in scope.}  &
+\textbf{Impredicativity} (types may be applied to types)\footnote{System F has prenex-style impredicativity at the kind level; C++23 concepts admit a practical form by allowing concepts to be defined in terms of other concepts (e.g.\ \cppinline{IsFunctor<F>} ranging over type-templates).  The two coincide on the fragment we use; the broader impredicative core (universe-level self-quantification) is not in scope.}  &
 \textbf{Meta-concepts}: concepts defined in terms of other concepts let the library name 2-arrow structures (morphisms between morphisms) at the type level. &
 \textbf{Higher-order structure}: structures built upon structures. \\ \addlinespace
-\textbf{Ad-hoc rejection} (a function does not behave differently for \lstinline|int| vs \lstinline|float|) &
+\textbf{Ad-hoc rejection} (a function does not behave differently for \cppinline{int} vs \cppinline{float}) &
 \textbf{Ban on ADL / specialisation}: ADL beyond textbook operators, public-API specialisation, and SFINAE branching are excluded so that lineage cannot hijack scent (Table~\ref{tab:admissibility-rules}). &
 \textbf{Axiomatic purity}: rejection of ``substance'' or non-law behaviour at the level of the structure. \\ \bottomrule
 \end{tabular}
@@ -785,11 +785,11 @@ The framing pays off in a row-by-row mapping: each Juliet-Posture restriction re
 Three threads run through the table and stand on their own as the load-bearing claims of the System-F recovery:
 
 \begin{enumerate}
-\item \textbf{The postural ban on overloading.}  System F does not admit ad-hoc polymorphism: a function cannot behave differently for \lstinline|int| versus \lstinline|float|.
+\item \textbf{The postural ban on overloading.}  System F does not admit ad-hoc polymorphism: a function cannot behave differently for \cppinline{int} versus \cppinline{float}.
 $\mathbf{Jlt}$ recovers this by banning ADL beyond textbook operator overloads and public-API specialisation.
-If a function is defined for \lstinline|Scent T|, it must work the same for every rose that smells like \lstinline|T|.
+If a function is defined for \cppinline{Scent T}, it must work the same for every rose that smells like \cppinline{T}.
 \item \textbf{Axiomatic honesty.}  System F assumes its types follow their definitions perfectly.
-$\mathbf{Jlt}$ recovers this by auditing carriers (e.g.\ rejecting \lstinline|int| for ring operations where overflow would defeat associativity) so the carrier-rosetta (Tables~\ref{tab:rosetta-quotient} and~\ref{tab:rosetta-rank}) matches the textbook expectations rather than papering over them.
+$\mathbf{Jlt}$ recovers this by auditing carriers (e.g.\ rejecting \cppinline{int} for ring operations where overflow would defeat associativity) so the carrier-rosetta (Tables~\ref{tab:rosetta-quotient} and~\ref{tab:rosetta-rank}) matches the textbook expectations rather than papering over them.
 \item \textbf{Transparency over encapsulation.}  System F types are \emph{transparent} to the calculus.
 $\mathbf{Jlt}$ recovers this by rejecting OO-style encapsulation and private state, so type-directed collapse can see all the way through an object to perform formal reductions.
 \end{enumerate}
@@ -801,7 +801,7 @@ Taken together, these features give \texttt{clang++} a workflow that carries a s
 None of the calculus underneath is new.  Templates have always been
 a System-F-flavoured substrate \emph{within a carefully selected subset
 of C++}: type-parameter polymorphism, $\beta$-style substitution via
-\lstinline{using} aliases, normalisation through \lstinline{constexpr}
+\cppinline{using} aliases, normalisation through \cppinline{constexpr}
 evaluation --- the Lambek--Scott
 correspondence~\cite{lambek1988introduction} and the Curry--Howard
 reading~\cite{wadler2015propositions} have applied to that fragment for
@@ -810,18 +810,18 @@ C++ as a whole language admits no closed denotational semantics:
 overload resolution and argument-dependent lookup are non-uniform,
 two-phase name lookup interacts with template instantiation in ways
 that defeat parametricity (Wadler's classical objection to template
-genericity~\cite{bracha1998making} bites here), \lstinline{reinterpret_cast}
+genericity~\cite{bracha1998making} bites here), \cppinline{reinterpret_cast}
 breaks type abstraction, and template instantiation is in general
 Turing-complete and undecidable.  The library's discipline is to use
 \emph{none} of these escape hatches in its public surface --- an honesty
 obligation discharged by review, by the trait registry, and by the
-absence of unsafe casts in any \lstinline{export}-qualified API.  What
+absence of unsafe casts in any \cppinline{export}-qualified API.  What
 remains is a subset that admits the System-F reading.  Pinning that
 subset down was not always obvious: each partition in the build graph
 records a decision about which template idioms are admissible and which
 are not.}  What changed in C++20/23 was not the lambda calculus
-underneath; it was the addition of \lstinline{concept},
-\lstinline{requires}-clauses, and NTTPs, which together turned a
+underneath; it was the addition of \cppinline{concept},
+\cppinline{requires}-clauses, and NTTPs, which together turned a
 long-standing latent capability into a surface the type checker can
 discharge mechanically.  Practitioners with deep template-metaprogramming
 experience --- Boost.Hana~\cite{chagnon2016hana} and CTRE~\cite{dusikova2018ctre}
@@ -834,7 +834,7 @@ there and what the modern surface now lets one say out loud.
 
 \paragraph{The admissibility rules.}
 ``Carefully selected'' is not informal: the library polices a fixed
-list of admissibility rules on every \lstinline{export}-qualified
+list of admissibility rules on every \cppinline{export}-qualified
 declaration.  Each rule closes a specific escape hatch by which C++
 would otherwise escape its System-F reading
 (Table~\ref{tab:admissibility-rules}); together they delineate the
@@ -845,7 +845,7 @@ The list is not novel --- working C++ teams police variants of it
 informally; the contribution here is that the rules are what
 make Table~\ref{tab:cpp-stlc-mapping}'s mapping accurate, and that
 each rule has a mechanical witness in the partition graph (the
-public-API headers exported by each \lstinline{export module}
+public-API headers exported by each \cppinline{export module}
 declaration are the audit surface).
 
 \subsection{The Structuralist Intersection: The \texttt{dedekind} DSL}
@@ -856,14 +856,14 @@ The intersection is small but non-empty, and that is the point: a bounded feasib
 
 \paragraph{Why $\mathbf{Sngl}$ rather than $\mathbf{Mon}$.}
 We use $\mathbf{Sngl}$ as a project-specific mnemonic (\emph{single-species}) naming the engineering-library fragment of $\mathbf{Cat}$ developed in §\ref{sec:sngl} (Burris--Sankappanavar~\cite{burris1981universalalgebra} §II.10).
-The relationship to the textbook $\mathbf{Mon}$ (the category of monoids; equivalently, one-object categories under Mac Lane~\cite{maclane1971categories} §I.1's bijection) is generalisation along two axes: \textbf{(a)~signature}: $\mathbf{Sngl}$ admits operations of arbitrary signature on a shared carrier (e.g.\ both $+$ and $\cdot$ on a ring), where $\mathbf{Mon}$ carries exactly one binary operation; and \textbf{(b)~laws}: $\mathbf{Sngl}$ does not require the monoid axioms (associativity, two-sided identity), leaving lawfulness to per-species trait specialisations (\lstinline|IsRing|, \lstinline|IsField|, \dots).
+The relationship to the textbook $\mathbf{Mon}$ (the category of monoids; equivalently, one-object categories under Mac Lane~\cite{maclane1971categories} §I.1's bijection) is generalisation along two axes: \textbf{(a)~signature}: $\mathbf{Sngl}$ admits operations of arbitrary signature on a shared carrier (e.g.\ both $+$ and $\cdot$ on a ring), where $\mathbf{Mon}$ carries exactly one binary operation; and \textbf{(b)~laws}: $\mathbf{Sngl}$ does not require the monoid axioms (associativity, two-sided identity), leaving lawfulness to per-species trait specialisations (\cppinline{IsRing}, \cppinline{IsField}, \dots).
 Concretely, $\mathbf{Mon} \subset \mathbf{Sngl} \subset \mathbf{Cat}$.
 
-The reason for the generalisation is engineering-pragmatic, not categorical-aesthetic: $\mathbf{Sngl}$ is sized precisely to admit the carriers and combinators the C++ standard library already ships --- the primitive types (\lstinline|int|, \lstinline|bool|, \lstinline|double|, \dots), \lstinline|std::regular| value-types, \lstinline|std::pair| and \lstinline|std::tuple|, the \lstinline|std::ranges| families, and so on --- even when these carriers fail one or both of the monoid axioms (\lstinline|int| addition is non-associative under signed-overflow UB; IEEE-754 \lstinline|double| addition is non-associative under rounding; \lstinline|std::ranges::view| has no obvious neutral element).
-Working in $\mathbf{Sngl}$ is what lets the library lift these standard-library carriers into a categorical reading without first having to refactor or wrap them; the trait-specialisation registry then refines individual carriers to stricter algebraic concepts (\lstinline|IsRing|, \lstinline|IsField|, \lstinline|IsTotallyOrdered|, \dots) where the laws actually hold.
+The reason for the generalisation is engineering-pragmatic, not categorical-aesthetic: $\mathbf{Sngl}$ is sized precisely to admit the carriers and combinators the C++ standard library already ships --- the primitive types (\cppinline{int}, \cppinline{bool}, \cppinline{double}, \dots), \cppinline{std::regular} value-types, \cppinline{std::pair} and \cppinline{std::tuple}, the \cppinline{std::ranges} families, and so on --- even when these carriers fail one or both of the monoid axioms (\cppinline{int} addition is non-associative under signed-overflow UB; IEEE-754 \cppinline{double} addition is non-associative under rounding; \cppinline{std::ranges::view} has no obvious neutral element).
+Working in $\mathbf{Sngl}$ is what lets the library lift these standard-library carriers into a categorical reading without first having to refactor or wrap them; the trait-specialisation registry then refines individual carriers to stricter algebraic concepts (\cppinline{IsRing}, \cppinline{IsField}, \cppinline{IsTotallyOrdered}, \dots) where the laws actually hold.
 
 This is the deeper engineering motivation behind the structural-typing posture of §\ref{sec:jlt}: structural typing makes membership definable \emph{after the fact}.
-A pre-existing C++ standard-library type --- a \lstinline|std::pair|, an \lstinline|std::ranges::view|, a \lstinline|std::optional| --- becomes an inhabitant of $\mathbf{Ddk} = \mathbf{Jlt} \cap \mathbf{Sngl}$ the moment a \lstinline|concept| witnessing the relevant algebraic surface accepts it, with no modification to the carrier type itself.
+A pre-existing C++ standard-library type --- a \cppinline{std::pair}, an \cppinline{std::ranges::view}, a \cppinline{std::optional} --- becomes an inhabitant of $\mathbf{Ddk} = \mathbf{Jlt} \cap \mathbf{Sngl}$ the moment a \cppinline{concept} witnessing the relevant algebraic surface accepts it, with no modification to the carrier type itself.
 The \texttt{dedekind} library never asks the standard library to declare itself an instance of anything; instead, the library reaches out, checks the carrier's \emph{scent} against a concept, and admits the carrier on the strength of that check.
 Nominal-typing alternatives (declared lineage, base classes, virtual interfaces) would require the carrier to opt in upstream --- impossible for types that already shipped in the C++ standard a decade ago, or for third-party libraries the engineer does not control.
 The project-specific mnemonic $\mathbf{Sngl}$ is meant to make both motivations visible at the symbol layer (the generalisation beyond $\mathbf{Mon}$, and the after-the-fact-membership opening that lets the library absorb existing types) rather than overload $\mathbf{Mon}$ with a meaning it does not carry in the standard textbook reading.
@@ -911,19 +911,19 @@ witness on which the set-comprehension surface
 \toprule
 \textbf{Disciplined C++23} & \textbf{Lambda calculus / category theory} \\
 \midrule
-\lstinline|template <typename T>| (§\ref{sec:axiomatic}) & Type variable $\alpha$; System-F universal quantification at the type level (parametric \emph{in the disciplined subset}; no specialisation, no SFINAE branch in the public surface) \\
-\lstinline|concept| (§\ref{sec:axiomatic}) & Type-class / kind constraint --- a predicate on types restricting the domain of a polymorphic function \\
-\lstinline|requires|-clause (§\ref{sec:axiomatic}) & Evidence / constraint satisfaction --- a proof obligation that the type carries the term-level operations \\
-\lstinline|static_assert| (throughout) & Mechanical proof that proposition $P$ is inhabited at translation time (Curry--Howard~\cite{wadler2015propositions}) \\
-\lstinline|using| alias (§\ref{sec:axiomatic}) & Type-level redex --- the compiler reduces by $\beta$-style substitution \\
-\lstinline|constexpr| evaluation (§\ref{sec:lp-centrepiece}, IR fixtures) & Normalisation ($\beta$-reduction) --- reduction of a term to its value or literal form \\
-\lstinline|std::same_as| (§\ref{sec:lp-centrepiece}) & Definitional type equality $\tau = \sigma$ \\
+\cppinline{template <typename T>} (§\ref{sec:axiomatic}) & Type variable $\alpha$; System-F universal quantification at the type level (parametric \emph{in the disciplined subset}; no specialisation, no SFINAE branch in the public surface) \\
+\cppinline{concept} (§\ref{sec:axiomatic}) & Type-class / kind constraint --- a predicate on types restricting the domain of a polymorphic function \\
+\cppinline{requires}-clause (§\ref{sec:axiomatic}) & Evidence / constraint satisfaction --- a proof obligation that the type carries the term-level operations \\
+\cppinline{static_assert} (throughout) & Mechanical proof that proposition $P$ is inhabited at translation time (Curry--Howard~\cite{wadler2015propositions}) \\
+\cppinline{using} alias (§\ref{sec:axiomatic}) & Type-level redex --- the compiler reduces by $\beta$-style substitution \\
+\cppinline{constexpr} evaluation (§\ref{sec:lp-centrepiece}, IR fixtures) & Normalisation ($\beta$-reduction) --- reduction of a term to its value or literal form \\
+\cppinline{std::same_as} (§\ref{sec:lp-centrepiece}) & Definitional type equality $\tau = \sigma$ \\
 \midrule
 \texttt{dedekind} & \\
 \midrule
 NTTP-carried lambda $\lambda x. P(x)$ (§\ref{sec:sets-rules}) & Characteristic morphism $\chi_S : A \to \Omega$ defining a set by its membership rule \\
-\lstinline|Ø<T>| (empty-set type; §\ref{sec:pruning}, Showcase 3) & Bottom type $\bot$ --- the uninhabited type witnessing a logical contradiction \\
-\lstinline|HasCanonicalSetCCC<T>| (§\ref{sec:sets-rules}) & The Cartesian-closed-category witness ($1$, $\times$, $(-)^{(-)}$) on the ambient species \\
+\cppinline{Ø<T>} (empty-set type; §\ref{sec:pruning}, Showcase 3) & Bottom type $\bot$ --- the uninhabited type witnessing a logical contradiction \\
+\cppinline{HasCanonicalSetCCC<T>} (§\ref{sec:sets-rules}) & The Cartesian-closed-category witness ($1$, $\times$, $(-)^{(-)}$) on the ambient species \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -932,18 +932,18 @@ NTTP-carried lambda $\lambda x. P(x)$ (§\ref{sec:sets-rules}) & Characteristic 
 \centering
 \caption{\textbf{Operator Rosetta: what the C++ programmer types
 ↔ what they are operationally claiming.}  The
-\lstinline|Has*Operators| family pins the \emph{operator surface}
+\cppinline{Has*Operators} family pins the \emph{operator surface}
 of an algebraic structure.  Each section heading names the concept;
 each row maps the C++ spelling to the operation it witnesses.  The
 operator-surface concepts are the operational gate; the strict
-axiomatic concepts (\lstinline|IsRing|, \lstinline|IsField|,
-\lstinline|IsVectorSpace|, \dots; see Lang~\cite{lang2002algebra}
+axiomatic concepts (\cppinline{IsRing}, \cppinline{IsField},
+\cppinline{IsVectorSpace}, \dots; see Lang~\cite{lang2002algebra}
 for the standard structures and Burris--Sankappanavar
 \cite{burris1981universalalgebra} for the universal-algebra anchor)
 compose them with the species-trait registry that pins the laws.
-Carriers may carry the operators (\lstinline|Has*Operators|) without
-the laws holding strictly --- e.g.\ \lstinline|double| satisfies
-\lstinline|HasFieldOperators| but not strict \lstinline|IsField|
+Carriers may carry the operators (\cppinline{Has*Operators}) without
+the laws holding strictly --- e.g.\ \cppinline{double} satisfies
+\cppinline{HasFieldOperators} but not strict \cppinline{IsField}
 because IEEE~754 rounding defeats associativity.}
 \label{tab:operator-rosetta}
 \small
@@ -951,53 +951,53 @@ because IEEE~754 rounding defeats associativity.}
 \toprule
 \textbf{C++ operator surface} & \textbf{Algebraic concept} \\
 \midrule
-\multicolumn{2}{@{}l}{\textbf{\lstinline|HasGroupOperatorsAdd|} --- additive group $(G, +, -, 0)$} \\
+\multicolumn{2}{@{}l}{\textbf{\cppinline{HasGroupOperatorsAdd}} --- additive group $(G, +, -, 0)$} \\
 \midrule
-\lstinline|a + b|, \lstinline|-a|, \lstinline|a - b| & group operation, inverse, $a + (-b)$ \\
+\cppinline{a + b}, \cppinline{-a}, \cppinline{a - b} & group operation, inverse, $a + (-b)$ \\
 \midrule
-\multicolumn{2}{@{}l}{\textbf{\lstinline|HasGroupOperatorsMul|} --- multiplicative group $(G, \cdot, ^{-1}, 1)$} \\
+\multicolumn{2}{@{}l}{\textbf{\cppinline{HasGroupOperatorsMul}} --- multiplicative group $(G, \cdot, ^{-1}, 1)$} \\
 \midrule
-\lstinline|a * b|, \lstinline|a / b|, \lstinline|T{1}| & group operation, $a \cdot b^{-1}$, multiplicative unit (reciprocal of $x$ is \lstinline|T{1} / x|; no \lstinline|.inverse()| method required) \\
+\cppinline{a * b}, \cppinline{a / b}, \cppinline{T{1}} & group operation, $a \cdot b^{-1}$, multiplicative unit (reciprocal of $x$ is \cppinline{T{1} / x}; no \cppinline{.inverse()} method required) \\
 \midrule
-\multicolumn{2}{@{}l}{\textbf{\lstinline|HasSemiringOperators|} --- semiring (rig: no additive inverse)} \\
+\multicolumn{2}{@{}l}{\textbf{\cppinline{HasSemiringOperators}} --- semiring (rig: no additive inverse)} \\
 \midrule
-\lstinline|a + b|, \lstinline|a * b|, \lstinline|T{}|, \lstinline|T{1}| & both monoid operations + their identities; \emph{no} unary \lstinline|-| \\
+\cppinline{a + b}, \cppinline{a * b}, \cppinline{T{}}, \cppinline{T{1}} & both monoid operations + their identities; \emph{no} unary \cppinline{-} \\
 \midrule
-\multicolumn{2}{@{}l}{\textbf{\lstinline|HasRingOperators|} --- ring $(R, +, -, \cdot, 0, 1)$} \\
+\multicolumn{2}{@{}l}{\textbf{\cppinline{HasRingOperators}} --- ring $(R, +, -, \cdot, 0, 1)$} \\
 \midrule
-\lstinline|a + b|, \lstinline|a - b|, \lstinline|-a|, \lstinline|a * b| & ring addition + multiplication; absorbing zero is structural \\
+\cppinline{a + b}, \cppinline{a - b}, \cppinline{-a}, \cppinline{a * b} & ring addition + multiplication; absorbing zero is structural \\
 \midrule
-\multicolumn{2}{@{}l}{\textbf{\lstinline|HasFieldOperators|} --- field $(F, +, -, \cdot, /, 0, 1)$, $\equiv$ \lstinline|HasRingOperators| $\wedge$ \lstinline|HasGroupOperatorsMul|} \\
+\multicolumn{2}{@{}l}{\textbf{\cppinline{HasFieldOperators}} --- field $(F, +, -, \cdot, /, 0, 1)$, $\equiv$ \cppinline{HasRingOperators} $\wedge$ \cppinline{HasGroupOperatorsMul}} \\
 \midrule
-\lstinline|a / b|, \lstinline|T{1}| (in addition to \lstinline|HasRingOperators|) & multiplicative inverse $a \cdot b^{-1}$ on non-zero elements; multiplicative unit \\
+\cppinline{a / b}, \cppinline{T{1}} (in addition to \cppinline{HasRingOperators}) & multiplicative inverse $a \cdot b^{-1}$ on non-zero elements; multiplicative unit \\
 \midrule
-\multicolumn{2}{@{}l}{\textbf{\lstinline|HasVectorSpaceOperators<V, F, Act>|} --- vector space over scalar field $F$ (action functor \lstinline|Act|, defaults to \lstinline|std::multiplies<>|)} \\
+\multicolumn{2}{@{}l}{\textbf{\cppinline{HasVectorSpaceOperators<V, F, Act>}} --- vector space over scalar field $F$ (action functor \cppinline{Act}, defaults to \cppinline{std::multiplies<>})} \\
 \midrule
-\lstinline|v + w|, \lstinline|-v| (additive group on $V$) & vector addition; \lstinline|HasGroupOperatorsAdd<V>| \\
-\lstinline|Act{}(s, v)| with \lstinline|s : F| & scalar action $F \times V \to V$ via the action functor; \lstinline|s * v| under the default \lstinline|std::multiplies<>|. The right-action \lstinline|v * s| is conventional, not required by the concept. \\
+\cppinline{v + w}, \cppinline{-v} (additive group on $V$) & vector addition; \cppinline{HasGroupOperatorsAdd<V>} \\
+\cppinline{Act{}(s, v)} with \cppinline{s : F} & scalar action $F \times V \to V$ via the action functor; \cppinline{s * v} under the default \cppinline{std::multiplies<>}. The right-action \cppinline{v * s} is conventional, not required by the concept. \\
 \midrule
-\multicolumn{2}{@{}l}{\textbf{\lstinline|HasLatticeOperators|} --- lattice $(L, \vee, \wedge)$} \\
+\multicolumn{2}{@{}l}{\textbf{\cppinline{HasLatticeOperators}} --- lattice $(L, \vee, \wedge)$} \\
 \midrule
-\lstinline^a | b^, \lstinline|a & b|, \lstinline|a ^ b|, \lstinline|~a| & join, meet, symmetric difference, complement (bitwise on \lstinline|unsigned|) \\
+\cppinline{a | b}, \cppinline{a & b}, \cppinline{a ^ b}, \cppinline{~a} & join, meet, symmetric difference, complement (bitwise on \cppinline{unsigned}) \\
 \midrule
-\multicolumn{2}{@{}l}{\textbf{\lstinline|HasPartialOrderOperators| / \lstinline|HasTotalOrderOperators|}} \\
+\multicolumn{2}{@{}l}{\textbf{\cppinline{HasPartialOrderOperators} / \cppinline{HasTotalOrderOperators}}} \\
 \midrule
-\lstinline|a < b|, \lstinline|a <= b|, \lstinline|a > b|, \lstinline|a >= b| & poset / chain comparisons; results in $\Omega$ of the chosen logic \\
+\cppinline{a < b}, \cppinline{a <= b}, \cppinline{a > b}, \cppinline{a >= b} & poset / chain comparisons; results in $\Omega$ of the chosen logic \\
 \midrule
-\multicolumn{2}{@{}l}{\textbf{\lstinline|HasKleisliBindOperators|} --- Kleisli (monadic) extension} \\
+\multicolumn{2}{@{}l}{\textbf{\cppinline{HasKleisliBindOperators}} --- Kleisli (monadic) extension} \\
 \midrule
-\lstinline|ma >>= f|, \lstinline|ma >> f| & $\kappa(ma, f) = \mu(\varphi(ma, f))$; bind / fish \\
+\cppinline{ma >>= f}, \cppinline{ma >> f} & $\kappa(ma, f) = \mu(\varphi(ma, f))$; bind / fish \\
 \midrule
-\multicolumn{2}{@{}l}{\textbf{\lstinline|HasComonadicExtendOperators|} --- co-Kleisli (comonadic) extend} \\
+\multicolumn{2}{@{}l}{\textbf{\cppinline{HasComonadicExtendOperators}} --- co-Kleisli (comonadic) extend} \\
 \midrule
-\lstinline|wa <<= f|, \lstinline|wa << f| & $\sigma(wa, f) = \varphi(\delta(wa), f)$; extend / cofish \\
+\cppinline{wa <<= f}, \cppinline{wa << f} & $\sigma(wa, f) = \varphi(\delta(wa), f)$; extend / cofish \\
 \midrule
-\multicolumn{2}{@{}l}{\textbf{\lstinline|HasSubscriptOperator|} / \lstinline|HasArrowDereferenceOperator| --- CCC eval / comonadic extract (PR \#533)} \\
+\multicolumn{2}{@{}l}{\textbf{\cppinline{HasSubscriptOperator}} / \cppinline{HasArrowDereferenceOperator} --- CCC eval / comonadic extract (PR \#533)} \\
 \midrule
-\lstinline|s[i]| & CCC eval counit $\varepsilon : (\textit{Idx} \times T^{\textit{Idx}}) \to T$ \\
-\lstinline|m->member| & comonadic extract $\varepsilon : W\langle T\rangle \to T$ (Wadler~\cite{wadler1992comprehending}) \\
+\cppinline{s[i]} & CCC eval counit $\varepsilon : (\textit{Idx} \times T^{\textit{Idx}}) \to T$ \\
+\cppinline{m->member} & comonadic extract $\varepsilon : W\langle T\rangle \to T$ (Wadler~\cite{wadler1992comprehending}) \\
 \midrule
-\multicolumn{2}{@{}l}{\textbf{\lstinline|HasCanonicalSetCCC|} --- CCC primitives on the ambient species} \\
+\multicolumn{2}{@{}l}{\textbf{\cppinline{HasCanonicalSetCCC}} --- CCC primitives on the ambient species} \\
 \midrule
 $1$, $\times$, $(-)^{(-)}$ & terminal object, binary product, exponential (the Lambek--Scott bridge to STLC) \\
 \bottomrule
@@ -1011,14 +1011,14 @@ $\Omega$ (the codomain of every NTTP-carried lambda; see
 the structuralist sense; the Lambek--Scott correspondence is what
 makes the set-builder DSL a syntax for a Cartesian-closed
 category---hence, equivalently, for STLC; and the
-\lstinline|constexpr|-as-normalisation row is what lets type-directed
+\cppinline{constexpr}-as-normalisation row is what lets type-directed
 collapse (§\ref{sec:gap}) act as a form of cut elimination, with the
 LLVM backend treating the reduced bottom type as dead code.
 
 \paragraph{A worked example: the Functor concept.}
 The intersection $\mathbf{Jlt} \cap \mathbf{Sngl}$ becomes concrete on a single non-trivial example.
 Figure~\ref{fig:functor-diagram} is the textbook commutative-square diagram for a functor $F: \mathcal{C} \to \mathcal{D}$~\cite{maclane1971categories} (Mac Lane §I.3): an object map $A \mapsto F(A)$ and an arrow map $f \mapsto F(f)$ that respects identities and composition.
-Listing~\ref{lst:isfunctor} is the same content as a C++23 concept in \texttt{dedekind.category:functor} together with a worked instance, the optional-value Maybe functor, mechanically verified by \lstinline|static_assert|.
+Listing~\ref{lst:isfunctor} is the same content as a C++23 concept in \texttt{dedekind.category:functor} together with a worked instance, the optional-value Maybe functor, mechanically verified by \cppinline{static_assert}.
 
 \begin{figure}[htbp]
 \centering
@@ -1037,7 +1037,11 @@ F(C)
 \end{figure}
 
 % Source: src/main/modules/dedekind/category/functor.cppm (IsFunctor concept + maybe_functor instance, abridged)
-\begin{lstlisting}[language=C++, caption={The Functor concept and a worked instance (Maybe), abridged from \texttt{dedekind.category:functor}.  The concept body encodes Figure~\ref{fig:functor-diagram} structurally; the static assertion below is the Curry--Howard discharge that \texttt{maybe\_functor} inhabits the concept.}, label={lst:isfunctor}]
+\begin{listing}[htbp]
+\caption{The Functor concept and a worked instance (Maybe), abridged from \texttt{dedekind.category:functor}.  The concept body encodes Figure~\ref{fig:functor-diagram} structurally; the static assertion below is the Curry--Howard discharge that \texttt{maybe\_functor} inhabits the concept.}
+\label{lst:isfunctor}
+\begin{cpp}
+
 template <typename F>
 concept IsFunctor = IsArrow<F> && requires {
   typename F::Σ_cat;                         // source category
@@ -1063,7 +1067,7 @@ struct maybe_functor {
 
   // Functorial action.
   template <typename U> using Shape = std::optional<U>;
-  template <typename Fn>           // 𝗳 in source; ASCII here for font coverage
+  template <typename Fn>           // Fn = the functorial action arrow
     requires IsArrow<std::remove_cvref_t<Fn>>
   constexpr auto φ(Fn&& f) const {
     return arrow([f = std::forward<Fn>(f)](std::optional<T> const& m) {
@@ -1073,9 +1077,10 @@ struct maybe_functor {
 };
 
 static_assert(IsFunctor<maybe_functor<int>>);  // mechanical verification
-\end{lstlisting}
+\end{cpp}
+\end{listing}
 
-The listing is the System-F-recovery table (Table~\ref{tab:structuralist-bridge}) at work in one place: the \lstinline|template <typename F>| header is row 2's \emph{Constrained Templates} $\equiv \forall\alpha.\dots$; the \lstinline|requires|-clause is row 1's \emph{Concept-gating} discharging parametricity; the \lstinline|static_assert| is the Curry--Howard term that proves \lstinline|maybe_functor| inhabits the concept.\footnote{An architectural choice worth naming: the functorial obligation lives in the \emph{hub} type (\lstinline|maybe_functor<T>|), \emph{not} in the carrier (\lstinline|std::optional<T>|).  In Haskell the carrier itself is the functor — \lstinline|Maybe a| is declared an instance of \lstinline|Functor| with the laws supplied implicitly.  In \texttt{dedekind} we deliberately keep \lstinline|std::optional<T>| a Plain Old C++ Object and externalise the functorial proof obligation into a separate hub: an engineer who wants \lstinline|std::optional| to act as a functor writes \lstinline|maybe_functor| and discharges the laws there.  The C++23 concept machinery does not project structural witnesses onto carriers automatically (concepts are checked, not synthesised), and crowding self-descriptive bits onto \lstinline|std::optional| would defeat the POCO discipline that lets the disciplined fragment recover System F (Table~\ref{tab:structuralist-bridge}).  The real-world functions an engineering library hosts are not generic in the strong Haskell sense — the functorial structure is supplied at the library boundary by a hub that names it, not inherited from the carrier.}
+The listing is the System-F-recovery table (Table~\ref{tab:structuralist-bridge}) at work in one place: the \cppinline{template <typename F>} header is row 2's \emph{Constrained Templates} $\equiv \forall\alpha.\dots$; the \cppinline{requires}-clause is row 1's \emph{Concept-gating} discharging parametricity; the \cppinline{static_assert} is the Curry--Howard term that proves \cppinline{maybe_functor} inhabits the concept.\footnote{An architectural choice worth naming: the functorial obligation lives in the \emph{hub} type (\cppinline{maybe_functor<T>}), \emph{not} in the carrier (\cppinline{std::optional<T>}).  In Haskell the carrier itself is the functor — \cppinline{Maybe a} is declared an instance of \cppinline{Functor} with the laws supplied implicitly.  In \texttt{dedekind} we deliberately keep \cppinline{std::optional<T>} a Plain Old C++ Object and externalise the functorial proof obligation into a separate hub: an engineer who wants \cppinline{std::optional} to act as a functor writes \cppinline{maybe_functor} and discharges the laws there.  The C++23 concept machinery does not project structural witnesses onto carriers automatically (concepts are checked, not synthesised), and crowding self-descriptive bits onto \cppinline{std::optional} would defeat the POCO discipline that lets the disciplined fragment recover System F (Table~\ref{tab:structuralist-bridge}).  The real-world functions an engineering library hosts are not generic in the strong Haskell sense — the functorial structure is supplied at the library boundary by a hub that names it, not inherited from the carrier.}
 The same machinery covers the carrier-tower's other functorial constructions ($V_n(R)$, $\mathrm{End}_R$, $\mathrm{Frac}$, $\mathrm{Complex}$, $\mathrm{Dual}$); see §\ref{sec:linalg} for worked instances at the linear-algebra layer.
 
 \paragraph{Every carrier is a structure-preserving image of its
@@ -1085,13 +1090,13 @@ preserving construction applied to its base: a quotient (H), a
 direct product (P), or an internal-hom variant
 (Tables~\ref{tab:rosetta-quotient} and \ref{tab:rosetta-rank}).  The
 library reifies the carrier side as two detection concepts
-\lstinline|IsQuotientAlgebra<Q>| and \lstinline|IsProductAlgebra<Q>|
+\cppinline{IsQuotientAlgebra<Q>} and \cppinline{IsProductAlgebra<Q>}
 in \texttt{algebra:quotient}, paired with marker traits
-\lstinline|quotient_algebra_base<Q>| / \lstinline|product_algebra_base<Q>|;
+\cppinline{quotient_algebra_base<Q>} / \cppinline{product_algebra_base<Q>};
 a single declaration at each carrier site (specialising the marker
-trait's \lstinline|::type| member to the base) fires the
+trait's \cppinline{::type} member to the base) fires the
 structural-trait propagation (associativity, commutativity,
-distributivity, and the full \lstinline|IsTotal| certificate via its
+distributivity, and the full \cppinline{IsTotal} certificate via its
 periodic / idempotent / saturating paths) from the
 base.\footnote{\textbf{HSP theorem
 (Burris--Sankappanavar~\cite{burris1981universalalgebra} §II.10).}
@@ -1108,9 +1113,9 @@ $\operatorname{End}_R$ at the rank axis is \emph{not} an HSP
 operation — it is the internal hom in $\operatorname{Mod}_R$, which
 preserves only some axioms (matrix multiplication is non-commutative
 even when $R$ is commutative); its partial trait propagation lives
-behind a separate \lstinline|is_endomorphism_ring_v| trait.  The
-arrow-side cousin to \lstinline|IsQuotientAlgebra| is
-\lstinline|IsQuotientMorphism| in \texttt{algebra:universal} (a
+behind a separate \cppinline{is_endomorphism_ring_v} trait.  The
+arrow-side cousin to \cppinline{IsQuotientAlgebra} is
+\cppinline{IsQuotientMorphism} in \texttt{algebra:universal} (a
 declared homomorphism + declared surjectivity, naming the canonical
 projection $\pi: A \to A/{\sim}$).}
 
@@ -1173,18 +1178,18 @@ monoid $(\mathbb{N}, +, 0)$ (the Grothendieck construction; see
 Mac Lane~\cite{maclane1971categories} for the standard
 treatment).\footnote{Each Form sits behind a three-layer chain
 \emph{Form $\to$ Carrier $\to$ Symbol}: a universal-property
-concept (\lstinline{IsNNO}, \lstinline{IsInitialRing},
-\lstinline{IsGrothendieckGroup}), a canonical inhabitant
-(\lstinline{Cardinality} for $\mathbb{N}$ with $\aleph_0$
-saturation; \lstinline{SignedCardinality} for $\mathbb{Z}$ with
-$\pm\aleph_0$ and \lstinline{NaZ}), and the practitioner-facing
+concept (\cppinline{IsNNO}, \cppinline{IsInitialRing},
+\cppinline{IsGrothendieckGroup}), a canonical inhabitant
+(\cppinline{Cardinality} for $\mathbb{N}$ with $\aleph_0$
+saturation; \cppinline{SignedCardinality} for $\mathbb{Z}$ with
+$\pm\aleph_0$ and \cppinline{NaZ}), and the practitioner-facing
 alias.
 The negafibonacci recurrence $F_{n-1} = F_{n+1} - F_n$ is the
 canonical exhibit: the backward step requires exactly the
 operator (subtraction) that distinguishes $\mathbb{Z}$ from
 $\mathbb{N}$, and the variant carriers escalate to
 $\pm\aleph_0$ rather than overflowing as
-\lstinline{int}/\lstinline{unsigned int} would.}
+\cppinline{int}/\cppinline{unsigned int} would.}
 The same Form-then-Carrier discipline continues up the
 tower.\footnote{$\mathbb{Q} = \operatorname{Frac}(\mathbb{Z})$,
 $\mathbb{R} = \operatorname{Cuts}(\mathbb{Q})$,
@@ -1223,7 +1228,11 @@ technical sense, wrong---it just happens not to be wrong on most inputs.
 \texttt{dedekind} encodes these divergences explicitly in the \texttt{:species} trait registry:
 
 % Source: src/main/modules/dedekind/category/species.cppm (partial specialisations around ll. 485-500)
-\begin{lstlisting}[language=C++, caption={The species registry records algebraic properties---and their absence. Signed \texttt{int} is explicitly rejected as associative under \texttt{+} because signed overflow is undefined behaviour.}, label={lst:species}]
+\begin{listing}[htbp]
+\caption{The species registry records algebraic properties---and their absence. Signed \texttt{int} is explicitly rejected as associative under \texttt{+} because signed overflow is undefined behaviour.}
+\label{lst:species}
+\begin{cpp}
+
 // Variable template: is_associative_v<T, Op> is the structural trait.
 // The library partial-specialises it per-carrier, per-operation.
 
@@ -1245,12 +1254,13 @@ inline constexpr bool is_associative_v<double, std::plus<double>> = false;
 static_assert(is_associative_v<unsigned int, std::plus<unsigned int>>);
 static_assert(!is_associative_v<int,         std::plus<int>>);
 static_assert(!is_associative_v<double,      std::plus<double>>);
-\end{lstlisting}
+\end{cpp}
+\end{listing}
 
 Generic algorithms that require associativity will fail to compile for
 \texttt{int} or \texttt{double} alike, unless an explicit numeric policy
 (modular semantics on signed overflow, compensated summation, an
-interval-arithmetic wrapper, or a lift to \lstinline{Rational<long>})
+interval-arithmetic wrapper, or a lift to \cppinline{Rational<long>})
 is supplied. The realization boundary is the point at which the
 programmer chooses which policy to apply.
 
@@ -1269,7 +1279,7 @@ the same algebra may be obtained as either a primitive (a chosen
 carrier) or as the result of a construction (a quotient, free, or
 localisation functor) applied to a smaller carrier.  $\mathbb{Q}$ is
 both a carrier (the rationals, used as base for
-\lstinline{Rational<I>}) and the field-of-fractions construction
+\cppinline{Rational<I>}) and the field-of-fractions construction
 $\operatorname{Frac}(\mathbb{Z})$~\cite{lang2002algebra}; $\mathbb{C}$
 is both a carrier and the quotient
 $\mathbb{R}[i]/(i^2 + 1)$.  The Algebraic Lattice
@@ -1277,33 +1287,33 @@ $\mathbb{R}[i]/(i^2 + 1)$.  The Algebraic Lattice
 distinct axes; the rosetta tables that follow itemise each axis.\footnote{%
 \emph{Meets vs. joins.} Type-level meets (the largest shared
 substructure of two algebras) are computed via dispatch ---
-\lstinline{structured_and} on intersecting predicate-sets is the
+\cppinline{structured_and} on intersecting predicate-sets is the
 canonical example.  Joins (the smallest common extension) are
 \emph{not} synthesised by the library: pushouts / tensor products
 require ambient choice (which base, which extension functor) that
 the project's Honest Rejection stance refuses to make
 automatically.  Joins are handled instead via named carrier-crossing
-arrows the user invokes explicitly (\lstinline{embed_ℤ_ℚ} for
+arrows the user invokes explicitly (\cppinline{embed_ℤ_ℚ} for
 $\mathbb{Z} \hookrightarrow \mathbb{Q}$, etc.).  The trade-off is
 honest: the library refuses to fabricate the answers that aren't
 canonical.}
 
 \paragraph{Re-enabling refused carriers.}  The Honest Rejection
-policy refuses carriers like \lstinline{int} as a witness for
+policy refuses carriers like \cppinline{int} as a witness for
 \emph{axiomatic} ring laws (signed-overflow UB defeats closure as a
 stable axiom, per Listing~\ref{lst:species}).  An engineer with a
 local proof that overflow cannot occur on their inputs has two
 sanctioned re-entry paths:
 
 \begin{itemize}
-\item \emph{Operator-surface tier.}  \lstinline{HasRingOperators<int>}
+\item \emph{Operator-surface tier.}  \cppinline{HasRingOperators<int>}
 fires unconditionally; downstream combinators that bind to this
-weaker concept (rather than to the strict \lstinline{IsRing} bundle)
-admit \lstinline{int} directly.  Most paper showcases bind to the
+weaker concept (rather than to the strict \cppinline{IsRing} bundle)
+admit \cppinline{int} directly.  Most paper showcases bind to the
 operator-surface tier for exactly this reason.
 \item \emph{Opt-in trait specialisation.}  Where a stronger axiom is
 needed, the engineer specialises the relevant species trait
-explicitly: e.g.\ \lstinline{is_associative_v<MyType, std::plus<>> = true;}
+explicitly: e.g.\ \cppinline{is_associative_v<MyType, std::plus<>> = true;}
 for a user-defined type whose addition is provably associative.  The
 specialisation is a public statement under the truthfulness canons
 (NSPE Code of Ethics, Canons~III + IV \cite{nspe_ethics}); the
@@ -1320,7 +1330,7 @@ once is spelled out in three tables. Table~\ref{tab:carriers-exact}
 catalogs the \emph{exact} side: the library's own intensional
 carriers for each mathematical role, and the algebraic concept each
 realises. Table~\ref{tab:carriers-primitive} catalogs the
-\emph{primitive} side: the \lstinline|std|-library types the hardware
+\emph{primitive} side: the \cppinline{std}-library types the hardware
 runs natively, and the concept each of them carries (with the usual
 IEEE / overflow caveats). Table~\ref{tab:carriers-crossings} is the
 state-machine that connects the two: given a role, which named
@@ -1340,25 +1350,25 @@ satisfied, not approximated.}
 \toprule
 \textbf{Role} & \textbf{Exact carrier} & \textbf{Concept satisfied} \\
 \midrule
-$\mathbb{B}$ & \lstinline|bool| under $\land, \lor$ & \lstinline|IsBoolean| \\
-$\mathbb{F}_2$ & \lstinline|bool| under $(\oplus, \land)$ & \lstinline|IsGaloisField<bool,^,&>| (order 2) \\
-$\mathbb{F}_{64}$ & \texttt{𝔽64} ($\mathbb{F}_2[x]/(x^6{+}x{+}1)$, 6-bit in \lstinline|uint8_t|) & \lstinline|IsGaloisField<T,+,*>| (order 64) \\
-$\mathbb{F}_2^{64}$ & \lstinline|uint64_t| under $\oplus$, scalar action \lstinline|Bit2U64Action| & \lstinline|IsVectorSpace<uint64_t, bool>| \\
-$\mathbb{N}$ bounded & \lstinline|ExtensionalCardinal<N>| & \lstinline|IsCyclicGroup|, \lstinline|IsAbelianGroup<T,+>| \\
-$\mathbb{N}$ unbounded & \lstinline|Cardinality| (variant over $\aleph_0$) & saturating commutative monoid via \lstinline|add|/\lstinline|mul| helpers \\
-$\mathbb{Z}$ bounded & \lstinline|SignedExtensionalCardinal<N>| & \lstinline|IsAbelianGroup<T,+>|, \lstinline|IsRing| \\
-$\mathbb{Z}$ unbounded & \lstinline|SignedCardinality| (variant over $\pm \aleph_0$, NaZ) & \lstinline|IsAbelianGroup<T,+>|, \lstinline|IsRing| \\
-$\mathbb{Q}$ & \lstinline|Rational<SignedExtensionalCardinal<>>| & \lstinline|Field_|$\mathbb{Q}$ \\
-$\mathbb{R}$ symbolic & \lstinline|LowerCut<Rational>| (Dedekind cut) & \lstinline|Continuum_|$\mathbb{R}$ (predicate-only) \\
-$\mathbb{C}$ & \lstinline|Complex<Rational<SignedEC<>>>| & \lstinline|Algebra_|$\mathbb{C}$ \\
-$\mathbb{D}$ (dual) & \lstinline|Dual<Rational<SignedEC<>>>| & \lstinline|IsRing<T,+,*>|, $\varepsilon^2 = 0$ \\
+$\mathbb{B}$ & \cppinline{bool} under $\land, \lor$ & \cppinline{IsBoolean} \\
+$\mathbb{F}_2$ & \cppinline{bool} under $(\oplus, \land)$ & \cppinline{IsGaloisField<bool,^,&>} (order 2) \\
+$\mathbb{F}_{64}$ & \texttt{𝔽64} ($\mathbb{F}_2[x]/(x^6{+}x{+}1)$, 6-bit in \cppinline{uint8_t}) & \cppinline{IsGaloisField<T,+,*>} (order 64) \\
+$\mathbb{F}_2^{64}$ & \cppinline{uint64_t} under $\oplus$, scalar action \cppinline{Bit2U64Action} & \cppinline{IsVectorSpace<uint64_t, bool>} \\
+$\mathbb{N}$ bounded & \cppinline{ExtensionalCardinal<N>} & \cppinline{IsCyclicGroup}, \cppinline{IsAbelianGroup<T,+>} \\
+$\mathbb{N}$ unbounded & \cppinline{Cardinality} (variant over $\aleph_0$) & saturating commutative monoid via \cppinline{add}/\cppinline{mul} helpers \\
+$\mathbb{Z}$ bounded & \cppinline{SignedExtensionalCardinal<N>} & \cppinline{IsAbelianGroup<T,+>}, \cppinline{IsRing} \\
+$\mathbb{Z}$ unbounded & \cppinline{SignedCardinality} (variant over $\pm \aleph_0$, NaZ) & \cppinline{IsAbelianGroup<T,+>}, \cppinline{IsRing} \\
+$\mathbb{Q}$ & \cppinline{Rational<SignedExtensionalCardinal<>>} & \cppinline{Field_}$\mathbb{Q}$ \\
+$\mathbb{R}$ symbolic & \cppinline{LowerCut<Rational>} (Dedekind cut) & \cppinline{Continuum_}$\mathbb{R}$ (predicate-only) \\
+$\mathbb{C}$ & \cppinline{Complex<Rational<SignedEC<>>>} & \cppinline{Algebra_}$\mathbb{C}$ \\
+$\mathbb{D}$ (dual) & \cppinline{Dual<Rational<SignedEC<>>>} & \cppinline{IsRing<T,+,*>}, $\varepsilon^2 = 0$ \\
 \bottomrule
 \end{tabular}
 \end{table}
 
 \begin{table}[htbp]
 \centering
-\caption{\textbf{Primitive carriers.} The \lstinline|std|-library types
+\caption{\textbf{Primitive carriers.} The \cppinline{std}-library types
 the hardware runs natively, with the algebraic concept each carries
 under its C++-standard arithmetic semantics. These are the carriers a
 disciplined engineer drops to for performance, \emph{after} verifying
@@ -1369,18 +1379,18 @@ the reference implementation on the exact side.}
 \toprule
 \textbf{Primitive type} & \textbf{Arithmetic semantics} & \textbf{Concept satisfied} \\
 \midrule
-\lstinline|bool| & Galois field $\mathbb{F}_2$ under $(\oplus, \land)$; Boolean lattice under $(\lor, \land)$ on the same carrier & \lstinline|category::IsField<bool, std::bit_xor<bool>, std::bit_and<bool>>|; \lstinline|order::HasLatticeOperators<bool>| \\
-\lstinline|unsigned long|, \lstinline|size_t| & Modular, wraps at $2^{N}$ & \lstinline|IsCyclicGroup|, \lstinline|IsAbelianGroup<T,+>| \\
-\lstinline|int|, \lstinline|long| & Partial (UB on signed overflow) & \lstinline|HasRingOperators|\textsuperscript{a} \\
-\lstinline|int8_t|, \lstinline|int16_t| & Partial + SIMD-vectorisable & \lstinline|HasRingOperators|\textsuperscript{a} \\
-\lstinline|float|, \lstinline|double| & IEEE 754, rounded, non-associative & \lstinline|Continuum_|$\mathbb{R}$ (non-assoc.\ \lstinline|+|) \\
-\lstinline|std::complex<double>| & Cartesian pair over IEEE \lstinline|double| & \lstinline|Algebra_|$\mathbb{C}$ (non-assoc.) \\
+\cppinline{bool} & Galois field $\mathbb{F}_2$ under $(\oplus, \land)$; Boolean lattice under $(\lor, \land)$ on the same carrier & \cppinline{category::IsField<bool, std::bit_xor<bool>, std::bit_and<bool>>}; \cppinline{order::HasLatticeOperators<bool>} \\
+\cppinline{unsigned long}, \cppinline{size_t} & Modular, wraps at $2^{N}$ & \cppinline{IsCyclicGroup}, \cppinline{IsAbelianGroup<T,+>} \\
+\cppinline{int}, \cppinline{long} & Partial (UB on signed overflow) & \cppinline{HasRingOperators}\textsuperscript{a} \\
+\cppinline{int8_t}, \cppinline{int16_t} & Partial + SIMD-vectorisable & \cppinline{HasRingOperators}\textsuperscript{a} \\
+\cppinline{float}, \cppinline{double} & IEEE 754, rounded, non-associative & \cppinline{Continuum_}$\mathbb{R}$ (non-assoc.\ \cppinline{+}) \\
+\cppinline{std::complex<double>} & Cartesian pair over IEEE \cppinline{double} & \cppinline{Algebra_}$\mathbb{C}$ (non-assoc.) \\
 \bottomrule
 \end{tabular}
 
 \vspace{0.3em}
 \begin{flushleft}
-{\footnotesize \textsuperscript{a} \lstinline|HasRingOperators| holds (literal $+$, binary $-$, unary $-$, $*$ all close on the carrier); the strict \lstinline|IsRing| bundle refuses because signed-overflow UB makes the operation partial, which doesn't satisfy any of the \lstinline|IsTotal| paths (\lstinline|IsPeriodic| / \lstinline|IsIdempotent| / \lstinline|IsSaturating|) the totality gate admits (math-wins-over-C++). Total alternatives: \lstinline|SignedCardinality| (saturating), \lstinline|SignedExtensionalCardinal<>| (cyclic), or the \lstinline|:partial| Maybe-monad chain for honest fail-on-overflow.}
+{\footnotesize \textsuperscript{a} \cppinline{HasRingOperators} holds (literal $+$, binary $-$, unary $-$, $*$ all close on the carrier); the strict \cppinline{IsRing} bundle refuses because signed-overflow UB makes the operation partial, which doesn't satisfy any of the \cppinline{IsTotal} paths (\cppinline{IsPeriodic} / \cppinline{IsIdempotent} / \cppinline{IsSaturating}) the totality gate admits (math-wins-over-C++). Total alternatives: \cppinline{SignedCardinality} (saturating), \cppinline{SignedExtensionalCardinal<>} (cyclic), or the \cppinline{:partial} Maybe-monad chain for honest fail-on-overflow.}
 \end{flushleft}
 \end{table}
 
@@ -1399,13 +1409,13 @@ through an intermediate role.}
 \textbf{Role} & \textbf{Realise: exact $\to$ primitive} & \textbf{Embed: primitive $\to$ exact} \\
 \midrule
 $\mathbb{B}$ & (identity) & (identity) \\
-$\mathbb{N}$ & \lstinline|.realize_to_size_t(sentinel)| & \lstinline|embed_unsigned_integral<N>(v)| \\
-$\mathbb{Z}$ & \lstinline|static_cast<int64_t>(x)| & \lstinline|embed_signed_integral<Z>(v)| \\
-$\mathbb{Q}$ & \lstinline|.resolve()| $\to$ \lstinline|double| & \lstinline|Rational<Z>(num, den)| \\
+$\mathbb{N}$ & \cppinline{.realize_to_size_t(sentinel)} & \cppinline{embed_unsigned_integral<N>(v)} \\
+$\mathbb{Z}$ & \cppinline{static_cast<int64_t>(x)} & \cppinline{embed_signed_integral<Z>(v)} \\
+$\mathbb{Q}$ & \cppinline{.resolve()} $\to$ \cppinline{double} & \cppinline{Rational<Z>(num, den)} \\
 $\mathbb{R}$ symbolic & evaluate cut at a rational bound & (intensional; no simple lift) \\
-$\mathbb{R}$ policy & unwrap \lstinline|IEEE<double>| & wrap in \lstinline|IEEE<double>| \\
-$\mathbb{C}$ & per-component \lstinline|.resolve()| & \lstinline|Complex<R>(re, im)| \\
-$\mathbb{D}$ (dual) & \lstinline|.val| (primal only; tangent discarded) & \lstinline|Dual<F>(v, d)| \\
+$\mathbb{R}$ policy & unwrap \cppinline{IEEE<double>} & wrap in \cppinline{IEEE<double>} \\
+$\mathbb{C}$ & per-component \cppinline{.resolve()} & \cppinline{Complex<R>(re, im)} \\
+$\mathbb{D}$ (dual) & \cppinline{.val} (primal only; tangent discarded) & \cppinline{Dual<F>(v, d)} \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -1414,10 +1424,10 @@ A fourth table addresses where textbook ring structure and literal
 C++ operators diverge: the library expresses the disagreement
 through three concept tiers --- \emph{strict} (categorical proof),
 \emph{functor-parametric shape} (operators close on the chosen
-functors), and \emph{literal shape} (the C++ \lstinline|+|,
-\lstinline|-|, \lstinline|*| close on the carrier directly) ---
-sealed by \lstinline|IsArithmeticRing| when all three agree under
-\lstinline|(std::plus, std::multiplies)|.
+functors), and \emph{literal shape} (the C++ \cppinline{+},
+\cppinline{-}, \cppinline{*} close on the carrier directly) ---
+sealed by \cppinline{IsArithmeticRing} when all three agree under
+\cppinline{(std::plus, std::multiplies)}.
 Table~\ref{tab:rosetta-textbook-vs-cpp} catalogues the divergences
 on the carriers used in the worked examples (Issue~\#393); the
 friction list is summarised structurally in
@@ -1427,7 +1437,7 @@ Section~\ref{sec:boundary-observations}.
 \centering
 \caption{\textbf{Math textbook $\leftrightarrow$ C++ standard.} Where the
 literal C++ operators agree with the textbook (rows that tick all
-columns), the bundled seal \lstinline|IsArithmeticRing| fires and
+columns), the bundled seal \cppinline{IsArithmeticRing} fires and
 generic code can be written in plain syntax. Where they diverge
 (integer promotion, signed-overflow UB), the table names the precise
 failure point and the tier that still fires. ``$\circ$'' marks an
@@ -1440,25 +1450,25 @@ marks not-currently-asserted.}
 \toprule
 \textbf{Carrier} & \textbf{Math claim} & \textbf{Strict} & \textbf{Functor} & \textbf{Literal} & \textbf{Seal} \\
 \midrule
-\lstinline|unsigned int|, \lstinline|unsigned long|, \lstinline|size_t| & ring $\mathbb{Z}/2^N\mathbb{Z}$ & \checkmark & \checkmark & \checkmark & \checkmark \\
-\lstinline|unsigned short|, \lstinline|unsigned char| & ring $\mathbb{Z}/2^N\mathbb{Z}$ & \checkmark & \checkmark & $\times$\textsuperscript{a} & $\times$ \\
-\lstinline|int|, \lstinline|long| & partial (signed-overflow UB) & $\times$\textsuperscript{b} & \checkmark & \checkmark & $\times$ \\
-\lstinline|bool| under $(\oplus, \wedge)$ & Galois field $\mathbb{F}_2$ & \checkmark & \checkmark & $\times$\textsuperscript{a} & $\times$\textsuperscript{c} \\
-\lstinline|Rational<long>| & field $\mathbb{Q}$ & $\circ$\textsuperscript{d} & $\circ$ & \checkmark & $\circ$ \\
-\lstinline|RigPolynomial<unsigned int>| & polynomial ring $R[x]$ & \checkmark & \checkmark & \checkmark & \checkmark \\
-\lstinline|Matrix2x2V<unsigned int>| & non-commutative ring & $\circ$ & $\circ$ & \checkmark & -- \\
-\lstinline|Vec2V<T>| & module / vector space, \emph{not a ring} & n/a & n/a & $\times$\textsuperscript{e} & n/a \\
+\cppinline{unsigned int}, \cppinline{unsigned long}, \cppinline{size_t} & ring $\mathbb{Z}/2^N\mathbb{Z}$ & \checkmark & \checkmark & \checkmark & \checkmark \\
+\cppinline{unsigned short}, \cppinline{unsigned char} & ring $\mathbb{Z}/2^N\mathbb{Z}$ & \checkmark & \checkmark & $\times$\textsuperscript{a} & $\times$ \\
+\cppinline{int}, \cppinline{long} & partial (signed-overflow UB) & $\times$\textsuperscript{b} & \checkmark & \checkmark & $\times$ \\
+\cppinline{bool} under $(\oplus, \wedge)$ & Galois field $\mathbb{F}_2$ & \checkmark & \checkmark & $\times$\textsuperscript{a} & $\times$\textsuperscript{c} \\
+\cppinline{Rational<long>} & field $\mathbb{Q}$ & $\circ$\textsuperscript{d} & $\circ$ & \checkmark & $\circ$ \\
+\cppinline{RigPolynomial<unsigned int>} & polynomial ring $R[x]$ & \checkmark & \checkmark & \checkmark & \checkmark \\
+\cppinline{Matrix2x2V<unsigned int>} & non-commutative ring & $\circ$ & $\circ$ & \checkmark & -- \\
+\cppinline{Vec2V<T>} & module / vector space, \emph{not a ring} & n/a & n/a & $\times$\textsuperscript{e} & n/a \\
 \bottomrule
 \end{tabular}
 
 \vspace{0.5em}
 {\footnotesize
 \begin{tabular}{@{}l p{0.85\textwidth}@{}}
-\textsuperscript{a} & integer promotion lifts the result of literal \lstinline|+| / \lstinline|*| to \lstinline|int|; the functor surface returns \lstinline|T| by signature. \\
-\textsuperscript{b} & signed-overflow UB means the carrier admits no \lstinline|IsTotal| label (it is neither periodic, nor idempotent, nor saturating); the categorical \lstinline|IsRing| chain --- which composes \lstinline|IsTotal| --- therefore breaks for this carrier. \\
-\textsuperscript{c} & \lstinline|bool|'s ring structure lives over $(\oplus, \wedge)$, not $(+, *)$; \lstinline|IsArithmeticRing|, which fixes \lstinline|(std::plus, std::multiplies)|, asks the wrong question for this carrier. \\
-\textsuperscript{d} & operational under the active numeric policy: \lstinline|HasFieldOperators| is the operational variant, the categorical proof is intentionally not specialised. \\
-\textsuperscript{e} & vectors have no internal product \lstinline|Vec2V $\times$ Vec2V $\to$ Vec2V|, only scalar multiplication; the shape concept correctly refuses. \\
+\textsuperscript{a} & integer promotion lifts the result of literal \cppinline{+} / \cppinline{*} to \cppinline{int}; the functor surface returns \cppinline{T} by signature. \\
+\textsuperscript{b} & signed-overflow UB means the carrier admits no \cppinline{IsTotal} label (it is neither periodic, nor idempotent, nor saturating); the categorical \cppinline{IsRing} chain --- which composes \cppinline{IsTotal} --- therefore breaks for this carrier. \\
+\textsuperscript{c} & \cppinline{bool}'s ring structure lives over $(\oplus, \wedge)$, not $(+, *)$; \cppinline{IsArithmeticRing}, which fixes \cppinline{(std::plus, std::multiplies)}, asks the wrong question for this carrier. \\
+\textsuperscript{d} & operational under the active numeric policy: \cppinline{HasFieldOperators} is the operational variant, the categorical proof is intentionally not specialised. \\
+\textsuperscript{e} & vectors have no internal product \cppinline{Vec2V $\times$ Vec2V $\to$ Vec2V}, only scalar multiplication; the shape concept correctly refuses. \\
 \end{tabular}
 }
 \end{table}
@@ -1466,21 +1476,21 @@ marks not-currently-asserted.}
 Reading rule for callsites: pick \emph{seal} for plain C++ syntax
 over a textbook-aligned carrier; pick \emph{strict + functor} when
 the carrier carries its ring structure over non-standard functors
-(\lstinline|bool| as $\mathbb{F}_2$, narrow unsigneds with
-\lstinline|std::plus| / \lstinline|std::multiplies|); pick
+(\cppinline{bool} as $\mathbb{F}_2$, narrow unsigneds with
+\cppinline{std::plus} / \cppinline{std::multiplies}); pick
 \emph{literal} for the operator surface without the algebraic
 axioms (elementwise-lifted matrix bodies, halfspace evaluation).
 
 \paragraph{Migration discipline.}
 The three tables form a migration map: \emph{start correct} on
 Table~\ref{tab:carriers-exact} (typically
-\lstinline|Rational<SignedExtensionalCardinal<>>| for
+\cppinline{Rational<SignedExtensionalCardinal<>>} for
 arithmetic-heavy code, with bit-for-bit provable laws); \emph{cross
 over} via Table~\ref{tab:carriers-crossings} only in profiled inner
 loops where arithmetic cost dominates; \emph{land} on
 Table~\ref{tab:carriers-primitive} with the named caveat the
 concept cell records (e.g.\ loss of associativity under
-\lstinline|+|, which some algorithms tolerate and others do not).
+\cppinline{+}, which some algorithms tolerate and others do not).
 The rule: \textbf{start correct, finish fast, and the type system
 enforces that the laws your code relies on are the laws the carrier
 actually provides --- or fails to compile.}
@@ -1541,7 +1551,11 @@ turn: classical \texttt{bool} for exact domains, Kleene K3 for floats, anything
 else you can register.
 
 % Source: src/main/modules/dedekind/category/etcs.cppm (ambient_set, ll. 357-366)
-\begin{lstlisting}[language=C++, caption={A set as a compile-time predicate type. The set object is invocable; membership returns a logic value.}, label={lst:settype}]
+\begin{listing}[htbp]
+\caption{A set as a compile-time predicate type. The set object is invocable; membership returns a logic value.}
+\label{lst:settype}
+\begin{cpp}
+
 using namespace dedekind::category;
 
 // ambient_set<T>(P) creates the intensional set {x in T | P(x)}.
@@ -1553,7 +1567,8 @@ constexpr auto even_gt_ten = ambient_set<int>(
 // container or heap allocation is involved.
 static_assert(even_gt_ten(12) == ClassicalLogic::True);
 static_assert(even_gt_ten(7)  == ClassicalLogic::False);
-\end{lstlisting}
+\end{cpp}
+\end{listing}
 
 \subsection{Set Operations as Predicate Composition}
 
@@ -1572,7 +1587,11 @@ because there are no values yet. The combinators compose at compile time and pro
 a new type---a new rule---which the compiler is then free to inspect.
 
 % Source: src/main/modules/dedekind/sets/expressions.cppm (Set::operator&, ll. 332+)
-\begin{lstlisting}[language=C++, caption={Set intersection as type-level predicate conjunction, discharged by the library's \lstinline{operator&} on \lstinline{Set}.}, label={lst:intersection}]
+\begin{listing}[htbp]
+\caption{Set intersection as type-level predicate conjunction, discharged by the library's \cppinline{operator&} on \cppinline{Set}.}
+\label{lst:intersection}
+\begin{cpp}
+
 using namespace dedekind::category;
 
 // Two intensional sets over int.
@@ -1588,7 +1607,8 @@ constexpr auto even_and_ten_plus = evens & ten_plus;
 static_assert(even_and_ten_plus(12) == ClassicalLogic::True);
 static_assert(even_and_ten_plus(11) == ClassicalLogic::False);
 static_assert(even_and_ten_plus(4)  == ClassicalLogic::False);
-\end{lstlisting}
+\end{cpp}
+\end{listing}
 
 \subsection{Structural Pruning in Practice}
 
@@ -1596,7 +1616,11 @@ The payoff of the comprehension view is that the LLVM backend can \emph{prune} a
 set expression to a no-op when its predicate is statically unsatisfiable.
 
 % Source: src/test/cpp/modules/dedekind/python/showcase_03_halfspace_contradiction.cpp
-\begin{lstlisting}[language=C++, caption={Contradictory predicates collapse to the empty-set type $\varnothing$. Uses the \lstinline{Halfspace}-NTTP DSL to pin both bounds in the type signature, so the contradiction is resolved at translation time.}, label={lst:pruning}]
+\begin{listing}[htbp]
+\caption{Contradictory predicates collapse to the empty-set type $\varnothing$. Uses the \cppinline{Halfspace}-NTTP DSL to pin both bounds in the type signature, so the contradiction is resolved at translation time.}
+\label{lst:pruning}
+\begin{cpp}
+
 using namespace dedekind::order;
 
 constexpr auto n = var<ℕ>;
@@ -1609,10 +1633,11 @@ constexpr auto lt_three = Set{n % N | (n < bound<3>)};
 // contradiction rule collapses the meet to the empty-set type Ø<int>.
 constexpr Ø<int> empty_meet = gt_five & lt_three;
 static_assert(empty_meet == Ø{});
-\end{lstlisting}
+\end{cpp}
+\end{listing}
 
 The generated binary contains no membership-test code for
-\lstinline{empty_meet}: the type-level contradiction rule resolves the
+\cppinline{empty_meet}: the type-level contradiction rule resolves the
 result to $\varnothing$ \emph{before} code generation, and the
 computability tier of $\varnothing$ is fully top
 (extensional/classical/element-in-type). The showcase listings below
@@ -1628,11 +1653,15 @@ on are introduced.)
 \textbf{Showcase 1 — Diagonal contradiction in $\mathbb{R}^2$.}
 On the diagonal $\{(x,y) \mid x = y\}$, the strip predicate $x > 5 \land y < 3$
 is contradictory (since $x = y > 5$ forces $y > 5$, violating $y < 3$).
-The intersection is proven empty by \lstinline{static_assert}; the exported
-function compiles to a single \lstinline{ret i1 false}.
+The intersection is proven empty by \cppinline{static_assert}; the exported
+function compiles to a single \cppinline{ret i1 false}.
 
 % Source: src/test/cpp/modules/dedekind/python/showcase_01_diagonal_contradiction.cpp
-\begin{lstlisting}[language=C++, caption={Showcase 1 source: diagonal contradiction in $\mathbb{R}^2$.}, label={lst:showcase01_src}]
+\begin{listing}[htbp]
+\caption{Showcase 1 source: diagonal contradiction in $\mathbb{R}^2$.}
+\label{lst:showcase01_src}
+\begin{cpp}
+
 constexpr auto R2 = R * R;
 constexpr auto xy = var<decltype(R2)>;
 using R2Point = typename decltype(R2)::Domain;
@@ -1653,14 +1682,20 @@ static_assert(empty_diagonal_cut(R2Point{6.0, 6.0}) == R2Logic::False);
 extern "C" __attribute__((noinline)) bool witness_empty_diagonal_cut() {
   return empty_diagonal_cut(R2Point{6.0, 6.0}) == R2Logic::True;
 }
-\end{lstlisting}
+\end{cpp}
+\end{listing}
 
 % Source: src/test/cpp/modules/dedekind/python/showcase_01_diagonal_contradiction.ll
-\begin{lstlisting}[caption={Showcase 1 LLVM IR (\texttt{clang++-22 -O2}): constant false return.}, label={lst:showcase01_ir}]
+\begin{listing}[htbp]
+\caption{Showcase 1 LLVM IR (\texttt{clang++-22 -O2}): constant false return.}
+\label{lst:showcase01_ir}
+\begin{cpp}
+
 define noundef zeroext i1 @witness_empty_diagonal_cut() local_unnamed_addr #0 {
   ret i1 false
 }
-\end{lstlisting}
+\end{cpp}
+\end{listing}
 
 \subsection{Algebraic Properties Enable Stronger Pruning}
 
@@ -1676,7 +1711,7 @@ These traits inform the compiler about structural relationships between sets:
   \item If $S_1 \subseteq S_2$ then $S_1 \cap S_2 = S_1$ (subset absorption).
 \end{itemize}
 
-Each of these equalities can be discharged as a \lstinline{static_assert} once the
+Each of these equalities can be discharged as a \cppinline{static_assert} once the
 relevant algebraic witnesses are in the trait registry, reducing the intersection to
 the simpler set at compile time.
 
@@ -1686,7 +1721,7 @@ the simpler set at compile time.
 Lambda-based predicates let the optimiser fold at specific call sites, but they
 erase the \emph{structure} of the constraint. A richer pattern emerges when
 halfspace bounds live in the \emph{type}: $\{n \in \mathbb{N} \mid n > 5\}$ is
-represented as \lstinline{Halfspace<int, 5, Up, Strict>}, with the pivot as a
+represented as \cppinline{Halfspace<int, 5, Up, Strict>}, with the pivot as a
 non-type template parameter. Contradiction and cardinality analysis then run
 in the type system itself, and the reductions are \emph{structural}: no appeal
 to runtime values is needed.
@@ -1696,7 +1731,11 @@ Two opposing halfspaces with non-bridging pivots; the meet reduces to $\varnothi
 by the type-level contradiction rule.
 
 % Source: src/test/cpp/modules/dedekind/python/showcase_03_halfspace_contradiction.cpp
-\begin{lstlisting}[language=C++, caption={Showcase 3 source: halfspace contradiction on $\mathbb{N}$ collapses to $\varnothing$.}, label={lst:showcase03_src}]
+\begin{listing}[htbp]
+\caption{Showcase 3 source: halfspace contradiction on $\mathbb{N}$ collapses to $\varnothing$.}
+\label{lst:showcase03_src}
+\begin{cpp}
+
 constexpr auto n = var<ℕ>;
 
 constexpr auto gt_five  = Set{n % N | (n > bound<5>)};
@@ -1715,18 +1754,28 @@ static_assert(!IsCompileTimeEnumerable<decltype(gt_five)>);
 static_assert( HasDecidableMembership<decltype(empty_meet)>);
 static_assert( IsFiniteSet<decltype(empty_meet)>);
 static_assert( IsCompileTimeEnumerable<decltype(empty_meet)>);
-\end{lstlisting}
+\end{cpp}
+\end{listing}
 
 % Source: src/test/cpp/modules/dedekind/python/showcase_03_halfspace_contradiction.ll
-\begin{lstlisting}[caption={Showcase 3 LLVM IR: constant false return.}, label={lst:showcase03_ir}]
+\begin{listing}[htbp]
+\caption{Showcase 3 LLVM IR: constant false return.}
+\label{lst:showcase03_ir}
+\begin{cpp}
+
 define noundef zeroext i1 @witness_empty_halfspace_meet() local_unnamed_addr #0 {
   ret i1 false
 }
-\end{lstlisting}
+\end{cpp}
+\end{listing}
 
 
 % Source: src/test/cpp/modules/dedekind/python/showcase_04_halfspace_singleton.cpp
-\begin{lstlisting}[language=C++, caption={Showcase 4 source: cardinality-1 meet collapses to $\{4\}$.}, label={lst:showcase04_src}]
+\begin{listing}[htbp]
+\caption{Showcase 4 source: cardinality-1 meet collapses to $\{4\}$.}
+\label{lst:showcase04_src}
+\begin{cpp}
+
 constexpr auto n = var<ℕ>;
 
 constexpr auto gt_three = Set{n % N | (n > bound<3>)};
@@ -1740,21 +1789,27 @@ static_assert(in_between == Singleton<4>{});
 // Same computability tightening as Showcase 3, with the element now in the type.
 static_assert(!IsCompileTimeEnumerable<decltype(gt_three)>);
 static_assert( IsCompileTimeEnumerable<decltype(in_between)>);
-\end{lstlisting}
+\end{cpp}
+\end{listing}
 
 % Source: src/test/cpp/modules/dedekind/python/showcase_04_halfspace_singleton.ll
-\begin{lstlisting}[caption={Showcase 4 LLVM IR: constant true return at the unique inhabitant.}, label={lst:showcase04_ir}]
+\begin{listing}[htbp]
+\caption{Showcase 4 LLVM IR: constant true return at the unique inhabitant.}
+\label{lst:showcase04_ir}
+\begin{cpp}
+
 define noundef zeroext i1 @witness_halfspace_singleton() local_unnamed_addr #0 {
   ret i1 true
 }
-\end{lstlisting}
+\end{cpp}
+\end{listing}
 
 The two halfspace showcases make the central claim of the paper mechanically
 observable: compile-time reduction of an intensional description over a
 transfinite carrier to a named extensional object (either $\varnothing$ or a
-\lstinline{Singleton}) monotonically restores decidability, finiteness, and
+\cppinline{Singleton}) monotonically restores decidability, finiteness, and
 type-level knowledge of elements. The \emph{reduction boundary} is the
-\emph{computability boundary}, and the six \lstinline{static_assert}s flanking
+\emph{computability boundary}, and the six \cppinline{static_assert}s flanking
 each reduction are its mechanical witness.
 
 
@@ -2033,9 +2088,9 @@ higher ranks via combinators (\texttt{DirectSum},
 \toprule
 \textbf{Object} & \textbf{Construction} & \textbf{Concept} & \textbf{C++23 carrier} \\
 \midrule
-$T$ (scalar) & identity & \lstinline|IsRing| / \lstinline|IsField| & \lstinline|T| \\
-$V_n(T) = T^n$ & $\mathrm{Free}_n$ (\textbf{P} in HSP; Burris--Sankappanavar~\cite{burris1981universalalgebra} §II.10) & \lstinline|IsProductAlgebra<V>| & \lstinline|Vec2V<T>| \\
-$M_n(T) = \mathrm{End}_T(V_n)$ & internal hom in $\mathbf{Mod}_R$ (\emph{not} HSP; Mac Lane~\cite{maclane1971categories} §VII) & \lstinline|is_endomorphism_ring_v<M, V>| & \lstinline|Matrix2x2V<T>| \\
+$T$ (scalar) & identity & \cppinline{IsRing} / \cppinline{IsField} & \cppinline{T} \\
+$V_n(T) = T^n$ & $\mathrm{Free}_n$ (\textbf{P} in HSP; Burris--Sankappanavar~\cite{burris1981universalalgebra} §II.10) & \cppinline{IsProductAlgebra<V>} & \cppinline{Vec2V<T>} \\
+$M_n(T) = \mathrm{End}_T(V_n)$ & internal hom in $\mathbf{Mod}_R$ (\emph{not} HSP; Mac Lane~\cite{maclane1971categories} §VII) & \cppinline{is_endomorphism_ring_v<M, V>} & \cppinline{Matrix2x2V<T>} \\
 \bottomrule
 \end{tabular}
 \end{table}
@@ -2050,17 +2105,17 @@ algebra, the structural property, and the C++23 carrier.  Each row
 is a value of the parameter $X$ in Figure~\ref{fig:carrier-lattice};
 compositions ($X = D \circ C$ etc.) commute when their generators
 are independent.  Carrier-side concept across the table:
-\lstinline|IsQuotientAlgebra<Q>|.}
+\cppinline{IsQuotientAlgebra<Q>}.}
 \label{tab:rosetta-quotient}
 \small
 \begin{tabular}{@{}l l l l l@{}}
 \toprule
 \textbf{$X$} & \textbf{Polynomial ideal} & \textbf{Algebra} & \textbf{Structure} & \textbf{C++23 carrier} \\
 \midrule
-$D$ (Dual) & $(\varepsilon^2)$ & $R[\varepsilon]/(\varepsilon^2)$ & nilpotent (never integral) & \lstinline|Dual<F>| (\#504 generalises) \\
-$C$ (Cplx) & $(i^2 + 1)$ & $R[i]/(i^2 + 1)$ & integral-domain extension when $i^2{+}1$ irreducible; field extension when $R$ is a field$^a$ & \lstinline|Complex<R>| (\#505 generalises) \\
-$D \circ C \cong C \circ D$ & $(i^2 + 1, \varepsilon^2)$ & $R[i, \varepsilon]/(i^2{+}1, \varepsilon^2)$ & nilpotent dual of the complex extension & nested \lstinline|Dual<Complex<R>>| \\
-$G$ (Galois) & $(q(x))$ for $q$ irreducible & $\mathbb{F}_p[x]/(q(x))$ & finite field $\mathbb{F}_{p^n}$ & \lstinline|𝔽64| ($\mathbb{F}_2[x]/(x^6{+}x{+}1)$, PR \#444) \\
+$D$ (Dual) & $(\varepsilon^2)$ & $R[\varepsilon]/(\varepsilon^2)$ & nilpotent (never integral) & \cppinline{Dual<F>} (\#504 generalises) \\
+$C$ (Cplx) & $(i^2 + 1)$ & $R[i]/(i^2 + 1)$ & integral-domain extension when $i^2{+}1$ irreducible; field extension when $R$ is a field$^a$ & \cppinline{Complex<R>} (\#505 generalises) \\
+$D \circ C \cong C \circ D$ & $(i^2 + 1, \varepsilon^2)$ & $R[i, \varepsilon]/(i^2{+}1, \varepsilon^2)$ & nilpotent dual of the complex extension & nested \cppinline{Dual<Complex<R>>} \\
+$G$ (Galois) & $(q(x))$ for $q$ irreducible & $\mathbb{F}_p[x]/(q(x))$ & finite field $\mathbb{F}_{p^n}$ & \cppinline{𝔽64} ($\mathbb{F}_2[x]/(x^6{+}x{+}1)$, PR \#444) \\
 \bottomrule
 \end{tabular}
 
@@ -2098,7 +2153,11 @@ decidable predicate over $\mathbb{Q}$ that compiles into a finite
 type-level object --- no approximation, no series summation:
 
 % Source: src/main/modules/dedekind/numbers/symbolic.cppm (Sqrt2_Symbolic, ll. 24-38)
-\begin{lstlisting}[language=C++, caption={$\sqrt{2}$ as an intensional lower cut over $\mathbb{Q}$, from \texttt{dedekind.numbers:symbolic}. The predicate is the number.}, label={lst:euler}]
+\begin{listing}[htbp]
+\caption{$\sqrt{2}$ as an intensional lower cut over $\mathbb{Q}$, from \texttt{dedekind.numbers:symbolic}. The predicate is the number.}
+\label{lst:euler}
+\begin{cpp}
+
 template <typename Q>
 constexpr auto Sqrt2_Symbolic() {
   const dedekind::sets::Ω<Q, TernaryLogic> universe{};
@@ -2112,7 +2171,8 @@ constexpr auto Sqrt2_Symbolic() {
     return TernaryLogic::AND(universe(q), in_cut);
   });
 }
-\end{lstlisting}
+\end{cpp}
+\end{listing}
 
 \begin{figure}[htbp]
 \centering
@@ -2158,13 +2218,17 @@ indefinitely without losing reasoning power.
 The natural-number lattice (Gaussian integers, $0 \leq \mathrm{Re}, \mathrm{Im} \leq 3$)
 intersected with the square $[0.5,1.5]^2$ contains exactly $c_3 = 1+i$.
 The compiler proves all four membership assertions at translation time and folds the
-exported function to a single \lstinline{ret i1 true}.
+exported function to a single \cppinline{ret i1 true}.
 
 % Source: src/test/cpp/modules/dedekind/python/showcase_02_lattice_singleton.cpp
 % (Abridged: the source ships four static_asserts on representative test
 % points plus an extern "C" witness function; the listing below shows two
 % representative static_asserts.  See the source file for the full set.)
-\begin{lstlisting}[language=C++, caption={Showcase 2 source: lattice/square singleton in $\mathbb{C}$.}, label={lst:showcase02_src}]
+\begin{listing}[htbp]
+\caption{Showcase 2 source: lattice/square singleton in $\mathbb{C}$.}
+\label{lst:showcase02_src}
+\begin{cpp}
+
 constexpr auto c = var<ℂ>;
 
 constexpr auto natural_lattice_in_c =
@@ -2183,19 +2247,25 @@ using CLogic = typename decltype(lattice_square_intersection)::logic_species;
 
 static_assert(lattice_square_intersection(Complex<double>{1.0, 1.0}) == CLogic::True);
 static_assert(lattice_square_intersection(Complex<double>{0.0, 1.0}) == CLogic::False);
-\end{lstlisting}
+\end{cpp}
+\end{listing}
 
 % Source: src/test/cpp/modules/dedekind/python/showcase_02_lattice_singleton.ll
-\begin{lstlisting}[caption={Showcase 2 LLVM IR (\texttt{clang++-22 -O2}): constant true return.}, label={lst:showcase02_ir}]
+\begin{listing}[htbp]
+\caption{Showcase 2 LLVM IR (\texttt{clang++-22 -O2}): constant true return.}
+\label{lst:showcase02_ir}
+\begin{cpp}
+
 define noundef zeroext i1 @witness_lattice_square_singleton() local_unnamed_addr #0 {
   ret i1 true
 }
-\end{lstlisting}
+\end{cpp}
+\end{listing}
 
 
 For the previously shown cardinality-1 reduction on $\mathbb{N}$, the same
 meet operator, applied to two halfspaces whose bounds pin exactly one
-integer, yields a result whose type \emph{is} \lstinline{Singleton<4>}, with
+integer, yields a result whose type \emph{is} \cppinline{Singleton<4>}, with
 the unique inhabitant in the template parameter.
 
 
@@ -2211,7 +2281,7 @@ rule on the variant pair $(\texttt{Cardinality}, \texttt{SignedCardinality})$
 --- $\texttt{Set}\langle\mathbb{N}\rangle \cap \texttt{Set}\langle\mathbb{Z}\rangle$
 type-collapses to $\texttt{Set}\langle\mathbb{N}\rangle$, locked in by
 unit tests --- but the mechanism does not yet appear as an IR-fixture
-showcase with a \lstinline{ret i1 true / false} witness on a heterogeneous
+showcase with a \cppinline{ret i1 true / false} witness on a heterogeneous
 intersection.  Adding such a showcase makes the carrier-axis collapse
 empirically observable on the same footing as the cardinality-axis ones
 above; it sits naturally next to Showcases~3 and~4 in the grid.  The full
@@ -2231,7 +2301,7 @@ integer lattice intersected with real-valued bounds (showcase~7), and
 The lattice $\mathbb{N} \subset \mathbb{Z} \subset \mathbb{Q} \subset \mathbb{R}
 \subset \mathbb{C}$ rests on a machine layer occupied by the standard library's
 primitive integer families. The honest textbook reading of
-\lstinline{std::unsigned_integral} is that each width-$w$ instance is the
+\cppinline{std::unsigned_integral} is that each width-$w$ instance is the
 finite cyclic ring $\mathbb{Z}/2^w\mathbb{Z}$ under modular arithmetic --- a
 \emph{commutative ring}, \emph{not} the textbook
 $\mathbb{N}$.\footnote{The mod-wrap arithmetic gives every element an additive
@@ -2239,8 +2309,8 @@ inverse: $u + (2^w - u) \equiv 0 \pmod{2^w}$. The textbook $\mathbb{N}$ is a
 commutative semiring \emph{without} additive inverse; calling \texttt{unsigned
 int} ``natural numbers'' is a category-theoretic error in the direction of
 claiming \emph{more} structure than $\mathbb{N}$ actually has.} The library's
-$\mathbb{N}$ lives on the variant carrier \lstinline{Cardinality} (the
-saturating commutative monoid, no $-$); the \lstinline{std::unsigned_integral}
+$\mathbb{N}$ lives on the variant carrier \cppinline{Cardinality} (the
+saturating commutative monoid, no $-$); the \cppinline{std::unsigned_integral}
 layer is the canonical quotient of monoids
 $\mathbb{N} \twoheadrightarrow \mathbb{Z}/2^w\mathbb{Z}$ that sits
 \emph{above} $\mathbb{N}$ rather than coinciding with
@@ -2267,12 +2337,12 @@ has.\footnote{The literal C++ ring operators ($+$, binary $-$, unary $-$,
 $*$) all close on \texttt{int} and the order layer is fine; the operator
 surface really is there.  But \emph{signed-overflow is undefined behaviour},
 which means closure-under-arithmetic fails as a stable axiom.  The library's
-posture is therefore honest in both directions: \lstinline{HasRingOperators<int>}
-fires (the surface is real); \lstinline{IsRing<int, std::plus, std::multiplies>}
+posture is therefore honest in both directions: \cppinline{HasRingOperators<int>}
+fires (the surface is real); \cppinline{IsRing<int, std::plus, std::multiplies>}
 does not (the axiomatic-ring witness would be a false claim under UB).  The
 exact-$\mathbb{Z}$ reading lives one carrier step deeper, on
-\lstinline{SignedCardinality} (with $\pm\aleph_0$ saturation and
-\lstinline{NaZ}).}  The Kleene-truth-value version of the embedding chain is
+\cppinline{SignedCardinality} (with $\pm\aleph_0$ saturation and
+\cppinline{NaZ}).}  The Kleene-truth-value version of the embedding chain is
 $\mathbb{K3} \hookrightarrow \texttt{std::signed\_integral} \to \mathbb{Z}$,
 factored exactly as the Boolean / unsigned chain is: \texttt{embed\_}$\mathbb{K}3$\texttt{\_}$\mathbb{Z}$\texttt{\_}
 encodes the three Kleene values into the signed-int machine layer (\texttt{False}
@@ -2285,7 +2355,7 @@ purport to inhabit, and the type system refuses the mismatch in both
 directions.  An engineer who claims that the carrier their code uses is a ring
 ``in spirit'' is making the kind of public statement the truthfulness canons
 of \cite{nspe_ethics} are about; the type system's refusal to accept the
-\lstinline{IsRing<int>} witness is the mechanical analogue of an external
+\cppinline{IsRing<int>} witness is the mechanical analogue of an external
 review catching the claim.}
 
 % ============================================================
@@ -2376,7 +2446,11 @@ emitted binary contains only the literal coordinates of $(2,2)$.}
 \end{figure}
 
 % Source: src/test/cpp/modules/dedekind/python/showcase_09_lp_vertex_typed_constant.cpp
-\begin{lstlisting}[language=C++, caption={Compile-time LP: the optimum IS a type. From \texttt{showcase\_09\_lp\_vertex\_typed\_constant.cpp}.}, label={lst:lp-centrepiece}]
+\begin{listing}[htbp]
+\caption{Compile-time LP: the optimum IS a type. From \texttt{showcase\_09\_lp\_vertex\_typed\_constant.cpp}.}
+\label{lst:lp-centrepiece}
+\begin{cpp}
+
 using Rat = Rational<SignedExtensionalCardinal<>>;  // canonical exact ℚ
 using H1 = Halfspace2D<Rat, Rat{1}, Rat{1}, Rat{4}>;     //  x +  y <= 4
 using H2 = Halfspace2D<Rat, Rat{2}, Rat{1}, Rat{6}>;     // 2x +  y <= 6
@@ -2385,7 +2459,8 @@ using H4 = Halfspace2D<Rat, Rat{0}, Rat{-1}, Rat{0}>;    //       y >= 0
 
 using Optimum = decltype(maximize<Rat, Rat{3}, Rat{2}, H1, H2, H3, H4>());
 static_assert(std::same_as<Optimum, Vec2<Rat, Rat{2}, Rat{2}>>);
-\end{lstlisting}
+\end{cpp}
+\end{listing}
 
 The reduction enumerates vertex candidates at compile time (all
 $\binom{4}{2} = 6$ pairs of binding constraints), solves each $2 \times 2$
@@ -2402,7 +2477,11 @@ At \texttt{-O2}, \texttt{clang}'s optimiser folds the entire LP
 reduction to literal integers:
 
 % Source: src/test/cpp/modules/dedekind/python/showcase_09_lp_vertex_typed_constant.ll
-\begin{lstlisting}[caption={Emitted LLVM IR for Showcase~9. The six candidate solves, six feasibility checks, and six objective comparisons collapse to constant returns.}, label={lst:lp-ir}]
+\begin{listing}[htbp]
+\caption{Emitted LLVM IR for Showcase~9. The six candidate solves, six feasibility checks, and six objective comparisons collapse to constant returns.}
+\label{lst:lp-ir}
+\begin{cpp}
+
 define noundef i64 @witness_lp_optimum_x() ... {
   ret i64 2
 }
@@ -2410,7 +2489,8 @@ define noundef i64 @witness_lp_optimum_x() ... {
 define noundef i64 @witness_lp_optimum_y() ... {
   ret i64 2
 }
-\end{lstlisting}
+\end{cpp}
+\end{listing}
 
 The IR is checked into the repository as a fixture
 (\texttt{showcase\_09\_lp\_vertex\_typed\_constant.ll}); a build-time
@@ -2418,13 +2498,13 @@ gate (\texttt{make ir-fixture-check}) fails CI if optimiser drift ever
 loses the collapse. The binary contains no LP solver; no simplex
 tableau; no active-set machinery. More precisely: the vertex's
 coordinates are non-type template parameters of the result type
-(\lstinline|Vec2<Rat, Rat{2}, Rat{2}>|), so the C++23 NTTP machinery
+(\cppinline{Vec2<Rat, Rat{2}, Rat{2}>}), so the C++23 NTTP machinery
 is what carries the answer through to type-level. The input is a
 constexpr value passed as NTTP; the output is a type whose NTTPs
 encode the coordinates; the runtime call returning a coordinate
 collapses to a literal load in the emitted IR.  Because the reduction
 lands in \texttt{Rational<...>} rather than IEEE floating point, the
-\lstinline{ret i64 2} output is bit-identical across ARM and x86
+\cppinline{ret i64 2} output is bit-identical across ARM and x86
 back-ends and host floating-point ABIs --- the typed constant has
 no rounding mode to disagree about.  This is the embedded /
 cross-platform-determinism guarantee the paper has been claiming
@@ -2456,7 +2536,11 @@ $x + y \leq 4 + \varepsilon$). The active set is unchanged for
 infinitesimal perturbation; the Cramer solve now runs over duals:
 
 % Source: src/test/cpp/modules/dedekind/optimization/lp_test.cpp
-\begin{lstlisting}[language=C++, caption={Parametric LP over \texttt{Dual<Rat>}. From \texttt{lp\_test.cpp}.}, label={lst:lp-dual}]
+\begin{listing}[htbp]
+\caption{Parametric LP over \texttt{Dual<Rat>}. From \texttt{lp\_test.cpp}.}
+\label{lst:lp-dual}
+\begin{cpp}
+
 using D = Dual<Rat>;
 using H1P = Halfspace2D<D, D{Rat{1L}}, D{Rat{1L}},
                         D{Rat{4L}, Rat{1L}}>;  // bound = 4 + epsilon
@@ -2468,7 +2552,8 @@ constexpr auto v = maximize_value<D, D{Rat{3L}}, D{Rat{2L}},
                                   H1P, H2D, H3D, H4D>();
 static_assert(v.x.val == Rat{2L}  && v.x.der == Rat{-1L});
 static_assert(v.y.val == Rat{2L}  && v.y.der == Rat{2L});
-\end{lstlisting}
+\end{cpp}
+\end{listing}
 
 \noindent
 The primal $(2, 2)$ is the original optimum; the tangents $(-1, +2)$
@@ -2493,7 +2578,7 @@ $a + b\varepsilon \mapsto
 are ring monomorphisms $\mathbb{C}, \mathbb{D} \hookrightarrow
 M_2(\mathbb{Q})$ (see, e.g., Lang~\cite{lang2002algebra}). The
 library claims both identities at the type level over
-\lstinline{Rational<SignedExtensionalCardinal<>>} and the compiler
+\cppinline{Rational<SignedExtensionalCardinal<>>} and the compiler
 discharges them as bit-perfect \texttt{static\_assert}s, with the
 defining relation $\varepsilon^2 = 0$ lifting to
 $\bigl(\begin{smallmatrix} 0 & 1 \\ 0 & 0 \end{smallmatrix}\bigr)^2
@@ -2512,7 +2597,11 @@ $\operatorname{Cplx}(\mathbb{Q}), \operatorname{Dual}(\mathbb{Q})
 \hookrightarrow M_2(\mathbb{Q})$ mechanically.
 
 % Source: src/test/cpp/modules/dedekind/linear_algebra/embeddings_test.cpp
-\begin{lstlisting}[language=C++, caption={Ring-homomorphism identities $\mathbb{C}, \mathbb{D} \hookrightarrow M_2(\mathbb{Q})$, discharged as \lstinline{static_assert}s; the source uses Catch2 \lstinline{STATIC_CHECK} macros and \lstinline{Rat{...L}} long-suffixed rationals, abridged here for legibility.}, label={lst:lin-alg-embeddings}]
+\begin{listing}[htbp]
+\caption{Matrix embeddings of complex and dual numbers over $\mathbb{Q}$.}
+\label{lst:lin-alg-embeddings}
+\begin{cpp}
+
 using Rat = Rational<SignedExtensionalCardinal<>>;
 constexpr Complex<Rat> z{Rat{1}, Rat{2}}, w{Rat{3}, Rat{-5}};
 constexpr Dual<Rat>    d{Rat{2}, Rat{3}}, e{Rat{-1}, Rat{5}};
@@ -2522,7 +2611,8 @@ static_assert(as_matrix2x2(d + e) == as_matrix2x2(d) + as_matrix2x2(e));
 static_assert(as_matrix2x2(d * e) == as_matrix2x2(d) * as_matrix2x2(e));
 constexpr Dual<Rat> eps{Rat{0}, Rat{1}};
 static_assert(as_matrix2x2(eps) * as_matrix2x2(eps) == zero_matrix2x2_v<Rat>);
-\end{lstlisting}
+\end{cpp}
+\end{listing}
 
 \subsection{From Cardinality Pruning to Type-Directed Collapse}
 \label{sec:gap}
@@ -2591,9 +2681,9 @@ $\pm\infty$-style sentinels when $T$ is unbounded). Then the meet
 is resolved at compile time to exactly one of:
 \begin{enumerate}
   \item $\varnothing$, when $a^\star > b^\star$;
-  \item a \lstinline{Singleton<v>}, when $T$ is integral and
+  \item a \cppinline{Singleton<v>}, when $T$ is integral and
         $a^\star = b^\star = v$;
-  \item an \lstinline{OrderInterval}~$[a^\star, b^\star]$
+  \item an \cppinline{OrderInterval}~$[a^\star, b^\star]$
         otherwise.
 \end{enumerate}
 \end{theorem}
@@ -2642,8 +2732,8 @@ move at the algebraic register. Wadler showed that polymorphic
 types in the typed lambda calculus discharge a class of theorems by
 parametricity alone, with no further proof obligation on the
 caller. Here, the analogous discharge runs from \emph{carrier-axiom
-declaration} (\lstinline{HasTotalOrderOperators<T>} +
-\lstinline{IsTotallyOrdered<T>}, plus the integral-carrier
+declaration} (\cppinline{HasTotalOrderOperators<T>} +
+\cppinline{IsTotallyOrdered<T>}, plus the integral-carrier
 witness when case 2 is to fire) to a carrier-level reduction of any
 finite intersection of half-line constraints. The engineer's
 honesty obligation is the axiom set; the collapse is
@@ -2693,7 +2783,7 @@ exhibits.
 \noindent\emph{Status of claim.} This conjecture is \emph{not}
 proved in the paper. It is supported by the same exhibition pattern
 as the 1D theorem: each case is checked into the library as a
-\lstinline{static_assert}/\lstinline{STATIC_CHECK} witness and,
+\cppinline{static_assert}/\cppinline{STATIC_CHECK} witness and,
 where relevant, as an LLVM~IR fixture that fails CI on optimiser
 drift (see Section~\ref{sec:pruning}). The 2D linear-programming
 showcase of Section~\ref{sec:lp-centrepiece} discharges one
@@ -2729,11 +2819,11 @@ sketches that do not.
   \item \textbf{Carrier tightening.} Intersecting a subset of
     $\mathbb{N}$ with a subset of $\mathbb{R}$ should land in $\mathbb{N}$:
     the carrier lattice contributes its own structural reduction via the
-    existing canonical embeddings (\lstinline{embed_uint_sint_},
-    \lstinline{embed_ℚ_ℝ}, \ldots).
+    existing canonical embeddings (\cppinline{embed_uint_sint_},
+    \cppinline{embed_ℚ_ℝ}, \ldots).
   \item \textbf{Smooth optimization.} The stationary set
     $\{x \mid \nabla f(x) = 0\}$ for a quadratic $f$ collapses to a
-    \lstinline{Singleton<x*>} with the minimizer in the template parameter.
+    \cppinline{Singleton<x*>} with the minimizer in the template parameter.
     Same reduction pattern, applied at the extremum operator.
     \emph{Scope note:} the polytope / linear-programming domain is not
     incidental.  Active-set enumeration over halfspaces is
@@ -2746,7 +2836,7 @@ sketches that do not.
     under \#363.
   \item \textbf{Linear programming} (demonstrated in
     Section~\ref{sec:lp-centrepiece} and Section~\ref{sec:ad-elliott}).
-    \lstinline{maximize(c, polytope)} reduces, for compile-time-sized LPs, to
+    \cppinline{maximize(c, polytope)} reduces, for compile-time-sized LPs, to
     a typed vertex via type-level active-set enumeration, and the same
     reduction over a dual-number carrier yields sensitivity analysis
     with no extra code path: the solver is the compiler.
@@ -2758,14 +2848,14 @@ sketches that do not.
 \end{itemize}
 
 Each axis sits on the foundation shared with Section~\ref{sec:pruning}: NTTP
-predicates, structured \lstinline{operator&} dispatch, and the computability
+predicates, structured \cppinline{operator&} dispatch, and the computability
 tiers visible in the showcases. Taken together they sketch a program of
 which the present halfspace reductions are one installment.
 
 The polynomial-calculus exhibit (companion-repository
 \texttt{:polynomial} / \texttt{:ftc} partitions) belongs to the same
 family but at the \emph{function} layer: a polynomial reduced under
-\lstinline{derive} (a ring homomorphism) or a numerical integrator
+\cppinline{derive} (a ring homomorphism) or a numerical integrator
 yields another intensional object whose identity with a target is
 discharged by the compiler.
 
@@ -2786,7 +2876,7 @@ A^{-1} \oplus B^{-1}$ exact over $\mathbb{Q}$ and verifiable by
 
 % Source:
 % src/test/cpp/modules/dedekind/linear_algebra/matrix_test.cpp
-\begin{lstlisting}[language=C++, basicstyle=\ttfamily\small]
+\begin{cpp}
 TEST_CASE("linear_algebra:matrix --- Tier 1: "
           "DirectSum preserves invertibility") {
   constexpr Invertible2x2<Rat, Rat{1L}, Rat{2L},
@@ -2803,7 +2893,7 @@ TEST_CASE("linear_algebra:matrix --- Tier 1: "
   STATIC_CHECK(ds * ds_inv == IdentityDirectSum{});
   STATIC_CHECK(ds_inv * ds == IdentityDirectSum{});
 }
-\end{lstlisting}
+\end{cpp}
 
 \noindent \texttt{BlockUpperTriangular<A, B, D>} extends the same
 propagation to triangular blocks under a degenerate-Schur condition
@@ -2826,14 +2916,14 @@ recursion of the same combinator pattern.
 \paragraph{Carrier choices, error messages, ergonomics.}
 The carrier-vs-overflow trade-offs are catalogued in
 Section~\ref{sec:carrier-rosetta}'s Rosetta tables: showcases default
-to \lstinline{Rational<SignedExtensionalCardinal<>>} (exact, no
+to \cppinline{Rational<SignedExtensionalCardinal<>>} (exact, no
 silent overflow); programmers who trade exactness for native
 performance pick a primitive row and accept the named failure mode
-(signed-overflow UB on \lstinline|int|; non-associative rounding on
-\lstinline|float|/\lstinline|double|).  The combinators of
-Section~\ref{sec:pruning} bind to \lstinline{HasRingOperators}
+(signed-overflow UB on \cppinline{int}; non-associative rounding on
+\cppinline{float}/\cppinline{double}).  The combinators of
+Section~\ref{sec:pruning} bind to \cppinline{HasRingOperators}
 rather than any particular carrier, so the swap is a one-line change
-at the \lstinline{using} declaration.  Error messages, by contrast,
+at the \cppinline{using} declaration.  Error messages, by contrast,
 are a more universal C++ pain: a failed \texttt{static\_assert} in a
 deep reduction can produce a multi-page expansion trail that no
 library can fully repair.  The realistic ambition is to \emph{fail
@@ -2841,15 +2931,15 @@ fast at the named axiom} --- the first message the reader sees should
 be the predicate that genuinely broke, not the cascade of downstream
 failures it triggered.  The library structures concept ladders so
 that each rung adds a single named requirement, and uses targeted
-\lstinline{static_assert} messages inside internal reductions, so a
+\cppinline{static_assert} messages inside internal reductions, so a
 violation surfaces at the smallest witness rather than deep inside
 overload resolution.\footnote{Worked diagnostic: a rank-deficient
-\lstinline{Invertible2x2<Rat, 1, 2, 2, 4>} input produces a single
+\cppinline{Invertible2x2<Rat, 1, 2, 2, 4>} input produces a single
 named message (\texttt{Invertible2x2 requires full rank: a*d - b*c
 != 0}) at the \texttt{static\_assert} site with one \texttt{note}
 pointing at the instantiation, no substitution-failure cascade.  The
 predicate sits inside the class body as a literal
-\texttt{static\_assert} rather than as a \lstinline{requires}-clause
+\texttt{static\_assert} rather than as a \cppinline{requires}-clause
 to be probed, so the diagnostic fires at the named axiom directly.}
 
 In short: the compiler wall has a predictable shape---depth, steps,
@@ -2865,46 +2955,46 @@ building the library are observational, not advocacy, and each is
 pinned at a concrete file in source (with the relevant lines flagged
 in the corresponding partition's witness blocks) so a reader can
 verify the mechanism rather than take the claim on faith.
-\emph{Integer-promotion shape mismatch}: \lstinline|bool + bool| and
-\lstinline|bool * bool| return \lstinline|int| rather than
-\lstinline|bool|; \lstinline|unsigned short + unsigned short| /
-\lstinline|unsigned short * unsigned short| and
-\lstinline|unsigned char + unsigned char| /
-\lstinline|unsigned char * unsigned char| likewise promote to
-\lstinline|int|. The functor surface
-(\lstinline|std::plus<bool>|, \lstinline|std::multiplies<unsigned short>|)
-returns the carrier by signature, but the literal \lstinline|+| /
-\lstinline|*| operator surface does not (witnessed at
+\emph{Integer-promotion shape mismatch}: \cppinline{bool + bool} and
+\cppinline{bool * bool} return \cppinline{int} rather than
+\cppinline{bool}; \cppinline{unsigned short + unsigned short} /
+\cppinline{unsigned short * unsigned short} and
+\cppinline{unsigned char + unsigned char} /
+\cppinline{unsigned char * unsigned char} likewise promote to
+\cppinline{int}. The functor surface
+(\cppinline{std::plus<bool>}, \cppinline{std::multiplies<unsigned short>})
+returns the carrier by signature, but the literal \cppinline{+} /
+\cppinline{*} operator surface does not (witnessed at
 \texttt{algebra/ring.cppm}, \texttt{algebra/field.cppm},
 \texttt{numbers/uint.cppm}, \texttt{order/lattice.cppm}).
-\emph{Signed-overflow UB defeats $\mathbb{Z}$}: \lstinline|int| /
-\lstinline|long| / \lstinline|long long| carry the literal ring
+\emph{Signed-overflow UB defeats $\mathbb{Z}$}: \cppinline{int} /
+\cppinline{long} / \cppinline{long long} carry the literal ring
 operator surface
-(\lstinline|HasRingOperators<int>| fires) but \emph{not} the
+(\cppinline{HasRingOperators<int>} fires) but \emph{not} the
 axiomatic ring witness, because closure-under-arithmetic fails as a
 stable axiom under signed-overflow UB; the negative pins
-\lstinline|!Group_ℤ<int>|, \lstinline|!IsArithmeticAdditiveGroup<int>|,
-\lstinline|!category::IsRing<int, std::plus, std::multiplies>| at
+\cppinline{!Group_ℤ<int>}, \cppinline{!IsArithmeticAdditiveGroup<int>},
+\cppinline{!category::IsRing<int, std::plus, std::multiplies>} at
 \texttt{numbers/sint.cppm} make the rejection mechanical.
-\emph{IEEE 754 breaks reflexivity}: \lstinline|NaN <= NaN|
-evaluates to \lstinline|false|, so
-\lstinline|is_reflexive_v<double, std::less_equal<>>| is deliberately
-not registered, and \lstinline|!IsTotallyOrdered<double>|,
-\lstinline|!IsTotallyOrdered<long double>|, and
-\lstinline|!category::IsRing<double, std::plus, std::multiplies>|
+\emph{IEEE 754 breaks reflexivity}: \cppinline{NaN <= NaN}
+evaluates to \cppinline{false}, so
+\cppinline{is_reflexive_v<double, std::less_equal<>>} is deliberately
+not registered, and \cppinline{!IsTotallyOrdered<double>},
+\cppinline{!IsTotallyOrdered<long double>}, and
+\cppinline{!category::IsRing<double, std::plus, std::multiplies>}
 all hold (\texttt{numbers/floating\_point.cppm} +
 \texttt{order/total.cppm}); the operational ordered-field reading
-survives via \lstinline|IsOrderedField<double>| in
+survives via \cppinline{IsOrderedField<double>} in
 \texttt{morphologies/archimedean.cppm}.
-\emph{\lstinline|std::variant| NTTP-unfriendliness}: the variant
-$\mathbb{Z}$-proxy \lstinline|SignedCardinality| (variant of
-\lstinline|SignedExtensionalCardinal<>|, $\pm\aleph_0$,
-\lstinline|NaZ|) cannot be a non-type template parameter without
+\emph{\cppinline{std::variant} NTTP-unfriendliness}: the variant
+$\mathbb{Z}$-proxy \cppinline{SignedCardinality} (variant of
+\cppinline{SignedExtensionalCardinal<>}, $\pm\aleph_0$,
+\cppinline{NaZ}) cannot be a non-type template parameter without
 workarounds, blocking compile-time arithmetic on the saturating
 integer carrier (\texttt{sets/cardinality.cppm},
 \texttt{numbers/rational.cppm}).
-\emph{\lstinline|std::integral| unifies three structurally distinct algebras}:
-\lstinline!std::integral T = std::unsigned_integral T || std::signed_integral T || std::same_as<T, bool>!,
+\emph{\cppinline{std::integral} unifies three structurally distinct algebras}:
+\cppinline{std::integral T = std::unsigned_integral T || std::signed_integral T || std::same_as<T, bool>},
 and the three siblings are a finite cyclic ring, an
 operator-surface-without-axioms carrier, and (separately) the
 Boolean rig + Galois field $\mathbb{F}_2$; nothing axiomatic
@@ -2919,7 +3009,7 @@ policy gate. The canonical example is the rational-field claim,
 which the showcases program against without committing the carrier
 to a specific machine integer:
 %
-\begin{lstlisting}[language=C++,basicstyle=\ttfamily\small]
+\begin{cpp}
 // numbers/rational.cppm --- operational field-like witness for ℚ.
 // HasFieldOperators is the operator-surface gate; the strict
 // axiomatic field witness lives at category::IsField but is not
@@ -2935,22 +3025,22 @@ static_assert(
     "Rational<SignedExtensionalCardinal<>> must satisfy "
     "HasFieldOperators: the intended arbitrary-precision "
     "signed-rational carrier for ℚ.");
-\end{lstlisting}
+\end{cpp}
 %
 The two carriers differ in their machine-level friction profile
-(\lstinline|default_integer| trips signed-overflow UB on extreme
-inputs; \lstinline|SignedExtensionalCardinal<>| does not, at the
+(\cppinline{default_integer} trips signed-overflow UB on extreme
+inputs; \cppinline{SignedExtensionalCardinal<>} does not, at the
 cost of variant-NTTP friction) but both discharge the operational
-gate. Downstream combinators bind to \lstinline|HasFieldOperators|
-rather than to \lstinline|category::IsField|, and the carrier swap
-between the two is a one-line change at the \lstinline|using|
+gate. Downstream combinators bind to \cppinline{HasFieldOperators}
+rather than to \cppinline{category::IsField}, and the carrier swap
+between the two is a one-line change at the \cppinline{using}
 declaration. The gate is the load-bearing concept; the strict
 axiomatic field is reachable, on demand, when a use site warrants
 the heavier obligation.
 
 In short, where Section~\ref{sec:compiler-wall} names the
 \emph{mechanical} boundaries of the technique (template depth,
-\lstinline|consteval| budgets, combinatorial blowup, diagnostics),
+\cppinline{consteval} budgets, combinatorial blowup, diagnostics),
 this subsection names the \emph{algebraic} boundary: which axioms
 discharge cleanly on which carriers, where the obligation falls to
 the engineer, and which frictions block the discharge. The empirical
@@ -2980,13 +3070,13 @@ Every reduction in this paper is a variadic template, so two
 \texttt{clang} budgets matter: \emph{instantiation depth} (default
 $1024$, raised to $2048$ on the affected translation units; concepts
 and NTTP lambdas each add frames so the limit hits earlier than the
-naive count suggests) and \emph{\lstinline{constexpr} steps} (default
-$\sim\!10^6$, capping a single \lstinline{constexpr} evaluation).  A
+naive count suggests) and \emph{\cppinline{constexpr} steps} (default
+$\sim\!10^6$, capping a single \cppinline{constexpr} evaluation).  A
 $2\times 2$ LP with four constraints is comfortably under both; a
 $2\times 2$ LP with thirty constraints ($\binom{30}{2} = 435$ active
 sets and nontrivial metadata) starts approaching the step limit.
-Raising the caps is possible (\lstinline{-ftemplate-depth=N},
-\lstinline{-fconstexpr-steps=N}) but trades compile time and resident
+Raising the caps is possible (\cppinline{-ftemplate-depth=N},
+\cppinline{-fconstexpr-steps=N}) but trades compile time and resident
 memory for reach; the more principled answer is to stop at the
 boundary and hand off to a runtime solver --- which is exactly the
 case our centrepiece is \emph{not}.
@@ -3002,15 +3092,15 @@ constraints, and on a handwritten polytope most of the syntactic
 constraint list is slack or redundant; the $\binom{n}{d}$ figure
 counts enumeration cost, not what any one vertex actually witnesses.
 Many of those redundancies are also \emph{statically} removable: the
-library's \lstinline{structured_and} dispatch already collapses
+library's \cppinline{structured_and} dispatch already collapses
 linearly-dependent or contradictory halfspaces at compile time
 (Showcases~3 and~4), so the combinatorial term tracks the pruned
 count rather than the raw
 one.\footnote{Concretely:
-\lstinline|x > 5 && x > 7| collapses to \lstinline|x > 7| (stricter
-pivot wins); \lstinline|x > 5 && x < 2| collapses to $\varnothing$
-(contradiction); \lstinline|x > 3 && x < 5| over an integral carrier
-collapses to \lstinline{Singleton<4>}.  The 2D extension --- pruning
+\cppinline{x > 5 && x > 7} collapses to \cppinline{x > 7} (stricter
+pivot wins); \cppinline{x > 5 && x < 2} collapses to $\varnothing$
+(contradiction); \cppinline{x > 3 && x < 5} over an integral carrier
+collapses to \cppinline{Singleton<4>}.  The 2D extension --- pruning
 halfspaces whose normals are linearly dependent --- follows the same
 dispatch pattern.}
 The instance regime this paper targets --- MPC steps with a handful
@@ -3024,10 +3114,10 @@ Even within the compile-time regime, a user with domain knowledge of
 \emph{which} halfspaces bind at the optimum can short-circuit the
 $\binom{n}{d}$ enumeration entirely: because the constraint pack is
 already an NTTP list, instantiating
-\lstinline|maximize<T, cx, cy, H_i, H_j>()| with just the binding
+\cppinline{maximize<T, cx, cy, H_i, H_j>()} with just the binding
 pair (instead of the full pack) is exactly the active-set hint, and
 the library evaluates only that single Cramer solve.  An explicit
-\lstinline|with_active_set<...>| API that takes the hint as a separate
+\cppinline{with_active_set<...>} API that takes the hint as a separate
 template argument and verifies feasibility against the full pack
 without re-enumerating is a natural successor surface, but the
 underlying NTTP-pack-as-hint mechanism is available today: dropping
@@ -3059,14 +3149,14 @@ declares the trait carries Wadler's
 obligation under the NSPE Code of Ethics canons III and IV (truthful
 public statements; faithful agency). The library ships several such
 opt-in surfaces:
-\lstinline{is_monic_arrow_v} for monomorphism declarations,
-\lstinline{is_initial_ring_v} for the initial-object reading of
-$\mathbb{Z}$, \lstinline{is_grothendieck_group_v} for the
-free-abelian-group reading, \lstinline{is_initial_f_algebra_v} for the
+\cppinline{is_monic_arrow_v} for monomorphism declarations,
+\cppinline{is_initial_ring_v} for the initial-object reading of
+$\mathbb{Z}$, \cppinline{is_grothendieck_group_v} for the
+free-abelian-group reading, \cppinline{is_initial_f_algebra_v} for the
 NNO-as-initial-F-algebra reading, and a family of axiom-shape concepts
-including \lstinline{IsRing}, \lstinline{IsField},
-\lstinline{IsTotallyOrdered}, \lstinline{IsArchimedean}, and
-\lstinline{IsCyclicGroup}. Each is the engineer's claim, not a
+including \cppinline{IsRing}, \cppinline{IsField},
+\cppinline{IsTotallyOrdered}, \cppinline{IsArchimedean}, and
+\cppinline{IsCyclicGroup}. Each is the engineer's claim, not a
 machine-discharged proof; the structural shape (signatures, closure,
 opt-in trait set to \texttt{true}) is what the type system can pin
 mechanically.
@@ -3160,11 +3250,11 @@ GraphBLAS~\cite{kepner2011graphalgs, davis2019graphblas}, whose
 explicit \emph{(carrier, $+$, $\times$)} semiring parameterisation
 makes the ring-over-which-matrices-live a first-class configurable
 property. That matches the discipline this paper argues for:
-matrices over \lstinline{bool} (with OR/AND) are perfectly
+matrices over \cppinline{bool} (with OR/AND) are perfectly
 well-defined objects when inversion is not required, matrices over
-\lstinline{char} are useful for quantised embedded inference, and
-both sit naturally inside the \lstinline{HasRingOperators} /
-\lstinline{HasSemiringOperators} concept hierarchy. The cost of this
+\cppinline{char} are useful for quantised embedded inference, and
+both sit naturally inside the \cppinline{HasRingOperators} /
+\cppinline{HasSemiringOperators} concept hierarchy. The cost of this
 generality is library complexity rather than carrier simplicity.
 The trade we advocate is correctness-and-performance (tight control
 over the ring structure) at the price of implementation effort,

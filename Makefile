@@ -189,14 +189,16 @@ ci-install-doxygen-deps:
 
 # CI-only helper: install packages required for the paper LaTeX build.
 # Includes texlive-luatex since docs/paper builds with LuaLaTeX for
-# native UTF-8 support.
+# native UTF-8 support, and python3-pygments for the `minted` package
+# (per #557 — minted shells out to Pygments for native UTF-8 in code
+# listings; see lualatex -shell-escape in docs/paper/Makefile).
 ci-install-paper-deps:
 	@if ! command -v apt-get >/dev/null 2>&1; then \
 		echo "ERROR: ci-install-paper-deps requires apt-get (intended for Ubuntu CI runners)."; \
 		exit 2; \
 	fi
 	sudo apt-get update
-	sudo apt-get install -y biber texlive-latex-base texlive-latex-extra texlive-bibtex-extra texlive-pictures texlive-plain-generic texlive-fonts-recommended texlive-luatex
+	sudo apt-get install -y biber texlive-latex-base texlive-latex-extra texlive-bibtex-extra texlive-pictures texlive-plain-generic texlive-fonts-recommended texlive-fonts-extra texlive-luatex python3-pygments fonts-juliamono
 
 # CI/PR workflow helpers (optimistic concurrency loop)
 
