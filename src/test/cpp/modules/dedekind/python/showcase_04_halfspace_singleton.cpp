@@ -35,20 +35,20 @@ using namespace dedekind::order;
 constexpr auto n = element<Ω<ℕ>>;
 
 // Opposing halfspaces with compile-time pivots separated by exactly two.
-constexpr auto gt_three = Set{n | (n > bound<3>)};
-constexpr auto lt_five = Set{n | (n < bound<5>)};
+constexpr auto gt_3 = Set{n | n > bound<3>};
+constexpr auto lt_5 = Set{n | n < bound<5>};
 
 // Compile-time theorem: the meet IS the singleton {4} on ℕ.
-constexpr Singleton<4> in_between = gt_three & lt_five;
+constexpr Singleton<4> in_between = gt_3 & lt_5;
 static_assert(in_between == Singleton<4>{});
 
 // Computability made a compile-time observable: the parent Sets carry NONE
 // of the three tiers; the reduced Singleton carries ALL THREE. Compile-time
 // reduction from an intensional description over a transfinite carrier to a
 // named extensional object restores decidable, finite, type-level semantics.
-static_assert(!HasDecidableMembership<decltype(gt_three)>);
-static_assert(!IsFiniteSet<decltype(gt_three)>);
-static_assert(!IsCompileTimeEnumerable<decltype(gt_three)>);
+static_assert(!HasDecidableMembership<decltype(gt_3)>);
+static_assert(!IsFiniteSet<decltype(gt_3)>);
+static_assert(!IsCompileTimeEnumerable<decltype(gt_3)>);
 
 static_assert(HasDecidableMembership<decltype(in_between)>);
 static_assert(IsFiniteSet<decltype(in_between)>);

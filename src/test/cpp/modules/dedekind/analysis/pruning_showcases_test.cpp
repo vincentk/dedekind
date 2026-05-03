@@ -115,14 +115,14 @@ TEST_CASE("Pruning showcase 3: halfspace contradiction on ℕ collapses to Ø",
 TEST_CASE("Pruning showcase 4: cardinality-1 halfspace meet = Singleton<4>",
           "[analysis][pruning][showcase][showcase04]") {
   constexpr auto n = element<Ω<ℕ>>;
-  constexpr auto gt_three = Set{n | (n > bound<3>)};
-  constexpr auto lt_five = Set{n | (n < bound<5>)};
+  constexpr auto gt_3 = Set{n | n > bound<3>};
+  constexpr auto lt_5 = Set{n | n < bound<5>};
 
-  constexpr Singleton<4> in_between = gt_three & lt_five;
+  constexpr Singleton<4> in_between = gt_3 & lt_5;
   STATIC_CHECK(in_between == Singleton<4>{});
 
   SECTION("Elements now live at the type level") {
-    STATIC_CHECK_FALSE(IsCompileTimeEnumerable<decltype(gt_three)>);
+    STATIC_CHECK_FALSE(IsCompileTimeEnumerable<decltype(gt_3)>);
     STATIC_CHECK(IsCompileTimeEnumerable<decltype(in_between)>);
   }
 }

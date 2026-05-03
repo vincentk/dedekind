@@ -22,19 +22,19 @@ It defines an embedded domain-specific language (eDSL) for mathematics with the 
 // Cardinality-1 reduction: an intensional set over a transfinite
 // carrier collapses to a named extensional Singleton — at compile
 // time, with no lambdas, no predicate erasure.
-constexpr auto n        = element<Ω<ℕ>>;
-constexpr auto gt_three = Set{n | (n > bound<3>)};
-constexpr auto lt_five  = Set{n | (n < bound<5>)};
+constexpr auto n    = element<Ω<ℕ>>;
+constexpr auto gt_3 = Set{n | n > bound<3>};
+constexpr auto lt_5 = Set{n | n < bound<5>};
 
-constexpr Singleton<4> in_between = gt_three & lt_five;   // ≡ {4}
+constexpr Singleton<4> in_between = gt_3 & lt_5;   // ≡ {4}
 static_assert(in_between == Singleton<4>{});
 
 // The parent Sets carry NONE of the three computability tiers; the
 // reduced Singleton carries ALL THREE.  The intersection IS the
 // theorem: { n ∈ ℕ | n > 3 } ∩ { n ∈ ℕ | n < 5 } = {4}.
-static_assert(!HasDecidableMembership<decltype(gt_three)>);
-static_assert(!IsFiniteSet<decltype(gt_three)>);
-static_assert(!IsCompileTimeEnumerable<decltype(gt_three)>);
+static_assert(!HasDecidableMembership<decltype(gt_3)>);
+static_assert(!IsFiniteSet<decltype(gt_3)>);
+static_assert(!IsCompileTimeEnumerable<decltype(gt_3)>);
 
 static_assert(HasDecidableMembership<decltype(in_between)>);
 static_assert(IsFiniteSet<decltype(in_between)>);
