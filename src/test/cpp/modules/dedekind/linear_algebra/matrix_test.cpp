@@ -18,7 +18,7 @@ import dedekind.analysis; // Dual<F> (relocated from :numbers at #513)
 import dedekind.category;
 import dedekind.numbers;
 import dedekind.linear_algebra;
-import dedekind.order; // dedekind::order::HasLatticeOperators on bool (𝔹 lattice corner)
+import dedekind.order; // dedekind::order::HasLatticeOperators on bool (bool lattice corner)
 import dedekind.sets; // SignedExtensionalCardinal (the canonical ℚ carrier for the lattice corners)
 
 using namespace dedekind::analysis;
@@ -413,10 +413,10 @@ TEST_CASE("Algebraic Lattice (Figure 1): cube corners on the numeric tower",
   // (`numbers:boolean`, `algebra:universal`), but pinning them here
   // anchors the lattice bottom to the read-side test that names
   // itself for Figure 1.
-  STATIC_CHECK(IsAlgebra<𝔹, std::bit_xor<bool>, std::bit_and<bool>>);
+  STATIC_CHECK(IsAlgebra<bool, std::bit_xor<bool>, std::bit_and<bool>>);
   STATIC_CHECK(
-      dedekind::category::IsField<𝔹, std::bit_xor<bool>, std::bit_and<bool>>);
-  STATIC_CHECK(dedekind::order::HasLatticeOperators<𝔹>);
+      dedekind::category::IsField<bool, std::bit_xor<bool>, std::bit_and<bool>>);
+  STATIC_CHECK(dedekind::order::HasLatticeOperators<bool>);
 
   // ---- Boundary case: alphabet choice on the 𝔹-rooted cells ----
   //
