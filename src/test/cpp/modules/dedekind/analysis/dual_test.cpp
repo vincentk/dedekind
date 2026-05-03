@@ -112,15 +112,15 @@ TEST_CASE("Analysis: 𝔻 / D / DualSet starter aliases",
   STATIC_CHECK(std::same_as<𝔻, DualSet>);
   STATIC_CHECK(std::same_as<decltype(D), const 𝔻>);
 
-  constexpr auto d = var<𝔻>;
-  constexpr auto duals = Set{d % D};
+  constexpr auto d = element<Ω<Dual<double>>>;
+  constexpr auto duals = Set{d};
   static_assert(duals(Dual<double>{1.0, 1.0}) == Ternary::True);
 }
 
 TEST_CASE("Analysis: 𝔻 lattice identity (U ∪ ¬U = top, U ∩ ¬U = bottom)",
           "[analysis][dual][starter][lattice]") {
-  constexpr auto d = var<𝔻>;
-  const auto U = Set{d % D};
+  constexpr auto d = element<Ω<Dual<double>>>;
+  const auto U = Set{d};
   const auto O = !U;
   CHECK((U | O)(Dual<double>{3.0, 1.0}) == Ternary::True);
   CHECK((U & O)(Dual<double>{3.0, 1.0}) == Ternary::False);

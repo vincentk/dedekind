@@ -13,14 +13,14 @@ namespace {
 
 // Even integers in [0, 10)
 constexpr auto evens_0_10 = [] {
-  auto x = var<ℕ>;
-  return Set{x % N | [](const auto& v) { return (v < 10u) && (v % 2u == 0u); }};
+  auto x = element<Ω<ℕ>>;
+  return Set{x | [](const auto& v) { return (v < 10u) && (v % 2u == 0u); }};
 }();
 
 // Multiples of 3 in [0, 10)
 constexpr auto threes_0_10 = [] {
-  auto x = var<ℕ>;
-  return Set{x % N | [](const auto& v) { return (v < 10u) && (v % 3u == 0u); }};
+  auto x = element<Ω<ℕ>>;
+  return Set{x | [](const auto& v) { return (v < 10u) && (v % 3u == 0u); }};
 }();
 
 }  // namespace
@@ -135,18 +135,20 @@ TEST_CASE("Relational Algebra: Intersection (∩)", "[sets][relational]") {
 // ---------------------------------------------------------------------------
 TEST_CASE("Relational Algebra: Natural Join (⋈)", "[sets][relational]") {
   // Relation R1: {(a, b) | 0 <= a < 4 and b = a + 1}  (successor pairs)
-  auto s1 = var_for_type<std::pair<int, int>>;
+  auto s1 = element<Ω<std::pair<int, int>>>;
   const auto succ =
-      Set{s1 % Ω<std::pair<int, int>>{} | [](const std::pair<int, int>& p) {
-        return (p.first >= 0) && (p.first < 4) && (p.second == p.first + 1);
-      }};
+      Set{s1 % UniversalSet<std::pair<int, int>>{} |
+          [](const std::pair<int, int>& p) {
+            return (p.first >= 0) && (p.first < 4) && (p.second == p.first + 1);
+          }};
 
   // Relation R2: {(b, c) | 0 <= b < 5 and c = b * 2}  (double pairs)
-  auto s2 = var_for_type<std::pair<int, int>>;
+  auto s2 = element<Ω<std::pair<int, int>>>;
   const auto dbl =
-      Set{s2 % Ω<std::pair<int, int>>{} | [](const std::pair<int, int>& p) {
-        return (p.first >= 0) && (p.first < 5) && (p.second == p.first * 2);
-      }};
+      Set{s2 % UniversalSet<std::pair<int, int>>{} |
+          [](const std::pair<int, int>& p) {
+            return (p.first >= 0) && (p.first < 5) && (p.second == p.first * 2);
+          }};
 
   // Join: succ ⋈ dbl = {(a, b, c) | b = a+1 and c = b*2}
   // => (0,1,2), (1,2,4), (2,3,6), (3,4,8)

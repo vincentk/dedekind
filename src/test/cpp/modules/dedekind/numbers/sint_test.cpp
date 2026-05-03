@@ -171,7 +171,7 @@ TEST_CASE("sint: 𝕂3 → sint → ℤ chain via embed_𝕂3_ℤ_ + lift",
 // Honest Rejection is structurally correct, but a separate question is
 // whether it imposes a practitioner-ergonomics cost.  The project's
 // answer is @b doctrinal: practitioners are encouraged to work over
-// the @b canonical mathematical set (@c var<ℤ>, predicates,
+// the @b canonical mathematical set (@c element<Ω<ℤ>>, predicates,
 // comprehension DSL, abstract algebraic operations on @c
 // SignedCardinality) — @b NOT to write machine-int-style code at the
 // variant layer.  Tests below exercise the idiomatic style.

@@ -81,7 +81,7 @@ using namespace dedekind::category;
 // preserves the geometry contract (Species with @c Domain @c = @c
 // unsigned @c int).
 export using NaturalLatticeSet = NaturalNumbersOf<>;
-export using IntegerLatticeSet = Ω<int>;
+export using IntegerLatticeSet = UniversalSet<int>;
 export using IntegerLatticeScalar = typename IntegerLatticeSet::Domain;
 export using IntegerLatticePoint2D =
     std::pair<IntegerLatticeScalar, IntegerLatticeScalar>;
@@ -121,10 +121,10 @@ struct LatticeFactory;
 template <>
 struct LatticeFactory<NaturalLatticeSet> {
   constexpr auto line() const {
-    auto k = var<ℕ>;
-    // Every unsigned value is in ℕ by construction post-#401; the
-    // predicate-set N is the universal classifier for unsigned values.
-    return Set{k % N};
+    auto k = element<Ω<ℕ>>;
+    // Every Cardinality value is in ℕ by construction post-#401;
+    // the universal-set @c Ω<ℕ> is the canonical classifier here.
+    return Set{k};
   }
 
   constexpr auto plane() const {
@@ -134,10 +134,10 @@ struct LatticeFactory<NaturalLatticeSet> {
 };
 
 template <std::signed_integral I>
-struct LatticeFactory<Ω<I>> {
+struct LatticeFactory<UniversalSet<I>> {
   constexpr auto line() const {
-    auto k = var_for_type<I>;
-    return Set{k % Ω<I>{}};
+    auto k = element<Ω<I>>;
+    return Set{k % UniversalSet<I>{}};
   }
 
   constexpr auto plane() const {
@@ -179,7 +179,7 @@ export constexpr auto integer_lattice_2d() {
  * @return A Set<NaturalLatticePoint2D, TernaryLogic, ...>.
  */
 export constexpr auto square_natural_grid(unsigned int n) {
-  auto p = var_for_type<NaturalLatticePoint2D>;
+  auto p = element<Ω<NaturalLatticePoint2D>>;
   const auto unbounded = natural_lattice_2d();
   return Set{p % unbounded | [n](const NaturalLatticePoint2D& q) {
     return (q.first < n) && (q.second < n);
@@ -195,7 +195,7 @@ export constexpr auto square_natural_grid(unsigned int n) {
  */
 export constexpr auto square_integer_grid(IntegerLatticeScalar lower,
                                           IntegerLatticeScalar upper) {
-  auto p = var_for_type<IntegerLatticePoint2D>;
+  auto p = element<Ω<IntegerLatticePoint2D>>;
   const auto unbounded = integer_lattice_2d();
   return Set{p % unbounded | [lower, upper](const IntegerLatticePoint2D& q) {
     return (q.first >= lower) && (q.first < upper) && (q.second >= lower) &&

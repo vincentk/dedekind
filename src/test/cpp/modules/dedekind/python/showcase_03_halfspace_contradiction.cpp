@@ -31,12 +31,14 @@ using namespace dedekind::algebra;
 using namespace dedekind::numbers;
 using namespace dedekind::order;
 
-// Symbolic variable ranging over ℕ; N is the canonical ambient-set witness.
-constexpr auto n = var<ℕ>;
+// Symbolic scout ranging over the universal set Ω<ℕ>.  Per #551, the
+// scout carries its ambient at the type level, so the % binding step
+// disappears from the set-builder DSL.
+constexpr auto n = element<Ω<ℕ>>;
 
 // Opposing halfspaces with compile-time pivots carried in the predicate type.
-constexpr auto gt_five = Set{n % N | (n > bound<5>)};
-constexpr auto lt_three = Set{n % N | (n < bound<3>)};
+constexpr auto gt_five = Set{n | (n > bound<5>)};
+constexpr auto lt_three = Set{n | (n < bound<3>)};
 
 // Compile-time theorem: the meet IS the empty set on ℕ.
 constexpr Ø<ℕ> empty_meet = gt_five & lt_three;

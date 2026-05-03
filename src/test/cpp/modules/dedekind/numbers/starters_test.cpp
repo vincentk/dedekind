@@ -9,36 +9,24 @@ using namespace dedekind::numbers;
 using namespace dedekind::sets;
 
 TEST_CASE("Numbers: canonical starter symbols", "[numbers][starter]") {
-  // Carrier-vs-predicate-set surface (post-#402; updates #401's reading).
-  //   • ℕ is the carrier type itself: ℕ = Cardinality (variant ℕ-proxy
-  //     = std::variant<ExtensionalCardinal<>, ℵ_0>; saturating to ℵ_0
-  //     on overflow).  Pre-#402 ℕ was the machine carrier `unsigned int`;
-  //     callers wanting that bounded reading now spell `unsigned int`
-  //     directly.
-  //   • N is the value-level universal Natural predicate-set, of type
-  //     NaturalNumbersOf<> (= Ω-flavoured classifier).
-  //   • The relationship is NaturalNumbersOf<>::Domain = ℕ — the
-  //     predicate-set's underlying element type IS the carrier.
+  // Per #551 (Ω<carrier> ambient redesign), the canonical species symbols
+  // are pure carrier types; the value-level *ambient* at each carrier is
+  // the universal-predicate value @c Ω<carrier>, of type
+  // @c UniversalSet<carrier>.  The schism between carrier-type and
+  // ambient-value is now uniform and minimal: one carrier, one
+  // @c Ω<carrier> value, no per-symbol predicate-set type to remember.
+
   STATIC_CHECK(std::same_as<ℕ, Cardinality>);
-  STATIC_CHECK(std::same_as<decltype(N), const NaturalNumbersOf<>>);
-  STATIC_CHECK(std::same_as<typename NaturalNumbersOf<>::Domain, ℕ>);
+  STATIC_CHECK(
+      std::same_as<std::remove_cvref_t<decltype(Ω<ℕ>)>, UniversalSet<ℕ>>);
 
-  // ℤ is the exact-ℤ carrier alias (SignedExtensionalCardinal<>) per
-  // #399 slice 3; the value-level constant Z keeps its predicate-set
-  // role for set-builder DSL.  Same shape as the ℚ row below.
   STATIC_CHECK(std::same_as<ℤ, SignedExtensionalCardinal<>>);
-  STATIC_CHECK(std::same_as<decltype(Z), const IntegersOf<>>);
+  STATIC_CHECK(
+      std::same_as<std::remove_cvref_t<decltype(Ω<ℤ>)>, UniversalSet<ℤ>>);
 
-  // ℚ is now the carrier type (the field of rationals); the value-level
-  // constant Q is the predicate-set instance (RationalsOf<> / RationalSet).
   STATIC_CHECK(std::same_as<ℚ, Rational<default_integer>>);
-  STATIC_CHECK(std::same_as<decltype(Q), const RationalsOf<>>);
-
-  STATIC_CHECK(std::same_as<ℝ, RealSet>);
-  STATIC_CHECK(std::same_as<decltype(R), const ℝ>);
-
-  STATIC_CHECK(std::same_as<ℂ, ComplexSet>);
-  STATIC_CHECK(std::same_as<decltype(C), const ℂ>);
+  STATIC_CHECK(
+      std::same_as<std::remove_cvref_t<decltype(Ω<ℚ>)>, UniversalSet<ℚ>>);
 
   // 𝔻 / D / DualSet starter aliases moved to dedekind.analysis:dual at
   // PR ; analogous STATIC_CHECKs live in
@@ -47,38 +35,25 @@ TEST_CASE("Numbers: canonical starter symbols", "[numbers][starter]") {
 
 TEST_CASE("Numbers: starter universes construct from ambient values",
           "[numbers][starter][sets]") {
-  constexpr auto n = var<ℕ>;
-  constexpr auto naturals = Set{n % N};
-  // The Set DSL routes calls through Domain = Cardinality (post-#402);
-  // unsigned literals lift implicitly into the variant's finite
-  // alternative (@c ExtensionalCardinal<>{u}), so callsites passing
-  // unsigned values still resolve naturally.  Every Cardinality value
-  // is in ℕ by construction (ℕ-as-carrier).
+  // Per #551, the new spelling is:
+  //   constexpr auto n = element<Ω<ℕ>>;     // typed scout
+  //   constexpr auto naturals = Set{n};      // universal Set on ℕ
+  //   static_assert(naturals.contains(7u));  // value-level membership query
+  //
+  // The `% N` binding step is gone: the scout already knows its ambient.
+
+  constexpr auto n = element<Ω<ℕ>>;
+  constexpr auto naturals = Set{n};
   static_assert(naturals(7u) == Ternary::True);
   static_assert(naturals(0u) == Ternary::True);
-  // Classifier reading (ℕ ⊂ ℤ via non-negativity) is preserved on direct
-  // calls to the predicate-set, where the int overload is reachable.
-  // The int overload returns ClassicalLogic::Ω (= bool) directly, not
-  // lifted through TernaryLogic.
-  static_assert(N(7) == true, "Predicate-set classifies 7 as natural.");
-  static_assert(N(-7) == false, "Predicate-set classifies -7 as not natural.");
+  // Direct ambient-call route: Ω<ℕ>.contains(value) returns L::True for
+  // every Cardinality value (the universal-set semantics).
+  static_assert(Ω<ℕ>.contains(7u));
+  static_assert(Ω<ℕ>.contains(0u));
 
-  constexpr auto z = var<ℤ>;
-  constexpr auto integers = Set{z % Z};
+  constexpr auto z = element<Ω<ℤ>>;
+  constexpr auto integers = Set{z};
   static_assert(integers(-7) == Ternary::True);
-
-  constexpr auto q = var<ℚ>;
-  constexpr auto rationals = Set{q % Q};
-  static_assert(rationals(Rational<default_integer>{
-                    default_integer{1}, default_integer{2}}) == Ternary::True);
-
-  constexpr auto r = var<ℝ>;
-  constexpr auto reals = Set{r % R};
-  static_assert(reals(Real<double>{1.25}) == Ternary::True);
-
-  constexpr auto c = var<ℂ>;
-  constexpr auto complexes = Set{c % C};
-  static_assert(complexes(Complex<double>{1.0, 2.0}) == Ternary::True);
 
   // 𝔻 starter-universe construction moved to
   // src/test/cpp/modules/dedekind/analysis/dual_test.cpp at PR #513
@@ -88,8 +63,8 @@ TEST_CASE("Numbers: starter universes construct from ambient values",
 TEST_CASE("Numbers: starter universes satisfy lattice identities",
           "[numbers][starter][algebra]") {
   {
-    constexpr auto n = var<ℕ>;
-    const auto U = Set{n % N};
+    constexpr auto n = element<Ω<ℕ>>;
+    const auto U = Set{n};
     const auto O = !U;
     CHECK((U | O)(7u) == Ternary::True);
     CHECK((U & O)(7u) == Ternary::False);
@@ -98,37 +73,11 @@ TEST_CASE("Numbers: starter universes satisfy lattice identities",
   }
 
   {
-    constexpr auto z = var<ℤ>;
-    const auto U = Set{z % Z};
+    constexpr auto z = element<Ω<ℤ>>;
+    const auto U = Set{z};
     const auto O = !U;
     CHECK((U | O)(4) == Ternary::True);
     CHECK((U & O)(4) == Ternary::False);
-  }
-
-  {
-    constexpr auto q = var<ℚ>;
-    const auto U = Set{q % Q};
-    const auto O = !U;
-    CHECK((U | O)(Rational<default_integer>{
-              default_integer{1}, default_integer{3}}) == Ternary::True);
-    CHECK((U & O)(Rational<default_integer>{
-              default_integer{1}, default_integer{3}}) == Ternary::False);
-  }
-
-  {
-    constexpr auto r = var<ℝ>;
-    const auto U = Set{r % R};
-    const auto O = !U;
-    CHECK((U | O)(Real<double>{2.0}) == Ternary::True);
-    CHECK((U & O)(Real<double>{2.0}) == Ternary::False);
-  }
-
-  {
-    constexpr auto c = var<ℂ>;
-    const auto U = Set{c % C};
-    const auto O = !U;
-    CHECK((U | O)(Complex<double>{1.0, -1.0}) == Ternary::True);
-    CHECK((U & O)(Complex<double>{1.0, -1.0}) == Ternary::False);
   }
 
   // 𝔻 / D / Dual lattice-identity check moved to

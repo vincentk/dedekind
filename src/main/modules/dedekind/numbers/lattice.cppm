@@ -149,8 +149,10 @@ struct LatticeFactory<R, 1> {
   }
 
   constexpr auto bounded(int n) const {
-    auto r = var<ℝ>;
-    return Set{r % R | [n](const Real<double>& x) {
+    // FIXME(#399 slice 4-6): once ℝ becomes a carrier alias, switch
+    // to @c element<Ω<ℝ>>; for now ℝ is still the predicate-set type.
+    auto r = element<Ω<Real<double>>>;
+    return Set{r | [n](const Real<double>& x) {
       const double v = x.resolve();
       if (!detail::is_integral_coordinate(v)) return false;
       return (v >= 0.0) && (v < static_cast<double>(n));

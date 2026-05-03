@@ -232,13 +232,25 @@ struct Ø final : Boundaries {
  * @struct UniversalSet
  * @brief U: The Terminal Object.
  * @details Intentional but Decidable: The rule "x ∈ U" always returns True.
+ *
+ * Per #551 (one-transaction redesign of the set-builder DSL): the @b type
+ * is named @c UniversalSet<T, L, C>; the value-level handle is the
+ * sibling variable template @c Ω<T, L, C> (declared further below in this
+ * partition) which spells @c UniversalSet<T, L, C>{}.  Callers therefore
+ * spell @c Ω<bool> at value-context sites rather than reaching for
+ * @c UniversalSet<bool>{}; the type and the variable template share their
+ * parameter pack so both names remain reachable at the same arity.  This
+ * makes the topos-theoretic reading direct ( @c Ω is the subobject
+ * classifier value at carrier @c T), and lets paper Listing 6 read as
+ * @c auto @c 𝔹 @c = @c Ω<bool>; without the type/value schism the
+ * pre-#551 surface had.
  */
 export template <typename T, typename L = ClassicalLogic, typename C = ℵ_0>
-struct Ω final : Boundaries {
+struct UniversalSet final : Boundaries {
   using Domain = T;
   using Codomain = typename L::Ω;
   using cardinality_type = C;
-  using base_set_type = Ω<T, L, C>;
+  using base_set_type = UniversalSet<T, L, C>;
   using is_universal_boundary = void;
   using logic_species = L;
 
@@ -264,15 +276,17 @@ struct Ω final : Boundaries {
   template <typename S>
     requires(!requires { typename S::T; }) &&
             (!requires { typename S::is_variable; })
-  friend constexpr typename L::Ω operator<=(const S&, const Ω&) {
+  friend constexpr typename L::Ω operator<=(const S&, const UniversalSet&) {
     return L::True;
   }
 
   /** @section boundaries__Lattice_Axiom_3: Reflexivity */
-  constexpr typename L::Ω operator<=(const Ω&) const { return L::True; }
+  constexpr typename L::Ω operator<=(const UniversalSet&) const {
+    return L::True;
+  }
 
   // Explicitly define equality if <=> is being deleted by members
-  constexpr bool operator==(const Ω&) const { return true; }
+  constexpr bool operator==(const UniversalSet&) const { return true; }
 
   // Note: You'll eventually want overloads for:
   // Universal | Any = Universal
@@ -281,57 +295,128 @@ struct Ω final : Boundaries {
   // The Axiom: Total Presence
   constexpr typename L::Ω operator()(const T&) const { return L::True; }
 
+  // Value-level membership query (sugar over operator()) per #551.
+  // @c UniversalSet<T>.contains(v) reads more directly than @c
+  // UniversalSet<T>(v) at paper-listing sites.  Returns @c L::Ω (delegating
+  // to @c operator()) so the contract matches @c sets::Set::contains and
+  // generic code can call either uniformly.
+  constexpr typename L::Ω contains(const T& v) const { return (*this)(v); }
+
   constexpr cardinality_type cardinality() const { return cardinality_type{}; }
 
-  // Ω | S = Ω
+  // U | S = U
   template <typename S>
   constexpr auto operator|(const S&) const {
     return *this;
   }
 
-  // Ω & S = S
+  // U & S = S
   template <typename S>
   constexpr auto operator&(const S& s) const {
     return s;
   }
 
-  // Ω ^ S = ¬S  (Ω △ S = ¬S; #469)
-  // Pointwise: x ∈ Ω △ S iff x is in exactly one; x is always in Ω,
-  // so x ∈ Ω △ S iff x ∉ S, i.e. the complement of S.
+  // U ^ S = ¬S  (U △ S = ¬S; #469)
+  // Pointwise: x ∈ U △ S iff x is in exactly one; x is always in U,
+  // so x ∈ U △ S iff x ∉ S, i.e. the complement of S.
   template <typename S>
   constexpr auto operator^(const S& s) const {
     return !s;
   }
 };
 
+/** @brief The universal-predicate value at carrier @c T (subobject-classifier
+ *         reading per #551).
+ *
+ *  Variable template producing a default-constructed @c UniversalSet<T,L,C>
+ *  instance.  Lets callers spell the ambient as @c UniversalSet<bool> rather
+ * than
+ *  @c UniversalSet<bool>{} — paper Listing 6 reads as @c auto @c 𝔹 @c =
+ *  @c UniversalSet<bool>; without the type-vs-value schism the pre-#551 surface
+ * had.
+ */
+export template <typename T, typename L = ClassicalLogic, typename C = ℵ_0>
+inline constexpr UniversalSet<T, L, C> Ω{};
+
+/** @brief @c Ω<bool> specialisation: the Boolean carrier is finite,
+ *  so its universal predicate is classified by @c Finite cardinality
+ *  (not @c ℵ_0).  Without this specialisation, @c NaturalLogic<Ω<bool>>
+ *  would route through @c TernaryLogic (because @c ℵ_0 is transfinite);
+ *  the canonical 𝔹 ambient wants @c ClassicalLogic.  Mirrors the
+ *  pre-#551 @c BooleanSetOf<L,C> default of @c BooleanSetOf<
+ *  ClassicalLogic, Finite>.
+ */
+export template <>
+inline constexpr UniversalSet<bool, ClassicalLogic, Finite> Ω<bool>{};
+
 template <typename T, typename L>
 constexpr auto Ø<T, L>::operator!() const {
-  return Ω<T, L>{};
+  return UniversalSet<T, L>{};
 }
 
-// Cardinality metadata drives extensional classification for Ω.
+// Cardinality metadata drives extensional classification for UniversalSet.
 template <typename T, typename L, typename C>
-struct is_extensional<Ω<T, L, C>> : std::bool_constant<C::is_finite> {};
+struct is_extensional<UniversalSet<T, L, C>>
+    : std::bool_constant<C::is_finite> {};
 
-static_assert(dedekind::category::IsSet<decltype(ambient_set<int>(Ω<int>{}))>,
-              "The universal boundary must lift to an ETCS set object.");
+static_assert(
+    dedekind::category::IsSet<decltype(ambient_set<int>(UniversalSet<int>{}))>,
+    "The universal boundary must lift to an ETCS set object.");
 static_assert(dedekind::category::IsSet<decltype(ambient_set<int>(Ø<int>{}))>,
               "The empty boundary must lift to an ETCS set object.");
 static_assert(dedekind::category::HasCanonicalSetCCC<int>,
               "Breadcrumb to :cartesian: boundary ambient int has canonical "
               "CCC witness.");
 
-// Predicate-set classifier for ℕ (the natural-numbers ambient species).
-// Per #401 the canonical species symbol @c ℕ migrated to a carrier-type
-// alias (@c ℕ = @c unsigned @c int); this predicate-set retained as the
-// set-builder DSL handle ("is this value in ℕ?"), with its @c Domain
-// aligned to the carrier so @c var<ℕ> @c % @c N composes cleanly.
+// =============================================================
+// Architecture note: universe Ω<T> vs. classifier <Tower>Of<>
+// =============================================================
 //
-// The @c int-typed @c operator() overload survives as a callsite
-// convenience on the @b classifier reading (ℕ ⊂ ℤ via the
-// non-negativity check); it is not on the formal predicate-set
-// signature (which is @c Domain @c = @c unsigned @c int) but is
-// reachable via direct @c N(-7) calls for paper-listing readability.
+// Two distinct primitives sit at this layer, both rooted in ETCS
+// (Lawvere 1964):
+//
+//   (1) Universe per carrier — @c Ω<T> (variable template above)
+//       = @c UniversalSet<T,L,C>{}.  Constant-True predicate over
+//       carrier T.  Plays the role of "T as its own set" — the
+//       monomorphic identity inclusion T ↪ T.  Used by the
+//       set-builder DSL as the ambient for @c element<Ω<T>>
+//       (BoundScout factory, post-#551).
+//
+//   (2) Tower classifier — @c <Tower>Of<L,C> (this and sibling
+//       struct templates: @c NaturalNumbersOf, @c IntegersOf in
+//       :integer, @c RationalsOf in :rational, @c RealsOf in :real,
+//       @c ComplexesOf in :complex, @c DualSetOf in :dual).
+//       The characteristic morphism χ_T : tower-ambient → Ω of
+//       the subobject T inside its algebraic tower.  Multi-overload:
+//       the @c Domain overload always returns @c L::True (T is in
+//       T), and the cross-carrier overloads route predecessor
+//       types through embedding arrows (e.g.\ @c N(int) checks
+//       non-negativity, @c N(unsigned) is trivially True via the
+//       canonical embedding @c embed_uint_ℕ_).  This is the
+//       textbook "ℕ as a subset of ℤ via the canonical inclusion"
+//       reading.
+//
+//   Asymmetry: @c BooleanSetOf<L,C> ≡ @c UniversalSet<bool,L,C>
+//       (alias, not a separate struct) because 𝔹 is the @b bottom
+//       of the algebraic tower — no proper super-object — so χ_𝔹
+//       collapses to Ω<bool>.  See @c algebra:boolean for that
+//       collapse note.
+//
+// Why both: @c Ω<T> is the structural primitive (one per carrier;
+// uniform DSL surface for set-builder), while @c <Tower>Of<> is
+// the engineering pragma that lifts predecessor literals (@c N(0u)
+// for @c unsigned, @c N(-7) for @c int) without forcing each
+// callsite to thread the embedding manually.  Removing the
+// classifiers in favour of Ω alone would lose the cross-carrier
+// classification — @c Ω<unsigned>{}(-7) is ill-typed, but
+// @c N(-7) is well-typed and returns @c False.
+//
+// Paper alignment: §3.3 (Juliet Posture) names the two-axis split
+// (closure / laws); the universe-vs-classifier distinction is a
+// third meta-axis (§5 figure breadcrumb).  Listing 6 in the paper
+// shows both: @c 𝔹 = @c Ω<bool> for the trivial-bottom case;
+// @c N = @c NaturalNumbersOf<>{} for the non-trivial classifier
+// case.
 export template <typename L = ClassicalLogic, typename C = ℵ_0>
 struct NaturalNumbersOf {
   using Domain =
@@ -451,9 +536,9 @@ constexpr std::size_t bound_join(const S1& lhs, const S2& rhs) {
 
 namespace dedekind::category {
 
-// Cardinality metadata drives transfinite classification for Ω.
+// Cardinality metadata drives transfinite classification for UniversalSet.
 template <typename T, typename L, typename C>
-struct is_transfinite<dedekind::sets::Ω<T, L, C>>
+struct is_transfinite<dedekind::sets::UniversalSet<T, L, C>>
     : std::bool_constant<!C::is_finite> {};
 
 }  // namespace dedekind::category

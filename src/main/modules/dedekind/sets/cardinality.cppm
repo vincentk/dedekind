@@ -2065,8 +2065,8 @@ struct SpeciesTraits<dedekind::sets::SignedExtensionalCardinal<N>> {
 // IsSpecies witnesses: the variant carriers are now first-class
 // species and can flow into @c ambient_set<...> / ETCS object
 // construction in downstream partitions (cf.\ @c sets:boundaries,
-// where @c Ω<Cardinality> / @c Ω<SignedCardinality> instantiations
-// will land as part of the #402 retarget PR).
+// where @c UniversalSet<Cardinality> / @c UniversalSet<SignedCardinality>
+// instantiations will land as part of the #402 retarget PR).
 static_assert(IsSpecies<dedekind::sets::Cardinality>,
               "Cardinality must be a recognised Species (post-#413).");
 static_assert(IsSpecies<dedekind::sets::SignedCardinality>,

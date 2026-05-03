@@ -15,7 +15,7 @@ TEST_CASE("Level 1 Final Proof: The Mereology Highway",
 
   SECTION("3. The Extreme Bounds (0 and 1)") {
     Ø<int> empty;
-    Ω<int> universe;
+    UniversalSet<int> universe;
 
     // Verify these are valid sets over the active logic species.
     static_assert(dedekind::category::IsSet<decltype(ambient_set<int>(empty))>);
@@ -33,7 +33,7 @@ TEST_CASE("Level 1 Final Proof: The Mereology Highway",
 
   SECTION("4. The Logic Swapping (Topos-Awareness)") {
     // Universal Set over the Ternary Topos (Kleene Logic)
-    Ω<int, TernaryLogic> k_universe;
+    UniversalSet<int, TernaryLogic> k_universe;
 
     REQUIRE(k_universe(42) == Ternary::True);
   }
@@ -44,14 +44,14 @@ TEST_CASE("Boundaries: The Algebra of Extremality", "[sets][boundaries]") {
 
   // The Identities: Ø and Ω as the "North and South Poles"
   constexpr Ø<ℤ> null;
-  constexpr Ω<ℤ> universe;
+  constexpr UniversalSet<ℤ> universe;
 
   SECTION("Aha! 1: The Law of Absorption (Annihilation)") {
     /**
      * In a Union, the Universe is the Annihilator: Ω | S = Ω.
      * In an Intersection, the Void is the Annihilator: ∅ & S = ∅.
      */
-    static_assert(std::is_same_v<decltype((universe | null)), Ω<ℤ>>);
+    static_assert(std::is_same_v<decltype((universe | null)), UniversalSet<ℤ>>);
     static_assert(std::is_same_v<decltype((null & universe)), Ø<ℤ>>);
   }
 

@@ -218,11 +218,10 @@ export template <IsComplexScalar R, typename EscapeCriterion>
 constexpr auto M_N(std::size_t max_iter, EscapeCriterion criterion,
                    KleenePolicy policy = KleenePolicy::Inclusive) {
   const auto kleene = M_kleene_N<R>(max_iter, criterion);
-  auto c = var<ComplexesOf<R>>;
-  return Set{c % ComplexesOf<R>{} |
-             classify([kleene, policy](const Complex<R>& x) {
-               return collapse_ternary(kleene(x), policy);
-             }).χ};
+  auto c = element<Ω<Complex<R>>>;
+  return Set{c | classify([kleene, policy](const Complex<R>& x) {
+                   return collapse_ternary(kleene(x), policy);
+                 }).χ};
 }
 
 /**

@@ -137,14 +137,14 @@ struct SingletonSet {
   template <typename U, typename L2>
   constexpr auto operator|(const SingletonSet<U, L2>& other) const {
     // Return a structural Join: {x | x == pivot || x == other.pivot}
-    return var<Ω<T, L>> % Ω<T, L>{} |
+    return element<Ω<T, L>> |
            [s1 = *this, s2 = other](const T& x) { return s1(x) || s2(x); };
   }
 
   template <typename U, typename L2>
   constexpr auto operator&(const SingletonSet<U, L2>& other) const {
     // Return a structural Meet: {x | x == pivot && x == other.pivot}
-    return var<Ω<T, L>> % Ω<T, L>{} |
+    return element<Ω<T, L>> |
            [s1 = *this, s2 = other](const T& x) { return s1(x) && s2(x); };
   }
 
@@ -160,11 +160,11 @@ struct SingletonSet {
    *  @c BooleanEqPredicate; see @c expressions.cppm:operator^). */
   template <typename U, typename L2>
   constexpr auto operator^(const SingletonSet<U, L2>& other) const {
-    // The `var<Ω> % Ω | lambda` chain produces a Comprehension; wrap
-    // in `Set{...}` to materialise an actual Set the caller can invoke.
-    // Without this, callers got `Comprehension does not provide a
-    // call operator` errors at the test site.
-    return Set{var<Ω<T, L>> % Ω<T, L>{} | [s1 = *this, s2 = other](const T& x) {
+    // The `element<Ω<T, L>> | lambda` chain produces a Comprehension;
+    // wrap in `Set{...}` to materialise an actual Set the caller can
+    // invoke.  Without this, callers got `Comprehension does not provide
+    // a call operator` errors at the test site.
+    return Set{element<Ω<T, L>> | [s1 = *this, s2 = other](const T& x) {
       // SingletonSet::operator() returns L::Ω directly,
       // so the lift_logic<L> calls are defensive: they
       // normalise if L1 or L2 ever returns bool.
@@ -177,7 +177,7 @@ struct SingletonSet {
   // Complement: !{a}
   // In a strict sense, this is the relative complement (Universe \ {a}).
   // For the sake of the lattice, we return the Universal boundary.
-  constexpr auto operator!() const { return Ω<T, L>{}; }
+  constexpr auto operator!() const { return UniversalSet<T, L>{}; }
 };
 
 // ---------------------------------------------------------------------------
@@ -198,12 +198,12 @@ export template <typename T, typename L1, typename L2, typename P>
 constexpr auto operator^(const SingletonSet<T, L1>& s,
                          const Set<T, L2, P>& other) {
   // The asymmetry is one-sided: `singleton(v)` always lands in
-  // ClassicalLogic, while `Set{x % Ω<T> | …}` ascends through
+  // ClassicalLogic, while `Set{x % UniversalSet<T> | …}` ascends through
   // NaturalLogic and routinely arrives as TernaryLogic.  Take the
   // result logic from that same side (L2): the singleton's bool lifts
   // through `lift_logic<L2>` cleanly, and the Set's predicate is
   // already in L2.
-  return Set{var<Ω<T, L2>> % Ω<T, L2>{} | [s, other](const T& x) {
+  return Set{element<Ω<T, L2>> | [s, other](const T& x) {
     const auto a = dedekind::category::lift_logic<L2>(s(x));
     const auto b = dedekind::category::lift_logic<L2>(other(x));
     return L2::OR(L2::AND(a, L2::NOT(b)), L2::AND(L2::NOT(a), b));

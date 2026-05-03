@@ -8,7 +8,7 @@ using namespace dedekind::sets;
 
 TEST_CASE("Sets+Category: boundaries lift into ETCS subobjects",
           "[sets][category][etcs][integration]") {
-  const Ω<int> universe{};
+  const UniversalSet<int> universe{};
   const Ø<int> empty{};
 
   const auto u_set = ambient_set<int>(universe);
@@ -34,9 +34,9 @@ TEST_CASE("Sets+Category: singleton and comprehension predicates satisfy ETCS",
   CHECK(atom_set.χ(42) == true);
   CHECK(atom_set.χ(7) == false);
 
-  auto x = var<ℕ>;
-  const auto positive = Set{x % N | (x > 0u)};
-  const auto bounded = Set{x % N | (x <= 10u)};
+  auto x = element<Ω<ℕ>>;
+  const auto positive = Set{x | (x > 0u)};
+  const auto bounded = Set{x | (x <= 10u)};
 
   // ambient_set<ℕ> lifts the predicate-set into the post-#402 variant
   // ℕ-proxy ambient (ℕ = Cardinality).  The characteristic-function χ
@@ -59,8 +59,8 @@ TEST_CASE("Sets+Category: singleton and comprehension predicates satisfy ETCS",
 
 TEST_CASE("Sets+Category: Set naming boundary is explicit",
           "[sets][category][etcs][alignment]") {
-  auto x = var<ℕ>;
-  const auto positive = Set{x % N | (x > 0u)};
+  auto x = element<Ω<ℕ>>;
+  const auto positive = Set{x | (x > 0u)};
 
   // `sets::Set` (DSL species) and `category::Set` (CCC witness) are distinct.
   STATIC_CHECK(!std::same_as<decltype(positive),

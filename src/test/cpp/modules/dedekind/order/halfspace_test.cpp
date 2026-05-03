@@ -66,7 +66,7 @@ TEST_CASE("order:halfspace — Variable DSL constructs Halfspace from bound<V>",
   // lives in `dedekind.numbers`, which is downstream of `dedekind.order` in
   // the build DAG. Post-#401, ℕ is the unsigned-int carrier, so the test
   // now exercises `Halfspace<unsigned int, ...>` instantiations.
-  constexpr auto n = var<ℕ>;
+  constexpr auto n = element<Ω<ℕ>>;
 
   SECTION("> constructs Upward/Strict") {
     constexpr auto h = n > bound<7>;
@@ -99,7 +99,7 @@ TEST_CASE("order:halfspace — Variable DSL constructs Halfspace from bound<V>",
             H, Halfspace<ℕ, 7, Direction::Downward, Strictness::NonStrict>>);
   }
   // Note (post-#409 review): the DSL constraint also rejects negative
-  // signed pivots on unsigned carriers (e.g. `var<ℕ> > bound<-1>` no
+  // signed pivots on unsigned carriers (e.g. `element<Ω<ℕ>> > bound<-1>` no
   // longer compiles, where previously int→unsigned conversion would
   // wrap -1 to UINT_MAX silently).  The regression is exercised
   // implicitly: dropping the constraint would not break any existing
@@ -277,11 +277,11 @@ TEST_CASE("order:halfspace — reduction boundary tightens all three tiers",
           "[order][halfspace][computability][reduction]") {
   // Mirrored from analysis/pruning_showcases_test.cpp at the unit level:
   // the reduction boundary IS the computability boundary.
-  constexpr auto n = var<ℕ>;
+  constexpr auto n = element<Ω<ℕ>>;
 
   SECTION("Empty-meet reduction") {
-    constexpr auto gt5 = Set{n % N | (n > bound<5>)};
-    constexpr auto lt3 = Set{n % N | (n < bound<3>)};
+    constexpr auto gt5 = Set{n | (n > bound<5>)};
+    constexpr auto lt3 = Set{n | (n < bound<3>)};
     constexpr Ø<ℕ> meet = gt5 & lt3;
 
     STATIC_CHECK_FALSE(HasDecidableMembership<decltype(gt5)>);
@@ -294,8 +294,8 @@ TEST_CASE("order:halfspace — reduction boundary tightens all three tiers",
   }
 
   SECTION("Singleton reduction") {
-    constexpr auto gt3 = Set{n % N | (n > bound<3>)};
-    constexpr auto lt5 = Set{n % N | (n < bound<5>)};
+    constexpr auto gt3 = Set{n | (n > bound<3>)};
+    constexpr auto lt5 = Set{n | (n < bound<5>)};
     constexpr Singleton<4> s = gt3 & lt5;
 
     STATIC_CHECK_FALSE(HasDecidableMembership<decltype(gt3)>);

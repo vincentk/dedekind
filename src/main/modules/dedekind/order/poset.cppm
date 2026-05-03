@@ -46,10 +46,11 @@ using namespace dedekind::category;
 // from `dedekind.sets`.  It fires once when any order partition is
 // imported (via the umbrella), since `:poset` is the foundational
 // partition the other order partitions build on.
-static_assert(dedekind::category::IsSet<
-                  decltype(dedekind::category::ambient_set<int>(Ω<int>{}))>,
-              "dedekind.order is grounded on canonical ETCS set objects "
-              "imported from dedekind.sets.");
+static_assert(
+    dedekind::category::IsSet<
+        decltype(dedekind::category::ambient_set<int>(UniversalSet<int>{}))>,
+    "dedekind.order is grounded on canonical ETCS set objects "
+    "imported from dedekind.sets.");
 
 /**
  * @concept IsPreOrdered

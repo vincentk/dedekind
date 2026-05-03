@@ -8,8 +8,8 @@ using namespace dedekind::sets;
 
 TEST_CASE("Dedekind MVP: Basic Membership and Symbols", "[sets]") {
   SECTION("Integer Universe Membership") {
-    auto x = var<Ω<int>>;  // A variable representing an element of the integer
-                           // universe
+    auto x = element<Ω<int>>;  // A variable representing an element of
+                               // the integer universe
 
     // Should be Set<int, ClassicalLogic>
     auto finite = Set{x % singleton(1) | (x == 1)};
@@ -20,8 +20,8 @@ TEST_CASE("Dedekind MVP: Basic Membership and Symbols", "[sets]") {
   SECTION("Natural-numbers membership") {
     // Post-#401, ℕ is the unsigned-int carrier; the predicate-set N has
     // Domain = unsigned int, so callsites use unsigned values.
-    auto n = var<ℕ>;
-    auto infinite = Set{n % N | (n > 0u)};
+    auto n = element<Ω<ℕ>>;
+    auto infinite = Set{n | (n > 0u)};
     REQUIRE(infinite(5u) == Ternary::True);
     REQUIRE(infinite(0u) == Ternary::False);
   }
@@ -29,7 +29,7 @@ TEST_CASE("Dedekind MVP: Basic Membership and Symbols", "[sets]") {
 
 TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
           "[sets][operators]") {
-  auto x = var<ℕ>;
+  auto x = element<Ω<ℕ>>;
 
   SECTION(
       "Singleton ^ Singleton — equal pivots empty, distinct pivots union "
@@ -40,7 +40,7 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
     auto sym_eq = same_a ^ same_b;
     auto sym_neq = same_a ^ distinct;
     // The Set CTAD ascends the logic species to TernaryLogic via
-    // NaturalLogic<Ω<...>>; results compare against Ternary::True /
+    // NaturalLogic<UniversalSet<...>>; results compare against Ternary::True /
     // Ternary::False, not bool.
     // {7} ^ {7} is empty pointwise.
     REQUIRE(sym_eq(7) == Ternary::False);
@@ -52,8 +52,8 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
   }
 
   SECTION("Singleton ^ Set — pivot toggles membership (#469)") {
-    auto x_int = var<Ω<int>>;
-    auto positives = Set{x_int % Ω<int>{} | (x_int > 0)};
+    auto x_int = element<Ω<int>>;
+    auto positives = Set{x_int % UniversalSet<int>{} | (x_int > 0)};
     auto sing_in_set = singleton(5);
     auto sing_out_set = singleton(-3);
     auto in_xor = sing_in_set ^ positives;    // 5 ∈ positives → result drops 5
@@ -70,7 +70,7 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
   }
 
   SECTION("Boundary collapses: A ^ ∅ = A, ∅ ^ A = A (#469)") {
-    auto S = Set{x % N | x > 10u};
+    auto S = Set{x | x > 10u};
     // Use the deduced Domain / logic species from S rather than
     // hard-coding `unsigned int` / TernaryLogic — the carrier choice
     // is set by N's CTAD, and the test should not pre-empt it.
@@ -90,10 +90,10 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
   }
 
   SECTION("Boundary collapses: A ^ Ω = ¬A, Ω ^ A = ¬A (#469)") {
-    auto S = Set{x % N | x > 10u};
+    auto S = Set{x | x > 10u};
     using SDomain = decltype(S)::Domain;
     using SLogic = decltype(S)::logic_species;
-    Ω<SDomain, SLogic> universe{};
+    UniversalSet<SDomain, SLogic> universe{};
     auto right_collapse = S ^ universe;              // type: !S
     auto left_collapse = universe ^ S;               // type: !S
     REQUIRE(right_collapse(50u) == Ternary::False);  // 50 ∈ S → ∉ !S
@@ -109,7 +109,7 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
     // different sets — see the stateful-predicate-disjoint-instances
     // section below).  The honest claim is therefore the runtime one:
     // for any Set S, S ^ S evaluates to false at every input.
-    auto S = Set{x % N | x > 10u};
+    auto S = Set{x | x > 10u};
     auto S_xor_S = S ^ S;
     REQUIRE(S_xor_S(5u) == Ternary::False);
     REQUIRE(S_xor_S(50u) == Ternary::False);
@@ -125,9 +125,9 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
     // This regression test guards against a same-Predicate-type
     // collapse that would wrongly fire on every BooleanEqPredicate
     // pair regardless of the .expected field.
-    using BoolAmbient = Ω<bool, ClassicalLogic, Finite>;
+    using BoolAmbient = UniversalSet<bool, ClassicalLogic, Finite>;
     constexpr BoolAmbient B_bool{};
-    constexpr auto b = var<BoolAmbient>;
+    constexpr auto b = element<Ω<bool>>;
     auto only_true = Set{b % B_bool | (b == true)};
     auto only_false = Set{b % B_bool | (b == false)};
     auto sym_diff = only_true ^ only_false;
@@ -146,8 +146,8 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
     // the intersection at the type level, so A & B reduces to
     // Ø<unsigned int, TernaryLogic>.  In that case A ^ B should
     // collapse to A | B (no XOR formula needed in the result lambda).
-    auto A = Set{x % N | x > 10u};
-    auto B = Set{x % N | x < 5u};
+    auto A = Set{x | x > 10u};
+    auto B = Set{x | x < 5u};
     auto sym_diff_disjoint = A ^ B;
     auto union_disjoint = A | B;
     // Membership matches the union (since the intersection is empty,
@@ -168,8 +168,8 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
     // !some_set), the operator^ peels the negation outward.
     // Resulting semantic: x ∈ A ^ ¬B iff x is in exactly one, which
     // is equivalent to x ∈ A ↔ x ∈ B (the biconditional).
-    auto A = Set{x % N | x > 10u};
-    auto B = Set{x % N | x < 100u};
+    auto A = Set{x | x > 10u};
+    auto B = Set{x | x < 100u};
     auto sym_diff_neg = A ^ !B;
     auto biconditional = !(A ^ B);
     // Both should agree pointwise: A ^ ¬B = ¬(A ^ B).
@@ -191,12 +191,12 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
     // stateless predicate types (guarded by std::is_empty_v); the
     // halfspace-style predicate (x > 10u) produces a capturing
     // lambda whose closure type is non-empty, so the type-level
-    // collapse to Ω<T, L> does NOT fire here.  What DOES fire is
+    // collapse to UniversalSet<T, L> does NOT fire here.  What DOES fire is
     // the De Morgan negation-peel branch (A ^ !B → !(A ^ B)),
     // which leaves the result a Set<T, L, lambda> that pointwise
     // evaluates to true at every input.  We test the runtime
     // semantics rather than the structural type.
-    auto S = Set{x % N | x > 10u};
+    auto S = Set{x | x > 10u};
     auto S_xor_notS = S ^ !S;
     REQUIRE(S_xor_notS(5u) == Ternary::True);
     REQUIRE(S_xor_notS(50u) == Ternary::True);
@@ -204,8 +204,8 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
   }
 
   SECTION("Membership: x ∈ A ^ B iff x is in exactly one") {
-    auto A = Set{x % N | x > 10u};
-    auto B = Set{x % N | x < 100u};
+    auto A = Set{x | x > 10u};
+    auto B = Set{x | x < 100u};
     auto sym_diff = A ^ B;
     // 5: in B only (5 < 100, 5 ≯ 10) → in symmetric difference
     REQUIRE(sym_diff(5u) == Ternary::True);
@@ -216,8 +216,8 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
   }
 
   SECTION("Textbook identity: A ^ B == (A | B) & !(A & B)") {
-    auto A = Set{x % N | x > 10u};
-    auto B = Set{x % N | x < 100u};
+    auto A = Set{x | x > 10u};
+    auto B = Set{x | x < 100u};
     auto sym_diff = A ^ B;
     auto union_minus_inter = (A | B) & !(A & B);
     REQUIRE(sym_diff(5u) == union_minus_inter(5u));
@@ -227,7 +227,7 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
 }
 
 TEST_CASE("Dedekind Identities: Extremal Collapse", "[sets][identities]") {
-  auto x = var<ℕ>;
+  auto x = element<Ω<ℕ>>;
 
   SECTION("Identity: Set{N} is N") {
     // Naturals remain stable when materialized through Set{...}.
@@ -245,7 +245,7 @@ TEST_CASE("Dedekind Identities: Extremal Collapse", "[sets][identities]") {
 
   SECTION("Contradiction: {x ∈ ℕ | x > 10 ∧ x < 5} is ∅") {
     // Here we combine the symbolic predicates
-    auto S = Set{x % N | (x > 10u && x < 5u)};
+    auto S = Set{x | (x > 10u && x < 5u)};
 
     // For a non-trivial polish, we verify it is 'Total Absence'
     REQUIRE(S(0u) == Ternary::False);
@@ -254,17 +254,17 @@ TEST_CASE("Dedekind Identities: Extremal Collapse", "[sets][identities]") {
   }
 
   SECTION("Tautology: {x ∈ ℕ | x > 10 ∨ x <= 10} is Ω") {
-    auto S = Set{x % N | (x > 10u || x <= 10u)};
+    auto S = Set{x | (x > 10u || x <= 10u)};
     REQUIRE(S(7u) == Ternary::True);
   }
 }
 
 TEST_CASE("Dedekind Identities: Boolean literals collapse over 𝔹",
           "[sets][identities][boolean]") {
-  using BoolAmbient = Ω<bool, ClassicalLogic, Finite>;
+  using BoolAmbient = UniversalSet<bool, ClassicalLogic, Finite>;
   constexpr BoolAmbient B_bool{};
 
-  constexpr auto b = var<BoolAmbient>;
+  constexpr auto b = element<Ω<bool>>;
 
   constexpr auto b_false = Set{b % B_bool | !b};
   constexpr auto b_true = Set{b % B_bool | (b == true)};
@@ -281,14 +281,14 @@ TEST_CASE("Dedekind Identities: Boolean literals collapse over 𝔹",
 TEST_CASE(
     "Dedekind Identities: bare-Variable<bool> truthy form collapses (#408)",
     "[sets][identities][boolean][variable-truthy]") {
-  // The textbook DSL form `Set{b % B | b}` reads "elements of B for
+  // The textbook DSL form `Set{b | b}` reads "elements of B for
   // which b holds" — the bare-b form is the truthy predicate, and
   // should be recognised as semantically equivalent to b == true by
   // the structured-and / FiniteBooleanSet collapse machinery.
-  using BoolAmbient = Ω<bool, ClassicalLogic, Finite>;
+  using BoolAmbient = UniversalSet<bool, ClassicalLogic, Finite>;
   constexpr BoolAmbient B_bool{};
 
-  constexpr auto b = var<BoolAmbient>;
+  constexpr auto b = element<Ω<bool>>;
 
   // Bare-b form (the issue's target ergonomics).
   constexpr auto b_true_bare = Set{b % B_bool | b};
@@ -310,10 +310,10 @@ TEST_CASE(
 
 TEST_CASE("Dedekind Sets: Cartesian product and relation witnesses",
           "[sets][relations][cartesian]") {
-  auto x = var<Ω<int>>;
+  auto x = element<Ω<int>>;
 
-  const auto positive = Set{x % Ω<int>{} | (x > 0)};
-  const auto small = Set{x % Ω<int>{} | (x <= 3)};
+  const auto positive = Set{x % UniversalSet<int>{} | (x > 0)};
+  const auto small = Set{x % UniversalSet<int>{} | (x <= 3)};
 
   const auto product = cartesian_product(positive, small);
   using ProductDomain = typename decltype(product)::Domain;
@@ -343,7 +343,7 @@ TEST_CASE("Dedekind Sets: Cartesian product and relation witnesses",
 
 TEST_CASE("Dedekind Sets: Ambient cartesian product ergonomics",
           "[sets][relations][cartesian][ambient]") {
-  constexpr auto ambient = Ω<int>{};
+  constexpr auto ambient = UniversalSet<int>{};
   constexpr auto p_via_function = cartesian_product(ambient, ambient);
   constexpr auto p_via_operator = ambient * ambient;
 
@@ -356,9 +356,9 @@ TEST_CASE("Dedekind Sets: Ambient cartesian product ergonomics",
 
 TEST_CASE("Dedekind Sets: Power-set witness over homogeneous predicates",
           "[sets][powerset]") {
-  auto x = var<Ω<int>>;
+  auto x = element<Ω<int>>;
 
-  const auto positive = Set{x % Ω<int>{} | (x > 0)};
+  const auto positive = Set{x % UniversalSet<int>{} | (x > 0)};
 
   const auto p_positive = power_set(positive);
   // Textbook fraktur-P alias: 𝔓(A) ≡ power_set(A).
@@ -373,9 +373,9 @@ TEST_CASE("Dedekind Sets: Power-set witness over homogeneous predicates",
 
 TEST_CASE("Dedekind Sets: Power-set preserves ambient logic",
           "[sets][powerset][logic]") {
-  auto x = var<ℕ>;
+  auto x = element<Ω<ℕ>>;
 
-  const auto gt_zero = Set{x % N | (x > 0u)};
+  const auto gt_zero = Set{x | (x > 0u)};
   const auto p_gt_zero = power_set(gt_zero);
 
   STATIC_CHECK(
@@ -405,9 +405,9 @@ TEST_CASE("Dedekind Sets: Relation witnesses preserve ternary logic",
 TEST_CASE("Dedekind Sets: Heterogeneous subset semantics",
           "[sets][subset][logic]") {
   SECTION("Ternary logic yields Unknown for heterogeneous predicates") {
-    auto x = var<ℕ>;
-    const auto gt_zero = Set{x % N | (x > 0u)};
-    const auto ge_zero = Set{x % N | (x >= 0u)};
+    auto x = element<Ω<ℕ>>;
+    const auto gt_zero = Set{x | (x > 0u)};
+    const auto ge_zero = Set{x | (x >= 0u)};
 
     REQUIRE((gt_zero <= ge_zero) == Ternary::Unknown);
   }

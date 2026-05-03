@@ -32,11 +32,11 @@ using namespace dedekind::numbers;
 using namespace dedekind::order;
 
 // Symbolic variable ranging over ℤ.
-constexpr auto n = var<ℤ>;
+constexpr auto n = element<Ω<ℤ>>;
 
 // Halfspace pair with compile-time pivots, strict lower and non-strict upper.
-constexpr auto above_minus_21 = Set{n % Z | (n > bound<-21>)};
-constexpr auto at_most_21 = Set{n % Z | (n <= bound<21>)};
+constexpr auto above_minus_21 = Set{n | (n > bound<-21>)};
+constexpr auto at_most_21 = Set{n | (n <= bound<21>)};
 
 // The meet is structurally an OrderInterval (cardinality > 1, no Singleton
 // collapse) with strict/non-strict boundaries in the type.
