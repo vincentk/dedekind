@@ -974,7 +974,7 @@ because IEEE~754 rounding defeats associativity.}
 \multicolumn{2}{@{}l}{\textbf{\cppinline{HasVectorSpaceOperators<V, F, Act>}} --- vector space over scalar field $F$ (action functor \cppinline{Act}, defaults to \cppinline{std::multiplies<>})} \\
 \midrule
 \cppinline{v + w}, \cppinline{-v} (additive group on $V$) & vector addition; \cppinline{HasGroupOperatorsAdd<V>} \\
-\cppinline|Act{}(s, v)| with \cppinline{s : F} & scalar action $F \times V \to V$ via the action functor; \cppinline{s * v} under the default \cppinline{std::multiplies<>}. The right-action \cppinline{v * s} is conventional, not required by the concept. \\
+\cppinline{Act{}(s, v)} with \cppinline{s : F} & scalar action $F \times V \to V$ via the action functor; \cppinline{s * v} under the default \cppinline{std::multiplies<>}. The right-action \cppinline{v * s} is conventional, not required by the concept. \\
 \midrule
 \multicolumn{2}{@{}l}{\textbf{\cppinline{HasLatticeOperators}} --- lattice $(L, \vee, \wedge)$} \\
 \midrule
