@@ -159,9 +159,10 @@ calculus}: modern transformer-based coding assistants substantially
 compress the time and expertise needed to author opt-in trait
 specialisations, axiom-shape concepts, and the surrounding library
 scaffolding, turning what was an academic specialism into an
-actionable workflow for working software engineers. The meta-claim
-is not ours to originate; we make it here so the body's executable
-exhibit can be read in that light.
+actionable workflow for working software engineers.
+The meta-claim is not ours to originate; we make it here so the body's executable exhibit can be read in that light.
+
+\noindent A subsidiary observation we offer alongside: working in the disciplined subset of C++23 the paper develops carries a striking resemblance, by structural analogy (§\ref{sec:jlt}), to using \texttt{clang++} as a System~F type-checker, with optimised machine code emerging as a side effect rather than from a separate compilation step.  We name the resemblance because the body's exhibits invite it; a formal correspondence is not in scope.
 \end{abstract}
 
 \tableofcontents
@@ -564,13 +565,13 @@ Both category theory and modern C++23 are large and occasionally intimidating be
 The \texttt{dedekind} library lives at their intersection.
 
 \subsection{Structuralism with Single-Species Categories}
-\label{sec:spo}
+\label{sec:sngl}
 
 The choice of anchoring the library's domain in category theory on the mathematical side is neither new nor arbitrary and follows a well-trodden path.
 The authoritative textbook in the context of programming might be \emph{Types and Programming Languages}~\cite{pierce2002tapl}.
 Here, we intend to lower the barrier to entry and so we restrict attention to \emph{single-species categories}~\cite{burris1981universalalgebra}: categories whose objects all share a common carrier type, whose endomorphisms are functions on that carrier, and whose inter-carrier maps become functors between sibling categories.
 The textbook way to read this restriction is via the bijection between monoids and one-object categories (Mac Lane~\cite{maclane1971categories} §I.1): every monoid \emph{is} a one-object category whose morphisms are the monoid elements; the single-species categories we use here are the engineering-library generalisation, where the species' shared carrier object plays the role of the monoid's underlying set and the species' operation signatures play the role of the monoid's binary operation.
-This is a small fragment of $\mathbf{Cat}$ but, as §\ref{sec:spo} develops, it carries enough algebraic vocabulary to host carriers, operators, and structure-preserving arrows in the shape an engineering library actually needs and is a preferred starting point for the structuralist mathematical style~\cite{marquis2022structuralist}.
+This is a small fragment of $\mathbf{Cat}$ but, as §\ref{sec:sngl} develops, it carries enough algebraic vocabulary to host carriers, operators, and structure-preserving arrows in the shape an engineering library actually needs and is a preferred starting point for the structuralist mathematical style~\cite{marquis2022structuralist}.
 
 For the more casual reader of this text, it should be sufficient to remember that at its most basic, category theory is a book-keeping device of sorts that can tell us what clicks together and what doesn't and how things might be re-arranged and perhaps simplified.
 Somewhat casually:
@@ -680,10 +681,25 @@ properties from the trait registry, and ultimately prune logically empty set
 expressions to zero machine instructions---none of which is possible with runtime duck
 typing.
 
+% TODO(future-edit): the two-axis framing introduced in the next paragraph
+% is the load-bearing setup for the trait-registry implementation discussion
+% in §\ref{sec:pruning} (Algebraic Lattice).  Keep the touch light here ---
+% name the split, forward-pointer, and stop.  The actual registry mechanics
+% (specialisation tables, propagation rules, audit rosettas) belong in §5,
+% not in §3.  If §3 prose grows past one paragraph on this point, push the
+% overflow into §\ref{sec:pruning}.
+
+The listing exhibits a load-bearing split that runs through the rest of the paper.
+The operator surface witnessed by \lstinline|HasRingOperators| states \emph{closure} --- which types compose under which operators --- and this axis can be checked \emph{by inspection of the standard library}: the compiler resolves the overloads, the concept either binds or it does not, and no further human judgement is required.
+The algebraic \emph{laws} (associativity, commutativity, distributivity, identities, inverses, totality) are a separate axis and must be \emph{validated and certified by hand}: signed-overflow UB defeats ring-associativity on \lstinline|int|, IEEE-754 rounding defeats field-associativity on \lstinline|double|, matrix multiplication is non-commutative even when the scalar field is, and the standard library --- principled in its silence --- refuses to commit to a position on any of these.
+The Juliet Posture's job is to take that silence as a job description: lift each meta-symmetry to a compile-time predicate (\lstinline|IsAssociative<T, Op>|, \lstinline|IsCommutative<T, Op>|, \dots), populate it per carrier in a \emph{trait registry}, and let downstream concepts (\lstinline|IsRing|, \lstinline|IsField|) compose closure-on-the-surface with law-from-the-registry into a single \lstinline|static_assert| obligation.
+The mechanics of the registry --- which axioms propagate under which constructors, how the per-carrier specialisations are organised, how the audit rosettas measure the standard library's silence --- are deferred to §\ref{sec:pruning} (\emph{Algebraic Lattice}); the present section establishes only the framing.
+
 Pick a small \emph{axiomatic subset} of C++23: concept-constrained templates, non-type template parameters (NTTPs), named modules with strict DAG dependencies, \lstinline{static_assert} for compile-time obligation discharge, and \lstinline{constexpr} for $\beta$-style normalisation.
 Exclude the escape hatches that would otherwise leak past System F: no \lstinline{reinterpret_cast} in public APIs, no SFINAE branches in public surfaces, no ADL-dependent dispatch beyond textbook operator overloads, no public-API specialisations that branch behaviour, and bounded template-instantiation depth (Table~\ref{tab:admissibility-rules}).
 This is a small fragment of $\mathbf{Cpp}$, and §\ref{sec:jlt} develops the structural-typing posture under which it can be inhabited cleanly.
 Call this subset $\mathbf{Jlt} \subset \mathbf{Cpp}$ (mnemonically: \emph{Juliet}, after the \emph{rose by any other name} reading of structural-over-nominal typing).
+In $\mathbf{Jlt}$ the objects are \lstinline{std::regular} types and the values they classify, both expressible in C++23, and the morphisms are the arrows the language admits between them.
 
 
 We take this absence as our starting point: we do not claim that this general problem has been solved, but we assert the existence of a non-empty feasible region which can be inhabited cleanly under a small discipline.
@@ -691,7 +707,6 @@ The three C++23 features named in §\ref{sec:introduction} --- \texttt{module}s,
 
 
 This feasible region is thus a carefully selected axiomatic subset of C++23 such that well-understood semantics can be recovered.\footnote{Concretely: templates parameterised over concept-constrained types, non-type template parameters (NTTPs), named modules with strict DAG dependencies, \lstinline|static_assert| for compile-time obligation discharge, and \lstinline|constexpr| for $\beta$-style normalisation.  The fragment excludes the escape hatches that defeat the System-F reading: no \lstinline|reinterpret_cast| in public APIs, no SFINAE branches in public surfaces, no ADL-dependent dispatch beyond textbook operator overloads, no public-API specialisations that branch behaviour, no template-template parameters in public signatures, and bounded template instantiation depth.  Each exclusion closes a specific escape hatch by which C++ would otherwise leak past System F; the list is not novel --- working C++ teams police variants of it informally --- but is the price of the System-F reading.  Table~\ref{tab:admissibility-rules} below is exactly that list.}
-Somewhat loosely speaking, we can name this subset the category $\mathbf{Cpp}$ where objects are types and values expressible in C++23 and morphisms are arrows between them.
 
 
 \begin{table}[htbp]
@@ -737,12 +752,49 @@ keeps the type checker's work within a decidable cone. \\
 \end{tabular}
 \end{table}
 
-A common and well-known alternative to this \emph{disciplined embedding} is the \emph{two-language problem}~\cite{bezanson2017julia}: 
-the observation that research code is written in an expressive high-level language (Python, R, Julia) while only performance-critical
-execution is delegated to a separately maintained C or C++ backend.
-Bridging tools such as \texttt{nanobind}~\cite{jakob2022nanobind} close the \emph{binary} gap
-but not the \emph{semantic} gap: the C++ backend cannot reason about high-level mathematical
-invariants defined in the Python layer.
+The framing pays off in a row-by-row mapping: each Juliet-Posture restriction recovers a corresponding System-F property, with the canonical references for both calculi found in Pierce~\cite{pierce2002tapl} (Chapters 23 and 29).
+
+\begin{table}[h]
+\centering
+\caption{The structuralist bridge.  Each row reads three ways: a System F property (logic / type-theory tradition, Pierce~\cite{pierce2002tapl}~ch.~23, 29 + Wadler~\cite{wadler1989theorems}); the Juliet-Posture restriction in C++23 that recovers it; and the corresponding Bourbaki-structuralist move (Marquis~\cite{marquis2022structuralist}; Bourbaki's \emph{L'Architecture des mathématiques} 1948).  The triangulation is the point: each \textbf{Jlt} realisation is simultaneously a recovery of a System F property and a Bourbaki structuralist move.  The C++ column states the \emph{discipline} an engineer adopts; the consequences live in the outer columns.}
+\label{tab:structuralist-bridge}
+\begin{tabular}{@{}p{0.30\textwidth}p{0.32\textwidth}p{0.32\textwidth}@{}}
+\toprule
+\textbf{System F property} & \textbf{Juliet Posture (C++)} & \textbf{Structuralist style (Bourbaki)} \\ \midrule
+\textbf{Parametricity} (\emph{Theorems for Free!}~\cite{wadler1989theorems})\footnote{C++23 concepts realise parametricity in an \emph{implicit-style} discipline: the constraint is checked at instantiation but no concept witness is passed at runtime.  This is closer to Haskell-style type classes than to pure System F's explicit type abstraction, but the parametricity conclusions follow once the public surface excludes ad-hoc dispatch (Table~\ref{tab:admissibility-rules}'s no-SFINAE / no-ADL-beyond-textbook / no-public-specialisation rules).}  &
+\textbf{Concept-gating}: \lstinline|requires|-clauses forbid the function from inspecting type internals; interaction happens only via the allowed \emph{scents} (axiom-shape concepts). &
+\textbf{Typification}: ignoring internal set-elements in favour of relations among them. \\ \addlinespace
+\textbf{Universal quantification} ($\forall\alpha.\dots$) &
+\textbf{Constrained templates}: \lstinline|template<Scent T>| reads as universal quantification over the species defined by the concept \emph{Scent}. &
+\textbf{Species of structure}: the genus of all objects sharing a given structure. \\ \addlinespace
+\textbf{Type erasure} (computation is type-blind) &
+\textbf{Zero-cost abstraction}: \lstinline|std::regular| objects with transparent value semantics let the compiler optimise on structure while the program's logic remains independent of the carrier name. &
+\textbf{Indistinguishability}: isomorphic structures are functionally identical. \\ \addlinespace
+\textbf{Strong normalisation} (termination)\footnote{C++ template instantiation is Turing-complete in general~\cite{veldhuizen2003templates}; strong normalisation is recovered specifically by Table~\ref{tab:admissibility-rules}'s bounded-instantiation-depth rule and the exclusion of template-template-parameter recursion in public signatures.  These restrictions are the price of the strong-normalisation reading.}  &
+\textbf{Structural pruning}: rejecting Turing-complete template recursion in favour of finite algebraic compositions targets a fragment guaranteed to terminate (and to collapse logically empty constructions to zero machine instructions). &
+\textbf{Echelon construction}: finite, well-founded builds from base sets and axioms. \\ \addlinespace
+\textbf{Impredicativity} (types may be applied to types)\footnote{System F has prenex-style impredicativity at the kind level; C++23 concepts admit a practical form by allowing concepts to be defined in terms of other concepts (e.g.\ \lstinline|IsFunctor<F>| ranging over type-templates).  The two coincide on the fragment we use; the broader impredicative core (universe-level self-quantification) is not in scope.}  &
+\textbf{Meta-concepts}: concepts defined in terms of other concepts let the library name 2-arrow structures (morphisms between morphisms) at the type level. &
+\textbf{Higher-order structure}: structures built upon structures. \\ \addlinespace
+\textbf{Ad-hoc rejection} (a function does not behave differently for \lstinline|int| vs \lstinline|float|) &
+\textbf{Ban on ADL / specialisation}: ADL beyond textbook operators, public-API specialisation, and SFINAE branching are excluded so that lineage cannot hijack scent (Table~\ref{tab:admissibility-rules}). &
+\textbf{Axiomatic purity}: rejection of ``substance'' or non-law behaviour at the level of the structure. \\ \bottomrule
+\end{tabular}
+\end{table}
+
+Three threads run through the table and stand on their own as the load-bearing claims of the System-F recovery:
+
+\begin{enumerate}
+\item \textbf{The postural ban on overloading.}  System F does not admit ad-hoc polymorphism: a function cannot behave differently for \lstinline|int| versus \lstinline|float|.
+$\mathbf{Jlt}$ recovers this by banning ADL beyond textbook operator overloads and public-API specialisation.
+If a function is defined for \lstinline|Scent T|, it must work the same for every rose that smells like \lstinline|T|.
+\item \textbf{Axiomatic honesty.}  System F assumes its types follow their definitions perfectly.
+$\mathbf{Jlt}$ recovers this by auditing carriers (e.g.\ rejecting \lstinline|int| for ring operations where overflow would defeat associativity) so the carrier-rosetta (Tables~\ref{tab:rosetta-quotient} and~\ref{tab:rosetta-rank}) matches the textbook expectations rather than papering over them.
+\item \textbf{Transparency over encapsulation.}  System F types are \emph{transparent} to the calculus.
+$\mathbf{Jlt}$ recovers this by rejecting OO-style encapsulation and private state, so type-directed collapse can see all the way through an object to perform formal reductions.
+\end{enumerate}
+
+Taken together, these features give \texttt{clang++} a workflow that carries a striking resemblance to a System F type-checker, with optimised machine code falling out as a side effect rather than as a separate compilation step.\footnote{The well-known alternative to this \emph{disciplined embedding} is the \emph{two-language problem}~\cite{bezanson2017julia}: research code is written in an expressive high-level language (Python, R, Julia) while only performance-critical execution is delegated to a separately maintained C or C++ backend.  Bridging tools such as \texttt{nanobind}~\cite{jakob2022nanobind} close the \emph{binary} gap but not the \emph{semantic} gap: the C++ backend cannot reason about high-level mathematical invariants defined in the Python layer.  The Juliet Posture is the alternative: keep the high-level mathematical vocabulary in the same language the optimiser sees.}
 
 
 \paragraph{An old capability, newly accessible.}
@@ -799,9 +851,24 @@ declaration are the audit surface).
 \subsection{The Structuralist Intersection: The \texttt{dedekind} DSL}
 \label{sec:cpp-stlc-mapping}
 
-The \texttt{dedekind} types and combinators are the inhabitants of $\mathbf{Jlt} \cap \mathbf{Spo}$: C++23 types and arrows that simultaneously sit in the disciplined syntactic fragment $\mathbf{Jlt}$ and carry single-species categorical structure from $\mathbf{Spo}$.
+The \texttt{dedekind} types and combinators are the inhabitants of $\mathbf{Jlt} \cap \mathbf{Sngl}$: C++23 types and arrows that simultaneously sit in the disciplined syntactic fragment $\mathbf{Jlt}$ and carry single-species categorical structure from $\mathbf{Sngl}$.
 The intersection is small but non-empty, and that is the point: a bounded feasible region a working software engineer can inhabit cleanly without leaving mainstream C++.
-The remainder of the section develops the two restrictions in turn --- §\ref{sec:spo} for $\mathbf{Spo}$, §\ref{sec:jlt} for $\mathbf{Jlt}$ --- and the subsequent pillars exhibit the intersection through worked examples.
+
+\paragraph{Why $\mathbf{Sngl}$ rather than $\mathbf{Mon}$.}
+We use $\mathbf{Sngl}$ as a project-specific mnemonic (\emph{single-species}) naming the engineering-library fragment of $\mathbf{Cat}$ developed in §\ref{sec:sngl} (Burris--Sankappanavar~\cite{burris1981universalalgebra} §II.10).
+The relationship to the textbook $\mathbf{Mon}$ (the category of monoids; equivalently, one-object categories under Mac Lane~\cite{maclane1971categories} §I.1's bijection) is generalisation along two axes: \textbf{(a)~signature}: $\mathbf{Sngl}$ admits operations of arbitrary signature on a shared carrier (e.g.\ both $+$ and $\cdot$ on a ring), where $\mathbf{Mon}$ carries exactly one binary operation; and \textbf{(b)~laws}: $\mathbf{Sngl}$ does not require the monoid axioms (associativity, two-sided identity), leaving lawfulness to per-species trait specialisations (\lstinline|IsRing|, \lstinline|IsField|, \dots).
+Concretely, $\mathbf{Mon} \subset \mathbf{Sngl} \subset \mathbf{Cat}$.
+
+The reason for the generalisation is engineering-pragmatic, not categorical-aesthetic: $\mathbf{Sngl}$ is sized precisely to admit the carriers and combinators the C++ standard library already ships --- the primitive types (\lstinline|int|, \lstinline|bool|, \lstinline|double|, \dots), \lstinline|std::regular| value-types, \lstinline|std::pair| and \lstinline|std::tuple|, the \lstinline|std::ranges| families, and so on --- even when these carriers fail one or both of the monoid axioms (\lstinline|int| addition is non-associative under signed-overflow UB; IEEE-754 \lstinline|double| addition is non-associative under rounding; \lstinline|std::ranges::view| has no obvious neutral element).
+Working in $\mathbf{Sngl}$ is what lets the library lift these standard-library carriers into a categorical reading without first having to refactor or wrap them; the trait-specialisation registry then refines individual carriers to stricter algebraic concepts (\lstinline|IsRing|, \lstinline|IsField|, \lstinline|IsTotallyOrdered|, \dots) where the laws actually hold.
+
+This is the deeper engineering motivation behind the structural-typing posture of §\ref{sec:jlt}: structural typing makes membership definable \emph{after the fact}.
+A pre-existing C++ standard-library type --- a \lstinline|std::pair|, an \lstinline|std::ranges::view|, a \lstinline|std::optional| --- becomes an inhabitant of $\mathbf{Ddk} = \mathbf{Jlt} \cap \mathbf{Sngl}$ the moment a \lstinline|concept| witnessing the relevant algebraic surface accepts it, with no modification to the carrier type itself.
+The \texttt{dedekind} library never asks the standard library to declare itself an instance of anything; instead, the library reaches out, checks the carrier's \emph{scent} against a concept, and admits the carrier on the strength of that check.
+Nominal-typing alternatives (declared lineage, base classes, virtual interfaces) would require the carrier to opt in upstream --- impossible for types that already shipped in the C++ standard a decade ago, or for third-party libraries the engineer does not control.
+The project-specific mnemonic $\mathbf{Sngl}$ is meant to make both motivations visible at the symbol layer (the generalisation beyond $\mathbf{Mon}$, and the after-the-fact-membership opening that lets the library absorb existing types) rather than overload $\mathbf{Mon}$ with a meaning it does not carry in the standard textbook reading.
+
+The remainder of the section develops the two restrictions in turn --- §\ref{sec:sngl} for $\mathbf{Sngl}$, §\ref{sec:jlt} for $\mathbf{Jlt}$ --- and the subsequent pillars exhibit the intersection through worked examples.
 
 As noted in the Introduction, the categorical perspective is useful here precisely because it makes composition and rewrite structure explicit.
 
@@ -947,6 +1014,69 @@ category---hence, equivalently, for STLC; and the
 \lstinline|constexpr|-as-normalisation row is what lets type-directed
 collapse (§\ref{sec:gap}) act as a form of cut elimination, with the
 LLVM backend treating the reduced bottom type as dead code.
+
+\paragraph{A worked example: the Functor concept.}
+The intersection $\mathbf{Jlt} \cap \mathbf{Sngl}$ becomes concrete on a single non-trivial example.
+Figure~\ref{fig:functor-diagram} is the textbook commutative-square diagram for a functor $F: \mathcal{C} \to \mathcal{D}$~\cite{maclane1971categories} (Mac Lane §I.3): an object map $A \mapsto F(A)$ and an arrow map $f \mapsto F(f)$ that respects identities and composition.
+Listing~\ref{lst:isfunctor} is the same content as a C++23 concept in \texttt{dedekind.category:functor} together with a worked instance, the optional-value Maybe functor, mechanically verified by \lstinline|static_assert|.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzcd}[column sep=large, row sep=large, ampersand replacement=\&]
+A \arrow[r, "f"] \arrow[d, mapsto, "F"', shorten <=2pt, shorten >=2pt]
+  \arrow[rr, bend left=35, "g \circ f"] \&
+B \arrow[r, "g"] \arrow[d, mapsto, "F", shorten <=2pt, shorten >=2pt] \&
+C \arrow[d, mapsto, "F", shorten <=2pt, shorten >=2pt] \\
+F(A) \arrow[r, "F(f)"']
+     \arrow[rr, bend right=35, "F(g \circ f)\;=\;F(g) \circ F(f)"'] \&
+F(B) \arrow[r, "F(g)"'] \&
+F(C)
+\end{tikzcd}
+\caption{The textbook functor diagram, extended with a second source arrow $g: B \to C$ so the composition law is observable rather than only stated.  $F$ sends each source object $X \in \mathcal{C}$ to a target object $F(X) \in \mathcal{D}$ and each source arrow $f: A \to B$ to a target arrow $F(f): F(A) \to F(B)$, in a way that respects identities ($F(\mathrm{id}_A) = \mathrm{id}_{F(A)}$) and composition ($F(g \circ f) = F(g) \circ F(f)$, witnessed by the curved arrows on top and bottom).  Listing~\ref{lst:isfunctor} encodes the same content in C++23 concepts and exhibits a worked instance.}
+\label{fig:functor-diagram}
+\end{figure}
+
+% Source: src/main/modules/dedekind/category/functor.cppm (IsFunctor concept + maybe_functor instance, abridged)
+\begin{lstlisting}[language=C++, caption={The Functor concept and a worked instance (Maybe), abridged from \texttt{dedekind.category:functor}.  The concept body encodes Figure~\ref{fig:functor-diagram} structurally; the static assertion below is the Curry--Howard discharge that \texttt{maybe\_functor} inhabits the concept.}, label={lst:isfunctor}]
+template <typename F>
+concept IsFunctor = IsArrow<F> && requires {
+  typename F::Σ_cat;                         // source category
+  typename F::Τ_cat;                         // target category
+  typename F::template Shape<int>;           // object map  A -> F(A)
+} && requires(F f, typename F::Σ_cat::Arrow f_c) {
+  { f.φ(f_c) } -> IsArrow;                   // morphism lift  f -> F(f)
+  // Domain / Codomain of the lifted arrow track the object map:
+  // Dom(F(f)) = F(Dom(f)),  Cod(F(f)) = F(Cod(f))
+  // (full requires-clause elided; see source).
+};
+
+// The optional-value Maybe functor: Set<T> -> Set<std::optional<T>>.
+template <typename T>
+struct maybe_functor {
+  // IsArrow surface (the hub's outer typing).
+  using ArrowKind = hub_arrow_tag;
+  using Σ_cat = Set<T>;                      // source category
+  using Τ_cat = Set<std::optional<T>>;       // target category
+  using Domain   = Σ_cat;                    // hub Domain  = source category
+  using Codomain = Τ_cat;                    // hub Codomain = target category
+  constexpr Τ_cat operator()(const Σ_cat&) const noexcept { return {}; }
+
+  // Functorial action.
+  template <typename U> using Shape = std::optional<U>;
+  template <typename Fn>           // 𝗳 in source; ASCII here for font coverage
+    requires IsArrow<std::remove_cvref_t<Fn>>
+  constexpr auto φ(Fn&& f) const {
+    return arrow([f = std::forward<Fn>(f)](std::optional<T> const& m) {
+      return m.has_value() ? std::optional{std::invoke(f, *m)} : std::nullopt;
+    });
+  }
+};
+
+static_assert(IsFunctor<maybe_functor<int>>);  // mechanical verification
+\end{lstlisting}
+
+The listing is the System-F-recovery table (Table~\ref{tab:structuralist-bridge}) at work in one place: the \lstinline|template <typename F>| header is row 2's \emph{Constrained Templates} $\equiv \forall\alpha.\dots$; the \lstinline|requires|-clause is row 1's \emph{Concept-gating} discharging parametricity; the \lstinline|static_assert| is the Curry--Howard term that proves \lstinline|maybe_functor| inhabits the concept.\footnote{An architectural choice worth naming: the functorial obligation lives in the \emph{hub} type (\lstinline|maybe_functor<T>|), \emph{not} in the carrier (\lstinline|std::optional<T>|).  In Haskell the carrier itself is the functor — \lstinline|Maybe a| is declared an instance of \lstinline|Functor| with the laws supplied implicitly.  In \texttt{dedekind} we deliberately keep \lstinline|std::optional<T>| a Plain Old C++ Object and externalise the functorial proof obligation into a separate hub: an engineer who wants \lstinline|std::optional| to act as a functor writes \lstinline|maybe_functor| and discharges the laws there.  The C++23 concept machinery does not project structural witnesses onto carriers automatically (concepts are checked, not synthesised), and crowding self-descriptive bits onto \lstinline|std::optional| would defeat the POCO discipline that lets the disciplined fragment recover System F (Table~\ref{tab:structuralist-bridge}).  The real-world functions an engineering library hosts are not generic in the strong Haskell sense — the functorial structure is supplied at the library boundary by a hub that names it, not inherited from the carrier.}
+The same machinery covers the carrier-tower's other functorial constructions ($V_n(R)$, $\mathrm{End}_R$, $\mathrm{Frac}$, $\mathrm{Complex}$, $\mathrm{Dual}$); see §\ref{sec:linalg} for worked instances at the linear-algebra layer.
 
 \paragraph{Every carrier is a structure-preserving image of its
 base.}  Each carrier in the numeric tower
@@ -1632,6 +1762,89 @@ each reduction are its mechanical witness.
 \section{Algebraic Lattice}
 \label{sec:pruning}
 % ============================================================
+
+% TODO(future-edit): this section is the natural home for the deeper
+% trait-registry discussion that §\ref{sec:jlt} (Juliet Posture) only
+% gestures at.  The framing established there is the two-axis split:
+%   (i)  closure on the operator surface --- validated by inspecting
+%        the standard library (overload resolution, concept binding);
+%   (ii) algebraic laws (associativity, commutativity, distributivity,
+%        identities, inverses, totality) --- validated and certified
+%        by hand, per carrier, in the trait registry.
+% This section should expand axis (ii) with: how the registry is
+% organised (per-axiom variable templates like is_associative_v),
+% how propagation works (HSP under quotients/products; partial
+% propagation under End_R), and how the audit rosettas in
+% §\ref{sec:carrier-rosetta} measure the standard library's silence.
+% The §\ref{sec:species} listing already exhibits the registry style;
+% the work is integrating it as a coherent narrative thread rather
+% than a standalone listing.  Keep §3 lean --- if registry detail
+% accretes there, push it down here.
+
+% TODO(future-edit, draft figure): Figure~\ref{fig:two-axes} below is a
+% first-pass sketch of the two-axis split.  Disposition for the editing
+% pass: this figure is primarily an EDITING-TIME MNEMONIC --- a thinking
+% aid that helps keep the §\ref{sec:jlt}/§\ref{sec:pruning} narrative
+% honest about which axis any given paragraph is talking about.  It may
+% or may not earn its place at submission time; the decision is downstream
+% of how the surrounding registry prose lands.  Three ways it could go:
+%   (i)  load-bearing --- promoted to a numbered figure that the body
+%        prose explicitly cites in both §\ref{sec:jlt} and §\ref{sec:pruning};
+%   (ii) folded --- absorbed into the rosetta tables (§\ref{sec:carrier-rosetta},
+%        Tables~\ref{tab:rosetta-quotient}, \ref{tab:rosetta-rank}) as a
+%        compact column/row legend instead of a standalone figure;
+%   (iii) dropped --- the rosettas + the §\ref{sec:jlt} prose paragraph
+%        carry the framing without the figure.
+% The carrier placements are indicative, not audited --- the authoritative
+% data lives in the carrier rosettas.  Other open questions for the polish pass:
+%   (a) y-axis as a discrete law-stack (closure / +assoc / +comm / +id /
+%       +inv) as drawn, or a 2D law matrix (one axis per law) with carriers
+%       as cells?  The stack reads cleaner; a matrix is more honest about
+%       non-monotone cases (matrix mult: associative AND non-commutative).
+%   (b) cross-link to the §\ref{sec:species} registry listing so the
+%       reader sees the figure's "above this line" zone realised in code.
+\begin{figure}[ht]
+\centering
+\begin{tikzpicture}[
+  >={Stealth[length=2.5mm]},
+  carrier/.style={circle, fill=black, inner sep=1.5pt},
+  every node/.style={font=\small},
+]
+  % background bands
+  \fill[gray!8] (-0.05,-0.05) rectangle (10.4,1.05);
+  \fill[blue!4] (-0.05,1.05) rectangle (10.4,5.6);
+  \node[anchor=west, font=\footnotesize\itshape, gray] at (5.2,0.5) {std::library territory (overload resolution)};
+  \node[anchor=west, font=\footnotesize\itshape, blue!50!black] at (5.2,5.3) {trait registry territory (certified by hand)};
+
+  % axes
+  \draw[->, thick] (0,0) -- (10.2,0) node[anchor=west] {axis 1: operator surface};
+  \draw[->, thick] (0,0) -- (0,5.5) node[anchor=south] {axis 2: algebraic laws};
+
+  % horizontal ticks
+  \foreach \x/\lbl in {1.5/{none}, 4.5/{\texttt{HasRingOperators}}, 8/{\texttt{HasFieldOperators}}} {
+    \draw[thick] (\x,-0.1) -- (\x,0.1);
+    \node[anchor=north] at (\x,-0.15) {\lbl};
+  }
+
+  % vertical ticks
+  \foreach \y/\lbl in {1/{closure only}, 2/{+ associativity}, 3/{+ commutativity}, 4/{+ identities}, 5/{+ inverses}} {
+    \draw[thick] (-0.1,\y) -- (0.1,\y);
+    \node[anchor=east] at (-0.15,\y) {\lbl};
+  }
+
+  % carriers
+  \node[carrier, label={[label distance=0pt]above:{\texttt{int}}}] at (4.5,1) {};
+  \node[carrier, label={[label distance=0pt]above:{\texttt{unsigned}}}] at (4.5,3) {};
+  \node[carrier, label={[label distance=0pt]above:{\texttt{double}}}] at (8,1) {};
+  \node[carrier, label={[label distance=0pt]above:{\texttt{Rational<int>}}}] at (8,5) {};
+  \node[carrier, label={[label distance=0pt]above:{\texttt{Matrix<R>}}}] at (4.5,2) {};
+
+  % silence demarcation
+  \draw[densely dashed, gray!70!black, thick] (-0.05,1.05) -- (10.4,1.05);
+\end{tikzpicture}
+\caption{\textbf{The two axes of the trait registry (draft).}  Axis 1 (horizontal) is the operator surface: which types compose under which operators.  This axis is validated by \emph{inspection} of the standard library --- overload resolution and concept binding answer it without further human input.  Axis 2 (vertical) is the algebraic-law stack: closure-only, then $+$ associativity, $+$ commutativity, $+$ identities, $+$ inverses.  Above the dashed line the standard library is silent: each law must be \emph{certified by hand}, per carrier, in the trait registry of §\ref{sec:species}.  Carrier placements illustrate the typical shape of the silence: \texttt{int} closes the ring surface but signed-overflow UB defeats associativity (\textsc{ub}); \texttt{unsigned} reaches commutativity via modular arithmetic; \texttt{double} closes the field surface but IEEE-754 rounding defeats associativity; \texttt{Rational<int>} reaches the full field stack; matrix multiplication is associative without being commutative (a non-monotone point this stacked axis under-resolves --- see TODO note in source).  The placements are indicative; the audited data lives in the carrier rosettas (Tables~\ref{tab:rosetta-quotient}, \ref{tab:rosetta-rank}).}
+\label{fig:two-axes}
+\end{figure}
 
 The third pillar.  The carrier tower of Figure~\ref{fig:carrier-lattice}
 in load-bearing form: HSP propagation lifts axioms componentwise
