@@ -15,17 +15,20 @@
  * - `𝔹`: canonical Unicode symbol for the Boolean @b carrier (= @c bool).
  *   Per #399 / #400 (show-to-a-wider-audience API), the species symbol
  *   names the carrier type itself rather than a predicate-set alias;
- *   @c static_assert(IsField<𝔹, bit_xor, bit_and>) and @c var<𝔹> read
- *   directly against the carrier.
- * - `BooleanSetOf<L, C>`: parameterised predicate-set template alias for
- *   `UniversalSet<bool, L, C>`.  The default form `BooleanSetOf<>` is the
- * canonical predicate-set type for the Boolean ambient species; this is the
- *   public template alias to spell when a callsite needs the type
- *   itself (e.g.\ in a static_assert).
- * - `B`: value-level universal Boolean predicate-set, of type
- *   `BooleanSetOf<>`, used as the right-hand-side of the membership
- *   operator in set-builder DSL (e.g.\ @c Set{b @c % @c B @c | @c (b
- *   @c == @c true)}).
+ *   @c static_assert(IsField<𝔹, bit_xor, bit_and>) and
+ *   @c element<Ω<𝔹>> read directly against the carrier.
+ * - `BooleanSetOf<L, C>` ≡ `UniversalSet<bool, L, C>`: parameterised
+ *   predicate-set template alias.  Bool is the @b bottom of the algebraic
+ *   tower, so the characteristic morphism χ_𝔹 of 𝔹-as-subobject coincides
+ *   with the universe Ω<bool> (no proper ambient super-object); the alias
+ *   makes this collapse explicit.  Contrast with @c NaturalNumbersOf,
+ *   @c IntegersOf, @c RationalsOf, @c RealsOf, @c ComplexesOf,
+ *   @c DualSetOf, where χ_T : tower-ambient → Ω is a non-trivial
+ *   classifier with multi-overload cross-carrier embedding-aware
+ *   membership (e.g.\ @c N(-7) returns @c False because -7 ∈ ℤ does not
+ *   land in ℕ ↪ ℤ).
+ * - `B`: value-level instance @c BooleanSetOf<>{}, named for paper-listing
+ *   readability and direct membership-test calls (e.g.\ @c B(true)).
  * - `BooleanSet` (non-exported): an internal convenience alias for
  *   `BooleanSetOf<>` used inside this partition.  Not part of the
  *   public surface — external callers should spell `BooleanSetOf<>` or
@@ -37,10 +40,9 @@
  * identities, absorbers, and distributivity). The test suite validates this
  * alignment explicitly.
  *
- * Element scouts are intentionally local (e.g. `auto b = var<BooleanSetOf<>>;`
- * or equivalently `auto b = var<decltype(B)>;` --- both spellings reach the
- * same predicate-set type) to avoid global name shadowing in downstream
- * code.
+ * Element scouts are post-#551 spelled @c element<Ω<𝔹>> (BoundScout factory
+ * over the bool universe); the legacy @c var<...> family was retired in
+ * Phase 2e.3 of the Ω-ambient redesign.
  *
  * @note "La matematica non e una collezione di trucchi: e grammatica delle
  * forme." (Mathematics is not a bag of tricks; it is a grammar of forms.) —

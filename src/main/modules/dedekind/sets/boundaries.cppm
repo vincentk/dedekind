@@ -363,17 +363,55 @@ static_assert(dedekind::category::HasCanonicalSetCCC<int>,
               "Breadcrumb to :cartesian: boundary ambient int has canonical "
               "CCC witness.");
 
-// Predicate-set classifier for ℕ (the natural-numbers ambient species).
-// Per #401 the canonical species symbol @c ℕ migrated to a carrier-type
-// alias (@c ℕ = @c unsigned @c int); this predicate-set retained as the
-// set-builder DSL handle ("is this value in ℕ?"), with its @c Domain
-// aligned to the carrier so @c var<ℕ> @c % @c N composes cleanly.
+// =============================================================
+// Architecture note: universe Ω<T> vs. classifier <Tower>Of<>
+// =============================================================
 //
-// The @c int-typed @c operator() overload survives as a callsite
-// convenience on the @b classifier reading (ℕ ⊂ ℤ via the
-// non-negativity check); it is not on the formal predicate-set
-// signature (which is @c Domain @c = @c unsigned @c int) but is
-// reachable via direct @c N(-7) calls for paper-listing readability.
+// Two distinct primitives sit at this layer, both rooted in ETCS
+// (Lawvere 1964):
+//
+//   (1) Universe per carrier — @c Ω<T> (variable template above)
+//       = @c UniversalSet<T,L,C>{}.  Constant-True predicate over
+//       carrier T.  Plays the role of "T as its own set" — the
+//       monomorphic identity inclusion T ↪ T.  Used by the
+//       set-builder DSL as the ambient for @c element<Ω<T>>
+//       (BoundScout factory, post-#551).
+//
+//   (2) Tower classifier — @c <Tower>Of<L,C> (this and sibling
+//       struct templates: @c NaturalNumbersOf, @c IntegersOf in
+//       :integer, @c RationalsOf in :rational, @c RealsOf in :real,
+//       @c ComplexesOf in :complex, @c DualSetOf in :dual).
+//       The characteristic morphism χ_T : tower-ambient → Ω of
+//       the subobject T inside its algebraic tower.  Multi-overload:
+//       the @c Domain overload always returns @c L::True (T is in
+//       T), and the cross-carrier overloads route predecessor
+//       types through embedding arrows (e.g.\ @c N(int) checks
+//       non-negativity, @c N(unsigned) is trivially True via the
+//       canonical embedding @c embed_uint_ℕ_).  This is the
+//       textbook "ℕ as a subset of ℤ via the canonical inclusion"
+//       reading.
+//
+//   Asymmetry: @c BooleanSetOf<L,C> ≡ @c UniversalSet<bool,L,C>
+//       (alias, not a separate struct) because 𝔹 is the @b bottom
+//       of the algebraic tower — no proper super-object — so χ_𝔹
+//       collapses to Ω<bool>.  See @c algebra:boolean for that
+//       collapse note.
+//
+// Why both: @c Ω<T> is the structural primitive (one per carrier;
+// uniform DSL surface for set-builder), while @c <Tower>Of<> is
+// the engineering pragma that lifts predecessor literals (@c N(0u)
+// for @c unsigned, @c N(-7) for @c int) without forcing each
+// callsite to thread the embedding manually.  Removing the
+// classifiers in favour of Ω alone would lose the cross-carrier
+// classification — @c Ω<unsigned>{}(-7) is ill-typed, but
+// @c N(-7) is well-typed and returns @c False.
+//
+// Paper alignment: §3.3 (Juliet Posture) names the two-axis split
+// (closure / laws); the universe-vs-classifier distinction is a
+// third meta-axis (§5 figure breadcrumb).  Listing 6 in the paper
+// shows both: @c 𝔹 = @c Ω<bool> for the trivial-bottom case;
+// @c N = @c NaturalNumbersOf<>{} for the non-trivial classifier
+// case.
 export template <typename L = ClassicalLogic, typename C = ℵ_0>
 struct NaturalNumbersOf {
   using Domain =
