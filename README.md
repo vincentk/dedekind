@@ -22,9 +22,9 @@ It defines an embedded domain-specific language (eDSL) for mathematics with the 
 // Cardinality-1 reduction: an intensional set over a transfinite
 // carrier collapses to a named extensional Singleton — at compile
 // time, with no lambdas, no predicate erasure.
-constexpr auto n        = var<ℕ>;
-constexpr auto gt_three = Set{n % N | (n > bound<3>)};
-constexpr auto lt_five  = Set{n % N | (n < bound<5>)};
+constexpr auto n        = element<Ω<ℕ>>;
+constexpr auto gt_three = Set{n | (n > bound<3>)};
+constexpr auto lt_five  = Set{n | (n < bound<5>)};
 
 constexpr Singleton<4> in_between = gt_three & lt_five;   // ≡ {4}
 static_assert(in_between == Singleton<4>{});
