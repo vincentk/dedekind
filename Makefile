@@ -192,13 +192,25 @@ ci-install-doxygen-deps:
 # native UTF-8 support, and python3-pygments for the `minted` package
 # (per #557 — minted shells out to Pygments for native UTF-8 in code
 # listings; see lualatex -shell-escape in docs/paper/Makefile).
+#
+# JuliaMono is downloaded from upstream releases since Ubuntu doesn't ship
+# it as an apt package (`fonts-juliamono` does not exist).  Pinned version
+# for reproducibility; bump as needed.
+JULIAMONO_VERSION := 0.062
 ci-install-paper-deps:
 	@if ! command -v apt-get >/dev/null 2>&1; then \
 		echo "ERROR: ci-install-paper-deps requires apt-get (intended for Ubuntu CI runners)."; \
 		exit 2; \
 	fi
 	sudo apt-get update
-	sudo apt-get install -y biber texlive-latex-base texlive-latex-extra texlive-bibtex-extra texlive-pictures texlive-plain-generic texlive-fonts-recommended texlive-fonts-extra texlive-luatex python3-pygments fonts-juliamono
+	sudo apt-get install -y biber texlive-latex-base texlive-latex-extra texlive-bibtex-extra texlive-pictures texlive-plain-generic texlive-fonts-recommended texlive-fonts-extra texlive-luatex python3-pygments unzip
+	# JuliaMono — downloaded from GitHub releases, installed system-wide,
+	# fontconfig cache refreshed so lualatex/luaotfload finds it.
+	cd /tmp && curl -sSL -o JuliaMono.zip "https://github.com/cormullion/juliamono/releases/download/v$(JULIAMONO_VERSION)/JuliaMono-ttf.zip" \
+		&& sudo mkdir -p /usr/local/share/fonts/juliamono \
+		&& sudo unzip -o JuliaMono.zip -d /usr/local/share/fonts/juliamono \
+		&& sudo fc-cache -f /usr/local/share/fonts/juliamono \
+		&& rm -f JuliaMono.zip
 
 # CI/PR workflow helpers (optimistic concurrency loop)
 
