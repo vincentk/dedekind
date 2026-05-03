@@ -9,7 +9,7 @@ using namespace dedekind::category;
 using namespace dedekind::sets;
 
 TEST_CASE("Algebra:Boolean starter symbols", "[algebra][boolean][starter]") {
-  auto b = element<Ω<bool>>;
+  auto b = element<𝔹>;
 
   auto truthy = Set{b | (b == true)};
   auto falsy = Set{b | !b};
@@ -67,7 +67,7 @@ TEST_CASE("Algebra:Boolean paper alignment (logical vs bitwise)",
 }
 
 TEST_CASE("Algebra:Boolean set laws", "[algebra][boolean][sets][laws]") {
-  auto b = element<Ω<bool>>;
+  auto b = element<𝔹>;
 
   const auto truthy = Set{b | (b == true)};
   const auto falsy = Set{b | !b};
@@ -105,7 +105,7 @@ TEST_CASE("Algebra:Boolean set laws", "[algebra][boolean][sets][laws]") {
 
 TEST_CASE("Algebra:Boolean contradiction is compile-time empty",
           "[algebra][boolean][showcase][constexpr]") {
-  constexpr auto b = element<Ω<bool>>;
+  constexpr auto b = element<𝔹>;
 
   // 1) Unfiltered Boolean universe.
   constexpr auto universe = Set{b};

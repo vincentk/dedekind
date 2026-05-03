@@ -70,16 +70,29 @@ using BooleanSetOf = UniversalSet<bool, L, C>;
 // the namespace surface small, per Copilot review on PR #407.
 using BooleanSet = BooleanSetOf<>;
 
-/** @brief The canonical Boolean carrier type @c 𝔹 = @c bool.
+/** @brief The canonical Boolean universe @c 𝔹 = @c Ω<bool> (post-#559).
  *
- *  @details Per #400 (carrier-type migration of the canonical species
- *  symbols).  The Boolean structures @c bool carries — the Boolean rig
- *  (@c bool, @c ∨, @c ∧), the Galois field 𝔽₂ (@c bool, @c ⊕, @c ∧),
- *  the order lattice — are witnessed at this partition and at
- *  @c numbers:boolean.  The predicate-set role moves to the
- *  unambiguously-named @c BooleanSet (alias of @c UniversalSet<bool>).
+ *  @details Per #559's chosen direction (option A): the named species
+ *  symbols (@c 𝔹 / @c ℕ / @c ℤ / @c ℚ / @c ℝ / @c ℂ / @c 𝔻) denote the
+ *  @b universe values (constexpr instances of @c UniversalSet over the
+ *  carrier), not carrier @b types.  Carrier types are spelled directly
+ *  (@c bool, @c Cardinality, etc.) in template-type-parameter positions;
+ *  the math symbols denote the sets.
+ *
+ *  This makes @c element<𝔹> the canonical scout spelling — closer to
+ *  textbook math notation than the previous @c element<Ω<𝔹>> form (which
+ *  required @c 𝔹 to be a type alias for @c bool).  The Boolean structures
+ *  @c bool carries — the Boolean rig (@c bool, @c ∨, @c ∧), the Galois
+ *  field 𝔽₂ (@c bool, @c ⊕, @c ∧), the order lattice — are still witnessed
+ *  on the carrier @c bool directly (see formal-verification block below
+ *  and @c numbers:boolean).
+ *
+ *  Pre-#559 the spelling was @c using @c 𝔹 @c = @c bool (carrier-type
+ *  alias); the ~25 type-context sites of @c 𝔹 in concept gates and
+ *  static_asserts were migrated to @c bool directly in step 1 of this
+ *  PR (#559, slice 𝔹).
  */
-export using 𝔹 = bool;
+export inline constexpr auto 𝔹 = sets::Ω<bool>;
 
 export inline constexpr BooleanSet B{};
 

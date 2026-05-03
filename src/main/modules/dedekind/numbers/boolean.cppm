@@ -118,8 +118,17 @@ concept Is_B = std::same_as<E, bool> && requires(const M& m) {
 
 /** @section numbers_boolean__Formal_Verification */
 
-// (0) Carrier-type witness: 𝔹 names the carrier itself.
-static_assert(std::same_as<bool, bool>, "𝔹 is the bool carrier (post-#400).");
+// (0) Universe witness: 𝔹 names the universe over the bool carrier (post-#559).
+//     Pre-#559, 𝔹 was a carrier-type alias for bool; post-#559 it is the
+//     value Ω<bool> (a constexpr UniversalSet<bool, ClassicalLogic, Finite>{}).
+static_assert(
+    std::same_as<std::remove_cvref_t<decltype(dedekind::algebra::𝔹)>,
+                 UniversalSet<bool, ClassicalLogic, Finite>>,
+    "𝔹 is the universe Ω<bool> (post-#559).");
+static_assert(
+    std::same_as<typename std::remove_cvref_t<decltype(dedekind::algebra::𝔹)>::Domain,
+                 bool>,
+    "𝔹's underlying carrier IS bool — the textbook universe-over-carrier reading.");
 
 // (0a) Relationship between 𝔹 (the carrier) and UniversalSet<bool> (the
 //      predicate-set / characteristic-function wrapper).  The

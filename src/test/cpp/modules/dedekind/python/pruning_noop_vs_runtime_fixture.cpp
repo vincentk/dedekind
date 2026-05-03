@@ -32,12 +32,9 @@ using namespace dedekind::category;
 using namespace dedekind::sets;
 using namespace dedekind::algebra;
 
-// Symbolic scout ranging over the Boolean universe Ω<bool> (=
-// UniversalSet<bool, ClassicalLogic, Finite>).  At this PR's step-1
-// snapshot, 𝔹 is still the carrier alias (= bool) so the ambient is
-// built explicitly via Ω<bool>; step 2 of the slice redefines 𝔹 as
-// the universe value Ω<bool> and the scout collapses to element<𝔹>.
-constexpr auto b = element<Ω<bool>>;
+// Symbolic scout ranging over the Boolean universe 𝔹 (= Ω<bool> =
+// UniversalSet<bool, ClassicalLogic, Finite>) post-#559.
+constexpr auto b = element<𝔹>;
 
 // { b ∈ 𝔹 | ¬b } = the singleton {false} ⊂ 𝔹
 constexpr auto b_false = Set{b | !b};
