@@ -969,7 +969,7 @@ because IEEE~754 rounding defeats associativity.}
 \midrule
 \multicolumn{2}{@{}l}{\textbf{\cppinline{HasFieldOperators}} --- field $(F, +, -, \cdot, /, 0, 1)$, $\equiv$ \cppinline{HasRingOperators} $\wedge$ \cppinline{HasGroupOperatorsMul}} \\
 \midrule
-\cppinline{a / b}, \cppinline|T{1}| (in addition to \cppinline{HasRingOperators}) & multiplicative inverse $a \cdot b^{-1}$ on non-zero elements; multiplicative unit \\
+\cppinline{a / b}, \cppinline{T{1}} (in addition to \cppinline{HasRingOperators}) & multiplicative inverse $a \cdot b^{-1}$ on non-zero elements; multiplicative unit \\
 \midrule
 \multicolumn{2}{@{}l}{\textbf{\cppinline{HasVectorSpaceOperators<V, F, Act>}} --- vector space over scalar field $F$ (action functor \cppinline{Act}, defaults to \cppinline{std::multiplies<>})} \\
 \midrule
