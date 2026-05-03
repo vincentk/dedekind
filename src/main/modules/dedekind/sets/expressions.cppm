@@ -13,7 +13,8 @@
  *
  * Key constructs exported:
  *  - Set<T,L,P>           -- ETCS-compatible intensional set.
- *  - element<Ω<T>>        -- BoundScout factory for comprehension syntax (#551).
+ *  - element<Ω<T>>        -- BoundScout factory for comprehension syntax
+ * (#551).
  *  - Boolean connectives &&, ||, ! lifted to predicate combinators.
  *  - operator<=           -- subset relation (same-predicate -> True;
  *                            heterogeneous -> Unknown via TernaryLogic).
@@ -99,7 +100,8 @@ export struct BooleanEqPredicate {
   constexpr bool operator()(bool v) const { return v == expected; }
 };
 
-/** @brief The Membership Binding: bridges a narrower-bound scout to its Species. */
+/** @brief The Membership Binding: bridges a narrower-bound scout to its
+ * Species. */
 template <typename Species>
 struct MembershipBinding {
   const Species& base;
@@ -110,7 +112,8 @@ struct MembershipBinding {
     return Comprehension<Species, std::decay_t<P>>{base, std::forward<P>(p)};
   }
 
-  /** @brief Bare-BoundScout<bool> truthy-predicate specialisation (#408 / #551).
+  /** @brief Bare-BoundScout<bool> truthy-predicate specialisation (#408 /
+   * #551).
    *
    *  The textbook set-builder form @c Set{b @c % @c B @c | @c b}
    *  reads "the elements of @c B for which @c b holds".  When @c b's
