@@ -756,7 +756,7 @@ The framing pays off in a row-by-row mapping: each Juliet-Posture restriction re
 \textbf{Type erasure} (computation is type-blind) &
 \textbf{Zero-cost abstraction}: \lstinline|std::regular| objects with transparent value semantics let the compiler optimise on structure while the program's logic remains independent of the carrier name. &
 \textbf{Indistinguishability}: isomorphic structures are functionally identical. \\ \addlinespace
-\textbf{Strong normalisation} (termination)\footnote{C++ template instantiation is Turing-complete in general (Veldhuizen 2003); strong normalisation is recovered specifically by Table~\ref{tab:admissibility-rules}'s bounded-instantiation-depth rule and the exclusion of template-template-parameter recursion in public signatures.  These restrictions are the price of the strong-normalisation reading.}  &
+\textbf{Strong normalisation} (termination)\footnote{C++ template instantiation is Turing-complete in general~\cite{veldhuizen2003templates}; strong normalisation is recovered specifically by Table~\ref{tab:admissibility-rules}'s bounded-instantiation-depth rule and the exclusion of template-template-parameter recursion in public signatures.  These restrictions are the price of the strong-normalisation reading.}  &
 \textbf{Structural pruning}: rejecting Turing-complete template recursion in favour of finite algebraic compositions targets a fragment guaranteed to terminate (and to collapse logically empty constructions to zero machine instructions). &
 \textbf{Echelon construction}: finite, well-founded builds from base sets and axioms. \\ \addlinespace
 \textbf{Impredicativity} (types may be applied to types)\footnote{System F has prenex-style impredicativity at the kind level; C++23 concepts admit a practical form by allowing concepts to be defined in terms of other concepts (e.g.\ \lstinline|IsFunctor<F>| ranging over type-templates).  The two coincide on the fragment we use; the broader impredicative core (universe-level self-quantification) is not in scope.}  &
@@ -837,7 +837,7 @@ declaration are the audit surface).
 \subsection{The Structuralist Intersection: The \texttt{dedekind} DSL}
 \label{sec:cpp-stlc-mapping}
 
-The \texttt{dedekind} types and combinators are the inhabitants of $\mathbf{Jlt} \cap \mathbf{Spo}$: C++23 types and arrows that simultaneously sit in the disciplined syntactic fragment $\mathbf{Jlt}$ and carry single-species categorical structure from $\mathbf{Spo}$.
+The \texttt{dedekind} types and combinators are the inhabitants of $\mathbf{Jlt} \cap \mathbf{Spo}$\footnote{$\mathbf{Spo}$ is a project-internal coinage for the single-species fragment of $\mathbf{Cat}$ developed in §\ref{sec:spo} (Burris--Sankappanavar~\cite{burris1981universalalgebra} §II.10).  The textbook anchor is the bijection between monoids and one-object categories (Mac Lane~\cite{maclane1971categories} §I.1); single-species categories are the engineering-library generalisation that admits operations of arbitrary signature (e.g.\ both $+$ and $\cdot$ on a ring carrier), not only the single binary operation of a monoid.  We deliberately avoid the textbook short-name $\mathbf{Mon}$ to side-step the name collision with the standard \emph{category of monoids} in Mac Lane §I.5.}: C++23 types and arrows that simultaneously sit in the disciplined syntactic fragment $\mathbf{Jlt}$ and carry single-species categorical structure from $\mathbf{Spo}$.
 The intersection is small but non-empty, and that is the point: a bounded feasible region a working software engineer can inhabit cleanly without leaving mainstream C++.
 The remainder of the section develops the two restrictions in turn --- §\ref{sec:spo} for $\mathbf{Spo}$, §\ref{sec:jlt} for $\mathbf{Jlt}$ --- and the subsequent pillars exhibit the intersection through worked examples.
 
@@ -1024,8 +1024,15 @@ concept IsFunctor = IsArrow<F> && requires {
 // The optional-value Maybe functor: Set<T> -> Set<std::optional<T>>.
 template <typename T>
 struct maybe_functor {
-  using Σ_cat = Set<T>;
-  using Τ_cat = Set<std::optional<T>>;
+  // IsArrow surface (the hub's outer typing).
+  using ArrowKind = hub_arrow_tag;
+  using Σ_cat = Set<T>;                      // source category
+  using Τ_cat = Set<std::optional<T>>;       // target category
+  using Domain   = Σ_cat;                    // hub Domain  = source category
+  using Codomain = Τ_cat;                    // hub Codomain = target category
+  constexpr Τ_cat operator()(const Σ_cat&) const noexcept { return {}; }
+
+  // Functorial action.
   template <typename U> using Shape = std::optional<U>;
   template <typename Fn>           // 𝗳 in source; ASCII here for font coverage
     requires IsArrow<std::remove_cvref_t<Fn>>
@@ -1039,7 +1046,7 @@ struct maybe_functor {
 static_assert(IsFunctor<maybe_functor<int>>);  // mechanical verification
 \end{lstlisting}
 
-The listing is the System-F-recovery table (Table~\ref{tab:structuralist-bridge}) at work in one place: the \lstinline|template <typename F>| header is row 2's \emph{Constrained Templates} $\equiv \forall\alpha.\dots$; the \lstinline|requires|-clause is row 1's \emph{Concept-gating} discharging parametricity; the \lstinline|static_assert| is the Curry--Howard term that proves \lstinline|maybe_functor| inhabits the concept.\footnote{An architectural choice worth naming: the functorial obligation lives in the \emph{hub} type (\lstinline|maybe_functor<T>|), \emph{not} in the carrier (\lstinline|std::optional<T>|).  In Haskell the carrier itself is the functor — \lstinline|optional T| is declared an instance of \lstinline|Functor| with the laws supplied implicitly.  In \texttt{dedekind} we deliberately keep \lstinline|std::optional<T>| a Plain Old C++ Object and externalise the functorial proof obligation into a separate hub: an engineer who wants \lstinline|std::optional| to act as a functor writes \lstinline|maybe_functor| and discharges the laws there.  The C++23 concept machinery does not project structural witnesses onto carriers automatically (concepts are checked, not synthesised), and crowding self-descriptive bits onto \lstinline|std::optional| would defeat the POCO discipline that lets the disciplined fragment recover System F (Table~\ref{tab:structuralist-bridge}).  The real-world functions an engineering library hosts are not generic in the strong Haskell sense — the functorial structure is supplied at the library boundary by a hub that names it, not inherited from the carrier.}
+The listing is the System-F-recovery table (Table~\ref{tab:structuralist-bridge}) at work in one place: the \lstinline|template <typename F>| header is row 2's \emph{Constrained Templates} $\equiv \forall\alpha.\dots$; the \lstinline|requires|-clause is row 1's \emph{Concept-gating} discharging parametricity; the \lstinline|static_assert| is the Curry--Howard term that proves \lstinline|maybe_functor| inhabits the concept.\footnote{An architectural choice worth naming: the functorial obligation lives in the \emph{hub} type (\lstinline|maybe_functor<T>|), \emph{not} in the carrier (\lstinline|std::optional<T>|).  In Haskell the carrier itself is the functor — \lstinline|Maybe a| is declared an instance of \lstinline|Functor| with the laws supplied implicitly.  In \texttt{dedekind} we deliberately keep \lstinline|std::optional<T>| a Plain Old C++ Object and externalise the functorial proof obligation into a separate hub: an engineer who wants \lstinline|std::optional| to act as a functor writes \lstinline|maybe_functor| and discharges the laws there.  The C++23 concept machinery does not project structural witnesses onto carriers automatically (concepts are checked, not synthesised), and crowding self-descriptive bits onto \lstinline|std::optional| would defeat the POCO discipline that lets the disciplined fragment recover System F (Table~\ref{tab:structuralist-bridge}).  The real-world functions an engineering library hosts are not generic in the strong Haskell sense — the functorial structure is supplied at the library boundary by a hub that names it, not inherited from the carrier.}
 The same machinery covers the carrier-tower's other functorial constructions ($V_n(R)$, $\mathrm{End}_R$, $\mathrm{Frac}$, $\mathrm{Complex}$, $\mathrm{Dual}$); see §\ref{sec:linalg} for worked instances at the linear-algebra layer.
 
 \paragraph{Every carrier is a structure-preserving image of its
