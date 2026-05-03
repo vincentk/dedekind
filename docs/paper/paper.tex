@@ -160,9 +160,9 @@ compress the time and expertise needed to author opt-in trait
 specialisations, axiom-shape concepts, and the surrounding library
 scaffolding, turning what was an academic specialism into an
 actionable workflow for working software engineers.
-A subsidiary observation, offered tentatively rather than as a load-bearing claim: under the disciplined subset of C++23 the paper develops, the row-by-row mapping of §\ref{sec:jlt} suggests that working in this fragment may be read --- on the part of the language it covers --- as using \texttt{clang++} as something close to a System~F type-checker, with the optimised machine code falling out as a side effect rather than as a separate compilation step.
-The fragment is small and the claim is bounded; we report it as a finding the body's exhibits invite, not as a result we prove formally.
 The meta-claim is not ours to originate; we make it here so the body's executable exhibit can be read in that light.
+
+\noindent A subsidiary observation we offer alongside: working in the disciplined subset of C++23 the paper develops carries a striking resemblance, by structural analogy (§\ref{sec:jlt}), to using \texttt{clang++} as a System~F type-checker, with optimised machine code emerging as a side effect rather than from a separate compilation step.  We name the resemblance because the body's exhibits invite it; a formal correspondence is not in scope.
 \end{abstract}
 
 \tableofcontents
@@ -780,15 +780,7 @@ $\mathbf{Jlt}$ recovers this by auditing carriers (e.g.\ rejecting \lstinline|in
 $\mathbf{Jlt}$ recovers this by rejecting OO-style encapsulation and private state, so type-directed collapse can see all the way through an object to perform formal reductions.
 \end{enumerate}
 
-Taken together, these turn \texttt{clang++} into something close to a System F type-checker that happens to emit highly-optimised machine code as a side effect.
-
-
-A common and well-known alternative to this \emph{disciplined embedding} is the \emph{two-language problem}~\cite{bezanson2017julia}: 
-the observation that research code is written in an expressive high-level language (Python, R, Julia) while only performance-critical
-execution is delegated to a separately maintained C or C++ backend.
-Bridging tools such as \texttt{nanobind}~\cite{jakob2022nanobind} close the \emph{binary} gap
-but not the \emph{semantic} gap: the C++ backend cannot reason about high-level mathematical
-invariants defined in the Python layer.
+Taken together, these features give \texttt{clang++} a workflow that carries a striking resemblance to a System F type-checker, with optimised machine code falling out as a side effect rather than as a separate compilation step.\footnote{The well-known alternative to this \emph{disciplined embedding} is the \emph{two-language problem}~\cite{bezanson2017julia}: research code is written in an expressive high-level language (Python, R, Julia) while only performance-critical execution is delegated to a separately maintained C or C++ backend.  Bridging tools such as \texttt{nanobind}~\cite{jakob2022nanobind} close the \emph{binary} gap but not the \emph{semantic} gap: the C++ backend cannot reason about high-level mathematical invariants defined in the Python layer.  The Juliet Posture is the alternative: keep the high-level mathematical vocabulary in the same language the optimiser sees.}
 
 
 \paragraph{An old capability, newly accessible.}
