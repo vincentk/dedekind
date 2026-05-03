@@ -565,13 +565,13 @@ Both category theory and modern C++23 are large and occasionally intimidating be
 The \texttt{dedekind} library lives at their intersection.
 
 \subsection{Structuralism with Single-Species Categories}
-\label{sec:spo}
+\label{sec:sngl}
 
 The choice of anchoring the library's domain in category theory on the mathematical side is neither new nor arbitrary and follows a well-trodden path.
 The authoritative textbook in the context of programming might be \emph{Types and Programming Languages}~\cite{pierce2002tapl}.
 Here, we intend to lower the barrier to entry and so we restrict attention to \emph{single-species categories}~\cite{burris1981universalalgebra}: categories whose objects all share a common carrier type, whose endomorphisms are functions on that carrier, and whose inter-carrier maps become functors between sibling categories.
 The textbook way to read this restriction is via the bijection between monoids and one-object categories (Mac Lane~\cite{maclane1971categories} §I.1): every monoid \emph{is} a one-object category whose morphisms are the monoid elements; the single-species categories we use here are the engineering-library generalisation, where the species' shared carrier object plays the role of the monoid's underlying set and the species' operation signatures play the role of the monoid's binary operation.
-This is a small fragment of $\mathbf{Cat}$ but, as §\ref{sec:spo} develops, it carries enough algebraic vocabulary to host carriers, operators, and structure-preserving arrows in the shape an engineering library actually needs and is a preferred starting point for the structuralist mathematical style~\cite{marquis2022structuralist}.
+This is a small fragment of $\mathbf{Cat}$ but, as §\ref{sec:sngl} develops, it carries enough algebraic vocabulary to host carriers, operators, and structure-preserving arrows in the shape an engineering library actually needs and is a preferred starting point for the structuralist mathematical style~\cite{marquis2022structuralist}.
 
 For the more casual reader of this text, it should be sufficient to remember that at its most basic, category theory is a book-keeping device of sorts that can tell us what clicks together and what doesn't and how things might be re-arranged and perhaps simplified.
 Somewhat casually:
@@ -837,9 +837,9 @@ declaration are the audit surface).
 \subsection{The Structuralist Intersection: The \texttt{dedekind} DSL}
 \label{sec:cpp-stlc-mapping}
 
-The \texttt{dedekind} types and combinators are the inhabitants of $\mathbf{Jlt} \cap \mathbf{Spo}$\footnote{$\mathbf{Spo}$ is a project-internal coinage for the single-species fragment of $\mathbf{Cat}$ developed in §\ref{sec:spo} (Burris--Sankappanavar~\cite{burris1981universalalgebra} §II.10).  The textbook anchor is the bijection between monoids and one-object categories (Mac Lane~\cite{maclane1971categories} §I.1); single-species categories are the engineering-library generalisation that admits operations of arbitrary signature (e.g.\ both $+$ and $\cdot$ on a ring carrier), not only the single binary operation of a monoid.  We deliberately avoid the textbook short-name $\mathbf{Mon}$ to side-step the name collision with the standard \emph{category of monoids} in Mac Lane §I.5.}: C++23 types and arrows that simultaneously sit in the disciplined syntactic fragment $\mathbf{Jlt}$ and carry single-species categorical structure from $\mathbf{Spo}$.
+The \texttt{dedekind} types and combinators are the inhabitants of $\mathbf{Jlt} \cap \mathbf{Sngl}$\footnote{We use $\mathbf{Sngl}$ as a project-specific mnemonic (\emph{single-species}) naming the engineering-library fragment of $\mathbf{Cat}$ developed in §\ref{sec:sngl} (Burris--Sankappanavar~\cite{burris1981universalalgebra} §II.10).  The relationship to the textbook $\mathbf{Mon}$ (the category of monoids; equivalently, one-object categories under Mac Lane~\cite{maclane1971categories} §I.1's bijection) is one of generalisation: single-species categories admit operations of arbitrary signature on a shared carrier (e.g.\ both $+$ and $\cdot$ on a ring), where a monoid carries only one binary operation.  Concretely, $\mathbf{Mon} \subset \mathbf{Sngl} \subset \mathbf{Cat}$.  We use the project-specific mnemonic to make the engineering generalisation visible at the symbol layer rather than overload $\mathbf{Mon}$ with a meaning it does not carry in the standard textbook reading.}: C++23 types and arrows that simultaneously sit in the disciplined syntactic fragment $\mathbf{Jlt}$ and carry single-species categorical structure from $\mathbf{Sngl}$.
 The intersection is small but non-empty, and that is the point: a bounded feasible region a working software engineer can inhabit cleanly without leaving mainstream C++.
-The remainder of the section develops the two restrictions in turn --- §\ref{sec:spo} for $\mathbf{Spo}$, §\ref{sec:jlt} for $\mathbf{Jlt}$ --- and the subsequent pillars exhibit the intersection through worked examples.
+The remainder of the section develops the two restrictions in turn --- §\ref{sec:sngl} for $\mathbf{Sngl}$, §\ref{sec:jlt} for $\mathbf{Jlt}$ --- and the subsequent pillars exhibit the intersection through worked examples.
 
 As noted in the Introduction, the categorical perspective is useful here precisely because it makes composition and rewrite structure explicit.
 
@@ -987,7 +987,7 @@ collapse (§\ref{sec:gap}) act as a form of cut elimination, with the
 LLVM backend treating the reduced bottom type as dead code.
 
 \paragraph{A worked example: the Functor concept.}
-The intersection $\mathbf{Jlt} \cap \mathbf{Spo}$ becomes concrete on a single non-trivial example.
+The intersection $\mathbf{Jlt} \cap \mathbf{Sngl}$ becomes concrete on a single non-trivial example.
 Figure~\ref{fig:functor-diagram} is the textbook commutative-square diagram for a functor $F: \mathcal{C} \to \mathcal{D}$~\cite{maclane1971categories} (Mac Lane §I.3): an object map $A \mapsto F(A)$ and an arrow map $f \mapsto F(f)$ that respects identities and composition.
 Listing~\ref{lst:isfunctor} is the same content as a C++23 concept in \texttt{dedekind.category:functor} together with a worked instance, the optional-value Maybe functor, mechanically verified by \lstinline|static_assert|.
 
