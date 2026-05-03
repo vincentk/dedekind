@@ -83,6 +83,12 @@ struct Comprehension {
 export template <typename Species>
 struct Variable;
 
+/** @brief Forward declaration of @c BoundScout (post-#551), needed by
+ *  @c MembershipBinding<S>::operator| below for the bool-truthy
+ *  specialisation that mirrors the @c Variable<…> path. */
+export template <auto Ambient>
+struct BoundScout;
+
 /** @brief Boolean equality predicate for compile-time pruning over 𝔹.
  *
  *  Defined here (rather than further down where the @c FiniteBooleanSet
@@ -131,6 +137,15 @@ struct MembershipBinding {
     requires std::same_as<element_of_t<Species>, bool> &&
              std::same_as<element_of_t<OtherSpecies>, bool>
   constexpr auto operator|(const Variable<OtherSpecies>&) const {
+    return Comprehension<Species, BooleanEqPredicate>{base,
+                                                      BooleanEqPredicate{true}};
+  }
+
+  /** @brief Sibling of the above for the post-#551 BoundScout form. */
+  template <auto OtherAmbient>
+    requires std::same_as<element_of_t<Species>, bool> &&
+             std::same_as<typename BoundScout<OtherAmbient>::T, bool>
+  constexpr auto operator|(const BoundScout<OtherAmbient>&) const {
     return Comprehension<Species, BooleanEqPredicate>{base,
                                                       BooleanEqPredicate{true}};
   }
@@ -219,6 +234,21 @@ struct BoundScout {
     requires std::same_as<T, typename SubSpecies::Domain>
   constexpr auto operator%(const SubSpecies& s) const {
     return MembershipBinding<SubSpecies>{s};
+  }
+
+  /** @brief Bare-BoundScout<bool> truthy specialisation (#408 / #551).
+   *  @c Set{b @c | @c b} reads "elements of the ambient for which
+   *  @c b holds"; on a bool scout the bare-@c b form is the truthy
+   *  predicate.  Routes to the canonical @c BooleanEqPredicate{true}
+   *  so the existing collapse machinery treats the three syntactic
+   *  surfaces ( @c b, @c b @c == @c true, @c !b) uniformly.  Mirror
+   *  of @c MembershipBinding<S>::operator|(const Variable<…>&). */
+  template <auto OtherAmbient>
+    requires std::same_as<T, bool> &&
+             std::same_as<typename BoundScout<OtherAmbient>::T, bool>
+  constexpr auto operator|(const BoundScout<OtherAmbient>&) const {
+    return Comprehension<AmbientType, BooleanEqPredicate>{
+        ambient, BooleanEqPredicate{true}};
   }
 };
 

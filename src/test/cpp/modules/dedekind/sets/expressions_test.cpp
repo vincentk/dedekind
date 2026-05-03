@@ -127,7 +127,7 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
     // pair regardless of the .expected field.
     using BoolAmbient = UniversalSet<bool, ClassicalLogic, Finite>;
     constexpr BoolAmbient B_bool{};
-    constexpr auto b = var<BoolAmbient>;
+    constexpr auto b = element<Ω<bool>>;
     auto only_true = Set{b % B_bool | (b == true)};
     auto only_false = Set{b % B_bool | (b == false)};
     auto sym_diff = only_true ^ only_false;
@@ -264,7 +264,7 @@ TEST_CASE("Dedekind Identities: Boolean literals collapse over 𝔹",
   using BoolAmbient = UniversalSet<bool, ClassicalLogic, Finite>;
   constexpr BoolAmbient B_bool{};
 
-  constexpr auto b = var<BoolAmbient>;
+  constexpr auto b = element<Ω<bool>>;
 
   constexpr auto b_false = Set{b % B_bool | !b};
   constexpr auto b_true = Set{b % B_bool | (b == true)};
@@ -288,7 +288,7 @@ TEST_CASE(
   using BoolAmbient = UniversalSet<bool, ClassicalLogic, Finite>;
   constexpr BoolAmbient B_bool{};
 
-  constexpr auto b = var<BoolAmbient>;
+  constexpr auto b = element<Ω<bool>>;
 
   // Bare-b form (the issue's target ergonomics).
   constexpr auto b_true_bare = Set{b % B_bool | b};
