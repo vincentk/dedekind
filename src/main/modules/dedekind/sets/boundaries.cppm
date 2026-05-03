@@ -419,8 +419,8 @@ static_assert(dedekind::category::HasCanonicalSetCCC<int>,
 // case.
 export template <typename L = ClassicalLogic, typename C = ℵ_0>
 struct NaturalNumbersOf {
-  using Domain =
-      dedekind::sets::Cardinality;  // Aligned to the @c ℕ carrier post-#402.
+  using Domain = dedekind::sets::Cardinality;  // Aligned to the @c Cardinality
+                                               // carrier post-#402.
   using Codomain = typename L::Ω;
   using logic_species = L;
   using cardinality_type = C;
@@ -455,28 +455,37 @@ struct NaturalNumbersOf {
 // @c BooleanSet de-export pattern from #407.
 using NaturalNumbers = NaturalNumbersOf<>;
 
-/** @brief The canonical Natural-numbers carrier symbol @c ℕ = @c Cardinality.
+/** @brief The canonical Natural-numbers universe @c ℕ = @c Ω<Cardinality>
+ *  (post-#559).
  *
- *  @details Per #402 (math-wins-over-C++ retarget).  @c ℕ is now the
- *  variant ℕ-proxy carrier @c Cardinality (= @c
- *  std::variant<ExtensionalCardinal<>, ℵ_0>) — saturating to @c ℵ_0
- *  on overflow rather than wrapping the way @c unsigned @c int (the
- *  earlier post-#401 reading) did.  The structural advantage: the
- *  variant honestly models ℕ (no additive inverses; rig-not-ring),
- *  whereas @c unsigned @c int is structurally @b more than ℕ (modular
- *  ring with additive inverses, since @c 0 @c - @c 1 wraps to
- *  @c UINT_MAX).  Callers wanting the bounded machine carrier
- *  explicitly spell @c unsigned @c int directly.
+ *  @details Per #559's chosen direction (option A): the named species
+ *  symbols (@c 𝔹 / @c ℕ / @c ℤ / @c ℚ / @c ℝ / @c ℂ / @c 𝔻) denote the
+ *  @b universe values (constexpr instances of @c UniversalSet over the
+ *  carrier), not carrier @b types.  Carrier types are spelled directly
+ *  (@c bool, @c Cardinality, @c SignedExtensionalCardinal<>, ...) in
+ *  template-type-parameter positions; the math symbols denote the sets.
  *
- *  Witness layer: @c Cardinality carries the homogeneous operator +
- *  trait + concept surface shipped in PR #425 (#424) — @c +, @c *,
- *  @c /, @c %, @c <=>, @c ==; @c IsRig, @c IsCommutativeMonoid under
- *  each op, @c HasPartialOrderOperators / @c HasTotalOrderOperators,
- *  @c IsTotallyOrdered, @c IsDirectedSet / @c IsDirectedPoset,
- *  @c IsDividableChain.  Subtraction is intentionally absent: ℕ × ℕ →
- *  ℤ is the @c SignedCardinality job.
+ *  This makes @c element<ℕ> the canonical scout spelling for the
+ *  natural-numbers universe — closer to textbook math notation than the
+ *  pre-#559 @c element<Ω<ℕ>> form (which required @c ℕ to be a type
+ *  alias for @c Cardinality).
+ *
+ *  Pre-#559 the spelling was @c using @c ℕ @c = @c
+ *  dedekind::sets::Cardinality (carrier-type alias, post-#402); the
+ *  ~110 type-context sites of @c ℕ in concept gates and static_asserts
+ *  were migrated to @c Cardinality directly in step 1 of the ℕ slice.
+ *
+ *  Carrier reading retained: @c Cardinality is the variant ℕ-proxy
+ *  (= @c std::variant<ExtensionalCardinal<>, ℵ_0>) — saturating to
+ *  @c ℵ_0 on overflow rather than wrapping the way @c unsigned @c int
+ *  would.  The structural advantage: the variant honestly models ℕ
+ *  (no additive inverses; rig-not-ring), whereas @c unsigned @c int
+ *  is structurally @b more than ℕ (modular ring with additive
+ *  inverses).  Witnesses (@c IsRig, @c IsCommutativeMonoid,
+ *  @c IsTotallyOrdered, @c IsDirectedSet, @c IsDirectedPoset, ...)
+ *  are now expressed against @c Cardinality directly.
  */
-export using ℕ = dedekind::sets::Cardinality;
+export inline constexpr auto ℕ = Ω<Cardinality>;
 
 // Canonical ambient-set value used by the sets DSL tests.
 export inline constexpr NaturalNumbersOf<> N{};

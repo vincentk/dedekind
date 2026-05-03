@@ -18,9 +18,11 @@ TEST_CASE("Dedekind MVP: Basic Membership and Symbols", "[sets]") {
   }
 
   SECTION("Natural-numbers membership") {
-    // Post-#401, ℕ is the unsigned-int carrier; the predicate-set N has
-    // Domain = unsigned int, so callsites use unsigned values.
-    auto n = element<Ω<ℕ>>;
+    // Post-#559, ℕ is the universe value Ω<Cardinality>; the underlying
+    // carrier is Cardinality (the variant ℕ-proxy from #402, which
+    // accepts unsigned literals via implicit construction).  Callsites
+    // here use unsigned values that lift into Cardinality.
+    auto n = element<ℕ>;
     auto infinite = Set{n | (n > 0u)};
     REQUIRE(infinite(5u) == Ternary::True);
     REQUIRE(infinite(0u) == Ternary::False);
@@ -29,7 +31,7 @@ TEST_CASE("Dedekind MVP: Basic Membership and Symbols", "[sets]") {
 
 TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
           "[sets][operators]") {
-  auto x = element<Ω<ℕ>>;
+  auto x = element<ℕ>;
 
   SECTION(
       "Singleton ^ Singleton — equal pivots empty, distinct pivots union "
@@ -227,7 +229,7 @@ TEST_CASE("Dedekind Sets: symmetric difference (^) — #469",
 }
 
 TEST_CASE("Dedekind Identities: Extremal Collapse", "[sets][identities]") {
-  auto x = element<Ω<ℕ>>;
+  auto x = element<ℕ>;
 
   SECTION("Identity: Set{N} is N") {
     // Naturals remain stable when materialized through Set{...}.
@@ -373,7 +375,7 @@ TEST_CASE("Dedekind Sets: Power-set witness over homogeneous predicates",
 
 TEST_CASE("Dedekind Sets: Power-set preserves ambient logic",
           "[sets][powerset][logic]") {
-  auto x = element<Ω<ℕ>>;
+  auto x = element<ℕ>;
 
   const auto gt_zero = Set{x | (x > 0u)};
   const auto p_gt_zero = power_set(gt_zero);
@@ -405,7 +407,7 @@ TEST_CASE("Dedekind Sets: Relation witnesses preserve ternary logic",
 TEST_CASE("Dedekind Sets: Heterogeneous subset semantics",
           "[sets][subset][logic]") {
   SECTION("Ternary logic yields Unknown for heterogeneous predicates") {
-    auto x = element<Ω<ℕ>>;
+    auto x = element<ℕ>;
     const auto gt_zero = Set{x | (x > 0u)};
     const auto ge_zero = Set{x | (x >= 0u)};
 

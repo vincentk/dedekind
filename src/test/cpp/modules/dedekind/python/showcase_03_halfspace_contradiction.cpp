@@ -31,17 +31,18 @@ using namespace dedekind::algebra;
 using namespace dedekind::numbers;
 using namespace dedekind::order;
 
-// Symbolic scout ranging over the universal set Ω<ℕ>.  Per #551, the
-// scout carries its ambient at the type level, so the % binding step
-// disappears from the set-builder DSL.
-constexpr auto n = element<Ω<ℕ>>;
+// Symbolic scout ranging over the natural-numbers universe ℕ.  Per
+// #551 the scout carries its ambient at the type level (the % binding
+// step disappears); per #559 the canonical spelling is element<ℕ> with
+// ℕ itself the universe value (= Ω<Cardinality>).
+constexpr auto n = element<ℕ>;
 
 // Opposing halfspaces with compile-time pivots carried in the predicate type.
 constexpr auto gt_five = Set{n | (n > bound<5>)};
 constexpr auto lt_three = Set{n | (n < bound<3>)};
 
 // Compile-time theorem: the meet IS the empty set on ℕ.
-constexpr Ø<ℕ> empty_meet = gt_five & lt_three;
+constexpr Ø<Cardinality> empty_meet = gt_five & lt_three;
 static_assert(empty_meet == Ø{});
 
 // Computability made a compile-time observable: the parent Sets carry NONE

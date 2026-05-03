@@ -94,11 +94,11 @@ TEST_CASE("Pruning showcase 2: ℕ² lattice × [½,1½]² in ℂ = {1+i}",
 
 TEST_CASE("Pruning showcase 3: halfspace contradiction on ℕ collapses to Ø",
           "[analysis][pruning][showcase][showcase03]") {
-  constexpr auto n = element<Ω<ℕ>>;
+  constexpr auto n = element<ℕ>;
   constexpr auto gt_five = Set{n | (n > bound<5>)};
   constexpr auto lt_three = Set{n | (n < bound<3>)};
 
-  constexpr Ø<ℕ> empty_meet = gt_five & lt_three;
+  constexpr Ø<Cardinality> empty_meet = gt_five & lt_three;
   STATIC_CHECK(empty_meet == Ø{});
 
   SECTION("Computability tiers tighten at the reduction boundary") {
@@ -114,7 +114,7 @@ TEST_CASE("Pruning showcase 3: halfspace contradiction on ℕ collapses to Ø",
 
 TEST_CASE("Pruning showcase 4: cardinality-1 halfspace meet = Singleton<4>",
           "[analysis][pruning][showcase][showcase04]") {
-  constexpr auto n = element<Ω<ℕ>>;
+  constexpr auto n = element<ℕ>;
   constexpr auto gt_3 = Set{n | n > bound<3>};
   constexpr auto lt_5 = Set{n | n < bound<5>};
 

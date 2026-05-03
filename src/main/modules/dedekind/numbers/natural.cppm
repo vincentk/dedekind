@@ -58,7 +58,7 @@ export module dedekind.numbers:natural;
 import dedekind.algebra; // HasRingOperators / HasSemiringOperators / IsArithmeticRing (canonical-spine witnesses)
 import dedekind.category;
 import dedekind.order; // HasLatticeOperators (canonical-spine witnesses)
-import dedekind.sequences; // IsFiniteSequence (canonical-spine witnesses on FinitePath<ℕ>)
+import dedekind.sequences; // IsFiniteSequence (canonical-spine witnesses on FinitePath<Cardinality>)
 import dedekind.sets;
 import :scalars;
 import :boolean;
@@ -177,16 +177,23 @@ using ::dedekind::sets::ℕ;
 
 /** @section natural__Formal_Verification */
 
-// (0) Carrier-type witness: ℕ names the carrier itself (post-#402; the
-//     variant ℕ-proxy from sets:cardinality, replacing the unsigned-int
-//     reading shipped under #401).
-static_assert(std::same_as<ℕ, dedekind::sets::Cardinality>,
-              "ℕ is the variant ℕ-proxy carrier @c Cardinality "
-              "(= @c std::variant<ExtensionalCardinal<>, ℵ_0>) — "
-              "saturating to ℵ_0 on overflow; honestly models ℕ "
-              "(no additive inverses; rig-not-ring).  Callers wanting "
-              "the bounded machine carrier explicitly spell @c unsigned "
-              "@c int directly.");
+// (0) Universe witness: ℕ names the universe over the Cardinality
+//     carrier (post-#559).  Pre-#559, ℕ was a carrier-type alias for
+//     Cardinality; post-#559 it is the value Ω<Cardinality> (a constexpr
+//     UniversalSet<Cardinality, ClassicalLogic, ℵ_0>{}).  Cardinality is
+//     the variant ℕ-proxy carrier (= @c std::variant<ExtensionalCardinal<>,
+//     ℵ_0>) — saturating to ℵ_0 on overflow; honestly models ℕ (no
+//     additive inverses; rig-not-ring).  Callers wanting the bounded
+//     machine carrier explicitly spell @c unsigned @c int directly.
+static_assert(std::same_as<std::remove_cvref_t<decltype(dedekind::sets::ℕ)>,
+                           UniversalSet<Cardinality, ClassicalLogic, ℵ_0>>,
+              "ℕ is the universe Ω<Cardinality> (post-#559).");
+static_assert(
+    std::same_as<
+        typename std::remove_cvref_t<decltype(dedekind::sets::ℕ)>::Domain,
+        Cardinality>,
+    "ℕ's underlying carrier IS Cardinality — the textbook "
+    "universe-over-carrier reading.");
 
 // (0a) Relationship between ℕ (the carrier) and NaturalNumbersOf<>
 //      (the predicate-set / classifier).  The predicate-set's @c Domain
@@ -194,7 +201,7 @@ static_assert(std::same_as<ℕ, dedekind::sets::Cardinality>,
 //      relationship from #400.  IsSet<ℕ> itself does @b not fire (carrier types
 //      carry no predicate-set surface); to participate as a set, lift
 //      through the predicate-set.
-static_assert(std::same_as<typename NaturalNumbersOf<>::Domain, ℕ>,
+static_assert(std::same_as<typename NaturalNumbersOf<>::Domain, Cardinality>,
               "NaturalNumbersOf<>::Domain is the variant ℕ-proxy carrier "
               "ℕ — predicate-set's underlying element type IS the "
               "carrier.");
@@ -203,8 +210,8 @@ static_assert(std::same_as<typename NaturalNumbersOf<>::Domain, ℕ>,
 //     set.  Witnesses the set-builder DSL entry point that survives the
 //     carrier migration.
 static_assert(
-    dedekind::category::IsSet<
-        decltype(dedekind::category::ambient_set<ℕ>(NaturalNumbersOf<>{}))>,
+    dedekind::category::IsSet<decltype(dedekind::category::ambient_set<
+                                       Cardinality>(NaturalNumbersOf<>{}))>,
     "NaturalNumbersOf<> is the canonical IsSet anchor for ℕ.");
 
 // (2) Syntax (the C++ operator surface that maps to ℕ's algebra).
@@ -270,13 +277,13 @@ static_assert(dedekind::algebra::IsRig<unsigned int, std::plus<unsigned int>,
 // level; the spaceship and the four partial-order operators all
 // fire on the carrier.  Mirrors the @b shape vs.\ @b axiom split of
 // HasRingOperators / IsRing from PR #394.
-static_assert(dedekind::order::HasPartialOrderOperators<ℕ>,
+static_assert(dedekind::order::HasPartialOrderOperators<Cardinality>,
               "ℕ carries the partial-order operator surface "
               "(<, <=, >, >=).");
-static_assert(dedekind::order::HasTotalOrderOperators<ℕ>,
+static_assert(dedekind::order::HasTotalOrderOperators<Cardinality>,
               "ℕ carries the total-order operator surface "
               "(spaceship + the four partial-order operators).");
-static_assert(dedekind::order::IsTotallyOrdered<ℕ>,
+static_assert(dedekind::order::IsTotallyOrdered<Cardinality>,
               "ℕ is axiomatically totally ordered (the chain "
               "0 ≤ 1 ≤ 2 ≤ ...).");
 // Order-domain witnesses: ℕ is a directed set (every finite subset has
@@ -284,22 +291,24 @@ static_assert(dedekind::order::IsTotallyOrdered<ℕ>,
 // These pin ℕ as a valid @b net-domain in the Munkres / Kelley sense:
 // a net is a function from a directed set, and ℕ is the prototypical
 // directed set (sequences are nets indexed by ℕ).
-static_assert(dedekind::order::IsDirectedSet<ℕ>,
+static_assert(dedekind::order::IsDirectedSet<Cardinality>,
               "ℕ is a directed set — the prototypical net domain.");
-static_assert(dedekind::order::IsDirectedPoset<ℕ>,
+static_assert(dedekind::order::IsDirectedPoset<Cardinality>,
               "ℕ is a directed poset (directed + antisymmetric).");
 // Sequence witness: FinitePath<ℕ> is a finite sequence enumerating
 // a ℕ-prefix.  Pins ℕ as a valid @b sequence codomain: any finite
 // sub-sequence of natural numbers presents as IsFiniteSequence.
-static_assert(
-    dedekind::sequences::IsFiniteSequence<dedekind::sequences::FinitePath<ℕ>>,
-    "FinitePath<ℕ> is a bona-fide finite sequence; ℕ is a valid "
-    "sequence codomain.");
+static_assert(dedekind::sequences::IsFiniteSequence<
+                  dedekind::sequences::FinitePath<Cardinality>>,
+              "FinitePath<Cardinality> is a bona-fide finite sequence; the "
+              "Cardinality carrier (carrier of the ℕ universe post-#559) is a "
+              "valid sequence codomain.");
 
-// (4) Primitive-type arrows.  ℕ *is* @c unsigned @c int (post-#401), so
-// the predicate-set membership question reduces to direct calls on the
-// classifier @c N (the namespace-level @c NaturalNumbersOf<> constant
-// from sets:boundaries):
+// (4) Primitive-type arrows.  ℕ is the universe @c Ω<Cardinality> (post-#559;
+// underlying carrier @c Cardinality from #402, replacing the earlier
+// post-#401 unsigned-int reading).  Predicate-set membership reduces to
+// direct calls on the classifier @c N (the namespace-level
+// @c NaturalNumbersOf<> constant from sets:boundaries):
 //   - Forward (unsigned → ℕ): trivially total (every unsigned is a
 //     natural).
 //   - Forward into a certified IsNatural domain (e.g.\ ExtensionalCardinal<>):
@@ -355,24 +364,27 @@ static_assert(N(-7) == ClassicalLogic::False,
  *         witness on @c Cardinality.  Nullary callable, returns
  *         @c finite_cardinality(0). */
 export struct cardinality_zero {
-  constexpr ℕ operator()() const noexcept { return finite_cardinality(0); }
+  constexpr Cardinality operator()() const noexcept {
+    return finite_cardinality(0);
+  }
 };
 
 /** @brief The successor map @c ℕ → @c ℕ for the NNO universal property
  *         witness on @c Cardinality.  On the finite fragment, returns
  *         @c n + 1; on @c ℵ_0, returns @c ℵ_0 (saturation). */
 export struct cardinality_succ {
-  constexpr ℕ operator()(const ℕ& n) const noexcept {
+  constexpr Cardinality operator()(const Cardinality& n) const noexcept {
     return n + finite_cardinality(1);
   }
 };
 
-static_assert(dedekind::category::IsNNO<ℕ, cardinality_zero, cardinality_succ>,
-              "Cardinality is the canonical NNO witness: "
-              "z = cardinality_zero, s = cardinality_succ.  ℵ_0 "
-              "saturation is the carrier's extra behaviour beyond "
-              "the textbook NNO — an honest sentinel for values "
-              "that exceed the machine implementation's range.");
+static_assert(
+    dedekind::category::IsNNO<Cardinality, cardinality_zero, cardinality_succ>,
+    "Cardinality is the canonical NNO witness: "
+    "z = cardinality_zero, s = cardinality_succ.  ℵ_0 "
+    "saturation is the carrier's extra behaviour beyond "
+    "the textbook NNO — an honest sentinel for values "
+    "that exceed the machine implementation's range.");
 
 }  // namespace dedekind::numbers
 

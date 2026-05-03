@@ -34,17 +34,17 @@ TEST_CASE("Sets+Category: singleton and comprehension predicates satisfy ETCS",
   CHECK(atom_set.χ(42) == true);
   CHECK(atom_set.χ(7) == false);
 
-  auto x = element<Ω<ℕ>>;
+  auto x = element<ℕ>;
   const auto positive = Set{x | (x > 0u)};
   const auto bounded = Set{x | (x <= 10u)};
 
-  // ambient_set<ℕ> lifts the predicate-set into the post-#402 variant
-  // ℕ-proxy ambient (ℕ = Cardinality).  The characteristic-function χ
-  // then reads on Cardinality values; unsigned literals like @c 5u /
-  // @c 0u lift implicitly into the variant's finite alternative on the
-  // call site.
-  const auto positive_set = ambient_set<ℕ>(positive);
-  const auto bounded_set = ambient_set<ℕ>(bounded);
+  // ambient_set<Cardinality> lifts the predicate-set into the variant
+  // ℕ-proxy ambient (the carrier of the ℕ universe; post-#402 / #559
+  // ℕ = Ω<Cardinality>).  The characteristic-function χ then reads on
+  // Cardinality values; unsigned literals like @c 5u / @c 0u lift
+  // implicitly into the variant's finite alternative on the call site.
+  const auto positive_set = ambient_set<Cardinality>(positive);
+  const auto bounded_set = ambient_set<Cardinality>(bounded);
   const auto support = set_intersection(positive_set, bounded_set);
 
   STATIC_CHECK(dedekind::category::IsSet<decltype(positive_set)>);
@@ -59,17 +59,17 @@ TEST_CASE("Sets+Category: singleton and comprehension predicates satisfy ETCS",
 
 TEST_CASE("Sets+Category: Set naming boundary is explicit",
           "[sets][category][etcs][alignment]") {
-  auto x = element<Ω<ℕ>>;
+  auto x = element<ℕ>;
   const auto positive = Set{x | (x > 0u)};
 
   // `sets::Set` (DSL species) and `category::Set` (CCC witness) are distinct.
   STATIC_CHECK(!std::same_as<decltype(positive),
-                             dedekind::category::CanonicalSetCCC<ℕ>>);
-  STATIC_CHECK(dedekind::category::HasCanonicalSetCCC<ℕ>);
+                             dedekind::category::CanonicalSetCCC<Cardinality>>);
+  STATIC_CHECK(dedekind::category::HasCanonicalSetCCC<Cardinality>);
 
   // Bridge through ETCS object construction over the post-#402 ℕ carrier
   // (ℕ = Cardinality, the variant ℕ-proxy).
-  const auto positive_set = ambient_set<ℕ>(positive);
+  const auto positive_set = ambient_set<Cardinality>(positive);
   STATIC_CHECK(dedekind::category::IsSetInCanonicalCCC<decltype(positive_set)>);
 
   CHECK(positive_set.χ(3u) == Ternary::True);

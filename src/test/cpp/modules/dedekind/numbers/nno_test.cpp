@@ -36,7 +36,7 @@ TEST_CASE(
     "category:nno — IsNNO<Cardinality, cardinality_zero, "
     "cardinality_succ> fires",
     "[category][nno][cardinality][witness]") {
-  STATIC_CHECK(IsNNO<ℕ, cardinality_zero, cardinality_succ>);
+  STATIC_CHECK(IsNNO<Cardinality, cardinality_zero, cardinality_succ>);
   STATIC_CHECK(IsNNO<Cardinality, cardinality_zero, cardinality_succ>);
 }
 
@@ -107,7 +107,7 @@ TEST_CASE(
   // The unique morphism f : ℕ → A produced by the NNO universal
   // property over this coalgebra is the Fibonacci sequence;
   // nno_iterate materialises f(n) for finite n.
-  using State = std::pair<ℕ, ℕ>;
+  using State = std::pair<Cardinality, Cardinality>;
   // Initial state (F_1, F_0) = (1, 0); we step n times to get
   // (F_{n+1}, F_n), then read off the second component for F_n.
   const State a0 = {finite_cardinality(1), finite_cardinality(0)};
@@ -139,8 +139,9 @@ TEST_CASE(
   STATIC_CHECK(
       std::same_as<decltype(cardinality_succ{}(Cardinality{})), Cardinality>);
 
-  // Layer 3: ℕ is the alias pointing to Cardinality.  The textbook
+  // Layer 3: ℕ is the universe Ω<Cardinality> (post-#559).  The textbook
   // symbol practitioners use; the NNO universal property is what it
   // _means_ via the chain.
-  STATIC_CHECK(std::same_as<ℕ, Cardinality>);
+  STATIC_CHECK(std::same_as<typename std::remove_cvref_t<decltype(ℕ)>::Domain,
+                            Cardinality>);
 }

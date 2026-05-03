@@ -9,16 +9,19 @@ using namespace dedekind::numbers;
 using namespace dedekind::sets;
 
 TEST_CASE("Numbers: canonical starter symbols", "[numbers][starter]") {
-  // Per #551 (Ω<carrier> ambient redesign), the canonical species symbols
-  // are pure carrier types; the value-level *ambient* at each carrier is
-  // the universal-predicate value @c Ω<carrier>, of type
-  // @c UniversalSet<carrier>.  The schism between carrier-type and
-  // ambient-value is now uniform and minimal: one carrier, one
-  // @c Ω<carrier> value, no per-symbol predicate-set type to remember.
+  // Per #559 (option-A migration, sibling to #551's Ω<carrier> ambient
+  // redesign), the canonical species symbols are universe @b values:
+  // @c ℕ = @c Ω<Cardinality>, @c ℤ = @c Ω<SignedExtensionalCardinal<>>,
+  // and so on.  Carriers are spelled directly (Cardinality, ℤ-as-alias,
+  // ℚ-as-alias, ...) in template-type-parameter positions.  Each symbol's
+  // STATIC_CHECK below witnesses the universe-over-carrier reading by
+  // asserting (a) decltype(symbol) == UniversalSet<carrier> and (b)
+  // decltype(symbol)::Domain == carrier.
 
-  STATIC_CHECK(std::same_as<ℕ, Cardinality>);
-  STATIC_CHECK(
-      std::same_as<std::remove_cvref_t<decltype(Ω<ℕ>)>, UniversalSet<ℕ>>);
+  STATIC_CHECK(std::same_as<std::remove_cvref_t<decltype(ℕ)>,
+                            UniversalSet<Cardinality>>);
+  STATIC_CHECK(std::same_as<std::remove_cvref_t<decltype(Ω<Cardinality>)>,
+                            UniversalSet<Cardinality>>);
 
   STATIC_CHECK(std::same_as<ℤ, SignedExtensionalCardinal<>>);
   STATIC_CHECK(
@@ -35,21 +38,23 @@ TEST_CASE("Numbers: canonical starter symbols", "[numbers][starter]") {
 
 TEST_CASE("Numbers: starter universes construct from ambient values",
           "[numbers][starter][sets]") {
-  // Per #551, the new spelling is:
-  //   constexpr auto n = element<Ω<ℕ>>;     // typed scout
-  //   constexpr auto naturals = Set{n};      // universal Set on ℕ
+  // Per #559 option-A, the canonical scout spelling is:
+  //   constexpr auto n = element<ℕ>;         // ℕ is itself the universe value
+  //   constexpr auto naturals = Set{n};      // universal Set over ℕ-carrier
   //   static_assert(naturals.contains(7u));  // value-level membership query
   //
-  // The `% N` binding step is gone: the scout already knows its ambient.
+  // (Pre-#559 the spelling was @c element<Ω<ℕ>> with ℕ a carrier alias;
+  //  the @c % @c N binding step had already gone in #551.)
 
-  constexpr auto n = element<Ω<ℕ>>;
+  constexpr auto n = element<ℕ>;
   constexpr auto naturals = Set{n};
   static_assert(naturals(7u) == Ternary::True);
   static_assert(naturals(0u) == Ternary::True);
-  // Direct ambient-call route: Ω<ℕ>.contains(value) returns L::True for
-  // every Cardinality value (the universal-set semantics).
-  static_assert(Ω<ℕ>.contains(7u));
-  static_assert(Ω<ℕ>.contains(0u));
+  // Direct ambient-call route: ℕ.contains(value) (or equivalently
+  // Ω<Cardinality>.contains(value), since ℕ = Ω<Cardinality>) returns
+  // L::True for every Cardinality value (the universal-set semantics).
+  static_assert(Ω<Cardinality>.contains(7u));
+  static_assert(Ω<Cardinality>.contains(0u));
 
   constexpr auto z = element<Ω<ℤ>>;
   constexpr auto integers = Set{z};
@@ -63,7 +68,7 @@ TEST_CASE("Numbers: starter universes construct from ambient values",
 TEST_CASE("Numbers: starter universes satisfy lattice identities",
           "[numbers][starter][algebra]") {
   {
-    constexpr auto n = element<Ω<ℕ>>;
+    constexpr auto n = element<ℕ>;
     const auto U = Set{n};
     const auto O = !U;
     CHECK((U | O)(7u) == Ternary::True);
