@@ -693,7 +693,7 @@ The listing exhibits a load-bearing split that runs through the rest of the pape
 The operator surface witnessed by \cppinline{HasRingOperators} states \emph{closure} --- which types compose under which operators --- and this axis can be checked \emph{by inspection of the standard library}: the compiler resolves the overloads, the concept either binds or it does not, and no further human judgement is required.
 The algebraic \emph{laws} (associativity, commutativity, distributivity, identities, inverses, totality) are a separate axis and must be \emph{validated and certified by hand}: signed-overflow UB defeats ring-associativity on \cppinline{int}, IEEE-754 rounding defeats field-associativity on \cppinline{double}, matrix multiplication is non-commutative even when the scalar field is, and the standard library --- principled in its silence --- refuses to commit to a position on any of these.
 The Juliet Posture's job is to take that silence as a job description: lift each meta-symmetry to a compile-time predicate (\cppinline{IsAssociative<T, Op>}, \cppinline{IsCommutative<T, Op>}, \dots), populate it per carrier in a \emph{trait registry}, and let downstream concepts (\cppinline{IsRing}, \cppinline{IsField}) compose closure-on-the-surface with law-from-the-registry into a single \cppinline{static_assert} obligation.
-The mechanics of the registry --- which axioms propagate under which constructors, how the per-carrier specialisations are organised, how the audit rosettas measure the standard library's silence --- are deferred to §\ref{sec:pruning} (\emph{Algebraic Lattice}); the present section establishes only the framing.
+The mechanics of the registry --- which axioms propagate under which constructors, how the per-carrier specialisations are organised, how the audit rosettas measure the standard library's silence --- are deferred to §\ref{sec:pruning} (\emph{Algebraic Lattice}); the present section establishes only the framing.\footnote{A third meta-axis, orthogonal to closure and laws, deserves a parenthetical mention here and is developed alongside the trait registry in §\ref{sec:pruning}: \emph{universe} versus \emph{classifier}.  The universe over a carrier $T$ is the constant-true predicate $\Omega_T : T \to \mathbf{2}$ --- the set-builder ambient ``$T$ as its own set'' --- and is uniform across all carriers in our DSL.  The classifier of a tower position $T$ is the ETCS characteristic morphism $\chi_T : \text{tower-ambient} \to \mathbf{2}$ classifying the subobject $T$ inside its algebraic tower (e.g.\ $\chi_\mathbb{N}$ on $\mathbb{Z}$ rejects negatives via the canonical inclusion $\mathbb{N} \hookrightarrow \mathbb{Z}$).  The two are distinct primitives: $\Omega_T$ is monomorphic on $T$; $\chi_T$ does cross-carrier classification by routing predecessor literals through embedding arrows.  The Boolean carrier \cppinline{bool} collapses both to the same object --- it sits at the bottom of the tower with no proper super-object --- but for $\mathbb{N}$, $\mathbb{Z}$, $\mathbb{Q}$, $\mathbb{R}$, $\mathbb{C}$, $\mathbb{D}$ the distinction is load-bearing and visible in code as separate exports (\cppinline{Ω<T, L, C>} for the universe and concrete classifier types like \cppinline{NaturalNumbersOf<>}, \cppinline{IntegersOf<>}, \dots\ for the characteristic morphism).}
 
 Pick a small \emph{axiomatic subset} of C++23: concept-constrained templates, non-type template parameters (NTTPs), named modules with strict DAG dependencies, \cppinline{static_assert} for compile-time obligation discharge, and \cppinline{constexpr} for $\beta$-style normalisation.
 Exclude the escape hatches that would otherwise leak past System F: no \cppinline{reinterpret_cast} in public APIs, no SFINAE branches in public surfaces, no ADL-dependent dispatch beyond textbook operator overloads, no public-API specialisations that branch behaviour, and bounded template-instantiation depth (Table~\ref{tab:admissibility-rules}).
@@ -1858,6 +1858,24 @@ each reduction are its mechanical witness.
 %       non-monotone cases (matrix mult: associative AND non-commutative).
 %   (b) cross-link to the §\ref{sec:species} registry listing so the
 %       reader sees the figure's "above this line" zone realised in code.
+%   (c) third axis (universe vs. classifier).  §\ref{sec:jlt}'s closing
+%       footnote names this axis: Ω<T> is the carrier-typed universe (the
+%       constant-true predicate "T as its own set"); <Tower>Of<> is the
+%       ETCS characteristic morphism χ_T : tower-ambient → Ω of T as a
+%       subobject of its tower (e.g.\ NaturalNumbersOf rejects negatives
+%       on int via the canonical ℕ ↪ ℤ inclusion).  For the bottom of the
+%       tower (bool) the two collapse; for ℕ/ℤ/ℚ/ℝ/ℂ/𝔻 they are distinct
+%       exports.  Two readings of how to add this to the figure:
+%         - depth-axis: extrude the 2D plot into 3D (universe / classifier
+%           plane).  Probably visually overloaded; not recommended.
+%         - secondary diagram in §\ref{sec:pruning}: a small commutative
+%           square showing universe Ω<T> vs.\ classifier χ_T side by side
+%           with the tower embedding ℕ ↪ ℤ as the connecting arrow.
+%           Lighter touch and reads as a textbook ETCS exhibit.
+%       Decision deferred until rosetta polish — if §\ref{sec:pruning}
+%       prose ends up needing visual support for the universe/classifier
+%       distinction, the secondary-diagram option is the lower-cost
+%       addition.
 \begin{figure}[ht]
 \centering
 \begin{tikzpicture}[
