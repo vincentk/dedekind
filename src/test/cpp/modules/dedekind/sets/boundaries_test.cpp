@@ -40,19 +40,22 @@ TEST_CASE("Level 1 Final Proof: The Mereology Highway",
 }
 
 TEST_CASE("Boundaries: The Algebra of Extremality", "[sets][boundaries]") {
-  using ℤ = int;  // Using a raw type as a Species proxy
+  // Use SignedExtensionalCardinal<> directly as the carrier for the
+  // boundary identities (post-#559 ℤ slice migration; the prior local
+  // alias `using ℤ = int` is no longer referenced after the type-site
+  // sweep replaced ℤ with the carrier name in the body).
 
   // The Identities: Ø and Ω as the "North and South Poles"
-  constexpr Ø<ℤ> null;
-  constexpr UniversalSet<ℤ> universe;
+  constexpr Ø<SignedExtensionalCardinal<>> null;
+  constexpr UniversalSet<SignedExtensionalCardinal<>> universe;
 
   SECTION("Aha! 1: The Law of Absorption (Annihilation)") {
     /**
      * In a Union, the Universe is the Annihilator: Ω | S = Ω.
      * In an Intersection, the Void is the Annihilator: ∅ & S = ∅.
      */
-    static_assert(std::is_same_v<decltype((universe | null)), UniversalSet<ℤ>>);
-    static_assert(std::is_same_v<decltype((null & universe)), Ø<ℤ>>);
+    static_assert(std::is_same_v<decltype((universe | null)), UniversalSet<SignedExtensionalCardinal<>>>);
+    static_assert(std::is_same_v<decltype((null & universe)), Ø<SignedExtensionalCardinal<>>>);
   }
 
   // SECTION("Aha! 2: The Law of Identity") {
@@ -80,9 +83,9 @@ TEST_CASE("Boundaries: The Algebra of Extremality", "[sets][boundaries]") {
   }
 
   SECTION("Cardinality bounds for extensional sets are computed explicitly") {
-    constexpr SingletonSet<ℤ> s1{1};
-    constexpr SingletonSet<ℤ> s2{2};
-    constexpr Ø<ℤ> empty;
+    constexpr SingletonSet<SignedExtensionalCardinal<>> s1{1};
+    constexpr SingletonSet<SignedExtensionalCardinal<>> s2{2};
+    constexpr Ø<SignedExtensionalCardinal<>> empty;
 
     CHECK(bound_meet(s1, s2) == 1);
     CHECK(bound_join(s1, s2) == 2);
@@ -95,8 +98,8 @@ TEST_CASE("Boundaries: The Algebra of Extremality", "[sets][boundaries]") {
     // ℕ is now the carrier (unsigned int) post-#401; the predicate-set
     // value is the namespace-level constant @c N (NaturalNumbersOf<>).
     constexpr auto naturals = N;
-    constexpr Ø<ℤ> empty;
-    constexpr SingletonSet<ℤ> singleton{7};
+    constexpr Ø<SignedExtensionalCardinal<>> empty;
+    constexpr SingletonSet<SignedExtensionalCardinal<>> singleton{7};
     const auto max_v = std::numeric_limits<std::size_t>::max();
 
     CHECK(bound_meet(universe, naturals) == max_v);
@@ -107,10 +110,10 @@ TEST_CASE("Boundaries: The Algebra of Extremality", "[sets][boundaries]") {
   }
 
   SECTION("Identity optimizations remain structurally valid") {
-    constexpr SingletonSet<ℤ> s{42};
-    constexpr Ø<ℤ> empty;
+    constexpr SingletonSet<SignedExtensionalCardinal<>> s{42};
+    constexpr Ø<SignedExtensionalCardinal<>> empty;
 
-    CHECK(std::is_same_v<decltype(empty | s), SingletonSet<ℤ>>);
-    CHECK(std::is_same_v<decltype(universe & s), SingletonSet<ℤ>>);
+    CHECK(std::is_same_v<decltype(empty | s), SingletonSet<SignedExtensionalCardinal<>>>);
+    CHECK(std::is_same_v<decltype(universe & s), SingletonSet<SignedExtensionalCardinal<>>>);
   }
 }

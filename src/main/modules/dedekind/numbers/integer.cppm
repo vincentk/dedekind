@@ -451,7 +451,7 @@ using IntegerSet = IntegersOf<>;
  */
 export using ℤ = dedekind::sets::SignedExtensionalCardinal<>;
 
-static_assert(std::same_as<ℤ, dedekind::sets::SignedExtensionalCardinal<>>,
+static_assert(std::same_as<SignedExtensionalCardinal<>, dedekind::sets::SignedExtensionalCardinal<>>,
               "ℤ is the exact-ℤ carrier alias (#399 slice 3); the "
               "predicate-set form spells as @c IntegersOf<> or "
               "@c decltype(Z).");

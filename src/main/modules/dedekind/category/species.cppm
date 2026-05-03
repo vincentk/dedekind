@@ -777,7 +777,7 @@ struct is_total
     : std::bool_constant<
           is_periodic_v<T, Op> ||    // Path A: It wraps (Groups/Rings)
           is_idempotent_v<T, Op> ||  // Path B: It's stable (Lattices/Extrema)
-          is_saturating_v<T, Op>     // Path C: It escalates (extended ℤ, ±ℵ_0)
+          is_saturating_v<T, Op>     // Path C: It escalates (extended SignedExtensionalCardinal<>, ±ℵ_0)
           > {};
 
 export template <typename T, typename Op>

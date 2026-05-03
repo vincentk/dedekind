@@ -42,7 +42,7 @@ export import :division;
 export import :field;
 export import :galois;
 export import :group;
-export import :initial_ring;  // ℤ as Initial Ring + Grothendieck Group
+export import :initial_ring;  // SignedExtensionalCardinal<> as Initial Ring + Grothendieck Group
                               // of ℕ (closes part of #446)
 export import :free;          // IsFreeAlgebra<F> + structural-trait propagation
                       // (textbook companion to HSP; R[x] etc.; #498/#499)
