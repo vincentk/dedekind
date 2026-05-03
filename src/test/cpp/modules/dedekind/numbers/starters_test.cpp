@@ -23,9 +23,13 @@ TEST_CASE("Numbers: canonical starter symbols", "[numbers][starter]") {
   STATIC_CHECK(std::same_as<std::remove_cvref_t<decltype(Ω<Cardinality>)>,
                             UniversalSet<Cardinality>>);
 
-  STATIC_CHECK(std::same_as<ℤ, SignedExtensionalCardinal<>>);
-  STATIC_CHECK(
-      std::same_as<std::remove_cvref_t<decltype(Ω<ℤ>)>, UniversalSet<ℤ>>);
+  STATIC_CHECK(std::same_as<std::remove_cvref_t<decltype(ℤ)>,
+                            UniversalSet<SignedExtensionalCardinal<>>>);
+  STATIC_CHECK(std::same_as<typename std::remove_cvref_t<decltype(ℤ)>::Domain,
+                            SignedExtensionalCardinal<>>);
+  STATIC_CHECK(std::same_as<
+               std::remove_cvref_t<decltype(Ω<SignedExtensionalCardinal<>>)>,
+               UniversalSet<SignedExtensionalCardinal<>>>);
 
   STATIC_CHECK(std::same_as<ℚ, Rational<default_integer>>);
   STATIC_CHECK(
@@ -56,7 +60,7 @@ TEST_CASE("Numbers: starter universes construct from ambient values",
   static_assert(Ω<Cardinality>.contains(7u));
   static_assert(Ω<Cardinality>.contains(0u));
 
-  constexpr auto z = element<Ω<ℤ>>;
+  constexpr auto z = element<ℤ>;
   constexpr auto integers = Set{z};
   static_assert(integers(-7) == Ternary::True);
 
@@ -78,7 +82,7 @@ TEST_CASE("Numbers: starter universes satisfy lattice identities",
   }
 
   {
-    constexpr auto z = element<Ω<ℤ>>;
+    constexpr auto z = element<ℤ>;
     const auto U = Set{z};
     const auto O = !U;
     CHECK((U | O)(4) == Ternary::True);

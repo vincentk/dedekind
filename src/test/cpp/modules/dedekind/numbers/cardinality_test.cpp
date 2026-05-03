@@ -572,8 +572,9 @@ TEST_CASE(
       return (v == -1) ? L::True : L::False;
     };
     const Set<SignedCardinality, L, decltype(neg_one_pred)> neg_one_z{
-        neg_one_pred};                         // {-1} ⊂ ℤ
-    const auto union_set = one_n | neg_one_z;  // {1, -1} ⊂ ℤ
+        neg_one_pred};  // {-1} ⊂ SignedExtensionalCardinal<>
+    const auto union_set =
+        one_n | neg_one_z;  // {1, -1} ⊂ SignedExtensionalCardinal<>
     // Type-level proof: result carrier widens to ℤ (SignedCardinality).
     STATIC_CHECK(
         std::same_as<typename decltype(union_set)::Domain, SignedCardinality>);
@@ -588,7 +589,8 @@ TEST_CASE(
   SECTION("Symmetric direction: Set<ℤ> & Set<ℕ> still tightens to Set<ℕ>") {
     constexpr auto n = element<ℕ>;
     auto bounded_pred = [](const SignedCardinality& v) {
-      return (v >= -3) ? L::True : L::False;  // {-3, -2, …} ⊂ ℤ
+      return (v >= -3) ? L::True
+                       : L::False;  // {-3, -2, …} ⊂ SignedExtensionalCardinal<>
     };
     const Set<SignedCardinality, L, decltype(bounded_pred)> bounded_z{
         bounded_pred};

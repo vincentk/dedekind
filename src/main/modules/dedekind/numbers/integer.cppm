@@ -426,22 +426,30 @@ struct IntegersOf {
 };
 
 // Non-exported convenience alias used by the value-level @c Z constant
-// below.  Per #399 (canonical species symbols as carrier types), the
-// public name @c ℤ now denotes the exact ℤ @b carrier
-// (@c SignedExtensionalCardinal<>) rather than the predicate-set form;
-// callers who specifically need the predicate-set type should spell
+// below.  Post-#559 (option-A migration), the public name @c ℤ denotes
+// the @b universe @b value @c Ω<SignedExtensionalCardinal<>>; the
+// carrier @c SignedExtensionalCardinal<> is named directly in
+// template-type-parameter positions (per #399 slice 3).  Callers who
+// specifically need the predicate-set @b classifier should spell
 // @c IntegersOf<> or @c decltype(Z) — symmetric with the
-// @c BooleanSetOf<> / @c B handling on the @c 𝔹 side (#400 / #407).
+// @c BooleanSetOf<> / @c B handling on the @c 𝔹 side.
 using IntegerSet = IntegersOf<>;
 
-/** @brief The canonical Boolean-tower successor: the exact ℤ @b carrier.
+/** @brief The canonical Boolean-tower successor: the exact ℤ universe.
  *
- *  Aliased to @c dedekind::sets::SignedExtensionalCardinal<> per #399's
- *  show-to-a-wider-audience API: the species symbol names the carrier
- *  type itself, so @c static_assert(IsRing<ℤ, ...>) and @c var<ℤ>
- *  read directly against the carrier.  The value-level constant
- *  @c Z below keeps its predicate-set role for the set-builder DSL
- *  (e.g.\ @c Set{n @c % @c Z @c | @c (n @c > @c bound<-21>)}).
+ *  Post-#559, @c ℤ names the @b universe value @c
+ * Ω<SignedExtensionalCardinal<>> (a constexpr @c UniversalSet<...>{}).  The
+ * carrier is
+ *  @c dedekind::sets::SignedExtensionalCardinal<>, addressed directly in
+ *  template-type-parameter positions; the math symbol denotes the set.
+ *
+ *  This makes @c element<ℤ> the canonical scout spelling — closer to
+ *  textbook math notation than the pre-#559 @c element<Ω<ℤ>> form
+ *  (which required @c ℤ to be a carrier-type alias).  Pre-#559 the
+ *  spelling was @c using @c ℤ @c = @c SignedExtensionalCardinal<>; the
+ *  ~73 type-context sites in concept gates / static_asserts were
+ *  migrated to @c SignedExtensionalCardinal<> directly in step 1 of
+ *  this slice.
  *
  *  Strict semantic witnesses on the carrier (@c IsRing,
  *  @c IsArithmeticAdditiveGroup, @c Group_ℤ, etc.) live in @c :rational
@@ -449,12 +457,18 @@ using IntegerSet = IntegersOf<>;
  *  there); the partition-local witnesses below cover what is reachable
  *  in @c :integer's import scope.
  */
-export using ℤ = dedekind::sets::SignedExtensionalCardinal<>;
+export inline constexpr auto ℤ =
+    dedekind::sets::Ω<dedekind::sets::SignedExtensionalCardinal<>>;
 
-static_assert(std::same_as<ℤ, dedekind::sets::SignedExtensionalCardinal<>>,
-              "ℤ is the exact-ℤ carrier alias (#399 slice 3); the "
-              "predicate-set form spells as @c IntegersOf<> or "
-              "@c decltype(Z).");
+static_assert(
+    std::same_as<std::remove_cvref_t<decltype(ℤ)>,
+                 dedekind::sets::UniversalSet<SignedExtensionalCardinal<>,
+                                              ClassicalLogic, ℵ_0>>,
+    "ℤ is the universe Ω<SignedExtensionalCardinal<>> (post-#559).");
+static_assert(std::same_as<typename std::remove_cvref_t<decltype(ℤ)>::Domain,
+                           SignedExtensionalCardinal<>>,
+              "ℤ's underlying carrier IS SignedExtensionalCardinal<> — the "
+              "exact-ℤ carrier from #399 slice 3.");
 
 export inline constexpr IntegerSet Z{};
 

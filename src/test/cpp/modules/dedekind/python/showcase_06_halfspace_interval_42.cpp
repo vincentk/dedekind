@@ -32,7 +32,7 @@ using namespace dedekind::numbers;
 using namespace dedekind::order;
 
 // Symbolic variable ranging over ℤ.
-constexpr auto n = element<Ω<ℤ>>;
+constexpr auto n = element<ℤ>;
 
 // Halfspace pair with compile-time pivots, strict lower and non-strict upper.
 constexpr auto above_minus_21 = Set{n | (n > bound<-21>)};
