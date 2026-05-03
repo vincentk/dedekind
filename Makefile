@@ -203,10 +203,12 @@ ci-install-paper-deps:
 		exit 2; \
 	fi
 	sudo apt-get update
-	sudo apt-get install -y biber texlive-latex-base texlive-latex-extra texlive-bibtex-extra texlive-pictures texlive-plain-generic texlive-fonts-recommended texlive-fonts-extra texlive-luatex python3-pygments unzip
+	sudo apt-get install -y biber texlive-latex-base texlive-latex-extra texlive-bibtex-extra texlive-pictures texlive-plain-generic texlive-fonts-recommended texlive-fonts-extra texlive-luatex python3-pygments curl unzip fontconfig
 	# JuliaMono — downloaded from GitHub releases, installed system-wide,
-	# fontconfig cache refreshed so lualatex/luaotfload finds it.
-	cd /tmp && curl -sSL -o JuliaMono.zip "https://github.com/cormullion/juliamono/releases/download/v$(JULIAMONO_VERSION)/JuliaMono-ttf.zip" \
+	# fontconfig cache refreshed so lualatex/luaotfload finds it.  `curl -fsSL`
+	# fails fast on HTTP errors (e.g. a missing release asset) rather than
+	# producing a confusing unzip failure later in the && chain.
+	cd /tmp && curl -fsSL -o JuliaMono.zip "https://github.com/cormullion/juliamono/releases/download/v$(JULIAMONO_VERSION)/JuliaMono-ttf.zip" \
 		&& sudo mkdir -p /usr/local/share/fonts/juliamono \
 		&& sudo unzip -o JuliaMono.zip -d /usr/local/share/fonts/juliamono \
 		&& sudo fc-cache -f /usr/local/share/fonts/juliamono \
