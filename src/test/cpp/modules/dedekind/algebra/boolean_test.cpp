@@ -1,4 +1,5 @@
 #include <catch2/catch_test_macros.hpp>
+#include <type_traits>
 
 import dedekind.algebra;
 import dedekind.category;
@@ -9,21 +10,26 @@ using namespace dedekind::category;
 using namespace dedekind::sets;
 
 TEST_CASE("Algebra:Boolean starter symbols", "[algebra][boolean][starter]") {
-  auto b = element<Ω<𝔹>>;
+  auto b = element<𝔹>;
 
   auto truthy = Set{b | (b == true)};
   auto falsy = Set{b | !b};
 
-  // Carrier-vs-predicate-set surface (post-#400).
-  //   • 𝔹 is the carrier type itself: 𝔹 = bool.
-  //   • B is the value-level universal Boolean predicate-set, of type
-  //     BooleanSetOf<> (= UniversalSet<bool, ClassicalLogic, Finite>).
-  //   • The relationship between the two is BooleanSetOf<>::Domain = 𝔹
-  //     — the predicate-set's underlying element type IS the carrier.
-  STATIC_CHECK(std::same_as<𝔹, bool>);
+  // Universe-vs-carrier surface (post-#559).
+  //   • 𝔹 is the universe value Ω<bool>: a constexpr
+  //     UniversalSet<bool, ClassicalLogic, Finite>{}, suitable as the
+  //     ambient NTTP for element<𝔹> / Set{...}.
+  //   • bool is the carrier — what concept gates and template-type-
+  //     parameter positions name directly.
+  //   • B is a sibling value-level instance, alias-equivalent to 𝔹
+  //     (decltype(B) == decltype(𝔹) == UniversalSet<bool, ...>).
+  STATIC_CHECK(std::same_as<std::remove_cvref_t<decltype(𝔹)>,
+                            UniversalSet<bool, ClassicalLogic, Finite>>);
+  STATIC_CHECK(
+      std::same_as<typename std::remove_cvref_t<decltype(𝔹)>::Domain, bool>);
   STATIC_CHECK(std::same_as<decltype(B), const BooleanSetOf<>>);
-  STATIC_CHECK(std::same_as<typename BooleanSetOf<>::Domain, 𝔹>);
-  STATIC_CHECK(std::same_as<typename UniversalSet<bool>::Domain, 𝔹>);
+  STATIC_CHECK(std::same_as<typename BooleanSetOf<>::Domain, bool>);
+  STATIC_CHECK(std::same_as<typename UniversalSet<bool>::Domain, bool>);
 
   CHECK(truthy(true));
   CHECK_FALSE(truthy(false));
@@ -67,7 +73,7 @@ TEST_CASE("Algebra:Boolean paper alignment (logical vs bitwise)",
 }
 
 TEST_CASE("Algebra:Boolean set laws", "[algebra][boolean][sets][laws]") {
-  auto b = element<Ω<𝔹>>;
+  auto b = element<𝔹>;
 
   const auto truthy = Set{b | (b == true)};
   const auto falsy = Set{b | !b};
@@ -105,7 +111,7 @@ TEST_CASE("Algebra:Boolean set laws", "[algebra][boolean][sets][laws]") {
 
 TEST_CASE("Algebra:Boolean contradiction is compile-time empty",
           "[algebra][boolean][showcase][constexpr]") {
-  constexpr auto b = element<Ω<𝔹>>;
+  constexpr auto b = element<𝔹>;
 
   // 1) Unfiltered Boolean universe.
   constexpr auto universe = Set{b};
