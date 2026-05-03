@@ -12,11 +12,12 @@
  * examples remain readable and stable.
  *
  * @section algebra_boolean__Notation
- * - `𝔹`: canonical Unicode symbol for the Boolean @b carrier (= @c bool).
- *   Per #399 / #400 (show-to-a-wider-audience API), the species symbol
- *   names the carrier type itself rather than a predicate-set alias;
- *   @c static_assert(IsField<𝔹, bit_xor, bit_and>) and
- *   @c element<Ω<𝔹>> read directly against the carrier.
+ * - `𝔹`: canonical Unicode symbol for the Boolean @b universe over the
+ *   carrier @c bool (post-#559).  Spelled as the value @c Ω<bool> below;
+ *   carrier-type positions use @c bool directly.
+ *   @c static_assert(IsField<bool, bit_xor, bit_and>) carries the algebra
+ *   on the carrier, while @c element<𝔹> is the canonical scout spelling
+ *   over the universe.
  * - `BooleanSetOf<L, C>` ≡ `UniversalSet<bool, L, C>`: parameterised
  *   predicate-set template alias.  Bool is the @b bottom of the algebraic
  *   tower, so the characteristic morphism χ_𝔹 of 𝔹-as-subobject coincides
@@ -40,9 +41,11 @@
  * identities, absorbers, and distributivity). The test suite validates this
  * alignment explicitly.
  *
- * Element scouts are post-#551 spelled @c element<Ω<𝔹>> (BoundScout factory
- * over the bool universe); the legacy @c var<...> family was retired in
- * Phase 2e.3 of the Ω-ambient redesign.
+ * Element scouts are post-#559 spelled @c element<𝔹> (BoundScout factory
+ * over the Boolean universe value @c 𝔹 = @c Ω<bool>); the legacy
+ * @c var<...> family was retired in Phase 2e.3 of the Ω-ambient redesign
+ * (#551), and the @c element<Ω<𝔹>> intermediate spelling went away in
+ * #559's option-A migration once @c 𝔹 stopped being a carrier alias.
  *
  * @note "La matematica non e una collezione di trucchi: e grammatica delle
  * forme." (Mathematics is not a bag of tricks; it is a grammar of forms.) —

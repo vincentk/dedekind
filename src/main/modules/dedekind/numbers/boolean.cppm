@@ -38,6 +38,7 @@ module;
 
 #include <concepts>
 #include <functional>
+#include <type_traits>  // std::remove_cvref_t for the post-#559 universe-witness static_asserts
 
 export module dedekind.numbers:boolean;
 
@@ -57,13 +58,16 @@ using FiniteBooleanSetOf = dedekind::sets::FiniteBooleanSet<L>;
 
 /** @section numbers_boolean__Canonical_Species_Spine
  *
- * The canonical Boolean species symbol @c 𝔹 = @c bool (the @b carrier
- * type, after #400).  The Boolean structures @c bool carries are
- * @c (bool, @c ⊕, @c ∧, @c 0, @c 1) — the Galois field 𝔽₂ — and
- * @c (bool, @c ∨, @c ∧) — the canonical Boolean rig.  The carrier
- * reading parallels the upper tower (@c ℚ migrated in PR #397; @c ℕ
- * / @c ℤ / @c ℝ / @c ℂ / @c 𝔻 are tracked under \#399 for the same
- * migration; this partition lands the @c 𝔹 step under \#400).
+ * The canonical Boolean species symbol @c 𝔹 names the @b universe value
+ * @c Ω<bool> (post-#559).  The carrier is @c bool, addressed directly in
+ * template-type-parameter positions; @c 𝔹 is the constexpr
+ * @c UniversalSet<bool, ClassicalLogic, Finite>{} value the set-builder
+ * DSL takes as ambient.  The Boolean structures the carrier @c bool
+ * carries are @c (bool, @c ⊕, @c ∧, @c 0, @c 1) — the Galois field
+ * 𝔽₂ — and @c (bool, @c ∨, @c ∧) — the canonical Boolean rig.  The
+ * universe-vs-carrier split parallels the upper tower (@c ℕ migrated
+ * in #559's ℕ slice; @c ℤ / @c ℚ / @c ℝ / @c ℂ / @c 𝔻 follow under
+ * the same #559 plan).
  *
  * The predicate-set role moves to @c FiniteBooleanSetOf<> (kept as a
  * non-symbol-colliding alias of @c FiniteBooleanSet for set-builder
@@ -76,13 +80,15 @@ using FiniteBooleanSetOf = dedekind::sets::FiniteBooleanSet<L>;
  * @c 𝔹 @c ↪ @c ℕ @c ↪ @c ℤ @c ↪ @c ℚ @c ↪ @c ℝ @c ↪ @c ℂ.
  */
 
-/** @brief Re-export of the canonical Boolean carrier symbol @c 𝔹 = @c bool.
+/** @brief Re-export of the canonical Boolean universe symbol @c 𝔹 (post-#559).
  *
  *  @details The canonical definition lives in @c dedekind::algebra::boolean
- *  (upstream of this partition).  Per #400, @c 𝔹 names the carrier @c bool
- *  itself, not a predicate-set alias.  Predicate-set callers want
- *  @c FiniteBooleanSetOf<>{...} (explicit construction; e.g.\ the universal
- *  Boolean set is @c FiniteBooleanSetOf<>{ClassicalLogic::True,
+ *  (upstream of this partition).  Post-#559, @c 𝔹 names the universe value
+ *  @c Ω<bool> (a constexpr @c UniversalSet<bool, ClassicalLogic, Finite>{}),
+ *  not a carrier-type alias.  The underlying carrier is @c bool, used
+ *  directly in template-type-parameter positions.  Predicate-set callers
+ *  want @c FiniteBooleanSetOf<>{...} (explicit construction; e.g.\ the
+ *  universal Boolean set is @c FiniteBooleanSetOf<>{ClassicalLogic::True,
  *  ClassicalLogic::True}, the empty Boolean set is @c FiniteBooleanSetOf<>{}).
  */
 export using ::dedekind::algebra::𝔹;
@@ -144,10 +150,10 @@ static_assert(
 //      in (1) below witnesses exactly that lift.
 static_assert(
     std::same_as<typename UniversalSet<bool>::Domain, bool>,
-    "UniversalSet<bool>::Domain is the bool carrier 𝔹 — predicate-set's "
+    "UniversalSet<bool>::Domain is the carrier `bool` (and 𝔹 = Ω<bool>) — predicate-set's "
     "underlying element type IS the carrier.");
 static_assert(std::same_as<typename FiniteBooleanSetOf<>::Domain, bool>,
-              "FiniteBooleanSetOf<>::Domain is the bool carrier 𝔹.");
+              "FiniteBooleanSetOf<>::Domain is the carrier `bool` (and 𝔹 = Ω<bool>).");
 
 // (1) IsSet anchor: the predicate-set FiniteBooleanSetOf<> is a bona-fide
 //     set (membership morphism 𝔹 → Ω).  Witnesses the set-builder DSL
