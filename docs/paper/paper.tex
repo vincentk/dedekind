@@ -2498,7 +2498,7 @@ gate (\texttt{make ir-fixture-check}) fails CI if optimiser drift ever
 loses the collapse. The binary contains no LP solver; no simplex
 tableau; no active-set machinery. More precisely: the vertex's
 coordinates are non-type template parameters of the result type
-(\cppinline|Vec2<Rat, Rat{2}, Rat{2}>|), so the C++23 NTTP machinery
+(\cppinline{Vec2<Rat, Rat{2}, Rat{2}>}), so the C++23 NTTP machinery
 is what carries the answer through to type-level. The input is a
 constexpr value passed as NTTP; the output is a type whose NTTPs
 encode the coordinates; the runtime call returning a coordinate
