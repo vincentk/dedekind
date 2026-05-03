@@ -957,11 +957,11 @@ because IEEE~754 rounding defeats associativity.}
 \midrule
 \multicolumn{2}{@{}l}{\textbf{\cppinline{HasGroupOperatorsMul}} --- multiplicative group $(G, \cdot, ^{-1}, 1)$} \\
 \midrule
-\cppinline{a * b}, \cppinline{a / b}, \cppinline|T{1}| & group operation, $a \cdot b^{-1}$, multiplicative unit (reciprocal of $x$ is \cppinline|T{1} / x|; no \cppinline{.inverse()} method required) \\
+\cppinline{a * b}, \cppinline{a / b}, \cppinline{T{1}} & group operation, $a \cdot b^{-1}$, multiplicative unit (reciprocal of $x$ is \cppinline{T{1} / x}; no \cppinline{.inverse()} method required) \\
 \midrule
 \multicolumn{2}{@{}l}{\textbf{\cppinline{HasSemiringOperators}} --- semiring (rig: no additive inverse)} \\
 \midrule
-\cppinline{a + b}, \cppinline{a * b}, \cppinline|T{}|, \cppinline|T{1}| & both monoid operations + their identities; \emph{no} unary \cppinline{-} \\
+\cppinline{a + b}, \cppinline{a * b}, \cppinline{T{}}, \cppinline{T{1}} & both monoid operations + their identities; \emph{no} unary \cppinline{-} \\
 \midrule
 \multicolumn{2}{@{}l}{\textbf{\cppinline{HasRingOperators}} --- ring $(R, +, -, \cdot, 0, 1)$} \\
 \midrule
