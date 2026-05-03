@@ -63,9 +63,11 @@ TEST_CASE("order:halfspace — Halfspace operator() on integral carrier",
 TEST_CASE("order:halfspace — Variable DSL constructs Halfspace from bound<V>",
           "[order][halfspace][dsl]") {
   // ℕ rather than ℤ so the order-test target stays upstream of numbers: ℤ
-  // lives in `dedekind.numbers`, which is downstream of `dedekind.order` in
-  // the build DAG. Post-#401, ℕ is the unsigned-int carrier, so the test
-  // now exercises `Halfspace<unsigned int, ...>` instantiations.
+  // lives in `dedekind.numbers`, which is downstream of `dedekind.order`
+  // in the build DAG.  Post-#559 ℕ is the universe value Ω<Cardinality>;
+  // the underlying carrier is Cardinality (the variant ℕ-proxy from
+  // #402), so the test exercises `Halfspace<Cardinality, ...>`
+  // instantiations.
   constexpr auto n = element<ℕ>;
 
   SECTION("> constructs Upward/Strict") {

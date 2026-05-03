@@ -18,8 +18,10 @@ TEST_CASE("Dedekind MVP: Basic Membership and Symbols", "[sets]") {
   }
 
   SECTION("Natural-numbers membership") {
-    // Post-#401, ℕ is the unsigned-int carrier; the predicate-set N has
-    // Domain = unsigned int, so callsites use unsigned values.
+    // Post-#559, ℕ is the universe value Ω<Cardinality>; the underlying
+    // carrier is Cardinality (the variant ℕ-proxy from #402, which
+    // accepts unsigned literals via implicit construction).  Callsites
+    // here use unsigned values that lift into Cardinality.
     auto n = element<ℕ>;
     auto infinite = Set{n | (n > 0u)};
     REQUIRE(infinite(5u) == Ternary::True);

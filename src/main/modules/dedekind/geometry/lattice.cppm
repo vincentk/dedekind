@@ -85,7 +85,10 @@ export using IntegerLatticeSet = UniversalSet<int>;
 export using IntegerLatticeScalar = typename IntegerLatticeSet::Domain;
 export using IntegerLatticePoint2D =
     std::pair<IntegerLatticeScalar, IntegerLatticeScalar>;
-// Natural-lattice scalar matches the post-#401 ℕ carrier (= unsigned int).
+// Natural-lattice scalar is the Cardinality carrier — the variant ℕ-proxy
+// (post-#402; supersedes the post-#401 unsigned-int reading).  Post-#559,
+// ℕ is the universe value Ω<Cardinality>; the carrier in concept gates
+// and template-type-parameter positions is Cardinality directly.
 export using NaturalLatticeScalar = Cardinality;
 export using NaturalLatticePoint2D =
     std::pair<NaturalLatticeScalar, NaturalLatticeScalar>;
@@ -122,8 +125,9 @@ template <>
 struct LatticeFactory<NaturalLatticeSet> {
   constexpr auto line() const {
     auto k = element<ℕ>;
-    // Every Cardinality value is in ℕ by construction post-#401;
-    // the universal-set @c Ω<ℕ> is the canonical classifier here.
+    // Every Cardinality value is in ℕ by construction (post-#402);
+    // the universe value @c ℕ (= @c Ω<Cardinality>, post-#559) is the
+    // canonical ambient here.
     return Set{k};
   }
 

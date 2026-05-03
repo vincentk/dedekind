@@ -300,13 +300,15 @@ static_assert(dedekind::order::IsDirectedPoset<Cardinality>,
 // sub-sequence of natural numbers presents as IsFiniteSequence.
 static_assert(dedekind::sequences::IsFiniteSequence<
                   dedekind::sequences::FinitePath<Cardinality>>,
-              "FinitePath<ℕ> is a bona-fide finite sequence; ℕ is a valid "
-              "sequence codomain.");
+              "FinitePath<Cardinality> is a bona-fide finite sequence; the "
+              "Cardinality carrier (carrier of the ℕ universe post-#559) is a "
+              "valid sequence codomain.");
 
-// (4) Primitive-type arrows.  ℕ *is* @c unsigned @c int (post-#401), so
-// the predicate-set membership question reduces to direct calls on the
-// classifier @c N (the namespace-level @c NaturalNumbersOf<> constant
-// from sets:boundaries):
+// (4) Primitive-type arrows.  ℕ is the universe @c Ω<Cardinality> (post-#559;
+// underlying carrier @c Cardinality from #402, replacing the earlier
+// post-#401 unsigned-int reading).  Predicate-set membership reduces to
+// direct calls on the classifier @c N (the namespace-level
+// @c NaturalNumbersOf<> constant from sets:boundaries):
 //   - Forward (unsigned → ℕ): trivially total (every unsigned is a
 //     natural).
 //   - Forward into a certified IsNatural domain (e.g.\ ExtensionalCardinal<>):

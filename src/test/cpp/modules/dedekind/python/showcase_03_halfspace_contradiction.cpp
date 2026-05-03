@@ -31,9 +31,10 @@ using namespace dedekind::algebra;
 using namespace dedekind::numbers;
 using namespace dedekind::order;
 
-// Symbolic scout ranging over the universal set Ω<ℕ>.  Per #551, the
-// scout carries its ambient at the type level, so the % binding step
-// disappears from the set-builder DSL.
+// Symbolic scout ranging over the natural-numbers universe ℕ.  Per
+// #551 the scout carries its ambient at the type level (the % binding
+// step disappears); per #559 the canonical spelling is element<ℕ> with
+// ℕ itself the universe value (= Ω<Cardinality>).
 constexpr auto n = element<ℕ>;
 
 // Opposing halfspaces with compile-time pivots carried in the predicate type.

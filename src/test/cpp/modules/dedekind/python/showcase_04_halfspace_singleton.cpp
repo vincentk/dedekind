@@ -31,7 +31,8 @@ using namespace dedekind::algebra;
 using namespace dedekind::numbers;
 using namespace dedekind::order;
 
-// Symbolic scout ranging over the universal set Ω<ℕ> (per #551).
+// Symbolic scout ranging over the natural-numbers universe ℕ (= Ω<Cardinality>
+// post-#559; per #551 the scout carries its ambient at the type level).
 constexpr auto n = element<ℕ>;
 
 // Opposing halfspaces with compile-time pivots separated by exactly two.

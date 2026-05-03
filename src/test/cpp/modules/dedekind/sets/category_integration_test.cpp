@@ -38,11 +38,11 @@ TEST_CASE("Sets+Category: singleton and comprehension predicates satisfy ETCS",
   const auto positive = Set{x | (x > 0u)};
   const auto bounded = Set{x | (x <= 10u)};
 
-  // ambient_set<ℕ> lifts the predicate-set into the post-#402 variant
-  // ℕ-proxy ambient (ℕ = Cardinality).  The characteristic-function χ
-  // then reads on Cardinality values; unsigned literals like @c 5u /
-  // @c 0u lift implicitly into the variant's finite alternative on the
-  // call site.
+  // ambient_set<Cardinality> lifts the predicate-set into the variant
+  // ℕ-proxy ambient (the carrier of the ℕ universe; post-#402 / #559
+  // ℕ = Ω<Cardinality>).  The characteristic-function χ then reads on
+  // Cardinality values; unsigned literals like @c 5u / @c 0u lift
+  // implicitly into the variant's finite alternative on the call site.
   const auto positive_set = ambient_set<Cardinality>(positive);
   const auto bounded_set = ambient_set<Cardinality>(bounded);
   const auto support = set_intersection(positive_set, bounded_set);
