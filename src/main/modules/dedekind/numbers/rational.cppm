@@ -497,8 +497,8 @@ using RationalSet = RationalsOf<>;
 export template <IsInteger I = default_integer>
 using ℚ_t = Rational<I>;
 
-/** @brief The canonical rational-number universe ℚ = Ω<Rational<default_integer>>
- *         (post-#559).
+/** @brief The canonical rational-number universe ℚ =
+ * Ω<Rational<default_integer>> (post-#559).
  *
  *  @details Per #559's chosen direction (option A): the named species
  *  symbols (@c 𝔹 / @c ℕ / @c ℤ / @c ℚ / @c ℝ / @c ℂ / @c 𝔻) denote the
@@ -539,11 +539,10 @@ using ℚ_t = Rational<I>;
  */
 export inline constexpr auto ℚ = dedekind::sets::Ω<Rational<default_integer>>;
 
-static_assert(
-    std::same_as<std::remove_cvref_t<decltype(ℚ)>,
-                 dedekind::sets::UniversalSet<Rational<default_integer>,
-                                              ClassicalLogic, ℵ_0>>,
-    "ℚ is the universe Ω<Rational<default_integer>> (post-#559).");
+static_assert(std::same_as<std::remove_cvref_t<decltype(ℚ)>,
+                           dedekind::sets::UniversalSet<
+                               Rational<default_integer>, ClassicalLogic, ℵ_0>>,
+              "ℚ is the universe Ω<Rational<default_integer>> (post-#559).");
 static_assert(
     std::same_as<typename std::remove_cvref_t<decltype(ℚ)>::Domain,
                  Rational<default_integer>>,
@@ -810,13 +809,15 @@ static_assert(dedekind::algebra::HasRingOperators<Rational<default_integer>>,
               "unary -, *).");
 static_assert(dedekind::algebra::HasFieldOperators<Rational<default_integer>>,
               "ℚ closes the literal field operator surface (+, -, *, /).");
-static_assert(dedekind::algebra::HasGroupOperatorsAdd<Rational<default_integer>>,
-              "ℚ closes the additive-group operator surface (+, binary -, "
-              "unary -).");
-static_assert(dedekind::algebra::HasGroupOperatorsMul<Rational<default_integer>>,
-              "ℚ closes the multiplicative-group operator surface "
-              "(*, /), modulo division-by-zero (the field carrier "
-              "of ℚ is total only off the multiplicative-zero set).");
+static_assert(
+    dedekind::algebra::HasGroupOperatorsAdd<Rational<default_integer>>,
+    "ℚ closes the additive-group operator surface (+, binary -, "
+    "unary -).");
+static_assert(
+    dedekind::algebra::HasGroupOperatorsMul<Rational<default_integer>>,
+    "ℚ closes the multiplicative-group operator surface "
+    "(*, /), modulo division-by-zero (the field carrier "
+    "of ℚ is total only off the multiplicative-zero set).");
 
 // (3) Semantics (the algebraic structures Rational<default_integer> actually
 //     carries).  The strict @c category::IsField<ℚ, std::plus, std::multiplies>
