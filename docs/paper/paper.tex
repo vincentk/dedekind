@@ -623,11 +623,11 @@ The row-by-row C++23 $\to$ STLC mapping is in Appendix~\ref{app:ddk-rosetta}, al
 \paragraph{Higher-kinded inhabitants.}
 $\mathbf{Ddk}$'s residents are not only scalar carriers like the finite fields and exact-arithmetic types of Listing~\ref{lst:honest-rejection}.
 The intersection extends to higher-kinded structure --- functors, monads, and other arrow-shaped constructions --- when the same Juliet-Posture concept-gate fires on a hub-and-spoke type that names the structure (§\ref{sec:alg-sigma}'s hub-and-spoke architectural reading at the next level up).
-Listing~\ref{lst:isfunctor} exhibits the canonical example: an \cppinline{IsFunctor} concept encoding the textbook functor laws, paired with a worked \texttt{maybe\_functor} hub that promotes \cppinline{std::optional} into a functor without modifying the carrier.
+Listing~\ref{lst:isfunctor} exhibits the canonical example: an \cppinline{IsFunctor} concept encoding the textbook functor laws, paired with a worked \texttt{maybe\_functor} hub (Listing~\ref{lst:maybe_functor}) that promotes \cppinline{std::optional} into a functor without modifying the carrier.
 
 % Source: src/main/modules/dedekind/category/functor.cppm (IsFunctor concept + maybe_functor instance, abridged)
 \begin{listing}[ht]
-\caption{The Functor concept and a worked instance (Maybe), abridged from \texttt{dedekind.category:functor}.  The functorial obligation lives in the \emph{hub} type \cppinline{maybe_functor<T>} (§\ref{sec:alg-sigma}'s hub-and-spoke convention), not in the carrier \cppinline{std::optional<T>}.  The static\_assert below is the Curry--Howard discharge that \texttt{maybe\_functor} inhabits the concept; the textbook commutative-square that the concept body encodes is in Appendix~\ref{app:ddk-rosetta}.}
+\caption{The Functor concept, abridged from \texttt{dedekind.category:functor}. A worked example is listed in~\ref{lst:maybe_functor}. The textbook commutative-square that the concept body encodes is in Appendix~\ref{app:ddk-rosetta}.}
 \label{lst:isfunctor}
 \begin{cpp}
 template <typename F>
@@ -641,7 +641,14 @@ concept IsFunctor = IsArrow<F> && requires {
   // Dom(F(f)) = F(Dom(f)),  Cod(F(f)) = F(Cod(f))
   // (full requires-clause elided; see source).
 };
+}
+\end{cpp}
+\end{listing}
 
+\begin{listing}[ht]
+\caption{A worked functor instance (Maybe), abridged from \texttt{dedekind.category:functor}.  The functorial obligation lives in the \emph{hub} type \cppinline{maybe_functor<T>} (§\ref{sec:alg-sigma}'s hub-and-spoke convention), not in the carrier \cppinline{std::optional<T>}.  The static\_assert below is the Curry--Howard discharge that \texttt{maybe\_functor} inhabits the concept..}
+\label{lst:maybe_functor}
+\begin{cpp}
 // The optional-value Maybe functor: Set<T> -> Set<std::optional<T>>.
 template <typename T>
 struct maybe_functor {
@@ -672,7 +679,7 @@ The hub--carrier split (\cppinline{maybe_functor<T>} carries the functorial proo
 This is the same after-the-fact membership above: \cppinline{std::optional} ships in the C++ standard and cannot opt into anything upstream, but the moment a hub naming the functorial structure passes the concept gate, the carrier inhabits $\mathbf{Ddk}$ as a functor.
 The pattern generalises across the carrier-tower's other higher-kinded constructions ($V_n(R)$, $\mathrm{End}_R$, $\mathrm{Frac}$, $\mathrm{Complex}$, $\mathrm{Dual}$); §\ref{sec:linalg} carries the worked instances.
 
-\clearpage  % Flush §2.3's deferred floats (Listing 3 in particular) before §3.
+%\clearpage  % Flush §2.3's deferred floats (Listing 3 in particular) before §3.
 
 % ============================================================
 \section{Sets and Sequences}
