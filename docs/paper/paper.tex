@@ -429,7 +429,7 @@ The strategy of this section is a three-step intersection.
 Both category theory and modern C++23 are large and occasionally intimidating beasts; each, however, admits a tractable subset with somewhat simpler atomic building blocks and clear composition rules.
 The \texttt{dedekind} library lives at their intersection.
 
-\subsection{Structuralism with $\mathbf{Alg}(\Sigma)$}
+\subsection{A Well-Behaved Structure in Category Theory: $\mathbf{Alg}(\Sigma)$}
 \label{sec:alg-sigma}
 
 The choice of anchoring the library's domain in category theory on the mathematical side is neither new nor arbitrary and follows a well-trodden path.
@@ -480,10 +480,11 @@ Most arrows on each hub and most inter-hub arrows are suppressed for clarity; th
 \label{fig:hub-spoke-bnz}
 \end{figure}
 
-While it may now be tempting to start formalizing operations such as $\neg, \vee, \wedge, \cup, \cap, +, \times, \ldots$, we \emph{deliberately leave $\Sigma$ unbound for now}: concrete operator-shape signatures are intended to be bound later.
-We note though that while $\mathbf{Alg}(\Sigma)$ is only a small fragment of $\mathbf{Cat}$ but we expect that as §\ref{sec:alg-sigma} develops, it carries enough algebraic vocabulary to host carriers, operators, and structure-preserving arrows in the shape an engineering library actually needs and so we use it as a starting point for a structuralist mathematical style~\cite{marquis2022structuralist}.
+While it may now be tempting to start formalizing operations such as $\neg, \vee, \wedge, \cup, \cap, +, \times, \ldots$, we \emph{deliberately leave $\Sigma$ unbound for now}. 
+The binding of concrete operator-shape signatures is deferred to later sections~\ref{sec:cpp-stlc-mapping}, \ref{sec:sets-rules}.
+We note though that while $\mathbf{Alg}(\Sigma)$ is only a small fragment of $\mathbf{Cat}$ we expect that it carries enough algebraic vocabulary to host carriers, operators, and structure-preserving arrows in the shape an engineering library actually needs and so we use it as a starting point for a structuralist mathematical style~\cite{marquis2022structuralist}.
 
-\subsection{Structuralism with the Juliet Posture}
+\subsection{A Well-Behaved Structure in C++: the Juliet Posture}
 \label{sec:jlt}
 
 
@@ -505,7 +506,6 @@ We can compare and contrast this approach with three textbook schools~\cite{pier
 \caption{Pseudocode illustration of nominal and duck typing, respectively.}
 \label{lst:nominal}
 \begin{cpp}
-
 // Nominal (pseudocode): a supertype is recognised by declared lineage.
 struct Ring { /* virtual operations, must opt in explicitly */ };
 struct MyInt : Ring { /* ... */ };
@@ -526,7 +526,6 @@ not the \emph{lineage} (declared name).
 \begin{listing}[ht]
 \caption{The Juliet Posture: structural compile-time matching regardless of nominal provenance.}
 \begin{cpp}
-
 // Concept identifying the syntactic ring operators
 template <typename T>
 concept HasRingOperators = requires(T a, T b) {
