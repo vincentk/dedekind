@@ -454,8 +454,8 @@ Figure~\ref{fig:hub-spoke-bnz} sketches three concrete hubs ($\mathbb{B}$, $\mat
    \arrow[l, bend left=20, "x^2"]
 \end{tikzcd}
 \caption{
-An example subset of $\mathbf{Alg}(\Sigma)$: $\mathbb{B}$, $\mathbb{N}$, $\mathbb{Z}$.
-Inside a hub each carrier is a one-object category whose single object is the underlying set ($\{\mathrm{false}, \mathrm{true}\}$, $\{0, 1, 2, \ldots\}$, $\mathbb{Z}$) and whose loops are the carrier's distinguished endo-operations: Boolean negation $\neg$ on $\mathbb{B}$; squaring $x \mapsto x^2$ on $\mathbb{N}$, which closes on the carrier; negation $x \mapsto -x$ on $\mathbb{Z}$, which closes because $\mathbb{Z}$ is closed under additive inverse.
+An example subset of $\mathbf{Alg}(\Sigma)$: the carriers $\mathbb{B}$, $\mathbb{N}$, $\mathbb{Z}$.
+Each carrier is a one-object category whose single object is the underlying set ($\{\mathrm{false}, \mathrm{true}\}$, $\{0, 1, 2, \ldots\}$, $\{\ldots, -1, 0, 1, \ldots\}$) and whose loops are the carrier's distinguished endo-operations: Boolean negation $\neg$ on $\mathbb{B}$; squaring $x \mapsto x^2$ on $\mathbb{N}$; negation $x \mapsto -x$ on $\mathbb{Z}$, which closes because $\mathbb{Z}$ is closed under additive inverse.
 The set's elements are not drawn separately; in this layer they live \emph{inside} the single object, exactly as in the monoidal category $\mathbf{Mon}$.
 Inter-hub arrows are typed maps $\mathrm{T} \to \mathrm{S}$.
 $\mathbb{B} \rightleftarrows \mathbb{N}$: forward: $\mathfrak{i}$ the canonical embedding; reverse: the parity classifier.
