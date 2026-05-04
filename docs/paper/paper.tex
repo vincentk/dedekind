@@ -434,19 +434,7 @@ The \texttt{dedekind} library lives at their intersection.
 
 The choice of anchoring the library's domain in category theory on the mathematical side is neither new nor arbitrary and follows a well-trodden path.
 The authoritative textbook in the context of programming might be \emph{Types and Programming Languages}~\cite{pierce2002tapl}.
-For the more casual reader of this text, it should be sufficient to remember that at its most basic, category theory is a book-keeping device of sorts that can tell us what clicks together and what doesn't and how things might be re-arranged and perhaps simplified.
-Somewhat casually:
-\begin{enumerate}
-\item A category consists of \emph{objects} which are deliberately chosen to be opaque black boxes.
-Precisely because they are opaque, a practitioner can choose objects to be whatever they like: sets, types, algebraic structure, \ldots it changes nothing about the applicability of category theory.
-\item Arrows (morphisms) point from one object (domain) to another (codomain).
-If it lacks a domain or a codomain, then whatever it is, it's not an arrow.
-\item If an arrow's domain and codomain happen to be the same object $A$, then it is called the identity arrow $id_A$.
-\item If the codomain of arrow $f$ matches the domain of arrow $g$, then they can be \emph{composed} to give a new arrow $h = g \circ f$.
-\item Any arrow $f$ with domain $A$ can compose with $\mathrm{id}_A$, but that's the same as doing nothing: $f \circ \mathrm{id}_A = f$; in particular $\mathrm{id}_A \circ \mathrm{id}_A = \mathrm{id}_A$.
-\item If two paths in a diagram (each itself an arrow or a composition of arrows) share the same domain and codomain and are equal as morphisms, the diagram is said to \emph{commute}: $f = g$.
-Trivially this holds for $\mathrm{id}_A = \mathrm{id}_A$, but as one composes arrows into richer structures these equations start to form interesting constraints.
-\end{enumerate}
+For the more casual reader of this text, it should be sufficient to remember that at its most basic, category theory is a book-keeping device of sorts that can tell us what clicks together (the arrows compose) and what doesn't and how things might be re-arranged and perhaps simplified.
 
 In the context of \texttt{dedekind}, we further restrict our attention to a subset that most readers will be familiar with: algebraic sets, i.e. sets with algebraic operations on them.
 The Booleans $\mathbb B$ with logical operations, the integers $\mathbb Z$ with addition and subtraction and so on.
