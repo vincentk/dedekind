@@ -109,17 +109,24 @@ TEST_CASE(
 
 TEST_CASE("Analysis: 𝔻 / D / DualSet starter aliases",
           "[analysis][dual][starter]") {
-  STATIC_CHECK(std::same_as<𝔻, DualSet>);
-  STATIC_CHECK(std::same_as<decltype(D), const 𝔻>);
+  // Post-#559: 𝔻 is the universe value Ω<Dual<machine_real_scalar>,
+  // ClassicalLogic, ℶ_1>, and D is the classifier instance DualSet{}
+  // (= DualSetOf<>{}).  The pair has the same shape as ℝ/ℂ.
+  STATIC_CHECK(std::same_as<
+               std::remove_cvref_t<decltype(𝔻)>,
+               UniversalSet<Dual<machine_real_scalar>, ClassicalLogic, ℶ_1>>);
+  STATIC_CHECK(std::same_as<typename std::remove_cvref_t<decltype(𝔻)>::Domain,
+                            Dual<machine_real_scalar>>);
+  STATIC_CHECK(std::same_as<decltype(D), const DualSet>);
 
-  constexpr auto d = element<Ω<Dual<double>>>;
+  constexpr auto d = element<𝔻>;
   constexpr auto duals = Set{d};
   static_assert(duals(Dual<double>{1.0, 1.0}) == Ternary::True);
 }
 
 TEST_CASE("Analysis: 𝔻 lattice identity (U ∪ ¬U = top, U ∩ ¬U = bottom)",
           "[analysis][dual][starter][lattice]") {
-  constexpr auto d = element<Ω<Dual<double>>>;
+  constexpr auto d = element<𝔻>;
   const auto U = Set{d};
   const auto O = !U;
   CHECK((U | O)(Dual<double>{3.0, 1.0}) == Ternary::True);

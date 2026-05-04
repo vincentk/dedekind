@@ -258,14 +258,58 @@ static_assert(
     "Dual<int> is the discrete-side tangent-bundle (finite-difference) "
     "carrier over the machine integers.");
 
-export template <typename F = double, typename L = ClassicalLogic,
-                 typename C = ℶ_1>
+export template <typename F = dedekind::numbers::machine_real_scalar,
+                 typename L = ClassicalLogic, typename C = ℶ_1>
 using DualSetOf = UniversalSet<Dual<F>, L, C>;
 
 export using DualSet = DualSetOf<>;
-export using 𝔻 = DualSet;
 
-export inline constexpr 𝔻 D{};
+/** @brief The canonical dual-number universe 𝔻 = Ω<Dual<machine_real_scalar>,
+ *         ClassicalLogic, ℶ_1> (post-#559).
+ *
+ *  @details Per #559's chosen direction (option A): the named species
+ *  symbols denote @b universe values (constexpr instances of
+ *  @c UniversalSet over the carrier), not classifier-alias types.
+ *  This slice closes #559 — with @c 𝔻 migrated, all seven species
+ *  symbols (𝔹, ℕ, ℤ, ℚ, ℝ, ℂ, 𝔻) carry the canonical
+ *  @c element<𝔻> scout spelling.
+ *
+ *  The carrier of @c 𝔻 is @c Dual<machine_real_scalar> directly; the
+ *  classifier is reachable via @c DualSet @c = @c DualSetOf<>.
+ *
+ *  Cardinality is set explicitly to @c ℶ_1 (continuum) — @c 𝔻 is in
+ *  bijection with ℝ × ℝ via the @c (a, @c b) coefficient pair (the
+ *  same shape that gives @c ℂ its @c ℶ_1) — overriding the
+ *  @c Ω<...> variable template's @c ℵ_0 default.
+ *
+ *  Pre-#559 the spelling was @c using @c 𝔻 @c = @c DualSet (the
+ *  classifier alias); type-context sites in concept gates and member
+ *  extractions (@c typename @c 𝔻::Domain etc.) were migrated to
+ *  @c DualSet directly in step 1 of this slice.
+ *
+ *  Textbook construction: @c 𝔻 @c = @c ℝ[ε]/(ε²) — a polynomial
+ *  quotient observable via the @c quotient operator from
+ *  @c sets:quotient (the same DSL primitive ℚ rides on under #567's
+ *  textbook quotient exhibit).  The structural-trait propagation
+ *  through @c quotient_algebra_base<Dual<F>>::type @c = @c F (below)
+ *  is the universal-algebra side of that same construction.
+ */
+export inline constexpr auto 𝔻 =
+    dedekind::sets::Ω<Dual<dedekind::numbers::machine_real_scalar>,
+                      ClassicalLogic, ℶ_1>;
+
+static_assert(
+    std::same_as<
+        std::remove_cvref_t<decltype(𝔻)>,
+        dedekind::sets::UniversalSet<
+            Dual<dedekind::numbers::machine_real_scalar>, ClassicalLogic, ℶ_1>>,
+    "𝔻 is the universe Ω<Dual<machine_real_scalar>, ClassicalLogic, ℶ_1> "
+    "(post-#559).");
+static_assert(std::same_as<typename std::remove_cvref_t<decltype(𝔻)>::Domain,
+                           Dual<dedekind::numbers::machine_real_scalar>>,
+              "𝔻's underlying carrier IS Dual<machine_real_scalar>.");
+
+export inline constexpr DualSet D{};
 
 }  // namespace dedekind::analysis
 
