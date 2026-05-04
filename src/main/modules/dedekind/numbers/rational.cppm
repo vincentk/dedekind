@@ -23,6 +23,7 @@ module;
 #include <limits>
 #include <numeric>
 #include <stdexcept>
+#include <type_traits>  // std::remove_cvref_t for the post-#559 universe-witness static_asserts
 #include <utility>
 
 export module dedekind.numbers:rational;
@@ -798,12 +799,18 @@ static_assert(
     "RationalsOf must be the canonical IsSet anchor for "
     "dedekind.numbers:rational.");
 
-// (2) Syntax (the C++ operator surface that maps to ℚ's algebra).
-//   - HasRingOperators<ℚ>: literal +, binary -, unary -, * close on ℚ.
-//   - HasFieldOperators<ℚ>: literal +, -, *, / close on ℚ
-//     (HasRingOperators + closure under /).
-//   - HasGroupOperatorsAdd<ℚ>: literal +, binary -, unary - close on ℚ.
-//   - HasGroupOperatorsMul<ℚ>: literal *, / close on ℚ \ {0}.
+// (2) Syntax (the C++ operator surface that maps to ℚ's algebra).  Post-
+// #559, ℚ is the universe value Ω<Rational<default_integer>>; the carrier
+// in concept-gate type-parameter slots is Rational<default_integer>
+// (a.k.a.\ ℚ_t<>) directly.
+//   - HasRingOperators<Rational<default_integer>>: literal +, binary -,
+//     unary -, * close on the carrier.
+//   - HasFieldOperators<Rational<default_integer>>: literal +, -, *, /
+//     close on the carrier (HasRingOperators + closure under /).
+//   - HasGroupOperatorsAdd<Rational<default_integer>>: literal +, binary -,
+//     unary - close on the carrier.
+//   - HasGroupOperatorsMul<Rational<default_integer>>: literal *, / close
+//     on the carrier \ {0}.
 static_assert(dedekind::algebra::HasRingOperators<Rational<default_integer>>,
               "ℚ closes the literal ring operator surface (+, binary -, "
               "unary -, *).");

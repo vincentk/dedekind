@@ -73,7 +73,7 @@ export module dedekind.linear_algebra:mat2x2;
 
 import dedekind.algebra; // HasRingOperators, HasFieldOperators, HasVectorSpaceOperators
 import dedekind.category; // IsFunctor / Set / arrow (for matrix2x2_functor witness)
-import dedekind.numbers; // Rational<Z> for the Rational<default_integer> carrier
+import dedekind.numbers; // Rational<default_integer> — the rational carrier (post-#559 ℚ is the universe value Ω<Rational<default_integer>>)
 import dedekind.order; // IsDirectedSet — algebraic gate on operator[] index domain (any net domain)
 import dedekind.sets; // Finite cardinality tag (for dimension_type)
 import :basis;        // is_endomorphism_ring_v trait declaration
