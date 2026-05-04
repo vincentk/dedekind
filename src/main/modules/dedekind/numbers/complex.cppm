@@ -305,8 +305,8 @@ struct ComplexesOf {
 
 export using ComplexSet = ComplexesOf<>;
 
-/** @brief The canonical complex-number universe ℂ = Ω<Complex<machine_real_scalar>,
- *         ClassicalLogic, ℶ_1> (post-#559).
+/** @brief The canonical complex-number universe ℂ =
+ * Ω<Complex<machine_real_scalar>, ClassicalLogic, ℶ_1> (post-#559).
  *
  *  @details Per #559's chosen direction (option A): the named species
  *  symbols denote @b universe values (constexpr instances of
