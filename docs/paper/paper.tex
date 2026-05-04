@@ -208,7 +208,7 @@ Algebraic structures---groups,
 rings, fields, vector spaces---are defined in the abstract by laws which are hard to enforce: associativity,
 commutativity, identities, inverses, closure, totality and many more.
 The concrete carriers a programming language offers violate those laws conditionally, sometimes silently:
-sets must fit into memory or cache, functions may throw runtime exceptions or return \cppinline{null};
+sets must fit into memory or cache, functions may throw runtime exceptions or return \cppinline{nullptr};
 a 32-bit signed \cppinline{int} is not an additive group (overflow, \cppinline{INT_MIN} has no
 negation), an IEEE~754 \cppinline{double}~\cite{ieee754_2019} may overflow, underflow, be \cppinline{NaN},
 and is not associative under addition in the bit-perfect sense.
