@@ -220,20 +220,22 @@ In real life, the pragmatic choice is often the first one: the programmer define
 
 Here, we wish to explore and report what might happen when a library implemented \emph{in a mainstream systems programming language} takes the third
 option seriously and consistently defaults to mathematical rigor and build-time constraints as opposed to risking runtime errors.
+The hope being to find better answers to questions such as the following:
 Will we be able to explain to the type system that an inner product of two vectors is a scalar while the outer product is a matrix of rank 1?
 Will it recognize that the intersection of a set of integers with a set of real numbers must return a subset of the integers?
+What might the type of a function space even look like?
 Will it be possible to design a system that can switch between symbolic operations on intensional concepts such as transfinite sets and extensional properties or is symbolic algebra a capability that will remain locked away in languages which are somehow more expressive?
 What happens if, either by accident or because of inherent complexity, neither the compiler nor the programmer can come up with the answer in a sufficiently short period of time? Is it possible to design escape hatches when the limits of computability are fast approaching?
 
-Turing showed us a long time ago that determining the limits of computability up-front is not achievable \emph{in the general case} and so we can anticipate the outcome: a hopefully growing collection of \emph{existential proofs} that facilitate computation where we know it to be feasible.
-To make the approach tractable in this context, what we hope for is the following: 
+Turing showed us a long time ago that determining the limits of computability up-front is not achievable \emph{in the general case} and so we can anticipate the outcome: a hopefully growing collection of \emph{existential proofs and fragments} that facilitate computation where we know it to be feasible.
+A plausible occasionally tractable might look about as follows:
 \begin{enumerate}
 \item find sources of validated \emph{existing proofs},
-\item translate them to the best of our abilities into a suitable host type system,
+\item translate them into a suitable host type system,
 \item validate the translation by checking that the corresponding theorems now hold in the host type system,
 \item go to step 1.
 \end{enumerate}
-robust almost to the point of being mechanical and easy to validate at each step.
+Ideally, it will be robust almost to the point of being mechanical and easy to validate at each step.
 By analogy and in somewhat loose language: where the nLab~\cite{nlab:nlab} attempts to categorify physics and summarise the results in a wiki, this library aims to take that wiki and translate it as faithfully as we can into a mainstream programming language.
 If the compiler accepts those axioms, then the compiler should also be able to validate or sometimes even derive the corresponding theorems~\cite{wadler2015propositions}.
 
