@@ -299,10 +299,10 @@ export inline constexpr auto 𝔻 =
                       ClassicalLogic, ℶ_1>;
 
 static_assert(
-    std::same_as<std::remove_cvref_t<decltype(𝔻)>,
-                 dedekind::sets::UniversalSet<
-                     Dual<dedekind::numbers::machine_real_scalar>,
-                     ClassicalLogic, ℶ_1>>,
+    std::same_as<
+        std::remove_cvref_t<decltype(𝔻)>,
+        dedekind::sets::UniversalSet<
+            Dual<dedekind::numbers::machine_real_scalar>, ClassicalLogic, ℶ_1>>,
     "𝔻 is the universe Ω<Dual<machine_real_scalar>, ClassicalLogic, ℶ_1> "
     "(post-#559).");
 static_assert(std::same_as<typename std::remove_cvref_t<decltype(𝔻)>::Domain,
