@@ -466,7 +466,7 @@ Most arrows on each hub and most inter-hub arrows are suppressed for clarity; th
 \label{fig:hub-spoke-bnz}
 \end{figure}
 
-While it may now be tempting to start formalizing operations such as $\neg, \vee, \wedge, \cup, \cap, +, \times, \ldots$, we \emph{deliberately leave $\Sigma$ unbound for now}. 
+While it may now be tempting to start formalizing operations such as $\neg, \vee, \wedge, \cup, \cap, +, \times, \ldots$, we \emph{deliberately leave $\Sigma$ unbound for now}.\footnote{When $\Sigma$ stays unbound throughout a discussion, we sometimes write $\mathbf{Alg}(-)$ for the family $\bigcup_\Sigma \mathbf{Alg}(\Sigma)$ over the signatures the library names.  The dash is a typographic placeholder meaning ``fill in any signature here'' (Mac Lane's standard argument-blank convention~\cite{maclane1971categories}, same family as $\mathrm{Hom}(-, -)$ for the hom-bifunctor and $(-)^{\mathrm{op}}$ for the opposite-category functor); it is \emph{not} a unary minus.  The notation reappears in §\ref{sec:cpp-stlc-mapping}.}
 The binding of concrete operator-shape signatures is deferred to later sections~\ref{sec:cpp-stlc-mapping}, \ref{sec:sets-rules}.
 We note though that while $\mathbf{Alg}(\Sigma)$ is only a small fragment of $\mathbf{Cat}$ we expect that it carries enough algebraic vocabulary to host carriers, operators, and structure-preserving arrows in the shape an engineering library actually needs and so we use it as a starting point for a structuralist mathematical style~\cite{marquis2022structuralist}.
 
