@@ -476,37 +476,19 @@ We note though that while $\mathbf{Alg}(\Sigma)$ is only a small fragment of $\m
 \label{sec:jlt}
 
 
-C++ taken as a whole is a famously inhospitable substrate for formal reasoning.
+In much the same way that category theory can be intimidating, C++ as a whole is a famously inhospitable substrate for formal reasoning.
 A closed denotational semantics for the full language is, to our knowledge, not on the books.\footnote{Concretely: overload resolution and argument-dependent lookup are non-uniform; two-phase name lookup interacts with template instantiation in ways that defeat parametricity (Wadler's classical objection to template genericity, after Bracha \& Odersky~\cite{bracha1998making}, bites here); \cppinline{reinterpret_cast} breaks type abstraction at the value level; and template instantiation in general is Turing-complete and undecidable.  On the carrier side, undefined behaviour is the rule rather than the exception: signed-overflow UB defeats ring-associativity on machine \cppinline{int} / \cppinline{long}, IEEE-754 rounding-non-associativity defeats field-associativity on \cppinline{float} / \cppinline{double} --- §\ref{sec:carrier-rosetta} audits each stdlib carrier's algebraic surface against the textbook expectations.}
 
-To bring the C++ side into alignment with the structuralist selection we just applied on the category side, we apply a similar restriction here.
-Roughly speaking, we hope that our atomic types will be \cppinline{std::regular} POCOs (Plain Old C++ Objects, including the primitive types) and we wish to be able to pattern-match on them using \cppinline{concept} definitions.
-For the small fragment of the language that we intend to work on, we reject what we have learned about encapsulation and polymorphism and trim down the internal complexity of objects to the point that they no longer support encapsulation and are fully transparent at compile-time so that interface and behavior are the only meaningful identity.
-
-We can compare and contrast this approach with three textbook schools~\cite{pierce2002tapl, cardelli1996typesystems} of type identification:
+As we appear to have too many choices as opposed to too few, we can ask: are the features that we want to select from this host language to maximize semantic overlap with the fragment $\mathbf{Alg}(\Sigma)$~\ref{fig:hub-spoke-bnz} that we have just identified?
+We can compare and contrast this choice problem with three textbook schools~\cite{pierce2002tapl, cardelli1996typesystems} of type identification:
 \begin{itemize}
-\item nominal (declared lineage; checked at compile time but blind to behaviour),
+\item nominal (declared lineage (often inheritance); checked at compile time but blind to behaviour),
 \item duck (structural by call-site method probe; checked at runtime, too late for the optimiser),
 \item static structural typing (concept-based; behaviour checked at compile time without a declared lineage).
 \end{itemize}
 
-\begin{listing}[htbp]
-\caption{Pseudocode illustration of nominal and duck typing, respectively.}
-\label{lst:nominal}
-\begin{cpp}
-// Nominal (pseudocode): a supertype is recognised by declared lineage.
-struct Ring { /* virtual operations, must opt in explicitly */ };
-struct MyInt : Ring { /* ... */ };
-
-// Duck typing (pseudocode): recognised at runtime by the call site.
-//   def generic_sum(a, b):       # Python: fails only when called
-//       return a + b             # no compile-time guarantee
-\end{cpp}
-\end{listing}
-
-C++23 concepts realise the third school.  We call the resulting
-discipline the \emph{Juliet Posture}, after the observation that a
-rose by any other name would smell as sweet~\cite{shakespeare1597romeo}:
+C++23 concepts realise the third school. 
+We call the resulting discipline the \emph{Juliet Posture}, after the observation that a rose by any other name would smell as sweet~\cite{shakespeare1597romeo}:
 the library cares about the \emph{scent} (structural invariants),
 not the \emph{lineage} (declared name).
 
