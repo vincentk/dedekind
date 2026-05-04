@@ -20,9 +20,9 @@
  *     // BoundScout has no scalar `!=` lift; use !(== 0) via lambda.
  *     constexpr auto denominators =
  *         Set{z | [](const I& v) { return !(v == I{0}); }};
- *     constexpr auto pairs        = cartesian_product(numerators, denominators);
- *     constexpr auto cross_mult   = CrossMultEquiv<I>{};
- *     constexpr auto ℚ_constructed = quotient(pairs, cross_mult);
+ *     constexpr auto pairs        = cartesian_product(numerators,
+ * denominators); constexpr auto cross_mult   = CrossMultEquiv<I>{}; constexpr
+ * auto ℚ_constructed = quotient(pairs, cross_mult);
  *     static_assert(std::same_as<typename decltype(ℚ_constructed)::Domain,
  *                                Rational<I>>);
  *
@@ -86,13 +86,12 @@ using namespace dedekind::category;
  *  copy-constructibility is a valid input to the quotient.
  */
 export template <typename P>
-concept IsQuotientPairsLike =
-    std::copy_constructible<P> && requires {
-      typename P::Domain;
-      typename P::Codomain;
-      typename P::logic_species;
-      typename P::cardinality_type;
-    };
+concept IsQuotientPairsLike = std::copy_constructible<P> && requires {
+  typename P::Domain;
+  typename P::Codomain;
+  typename P::logic_species;
+  typename P::cardinality_type;
+};
 
 /** @brief Trait registry: maps a (PairsDomain, EquivRel) pair to the
  *  canonical carrier representative of the quotient.
@@ -147,8 +146,8 @@ using quotient_carrier_t =
  */
 export template <typename Pairs, typename EquivRel>
   requires IsQuotientPairsLike<std::remove_cvref_t<Pairs>> &&
-           IsEquivalenceRelation<
-               EquivRel, typename std::remove_cvref_t<Pairs>::Domain> &&
+           IsEquivalenceRelation<EquivRel,
+                                 typename std::remove_cvref_t<Pairs>::Domain> &&
            requires {
              typename quotient_carrier<
                  typename std::remove_cvref_t<Pairs>::Domain, EquivRel>::type;
@@ -221,8 +220,8 @@ struct Quotient {
  */
 export template <typename Pairs, typename EquivRel>
   requires IsQuotientPairsLike<std::remove_cvref_t<Pairs>> &&
-           IsEquivalenceRelation<
-               EquivRel, typename std::remove_cvref_t<Pairs>::Domain> &&
+           IsEquivalenceRelation<EquivRel,
+                                 typename std::remove_cvref_t<Pairs>::Domain> &&
            requires {
              typename quotient_carrier<
                  typename std::remove_cvref_t<Pairs>::Domain, EquivRel>::type;
