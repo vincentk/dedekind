@@ -31,9 +31,13 @@ TEST_CASE("Numbers: canonical starter symbols", "[numbers][starter]") {
                std::remove_cvref_t<decltype(Ω<SignedExtensionalCardinal<>>)>,
                UniversalSet<SignedExtensionalCardinal<>>>);
 
-  STATIC_CHECK(std::same_as<Rational<default_integer>, Rational<default_integer>>);
+  STATIC_CHECK(std::same_as<std::remove_cvref_t<decltype(ℚ)>,
+                            UniversalSet<Rational<default_integer>>>);
+  STATIC_CHECK(std::same_as<typename std::remove_cvref_t<decltype(ℚ)>::Domain,
+                            Rational<default_integer>>);
   STATIC_CHECK(
-      std::same_as<std::remove_cvref_t<decltype(Ω<Rational<default_integer>>)>, UniversalSet<Rational<default_integer>>>);
+      std::same_as<std::remove_cvref_t<decltype(Ω<Rational<default_integer>>)>,
+                   UniversalSet<Rational<default_integer>>>);
 
   // 𝔻 / D / DualSet starter aliases moved to dedekind.analysis:dual at
   // PR ; analogous STATIC_CHECKs live in

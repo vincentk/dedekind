@@ -485,18 +485,39 @@ struct RationalsOf {
  */
 using RationalSet = RationalsOf<>;
 
-/** @brief The canonical rational-number field ℚ, as the carrier type
- *         (default-instantiated @c Rational<default_integer>).
+/** @brief Pluggable rational-field type alias parameterised on the
+ *         integer carrier.
  *
- *  @details Pluggable via @c ℚ_t<MyInteger> for non-default integer
- *  carriers; the bare @c ℚ defaults to @c Rational<default_integer>
- *  so the show-to-a-wider-audience API reads as plain mathematics:
- *  @c static_assert(algebra::HasFieldOperators<ℚ>), @c auto @c q @c
- *  = @c var<ℚ>, etc.
+ *  @details @c ℚ_t<MyInteger> instantiates @c Rational<MyInteger>; the
+ *  bare @c ℚ_t<> defaults to @c Rational<default_integer>.  Used in
+ *  template-type-parameter positions where the rational carrier needs
+ *  to be named directly (e.g.\ @c std::plus<ℚ_t<>>,
+ *  @c HasFieldOperators<ℚ_t<>>).
+ */
+export template <IsInteger I = default_integer>
+using ℚ_t = Rational<I>;
+
+/** @brief The canonical rational-number universe ℚ = Ω<Rational<default_integer>>
+ *         (post-#559).
  *
- *  @note  The strict @c category::IsField<ℚ, std::plus<ℚ>,
- *  std::multiplies<ℚ>> is @b not currently certified.  Two distinct
- *  blocks compose:
+ *  @details Per #559's chosen direction (option A): the named species
+ *  symbols (@c 𝔹 / @c ℕ / @c ℤ / @c ℚ / @c ℝ / @c ℂ / @c 𝔻) denote the
+ *  @b universe values (constexpr instances of @c UniversalSet over the
+ *  carrier), not carrier @b types.  Carrier types are spelled directly
+ *  (@c Rational<default_integer>, or @c ℚ_t<I> for the parameterised
+ *  form) in template-type-parameter positions; @c ℚ alone is the
+ *  universe value the set-builder DSL takes as ambient.
+ *
+ *  This makes @c element<ℚ> the canonical scout spelling — closer to
+ *  textbook math notation than the pre-#559 @c element<Ω<ℚ>> form.
+ *  Pre-#559 the spelling was @c using @c ℚ @c = @c ℚ_t<> (a carrier-
+ *  type alias); the type-context sites in concept gates and
+ *  static_asserts were migrated to @c Rational<default_integer> /
+ *  @c ℚ_t<> directly in step 1 of this slice.
+ *
+ *  @note  The strict @c category::IsField<Rational<default_integer>,
+ *  std::plus<...>, std::multiplies<...>> is @b not currently certified.
+ *  Two distinct blocks compose:
  *
  *  1. @b IsTotal @b gate (architectural).  The strict ring/field
  *     ladder requires @c IsMagma, which requires @c IsTotal<T, Op>
@@ -513,13 +534,21 @@ using RationalSet = RationalsOf<>;
  *
  *  See the @c FIXME(\#379) breadcrumb at the Field_ℚ definition in
  *  @c :integer.  Until both blocks lift, the operational
- *  @c algebra::HasFieldOperators<ℚ> is the load-bearing field-
- *  arithmetic guarantee.
+ *  @c algebra::HasFieldOperators<Rational<default_integer>> is the
+ *  load-bearing field-arithmetic guarantee.
  */
-export template <IsInteger I = default_integer>
-using ℚ_t = Rational<I>;
+export inline constexpr auto ℚ = dedekind::sets::Ω<Rational<default_integer>>;
 
-export using ℚ = ℚ_t<>;
+static_assert(
+    std::same_as<std::remove_cvref_t<decltype(ℚ)>,
+                 dedekind::sets::UniversalSet<Rational<default_integer>,
+                                              ClassicalLogic, ℵ_0>>,
+    "ℚ is the universe Ω<Rational<default_integer>> (post-#559).");
+static_assert(
+    std::same_as<typename std::remove_cvref_t<decltype(ℚ)>::Domain,
+                 Rational<default_integer>>,
+    "ℚ's underlying carrier IS Rational<default_integer> — the textbook "
+    "universe-over-carrier reading.");
 
 /** @brief The predicate-set value (instance of @c RationalSet),
  *         retained for set-builder DSL usage like @c Set{q @c % @c Q}
