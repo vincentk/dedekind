@@ -168,7 +168,7 @@ type system and targets \emph{mainstream C++23}---concepts,
 non-type template parameters, named modules---rather than a research
 compiler. The design rule is \emph{intensional first, realize when
 you mean it}: a set is represented as a predicate $P : A \to \Omega$
-over an ambient species $A$, not as a heap-allocated container, with
+over an ambient species\footnote{We use ``species'' throughout in the universal-algebra sense of Burris--Sankappanavar~\cite{burris1981universalalgebra}, \emph{not} the Joyal sense of \emph{combinatorial} species~\cite{joyal1981species}, which is a separate category-theoretic notion concerning labelled-structure functors $\mathbf{B} \to \mathbf{Set}$.  The two readings share a name and nothing else.} $A$, not as a heap-allocated container, with
 two practical consequences:
 \begin{itemize}
   \item Set operations (intersection, complement, union) compose as
@@ -426,52 +426,27 @@ mechanical witness the compiler discharges.
 % ============================================================
 
 The strategy of this section is a three-step intersection.
-Both category theory and modern C++23 are large and occasionally intimidating beasts; each, however, admits a tractable subset with simple atomic building blocks and clear composition rules.
+Both category theory and modern C++23 are large and occasionally intimidating beasts; each, however, admits a tractable subset with somewhat simpler atomic building blocks and clear composition rules.
 The \texttt{dedekind} library lives at their intersection.
 
-\subsection{Structuralism with $\mathbf{Alg}(\Sigma)$}
+\subsection{A Well-Behaved Structure in Category Theory: $\mathbf{Alg}(\Sigma)$}
 \label{sec:alg-sigma}
 
 The choice of anchoring the library's domain in category theory on the mathematical side is neither new nor arbitrary and follows a well-trodden path.
 The authoritative textbook in the context of programming might be \emph{Types and Programming Languages}~\cite{pierce2002tapl}.
-Here, we intend to lower the barrier to entry and so we restrict attention to the universal-algebra category $\mathbf{Alg}(\Sigma)$~\cite{burris1981universalalgebra} for a fixed algebraic signature $\Sigma$ (a list of operation symbols with their arities): an object is a $\Sigma$-algebra (a carrier $A$ together with operations realising the symbols in $\Sigma$), and a morphism is a $\Sigma$-homomorphism (a function $A \to B$ that preserves every operation in $\Sigma$).\footnote{We use ``species'' throughout in the universal-algebra sense of Burris--Sankappanavar~\cite{burris1981universalalgebra}, \emph{not} the Joyal sense of \emph{combinatorial} species~\cite{joyal1981species}, which is a separate category-theoretic notion concerning labelled-structure functors $\mathbf{B} \to \mathbf{Set}$.  The two readings share a name and nothing else.}
-The library's architectural reading is the hub-per-carrier specialisation introduced below (one hub per $\Sigma$-algebra; inter-hub arrows are typed maps $\mathrm{T} \to \mathrm{S}$ that the architecture indexes for downstream composition --- $\Sigma$-homomorphisms in $\mathbf{Alg}(\Sigma)$ proper plus named embeddings and structurally-typed restrictions; Figure~\ref{fig:hub-spoke-bnz} spells out the layered Mon $\leftrightarrow$ $\mathbf{Alg}(\Sigma)$ reading).
-We \emph{deliberately leave $\Sigma$ unbound} at this point in the discussion: concrete operator-shape signatures are picked later by the \cppinline{Has*Operators} concepts (§\ref{sec:cpp-stlc-mapping}, §\ref{sec:pruning}) --- one per algebraic shape (\cppinline{HasRingOperators} witnesses closure of $(+, -, *)$ on $\mathrm{T}$; \cppinline{HasFieldOperators} adds $/$; etc.).\footnote{The \cppinline{Has*Operators} concepts witness the literal-operator surface only --- the closure of the C++ operators on the carrier.  The constants of the textbook signature ($0$, $1$ in the ring case) and the equational laws (associativity, distributivity, two-sided identity, \dots) are tracked separately --- by the strict categorical concepts (\cppinline{IsRing}, \cppinline{IsField}, \dots) in \texttt{category:total} and by per-trait opt-ins (\cppinline{is\_associative\_v}, \cppinline{is\_invertible\_v}, \dots).  The two layers compose: \cppinline{HasRingOperators<T>} together with the strict-trait opt-ins discharges \cppinline{IsRing<T, +, *>}.}
-The fragment we work in is therefore $\bigcup_\Sigma \mathbf{Alg}(\Sigma)$ over the signatures the library names; each \cppinline{Has*Operators} concept fixes a specific $\Sigma$ at the call site.
-The textbook way to read this restriction is via the bijection between monoids and one-object categories (Mac Lane~\cite{maclane1971categories} §I.1): every monoid \emph{is} a one-object category whose morphisms are the monoid elements; an object of $\mathbf{Alg}(\Sigma)$ --- a $\Sigma$-algebra $(A, \Sigma_A)$ --- is the universal-algebra generalisation, where the underlying set $A$ plays the role of the monoid's underlying set and the operation symbols in $\Sigma$ generalise the monoid's single binary operation.
-On the computer-science side, the same notion appears as the category of $F_\Sigma$-algebras~\cite{pierce1991basic} (§2.2): for each signature $\Sigma$ there is a polynomial endofunctor $F_\Sigma$ on $\mathbf{Set}$ (e.g.\ for $\Sigma$ with one binary operation and one constant, $F_\Sigma(X) = X \times X + 1$), and the isomorphism $\mathbf{Alg}(\Sigma) \cong F_\Sigma\text{-}\mathbf{Alg}$ lets the same fragment read coherently to both universal-algebra and category-theoretic audiences.\footnote{Both readings are encoded in the library: the universal-algebra side as \cppinline{IsAlgebra<T, Ops...>} in \texttt{dedekind.algebra:universal} (the $(A, F)$ closure tier, after Burris--Sankappanavar §I.1), and the category-theoretic side as \cppinline{IsFAlgebra<Carrier, Structure, Functor>} in \texttt{dedekind.category:functor} together with the universal-property layer (initial $F$-algebras, terminal $F$-coalgebras) in \texttt{dedekind.category:f\_algebra}.  The two partitions cross-reference each other under the textbook isomorphism, so a downstream consumer can pick the spelling that fits the surrounding code.}
-This is a small fragment of $\mathbf{Cat}$ but, as §\ref{sec:alg-sigma} develops, it carries enough algebraic vocabulary to host carriers, operators, and structure-preserving arrows in the shape an engineering library actually needs and is a preferred starting point for the structuralist mathematical style~\cite{marquis2022structuralist}.
+For the more casual reader of this text, it should be sufficient to remember that at its most basic, category theory is a book-keeping device of sorts that can tell us what clicks together (the arrows compose) and what doesn't and how things might be re-arranged and perhaps simplified.
 
-For the more casual reader of this text, it should be sufficient to remember that at its most basic, category theory is a book-keeping device of sorts that can tell us what clicks together and what doesn't and how things might be re-arranged and perhaps simplified.
-Somewhat casually:
-\begin{enumerate}
-\item A category consists of \emph{objects} which are deliberately chosen to be opaque black boxes.
-Precisely because they are opaque, a practitioner can choose objects to be whatever they like: sets, types, algebraic structure, \ldots it changes nothing about the applicability of category theory.
-\item Arrows (morphisms) point from one object (domain) to another (codomain).
-If it lacks a domain or a codomain, then whatever it is, it's not an arrow.
-\item If an arrow's domain and codomain happen to be the same object $A$, then it is called the identity arrow $id_A$.
-\item If the codomain of arrow $f$ matches the domain of arrow $g$, then they can be \emph{composed} to give a new arrow $h = g \circ f$.
-\item Any arrow $f$ with domain $A$ can compose with $\mathrm{id}_A$, but that's the same as doing nothing: $f \circ \mathrm{id}_A = f$; in particular $\mathrm{id}_A \circ \mathrm{id}_A = \mathrm{id}_A$.
-\item If two paths in a diagram (each itself an arrow or a composition of arrows) share the same domain and codomain and are equal as morphisms, the diagram is said to \emph{commute}: $f = g$.
-Trivially this holds for $\mathrm{id}_A = \mathrm{id}_A$, but as one composes arrows into richer structures these equations start to form interesting constraints.
-\end{enumerate}
-
-The library's architectural reading specialises further --- each $\Sigma$-algebra is exhibited as a hub on its carrier, and (under the Mac Lane §I.1 bijection above) drawn as a one-object category in its own right:
-\begin{itemize}
-\item the only object is the carrier type $\mathrm{T}$ (further restricted to be \texttt{std::regular}),
-\item arrows on the hub (endomorphisms) are functions $\mathrm{T} \rightarrow \mathrm{T}$ that close on the carrier, and
-\item functions $\mathrm{T} \rightarrow \mathrm{S}$ are inter-hub arrows --- $\Sigma$-homomorphisms in $\mathbf{Alg}(\Sigma)$ proper plus named embeddings and structurally-typed restrictions the architecture indexes for downstream composition.
-\end{itemize}
-
-In code, the canonical concept-level spelling at each hub is the $(A, F)$ pair form \cppinline{IsAlgebra<T, Ops...>} from \texttt{algebra:universal} (after Burris--Sankappanavar §I.1), which keeps the carrier $\mathrm{T}$ and the operations $\mathrm{Ops...}$ as separate template parameters --- the textbook HAS-A posture: an algebra is the pair $(\mathrm{T}, \Sigma_\mathrm{T})$, not the carrier alone.  The named carrier types of the engineering surface (\cppinline{Rational<I>}, \cppinline{Complex<F>}, \cppinline{Vec3V<T>}, \dots) bake their operator overloads into the type as ergonomic sugar over this HAS-A form; the sugar accommodates the C++ legacy of per-type \cppinline{operator+} / \cppinline{operator*} resolution (writing \cppinline{a + b} requires the operators to be defined on the carrier's type, not on a separate handle).  The strict $(A, \Sigma_A)$ pair view --- the \cppinline{IsAlgebra} concept together with the strict categorical refinements (\cppinline{IsRing<T, Add, Mult>}, \cppinline{IsField<T, Add, Mult>}, \dots) in \texttt{category:total} and the per-trait opt-ins (\cppinline{is\_associative\_v}, \cppinline{is\_invertible\_v}, \dots) --- remains the witness layer the paper's structural claims fire against; the named carriers are the C++-syntax veneer.
-
-In the language of software architecture, the resulting picture is a hub-and-spoke layout: each hub is a carrier type $\mathrm{T}$ (the species' shared object), and the spokes are the maps that compose with it --- operator overloads ($\mathrm{T} \times \mathrm{T} \to \mathrm{T}$), free-function actions on the carrier, trait specialisations registering structural facts about $\mathrm{T}$, and named embedding arrows $\mathrm{T} \to \mathrm{S}$ crossing to a sibling hub.
-The library lifts this pattern directly into the build graph: each named module declares one hub and owns its spokes; the partition DAG is the diagram of inter-hub arrows.
-Figure~\ref{fig:hub-spoke-bnz} sketches three concrete hubs ($\mathbb{B}$, $\mathbb{N}$, $\mathbb{Z}$) with one arrow of each kind.
+In the context of \texttt{dedekind}, we further restrict our attention to a subset that most readers will be familiar with: algebras, i.e.\ sets equipped with operations.\footnote{We use ``algebra'' here in the universal-algebra sense (a $\Sigma$-algebra: a carrier set together with operations realising a signature $\Sigma$); the unrelated algebraic-geometry usage of ``algebraic set'' for the zero locus of a system of polynomials is \emph{not} what we mean.}
+The Booleans $\mathbb B$ with logical operations, the integers $\mathbb Z$ with addition and subtraction and so on.
+In algebra textbook terminology: the universal-algebra category $\mathbf{Alg}(\Sigma)$~\cite{burris1981universalalgebra} for a fixed algebraic signature $\Sigma$ (a list of operation symbols with their arities).
+In functional programming terminology, this corresponds to $F_\Sigma$-algebras: for each signature $\Sigma$ there is a polynomial endofunctor $F_\Sigma$ on $\mathbf{Set}$, and Pierce~\cite{pierce1991basic} (§2.2) gives the isomorphism $\mathbf{Alg}(\Sigma) \cong F_\Sigma\text{-}\mathbf{Alg}$ that lets the same fragment read coherently to both audiences.
+In the language of software architecture, the picture might be described as a hub-and-spoke layout: each hub is a carrier type $\mathrm{T}$, and the spokes are the maps that compose with it.
+Operator overloads ($\mathrm{T} \times \mathrm{T} \to \mathrm{T}$), free-function actions on the carrier, trait specialisations registering structural facts about $\mathrm{T}$, and named embedding arrows $\mathrm{T} \to \mathrm{S}$ crossing to a sibling hub.
+The library lifts this pattern directly into the build graph: each named module declares one or more hubs and owns its spokes; the partition DAG is the diagram of inter-hub arrows.
+Figure~\ref{fig:hub-spoke-bnz} sketches three concrete algebraic hubs ($\mathbb{B}$, $\mathbb{N}$, $\mathbb{Z}$) with one arrow of each kind.
 
 \begin{figure}[htbp]
 \centering
-\scalebox{1.5}{%
 \begin{tikzcd}[column sep=5em, row sep=4em, ampersand replacement=\&]
 \mathbb{B} \arrow[loop above, "\neg"]
    \arrow[r, bend left=20, "\mathfrak{i}"]
@@ -480,23 +455,24 @@ Figure~\ref{fig:hub-spoke-bnz} sketches three concrete hubs ($\mathbb{B}$, $\mat
    \arrow[r, bend left=20, "-x"]
 \& \mathbb{Z} \arrow[loop above, "-x"]
    \arrow[l, bend left=20, "x^2"]
-\end{tikzcd}}
-\caption{Hub-and-spoke at three carriers, $\mathbb{B}$, $\mathbb{N}$, $\mathbb{Z}$, drawn so that two textbook readings of \emph{the carrier} stack on one picture --- the Mac Lane~\cite{maclane1971categories} §I.1 monoid $\leftrightarrow$ one-object-category bijection, applied at this scale.
-\emph{Inside a hub (Mon-style, one-object-category reading):} each carrier \emph{is} a one-object category whose single object is the underlying set ($\{\mathrm{false}, \mathrm{true}\}$, $\{0, 1, 2, \ldots\}$, $\mathbb{Z}$) and whose loops are the carrier's distinguished endo-operations (Boolean negation $\neg$ on $\mathbb{B}$; squaring $x \mapsto x^2$ on $\mathbb{N}$, which closes on the carrier; negation $x \mapsto -x$ on $\mathbb{Z}$, which closes because $\mathbb{Z}$ is closed under additive inverse).
-The set's elements are not drawn separately; in this layer they live \emph{inside} the single object, exactly as in $\mathbf{Mon}$.
-\emph{Between hubs ($\mathbf{Alg}(\Sigma)$ reading):} each hub is an object of $\mathbf{Alg}(\Sigma)$ for some signature $\Sigma$ that the carrier supplies operators for; inter-hub arrows are typed maps $\mathrm{T} \to \mathrm{S}$ --- the morphisms the architecture indexes (named embeddings, classifiers, structurally-typed restrictions), not all of which are $\Sigma$-homomorphisms in $\mathbf{Alg}(\Sigma)$ proper.
-The canonical embedding is drawn in fraktur ($\mathfrak{i}: \mathbb{B} \to \mathbb{N}$, $\mathrm{false} \mapsto 0$, $\mathrm{true} \mapsto 1$); the concrete pairs are labelled by the operation each performs.
-$\mathbb{B} \rightleftarrows \mathbb{N}$: $\mathfrak{i}$ forward, the parity classifier $x \,\%\, 2 = 0$ in reverse (a quotient that sends every even integer to $\mathrm{true}$ and every odd integer to $\mathrm{false}$).
-$\mathbb{N} \rightleftarrows \mathbb{Z}$: $x \mapsto -x$ forward, $x \mapsto x^2$ in reverse --- exhibiting the small symmetry that the same operation appears both as an endomorphism on $\mathbb{N}$ (squaring closes on $\mathbb{N}$) and as a structurally-typed restriction $\mathbb{Z} \to \mathbb{N}$ (lands in $\mathbb{N}$ from any integer input).
-The two readings are not in tension: the bijection of §I.1 says they are the \emph{same} data drawn at two scales, and the figure leans on that to put endo-operations and inter-carrier arrows on a single diagram.
-Most arrows on each hub and most inter-hub arrows are suppressed for clarity; the diagram shows one of each kind.}
+\end{tikzcd}
+\caption{
+An example subset of $\mathbf{Alg}(\Sigma)$: the carriers $\mathbb{B}$, $\mathbb{N}$, $\mathbb{Z}$.
+Each carrier is depicted with its underlying set as the single object ($\{\mathrm{false}, \mathrm{true}\}$, $\{0, 1, 2, \ldots\}$, $\{\ldots, -1, 0, 1, \ldots\}$) and selected endo-operations as loops --- a cartoon of the carrier-as-a-category picture, in the spirit of Mac Lane~\cite{maclane1971categories} §I.1's monoid $\leftrightarrow$ one-object-category bijection (which would draw one morphism per carrier element, impractical here, so only a few representative loops are shown): Boolean negation $\neg$ on $\mathbb{B}$; squaring $x \mapsto x^2$ on $\mathbb{N}$; negation $x \mapsto -x$ on $\mathbb{Z}$.
+The set's elements are not drawn separately; in this layer they live \emph{inside} the single object, exactly as in the category $\mathbf{Mon}$ of monoids.
+Inter-hub arrows are typed maps $\mathrm{T} \to \mathrm{S}$.
+$\mathbb{B} \rightleftarrows \mathbb{N}$: forward: $\mathfrak{i}$ the canonical embedding; reverse: the parity classifier.
+$\mathbb{N} \rightleftarrows \mathbb{Z}$: forward $x \mapsto -x$ (negation, well-typed as $\mathbb{N} \to \mathbb{Z}$ because $\mathbb{N}$ is not closed under additive inverse; the canonical inclusion $\mathbb{N} \hookrightarrow \mathbb{Z}$ from the Grothendieck group completion of $(\mathbb{N}, +)$ is just $n \mapsto n$ and is not drawn); reverse $x \mapsto x^2$ (squaring closes into $\mathbb{N}$ from any $\mathbb{Z}$ input).
+Most arrows on each hub and most inter-hub arrows are suppressed for clarity; the diagram shows one of each kind.
+}
 \label{fig:hub-spoke-bnz}
 \end{figure}
 
-On this subset the standard correspondences hold and the surface reads as a faithful image of the simply-typed $\lambda$-calculus (Lambek--Scott~\cite{lambek1988introduction}), System F (via type-parameter polymorphism with concept constraints), and category theory (via the Cartesian-closed-category witness on $\mathbf{Cpp}$); cf.\ Figure~\ref{fig:dedekind-bridge} and the row-by-row mapping in Table~\ref{tab:cpp-stlc-mapping}.
-The intensional-first design rule (§\ref{sec:intensional}) is the posture this fragment invites: pick the Form-faithful carrier first, let the compiler see structure rather than carrier, realise to a machine type only at named arrows.
+While it may now be tempting to start formalizing operations such as $\neg, \vee, \wedge, \cup, \cap, +, \times, \ldots$, we \emph{deliberately leave $\Sigma$ unbound for now}. 
+The binding of concrete operator-shape signatures is deferred to later sections~\ref{sec:cpp-stlc-mapping}, \ref{sec:sets-rules}.
+We note though that while $\mathbf{Alg}(\Sigma)$ is only a small fragment of $\mathbf{Cat}$ we expect that it carries enough algebraic vocabulary to host carriers, operators, and structure-preserving arrows in the shape an engineering library actually needs and so we use it as a starting point for a structuralist mathematical style~\cite{marquis2022structuralist}.
 
-\subsection{Structuralism with the Juliet Posture}
+\subsection{A Well-Behaved Structure in C++: the Juliet Posture}
 \label{sec:jlt}
 
 
@@ -518,7 +494,6 @@ We can compare and contrast this approach with three textbook schools~\cite{pier
 \caption{Pseudocode illustration of nominal and duck typing, respectively.}
 \label{lst:nominal}
 \begin{cpp}
-
 // Nominal (pseudocode): a supertype is recognised by declared lineage.
 struct Ring { /* virtual operations, must opt in explicitly */ };
 struct MyInt : Ring { /* ... */ };
@@ -539,7 +514,6 @@ not the \emph{lineage} (declared name).
 \begin{listing}[ht]
 \caption{The Juliet Posture: structural compile-time matching regardless of nominal provenance.}
 \begin{cpp}
-
 // Concept identifying the syntactic ring operators
 template <typename T>
 concept HasRingOperators = requires(T a, T b) {
