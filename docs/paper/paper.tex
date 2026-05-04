@@ -557,10 +557,11 @@ Per §\ref{sec:alg-sigma}, $\Sigma$ stays unbound here, and the per-shape \cppin
 The intersection is small and that is the point.
 
 \paragraph{Honest Rejection: the headline policy.}
-$\mathbf{Ddk}$ ships with two carriers certified safe by default and refuses everything else at the gate.
-The first is $\mathbb{B}$ as the Galois field $\mathbb{F}_2$ (Boolean negation, conjunction, exclusive-or). It has finite cardinality, no rounding, no overflow.
+$\mathbf{Ddk}$ ships with a few carriers certified safe by default but refuses many other things at the gate.
+One safe carrier is $\mathbb{B}$ as the Galois field $\mathbb{F}_2$ (Boolean negation, conjunction, exclusive-or). It has finite cardinality, no rounding, no overflow.
 The laws hold trivially.
-The second is $\mathbb{Q}$ as \cppinline{Rational<I>} for any wide-enough integer carrier $I$.
+Others are  $\mathbb{N}$, $\mathbb{Z}$ $\mathbb{Q}$.
+The latter as \cppinline{Rational<I>} for any wide-enough integer carrier $I$.
 Arithmetic on $\mathbb{Q}$ is exact, so associativity, distributivity, and the field axioms hold by construction.
 \cppinline{int} satisfies \cppinline{HasRingOperators} (the four arithmetic operators close on \cppinline{int}), but signed-overflow undefined behaviour defeats associativity.
 The strict \cppinline{IsRing} concept therefore refuses it.
@@ -613,6 +614,10 @@ Second, the disciplined fragment in which $\mathbf{Ddk}$ inhabits also reads as 
 This is a verification artefact rather than a flow-relevant claim, but worth naming for the reader who wants to chase the bridge.
 The row-by-row C++23 $\to$ STLC mapping is in Appendix~\ref{app:ddk-rosetta}, alongside the operator-shape rosetta and a worked Functor exhibit.
 
+% ============================================================
+\section{Sets and Sequences}
+\label{sec:sets-rules}
+% ============================================================
 
 % ============================================================
 \subsection{Intensional First, Realize When You Mean It}
@@ -990,10 +995,6 @@ The rule: \textbf{start correct, finish fast, and the type system
 enforces that the laws your code relies on are the laws the carrier
 actually provides --- or fails to compile.}
 
-% ============================================================
-\section{Sets and Sequences}
-\label{sec:sets-rules}
-% ============================================================
 
 The second pillar.  Sets as predicates over an ambient species (the
 Comprehension View), and the symbolic composition of set operations
