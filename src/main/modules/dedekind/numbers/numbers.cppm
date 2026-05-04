@@ -51,7 +51,7 @@ export import :floating_point;  // std::floating_point: operator surface +
                                 // Rejection); closes #420
 
 /** @section numbers__Algebraic_Extensions */
-export import :rational;    // ℚ (The Quotient Field)
+export import :rational;    // Rational<default_integer> (The Quotient Field)
 export import :complex;     // ℂ (The Cayley-Dickson construction)
 export import :quaternion;  // ℍ (Hamilton's division ring)
 export import :scalars;     // Floating-point anchors

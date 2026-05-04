@@ -776,15 +776,15 @@ static_assert(
 //     (HasRingOperators + closure under /).
 //   - HasGroupOperatorsAdd<ℚ>: literal +, binary -, unary - close on ℚ.
 //   - HasGroupOperatorsMul<ℚ>: literal *, / close on ℚ \ {0}.
-static_assert(dedekind::algebra::HasRingOperators<ℚ>,
+static_assert(dedekind::algebra::HasRingOperators<Rational<default_integer>>,
               "ℚ closes the literal ring operator surface (+, binary -, "
               "unary -, *).");
-static_assert(dedekind::algebra::HasFieldOperators<ℚ>,
+static_assert(dedekind::algebra::HasFieldOperators<Rational<default_integer>>,
               "ℚ closes the literal field operator surface (+, -, *, /).");
-static_assert(dedekind::algebra::HasGroupOperatorsAdd<ℚ>,
+static_assert(dedekind::algebra::HasGroupOperatorsAdd<Rational<default_integer>>,
               "ℚ closes the additive-group operator surface (+, binary -, "
               "unary -).");
-static_assert(dedekind::algebra::HasGroupOperatorsMul<ℚ>,
+static_assert(dedekind::algebra::HasGroupOperatorsMul<Rational<default_integer>>,
               "ℚ closes the multiplicative-group operator surface "
               "(*, /), modulo division-by-zero (the field carrier "
               "of ℚ is total only off the multiplicative-zero set).");

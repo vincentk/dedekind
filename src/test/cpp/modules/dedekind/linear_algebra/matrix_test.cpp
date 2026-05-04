@@ -19,7 +19,7 @@ import dedekind.category;
 import dedekind.numbers;
 import dedekind.linear_algebra;
 import dedekind.order; // dedekind::order::HasLatticeOperators on bool (bool lattice corner)
-import dedekind.sets; // SignedExtensionalCardinal (the canonical ℚ carrier for the lattice corners)
+import dedekind.sets; // SignedExtensionalCardinal (the canonical Rational<default_integer> carrier for the lattice corners)
 
 using namespace dedekind::analysis;
 using namespace dedekind::numbers;
