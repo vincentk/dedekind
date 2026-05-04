@@ -67,8 +67,8 @@ export import :mandelbrot;  // Mandelbrot recurrence/orbit helpers
 export import :symbolic;  // Formal symbols / Indeterminates
 export import :real;      // ℝ (universe value Ω<Real<machine_real_scalar>,
                           // ClassicalLogic, ℶ_1>); RealsOf<> / RealSet (the
-                      // cross-carrier classifier); R (classifier instance) —
-                      // Dedekind Cut / Cauchy continuum
+// cross-carrier classifier); R (classifier instance) —
+// Dedekind Cut / Cauchy continuum
 export import :cardinality;  // Draft finite/aleph0 carrier and policies
 
 /** @section numbers__Metadata */
