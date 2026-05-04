@@ -168,7 +168,7 @@ type system and targets \emph{mainstream C++23}---concepts,
 non-type template parameters, named modules---rather than a research
 compiler. The design rule is \emph{intensional first, realize when
 you mean it}: a set is represented as a predicate $P : A \to \Omega$
-over an ambient species $A$, not as a heap-allocated container, with
+over an ambient species\footnote{We use ``species'' throughout in the universal-algebra sense of Burris--Sankappanavar~\cite{burris1981universalalgebra}, \emph{not} the Joyal sense of \emph{combinatorial} species~\cite{joyal1981species}, which is a separate category-theoretic notion concerning labelled-structure functors $\mathbf{B} \to \mathbf{Set}$.  The two readings share a name and nothing else.} $A$, not as a heap-allocated container, with
 two practical consequences:
 \begin{itemize}
   \item Set operations (intersection, complement, union) compose as
@@ -426,7 +426,7 @@ mechanical witness the compiler discharges.
 % ============================================================
 
 The strategy of this section is a three-step intersection.
-Both category theory and modern C++23 are large and occasionally intimidating beasts; each, however, admits a tractable subset with simple atomic building blocks and clear composition rules.
+Both category theory and modern C++23 are large and occasionally intimidating beasts; each, however, admits a tractable subset with somewhat simpler atomic building blocks and clear composition rules.
 The \texttt{dedekind} library lives at their intersection.
 
 \subsection{Structuralism with $\mathbf{Alg}(\Sigma)$}
@@ -434,7 +434,37 @@ The \texttt{dedekind} library lives at their intersection.
 
 The choice of anchoring the library's domain in category theory on the mathematical side is neither new nor arbitrary and follows a well-trodden path.
 The authoritative textbook in the context of programming might be \emph{Types and Programming Languages}~\cite{pierce2002tapl}.
-Here, we intend to lower the barrier to entry and so we restrict attention to the universal-algebra category $\mathbf{Alg}(\Sigma)$~\cite{burris1981universalalgebra} for a fixed algebraic signature $\Sigma$ (a list of operation symbols with their arities): an object is a $\Sigma$-algebra (a carrier $A$ together with operations realising the symbols in $\Sigma$), and a morphism is a $\Sigma$-homomorphism (a function $A \to B$ that preserves every operation in $\Sigma$).\footnote{We use ``species'' throughout in the universal-algebra sense of Burris--Sankappanavar~\cite{burris1981universalalgebra}, \emph{not} the Joyal sense of \emph{combinatorial} species~\cite{joyal1981species}, which is a separate category-theoretic notion concerning labelled-structure functors $\mathbf{B} \to \mathbf{Set}$.  The two readings share a name and nothing else.}
+Here, we restrict attention to a subset that most readers will be familiar with: algebraic sets, i.e. sets with algebraic operations on them.
+The Booleans $\mathbb B$ with logical operations, the integers $\mathbb Z$ with addition and subtraction and so on.
+In category theory textbook terminology: the universal-algebra category $\mathbf{Alg}(\Sigma)$~\cite{burris1981universalalgebra} for a fixed algebraic signature $\Sigma$ (a list of operation symbols with their arities): an object is a $\Sigma$-algebra (a carrier $A$ together with operations realising the symbols in $\Sigma$), and a morphism is a $\Sigma$-homomorphism (a function $A \to B$ that preserves every operation in $\Sigma$).
+In the language of software architecture, the picture might be described as a hub-and-spoke layout: each hub is a carrier type $\mathrm{T}$, and the spokes are the maps that compose with it.
+Ooperator overloads ($\mathrm{T} \times \mathrm{T} \to \mathrm{T}$), free-function actions on the carrier, trait specialisations registering structural facts about $\mathrm{T}$, and named embedding arrows $\mathrm{T} \to \mathrm{S}$ crossing to a sibling hub.
+The library lifts this pattern directly into the build graph: each named module declares one or more hubs and owns its spokes; the partition DAG is the diagram of inter-hub arrows.
+Figure~\ref{fig:hub-spoke-bnz} sketches three concrete hubs ($\mathbb{B}$, $\mathbb{N}$, $\mathbb{Z}$) with one arrow of each kind.
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzcd}[column sep=5em, row sep=4em, ampersand replacement=\&]
+\mathbb{B} \arrow[loop above, "\neg"]
+   \arrow[r, bend left=20, "\mathfrak{i}"]
+\& \mathbb{N} \arrow[loop above, "x^2"]
+   \arrow[l, bend left=20, "x \,\%\, 2 = 0"]
+   \arrow[r, bend left=20, "-x"]
+\& \mathbb{Z} \arrow[loop above, "-x"]
+   \arrow[l, bend left=20, "x^2"]
+\end{tikzcd}
+\caption{
+An example subset of $\mathbf{Alg}(\Sigma)$: $\mathbb{B}$, $\mathbb{N}$, $\mathbb{Z}$.
+Inside a hub each carrier is a one-object category whose single object is the underlying set ($\{\mathrm{false}, \mathrm{true}\}$, $\{0, 1, 2, \ldots\}$, $\mathbb{Z}$) and whose loops are the carrier's distinguished endo-operations: Boolean negation $\neg$ on $\mathbb{B}$; squaring $x \mapsto x^2$ on $\mathbb{N}$, which closes on the carrier; negation $x \mapsto -x$ on $\mathbb{Z}$, which closes because $\mathbb{Z}$ is closed under additive inverse.
+The set's elements are not drawn separately; in this layer they live \emph{inside} the single object, exactly as in the monoidal category $\mathbf{Mon}$.
+Inter-hub arrows are typed maps $\mathrm{T} \to \mathrm{S}$.
+$\mathbb{B} \rightleftarrows \mathbb{N}$: forward: $\mathfrak{i}$ the canonical embedding; reverse: the parity classifier.
+$\mathbb{N} \rightleftarrows \mathbb{Z}$: forward $x \mapsto -x$ the Grothendieck extension; reverse $x \mapsto x^2$ in reverse.
+Most arrows on each hub and most inter-hub arrows are suppressed for clarity; the diagram shows one of each kind.
+}
+\label{fig:hub-spoke-bnz}
+\end{figure}
+
 The library's architectural reading is the hub-per-carrier specialisation introduced below (one hub per $\Sigma$-algebra; inter-hub arrows are typed maps $\mathrm{T} \to \mathrm{S}$ that the architecture indexes for downstream composition --- $\Sigma$-homomorphisms in $\mathbf{Alg}(\Sigma)$ proper plus named embeddings and structurally-typed restrictions; Figure~\ref{fig:hub-spoke-bnz} spells out the layered Mon $\leftrightarrow$ $\mathbf{Alg}(\Sigma)$ reading).
 We \emph{deliberately leave $\Sigma$ unbound} at this point in the discussion: concrete operator-shape signatures are picked later by the \cppinline{Has*Operators} concepts (§\ref{sec:cpp-stlc-mapping}, §\ref{sec:pruning}) --- one per algebraic shape (\cppinline{HasRingOperators} witnesses closure of $(+, -, *)$ on $\mathrm{T}$; \cppinline{HasFieldOperators} adds $/$; etc.).\footnote{The \cppinline{Has*Operators} concepts witness the literal-operator surface only --- the closure of the C++ operators on the carrier.  The constants of the textbook signature ($0$, $1$ in the ring case) and the equational laws (associativity, distributivity, two-sided identity, \dots) are tracked separately --- by the strict categorical concepts (\cppinline{IsRing}, \cppinline{IsField}, \dots) in \texttt{category:total} and by per-trait opt-ins (\cppinline{is\_associative\_v}, \cppinline{is\_invertible\_v}, \dots).  The two layers compose: \cppinline{HasRingOperators<T>} together with the strict-trait opt-ins discharges \cppinline{IsRing<T, +, *>}.}
 The fragment we work in is therefore $\bigcup_\Sigma \mathbf{Alg}(\Sigma)$ over the signatures the library names; each \cppinline{Has*Operators} concept fixes a specific $\Sigma$ at the call site.
@@ -465,33 +495,6 @@ The library's architectural reading specialises further --- each $\Sigma$-algebr
 
 In code, the canonical concept-level spelling at each hub is the $(A, F)$ pair form \cppinline{IsAlgebra<T, Ops...>} from \texttt{algebra:universal} (after Burris--Sankappanavar §I.1), which keeps the carrier $\mathrm{T}$ and the operations $\mathrm{Ops...}$ as separate template parameters --- the textbook HAS-A posture: an algebra is the pair $(\mathrm{T}, \Sigma_\mathrm{T})$, not the carrier alone.  The named carrier types of the engineering surface (\cppinline{Rational<I>}, \cppinline{Complex<F>}, \cppinline{Vec3V<T>}, \dots) bake their operator overloads into the type as ergonomic sugar over this HAS-A form; the sugar accommodates the C++ legacy of per-type \cppinline{operator+} / \cppinline{operator*} resolution (writing \cppinline{a + b} requires the operators to be defined on the carrier's type, not on a separate handle).  The strict $(A, \Sigma_A)$ pair view --- the \cppinline{IsAlgebra} concept together with the strict categorical refinements (\cppinline{IsRing<T, Add, Mult>}, \cppinline{IsField<T, Add, Mult>}, \dots) in \texttt{category:total} and the per-trait opt-ins (\cppinline{is\_associative\_v}, \cppinline{is\_invertible\_v}, \dots) --- remains the witness layer the paper's structural claims fire against; the named carriers are the C++-syntax veneer.
 
-In the language of software architecture, the resulting picture is a hub-and-spoke layout: each hub is a carrier type $\mathrm{T}$ (the species' shared object), and the spokes are the maps that compose with it --- operator overloads ($\mathrm{T} \times \mathrm{T} \to \mathrm{T}$), free-function actions on the carrier, trait specialisations registering structural facts about $\mathrm{T}$, and named embedding arrows $\mathrm{T} \to \mathrm{S}$ crossing to a sibling hub.
-The library lifts this pattern directly into the build graph: each named module declares one hub and owns its spokes; the partition DAG is the diagram of inter-hub arrows.
-Figure~\ref{fig:hub-spoke-bnz} sketches three concrete hubs ($\mathbb{B}$, $\mathbb{N}$, $\mathbb{Z}$) with one arrow of each kind.
-
-\begin{figure}[htbp]
-\centering
-\scalebox{1.5}{%
-\begin{tikzcd}[column sep=5em, row sep=4em, ampersand replacement=\&]
-\mathbb{B} \arrow[loop above, "\neg"]
-   \arrow[r, bend left=20, "\mathfrak{i}"]
-\& \mathbb{N} \arrow[loop above, "x^2"]
-   \arrow[l, bend left=20, "x \,\%\, 2 = 0"]
-   \arrow[r, bend left=20, "-x"]
-\& \mathbb{Z} \arrow[loop above, "-x"]
-   \arrow[l, bend left=20, "x^2"]
-\end{tikzcd}}
-\caption{Hub-and-spoke at three carriers, $\mathbb{B}$, $\mathbb{N}$, $\mathbb{Z}$, drawn so that two textbook readings of \emph{the carrier} stack on one picture --- the Mac Lane~\cite{maclane1971categories} §I.1 monoid $\leftrightarrow$ one-object-category bijection, applied at this scale.
-\emph{Inside a hub (Mon-style, one-object-category reading):} each carrier \emph{is} a one-object category whose single object is the underlying set ($\{\mathrm{false}, \mathrm{true}\}$, $\{0, 1, 2, \ldots\}$, $\mathbb{Z}$) and whose loops are the carrier's distinguished endo-operations (Boolean negation $\neg$ on $\mathbb{B}$; squaring $x \mapsto x^2$ on $\mathbb{N}$, which closes on the carrier; negation $x \mapsto -x$ on $\mathbb{Z}$, which closes because $\mathbb{Z}$ is closed under additive inverse).
-The set's elements are not drawn separately; in this layer they live \emph{inside} the single object, exactly as in $\mathbf{Mon}$.
-\emph{Between hubs ($\mathbf{Alg}(\Sigma)$ reading):} each hub is an object of $\mathbf{Alg}(\Sigma)$ for some signature $\Sigma$ that the carrier supplies operators for; inter-hub arrows are typed maps $\mathrm{T} \to \mathrm{S}$ --- the morphisms the architecture indexes (named embeddings, classifiers, structurally-typed restrictions), not all of which are $\Sigma$-homomorphisms in $\mathbf{Alg}(\Sigma)$ proper.
-The canonical embedding is drawn in fraktur ($\mathfrak{i}: \mathbb{B} \to \mathbb{N}$, $\mathrm{false} \mapsto 0$, $\mathrm{true} \mapsto 1$); the concrete pairs are labelled by the operation each performs.
-$\mathbb{B} \rightleftarrows \mathbb{N}$: $\mathfrak{i}$ forward, the parity classifier $x \,\%\, 2 = 0$ in reverse (a quotient that sends every even integer to $\mathrm{true}$ and every odd integer to $\mathrm{false}$).
-$\mathbb{N} \rightleftarrows \mathbb{Z}$: $x \mapsto -x$ forward, $x \mapsto x^2$ in reverse --- exhibiting the small symmetry that the same operation appears both as an endomorphism on $\mathbb{N}$ (squaring closes on $\mathbb{N}$) and as a structurally-typed restriction $\mathbb{Z} \to \mathbb{N}$ (lands in $\mathbb{N}$ from any integer input).
-The two readings are not in tension: the bijection of §I.1 says they are the \emph{same} data drawn at two scales, and the figure leans on that to put endo-operations and inter-carrier arrows on a single diagram.
-Most arrows on each hub and most inter-hub arrows are suppressed for clarity; the diagram shows one of each kind.}
-\label{fig:hub-spoke-bnz}
-\end{figure}
 
 On this subset the standard correspondences hold and the surface reads as a faithful image of the simply-typed $\lambda$-calculus (Lambek--Scott~\cite{lambek1988introduction}), System F (via type-parameter polymorphism with concept constraints), and category theory (via the Cartesian-closed-category witness on $\mathbf{Cpp}$); cf.\ Figure~\ref{fig:dedekind-bridge} and the row-by-row mapping in Table~\ref{tab:cpp-stlc-mapping}.
 The intensional-first design rule (§\ref{sec:intensional}) is the posture this fragment invites: pick the Form-faithful carrier first, let the compiler see structure rather than carrier, realise to a machine type only at named arrows.
