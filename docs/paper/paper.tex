@@ -216,7 +216,7 @@ The options are then to
 i) ignore the divergence and try to mitigate or silence bugs on specific inputs,
 ii) police it at runtime, or 
 iii) encode it in the software build process so the build system can police and maybe exploit it.
-In real life, the pragmatic choice is often the first one: the programmer defines a \cppinline{double[][]}, calls it a tensor and gets on with life.
+In real life, the pragmatic choice is often the first one: the programmer defines a \cppinline{std::vector<std::vector<double>>}, calls it a tensor and gets on with life.
 
 Here, we explore and report what might happen if a library implemented \emph{in a mainstream systems programming language} takes the third
 option seriously and consistently defaults to mathematical rigor and build-time constraints as opposed to risking runtime errors.
@@ -261,7 +261,7 @@ C++ $\to$ library: the compiler checks each carrier via \cppinline{static_assert
 
 The choice of anchoring the library's domain in category theory on the mathematical side follows a well-trodden path~\cite{pierce2002tapl}.
 Here, a minimalist type checker does not need to do much more than confirm whether the output of one function matches the input of another (morphism composition).
-Re-write rules (e.g. natural transformations) and optimization enter the picture at a later stage.
+Rewrite rules (e.g.\ natural transformations) and optimization enter the picture at a later stage.
 Once this basic rapport is established, the path follows an established progression:
 1. cartesian-closed categories~\cite{lambek1988introduction} giving rise to a simply-typed $\lambda$-calculus~\cite{lambek1988introduction} on sets;
 2. the elementary theory of the category of sets (ETCS)~\cite{lawvere1964etcs}; and
@@ -272,7 +272,7 @@ The goal is an embedding in an existing system (an eDSL in a library) as opposed
 a) it should be mainstream so that tooling is provided for;
 b) its runtime requirements should be modest enough to embed in the Python and JVM ecosystems and to target resource-constrained environments in the high-performance-computing or embedded-systems sense;
 c) its type system should be rich enough to perform many of the desired type checks.
-Notably, while the resulting DSL should resemble mathematical notation so that Fig. \ref{fig:dedekind-bridge} can be operationalized, developer ergonomics in the broader sense were deliberately not given a high priority at this point in time.
+Notably, while the resulting DSL should resemble mathematical notation so that Figure~\ref{fig:dedekind-bridge} can be operationalized, developer ergonomics in the broader sense were deliberately not given a high priority at this point in time.
 
 Our resulting posture is explicit: \texttt{dedekind} is a systems-programming
 library that treats mathematical concepts as first-class compile-time
@@ -3338,9 +3338,9 @@ increasingly, of programming language.
 
 \printbibliography
 
-\section{Appendix}
+\appendix
 
-\subsection{Continuous Iteration towards the Faithful Translation}
+\section{Continuous Iteration towards the Faithful Translation}
 \label{sec:eventually}
 
 The development follows a Top-Down Refinement model~\cite{wirth1971stepwise}, where the library acts as an Executable Ontology: the mathematical Forms are anchored upstream, machine carriers are staged downstream, and each step in between is a refinement the compiler is asked to police.
@@ -3353,7 +3353,7 @@ To support this approach in a transparent fashion, we reach deep into the CI/CD 
 None of this is technically novel.
 What matters is that the engineering practices of mainstream open-source software development \emph{compose} cleanly with the type-system discipline, turning what would otherwise be a paper-only argument into an artefact whose every refinement step is reviewable, reproducible, and dated.
 
-\subsection{The Compiler as Structural Gate and Optimization Engine}
+\section{The Compiler as Structural Gate and Optimization Engine}
 
 Two durable uses of a compile-time type system underlie this paradigm, neither
 of which requires the compiler to be a theorem prover:
@@ -3435,7 +3435,7 @@ This way, it can be checked during CI that algebraic compile-time optimizations 
 Regressions would lead to build failures and be flagged during CI as blocking the corresponding PR.
 
 
-\subsection{Use of Agentic Systems}
+\section{Use of Agentic Systems}
 
 Agentic systems --- LLMs invoked as code-review and refactoring assistants --- enter this picture as a third party that can act on either side of the universal/existential split, provided the source carries enough domain context to prime them on each invocation.
 The library therefore embeds the domain language deliberately deep into the source: exhaustive Doxygen on every public surface, opinionated quotes from practitioners (e.g.\ references to the Polish school of logic and semantic epistemology~\cite{ajdukiewicz1985jezyk} where the underlying register is at issue), and named provenance on each trait specialisation.
