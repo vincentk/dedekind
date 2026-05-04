@@ -205,7 +205,7 @@ programming language faces a recurring tension.
 Algebraic structures---groups,
 rings, fields, vector spaces---are defined in the abstract by laws which are hard to enforce: associativity,
 commutativity, identities, inverses, closure, totality and many more.
-The concrete carriers\footnote{We use ``carrier'' for the underlying set $A$ of a $\Sigma$-algebra in the strict universal-algebra sense (Burris--Sankappanavar~\cite{burris1981universalalgebra}), distinct from the algebra $(A, \Sigma_A)$ itself.  In Liskov / OO terms: the textbook posture is HAS-A (an algebra is the pair $(A, \Sigma_A)$, carrying its underlying set as a separate component), and the project converges on this spelling --- the canonical $(A, F)$ form is reified as \cppinline{IsAlgebra<T, Ops...>} in \texttt{algebra:universal} (and the strict categorical variants \cppinline{IsRing<T, Add, Mult>}, \cppinline{IsField<T, Add, Mult>}, \dots in \texttt{category:total}).  Where the prose says ``the carrier $\mathrm{T}$'' it is shorthand for the pair $(\mathrm{T}, \Sigma_\mathrm{T})$ inhabited under those concepts.  The named carrier types of the engineering surface (\cppinline{Rational<I>}, \cppinline{Complex<F>}, \dots) bake their operator overloads into the type as ergonomic sugar accommodating the C++ legacy of per-type \cppinline{operator+} / \cppinline{operator*} resolution; the strict $(A, \Sigma_A)$ pair view is the one the concepts and trait specialisations witness.  Section~\ref{sec:alg-sigma} makes the layering precise.} a programming language offers violate those laws conditionally, sometimes silently:
+The concrete carriers\footnote{We use ``carrier'' for the underlying set $A$ of a $\Sigma$-algebra in the strict universal-algebra sense (Burris--Sankappanavar~\cite{burris1981universalalgebra}), distinct from the algebra $(A, \Sigma_A)$ itself.  Where the prose says ``the carrier $\mathrm{T}$'' it is shorthand for the pair inhabited under the relevant concept.  Section~\ref{sec:alg-sigma} makes the layering precise.} a programming language offers violate those laws conditionally, sometimes silently:
 sets must fit into memory or cache, functions may throw runtime exceptions or return \cppinline{nullptr};
 a 32-bit signed \cppinline{int} is not an additive group (overflow, \cppinline{INT_MIN} has no
 negation), an IEEE~754 \cppinline{double}~\cite{ieee754_2019} may overflow, underflow, be \cppinline{NaN},
@@ -432,15 +432,19 @@ The \texttt{dedekind} library lives at their intersection.
 
 The choice of anchoring the library's domain in category theory on the mathematical side is neither new nor arbitrary and follows a well-trodden path.
 The authoritative textbook in the context of programming might be \emph{Types and Programming Languages}~\cite{pierce2002tapl}.
-For the more casual reader of this text, it should be sufficient to remember that at its most basic, category theory is a book-keeping device of sorts that can tell us what clicks together (the arrows compose) and what doesn't and how things might be re-arranged and perhaps simplified.
+For the more casual reader of this text, it should be sufficient to remember that category theory is a book-keeping device.
+It tells us what clicks together (the arrows compose), what doesn't, and how things might be rearranged or simplified.
 
 In the context of \texttt{dedekind}, we further restrict our attention to a subset that most readers will be familiar with: algebras, i.e.\ sets equipped with operations.\footnote{We use ``algebra'' here in the universal-algebra sense (a $\Sigma$-algebra: a carrier set together with operations realising a signature $\Sigma$); the unrelated algebraic-geometry usage of ``algebraic set'' for the zero locus of a system of polynomials is \emph{not} what we mean.}
 The Booleans $\mathbb B$ with logical operations, the integers $\mathbb Z$ with addition and subtraction and so on.
 In algebra textbook terminology: the universal-algebra category $\mathbf{Alg}(\Sigma)$~\cite{burris1981universalalgebra} for a fixed algebraic signature $\Sigma$ (a list of operation symbols with their arities).
 In functional programming terminology, this corresponds to $F_\Sigma$-algebras: for each signature $\Sigma$ there is a polynomial endofunctor $F_\Sigma$ on $\mathbf{Set}$, and Pierce~\cite{pierce1991basic} (§2.2) gives the isomorphism $\mathbf{Alg}(\Sigma) \cong F_\Sigma\text{-}\mathbf{Alg}$ that lets the same fragment read coherently to both audiences.
-In the language of software architecture, the picture might be described as a hub-and-spoke layout: each hub is a carrier type $\mathrm{T}$, and the spokes are the maps that compose with it.
+In the language of software architecture, the picture might be described as a hub-and-spoke layout.
+Each hub is a carrier type $\mathrm{T}$, and the spokes are the maps that compose with it.
 Operator overloads ($\mathrm{T} \times \mathrm{T} \to \mathrm{T}$), free-function actions on the carrier, trait specialisations registering structural facts about $\mathrm{T}$, and named embedding arrows $\mathrm{T} \to \mathrm{S}$ crossing to a sibling hub.
-The library lifts this pattern directly into the build graph: each named module declares one or more hubs and owns its spokes; the partition DAG is the diagram of inter-hub arrows.
+The library lifts this pattern directly into the build graph.
+Each named module declares one or more hubs and owns its spokes.
+The partition DAG is the diagram of inter-hub arrows.
 Figure~\ref{fig:hub-spoke-bnz} sketches three concrete algebraic hubs ($\mathbb{B}$, $\mathbb{N}$, $\mathbb{Z}$) with one arrow of each kind.
 
 \begin{figure}[htbp]
@@ -456,12 +460,14 @@ Figure~\ref{fig:hub-spoke-bnz} sketches three concrete algebraic hubs ($\mathbb{
 \end{tikzcd}
 \caption{
 An example subset of $\mathbf{Alg}(\Sigma)$: the carriers $\mathbb{B}$, $\mathbb{N}$, $\mathbb{Z}$.
-Each carrier is depicted with its underlying set as the single object ($\{\mathrm{false}, \mathrm{true}\}$, $\{0, 1, 2, \ldots\}$, $\{\ldots, -1, 0, 1, \ldots\}$) and selected endo-operations as loops --- a cartoon of the carrier-as-a-category picture, in the spirit of Mac Lane~\cite{maclane1971categories} §I.1's monoid $\leftrightarrow$ one-object-category bijection (which would draw one morphism per carrier element, impractical here, so only a few representative loops are shown): Boolean negation $\neg$ on $\mathbb{B}$; squaring $x \mapsto x^2$ on $\mathbb{N}$; negation $x \mapsto -x$ on $\mathbb{Z}$.
+Each carrier is depicted with its underlying set as the single object ($\{\mathrm{false}, \mathrm{true}\}$, $\{0, 1, 2, \ldots\}$, $\{\ldots, -1, 0, 1, \ldots\}$) and selected endo-operations as loops: Boolean negation $\neg$ on $\mathbb{B}$, squaring $x \mapsto x^2$ on $\mathbb{N}$, negation $x \mapsto -x$ on $\mathbb{Z}$.
+This is a cartoon of the carrier-as-a-category picture, in the spirit of Mac Lane~\cite{maclane1971categories} §I.1's monoid $\leftrightarrow$ one-object-category bijection.
+A strict realisation would draw one morphism per carrier element, impractical here, so only a few representative loops are shown.
 The set's elements are not drawn separately; in this layer they live \emph{inside} the single object, exactly as in the category $\mathbf{Mon}$ of monoids.
 Inter-hub arrows are typed maps $\mathrm{T} \to \mathrm{S}$.
-$\mathbb{B} \rightleftarrows \mathbb{N}$: forward: $\mathfrak{i}$ the canonical embedding; reverse: the parity classifier.
-$\mathbb{N} \rightleftarrows \mathbb{Z}$: forward $x \mapsto -x$ (negation, well-typed as $\mathbb{N} \to \mathbb{Z}$ because $\mathbb{N}$ is not closed under additive inverse; the canonical inclusion $\mathbb{N} \hookrightarrow \mathbb{Z}$ from the Grothendieck group completion of $(\mathbb{N}, +)$ is just $n \mapsto n$ and is not drawn); reverse $x \mapsto x^2$ (squaring closes into $\mathbb{N}$ from any $\mathbb{Z}$ input).
-Most arrows on each hub and most inter-hub arrows are suppressed for clarity; the diagram shows one of each kind.
+$\mathbb{B} \rightleftarrows \mathbb{N}$: forward $\mathfrak{i}$ the canonical embedding, reverse the parity classifier.
+$\mathbb{N} \rightleftarrows \mathbb{Z}$: forward $x \mapsto -x$ (negation, well-typed as $\mathbb{N} \to \mathbb{Z}$ because $\mathbb{N}$ is not closed under additive inverse; the canonical inclusion from the Grothendieck group completion is just $n \mapsto n$ and is not drawn), reverse $x \mapsto x^2$ (squaring closes into $\mathbb{N}$ from any $\mathbb{Z}$ input).
+Most arrows on each hub and most inter-hub arrows are suppressed for clarity. The diagram shows one of each kind.
 }
 \label{fig:hub-spoke-bnz}
 \end{figure}
@@ -477,7 +483,9 @@ We note though that while $\mathbf{Alg}(\Sigma)$ is only a small fragment of $\m
 In much the same way that category theory can be intimidating, C++ as a whole is a famously inhospitable substrate for formal reasoning.
 A closed denotational semantics for the full language is, to our knowledge, not on the books.\footnote{Concretely: overload resolution and argument-dependent lookup are non-uniform; two-phase name lookup interacts with template instantiation in ways that defeat parametricity (Wadler's classical objection to template genericity, after Bracha \& Odersky~\cite{bracha1998making}, bites here); \cppinline{reinterpret_cast} breaks type abstraction at the value level; and template instantiation in general is Turing-complete and undecidable.  On the carrier side, undefined behaviour is the rule rather than the exception: signed-overflow UB defeats ring-associativity on machine \cppinline{int} / \cppinline{long}, IEEE-754 rounding-non-associativity defeats field-associativity on \cppinline{float} / \cppinline{double} --- §\ref{sec:carrier-rosetta} audits each stdlib carrier's algebraic surface against the textbook expectations.}
 
-We chose elements from C++ guided by two criteria: alignment with the universal-algebra fragment $\mathbf{Alg}(\Sigma)$ identified in §\ref{sec:alg-sigma}, and the desire to integrate functionality the standard library already ships --- in particular \cppinline{std::regular} value-types and the primitive carriers (\cppinline{int}, \cppinline{double}, \cppinline{bool}, \dots) --- without wrapping them in \cppinline{struct} boilerplate or paying a runtime cost.
+We chose elements from C++ guided by two criteria.
+First, alignment with the universal-algebra fragment $\mathbf{Alg}(\Sigma)$ identified in §\ref{sec:alg-sigma}.
+Second, the desire to integrate functionality the standard library already ships, in particular \cppinline{std::regular} value-types and the primitive carriers (\cppinline{int}, \cppinline{double}, \cppinline{bool}, \dots), without wrapping them in \cppinline{struct} boilerplate or paying a runtime cost.
 We can compare and contrast this choice problem with three textbook schools~\cite{pierce2002tapl, cardelli1996typesystems} of type identification:
 \begin{itemize}
 \item nominal (declared lineage (often inheritance); checked at compile time but blind to behaviour),
@@ -485,10 +493,9 @@ We can compare and contrast this choice problem with three textbook schools~\cit
 \item static structural typing (concept-based; behaviour checked at compile time without a declared lineage).
 \end{itemize}
 
-C++23 concepts realise the third school. 
-We call the resulting discipline the \emph{Juliet Posture}, after the observation that a rose by any other name would smell as sweet~\cite{shakespeare1597romeo}:
-the library cares about the \emph{scent} (structural invariants),
-not the \emph{lineage} (declared name).
+C++23 concepts realise the third school.
+We call the resulting discipline the \emph{Juliet Posture}, after the observation that a rose by any other name would smell as sweet~\cite{shakespeare1597romeo}.
+The library cares about the \emph{scent} (structural invariants), not the \emph{lineage} (declared name).
 
 % Source: src/main/modules/dedekind/algebra/ring.cppm (concept definition, ll. 110-116)
 \begin{listing}[ht]
@@ -517,26 +524,50 @@ In practice this boils down to compile-time structural typing across three featu
 (i)~\cppinline{constexpr} branching via template specialisation (the C++<20 baseline);
 (ii)~\cppinline{concept}-constrained templates, which lift specialisation from a \emph{compiles-or-doesn't} probe to a named structural predicate (the C++20/23 step the Juliet Posture rests on);
 (iii)~developer-supplied claims and axioms via \emph{trait specialisations} (\cppinline{is_associative_v<T, Op>}, \cppinline{is_commutative_v<T, Op>}, \dots) that downstream concepts (\cppinline{IsRing}, \cppinline{IsField}) consult to discharge a single \cppinline{static_assert} obligation.
-The first two tiers are mechanically decidable on the disciplined fragment the library polices (template instantiation is Turing-complete in general --- Veldhuizen~\cite{veldhuizen2003templates} --- and decidability is recovered specifically by the bounded-instantiation-depth and no-template-template-recursion rules collected in Appendix~\ref{app:jlt-systemf}); the third is the manual-certification path the C++ standard distinguishes in [concepts.lib] as \emph{satisfying} (syntactic) versus \emph{modelling} (semantic) a concept~\cite{cpp23standard}, and that C++ Core Guideline T.20~\cite{cppcoreguidelines} prescribes for the semantic-requirements clause the spec deliberately refuses to enforce mechanically (the standard's \emph{ill-formed, no diagnostic required} clause being its bite --- the C++ analogue of \emph{ex falso quodlibet}; the C++0x \texttt{axiom} keyword was considered for in-language semantic certification and ultimately withdrawn~\cite{isocpp_concepts_history}, leaving the manual-certification pattern as the path the committee left open).\footnote{The C++ standard's \emph{syntactic} / \emph{semantic} split is fundamentally \textbf{decidable vs.\ undecidable} --- what the spec commits to enforcing mechanically vs.\ what it deliberately refuses to enforce --- and does not coincide with the static-vs-dynamic semantics split familiar from PL theory~\cite{pierce2002tapl}.  C++'s \emph{syntactic} bucket subsumes that tradition's \emph{static semantics} (type checking, concept resolution, auto-derived theorems via \cppinline{static_assert}) because those are all things the compiler verifies mechanically; the C++ \emph{semantic} bucket is roughly what resists mechanical decision in the spec's chosen target structure.  The committee's vocabulary optimises for responsibility allocation (compiler vs.\ user) rather than for type-theoretic precision; the mismatch is real but learnable.}
-The trait-registry mechanics --- which axioms propagate under which constructors, how per-carrier specialisations are organised, how the \emph{Honest Rejection} policy maps to varieties, and how the algebra-side machinery composes with the C++-side concept layer --- live in §\ref{sec:pruning} (\emph{Algebraic Lattice}), where the page budget for the compare-and-contrast actually fits.
+The first two tiers are mechanically decidable on the disciplined fragment the library polices.
+Template instantiation is Turing-complete in general~\cite{veldhuizen2003templates}.
+Decidability is recovered by the bounded-instantiation-depth and no-template-template-recursion rules collected in Appendix~\ref{app:jlt-systemf}.
+The third tier is the manual-certification path.
+The C++ standard distinguishes in [concepts.lib] between \emph{satisfying} a concept (syntactic) and \emph{modelling} it (semantic)~\cite{cpp23standard}.
+C++ Core Guideline T.20~\cite{cppcoreguidelines} prescribes manual certification for the semantic-requirements clause the spec deliberately refuses to enforce mechanically.
+The standard's \emph{ill-formed, no diagnostic required} clause is its bite, the C++ analogue of \emph{ex falso quodlibet}.
+An \texttt{axiom} keyword was considered in early C++0x drafts for in-language semantic certification and ultimately withdrawn~\cite{isocpp_concepts_history}.
+The manual-certification pattern is the path the committee left open.\footnote{The C++ standard's \emph{syntactic} / \emph{semantic} split is fundamentally \textbf{decidable vs.\ undecidable} --- what the spec commits to enforcing mechanically vs.\ what it deliberately refuses to enforce --- and does not coincide with the static-vs-dynamic semantics split familiar from PL theory~\cite{pierce2002tapl}.  C++'s \emph{syntactic} bucket subsumes that tradition's \emph{static semantics} (type checking, concept resolution, auto-derived theorems via \cppinline{static_assert}) because those are all things the compiler verifies mechanically; the C++ \emph{semantic} bucket is roughly what resists mechanical decision in the spec's chosen target structure.  The committee's vocabulary optimises for responsibility allocation (compiler vs.\ user) rather than for type-theoretic precision; the mismatch is real but learnable.}
+The trait-registry mechanics live in §\ref{sec:pruning} (\emph{Algebraic Lattice}), where the page budget for the compare-and-contrast actually fits.
+That section covers which axioms propagate under which constructors, how per-carrier specialisations are organised, how the \emph{Honest Rejection} policy maps to varieties, and how the algebra-side machinery composes with the C++-side concept layer.
 
-A welcome side effect: the disciplined subset that aligns with $\mathbf{Alg}(\Sigma)$ also turns out to be a faithful image of System~F (Pierce~\cite{pierce2002tapl} ch.~23, 29) and of the simply-typed $\lambda$-calculus under Lambek--Scott~\cite{lambek1988introduction}, which lets the same surface read in either tradition.
-This was not the design goal: the paper began as an engineering exercise on $\mathbf{Alg}(\Sigma)$, and the System-F reading announced itself afterwards.
-The triangulation across System~F, the Juliet Posture, and Bourbaki structuralism~\cite{marquis2022structuralist} is reported as an observation rather than a guarantee --- some discipline is required of the engineer for the reading to hold; the precise admissibility rules and a row-by-row mapping across the three vocabularies are deferred to Appendix~\ref{app:jlt-systemf}.
+A welcome side effect: the disciplined subset that aligns with $\mathbf{Alg}(\Sigma)$ also turns out to be a faithful image of System~F (Pierce~\cite{pierce2002tapl} ch.~23, 29) and of the simply-typed $\lambda$-calculus under Lambek--Scott~\cite{lambek1988introduction}.
+The same surface reads in either tradition.
+This was not the design goal.
+The paper began as an engineering exercise on $\mathbf{Alg}(\Sigma)$, and the System-F reading announced itself afterwards.
+The triangulation across System~F, the Juliet Posture, and Bourbaki structuralism~\cite{marquis2022structuralist} is reported as an observation rather than a guarantee.
+Some discipline is required of the engineer for the reading to hold.
+The precise admissibility rules and a row-by-row mapping across the three vocabularies are deferred to Appendix~\ref{app:jlt-systemf}.
 
-Call this disciplined subset $\mathbf{Jlt} \subset \mathbf{Cpp}$ (mnemonically: \emph{Juliet}, after the \emph{rose by any other name} reading of structural-over-nominal typing); in $\mathbf{Jlt}$ the objects are \cppinline{std::regular} types and the values they classify, and the morphisms are the arrows the language admits between them.
+Call this disciplined subset $\mathbf{Jlt} \subset \mathbf{Cpp}$ (mnemonically: \emph{Juliet}, after the \emph{rose by any other name} reading of structural-over-nominal typing).
+In $\mathbf{Jlt}$ the objects are \cppinline{std::regular} types and the values they classify, and the morphisms are the arrows the language admits between them.
 
 \subsection{The Structuralist Intersection: $\mathbf{Ddk} = \mathbf{Jlt} \cap \mathbf{Alg}(-)$}
 \label{sec:cpp-stlc-mapping}
 
-The \texttt{dedekind} types and combinators are the inhabitants of $\mathbf{Jlt} \cap \mathbf{Alg}(-)$: C++23 types in the disciplined fragment $\mathbf{Jlt}$ (§\ref{sec:jlt}) that simultaneously carry universal-algebra structure $\mathbf{Alg}(\Sigma)$ (§\ref{sec:alg-sigma}) for some signature $\Sigma$ the carrier supplies operators for; the dash notation $\mathbf{Alg}(-)$ is the family $\bigcup_\Sigma \mathbf{Alg}(\Sigma)$ over the signatures the library names (per §\ref{sec:alg-sigma}, $\Sigma$ stays unbound here, and the per-shape \cppinline{Has*Operators} concepts pin it later).
+The \texttt{dedekind} types and combinators are the inhabitants of $\mathbf{Jlt} \cap \mathbf{Alg}(-)$.
+These are C++23 types in the disciplined fragment $\mathbf{Jlt}$ (§\ref{sec:jlt}) that simultaneously carry universal-algebra structure $\mathbf{Alg}(\Sigma)$ (§\ref{sec:alg-sigma}) for some signature $\Sigma$ the carrier supplies operators for.
+The dash notation $\mathbf{Alg}(-)$ is the family $\bigcup_\Sigma \mathbf{Alg}(\Sigma)$ over the signatures the library names.
+Per §\ref{sec:alg-sigma}, $\Sigma$ stays unbound here, and the per-shape \cppinline{Has*Operators} concepts pin it later.
 The intersection is small and that is the point.
 
 \paragraph{Honest Rejection: the headline policy.}
-$\mathbf{Ddk}$ ships with two carriers certified safe by default --- $\mathbb{B}$ as the Galois field $\mathbb{F}_2$ (Boolean negation, conjunction, exclusive-or; finite cardinality, no rounding, no overflow --- laws hold trivially) and $\mathbb{Q}$ as \cppinline{Rational<I>} for any wide-enough integer carrier $I$ (exact arithmetic; associativity, distributivity, and the field axioms hold by construction) --- and refuses everything else at the gate.
-\cppinline{int} satisfies \cppinline{HasRingOperators} (the four arithmetic operators close on \cppinline{int}), but signed-overflow undefined behaviour defeats associativity, so the strict \cppinline{IsRing} concept refuses it.
-IEEE \cppinline{double} satisfies \cppinline{HasFieldOperators}, but rounding non-associativity defeats the field axioms, so \cppinline{IsField} refuses it.
-Structural typing (§\ref{sec:jlt}) sees the operator surface mechanically; the laws are a separate axis the C++ standard library, principled in its silence~\cite{cpp23standard}, refuses to commit to.
+$\mathbf{Ddk}$ ships with two carriers certified safe by default and refuses everything else at the gate.
+The first is $\mathbb{B}$ as the Galois field $\mathbb{F}_2$ (Boolean negation, conjunction, exclusive-or). It has finite cardinality, no rounding, no overflow.
+The laws hold trivially.
+The second is $\mathbb{Q}$ as \cppinline{Rational<I>} for any wide-enough integer carrier $I$.
+Arithmetic on $\mathbb{Q}$ is exact, so associativity, distributivity, and the field axioms hold by construction.
+\cppinline{int} satisfies \cppinline{HasRingOperators} (the four arithmetic operators close on \cppinline{int}), but signed-overflow undefined behaviour defeats associativity.
+The strict \cppinline{IsRing} concept therefore refuses it.
+IEEE \cppinline{double} satisfies \cppinline{HasFieldOperators}, but rounding non-associativity defeats the field axioms.
+\cppinline{IsField} therefore refuses it.
+Structural typing (§\ref{sec:jlt}) sees the operator surface mechanically.
+The laws are a separate axis the C++ standard library, principled in its silence~\cite{cpp23standard}, refuses to commit to.
 
 % Sources: src/main/modules/dedekind/algebra/galois.cppm (line 335);
 %          src/main/modules/dedekind/category/species.cppm (line 1068).
@@ -560,15 +591,27 @@ static_assert(!is_associative_v<int, std::plus<int>>);
 \end{listing}
 
 \paragraph{The fast lane: one trait specialisation away.}
-A library user who has audited their inputs to a regime where the law actually holds --- integer arithmetic on a domain where overflow cannot occur, IEEE \cppinline{double} accepted with associativity-by-fiat for a specific application, a custom carrier whose modular wrap-around the user proves consistent with the surrounding logic --- pushes the button: a per-carrier trait specialisation registers \cppinline{is_associative_v<T, Op> = true} (or \cppinline{is_commutative_v}, \cppinline{is_invertible_v}, \dots), and the downstream concepts (\cppinline{IsRing}, \cppinline{IsField}) discharge.
-The opt-in is the user's pinky-swear in their part of the multiverse: they own the proof that the swear is honest, and IFNDR is the standard's bite if the swear was a lie.
-This is the operational discharge of the satisfies/models distinction §\ref{sec:jlt} introduces: closure on the operator surface is what \cppinline{Has*Operators} records mechanically; lawfulness is what the trait registry records intentionally.
-The mechanics --- which axioms propagate under which constructors, how per-carrier specialisations are organised, how the \emph{Honest Rejection} default composes with the universal-algebra reading $\mathbf{Mon} \subset \mathbf{Var}(\Sigma) \subset \mathbf{Alg}(\Sigma) \subset \mathbf{Alg}(-) \subset \mathbf{Cat}$~\cite{burris1981universalalgebra} (§II.10--II.11; the paper's $\mathbf{Mon}$-side framing is in §\ref{sec:alg-sigma}) --- live in §\ref{sec:pruning} (\emph{Algebraic Lattice}).
+A library user pushes the button by writing a per-carrier trait specialisation that registers \cppinline{is_associative_v<T, Op> = true} (or \cppinline{is_commutative_v}, \cppinline{is_invertible_v}, and so on).
+The downstream concepts (\cppinline{IsRing}, \cppinline{IsField}) then discharge.
+The user has audited their inputs to a regime where the law actually holds.
+Examples are integer arithmetic on a domain where overflow cannot occur, IEEE \cppinline{double} accepted with associativity-by-fiat for a specific application, or a custom carrier whose modular wrap-around the user proves consistent with the surrounding logic.
+The opt-in is the user's pinky-swear in their part of the multiverse.
+They own the proof that the swear is honest.
+IFNDR is the standard's bite if the swear was a lie.
+This is the operational discharge of the satisfies/models distinction §\ref{sec:jlt} introduces.
+Closure on the operator surface is what \cppinline{Has*Operators} records mechanically.
+Lawfulness is what the trait registry records intentionally.
+The full mechanics live in §\ref{sec:pruning} (\emph{Algebraic Lattice}).
+That section covers which axioms propagate under which constructors, how per-carrier specialisations are organised, and how the \emph{Honest Rejection} default composes with the universal-algebra reading $\mathbf{Mon} \subset \mathbf{Var}(\Sigma) \subset \mathbf{Alg}(\Sigma) \subset \mathbf{Alg}(-) \subset \mathbf{Cat}$~\cite{burris1981universalalgebra} (§II.10--II.11).
+The paper's $\mathbf{Mon}$-side framing is in §\ref{sec:alg-sigma}.
 
 \paragraph{Two consequences worth naming.}
-First, structural typing makes membership definable \emph{after the fact}: a pre-existing standard-library type --- a \cppinline{std::pair}, an \cppinline{std::ranges::view}, a \cppinline{std::optional} --- becomes an inhabitant of $\mathbf{Ddk}$ the moment a \cppinline{concept} accepting it is written, with no modification to the carrier.
-Nominal-typing alternatives (declared lineage, base classes, virtual interfaces) would require carriers shipped in the C++ standard a decade ago to opt in upstream --- impossible.
-Second, the disciplined fragment under which $\mathbf{Ddk}$ inhabits also reads as a faithful image of the simply-typed $\lambda$-calculus and System~F under Lambek--Scott~\cite{lambek1988introduction} and Pierce~\cite{pierce2002tapl} --- a verification artefact rather than a flow-relevant claim, but worth naming for the reader who wants to chase the bridge: the row-by-row C++23 $\to$ STLC mapping is in Appendix~\ref{app:ddk-rosetta}, alongside the operator-shape rosetta and a worked Functor exhibit.
+First, structural typing makes membership definable \emph{after the fact}.
+A pre-existing standard-library type such as a \cppinline{std::pair}, an \cppinline{std::ranges::view}, or a \cppinline{std::optional} becomes an inhabitant of $\mathbf{Ddk}$ the moment a \cppinline{concept} accepting it is written, with no modification to the carrier.
+Nominal-typing alternatives (declared lineage, base classes, virtual interfaces) would require carriers shipped in the C++ standard a decade ago to opt in upstream, which is impossible.
+Second, the disciplined fragment in which $\mathbf{Ddk}$ inhabits also reads as a faithful image of the simply-typed $\lambda$-calculus and System~F under Lambek--Scott~\cite{lambek1988introduction} and Pierce~\cite{pierce2002tapl}.
+This is a verification artefact rather than a flow-relevant claim, but worth naming for the reader who wants to chase the bridge.
+The row-by-row C++23 $\to$ STLC mapping is in Appendix~\ref{app:ddk-rosetta}, alongside the operator-shape rosetta and a worked Functor exhibit.
 
 
 % ============================================================
