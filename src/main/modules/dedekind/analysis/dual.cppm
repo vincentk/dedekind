@@ -258,8 +258,8 @@ static_assert(
     "Dual<int> is the discrete-side tangent-bundle (finite-difference) "
     "carrier over the machine integers.");
 
-export template <typename F = double, typename L = ClassicalLogic,
-                 typename C = ℶ_1>
+export template <typename F = dedekind::numbers::machine_real_scalar,
+                 typename L = ClassicalLogic, typename C = ℶ_1>
 using DualSetOf = UniversalSet<Dual<F>, L, C>;
 
 export using DualSet = DualSetOf<>;

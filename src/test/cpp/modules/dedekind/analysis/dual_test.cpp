@@ -111,7 +111,7 @@ TEST_CASE("Analysis: 𝔻 / D / DualSet starter aliases",
           "[analysis][dual][starter]") {
   // Post-#559: 𝔻 is the universe value Ω<Dual<machine_real_scalar>,
   // ClassicalLogic, ℶ_1>, and D is the classifier instance DualSet{}
-  // (= DualSetOf<>{}).  The pair is the same shape ℝ/ℂ carry.
+  // (= DualSetOf<>{}).  The pair has the same shape as ℝ/ℂ.
   STATIC_CHECK(std::same_as<
                std::remove_cvref_t<decltype(𝔻)>,
                UniversalSet<Dual<machine_real_scalar>, ClassicalLogic, ℶ_1>>);
