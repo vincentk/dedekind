@@ -572,10 +572,9 @@ The laws are a separate axis the C++ standard library, principled in its silence
 
 % Sources: src/main/modules/dedekind/algebra/galois.cppm (line 335);
 %          src/main/modules/dedekind/numbers/integer.cppm (lines ~340--350);
-%          src/main/modules/dedekind/numbers/rational.cppm (line 917);
 %          src/main/modules/dedekind/category/species.cppm (line 1068).
 \begin{listing}[ht]
-\caption{Honest Rejection in code: $\mathbf{Ddk}$ ships the Galois field $\mathbb{F}_2$, the integers $\mathbb{Z}$ as a strict commutative ring, and the field of rationals $\mathbb{Q}$ safe by default; \cppinline{int} is refused at the gate.  All five static\_asserts compile in $\mathbf{Ddk}$ today.}
+\caption{Honest Rejection in code: $\mathbf{Ddk}$ ships the Galois field $\mathbb{F}_2$ and the integers $\mathbb{Z}$ as a strict commutative ring safe by default; \cppinline{int} is refused at the gate.  All four static\_asserts compile in $\mathbf{Ddk}$ today.}
 \label{lst:honest-rejection}
 \begin{cpp}
 // 𝔹 = 𝔽₂: bool under (XOR, AND) is the Galois field on two elements —
