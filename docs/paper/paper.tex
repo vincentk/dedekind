@@ -3282,8 +3282,8 @@ LLVM backend treating the reduced bottom type as dead code.
 
 \paragraph{The textbook functor diagram for Listing~\ref{lst:isfunctor}.}
 Figure~\ref{fig:functor-diagram} is the commutative-square diagram for a functor $F: \mathcal{C} \to \mathcal{D}$~\cite{maclane1971categories} (Mac Lane §I.3): an object map $A \mapsto F(A)$ and an arrow map $f \mapsto F(f)$ that respects identities and composition.
-The body's \cppinline{IsFunctor} concept (Listing~\ref{lst:isfunctor}, §\ref{sec:cpp-stlc-mapping}) encodes the same content structurally; the static\_assert there is the Curry--Howard discharge that \texttt{maybe\_functor} inhabits the concept.
-The listing also lands the System-F-recovery rosetta (Table~\ref{tab:structuralist-bridge}) at one concrete site: the \cppinline{template <typename F>} header is the \emph{Constrained Templates} row ($\equiv \forall\alpha.\dots$); the \cppinline{requires}-clause is the \emph{Concept-gating} row discharging parametricity; the \cppinline{static_assert} is the Curry--Howard term.
+The body's \cppinline{IsFunctor} concept (Listing~\ref{lst:isfunctor}, §\ref{sec:cpp-stlc-mapping}) encodes the same content structurally; the Curry--Howard discharge that \texttt{maybe\_functor} inhabits the concept is the \cppinline{static_assert} in the worked-instance listing immediately following Listing~\ref{lst:isfunctor}.
+Together, Listing~\ref{lst:isfunctor} and that worked-instance listing land the System-F-recovery rosetta (Table~\ref{tab:structuralist-bridge}) at one concrete site: the \cppinline{template <typename F>} header is the \emph{Constrained Templates} row ($\equiv \forall\alpha.\dots$); the \cppinline{requires}-clause is the \emph{Concept-gating} row discharging parametricity; and the worked-instance listing's \cppinline{static_assert} is the Curry--Howard term.
 
 \begin{figure}[htbp]
 \centering
