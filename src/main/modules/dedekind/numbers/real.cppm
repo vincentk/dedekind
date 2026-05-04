@@ -374,7 +374,45 @@ struct RealsOf {
 };
 
 export using RealSet = RealsOf<>;
-export using ℝ = RealSet;
+
+/** @brief The canonical real-number universe ℝ = Ω<Real<machine_real_scalar>,
+ *         ClassicalLogic, ℶ_1> (post-#559).
+ *
+ *  @details Per #559's chosen direction (option A): the named species
+ *  symbols (@c 𝔹 / @c ℕ / @c ℤ / @c ℚ / @c ℝ / @c ℂ / @c 𝔻) denote the
+ *  @b universe values (constexpr instances of @c UniversalSet over the
+ *  carrier), not classifier-alias types.  The carrier is
+ *  @c Real<machine_real_scalar> directly; the classifier (multi-overload
+ *  cross-carrier @c operator() that delegates to @c RationalsOf<I>{}
+ *  for non-real arguments) is reachable via @c RealSet @c = @c
+ *  RealsOf<>.
+ *
+ *  Cardinality is set explicitly to @c ℶ_1 (continuum) — the textbook
+ *  cardinality of ℝ — overriding the @c Ω<...> variable template's
+ *  @c ℵ_0 default.  Without this override, @c NaturalLogic<decltype(ℝ)>
+ *  would still route through @c TernaryLogic (since both ℵ_0 and ℶ_1
+ *  are transfinite), so the cardinality choice is honesty-only at this
+ *  layer; downstream consumers that key on the precise cardinality
+ *  distinction (e.g.\ Cantor's diagonal arguments, future
+ *  cardinality-aware optimisations) get the correct value.
+ *
+ *  Pre-#559 the spelling was @c using @c ℝ @c = @c RealSet (the
+ *  classifier alias); type-context sites in concept gates and member
+ *  extractions (@c typename @c ℝ::Domain etc.) were migrated to
+ *  @c RealsOf<> directly in step 1 of this slice.
+ */
+export inline constexpr auto ℝ =
+    dedekind::sets::Ω<Real<machine_real_scalar>, ClassicalLogic, ℶ_1>;
+
+static_assert(
+    std::same_as<std::remove_cvref_t<decltype(ℝ)>,
+                 dedekind::sets::UniversalSet<Real<machine_real_scalar>,
+                                              ClassicalLogic, ℶ_1>>,
+    "ℝ is the universe Ω<Real<machine_real_scalar>, ClassicalLogic, ℶ_1> "
+    "(post-#559).");
+static_assert(std::same_as<typename std::remove_cvref_t<decltype(ℝ)>::Domain,
+                           Real<machine_real_scalar>>,
+              "ℝ's underlying carrier IS Real<machine_real_scalar>.");
 
 export inline constexpr RealsOf<> R{};
 
