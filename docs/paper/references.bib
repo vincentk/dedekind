@@ -1089,3 +1089,19 @@
   isbn      = {9780387942698},
   note      = {Section 16.5 ``Differentials of an algebra: the dual number ring.''  Treats $R[\varepsilon]/(\varepsilon^2)$ as the universal first-order infinitesimal deformation of $R$ for any commutative ring $R$, which is the structural reading underlying forward-mode AD on exact-arithmetic carriers (Dual$\langle\mathbb{Z}\rangle$, Dual$\langle\mathbb{Q}\rangle$, etc.) and the discrete-type generalisation parked in this project under issue \#504.}
 }
+
+@misc{cppcoreguidelines,
+  author       = {Stroustrup, Bjarne and Sutter, Herb},
+  title        = {C++ Core Guidelines},
+  year         = {2024},
+  howpublished = {\url{https://isocpp.github.io/CppCoreGuidelines/CppCoreGuidelines}},
+  note         = {Rule T.20: ``Avoid `concepts' without meaningful semantics.''  The rule is the canonical statement of the closure-vs-laws split: concepts witness syntactic closure mechanically, but the semantic obligations (associativity, commutativity, etc.) require manual certification --- traits, documentation, or other out-of-band evidence.}
+}
+
+@misc{isocpp_concepts_history,
+  author       = {{ISO C++ Foundation}},
+  title        = {C++0x concepts history},
+  year         = {2024},
+  howpublished = {\url{https://isocpp.org/wiki/faq/cpp0x-concepts-history}},
+  note         = {Records the C++0x \texttt{axiom} keyword proposal and its withdrawal: the committee considered language-level support for semantic certification but did not commit, leaving manual certification (traits, documentation) as the practical path.  The Juliet Posture's trait registry is the engineering instantiation of that path.}
+}

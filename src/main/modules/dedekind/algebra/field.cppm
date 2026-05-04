@@ -39,6 +39,7 @@
 module;
 
 #include <functional>  // for std::plus, std::multiplies, std::bit_xor, std::bit_and
+#include <type_traits>  // for std::is_arithmetic_v (HasFieldOperators std-library analog)
 
 export module dedekind.algebra:field;
 
@@ -90,9 +91,61 @@ using namespace dedekind::sets;
  *
  * Introduced under #394 as the user-requested ℚ-deal companion of
  * @c HasRingOperators / @c HasGroupOperatorsAdd.
+ *
+ * @section field__StdLibrary_Analog
+ * The C++ standard library's closest analog is @c std::is_arithmetic_v<T>
+ * (in @c <type_traits>): @c true iff @c T is one of the built-in
+ * arithmetic types (the integral types --- including @c bool,
+ * @c char, the signed/unsigned variants --- and the floating-point
+ * types).  The two predicates are not equivalent but carry a clear
+ * relationship:
+ *
+ *   - @c HasFieldOperators is @b broader: it accepts user-defined
+ *     types whose literal field operator surface closes
+ *     (@c Rational<I>, @c Complex<F>, @c Real<F>); @c
+ *     std::is_arithmetic does not lift to user types.
+ *
+ *   - @c HasFieldOperators is @b narrower at the integer-promotion
+ *     boundary: the operator surface requires \c{a + b} \c{->}
+ *     \c{std::same_as<T>} closure, but C++ integer promotion lifts the
+ *     result of arithmetic on the narrow integer types to @c int ---
+ *     so @c bool (logical operators replace the arithmetic role; @c +
+ *     / @c * promote), the narrow unsigned types (@c unsigned char,
+ *     @c unsigned short), @b and the narrow signed types
+ *     (@c signed char, @c short) all satisfy
+ *     @c std::is_arithmetic but @b not @c HasFieldOperators.  Closure
+ *     fires at @c int / @c long and at the floating-point types.
+ *
+ * In short: @c HasFieldOperators is the user-extensible refinement of
+ * what @c std::is_arithmetic names mechanically for the built-in
+ * types only.  The static_asserts below pin the relationship at the
+ * built-in carriers where the two agree and where they intentionally
+ * diverge.
+ *
+ * @see https://en.cppreference.com/w/cpp/types/is_arithmetic
  */
 export template <typename T>
 concept HasFieldOperators = HasRingOperators<T> && HasGroupOperatorsMul<T>;
+
+// std::is_arithmetic ↔ HasFieldOperators: the built-in arithmetic
+// types where the literal field-operator surface closes on T.
+static_assert(std::is_arithmetic_v<int> && HasFieldOperators<int>);
+static_assert(std::is_arithmetic_v<long> && HasFieldOperators<long>);
+static_assert(std::is_arithmetic_v<float> && HasFieldOperators<float>);
+static_assert(std::is_arithmetic_v<double> && HasFieldOperators<double>);
+
+// Where they diverge: bool and the narrow integer types (signed and
+// unsigned) satisfy std::is_arithmetic but not HasFieldOperators
+// (literal-operator surface does not close on T due to integer
+// promotion lifting results to int).
+static_assert(std::is_arithmetic_v<bool> && !HasFieldOperators<bool>);
+static_assert(std::is_arithmetic_v<signed char> &&
+              !HasFieldOperators<signed char>);
+static_assert(std::is_arithmetic_v<unsigned char> &&
+              !HasFieldOperators<unsigned char>);
+static_assert(std::is_arithmetic_v<short> && !HasFieldOperators<short>);
+static_assert(std::is_arithmetic_v<unsigned short> &&
+              !HasFieldOperators<unsigned short>);
 
 /**
  * @concept IsField

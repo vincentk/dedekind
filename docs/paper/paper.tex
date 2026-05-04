@@ -476,37 +476,19 @@ We note though that while $\mathbf{Alg}(\Sigma)$ is only a small fragment of $\m
 \label{sec:jlt}
 
 
-C++ taken as a whole is a famously inhospitable substrate for formal reasoning.
+In much the same way that category theory can be intimidating, C++ as a whole is a famously inhospitable substrate for formal reasoning.
 A closed denotational semantics for the full language is, to our knowledge, not on the books.\footnote{Concretely: overload resolution and argument-dependent lookup are non-uniform; two-phase name lookup interacts with template instantiation in ways that defeat parametricity (Wadler's classical objection to template genericity, after Bracha \& Odersky~\cite{bracha1998making}, bites here); \cppinline{reinterpret_cast} breaks type abstraction at the value level; and template instantiation in general is Turing-complete and undecidable.  On the carrier side, undefined behaviour is the rule rather than the exception: signed-overflow UB defeats ring-associativity on machine \cppinline{int} / \cppinline{long}, IEEE-754 rounding-non-associativity defeats field-associativity on \cppinline{float} / \cppinline{double} --- §\ref{sec:carrier-rosetta} audits each stdlib carrier's algebraic surface against the textbook expectations.}
 
-To bring the C++ side into alignment with the structuralist selection we just applied on the category side, we apply a similar restriction here.
-Roughly speaking, we hope that our atomic types will be \cppinline{std::regular} POCOs (Plain Old C++ Objects, including the primitive types) and we wish to be able to pattern-match on them using \cppinline{concept} definitions.
-For the small fragment of the language that we intend to work on, we reject what we have learned about encapsulation and polymorphism and trim down the internal complexity of objects to the point that they no longer support encapsulation and are fully transparent at compile-time so that interface and behavior are the only meaningful identity.
-
-We can compare and contrast this approach with three textbook schools~\cite{pierce2002tapl, cardelli1996typesystems} of type identification:
+We chose elements from C++ guided by two criteria: alignment with the universal-algebra fragment $\mathbf{Alg}(\Sigma)$ identified in §\ref{sec:alg-sigma}, and the desire to integrate functionality the standard library already ships --- in particular \cppinline{std::regular} value-types and the primitive carriers (\cppinline{int}, \cppinline{double}, \cppinline{bool}, \dots) --- without wrapping them in \cppinline{struct} boilerplate or paying a runtime cost.
+We can compare and contrast this choice problem with three textbook schools~\cite{pierce2002tapl, cardelli1996typesystems} of type identification:
 \begin{itemize}
-\item nominal (declared lineage; checked at compile time but blind to behaviour),
+\item nominal (declared lineage (often inheritance); checked at compile time but blind to behaviour),
 \item duck (structural by call-site method probe; checked at runtime, too late for the optimiser),
 \item static structural typing (concept-based; behaviour checked at compile time without a declared lineage).
 \end{itemize}
 
-\begin{listing}[htbp]
-\caption{Pseudocode illustration of nominal and duck typing, respectively.}
-\label{lst:nominal}
-\begin{cpp}
-// Nominal (pseudocode): a supertype is recognised by declared lineage.
-struct Ring { /* virtual operations, must opt in explicitly */ };
-struct MyInt : Ring { /* ... */ };
-
-// Duck typing (pseudocode): recognised at runtime by the call site.
-//   def generic_sum(a, b):       # Python: fails only when called
-//       return a + b             # no compile-time guarantee
-\end{cpp}
-\end{listing}
-
-C++23 concepts realise the third school.  We call the resulting
-discipline the \emph{Juliet Posture}, after the observation that a
-rose by any other name would smell as sweet~\cite{shakespeare1597romeo}:
+C++23 concepts realise the third school. 
+We call the resulting discipline the \emph{Juliet Posture}, after the observation that a rose by any other name would smell as sweet~\cite{shakespeare1597romeo}:
 the library cares about the \emph{scent} (structural invariants),
 not the \emph{lineage} (declared name).
 
@@ -533,181 +515,18 @@ static_assert(!IsAssociative<bool, std::logical_and<bool>>);
 \end{cpp}
 \end{listing}
 
-\noindent The Juliet Posture delivers desirable properties of both predecessors:
-structural sensitivity (behaviour, not name) and static verification (compile time,
-not runtime).
-Crucially, because the concept check is a compile-time proof obligation, the compiler
-can \emph{act on it}: it can specialize code paths, infer additional algebraic
-properties from the trait registry, and ultimately prune logically empty set
-expressions to zero machine instructions---none of which is possible with runtime duck
-typing.
+In practice this boils down to compile-time structural typing across three feature tiers, each strictly more expressive than the last:
+(i)~\cppinline{constexpr} branching via template specialisation (the C++<20 baseline);
+(ii)~\cppinline{concept}-constrained templates, which lift specialisation from a \emph{compiles-or-doesn't} probe to a named structural predicate (the C++20/23 step the Juliet Posture rests on);
+(iii)~developer-supplied claims and axioms via \emph{trait specialisations} (\cppinline{is_associative_v<T, Op>}, \cppinline{is_commutative_v<T, Op>}, \dots) that downstream concepts (\cppinline{IsRing}, \cppinline{IsField}) consult to discharge a single \cppinline{static_assert} obligation.
+The first two tiers are mechanically decidable on the disciplined fragment the library polices (template instantiation is Turing-complete in general --- Veldhuizen~\cite{veldhuizen2003templates} --- and decidability is recovered specifically by the bounded-instantiation-depth and no-template-template-recursion rules collected in Appendix~\ref{app:jlt-systemf}); the third is the manual-certification path the C++ standard distinguishes in [concepts.lib] as \emph{satisfying} (syntactic) versus \emph{modelling} (semantic) a concept~\cite{cpp23standard}, and that C++ Core Guideline T.20~\cite{cppcoreguidelines} prescribes for the semantic-requirements clause the spec deliberately refuses to enforce mechanically (the standard's \emph{ill-formed, no diagnostic required} clause being its bite --- the C++ analogue of \emph{ex falso quodlibet}; the C++0x \texttt{axiom} keyword was considered for in-language semantic certification and ultimately withdrawn~\cite{isocpp_concepts_history}, leaving the manual-certification pattern as the path the committee left open).\footnote{The C++ standard's \emph{syntactic} / \emph{semantic} split is fundamentally \textbf{decidable vs.\ undecidable} --- what the spec commits to enforcing mechanically vs.\ what it deliberately refuses to enforce --- and does not coincide with the static-vs-dynamic semantics split familiar from PL theory~\cite{pierce2002tapl}.  C++'s \emph{syntactic} bucket subsumes that tradition's \emph{static semantics} (type checking, concept resolution, auto-derived theorems via \cppinline{static_assert}) because those are all things the compiler verifies mechanically; the C++ \emph{semantic} bucket is roughly what resists mechanical decision in the spec's chosen target structure.  The committee's vocabulary optimises for responsibility allocation (compiler vs.\ user) rather than for type-theoretic precision; the mismatch is real but learnable.}
+The trait-registry mechanics --- which axioms propagate under which constructors, how per-carrier specialisations are organised, how the \emph{Honest Rejection} policy maps to varieties, and how the algebra-side machinery composes with the C++-side concept layer --- live in §\ref{sec:pruning} (\emph{Algebraic Lattice}), where the page budget for the compare-and-contrast actually fits.
 
-% TODO(future-edit): the two-axis framing introduced in the next paragraph
-% is the load-bearing setup for the trait-registry implementation discussion
-% in §\ref{sec:pruning} (Algebraic Lattice).  Keep the touch light here ---
-% name the split, forward-pointer, and stop.  The actual registry mechanics
-% (specialisation tables, propagation rules, audit rosettas) belong in §5,
-% not in §3.  If §3 prose grows past one paragraph on this point, push the
-% overflow into §\ref{sec:pruning}.
+A welcome side effect: the disciplined subset that aligns with $\mathbf{Alg}(\Sigma)$ also turns out to be a faithful image of System~F (Pierce~\cite{pierce2002tapl} ch.~23, 29) and of the simply-typed $\lambda$-calculus under Lambek--Scott~\cite{lambek1988introduction}, which lets the same surface read in either tradition.
+This was not the design goal: the paper began as an engineering exercise on $\mathbf{Alg}(\Sigma)$, and the System-F reading announced itself afterwards.
+The triangulation across System~F, the Juliet Posture, and Bourbaki structuralism~\cite{marquis2022structuralist} is reported as an observation rather than a guarantee --- some discipline is required of the engineer for the reading to hold; the precise admissibility rules and a row-by-row mapping across the three vocabularies are deferred to Appendix~\ref{app:jlt-systemf}.
 
-The listing exhibits a load-bearing split that runs through the rest of the paper.
-The operator surface witnessed by \cppinline{HasRingOperators} states \emph{closure} --- which types compose under which operators --- and this axis can be checked \emph{by inspection of the standard library}: the compiler resolves the overloads, the concept either binds or it does not, and no further human judgement is required.
-The algebraic \emph{laws} (associativity, commutativity, distributivity, identities, inverses, totality) are a separate axis and must be \emph{validated and certified by hand}: signed-overflow UB defeats ring-associativity on \cppinline{int}, IEEE-754 rounding defeats field-associativity on \cppinline{double}, matrix multiplication is non-commutative even when the scalar field is, and the standard library --- principled in its silence --- refuses to commit to a position on any of these.
-The Juliet Posture's job is to take that silence as a job description: lift each meta-symmetry to a compile-time predicate (\cppinline{IsAssociative<T, Op>}, \cppinline{IsCommutative<T, Op>}, \dots), populate it per carrier in a \emph{trait registry}, and let downstream concepts (\cppinline{IsRing}, \cppinline{IsField}) compose closure-on-the-surface with law-from-the-registry into a single \cppinline{static_assert} obligation.
-The mechanics of the registry --- which axioms propagate under which constructors, how the per-carrier specialisations are organised, how the audit rosettas measure the standard library's silence --- are deferred to §\ref{sec:pruning} (\emph{Algebraic Lattice}); the present section establishes only the framing.\footnote{A third meta-axis, orthogonal to closure and laws, deserves a parenthetical mention here and is developed alongside the trait registry in §\ref{sec:pruning}: \emph{universe} versus \emph{classifier}.  The universe over a carrier $T$ is the constant-true predicate $\Omega_T : T \to \mathbf{2}$ --- the set-builder ambient ``$T$ as its own set'' --- and is uniform across all carriers in our DSL.  The classifier of a tower position $T$ is the ETCS characteristic morphism $\chi_T : \text{tower-ambient} \to \mathbf{2}$ classifying the subobject $T$ inside its algebraic tower (e.g.\ $\chi_\mathbb{N}$ on $\mathbb{Z}$ rejects negatives via the canonical inclusion $\mathbb{N} \hookrightarrow \mathbb{Z}$).  The two are distinct primitives: $\Omega_T$ is monomorphic on $T$; $\chi_T$ does cross-carrier classification by routing predecessor literals through embedding arrows.  The Boolean carrier \cppinline{bool} collapses both to the same object --- it sits at the bottom of the tower with no proper super-object --- but for $\mathbb{N}$, $\mathbb{Z}$, $\mathbb{Q}$, $\mathbb{R}$, $\mathbb{C}$, $\mathbb{D}$ the distinction is load-bearing and visible in code as separate exports (\cppinline{Ω<T, L, C>} for the universe and concrete classifier types like \cppinline{NaturalNumbersOf<>}, \cppinline{IntegersOf<>}, \dots\ for the characteristic morphism).}
-
-Pick a small \emph{axiomatic subset} of C++23: concept-constrained templates, non-type template parameters (NTTPs), named modules with strict DAG dependencies, \cppinline{static_assert} for compile-time obligation discharge, and \cppinline{constexpr} for $\beta$-style normalisation.
-Exclude the escape hatches that would otherwise leak past System F: no \cppinline{reinterpret_cast} in public APIs, no SFINAE branches in public surfaces, no ADL-dependent dispatch beyond textbook operator overloads, no public-API specialisations that branch behaviour, and bounded template-instantiation depth (Table~\ref{tab:admissibility-rules}).
-This is a small fragment of $\mathbf{Cpp}$, and §\ref{sec:jlt} develops the structural-typing posture under which it can be inhabited cleanly.
-Call this subset $\mathbf{Jlt} \subset \mathbf{Cpp}$ (mnemonically: \emph{Juliet}, after the \emph{rose by any other name} reading of structural-over-nominal typing).
-In $\mathbf{Jlt}$ the objects are \cppinline{std::regular} types and the values they classify, both expressible in C++23, and the morphisms are the arrows the language admits between them.
-
-
-We take this absence as our starting point: we do not claim that this general problem has been solved, but we assert the existence of a non-empty feasible region which can be inhabited cleanly under a small discipline.
-The three C++23 features named in §\ref{sec:introduction} --- \texttt{module}s, \texttt{concept}s, and NTTPs --- carry §CT-specific value at this layer: modules cache verified structural invariants as Binary Module Interface (BMI) files; concepts realise \emph{structural typing} as the compile-time analogue of Haskell type classes, with zero-cost dispatch and no runtime dictionary; and NTTPs let a set-builder predicate be part of the \emph{type} rather than a runtime value passed at construction (§\ref{sec:sets-rules}).
-
-
-This feasible region is thus a carefully selected axiomatic subset of C++23 such that well-understood semantics can be recovered.\footnote{Concretely: templates parameterised over concept-constrained types, non-type template parameters (NTTPs), named modules with strict DAG dependencies, \cppinline{static_assert} for compile-time obligation discharge, and \cppinline{constexpr} for $\beta$-style normalisation.  The fragment excludes the escape hatches that defeat the System-F reading: no \cppinline{reinterpret_cast} in public APIs, no SFINAE branches in public surfaces, no ADL-dependent dispatch beyond textbook operator overloads, no public-API specialisations that branch behaviour, no template-template parameters in public signatures, and bounded template instantiation depth.  Each exclusion closes a specific escape hatch by which C++ would otherwise leak past System F; the list is not novel --- working C++ teams police variants of it informally --- but is the price of the System-F reading.  Table~\ref{tab:admissibility-rules} below is exactly that list.}
-
-
-\begin{table}[htbp]
-\centering
-\caption{\textbf{The admissibility rules}: which C++ idioms are admitted
-in the library's public surface, and what each rule rules out.
-The discipline is the price of the System-F reading; each rule below is
-the cost of one row of Table~\ref{tab:cpp-stlc-mapping}.  Internal
-partitions may use the listed escape hatches in bounded scopes, but
-they do not appear in any \cppinline{export}-qualified signature.}
-\label{tab:admissibility-rules}
-\small
-\begin{tabular}{@{}p{0.42\textwidth} p{0.52\textwidth}@{}}
-\toprule
-\textbf{Rule on the public surface} & \textbf{What it rules out, and why} \\
-\midrule
-No \cppinline{reinterpret_cast} in any \cppinline{export}-qualified API. &
-Defeats type abstraction at the value level.  Bit-level reinterpretation
-(e.g., IEEE-754 inspection) lives in non-exporting internal partitions. \\
-No SFINAE branches in the public surface. &
-Substitution-failure-as-overload-selection makes the same call
-mean different things at different call sites.  Concept-constrained
-templates fail with named-axiom messages instead. \\
-No ADL-dependent dispatch except for textbook operator overloads. &
-Argument-dependent lookup is admitted only where the textbook reads
-\texttt{a + b} or \texttt{a == b} on library carriers; free-function
-calls in user code dispatch through explicit qualification. \\
-No template-template parameters in \cppinline{export}-qualified signatures. &
-Higher-kinded structure is named at the level of concepts
-(\cppinline{IsFunctor<F>}, etc.), not by passing template-templates
-through public function signatures. \\
-No public-API specialisation that branches behaviour. &
-Generic templates are parametric across the public surface; per-type
-specialisations live in the trait registry, each carrying an
-algebraic claim that is reviewed and CI-checked against a
-\cppinline{static_assert}. \\
-Bounded template instantiation depth. &
-The Turing-complete instantiation machinery is bounded by the
-carrier-lattice depth (Figure~\ref{fig:carrier-lattice}: scalar,
-shape, quotient axes; depth $\leq 3$ in the current surface), which
-keeps the type checker's work within a decidable cone. \\
-\bottomrule
-\end{tabular}
-\end{table}
-
-The framing pays off in a row-by-row mapping: each Juliet-Posture restriction recovers a corresponding System-F property, with the canonical references for both calculi found in Pierce~\cite{pierce2002tapl} (Chapters 23 and 29).
-
-\begin{table}[h]
-\centering
-\caption{The structuralist bridge.  Each row reads three ways: a System F property (logic / type-theory tradition, Pierce~\cite{pierce2002tapl}~ch.~23, 29 + Wadler~\cite{wadler1989theorems}); the Juliet-Posture restriction in C++23 that recovers it; and the corresponding Bourbaki-structuralist move (Marquis~\cite{marquis2022structuralist}; Bourbaki's \emph{L'Architecture des mathématiques} 1948).  The triangulation is the point: each \textbf{Jlt} realisation is simultaneously a recovery of a System F property and a Bourbaki structuralist move.  The C++ column states the \emph{discipline} an engineer adopts; the consequences live in the outer columns.}
-\label{tab:structuralist-bridge}
-\begin{tabular}{@{}p{0.30\textwidth}p{0.32\textwidth}p{0.32\textwidth}@{}}
-\toprule
-\textbf{System F property} & \textbf{Juliet Posture (C++)} & \textbf{Structuralist style (Bourbaki)} \\ \midrule
-\textbf{Parametricity} (\emph{Theorems for Free!}~\cite{wadler1989theorems})\footnote{C++23 concepts realise parametricity in an \emph{implicit-style} discipline: the constraint is checked at instantiation but no concept witness is passed at runtime.  This is closer to Haskell-style type classes than to pure System F's explicit type abstraction, but the parametricity conclusions follow once the public surface excludes ad-hoc dispatch (Table~\ref{tab:admissibility-rules}'s no-SFINAE / no-ADL-beyond-textbook / no-public-specialisation rules).}  &
-\textbf{Concept-gating}: \cppinline{requires}-clauses forbid the function from inspecting type internals; interaction happens only via the allowed \emph{scents} (axiom-shape concepts). &
-\textbf{Typification}: ignoring internal set-elements in favour of relations among them. \\ \addlinespace
-\textbf{Universal quantification} ($\forall\alpha.\dots$) &
-\textbf{Constrained templates}: \cppinline{template<Scent T>} reads as universal quantification over the species defined by the concept \emph{Scent}. &
-\textbf{Species of structure}: the genus of all objects sharing a given structure. \\ \addlinespace
-\textbf{Type erasure} (computation is type-blind) &
-\textbf{Zero-cost abstraction}: \cppinline{std::regular} objects with transparent value semantics let the compiler optimise on structure while the program's logic remains independent of the carrier name. &
-\textbf{Indistinguishability}: isomorphic structures are functionally identical. \\ \addlinespace
-\textbf{Strong normalisation} (termination)\footnote{C++ template instantiation is Turing-complete in general~\cite{veldhuizen2003templates}; strong normalisation is recovered specifically by Table~\ref{tab:admissibility-rules}'s bounded-instantiation-depth rule and the exclusion of template-template-parameter recursion in public signatures.  These restrictions are the price of the strong-normalisation reading.}  &
-\textbf{Structural pruning}: rejecting Turing-complete template recursion in favour of finite algebraic compositions targets a fragment guaranteed to terminate (and to collapse logically empty constructions to zero machine instructions). &
-\textbf{Echelon construction}: finite, well-founded builds from base sets and axioms. \\ \addlinespace
-\textbf{Impredicativity} (types may be applied to types)\footnote{System F has prenex-style impredicativity at the kind level; C++23 concepts admit a practical form by allowing concepts to be defined in terms of other concepts (e.g.\ \cppinline{IsFunctor<F>} ranging over type-templates).  The two coincide on the fragment we use; the broader impredicative core (universe-level self-quantification) is not in scope.}  &
-\textbf{Meta-concepts}: concepts defined in terms of other concepts let the library name 2-arrow structures (morphisms between morphisms) at the type level. &
-\textbf{Higher-order structure}: structures built upon structures. \\ \addlinespace
-\textbf{Ad-hoc rejection} (a function does not behave differently for \cppinline{int} vs \cppinline{float}) &
-\textbf{Ban on ADL / specialisation}: ADL beyond textbook operators, public-API specialisation, and SFINAE branching are excluded so that lineage cannot hijack scent (Table~\ref{tab:admissibility-rules}). &
-\textbf{Axiomatic purity}: rejection of ``substance'' or non-law behaviour at the level of the structure. \\ \bottomrule
-\end{tabular}
-\end{table}
-
-Three threads run through the table and stand on their own as the load-bearing claims of the System-F recovery:
-
-\begin{enumerate}
-\item \textbf{The postural ban on overloading.}  System F does not admit ad-hoc polymorphism: a function cannot behave differently for \cppinline{int} versus \cppinline{float}.
-$\mathbf{Jlt}$ recovers this by banning ADL beyond textbook operator overloads and public-API specialisation.
-If a function is defined for \cppinline{Scent T}, it must work the same for every rose that smells like \cppinline{T}.
-\item \textbf{Axiomatic honesty.}  System F assumes its types follow their definitions perfectly.
-$\mathbf{Jlt}$ recovers this by auditing carriers (e.g.\ rejecting \cppinline{int} for ring operations where overflow would defeat associativity) so the carrier-rosetta (Tables~\ref{tab:rosetta-quotient} and~\ref{tab:rosetta-rank}) matches the textbook expectations rather than papering over them.
-\item \textbf{Transparency over encapsulation.}  System F types are \emph{transparent} to the calculus.
-$\mathbf{Jlt}$ recovers this by rejecting OO-style encapsulation and private state, so type-directed collapse can see all the way through an object to perform formal reductions.
-\end{enumerate}
-
-Taken together, these features give \texttt{clang++} a workflow that carries a striking resemblance to a System F type-checker, with optimised machine code falling out as a side effect rather than as a separate compilation step.\footnote{The well-known alternative to this \emph{disciplined embedding} is the \emph{two-language problem}~\cite{bezanson2017julia}: research code is written in an expressive high-level language (Python, R, Julia) while only performance-critical execution is delegated to a separately maintained C or C++ backend.  Bridging tools such as \texttt{nanobind}~\cite{jakob2022nanobind} close the \emph{binary} gap but not the \emph{semantic} gap: the C++ backend cannot reason about high-level mathematical invariants defined in the Python layer.  The Juliet Posture is the alternative: keep the high-level mathematical vocabulary in the same language the optimiser sees.}
-
-
-\paragraph{An old capability, newly accessible.}
-None of the calculus underneath is new.  Templates have always been
-a System-F-flavoured substrate \emph{within a carefully selected subset
-of C++}: type-parameter polymorphism, $\beta$-style substitution via
-\cppinline{using} aliases, normalisation through \cppinline{constexpr}
-evaluation --- the Lambek--Scott
-correspondence~\cite{lambek1988introduction} and the Curry--Howard
-reading~\cite{wadler2015propositions} have applied to that fragment for
-as long as it has existed.\footnote{The qualifier is load-bearing.
-C++ as a whole language admits no closed denotational semantics:
-overload resolution and argument-dependent lookup are non-uniform,
-two-phase name lookup interacts with template instantiation in ways
-that defeat parametricity (Wadler's classical objection to template
-genericity~\cite{bracha1998making} bites here), \cppinline{reinterpret_cast}
-breaks type abstraction, and template instantiation is in general
-Turing-complete and undecidable.  The library's discipline is to use
-\emph{none} of these escape hatches in its public surface --- an honesty
-obligation discharged by review, by the trait registry, and by the
-absence of unsafe casts in any \cppinline{export}-qualified API.  What
-remains is a subset that admits the System-F reading.  Pinning that
-subset down was not always obvious: each partition in the build graph
-records a decision about which template idioms are admissible and which
-are not.}  What changed in C++20/23 was not the lambda calculus
-underneath; it was the addition of \cppinline{concept},
-\cppinline{requires}-clauses, and NTTPs, which together turned a
-long-standing latent capability into a surface the type checker can
-discharge mechanically.  Practitioners with deep template-metaprogramming
-experience --- Boost.Hana~\cite{chagnon2016hana} and CTRE~\cite{dusikova2018ctre}
-are the visible end of a long lineage --- have known this terrain for
-over a decade; the contribution of this paper is to walk it under the
-named-structure / discharged-by-the-compiler discipline, end-to-end, in
-standard C++23.  The translation table at the end of this section
-(§\ref{sec:cpp-stlc-mapping}) is the dictionary between what was always
-there and what the modern surface now lets one say out loud.
-
-\paragraph{The admissibility rules.}
-``Carefully selected'' is not informal: the library polices a fixed
-list of admissibility rules on every \cppinline{export}-qualified
-declaration.  Each rule closes a specific escape hatch by which C++
-would otherwise escape its System-F reading
-(Table~\ref{tab:admissibility-rules}); together they delineate the
-disciplined fragment over which Table~\ref{tab:cpp-stlc-mapping}'s
-mapping holds.
-
-The list is not novel --- working C++ teams police variants of it
-informally; the contribution here is that the rules are what
-make Table~\ref{tab:cpp-stlc-mapping}'s mapping accurate, and that
-each rule has a mechanical witness in the partition graph (the
-public-API headers exported by each \cppinline{export module}
-declaration are the audit surface).
+Call this disciplined subset $\mathbf{Jlt} \subset \mathbf{Cpp}$ (mnemonically: \emph{Juliet}, after the \emph{rose by any other name} reading of structural-over-nominal typing); in $\mathbf{Jlt}$ the objects are \cppinline{std::regular} types and the values they classify, and the morphisms are the arrows the language admits between them.
 
 \subsection{The Structuralist Intersection: The \texttt{dedekind} DSL}
 \label{sec:cpp-stlc-mapping}
@@ -3342,6 +3161,112 @@ The §\ref{sec:introduction} framing --- ``aim at, not assert'' --- is the same 
 To support this approach in a transparent fashion, we reach deep into the CI/CD toolbox and enable whatever we can find: an open-source licence and public review for the social audit trail; public issue management for the backlog of refinements still owed; a reproducible build pipeline that re-runs the compile-time discipline on every push; a test harness whose \cppinline{static_assert} obligations are checked mechanically; pull-request reviews that frame each new trait specialisation as a public claim under engineering ethics (cf.\ §\ref{sec:introduction}'s NSPE-canon footnote); version control that pins the chain of refinements to specific commits; and test-coverage reports that flag the spokes of the hub-and-spoke architecture for which no carrier yet witnesses the trait.
 None of this is technically novel.
 What matters is that the engineering practices of mainstream open-source software development \emph{compose} cleanly with the type-system discipline, turning what would otherwise be a paper-only argument into an artefact whose every refinement step is reviewable, reproducible, and dated.
+
+\section{The System F $\leftrightarrow$ Juliet Posture $\leftrightarrow$ Bourbaki Rosetta}
+\label{app:jlt-systemf}
+
+§\ref{sec:jlt} reports the System-F reading as a side effect of the Juliet Posture rather than a design goal: the disciplined subset chosen for alignment with $\mathbf{Alg}(\Sigma)$ and clean integration with \cppinline{std::regular} carriers turns out to be a faithful image of System~F (Pierce~\cite{pierce2002tapl} ch.~23, 29) and of the simply-typed $\lambda$-calculus under Lambek--Scott~\cite{lambek1988introduction}, and the same fragment lines up with Bourbaki structuralism~\cite{marquis2022structuralist}.
+The triangulation across three independently-developed traditions is the kind of evidence the structuralist tradition takes seriously --- not because any single tradition committed to all the others' conclusions, but because the alignment was not engineered for and fell out gratis on the disciplined fragment.
+This appendix records the artefact: the admissibility rules an engineer must follow for the System-F reading to hold, and a row-by-row mapping across the three vocabularies.
+
+\paragraph{Admissibility rules.}
+``Carefully selected'' is not informal: the library polices a fixed list of admissibility rules on every \cppinline{export}-qualified declaration.
+Each rule closes a specific escape hatch by which C++ would otherwise escape its System-F reading (Table~\ref{tab:admissibility-rules}); together they delineate the disciplined fragment over which the rosetta of Table~\ref{tab:structuralist-bridge} holds.
+The list is not novel --- working C++ teams police variants of it informally --- but the contribution is that the rules are what make the rosetta accurate, and that each rule has a mechanical witness in the partition graph (the public-API headers exported by each \cppinline{export module} declaration are the audit surface).
+
+\begin{table}[htbp]
+\centering
+\caption{\textbf{The admissibility rules}: which C++ idioms are admitted
+in the library's public surface, and what each rule rules out.
+The discipline is the price of the System-F reading; each rule below is
+the cost of one row of the structuralist-bridge rosetta
+(Table~\ref{tab:structuralist-bridge}).  Internal
+partitions may use the listed escape hatches in bounded scopes, but
+they do not appear in any \cppinline{export}-qualified signature.}
+\label{tab:admissibility-rules}
+\small
+\begin{tabular}{@{}p{0.42\textwidth} p{0.52\textwidth}@{}}
+\toprule
+\textbf{Rule on the public surface} & \textbf{What it rules out, and why} \\
+\midrule
+No \cppinline{reinterpret_cast} in any \cppinline{export}-qualified API. &
+Defeats type abstraction at the value level.  Bit-level reinterpretation
+(e.g., IEEE-754 inspection) lives in non-exporting internal partitions. \\
+No SFINAE branches in the public surface. &
+Substitution-failure-as-overload-selection makes the same call
+mean different things at different call sites.  Concept-constrained
+templates fail with named-axiom messages instead. \\
+No ADL-dependent dispatch except for textbook operator overloads. &
+Argument-dependent lookup is admitted only where the textbook reads
+\texttt{a + b} or \texttt{a == b} on library carriers; free-function
+calls in user code dispatch through explicit qualification. \\
+No template-template parameters in \cppinline{export}-qualified signatures. &
+Higher-kinded structure is named at the level of concepts
+(\cppinline{IsFunctor<F>}, etc.), not by passing template-templates
+through public function signatures. \\
+No public-API specialisation that branches behaviour. &
+Generic templates are parametric across the public surface; per-type
+specialisations live in the trait registry, each carrying an
+algebraic claim that is reviewed and CI-checked against a
+\cppinline{static_assert}. \\
+Bounded template instantiation depth. &
+The Turing-complete instantiation machinery is bounded by the
+carrier-lattice depth (Figure~\ref{fig:carrier-lattice}: scalar,
+shape, quotient axes; depth $\leq 3$ in the current surface), which
+keeps the type checker's work within a decidable cone. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\begin{table}[h]
+\centering
+\caption{The structuralist bridge.  Each row reads three ways: a System F property (logic / type-theory tradition, Pierce~\cite{pierce2002tapl}~ch.~23, 29 + Wadler~\cite{wadler1989theorems}); the Juliet-Posture restriction in C++23 that recovers it; and the corresponding Bourbaki-structuralist move (Marquis~\cite{marquis2022structuralist}; Bourbaki's \emph{L'Architecture des mathématiques} 1948).  The triangulation is the point: each \textbf{Jlt} realisation is simultaneously a recovery of a System F property and a Bourbaki structuralist move.  The C++ column states the \emph{discipline} an engineer adopts; the consequences live in the outer columns.}
+\label{tab:structuralist-bridge}
+\begin{tabular}{@{}p{0.30\textwidth}p{0.32\textwidth}p{0.32\textwidth}@{}}
+\toprule
+\textbf{System F property} & \textbf{Juliet Posture (C++)} & \textbf{Structuralist style (Bourbaki)} \\ \midrule
+\textbf{Parametricity} (\emph{Theorems for Free!}~\cite{wadler1989theorems})\footnote{C++23 concepts realise parametricity in an \emph{implicit-style} discipline: the constraint is checked at instantiation but no concept witness is passed at runtime.  This is closer to Haskell-style type classes than to pure System F's explicit type abstraction, but the parametricity conclusions follow once the public surface excludes ad-hoc dispatch (Table~\ref{tab:admissibility-rules}'s no-SFINAE / no-ADL-beyond-textbook / no-public-specialisation rules).}  &
+\textbf{Concept-gating}: \cppinline{requires}-clauses forbid the function from inspecting type internals; interaction happens only via the allowed \emph{scents} (axiom-shape concepts). &
+\textbf{Typification}: ignoring internal set-elements in favour of relations among them. \\ \addlinespace
+\textbf{Universal quantification} ($\forall\alpha.\dots$) &
+\textbf{Constrained templates}: \cppinline{template<Scent T>} reads as universal quantification over the species defined by the concept \emph{Scent}. &
+\textbf{Species of structure}: the genus of all objects sharing a given structure. \\ \addlinespace
+\textbf{Type erasure} (computation is type-blind) &
+\textbf{Zero-cost abstraction}: \cppinline{std::regular} objects with transparent value semantics let the compiler optimise on structure while the program's logic remains independent of the carrier name. &
+\textbf{Indistinguishability}: isomorphic structures are functionally identical. \\ \addlinespace
+\textbf{Strong normalisation} (termination)\footnote{C++ template instantiation is Turing-complete in general~\cite{veldhuizen2003templates}; strong normalisation is recovered specifically by Table~\ref{tab:admissibility-rules}'s bounded-instantiation-depth rule and the exclusion of template-template-parameter recursion in public signatures.  These restrictions are the price of the strong-normalisation reading.}  &
+\textbf{Structural pruning}: rejecting Turing-complete template recursion in favour of finite algebraic compositions targets a fragment guaranteed to terminate (and to collapse logically empty constructions to zero machine instructions). &
+\textbf{Echelon construction}: finite, well-founded builds from base sets and axioms. \\ \addlinespace
+\textbf{Impredicativity} (types may be applied to types)\footnote{System F has prenex-style impredicativity at the kind level; C++23 concepts admit a practical form by allowing concepts to be defined in terms of other concepts (e.g.\ \cppinline{IsFunctor<F>} ranging over type-templates).  The two coincide on the fragment we use; the broader impredicative core (universe-level self-quantification) is not in scope.}  &
+\textbf{Meta-concepts}: concepts defined in terms of other concepts let the library name 2-arrow structures (morphisms between morphisms) at the type level. &
+\textbf{Higher-order structure}: structures built upon structures. \\ \addlinespace
+\textbf{Ad-hoc rejection} (a function does not behave differently for \cppinline{int} vs \cppinline{float}) &
+\textbf{Ban on ADL / specialisation}: ADL beyond textbook operators, public-API specialisation, and SFINAE branching are excluded so that lineage cannot hijack scent (Table~\ref{tab:admissibility-rules}). &
+\textbf{Axiomatic purity}: rejection of ``substance'' or non-law behaviour at the level of the structure. \\ \bottomrule
+\end{tabular}
+\end{table}
+
+\paragraph{Three load-bearing threads.}
+Three threads run through the rosetta and stand on their own as the substantive claims of the System-F recovery:
+
+\begin{enumerate}
+\item \textbf{The postural ban on overloading.}  System F does not admit ad-hoc polymorphism: a function cannot behave differently for \cppinline{int} versus \cppinline{float}.
+$\mathbf{Jlt}$ recovers this by banning ADL beyond textbook operator overloads and public-API specialisation.
+If a function is defined for \cppinline{Scent T}, it must work the same for every rose that smells like \cppinline{T}.
+\item \textbf{Axiomatic honesty.}  System F assumes its types follow their definitions perfectly.
+$\mathbf{Jlt}$ recovers this by auditing carriers (e.g.\ rejecting \cppinline{int} for ring operations where overflow would defeat associativity) so the carrier-rosetta (Tables~\ref{tab:rosetta-quotient} and~\ref{tab:rosetta-rank}) matches the textbook expectations rather than papering over them.
+\item \textbf{Transparency over encapsulation.}  System F types are \emph{transparent} to the calculus.
+$\mathbf{Jlt}$ recovers this by rejecting OO-style encapsulation and private state, so type-directed collapse can see all the way through an object to perform formal reductions.
+\end{enumerate}
+
+Taken together, these features give \texttt{clang++} a workflow that carries a striking resemblance to a System F type-checker, with optimised machine code falling out as a side effect rather than as a separate compilation step.\footnote{The well-known alternative to this \emph{disciplined embedding} is the \emph{two-language problem}~\cite{bezanson2017julia}: research code is written in an expressive high-level language (Python, R, Julia) while only performance-critical execution is delegated to a separately maintained C or C++ backend.  Bridging tools such as \texttt{nanobind}~\cite{jakob2022nanobind} close the \emph{binary} gap but not the \emph{semantic} gap: the C++ backend cannot reason about high-level mathematical invariants defined in the Python layer.  The Juliet Posture is the alternative: keep the high-level mathematical vocabulary in the same language the optimiser sees.}
+
+\paragraph{An old capability, newly accessible.}
+None of the calculus underneath is new.
+Templates have always been a System-F-flavoured substrate \emph{within a carefully selected subset of C++}: type-parameter polymorphism, $\beta$-style substitution via \cppinline{using} aliases, normalisation through \cppinline{constexpr} evaluation --- the Lambek--Scott correspondence~\cite{lambek1988introduction} and the Curry--Howard reading~\cite{wadler2015propositions} have applied to that fragment for as long as it has existed.
+What changed in C++20/23 was not the lambda calculus underneath; it was the addition of \cppinline{concept}, \cppinline{requires}-clauses, and NTTPs, which together turned a long-standing latent capability into a surface the type checker can discharge mechanically.
+Practitioners with deep template-metaprogramming experience --- Boost.Hana~\cite{chagnon2016hana} and CTRE~\cite{dusikova2018ctre} are the visible end of a long lineage --- have known this terrain for over a decade; the contribution of this paper is to walk it under the named-structure / discharged-by-the-compiler discipline, end-to-end, in standard C++23.
+The translation table at §\ref{sec:cpp-stlc-mapping} is the dictionary between what was always there and what the modern surface now lets one say out loud.
 
 \section{The Compiler as Structural Gate and Optimization Engine}
 
