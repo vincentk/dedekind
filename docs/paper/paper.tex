@@ -570,10 +570,11 @@ IEEE \cppinline{double} satisfies \cppinline{HasFieldOperators}, but rounding no
 Structural typing (§\ref{sec:jlt}) sees the operator surface mechanically.
 The laws are a separate axis the C++ standard library, principled in its silence~\cite{cpp23standard}, refuses to commit to.
 
-% Sources: src/main/modules/dedekind/algebra/galois.cppm (lines 335, 352);
+% Sources: src/main/modules/dedekind/algebra/galois.cppm (line 335);
+%          src/main/modules/dedekind/numbers/rational.cppm (line 917);
 %          src/main/modules/dedekind/category/species.cppm (line 1068).
 \begin{listing}[ht]
-\caption{Honest Rejection in code: $\mathbf{Ddk}$ ships finite fields and exact-arithmetic carriers safe by default; \cppinline{int} is refused at the gate.  All five static\_asserts compile in $\mathbf{Ddk}$ today.}
+\caption{Honest Rejection in code: $\mathbf{Ddk}$ ships the Galois field $\mathbb{F}_2$ and the exact-arithmetic field $\mathbb{Q}$ safe by default; \cppinline{int} is refused at the gate.  All four static\_asserts compile in $\mathbf{Ddk}$ today.}
 \label{lst:honest-rejection}
 \begin{cpp}
 // 𝔹 = 𝔽₂: bool under (XOR, AND) is the Galois field on two elements —
@@ -583,11 +584,12 @@ The laws are a separate axis the C++ standard library, principled in its silence
 // no user-side trait specialisation required.
 static_assert(IsGaloisField<bool, std::bit_xor<bool>, std::bit_and<bool>>);
 
-// 𝔽₆₄ = 𝔽₂[x]/(x⁶+x+1): the order-2⁶ Galois field, packed in a uint8_t.
-// The bitwise-lattice arithmetic on 6-bit polynomials over 𝔽₂ closes
-// exactly; same axiomatic IsGaloisField concept fires (a non-trivial
-// finite field, not a textbook degenerate case).
-static_assert(IsGaloisField<𝔽64, std::plus<𝔽64>, std::multiplies<𝔽64>>);
+// ℚ = Rational<I>: the bona fide field of fractions Frac(ℤ).
+// Exact arithmetic on the (numerator, denominator) pair — associativity,
+// distributivity, and the field axioms hold by construction.  The
+// literal field-operator surface (+, -, unary -, *, /, T{1}) closes
+// mechanically on Rational<default_integer>.
+static_assert(HasFieldOperators<Rational<default_integer>>);
 
 // int satisfies the ring operator surface (the four arithmetic
 // operators close on int) but fails associativity under signed-overflow
