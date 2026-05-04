@@ -361,6 +361,57 @@ namespace dedekind::algebra {
  * identity) — @c is_free_module_v and @c is_endomorphism_ring_v —
  * live in @c dedekind.linear_algebra:basis where the metadata is at
  * home.
+ *
+ * @section modules__Trait_Registry_Status (NEW-A pilot inventory)
+ *
+ * The carriers that currently fire @c is_module_v across the
+ * codebase, with the static_assert witness site for each:
+ *
+ *   @c is_module_v<Rational<default_integer>, default_integer>
+ *     — @c numbers/rational.cppm: ℚ is a ℤ-module via the Frac
+ *     construction (the localisation @c S^{-1}ℤ at @c S=ℤ_≠0).
+ *
+ *   @c is_module_v<Complex<Rational<default_integer>>,
+ *                  Rational<default_integer>>
+ *     — @c numbers/complex.cppm: ℂ over ℚ is a ℚ-module via the
+ *     quotient ring @c ℚ[i]/(i²+1) carrying the canonical
+ *     componentwise ℚ-action on the (real, imag) pair.
+ *
+ *   @c is_module_v<Vec2V<unsigned int>, unsigned int>
+ *     — @c linear_algebra/vec2.cppm: the rank-2 free module over
+ *     the unsigned-integer modular ring.
+ *
+ *   @c is_module_v<Vec2V<Rational<default_integer>>,
+ *                  Rational<default_integer>>
+ *     — @c linear_algebra/mat2x2.cppm: Vec2 over ℚ as a ℚ-module
+ *     (the rank-2 vector space over the field ℚ, witnessed at the
+ *     module tier; the strengthening to @c is_vector_space_v needs
+ *     @c IsField<Rational> to bind, tracked as the next NEW-A
+ *     deliverable).
+ *
+ * Gaps the NEW-A pilot has identified for follow-up slices:
+ *
+ *   @c is_vector_space_v<V, F> recursive upgrade — the trait fires
+ *   automatically once @c IsField<F> holds in addition to
+ *   @c IsModule<V, F>; the @c IsField specialisation surface for
+ *   @c Rational<I> is the load-bearing gap.
+ *
+ *   @c is_module_v<Dual<F>, F> for the Dual numbers — the
+ *   quotient-algebra propagation in @c algebra:quotient lifts
+ *   @c F-action to @c Dual<F>; a static_assert exhibit at
+ *   @c analysis/dual.cppm would pin the recursive enrichment for
+ *   the AD carrier.
+ *
+ *   @c is_endomorphism_ring_v<Matrix2x2V<F>, Vec2V<F>> — the
+ *   internal-hom witness for the rank-2 free module; opt-in trait
+ *   in @c linear_algebra:basis, populated for specific (F, n)
+ *   pairs.
+ *
+ * The recursive enrichment Figure~1 of the paper depicts (ℚ as
+ * ℤ-module, 𝔻 as ℝ-module, ℂ as ℝ-module, …) lands one carrier at
+ * a time as the corresponding scalar action and trait
+ * specialisation are wired.  This inventory is the running
+ * snapshot.
  */
 
 /** @brief @c is_module_v<M, R>: @c M is an @c R-module.  Concept-based
