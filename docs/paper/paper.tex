@@ -618,7 +618,59 @@ A pre-existing standard-library type such as a \cppinline{std::pair}, an \cppinl
 Nominal-typing alternatives (declared lineage, base classes, virtual interfaces) would require carriers shipped in the C++ standard a decade ago to opt in upstream, which is impossible.
 Second, the disciplined fragment in which $\mathbf{Ddk}$ inhabits also reads as a faithful image of the simply-typed $\lambda$-calculus and System~F under Lambek--Scott~\cite{lambek1988introduction} and Pierce~\cite{pierce2002tapl}.
 This is a verification artefact rather than a flow-relevant claim, but worth naming for the reader who wants to chase the bridge.
-The row-by-row C++23 $\to$ STLC mapping is in Appendix~\ref{app:ddk-rosetta}, alongside the operator-shape rosetta and a worked Functor exhibit.
+The row-by-row C++23 $\to$ STLC mapping is in Appendix~\ref{app:ddk-rosetta}, alongside the operator-shape rosetta and the textbook commutative-square diagram for Listing~\ref{lst:isfunctor} below.
+
+\paragraph{Higher-kinded inhabitants.}
+$\mathbf{Ddk}$'s residents are not only scalar carriers like the finite fields and exact-arithmetic types of Listing~\ref{lst:honest-rejection}.
+The intersection extends to higher-kinded structure --- functors, monads, and other arrow-shaped constructions --- when the same Juliet-Posture concept-gate fires on a hub-and-spoke type that names the structure (§\ref{sec:alg-sigma}'s hub-and-spoke architectural reading at the next level up).
+Listing~\ref{lst:isfunctor} exhibits the canonical example: an \cppinline{IsFunctor} concept encoding the textbook functor laws, paired with a worked \texttt{maybe\_functor} hub that promotes \cppinline{std::optional} into a functor without modifying the carrier.
+
+% Source: src/main/modules/dedekind/category/functor.cppm (IsFunctor concept + maybe_functor instance, abridged)
+\begin{listing}[ht]
+\caption{The Functor concept and a worked instance (Maybe), abridged from \texttt{dedekind.category:functor}.  The functorial obligation lives in the \emph{hub} type \cppinline{maybe_functor<T>} (§\ref{sec:alg-sigma}'s hub-and-spoke convention), not in the carrier \cppinline{std::optional<T>}.  The static\_assert below is the Curry--Howard discharge that \texttt{maybe\_functor} inhabits the concept; the textbook commutative-square that the concept body encodes is in Appendix~\ref{app:ddk-rosetta}.}
+\label{lst:isfunctor}
+\begin{cpp}
+template <typename F>
+concept IsFunctor = IsArrow<F> && requires {
+  typename F::Σ_cat;                         // source category
+  typename F::Τ_cat;                         // target category
+  typename F::template Shape<int>;           // object map  A -> F(A)
+} && requires(F f, typename F::Σ_cat::Arrow f_c) {
+  { f.φ(f_c) } -> IsArrow;                   // morphism lift  f -> F(f)
+  // Domain / Codomain of the lifted arrow track the object map:
+  // Dom(F(f)) = F(Dom(f)),  Cod(F(f)) = F(Cod(f))
+  // (full requires-clause elided; see source).
+};
+
+// The optional-value Maybe functor: Set<T> -> Set<std::optional<T>>.
+template <typename T>
+struct maybe_functor {
+  // IsArrow surface (the hub's outer typing).
+  using ArrowKind = hub_arrow_tag;
+  using Σ_cat = Set<T>;                      // source category
+  using Τ_cat = Set<std::optional<T>>;       // target category
+  using Domain   = Σ_cat;                    // hub Domain  = source category
+  using Codomain = Τ_cat;                    // hub Codomain = target category
+  constexpr Τ_cat operator()(const Σ_cat&) const noexcept { return {}; }
+
+  // Functorial action.
+  template <typename U> using Shape = std::optional<U>;
+  template <typename Fn>           // Fn = the functorial action arrow
+    requires IsArrow<std::remove_cvref_t<Fn>>
+  constexpr auto φ(Fn&& f) const {
+    return arrow([f = std::forward<Fn>(f)](std::optional<T> const& m) {
+      return m.has_value() ? std::optional{std::invoke(f, *m)} : std::nullopt;
+    });
+  }
+};
+
+static_assert(IsFunctor<maybe_functor<int>>);  // mechanical verification
+\end{cpp}
+\end{listing}
+
+The hub--carrier split (\cppinline{maybe_functor<T>} carries the functorial proof obligation; \cppinline{std::optional<T>} stays a Plain Old C++ Object) is the §\ref{sec:alg-sigma} architectural pattern played at the next kind level.
+This is the same after-the-fact membership above: \cppinline{std::optional} ships in the C++ standard and cannot opt into anything upstream, but the moment a hub naming the functorial structure passes the concept gate, the carrier inhabits $\mathbf{Ddk}$ as a functor.
+The pattern generalises across the carrier-tower's other higher-kinded constructions ($V_n(R)$, $\mathrm{End}_R$, $\mathrm{Frac}$, $\mathrm{Complex}$, $\mathrm{Dual}$); §\ref{sec:linalg} carries the worked instances.
 
 % ============================================================
 \section{Sets and Sequences}
@@ -3214,10 +3266,10 @@ category---hence, equivalently, for STLC; and the
 collapse (§\ref{sec:gap}) act as a form of cut elimination, with the
 LLVM backend treating the reduced bottom type as dead code.
 
-\paragraph{A worked example: the Functor concept.}
-The intersection $\mathbf{Jlt} \cap \mathbf{Alg}(-)$ becomes concrete on a single non-trivial example.
-Figure~\ref{fig:functor-diagram} is the textbook commutative-square diagram for a functor $F: \mathcal{C} \to \mathcal{D}$~\cite{maclane1971categories} (Mac Lane §I.3): an object map $A \mapsto F(A)$ and an arrow map $f \mapsto F(f)$ that respects identities and composition.
-Listing~\ref{lst:isfunctor} is the same content as a C++23 concept in \texttt{dedekind.category:functor} together with a worked instance, the optional-value Maybe functor, mechanically verified by \cppinline{static_assert}.
+\paragraph{The textbook functor diagram for Listing~\ref{lst:isfunctor}.}
+Figure~\ref{fig:functor-diagram} is the commutative-square diagram for a functor $F: \mathcal{C} \to \mathcal{D}$~\cite{maclane1971categories} (Mac Lane §I.3): an object map $A \mapsto F(A)$ and an arrow map $f \mapsto F(f)$ that respects identities and composition.
+The body's \cppinline{IsFunctor} concept (Listing~\ref{lst:isfunctor}, §\ref{sec:cpp-stlc-mapping}) encodes the same content structurally; the static\_assert there is the Curry--Howard discharge that \texttt{maybe\_functor} inhabits the concept.
+The listing also lands the System-F-recovery rosetta (Table~\ref{tab:structuralist-bridge}) at one concrete site: the \cppinline{template <typename F>} header is the \emph{Constrained Templates} row ($\equiv \forall\alpha.\dots$); the \cppinline{requires}-clause is the \emph{Concept-gating} row discharging parametricity; the \cppinline{static_assert} is the Curry--Howard term.
 
 \begin{figure}[htbp]
 \centering
@@ -3235,52 +3287,13 @@ F(C)
 \label{fig:functor-diagram}
 \end{figure}
 
-% Source: src/main/modules/dedekind/category/functor.cppm (IsFunctor concept + maybe_functor instance, abridged)
-\begin{listing}[htbp]
-\caption{The Functor concept and a worked instance (Maybe), abridged from \texttt{dedekind.category:functor}.  The concept body encodes Figure~\ref{fig:functor-diagram} structurally; the static assertion below is the Curry--Howard discharge that \texttt{maybe\_functor} inhabits the concept.}
-\label{lst:isfunctor}
-\begin{cpp}
-
-template <typename F>
-concept IsFunctor = IsArrow<F> && requires {
-  typename F::Σ_cat;                         // source category
-  typename F::Τ_cat;                         // target category
-  typename F::template Shape<int>;           // object map  A -> F(A)
-} && requires(F f, typename F::Σ_cat::Arrow f_c) {
-  { f.φ(f_c) } -> IsArrow;                   // morphism lift  f -> F(f)
-  // Domain / Codomain of the lifted arrow track the object map:
-  // Dom(F(f)) = F(Dom(f)),  Cod(F(f)) = F(Cod(f))
-  // (full requires-clause elided; see source).
-};
-
-// The optional-value Maybe functor: Set<T> -> Set<std::optional<T>>.
-template <typename T>
-struct maybe_functor {
-  // IsArrow surface (the hub's outer typing).
-  using ArrowKind = hub_arrow_tag;
-  using Σ_cat = Set<T>;                      // source category
-  using Τ_cat = Set<std::optional<T>>;       // target category
-  using Domain   = Σ_cat;                    // hub Domain  = source category
-  using Codomain = Τ_cat;                    // hub Codomain = target category
-  constexpr Τ_cat operator()(const Σ_cat&) const noexcept { return {}; }
-
-  // Functorial action.
-  template <typename U> using Shape = std::optional<U>;
-  template <typename Fn>           // Fn = the functorial action arrow
-    requires IsArrow<std::remove_cvref_t<Fn>>
-  constexpr auto φ(Fn&& f) const {
-    return arrow([f = std::forward<Fn>(f)](std::optional<T> const& m) {
-      return m.has_value() ? std::optional{std::invoke(f, *m)} : std::nullopt;
-    });
-  }
-};
-
-static_assert(IsFunctor<maybe_functor<int>>);  // mechanical verification
-\end{cpp}
-\end{listing}
-
-The listing is the System-F-recovery table (Table~\ref{tab:structuralist-bridge}) at work in one place: the \cppinline{template <typename F>} header is row 2's \emph{Constrained Templates} $\equiv \forall\alpha.\dots$; the \cppinline{requires}-clause is row 1's \emph{Concept-gating} discharging parametricity; the \cppinline{static_assert} is the Curry--Howard term that proves \cppinline{maybe_functor} inhabits the concept.\footnote{An architectural choice worth naming: the functorial obligation lives in the \emph{hub} type (\cppinline{maybe_functor<T>}), \emph{not} in the carrier (\cppinline{std::optional<T>}).  In Haskell the carrier itself is the functor — \cppinline{Maybe a} is declared an instance of \cppinline{Functor} with the laws supplied implicitly.  In \texttt{dedekind} we deliberately keep \cppinline{std::optional<T>} a Plain Old C++ Object and externalise the functorial proof obligation into a separate hub: an engineer who wants \cppinline{std::optional} to act as a functor writes \cppinline{maybe_functor} and discharges the laws there.  The C++23 concept machinery does not project structural witnesses onto carriers automatically (concepts are checked, not synthesised), and crowding self-descriptive bits onto \cppinline{std::optional} would defeat the POCO discipline that lets the disciplined fragment recover System F (Table~\ref{tab:structuralist-bridge}).  The real-world functions an engineering library hosts are not generic in the strong Haskell sense — the functorial structure is supplied at the library boundary by a hub that names it, not inherited from the carrier.}
-The same machinery covers the carrier-tower's other functorial constructions ($V_n(R)$, $\mathrm{End}_R$, $\mathrm{Frac}$, $\mathrm{Complex}$, $\mathrm{Dual}$); see §\ref{sec:linalg} for worked instances at the linear-algebra layer.
+\paragraph{The hub-vs-carrier obligation placement.}
+An architectural choice worth naming: the functorial obligation in Listing~\ref{lst:isfunctor} lives in the \emph{hub} type (\cppinline{maybe_functor<T>}), not in the carrier (\cppinline{std::optional<T>}).
+In Haskell the carrier itself is the functor; \cppinline{Maybe a} is declared an instance of \cppinline{Functor} with the laws supplied implicitly.
+In \texttt{dedekind} we deliberately keep \cppinline{std::optional<T>} a Plain Old C++ Object and externalise the functorial proof obligation into a separate hub: an engineer who wants \cppinline{std::optional} to act as a functor writes \cppinline{maybe_functor} and discharges the laws there.
+The C++23 concept machinery does not project structural witnesses onto carriers automatically (concepts are checked, not synthesised).
+Crowding self-descriptive bits onto \cppinline{std::optional} would defeat the POCO discipline that lets the disciplined fragment recover System F (Table~\ref{tab:structuralist-bridge}).
+The real-world functions an engineering library hosts are not generic in the strong Haskell sense: the functorial structure is supplied at the library boundary by a hub that names it, not inherited from the carrier.
 
 \paragraph{Every carrier is a structure-preserving image of its
 base.}  Each carrier in the numeric tower
