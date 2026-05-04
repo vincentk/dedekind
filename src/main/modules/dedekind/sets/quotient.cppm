@@ -17,12 +17,14 @@
  *
  *     constexpr auto numerators   = ℤ;
  *     constexpr auto z = element<ℤ>;
- *     constexpr auto denominators = Set{z | (z != 0)};
- *     constexpr auto pairs        = cartesian_product(numerators,
- * denominators); constexpr auto cross_mult   = CrossMultEquiv<...>{}; constexpr
- * auto ℚ_constructed = quotient(pairs, cross_mult);
+ *     // BoundScout has no scalar `!=` lift; use !(== 0) via lambda.
+ *     constexpr auto denominators =
+ *         Set{z | [](const I& v) { return !(v == I{0}); }};
+ *     constexpr auto pairs        = cartesian_product(numerators, denominators);
+ *     constexpr auto cross_mult   = CrossMultEquiv<I>{};
+ *     constexpr auto ℚ_constructed = quotient(pairs, cross_mult);
  *     static_assert(std::same_as<typename decltype(ℚ_constructed)::Domain,
- *                                Rational<...>>);
+ *                                Rational<I>>);
  *
  * Per the @b structuralist reading: the carrier inhabiting the quotient
  * (here @c Rational<I>) is structurally exhibited as the quotient's
@@ -71,6 +73,27 @@ import :expressions;  // Set, cartesian_product, element
 namespace dedekind::sets {
 using namespace dedekind::category;
 
+/** @brief Concept: @c Pairs is a Set-shaped value usable as the
+ *  underlying-pairs argument to @c quotient.
+ *
+ *  @details Lifts the doxygen-prose contract on @c Pairs to a
+ *  type-checked constraint: requires @c Pairs to expose @c Domain,
+ *  @c Codomain, @c logic_species, @c cardinality_type member typedefs
+ *  and to be copy-constructible (the @c Quotient struct stores
+ *  @c Pairs by value).  Mirrors the structural shape of @c sets::Set
+ *  and @c sets::UniversalSet without committing to either concrete
+ *  type, so any Set-like carrier with the four typedefs and
+ *  copy-constructibility is a valid input to the quotient.
+ */
+export template <typename P>
+concept IsQuotientPairsLike =
+    std::copy_constructible<P> && requires {
+      typename P::Domain;
+      typename P::Codomain;
+      typename P::logic_species;
+      typename P::cardinality_type;
+    };
+
 /** @brief Trait registry: maps a (PairsDomain, EquivRel) pair to the
  *  canonical carrier representative of the quotient.
  *
@@ -111,12 +134,25 @@ using quotient_carrier_t =
  *  @c decltype(quotient(...))::Domain @c == @c <expected carrier>.
  *  This is what makes the textbook construction `ℚ = (ℤ × ℤ_≠0) / ~`
  *  observable in code as a @c static_assert.
+ *
+ *  @note  The @c EquivRel template parameter is required to satisfy
+ *  @c category::IsEquivalenceRelation<EquivRel, Pairs::Domain> — the
+ *  upstream concept (@c category:cartesian) for binary relations that
+ *  are reflexive, symmetric, and transitive.  Specialisations of @c
+ *  quotient_carrier therefore opt into the three relation traits
+ *  (@c is_reflexive_relation_v, @c is_symmetric_relation_v,
+ *  @c is_transitive_relation_v) at the carrier registration site.
+ *  This recycles existing axiomatic vocabulary rather than minting a
+ *  bespoke equivalence-relation concept inside this partition.
  */
 export template <typename Pairs, typename EquivRel>
-  requires requires {
-    typename quotient_carrier<typename std::remove_cvref_t<Pairs>::Domain,
-                              EquivRel>::type;
-  }
+  requires IsQuotientPairsLike<std::remove_cvref_t<Pairs>> &&
+           IsEquivalenceRelation<
+               EquivRel, typename std::remove_cvref_t<Pairs>::Domain> &&
+           requires {
+             typename quotient_carrier<
+                 typename std::remove_cvref_t<Pairs>::Domain, EquivRel>::type;
+           }
 struct Quotient {
   using PairsType = std::remove_cvref_t<Pairs>;
   using PairsDomain = typename PairsType::Domain;
@@ -140,27 +176,57 @@ struct Quotient {
   constexpr typename logic_species::Ω operator()(const Domain&) const {
     return logic_species::True;
   }
+
+  /** @brief Value-level membership query (sugar over @c operator()),
+   *  matching the surface of @c sets::Set::contains and
+   *  @c sets::UniversalSet::contains so generic code that uses
+   *  @c .contains uniformly across set-like types compiles on a
+   *  @c Quotient.
+   */
+  constexpr typename logic_species::Ω contains(const Domain& v) const {
+    return (*this)(v);
+  }
+
+  /** @brief Cardinality of the quotient.  Inherited from the
+   *  underlying @c pairs at this phase — quotienting by an
+   *  equivalence relation cannot increase cardinality, and the
+   *  universal-membership semantics of @c operator() means we don't
+   *  yet observe a strict drop.  Mirrors the surface of
+   *  @c sets::Set::cardinality and @c sets::UniversalSet::cardinality.
+   */
+  constexpr cardinality_type cardinality() const { return cardinality_type{}; }
 };
 
 /** @brief Construct the quotient of a Set of pairs by an equivalence
  *  relation, with @c Domain resolved through the @c quotient_carrier
  *  trait registry.
  *
- *  @tparam Pairs    A Set whose Domain is the equivalence-class
+ *  @tparam Pairs    A Set-like value (satisfying @c IsQuotientPairsLike)
+ *                   whose @c Domain is the equivalence-class
  *                   representative type (typically @c std::pair<...>).
- *  @tparam EquivRel A type whose specialisation of @c quotient_carrier
- *                   names the canonical carrier representative.
+ *  @tparam EquivRel A type satisfying @c category::IsEquivalenceRelation
+ *                   on @c Pairs::Domain (reflexive, symmetric, transitive
+ *                   binary relation), and whose specialisation of
+ *                   @c quotient_carrier names the canonical carrier
+ *                   representative.
  *
- *  Concept-gated on the existence of @c quotient_carrier_t at the
- *  (Pairs::Domain, EquivRel) pair: call sites without a registered
- *  specialisation get a substitution-failure diagnostic rather than a
- *  silent default.
+ *  Concept-gated on three orthogonal contracts:
+ *  (1) @c IsQuotientPairsLike<Pairs> — Set-shape on the input.
+ *  (2) @c IsEquivalenceRelation<EquivRel, Pairs::Domain> — the upstream
+ *      axiom from @c category:cartesian (callsites get a clean
+ *      substitution-failure diagnostic if reflexivity / symmetry /
+ *      transitivity haven't been opted into).
+ *  (3) @c quotient_carrier<Pairs::Domain, EquivRel>::type — the canonical
+ *      carrier representative is registered.
  */
 export template <typename Pairs, typename EquivRel>
-  requires requires {
-    typename quotient_carrier<typename std::remove_cvref_t<Pairs>::Domain,
-                              EquivRel>::type;
-  }
+  requires IsQuotientPairsLike<std::remove_cvref_t<Pairs>> &&
+           IsEquivalenceRelation<
+               EquivRel, typename std::remove_cvref_t<Pairs>::Domain> &&
+           requires {
+             typename quotient_carrier<
+                 typename std::remove_cvref_t<Pairs>::Domain, EquivRel>::type;
+           }
 constexpr auto quotient(const Pairs& pairs, EquivRel rel) {
   return Quotient<std::remove_cvref_t<Pairs>, EquivRel>{pairs, std::move(rel)};
 }

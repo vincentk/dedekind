@@ -744,6 +744,26 @@ struct CrossMultEquiv {
 
 }  // namespace dedekind::numbers
 
+// Register CrossMultEquiv<I> with the upstream @c category:cartesian
+// equivalence-relation trait surface.  Cross-multiplication on
+// std::pair<I, I> with I an IsInteger is a textbook equivalence
+// relation: reflexive (a*b == b*a), symmetric (a*d == b*c <=> c*b == d*a),
+// transitive (a*d == b*c and c*f == d*e imply a*f == b*e for nonzero d).
+// Opting into all three traits lets @c IsEquivalenceRelation<
+// CrossMultEquiv<I>, std::pair<I, I>> fire, which is what the
+// @c quotient operator's requires-clause consumes.
+namespace dedekind::category {
+template <dedekind::numbers::IsInteger I>
+inline constexpr bool
+    is_reflexive_relation_v<dedekind::numbers::CrossMultEquiv<I>> = true;
+template <dedekind::numbers::IsInteger I>
+inline constexpr bool
+    is_symmetric_relation_v<dedekind::numbers::CrossMultEquiv<I>> = true;
+template <dedekind::numbers::IsInteger I>
+inline constexpr bool
+    is_transitive_relation_v<dedekind::numbers::CrossMultEquiv<I>> = true;
+}  // namespace dedekind::category
+
 // Register the ℚ quotient_carrier specialisation.  This lives in the
 // @c dedekind::sets namespace where the primary template was declared;
 // the specialisation references types from @c dedekind::numbers, which
@@ -754,6 +774,26 @@ struct quotient_carrier<std::pair<I, I>, dedekind::numbers::CrossMultEquiv<I>> {
   using type = dedekind::numbers::Rational<I>;
 };
 }  // namespace dedekind::sets
+
+// Static-assert exhibits: the trait-registration above lets the upstream
+// IsBinaryRelation / IsEquivalenceRelation concepts fire on CrossMultEquiv,
+// which is the contract the @c sets:quotient operator's requires-clause
+// consumes.
+namespace dedekind::numbers {
+static_assert(
+    dedekind::category::IsBinaryRelation<
+        CrossMultEquiv<default_integer>,
+        std::pair<default_integer, default_integer>,
+        std::pair<default_integer, default_integer>>,
+    "CrossMultEquiv is a binary relation (callable on pairs, returns bool).");
+static_assert(
+    dedekind::category::IsEquivalenceRelation<
+        CrossMultEquiv<default_integer>,
+        std::pair<default_integer, default_integer>>,
+    "CrossMultEquiv is an equivalence relation (reflexive + symmetric + "
+    "transitive) on pairs of default_integer — the upstream axiom the "
+    "sets:quotient operator's requires-clause consumes.");
+}  // namespace dedekind::numbers
 
 namespace dedekind::category {
 template <dedekind::numbers::IsInteger Z>
