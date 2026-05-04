@@ -149,9 +149,11 @@ struct LatticeFactory<R, 1> {
   }
 
   constexpr auto bounded(int n) const {
-    // FIXME(#399 slice 4-6): once ℝ becomes a carrier alias, switch
-    // to @c element<Ω<ℝ>>; for now ℝ is still the predicate-set type.
-    auto r = element<Ω<Real<double>>>;
+    // Post-#559 ℝ is the universe value Ω<Real<machine_real_scalar>>;
+    // element<ℝ> is the canonical scout spelling.  Spelt directly with
+    // @c Real<double> here because this lattice specialisation is keyed
+    // on the @c R (classifier) value rather than the universe symbol.
+    auto r = element<ℝ>;
     return Set{r | [n](const Real<double>& x) {
       const double v = x.resolve();
       if (!detail::is_integral_coordinate(v)) return false;

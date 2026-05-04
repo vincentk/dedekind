@@ -64,8 +64,11 @@ export import :mandelbrot;  // Mandelbrot recurrence/orbit helpers
 // (:ftc, :forms, :hamilton) live in :analysis.  Consumers should
 // `import dedekind.analysis;` (downstream of :numbers in the build graph)
 // to reach Dual<F> and the 𝔻 alias.
-export import :symbolic;     // Formal symbols / Indeterminates
-export import :real;         // RealsOf<> (The Dedekind Cut / Cauchy continuum)
+export import :symbolic;  // Formal symbols / Indeterminates
+export import :real;      // ℝ (universe value Ω<Real<machine_real_scalar>,
+                          // ClassicalLogic, ℶ_1>); RealsOf<> / RealSet (the
+                      // cross-carrier classifier); R (classifier instance) —
+                      // Dedekind Cut / Cauchy continuum
 export import :cardinality;  // Draft finite/aleph0 carrier and policies
 
 /** @section numbers__Metadata */

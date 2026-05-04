@@ -379,13 +379,18 @@ export using RealSet = RealsOf<>;
  *         ClassicalLogic, ℶ_1> (post-#559).
  *
  *  @details Per #559's chosen direction (option A): the named species
- *  symbols (@c 𝔹 / @c ℕ / @c ℤ / @c ℚ / @c ℝ / @c ℂ / @c 𝔻) denote the
- *  @b universe values (constexpr instances of @c UniversalSet over the
- *  carrier), not classifier-alias types.  The carrier is
- *  @c Real<machine_real_scalar> directly; the classifier (multi-overload
- *  cross-carrier @c operator() that delegates to @c RationalsOf<I>{}
- *  for non-real arguments) is reachable via @c RealSet @c = @c
- *  RealsOf<>.
+ *  symbols denote @b universe values (constexpr instances of
+ *  @c UniversalSet over the carrier), not classifier-alias types.  At
+ *  this slice's snapshot, @c 𝔹, @c ℕ, @c ℤ, @c ℚ, and (with this
+ *  commit) @c ℝ have completed the migration; @c ℂ and @c 𝔻 are still
+ *  exported as classifier aliases and are tracked under #559 for
+ *  follow-up via the @c quotient operator (#567), since both are
+ *  textbook quotient constructions (ℂ = ℝ[i]/(i²+1), 𝔻 = ℝ[ε]/(ε²)).
+ *
+ *  The carrier of @c ℝ is @c Real<machine_real_scalar> directly; the
+ *  classifier (multi-overload cross-carrier @c operator() that
+ *  delegates to @c RationalsOf<I>{} for non-real arguments) is
+ *  reachable via @c RealSet @c = @c RealsOf<>.
  *
  *  Cardinality is set explicitly to @c ℶ_1 (continuum) — the textbook
  *  cardinality of ℝ — overriding the @c Ω<...> variable template's
