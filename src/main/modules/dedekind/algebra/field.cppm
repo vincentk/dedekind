@@ -105,12 +105,16 @@ using namespace dedekind::sets;
  *     (@c Rational<I>, @c Complex<F>, @c Real<F>); @c
  *     std::is_arithmetic does not lift to user types.
  *
- *   - @c HasFieldOperators is @b narrower in two specific places where
- *     the literal-operator surface does NOT close on @c T: @c bool
- *     (logical operators replace the arithmetic role; @c + / @c *
- *     promote to @c int) and the narrow unsigned types
- *     (@c unsigned char, @c unsigned short --- integer promotion
- *     lifts results to @c int, breaking @c T-closure).
+ *   - @c HasFieldOperators is @b narrower at the integer-promotion
+ *     boundary: the operator surface requires \c{a + b} \c{->}
+ *     \c{std::same_as<T>} closure, but C++ integer promotion lifts the
+ *     result of arithmetic on the narrow integer types to @c int ---
+ *     so @c bool (logical operators replace the arithmetic role; @c +
+ *     / @c * promote), the narrow unsigned types (@c unsigned char,
+ *     @c unsigned short), @b and the narrow signed types
+ *     (@c signed char, @c short) all satisfy
+ *     @c std::is_arithmetic but @b not @c HasFieldOperators.  Closure
+ *     fires at @c int / @c long and at the floating-point types.
  *
  * In short: @c HasFieldOperators is the user-extensible refinement of
  * what @c std::is_arithmetic names mechanically for the built-in
@@ -130,13 +134,16 @@ static_assert(std::is_arithmetic_v<long> && HasFieldOperators<long>);
 static_assert(std::is_arithmetic_v<float> && HasFieldOperators<float>);
 static_assert(std::is_arithmetic_v<double> && HasFieldOperators<double>);
 
-// Where they diverge: bool and the narrow unsigned types satisfy
-// std::is_arithmetic but not HasFieldOperators (literal-operator
-// surface does not close on T due to integer promotion lifting
-// results to int).
+// Where they diverge: bool and the narrow integer types (signed and
+// unsigned) satisfy std::is_arithmetic but not HasFieldOperators
+// (literal-operator surface does not close on T due to integer
+// promotion lifting results to int).
 static_assert(std::is_arithmetic_v<bool> && !HasFieldOperators<bool>);
+static_assert(std::is_arithmetic_v<signed char> &&
+              !HasFieldOperators<signed char>);
 static_assert(std::is_arithmetic_v<unsigned char> &&
               !HasFieldOperators<unsigned char>);
+static_assert(std::is_arithmetic_v<short> && !HasFieldOperators<short>);
 static_assert(std::is_arithmetic_v<unsigned short> &&
               !HasFieldOperators<unsigned short>);
 
