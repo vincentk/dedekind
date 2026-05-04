@@ -10,12 +10,13 @@ using namespace dedekind::sets;
 
 namespace {
 
-// FIXME(#399 slice 4-6): once ℝ/ℂ become carrier aliases, switch to
-// element<Ω<ℝ>>/element<Ω<ℂ>>; for now they are still predicate-set
-// types, so we spell the carriers (Real<double>/Complex<double>)
-// directly.
+// Post-#559: ℂ is the universe value Ω<Complex<machine_real_scalar>,
+// ClassicalLogic, ℶ_1>, so the canonical scout spelling is element<ℂ>
+// (no double-Ω).  ℝ migration to element<ℝ> is tracked separately
+// (FIXME(#559): ℝ scout still spells Ω<Real<double>> with default ℵ_0
+// rather than ℝ's actual ℶ_1; sweep alongside the post-ℂ tidy-up).
 constexpr auto r = element<Ω<Real<double>>>;
-constexpr auto c = element<Ω<Complex<double>>>;
+constexpr auto c = element<ℂ>;
 
 constexpr auto real_gt_zero = [](const Real<double>& x) {
   return x.resolve() > 0.0;

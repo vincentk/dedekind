@@ -76,10 +76,10 @@ struct LatticeFactory;
  */
 template <>
 struct LatticeFactory<C, 1> {
-  using Domain = typename ℂ::Domain;
-  using Codomain = typename ℂ::Codomain;
-  using logic_species = typename ℂ::logic_species;
-  using cardinality_type = typename ℂ::cardinality_type;
+  using Domain = typename ComplexesOf<>::Domain;
+  using Codomain = typename ComplexesOf<>::Codomain;
+  using logic_species = typename ComplexesOf<>::logic_species;
+  using cardinality_type = typename ComplexesOf<>::cardinality_type;
 
   constexpr Codomain operator()(const Domain& z) const {
     return detail::is_integral_coordinate(z.real()) &&
@@ -100,7 +100,7 @@ struct LatticeFactory<C, N> {
   using Domain = std::array<Complex<double>, N>;
   using Codomain = bool;
   using logic_species = ClassicalLogic;
-  using cardinality_type = typename ℂ::cardinality_type;
+  using cardinality_type = typename ComplexesOf<>::cardinality_type;
 
   constexpr Codomain operator()(const Domain& xs) const {
     for (const auto& z : xs) {
