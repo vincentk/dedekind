@@ -236,10 +236,10 @@ A plausible and occasionally tractable process to support this might look about 
 
 Math goes one way; C++ comes back.
 The claim is bounded --- only the part of mathematics that fits a disciplined fragment of C++23 is realised, and even then we make no global claim of having proved the realisation faithful.
-Instead, an growing body of \emph{empirical} evidence is aggregated and compiled.
+Instead, a growing body of \emph{empirical} evidence is aggregated and compiled.
 The discharge is mechanical, the architecture is set up so the evidence accumulates in a single direction.
 If the compiler accepts the axiom being imported, then the compiler should also be able to validate or sometimes even derive the corresponding theorems~\cite{wadler2015propositions}.
-The remainder of this paper starting with §\ref{sec:axiomatic} intend illustrate how this was done in some detail and what was found in the process.
+The remainder of this paper, starting with §\ref{sec:axiomatic}, is intended to illustrate how this was done in some detail and what was found in the process.
 
 
 \begin{figure}[htbp]
@@ -267,12 +267,11 @@ Once this basic rapport is established, the path follows an established progress
 2. the elementary theory of the category of sets (ETCS)~\cite{lawvere1964etcs}; and
 3. universal algebra and abstract algebra~\cite{burris1981universalalgebra,lang2002algebra}.
 
-On the encoding side, the choice is somewhat more ambiguous, and so we simply recapitulate the lines of reasoning that led to the selection of modern C++ in this case.
+On the encoding side, the choice is more open --- any sufficiently expressive type system would do --- but we landed on modern C++ for the following reasons.
 The goal is an embedding in an existing system (an eDSL in a library) as opposed to the development of a new language or compiler (a language or framework), and so the host language should meet the following requirements:
-b) it should be mainstream so that tooling is provided for;
-c) its runtime requirements should be small enough that an embedding in both the python or JVM ecosystems is feasible;
-d) it should be able to target resource-constrained environments either in the high-performance computing sense or in the embedded systems sense;
-e) the host language's type system should be rich enough to perform many of the desired type checks.
+a) it should be mainstream so that tooling is provided for;
+b) its runtime requirements should be modest enough to embed in the Python and JVM ecosystems and to target resource-constrained environments in the high-performance-computing or embedded-systems sense;
+c) its type system should be rich enough to perform many of the desired type checks.
 Notably, while the resulting DSL should resemble mathematical notation so that Fig. \ref{fig:dedekind-bridge} can be operationalized, developer ergonomics in the broader sense were deliberately not given a high priority at this point in time.
 
 Our resulting posture is explicit: \texttt{dedekind} is a systems-programming
