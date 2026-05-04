@@ -31,11 +31,9 @@ constexpr bool is_integral_coordinate(double x) {
   return static_cast<double>(xi) == x;
 }
 
-// Symbolic scout ranging over the universal set Ω<Complex<double>>.
-// FIXME(#399 slice 4-6): once ℂ becomes a carrier alias, switch to
-// @c element<Ω<ℂ>>; for now @c ℂ is still the predicate-set type, so
-// we spell the carrier directly.
-constexpr auto c = element<Ω<Complex<double>>>;
+// Post-#559: ℂ is the universe value Ω<Complex<machine_real_scalar>,
+// ClassicalLogic, ℶ_1>, so the canonical scout spelling is element<ℂ>.
+constexpr auto c = element<ℂ>;
 
 // Lifted natural-number lattice: Gaussian integers with 0 ≤ Re, Im ≤ 3
 constexpr auto natural_lattice_in_c = Set{c | [](const Complex<double>& z) {

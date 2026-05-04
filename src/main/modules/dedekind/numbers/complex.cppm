@@ -304,9 +304,54 @@ struct ComplexesOf {
 };
 
 export using ComplexSet = ComplexesOf<>;
-export using ℂ = ComplexSet;
 
-export inline constexpr ℂ C{};
+/** @brief The canonical complex-number universe ℂ =
+ * Ω<Complex<machine_real_scalar>, ClassicalLogic, ℶ_1> (post-#559).
+ *
+ *  @details Per #559's chosen direction (option A): the named species
+ *  symbols denote @b universe values (constexpr instances of
+ *  @c UniversalSet over the carrier), not classifier-alias types.  At
+ *  this slice's snapshot, @c 𝔹, @c ℕ, @c ℤ, @c ℚ, @c ℝ, and (with this
+ *  commit) @c ℂ have completed the migration; @c 𝔻 is still exported
+ *  as a classifier alias and is tracked under #559 for follow-up via
+ *  the @c quotient operator (#567), since 𝔻 is the textbook quotient
+ *  construction 𝔻 = ℝ[ε]/(ε²).
+ *
+ *  The carrier of @c ℂ is @c Complex<machine_real_scalar> directly;
+ *  the classifier (multi-overload cross-carrier @c operator() that
+ *  delegates ℝ-side arguments through @c embed_ℝ_ℂ and lands non-
+ *  parent ancestors via @c RealsOf<>) is reachable via @c ComplexSet
+ *  @c = @c ComplexesOf<>.
+ *
+ *  Cardinality is set explicitly to @c ℶ_1 (continuum) — the textbook
+ *  cardinality of ℂ, matching ℝ — overriding the @c Ω<...> variable
+ *  template's @c ℵ_0 default.  ℂ is in bijection with ℝ × ℝ and
+ *  therefore shares ℝ's continuum cardinality.
+ *
+ *  Pre-#559 the spelling was @c using @c ℂ @c = @c ComplexSet (the
+ *  classifier alias); type-context sites in concept gates and member
+ *  extractions (@c typename @c ℂ::Domain etc.) were migrated to
+ *  @c ComplexesOf<> directly in step 1 of this slice.
+ *
+ *  Textbook construction: ℂ = ℝ[i]/(i²+1) — observable via the
+ *  @c quotient operator from @c sets:quotient (the same DSL primitive
+ *  ℚ rides on under #567).  The 𝔻 follow-up (𝔻 = ℝ[ε]/(ε²)) lands
+ *  next under the same operator surface.
+ */
+export inline constexpr auto ℂ =
+    dedekind::sets::Ω<Complex<machine_real_scalar>, ClassicalLogic, ℶ_1>;
+
+static_assert(
+    std::same_as<std::remove_cvref_t<decltype(ℂ)>,
+                 dedekind::sets::UniversalSet<Complex<machine_real_scalar>,
+                                              ClassicalLogic, ℶ_1>>,
+    "ℂ is the universe Ω<Complex<machine_real_scalar>, ClassicalLogic, ℶ_1> "
+    "(post-#559).");
+static_assert(std::same_as<typename std::remove_cvref_t<decltype(ℂ)>::Domain,
+                           Complex<machine_real_scalar>>,
+              "ℂ's underlying carrier IS Complex<machine_real_scalar>.");
+
+export inline constexpr ComplexSet C{};
 
 }  // namespace dedekind::numbers
 

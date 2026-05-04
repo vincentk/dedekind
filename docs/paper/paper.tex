@@ -2135,16 +2135,16 @@ exported function to a single \cppinline{ret i1 true}.
 \label{lst:showcase02_src}
 \begin{cpp}
 
-constexpr auto c = var<ℂ>;
+constexpr auto c = element<ℂ>;
 
 constexpr auto natural_lattice_in_c =
-    Set{c % C | [](const Complex<double>& z) {
+    Set{c |[](const Complex<double>& z) {
       return is_integral_coordinate(z.real()) &&
              is_integral_coordinate(z.imag()) &&
              (z.real() >= 0.0) && (z.real() <= 3.0) &&
              (z.imag() >= 0.0) && (z.imag() <= 3.0);
     }};
-constexpr auto square_c1_c2 = Set{c % C | [](const Complex<double>& z) {
+constexpr auto square_c1_c2 = Set{c |[](const Complex<double>& z) {
   return (z.real() >= 0.5) && (z.real() <= 1.5) &&
          (z.imag() >= 0.5) && (z.imag() <= 1.5);
 }};

@@ -59,10 +59,9 @@ TEST_CASE("Pruning showcase 1: diagonal × strip on ℝ² is empty",
 namespace {
 
 // Shared with showcase 2 (ℂ lattice × square singleton).
-// FIXME(#399 slice 4-6): once ℂ becomes a carrier alias, switch to
-// @c element<Ω<ℂ>>; for now ℂ is still the predicate-set type, so we
-// spell the carrier directly.
-constexpr auto c = element<Ω<Complex<double>>>;
+// Post-#559: ℂ is the universe value Ω<Complex<machine_real_scalar>,
+// ClassicalLogic, ℶ_1>, so the canonical scout spelling is element<ℂ>.
+constexpr auto c = element<ℂ>;
 
 constexpr bool is_integral_coordinate(double x) {
   const int xi = static_cast<int>(x);
