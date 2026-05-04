@@ -211,7 +211,7 @@ The concrete carriers a programming language offers violate those laws condition
 sets must fit into memory or cache, functions may throw runtime exceptions or return \cppinline{null};
 a 32-bit signed \cppinline{int} is not an additive group (overflow, \cppinline{INT_MIN} has no
 negation), an IEEE~754 \cppinline{double}~\cite{ieee754_2019} may overflow, underflow, be \cppinline{NaN},
-and is  not associative under addition in the bit-perfect sense.
+and is not associative under addition in the bit-perfect sense.
 The options are then to 
 i) ignore the divergence and try to mitigate or silence bugs on specific inputs,
 ii) police it at runtime, or 
