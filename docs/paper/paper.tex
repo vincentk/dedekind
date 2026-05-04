@@ -651,7 +651,7 @@ concept IsFunctor = IsArrow<F> && requires {
 \end{listing}
 
 \begin{listing}[ht]
-\caption{A worked functor instance (Maybe), abridged from \texttt{dedekind.category:functor}.  The functorial obligation lives in the \emph{hub} type \cppinline{maybe_functor<T>} (§\ref{sec:alg-sigma}'s hub-and-spoke convention), not in the carrier \cppinline{std::optional<T>}.  The static\_assert below is the Curry--Howard discharge that \texttt{maybe\_functor} inhabits the concept..}
+\caption{A worked functor instance (Maybe), abridged from \texttt{dedekind.category:functor}.  The functorial obligation lives in the \emph{hub} type \cppinline{maybe_functor<T>} (§\ref{sec:alg-sigma}'s hub-and-spoke convention), not in the carrier \cppinline{std::optional<T>}.  The static\_assert below is the Curry--Howard discharge that \texttt{maybe\_functor} inhabits the concept.}
 \label{lst:maybe_functor}
 \begin{cpp}
 // The optional-value Maybe functor: Set<T> -> Set<std::optional<T>>.
