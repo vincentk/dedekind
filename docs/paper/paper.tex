@@ -207,7 +207,7 @@ programming language faces a recurring tension.
 Algebraic structures---groups,
 rings, fields, vector spaces---are defined in the abstract by laws which are hard to enforce: associativity,
 commutativity, identities, inverses, closure, totality and many more.
-The concrete carriers a programming language offers violate those laws conditionally, sometimes silently:
+The concrete carriers\footnote{We use ``carrier'' loosely throughout to mean the C++ type $\mathrm{T}$ that realises both the underlying set of a $\Sigma$-algebra and the operator-shape concept fired against it.  In strict universal algebra (Burris--Sankappanavar~\cite{burris1981universalalgebra}), \emph{carrier} names only the underlying set $A$, not the algebra $(A, \Sigma_A)$; our usage matches the engineering idiom in which ``the carrier type'' indexes both --- a sentence like ``the carrier $\mathbb{Z}$ is closed under additive inverse'' is a claim about $(\mathbb{Z}, +, -)$ as a $\Sigma$-algebra, not about the bare set.  Section~\ref{sec:alg-sigma} makes the layering precise.} a programming language offers violate those laws conditionally, sometimes silently:
 sets must fit into memory or cache, functions may throw runtime exceptions or return \cppinline{nullptr};
 a 32-bit signed \cppinline{int} is not an additive group (overflow, \cppinline{INT_MIN} has no
 negation), an IEEE~754 \cppinline{double}~\cite{ieee754_2019} may overflow, underflow, be \cppinline{NaN},
