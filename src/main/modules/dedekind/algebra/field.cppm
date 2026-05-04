@@ -39,7 +39,7 @@
 module;
 
 #include <functional>  // for std::plus, std::multiplies, std::bit_xor, std::bit_and
-#include <type_traits> // for std::is_arithmetic_v (HasFieldOperators std-library analog)
+#include <type_traits>  // for std::is_arithmetic_v (HasFieldOperators std-library analog)
 
 export module dedekind.algebra:field;
 
