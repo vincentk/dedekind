@@ -205,67 +205,82 @@ differentiation.
 A software developer who wants to expose mathematical abstractions in a
 programming language faces a recurring tension.
 Algebraic structures---groups,
-rings, fields, vector spaces---are defined in the abstract by laws which are hard to enforce to say the least: associativity,
+rings, fields, vector spaces---are defined in the abstract by laws which are hard to enforce: associativity,
 commutativity, identities, inverses, closure, totality and many more.
 The concrete carriers a programming language offers violate those laws conditionally, sometimes silently:
-sets must fit into memory, functions may throw runtime exceptions or return \texttt{null};
-a 32-bit signed \texttt{int} is not an additive group (overflow, \texttt{INT\_MIN} has no
-negation), an IEEE~754 \texttt{double}~\cite{ieee754_2019} may overflow, underflow, be \texttt{NaN},
-and is definitely not associative under addition in the bit-perfect sense.
-The library author's options are to ignore the divergence and try to mitigate or silence bugs on specific inputs,
-police it at runtime, or encode it in the software build process so the build system can police and
-maybe exploit it.
-In real life, the pragmatic choice is often to just define an array of \texttt{double}, call it a tensor and get on with life.
-This paper however is about what happens when a library implemented \emph{in a mainstream programming language} takes the third
-option seriously and consistently attempts to opt for mathematical rigor and build-time constraints as opposed to playing it fast and loose and risking runtime errors.
+sets must fit into memory or cache, functions may throw runtime exceptions or return \cppinline{null};
+a 32-bit signed \cppinline{int} is not an additive group (overflow, \cppinline{INT\_MIN} has no
+negation), an IEEE~754 \cppinline{double}~\cite{ieee754_2019} may overflow, underflow, be \cppinline{NaN},
+and is  not associative under addition in the bit-perfect sense.
+The options are then to 
+i) ignore the divergence and try to mitigate or silence bugs on specific inputs,
+ii) police it at runtime, or 
+iii) encode it in the software build process so the build system can police and maybe exploit it.
+In real life, the pragmatic choice is often the first one: the programmer defines a \cppinline{double[][]}, calls it a tensor and gets on with life.
 
-The challenge is understood to be open-ended and ambitious and so the process being adopted to implement this library must be simple, robust almost to the point of being mechanical and easy to validate at each step.
-Loosely speaking and in one paragraph: where the nLab~\cite{nlab:nlab} attempts to categorify physics and summarise the results in a wiki, this library aims to take that output as axiomatic and translate it into a mainstream programming language.
-If the compiler accepts those axioms, then the compiler should also be able to validate (or, by way of the Curry--Howard correspondence, perhaps even derive) the corresponding theorems~\cite{wadler2015propositions}.
+Here, we wish to explore and report what might happen when a library implemented \emph{in a mainstream systems programming language} takes the third
+option seriously and consistently defaults to mathematical rigor and build-time constraints as opposed to risking runtime errors.
+Will we be able to explain to the type system that an inner product of two vectors is a scalar while the outer product is a matrix of rank 1?
+Will it recognize that the intersection of a set of integers with a set of real numbers must return a subset of the integers?
+Will it be possible to design a system that can switch between symbolic operations on intensional concepts such as transfinite sets and extensional properties or is symbolic algebra a capability that will remain locked away in languages which are somehow more expressive?
+What happens if, either by accident or because of inherent complexity, neither the compiler nor the programmer can come up with the answer in a sufficiently short period of time? Is it possible to design escape hatches when the limits of computability are fast approaching?
+
+Turing showed us a long time ago that determining the limits of computability up-front is not achievable \emph{in the general case} and so we can anticipate the outcome: a hopefully growing collection of \emph{existential proofs} that facilitate computation where we know it to be feasible.
+To make the approach tractable in this context, what we hope for is the following: 
+\begin{enumerate}
+\item find sources of validated \emph{existing proofs},
+\item translate them to the best of our abilities into a suitable host type system,
+\item validate the translation by checking that the corresponding theorems now hold in the host type system,
+\item go to step 1.
+\end{enumerate}
+robust almost to the point of being mechanical and easy to validate at each step.
+By analogy and in somewhat loose language: where the nLab~\cite{nlab:nlab} attempts to categorify physics and summarise the results in a wiki, this library aims to take that wiki and translate it as faithfully as we can into a mainstream programming language.
+If the compiler accepts those axioms, then the compiler should also be able to validate or sometimes even derive the corresponding theorems~\cite{wadler2015propositions}.
 
 \begin{figure}[htbp]
 \centering
-\scalebox{1.5}{%
 \begin{tikzcd}[column sep=huge, row sep=large, ampersand replacement=\&]
 \mathbf{Cat} \arrow[r, shift left=2, "\text{interpret}"] \&
 \texttt{dedekind} \arrow[l, shift left=2, "\text{cite}"] \arrow[r, shift left=2, "\text{instantiate}"] \&
 \mathbf{Cpp} \arrow[l, shift left=2, "\text{verify}"]
-\end{tikzcd}}
-\caption{The overarching goal.  \texttt{dedekind} aims at being a faithful-functor bridge between $\mathbf{Cat}$ (mathematical structure, axiomatically defined) and $\mathbf{Cpp}$ (a Cartesian-closed-category fragment of C++23 where structure must be type-carried; §\ref{sec:axiomatic}).  Math $\to$ library: an interpretation functor maps an axiomatic species (a ring, a vector space, a topos primitive) to a corresponding \texttt{dedekind} concept / trait / module.  Library $\to$ math: the library's declarations cite the underlying axiomatic source so the lifted structure has a textbook anchor.  Library $\to$ C++: the library instantiates concrete carriers (\cppinline{Rational<long>}, \cppinline{Vec2V<T>}, \dots) under the named structure.  C++ $\to$ library: the compiler checks each carrier via \cppinline{static_assert} and concept-constraint discharge --- the propositional-fragment instance of the Curry--Howard--Lambek correspondence~\cite{lambek1988introduction,wadler2015propositions}.  The bridge is \emph{intended} as a faithful functor, not as an isomorphism: $\mathbf{Cpp}$ is constrained by computability (Church--Turing), so only a sliver of $\mathbf{Cat}$ is realised, and faithfulness is the architectural target rather than a single global theorem --- each concrete carrier's \cppinline{static_assert} discharge is a partial inhabitant of the meta-claim, accumulating evidence rather than proving it.}
+\end{tikzcd}
+\caption{The overarching goal.  \texttt{dedekind} aims at being a faithful intermediary between $\mathbf{Cat}$ (mathematical structure, axiomatically defined) and $\mathbf{Cpp}$ (a fragment of C++23 where structure must be type-carried; §\ref{sec:axiomatic}).
+Math $\to$ library: an interpretation maps a species (a ring, a vector space, a topos primitive) to a corresponding \texttt{dedekind} concept / trait / module.
+Library $\to$ math: the library's declarations cite the underlying axiomatic source so the resulting concept has a textbook anchor.
+Library $\to$ C++: the library instantiates concrete carriers (\cppinline{Rational<long>}, \cppinline{Vec2V<T>}, \dots) under the named structure.
+C++ $\to$ library: the compiler checks each carrier via \cppinline{static_assert} and concept-constraint discharge --- the propositional-fragment instance of the Curry--Howard--Lambek correspondence~\cite{lambek1988introduction,wadler2015propositions}.
+}
 \label{fig:dedekind-bridge}
 \end{figure}
 
 Figure~\ref{fig:dedekind-bridge} sketches the picture: \texttt{dedekind} sits in the middle and does the translation work in both directions.
 Math goes one way; C++ comes back.
-The claim is bounded --- only the part of mathematics that fits the disciplined fragment of C++23 is realised, and even then we make no global claim of having proved the realisation faithful --- but on each concrete carrier the discharge is mechanical, and the architecture is set up so the evidence accumulates in a single direction.\footnote{The precise framing is that \texttt{dedekind} \emph{aims at} a faithful interpretation functor $\mathcal{F}: \mathbf{Cat} \to \mathbf{Cpp}$, where $\mathbf{Cpp}$ is the disciplined-C++23 fragment modelled as a Cartesian-closed category (Mac Lane~\cite{maclane1971categories} for the categorical machinery; Pierce~\cite{pierce2002tapl} §29 for the propositional-fragment-as-typing-derivation reading; Lambek--Scott~\cite{lambek1988introduction} for the CCC $\leftrightarrow$ STLC equivalence; Wadler~\cite{wadler2015propositions} for the propositions-as-types reading at the type level).  $\mathcal{F}$ sends axiomatic species to types, predicates to \cppinline{concept}s, and laws to \cppinline{static_assert} obligations discharged by the type checker.  Faithfulness here is the \emph{architectural target}, not a globally proven theorem: each concrete carrier's discharge is a partial inhabitant of the meta-claim, and the partition DAG plus the trait registry is the structure under which those partial inhabitants compose.  Two reasons we cannot promote this to a single global proof: $\mathbf{Cpp}$'s objects are constrained to the computable (Church--Turing), so $\mathcal{F}$ is not surjective on $\mathbf{Cat}$; and the C++ language outside the disciplined fragment admits escape hatches (cf.\ §\ref{sec:axiomatic}) whose absence in any given carrier is reviewed by humans and by CI rather than mechanically certified end-to-end.  ``Aim at, not assert'' is the honest claim; the paper's contribution is the architecture under which the evidence accumulates, plus the showcases that make accumulation visible.}
+The claim is bounded --- only the part of mathematics that fits a disciplined fragment of C++23 is realised, and even then we make no global claim of having proved the realisation faithful.
+But on each concrete carrier the discharge is mechanical, and the architecture is set up so the evidence accumulates in a single direction.\footnote{The precise framing is that \texttt{dedekind} \emph{aims at} a faithful interpretation functor $\mathcal{F}: \mathbf{Cat} \to \mathbf{Cpp}$, where $\mathbf{Cpp}$ is the disciplined-C++23 fragment modelled as a Cartesian-closed category (Mac Lane~\cite{maclane1971categories} for the categorical machinery; Pierce~\cite{pierce2002tapl} §29 for the propositional-fragment-as-typing-derivation reading; Lambek--Scott~\cite{lambek1988introduction} for the CCC $\leftrightarrow$ STLC equivalence; Wadler~\cite{wadler2015propositions} for the propositions-as-types reading at the type level).  $\mathcal{F}$ sends axiomatic species to types, predicates to \cppinline{concept}s, and laws to \cppinline{static_assert} obligations discharged by the type checker.  Faithfulness here is the \emph{architectural target}, not a globally proven theorem: each concrete carrier's discharge is a partial inhabitant of the meta-claim, and the partition DAG plus the trait registry is the structure under which those partial inhabitants compose.  Two reasons we cannot promote this to a single global proof: $\mathbf{Cpp}$'s objects are constrained to the computable (Church--Turing), so $\mathcal{F}$ is not surjective on $\mathbf{Cat}$; and the C++ language outside the disciplined fragment admits escape hatches (cf.\ §\ref{sec:axiomatic}) whose absence in any given carrier is reviewed by humans and by CI rather than mechanically certified end-to-end.  ``Aim at, not assert'' is the honest claim; the paper's contribution is the architecture under which the evidence accumulates, plus the showcases that make accumulation visible.}
 
-The choice of anchoring the library's domain in category theory on the mathematical side is neither new nor arbitrary and follows a well-trodden path.
-The authoritative textbook in the context of programming might be \emph{Types and Programming Languages}~\cite{pierce2002tapl}.
-
-The appeal of category theory in programming-language research should be obvious: a minimalist type checker does not need to do much more than check whether the output of one function matches the input of another.
-A ``sufficiently smart'' optimising compiler might know a fair amount about commutation rules and re-write the arrows in a sensible way.
-
+The choice of anchoring the library's domain in category theory on the mathematical side follows a well-trodden path~\cite{pierce2002tapl}.
+Here, a minimalist type checker does not need to do much more than confirm whether the output of one function matches the input of another (morphism composition).
+Re-write rules (e.g. natural transformations) and optimization enter the picture at a later stage.
 Once this basic rapport is established, one can build out the path to
 \begin{enumerate}
-\item Cartesian-closed categories~\cite{lambek1988introduction} (in a sense, a generalisation of sets equipped with the simply-typed $\lambda$-calculus~\cite{lambek1988introduction}),
-\item the elementary theory of the category of sets (ETCS, the Siamese twin of conventional ZF set theory)~\cite{lawvere1964etcs}, and
+\item cartesian-closed categories~\cite{lambek1988introduction} giving rise to a simply-typed $\lambda$-calculus~\cite{lambek1988introduction} on sets,
+\item the elementary theory of the category of sets (ETCS)~\cite{lawvere1964etcs}, and
 \item universal algebra and abstract algebra~\cite{burris1981universalalgebra,lang2002algebra}.
 \end{enumerate}
 
-If the goal is to define a domain specific language embedded in a pre-existing host language, then the approach requires a type system strong enough to name algebraic
+By contrast, if the goal is to define an embedded domain specific language (a library), then the approach requires a language with a type system strong enough to name algebraic
 structure and to discriminate between carriers that claim to satisfy a law and
-those that do not. Haskell type classes~\cite{GHC2024} and
+those that do not.
+Haskell type classes~\cite{GHC2024} and
 dependently-typed languages such as Coq and Agda~\cite{norell2007towards}
-demonstrate the expressiveness; but both impose runtime or toolchain costs
-that are hard to justify when the library's consumers are writing systems
-code.
-In general: the bigger and more demanding the runtime, the more it will compete for resources and trigger compatibility issues with other runtimes.
+demonstrate the expressiveness.
+Both impose runtime or toolchain costs that are hard to justify when the library's consumers are writing systems code.
 
-If one wants to target a programming environment that imposes no extra runtime requirements above and beyond the host system's natively supported features, it becomes interesting to look at systems programming languages where the runtime is exactly the one provided for by the host system.
+By contrast, if one wants to target a programming environment that imposes no extra runtime requirements above and beyond the host system's natively supported features, it becomes interesting to look at systems programming languages where the runtime is exactly the one provided for by the host system.
 One such language is C++23~\cite{cpp23standard}, which increasingly offers a pragmatic middle ground:
-\texttt{module}s enforce a strict directed-acyclic build graph,
-\texttt{consteval} and \texttt{constexpr} allow for a fair amount of compile-time logic,
-\texttt{concept}s are compile-time structural checks, and
+\cppinline{module}s enforce a strict directed-acyclic build graph,
+\cppinline{consteval} and \cppinline{constexpr} allow for a fair amount of compile-time logic,
+\cppinline{concept}s are compile-time structural checks, and
 \emph{non-type template parameters} (NTTPs---template arguments that are values, not
 types) let compile-time constants or derived compile-time data appear in type
 signatures.
