@@ -595,13 +595,6 @@ static_assert(IsCommutativeRing<default_integer,
                                 std::plus<default_integer>,
                                 std::multiplies<default_integer>>);
 
-// ℚ = Rational<I>: the bona fide field of fractions Frac(ℤ).
-// Exact arithmetic on the (numerator, denominator) pair — associativity,
-// distributivity, and the field axioms hold by construction.  The
-// literal field-operator surface (+, -, unary -, *, /, T{1}) closes
-// mechanically on Rational<default_integer>.
-static_assert(HasFieldOperators<Rational<default_integer>>);
-
 // int satisfies the ring operator surface (the four arithmetic
 // operators close on int) but fails associativity under signed-overflow
 // UB.  The strict axiomatic concepts refuse int at the gate.
