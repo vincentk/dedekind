@@ -733,11 +733,31 @@ inline constexpr auto embed_double_ℚ =
  * provides canonical-representative semantics (@c simplify normalises
  * via gcd; equality cross-multiplies --- exactly what the equivalence
  * relation specifies).
+ *
+ * @section rational__CrossMultEquiv_Total_Closure
+ * The textbook relation @c a*d @c == @c b*c is an equivalence relation
+ * on @c ℤ @c × @c ℤ_≠0 but @b not on the full @c std::pair<I, I> domain
+ * once zero second components are admitted: e.g.\ @c (1, @c 0) @c ~ @c
+ * (0, @c 0) and @c (0, @c 0) @c ~ @c (0, @c 1) but @c (1, @c 0) @c ≁
+ * @c (0, @c 1).  The trait registry that powers
+ * @c IsEquivalenceRelation is keyed on the relation type alone (not on
+ * a sub-domain), so for the trait to be honestly assertable on the
+ * full pair domain we close the relation to be the identity outside
+ * @c ℤ_≠0 on either side: pairs with a zero second component are only
+ * equivalent to themselves.  This preserves the textbook semantics on
+ * the intended subdomain (the @c quotient operator's @c Pairs argument
+ * is the @c cartesian_product with denominators filtered to non-zero,
+ * so the additional clause never fires in production use) while making
+ * the trait registration totally transitive — the engineer's honesty
+ * obligation lands.
  */
 export template <IsInteger I = default_integer>
 struct CrossMultEquiv {
   template <typename Pair>
   constexpr bool operator()(const Pair& p, const Pair& q) const {
+    if (p.second == I{0} || q.second == I{0}) {
+      return p.first == q.first && p.second == q.second;
+    }
     return p.first * q.second == p.second * q.first;
   }
 };
@@ -745,13 +765,16 @@ struct CrossMultEquiv {
 }  // namespace dedekind::numbers
 
 // Register CrossMultEquiv<I> with the upstream @c category:cartesian
-// equivalence-relation trait surface.  Cross-multiplication on
-// std::pair<I, I> with I an IsInteger is a textbook equivalence
-// relation: reflexive (a*b == b*a), symmetric (a*d == b*c <=> c*b == d*a),
-// transitive (a*d == b*c and c*f == d*e imply a*f == b*e for nonzero d).
-// Opting into all three traits lets @c IsEquivalenceRelation<
-// CrossMultEquiv<I>, std::pair<I, I>> fire, which is what the
-// @c quotient operator's requires-clause consumes.
+// equivalence-relation trait surface.  With the identity-closure on
+// zero-second-component pairs (see CrossMultEquiv_Total_Closure
+// above), the relation is reflexive (a*b == b*a; identity on zero-
+// denom pairs), symmetric (cross-mult is symmetric under pair swap;
+// identity is symmetric), and transitive on the full std::pair<I, I>
+// domain (on the nonzero-denom subdomain via standard cross-mult
+// transitivity; outside it via the identity branch).  Opting into all
+// three traits lets @c IsEquivalenceRelation<CrossMultEquiv<I>,
+// std::pair<I, I>> fire honestly on the full domain, which is what
+// the @c quotient operator's requires-clause consumes.
 namespace dedekind::category {
 template <dedekind::numbers::IsInteger I>
 inline constexpr bool

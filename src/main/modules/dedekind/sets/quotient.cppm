@@ -15,14 +15,14 @@
  *
  * The motivating exhibit is the textbook ℚ = (ℤ × ℤ_≠0) / ~ construction:
  *
- *     constexpr auto numerators   = ℤ;
+ *     constexpr auto numerators = ℤ;
  *     constexpr auto z = element<ℤ>;
  *     // BoundScout has no scalar `!=` lift; use !(== 0) via lambda.
  *     constexpr auto denominators =
  *         Set{z | [](const I& v) { return !(v == I{0}); }};
- *     constexpr auto pairs        = cartesian_product(numerators,
- * denominators); constexpr auto cross_mult   = CrossMultEquiv<I>{}; constexpr
- * auto ℚ_constructed = quotient(pairs, cross_mult);
+ *     constexpr auto pairs = cartesian_product(numerators, denominators);
+ *     constexpr auto cross_mult = CrossMultEquiv<I>{};
+ *     constexpr auto ℚ_constructed = quotient(pairs, cross_mult);
  *     static_assert(std::same_as<typename decltype(ℚ_constructed)::Domain,
  *                                Rational<I>>);
  *
