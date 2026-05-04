@@ -716,6 +716,106 @@ inline constexpr auto embed_double_ℚ =
       }
     });
 
+/** @section rational__Quotient_Construction (#567)
+ *
+ * The textbook construction ℚ = (ℤ × ℤ_≠0) / ~ is observable in code
+ * via the @c quotient operator from @c sets:quotient (see #567).  The
+ * equivalence relation is cross-multiplication: @c (a, @c b) @c ~ @c
+ * (c, @c d) iff @c a*d @c == @c b*c.  The carrier inhabiting the
+ * quotient is @c Rational<I>; this is registered via a specialisation
+ * of @c quotient_carrier in the @c dedekind::sets namespace below.
+ *
+ * The structural claim the artefact delivers is the @b type identity:
+ *   @c decltype(quotient(pairs, CrossMultEquiv<I>{}))::Domain @c ==
+ *   @c Rational<I>
+ * --- the textbook construction's Domain is the carrier we already use
+ * for ℚ.  No new carrier is introduced; the existing @c Rational<I>
+ * provides canonical-representative semantics (@c simplify normalises
+ * via gcd; equality cross-multiplies --- exactly what the equivalence
+ * relation specifies).
+ *
+ * @section rational__CrossMultEquiv_Total_Closure
+ * The textbook relation @c a*d @c == @c b*c is an equivalence relation
+ * on @c ℤ @c × @c ℤ_≠0 but @b not on the full @c std::pair<I, I> domain
+ * once zero second components are admitted: e.g.\ @c (1, @c 0) @c ~ @c
+ * (0, @c 0) and @c (0, @c 0) @c ~ @c (0, @c 1) but @c (1, @c 0) @c ≁
+ * @c (0, @c 1).  The trait registry that powers
+ * @c IsEquivalenceRelation is keyed on the relation type alone (not on
+ * a sub-domain), so for the trait to be honestly assertable on the
+ * full pair domain we close the relation to be the identity outside
+ * @c ℤ_≠0 on either side: pairs with a zero second component are only
+ * equivalent to themselves.  This preserves the textbook semantics on
+ * the intended subdomain (the @c quotient operator's @c Pairs argument
+ * is the @c cartesian_product with denominators filtered to non-zero,
+ * so the additional clause never fires in production use) while making
+ * the trait registration totally transitive — the engineer's honesty
+ * obligation lands.
+ */
+export template <IsInteger I = default_integer>
+struct CrossMultEquiv {
+  template <typename Pair>
+  constexpr bool operator()(const Pair& p, const Pair& q) const {
+    if (p.second == I{0} || q.second == I{0}) {
+      return p.first == q.first && p.second == q.second;
+    }
+    return p.first * q.second == p.second * q.first;
+  }
+};
+
+}  // namespace dedekind::numbers
+
+// Register CrossMultEquiv<I> with the upstream @c category:cartesian
+// equivalence-relation trait surface.  With the identity-closure on
+// zero-second-component pairs (see CrossMultEquiv_Total_Closure
+// above), the relation is reflexive (a*b == b*a; identity on zero-
+// denom pairs), symmetric (cross-mult is symmetric under pair swap;
+// identity is symmetric), and transitive on the full std::pair<I, I>
+// domain (on the nonzero-denom subdomain via standard cross-mult
+// transitivity; outside it via the identity branch).  Opting into all
+// three traits lets @c IsEquivalenceRelation<CrossMultEquiv<I>,
+// std::pair<I, I>> fire honestly on the full domain, which is what
+// the @c quotient operator's requires-clause consumes.
+namespace dedekind::category {
+template <dedekind::numbers::IsInteger I>
+inline constexpr bool
+    is_reflexive_relation_v<dedekind::numbers::CrossMultEquiv<I>> = true;
+template <dedekind::numbers::IsInteger I>
+inline constexpr bool
+    is_symmetric_relation_v<dedekind::numbers::CrossMultEquiv<I>> = true;
+template <dedekind::numbers::IsInteger I>
+inline constexpr bool
+    is_transitive_relation_v<dedekind::numbers::CrossMultEquiv<I>> = true;
+}  // namespace dedekind::category
+
+// Register the ℚ quotient_carrier specialisation.  This lives in the
+// @c dedekind::sets namespace where the primary template was declared;
+// the specialisation references types from @c dedekind::numbers, which
+// is fine.
+namespace dedekind::sets {
+export template <dedekind::numbers::IsInteger I>
+struct quotient_carrier<std::pair<I, I>, dedekind::numbers::CrossMultEquiv<I>> {
+  using type = dedekind::numbers::Rational<I>;
+};
+}  // namespace dedekind::sets
+
+// Static-assert exhibits: the trait-registration above lets the upstream
+// IsBinaryRelation / IsEquivalenceRelation concepts fire on CrossMultEquiv,
+// which is the contract the @c sets:quotient operator's requires-clause
+// consumes.
+namespace dedekind::numbers {
+static_assert(
+    dedekind::category::IsBinaryRelation<
+        CrossMultEquiv<default_integer>,
+        std::pair<default_integer, default_integer>,
+        std::pair<default_integer, default_integer>>,
+    "CrossMultEquiv is a binary relation (callable on pairs, returns bool).");
+static_assert(
+    dedekind::category::IsEquivalenceRelation<
+        CrossMultEquiv<default_integer>,
+        std::pair<default_integer, default_integer>>,
+    "CrossMultEquiv is an equivalence relation (reflexive + symmetric + "
+    "transitive) on pairs of default_integer — the upstream axiom the "
+    "sets:quotient operator's requires-clause consumes.");
 }  // namespace dedekind::numbers
 
 namespace dedekind::category {
