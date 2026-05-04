@@ -376,7 +376,7 @@ struct RealsOf {
 export using RealSet = RealsOf<>;
 export using ℝ = RealSet;
 
-export inline constexpr ℝ R{};
+export inline constexpr RealsOf<> R{};
 
 }  // namespace dedekind::numbers
 
