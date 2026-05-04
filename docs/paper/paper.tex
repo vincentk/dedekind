@@ -155,20 +155,14 @@ scaffolding, turning what was an academic specialism into an
 actionable workflow for working software engineers.
 The meta-claim is not ours to originate; we make it here so the body's executable exhibit can be read in that light.
 
-\noindent A subsidiary observation we offer alongside: working in the disciplined subset of C++23 the paper develops carries a striking resemblance, by structural analogy (§\ref{sec:jlt}), to using \texttt{clang++} as a System~F type-checker, with optimised machine code emerging as a side effect rather than from a separate compilation step.  We name the resemblance because the body's exhibits invite it; a formal correspondence is not in scope.
-\end{abstract}
-
-\tableofcontents
-
-\medskip
-\noindent We present \texttt{dedekind}~\cite{dedekind2026}, an
+We present \texttt{dedekind}~\cite{dedekind2026}, an
 open-source C++23 library (Apache-2.0), as that exhibit. It embeds
 formal set-theoretic and categorical structures directly into the
 type system and targets \emph{mainstream C++23}---concepts,
 non-type template parameters, named modules---rather than a research
 compiler. The design rule is \emph{intensional first, realize when
 you mean it}: a set is represented as a predicate $P : A \to \Omega$
-over an ambient species\footnote{We use ``species'' throughout in the universal-algebra sense of Burris--Sankappanavar~\cite{burris1981universalalgebra}, \emph{not} the Joyal sense of \emph{combinatorial} species~\cite{joyal1981species}, which is a separate category-theoretic notion concerning labelled-structure functors $\mathbf{B} \to \mathbf{Set}$.  The two readings share a name and nothing else.} $A$, not as a heap-allocated container, with
+over an ambient carrier type $A$, not as a heap-allocated container, with
 two practical consequences:
 \begin{itemize}
   \item Set operations (intersection, complement, union) compose as
@@ -188,8 +182,12 @@ linear-programming instance that reduces at compile time to its
 optimal vertex as a typed constant; the same reduction over a
 dual-number ring additionally recovers forward-mode automatic
 differentiation~\cite{elliott2018simple} as a sibling compile-time
-collapse, and the discipline extends to a Fundamental Theorem of
-Calculus (Part~II) discharged inside a \cppinline{static_assert}.
+collapse.
+
+\noindent A subsidiary observation we offer alongside: working in the disciplined subset of C++23 the paper develops carries a striking resemblance, by structural analogy (§\ref{sec:jlt}), to using \texttt{clang++} as a System~F type-checker, with optimised machine code emerging as a side effect rather than from a separate compilation step.  We name the resemblance because the body's exhibits invite it; a formal correspondence is not in scope.
+\end{abstract}
+
+\tableofcontents
 
 \vspace{0.75em}
 \noindent\textbf{Keywords:} C++23; concepts; non-type template
