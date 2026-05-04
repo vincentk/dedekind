@@ -560,7 +560,7 @@ The intersection is small and that is the point.
 $\mathbf{Ddk}$ ships with a few carriers certified safe by default but refuses many other things at the gate.
 One safe carrier is $\mathbb{B}$ as the Galois field $\mathbb{F}_2$ (exclusive-or for addition and conjunction for multiplication). It has finite cardinality, no rounding, no overflow.
 The laws hold trivially.
-Others are  $\mathbb{N}$, $\mathbb{Z}$ $\mathbb{Q}$.
+Others are $\mathbb{N}$, $\mathbb{Z}$, $\mathbb{Q}$.
 The latter as \cppinline{Rational<I>} for any wide-enough integer carrier $I$.
 Arithmetic on $\mathbb{Q}$ is exact, so associativity, distributivity, and the field axioms hold by construction.
 \cppinline{int} satisfies \cppinline{HasRingOperators} (the four arithmetic operators close on \cppinline{int}), but signed-overflow undefined behaviour defeats associativity.
