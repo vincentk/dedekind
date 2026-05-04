@@ -619,7 +619,7 @@ The paper's $\mathbf{Mon}$-side framing is in §\ref{sec:alg-sigma}.
 
 \paragraph{Two consequences worth naming.}
 First, structural typing makes membership definable \emph{after the fact}.
-A pre-existing standard-library type such as a \cppinline{std::pair}, an \cppinline{std::ranges::view}, or a \cppinline{std::optional} becomes an inhabitant of $\mathbf{Ddk}$ the moment a \cppinline{concept} accepting it is written, with no modification to the carrier.
+A pre-existing standard-library type such as a \cppinline{std::pair} or a \cppinline{std::optional} becomes an inhabitant of $\mathbf{Ddk}$ the moment a \cppinline{concept} accepting it is written, with no modification to the carrier; likewise, a standard-library range type satisfying \cppinline{std::ranges::view} can be admitted the same way.
 Nominal-typing alternatives (declared lineage, base classes, virtual interfaces) would require carriers shipped in the C++ standard a decade ago to opt in upstream, which is impossible.
 Second, the disciplined fragment in which $\mathbf{Ddk}$ inhabits also reads as a faithful image of the simply-typed $\lambda$-calculus and System~F under Lambek--Scott~\cite{lambek1988introduction} and Pierce~\cite{pierce2002tapl}.
 This is a verification artefact rather than a flow-relevant claim, but worth naming for the reader who wants to chase the bridge.
