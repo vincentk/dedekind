@@ -55,7 +55,7 @@ export import :rational;    // Rational<default_integer> (The Quotient Field)
 export import :complex;     // ℂ (The Cayley-Dickson construction)
 export import :quaternion;  // ℍ (Hamilton's division ring)
 export import :scalars;     // Floating-point anchors
-export import :lattice;     // Lattices over ℝ and ℂ
+export import :lattice;     // Lattices over RealsOf<> and ℂ
 export import :mandelbrot;  // Mandelbrot recurrence/orbit helpers
 
 /** @section numbers__Non_Standard_Analysis */
@@ -64,8 +64,11 @@ export import :mandelbrot;  // Mandelbrot recurrence/orbit helpers
 // (:ftc, :forms, :hamilton) live in :analysis.  Consumers should
 // `import dedekind.analysis;` (downstream of :numbers in the build graph)
 // to reach Dual<F> and the 𝔻 alias.
-export import :symbolic;     // Formal symbols / Indeterminates
-export import :real;         // ℝ (The Dedekind Cut / Cauchy continuum)
+export import :symbolic;  // Formal symbols / Indeterminates
+export import :real;      // ℝ (universe value Ω<Real<machine_real_scalar>,
+                          // ClassicalLogic, ℶ_1>); RealsOf<> / RealSet (the
+// cross-carrier classifier); R (classifier instance) —
+// Dedekind Cut / Cauchy continuum
 export import :cardinality;  // Draft finite/aleph0 carrier and policies
 
 /** @section numbers__Metadata */

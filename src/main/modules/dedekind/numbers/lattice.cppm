@@ -138,10 +138,10 @@ struct LatticeFactory<C, N> {
  */
 template <>
 struct LatticeFactory<R, 1> {
-  using Domain = typename ℝ::Domain;
-  using Codomain = typename ℝ::Codomain;
-  using logic_species = typename ℝ::logic_species;
-  using cardinality_type = typename ℝ::cardinality_type;
+  using Domain = typename RealsOf<>::Domain;
+  using Codomain = typename RealsOf<>::Codomain;
+  using logic_species = typename RealsOf<>::logic_species;
+  using cardinality_type = typename RealsOf<>::cardinality_type;
 
   constexpr Codomain operator()(const Domain& x) const {
     return detail::is_integral_coordinate(x.resolve()) ? logic_species::True
@@ -149,9 +149,11 @@ struct LatticeFactory<R, 1> {
   }
 
   constexpr auto bounded(int n) const {
-    // FIXME(#399 slice 4-6): once ℝ becomes a carrier alias, switch
-    // to @c element<Ω<ℝ>>; for now ℝ is still the predicate-set type.
-    auto r = element<Ω<Real<double>>>;
+    // Post-#559 ℝ is the universe value Ω<Real<machine_real_scalar>>;
+    // element<ℝ> is the canonical scout spelling.  Spelt directly with
+    // @c Real<double> here because this lattice specialisation is keyed
+    // on the @c R (classifier) value rather than the universe symbol.
+    auto r = element<ℝ>;
     return Set{r | [n](const Real<double>& x) {
       const double v = x.resolve();
       if (!detail::is_integral_coordinate(v)) return false;
@@ -169,7 +171,7 @@ struct LatticeFactory<R, N> {
   using Domain = std::array<Real<double>, N>;
   using Codomain = bool;
   using logic_species = ClassicalLogic;
-  using cardinality_type = typename ℝ::cardinality_type;
+  using cardinality_type = typename RealsOf<>::cardinality_type;
 
   constexpr Codomain operator()(const Domain& xs) const {
     for (const auto& x : xs) {
