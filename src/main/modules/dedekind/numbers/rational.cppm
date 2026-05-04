@@ -716,7 +716,44 @@ inline constexpr auto embed_double_ℚ =
       }
     });
 
+/** @section rational__Quotient_Construction (#567)
+ *
+ * The textbook construction ℚ = (ℤ × ℤ_≠0) / ~ is observable in code
+ * via the @c quotient operator from @c sets:quotient (see #567).  The
+ * equivalence relation is cross-multiplication: @c (a, @c b) @c ~ @c
+ * (c, @c d) iff @c a*d @c == @c b*c.  The carrier inhabiting the
+ * quotient is @c Rational<I>; this is registered via a specialisation
+ * of @c quotient_carrier in the @c dedekind::sets namespace below.
+ *
+ * The structural claim the artefact delivers is the @b type identity:
+ *   @c decltype(quotient(pairs, CrossMultEquiv<I>{}))::Domain @c ==
+ *   @c Rational<I>
+ * --- the textbook construction's Domain is the carrier we already use
+ * for ℚ.  No new carrier is introduced; the existing @c Rational<I>
+ * provides canonical-representative semantics (@c simplify normalises
+ * via gcd; equality cross-multiplies --- exactly what the equivalence
+ * relation specifies).
+ */
+export template <IsInteger I = default_integer>
+struct CrossMultEquiv {
+  template <typename Pair>
+  constexpr bool operator()(const Pair& p, const Pair& q) const {
+    return p.first * q.second == p.second * q.first;
+  }
+};
+
 }  // namespace dedekind::numbers
+
+// Register the ℚ quotient_carrier specialisation.  This lives in the
+// @c dedekind::sets namespace where the primary template was declared;
+// the specialisation references types from @c dedekind::numbers, which
+// is fine.
+namespace dedekind::sets {
+export template <dedekind::numbers::IsInteger I>
+struct quotient_carrier<std::pair<I, I>, dedekind::numbers::CrossMultEquiv<I>> {
+  using type = dedekind::numbers::Rational<I>;
+};
+}  // namespace dedekind::sets
 
 namespace dedekind::category {
 template <dedekind::numbers::IsInteger Z>

@@ -98,3 +98,50 @@ TEST_CASE("Numbers: starter universes satisfy lattice identities",
   // src/test/cpp/modules/dedekind/analysis/dual_test.cpp at PR #513
   // (Dual<F> relocated from :numbers to :analysis).
 }
+
+TEST_CASE(
+    "Numbers: ℚ as the textbook quotient (ℤ × ℤ_≠0) / cross-multiplication "
+    "(#567 exhibit)",
+    "[numbers][starter][quotient][exhibit]") {
+  // The textbook construction of ℚ in code, observable as a
+  // static_assert chain.  The structural claim is the *type identity*:
+  // the quotient's Domain is the carrier we already use for ℚ.
+  //
+  //   ℚ = (ℤ × ℤ_≠0) / ~,  where (a, b) ~ (c, d) iff a·d = b·c
+  //
+  // The carrier inhabiting this construction is Rational<I>; equality
+  // and canonicalisation (Rational::simplify normalising via gcd;
+  // operator== cross-multiplying) provide the equivalence-class
+  // semantics the relation specifies.
+
+  // ℤ × ℤ_≠0 — pairs of integers with nonzero second component.
+  using I = default_integer;  // SignedExtensionalCardinal<>
+  constexpr auto z = element<ℤ>;
+  constexpr auto numerators = Set{z};
+  // Use an explicit lambda for the nonzero predicate: BoundScout doesn't
+  // expose a scalar `!=` lift on the relational surface, and the C++20
+  // rewritten-comparison semantics around `!=` would otherwise trip on
+  // the universe-value side.
+  constexpr auto denominators =
+      Set{z | [](const I& v) { return !(v == I{0}); }};
+  constexpr auto pairs = cartesian_product(numerators, denominators);
+
+  // Cross-multiplication equivalence relation as a typed tag (so the
+  // quotient_carrier trait can specialise on it).
+  constexpr auto cross_mult = CrossMultEquiv<I>{};
+
+  // The textbook ℚ-from-construction.
+  constexpr auto Q_constructed = quotient(pairs, cross_mult);
+
+  // The structural claim: the quotient's Domain IS Rational<default_integer>
+  // — the carrier we already use for ℚ.  Same artefact, structurally
+  // exhibited.
+  STATIC_CHECK(
+      std::same_as<typename std::remove_cvref_t<decltype(Q_constructed)>::Domain,
+                   Rational<default_integer>>);
+
+  // And it agrees with the universe-value spelling of ℚ (post-#566):
+  STATIC_CHECK(
+      std::same_as<typename std::remove_cvref_t<decltype(Q_constructed)>::Domain,
+                   typename std::remove_cvref_t<decltype(ℚ)>::Domain>);
+}
