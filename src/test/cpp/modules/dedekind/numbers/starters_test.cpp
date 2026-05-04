@@ -136,12 +136,12 @@ TEST_CASE(
   // The structural claim: the quotient's Domain IS Rational<default_integer>
   // — the carrier we already use for ℚ.  Same artefact, structurally
   // exhibited.
-  STATIC_CHECK(
-      std::same_as<typename std::remove_cvref_t<decltype(Q_constructed)>::Domain,
-                   Rational<default_integer>>);
+  STATIC_CHECK(std::same_as<
+               typename std::remove_cvref_t<decltype(Q_constructed)>::Domain,
+               Rational<default_integer>>);
 
   // And it agrees with the universe-value spelling of ℚ (post-#566):
-  STATIC_CHECK(
-      std::same_as<typename std::remove_cvref_t<decltype(Q_constructed)>::Domain,
-                   typename std::remove_cvref_t<decltype(ℚ)>::Domain>);
+  STATIC_CHECK(std::same_as<
+               typename std::remove_cvref_t<decltype(Q_constructed)>::Domain,
+               typename std::remove_cvref_t<decltype(ℚ)>::Domain>);
 }
