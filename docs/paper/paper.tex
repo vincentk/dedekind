@@ -439,7 +439,7 @@ For the more casual reader of this text, it should be sufficient to remember tha
 In the context of \texttt{dedekind}, we further restrict our attention to a subset that most readers will be familiar with: algebraic sets, i.e. sets with algebraic operations on them.
 The Booleans $\mathbb B$ with logical operations, the integers $\mathbb Z$ with addition and subtraction and so on.
 In algebra textbook terminology: the universal-algebra category $\mathbf{Alg}(\Sigma)$~\cite{burris1981universalalgebra} for a fixed algebraic signature $\Sigma$ (a list of operation symbols with their arities).
-In functional programming terminology, this corresponds to F-algebras~\cite{pierce1991basic} $\mathbf{F-Alg}$.
+In functional programming terminology, this corresponds to $F_\Sigma$-algebras: for each signature $\Sigma$ there is a polynomial endofunctor $F_\Sigma$ on $\mathbf{Set}$, and Pierce~\cite{pierce1991basic} (§2.2) gives the isomorphism $\mathbf{Alg}(\Sigma) \cong F_\Sigma\text{-}\mathbf{Alg}$ that lets the same fragment read coherently to both audiences.
 In the language of software architecture, the picture might be described as a hub-and-spoke layout: each hub is a carrier type $\mathrm{T}$, and the spokes are the maps that compose with it.
 Operator overloads ($\mathrm{T} \times \mathrm{T} \to \mathrm{T}$), free-function actions on the carrier, trait specialisations registering structural facts about $\mathrm{T}$, and named embedding arrows $\mathrm{T} \to \mathrm{S}$ crossing to a sibling hub.
 The library lifts this pattern directly into the build graph: each named module declares one or more hubs and owns its spokes; the partition DAG is the diagram of inter-hub arrows.
@@ -458,11 +458,11 @@ Figure~\ref{fig:hub-spoke-bnz} sketches three concrete algebraic hubs ($\mathbb{
 \end{tikzcd}
 \caption{
 An example subset of $\mathbf{Alg}(\Sigma)$: the carriers $\mathbb{B}$, $\mathbb{N}$, $\mathbb{Z}$.
-Each carrier is a one-object category whose single object is the underlying set ($\{\mathrm{false}, \mathrm{true}\}$, $\{0, 1, 2, \ldots\}$, $\{\ldots, -1, 0, 1, \ldots\}$) and whose loops are the carrier's distinguished endo-operations: Boolean negation $\neg$ on $\mathbb{B}$; squaring $x \mapsto x^2$ on $\mathbb{N}$; negation $x \mapsto -x$ on $\mathbb{Z}$.
-The set's elements are not drawn separately; in this layer they live \emph{inside} the single object, exactly as in the monoidal category $\mathbf{Mon}$.
+Each carrier is a one-object category (Mac Lane~\cite{maclane1971categories} §I.1's monoid $\leftrightarrow$ one-object-category bijection) whose single object is the underlying set ($\{\mathrm{false}, \mathrm{true}\}$, $\{0, 1, 2, \ldots\}$, $\{\ldots, -1, 0, 1, \ldots\}$) and whose loops are the carrier's distinguished endo-operations: Boolean negation $\neg$ on $\mathbb{B}$; squaring $x \mapsto x^2$ on $\mathbb{N}$; negation $x \mapsto -x$ on $\mathbb{Z}$.
+The set's elements are not drawn separately; in this layer they live \emph{inside} the single object, exactly as in the category $\mathbf{Mon}$ of monoids.
 Inter-hub arrows are typed maps $\mathrm{T} \to \mathrm{S}$.
 $\mathbb{B} \rightleftarrows \mathbb{N}$: forward: $\mathfrak{i}$ the canonical embedding; reverse: the parity classifier.
-$\mathbb{N} \rightleftarrows \mathbb{Z}$: forward $x \mapsto -x$ the Grothendieck extension; reverse $x \mapsto x^2$ in reverse.
+$\mathbb{N} \rightleftarrows \mathbb{Z}$: forward $x \mapsto -x$ the negation, well-typed as $\mathbb{N} \to \mathbb{Z}$ because $\mathbb{N}$ is not closed under additive inverse (the canonical inclusion $\mathbb{N} \hookrightarrow \mathbb{Z}$ from the Grothendieck group completion of $(\mathbb{N}, +)$ is just $n \mapsto n$, not drawn); reverse $x \mapsto x^2$ in reverse.
 Most arrows on each hub and most inter-hub arrows are suppressed for clarity; the diagram shows one of each kind.
 }
 \label{fig:hub-spoke-bnz}
