@@ -205,91 +205,83 @@ differentiation.
 A software developer who wants to expose mathematical abstractions in a
 programming language faces a recurring tension.
 Algebraic structures---groups,
-rings, fields, vector spaces---are defined in the abstract by laws which are hard to enforce to say the least: associativity,
+rings, fields, vector spaces---are defined in the abstract by laws which are hard to enforce: associativity,
 commutativity, identities, inverses, closure, totality and many more.
 The concrete carriers a programming language offers violate those laws conditionally, sometimes silently:
-sets must fit into memory, functions may throw runtime exceptions or return \texttt{null};
-a 32-bit signed \texttt{int} is not an additive group (overflow, \texttt{INT\_MIN} has no
-negation), an IEEE~754 \texttt{double}~\cite{ieee754_2019} may overflow, underflow, be \texttt{NaN},
-and is definitely not associative under addition in the bit-perfect sense.
-The library author's options are to ignore the divergence and try to mitigate or silence bugs on specific inputs,
-police it at runtime, or encode it in the software build process so the build system can police and
-maybe exploit it.
-In real life, the pragmatic choice is often to just define an array of \texttt{double}, call it a tensor and get on with life.
-This paper however is about what happens when a library implemented \emph{in a mainstream programming language} takes the third
-option seriously and consistently attempts to opt for mathematical rigor and build-time constraints as opposed to playing it fast and loose and risking runtime errors.
+sets must fit into memory or cache, functions may throw runtime exceptions or return \cppinline{nullptr};
+a 32-bit signed \cppinline{int} is not an additive group (overflow, \cppinline{INT_MIN} has no
+negation), an IEEE~754 \cppinline{double}~\cite{ieee754_2019} may overflow, underflow, be \cppinline{NaN},
+and is not associative under addition in the bit-perfect sense.
+The options are then to 
+i) ignore the divergence and try to mitigate or silence bugs on specific inputs,
+ii) police it at runtime, or 
+iii) encode it in the software build process so the build system can police and maybe exploit it.
+In real life, the pragmatic choice is often the first one: the programmer defines a \cppinline{std::vector<std::vector<double>>}, calls it a tensor and gets on with life.
 
-The challenge is understood to be open-ended and ambitious and so the process being adopted to implement this library must be simple, robust almost to the point of being mechanical and easy to validate at each step.
-Loosely speaking and in one paragraph: where the nLab~\cite{nlab:nlab} attempts to categorify physics and summarise the results in a wiki, this library aims to take that output as axiomatic and translate it into a mainstream programming language.
-If the compiler accepts those axioms, then the compiler should also be able to validate (or, by way of the Curry--Howard correspondence, perhaps even derive) the corresponding theorems~\cite{wadler2015propositions}.
+Here, we explore and report what might happen if a library implemented \emph{in a mainstream systems programming language} takes the third
+option seriously and consistently defaults to mathematical rigor and build-time constraints as opposed to risking runtime errors.
+The hope being to find better answers to questions such as the following:
+Will we be able to explain to the type system that an inner product of two vectors is a scalar while the outer product is a matrix of rank 1?
+Will it recognize that the intersection of a set of integers with a set of real numbers must return a subset of the integers?
+What might the type of a function space even look like?
+Will it be possible to design a system that can switch between symbolic operations on intensional concepts such as transfinite sets and extensional properties or is symbolic algebra a capability that will remain locked away in languages which are somehow more expressive?
+What happens if, either by accident or because of inherent complexity, neither the compiler nor the programmer can come up with the answer in a sufficiently short period of time? Is it possible to design escape hatches when the limits of computability are fast approaching?
+
+Turing showed us a long time ago that determining the limits of computability up-front is not achievable \emph{in the general case} and so we can anticipate the outcome: a hopefully growing collection of \emph{existential proofs and fragments} that facilitate computation where we know it to be feasible.
+A plausible and occasionally tractable process to support this might look about as sketched in Figure~\ref{fig:dedekind-bridge}:
+1. find pre-validated \emph{existing proofs} and turn them into specifications,
+2. translate the specifications into source code and tests,
+3. type-check the code and run the tests, reviewing the output,
+4. compare and contrast with the original textbook specification (1.).
+
+Math goes one way; C++ comes back.
+The claim is bounded --- only the part of mathematics that fits a disciplined fragment of C++23 is realised, and even then we make no global claim of having proved the realisation faithful.
+Instead, a growing body of \emph{empirical} evidence is aggregated and compiled.
+The discharge is mechanical, the architecture is set up so the evidence accumulates in a single direction.
+If the compiler accepts the axiom being imported, then the compiler should also be able to validate or sometimes even derive the corresponding theorems~\cite{wadler2015propositions}.
+The remainder of this paper, starting with §\ref{sec:axiomatic}, is intended to illustrate how this was done in some detail and what was found in the process.
+
 
 \begin{figure}[htbp]
 \centering
-\scalebox{1.5}{%
 \begin{tikzcd}[column sep=huge, row sep=large, ampersand replacement=\&]
-\mathbf{Cat} \arrow[r, shift left=2, "\text{interpret}"] \&
-\texttt{dedekind} \arrow[l, shift left=2, "\text{cite}"] \arrow[r, shift left=2, "\text{instantiate}"] \&
-\mathbf{Cpp} \arrow[l, shift left=2, "\text{verify}"]
-\end{tikzcd}}
-\caption{The overarching goal.  \texttt{dedekind} aims at being a faithful-functor bridge between $\mathbf{Cat}$ (mathematical structure, axiomatically defined) and $\mathbf{Cpp}$ (a Cartesian-closed-category fragment of C++23 where structure must be type-carried; §\ref{sec:axiomatic}).  Math $\to$ library: an interpretation functor maps an axiomatic species (a ring, a vector space, a topos primitive) to a corresponding \texttt{dedekind} concept / trait / module.  Library $\to$ math: the library's declarations cite the underlying axiomatic source so the lifted structure has a textbook anchor.  Library $\to$ C++: the library instantiates concrete carriers (\cppinline{Rational<long>}, \cppinline{Vec2V<T>}, \dots) under the named structure.  C++ $\to$ library: the compiler checks each carrier via \cppinline{static_assert} and concept-constraint discharge --- the propositional-fragment instance of the Curry--Howard--Lambek correspondence~\cite{lambek1988introduction,wadler2015propositions}.  The bridge is \emph{intended} as a faithful functor, not as an isomorphism: $\mathbf{Cpp}$ is constrained by computability (Church--Turing), so only a sliver of $\mathbf{Cat}$ is realised, and faithfulness is the architectural target rather than a single global theorem --- each concrete carrier's \cppinline{static_assert} discharge is a partial inhabitant of the meta-claim, accumulating evidence rather than proving it.}
+\mathbf{Cat} \arrow[r, shift left=2, "\text{1. cite and specify}"] \&
+\texttt{dedekind} \arrow[l, shift left=2, "\text{4. compare and contrast}"] \arrow[r, shift left=2, "\text{2. encode and review}"] \&
+\mathbf{Cpp} \arrow[l, shift left=2, "\text{3. type-check and test}"]
+\end{tikzcd}
+\caption{The target operational model.  \texttt{dedekind} aims at being a faithful intermediary between $\mathbf{Cat}$ (mathematical structure in general, axiomatically defined) and a fragment of $\mathbf{Cpp}$ (the category of C++ types, values and arrows between them).
+Math $\to$ library: an interpretation maps a species (a ring, a vector space, a topos primitive) to a corresponding \texttt{dedekind} concept / trait / module.
+Library $\to$ math: the library's declarations cite the underlying axiomatic source so the resulting concept has a textbook anchor.
+Library $\to$ C++: the library instantiates concrete carriers (\cppinline{Rational<long>}, \cppinline{Vec2V<T>}, \dots) under the named structure.
+C++ $\to$ library: the compiler checks each carrier via \cppinline{static_assert} and concept-constraint discharge --- the propositional-fragment instance of the Curry--Howard--Lambek correspondence~\cite{lambek1988introduction,wadler2015propositions}.
+}
 \label{fig:dedekind-bridge}
 \end{figure}
 
-Figure~\ref{fig:dedekind-bridge} sketches the picture: \texttt{dedekind} sits in the middle and does the translation work in both directions.
-Math goes one way; C++ comes back.
-The claim is bounded --- only the part of mathematics that fits the disciplined fragment of C++23 is realised, and even then we make no global claim of having proved the realisation faithful --- but on each concrete carrier the discharge is mechanical, and the architecture is set up so the evidence accumulates in a single direction.\footnote{The precise framing is that \texttt{dedekind} \emph{aims at} a faithful interpretation functor $\mathcal{F}: \mathbf{Cat} \to \mathbf{Cpp}$, where $\mathbf{Cpp}$ is the disciplined-C++23 fragment modelled as a Cartesian-closed category (Mac Lane~\cite{maclane1971categories} for the categorical machinery; Pierce~\cite{pierce2002tapl} §29 for the propositional-fragment-as-typing-derivation reading; Lambek--Scott~\cite{lambek1988introduction} for the CCC $\leftrightarrow$ STLC equivalence; Wadler~\cite{wadler2015propositions} for the propositions-as-types reading at the type level).  $\mathcal{F}$ sends axiomatic species to types, predicates to \cppinline{concept}s, and laws to \cppinline{static_assert} obligations discharged by the type checker.  Faithfulness here is the \emph{architectural target}, not a globally proven theorem: each concrete carrier's discharge is a partial inhabitant of the meta-claim, and the partition DAG plus the trait registry is the structure under which those partial inhabitants compose.  Two reasons we cannot promote this to a single global proof: $\mathbf{Cpp}$'s objects are constrained to the computable (Church--Turing), so $\mathcal{F}$ is not surjective on $\mathbf{Cat}$; and the C++ language outside the disciplined fragment admits escape hatches (cf.\ §\ref{sec:axiomatic}) whose absence in any given carrier is reviewed by humans and by CI rather than mechanically certified end-to-end.  ``Aim at, not assert'' is the honest claim; the paper's contribution is the architecture under which the evidence accumulates, plus the showcases that make accumulation visible.}
 
-The choice of anchoring the library's domain in category theory on the mathematical side is neither new nor arbitrary and follows a well-trodden path.
-The authoritative textbook in the context of programming might be \emph{Types and Programming Languages}~\cite{pierce2002tapl}.
+The choice of anchoring the library's domain in category theory on the mathematical side follows a well-trodden path~\cite{pierce2002tapl}.
+Here, a minimalist type checker does not need to do much more than confirm whether the output of one function matches the input of another (morphism composition).
+Rewrite rules (e.g.\ natural transformations) and optimization enter the picture at a later stage.
+Once this basic rapport is established, the path follows an established progression:
+1. cartesian-closed categories~\cite{lambek1988introduction} giving rise to a simply-typed $\lambda$-calculus~\cite{lambek1988introduction} on sets;
+2. the elementary theory of the category of sets (ETCS)~\cite{lawvere1964etcs}; and
+3. universal algebra and abstract algebra~\cite{burris1981universalalgebra,lang2002algebra}.
 
-The appeal of category theory in programming-language research should be obvious: a minimalist type checker does not need to do much more than check whether the output of one function matches the input of another.
-A ``sufficiently smart'' optimising compiler might know a fair amount about commutation rules and re-write the arrows in a sensible way.
+On the encoding side, the choice is more open --- any sufficiently expressive type system would do --- but we landed on modern C++ for the following reasons.
+The goal is an embedding in an existing system (an eDSL in a library) as opposed to the development of a new language or compiler (a language or framework), and so the host language should meet the following requirements:
+a) it should be mainstream so that tooling is provided for;
+b) its runtime requirements should be modest enough to embed in the Python and JVM ecosystems and to target resource-constrained environments in the high-performance-computing or embedded-systems sense;
+c) its type system should be rich enough to perform many of the desired type checks.
+Notably, while the resulting DSL should resemble mathematical notation so that Figure~\ref{fig:dedekind-bridge} can be operationalized, developer ergonomics in the broader sense were deliberately not given a high priority at this point in time.
 
-Once this basic rapport is established, one can build out the path to
-\begin{enumerate}
-\item Cartesian-closed categories~\cite{lambek1988introduction} (in a sense, a generalisation of sets equipped with the simply-typed $\lambda$-calculus~\cite{lambek1988introduction}),
-\item the elementary theory of the category of sets (ETCS, the Siamese twin of conventional ZF set theory)~\cite{lawvere1964etcs}, and
-\item universal algebra and abstract algebra~\cite{burris1981universalalgebra,lang2002algebra}.
-\end{enumerate}
-
-If the goal is to define a domain specific language embedded in a pre-existing host language, then the approach requires a type system strong enough to name algebraic
-structure and to discriminate between carriers that claim to satisfy a law and
-those that do not. Haskell type classes~\cite{GHC2024} and
-dependently-typed languages such as Coq and Agda~\cite{norell2007towards}
-demonstrate the expressiveness; but both impose runtime or toolchain costs
-that are hard to justify when the library's consumers are writing systems
-code.
-In general: the bigger and more demanding the runtime, the more it will compete for resources and trigger compatibility issues with other runtimes.
-
-If one wants to target a programming environment that imposes no extra runtime requirements above and beyond the host system's natively supported features, it becomes interesting to look at systems programming languages where the runtime is exactly the one provided for by the host system.
-One such language is C++23~\cite{cpp23standard}, which increasingly offers a pragmatic middle ground:
-\texttt{module}s enforce a strict directed-acyclic build graph,
-\texttt{consteval} and \texttt{constexpr} allow for a fair amount of compile-time logic,
-\texttt{concept}s are compile-time structural checks, and
-\emph{non-type template parameters} (NTTPs---template arguments that are values, not
-types) let compile-time constants or derived compile-time data appear in type
-signatures.
-
-Putting it all together, the hope is that the compiler becomes
-\begin{enumerate} 
-\item a \emph{mathematical verification gate}: violating an algebraic law is a type error, not a runtime exception;
-\item an optimization engine that \emph{knows the user-defined math}: the LLVM backend exploits the structural knowledge inherited
-from the discharged proof obligations \emph{at compile time}.
-\end{enumerate} 
-
-The desired outcome is to enable checks and processes such as the following \emph{at compile-time}:
-(i) an attempt to multiply matrices with incompatible shapes or to invert a singular matrix simply won't compile;
-(ii) an attempt to compute an inverse twice in a row is identified as the identity operation, and so no transformation code need even be emitted;
-(iii) $\mathbb{N}$ might be a transfinite (intensional) set, but an arbitrary finite (extensional) subset can still be selected;
-(iv) an element test on an empty set will always \texttt{return false} and be collapsed and in-lined as a result;
-(v) transcendental numbers cannot be computed to the last digit, but they can be represented \emph{exactly} and used in bounds checks.
-
-Our posture is explicit: \texttt{dedekind} is a systems-programming
+Our resulting posture is explicit: \texttt{dedekind} is a systems-programming
 library that treats mathematical concepts as first-class compile-time
-objects. The library is implemented in C++23, and the compile-time
+objects.
+The library is implemented in C++23, and the compile-time
 concept machinery is its primary interface; the consumer we design
 for is another C++ author who would otherwise bolt ad-hoc structure
-onto hard to verify numeric types. Choosing to land the semantics at the
+onto hard to verify numeric types.
+Choosing to land the semantics at the
 compile-time layer---rather than as runtime abstractions, or as a DSL
 lowered to a runtime solver---is a design commitment that shapes what
 the compiler and the library can do for the user and what they cannot.
@@ -335,8 +327,8 @@ First, the C++23 standard~\cite{cpp23standard} delivers the three features the t
 Second, modern coding-assistant LLMs~\cite{chen2021evaluating} compress the time and expertise needed to author opt-in trait specialisations, axiom-shape concepts, and the surrounding library scaffolding, turning what was once a deep-template-metaprogramming specialism into an actionable workflow for working software engineers.
 The correctness story is unchanged --- the type system and \cppinline{static_assert} obligations are what the compiler discharges, both checked mechanically --- but the cost story is, and that is what makes the discipline viable at industrial scale rather than as a paper-only artefact.
 
-Most of what follows is therefore \emph{not} specific to C++. Concepts
-have close analogues in Java (sealed types plus generic constraints),
+While this realization targets C++ explicitly for the reasons stated earlier, much of what follows is however \emph{not} specific to C++.
+Concepts have close analogues in Java (sealed types plus generic constraints),
 C\# (constrained generics, augmented by Roslyn source generators and
 analysers), and Python (PEP~484 type hints under a strict
 \texttt{mypy}/\texttt{pyright} pass). Any language whose type system
@@ -348,50 +340,31 @@ and the connection between the two is what lets the LP vertex collapse
 to a literal return rather than to a skipped runtime check.
 
 \paragraph{Intended target.}
-The discipline lands well in CPU-first and embedded
+The discipline lands well in CPU-first high-performance computing and embedded
 machine-learning deployments---small fixed-topology problems with
 hard runtime-footprint constraints---where the technique's
 compile-time-substrate posture sits one layer below existing
 embedded ML runtimes such as TFLite Micro~\cite{david2021tflm}.
 
-\paragraph{The compiler as a poor man's theorem prover.}
-A pedagogical framing that runs through this paper: we are using
-\texttt{clang++} as a poor man's theorem prover.\footnote{The
-qualifier ``poor man's'' is structural, not only economic.  \texttt{clang++}
-\emph{is} a formal system in the technical sense --- a typing
+\paragraph{The compiler as a poor man's theorem prover} is
+a pedagogical framing that runs through this paper.
+The motivation is primarily structural, not economic:
+\texttt{clang++} \emph{is} a formal system in the technical sense --- a typing
 derivation it accepts is a proof in the propositional fragment
-against a fixed inference rule-set --- and the architecture imposes
-a single division of labour: the engineer carries the honesty
-obligation up front (the trait registry, concept formulations, no
-\cppinline{reinterpret_cast} in the public surface), and the
-compiler discharges every \cppinline{static_assert} /
-\cppinline{requires}-clause / \cppinline{constexpr} evaluation that
-follows.  The Curry--Howard reading~\cite{wadler2015propositions}
-grounds this technically; codified engineering ethics ground it
-professionally --- the NSPE \emph{Code of Ethics for
-Engineers}~\cite{nspe_ethics} canons III + IV (truthfulness in
-public statements; faithful agency) treat a trait specialisation as
-a public statement subject to the canons.  The carrier-lattice's
-recurring \emph{Honest Rejection} policy is the clearest example:
-refusing \cppinline{unsigned int} as a witness for $\mathbb{N}$ is
-not pedantry but the kind of informal-claim re-examination Canon~III
-asks of a working software engineer.  The argument is bounded: most
-software claims (TCP retransmit-timer correctness, scheduler
-fairness, end-to-end latency) cannot be reduced to type-level
-structural assertions; the paper covers the fragment where the
-reduction is available.}
-The compiler is not searching for proofs---it has no tactic language,
-no resolution procedure, no proof assistant in the loop. What it
-\emph{does} have is a type system strong enough to name a predicate,
+against a fixed inference rule-set.
+The resulting architecture imposes this division of labour:
+i) the engineer carries an honesty obligation up front~\cite{nspe_ethics} (NSPE, canons III + IV; truthfulness in public statements; faithful agency) and
+ii) the compiler discharges every \cppinline{static_assert}, \cppinline{requires} or \cppinline{constexpr} evaluation that follows. 
+The Curry--Howard reading~\cite{wadler2015propositions} grounds this technically; codified engineering ethics ground it
+professionally: the library treats a trait specialisation in a public source code repository as a public statement subject to the canons. 
+The argument is bounded: software claims in concurrent systems (TCP retransmit-timer correctness, scheduler fairness, end-to-end latency) often cannot be reduced to type-level structural assertions.
+The physics of latency will usually not allow it.
+The paper covers the fragment where the runtime model is \emph{physically localized} on trusted hardware and the reduction is available in principle.
+Further, unlike a theorem prover the compiler is not actively searching for proofs above and beyond the built-in look-up rules.
+It has no tactic language, no resolution procedure, no proof assistant in the loop.
+What it \emph{does} have is a type system strong enough to name a predicate,
 a \cppinline{static_assert} strong enough to discharge it, and an LLVM
-backend that will happily remove what has already been decided. The
-library author supplies narrow, mechanically checkable proof
-obligations; the compiler discharges them; the optimiser then deletes
-the code that would have re-checked them at runtime. As a welcome side
-effect, the same machinery produces a family of composable library
-combinators (set meets, cuts, halfspaces, LP reductions) whose laws are
-verified at translation time and whose trivial cases collapse to zero
-instructions.
+backend that will happily remove what has already been decided.
 
 \paragraph{What this buys, concretely.} From the design rule (``name
 the structure in the type, let the compiler discharge the laws'') and
@@ -446,107 +419,6 @@ What we \emph{do} report is a small set of findings that are both interesting
 and true: each claim has a worked exhibit in the library and a
 mechanical witness the compiler discharges.
 
-\section{Continuous Iteration towards the Faithful Translation}
-\label{sec:eventually}
-
-The development follows a Top-Down Refinement model~\cite{wirth1971stepwise}, where the library acts as an Executable Ontology: the mathematical Forms are anchored upstream, machine carriers are staged downstream, and each step in between is a refinement the compiler is asked to police.
-We treat the alignment between C++ types and mathematical axioms as an Eventual Consistency target~\cite{vogels2009eventually}, where the Semantic Gap is incrementally closed through the addition of Compile-Time Constraints rather than asserted globally up front.
-The framing is deliberately borrowed from distributed-systems literature: the system holds multiple replicas of the same fact (a Form, a concept, a trait specialisation, a machine type); the replicas may temporarily disagree (a carrier may not yet witness an axiom the Form claims); convergence is monotone under bounded operations, in the sense that each pull request can only \emph{tighten} the alignment, never loosen it.
-The quiescent state is the one in which every node in the partition DAG is green; the Semantic Gap is whatever sits between the current state and that target at any given moment.
-The §\ref{sec:introduction} framing --- ``aim at, not assert'' --- is the same statement read from this angle: the bridge $\mathcal{F}: \mathbf{Cat} \to \mathbf{Cpp}$ is the convergence target, and each concrete carrier's \cppinline{static_assert} discharge is a partial inhabitant accumulating against it.
-
-To support this approach in a transparent fashion, we reach deep into the CI/CD toolbox and enable whatever we can find: an open-source licence and public review for the social audit trail; public issue management for the backlog of refinements still owed; a reproducible build pipeline that re-runs the compile-time discipline on every push; a test harness whose \cppinline{static_assert} obligations are checked mechanically; pull-request reviews that frame each new trait specialisation as a public claim under engineering ethics (cf.\ §\ref{sec:introduction}'s NSPE-canon footnote); version control that pins the chain of refinements to specific commits; and test-coverage reports that flag the spokes of the hub-and-spoke architecture for which no carrier yet witnesses the trait.
-None of this is technically novel.
-What matters is that the engineering practices of mainstream open-source software development \emph{compose} cleanly with the type-system discipline, turning what would otherwise be a paper-only argument into an artefact whose every refinement step is reviewable, reproducible, and dated.
-
-\subsection{The Compiler as Structural Gate and Optimization Engine}
-
-Two durable uses of a compile-time type system underlie this paradigm, neither
-of which requires the compiler to be a theorem prover:
-
-\begin{enumerate}
-  \item \textbf{Ruling out entire classes of errors.}  Encoding algebraic laws as
-        concept requirements makes every instantiation of a generic template an
-        implicit proof obligation discharged at translation time.  Failed
-        obligations are type errors, not runtime exceptions.  The obligation
-        itself is finite, decidable, and mechanical---the compiler \emph{checks}
-        it, but does not \emph{search for} it.  Failed obligations surface
-        as named-axiom messages (e.g.\ \texttt{Invertible2x2 requires full
-        rank: a*d - b*c != 0}) rather than as deep template-cascade
-        traces; the structural discipline behind this and a worked
-        diagnostic are exhibited in Section~\ref{sec:compiler-wall}.
-  \item \textbf{Enabling entire classes of optimizations.}  The LLVM backend
-        exploits the structural knowledge inherited from discharged obligations.
-        When a set is defined by a predicate and two predicates are logically
-        contradictory, the compiler determines at translation time that the
-        resulting intersection is empty and emits no machine instructions for
-        it.  This is what we term \emph{structural pruning}, and it is the
-        subject of Section~\ref{sec:pruning}.
-\end{enumerate}
-
-Both uses are bounded but open-ended.  clang's type checker is not a
-theorem prover: it has no dependent types, no universal-quantification
-inference, no proof-search engine.  What it does have is
-\cppinline{static_assert}, \cppinline{requires}-clauses, and
-\cppinline{constexpr} evaluation---enough to verify a predetermined
-proof sketch, not enough to generate one.  The paradigm claims the
-reliable half: ruling out, and optimizing under, the classes of
-structural failures the programmer has named in the type system.  The
-Curry--Howard correspondence between propositions and types is
-suggestive here, but its full force (dependent products, inductive
-proofs, universe hierarchies) is not available in C++23; what
-\emph{is} available is enough to anchor the two uses above.  Each use
-ruled out exposes a next class that the current machinery does not
-handle but the library's structural vocabulary already names; the four
-axes of Section~\ref{sec:gap} fall out of the halfspace reductions
-almost by construction.\footnote{Penrose's \emph{The Road to
-Reality}~\cite{penrose2004roadtoreality} offers an analogous
-observation about G\"odel's incompleteness theorem --- a formal
-system closing at one level motivates the next, not as exhaustion
-but as natural successor; the closest formal analogue is Turing's
-ordinal logics~\cite{turing1939ordinals}, where each stage's
-consistency feeds the next stage's formation rule.  The
-systems-programming reading is benign: the issue tracker plays the
-successor role.}
-
-\paragraph{Three honesty-anchoring constraints.}
-Three compounding constraints keep the library's artefacts honest:
-\emph{domain textbook anchoring} (concept names and law statements
-taken directly from the published mathematical vocabulary ---
-Lawvere, Mac Lane, Lambek, Wadler, Moggi); \emph{mechanical
-validation} (every algebraic claim becomes a
-\cppinline{static_assert} the compiler discharges; every concept
-composes through a named-module DAG; every behavioural claim passes
-CI); and \emph{codomain textbook anchoring} (concepts validated
-against the C++ standard library's own ontology ---
-\cppinline{std::ranges::input_range}, \cppinline{std::regular},
-\cppinline{std::numeric_limits}, the iterator
-hierarchy).\footnote{The library is developed with AI assistance
-(Anthropic's Claude as the primary code-writing agent; Gemini and
-GitHub Copilot in supporting roles); the human role is
-prioritisation, orchestration, and consensus-before-merge.  The
-three constraints above are what keep the workflow honest: the
-mathematical content stays in mathematical vocabulary all the way
-down to where the machine takes over.}
-
-A successful type-check is thus a \emph{weak but universal} proof about the overall health of the Ontology: it asserts that every type-shaped claim in the build graph composes without contradiction, even though the individual assertions are coarse (concept satisfaction, not law-by-law verification).
-The automated test suite is the converse, a growing set of \emph{strong but existential} proofs about the same Ontology: each test pins a concrete carrier-instance against a concrete law and discharges the obligation as a \cppinline{static_assert} witness rather than a runtime equality check.
-Universal coverage is the build's job; existential depth is the test suite's; both accumulate monotonically under the convergence discipline.
-As a convenient and notable side effect: source code listings presented in this document are lifted (occasionally abridged for paper-page budget) from the repository's test suite; each listing's source-tree path is recorded as a LaTeX-source comment immediately above the listing, so a reader auditing against the repository can find the verbatim original directly.
-
-Similarly, where the output of LLVM optimizations is reported here, these are examples which are lifted from the test suite.
-Here, the compiler is run during CI with appropriate flags to emit a portable representation of the optimized backend instructions.
-The emitted instructions are then compared to LLVM IR fixtures checked into the source tree.
-This way, it can be checked during CI that algebraic compile-time optimizations are recognized by the compiler during the development cycle.
-Regressions would lead to build failures and be flagged during CI as blocking the corresponding PR.
-
-
-\subsection{Use of Agentic Systems}
-
-Agentic systems --- LLMs invoked as code-review and refactoring assistants --- enter this picture as a third party that can act on either side of the universal/existential split, provided the source carries enough domain context to prime them on each invocation.
-The library therefore embeds the domain language deliberately deep into the source: exhaustive Doxygen on every public surface, opinionated quotes from practitioners (e.g.\ references to the Polish school of logic and semantic epistemology~\cite{ajdukiewicz1985jezyk} where the underlying register is at issue), and named provenance on each trait specialisation.
-The audience is not only the human reader; it is also the agentic context window on every pull-request review.
-Prompts to such systems are accordingly written liberally and in \emph{loose language} --- in the careful, sparing register of RFC~2119~§6~\cite{bradner1997rfc2119}, where the normative weight of \textsc{MUST} / \textsc{SHOULD} / \textsc{MAY} is reserved for the cases that actually demand it --- so that the agent can catalyse convergence not only at the syntactic layer the conventional build pipeline polices, but also at the semantic layer where loose intent has to be translated into precise concept-discharge obligations.
 
 % ============================================================
 \section{An Intersection of C++23 and Category Theory}
@@ -3465,5 +3337,110 @@ outlast any particular generation of authoring tool---and,
 increasingly, of programming language.
 
 \printbibliography
+
+\appendix
+
+\section{Continuous Iteration towards the Faithful Translation}
+\label{sec:eventually}
+
+The development follows a Top-Down Refinement model~\cite{wirth1971stepwise}, where the library acts as an Executable Ontology: the mathematical Forms are anchored upstream, machine carriers are staged downstream, and each step in between is a refinement the compiler is asked to police.
+We treat the alignment between C++ types and mathematical axioms as an Eventual Consistency target~\cite{vogels2009eventually}, where the Semantic Gap is incrementally closed through the addition of Compile-Time Constraints rather than asserted globally up front.
+The framing is deliberately borrowed from distributed-systems literature: the system holds multiple replicas of the same fact (a Form, a concept, a trait specialisation, a machine type); the replicas may temporarily disagree (a carrier may not yet witness an axiom the Form claims); convergence is monotone under bounded operations, in the sense that each pull request can only \emph{tighten} the alignment, never loosen it.
+The quiescent state is the one in which every node in the partition DAG is green; the Semantic Gap is whatever sits between the current state and that target at any given moment.
+The §\ref{sec:introduction} framing --- ``aim at, not assert'' --- is the same statement read from this angle: the bridge $\mathcal{F}: \mathbf{Cat} \to \mathbf{Cpp}$ is the convergence target, and each concrete carrier's \cppinline{static_assert} discharge is a partial inhabitant accumulating against it.
+
+To support this approach in a transparent fashion, we reach deep into the CI/CD toolbox and enable whatever we can find: an open-source licence and public review for the social audit trail; public issue management for the backlog of refinements still owed; a reproducible build pipeline that re-runs the compile-time discipline on every push; a test harness whose \cppinline{static_assert} obligations are checked mechanically; pull-request reviews that frame each new trait specialisation as a public claim under engineering ethics (cf.\ §\ref{sec:introduction}'s NSPE-canon footnote); version control that pins the chain of refinements to specific commits; and test-coverage reports that flag the spokes of the hub-and-spoke architecture for which no carrier yet witnesses the trait.
+None of this is technically novel.
+What matters is that the engineering practices of mainstream open-source software development \emph{compose} cleanly with the type-system discipline, turning what would otherwise be a paper-only argument into an artefact whose every refinement step is reviewable, reproducible, and dated.
+
+\section{The Compiler as Structural Gate and Optimization Engine}
+
+Two durable uses of a compile-time type system underlie this paradigm, neither
+of which requires the compiler to be a theorem prover:
+
+\begin{enumerate}
+  \item \textbf{Ruling out entire classes of errors.}  Encoding algebraic laws as
+        concept requirements makes every instantiation of a generic template an
+        implicit proof obligation discharged at translation time.  Failed
+        obligations are type errors, not runtime exceptions.  The obligation
+        itself is finite, decidable, and mechanical---the compiler \emph{checks}
+        it, but does not \emph{search for} it.  Failed obligations surface
+        as named-axiom messages (e.g.\ \texttt{Invertible2x2 requires full
+        rank: a*d - b*c != 0}) rather than as deep template-cascade
+        traces; the structural discipline behind this and a worked
+        diagnostic are exhibited in Section~\ref{sec:compiler-wall}.
+  \item \textbf{Enabling entire classes of optimizations.}  The LLVM backend
+        exploits the structural knowledge inherited from discharged obligations.
+        When a set is defined by a predicate and two predicates are logically
+        contradictory, the compiler determines at translation time that the
+        resulting intersection is empty and emits no machine instructions for
+        it.  This is what we term \emph{structural pruning}, and it is the
+        subject of Section~\ref{sec:pruning}.
+\end{enumerate}
+
+Both uses are bounded but open-ended.  clang's type checker is not a
+theorem prover: it has no dependent types, no universal-quantification
+inference, no proof-search engine.  What it does have is
+\cppinline{static_assert}, \cppinline{requires}-clauses, and
+\cppinline{constexpr} evaluation---enough to verify a predetermined
+proof sketch, not enough to generate one.  The paradigm claims the
+reliable half: ruling out, and optimizing under, the classes of
+structural failures the programmer has named in the type system.  The
+Curry--Howard correspondence between propositions and types is
+suggestive here, but its full force (dependent products, inductive
+proofs, universe hierarchies) is not available in C++23; what
+\emph{is} available is enough to anchor the two uses above.  Each use
+ruled out exposes a next class that the current machinery does not
+handle but the library's structural vocabulary already names; the four
+axes of Section~\ref{sec:gap} fall out of the halfspace reductions
+almost by construction.\footnote{Penrose's \emph{The Road to
+Reality}~\cite{penrose2004roadtoreality} offers an analogous
+observation about G\"odel's incompleteness theorem --- a formal
+system closing at one level motivates the next, not as exhaustion
+but as natural successor; the closest formal analogue is Turing's
+ordinal logics~\cite{turing1939ordinals}, where each stage's
+consistency feeds the next stage's formation rule.  The
+systems-programming reading is benign: the issue tracker plays the
+successor role.}
+
+\paragraph{Three honesty-anchoring constraints.}
+Three compounding constraints keep the library's artefacts honest:
+\emph{domain textbook anchoring} (concept names and law statements
+taken directly from the published mathematical vocabulary ---
+Lawvere, Mac Lane, Lambek, Wadler, Moggi); \emph{mechanical
+validation} (every algebraic claim becomes a
+\cppinline{static_assert} the compiler discharges; every concept
+composes through a named-module DAG; every behavioural claim passes
+CI); and \emph{codomain textbook anchoring} (concepts validated
+against the C++ standard library's own ontology ---
+\cppinline{std::ranges::input_range}, \cppinline{std::regular},
+\cppinline{std::numeric_limits}, the iterator
+hierarchy).\footnote{The library is developed with AI assistance
+(Anthropic's Claude as the primary code-writing agent; Gemini and
+GitHub Copilot in supporting roles); the human role is
+prioritisation, orchestration, and consensus-before-merge.  The
+three constraints above are what keep the workflow honest: the
+mathematical content stays in mathematical vocabulary all the way
+down to where the machine takes over.}
+
+A successful type-check is thus a \emph{weak but universal} proof about the overall health of the Ontology: it asserts that every type-shaped claim in the build graph composes without contradiction, even though the individual assertions are coarse (concept satisfaction, not law-by-law verification).
+The automated test suite is the converse, a growing set of \emph{strong but existential} proofs about the same Ontology: each test pins a concrete carrier-instance against a concrete law and discharges the obligation as a \cppinline{static_assert} witness rather than a runtime equality check.
+Universal coverage is the build's job; existential depth is the test suite's; both accumulate monotonically under the convergence discipline.
+As a convenient and notable side effect: source code listings presented in this document are lifted (occasionally abridged for paper-page budget) from the repository's test suite; each listing's source-tree path is recorded as a LaTeX-source comment immediately above the listing, so a reader auditing against the repository can find the verbatim original directly.
+
+Similarly, where the output of LLVM optimizations is reported here, these are examples which are lifted from the test suite.
+Here, the compiler is run during CI with appropriate flags to emit a portable representation of the optimized backend instructions.
+The emitted instructions are then compared to LLVM IR fixtures checked into the source tree.
+This way, it can be checked during CI that algebraic compile-time optimizations are recognized by the compiler during the development cycle.
+Regressions would lead to build failures and be flagged during CI as blocking the corresponding PR.
+
+
+\section{Use of Agentic Systems}
+
+Agentic systems --- LLMs invoked as code-review and refactoring assistants --- enter this picture as a third party that can act on either side of the universal/existential split, provided the source carries enough domain context to prime them on each invocation.
+The library therefore embeds the domain language deliberately deep into the source: exhaustive Doxygen on every public surface, opinionated quotes from practitioners (e.g.\ references to the Polish school of logic and semantic epistemology~\cite{ajdukiewicz1985jezyk} where the underlying register is at issue), and named provenance on each trait specialisation.
+The audience is not only the human reader; it is also the agentic context window on every pull-request review.
+Prompts to such systems are accordingly written liberally and in \emph{loose language} --- in the careful, sparing register of RFC~2119~§6~\cite{bradner1997rfc2119}, where the normative weight of \textsc{MUST} / \textsc{SHOULD} / \textsc{MAY} is reserved for the cases that actually demand it --- so that the agent can catalyse convergence not only at the syntactic layer the conventional build pipeline polices, but also at the semantic layer where loose intent has to be translated into precise concept-discharge obligations.
+
 
 \end{document}
