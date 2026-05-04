@@ -3297,7 +3297,7 @@ F(A) \arrow[r, "F(f)"']
 F(B) \arrow[r, "F(g)"'] \&
 F(C)
 \end{tikzcd}
-\caption{The textbook functor diagram, extended with a second source arrow $g: B \to C$ so the composition law is observable rather than only stated.  $F$ sends each source object $X \in \mathcal{C}$ to a target object $F(X) \in \mathcal{D}$ and each source arrow $f: A \to B$ to a target arrow $F(f): F(A) \to F(B)$, in a way that respects identities ($F(\mathrm{id}_A) = \mathrm{id}_{F(A)}$) and composition ($F(g \circ f) = F(g) \circ F(f)$, witnessed by the curved arrows on top and bottom).  Listing~\ref{lst:isfunctor} encodes the same content in C++23 concepts and exhibits a worked instance.}
+\caption{The textbook functor diagram, extended with a second source arrow $g: B \to C$ so the composition law is observable rather than only stated.  $F$ sends each source object $X \in \mathcal{C}$ to a target object $F(X) \in \mathcal{D}$ and each source arrow $f: A \to B$ to a target arrow $F(f): F(A) \to F(B)$, in a way that respects identities ($F(\mathrm{id}_A) = \mathrm{id}_{F(A)}$) and composition ($F(g \circ f) = F(g) \circ F(f)$, witnessed by the curved arrows on top and bottom).  Listing~\ref{lst:isfunctor} encodes the same content in C++23 concepts, and Listing~\ref{lst:maybe_functor} exhibits a worked instance.}
 \label{fig:functor-diagram}
 \end{figure}
 
