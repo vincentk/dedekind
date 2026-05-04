@@ -1,4 +1,5 @@
 #include <catch2/catch_test_macros.hpp>
+#include <type_traits>
 
 import dedekind.category;
 import dedekind.numbers;
@@ -31,9 +32,13 @@ TEST_CASE("Numbers: canonical starter symbols", "[numbers][starter]") {
                std::remove_cvref_t<decltype(Ω<SignedExtensionalCardinal<>>)>,
                UniversalSet<SignedExtensionalCardinal<>>>);
 
-  STATIC_CHECK(std::same_as<ℚ, Rational<default_integer>>);
+  STATIC_CHECK(std::same_as<std::remove_cvref_t<decltype(ℚ)>,
+                            UniversalSet<Rational<default_integer>>>);
+  STATIC_CHECK(std::same_as<typename std::remove_cvref_t<decltype(ℚ)>::Domain,
+                            Rational<default_integer>>);
   STATIC_CHECK(
-      std::same_as<std::remove_cvref_t<decltype(Ω<ℚ>)>, UniversalSet<ℚ>>);
+      std::same_as<std::remove_cvref_t<decltype(Ω<Rational<default_integer>>)>,
+                   UniversalSet<Rational<default_integer>>>);
 
   // 𝔻 / D / DualSet starter aliases moved to dedekind.analysis:dual at
   // PR ; analogous STATIC_CHECKs live in
