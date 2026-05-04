@@ -273,8 +273,9 @@ b) it should be mainstream so that tooling is provided for;
 c) its runtime requirements should be small enough that an embedding in both the python or JVM ecosystems is feasible;
 d) it should be able to target resource-constrained environments either in the high-performance computing sense or in the embedded systems sense;
 e) the host language's type system should be rich enough to perform many of the desired type checks.
+Notably, while the resulting DSL should resemble mathematical notation so that Fig. \ref{fig:dedekind-bridge} can be operationalized, developer ergonomics in the broader sense were deliberately not given a high priority at this point in time.
 
-Our posture is explicit: \texttt{dedekind} is a systems-programming
+Our resulting posture is explicit: \texttt{dedekind} is a systems-programming
 library that treats mathematical concepts as first-class compile-time
 objects.
 The library is implemented in C++23, and the compile-time
@@ -327,8 +328,8 @@ First, the C++23 standard~\cite{cpp23standard} delivers the three features the t
 Second, modern coding-assistant LLMs~\cite{chen2021evaluating} compress the time and expertise needed to author opt-in trait specialisations, axiom-shape concepts, and the surrounding library scaffolding, turning what was once a deep-template-metaprogramming specialism into an actionable workflow for working software engineers.
 The correctness story is unchanged --- the type system and \cppinline{static_assert} obligations are what the compiler discharges, both checked mechanically --- but the cost story is, and that is what makes the discipline viable at industrial scale rather than as a paper-only artefact.
 
-Much of what follows is therefore \emph{not} specific to C++. Concepts
-have close analogues in Java (sealed types plus generic constraints),
+While this realization targets C++ explicitly for the reasons stated earlier, much of what follows is however \emph{not} specific to C++.
+Concepts have close analogues in Java (sealed types plus generic constraints),
 C\# (constrained generics, augmented by Roslyn source generators and
 analysers), and Python (PEP~484 type hints under a strict
 \texttt{mypy}/\texttt{pyright} pass). Any language whose type system
@@ -346,44 +347,25 @@ hard runtime-footprint constraints---where the technique's
 compile-time-substrate posture sits one layer below existing
 embedded ML runtimes such as TFLite Micro~\cite{david2021tflm}.
 
-\paragraph{The compiler as a poor man's theorem prover.}
-A pedagogical framing that runs through this paper: we are using
-\texttt{clang++} as a poor man's theorem prover.\footnote{The
-qualifier ``poor man's'' is structural, not only economic.  \texttt{clang++}
-\emph{is} a formal system in the technical sense --- a typing
+\paragraph{The compiler as a poor man's theorem prover} is
+a pedagogical framing that runs through this paper.
+The motivation is primarily structural, not economic:
+\texttt{clang++} \emph{is} a formal system in the technical sense --- a typing
 derivation it accepts is a proof in the propositional fragment
-against a fixed inference rule-set --- and the architecture imposes
-a single division of labour: the engineer carries the honesty
-obligation up front (the trait registry, concept formulations, no
-\cppinline{reinterpret_cast} in the public surface), and the
-compiler discharges every \cppinline{static_assert} /
-\cppinline{requires}-clause / \cppinline{constexpr} evaluation that
-follows.  The Curry--Howard reading~\cite{wadler2015propositions}
-grounds this technically; codified engineering ethics ground it
-professionally --- the NSPE \emph{Code of Ethics for
-Engineers}~\cite{nspe_ethics} canons III + IV (truthfulness in
-public statements; faithful agency) treat a trait specialisation as
-a public statement subject to the canons.  The carrier-lattice's
-recurring \emph{Honest Rejection} policy is the clearest example:
-refusing \cppinline{unsigned int} as a witness for $\mathbb{N}$ is
-not pedantry but the kind of informal-claim re-examination Canon~III
-asks of a working software engineer.  The argument is bounded: most
-software claims (TCP retransmit-timer correctness, scheduler
-fairness, end-to-end latency) cannot be reduced to type-level
-structural assertions; the paper covers the fragment where the
-reduction is available.}
-The compiler is not searching for proofs---it has no tactic language,
-no resolution procedure, no proof assistant in the loop. What it
-\emph{does} have is a type system strong enough to name a predicate,
+against a fixed inference rule-set.
+The resulting architecture imposes this division of labour:
+i) the engineer carries an honesty obligation up front~\cite{nspe_ethics} (NSPE, canons III + IV; truthfulness in public statements; faithful agency) and
+ii) the compiler discharges every \cppinline{static_assert}, \cppinline{requires} or \cppinline{constexpr} evaluation that follows. 
+The Curry--Howard reading~\cite{wadler2015propositions} grounds this technically; codified engineering ethics ground it
+professionally: the library treats a trait specialisation in a public source code repository as a public statement subject to the canons. 
+The argument is bounded: software claims in concurrent systems (TCP retransmit-timer correctness, scheduler fairness, end-to-end latency) often cannot be reduced to type-level structural assertions.
+The physics of latency will usually not allow it.
+The paper covers the fragment where the runtime model is \emph{physically localized} on trusted hardware and the reduction is available in principle.
+Further, unlike a theorem prover the compiler is not actively searching for proofs above and beyond the built-in look-up rules.
+It has no tactic language, no resolution procedure, no proof assistant in the loop.
+What it \emph{does} have is a type system strong enough to name a predicate,
 a \cppinline{static_assert} strong enough to discharge it, and an LLVM
-backend that will happily remove what has already been decided. The
-library author supplies narrow, mechanically checkable proof
-obligations; the compiler discharges them; the optimiser then deletes
-the code that would have re-checked them at runtime. As a welcome side
-effect, the same machinery produces a family of composable library
-combinators (set meets, cuts, halfspaces, LP reductions) whose laws are
-verified at translation time and whose trivial cases collapse to zero
-instructions.
+backend that will happily remove what has already been decided.
 
 \paragraph{What this buys, concretely.} From the design rule (``name
 the structure in the type, let the compiler discharge the laws'') and
