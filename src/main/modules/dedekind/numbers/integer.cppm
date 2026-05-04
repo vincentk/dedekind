@@ -333,13 +333,13 @@ static_assert(dedekind::algebra::HasRingOperators<int>,
 // default_integer (= SignedExtensionalCardinal<>)?  The integer.cppm
 // docstring claims it does, via the periodic-wrap path through
 // IsTotal.  Pinning the witness explicitly so we know where we stand.
-static_assert(dedekind::category::IsRing<default_integer,
-                                         std::plus<default_integer>,
-                                         std::multiplies<default_integer>>,
-              "ℤ as default_integer (SignedExtensionalCardinal<>) closes the "
-              "strict axiomatic IsRing chain — periodic-wrap clears the "
-              "IsTotal gate; trait specialisations carry associativity, "
-              "commutativity, distributivity, identity, additive inverse.");
+static_assert(
+    dedekind::category::IsRing<default_integer, std::plus<default_integer>,
+                               std::multiplies<default_integer>>,
+    "ℤ as default_integer (SignedExtensionalCardinal<>) closes the "
+    "strict axiomatic IsRing chain — periodic-wrap clears the "
+    "IsTotal gate; trait specialisations carry associativity, "
+    "commutativity, distributivity, identity, additive inverse.");
 static_assert(dedekind::category::IsCommutativeRing<
                   default_integer, std::plus<default_integer>,
                   std::multiplies<default_integer>>,
