@@ -723,24 +723,24 @@ declaration are the audit surface).
 \subsection{The Structuralist Intersection: The \texttt{dedekind} DSL}
 \label{sec:cpp-stlc-mapping}
 
-The \texttt{dedekind} types and combinators are the inhabitants of $\mathbf{Jlt} \cap \mathbf{Sngl}$: C++23 types and arrows that simultaneously sit in the disciplined syntactic fragment $\mathbf{Jlt}$ and carry single-species categorical structure from $\mathbf{Sngl}$.
+The \texttt{dedekind} types and combinators are the inhabitants of $\mathbf{Jlt} \cap \mathbf{Alg(\Sigma)}$: C++23 types and arrows that simultaneously sit in the disciplined syntactic fragment $\mathbf{Jlt}$ and carry single-species categorical structure from $\mathbf{Alg(\Sigma)}$.
 The intersection is small but non-empty, and that is the point: a bounded feasible region a working software engineer can inhabit cleanly without leaving mainstream C++.
 
-\paragraph{Why $\mathbf{Sngl}$ rather than $\mathbf{Mon}$.}
-We use $\mathbf{Sngl}$ as a project-specific mnemonic (\emph{single-species}) naming the engineering-library fragment of $\mathbf{Cat}$ developed in §\ref{sec:sngl} (Burris--Sankappanavar~\cite{burris1981universalalgebra} §II.10).
-The relationship to the textbook $\mathbf{Mon}$ (the category of monoids; equivalently, one-object categories under Mac Lane~\cite{maclane1971categories} §I.1's bijection) is generalisation along two axes: \textbf{(a)~signature}: $\mathbf{Sngl}$ admits operations of arbitrary signature on a shared carrier (e.g.\ both $+$ and $\cdot$ on a ring), where $\mathbf{Mon}$ carries exactly one binary operation; and \textbf{(b)~laws}: $\mathbf{Sngl}$ does not require the monoid axioms (associativity, two-sided identity), leaving lawfulness to per-species trait specialisations (\cppinline{IsRing}, \cppinline{IsField}, \dots).
-Concretely, $\mathbf{Mon} \subset \mathbf{Sngl} \subset \mathbf{Cat}$.
+\paragraph{Why $\mathbf{Alg(\Sigma)}$ rather than $\mathbf{Mon}$.}
+On the CT side, we restrict the discussion to the the category of universal algebras of signature $\Sigma$: $\mathbf{Alg(\Sigma)}$~ §\ref{sec:sngl} (Burris--Sankappanavar~\cite{burris1981universalalgebra} §II.10) noting that in computer science literature, this is broadly equivalent to algebras for an endofunctor $\mathbf{Alg_F}$.
+The relationship to the textbook $\mathbf{Mon}$ (the category of monoids; equivalently, one-object categories under Mac Lane~\cite{maclane1971categories} §I.1's bijection) is generalisation along two axes: \textbf{(a)~signature}: $\mathbf{Alg(\Sigma)}$ admits operations of arbitrary signature on a shared carrier (e.g.\ both $+$ and $\cdot$ on a ring), where $\mathbf{Mon}$ carries exactly one binary operation; and \textbf{(b)~laws}: $\mathbf{Alg(\Sigma)}$ does not require the monoid axioms (associativity, two-sided identity), leaving lawfulness to per-species trait specialisations (\cppinline{IsRing}, \cppinline{IsField}, \dots).
+Concretely, $\mathbf{Mon} \subset \mathbf{Alg(\Sigma)} \subset \mathbf{Cat}$.
 
-The reason for the generalisation is engineering-pragmatic, not categorical-aesthetic: $\mathbf{Sngl}$ is sized precisely to admit the carriers and combinators the C++ standard library already ships --- the primitive types (\cppinline{int}, \cppinline{bool}, \cppinline{double}, \dots), \cppinline{std::regular} value-types, \cppinline{std::pair} and \cppinline{std::tuple}, the \cppinline{std::ranges} families, and so on --- even when these carriers fail one or both of the monoid axioms (\cppinline{int} addition is non-associative under signed-overflow UB; IEEE-754 \cppinline{double} addition is non-associative under rounding; \cppinline{std::ranges::view} has no obvious neutral element).
-Working in $\mathbf{Sngl}$ is what lets the library lift these standard-library carriers into a categorical reading without first having to refactor or wrap them; the trait-specialisation registry then refines individual carriers to stricter algebraic concepts (\cppinline{IsRing}, \cppinline{IsField}, \cppinline{IsTotallyOrdered}, \dots) where the laws actually hold.
+The reason for the generalisation is both engineering-pragmatic and categorical-aesthetic: $\mathbf{Alg(\Sigma)}$ is sized precisely to admit the carriers and combinators the C++ standard library already ships --- the primitive types (\cppinline{int}, \cppinline{bool}, \cppinline{double}, \dots), \cppinline{std::regular} value-types, \cppinline{std::pair} and \cppinline{std::tuple}, the \cppinline{std::ranges} families, and so on --- even when these carriers fail one or both of the monoid axioms (\cppinline{int} addition is non-associative under signed-overflow UB; IEEE-754 \cppinline{double} addition is non-associative under rounding; \cppinline{std::ranges::view} has no obvious neutral element).
+Working in $\mathbf{Alg(\Sigma)}$ is what lets the library lift these standard-library carriers into a categorical reading without first having to refactor or wrap them; the trait-specialisation registry then refines individual carriers to stricter algebraic concepts (\cppinline{IsRing}, \cppinline{IsField}, \cppinline{IsTotallyOrdered}, \dots) where the laws actually hold.
 
 This is the deeper engineering motivation behind the structural-typing posture of §\ref{sec:jlt}: structural typing makes membership definable \emph{after the fact}.
-A pre-existing C++ standard-library type --- a \cppinline{std::pair}, an \cppinline{std::ranges::view}, a \cppinline{std::optional} --- becomes an inhabitant of $\mathbf{Ddk} = \mathbf{Jlt} \cap \mathbf{Sngl}$ the moment a \cppinline{concept} witnessing the relevant algebraic surface accepts it, with no modification to the carrier type itself.
+A pre-existing C++ standard-library type --- a \cppinline{std::pair}, an \cppinline{std::ranges::view}, a \cppinline{std::optional} --- becomes an inhabitant of $\mathbf{Ddk} = \mathbf{Jlt} \cap \mathbf{Alg(\Sigma)}$ the moment a \cppinline{concept} witnessing the relevant algebraic surface accepts it, with no modification to the carrier type itself.
 The \texttt{dedekind} library never asks the standard library to declare itself an instance of anything; instead, the library reaches out, checks the carrier's \emph{scent} against a concept, and admits the carrier on the strength of that check.
 Nominal-typing alternatives (declared lineage, base classes, virtual interfaces) would require the carrier to opt in upstream --- impossible for types that already shipped in the C++ standard a decade ago, or for third-party libraries the engineer does not control.
-The project-specific mnemonic $\mathbf{Sngl}$ is meant to make both motivations visible at the symbol layer (the generalisation beyond $\mathbf{Mon}$, and the after-the-fact-membership opening that lets the library absorb existing types) rather than overload $\mathbf{Mon}$ with a meaning it does not carry in the standard textbook reading.
+The project-specific mnemonic $\mathbf{Alg(\Sigma)}$ is meant to make both motivations visible at the symbol layer (the generalisation beyond $\mathbf{Mon}$, and the after-the-fact-membership opening that lets the library absorb existing types) rather than overload $\mathbf{Mon}$ with a meaning it does not carry in the standard textbook reading.
 
-The remainder of the section develops the two restrictions in turn --- §\ref{sec:sngl} for $\mathbf{Sngl}$, §\ref{sec:jlt} for $\mathbf{Jlt}$ --- and the subsequent pillars exhibit the intersection through worked examples.
+The remainder of the section develops the two restrictions in turn --- §\ref{sec:sngl} for $\mathbf{Alg(\Sigma)}$, §\ref{sec:jlt} for $\mathbf{Jlt}$ --- and the subsequent pillars exhibit the intersection through worked examples.
 
 As noted in the Introduction, the categorical perspective is useful here precisely because it makes composition and rewrite structure explicit.
 
@@ -888,7 +888,7 @@ collapse (§\ref{sec:gap}) act as a form of cut elimination, with the
 LLVM backend treating the reduced bottom type as dead code.
 
 \paragraph{A worked example: the Functor concept.}
-The intersection $\mathbf{Jlt} \cap \mathbf{Sngl}$ becomes concrete on a single non-trivial example.
+The intersection $\mathbf{Jlt} \cap \mathbf{Alg(\Sigma)}$ becomes concrete on a single non-trivial example.
 Figure~\ref{fig:functor-diagram} is the textbook commutative-square diagram for a functor $F: \mathcal{C} \to \mathcal{D}$~\cite{maclane1971categories} (Mac Lane §I.3): an object map $A \mapsto F(A)$ and an arrow map $f \mapsto F(f)$ that respects identities and composition.
 Listing~\ref{lst:isfunctor} is the same content as a C++23 concept in \texttt{dedekind.category:functor} together with a worked instance, the optional-value Maybe functor, mechanically verified by \cppinline{static_assert}.
 
