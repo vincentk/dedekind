@@ -571,10 +571,11 @@ Structural typing (§\ref{sec:jlt}) sees the operator surface mechanically.
 The laws are a separate axis the C++ standard library, principled in its silence~\cite{cpp23standard}, refuses to commit to.
 
 % Sources: src/main/modules/dedekind/algebra/galois.cppm (line 335);
+%          src/main/modules/dedekind/numbers/integer.cppm (lines ~340--350);
 %          src/main/modules/dedekind/numbers/rational.cppm (line 917);
 %          src/main/modules/dedekind/category/species.cppm (line 1068).
 \begin{listing}[ht]
-\caption{Honest Rejection in code: $\mathbf{Ddk}$ ships the Galois field $\mathbb{F}_2$ and the exact-arithmetic field $\mathbb{Q}$ safe by default; \cppinline{int} is refused at the gate.  All four static\_asserts compile in $\mathbf{Ddk}$ today.}
+\caption{Honest Rejection in code: $\mathbf{Ddk}$ ships the Galois field $\mathbb{F}_2$, the integers $\mathbb{Z}$ as a strict commutative ring, and the field of rationals $\mathbb{Q}$ safe by default; \cppinline{int} is refused at the gate.  All five static\_asserts compile in $\mathbf{Ddk}$ today.}
 \label{lst:honest-rejection}
 \begin{cpp}
 // 𝔹 = 𝔽₂: bool under (XOR, AND) is the Galois field on two elements —
@@ -583,6 +584,16 @@ The laws are a separate axis the C++ standard library, principled in its silence
 // axiomatic category::IsField with a finite-cardinality opt-in), with
 // no user-side trait specialisation required.
 static_assert(IsGaloisField<bool, std::bit_xor<bool>, std::bit_and<bool>>);
+
+// ℤ as default_integer (= SignedExtensionalCardinal<>): the variant
+// signed-integer-by-fiat carrier with sign-magnitude periodic wrap —
+// no UB, totality via the periodic path through IsTotal.  The strict
+// axiomatic IsCommutativeRing chain binds: associativity, commutativity,
+// distributivity, additive identity / inverse, and multiplicative
+// identity all certified through the species-trait registry.
+static_assert(IsCommutativeRing<default_integer,
+                                std::plus<default_integer>,
+                                std::multiplies<default_integer>>);
 
 // ℚ = Rational<I>: the bona fide field of fractions Frac(ℤ).
 // Exact arithmetic on the (numerator, denominator) pair — associativity,

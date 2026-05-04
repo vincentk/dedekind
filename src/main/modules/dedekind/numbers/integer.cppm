@@ -328,6 +328,23 @@ concept Algebra_ℂ = IsComplex<C, R> && dedekind::algebra::HasFieldOperators<C>
 static_assert(dedekind::algebra::HasRingOperators<int>,
               "ℤ's machine carrier (int) closes the literal ring operator "
               "surface.");
+
+// Probe (#498 NEW-A): does the strict axiomatic IsRing chain fire on
+// default_integer (= SignedExtensionalCardinal<>)?  The integer.cppm
+// docstring claims it does, via the periodic-wrap path through
+// IsTotal.  Pinning the witness explicitly so we know where we stand.
+static_assert(dedekind::category::IsRing<default_integer,
+                                         std::plus<default_integer>,
+                                         std::multiplies<default_integer>>,
+              "ℤ as default_integer (SignedExtensionalCardinal<>) closes the "
+              "strict axiomatic IsRing chain — periodic-wrap clears the "
+              "IsTotal gate; trait specialisations carry associativity, "
+              "commutativity, distributivity, identity, additive inverse.");
+static_assert(dedekind::category::IsCommutativeRing<
+                  default_integer, std::plus<default_integer>,
+                  std::multiplies<default_integer>>,
+              "ℤ is also commutative (multiplicative commutativity certified "
+              "via the species-trait registry on SignedExtensionalCardinal).");
 static_assert(dedekind::algebra::HasGroupOperatorsAdd<int>,
               "ℤ's machine carrier closes the additive-group operator surface "
               "(+, binary -, unary -).");
