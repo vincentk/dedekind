@@ -436,11 +436,12 @@ The choice of anchoring the library's domain in category theory on the mathemati
 The authoritative textbook in the context of programming might be \emph{Types and Programming Languages}~\cite{pierce2002tapl}.
 Here, we restrict attention to a subset that most readers will be familiar with: algebraic sets, i.e. sets with algebraic operations on them.
 The Booleans $\mathbb B$ with logical operations, the integers $\mathbb Z$ with addition and subtraction and so on.
-In category theory textbook terminology: the universal-algebra category $\mathbf{Alg}(\Sigma)$~\cite{burris1981universalalgebra} for a fixed algebraic signature $\Sigma$ (a list of operation symbols with their arities): an object is a $\Sigma$-algebra (a carrier $A$ together with operations realising the symbols in $\Sigma$), and a morphism is a $\Sigma$-homomorphism (a function $A \to B$ that preserves every operation in $\Sigma$).
+In algebra textbook terminology: the universal-algebra category $\mathbf{Alg}(\Sigma)$~\cite{burris1981universalalgebra} for a fixed algebraic signature $\Sigma$ (a list of operation symbols with their arities).
+In functional programming terminology, this corresponds to F-algebras~\cite{pierce1991basic} $\mathbf{F-Alg}$.
 In the language of software architecture, the picture might be described as a hub-and-spoke layout: each hub is a carrier type $\mathrm{T}$, and the spokes are the maps that compose with it.
-Ooperator overloads ($\mathrm{T} \times \mathrm{T} \to \mathrm{T}$), free-function actions on the carrier, trait specialisations registering structural facts about $\mathrm{T}$, and named embedding arrows $\mathrm{T} \to \mathrm{S}$ crossing to a sibling hub.
+Operator overloads ($\mathrm{T} \times \mathrm{T} \to \mathrm{T}$), free-function actions on the carrier, trait specialisations registering structural facts about $\mathrm{T}$, and named embedding arrows $\mathrm{T} \to \mathrm{S}$ crossing to a sibling hub.
 The library lifts this pattern directly into the build graph: each named module declares one or more hubs and owns its spokes; the partition DAG is the diagram of inter-hub arrows.
-Figure~\ref{fig:hub-spoke-bnz} sketches three concrete hubs ($\mathbb{B}$, $\mathbb{N}$, $\mathbb{Z}$) with one arrow of each kind.
+Figure~\ref{fig:hub-spoke-bnz} sketches three concrete algebraic hubs ($\mathbb{B}$, $\mathbb{N}$, $\mathbb{Z}$) with one arrow of each kind.
 
 \begin{figure}[htbp]
 \centering
@@ -455,7 +456,7 @@ Figure~\ref{fig:hub-spoke-bnz} sketches three concrete hubs ($\mathbb{B}$, $\mat
 \end{tikzcd}
 \caption{
 An example subset of $\mathbf{Alg}(\Sigma)$: the carriers $\mathbb{B}$, $\mathbb{N}$, $\mathbb{Z}$.
-Each carrier is a one-object category whose single object is the underlying set ($\{\mathrm{false}, \mathrm{true}\}$, $\{0, 1, 2, \ldots\}$, $\{\ldots, -1, 0, 1, \ldots\}$) and whose loops are the carrier's distinguished endo-operations: Boolean negation $\neg$ on $\mathbb{B}$; squaring $x \mapsto x^2$ on $\mathbb{N}$; negation $x \mapsto -x$ on $\mathbb{Z}$, which closes because $\mathbb{Z}$ is closed under additive inverse.
+Each carrier is a one-object category whose single object is the underlying set ($\{\mathrm{false}, \mathrm{true}\}$, $\{0, 1, 2, \ldots\}$, $\{\ldots, -1, 0, 1, \ldots\}$) and whose loops are the carrier's distinguished endo-operations: Boolean negation $\neg$ on $\mathbb{B}$; squaring $x \mapsto x^2$ on $\mathbb{N}$; negation $x \mapsto -x$ on $\mathbb{Z}$.
 The set's elements are not drawn separately; in this layer they live \emph{inside} the single object, exactly as in the monoidal category $\mathbf{Mon}$.
 Inter-hub arrows are typed maps $\mathrm{T} \to \mathrm{S}$.
 $\mathbb{B} \rightleftarrows \mathbb{N}$: forward: $\mathfrak{i}$ the canonical embedding; reverse: the parity classifier.
