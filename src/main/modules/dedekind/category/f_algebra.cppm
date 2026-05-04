@@ -99,6 +99,14 @@
  * @see Meijer, E., Fokkinga, M., Paterson, R. (1991) "Functional
  *       Programming with Bananas, Lenses, Envelopes and Barbed Wire"
  *       (FPCA).
+ * @see @c dedekind.algebra:universal (@c IsAlgebra<T, Ops...>) for the
+ *       universal-algebra @c (A, F) reading of the same notion.  Per
+ *       the textbook isomorphism @c Alg(Σ) @c ≅ @c F_Σ-Alg (Pierce
+ *       §2.2), every @c IsAlgebra<T, Ops...> there corresponds to an
+ *       F-algebra here for the polynomial endofunctor @c F_Σ generated
+ *       by the signature @c Σ @c = @c (Ops...).  The two partitions
+ *       name the same structural fragment from the universal-algebra
+ *       and category-theoretic traditions respectively.
  */
 module;
 

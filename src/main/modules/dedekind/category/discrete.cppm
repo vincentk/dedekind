@@ -97,6 +97,20 @@ static_assert(
  * @section discrete__Discrete_Categories
  * A Discrete Category is a Small Category where the only morphisms are
  * identities.
+ *
+ * @section discrete__Set_to_Cat_Embedding
+ * The discrete-category construction realises the canonical embedding
+ * @c Set @c ↪ @c Cat: every set @c S lifts to the discrete category
+ * @c Disc(S) whose objects are the elements of @c S and whose only
+ * arrows are identities.  In categorical terms, @c Disc is the (unique
+ * up to natural iso) left adjoint to the underlying-objects functor
+ * @c U @c : @c Cat @c → @c Set; the adjunction @c Disc @c ⊣ @c U is
+ * the textbook spelling of "every set IS a discrete category".  The
+ * @c DiscreteCategory<T> realisation below witnesses the lift on
+ * primitive carrier types; a generic @c IsSet-aware lift for the
+ * project's set DSL is tracked as a follow-up (the @c IsSet concept
+ * lives in @c category:etcs but the DSL sets live further downstream,
+ * so a lift-aware partition would have to live downstream of both).
  */
 export template <typename Cat>
 concept IsDiscreteCategory =
