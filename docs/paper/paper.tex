@@ -436,7 +436,7 @@ The choice of anchoring the library's domain in category theory on the mathemati
 The authoritative textbook in the context of programming might be \emph{Types and Programming Languages}~\cite{pierce2002tapl}.
 For the more casual reader of this text, it should be sufficient to remember that at its most basic, category theory is a book-keeping device of sorts that can tell us what clicks together (the arrows compose) and what doesn't and how things might be re-arranged and perhaps simplified.
 
-In the context of \texttt{dedekind}, we further restrict our attention to a subset that most readers will be familiar with: algebraic sets, i.e. sets with algebraic operations on them.
+In the context of \texttt{dedekind}, we further restrict our attention to a subset that most readers will be familiar with: algebras, i.e.\ sets equipped with operations.\footnote{We use ``algebra'' here in the universal-algebra sense (a $\Sigma$-algebra: a carrier set together with operations realising a signature $\Sigma$); the unrelated algebraic-geometry usage of ``algebraic set'' for the zero locus of a system of polynomials is \emph{not} what we mean.}
 The Booleans $\mathbb B$ with logical operations, the integers $\mathbb Z$ with addition and subtraction and so on.
 In algebra textbook terminology: the universal-algebra category $\mathbf{Alg}(\Sigma)$~\cite{burris1981universalalgebra} for a fixed algebraic signature $\Sigma$ (a list of operation symbols with their arities).
 In functional programming terminology, this corresponds to $F_\Sigma$-algebras: for each signature $\Sigma$ there is a polynomial endofunctor $F_\Sigma$ on $\mathbf{Set}$, and Pierce~\cite{pierce1991basic} (§2.2) gives the isomorphism $\mathbf{Alg}(\Sigma) \cong F_\Sigma\text{-}\mathbf{Alg}$ that lets the same fragment read coherently to both audiences.
@@ -458,11 +458,11 @@ Figure~\ref{fig:hub-spoke-bnz} sketches three concrete algebraic hubs ($\mathbb{
 \end{tikzcd}
 \caption{
 An example subset of $\mathbf{Alg}(\Sigma)$: the carriers $\mathbb{B}$, $\mathbb{N}$, $\mathbb{Z}$.
-Each carrier is a one-object category (Mac Lane~\cite{maclane1971categories} §I.1's monoid $\leftrightarrow$ one-object-category bijection) whose single object is the underlying set ($\{\mathrm{false}, \mathrm{true}\}$, $\{0, 1, 2, \ldots\}$, $\{\ldots, -1, 0, 1, \ldots\}$) and whose loops are the carrier's distinguished endo-operations: Boolean negation $\neg$ on $\mathbb{B}$; squaring $x \mapsto x^2$ on $\mathbb{N}$; negation $x \mapsto -x$ on $\mathbb{Z}$.
+Each carrier is depicted with its underlying set as the single object ($\{\mathrm{false}, \mathrm{true}\}$, $\{0, 1, 2, \ldots\}$, $\{\ldots, -1, 0, 1, \ldots\}$) and selected endo-operations as loops --- a cartoon of the carrier-as-a-category picture, in the spirit of Mac Lane~\cite{maclane1971categories} §I.1's monoid $\leftrightarrow$ one-object-category bijection (which would draw one morphism per carrier element, impractical here, so only a few representative loops are shown): Boolean negation $\neg$ on $\mathbb{B}$; squaring $x \mapsto x^2$ on $\mathbb{N}$; negation $x \mapsto -x$ on $\mathbb{Z}$.
 The set's elements are not drawn separately; in this layer they live \emph{inside} the single object, exactly as in the category $\mathbf{Mon}$ of monoids.
 Inter-hub arrows are typed maps $\mathrm{T} \to \mathrm{S}$.
 $\mathbb{B} \rightleftarrows \mathbb{N}$: forward: $\mathfrak{i}$ the canonical embedding; reverse: the parity classifier.
-$\mathbb{N} \rightleftarrows \mathbb{Z}$: forward $x \mapsto -x$ the negation, well-typed as $\mathbb{N} \to \mathbb{Z}$ because $\mathbb{N}$ is not closed under additive inverse (the canonical inclusion $\mathbb{N} \hookrightarrow \mathbb{Z}$ from the Grothendieck group completion of $(\mathbb{N}, +)$ is just $n \mapsto n$, not drawn); reverse $x \mapsto x^2$ in reverse.
+$\mathbb{N} \rightleftarrows \mathbb{Z}$: forward $x \mapsto -x$ (negation, well-typed as $\mathbb{N} \to \mathbb{Z}$ because $\mathbb{N}$ is not closed under additive inverse; the canonical inclusion $\mathbb{N} \hookrightarrow \mathbb{Z}$ from the Grothendieck group completion of $(\mathbb{N}, +)$ is just $n \mapsto n$ and is not drawn); reverse $x \mapsto x^2$ (squaring closes into $\mathbb{N}$ from any $\mathbb{Z}$ input).
 Most arrows on each hub and most inter-hub arrows are suppressed for clarity; the diagram shows one of each kind.
 }
 \label{fig:hub-spoke-bnz}
