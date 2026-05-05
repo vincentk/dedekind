@@ -695,6 +695,27 @@ The pattern generalises across the carrier-tower's other higher-kinded construct
 \label{sec:sets-rules}
 % ============================================================
 
+\subsection{The Subobject Classifier $\Omega$}
+
+Here is what $\Omega$ is doing for us. A predicate $P : A \to \Omega$ maps ambient
+elements to \emph{truth values}, and $\Omega$ is the type those truth values live
+in. Change $\Omega$, and you change what counts as membership.
+
+The default is the one every programmer expects: $\Omega = \{\top, \bot\}$,
+classical two-valued logic. Plug it in and you get ordinary set theory.
+
+Swap it for Kleene K3---$\Omega = \{-1, 0, +1\}$---and something more interesting
+happens. The extra value is \emph{Unknown}, and it is where \texttt{NaN} lives.
+In classical logic, $P \lor \neg P = \top$ is a theorem; with \texttt{NaN} in
+play, that theorem quietly breaks, because neither $x < \texttt{NaN}$ nor
+$x \geq \texttt{NaN}$ is true. In K3, $P \lor \neg P = \mathit{Unknown}$ is a
+calm, unremarkable identity. The paradox was never in the floats; it was in our
+choice of $\Omega$.
+
+That is the payoff: the same comprehension machinery handles exact domains
+(pick classical $\Omega$) and floating-point domains (pick K3) with no change to
+the API. The logic is a parameter.
+
 % ============================================================
 \subsection{Intensional First, Realize When You Mean It}
 \label{sec:intensional}
@@ -777,28 +798,6 @@ in §\ref{sec:axiomatic}, paragraph \emph{Named functors that
 build the library's carriers}; carriers are named by the
 universal property that defines them, not by the storage scheme
 they happen to use.}
-
-
-\subsection{The Subobject Classifier $\Omega$}
-
-Here is what $\Omega$ is doing for us. A predicate $P : A \to \Omega$ maps ambient
-elements to \emph{truth values}, and $\Omega$ is the type those truth values live
-in. Change $\Omega$, and you change what counts as membership.
-
-The default is the one every programmer expects: $\Omega = \{\top, \bot\}$,
-classical two-valued logic. Plug it in and you get ordinary set theory.
-
-Swap it for Kleene K3---$\Omega = \{-1, 0, +1\}$---and something more interesting
-happens. The extra value is \emph{Unknown}, and it is where \texttt{NaN} lives.
-In classical logic, $P \lor \neg P = \top$ is a theorem; with \texttt{NaN} in
-play, that theorem quietly breaks, because neither $x < \texttt{NaN}$ nor
-$x \geq \texttt{NaN}$ is true. In K3, $P \lor \neg P = \mathit{Unknown}$ is a
-calm, unremarkable identity. The paradox was never in the floats; it was in our
-choice of $\Omega$.
-
-That is the payoff: the same comprehension machinery handles exact domains
-(pick classical $\Omega$) and floating-point domains (pick K3) with no change to
-the API. The logic is a parameter.
 
 \subsection{The Comprehension View: Sets Are Rules, Not Buckets}
 
