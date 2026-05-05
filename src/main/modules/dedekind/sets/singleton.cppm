@@ -263,6 +263,90 @@ constexpr auto operator<<=(const SingletonSet<T, L>& s, Func&& f) {
   return SingletonSet<U, L>{std::forward<Func>(f)(s)};
 }
 
+/**
+ * @section singleton__Image
+ * @brief Image of a @c SingletonSet under an @c IsArrow.
+ *
+ * @details For an arrow @c f @c : @c T @c → @c U and a singleton
+ * @c {x} @c ⊂ @c T, the categorical image is @c f({x}) @c = @c {f(x)}
+ * @c ⊂ @c U.  This is the cardinality-1 instance of the powerset-monad
+ * Kleisli bind: equivalent to @c s @c >>= @c (η @c ∘ @c f), where @c η
+ * wraps a value in a singleton (the Singleton-monad unit).
+ *
+ * @section singleton__Image_Categorical_Anchor
+ * Type-level breadcrumbs (the static_asserts below) tie the image
+ * construction back to:
+ *   - @c IsArrow: the source-side requirement.  @c f's @c Domain must
+ *     match the singleton's @c pivot type.
+ *   - The Kleisli triple's @c >>= (above): @c image(f, @c s) @c is the
+ *     Singleton specialisation of the Set-monad's bind, factored
+ *     through @c η.
+ *   - The image's tier (@c IsCompileTimeEnumerable, @c IsFiniteSet,
+ *     @c HasDecidableMembership): all preserved by the lift, since
+ *     @c SingletonSet has cardinality 1 in both source and target.
+ *
+ * Filed under #602's layer-1 plan: per-shape image dispatch, Singleton
+ * source as the entry point.  The same shape generalises to
+ * @c FiniteExtensionalSet (sister source under #598) and predicate
+ * sets (lazy / iso-witnessed cases).
+ */
+export template <typename T, typename L, dedekind::category::IsArrow F>
+  requires std::same_as<dedekind::category::Dom<std::remove_cvref_t<F>>, T>
+constexpr auto image(F&& f, const SingletonSet<T, L>& s) {
+  using U = dedekind::category::Cod<std::remove_cvref_t<F>>;
+  return SingletonSet<U, L>{std::forward<F>(f)(s.pivot)};
+}
+
+// ---------------------------------------------------------------------------
+// Categorical breadcrumbs for `image(f, SingletonSet)` (#602 layer 1).
+//
+// The static_asserts below pin three load-bearing claims so the
+// type-checker always carries the proof:
+//
+//   (i)   `image` is defined for @c IsArrow inputs (the source-side
+//         requirement; the @c requires-clause already enforces
+//         Dom(F) == T at instantiation).
+//   (ii)  Tier preservation: @c SingletonSet remains @c IsExtensional
+//         and @c IsPointedSet on the codomain side.  Cardinality is
+//         preserved by construction (size 1 ↦ size 1).
+//   (iii) Kleisli factoring: @c image(f, s) == singleton(f(s.pivot))
+//         — i.e. the cardinality-1 instance of the powerset-monad
+//         bind @c s @c >>= @c (η @c ∘ @c f).
+//
+// The witness arrow stays inline so the breadcrumb is self-contained
+// (no upstream import of @c dedekind.numbers — that would be a cycle).
+// ---------------------------------------------------------------------------
+namespace singleton_image_breadcrumb {
+struct succ_arrow {
+  using Domain = int;
+  using Codomain = int;
+  constexpr int operator()(int x) const { return x + 1; }
+};
+static_assert(dedekind::category::IsArrow<succ_arrow>,
+              "Breadcrumb (i): the witness arrow satisfies IsArrow.");
+
+inline constexpr auto s0 = SingletonSet<int>{0};
+inline constexpr auto s1 = image(succ_arrow{}, s0);
+
+static_assert(std::is_same_v<decltype(s1), const SingletonSet<int>>,
+              "Breadcrumb (ii): image preserves the SingletonSet shape; "
+              "Cod(F) == int folds back to SingletonSet<int>.");
+static_assert(IsExtensional<decltype(s1)>,
+              "Breadcrumb (ii): image preserves IsExtensional.");
+static_assert(IsPointedSet<decltype(s1), int>,
+              "Breadcrumb (ii): image preserves IsPointedSet.");
+static_assert(s1.size() == 1,
+              "Breadcrumb (ii): cardinality is preserved (1 ↦ 1).");
+
+static_assert(s1 == singleton(succ_arrow{}(s0.pivot)),
+              "Breadcrumb (iii): image(f, s) == singleton(f(s.pivot)) — "
+              "the cardinality-1 instance of the powerset-monad Kleisli "
+              "bind, factored through η.");
+static_assert(s1 == (s0 >>= [](int x) { return singleton(succ_arrow{}(x)); }),
+              "Breadcrumb (iii): image factors through the existing "
+              "Singleton-monad Kleisli bind (>>=).");
+}  // namespace singleton_image_breadcrumb
+
 };  // namespace dedekind::sets
 
 /** @section singleton__The_Final_Ontology_Proof
