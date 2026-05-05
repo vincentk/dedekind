@@ -1120,26 +1120,6 @@ as predicate algebra. The subobject classifier $\Omega$ becomes a knob you can
 turn: classical \texttt{bool} for exact domains, Kleene K3 for floats, anything
 else you can register.
 
-% Source: src/main/modules/dedekind/category/etcs.cppm (ambient_set, ll. 357-366)
-\begin{listing}[htbp]
-\caption{A set as a compile-time predicate type. The set object is invocable; membership returns a logic value.}
-\label{lst:settype}
-\begin{cpp}
-
-using namespace dedekind::category;
-
-// ambient_set<T>(P) creates the intensional set {x in T | P(x)}.
-// No values are stored; the predicate IS the set.
-constexpr auto even_gt_ten = ambient_set<int>(
-    [](const int& x) { return x % 2 == 0 && x > 10; });
-
-// Membership is a function call returning a logic value; no runtime
-// container or heap allocation is involved.
-static_assert(even_gt_ten(12) == ClassicalLogic::True);
-static_assert(even_gt_ten(7)  == ClassicalLogic::False);
-\end{cpp}
-\end{listing}
-
 \subsection{Set Operations as Predicate Composition}
 
 If a set is a predicate, a set operation is whatever operation you would apply to
@@ -1155,30 +1135,6 @@ Every operation on the left is an operation on $\Omega$ on the right. Intersecti
 is conjunction; union is disjunction; complement is negation. No values are touched,
 because there are no values yet. The combinators compose at compile time and produce
 a new type---a new rule---which the compiler is then free to inspect.
-
-% Source: src/main/modules/dedekind/sets/expressions.cppm (Set::operator&, ll. 332+)
-\begin{listing}[htbp]
-\caption{Set intersection as type-level predicate conjunction, discharged by the library's \cppinline{operator&} on \cppinline{Set}.}
-\label{lst:intersection}
-\begin{cpp}
-
-using namespace dedekind::category;
-
-// Two intensional sets over int.
-constexpr auto evens    = ambient_set<int>(
-    [](const int& n) { return n % 2 == 0; });
-constexpr auto ten_plus = ambient_set<int>(
-    [](const int& n) { return n > 10; });
-
-// Intersection: the predicate of (evens & ten_plus) is the conjunction
-// of the two component predicates, built as a type by the compiler.
-constexpr auto even_and_ten_plus = evens & ten_plus;
-
-static_assert(even_and_ten_plus(12) == ClassicalLogic::True);
-static_assert(even_and_ten_plus(11) == ClassicalLogic::False);
-static_assert(even_and_ten_plus(4)  == ClassicalLogic::False);
-\end{cpp}
-\end{listing}
 
 \subsection{Structural Pruning in Practice}
 
@@ -1219,53 +1175,6 @@ A concrete witness from the test suite demonstrates this in the actual
 \texttt{dedekind} API.  (The complementary $\mathbb{C}$-flavoured Showcase~2 is
 deferred to §\ref{sec:linalg}, where the linear-algebra carriers it depends
 on are introduced.)
-
-\textbf{Showcase 1 — Diagonal contradiction in $\mathbb{R}^2$.}
-On the diagonal $\{(x,y) \mid x = y\}$, the strip predicate $x > 5 \land y < 3$
-is contradictory (since $x = y > 5$ forces $y > 5$, violating $y < 3$).
-The intersection is proven empty by \cppinline{static_assert}; the exported
-function compiles to a single \cppinline{ret i1 false}.
-
-% Source: src/test/cpp/modules/dedekind/python/showcase_01_diagonal_contradiction.cpp
-\begin{listing}[htbp]
-\caption{Showcase 1 source: diagonal contradiction in $\mathbb{R}^2$.}
-\label{lst:showcase01_src}
-\begin{cpp}
-
-constexpr auto R2 = R * R;
-constexpr auto xy = var<decltype(R2)>;
-using R2Point = typename decltype(R2)::Domain;
-
-// Diagonal: { (x, y) ∈ ℝ² | x = y }
-constexpr auto diagonal =
-    Set{xy % R2 | [](R2Point p) { return p.first == p.second; }};
-
-// Strip: { (x, y) ∈ ℝ² | x > 5 ∧ y < 3 }
-constexpr auto strip = Set{
-    xy % R2 | [](R2Point p) { return (p.first > 5.0) && (p.second < 3.0); }};
-
-constexpr auto empty_diagonal_cut = diagonal & strip;
-using R2Logic = typename decltype(empty_diagonal_cut)::logic_species;
-
-static_assert(empty_diagonal_cut(R2Point{6.0, 6.0}) == R2Logic::False);
-
-extern "C" __attribute__((noinline)) bool witness_empty_diagonal_cut() {
-  return empty_diagonal_cut(R2Point{6.0, 6.0}) == R2Logic::True;
-}
-\end{cpp}
-\end{listing}
-
-% Source: src/test/cpp/modules/dedekind/python/showcase_01_diagonal_contradiction.ll
-\begin{listing}[htbp]
-\caption{Showcase 1 LLVM IR (\texttt{clang++-22 -O2}): constant false return.}
-\label{lst:showcase01_ir}
-\begin{cpp}
-
-define noundef zeroext i1 @witness_empty_diagonal_cut() local_unnamed_addr #0 {
-  ret i1 false
-}
-\end{cpp}
-\end{listing}
 
 \subsection{Algebraic Properties Enable Stronger Pruning}
 
