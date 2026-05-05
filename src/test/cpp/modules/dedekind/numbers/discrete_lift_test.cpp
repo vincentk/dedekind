@@ -112,14 +112,14 @@ TEST_CASE("discrete_lift_t adjunction witnesses fire across the numeric tower",
 
   // Full IsAdjunction with identity-transformation unit/counit fires
   // on the full tower as well.
-  STATIC_CHECK(IsAdjunction<disc_self_endofunctor_t<DiscNat>,
-                            disc_self_endofunctor_t<DiscNat>,
-                            disc_self_unit_t<DiscNat>,
-                            disc_self_unit_t<DiscNat>>);
-  STATIC_CHECK(IsAdjunction<disc_self_endofunctor_t<DiscRat>,
-                            disc_self_endofunctor_t<DiscRat>,
-                            disc_self_unit_t<DiscRat>,
-                            disc_self_unit_t<DiscRat>>);
+  STATIC_CHECK(
+      IsAdjunction<disc_self_endofunctor_t<DiscNat>,
+                   disc_self_endofunctor_t<DiscNat>, disc_self_unit_t<DiscNat>,
+                   disc_self_unit_t<DiscNat>>);
+  STATIC_CHECK(
+      IsAdjunction<disc_self_endofunctor_t<DiscRat>,
+                   disc_self_endofunctor_t<DiscRat>, disc_self_unit_t<DiscRat>,
+                   disc_self_unit_t<DiscRat>>);
 }
 
 TEST_CASE("discrete_lift_t illustrates 'simple set vs. complex algebra' on 𝔹",

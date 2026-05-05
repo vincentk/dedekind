@@ -501,19 +501,17 @@ static_assert(
     IsFunctor<disc_self_endofunctor_t<discrete_lift_t<_isset_witness_t>>>,
     "Set ↪ Cat lift: the discrete-restriction Disc-functor is a bona "
     "fide functor on Disc(S).");
-static_assert(
-    HasAdjunctionShape<
-        disc_self_endofunctor_t<discrete_lift_t<_isset_witness_t>>,
-        disc_self_endofunctor_t<discrete_lift_t<_isset_witness_t>>>,
-    "Set ↪ Cat lift: the discrete-restriction Disc and U satisfy the "
-    "structural shape of an adjunction (Σ_cat / Τ_cat cross-pair).");
-static_assert(
-    IsNaturalTransformation<
-        disc_self_unit_t<discrete_lift_t<_isset_witness_t>>,
-        disc_self_endofunctor_t<discrete_lift_t<_isset_witness_t>>,
-        disc_self_endofunctor_t<discrete_lift_t<_isset_witness_t>>>,
-    "Set ↪ Cat lift: the identity unit/counit is a bona fide natural "
-    "transformation between the discrete-restriction functors.");
+static_assert(HasAdjunctionShape<
+                  disc_self_endofunctor_t<discrete_lift_t<_isset_witness_t>>,
+                  disc_self_endofunctor_t<discrete_lift_t<_isset_witness_t>>>,
+              "Set ↪ Cat lift: the discrete-restriction Disc and U satisfy the "
+              "structural shape of an adjunction (Σ_cat / Τ_cat cross-pair).");
+static_assert(IsNaturalTransformation<
+                  disc_self_unit_t<discrete_lift_t<_isset_witness_t>>,
+                  disc_self_endofunctor_t<discrete_lift_t<_isset_witness_t>>,
+                  disc_self_endofunctor_t<discrete_lift_t<_isset_witness_t>>>,
+              "Set ↪ Cat lift: the identity unit/counit is a bona fide natural "
+              "transformation between the discrete-restriction functors.");
 static_assert(
     IsAdjunction<disc_self_endofunctor_t<discrete_lift_t<_isset_witness_t>>,
                  disc_self_endofunctor_t<discrete_lift_t<_isset_witness_t>>,
