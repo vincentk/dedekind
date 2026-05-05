@@ -215,8 +215,9 @@ concept HasCarrier =
     IsAlgebra<Carrier, Ops...> &&
     dedekind::category::IsPartOfRelation<Carrier, Algebra, bool> &&
     requires(const Algebra& a) {
-      { dedekind::category::arrow_drill_down(a) } ->
-          std::convertible_to<const Carrier&>;
+      {
+        dedekind::category::arrow_drill_down(a)
+      } -> std::convertible_to<const Carrier&>;
     };
 
 namespace _has_carrier_witness {
