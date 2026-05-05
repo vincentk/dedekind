@@ -366,7 +366,9 @@ struct horizontal_composition {
 //
 // The full meta-categorical @c Disc @c ⊣ @c U with cross-category source /
 // target is left as future work; it requires meta-categories of sets and
-// categories that the project does not yet model.  Filed under #572.
+// categories that the project does not yet model.  Tracked under #587.
+// (The discrete-restriction representatives below were filed and addressed
+// under #572.)
 
 /**
  * @brief Discrete-restriction representative of the textbook @c Disc / @c U

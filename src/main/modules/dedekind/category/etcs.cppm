@@ -466,9 +466,9 @@ static_assert(
  * self-adjunction exhibit in @c functor_test.cpp:138.  The full
  * meta-categorical @c Disc @c ⊣ @c U is left as future work (it
  * needs @c category_of_sets / @c category_of_categories types that
- * the project does not yet model).
+ * the project does not yet model); tracked under #587.
  *
- * Filed and addressed under #572.
+ * Discrete-restriction lift filed and addressed under #572.
  */
 export template <typename S>
   requires IsSet<S>
