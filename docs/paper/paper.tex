@@ -553,9 +553,9 @@ The Juliet Posture deliberately rejects type erasure on the categorical surface:
 \subsection{The Structuralist Intersection: $\mathbf{Ddk} = \mathbf{Jlt} \cap \mathbf{Alg}(-)_{\beth_1}$}
 \label{sec:cpp-stlc-mapping}
 
-The \texttt{dedekind} types and combinators are the inhabitants of $\mathbf{Jlt} \cap \mathbf{Alg}(-)$.
-These are C++23 types in the disciplined fragment $\mathbf{Jlt}$ (§\ref{sec:jlt}) that simultaneously carry universal-algebra structure $\mathbf{Alg}(\Sigma)$ (§\ref{sec:alg-sigma}) for some signature $\Sigma$ the carrier supplies operators for.
-The dash notation $\mathbf{Alg}(-)$ is the family $\bigcup_\Sigma \mathbf{Alg}(\Sigma)$ over the signatures the library names.
+The \texttt{dedekind} types and combinators are the inhabitants of $\mathbf{Jlt} \cap \mathbf{Alg}(-)_{\beth_1}$.
+These are C++23 types in the disciplined fragment $\mathbf{Jlt}$ (§\ref{sec:jlt}) that simultaneously carry universal-algebra structure $\mathbf{Alg}(\Sigma)$ (§\ref{sec:alg-sigma}) for some signature $\Sigma$ the carrier supplies operators for, with the size restriction from §\ref{sec:alg-sigma} carried through.
+The dash notation $\mathbf{Alg}(-)_{\beth_1}$ is the family $\bigcup_\Sigma \mathbf{Alg}(\Sigma)_{\beth_1}$ over the signatures the library names.
 Per §\ref{sec:alg-sigma}, $\Sigma$ stays unbound here, and the per-shape \cppinline{Has*Operators} concepts pin it later.
 The intersection is small and that is the point.
 
@@ -2839,8 +2839,8 @@ $\mathbb{Z}$ bounded & \cppinline{SignedExtensionalCardinal<N>} & \cppinline{IsA
 $\mathbb{Z}$ unbounded & \cppinline{SignedCardinality} (variant over $\pm \aleph_0$, NaZ) & \cppinline{IsAbelianGroup<T,+>}, \cppinline{IsRing} \\
 $\mathbb{Q}$ & \cppinline{Rational<SignedExtensionalCardinal<>>} & \cppinline{HasFieldOperators<Rational<I>>}\textsuperscript{$\dagger$} \\
 $\mathbb{R}$ exact & \cppinline{ExactReal<I>} = \cppinline{Real<Rational<I>>} & \cppinline{IsDedekindComplete} (exact rational scalar) \\
-$\mathbb{C}$ & \cppinline{Complex<Rational<SignedEC<>>>} & \cppinline{Algebra_}$\mathbb{C}$ \\
-$\mathbb{D}$ (dual) & \cppinline{Dual<Rational<SignedEC<>>>} & \cppinline{IsRing<T,+,*>}, $\varepsilon^2 = 0$ \\
+$\mathbb{C}$ & \cppinline{Complex<Rational<SignedExtensionalCardinal<>>>} & \cppinline{Algebra_}$\mathbb{C}$ \\
+$\mathbb{D}$ (dual) & \cppinline{Dual<Rational<SignedExtensionalCardinal<>>>} & \cppinline{IsRing<T,+,*>}, $\varepsilon^2 = 0$ \\
 \bottomrule
 \end{tabular}
 
@@ -2876,7 +2876,7 @@ the reference implementation on the exact side.}
 \begin{flushleft}
 {\footnotesize \textsuperscript{a} \cppinline{HasRingOperators} holds (literal $+$, binary $-$, unary $-$, $*$ all close on the carrier); the strict \cppinline{IsRing} bundle refuses because signed-overflow UB makes the operation partial, which doesn't satisfy any of the \cppinline{IsTotal} paths (\cppinline{IsPeriodic} / \cppinline{IsIdempotent} / \cppinline{IsSaturating}) the totality gate admits (math-wins-over-C++). Total alternatives: \cppinline{SignedCardinality} (saturating), \cppinline{SignedExtensionalCardinal<>} (cyclic), or the \cppinline{:partial} Maybe-monad chain for honest fail-on-overflow.
 
-\textsuperscript{b} For narrow signed integers \cppinline{HasRingOperators} \emph{refuses}: integer promotion (C++ [conv.prom]) lifts \cppinline{int8_t + int8_t} to \cppinline{int}, so literal arithmetic does not close on the carrier.  The functor-parametric surface \cppinline{IsAlgebra<T, std::plus<T>, std::multiplies<T>>} fires because \cppinline{std::plus<T>} returns \cppinline{T} by signature; algebraically every narrow signed type is the modular ring $\mathbb{Z}/2^{\text{bits}(T)}\mathbb{Z}$ under the functor surface.  Same Z/2\^{}NZ story as the wide unsigned case, gated by promotion semantics.}
+\textsuperscript{b} For narrow signed integers \cppinline{HasRingOperators} \emph{refuses}: integer promotion (C++ [conv.prom]) lifts \cppinline{int8_t + int8_t} to \cppinline{int}, so literal arithmetic does not close on the carrier.  The functor-parametric surface \cppinline{IsAlgebra<T, std::plus<T>, std::multiplies<T>>} fires because \cppinline{std::plus<T>} returns \cppinline{T} by signature --- this is the structural-shape level, not a ring-axiom certification: signed-overflow UB still defeats the strict \cppinline{IsRing} bundle along the same path footnote~a names for \cppinline{int} / \cppinline{long}, and the project's math-wins-over-C++ stance therefore withholds ring-axiom certification on narrow signed carriers.  Total alternatives are the same as in footnote~a.}
 \end{flushleft}
 \end{table}
 
@@ -2899,7 +2899,7 @@ $\mathbb{N}$ & \cppinline{.realize_to_size_t(sentinel)} & \cppinline{embed_unsig
 $\mathbb{Z}$ & \cppinline{static_cast<int64_t>(x)} & \cppinline{embed_signed_integral<Z>(v)} \\
 $\mathbb{Q}$ & \cppinline{.resolve()} $\to$ \cppinline{double} & \cppinline{Rational<Z>(num, den)} \\
 $\mathbb{R}$ symbolic & evaluate cut at a rational bound & (intensional; no simple lift) \\
-$\mathbb{R}$ policy & unwrap \cppinline{IEEE<double>} & wrap in \cppinline{IEEE<double>} \\
+$\mathbb{R}$ policy & \cppinline{discharge_ieee(IEEE<double>)} & \cppinline{assume_ieee(Real<double>)} \\
 $\mathbb{C}$ & per-component \cppinline{.resolve()} & \cppinline{Complex<R>(re, im)} \\
 $\mathbb{D}$ (dual) & \cppinline{.val} (primal only; tangent discarded) & \cppinline{Dual<F>(v, d)} \\
 \bottomrule
