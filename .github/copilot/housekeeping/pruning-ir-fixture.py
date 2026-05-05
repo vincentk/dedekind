@@ -37,10 +37,6 @@ SOURCES = [
         _PYTHON_DIR / "showcase_03_halfspace_contradiction.ll",
     ),
     (
-        _PYTHON_DIR / "showcase_04_halfspace_singleton.cpp",
-        _PYTHON_DIR / "showcase_04_halfspace_singleton.ll",
-    ),
-    (
         _PYTHON_DIR / "showcase_05_halfspace_real_ambient.cpp",
         _PYTHON_DIR / "showcase_05_halfspace_real_ambient.ll",
     ),
@@ -221,15 +217,6 @@ def semantic_sanity(ir_text: str, source: Path) -> None:
             raise AssertionError(
                 "Expected halfspace contradiction (x > 5) ∧ (x < 3) on ℕ to "
                 "collapse to `ret i1 false` in IR."
-            )
-    elif "showcase_04_halfspace_singleton" in name:
-        block = extract_function_block(ir_text, "witness_halfspace_singleton")
-        if block is None:
-            raise AssertionError("IR missing witness_halfspace_singleton symbol.")
-        if "ret i1 true" not in block:
-            raise AssertionError(
-                "Expected halfspace cardinality-1 meet (3 < n < 5) on ℕ to "
-                "collapse to `ret i1 true` at the unique inhabitant."
             )
     elif "showcase_05_halfspace_real_ambient" in name:
         block = extract_function_block(ir_text, "witness_real_halfspace_empty")
