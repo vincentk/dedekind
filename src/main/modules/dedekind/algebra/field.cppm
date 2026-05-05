@@ -232,8 +232,7 @@ static_assert(
  */
 export template <typename T, typename Add = std::plus<T>,
                  typename Mult = std::multiplies<T>>
-concept IsAlgebraicallyClosed =
-    IsField<T, Add, Mult> && true;  // Refined by its use in Algebra_ℂ
+concept IsAlgebraicallyClosed = IsField<T, Add, Mult> && true;
 
 static_assert(!IsField<int>, "Structural Integrity: Integers are not a Field.");
 

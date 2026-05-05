@@ -17,13 +17,14 @@
  * We "Bless" the coordinate species by verifying their rungs on the ladder:
  * - IsNatural  : N (ℕ) - The Discrete Monoid.
  * - IsInteger  : Z (ℤ) - The Euclidean Group.
- * - IsRational : Q (ℚ) - The Countable Dense Field.
- * - IsReal     : R (ℝ) - The Continuous Dedekind-Complete Field.
+ * - Rational<I> : Q (ℚ) - The Countable Dense Field.
+ * - Real<I> / IEEE<F> : R (ℝ) - Exact and floating-point realisations.
  *
  * @section natural__Structural_Mapping
- * This is where we perform the final 'Lifting'. We prove that 'int'
- * satisfies 'Group_ℤ' and that 'double' is a hardware-constrained
- * approximation of 'Field_ℝ'.
+ * This is where we perform the final 'Lifting'. We prove that
+ * @c SignedExtensionalCardinal<> satisfies @c Group_ℤ (per the strict
+ * @c IsCommutativeRing witness pinned in @c integer.cppm) and that
+ * @c double is a hardware-constrained approximation of an exact field.
  *
  * @anchors C++ Fundamental Types: bool, char, int, long, float, double.
  *
