@@ -687,7 +687,12 @@ static_assert(IsFunctor<maybe_functor<int>>);  // mechanical verification
 
 The hub--carrier split (\cppinline{maybe_functor<T>} carries the functorial proof obligation; \cppinline{std::optional<T>} stays a Plain Old C++ Object) is the §\ref{sec:alg-sigma} architectural pattern played at the next kind level.
 This is the same after-the-fact membership above: \cppinline{std::optional} ships in the C++ standard and cannot opt into anything upstream, but the moment a hub naming the functorial structure passes the concept gate, the carrier inhabits $\mathbf{Ddk}$ as a functor.
-The pattern generalises across the carrier-tower's other higher-kinded constructions ($V_n(R)$, $\mathrm{End}_R$, $\mathrm{Frac}$, $\mathrm{Complex}$, $\mathrm{Dual}$); §\ref{sec:linalg} carries the worked instances.
+
+The carrier-lattice's higher-kinded constructions are populated by several functorial families, each a textbook universal-property construction; representative anchors include:
+\emph{Frac} (field of fractions: a left adjoint to the inclusion $\mathbf{Field} \hookrightarrow \mathbf{IntegralDomain}$, giving $\mathbb{Q} = \operatorname{Frac}(\mathbb{Z})$, with $\operatorname{Cuts}$ as a sister carrier-strength completion giving $\mathbb{R} = \operatorname{Cuts}(\mathbb{Q})$);
+\emph{Free} (free module: a left adjoint to the forgetful $U: \mathrm{Mod}_R \to \mathbf{Set}$, giving $V_n(R) = \operatorname{Free}_n(R) = R^n$ and dually the internal hom $\operatorname{End}_R(V_n) = M_n(R)$);
+and \emph{Quotient} (quotient by a congruence: an H operation in the HSP sense, giving $\mathbb{C} = \mathbb{R}[i]/(i^2+1)$ and $\mathbb{D} = \mathbb{R}[\varepsilon]/(\varepsilon^2)$).
+Each construction is named in the carrier-lattice diagram (Figure~\ref{fig:carrier-lattice}) and exhibited concretely in §\ref{sec:linalg}; the discipline of this section is that each functor lifts at the type level the moment a hub naming it passes the concept gate, and the corresponding carrier (\cppinline{Rational<I>}, \cppinline{Vec2V<T>} / \cppinline{Matrix2x2V<T>}, \cppinline{Complex<R>} / \cppinline{Dual<F>}) inhabits $\mathbf{Ddk}$ at that kind level without modifying the underlying scalar storage.
 
 \paragraph{The intersection's deliberate scope.}
 Two distinct mechanisms compose into the intersection $\mathbf{Ddk} = \mathbf{Jlt} \cap \mathbf{Alg}(-)_{\beth_1}$, and naming them separately matters because they pay for different things.
@@ -1012,12 +1017,13 @@ the simpler set at compile time.
 \label{fig:two-axes}
 \end{figure}
 
-The third pillar.  The carrier tower of Figure~\ref{fig:carrier-lattice}
+The third pillar.  The carrier lattice of Figure~\ref{fig:carrier-lattice}
 in load-bearing form: HSP propagation lifts axioms componentwise
-along quotients (\textbf{H}, e.g. \texttt{Frac}, \texttt{Complex},
+along quotients (\textbf{H}, e.g. \texttt{Complex},
 \texttt{Dual}) and direct products (\textbf{P}, e.g. $V_n(R)$,
-\texttt{Diagonal}); $\operatorname{End}_R$ is the partial-axiom
-rank-$n$ extension.  The algebraic lattice's compile-time-reduction
+\texttt{Diagonal}); localizations such as \texttt{Frac} sit alongside
+HSP rather than inside it, and $\operatorname{End}_R$ is the
+partial-axiom rank-$n$ extension.  The algebraic lattice's compile-time-reduction
 showcases live in the sister section §\ref{sec:linalg}
 \emph{Linear Algebra}: linear programming
 (§\ref{sec:lp-centrepiece}), forward-mode automatic differentiation
