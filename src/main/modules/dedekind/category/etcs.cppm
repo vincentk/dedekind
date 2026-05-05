@@ -415,13 +415,17 @@ static_assert(
 /**
  * @brief The canonical Set ↪ Cat lift for any IsSet-witnessing carrier.
  *
- * @details For every @c IsSet<S>, the canonical embedding
- * @c S @c → @c Disc(S) sits in @c Cat as a discrete category --- the
- * textbook Disc ⊣ U adjunction realised mechanically.  The lift takes
- * the set's ambient species (@c S::Ambient) and wraps it in
- * @c DiscreteCategory<>.  Per @c :discrete, the resulting type
- * satisfies @c IsDiscreteCategory and @c IsCategory, witnessed by the
- * static_asserts at the @c DiscreteCategory definition site.
+ * @details For every @c IsSet<S>, the lift @c S @c → @c Disc(S) sits in
+ * @c Cat as a discrete category --- the textbook Disc ⊣ U adjunction
+ * realised at the type level.  The lift uses @c S itself (not its
+ * ambient species) as the carrier of the discrete category, so distinct
+ * @c IsSet types over the same ambient remain distinct after lifting:
+ * a refined subset and an unrefined ambient are different sets and
+ * therefore different discrete categories.  This mirrors the textbook:
+ * @c Disc(\{0, 1, 2\}) and @c Disc(\mathbb{N}) are not the same
+ * category.  The resulting type follows the @c IsDiscreteCategory
+ * concept definition by construction; the per-instance witnesses
+ * below pin it on the project's representative @c IsSet carrier.
  *
  * Companion to:
  *   - The Set_to_Cat_Embedding doc-section in @c :discrete.
@@ -437,21 +441,20 @@ static_assert(
  */
 export template <typename S>
   requires IsSet<S>
-using discrete_lift_t = DiscreteCategory<typename S::Ambient>;
+using discrete_lift_t = DiscreteCategory<S>;
 
 // Witness that the lift produces a discrete category for the
 // representative @c IsSet-witnessing carrier from above.
+static_assert(IsCategory<discrete_lift_t<_isset_witness_t>>,
+              "Set ↪ Cat lift: discrete_lift_t<S> satisfies the "
+              "general Category contract.");
 static_assert(IsDiscreteCategory<discrete_lift_t<_isset_witness_t>>,
               "Set ↪ Cat lift: discrete_lift_t<S> is a DiscreteCategory "
               "for every IsSet-witnessing S.");
-static_assert(
-    IsCategory<discrete_lift_t<_isset_witness_t>>,
-    "Set ↪ Cat lift: discrete_lift_t<S> satisfies the general Category "
-    "contract (subsumed by IsDiscreteCategory above; pinned for clarity).");
-static_assert(
-    std::same_as<discrete_lift_t<_isset_witness_t>,
-                 DiscreteCategory<typename _isset_witness_t::Ambient>>,
-    "Set ↪ Cat lift: discrete_lift_t<S> resolves structurally to "
-    "DiscreteCategory<S::Ambient>.");
+static_assert(std::same_as<discrete_lift_t<_isset_witness_t>,
+                           DiscreteCategory<_isset_witness_t>>,
+              "Set ↪ Cat lift: discrete_lift_t<S> resolves to "
+              "DiscreteCategory<S>; subobject information in S is "
+              "preserved by lifting S itself rather than S::Ambient.");
 
 }  // namespace dedekind::category
