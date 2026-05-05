@@ -354,8 +354,8 @@ static_assert(
 
 // Concrete-algebra witness: Z/2^N Z (the canonical modular ring on
 // std::unsigned_integral wide carriers) wired through algebra_view.
-// IsAlgebra<unsigned int, std::plus<unsigned int>, std::multiplies<unsigned int>>
-// certifies the algebra-side closure (the standard modular ring under
+// IsAlgebra<unsigned int, std::plus<unsigned int>, std::multiplies<unsigned
+// int>> certifies the algebra-side closure (the standard modular ring under
 // periodic wraparound at 2^N — see ring.cppm:451 for the full IsRing
 // certification on wide unsigned types).  Validates HasCarrier on a
 // non-trivial infinite-cardinality-up-to-machine-width algebra,
