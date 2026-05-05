@@ -59,6 +59,11 @@
  *      @em to @em some @em other @em thing?, in Gold \& Simons (eds.),
  *      @em Proof @em and @em Other @em Dilemmas: @em Mathematics @em
  *      and @em Philosophy, MAA, pp.\ 221--242.
+ *
+ * @note "No entity without identity."
+ *       — Willard Van Orman Quine, @em Theories @em and @em Things
+ *         (Harvard University Press, 1981), Ch.\ "Things and Their
+ *         Place in Theories".
  */
 module;
 
