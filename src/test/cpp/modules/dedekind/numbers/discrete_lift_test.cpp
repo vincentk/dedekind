@@ -2,11 +2,15 @@
  *
  * Long-range test for @c discrete_lift_t<S> from @c category:etcs (#572).
  * Exercises the lift on @c IsSet-witnessing carriers built from the
- * project's concrete numeric tower (@c int, @c unsigned, @c Rational,
- * @c Real) — illustrates that the textbook @c Set @c ↪ @c Cat
- * embedding fires at every rung of the carrier ladder, not only on
- * primitive int.  The short-range test that pins the lift on
- * primitive ambients lives in @c category/discrete_lift_test.cpp.
+ * project's concrete numeric tower (@c bool, @c unsigned, @c int,
+ * @c Rational) — illustrates that the textbook @c Set @c ↪ @c Cat
+ * embedding fires at every rung of the carrier ladder reached here,
+ * not only on primitive int.  The @c Real rung lifts identically
+ * once the canonical @c Real carrier is dog-fooded on @c IsSet
+ * (#586); for now the rung is reached transitively via
+ * @c Rational<default_integer>'s scalar role inside @c ExactReal.
+ * The short-range test that pins the lift on primitive ambients
+ * lives in @c category/discrete_lift_test.cpp.
  */
 #include <catch2/catch_test_macros.hpp>
 
@@ -116,6 +120,10 @@ TEST_CASE("discrete_lift_t adjunction witnesses fire across the numeric tower",
       IsAdjunction<disc_self_endofunctor_t<DiscNat>,
                    disc_self_endofunctor_t<DiscNat>, disc_self_unit_t<DiscNat>,
                    disc_self_unit_t<DiscNat>>);
+  STATIC_CHECK(
+      IsAdjunction<disc_self_endofunctor_t<DiscInt>,
+                   disc_self_endofunctor_t<DiscInt>, disc_self_unit_t<DiscInt>,
+                   disc_self_unit_t<DiscInt>>);
   STATIC_CHECK(
       IsAdjunction<disc_self_endofunctor_t<DiscRat>,
                    disc_self_endofunctor_t<DiscRat>, disc_self_unit_t<DiscRat>,
