@@ -352,6 +352,23 @@ static_assert(
     "satisfy the concept end-to-end (algebra side via IsAlgebra<bool, ⊕, ∧>; "
     "mereology side via IsPartOfRelation + arrow_drill_down).");
 
+// Concrete-algebra witness: Z/2^N Z (the canonical modular ring on
+// std::unsigned_integral wide carriers) wired through algebra_view.
+// IsAlgebra<unsigned int, std::plus<unsigned int>, std::multiplies<unsigned int>>
+// certifies the algebra-side closure (the standard modular ring under
+// periodic wraparound at 2^N — see ring.cppm:451 for the full IsRing
+// certification on wide unsigned types).  Validates HasCarrier on a
+// non-trivial infinite-cardinality-up-to-machine-width algebra,
+// distinct in shape from the 2-element F_2 witness above.
+static_assert(
+    HasCarrier<_has_carrier_witness::algebra_view<unsigned int>, unsigned int,
+               std::plus<unsigned int>, std::multiplies<unsigned int>>,
+    "HasCarrier (#573): Z/2^N Z = (unsigned int, +, *) wired through "
+    "algebra_view must satisfy the concept end-to-end (algebra side via "
+    "IsAlgebra<unsigned int, +, *>; mereology side via IsPartOfRelation + "
+    "arrow_drill_down).  Sister witness to F_2 above; same concept, "
+    "different algebra shape (Galois field vs modular ring).");
+
 // ---------------------------------------------------------------------------
 // Phase 2: Homomorphisms — arrows between algebras (#506).
 // ---------------------------------------------------------------------------
