@@ -44,6 +44,7 @@ export module dedekind.category;
 export import :species;    // The Raw Machine Data
 export import :morphism;   // The Base Arrow (Prerequisite for everything)
 export import :mereology;  // Parthood (Prerequisite for Logic/Sets)
+export import :equivalence;  // Equivalence relations (Mazur up-to relaxation; #591)
 export import :logic;      // The Subobject Classifier (Truth)
 
 // Level 0.5: The Structural Infrastructure
