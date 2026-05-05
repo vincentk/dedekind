@@ -41,11 +41,12 @@
 export module dedekind.category;
 
 // Level 0: The Taxonomic Bricks (Atoms)
-export import :species;    // The Raw Machine Data
-export import :morphism;   // The Base Arrow (Prerequisite for everything)
-export import :mereology;  // Parthood (Prerequisite for Logic/Sets)
-export import :equivalence;  // Equivalence relations (Mazur up-to relaxation; #591)
-export import :logic;      // The Subobject Classifier (Truth)
+export import :species;      // The Raw Machine Data
+export import :morphism;     // The Base Arrow (Prerequisite for everything)
+export import :mereology;    // Parthood (Prerequisite for Logic/Sets)
+export import :equivalence;  // Equivalence relations (Mazur up-to relaxation;
+                             // #591)
+export import :logic;        // The Subobject Classifier (Truth)
 
 // Level 0.5: The Structural Infrastructure
 export import :posetal;    // Partial Orders (Verified by Logic)
