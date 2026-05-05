@@ -361,6 +361,81 @@ namespace dedekind::algebra {
  * identity) — @c is_free_module_v and @c is_endomorphism_ring_v —
  * live in @c dedekind.linear_algebra:basis where the metadata is at
  * home.
+ *
+ * @section modules__Trait_Registry_Status (NEW-A pilot inventory)
+ *
+ * The carriers that currently fire the trait registry across the
+ * codebase, with the static_assert witness site for each:
+ *
+ *   @b is_module_v witnesses:
+ *
+ *   @c is_module_v<Rational<default_integer>, default_integer>
+ *     — @c numbers/rational.cppm: ℚ is a ℤ-module via the Frac
+ *     construction (the localisation @c S^{-1}ℤ at @c S=ℤ_≠0).
+ *
+ *   @c is_module_v<Complex<Rational<default_integer>>,
+ *                  Rational<default_integer>>
+ *     — @c numbers/complex.cppm: ℂ over ℚ is a ℚ-module via the
+ *     quotient ring @c ℚ[i]/(i²+1) carrying the canonical
+ *     componentwise ℚ-action on the (real, imag) pair.
+ *
+ *   @c is_module_v<Dual<Rational<default_integer>>,
+ *                  Rational<default_integer>>
+ *     — @c analysis/dual.cppm: Dual<ℚ> is a ℚ-module via the
+ *     quotient-algebra propagation in @c algebra:quotient (the
+ *     exact-arithmetic AD instance).
+ *
+ *   @c is_module_v<Vec2V<unsigned int>, unsigned int>
+ *     — @c linear_algebra/vec2.cppm: the rank-2 free module over
+ *     the unsigned-integer modular ring.
+ *
+ *   @c is_module_v<Vec2V<Rational<default_integer>>,
+ *                  Rational<default_integer>>
+ *     — @c linear_algebra/mat2x2.cppm: Vec2 over ℚ as a ℚ-module
+ *     (the rank-2 vector space over the field ℚ, witnessed at the
+ *     module tier; the strengthening to @c is_vector_space_v needs
+ *     @c IsField<Rational> to bind, see "remaining gap" below).
+ *
+ *   @b is_free_module_v specialisations (rank-bearing):
+ *
+ *   @c is_free_module_v<Vec2V<unsigned int>, unsigned int, 2>
+ *     and @c is_free_module_v<Covec2V<unsigned int>, unsigned int, 2>
+ *     — @c linear_algebra/vec2.cppm: the rank-2 free modules and
+ *     their dual rank-2 free modules over the unsigned-integer
+ *     modular ring.
+ *
+ *   @c is_free_module_v<Vec2V<Rational<default_integer>>,
+ *                       Rational<default_integer>, 2>
+ *     — @c linear_algebra/mat2x2.cppm: Vec2 over ℚ as a rank-2
+ *     free ℚ-module.
+ *
+ *   @b is_endomorphism_ring_v specialisations (internal-hom):
+ *
+ *   @c is_endomorphism_ring_v<Matrix2x2V<unsigned int>,
+ *                             Vec2V<unsigned int>>
+ *     and @c is_endomorphism_ring_v<Matrix2x2V<Rational<default_integer>>,
+ *                                   Vec2V<Rational<default_integer>>>
+ *     — @c linear_algebra/mat2x2.cppm: 2×2 matrices as the
+ *     endomorphism ring of the rank-2 free module, on both the
+ *     unsigned-integer and ℚ scalar carriers.
+ *
+ * Remaining gap (one architectural lift to unblock):
+ *
+ *   @c is_vector_space_v<V, F> recursive upgrade — the trait fires
+ *   automatically once @c IsField<F> holds in addition to
+ *   @c IsModule<V, F>.  The strict @c category::IsField on
+ *   @c Rational<I> is currently parked behind the @c IsTotal
+ *   architectural gate (none of the periodic / idempotent /
+ *   saturating paths apply to exact carriers).  Lifting that gate
+ *   with an exact-carrier path is the load-bearing follow-up; once
+ *   it lands, every @c is_module_v witness above whose scalar is a
+ *   field carrier auto-upgrades to @c is_vector_space_v.
+ *
+ * The recursive enrichment Figure~1 of the paper depicts (ℚ as
+ * ℤ-module, 𝔻 as ℝ-module, ℂ as ℝ-module, …) is structurally in
+ * place at the @c is_module_v / @c is_free_module_v /
+ * @c is_endomorphism_ring_v tier.  This inventory is the running
+ * snapshot.
  */
 
 /** @brief @c is_module_v<M, R>: @c M is an @c R-module.  Concept-based
