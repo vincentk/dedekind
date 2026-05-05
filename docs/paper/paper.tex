@@ -845,18 +845,14 @@ set expression to a no-op when its predicate is statically unsatisfiable.
 \caption{Contradictory predicates collapse to the empty-set type $\varnothing$. Uses the \cppinline{Halfspace}-NTTP DSL to pin both bounds in the type signature, so the contradiction is resolved at translation time.}
 \label{lst:pruning}
 \begin{cpp}
-
-using namespace dedekind::order;
-
-constexpr auto n = var<ℕ>;
+constexpr auto n = element<ℕ>;
 
 // Two halfspace-structured sets, with pivots (5 and 3) carried as NTTPs.
-constexpr auto gt_five  = Set{n % N | (n > bound<5>)};
-constexpr auto lt_three = Set{n % N | (n < bound<3>)};
+constexpr auto gt_5 = Set{n | (n > bound<5>)};
+constexpr auto lt_3 = Set{n | (n < bound<3>)};
 
-// operator& dispatches through `structured_and`; the type-level
-// contradiction rule collapses the meet to the empty-set type Ø<Cardinality>.
-constexpr Ø<Cardinality> empty_meet = gt_five & lt_three;
+// Compile-time theorem: the meet IS the empty set on ℕ.
+constexpr Ø<Cardinality> empty_meet = gt_5 & lt_3;
 static_assert(empty_meet == Ø{});
 \end{cpp}
 \end{listing}

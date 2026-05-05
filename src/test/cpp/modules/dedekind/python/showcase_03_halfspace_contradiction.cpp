@@ -37,21 +37,21 @@ using namespace dedekind::order;
 // ℕ itself the universe value (= Ω<Cardinality>).
 constexpr auto n = element<ℕ>;
 
-// Opposing halfspaces with compile-time pivots carried in the predicate type.
-constexpr auto gt_five = Set{n | (n > bound<5>)};
-constexpr auto lt_three = Set{n | (n < bound<3>)};
+// Two halfspace-structured sets, with pivots (5 and 3) carried as NTTPs.
+constexpr auto gt_5 = Set{n | (n > bound<5>)};
+constexpr auto lt_3 = Set{n | (n < bound<3>)};
 
 // Compile-time theorem: the meet IS the empty set on ℕ.
-constexpr Ø<Cardinality> empty_meet = gt_five & lt_three;
+constexpr Ø<Cardinality> empty_meet = gt_5 & lt_3;
 static_assert(empty_meet == Ø{});
 
 // Computability made a compile-time observable: the parent Sets carry NONE
 // of the three tiers; the reduced Ø carries ALL THREE. Compile-time reduction
 // from an intensional description over a transfinite carrier to the (trivial
 // extensional) empty set restores decidable, finite, type-level semantics.
-static_assert(!HasDecidableMembership<decltype(gt_five)>);
-static_assert(!IsFiniteSet<decltype(gt_five)>);
-static_assert(!IsCompileTimeEnumerable<decltype(gt_five)>);
+static_assert(!HasDecidableMembership<decltype(gt_5)>);
+static_assert(!IsFiniteSet<decltype(gt_5)>);
+static_assert(!IsCompileTimeEnumerable<decltype(gt_5)>);
 
 static_assert(HasDecidableMembership<decltype(empty_meet)>);
 static_assert(IsFiniteSet<decltype(empty_meet)>);
