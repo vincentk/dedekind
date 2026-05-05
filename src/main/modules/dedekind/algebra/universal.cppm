@@ -163,7 +163,10 @@ concept IsAlgebra = std::regular<T> && (... && IsOpOn<T, Ops>);
  * @details Refines @c IsAlgebra<T, Ops...> by additionally requiring
  * each operation to satisfy the totality gate from @c category:species
  * (@c IsTotal<T, Op>, the @c IsPeriodic / @c IsIdempotent /
- * @c IsSaturating disjunction).  This is the structural anchor between
+ * @c is_saturating_v disjunction --- the saturation arm is the
+ * variable-template trait directly, with @c IsSaturating being the
+ * mereology-layer concept wrapper around it).  This is the structural
+ * anchor between
  * the @b closure tier (this partition) and the @b laws tier
  * (@c category:total --- @c IsRing, @c IsField, etc.): the laws
  * partition's per-axiom hierarchy is built on @c IsTotal-gated
