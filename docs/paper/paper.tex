@@ -2562,8 +2562,10 @@ increasingly, of programming language.
 \label{sec:acknowledgements}
 % ============================================================
 
-The development of \texttt{dedekind} relied substantively on AI-assisted authorship throughout, and this paper does too.
+The development of \texttt{dedekind} relied substantively on AI assistance throughout, and the writing of this paper did so as well.
 The disclosure here is the concrete instance of the cost-benefit-calculus claim in §\ref{sec:introduction}: that paragraph names the shift in the abstract; this one names how it shifted on this artefact.
+Per the ‹Programming› journal's policy on AI tools~\cite{programming_journal_ai_policy}, the use of these tools is acknowledged and disclosed; the AI systems named below are tools whose contribution is recorded here as assistance, not authorship.
+The author is a single human person, named in the byline, who bears full responsibility for content, scope, correctness, and editorial judgement.
 
 The primary assistant was Anthropic's \emph{Claude} family (Sonnet and Opus across the project's lifetime; the 1M-context Opus 4.7 variant for the most recent slices, where reproducibility against extended-context interactions matters), invoked through the Claude Code CLI.
 Google's Gemini was used for second-opinion structural critique on substantive mathematical claims (size-restriction notation, adjunction-encoding feasibility, foundational-vs-mechanical disentanglement).
@@ -2571,8 +2573,7 @@ GitHub Copilot's pull-request reviewer was invoked on every PR for scope-vs-clai
 The assistance covered draft generation (prose, code, listings, tabular structured elements), structural refactoring (concept naming, partition placement, hub-and-spoke dispatch shape), test scaffolding, review-thread response drafting, and CI / GitHub workflow scaffolding.
 
 The pattern is visible at commit-level granularity in the public repository at \url{https://github.com/vincentk/dedekind}: every commit message, every pull-request review thread, and the public CI build log compose into a complete audit trail.
-Reviewers can inspect the assistance pattern at any commit; the author bears 100\% responsibility for content, scope, correctness, and editorial judgement.
-The framing follows the ‹Programming› journal's policy on AI tools~\cite{programming_journal_ai_policy}: AI is a tool whose use is disclosed, not a co-author whose contribution is named in the byline.
+Reviewers can inspect the assistance pattern at any commit.
 ``Assisted'' rather than ``co-authored'' is the operative voice throughout, both for this paper and for the codebase it documents.
 
 \printbibliography
