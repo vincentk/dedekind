@@ -352,6 +352,43 @@ static_assert(
     "satisfy the concept end-to-end (algebra side via IsAlgebra<bool, ⊕, ∧>; "
     "mereology side via IsPartOfRelation + arrow_drill_down).");
 
+// Concrete-algebra witness: Z/2^N Z (the canonical modular ring on
+// std::unsigned_integral wide carriers) wired through algebra_view.
+// IsAlgebra<unsigned int, std::plus<unsigned int>, std::multiplies<unsigned
+// int>> certifies the algebra-side closure (the standard modular ring under
+// periodic wraparound at 2^N — algebra:ring carries the strict IsRing
+// certification on wide unsigned types).  Validates HasCarrier on a
+// non-trivial finite algebra of order 2^N (with N =
+// std::numeric_limits<unsigned int>::digits) — distinct in shape from the
+// 2-element F_2 witness above; same Galois-flavored axiom story.
+static_assert(
+    HasCarrier<_has_carrier_witness::algebra_view<unsigned int>, unsigned int,
+               std::plus<unsigned int>, std::multiplies<unsigned int>>,
+    "HasCarrier (#573): Z/2^N Z = (unsigned int, +, *) wired through "
+    "algebra_view must satisfy the concept end-to-end (algebra side via "
+    "IsAlgebra<unsigned int, +, *>; mereology side via IsPartOfRelation + "
+    "arrow_drill_down).  Sister witness to F_2 above; same concept, "
+    "different algebra shape (Galois field vs modular ring).");
+
+// Concrete-algebra witness: the Boolean ring on std::unsigned_integral
+// (per vincentk's review note on PR #593: focusing on bitwise operators
+// gives a *proper* algebraic structure --- a Boolean ring on 2^N bits ---
+// rather than just the operator surface that Z/2^N Z under +,* gives).
+// (unsigned int, ⊕, ∧) is the F_2-vector-space view of unsigned int as a
+// 2^N-element Boolean ring: addition is bitwise XOR (idempotent under ⊕⊕,
+// involutive: a⊕a=0), multiplication is bitwise AND (idempotent: a∧a=a,
+// commutative, distributes over ⊕).  Strictly stronger algebraic claim
+// than the +,* arithmetic witness above — these axioms hold by inspection
+// on the bit-vector interpretation, no functor-surface caveat.
+static_assert(
+    HasCarrier<_has_carrier_witness::algebra_view<unsigned int>, unsigned int,
+               std::bit_xor<unsigned int>, std::bit_and<unsigned int>>,
+    "HasCarrier (#573): the Boolean ring (unsigned int, ⊕, ∧) wired "
+    "through algebra_view must satisfy the concept end-to-end.  This is "
+    "the F_2-vector-space lift of the F_2 witness above to wider unsigned "
+    "carriers; the same axioms hold by inspection on the bit-vector "
+    "interpretation (idempotent ∧, involutive ⊕).");
+
 // ---------------------------------------------------------------------------
 // Phase 2: Homomorphisms — arrows between algebras (#506).
 // ---------------------------------------------------------------------------
