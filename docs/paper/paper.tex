@@ -460,7 +460,7 @@ Figure~\ref{fig:hub-spoke-bnz} sketches three concrete algebraic hubs ($\mathbb{
 \end{tikzcd}
 \caption{
 An example subset of $\mathbf{Alg}(\Sigma)$: the carriers $\mathbb{B}$, $\mathbb{N}$, $\mathbb{Z}$.
-Each carrier is depicted with its underlying set as the single object ($\{\mathrm{false}, \mathrm{true}\}$, $\{0, 1, 2, \ldots\}$, $\{\ldots, -1, 0, 1, \ldots\}$) and selected endo-operations as loops: Boolean negation $\neg$ on $\mathbb{B}$, squaring $x \mapsto x^2$ on $\mathbb{N}$, negation $x \mapsto -x$ on $\mathbb{Z}$.
+Each carrier is depicted with its underlying set as the single object ($\{\mathrm{false}, \mathrm{true}\}$, $\{0, 1, 2, \ldots\}$, $\{\ldots, -1, 0, 1, \ldots\}$) and selected endo-operations as loops: the affine translation $x \mapsto x \oplus 1$ on $\mathbb{B}$ (i.e.\ logical negation, which on $\mathbb{F}_2$ is the additive translation by 1), squaring $x \mapsto x^2$ on $\mathbb{N}$, negation $x \mapsto -x$ on $\mathbb{Z}$.
 This is a cartoon of the carrier-as-a-category picture, in the spirit of Mac Lane~\cite{maclane1971categories} §I.1's monoid $\leftrightarrow$ one-object-category bijection.
 A strict realisation would draw one morphism per carrier element, impractical here, so only a few representative loops are shown.
 The set's elements are not drawn separately; in this layer they live \emph{inside} the single object, exactly as in the category $\mathbf{Mon}$ of monoids.
@@ -562,7 +562,8 @@ One safe carrier is $\mathbb{B}$ as the Galois field $\mathbb{F}_2$ (exclusive-o
 The laws hold trivially.
 Others are $\mathbb{N}$, $\mathbb{Z}$, $\mathbb{Q}$.
 The latter as \cppinline{Rational<I>} for any wide-enough integer carrier $I$.
-Arithmetic on $\mathbb{Q}$ is exact, so associativity, distributivity, and the field axioms hold by construction.
+Arithmetic on $\mathbb{Q}$ is exact: associativity and distributivity are pinned through the trait registry, and the operator-surface witness \cppinline{HasFieldOperators<Rational<I>>} fires today.
+The strict axiomatic \cppinline{IsField} witness on $\mathbb{Q}$ is parked behind an architectural gate (the \cppinline{IsTotal} ladder admits periodic, idempotent, and saturating paths but not yet an exact path); the operator surface is what we ship today, the strict axiomatic certificate is queued.
 \cppinline{int} satisfies \cppinline{HasRingOperators} (the four arithmetic operators close on \cppinline{int}), but signed-overflow undefined behaviour defeats associativity.
 The strict \cppinline{IsRing} concept therefore refuses it.
 IEEE \cppinline{double} satisfies \cppinline{HasFieldOperators}, but rounding non-associativity defeats the field axioms.
@@ -602,9 +603,10 @@ static_assert(!is_associative_v<int, std::plus<int>>);
 \end{cpp}
 \end{listing}
 
-\paragraph{The fast lane: one trait specialisation away.}
-A library user pushes the button by writing a per-carrier trait specialisation that registers \cppinline{is_associative_v<T, Op> = true} (or \cppinline{is_commutative_v}, \cppinline{is_invertible_v}, and so on).
-The downstream concepts (\cppinline{IsRing}, \cppinline{IsField}) then discharge.
+\paragraph{The fast lane: opt in on a per-carrier basis.}
+A library user pushes the button by writing per-carrier trait specialisations that register \cppinline{is_associative_v<T, Op> = true} (or \cppinline{is_commutative_v}, \cppinline{is_invertible_v}, and so on).
+For carriers that already clear the architectural \cppinline{IsTotal} gate (periodic, idempotent, or saturating arithmetic), the trait specialisations are sufficient and the downstream concepts (\cppinline{IsRing}, \cppinline{IsField}) discharge.
+Carriers whose totality lives outside that ladder (e.g.\ exact-arithmetic types like \cppinline{Rational<I>}, or signed integer types whose overflow is UB) need an additional architectural lift on \cppinline{IsTotal} before the strict concepts will fire.
 The user has audited their inputs to a regime where the law actually holds.
 Examples are integer arithmetic on a domain where overflow cannot occur, IEEE \cppinline{double} accepted with associativity-by-fiat for a specific application, or a custom carrier whose modular wrap-around the user proves consistent with the surrounding logic.
 The opt-in is the user's pinky-swear in their part of the multiverse.
@@ -3282,8 +3284,8 @@ LLVM backend treating the reduced bottom type as dead code.
 
 \paragraph{The textbook functor diagram for Listing~\ref{lst:isfunctor}.}
 Figure~\ref{fig:functor-diagram} is the commutative-square diagram for a functor $F: \mathcal{C} \to \mathcal{D}$~\cite{maclane1971categories} (Mac Lane §I.3): an object map $A \mapsto F(A)$ and an arrow map $f \mapsto F(f)$ that respects identities and composition.
-The body's \cppinline{IsFunctor} concept (Listing~\ref{lst:isfunctor}, §\ref{sec:cpp-stlc-mapping}) encodes the same content structurally; the Curry--Howard discharge that \texttt{maybe\_functor} inhabits the concept is the \cppinline{static_assert} in the worked-instance listing immediately following Listing~\ref{lst:isfunctor}.
-Together, Listing~\ref{lst:isfunctor} and that worked-instance listing land the System-F-recovery rosetta (Table~\ref{tab:structuralist-bridge}) at one concrete site: the \cppinline{template <typename F>} header is the \emph{Constrained Templates} row ($\equiv \forall\alpha.\dots$); the \cppinline{requires}-clause is the \emph{Concept-gating} row discharging parametricity; and the worked-instance listing's \cppinline{static_assert} is the Curry--Howard term.
+The body's \cppinline{IsFunctor} concept (Listing~\ref{lst:isfunctor}, §\ref{sec:cpp-stlc-mapping}) encodes the same content structurally; the Curry--Howard discharge that \texttt{maybe\_functor} inhabits the concept is the \cppinline{static_assert} in the worked-instance Listing~\ref{lst:maybe_functor}.
+Together, Listings~\ref{lst:isfunctor} and~\ref{lst:maybe_functor} land the System-F-recovery rosetta (Table~\ref{tab:structuralist-bridge}) at one concrete site: the \cppinline{template <typename F>} header is the \emph{Constrained Templates} row ($\equiv \forall\alpha.\dots$); the \cppinline{requires}-clause is the \emph{Concept-gating} row discharging parametricity; and Listing~\ref{lst:maybe_functor}'s \cppinline{static_assert} is the Curry--Howard term.
 
 \begin{figure}[htbp]
 \centering
