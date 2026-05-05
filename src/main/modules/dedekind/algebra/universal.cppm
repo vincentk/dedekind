@@ -217,7 +217,7 @@ concept HasCarrier =
     requires(const Algebra& a) {
       {
         dedekind::category::arrow_drill_down(a)
-      } -> std::convertible_to<const Carrier&>;
+      } -> std::same_as<const Carrier&>;
     };
 
 namespace _has_carrier_witness {
