@@ -86,9 +86,12 @@ TEST_CASE("discrete_lift_t participates in the bona fide adjunction surface",
   // trivial self-adjunction Id ⊣ Id is mechanically true.
   const auto int_set = ambient_set<int>([](const int& x) { return x >= 0; });
   using S = decltype(int_set);
+  using DiscS = discrete_lift_t<S>;
 
-  using DiscF = disc_self_endofunctor_t<S>;
-  using UnitT = disc_self_unit_t<S>;
+  // disc_self_endofunctor_t / disc_self_unit_t live in :natural,
+  // parameterized on a discrete category C (not on the source IsSet).
+  using DiscF = disc_self_endofunctor_t<DiscS>;
+  using UnitT = disc_self_unit_t<DiscS>;
 
   // The Disc-functor on Disc(S) is a bona fide IsFunctor (not just a
   // type alias).

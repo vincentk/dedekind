@@ -95,28 +95,31 @@ TEST_CASE("discrete_lift_t adjunction witnesses fire across the numeric tower",
   const auto positive_rationals = ambient_set<Rational<default_integer>>(
       [](const Rational<default_integer>& q) { return q.num() > 0; });
 
-  using NatSubset = decltype(naturals_under_10);
-  using IntSubset = decltype(integers_in_range);
-  using RationalSubset = decltype(positive_rationals);
+  // disc_self_endofunctor_t / disc_self_unit_t (in :natural) take a
+  // discrete category C, not the source IsSet directly.  Each tower
+  // rung's lifted Disc(S) is the discrete-category arg.
+  using DiscNat = discrete_lift_t<decltype(naturals_under_10)>;
+  using DiscInt = discrete_lift_t<decltype(integers_in_range)>;
+  using DiscRat = discrete_lift_t<decltype(positive_rationals)>;
 
   // Structural-shape witness fires at every tower rung.
-  STATIC_CHECK(HasAdjunctionShape<disc_self_endofunctor_t<NatSubset>,
-                                  disc_self_endofunctor_t<NatSubset>>);
-  STATIC_CHECK(HasAdjunctionShape<disc_self_endofunctor_t<IntSubset>,
-                                  disc_self_endofunctor_t<IntSubset>>);
-  STATIC_CHECK(HasAdjunctionShape<disc_self_endofunctor_t<RationalSubset>,
-                                  disc_self_endofunctor_t<RationalSubset>>);
+  STATIC_CHECK(HasAdjunctionShape<disc_self_endofunctor_t<DiscNat>,
+                                  disc_self_endofunctor_t<DiscNat>>);
+  STATIC_CHECK(HasAdjunctionShape<disc_self_endofunctor_t<DiscInt>,
+                                  disc_self_endofunctor_t<DiscInt>>);
+  STATIC_CHECK(HasAdjunctionShape<disc_self_endofunctor_t<DiscRat>,
+                                  disc_self_endofunctor_t<DiscRat>>);
 
   // Full IsAdjunction with identity-transformation unit/counit fires
   // on the full tower as well.
-  STATIC_CHECK(
-      IsAdjunction<disc_self_endofunctor_t<NatSubset>,
-                   disc_self_endofunctor_t<NatSubset>,
-                   disc_self_unit_t<NatSubset>, disc_self_unit_t<NatSubset>>);
-  STATIC_CHECK(IsAdjunction<disc_self_endofunctor_t<RationalSubset>,
-                            disc_self_endofunctor_t<RationalSubset>,
-                            disc_self_unit_t<RationalSubset>,
-                            disc_self_unit_t<RationalSubset>>);
+  STATIC_CHECK(IsAdjunction<disc_self_endofunctor_t<DiscNat>,
+                            disc_self_endofunctor_t<DiscNat>,
+                            disc_self_unit_t<DiscNat>,
+                            disc_self_unit_t<DiscNat>>);
+  STATIC_CHECK(IsAdjunction<disc_self_endofunctor_t<DiscRat>,
+                            disc_self_endofunctor_t<DiscRat>,
+                            disc_self_unit_t<DiscRat>,
+                            disc_self_unit_t<DiscRat>>);
 }
 
 TEST_CASE("discrete_lift_t illustrates 'simple set vs. complex algebra' on 𝔹",
@@ -162,8 +165,8 @@ TEST_CASE("discrete_lift_t illustrates 'simple set vs. complex algebra' on 𝔹"
   // Bona fide adjunction surface fires on Disc(𝔹) -- same machinery
   // as for the int / Rational examples above.  This is the
   // discrete-restriction encoding of the meta-categorical Disc ⊣ U.
-  using DiscFB = disc_self_endofunctor_t<BoolSet>;
-  using UnitTB = disc_self_unit_t<BoolSet>;
+  using DiscFB = disc_self_endofunctor_t<DiscB>;
+  using UnitTB = disc_self_unit_t<DiscB>;
   STATIC_CHECK(IsFunctor<DiscFB>);
   STATIC_CHECK(IsNaturalTransformation<UnitTB, DiscFB, DiscFB>);
   STATIC_CHECK(HasAdjunctionShape<DiscFB, DiscFB>);
