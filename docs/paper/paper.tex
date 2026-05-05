@@ -534,9 +534,7 @@ The standard's \emph{ill-formed, no diagnostic required} clause is its bite, the
 An \texttt{axiom} keyword was considered in early C++0x drafts for in-language semantic certification and ultimately withdrawn~\cite{isocpp_concepts_history}.
 The manual-certification pattern is the path the committee left open.\footnote{The C++ standard's \emph{syntactic} / \emph{semantic} split is fundamentally \textbf{decidable vs.\ undecidable} --- what the spec commits to enforcing mechanically vs.\ what it deliberately refuses to enforce --- and does not coincide with the static-vs-dynamic semantics split familiar from PL theory~\cite{pierce2002tapl}.  C++'s \emph{syntactic} bucket subsumes that tradition's \emph{static semantics} (type checking, concept resolution, auto-derived theorems via \cppinline{static_assert}) because those are all things the compiler verifies mechanically; the C++ \emph{semantic} bucket is roughly what resists mechanical decision in the spec's chosen target structure.  The committee's vocabulary optimises for responsibility allocation (compiler vs.\ user) rather than for type-theoretic precision; the mismatch is real but learnable.}
 
-FIXME: https://github.com/vincentk/dedekind/issues/461
-The trait-registry mechanics live in §\ref{sec:pruning} and(\emph{Algebraic Lattice})  \ref{sec:numeric-tension} , where the page budget for the compare-and-contrast actually fits.
-That section covers which axioms propagate under which constructors, how per-carrier specialisations are organised, how the \emph{Honest Rejection} policy maps to varieties, and how the algebra-side machinery composes with the C++-side concept layer.
+The trait-registry mechanics --- which axioms propagate under which constructors, how per-carrier specialisations are organised, how the \emph{Honest Rejection} policy maps to varieties, and how the algebra-side machinery composes with the C++-side concept layer --- are deferred to §\ref{sec:pruning} (\emph{Algebraic Lattice}) and §\ref{sec:numeric-tension} (\emph{The Traits Registry: Abstract Naturals vs.\ IEEE Numerics}).
 
 A welcome side effect: the disciplined subset that aligns with $\mathbf{Alg}(\Sigma)$ also turns out to be a faithful image of System~F (Pierce~\cite{pierce2002tapl} ch.~23, 29) and of the simply-typed $\lambda$-calculus under Lambek--Scott~\cite{lambek1988introduction}.
 The same surface reads in either tradition.
@@ -870,15 +868,20 @@ The generated binary contains no membership-test code for
 result to $\varnothing$ \emph{before} code generation, and the
 computability tier of $\varnothing$ is fully top
 (extensional/classical/element-in-type).
-Listings~\ref{lst:showcase03_src} and \ref{lst:showcase03_ir}
-make this mechanically observable.
+Listing~\ref{lst:pruning_ir} makes this mechanically observable: the
+witness function for set membership constant-folds to \texttt{ret i1
+false} in the emitted LLVM IR.
 
-\subsubsection*{Showcase witnesses}
-
-A concrete witness from the test suite demonstrates this in the actual
-\texttt{dedekind} API.  (The complementary $\mathbb{C}$-flavoured Showcase~2 is
-deferred to §\ref{sec:linalg}, where the linear-algebra carriers it depends
-on are introduced.)
+% Source: src/test/cpp/modules/dedekind/python/showcase_03_halfspace_contradiction.ll
+\begin{listing}[htbp]
+\caption{LLVM IR for the empty-meet witness in Listing~\ref{lst:pruning} (\texttt{clang++-22 -O2}): the membership query constant-folds to \texttt{ret i1 false}.  The complementary cardinality-1 case (singleton collapse) and other halfspace reductions are exercised in \texttt{pruning\_showcases\_test.cpp} but not repeated here --- one source / IR pair carries the structural-pruning claim.}
+\label{lst:pruning_ir}
+\begin{cpp}
+define noundef zeroext i1 @witness_empty_halfspace_meet() local_unnamed_addr #0 {
+  ret i1 false
+}
+\end{cpp}
+\end{listing}
 
 \subsection{Algebraic Properties Enable Stronger Pruning}
 
@@ -897,102 +900,6 @@ These traits inform the compiler about structural relationships between sets:
 Each of these equalities can be discharged as a \cppinline{static_assert} once the
 relevant algebraic witnesses are in the trait registry, reducing the intersection to
 the simpler set at compile time.
-
-
-\subsubsection*{From lambdas to structured predicates: the halfspace DSL}
-
-Lambda-based predicates let the optimiser fold at specific call sites, but they
-erase the \emph{structure} of the constraint. A richer pattern emerges when
-halfspace bounds live in the \emph{type}: $\{n \in \mathbb{N} \mid n > 5\}$ is
-represented as \cppinline{Halfspace<int, 5, Up, Strict>}, with the pivot as a
-non-type template parameter. Contradiction and cardinality analysis then run
-in the type system itself, and the reductions are \emph{structural}: no appeal
-to runtime values is needed.
-
-\textbf{Showcase 3 — Halfspace contradiction on $\mathbb{N}$.}
-Two opposing halfspaces with non-bridging pivots; the meet reduces to $\varnothing$
-by the type-level contradiction rule.
-
-% Source: src/test/cpp/modules/dedekind/python/showcase_03_halfspace_contradiction.cpp
-\begin{listing}[htbp]
-\caption{Showcase 3 source: halfspace contradiction on $\mathbb{N}$ collapses to $\varnothing$.}
-\label{lst:showcase03_src}
-\begin{cpp}
-constexpr auto n = var<ℕ>;
-
-constexpr auto gt_five  = Set{n % N | (n > bound<5>)};
-constexpr auto lt_three = Set{n % N | (n < bound<3>)};
-
-// Set-level `&` dispatches through `structured_and` on the halfspace types;
-// the contradiction collapses the result's type to Ø<int>.
-constexpr Ø<int> empty_meet = gt_five & lt_three;
-static_assert(empty_meet == Ø{});
-
-// Computability as a compile-time observable: the parent Sets carry NONE of
-// the three tiers; the reduced Ø carries ALL THREE.
-static_assert(!HasDecidableMembership<decltype(gt_five)>);
-static_assert(!IsFiniteSet<decltype(gt_five)>);
-static_assert(!IsCompileTimeEnumerable<decltype(gt_five)>);
-static_assert( HasDecidableMembership<decltype(empty_meet)>);
-static_assert( IsFiniteSet<decltype(empty_meet)>);
-static_assert( IsCompileTimeEnumerable<decltype(empty_meet)>);
-\end{cpp}
-\end{listing}
-
-% Source: src/test/cpp/modules/dedekind/python/showcase_03_halfspace_contradiction.ll
-\begin{listing}[htbp]
-\caption{Showcase 3 LLVM IR: constant false return.}
-\label{lst:showcase03_ir}
-\begin{cpp}
-
-define noundef zeroext i1 @witness_empty_halfspace_meet() local_unnamed_addr #0 {
-  ret i1 false
-}
-\end{cpp}
-\end{listing}
-
-
-% Source: src/test/cpp/modules/dedekind/python/showcase_04_halfspace_singleton.cpp
-\begin{listing}[htbp]
-\caption{Showcase 4 source: cardinality-1 meet collapses to $\{4\}$.}
-\label{lst:showcase04_src}
-\begin{cpp}
-
-constexpr auto n = var<ℕ>;
-
-constexpr auto gt_three = Set{n % N | (n > bound<3>)};
-constexpr auto lt_five  = Set{n % N | (n < bound<5>)};
-
-// On an integral carrier the meet's cardinality is compile-time-decidable.
-// Cardinality 1 elevates the reduction from OrderInterval to Singleton.
-constexpr Singleton<4> in_between = gt_three & lt_five;
-static_assert(in_between == Singleton<4>{});
-
-// Same computability tightening as Showcase 3, with the element now in the type.
-static_assert(!IsCompileTimeEnumerable<decltype(gt_three)>);
-static_assert( IsCompileTimeEnumerable<decltype(in_between)>);
-\end{cpp}
-\end{listing}
-
-% Source: src/test/cpp/modules/dedekind/python/showcase_04_halfspace_singleton.ll
-\begin{listing}[htbp]
-\caption{Showcase 4 LLVM IR: constant true return at the unique inhabitant.}
-\label{lst:showcase04_ir}
-\begin{cpp}
-
-define noundef zeroext i1 @witness_halfspace_singleton() local_unnamed_addr #0 {
-  ret i1 true
-}
-\end{cpp}
-\end{listing}
-
-The two halfspace showcases make the central claim of the paper mechanically
-observable: compile-time reduction of an intensional description over a
-transfinite carrier to a named extensional object (either $\varnothing$ or a
-\cppinline{Singleton}) monotonically restores decidability, finiteness, and
-type-level knowledge of elements. The \emph{reduction boundary} is the
-\emph{computability boundary}, and the six \cppinline{static_assert}s flanking
-each reduction are its mechanical witness.
 
 
 % ============================================================
@@ -2926,12 +2833,17 @@ $\mathbb{N}$ bounded & \cppinline{ExtensionalCardinal<N>} & \cppinline{IsCyclicG
 $\mathbb{N}$ unbounded & \cppinline{Cardinality} (variant over $\aleph_0$) & saturating commutative monoid via \cppinline{add}/\cppinline{mul} helpers \\
 $\mathbb{Z}$ bounded & \cppinline{SignedExtensionalCardinal<N>} & \cppinline{IsAbelianGroup<T,+>}, \cppinline{IsRing} \\
 $\mathbb{Z}$ unbounded & \cppinline{SignedCardinality} (variant over $\pm \aleph_0$, NaZ) & \cppinline{IsAbelianGroup<T,+>}, \cppinline{IsRing} \\
-$\mathbb{Q}$ & \cppinline{Rational<SignedExtensionalCardinal<>>} & \cppinline{Field_}$\mathbb{Q}$ \\
-$\mathbb{R}$ symbolic & \cppinline{LowerCut<Rational>} (Dedekind cut) & \cppinline{Continuum_}$\mathbb{R}$ (predicate-only) \\
+$\mathbb{Q}$ & \cppinline{Rational<SignedExtensionalCardinal<>>} & \cppinline{HasFieldOperators<Rational<I>>}\textsuperscript{$\dagger$} \\
+$\mathbb{R}$ exact & \cppinline{ExactReal<I>} = \cppinline{Real<Rational<I>>} & \cppinline{IsDedekindComplete} (exact rational scalar) \\
 $\mathbb{C}$ & \cppinline{Complex<Rational<SignedEC<>>>} & \cppinline{Algebra_}$\mathbb{C}$ \\
 $\mathbb{D}$ (dual) & \cppinline{Dual<Rational<SignedEC<>>>} & \cppinline{IsRing<T,+,*>}, $\varepsilon^2 = 0$ \\
 \bottomrule
 \end{tabular}
+
+\vspace{0.3em}
+\begin{flushleft}
+{\footnotesize \textsuperscript{$\dagger$} The operator-surface concept \cppinline{HasFieldOperators<Rational<I>>} fires today; the strict axiomatic \cppinline{category::IsField} witness on $\mathbb{Q}$ is parked behind an architectural gate (the \cppinline{IsTotal} ladder admits periodic / idempotent / saturating paths but not yet an exact path).  The operator surface is what ships; the strict axiomatic certificate is queued.}
+\end{flushleft}
 \end{table}
 
 \begin{table}[htbp]
@@ -2950,7 +2862,7 @@ the reference implementation on the exact side.}
 \cppinline{bool} & Galois field $\mathbb{F}_2$ under $(\oplus, \land)$; Boolean lattice under $(\lor, \land)$ on the same carrier & \cppinline{category::IsField<bool, std::bit_xor<bool>, std::bit_and<bool>>}; \cppinline{order::HasLatticeOperators<bool>} \\
 \cppinline{unsigned long}, \cppinline{size_t} & Modular, wraps at $2^{N}$ & \cppinline{IsCyclicGroup}, \cppinline{IsAbelianGroup<T,+>} \\
 \cppinline{int}, \cppinline{long} & Partial (UB on signed overflow) & \cppinline{HasRingOperators}\textsuperscript{a} \\
-\cppinline{int8_t}, \cppinline{int16_t} & Partial + SIMD-vectorisable & \cppinline{HasRingOperators}\textsuperscript{a} \\
+\cppinline{int8_t}, \cppinline{int16_t} & Functor-surface only (literal arithmetic promotes to \cppinline{int}) + SIMD-vectorisable & \cppinline{IsAlgebra<T, std::plus<T>, std::multiplies<T>>}\textsuperscript{b} \\
 \cppinline{float}, \cppinline{double} & IEEE 754, rounded, non-associative & \cppinline{Continuum_}$\mathbb{R}$ (non-assoc.\ \cppinline{+}) \\
 \cppinline{std::complex<double>} & Cartesian pair over IEEE \cppinline{double} & \cppinline{Algebra_}$\mathbb{C}$ (non-assoc.) \\
 \bottomrule
@@ -2958,7 +2870,9 @@ the reference implementation on the exact side.}
 
 \vspace{0.3em}
 \begin{flushleft}
-{\footnotesize \textsuperscript{a} \cppinline{HasRingOperators} holds (literal $+$, binary $-$, unary $-$, $*$ all close on the carrier); the strict \cppinline{IsRing} bundle refuses because signed-overflow UB makes the operation partial, which doesn't satisfy any of the \cppinline{IsTotal} paths (\cppinline{IsPeriodic} / \cppinline{IsIdempotent} / \cppinline{IsSaturating}) the totality gate admits (math-wins-over-C++). Total alternatives: \cppinline{SignedCardinality} (saturating), \cppinline{SignedExtensionalCardinal<>} (cyclic), or the \cppinline{:partial} Maybe-monad chain for honest fail-on-overflow.}
+{\footnotesize \textsuperscript{a} \cppinline{HasRingOperators} holds (literal $+$, binary $-$, unary $-$, $*$ all close on the carrier); the strict \cppinline{IsRing} bundle refuses because signed-overflow UB makes the operation partial, which doesn't satisfy any of the \cppinline{IsTotal} paths (\cppinline{IsPeriodic} / \cppinline{IsIdempotent} / \cppinline{IsSaturating}) the totality gate admits (math-wins-over-C++). Total alternatives: \cppinline{SignedCardinality} (saturating), \cppinline{SignedExtensionalCardinal<>} (cyclic), or the \cppinline{:partial} Maybe-monad chain for honest fail-on-overflow.
+
+\textsuperscript{b} For narrow signed integers \cppinline{HasRingOperators} \emph{refuses}: integer promotion (C++ [conv.prom]) lifts \cppinline{int8_t + int8_t} to \cppinline{int}, so literal arithmetic does not close on the carrier.  The functor-parametric surface \cppinline{IsAlgebra<T, std::plus<T>, std::multiplies<T>>} fires because \cppinline{std::plus<T>} returns \cppinline{T} by signature; algebraically every narrow signed type is the modular ring $\mathbb{Z}/2^{\text{bits}(T)}\mathbb{Z}$ under the functor surface.  Same Z/2\^{}NZ story as the wide unsigned case, gated by promotion semantics.}
 \end{flushleft}
 \end{table}
 
