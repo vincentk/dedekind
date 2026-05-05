@@ -3220,41 +3220,26 @@ The C++23 concept machinery does not project structural witnesses onto carriers 
 Crowding self-descriptive bits onto \cppinline{std::optional} would defeat the POCO discipline that lets the disciplined fragment recover System F (Table~\ref{tab:structuralist-bridge}).
 The real-world functions an engineering library hosts are not generic in the strong Haskell sense: the functorial structure is supplied at the library boundary by a hub that names it, not inherited from the carrier.
 
-\paragraph{Every carrier is a structure-preserving image of its
-base.}  Each carrier in the numeric tower
-(Figure~\ref{fig:carrier-lattice}) is the image of a structure-
-preserving construction applied to its base: a quotient (H), a
-direct product (P), or an internal-hom variant
-(Tables~\ref{tab:rosetta-quotient} and \ref{tab:rosetta-rank}).  The
-library reifies the carrier side as two detection concepts
-\cppinline{IsQuotientAlgebra<Q>} and \cppinline{IsProductAlgebra<Q>}
-in \texttt{algebra:quotient}, paired with marker traits
-\cppinline{quotient_algebra_base<Q>} / \cppinline{product_algebra_base<Q>};
-a single declaration at each carrier site (specialising the marker
-trait's \cppinline{::type} member to the base) fires the
-structural-trait propagation (associativity, commutativity,
-distributivity, and the full \cppinline{IsTotal} certificate via its
-periodic / idempotent / saturating paths) from the
-base.\footnote{\textbf{HSP theorem
-(Burris--Sankappanavar~\cite{burris1981universalalgebra} §II.10).}
-A class $K$ of algebras is a variety iff it is closed under
-\textbf{H}omomorphic images, \textbf{S}ubalgebras, and direct
-\textbf{P}roducts.  H, S, P are the three structure-preserving
-operations on algebras: any combination of them, applied to a base
-$A$ in a variety $V$, produces another algebra in $V$.  The
-\texttt{algebra:quotient} partition reifies the H and P operations
-as marker-trait + detection-concept pairs; the propagation rule on
-each is the C++23 image of the closure-under-operation clause.  S
-is not heavily exercised by today's carriers and is left absent.
-$\operatorname{End}_R$ at the rank axis is \emph{not} an HSP
-operation — it is the internal hom in $\operatorname{Mod}_R$, which
-preserves only some axioms (matrix multiplication is non-commutative
-even when $R$ is commutative); its partial trait propagation lives
-behind a separate \cppinline{is_endomorphism_ring_v} trait.  The
-arrow-side cousin to \cppinline{IsQuotientAlgebra} is
-\cppinline{IsQuotientMorphism} in \texttt{algebra:universal} (a
-declared homomorphism + declared surjectivity, naming the canonical
-projection $\pi: A \to A/{\sim}$).}
+\paragraph{Every carrier is a structure-preserving image of its base.}
+Each carrier in the numeric tower (Figure~\ref{fig:carrier-lattice}) is the image of a structure-preserving construction applied to its base.
+Each carrier sits as the image of an H or P operation of the HSP theorem~\cite{burris1981universalalgebra} (§II.10).\footnote{H, S, P are the three structure-preserving operations on algebras: \textbf{H}omomorphic images, \textbf{S}ubalgebras, direct \textbf{P}roducts.  A class is a variety iff it is closed under all three.  S is not heavily exercised by today's carriers and is left absent.  $\operatorname{End}_R$ at the rank axis is \emph{not} an HSP operation: it is the internal hom in $\operatorname{Mod}_R$, which preserves only some axioms (matrix multiplication is non-commutative even when $R$ is commutative).  Its partial trait propagation lives behind a separate \cppinline{is_endomorphism_ring_v} trait.  The arrow-side cousin to \cppinline{IsQuotientAlgebra} is \cppinline{IsQuotientMorphism} in \texttt{algebra:universal} (a declared homomorphism + declared surjectivity, naming the canonical projection $\pi: A \to A/{\sim}$).}
+The library reifies these as marker-trait + detection-concept pairs in \texttt{algebra:quotient} (Table~\ref{tab:hsp-reification}).
+A single declaration at each carrier site (specialising the marker trait's \cppinline{::type} member to the base) fires the structural-trait propagation (associativity, commutativity, distributivity, the \cppinline{IsTotal} certificate via its periodic / idempotent / saturating paths) from base to image.
+
+\begin{table}[htbp]
+\centering
+\caption{HSP reification in \texttt{algebra:quotient}.  Each row maps a structure-preserving operation to its marker trait, detection concept, and a representative carrier-site witness.  S is omitted because it is not heavily exercised by today's carriers; $\operatorname{End}_R$ at the rank axis is not an HSP operation and is treated separately (preceding paragraph's footnote).}
+\label{tab:hsp-reification}
+\small
+\begin{tabular}{@{}p{0.10\textwidth}p{0.27\textwidth}p{0.22\textwidth}p{0.30\textwidth}@{}}
+\toprule
+\textbf{HSP op} & \textbf{Marker trait} & \textbf{Detection concept} & \textbf{Example carrier} \\
+\midrule
+H (quotient) & \cppinline{quotient_algebra_base<Q>::type} & \cppinline{IsQuotientAlgebra<Q>} & \cppinline{Rational<Z>} over \cppinline{Z} (Frac construction) \\
+P (product)  & \cppinline{product_algebra_base<Q>::type}  & \cppinline{IsProductAlgebra<Q>}  & \cppinline{Vec2V<T>} over \cppinline{T} (rank-2 free module) \\
+\bottomrule
+\end{tabular}
+\end{table}
 
 \section{The Compiler as Structural Gate and Optimization Engine}
 
