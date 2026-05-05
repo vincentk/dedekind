@@ -149,6 +149,136 @@ export template <typename T, typename... Ops>
 concept IsAlgebra = std::regular<T> && (... && IsOpOn<T, Ops>);
 
 // ---------------------------------------------------------------------------
+// HasCarrier: HAS-A posture as mereological parthood (#573).
+// ---------------------------------------------------------------------------
+
+/**
+ * @concept HasCarrier
+ * @brief The HAS-A posture in code: an @c Algebra HAS-A @c Carrier (under
+ *        operations @c Ops) iff the carrier closes the operations
+ *        (@c IsAlgebra), the carrier is mereologically a part of the
+ *        algebra, and the algebra exposes the part via the
+ *        @c arrow_drill_down projector.
+ *
+ * @details In OO terms, HAS-A composition is mereological parthood: the
+ * named-carrier type @c Algebra (e.g.\ a @c Rational<I>, a @c Complex<F>,
+ * a @c Vec2V<T>, or a thin view over a primitive carrier like @c F_2)
+ * HAS-A @c Carrier in the sense that the carrier is a @b part of the
+ * algebra and the algebra owns access to it.  In universal-algebra
+ * vocabulary (Burris--Sankappanavar 1981 §I.1): every algebra
+ * @c (A, @c F) is a pair of a carrier set @c A and a family @c F of
+ * operations.  This concept names @b both halves of that pair at the
+ * type level: the algebra-side closure (@c IsAlgebra<Carrier, Ops...>)
+ * @b and the mereological role of the carrier inside the algebra.
+ *
+ * The concept composes three existing primitives:
+ *   - @c IsAlgebra<Carrier, Ops...> from this partition --- the
+ *     closure tier of the @c (A, @c F) pair (each @c Op closes on the
+ *     carrier @c A, and the carrier is @c std::regular).
+ *   - @c IsPartOfRelation<Carrier, Algebra, bool> from @c
+ *     category:mereology --- the value-level part-whole relation,
+ *     accepted in any of three encodings (order-style @c <=,
+ *     predicate-style @c whole(part), or indexer-style
+ *     @c whole[part]).
+ *   - @c arrow_drill_down<Algebra> from @c category:mereology --- the
+ *     @c operator->-based projector that exposes the carrier through
+ *     the algebra's @c operator-> overload.
+ *
+ * The concept is non-prescriptive about which @c IsPartOfRelation
+ * encoding the engineer uses, which lets each named carrier choose what
+ * reads most naturally (predicate-style for thin algebra views over a
+ * primitive carrier, indexer-style for vector carriers, etc.).
+ *
+ * @c Ops is a parameter pack so the concept reads at the closure tier
+ * when no operations are supplied (in which case the
+ * @c IsAlgebra<Carrier> requirement reduces to @c std::regular<Carrier>)
+ * @b and at the operations tier when concrete operations are named (in
+ * which case the operations are required to close on the carrier as
+ * well).
+ *
+ * @see Burris \& Sankappanavar 1981 §I.1 (algebra @c (A, @c F) pair).
+ * @see Le\'sniewski's mereology
+ *      (https://plato.stanford.edu/entries/mereology/).
+ * @see @c category:mereology for the @c IsPartOfRelation /
+ *      @c arrow_drill_down primitives.
+ * @see @c IsAlgebra above for the algebra-side closure tier.
+ *
+ * @tparam Algebra The named-carrier type --- the @b whole of the HAS-A.
+ * @tparam Carrier The underlying carrier --- the @b part of the HAS-A.
+ * @tparam Ops     Optional family of operations that close on @c Carrier.
+ *                 When omitted, only the closure tier is required.
+ *
+ * Filed under #573.
+ */
+export template <typename Algebra, typename Carrier, typename... Ops>
+concept HasCarrier =
+    IsAlgebra<Carrier, Ops...> &&
+    dedekind::category::IsPartOfRelation<Carrier, Algebra, bool> &&
+    requires(const Algebra& a) {
+      {
+        dedekind::category::arrow_drill_down(a)
+      } -> std::same_as<const Carrier&>;
+    };
+
+namespace _has_carrier_witness {
+
+/**
+ * @brief Thin algebra-view wrapper used as the pilot for the @c HasCarrier
+ *        concept (#573) on a primitive carrier.
+ *
+ * @details Wraps a single @c T value and exposes both mereology arms the
+ * @c HasCarrier concept asks for: a predicate-style part-whole relation
+ * (@c whole(part) returns @c true iff the part equals the wrapped
+ * value) and an @c operator->()-based projector that lets
+ * @c arrow_drill_down recover the wrapped carrier value.
+ *
+ * Used here to certify that @c HasCarrier fires end-to-end on
+ * @c F_2 @c = @c (𝔹, @c ⊕, @c ∧) --- the canonical Galois field over
+ * @c bool.  Production named-carrier types (@c Rational, @c Complex,
+ * vector / matrix carriers) will get their own per-carrier
+ * registrations under follow-up issues.
+ */
+template <typename T>
+struct algebra_view {
+  T value;
+
+  constexpr bool operator()(const T& part) const noexcept {
+    return part == value;
+  }
+  constexpr const T* operator->() const noexcept { return &value; }
+
+  friend constexpr bool operator==(const algebra_view&,
+                                   const algebra_view&) = default;
+};
+
+}  // namespace _has_carrier_witness
+
+// Mechanical witnesses that the @c HasCarrier concept fires.
+
+// Closure-tier witness: the synthetic algebra_view pilot satisfies the
+// concept with no Ops named, anchoring the concept at the std::regular
+// closure tier of @c IsAlgebra.
+static_assert(
+    HasCarrier<_has_carrier_witness::algebra_view<int>, int>,
+    "HasCarrier (#573): the thin algebra-view pilot must satisfy the "
+    "concept at the closure tier --- the wrapped carrier is std::regular, "
+    "is mereologically a part of the view (predicate-style), and is "
+    "exposed via arrow_drill_down.");
+
+// Concrete-algebra witness: F_2 = (𝔹, ⊕, ∧) wired through algebra_view.
+// IsAlgebra<bool, std::bit_xor<bool>, std::bit_and<bool>> certifies the
+// algebra-side closure (the canonical Galois field on bool); the
+// algebra_view wraps the carrier and exposes the mereology arms.  This
+// pins HasCarrier end-to-end on a real algebra rather than just at the
+// closure tier above.
+static_assert(
+    HasCarrier<_has_carrier_witness::algebra_view<bool>, bool,
+               std::bit_xor<bool>, std::bit_and<bool>>,
+    "HasCarrier (#573): F_2 = (𝔹, ⊕, ∧) wired through algebra_view must "
+    "satisfy the concept end-to-end (algebra side via IsAlgebra<bool, ⊕, ∧>; "
+    "mereology side via IsPartOfRelation + arrow_drill_down).");
+
+// ---------------------------------------------------------------------------
 // Phase 2: Homomorphisms — arrows between algebras (#506).
 // ---------------------------------------------------------------------------
 //
