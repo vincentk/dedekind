@@ -164,57 +164,6 @@ export using extensional_integer = int;
  */
 export using default_integer = SignedExtensionalCardinal<>;
 
-// FIXME(#379): the *Like cluster below is a candidate for the
-// retire-Like surgery phase that follows the alignment sweep.
-//   - `IsRationalLike` checks only operator closure (+, -, *, /); it is
-//     structurally identical to `algebra::HasFieldOperators` (shipped in
-//     #394) modulo the absence of the `T{1}` clause.  Retarget call
-//     sites to `HasFieldOperators` and remove this concept.
-//   - `IsFieldLike = IsRationalLike` is a tautological alias with no
-//     additional content; remove and retarget to the same replacement.
-//   - `IsReal = IsRealLike || IsRationalLike` is a disjunction whose
-//     two arms are semantically distinct (floating-point arithmetic vs
-//     exact-rational arithmetic).  The union "is approximately real"
-//     reading is loose; tighten to a single explicit concept or split
-//     into two.
-//   - `IsContinuous` and `IsDiscrete` partition `std::regular` types by
-//     `std::integral` --- a syntactic split that says nothing about
-//     mathematical density / discreteness.  Reconsider as part of the
-//     retire-Like sweep.
-export template <typename T>
-concept IsRationalLike = std::regular<T> && requires(T a, T b) {
-  { a + b } -> std::same_as<T>;
-  { a * b } -> std::same_as<T>;
-  { a / b } -> std::same_as<T>;
-  { a - b } -> std::same_as<T>;
-};
-
-export template <typename T>
-concept IsFieldLike = IsRationalLike<T>;
-
-export template <typename Q, typename Z>
-concept IsRational = IsFieldLike<Q> && IsInteger<Z> && requires(Q q) {
-  { q } -> std::same_as<Q>;
-};
-
-export template <typename T>
-concept IsRealLike = std::floating_point<T> && IsReflectiveSpecies<T>;
-
-export template <typename T>
-concept IsReal = IsRealLike<T> || IsRationalLike<T>;
-
-export template <typename S>
-concept IsContinuous = std::regular<S> && !std::integral<S>;
-
-export template <typename S>
-concept IsDiscrete = std::regular<S> && std::integral<S>;
-
-export template <typename C, typename R>
-concept IsComplex = requires(C z) {
-  { z.real() } -> std::same_as<R>;
-  { z.imag() } -> std::same_as<R>;
-};
-
 /**
  * @concept Group_ℤ
  * @brief ℤ as the abelian group of integers under addition.
@@ -236,73 +185,6 @@ concept IsComplex = requires(C z) {
 export template <typename T>
 concept Group_ℤ =
     IsInteger<T> && dedekind::category::IsAbelianGroup<T, std::plus<T>>;
-
-/**
- * @concept Field_ℚ
- * @brief ℚ as the field of rationals.
- *
- * @details A carrier @c Q satisfies @c Field_ℚ iff it is @c IsRational over
- * some integer domain @c Z *and* @c (Q, +, *) carries the operational
- * field-like witness. Writing `template <Field_ℚ Q>` in a generic function
- * asserts both the rational-structure shape and the field arithmetic
- * without naming a concrete @c Rational<Z>.
- *
- * @note FIXME(#379): the field-side requirement is expressed via
- * @c dedekind::algebra::HasFieldOperators (an operational shape), not
- * via the strict @c dedekind::category::IsField that shipped in #375
- * (closed 2026-04-24).  Two distinct blocks compose into the actual
- * current blocker:
- *
- * 1. @b IsTotal @b gate.  The strict ring/field ladder requires
- *    @c IsMagma, which requires @c IsTotal<T, Op> @c = @c IsPeriodic
- *    @c || @c IsIdempotent @c || @c IsSaturating (per
- *    @c category:species).  Exact carriers like @c Rational<...> /
- *    @c ExactReal<> are none of those (no wrap, no idempotence, no
- *    saturation), so the strict ladder is architecturally blocked at
- *    the totality step regardless of invertibility traits.  Lifting
- *    this would require a new @c IsTotal certification path for
- *    exact carriers (e.g.\ "infinite-domain-total" or "exact").
- * 2. @b Species-trait specialisations.  Even with @c IsTotal lifted,
- *    the @c is_invertible_v<Rational<...>, std::multiplies> /
- *    @c inverse_trait specialisations would still be missing on the
- *    exact carriers under the active numeric policy.
- *
- * Until both blocks lift, carriers that pass @c Field_ℚ are
- * guaranteed the @b arithmetic of a field via @c HasFieldOperators
- * but not every law mechanically.
- */
-export template <typename Q, typename Z = int>
-concept Field_ℚ = IsRational<Q, Z> && dedekind::algebra::HasFieldOperators<Q>;
-
-/**
- * @concept Continuum_ℝ
- * @brief ℝ as a continuum-valued field carrier.
- *
- * @details Bundles the structural @c IsReal witness with @c IsContinuous and
- * the operational field-like arithmetic discipline.
- *
- * @see FIXME(#379): same retargeting story as @ref Field_ℚ ---
- * @c category::IsField exists (#375), but BOTH the @c IsTotal gate
- * (which currently admits only periodic/idempotent/saturating ops,
- * blocking exact carriers like @c ExactReal<>) AND the species-trait
- * specialisations would need lifting.
- */
-export template <typename T>
-concept Continuum_ℝ =
-    IsReal<T> && IsContinuous<T> && dedekind::algebra::HasFieldOperators<T>;
-
-/**
- * @concept Algebra_ℂ
- * @brief ℂ as an algebra over an underlying real-like field @c R.
- *
- * @see FIXME(#379): same retargeting story as @ref Field_ℚ ---
- * @c category::IsField exists (#375), but BOTH the @c IsTotal gate
- * (which currently admits only periodic/idempotent/saturating ops,
- * blocking exact carriers like @c Complex<ExactReal<>>) AND the
- * species-trait specialisations would need lifting.
- */
-export template <typename C, typename R>
-concept Algebra_ℂ = IsComplex<C, R> && dedekind::algebra::HasFieldOperators<C>;
 
 /** @section integer__Canonical_Species_Spine (ℤ)
  *

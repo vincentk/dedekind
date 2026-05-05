@@ -533,8 +533,7 @@ using ℚ_t = Rational<I>;
  *     registrations would still be missing on @c Rational under the
  *     active numeric policy.
  *
- *  See the @c FIXME(\#379) breadcrumb at the Field_ℚ definition in
- *  @c :integer.  Until both blocks lift, the operational
+ *  Until both blocks lift, the operational
  *  @c algebra::HasFieldOperators<Rational<default_integer>> is the
  *  load-bearing field-arithmetic guarantee.
  */
@@ -1037,24 +1036,21 @@ static_assert(
 // ℚ as the field of rationals: the canonical arbitrary-precision rational
 // carrier that the paper-facing showcases instantiate on.
 //
-// FIXME(#374): Field_ℚ does not yet certify on this carrier.  The
-// concept-vocabulary alignment of #374 has landed (the canonical
-// HasFieldOperators in algebra:field is the operator-shape predicate;
-// the strict IsField in category:total is the axiomatic one), but
-// Field_ℚ's body still transitively depends on the trait specialisations
-// (identity_v / is_associative_v / is_commutative_v) being lifted onto
-// Rational<I> via the IsTotal gate.  The remaining repair is the trait
-// auto-lifter (axiom hooks); until then the operator-shape witness
-// HasFieldOperators<Rational<SignedEC<>>> asserted below is the
-// load-bearing guarantee.
+// FIXME(#374): the strict category::IsField<Rational<I>, ...> does not
+// yet certify on this carrier.  The body transitively depends on the
+// trait specialisations (identity_v / is_associative_v /
+// is_commutative_v) being lifted onto Rational<I> via the IsTotal
+// gate, and on a new IsTotal certification path for exact carriers
+// (none of periodic/idempotent/saturating apply).  Until that lifts,
+// the operator-shape witness HasFieldOperators<Rational<SignedEC<>>>
+// asserted below is the load-bearing guarantee.
 
 // ℚ-deal (#394, surface only): HasFieldOperators is the literal field-
 // operator surface (+, -, unary -, *, /, T{1}).  Rational<I>'s friend
 // operators and inverse-via-T{1}/x route close strictly on Rational<I>
 // for any operationally-ring-like I; the witness fires regardless of
 // the strict-IsField FIXME above, since it is a syntactic shape claim
-// and not an axiomatic one.  The strict-and-literal seal (analogous to
-// IsArithmeticAdditiveGroup on ℤ) lands when the FIXME above closes.
+// and not an axiomatic one.
 static_assert(dedekind::algebra::HasFieldOperators<Rational<default_integer>>,
               "Rational<default_integer> has the literal field-operator "
               "surface: +, -, unary -, *, / all close on Rational, and "
