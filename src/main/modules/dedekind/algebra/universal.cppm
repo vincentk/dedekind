@@ -149,6 +149,80 @@ export template <typename T, typename... Ops>
 concept IsAlgebra = std::regular<T> && (... && IsOpOn<T, Ops>);
 
 // ---------------------------------------------------------------------------
+// IsTotalAlgebra: the totality-tier anchor between :universal and :total
+// (#573 follow-up).
+// ---------------------------------------------------------------------------
+
+/**
+ * @concept IsTotalAlgebra
+ * @brief The universal-algebra (A, F) pattern at the totality tier ---
+ *        every operation closes on the carrier @b and is total under the
+ *        carrier's chosen totality path (Periodic / Idempotent /
+ *        Saturating).
+ *
+ * @details Refines @c IsAlgebra<T, Ops...> by additionally requiring
+ * each operation to satisfy the totality gate from @c category:species
+ * (@c IsTotal<T, Op>, the @c IsPeriodic / @c IsIdempotent /
+ * @c is_saturating_v disjunction --- the saturation arm is the
+ * variable-template trait directly, with @c IsSaturating being the
+ * mereology-layer concept wrapper around it).  This is the structural
+ * anchor between
+ * the @b closure tier (this partition) and the @b laws tier
+ * (@c category:total --- @c IsRing, @c IsField, etc.): the laws
+ * partition's per-axiom hierarchy is built on @c IsTotal-gated
+ * operations, so @c IsTotalAlgebra names exactly the slice of
+ * @c IsAlgebra that the laws partition can refine.
+ *
+ * @section universal__Closure_tier_vs_totality_tier
+ *
+ * The three tiers compose as:
+ *   - @c IsAlgebra<T, Ops...> --- @b closure tier: each @c Op closes on
+ *     @c T; @c T is @c std::regular.
+ *   - @c IsTotalAlgebra<T, Ops...> --- @b totality tier: closure plus
+ *     each @c Op satisfies @c IsTotal<T, Op>.  This concept.
+ *   - @c IsRing<T, Add, Mult>, @c IsField<T, Add, Mult>, etc.\ --- @b
+ *     laws tier: per-axiom refinements in @c category:total, built on
+ *     @c IsTotal-gated operations.  Every @c IsRing model is therefore
+ *     an @c IsTotalAlgebra<T, Add, Mult> instance.
+ *
+ * The math-wins-over-C++ stance applies at this tier: carriers that
+ * don't clear the totality gate (signed-overflow UB on @c int /
+ * @c long; IEEE rounding non-associativity on @c double) close at the
+ * operator surface (@c HasRingOperators) but refuse @c IsTotalAlgebra.
+ * The strict laws-tier concepts (@c IsRing, @c IsField) refuse them
+ * for the same reason --- and now the refusal is named at this
+ * intermediate tier rather than only inside each laws-tier concept.
+ *
+ * @tparam T   The carrier type (@c std::regular).
+ * @tparam Ops Family of operations that close on @c T and are total
+ *             under one of the @c IsTotal paths.
+ *
+ * @see @c category:species for @c IsTotal / @c IsPeriodic /
+ *      @c IsIdempotent / @c is_saturating_v.
+ * @see @c category:total for the per-axiom laws hierarchy
+ *      (@c IsRing, @c IsField, @c IsAbelianGroup, etc.) built on
+ *      @c IsTotal.
+ * @see @c IsAlgebra above (closure tier --- the more permissive
+ *      ancestor).
+ *
+ * Filed under the #573 follow-up.
+ */
+export template <typename T, typename... Ops>
+concept IsTotalAlgebra =
+    IsAlgebra<T, Ops...> && (... && dedekind::category::IsTotal<T, Ops>);
+
+// F_2 = (𝔹, ⊕, ∧) witness: bit_xor / bit_and on bool both clear the
+// IsTotal gate (bit_xor via the cyclic Z/2Z route; bit_and via
+// idempotency).  F_2 is an IsTotalAlgebra under its canonical
+// (⊕, ∧) signature, and the same witness composes with the laws-tier
+// IsField<bool, ⊕, ∧> already certified in algebra:field.
+static_assert(
+    IsTotalAlgebra<bool, std::bit_xor<bool>, std::bit_and<bool>>,
+    "IsTotalAlgebra (#573 follow-up): F_2 = (𝔹, ⊕, ∧) must satisfy the "
+    "totality tier --- each operation closes on bool and is total under "
+    "the carrier's totality path.  Composes with IsField<bool, ⊕, ∧>.");
+
+// ---------------------------------------------------------------------------
 // HasCarrier: HAS-A posture as mereological parthood (#573).
 // ---------------------------------------------------------------------------
 
