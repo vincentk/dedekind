@@ -41,8 +41,8 @@ TEST_CASE("discrete_lift_t produces a DiscreteCategory for any IsSet carrier",
   STATIC_CHECK(IsCategory<discrete_lift_t<UIntEvenSet>>);
 
   // The lift uses S itself, not S::Ambient — the static-type witness.
-  STATIC_CHECK(
-      std::same_as<discrete_lift_t<IntNonNegSet>, DiscreteCategory<IntNonNegSet>>);
+  STATIC_CHECK(std::same_as<discrete_lift_t<IntNonNegSet>,
+                            DiscreteCategory<IntNonNegSet>>);
 }
 
 TEST_CASE("discrete_lift_t preserves subobject identity (Disc(S1) /= Disc(S2))",
@@ -68,8 +68,7 @@ TEST_CASE("discrete_lift_t preserves subobject identity (Disc(S1) /= Disc(S2))",
 
   // The lift therefore produces distinct discrete categories — the
   // subobject information survives the lift.
-  STATIC_CHECK_FALSE(
-      std::same_as<discrete_lift_t<S1>, discrete_lift_t<S2>>);
+  STATIC_CHECK_FALSE(std::same_as<discrete_lift_t<S1>, discrete_lift_t<S2>>);
 
   // Both still satisfy IsDiscreteCategory; the distinction is in
   // identity, not concept-membership.

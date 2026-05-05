@@ -68,16 +68,13 @@ TEST_CASE("discrete_lift_t distinguishes refined subobjects of ℚ",
   using S2 = decltype(open_unit_interval);
 
   // Same ambient, distinct types.
-  STATIC_CHECK(
-      std::same_as<typename S1::Ambient, Rational<default_integer>>);
-  STATIC_CHECK(
-      std::same_as<typename S2::Ambient, Rational<default_integer>>);
+  STATIC_CHECK(std::same_as<typename S1::Ambient, Rational<default_integer>>);
+  STATIC_CHECK(std::same_as<typename S2::Ambient, Rational<default_integer>>);
   STATIC_CHECK_FALSE(std::same_as<S1, S2>);
 
   // The lift produces distinct discrete categories — subobject
   // information is preserved through Set ↪ Cat.
-  STATIC_CHECK_FALSE(
-      std::same_as<discrete_lift_t<S1>, discrete_lift_t<S2>>);
+  STATIC_CHECK_FALSE(std::same_as<discrete_lift_t<S1>, discrete_lift_t<S2>>);
 
   // Both still satisfy IsDiscreteCategory; the distinction is in
   // identity, not concept-membership.
