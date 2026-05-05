@@ -1166,7 +1166,8 @@ The generated binary contains no membership-test code for
 \cppinline{empty_meet}: the type-level contradiction rule resolves the
 result to $\varnothing$ \emph{before} code generation, and the
 computability tier of $\varnothing$ is fully top
-(extensional/classical/element-in-type). The showcase listings below
+(extensional/classical/element-in-type).
+Listings~\ref{lst:showcase03_src} and \ref{lst:showcase03_ir}
 make this mechanically observable.
 
 \subsubsection*{Showcase witnesses}
@@ -1214,7 +1215,6 @@ by the type-level contradiction rule.
 \caption{Showcase 3 source: halfspace contradiction on $\mathbb{N}$ collapses to $\varnothing$.}
 \label{lst:showcase03_src}
 \begin{cpp}
-
 constexpr auto n = var<ℕ>;
 
 constexpr auto gt_five  = Set{n % N | (n > bound<5>)};
