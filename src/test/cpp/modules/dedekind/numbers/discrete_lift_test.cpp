@@ -109,10 +109,10 @@ TEST_CASE("discrete_lift_t adjunction witnesses fire across the numeric tower",
 
   // Full IsAdjunction with identity-transformation unit/counit fires
   // on the full tower as well.
-  STATIC_CHECK(IsAdjunction<disc_self_endofunctor_t<NatSubset>,
-                            disc_self_endofunctor_t<NatSubset>,
-                            disc_self_unit_t<NatSubset>,
-                            disc_self_unit_t<NatSubset>>);
+  STATIC_CHECK(
+      IsAdjunction<disc_self_endofunctor_t<NatSubset>,
+                   disc_self_endofunctor_t<NatSubset>,
+                   disc_self_unit_t<NatSubset>, disc_self_unit_t<NatSubset>>);
   STATIC_CHECK(IsAdjunction<disc_self_endofunctor_t<RationalSubset>,
                             disc_self_endofunctor_t<RationalSubset>,
                             disc_self_unit_t<RationalSubset>,
@@ -186,7 +186,8 @@ TEST_CASE("discrete_lift_t illustrates 'simple set vs. complex algebra' on 𝔹"
   // to @c DiscreteCategory<S::Member> instead, which collapses
   // distinct subobjects of the same ambient.  Pinning at the
   // subobject-value level below.
-  const auto adjunction = make_adjunction(DiscFB{}, DiscFB{}, UnitTB{}, UnitTB{});
+  const auto adjunction =
+      make_adjunction(DiscFB{}, DiscFB{}, UnitTB{}, UnitTB{});
   STATIC_CHECK(IsArrow<decltype(adjunction.unit(bool_set))>);
   STATIC_CHECK(IsArrow<decltype(adjunction.counit(bool_set))>);
 }

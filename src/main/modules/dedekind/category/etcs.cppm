@@ -52,9 +52,9 @@ import :adjunction;  // HasAdjunctionShape / IsAdjunction — the bona fide
                      // adjunction machinery used to witness Disc ⊣ U at the
                      // type level (#572 review).
 import :cartesian;
-import :discrete;    // DiscreteCategory<T> — target of the Set ↪ Cat lift (#572)
-import :functor;     // identity_functor — the structural-shape witness for
-                     // the discrete-restriction Disc ⊣ U adjunction (#572).
+import :discrete;  // DiscreteCategory<T> — target of the Set ↪ Cat lift (#572)
+import :functor;   // identity_functor — the structural-shape witness for
+                   // the discrete-restriction Disc ⊣ U adjunction (#572).
 import :limit;
 import :logic;
 import :morphism;
@@ -514,15 +514,13 @@ using disc_self_unit_t = identity_transformation<disc_self_endofunctor_t<S>>;
 // from @c :adjunction.  The trivial-self-adjunction shape is the most
 // the type system can certify here; the full meta-categorical
 // @c Disc @c ⊣ @c U is acknowledged as future work in the doc block.
-static_assert(
-    IsFunctor<disc_self_endofunctor_t<_isset_witness_t>>,
-    "Set ↪ Cat lift: the discrete-restriction Disc-functor is a bona "
-    "fide functor on Disc(S).");
-static_assert(
-    HasAdjunctionShape<disc_self_endofunctor_t<_isset_witness_t>,
-                       disc_self_endofunctor_t<_isset_witness_t>>,
-    "Set ↪ Cat lift: the discrete-restriction Disc and U satisfy the "
-    "structural shape of an adjunction (Σ_cat / Τ_cat cross-pair).");
+static_assert(IsFunctor<disc_self_endofunctor_t<_isset_witness_t>>,
+              "Set ↪ Cat lift: the discrete-restriction Disc-functor is a bona "
+              "fide functor on Disc(S).");
+static_assert(HasAdjunctionShape<disc_self_endofunctor_t<_isset_witness_t>,
+                                 disc_self_endofunctor_t<_isset_witness_t>>,
+              "Set ↪ Cat lift: the discrete-restriction Disc and U satisfy the "
+              "structural shape of an adjunction (Σ_cat / Τ_cat cross-pair).");
 static_assert(
     IsNaturalTransformation<disc_self_unit_t<_isset_witness_t>,
                             disc_self_endofunctor_t<_isset_witness_t>,
