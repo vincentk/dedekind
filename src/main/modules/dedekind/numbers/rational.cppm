@@ -1042,8 +1042,9 @@ static_assert(
 // is_commutative_v) being lifted onto Rational<I> via the IsTotal
 // gate, and on a new IsTotal certification path for exact carriers
 // (none of periodic/idempotent/saturating apply).  Until that lifts,
-// the operator-shape witness HasFieldOperators<Rational<SignedEC<>>>
-// asserted below is the load-bearing guarantee.
+// the operator-shape witness
+// HasFieldOperators<Rational<SignedExtensionalCardinal<>>> asserted
+// below is the load-bearing guarantee.
 
 // ℚ-deal (#394, surface only): HasFieldOperators is the literal field-
 // operator surface (+, -, unary -, *, /, T{1}).  Rational<I>'s friend
