@@ -49,6 +49,7 @@ module;
 export module dedekind.category:etcs;
 
 import :cartesian;
+import :discrete;  // DiscreteCategory<T> — target of the Set ↪ Cat lift (#572)
 import :limit;
 import :logic;
 import :morphism;
@@ -410,5 +411,47 @@ static_assert(!IsSet<_isset_witness_t> ||
 static_assert(
     IsSetInCanonicalCCC<_isset_witness_t>,
     "Mnemonic check: ETCS set objects live over a canonical CCC ambient.");
+
+/**
+ * @brief The canonical Set ↪ Cat lift for any IsSet-witnessing carrier.
+ *
+ * @details For every @c IsSet<S>, the canonical embedding
+ * @c S @c → @c Disc(S) sits in @c Cat as a discrete category --- the
+ * textbook Disc ⊣ U adjunction realised mechanically.  The lift takes
+ * the set's ambient species (@c S::Ambient) and wraps it in
+ * @c DiscreteCategory<>.  Per @c :discrete, the resulting type
+ * satisfies @c IsDiscreteCategory and @c IsCategory, witnessed by the
+ * static_asserts at the @c DiscreteCategory definition site.
+ *
+ * Companion to:
+ *   - The Set_to_Cat_Embedding doc-section in @c :discrete.
+ *   - The @c IsSet aggregator above (the source side of the lift).
+ *
+ * The construction is the left adjoint to the underlying-objects
+ * functor @c U @c : @c Cat @c → @c Set; under @c Disc @c ⊣ @c U the
+ * @c IsSet-witnessing carriers of the project's set DSL each lift to
+ * a discrete category whose objects are the set's elements and whose
+ * arrows are identities.
+ *
+ * Filed and addressed under #572.
+ */
+export template <typename S>
+  requires IsSet<S>
+using discrete_lift_t = DiscreteCategory<typename S::Ambient>;
+
+// Witness that the lift produces a discrete category for the
+// representative @c IsSet-witnessing carrier from above.
+static_assert(IsDiscreteCategory<discrete_lift_t<_isset_witness_t>>,
+              "Set ↪ Cat lift: discrete_lift_t<S> is a DiscreteCategory "
+              "for every IsSet-witnessing S.");
+static_assert(
+    IsCategory<discrete_lift_t<_isset_witness_t>>,
+    "Set ↪ Cat lift: discrete_lift_t<S> satisfies the general Category "
+    "contract (subsumed by IsDiscreteCategory above; pinned for clarity).");
+static_assert(
+    std::same_as<discrete_lift_t<_isset_witness_t>,
+                 DiscreteCategory<typename _isset_witness_t::Ambient>>,
+    "Set ↪ Cat lift: discrete_lift_t<S> resolves structurally to "
+    "DiscreteCategory<S::Ambient>.");
 
 }  // namespace dedekind::category
