@@ -565,7 +565,7 @@ One safe carrier is $\mathbb{B}$ as the Galois field $\mathbb{F}_2$ (exclusive-o
 The laws hold trivially.
 Others are $\mathbb{N}$, $\mathbb{Z}$, $\mathbb{Q}$.
 The latter as \cppinline{Rational<I>} for any wide-enough integer carrier $I$.
-Arithmetic on $\mathbb{Q}$ is exact: associativity and distributivity are pinned through the trait registry, and the operator-surface witness \cppinline{HasFieldOperators<Rational<I>>} fires today.
+Arithmetic on $\mathbb{Q}$ is exact: associativity and distributivity are pinned through the trait registry, and the operator-surface witness \cppinline{HasFieldOperators<Rational<I>>} matches today.
 The strict axiomatic \cppinline{IsField} witness on $\mathbb{Q}$ is parked behind an architectural gate (the \cppinline{IsTotal} ladder admits periodic, idempotent, and saturating paths but not yet an exact path); the operator surface is what we ship today, the strict axiomatic certificate is queued.
 \cppinline{int} satisfies \cppinline{HasRingOperators} (the four arithmetic operators close on \cppinline{int}), but signed-overflow undefined behaviour defeats associativity.
 The strict \cppinline{IsRing} concept therefore refuses it.
@@ -609,7 +609,7 @@ static_assert(!is_associative_v<int, std::plus<int>>);
 \paragraph{The fast lane: opt in on a per-carrier basis.}
 A library user pushes the button by writing per-carrier trait specialisations that register \cppinline{is_associative_v<T, Op> = true} (or \cppinline{is_commutative_v}, \cppinline{is_invertible_v}, and so on).
 For carriers that already clear the architectural \cppinline{IsTotal} gate (periodic, idempotent, or saturating arithmetic), the trait specialisations are sufficient and the downstream concepts (\cppinline{IsRing}, \cppinline{IsField}) discharge.
-Carriers whose totality lives outside that ladder (e.g.\ exact-arithmetic types like \cppinline{Rational<I>}, or signed integer types whose overflow is UB) need an additional architectural lift on \cppinline{IsTotal} before the strict concepts will fire.
+Carriers whose totality lives outside that ladder (e.g.\ exact-arithmetic types like \cppinline{Rational<I>}, or signed integer types whose overflow is UB) need an additional architectural lift on \cppinline{IsTotal} before the strict concepts will match.
 The user has audited their inputs to a regime where the law actually holds.
 Examples are integer arithmetic on a domain where overflow cannot occur, IEEE \cppinline{double} accepted with associativity-by-fiat for a specific application, or a custom carrier whose modular wrap-around the user proves consistent with the surrounding logic.
 The opt-in is the user's pinky-swear in their part of the multiverse.
@@ -632,7 +632,7 @@ The row-by-row C++23 $\to$ STLC mapping is in Appendix~\ref{app:ddk-rosetta}, al
 
 \paragraph{Higher-kinded inhabitants.}
 $\mathbf{Ddk}$'s residents are not only scalar carriers like the finite fields and exact-arithmetic types of Listing~\ref{lst:honest-rejection}.
-The intersection extends to higher-kinded structure --- functors, monads, and other arrow-shaped constructions --- when the same Juliet-Posture concept-gate fires on a hub-and-spoke type that names the structure (§\ref{sec:alg-sigma}'s hub-and-spoke architectural reading at the next level up).
+The intersection extends to higher-kinded structure --- functors, monads, and other arrow-shaped constructions --- when the same Juliet-Posture concept-gate matches on a hub-and-spoke type that names the structure (§\ref{sec:alg-sigma}'s hub-and-spoke architectural reading at the next level up).
 Listing~\ref{lst:isfunctor} exhibits the canonical example: an \cppinline{IsFunctor} concept encoding the textbook functor laws, paired with a worked \texttt{maybe\_functor} hub (Listing~\ref{lst:maybe_functor}) that promotes \cppinline{std::optional} into a functor without modifying the carrier.
 
 % Source: src/main/modules/dedekind/category/functor.cppm (IsFunctor concept + maybe_functor instance, abridged)
@@ -695,7 +695,7 @@ The $\beth_1$ ceiling from §\ref{sec:alg-sigma} is \emph{foundational}: it stop
 The no-type-erasure stance from §\ref{sec:jlt} is \emph{mechanical}: it preserves the concrete type-level information the concept checker and the LLVM backend rely on, and is what buys the compile-time decidability and pruning power the rest of the paper trades on.
 The visible cost is what neither mechanism gives away for free: meta-categorical statements (the textbook $\mathrm{Disc} \dashv U$, the size-hierarchy adjunctions, free / forgetful pairs across $\mathbf{Cat}$) cannot land at the type level, since they range over the proper-class meta-categories $\mathbf{Set}$ and $\mathbf{Cat}$.
 They survive in $\mathbf{Ddk}$ as documented prose-level CT vocabulary, anchored where possible by mechanically-witnessed \emph{restrictions} to a single small slice.
-A representative anchor: the $\mathrm{Disc} \dashv U$ adjunction between $\mathbf{Set}$ and $\mathbf{Cat}$ is referenced in prose in \texttt{category:etcs}, but the bona fide \cppinline{HasAdjunctionShape} / \cppinline{IsAdjunction} witnesses fire on the discrete-restriction representatives \cppinline{disc_self_endofunctor_t<C>} and \cppinline{disc_self_unit_t<C>} reified in \texttt{category:natural}, where $F = U = \mathrm{Id}$ and $\eta = \epsilon$ degenerate to the identity natural transformation on a single $C$.
+A representative anchor: the $\mathrm{Disc} \dashv U$ adjunction between $\mathbf{Set}$ and $\mathbf{Cat}$ is referenced in prose in \texttt{category:etcs}, but the bona fide \cppinline{HasAdjunctionShape} / \cppinline{IsAdjunction} witnesses match on the discrete-restriction representatives \cppinline{disc_self_endofunctor_t<C>} and \cppinline{disc_self_unit_t<C>} reified in \texttt{category:natural}, where $F = U = \mathrm{Id}$ and $\eta = \epsilon$ degenerate to the identity natural transformation on a single $C$.
 The 2-categorical layer above thus becomes the engineer's honesty obligation, named by reference rather than by type-level proof --- a price the encoding pays in exchange for the foundational soundness of $\beth_1$ and the gate-sharpness of no-erasure, and one §\ref{sec:compiler-wall} revisits at the wall where the type checker also stops.
 
 %\clearpage  % Flush §2.3's deferred floats (Listing 3 in particular) before §3.
