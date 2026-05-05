@@ -75,3 +75,32 @@ TEST_CASE("discrete_lift_t preserves subobject identity (Disc(S1) /= Disc(S2))",
   STATIC_CHECK(IsDiscreteCategory<discrete_lift_t<S1>>);
   STATIC_CHECK(IsDiscreteCategory<discrete_lift_t<S2>>);
 }
+
+TEST_CASE("discrete_lift_t participates in the bona fide adjunction surface",
+          "[category][etcs][discrete][lift][adjunction]") {
+  // The textbook Disc ⊣ U lives between meta-categories Set and Cat;
+  // the project's per-ambient single-species category encoding can
+  // exhibit only the discrete-restriction shadow of that adjunction.
+  // What's witnessed below is exactly what the adjunction.cppm
+  // machinery certifies: every IsSet S has a Disc(S) on which the
+  // trivial self-adjunction Id ⊣ Id is mechanically true.
+  const auto int_set = ambient_set<int>([](const int& x) { return x >= 0; });
+  using S = decltype(int_set);
+
+  using DiscF = disc_self_endofunctor_t<S>;
+  using UnitT = disc_self_unit_t<S>;
+
+  // The Disc-functor on Disc(S) is a bona fide IsFunctor (not just a
+  // type alias).
+  STATIC_CHECK(IsFunctor<DiscF>);
+
+  // The unit/counit is a bona fide natural transformation (the
+  // identity transformation on DiscF).
+  STATIC_CHECK(IsNaturalTransformation<UnitT, DiscF, DiscF>);
+
+  // Structural-shape witness: Disc and U cross-pair on Σ_cat / Τ_cat.
+  STATIC_CHECK(HasAdjunctionShape<DiscF, DiscF>);
+
+  // Full 4-parameter adjunction witness with explicit unit / counit.
+  STATIC_CHECK(IsAdjunction<DiscF, DiscF, UnitT, UnitT>);
+}
