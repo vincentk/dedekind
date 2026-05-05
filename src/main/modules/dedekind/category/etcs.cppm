@@ -48,7 +48,13 @@ module;
 
 export module dedekind.category:etcs;
 
+import :adjunction;  // HasAdjunctionShape / IsAdjunction — the bona fide
+                     // adjunction machinery used to witness Disc ⊣ U at the
+                     // type level (#572 review).
 import :cartesian;
+import :discrete;  // DiscreteCategory<T> — target of the Set ↪ Cat lift (#572)
+import :functor;   // identity_functor — the structural-shape witness for
+                   // the discrete-restriction Disc ⊣ U adjunction (#572).
 import :limit;
 import :logic;
 import :morphism;
@@ -410,5 +416,109 @@ static_assert(!IsSet<_isset_witness_t> ||
 static_assert(
     IsSetInCanonicalCCC<_isset_witness_t>,
     "Mnemonic check: ETCS set objects live over a canonical CCC ambient.");
+
+/**
+ * @brief The canonical Set ↪ Cat lift for any IsSet-witnessing carrier.
+ *
+ * @details For every @c IsSet<S>, the lift @c S @c → @c Disc(S) sits in
+ * @c Cat as a discrete category.  The lift uses @c S itself (not its
+ * ambient species) as the carrier of the discrete category, so distinct
+ * @c IsSet types over the same ambient remain distinct after lifting:
+ * a refined subset and an unrefined ambient are different sets and
+ * therefore different discrete categories.  This mirrors the textbook:
+ * @c Disc(\{0, 1, 2\}) and @c Disc(\mathbb{N}) are not the same
+ * category.  The resulting type follows the @c IsDiscreteCategory
+ * concept definition by construction; the per-instance witnesses
+ * below pin it on the project's representative @c IsSet carrier.
+ *
+ * Companion to:
+ *   - The Set_to_Cat_Embedding doc-section in @c :discrete.
+ *   - The @c IsSet aggregator above (the source side of the lift).
+ *   - @c HasAdjunctionShape / @c IsAdjunction in @c :adjunction (the
+ *     bona fide adjunction machinery, instantiated for this lift below).
+ *   - @c disc_self_endofunctor_t / @c disc_self_unit_t in @c :natural
+ *     (the named entities reifying the textbook @c Disc / @c U / @c η /
+ *     @c ε under the discrete restriction; consumed by the static_asserts
+ *     below).
+ *
+ * @section etcs__Disc_dashv_U_adjunction
+ *
+ * In the textbook @c Disc @c : @c Set @c → @c Cat is the left adjoint
+ * of the underlying-objects functor @c U @c : @c Cat @c → @c Set.  The
+ * adjunction @c Disc @c ⊣ @c U lives between the @b meta-categories
+ * @c Set and @c Cat.  This codebase encodes categories per-ambient
+ * (one @c Species per @c IsCategory type), so the @b meta-categorical
+ * statement is one level above what the type system can express
+ * directly --- there is no @c category_of_sets or @c
+ * category_of_categories type whose @c Species ranges over all sets
+ * or all categories.  What @b is type-level expressible is the @b
+ * restriction of the adjunction to a single discrete carrier: on
+ * @c Disc(S) every functor that respects the discrete shape is the
+ * identity on objects and arrows, so @c Disc and @c U restricted to
+ * @c Disc(S) collapse to the trivial self-adjunction
+ *
+ *   @c Id_{Disc(S)} @c ⊣ @c Id_{Disc(S)}
+ *
+ * with identity unit / counit naturals.  The witnesses below
+ * mechanically exhibit this restriction using the bona fide
+ * @c HasAdjunctionShape / @c IsAdjunction concepts from
+ * @c :adjunction --- the same surfaces that gate the trivial
+ * self-adjunction exhibit in @c functor_test.cpp:138.  The full
+ * meta-categorical @c Disc @c ⊣ @c U is left as future work (it
+ * needs @c category_of_sets / @c category_of_categories types that
+ * the project does not yet model); tracked under #587.
+ *
+ * Discrete-restriction lift filed and addressed under #572.
+ */
+export template <typename S>
+  requires IsSet<S>
+using discrete_lift_t = DiscreteCategory<S>;
+
+// Witness that the lift produces a discrete category for the
+// representative @c IsSet-witnessing carrier from above.
+static_assert(IsCategory<discrete_lift_t<_isset_witness_t>>,
+              "Set ↪ Cat lift: discrete_lift_t<S> satisfies the "
+              "general Category contract.");
+static_assert(IsDiscreteCategory<discrete_lift_t<_isset_witness_t>>,
+              "Set ↪ Cat lift: discrete_lift_t<S> is a DiscreteCategory "
+              "for every IsSet-witnessing S.");
+static_assert(std::same_as<discrete_lift_t<_isset_witness_t>,
+                           DiscreteCategory<_isset_witness_t>>,
+              "Set ↪ Cat lift: discrete_lift_t<S> resolves to "
+              "DiscreteCategory<S>; subobject information in S is "
+              "preserved by lifting S itself rather than S::Ambient.");
+
+// Bona fide adjunction-machinery witnesses on the representative
+// IsSet carrier.  These are the type-level mechanical realisation of
+// the prose claim above --- every IsSet S has a @c Disc(S) that
+// participates in the @c HasAdjunctionShape / @c IsAdjunction surface
+// from @c :adjunction, anchored on the @c disc_self_endofunctor_t /
+// @c disc_self_unit_t named entities reified in @c :natural (#583
+// review).  The trivial-self-adjunction shape is the most the type
+// system can certify here; the full meta-categorical
+// @c Disc @c ⊣ @c U is acknowledged as future work in the doc block.
+static_assert(
+    IsFunctor<disc_self_endofunctor_t<discrete_lift_t<_isset_witness_t>>>,
+    "Set ↪ Cat lift: the discrete-restriction Disc-functor is a bona "
+    "fide functor on Disc(S).");
+static_assert(HasAdjunctionShape<
+                  disc_self_endofunctor_t<discrete_lift_t<_isset_witness_t>>,
+                  disc_self_endofunctor_t<discrete_lift_t<_isset_witness_t>>>,
+              "Set ↪ Cat lift: the discrete-restriction Disc and U satisfy the "
+              "structural shape of an adjunction (Σ_cat / Τ_cat cross-pair).");
+static_assert(IsNaturalTransformation<
+                  disc_self_unit_t<discrete_lift_t<_isset_witness_t>>,
+                  disc_self_endofunctor_t<discrete_lift_t<_isset_witness_t>>,
+                  disc_self_endofunctor_t<discrete_lift_t<_isset_witness_t>>>,
+              "Set ↪ Cat lift: the identity unit/counit is a bona fide natural "
+              "transformation between the discrete-restriction functors.");
+static_assert(
+    IsAdjunction<disc_self_endofunctor_t<discrete_lift_t<_isset_witness_t>>,
+                 disc_self_endofunctor_t<discrete_lift_t<_isset_witness_t>>,
+                 disc_self_unit_t<discrete_lift_t<_isset_witness_t>>,
+                 disc_self_unit_t<discrete_lift_t<_isset_witness_t>>>,
+    "Set ↪ Cat lift: discrete_lift_t<S> participates in the bona fide "
+    "IsAdjunction surface --- the discrete-restriction encoding of the "
+    "textbook Disc ⊣ U adjunction.");
 
 }  // namespace dedekind::category

@@ -62,6 +62,8 @@ module;
 
 export module dedekind.category:natural;
 
+import :discrete;  // IsDiscreteCategory — constraint on the trivial-self-
+                   // adjunction aliases below (#583 review).
 import :functor;
 import :small;
 import :morphism;
@@ -349,5 +351,53 @@ struct horizontal_composition {
            β(static_cast<typename G::Σ_cat::Arrow::Domain>(c));
   }
 };
+
+// =============================================================================
+// Discrete-restriction representatives of the textbook Disc ⊣ U adjunction.
+// =============================================================================
+//
+// For any @c IsDiscreteCategory @c C, the meta-categorical @c Disc and @c U
+// functors collapse to the identity endofunctor on @c C, and their unit /
+// counit collapse to the identity natural transformation on that endofunctor.
+// The aliases below pin those collapsed entities under their textbook role
+// names so call sites reading @c Disc @c ⊣ @c U as a @b natural-transformation
+// -anchored adjunction can refer to bona fide named types in @c :natural
+// rather than to documentary commentary.
+//
+// The full meta-categorical @c Disc @c ⊣ @c U with cross-category source /
+// target is left as future work; it requires meta-categories of sets and
+// categories that the project does not yet model.  Tracked under #587.
+// (The discrete-restriction representatives below were filed and addressed
+// under #572.)
+
+/**
+ * @brief Discrete-restriction representative of the textbook @c Disc / @c U
+ *        functor: the identity endofunctor on a discrete category @c C.
+ *
+ * @details In the meta-categorical @c Disc @c ⊣ @c U adjunction, both
+ * @c Disc and @c U restrict to identity-on-objects-and-arrows when their
+ * source / target collapses to a single discrete category @c C.  This
+ * alias pins the identity endofunctor under that textbook role name so
+ * the adjunction-machinery static_asserts can refer to it directly.
+ */
+export template <typename C>
+  requires IsDiscreteCategory<C>
+using disc_self_endofunctor_t = identity_functor<C>;
+
+/**
+ * @brief Discrete-restriction representative of the textbook unit @c η /
+ *        counit @c ε of the @c Disc @c ⊣ @c U adjunction: the identity
+ *        natural transformation on @c disc_self_endofunctor_t<C>.
+ *
+ * @details In the meta-categorical adjunction the unit @c η_S sends each
+ * element of @c S to its embedding in @c U(F(S)); under the discrete
+ * restriction @c F = U = Id and @c η = @c ε is the identity natural
+ * transformation on the identity endofunctor.  Pinned under the
+ * textbook role name so the adjunction machinery sees a bona fide named
+ * type rather than documentary commentary.
+ */
+export template <typename C>
+  requires IsDiscreteCategory<C>
+using disc_self_unit_t = identity_transformation<disc_self_endofunctor_t<C>>;
 
 }  // namespace dedekind::category
