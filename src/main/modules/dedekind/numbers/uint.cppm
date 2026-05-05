@@ -370,4 +370,54 @@ static_assert(
     IsInjective<std::decay_t<decltype(dedekind::numbers::embed_uint_ℕ_)>>,
     "embed_uint_ℕ_ (unsigned → Cardinality) is "
     "registered injective.");
+
+// ===========================================================================
+// Mazur-equivalence pilot (#591): @c std::unsigned_integral as @c ℕ for
+// inputs strictly less than @c 2^width.
+// ===========================================================================
+//
+// Per Mazur's @em When @em is @em one @em thing @em equal @em to @em some
+// @em other @em thing? (Proof and Other Dilemmas 2008), the principled
+// relaxation of strict equality on a carrier is a named equivalence
+// relation under which the algebraic laws hold even when they don't hold
+// in the bit-perfect sense.
+//
+// For @c std::unsigned_integral T, the relation @c std::equal_to<T>
+// IS a textbook equivalence relation on T (reflexive / symmetric /
+// transitive by the std::regular contract that std::unsigned_integral
+// inherits).  Together with the @c embed_uint_ℕ_ injection above
+// (T-as-modular-ring → Cardinality-as-ℕ, registered monic / injective),
+// this pins the structural reading: @c T modulo @c std::equal_to<T> is
+// equivalent (in the Mazur sense) to a bounded prefix of @c ℕ for inputs
+// strictly less than @c 2^width(T).  Above the bound, modular wraparound
+// makes the equivalence non-classical --- the unbounded variant carrier
+// @c Cardinality is the right home for inputs in the saturation regime.
+//
+// This is the unsigned-side @b first @b slice of the Mazur-equivalence
+// escape hatch (#591); the @c double @c ↔ @c ℝ slice (ε-equivalence)
+// will follow once the unsigned wiring stabilises.
+//
+// The witnesses below pin the equivalence concept from
+// @c category:equivalence on the std::unsigned_integral family, paired
+// with the existing @c embed_uint_ℕ_ injection that already names the
+// structural map @c T @c → @c ℕ.
+
+static_assert(IsEquivalence<unsigned int, std::equal_to<unsigned int>>,
+              "Mazur (#591): std::equal_to<unsigned int> must satisfy "
+              "IsEquivalence; together with embed_uint_ℕ_ this pins "
+              "(unsigned int / ==) ≡ ℕ for inputs < "
+              "2^std::numeric_limits<unsigned int>::digits "
+              "(platform-dependent; typically 2^32 but not guaranteed by "
+              "the C++ standard).");
+static_assert(IsEquivalence<unsigned long, std::equal_to<unsigned long>>,
+              "Mazur (#591): std::equal_to<unsigned long> must satisfy "
+              "IsEquivalence; sister witness for the wider unsigned rung.");
+static_assert(
+    IsEquivalence<unsigned long long, std::equal_to<unsigned long long>>,
+    "Mazur (#591): std::equal_to<unsigned long long> must satisfy "
+    "IsEquivalence; the widest std::unsigned_integral rung.");
+static_assert(IsEquivalence<std::size_t, std::equal_to<std::size_t>>,
+              "Mazur (#591): std::equal_to<std::size_t> must satisfy "
+              "IsEquivalence; the canonical bounded-cardinality witness "
+              "for the indexing surface.");
 }  // namespace dedekind::category

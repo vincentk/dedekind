@@ -316,4 +316,46 @@ static_assert(
     IsInjective<std::decay_t<decltype(dedekind::numbers::embed_sint_ℤ_)>>,
     "embed_sint_ℤ_ (int → SignedCardinality) is "
     "registered injective.");
+
+// ===========================================================================
+// Mazur-equivalence pilot (#591): @c std::signed_integral as @c ℤ for
+// inputs in @c [std::numeric_limits<S>::min(), @c
+// std::numeric_limits<S>::max()] (the unsigned partition's natural
+// progression, generalised across the @c std::signed_integral family).
+// ===========================================================================
+//
+// Per Mazur's @em When @em is @em one @em thing @em equal @em to @em some
+// @em other @em thing? (Proof and Other Dilemmas 2008), the principled
+// relaxation of strict equality on a carrier is a named equivalence
+// relation under which the algebraic laws hold even when they don't hold
+// in the bit-perfect sense.
+//
+// For @c std::signed_integral @c S, the relation @c std::equal_to<S> IS
+// a textbook equivalence relation on @c S (reflexive / symmetric /
+// transitive by the std::regular contract).  Together with the @c
+// embed_sint_ℤ_ injection above (S → SignedCardinality, registered monic
+// / injective), this pins the structural reading: @c S modulo @c
+// std::equal_to<S> is equivalent (in the Mazur sense) to a bounded slice
+// of @c ℤ for inputs in @c [std::numeric_limits<S>::min(), @c
+// std::numeric_limits<S>::max()].  Outside that bound, signed-overflow
+// UB makes the equivalence non-classical --- the unbounded variant
+// carrier @c SignedCardinality is the right home for inputs in the
+// saturation regime.
+//
+// This is the signed-side natural progression of the unsigned-as-ℕ
+// slice in @c numbers:uint (#591); together they cover the std::integral
+// family.  The @c double @c ↔ @c ℝ slice (ε-equivalence) is the harder
+// case deferred until both integer slices stabilise.
+
+static_assert(IsEquivalence<int, std::equal_to<int>>,
+              "Mazur (#591): std::equal_to<int> must satisfy IsEquivalence; "
+              "together with embed_sint_ℤ_ this pins (int / ==) ≡ ℤ for "
+              "inputs in [INT_MIN, INT_MAX].");
+static_assert(IsEquivalence<long, std::equal_to<long>>,
+              "Mazur (#591): std::equal_to<long> must satisfy IsEquivalence; "
+              "sister witness for the wider signed rung.");
+static_assert(
+    IsEquivalence<long long, std::equal_to<long long>>,
+    "Mazur (#591): std::equal_to<long long> must satisfy IsEquivalence; "
+    "the widest std::signed_integral rung.");
 }  // namespace dedekind::category
