@@ -405,7 +405,10 @@ static_assert(
 static_assert(IsEquivalence<unsigned int, std::equal_to<unsigned int>>,
               "Mazur (#591): std::equal_to<unsigned int> must satisfy "
               "IsEquivalence; together with embed_uint_ℕ_ this pins "
-              "(unsigned int / ==) ≡ ℕ for inputs < 2^32.");
+              "(unsigned int / ==) ≡ ℕ for inputs < "
+              "2^std::numeric_limits<unsigned int>::digits "
+              "(platform-dependent; typically 2^32 but not guaranteed by "
+              "the C++ standard).");
 static_assert(IsEquivalence<unsigned long, std::equal_to<unsigned long>>,
               "Mazur (#591): std::equal_to<unsigned long> must satisfy "
               "IsEquivalence; sister witness for the wider unsigned rung.");

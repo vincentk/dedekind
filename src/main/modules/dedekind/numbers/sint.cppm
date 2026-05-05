@@ -319,8 +319,9 @@ static_assert(
 
 // ===========================================================================
 // Mazur-equivalence pilot (#591): @c std::signed_integral as @c ℤ for
-// inputs in @c [INT_MIN, @c INT_MAX] (the unsigned partition's natural
-// progression).
+// inputs in @c [std::numeric_limits<S>::min(), @c
+// std::numeric_limits<S>::max()] (the unsigned partition's natural
+// progression, generalised across the @c std::signed_integral family).
 // ===========================================================================
 //
 // Per Mazur's @em When @em is @em one @em thing @em equal @em to @em some

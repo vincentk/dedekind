@@ -121,30 +121,40 @@ inline constexpr bool is_symmetric_v = is_symmetric<T, Rel>::value;
  */
 export template <typename T, typename Rel>
 concept IsSymmetric = requires(T a, T b) {
-  { Rel{}(a, b) };
-  { Rel{}(b, a) };
+  { Rel{}(a, b) } -> std::convertible_to<bool>;
+  { Rel{}(b, a) } -> std::convertible_to<bool>;
 } && requires { requires is_symmetric_v<T, Rel>; };
 
 // ---------------------------------------------------------------------------
-// std::equal_to<T> as the canonical equivalence relation.
+// std::equal_to<T> as the canonical equivalence relation on integral
+// (non-floating-point) carriers.
 // ---------------------------------------------------------------------------
 //
 // std::equal_to<T> is the project's canonical equivalence relation on any
-// std::regular T: == is reflexive, symmetric, and transitive by the
-// std::regular contract (which inherits from std::equality_comparable).
-// Pin all three traits via partial specialisation so the canonical case
-// fires without per-carrier opt-in.
+// std::regular T whose == is bit-perfect: reflexive, symmetric, and
+// transitive by the std::regular contract.  We deliberately exclude
+// floating-point carriers here because IEEE-754 NaN breaks reflexivity
+// (NaN == NaN is false), so std::equal_to<double> is NOT a textbook
+// equivalence relation despite double being std::regular.  The Mazur-
+// equivalence escape hatch (#591) is the right home for the floating-
+// point case; ε-equivalence rather than == is the operative relation
+// there.
+//
+// The integral constraint matches the policy in @c category:cartesian
+// (which anchors integral-only registrations on the same axis).  Pin
+// all three traits via partial specialisation so the canonical integral
+// case fires without per-carrier opt-in.
 
 template <typename T>
-  requires std::regular<T>
+  requires std::regular<T> && (!std::floating_point<T>)
 struct is_reflexive<T, std::equal_to<T>> : std::true_type {};
 
 template <typename T>
-  requires std::regular<T>
+  requires std::regular<T> && (!std::floating_point<T>)
 struct is_symmetric<T, std::equal_to<T>> : std::true_type {};
 
 template <typename T>
-  requires std::regular<T>
+  requires std::regular<T> && (!std::floating_point<T>)
 struct is_transitive<T, std::equal_to<T>> : std::true_type {};
 
 // ---------------------------------------------------------------------------
