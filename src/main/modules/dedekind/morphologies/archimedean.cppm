@@ -21,7 +21,7 @@ export module dedekind.morphologies:archimedean;
 
 import dedekind.category; // IsArrow (#602 layer-1 breadcrumb)
 import dedekind.sequences;
-import dedekind.sets;     // SingletonSet, singleton, image (#602 layer-1)
+import dedekind.sets; // SingletonSet, singleton, image (#602 layer-1)
 
 namespace dedekind::morphologies {
 using namespace dedekind::sequences;
@@ -208,14 +208,13 @@ static_assert(dedekind::category::IsArrow<succ_arrow>,
               "Breadcrumb (i): the Peano-successor witness arrow "
               "S(x) = x + 1 satisfies IsArrow.");
 
-inline constexpr auto s0 =
-    dedekind::sets::SingletonSet<int>{0};
+inline constexpr auto s0 = dedekind::sets::SingletonSet<int>{0};
 inline constexpr auto s1 = dedekind::sets::image(succ_arrow{}, s0);
 
-static_assert(std::is_same_v<decltype(s1),
-                             const dedekind::sets::SingletonSet<int>>,
-              "Breadcrumb (ii): image preserves the SingletonSet shape; "
-              "Cod(F) == int folds back to SingletonSet<int>.");
+static_assert(
+    std::is_same_v<decltype(s1), const dedekind::sets::SingletonSet<int>>,
+    "Breadcrumb (ii): image preserves the SingletonSet shape; "
+    "Cod(F) == int folds back to SingletonSet<int>.");
 static_assert(dedekind::sets::IsExtensional<decltype(s1)>,
               "Breadcrumb (ii): image preserves IsExtensional.");
 static_assert(dedekind::sets::IsPointedSet<decltype(s1), int>,
@@ -227,9 +226,10 @@ static_assert(s1 == dedekind::sets::singleton(succ_arrow{}(s0.pivot)),
               "Breadcrumb (iii): image(f, s) == singleton(f(s.pivot)) — "
               "the cardinality-1 instance of the powerset-monad Kleisli "
               "bind, factored through η.");
-static_assert(s1 == (s0 >>= [](int x) {
-                return dedekind::sets::singleton(succ_arrow{}(x));
-              }),
+static_assert(s1 == (s0 >>=
+                     [](int x) {
+                       return dedekind::sets::singleton(succ_arrow{}(x));
+                     }),
               "Breadcrumb (iii): image factors through the existing "
               "Singleton-monad Kleisli bind (>>=).");
 
