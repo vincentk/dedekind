@@ -435,9 +435,14 @@ The authoritative textbook in the context of programming might be \emph{Types an
 For the more casual reader of this text, it should be sufficient to remember that category theory is a book-keeping device.
 It tells us what clicks together (the arrows compose), what doesn't, and how things might be rearranged or simplified.
 
-In the context of \texttt{dedekind}, we further restrict our attention to a subset that most readers will be familiar with: algebras, i.e.\ sets equipped with operations.\footnote{We use ``algebra'' here in the universal-algebra sense (a $\Sigma$-algebra: a carrier set together with operations realising a signature $\Sigma$); the unrelated algebraic-geometry usage of ``algebraic set'' for the zero locus of a system of polynomials is \emph{not} what we mean.}
-The Booleans $\mathbb{B}$ with logical operations, the integers $\mathbb{Z}$ with addition and subtraction and so on.
-In algebra textbook terminology: the universal-algebra category $\mathbf{Alg}(\Sigma)$~\cite{burris1981universalalgebra} for a fixed algebraic signature $\Sigma$ (a list of operation symbols with their arities).
+In the context of \texttt{dedekind}, we further restrict our attention to a subset that most readers will be familiar with: algebras,in the unversal algebra sense.
+That is: sets equipped with operations realising a signature $\Sigma$: 
+$\mathbf{Alg}(\Sigma) \subset \mathbf{Alg}(-) \subset \mathbf{Set} \subset \mathbf{Cat}$.\footnote{The unrelated algebraic-geometry usage of ``algebraic set'' for the zero locus of a system of polynomials is \emph{not} what we mean.}
+In algebra textbook terminology and for a fixed algebraic signature $\Sigma$ (a list of operation symbols with their arities): the universal-algebra category $\mathbf{Alg}(\Sigma)$~\cite{burris1981universalalgebra}.
+However, we \emph{deliberately leave $\Sigma$ unbound for now}, the intent is to defer the formalization of operations such as $\neg, \vee, \wedge, \cup, \cap, +, \times, \ldots$.
+Instead, the binding of concrete operator-shape signatures is deferred to later sections~\ref{sec:cpp-stlc-mapping}, \ref{sec:sets-rules}.
+\footnote{The dash is a typographic placeholder meaning ``fill in any signature here'' (Mac Lane's standard argument-blank convention~\cite{maclane1971categories}, same family as $\mathrm{Hom}(-, -)$ for the hom-bifunctor and $(-)^{\mathrm{op}}$ for the opposite-category functor); it is \emph{not} a unary minus.  The notation reappears in §\ref{sec:cpp-stlc-mapping}.}
+Familiar examples of such algebras are: The Booleans $\mathbb{B}$ with logical operations, the integers $\mathbb{Z}$ with addition and subtraction and so on.
 In functional programming terminology, this corresponds to $F_\Sigma$-algebras: for each signature $\Sigma$ there is a polynomial endofunctor $F_\Sigma$ on $\mathbf{Set}$, and Pierce~\cite{pierce1991basic} (§2.2) gives the isomorphism $\mathbf{Alg}(\Sigma) \cong F_\Sigma\text{-}\mathbf{Alg}$ that lets the same fragment read coherently to both audiences.
 
 In the language of software architecture, the picture might be described as a hub-and-spoke layout.
@@ -445,7 +450,7 @@ Each hub is a carrier type $\mathrm{T}$, and the spokes are the maps that compos
 Operator overloads ($\mathrm{T} \times \mathrm{T} \to \mathrm{T}$), free-function actions on the carrier, trait specialisations registering structural facts about $\mathrm{T}$, and named embedding arrows $\mathrm{T} \to \mathrm{S}$ crossing to a sibling hub.
 The library lifts this pattern directly into the build graph.
 Each named module declares one or more hubs and owns its spokes.
-The partition DAG is the diagram of inter-hub arrows.
+The module and partition DAG is the diagram of inter-hub arrows.
 Figure~\ref{fig:hub-spoke-bnz} sketches three concrete algebraic hubs ($\mathbb{B}$, $\mathbb{N}$, $\mathbb{Z}$) with one arrow of each kind.
 
 \begin{figure}[htbp]
@@ -474,9 +479,6 @@ Most arrows on each hub and most inter-hub arrows are suppressed for clarity. Th
 \label{fig:hub-spoke-bnz}
 \end{figure}
 
-
-While it may now be tempting to start formalizing operations such as $\neg, \vee, \wedge, \cup, \cap, +, \times, \ldots$, we \emph{deliberately leave $\Sigma$ unbound for now}.\footnote{When $\Sigma$ stays unbound throughout a discussion, we sometimes write $\mathbf{Alg}(-)$ for the family $\bigcup_\Sigma \mathbf{Alg}(\Sigma)$ over the signatures the library names.  The dash is a typographic placeholder meaning ``fill in any signature here'' (Mac Lane's standard argument-blank convention~\cite{maclane1971categories}, same family as $\mathrm{Hom}(-, -)$ for the hom-bifunctor and $(-)^{\mathrm{op}}$ for the opposite-category functor); it is \emph{not} a unary minus.  The notation reappears in §\ref{sec:cpp-stlc-mapping}.}
-The binding of concrete operator-shape signatures is deferred to later sections~\ref{sec:cpp-stlc-mapping}, \ref{sec:sets-rules}.
 We note though that while $\mathbf{Alg}(\Sigma)$ is only a small fragment of $\mathbf{Cat}$ we expect that it carries enough algebraic vocabulary to host carriers, operators, and structure-preserving arrows in the shape an engineering library actually needs and so we use it as a starting point for a structuralist mathematical style~\cite{marquis2022structuralist}.
 We further restrict our attention to the \emph{small} slice $\mathbf{Alg}(\Sigma)_{\beth_1}$ --- the $\beth_1$-small algebras, i.e.\ algebras whose underlying carrier has cardinality at most that of the continuum.\footnote{The standard mathematical workaround for ``a category whose objects are all sets / all categories'' is a Grothendieck universe hierarchy~\cite{maclane1971categories} (Mac Lane, §I.6): pick a universe $U$, define $\mathbf{Set}_U$ as the category of $U$-small sets, then let $\mathbf{Set}_U$ live as an object of a larger-universe $\mathbf{Cat}_{U'}$.  The hierarchy stratifies; no level contains itself.  The $\beth_1$ subscript here pins the smallness ceiling at the cardinality of the continuum --- enough to admit $\mathbb{R}$-sized carriers, small enough to forbid proper-class self-reference.}
 Pinning the object-size at $\beth_1$ admits the transfinite carriers required for Dedekind-cut arithmetic ($\mathbb{R}$, §\ref{sec:numeric-tension}) and the continuum-sized $\mathbb{C}$, $\mathbb{D}$ used in §\ref{sec:linalg}, while keeping a foundational ceiling that forbids the self-referential paradoxes of the proper-class meta-categories $\mathbf{Set}$ and $\mathbf{Cat}$.
@@ -555,9 +557,6 @@ An \texttt{axiom} keyword was considered in early C++0x drafts for in-language s
 The manual-certification pattern is the path the committee left open.\footnote{The C++ standard's \emph{syntactic} / \emph{semantic} split is fundamentally \textbf{decidable vs.\ undecidable} --- what the spec commits to enforcing mechanically vs.\ what it deliberately refuses to enforce --- and does not coincide with the static-vs-dynamic semantics split familiar from PL theory~\cite{pierce2002tapl}.  C++'s \emph{syntactic} bucket subsumes that tradition's \emph{static semantics} (type checking, concept resolution, auto-derived theorems via \cppinline{static_assert}) because those are all things the compiler verifies mechanically; the C++ \emph{semantic} bucket is roughly what resists mechanical decision in the spec's chosen target structure.  The committee's vocabulary optimises for responsibility allocation (compiler vs.\ user) rather than for type-theoretic precision; the mismatch is real but learnable.}
 
 The trait-registry mechanics --- which axioms propagate under which constructors, how per-carrier specialisations are organised, how the \emph{Honest Rejection} policy maps to varieties, and how the algebra-side machinery composes with the C++-side concept layer --- are deferred to §\ref{sec:pruning} (\emph{Algebraic Lattice}) and §\ref{sec:numeric-tension} (\emph{The Traits Registry: Abstract Naturals vs.\ IEEE Numerics}).
-
-An unintended but most welcome side effect: the disciplined subset that aligns with $\mathbf{Alg}(\Sigma)$ also turns out to be a faithful image of System~F (Pierce~\cite{pierce2002tapl} ch.~23, 29) and of the simply-typed $\lambda$-calculus under Lambek--Scott~\cite{lambek1988introduction}.
-Details of this observation are discussed in Appendix~\ref{app:jlt-systemf}.
 
 Call this disciplined subset $\mathbf{Jlt} \subset \mathbf{Cpp}$ (mnemonically: \emph{Juliet}, after the \emph{rose by any other name} reading of structural-over-nominal typing).
 In $\mathbf{Jlt}$ the objects are \cppinline{std::regular} types and the values they classify, and the morphisms are the arrows the language admits between them.
@@ -641,6 +640,7 @@ A pre-existing standard-library type such as a \cppinline{std::pair} or a \cppin
 Nominal-typing alternatives (declared lineage, base classes, virtual interfaces) would require carriers shipped in the C++ standard a decade ago to opt in upstream, which is impossible.
 Second, the disciplined fragment in which $\mathbf{Ddk}$ inhabits also reads as a faithful image of the simply-typed $\lambda$-calculus and System~F under Lambek--Scott~\cite{lambek1988introduction} and Pierce~\cite{pierce2002tapl}.
 This is a verification artefact rather than a flow-relevant claim, but worth naming for the reader who wants to chase the bridge.
+Details of this observation are discussed in Appendix~\ref{app:jlt-systemf}.
 The row-by-row C++23 $\to$ STLC mapping is in Appendix~\ref{app:ddk-rosetta}, alongside the operator-shape rosetta and the textbook commutative-square diagram for Listing~\ref{lst:isfunctor} below.
 
 \paragraph{Higher-kinded inhabitants.}
