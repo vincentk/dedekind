@@ -539,23 +539,7 @@ The slice is what \cppinline{std::regular} together with the admissibility rules
 
 Putting these together: a terminal object (\cppinline{void} / \cppinline{std::monostate}), finite products, exponentials, and an admissibility gate, all inside the disciplined \cppinline{constexpr} subset Appendix~\ref{app:jlt-systemf} carves out.
 The intersection $\mathbf{CCC} \cap \mathbf{Cpp}$ is inhabited, and the \textbf{Juliet Posture} is the deliberate choice to live in the inhabitant.
-Table~\ref{tab:cpp23-ccc-mapping} recaps.
 \end{proof}
-
-\begin{table}[h]
-\centering
-\caption{The C++23 Realization of Cartesian Closed Category (CCC) Requirements}
-\label{tab:cpp23-ccc-mapping}
-\begin{tabular}{@{}lll@{}}
-\toprule
-\textbf{C++23 Pillar} & \textbf{Categorical Requirement} & \textbf{Role in the Juliet Posture (\(\mathbf{Jlt}\))} \\ \midrule
-\cppinline{std::regular} & \textbf{Objects as Sets} & Default-construction, copy-semantics, equality.  Equational extensionality on the disciplined fragment. \\
-\cppinline{constexpr} + admissibility rules & \textbf{Pure Morphisms} & Side-effect-free, terminating composition (purity / termination follow from Appendix~\ref{app:jlt-systemf}, not from \cppinline{constexpr} alone). \\
-\cppinline{concept} & \textbf{Type-level admissibility gate} & Filters \(\mathbf{Cpp}\) noise; complement of the topos-level \(\Omega\) (§\ref{sec:alg-sigma}). \\
-Lambdas / \cppinline{std::pair} & \textbf{Exponentials / Products} & Reifies the closed and Cartesian properties. \\ \bottomrule
-\end{tabular}
-\end{table}
-
 
 We therefore carefully chose elements from C++ guided by two criteria.
 First, alignment with the universal-algebra fragment $\mathbf{Alg}(\Sigma)$ identified in §\ref{sec:alg-sigma}.
