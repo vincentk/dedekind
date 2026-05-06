@@ -476,16 +476,16 @@ Coproduct ($A + B$) & \texttt{std::variant} & \texttt{IsCoproduct} \\
 \subsection{The \texttt{dedekind.python} facade module}
 The \texttt{dedekind.python} module is the current end-of-chain facade for wrapper-facing integration. Its purpose is to expose a narrow, auditable, and deterministic API surface while preserving the internal partition hierarchy and keeping categorical internals out of first-contact runtime bindings.
 
-For the MVP, the exposed surface is intentionally limited to explicit set-interop boundaries and sequence/range adapters: conversion from and to standard set-like carriers, plus finite-path range materialization and view adaptation. This scope is large enough to support notebook-first demos (for example, selecting and plotting subsets of a Mandelbrot orbit trace) while remaining small enough for stable review and low-risk evolution.
+For the MVP, the exposed surface is intentionally limited to explicit std-container bridges and sequence/range adapters: conversion from and to standard set-like carriers, plus finite-path range materialization and view adaptation. This scope is large enough to support notebook-first demos (for example, selecting and plotting subsets of a Mandelbrot orbit trace) while remaining small enough for stable review and low-risk evolution.
 
-Concretely, the current \texttt{dedekind::interop} boundary provides explicit adapters between Dedekind extensional sets and standard set containers:
+Concretely, \texttt{dedekind::sets::from\_std} and \texttt{dedekind::sets::to\_std} (in the \texttt{:extensional} partition) provide explicit adapters between \texttt{ExtensionalSet} and standard set containers:
 \begin{itemize}
   \item \texttt{from\_std(std::set<T>)} and \texttt{from\_std(std::unordered\_set<T>)};
   \item \texttt{to\_std<std::set<T>>(ext)} and \texttt{to\_std<std::unordered\_set<T>>(ext)}.
 \end{itemize}
 
 The intended usage is an auditable round-trip at the value boundary rather than an implicit carrier coercion:
-\begin{lstlisting}[language=C++, caption={Explicit interop round-trip through the current wrapper-facing facade.}, label={lst:python_interop_roundtrip}]
+\begin{lstlisting}[language=C++, caption={Explicit std-container round-trip through the wrapper-facing facade.}, label={lst:python_interop_roundtrip}]
 import dedekind.sets;
 
 std::set<int> ordered{1, 2, 3};
