@@ -529,7 +529,7 @@ The slice is what \cppinline{std::regular} together with the admissibility rules
     The same admissibility rules from Appendix~\ref{app:jlt-systemf} (no \cppinline{reinterpret_cast}, no SFINAE branching, bounded instantiation depth) recover the pure, terminating, effect-free reading; identity and associativity of composition hold by inspection.
 
     \item \textbf{Products.}
-    \cppinline{std::pair} with structural binding hands us the universal property of products: for any $A, B$ we have a product $A \times B$ with projections $\pi_1, \pi_2$, and the mediating-arrow construction is the obvious tuple-build.
+    \cppinline{std::pair} with structured bindings hands us the universal property of products: for any $A, B$ we have a product $A \times B$ with projections $\pi_1, \pi_2$, and the mediating-arrow construction is the obvious tuple-build.
     This is the \emph{Cartesian} half of the structure.
 
     \item \textbf{Exponentials.}
