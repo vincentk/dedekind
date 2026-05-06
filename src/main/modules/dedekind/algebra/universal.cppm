@@ -111,6 +111,30 @@ concept IsOpOn = IsBinaryOpOn<T, Op> || IsUnaryOpOn<T, Op>;
 // ---------------------------------------------------------------------------
 
 /**
+ * @brief The explicit opt-in for carrier admissibility.
+ * Users can specialize this to 'true' for types that aren't std::regular
+ * but fulfill the equational scent of an algebraic carrier.
+ */
+template <typename T>
+inline constexpr bool is_carrier_v = std::regular<T>;
+
+/**
+ * @concept IsCarrier
+ * @brief The admissibility gate for algebraic inhabitants.
+ * 
+ * Rules out pathologies (non-destructible, non-movable) while 
+ * generously admitting anything that looks like a value, a sequence, 
+ * or an ordered set.
+ */
+export template <typename T>
+concept IsCarrier = 
+    (std::destructible<T> && (std::movable<T> || std::swappable<T>)) && 
+    (std::regular<T> || 
+     std::partially_ordered_with<T, T> || 
+     std::ranges::range<T> || 
+     is_carrier_v<T>);
+
+/**
  * @concept IsAlgebra
  * @brief The universal-algebra (A, F) pattern at the closure tier.
  *
@@ -137,7 +161,7 @@ concept IsOpOn = IsBinaryOpOn<T, Op> || IsUnaryOpOn<T, Op>;
  * with the requirement that the arrow respects each operation in the
  * algebra's family.
  *
- * @tparam T   The carrier type (@c std::regular).
+ * @tparam T   The carrier type (@c IsCarrier<T>).
  * @tparam Ops The variadic family of operations on @c T.
  *
  * @see Burris & Sankappanavar 1981 §I.1 (the formal definition).
@@ -146,7 +170,7 @@ concept IsOpOn = IsBinaryOpOn<T, Op> || IsUnaryOpOn<T, Op>;
  *      construction-on-an-algebra pattern.
  */
 export template <typename T, typename... Ops>
-concept IsAlgebra = std::regular<T> && (... && IsOpOn<T, Ops>);
+concept IsAlgebra = IsCarrier<T> && (... && IsOpOn<T, Ops>);
 
 // ---------------------------------------------------------------------------
 // IsTotalAlgebra: the totality-tier anchor between :universal and :total

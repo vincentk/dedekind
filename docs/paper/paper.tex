@@ -427,7 +427,7 @@ The strategy of this section is a three-step intersection.
 Both category theory and modern C++23 are large and occasionally intimidating beasts; each, however, admits a tractable subset with somewhat simpler atomic building blocks and clear composition rules.
 The \texttt{dedekind} library lives at their intersection.
 
-\subsection{A Well-Behaved Structure in Category Theory: $\mathbf{Alg}(-)_{\beth_1}$}
+\subsection{A Goldilocks Zone in Category Theory: $\mathbf{Alg}(-)_{\beth_1}$}
 \label{sec:alg-sigma}
 
 The choice of anchoring the library's domain in category theory on the mathematical side is neither new nor arbitrary and follows a well-trodden path.
@@ -499,14 +499,54 @@ In $\mathbb{K}_3$, $P \lor \neg P = \mathit{Unknown}$ is a calm, unremarkable id
 The paradox was never in the floats; it was in our choice of $\Omega$.
 $\Omega$ parameterises membership truth values while the $\beth_1$ ceiling parameterises carrier size; the two are orthogonal.
 
-\subsection{A Well-Behaved Structure in C++: the Juliet Posture $\mathbf{Jlt}$}
+\subsection{A Goldilocks Zone in C++: the Juliet Posture $\mathbf{Jlt} \subset (\mathbf{CCC} \cap \mathbf{Cpp})$}
 \label{sec:jlt}
 
+In Section \ref{sec:alg-sigma}, a mathematical Goldilocks zone was identified as $\mathbf{Alg}(-)_{\beth_1}$.
+Here, we identify its engineering counterpart: the Juliet Posture $\mathbf{Jlt}$, a structural subcategory of the intersection $\mathbf{CCC} \cap \mathbf{Cpp}$.
+This is the zone where C++ types exhibit the Cartesian Closed symmetry required to inhabit our algebraic hubs.
 
-In much the same way that category theory can be intimidating, C++ as a whole is a famously inhospitable substrate for formal reasoning.
-A closed denotational semantics for the full language is, to our knowledge, not on the books.\footnote{Concretely: overload resolution and argument-dependent lookup are non-uniform; two-phase name lookup interacts with template instantiation in ways that defeat parametricity (Wadler's classical objection to template genericity, after Bracha \& Odersky~\cite{bracha1998making}, bites here); \cppinline{reinterpret_cast} breaks type abstraction at the value level; and template instantiation in general is Turing-complete and undecidable.  On the carrier side, undefined behaviour is the rule rather than the exception: signed-overflow UB defeats ring-associativity on machine \cppinline{int} / \cppinline{long}, IEEE-754 rounding-non-associativity defeats field-associativity on \cppinline{float} / \cppinline{double} --- §\ref{sec:carrier-rosetta} audits each stdlib carrier's algebraic surface against the textbook expectations.}
+\begin{proposition}
+The intersection $\mathbf{CCC} \cap \mathbf{Cpp}$ is non-empty and reifiable within the C++23 translation unit.
+\end{proposition}
 
-We chose elements from C++ guided by two criteria.
+\begin{proof}
+To prove the existence of this intersection, we exhibit a mapping from the physical substrate of $\mathbf{Cpp}$ to the axiomatic requirements of a Cartesian Closed Category (the internal language of $\mathbf{STLC}$).
+
+\begin{enumerate}
+    \item \textbf{Selection of Objects (The Carrier):} 
+    We select the sub-universe of types satisfying \cppinline{std::regular}. By requiring copy-semantics and equational extensionality ($a = b \implies f(a) = f(b)$), we satisfy the requirement that \textbf{Objects} behave as sets of values with stable identity. 
+    \item \textbf{Selection of Morphisms (The Arrows):} 
+    We select the set of \cppinline{constexpr} lambda expressions. By enforcing a pure, terminating, and effect-free evaluation context, we ensure that every function in this sub-universe is a \textbf{Morphism} in the categorical sense, satisfying the identity and associativity laws of composition without the interference of side effects. 
+    \item \textbf{Construction of Products (Cartesian):} 
+    The existence of \cppinline{std::pair} and structural binding provides the \textbf{Universal Property of Products}. For any two objects $A, B$, there exists a product $A \times B$ with projection morphisms $\pi_1, \pi_2$, satisfying the Cartesian requirement.
+    \item \textbf{Construction of Exponentials (Closed):} 
+    The existence of first-class lambdas provides the \textbf{Internal Hom-object} ($B^A$). This allows for the \textbf{Currying} transformation, mapping $f: (A \times B) \to C$ to $\hat{f}: A \to C^B$, satisfying the requirement for a closed category.
+    \item \textbf{The Classifier (The Gate):} 
+    The C++23 \cppinline{concept} mechanism acts as the \textbf{Sieve}. It allows us to mechanically verify that a given type $T \in \mathbf{Cpp}$ possesses the internal structure required to inhabit the $\mathbf{CCC}$.
+\end{enumerate}
+
+Because we have exhibited a terminal object (\cppinline{void} / \cppinline{monostate}), finite products, and exponentials within the \cppinline{constexpr} subset of C++, the intersection $\mathbf{CCC} \cap \mathbf{Cpp}$ is inhabited.
+The \textbf{Juliet Posture} is defined as the intentional selection of this inhabitant.
+The requirements are recapitulated in Table \ref{tab:cpp23-ccc-mapping}.
+\end{proof}
+
+\begin{table}[h]
+\centering
+\caption{The C++23 Realization of Cartesian Closed Category (CCC) Requirements}
+\label{tab:cpp23-ccc-mapping}
+\begin{tabular}{@{}lll@{}}
+\toprule
+\textbf{C++23 Pillar} & \textbf{Categorical Requirement} & \textbf{Role in the Juliet Posture (\(\mathbf{Jlt}\))} \\ \midrule
+\cppinline{std::regular} & \textbf{Objects as Sets} & Provides equational extensionality and identity. \\
+\cppinline{constexpr} & \textbf{Pure Morphisms} & Guarantees side-effect-free, terminating composition. \\
+\cppinline{concept} & \textbf{Structural Logic} & Filters \(\mathbf{Cpp}\) noise to identify \(\mathbf{CCC}\) structures. \\
+Lambdas / \cppinline{std::pair} & \textbf{Exponentials / Products} & Reifies the Cartesian and Closed properties. \\ \bottomrule
+\end{tabular}
+\end{table}
+
+
+We therefore carefully chose elements from C++ guided by two criteria.
 First, alignment with the universal-algebra fragment $\mathbf{Alg}(\Sigma)$ identified in §\ref{sec:alg-sigma}.
 Second, the desire to integrate functionality the standard library already ships, in particular \cppinline{std::regular} value-types and the primitive carriers (\cppinline{int}, \cppinline{double}, \cppinline{bool}, \dots), without wrapping them in \cppinline{struct} boilerplate or paying a runtime cost.
 We can compare and contrast this choice problem with three textbook schools~\cite{pierce2002tapl, cardelli1996typesystems} of type identification:
@@ -516,7 +556,7 @@ We can compare and contrast this choice problem with three textbook schools~\cit
 \item static structural typing (concept-based; behaviour checked at compile time without a declared lineage).
 \end{itemize}
 
-C++23 concepts realise the third school.
+C++23 \cppinline{concept}, \cppinline{constexpr}, and \cppinline{std::regular} realise the third school.
 We call the resulting discipline the \emph{Juliet Posture}, after the observation that a rose by any other name would smell as sweet~\cite{shakespeare1597romeo}.
 The library cares about the \emph{scent} (structural invariants), not the \emph{lineage} (declared name).
 
