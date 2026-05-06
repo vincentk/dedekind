@@ -439,8 +439,9 @@ In the context of \texttt{dedekind}, we further restrict our attention to a subs
 The Booleans $\mathbb B$ with logical operations, the integers $\mathbb Z$ with addition and subtraction and so on.
 In algebra textbook terminology: the universal-algebra category $\mathbf{Alg}(\Sigma)$~\cite{burris1981universalalgebra} for a fixed algebraic signature $\Sigma$ (a list of operation symbols with their arities).
 In functional programming terminology, this corresponds to $F_\Sigma$-algebras: for each signature $\Sigma$ there is a polynomial endofunctor $F_\Sigma$ on $\mathbf{Set}$, and Pierce~\cite{pierce1991basic} (§2.2) gives the isomorphism $\mathbf{Alg}(\Sigma) \cong F_\Sigma\text{-}\mathbf{Alg}$ that lets the same fragment read coherently to both audiences.
+
 In the language of software architecture, the picture might be described as a hub-and-spoke layout.
-Each hub is a carrier type $\mathrm{T}$, and the spokes are the maps that compose with it.
+Each hub is a is a named algebraic signature or rule-set (the Functor) carrier type $\mathrm{T}$, and the spokes are the carrier types \(\mathrm{T}\) that inhabit it.
 Operator overloads ($\mathrm{T} \times \mathrm{T} \to \mathrm{T}$), free-function actions on the carrier, trait specialisations registering structural facts about $\mathrm{T}$, and named embedding arrows $\mathrm{T} \to \mathrm{S}$ crossing to a sibling hub.
 The library lifts this pattern directly into the build graph.
 Each named module declares one or more hubs and owns its spokes.
@@ -471,6 +472,22 @@ Most arrows on each hub and most inter-hub arrows are suppressed for clarity. Th
 }
 \label{fig:hub-spoke-bnz}
 \end{figure}
+
+\begin{figure}[htbp]
+\centering
+\begin{tikzcd}[column sep=large, row sep=large, ampersand replacement=\&]
+\& \text{Algebra}(T, F) \arrow[d, "\text{Axioms}"] \& \\
+\& \text{Monoid} \arrow[dl, "\text{Inverses}"'] \arrow[dr, "\text{Distributive}"] \& \\
+\text{Group} \arrow[rr, "\text{Second Op}"] \& \& \text{Ring} \arrow[d, "\text{Invertibility}"] \\
+\& \& \text{Field}
+\end{tikzcd}
+\caption{
+Sketching with Gemini based on \texttt{algebra:universal}.
+A hub is a specific pairing of a carrier and its operations (the closure tier), while the spokes are the axiomatic refinements that identify its symmetries.
+}
+\label{fig:hub-spoke-bnz-2}
+\end{figure}
+
 
 While it may now be tempting to start formalizing operations such as $\neg, \vee, \wedge, \cup, \cap, +, \times, \ldots$, we \emph{deliberately leave $\Sigma$ unbound for now}.\footnote{When $\Sigma$ stays unbound throughout a discussion, we sometimes write $\mathbf{Alg}(-)$ for the family $\bigcup_\Sigma \mathbf{Alg}(\Sigma)$ over the signatures the library names.  The dash is a typographic placeholder meaning ``fill in any signature here'' (Mac Lane's standard argument-blank convention~\cite{maclane1971categories}, same family as $\mathrm{Hom}(-, -)$ for the hom-bifunctor and $(-)^{\mathrm{op}}$ for the opposite-category functor); it is \emph{not} a unary minus.  The notation reappears in §\ref{sec:cpp-stlc-mapping}.}
 The binding of concrete operator-shape signatures is deferred to later sections~\ref{sec:cpp-stlc-mapping}, \ref{sec:sets-rules}.
