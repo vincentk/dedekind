@@ -435,15 +435,20 @@ The authoritative textbook in the context of programming might be \emph{Types an
 For the more casual reader of this text, it should be sufficient to remember that category theory is a book-keeping device.
 It tells us what clicks together (the arrows compose), what doesn't, and how things might be rearranged or simplified.
 
-In the context of \texttt{dedekind}, we further restrict our attention to a subset that most readers will be familiar with: algebras,in the unversal algebra sense.
-That is: sets equipped with operations realising a signature $\Sigma$: 
-$\mathbf{Alg}(\Sigma) \subset \mathbf{Alg}(-) \subset \mathbf{Set} \subset \mathbf{Cat}$.\footnote{The unrelated algebraic-geometry usage of ``algebraic set'' for the zero locus of a system of polynomials is \emph{not} what we mean.}
-In algebra textbook terminology and for a fixed algebraic signature $\Sigma$ (a list of operation symbols with their arities): the universal-algebra category $\mathbf{Alg}(\Sigma)$~\cite{burris1981universalalgebra}.
-However, we \emph{deliberately leave $\Sigma$ unbound for now}, the intent is to defer the formalization of operations such as $\neg, \vee, \wedge, \cup, \cap, +, \times, \ldots$.
-Instead, the binding of concrete operator-shape signatures is deferred to later sections~\ref{sec:cpp-stlc-mapping}, \ref{sec:sets-rules}.
-\footnote{The dash is a typographic placeholder meaning ``fill in any signature here'' (Mac Lane's standard argument-blank convention~\cite{maclane1971categories}, same family as $\mathrm{Hom}(-, -)$ for the hom-bifunctor and $(-)^{\mathrm{op}}$ for the opposite-category functor); it is \emph{not} a unary minus.  The notation reappears in §\ref{sec:cpp-stlc-mapping}.}
-Familiar examples of such algebras are: The Booleans $\mathbb{B}$ with logical operations, the integers $\mathbb{Z}$ with addition and subtraction and so on.
-In functional programming terminology, this corresponds to $F_\Sigma$-algebras: for each signature $\Sigma$ there is a polynomial endofunctor $F_\Sigma$ on $\mathbf{Set}$, and Pierce~\cite{pierce1991basic} (§2.2) gives the isomorphism $\mathbf{Alg}(\Sigma) \cong F_\Sigma\text{-}\mathbf{Alg}$ that lets the same fragment read coherently to both audiences.
+In the context of \texttt{dedekind}, we focus on a subset of $\mathbf{Cat}$ that most readers will be familiar with: $ \mathbf{Alg}(-)$, i.e. algebras,in the unversal algebra sense.\footnote{The unrelated algebraic-geometry usage of ``algebraic set'' for the zero locus of a system of polynomials is \emph{not} what we mean.}\footnote{The dash is a typographic placeholder meaning ``fill in any signature here'' (Mac Lane's standard argument-blank convention~\cite{maclane1971categories}, same family as $\mathrm{Hom}(-, -)$ for the hom-bifunctor and $(-)^{\mathrm{op}}$ for the opposite-category functor); it is \emph{not} a unary minus.  The notation reappears in §\ref{sec:cpp-stlc-mapping}.}
+Here, we adopt algebra textbook terminology where the universal-algebra category is $\mathbf{Alg}(\Sigma)$~\cite{burris1981universalalgebra} and $\Sigma$ denotes a fixed algebraic signature, i.e. a list of operation symbols with their arities.
+However, \emph{we deliberately leave $\Sigma$ unbound for now}, the intent is to defer the formalization of operations.
+The net result are sets equipped with operations realising as yet unspecified signatures $\Sigma$ such that the subset relations read
+$\mathbf{Mon} \subset \mathbf{Alg}(\Sigma) \subset \mathbf{Alg}(-) \subset \mathbf{Set} \subset \mathbf{Cat}$.
+While the binding of concrete operator-shape signatures such as such as $\neg, \vee, \wedge, \cup, \cap, +, \times, \ldots$ is discussed in later sections~\ref{sec:cpp-stlc-mapping}, \ref{sec:sets-rules},
+we can already name some familiar examples: The Booleans $\mathbb{B}$ with logical operations, the integers $\mathbb{Z}$ with addition and subtraction and so on.
+
+In functional programming terminology, these algebras correspond to $F_\Sigma$-algebras: for each signature $\Sigma$ there is a polynomial endofunctor $F_\Sigma$ on $\mathbf{Set}$, and Pierce~\cite{pierce1991basic} (§2.2) gives the isomorphism $\mathbf{Alg}(\Sigma) \cong F_\Sigma\text{-}\mathbf{Alg}$ that lets the same fragment read coherently to both audiences.
+We note though that while $\mathbf{Alg}(\Sigma)$ is only a small fragment of $\mathbf{Cat}$ we expect that it carries enough algebraic vocabulary to host carriers, operators, and structure-preserving arrows in the shape an engineering library actually needs and so we use it as a starting point for a structuralist mathematical style~\cite{marquis2022structuralist}.
+
+We further restrict our attention to the \emph{small} slice $\mathbf{Alg}(\Sigma)_{\beth_1}$ --- the $\beth_1$-small algebras, i.e.\ algebras whose underlying carrier has cardinality at most that of the continuum.\footnote{The standard mathematical workaround for ``a category whose objects are all sets / all categories'' is a Grothendieck universe hierarchy~\cite{maclane1971categories} (Mac Lane, §I.6): pick a universe $U$, define $\mathbf{Set}_U$ as the category of $U$-small sets, then let $\mathbf{Set}_U$ live as an object of a larger-universe $\mathbf{Cat}_{U'}$.  The hierarchy stratifies; no level contains itself.  The $\beth_1$ subscript here pins the smallness ceiling at the cardinality of the continuum --- enough to admit $\mathbb{R}$-sized carriers, small enough to forbid proper-class self-reference.}
+Pinning the object-size at $\beth_1$ admits the transfinite carriers required for Dedekind-cut arithmetic ($\mathbb{R}$, §\ref{sec:numeric-tension}) and the continuum-sized $\mathbb{C}$, $\mathbb{D}$ used in §\ref{sec:linalg}, while keeping a foundational ceiling that forbids the self-referential paradoxes of the proper-class meta-categories $\mathbf{Set}$ and $\mathbf{Cat}$.
+
 
 In the language of software architecture, the picture might be described as a hub-and-spoke layout.
 Each hub is a carrier type $\mathrm{T}$, and the spokes are the maps that compose with it.
@@ -479,11 +484,7 @@ Most arrows on each hub and most inter-hub arrows are suppressed for clarity. Th
 \label{fig:hub-spoke-bnz}
 \end{figure}
 
-We note though that while $\mathbf{Alg}(\Sigma)$ is only a small fragment of $\mathbf{Cat}$ we expect that it carries enough algebraic vocabulary to host carriers, operators, and structure-preserving arrows in the shape an engineering library actually needs and so we use it as a starting point for a structuralist mathematical style~\cite{marquis2022structuralist}.
-We further restrict our attention to the \emph{small} slice $\mathbf{Alg}(\Sigma)_{\beth_1}$ --- the $\beth_1$-small algebras, i.e.\ algebras whose underlying carrier has cardinality at most that of the continuum.\footnote{The standard mathematical workaround for ``a category whose objects are all sets / all categories'' is a Grothendieck universe hierarchy~\cite{maclane1971categories} (Mac Lane, §I.6): pick a universe $U$, define $\mathbf{Set}_U$ as the category of $U$-small sets, then let $\mathbf{Set}_U$ live as an object of a larger-universe $\mathbf{Cat}_{U'}$.  The hierarchy stratifies; no level contains itself.  The $\beth_1$ subscript here pins the smallness ceiling at the cardinality of the continuum --- enough to admit $\mathbb{R}$-sized carriers, small enough to forbid proper-class self-reference.}
-Pinning the object-size at $\beth_1$ admits the transfinite carriers required for Dedekind-cut arithmetic ($\mathbb{R}$, §\ref{sec:numeric-tension}) and the continuum-sized $\mathbb{C}$, $\mathbb{D}$ used in §\ref{sec:linalg}, while keeping a foundational ceiling that forbids the self-referential paradoxes of the proper-class meta-categories $\mathbf{Set}$ and $\mathbf{Cat}$.
-
-The general thrust of the architecture is then to view these small, algebraic categories as universal underlying carrier sets, with specific sets characterised in the ETCS sense by a subobject classifier $\Omega$.
+The general thrust of the architecture is then to view these small, algebraic categories as universal underlying carrier sets, with specific subsets characterised in the ETCS sense by a subobject classifier $\Omega$.
 A predicate $P : A \to \Omega$ maps ambient elements to \emph{truth values}, and $\Omega$ is the type those truth values live in.
 Change $\Omega$, and you change what counts as membership.
 The default is the one every programmer expects: $\Omega = \mathbb{B} = \{\top, \bot\}$, classical two-valued logic.
