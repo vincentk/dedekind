@@ -48,6 +48,8 @@ module;
 #include <compare>
 #include <concepts>
 #include <functional>
+#include <type_traits>  // std::remove_cvref_t for the IsArrow Dom/Cod plumbing
+#include <utility>      // std::forward for the image() overload
 
 export module dedekind.sets:singleton;
 
@@ -274,8 +276,9 @@ constexpr auto operator<<=(const SingletonSet<T, L>& s, Func&& f) {
  * wraps a value in a singleton (the Singleton-monad unit).
  *
  * @section singleton__Image_Categorical_Anchor
- * Type-level breadcrumbs (the static_asserts below) tie the image
- * construction back to:
+ * Type-level breadcrumbs (placed downstream in
+ * @c morphologies:archimedean rather than below in this partition; see
+ * the closing note for why) tie the image construction back to:
  *   - @c IsArrow: the source-side requirement.  @c f's @c Domain must
  *     match the singleton's @c pivot type.
  *   - The Kleisli triple's @c >>= (above): @c image(f, @c s) @c is the

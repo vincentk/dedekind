@@ -16,6 +16,7 @@ module;
 
 #include <cmath>
 #include <concepts>
+#include <type_traits>  // std::is_same_v for the image-of-Singleton breadcrumb
 
 export module dedekind.morphologies:archimedean;
 
