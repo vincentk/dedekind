@@ -435,13 +435,12 @@ The authoritative textbook in the context of programming might be \emph{Types an
 For the more casual reader of this text, it should be sufficient to remember that category theory is a book-keeping device.
 It tells us what clicks together (the arrows compose), what doesn't, and how things might be rearranged or simplified.
 
-In the context of \texttt{dedekind}, we focus on a subset of $\mathbf{Cat}$ that most readers will be familiar with: $ \mathbf{Alg}(-)$, i.e. algebras,in the unversal algebra sense.\footnote{The unrelated algebraic-geometry usage of ``algebraic set'' for the zero locus of a system of polynomials is \emph{not} what we mean.}\footnote{The dash is a typographic placeholder meaning ``fill in any signature here'' (Mac Lane's standard argument-blank convention~\cite{maclane1971categories}, same family as $\mathrm{Hom}(-, -)$ for the hom-bifunctor and $(-)^{\mathrm{op}}$ for the opposite-category functor); it is \emph{not} a unary minus.  The notation reappears in §\ref{sec:cpp-stlc-mapping}.}
-Here, we adopt algebra textbook terminology where the universal-algebra category is $\mathbf{Alg}(\Sigma)$~\cite{burris1981universalalgebra} and $\Sigma$ denotes a fixed algebraic signature, i.e. a list of operation symbols with their arities.
-However, \emph{we deliberately leave $\Sigma$ unbound for now}, the intent is to defer the formalization of operations.
-The net result are sets equipped with operations realising as yet unspecified signatures $\Sigma$ such that the subset relations read
-$\mathbf{Mon} \subset \mathbf{Alg}(\Sigma) \subset \mathbf{Alg}(-) \subset \mathbf{Set} \subset \mathbf{Cat}$.
-While the binding of concrete operator-shape signatures such as such as $\neg, \vee, \wedge, \cup, \cap, +, \times, \ldots$ is discussed in later sections~\ref{sec:cpp-stlc-mapping}, \ref{sec:sets-rules},
-we can already name some familiar examples: The Booleans $\mathbb{B}$ with logical operations, the integers $\mathbb{Z}$ with addition and subtraction and so on.
+In the context of \texttt{dedekind}, we focus on a fragment of $\mathbf{Cat}$ that most readers will be familiar with: $\mathbf{Alg}(-)$, i.e.\ algebras in the universal-algebra sense.\footnote{The unrelated algebraic-geometry usage of ``algebraic set'' for the zero locus of a system of polynomials is \emph{not} what we mean.}\footnote{The dash is a typographic placeholder meaning ``fill in any signature here'' (Mac Lane's standard argument-blank convention~\cite{maclane1971categories}, same family as $\mathrm{Hom}(-, -)$ for the hom-bifunctor and $(-)^{\mathrm{op}}$ for the opposite-category functor); it is \emph{not} a unary minus.  The notation reappears in §\ref{sec:cpp-stlc-mapping}.}
+Here, we adopt algebra textbook terminology where the universal-algebra category is $\mathbf{Alg}(\Sigma)$~\cite{burris1981universalalgebra} and $\Sigma$ denotes a fixed algebraic signature, i.e.\ a list of operation symbols with their arities.
+However, \emph{we deliberately leave $\Sigma$ unbound for now}; the intent is to defer the formalisation of concrete operations.
+The net result is a focus on sets equipped with operations realising as-yet-unspecified signatures $\Sigma$.
+Concretely, $\mathbf{Alg}(\Sigma) \subset \mathbf{Alg}(-)$ for any fixed $\Sigma$; varieties such as $\mathbf{Mon}$ arise as $\mathbf{Alg}(\Sigma_{\mathrm{Mon}})$ for the monoid signature, and $\mathbf{Alg}(-)$ itself is a small fragment of $\mathbf{Cat}$ (with $\mathbf{Set}$ entering not as a containing supercategory but via the standard forgetful functor $U: \mathbf{Alg}(-) \to \mathbf{Set}$ that drops operations and keeps the carrier).
+While the binding of concrete operator-shape signatures such as $\neg, \vee, \wedge, \cup, \cap, +, \times, \ldots$ is discussed in later sections~\ref{sec:cpp-stlc-mapping}, \ref{sec:sets-rules}, we can already name some familiar examples: the Booleans $\mathbb{B}$ with logical operations, the integers $\mathbb{Z}$ with addition and subtraction, and so on.
 
 In functional programming terminology, these algebras correspond to $F_\Sigma$-algebras: for each signature $\Sigma$ there is a polynomial endofunctor $F_\Sigma$ on $\mathbf{Set}$, and Pierce~\cite{pierce1991basic} (§2.2) gives the isomorphism $\mathbf{Alg}(\Sigma) \cong F_\Sigma\text{-}\mathbf{Alg}$ that lets the same fragment read coherently to both audiences.
 We note though that while $\mathbf{Alg}(\Sigma)$ is only a small fragment of $\mathbf{Cat}$ we expect that it carries enough algebraic vocabulary to host carriers, operators, and structure-preserving arrows in the shape an engineering library actually needs and so we use it as a starting point for a structuralist mathematical style~\cite{marquis2022structuralist}.
@@ -514,21 +513,19 @@ The intersection $\mathbf{CCC} \cap \mathbf{Cpp}$ is non-empty and reifiable wit
 To prove the existence of this intersection, we exhibit a mapping from the physical substrate of $\mathbf{Cpp}$ to the axiomatic requirements of a Cartesian Closed Category (the internal language of $\mathbf{STLC}$).
 
 \begin{enumerate}
-    \item \textbf{Selection of Objects (The Carrier):} 
-    We select the sub-universe of types satisfying \cppinline{std::regular}. By requiring copy-semantics and equational extensionality ($a = b \implies f(a) = f(b)$), we satisfy the requirement that \textbf{Objects} behave as sets of values with stable identity. 
-    \item \textbf{Selection of Morphisms (The Arrows):} 
-    We select the set of \cppinline{constexpr} lambda expressions. By enforcing a pure, terminating, and effect-free evaluation context, we ensure that every function in this sub-universe is a \textbf{Morphism} in the categorical sense, satisfying the identity and associativity laws of composition without the interference of side effects. 
-    \item \textbf{Construction of Products (Cartesian):} 
-    The existence of \cppinline{std::pair} and structural binding provides the \textbf{Universal Property of Products}. For any two objects $A, B$, there exists a product $A \times B$ with projection morphisms $\pi_1, \pi_2$, satisfying the Cartesian requirement.
-    \item \textbf{Construction of Exponentials (Closed):} 
-    The existence of first-class lambdas provides the \textbf{Internal Hom-object} ($B^A$). This allows for the \textbf{Currying} transformation, mapping $f: (A \times B) \to C$ to $\hat{f}: A \to C^B$, satisfying the requirement for a closed category.
-    \item \textbf{The Classifier (The Gate):} 
-    The C++23 \cppinline{concept} mechanism acts as the \textbf{Sieve}. It allows us to mechanically verify that a given type $T \in \mathbf{Cpp}$ possesses the internal structure required to inhabit the $\mathbf{CCC}$.
+    \item \textbf{Selection of Objects (The Carrier):}
+    We select the sub-universe of types satisfying \cppinline{std::regular}, which provides default-construction, copy-semantics, and equality (\cppinline{operator==}).  Equational extensionality on morphisms ($a = b \implies f(a) = f(b)$) is not given by \cppinline{std::regular} alone but follows on the disciplined fragment of Appendix~\ref{app:jlt-systemf} (in particular: no public-API specialisation, no behaviour-branching SFINAE), under which functions cannot inspect type internals to break the read.  In that fragment, \textbf{Objects} behave as sets of values with stable identity.
+    \item \textbf{Selection of Morphisms (The Arrows):}
+    We select \cppinline{constexpr} lambda expressions on the disciplined fragment.  \cppinline{constexpr} alone does not guarantee purity (captures may be mutable) nor termination (template instantiation is Turing-complete in general); the pure, terminating, effect-free reading is recovered specifically by Appendix~\ref{app:jlt-systemf}'s admissibility rules (no \cppinline{reinterpret_cast}, no SFINAE branching, bounded instantiation depth).  Under this discipline, the selected functions behave as \textbf{Morphisms} satisfying identity and associativity of composition.
+    \item \textbf{Construction of Products (Cartesian):}
+    The existence of \cppinline{std::pair} and structural binding provides the \textbf{Universal Property of Products}.  For any two objects $A, B$, there exists a product $A \times B$ with projection morphisms $\pi_1, \pi_2$, satisfying the Cartesian requirement.
+    \item \textbf{Construction of Exponentials (Closed):}
+    First-class lambdas provide the \textbf{Internal Hom-object} ($B^A$): a lambda value \cppinline{[](A) -> B { ... }} reifies an arrow $A \to B$ as a C++ value.  This admits the \textbf{Currying} transformation, mapping $f: A \times B \to C$ to $\hat{f}: A \to C^B$, which on the disciplined fragment realises the bijection $\mathrm{Hom}(A \times B, C) \cong \mathrm{Hom}(A, C^B)$ that closure requires.
+    \item \textbf{The Admissibility Gate:}
+    The C++23 \cppinline{concept} mechanism acts as the \textbf{type-level admissibility gate}: it mechanically verifies that a given type $T \in \mathbf{Cpp}$ exposes the operator-shape and member-API surface required to inhabit $\mathbf{CCC}$.  This is the C++-side \emph{gate}, not the topos-level subobject classifier $\Omega$ of §\ref{sec:alg-sigma}; the bona fide $\Omega$ machinery lives one layer up in the codebase's \texttt{category:topoi} partition, and \cppinline{concept} is the type-system's complement to it.
 \end{enumerate}
 
-Because we have exhibited a terminal object (\cppinline{void} / \cppinline{monostate}), finite products, and exponentials within the \cppinline{constexpr} subset of C++, the intersection $\mathbf{CCC} \cap \mathbf{Cpp}$ is inhabited.
-The \textbf{Juliet Posture} is defined as the intentional selection of this inhabitant.
-The requirements are recapitulated in Table \ref{tab:cpp23-ccc-mapping}.
+We have therefore exhibited a terminal object (\cppinline{void} / \cppinline{std::monostate}), finite products, and exponentials within the disciplined \cppinline{constexpr} subset of C++ defined by Appendix~\ref{app:jlt-systemf}'s admissibility rules; the intersection $\mathbf{CCC} \cap \mathbf{Cpp}$ is inhabited, and the \textbf{Juliet Posture} is the intentional selection of this inhabitant.  The requirements are recapitulated in Table \ref{tab:cpp23-ccc-mapping}.
 \end{proof}
 
 \begin{table}[h]
@@ -538,10 +535,10 @@ The requirements are recapitulated in Table \ref{tab:cpp23-ccc-mapping}.
 \begin{tabular}{@{}lll@{}}
 \toprule
 \textbf{C++23 Pillar} & \textbf{Categorical Requirement} & \textbf{Role in the Juliet Posture (\(\mathbf{Jlt}\))} \\ \midrule
-\cppinline{std::regular} & \textbf{Objects as Sets} & Provides equational extensionality and identity. \\
-\cppinline{constexpr} & \textbf{Pure Morphisms} & Guarantees side-effect-free, terminating composition. \\
-\cppinline{concept} & \textbf{Structural Logic} & Filters \(\mathbf{Cpp}\) noise to identify \(\mathbf{CCC}\) structures. \\
-Lambdas / \cppinline{std::pair} & \textbf{Exponentials / Products} & Reifies the Cartesian and Closed properties. \\ \bottomrule
+\cppinline{std::regular} & \textbf{Objects as Sets} & Default-construction, copy-semantics, equality.  Equational extensionality on the disciplined fragment. \\
+\cppinline{constexpr} + admissibility rules & \textbf{Pure Morphisms} & Side-effect-free, terminating composition (purity / termination follow from Appendix~\ref{app:jlt-systemf}, not from \cppinline{constexpr} alone). \\
+\cppinline{concept} & \textbf{Type-level admissibility gate} & Filters \(\mathbf{Cpp}\) noise; complement of the topos-level \(\Omega\) (§\ref{sec:alg-sigma}). \\
+Lambdas / \cppinline{std::pair} & \textbf{Exponentials / Products} & Reifies the closed and Cartesian properties. \\ \bottomrule
 \end{tabular}
 \end{table}
 
