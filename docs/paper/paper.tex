@@ -665,7 +665,7 @@ For carriers that already clear the architectural \cppinline{IsTotal} gate (peri
 Carriers whose totality lives outside that ladder (e.g.\ exact-arithmetic types like \cppinline{Rational<I>}, or signed integer types whose overflow is UB) need an additional architectural lift on \cppinline{IsTotal} before the strict concepts will match.
 The user has audited their inputs to a regime where the law actually holds.
 Examples are integer arithmetic on a domain where overflow cannot occur, IEEE \cppinline{double} accepted with associativity-by-fiat for a specific application, or a custom carrier whose modular wrap-around the user proves consistent with the surrounding logic.
-The opt-in is the user's pinky-swear in the down-stream.
+The opt-in is the user's pinky-swear in the downstream.
 They own the proof that the swear is honest.
 IFNDR is the standard's bite if the swear was a lie.
 This is the operational discharge of the satisfies/models distinction §\ref{sec:jlt} introduces.
