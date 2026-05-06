@@ -199,4 +199,50 @@ static_assert(IsEquivalence<int, std::equal_to<int>>,
 static_assert(IsEquivalence<bool, std::equal_to<bool>>,
               "std::equal_to<bool> must satisfy IsEquivalence on bool.");
 
+// ---------------------------------------------------------------------------
+// IsHashFunction: hash arrows as first-class citizens (#598/#605 scout).
+// ---------------------------------------------------------------------------
+
+/**
+ * @concept IsHashFunction
+ * @brief A callable @c h on @c T whose codomain is @c std::size_t —
+ *        i.e. an arrow @c T @c → @c size_t.
+ *
+ * @details A hash function induces a canonical equivalence relation on
+ * its domain:
+ * @f[ x \,\sim_h\, y \iff h(x) \,=\, h(y), @f]
+ * the @b kernel of @c h read as a binary relation.  This relation is
+ * automatically reflexive / symmetric / transitive as a consequence of
+ * @c size_t equality being so on @c std::size_t — i.e. every
+ * @c IsHashFunction structurally @b induces an @c IsEquivalence.  The
+ * partition is the fibres @f$h^{-1}(s)@f$ for @f$s \in \mathrm{im}(h)@f$,
+ * grouping inputs that collide under @c h.
+ *
+ * The concept lives next to @c IsEquivalence because the equivalence
+ * relation @b is the hash's mathematical content; the @c size_t codomain
+ * is a representation choice (the arithmetic-friendly fibre index, used
+ * by @c std::unordered_set / @c std::unordered_map for bucket dispatch).
+ *
+ * @tparam H The hash callable (e.g.\ @c std::hash<T>).
+ * @tparam T The carrier the hash is defined on.
+ *
+ * @b Recommendation (per Gemini correspondence, 2026-05-06): the home
+ * of the base concept is the equivalence-relation layer; algebra-
+ * specific refinements (rolling hashes as Monoid → Ring homomorphisms,
+ * etc.) belong further downstream once they materialise.
+ */
+export template <typename H, typename T>
+concept IsHashFunction = requires(const H& h, const T& x) {
+  { h(x) } -> std::convertible_to<std::size_t>;
+};
+
+// Witness: the canonical hash on a primitive carrier satisfies the
+// concept (and so does the std::regular equality next to it — the
+// pair (std::hash<int>, std::equal_to<int>) is the textbook
+// fibre-partition witness for `int`).
+static_assert(IsHashFunction<std::hash<int>, int>,
+              "std::hash<int> is the canonical hash arrow int → size_t.");
+static_assert(IsHashFunction<std::hash<bool>, bool>,
+              "std::hash<bool> is the canonical hash arrow bool → size_t.");
+
 }  // namespace dedekind::category

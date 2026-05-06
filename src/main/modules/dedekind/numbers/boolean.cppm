@@ -164,6 +164,25 @@ static_assert(
         FiniteBooleanSetOf<>{}))>,
     "FiniteBooleanSetOf<> is the canonical IsSet anchor for 𝔹.");
 
+// (1b) ExtensionalSet<bool> is the canonical *listed* (vs. predicate)
+//      carrier for 𝔹: instances store their elements as data (e.g.
+//      `{false, true}` for the universal Boolean set) rather than
+//      sampling them by a characteristic predicate.  This static_assert
+//      pins the type-level claim — that the carrier lifts to IsSet via
+//      the same `ambient_set<bool>(...)` gate (#598) — so the
+//      type-checker carries the proof regardless of which elements any
+//      particular instance happens to hold.  Element-level witnesses
+//      (instances actually containing both `true` and `false`) live in
+//      `extensional_test.cpp` since `std::unordered_set` is not
+//      constexpr-initializable with elements in C++23.  Sister anchor
+//      to (1): predicate vs. listed view of the same Ω-shaped set.
+static_assert(
+    dedekind::category::IsSet<decltype(dedekind::category::ambient_set<bool>(
+        dedekind::sets::ExtensionalSet<bool>{}))>,
+    "ExtensionalSet<bool> (the canonical listed-form carrier for 𝔹) "
+    "lifts to IsSet via ambient_set<bool>(...). Element-level "
+    "{false, true} witnesses live in extensional_test.cpp (#598).");
+
 // (2) Syntax (the C++ operator surface that maps to 𝔹's algebra).
 //     Witnesses written against 𝔹 directly (= @c bool post-#400) so the
 //     formal-verification block reads against the canonical species

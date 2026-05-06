@@ -6,10 +6,9 @@
 import dedekind.sets;
 
 using namespace dedekind::sets;
-using namespace dedekind::interop;
 
-TEST_CASE("Sets: std container interop bridges explicit extensional sets",
-          "[sets][interop]") {
+TEST_CASE("Sets: std container bridges materialise ExtensionalSet",
+          "[sets][extensional]") {
   SECTION("Set-like concept recognizes supported std containers") {
     static_assert(StdSetLike<std::set<int>>);
     static_assert(StdSetLike<std::unordered_set<int>>);
@@ -46,5 +45,17 @@ TEST_CASE("Sets: std container interop bridges explicit extensional sets",
 
     const auto ext_round_trip = from_std(back);
     REQUIRE(ext_round_trip == ext);
+  }
+
+  SECTION("ExtensionalSet<bool> materialises 𝔹 as a listed 2-element set") {
+    // Element-level witness for the type-level breadcrumb in
+    // numbers/boolean.cppm:(1b).  std::unordered_set is not
+    // constexpr-initializable with non-empty contents in C++23, so the
+    // listed-form ExtensionalSet<bool>{false, true} witness lives here
+    // at runtime rather than at namespace scope.
+    const auto B = from_std(std::unordered_set<bool>{false, true});
+    REQUIRE(B.size() == 2u);
+    REQUIRE(B.contains(false));
+    REQUIRE(B.contains(true));
   }
 }
