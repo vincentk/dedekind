@@ -427,7 +427,7 @@ The strategy of this section is a three-step intersection.
 Both category theory and modern C++23 are large and occasionally intimidating beasts; each, however, admits a tractable subset with somewhat simpler atomic building blocks and clear composition rules.
 The \texttt{dedekind} library lives at their intersection.
 
-\subsection{A Goldilocks Zone in Category Theory: $\mathbf{Alg}(-)_{\beth_1}$}
+\subsection{A Well-Behaved Structure in Category Theory: $\mathbf{Alg}(-)_{\beth_1}$}
 \label{sec:alg-sigma}
 
 The choice of anchoring the library's domain in category theory on the mathematical side is neither new nor arbitrary and follows a well-trodden path.
@@ -498,10 +498,10 @@ In $\mathbb{K}_3$, $P \lor \neg P = \mathit{Unknown}$ is a calm, unremarkable id
 The paradox was never in the floats; it was in our choice of $\Omega$.
 $\Omega$ parameterises membership truth values while the $\beth_1$ ceiling parameterises carrier size; the two are orthogonal.
 
-\subsection{A Goldilocks Zone in C++: the Juliet Posture $\mathbf{Jlt} \subset (\mathbf{CCC} \cap \mathbf{Cpp})$}
+\subsection{A Well-Behaved Structure in C++: the Juliet Posture $\mathbf{Jlt} \subset (\mathbf{CCC} \cap \mathbf{Cpp})$}
 \label{sec:jlt}
 
-In Section \ref{sec:alg-sigma}, a mathematical Goldilocks zone was identified as $\mathbf{Alg}(-)_{\beth_1}$.
+In Section \ref{sec:alg-sigma}, a well-behaved structure was identified as $\mathbf{Alg}(-)_{\beth_1}$.
 Here, we identify its engineering counterpart: the Juliet Posture $\mathbf{Jlt}$, a structural subcategory of the intersection $\mathbf{CCC} \cap \mathbf{Cpp}$.
 This is the zone where C++ types exhibit the Cartesian Closed symmetry required to inhabit our algebraic hubs.
 
@@ -509,7 +509,7 @@ This is the zone where C++ types exhibit the Cartesian Closed symmetry required 
 The intersection $\mathbf{CCC} \cap \mathbf{Cpp}$ is non-empty and reifiable within the C++23 translation unit.
 \end{proposition}
 
-\begin{proof}
+\begin{proof}[Sketch]
 To prove the existence of this intersection, we exhibit a mapping from the physical substrate of $\mathbf{Cpp}$ to the axiomatic requirements of a Cartesian Closed Category (the internal language of $\mathbf{STLC}$).
 
 \begin{enumerate}
