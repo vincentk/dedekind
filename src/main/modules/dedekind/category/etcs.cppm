@@ -418,12 +418,10 @@ constexpr auto ambient_set(Pred&& predicate) {
 /** @brief Lift @c std::unordered_set<T, ...> by const-ref into an IsSet
  *         object.  Borrows lifetime; zero copy. (#607 slice 1) */
 export template <typename T, typename Hash, typename Equal, typename Alloc>
-constexpr auto ambient_set(
-    const std::unordered_set<T, Hash, Equal, Alloc>& s)
+constexpr auto ambient_set(const std::unordered_set<T, Hash, Equal, Alloc>& s)
   requires IsSpecies<T>
 {
-  return ambient_set<T>(
-      [&s](const T& x) -> bool { return s.contains(x); });
+  return ambient_set<T>([&s](const T& x) -> bool { return s.contains(x); });
 }
 
 /** @brief Lift @c std::unordered_set<T, ...> by rvalue.  Moves the
@@ -433,9 +431,8 @@ export template <typename T, typename Hash, typename Equal, typename Alloc>
 constexpr auto ambient_set(std::unordered_set<T, Hash, Equal, Alloc>&& s)
   requires IsSpecies<T>
 {
-  return ambient_set<T>([s = std::move(s)](const T& x) -> bool {
-    return s.contains(x);
-  });
+  return ambient_set<T>(
+      [s = std::move(s)](const T& x) -> bool { return s.contains(x); });
 }
 
 /** @brief Lift @c std::set<T, ...> by const-ref.  Borrows lifetime;
@@ -444,8 +441,7 @@ export template <typename T, typename Compare, typename Alloc>
 constexpr auto ambient_set(const std::set<T, Compare, Alloc>& s)
   requires IsSpecies<T>
 {
-  return ambient_set<T>(
-      [&s](const T& x) -> bool { return s.contains(x); });
+  return ambient_set<T>([&s](const T& x) -> bool { return s.contains(x); });
 }
 
 /** @brief Lift @c std::set<T, ...> by rvalue.  Moves the container
@@ -454,31 +450,26 @@ export template <typename T, typename Compare, typename Alloc>
 constexpr auto ambient_set(std::set<T, Compare, Alloc>&& s)
   requires IsSpecies<T>
 {
-  return ambient_set<T>([s = std::move(s)](const T& x) -> bool {
-    return s.contains(x);
-  });
+  return ambient_set<T>(
+      [s = std::move(s)](const T& x) -> bool { return s.contains(x); });
 }
 
 // Witnesses: std-containers satisfy IsSet directly via the lift.
-static_assert(
-    IsSet<decltype(ambient_set(
-        std::declval<const std::unordered_set<int>&>()))>,
-    "std::unordered_set<int> lifts to IsSet via ambient_set (lvalue) "
-    "without a project-shipped wrapper.");
+static_assert(IsSet<decltype(ambient_set(
+                  std::declval<const std::unordered_set<int>&>()))>,
+              "std::unordered_set<int> lifts to IsSet via ambient_set (lvalue) "
+              "without a project-shipped wrapper.");
 
 static_assert(
-    IsSet<decltype(ambient_set(
-        std::declval<std::unordered_set<int>&&>()))>,
+    IsSet<decltype(ambient_set(std::declval<std::unordered_set<int>&&>()))>,
     "std::unordered_set<int> lifts to IsSet via ambient_set (rvalue).");
 
 static_assert(
-    IsSet<decltype(ambient_set(
-        std::declval<const std::set<int>&>()))>,
+    IsSet<decltype(ambient_set(std::declval<const std::set<int>&>()))>,
     "std::set<int> lifts to IsSet via ambient_set (lvalue).");
 
-static_assert(
-    IsSet<decltype(ambient_set(std::declval<std::set<int>&&>()))>,
-    "std::set<int> lifts to IsSet via ambient_set (rvalue).");
+static_assert(IsSet<decltype(ambient_set(std::declval<std::set<int>&&>()))>,
+              "std::set<int> lifts to IsSet via ambient_set (rvalue).");
 
 /**
  * @section etcs__IsSet_entails_CCC_directional_witness
