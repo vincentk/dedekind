@@ -164,6 +164,20 @@ static_assert(
         FiniteBooleanSetOf<>{}))>,
     "FiniteBooleanSetOf<> is the canonical IsSet anchor for 𝔹.");
 
+// (1b) ExtensionalSet<bool> is the canonical *listed* (vs. predicate) form
+//      of 𝔹: the 2-element set {false, true} stored as data rather than
+//      sampled by a characteristic predicate.  It lifts to IsSet through
+//      the same `ambient_set<bool>(...)` gate (#598), giving the §3
+//      rosetta a concrete extensional carrier on the canonical 2-element
+//      species.  Sister anchor to (1): predicate vs. listed view of the
+//      same Ω-shaped set.
+static_assert(
+    dedekind::category::IsSet<decltype(dedekind::category::ambient_set<bool>(
+        dedekind::sets::ExtensionalSet<bool>{}))>,
+    "ExtensionalSet<bool> is the canonical *listed* (vs. predicate) IsSet "
+    "form of 𝔹 — the 2-element set as data rather than as characteristic "
+    "predicate (#598).");
+
 // (2) Syntax (the C++ operator surface that maps to 𝔹's algebra).
 //     Witnesses written against 𝔹 directly (= @c bool post-#400) so the
 //     formal-verification block reads against the canonical species

@@ -100,7 +100,7 @@ auto path_from_str_seq(nb::sequence seq) -> std::vector<std::string> {
 
 // ── extensional sets: Python set ↔ dedekind.sets ─────────────────────────
 // These functions accept and return std::set<T> (Python set) and route
-// through FiniteExtensionalSet<T> via the dedekind.python facade.
+// through ExtensionalSet<T> via the dedekind.python facade.
 // Overloaded for bool, int, double (float), std::string (str).
 
 template <typename T>

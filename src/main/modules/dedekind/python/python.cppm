@@ -40,10 +40,10 @@ import dedekind.sets;
 
 export namespace dedekind::python {
 
-/** @brief Alias for the finite extensional carrier exposed to wrappers. */
+/** @brief Alias for the extensional carrier exposed to wrappers. */
 template <typename T, typename L = dedekind::category::ClassicalLogic,
           typename Hash = std::hash<T>, typename Equal = std::equal_to<T>>
-using FiniteSet = dedekind::sets::FiniteExtensionalSet<T, L, Hash, Equal>;
+using FiniteSet = dedekind::sets::ExtensionalSet<T, L, Hash, Equal>;
 
 /** @brief Alias for finite path values intended for range-friendly adapters. */
 template <typename T>
@@ -59,15 +59,15 @@ using GraphBLASBackend = dedekind::linear_algebra::GraphBLASBackendStub;
 template <typename StdSetLike, typename T, typename L, typename Hash,
           typename Equal>
 constexpr auto to_std(
-    const dedekind::sets::FiniteExtensionalSet<T, L, Hash, Equal>& src)
+    const dedekind::sets::ExtensionalSet<T, L, Hash, Equal>& src)
     -> StdSetLike {
-  return dedekind::interop::to_std<StdSetLike>(src);
+  return dedekind::sets::to_std<StdSetLike>(src);
 }
 
 /** @brief Explicit bridge from supported std set-like carriers. */
 template <typename StdSetLike>
 constexpr auto from_std(const StdSetLike& src) {
-  return dedekind::interop::from_std(src);
+  return dedekind::sets::from_std(src);
 }
 
 /** @brief Adapt an input range into a finite path materialization. */

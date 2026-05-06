@@ -40,7 +40,7 @@ export import :cardinality;
 export import :boundaries;
 export import :computability;
 export import :expressions;
-export import :interop;
+export import :extensional;
 export import :mereology;
 export import :singleton;
 export import :relational;

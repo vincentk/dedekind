@@ -489,11 +489,11 @@ The intended usage is an auditable round-trip at the value boundary rather than 
 import dedekind.sets;
 
 std::set<int> ordered{1, 2, 3};
-auto ext = dedekind::interop::from_std(ordered);
-auto back = dedekind::interop::to_std<std::set<int>>(ext);
+auto ext = dedekind::sets::from_std(ordered);
+auto back = dedekind::sets::to_std<std::set<int>>(ext);
 \end{lstlisting}
 
-This boundary is intentionally constrained. Conversions are explicit on purpose; there are no implicit container bridges. Interop materializes a finite runtime carrier (\texttt{FiniteExtensionalSet<T>}), so the conversion step is visible in code review and does not silently reinterpret intensional set expressions as extensional data. Membership meaning is preserved when container equivalence agrees with ordinary value equality, including the currently supported MVP paths through \texttt{std::set<T>} with the default comparator and \texttt{std::unordered\_set<T, Hash, Equal>}. Custom \texttt{std::set<T, Compare>} comparators are intentionally excluded at this stage because they may encode a different notion of uniqueness than the extensional equality contract the library is prepared to audit.
+This boundary is intentionally constrained. Conversions are explicit on purpose; there are no implicit container bridges. The bridges materialize a runtime carrier (\texttt{ExtensionalSet<T>}), so the conversion step is visible in code review and does not silently reinterpret intensional set expressions as extensional data. Membership meaning is preserved when container equivalence agrees with ordinary value equality, including the currently supported MVP paths through \texttt{std::set<T>} with the default comparator and \texttt{std::unordered\_set<T, Hash, Equal>}. Custom \texttt{std::set<T, Compare>} comparators are intentionally excluded at this stage because they may encode a different notion of uniqueness than the extensional equality contract the library is prepared to audit.
 
 The current implementation therefore optimizes for reviewability over breadth: extensional equality is checked through round-trip tests on the supported carriers, and the complexity profile remains straightforward, with \texttt{from\_std} and \texttt{to\_std} operating in linear time $O(n)$, while the destination container continues to determine lookup behaviour ($O(1)$ expected for \texttt{std::unordered\_set}, $O(\log n)$ for \texttt{std::set}).
 
@@ -1989,17 +1989,17 @@ A \emph{family} is a ``set of sets'': a collection of subsets of a common ambien
 
 The partition still consumes \texttt{element\_of\_t<Species>} (in \texttt{AnySetOver}'s \texttt{SingletonSet} alternative), but the trait itself lives upstream in \texttt{:boundaries} after the \#400 lift. Removing the duplicate definition fixed a drift hazard the reviewer flagged on PR \#407.
 
-\subsection{The \texttt{:interop} partition}
-\label{sec:sets-interop}
+\subsection{The \texttt{:extensional} partition}
+\label{sec:sets-extensional}
 
-The \texttt{:interop} partition bridges the intensional \texttt{dedekind.sets} model with standard-library hash-based containers. \texttt{FiniteExtensionalSet<T>} is a thin wrapper over \texttt{std::unordered\_set<T>} that satisfies the \texttt{IsSet} concept: it carries a characteristic morphism $\chi : T \to \Omega$, reports \texttt{cardinality\_type = Finite}, and exposes standard begin/end iteration.
+The \texttt{:extensional} partition hosts \texttt{ExtensionalSet<T>}, a thin wrapper over \texttt{std::unordered\_set<T>}, together with the std-container bridges that materialise it. The carrier satisfies the \texttt{IsSet} concept via the same \texttt{ambient\_set<T>(...)} lift that \texttt{SingletonSet} uses: it is a callable predicate $\chi : T \to \Omega$, reports \texttt{cardinality\_type = Finite}, and exposes standard begin/end iteration. The \texttt{Finite} qualifier was dropped from the carrier name because in any computable representation an extensional set is necessarily finite; the proposition is preserved as a \texttt{static\_assert} breadcrumb against \texttt{IsFiniteSet} / \texttt{IsFinite} / \texttt{IsCountable}.
 
 Two symmetric conversion functions handle the boundary crossing:
 \begin{itemize}
-  \item \texttt{from\_std(std::set<T>)} and \texttt{from\_std(std::unordered\_set<T>)} --- materialise a standard container into a \texttt{FiniteExtensionalSet<T>}.
+  \item \texttt{from\_std(std::set<T>)} and \texttt{from\_std(std::unordered\_set<T>)} --- materialise a standard container into an \texttt{ExtensionalSet<T>}.
   \item \texttt{to\_std<StdSetLike>(ext\_set)} --- project back into any \texttt{StdSetLike} target whose \texttt{value\_type} matches.
 \end{itemize}
-Conversions that would silently discard structural information (e.g.\ non-default comparators) are blocked at compile time via \texttt{static\_assert}, keeping the interop surface explicit and auditable.
+Conversions that would silently discard structural information (e.g.\ non-default comparators) are blocked at compile time via \texttt{static\_assert}, keeping the bridges explicit and auditable.
 
 \subsection{The \texttt{:set} partition}
 To ground this theoretical approach, Table 1 maps the fundamental axioms of the Elementary Theory of the Category of Sets (ETCS) -- as codified in the pedagogical treatment by Lawvere and Rosebrugh \cite{lawvere2003sets} -- to their structural equivalents in \texttt{dedekind}.

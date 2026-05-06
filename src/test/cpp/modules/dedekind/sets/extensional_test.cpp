@@ -6,10 +6,9 @@
 import dedekind.sets;
 
 using namespace dedekind::sets;
-using namespace dedekind::interop;
 
-TEST_CASE("Sets: std container interop bridges explicit extensional sets",
-          "[sets][interop]") {
+TEST_CASE("Sets: std container bridges materialise ExtensionalSet",
+          "[sets][extensional]") {
   SECTION("Set-like concept recognizes supported std containers") {
     static_assert(StdSetLike<std::set<int>>);
     static_assert(StdSetLike<std::unordered_set<int>>);
