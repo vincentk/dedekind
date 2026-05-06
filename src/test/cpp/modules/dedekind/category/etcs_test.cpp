@@ -1,6 +1,5 @@
 /** @file test/cpp/modules/dedekind/category/etcs_test.cpp */
 #include <catch2/catch_test_macros.hpp>
-
 #include <set>
 #include <unordered_set>
 #include <utility>
