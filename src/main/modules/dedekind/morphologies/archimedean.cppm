@@ -16,10 +16,13 @@ module;
 
 #include <cmath>
 #include <concepts>
+#include <type_traits>  // std::is_same_v for the image-of-Singleton breadcrumb
 
 export module dedekind.morphologies:archimedean;
 
+import dedekind.category; // IsArrow (#602 layer-1 breadcrumb)
 import dedekind.sequences;
+import dedekind.sets; // SingletonSet, singleton, image (#602 layer-1)
 
 namespace dedekind::morphologies {
 using namespace dedekind::sequences;
@@ -170,5 +173,67 @@ static_assert(
     "double must satisfy IsOrderedField (regular + totally ordered).");
 static_assert(IsArchimedeanField<double>,
               "double must satisfy IsArchimedeanField (x + 1 is defined).");
+
+/**
+ * @section archimedean__Image_Of_Singleton_Under_Peano_Successor
+ * Categorical breadcrumbs for @c image(f, @c SingletonSet) (#602 layer-1).
+ *
+ * The witness arrow is the Peano successor S(x) = x + 1, the canonical
+ * carrier-level instance of the @c successor / @c generator vocabulary
+ * this partition already names (see the §archimedean__Vocabulary_Notes_388
+ * block).  We pin three structural claims so the type-checker carries the
+ * proof of @c image's behaviour on the cardinality-1 case:
+ *
+ *   (i)   @c image is defined for @c IsArrow inputs.
+ *   (ii)  Tier preservation: cardinality 1 ↦ 1, @c IsExtensional and
+ *         @c IsPointedSet preserved on the codomain side.
+ *   (iii) Kleisli factoring: @c image(f, @c s) is the cardinality-1
+ *         instance of the powerset-monad bind @c s @c >>= @c (η @c ∘ @c f),
+ *         witnessed by @c image(f, @c s) @c == @c singleton(f(s.pivot))
+ *         and @c image(f, @c s) @c == @c (s @c >>= @c (η @c ∘ @c f)).
+ *
+ * Placing the witness here rather than in @c :sets:singleton keeps the
+ * upstream partition free of its own assertion machinery; @c :archimedean
+ * is downstream of @c :sets and is the natural home for a Peano-successor
+ * test (per PR #604 review).
+ */
+namespace singleton_image_breadcrumb {
+
+struct succ_arrow {
+  using Domain = int;
+  using Codomain = int;
+  constexpr int operator()(int x) const { return x + 1; }
+};
+
+static_assert(dedekind::category::IsArrow<succ_arrow>,
+              "Breadcrumb (i): the Peano-successor witness arrow "
+              "S(x) = x + 1 satisfies IsArrow.");
+
+inline constexpr auto s0 = dedekind::sets::SingletonSet<int>{0};
+inline constexpr auto s1 = dedekind::sets::image(succ_arrow{}, s0);
+
+static_assert(
+    std::is_same_v<decltype(s1), const dedekind::sets::SingletonSet<int>>,
+    "Breadcrumb (ii): image preserves the SingletonSet shape; "
+    "Cod(F) == int folds back to SingletonSet<int>.");
+static_assert(dedekind::sets::IsExtensional<decltype(s1)>,
+              "Breadcrumb (ii): image preserves IsExtensional.");
+static_assert(dedekind::sets::IsPointedSet<decltype(s1), int>,
+              "Breadcrumb (ii): image preserves IsPointedSet.");
+static_assert(s1.size() == 1,
+              "Breadcrumb (ii): cardinality is preserved (1 ↦ 1).");
+
+static_assert(s1 == dedekind::sets::singleton(succ_arrow{}(s0.pivot)),
+              "Breadcrumb (iii): image(f, s) == singleton(f(s.pivot)) — "
+              "the cardinality-1 instance of the powerset-monad Kleisli "
+              "bind, factored through η.");
+static_assert(s1 == (s0 >>=
+                     [](int x) {
+                       return dedekind::sets::singleton(succ_arrow{}(x));
+                     }),
+              "Breadcrumb (iii): image factors through the existing "
+              "Singleton-monad Kleisli bind (>>=).");
+
+}  // namespace singleton_image_breadcrumb
 
 }  // namespace dedekind::morphologies

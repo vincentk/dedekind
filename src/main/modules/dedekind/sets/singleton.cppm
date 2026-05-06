@@ -48,6 +48,8 @@ module;
 #include <compare>
 #include <concepts>
 #include <functional>
+#include <type_traits>  // std::remove_cvref_t for the IsArrow Dom/Cod plumbing
+#include <utility>      // std::forward for the image() overload
 
 export module dedekind.sets:singleton;
 
@@ -262,6 +264,55 @@ constexpr auto operator<<=(const SingletonSet<T, L>& s, Func&& f) {
   // Co-Kleisli Extend: apply contextual logic and re-wrap.
   return SingletonSet<U, L>{std::forward<Func>(f)(s)};
 }
+
+/**
+ * @section singleton__Image
+ * @brief Image of a @c SingletonSet under an @c IsArrow.
+ *
+ * @details For an arrow @c f @c : @c T @c → @c U and a singleton
+ * @c {x} @c ⊂ @c T, the categorical image is @c f({x}) @c = @c {f(x)}
+ * @c ⊂ @c U.  This is the cardinality-1 instance of the powerset-monad
+ * Kleisli bind: equivalent to @c s @c >>= @c (η @c ∘ @c f), where @c η
+ * wraps a value in a singleton (the Singleton-monad unit).
+ *
+ * @section singleton__Image_Categorical_Anchor
+ * Type-level breadcrumbs (placed downstream in
+ * @c morphologies:archimedean rather than below in this partition; see
+ * the closing note for why) tie the image construction back to:
+ *   - @c IsArrow: the source-side requirement.  @c f's @c Domain must
+ *     match the singleton's @c pivot type.
+ *   - The Kleisli triple's @c >>= (above): @c image(f, @c s) @c is the
+ *     Singleton specialisation of the Set-monad's bind, factored
+ *     through @c η.
+ *   - The image's tier (@c IsCompileTimeEnumerable, @c IsFiniteSet,
+ *     @c HasDecidableMembership): all preserved by the lift, since
+ *     @c SingletonSet has cardinality 1 in both source and target.
+ *
+ * Filed under #602's layer-1 plan: per-shape image dispatch, Singleton
+ * source as the entry point.  The same shape generalises to
+ * @c ExtensionalSet (sister source post-#598) and predicate sets
+ * (lazy / iso-witnessed cases).  Note: the per-wrapper overload shape
+ * is itself due for dissolution under #607's Juliet-clean refactor;
+ * this slice lands the entry-point breadcrumbs in their current form.
+ */
+export template <typename L, dedekind::category::IsArrow F>
+constexpr auto image(
+    F&& f,
+    const SingletonSet<dedekind::category::Dom<std::remove_cvref_t<F>>, L>& s) {
+  using U = dedekind::category::Cod<std::remove_cvref_t<F>>;
+  return SingletonSet<U, L>{std::forward<F>(f)(s.pivot)};
+}
+
+// Breadcrumbs for `image(f, SingletonSet)` live downstream in
+// `morphologies:archimedean` (the natural home for Peano-successor
+// witnesses).  The structural claims pinned there:
+//   (i)   `image` is defined for @c IsArrow inputs.
+//   (ii)  Tier preservation: cardinality 1 ↦ 1, @c IsExtensional and
+//         @c IsPointedSet preserved on the codomain side.
+//   (iii) Kleisli factoring: @c image(f, s) == @c (s @c >>= @c (η @c ∘ @c f))
+//         — the cardinality-1 instance of the powerset-monad bind.
+// Placing the witness downstream lets us avoid contaminating
+// @c :singleton with its own assertion machinery (per PR #604 review).
 
 };  // namespace dedekind::sets
 
