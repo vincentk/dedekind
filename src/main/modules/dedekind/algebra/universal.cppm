@@ -121,18 +121,16 @@ inline constexpr bool is_carrier_v = std::regular<T>;
 /**
  * @concept IsCarrier
  * @brief The admissibility gate for algebraic inhabitants.
- * 
- * Rules out pathologies (non-destructible, non-movable) while 
- * generously admitting anything that looks like a value, a sequence, 
+ *
+ * Rules out pathologies (non-destructible, non-movable) while
+ * generously admitting anything that looks like a value, a sequence,
  * or an ordered set.
  */
 export template <typename T>
-concept IsCarrier = 
-    (std::destructible<T> && (std::movable<T> || std::swappable<T>)) && 
-    (std::regular<T> || 
-     std::partially_ordered_with<T, T> || 
-     std::ranges::range<T> || 
-     is_carrier_v<T>);
+concept IsCarrier =
+    (std::destructible<T> && (std::movable<T> || std::swappable<T>)) &&
+    (std::regular<T> || std::partially_ordered_with<T, T> ||
+     std::ranges::range<T> || is_carrier_v<T>);
 
 /**
  * @concept IsAlgebra
