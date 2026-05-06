@@ -501,31 +501,45 @@ $\Omega$ parameterises membership truth values while the $\beth_1$ ceiling param
 \subsection{A Well-Behaved Structure in C++: the Juliet Posture $\mathbf{Jlt} \subset (\mathbf{CCC} \cap \mathbf{Cpp})$}
 \label{sec:jlt}
 
-In Section \ref{sec:alg-sigma}, a well-behaved structure was identified as $\mathbf{Alg}(-)_{\beth_1}$.
-Here, we identify its engineering counterpart: the Juliet Posture $\mathbf{Jlt}$, a structural subcategory of the intersection $\mathbf{CCC} \cap \mathbf{Cpp}$.
-This is the zone where C++ types exhibit the Cartesian Closed symmetry required to inhabit our algebraic hubs.
+Section~\ref{sec:alg-sigma} carved out a well-behaved structure on the mathematics side: $\mathbf{Alg}(-)_{\beth_1}$.
+Here we want the engineering counterpart: the Juliet Posture $\mathbf{Jlt}$, a structural subcategory sitting at the intersection $\mathbf{CCC} \cap \mathbf{Cpp}$.
+The idea is to find a fragment of C++ that, suitably disciplined, behaves as a Cartesian Closed Category --- exactly the structure our algebraic hubs need to inhabit.
 
 \begin{proposition}
 The intersection $\mathbf{CCC} \cap \mathbf{Cpp}$ is non-empty and reifiable within the C++23 translation unit.
 \end{proposition}
 
 \begin{proof}[Sketch]
-To prove the existence of this intersection, we exhibit a mapping from the physical substrate of $\mathbf{Cpp}$ to the axiomatic requirements of a Cartesian Closed Category (the internal language of $\mathbf{STLC}$).
+To show this intersection isn't empty, we exhibit one of its inhabitants: a mapping from a disciplined slice of $\mathbf{Cpp}$ to what a Cartesian Closed Category asks for (equivalently, the internal language of $\mathbf{STLC}$).
+The slice is what \cppinline{std::regular} together with the admissibility rules of Appendix~\ref{app:jlt-systemf} carves out; the mapping is the five steps below.
 
 \begin{enumerate}
-    \item \textbf{Selection of Objects (The Carrier):}
-    We select the sub-universe of types satisfying \cppinline{std::regular}, which provides default-construction, copy-semantics, and equality (\cppinline{operator==}).  Equational extensionality on morphisms ($a = b \implies f(a) = f(b)$) is not given by \cppinline{std::regular} alone but follows on the disciplined fragment of Appendix~\ref{app:jlt-systemf} (in particular: no public-API specialisation, no behaviour-branching SFINAE), under which functions cannot inspect type internals to break the read.  In that fragment, \textbf{Objects} behave as sets of values with stable identity.
-    \item \textbf{Selection of Morphisms (The Arrows):}
-    We select \cppinline{constexpr} lambda expressions on the disciplined fragment.  \cppinline{constexpr} alone does not guarantee purity (captures may be mutable) nor termination (template instantiation is Turing-complete in general); the pure, terminating, effect-free reading is recovered specifically by Appendix~\ref{app:jlt-systemf}'s admissibility rules (no \cppinline{reinterpret_cast}, no SFINAE branching, bounded instantiation depth).  Under this discipline, the selected functions behave as \textbf{Morphisms} satisfying identity and associativity of composition.
-    \item \textbf{Construction of Products (Cartesian):}
-    The existence of \cppinline{std::pair} and structural binding provides the \textbf{Universal Property of Products}.  For any two objects $A, B$, there exists a product $A \times B$ with projection morphisms $\pi_1, \pi_2$, satisfying the Cartesian requirement.
-    \item \textbf{Construction of Exponentials (Closed):}
-    First-class lambdas provide the \textbf{Internal Hom-object} ($B^A$): a lambda value \cppinline{[](A) -> B { ... }} reifies an arrow $A \to B$ as a C++ value.  This admits the \textbf{Currying} transformation, mapping $f: A \times B \to C$ to $\hat{f}: A \to C^B$, which on the disciplined fragment realises the bijection $\mathrm{Hom}(A \times B, C) \cong \mathrm{Hom}(A, C^B)$ that closure requires.
-    \item \textbf{The Admissibility Gate:}
-    The C++23 \cppinline{concept} mechanism acts as the \textbf{type-level admissibility gate}: it mechanically verifies that a given type $T \in \mathbf{Cpp}$ exposes the operator-shape and member-API surface required to inhabit $\mathbf{CCC}$.  This is the C++-side \emph{gate}, not the topos-level subobject classifier $\Omega$ of §\ref{sec:alg-sigma}; the bona fide $\Omega$ machinery lives one layer up in the codebase's \texttt{category:topoi} partition, and \cppinline{concept} is the type-system's complement to it.
+    \item \textbf{Objects.}
+    Take the types satisfying \cppinline{std::regular}: the ones with default-construction, copy-semantics, and an honest \cppinline{operator==}.
+    We can read these as sets of values with stable identity, as long as nothing else inspects type internals to break that read.
+    The admissibility rules of Appendix~\ref{app:jlt-systemf} (no public-API specialisation, no behaviour-branching SFINAE) are exactly what keeps the \emph{as long as} honest, and they're what gives us equational extensionality $a = b \implies f(a) = f(b)$ on the morphisms below.
+
+    \item \textbf{Morphisms.}
+    Take \cppinline{constexpr} lambda expressions, again on the disciplined fragment.
+    By itself \cppinline{constexpr} doesn't get us pure and terminating arrows --- captures can be mutable, and template instantiation is Turing-complete in the general case.
+    The same admissibility rules from Appendix~\ref{app:jlt-systemf} (no \cppinline{reinterpret_cast}, no SFINAE branching, bounded instantiation depth) recover the pure, terminating, effect-free reading; identity and associativity of composition hold by inspection.
+
+    \item \textbf{Products.}
+    \cppinline{std::pair} with structural binding hands us the universal property of products: for any $A, B$ we have a product $A \times B$ with projections $\pi_1, \pi_2$, and the mediating-arrow construction is the obvious tuple-build.
+    This is the \emph{Cartesian} half of the structure.
+
+    \item \textbf{Exponentials.}
+    First-class lambdas hand us the internal Hom-object $B^A$: a lambda value \cppinline{[](A) -> B { ... }} \emph{is} an arrow $A \to B$, packaged as a C++ value.
+    Currying --- mapping $f : A \times B \to C$ to $\hat{f} : A \to C^B$ --- is what lambdas-capturing-arguments do, and on the disciplined fragment it gives us the bijection $\mathrm{Hom}(A \times B, C) \cong \mathrm{Hom}(A, C^B)$ that \emph{closed} asks for.
+
+    \item \textbf{The admissibility gate.}
+    \cppinline{concept} does the work at compile time: it mechanically checks that a given type $T \in \mathbf{Cpp}$ has the operator-shape and member-API surface to inhabit $\mathbf{CCC}$.
+    Note this is the \emph{C++-side gate}, not the topos-level subobject classifier $\Omega$ of §\ref{sec:alg-sigma} --- the bona fide $\Omega$ lives one layer up in the codebase's \texttt{category:topoi} partition, and \cppinline{concept} is the type-system's complement to it.
 \end{enumerate}
 
-We have therefore exhibited a terminal object (\cppinline{void} / \cppinline{std::monostate}), finite products, and exponentials within the disciplined \cppinline{constexpr} subset of C++ defined by Appendix~\ref{app:jlt-systemf}'s admissibility rules; the intersection $\mathbf{CCC} \cap \mathbf{Cpp}$ is inhabited, and the \textbf{Juliet Posture} is the intentional selection of this inhabitant.  The requirements are recapitulated in Table \ref{tab:cpp23-ccc-mapping}.
+Putting these together: a terminal object (\cppinline{void} / \cppinline{std::monostate}), finite products, exponentials, and an admissibility gate, all inside the disciplined \cppinline{constexpr} subset Appendix~\ref{app:jlt-systemf} carves out.
+The intersection $\mathbf{CCC} \cap \mathbf{Cpp}$ is inhabited, and the \textbf{Juliet Posture} is the deliberate choice to live in the inhabitant.
+Table~\ref{tab:cpp23-ccc-mapping} recaps.
 \end{proof}
 
 \begin{table}[h]
